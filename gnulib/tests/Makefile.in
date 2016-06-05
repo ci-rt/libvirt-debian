@@ -3501,9 +3501,9 @@ EXTRA_DIST = test-accept.c signature.h macros.h test-alloca-opt.c \
 	test-init.sh test-thread_self.c test-thread_create.c macros.h \
 	test-time.c test-ttyname_r.c signature.h macros.h test-uname.c \
 	signature.h macros.h test-unistd.c unlockpt.c test-unlockpt.c \
-	signature.h macros.h unsetenv.c test-unsetenv.c signature.h \
-	macros.h test-usleep.c signature.h macros.h test-vasnprintf.c \
-	macros.h test-vasprintf.c signature.h macros.h \
+	signature.h macros.h test-unsetenv.c signature.h macros.h \
+	test-usleep.c signature.h macros.h test-vasnprintf.c macros.h \
+	test-vasprintf.c signature.h macros.h \
 	test-vc-list-files-git.sh test-vc-list-files-cvs.sh \
 	test-verify.c test-verify.sh test-vsnprintf.c signature.h \
 	macros.h test-wchar.c test-wcrtomb.sh test-wcrtomb.c \
@@ -3568,8 +3568,7 @@ EXTRA_libtests_a_SOURCES = dup.c error.c fdopen.c ftruncate.c \
 	spawn_faction_init.c spawnattr_destroy.c spawnattr_init.c \
 	spawnattr_setflags.c spawnattr_setsigmask.c spawnp.c ptsname.c \
 	ptsname_r.c putenv.c read.c setlocale.c signbitd.c signbitf.c \
-	signbitl.c symlink.c unlockpt.c unsetenv.c wctob.c wctomb.c \
-	write.c
+	signbitl.c symlink.c unlockpt.c wctob.c wctomb.c write.c
 AM_LIBTOOLFLAGS = --preserve-dup-deps
 test_accept_LDADD = $(LDADD) @LIBSOCKET@
 test_bind_LDADD = $(LDADD) @LIBSOCKET@ $(INET_PTON_LIB)
@@ -4711,7 +4710,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-write.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-xalloc-die.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/unlockpt.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/unsetenv.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wait-process.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wctob.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wctomb.Po@am__quote@

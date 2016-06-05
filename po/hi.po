@@ -17,9 +17,9 @@
 # sandeep shedmake <sandeep.shedmake@gmail.com>, 2007
 msgid ""
 msgstr ""
-"Project-Id-Version: libvirt 1.3.4\n"
+"Project-Id-Version: libvirt 1.3.5\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2016-05-28 18:54+0200\n"
+"POT-Creation-Date: 2016-06-03 14:01+0100\n"
 "PO-Revision-Date: 2014-02-25 10:31-0500\n"
 "Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: Hindi (http://www.transifex.com/projects/p/fedora/language/"
@@ -29,7 +29,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Zanata 3.8.3\n"
+"X-Generator: Zanata 3.8.4\n"
 
 #: daemon/admin.c:68 daemon/remote.c:1395 src/locking/lock_daemon.c:748
 #: src/logging/log_daemon.c:603
@@ -47,9 +47,9 @@ msgid "no server with matching name '%s' found"
 msgstr ""
 
 #: daemon/admin.c:271
-#, fuzzy, c-format
+#, c-format
 msgid "no client with matching id '%llu' found"
-msgstr "मेल खाते uuid '%s' के साथ कोई गुप्त नहीं"
+msgstr ""
 
 #: daemon/admin.c:281
 #, c-format
@@ -224,9 +224,9 @@ msgid "Too many servers '%d' for limit '%d'"
 msgstr ""
 
 #: daemon/admin_dispatch.h:445
-#, fuzzy, c-format
+#, c-format
 msgid "Too many clients '%d' for limit '%d'"
-msgstr "वस्तु के लिए बहुत ज्यादा संसाधन %d"
+msgstr ""
 
 #: daemon/admin_server.c:98
 msgid "Unable to retrieve threadpool parameters"
@@ -860,9 +860,8 @@ msgid "Invalid back reference"
 msgstr "अवैध बैक संदर्भ"
 
 #: gnulib/lib/regcomp.c:156
-#, fuzzy
 msgid "Unmatched [, [^, [:, [., or [="
-msgstr "बेमेल [ या [^"
+msgstr ""
 
 #: gnulib/lib/regcomp.c:159
 msgid "Unmatched ( or \\("
@@ -1050,14 +1049,14 @@ msgstr "अस्थायी डोमेन के लिए स्वतः �
 msgid "cannot create autostart directory %s"
 msgstr "ऑटोस्टार्ट निर्देशिका %s नहीं बना सकता है"
 
-#: src/bhyve/bhyve_driver.c:399 src/network/bridge_driver.c:3648
+#: src/bhyve/bhyve_driver.c:399 src/network/bridge_driver.c:3651
 #: src/storage/storage_driver.c:1292
 #, c-format
 msgid "Failed to create symlink '%s' to '%s'"
 msgstr "सांकेतिक लिंक '%s' को '%s' में बनाने में विफल"
 
 #: src/bhyve/bhyve_driver.c:406 src/libxl/libxl_driver.c:4065
-#: src/lxc/lxc_driver.c:3321 src/network/bridge_driver.c:3655
+#: src/lxc/lxc_driver.c:3321 src/network/bridge_driver.c:3658
 #: src/qemu/qemu_driver.c:8616 src/storage/storage_driver.c:1300
 #: src/uml/uml_driver.c:2491
 #, c-format
@@ -1301,7 +1300,7 @@ msgstr "सीपीयू विनिर्दिष्टता के लि
 msgid "Missing CPU architecture"
 msgstr "अनुपस्थित CPU ऑर्किटेक्चर"
 
-#: src/conf/cpu_conf.c:241 src/conf/domain_conf.c:15416
+#: src/conf/cpu_conf.c:241 src/conf/domain_conf.c:15423
 #, c-format
 msgid "Unknown architecture %s"
 msgstr "अज्ञात आर्किटेक्चर %s"
@@ -1839,9 +1838,9 @@ msgid ""
 msgstr ""
 
 #: src/conf/domain_conf.c:4222
-#, fuzzy, c-format
+#, c-format
 msgid "'iothread' attribute only supported for controller model '%s'"
-msgstr "रैम qxl के प्रकार के लिए केवल समर्थित विशेषता"
+msgstr ""
 
 #: src/conf/domain_conf.c:4363 src/conf/network_conf.c:2075
 #: src/conf/storage_conf.c:858
@@ -2060,17 +2059,17 @@ msgstr ""
 "चाहिए"
 
 #: src/conf/domain_conf.c:5593
-#, c-format
+#, fuzzy, c-format
 msgid "cannot parse bus '%s'"
 msgstr "'%s' बस नहीं विश्लेषित कर सकता है"
 
 #: src/conf/domain_conf.c:5600
-#, c-format
+#, fuzzy, c-format
 msgid "cannot parse target '%s'"
 msgstr "'%s' लक्ष्य का विश्लेषण नहीं कर सकता है"
 
 #: src/conf/domain_conf.c:5606
-#, c-format
+#, fuzzy, c-format
 msgid "cannot parse unit '%s'"
 msgstr "'%s' इकाई का विश्लेषण नहीं कर सकता है"
 
@@ -2643,9 +2642,9 @@ msgid "Malformed 'ioeventfd' value %s'"
 msgstr ""
 
 #: src/conf/domain_conf.c:8090
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid 'iothread' value '%s'"
-msgstr "अमान्य क्रिया प्रकार: '%s'\n"
+msgstr ""
 
 #: src/conf/domain_conf.c:8107
 #, c-format
@@ -3282,20 +3281,18 @@ msgid "unknown graphics listen type '%s'"
 msgstr "अज्ञात आलेखी श्रवण प्रकार '%s'"
 
 #: src/conf/domain_conf.c:10795
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "graphics 'listen' attribute '%s' must match 'address' attribute of first "
 "listen element (found '%s')"
 msgstr ""
-"ग्राफिक्स श्रवण गुण %s पहला क्षवन तत्व (प्राप्त %s) के पता गुण से मिलान होना अनिवार्य है"
 
 #: src/conf/domain_conf.c:10818
-#, fuzzy
 msgid "'network' attribute is valid only for listen type 'network'"
-msgstr "संजाल गुण स्वीकार्य नहीं हैं जब क्षवन प्रकार एक संजाल नहीं हो"
+msgstr ""
 
 #: src/conf/domain_conf.c:10830
-#, c-format
+#, fuzzy, c-format
 msgid "Invalid fromConfig value: %s"
 msgstr "fromConfig अनुवाद मान '%s'"
 
@@ -3305,12 +3302,12 @@ msgid "cannot parse vnc port %s"
 msgstr "vnc पोर्ट %s का विश्लेषण नहीं कर सकता है"
 
 #: src/conf/domain_conf.c:10960
-#, c-format
+#, fuzzy, c-format
 msgid "cannot parse vnc WebSocket port %s"
 msgstr "vnc WebSocket पोर्ट %s का विश्लेषण नहीं कर सकता है"
 
 #: src/conf/domain_conf.c:10971 src/qemu/qemu_parse_command.c:587
-#, c-format
+#, fuzzy, c-format
 msgid "unknown vnc display sharing policy '%s'"
 msgstr "अज्ञात vnc प्रदर्शन साझा नीति '%s'"
 
@@ -3792,573 +3789,576 @@ msgstr ""
 msgid "Device alias was not set for %s controller with index %d "
 msgstr ""
 
-#: src/conf/domain_conf.c:14283
+#: src/conf/domain_conf.c:14073
+#, c-format
+msgid "Unknown char device type: %d"
+msgstr ""
+
+#: src/conf/domain_conf.c:14290
 msgid "Domain already contains a device with the same address"
 msgstr ""
 
-#: src/conf/domain_conf.c:14345
+#: src/conf/domain_conf.c:14352
 msgid "cannot count boot devices"
 msgstr "बूट उपकरणों की गणना नहीं कर सकते हैं"
 
-#: src/conf/domain_conf.c:14355 src/conf/domain_conf.c:23355
+#: src/conf/domain_conf.c:14362 src/conf/domain_conf.c:23371
 msgid "per-device boot elements cannot be used together with os/boot elements"
 msgstr "प्रति-युक्ति बूट तत्व os/boot तत्व के साथ प्रयुक्त नहीं हो सकता"
 
-#: src/conf/domain_conf.c:14365
+#: src/conf/domain_conf.c:14372
 msgid "missing boot device"
 msgstr "गुम बूट युक्ति"
 
-#: src/conf/domain_conf.c:14370
+#: src/conf/domain_conf.c:14377
 #, c-format
 msgid "unknown boot device '%s'"
 msgstr "अज्ञात बूट युक्ति '%s'"
 
-#: src/conf/domain_conf.c:14402
+#: src/conf/domain_conf.c:14409
 #, fuzzy
 msgid "invalid value for boot menu timeout, must be in range [0,65535]"
 msgstr "rebootTimeout के लिए अवैध मान, [-1,65535] परिसर में जरूर होना चाहिए"
 
-#: src/conf/domain_conf.c:14416
+#: src/conf/domain_conf.c:14423
 msgid "need at least one serial port for useserial"
 msgstr "userserial के लिए कम-से-कम एक सीरियल पोर्ट की आवश्यकता"
 
-#: src/conf/domain_conf.c:14434
+#: src/conf/domain_conf.c:14441
 msgid "invalid value for rebootTimeout, must be in range [-1,65535]"
 msgstr "rebootTimeout के लिए अवैध मान, [-1,65535] परिसर में जरूर होना चाहिए"
 
-#: src/conf/domain_conf.c:14488
+#: src/conf/domain_conf.c:14495
 #, fuzzy
 msgid "invalid idmap start/target/count settings"
 msgstr "अवैध डोमेन स्थिति कारण '%s'"
 
-#: src/conf/domain_conf.c:14500
+#: src/conf/domain_conf.c:14507
 msgid "You must map the root user of container"
 msgstr "आप कंटेनर के रूट उपयोक्ता को जरूर मैप करें"
 
-#: src/conf/domain_conf.c:14537
+#: src/conf/domain_conf.c:14544
 msgid "Missing 'id' attribute in <iothread> element"
 msgstr ""
 
-#: src/conf/domain_conf.c:14543
+#: src/conf/domain_conf.c:14550
 #, c-format
 msgid "invalid iothread 'id' value '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:14574
+#: src/conf/domain_conf.c:14581
 msgid "missing vcpu id in vcpupin"
 msgstr ""
 
-#: src/conf/domain_conf.c:14580
+#: src/conf/domain_conf.c:14587
 #, c-format
 msgid "invalid setting for vcpu '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:14593
+#: src/conf/domain_conf.c:14600
 msgid "missing cpuset for vcpupin"
 msgstr "गायब cpuset vcpupin के लिए"
 
-#: src/conf/domain_conf.c:14599
+#: src/conf/domain_conf.c:14606
 #, c-format
 msgid "duplicate vcpupin for vcpu '%d'"
 msgstr ""
 
-#: src/conf/domain_conf.c:14608 src/conf/domain_conf.c:14675
-#: src/conf/domain_conf.c:14720 src/conf/domain_conf.c:15191
+#: src/conf/domain_conf.c:14615 src/conf/domain_conf.c:14682
+#: src/conf/domain_conf.c:14727 src/conf/domain_conf.c:15198
 #, c-format
 msgid "Invalid value of 'cpuset': %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14640
+#: src/conf/domain_conf.c:14647
 msgid "missing iothread id in iothreadpin"
 msgstr ""
 
-#: src/conf/domain_conf.c:14646
+#: src/conf/domain_conf.c:14653
 #, fuzzy, c-format
 msgid "invalid setting for iothread '%s'"
 msgstr "अमान्य क्रिया प्रकार: '%s'\n"
 
-#: src/conf/domain_conf.c:14653
+#: src/conf/domain_conf.c:14660
 msgid "zero is an invalid iothread id value"
 msgstr ""
 
-#: src/conf/domain_conf.c:14659
+#: src/conf/domain_conf.c:14666
 #, c-format
 msgid "Cannot find 'iothread' : %u"
 msgstr ""
 
-#: src/conf/domain_conf.c:14666
+#: src/conf/domain_conf.c:14673
 #, fuzzy
 msgid "missing cpuset for iothreadpin"
 msgstr "गायब cpuset vcpupin के लिए"
 
-#: src/conf/domain_conf.c:14682
+#: src/conf/domain_conf.c:14689
 #, c-format
 msgid "duplicate iothreadpin for same iothread '%u'"
 msgstr ""
 
-#: src/conf/domain_conf.c:14711
+#: src/conf/domain_conf.c:14718
 #, fuzzy
 msgid "missing cpuset for emulatorpin"
 msgstr "गायब cpuset vcpupin के लिए"
 
-#: src/conf/domain_conf.c:14873
+#: src/conf/domain_conf.c:14880
 msgid "hugepage size can't be zero"
 msgstr ""
 
-#: src/conf/domain_conf.c:14884 src/conf/numa_conf.c:184
+#: src/conf/domain_conf.c:14891 src/conf/numa_conf.c:184
 #: src/conf/numa_conf.c:249
 #, c-format
 msgid "Invalid value of 'nodeset': %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:14913
+#: src/conf/domain_conf.c:14920
 msgid "missing resource partition attribute"
 msgstr "गुम संस्धान विभाजन विशेषता"
 
-#: src/conf/domain_conf.c:14969
+#: src/conf/domain_conf.c:14976
 #, fuzzy, c-format
 msgid "unknown readonly value: %s"
 msgstr "अज्ञात rom बार मान '%s'"
 
-#: src/conf/domain_conf.c:14977
+#: src/conf/domain_conf.c:14984
 #, fuzzy, c-format
 msgid "unknown type value: %s"
 msgstr "अज्ञात PM स्थिति %s"
 
-#: src/conf/domain_conf.c:15003
+#: src/conf/domain_conf.c:15010
 #, fuzzy, c-format
 msgid "Missing attribute '%s' in element '%sched'"
 msgstr "<interface> तत्व में dev विशेषता लापता"
 
-#: src/conf/domain_conf.c:15013
+#: src/conf/domain_conf.c:15020
 #, c-format
 msgid "'%s' scheduler bitmap '%s' is empty"
 msgstr ""
 
-#: src/conf/domain_conf.c:15022
+#: src/conf/domain_conf.c:15029
 msgid "Missing scheduler attribute"
 msgstr ""
 
-#: src/conf/domain_conf.c:15028
+#: src/conf/domain_conf.c:15035
 #, fuzzy, c-format
 msgid "Invalid scheduler attribute: '%s'"
 msgstr "अवैध अवस्था विशेषता '%s'"
 
-#: src/conf/domain_conf.c:15039
+#: src/conf/domain_conf.c:15046
 #, fuzzy
 msgid "Missing scheduler priority"
 msgstr "गुम '%s' गुण"
 
-#: src/conf/domain_conf.c:15045
+#: src/conf/domain_conf.c:15052
 #, fuzzy
 msgid "Invalid value for element priority"
 msgstr "मध्यांतर के लिए अवैध मान"
 
-#: src/conf/domain_conf.c:15082
+#: src/conf/domain_conf.c:15089
 #, c-format
 msgid "%ssched attributes 'vcpus' must not overlap"
 msgstr ""
 
-#: src/conf/domain_conf.c:15145
+#: src/conf/domain_conf.c:15152
 msgid "maximum vcpus count must be an integer"
 msgstr ""
 
-#: src/conf/domain_conf.c:15158
+#: src/conf/domain_conf.c:15165
 msgid "current vcpus count must be an integer"
 msgstr ""
 
-#: src/conf/domain_conf.c:15173
+#: src/conf/domain_conf.c:15180
 #, c-format
 msgid "Unsupported CPU placement mode '%s'"
 msgstr "असमर्थित CPU प्लेसमेंट अवस्था '%s'"
 
-#: src/conf/domain_conf.c:15242
+#: src/conf/domain_conf.c:15249
 msgid "No data supplied for <initarg> element"
 msgstr "<initarg> तत्व के लिए कोई आँकड़ा आपूर्ति नहीं"
 
-#: src/conf/domain_conf.c:15281
-#, fuzzy
+#: src/conf/domain_conf.c:15288
 msgid "Only one acpi table is supported"
-msgstr "केवल एक numatune समर्थित"
+msgstr ""
 
-#: src/conf/domain_conf.c:15292
-#, fuzzy
+#: src/conf/domain_conf.c:15299
 msgid "Missing acpi table type"
-msgstr "गुम क्षमता प्रकार"
+msgstr ""
 
-#: src/conf/domain_conf.c:15303
-#, fuzzy, c-format
+#: src/conf/domain_conf.c:15310
+#, c-format
 msgid "Unknown acpi table type: %s"
-msgstr "अज्ञात  async कार्य प्रकार %s"
+msgstr ""
 
-#: src/conf/domain_conf.c:15370
+#: src/conf/domain_conf.c:15377
 msgid "missing domain type attribute"
 msgstr "गुम डोमेन प्रकार गुण"
 
-#: src/conf/domain_conf.c:15376
+#: src/conf/domain_conf.c:15383
 #, c-format
 msgid "invalid domain type %s"
 msgstr "अवैध डोमेन प्रकार %s"
 
-#: src/conf/domain_conf.c:15391
+#: src/conf/domain_conf.c:15398
 msgid "an os <type> must be specified"
 msgstr ""
 
-#: src/conf/domain_conf.c:15397
+#: src/conf/domain_conf.c:15404
 #, c-format
 msgid "unknown OS type '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:15463 src/conf/network_conf.c:2084
+#: src/conf/domain_conf.c:15470 src/conf/network_conf.c:2084
 #: src/conf/secret_conf.c:215 src/openvz/openvz_conf.c:1033
 #: src/xenconfig/xen_common.c:207
 msgid "Failed to generate UUID"
 msgstr "UUID उत्पन्न करने में विफल"
 
-#: src/conf/domain_conf.c:15470 src/conf/network_conf.c:2090
+#: src/conf/domain_conf.c:15477 src/conf/network_conf.c:2090
 #: src/conf/nwfilter_conf.c:2671 src/conf/secret_conf.c:221
 #: src/conf/storage_conf.c:872 src/libxl/libxl_migration.c:208
 msgid "malformed uuid element"
 msgstr "विरूपित uuid तत्व"
 
-#: src/conf/domain_conf.c:15480
+#: src/conf/domain_conf.c:15487
 msgid "Domain title can't contain newlines"
 msgstr "डोमेन शीर्षक में नई पंक्ति शामिल नहीं है"
 
-#: src/conf/domain_conf.c:15507
+#: src/conf/domain_conf.c:15514
 msgid "Failed to parse memory slot count"
 msgstr ""
 
-#: src/conf/domain_conf.c:15515
+#: src/conf/domain_conf.c:15522
 #, c-format
 msgid "Invalid memory core dump attribute value '%s'"
 msgstr "अवैध स्मृति कोर डंप विशेषता मान '%s'"
 
-#: src/conf/domain_conf.c:15522
+#: src/conf/domain_conf.c:15529
 #, fuzzy
 msgid "cannot extract hugepages nodes"
 msgstr "numatune नोड को निकाल नहीं सकता है"
 
-#: src/conf/domain_conf.c:15542
+#: src/conf/domain_conf.c:15549
 #, c-format
 msgid "nodeset attribute of hugepages of sizes %llu and %llu intersect"
 msgstr ""
 
-#: src/conf/domain_conf.c:15550
+#: src/conf/domain_conf.c:15557
 #, c-format
 msgid "two master hugepages detected: %llu and %llu"
 msgstr ""
 
-#: src/conf/domain_conf.c:15582
+#: src/conf/domain_conf.c:15589
 msgid "cannot extract blkiotune nodes"
 msgstr "blkiotune नोड को निकाल नहीं सकता है"
 
-#: src/conf/domain_conf.c:15597
+#: src/conf/domain_conf.c:15604
 #, c-format
 msgid "duplicate blkio device path '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:15629
+#: src/conf/domain_conf.c:15636
 #, fuzzy, c-format
 msgid "invalid iothreads count '%s'"
 msgstr "अमान्य क्रिया प्रकार: '%s'\n"
 
-#: src/conf/domain_conf.c:15651
+#: src/conf/domain_conf.c:15658
 #, c-format
 msgid "duplicate iothread id '%u' found"
 msgstr ""
 
-#: src/conf/domain_conf.c:15667
+#: src/conf/domain_conf.c:15674
 msgid "can't parse cputune shares value"
 msgstr "cputune साझा मान का विश्लेषण नहीं कर सकता है"
 
-#: src/conf/domain_conf.c:15676
+#: src/conf/domain_conf.c:15683
 msgid "can't parse cputune period value"
 msgstr "cputune अवधि मान का विश्लेषण नहीं कर सकता है"
 
-#: src/conf/domain_conf.c:15683
+#: src/conf/domain_conf.c:15690
 msgid "Value of cputune period must be in range [1000, 1000000]"
 msgstr "Cputune अवधि की मूल्य सीमा [1000, 1000000] में होना चाहिए"
 
-#: src/conf/domain_conf.c:15691
+#: src/conf/domain_conf.c:15698
 msgid "can't parse cputune quota value"
 msgstr "cputune कोटा मान विश्लेषण नहीं कर सकता"
 
-#: src/conf/domain_conf.c:15699
+#: src/conf/domain_conf.c:15706
 msgid "Value of cputune quota must be in range [1000, 18446744073709551]"
 msgstr "Cputune कोटा की मूल्य सीमा [1000, 18446744073709551] में होना चाहिए"
 
-#: src/conf/domain_conf.c:15707
+#: src/conf/domain_conf.c:15714
 msgid "can't parse cputune global period value"
 msgstr ""
 
-#: src/conf/domain_conf.c:15714
+#: src/conf/domain_conf.c:15721
 msgid "Value of cputune global period must be in range [1000, 1000000]"
 msgstr ""
 
-#: src/conf/domain_conf.c:15722
+#: src/conf/domain_conf.c:15729
 msgid "can't parse cputune global quota value"
 msgstr ""
 
-#: src/conf/domain_conf.c:15730
+#: src/conf/domain_conf.c:15737
 msgid ""
 "Value of cputune global quota must be in range [1000, 18446744073709551]"
 msgstr ""
 
-#: src/conf/domain_conf.c:15738
+#: src/conf/domain_conf.c:15745
 msgid "can't parse cputune emulator period value"
 msgstr "cputune एमुलेटर अवधि मान का विश्लेषण नहीं कर सकता है"
 
-#: src/conf/domain_conf.c:15746
+#: src/conf/domain_conf.c:15753
 msgid "Value of cputune emulator_period must be in range [1000, 1000000]"
 msgstr "Cputune emulator_period की मूल्य सीमा [1000, 1000000] में होना चाहिए"
 
-#: src/conf/domain_conf.c:15754
+#: src/conf/domain_conf.c:15761
 msgid "can't parse cputune emulator quota value"
 msgstr "cputune एमुलेटर कोटा मान विश्लेषण नहीं कर सकता"
 
-#: src/conf/domain_conf.c:15762
+#: src/conf/domain_conf.c:15769
 msgid ""
 "Value of cputune emulator_quota must be in range [1000, 18446744073709551]"
 msgstr ""
 "Cputune emulator_quota की मूल्य सीमा [1000, 18446744073709551] में होना चाहिए"
 
-#: src/conf/domain_conf.c:15778
+#: src/conf/domain_conf.c:15785
 msgid "cannot extract emulatorpin nodes"
 msgstr "emulatorpin नोड नहीं निकाल सकता है"
 
-#: src/conf/domain_conf.c:15785
+#: src/conf/domain_conf.c:15792
 msgid "only one emulatorpin is supported"
 msgstr "केवल एक emulatorpin समर्थित"
 
-#: src/conf/domain_conf.c:15798
+#: src/conf/domain_conf.c:15805
 #, fuzzy
 msgid "cannot extract iothreadpin nodes"
 msgstr "emulatorpin नोड नहीं निकाल सकता है"
 
-#: src/conf/domain_conf.c:15810
+#: src/conf/domain_conf.c:15817
 #, fuzzy
 msgid "cannot extract vcpusched nodes"
 msgstr "संसाधन नोड को निकाल नहीं सकता है"
 
-#: src/conf/domain_conf.c:15822
+#: src/conf/domain_conf.c:15829
 #, fuzzy
 msgid "cannot extract iothreadsched nodes"
 msgstr "emulatorpin नोड नहीं निकाल सकता है"
 
-#: src/conf/domain_conf.c:15846
+#: src/conf/domain_conf.c:15853
 msgid "Maximum CPUs greater than topology limit"
 msgstr "अधिकतम CPUs टोपोलॉजी सीमा से बड़ा"
 
-#: src/conf/domain_conf.c:15857
+#: src/conf/domain_conf.c:15864
 msgid "Number of CPUs in <numa> exceeds the <vcpu> count"
 msgstr "<numa> में CPUs की संख्या <vcpu> गणना से अधिक हो गई"
 
-#: src/conf/domain_conf.c:15864
+#: src/conf/domain_conf.c:15871
 msgid "CPU IDs in <numa> exceed the <vcpu> count"
 msgstr ""
 
-#: src/conf/domain_conf.c:15882
+#: src/conf/domain_conf.c:15889
 msgid "cannot extract resource nodes"
 msgstr "संसाधन नोड को निकाल नहीं सकता है"
 
-#: src/conf/domain_conf.c:15888
+#: src/conf/domain_conf.c:15895
 msgid "only one resource element is supported"
 msgstr "केवल एक संसाधन तत्व समर्थित"
 
-#: src/conf/domain_conf.c:15904
+#: src/conf/domain_conf.c:15911
 #, c-format
 msgid "unexpected feature '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:15914
+#: src/conf/domain_conf.c:15921
 #, c-format
 msgid "unknown value for attribute eoi: '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:15937 src/conf/domain_conf.c:15957
+#: src/conf/domain_conf.c:15944 src/conf/domain_conf.c:15964
 #, c-format
 msgid "unknown state attribute '%s' of feature '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:15975
+#: src/conf/domain_conf.c:15982
 #, c-format
 msgid "malformed gic version: %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:16003
+#: src/conf/domain_conf.c:16010
 #, c-format
 msgid "unsupported HyperV Enlightenment feature: %s"
 msgstr "असमर्थित HyperV प्रबुद्धता सुविधा: %s"
 
-#: src/conf/domain_conf.c:16012
+#: src/conf/domain_conf.c:16019
 #, c-format
 msgid "missing 'state' attribute for HyperV Enlightenment feature '%s'"
 msgstr "HyperV प्रबुद्धता सुविधा '%s' के लिए लापता 'अवस्था' विशेषता"
 
-#: src/conf/domain_conf.c:16020
+#: src/conf/domain_conf.c:16027
 #, c-format
 msgid "invalid value of state argument for HyperV Enlightenment feature '%s'"
 msgstr "HyperV प्रबुद्धता सुविधा '%s' के लिए अवस्था तर्क के अवैध मान"
 
-#: src/conf/domain_conf.c:16046
+#: src/conf/domain_conf.c:16053
 msgid "invalid HyperV spinlock retry count"
 msgstr "अवैध HyperV स्पिनलॉक कोशिश गिनती"
 
-#: src/conf/domain_conf.c:16052
+#: src/conf/domain_conf.c:16059
 msgid "HyperV spinlock retry count must be at least 4095"
 msgstr "HyperV स्पिनलॉक पुनर्कोशिश को कम से कम 4095 होना चाहिए"
 
-#: src/conf/domain_conf.c:16065
+#: src/conf/domain_conf.c:16072
 msgid "missing 'value' attribute for HyperV feature 'vendor_id'"
 msgstr ""
 
-#: src/conf/domain_conf.c:16072
+#: src/conf/domain_conf.c:16079
 #, c-format
 msgid "HyperV vendor_id value must not be more than %d characters."
 msgstr ""
 
-#: src/conf/domain_conf.c:16081
+#: src/conf/domain_conf.c:16088
 msgid "HyperV vendor_id value is invalid"
 msgstr ""
 
-#: src/conf/domain_conf.c:16105
+#: src/conf/domain_conf.c:16112
 #, fuzzy, c-format
 msgid "unsupported KVM feature: %s"
 msgstr "असमर्थित  XML तत्व %s"
 
-#: src/conf/domain_conf.c:16116
+#: src/conf/domain_conf.c:16123
 #, fuzzy, c-format
 msgid "missing 'state' attribute for KVM feature '%s'"
 msgstr "HyperV प्रबुद्धता सुविधा '%s' के लिए लापता 'अवस्था' विशेषता"
 
-#: src/conf/domain_conf.c:16124
+#: src/conf/domain_conf.c:16131
 #, fuzzy, c-format
 msgid "invalid value of state argument for KVM feature '%s'"
 msgstr "HyperV प्रबुद्धता सुविधा '%s' के लिए अवस्था तर्क के अवैध मान"
 
-#: src/conf/domain_conf.c:16150
+#: src/conf/domain_conf.c:16157
 #, fuzzy, c-format
 msgid "unexpected capability feature '%s'"
 msgstr "अप्रत्याशित फीचर %zu"
 
-#: src/conf/domain_conf.c:16161
+#: src/conf/domain_conf.c:16168
 #, fuzzy, c-format
 msgid "unknown state attribute '%s' of feature capability '%s'"
 msgstr "'%s' अज्ञात भंडारण क्षमता प्रकार '%s' के लिए"
 
-#: src/conf/domain_conf.c:16218
+#: src/conf/domain_conf.c:16225
 #, c-format
 msgid "unknown clock offset '%s'"
 msgstr "अज्ञात क्लाक ऑफसेट '%s'"
 
-#: src/conf/domain_conf.c:16234
+#: src/conf/domain_conf.c:16241
 #, c-format
 msgid "unknown clock adjustment '%s'"
 msgstr "अज्ञात घड़ी समायोजन '%s'"
 
-#: src/conf/domain_conf.c:16265
+#: src/conf/domain_conf.c:16272
 #, c-format
 msgid "unknown clock basis '%s'"
 msgstr "अज्ञात घड़ी आधार '%s'"
 
-#: src/conf/domain_conf.c:16278
+#: src/conf/domain_conf.c:16285
 msgid "missing 'timezone' attribute for clock with offset='timezone'"
 msgstr "'timezone' गुण offset='timezone' के साथ क्लॉक के लिए"
 
-#: src/conf/domain_conf.c:16346 src/conf/domain_conf.c:16355
+#: src/conf/domain_conf.c:16353 src/conf/domain_conf.c:16362
 msgid "Can't add another USB controller: USB is disabled for this domain"
 msgstr "अन्य USB नियंत्रक: USB को इस डोमेन के लिए निष्क्रिय कर दिया गया है"
 
-#: src/conf/domain_conf.c:16372
+#: src/conf/domain_conf.c:16379
 msgid "No master USB controller specified"
 msgstr "कोई मास्टर USB नियंत्रक निर्दिष्ट नहीं"
 
-#: src/conf/domain_conf.c:16379
+#: src/conf/domain_conf.c:16386
 msgid "cannot extract device leases"
 msgstr "युक्ति लीज़ों को निकाल नहीं सकता है"
 
-#: src/conf/domain_conf.c:16511
+#: src/conf/domain_conf.c:16518
 msgid "cannot extract console devices"
 msgstr "कंसोल उपकरणों को निकाल नहीं सकता है"
 
-#: src/conf/domain_conf.c:16568
+#: src/conf/domain_conf.c:16575
 msgid "Can't add USB input device. USB bus is disabled"
 msgstr "USB इनपुट युक्ति. USB बस निष्क्रिय है"
 
-#: src/conf/domain_conf.c:16625
+#: src/conf/domain_conf.c:16632
 msgid "Only one primary video device is supported"
 msgstr "केवल एक प्राथमिक वीडियो युक्ति समर्थित है"
 
-#: src/conf/domain_conf.c:16658
+#: src/conf/domain_conf.c:16665
 msgid "Can't add host USB device: USB is disabled in this host"
 msgstr "मेजबान USB युक्ति जोड़ नहीं सकता है: USB इस मेजबान में निष्क्रिय है"
 
-#: src/conf/domain_conf.c:16683
+#: src/conf/domain_conf.c:16690
 msgid "only a single watchdog device is supported"
 msgstr "केवल एक वाचडॉग युक्ति समर्थित है"
 
-#: src/conf/domain_conf.c:16702
+#: src/conf/domain_conf.c:16709
 msgid "only a single memory balloon device is supported"
 msgstr "केवल एक बैलून स्मृति युक्ति समर्थित है"
 
-#: src/conf/domain_conf.c:16737
+#: src/conf/domain_conf.c:16744
 msgid "only a single TPM device is supported"
 msgstr "केवल एक TPM युक्ति समर्थित है"
 
-#: src/conf/domain_conf.c:16752
+#: src/conf/domain_conf.c:16759
 msgid "only a single nvram device is supported"
 msgstr "केवल एक nvram युक्ति समर्थित है"
 
-#: src/conf/domain_conf.c:16776
+#: src/conf/domain_conf.c:16783
 msgid "Can't add USB hub: USB is disabled for this domain"
 msgstr "USB हब जोड़ नहीं सकता है: USB इस डोमेन के लिए निष्क्रिय है"
 
-#: src/conf/domain_conf.c:16799
+#: src/conf/domain_conf.c:16806
 msgid "Can't add redirected USB device: USB is disabled for this domain"
 msgstr "पुनर्निर्देशित USB युक्ति जोड़ नहीं सकता है: USB इस डोमेन के लिए निष्क्रिय है"
 
-#: src/conf/domain_conf.c:16814
+#: src/conf/domain_conf.c:16821
 msgid "only one set of redirection filter rule is supported"
 msgstr "केवल एक पुनर्निर्देशित फिल्टर का सेट समर्थित है"
 
-#: src/conf/domain_conf.c:16907
+#: src/conf/domain_conf.c:16914
 msgid "uid and gid should be mapped both"
 msgstr "यूआईडी और जीआईडी ​​दोनों मैप किया जाना चाहिए"
 
-#: src/conf/domain_conf.c:16927
+#: src/conf/domain_conf.c:16934
 #, c-format
 msgid "unknown smbios mode '%s'"
 msgstr "अज्ञात smbios मोड '%s'"
 
-#: src/conf/domain_conf.c:16990
+#: src/conf/domain_conf.c:16997
 msgid "no domain config"
 msgstr "कोई डोमेन विन्यास नहीं"
 
-#: src/conf/domain_conf.c:17003
+#: src/conf/domain_conf.c:17010
 msgid "missing domain state"
 msgstr "अनुपस्थित डोमेन स्थिति"
 
-#: src/conf/domain_conf.c:17008
+#: src/conf/domain_conf.c:17015
 #, c-format
 msgid "invalid domain state '%s'"
 msgstr "अवैध डोमेन स्थिति '%s'"
 
-#: src/conf/domain_conf.c:17017
+#: src/conf/domain_conf.c:17024
 #, c-format
 msgid "invalid domain state reason '%s'"
 msgstr "अवैध डोमेन स्थिति कारण '%s'"
 
-#: src/conf/domain_conf.c:17028
+#: src/conf/domain_conf.c:17035
 msgid "invalid pid"
 msgstr "अवैध pid"
 
-#: src/conf/domain_conf.c:17041 src/conf/network_conf.c:3128
+#: src/conf/domain_conf.c:17048 src/conf/network_conf.c:3128
 #, c-format
 msgid "Unknown taint flag %s"
 msgstr "अज्ञात मिलावट ध्वज %s"
 
-#: src/conf/domain_conf.c:17075 src/security/virt-aa-helper.c:610
+#: src/conf/domain_conf.c:17082 src/security/virt-aa-helper.c:610
 #: tools/virsh-domain-monitor.c:98 tools/virsh-domain-monitor.c:491
 #: tools/virsh-domain-monitor.c:598 tools/virsh-domain-monitor.c:713
 #: tools/virsh-domain.c:3104 tools/virsh-domain.c:3759
@@ -4368,42 +4368,42 @@ msgstr "अज्ञात मिलावट ध्वज %s"
 msgid "(domain_definition)"
 msgstr "(domain_definition)"
 
-#: src/conf/domain_conf.c:17116
+#: src/conf/domain_conf.c:17123
 #, c-format
 msgid "unexpected root element <%s>, expecting <domain>"
 msgstr "अप्रत्याशित रूट तत्व <%s>, <domain> की आशा"
 
-#: src/conf/domain_conf.c:17149
+#: src/conf/domain_conf.c:17156
 #, c-format
 msgid "unexpected root element <%s>, expecting <domstatus>"
 msgstr "अप्रत्याशित रूट तत्व <%s>, <domain> की आशा"
 
-#: src/conf/domain_conf.c:17196
+#: src/conf/domain_conf.c:17203
 #, c-format
 msgid "Target timer %s does not match source %s"
 msgstr "लक्ष्य टाइमर %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:17204
+#: src/conf/domain_conf.c:17211
 #, c-format
 msgid "Target timer presence %d does not match source %d"
 msgstr "लक्ष्य टाइमर दबाव %d का मेल स्रोत %d से नहीं है"
 
-#: src/conf/domain_conf.c:17212
+#: src/conf/domain_conf.c:17219
 #, c-format
 msgid "Target TSC frequency %lu does not match source %lu"
 msgstr "लक्ष्य TSC आवृति %lu का मेल स्रोत %lu से नहीं है"
 
-#: src/conf/domain_conf.c:17219
+#: src/conf/domain_conf.c:17226
 #, c-format
 msgid "Target TSC mode %s does not match source %s"
 msgstr "लक्ष्य TSC मोड %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:17236
+#: src/conf/domain_conf.c:17243
 #, c-format
 msgid "Target device address type %s does not match source %s"
 msgstr "लक्ष्य युक्ति पता प्रकार %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:17249
+#: src/conf/domain_conf.c:17256
 #, c-format
 msgid ""
 "Target device PCI address %04x:%02x:%02x.%02x does not match source %04x:"
@@ -4411,870 +4411,870 @@ msgid ""
 msgstr ""
 "लक्ष्य युक्ति PCI पता %04x:%02x:%02x.%02x का मेल स्रोत %04x:%02x:%02x.%02x से नहीं है"
 
-#: src/conf/domain_conf.c:17264
+#: src/conf/domain_conf.c:17271
 #, c-format
 msgid "Target device drive address %d:%d:%d does not match source %d:%d:%d"
 msgstr "लक्ष्य युक्ति ड्राइव पता %d:%d:%d का मेल स्रोत %d:%d:%d से नहीं है"
 
-#: src/conf/domain_conf.c:17279
+#: src/conf/domain_conf.c:17286
 #, c-format
 msgid ""
 "Target device virtio serial address %d:%d:%d does not match source %d:%d:%d"
 msgstr "लक्ष्य युक्ति virtio क्रम पता %d:%d:%d का मेल स्रोत %d:%d:%d से नहीं है"
 
-#: src/conf/domain_conf.c:17293
+#: src/conf/domain_conf.c:17300
 #, c-format
 msgid "Target device ccid address %d:%d does not match source %d:%d"
 msgstr "लक्ष्य युक्ति ccid पता %d:%d का मेल स्रोत %d:%d से नहीं है"
 
-#: src/conf/domain_conf.c:17307
+#: src/conf/domain_conf.c:17314
 #, c-format
 msgid "Target device isa address %d:%d does not match source %d:%d"
 msgstr ""
 
-#: src/conf/domain_conf.c:17320
+#: src/conf/domain_conf.c:17327
 #, c-format
 msgid "Target device dimm slot %u does not match source %u"
 msgstr ""
 
-#: src/conf/domain_conf.c:17329
+#: src/conf/domain_conf.c:17336
 #, c-format
 msgid "Target device dimm base address '%llx' does not match source '%llx'"
 msgstr ""
 
-#: src/conf/domain_conf.c:17357
+#: src/conf/domain_conf.c:17364
 #, c-format
 msgid "Target disk device %s does not match source %s"
 msgstr "लक्ष्य युक्ति डिस्क %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:17365
+#: src/conf/domain_conf.c:17372
 #, c-format
 msgid "Target disk bus %s does not match source %s"
 msgstr "लक्ष्य युक्ति बस %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:17373
+#: src/conf/domain_conf.c:17380
 #, c-format
 msgid "Target disk %s does not match source %s"
 msgstr "लक्ष्य डिस्क %s का मेल स्रोत %s से नही है"
 
-#: src/conf/domain_conf.c:17380
+#: src/conf/domain_conf.c:17387
 #, c-format
 msgid "Target disk serial %s does not match source %s"
 msgstr "लक्ष्य डिस्क क्रम %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:17387
+#: src/conf/domain_conf.c:17394
 #, c-format
 msgid "Target disk wwn '%s' does not match source '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:17396
+#: src/conf/domain_conf.c:17403
 msgid "Target disk access mode does not match source"
 msgstr "लक्ष्य डिस्क एक्सेस मोड का मेल स्रोत से नहीं है"
 
-#: src/conf/domain_conf.c:17413
+#: src/conf/domain_conf.c:17420
 #, c-format
 msgid "Target controller type %s does not match source %s"
 msgstr "लक्ष्य नियंत्रक प्रकार %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:17421
+#: src/conf/domain_conf.c:17428
 #, c-format
 msgid "Target controller index %d does not match source %d"
 msgstr "लक्ष्य नियंत्रक सूचि %d का मेल स्रोत %d से नहीं है"
 
-#: src/conf/domain_conf.c:17428
+#: src/conf/domain_conf.c:17435
 #, c-format
 msgid "Target controller model %d does not match source %d"
 msgstr "लक्ष्य नियंत्रक मॉडल %d का मेल स्रोत %d से नहीं है"
 
-#: src/conf/domain_conf.c:17436 src/conf/domain_conf.c:17450
+#: src/conf/domain_conf.c:17443 src/conf/domain_conf.c:17457
 #, c-format
 msgid "Target controller ports %d does not match source %d"
 msgstr "लक्ष्य नियंत्रक पोर्ट %d का मेल स्रोत %d से नहीं है"
 
-#: src/conf/domain_conf.c:17443
+#: src/conf/domain_conf.c:17450
 #, c-format
 msgid "Target controller vectors %d does not match source %d"
 msgstr "लक्ष्य नियंत्रक सदिश %d का मेल स्रोत %d से नहीं है"
 
-#: src/conf/domain_conf.c:17469
+#: src/conf/domain_conf.c:17476
 #, c-format
 msgid "Target filesystem guest target %s does not match source %s"
 msgstr "लक्ष्य filesystem अतिथि टारगेट %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:17476
+#: src/conf/domain_conf.c:17483
 msgid "Target filesystem access mode does not match source"
 msgstr "लक्ष्य filesystem एक्सेस मोड का मेल स्रोत से नहीं है"
 
-#: src/conf/domain_conf.c:17496
-#, c-format
+#: src/conf/domain_conf.c:17503
+#, fuzzy, c-format
 msgid "Target network card mac %s does not match source %s"
 msgstr "लक्ष्य संजाल कार्ड मैक %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:17505
+#: src/conf/domain_conf.c:17512
 #, c-format
 msgid "Target network card model %s does not match source %s"
 msgstr "लक्ष्य संजाल कार्ड मॉडल %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:17523
+#: src/conf/domain_conf.c:17530
 #, c-format
 msgid "Target input device type %s does not match source %s"
 msgstr "लक्ष्य इनपुट युक्ति प्रकार %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:17531
+#: src/conf/domain_conf.c:17538
 #, c-format
 msgid "Target input device bus %s does not match source %s"
 msgstr "लक्ष्य इनपुट युक्ति बस %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:17550
+#: src/conf/domain_conf.c:17557
 #, c-format
 msgid "Target sound card model %s does not match source %s"
 msgstr "लक्ष्य ध्वनि कार्ड मॉडल %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:17569
+#: src/conf/domain_conf.c:17576
 #, c-format
 msgid "Target video card model %s does not match source %s"
 msgstr "लक्ष्य वीडियो कार्ड मॉडल %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:17577
+#: src/conf/domain_conf.c:17584
 #, c-format
 msgid "Target video card ram %u does not match source %u"
 msgstr ""
 
-#: src/conf/domain_conf.c:17584
+#: src/conf/domain_conf.c:17591
 #, c-format
 msgid "Target video card vram %u does not match source %u"
 msgstr "लक्ष्य वीडियो कार्ड vram %u का मेल स्रोत %u से नहीं है"
 
-#: src/conf/domain_conf.c:17591
+#: src/conf/domain_conf.c:17598
 #, c-format
 msgid "Target video card vram64 %u does not match source %u"
 msgstr ""
 
-#: src/conf/domain_conf.c:17598
+#: src/conf/domain_conf.c:17605
 #, fuzzy, c-format
 msgid "Target video card vgamem %u does not match source %u"
 msgstr "लक्ष्य वीडियो कार्ड vram %u का मेल स्रोत %u से नहीं है"
 
-#: src/conf/domain_conf.c:17605
+#: src/conf/domain_conf.c:17612
 #, c-format
 msgid "Target video card heads %u does not match source %u"
 msgstr "लक्ष्य वीडियो कार्ड हेड %u का मेल स्रोत %u से नहीं है"
 
-#: src/conf/domain_conf.c:17613
+#: src/conf/domain_conf.c:17620
 msgid "Target video card acceleration does not match source"
 msgstr "लक्ष्य वीडियो कार्ड त्वरण का मेल स्रोत से नहीं है"
 
-#: src/conf/domain_conf.c:17620
+#: src/conf/domain_conf.c:17627
 #, c-format
 msgid "Target video card 2d accel %u does not match source %u"
 msgstr "लक्ष्य वीडियो कार्ड 2d accel %u का मेल स्रोत %u से नहीं है"
 
-#: src/conf/domain_conf.c:17627
+#: src/conf/domain_conf.c:17634
 #, c-format
 msgid "Target video card 3d accel %u does not match source %u"
 msgstr "लक्ष्य वीडियो कार्ड 3d accel %u का मेल स्रोत %u से नहीं है"
 
-#: src/conf/domain_conf.c:17646
+#: src/conf/domain_conf.c:17653
 #, c-format
 msgid "Target host device mode %s does not match source %s"
 msgstr "लक्ष्य होस्ट युक्ति मोड %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:17655
+#: src/conf/domain_conf.c:17662
 #, c-format
 msgid "Target host device subsystem %s does not match source %s"
 msgstr "लक्ष्य होस्ट युक्ति सबसिस्टम %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:17685
+#: src/conf/domain_conf.c:17692
 #, c-format
 msgid "Target serial type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:17693
+#: src/conf/domain_conf.c:17700
 #, c-format
 msgid "Target serial port %d does not match source %d"
 msgstr "लक्ष्य क्रम पोर्ट %d का मेल स्रोत %d से नहीं है"
 
-#: src/conf/domain_conf.c:17711
-#, c-format
+#: src/conf/domain_conf.c:17718
+#, fuzzy, c-format
 msgid "Target parallel port %d does not match source %d"
 msgstr "लक्ष्य समानांतर पोर्ट गणना %d का मेल स्रोत %d से नहीं है"
 
-#: src/conf/domain_conf.c:17729
+#: src/conf/domain_conf.c:17736
 #, c-format
 msgid "Target channel type %s does not match source %s"
 msgstr "लक्ष्य चैनल प्रकार %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:17739
+#: src/conf/domain_conf.c:17746
 #, c-format
 msgid "Target channel name %s does not match source %s"
 msgstr "लक्ष्य चैनल नाम %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:17748
+#: src/conf/domain_conf.c:17755
 msgid ""
 "Changing device type to/from spicevmc would change default target channel "
 "name"
 msgstr "spicevmc में/से बदलती युक्तियाँ तयशुदा लक्ष्य चैनल नाम को बदल देगी"
 
-#: src/conf/domain_conf.c:17759
+#: src/conf/domain_conf.c:17766
 #, c-format
 msgid "Target channel addr %s does not match source %s"
 msgstr "लक्ष्य चैनल addr %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:17781
+#: src/conf/domain_conf.c:17788
 #, c-format
 msgid "Target console type %s does not match source %s"
 msgstr "लक्ष्य कंसोल प्रकार %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:17800
+#: src/conf/domain_conf.c:17807
 #, c-format
 msgid "Target watchdog model %s does not match source %s"
 msgstr "लक्ष्य प्रहरी मॉडल %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:17819
+#: src/conf/domain_conf.c:17826
 #, c-format
 msgid "Target balloon model %s does not match source %s"
 msgstr "लक्ष्य बैलून मॉडल %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:17827
+#: src/conf/domain_conf.c:17834
 #, c-format
 msgid ""
 "Target balloon autodeflate attribute value '%s' does not match source '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:17847
-#, c-format
+#: src/conf/domain_conf.c:17854
+#, fuzzy, c-format
 msgid "Target RNG model '%s' does not match source '%s'"
 msgstr "लक्ष्य RNG मॉडल को '%s' से मेल नहीं खाता स्रोत '%s'"
 
-#: src/conf/domain_conf.c:17866
+#: src/conf/domain_conf.c:17873
 #, c-format
 msgid "Target hub device type %s does not match source %s"
 msgstr "लक्ष्य हब युक्ति प्रकार %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:17885
+#: src/conf/domain_conf.c:17892
 #, fuzzy, c-format
 msgid "Target redirected device bus %s does not match source %s"
 msgstr "लक्ष्य इनपुट युक्ति बस %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:17896
+#: src/conf/domain_conf.c:17903
 #, fuzzy, c-format
 msgid ""
 "Target redirected device source type %s does not match source device source "
 "type %s"
 msgstr "लक्ष्य इनपुट युक्ति प्रकार %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:17922
+#: src/conf/domain_conf.c:17929
 #, c-format
 msgid "Target USB redirection filter rule count %zu does not match source %zu"
 msgstr "लक्ष्य CPU पुनर्दिशा फिल्टर नियम गणना %zu स्रोत %zu से मेल नहीं खाता है"
 
-#: src/conf/domain_conf.c:17933
+#: src/conf/domain_conf.c:17940
 msgid "Target USB Class code does not match source"
 msgstr "लक्ष्य USB क्लास कोड स्रोत से मेल नहीं खाता है"
 
-#: src/conf/domain_conf.c:17939
+#: src/conf/domain_conf.c:17946
 msgid "Target USB vendor ID does not match source"
 msgstr "लक्ष्य USB विक्रेता आईडी स्रोत से मेल नहीं खाता है"
 
-#: src/conf/domain_conf.c:17945
+#: src/conf/domain_conf.c:17952
 msgid "Target USB product ID does not match source"
 msgstr "लक्ष्य USB उत्पाद स्रोत आईडी से मेल नहीं खाता है"
 
-#: src/conf/domain_conf.c:17951
+#: src/conf/domain_conf.c:17958
 msgid "Target USB version does not match source"
 msgstr "लक्ष्य USB संस्करण आईडी से मेल नहीं खाता है"
 
-#: src/conf/domain_conf.c:17957
+#: src/conf/domain_conf.c:17964
 #, c-format
 msgid "Target USB allow '%s' does not match source '%s'"
 msgstr "Target USB allow '%s' does not match source '%s'"
 
-#: src/conf/domain_conf.c:17977
+#: src/conf/domain_conf.c:17984
 #, c-format
 msgid "State of feature '%s' differs: source: '%s', destination: '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:17989
+#: src/conf/domain_conf.c:17996
 #, c-format
 msgid "State of APIC EOI differs: source: '%s', destination: '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:17999
+#: src/conf/domain_conf.c:18006
 #, c-format
 msgid "Source GIC version '%s' does not match destination '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:18018
+#: src/conf/domain_conf.c:18025
 #, c-format
 msgid ""
 "State of HyperV enlightenment feature '%s' differs: source: '%s', "
 "destination: '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:18033
+#: src/conf/domain_conf.c:18040
 #, c-format
 msgid "HyperV spinlock retry count differs: source: '%u', destination: '%u'"
 msgstr ""
 
-#: src/conf/domain_conf.c:18044
+#: src/conf/domain_conf.c:18051
 #, c-format
 msgid "HyperV vendor_id differs: source: '%s', destination: '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:18066
+#: src/conf/domain_conf.c:18073
 #, c-format
 msgid "State of KVM feature '%s' differs: source: '%s', destination: '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:18092
+#: src/conf/domain_conf.c:18099
 #, c-format
 msgid "Target panic model '%s' does not match source '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:18108
+#: src/conf/domain_conf.c:18115
 #, fuzzy, c-format
 msgid "Target shared memory name '%s' does not match source '%s'"
 msgstr "लक्ष्य डोमेन नाम  '%s' का मेल स्रोत '%s' से नहीं है"
 
-#: src/conf/domain_conf.c:18115
+#: src/conf/domain_conf.c:18122
 #, fuzzy, c-format
 msgid "Target shared memory size '%llu' does not match source size '%llu'"
 msgstr "लक्ष्य डोमेन ह्यूज पेज बैकिंग %d स्रोत %d से मेल नहीं खाता है"
 
-#: src/conf/domain_conf.c:18122
+#: src/conf/domain_conf.c:18129
 #, fuzzy
 msgid "Target shared memory server usage doesn't match source"
 msgstr "लक्ष्य ध्वनि कार्ड मॉडल %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:18131
+#: src/conf/domain_conf.c:18138
 #, fuzzy
 msgid "Target shared memory MSI configuration doesn't match source"
 msgstr "लक्ष्य वीडियो कार्ड त्वरण का मेल स्रोत से नहीं है"
 
-#: src/conf/domain_conf.c:18146
+#: src/conf/domain_conf.c:18153
 #, fuzzy
 msgid "Target TPM device type doesn't match source"
 msgstr "लक्ष्य हब युक्ति प्रकार %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:18152
+#: src/conf/domain_conf.c:18159
 #, fuzzy
 msgid "Target TPM device model doesn't match source"
 msgstr "लक्ष्य होस्ट युक्ति मोड %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:18165
+#: src/conf/domain_conf.c:18172
 #, c-format
 msgid "Target memory device model '%s' doesn't match source model '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:18174
+#: src/conf/domain_conf.c:18181
 #, c-format
 msgid ""
 "Target memory device targetNode '%d' doesn't match source targetNode '%d'"
 msgstr ""
 
-#: src/conf/domain_conf.c:18182
+#: src/conf/domain_conf.c:18189
 #, c-format
 msgid ""
 "Target memory device size '%llu' doesn't match source memory device size "
 "'%llu'"
 msgstr ""
 
-#: src/conf/domain_conf.c:18200
+#: src/conf/domain_conf.c:18207
 #, c-format
 msgid "Target domain vCPU max %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:18211
+#: src/conf/domain_conf.c:18218
 #, c-format
 msgid "State of vCPU '%zu' differs between source and destination definitions"
 msgstr ""
 
-#: src/conf/domain_conf.c:18236
+#: src/conf/domain_conf.c:18243
 #, c-format
 msgid "Target domain virt type %s does not match source %s"
 msgstr "लक्ष्य डोमेन  virt प्रकार %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:18248
+#: src/conf/domain_conf.c:18255
 #, c-format
 msgid "Target domain uuid %s does not match source %s"
 msgstr "लक्ष्य डोमेन uuid %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:18259
-#, c-format
+#: src/conf/domain_conf.c:18266
+#, fuzzy, c-format
 msgid "Target domain name '%s' does not match source '%s'"
 msgstr "लक्ष्य डोमेन नाम  '%s' का मेल स्रोत '%s' से नहीं है"
 
-#: src/conf/domain_conf.c:18266
+#: src/conf/domain_conf.c:18273
 #, c-format
 msgid "Target domain max memory %lld does not match source %lld"
 msgstr "लक्ष्य डोमेन max मेमोरी %lld का मेल स्रोत %lld से नहीं है"
 
-#: src/conf/domain_conf.c:18273
+#: src/conf/domain_conf.c:18280
 #, c-format
 msgid "Target domain current memory %lld does not match source %lld"
 msgstr "लक्ष्य डोमेन मौजूदा मेमोरी %lld स्रोत %lld से मेल नहीं खाता है"
 
-#: src/conf/domain_conf.c:18283
+#: src/conf/domain_conf.c:18290
 #, c-format
 msgid "Target domain memory slots count '%u' doesn't match source '%u'"
 msgstr ""
 
-#: src/conf/domain_conf.c:18289
+#: src/conf/domain_conf.c:18296
 #, c-format
 msgid "Target maximum memory size '%llu' doesn't match source '%llu'"
 msgstr ""
 
-#: src/conf/domain_conf.c:18299
+#: src/conf/domain_conf.c:18306
 #, fuzzy, c-format
 msgid "Target domain iothreads count %u does not match source %u"
 msgstr "लक्ष्य डोमेन डिस्क गणना %zu स्रोत %zu से मेल नहीं खाता"
 
-#: src/conf/domain_conf.c:18307
+#: src/conf/domain_conf.c:18314
 #, c-format
 msgid "Target domain OS type %s does not match source %s"
 msgstr "लक्ष्य डोमेन OS प्रकार %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:18314
+#: src/conf/domain_conf.c:18321
 #, c-format
 msgid "Target domain architecture %s does not match source %s"
 msgstr "लक्ष्य डोमेन ऑर्किटेक्चर %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:18321
+#: src/conf/domain_conf.c:18328
 #, c-format
 msgid "Target domain machine type %s does not match source %s"
 msgstr ""
 
-#: src/conf/domain_conf.c:18328
+#: src/conf/domain_conf.c:18335
 #, c-format
 msgid "Target domain SMBIOS mode %s does not match source %s"
 msgstr "लक्ष्य डोमेन SMBIOS मोड %s का मेल स्रोत %s से नहीं है"
 
-#: src/conf/domain_conf.c:18339
+#: src/conf/domain_conf.c:18346
 msgid "Target domain timers do not match source"
 msgstr "लक्ष्य डोमेन टाइमर का मेल स्रोत से नहीं है"
 
-#: src/conf/domain_conf.c:18357
+#: src/conf/domain_conf.c:18364
 #, c-format
 msgid "Target domain disk count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन डिस्क गणना %zu स्रोत %zu से मेल नहीं खाता"
 
-#: src/conf/domain_conf.c:18368
-#, c-format
+#: src/conf/domain_conf.c:18375
+#, fuzzy, c-format
 msgid "Target domain controller count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन नियंत्रक गणना %zu का मेल स्रोत %zu से नहीं है"
 
-#: src/conf/domain_conf.c:18381
+#: src/conf/domain_conf.c:18388
 #, c-format
 msgid "Target domain filesystem count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन फाइल सिस्टम गणना %zu स्रोत %zu से मेल नहीं खाता"
 
-#: src/conf/domain_conf.c:18393
+#: src/conf/domain_conf.c:18400
 #, c-format
 msgid "Target domain net card count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन नेट कार्ड गणना %zu स्रोत %zu से मेल नहीं खाता"
 
-#: src/conf/domain_conf.c:18405
+#: src/conf/domain_conf.c:18412
 #, c-format
 msgid "Target domain input device count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन इनपुट डिवाइस गणना %zu स्रोत %zu से मेल नहीं खाता"
 
-#: src/conf/domain_conf.c:18417
+#: src/conf/domain_conf.c:18424
 #, c-format
 msgid "Target domain sound card count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन साउंड कार्ड गणना %zu स्रोत %zu से मेल नहीं खाता"
 
-#: src/conf/domain_conf.c:18429
+#: src/conf/domain_conf.c:18436
 #, c-format
 msgid "Target domain video card count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन वीडियो कार्ड गणना %zu स्रोत %zu से मेल नहीं खाता"
 
-#: src/conf/domain_conf.c:18441
+#: src/conf/domain_conf.c:18448
 #, c-format
 msgid "Target domain host device count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन होस्ट के युक्ति गणना %zu स्रोत %zu से मेल नहीं खाता"
 
-#: src/conf/domain_conf.c:18454
+#: src/conf/domain_conf.c:18461
 #, c-format
 msgid "Target domain smartcard count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन स्मार्टकार्ड गणना %zu का मेल स्रोत %zu से नहीं है"
 
-#: src/conf/domain_conf.c:18467
+#: src/conf/domain_conf.c:18474
 #, c-format
 msgid "Target domain serial port count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन क्रम पोर्ट गणना %zu का मेल स्रोत %zu से नहीं है"
 
-#: src/conf/domain_conf.c:18480
+#: src/conf/domain_conf.c:18487
 #, c-format
 msgid "Target domain parallel port count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन समानांतर पोर्ट गणना %zu का मेल स्रोत %zu से नहीं है"
 
-#: src/conf/domain_conf.c:18493
+#: src/conf/domain_conf.c:18500
 #, c-format
 msgid "Target domain channel count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन चैनल गणना %zu का मेल स्रोत %zu से नहीं है"
 
-#: src/conf/domain_conf.c:18506
+#: src/conf/domain_conf.c:18513
 #, c-format
 msgid "Target domain console count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन कंसोल गणना %zu का मेल स्रोत %zu से नहीं है"
 
-#: src/conf/domain_conf.c:18519
+#: src/conf/domain_conf.c:18526
 #, c-format
 msgid "Target domain hub device count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन हब के युक्ति गणना %zu स्रोत %zu से मेल नहीं खाता"
 
-#: src/conf/domain_conf.c:18531
+#: src/conf/domain_conf.c:18538
 #, fuzzy, c-format
 msgid "Target domain redirected devices count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन इनपुट डिवाइस गणना %zu स्रोत %zu से मेल नहीं खाता"
 
-#: src/conf/domain_conf.c:18546
+#: src/conf/domain_conf.c:18553
 #, c-format
 msgid "Target domain USB redirection filter count %d does not match source %d"
 msgstr "लक्ष्य डोमेन यूएसबी पुनर्निदेशन फिल्टर गणना %d स्रोत %d से मेल नहीं खाता है"
 
-#: src/conf/domain_conf.c:18560
+#: src/conf/domain_conf.c:18567
 #, c-format
 msgid "Target domain watchdog count %d does not match source %d"
 msgstr "लक्ष्य डोमेन प्रहरी गणना %d का मेल स्रोत %d से नहीं है"
 
-#: src/conf/domain_conf.c:18573
+#: src/conf/domain_conf.c:18580
 #, c-format
 msgid "Target domain memory balloon count %d does not match source %d"
 msgstr "लक्ष्य डोमेन मेमोरी बैलून गणना %d का मेल स्रोत %d से नहीं है"
 
-#: src/conf/domain_conf.c:18586
+#: src/conf/domain_conf.c:18593
 #, fuzzy, c-format
 msgid "Target domain RNG device count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन हब के युक्ति गणना %zu स्रोत %zu से मेल नहीं खाता"
 
-#: src/conf/domain_conf.c:18597
+#: src/conf/domain_conf.c:18604
 #, c-format
 msgid "Target domain panic device count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:18609
+#: src/conf/domain_conf.c:18616
 #, fuzzy, c-format
 msgid "Target domain shared memory device count %zu does not match source %zu"
 msgstr "लक्ष्य डोमेन होस्ट के युक्ति गणना %zu स्रोत %zu से मेल नहीं खाता"
 
-#: src/conf/domain_conf.c:18624
+#: src/conf/domain_conf.c:18631
 msgid ""
 "Either both target and source domains or none of them must have TPM device "
 "present"
 msgstr ""
 
-#: src/conf/domain_conf.c:18631
+#: src/conf/domain_conf.c:18638
 #, c-format
 msgid "Target domain memory device count %zu does not match source %zu"
 msgstr ""
 
-#: src/conf/domain_conf.c:18862 src/vz/vz_sdk.c:1048
+#: src/conf/domain_conf.c:18869 src/vz/vz_sdk.c:1048
 msgid "cannot determine default video type"
 msgstr "तयशुदा वीडियो प्रकार निर्धारित नहीं कर सकता है"
 
-#: src/conf/domain_conf.c:18915
+#: src/conf/domain_conf.c:18922
 #, c-format
 msgid "cannot duplicate iothread_id '%u' in iothreadids"
 msgstr ""
 
-#: src/conf/domain_conf.c:18971
+#: src/conf/domain_conf.c:18978
 #, c-format
 msgid "unexpected %s action: %d"
 msgstr "अप्रत्याशित %s क्रिया: %d"
 
-#: src/conf/domain_conf.c:19278 src/conf/domain_conf.c:19367
+#: src/conf/domain_conf.c:19285 src/conf/domain_conf.c:19374
 #, c-format
 msgid "unexpected disk type %d"
 msgstr "अप्रत्याशित डिस्क प्रकार %d"
 
-#: src/conf/domain_conf.c:19315
+#: src/conf/domain_conf.c:19322
 #, fuzzy, c-format
 msgid "unexpected disk backing store type %d"
 msgstr "अप्रत्याशित डिस्क प्रकार %d"
 
-#: src/conf/domain_conf.c:19323
+#: src/conf/domain_conf.c:19330
 #, fuzzy, c-format
 msgid "unexpected disk backing store format %d"
 msgstr "अप्रत्याशित डिस्क io मोड %d"
 
-#: src/conf/domain_conf.c:19372
+#: src/conf/domain_conf.c:19379
 #, c-format
 msgid "unexpected disk device %d"
 msgstr "अप्रत्याशित डिस्क युक्ति %d"
 
-#: src/conf/domain_conf.c:19377
+#: src/conf/domain_conf.c:19384
 #, c-format
 msgid "unexpected disk bus %d"
 msgstr "अप्रत्याशित डिस्क बस %d"
 
-#: src/conf/domain_conf.c:19382
+#: src/conf/domain_conf.c:19389
 #, c-format
 msgid "unexpected disk cache mode %d"
 msgstr "अप्रत्याशित डिस्क कैश मोड %d"
 
-#: src/conf/domain_conf.c:19387
+#: src/conf/domain_conf.c:19394
 #, c-format
 msgid "unexpected disk io mode %d"
 msgstr "अप्रत्याशित डिस्क io मोड %d"
 
-#: src/conf/domain_conf.c:19392
+#: src/conf/domain_conf.c:19399
 #, c-format
 msgid "Unexpected disk sgio mode '%d'"
 msgstr "अप्रत्याशित डिस्क sgio मोड '%d'"
 
-#: src/conf/domain_conf.c:19636
+#: src/conf/domain_conf.c:19643
 #, c-format
 msgid "unexpected controller type %d"
 msgstr "अप्रत्याशित नियंत्रक प्रकार %d"
 
-#: src/conf/domain_conf.c:19645
+#: src/conf/domain_conf.c:19652
 #, c-format
 msgid "unexpected model type %d"
 msgstr "अप्रत्याशित मॉडल प्रकार %d"
 
-#: src/conf/domain_conf.c:19704
+#: src/conf/domain_conf.c:19711
 #, c-format
 msgid "unexpected model name value %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:19806
+#: src/conf/domain_conf.c:19813
 #, c-format
 msgid "unexpected filesystem type %d"
 msgstr "अप्रत्याशित फ़ाइलतंत्र प्रकार %d"
 
-#: src/conf/domain_conf.c:19812
+#: src/conf/domain_conf.c:19819
 #, c-format
 msgid "unexpected accessmode %d"
 msgstr "अप्रत्याशित डिस्क कैश मोड %d"
 
-#: src/conf/domain_conf.c:19946
-#, c-format
+#: src/conf/domain_conf.c:19953
+#, fuzzy, c-format
 msgid "unexpected pci hostdev driver name type %d"
 msgstr "अप्रत्याशित pci hostdev ड्राइवर नाम प्रकार %d"
 
-#: src/conf/domain_conf.c:19995
+#: src/conf/domain_conf.c:20002
 msgid "PCI address Formatting failed"
 msgstr "PCI पता प्रारूपण विफल"
 
-#: src/conf/domain_conf.c:20031 src/conf/domain_conf.c:20071
-#: src/conf/domain_conf.c:21813 src/conf/domain_conf.c:21822
+#: src/conf/domain_conf.c:20038 src/conf/domain_conf.c:20078
+#: src/conf/domain_conf.c:21820 src/conf/domain_conf.c:21829
 #: src/libxl/libxl_driver.c:3404 src/qemu/qemu_hotplug.c:3818
 #, c-format
 msgid "unexpected hostdev type %d"
 msgstr "अप्रत्याशित होस्टडेव प्रकार %d"
 
-#: src/conf/domain_conf.c:20149
+#: src/conf/domain_conf.c:20156
 #, c-format
 msgid "unexpected source mode %d"
 msgstr "अप्रत्याशित स्रोत मोड %d"
 
-#: src/conf/domain_conf.c:20192 src/conf/domain_conf.c:20362
-#: src/conf/domain_conf.c:21599
+#: src/conf/domain_conf.c:20199 src/conf/domain_conf.c:20369
+#: src/conf/domain_conf.c:21606
 #, c-format
 msgid "unexpected net type %d"
 msgstr "अप्रत्याशित नेट प्रकार %d"
 
-#: src/conf/domain_conf.c:20354
+#: src/conf/domain_conf.c:20361
 #, c-format
 msgid "unexpected actual net type %d"
 msgstr ""
 
-#: src/conf/domain_conf.c:20616
+#: src/conf/domain_conf.c:20623
 #, c-format
 msgid "unexpected char type %d"
 msgstr "अप्रत्याशित वर्ण प्रकार %d"
 
-#: src/conf/domain_conf.c:20740
+#: src/conf/domain_conf.c:20747
 #, c-format
 msgid "unexpected char device type %d"
 msgstr "अप्रत्याशित char युक्ति प्रकार %d"
 
-#: src/conf/domain_conf.c:20760
+#: src/conf/domain_conf.c:20767
 msgid "Could not format channel target type"
 msgstr "१मौजूदा समय पा नहीं सका"
 
-#: src/conf/domain_conf.c:20770
+#: src/conf/domain_conf.c:20777
 msgid "Unable to format guestfwd port"
 msgstr "guestfwd पोर्ट प्रारूपित करने में असमर्थ"
 
-#: src/conf/domain_conf.c:20844 src/conf/domain_conf.c:20877
+#: src/conf/domain_conf.c:20851 src/conf/domain_conf.c:20884
 #: src/qemu/qemu_command.c:8241
 #, c-format
 msgid "unexpected smartcard type %d"
 msgstr "अप्रत्याशित स्मार्टकार्ड प्रकार %d"
 
-#: src/conf/domain_conf.c:20895
+#: src/conf/domain_conf.c:20902
 #, c-format
 msgid "unexpected codec type %d"
 msgstr "अप्रत्याशित कोडेक प्रकार %d"
 
-#: src/conf/domain_conf.c:20951 src/xenconfig/xen_sxpr.c:2099
+#: src/conf/domain_conf.c:20958 src/xenconfig/xen_sxpr.c:2099
 #, c-format
 msgid "unexpected sound model %d"
 msgstr "अप्रत्याशित ध्वनि प्रकार %d"
 
-#: src/conf/domain_conf.c:20998
+#: src/conf/domain_conf.c:21005
 #, c-format
 msgid "unexpected memballoon model %d"
 msgstr "अप्रत्याशित memballon मॉडल %d"
 
-#: src/conf/domain_conf.c:21058
+#: src/conf/domain_conf.c:21065
 #, c-format
 msgid "unexpected watchdog model %d"
 msgstr "अप्रत्याशित प्रेक्षण मॉडल %d"
 
-#: src/conf/domain_conf.c:21064
+#: src/conf/domain_conf.c:21071
 #, c-format
 msgid "unexpected watchdog action %d"
 msgstr "अप्रत्याशित वाचडॉग क्रिया %d"
 
-#: src/conf/domain_conf.c:21326
+#: src/conf/domain_conf.c:21333
 #, c-format
 msgid "unexpected video model %d"
 msgstr "अप्रत्याशित वीडियो मॉडल %d"
 
-#: src/conf/domain_conf.c:21381 src/xenconfig/xen_sxpr.c:2135
+#: src/conf/domain_conf.c:21388 src/xenconfig/xen_sxpr.c:2135
 #, c-format
 msgid "unexpected input type %d"
 msgstr "अप्रत्याशित इनपुट प्रकार %d"
 
-#: src/conf/domain_conf.c:21386
+#: src/conf/domain_conf.c:21393
 #, c-format
 msgid "unexpected input bus type %d"
 msgstr "अप्रत्याशित इनपुट बस प्रकार %d"
 
-#: src/conf/domain_conf.c:21418
+#: src/conf/domain_conf.c:21425
 #, c-format
 msgid "unexpected timer name %d"
 msgstr "अप्रत्याशित टाइमर नाम %d"
 
-#: src/conf/domain_conf.c:21434
+#: src/conf/domain_conf.c:21441
 #, c-format
 msgid "unexpected timer tickpolicy %d"
 msgstr "अप्रत्याशित टाइमर tickpolicy %d"
 
-#: src/conf/domain_conf.c:21448
+#: src/conf/domain_conf.c:21455
 #, c-format
 msgid "unexpected timer track %d"
 msgstr "अप्रत्याशित टाइमर ट्रैक %d"
 
-#: src/conf/domain_conf.c:21465
+#: src/conf/domain_conf.c:21472
 #, c-format
 msgid "unexpected timer mode %d"
 msgstr "अप्रत्याशित टाइमर मोड %d"
 
-#: src/conf/domain_conf.c:21804 src/conf/domain_conf.c:21829
+#: src/conf/domain_conf.c:21811 src/conf/domain_conf.c:21836
 #, c-format
 msgid "unexpected hostdev mode %d"
 msgstr "अप्रत्याशित होस्टडेव विधि %d"
 
-#: src/conf/domain_conf.c:21949
+#: src/conf/domain_conf.c:21956
 #, c-format
 msgid "unexpected hub type %d"
 msgstr "अप्रत्याशित हब प्रकार %d"
 
-#: src/conf/domain_conf.c:22412
+#: src/conf/domain_conf.c:22428
 #, c-format
 msgid "unexpected domain type %d"
 msgstr "अप्रत्याशित डोमेन प्रकार %d"
 
-#: src/conf/domain_conf.c:22668
+#: src/conf/domain_conf.c:22684
 #, c-format
 msgid "unexpected boot device type %d"
 msgstr "अप्रत्याशित बूट युक्ति प्रकार %d"
 
-#: src/conf/domain_conf.c:22701
+#: src/conf/domain_conf.c:22717
 #, c-format
 msgid "unexpected smbios mode %d"
 msgstr "अप्रत्याशित smbios मोड %d"
 
-#: src/conf/domain_conf.c:22748
+#: src/conf/domain_conf.c:22764
 #, fuzzy, c-format
 msgid "unexpected feature %zu"
 msgstr "अप्रत्याशित फीचर %zu"
 
-#: src/conf/domain_conf.c:22768
+#: src/conf/domain_conf.c:22784
 #, c-format
 msgid "Unexpected state of feature '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:23298
+#: src/conf/domain_conf.c:23314
 #, c-format
 msgid "boot order %u is already used by another device"
 msgstr ""
 
-#: src/conf/domain_conf.c:23347
+#: src/conf/domain_conf.c:23363
 msgid "Device configuration is not compatible: Domain has no USB bus support"
 msgstr "युक्ति विन्यास संगत नहीं है: डोमेन के पास USB बस समर्थन नहीं है"
 
-#: src/conf/domain_conf.c:23370
+#: src/conf/domain_conf.c:23386
 #, c-format
 msgid ""
 "Attaching memory device with size '%llu' would exceed domain's maxMemory "
 "config"
 msgstr ""
 
-#: src/conf/domain_conf.c:23379
+#: src/conf/domain_conf.c:23395
 #, c-format
 msgid "Domain already has a disk with wwn '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:23405 src/conf/network_conf.c:2994
+#: src/conf/domain_conf.c:23421 src/conf/network_conf.c:2994
 #: src/conf/nwfilter_conf.c:2828 src/util/virdnsmasq.c:561
 #, c-format
 msgid "cannot create config directory '%s'"
 msgstr "विन्यास निर्देशिका '%s' बना नहीं सकता है"
 
-#: src/conf/domain_conf.c:23489
+#: src/conf/domain_conf.c:23505
 #, c-format
 msgid "cannot remove config %s"
 msgstr "%s विन्यास हटा नहीं सकता है"
 
-#: src/conf/domain_conf.c:23683
+#: src/conf/domain_conf.c:23699
 #, c-format
 msgid "unable to visit backing chain file %s"
 msgstr "समर्थन श्रृंखला फ़ाइल %s यात्रा करने में असमर्थ"
 
-#: src/conf/domain_conf.c:23795
+#: src/conf/domain_conf.c:23811
 #, c-format
 msgid "invalid domain state: %d"
 msgstr "अवैध डोमेन स्थिति: %d"
 
-#: src/conf/domain_conf.c:24170
+#: src/conf/domain_conf.c:24186
 #, c-format
 msgid "Copying definition of '%d' type is not implemented yet."
 msgstr "'%d' प्रकार की परिभाषा की नकल अभी तक लागू नहीं."
 
-#: src/conf/domain_conf.c:24260
+#: src/conf/domain_conf.c:24276
 #, c-format
 msgid "no device found with alias %s"
 msgstr "%s उपनाम के साथ कोई युक्ति नहीं मिला"
 
-#: src/conf/domain_conf.c:24287 src/conf/domain_conf.c:24346
+#: src/conf/domain_conf.c:24303 src/conf/domain_conf.c:24362
 #, fuzzy, c-format
 msgid "unknown metadata type '%d'"
 msgstr "अज्ञात metadata प्रकार"
 
-#: src/conf/domain_conf.c:24324
+#: src/conf/domain_conf.c:24340
 msgid "Requested metadata element is not present"
 msgstr "अनुरोधित metadata तत्व मौजूद नहीं है"
 
-#: src/conf/domain_conf.c:24370
+#: src/conf/domain_conf.c:24386
 msgid "(metadata_xml)"
 msgstr ""
 
-#: src/conf/domain_conf.c:24477
+#: src/conf/domain_conf.c:24493
 #, c-format
 msgid "target '%s' duplicated for disk sources '%s' and '%s'"
 msgstr ""
 
-#: src/conf/domain_conf.c:24486
+#: src/conf/domain_conf.c:24502
 #, c-format
 msgid "Disks '%s' and '%s' have identical WWN"
 msgstr ""
 
-#: src/conf/domain_conf.c:24493
+#: src/conf/domain_conf.c:24509
 #, c-format
 msgid "Disks '%s' and '%s' have identical serial"
 msgstr ""
@@ -9049,9 +9049,8 @@ msgid "Could not transfer data: %s (%d)"
 msgstr "डोमेन को प्रारंभ नहीं कर सका: %s"
 
 #: src/esx/esx_vi.c:1012 src/esx/esx_vi.c:2102
-#, fuzzy
 msgid "Failed to escape password for XML"
-msgstr "डोमेन %s को %s में सहेजने में विफल"
+msgstr ""
 
 #: src/esx/esx_vi.c:1031
 msgid "Could not initialize session mutex"
@@ -10031,7 +10030,7 @@ msgid "Unable to find correct value in 'bonding/arp_validate' for '%s'"
 msgstr "सही मान पाने में असमर्थ '%s' के लिए 'बॉन्डिंग / arp_validate' में"
 
 #: src/interface/interface_backend_udev.c:712
-#, c-format
+#, fuzzy, c-format
 msgid "Could not parse 'bonding/arp_validate' '%s' for '%s'"
 msgstr "विश्लेषित नहीं कर सका 'बॉन्डिंग / arp_validate' '%s' से '%s' के लिए"
 
@@ -10056,7 +10055,7 @@ msgid "Could not get slaves of bond '%s'"
 msgstr "बॉन्ड '%s' का गुलाम नहीं मिल सका"
 
 #: src/interface/interface_backend_udev.c:776
-#, c-format
+#, fuzzy, c-format
 msgid "Invalid enslaved interface name '%s' seen for bond '%s'"
 msgstr "अवैध गुलाम अंतरफलक नाम '%s' बॉन्ड '%s' के लिए देखा"
 
@@ -11343,18 +11342,17 @@ msgid "Network driver does not support DHCP lease query"
 msgstr ""
 
 #: src/libxl/libxl_driver.c:5550
-#, fuzzy, c-format
+#, c-format
 msgid "Unsupported IP address data source %d"
-msgstr "संजाल %s में असमर्थित पता प्रकार '%s'"
+msgstr ""
 
 #: src/libxl/libxl_migration.c:178 src/qemu/qemu_migration.c:1403
 msgid "Migration cookie was not NULL terminated"
 msgstr "प्रवासन कुकी रिक्त समाप्त नहीं हो गया"
 
 #: src/libxl/libxl_migration.c:188
-#, fuzzy
 msgid "(libxl_migration_cookie)"
-msgstr "(qemu_migration_cookie)"
+msgstr ""
 
 #: src/libxl/libxl_migration.c:195 src/qemu/qemu_migration.c:1161
 #: src/vz/vz_driver.c:2206
@@ -11367,9 +11365,8 @@ msgid "missing uuid element in migration data"
 msgstr "\tप्रवास डाटा में लापता uuid तत्व"
 
 #: src/libxl/libxl_migration.c:215
-#, fuzzy
 msgid "missing Xen migration stream version"
-msgstr "गुम ऑपरेटिंग सिस्टम सूचना"
+msgstr ""
 
 #: src/libxl/libxl_migration.c:323
 #, fuzzy
@@ -11397,9 +11394,9 @@ msgid "no domain XML passed"
 msgstr "कोई डोमेन XML नहीं भेजा गया"
 
 #: src/libxl/libxl_migration.c:513
-#, fuzzy, c-format
+#, c-format
 msgid "Xen migration stream version '%d' is not supported on this host"
-msgstr "'%s' में उत्प्रवासन इस qemu के द्वारा समर्थित नहीं: %s"
+msgstr ""
 
 #: src/libxl/libxl_migration.c:533 src/openvz/openvz_driver.c:2335
 #: src/qemu/qemu_migration.c:3922 src/vz/vz_driver.c:2293
@@ -12408,9 +12405,9 @@ msgid "Failed to send continue signal to controller"
 msgstr ""
 
 #: src/lxc/lxc_container.c:2294 src/lxc/lxc_controller.c:2740
-#, fuzzy, c-format
+#, c-format
 msgid "Failure in libvirt_lxc startup: %s\n"
-msgstr "libvirt_lxc स्टार्टअप में अज्ञात विफलता"
+msgstr ""
 
 #: src/lxc/lxc_container.c:2391
 msgid "Kernel doesn't support user namespace"
@@ -13086,9 +13083,8 @@ msgid "lxc.mount found, use lxc.mount.entry lines instead"
 msgstr ""
 
 #: src/lxc/lxc_process.c:264
-#, fuzzy
 msgid "scripts are not supported on LXC network interfaces"
-msgstr "लिपियों प्रकार %s के अंतराफलक पर समर्थित नहीं है"
+msgstr ""
 
 #: src/lxc/lxc_process.c:339
 msgid "Unable to set network bandwidth on direct interfaces"
@@ -13355,10 +13351,10 @@ msgstr "संजाल पहले से सक्रिय"
 msgid "no network with matching uuid '%s'"
 msgstr ""
 
-#: src/network/bridge_driver.c:2649 src/network/bridge_driver.c:3986
-#: src/network/bridge_driver.c:4394 src/network/bridge_driver.c:4580
-#: src/network/bridge_driver.c:4726 src/network/bridge_driver.c:4811
-#: src/network/bridge_driver.c:5168 src/network/bridge_driver.c:5201
+#: src/network/bridge_driver.c:2649 src/network/bridge_driver.c:3989
+#: src/network/bridge_driver.c:4397 src/network/bridge_driver.c:4583
+#: src/network/bridge_driver.c:4729 src/network/bridge_driver.c:4814
+#: src/network/bridge_driver.c:5171 src/network/bridge_driver.c:5204
 #, c-format
 msgid "no network with matching name '%s'"
 msgstr "मिलान नाम '%s' के साथ कोई संजाल नहीं"
@@ -13450,63 +13446,63 @@ msgstr ""
 "संजाल %s, जिसका प्रकार के लिए निर्दिष्ट <vlan> तत्व VLAN विन्यास का समर्थन नहीं करता."
 
 #: src/network/bridge_driver.c:3134
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "unsupported <bandwidth> element in <portgroup name='%s'> of network '%s' "
 "with forward mode='%s'"
-msgstr "आगे मोड के साथ नेटवर्क %s में असमर्थित <ip> तत्व ='%s'"
+msgstr ""
 
 #: src/network/bridge_driver.c:3268
 msgid "can't undefine transient network"
 msgstr ""
 
-#: src/network/bridge_driver.c:3512 src/network/bridge_driver.c:3994
+#: src/network/bridge_driver.c:3515 src/network/bridge_driver.c:3997
 #, fuzzy, c-format
 msgid "network '%s' is not active"
 msgstr "संजाल %s सक्रिय नहीं है"
 
-#: src/network/bridge_driver.c:3577 src/test/test_driver.c:3414
+#: src/network/bridge_driver.c:3580 src/test/test_driver.c:3414
 #, c-format
 msgid "network '%s' does not have a bridge name."
 msgstr "संजाल '%s' के पास एक ब्रिज नाम नहीं है"
 
-#: src/network/bridge_driver.c:3626
+#: src/network/bridge_driver.c:3629
 msgid "cannot set autostart for transient network"
 msgstr "अस्थायी संजाल के लिए स्वतः आरंभ सेट नहीं कर सकता है"
 
-#: src/network/bridge_driver.c:3641
+#: src/network/bridge_driver.c:3644
 #, c-format
 msgid "cannot create autostart directory '%s'"
 msgstr "ऑटोस्टार्ट निर्देशिका '%s' नहीं बना सकता है"
 
-#: src/network/bridge_driver.c:3731
+#: src/network/bridge_driver.c:3734
 #, fuzzy, c-format
 msgid "invalid json in file: %s"
 msgstr "अवैध डोमेन प्रकार %s"
 
-#: src/network/bridge_driver.c:3737 src/util/virlease.c:94
+#: src/network/bridge_driver.c:3740 src/util/virlease.c:94
 msgid "couldn't fetch array of leases"
 msgstr ""
 
-#: src/network/bridge_driver.c:3747 src/util/virlease.c:102
+#: src/network/bridge_driver.c:3750 src/util/virlease.c:102
 #: src/util/virlease.c:109 src/util/virlease.c:185 src/util/virlease.c:209
 #, fuzzy
 msgid "failed to parse json"
 msgstr "xml दस्तावेज़ विश्लेषण में असमर्थ"
 
-#: src/network/bridge_driver.c:3755
+#: src/network/bridge_driver.c:3758
 msgid "found lease without mac-address"
 msgstr ""
 
-#: src/network/bridge_driver.c:3765
+#: src/network/bridge_driver.c:3768
 msgid "found lease without expiry-time"
 msgstr ""
 
-#: src/network/bridge_driver.c:3782
+#: src/network/bridge_driver.c:3785
 msgid "found lease without ip-address"
 msgstr ""
 
-#: src/network/bridge_driver.c:4095
+#: src/network/bridge_driver.c:4098
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses a bridge "
@@ -13515,18 +13511,18 @@ msgstr ""
 "<virtualport type='%s'> संजाल '%s' को एक पुल युक्ति का उपयोग करता है, जिसके लिए "
 "समर्थित नहीं."
 
-#: src/network/bridge_driver.c:4120 src/network/bridge_driver.c:4273
+#: src/network/bridge_driver.c:4123 src/network/bridge_driver.c:4276
 #, c-format
 msgid ""
 "network '%s' requires exclusive access to interfaces, but none are available"
 msgstr "'%s' संजाल अंतराफलक के लिए अनन्य पहुँच की आवश्यकता है, लेकिन कोई भी उपलब्ध हैं"
 
-#: src/network/bridge_driver.c:4145
+#: src/network/bridge_driver.c:4148
 #, c-format
 msgid "unrecognized driver name value %d  in network '%s'"
 msgstr ""
 
-#: src/network/bridge_driver.c:4169
+#: src/network/bridge_driver.c:4172
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses an SR-IOV "
@@ -13535,7 +13531,7 @@ msgstr ""
 "<virtualport type='%s'> संजाल '%s' को पीसीआई पासथ्रू के माध्यम से एक SR-IOV आभासी "
 "समारोह का उपयोग करता है, जिसके लिए समर्थित नहीं."
 
-#: src/network/bridge_driver.c:4220
+#: src/network/bridge_driver.c:4223
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses a macvtap "
@@ -13544,14 +13540,14 @@ msgstr ""
 "<virtualport type='%s'> संजाल '% s' को एक macvtap युक्ति का उपयोग करता है, जिसके "
 "लिए समर्थित नहीं"
 
-#: src/network/bridge_driver.c:4233
+#: src/network/bridge_driver.c:4236
 #, c-format
 msgid ""
 "network '%s' uses a direct mode, but has no forward dev and no interface pool"
 msgstr ""
 "नेटवर्क '%s' सीधा मोड का उपयोग करता है, लेकिन कोई अग्रेषित dev और अंतराफलक पूल नहीं "
 
-#: src/network/bridge_driver.c:4308
+#: src/network/bridge_driver.c:4311
 #, c-format
 msgid ""
 "an interface connecting to network '%s' is requesting a vlan tag, but that "
@@ -13560,7 +13556,7 @@ msgstr ""
 "एक संजाल '% s' को एक VLAN टैग अनुरोध किया है को जोड़ने इंटरफेस है, लेकिन लगता है कि "
 "नेटवर्क के इस प्रकार के लिए समर्थित नहीं है"
 
-#: src/network/bridge_driver.c:4314
+#: src/network/bridge_driver.c:4317
 #, c-format
 msgid ""
 "an interface of type '%s' is requesting a vlan tag, but that is not "
@@ -13569,12 +13565,11 @@ msgstr ""
 "प्रकार '%s' के एक इंटरफेस एक VLAN टैग अनुरोध कर रहा है, लेकिन यह है कि कनेक्शन के इस "
 "प्रकार के लिए समर्थित नहीं है"
 
-#: src/network/bridge_driver.c:4328
-#, fuzzy
+#: src/network/bridge_driver.c:4331
 msgid "bandwidth settings are not supported for hostdev interfaces"
-msgstr "address type='%s' समर्थित नहीं है hostdev अंतरफलक में"
+msgstr ""
 
-#: src/network/bridge_driver.c:4423
+#: src/network/bridge_driver.c:4426
 #, c-format
 msgid ""
 "network '%s' uses a direct or hostdev mode, but has no forward dev and no "
@@ -13583,79 +13578,79 @@ msgstr ""
 "संजाल '%s' एक प्रत्यक्ष या hostdev मोड का उपयोग करता है, लेकिन आगे dev और कोई "
 "अंतरफलक पूल नहीं है"
 
-#: src/network/bridge_driver.c:4435 src/network/bridge_driver.c:4614
+#: src/network/bridge_driver.c:4438 src/network/bridge_driver.c:4617
 msgid "the interface uses a direct mode, but has no source dev"
 msgstr "नेटवर्क सीधा मोड का उपयोग करता है, लेकिन कोई dev स्रोत नहीं"
 
-#: src/network/bridge_driver.c:4452 src/network/bridge_driver.c:4630
+#: src/network/bridge_driver.c:4455 src/network/bridge_driver.c:4633
 #, c-format
 msgid "network '%s' doesn't have dev='%s' in use by domain"
 msgstr "संजाल '%s' dev='%s' डोमेन द्वारा प्रयोग में नहीं है"
 
-#: src/network/bridge_driver.c:4469
+#: src/network/bridge_driver.c:4472
 #, c-format
 msgid "network '%s' claims dev='%s' is already in use by a different domain"
 msgstr "संजाल '%s' का दावा है कि dev='%s' पहले से ही एक अलग डोमेन द्वारा उपयोग में है"
 
-#: src/network/bridge_driver.c:4480 src/network/bridge_driver.c:4641
+#: src/network/bridge_driver.c:4483 src/network/bridge_driver.c:4644
 msgid "the interface uses a hostdev mode, but has no hostdev"
 msgstr "अंतरफलक एक hostdev मोड का उपयोग करता है, लेकिन कोई hostdev नहीं है"
 
-#: src/network/bridge_driver.c:4498 src/network/bridge_driver.c:4657
+#: src/network/bridge_driver.c:4501 src/network/bridge_driver.c:4660
 #, c-format
 msgid "network '%s' doesn't have PCI device %04x:%02x:%02x.%x in use by domain"
 msgstr ""
 
-#: src/network/bridge_driver.c:4515
+#: src/network/bridge_driver.c:4518
 #, c-format
 msgid ""
 "network '%s' claims the PCI device at domain=%d bus=%d slot=%d function=%d "
 "is already in use by a different domain"
 msgstr ""
 
-#: src/network/bridge_driver.c:4602
+#: src/network/bridge_driver.c:4605
 #, c-format
 msgid ""
 "network '%s' uses a direct/hostdev mode, but has no forward dev and no "
 "interface pool"
 msgstr ""
 
-#: src/network/bridge_driver.c:4739
+#: src/network/bridge_driver.c:4742
 #, c-format
 msgid "network '%s' doesn't have an IP address"
 msgstr ""
 
-#: src/network/bridge_driver.c:4761
+#: src/network/bridge_driver.c:4764
 #, c-format
 msgid "network '%s' has no associated interface or bridge"
 msgstr "संजाल '%s' अंतराफलक या पुल से जुड़े नहीं है"
 
-#: src/network/bridge_driver.c:4895
+#: src/network/bridge_driver.c:4898
 #, c-format
 msgid ""
 "Invalid use of 'floor' on interface with MAC address %s - network '%s' has "
 "no inbound QoS set"
 msgstr ""
 
-#: src/network/bridge_driver.c:4919
+#: src/network/bridge_driver.c:4922
 #, c-format
 msgid ""
 "Cannot plug '%s' interface into '%s' because it would overcommit 'peak' on "
 "network '%s'"
 msgstr ""
 
-#: src/network/bridge_driver.c:4930
+#: src/network/bridge_driver.c:4933
 #, c-format
 msgid ""
 "Cannot plug '%s' interface into '%s' because it would overcommit 'average' "
 "on network '%s'"
 msgstr ""
 
-#: src/network/bridge_driver.c:4984
+#: src/network/bridge_driver.c:4987
 msgid "Could not generate next class ID"
 msgstr ""
 
-#: src/network/bridge_driver.c:5046
+#: src/network/bridge_driver.c:5049
 #, c-format
 msgid "Cannot set bandwidth on interface '%s' of type %d"
 msgstr ""
@@ -15350,9 +15345,9 @@ msgid "QEMU binary %s is not executable"
 msgstr ""
 
 #: src/qemu/qemu_capabilities.c:3765
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to probe QEMU binary with QMP: %s"
-msgstr "क्षमता हटाने में विफल: %d"
+msgstr ""
 
 #: src/qemu/qemu_capabilities.c:3766 src/util/virdbus.c:1570
 #: src/util/virerror.c:287 src/xenapi/xenapi_utils.c:269
@@ -15726,14 +15721,13 @@ msgid "usb controller type %s doesn't support 'ports' with this QEMU binary"
 msgstr ""
 
 #: src/qemu/qemu_command.c:2378
-#, fuzzy
 msgid "IOThreads for virtio-scsi not supported for this QEMU"
-msgstr "%s इस QEMU द्विपदीय में समर्थित नहीं"
+msgstr ""
 
 #: src/qemu/qemu_command.c:2385
-#, fuzzy, c-format
+#, c-format
 msgid "IOThreads only supported for virtio-scsi controllers model is '%s'"
-msgstr "virtio संजाल अंतराफलक के लिए केवल vhost-net समर्थित है "
+msgstr ""
 
 #: src/qemu/qemu_command.c:2394
 msgid "IOThreads only available for virtio pci and virtio ccw controllers"
@@ -16882,9 +16876,9 @@ msgid "invalid master key read, size=%zd"
 msgstr ""
 
 #: src/qemu/qemu_domain.c:888
-#, fuzzy, c-format
+#, c-format
 msgid "protocol '%s' cannot be used for encrypted secrets"
-msgstr "आँकड़ा स्रोत को गैर ब्लॉकिंग स्ट्रीम के लिए प्रयोग नहीं किया जा सकता है"
+msgstr ""
 
 #: src/qemu/qemu_domain.c:1226
 msgid "Unable to init qemu driver mutexes"
@@ -18827,19 +18821,19 @@ msgid "cannot find existing graphics device to modify"
 msgstr "cannot find existing graphics device to modify"
 
 #: src/qemu/qemu_hotplug.c:2586
-#, fuzzy, c-format
+#, c-format
 msgid "cannot change the number of listen addresses on '%s' graphics"
-msgstr "spice ग्राफिक्स पर लिसेन पता सेटिंग बदल नहीं सकते है "
+msgstr ""
 
 #: src/qemu/qemu_hotplug.c:2597
-#, fuzzy, c-format
+#, c-format
 msgid "cannot change the type of listen address on '%s' graphics"
-msgstr "spice ग्राफिक्स पर लिसेन पता सेटिंग बदल नहीं सकते है "
+msgstr ""
 
 #: src/qemu/qemu_hotplug.c:2606 src/qemu/qemu_hotplug.c:2616
-#, fuzzy, c-format
+#, c-format
 msgid "cannot change listen address setting on '%s' graphics"
-msgstr "spice ग्राफिक्स पर लिसेन पता सेटिंग बदल नहीं सकते है "
+msgstr ""
 
 #: src/qemu/qemu_hotplug.c:2636
 msgid "cannot change port settings on vnc graphics"
@@ -19608,8 +19602,8 @@ msgstr "जानकारी kvm उत्तर वापसी डेटा �
 msgid "info kvm reply missing 'enabled' field"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:1471 src/qemu/qemu_monitor_json.c:1506
-#: src/qemu/qemu_monitor_json.c:1515
+#: src/qemu/qemu_monitor_json.c:1471 src/qemu/qemu_monitor_json.c:1495
+#: src/qemu/qemu_monitor_json.c:1504
 #, c-format
 msgid "QOM Object '%s' has no property 'vgamem_mb'"
 msgstr ""
@@ -19619,718 +19613,718 @@ msgstr ""
 msgid "QOM Object '%s' has no property 'vram_size'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:1490 src/qemu/qemu_monitor_json.c:1554
-#, c-format
-msgid "QOM Object '%s' has no property 'vram64_size_mb'"
-msgstr ""
-
-#: src/qemu/qemu_monitor_json.c:1499
+#: src/qemu/qemu_monitor_json.c:1488
 #, c-format
 msgid "QOM Object '%s' has no property 'ram_size'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:1607
+#: src/qemu/qemu_monitor_json.c:1543
+#, c-format
+msgid "QOM Object '%s' has no property 'vram64_size_mb'"
+msgstr ""
+
+#: src/qemu/qemu_monitor_json.c:1596
 msgid "info balloon reply was missing return data"
 msgstr "सूचना बलून उत्तर में वापसी आँकड़ा अनुपस्थित था"
 
-#: src/qemu/qemu_monitor_json.c:1613
+#: src/qemu/qemu_monitor_json.c:1602
 msgid "info balloon reply was missing balloon data"
 msgstr "सूचना बलून उत्तर में बलून आँकड़ा अनुपस्थित था"
 
-#: src/qemu/qemu_monitor_json.c:1702
+#: src/qemu/qemu_monitor_json.c:1691
 msgid "the guest hasn't updated any stats yet"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:1712 src/qemu/qemu_monitor_json.c:5470
-#: src/qemu/qemu_monitor_json.c:6493
+#: src/qemu/qemu_monitor_json.c:1701 src/qemu/qemu_monitor_json.c:5459
+#: src/qemu/qemu_monitor_json.c:6482
 msgid "qom-get reply was missing return data"
 msgstr "qom-get उत्तर में वापसी आँकड़ा अनुपस्थित था"
 
-#: src/qemu/qemu_monitor_json.c:1788 src/qemu/qemu_monitor_json.c:3998
+#: src/qemu/qemu_monitor_json.c:1777 src/qemu/qemu_monitor_json.c:3987
 msgid "block info reply was missing device list"
 msgstr "ब्लॉक info उत्तर में युक्ति सूची अनुपस्थित था"
 
-#: src/qemu/qemu_monitor_json.c:1800 src/qemu/qemu_monitor_json.c:1806
-#: src/qemu/qemu_monitor_json.c:4010 src/qemu/qemu_monitor_json.c:4016
+#: src/qemu/qemu_monitor_json.c:1789 src/qemu/qemu_monitor_json.c:1795
+#: src/qemu/qemu_monitor_json.c:3999 src/qemu/qemu_monitor_json.c:4005
 msgid "block info device entry was not in expected format"
 msgstr "ब्लॉक info युक्ति प्रविष्टि प्रत्याशित प्रारूप में नहीं था"
 
-#: src/qemu/qemu_monitor_json.c:1823 src/qemu/qemu_monitor_json.c:1830
+#: src/qemu/qemu_monitor_json.c:1812 src/qemu/qemu_monitor_json.c:1819
 #, c-format
 msgid "cannot read %s value"
 msgstr "%s मान पढ़ नहीं सकता है"
 
-#: src/qemu/qemu_monitor_json.c:1882
+#: src/qemu/qemu_monitor_json.c:1871
 msgid "blockstats stats entry was not in expected format"
 msgstr "ब्लॉकस्टैट्स स्टैट्स प्रविष्टि प्रत्याशित प्रारूप में नहीं था"
 
-#: src/qemu/qemu_monitor_json.c:1892
+#: src/qemu/qemu_monitor_json.c:1881
 #, c-format
 msgid "cannot read %s statistic"
 msgstr "%s सांख्यिकी पढ़ नहीं सकता है"
 
-#: src/qemu/qemu_monitor_json.c:1955
+#: src/qemu/qemu_monitor_json.c:1944
 msgid "blockstats reply was missing device list"
 msgstr "ब्लॉकस्टैट्स उत्तर में युक्ति सूची अनुपस्थित था"
 
-#: src/qemu/qemu_monitor_json.c:1965 src/qemu/qemu_monitor_json.c:1972
+#: src/qemu/qemu_monitor_json.c:1954 src/qemu/qemu_monitor_json.c:1961
 msgid "blockstats device entry was not in expected format"
 msgstr "ब्लॉकस्टैट युक्ति प्रविष्टि प्रत्याशित प्रारूप में नहीं था"
 
-#: src/qemu/qemu_monitor_json.c:2068
+#: src/qemu/qemu_monitor_json.c:2057
 #, fuzzy
 msgid "query-block reply was missing device list"
 msgstr "ब्लॉक info उत्तर में युक्ति सूची अनुपस्थित था"
 
-#: src/qemu/qemu_monitor_json.c:2080 src/qemu/qemu_monitor_json.c:2087
+#: src/qemu/qemu_monitor_json.c:2069 src/qemu/qemu_monitor_json.c:2076
 #, fuzzy
 msgid "query-block device entry was not in expected format"
 msgstr "ब्लॉक info युक्ति प्रविष्टि प्रत्याशित प्रारूप में नहीं था"
 
-#: src/qemu/qemu_monitor_json.c:2501
+#: src/qemu/qemu_monitor_json.c:2490
 msgid "query-migrate-cache-size reply was missing 'return' data"
 msgstr "query-migrate-cache-size उत्तर वापसी डेटा गायब था"
 
-#: src/qemu/qemu_monitor_json.c:2565
+#: src/qemu/qemu_monitor_json.c:2554
 msgid "malformed/missing compress-level in migrate parameters"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:2574
+#: src/qemu/qemu_monitor_json.c:2563
 msgid "malformed/missing compress-threads in migrate parameters"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:2583
+#: src/qemu/qemu_monitor_json.c:2572
 msgid "malformed/missing decompress-threads in migrate parameters"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:2663
+#: src/qemu/qemu_monitor_json.c:2652
 msgid "info migration reply was missing return data"
 msgstr "सूचना प्रवास उत्तर में वापसी आँकड़ा अनुपस्थित था"
 
-#: src/qemu/qemu_monitor_json.c:2669
+#: src/qemu/qemu_monitor_json.c:2658
 msgid "info migration reply was missing return status"
 msgstr "सूचना प्रवास उत्तर में वापसी स्टैट्स अनुपस्थित था"
 
-#: src/qemu/qemu_monitor_json.c:2676 src/qemu/qemu_monitor_text.c:1371
+#: src/qemu/qemu_monitor_json.c:2665 src/qemu/qemu_monitor_text.c:1371
 #: src/qemu/qemu_monitor_text.c:1379
 #, c-format
 msgid "unexpected migration status in %s"
 msgstr "अप्रत्याशित डोमेन स्थिति %s में"
 
-#: src/qemu/qemu_monitor_json.c:2711
+#: src/qemu/qemu_monitor_json.c:2700
 msgid "migration was active, but no RAM info was set"
 msgstr "प्रवास सक्रिय था लेकिन कोई RAM सूचना सेट नहीं था"
 
-#: src/qemu/qemu_monitor_json.c:2718
+#: src/qemu/qemu_monitor_json.c:2707
 msgid "migration was active, but RAM 'transferred' data was missing"
 msgstr "प्रवास सक्रिय था लेकिन RAM 'हस्तातंरण' आंकड़ा गुम था"
 
-#: src/qemu/qemu_monitor_json.c:2725
+#: src/qemu/qemu_monitor_json.c:2714
 msgid "migration was active, but RAM 'remaining' data was missing"
 msgstr "प्रवास सक्रिय था लेकिन RAM 'शेष' आंकड़ा गुम था"
 
-#: src/qemu/qemu_monitor_json.c:2732
+#: src/qemu/qemu_monitor_json.c:2721
 msgid "migration was active, but RAM 'total' data was missing"
 msgstr "प्रवास सक्रिय था लेकिन RAM 'कुल' आंकड़ा गुम था"
 
-#: src/qemu/qemu_monitor_json.c:2761
+#: src/qemu/qemu_monitor_json.c:2750
 msgid "disk migration was active, but 'transferred' data was missing"
 msgstr "डिस्क प्रवास सक्रिय था लेकिन 'हस्तातंरण' आंकड़ा गुम था"
 
-#: src/qemu/qemu_monitor_json.c:2770
+#: src/qemu/qemu_monitor_json.c:2759
 msgid "disk migration was active, but 'remaining' data was missing"
 msgstr "डिस्क प्रवास सक्रिय था लेकिन 'शेष' आंकड़ा गुम था"
 
-#: src/qemu/qemu_monitor_json.c:2779
+#: src/qemu/qemu_monitor_json.c:2768
 msgid "disk migration was active, but 'total' data was missing"
 msgstr "डिस्क प्रवास सक्रिय था लेकिन 'कुल' आंकड़ा गुम था"
 
-#: src/qemu/qemu_monitor_json.c:2798
+#: src/qemu/qemu_monitor_json.c:2787
 msgid "XBZRLE is active, but 'cache-size' data was missing"
 msgstr "XBZRLE सक्रिय है, लेकिन 'cache-size' आँकड़ा अनुपस्थित था"
 
-#: src/qemu/qemu_monitor_json.c:2807
+#: src/qemu/qemu_monitor_json.c:2796
 msgid "XBZRLE is active, but 'bytes' data was missing"
 msgstr "XBZRLE सक्रिय है, लेकिन 'बाइट्स' आँकड़ा अनुपस्थित था"
 
-#: src/qemu/qemu_monitor_json.c:2816
+#: src/qemu/qemu_monitor_json.c:2805
 msgid "XBZRLE is active, but 'pages' data was missing"
 msgstr "XBZRLE सक्रिय है, लेकिन 'पृष्ठ' आँकड़ा अनुपस्थित था"
 
-#: src/qemu/qemu_monitor_json.c:2825
+#: src/qemu/qemu_monitor_json.c:2814
 msgid "XBZRLE is active, but 'cache-miss' data was missing"
 msgstr "XBZRLE सक्रिय है, लेकिन 'कैश-मिस' आँकड़ा अनुपस्थित था"
 
-#: src/qemu/qemu_monitor_json.c:2834
+#: src/qemu/qemu_monitor_json.c:2823
 msgid "XBZRLE is active, but 'overflow' data was missing"
 msgstr "XBZRLE सक्रिय है, लेकिन 'ओवरफ्लो' आँकड़ा अनुपस्थित था"
 
-#: src/qemu/qemu_monitor_json.c:2957
+#: src/qemu/qemu_monitor_json.c:2946
 #, fuzzy
 msgid "missing dump guest memory capabilities"
 msgstr "'%s' के लिए गुम भंडारण क्षमता प्रकार"
 
-#: src/qemu/qemu_monitor_json.c:2963
+#: src/qemu/qemu_monitor_json.c:2952
 #, fuzzy
 msgid "missing supported dump formats"
 msgstr "गुम श्रोत पथ"
 
-#: src/qemu/qemu_monitor_json.c:2972
+#: src/qemu/qemu_monitor_json.c:2961
 #, fuzzy
 msgid "missing entry in supported dump formats"
 msgstr "गुम ऑपरेटिंग सिस्टम सूचना"
 
-#: src/qemu/qemu_monitor_json.c:3141
+#: src/qemu/qemu_monitor_json.c:3130
 msgid "missing return information"
 msgstr "अनुपस्थित वापसी सूचना"
 
-#: src/qemu/qemu_monitor_json.c:3146
+#: src/qemu/qemu_monitor_json.c:3135
 msgid "incomplete return information"
 msgstr "अपूर्ण वापसी सूचना"
 
-#: src/qemu/qemu_monitor_json.c:3268
+#: src/qemu/qemu_monitor_json.c:3257
 #, fuzzy
 msgid "query-rx-filter reply was missing return data"
 msgstr "क्वेरी-स्पाइस उत्तर वापसी डेटा गायब था "
 
-#: src/qemu/qemu_monitor_json.c:3273
+#: src/qemu/qemu_monitor_json.c:3262
 #, fuzzy
 msgid "query -rx-filter return data missing array element"
 msgstr "चरित्र डिवाइस जानकारी सरणी तत्व गायब था "
 
-#: src/qemu/qemu_monitor_json.c:3279
+#: src/qemu/qemu_monitor_json.c:3268
 #, fuzzy
 msgid "Missing or invalid name in query-rx-filter response"
 msgstr "गुम या अवैध auth संकेतक "
 
-#: src/qemu/qemu_monitor_json.c:3288
+#: src/qemu/qemu_monitor_json.c:3277
 #, fuzzy
 msgid "Missing or invalid 'main-mac' in query-rx-filter response"
 msgstr "गुम या अवैध auth संकेतक "
 
-#: src/qemu/qemu_monitor_json.c:3295
+#: src/qemu/qemu_monitor_json.c:3284
 msgid "Missing or invalid 'promiscuous' in query-rx-filter response"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3302
+#: src/qemu/qemu_monitor_json.c:3291
 msgid "Missing or invalid 'broadcast-allowed' in query-rx-filter response"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3311
+#: src/qemu/qemu_monitor_json.c:3300
 #, fuzzy
 msgid "Missing or invalid 'unicast' in query-rx-filter response"
 msgstr "गुम या अवैध auth संकेतक "
 
-#: src/qemu/qemu_monitor_json.c:3318
+#: src/qemu/qemu_monitor_json.c:3307
 msgid "Missing or invalid 'unicast-overflow' in query-rx-filter response"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3325
+#: src/qemu/qemu_monitor_json.c:3314
 msgid "Missing or invalid 'unicast-table' array in query-rx-filter response"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3335
+#: src/qemu/qemu_monitor_json.c:3324
 #, c-format
 msgid ""
 "Missing or invalid element %zu of 'unicast' list in query-rx-filter response"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3341
+#: src/qemu/qemu_monitor_json.c:3330
 #, c-format
 msgid ""
 "invalid mac address '%s' in 'unicast-table' array in query-rx-filter response"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3352
+#: src/qemu/qemu_monitor_json.c:3341
 #, fuzzy
 msgid "Missing or invalid 'multicast' in query-rx-filter response"
 msgstr "गुम या अवैध auth संकेतक "
 
-#: src/qemu/qemu_monitor_json.c:3359
+#: src/qemu/qemu_monitor_json.c:3348
 msgid "Missing or invalid 'multicast-overflow' in query-rx-filter response"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3366
+#: src/qemu/qemu_monitor_json.c:3355
 msgid "Missing or invalid 'multicast-table' array in query-rx-filter response"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3376
+#: src/qemu/qemu_monitor_json.c:3365
 #, c-format
 msgid ""
 "Missing or invalid element %zu of 'multicast' list in query-rx-filter "
 "response"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3382
+#: src/qemu/qemu_monitor_json.c:3371
 #, c-format
 msgid ""
 "invalid mac address '%s' in 'multicast-table' array in query-rx-filter "
 "response"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3393
+#: src/qemu/qemu_monitor_json.c:3382
 #, fuzzy
 msgid "Missing or invalid 'vlan' in query-rx-filter response"
 msgstr "गुम या अवैध auth संकेतक "
 
-#: src/qemu/qemu_monitor_json.c:3400
+#: src/qemu/qemu_monitor_json.c:3389
 msgid "Missing or invalid 'vlan-table' array in query-rx-filter response"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3410
+#: src/qemu/qemu_monitor_json.c:3399
 #, c-format
 msgid ""
 "Missing or invalid element %zu of 'vlan-table' array in query-rx-filter "
 "response"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3483
+#: src/qemu/qemu_monitor_json.c:3472
 msgid "character device reply was missing return data"
 msgstr "वर्ण युक्ति जवाब में  रिटर्न डेटा अनुपस्थित है"
 
-#: src/qemu/qemu_monitor_json.c:3495
+#: src/qemu/qemu_monitor_json.c:3484
 msgid "character device information was missing array element"
 msgstr "चरित्र डिवाइस जानकारी सरणी तत्व गायब था "
 
-#: src/qemu/qemu_monitor_json.c:3501
+#: src/qemu/qemu_monitor_json.c:3490
 #, fuzzy
 msgid "character device information was missing label"
 msgstr "वर्ण युक्ति सूचना में फाइलनाम अनुपस्थित था"
 
-#: src/qemu/qemu_monitor_json.c:3507
+#: src/qemu/qemu_monitor_json.c:3496
 msgid "character device information was missing filename"
 msgstr "वर्ण युक्ति सूचना में फाइलनाम अनुपस्थित था"
 
-#: src/qemu/qemu_monitor_json.c:3527
+#: src/qemu/qemu_monitor_json.c:3516
 #, fuzzy, c-format
 msgid "failed to add chardev '%s' info"
 msgstr "chardev पथ '%s' सहेजने में विफल"
 
-#: src/qemu/qemu_monitor_json.c:3970
+#: src/qemu/qemu_monitor_json.c:3959
 #, c-format
 msgid "qemu block name '%s' doesn't match expected '%s'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4032
+#: src/qemu/qemu_monitor_json.c:4021
 #, c-format
 msgid "unable to find backing name for device %s"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4121 src/qemu/qemu_monitor_text.c:2212
+#: src/qemu/qemu_monitor_json.c:4110 src/qemu/qemu_monitor_text.c:2212
 #, c-format
 msgid "keycode %zu is invalid: 0x%X"
 msgstr "कीकोड %zu अवैध है: 0x%X"
 
-#: src/qemu/qemu_monitor_json.c:4213
+#: src/qemu/qemu_monitor_json.c:4202
 msgid "entry was missing 'device'"
 msgstr "प्रविष्टि 'उपकरण' गुम है "
 
-#: src/qemu/qemu_monitor_json.c:4230
+#: src/qemu/qemu_monitor_json.c:4219
 msgid "entry was missing 'type'"
 msgstr "प्रविष्टि 'टाइप' गुम है "
 
-#: src/qemu/qemu_monitor_json.c:4244
+#: src/qemu/qemu_monitor_json.c:4233
 msgid "entry was missing 'speed'"
 msgstr "प्रविष्टि 'टाइप' गुम है "
 
-#: src/qemu/qemu_monitor_json.c:4250
+#: src/qemu/qemu_monitor_json.c:4239
 msgid "entry was missing 'offset'"
 msgstr "प्रविष्टि 'offset' गुम है "
 
-#: src/qemu/qemu_monitor_json.c:4256
+#: src/qemu/qemu_monitor_json.c:4245
 msgid "entry was missing 'len'"
 msgstr "प्रविष्टि 'लेन' गुम है "
 
-#: src/qemu/qemu_monitor_json.c:4284
+#: src/qemu/qemu_monitor_json.c:4273
 msgid "reply was missing return data"
 msgstr "उत्तर में वापसी आँकड़ा अनुपस्थित था"
 
-#: src/qemu/qemu_monitor_json.c:4290
+#: src/qemu/qemu_monitor_json.c:4279
 msgid "unable to determine array size"
 msgstr "सरणी का आकार निर्धारित करने में असमर्थ"
 
-#: src/qemu/qemu_monitor_json.c:4301
+#: src/qemu/qemu_monitor_json.c:4290
 msgid "missing array element"
 msgstr "गुम सरणी तत्व"
 
-#: src/qemu/qemu_monitor_json.c:4332 src/qemu/qemu_monitor_json.c:4624
-#: src/qemu/qemu_monitor_json.c:4659
+#: src/qemu/qemu_monitor_json.c:4321 src/qemu/qemu_monitor_json.c:4613
+#: src/qemu/qemu_monitor_json.c:4648
 #, c-format
 msgid "No active operation on device: %s"
 msgstr "डिवाइस पर कोई सक्रिय कार्रवाई नहीं: %s"
 
-#: src/qemu/qemu_monitor_json.c:4335
+#: src/qemu/qemu_monitor_json.c:4324
 #, c-format
 msgid "Device %s in use"
 msgstr "डिवाइस %s उपयोग में है"
 
-#: src/qemu/qemu_monitor_json.c:4338 src/qemu/qemu_monitor_json.c:4627
-#: src/qemu/qemu_monitor_json.c:4662
+#: src/qemu/qemu_monitor_json.c:4327 src/qemu/qemu_monitor_json.c:4616
+#: src/qemu/qemu_monitor_json.c:4651
 #, c-format
 msgid "Operation is not supported for device: %s"
 msgstr "ऑपरेशन डिवाइस के लिए समर्थित नहीं है: %s"
 
-#: src/qemu/qemu_monitor_json.c:4341 src/qemu/qemu_monitor_text.c:2323
+#: src/qemu/qemu_monitor_json.c:4330 src/qemu/qemu_monitor_text.c:2323
 #: src/qemu/qemu_monitor_text.c:2422
 #, c-format
 msgid "Command '%s' is not found"
 msgstr "कमांड '% s' नहीं मिली"
 
-#: src/qemu/qemu_monitor_json.c:4344
+#: src/qemu/qemu_monitor_json.c:4333
 #, fuzzy, c-format
 msgid "Unexpected error: (%s) '%s'"
 msgstr "अप्रत्याशित त्रुटि"
 
-#: src/qemu/qemu_monitor_json.c:4494
+#: src/qemu/qemu_monitor_json.c:4483
 #, c-format
 msgid "block_io_throttle field '%s' missing in qemu's output"
 msgstr "block_io_throttle क्षेत्र '%s' qemu के आउटपुट में अनुपस्थित है"
 
-#: src/qemu/qemu_monitor_json.c:4511
+#: src/qemu/qemu_monitor_json.c:4500
 msgid " block_io_throttle reply was missing device list"
 msgstr "block_io_throttle उत्तर डिवाइस सूची गुम "
 
-#: src/qemu/qemu_monitor_json.c:4522 src/qemu/qemu_monitor_json.c:4529
+#: src/qemu/qemu_monitor_json.c:4511 src/qemu/qemu_monitor_json.c:4518
 msgid "block_io_throttle device entry was not in expected format"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4540
+#: src/qemu/qemu_monitor_json.c:4529
 msgid "block_io_throttle inserted entry was not in expected format"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4564
+#: src/qemu/qemu_monitor_json.c:4553
 #, c-format
 msgid "cannot find throttling info for device '%s'"
 msgstr "डिवाइस '%s' के लिए जानकारी थ्रॉटलिंग नहीं मिल सकता है "
 
-#: src/qemu/qemu_monitor_json.c:4630 src/qemu/qemu_monitor_json.c:4665
+#: src/qemu/qemu_monitor_json.c:4619 src/qemu/qemu_monitor_json.c:4654
 msgid "Unexpected error"
 msgstr "अप्रत्याशित त्रुटि"
 
-#: src/qemu/qemu_monitor_json.c:4726
+#: src/qemu/qemu_monitor_json.c:4715
 msgid "query-version reply was missing 'return' data"
 msgstr "query-version जवाब अनुपस्थित 'return' डाटा था"
 
-#: src/qemu/qemu_monitor_json.c:4732
+#: src/qemu/qemu_monitor_json.c:4721
 msgid "query-version reply was missing 'qemu' data"
 msgstr "query-version जवाब अनुपस्थित 'qemu' डाटा था"
 
-#: src/qemu/qemu_monitor_json.c:4738
+#: src/qemu/qemu_monitor_json.c:4727
 msgid "query-version reply was missing 'major' version"
 msgstr "query-version जवाब अनुपस्थित 'major' संस्करण था"
 
-#: src/qemu/qemu_monitor_json.c:4743
+#: src/qemu/qemu_monitor_json.c:4732
 msgid "query-version reply was missing 'minor' version"
 msgstr "query-version जवाब अनुपस्थित 'minor' संस्करण था"
 
-#: src/qemu/qemu_monitor_json.c:4748
+#: src/qemu/qemu_monitor_json.c:4737
 msgid "query-version reply was missing 'micro' version"
 msgstr "query-version जवाब अनुपस्थित 'micro' संस्करण था"
 
-#: src/qemu/qemu_monitor_json.c:4756
+#: src/qemu/qemu_monitor_json.c:4745
 msgid "query-version reply was missing 'package' version"
 msgstr "query-version जवाब अनुपस्थित 'package' संस्करण था"
 
-#: src/qemu/qemu_monitor_json.c:4796
+#: src/qemu/qemu_monitor_json.c:4785
 msgid "query-machines reply was missing return data"
 msgstr "क्वेरी-मशीन उत्तर वापसी डेटा गायब था "
 
-#: src/qemu/qemu_monitor_json.c:4802
+#: src/qemu/qemu_monitor_json.c:4791
 msgid "query-machines reply data was not an array"
 msgstr "क्वेरी-मशीन उत्तर आँकड़ा सरणी नहीं था"
 
-#: src/qemu/qemu_monitor_json.c:4822
+#: src/qemu/qemu_monitor_json.c:4811
 msgid "query-machines reply data was missing 'name'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4832
+#: src/qemu/qemu_monitor_json.c:4821
 msgid "query-machines reply has malformed 'is-default' data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4839
+#: src/qemu/qemu_monitor_json.c:4828
 msgid "query-machines reply has malformed 'alias' data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4848
+#: src/qemu/qemu_monitor_json.c:4837
 msgid "query-machines reply has malformed 'cpu-max' data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4902
+#: src/qemu/qemu_monitor_json.c:4891
 msgid "query-cpu-definitions reply was missing return data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4908
+#: src/qemu/qemu_monitor_json.c:4897
 msgid "query-cpu-definitions reply data was not an array"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4922
+#: src/qemu/qemu_monitor_json.c:4911
 msgid "query-cpu-definitions reply data was missing 'name'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4966
+#: src/qemu/qemu_monitor_json.c:4955
 msgid "query-commands reply was missing return data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4972
+#: src/qemu/qemu_monitor_json.c:4961
 msgid "query-commands reply data was not an array"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4986
+#: src/qemu/qemu_monitor_json.c:4975
 msgid "query-commands reply data was missing 'name'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:5036
+#: src/qemu/qemu_monitor_json.c:5025
 msgid "query-events reply was missing return data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:5042
+#: src/qemu/qemu_monitor_json.c:5031
 msgid "query-events reply data was not an array"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:5056
+#: src/qemu/qemu_monitor_json.c:5045
 msgid "query-events reply data was missing 'name'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:5116
+#: src/qemu/qemu_monitor_json.c:5105
 msgid "query-command-line-options reply was missing return data"
 msgstr "query-command-line-options उत्तर वापसी डेटा गायब था "
 
-#: src/qemu/qemu_monitor_json.c:5125
+#: src/qemu/qemu_monitor_json.c:5114
 msgid "query-command-line-options reply data was not an array"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:5136
+#: src/qemu/qemu_monitor_json.c:5125
 msgid "query-command-line-options reply data was missing 'option'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:5157
+#: src/qemu/qemu_monitor_json.c:5146
 msgid "query-command-line-options parameter data was not an array"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:5172
+#: src/qemu/qemu_monitor_json.c:5161
 msgid "query-command-line-options parameter data was missing 'name'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:5226
+#: src/qemu/qemu_monitor_json.c:5215
 msgid "query-kvm reply was missing return data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:5233
+#: src/qemu/qemu_monitor_json.c:5222
 msgid "query-kvm replied unexpected data"
 msgstr "query-kvm ने अप्रत्याशित आँकड़ों का जवाब दिया"
 
-#: src/qemu/qemu_monitor_json.c:5270
+#: src/qemu/qemu_monitor_json.c:5259
 msgid "qom-list-types reply was missing return data"
 msgstr "qom-list-types उत्तर में वापसी आँकड़ा अनुपस्थित था"
 
-#: src/qemu/qemu_monitor_json.c:5276
+#: src/qemu/qemu_monitor_json.c:5265
 msgid "qom-list-types reply data was not an array"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:5290
+#: src/qemu/qemu_monitor_json.c:5279
 msgid "qom-list-types reply data was missing 'name'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:5337
+#: src/qemu/qemu_monitor_json.c:5326
 msgid "qom-list reply was missing return data"
 msgstr "qom-list उत्तर में वापसी आँकड़ा अनुपस्थित था"
 
-#: src/qemu/qemu_monitor_json.c:5343
+#: src/qemu/qemu_monitor_json.c:5332
 msgid "qom-list reply data was not an array"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:5363
+#: src/qemu/qemu_monitor_json.c:5352
 msgid "qom-list reply data was missing 'name'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:5373
+#: src/qemu/qemu_monitor_json.c:5362
 msgid "qom-list reply has malformed 'type' data"
 msgstr "qom-list जवाब के पास विरूपित 'type' आँकड़ा है"
 
-#: src/qemu/qemu_monitor_json.c:5462
+#: src/qemu/qemu_monitor_json.c:5451
 #, c-format
 msgid "qom-get invalid object property type %d"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:5525
+#: src/qemu/qemu_monitor_json.c:5514
 #, c-format
 msgid "qom-set invalid object property type %d"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:5581
+#: src/qemu/qemu_monitor_json.c:5570
 msgid "device-list-properties reply was missing return data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:5587
+#: src/qemu/qemu_monitor_json.c:5576
 msgid "device-list-properties reply data was not an array"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:5601
+#: src/qemu/qemu_monitor_json.c:5590
 msgid "device-list-properties reply data was missing 'name'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:5641
+#: src/qemu/qemu_monitor_json.c:5630
 msgid "query-target reply was missing return data"
 msgstr "क्वेरी-लक्ष्य उत्तर वापसी डेटा गायब था "
 
-#: src/qemu/qemu_monitor_json.c:5647
+#: src/qemu/qemu_monitor_json.c:5636
 msgid "query-target reply was missing arch data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:5692
+#: src/qemu/qemu_monitor_json.c:5681
 msgid "missing migration capabilities"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:5705
+#: src/qemu/qemu_monitor_json.c:5694
 msgid "missing entry in migration capabilities list"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:5711
+#: src/qemu/qemu_monitor_json.c:5700
 msgid "missing migration capability name"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:5854
+#: src/qemu/qemu_monitor_json.c:5843
 msgid "missing GIC capabilities"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:5875
+#: src/qemu/qemu_monitor_json.c:5864
 msgid "missing entry in GIC capabilities list"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:5881
+#: src/qemu/qemu_monitor_json.c:5870
 msgid "missing GIC version"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:5887
+#: src/qemu/qemu_monitor_json.c:5876
 msgid "missing in-kernel GIC information"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:5893
+#: src/qemu/qemu_monitor_json.c:5882
 msgid "missing emulated GIC information"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:6087
+#: src/qemu/qemu_monitor_json.c:6076
 #, c-format
 msgid "%s reply was missing return data"
 msgstr "%s उत्तर में वापसी आँकड़ा अनुपस्थित था"
 
-#: src/qemu/qemu_monitor_json.c:6094
+#: src/qemu/qemu_monitor_json.c:6083
 #, c-format
 msgid "%s reply data was not an array"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:6109
+#: src/qemu/qemu_monitor_json.c:6098
 #, c-format
 msgid "%s array element does not contain data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:6230
+#: src/qemu/qemu_monitor_json.c:6219
 #, fuzzy, c-format
 msgid "Hotplug unsupported for char device type '%s'"
 msgstr "असमर्थित चार युक्ति प्रकार %d"
 
-#: src/qemu/qemu_monitor_json.c:6234
+#: src/qemu/qemu_monitor_json.c:6223
 #, fuzzy, c-format
 msgid "Hotplug unsupported for char device type '%d'"
 msgstr "असमर्थित चार युक्ति प्रकार %d"
 
-#: src/qemu/qemu_monitor_json.c:6285
+#: src/qemu/qemu_monitor_json.c:6274
 msgid "chardev-add reply was missing return data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:6291
+#: src/qemu/qemu_monitor_json.c:6280
 msgid "chardev-add reply was missing pty path"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:6384
+#: src/qemu/qemu_monitor_json.c:6373
 msgid "missing cpuid-register in CPU data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:6389
+#: src/qemu/qemu_monitor_json.c:6378
 msgid "missing or invalid cpuid-input-eax in CPU data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:6394
+#: src/qemu/qemu_monitor_json.c:6383
 msgid "missing or invalid features in CPU data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:6409
+#: src/qemu/qemu_monitor_json.c:6398
 #, c-format
 msgid "unknown CPU register '%s'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:6458 src/qemu/qemu_monitor_json.c:6499
+#: src/qemu/qemu_monitor_json.c:6447 src/qemu/qemu_monitor_json.c:6488
 #, c-format
 msgid "%s CPU property did not return an array"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:6550
+#: src/qemu/qemu_monitor_json.c:6539
 #, c-format
 msgid "CPU definition retrieval isn't supported for '%s'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:6611
+#: src/qemu/qemu_monitor_json.c:6600
 #, fuzzy
 msgid "query-iothreads reply was missing return data"
 msgstr "क्वेरी-स्थिति उत्तर वापसी डेटा गायब था "
 
-#: src/qemu/qemu_monitor_json.c:6617
+#: src/qemu/qemu_monitor_json.c:6606
 #, fuzzy
 msgid "query-iothreads reply data was not an array"
 msgstr "क्वेरी-मशीन उत्तर आँकड़ा सरणी नहीं था"
 
-#: src/qemu/qemu_monitor_json.c:6632
+#: src/qemu/qemu_monitor_json.c:6621
 #, fuzzy
 msgid "query-iothreads reply data was missing 'id'"
 msgstr "क्वेरी-स्थिति उत्तर वापसी डेटा गायब था "
 
-#: src/qemu/qemu_monitor_json.c:6647
+#: src/qemu/qemu_monitor_json.c:6636
 #, c-format
 msgid "failed to find iothread id for '%s'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:6655
+#: src/qemu/qemu_monitor_json.c:6644
 #, fuzzy
 msgid "query-iothreads reply has malformed 'thread-id' data"
 msgstr "qom-list जवाब के पास विरूपित 'type' आँकड़ा है"
 
-#: src/qemu/qemu_monitor_json.c:6705
+#: src/qemu/qemu_monitor_json.c:6694
 msgid "query-memory-devices reply was missing return data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:6711
+#: src/qemu/qemu_monitor_json.c:6700
 msgid "query-memory-devices reply data was not an array"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:6721
+#: src/qemu/qemu_monitor_json.c:6710
 msgid "query-memory-devices reply data doesn't contain enum type discriminator"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:6733
+#: src/qemu/qemu_monitor_json.c:6722
 msgid "query-memory-devices reply data doesn't contain enum data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:6740
+#: src/qemu/qemu_monitor_json.c:6729
 msgid "dimm memory info data is missing 'id'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:6750
+#: src/qemu/qemu_monitor_json.c:6739
 msgid "malformed/missing addr in dimm memory info"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:6757
+#: src/qemu/qemu_monitor_json.c:6746
 msgid "malformed/missing slot in dimm memory info"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:6764
+#: src/qemu/qemu_monitor_json.c:6753
 msgid "malformed/missing hotplugged in dimm memory info"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:6772
+#: src/qemu/qemu_monitor_json.c:6761
 msgid "malformed/missing hotpluggable in dimm memory info"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:6962
+#: src/qemu/qemu_monitor_json.c:6951
 msgid "qemu returned malformed time"
 msgstr ""
 
@@ -20771,9 +20765,9 @@ msgid "cannot parse memory level '%s'"
 msgstr "स्मृति स्तर '%s' का विश्लेषण नहीं कर सकता है"
 
 #: src/qemu/qemu_parse_command.c:1650
-#, fuzzy, c-format
+#, c-format
 msgid "cannot scale memory: %s"
-msgstr "निर्देशिका %s बना नहीं सकता है"
+msgstr ""
 
 #: src/qemu/qemu_parse_command.c:1738
 #, c-format
@@ -21009,9 +21003,8 @@ msgid "Unable to close file '%s'"
 msgstr "%s बन्द करने में अक्षम"
 
 #: src/qemu/qemu_process.c:4009
-#, fuzzy
 msgid "network-based listen isn't possible, network driver isn't present"
-msgstr "संजाल-आधारित लिसेन संभव नहीं, संजाल ड्राईवर मौजूद नहीं"
+msgstr ""
 
 #: src/qemu/qemu_process.c:4173
 msgid "Raw I/O is not supported on this platform"
@@ -21035,9 +21028,8 @@ msgid ""
 msgstr ""
 
 #: src/qemu/qemu_process.c:4376
-#, fuzzy
 msgid "QEMU does not support multiple listens for one graphics device."
-msgstr "इस QEMU QXL ग्राफिक्स अनुकूलक का समर्थन नहीं करता है "
+msgstr ""
 
 #: src/qemu/qemu_process.c:4427 src/qemu/qemu_process.c:5934
 #: src/uml/uml_driver.c:1049
@@ -25271,11 +25263,11 @@ msgid "%s: malformed file length %s"
 msgstr ""
 
 #: src/util/iohelper.c:305
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "%s: failure with %s\n"
 ": %s"
-msgstr "%s: लॉग फाइल लिखने में विफल: %s"
+msgstr ""
 
 #: src/util/viralloc.c:429
 #, c-format
@@ -25927,14 +25919,14 @@ msgid "Unable to compute hash of data"
 msgstr "SHA256 चेकसम गणना करने में असमर्थ"
 
 #: src/util/vircrypto.c:176
-#, fuzzy, c-format
+#, c-format
 msgid "failed to initialize cipher: '%s'"
-msgstr "libpciaccess आरंभ करने में विफल: %s"
+msgstr ""
 
 #: src/util/vircrypto.c:188
-#, fuzzy, c-format
+#, c-format
 msgid "failed to encrypt the data: '%s'"
-msgstr "%s बनाने में विफल"
+msgstr ""
 
 #: src/util/vircrypto.c:237
 #, c-format
@@ -25947,19 +25939,18 @@ msgid "AES256CBC initialization vector invalid len=%zu"
 msgstr ""
 
 #: src/util/vircrypto.c:269
-#, fuzzy, c-format
+#, c-format
 msgid "algorithm=%d is not supported"
-msgstr "संजाल प्रकार %d समर्थित नहीं"
+msgstr ""
 
 #: src/util/vircrypto.c:296
-#, fuzzy, c-format
+#, c-format
 msgid "failed to generate byte stream, ret=%d"
-msgstr "uuid उत्पन्न करने में विफल"
+msgstr ""
 
 #: src/util/vircrypto.c:305
-#, fuzzy
 msgid "failed to generate byte stream"
-msgstr "XML बनाने में विफल"
+msgstr ""
 
 #: src/util/virdbus.c:93 src/util/virdbus.c:160
 msgid "Unable to run one time DBus initializer"
@@ -27413,9 +27404,9 @@ msgid "Invalid port range '%u-%u'."
 msgstr ""
 
 #: src/util/viriscsi.c:99
-#, fuzzy, c-format
+#, c-format
 msgid "cannot find iscsiadm session: %s"
-msgstr "सत्र नहीं पा सकता है"
+msgstr ""
 
 #: src/util/viriscsi.c:129
 #, c-format
@@ -27623,8 +27614,8 @@ msgid "Failed to parse and define log filter %s"
 msgstr ""
 
 #: src/util/virnetdev.c:141 src/util/virnetdev.c:641
-#: src/util/virnetdevbridge.c:98 src/util/virnetdevbridge.c:690
-#: src/util/virnetdevbridge.c:760 src/util/virnetdevtap.c:281
+#: src/util/virnetdevbridge.c:98 src/util/virnetdevbridge.c:695
+#: src/util/virnetdevbridge.c:765 src/util/virnetdevtap.c:281
 #: src/util/virnetdevtap.c:347
 #, c-format
 msgid "Network interface name '%s' is too long"
@@ -27736,8 +27727,8 @@ msgstr ""
 
 #: src/util/virnetdev.c:1102 src/util/virnetdev.c:1277
 #: src/util/virnetdev.c:1395 src/util/virnetdev.c:2203
-#: src/util/virnetdev.c:2332 src/util/virnetdevbridge.c:506
-#: src/util/virnetdevbridge.c:1170 src/util/virnetdevmacvlan.c:428
+#: src/util/virnetdev.c:2332 src/util/virnetdevbridge.c:511
+#: src/util/virnetdevbridge.c:1159 src/util/virnetdevmacvlan.c:428
 #: src/util/virnetdevvportprofile.c:842 src/util/virnetlink.c:406
 msgid "allocated netlink buffer is too small"
 msgstr ""
@@ -27836,7 +27827,7 @@ msgid "error dumping %s (%d) interface"
 msgstr ""
 
 #: src/util/virnetdev.c:2198 src/util/virnetdev.c:2327
-#: src/util/virnetdevbridge.c:502 src/util/virnetdevbridge.c:1165
+#: src/util/virnetdevbridge.c:507 src/util/virnetdevbridge.c:1154
 #: src/util/virnetdevmacvlan.c:423 src/util/virnetdevvportprofile.c:837
 #: src/util/virnetlink.c:401 src/util/virnetlink.c:448
 msgid "malformed netlink response message"
@@ -27980,124 +27971,124 @@ msgstr ""
 msgid "Unable to set bridge %s %s"
 msgstr ""
 
-#: src/util/virnetdevbridge.c:190 src/util/virnetdevbridge.c:202
-#: src/util/virnetdevbridge.c:212
+#: src/util/virnetdevbridge.c:190 src/util/virnetdevbridge.c:206
+#: src/util/virnetdevbridge.c:216
 #, c-format
 msgid "Unable to get bridge %s %s"
 msgstr ""
 
-#: src/util/virnetdevbridge.c:248
+#: src/util/virnetdevbridge.c:253
 #, fuzzy, c-format
 msgid "Unable to set bridge %s port %s %s to %s"
 msgstr "%s को %s में उत्प्रसावन में असमर्थ"
 
-#: src/util/virnetdevbridge.c:276
+#: src/util/virnetdevbridge.c:281
 #, fuzzy, c-format
 msgid "Unable to get bridge %s port %s %s"
 msgstr "%s को %s में उत्प्रसावन में असमर्थ"
 
-#: src/util/virnetdevbridge.c:350
+#: src/util/virnetdevbridge.c:355
 #, fuzzy
 msgid "Unable to get bridge port learning on this platform"
 msgstr "UNIX सॉकेट इस प्लैटफॉर्म पर समर्थित नहीं है "
 
-#: src/util/virnetdevbridge.c:361
+#: src/util/virnetdevbridge.c:366
 #, fuzzy
 msgid "Unable to set bridge port learning on this platform"
 msgstr "प्रक्रिया CPU एफीनिटी इस प्लैटफॉर्म पर समर्थित नहीं है"
 
-#: src/util/virnetdevbridge.c:372
+#: src/util/virnetdevbridge.c:377
 #, fuzzy
 msgid "Unable to get bridge port unicast_flood on this platform"
 msgstr "UNIX सॉकेट इस प्लैटफॉर्म पर समर्थित नहीं है "
 
-#: src/util/virnetdevbridge.c:383
+#: src/util/virnetdevbridge.c:388
 #, fuzzy
 msgid "Unable to set bridge port unicast_flood on this platform"
 msgstr "UNIX सॉकेट इस प्लैटफॉर्म पर समर्थित नहीं है "
 
-#: src/util/virnetdevbridge.c:409 src/util/virnetdevbridge.c:548
+#: src/util/virnetdevbridge.c:414 src/util/virnetdevbridge.c:553
 #, c-format
 msgid "Unable to create bridge %s"
 msgstr ""
 
-#: src/util/virnetdevbridge.c:482
+#: src/util/virnetdevbridge.c:487
 #, c-format
 msgid "error creating bridge interface %s"
 msgstr ""
 
-#: src/util/virnetdevbridge.c:532
+#: src/util/virnetdevbridge.c:537
 msgid "Unable to create bridge device"
 msgstr ""
 
-#: src/util/virnetdevbridge.c:575 src/util/virnetdevbridge.c:639
+#: src/util/virnetdevbridge.c:580 src/util/virnetdevbridge.c:644
 #, c-format
 msgid "Unable to delete bridge %s"
 msgstr ""
 
-#: src/util/virnetdevbridge.c:625
+#: src/util/virnetdevbridge.c:630
 #, c-format
 msgid "Unable to remove bridge %s"
 msgstr ""
 
-#: src/util/virnetdevbridge.c:666 src/util/virnetdevbridge.c:735
+#: src/util/virnetdevbridge.c:671 src/util/virnetdevbridge.c:740
 #, c-format
 msgid "Unable to get interface index for %s"
 msgstr ""
 
-#: src/util/virnetdevbridge.c:672 src/util/virnetdevbridge.c:697
-#: src/util/virnetdevbridge.c:708
+#: src/util/virnetdevbridge.c:677 src/util/virnetdevbridge.c:702
+#: src/util/virnetdevbridge.c:713
 #, c-format
 msgid "Unable to add bridge %s port %s"
 msgstr ""
 
-#: src/util/virnetdevbridge.c:742 src/util/virnetdevbridge.c:767
-#: src/util/virnetdevbridge.c:778
+#: src/util/virnetdevbridge.c:747 src/util/virnetdevbridge.c:772
+#: src/util/virnetdevbridge.c:783
 #, c-format
 msgid "Unable to remove bridge %s port %s"
 msgstr ""
 
-#: src/util/virnetdevbridge.c:917
+#: src/util/virnetdevbridge.c:906
 #, c-format
 msgid "Unable to set STP delay on %s"
 msgstr ""
 
-#: src/util/virnetdevbridge.c:927 src/util/virnetdevbridge.c:961
+#: src/util/virnetdevbridge.c:916 src/util/virnetdevbridge.c:950
 #, c-format
 msgid "Unable to get STP delay on %s on this platform"
 msgstr ""
 
-#: src/util/virnetdevbridge.c:944 src/util/virnetdevbridge.c:979
+#: src/util/virnetdevbridge.c:933 src/util/virnetdevbridge.c:968
 #, c-format
 msgid "Unable to get STP on %s on this platform"
 msgstr ""
 
-#: src/util/virnetdevbridge.c:953
+#: src/util/virnetdevbridge.c:942
 #, c-format
 msgid "Unable to set STP delay on %s on this platform"
 msgstr ""
 
-#: src/util/virnetdevbridge.c:971
+#: src/util/virnetdevbridge.c:960
 #, c-format
 msgid "Unable to set STP on %s on this platform"
 msgstr ""
 
-#: src/util/virnetdevbridge.c:1037
+#: src/util/virnetdevbridge.c:1026
 #, fuzzy
 msgid "Unable to get bridge vlan_filtering on this platform"
 msgstr "इस प्लैटफॉर्म पर नोड सूचना लागू नहीं है"
 
-#: src/util/virnetdevbridge.c:1047
+#: src/util/virnetdevbridge.c:1036
 #, fuzzy
 msgid "Unable to set bridge vlan_filtering on this platform"
 msgstr "इस प्लैटफॉर्म पर नोड सूचना लागू नहीं है"
 
-#: src/util/virnetdevbridge.c:1146
+#: src/util/virnetdevbridge.c:1135
 #, fuzzy, c-format
 msgid "error adding fdb entry for %s"
 msgstr "profile_status() के के आह्वान में त्रुटि"
 
-#: src/util/virnetdevbridge.c:1183
+#: src/util/virnetdevbridge.c:1172
 #, fuzzy
 msgid "Unable to add/delete fdb entries on this platform"
 msgstr "स प्लैटफॉर्म पर अंतरफलक stats लागू नहीं है"
@@ -28822,46 +28813,44 @@ msgstr "%s युक्ति कोई PCI युक्ति नहीं ह�
 msgid "Unknown PCI header type '%d'"
 msgstr ""
 
-#: src/util/virperf.c:104
+#: src/util/virperf.c:107
 #, c-format
 msgid "Event '%d' is not supported"
 msgstr ""
 
-#: src/util/virperf.c:130
-#, fuzzy
+#: src/util/virperf.c:133
 msgid "failed to get rdt event type"
-msgstr "जनक पुल पाने में विफल"
+msgstr ""
 
-#: src/util/virperf.c:150
+#: src/util/virperf.c:153
 msgid "failed to get cmt scaling factor"
 msgstr ""
 
-#: src/util/virperf.c:168
+#: src/util/virperf.c:171
 #, c-format
 msgid "Unable to open perf type=%d for pid=%d"
 msgstr ""
 
-#: src/util/virperf.c:175
-#, fuzzy, c-format
+#: src/util/virperf.c:178
+#, c-format
 msgid "Unable to enable perf event for %s"
-msgstr "निर्देशिका '%s' को बनाने में विफल"
+msgstr ""
 
-#: src/util/virperf.c:207
+#: src/util/virperf.c:210
 #, c-format
 msgid "Unexpected perf event type=%d"
 msgstr ""
 
-#: src/util/virperf.c:224
+#: src/util/virperf.c:227
 #, c-format
 msgid "Unable to disable perf event type=%d"
 msgstr ""
 
-#: src/util/virperf.c:265
+#: src/util/virperf.c:258
 msgid "Unable to read cache data"
 msgstr ""
 
-#: src/util/virperf.c:282 src/util/virperf.c:291 src/util/virperf.c:307
-#: src/util/virperf.c:317
+#: src/util/virperf.c:275 src/util/virperf.c:284 src/util/virperf.c:301
 msgid "Perf not supported on this platform"
 msgstr ""
 
@@ -31801,64 +31790,54 @@ msgid "network detach failed"
 msgstr ""
 
 #: src/vz/vz_driver.c:2034
-#, fuzzy
 msgid "configuring disks is not supported for vz snapshots"
-msgstr "ऑपरेशन डिवाइस के लिए समर्थित नहीं है: %s"
+msgstr ""
 
 #: src/vz/vz_driver.c:2040
-#, fuzzy
 msgid "configuring memory location is not supported"
-msgstr "cpu लगाव समर्थित नहीं है"
+msgstr ""
 
 #: src/vz/vz_driver.c:2053
-#, fuzzy
 msgid "can't find created snapshot"
-msgstr "तस्वीर लेने में विफल: %s"
+msgstr ""
 
 #: src/vz/vz_driver.c:2131
-#, fuzzy
 msgid "Migration cookie parameters are not provided."
-msgstr "प्रवासन कुकी रिक्त समाप्त नहीं हो गया"
+msgstr ""
 
 #: src/vz/vz_driver.c:2170
-#, fuzzy
 msgid "Invalid migration cookie"
-msgstr "अवैध अवधि"
+msgstr ""
 
 #: src/vz/vz_driver.c:2175
-#, fuzzy
 msgid "(_migration_cookie)"
-msgstr "(qemu_migration_cookie)"
+msgstr ""
 
 #: src/vz/vz_driver.c:2180
-#, fuzzy
 msgid "missing session-uuid element in migration data"
-msgstr "\tप्रवास डाटा में लापता uuid तत्व"
+msgstr ""
 
 #: src/vz/vz_driver.c:2185
-#, fuzzy
 msgid "malformed session-uuid element in migration data"
-msgstr "प्रवास डाटा में विकृत hostuuid तत्व"
+msgstr ""
 
 #: src/vz/vz_driver.c:2198
-#, fuzzy
 msgid "malformed uuid element in migration data"
-msgstr "प्रवास डाटा में विकृत hostuuid तत्व"
+msgstr ""
 
 #: src/vz/vz_driver.c:2253
-#, fuzzy
 msgid "Changing destination XML is not supported"
-msgstr "अभी तक डिस्क स्नैपशॉट्स समर्थित नहीं"
+msgstr ""
 
 #: src/vz/vz_driver.c:2354
-#, fuzzy, c-format
+#, c-format
 msgid "A domain with uuid '%s' already exists"
-msgstr "लक्ष्य '%s' पहले से मौजूद है"
+msgstr ""
 
 #: src/vz/vz_driver.c:2397
-#, fuzzy, c-format
+#, c-format
 msgid "scheme and host are mandatory vz migration URI: %s"
-msgstr "असमर्थित कान्फिगुरेशन: %s"
+msgstr ""
 
 #: src/vz/vz_driver.c:2404
 #, c-format
@@ -31866,9 +31845,8 @@ msgid "only scheme, host and port are supported in vz migration URI: %s"
 msgstr ""
 
 #: src/vz/vz_driver.c:2452
-#, fuzzy
 msgid "migrate uri is not set"
-msgstr "डोमेन दूसरे होस्ट में उत्प्रवासित कर रहा है"
+msgstr ""
 
 #: src/vz/vz_driver.c:2781
 #, fuzzy
@@ -32184,9 +32162,8 @@ msgid "Only ploop disk images are supported by vz driver."
 msgstr ""
 
 #: src/vz/vz_sdk.c:2691
-#, fuzzy
 msgid "Setting readonly for filesystems is not supported by vz driver."
-msgstr "readonly filesystem इस QEMU द्विपदीय द्वारा समर्थित नहीं है"
+msgstr ""
 
 #: src/vz/vz_sdk.c:2698
 msgid "Setting fs quotas is not supported by vz driver."
@@ -32299,54 +32276,47 @@ msgid "Timeout on waiting statistics event."
 msgstr ""
 
 #: src/vz/vz_sdk.c:4259
-#, fuzzy, c-format
+#, c-format
 msgid "unexpected DateTime format: '%s'"
-msgstr "'%s' के लिए अप्रत्याशित भंडारण मोड"
+msgstr ""
 
 #: src/vz/vz_sdk.c:4288
-#, fuzzy
 msgid "(snapshot_tree)"
-msgstr "स्नेपशाट नाम"
+msgstr ""
 
 #: src/vz/vz_sdk.c:4294
-#, fuzzy, c-format
+#, c-format
 msgid "unexpected root element: '%s'"
-msgstr "अप्रत्याशित आंकड़ा '%s'"
+msgstr ""
 
 #: src/vz/vz_sdk.c:4307
-#, fuzzy
 msgid "cannot extract snapshot nodes"
-msgstr "numatune नोड को निकाल नहीं सकता है"
+msgstr ""
 
 #: src/vz/vz_sdk.c:4323
-#, fuzzy
 msgid "missing 'guid' attribute"
-msgstr "गायब बूट क्रम विशेषता"
+msgstr ""
 
 #: src/vz/vz_sdk.c:4332
-#, fuzzy
 msgid "missing 'DateTime' element"
-msgstr "गुम रूट तत्व"
+msgstr ""
 
 #: src/vz/vz_sdk.c:4345
-#, fuzzy
 msgid "missing 'state' attribute"
-msgstr "गुम डोमेन प्रकार गुण"
+msgstr ""
 
 #: src/vz/vz_sdk.c:4359
-#, fuzzy, c-format
+#, c-format
 msgid "unexpected snapshot state: %s"
-msgstr "अप्रत्याशित इनपुट प्रकार %d"
+msgstr ""
 
 #: src/vz/vz_sdk.c:4374
-#, fuzzy
 msgid "too many current snapshots"
-msgstr "डोमेन में कोई मौजूदा स्नैपशॉट नहीं है "
+msgstr ""
 
 #: src/vz/vz_sdk.c:4383
-#, fuzzy
 msgid "snapshots have inconsistent relations"
-msgstr "स्नैपशॉट्स डोमेन %s के लिए असंगत संबंध है"
+msgstr ""
 
 #: src/vz/vz_utils.c:176
 msgid "cannot initialize condition"
@@ -41753,9 +41723,9 @@ msgid "client which to disconnect, specified by ID"
 msgstr ""
 
 #: tools/virt-admin.c:799
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to disconnect client '%llu' from server %s"
-msgstr "सॉकेट '%s' में कनेक्ट करने में विफल'"
+msgstr ""
 
 #: tools/virt-admin.c:804
 #, c-format
@@ -42490,110 +42460,3 @@ msgstr ""
 #, c-format
 msgid "Option --%s is required by option --%s"
 msgstr ""
-
-#~ msgid "Can't load config file: %s"
-#~ msgstr "विन्यास फाइल लोड नहीं कर सकते है: %s"
-
-#~ msgid "cannot parse CPU map file: %s"
-#~ msgstr "CPU मानचित्र फाइल विश्लेषित नहीं कर सकता है: %s"
-
-#~ msgid "cannot convert disk '%s' to bus/device index"
-#~ msgstr "'%s' डिस्क को बस/युक्ति सूची में नहीं बदल सकता है"
-
-#~ msgid "Unsupported disk name mapping for bus '%s'"
-#~ msgstr "'%s' बस के लिए असमर्थित डिस्क नाम मैपिंग"
-
-#~ msgid "rombar and romfile not supported in this QEMU binary"
-#~ msgstr "rombar और romfile इस QEMU द्विपदीय में समर्थित नहीं है"
-
-#~ msgid "disk device='lun' is not supported by this QEMU"
-#~ msgstr "इस  QEMU द्वारा डिस्क युक्ति='lun' समर्थित नहीं है"
-
-#~ msgid "unsupported usb disk type for '%s'"
-#~ msgstr "असमर्थित usb डिस्क प्रकार '%s' के लिए"
-
-#~ msgid "invalid sound model"
-#~ msgstr "अवैध ध्वनि माडल"
-
-#~ msgid "this QEMU binary lacks hda support"
-#~ msgstr "इस QEMU द्विपदीय hda समर्थन का अभाव है"
-
-#~ msgid "PCI device assignment is not supported by this version of qemu"
-#~ msgstr "PCI युक्ति नियतन qemu के इस संस्करण के साथ अभी समर्थित नहीं है"
-
-#~ msgid "qemu does not support -device"
-#~ msgstr "qemu युक्ति का समर्थन नहीं करता है"
-
-#~ msgid "CPU mode '%s' is not supported by QEMU binary"
-#~ msgstr "CPU मोड '%s' QEMU द्विपदीय द्वारा समर्थित नहीं है"
-
-#~ msgid "virtio channel requires QEMU to support -device"
-#~ msgstr "virtio चैनल के लिए QEMU को -device का समर्थन करना जरूरी है"
-
-#, fuzzy
-#~ msgid "redirected devices are not supported by this QEMU"
-#~ msgstr "इस  QEMU द्वारा डिस्क युक्ति='lun' समर्थित नहीं है"
-
-#, fuzzy
-#~ msgid "this qemu doesn't support passing readonly attribute"
-#~ msgstr "डिस्क अपडेट का समर्थन नहीं करता है"
-
-#~ msgid "cannot change listen address setting on vnc graphics"
-#~ msgstr "vnc ग्राफिक्स पर लिसेन पता सेटिंग बदल नहीं सकते है "
-
-#~ msgid "cannot change listen network setting on vnc graphics"
-#~ msgstr " vnc ग्राफिक्स पर लिसेन संजाल सेटिंग बदल नहीं सकते है"
-
-#~ msgid "cannot change listen network setting on spice graphics"
-#~ msgstr "spice ग्राफिक्स पर लिसेन संजाल सेटिंग बदल नहीं सकते है"
-
-#~ msgid "Underlying qemu does not support %s disk removal"
-#~ msgstr "qemu अंतर्निहित %s डिस्क हटाने का समर्थन नहीं करता है "
-
-#~ msgid "device cannot be detached with this QEMU version"
-#~ msgstr "इस QEMU संस्करण के बिना युक्ति को अलग नहीं किया जा सकता है"
-
-#~ msgid "cannot find info for device '%s'"
-#~ msgstr "जानकारी के लिए '% s' डिवाइस नहीं ढूँढ सकता है"
-
-#~ msgid "query-pci not supported in JSON mode"
-#~ msgstr "query-pci SON मोड में समर्थित नहीं"
-
-#~ msgid "cannot parse value for %s"
-#~ msgstr "%s के लिए मान का विश्लेषण नहीं कर सकता है"
-
-#~ msgid "cannot find PCI address for VirtIO disk %s"
-#~ msgstr "VirtIO डिस्क %s के लिए PCI पता नहीं ढूँढ़ सकता है"
-
-#~ msgid "cannot find PCI address for %s NIC"
-#~ msgstr "PCI पता को %s के लिए नहीं ढूँढ़ सकता है"
-
-#~ msgid "cannot find PCI address for controller %s"
-#~ msgstr "नियंत्रक %s के लिए कोई PCI पता नहीं ढूँढ़ सकता है"
-
-#~ msgid "cannot find PCI address for video adapter %s"
-#~ msgstr "PCI पता को %s वीडियो एडाप्टर के लिए नहीं ढूँढ़ सकता है"
-
-#~ msgid "cannot find PCI address for sound adapter %s"
-#~ msgstr "%s ध्वनि एडाप्टर के लिए PCI पता नहीं ढूँढ़ सकता है"
-
-#~ msgid "cannot find PCI address for watchdog %s"
-#~ msgstr "वाचडॉग %s के लिए pCI पता नहीं ढूँढ़ सकता है"
-
-#~ msgid "cannot find PCI address for balloon %s"
-#~ msgstr "PCI पता को बलून %s के लिए नहीं ढूँढ़ सकता है"
-
-#~ msgid "could not find replacement string"
-#~ msgstr "प्रतिस्थापन स्ट्रिंग पता नहीं कर सका"
-
-#~ msgid "could not allocate memory for string"
-#~ msgstr "स्ट्रिंग के लिए स्मृति आवंटित नहीं कर सका"
-
-#~ msgid "not enough space in target buffer"
-#~ msgstr "लक्ष्य बफर में पर्याप्त स्थान नहीं"
-
-#~ msgid "error replacing string"
-#~ msgstr "त्रुटि की जगह स्ट्रिंग"
-
-#~ msgid "no error message found"
-#~ msgstr " कोई त्रुटि संदेश नहीं मिला "

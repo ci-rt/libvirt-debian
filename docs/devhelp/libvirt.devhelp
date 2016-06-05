@@ -180,6 +180,8 @@
     <function name="VIR_NODE_MEMORY_STATS_FREE" link="libvirt-libvirt-host.html#VIR_NODE_MEMORY_STATS_FREE"/>
     <function name="VIR_NODE_MEMORY_STATS_TOTAL" link="libvirt-libvirt-host.html#VIR_NODE_MEMORY_STATS_TOTAL"/>
     <function name="VIR_PERF_PARAM_CMT" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_CMT"/>
+    <function name="VIR_PERF_PARAM_MBML" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_MBML"/>
+    <function name="VIR_PERF_PARAM_MBMT" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_MBMT"/>
     <function name="VIR_SECURITY_DOI_BUFLEN" link="libvirt-libvirt-host.html#VIR_SECURITY_DOI_BUFLEN"/>
     <function name="VIR_SECURITY_LABEL_BUFLEN" link="libvirt-libvirt-host.html#VIR_SECURITY_LABEL_BUFLEN"/>
     <function name="VIR_SECURITY_MODEL_BUFLEN" link="libvirt-libvirt-host.html#VIR_SECURITY_MODEL_BUFLEN"/>
@@ -747,6 +749,7 @@
     <function name="VIR_ERR_MULTIPLE_INTERFACES" link="libvirt-virterror.html#VIR_ERR_MULTIPLE_INTERFACES"/>
     <function name="VIR_ERR_NETWORK_EXIST" link="libvirt-virterror.html#VIR_ERR_NETWORK_EXIST"/>
     <function name="VIR_ERR_NONE" link="libvirt-virterror.html#VIR_ERR_NONE"/>
+    <function name="VIR_ERR_NO_CLIENT" link="libvirt-virterror.html#VIR_ERR_NO_CLIENT"/>
     <function name="VIR_ERR_NO_CONNECT" link="libvirt-virterror.html#VIR_ERR_NO_CONNECT"/>
     <function name="VIR_ERR_NO_DEVICE" link="libvirt-virterror.html#VIR_ERR_NO_DEVICE"/>
     <function name="VIR_ERR_NO_DOMAIN" link="libvirt-virterror.html#VIR_ERR_NO_DOMAIN"/>

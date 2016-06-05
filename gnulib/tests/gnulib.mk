@@ -2320,15 +2320,6 @@ EXTRA_DIST += test-unlockpt.c signature.h macros.h
 
 ## end   gnulib module unlockpt-tests
 
-## begin gnulib module unsetenv
-
-
-EXTRA_DIST += unsetenv.c
-
-EXTRA_libtests_a_SOURCES += unsetenv.c
-
-## end   gnulib module unsetenv
-
 ## begin gnulib module unsetenv-tests
 
 GNULIB_TESTS += test-unsetenv

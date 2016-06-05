@@ -1225,6 +1225,12 @@ AC_SUBST([LTALLOCA])
   fi
   gl_SYS_UTSNAME_MODULE_INDICATOR([uname])
   gl_UNISTD_H
+  gl_FUNC_UNSETENV
+  if test $HAVE_UNSETENV = 0 || test $REPLACE_UNSETENV = 1; then
+    AC_LIBOBJ([unsetenv])
+    gl_PREREQ_UNSETENV
+  fi
+  gl_STDLIB_MODULE_INDICATOR([unsetenv])
   gl_FUNC_USLEEP
   if test $HAVE_USLEEP = 0 || test $REPLACE_USLEEP = 1; then
     AC_LIBOBJ([usleep])
@@ -1546,12 +1552,6 @@ changequote([, ])dnl
     gl_PREREQ_UNLOCKPT
   fi
   gl_STDLIB_MODULE_INDICATOR([unlockpt])
-  gl_FUNC_UNSETENV
-  if test $HAVE_UNSETENV = 0 || test $REPLACE_UNSETENV = 1; then
-    AC_LIBOBJ([unsetenv])
-    gl_PREREQ_UNSETENV
-  fi
-  gl_STDLIB_MODULE_INDICATOR([unsetenv])
   abs_aux_dir=`cd "$ac_aux_dir"; pwd`
   AC_SUBST([abs_aux_dir])
   gl_WAIT_PROCESS
@@ -1934,6 +1934,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/uname.c
   lib/unistd.c
   lib/unistd.in.h
+  lib/unsetenv.c
   lib/usleep.c
   lib/vasnprintf.c
   lib/vasnprintf.h
@@ -2531,7 +2532,6 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/spawnp.c
   tests=lib/symlink.c
   tests=lib/unlockpt.c
-  tests=lib/unsetenv.c
   tests=lib/w32sock.h
   tests=lib/wait-process.c
   tests=lib/wait-process.h

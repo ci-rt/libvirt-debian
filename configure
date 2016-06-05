@@ -19315,6 +19315,19 @@ _ACEOF
 
 
 
+      ac_fn_c_check_decl "$LINENO" "unsetenv" "ac_cv_have_decl_unsetenv" "$ac_includes_default"
+if test "x$ac_cv_have_decl_unsetenv" = xyes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL_UNSETENV $ac_have_decl
+_ACEOF
+
+
+
 
 
 
@@ -21344,19 +21357,6 @@ $as_echo "$gl_cv_func_spawnattr_setschedparam" >&6; }
 
 
 
-
-
-
-      ac_fn_c_check_decl "$LINENO" "unsetenv" "ac_cv_have_decl_unsetenv" "$ac_includes_default"
-if test "x$ac_cv_have_decl_unsetenv" = xyes; then :
-  ac_have_decl=1
-else
-  ac_have_decl=0
-fi
-
-cat >>confdefs.h <<_ACEOF
-#define HAVE_DECL_UNSETENV $ac_have_decl
-_ACEOF
 
 
 
@@ -37180,6 +37180,176 @@ $as_echo "$gl_cv_next_unistd_h" >&6; }
 
 
 
+  :
+
+
+
+
+
+  if test $ac_cv_have_decl_unsetenv = no; then
+    HAVE_DECL_UNSETENV=0
+  fi
+  for ac_func in unsetenv
+do :
+  ac_fn_c_check_func "$LINENO" "unsetenv" "ac_cv_func_unsetenv"
+if test "x$ac_cv_func_unsetenv" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_UNSETENV 1
+_ACEOF
+
+fi
+done
+
+  if test $ac_cv_func_unsetenv = no; then
+    HAVE_UNSETENV=0
+  else
+    HAVE_UNSETENV=1
+        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for unsetenv() return type" >&5
+$as_echo_n "checking for unsetenv() return type... " >&6; }
+if ${gt_cv_func_unsetenv_ret+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#undef _BSD
+#define _BSD 1 /* unhide unsetenv declaration in OSF/1 5.1 <stdlib.h> */
+#include <stdlib.h>
+extern
+#ifdef __cplusplus
+"C"
+#endif
+int unsetenv (const char *name);
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  gt_cv_func_unsetenv_ret='int'
+else
+  gt_cv_func_unsetenv_ret='void'
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gt_cv_func_unsetenv_ret" >&5
+$as_echo "$gt_cv_func_unsetenv_ret" >&6; }
+    if test $gt_cv_func_unsetenv_ret = 'void'; then
+
+$as_echo "#define VOID_UNSETENV 1" >>confdefs.h
+
+      REPLACE_UNSETENV=1
+    fi
+
+                { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether unsetenv obeys POSIX" >&5
+$as_echo_n "checking whether unsetenv obeys POSIX... " >&6; }
+if ${gl_cv_func_unsetenv_works+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test "$cross_compiling" = yes; then :
+  case "$host_os" in
+                 # Guess yes on glibc systems.
+         *-gnu*) gl_cv_func_unsetenv_works="guessing yes" ;;
+                 # If we don't know, assume the worst.
+         *)      gl_cv_func_unsetenv_works="guessing no" ;;
+       esac
+
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+       #include <stdlib.h>
+       #include <errno.h>
+       extern char **environ;
+
+int
+main ()
+{
+
+       char entry1[] = "a=1";
+       char entry2[] = "b=2";
+       char *env[] = { entry1, entry2, NULL };
+       if (putenv ((char *) "a=1")) return 1;
+       if (putenv (entry2)) return 2;
+       entry2[0] = 'a';
+       unsetenv ("a");
+       if (getenv ("a")) return 3;
+       if (!unsetenv ("") || errno != EINVAL) return 4;
+       entry2[0] = 'b';
+       environ = env;
+       if (!getenv ("a")) return 5;
+       entry2[0] = 'a';
+       unsetenv ("a");
+       if (getenv ("a")) return 6;
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  gl_cv_func_unsetenv_works=yes
+else
+  gl_cv_func_unsetenv_works=no
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gl_cv_func_unsetenv_works" >&5
+$as_echo "$gl_cv_func_unsetenv_works" >&6; }
+    case "$gl_cv_func_unsetenv_works" in
+      *yes) ;;
+      *)
+        REPLACE_UNSETENV=1
+        ;;
+    esac
+  fi
+
+  if test $HAVE_UNSETENV = 0 || test $REPLACE_UNSETENV = 1; then
+
+
+
+
+
+
+
+
+  gl_LIBOBJS="$gl_LIBOBJS unsetenv.$ac_objext"
+
+
+
+
+  :
+
+
+
+
+
+
+  fi
+
+
+
+
+
+          GNULIB_UNSETENV=1
+
+
+
+
+
+$as_echo "#define GNULIB_TEST_UNSETENV 1" >>confdefs.h
+
+
+
+
+
+
 
   :
 
@@ -46399,182 +46569,6 @@ done
 
 
 $as_echo "#define GNULIB_TEST_UNLOCKPT 1" >>confdefs.h
-
-
-
-
-
-
-  :
-
-
-
-
-
-  if test $ac_cv_have_decl_unsetenv = no; then
-    HAVE_DECL_UNSETENV=0
-  fi
-  for ac_func in unsetenv
-do :
-  ac_fn_c_check_func "$LINENO" "unsetenv" "ac_cv_func_unsetenv"
-if test "x$ac_cv_func_unsetenv" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_UNSETENV 1
-_ACEOF
-
-fi
-done
-
-  if test $ac_cv_func_unsetenv = no; then
-    HAVE_UNSETENV=0
-  else
-    HAVE_UNSETENV=1
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for unsetenv() return type" >&5
-$as_echo_n "checking for unsetenv() return type... " >&6; }
-if ${gt_cv_func_unsetenv_ret+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-#undef _BSD
-#define _BSD 1 /* unhide unsetenv declaration in OSF/1 5.1 <stdlib.h> */
-#include <stdlib.h>
-extern
-#ifdef __cplusplus
-"C"
-#endif
-int unsetenv (const char *name);
-
-int
-main ()
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  gt_cv_func_unsetenv_ret='int'
-else
-  gt_cv_func_unsetenv_ret='void'
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gt_cv_func_unsetenv_ret" >&5
-$as_echo "$gt_cv_func_unsetenv_ret" >&6; }
-    if test $gt_cv_func_unsetenv_ret = 'void'; then
-
-$as_echo "#define VOID_UNSETENV 1" >>confdefs.h
-
-      REPLACE_UNSETENV=1
-    fi
-
-                { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether unsetenv obeys POSIX" >&5
-$as_echo_n "checking whether unsetenv obeys POSIX... " >&6; }
-if ${gl_cv_func_unsetenv_works+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test "$cross_compiling" = yes; then :
-  case "$host_os" in
-                 # Guess yes on glibc systems.
-         *-gnu*) gl_cv_func_unsetenv_works="guessing yes" ;;
-                 # If we don't know, assume the worst.
-         *)      gl_cv_func_unsetenv_works="guessing no" ;;
-       esac
-
-else
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-       #include <stdlib.h>
-       #include <errno.h>
-       extern char **environ;
-
-int
-main ()
-{
-
-       char entry1[] = "a=1";
-       char entry2[] = "b=2";
-       char *env[] = { entry1, entry2, NULL };
-       if (putenv ((char *) "a=1")) return 1;
-       if (putenv (entry2)) return 2;
-       entry2[0] = 'a';
-       unsetenv ("a");
-       if (getenv ("a")) return 3;
-       if (!unsetenv ("") || errno != EINVAL) return 4;
-       entry2[0] = 'b';
-       environ = env;
-       if (!getenv ("a")) return 5;
-       entry2[0] = 'a';
-       unsetenv ("a");
-       if (getenv ("a")) return 6;
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_run "$LINENO"; then :
-  gl_cv_func_unsetenv_works=yes
-else
-  gl_cv_func_unsetenv_works=no
-fi
-rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
-  conftest.$ac_objext conftest.beam conftest.$ac_ext
-fi
-
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gl_cv_func_unsetenv_works" >&5
-$as_echo "$gl_cv_func_unsetenv_works" >&6; }
-    case "$gl_cv_func_unsetenv_works" in
-      *yes) ;;
-      *)
-        REPLACE_UNSETENV=1
-        ;;
-    esac
-  fi
-
-  if test $HAVE_UNSETENV = 0 || test $REPLACE_UNSETENV = 1; then
-
-
-
-
-
-
-
-
-  gltests_LIBOBJS="$gltests_LIBOBJS unsetenv.$ac_objext"
-
-
-
-
-  :
-
-
-
-
-
-
-  fi
-
-
-
-
-
-    if test "$GNULIB_UNSETENV" != 1; then
-        if test "$GNULIB_UNSETENV" = 0; then
-      GNULIB_UNSETENV=$gl_module_indicator_condition
-    else
-      GNULIB_UNSETENV="($GNULIB_UNSETENV || $gl_module_indicator_condition)"
-    fi
-  fi
-
-
-
-
-
-$as_echo "#define GNULIB_TEST_UNSETENV 1" >>confdefs.h
 
 
 
