@@ -112,4 +112,5 @@ libvirt-lxc.so.0 libvirt0 #MINVER#
 
 libvirt-admin.so.0 libvirt0 #MINVER#
  *@LIBVIRT_ADMIN_1.3.0 1.2.18
+ *@LIBVIRT_ADMIN_2.0.0 2.0.0~rc1
  *@LIBVIRT_ADMIN_PRIVATE_2.0.0 2.0.0~rc1
