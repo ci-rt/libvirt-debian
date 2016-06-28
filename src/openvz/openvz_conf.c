@@ -165,7 +165,7 @@ virCapsPtr openvzCapsInit(void)
                                    false, false)) == NULL)
         goto no_memory;
 
-    if (nodeCapsInitNUMA(NULL, caps) < 0)
+    if (nodeCapsInitNUMA(caps) < 0)
         goto no_memory;
 
     if ((guest = virCapabilitiesAddGuest(caps,
@@ -633,7 +633,7 @@ openvzGetNodeCPUs(void)
 {
     virNodeInfo nodeinfo;
 
-    if (nodeGetInfo(NULL, &nodeinfo) < 0)
+    if (nodeGetInfo(&nodeinfo) < 0)
         return 0;
 
     return nodeinfo.cpus;
@@ -737,11 +737,11 @@ openvzReadConfigParam(const char *conf_file, const char *param, char **value)
             break;
         }
 
-        if (! STREQLEN(line, param, strlen(param)))
+        if (!(sf = STRSKIP(line, param)))
             continue;
 
-        sf = line + strlen(param);
-        if (*sf++ != '=') continue;
+        if (*sf++ != '=')
+            continue;
 
         saveptr = NULL;
         if ((token = strtok_r(sf, "\"\t\n", &saveptr)) != NULL) {
@@ -1057,8 +1057,7 @@ static int openvzAssignUUIDs(void)
     if (conf_dir == NULL)
         return -1;
 
-    dp = opendir(conf_dir);
-    if (dp == NULL) {
+    if (virDirOpenQuiet(&dp, conf_dir) < 0) {
         VIR_FREE(conf_dir);
         return 0;
     }
@@ -1072,7 +1071,7 @@ static int openvzAssignUUIDs(void)
             openvzSetUUID(vpsid);
     }
 
-    closedir(dp);
+    VIR_DIR_CLOSE(dp);
     VIR_FREE(conf_dir);
     return ret;
 }

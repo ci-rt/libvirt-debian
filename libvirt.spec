@@ -79,7 +79,6 @@
 %define with_firewalld     0%{!?_without_firewalld:0}
 %define with_libssh2       0%{!?_without_libssh2:0}
 %define with_wireshark     0%{!?_without_wireshark:0}
-%define with_systemd_daemon 0%{!?_without_systemd_daemon:0}
 %define with_pm_utils      1
 
 # Finally set the OS / architecture specific special cases
@@ -133,7 +132,6 @@
 # Fedora has systemd, libvirt still used sysvinit there.
 %if 0%{?fedora} || 0%{?rhel} >= 7
     %define with_systemd 1
-    %define with_systemd_daemon 1
     %define with_pm_utils 0
 %endif
 
@@ -208,11 +206,17 @@
     %define enable_werror --disable-werror
 %endif
 
+%if 0%{?fedora} >= 21
+    %define tls_priority "@SYSTEM"
+%else
+    %define tls_priority "NORMAL"
+%endif
+
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 1.3.5
-Release: 1%{?dist}%{?extra_release}
+Version: 2.0.0
+Release: 0rc1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -221,7 +225,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc1.tar.xz
 
 Requires: libvirt-daemon = %{version}-%{release}
 Requires: libvirt-daemon-config-network = %{version}-%{release}
@@ -267,9 +271,6 @@ BuildRequires: perl
 BuildRequires: python
 %if %{with_systemd}
 BuildRequires: systemd-units
-%endif
-%if %{with_systemd_daemon}
-BuildRequires: systemd-devel
 %endif
 %if %{with_xen} || %{with_libxl}
 BuildRequires: xen-devel
@@ -606,6 +607,7 @@ Group: Development/Libraries
 Requires: libvirt-daemon = %{version}-%{release}
 # There really is a hard cross-driver dependency here
 Requires: libvirt-daemon-driver-network = %{version}-%{release}
+Requires: libvirt-daemon-driver-storage = %{version}-%{release}
 Requires: /usr/bin/qemu-img
 # For image compression
 Requires: gzip
@@ -1061,12 +1063,6 @@ rm -rf .git
     %define arg_wireshark --without-wireshark-dissector
 %endif
 
-%if %{with_systemd_daemon}
-    %define arg_systemd_daemon --with-systemd-daemon
-%else
-    %define arg_systemd_daemon --without-systemd-daemon
-%endif
-
 %if %{with_pm_utils}
     %define arg_pm_utils --with-pm-utils
 %else
@@ -1157,13 +1153,13 @@ rm -f po/stamp-po
            --with-driver-modules \
            %{?arg_firewalld} \
            %{?arg_wireshark} \
-           %{?arg_systemd_daemon} \
            %{?arg_pm_utils} \
            --with-nss-plugin \
            %{arg_packager} \
            %{arg_packager_version} \
            --with-qemu-user=%{qemu_user} \
            --with-qemu-group=%{qemu_group} \
+           --with-tls-priority=%{tls_priority} \
            %{?arg_loader_nvram} \
            %{?enable_werror} \
            --enable-expensive-tests \
@@ -1192,12 +1188,6 @@ rm -f $RPM_BUILD_ROOT%{_libdir}/wireshark/plugins/*/libvirt.la
 mv $RPM_BUILD_ROOT%{_libdir}/wireshark/plugins/*/libvirt.so \
    $RPM_BUILD_ROOT%{_libdir}/wireshark/plugins/libvirt.so
 %endif
-
-# Temporarily get rid of not-installed admin-related files
-rm -f $RPM_BUILD_ROOT%{_libdir}/libvirt-admin.so
-rm -f $RPM_BUILD_ROOT%{_bindir}/virt-admin
-rm -f $RPM_BUILD_ROOT%{_mandir}/man1/virt-admin.1*
-rm -f $RPM_BUILD_ROOT%{_sysconfdir}/libvirt/libvirt-admin.conf
 
 install -d -m 0755 $RPM_BUILD_ROOT%{_datadir}/lib/libvirt/dnsmasq/
 # We don't want to install /etc/libvirt/qemu/networks in the main %files list
@@ -1540,6 +1530,7 @@ exit 0
 %doc examples/xml
 %doc examples/rename
 %doc examples/systemtap
+%doc examples/admin
 
 
 %files daemon
@@ -1750,11 +1741,14 @@ exit 0
 %doc COPYING COPYING.LESSER
 
 %config(noreplace) %{_sysconfdir}/libvirt/libvirt.conf
+%config(noreplace) %{_sysconfdir}/libvirt/libvirt-admin.conf
 %{_mandir}/man1/virsh.1*
+%{_mandir}/man1/virt-admin.1*
 %{_mandir}/man1/virt-xml-validate.1*
 %{_mandir}/man1/virt-pki-validate.1*
 %{_mandir}/man1/virt-host-validate.1*
 %{_bindir}/virsh
+%{_bindir}/virt-admin
 %{_bindir}/virt-xml-validate
 %{_bindir}/virt-pki-validate
 %{_bindir}/virt-host-validate
@@ -1817,11 +1811,13 @@ exit 0
 
 %files devel
 %{_libdir}/libvirt.so
+%{_libdir}/libvirt-admin.so
 %{_libdir}/libvirt-qemu.so
 %{_libdir}/libvirt-lxc.so
 %dir %{_includedir}/libvirt
 %{_includedir}/libvirt/virterror.h
 %{_includedir}/libvirt/libvirt.h
+%{_includedir}/libvirt/libvirt-admin.h
 %{_includedir}/libvirt/libvirt-common.h
 %{_includedir}/libvirt/libvirt-domain.h
 %{_includedir}/libvirt/libvirt-domain-snapshot.h
@@ -1837,11 +1833,13 @@ exit 0
 %{_includedir}/libvirt/libvirt-qemu.h
 %{_includedir}/libvirt/libvirt-lxc.h
 %{_libdir}/pkgconfig/libvirt.pc
+%{_libdir}/pkgconfig/libvirt-admin.pc
 %{_libdir}/pkgconfig/libvirt-qemu.pc
 %{_libdir}/pkgconfig/libvirt-lxc.pc
 
 %dir %{_datadir}/libvirt/api/
 %{_datadir}/libvirt/api/libvirt-api.xml
+%{_datadir}/libvirt/api/libvirt-admin-api.xml
 %{_datadir}/libvirt/api/libvirt-qemu-api.xml
 %{_datadir}/libvirt/api/libvirt-lxc-api.xml
 # Needed building python bindings

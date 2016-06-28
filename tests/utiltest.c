@@ -52,7 +52,7 @@ testIndexToDiskName(const void *data ATTRIBUTE_UNUSED)
         diskName = virIndexToDiskName(i, "sd");
 
         if (STRNEQ(diskNames[i], diskName)) {
-            virtTestDifference(stderr, diskNames[i], diskName);
+            virTestDifference(stderr, diskNames[i], diskName);
             VIR_FREE(diskName);
 
             return -1;
@@ -263,12 +263,12 @@ mymain(void)
 {
     int result = 0;
 
-    virtTestQuiesceLibvirtErrors(true);
+    virTestQuiesceLibvirtErrors(true);
 
 #define DO_TEST(_name)                                                        \
         do {                                                                  \
-            if (virtTestRun("Util "#_name, test##_name,                       \
-                            NULL) < 0) {                                      \
+            if (virTestRun("Util "#_name, test##_name,                        \
+                           NULL) < 0) {                                       \
                 result = -1;                                                  \
             }                                                                 \
         } while (0)

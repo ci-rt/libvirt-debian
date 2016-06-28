@@ -49,6 +49,7 @@
 #include "snapshot_conf.h"
 #include "fdstream.h"
 #include "storage_conf.h"
+#include "storage_event.h"
 #include "node_device_conf.h"
 #include "virxml.h"
 #include "virthread.h"
@@ -601,7 +602,7 @@ testDomainStartState(testDriverPtr privconn,
 
     if (virDomainObjSetDefTransient(privconn->caps,
                                     privconn->xmlopt,
-                                    dom, false) < 0) {
+                                    dom) < 0) {
         goto cleanup;
     }
 
@@ -1411,6 +1412,7 @@ testConnectAuthenticate(virConnectPtr conn,
 
 static virDrvOpenStatus testConnectOpen(virConnectPtr conn,
                                         virConnectAuthPtr auth,
+                                        virConfPtr conf ATTRIBUTE_UNUSED,
                                         unsigned int flags)
 {
     int ret;
@@ -1605,7 +1607,7 @@ testDomainCreateXML(virConnectPtr conn, const char *xml,
     virCheckFlags(VIR_DOMAIN_START_VALIDATE, NULL);
 
     if (flags & VIR_DOMAIN_START_VALIDATE)
-        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE_SCHEMA;
 
     testDriverLock(privconn);
     if ((def = virDomainDefParseString(xml, privconn->caps, privconn->xmlopt,
@@ -1927,7 +1929,7 @@ static int testDomainGetInfo(virDomainPtr domain,
 
     info->state = virDomainObjGetState(privdom, NULL);
     info->memory = privdom->def->mem.cur_balloon;
-    info->maxMem = virDomainDefGetMemoryActual(privdom->def);
+    info->maxMem = virDomainDefGetMemoryTotal(privdom->def);
     info->nrVirtCpu = virDomainDefGetVcpus(privdom->def);
     info->cpuTime = ((tv.tv_sec * 1000ll * 1000ll  * 1000ll) + (tv.tv_usec * 1000ll));
     ret = 0;
@@ -2253,7 +2255,7 @@ testDomainGetMaxMemory(virDomainPtr domain)
     if (!(privdom = testDomObjFromDomain(domain)))
         return 0;
 
-    ret = virDomainDefGetMemoryActual(privdom->def);
+    ret = virDomainDefGetMemoryTotal(privdom->def);
 
     virDomainObjEndAPI(&privdom);
     return ret;
@@ -2283,7 +2285,7 @@ static int testDomainSetMemory(virDomainPtr domain,
     if (!(privdom = testDomObjFromDomain(domain)))
         return -1;
 
-    if (memory > virDomainDefGetMemoryActual(privdom->def)) {
+    if (memory > virDomainDefGetMemoryTotal(privdom->def)) {
         virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         goto cleanup;
     }
@@ -2610,7 +2612,7 @@ static virDomainPtr testDomainDefineXMLFlags(virConnectPtr conn,
     virCheckFlags(VIR_DOMAIN_DEFINE_VALIDATE, NULL);
 
     if (flags & VIR_DOMAIN_DEFINE_VALIDATE)
-        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE_SCHEMA;
 
     if ((def = virDomainDefParseString(xml, privconn->caps, privconn->xmlopt,
                                        parse_flags)) == NULL)
@@ -4113,6 +4115,7 @@ testStoragePoolCreate(virStoragePoolPtr pool,
     testDriverPtr privconn = pool->conn->privateData;
     virStoragePoolObjPtr privpool;
     int ret = -1;
+    virObjectEventPtr event = NULL;
 
     virCheckFlags(0, -1);
 
@@ -4133,9 +4136,14 @@ testStoragePoolCreate(virStoragePoolPtr pool,
     }
 
     privpool->active = 1;
+
+    event = virStoragePoolEventLifecycleNew(pool->name, pool->uuid,
+                                            VIR_STORAGE_POOL_EVENT_STARTED,
+                                            0);
     ret = 0;
 
  cleanup:
+    testObjectEventQueue(privconn, event);
     if (privpool)
         virStoragePoolObjUnlock(privpool);
     return ret;
@@ -4203,6 +4211,7 @@ testStoragePoolCreateXML(virConnectPtr conn,
     virStoragePoolDefPtr def;
     virStoragePoolObjPtr pool = NULL;
     virStoragePoolPtr ret = NULL;
+    virObjectEventPtr event = NULL;
 
     virCheckFlags(0, NULL);
 
@@ -4230,11 +4239,16 @@ testStoragePoolCreateXML(virConnectPtr conn,
     }
     pool->active = 1;
 
+    event = virStoragePoolEventLifecycleNew(pool->def->name, pool->def->uuid,
+                                            VIR_STORAGE_POOL_EVENT_STARTED,
+                                            0);
+
     ret = virGetStoragePool(conn, pool->def->name, pool->def->uuid,
                             NULL, NULL);
 
  cleanup:
     virStoragePoolDefFree(def);
+    testObjectEventQueue(privconn, event);
     if (pool)
         virStoragePoolObjUnlock(pool);
     testDriverUnlock(privconn);
@@ -4250,6 +4264,7 @@ testStoragePoolDefineXML(virConnectPtr conn,
     virStoragePoolDefPtr def;
     virStoragePoolObjPtr pool = NULL;
     virStoragePoolPtr ret = NULL;
+    virObjectEventPtr event = NULL;
 
     virCheckFlags(0, NULL);
 
@@ -4265,6 +4280,10 @@ testStoragePoolDefineXML(virConnectPtr conn,
         goto cleanup;
     def = NULL;
 
+    event = virStoragePoolEventLifecycleNew(pool->def->name, pool->def->uuid,
+                                            VIR_STORAGE_POOL_EVENT_DEFINED,
+                                            0);
+
     if (testStoragePoolObjSetDefaults(pool) == -1) {
         virStoragePoolObjRemove(&privconn->pools, pool);
         pool = NULL;
@@ -4276,6 +4295,7 @@ testStoragePoolDefineXML(virConnectPtr conn,
 
  cleanup:
     virStoragePoolDefFree(def);
+    testObjectEventQueue(privconn, event);
     if (pool)
         virStoragePoolObjUnlock(pool);
     testDriverUnlock(privconn);
@@ -4288,6 +4308,7 @@ testStoragePoolUndefine(virStoragePoolPtr pool)
     testDriverPtr privconn = pool->conn->privateData;
     virStoragePoolObjPtr privpool;
     int ret = -1;
+    virObjectEventPtr event = NULL;
 
     testDriverLock(privconn);
     privpool = virStoragePoolObjFindByName(&privconn->pools,
@@ -4304,6 +4325,10 @@ testStoragePoolUndefine(virStoragePoolPtr pool)
         goto cleanup;
     }
 
+    event = virStoragePoolEventLifecycleNew(pool->name, pool->uuid,
+                                            VIR_STORAGE_POOL_EVENT_UNDEFINED,
+                                            0);
+
     virStoragePoolObjRemove(&privconn->pools, privpool);
     privpool = NULL;
     ret = 0;
@@ -4311,6 +4336,7 @@ testStoragePoolUndefine(virStoragePoolPtr pool)
  cleanup:
     if (privpool)
         virStoragePoolObjUnlock(privpool);
+    testObjectEventQueue(privconn, event);
     testDriverUnlock(privconn);
     return ret;
 }
@@ -4355,6 +4381,7 @@ testStoragePoolDestroy(virStoragePoolPtr pool)
     testDriverPtr privconn = pool->conn->privateData;
     virStoragePoolObjPtr privpool;
     int ret = -1;
+    virObjectEventPtr event = NULL;
 
     testDriverLock(privconn);
     privpool = virStoragePoolObjFindByName(&privconn->pools,
@@ -4372,6 +4399,9 @@ testStoragePoolDestroy(virStoragePoolPtr pool)
     }
 
     privpool->active = 0;
+    event = virStoragePoolEventLifecycleNew(privpool->def->name, privpool->def->uuid,
+                                            VIR_STORAGE_POOL_EVENT_STOPPED,
+                                            0);
 
     if (privpool->configFile == NULL) {
         virStoragePoolObjRemove(&privconn->pools, privpool);
@@ -4380,6 +4410,7 @@ testStoragePoolDestroy(virStoragePoolPtr pool)
     ret = 0;
 
  cleanup:
+    testObjectEventQueue(privconn, event);
     if (privpool)
         virStoragePoolObjUnlock(privpool);
     testDriverUnlock(privconn);
@@ -4429,6 +4460,7 @@ testStoragePoolRefresh(virStoragePoolPtr pool,
     testDriverPtr privconn = pool->conn->privateData;
     virStoragePoolObjPtr privpool;
     int ret = -1;
+    virObjectEventPtr event = NULL;
 
     virCheckFlags(0, -1);
 
@@ -4447,9 +4479,12 @@ testStoragePoolRefresh(virStoragePoolPtr pool,
                        _("storage pool '%s' is not active"), pool->name);
         goto cleanup;
     }
+
+    event = virStoragePoolEventRefreshNew(pool->name, pool->uuid);
     ret = 0;
 
  cleanup:
+    testObjectEventQueue(privconn, event);
     if (privpool)
         virStoragePoolObjUnlock(privpool);
     return ret;
@@ -5643,6 +5678,39 @@ testConnectNetworkEventDeregisterAny(virConnectPtr conn,
     return ret;
 }
 
+static int
+testConnectStoragePoolEventRegisterAny(virConnectPtr conn,
+                                       virStoragePoolPtr pool,
+                                       int eventID,
+                                       virConnectStoragePoolEventGenericCallback callback,
+                                       void *opaque,
+                                       virFreeCallback freecb)
+{
+    testDriverPtr driver = conn->privateData;
+    int ret;
+
+    if (virStoragePoolEventStateRegisterID(conn, driver->eventState,
+                                           pool, eventID, callback,
+                                           opaque, freecb, &ret) < 0)
+        ret = -1;
+
+    return ret;
+}
+
+static int
+testConnectStoragePoolEventDeregisterAny(virConnectPtr conn,
+                                         int callbackID)
+{
+    testDriverPtr driver = conn->privateData;
+    int ret = 0;
+
+    if (virObjectEventStateDeregisterID(conn, driver->eventState,
+                                        callbackID) < 0)
+        ret = -1;
+
+    return ret;
+}
+
 static int testConnectListAllDomains(virConnectPtr conn,
                                      virDomainPtr **domains,
                                      unsigned int flags)
@@ -6750,6 +6818,8 @@ static virStorageDriver testStorageDriver = {
     .connectListDefinedStoragePools = testConnectListDefinedStoragePools, /* 0.5.0 */
     .connectListAllStoragePools = testConnectListAllStoragePools, /* 0.10.2 */
     .connectFindStoragePoolSources = testConnectFindStoragePoolSources, /* 0.5.0 */
+    .connectStoragePoolEventRegisterAny = testConnectStoragePoolEventRegisterAny, /* 2.0.0 */
+    .connectStoragePoolEventDeregisterAny = testConnectStoragePoolEventDeregisterAny, /* 2.0.0 */
     .storagePoolLookupByName = testStoragePoolLookupByName, /* 0.5.0 */
     .storagePoolLookupByUUID = testStoragePoolLookupByUUID, /* 0.5.0 */
     .storagePoolLookupByVolume = testStoragePoolLookupByVolume, /* 0.5.0 */

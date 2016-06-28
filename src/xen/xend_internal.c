@@ -1049,9 +1049,10 @@ sexpr_to_xend_topology(const struct sexpr *root, virCapsPtr caps)
             if (!(cpuset = virBitmapNew(numCpus)))
                 goto error;
         } else {
-            nb_cpus = virBitmapParse(cur, 'n', &cpuset, numCpus);
-            if (nb_cpus < 0)
+            if (virBitmapParseSeparator(cur, 'n', &cpuset, numCpus) < 0)
                 goto error;
+
+            nb_cpus = virBitmapCountBits(cpuset);
         }
 
         if (VIR_ALLOC_N(cpuInfo, numCpus) < 0) {
@@ -2355,7 +2356,8 @@ xenDaemonDetachDeviceFlags(virConnectPtr conn,
         goto cleanup;
 
     if (!(dev = virDomainDeviceDefParse(xml, def, priv->caps, priv->xmlopt,
-                                        VIR_DOMAIN_DEF_PARSE_INACTIVE)))
+                                        VIR_DOMAIN_DEF_PARSE_INACTIVE |
+                                        VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE)))
         goto cleanup;
 
     if (virDomainXMLDevID(conn, minidef, dev, class, ref, sizeof(ref)))

@@ -3097,7 +3097,7 @@ virNetworkLoadState(virNetworkObjListPtr nets,
 
         ctxt->node = node;
         if ((class_id = virXPathString("string(./class_id[1]/@bitmap)", ctxt))) {
-            if (virBitmapParse(class_id, 0, &class_id_map,
+            if (virBitmapParse(class_id, &class_id_map,
                                CLASS_ID_BITMAP_SIZE) < 0) {
                 VIR_FREE(class_id);
                 goto error;
@@ -3236,20 +3236,13 @@ virNetworkLoadAllState(virNetworkObjListPtr nets,
     DIR *dir;
     struct dirent *entry;
     int ret = -1;
+    int rc;
 
-    if (!(dir = opendir(stateDir))) {
-        if (errno == ENOENT)
-            return 0;
-
-        virReportSystemError(errno, _("Failed to open dir '%s'"), stateDir);
-        return -1;
-    }
+    if ((rc = virDirOpenIfExists(&dir, stateDir)) <= 0)
+        return rc;
 
     while ((ret = virDirRead(dir, &entry, stateDir)) > 0) {
         virNetworkObjPtr net;
-
-        if (entry->d_name[0] == '.')
-            continue;
 
         if (!virFileStripSuffix(entry->d_name, ".xml"))
             continue;
@@ -3258,7 +3251,7 @@ virNetworkLoadAllState(virNetworkObjListPtr nets,
         virNetworkObjEndAPI(&net);
     }
 
-    closedir(dir);
+    VIR_DIR_CLOSE(dir);
     return ret;
 }
 
@@ -3270,21 +3263,13 @@ int virNetworkLoadAllConfigs(virNetworkObjListPtr nets,
     DIR *dir;
     struct dirent *entry;
     int ret = -1;
+    int rc;
 
-    if (!(dir = opendir(configDir))) {
-        if (errno == ENOENT)
-            return 0;
-        virReportSystemError(errno,
-                             _("Failed to open dir '%s'"),
-                             configDir);
-        return -1;
-    }
+    if ((rc = virDirOpenIfExists(&dir, configDir)) <= 0)
+        return rc;
 
     while ((ret = virDirRead(dir, &entry, configDir)) > 0) {
         virNetworkObjPtr net;
-
-        if (entry->d_name[0] == '.')
-            continue;
 
         if (!virFileStripSuffix(entry->d_name, ".xml"))
             continue;
@@ -3298,7 +3283,7 @@ int virNetworkLoadAllConfigs(virNetworkObjListPtr nets,
         virNetworkObjEndAPI(&net);
     }
 
-    closedir(dir);
+    VIR_DIR_CLOSE(dir);
     return ret;
 }
 

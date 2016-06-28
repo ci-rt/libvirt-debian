@@ -1941,20 +1941,13 @@ virStoragePoolLoadAllState(virStoragePoolObjListPtr pools,
     DIR *dir;
     struct dirent *entry;
     int ret = -1;
+    int rc;
 
-    if (!(dir = opendir(stateDir))) {
-        if (errno == ENOENT)
-            return 0;
-
-        virReportSystemError(errno, _("Failed to open dir '%s'"), stateDir);
-        return -1;
-    }
+    if ((rc = virDirOpenIfExists(&dir, stateDir)) <= 0)
+        return rc;
 
     while ((ret = virDirRead(dir, &entry, stateDir)) > 0) {
         virStoragePoolObjPtr pool;
-
-        if (entry->d_name[0] == '.')
-            continue;
 
         if (!virFileStripSuffix(entry->d_name, ".xml"))
             continue;
@@ -1964,7 +1957,7 @@ virStoragePoolLoadAllState(virStoragePoolObjListPtr pools,
         virStoragePoolObjUnlock(pool);
     }
 
-    closedir(dir);
+    VIR_DIR_CLOSE(dir);
     return ret;
 }
 
@@ -1977,22 +1970,15 @@ virStoragePoolLoadAllConfigs(virStoragePoolObjListPtr pools,
     DIR *dir;
     struct dirent *entry;
     int ret;
+    int rc;
 
-    if (!(dir = opendir(configDir))) {
-        if (errno == ENOENT)
-            return 0;
-        virReportSystemError(errno, _("Failed to open dir '%s'"),
-                             configDir);
-        return -1;
-    }
+    if ((rc = virDirOpenIfExists(&dir, configDir)) <= 0)
+        return rc;
 
     while ((ret = virDirRead(dir, &entry, configDir)) > 0) {
         char *path;
         char *autostartLink;
         virStoragePoolObjPtr pool;
-
-        if (entry->d_name[0] == '.')
-            continue;
 
         if (!virFileHasSuffix(entry->d_name, ".xml"))
             continue;
@@ -2015,7 +2001,7 @@ virStoragePoolLoadAllConfigs(virStoragePoolObjListPtr pools,
         VIR_FREE(autostartLink);
     }
 
-    closedir(dir);
+    VIR_DIR_CLOSE(dir);
     return ret;
 }
 

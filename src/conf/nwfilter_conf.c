@@ -3204,20 +3204,13 @@ virNWFilterLoadAllConfigs(virNWFilterObjListPtr nwfilters,
     DIR *dir;
     struct dirent *entry;
     int ret = -1;
+    int rc;
 
-    if (!(dir = opendir(configDir))) {
-        if (errno == ENOENT)
-            return 0;
-        virReportSystemError(errno, _("Failed to open dir '%s'"),
-                             configDir);
-        return -1;
-    }
+    if ((rc = virDirOpenIfExists(&dir, configDir)) <= 0)
+        return rc;
 
     while ((ret = virDirRead(dir, &entry, configDir)) > 0) {
         virNWFilterObjPtr nwfilter;
-
-        if (entry->d_name[0] == '.')
-            continue;
 
         if (!virFileStripSuffix(entry->d_name, ".xml"))
             continue;
@@ -3227,7 +3220,7 @@ virNWFilterLoadAllConfigs(virNWFilterObjListPtr nwfilters,
             virNWFilterObjUnlock(nwfilter);
     }
 
-    closedir(dir);
+    VIR_DIR_CLOSE(dir);
     return ret;
 }
 

@@ -59,8 +59,7 @@
 #include "virstring.h"
 #include "virsystemd.h"
 #include "virtypedparam.h"
-
-#include "nodeinfo.h"
+#include "virhostcpu.h"
 
 VIR_LOG_INIT("util.cgroup");
 
@@ -3147,7 +3146,7 @@ virCgroupGetPercpuStats(virCgroupPtr group,
     }
 
     /* To parse account file, we need to know how many cpus are present.  */
-    if (!(cpumap = nodeGetPresentCPUBitmap(NULL)))
+    if (!(cpumap = virHostCPUGetPresentBitmap()))
         return -1;
 
     total_cpus = virBitmapSize(cpumap);
@@ -3379,8 +3378,7 @@ virCgroupRemoveRecursively(char *grppath)
     int rc = 0;
     int direrr;
 
-    grpdir = opendir(grppath);
-    if (grpdir == NULL) {
+    if (virDirOpenQuiet(&grpdir, grppath) < 0) {
         if (errno == ENOENT)
             return 0;
         rc = -errno;
@@ -3393,7 +3391,6 @@ virCgroupRemoveRecursively(char *grppath)
     while ((direrr = virDirRead(grpdir, &ent, NULL)) > 0) {
         char *path;
 
-        if (ent->d_name[0] == '.') continue;
         if (ent->d_type != DT_DIR) continue;
 
         if (virAsprintf(&path, "%s/%s", grppath, ent->d_name) == -1) {
@@ -3410,7 +3407,7 @@ virCgroupRemoveRecursively(char *grppath)
         VIR_ERROR(_("Failed to readdir for %s (%d)"), grppath, errno);
     }
 
-    closedir(grpdir);
+    VIR_DIR_CLOSE(grpdir);
 
     VIR_DEBUG("Removing cgroup %s", grppath);
     if (rmdir(grppath) != 0 && errno != ENOENT) {
@@ -3626,22 +3623,16 @@ virCgroupKillRecursiveInternal(virCgroupPtr group,
         killedAny = true;
 
     VIR_DEBUG("Iterate over children of %s (killedAny=%d)", keypath, killedAny);
-    if (!(dp = opendir(keypath))) {
-        if (errno == ENOENT) {
-            VIR_DEBUG("Path %s does not exist, assuming done", keypath);
-            killedAny = false;
-            goto done;
-        }
-        virReportSystemError(errno,
-                             _("Cannot open %s"), keypath);
+    if ((rc = virDirOpenIfExists(&dp, keypath)) < 0)
         goto cleanup;
+
+    if (rc == 0) {
+        VIR_DEBUG("Path %s does not exist, assuming done", keypath);
+        killedAny = false;
+        goto done;
     }
 
     while ((direrr = virDirRead(dp, &ent, keypath)) > 0) {
-        if (STREQ(ent->d_name, "."))
-            continue;
-        if (STREQ(ent->d_name, ".."))
-            continue;
         if (ent->d_type != DT_DIR)
             continue;
 
@@ -3670,9 +3661,7 @@ virCgroupKillRecursiveInternal(virCgroupPtr group,
  cleanup:
     virCgroupFree(&subgroup);
     VIR_FREE(keypath);
-    if (dp)
-        closedir(dp);
-
+    VIR_DIR_CLOSE(dp);
     return ret;
 }
 
@@ -3960,17 +3949,10 @@ int virCgroupSetOwner(virCgroupPtr cgroup,
                         cgroup->controllers[i].placement) < 0)
             goto cleanup;
 
-        if (!(dh = opendir(base))) {
-            virReportSystemError(errno,
-                                 _("Unable to open dir '%s'"), base);
+        if (virDirOpen(&dh, base) < 0)
             goto cleanup;
-        }
 
         while ((direrr = virDirRead(dh, &de, base)) > 0) {
-            if (STREQ(de->d_name, ".") ||
-                STREQ(de->d_name, ".."))
-                continue;
-
             if (virAsprintf(&entry, "%s/%s", base, de->d_name) < 0)
                 goto cleanup;
 
@@ -3994,15 +3976,13 @@ int virCgroupSetOwner(virCgroupPtr cgroup,
         }
 
         VIR_FREE(base);
-        closedir(dh);
-        dh = NULL;
+        VIR_DIR_CLOSE(dh);
     }
 
     ret = 0;
 
  cleanup:
-    if (dh)
-        closedir(dh);
+    VIR_DIR_CLOSE(dh);
     VIR_FREE(entry);
     VIR_FREE(base);
     return ret;

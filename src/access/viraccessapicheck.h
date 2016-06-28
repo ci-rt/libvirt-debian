@@ -94,6 +94,9 @@ extern bool virConnectNumOfSecretsCheckACL(virConnectPtr conn, virSecretDefPtr s
 extern int virConnectNumOfStoragePoolsEnsureACL(virConnectPtr conn);
 extern bool virConnectNumOfStoragePoolsCheckACL(virConnectPtr conn, virStoragePoolDefPtr pool);
 extern int virConnectOpenEnsureACL(virConnectPtr conn);
+extern int virConnectStoragePoolEventDeregisterAnyEnsureACL(virConnectPtr conn);
+extern int virConnectStoragePoolEventRegisterAnyEnsureACL(virConnectPtr conn);
+extern bool virConnectStoragePoolEventRegisterAnyCheckACL(virConnectPtr conn, virStoragePoolDefPtr pool);
 extern int virConnectSupportsFeatureEnsureACL(virConnectPtr conn);
 extern int virDomainAbortJobEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainAddIOThreadEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
@@ -136,6 +139,7 @@ extern int virDomainGetCPUStatsEnsureACL(virConnectPtr conn, virDomainDefPtr dom
 extern int virDomainGetDiskErrorsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetEmulatorPinInfoEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetFSInfoEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainGetGuestVcpusEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetHostnameEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetInfoEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetInterfaceParametersEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
@@ -227,6 +231,7 @@ extern int virDomainSendProcessSignalEnsureACL(virConnectPtr conn, virDomainDefP
 extern int virDomainSetAutostartEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSetBlkioParametersEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainSetBlockIoTuneEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
+extern int virDomainSetGuestVcpusEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSetInterfaceParametersEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainSetMaxMemoryEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSetMemoryEnsureACL(virConnectPtr conn, virDomainDefPtr domain);

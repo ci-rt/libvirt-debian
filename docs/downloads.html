@@ -90,6 +90,10 @@
           </li><li>
             <a href="#hourly">Hourly development snapshots</a>
           </li><li>
+            <a href="#schedule">Primary release schedule</a>
+          </li><li>
+            <a href="#numbering">Release numbering</a>
+          </li><li>
             <a href="#maintenance">Maintenance releases</a>
           </li><li>
             <a href="#git">GIT source repository</a>
@@ -117,7 +121,39 @@
       considered formal releases, and they may have transient security
       problems that will not be assigned a CVE.
     </p>
-        <ul><li><a href="ftp://libvirt.org/libvirt/libvirt-git-snapshot.tar.gz" shape="rect">libvirt.org FTP server</a></li><li><a href="http://libvirt.org/sources/libvirt-git-snapshot.tar.gz" shape="rect">libvirt.org HTTP server</a></li></ul>
+        <ul><li><a href="ftp://libvirt.org/libvirt/libvirt-git-snapshot.tar.xz" shape="rect">libvirt.org FTP server</a></li><li><a href="http://libvirt.org/sources/libvirt-git-snapshot.tar.xz" shape="rect">libvirt.org HTTP server</a></li></ul>
+        <h2>
+          <a name="schedule" shape="rect" id="schedule">Primary release schedule</a>
+          <a class="headerlink" href="#schedule" title="Permalink to this headline">¶</a>
+        </h2>
+        <p>
+      Libvirt follows a time based plan, with releases made once a month
+      on the 1st of each month give or take a few days. The only exception
+      is at the start of the year where there are two 6 weeks gaps (first
+      release in the middle of Jan, then skip the Feb release), giving
+      a total of 11 releases a year.
+    </p>
+        <h2>
+          <a name="numbering" shape="rect" id="numbering">Release numbering</a>
+          <a class="headerlink" href="#numbering" title="Permalink to this headline">¶</a>
+        </h2>
+        <p>
+      Since libvirt 2.0.0, a time based version numbering rule
+      is applied. As such, the changes in version number have
+      do not have any implications with respect to the scope of
+      features or bugfixes included, the stability of the code,
+      or the API / ABI compatibility (libvirt API / ABI is guaranteed
+      stable forever). The rules applied for changing the libvirt
+      version number are:
+    </p>
+        <dl><dt><code>major</code></dt><dd>incremented by 1 for the first release of the year (the
+        Jan 15th release)</dd><dt><code>minor</code></dt><dd>incremented by 1 for each monthly release from git master</dd><dt><code>micro</code></dt><dd>always 0 for releases from git master, incremented by 1
+        for each stable maintenance release</dd></dl>
+        <p>
+      Prior to 2.0.0, the major/minor numbers were incremented
+      fairly arbitrarily, and maintenance releases appended a
+      fourth digit.
+    </p>
         <h2>
           <a name="maintenance" shape="rect" id="maintenance">Maintenance releases</a>
           <a class="headerlink" href="#maintenance" title="Permalink to this headline">¶</a>
@@ -125,16 +161,20 @@
         <p>
       In the git repository are several stable maintenance branches,
       matching the
-      pattern <code>v<i>major</i>.<i>minor</i>.<i>micro</i>-maint</code>;
+      pattern <code>v<i>major</i>.<i>minor</i>-maint</code>;
       these branches are forked off the corresponding
-      <code>v<i>major</i>.<i>minor</i>.<i>micro</i></code> formal
+      <code>v<i>major</i>.<i>minor</i>.0</code> formal
       release, and may have further releases of the
-      form <code>v<i>major</i>.<i>minor</i>.<i>micro</i>.<i>rel</i></code>.
+      form <code>v<i>major</i>.<i>minor</i>.<i>micro</i></code>.
       These maintenance branches should only contain bug fixes, and no
       new features, backported from the master branch, and are
       supported as long as at least one downstream distribution
       expresses interest in a given branch.  These maintenance
-      branches are considered during CVE analysis.
+      branches are considered during CVE analysis. In contrast
+      to the primary releases which are made once a month, there
+      is no formal schedule for the maintenance releases, which
+      are made whenever there is a need to make available key
+      bugfixes to downstream consumers.
     </p>
         <p>
       For more details about contents of maintenance releases, see

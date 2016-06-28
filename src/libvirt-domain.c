@@ -8790,7 +8790,7 @@ virDomainRename(virDomainPtr dom,
 
     virResetLastError();
     virCheckDomainReturn(dom, -1);
-    virCheckNonNullArgGoto(new_name, error);
+    virCheckNonEmptyStringArgGoto(new_name, error);
     virCheckReadOnlyGoto(dom->conn->flags, error);
 
     if (dom->conn->driver->domainRename) {
@@ -11834,4 +11834,119 @@ virDomainInterfaceFree(virDomainInterfacePtr iface)
     VIR_FREE(iface->addrs);
 
     VIR_FREE(iface);
+}
+
+
+/**
+ * virDomainGetGuestVcpus:
+ * @domain: pointer to domain object
+ * @params: pointer that will be filled with an array of typed parameters
+ * @nparams: pointer filled with number of elements in @params
+ * @flags: currently unused, callers shall pass 0
+ *
+ * Queries the guest agent for state and information regarding vCPUs from
+ * guest's perspective. The reported data depends on the guest agent
+ * implementation.
+ *
+ * Reported fields stored in @params:
+ * 'vcpus': string containing bitmap representing vCPU ids as reported by the
+ *          guest
+ * 'online': string containing bitmap representing online vCPUs as reported
+ *           by the guest agent.
+ * 'offlinable': string containing bitmap representing ids of vCPUs that can be
+ *               offlined
+ *
+ * This API requires the VM to run. The caller is responsible for calling
+ * virTypedParamsFree to free memory returned in @params.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+int
+virDomainGetGuestVcpus(virDomainPtr domain,
+                       virTypedParameterPtr *params,
+                       unsigned int *nparams,
+                       unsigned int flags)
+{
+    VIR_DOMAIN_DEBUG(domain, "params=%p, nparams=%p, flags=%x",
+                     params, nparams, flags);
+
+    virResetLastError();
+
+    virCheckDomainReturn(domain, -1);
+    virCheckReadOnlyGoto(domain->conn->flags, error);
+
+    virCheckNonNullArgGoto(params, error);
+    virCheckNonNullArgGoto(nparams, error);
+
+    if (domain->conn->driver->domainGetGuestVcpus) {
+        int ret;
+        ret = domain->conn->driver->domainGetGuestVcpus(domain, params, nparams,
+                                                        flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virReportUnsupportedError();
+
+ error:
+    virDispatchError(domain->conn);
+    return -1;
+}
+
+
+/**
+ * virDomainSetGuestVcpus:
+ * @domain: pointer to domain object
+ * @cpumap: text representation of a bitmap of vcpus to set
+ * @state: 0 to disable/1 to enable cpus described by @cpumap
+ * @flags: currently unused, callers shall pass 0
+ *
+ * Sets state of individual vcpus described by @cpumap via guest agent. Other
+ * vcpus are not modified.
+ *
+ * This API requires the VM to run. Various hypervisors or guest agent
+ * implementation may limit to operate on just 1 vCPU per call.
+ *
+ * @cpumap is a list of vCPU numbers. Its syntax is a comma separated list and
+ * a special markup using '-' and '^' (ex. '0-4', '0-3,^2'). The '-' denotes
+ * the range and the '^' denotes exclusive. The expression is sequentially
+ * evaluated, so "0-15,^8" is identical to "9-14,0-7,15" but not identical to
+ * "^8,0-15".
+ *
+ * Note that OSes (notably Linux) may require vCPU 0 to stay online to support
+ * low-level features a S3 sleep.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+int
+virDomainSetGuestVcpus(virDomainPtr domain,
+                       const char *cpumap,
+                       int state,
+                       unsigned int flags)
+{
+    VIR_DOMAIN_DEBUG(domain, "cpumap='%s' state=%x flags=%x",
+                     NULLSTR(cpumap), state, flags);
+
+    virResetLastError();
+
+    virCheckDomainReturn(domain, -1);
+    virCheckReadOnlyGoto(domain->conn->flags, error);
+
+    virCheckNonNullArgGoto(cpumap, error);
+
+    if (domain->conn->driver->domainSetGuestVcpus) {
+        int ret;
+        ret = domain->conn->driver->domainSetGuestVcpus(domain, cpumap, state,
+                                                        flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virReportUnsupportedError();
+
+ error:
+    virDispatchError(domain->conn);
+    return -1;
 }

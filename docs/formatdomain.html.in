@@ -1462,7 +1462,7 @@
     <dl>
       <dt><code>pm</code></dt>
       <dd>These elements enable ('yes') or disable ('no') BIOS support
-        for S3 (suspend-to-disk) and S4 (suspend-to-mem) ACPI sleep
+        for S3 (suspend-to-mem) and S4 (suspend-to-disk) ACPI sleep
         states. If nothing is specified, then the hypervisor will be
         left with its default value.</dd>
     </dl>
@@ -1821,6 +1821,50 @@
         </dl>
       </dd>
     </dl>
+
+    <h3><a name="elementsPerf">Performance monitoring events</a></h3>
+
+    <p>
+      Some platforms allow monitoring of performance of the virtual machine and
+      the code executed inside. To enable the performance monitoring events
+      you can either specify them in the <code>perf</code> element or enable
+      them via <code>virDomainSetPerfEvents</code> API. The performance values
+      are then retrieved using the virConnectGetAllDomainStats API.
+      <span class="since">Since 2.0.0</span>
+    </p>
+
+<pre>
+  ...
+  &lt;perf&gt;
+    &lt;event name='cmt' enabled='yes'/&gt;
+    &lt;event name='mbmt' enabled='no'/&gt;
+    &lt;event name='mbml' enabled='yes'/&gt;
+  &lt;/perf&gt;
+  ...
+</pre>
+
+  <table class="top_table">
+    <tr>
+      <th>event name</th>
+      <th>Description</th>
+      <th>stats parameter name</th>
+    </tr>
+    <tr>
+      <td><code>cmt</code></td>
+      <td>usage of l3 cache in bytes by applications running on the platform</td>
+      <td><code>perf.cmt</code></td>
+    </tr>
+    <tr>
+      <td><code>mbmt</code></td>
+      <td>total system bandwidth from one level of cache</td>
+      <td><code>perf.mbmt</code></td>
+    </tr>
+    <tr>
+      <td><code>mbml</code></td>
+      <td>bandwidth of memory traffic for a memory controller</td>
+      <td><code>perf.mbml</code></td>
+    </tr>
+  </table>
 
     <h3><a name="elementsDevices">Devices</a></h3>
 
@@ -2565,6 +2609,18 @@
             <span class='since'>Since 1.0.6 (QEMU and KVM only)</span>
           </li>
           <li>
+            The optional <code>detect_zeroes</code> attribute controls whether
+            to detect zero write requests.  The value can be "off", "on" or
+            "unmap".  First two values turn the detection off and on,
+            respectively.  The third value ("unmap") turns the detection on
+            and additionally tries to discard such areas from the image based
+            on the value of <code>discard</code> above (it will act as "on"
+            if <code>discard</code> is set to "ignore").  NB enabling the
+            detection is a compute intensive operation, but can save file
+            space and/or time on slow media.
+            <span class='since'>Since 2.0.0</span>
+          </li>
+          <li>
             The optional <code>iothread</code> attribute assigns the
             disk to an IOThread as defined by the range for the domain
             <a href="#elementsIOThreadsAllocation"><code>iothreads</code></a>
@@ -3221,7 +3277,7 @@
         control QEMU's "chassis_nr" option for the pci-bridge device
         (normally libvirt automatically sets this to the same value as
         the index attribute of the pci controller). If set, chassisNr
-        must be between 0 and 255.
+        must be between 1 and 255.
       </dd>
       <dt><code>chassis</code></dt>
       <dd>
@@ -5360,6 +5416,34 @@ qemu-kvm -net nic,model=? /dev/null
           of the first forward dev will be used.
         </p>
       </dd>
+      <dt><code>socket</code> <span class="since">since 2.0.0 (QEMU only)</span></dt>
+      <dd>
+        <p>
+          This listen type tells a graphics server to listen on unix socket.
+          Attribute <code>socket</code> contains a path to unix socket. If this
+          attribute is omitted libvirt will generate this path for you.
+          Supported by graphics type <code>vnc</code> and <code>spice</code>.
+        </p>
+        <p>
+          For <code>vnc</code> graphics be backward compatible
+          the <code>socket</code> attribute of first <code>listen</code> element
+          is duplicated as <code>socket</code> attribute in <code>graphics</code>
+          element. If <code>graphics</code> element contains a <code>socket</code>
+          attribute all <code>listen</code> elements are ignored.
+        </p>
+      </dd>
+      <dt><code>none</code> <span class="since">since 2.0.0 (QEMU only)</span></dt>
+      <dd>
+        <p>
+          This listen type doesn't have any other attribute. Libvirt supports
+          passing a file descriptor through our APIs virDomainOpenGraphics() and
+          virDomainOpenGraphicsFD(). No other listen types are allowed if this
+          one is used and the graphics device doesn't listen anywhere. You need
+          to use one of the two APIs to pass a FD to QEMU in order to connect to
+          this graphics device. Supported by graphics type <code>vnc</code> and
+          <code>spice</code>.
+        </p>
+      </dd>
     </dl>
 
     <h4><a name="elementsVideo">Video devices</a></h4>
@@ -5921,9 +6005,13 @@ qemu-kvm -net nic,model=? /dev/null
 
     <p>
       Alternatively you can use <code>telnet</code> instead
-      of <code>raw</code> TCP.  <span class="since">Since 0.8.5</span>
-      you can also use <code>telnets</code>
-      (secure telnet) and <code>tls</code>.
+      of <code>raw</code> TCP in order to utilize the telnet protocol
+      for the connection.
+    </p>
+    <p>
+      <span class="since">Since 0.8.5,</span> some hypervisors support
+      use of either <code>telnets</code> (secure telnet) or <code>tls</code>
+      (via secure sockets layer) as the transport protocol for connections.
     </p>
 
 <pre>
@@ -6316,9 +6404,10 @@ qemu-kvm -net nic,model=? /dev/null
             <p>
               This backend type expects a non-blocking character device as
               input. The file name is specified as contents of the
-              <code>backend</code> element. When no file name is specified
-              the hypervisor default is used. For qemu, the default is
-              /dev/random
+              <code>backend</code> element. <span class='since'>Since 1.3.4</span>
+              any path is accepted. Before that /dev/random and /dev/hwrng were
+              the only accepted paths. When no file name is specified the hypervisor
+              default is used. For qemu, the default is /dev/random
             </p>
           </dd>
           <dt><code>egd</code></dt>

@@ -30,6 +30,8 @@
 # include <libxml/xpath.h>
 # include <libxml/relaxng.h>
 
+# include "virbuffer.h"
+
 int              virXPathBoolean(const char *xpath,
                                  xmlXPathContextPtr ctxt);
 char *            virXPathString(const char *xpath,
@@ -177,8 +179,27 @@ int virXMLInjectNamespace(xmlNodePtr node,
                           const char *uri,
                           const char *key);
 
+struct _virXMLValidator {
+    xmlRelaxNGParserCtxtPtr rngParser;
+    xmlRelaxNGPtr rng;
+    xmlRelaxNGValidCtxtPtr rngValid;
+    virBuffer buf;
+    char *schemafile;
+};
+typedef struct _virXMLValidator virXMLValidator;
+typedef virXMLValidator *virXMLValidatorPtr;
+
+virXMLValidatorPtr
+virXMLValidatorInit(const char *schemafile);
+
+int
+virXMLValidatorValidate(virXMLValidatorPtr validator,
+                        xmlDocPtr doc);
+
 int
 virXMLValidateAgainstSchema(const char *schemafile,
                             xmlDocPtr xml);
+void
+virXMLValidatorFree(virXMLValidatorPtr validator);
 
 #endif                          /* __VIR_XML_H__ */

@@ -533,8 +533,7 @@ daemonSetupNetworking(virNetServerPtr srv,
         virNetServerAddService(srv, svcRO, NULL) < 0)
         goto cleanup;
 
-    /* Temporarily disabled */
-    if (sock_path_adm && false) {
+    if (sock_path_adm) {
         VIR_DEBUG("Registering unix socket %s", sock_path_adm);
         if (!(svcAdm = virNetServerServiceNewUNIX(sock_path_adm,
                                                   unix_sock_adm_mask,
@@ -585,6 +584,7 @@ daemonSetupNetworking(virNetServerPtr srv,
                                                        config->cert_file,
                                                        config->key_file,
                                                        (const char *const*)config->tls_allowed_dn_list,
+                                                       config->tls_priority,
                                                        config->tls_no_sanity_certificate ? false : true,
                                                        config->tls_no_verify_certificate ? false : true)))
                     goto cleanup;
@@ -592,6 +592,7 @@ daemonSetupNetworking(virNetServerPtr srv,
                 if (!(ctxt = virNetTLSContextNewServerPath(NULL,
                                                            !privileged,
                                                            (const char *const*)config->tls_allowed_dn_list,
+                                                           config->tls_priority,
                                                            config->tls_no_sanity_certificate ? false : true,
                                                            config->tls_no_verify_certificate ? false : true)))
                     goto cleanup;

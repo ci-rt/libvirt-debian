@@ -72,6 +72,7 @@ static int testTLSContextInit(const void *opaque)
                                          data->crt,
                                          KEYFILE,
                                          NULL,
+                                         NULL,
                                          true,
                                          true);
     } else {
@@ -79,6 +80,7 @@ static int testTLSContextInit(const void *opaque)
                                          NULL,
                                          data->crt,
                                          KEYFILE,
+                                         NULL,
                                          true,
                                          true);
     }
@@ -123,8 +125,8 @@ mymain(void)
         data.cacrt = _caCrt;                                            \
         data.crt = _crt;                                                \
         data.expectFail = _expectFail;                                  \
-        if (virtTestRun("TLS Context " #_caCrt  " + " #_crt,            \
-                        testTLSContextInit, &data) < 0)                 \
+        if (virTestRun("TLS Context " #_caCrt  " + " #_crt,             \
+                       testTLSContextInit, &data) < 0)                  \
             ret = -1;                                                   \
     } while (0)
 
@@ -631,7 +633,7 @@ mymain(void)
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-VIRT_TEST_MAIN(mymain)
+VIRT_TEST_MAIN_PRELOAD(mymain, abs_builddir "/.libs/virrandommock.so")
 
 #else
 

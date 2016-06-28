@@ -755,9 +755,10 @@ virGetUserDirectory(void)
 
 #ifdef HAVE_GETPWUID_R
 /* Look up fields from the user database for the given user.  On
- * error, set errno, report the error, and return -1.  */
+ * error, set errno, report the error if not instructed otherwise via @quiet,
+ * and return -1.  */
 static int
-virGetUserEnt(uid_t uid, char **name, gid_t *group, char **dir)
+virGetUserEnt(uid_t uid, char **name, gid_t *group, char **dir, char **shell, bool quiet)
 {
     char *strbuf;
     struct passwd pwbuf;
@@ -771,6 +772,8 @@ virGetUserEnt(uid_t uid, char **name, gid_t *group, char **dir)
         *name = NULL;
     if (dir)
         *dir = NULL;
+    if (shell)
+        *shell = NULL;
 
     /* sysconf is a hint; if it fails, fall back to a reasonable size */
     if (val < 0)
@@ -790,12 +793,19 @@ virGetUserEnt(uid_t uid, char **name, gid_t *group, char **dir)
         if (VIR_RESIZE_N(strbuf, strbuflen, strbuflen, strbuflen) < 0)
             goto cleanup;
     }
+
     if (rc != 0) {
+        if (quiet)
+            goto cleanup;
+
         virReportSystemError(rc,
                              _("Failed to find user record for uid '%u'"),
                              (unsigned int) uid);
         goto cleanup;
     } else if (pw == NULL) {
+        if (quiet)
+            goto cleanup;
+
         virReportError(VIR_ERR_SYSTEM_ERROR,
                        _("Failed to find user record for uid '%u'"),
                        (unsigned int) uid);
@@ -806,14 +816,21 @@ virGetUserEnt(uid_t uid, char **name, gid_t *group, char **dir)
         goto cleanup;
     if (group)
         *group = pw->pw_gid;
-    if (dir && VIR_STRDUP(*dir, pw->pw_dir) < 0) {
-        if (name)
-            VIR_FREE(*name);
+    if (dir && VIR_STRDUP(*dir, pw->pw_dir) < 0)
         goto cleanup;
-    }
+    if (shell && VIR_STRDUP(*shell, pw->pw_shell) < 0)
+        goto cleanup;
 
     ret = 0;
  cleanup:
+    if (ret < 0) {
+        if (name)
+            VIR_FREE(*name);
+        if (dir)
+            VIR_FREE(*dir);
+        if (shell)
+            VIR_FREE(*shell);
+    }
     VIR_FREE(strbuf);
     return ret;
 }
@@ -873,7 +890,15 @@ char *
 virGetUserDirectoryByUID(uid_t uid)
 {
     char *ret;
-    virGetUserEnt(uid, NULL, NULL, &ret);
+    virGetUserEnt(uid, NULL, NULL, &ret, NULL, false);
+    return ret;
+}
+
+
+char *virGetUserShell(uid_t uid)
+{
+    char *ret;
+    virGetUserEnt(uid, NULL, NULL, NULL, &ret, false);
     return ret;
 }
 
@@ -923,7 +948,7 @@ char *virGetUserRuntimeDirectory(void)
 char *virGetUserName(uid_t uid)
 {
     char *ret;
-    virGetUserEnt(uid, &ret, NULL, NULL);
+    virGetUserEnt(uid, &ret, NULL, NULL, NULL, false);
     return ret;
 }
 
@@ -1095,29 +1120,30 @@ virGetGroupID(const char *group, gid_t *gid)
 
 /* Compute the list of primary and supplementary groups associated
  * with @uid, and including @gid in the list (unless it is -1),
- * storing a malloc'd result into @list. Return the size of the list
- * on success, or -1 on failure with error reported and errno set. May
- * not be called between fork and exec. */
+ * storing a malloc'd result into @list. If uid is -1 or doesn't exist in the
+ * system database querying of the supplementary groups is skipped.
+ *
+ * Returns the size of the list on success, or -1 on failure with error
+ * reported and errno set. May not be called between fork and exec.
+ * */
 int
 virGetGroupList(uid_t uid, gid_t gid, gid_t **list)
 {
-    int ret = -1;
+    int ret = 0;
     char *user = NULL;
     gid_t primary;
 
     *list = NULL;
-    if (uid == (uid_t)-1)
-        return 0;
 
-    if (virGetUserEnt(uid, &user, &primary, NULL) < 0)
-        return -1;
-
-    ret = mgetgroups(user, primary, list);
-    if (ret < 0) {
-        sa_assert(!*list);
-        virReportSystemError(errno,
-                             _("cannot get group list for '%s'"), user);
-        goto cleanup;
+    /* invalid users have no supplementary groups */
+    if (uid != (uid_t)-1 &&
+        virGetUserEnt(uid, &user, &primary, NULL, NULL, true) >= 0) {
+        if ((ret = mgetgroups(user, primary, list)) < 0) {
+            virReportSystemError(errno,
+                                 _("cannot get group list for '%s'"), user);
+            ret = -1;
+            goto cleanup;
+        }
     }
 
     if (gid != (gid_t)-1) {
@@ -1284,6 +1310,15 @@ virGetUserDirectoryByUID(uid_t uid ATTRIBUTE_UNUSED)
 }
 
 char *
+virGetUserShell(uid_t uid ATTRIBUTE_UNUSED)
+{
+    virReportError(VIR_ERR_INTERNAL_ERROR,
+                   "%s", _("virGetUserShell is not available"));
+
+    return NULL;
+}
+
+char *
 virGetUserConfigDirectory(void)
 {
     char *ret;
@@ -1325,6 +1360,15 @@ virGetUserDirectoryByUID(uid_t uid ATTRIBUTE_UNUSED)
 {
     virReportError(VIR_ERR_INTERNAL_ERROR,
                    "%s", _("virGetUserDirectory is not available"));
+
+    return NULL;
+}
+
+char *
+virGetUserShell(uid_t uid ATTRIBUTE_UNUSED)
+{
+    virReportError(VIR_ERR_INTERNAL_ERROR,
+                   "%s", _("virGetUserShell is not available"));
 
     return NULL;
 }
@@ -1816,15 +1860,11 @@ virFindSCSIHostByPCI(const char *sysfs_prefix,
     char *unique_path = NULL;
     unsigned int read_unique_id;
 
-    if (!(dir = opendir(prefix))) {
-        virReportSystemError(errno,
-                             _("Failed to opendir path '%s'"),
-                             prefix);
+    if (virDirOpen(&dir, prefix) < 0)
         return NULL;
-    }
 
     while (virDirRead(dir, &entry, prefix) > 0) {
-        if (entry->d_name[0] == '.' || !virFileIsLink(entry->d_name))
+        if (!virFileIsLink(entry->d_name))
             continue;
 
         if (virAsprintf(&host_link, "%s/%s", prefix, entry->d_name) < 0)
@@ -1871,7 +1911,7 @@ virFindSCSIHostByPCI(const char *sysfs_prefix,
     }
 
  cleanup:
-    closedir(dir);
+    VIR_DIR_CLOSE(dir);
     VIR_FREE(unique_path);
     VIR_FREE(host_link);
     VIR_FREE(host_path);
@@ -2154,12 +2194,8 @@ virGetFCHostNameByWWN(const char *sysfs_prefix,
     char *p;
     char *ret = NULL;
 
-    if (!(dir = opendir(prefix))) {
-        virReportSystemError(errno,
-                             _("Failed to opendir path '%s'"),
-                             prefix);
+    if (virDirOpen(&dir, prefix) < 0)
         return NULL;
-    }
 
 # define READ_WWN(wwn_path, buf)                      \
     do {                                              \
@@ -2174,9 +2210,6 @@ virGetFCHostNameByWWN(const char *sysfs_prefix,
     } while (0)
 
     while (virDirRead(dir, &entry, prefix) > 0) {
-        if (entry->d_name[0] == '.')
-            continue;
-
         if (virAsprintf(&wwnn_path, "%s/%s/node_name", prefix,
                         entry->d_name) < 0)
             goto cleanup;
@@ -2221,7 +2254,7 @@ virGetFCHostNameByWWN(const char *sysfs_prefix,
 
  cleanup:
 # undef READ_WWN
-    closedir(dir);
+    VIR_DIR_CLOSE(dir);
     VIR_FREE(wwnn_path);
     VIR_FREE(wwpn_path);
     VIR_FREE(wwnn_buf);
@@ -2248,19 +2281,12 @@ virFindFCHostCapableVport(const char *sysfs_prefix)
     char *state = NULL;
     char *ret = NULL;
 
-    if (!(dir = opendir(prefix))) {
-        virReportSystemError(errno,
-                             _("Failed to opendir path '%s'"),
-                             prefix);
+    if (virDirOpen(&dir, prefix) < 0)
         return NULL;
-    }
 
     while (virDirRead(dir, &entry, prefix) > 0) {
         unsigned int host;
         char *p = NULL;
-
-        if (entry->d_name[0] == '.')
-            continue;
 
         p = entry->d_name + strlen("host");
         if (virStrToLong_ui(p, NULL, 10, &host) == -1) {
@@ -2310,7 +2336,7 @@ virFindFCHostCapableVport(const char *sysfs_prefix)
     }
 
  cleanup:
-    closedir(dir);
+    VIR_DIR_CLOSE(dir);
     VIR_FREE(max_vports);
     VIR_FREE(vports);
     return ret;

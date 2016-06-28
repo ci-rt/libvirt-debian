@@ -335,7 +335,7 @@ phypCapsInit(void)
      * unexpected failures. We don't want to break the QEMU
      * driver in this scenario, so log errors & carry on
      */
-    if (nodeCapsInitNUMA(NULL, caps) < 0) {
+    if (nodeCapsInitNUMA(caps) < 0) {
         virCapabilitiesFreeNUMAInfo(caps);
         VIR_WARN
             ("Failed to query host NUMA topology, disabling NUMA capabilities");
@@ -1123,7 +1123,9 @@ virDomainDefParserConfig virPhypDriverDomainDefParserConfig = {
 
 static virDrvOpenStatus
 phypConnectOpen(virConnectPtr conn,
-                virConnectAuthPtr auth, unsigned int flags)
+                virConnectAuthPtr auth,
+                virConfPtr conf ATTRIBUTE_UNUSED,
+                unsigned int flags)
 {
     LIBSSH2_SESSION *session = NULL;
     int internal_socket = -1;
@@ -3569,7 +3571,7 @@ phypDomainCreateXML(virConnectPtr conn,
     virCheckFlags(VIR_DOMAIN_START_VALIDATE, NULL);
 
     if (flags & VIR_DOMAIN_START_VALIDATE)
-        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE_SCHEMA;
 
     if (!(def = virDomainDefParseString(xml, phyp_driver->caps,
                                         phyp_driver->xmlopt,

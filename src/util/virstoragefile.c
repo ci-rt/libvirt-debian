@@ -1,7 +1,7 @@
 /*
  * virstoragefile.c: file utility functions for FS storage backend
  *
- * Copyright (C) 2007-2014 Red Hat, Inc.
+ * Copyright (C) 2007-2014, 2016 Red Hat, Inc.
  * Copyright (C) 2007-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -63,7 +63,7 @@ VIR_ENUM_IMPL(virStorageFileFormat,
               "cloop", "dmg", "iso",
               "vpc", "vdi",
               /* Not direct file formats, but used for various drivers */
-              "fat", "vhd", "ploop",
+              "fat", "vhd", "ploop", "luks",
               /* Formats with backing file below here */
               "cow", "qcow", "qcow2", "qed", "vmdk")
 
@@ -120,10 +120,12 @@ struct FileTypeInfo {
                          * to check at head of file */
     const char *extension; /* Optional file extension to check */
     enum lv_endian endian; /* Endianness of file format */
+
     int versionOffset;    /* Byte offset from start of file
                            * where we find version number,
                            * -1 to always fail the version test,
                            * -2 to always pass the version test */
+    int versionSize;      /* Size in bytes of version data (0, 2, or 4) */
     int versionNumbers[FILE_TYPE_VERSIONS_LAST];
                           /* Version numbers to validate. Zeroes are ignored. */
     int sizeOffset;       /* Byte offset from start of file
@@ -187,17 +189,24 @@ qedGetBackingStore(char **, int *, const char *, size_t);
 #define PLOOP_IMAGE_SIZE_OFFSET 36
 #define PLOOP_SIZE_MULTIPLIER 512
 
+#define LUKS_HDR_MAGIC_LEN 6
+#define LUKS_HDR_VERSION_LEN 2
+
+/* Format described by qemu commit id '3e308f20e' */
+#define LUKS_HDR_VERSION_OFFSET LUKS_HDR_MAGIC_LEN
+
+
 static struct FileTypeInfo const fileTypeInfo[] = {
     [VIR_STORAGE_FILE_NONE] = { 0, NULL, NULL, LV_LITTLE_ENDIAN,
-                                -1, {0}, 0, 0, 0, 0, NULL, NULL },
+                                -1, 0, {0}, 0, 0, 0, 0, NULL, NULL },
     [VIR_STORAGE_FILE_RAW] = { 0, NULL, NULL, LV_LITTLE_ENDIAN,
-                               -1, {0}, 0, 0, 0, 0, NULL, NULL },
+                               -1, 0, {0}, 0, 0, 0, 0, NULL, NULL },
     [VIR_STORAGE_FILE_DIR] = { 0, NULL, NULL, LV_LITTLE_ENDIAN,
-                               -1, {0}, 0, 0, 0, 0, NULL, NULL },
+                               -1, 0, {0}, 0, 0, 0, 0, NULL, NULL },
     [VIR_STORAGE_FILE_BOCHS] = {
         /*"Bochs Virtual HD Image", */ /* Untested */
         0, NULL, NULL,
-        LV_LITTLE_ENDIAN, 64, {0x20000},
+        LV_LITTLE_ENDIAN, 64, 4, {0x20000},
         32+16+16+4+4+4+4+4, 8, 1, -1, NULL, NULL
     },
     [VIR_STORAGE_FILE_CLOOP] = {
@@ -206,7 +215,7 @@ static struct FileTypeInfo const fileTypeInfo[] = {
            modprobe cloop file=$0 && mount -r -t iso9660 /dev/cloop $1
         */ /* Untested */
         0, NULL, NULL,
-        LV_LITTLE_ENDIAN, -1, {0},
+        LV_LITTLE_ENDIAN, -1, 0, {0},
         -1, 0, 0, -1, NULL, NULL
     },
     [VIR_STORAGE_FILE_DMG] = {
@@ -214,60 +223,67 @@ static struct FileTypeInfo const fileTypeInfo[] = {
          * /usr/share/misc/magic lists double magic (both offsets
          * would have to match) but then disables that check. */
         0, NULL, ".dmg",
-        0, -1, {0},
+        0, -1, 0, {0},
         -1, 0, 0, -1, NULL, NULL
     },
     [VIR_STORAGE_FILE_ISO] = {
         32769, "CD001", ".iso",
-        LV_LITTLE_ENDIAN, -2, {0},
+        LV_LITTLE_ENDIAN, -2, 0, {0},
         -1, 0, 0, -1, NULL, NULL
     },
     [VIR_STORAGE_FILE_VPC] = {
         0, "conectix", NULL,
-        LV_BIG_ENDIAN, 12, {0x10000},
+        LV_BIG_ENDIAN, 12, 4, {0x10000},
         8 + 4 + 4 + 8 + 4 + 4 + 2 + 2 + 4, 8, 1, -1, NULL, NULL
     },
     /* TODO: add getBackingStore function */
     [VIR_STORAGE_FILE_VDI] = {
         64, "\x7f\x10\xda\xbe", ".vdi",
-        LV_LITTLE_ENDIAN, 68, {0x00010001},
+        LV_LITTLE_ENDIAN, 68, 4, {0x00010001},
         64 + 5 * 4 + 256 + 7 * 4, 8, 1, -1, NULL, NULL},
 
     /* Not direct file formats, but used for various drivers */
     [VIR_STORAGE_FILE_FAT] = { 0, NULL, NULL, LV_LITTLE_ENDIAN,
-                               -1, {0}, 0, 0, 0, 0, NULL, NULL },
+                               -1, 0, {0}, 0, 0, 0, 0, NULL, NULL },
     [VIR_STORAGE_FILE_VHD] = { 0, NULL, NULL, LV_LITTLE_ENDIAN,
-                               -1, {0}, 0, 0, 0, 0, NULL, NULL },
+                               -1, 0, {0}, 0, 0, 0, 0, NULL, NULL },
     [VIR_STORAGE_FILE_PLOOP] = { 0, "WithouFreSpacExt", NULL, LV_LITTLE_ENDIAN,
-                                 -2, {0}, PLOOP_IMAGE_SIZE_OFFSET, 0,
+                                 -2, 0, {0}, PLOOP_IMAGE_SIZE_OFFSET, 0,
                                  PLOOP_SIZE_MULTIPLIER, -1, NULL, NULL },
 
+    /* Magic is 'L','U','K','S', 0xBA, 0xBE
+     * Set sizeOffset = -1 and let hypervisor handle */
+    [VIR_STORAGE_FILE_LUKS] = {
+        0, "\x4c\x55\x4b\x53\xba\xbe", NULL,
+        LV_BIG_ENDIAN, LUKS_HDR_VERSION_OFFSET, 2, {1},
+        -1, 0, 0, -1, NULL, NULL
+    },
     /* All formats with a backing store probe below here */
     [VIR_STORAGE_FILE_COW] = {
         0, "OOOM", NULL,
-        LV_BIG_ENDIAN, 4, {2},
+        LV_BIG_ENDIAN, 4, 4, {2},
         4+4+1024+4, 8, 1, -1, cowGetBackingStore, NULL
     },
     [VIR_STORAGE_FILE_QCOW] = {
         0, "QFI", NULL,
-        LV_BIG_ENDIAN, 4, {1},
+        LV_BIG_ENDIAN, 4, 4, {1},
         QCOWX_HDR_IMAGE_SIZE, 8, 1, QCOW1_HDR_CRYPT, qcow1GetBackingStore, NULL
     },
     [VIR_STORAGE_FILE_QCOW2] = {
         0, "QFI", NULL,
-        LV_BIG_ENDIAN, 4, {2, 3},
+        LV_BIG_ENDIAN, 4, 4, {2, 3},
         QCOWX_HDR_IMAGE_SIZE, 8, 1, QCOW2_HDR_CRYPT, qcow2GetBackingStore,
         qcow2GetFeatures
     },
     [VIR_STORAGE_FILE_QED] = {
         /* http://wiki.qemu.org/Features/QED */
         0, "QED", NULL,
-        LV_LITTLE_ENDIAN, -2, {0},
+        LV_LITTLE_ENDIAN, -2, 0, {0},
         QED_HDR_IMAGE_SIZE, 8, 1, -1, qedGetBackingStore, NULL
     },
     [VIR_STORAGE_FILE_VMDK] = {
         0, "KDMV", NULL,
-        LV_LITTLE_ENDIAN, 4, {1, 2},
+        LV_LITTLE_ENDIAN, 4, 4, {1, 2},
         4+4+4, 8, 512, -1, vmdk4GetBackingStore, NULL
     },
 };
@@ -624,7 +640,7 @@ virStorageFileMatchesVersion(int format,
                              char *buf,
                              size_t buflen)
 {
-    int version;
+    int version = 0;
     size_t i;
 
     /* Validate version number info */
@@ -635,13 +651,30 @@ virStorageFileMatchesVersion(int format,
     if (fileTypeInfo[format].versionOffset == -2)
         return true;
 
-    if ((fileTypeInfo[format].versionOffset + 4) > buflen)
+    /* A positive versionOffset, requires using a valid versionSize */
+    if (fileTypeInfo[format].versionSize != 2 &&
+        fileTypeInfo[format].versionSize != 4)
         return false;
 
-    if (fileTypeInfo[format].endian == LV_LITTLE_ENDIAN)
-        version = virReadBufInt32LE(buf + fileTypeInfo[format].versionOffset);
-    else
-        version = virReadBufInt32BE(buf + fileTypeInfo[format].versionOffset);
+    if ((fileTypeInfo[format].versionOffset +
+         fileTypeInfo[format].versionSize) > buflen)
+        return false;
+
+    if (fileTypeInfo[format].endian == LV_LITTLE_ENDIAN) {
+        if (fileTypeInfo[format].versionSize == 4)
+            version = virReadBufInt32LE(buf +
+                                        fileTypeInfo[format].versionOffset);
+        else
+            version = virReadBufInt16LE(buf +
+                                        fileTypeInfo[format].versionOffset);
+    } else {
+        if (fileTypeInfo[format].versionSize == 4)
+            version = virReadBufInt32BE(buf +
+                                        fileTypeInfo[format].versionOffset);
+        else
+            version = virReadBufInt16BE(buf +
+                                        fileTypeInfo[format].versionOffset);
+    }
 
     for (i = 0;
          i < FILE_TYPE_VERSIONS_LAST && fileTypeInfo[format].versionNumbers[i];
@@ -821,6 +854,12 @@ virStorageFileGetMetadataInternal(virStorageSourcePtr meta,
                                          fileTypeInfo[meta->format].qcowCryptOffset);
         if (crypt_format && !meta->encryption &&
             VIR_ALLOC(meta->encryption) < 0)
+            goto cleanup;
+    }
+
+    if (meta->format == VIR_STORAGE_FILE_LUKS) {
+        /* By definition, this is encrypted */
+        if (!meta->encryption && VIR_ALLOC(meta->encryption) < 0)
             goto cleanup;
     }
 
@@ -1506,8 +1545,7 @@ virStorageAuthDefFree(virStorageAuthDefPtr authdef)
 
     VIR_FREE(authdef->username);
     VIR_FREE(authdef->secrettype);
-    if (authdef->secretType == VIR_STORAGE_SECRET_TYPE_USAGE)
-        VIR_FREE(authdef->secret.usage);
+    virSecretLookupDefClear(&authdef->seclookupdef);
     VIR_FREE(authdef);
 }
 
@@ -1526,13 +1564,10 @@ virStorageAuthDefCopy(const virStorageAuthDef *src)
     if (VIR_STRDUP(ret->secrettype, src->secrettype) < 0)
         goto error;
     ret->authType = src->authType;
-    ret->secretType = src->secretType;
-    if (ret->secretType == VIR_STORAGE_SECRET_TYPE_UUID) {
-        memcpy(ret->secret.uuid, src->secret.uuid, sizeof(ret->secret.uuid));
-    } else if (ret->secretType == VIR_STORAGE_SECRET_TYPE_USAGE) {
-        if (VIR_STRDUP(ret->secret.usage, src->secret.usage) < 0)
-            goto error;
-    }
+
+    if (virSecretLookupDefCopy(&ret->seclookupdef, &src->seclookupdef) < 0)
+        goto error;
+
     return ret;
 
  error:
@@ -1541,62 +1576,11 @@ virStorageAuthDefCopy(const virStorageAuthDef *src)
 }
 
 
-static int
-virStorageAuthDefParseSecret(xmlXPathContextPtr ctxt,
-                             virStorageAuthDefPtr authdef)
-{
-    char *uuid;
-    char *usage;
-    int ret = -1;
-
-    /* Used by the domain disk xml parsing in order to ensure the
-     * <secret type='%s' value matches the expected secret type for
-     * the style of disk (iscsi is chap, nbd is ceph). For some reason
-     * the virSecretUsageType{From|To}String() cannot be linked here
-     * and because only the domain parsing code cares - just keep
-     * it as a string.
-     */
-    authdef->secrettype = virXPathString("string(./secret/@type)", ctxt);
-
-    uuid = virXPathString("string(./secret/@uuid)", ctxt);
-    usage = virXPathString("string(./secret/@usage)", ctxt);
-    if (uuid == NULL && usage == NULL) {
-        virReportError(VIR_ERR_XML_ERROR, "%s",
-                       _("missing auth secret uuid or usage attribute"));
-        goto cleanup;
-    }
-
-    if (uuid && usage) {
-        virReportError(VIR_ERR_XML_ERROR, "%s",
-                       _("either auth secret uuid or usage expected"));
-        goto cleanup;
-    }
-
-    if (uuid) {
-        if (virUUIDParse(uuid, authdef->secret.uuid) < 0) {
-            virReportError(VIR_ERR_XML_ERROR, "%s",
-                            _("invalid auth secret uuid"));
-            goto cleanup;
-        }
-        authdef->secretType = VIR_STORAGE_SECRET_TYPE_UUID;
-    } else {
-        authdef->secret.usage = usage;
-        usage = NULL;
-        authdef->secretType = VIR_STORAGE_SECRET_TYPE_USAGE;
-    }
-    ret = 0;
-
- cleanup:
-    VIR_FREE(uuid);
-    VIR_FREE(usage);
-    return ret;
-}
-
-
 static virStorageAuthDefPtr
 virStorageAuthDefParseXML(xmlXPathContextPtr ctxt)
 {
     virStorageAuthDefPtr authdef = NULL;
+    xmlNodePtr secretnode = NULL;
     char *username = NULL;
     char *authtype = NULL;
 
@@ -1625,8 +1609,22 @@ virStorageAuthDefParseXML(xmlXPathContextPtr ctxt)
         VIR_FREE(authtype);
     }
 
-    authdef->secretType = VIR_STORAGE_SECRET_TYPE_NONE;
-    if (virStorageAuthDefParseSecret(ctxt, authdef) < 0)
+    if (!(secretnode = virXPathNode("./secret ", ctxt))) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("Missing <secret> element in auth"));
+        goto error;
+    }
+
+    /* Used by the domain disk xml parsing in order to ensure the
+     * <secret type='%s' value matches the expected secret type for
+     * the style of disk (iscsi is chap, nbd is ceph). For some reason
+     * the virSecretUsageType{From|To}String() cannot be linked here
+     * and because only the domain parsing code cares - just keep
+     * it as a string.
+     */
+    authdef->secrettype = virXMLPropString(secretnode, "type");
+
+    if (virSecretLookupParseSecret(secretnode, &authdef->seclookupdef) < 0)
         goto error;
 
     return authdef;
@@ -1664,8 +1662,6 @@ int
 virStorageAuthDefFormat(virBufferPtr buf,
                         virStorageAuthDefPtr authdef)
 {
-    char uuidstr[VIR_UUID_STRING_BUFLEN];
-
     if (authdef->authType == VIR_STORAGE_AUTH_TYPE_NONE) {
         virBufferEscapeString(buf, "<auth username='%s'>\n", authdef->username);
     } else {
@@ -1675,20 +1671,8 @@ virStorageAuthDefFormat(virBufferPtr buf,
     }
 
     virBufferAdjustIndent(buf, 2);
-    if (authdef->secrettype)
-        virBufferAsprintf(buf, "<secret type='%s'", authdef->secrettype);
-    else
-        virBufferAddLit(buf, "<secret");
-
-    if (authdef->secretType == VIR_STORAGE_SECRET_TYPE_UUID) {
-        virUUIDFormat(authdef->secret.uuid, uuidstr);
-        virBufferAsprintf(buf, " uuid='%s'/>\n", uuidstr);
-    } else if (authdef->secretType == VIR_STORAGE_SECRET_TYPE_USAGE) {
-        virBufferEscapeString(buf, " usage='%s'/>\n",
-                              authdef->secret.usage);
-    } else {
-        virBufferAddLit(buf, "/>\n");
-    }
+    virSecretLookupFormatSecret(buf, authdef->secrettype,
+                                &authdef->seclookupdef);
     virBufferAdjustIndent(buf, -2);
     virBufferAddLit(buf, "</auth>\n");
 

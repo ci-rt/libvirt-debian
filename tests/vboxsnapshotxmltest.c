@@ -67,7 +67,7 @@ testCompareXMLtoXMLFiles(const char *xml)
     if (virFileMakePath(abs_builddir "/vboxsnapshotxmldata") < 0)
         goto cleanup;
 
-    if (virtTestLoadFile(xml, &xmlData) < 0)
+    if (virTestLoadFile(xml, &xmlData) < 0)
         goto cleanup;
 
     if (!(machine = virVBoxSnapshotConfLoadVboxFile(xml, (char*)"")))
@@ -76,7 +76,7 @@ testCompareXMLtoXMLFiles(const char *xml)
     if (virVBoxSnapshotConfSaveVboxFile(machine, pathResult) < 0)
         goto cleanup;
 
-    if (virtTestLoadFile(pathResult, &actual) < 0)
+    if (virTestLoadFile(pathResult, &actual) < 0)
         goto cleanup;
 
     if (!(actual = testFilterXML(actual)))
@@ -85,7 +85,7 @@ testCompareXMLtoXMLFiles(const char *xml)
         goto cleanup;
 
     if (STRNEQ(actual, xmlData)) {
-        virtTestDifference(stderr, xmlData, actual);
+        virTestDifference(stderr, xmlData, actual);
         goto cleanup;
     }
 
@@ -135,8 +135,8 @@ mymain(void)
     }
 
 # define DO_TEST(name)                                       \
-    if (virtTestRun("VBox Snapshot XML-2-XML " name,        \
-                    testCompareXMLToXMLHelper, (name)) < 0) \
+    if (virTestRun("VBox Snapshot XML-2-XML " name,          \
+                   testCompareXMLToXMLHelper, (name)) < 0)   \
         ret = -1
 
     DO_TEST("2disks-nosnap");

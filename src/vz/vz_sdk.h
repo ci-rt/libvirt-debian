@@ -63,26 +63,27 @@ prlsdkUnregisterDomain(vzDriverPtr driver, virDomainObjPtr dom, unsigned int fla
 int
 prlsdkDomainManagedSaveRemove(virDomainObjPtr dom);
 int
-prlsdkAttachVolume(vzDriverPtr driver, virDomainObjPtr dom, virDomainDiskDefPtr disk);
+prlsdkAttachDevice(vzDriverPtr driver, virDomainObjPtr dom, virDomainDeviceDefPtr dev);
 int
-prlsdkDetachVolume(virDomainObjPtr dom, virDomainDiskDefPtr disk);
+prlsdkDetachDevice(vzDriverPtr driver, virDomainObjPtr dom, virDomainDeviceDefPtr dev);
 int
-prlsdkGetBlockStats(virDomainObjPtr dom, virDomainDiskDefPtr disk, virDomainBlockStatsPtr stats);
+prlsdkUpdateDevice(vzDriverPtr driver, virDomainObjPtr dom, virDomainDeviceDefPtr dev);
 int
-prlsdkAttachNet(vzDriverPtr driver, virDomainObjPtr dom, virDomainNetDefPtr net);
+prlsdkGetBlockStats(PRL_HANDLE sdkstats, virDomainDiskDefPtr disk, virDomainBlockStatsPtr stats);
 int
-prlsdkDetachNet(vzDriverPtr driver, virDomainObjPtr dom, virDomainNetDefPtr net);
+prlsdkGetNetStats(PRL_HANDLE sdkstas, PRL_HANDLE sdkdom, const char *path, virDomainInterfaceStatsPtr stats);
 int
-prlsdkGetNetStats(virDomainObjPtr dom, const char *path, virDomainInterfaceStatsPtr stats);
+prlsdkGetVcpuStats(PRL_HANDLE sdkstas, int idx, unsigned long long *time);
 int
-prlsdkGetVcpuStats(virDomainObjPtr dom, int idx, unsigned long long *time);
-int
-prlsdkGetMemoryStats(virDomainObjPtr dom, virDomainMemoryStatPtr stats, unsigned int nr_stats);
+prlsdkGetMemoryStats(PRL_HANDLE sdkstas, virDomainMemoryStatPtr stats, unsigned int nr_stats);
 void
 prlsdkDomObjFreePrivate(void *p);
 /* memsize is in MiB */
 int prlsdkSetMemsize(virDomainObjPtr dom, unsigned int memsize);
-
+int
+prlsdkDomainSetUserPassword(virDomainObjPtr dom,
+                            const char *user,
+                            const char *password);
 virDomainSnapshotObjListPtr prlsdkLoadSnapshots(virDomainObjPtr dom);
 int prlsdkCreateSnapshot(virDomainObjPtr dom, const char *description);
 int prlsdkDeleteSnapshot(virDomainObjPtr dom, const char *uuid, bool children);

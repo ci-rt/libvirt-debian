@@ -31,6 +31,7 @@
 #include "datatypes.h"
 #include "domain_conf.h"
 #include "virtime.h"
+#include "virhostcpu.h"
 
 #include "vz_sdk.h"
 
@@ -41,6 +42,11 @@ static int
 prlsdkUUIDParse(const char *uuidstr, unsigned char *uuid);
 
 VIR_LOG_INIT("parallels.sdk");
+
+static PRL_HANDLE
+prlsdkFindNetByMAC(PRL_HANDLE sdkdom, virMacAddrPtr mac);
+static PRL_HANDLE
+prlsdkGetDisk(PRL_HANDLE sdkdom, virDomainDiskDefPtr disk, bool isCt);
 
 /*
  * Log error description
@@ -137,10 +143,6 @@ logPrlEventErrorHelper(PRL_HANDLE event, const char *filename,
 
     return err;
 }
-
-#define logPrlEventError(event)                    \
-    logPrlEventErrorHelper(event, __FILE__,        \
-                           __FUNCTION__, __LINE__)
 
 static PRL_RESULT
 getJobResultHelper(PRL_HANDLE job, unsigned int timeout, PRL_HANDLE *result,
@@ -467,14 +469,38 @@ prlsdkDomObjFreePrivate(void *p)
         return;
 
     PrlHandle_Free(pdom->sdkdom);
-    PrlHandle_Free(pdom->cache.stats);
-    virCondDestroy(&pdom->cache.cond);
-    VIR_FREE(pdom->home);
+    PrlHandle_Free(pdom->stats);
     VIR_FREE(p);
 };
 
 static int
-prlsdkAddDomainVideoInfo(PRL_HANDLE sdkdom, virDomainDefPtr def)
+prlsdkAddDomainVideoInfoCt(virDomainDefPtr def)
+{
+    virDomainVideoDefPtr video = NULL;
+    int ret = -1;
+
+    if (def->ngraphics == 0)
+        return 0;
+
+    if (VIR_ALLOC(video) < 0)
+        goto cleanup;
+
+    video->type = VIR_DOMAIN_VIDEO_TYPE_PARALLELS;
+    video->vram = 0;
+    video->heads = 1;
+
+    if (VIR_APPEND_ELEMENT(def->videos, def->nvideos, video) < 0)
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    virDomainVideoDefFree(video);
+
+    return ret;
+}
+
+static int
+prlsdkAddDomainVideoInfoVm(PRL_HANDLE sdkdom, virDomainDefPtr def)
 {
     virDomainVideoDefPtr video = NULL;
     virDomainVideoAccelDefPtr accel = NULL;
@@ -542,6 +568,9 @@ prlsdkGetDiskId(PRL_HANDLE disk, bool isCt, int *bus, char **dst)
                        _("Unknown disk bus: %X"), ifType);
         return -1;
     }
+
+    if (NULL == *dst)
+        return -1;
 
     return 0;
 }
@@ -744,6 +773,135 @@ prlsdkAddDomainOpticalDisksInfo(vzDriverPtr driver, PRL_HANDLE sdkdom, virDomain
     return -1;
 }
 
+static virDomainNetIpDefPtr
+prlsdkParseNetAddress(char *addr)
+{
+    char *maskstr = NULL;
+    int nbits;
+    virSocketAddr mask;
+    virDomainNetIpDefPtr ip = NULL, ret = NULL;
+
+    if (!(maskstr = strchr(addr, '/')))
+        goto cleanup;
+
+    *maskstr = '\0';
+    ++maskstr;
+
+    if (VIR_ALLOC(ip) < 0)
+        goto cleanup;
+
+    if (virSocketAddrParse(&ip->address, addr, AF_UNSPEC) < 0)
+        goto cleanup;
+
+    if (virSocketAddrParse(&mask, maskstr, AF_UNSPEC) < 0)
+        goto cleanup;
+
+    if ((nbits = virSocketAddrGetNumNetmaskBits(&mask)) < 0)
+        goto cleanup;
+    ip->prefix = nbits;
+
+    ret = ip;
+    ip = NULL;
+
+ cleanup:
+    if (!ret)
+        VIR_WARN("cannot parse network address '%s'", addr);
+
+    VIR_FREE(ip);
+    VIR_FREE(addr);
+
+    return ret;
+}
+
+static int
+prlsdkGetNetAddresses(PRL_HANDLE sdknet, virDomainNetDefPtr net)
+{
+    int ret = -1;
+    PRL_HANDLE addrlist = PRL_INVALID_HANDLE;
+    PRL_UINT32 num;
+    size_t i;
+    PRL_RESULT pret;
+
+    pret = PrlVmDevNet_GetNetAddresses(sdknet, &addrlist);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    PrlStrList_GetItemsCount(addrlist, &num);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    for (i = 0; i < num; ++i) {
+        virDomainNetIpDefPtr ip = NULL;
+        PRL_UINT32 buflen = 0;
+        char *addr;
+
+        pret = PrlStrList_GetItem(addrlist, i, NULL, &buflen);
+        prlsdkCheckRetGoto(pret, cleanup);
+
+        if (VIR_ALLOC_N(addr, buflen) < 0)
+            goto cleanup;
+
+        pret = PrlStrList_GetItem(addrlist, i, addr, &buflen);
+        prlsdkCheckRetGoto(pret, cleanup);
+
+        if (!(ip = prlsdkParseNetAddress(addr)))
+            continue;
+
+        if (VIR_APPEND_ELEMENT(net->ips, net->nips, ip) < 0) {
+            VIR_FREE(ip);
+            goto cleanup;
+        }
+    }
+
+    ret = 0;
+ cleanup:
+
+    PrlHandle_Free(addrlist);
+    return ret;
+}
+
+static int
+prlsdkGetRoutes(PRL_HANDLE sdknet, virDomainNetDefPtr net)
+{
+    int ret = -1;
+    char *gw = NULL;
+    char *gw6 = NULL;
+    virNetworkRouteDefPtr route = NULL;
+
+    if (!(gw = prlsdkGetStringParamVar(PrlVmDevNet_GetDefaultGateway, sdknet)))
+        goto cleanup;
+
+    if (!(gw6 = prlsdkGetStringParamVar(PrlVmDevNet_GetDefaultGatewayIPv6, sdknet)))
+        goto cleanup;
+
+    if (*gw != '\0') {
+        if (!(route = virNetworkRouteDefCreate(_("Domain interface"),
+                                               "ipv4", VIR_SOCKET_ADDR_IPV4_ALL,
+                                               NULL, gw, 0, true, 0, false)))
+            goto cleanup;
+
+        if (VIR_APPEND_ELEMENT(net->routes, net->nroutes, route) < 0)
+            goto cleanup;
+    }
+
+    if (*gw6 != '\0') {
+        if (!(route = virNetworkRouteDefCreate(_("Domain interface"),
+                                               "ipv6", VIR_SOCKET_ADDR_IPV6_ALL,
+                                               NULL, gw6, 0, true, 0, false)))
+            goto cleanup;
+
+        if (VIR_APPEND_ELEMENT(net->routes, net->nroutes, route) < 0)
+            goto cleanup;
+    }
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(route);
+    VIR_FREE(gw);
+    VIR_FREE(gw6);
+
+    return ret;
+}
+
 static int
 prlsdkGetNetInfo(PRL_HANDLE netAdapter, virDomainNetDefPtr net, bool isCt)
 {
@@ -751,11 +909,8 @@ prlsdkGetNetInfo(PRL_HANDLE netAdapter, virDomainNetDefPtr net, bool isCt)
     PRL_UINT32 netAdapterIndex;
     PRL_UINT32 emulatedType;
     PRL_RESULT pret;
-    PRL_BOOL isConnected;
+    PRL_BOOL isConnected, isMacFilter;
     int ret = -1;
-
-    net->type = VIR_DOMAIN_NET_TYPE_NETWORK;
-
 
     /* use device name, shown by prlctl as target device
      * for identifying network adapter in virDomainDefineXML */
@@ -783,6 +938,12 @@ prlsdkGetNetInfo(PRL_HANDLE netAdapter, virDomainNetDefPtr net, bool isCt)
     if (virMacAddrParse(macstr, &net->mac) < 0)
         goto cleanup;
 
+    if (prlsdkGetNetAddresses(netAdapter, net) < 0)
+        goto cleanup;
+
+    if (prlsdkGetRoutes(netAdapter, net) < 0)
+        goto cleanup;
+
     pret = PrlVmDev_GetEmulatedType(netAdapter, &emulatedType);
     prlsdkCheckRetGoto(pret, cleanup);
 
@@ -791,7 +952,9 @@ prlsdkGetNetInfo(PRL_HANDLE netAdapter, virDomainNetDefPtr net, bool isCt)
                        PARALLELS_DOMAIN_ROUTED_NETWORK_NAME) < 0)
             goto cleanup;
     } else {
-        if (!(net->data.network.name =
+        char *netid = NULL;
+
+        if (!(netid =
               prlsdkGetStringParamVar(PrlVmDevNet_GetVirtualNetworkId,
                                       netAdapter)))
             goto cleanup;
@@ -802,8 +965,13 @@ prlsdkGetNetInfo(PRL_HANDLE netAdapter, virDomainNetDefPtr net, bool isCt)
          * predefined ones such as PARALLELS_DOMAIN_BRIDGED_NETWORK_NAME
          * and PARALLELS_DONAIN_ROUTED_NETWORK_NAME
          */
-        if (STRNEQ(net->data.network.name, PARALLELS_DOMAIN_BRIDGED_NETWORK_NAME))
+        if (STRNEQ(netid, PARALLELS_DOMAIN_BRIDGED_NETWORK_NAME)) {
             net->type = VIR_DOMAIN_NET_TYPE_BRIDGE;
+            net->data.network.name = netid;
+        } else {
+            net->type = VIR_DOMAIN_NET_TYPE_NETWORK;
+            net->data.bridge.brname = netid;
+        }
 
     }
 
@@ -839,6 +1007,12 @@ prlsdkGetNetInfo(PRL_HANDLE netAdapter, virDomainNetDefPtr net, bool isCt)
         net->linkstate = VIR_DOMAIN_NET_INTERFACE_LINK_STATE_UP;
     else
         net->linkstate = VIR_DOMAIN_NET_INTERFACE_LINK_STATE_DOWN;
+
+    pret = PrlVmDevNet_IsPktFilterPreventMacSpoof(netAdapter, &isMacFilter);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    net->trustGuestRxFilters = isMacFilter ? VIR_TRISTATE_BOOL_YES :
+                                             VIR_TRISTATE_BOOL_NO;
 
     ret = 0;
  cleanup:
@@ -971,9 +1145,13 @@ prlsdkAddSerialInfo(PRL_HANDLE sdkdom,
 static int
 prlsdkAddDomainHardware(vzDriverPtr driver, PRL_HANDLE sdkdom, virDomainDefPtr def)
 {
-    if (!IS_CT(def))
-        if (prlsdkAddDomainVideoInfo(sdkdom, def) < 0)
+    if (IS_CT(def)) {
+        if (prlsdkAddDomainVideoInfoCt(def) < 0)
             goto error;
+    } else {
+        if (prlsdkAddDomainVideoInfoVm(sdkdom, def) < 0)
+            goto error;
+    }
 
     if (prlsdkAddDomainHardDisksInfo(driver, sdkdom, def) < 0)
         goto error;
@@ -1002,6 +1180,7 @@ prlsdkAddVNCInfo(PRL_HANDLE sdkdom, virDomainDefPtr def)
     PRL_VM_REMOTE_DISPLAY_MODE vncMode;
     PRL_UINT32 port;
     PRL_RESULT pret;
+    char *passwd = NULL;
 
     pret = PrlVmCfg_GetVNCMode(sdkdom, &vncMode);
     prlsdkCheckRetGoto(pret, error);
@@ -1012,17 +1191,20 @@ prlsdkAddVNCInfo(PRL_HANDLE sdkdom, virDomainDefPtr def)
     if (VIR_ALLOC(gr) < 0)
         goto error;
 
+    if (!(passwd = prlsdkGetStringParamVar(PrlVmCfg_GetVNCPassword, sdkdom)))
+        goto error;
+
+    if (*passwd != '\0') {
+        gr->data.vnc.auth.passwd = passwd;
+        passwd = NULL;
+    }
+
     pret = PrlVmCfg_GetVNCPort(sdkdom, &port);
     prlsdkCheckRetGoto(pret, error);
 
     gr->data.vnc.autoport = (vncMode == PRD_AUTO);
     gr->type = VIR_DOMAIN_GRAPHICS_TYPE_VNC;
     gr->data.vnc.port = port;
-    gr->data.vnc.keymap = NULL;
-    gr->data.vnc.socket = NULL;
-    gr->data.vnc.auth.passwd = NULL;
-    gr->data.vnc.auth.expires = false;
-    gr->data.vnc.auth.connected = 0;
 
     if (VIR_ALLOC(gr->listens) < 0)
         goto error;
@@ -1038,29 +1220,11 @@ prlsdkAddVNCInfo(PRL_HANDLE sdkdom, virDomainDefPtr def)
     if (VIR_APPEND_ELEMENT(def->graphics, def->ngraphics, gr) < 0)
         goto error;
 
-    if (IS_CT(def)) {
-        virDomainVideoDefPtr video;
-        if (VIR_ALLOC(video) < 0)
-            goto error;
-        video->type = virDomainVideoDefaultType(def);
-        if (video->type < 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("cannot determine default video type"));
-            VIR_FREE(video);
-            goto error;
-        }
-        video->vram = virDomainVideoDefaultRAM(def, video->type);
-        video->heads = 1;
-        if (VIR_ALLOC_N(def->videos, 1) < 0) {
-            virDomainVideoDefFree(video);
-            goto error;
-        }
-        def->videos[def->nvideos++] = video;
-    }
     return 0;
 
  error:
     virDomainGraphicsDefFree(gr);
+    VIR_FREE(passwd);
     return -1;
 }
 
@@ -1152,7 +1316,7 @@ prlsdkConvertCpuInfo(PRL_HANDLE sdkdom,
     PRL_RESULT pret;
     int ret = -1;
 
-    if ((hostcpus = nodeGetCPUCount(NULL)) < 0)
+    if ((hostcpus = virHostCPUGetCount()) < 0)
         goto cleanup;
 
     /* get number of CPUs */
@@ -1176,7 +1340,7 @@ prlsdkConvertCpuInfo(PRL_HANDLE sdkdom,
             goto cleanup;
         virBitmapSetAll(def->cpumask);
     } else {
-        if (virBitmapParse(buf, 0, &def->cpumask, hostcpus) < 0)
+        if (virBitmapParse(buf, &def->cpumask, hostcpus) < 0)
             goto cleanup;
     }
 
@@ -1506,13 +1670,13 @@ prlsdkLoadDomain(vzDriverPtr driver, virDomainObjPtr dom)
     virDomainDefPtr def = NULL;
     vzDomObjPtr pdom = NULL;
     VIRTUAL_MACHINE_STATE domainState;
-    char *home = NULL;
 
     PRL_RESULT pret;
     PRL_UINT32 ram;
     PRL_UINT32 envId;
     PRL_VM_AUTOSTART_OPTION autostart;
     PRL_HANDLE sdkdom = PRL_INVALID_HANDLE;
+    PRL_HANDLE job;
 
     virCheckNonNullArgGoto(dom, error);
 
@@ -1550,6 +1714,10 @@ prlsdkLoadDomain(vzDriverPtr driver, virDomainObjPtr dom)
     if (prlsdkConvertDomainType(sdkdom, def) < 0)
         goto error;
 
+    if (prlsdkAddVNCInfo(sdkdom, def) < 0)
+        goto error;
+
+    /* depends on prlsdkAddVNCInfo */
     if (prlsdkAddDomainHardware(driver, sdkdom, def) < 0)
         goto error;
 
@@ -1557,22 +1725,8 @@ prlsdkLoadDomain(vzDriverPtr driver, virDomainObjPtr dom)
     if (prlsdkConvertBootOrder(sdkdom, def) < 0)
         goto error;
 
-    if (prlsdkAddVNCInfo(sdkdom, def) < 0)
-        goto error;
-
     pret = PrlVmCfg_GetEnvId(sdkdom, &envId);
     prlsdkCheckRetGoto(pret, error);
-
-    if (!(home = prlsdkGetStringParamVar(PrlVmCfg_GetHomePath, sdkdom)))
-        goto error;
-
-    /* For VMs home is actually /directory/config.pvs */
-    if (!IS_CT(def)) {
-        /* Get rid of /config.pvs in path string */
-        char *s = strrchr(home, '/');
-        if (s)
-            *s = '\0';
-    }
 
     pret = PrlVmCfg_GetAutoStart(sdkdom, &autostart);
     prlsdkCheckRetGoto(pret, error);
@@ -1604,21 +1758,23 @@ prlsdkLoadDomain(vzDriverPtr driver, virDomainObjPtr dom)
             goto error;
     }
 
+    if (!pdom->sdkdom) {
+        job = PrlVm_SubscribeToPerfStats(sdkdom, NULL);
+        if (PRL_FAILED(waitJob(job)))
+            goto error;
+
+        PrlHandle_AddRef(sdkdom);
+        pdom->sdkdom = sdkdom;
+    }
+
     /* assign new virDomainDef without any checks
      * we can't use virDomainObjAssignDef, because it checks
      * for state and domain name */
     virDomainDefFree(dom->def);
     dom->def = def;
     pdom->id = envId;
-    VIR_FREE(pdom->home);
-    pdom->home = home;
 
     prlsdkConvertDomainState(domainState, envId, dom);
-
-    if (!pdom->sdkdom) {
-        PrlHandle_AddRef(sdkdom);
-        pdom->sdkdom = sdkdom;
-    }
 
     if (autostart == PAO_VM_START_ON_LOAD)
         dom->autostart = 1;
@@ -1629,7 +1785,6 @@ prlsdkLoadDomain(vzDriverPtr driver, virDomainObjPtr dom)
     return 0;
  error:
     PrlHandle_Free(sdkdom);
-    VIR_FREE(home);
     virDomainDefFree(def);
     return -1;
 }
@@ -1844,47 +1999,22 @@ prlsdkHandleVmRemovedEvent(vzDriverPtr driver,
 
 #define PARALLELS_STATISTICS_DROP_COUNT 3
 
-static PRL_RESULT
+static void
 prlsdkHandlePerfEvent(vzDriverPtr driver,
                       PRL_HANDLE event,
                       unsigned char *uuid)
 {
     virDomainObjPtr dom = NULL;
     vzDomObjPtr privdom = NULL;
-    PRL_HANDLE job = PRL_INVALID_HANDLE;
 
-    dom = virDomainObjListFindByUUID(driver->domains, uuid);
-    if (dom == NULL)
-        goto cleanup;
+    if (!(dom = virDomainObjListFindByUUID(driver->domains, uuid)))
+        return;
+
     privdom = dom->privateData;
+    PrlHandle_Free(privdom->stats);
+    privdom->stats = event;
 
-    /* delayed event after unsubscribe */
-    if (privdom->cache.count == -1)
-        goto cleanup;
-
-    PrlHandle_Free(privdom->cache.stats);
-    privdom->cache.stats = PRL_INVALID_HANDLE;
-
-    if (privdom->cache.count > PARALLELS_STATISTICS_DROP_COUNT) {
-        job = PrlVm_UnsubscribeFromPerfStats(privdom->sdkdom);
-        if (PRL_FAILED(waitJob(job)))
-            goto cleanup;
-        /* change state to unsubscribed */
-        privdom->cache.count = -1;
-    } else {
-        ++privdom->cache.count;
-        privdom->cache.stats = event;
-        /* thus we get own of event handle */
-        event = PRL_INVALID_HANDLE;
-        virCondSignal(&privdom->cache.cond);
-    }
-
- cleanup:
-    PrlHandle_Free(event);
-    if (dom)
-        virObjectUnlock(dom);
-
-    return PRL_ERR_SUCCESS;
+    virObjectUnlock(dom);
 }
 
 static PRL_RESULT
@@ -2051,6 +2181,7 @@ prlsdkDomainChangeStateLocked(vzDriverPtr driver,
         case PRL_ERR_DISP_VM_IS_NOT_STARTED:
         case PRL_ERR_DISP_VM_IS_NOT_STOPPED:
         case PRL_ERR_INVALID_ACTION_REQUESTED:
+        case PRL_ERR_UNIMPLEMENTED:
             virerr = VIR_ERR_OPERATION_INVALID;
             break;
         default:
@@ -2103,14 +2234,14 @@ prlsdkCheckUnsupportedParams(PRL_HANDLE sdkdom, virDomainDefPtr def)
         return -1;
     }
 
-    if (virDomainDefGetMemoryActual(def) != def->mem.cur_balloon) {
+    if (virDomainDefGetMemoryTotal(def) != def->mem.cur_balloon) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("changing balloon parameters is not supported "
                          "by vz driver"));
         return -1;
     }
 
-    if (virDomainDefGetMemoryActual(def) % (1 << 10) != 0) {
+    if (virDomainDefGetMemoryTotal(def) % (1 << 10) != 0) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Memory size should be multiple of 1Mb."));
         return -1;
@@ -2287,8 +2418,7 @@ prlsdkCheckUnsupportedParams(PRL_HANDLE sdkdom, virDomainDefPtr def)
             !((def->inputs[0]->type == VIR_DOMAIN_INPUT_TYPE_MOUSE &&
                def->inputs[1]->type == VIR_DOMAIN_INPUT_TYPE_KBD) ||
               (def->inputs[0]->type == VIR_DOMAIN_INPUT_TYPE_KBD &&
-               def->inputs[1]->type == VIR_DOMAIN_INPUT_TYPE_MOUSE))
-           ) {
+               def->inputs[1]->type == VIR_DOMAIN_INPUT_TYPE_MOUSE))) {
 
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("unsupported input device configuration"));
@@ -2310,9 +2440,6 @@ static int prlsdkClearDevices(PRL_HANDLE sdkdom)
     PRL_HANDLE devList;
     PRL_HANDLE dev;
     int ret = -1;
-
-    pret = PrlVmCfg_SetVNCMode(sdkdom, PRD_DISABLED);
-    prlsdkCheckRetGoto(pret, cleanup);
 
     pret = PrlVmCfg_GetAllDevices(sdkdom, &devList);
     prlsdkCheckRetGoto(pret, cleanup);
@@ -2395,90 +2522,6 @@ prlsdkAddDeviceToBootList(PRL_HANDLE sdkdom,
         PrlBootDev_Remove(bootDev);
 
     return -1;
-}
-
-static int prlsdkCheckGraphicsUnsupportedParams(virDomainDefPtr def)
-{
-    virDomainGraphicsDefPtr gr;
-
-    if (def->ngraphics == 0)
-        return 0;
-
-    if (def->ngraphics > 1) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("vz driver supports only "
-                         "one VNC per domain."));
-        return -1;
-    }
-
-    gr = def->graphics[0];
-
-    if (gr->type != VIR_DOMAIN_GRAPHICS_TYPE_VNC) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("vz driver supports only "
-                         "VNC graphics."));
-        return -1;
-    }
-
-    if (gr->data.vnc.websocket != 0) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("vz driver doesn't support "
-                         "websockets for VNC graphics."));
-        return -1;
-    }
-
-    if (gr->data.vnc.keymap != 0 &&
-        STRNEQ(gr->data.vnc.keymap, "en-us")) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("vz driver supports only "
-                         "\"en-us\" keymap for VNC graphics."));
-        return -1;
-    }
-
-    if (gr->data.vnc.sharePolicy == VIR_DOMAIN_GRAPHICS_VNC_SHARE_ALLOW_EXCLUSIVE) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("vz driver doesn't support "
-                         "exclusive share policy for VNC graphics."));
-        return -1;
-    }
-
-    if (gr->data.vnc.socket) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("vz driver doesn't support "
-                         "VNC graphics over unix sockets."));
-        return -1;
-    }
-
-    if (gr->data.vnc.auth.connected == VIR_DOMAIN_GRAPHICS_AUTH_CONNECTED_FAIL ||
-        gr->data.vnc.auth.connected == VIR_DOMAIN_GRAPHICS_AUTH_CONNECTED_KEEP) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("vz driver doesn't support "
-                         "given action in case of password change."));
-        return -1;
-    }
-
-    if (gr->data.vnc.auth.expires) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("vz driver doesn't support "
-                         "setting password expire time."));
-        return -1;
-    }
-
-    if (gr->nListens > 1) {
-        virReportError(VIR_ERR_INVALID_ARG, "%s",
-                       _("vz driver doesn't support more than "
-                         "one listening VNC server per domain"));
-        return -1;
-    }
-
-    if (gr->nListens == 1 &&
-        gr->listens[0].type != VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_ADDRESS) {
-        virReportError(VIR_ERR_INVALID_ARG, "%s",
-                       _("vz driver supports only address-based VNC listening"));
-        return -1;
-    }
-
-    return 0;
 }
 
 static int prlsdkCheckVideoUnsupportedParams(virDomainDefPtr def)
@@ -2703,20 +2746,20 @@ static int prlsdkCheckFSUnsupportedParams(virDomainFSDefPtr fs)
     return 0;
 }
 
-static int prlsdkApplyGraphicsParams(PRL_HANDLE sdkdom, virDomainDefPtr def)
+static int prlsdkApplyGraphicsParams(PRL_HANDLE sdkdom,
+                                     virDomainGraphicsDefPtr gr)
 {
-    virDomainGraphicsDefPtr gr;
     virDomainGraphicsListenDefPtr glisten;
     PRL_RESULT pret;
     int ret  = -1;
 
-    if (prlsdkCheckGraphicsUnsupportedParams(def))
-        return -1;
+    if (!gr) {
+        pret = PrlVmCfg_SetVNCMode(sdkdom, PRD_DISABLED);
+        prlsdkCheckRetExit(pret, -1);
+    }
 
-    if (def->ngraphics == 0)
-        return 0;
-
-    gr = def->graphics[0];
+    pret = PrlVmCfg_SetVNCPassword(sdkdom, gr->data.vnc.auth.passwd ? : "");
+    prlsdkCheckRetExit(pret, -1);
 
     if (gr->data.vnc.autoport) {
         pret = PrlVmCfg_SetVNCMode(sdkdom, PRD_AUTO);
@@ -2729,12 +2772,10 @@ static int prlsdkApplyGraphicsParams(PRL_HANDLE sdkdom, virDomainDefPtr def)
         prlsdkCheckRetGoto(pret, cleanup);
     }
 
-    if ((glisten = virDomainGraphicsGetListen(gr, 0))) {
-        if (!glisten->address)
-            goto cleanup;
-        pret = PrlVmCfg_SetVNCHostName(sdkdom, glisten->address);
-        prlsdkCheckRetGoto(pret, cleanup);
-    }
+    glisten = virDomainGraphicsGetListen(gr, 0);
+    pret = PrlVmCfg_SetVNCHostName(sdkdom, glisten && glisten->address ?
+                                           glisten->address : "");
+    prlsdkCheckRetGoto(pret, cleanup);
 
     ret = 0;
  cleanup:
@@ -2841,10 +2882,91 @@ static const char * prlsdkFormatMac(virMacAddrPtr mac, char *macstr)
     return macstr;
 }
 
-static int prlsdkAddNet(vzDriverPtr driver,
-                        PRL_HANDLE sdkdom,
-                        virDomainNetDefPtr net,
-                        bool isCt)
+static int prlsdkConfigureGateways(PRL_HANDLE sdknet, virDomainNetDefPtr net)
+{
+    int ret = -1;
+    size_t i;
+    virNetworkRouteDefPtr route4 = NULL, route6 = NULL;
+    char *gw4 = NULL, *gw6 = NULL;
+    PRL_RESULT pret;
+
+    for (i = 0; i < net->nroutes; i++) {
+        virSocketAddrPtr addrdst, gateway;
+        virSocketAddr zero;
+
+        addrdst = virNetworkRouteDefGetAddress(net->routes[i]);
+        gateway = virNetworkRouteDefGetGateway(net->routes[i]);
+
+        ignore_value(virSocketAddrParse(&zero,
+                                (VIR_SOCKET_ADDR_IS_FAMILY(addrdst, AF_INET)
+                                 ? VIR_SOCKET_ADDR_IPV4_ALL
+                                 : VIR_SOCKET_ADDR_IPV6_ALL),
+                                VIR_SOCKET_ADDR_FAMILY(addrdst)));
+
+        if (!virSocketAddrEqual(addrdst, &zero)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Support only default gateway"));
+            return -1;
+        }
+
+        switch (VIR_SOCKET_ADDR_FAMILY(gateway)) {
+        case AF_INET:
+            if (route4) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("Support only one IPv4 default gateway"));
+                return -1;
+            }
+
+            route4 = net->routes[i];
+
+            break;
+        case AF_INET6:
+            if (route6) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("Support only one IPv6 default gateway"));
+                return -1;
+            }
+
+            route6 = net->routes[i];
+
+            break;
+        default:
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("Unsupported address family %d "
+                             "Only IPv4 or IPv6 default gateway"),
+                           VIR_SOCKET_ADDR_FAMILY(gateway));
+
+            return -1;
+        }
+    }
+
+    if (route4 &&
+        !(gw4 = virSocketAddrFormat(virNetworkRouteDefGetGateway(route4))))
+        goto cleanup;
+
+    pret = PrlVmDevNet_SetDefaultGateway(sdknet, gw4 ? : "");
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    if (route6 &&
+        !(gw6 = virSocketAddrFormat(virNetworkRouteDefGetGateway(route6))))
+        goto cleanup;
+
+    pret = PrlVmDevNet_SetDefaultGatewayIPv6(sdknet, gw6 ? : "");
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(gw4);
+    VIR_FREE(gw6);
+
+    return ret;
+}
+
+static int prlsdkConfigureNet(vzDriverPtr driver,
+                              PRL_HANDLE sdkdom,
+                              virDomainNetDefPtr net,
+                              bool isCt, bool create)
 {
     PRL_RESULT pret;
     PRL_HANDLE sdknet = PRL_INVALID_HANDLE;
@@ -2861,8 +2983,14 @@ static int prlsdkAddNet(vzDriverPtr driver,
     if (prlsdkCheckNetUnsupportedParams(net) < 0)
         return -1;
 
-    pret = PrlVmCfg_CreateVmDev(sdkdom, PDE_GENERIC_NETWORK_ADAPTER, &sdknet);
-    prlsdkCheckRetGoto(pret, cleanup);
+    if (create) {
+        pret = PrlVmCfg_CreateVmDev(sdkdom, PDE_GENERIC_NETWORK_ADAPTER, &sdknet);
+        prlsdkCheckRetGoto(pret, cleanup);
+    } else {
+        sdknet = prlsdkFindNetByMAC(sdkdom, &net->mac);
+        if (sdknet == PRL_INVALID_HANDLE)
+            return -1;
+    }
 
     pret = PrlVmDev_SetEnabled(sdknet, 1);
     prlsdkCheckRetGoto(pret, cleanup);
@@ -2923,82 +3051,8 @@ static int prlsdkAddNet(vzDriverPtr driver,
     pret = PrlVmDevNet_SetAutoApply(sdknet, true);
     prlsdkCheckRetGoto(pret, cleanup);
 
-    if (net->nroutes) {
-        bool alreadySetIPv4Gateway = false;
-        bool alreadySetIPv6Gateway = false;
-
-        for (i = 0; i < net->nroutes; i++) {
-            virSocketAddrPtr addrdst, gateway;
-            virSocketAddr zero;
-
-            addrdst = virNetworkRouteDefGetAddress(net->routes[i]);
-            gateway = virNetworkRouteDefGetGateway(net->routes[i]);
-
-            ignore_value(virSocketAddrParse(&zero,
-                                    (VIR_SOCKET_ADDR_IS_FAMILY(addrdst, AF_INET)
-                                     ? VIR_SOCKET_ADDR_IPV4_ALL
-                                     : VIR_SOCKET_ADDR_IPV6_ALL),
-                                    VIR_SOCKET_ADDR_FAMILY(addrdst)));
-
-            if (!virSocketAddrEqual(addrdst, &zero)) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                               _("Support only default gateway"));
-                goto cleanup;
-            }
-
-            switch (VIR_SOCKET_ADDR_FAMILY(gateway)) {
-            case AF_INET:
-
-                if (!ipv4present)
-                    continue;
-
-                if (alreadySetIPv4Gateway) {
-                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                                   _("Support only one IPv4 default gateway"));
-                    goto cleanup;
-                }
-
-                if (!(addrstr = virSocketAddrFormat(gateway)))
-                    goto cleanup;
-
-                pret = PrlVmDevNet_SetDefaultGateway(sdknet, addrstr);
-                prlsdkCheckRetGoto(pret, cleanup);
-
-                alreadySetIPv4Gateway = true;
-                break;
-
-            case AF_INET6:
-
-                if (!ipv6present)
-                    continue;
-
-                if (alreadySetIPv6Gateway) {
-                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                                   _("Support only one IPv6 default gateway"));
-                    goto cleanup;
-                }
-
-                if (!(addrstr = virSocketAddrFormat(gateway)))
-                    goto cleanup;
-
-                pret = PrlVmDevNet_SetDefaultGatewayIPv6(sdknet, addrstr);
-                prlsdkCheckRetGoto(pret, cleanup);
-
-                alreadySetIPv6Gateway = true;
-                break;
-
-            default:
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                               _("Unsupported address family %d "
-                                 "Only IPv4 or IPv6 default gateway"),
-                               VIR_SOCKET_ADDR_FAMILY(gateway));
-
-                goto cleanup;
-            }
-
-            VIR_FREE(addrstr);
-        }
-    }
+    if (prlsdkConfigureGateways(sdknet, net))
+        goto cleanup;
 
     if (isCt) {
         if (net->model)
@@ -3040,7 +3094,7 @@ static int prlsdkAddNet(vzDriverPtr driver,
         pret = PrlVirtNet_Create(&vnet);
         prlsdkCheckRetGoto(pret, cleanup);
 
-        pret = PrlVirtNet_SetNetworkId(vnet, net->data.network.name);
+        pret = PrlVirtNet_SetNetworkId(vnet, net->data.bridge.brname);
         prlsdkCheckRetGoto(pret, cleanup);
 
         pret = PrlVirtNet_SetNetworkType(vnet, PVN_BRIDGED_ETHERNET);
@@ -3055,14 +3109,12 @@ static int prlsdkAddNet(vzDriverPtr driver,
         pret = PrlVmDev_SetEmulatedType(sdknet, PNA_BRIDGED_ETHERNET);
         prlsdkCheckRetGoto(pret, cleanup);
 
-        pret = PrlVmDevNet_SetVirtualNetworkId(sdknet, net->data.network.name);
+        pret = PrlVmDevNet_SetVirtualNetworkId(sdknet, net->data.bridge.brname);
         prlsdkCheckRetGoto(pret, cleanup);
     }
 
-    if (net->trustGuestRxFilters == VIR_TRISTATE_BOOL_YES)
-        pret = PrlVmDevNet_SetPktFilterPreventMacSpoof(sdknet, 0);
-    else if (net->trustGuestRxFilters == VIR_TRISTATE_BOOL_NO)
-        pret = PrlVmDevNet_SetPktFilterPreventMacSpoof(sdknet, 1);
+    pret = PrlVmDevNet_SetPktFilterPreventMacSpoof(sdknet,
+                net->trustGuestRxFilters == VIR_TRISTATE_BOOL_YES);
     prlsdkCheckRetGoto(pret, cleanup);
 
     ret = 0;
@@ -3098,34 +3150,6 @@ prlsdkCleanupBridgedNet(vzDriverPtr driver, virDomainNetDefPtr net)
     PrlHandle_Free(vnet);
 }
 
-int prlsdkAttachNet(vzDriverPtr driver,
-                    virDomainObjPtr dom,
-                    virDomainNetDefPtr net)
-{
-    int ret = -1;
-    vzDomObjPtr privdom = dom->privateData;
-    PRL_HANDLE job = PRL_INVALID_HANDLE;
-
-    if (!IS_CT(dom->def)) {
-        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
-                       _("network device cannot be attached"));
-        return ret;
-    }
-
-    job = PrlVm_BeginEdit(privdom->sdkdom);
-    if (PRL_FAILED(waitJob(job)))
-        return ret;
-
-    ret = prlsdkAddNet(driver, privdom->sdkdom, net, IS_CT(dom->def));
-    if (ret == 0) {
-        job = PrlVm_CommitEx(privdom->sdkdom, PVCF_DETACH_HDD_BUNDLE);
-        if (PRL_FAILED(waitJob(job)))
-            return -1;
-    }
-
-    return ret;
-}
-
 static PRL_HANDLE
 prlsdkFindNetByMAC(PRL_HANDLE sdkdom, virMacAddrPtr mac)
 {
@@ -3135,6 +3159,7 @@ prlsdkFindNetByMAC(PRL_HANDLE sdkdom, virMacAddrPtr mac)
     PRL_HANDLE adapter = PRL_INVALID_HANDLE;
     char adapterMac[PRL_MAC_STRING_BUFNAME];
     char expectedMac[PRL_MAC_STRING_BUFNAME];
+    char virMac[VIR_MAC_STRING_BUFLEN];
 
     prlsdkFormatMac(mac, expectedMac);
 
@@ -3156,54 +3181,19 @@ prlsdkFindNetByMAC(PRL_HANDLE sdkdom, virMacAddrPtr mac)
         adapter = PRL_INVALID_HANDLE;
     }
 
+    virReportError(VIR_ERR_INTERNAL_ERROR,
+                   _("No net with mac '%s'"), virMacAddrFormat(mac, virMac));
+
  cleanup:
     PrlHandle_Free(adapter);
     return adapter;
 }
 
-int prlsdkDetachNet(vzDriverPtr driver,
-                    virDomainObjPtr dom,
-                    virDomainNetDefPtr net)
-{
-    int ret = -1;
-    vzDomObjPtr privdom = dom->privateData;
-    PRL_HANDLE job = PRL_INVALID_HANDLE;
-    PRL_HANDLE sdknet = PRL_INVALID_HANDLE;
-    PRL_RESULT pret;
-
-    if (!IS_CT(dom->def)) {
-        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
-                       _("network device cannot be detached"));
-        goto cleanup;
-    }
-
-    job = PrlVm_BeginEdit(privdom->sdkdom);
-    if (PRL_FAILED(waitJob(job)))
-        goto cleanup;
-
-    sdknet = prlsdkFindNetByMAC(privdom->sdkdom, &net->mac);
-    if (sdknet == PRL_INVALID_HANDLE)
-        goto cleanup;
-
-    prlsdkCleanupBridgedNet(driver, net);
-
-    pret = PrlVmDev_Remove(sdknet);
-    prlsdkCheckRetGoto(pret, cleanup);
-
-    job = PrlVm_CommitEx(privdom->sdkdom, PVCF_DETACH_HDD_BUNDLE);
-    if (PRL_FAILED(waitJob(job)))
-        goto cleanup;
-
-    ret = 0;
-
- cleanup:
-    PrlHandle_Free(sdknet);
-    return ret;
-}
-
-static int prlsdkAddDisk(vzDriverPtr driver,
-                         PRL_HANDLE sdkdom,
-                         virDomainDiskDefPtr disk)
+static int prlsdkConfigureDisk(vzDriverPtr driver,
+                               PRL_HANDLE sdkdom,
+                               virDomainDiskDefPtr disk,
+                               bool isCt,
+                               bool create)
 {
     PRL_RESULT pret;
     PRL_HANDLE sdkdisk = PRL_INVALID_HANDLE;
@@ -3214,7 +3204,6 @@ static int prlsdkAddDisk(vzDriverPtr driver,
     virDomainDeviceDriveAddressPtr drive;
     PRL_DEVICE_TYPE devType;
     PRL_CLUSTERED_DEVICE_SUBTYPE scsiModel;
-    char *dst = NULL;
     const char *path = disk->src->path ? : "";
 
     if (disk->device == VIR_DOMAIN_DISK_DEVICE_DISK)
@@ -3222,8 +3211,14 @@ static int prlsdkAddDisk(vzDriverPtr driver,
     else
         devType = PDE_OPTICAL_DISK;
 
-    pret = PrlVmCfg_CreateVmDev(sdkdom, devType, &sdkdisk);
-    prlsdkCheckRetGoto(pret, cleanup);
+    if (create) {
+        pret = PrlVmCfg_CreateVmDev(sdkdom, devType, &sdkdisk);
+        prlsdkCheckRetGoto(pret, cleanup);
+    } else {
+        sdkdisk = prlsdkGetDisk(sdkdom, disk, isCt);
+        if (sdkdisk == PRL_INVALID_HANDLE)
+            return -1;
+    }
 
     pret = PrlVmDev_SetEnabled(sdkdisk, 1);
     prlsdkCheckRetGoto(pret, cleanup);
@@ -3246,69 +3241,24 @@ static int prlsdkAddDisk(vzDriverPtr driver,
     prlsdkCheckRetGoto(pret, cleanup);
 
     drive = &disk->info.addr.drive;
-    if (drive->controller > 0) {
-        /* We have only one controller of each type */
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, _("Invalid drive "
-                                                     "address of disk %s, vz driver supports "
-                                                     "only one controller."), disk->dst);
-        goto cleanup;
-    }
-
-    if (drive->target > 0) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, _("Invalid drive "
-                                                     "address of disk %s, vz driver supports "
-                                                     "only target 0."), disk->dst);
-        goto cleanup;
-    }
 
     switch (disk->bus) {
     case VIR_DOMAIN_DISK_BUS_IDE:
-        if (drive->unit > 1) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, _("Invalid drive "
-                                                         "address of disk %s, vz driver supports "
-                                                         "only units 0-1 for IDE bus."), disk->dst);
-            goto cleanup;
-        }
         sdkbus = PMS_IDE_DEVICE;
         idx = 2 * drive->bus + drive->unit;
-        dst = virIndexToDiskName(idx, "hd");
         break;
     case VIR_DOMAIN_DISK_BUS_SCSI:
-        if (drive->bus > 0) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, _("Invalid drive "
-                                                         "address of disk %s, vz driver supports "
-                                                         "only bus 0 for SCSI bus."), disk->dst);
-            goto cleanup;
-        }
         sdkbus = PMS_SCSI_DEVICE;
         idx = drive->unit;
-        dst = virIndexToDiskName(idx, "sd");
         break;
     case VIR_DOMAIN_DISK_BUS_SATA:
-        if (drive->bus > 0) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, _("Invalid drive "
-                                                         "address of disk %s, vz driver supports "
-                                                         "only bus 0 for SATA bus."), disk->dst);
-            goto cleanup;
-        }
         sdkbus = PMS_SATA_DEVICE;
         idx = drive->unit;
-        dst = virIndexToDiskName(idx, "sd");
         break;
     default:
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Specified disk bus is not "
                          "supported by vz driver."));
-        goto cleanup;
-    }
-
-    if (!dst)
-        goto cleanup;
-
-    if (STRNEQ(dst, disk->dst)) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, _("Invalid drive "
-                                                     "address of disk %s, vz driver supports "
-                                                     "only defaults address to logical device name."), disk->dst);
         goto cleanup;
     }
 
@@ -3325,28 +3275,9 @@ static int prlsdkAddDisk(vzDriverPtr driver,
     pret = PrlVmDev_SetStackIndex(sdkdisk, idx);
     prlsdkCheckRetGoto(pret, cleanup);
 
-    switch (disk->cachemode) {
-    case VIR_DOMAIN_DISK_CACHE_DISABLE:
-        pret = PrlVmCfg_SetDiskCacheWriteBack(sdkdom, PRL_FALSE);
-        prlsdkCheckRetGoto(pret, cleanup);
-        break;
-    case VIR_DOMAIN_DISK_CACHE_WRITEBACK:
-        pret = PrlVmCfg_SetDiskCacheWriteBack(sdkdom, PRL_TRUE);
-        prlsdkCheckRetGoto(pret, cleanup);
-        break;
-    case VIR_DOMAIN_DISK_CACHE_DEFAULT:
-        break;
-    default:
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("Specified disk cache mode is not "
-                         "supported by vz driver."));
-        goto cleanup;
-    }
-
     return 0;
  cleanup:
     PrlHandle_Free(sdkdisk);
-    VIR_FREE(dst);
     return ret;
 }
 
@@ -3354,29 +3285,35 @@ static PRL_HANDLE
 prlsdkGetDisk(PRL_HANDLE sdkdom, virDomainDiskDefPtr disk, bool isCt)
 {
     PRL_RESULT pret;
-    PRL_UINT32 hddCount;
+    PRL_UINT32 num;
     size_t i;
-    PRL_HANDLE hdd = PRL_INVALID_HANDLE;
+    PRL_HANDLE sdkdisk = PRL_INVALID_HANDLE;
     int bus;
     char *dst = NULL;
+    PRL_DEVICE_TYPE devType;
 
-    pret = PrlVmCfg_GetHardDisksCount(sdkdom, &hddCount);
+    if (disk->device == VIR_DOMAIN_DISK_DEVICE_DISK)
+        devType = PDE_HARD_DISK;
+    else
+        devType = PDE_OPTICAL_DISK;
+
+    pret = PrlVmCfg_GetDevsCountByType(sdkdom, devType, &num);
     prlsdkCheckRetGoto(pret, error);
 
-    for (i = 0; i < hddCount; ++i) {
-        pret = PrlVmCfg_GetHardDisk(sdkdom, i, &hdd);
+    for (i = 0; i < num; ++i) {
+        pret = PrlVmCfg_GetDevByType(sdkdom, devType, i, &sdkdisk);
         prlsdkCheckRetGoto(pret, error);
 
-        if (prlsdkGetDiskId(hdd, isCt, &bus, &dst) < 0)
+        if (prlsdkGetDiskId(sdkdisk, isCt, &bus, &dst) < 0)
             goto error;
 
         if (disk->bus == bus && STREQ(disk->dst, dst)) {
             VIR_FREE(dst);
-            return hdd;
+            return sdkdisk;
         }
 
-        PrlHandle_Free(hdd);
-        hdd = PRL_INVALID_HANDLE;
+        PrlHandle_Free(sdkdisk);
+        sdkdisk = PRL_INVALID_HANDLE;
         VIR_FREE(dst);
     }
 
@@ -3387,55 +3324,125 @@ prlsdkGetDisk(PRL_HANDLE sdkdom, virDomainDiskDefPtr disk, bool isCt)
 
  error:
     VIR_FREE(dst);
-    PrlHandle_Free(hdd);
+    PrlHandle_Free(sdkdisk);
     return PRL_INVALID_HANDLE;
 }
 
 int
-prlsdkAttachVolume(vzDriverPtr driver,
+prlsdkAttachDevice(vzDriverPtr driver,
                    virDomainObjPtr dom,
-                   virDomainDiskDefPtr disk)
+                   virDomainDeviceDefPtr dev)
 {
-    int ret = -1;
     vzDomObjPtr privdom = dom->privateData;
     PRL_HANDLE job = PRL_INVALID_HANDLE;
 
     job = PrlVm_BeginEdit(privdom->sdkdom);
     if (PRL_FAILED(waitJob(job)))
-        goto cleanup;
+        return -1;
 
-    ret = prlsdkAddDisk(driver, privdom->sdkdom, disk);
-    if (ret == 0) {
-        job = PrlVm_CommitEx(privdom->sdkdom, PVCF_DETACH_HDD_BUNDLE);
-        if (PRL_FAILED(waitJob(job))) {
-            ret = -1;
-            goto cleanup;
+    switch (dev->type) {
+    case VIR_DOMAIN_DEVICE_DISK:
+        if (prlsdkConfigureDisk(driver, privdom->sdkdom,
+                                dev->data.disk, IS_CT(dom->def), true) < 0)
+            return -1;
+
+        break;
+    case VIR_DOMAIN_DEVICE_NET:
+        if (!IS_CT(dom->def)) {
+            virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                           _("attaching network device to VM is unsupported"));
+            return -1;
         }
+
+        if (prlsdkConfigureNet(driver, privdom->sdkdom, dev->data.net,
+                               IS_CT(dom->def), true) < 0)
+            return -1;
+
+        break;
+    case VIR_DOMAIN_DEVICE_GRAPHICS:
+        if (dom->def->ngraphics > 0) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("domain already has VNC graphics"));
+            return -1;
+        }
+
+        if (prlsdkApplyGraphicsParams(privdom->sdkdom, dev->data.graphics) < 0)
+            return -1;
+
+        break;
+    default:
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("attaching device type '%s' is unsupported"),
+                       virDomainDeviceTypeToString(dev->type));
+        return -1;
     }
 
- cleanup:
-    return ret;
+    job = PrlVm_CommitEx(privdom->sdkdom, PVCF_DETACH_HDD_BUNDLE);
+    if (PRL_FAILED(waitJob(job)))
+        return -1;
+
+    return 0;
 }
 
 int
-prlsdkDetachVolume(virDomainObjPtr dom, virDomainDiskDefPtr disk)
+prlsdkDetachDevice(vzDriverPtr driver,
+                   virDomainObjPtr dom,
+                   virDomainDeviceDefPtr dev)
 {
     int ret = -1;
     vzDomObjPtr privdom = dom->privateData;
     PRL_HANDLE job = PRL_INVALID_HANDLE;
-    PRL_HANDLE sdkdisk;
+    PRL_HANDLE sdkdev = PRL_INVALID_HANDLE;
     PRL_RESULT pret;
-
-    sdkdisk = prlsdkGetDisk(privdom->sdkdom, disk, IS_CT(dom->def));
-    if (sdkdisk == PRL_INVALID_HANDLE)
-        goto cleanup;
 
     job = PrlVm_BeginEdit(privdom->sdkdom);
     if (PRL_FAILED(waitJob(job)))
         goto cleanup;
 
-    pret = PrlVmDev_Remove(sdkdisk);
-    prlsdkCheckRetGoto(pret, cleanup);
+    switch (dev->type) {
+    case VIR_DOMAIN_DEVICE_DISK:
+        sdkdev = prlsdkGetDisk(privdom->sdkdom, dev->data.disk, IS_CT(dom->def));
+        if (sdkdev == PRL_INVALID_HANDLE)
+            goto cleanup;
+
+        pret = PrlVmDev_Remove(sdkdev);
+        prlsdkCheckRetGoto(pret, cleanup);
+
+        break;
+    case VIR_DOMAIN_DEVICE_NET:
+        if (!IS_CT(dom->def)) {
+            virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                           _("detaching network device from VM is unsupported"));
+            goto cleanup;
+        }
+
+        sdkdev = prlsdkFindNetByMAC(privdom->sdkdom, &dev->data.net->mac);
+        if (sdkdev == PRL_INVALID_HANDLE)
+            goto cleanup;
+
+        prlsdkCleanupBridgedNet(driver, dev->data.net);
+
+        pret = PrlVmDev_Remove(sdkdev);
+        prlsdkCheckRetGoto(pret, cleanup);
+
+        break;
+    case VIR_DOMAIN_DEVICE_GRAPHICS:
+        if (dom->def->ngraphics < 1) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("cannot find VNC graphics device"));
+            goto cleanup;
+        }
+
+        if (prlsdkApplyGraphicsParams(privdom->sdkdom, NULL) < 0)
+            goto cleanup;
+
+        break;
+    default:
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("detaching device type '%s' is unsupported"),
+                       virDomainDeviceTypeToString(dev->type));
+        goto cleanup;
+    }
 
     job = PrlVm_CommitEx(privdom->sdkdom, PVCF_DETACH_HDD_BUNDLE);
     if (PRL_FAILED(waitJob(job)))
@@ -3445,8 +3452,58 @@ prlsdkDetachVolume(virDomainObjPtr dom, virDomainDiskDefPtr disk)
 
  cleanup:
 
-    PrlHandle_Free(sdkdisk);
+    PrlHandle_Free(sdkdev);
     return ret;
+}
+
+int
+prlsdkUpdateDevice(vzDriverPtr driver,
+                   virDomainObjPtr dom,
+                   virDomainDeviceDefPtr dev)
+{
+    vzDomObjPtr privdom = dom->privateData;
+    PRL_HANDLE job = PRL_INVALID_HANDLE;
+
+    job = PrlVm_BeginEdit(privdom->sdkdom);
+    if (PRL_FAILED(waitJob(job)))
+        return -1;
+
+    switch (dev->type) {
+    case VIR_DOMAIN_DEVICE_DISK:
+        if (prlsdkConfigureDisk(driver, privdom->sdkdom, dev->data.disk,
+                                IS_CT(dom->def), false) < 0)
+            return -1;
+
+        break;
+    case VIR_DOMAIN_DEVICE_NET:
+        if (prlsdkConfigureNet(driver, privdom->sdkdom, dev->data.net,
+                               IS_CT(dom->def), false) < 0)
+            return -1;
+
+        break;
+    case VIR_DOMAIN_DEVICE_GRAPHICS:
+        if (dom->def->ngraphics < 1) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("cannot find VNC graphics device"));
+            return -1;
+        }
+
+        if (prlsdkApplyGraphicsParams(privdom->sdkdom, dev->data.graphics) < 0)
+            return -1;
+
+        break;
+    default:
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("updating device type '%s' is unsupported"),
+                       virDomainDeviceTypeToString(dev->type));
+        return -1;
+    }
+
+    job = PrlVm_CommitEx(privdom->sdkdom, PVCF_DETACH_HDD_BUNDLE);
+    if (PRL_FAILED(waitJob(job)))
+        return -1;
+
+    return 0;
 }
 
 static int
@@ -3565,6 +3622,37 @@ prlsdkSetBootOrderVm(PRL_HANDLE sdkdom, virDomainDefPtr def)
     return 0;
 }
 
+int
+prlsdkDomainSetUserPassword(virDomainObjPtr dom,
+                            const char *user,
+                            const char *password)
+{
+    int ret = -1;
+    vzDomObjPtr privdom = dom->privateData;
+    PRL_HANDLE job = PRL_INVALID_HANDLE;
+
+    job = PrlVm_BeginEdit(privdom->sdkdom);
+    if (PRL_FAILED(waitJob(job)))
+        goto cleanup;
+
+    job = PrlVm_SetUserPasswd(privdom->sdkdom,
+                              user,
+                              password,
+                              0);
+
+    if (PRL_FAILED(waitJob(job)))
+        goto cleanup;
+
+    job = PrlVm_CommitEx(privdom->sdkdom, 0);
+    if (PRL_FAILED(waitJob(job)))
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    return ret;
+}
+
 static int
 prlsdkDoApplyConfig(vzDriverPtr driver,
                     PRL_HANDLE sdkdom,
@@ -3596,7 +3684,7 @@ prlsdkDoApplyConfig(vzDriverPtr driver,
         prlsdkCheckRetGoto(pret, error);
     }
 
-    pret = PrlVmCfg_SetRamSize(sdkdom, virDomainDefGetMemoryActual(def) >> 10);
+    pret = PrlVmCfg_SetRamSize(sdkdom, virDomainDefGetMemoryTotal(def) >> 10);
     prlsdkCheckRetGoto(pret, error);
 
     pret = PrlVmCfg_SetCpuCount(sdkdom, virDomainDefGetVcpus(def));
@@ -3636,11 +3724,19 @@ prlsdkDoApplyConfig(vzDriverPtr driver,
     }
 
     for (i = 0; i < def->nnets; i++) {
-        if (prlsdkAddNet(driver, sdkdom, def->nets[i], IS_CT(def)) < 0)
+        if (prlsdkConfigureNet(driver, sdkdom, def->nets[i],
+                               IS_CT(def), true) < 0)
             goto error;
     }
 
-    if (prlsdkApplyGraphicsParams(sdkdom, def) < 0)
+    if (def->ngraphics > 1) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("vz driver supports only VNC graphics"));
+        goto error;
+    }
+
+    if (prlsdkApplyGraphicsParams(sdkdom,
+                                  def->ngraphics == 1 ? def->graphics[0] : NULL) < 0)
         goto error;
 
     if (prlsdkApplyVideoParams(sdkdom, def) < 0)
@@ -3657,7 +3753,8 @@ prlsdkDoApplyConfig(vzDriverPtr driver,
     }
 
     for (i = 0; i < def->ndisks; i++) {
-        if (prlsdkAddDisk(driver, sdkdom, def->disks[i]) < 0)
+        if (prlsdkConfigureDisk(driver, sdkdom, def->disks[i],
+                                IS_CT(def), true) < 0)
             goto error;
     }
 
@@ -3962,56 +4059,10 @@ prlsdkExtractStatsParam(PRL_HANDLE sdkstats, const char *name, long long *val)
 
 #define PARALLELS_STATISTICS_TIMEOUT (60 * 1000)
 
-static int
-prlsdkGetStatsParam(virDomainObjPtr dom, const char *name, long long *val)
-{
-    vzDomObjPtr privdom = dom->privateData;
-    PRL_HANDLE job = PRL_INVALID_HANDLE;
-    unsigned long long now;
-
-    if (privdom->cache.stats != PRL_INVALID_HANDLE) {
-        /* reset count to keep subscribtion */
-        privdom->cache.count = 0;
-        return prlsdkExtractStatsParam(privdom->cache.stats, name, val);
-    }
-
-    if (privdom->cache.count == -1) {
-        job = PrlVm_SubscribeToPerfStats(privdom->sdkdom, NULL);
-        if (PRL_FAILED(waitJob(job)))
-            goto error;
-    }
-
-    /* change state to subscribed in case of unsubscribed
-       or reset count so we stop unsubscribe attempts */
-    privdom->cache.count = 0;
-
-    if (virTimeMillisNow(&now) < 0) {
-        virReportSystemError(errno, "%s", _("Unable to get current time"));
-        goto error;
-    }
-
-    while (privdom->cache.stats == PRL_INVALID_HANDLE) {
-        if (virCondWaitUntil(&privdom->cache.cond, &dom->parent.lock,
-                             now + PARALLELS_STATISTICS_TIMEOUT) < 0) {
-            if (errno == ETIMEDOUT) {
-                virReportError(VIR_ERR_OPERATION_TIMEOUT, "%s",
-                               _("Timeout on waiting statistics event."));
-                goto error;
-            } else {
-                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                               _("Unable to wait on monitor condition"));
-                goto error;
-            }
-        }
-    }
-
-    return prlsdkExtractStatsParam(privdom->cache.stats, name, val);
- error:
-    return -1;
-}
-
 int
-prlsdkGetBlockStats(virDomainObjPtr dom, virDomainDiskDefPtr disk, virDomainBlockStatsPtr stats)
+prlsdkGetBlockStats(PRL_HANDLE sdkstats,
+                    virDomainDiskDefPtr disk,
+                    virDomainBlockStatsPtr stats)
 {
     virDomainDeviceDriveAddressPtr address;
     int idx;
@@ -4043,7 +4094,7 @@ prlsdkGetBlockStats(virDomainObjPtr dom, virDomainDiskDefPtr disk, virDomainBloc
 #define PRLSDK_GET_STAT_PARAM(VAL, TYPE, NAME)                          \
     if (virAsprintf(&name, "devices.%s%d.%s", prefix, idx, NAME) < 0)   \
         goto cleanup;                                                   \
-    if (prlsdkGetStatsParam(dom, name, &stats->VAL) < 0)                \
+    if (prlsdkExtractStatsParam(sdkstats, name, &stats->VAL) < 0)       \
         goto cleanup;                                                   \
     VIR_FREE(name);
 
@@ -4061,20 +4112,19 @@ prlsdkGetBlockStats(virDomainObjPtr dom, virDomainDiskDefPtr disk, virDomainBloc
 
 
 static PRL_HANDLE
-prlsdkFindNetByPath(virDomainObjPtr dom, const char *path)
+prlsdkFindNetByPath(PRL_HANDLE sdkdom, const char *path)
 {
     PRL_UINT32 count = 0;
-    vzDomObjPtr privdom = dom->privateData;
     PRL_RESULT pret;
     size_t i;
     char *name = NULL;
     PRL_HANDLE net = PRL_INVALID_HANDLE;
 
-    pret = PrlVmCfg_GetNetAdaptersCount(privdom->sdkdom, &count);
+    pret = PrlVmCfg_GetNetAdaptersCount(sdkdom, &count);
     prlsdkCheckRetGoto(pret, error);
 
     for (i = 0; i < count; ++i) {
-        pret = PrlVmCfg_GetNetAdapter(privdom->sdkdom, i, &net);
+        pret = PrlVmCfg_GetNetAdapter(sdkdom, i, &net);
         prlsdkCheckRetGoto(pret, error);
 
         if (!(name = prlsdkGetStringParamVar(PrlVmDevNet_GetHostInterfaceName,
@@ -4101,7 +4151,7 @@ prlsdkFindNetByPath(virDomainObjPtr dom, const char *path)
 }
 
 int
-prlsdkGetNetStats(virDomainObjPtr dom, const char *path,
+prlsdkGetNetStats(PRL_HANDLE sdkstats, PRL_HANDLE sdkdom, const char *path,
                   virDomainInterfaceStatsPtr stats)
 {
     int ret = -1;
@@ -4110,7 +4160,7 @@ prlsdkGetNetStats(virDomainObjPtr dom, const char *path,
     PRL_RESULT pret;
     PRL_HANDLE net = PRL_INVALID_HANDLE;
 
-    net = prlsdkFindNetByPath(dom, path);
+    net = prlsdkFindNetByPath(sdkdom, path);
     if (net == PRL_INVALID_HANDLE)
        goto cleanup;
 
@@ -4120,7 +4170,7 @@ prlsdkGetNetStats(virDomainObjPtr dom, const char *path,
 #define PRLSDK_GET_NET_COUNTER(VAL, NAME)                           \
     if (virAsprintf(&name, "net.nic%d.%s", net_index, NAME) < 0)    \
         goto cleanup;                                               \
-    if (prlsdkGetStatsParam(dom, name, &stats->VAL) < 0)            \
+    if (prlsdkExtractStatsParam(sdkstats, name, &stats->VAL) < 0)   \
         goto cleanup;                                               \
     VIR_FREE(name);
 
@@ -4144,7 +4194,7 @@ prlsdkGetNetStats(virDomainObjPtr dom, const char *path,
 }
 
 int
-prlsdkGetVcpuStats(virDomainObjPtr dom, int idx, unsigned long long *vtime)
+prlsdkGetVcpuStats(PRL_HANDLE sdkstats, int idx, unsigned long long *vtime)
 {
     char *name = NULL;
     long long ptime = 0;
@@ -4152,7 +4202,7 @@ prlsdkGetVcpuStats(virDomainObjPtr dom, int idx, unsigned long long *vtime)
 
     if (virAsprintf(&name, "guest.vcpu%u.time", (unsigned int)idx) < 0)
         goto cleanup;
-    if (prlsdkGetStatsParam(dom, name, &ptime) < 0)
+    if (prlsdkExtractStatsParam(sdkstats, name, &ptime) < 0)
         goto cleanup;
     *vtime = ptime == -1 ? 0 : ptime;
     ret = 0;
@@ -4163,7 +4213,7 @@ prlsdkGetVcpuStats(virDomainObjPtr dom, int idx, unsigned long long *vtime)
 }
 
 int
-prlsdkGetMemoryStats(virDomainObjPtr dom,
+prlsdkGetMemoryStats(PRL_HANDLE sdkstats,
                      virDomainMemoryStatPtr stats,
                      unsigned int nr_stats)
 {
@@ -4172,7 +4222,7 @@ prlsdkGetMemoryStats(virDomainObjPtr dom,
     size_t i = 0;
 
 #define PRLSDK_GET_COUNTER(NAME, VALUE)                             \
-    if (prlsdkGetStatsParam(dom, NAME, &VALUE) < 0)                 \
+    if (prlsdkExtractStatsParam(sdkstats, NAME, &VALUE) < 0)        \
         goto cleanup;                                               \
 
 #define PRLSDK_MEMORY_STAT_SET(TAG, VALUE)                          \

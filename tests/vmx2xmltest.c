@@ -75,7 +75,7 @@ testCompareFiles(const char *vmx, const char *xml)
     char *formatted = NULL;
     virDomainDefPtr def = NULL;
 
-    if (virtTestLoadFile(vmx, &vmxData) < 0)
+    if (virTestLoadFile(vmx, &vmxData) < 0)
         goto cleanup;
 
     if (!(def = virVMXParseConfig(&ctx, xmlopt, caps, vmxData)))
@@ -90,7 +90,7 @@ testCompareFiles(const char *vmx, const char *xml)
                                          VIR_DOMAIN_DEF_FORMAT_SECURE)))
         goto cleanup;
 
-    if (virtTestCompareToFile(formatted, xml) < 0)
+    if (virTestCompareToFile(formatted, xml) < 0)
         goto cleanup;
 
     ret = 0;
@@ -184,8 +184,8 @@ mymain(void)
         do {                                                                  \
             struct testInfo info = { _in, _out };                             \
             virResetLastError();                                              \
-            if (virtTestRun("VMware VMX-2-XML "_in" -> "_out,                 \
-                            testCompareHelper, &info) < 0) {                  \
+            if (virTestRun("VMware VMX-2-XML "_in" -> "_out,                  \
+                           testCompareHelper, &info) < 0) {                   \
                 ret = -1;                                                     \
             }                                                                 \
         } while (0)

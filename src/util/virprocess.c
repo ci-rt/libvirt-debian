@@ -612,16 +612,12 @@ int virProcessGetPids(pid_t pid, size_t *npids, pid_t **pids)
                     (unsigned long long)pid) < 0)
         goto cleanup;
 
-    if (!(dir = opendir(taskPath)))
+    if (virDirOpen(&dir, taskPath) < 0)
         goto cleanup;
 
     while ((value = virDirRead(dir, &ent, taskPath)) > 0) {
         long long tmp;
         pid_t tmp_pid;
-
-        /* Skip . and .. */
-        if (STRPREFIX(ent->d_name, "."))
-            continue;
 
         if (virStrToLong_ll(ent->d_name, NULL, 10, &tmp) < 0)
             goto cleanup;
@@ -637,8 +633,7 @@ int virProcessGetPids(pid_t pid, size_t *npids, pid_t **pids)
     ret = 0;
 
  cleanup:
-    if (dir)
-        closedir(dir);
+    VIR_DIR_CLOSE(dir);
     VIR_FREE(taskPath);
     if (ret < 0)
         VIR_FREE(*pids);

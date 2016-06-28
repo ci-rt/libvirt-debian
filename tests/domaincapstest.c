@@ -128,7 +128,9 @@ fillQemuCaps(virDomainCapsPtr domCaps,
         goto cleanup;
 
     if (virQEMUCapsFillDomainCaps(domCaps, qemuCaps,
-                                  cfg->loader, cfg->nloader) < 0)
+                                  cfg->firmwares,
+                                  cfg->nfirmwares,
+                                  VIR_DOMAIN_VIRT_QEMU) < 0)
         goto cleanup;
 
     /* The function above tries to query host's KVM & VFIO capabilities by
@@ -161,10 +163,41 @@ fillQemuCaps(virDomainCapsPtr domCaps,
 #endif /* WITH_QEMU */
 
 
+#ifdef WITH_LIBXL
+# include "testutilsxen.h"
+
+static int
+fillXenCaps(virDomainCapsPtr domCaps)
+{
+    virFirmwarePtr *firmwares;
+    int ret = -1;
+
+    if (VIR_ALLOC_N(firmwares, 2) < 0)
+        return ret;
+
+    if (VIR_ALLOC(firmwares[0]) < 0 || VIR_ALLOC(firmwares[1]) < 0)
+        goto cleanup;
+    if (VIR_STRDUP(firmwares[0]->name, "/usr/lib/xen/boot/hvmloader") < 0 ||
+        VIR_STRDUP(firmwares[1]->name, "/usr/lib/xen/boot/ovmf.bin") < 0)
+        goto cleanup;
+
+    if (libxlMakeDomainCapabilities(domCaps, firmwares, 2) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    virFirmwareFreeList(firmwares, 2);
+    return ret;
+}
+#endif /* WITH_LIBXL */
+
+
 enum testCapsType {
     CAPS_NONE,
     CAPS_ALL,
     CAPS_QEMU,
+    CAPS_LIBXL,
 };
 
 struct testData {
@@ -212,12 +245,19 @@ test_virDomainCapsFormat(const void *opaque)
             goto cleanup;
 #endif
         break;
+
+    case CAPS_LIBXL:
+#if WITH_LIBXL
+        if (fillXenCaps(domCaps) < 0)
+            goto cleanup;
+#endif
+        break;
     }
 
     if (!(domCapsXML = virDomainCapsFormat(domCaps)))
         goto cleanup;
 
-    if (virtTestCompareToFile(domCapsXML, path) < 0)
+    if (virTestCompareToFile(domCapsXML, path) < 0)
         goto cleanup;
 
     ret = 0;
@@ -250,7 +290,7 @@ mymain(void)
             .type = Type,                                               \
             .capsType = CapsType,                                       \
         };                                                              \
-        if (virtTestRun(Name, test_virDomainCapsFormat, &data) < 0)     \
+        if (virTestRun(Name, test_virDomainCapsFormat, &data) < 0)      \
             ret = -1;                                                   \
     } while (0)
 
@@ -274,9 +314,23 @@ mymain(void)
             .capsName = CapsName,                                       \
             .capsOpaque = cfg,                                          \
         };                                                              \
-        if (virtTestRun(name, test_virDomainCapsFormat, &data) < 0)     \
+        if (virTestRun(name, test_virDomainCapsFormat, &data) < 0)      \
             ret = -1;                                                   \
         VIR_FREE(name);                                                 \
+    } while (0)
+
+#define DO_TEST_LIBXL(Name, Emulator, Machine, Arch, Type)              \
+    do {                                                                \
+        struct testData data = {                                        \
+            .name = Name,                                               \
+            .emulator = Emulator,                                       \
+            .machine = Machine,                                         \
+            .arch = Arch,                                               \
+            .type = Type,                                               \
+            .capsType = CAPS_LIBXL,                                     \
+        };                                                              \
+        if (virTestRun(Name, test_virDomainCapsFormat, &data) < 0)     \
+            ret = -1;                                                   \
     } while (0)
 
     DO_TEST("basic", "/bin/emulatorbin", "my-machine-type",
@@ -311,6 +365,23 @@ mymain(void)
                  "ppc64le", VIR_DOMAIN_VIRT_KVM);
 
 #endif /* WITH_QEMU */
+
+#if WITH_LIBXL
+
+# ifdef LIBXL_HAVE_PVUSB
+#  define LIBXL_XENPV_CAPS "libxl-xenpv-usb"
+#  define LIBXL_XENFV_CAPS "libxl-xenfv-usb"
+# else
+#  define LIBXL_XENPV_CAPS "libxl-xenpv"
+#  define LIBXL_XENFV_CAPS "libxl-xenfv"
+# endif
+
+    DO_TEST_LIBXL(LIBXL_XENPV_CAPS, "/usr/bin/qemu-system-x86_64",
+                  "xenpv", "x86_64", VIR_DOMAIN_VIRT_XEN);
+    DO_TEST_LIBXL(LIBXL_XENFV_CAPS, "/usr/bin/qemu-system-x86_64",
+                  "xenfv", "x86_64", VIR_DOMAIN_VIRT_XEN);
+
+#endif /* WITH_LIBXL */
 
     return ret;
 }

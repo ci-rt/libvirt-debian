@@ -47,7 +47,8 @@ static const char *conf_file = SYSCONFDIR "/libvirt/virt-login-shell.conf";
 
 static int virLoginShellAllowedUser(virConfPtr conf,
                                     const char *name,
-                                    gid_t *groups)
+                                    gid_t *groups,
+                                    size_t ngroups)
 {
     virConfValuePtr p;
     int ret = -1;
@@ -63,7 +64,7 @@ static int virLoginShellAllowedUser(virConfPtr conf,
         for (pp = p->list; pp; pp = pp->next) {
             if (pp->type != VIR_CONF_STRING) {
                 virReportSystemError(EINVAL, "%s",
-                                     _("shell must be a list of strings"));
+                                     _("allowed_users must be a list of strings"));
                 goto cleanup;
             } else {
                 /*
@@ -74,7 +75,7 @@ static int virLoginShellAllowedUser(virConfPtr conf,
                     ptr = &pp->str[1];
                     if (!*ptr)
                         continue;
-                    for (i = 0; groups[i]; i++) {
+                    for (i = 0; i < ngroups; i++) {
                         if (!(gname = virGetGroupName(groups[i])))
                             continue;
                         if (fnmatch(ptr, gname, 0) == 0) {
@@ -100,20 +101,38 @@ static int virLoginShellAllowedUser(virConfPtr conf,
     return ret;
 }
 
-static char **virLoginShellGetShellArgv(virConfPtr conf)
+static int virLoginShellGetAutoShell(virConfPtr conf,
+                                     bool *autoshell)
 {
-    size_t i;
-    char **shargv = NULL;
     virConfValuePtr p;
 
+    p = virConfGetValue(conf, "auto_shell");
+    if (!p) {
+        *autoshell = false;
+    } else if (p->type == VIR_CONF_LONG ||
+               p->type == VIR_CONF_ULONG) {
+        *autoshell = (p->l != 0);
+    } else {
+        virReportSystemError(EINVAL, "%s",
+                             _("auto_shell must be a boolean value"));
+        return -1;
+    }
+    return 0;
+}
+
+static int virLoginShellGetShellArgv(virConfPtr conf,
+                                     char ***retshargv,
+                                     size_t *retshargvlen)
+{
+    size_t i;
+    size_t len;
+    char **shargv = NULL;
+    virConfValuePtr p, pp;
+
     p = virConfGetValue(conf, "shell");
-    if (!p)
-        return virStringSplit("/bin/sh -l", " ", 3);
-
-    if (p->type == VIR_CONF_LIST) {
-        size_t len;
-        virConfValuePtr pp;
-
+    if (!p) {
+        len = 1; /* /bin/sh */
+    } else if (p->type == VIR_CONF_LIST) {
         /* Calc length and check items */
         for (len = 0, pp = p->list; pp; len++, pp = pp->next) {
             if (pp->type != VIR_CONF_STRING) {
@@ -122,18 +141,44 @@ static char **virLoginShellGetShellArgv(virConfPtr conf)
                 goto error;
             }
         }
+    } else if (p->type == VIR_CONF_STRING) {
+        len = 1; /* /path/to/shell */
+    } else {
+        virReportSystemError(EINVAL, "%s",
+                             _("shell must be a list of strings"));
+        goto error;
+    }
 
-        if (VIR_ALLOC_N(shargv, len + 1) < 0)
+    len++; /* NULL terminator */
+
+    if (VIR_ALLOC_N(shargv, len) < 0)
+        goto error;
+
+    i = 0;
+    if (!p) {
+        if (VIR_STRDUP(shargv[i++], "/bin/sh") < 0)
             goto error;
-        for (i = 0, pp = p->list; pp; i++, pp = pp->next) {
-            if (VIR_STRDUP(shargv[i], pp->str) < 0)
+    } else if (p->type == VIR_CONF_LIST) {
+        for (pp = p->list; pp; pp = pp->next) {
+            if (VIR_STRDUP(shargv[i++], pp->str) < 0)
                 goto error;
         }
+    } else if (p->type == VIR_CONF_STRING) {
+        if (VIR_STRDUP(shargv[i++], p->str) < 0)
+            goto error;
     }
-    return shargv;
+
+    shargv[i] = NULL;
+
+    *retshargvlen = i;
+    *retshargv = shargv;
+
+    return 0;
  error:
+    *retshargv = NULL;
+    *retshargvlen = 0;
     virStringFreeList(shargv);
-    return NULL;
+    return -1;
 }
 
 static char *progname;
@@ -151,6 +196,7 @@ usage(void)
               "Options:\n"
               "  -h | --help            Display program help\n"
               "  -V | --version         Display program version\n"
+              "  -c CMD                 Run CMD via shell\n"
               "\n"
               "libvirt login shell\n"),
             progname);
@@ -177,6 +223,8 @@ main(int argc, char **argv)
     gid_t gid = getgid();
     char *name = NULL;
     char **shargv = NULL;
+    size_t shargvlen = 0;
+    char *shcmd = NULL;
     virSecurityModelPtr secmodel = NULL;
     virSecurityLabelPtr seclabel = NULL;
     virDomainPtr dom = NULL;
@@ -190,6 +238,11 @@ main(int argc, char **argv)
     int *fdlist = NULL;
     int openmax;
     size_t i;
+    const char *cmdstr = NULL;
+    char *tmp;
+    char *term = NULL;
+    virErrorPtr saved_err = NULL;
+    bool autoshell = false;
 
     struct option opt[] = {
         {"help", no_argument, NULL, 'h'},
@@ -201,8 +254,6 @@ main(int argc, char **argv)
         return EXIT_CANCELED;
     }
 
-    setenv("PATH", "/bin:/usr/bin", 1);
-
     virSetErrorFunc(NULL, NULL);
     virSetErrorLogPriorityFunc(NULL);
 
@@ -210,7 +261,7 @@ main(int argc, char **argv)
     if (virGettextInitialize() < 0)
         return ret;
 
-    while ((arg = getopt_long(argc, argv, "hV", opt, &longindex)) != -1) {
+    while ((arg = getopt_long(argc, argv, "hVc:", opt, &longindex)) != -1) {
         switch (arg) {
         case 'h':
             usage();
@@ -219,6 +270,10 @@ main(int argc, char **argv)
         case 'V':
             show_version();
             exit(EXIT_SUCCESS);
+
+        case 'c':
+            cmdstr = optarg;
+            break;
 
         case '?':
         default:
@@ -252,10 +307,13 @@ main(int argc, char **argv)
     if ((ngroups = virGetGroupList(uid, gid, &groups)) < 0)
         goto cleanup;
 
-    if (virLoginShellAllowedUser(conf, name, groups) < 0)
+    if (virLoginShellAllowedUser(conf, name, groups, ngroups) < 0)
         goto cleanup;
 
-    if (!(shargv = virLoginShellGetShellArgv(conf)))
+    if (virLoginShellGetShellArgv(conf, &shargv, &shargvlen) < 0)
+        goto cleanup;
+
+    if (virLoginShellGetAutoShell(conf, &autoshell) < 0)
         goto cleanup;
 
     conn = virConnectOpen("lxc:///");
@@ -298,6 +356,8 @@ main(int argc, char **argv)
         goto cleanup;
     if (virDomainLxcEnterSecurityLabel(secmodel, seclabel, NULL, 0) < 0)
         goto cleanup;
+    if (virDomainLxcEnterCGroup(dom, 0) < 0)
+        goto cleanup;
     if (nfdlist > 0 &&
         virDomainLxcEnterNamespace(dom, nfdlist, fdlist, NULL, NULL, 0) < 0)
         goto cleanup;
@@ -307,6 +367,52 @@ main(int argc, char **argv)
         virReportSystemError(errno, _("Unable to chdir(%s)"), homedir);
         goto cleanup;
     }
+
+    if (autoshell) {
+        tmp = virGetUserShell(uid);
+        if (tmp) {
+            virStringFreeList(shargv);
+            shargvlen = 1;
+            if (VIR_ALLOC_N(shargv[0], shargvlen + 1) < 0) {
+                VIR_FREE(tmp);
+                goto cleanup;
+            }
+            shargv[0] = tmp;
+            shargv[1] = NULL;
+        }
+    }
+
+    if (cmdstr) {
+        if (VIR_REALLOC_N(shargv, shargvlen + 3) < 0)
+            goto cleanup;
+        if (VIR_STRDUP(shargv[shargvlen++], "-c") < 0)
+            goto cleanup;
+        if (VIR_STRDUP(shargv[shargvlen++], cmdstr) < 0)
+            goto cleanup;
+        shargv[shargvlen] = NULL;
+    }
+
+    /* We need to modify the first elementin shargv
+     * so that it has the relative filename and has
+     * a leading '-' to indicate it is a login shell
+     */
+    shcmd = shargv[0];
+    if (shcmd[0] != '/') {
+        virReportSystemError(errno,
+                             _("Shell '%s' should have absolute path"),
+                             shcmd);
+        goto cleanup;
+    }
+    tmp = strrchr(shcmd, '/');
+    if (VIR_STRDUP(shargv[0], tmp) < 0)
+        goto cleanup;
+    shargv[0][0] = '-';
+
+    /* We're duping the string because the clearenv()
+     * call will shortly release the pointer we get
+     * back from virGetEnvAllowSUID() right here */
+    if (VIR_STRDUP(term, virGetEnvAllowSUID("TERM")) < 0)
+        goto cleanup;
 
     /* A fork is required to create new process in correct pid namespace.  */
     if ((cpid = virFork()) < 0)
@@ -319,9 +425,19 @@ main(int argc, char **argv)
             tmpfd = i;
             VIR_MASS_CLOSE(tmpfd);
         }
-        if (execv(shargv[0], (char *const*) shargv) < 0) {
+
+        clearenv();
+        setenv("PATH", "/bin:/usr/bin", 1);
+        setenv("SHELL", shcmd, 1);
+        setenv("USER", name, 1);
+        setenv("LOGNAME", name, 1);
+        setenv("HOME", homedir, 1);
+        if (term)
+            setenv("TERM", term, 1);
+
+        if (execv(shcmd, (char *const*) shargv) < 0) {
             virReportSystemError(errno, _("Unable to exec shell %s"),
-                                 shargv[0]);
+                                 shcmd);
             virDispatchError(NULL);
             return errno == ENOENT ? EXIT_ENOENT : EXIT_CANNOT_INVOKE;
         }
@@ -330,6 +446,8 @@ main(int argc, char **argv)
     /* At this point, the parent is now waiting for the child to exit,
      * but as that may take a long time, we release resources now.  */
  cleanup:
+    saved_err = virSaveLastError();
+
     if (nfdlist > 0)
         for (i = 0; i < nfdlist; i++)
             VIR_FORCE_CLOSE(fdlist[i]);
@@ -340,6 +458,8 @@ main(int argc, char **argv)
     if (conn)
         virConnectClose(conn);
     virStringFreeList(shargv);
+    VIR_FREE(shcmd);
+    VIR_FREE(term);
     VIR_FREE(name);
     VIR_FREE(homedir);
     VIR_FREE(seclabel);
@@ -349,7 +469,9 @@ main(int argc, char **argv)
     if (virProcessWait(cpid, &status, true) == 0)
         virProcessExitWithStatus(status);
 
-    if (virGetLastError())
+    if (saved_err) {
+        virSetError(saved_err);
         virDispatchError(NULL);
+    }
     return ret;
 }

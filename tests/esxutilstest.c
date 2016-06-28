@@ -58,18 +58,18 @@ testParseDatastorePath(const void *data ATTRIBUTE_UNUSED)
             continue;
 
         if (STRNEQ(paths[i].datastoreName, datastoreName)) {
-            virtTestDifference(stderr, paths[i].datastoreName, datastoreName);
+            virTestDifference(stderr, paths[i].datastoreName, datastoreName);
             goto failure;
         }
 
         if (STRNEQ(paths[i].directoryName, directoryName)) {
-            virtTestDifference(stderr, paths[i].directoryName, directoryName);
+            virTestDifference(stderr, paths[i].directoryName, directoryName);
             goto failure;
         }
 
         if (STRNEQ(paths[i].directoryAndFileName, directoryAndFileName)) {
-            virtTestDifference(stderr, paths[i].directoryAndFileName,
-                               directoryAndFileName);
+            virTestDifference(stderr, paths[i].directoryAndFileName,
+                              directoryAndFileName);
             goto failure;
         }
     }
@@ -245,12 +245,12 @@ mymain(void)
 {
     int result = 0;
 
-    virtTestQuiesceLibvirtErrors(true);
+    virTestQuiesceLibvirtErrors(true);
 
 # define DO_TEST(_name)                                                       \
         do {                                                                  \
-            if (virtTestRun("VMware "#_name, test##_name,                     \
-                            NULL) < 0) {                                      \
+            if (virTestRun("VMware "#_name, test##_name,                      \
+                           NULL) < 0) {                                       \
                 result = -1;                                                  \
             }                                                                 \
         } while (0)

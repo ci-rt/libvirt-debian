@@ -40,7 +40,7 @@ testCompareXMLToXMLFiles(const char *inxml, const char *outxml,
     if (!(actual = virNWFilterDefFormat(dev)))
         goto fail;
 
-    if (virtTestCompareToFile(actual, outxml) < 0)
+    if (virTestCompareToFile(actual, outxml) < 0)
         goto fail;
 
  done:
@@ -92,8 +92,8 @@ mymain(void)
             .name = NAME,                                         \
             .expect_warning = EXPECT_WARN,                        \
         };                                                        \
-        if (virtTestRun("NWFilter XML-2-XML " NAME,               \
-                        testCompareXMLToXMLHelper, (&tp)) < 0)    \
+        if (virTestRun("NWFilter XML-2-XML " NAME,                \
+                       testCompareXMLToXMLHelper, (&tp)) < 0)     \
             ret = -1;                                             \
     } while (0)
 

@@ -26,52 +26,7 @@
 
 # include "capabilities.h"
 
-int nodeGetInfo(const char *sysfs_prefix, virNodeInfoPtr nodeinfo);
-int nodeCapsInitNUMA(const char *sysfs_prefix, virCapsPtr caps);
+int nodeGetInfo(virNodeInfoPtr nodeinfo);
+int nodeCapsInitNUMA(virCapsPtr caps);
 
-int nodeGetCPUStats(int cpuNum,
-                    virNodeCPUStatsPtr params,
-                    int *nparams,
-                    unsigned int flags);
-int nodeGetMemoryStats(const char *sysfs_prefix,
-                       int cellNum,
-                       virNodeMemoryStatsPtr params,
-                       int *nparams,
-                       unsigned int flags);
-int nodeGetCellsFreeMemory(unsigned long long *freeMems,
-                           int startCell,
-                           int maxCells);
-int nodeGetMemory(unsigned long long *mem,
-                  unsigned long long *freeMem);
-
-virBitmapPtr nodeGetPresentCPUBitmap(const char *sysfs_prefix);
-virBitmapPtr nodeGetOnlineCPUBitmap(const char *sysfs_prefix);
-int nodeGetCPUCount(const char *sysfs_prefix);
-int nodeGetThreadsPerSubcore(virArch arch);
-
-int nodeGetMemoryParameters(virTypedParameterPtr params,
-                            int *nparams,
-                            unsigned int flags);
-
-int nodeSetMemoryParameters(virTypedParameterPtr params,
-                            int nparams,
-                            unsigned int flags);
-
-int nodeGetCPUMap(const char *sysfs_prefix,
-                  unsigned char **cpumap,
-                  unsigned int *online,
-                  unsigned int flags);
-
-int nodeGetFreePages(unsigned int npages,
-                     unsigned int *pages,
-                     int startCell,
-                     unsigned int cellCount,
-                     unsigned long long *counts);
-
-int nodeAllocPages(unsigned int npages,
-                   unsigned int *pageSizes,
-                   unsigned long long *pageCounts,
-                   int startCell,
-                   unsigned int cellCount,
-                   bool add);
 #endif /* __VIR_NODEINFO_H__*/

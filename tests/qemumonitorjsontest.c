@@ -769,7 +769,7 @@ testQemuMonitorJSONAttachChardev(const void *data)
     CHECK("chr_unix", "{\"return\": {}}");
 
     chr = (virDomainChrSourceDef) { .type = VIR_DOMAIN_CHR_TYPE_SPICEVMC };
-    CHECK_FAIL("chr_spicevmc", "{\"return\": {}}");
+    CHECK("chr_spicevmc", "{\"return\": {}}");
 
     chr = (virDomainChrSourceDef) { .type = VIR_DOMAIN_CHR_TYPE_PIPE };
     CHECK_FAIL("chr_pipe", "{\"return\": {}}");
@@ -1616,11 +1616,11 @@ testQemuMonitorJSONqemuMonitorJSONGetBlockStatsInfo(const void *data)
 }
 
 static int
-testQemuMonitorJSONqemuMonitorJSONGetMigrationCompression(const void *data)
+testQemuMonitorJSONqemuMonitorJSONGetMigrationParams(const void *data)
 {
     virDomainXMLOptionPtr xmlopt = (virDomainXMLOptionPtr)data;
     qemuMonitorTestPtr test = qemuMonitorTestNewSimple(true, xmlopt);
-    qemuMonitorMigrationCompression compress;
+    qemuMonitorMigrationParams params;
     int ret = -1;
 
     if (!test)
@@ -1630,43 +1630,41 @@ testQemuMonitorJSONqemuMonitorJSONGetMigrationCompression(const void *data)
                                "{"
                                "    \"return\": {"
                                "        \"decompress-threads\": 2,"
+                               "        \"cpu-throttle-increment\": 10,"
                                "        \"compress-threads\": 8,"
-                               "        \"compress-level\": 1"
+                               "        \"compress-level\": 1,"
+                               "        \"cpu-throttle-initial\": 20"
                                "    }"
                                "}") < 0) {
         goto cleanup;
     }
 
-    if (qemuMonitorJSONGetMigrationCompression(qemuMonitorTestGetMonitor(test),
-                                               &compress) < 0)
+    if (qemuMonitorJSONGetMigrationParams(qemuMonitorTestGetMonitor(test),
+                                          &params) < 0)
         goto cleanup;
 
-    if (!compress.level_set ||
-        !compress.threads_set ||
-        !compress.dthreads_set) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       "One of level, threads or dthreads flags is not set");
-        return -1;
-    }
+#define CHECK(VAR, FIELD, VALUE)                                            \
+    do {                                                                    \
+        if (!params.VAR ## _set) {                                          \
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s is not set", FIELD); \
+            goto cleanup;                                                   \
+        }                                                                   \
+        if (params.VAR != VALUE) {                                          \
+            virReportError(VIR_ERR_INTERNAL_ERROR,                          \
+                           "Invalid %s: %d, expected %d",                   \
+                           FIELD, params.VAR, VALUE);                       \
+            goto cleanup;                                                   \
+        }                                                                   \
+    } while (0)
 
-    if (compress.level != 1) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "Invalid decompress-threads: %d, expected 1",
-                       compress.level);
-        goto cleanup;
-    }
-    if (compress.threads != 8) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "Invalid decompress-threads: %d, expected 8",
-                       compress.threads);
-        goto cleanup;
-    }
-    if (compress.dthreads != 2) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "Invalid decompress-threads: %d, expected 2",
-                       compress.dthreads);
-        goto cleanup;
-    }
+    CHECK(compressLevel, "compress-level", 1);
+    CHECK(compressThreads, "compress-threads", 8);
+    CHECK(decompressThreads, "decompress-threads", 2);
+    CHECK(cpuThrottleInitial, "cpu-throttle-initial", 20);
+    CHECK(cpuThrottleIncrement, "cpu-throttle-increment", 10);
+
+#undef CHECK
+
     ret = 0;
 
  cleanup:
@@ -2159,7 +2157,7 @@ testQemuMonitorJSONGetCPUData(const void *opaque)
                     abs_srcdir, data->name) < 0)
         goto cleanup;
 
-    if (virtTestLoadFile(jsonFile, &jsonStr) < 0)
+    if (virTestLoadFile(jsonFile, &jsonStr) < 0)
         goto cleanup;
 
     if (qemuMonitorTestAddItem(test, "qom-list",
@@ -2189,7 +2187,7 @@ testQemuMonitorJSONGetCPUData(const void *opaque)
     if (!(actual = cpuDataFormat(cpuData)))
         goto cleanup;
 
-    if (virtTestCompareToFile(actual, dataFile) < 0)
+    if (virTestCompareToFile(actual, dataFile) < 0)
         goto cleanup;
 
     ret = 0;
@@ -2336,26 +2334,26 @@ mymain(void)
     virEventRegisterDefaultImpl();
 
 #define DO_TEST(name)                                                          \
-    if (virtTestRun(# name, testQemuMonitorJSON ## name, driver.xmlopt) < 0)   \
+    if (virTestRun(# name, testQemuMonitorJSON ## name, driver.xmlopt) < 0)    \
         ret = -1
 
-#define DO_TEST_SIMPLE(CMD, FNC, ...)                                   \
+#define DO_TEST_SIMPLE(CMD, FNC, ...)                                          \
     simpleFunc = (testQemuMonitorJSONSimpleFuncData) {.cmd = CMD, .func = FNC, \
                                        .xmlopt = driver.xmlopt, __VA_ARGS__ }; \
-    if (virtTestRun(# FNC, testQemuMonitorJSONSimpleFunc, &simpleFunc) < 0)    \
+    if (virTestRun(# FNC, testQemuMonitorJSONSimpleFunc, &simpleFunc) < 0)     \
         ret = -1
 
 #define DO_TEST_GEN(name, ...) \
     simpleFunc = (testQemuMonitorJSONSimpleFuncData) {.xmlopt = driver.xmlopt, \
                                                      __VA_ARGS__ };            \
-    if (virtTestRun(# name, testQemuMonitorJSON ## name, &simpleFunc) < 0)     \
+    if (virTestRun(# name, testQemuMonitorJSON ## name, &simpleFunc) < 0)      \
         ret = -1
 
 #define DO_TEST_CPU_DATA(name) \
     do {                                                                  \
         struct testCPUData data = { name, driver.xmlopt };                \
         const char *label = "GetCPUData(" name ")";                       \
-        if (virtTestRun(label, testQemuMonitorJSONGetCPUData, &data) < 0) \
+        if (virTestRun(label, testQemuMonitorJSONGetCPUData, &data) < 0)  \
             ret = -1;                                                     \
     } while (0)
 
@@ -2416,7 +2414,7 @@ mymain(void)
     DO_TEST(qemuMonitorJSONGetBlockInfo);
     DO_TEST(qemuMonitorJSONGetBlockStatsInfo);
     DO_TEST(qemuMonitorJSONGetMigrationCacheSize);
-    DO_TEST(qemuMonitorJSONGetMigrationCompression);
+    DO_TEST(qemuMonitorJSONGetMigrationParams);
     DO_TEST(qemuMonitorJSONGetMigrationStats);
     DO_TEST(qemuMonitorJSONGetChardevInfo);
     DO_TEST(qemuMonitorJSONSetBlockIoThrottle);
@@ -2431,6 +2429,7 @@ mymain(void)
 
     DO_TEST_CPU_DATA("host");
     DO_TEST_CPU_DATA("full");
+    DO_TEST_CPU_DATA("ecx");
 
     qemuTestDriverFree(&driver);
 

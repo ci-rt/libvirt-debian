@@ -299,6 +299,11 @@ struct _qemuDomainDiskPrivate {
      * NB: *not* to be written to qemu domain object XML */
     qemuDomainSecretInfoPtr secinfo;
 
+    /* for storage devices using encryption/secret
+     * Can have both <auth> and <encryption> for some disks
+     * NB:*not* to be written to qemu domain object XML */
+    qemuDomainSecretInfoPtr encinfo;
+
     /* information about the device */
     bool tray; /* device has tray */
     bool removable; /* device media can be removed/changed */
@@ -480,6 +485,11 @@ void qemuDomainLogContextFree(qemuDomainLogContextPtr ctxt);
 
 virLogManagerPtr qemuDomainLogContextGetManager(qemuDomainLogContextPtr ctxt);
 
+int qemuDomainLogAppendMessage(virQEMUDriverPtr driver,
+                               virDomainObjPtr vm,
+                               const char *fmt,
+                               ...) ATTRIBUTE_FMT_PRINTF(3, 4);
+
 const char *qemuFindQemuImgBinary(virQEMUDriverPtr driver);
 
 int qemuDomainSnapshotWriteMetadata(virDomainObjPtr vm,
@@ -611,6 +621,7 @@ bool qemuDomainMachineIsI440FX(const virDomainDef *def);
 bool qemuDomainMachineNeedsFDC(const virDomainDef *def);
 bool qemuDomainMachineIsS390CCW(const virDomainDef *def);
 bool qemuDomainMachineIsVirt(const virDomainDef *def);
+bool qemuDomainMachineIsPSeries(const virDomainDef *def);
 bool qemuDomainMachineHasBuiltinIDE(const virDomainDef *def);
 
 int qemuDomainUpdateCurrentMemorySize(virQEMUDriverPtr driver,
@@ -680,5 +691,9 @@ int qemuDomainSecretPrepare(virConnectPtr conn, virDomainObjPtr vm)
 
 int qemuDomainDefValidateDiskLunSource(const virStorageSource *src)
     ATTRIBUTE_NONNULL(1);
+
+int qemuDomainPrepareChannel(virDomainChrDefPtr chr,
+                             const char *domainChannelTargetDir)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 #endif /* __QEMU_DOMAIN_H__ */

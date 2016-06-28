@@ -88,8 +88,7 @@ qemuDomainSetSCSIControllerModel(const virDomainDef *def,
             return -1;
         }
     } else {
-        if (ARCH_IS_PPC64(def->os.arch) &&
-            STRPREFIX(def->os.machine, "pseries")) {
+        if (qemuDomainMachineIsPSeries(def)) {
             *model = VIR_DOMAIN_CONTROLLER_MODEL_SCSI_IBMVSCSI;
         } else if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_SCSI_LSI)) {
             *model = VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LSILOGIC;
@@ -253,8 +252,7 @@ qemuDomainAssignSpaprVIOAddresses(virDomainDefPtr def,
 
     for (i = 0; i < def->nserials; i++) {
         if (def->serials[i]->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL &&
-            ARCH_IS_PPC64(def->os.arch) &&
-            STRPREFIX(def->os.machine, "pseries"))
+            qemuDomainMachineIsPSeries(def))
             def->serials[i]->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_SPAPRVIO;
         if (qemuDomainAssignSpaprVIOAddress(def, &def->serials[i]->info,
                                             VIO_ADDR_SERIAL) < 0)
@@ -262,8 +260,7 @@ qemuDomainAssignSpaprVIOAddresses(virDomainDefPtr def,
     }
 
     if (def->nvram) {
-        if (ARCH_IS_PPC64(def->os.arch) &&
-            STRPREFIX(def->os.machine, "pseries"))
+        if (qemuDomainMachineIsPSeries(def))
             def->nvram->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_SPAPRVIO;
         if (qemuDomainAssignSpaprVIOAddress(def, &def->nvram->info,
                                             VIO_ADDR_NVRAM) < 0)
@@ -1382,7 +1379,7 @@ qemuDomainAddressFindNewBusNr(virDomainDefPtr def)
  *    bus and busNr of the next highest bus for the guest to assign a
  *    unique bus number to each PCI bus that is a child of this
  *    bus. Each PCI controller. On top of this, the pxb device (which
- *    implements the pci-extender-bus) includes a pci-bridge within
+ *    implements the pci-expander-bus) includes a pci-bridge within
  *    it, and that bridge also uses one bus number (so each pxb device
  *    requires at least 2 bus numbers).
  *
@@ -1483,9 +1480,15 @@ qemuDomainAssignPCIAddresses(virDomainDefPtr def,
         }
 
         /* Reserve 1 extra slot for a (potential) bridge only if buses
-         * are not fully reserved yet
+         * are not fully reserved yet.
+         *
+         * We don't reserve the extra slot for aarch64 mach-virt guests
+         * either because we want to be able to have pure virtio-mmio
+         * guests, and reserving this slot would force us to add at least
+         * a dmi-to-pci-bridge to an otherwise PCI-free topology
          */
         if (!buses_reserved &&
+            !qemuDomainMachineIsVirt(def) &&
             virDomainPCIAddressReserveNextSlot(addrs, &info, flags) < 0)
             goto cleanup;
 
@@ -1622,7 +1625,8 @@ qemuDomainAssignPCIAddresses(virDomainDefPtr def,
 int
 qemuDomainAssignAddresses(virDomainDefPtr def,
                           virQEMUCapsPtr qemuCaps,
-                          virDomainObjPtr obj)
+                          virDomainObjPtr obj,
+                          bool newDomain ATTRIBUTE_UNUSED)
 {
     if (qemuDomainAssignVirtioSerialAddresses(def, obj) < 0)
         return -1;

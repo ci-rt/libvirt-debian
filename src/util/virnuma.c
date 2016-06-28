@@ -45,7 +45,7 @@
 #include "virbitmap.h"
 #include "virstring.h"
 #include "virfile.h"
-#include "nodeinfo.h"
+#include "virhostmem.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -659,7 +659,7 @@ virNumaGetPageInfo(int node,
         /* TODO: come up with better algorithm that takes huge pages into
          * account. The problem is huge pages cut off regular memory. */
         if (node == -1) {
-            if (nodeGetMemory(&memsize, &memfree) < 0)
+            if (virHostMemGetInfo(&memsize, &memfree) < 0)
                 goto cleanup;
         } else {
             if (virNumaGetNodeMemory(node, &memsize, &memfree) < 0)
@@ -737,16 +737,10 @@ virNumaGetPages(int node,
     if (virNumaGetHugePageInfoDir(&path, node) < 0)
         goto cleanup;
 
-    if (!(dir = opendir(path))) {
-        /* It's okay if the @path doesn't exist. Maybe we are running on
-         * system without huge pages support where the path may not exist. */
-        if (errno != ENOENT) {
-            virReportSystemError(errno,
-                                 _("unable to open path: %s"),
-                                 path);
-            goto cleanup;
-        }
-    }
+    /* It's okay if the @path doesn't exist. Maybe we are running on
+     * system without huge pages support where the path may not exist. */
+    if (virDirOpenIfExists(&dir, path) < 0)
+        goto cleanup;
 
     while (dir && (direrr = virDirRead(dir, &entry, path)) > 0) {
         const char *page_name = entry->d_name;
@@ -833,8 +827,7 @@ virNumaGetPages(int node,
     VIR_FREE(tmp_free);
     VIR_FREE(tmp_avail);
     VIR_FREE(tmp_size);
-    if (dir)
-        closedir(dir);
+    VIR_DIR_CLOSE(dir);
     VIR_FREE(path);
     return ret;
 }

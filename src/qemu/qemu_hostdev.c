@@ -111,14 +111,10 @@ qemuHostdevHostSupportsPassthroughVFIO(void)
     int direrr;
 
     /* condition 1 - /sys/kernel/iommu_groups/ contains entries */
-    if (!(iommuDir = opendir("/sys/kernel/iommu_groups/")))
+    if (virDirOpenQuiet(&iommuDir, "/sys/kernel/iommu_groups/") < 0)
         goto cleanup;
 
     while ((direrr = virDirRead(iommuDir, &iommuGroup, NULL)) > 0) {
-        /* skip ./ ../ */
-        if (STRPREFIX(iommuGroup->d_name, "."))
-            continue;
-
         /* assume we found a group */
         break;
     }
@@ -134,9 +130,7 @@ qemuHostdevHostSupportsPassthroughVFIO(void)
     ret = true;
 
  cleanup:
-    if (iommuDir)
-        closedir(iommuDir);
-
+    VIR_DIR_CLOSE(iommuDir);
     return ret;
 }
 

@@ -53,6 +53,14 @@ static const char networkDef[] =
 "  </ip>\n"
 "</network>\n";
 
+static const char storagePoolDef[] =
+"<pool type='dir'>\n"
+"  <name>P</name>\n"
+"  <target>\n"
+"    <path>/target-path</path>\n"
+"  </target>\n"
+"</pool>\n";
+
 typedef struct {
     int startEvents;
     int stopEvents;
@@ -74,6 +82,7 @@ lifecycleEventCounter_reset(lifecycleEventCounter *counter)
 typedef struct {
     virConnectPtr conn;
     virNetworkPtr net;
+    virStoragePoolPtr pool;
 } objecteventTest;
 
 
@@ -125,6 +134,34 @@ networkLifecycleCb(virConnectPtr conn ATTRIBUTE_UNUSED,
         counter->undefineEvents++;
 }
 
+static void
+storagePoolLifecycleCb(virConnectPtr conn ATTRIBUTE_UNUSED,
+                       virStoragePoolPtr pool ATTRIBUTE_UNUSED,
+                       int event,
+                       int detail ATTRIBUTE_UNUSED,
+                       void* opaque)
+{
+    lifecycleEventCounter *counter = opaque;
+
+    if (event == VIR_STORAGE_POOL_EVENT_STARTED)
+        counter->startEvents++;
+    else if (event == VIR_STORAGE_POOL_EVENT_STOPPED)
+        counter->stopEvents++;
+    else if (event == VIR_STORAGE_POOL_EVENT_DEFINED)
+        counter->defineEvents++;
+    else if (event == VIR_STORAGE_POOL_EVENT_UNDEFINED)
+        counter->undefineEvents++;
+}
+
+static void
+storagePoolRefreshCb(virConnectPtr conn ATTRIBUTE_UNUSED,
+                     virStoragePoolPtr pool ATTRIBUTE_UNUSED,
+                     void* opaque)
+{
+    int *counter = opaque;
+
+    (*counter)++;
+}
 
 static int
 testDomainCreateXMLOld(const void *data)
@@ -523,6 +560,137 @@ testNetworkStartStopEvent(const void *data)
     return ret;
 }
 
+static int
+testStoragePoolCreateXML(const void *data)
+{
+    const objecteventTest *test = data;
+    lifecycleEventCounter counter;
+    virStoragePoolPtr pool;
+    int id;
+    int ret = 0;
+
+    lifecycleEventCounter_reset(&counter);
+
+    id = virConnectStoragePoolEventRegisterAny(test->conn, NULL,
+                      VIR_STORAGE_POOL_EVENT_ID_LIFECYCLE,
+                      VIR_STORAGE_POOL_EVENT_CALLBACK(&storagePoolLifecycleCb),
+                      &counter, NULL);
+    pool = virStoragePoolCreateXML(test->conn, storagePoolDef, 0);
+
+    if (!pool || virEventRunDefaultImpl() < 0) {
+        ret = -1;
+        goto cleanup;
+    }
+
+    if (counter.startEvents != 1 || counter.unexpectedEvents > 0) {
+        ret = -1;
+        goto cleanup;
+    }
+
+ cleanup:
+    virConnectStoragePoolEventDeregisterAny(test->conn, id);
+    if (pool) {
+        virStoragePoolDestroy(pool);
+        virStoragePoolFree(pool);
+    }
+    return ret;
+}
+
+static int
+testStoragePoolDefine(const void *data)
+{
+    const objecteventTest *test = data;
+    lifecycleEventCounter counter;
+    virStoragePoolPtr pool;
+    int id;
+    int ret = 0;
+
+    lifecycleEventCounter_reset(&counter);
+
+    id = virConnectStoragePoolEventRegisterAny(test->conn, NULL,
+                      VIR_STORAGE_POOL_EVENT_ID_LIFECYCLE,
+                      VIR_STORAGE_POOL_EVENT_CALLBACK(&storagePoolLifecycleCb),
+                      &counter, NULL);
+
+    /* Make sure the define event is triggered */
+    pool = virStoragePoolDefineXML(test->conn, storagePoolDef, 0);
+
+    if (!pool || virEventRunDefaultImpl() < 0) {
+        ret = -1;
+        goto cleanup;
+    }
+
+    if (counter.defineEvents != 1 || counter.unexpectedEvents > 0) {
+        ret = -1;
+        goto cleanup;
+    }
+
+    /* Make sure the undefine event is triggered */
+    virStoragePoolUndefine(pool);
+
+    if (virEventRunDefaultImpl() < 0) {
+        ret = -1;
+        goto cleanup;
+    }
+
+    if (counter.undefineEvents != 1 || counter.unexpectedEvents > 0) {
+        ret = -1;
+        goto cleanup;
+    }
+
+
+ cleanup:
+    virConnectStoragePoolEventDeregisterAny(test->conn, id);
+    if (pool)
+        virStoragePoolFree(pool);
+
+    return ret;
+}
+
+static int
+testStoragePoolStartStopEvent(const void *data)
+{
+    const objecteventTest *test = data;
+    lifecycleEventCounter counter;
+    int refreshCounter;
+    int id1, id2;
+    int ret = 0;
+
+    if (!test->pool)
+        return -1;
+
+    lifecycleEventCounter_reset(&counter);
+    refreshCounter = 0;
+
+    id1 = virConnectStoragePoolEventRegisterAny(test->conn, test->pool,
+                      VIR_STORAGE_POOL_EVENT_ID_LIFECYCLE,
+                      VIR_STORAGE_POOL_EVENT_CALLBACK(&storagePoolLifecycleCb),
+                      &counter, NULL);
+    id2 = virConnectStoragePoolEventRegisterAny(test->conn, test->pool,
+                      VIR_STORAGE_POOL_EVENT_ID_REFRESH,
+                      VIR_STORAGE_POOL_EVENT_CALLBACK(&storagePoolRefreshCb),
+                      &refreshCounter, NULL);
+    virStoragePoolCreate(test->pool, 0);
+    virStoragePoolRefresh(test->pool, 0);
+    virStoragePoolDestroy(test->pool);
+
+    if (virEventRunDefaultImpl() < 0) {
+        ret = -1;
+        goto cleanup;
+    }
+
+    if (counter.startEvents != 1 || counter.stopEvents != 1 ||
+        refreshCounter != 1 || counter.unexpectedEvents > 0) {
+        ret = -1;
+        goto cleanup;
+    }
+
+ cleanup:
+    virConnectStoragePoolEventDeregisterAny(test->conn, id1);
+    virConnectStoragePoolEventDeregisterAny(test->conn, id2);
+    return ret;
+}
+
 static void
 timeout(int id ATTRIBUTE_UNUSED, void *opaque ATTRIBUTE_UNUSED)
 {
@@ -546,34 +714,34 @@ mymain(void)
     if (!(test.conn = virConnectOpen("test:///default")))
         return EXIT_FAILURE;
 
-    virtTestQuiesceLibvirtErrors(false);
+    virTestQuiesceLibvirtErrors(false);
 
     /* Domain event tests */
-    if (virtTestRun("Domain createXML start event (old API)",
-                    testDomainCreateXMLOld, &test) < 0)
+    if (virTestRun("Domain createXML start event (old API)",
+                   testDomainCreateXMLOld, &test) < 0)
         ret = EXIT_FAILURE;
-    if (virtTestRun("Domain createXML start event (new API)",
-                    testDomainCreateXMLNew, &test) < 0)
+    if (virTestRun("Domain createXML start event (new API)",
+                   testDomainCreateXMLNew, &test) < 0)
         ret = EXIT_FAILURE;
-    if (virtTestRun("Domain createXML start event (both API)",
-                    testDomainCreateXMLMixed, &test) < 0)
+    if (virTestRun("Domain createXML start event (both API)",
+                   testDomainCreateXMLMixed, &test) < 0)
         ret = EXIT_FAILURE;
-    if (virtTestRun("Domain (un)define events", testDomainDefine, &test) < 0)
+    if (virTestRun("Domain (un)define events", testDomainDefine, &test) < 0)
         ret = EXIT_FAILURE;
-    if (virtTestRun("Domain start stop events", testDomainStartStopEvent, &test) < 0)
+    if (virTestRun("Domain start stop events", testDomainStartStopEvent, &test) < 0)
         ret = EXIT_FAILURE;
 
     /* Network event tests */
     /* Tests requiring the test network not to be set up*/
-    if (virtTestRun("Network createXML start event ", testNetworkCreateXML, &test) < 0)
+    if (virTestRun("Network createXML start event ", testNetworkCreateXML, &test) < 0)
         ret = EXIT_FAILURE;
-    if (virtTestRun("Network (un)define events", testNetworkDefine, &test) < 0)
+    if (virTestRun("Network (un)define events", testNetworkDefine, &test) < 0)
         ret = EXIT_FAILURE;
 
     /* Define a test network */
     if (!(test.net = virNetworkDefineXML(test.conn, networkDef)))
         ret = EXIT_FAILURE;
-    if (virtTestRun("Network start stop events ", testNetworkStartStopEvent, &test) < 0)
+    if (virTestRun("Network start stop events ", testNetworkStartStopEvent, &test) < 0)
         ret = EXIT_FAILURE;
 
     /* Cleanup */
@@ -581,6 +749,28 @@ mymain(void)
         virNetworkUndefine(test.net);
         virNetworkFree(test.net);
     }
+
+    /* Storage pool event tests */
+    if (virTestRun("Storage pool createXML start event ",
+                   testStoragePoolCreateXML, &test) < 0)
+        ret = EXIT_FAILURE;
+    if (virTestRun("Storage pool (un)define events",
+                   testStoragePoolDefine, &test) < 0)
+        ret = EXIT_FAILURE;
+
+    /* Define a test storage pool */
+    if (!(test.pool = virStoragePoolDefineXML(test.conn, storagePoolDef, 0)))
+        ret = EXIT_FAILURE;
+    if (virTestRun("Storage pool start stop events ",
+                   testStoragePoolStartStopEvent, &test) < 0)
+        ret = EXIT_FAILURE;
+
+    /* Cleanup */
+    if (test.pool) {
+        virStoragePoolUndefine(test.pool);
+        virStoragePoolFree(test.pool);
+    }
+
     virConnectClose(test.conn);
     virEventRemoveTimeout(timer);
 

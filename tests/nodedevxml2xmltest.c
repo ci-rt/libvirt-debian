@@ -24,7 +24,7 @@ testCompareXMLToXMLFiles(const char *xml)
     int ret = -1;
     virNodeDeviceDefPtr dev = NULL;
 
-    if (virtTestLoadFile(xml, &xmlData) < 0)
+    if (virTestLoadFile(xml, &xmlData) < 0)
         goto fail;
 
     if (!(dev = virNodeDeviceDefParseString(xmlData, EXISTING_DEVICE, NULL)))
@@ -34,7 +34,7 @@ testCompareXMLToXMLFiles(const char *xml)
         goto fail;
 
     if (STRNEQ(xmlData, actual)) {
-        virtTestDifferenceFull(stderr, xmlData, xml, actual, NULL);
+        virTestDifferenceFull(stderr, xmlData, xml, actual, NULL);
         goto fail;
     }
 
@@ -70,8 +70,8 @@ mymain(void)
     int ret = 0;
 
 #define DO_TEST(name)                                           \
-    if (virtTestRun("Node device XML-2-XML " name,              \
-                    testCompareXMLToXMLHelper, (name)) < 0)     \
+    if (virTestRun("Node device XML-2-XML " name,               \
+                   testCompareXMLToXMLHelper, (name)) < 0)      \
         ret = -1
 
     DO_TEST("computer");

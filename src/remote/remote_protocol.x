@@ -250,6 +250,9 @@ const REMOTE_DOMAIN_INTERFACE_MAX = 2048;
 /* Upper limit on number of IP addresses per interface */
 const REMOTE_DOMAIN_IP_ADDR_MAX = 2048;
 
+/* Upper limit on number of guest vcpu information entries */
+const REMOTE_DOMAIN_GUEST_VCPU_PARAMS_MAX = 64;
+
 /* UUID.  VIR_UUID_BUFLEN definition comes from libvirt.h */
 typedef opaque remote_uuid[VIR_UUID_BUFLEN];
 
@@ -413,6 +416,11 @@ struct remote_domain_disk_error {
  * also filled via call-by-reference and must be annotated with a
  * insert@<offset> comment to indicate the offset in the parameter list of
  * the function to be called.
+ *
+ * For cases where the API allocates memory and fills the arguments (mostly
+ * typed parameters) a similar comment indicates the type and offset
+ * of the variable to be filled with the count of returned elements.
+ * alloc@<offset>@unsigned int@<count offset>
  *
  * Dynamic opaque and remote_nonnull_string arrays can be annotated with an
  * optional typecast */
@@ -3098,6 +3106,31 @@ struct remote_network_event_lifecycle_msg {
     int detail;
 };
 
+struct remote_connect_storage_pool_event_register_any_args {
+    int eventID;
+    remote_storage_pool pool;
+};
+
+struct remote_connect_storage_pool_event_register_any_ret {
+    int callbackID;
+};
+
+struct remote_connect_storage_pool_event_deregister_any_args {
+    int callbackID;
+};
+
+struct remote_storage_pool_event_lifecycle_msg {
+    int callbackID;
+    remote_nonnull_storage_pool pool;
+    int event;
+    int detail;
+};
+
+struct remote_storage_pool_event_refresh_msg {
+    int callbackID;
+    remote_nonnull_storage_pool pool;
+};
+
 struct remote_domain_fsfreeze_args {
     remote_nonnull_domain dom;
     remote_nonnull_string mountpoints<REMOTE_DOMAIN_FSFREEZE_MOUNTPOINTS_MAX>; /* (const char **) */
@@ -3266,6 +3299,23 @@ struct remote_domain_event_callback_device_removal_failed_msg {
     remote_nonnull_domain dom;
     remote_nonnull_string devAlias;
 };
+
+struct remote_domain_get_guest_vcpus_args {
+    remote_nonnull_domain dom;
+    unsigned int flags;
+};
+
+struct remote_domain_get_guest_vcpus_ret {
+    remote_typed_param params<REMOTE_DOMAIN_GUEST_VCPU_PARAMS_MAX>; /* alloc@1@unsigned int@2 */
+};
+
+struct remote_domain_set_guest_vcpus_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string cpumap;
+    int state;
+    unsigned int flags;
+};
+
 
 /*----- Protocol. -----*/
 
@@ -5793,5 +5843,44 @@ enum remote_procedure {
      * @generate: both
      * @acl: none
      */
-    REMOTE_PROC_DOMAIN_EVENT_CALLBACK_DEVICE_REMOVAL_FAILED = 367
+    REMOTE_PROC_DOMAIN_EVENT_CALLBACK_DEVICE_REMOVAL_FAILED = 367,
+
+    /**
+     * @generate: none
+     * @priority: high
+     * @acl: connect:search_storage_pools
+     * @aclfilter: storage_pool:getattr
+     */
+    REMOTE_PROC_CONNECT_STORAGE_POOL_EVENT_REGISTER_ANY = 368,
+
+    /**
+     * @generate: none
+     * @priority: high
+     * @acl: connect:read
+     */
+    REMOTE_PROC_CONNECT_STORAGE_POOL_EVENT_DEREGISTER_ANY = 369,
+
+    /**
+     * @generate: both
+     * @acl: none
+     */
+    REMOTE_PROC_STORAGE_POOL_EVENT_LIFECYCLE = 370,
+
+    /**
+     * @generate: both
+     * @acl: domain:write
+     */
+    REMOTE_PROC_DOMAIN_GET_GUEST_VCPUS = 371,
+
+    /**
+     * @generate: both
+     * @acl: domain:write
+     */
+    REMOTE_PROC_DOMAIN_SET_GUEST_VCPUS = 372,
+
+    /**
+     * @generate: both
+     * @acl: none
+     */
+    REMOTE_PROC_STORAGE_POOL_EVENT_REFRESH = 373
 };

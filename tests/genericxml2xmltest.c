@@ -64,8 +64,8 @@ mymain(void)
     do {                                                                \
         const struct testInfo info = {name, is_different, inactive,     \
                                       expectResult};                    \
-        if (virtTestRun("GENERIC XML-2-XML " name,                      \
-                        testCompareXMLToXMLHelper, &info) < 0)          \
+        if (virTestRun("GENERIC XML-2-XML " name,                       \
+                       testCompareXMLToXMLHelper, &info) < 0)           \
             ret = -1;                                                   \
     } while (0)
 
@@ -87,9 +87,15 @@ mymain(void)
     DO_TEST_DIFFERENT("graphics-vnc-listen-attr-only");
     DO_TEST_DIFFERENT("graphics-vnc-listen-element-minimal");
     DO_TEST_DIFFERENT("graphics-vnc-listen-element-with-address");
-
-    DO_TEST_FULL("name-slash-parse", 0, false,
+    DO_TEST_DIFFERENT("graphics-vnc-socket-attr-listen-address");
+    DO_TEST_DIFFERENT("graphics-vnc-socket-attr-listen-socket");
+    DO_TEST_FULL("graphics-vnc-socket-attr-listen-socket-mismatch", 0, false,
         TEST_COMPARE_DOM_XML2XML_RESULT_FAIL_PARSE);
+
+    DO_TEST_FULL("name-slash-fail", 0, false,
+        TEST_COMPARE_DOM_XML2XML_RESULT_FAIL_PARSE);
+
+    DO_TEST("perf");
 
     virObjectUnref(caps);
     virObjectUnref(xmlopt);

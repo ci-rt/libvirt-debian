@@ -460,20 +460,13 @@ virPCIDeviceIterDevices(virPCIDeviceIterPredicate predicate,
 
     VIR_DEBUG("%s %s: iterating over " PCI_SYSFS "devices", dev->id, dev->name);
 
-    dir = opendir(PCI_SYSFS "devices");
-    if (!dir) {
-        VIR_WARN("Failed to open " PCI_SYSFS "devices");
+    if (virDirOpen(&dir, PCI_SYSFS "devices") < 0)
         return -1;
-    }
 
     while ((ret = virDirRead(dir, &entry, PCI_SYSFS "devices")) > 0) {
         unsigned int domain, bus, slot, function;
         virPCIDevicePtr check;
         char *tmp;
-
-        /* Ignore '.' and '..' */
-        if (entry->d_name[0] == '.')
-            continue;
 
         /* expected format: <domain>:<bus>:<slot>.<function> */
         if (/* domain */
@@ -509,7 +502,7 @@ virPCIDeviceIterDevices(virPCIDeviceIterPredicate predicate,
 
         virPCIDeviceFree(check);
     }
-    closedir(dir);
+    VIR_DIR_CLOSE(dir);
     return ret;
 }
 
@@ -1962,11 +1955,8 @@ int virPCIDeviceFileIterate(virPCIDevicePtr dev,
                     dev->address.slot, dev->address.function) < 0)
         goto cleanup;
 
-    if (!(dir = opendir(pcidir))) {
-        virReportSystemError(errno,
-                             _("cannot open %s"), pcidir);
+    if (virDirOpen(&dir, pcidir) < 0)
         goto cleanup;
-    }
 
     while ((direrr = virDirRead(dir, &ent, pcidir)) > 0) {
         /* Device assignment requires:
@@ -1993,8 +1983,7 @@ int virPCIDeviceFileIterate(virPCIDevicePtr dev,
     ret = 0;
 
  cleanup:
-    if (dir)
-        closedir(dir);
+    VIR_DIR_CLOSE(dir);
     VIR_FREE(file);
     VIR_FREE(pcidir);
     return ret;
@@ -2022,7 +2011,7 @@ virPCIDeviceAddressIOMMUGroupIterate(virPCIDeviceAddressPtr orig,
                     orig->domain, orig->bus, orig->slot, orig->function) < 0)
         goto cleanup;
 
-    if (!(groupDir = opendir(groupPath))) {
+    if (virDirOpenQuiet(&groupDir, groupPath) < 0) {
         /* just process the original device, nothing more */
         ret = (actor)(orig, opaque);
         goto cleanup;
@@ -2030,9 +2019,6 @@ virPCIDeviceAddressIOMMUGroupIterate(virPCIDeviceAddressPtr orig,
 
     while ((direrr = virDirRead(groupDir, &ent, groupPath)) > 0) {
         virPCIDeviceAddress newDev;
-
-        if (ent->d_name[0] == '.')
-            continue;
 
         if (virPCIDeviceAddressParse(ent->d_name, &newDev) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -2051,8 +2037,7 @@ virPCIDeviceAddressIOMMUGroupIterate(virPCIDeviceAddressPtr orig,
 
  cleanup:
     VIR_FREE(groupPath);
-    if (groupDir)
-        closedir(groupDir);
+    VIR_DIR_CLOSE(groupDir);
     return ret;
 }
 
@@ -2698,22 +2683,17 @@ virPCIGetNetName(char *device_link_sysfs_path, char **netname)
         return -1;
     }
 
-    dir = opendir(pcidev_sysfs_net_path);
-    if (dir == NULL)
+    if (virDirOpenQuiet(&dir, pcidev_sysfs_net_path) < 0)
         goto out;
 
     while (virDirRead(dir, &entry, pcidev_sysfs_net_path) > 0) {
-        if (STREQ(entry->d_name, ".") ||
-            STREQ(entry->d_name, ".."))
-            continue;
-
         /* Assume a single directory entry */
         if (VIR_STRDUP(*netname, entry->d_name) > 0)
             ret = 0;
         break;
     }
 
-    closedir(dir);
+    VIR_DIR_CLOSE(dir);
 
  out:
     VIR_FREE(pcidev_sysfs_net_path);

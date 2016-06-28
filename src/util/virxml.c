@@ -1104,60 +1104,108 @@ static void ignoreRNGError(void *ctx ATTRIBUTE_UNUSED,
 {}
 
 
-int
-virXMLValidateAgainstSchema(const char *schemafile,
-                            xmlDocPtr doc)
+virXMLValidatorPtr
+virXMLValidatorInit(const char *schemafile)
 {
-    xmlRelaxNGParserCtxtPtr rngParser = NULL;
-    xmlRelaxNGPtr rng = NULL;
-    xmlRelaxNGValidCtxtPtr rngValid = NULL;
-    virBuffer buf = VIR_BUFFER_INITIALIZER;
-    int ret = -1;
+    virXMLValidatorPtr validator = NULL;
 
-    if (!(rngParser = xmlRelaxNGNewParserCtxt(schemafile))) {
+    if (VIR_ALLOC(validator) < 0)
+        return NULL;
+
+    if (VIR_STRDUP(validator->schemafile, schemafile) < 0)
+        goto error;
+
+    if (!(validator->rngParser =
+              xmlRelaxNGNewParserCtxt(validator->schemafile))) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Unable to create RNG parser for %s"),
-                       schemafile);
-        goto cleanup;
+                       validator->schemafile);
+        goto error;
     }
 
-    xmlRelaxNGSetParserErrors(rngParser,
+    xmlRelaxNGSetParserErrors(validator->rngParser,
                               catchRNGError,
                               ignoreRNGError,
-                              &buf);
+                              &validator->buf);
 
-    if (!(rng = xmlRelaxNGParse(rngParser))) {
+    if (!(validator->rng = xmlRelaxNGParse(validator->rngParser))) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Unable to parse RNG %s: %s"),
-                       schemafile, virBufferCurrentContent(&buf));
-        goto cleanup;
+                       validator->schemafile,
+                       virBufferCurrentContent(&validator->buf));
+        goto error;
     }
 
-    if (!(rngValid = xmlRelaxNGNewValidCtxt(rng))) {
+    if (!(validator->rngValid = xmlRelaxNGNewValidCtxt(validator->rng))) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Unable to create RNG validation context %s"),
-                       schemafile);
-        goto cleanup;
+                       validator->schemafile);
+        goto error;
     }
 
-    xmlRelaxNGSetValidErrors(rngValid,
+    xmlRelaxNGSetValidErrors(validator->rngValid,
                              catchRNGError,
                              ignoreRNGError,
-                             &buf);
+                             &validator->buf);
+    return validator;
 
-    if (xmlRelaxNGValidateDoc(rngValid, doc) != 0) {
+ error:
+    virXMLValidatorFree(validator);
+    return NULL;
+}
+
+
+int
+virXMLValidatorValidate(virXMLValidatorPtr validator,
+                        xmlDocPtr doc)
+{
+    int ret = -1;
+
+    if (xmlRelaxNGValidateDoc(validator->rngValid, doc) != 0) {
         virReportError(VIR_ERR_XML_INVALID_SCHEMA,
                        _("Unable to validate doc against %s\n%s"),
-                       schemafile, virBufferCurrentContent(&buf));
+                       validator->schemafile,
+                       virBufferCurrentContent(&validator->buf));
         goto cleanup;
     }
 
     ret = 0;
-
  cleanup:
-    virBufferFreeAndReset(&buf);
-    xmlRelaxNGFreeParserCtxt(rngParser);
-    xmlRelaxNGFreeValidCtxt(rngValid);
-    xmlRelaxNGFree(rng);
+    virBufferFreeAndReset(&validator->buf);
     return ret;
+}
+
+
+int
+virXMLValidateAgainstSchema(const char *schemafile,
+                            xmlDocPtr doc)
+{
+    virXMLValidatorPtr validator = NULL;
+    int ret = -1;
+
+    if (!(validator = virXMLValidatorInit(schemafile)))
+        return -1;
+
+    if (virXMLValidatorValidate(validator, doc) < 0)
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    virXMLValidatorFree(validator);
+    return ret;
+}
+
+
+void
+virXMLValidatorFree(virXMLValidatorPtr validator)
+{
+    if (!validator)
+        return;
+
+    VIR_FREE(validator->schemafile);
+    virBufferFreeAndReset(&validator->buf);
+    xmlRelaxNGFreeParserCtxt(validator->rngParser);
+    xmlRelaxNGFreeValidCtxt(validator->rngValid);
+    xmlRelaxNGFree(validator->rng);
+    VIR_FREE(validator);
 }

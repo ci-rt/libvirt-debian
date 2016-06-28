@@ -256,8 +256,8 @@ testTextMetadata(const void *data)
         test.data = DATA;                                                   \
         test.fail = FAIL;                                                   \
                                                                             \
-        if (virtTestRun("text metadata: " #TYPE " " INDEX " ",              \
-                        testTextMetadata, &test) < 0)                       \
+        if (virTestRun("text metadata: " #TYPE " " INDEX " ",               \
+                       testTextMetadata, &test) < 0)                        \
             ret = EXIT_FAILURE;                                             \
     } while (0)
 
@@ -279,13 +279,13 @@ mymain(void)
         return EXIT_FAILURE;
     }
 
-    virtTestQuiesceLibvirtErrors(false);
+    virTestQuiesceLibvirtErrors(false);
 
-    if (virtTestRun("Assign metadata ", testAssignMetadata, &test) < 0)
+    if (virTestRun("Assign metadata ", testAssignMetadata, &test) < 0)
         ret = EXIT_FAILURE;
-    if (virtTestRun("Rewrite Metadata ", testRewriteMetadata, &test) < 0)
+    if (virTestRun("Rewrite Metadata ", testRewriteMetadata, &test) < 0)
         ret = EXIT_FAILURE;
-    if (virtTestRun("Erase metadata ", testEraseMetadata, &test) < 0)
+    if (virTestRun("Erase metadata ", testEraseMetadata, &test) < 0)
         ret = EXIT_FAILURE;
 
     TEST_TITLE("1", "qwert");

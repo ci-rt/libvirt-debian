@@ -966,22 +966,16 @@ virSecretLoadAllConfigs(virSecretObjListPtr secrets,
 {
     DIR *dir = NULL;
     struct dirent *de;
+    int rc;
 
-    if (!(dir = opendir(configDir))) {
-        if (errno == ENOENT)
-            return 0;
-        virReportSystemError(errno, _("cannot open '%s'"), configDir);
-        return -1;
-    }
+    if ((rc = virDirOpenIfExists(&dir, configDir)) <= 0)
+        return rc;
 
     /* Ignore errors reported by readdir or other calls within the
      * loop (if any).  It's better to keep the secrets we managed to find. */
     while (virDirRead(dir, &de, NULL) > 0) {
         char *path;
         virSecretObjPtr secret;
-
-        if (STREQ(de->d_name, ".") || STREQ(de->d_name, ".."))
-            continue;
 
         if (!virFileHasSuffix(de->d_name, ".xml"))
             continue;
@@ -1000,6 +994,6 @@ virSecretLoadAllConfigs(virSecretObjListPtr secrets,
         virSecretObjEndAPI(&secret);
     }
 
-    closedir(dir);
+    VIR_DIR_CLOSE(dir);
     return 0;
 }

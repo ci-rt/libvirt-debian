@@ -704,7 +704,8 @@ get_definition(vahControl * ctl, const char *xmlStr)
     }
 
     ctl->def = virDomainDefParseString(xmlStr,
-                                       ctl->caps, ctl->xmlopt, 0);
+                                       ctl->caps, ctl->xmlopt,
+                                       VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE);
 
     if (ctl->def == NULL) {
         vah_error(ctl, 0, _("could not parse XML"));
@@ -1006,10 +1007,17 @@ get_files(vahControl * ctl)
             goto cleanup;
 
     for (i = 0; i < ctl->def->ngraphics; i++) {
-        if (ctl->def->graphics[i]->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC &&
-            ctl->def->graphics[i]->data.vnc.socket &&
-            vah_add_file(&buf, ctl->def->graphics[i]->data.vnc.socket, "w"))
-            goto cleanup;
+        virDomainGraphicsDefPtr graphics = ctl->def->graphics[i];
+        size_t n;
+
+        for (n = 0; n < graphics->nListens; n++) {
+            virDomainGraphicsListenDef listenObj = graphics->listens[n];
+
+            if (listenObj.type == VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_SOCKET &&
+                listenObj.socket &&
+                vah_add_file(&buf, listenObj.socket, "rw"))
+                goto cleanup;
+        }
     }
 
     if (ctl->def->ngraphics == 1 &&

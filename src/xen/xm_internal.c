@@ -319,12 +319,8 @@ xenXMConfigCacheRefresh(virConnectPtr conn)
     priv->lastRefresh = now;
 
     /* Process the files in the config dir */
-    if (!(dh = opendir(priv->configDir))) {
-        virReportSystemError(errno,
-                             _("cannot read directory %s"),
-                             priv->configDir);
+    if (virDirOpen(&dh, priv->configDir) < 0)
         return -1;
-    }
 
     while ((ret = virDirRead(dh, &ent, priv->configDir)) > 0) {
         struct stat st;
@@ -358,7 +354,7 @@ xenXMConfigCacheRefresh(virConnectPtr conn)
 
         /* Build the full file path */
         if (!(path = virFileBuildPath(priv->configDir, ent->d_name, NULL))) {
-            closedir(dh);
+            VIR_DIR_CLOSE(dh);
             return -1;
         }
 
@@ -386,7 +382,7 @@ xenXMConfigCacheRefresh(virConnectPtr conn)
     args.priv = priv;
     virHashRemoveSet(priv->configCache, xenXMConfigReaper, &args);
 
-    closedir(dh);
+    VIR_DIR_CLOSE(dh);
 
     return ret;
 }
@@ -480,7 +476,7 @@ xenXMDomainGetInfo(virConnectPtr conn,
         goto error;
 
     memset(info, 0, sizeof(virDomainInfo));
-    info->maxMem = virDomainDefGetMemoryActual(entry->def);
+    info->maxMem = virDomainDefGetMemoryTotal(entry->def);
     info->memory = entry->def->mem.cur_balloon;
     info->nrVirtCpu = virDomainDefGetVcpus(entry->def);
     info->state = VIR_DOMAIN_SHUTOFF;
@@ -558,8 +554,8 @@ xenXMDomainSetMemory(virConnectPtr conn,
         goto cleanup;
 
     entry->def->mem.cur_balloon = memory;
-    if (entry->def->mem.cur_balloon > virDomainDefGetMemoryActual(entry->def))
-        entry->def->mem.cur_balloon = virDomainDefGetMemoryActual(entry->def);
+    if (entry->def->mem.cur_balloon > virDomainDefGetMemoryTotal(entry->def))
+        entry->def->mem.cur_balloon = virDomainDefGetMemoryTotal(entry->def);
 
     /* If this fails, should we try to undo our changes to the
      * in-memory representation of the config file. I say not!
@@ -637,7 +633,7 @@ xenXMDomainGetMaxMemory(virConnectPtr conn,
     if (!(entry = virHashLookup(priv->configCache, filename)))
         goto cleanup;
 
-    ret = virDomainDefGetMemoryActual(entry->def);
+    ret = virDomainDefGetMemoryTotal(entry->def);
 
  cleanup:
     xenUnifiedUnlock(priv);
@@ -1343,7 +1339,8 @@ xenXMDomainDetachDeviceFlags(virConnectPtr conn,
     if (!(dev = virDomainDeviceDefParse(xml, entry->def,
                                         priv->caps,
                                         priv->xmlopt,
-                                        VIR_DOMAIN_DEF_PARSE_INACTIVE)))
+                                        VIR_DOMAIN_DEF_PARSE_INACTIVE |
+                                        VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE)))
         goto cleanup;
 
     switch (dev->type) {

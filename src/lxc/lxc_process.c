@@ -1286,7 +1286,7 @@ int virLXCProcessStart(virConnectPtr conn,
      * report implicit runtime defaults in the XML, like vnc listen/socket
      */
     VIR_DEBUG("Setting current domain def as transient");
-    if (virDomainObjSetDefTransient(caps, driver->xmlopt, vm, true) < 0)
+    if (virDomainObjSetDefTransient(caps, driver->xmlopt, vm) < 0)
         goto cleanup;
 
     /* Run an early hook to set-up missing devices */
@@ -1540,10 +1540,6 @@ int virLXCProcessStart(virConnectPtr conn,
     if (autoDestroy &&
         virCloseCallbacksSet(driver->closeCallbacks, vm,
                              conn, lxcProcessAutoDestroy) < 0)
-        goto cleanup;
-
-    if (virDomainObjSetDefTransient(caps, driver->xmlopt,
-                                    vm, false) < 0)
         goto cleanup;
 
     /* We don't need the temporary NIC names anymore, clear them */

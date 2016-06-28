@@ -125,7 +125,7 @@ findLease(const char *name,
     }
 
 
-    if (!(dir = opendir(leaseDir))) {
+    if (virDirOpenQuiet(&dir, leaseDir) < 0) {
         ERROR("Failed to open dir '%s'", leaseDir);
         goto cleanup;
     }
@@ -138,9 +138,6 @@ findLease(const char *name,
     DEBUG("Dir: %s", leaseDir);
     while ((ret = virDirRead(dir, &entry, leaseDir)) > 0) {
         char *path;
-
-        if (entry->d_name[0] == '.')
-            continue;
 
         if (!virFileHasSuffix(entry->d_name, ".status"))
             continue;
@@ -159,8 +156,7 @@ findLease(const char *name,
         VIR_FREE(path);
     }
 
-    closedir(dir);
-    dir = NULL;
+    VIR_DIR_CLOSE(dir);
 
     nleases = virJSONValueArraySize(leases_array);
     DEBUG("Read %zd leases", nleases);
@@ -231,8 +227,7 @@ findLease(const char *name,
     *errnop = errno;
     VIR_FREE(tmpAddress);
     virJSONValueFree(leases_array);
-    if (dir)
-        closedir(dir);
+    VIR_DIR_CLOSE(dir);
     return ret;
 }
 

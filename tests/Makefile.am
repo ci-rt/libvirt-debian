@@ -88,15 +88,11 @@ EXTRA_DIST =		\
 	bhyvexml2argvdata \
 	bhyvexml2xmloutdata \
 	capabilityschemadata \
-	capabilityschematest \
 	commanddata \
 	cputestdata \
 	domaincapsschemadata \
-	domaincapsschematest \
 	domainconfdata \
 	domainschemadata \
-	domainschematest \
-	domainsnapshotschematest \
 	domainsnapshotxml2xmlin \
 	domainsnapshotxml2xmlout \
 	fchostdata \
@@ -106,7 +102,6 @@ EXTRA_DIST =		\
 	lxcconf2xmldata \
 	lxcxml2xmldata \
 	lxcxml2xmloutdata \
-	networkschematest \
 	networkxml2confdata \
 	networkxml2firewalldata \
 	networkxml2xmlin \
@@ -114,10 +109,8 @@ EXTRA_DIST =		\
 	networkxml2xmlupdatein \
 	networkxml2xmlupdateout \
 	nodedevschemadata \
-	nodedevschematest \
-	nodeinfodata     \
+	virhostcpudata \
 	nssdata \
-	nwfilterschematest \
 	nwfilterxml2firewalldata \
 	nwfilterxml2xmlin \
 	nwfilterxml2xmlout \
@@ -131,17 +124,14 @@ EXTRA_DIST =		\
 	qemumonitorjsondata \
 	qemuxml2argvdata \
 	qemuxml2xmloutdata \
-	schematestutils.sh \
 	secretxml2xmlin \
 	securityselinuxhelperdata \
 	securityselinuxlabeldata \
 	sexpr2xmldata \
 	storagepoolschemadata \
-	storagepoolschematest \
 	storagepoolxml2xmlin \
 	storagepoolxml2xmlout \
 	storagevolschemadata \
-	storagevolschematest \
 	storagevolxml2argvdata \
 	storagevolxml2xmlin \
 	storagevolxml2xmlout \
@@ -169,7 +159,7 @@ EXTRA_DIST =		\
 
 test_helpers = commandhelper ssh virconftest
 test_programs = virshtest sockettest \
-	nodeinfotest virbuftest \
+	virhostcputest virbuftest \
 	commandtest seclabeltest \
 	virhashtest \
 	viratomictest \
@@ -180,7 +170,6 @@ test_programs = virshtest sockettest \
 	virbitmaptest \
 	vircgrouptest \
 	vircryptotest \
-	virrandomtest \
 	virpcitest \
 	virendiantest \
 	virfiletest \
@@ -190,6 +179,7 @@ test_programs = virshtest sockettest \
 	virlockspacetest \
 	virlogtest \
 	virrotatingfiletest \
+	virschematest \
 	virstringtest \
 	virportallocatortest \
 	sysinfotest \
@@ -365,24 +355,11 @@ test_programs += virusbtest \
 	$(NULL)
 endif WITH_LINUX
 
-test_scripts = \
-	capabilityschematest \
-	interfaceschematest \
-	networkschematest \
-	storagepoolschematest \
-	storagevolschematest \
-	domaincapsschematest \
-	domainschematest \
-	nodedevschematest \
-	nwfilterschematest \
-	domainsnapshotschematest \
-	secretschematest
-
+test_scripts =
 libvirtd_test_scripts =		\
 	libvirtd-fail			\
 	libvirtd-pool			\
 	virconftest.sh			\
-	virsh-all			\
 	virsh-cpuset			\
 	virsh-define-dev-segfault	\
 	virsh-int-overflow		\
@@ -390,8 +367,8 @@ libvirtd_test_scripts =		\
 	virsh-read-bufsiz		\
 	virsh-read-non-seekable		\
 	virsh-schedinfo			\
+	virsh-self-test			\
 	virsh-start			\
-	virsh-synopsis			\
 	virsh-undefine			\
 	virsh-uriprecedence		\
 	virsh-vcpupin			\
@@ -425,7 +402,7 @@ test_libraries = libshunload.la \
 		virpcimock.la \
 		virnetdevmock.la \
 		virrandommock.la \
-		nodeinfomock.la \
+		virhostcpumock.la \
 		nssmock.la \
 		$(NULL)
 if WITH_QEMU
@@ -882,6 +859,10 @@ cputest_SOURCES = \
 	cputest.c \
 	testutils.c testutils.h
 cputest_LDADD = $(LDADDS) $(LIBXML_LIBS)
+if WITH_QEMU
+cputest_SOURCES += testutilsqemu.c testutilsqemu.h
+cputest_LDADD += libqemumonitortestutils.la $(qemu_LDADDS) $(GNULIB_LIBS)
+endif WITH_QEMU
 
 metadatatest_SOURCES = \
 	metadatatest.c \
@@ -897,9 +878,9 @@ virconftest_SOURCES = \
 	virconftest.c
 virconftest_LDADD = $(LDADDS)
 
-nodeinfotest_SOURCES = \
-	nodeinfotest.c testutils.h testutils.c
-nodeinfotest_LDADD = $(LDADDS)
+virhostcputest_SOURCES = \
+	virhostcputest.c testutils.h testutils.c
+virhostcputest_LDADD = $(LDADDS)
 
 commandtest_SOURCES = \
 	commandtest.c testutils.h testutils.c
@@ -946,6 +927,11 @@ if WITH_QEMU
 domaincapstest_SOURCES += testutilsqemu.c testutilsqemu.h
 domaincapstest_LDADD += $(qemu_LDADDS) $(GNULIB_LIBS)
 endif WITH_QEMU
+
+if WITH_LIBXL
+domaincapstest_SOURCES += testutilsxen.c testutilsxen.h
+domaincapstest_LDADD += ../src/libvirt_driver_libxl_impl.la
+endif WITH_LIBXL
 
 if WITH_LIBVIRTD
 libvirtdconftest_SOURCES = \
@@ -1019,6 +1005,10 @@ virtimetest_SOURCES = \
 	virtimetest.c testutils.h testutils.c
 virtimetest_LDADD = $(LDADDS)
 
+virschematest_SOURCES = \
+	virschematest.c testutils.h testutils.c
+virschematest_LDADD = $(LDADDS) $(LIBXML_LIBS)
+
 virstringtest_SOURCES = \
 	virstringtest.c testutils.h testutils.c
 virstringtest_LDADD = $(LDADDS)
@@ -1082,10 +1072,6 @@ vircryptotest_SOURCES = \
 	vircryptotest.c testutils.h testutils.c
 vircryptotest_LDADD = $(LDADDS)
 
-virrandomtest_SOURCES = \
-	virrandomtest.c testutils.h testutils.c
-virrandomtest_LDADD = $(LDADDS)
-
 virhostdevtest_SOURCES = \
 	virhostdevtest.c testutils.h testutils.c
 virhostdevtest_LDADD = $(LDADDS)
@@ -1106,11 +1092,11 @@ virrandommock_la_CFLAGS = $(AM_CFLAGS)
 virrandommock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
 virrandommock_la_LIBADD = $(MOCKLIBS_LIBS)
 
-nodeinfomock_la_SOURCES = \
-	nodeinfomock.c
-nodeinfomock_la_CFLAGS = $(AM_CFLAGS)
-nodeinfomock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
-nodeinfomock_la_LIBADD = $(MOCKLIBS_LIBS)
+virhostcpumock_la_SOURCES = \
+	virhostcpumock.c
+virhostcpumock_la_CFLAGS = $(AM_CFLAGS)
+virhostcpumock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
+virhostcpumock_la_LIBADD = $(MOCKLIBS_LIBS)
 
 nsstest_SOURCES = \
 	nsstest.c testutils.h testutils.c

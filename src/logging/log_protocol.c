@@ -135,6 +135,32 @@ xdr_virLogManagerProtocolDomainReadLogFileRet (XDR *xdrs, virLogManagerProtocolD
 }
 
 bool_t
+xdr_virLogManagerProtocolDomainAppendLogFileArgs (XDR *xdrs, virLogManagerProtocolDomainAppendLogFileArgs *objp)
+{
+
+         if (!xdr_virLogManagerProtocolNonNullString (xdrs, &objp->driver))
+                 return FALSE;
+         if (!xdr_virLogManagerProtocolDomain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_virLogManagerProtocolNonNullString (xdrs, &objp->path))
+                 return FALSE;
+         if (!xdr_virLogManagerProtocolNonNullString (xdrs, &objp->message))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_virLogManagerProtocolDomainAppendLogFileRet (XDR *xdrs, virLogManagerProtocolDomainAppendLogFileRet *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->ret))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_virLogManagerProtocolProcedure (XDR *xdrs, virLogManagerProtocolProcedure *objp)
 {
 

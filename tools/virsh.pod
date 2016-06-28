@@ -900,7 +900,9 @@ I<--interface> returns:
 "net.<num>.tx.drop" - number of transmit packets dropped
 
 I<--perf> returns the statistics of all enabled perf events:
-"perf.cache" - the cache usage in Byte currently used
+"perf.cmt" - the cache usage in Byte currently used
+"perf.mbmt" - total system bandwidth from one level of cache
+"perf.mbml" - bandwidth of memory traffic for a memory controller
 
 I<--block> returns information about disks associated with each
 domain.  Using the I<--backing> flag extends this information to
@@ -1353,6 +1355,11 @@ B<dump> command. I<--verbose> displays the progress of dump.
 NOTE: Some hypervisors may require the user to manually ensure proper
 permissions on file and path specified by argument I<corefilepath>.
 
+NOTE: Crash dump in a old kvmdump format is being obsolete and cannot be loaded
+and processed by crash utility since its version 6.1.0. A --memory-only option
+is required in order to produce valid ELF file which can be later processed by
+the crash utility.
+
 =item B<dumpxml> I<domain> [I<--inactive>] [I<--security-info>]
 [I<--update-cpu>] [I<--migratable>]
 
@@ -1543,14 +1550,14 @@ to the I<uri> namespace is displayed instead of being modified.
 =item B<migrate> [I<--live>] [I<--offline>] [I<--direct>] [I<--p2p> [I<--tunnelled>]]
 [I<--persistent>] [I<--undefinesource>] [I<--suspend>] [I<--copy-storage-all>]
 [I<--copy-storage-inc>] [I<--change-protection>] [I<--unsafe>] [I<--verbose>]
-[I<--abort-on-error>] [I<--auto-converge>] [I<--postcopy>]
-[I<--postcopy-after-precopy>] I<domain> I<desturi> [I<migrateuri>]
-[I<graphicsuri>] [I<listen-address>] [I<dname>]
+[I<--abort-on-error>] [I<--postcopy>] [I<--postcopy-after-precopy>]
+I<domain> I<desturi> [I<migrateuri>] [I<graphicsuri>] [I<listen-address>] [I<dname>]
 [I<--timeout> B<seconds> [I<--timeout-suspend> | I<--timeout-postcopy>]]
 [I<--xml> B<file>] [I<--migrate-disks> B<disk-list>] [I<--disks-port> B<port>]
 [I<--compressed>] [I<--comp-methods> B<method-list>]
 [I<--comp-mt-level>] [I<--comp-mt-threads>] [I<--comp-mt-dthreads>]
-[I<--comp-xbzrle-cache>]
+[I<--comp-xbzrle-cache>] [I<--auto-converge>] [I<auto-converge-initial>]
+[I<auto-converge-increment>]
 
 Migrate domain to another host.  Add I<--live> for live migration; <--p2p>
 for peer-2-peer migration; I<--direct> for direct migration; or I<--tunnelled>
@@ -1575,13 +1582,17 @@ by the hypervisor, but can be explicitly used to reject the migration if the
 hypervisor lacks change protection support.  I<--verbose> displays the progress
 of migration.  I<--abort-on-error> cancels
 the migration if a soft error (for example I/O error) happens during the
-migration. I<--auto-converge> forces convergence during live migration.
-I<--postcopy> enables post-copy logic in migration, but does not
+migration. I<--postcopy> enables post-copy logic in migration, but does not
 actually start post-copy, i.e., migration is started in pre-copy mode.
 Once migration is running, the user may switch to post-copy using the
 B<migrate-postcopy> command sent from another virsh instance or use
 I<--postcopy-after-precopy> to let libvirt automatically switch to
 post-copy after the first pass of pre-copy is finished.
+
+I<--auto-converge> forces convergence during live migration. The initial
+guest CPU throttling rate can be set with I<auto-converge-initial>. If the
+initial throttling rate is not enough to ensure convergence, the rate is
+periodically increased by I<auto-converge-increment>.
 
 B<Note>: Individual hypervisors usually do not support all possible types of
 migration. For example, QEMU does not support direct migration.
@@ -2180,9 +2191,16 @@ from different sources can be supported by perf.
 Currently only QEMU/KVM supports this command. The I<--enable> and I<--disable>
 option combined with B<eventSpec> can be used to enabled or disable specific
 performance event. B<eventSpec> is a string list of one or more events
-separated by commas. However, just "cmt" event is supported presently. CMT is a
-PQos (Platform Qos) feature to monitor the usage of cache by applications
-running on the platform.
+separated by commas. Valid event names are "cmt", "mbmt", "mbml".
+CMT is a PQos (Platform Qos) feature to monitor the usage of cache by
+applications running on the platform.
+MBM (Memory Bandwidth Monitoring) provides a way to monitor the Total
+system memory bandwidth between one level of cache and another (mbmt)
+and the amount of data (bytes/s) sent through the memory controller on
+the socket (mbml).
+
+The statistics can be retrieved using the B<domstats> command using the
+I<--perf> flag.
 
 If I<--live> is specified, affect a running guest.
 If I<--config> is specified, affect the next boot of a persistent guest.
@@ -2487,6 +2505,16 @@ Both I<--live> and I<--config> flags may be given if I<cpulist> is present,
 but I<--current> is exclusive.
 If no flag is specified, behavior is different depending on hypervisor.
 
+=item B<guestvcpus> I<domain> [[I<--enable>] | [I<--disable>]] [I<cpulist>]
+
+Query or change state of vCPUs from guest's point of view using the guest agent.
+When invoked without I<cpulist> the guest is queried for available guest vCPUs,
+their state and possibility to be offlined.
+
+If I<cpulist> is provided then one of I<--enable> or I<--disable> must be
+provided too. The desired operation is then executed on the domain.
+
+See B<vcpupin> for information on I<cpulist>.
 
 =item B<vncdisplay> I<domain>
 
@@ -3457,6 +3485,24 @@ Undefine the configuration for an inactive I<pool>.
 
 Returns the UUID of the named I<pool>.
 
+=item B<pool-event> {[I<pool>] I<event> [I<--loop>] [I<--timeout>
+I<seconds>] [I<--timestamp>] | I<--list>}
+
+Wait for a class of storage pool events to occur, and print appropriate
+details of events as they happen.  The events can optionally be filtered
+by I<pool>.  Using I<--list> as the only argument will provide a list
+of possible I<event> values known by this client, although the connection
+might not allow registering for all these events.
+
+By default, this command is one-shot, and returns success once an event
+occurs; you can send SIGINT (usually via C<Ctrl-C>) to quit immediately.
+If I<--timeout> is specified, the command gives up waiting for events
+after I<seconds> have elapsed.   With I<--loop>, the command prints all
+events until a timeout or interrupt key.
+
+When I<--timestamp> is used, a human-readable timestamp will be printed
+before the event.
+
 =back
 
 =head1 VOLUME COMMANDS
@@ -4195,9 +4241,10 @@ omitted.
 Enter the namespace of I<domain> and execute the command C</path/to/binary>
 passing the requested args. The binary path is relative to the container
 root filesystem, not the host root filesystem. The binary will inherit the
-environment variables / console visible to virsh. This command only works
-when connected to the LXC hypervisor driver.  This command succeeds only
-if C</path/to/binary> has 0 exit status.
+environment variables / console visible to virsh. The command will be run
+with the same sVirt context and cgroups placement as processes within the
+container. This command only works when connected to the LXC hypervisor
+driver.  This command succeeds only if C</path/to/binary> has 0 exit status.
 
 By default the new process will run with the security label of the new
 parent container. Use the I<--noseclabel> option to instead have the

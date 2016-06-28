@@ -135,6 +135,7 @@ getCapsObject(void)
  */
 static virDrvOpenStatus
 xenapiConnectOpen(virConnectPtr conn, virConnectAuthPtr auth,
+                  virConfPtr conf ATTRIBUTE_UNUSED,
                   unsigned int flags)
 {
     char *username = NULL;
@@ -562,7 +563,7 @@ xenapiDomainCreateXML(virConnectPtr conn,
     virCheckFlags(VIR_DOMAIN_START_VALIDATE, NULL);
 
     if (flags & VIR_DOMAIN_START_VALIDATE)
-        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE_SCHEMA;
 
     virDomainDefPtr defPtr = virDomainDefParseString(xmlDesc,
                                                      priv->caps, priv->xmlopt,
@@ -1744,7 +1745,7 @@ xenapiDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int fla
     virCheckFlags(VIR_DOMAIN_DEFINE_VALIDATE, NULL);
 
     if (flags & VIR_DOMAIN_DEFINE_VALIDATE)
-        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE_SCHEMA;
 
     if (!priv->caps)
         return NULL;

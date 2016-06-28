@@ -2529,13 +2529,15 @@ qemuMonitorJSONSetMigrationCacheSize(qemuMonitorPtr mon,
 
 
 int
-qemuMonitorJSONGetMigrationCompression(qemuMonitorPtr mon,
-                                       qemuMonitorMigrationCompressionPtr compress)
+qemuMonitorJSONGetMigrationParams(qemuMonitorPtr mon,
+                                  qemuMonitorMigrationParamsPtr params)
 {
     int ret = -1;
     virJSONValuePtr result;
     virJSONValuePtr cmd = NULL;
     virJSONValuePtr reply = NULL;
+
+    memset(params, 0, sizeof(*params));
 
     if (!(cmd = qemuMonitorJSONMakeCommand("query-migrate-parameters", NULL)))
         return -1;
@@ -2548,32 +2550,20 @@ qemuMonitorJSONGetMigrationCompression(qemuMonitorPtr mon,
 
     result = virJSONValueObjectGet(reply, "return");
 
-    if (virJSONValueObjectGetNumberInt(result, "compress-level",
-                                       &compress->level) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("malformed/missing compress-level "
-                         "in migrate parameters"));
-        goto cleanup;
-    }
-    compress->level_set = true;
+#define PARSE(VAR, FIELD)                                                   \
+    do {                                                                    \
+        if (virJSONValueObjectGetNumberInt(result, FIELD,                   \
+                                           &params->VAR) == 0)              \
+            params->VAR ## _set = true;                                     \
+    } while (0)
 
-    if (virJSONValueObjectGetNumberInt(result, "compress-threads",
-                                       &compress->threads) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("malformed/missing compress-threads "
-                         "in migrate parameters"));
-        goto cleanup;
-    }
-    compress->threads_set = true;
+    PARSE(compressLevel, "compress-level");
+    PARSE(compressThreads, "compress-threads");
+    PARSE(decompressThreads, "decompress-threads");
+    PARSE(cpuThrottleInitial, "cpu-throttle-initial");
+    PARSE(cpuThrottleIncrement, "cpu-throttle-increment");
 
-    if (virJSONValueObjectGetNumberInt(result, "decompress-threads",
-                                       &compress->dthreads) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("malformed/missing decompress-threads "
-                         "in migrate parameters"));
-        goto cleanup;
-    }
-    compress->dthreads_set = true;
+#undef PARSE
 
     ret = 0;
  cleanup:
@@ -2583,8 +2573,8 @@ qemuMonitorJSONGetMigrationCompression(qemuMonitorPtr mon,
 }
 
 int
-qemuMonitorJSONSetMigrationCompression(qemuMonitorPtr mon,
-                                       qemuMonitorMigrationCompressionPtr compress)
+qemuMonitorJSONSetMigrationParams(qemuMonitorPtr mon,
+                                  qemuMonitorMigrationParamsPtr params)
 {
     int ret = -1;
     virJSONValuePtr cmd = NULL;
@@ -2601,20 +2591,21 @@ qemuMonitorJSONSetMigrationCompression(qemuMonitorPtr mon,
     if (!(args = virJSONValueNewObject()))
         goto cleanup;
 
-    if (compress->level_set &&
-        virJSONValueObjectAppendNumberInt(args, "compress-level",
-                                          compress->level) < 0)
-        goto cleanup;
+#define APPEND(VAR, FIELD)                                                  \
+    do {                                                                    \
+        if (params->VAR ## _set &&                                          \
+            virJSONValueObjectAppendNumberInt(args, FIELD,                  \
+                                              params->VAR) < 0)             \
+            goto cleanup;                                                   \
+    } while (0)
 
-    if (compress->threads_set &&
-        virJSONValueObjectAppendNumberInt(args, "compress-threads",
-                                          compress->threads) < 0)
-        goto cleanup;
+    APPEND(compressLevel, "compress-level");
+    APPEND(compressThreads, "compress-threads");
+    APPEND(decompressThreads, "decompress-threads");
+    APPEND(cpuThrottleInitial, "cpu-throttle-initial");
+    APPEND(cpuThrottleIncrement, "cpu-throttle-increment");
 
-    if (compress->dthreads_set &&
-        virJSONValueObjectAppendNumberInt(args, "decompress-threads",
-                                          compress->dthreads) < 0)
-        goto cleanup;
+#undef APPEND
 
     if (virJSONValueObjectAppend(cmd, "arguments", args) < 0)
         goto cleanup;
@@ -2681,6 +2672,9 @@ qemuMonitorJSONGetMigrationStatsReply(virJSONValuePtr reply,
     if (virJSONValueObjectGetNumberUlong(ret, "setup-time",
                                          &stats->setup_time) == 0)
         stats->setup_time_set = true;
+
+    ignore_value(virJSONValueObjectGetNumberInt(ret, "cpu-throttle-percentage",
+                                                &stats->cpu_throttle_percentage));
 
     switch ((qemuMonitorMigrationStatus) stats->status) {
     case QEMU_MONITOR_MIGRATION_STATUS_INACTIVE:
@@ -6209,6 +6203,13 @@ qemuMonitorJSONAttachCharDevCommand(const char *chrID,
         break;
 
     case VIR_DOMAIN_CHR_TYPE_SPICEVMC:
+        backend_type = "spicevmc";
+
+        if (virJSONValueObjectAppendString(data, "type",
+                                           virDomainChrSpicevmcTypeToString(chr->data.spicevmc)) < 0)
+            goto error;
+        break;
+
     case VIR_DOMAIN_CHR_TYPE_SPICEPORT:
     case VIR_DOMAIN_CHR_TYPE_PIPE:
     case VIR_DOMAIN_CHR_TYPE_STDIO:
@@ -6363,7 +6364,8 @@ qemuMonitorJSONParseCPUx86FeatureWord(virJSONValuePtr data,
                                       virCPUx86CPUID *cpuid)
 {
     const char *reg;
-    unsigned long long fun;
+    unsigned long long eax_in;
+    unsigned long long ecx_in = 0;
     unsigned long long features;
 
     memset(cpuid, 0, sizeof(*cpuid));
@@ -6373,18 +6375,21 @@ qemuMonitorJSONParseCPUx86FeatureWord(virJSONValuePtr data,
                        _("missing cpuid-register in CPU data"));
         return -1;
     }
-    if (virJSONValueObjectGetNumberUlong(data, "cpuid-input-eax", &fun) < 0) {
+    if (virJSONValueObjectGetNumberUlong(data, "cpuid-input-eax", &eax_in) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("missing or invalid cpuid-input-eax in CPU data"));
         return -1;
     }
+    ignore_value(virJSONValueObjectGetNumberUlong(data, "cpuid-input-ecx",
+                                                  &ecx_in));
     if (virJSONValueObjectGetNumberUlong(data, "features", &features) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("missing or invalid features in CPU data"));
         return -1;
     }
 
-    cpuid->function = fun;
+    cpuid->eax_in = eax_in;
+    cpuid->ecx_in = ecx_in;
     if (STREQ(reg, "EAX")) {
         cpuid->eax = features;
     } else if (STREQ(reg, "EBX")) {
@@ -6404,6 +6409,40 @@ qemuMonitorJSONParseCPUx86FeatureWord(virJSONValuePtr data,
 
 
 static int
+qemuMonitorJSONParseCPUx86Features(virJSONValuePtr data,
+                                   virCPUDataPtr *cpudata)
+{
+    virCPUx86Data x86Data = VIR_CPU_X86_DATA_INIT;
+    virCPUx86CPUID cpuid;
+    size_t i;
+    ssize_t n;
+    int ret = -1;
+
+    if ((n = virJSONValueArraySize(data)) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("invalid array of CPUID features"));
+        return -1;
+    }
+
+    for (i = 0; i < n; i++) {
+        if (qemuMonitorJSONParseCPUx86FeatureWord(virJSONValueArrayGet(data, i),
+                                                  &cpuid) < 0 ||
+            virCPUx86DataAddCPUID(&x86Data, &cpuid) < 0)
+            goto cleanup;
+    }
+
+    if (!(*cpudata = virCPUx86MakeData(VIR_ARCH_X86_64, &x86Data)))
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    virCPUx86DataClear(&x86Data);
+    return ret;
+}
+
+
+int
 qemuMonitorJSONGetCPUx86Data(qemuMonitorPtr mon,
                              const char *property,
                              virCPUDataPtr *cpudata)
@@ -6411,59 +6450,7 @@ qemuMonitorJSONGetCPUx86Data(qemuMonitorPtr mon,
     virJSONValuePtr cmd = NULL;
     virJSONValuePtr reply = NULL;
     virJSONValuePtr data;
-    virJSONValuePtr element;
-    virCPUx86Data *x86Data = NULL;
-    virCPUx86CPUID cpuid;
-    size_t i;
-    ssize_t n;
     int ret = -1;
-
-    /* look up if the property exists before asking */
-    if (!(cmd = qemuMonitorJSONMakeCommand("qom-list",
-                                           "s:path", QOM_CPU_PATH,
-                                           NULL)))
-        goto cleanup;
-
-    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
-        goto cleanup;
-
-    /* check if device exists */
-    if ((data = virJSONValueObjectGet(reply, "error"))) {
-        const char *klass = virJSONValueObjectGetString(data, "class");
-        if (STREQ_NULLABLE(klass, "DeviceNotFound") ||
-            STREQ_NULLABLE(klass, "CommandNotFound")) {
-            ret = -2;
-            goto cleanup;
-        }
-    }
-
-    if (qemuMonitorJSONCheckError(cmd, reply))
-        goto cleanup;
-
-    data = virJSONValueObjectGetArray(reply, "return");
-
-    if ((n = virJSONValueArraySize(data)) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("%s CPU property did not return an array"),
-                       property);
-        goto cleanup;
-    }
-
-    for (i = 0; i < n; i++) {
-        element = virJSONValueArrayGet(data, i);
-        if (STREQ_NULLABLE(virJSONValueObjectGetString(element, "name"),
-                           property))
-            break;
-    }
-
-    /* "property" was not found */
-    if (i == n) {
-        ret = -2;
-        goto cleanup;
-    }
-
-    virJSONValueFree(cmd);
-    virJSONValueFree(reply);
 
     if (!(cmd = qemuMonitorJSONMakeCommand("qom-get",
                                            "s:path", QOM_CPU_PATH,
@@ -6477,38 +6464,73 @@ qemuMonitorJSONGetCPUx86Data(qemuMonitorPtr mon,
     if (qemuMonitorJSONCheckError(cmd, reply))
         goto cleanup;
 
-    if (!(data = virJSONValueObjectGetArray(reply, "return"))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("qom-get reply was missing return data"));
-        goto cleanup;
-    }
-
-    if ((n = virJSONValueArraySize(data)) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("%s CPU property did not return an array"),
-                       property);
-        goto cleanup;
-    }
-
-    if (VIR_ALLOC(x86Data) < 0)
-        goto cleanup;
-
-    for (i = 0; i < n; i++) {
-        if (qemuMonitorJSONParseCPUx86FeatureWord(virJSONValueArrayGet(data, i),
-                                                  &cpuid) < 0 ||
-            virCPUx86DataAddCPUID(x86Data, &cpuid) < 0)
-            goto cleanup;
-    }
-
-    if (!(*cpudata = virCPUx86MakeData(VIR_ARCH_X86_64, &x86Data)))
-        goto cleanup;
-
-    ret = 0;
+    data = virJSONValueObjectGetArray(reply, "return");
+    ret = qemuMonitorJSONParseCPUx86Features(data, cpudata);
 
  cleanup:
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
-    virCPUx86DataFree(x86Data);
+    return ret;
+}
+
+
+/*
+ * Returns -1 on error, 0 if QEMU does not support reporting CPUID features
+ * of a guest CPU, and 1 if the feature is supported.
+ */
+static int
+qemuMonitorJSONCheckCPUx86(qemuMonitorPtr mon)
+{
+    virJSONValuePtr cmd = NULL;
+    virJSONValuePtr reply = NULL;
+    virJSONValuePtr data;
+    size_t i;
+    ssize_t n;
+    int ret = -1;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("qom-list",
+                                           "s:path", QOM_CPU_PATH,
+                                           NULL)))
+        goto cleanup;
+
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        goto cleanup;
+
+    if ((data = virJSONValueObjectGet(reply, "error"))) {
+        const char *klass = virJSONValueObjectGetString(data, "class");
+        if (STREQ_NULLABLE(klass, "DeviceNotFound") ||
+            STREQ_NULLABLE(klass, "CommandNotFound")) {
+            ret = 0;
+            goto cleanup;
+        }
+    }
+
+    if (qemuMonitorJSONCheckError(cmd, reply))
+        goto cleanup;
+
+    data = virJSONValueObjectGetArray(reply, "return");
+
+    if ((n = virJSONValueArraySize(data)) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("qom-list reply data was not an array"));
+        goto cleanup;
+    }
+
+    for (i = 0; i < n; i++) {
+        virJSONValuePtr element = virJSONValueArrayGet(data, i);
+        if (STREQ_NULLABLE(virJSONValueObjectGetString(element, "name"),
+                           "feature-words"))
+            break;
+    }
+
+    if (i == n)
+        ret = 0;
+    else
+        ret = 1;
+
+ cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
     return ret;
 }
 
@@ -6529,9 +6551,16 @@ qemuMonitorJSONGetGuestCPU(qemuMonitorPtr mon,
                            virArch arch,
                            virCPUDataPtr *data)
 {
+    int rc;
+
     switch (arch) {
     case VIR_ARCH_X86_64:
     case VIR_ARCH_I686:
+        if ((rc = qemuMonitorJSONCheckCPUx86(mon)) < 0)
+            return -1;
+        else if (!rc)
+            return -2;
+
         return qemuMonitorJSONGetCPUx86Data(mon, "feature-words", data);
 
     default:

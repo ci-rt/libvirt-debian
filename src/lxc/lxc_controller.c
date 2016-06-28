@@ -65,7 +65,7 @@
 #include "virfile.h"
 #include "virpidfile.h"
 #include "vircommand.h"
-#include "nodeinfo.h"
+#include "virhostcpu.h"
 #include "virrandom.h"
 #include "virprocess.h"
 #include "virnuma.h"
@@ -730,7 +730,7 @@ static int virLXCControllerSetupCpuAffinity(virLXCControllerPtr ctrl)
 
     /* setaffinity fails if you set bits for CPUs which
      * aren't present, so we have to limit ourselves */
-    if ((hostcpus = nodeGetCPUCount(NULL)) < 0)
+    if ((hostcpus = virHostCPUGetCount()) < 0)
         return -1;
 
     if (maxcpu > hostcpus)
@@ -784,7 +784,7 @@ static int virLXCControllerGetNumadAdvice(virLXCControllerPtr ctrl,
 
         VIR_DEBUG("Nodeset returned from numad: %s", nodeset);
 
-        if (virBitmapParse(nodeset, 0, &nodemask, VIR_DOMAIN_CPUMASK_LEN) < 0)
+        if (virBitmapParse(nodeset, &nodemask, VIR_DOMAIN_CPUMASK_LEN) < 0)
             goto cleanup;
     }
 

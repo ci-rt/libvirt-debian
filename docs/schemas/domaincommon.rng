@@ -412,6 +412,8 @@
           <attribute name="name">
             <choice>
               <value>cmt</value>
+              <value>mbmt</value>
+              <value>mbml</value>
             </choice>
           </attribute>
           <attribute name="enabled">
@@ -1618,6 +1620,9 @@
       <optional>
         <ref name="driverIOThread"/>
       </optional>
+      <optional>
+        <ref name="detect_zeroes"/>
+      </optional>
       <empty/>
     </element>
   </define>
@@ -1700,6 +1705,15 @@
   <define name="driverIOThread">
     <attribute name='iothread'>
       <ref name="unsignedInt"/>
+    </attribute>
+  </define>
+  <define name="detect_zeroes">
+    <attribute name='detect_zeroes'>
+      <choice>
+        <value>off</value>
+        <value>on</value>
+        <value>unmap</value>
+      </choice>
     </attribute>
   </define>
   <define name="controller">
@@ -2975,6 +2989,21 @@
                 <ref name="addrIPorName"/>
               </attribute>
             </optional>
+          </group>
+          <group>
+            <attribute name="type">
+              <value>socket</value>
+            </attribute>
+            <optional>
+              <attribute name="socket">
+                <ref name="absFilePath"/>
+              </attribute>
+            </optional>
+          </group>
+          <group>
+            <attribute name="type">
+              <value>none</value>
+            </attribute>
           </group>
         </choice>
       </element>

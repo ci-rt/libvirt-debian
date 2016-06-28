@@ -112,24 +112,45 @@ static int virDomainObjListSearchID(const void *payload,
     return want;
 }
 
-
-virDomainObjPtr virDomainObjListFindByID(virDomainObjListPtr doms,
-                                         int id)
+static virDomainObjPtr
+virDomainObjListFindByIDInternal(virDomainObjListPtr doms,
+                                 int id,
+                                 bool ref)
 {
     virDomainObjPtr obj;
     virObjectLock(doms);
     obj = virHashSearch(doms->objs, virDomainObjListSearchID, &id);
+    if (ref) {
+        virObjectRef(obj);
+        virObjectUnlock(doms);
+    }
     if (obj) {
         virObjectLock(obj);
         if (obj->removing) {
             virObjectUnlock(obj);
+            if (ref)
+                virObjectUnref(obj);
             obj = NULL;
         }
     }
-    virObjectUnlock(doms);
+    if (!ref)
+        virObjectUnlock(doms);
     return obj;
 }
 
+virDomainObjPtr
+virDomainObjListFindByID(virDomainObjListPtr doms,
+                         int id)
+{
+    return virDomainObjListFindByIDInternal(doms, id, false);
+}
+
+virDomainObjPtr
+virDomainObjListFindByIDRef(virDomainObjListPtr doms,
+                            int id)
+{
+    return virDomainObjListFindByIDInternal(doms, id, true);
+}
 
 static virDomainObjPtr
 virDomainObjListFindByUUIDInternal(virDomainObjListPtr doms,
@@ -443,7 +464,8 @@ virDomainObjListLoadConfig(virDomainObjListPtr doms,
         goto error;
     if (!(def = virDomainDefParseFile(configFile, caps, xmlopt,
                                       VIR_DOMAIN_DEF_PARSE_INACTIVE |
-                                      VIR_DOMAIN_DEF_PARSE_SKIP_OSTYPE_CHECKS)))
+                                      VIR_DOMAIN_DEF_PARSE_SKIP_OSTYPE_CHECKS |
+                                      VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE)))
         goto error;
 
     if ((autostartLink = virDomainConfigFile(autostartDir, name)) == NULL)
@@ -493,7 +515,8 @@ virDomainObjListLoadStatus(virDomainObjListPtr doms,
                                       VIR_DOMAIN_DEF_PARSE_STATUS |
                                       VIR_DOMAIN_DEF_PARSE_ACTUAL_NET |
                                       VIR_DOMAIN_DEF_PARSE_PCI_ORIG_STATES |
-                                      VIR_DOMAIN_DEF_PARSE_SKIP_OSTYPE_CHECKS)))
+                                      VIR_DOMAIN_DEF_PARSE_SKIP_OSTYPE_CHECKS |
+                                      VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE)))
         goto error;
 
     virUUIDFormat(obj->def->uuid, uuidstr);
@@ -543,25 +566,17 @@ virDomainObjListLoadAllConfigs(virDomainObjListPtr doms,
     DIR *dir;
     struct dirent *entry;
     int ret = -1;
+    int rc;
 
     VIR_INFO("Scanning for configs in %s", configDir);
 
-    if (!(dir = opendir(configDir))) {
-        if (errno == ENOENT)
-            return 0;
-        virReportSystemError(errno,
-                             _("Failed to open dir '%s'"),
-                             configDir);
-        return -1;
-    }
+    if ((rc = virDirOpenIfExists(&dir, configDir)) <= 0)
+        return rc;
 
     virObjectLock(doms);
 
     while ((ret = virDirRead(dir, &entry, configDir)) > 0) {
         virDomainObjPtr dom;
-
-        if (entry->d_name[0] == '.')
-            continue;
 
         if (!virFileStripSuffix(entry->d_name, ".xml"))
             continue;
@@ -593,7 +608,7 @@ virDomainObjListLoadAllConfigs(virDomainObjListPtr doms,
         }
     }
 
-    closedir(dir);
+    VIR_DIR_CLOSE(dir);
     virObjectUnlock(doms);
     return ret;
 }

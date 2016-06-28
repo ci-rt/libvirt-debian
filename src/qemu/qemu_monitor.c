@@ -719,8 +719,7 @@ qemuMonitorIO(int watch, int fd, int events, void *opaque)
              * "connection reset by peer" message.
              */
             mon->logFunc(mon,
-                         _("early end of file from monitor, "
-                           "possible problem"),
+                         _("qemu unexpectedly closed the monitor"),
                          mon->logOpaque);
             virCopyLastError(&mon->lastError);
             virResetLastError();
@@ -2161,24 +2160,37 @@ qemuMonitorSetMigrationCacheSize(qemuMonitorPtr mon,
 
 
 int
-qemuMonitorGetMigrationCompression(qemuMonitorPtr mon,
-                                   qemuMonitorMigrationCompressionPtr compress)
+qemuMonitorGetMigrationParams(qemuMonitorPtr mon,
+                              qemuMonitorMigrationParamsPtr params)
 {
     QEMU_CHECK_MONITOR_JSON(mon);
 
-    return qemuMonitorJSONGetMigrationCompression(mon, compress);
+    return qemuMonitorJSONGetMigrationParams(mon, params);
 }
 
 int
-qemuMonitorSetMigrationCompression(qemuMonitorPtr mon,
-                                   qemuMonitorMigrationCompressionPtr compress)
+qemuMonitorSetMigrationParams(qemuMonitorPtr mon,
+                              qemuMonitorMigrationParamsPtr params)
 {
-    VIR_DEBUG("level=%d threads=%d dthreads=%d",
-              compress->level, compress->threads, compress->dthreads);
+    VIR_DEBUG("compressLevel=%d:%d compressThreads=%d:%d "
+              "decompressThreads=%d:%d cpuThrottleInitial=%d:%d "
+              "cpuThrottleIncrement=%d:%d",
+              params->compressLevel_set, params->compressLevel,
+              params->compressThreads_set, params->compressThreads,
+              params->decompressThreads_set, params->decompressThreads,
+              params->cpuThrottleInitial_set, params->cpuThrottleInitial,
+              params->cpuThrottleIncrement_set, params->cpuThrottleIncrement);
 
     QEMU_CHECK_MONITOR_JSON(mon);
 
-    return qemuMonitorJSONSetMigrationCompression(mon, compress);
+    if (!params->compressLevel_set &&
+        !params->compressThreads_set &&
+        !params->decompressThreads_set &&
+        !params->cpuThrottleInitial_set &&
+        !params->cpuThrottleIncrement_set)
+        return 0;
+
+    return qemuMonitorJSONSetMigrationParams(mon, params);
 }
 
 

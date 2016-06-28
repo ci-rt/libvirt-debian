@@ -59,6 +59,7 @@
 
 VIR_LOG_INIT("tests.testutils");
 
+#include "virbitmap.h"
 #include "virfile.h"
 
 static unsigned int testDebug = -1;
@@ -79,17 +80,16 @@ int ntestAllocStack;
 static bool testOOMActive;
 
 static size_t testCounter;
-static size_t testStart;
-static size_t testEnd;
+static virBitmapPtr testBitmap;
 
 char *progname;
 
-bool virtTestOOMActive(void)
+bool virTestOOMActive(void)
 {
     return testOOMActive;
 }
 
-static int virtTestUseTerminalColors(void)
+static int virTestUseTerminalColors(void)
 {
     return isatty(STDIN_FILENO);
 }
@@ -152,8 +152,8 @@ virTestShowTrace(void)
  * returns: -1 = error, 0 = success
  */
 int
-virtTestRun(const char *title,
-            int (*body)(const void *data), const void *data)
+virTestRun(const char *title,
+           int (*body)(const void *data), const void *data)
 {
     int ret = 0;
 
@@ -169,9 +169,7 @@ virtTestRun(const char *title,
 
 
     /* Skip tests if out of range */
-    if ((testStart != 0) &&
-        (testCounter < testStart ||
-         testCounter > testEnd))
+    if (testBitmap && !virBitmapIsBitSet(testBitmap, testCounter))
         return 0;
 
     if (virTestGetVerbose())
@@ -187,17 +185,17 @@ virtTestRun(const char *title,
 
     if (virTestGetVerbose()) {
         if (ret == 0)
-            if (virtTestUseTerminalColors())
+            if (virTestUseTerminalColors())
                 fprintf(stderr, "\e[32mOK\e[0m\n");  /* green */
             else
                 fprintf(stderr, "OK\n");
         else if (ret == EXIT_AM_SKIP)
-            if (virtTestUseTerminalColors())
+            if (virTestUseTerminalColors())
                 fprintf(stderr, "\e[34m\e[1mSKIP\e[0m\n");  /* bold blue */
             else
                 fprintf(stderr, "SKIP\n");
         else
-            if (virtTestUseTerminalColors())
+            if (virTestUseTerminalColors())
                 fprintf(stderr, "\e[31m\e[1mFAILED\e[0m\n");  /* bold red */
             else
                 fprintf(stderr, "FAILED\n");
@@ -294,7 +292,7 @@ virtTestRun(const char *title,
    Upon any failure, diagnose it and return -1, but don't bother trying
    to preserve errno. Otherwise, return the number of bytes copied into BUF. */
 int
-virtTestLoadFile(const char *file, char **buf)
+virTestLoadFile(const char *file, char **buf)
 {
     FILE *fp = fopen(file, "r");
     struct stat st;
@@ -351,8 +349,8 @@ virtTestLoadFile(const char *file, char **buf)
 
 #ifndef WIN32
 static
-void virtTestCaptureProgramExecChild(const char *const argv[],
-                                     int pipefd)
+void virTestCaptureProgramExecChild(const char *const argv[],
+                                    int pipefd)
 {
     size_t i;
     int open_max;
@@ -396,7 +394,7 @@ void virtTestCaptureProgramExecChild(const char *const argv[],
 }
 
 int
-virtTestCaptureProgramOutput(const char *const argv[], char **buf, int maxlen)
+virTestCaptureProgramOutput(const char *const argv[], char **buf, int maxlen)
 {
     int pipefd[2];
     int len;
@@ -408,7 +406,7 @@ virtTestCaptureProgramOutput(const char *const argv[], char **buf, int maxlen)
     switch (pid) {
     case 0:
         VIR_FORCE_CLOSE(pipefd[0]);
-        virtTestCaptureProgramExecChild(argv, pipefd[1]);
+        virTestCaptureProgramExecChild(argv, pipefd[1]);
 
         VIR_FORCE_CLOSE(pipefd[1]);
         _exit(EXIT_FAILURE);
@@ -428,9 +426,9 @@ virtTestCaptureProgramOutput(const char *const argv[], char **buf, int maxlen)
 }
 #else /* !WIN32 */
 int
-virtTestCaptureProgramOutput(const char *const argv[] ATTRIBUTE_UNUSED,
-                             char **buf ATTRIBUTE_UNUSED,
-                             int maxlen ATTRIBUTE_UNUSED)
+virTestCaptureProgramOutput(const char *const argv[] ATTRIBUTE_UNUSED,
+                            char **buf ATTRIBUTE_UNUSED,
+                            int maxlen ATTRIBUTE_UNUSED)
 {
     return -1;
 }
@@ -440,26 +438,20 @@ static int
 virTestRewrapFile(const char *filename)
 {
     int ret = -1;
-    char *outbuf = NULL;
     char *script = NULL;
     virCommandPtr cmd = NULL;
 
     if (virAsprintf(&script, "%s/test-wrap-argv.pl", abs_srcdir) < 0)
         goto cleanup;
 
-    cmd = virCommandNewArgList(script, filename, NULL);
-    virCommandSetOutputBuffer(cmd, &outbuf);
+    cmd = virCommandNewArgList(script, "--in-place", filename, NULL);
     if (virCommandRun(cmd, NULL) < 0)
-        goto cleanup;
-
-    if (virFileWriteStr(filename, outbuf, 0666) < 0)
         goto cleanup;
 
     ret = 0;
  cleanup:
     VIR_FREE(script);
     virCommandFree(cmd);
-    VIR_FREE(outbuf);
     return ret;
 }
 
@@ -476,12 +468,12 @@ virTestRewrapFile(const char *filename)
  * non-NULL.
  */
 static int
-virtTestDifferenceFullInternal(FILE *stream,
-                               const char *expect,
-                               const char *expectName,
-                               const char *actual,
-                               const char *actualName,
-                               bool regenerate)
+virTestDifferenceFullInternal(FILE *stream,
+                              const char *expect,
+                              const char *expectName,
+                              const char *actual,
+                              const char *actualName,
+                              bool regenerate)
 {
     const char *expectStart;
     const char *expectEnd;
@@ -565,14 +557,14 @@ virtTestDifferenceFullInternal(FILE *stream,
  * regenerate the expected file.
  */
 int
-virtTestDifferenceFull(FILE *stream,
-                       const char *expect,
-                       const char *expectName,
-                       const char *actual,
-                       const char *actualName)
+virTestDifferenceFull(FILE *stream,
+                      const char *expect,
+                      const char *expectName,
+                      const char *actual,
+                      const char *actualName)
 {
-    return virtTestDifferenceFullInternal(stream, expect, expectName,
-                                          actual, actualName, true);
+    return virTestDifferenceFullInternal(stream, expect, expectName,
+                                         actual, actualName, true);
 }
 
 /**
@@ -588,14 +580,14 @@ virtTestDifferenceFull(FILE *stream,
  * regenerate the expected file.
  */
 int
-virtTestDifferenceFullNoRegenerate(FILE *stream,
-                                   const char *expect,
-                                   const char *expectName,
-                                   const char *actual,
-                                   const char *actualName)
+virTestDifferenceFullNoRegenerate(FILE *stream,
+                                  const char *expect,
+                                  const char *expectName,
+                                  const char *actual,
+                                  const char *actualName)
 {
-    return virtTestDifferenceFullInternal(stream, expect, expectName,
-                                          actual, actualName, false);
+    return virTestDifferenceFullInternal(stream, expect, expectName,
+                                         actual, actualName, false);
 }
 
 /**
@@ -607,13 +599,13 @@ virtTestDifferenceFullNoRegenerate(FILE *stream,
  * first and last characters at which differences occur
  */
 int
-virtTestDifference(FILE *stream,
-                   const char *expect,
-                   const char *actual)
+virTestDifference(FILE *stream,
+                  const char *expect,
+                  const char *actual)
 {
-    return virtTestDifferenceFullNoRegenerate(stream,
-                                              expect, NULL,
-                                              actual, NULL);
+    return virTestDifferenceFullNoRegenerate(stream,
+                                             expect, NULL,
+                                             actual, NULL);
 }
 
 
@@ -625,10 +617,10 @@ virtTestDifference(FILE *stream,
  * Display expected and actual output text, trimmed to
  * first and last characters at which differences occur
  */
-int virtTestDifferenceBin(FILE *stream,
-                          const char *expect,
-                          const char *actual,
-                          size_t length)
+int virTestDifferenceBin(FILE *stream,
+                         const char *expect,
+                         const char *actual,
+                         size_t length)
 {
     size_t start = 0, end = length;
     ssize_t i;
@@ -686,14 +678,14 @@ int virtTestDifferenceBin(FILE *stream,
  * @param filename: File to compare strcontent against
  */
 int
-virtTestCompareToFile(const char *strcontent,
-                      const char *filename)
+virTestCompareToFile(const char *strcontent,
+                     const char *filename)
 {
     int ret = -1;
     char *filecontent = NULL;
     char *fixedcontent = NULL;
 
-    if (virtTestLoadFile(filename, &filecontent) < 0 && !virTestGetRegenerate())
+    if (virTestLoadFile(filename, &filecontent) < 0 && !virTestGetRegenerate())
         goto failure;
 
     if (filecontent &&
@@ -705,9 +697,9 @@ virtTestCompareToFile(const char *strcontent,
 
     if (STRNEQ_NULLABLE(fixedcontent ? fixedcontent : strcontent,
                         filecontent)) {
-        virtTestDifferenceFull(stderr,
-                               filecontent, filename,
-                               strcontent, NULL);
+        virTestDifferenceFull(stderr,
+                              filecontent, filename,
+                              strcontent, NULL);
         goto failure;
     }
 
@@ -718,18 +710,34 @@ virtTestCompareToFile(const char *strcontent,
     return ret;
 }
 
+/*
+ * @param strcontent: String input content
+ * @param strsrc: String source to compare strcontent against
+ */
+int
+virTestCompareToString(const char *strcontent,
+                       const char *strsrc)
+{
+    if (STRNEQ_NULLABLE(strcontent, strsrc)) {
+        virTestDifference(stderr, strcontent, strsrc);
+        return -1;
+    }
+
+    return 0;
+}
+
 static void
-virtTestErrorFuncQuiet(void *data ATTRIBUTE_UNUSED,
-                       virErrorPtr err ATTRIBUTE_UNUSED)
+virTestErrorFuncQuiet(void *data ATTRIBUTE_UNUSED,
+                      virErrorPtr err ATTRIBUTE_UNUSED)
 { }
 
 
 /* register an error handler in tests when using connections */
 void
-virtTestQuiesceLibvirtErrors(bool always)
+virTestQuiesceLibvirtErrors(bool always)
 {
     if (always || !virTestGetVerbose())
-        virSetErrorFunc(NULL, virtTestErrorFuncQuiet);
+        virSetErrorFunc(NULL, virTestErrorFuncQuiet);
 }
 
 struct virtTestLogData {
@@ -768,7 +776,7 @@ virtTestLogClose(void *data)
 /* Return a malloc'd string (possibly with strlen of 0) of all data
  * logged since the last call to this function, or NULL on failure.  */
 char *
-virtTestLogContentAndReset(void)
+virTestLogContentAndReset(void)
 {
     char *ret;
 
@@ -841,10 +849,10 @@ virTestSetEnvPath(void)
 
 #define TEST_MOCK (abs_builddir "/.libs/virtestmock.so")
 
-int virtTestMain(int argc,
-                 char **argv,
-                 int (*func)(void),
-                 ...)
+int virTestMain(int argc,
+                char **argv,
+                int (*func)(void),
+                ...)
 {
     const char *lib;
     va_list ap;
@@ -898,29 +906,9 @@ int virtTestMain(int argc,
     }
 
     if ((testRange = getenv("VIR_TEST_RANGE")) != NULL) {
-        char *end = NULL;
-        unsigned int iv;
-        if (virStrToLong_ui(testRange, &end, 10, &iv) < 0) {
+        if (virBitmapParseUnlimited(testRange, &testBitmap) < 0) {
             fprintf(stderr, "Cannot parse range %s\n", testRange);
             return EXIT_FAILURE;
-        }
-        testStart = testEnd = iv;
-        if (end && *end) {
-            if (*end != '-') {
-                fprintf(stderr, "Cannot parse range %s\n", testRange);
-                return EXIT_FAILURE;
-            }
-            end++;
-            if (virStrToLong_ui(end, NULL, 10, &iv) < 0) {
-                fprintf(stderr, "Cannot parse range %s\n", testRange);
-                return EXIT_FAILURE;
-            }
-            testEnd = iv;
-
-            if (testEnd < testStart) {
-                fprintf(stderr, "Test range end %zu must be >= %zu\n", testEnd, testStart);
-                return EXIT_FAILURE;
-            }
         }
     }
 
@@ -1008,7 +996,7 @@ int virtTestMain(int argc,
  *  iptables --table filter --insert FORWARD --out-interface virbr0 --jump REJECT
  *  iptables --table filter --insert FORWARD --in-interface virbr0 --out-interface virbr0 --jump ACCEPT"
  */
-void virtTestClearCommandPath(char *cmdset)
+void virTestClearCommandPath(char *cmdset)
 {
     size_t offset = 0;
     char *lineStart = cmdset;
@@ -1114,6 +1102,11 @@ testCompareDomXML2XMLFiles(virCapsPtr caps, virDomainXMLOptionPtr xmlopt,
 
     parse_flags |= parseFlags;
 
+    if (!virFileExists(infile)) {
+        VIR_TEST_DEBUG("Test input file '%s' is missing", infile);
+        return -1;
+    }
+
     if (!live)
         format_flags |= VIR_DOMAIN_DEF_FORMAT_INACTIVE;
 
@@ -1138,7 +1131,7 @@ testCompareDomXML2XMLFiles(virCapsPtr caps, virDomainXMLOptionPtr xmlopt,
         goto out;
     }
 
-    if (virtTestCompareToFile(actual, outfile) < 0) {
+    if (virTestCompareToFile(actual, outfile) < 0) {
         result = TEST_COMPARE_DOM_XML2XML_RESULT_FAIL_COMPARE;
         goto out;
     }
@@ -1170,17 +1163,17 @@ static char *virtTestCounterPrefixEndOffset;
 
 
 /**
- * virtTestCounterReset:
+ * virTestCounterReset:
  * @prefix: name of the test group
  *
  * Resets the counter and sets up the test group name to use with
- * virtTestCounterNext(). This function is not thread safe.
+ * virTestCounterNext(). This function is not thread safe.
  *
  * Note: The buffer for the assembled message is 128 bytes long. Longer test
  * case names (including the number index) will be silently truncated.
  */
 void
-virtTestCounterReset(const char *prefix)
+virTestCounterReset(const char *prefix)
 {
     virtTestCounter = 0;
 
@@ -1190,20 +1183,20 @@ virtTestCounterReset(const char *prefix)
 
 
 /**
- * virtTestCounterNext:
+ * virTestCounterNext:
  *
  * This function is designed to ease test creation and reordering by adding
  * a way to do automagic test case numbering.
  *
  * Returns string consisting of test name prefix configured via
- * virtTestCounterReset() and a number that increments in every call of this
+ * virTestCounterReset() and a number that increments in every call of this
  * function. This function is not thread safe.
  *
  * Note: The buffer for the assembled message is 128 bytes long. Longer test
  * case names (including the number index) will be silently truncated.
  */
 const char
-*virtTestCounterNext(void)
+*virTestCounterNext(void)
 {
     size_t len = ARRAY_CARDINALITY(virtTestCounterStr);
 

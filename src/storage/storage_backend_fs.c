@@ -900,12 +900,8 @@ virStorageBackendFileSystemRefresh(virConnectPtr conn ATTRIBUTE_UNUSED,
     int direrr;
     int fd = -1, ret = -1;
 
-    if (!(dir = opendir(pool->def->target.path))) {
-        virReportSystemError(errno,
-                             _("cannot open path '%s'"),
-                             pool->def->target.path);
+    if (virDirOpen(&dir, pool->def->target.path) < 0)
         goto cleanup;
-    }
 
     while ((direrr = virDirRead(dir, &ent, pool->def->target.path)) > 0) {
         int err;
@@ -936,7 +932,7 @@ virStorageBackendFileSystemRefresh(virConnectPtr conn ATTRIBUTE_UNUSED,
                                                 &vol->target.encryption)) < 0) {
             if (err == -2) {
                 /* Silently ignore non-regular files,
-                 * eg '.' '..', 'lost+found', dangling symbolic link */
+                 * eg 'lost+found', dangling symbolic link */
                 virStorageVolDefFree(vol);
                 vol = NULL;
                 continue;
@@ -972,8 +968,7 @@ virStorageBackendFileSystemRefresh(virConnectPtr conn ATTRIBUTE_UNUSED,
     }
     if (direrr < 0)
         goto cleanup;
-    closedir(dir);
-    dir = NULL;
+    VIR_DIR_CLOSE(dir);
     vol = NULL;
 
     if (VIR_ALLOC(target))
@@ -1019,8 +1014,7 @@ virStorageBackendFileSystemRefresh(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     ret = 0;
  cleanup:
-    if (dir)
-        closedir(dir);
+    VIR_DIR_CLOSE(dir);
     VIR_FORCE_CLOSE(fd);
     virStorageVolDefFree(vol);
     virStorageSourceFree(target);
@@ -1280,6 +1274,51 @@ virStorageBackendFileSystemVolDelete(virConnectPtr conn ATTRIBUTE_UNUSED,
 }
 
 
+/* virStorageBackendFileSystemLoadDefaultSecrets:
+ * @conn: Connection pointer to fetch secret
+ * @vol: volume being refreshed
+ *
+ * If the volume had a QCOW secret generated, we need to regenerate the
+ * secret
+ *
+ * Returns 0 if no secret or secret setup was successful,
+ * -1 on failures w/ error message set
+ */
+static int
+virStorageBackendFileSystemLoadDefaultSecrets(virConnectPtr conn,
+                                              virStorageVolDefPtr vol)
+{
+    virSecretPtr sec;
+    virStorageEncryptionSecretPtr encsec = NULL;
+
+    /* Only necessary for qcow format */
+    if (!vol->target.encryption ||
+        vol->target.encryption->format != VIR_STORAGE_ENCRYPTION_FORMAT_QCOW ||
+        vol->target.encryption->nsecrets != 0)
+        return 0;
+
+    if (!(sec = virSecretLookupByUsage(conn, VIR_SECRET_USAGE_TYPE_VOLUME,
+                                       vol->target.path)))
+        return 0;
+
+    if (VIR_ALLOC_N(vol->target.encryption->secrets, 1) < 0 ||
+        VIR_ALLOC(encsec) < 0) {
+        VIR_FREE(vol->target.encryption->secrets);
+        virObjectUnref(sec);
+        return -1;
+    }
+
+    vol->target.encryption->nsecrets = 1;
+    vol->target.encryption->secrets[0] = encsec;
+
+    encsec->type = VIR_STORAGE_ENCRYPTION_SECRET_TYPE_PASSPHRASE;
+    virSecretGetUUID(sec, encsec->uuid);
+    virObjectUnref(sec);
+
+    return 0;
+}
+
+
 /**
  * Update info about a volume's capacity/allocation
  */
@@ -1291,39 +1330,13 @@ virStorageBackendFileSystemVolRefresh(virConnectPtr conn,
     int ret;
 
     /* Refresh allocation / capacity / permissions info in case its changed */
-    ret = virStorageBackendUpdateVolInfo(vol, false,
-                                         VIR_STORAGE_VOL_FS_OPEN_FLAGS, 0);
-    if (ret < 0)
+    if ((ret = virStorageBackendUpdateVolInfo(vol, false,
+                                              VIR_STORAGE_VOL_FS_OPEN_FLAGS,
+                                              0)) < 0)
         return ret;
 
     /* Load any secrets if possible */
-    if (vol->target.encryption &&
-        vol->target.encryption->format == VIR_STORAGE_ENCRYPTION_FORMAT_QCOW &&
-        vol->target.encryption->nsecrets == 0) {
-        virSecretPtr sec;
-        virStorageEncryptionSecretPtr encsec = NULL;
-
-        sec = virSecretLookupByUsage(conn,
-                                     VIR_SECRET_USAGE_TYPE_VOLUME,
-                                     vol->target.path);
-        if (sec) {
-            if (VIR_ALLOC_N(vol->target.encryption->secrets, 1) < 0 ||
-                VIR_ALLOC(encsec) < 0) {
-                VIR_FREE(vol->target.encryption->secrets);
-                virObjectUnref(sec);
-                return -1;
-            }
-
-            vol->target.encryption->nsecrets = 1;
-            vol->target.encryption->secrets[0] = encsec;
-
-            encsec->type = VIR_STORAGE_ENCRYPTION_SECRET_TYPE_PASSPHRASE;
-            virSecretGetUUID(sec, encsec->uuid);
-            virObjectUnref(sec);
-        }
-    }
-
-    return 0;
+    return virStorageBackendFileSystemLoadDefaultSecrets(conn, vol);
 }
 
 static int

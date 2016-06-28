@@ -148,10 +148,9 @@ void virNetSocketSetSASLSession(virNetSocketPtr sock,
 bool virNetSocketHasCachedData(virNetSocketPtr sock);
 bool virNetSocketHasPendingData(virNetSocketPtr sock);
 
-const char *virNetSocketLocalAddrString(virNetSocketPtr sock);
-const char *virNetSocketRemoteAddrString(virNetSocketPtr sock);
-char *virNetSocketLocalAddrFormatSASL(virNetSocketPtr sock);
-char *virNetSocketRemoteAddrFormatSASL(virNetSocketPtr sock);
+const char *virNetSocketLocalAddrStringSASL(virNetSocketPtr sock);
+const char *virNetSocketRemoteAddrStringSASL(virNetSocketPtr sock);
+const char *virNetSocketRemoteAddrStringURI(virNetSocketPtr sock);
 
 int virNetSocketListen(virNetSocketPtr sock, int backlog);
 int virNetSocketAccept(virNetSocketPtr sock,

@@ -52,7 +52,7 @@ static int testHelpStrParsing(const void *data)
     if (virAsprintf(&path, "%s/qemuhelpdata/%s", abs_srcdir, info->name) < 0)
         return -1;
 
-    if (virtTestLoadFile(path, &help) < 0)
+    if (virTestLoadFile(path, &help) < 0)
         goto cleanup;
 
     if (!(flags = virQEMUCapsNew()))
@@ -76,7 +76,7 @@ static int testHelpStrParsing(const void *data)
                     info->name) < 0)
         goto cleanup;
 
-    if (virtTestLoadFile(path, &help) < 0)
+    if (virTestLoadFile(path, &help) < 0)
         goto cleanup;
 
     if (virQEMUCapsParseDeviceStr(flags, help) < 0)
@@ -140,8 +140,8 @@ mymain(void)
         if (!(info.flags = virQEMUCapsNew()))                               \
             return EXIT_FAILURE;                                            \
         virQEMUCapsSetList(info.flags, __VA_ARGS__, QEMU_CAPS_LAST);        \
-        if (virtTestRun("QEMU Help String Parsing " name,                   \
-                        testHelpStrParsing, &info) < 0)                     \
+        if (virTestRun("QEMU Help String Parsing " name,                    \
+                       testHelpStrParsing, &info) < 0)                      \
             ret = -1;                                                       \
         virObjectUnref(info.flags);                                         \
     } while (0)

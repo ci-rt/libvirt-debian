@@ -406,7 +406,7 @@ int virFileLock(int fd, bool shared, off_t start, off_t len, bool waitForLock)
  * NB the lock will also be released if any open file descriptor
  * pointing to the same file as @fd is closed
  *
- * Returns 0 on succcess, or -errno on error
+ * Returns 0 on success, or -errno on error
  */
 int virFileUnlock(int fd, off_t start, off_t len)
 {
@@ -614,11 +614,8 @@ static int virFileLoopDeviceOpenSearch(char **dev_name)
 
     VIR_DEBUG("Looking for loop devices in /dev");
 
-    if (!(dh = opendir("/dev"))) {
-        virReportSystemError(errno, "%s",
-                             _("Unable to read /dev"));
+    if (virDirOpen(&dh, "/dev") < 0)
         goto cleanup;
-    }
 
     while ((direrr = virDirRead(dh, &de, "/dev")) > 0) {
         /* Checking 'loop' prefix is insufficient, since
@@ -667,8 +664,7 @@ static int virFileLoopDeviceOpenSearch(char **dev_name)
         VIR_DEBUG("No free loop devices available");
         VIR_FREE(looppath);
     }
-    if (dh)
-        closedir(dh);
+    VIR_DIR_CLOSE(dh);
     return fd;
 }
 
@@ -783,12 +779,8 @@ virFileNBDDeviceFindUnused(void)
     struct dirent *de;
     int direrr;
 
-    if (!(dh = opendir(SYSFS_BLOCK_DIR))) {
-        virReportSystemError(errno,
-                             _("Cannot read directory %s"),
-                             SYSFS_BLOCK_DIR);
+    if (virDirOpen(&dh, SYSFS_BLOCK_DIR) < 0)
         return NULL;
-    }
 
     while ((direrr = virDirRead(dh, &de, SYSFS_BLOCK_DIR)) > 0) {
         if (STRPREFIX(de->d_name, "nbd")) {
@@ -807,7 +799,7 @@ virFileNBDDeviceFindUnused(void)
                          _("No free NBD devices"));
 
  cleanup:
-    closedir(dh);
+    VIR_DIR_CLOSE(dh);
     return ret;
 }
 
@@ -943,18 +935,11 @@ int virFileDeleteTree(const char *dir)
     if (!dir || !virFileExists(dir))
         return 0;
 
-    if (!(dh = opendir(dir))) {
-        virReportSystemError(errno, _("Cannot open dir '%s'"),
-                             dir);
+    if (virDirOpen(&dh, dir) < 0)
         return -1;
-    }
 
     while ((direrr = virDirRead(dh, &de, dir)) > 0) {
         struct stat sb;
-
-        if (STREQ(de->d_name, ".") ||
-            STREQ(de->d_name, ".."))
-            continue;
 
         if (virAsprintf(&filepath, "%s/%s",
                         dir, de->d_name) < 0)
@@ -994,7 +979,7 @@ int virFileDeleteTree(const char *dir)
 
  cleanup:
     VIR_FREE(filepath);
-    closedir(dh);
+    VIR_DIR_CLOSE(dh);
     return ret;
 }
 
@@ -2737,6 +2722,67 @@ virFileRemove(const char *path,
 }
 #endif /* WIN32 */
 
+static int
+virDirOpenInternal(DIR **dirp, const char *name, bool ignoreENOENT, bool quiet)
+{
+    *dirp = opendir(name); /* exempt from syntax-check */
+    if (!*dirp) {
+        if (quiet)
+            return -1;
+
+        if (ignoreENOENT && errno == ENOENT)
+            return 0;
+        virReportSystemError(errno, _("cannot open directory '%s'"), name);
+        return -1;
+    }
+    return 1;
+}
+
+/**
+ * virDirOpen
+ * @dirp: directory stream
+ * @name: path of the directory
+ *
+ * Returns 1 on success.
+ * On failure, -1 is returned and an error is reported.
+ */
+int
+virDirOpen(DIR **dirp, const char *name)
+{
+    return virDirOpenInternal(dirp, name, false, false);
+}
+
+/**
+ * virDirOpenIfExists
+ * @dirp: directory stream
+ * @name: path of the directory
+ *
+ * Returns 1 on success.
+ * If opendir returns ENOENT, 0 is returned without reporting an error.
+ * On other errors, -1 is returned and an error is reported.
+ */
+int
+virDirOpenIfExists(DIR **dirp, const char *name)
+{
+    return virDirOpenInternal(dirp, name, true, false);
+}
+
+/**
+ * virDirOpenQuiet
+ * @dirp: directory stream
+ * @name: path of the directory
+ *
+ * Returns 1 on success.
+ *        -1 on failure.
+ *
+ * Does not report any errors and errno is preserved.
+ */
+int
+virDirOpenQuiet(DIR **dirp, const char *name)
+{
+    return virDirOpenInternal(dirp, name, false, true);
+}
+
 /**
  * virDirRead:
  * @dirp: directory to read
@@ -2745,13 +2791,13 @@ virFileRemove(const char *path,
  *
  * Wrapper around readdir. Typical usage:
  *   struct dirent ent;
- *   int value;
+ *   int rc;
  *   DIR *dir;
- *   if (!(dir = opendir(name)))
+ *   if (virDirOpen(&dir, name) < 0)
  *       goto error;
- *   while ((value = virDirRead(dir, &ent, name)) > 0)
+ *   while ((rc = virDirRead(dir, &ent, name)) > 0)
  *       process ent;
- *   if (value < 0)
+ *   if (rc < 0)
  *       goto error;
  *
  * Returns -1 on error, with error already reported if @name was
@@ -2759,15 +2805,27 @@ virFileRemove(const char *path,
  */
 int virDirRead(DIR *dirp, struct dirent **ent, const char *name)
 {
-    errno = 0;
-    *ent = readdir(dirp); /* exempt from syntax-check */
-    if (!*ent && errno) {
-        if (name)
-            virReportSystemError(errno, _("Unable to read directory '%s'"),
-                                 name);
-        return -1;
-    }
+    do {
+        errno = 0;
+        *ent = readdir(dirp); /* exempt from syntax-check */
+        if (!*ent && errno) {
+            if (name)
+                virReportSystemError(errno, _("Unable to read directory '%s'"),
+                                     name);
+            return -1;
+        }
+    } while (*ent && (STREQ((*ent)->d_name, ".") ||
+                      STREQ((*ent)->d_name, "..")));
     return !!*ent;
+}
+
+void virDirClose(DIR **dirp)
+{
+    if (!*dirp)
+        return;
+
+    closedir(*dirp); /* exempt from syntax-check */
+    *dirp = NULL;
 }
 
 static int

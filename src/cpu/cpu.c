@@ -32,7 +32,6 @@
 #include "cpu_ppc64.h"
 #include "cpu_s390.h"
 #include "cpu_arm.h"
-#include "cpu_aarch64.h"
 #include "cpu_generic.h"
 #include "util/virstring.h"
 
@@ -47,7 +46,6 @@ static struct cpuArchDriver *drivers[] = {
     &cpuDriverPPC64,
     &cpuDriverS390,
     &cpuDriverArm,
-    &cpuDriverAARCH64,
     /* generic driver must always be the last one */
     &cpuDriverGeneric
 };
@@ -74,6 +72,23 @@ cpuGetSubDriver(virArch arch)
 
     /* use generic driver by default */
     return drivers[NR_DRIVERS - 1];
+}
+
+
+static struct cpuArchDriver *
+cpuGetSubDriverByName(const char *name)
+{
+    size_t i;
+
+    for (i = 0; i < NR_DRIVERS - 1; i++) {
+        if (STREQ_NULLABLE(name, drivers[i]->name))
+            return drivers[i];
+    }
+
+    virReportError(VIR_ERR_INTERNAL_ERROR,
+                   _("CPU driver '%s' does not exist"),
+                   name);
+    return NULL;
 }
 
 
@@ -667,7 +682,6 @@ cpuDataFormat(const virCPUData *data)
 /**
  * cpuDataParse:
  *
- * @arch: CPU architecture
  * @xmlStr: XML string produced by cpuDataFormat
  *
  * Parses XML representation of virCPUData structure for test purposes.
@@ -675,24 +689,44 @@ cpuDataFormat(const virCPUData *data)
  * Returns internal CPU data structure parsed from the XML or NULL on error.
  */
 virCPUDataPtr
-cpuDataParse(virArch arch,
-             const char *xmlStr)
+cpuDataParse(const char *xmlStr)
 {
     struct cpuArchDriver *driver;
+    xmlDocPtr xml = NULL;
+    xmlXPathContextPtr ctxt = NULL;
+    virCPUDataPtr data = NULL;
+    char *arch = NULL;
 
-    VIR_DEBUG("arch=%s, xmlStr=%s", virArchToString(arch), xmlStr);
+    VIR_DEBUG("xmlStr=%s", xmlStr);
 
-    if (!(driver = cpuGetSubDriver(arch)))
-        return NULL;
+    if (!(xml = virXMLParseStringCtxt(xmlStr, _("CPU data"), &ctxt))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("cannot parse CPU data"));
+        goto cleanup;
+    }
+
+    if (!(arch = virXPathString("string(/cpudata/@arch)", ctxt))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("missing CPU data architecture"));
+        goto cleanup;
+    }
+
+    if (!(driver = cpuGetSubDriverByName(arch)))
+        goto cleanup;
 
     if (!driver->dataParse) {
         virReportError(VIR_ERR_NO_SUPPORT,
-                       _("cannot parse %s CPU data"),
-                       virArchToString(arch));
-        return NULL;
+                       _("cannot parse %s CPU data"), arch);
+        goto cleanup;
     }
 
-    return driver->dataParse(xmlStr);
+    data = driver->dataParse(ctxt);
+
+ cleanup:
+    xmlXPathFreeContext(ctxt);
+    xmlFreeDoc(xml);
+    VIR_FREE(arch);
+    return data;
 }
 
 bool

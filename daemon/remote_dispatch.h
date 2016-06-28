@@ -3115,6 +3115,59 @@ static int remoteDispatchConnectOpenHelper(
 
 
 
+static int remoteDispatchConnectStoragePoolEventDeregisterAny(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_storage_pool_event_deregister_any_args *args);
+static int remoteDispatchConnectStoragePoolEventDeregisterAnyHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchConnectStoragePoolEventDeregisterAny");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchConnectStoragePoolEventDeregisterAny(server, client, msg, rerr, args);
+  virThreadJobClear(rv);
+  return rv;
+}
+/* remoteDispatchConnectStoragePoolEventDeregisterAny body has to be implemented manually */
+
+
+
+static int remoteDispatchConnectStoragePoolEventRegisterAny(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_storage_pool_event_register_any_args *args,
+    remote_connect_storage_pool_event_register_any_ret *ret);
+static int remoteDispatchConnectStoragePoolEventRegisterAnyHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchConnectStoragePoolEventRegisterAny");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchConnectStoragePoolEventRegisterAny(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+/* remoteDispatchConnectStoragePoolEventRegisterAny body has to be implemented manually */
+
+
+
 static int remoteDispatchConnectSupportsFeature(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -5184,6 +5237,77 @@ static int remoteDispatchDomainGetFSInfoHelper(
   return rv;
 }
 /* remoteDispatchDomainGetFSInfo body has to be implemented manually */
+
+
+
+static int remoteDispatchDomainGetGuestVcpus(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_get_guest_vcpus_args *args,
+    remote_domain_get_guest_vcpus_ret *ret);
+static int remoteDispatchDomainGetGuestVcpusHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchDomainGetGuestVcpus");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchDomainGetGuestVcpus(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchDomainGetGuestVcpus(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_get_guest_vcpus_args *args,
+    remote_domain_get_guest_vcpus_ret *ret)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    virTypedParameterPtr params = NULL;
+    unsigned int params_len = 0;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if (virDomainGetGuestVcpus(dom, &params, &params_len, args->flags) < 0)
+        goto cleanup;
+
+    if (virTypedParamsSerialize(params, params_len,
+                                (virTypedParameterRemotePtr *) &ret->params.params_val,
+                                &ret->params.params_len,
+                                VIR_TYPED_PARAM_STRING_OKAY) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0) {
+        virNetMessageSaveError(rerr);
+        virTypedParamsRemoteFree((virTypedParameterRemotePtr) ret->params.params_val,
+                                 ret->params.params_len);
+
+    }
+    virObjectUnref(dom);
+    virTypedParamsFree(params, params_len);
+    return rv;
+}
 
 
 
@@ -9577,6 +9701,62 @@ cleanup:
         virNetMessageSaveError(rerr);
     virObjectUnref(dom);
     virTypedParamsFree(params, nparams);
+    return rv;
+}
+
+
+
+static int remoteDispatchDomainSetGuestVcpus(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_set_guest_vcpus_args *args);
+static int remoteDispatchDomainSetGuestVcpusHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchDomainSetGuestVcpus");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchDomainSetGuestVcpus(server, client, msg, rerr, args);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchDomainSetGuestVcpus(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_set_guest_vcpus_args *args)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if (virDomainSetGuestVcpus(dom, args->cpumap, args->state, args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(dom);
     return rv;
 }
 
@@ -20441,6 +20621,60 @@ virNetServerProgramProc remoteProcs[] = {
    0
 },
 { /* Async event DomainEventCallbackDeviceRemovalFailed => 367 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method ConnectStoragePoolEventRegisterAny => 368 */
+   remoteDispatchConnectStoragePoolEventRegisterAnyHelper,
+   sizeof(remote_connect_storage_pool_event_register_any_args),
+   (xdrproc_t)xdr_remote_connect_storage_pool_event_register_any_args,
+   sizeof(remote_connect_storage_pool_event_register_any_ret),
+   (xdrproc_t)xdr_remote_connect_storage_pool_event_register_any_ret,
+   true,
+   1
+},
+{ /* Method ConnectStoragePoolEventDeregisterAny => 369 */
+   remoteDispatchConnectStoragePoolEventDeregisterAnyHelper,
+   sizeof(remote_connect_storage_pool_event_deregister_any_args),
+   (xdrproc_t)xdr_remote_connect_storage_pool_event_deregister_any_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   1
+},
+{ /* Async event StoragePoolEventLifecycle => 370 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method DomainGetGuestVcpus => 371 */
+   remoteDispatchDomainGetGuestVcpusHelper,
+   sizeof(remote_domain_get_guest_vcpus_args),
+   (xdrproc_t)xdr_remote_domain_get_guest_vcpus_args,
+   sizeof(remote_domain_get_guest_vcpus_ret),
+   (xdrproc_t)xdr_remote_domain_get_guest_vcpus_ret,
+   true,
+   0
+},
+{ /* Method DomainSetGuestVcpus => 372 */
+   remoteDispatchDomainSetGuestVcpusHelper,
+   sizeof(remote_domain_set_guest_vcpus_args),
+   (xdrproc_t)xdr_remote_domain_set_guest_vcpus_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Async event StoragePoolEventRefresh => 373 */
    NULL,
    0,
    (xdrproc_t)xdr_void,

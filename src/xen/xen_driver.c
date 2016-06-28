@@ -65,6 +65,7 @@
 #include "vircommand.h"
 #include "virnodesuspend.h"
 #include "nodeinfo.h"
+#include "virhostmem.h"
 #include "configmake.h"
 #include "virstring.h"
 #include "viraccessapicheck.h"
@@ -404,10 +405,11 @@ xenDomainXMLConfInit(void)
 
 
 static virDrvOpenStatus
-xenUnifiedConnectOpen(virConnectPtr conn, virConnectAuthPtr auth, unsigned int flags)
+xenUnifiedConnectOpen(virConnectPtr conn, virConnectAuthPtr auth,
+                      virConfPtr conf ATTRIBUTE_UNUSED,
+                      unsigned int flags)
 {
     xenUnifiedPrivatePtr priv;
-    char ebuf[1024];
 
     /*
      * Only the libvirtd instance can open this driver.
@@ -532,8 +534,8 @@ xenUnifiedConnectOpen(virConnectPtr conn, virConnectAuthPtr auth, unsigned int f
         goto error;
 
     if (virFileMakePath(priv->saveDir) < 0) {
-        VIR_ERROR(_("Errored to create save dir '%s': %s"), priv->saveDir,
-                  virStrerror(errno, ebuf, sizeof(ebuf)));
+        virReportSystemError(errno, _("Errored to create save dir '%s'"),
+                             priv->saveDir);
         goto error;
     }
 
@@ -759,7 +761,7 @@ xenUnifiedDomainCreateXML(virConnectPtr conn,
     virCheckFlags(VIR_DOMAIN_START_VALIDATE, NULL);
 
     if (flags & VIR_DOMAIN_START_VALIDATE)
-        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE_SCHEMA;
 
     if (!(def = virDomainDefParseString(xml, priv->caps, priv->xmlopt,
                                         parse_flags)))
@@ -1799,7 +1801,7 @@ xenUnifiedDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int
     virCheckFlags(VIR_DOMAIN_DEFINE_VALIDATE, NULL);
 
     if (flags & VIR_DOMAIN_DEFINE_VALIDATE)
-        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE_SCHEMA;
 
     if (!(def = virDomainDefParseString(xml, priv->caps, priv->xmlopt,
                                         parse_flags)))
@@ -2563,7 +2565,7 @@ xenUnifiedNodeGetMemoryParameters(virConnectPtr conn,
     if (virNodeGetMemoryParametersEnsureACL(conn) < 0)
         return -1;
 
-    return nodeGetMemoryParameters(params, nparams, flags);
+    return virHostMemGetParameters(params, nparams, flags);
 }
 
 
@@ -2576,7 +2578,7 @@ xenUnifiedNodeSetMemoryParameters(virConnectPtr conn,
     if (virNodeSetMemoryParametersEnsureACL(conn) < 0)
         return -1;
 
-    return nodeSetMemoryParameters(params, nparams, flags);
+    return virHostMemSetParameters(params, nparams, flags);
 }
 
 

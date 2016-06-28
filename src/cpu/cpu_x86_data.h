@@ -28,7 +28,8 @@
 
 typedef struct _virCPUx86CPUID virCPUx86CPUID;
 struct _virCPUx86CPUID {
-    uint32_t function;
+    uint32_t eax_in;
+    uint32_t ecx_in;
     uint32_t eax;
     uint32_t ebx;
     uint32_t ecx;
@@ -57,6 +58,8 @@ struct _virCPUx86CPUID {
 # define VIR_CPU_x86_KVM_HV_VPINDEX   "__kvm_hv_vpindex"
 # define VIR_CPU_x86_KVM_HV_RESET     "__kvm_hv_reset"
 
+
+# define VIR_CPU_X86_DATA_INIT { 0 }
 
 typedef struct _virCPUx86Data virCPUx86Data;
 struct _virCPUx86Data {

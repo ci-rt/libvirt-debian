@@ -104,7 +104,7 @@ test_virCapabilitiesGetCpusForNodemask(const void *data ATTRIBUTE_UNUSED)
     if (!(caps = buildNUMATopology(3)))
         goto error;
 
-    if (virBitmapParse(nodestr, VIR_ARCH_NONE, &nodemask, mask_size) < 0)
+    if (virBitmapParse(nodestr, &nodemask, mask_size) < 0)
         goto error;
 
     if (!(cpumap = virCapabilitiesGetCpusForNodemask(caps, nodemask)))
@@ -323,22 +323,22 @@ mymain(void)
 {
     int ret = 0;
 
-    if (virtTestRun("virCapabilitiesGetCpusForNodemask",
-                    test_virCapabilitiesGetCpusForNodemask, NULL) < 0)
+    if (virTestRun("virCapabilitiesGetCpusForNodemask",
+                   test_virCapabilitiesGetCpusForNodemask, NULL) < 0)
         ret = -1;
 #ifdef WITH_QEMU
-    if (virtTestRun("virCapsDomainDataLookupQEMU",
-                    test_virCapsDomainDataLookupQEMU, NULL) < 0)
+    if (virTestRun("virCapsDomainDataLookupQEMU",
+                   test_virCapsDomainDataLookupQEMU, NULL) < 0)
         ret = -1;
 #endif
 #ifdef WITH_XEN
-    if (virtTestRun("virCapsDomainDataLookupXen",
-                    test_virCapsDomainDataLookupXen, NULL) < 0)
+    if (virTestRun("virCapsDomainDataLookupXen",
+                   test_virCapsDomainDataLookupXen, NULL) < 0)
         ret = -1;
 #endif
 #ifdef WITH_LXC
-    if (virtTestRun("virCapsDomainDataLookupLXC",
-                    test_virCapsDomainDataLookupLXC, NULL) < 0)
+    if (virTestRun("virCapsDomainDataLookupLXC",
+                   test_virCapsDomainDataLookupLXC, NULL) < 0)
         ret = -1;
 #endif /* WITH_LXC */
 
