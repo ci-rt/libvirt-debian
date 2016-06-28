@@ -2107,8 +2107,8 @@ xdr_remote_domain_get_vcpus_args (XDR *xdrs, remote_domain_get_vcpus_args *objp)
 bool_t
 xdr_remote_domain_get_vcpus_ret (XDR *xdrs, remote_domain_get_vcpus_ret *objp)
 {
-        char **objp_cpp1 = (char **) (void *) &objp->cpumaps.cpumaps_val;
         char **objp_cpp0 = (char **) (void *) &objp->info.info_val;
+        char **objp_cpp1 = (char **) (void *) &objp->cpumaps.cpumaps_val;
 
          if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->info.info_len, REMOTE_VCPUINFO_MAX,
                 sizeof (remote_vcpu_info), (xdrproc_t) xdr_remote_vcpu_info))
@@ -2261,8 +2261,8 @@ xdr_remote_domain_get_security_label_list_ret (XDR *xdrs, remote_domain_get_secu
 bool_t
 xdr_remote_node_get_security_model_ret (XDR *xdrs, remote_node_get_security_model_ret *objp)
 {
-        char **objp_cpp1 = (char **) (void *) &objp->doi.doi_val;
         char **objp_cpp0 = (char **) (void *) &objp->model.model_val;
+        char **objp_cpp1 = (char **) (void *) &objp->doi.doi_val;
 
          if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->model.model_len, REMOTE_SECURITY_MODEL_MAX,
                 sizeof (char), (xdrproc_t) xdr_char))
@@ -6322,8 +6322,8 @@ xdr_remote_domain_migrate_finish3_params_ret (XDR *xdrs, remote_domain_migrate_f
 bool_t
 xdr_remote_domain_migrate_confirm3_params_args (XDR *xdrs, remote_domain_migrate_confirm3_params_args *objp)
 {
-        char **objp_cpp1 = (char **) (void *) &objp->cookie_in.cookie_in_val;
         char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
+        char **objp_cpp1 = (char **) (void *) &objp->cookie_in.cookie_in_val;
 
          if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
                  return FALSE;
@@ -6486,6 +6486,61 @@ xdr_remote_network_event_lifecycle_msg (XDR *xdrs, remote_network_event_lifecycl
 }
 
 bool_t
+xdr_remote_connect_storage_pool_event_register_any_args (XDR *xdrs, remote_connect_storage_pool_event_register_any_args *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->eventID))
+                 return FALSE;
+         if (!xdr_remote_storage_pool (xdrs, &objp->pool))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_connect_storage_pool_event_register_any_ret (XDR *xdrs, remote_connect_storage_pool_event_register_any_ret *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->callbackID))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_connect_storage_pool_event_deregister_any_args (XDR *xdrs, remote_connect_storage_pool_event_deregister_any_args *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->callbackID))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_storage_pool_event_lifecycle_msg (XDR *xdrs, remote_storage_pool_event_lifecycle_msg *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->callbackID))
+                 return FALSE;
+         if (!xdr_remote_nonnull_storage_pool (xdrs, &objp->pool))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->event))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->detail))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_storage_pool_event_refresh_msg (XDR *xdrs, remote_storage_pool_event_refresh_msg *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->callbackID))
+                 return FALSE;
+         if (!xdr_remote_nonnull_storage_pool (xdrs, &objp->pool))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_domain_fsfreeze_args (XDR *xdrs, remote_domain_fsfreeze_args *objp)
 {
         char **objp_cpp0 = (char **) (void *) &objp->mountpoints.mountpoints_val;
@@ -6564,8 +6619,8 @@ xdr_remote_node_get_free_pages_ret (XDR *xdrs, remote_node_get_free_pages_ret *o
 bool_t
 xdr_remote_node_alloc_pages_args (XDR *xdrs, remote_node_alloc_pages_args *objp)
 {
-        char **objp_cpp1 = (char **) (void *) &objp->pageCounts.pageCounts_val;
         char **objp_cpp0 = (char **) (void *) &objp->pageSizes.pageSizes_val;
+        char **objp_cpp1 = (char **) (void *) &objp->pageCounts.pageCounts_val;
 
          if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->pageSizes.pageSizes_len, REMOTE_NODE_MAX_CELLS,
                 sizeof (u_int), (xdrproc_t) xdr_u_int))
@@ -6876,6 +6931,43 @@ xdr_remote_domain_event_callback_device_removal_failed_msg (XDR *xdrs, remote_do
          if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
                  return FALSE;
          if (!xdr_remote_nonnull_string (xdrs, &objp->devAlias))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_get_guest_vcpus_args (XDR *xdrs, remote_domain_get_guest_vcpus_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_get_guest_vcpus_ret (XDR *xdrs, remote_domain_get_guest_vcpus_ret *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->params.params_len, REMOTE_DOMAIN_GUEST_VCPU_PARAMS_MAX,
+                sizeof (remote_typed_param), (xdrproc_t) xdr_remote_typed_param))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_set_guest_vcpus_args (XDR *xdrs, remote_domain_set_guest_vcpus_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_remote_nonnull_string (xdrs, &objp->cpumap))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->state))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
                  return FALSE;
         return TRUE;
 }

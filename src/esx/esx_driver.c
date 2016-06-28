@@ -841,6 +841,7 @@ esxConnectToVCenter(esxPrivate *priv,
  */
 static virDrvOpenStatus
 esxConnectOpen(virConnectPtr conn, virConnectAuthPtr auth,
+               virConfPtr conf ATTRIBUTE_UNUSED,
                unsigned int flags)
 {
     virDrvOpenStatus result = VIR_DRV_OPEN_ERROR;
@@ -3036,7 +3037,7 @@ esxDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags)
     virCheckFlags(VIR_DOMAIN_DEFINE_VALIDATE, NULL);
 
     if (flags & VIR_DOMAIN_DEFINE_VALIDATE)
-        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE_SCHEMA;
 
     memset(&data, 0, sizeof(data));
 

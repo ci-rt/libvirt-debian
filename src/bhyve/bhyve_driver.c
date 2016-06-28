@@ -51,6 +51,8 @@
 #include "cpu/cpu.h"
 #include "viraccessapicheck.h"
 #include "nodeinfo.h"
+#include "virhostcpu.h"
+#include "virhostmem.h"
 
 #include "bhyve_device.h"
 #include "bhyve_driver.h"
@@ -178,6 +180,7 @@ bhyveDomObjFromDomain(virDomainPtr domain)
 static virDrvOpenStatus
 bhyveConnectOpen(virConnectPtr conn,
                  virConnectAuthPtr auth ATTRIBUTE_UNUSED,
+                 virConfPtr conf ATTRIBUTE_UNUSED,
                  unsigned int flags)
 {
      virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
@@ -301,7 +304,7 @@ bhyveDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info)
     }
 
     info->state = virDomainObjGetState(vm, NULL);
-    info->maxMem = virDomainDefGetMemoryActual(vm->def);
+    info->maxMem = virDomainDefGetMemoryTotal(vm->def);
     info->nrVirtCpu = virDomainDefGetVcpus(vm->def);
     ret = 0;
 
@@ -526,7 +529,7 @@ bhyveDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flag
     virCheckFlags(VIR_DOMAIN_DEFINE_VALIDATE, NULL);
 
     if (flags & VIR_DOMAIN_DEFINE_VALIDATE)
-        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE_SCHEMA;
 
     caps = bhyveDriverGetCapabilities(privconn);
     if (!caps)
@@ -924,7 +927,7 @@ bhyveDomainCreateXML(virConnectPtr conn,
                   VIR_DOMAIN_START_VALIDATE, NULL);
 
     if (flags & VIR_DOMAIN_START_VALIDATE)
-        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE_SCHEMA;
     if (flags & VIR_DOMAIN_START_AUTODESTROY)
         start_flags |= VIR_BHYVE_PROCESS_START_AUTODESTROY;
 
@@ -1161,7 +1164,7 @@ bhyveNodeGetCPUStats(virConnectPtr conn,
     if (virNodeGetCPUStatsEnsureACL(conn) < 0)
         return -1;
 
-    return nodeGetCPUStats(cpuNum, params, nparams, flags);
+    return virHostCPUGetStats(cpuNum, params, nparams, flags);
 }
 
 static int
@@ -1174,7 +1177,7 @@ bhyveNodeGetMemoryStats(virConnectPtr conn,
     if (virNodeGetMemoryStatsEnsureACL(conn) < 0)
         return -1;
 
-    return nodeGetMemoryStats(NULL, cellNum, params, nparams, flags);
+    return virHostMemGetStats(cellNum, params, nparams, flags);
 }
 
 static int
@@ -1184,7 +1187,7 @@ bhyveNodeGetInfo(virConnectPtr conn,
     if (virNodeGetInfoEnsureACL(conn) < 0)
         return -1;
 
-    return nodeGetInfo(NULL, nodeinfo);
+    return nodeGetInfo(nodeinfo);
 }
 
 static int
@@ -1345,7 +1348,7 @@ bhyveNodeGetFreeMemory(virConnectPtr conn)
     if (virNodeGetFreeMemoryEnsureACL(conn) < 0)
         return 0;
 
-    if (nodeGetMemory(NULL, &freeMem) < 0)
+    if (virHostMemGetInfo(NULL, &freeMem) < 0)
         return 0;
 
     return freeMem;
@@ -1360,7 +1363,7 @@ bhyveNodeGetCPUMap(virConnectPtr conn,
     if (virNodeGetCPUMapEnsureACL(conn) < 0)
         return -1;
 
-    return nodeGetCPUMap(NULL, cpumap, online, flags);
+    return virHostCPUGetMap(cpumap, online, flags);
 }
 
 static int
@@ -1372,7 +1375,7 @@ bhyveNodeGetMemoryParameters(virConnectPtr conn,
     if (virNodeGetMemoryParametersEnsureACL(conn) < 0)
         return -1;
 
-    return nodeGetMemoryParameters(params, nparams, flags);
+    return virHostMemGetParameters(params, nparams, flags);
 }
 
 static int
@@ -1384,7 +1387,7 @@ bhyveNodeSetMemoryParameters(virConnectPtr conn,
     if (virNodeSetMemoryParametersEnsureACL(conn) < 0)
         return -1;
 
-    return nodeSetMemoryParameters(params, nparams, flags);
+    return virHostMemSetParameters(params, nparams, flags);
 }
 
 static char *

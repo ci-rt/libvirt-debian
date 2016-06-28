@@ -66,14 +66,14 @@ static int testCompareXMLToArgvFiles(const char *xml,
     if (!(actualld = virCommandToString(ldcmd)))
         goto out;
 
-    if (virtTestCompareToFile(actualargv, cmdline) < 0)
+    if (virTestCompareToFile(actualargv, cmdline) < 0)
         goto out;
 
-    if (virtTestCompareToFile(actualld, ldcmdline) < 0)
+    if (virTestCompareToFile(actualld, ldcmdline) < 0)
         goto out;
 
     if (virFileExists(dmcmdline) || actualdm) {
-        if (virtTestCompareToFile(actualdm, dmcmdline) < 0)
+        if (virTestCompareToFile(actualdm, dmcmdline) < 0)
             goto out;
     }
 
@@ -136,7 +136,7 @@ mymain(void)
         static struct testInfo info = {                        \
             name, (flags)                                      \
         };                                                     \
-        if (virtTestRun("BHYVE XML-2-ARGV " name,              \
+        if (virTestRun("BHYVE XML-2-ARGV " name,               \
                        testCompareXMLToArgvHelper, &info) < 0) \
             ret = -1;                                          \
     } while (0)

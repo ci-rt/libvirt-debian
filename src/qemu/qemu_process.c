@@ -54,7 +54,7 @@
 #include "virhook.h"
 #include "virfile.h"
 #include "virpidfile.h"
-#include "nodeinfo.h"
+#include "virhostcpu.h"
 #include "domain_audit.h"
 #include "domain_nwfilter.h"
 #include "locking/domain_lock.h"
@@ -1809,8 +1809,11 @@ qemuProcessReportLogError(qemuDomainLogContextPtr logCtxt,
         return -1;
 
     virResetLastError();
-    virReportError(VIR_ERR_INTERNAL_ERROR,
-                   _("%s: %s"), msgprefix, logmsg);
+    if (virStringIsEmpty(logmsg))
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", msgprefix);
+    else
+        virReportError(VIR_ERR_INTERNAL_ERROR, _("%s: %s"), msgprefix, logmsg);
+
     VIR_FREE(logmsg);
     return 0;
 }
@@ -2040,7 +2043,7 @@ qemuProcessRefreshBalloonState(virQEMUDriverPtr driver,
     /* if no ballooning is available, the current size equals to the current
      * full memory size */
     if (!virDomainDefHasMemballoon(vm->def)) {
-        vm->def->mem.cur_balloon = virDomainDefGetMemoryActual(vm->def);
+        vm->def->mem.cur_balloon = virDomainDefGetMemoryTotal(vm->def);
         return 0;
     }
 
@@ -2226,7 +2229,7 @@ qemuProcessInitCpuAffinity(virDomainObjPtr vm)
 
             /* setaffinity fails if you set bits for CPUs which
              * aren't present, so we have to limit ourselves */
-            if ((hostcpus = nodeGetCPUCount(NULL)) < 0)
+            if ((hostcpus = virHostCPUGetCount()) < 0)
                 goto cleanup;
 
             if (hostcpus > QEMUD_CPUMASK_LEN)
@@ -3288,7 +3291,7 @@ qemuProcessReconnect(void *opaque)
         goto cleanup;
     }
 
-    if ((qemuDomainAssignAddresses(obj->def, priv->qemuCaps, obj)) < 0)
+    if ((qemuDomainAssignAddresses(obj->def, priv->qemuCaps, obj, false)) < 0)
         goto error;
 
     /* if domain requests security driver we haven't loaded, report error, but
@@ -3465,9 +3468,6 @@ qemuProcessVNCAllocatePorts(virQEMUDriverPtr driver,
                             bool allocate)
 {
     unsigned short port;
-
-    if (graphics->data.vnc.socket)
-        return 0;
 
     if (!allocate) {
         if (graphics->data.vnc.autoport)
@@ -3724,9 +3724,9 @@ qemuPrepareNVRAM(virQEMUDriverConfigPtr cfg,
     master_nvram_path = loader->templt;
     if (!loader->templt) {
         size_t i;
-        for (i = 0; i < cfg->nloader; i++) {
-            if (STREQ(cfg->loader[i], loader->path)) {
-                master_nvram_path = cfg->nvram[i];
+        for (i = 0; i < cfg->nfirmwares; i++) {
+            if (STREQ(cfg->firmwares[i]->name, loader->path)) {
+                master_nvram_path = cfg->firmwares[i]->nvram;
                 break;
             }
         }
@@ -4019,17 +4019,23 @@ qemuProcessGraphicsSetupNetworkAddress(virDomainGraphicsListenDefPtr glisten,
 
 static int
 qemuProcessGraphicsSetupListen(virQEMUDriverConfigPtr cfg,
-                               virDomainGraphicsDefPtr graphics)
+                               virDomainGraphicsDefPtr graphics,
+                               virDomainObjPtr vm)
 {
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    const char *type = virDomainGraphicsTypeToString(graphics->type);
     char *listenAddr = NULL;
+    bool useSocket = false;
     size_t i;
 
     switch (graphics->type) {
     case VIR_DOMAIN_GRAPHICS_TYPE_VNC:
+        useSocket = cfg->vncAutoUnixSocket;
         listenAddr = cfg->vncListen;
         break;
 
     case VIR_DOMAIN_GRAPHICS_TYPE_SPICE:
+        useSocket = cfg->spiceAutoUnixSocket;
         listenAddr = cfg->spiceListen;
         break;
 
@@ -4045,13 +4051,23 @@ qemuProcessGraphicsSetupListen(virQEMUDriverConfigPtr cfg,
 
         switch (glisten->type) {
         case VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_ADDRESS:
-            if (glisten->address || !listenAddr)
-                continue;
-
-            if (VIR_STRDUP(glisten->address, listenAddr) < 0)
-                return -1;
-
-            glisten->fromConfig = true;
+            if (!glisten->address) {
+                /* If there is no address specified and qemu.conf has
+                 * *_auto_unix_socket set we should use unix socket as
+                 * default instead of tcp listen. */
+                if (useSocket) {
+                    memset(glisten, 0, sizeof(virDomainGraphicsListenDef));
+                    if (virAsprintf(&glisten->socket, "%s/%s.sock",
+                                    priv->libDir, type) < 0)
+                        return -1;
+                    glisten->fromConfig = true;
+                    glisten->type = VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_SOCKET;
+                } else if (listenAddr) {
+                    if (VIR_STRDUP(glisten->address, listenAddr) < 0)
+                        return -1;
+                    glisten->fromConfig = true;
+                }
+            }
             break;
 
         case VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_NETWORK:
@@ -4061,6 +4077,15 @@ qemuProcessGraphicsSetupListen(virQEMUDriverConfigPtr cfg,
             if (qemuProcessGraphicsSetupNetworkAddress(glisten,
                                                        listenAddr) < 0)
                 return -1;
+            break;
+
+        case VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_SOCKET:
+            if (!glisten->socket) {
+                if (virAsprintf(&glisten->socket, "%s/%s.sock",
+                                priv->libDir, type) < 0)
+                    return -1;
+                glisten->autoGenerated = true;
+            }
             break;
 
         case VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_NONE:
@@ -4089,25 +4114,30 @@ qemuProcessSetupGraphics(virQEMUDriverPtr driver,
     for (i = 0; i < vm->def->ngraphics; ++i) {
         virDomainGraphicsDefPtr graphics = vm->def->graphics[i];
 
-        switch (graphics->type) {
-        case VIR_DOMAIN_GRAPHICS_TYPE_VNC:
-            if (qemuProcessVNCAllocatePorts(driver, graphics, allocate) < 0)
-                goto cleanup;
-            break;
+        if (graphics->nListens > 0 &&
+            (graphics->listens[0].type == VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_ADDRESS ||
+             graphics->listens[0].type == VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_NETWORK)) {
+            switch (graphics->type) {
+            case VIR_DOMAIN_GRAPHICS_TYPE_VNC:
+                if (qemuProcessVNCAllocatePorts(driver, graphics, allocate) < 0)
+                    goto cleanup;
+                break;
 
-        case VIR_DOMAIN_GRAPHICS_TYPE_SPICE:
-            if (qemuProcessSPICEAllocatePorts(driver, cfg, graphics, allocate) < 0)
-                goto cleanup;
-            break;
+            case VIR_DOMAIN_GRAPHICS_TYPE_SPICE:
+                if (qemuProcessSPICEAllocatePorts(driver, cfg, graphics,
+                                                  allocate) < 0)
+                    goto cleanup;
+                break;
 
-        case VIR_DOMAIN_GRAPHICS_TYPE_SDL:
-        case VIR_DOMAIN_GRAPHICS_TYPE_RDP:
-        case VIR_DOMAIN_GRAPHICS_TYPE_DESKTOP:
-        case VIR_DOMAIN_GRAPHICS_TYPE_LAST:
-            break;
+            case VIR_DOMAIN_GRAPHICS_TYPE_SDL:
+            case VIR_DOMAIN_GRAPHICS_TYPE_RDP:
+            case VIR_DOMAIN_GRAPHICS_TYPE_DESKTOP:
+            case VIR_DOMAIN_GRAPHICS_TYPE_LAST:
+                break;
+            }
         }
 
-        if (qemuProcessGraphicsSetupListen(cfg, graphics) < 0)
+        if (qemuProcessGraphicsSetupListen(cfg, graphics, vm) < 0)
             goto cleanup;
     }
 
@@ -4283,10 +4313,11 @@ qemuProcessStartWarnShmem(virDomainObjPtr vm)
 }
 
 static int
-qemuProcessStartValidateXML(virDomainObjPtr vm,
+qemuProcessStartValidateXML(virQEMUDriverPtr driver,
+                            virDomainObjPtr vm,
                             virQEMUCapsPtr qemuCaps,
-                            bool migration,
-                            bool snapshot)
+                            virCapsPtr caps,
+                            unsigned int flags)
 {
     /* The bits we validate here are XML configs that we previously
      * accepted. We reject them at VM startup time rather than parse
@@ -4299,16 +4330,12 @@ qemuProcessStartValidateXML(virDomainObjPtr vm,
     if (qemuValidateCpuCount(vm->def, qemuCaps) < 0)
         return -1;
 
-    if (!migration && !snapshot &&
-        virDomainDefCheckDuplicateDiskInfo(vm->def) < 0)
+    /* checks below should not be executed when starting a qemu process for a
+     * VM that was running before (migration, snapshots, save). It's more
+     * important to start such VM than keep the configuration clean */
+    if ((flags & VIR_QEMU_PROCESS_START_NEW) &&
+        virDomainDefValidate(vm->def, caps, 0, driver->xmlopt) < 0)
         return -1;
-
-    if (vm->def->mem.min_guarantee) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("Parameter 'min_guarantee' "
-                         "not supported by QEMU."));
-        return -1;
-    }
 
     return 0;
 }
@@ -4325,12 +4352,11 @@ qemuProcessStartValidateXML(virDomainObjPtr vm,
  * start the domain but create a valid qemu command.  If some code shouldn't be
  * executed in this case, make sure to check this flag.
  */
-int
+static int
 qemuProcessStartValidate(virQEMUDriverPtr driver,
                          virDomainObjPtr vm,
                          virQEMUCapsPtr qemuCaps,
-                         bool migration,
-                         bool snapshot,
+                         virCapsPtr caps,
                          unsigned int flags)
 {
     size_t i;
@@ -4348,17 +4374,13 @@ qemuProcessStartValidate(virQEMUDriverPtr driver,
             }
         }
 
-        if (qemuDomainCheckDiskPresence(driver, vm,
-                                        flags & VIR_QEMU_PROCESS_START_COLD) < 0)
-            return -1;
-
         VIR_DEBUG("Checking domain and device security labels");
         if (virSecurityManagerCheckAllLabel(driver->securityManager, vm->def) < 0)
             return -1;
 
     }
 
-    if (qemuProcessStartValidateXML(vm, qemuCaps, migration, snapshot) < 0)
+    if (qemuProcessStartValidateXML(driver, vm, qemuCaps, caps, flags) < 0)
         return -1;
 
     VIR_DEBUG("Checking for any possible (non-fatal) issues");
@@ -4408,7 +4430,6 @@ qemuProcessInit(virQEMUDriverPtr driver,
                 virDomainObjPtr vm,
                 qemuDomainAsyncJob asyncJob,
                 bool migration,
-                bool snap,
                 unsigned int flags)
 {
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
@@ -4438,8 +4459,7 @@ qemuProcessInit(virQEMUDriverPtr driver,
                                                       vm->def->os.machine)))
         goto cleanup;
 
-    if (qemuProcessStartValidate(driver, vm, priv->qemuCaps,
-                                 migration, snap, flags) < 0)
+    if (qemuProcessStartValidate(driver, vm, priv->qemuCaps, caps, flags) < 0)
         goto cleanup;
 
     /* Do this upfront, so any part of the startup process can add
@@ -4447,7 +4467,7 @@ qemuProcessInit(virQEMUDriverPtr driver,
      * report implicit runtime defaults in the XML, like vnc listen/socket
      */
     VIR_DEBUG("Setting current domain def as transient");
-    if (virDomainObjSetDefTransient(caps, driver->xmlopt, vm, true) < 0)
+    if (virDomainObjSetDefTransient(caps, driver->xmlopt, vm) < 0)
         goto stop;
 
     if (!(flags & VIR_QEMU_PROCESS_START_PRETEND)) {
@@ -4834,13 +4854,13 @@ qemuProcessPrepareDomain(virConnectPtr conn,
          */
         if (virDomainDefNeedsPlacementAdvice(vm->def)) {
             nodeset = virNumaGetAutoPlacementAdvice(virDomainDefGetVcpus(vm->def),
-                                                    virDomainDefGetMemoryActual(vm->def));
+                                                    virDomainDefGetMemoryTotal(vm->def));
             if (!nodeset)
                 goto cleanup;
 
             VIR_DEBUG("Nodeset returned from numad: %s", nodeset);
 
-            if (virBitmapParse(nodeset, 0, &priv->autoNodeset,
+            if (virBitmapParse(nodeset, &priv->autoNodeset,
                                VIR_DOMAIN_CPUMASK_LEN) < 0)
                 goto cleanup;
 
@@ -4858,7 +4878,8 @@ qemuProcessPrepareDomain(virConnectPtr conn,
      * use in hotplug
      */
     VIR_DEBUG("Assigning domain PCI addresses");
-    if ((qemuDomainAssignAddresses(vm->def, priv->qemuCaps, vm)) < 0)
+    if ((qemuDomainAssignAddresses(vm->def, priv->qemuCaps, vm,
+                                   !!(flags & VIR_QEMU_PROCESS_START_NEW))) < 0)
         goto cleanup;
 
     if (qemuAssignDeviceAliases(vm->def, priv->qemuCaps) < 0)
@@ -4876,6 +4897,14 @@ qemuProcessPrepareDomain(virConnectPtr conn,
             goto cleanup;
     }
 
+    /* drop possibly missing disks from the definition. This needs to happen
+     * after the def is copied, aliases are set and disk sources are translated */
+    if (!(flags & VIR_QEMU_PROCESS_START_PRETEND)) {
+        if (qemuDomainCheckDiskPresence(driver, vm,
+                                        flags & VIR_QEMU_PROCESS_START_COLD) < 0)
+            goto cleanup;
+    }
+
     VIR_DEBUG("Create domain masterKey");
     if (qemuDomainMasterKeyCreate(vm) < 0)
         goto cleanup;
@@ -4883,6 +4912,12 @@ qemuProcessPrepareDomain(virConnectPtr conn,
     VIR_DEBUG("Add secrets to disks and hostdevs");
     if (qemuDomainSecretPrepare(conn, vm) < 0)
         goto cleanup;
+
+    for (i = 0; i < vm->def->nchannels; i++) {
+        if (qemuDomainPrepareChannel(vm->def->channels[i],
+                                     priv->channelTargetDir) < 0)
+            goto cleanup;
+    }
 
     if (VIR_ALLOC(priv->monConfig) < 0)
         goto cleanup;
@@ -5068,7 +5103,8 @@ qemuProcessLaunch(virConnectPtr conn,
      * but doesn't hurt to check */
     virCheckFlags(VIR_QEMU_PROCESS_START_COLD |
                   VIR_QEMU_PROCESS_START_PAUSED |
-                  VIR_QEMU_PROCESS_START_AUTODESTROY, -1);
+                  VIR_QEMU_PROCESS_START_AUTODESTROY |
+                  VIR_QEMU_PROCESS_START_NEW, -1);
 
     cfg = virQEMUDriverGetConfig(driver);
 
@@ -5098,8 +5134,7 @@ qemuProcessLaunch(virConnectPtr conn,
                                      qemuCheckFips(),
                                      priv->autoNodeset,
                                      &nnicindexes, &nicindexes,
-                                     priv->libDir,
-                                     priv->channelTargetDir)))
+                                     priv->libDir)))
         goto cleanup;
 
     if (incoming && incoming->fd != -1)
@@ -5415,8 +5450,10 @@ qemuProcessStart(virConnectPtr conn,
                       VIR_QEMU_PROCESS_START_PAUSED |
                       VIR_QEMU_PROCESS_START_AUTODESTROY, cleanup);
 
-    if (qemuProcessInit(driver, vm, asyncJob, !!migrateFrom,
-                        !!snapshot, flags) < 0)
+    if (!migrateFrom && !snapshot)
+        flags |= VIR_QEMU_PROCESS_START_NEW;
+
+    if (qemuProcessInit(driver, vm, asyncJob, !!migrateFrom, flags) < 0)
         goto cleanup;
 
     if (migrateFrom) {
@@ -5493,9 +5530,9 @@ qemuProcessCreatePretendCmd(virConnectPtr conn,
                       VIR_QEMU_PROCESS_START_AUTODESTROY, cleanup);
 
     flags |= VIR_QEMU_PROCESS_START_PRETEND;
+    flags |= VIR_QEMU_PROCESS_START_NEW;
 
-    if (qemuProcessInit(driver, vm, QEMU_ASYNC_JOB_NONE, !!migrateURI,
-                        false, flags) < 0)
+    if (qemuProcessInit(driver, vm, QEMU_ASYNC_JOB_NONE, !!migrateURI, flags) < 0)
         goto cleanup;
 
     if (qemuProcessPrepareDomain(conn, driver, vm, flags) < 0)
@@ -5516,8 +5553,7 @@ qemuProcessCreatePretendCmd(virConnectPtr conn,
                                priv->autoNodeset,
                                NULL,
                                NULL,
-                               priv->libDir,
-                               priv->channelTargetDir);
+                               priv->libDir);
 
  cleanup:
     return cmd;
@@ -5608,7 +5644,6 @@ void qemuProcessStop(virQEMUDriverPtr driver,
     size_t i;
     char *timestamp;
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
-    qemuDomainLogContextPtr logCtxt = NULL;
 
     VIR_DEBUG("Shutting down vm=%p name=%s id=%d pid=%llu, "
               "reason=%s, asyncJob=%s, flags=%x",
@@ -5645,13 +5680,9 @@ void qemuProcessStop(virQEMUDriverPtr driver,
     /* Wake up anything waiting on domain condition */
     virDomainObjBroadcast(vm);
 
-    if ((logCtxt = qemuDomainLogContextNew(driver, vm,
-                                           QEMU_DOMAIN_LOG_CONTEXT_MODE_STOP))) {
-        if ((timestamp = virTimeStringNow()) != NULL) {
-            qemuDomainLogContextWrite(logCtxt, "%s: shutting down\n", timestamp);
-            VIR_FREE(timestamp);
-        }
-        qemuDomainLogContextFree(logCtxt);
+    if ((timestamp = virTimeStringNow()) != NULL) {
+        qemuDomainLogAppendMessage(driver, vm, "%s: shutting down\n", timestamp);
+        VIR_FREE(timestamp);
     }
 
     /* Clear network bandwidth */
@@ -5944,7 +5975,7 @@ int qemuProcessAttach(virConnectPtr conn ATTRIBUTE_UNUSED,
      * report implicit runtime defaults in the XML, like vnc listen/socket
      */
     VIR_DEBUG("Setting current domain def as transient");
-    if (virDomainObjSetDefTransient(caps, driver->xmlopt, vm, true) < 0)
+    if (virDomainObjSetDefTransient(caps, driver->xmlopt, vm) < 0)
         goto error;
 
     vm->def->id = qemuDriverAllocateID(driver);
@@ -6036,7 +6067,7 @@ int qemuProcessAttach(virConnectPtr conn ATTRIBUTE_UNUSED,
      * use in hotplug
      */
     VIR_DEBUG("Assigning domain PCI addresses");
-    if ((qemuDomainAssignAddresses(vm->def, priv->qemuCaps, vm)) < 0)
+    if ((qemuDomainAssignAddresses(vm->def, priv->qemuCaps, vm, false)) < 0)
         goto error;
 
     if ((timestamp = virTimeStringNow()) == NULL)

@@ -2320,6 +2320,51 @@ done:
     return rv;
 }
 
+static int
+remoteDomainGetGuestVcpus(virDomainPtr dom, virTypedParameterPtr *params, unsigned int *nparams, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_get_guest_vcpus_args args;
+    remote_domain_get_guest_vcpus_ret ret;
+    virTypedParameterPtr ret_params = NULL;
+    int ret_nparams = 0;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_GUEST_VCPUS,
+             (xdrproc_t)xdr_remote_domain_get_guest_vcpus_args, (char *)&args,
+             (xdrproc_t)xdr_remote_domain_get_guest_vcpus_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    if (virTypedParamsDeserialize((virTypedParameterRemotePtr) ret.params.params_val,
+                                  ret.params.params_len,
+                                  REMOTE_DOMAIN_GUEST_VCPU_PARAMS_MAX,
+                                  &ret_params,
+                                  &ret_nparams) < 0)
+        goto cleanup;
+
+    *params = ret_params;
+    *nparams = ret_nparams;
+    rv = 0;
+
+cleanup:
+    if (rv != 0) {
+        virTypedParamsFree(ret_params, ret_nparams);
+    }
+    xdr_free((xdrproc_t)xdr_remote_domain_get_guest_vcpus_ret, (char *)&ret);
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
 static char *
 remoteDomainGetHostname(virDomainPtr dom, unsigned int flags)
 {
@@ -4069,6 +4114,33 @@ remoteDomainSetBlockIoTune(virDomainPtr dom, const char *disk, virTypedParameter
 done:
     virTypedParamsRemoteFree((virTypedParameterRemotePtr) args.params.params_val,
                              args.params.params_len);
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainSetGuestVcpus(virDomainPtr dom, const char *cpumap, int state, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_set_guest_vcpus_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.cpumap = (char *)cpumap;
+    args.state = state;
+    args.flags = flags;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_SET_GUEST_VCPUS,
+             (xdrproc_t)xdr_remote_domain_set_guest_vcpus_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
     remoteDriverUnlock(priv);
     return rv;
 }

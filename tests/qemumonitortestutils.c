@@ -24,6 +24,7 @@
 #include <string.h>
 #include <time.h>
 
+#include "testutils.h"
 #include "qemumonitortestutils.h"
 
 #include "virthread.h"
@@ -95,8 +96,8 @@ qemuMonitorTestItemFree(qemuMonitorTestItemPtr item)
  * Appends data for a reply to the outgoing buffer
  */
 int
-qemuMonitorTestAddReponse(qemuMonitorTestPtr test,
-                          const char *response)
+qemuMonitorTestAddResponse(qemuMonitorTestPtr test,
+                           const char *response)
 {
     size_t want = strlen(response) + 2;
     size_t have = test->outgoingCapacity - test->outgoingLength;
@@ -121,12 +122,12 @@ int
 qemuMonitorTestAddUnexpectedErrorResponse(qemuMonitorTestPtr test)
 {
     if (test->agent || test->json) {
-        return qemuMonitorTestAddReponse(test,
-                                         "{ \"error\": "
-                                         " { \"desc\": \"Unexpected command\", "
-                                         "   \"class\": \"UnexpectedCommand\" } }");
+        return qemuMonitorTestAddResponse(test,
+                                          "{ \"error\": "
+                                          " { \"desc\": \"Unexpected command\", "
+                                          "   \"class\": \"UnexpectedCommand\" } }");
     } else {
-        return qemuMonitorTestAddReponse(test, "unexpected command");
+        return qemuMonitorTestAddResponse(test, "unexpected command");
     }
 }
 
@@ -161,7 +162,7 @@ qemuMonitorReportError(qemuMonitorTestPtr test, const char *errmsg, ...)
             goto cleanup;
     }
 
-    ret = qemuMonitorTestAddReponse(test, jsonmsg);
+    ret = qemuMonitorTestAddResponse(test, jsonmsg);
 
  cleanup:
     va_end(msgargs);
@@ -498,7 +499,7 @@ qemuMonitorTestProcessCommandDefault(qemuMonitorTestPtr test,
     if (data->command_name && STRNEQ(data->command_name, cmdname))
         ret = qemuMonitorTestAddUnexpectedErrorResponse(test);
     else
-        ret = qemuMonitorTestAddReponse(test, data->response);
+        ret = qemuMonitorTestAddResponse(test, data->response);
 
  cleanup:
     VIR_FREE(cmdcopy);
@@ -568,7 +569,7 @@ qemuMonitorTestProcessGuestAgentSync(qemuMonitorTestPtr test,
         goto cleanup;
 
 
-    ret = qemuMonitorTestAddReponse(test, retmsg);
+    ret = qemuMonitorTestAddResponse(test, retmsg);
 
  cleanup:
     virJSONValueFree(val);
@@ -658,7 +659,7 @@ qemuMonitorTestProcessCommandWithArgs(qemuMonitorTestPtr test,
     }
 
     /* arguments checked out, return the response */
-    ret = qemuMonitorTestAddReponse(test, data->response);
+    ret = qemuMonitorTestAddResponse(test, data->response);
 
  cleanup:
     VIR_FREE(argstr);
@@ -910,7 +911,7 @@ qemuMonitorTestNew(bool json,
     if (!greeting)
         greeting = json ? QEMU_JSON_GREETING : QEMU_TEXT_GREETING;
 
-    if (qemuMonitorTestAddReponse(test, greeting) < 0)
+    if (qemuMonitorTestAddResponse(test, greeting) < 0)
         goto error;
 
     if (qemuMonitorCommonTestInit(test) < 0)
@@ -925,6 +926,71 @@ qemuMonitorTestNew(bool json,
     qemuMonitorTestFree(test);
     return NULL;
 }
+
+
+qemuMonitorTestPtr
+qemuMonitorTestNewFromFile(const char *fileName,
+                           virDomainXMLOptionPtr xmlopt,
+                           bool simple)
+{
+    qemuMonitorTestPtr test = NULL;
+    char *json = NULL;
+    char *tmp;
+    char *singleReply;
+
+    if (virTestLoadFile(fileName, &json) < 0)
+        goto cleanup;
+
+    if (simple && !(test = qemuMonitorTestNewSimple(true, xmlopt)))
+        goto cleanup;
+
+    /* Our JSON parser expects replies to be separated by a newline character.
+     * Hence we must preprocess the file a bit. */
+    tmp = singleReply = json;
+    while ((tmp = strchr(tmp, '\n'))) {
+        /* It is safe to touch tmp[1] since all strings ends with '\0'. */
+        bool eof = !tmp[1];
+
+        if (*(tmp + 1) != '\n') {
+            *tmp = ' ';
+            tmp++;
+        } else {
+            /* Cut off a single reply. */
+            *(tmp + 1) = '\0';
+
+            if (test) {
+                if (qemuMonitorTestAddItem(test, NULL, singleReply) < 0)
+                    goto error;
+            } else {
+                /* Create new mocked monitor with our greeting */
+                if (!(test = qemuMonitorTestNew(true, xmlopt, NULL, NULL, singleReply)))
+                    goto error;
+            }
+
+            if (!eof) {
+                /* Move the @tmp and @singleReply. */
+                tmp += 2;
+                singleReply = tmp;
+            }
+        }
+
+        if (eof)
+            break;
+    }
+
+    if (test && qemuMonitorTestAddItem(test, NULL, singleReply) < 0)
+        goto error;
+
+ cleanup:
+    VIR_FREE(json);
+    return test;
+
+ error:
+    qemuMonitorTestFree(test);
+    test = NULL;
+    goto cleanup;
+}
+
 
 qemuMonitorTestPtr
 qemuMonitorTestNewAgent(virDomainXMLOptionPtr xmlopt)

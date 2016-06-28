@@ -34,7 +34,7 @@
 # include "virfile.h"
 # include "virbuffer.h"
 # include "testutilslxc.h"
-# include "nodeinfo.h"
+# include "virhostcpu.h"
 
 # define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -190,7 +190,7 @@ testCgroupDetectMounts(const void *args)
         goto cleanup;
 
     actual = virBufferCurrentContent(&buf);
-    if (virtTestCompareToFile(actual, parsed) < 0)
+    if (virTestCompareToFile(actual, parsed) < 0)
         goto cleanup;
 
     result = 0;
@@ -649,8 +649,8 @@ static int testCgroupGetPercpuStats(const void *args ATTRIBUTE_UNUSED)
         goto cleanup;
     }
 
-    if (nodeGetCPUCount(NULL) != EXPECTED_NCPUS) {
-        fprintf(stderr, "Unexpected: nodeGetCPUCount() yields: %d\n", nodeGetCPUCount(NULL));
+    if (virHostCPUGetCount() != EXPECTED_NCPUS) {
+        fprintf(stderr, "Unexpected: virHostCPUGetCount() yields: %d\n", virHostCPUGetCount());
         goto cleanup;
     }
 
@@ -869,9 +869,9 @@ mymain(void)
 
 # define DETECT_MOUNTS(file)                                            \
     do {                                                                \
-        if (virtTestRun("Detect cgroup mounts for " file,               \
-                        testCgroupDetectMounts,                         \
-                        file) < 0)                                      \
+        if (virTestRun("Detect cgroup mounts for " file,                \
+                       testCgroupDetectMounts,                          \
+                       file) < 0)                                       \
             ret = -1;                                                   \
     } while (0)
 
@@ -886,53 +886,53 @@ mymain(void)
     DETECT_MOUNTS("all-in-one");
     DETECT_MOUNTS("no-cgroups");
 
-    if (virtTestRun("New cgroup for self", testCgroupNewForSelf, NULL) < 0)
+    if (virTestRun("New cgroup for self", testCgroupNewForSelf, NULL) < 0)
         ret = -1;
 
-    if (virtTestRun("New cgroup for partition", testCgroupNewForPartition, NULL) < 0)
+    if (virTestRun("New cgroup for partition", testCgroupNewForPartition, NULL) < 0)
         ret = -1;
 
-    if (virtTestRun("New cgroup for partition nested", testCgroupNewForPartitionNested, NULL) < 0)
+    if (virTestRun("New cgroup for partition nested", testCgroupNewForPartitionNested, NULL) < 0)
         ret = -1;
 
-    if (virtTestRun("New cgroup for partition nested deeply", testCgroupNewForPartitionNestedDeep, NULL) < 0)
+    if (virTestRun("New cgroup for partition nested deeply", testCgroupNewForPartitionNestedDeep, NULL) < 0)
         ret = -1;
 
-    if (virtTestRun("New cgroup for domain partition", testCgroupNewForPartitionDomain, NULL) < 0)
+    if (virTestRun("New cgroup for domain partition", testCgroupNewForPartitionDomain, NULL) < 0)
         ret = -1;
 
-    if (virtTestRun("New cgroup for domain partition escaped", testCgroupNewForPartitionDomainEscaped, NULL) < 0)
+    if (virTestRun("New cgroup for domain partition escaped", testCgroupNewForPartitionDomainEscaped, NULL) < 0)
         ret = -1;
 
-    if (virtTestRun("Cgroup available", testCgroupAvailable, (void*)0x1) < 0)
+    if (virTestRun("Cgroup available", testCgroupAvailable, (void*)0x1) < 0)
         ret = -1;
 
-    if (virtTestRun("Cgroup controller available", testCgroupControllerAvailable, NULL) < 0)
+    if (virTestRun("Cgroup controller available", testCgroupControllerAvailable, NULL) < 0)
         ret = -1;
 
-    if (virtTestRun("virCgroupGetBlkioIoServiced works", testCgroupGetBlkioIoServiced, NULL) < 0)
+    if (virTestRun("virCgroupGetBlkioIoServiced works", testCgroupGetBlkioIoServiced, NULL) < 0)
         ret = -1;
 
-    if (virtTestRun("virCgroupGetBlkioIoDeviceServiced works", testCgroupGetBlkioIoDeviceServiced, NULL) < 0)
+    if (virTestRun("virCgroupGetBlkioIoDeviceServiced works", testCgroupGetBlkioIoDeviceServiced, NULL) < 0)
         ret = -1;
 
-    if (virtTestRun("virCgroupGetMemoryUsage works", testCgroupGetMemoryUsage, NULL) < 0)
+    if (virTestRun("virCgroupGetMemoryUsage works", testCgroupGetMemoryUsage, NULL) < 0)
         ret = -1;
 
-    if (virtTestRun("virCgroupGetPercpuStats works", testCgroupGetPercpuStats, NULL) < 0)
+    if (virTestRun("virCgroupGetPercpuStats works", testCgroupGetPercpuStats, NULL) < 0)
         ret = -1;
 
     setenv("VIR_CGROUP_MOCK_MODE", "allinone", 1);
-    if (virtTestRun("New cgroup for self (allinone)", testCgroupNewForSelfAllInOne, NULL) < 0)
+    if (virTestRun("New cgroup for self (allinone)", testCgroupNewForSelfAllInOne, NULL) < 0)
         ret = -1;
-    if (virtTestRun("Cgroup available", testCgroupAvailable, (void*)0x1) < 0)
+    if (virTestRun("Cgroup available", testCgroupAvailable, (void*)0x1) < 0)
         ret = -1;
     unsetenv("VIR_CGROUP_MOCK_MODE");
 
     setenv("VIR_CGROUP_MOCK_MODE", "logind", 1);
-    if (virtTestRun("New cgroup for self (logind)", testCgroupNewForSelfLogind, NULL) < 0)
+    if (virTestRun("New cgroup for self (logind)", testCgroupNewForSelfLogind, NULL) < 0)
         ret = -1;
-    if (virtTestRun("Cgroup available", testCgroupAvailable, (void*)0x0) < 0)
+    if (virTestRun("Cgroup available", testCgroupAvailable, (void*)0x0) < 0)
         ret = -1;
     unsetenv("VIR_CGROUP_MOCK_MODE");
 

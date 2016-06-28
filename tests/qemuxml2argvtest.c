@@ -194,7 +194,7 @@ fakeStoragePoolGetXMLDesc(virStoragePoolPtr pool,
                     pool->name) < 0)
         return NULL;
 
-    if (virtTestLoadFile(xmlpath, &xmlbuf) < 0) {
+    if (virTestLoadFile(xmlpath, &xmlbuf) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        "failed to load XML file '%s'",
                        xmlpath);
@@ -282,7 +282,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
     }
     priv = vm->privateData;
 
-    if (virBitmapParse("0-3", '\0', &priv->autoNodeset, 4) < 0)
+    if (virBitmapParse("0-3", &priv->autoNodeset, 4) < 0)
         goto out;
 
     if (!virDomainDefCheckABIStability(vm->def, vm->def)) {
@@ -310,7 +310,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
 
     virQEMUCapsFilterByMachineType(extraFlags, vm->def->os.machine);
 
-    log = virtTestLogContentAndReset();
+    log = virTestLogContentAndReset();
     VIR_FREE(log);
     virResetLastError();
 
@@ -340,7 +340,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
     if (!(actualargv = virCommandToString(cmd)))
         goto out;
 
-    if (virtTestCompareToFile(actualargv, cmdline) < 0)
+    if (virTestCompareToFile(actualargv, cmdline) < 0)
         goto out;
 
     ret = 0;
@@ -351,9 +351,9 @@ static int testCompareXMLToArgvFiles(const char *xml,
         VIR_TEST_DEBUG("Error expected but there wasn't any.\n");
         goto out;
     }
-    if (!virtTestOOMActive()) {
+    if (!virTestOOMActive()) {
         if (flags & FLAG_EXPECT_FAILURE) {
-            if ((log = virtTestLogContentAndReset()))
+            if ((log = virTestLogContentAndReset()))
                 VIR_TEST_DEBUG("Got expected error: \n%s", log);
         }
         virResetLastError();
@@ -521,42 +521,42 @@ mymain(void)
     if (VIR_STRDUP_QUIET(driver.config->spicePassword, "123456") < 0)
         return EXIT_FAILURE;
 
-# define DO_TEST_FULL(name, migrateFrom, migrateFd, flags,              \
-                      parseFlags, gic, ...)                             \
-    do {                                                                \
-        static struct testInfo info = {                                 \
-            name, NULL, migrateFrom, migrateFd, (flags), parseFlags     \
-        };                                                              \
-        if (testPrepareExtraFlags(&info, skipLegacyCPUs, gic) < 0)      \
-            return EXIT_FAILURE;                                        \
+# define DO_TEST_FULL(name, migrateFrom, migrateFd, flags,               \
+                      parseFlags, gic, ...)                              \
+    do {                                                                 \
+        static struct testInfo info = {                                  \
+            name, NULL, migrateFrom, migrateFd, (flags), parseFlags      \
+        };                                                               \
+        if (testPrepareExtraFlags(&info, skipLegacyCPUs, gic) < 0)       \
+            return EXIT_FAILURE;                                         \
         virQEMUCapsSetList(info.extraFlags, __VA_ARGS__, QEMU_CAPS_LAST);\
-        if (virtTestRun("QEMU XML-2-ARGV " name,                        \
-                        testCompareXMLToArgvHelper, &info) < 0)         \
-            ret = -1;                                                   \
-        virObjectUnref(info.extraFlags);                                \
+        if (virTestRun("QEMU XML-2-ARGV " name,                          \
+                       testCompareXMLToArgvHelper, &info) < 0)           \
+            ret = -1;                                                    \
+        virObjectUnref(info.extraFlags);                                 \
     } while (0)
 
-# define DO_TEST(name, ...)                                             \
+# define DO_TEST(name, ...)                                              \
     DO_TEST_FULL(name, NULL, -1, 0, 0, GIC_NONE, __VA_ARGS__)
 
-# define DO_TEST_GIC(name, gic, ...)                                    \
+# define DO_TEST_GIC(name, gic, ...)                                     \
     DO_TEST_FULL(name, NULL, -1, 0, 0, gic, __VA_ARGS__)
 
-# define DO_TEST_FAILURE(name, ...)                                     \
-    DO_TEST_FULL(name, NULL, -1, FLAG_EXPECT_FAILURE,                   \
+# define DO_TEST_FAILURE(name, ...)                                      \
+    DO_TEST_FULL(name, NULL, -1, FLAG_EXPECT_FAILURE,                    \
                  0, GIC_NONE, __VA_ARGS__)
 
-# define DO_TEST_PARSE_ERROR(name, ...)                                 \
-    DO_TEST_FULL(name, NULL, -1,                                        \
-                 FLAG_EXPECT_PARSE_ERROR | FLAG_EXPECT_FAILURE,         \
+# define DO_TEST_PARSE_ERROR(name, ...)                                  \
+    DO_TEST_FULL(name, NULL, -1,                                         \
+                 FLAG_EXPECT_PARSE_ERROR | FLAG_EXPECT_FAILURE,          \
                  0, GIC_NONE, __VA_ARGS__)
 
-# define DO_TEST_PARSE_FLAGS_ERROR(name, parseFlags, ...)               \
-    DO_TEST_FULL(name, NULL, -1,                                        \
-                 FLAG_EXPECT_PARSE_ERROR | FLAG_EXPECT_FAILURE,         \
+# define DO_TEST_PARSE_FLAGS_ERROR(name, parseFlags, ...)                \
+    DO_TEST_FULL(name, NULL, -1,                                         \
+                 FLAG_EXPECT_PARSE_ERROR | FLAG_EXPECT_FAILURE,          \
                  parseFlags, GIC_NONE, __VA_ARGS__)
 
-# define DO_TEST_LINUX(name, ...)                                       \
+# define DO_TEST_LINUX(name, ...)                                        \
     DO_TEST_LINUX_FULL(name, NULL, -1, 0, 0, GIC_NONE, __VA_ARGS__)
 
 # ifdef __linux__
@@ -565,12 +565,12 @@ mymain(void)
      * cooperation is expected (e.g. we need a fixed time,
      * predictable NUMA topology and so on). On non-Linux
      * platforms the macro just consume its argument. */
-#  define DO_TEST_LINUX_FULL(name, ...)                                 \
+#  define DO_TEST_LINUX_FULL(name, ...)                                  \
     DO_TEST_FULL(name, __VA_ARGS__)
 # else  /* __linux__ */
-#  define DO_TEST_LINUX_FULL(name, ...)                                 \
-    do {                                                                \
-        const char *tmp ATTRIBUTE_UNUSED = name;                        \
+#  define DO_TEST_LINUX_FULL(name, ...)                                  \
+    do {                                                                 \
+        const char *tmp ATTRIBUTE_UNUSED = name;                         \
     } while (0)
 # endif /* __linux__ */
 
@@ -680,7 +680,8 @@ mymain(void)
             QEMU_CAPS_BOOT_MENU, QEMU_CAPS_PIIX3_USB_UHCI,
             QEMU_CAPS_PCI_MULTIFUNCTION, QEMU_CAPS_DRIVE_AIO,
             QEMU_CAPS_CCID_PASSTHRU, QEMU_CAPS_CHARDEV,
-            QEMU_CAPS_CHARDEV_SPICEVMC, QEMU_CAPS_SPICE, QEMU_CAPS_HDA_DUPLEX);
+            QEMU_CAPS_CHARDEV_SPICEVMC, QEMU_CAPS_SPICE,
+            QEMU_CAPS_HDA_DUPLEX, QEMU_CAPS_USB_HUB);
     DO_TEST("eoi-disabled", NONE);
     DO_TEST("eoi-enabled", NONE);
     DO_TEST("pv-spinlock-disabled", NONE);
@@ -875,10 +876,13 @@ mymain(void)
             QEMU_CAPS_VIRTIO_BLK_SCSI);
     DO_TEST("disk-drive-discard",
             QEMU_CAPS_DRIVE_DISCARD);
+    DO_TEST("disk-drive-detect-zeroes",
+            QEMU_CAPS_DRIVE_DISCARD,
+            QEMU_CAPS_DRIVE_DETECT_ZEROES);
     DO_TEST("disk-snapshot", NONE);
-    DO_TEST_FAILURE("disk-same-targets",
-                    QEMU_CAPS_SCSI_LSI,
-                    QEMU_CAPS_DEVICE_USB_STORAGE, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST_PARSE_ERROR("disk-same-targets",
+                        QEMU_CAPS_SCSI_LSI,
+                        QEMU_CAPS_DEVICE_USB_STORAGE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("event_idx",
             QEMU_CAPS_VIRTIO_BLK_EVENT_IDX,
             QEMU_CAPS_VIRTIO_NET_EVENT_IDX,
@@ -901,6 +905,9 @@ mymain(void)
     driver.config->vncAutoUnixSocket = true;
     DO_TEST("graphics-vnc-auto-socket-cfg", QEMU_CAPS_VNC);
     driver.config->vncAutoUnixSocket = false;
+    DO_TEST("graphics-vnc-socket", QEMU_CAPS_VNC);
+    DO_TEST("graphics-vnc-auto-socket", QEMU_CAPS_VNC);
+    DO_TEST("graphics-vnc-none", QEMU_CAPS_VNC);
 
     driver.config->vncSASL = 1;
     VIR_FREE(driver.config->vncSASLdir);
@@ -964,6 +971,17 @@ mymain(void)
             QEMU_CAPS_DEVICE_QXL_VGA,
             QEMU_CAPS_DEVICE_QXL,
             QEMU_CAPS_SPICE_FILE_XFER_DISABLE);
+    DO_TEST("graphics-spice-socket",
+            QEMU_CAPS_SPICE,
+            QEMU_CAPS_SPICE_UNIX);
+    DO_TEST("graphics-spice-auto-socket",
+            QEMU_CAPS_SPICE,
+            QEMU_CAPS_SPICE_UNIX);
+    driver.config->spiceAutoUnixSocket = true;
+    DO_TEST("graphics-spice-auto-socket-cfg",
+            QEMU_CAPS_SPICE,
+            QEMU_CAPS_SPICE_UNIX);
+    driver.config->spiceAutoUnixSocket = false;
 
     DO_TEST("input-usbmouse", NONE);
     DO_TEST("input-usbtablet", NONE);
@@ -1322,6 +1340,8 @@ mymain(void)
     DO_TEST("cpu-Haswell-noTSX", QEMU_CAPS_KVM);
     driver.caps->host.cpu = cpuDefault;
 
+    DO_TEST("encrypted-disk", NONE);
+
     DO_TEST("memtune", NONE);
     DO_TEST("memtune-unlimited", NONE);
     DO_TEST("blkiotune", NONE);
@@ -1455,6 +1475,20 @@ mymain(void)
             QEMU_CAPS_DEVICE_QXL_VGA, QEMU_CAPS_DEVICE_QXL,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY, QEMU_CAPS_QXL_VGA_VGAMEM,
             QEMU_CAPS_QXL_VGAMEM);
+    DO_TEST("video-qxl-heads",
+            QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
+            QEMU_CAPS_VGA_QXL,
+            QEMU_CAPS_DEVICE_QXL_VGA,
+            QEMU_CAPS_DEVICE_QXL,
+            QEMU_CAPS_QXL_MAX_OUTPUTS,
+            QEMU_CAPS_QXL_VGA_MAX_OUTPUTS);
+    DO_TEST("video-qxl-noheads",
+            QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
+            QEMU_CAPS_VGA_QXL,
+            QEMU_CAPS_DEVICE_QXL_VGA,
+            QEMU_CAPS_DEVICE_QXL,
+            QEMU_CAPS_QXL_MAX_OUTPUTS,
+            QEMU_CAPS_QXL_VGA_MAX_OUTPUTS);
     DO_TEST("video-virtio-gpu-device",
             QEMU_CAPS_DEVICE_VIRTIO_GPU,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY);
@@ -1982,6 +2016,11 @@ mymain(void)
     DO_TEST("debug-threads", QEMU_CAPS_NAME_DEBUG_THREADS);
 
     DO_TEST("master-key", QEMU_CAPS_OBJECT_SECRET);
+    DO_TEST("usb-long-port-path", QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_USB_HUB);
+    DO_TEST_PARSE_FLAGS_ERROR("usb-too-long-port-path-invalid",
+                              QEMU_CAPS_CHARDEV,
+                              QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_USB_HUB);
 
     DO_TEST("acpi-table", NONE);
 

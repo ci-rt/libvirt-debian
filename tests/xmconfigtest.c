@@ -79,7 +79,7 @@ testCompareParseXML(const char *xmcfg, const char *xml)
         goto fail;
     gotxmcfgData[wrote] = '\0';
 
-    if (virtTestCompareToFile(gotxmcfgData, xmcfg) < 0)
+    if (virTestCompareToFile(gotxmcfgData, xmcfg) < 0)
         goto fail;
 
     ret = 0;
@@ -108,7 +108,7 @@ testCompareFormatXML(const char *xmcfg, const char *xml)
     conn = virGetConnect();
     if (!conn) goto fail;
 
-    if (virtTestLoadFile(xmcfg, &xmcfgData) < 0)
+    if (virTestLoadFile(xmcfg, &xmcfgData) < 0)
         goto fail;
 
     /* Many puppies died to bring you this code. */
@@ -124,7 +124,7 @@ testCompareFormatXML(const char *xmcfg, const char *xml)
     if (!(gotxml = virDomainDefFormat(def, caps, VIR_DOMAIN_DEF_FORMAT_SECURE)))
         goto fail;
 
-    if (virtTestCompareToFile(gotxml, xml) < 0)
+    if (virTestCompareToFile(gotxml, xml) < 0)
         goto fail;
 
     ret = 0;
@@ -189,8 +189,8 @@ mymain(void)
 #define DO_TEST_PARSE(name)                                             \
     do {                                                                \
         struct testInfo info0 = { name, 0 };                            \
-        if (virtTestRun("Xen XM-2-XML Parse  " name,                    \
-                        testCompareHelper, &info0) < 0)                 \
+        if (virTestRun("Xen XM-2-XML Parse  " name,                     \
+                       testCompareHelper, &info0) < 0)                  \
             ret = -1;                                                   \
     } while (0)
 
@@ -198,8 +198,8 @@ mymain(void)
 #define DO_TEST_FORMAT(name)                                            \
     do {                                                                \
         struct testInfo info1 = { name, 1 };                            \
-        if (virtTestRun("Xen XM-2-XML Format " name,                    \
-                        testCompareHelper, &info1) < 0)                 \
+        if (virTestRun("Xen XM-2-XML Format " name,                     \
+                       testCompareHelper, &info1) < 0)                  \
             ret = -1;                                                   \
     } while (0)
 
@@ -248,6 +248,9 @@ mymain(void)
     DO_TEST("escape-paths");
     DO_TEST("no-source-cdrom");
     DO_TEST("pci-devs");
+
+    DO_TEST("disk-drv-blktap-raw");
+    DO_TEST("disk-drv-blktap2-raw");
 
     virObjectUnref(caps);
     virObjectUnref(xmlopt);

@@ -29,6 +29,7 @@
 # include "vircommand.h"
 # include "qemu_monitor.h"
 # include "domain_capabilities.h"
+# include "virfirmware.h"
 
 /*
  * Internal flags to keep track of qemu command line capabilities
@@ -361,6 +362,15 @@ typedef enum {
     QEMU_CAPS_VIRTIO_SCSI_IOTHREAD, /* virtio-scsi-{pci,ccw}.iothread */
     QEMU_CAPS_NAME_GUEST, /* -name guest= */
 
+    /* 225 */
+    QEMU_CAPS_QXL_MAX_OUTPUTS, /* -device qxl,max-outputs= */
+    QEMU_CAPS_QXL_VGA_MAX_OUTPUTS, /* -device qxl-vga,max-outputs= */
+    QEMU_CAPS_SPICE_UNIX, /* -spice unix */
+    QEMU_CAPS_DRIVE_DETECT_ZEROES, /* -drive detect-zeroes= */
+
+    /* 230 */
+    QEMU_CAPS_OBJECT_TLS_CREDS_X509, /* -object tls-creds-x509 */
+
     QEMU_CAPS_LAST /* this must always be the last item */
 } virQEMUCapsFlags;
 
@@ -372,11 +382,6 @@ typedef virQEMUCapsCache *virQEMUCapsCachePtr;
 
 virQEMUCapsPtr virQEMUCapsNew(void);
 virQEMUCapsPtr virQEMUCapsNewCopy(virQEMUCapsPtr qemuCaps);
-virQEMUCapsPtr virQEMUCapsNewForBinary(const char *binary,
-                                       const char *libDir,
-                                       const char *cacheDir,
-                                       uid_t runUid,
-                                       gid_t runGid);
 
 int virQEMUCapsInitQMPMonitor(virQEMUCapsPtr qemuCaps,
                               qemuMonitorPtr mon);
@@ -486,7 +491,8 @@ int virQEMUCapsInitGuestFromBinary(virCapsPtr caps,
 
 int virQEMUCapsFillDomainCaps(virDomainCapsPtr domCaps,
                               virQEMUCapsPtr qemuCaps,
-                              char **loader,
-                              size_t nloader);
+                              virFirmwarePtr *firmwares,
+                              size_t nfirmwares,
+                              virDomainVirtType virttype);
 
 #endif /* __QEMU_CAPABILITIES_H__*/

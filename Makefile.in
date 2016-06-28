@@ -246,7 +246,6 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-result.m4 \
 	$(top_srcdir)/m4/virt-sanlock.m4 $(top_srcdir)/m4/virt-sasl.m4 \
 	$(top_srcdir)/m4/virt-selinux.m4 $(top_srcdir)/m4/virt-ssh2.m4 \
-	$(top_srcdir)/m4/virt-systemd-daemon.m4 \
 	$(top_srcdir)/m4/virt-udev.m4 \
 	$(top_srcdir)/m4/virt-wireshark.m4 \
 	$(top_srcdir)/m4/virt-yajl.m4 $(top_srcdir)/m4/vsnprintf.m4 \
@@ -369,7 +368,7 @@ am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/config.h.in \
 	$(top_srcdir)/build-aux/mkinstalldirs ABOUT-NLS AUTHORS \
 	COPYING COPYING.LESSER ChangeLog INSTALL NEWS README TODO \
 	build-aux/ar-lib build-aux/compile build-aux/config.guess \
-	build-aux/config.rpath build-aux/config.sub build-aux/depcomp \
+	build-aux/config.rpath build-aux/config.sub \
 	build-aux/install-sh build-aux/ltmain.sh build-aux/missing \
 	build-aux/mkinstalldirs
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -407,9 +406,9 @@ am__relativize = \
     dir1=`echo "$$dir1" | sed -e "$$sed_rest"`; \
   done; \
   reldir="$$dir2"
-DIST_ARCHIVES = $(distdir).tar.gz
 GZIP_ENV = --best
-DIST_TARGETS = dist-gzip
+DIST_ARCHIVES = $(distdir).tar.xz
+DIST_TARGETS = dist-xz
 distuninstallcheck_listfiles = find . -type f -print
 am__distuninstallcheck_listfiles = $(distuninstallcheck_listfiles) \
   | sed 's|^\./|$(prefix)/|' | grep -v '$(infodir)/dir$$'
@@ -1757,8 +1756,6 @@ STDBOOL_H = @STDBOOL_H@
 STDDEF_H = @STDDEF_H@
 STDINT_H = @STDINT_H@
 STRIP = @STRIP@
-SYSTEMD_DAEMON_CFLAGS = @SYSTEMD_DAEMON_CFLAGS@
-SYSTEMD_DAEMON_LIBS = @SYSTEMD_DAEMON_LIBS@
 SYS_IOCTL_H_HAVE_WINSOCK2_H = @SYS_IOCTL_H_HAVE_WINSOCK2_H@
 SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS = @SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS@
 SYS_TIME_H_DEFINES_STRUCT_TIMESPEC = @SYS_TIME_H_DEFINES_STRUCT_TIMESPEC@
@@ -1891,7 +1888,7 @@ EXTRA_DIST = \
   AUTHORS.in
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = libvirt.pc libvirt-qemu.pc libvirt-lxc.pc
+pkgconfig_DATA = libvirt.pc libvirt-qemu.pc libvirt-lxc.pc libvirt-admin.pc
 MAINTAINERCLEANFILES = .git-module-status
 
 # Generate the ChangeLog file (with all entries since the switch to git)
@@ -2178,7 +2175,6 @@ dist-bzip2: distdir
 dist-lzip: distdir
 	tardir=$(distdir) && $(am__tar) | lzip -c $${LZIP_OPT--9} >$(distdir).tar.lz
 	$(am__post_remove_distdir)
-
 dist-xz: distdir
 	tardir=$(distdir) && $(am__tar) | XZ_OPT=$${XZ_OPT--e} xz -c >$(distdir).tar.xz
 	$(am__post_remove_distdir)
@@ -2424,6 +2420,9 @@ uninstall-am: uninstall-pkgconfigDATA
 .PRECIOUS: Makefile
 
 
+XZ_OPT ?= -9ev
+export XZ_OPT
+
 NEWS: $(top_srcdir)/docs/news.xsl $(top_srcdir)/docs/news.html.in
 	$(AM_V_GEN)if [ -x $(XSLTPROC) ] ; then			\
 	  $(XSLTPROC) --nonet $(top_srcdir)/docs/news.xsl	\
@@ -2444,7 +2443,7 @@ $(top_srcdir)/HACKING: $(top_srcdir)/docs/hacking1.xsl \
 	   > $@-t && mv $@-t $@ ; fi;
 
 rpm: clean
-	@(unset CDPATH ; $(MAKE) dist && rpmbuild -ta $(distdir).tar.gz)
+	@(unset CDPATH ; $(MAKE) dist && rpmbuild -ta $(distdir).tar.xz)
 
 check-local: all tests
 

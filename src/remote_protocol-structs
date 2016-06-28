@@ -2551,6 +2551,26 @@ struct remote_network_event_lifecycle_msg {
         int                        event;
         int                        detail;
 };
+struct remote_connect_storage_pool_event_register_any_args {
+        int                        eventID;
+        remote_storage_pool        pool;
+};
+struct remote_connect_storage_pool_event_register_any_ret {
+        int                        callbackID;
+};
+struct remote_connect_storage_pool_event_deregister_any_args {
+        int                        callbackID;
+};
+struct remote_storage_pool_event_lifecycle_msg {
+        int                        callbackID;
+        remote_nonnull_storage_pool pool;
+        int                        event;
+        int                        detail;
+};
+struct remote_storage_pool_event_refresh_msg {
+        int                        callbackID;
+        remote_nonnull_storage_pool pool;
+};
 struct remote_domain_fsfreeze_args {
         remote_nonnull_domain      dom;
         struct {
@@ -2734,6 +2754,22 @@ struct remote_domain_event_callback_device_removal_failed_msg {
         int                        callbackID;
         remote_nonnull_domain      dom;
         remote_nonnull_string      devAlias;
+};
+struct remote_domain_get_guest_vcpus_args {
+        remote_nonnull_domain      dom;
+        u_int                      flags;
+};
+struct remote_domain_get_guest_vcpus_ret {
+        struct {
+                u_int              params_len;
+                remote_typed_param * params_val;
+        } params;
+};
+struct remote_domain_set_guest_vcpus_args {
+        remote_nonnull_domain      dom;
+        remote_nonnull_string      cpumap;
+        int                        state;
+        u_int                      flags;
 };
 enum remote_procedure {
         REMOTE_PROC_CONNECT_OPEN = 1,
@@ -3103,4 +3139,10 @@ enum remote_procedure {
         REMOTE_PROC_DOMAIN_GET_PERF_EVENTS = 365,
         REMOTE_PROC_DOMAIN_SET_PERF_EVENTS = 366,
         REMOTE_PROC_DOMAIN_EVENT_CALLBACK_DEVICE_REMOVAL_FAILED = 367,
+        REMOTE_PROC_CONNECT_STORAGE_POOL_EVENT_REGISTER_ANY = 368,
+        REMOTE_PROC_CONNECT_STORAGE_POOL_EVENT_DEREGISTER_ANY = 369,
+        REMOTE_PROC_STORAGE_POOL_EVENT_LIFECYCLE = 370,
+        REMOTE_PROC_DOMAIN_GET_GUEST_VCPUS = 371,
+        REMOTE_PROC_DOMAIN_SET_GUEST_VCPUS = 372,
+        REMOTE_PROC_STORAGE_POOL_EVENT_REFRESH = 373,
 };

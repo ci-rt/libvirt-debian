@@ -120,7 +120,7 @@ test_virCapabilitiesFormat(const void *opaque)
                     abs_srcdir, data->filename) < 0)
         goto cleanup;
 
-    if (virtTestCompareToFile(capsXML, path) < 0)
+    if (virTestCompareToFile(capsXML, path) < 0)
         goto cleanup;
 
     ret = 0;
@@ -143,8 +143,8 @@ mymain(void)
         struct virCapabilitiesFormatData data = {filename, max_cells,       \
                                                  max_cpus_in_cell,          \
                                                  max_mem_in_cell};          \
-        if (virtTestRun(filename, test_virCapabilitiesFormat, &data) < 0)   \
-        ret = -1;                                                           \
+        if (virTestRun(filename, test_virCapabilitiesFormat, &data) < 0)    \
+            ret = -1;                                                       \
     } while (0)
 
     DO_TEST("basic-4-4-2G", 4, 4, 2*1024*1024);

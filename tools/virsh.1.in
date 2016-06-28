@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2016-05-24" "libvirt-1.3.5" "Virtualization Support"
+.TH VIRSH 1 "2016-06-26" "libvirt-2.0.0" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -937,7 +937,9 @@ from virVcpuState enum,
 \&\*(L"net.<num>.tx.drop\*(R" \- number of transmit packets dropped
 .Sp
 \&\fI\-\-perf\fR returns the statistics of all enabled perf events:
-\&\*(L"perf.cache\*(R" \- the cache usage in Byte currently used
+\&\*(L"perf.cmt\*(R" \- the cache usage in Byte currently used
+\&\*(L"perf.mbmt\*(R" \- total system bandwidth from one level of cache
+\&\*(L"perf.mbml\*(R" \- bandwidth of memory traffic for a memory controller
 .Sp
 \&\fI\-\-block\fR returns information about disks associated with each
 domain.  Using the \fI\-\-backing\fR flag extends this information to
@@ -1344,6 +1346,11 @@ is to send \s-1SIGINT \s0(usually with \f(CW\*(C`Ctrl\-C\*(C'\fR) to the virsh p
 .Sp
 \&\s-1NOTE:\s0 Some hypervisors may require the user to manually ensure proper
 permissions on file and path specified by argument \fIcorefilepath\fR.
+.Sp
+\&\s-1NOTE:\s0 Crash dump in a old kvmdump format is being obsolete and cannot be loaded
+and processed by crash utility since its version 6.1.0. A \-\-memory\-only option
+is required in order to produce valid \s-1ELF\s0 file which can be later processed by
+the crash utility.
 .IP "\fBdumpxml\fR \fIdomain\fR [\fI\-\-inactive\fR] [\fI\-\-security\-info\fR] [\fI\-\-update\-cpu\fR] [\fI\-\-migratable\fR]" 4
 .IX Item "dumpxml domain [--inactive] [--security-info] [--update-cpu] [--migratable]"
 Output the domain information as an \s-1XML\s0 dump to stdout, this format can be used
@@ -1514,8 +1521,8 @@ to the private namespace.
 .Sp
 If neither of \fI\-\-edit\fR and \fIset\fR are specified the \s-1XML\s0 metadata corresponding
 to the \fIuri\fR namespace is displayed instead of being modified.
-.IP "\fBmigrate\fR [\fI\-\-live\fR] [\fI\-\-offline\fR] [\fI\-\-direct\fR] [\fI\-\-p2p\fR [\fI\-\-tunnelled\fR]] [\fI\-\-persistent\fR] [\fI\-\-undefinesource\fR] [\fI\-\-suspend\fR] [\fI\-\-copy\-storage\-all\fR] [\fI\-\-copy\-storage\-inc\fR] [\fI\-\-change\-protection\fR] [\fI\-\-unsafe\fR] [\fI\-\-verbose\fR] [\fI\-\-abort\-on\-error\fR] [\fI\-\-auto\-converge\fR] [\fI\-\-postcopy\fR] [\fI\-\-postcopy\-after\-precopy\fR] \fIdomain\fR \fIdesturi\fR [\fImigrateuri\fR] [\fIgraphicsuri\fR] [\fIlisten-address\fR] [\fIdname\fR] [\fI\-\-timeout\fR \fBseconds\fR [\fI\-\-timeout\-suspend\fR | \fI\-\-timeout\-postcopy\fR]] [\fI\-\-xml\fR \fBfile\fR] [\fI\-\-migrate\-disks\fR \fBdisk-list\fR] [\fI\-\-disks\-port\fR \fBport\fR] [\fI\-\-compressed\fR] [\fI\-\-comp\-methods\fR \fBmethod-list\fR] [\fI\-\-comp\-mt\-level\fR] [\fI\-\-comp\-mt\-threads\fR] [\fI\-\-comp\-mt\-dthreads\fR] [\fI\-\-comp\-xbzrle\-cache\fR]" 4
-.IX Item "migrate [--live] [--offline] [--direct] [--p2p [--tunnelled]] [--persistent] [--undefinesource] [--suspend] [--copy-storage-all] [--copy-storage-inc] [--change-protection] [--unsafe] [--verbose] [--abort-on-error] [--auto-converge] [--postcopy] [--postcopy-after-precopy] domain desturi [migrateuri] [graphicsuri] [listen-address] [dname] [--timeout seconds [--timeout-suspend | --timeout-postcopy]] [--xml file] [--migrate-disks disk-list] [--disks-port port] [--compressed] [--comp-methods method-list] [--comp-mt-level] [--comp-mt-threads] [--comp-mt-dthreads] [--comp-xbzrle-cache]"
+.IP "\fBmigrate\fR [\fI\-\-live\fR] [\fI\-\-offline\fR] [\fI\-\-direct\fR] [\fI\-\-p2p\fR [\fI\-\-tunnelled\fR]] [\fI\-\-persistent\fR] [\fI\-\-undefinesource\fR] [\fI\-\-suspend\fR] [\fI\-\-copy\-storage\-all\fR] [\fI\-\-copy\-storage\-inc\fR] [\fI\-\-change\-protection\fR] [\fI\-\-unsafe\fR] [\fI\-\-verbose\fR] [\fI\-\-abort\-on\-error\fR] [\fI\-\-postcopy\fR] [\fI\-\-postcopy\-after\-precopy\fR] \fIdomain\fR \fIdesturi\fR [\fImigrateuri\fR] [\fIgraphicsuri\fR] [\fIlisten-address\fR] [\fIdname\fR] [\fI\-\-timeout\fR \fBseconds\fR [\fI\-\-timeout\-suspend\fR | \fI\-\-timeout\-postcopy\fR]] [\fI\-\-xml\fR \fBfile\fR] [\fI\-\-migrate\-disks\fR \fBdisk-list\fR] [\fI\-\-disks\-port\fR \fBport\fR] [\fI\-\-compressed\fR] [\fI\-\-comp\-methods\fR \fBmethod-list\fR] [\fI\-\-comp\-mt\-level\fR] [\fI\-\-comp\-mt\-threads\fR] [\fI\-\-comp\-mt\-dthreads\fR] [\fI\-\-comp\-xbzrle\-cache\fR] [\fI\-\-auto\-converge\fR] [\fIauto-converge-initial\fR] [\fIauto-converge-increment\fR]" 4
+.IX Item "migrate [--live] [--offline] [--direct] [--p2p [--tunnelled]] [--persistent] [--undefinesource] [--suspend] [--copy-storage-all] [--copy-storage-inc] [--change-protection] [--unsafe] [--verbose] [--abort-on-error] [--postcopy] [--postcopy-after-precopy] domain desturi [migrateuri] [graphicsuri] [listen-address] [dname] [--timeout seconds [--timeout-suspend | --timeout-postcopy]] [--xml file] [--migrate-disks disk-list] [--disks-port port] [--compressed] [--comp-methods method-list] [--comp-mt-level] [--comp-mt-threads] [--comp-mt-dthreads] [--comp-xbzrle-cache] [--auto-converge] [auto-converge-initial] [auto-converge-increment]"
 Migrate domain to another host.  Add \fI\-\-live\fR for live migration; <\-\-p2p>
 for peer\-2\-peer migration; \fI\-\-direct\fR for direct migration; or \fI\-\-tunnelled\fR
 for tunnelled migration.  \fI\-\-offline\fR migrates domain definition without
@@ -1539,13 +1546,17 @@ by the hypervisor, but can be explicitly used to reject the migration if the
 hypervisor lacks change protection support.  \fI\-\-verbose\fR displays the progress
 of migration.  \fI\-\-abort\-on\-error\fR cancels
 the migration if a soft error (for example I/O error) happens during the
-migration. \fI\-\-auto\-converge\fR forces convergence during live migration.
-\&\fI\-\-postcopy\fR enables post-copy logic in migration, but does not
+migration. \fI\-\-postcopy\fR enables post-copy logic in migration, but does not
 actually start post-copy, i.e., migration is started in pre-copy mode.
 Once migration is running, the user may switch to post-copy using the
 \&\fBmigrate-postcopy\fR command sent from another virsh instance or use
 \&\fI\-\-postcopy\-after\-precopy\fR to let libvirt automatically switch to
 post-copy after the first pass of pre-copy is finished.
+.Sp
+\&\fI\-\-auto\-converge\fR forces convergence during live migration. The initial
+guest \s-1CPU\s0 throttling rate can be set with \fIauto-converge-initial\fR. If the
+initial throttling rate is not enough to ensure convergence, the rate is
+periodically increased by \fIauto-converge-increment\fR.
 .Sp
 \&\fBNote\fR: Individual hypervisors usually do not support all possible types of
 migration. For example, \s-1QEMU\s0 does not support direct migration.
@@ -2106,9 +2117,16 @@ from different sources can be supported by perf.
 Currently only \s-1QEMU/KVM\s0 supports this command. The \fI\-\-enable\fR and \fI\-\-disable\fR
 option combined with \fBeventSpec\fR can be used to enabled or disable specific
 performance event. \fBeventSpec\fR is a string list of one or more events
-separated by commas. However, just \*(L"cmt\*(R" event is supported presently. \s-1CMT\s0 is a
-PQos (Platform Qos) feature to monitor the usage of cache by applications
-running on the platform.
+separated by commas. Valid event names are \*(L"cmt\*(R", \*(L"mbmt\*(R", \*(L"mbml\*(R".
+\&\s-1CMT\s0 is a PQos (Platform Qos) feature to monitor the usage of cache by
+applications running on the platform.
+\&\s-1MBM \s0(Memory Bandwidth Monitoring) provides a way to monitor the Total
+system memory bandwidth between one level of cache and another (mbmt)
+and the amount of data (bytes/s) sent through the memory controller on
+the socket (mbml).
+.Sp
+The statistics can be retrieved using the \fBdomstats\fR command using the
+\&\fI\-\-perf\fR flag.
 .Sp
 If \fI\-\-live\fR is specified, affect a running guest.
 If \fI\-\-config\fR is specified, affect the next boot of a persistent guest.
@@ -2383,6 +2401,16 @@ If \fI\-\-current\fR is specified, affect the current guest state.
 Both \fI\-\-live\fR and \fI\-\-config\fR flags may be given if \fIcpulist\fR is present,
 but \fI\-\-current\fR is exclusive.
 If no flag is specified, behavior is different depending on hypervisor.
+.IP "\fBguestvcpus\fR \fIdomain\fR [[\fI\-\-enable\fR] | [\fI\-\-disable\fR]] [\fIcpulist\fR]" 4
+.IX Item "guestvcpus domain [[--enable] | [--disable]] [cpulist]"
+Query or change state of vCPUs from guest's point of view using the guest agent.
+When invoked without \fIcpulist\fR the guest is queried for available guest vCPUs,
+their state and possibility to be offlined.
+.Sp
+If \fIcpulist\fR is provided then one of \fI\-\-enable\fR or \fI\-\-disable\fR must be
+provided too. The desired operation is then executed on the domain.
+.Sp
+See \fBvcpupin\fR for information on \fIcpulist\fR.
 .IP "\fBvncdisplay\fR \fIdomain\fR" 4
 .IX Item "vncdisplay domain"
 Output the \s-1IP\s0 address and port number for the \s-1VNC\s0 display. If the information
@@ -3231,6 +3259,22 @@ Undefine the configuration for an inactive \fIpool\fR.
 .IP "\fBpool-uuid\fR \fIpool\fR" 4
 .IX Item "pool-uuid pool"
 Returns the \s-1UUID\s0 of the named \fIpool\fR.
+.IP "\fBpool-event\fR {[\fIpool\fR] \fIevent\fR [\fI\-\-loop\fR] [\fI\-\-timeout\fR \fIseconds\fR] [\fI\-\-timestamp\fR] | \fI\-\-list\fR}" 4
+.IX Item "pool-event {[pool] event [--loop] [--timeout seconds] [--timestamp] | --list}"
+Wait for a class of storage pool events to occur, and print appropriate
+details of events as they happen.  The events can optionally be filtered
+by \fIpool\fR.  Using \fI\-\-list\fR as the only argument will provide a list
+of possible \fIevent\fR values known by this client, although the connection
+might not allow registering for all these events.
+.Sp
+By default, this command is one-shot, and returns success once an event
+occurs; you can send \s-1SIGINT \s0(usually via \f(CW\*(C`Ctrl\-C\*(C'\fR) to quit immediately.
+If \fI\-\-timeout\fR is specified, the command gives up waiting for events
+after \fIseconds\fR have elapsed.   With \fI\-\-loop\fR, the command prints all
+events until a timeout or interrupt key.
+.Sp
+When \fI\-\-timestamp\fR is used, a human-readable timestamp will be printed
+before the event.
 .SH "VOLUME COMMANDS"
 .IX Header "VOLUME COMMANDS"
 .IP "\fBvol-create\fR \fIpool-or-uuid\fR \fI\s-1FILE\s0\fR [\fI\-\-prealloc\-metadata\fR]" 4
@@ -3882,9 +3926,10 @@ omitted.
 Enter the namespace of \fIdomain\fR and execute the command \f(CW\*(C`/path/to/binary\*(C'\fR
 passing the requested args. The binary path is relative to the container
 root filesystem, not the host root filesystem. The binary will inherit the
-environment variables / console visible to virsh. This command only works
-when connected to the \s-1LXC\s0 hypervisor driver.  This command succeeds only
-if \f(CW\*(C`/path/to/binary\*(C'\fR has 0 exit status.
+environment variables / console visible to virsh. The command will be run
+with the same sVirt context and cgroups placement as processes within the
+container. This command only works when connected to the \s-1LXC\s0 hypervisor
+driver.  This command succeeds only if \f(CW\*(C`/path/to/binary\*(C'\fR has 0 exit status.
 .Sp
 By default the new process will run with the security label of the new
 parent container. Use the \fI\-\-noseclabel\fR option to instead have the

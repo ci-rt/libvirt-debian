@@ -105,7 +105,7 @@ testJSONAddRemove(const void *data)
         goto cleanup;
     }
     if (STRNEQ(info->expect, result)) {
-        virtTestDifference(stderr, info->expect, result);
+        virTestDifference(stderr, info->expect, result);
         goto cleanup;
     }
     ret = 0;
@@ -270,7 +270,7 @@ testJSONCopy(const void *data)
 
     if (STRNEQ(result, resultCopy)) {
         if (virTestGetVerbose())
-            virtTestDifference(stderr, result, resultCopy);
+            virTestDifference(stderr, result, resultCopy);
         ret = -1;
         goto cleanup;
     }
@@ -296,7 +296,7 @@ testJSONCopy(const void *data)
 
     if (STRNEQ(result, resultCopy)) {
         if (virTestGetVerbose())
-            virtTestDifference(stderr, result, resultCopy);
+            virTestDifference(stderr, result, resultCopy);
         ret = -1;
         goto cleanup;
     }
@@ -319,7 +319,7 @@ mymain(void)
 #define DO_TEST_FULL(name, cmd, doc, expect, pass)                  \
     do {                                                            \
         struct testInfo info = { doc, expect, pass };               \
-        if (virtTestRun(name, testJSON ## cmd, &info) < 0)          \
+        if (virTestRun(name, testJSON ## cmd, &info) < 0)           \
             ret = -1;                                               \
     } while (0)
 

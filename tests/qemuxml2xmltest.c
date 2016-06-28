@@ -109,9 +109,9 @@ testCompareStatusXMLToXMLFiles(const void *opaque)
     int ret = -1;
     int keepBlanksDefault = xmlKeepBlanksDefault(0);
 
-    if (virtTestLoadFile(data->inName, &inFile) < 0)
+    if (virTestLoadFile(data->inName, &inFile) < 0)
         goto cleanup;
-    if (virtTestLoadFile(data->outActiveName, &outActiveFile) < 0)
+    if (virTestLoadFile(data->outActiveName, &outActiveFile) < 0)
         goto cleanup;
 
     /* construct faked source status XML */
@@ -159,9 +159,9 @@ testCompareStatusXMLToXMLFiles(const void *opaque)
     if (STRNEQ(actual, expect)) {
         /* For status test we don't want to regenerate output to not
          * add the status data.*/
-        virtTestDifferenceFullNoRegenerate(stderr,
-                                           expect, data->outActiveName,
-                                           actual, data->inName);
+        virTestDifferenceFullNoRegenerate(stderr,
+                                          expect, data->outActiveName,
+                                          actual, data->inName);
         goto cleanup;
     }
 
@@ -272,23 +272,23 @@ mymain(void)
 # define DO_TEST_FULL(name, when, gic, ...)                                    \
     do {                                                                       \
         if (testInfoSet(&info, name, when, gic) < 0) {                         \
-            VIR_TEST_DEBUG("Failed to generate test data for '%s'", name);    \
+            VIR_TEST_DEBUG("Failed to generate test data for '%s'", name);     \
             return -1;                                                         \
         }                                                                      \
         virQEMUCapsSetList(info.qemuCaps, __VA_ARGS__, QEMU_CAPS_LAST);        \
                                                                                \
         if (info.outInactiveName) {                                            \
-            if (virtTestRun("QEMU XML-2-XML-inactive " name,                   \
+            if (virTestRun("QEMU XML-2-XML-inactive " name,                    \
                             testXML2XMLInactive, &info) < 0)                   \
                 ret = -1;                                                      \
         }                                                                      \
                                                                                \
         if (info.outActiveName) {                                              \
-            if (virtTestRun("QEMU XML-2-XML-active " name,                     \
+            if (virTestRun("QEMU XML-2-XML-active " name,                      \
                             testXML2XMLActive, &info) < 0)                     \
                 ret = -1;                                                      \
                                                                                \
-            if (virtTestRun("QEMU XML-2-XML-status " name,                     \
+            if (virTestRun("QEMU XML-2-XML-status " name,                      \
                             testCompareStatusXMLToXMLFiles, &info) < 0)        \
                 ret = -1;                                                      \
         }                                                                      \
@@ -434,12 +434,20 @@ mymain(void)
     cfg->vncAutoUnixSocket = true;
     DO_TEST("graphics-vnc-auto-socket-cfg");
     cfg->vncAutoUnixSocket = false;
+    DO_TEST("graphics-vnc-socket");
+    DO_TEST("graphics-vnc-auto-socket");
 
     DO_TEST("graphics-sdl");
     DO_TEST("graphics-sdl-fullscreen");
     DO_TEST("graphics-spice");
     DO_TEST("graphics-spice-compression");
     DO_TEST("graphics-spice-qxl-vga");
+    DO_TEST("graphics-spice-socket");
+    DO_TEST("graphics-spice-auto-socket");
+    cfg->spiceAutoUnixSocket = true;
+    DO_TEST("graphics-spice-auto-socket-cfg");
+    cfg->spiceAutoUnixSocket = false;
+
     DO_TEST("nographics-vga");
     DO_TEST("input-usbmouse");
     DO_TEST("input-usbtablet");
@@ -558,6 +566,7 @@ mymain(void)
     DO_TEST("disk-source-pool-mode");
 
     DO_TEST("disk-drive-discard");
+    DO_TEST("disk-drive-detect-zeroes");
 
     DO_TEST("virtio-rng-random");
     DO_TEST("virtio-rng-egd");
@@ -816,6 +825,9 @@ mymain(void)
     virObjectUnref(cfg);
 
     DO_TEST("acpi-table");
+
+    DO_TEST("video-qxl-heads");
+    DO_TEST("video-qxl-noheads");
 
     qemuTestDriverFree(&driver);
 

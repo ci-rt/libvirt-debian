@@ -49,7 +49,7 @@ testVerStrParse(const void *data)
                     info->name) < 0)
         return -1;
 
-    if (virtTestLoadFile(path, &databuf) < 0)
+    if (virTestLoadFile(path, &databuf) < 0)
         goto cleanup;
 
     if ((vmware_type = vmwareDriverTypeFromString(info->vmware_type)) < 0)
@@ -82,8 +82,8 @@ mymain(void)
         struct testInfo info = {                                        \
             vmware_type, name, version                                  \
         };                                                              \
-        if (virtTestRun("VMware Version String Parsing " name,          \
-                        testVerStrParse, &info) < 0)                    \
+        if (virTestRun("VMware Version String Parsing " name,           \
+                       testVerStrParse, &info) < 0)                     \
             ret = -1;                                                   \
     } while (0)
 

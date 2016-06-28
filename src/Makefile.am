@@ -114,12 +114,15 @@ UTIL_SOURCES =							\
 		util/virfile.c util/virfile.h			\
 		util/virfirewall.c util/virfirewall.h		\
 		util/virfirewallpriv.h				\
+		util/virfirmware.c util/virfirmware.h		\
 		util/virgettext.c util/virgettext.h		\
 		util/virgic.c util/virgic.h			\
 		util/virhash.c util/virhash.h			\
 		util/virhashcode.c util/virhashcode.h		\
 		util/virhook.c util/virhook.h			\
+		util/virhostcpu.c util/virhostcpu.h util/virhostcpupriv.h \
 		util/virhostdev.c util/virhostdev.h		\
+		util/virhostmem.c util/virhostmem.h		\
 		util/viridentity.c util/viridentity.h		\
 		util/virinitctl.c util/virinitctl.h		\
 		util/viriptables.c util/viriptables.h		\
@@ -153,10 +156,12 @@ UTIL_SOURCES =							\
 		util/virportallocator.c util/virportallocator.h \
 		util/virprobe.h					\
 		util/virprocess.c util/virprocess.h		\
+		util/virqemu.c util/virqemu.h			\
 		util/virrandom.h util/virrandom.c		\
 		util/virrotatingfile.h util/virrotatingfile.c   \
 		util/virscsi.c util/virscsi.h			\
 		util/virseclabel.c util/virseclabel.h		\
+		util/virsecret.c util/virsecret.h		\
 		util/virsexpr.c util/virsexpr.h			\
 		util/virsocketaddr.h util/virsocketaddr.c	\
 		util/virstats.c util/virstats.h	\
@@ -191,7 +196,7 @@ util/virkeymaps.h: $(srcdir)/util/keymaps.csv	\
 	  <$(srcdir)/util/keymaps.csv >util/virkeymaps.h
 
 # Internal generic driver infrastructure
-NODE_INFO_SOURCES = nodeinfo.h nodeinfo.c nodeinfopriv.h
+NODE_INFO_SOURCES = nodeinfo.h nodeinfo.c
 DATATYPES_SOURCES = datatypes.h datatypes.c
 DRIVER_SOURCES =							\
 		driver.c driver.h					\
@@ -339,6 +344,9 @@ DOMAIN_EVENT_SOURCES =						\
 NETWORK_EVENT_SOURCES =						\
 		conf/network_event.c conf/network_event.h
 
+STORAGE_EVENT_SOURCES =						\
+                conf/storage_event.c conf/storage_event.h
+
 # Network driver generic impl APIs
 NETWORK_CONF_SOURCES =						\
 		conf/network_conf.c conf/network_conf.h \
@@ -389,6 +397,7 @@ CONF_SOURCES =							\
 		$(OBJECT_EVENT_SOURCES)				\
 		$(DOMAIN_EVENT_SOURCES)				\
 		$(NETWORK_EVENT_SOURCES)			\
+		$(STORAGE_EVENT_SOURCES)			\
 		$(NETWORK_CONF_SOURCES)				\
 		$(NWFILTER_CONF_SOURCES)			\
 		$(NODE_DEVICE_CONF_SOURCES)			\
@@ -436,7 +445,6 @@ remote/qemu_client_bodies.h: $(srcdir)/rpc/gendispatch.pl \
 	  > $(srcdir)/remote/qemu_client_bodies.h
 
 REMOTE_DRIVER_SOURCES =						\
-		gnutls_1_0_compat.h				\
 		remote/remote_driver.c remote/remote_driver.h	\
 		$(REMOTE_DRIVER_GENERATED)
 
@@ -783,6 +791,7 @@ VBOX_DRIVER_SOURCES =						\
 	vbox/vbox_V4_2_20.c vbox/vbox_CAPI_v4_2_20.h		\
 	vbox/vbox_V4_3.c vbox/vbox_CAPI_v4_3.h			\
 	vbox/vbox_V4_3_4.c vbox/vbox_CAPI_v4_3_4.h              \
+	vbox/vbox_V5_0.c vbox/vbox_CAPI_v5_0.h			\
 	vbox/vbox_common.c vbox/vbox_common.h                   \
 	vbox/vbox_uniformed_api.h                               \
 	vbox/vbox_get_driver.h					\
@@ -825,10 +834,11 @@ XENAPI_DRIVER_SOURCES =						\
 		xenapi/xenapi_driver_private.h			\
 		xenapi/xenapi_utils.c xenapi/xenapi_utils.h
 
-LIBXL_DRIVER_SOURCES =						\
-		libxl/libxl_conf.c libxl/libxl_conf.h		\
-		libxl/libxl_domain.c libxl/libxl_domain.h       \
-		libxl/libxl_driver.c libxl/libxl_driver.h       \
+LIBXL_DRIVER_SOURCES =							\
+		libxl/libxl_conf.c libxl/libxl_conf.h			\
+		libxl/libxl_capabilities.c libxl/libxl_capabilities.h	\
+		libxl/libxl_domain.c libxl/libxl_domain.h       	\
+		libxl/libxl_driver.c libxl/libxl_driver.h       	\
 		libxl/libxl_migration.c libxl/libxl_migration.h
 
 UML_DRIVER_SOURCES =						\
@@ -1070,7 +1080,6 @@ CPU_SOURCES =							\
 		cpu/cpu_x86.h cpu/cpu_x86.c cpu/cpu_x86_data.h	\
 		cpu/cpu_s390.h cpu/cpu_s390.c			\
 		cpu/cpu_arm.h cpu/cpu_arm.c			\
-		cpu/cpu_aarch64.h cpu/cpu_aarch64.c		\
 		cpu/cpu_ppc64.h cpu/cpu_ppc64.c			\
 		cpu/cpu_ppc64_data.h				\
 		cpu/cpu_map.h cpu/cpu_map.c
@@ -1106,12 +1115,12 @@ libvirt_util_la_SOURCES =					\
 libvirt_util_la_CFLAGS = $(CAPNG_CFLAGS) $(YAJL_CFLAGS) $(LIBNL_CFLAGS) \
 		$(AM_CFLAGS) $(AUDIT_CFLAGS) $(DEVMAPPER_CFLAGS) \
 		$(DBUS_CFLAGS) $(LDEXP_LIBM) $(NUMACTL_CFLAGS)	\
-		$(SYSTEMD_DAEMON_CFLAGS) $(POLKIT_CFLAGS) $(GNUTLS_CFLAGS) \
+		$(POLKIT_CFLAGS) $(GNUTLS_CFLAGS) \
 		-I$(srcdir)/conf
 libvirt_util_la_LIBADD = $(CAPNG_LIBS) $(YAJL_LIBS) $(LIBNL_LIBS) \
 		$(THREAD_LIBS) $(AUDIT_LIBS) $(DEVMAPPER_LIBS) \
 		$(LIB_CLOCK_GETTIME) $(DBUS_LIBS) $(MSCOM_LIBS) $(LIBXML_LIBS) \
-		$(SECDRIVER_LIBS) $(NUMACTL_LIBS) $(SYSTEMD_DAEMON_LIBS) \
+		$(SECDRIVER_LIBS) $(NUMACTL_LIBS) \
 		$(POLKIT_LIBS)
 
 
@@ -1147,7 +1156,7 @@ noinst_LTLIBRARIES += libvirt_xenconfig.la
 libvirt_la_BUILT_LIBADD += libvirt_xenconfig.la
 libvirt_xenconfig_la_LIBADD = $(LIBXL_LIBS)
 libvirt_xenconfig_la_CFLAGS = \
-		-I$(srcdir)/conf $(AM_CFLAGS)
+		-I$(srcdir)/conf -I$(srcdir)/libxl $(AM_CFLAGS)
 libvirt_xenconfig_la_SOURCES = $(XENCONFIG_SOURCES)
 endif WITH_XENCONFIG
 
@@ -1614,6 +1623,7 @@ libvirt_driver_storage_impl_la_SOURCES =
 libvirt_driver_storage_impl_la_CFLAGS = \
 		-I$(srcdir)/access \
 		-I$(srcdir)/conf \
+		-I$(srcdir)/secret \
 		$(AM_CFLAGS)
 libvirt_driver_storage_impl_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_storage_impl_la_LIBADD =
@@ -2325,8 +2335,10 @@ libvirt_setuid_rpc_client_la_SOURCES = 		\
 		util/viratomic.h		\
 		util/virbitmap.c		\
 		util/virbuffer.c		\
+		util/vircgroup.c		\
 		util/vircommand.c		\
 		util/virconf.c			\
+		util/virdbus.c			\
 		util/virerror.c			\
 		util/virevent.c			\
 		util/vireventpoll.c		\
@@ -2334,6 +2346,7 @@ libvirt_setuid_rpc_client_la_SOURCES = 		\
 		util/virgettext.c		\
 		util/virhash.c			\
 		util/virhashcode.c		\
+		util/virhostcpu.c		\
 		util/virjson.c			\
 		util/virlog.c			\
 		util/virobject.c		\
@@ -2342,6 +2355,7 @@ libvirt_setuid_rpc_client_la_SOURCES = 		\
 		util/virrandom.c		\
 		util/virsocketaddr.c		\
 		util/virstring.c		\
+		util/virsystemd.c		\
 		util/virtime.c			\
 		util/virthread.c		\
 		util/virthreadjob.c		\
@@ -2352,6 +2366,7 @@ libvirt_setuid_rpc_client_la_SOURCES = 		\
 		conf/domain_event.c		\
 		conf/network_event.c		\
 		conf/object_event.c		\
+		conf/storage_event.c            \
 		rpc/virnetsocket.c		\
 		rpc/virnetsocket.h		\
 		rpc/virnetmessage.h		\

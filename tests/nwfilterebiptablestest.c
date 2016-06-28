@@ -113,10 +113,10 @@ testNWFilterEBIPTablesAllTeardown(const void *opaque ATTRIBUTE_UNUSED)
         goto cleanup;
 
     actual = virBufferContentAndReset(&buf);
-    virtTestClearCommandPath(actual);
+    virTestClearCommandPath(actual);
 
     if (STRNEQ_NULLABLE(actual, expected)) {
-        virtTestDifference(stderr, expected, actual);
+        virTestDifference(stderr, expected, actual);
         goto cleanup;
     }
 
@@ -184,10 +184,10 @@ testNWFilterEBIPTablesTearOldRules(const void *opaque ATTRIBUTE_UNUSED)
         goto cleanup;
 
     actual = virBufferContentAndReset(&buf);
-    virtTestClearCommandPath(actual);
+    virTestClearCommandPath(actual);
 
     if (STRNEQ_NULLABLE(actual, expected)) {
-        virtTestDifference(stderr, expected, actual);
+        virTestDifference(stderr, expected, actual);
         goto cleanup;
     }
 
@@ -233,10 +233,10 @@ testNWFilterEBIPTablesRemoveBasicRules(const void *opaque ATTRIBUTE_UNUSED)
         goto cleanup;
 
     actual = virBufferContentAndReset(&buf);
-    virtTestClearCommandPath(actual);
+    virTestClearCommandPath(actual);
 
     if (STRNEQ_NULLABLE(actual, expected)) {
-        virtTestDifference(stderr, expected, actual);
+        virTestDifference(stderr, expected, actual);
         goto cleanup;
     }
 
@@ -267,10 +267,10 @@ testNWFilterEBIPTablesTearNewRules(const void *opaque ATTRIBUTE_UNUSED)
         goto cleanup;
 
     actual = virBufferContentAndReset(&buf);
-    virtTestClearCommandPath(actual);
+    virTestClearCommandPath(actual);
 
     if (STRNEQ_NULLABLE(actual, expected)) {
-        virtTestDifference(stderr, expected, actual);
+        virTestDifference(stderr, expected, actual);
         goto cleanup;
     }
 
@@ -339,10 +339,10 @@ testNWFilterEBIPTablesApplyBasicRules(const void *opaque ATTRIBUTE_UNUSED)
         goto cleanup;
 
     actual = virBufferContentAndReset(&buf);
-    virtTestClearCommandPath(actual);
+    virTestClearCommandPath(actual);
 
     if (STRNEQ_NULLABLE(actual, expected)) {
-        virtTestDifference(stderr, expected, actual);
+        virTestDifference(stderr, expected, actual);
         goto cleanup;
     }
 
@@ -429,10 +429,10 @@ testNWFilterEBIPTablesApplyDHCPOnlyRules(const void *opaque ATTRIBUTE_UNUSED)
         goto cleanup;
 
     actual = virBufferContentAndReset(&buf);
-    virtTestClearCommandPath(actual);
+    virTestClearCommandPath(actual);
 
     if (STRNEQ_NULLABLE(actual, expected)) {
-        virtTestDifference(stderr, expected, actual);
+        virTestDifference(stderr, expected, actual);
         goto cleanup;
     }
 
@@ -502,10 +502,10 @@ testNWFilterEBIPTablesApplyDropAllRules(const void *opaque ATTRIBUTE_UNUSED)
         goto cleanup;
 
     actual = virBufferContentAndReset(&buf);
-    virtTestClearCommandPath(actual);
+    virTestClearCommandPath(actual);
 
     if (STRNEQ_NULLABLE(actual, expected)) {
-        virtTestDifference(stderr, expected, actual);
+        virTestDifference(stderr, expected, actual);
         goto cleanup;
     }
 
@@ -530,39 +530,39 @@ mymain(void)
         goto cleanup;
     }
 
-    if (virtTestRun("ebiptablesAllTeardown",
-                    testNWFilterEBIPTablesAllTeardown,
-                    NULL) < 0)
+    if (virTestRun("ebiptablesAllTeardown",
+                   testNWFilterEBIPTablesAllTeardown,
+                   NULL) < 0)
         ret = -1;
 
-    if (virtTestRun("ebiptablesTearOldRules",
-                    testNWFilterEBIPTablesTearOldRules,
-                    NULL) < 0)
+    if (virTestRun("ebiptablesTearOldRules",
+                   testNWFilterEBIPTablesTearOldRules,
+                   NULL) < 0)
         ret = -1;
 
-    if (virtTestRun("ebiptablesRemoveBasicRules",
-                    testNWFilterEBIPTablesRemoveBasicRules,
-                    NULL) < 0)
+    if (virTestRun("ebiptablesRemoveBasicRules",
+                   testNWFilterEBIPTablesRemoveBasicRules,
+                   NULL) < 0)
         ret = -1;
 
-    if (virtTestRun("ebiptablesTearNewRules",
-                    testNWFilterEBIPTablesTearNewRules,
-                    NULL) < 0)
+    if (virTestRun("ebiptablesTearNewRules",
+                   testNWFilterEBIPTablesTearNewRules,
+                   NULL) < 0)
         ret = -1;
 
-    if (virtTestRun("ebiptablesApplyBasicRules",
-                    testNWFilterEBIPTablesApplyBasicRules,
-                    NULL) < 0)
+    if (virTestRun("ebiptablesApplyBasicRules",
+                   testNWFilterEBIPTablesApplyBasicRules,
+                   NULL) < 0)
         ret = -1;
 
-    if (virtTestRun("ebiptablesApplyDHCPOnlyRules",
-                    testNWFilterEBIPTablesApplyDHCPOnlyRules,
-                    NULL) < 0)
+    if (virTestRun("ebiptablesApplyDHCPOnlyRules",
+                   testNWFilterEBIPTablesApplyDHCPOnlyRules,
+                   NULL) < 0)
         ret = -1;
 
-    if (virtTestRun("ebiptablesApplyDropAllRules",
-                    testNWFilterEBIPTablesApplyDropAllRules,
-                    NULL) < 0)
+    if (virTestRun("ebiptablesApplyDropAllRules",
+                   testNWFilterEBIPTablesApplyDropAllRules,
+                   NULL) < 0)
         ret = -1;
 
  cleanup:

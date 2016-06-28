@@ -65,10 +65,10 @@ static int testCompareXMLToArgvFiles(const char *xml,
         goto cleanup;
 
     actualargv = virBufferContentAndReset(&buf);
-    virtTestClearCommandPath(actualargv);
+    virTestClearCommandPath(actualargv);
     virCommandSetDryRun(NULL, NULL, NULL);
 
-    if (virtTestCompareToFile(actualargv, cmdline) < 0)
+    if (virTestCompareToFile(actualargv, cmdline) < 0)
         goto cleanup;
 
     ret = 0;
@@ -123,8 +123,8 @@ mymain(void)
         static struct testInfo info = {                                 \
             name,                                                       \
         };                                                              \
-        if (virtTestRun("Network XML-2-iptables " name,                 \
-                        testCompareXMLToIPTablesHelper, &info) < 0)     \
+        if (virTestRun("Network XML-2-iptables " name,                  \
+                       testCompareXMLToIPTablesHelper, &info) < 0)      \
             ret = -1;                                                   \
     } while (0)
 

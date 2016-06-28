@@ -266,6 +266,7 @@ libxlDoMigrateReceive(void *opaque)
     int ret;
     bool remove_dom = 0;
 
+    virObjectRef(vm);
     virObjectLock(vm);
     if (libxlDomainObjBeginJob(driver, vm, LIBXL_JOB_MODIFY) < 0)
         goto cleanup;
@@ -291,16 +292,14 @@ libxlDoMigrateReceive(void *opaque)
     VIR_FORCE_CLOSE(recvfd);
     virObjectUnref(args);
 
-    if (!libxlDomainObjEndJob(driver, vm))
-        vm = NULL;
+    libxlDomainObjEndJob(driver, vm);
 
  cleanup:
     if (remove_dom && vm) {
         virDomainObjListRemove(driver->domains, vm);
         vm = NULL;
     }
-    if (vm)
-        virObjectUnlock(vm);
+    virDomainObjEndAPI(&vm);
 }
 
 
@@ -419,7 +418,8 @@ libxlDomainMigrationBegin(virConnectPtr conn,
     if (xmlin) {
         if (!(tmpdef = virDomainDefParseString(xmlin, cfg->caps,
                                                driver->xmlopt,
-                                               VIR_DOMAIN_DEF_PARSE_INACTIVE)))
+                                               VIR_DOMAIN_DEF_PARSE_INACTIVE |
+                                               VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE)))
             goto endjob;
 
         if (!libxlDomainDefCheckABIStability(driver, vm->def, tmpdef))
@@ -436,14 +436,11 @@ libxlDomainMigrationBegin(virConnectPtr conn,
     xml = virDomainDefFormat(def, cfg->caps, VIR_DOMAIN_DEF_FORMAT_SECURE);
 
  endjob:
-    if (!libxlDomainObjEndJob(driver, vm))
-        vm = NULL;
+    libxlDomainObjEndJob(driver, vm);
 
  cleanup:
     libxlMigrationCookieFree(mig);
-    if (vm)
-        virObjectUnlock(vm);
-
+    virDomainObjEndAPI(&vm);
     virDomainDefFree(tmpdef);
     virObjectUnref(cfg);
     return xml;
@@ -465,7 +462,8 @@ libxlDomainMigrationPrepareDef(libxlDriverPrivatePtr driver,
     }
 
     if (!(def = virDomainDefParseString(dom_xml, cfg->caps, driver->xmlopt,
-                                        VIR_DOMAIN_DEF_PARSE_INACTIVE)))
+                                        VIR_DOMAIN_DEF_PARSE_INACTIVE |
+                                        VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE)))
         goto cleanup;
 
     if (dname) {

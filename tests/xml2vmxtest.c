@@ -91,7 +91,7 @@ testCompareFiles(const char *xml, const char *vmx, int virtualHW_version)
     if (formatted == NULL)
         goto failure;
 
-    if (virtTestCompareToFile(formatted, vmx) < 0)
+    if (virTestCompareToFile(formatted, vmx) < 0)
         goto failure;
 
     result = 0;
@@ -203,8 +203,8 @@ mymain(void)
         do {                                                                  \
             struct testInfo info = { _in, _out, _version };                   \
             virResetLastError();                                              \
-            if (virtTestRun("VMware XML-2-VMX "_in" -> "_out,                 \
-                            testCompareHelper, &info) < 0) {                  \
+            if (virTestRun("VMware XML-2-VMX "_in" -> "_out,                  \
+                           testCompareHelper, &info) < 0) {                   \
                 result = -1;                                                  \
             }                                                                 \
         } while (0)

@@ -46,35 +46,37 @@ extern char *progname;
 #  error Fix Makefile.am
 # endif
 
-bool virtTestOOMActive(void);
+bool virTestOOMActive(void);
 
-int virtTestRun(const char *title,
-                int (*body)(const void *data),
-                const void *data);
-int virtTestLoadFile(const char *file, char **buf);
-int virtTestCaptureProgramOutput(const char *const argv[], char **buf, int maxlen);
+int virTestRun(const char *title,
+               int (*body)(const void *data),
+               const void *data);
+int virTestLoadFile(const char *file, char **buf);
+int virTestCaptureProgramOutput(const char *const argv[], char **buf, int maxlen);
 
-void virtTestClearCommandPath(char *cmdset);
+void virTestClearCommandPath(char *cmdset);
 
-int virtTestDifference(FILE *stream,
-                       const char *expect,
-                       const char *actual);
-int virtTestDifferenceFull(FILE *stream,
-                           const char *expect,
-                           const char *expectName,
-                           const char *actual,
-                           const char *actualName);
-int virtTestDifferenceFullNoRegenerate(FILE *stream,
-                                       const char *expect,
-                                       const char *expectName,
-                                       const char *actual,
-                                       const char *actualName);
-int virtTestDifferenceBin(FILE *stream,
+int virTestDifference(FILE *stream,
+                      const char *expect,
+                      const char *actual);
+int virTestDifferenceFull(FILE *stream,
                           const char *expect,
+                          const char *expectName,
                           const char *actual,
-                          size_t length);
-int virtTestCompareToFile(const char *strcontent,
-                          const char *filename);
+                          const char *actualName);
+int virTestDifferenceFullNoRegenerate(FILE *stream,
+                                      const char *expect,
+                                      const char *expectName,
+                                      const char *actual,
+                                      const char *actualName);
+int virTestDifferenceBin(FILE *stream,
+                         const char *expect,
+                         const char *actual,
+                         size_t length);
+int virTestCompareToFile(const char *strcontent,
+                         const char *filename);
+int virTestCompareToString(const char *strcontent,
+                           const char *strsrc);
 
 unsigned int virTestGetDebug(void);
 unsigned int virTestGetVerbose(void);
@@ -93,22 +95,22 @@ unsigned int virTestGetRegenerate(void);
             fprintf(stderr, __VA_ARGS__);       \
     } while (0)
 
-char *virtTestLogContentAndReset(void);
+char *virTestLogContentAndReset(void);
 
-void virtTestQuiesceLibvirtErrors(bool always);
+void virTestQuiesceLibvirtErrors(bool always);
 
-void virtTestCounterReset(const char *prefix);
-const char *virtTestCounterNext(void);
+void virTestCounterReset(const char *prefix);
+const char *virTestCounterNext(void);
 
-int virtTestMain(int argc,
-                 char **argv,
-                 int (*func)(void),
-                 ...);
+int virTestMain(int argc,
+                char **argv,
+                int (*func)(void),
+                ...);
 
 /* Setup, then call func() */
 # define VIRT_TEST_MAIN(func)                           \
     int main(int argc, char **argv) {                   \
-        return virtTestMain(argc, argv, func, NULL);    \
+        return virTestMain(argc, argv, func, NULL);     \
     }
 
 # define VIRT_TEST_PRELOAD(lib)                                         \
@@ -133,7 +135,7 @@ int virtTestMain(int argc,
 
 # define VIRT_TEST_MAIN_PRELOAD(func, ...)                              \
     int main(int argc, char **argv) {                                   \
-        return virtTestMain(argc, argv, func, __VA_ARGS__, NULL);       \
+        return virTestMain(argc, argv, func, __VA_ARGS__, NULL);        \
     }
 
 virCapsPtr virTestGenericCapsInit(void);

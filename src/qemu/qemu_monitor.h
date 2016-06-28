@@ -485,22 +485,29 @@ int qemuMonitorGetMigrationCacheSize(qemuMonitorPtr mon,
 int qemuMonitorSetMigrationCacheSize(qemuMonitorPtr mon,
                                      unsigned long long cacheSize);
 
-typedef struct _qemuMonitorMigrationCompression qemuMonitorMigrationCompression;
-typedef qemuMonitorMigrationCompression *qemuMonitorMigrationCompressionPtr;
-struct _qemuMonitorMigrationCompression {
-    bool level_set;
-    bool threads_set;
-    bool dthreads_set;
+typedef struct _qemuMonitorMigrationParams qemuMonitorMigrationParams;
+typedef qemuMonitorMigrationParams *qemuMonitorMigrationParamsPtr;
+struct _qemuMonitorMigrationParams {
+    bool compressLevel_set;
+    int compressLevel;
 
-    int level;
-    int threads;
-    int dthreads;
+    bool compressThreads_set;
+    int compressThreads;
+
+    bool decompressThreads_set;
+    int decompressThreads;
+
+    bool cpuThrottleInitial_set;
+    int cpuThrottleInitial;
+
+    bool cpuThrottleIncrement_set;
+    int cpuThrottleIncrement;
 };
 
-int qemuMonitorGetMigrationCompression(qemuMonitorPtr mon,
-                                       qemuMonitorMigrationCompressionPtr compress);
-int qemuMonitorSetMigrationCompression(qemuMonitorPtr mon,
-                                       qemuMonitorMigrationCompressionPtr compress);
+int qemuMonitorGetMigrationParams(qemuMonitorPtr mon,
+                                  qemuMonitorMigrationParamsPtr params);
+int qemuMonitorSetMigrationParams(qemuMonitorPtr mon,
+                                  qemuMonitorMigrationParamsPtr params);
 
 typedef enum {
     QEMU_MONITOR_MIGRATION_STATUS_INACTIVE,
@@ -555,6 +562,8 @@ struct _qemuMonitorMigrationStats {
     unsigned long long xbzrle_pages;
     unsigned long long xbzrle_cache_miss;
     unsigned long long xbzrle_overflow;
+
+    int cpu_throttle_percentage;
 };
 
 int qemuMonitorGetMigrationStats(qemuMonitorPtr mon,

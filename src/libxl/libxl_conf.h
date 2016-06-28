@@ -39,6 +39,8 @@
 # include "virchrdev.h"
 # include "virhostdev.h"
 # include "locking/lock_manager.h"
+# include "virfirmware.h"
+# include "libxl_capabilities.h"
 
 # define LIBXL_DRIVER_NAME "xenlight"
 # define LIBXL_VNC_PORT_MIN  5900
@@ -46,10 +48,6 @@
 
 # define LIBXL_MIGRATION_PORT_MIN  49152
 # define LIBXL_MIGRATION_PORT_MAX  49216
-
-/* Used for prefix of ifname of any network name generated dynamically
- * by libvirt for Xen, and cannot be used for a persistent network name.  */
-# define LIBXL_GENERATED_PREFIX_XEN "vif"
 
 # define LIBXL_CONFIG_BASE_DIR SYSCONFDIR "/libvirt"
 # define LIBXL_CONFIG_DIR SYSCONFDIR "/libvirt/libxl"
@@ -60,13 +58,6 @@
 # define LIBXL_SAVE_DIR LIBXL_LIB_DIR "/save"
 # define LIBXL_DUMP_DIR LIBXL_LIB_DIR "/dump"
 # define LIBXL_BOOTLOADER_PATH "pygrub"
-
-# ifndef LIBXL_FIRMWARE_DIR
-#  define LIBXL_FIRMWARE_DIR "/usr/lib/xen/boot"
-# endif
-# ifndef LIBXL_EXECBIN_DIR
-#  define LIBXL_EXECBIN_DIR "/usr/lib/xen/bin"
-# endif
 
 
 typedef struct _libxlDriverPrivate libxlDriverPrivate;
@@ -107,6 +98,9 @@ struct _libxlDriverConfig {
     char *libDir;
     char *saveDir;
     char *autoDumpDir;
+
+    virFirmwarePtr *firmwares;
+    size_t nfirmwares;
 };
 
 
@@ -177,12 +171,6 @@ libxlDriverNodeGetInfo(libxlDriverPrivatePtr driver,
 int libxlDriverConfigLoadFile(libxlDriverConfigPtr cfg,
                               const char *filename);
 
-virCapsPtr
-libxlMakeCapabilities(libxl_ctx *ctx);
-
-int
-libxlDomainGetEmulatorType(const virDomainDef *def);
-
 int
 libxlMakeDisk(virDomainDiskDefPtr l_dev, libxl_device_disk *x_dev);
 int
@@ -195,6 +183,11 @@ libxlMakeVfb(virPortAllocatorPtr graphicsports,
 
 int
 libxlMakePCI(virDomainHostdevDefPtr hostdev, libxl_device_pci *pcidev);
+
+# ifdef LIBXL_HAVE_PVUSB
+int
+libxlMakeUSB(virDomainHostdevDefPtr hostdev, libxl_device_usbdev *usbdev);
+# endif
 
 virDomainXMLOptionPtr
 libxlCreateXMLConf(void);

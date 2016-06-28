@@ -509,15 +509,10 @@ networkMigrateStateFiles(virNetworkDriverStatePtr driver)
     struct dirent *entry;
     char *oldPath = NULL, *newPath = NULL;
     char *contents = NULL;
+    int rc;
 
-    if (!(dir = opendir(oldStateDir))) {
-        if (errno == ENOENT)
-            return 0;
-
-        virReportSystemError(errno, _("failed to open directory '%s'"),
-                             oldStateDir);
-        return -1;
-    }
+    if ((rc = virDirOpenIfExists(&dir, oldStateDir)) <= 0)
+        return rc;
 
     if (virFileMakePath(driver->stateDir) < 0) {
         virReportSystemError(errno, _("cannot create directory %s"),
@@ -528,10 +523,6 @@ networkMigrateStateFiles(virNetworkDriverStatePtr driver)
     while ((direrr = virDirRead(dir, &entry, oldStateDir)) > 0) {
         if (entry->d_type != DT_UNKNOWN &&
             entry->d_type != DT_REG)
-            continue;
-
-        if (STREQ(entry->d_name, ".") ||
-            STREQ(entry->d_name, ".."))
             continue;
 
         if (virAsprintf(&oldPath, "%s/%s",
@@ -577,7 +568,7 @@ networkMigrateStateFiles(virNetworkDriverStatePtr driver)
 
     ret = 0;
  cleanup:
-    closedir(dir);
+    VIR_DIR_CLOSE(dir);
     VIR_FREE(oldPath);
     VIR_FREE(newPath);
     VIR_FREE(contents);

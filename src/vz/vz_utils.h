@@ -94,21 +94,10 @@ typedef struct _vzConn vzConn;
 typedef struct _vzConn *vzConnPtr;
 
 
-struct _vzCountersCache {
-    PRL_HANDLE stats;
-    virCond cond;
-    /* = -1 - unsubscribed
-       > -1 - subscribed */
-    int count;
-};
-
-typedef struct _vzCountersCache vzCountersCache;
-
 struct vzDomObj {
     int id;
-    char *home;
     PRL_HANDLE sdkdom;
-    vzCountersCache cache;
+    PRL_HANDLE stats;
 };
 
 typedef struct vzDomObj *vzDomObjPtr;
@@ -132,14 +121,17 @@ vzNewDomain(vzDriverPtr driver,
 int
 vzInitVersion(vzDriverPtr driver);
 int
-vzCheckUnsupportedDisks(virDomainDefPtr def,
-                        vzCapabilitiesPtr vzCaps);
+vzCheckUnsupportedDisk(const virDomainDef *def,
+                       virDomainDiskDefPtr disk,
+                       vzCapabilitiesPtr vzCaps);
 int
 vzCheckUnsupportedControllers(virDomainDefPtr def,
                               vzCapabilitiesPtr vzCaps);
 int
 vzGetDefaultSCSIModel(vzDriverPtr driver,
                       PRL_CLUSTERED_DEVICE_SUBTYPE *scsiModel);
+
+int vzCheckUnsupportedGraphics(virDomainGraphicsDefPtr gr);
 
 # define PARALLELS_BLOCK_STATS_FOREACH(OP)                              \
     OP(rd_req, VIR_DOMAIN_BLOCK_STATS_READ_REQ, "read_requests")        \

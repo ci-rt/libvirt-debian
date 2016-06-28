@@ -89,10 +89,10 @@ testCompareXMLToXMLFiles(const char *inxml,
     if (redefine)
         flags |= VIR_DOMAIN_SNAPSHOT_PARSE_REDEFINE;
 
-    if (virtTestLoadFile(inxml, &inXmlData) < 0)
+    if (virTestLoadFile(inxml, &inXmlData) < 0)
         goto cleanup;
 
-    if (virtTestLoadFile(outxml, &outXmlData) < 0)
+    if (virTestLoadFile(outxml, &outXmlData) < 0)
         goto cleanup;
 
     if (!(def = virDomainSnapshotDefParseString(inXmlData, driver.caps,
@@ -114,7 +114,7 @@ testCompareXMLToXMLFiles(const char *inxml,
     }
 
     if (STRNEQ(outXmlData, actual)) {
-        virtTestDifferenceFull(stderr, outXmlData, outxml, actual, inxml);
+        virTestDifferenceFull(stderr, outXmlData, outxml, actual, inxml);
         goto cleanup;
     }
 
@@ -175,8 +175,8 @@ mymain(void)
         const struct testInfo info = {abs_srcdir "/" inpath "/" name ".xml",  \
                                       abs_srcdir "/" outpath "/" name ".xml", \
                                       uuid, internal, redefine};              \
-        if (virtTestRun("SNAPSHOT XML-2-XML " prefix " " name,                \
-                        testCompareXMLToXMLHelper, &info) < 0)                \
+        if (virTestRun("SNAPSHOT XML-2-XML " prefix " " name,                 \
+                       testCompareXMLToXMLHelper, &info) < 0)                 \
             ret = -1;                                                         \
     } while (0)
 

@@ -44,10 +44,6 @@
 
 VIR_ENUM_DECL(qemuVideo)
 
-char *qemuBuildObjectCommandlineFromJSON(const char *type,
-                                         const char *alias,
-                                         virJSONValuePtr props);
-
 virCommandPtr qemuBuildCommandLine(virQEMUDriverPtr driver,
                                    virLogManagerPtr logManager,
                                    virDomainDefPtr def,
@@ -62,9 +58,12 @@ virCommandPtr qemuBuildCommandLine(virQEMUDriverPtr driver,
                                    virBitmapPtr nodeset,
                                    size_t *nnicindexes,
                                    int **nicindexes,
-                                   const char *domainLibDir,
-                                   const char *domainChannelTargetDir)
-    ATTRIBUTE_NONNULL(15) ATTRIBUTE_NONNULL(16);
+                                   const char *domainLibDir)
+    ATTRIBUTE_NONNULL(15);
+
+/* Generate the object properties for a secret */
+int qemuBuildSecretInfoProps(qemuDomainSecretInfoPtr secinfo,
+                             virJSONValuePtr *propsret);
 
 /* Generate '-device' string for chardev device */
 int
@@ -147,12 +146,6 @@ int qemuBuildRNGBackendProps(virDomainRNGDefPtr rng,
 char *qemuBuildShmemDevStr(virDomainDefPtr def,
                            virDomainShmemDefPtr shmem,
                            virQEMUCapsPtr qemuCaps);
-char *qemuBuildShmemBackendStr(virLogManagerPtr logManager,
-                               virCommandPtr cmd,
-                               virDomainDefPtr def,
-                               virDomainShmemDefPtr shmem,
-                               virQEMUCapsPtr qemuCaps);
-
 
 int qemuOpenPCIConfig(virDomainHostdevDefPtr dev);
 

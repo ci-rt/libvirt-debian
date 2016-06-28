@@ -76,6 +76,7 @@ typedef remote_nonnull_string *remote_string;
 #define REMOTE_DOMAIN_FSINFO_DISKS_MAX 256
 #define REMOTE_DOMAIN_INTERFACE_MAX 2048
 #define REMOTE_DOMAIN_IP_ADDR_MAX 2048
+#define REMOTE_DOMAIN_GUEST_VCPU_PARAMS_MAX 64
 
 typedef char remote_uuid[VIR_UUID_BUFLEN];
 
@@ -3721,6 +3722,36 @@ struct remote_network_event_lifecycle_msg {
 };
 typedef struct remote_network_event_lifecycle_msg remote_network_event_lifecycle_msg;
 
+struct remote_connect_storage_pool_event_register_any_args {
+        int eventID;
+        remote_storage_pool pool;
+};
+typedef struct remote_connect_storage_pool_event_register_any_args remote_connect_storage_pool_event_register_any_args;
+
+struct remote_connect_storage_pool_event_register_any_ret {
+        int callbackID;
+};
+typedef struct remote_connect_storage_pool_event_register_any_ret remote_connect_storage_pool_event_register_any_ret;
+
+struct remote_connect_storage_pool_event_deregister_any_args {
+        int callbackID;
+};
+typedef struct remote_connect_storage_pool_event_deregister_any_args remote_connect_storage_pool_event_deregister_any_args;
+
+struct remote_storage_pool_event_lifecycle_msg {
+        int callbackID;
+        remote_nonnull_storage_pool pool;
+        int event;
+        int detail;
+};
+typedef struct remote_storage_pool_event_lifecycle_msg remote_storage_pool_event_lifecycle_msg;
+
+struct remote_storage_pool_event_refresh_msg {
+        int callbackID;
+        remote_nonnull_storage_pool pool;
+};
+typedef struct remote_storage_pool_event_refresh_msg remote_storage_pool_event_refresh_msg;
+
 struct remote_domain_fsfreeze_args {
         remote_nonnull_domain dom;
         struct {
@@ -3962,6 +3993,28 @@ struct remote_domain_event_callback_device_removal_failed_msg {
         remote_nonnull_string devAlias;
 };
 typedef struct remote_domain_event_callback_device_removal_failed_msg remote_domain_event_callback_device_removal_failed_msg;
+
+struct remote_domain_get_guest_vcpus_args {
+        remote_nonnull_domain dom;
+        u_int flags;
+};
+typedef struct remote_domain_get_guest_vcpus_args remote_domain_get_guest_vcpus_args;
+
+struct remote_domain_get_guest_vcpus_ret {
+        struct {
+                u_int params_len;
+                remote_typed_param *params_val;
+        } params;
+};
+typedef struct remote_domain_get_guest_vcpus_ret remote_domain_get_guest_vcpus_ret;
+
+struct remote_domain_set_guest_vcpus_args {
+        remote_nonnull_domain dom;
+        remote_nonnull_string cpumap;
+        int state;
+        u_int flags;
+};
+typedef struct remote_domain_set_guest_vcpus_args remote_domain_set_guest_vcpus_args;
 #define REMOTE_PROGRAM 0x20008086
 #define REMOTE_PROTOCOL_VERSION 1
 
@@ -4333,6 +4386,12 @@ enum remote_procedure {
         REMOTE_PROC_DOMAIN_GET_PERF_EVENTS = 365,
         REMOTE_PROC_DOMAIN_SET_PERF_EVENTS = 366,
         REMOTE_PROC_DOMAIN_EVENT_CALLBACK_DEVICE_REMOVAL_FAILED = 367,
+        REMOTE_PROC_CONNECT_STORAGE_POOL_EVENT_REGISTER_ANY = 368,
+        REMOTE_PROC_CONNECT_STORAGE_POOL_EVENT_DEREGISTER_ANY = 369,
+        REMOTE_PROC_STORAGE_POOL_EVENT_LIFECYCLE = 370,
+        REMOTE_PROC_DOMAIN_GET_GUEST_VCPUS = 371,
+        REMOTE_PROC_DOMAIN_SET_GUEST_VCPUS = 372,
+        REMOTE_PROC_STORAGE_POOL_EVENT_REFRESH = 373,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -4891,6 +4950,11 @@ extern  bool_t xdr_remote_connect_network_event_register_any_args (XDR *, remote
 extern  bool_t xdr_remote_connect_network_event_register_any_ret (XDR *, remote_connect_network_event_register_any_ret*);
 extern  bool_t xdr_remote_connect_network_event_deregister_any_args (XDR *, remote_connect_network_event_deregister_any_args*);
 extern  bool_t xdr_remote_network_event_lifecycle_msg (XDR *, remote_network_event_lifecycle_msg*);
+extern  bool_t xdr_remote_connect_storage_pool_event_register_any_args (XDR *, remote_connect_storage_pool_event_register_any_args*);
+extern  bool_t xdr_remote_connect_storage_pool_event_register_any_ret (XDR *, remote_connect_storage_pool_event_register_any_ret*);
+extern  bool_t xdr_remote_connect_storage_pool_event_deregister_any_args (XDR *, remote_connect_storage_pool_event_deregister_any_args*);
+extern  bool_t xdr_remote_storage_pool_event_lifecycle_msg (XDR *, remote_storage_pool_event_lifecycle_msg*);
+extern  bool_t xdr_remote_storage_pool_event_refresh_msg (XDR *, remote_storage_pool_event_refresh_msg*);
 extern  bool_t xdr_remote_domain_fsfreeze_args (XDR *, remote_domain_fsfreeze_args*);
 extern  bool_t xdr_remote_domain_fsfreeze_ret (XDR *, remote_domain_fsfreeze_ret*);
 extern  bool_t xdr_remote_domain_fsthaw_args (XDR *, remote_domain_fsthaw_args*);
@@ -4920,6 +4984,9 @@ extern  bool_t xdr_remote_domain_event_callback_migration_iteration_msg (XDR *, 
 extern  bool_t xdr_remote_domain_event_callback_job_completed_msg (XDR *, remote_domain_event_callback_job_completed_msg*);
 extern  bool_t xdr_remote_domain_migrate_start_post_copy_args (XDR *, remote_domain_migrate_start_post_copy_args*);
 extern  bool_t xdr_remote_domain_event_callback_device_removal_failed_msg (XDR *, remote_domain_event_callback_device_removal_failed_msg*);
+extern  bool_t xdr_remote_domain_get_guest_vcpus_args (XDR *, remote_domain_get_guest_vcpus_args*);
+extern  bool_t xdr_remote_domain_get_guest_vcpus_ret (XDR *, remote_domain_get_guest_vcpus_ret*);
+extern  bool_t xdr_remote_domain_set_guest_vcpus_args (XDR *, remote_domain_set_guest_vcpus_args*);
 extern  bool_t xdr_remote_procedure (XDR *, remote_procedure*);
 
 #else /* K&R C */
@@ -5475,6 +5542,11 @@ extern bool_t xdr_remote_connect_network_event_register_any_args ();
 extern bool_t xdr_remote_connect_network_event_register_any_ret ();
 extern bool_t xdr_remote_connect_network_event_deregister_any_args ();
 extern bool_t xdr_remote_network_event_lifecycle_msg ();
+extern bool_t xdr_remote_connect_storage_pool_event_register_any_args ();
+extern bool_t xdr_remote_connect_storage_pool_event_register_any_ret ();
+extern bool_t xdr_remote_connect_storage_pool_event_deregister_any_args ();
+extern bool_t xdr_remote_storage_pool_event_lifecycle_msg ();
+extern bool_t xdr_remote_storage_pool_event_refresh_msg ();
 extern bool_t xdr_remote_domain_fsfreeze_args ();
 extern bool_t xdr_remote_domain_fsfreeze_ret ();
 extern bool_t xdr_remote_domain_fsthaw_args ();
@@ -5504,6 +5576,9 @@ extern bool_t xdr_remote_domain_event_callback_migration_iteration_msg ();
 extern bool_t xdr_remote_domain_event_callback_job_completed_msg ();
 extern bool_t xdr_remote_domain_migrate_start_post_copy_args ();
 extern bool_t xdr_remote_domain_event_callback_device_removal_failed_msg ();
+extern bool_t xdr_remote_domain_get_guest_vcpus_args ();
+extern bool_t xdr_remote_domain_get_guest_vcpus_ret ();
+extern bool_t xdr_remote_domain_set_guest_vcpus_args ();
 extern bool_t xdr_remote_procedure ();
 
 #endif /* K&R C */

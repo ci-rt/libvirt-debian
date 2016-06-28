@@ -34,7 +34,7 @@ testCompareXMLToXMLFiles(const char *poolxml, const char *inxml,
     if (!(actual = virStorageVolDefFormat(pool, dev)))
         goto fail;
 
-    if (virtTestCompareToFile(actual, outxml) < 0)
+    if (virTestCompareToFile(actual, outxml) < 0)
         goto fail;
 
     ret = 0;
@@ -89,8 +89,8 @@ mymain(void)
 #define DO_TEST_FULL(pool, name, flags)                         \
     do {                                                        \
         struct testInfo info = { pool, name, flags };           \
-        if (virtTestRun("Storage Vol XML-2-XML " name,          \
-                        testCompareXMLToXMLHelper, &info) < 0)  \
+        if (virTestRun("Storage Vol XML-2-XML " name,           \
+                       testCompareXMLToXMLHelper, &info) < 0)   \
             ret = -1;                                           \
     }                                                           \
     while (0);

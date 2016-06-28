@@ -265,17 +265,10 @@ getNewStyleBlockDevice(const char *lun_path,
 
     VIR_DEBUG("Looking for block device in '%s'", block_path);
 
-    if (!(block_dir = opendir(block_path))) {
-        virReportSystemError(errno,
-                             _("Failed to opendir sysfs path '%s'"),
-                             block_path);
+    if (virDirOpen(&block_dir, block_path) < 0)
         goto cleanup;
-    }
 
     while ((direrr = virDirRead(block_dir, &block_dirent, block_path)) > 0) {
-        if (STREQLEN(block_dirent->d_name, ".", 1))
-            continue;
-
         if (VIR_STRDUP(*block_device, block_dirent->d_name) < 0)
             goto cleanup;
 
@@ -290,8 +283,7 @@ getNewStyleBlockDevice(const char *lun_path,
     retval = 0;
 
  cleanup:
-    if (block_dir)
-        closedir(block_dir);
+    VIR_DIR_CLOSE(block_dir);
     VIR_FREE(block_path);
     return retval;
 }
@@ -354,15 +346,11 @@ getBlockDevice(uint32_t host,
                     host, bus, target, lun) < 0)
         goto cleanup;
 
-    if (!(lun_dir = opendir(lun_path))) {
-        virReportSystemError(errno,
-                             _("Failed to opendir sysfs path '%s'"),
-                             lun_path);
+    if (virDirOpen(&lun_dir, lun_path) < 0)
         goto cleanup;
-    }
 
     while ((direrr = virDirRead(lun_dir, &lun_dirent, lun_path)) > 0) {
-        if (STREQLEN(lun_dirent->d_name, "block", 5)) {
+        if (STRPREFIX(lun_dirent->d_name, "block")) {
             if (strlen(lun_dirent->d_name) == 5) {
                 if (getNewStyleBlockDevice(lun_path,
                                            lun_dirent->d_name,
@@ -387,8 +375,7 @@ getBlockDevice(uint32_t host,
     retval = 0;
 
  cleanup:
-    if (lun_dir)
-        closedir(lun_dir);
+    VIR_DIR_CLOSE(lun_dir);
     VIR_FREE(lun_path);
     return retval;
 }
@@ -472,13 +459,8 @@ virStorageBackendSCSIFindLUs(virStoragePoolObjPtr pool,
 
     virFileWaitForDevices();
 
-    devicedir = opendir(device_path);
-
-    if (devicedir == NULL) {
-        virReportSystemError(errno,
-                             _("Failed to opendir path '%s'"), device_path);
+    if (virDirOpen(&devicedir, device_path) < 0)
         return -1;
-    }
 
     snprintf(devicepattern, sizeof(devicepattern), "%u:%%u:%%u:%%u\n", scanhost);
 
@@ -501,7 +483,7 @@ virStorageBackendSCSIFindLUs(virStoragePoolObjPtr pool,
             found++;
     }
 
-    closedir(devicedir);
+    VIR_DIR_CLOSE(devicedir);
 
     if (retval < 0)
         return -1;

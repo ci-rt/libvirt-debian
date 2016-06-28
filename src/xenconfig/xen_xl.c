@@ -33,6 +33,7 @@
 #include "virstring.h"
 #include "virstoragefile.h"
 #include "xen_xl.h"
+#include "libxl_capabilities.h"
 
 #define VIR_FROM_THIS VIR_FROM_XENXL
 
@@ -103,15 +104,31 @@ xenParseXLOS(virConfPtr conf, virDomainDefPtr def, virCapsPtr caps)
     size_t i;
 
     if (def->os.type == VIR_DOMAIN_OSTYPE_HVM) {
+        const char *bios;
         const char *boot;
 
-        for (i = 0; i < caps->nguests; i++) {
-            if (caps->guests[i]->ostype == VIR_DOMAIN_OSTYPE_HVM &&
-                caps->guests[i]->arch.id == def->os.arch) {
-                if (VIR_ALLOC(def->os.loader) < 0 ||
-                    VIR_STRDUP(def->os.loader->path,
-                               caps->guests[i]->arch.defaultInfo.loader) < 0)
-                    return -1;
+        if (xenConfigGetString(conf, "bios", &bios, NULL) < 0)
+            return -1;
+
+        if (bios && STREQ(bios, "ovmf")) {
+            if (VIR_ALLOC(def->os.loader) < 0)
+                return -1;
+
+            def->os.loader->type = VIR_DOMAIN_LOADER_TYPE_PFLASH;
+            def->os.loader->readonly = VIR_TRISTATE_BOOL_YES;
+
+            if (VIR_STRDUP(def->os.loader->path,
+                           LIBXL_FIRMWARE_DIR "/ovmf.bin") < 0)
+                return -1;
+        } else {
+            for (i = 0; i < caps->nguests; i++) {
+                if (caps->guests[i]->ostype == VIR_DOMAIN_OSTYPE_HVM &&
+                    caps->guests[i]->arch.id == def->os.arch) {
+                    if (VIR_ALLOC(def->os.loader) < 0 ||
+                        VIR_STRDUP(def->os.loader->path,
+                                   caps->guests[i]->arch.defaultInfo.loader) < 0)
+                        return -1;
+                }
             }
         }
 
@@ -485,6 +502,85 @@ xenParseXLInputDevs(virConfPtr conf, virDomainDefPtr def)
     return 0;
 }
 
+static int
+xenParseXLUSB(virConfPtr conf, virDomainDefPtr def)
+{
+    virConfValuePtr list = virConfGetValue(conf, "usbdev");
+    virDomainHostdevDefPtr hostdev = NULL;
+
+    if (list && list->type == VIR_CONF_LIST) {
+        list = list->list;
+        while (list) {
+            char bus[3];
+            char device[3];
+            char *key;
+            int busNum;
+            int devNum;
+
+            bus[0] = device[0] = '\0';
+
+            if ((list->type != VIR_CONF_STRING) || (list->str == NULL))
+                goto skipusb;
+            /* usbdev=['hostbus=1,hostaddr=3'] */
+            key = list->str;
+            while (key) {
+                char *data;
+                char *nextkey = strchr(key, ',');
+
+                if (!(data = strchr(key, '=')))
+                    goto skipusb;
+                data++;
+
+                if (STRPREFIX(key, "hostbus=")) {
+                    int len = nextkey ? (nextkey - data) : sizeof(bus) - 1;
+                    if (virStrncpy(bus, data, len, sizeof(bus)) == NULL) {
+                        virReportError(VIR_ERR_INTERNAL_ERROR,
+                                       _("bus %s too big for destination"),
+                                       data);
+                        goto skipusb;
+                    }
+                } else if (STRPREFIX(key, "hostaddr=")) {
+                    int len = nextkey ? (nextkey - data) : sizeof(device) - 1;
+                    if (virStrncpy(device, data, len, sizeof(device)) == NULL) {
+                        virReportError(VIR_ERR_INTERNAL_ERROR,
+                                       _("device %s too big for destination"),
+                                       data);
+                        goto skipusb;
+                    }
+                }
+
+                while (nextkey && (nextkey[0] == ',' ||
+                                   nextkey[0] == ' ' ||
+                                   nextkey[0] == '\t'))
+                    nextkey++;
+                key = nextkey;
+            }
+
+            if (virStrToLong_i(bus, NULL, 16, &busNum) < 0)
+                goto skipusb;
+            if (virStrToLong_i(device, NULL, 16, &devNum) < 0)
+                goto skipusb;
+            if (!(hostdev = virDomainHostdevDefAlloc(NULL)))
+               return -1;
+
+            hostdev->managed = false;
+            hostdev->source.subsys.type = VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB;
+            hostdev->source.subsys.u.usb.bus = busNum;
+            hostdev->source.subsys.u.usb.device = devNum;
+
+            if (VIR_APPEND_ELEMENT(def->hostdevs, def->nhostdevs, hostdev) < 0) {
+                virDomainHostdevDefFree(hostdev);
+                return -1;
+            }
+
+        skipusb:
+            list = list->next;
+        }
+    }
+
+    return 0;
+}
+
 virDomainDefPtr
 xenParseXL(virConfPtr conf,
            virCapsPtr caps,
@@ -513,6 +609,9 @@ xenParseXL(virConfPtr conf,
     if (xenParseXLInputDevs(conf, def) < 0)
         goto cleanup;
 
+    if (xenParseXLUSB(conf, def) < 0)
+        goto cleanup;
+
     if (virDomainDefPostParse(def, caps, VIR_DOMAIN_DEF_PARSE_ABI_UPDATE,
                               xmlopt) < 0)
         goto cleanup;
@@ -534,6 +633,12 @@ xenFormatXLOS(virConfPtr conf, virDomainDefPtr def)
         char boot[VIR_DOMAIN_BOOT_LAST+1];
         if (xenConfigSetString(conf, "builder", "hvm") < 0)
             return -1;
+
+        if (def->os.loader &&
+            def->os.loader->type == VIR_DOMAIN_LOADER_TYPE_PFLASH) {
+            if (xenConfigSetString(conf, "bios", "ovmf") < 0)
+                return -1;
+        }
 
 #ifdef LIBXL_HAVE_BUILDINFO_KERNEL
         if (def->os.kernel &&
@@ -752,13 +857,15 @@ xenFormatXLDisk(virConfValuePtr list, virDomainDiskDefPtr disk)
     }
 
     /* backendtype */
-    virBufferAddLit(&buf, "backendtype=");
-    if (STREQ_NULLABLE(driver, "qemu"))
-        virBufferAddLit(&buf, "qdisk,");
-    else if (STREQ_NULLABLE(driver, "tap"))
-        virBufferAddLit(&buf, "tap,");
-    else if (STREQ_NULLABLE(driver, "phy"))
-        virBufferAddLit(&buf, "phy,");
+    if (driver) {
+        virBufferAddLit(&buf, "backendtype=");
+        if (STREQ(driver, "qemu") || STREQ(driver, "file"))
+            virBufferAddLit(&buf, "qdisk,");
+        else if (STREQ(driver, "tap"))
+            virBufferAddLit(&buf, "tap,");
+        else if (STREQ(driver, "phy"))
+            virBufferAddLit(&buf, "phy,");
+    }
 
     /* devtype */
     if (disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM)
@@ -984,6 +1091,72 @@ xenFormatXLInputDevs(virConfPtr conf, virDomainDefPtr def)
     return -1;
 }
 
+static int
+xenFormatXLUSB(virConfPtr conf,
+               virDomainDefPtr def)
+{
+    virConfValuePtr usbVal = NULL;
+    int hasUSB = 0;
+    size_t i;
+
+    for (i = 0; i < def->nhostdevs; i++) {
+        if (def->hostdevs[i]->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
+            def->hostdevs[i]->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB) {
+            hasUSB = 1;
+            break;
+        }
+    }
+
+    if (!hasUSB)
+        return 0;
+
+    if (VIR_ALLOC(usbVal) < 0)
+        return -1;
+
+    usbVal->type = VIR_CONF_LIST;
+    usbVal->list = NULL;
+
+    for (i = 0; i < def->nhostdevs; i++) {
+        if (def->hostdevs[i]->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
+            def->hostdevs[i]->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB) {
+            virConfValuePtr val, tmp;
+            char *buf;
+
+            if (virAsprintf(&buf, "hostbus=%x,hostaddr=%x",
+                            def->hostdevs[i]->source.subsys.u.usb.bus,
+                            def->hostdevs[i]->source.subsys.u.usb.device) < 0)
+                goto error;
+
+            if (VIR_ALLOC(val) < 0) {
+                VIR_FREE(buf);
+                goto error;
+            }
+            val->type = VIR_CONF_STRING;
+            val->str = buf;
+            tmp = usbVal->list;
+            while (tmp && tmp->next)
+                tmp = tmp->next;
+            if (tmp)
+                tmp->next = val;
+            else
+                usbVal->list = val;
+        }
+    }
+
+    if (usbVal->list != NULL) {
+        int ret = virConfSetValue(conf, "usbdev", usbVal);
+        usbVal = NULL;
+        if (ret < 0)
+            return -1;
+    }
+    VIR_FREE(usbVal);
+
+    return 0;
+
+ error:
+    virConfFreeValue(usbVal);
+    return -1;
+}
 
 virConfPtr
 xenFormatXL(virDomainDefPtr def, virConnectPtr conn)
@@ -1006,6 +1179,9 @@ xenFormatXL(virDomainDefPtr def, virConnectPtr conn)
         goto cleanup;
 
     if (xenFormatXLInputDevs(conf, def) < 0)
+        goto cleanup;
+
+    if (xenFormatXLUSB(conf, def) < 0)
         goto cleanup;
 
     return conf;

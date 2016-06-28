@@ -58,6 +58,8 @@
 #include "virnetdevveth.h"
 #include "virnetdevopenvswitch.h"
 #include "nodeinfo.h"
+#include "virhostcpu.h"
+#include "virhostmem.h"
 #include "viruuid.h"
 #include "virstats.h"
 #include "virhook.h"
@@ -155,6 +157,7 @@ lxcDomObjFromDomain(virDomainPtr domain)
 
 static virDrvOpenStatus lxcConnectOpen(virConnectPtr conn,
                                        virConnectAuthPtr auth ATTRIBUTE_UNUSED,
+                                       virConfPtr conf ATTRIBUTE_UNUSED,
                                        unsigned int flags)
 {
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
@@ -463,7 +466,7 @@ lxcDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags)
     virCheckFlags(VIR_DOMAIN_DEFINE_VALIDATE, NULL);
 
     if (flags & VIR_DOMAIN_DEFINE_VALIDATE)
-        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE_SCHEMA;
 
     if (!(caps = virLXCDriverGetCapabilities(driver, false)))
         goto cleanup;
@@ -617,7 +620,7 @@ static int lxcDomainGetInfo(virDomainPtr dom,
         }
     }
 
-    info->maxMem = virDomainDefGetMemoryActual(vm->def);
+    info->maxMem = virDomainDefGetMemoryTotal(vm->def);
     info->nrVirtCpu = virDomainDefGetVcpus(vm->def);
     ret = 0;
 
@@ -683,7 +686,7 @@ lxcDomainGetMaxMemory(virDomainPtr dom)
     if (virDomainGetMaxMemoryEnsureACL(dom->conn, vm->def) < 0)
         goto cleanup;
 
-    ret = virDomainDefGetMemoryActual(vm->def);
+    ret = virDomainDefGetMemoryTotal(vm->def);
 
  cleanup:
     virDomainObjEndAPI(&vm);
@@ -694,8 +697,8 @@ static int lxcDomainSetMemoryFlags(virDomainPtr dom, unsigned long newmem,
                                    unsigned int flags)
 {
     virDomainObjPtr vm;
+    virDomainDefPtr def = NULL;
     virDomainDefPtr persistentDef = NULL;
-    virCapsPtr caps = NULL;
     int ret = -1;
     virLXCDomainObjPrivatePtr priv;
     virLXCDriverPtr driver = dom->conn->privateData;
@@ -718,22 +721,18 @@ static int lxcDomainSetMemoryFlags(virDomainPtr dom, unsigned long newmem,
     if (virLXCDomainObjBeginJob(driver, vm, LXC_JOB_MODIFY) < 0)
         goto cleanup;
 
-    if (!(caps = virLXCDriverGetCapabilities(driver, false)))
-        goto endjob;
-
-    if (virDomainLiveConfigHelperMethod(caps, driver->xmlopt, vm, &flags,
-                                        &persistentDef) < 0)
+    if (virDomainObjGetDefs(vm, flags, &def, &persistentDef) < 0)
         goto endjob;
 
     if (flags & VIR_DOMAIN_MEM_MAXIMUM) {
-        if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+        if (def) {
             virReportError(VIR_ERR_OPERATION_INVALID, "%s",
                            _("Cannot resize the max memory "
                              "on an active domain"));
             goto endjob;
         }
 
-        if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+        if (persistentDef) {
             virDomainDefSetMemoryTotal(persistentDef, newmem);
             if (persistentDef->mem.cur_balloon > newmem)
                 persistentDef->mem.cur_balloon = newmem;
@@ -744,11 +743,11 @@ static int lxcDomainSetMemoryFlags(virDomainPtr dom, unsigned long newmem,
     } else {
         unsigned long oldmax = 0;
 
-        if (flags & VIR_DOMAIN_AFFECT_LIVE)
-            oldmax = virDomainDefGetMemoryActual(vm->def);
-        if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
-            if (!oldmax || oldmax > virDomainDefGetMemoryActual(persistentDef))
-                oldmax = virDomainDefGetMemoryActual(persistentDef);
+        if (def)
+            oldmax = virDomainDefGetMemoryTotal(def);
+        if (persistentDef) {
+            if (!oldmax || oldmax > virDomainDefGetMemoryTotal(persistentDef))
+                oldmax = virDomainDefGetMemoryTotal(persistentDef);
         }
 
         if (newmem > oldmax) {
@@ -757,19 +756,19 @@ static int lxcDomainSetMemoryFlags(virDomainPtr dom, unsigned long newmem,
             goto endjob;
         }
 
-        if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+        if (def) {
             if (virCgroupSetMemory(priv->cgroup, newmem) < 0) {
                 virReportError(VIR_ERR_OPERATION_FAILED,
                                "%s", _("Failed to set memory for domain"));
                 goto endjob;
             }
 
-            vm->def->mem.cur_balloon = newmem;
+            def->mem.cur_balloon = newmem;
             if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm, driver->caps) < 0)
                 goto endjob;
         }
 
-        if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+        if (persistentDef) {
             persistentDef->mem.cur_balloon = newmem;
             if (virDomainSaveConfig(cfg->configDir, driver->caps,
                                     persistentDef) < 0)
@@ -784,7 +783,6 @@ static int lxcDomainSetMemoryFlags(virDomainPtr dom, unsigned long newmem,
 
  cleanup:
     virDomainObjEndAPI(&vm);
-    virObjectUnref(caps);
     virObjectUnref(cfg);
     return ret;
 }
@@ -806,7 +804,7 @@ lxcDomainSetMemoryParameters(virDomainPtr dom,
                              unsigned int flags)
 {
     virCapsPtr caps = NULL;
-    virDomainDefPtr vmdef = NULL;
+    virDomainDefPtr persistentDef = NULL;
     virDomainObjPtr vm = NULL;
     virLXCDomainObjPrivatePtr priv = NULL;
     virLXCDriverConfigPtr cfg = NULL;
@@ -847,7 +845,7 @@ lxcDomainSetMemoryParameters(virDomainPtr dom,
         goto cleanup;
 
     if (virDomainLiveConfigHelperMethod(caps, driver->xmlopt,
-                                        vm, &flags, &vmdef) < 0)
+                                        vm, &flags, &persistentDef) < 0)
         goto endjob;
 
     if (flags & VIR_DOMAIN_AFFECT_LIVE &&
@@ -903,7 +901,7 @@ lxcDomainSetMemoryParameters(virDomainPtr dom,
         }                                                                       \
                                                                                 \
         if (flags & VIR_DOMAIN_AFFECT_CONFIG)                                   \
-            vmdef->mem.VALUE = VALUE;                                           \
+            persistentDef->mem.VALUE = VALUE;                                   \
     }
 
     /* Soft limit doesn't clash with the others */
@@ -924,7 +922,7 @@ lxcDomainSetMemoryParameters(virDomainPtr dom,
 #undef LXC_SET_MEM_PARAMETER
 
     if (flags & VIR_DOMAIN_AFFECT_CONFIG &&
-        virDomainSaveConfig(cfg->configDir, driver->caps, vmdef) < 0)
+        virDomainSaveConfig(cfg->configDir, driver->caps, persistentDef) < 0)
         goto endjob;
 
     ret = 0;
@@ -945,11 +943,10 @@ lxcDomainGetMemoryParameters(virDomainPtr dom,
                              int *nparams,
                              unsigned int flags)
 {
-    virCapsPtr caps = NULL;
-    virDomainDefPtr vmdef = NULL;
+    virDomainDefPtr persistentDef = NULL;
+    virDomainDefPtr def = NULL;
     virDomainObjPtr vm = NULL;
     virLXCDomainObjPrivatePtr priv = NULL;
-    virLXCDriverPtr driver = dom->conn->privateData;
     unsigned long long val;
     int ret = -1;
     size_t i;
@@ -966,13 +963,13 @@ lxcDomainGetMemoryParameters(virDomainPtr dom,
 
     priv = vm->privateData;
 
-    if (virDomainGetMemoryParametersEnsureACL(dom->conn, vm->def) < 0 ||
-        !(caps = virLXCDriverGetCapabilities(driver, false)) ||
-        virDomainLiveConfigHelperMethod(caps, driver->xmlopt,
-                                        vm, &flags, &vmdef) < 0)
+    if (virDomainGetMemoryParametersEnsureACL(dom->conn, vm->def) < 0)
         goto cleanup;
 
-    if (flags & VIR_DOMAIN_AFFECT_LIVE &&
+    if (virDomainObjGetDefs(vm, flags, &def, &persistentDef) < 0)
+        goto cleanup;
+
+    if (def &&
         !virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_MEMORY)) {
         virReportError(VIR_ERR_OPERATION_INVALID,
                        "%s", _("cgroup memory controller is not mounted"));
@@ -992,8 +989,8 @@ lxcDomainGetMemoryParameters(virDomainPtr dom,
 
         switch (i) {
         case 0: /* fill memory hard limit here */
-            if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
-                val = vmdef->mem.hard_limit;
+            if (persistentDef) {
+                val = persistentDef->mem.hard_limit;
             } else if (virCgroupGetMemoryHardLimit(priv->cgroup, &val) < 0) {
                 goto cleanup;
             }
@@ -1002,8 +999,8 @@ lxcDomainGetMemoryParameters(virDomainPtr dom,
                 goto cleanup;
             break;
         case 1: /* fill memory soft limit here */
-            if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
-                val = vmdef->mem.soft_limit;
+            if (persistentDef) {
+                val = persistentDef->mem.soft_limit;
             } else if (virCgroupGetMemorySoftLimit(priv->cgroup, &val) < 0) {
                 goto cleanup;
             }
@@ -1012,8 +1009,8 @@ lxcDomainGetMemoryParameters(virDomainPtr dom,
                 goto cleanup;
             break;
         case 2: /* fill swap hard limit here */
-            if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
-                val = vmdef->mem.swap_hard_limit;
+            if (persistentDef) {
+                val = persistentDef->mem.swap_hard_limit;
             } else if (virCgroupGetMemSwapHardLimit(priv->cgroup, &val) < 0) {
                 goto cleanup;
             }
@@ -1031,7 +1028,6 @@ lxcDomainGetMemoryParameters(virDomainPtr dom,
 
  cleanup:
     virDomainObjEndAPI(&vm);
-    virObjectUnref(caps);
     return ret;
 }
 
@@ -1223,7 +1219,7 @@ lxcDomainCreateXMLWithFiles(virConnectPtr conn,
 
 
     if (flags & VIR_DOMAIN_START_VALIDATE)
-        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE_SCHEMA;
 
     virNWFilterReadLockFilterUpdates();
 
@@ -1951,7 +1947,9 @@ lxcDomainSetSchedulerParametersFlags(virDomainPtr dom,
     virCapsPtr caps = NULL;
     size_t i;
     virDomainObjPtr vm = NULL;
-    virDomainDefPtr vmdef = NULL;
+    virDomainDefPtr def = NULL;
+    virDomainDefPtr persistentDefCopy = NULL;
+    virDomainDefPtr persistentDef = NULL;
     int ret = -1;
     int rc;
     virLXCDomainObjPrivatePtr priv;
@@ -1983,18 +1981,17 @@ lxcDomainSetSchedulerParametersFlags(virDomainPtr dom,
     if (virLXCDomainObjBeginJob(driver, vm, LXC_JOB_MODIFY) < 0)
         goto cleanup;
 
-    if (virDomainLiveConfigHelperMethod(caps, driver->xmlopt,
-                                        vm, &flags, &vmdef) < 0)
+    if (virDomainObjGetDefs(vm, flags, &def, &persistentDef) < 0)
         goto endjob;
 
-    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+    if (persistentDef) {
         /* Make a copy for updated domain. */
-        vmdef = virDomainObjCopyPersistentDef(vm, caps, driver->xmlopt);
-        if (!vmdef)
+        persistentDefCopy = virDomainObjCopyPersistentDef(vm, caps, driver->xmlopt);
+        if (!persistentDefCopy)
             goto endjob;
     }
 
-    if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+    if (def) {
         if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPU)) {
             virReportError(VIR_ERR_OPERATION_INVALID,
                            "%s", _("cgroup CPU controller is not mounted"));
@@ -2006,7 +2003,7 @@ lxcDomainSetSchedulerParametersFlags(virDomainPtr dom,
         virTypedParameterPtr param = &params[i];
 
         if (STREQ(param->field, VIR_DOMAIN_SCHEDULER_CPU_SHARES)) {
-            if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+            if (def) {
                 unsigned long long val;
                 if (virCgroupSetCpuShares(priv->cgroup, params[i].value.ul) < 0)
                     goto endjob;
@@ -2014,38 +2011,38 @@ lxcDomainSetSchedulerParametersFlags(virDomainPtr dom,
                 if (virCgroupGetCpuShares(priv->cgroup, &val) < 0)
                     goto endjob;
 
-                vm->def->cputune.shares = val;
-                vm->def->cputune.sharesSpecified = true;
+                def->cputune.shares = val;
+                def->cputune.sharesSpecified = true;
             }
 
-            if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
-                vmdef->cputune.shares = params[i].value.ul;
-                vmdef->cputune.sharesSpecified = true;
+            if (persistentDef) {
+                persistentDefCopy->cputune.shares = params[i].value.ul;
+                persistentDefCopy->cputune.sharesSpecified = true;
             }
         } else if (STREQ(param->field, VIR_DOMAIN_SCHEDULER_VCPU_PERIOD)) {
-            if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+            if (def) {
                 rc = lxcSetVcpuBWLive(priv->cgroup, params[i].value.ul, 0);
                 if (rc != 0)
                     goto endjob;
 
                 if (params[i].value.ul)
-                    vm->def->cputune.period = params[i].value.ul;
+                    def->cputune.period = params[i].value.ul;
             }
 
-            if (flags & VIR_DOMAIN_AFFECT_CONFIG)
-                vmdef->cputune.period = params[i].value.ul;
+            if (persistentDef)
+                persistentDefCopy->cputune.period = params[i].value.ul;
         } else if (STREQ(param->field, VIR_DOMAIN_SCHEDULER_VCPU_QUOTA)) {
-            if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+            if (def) {
                 rc = lxcSetVcpuBWLive(priv->cgroup, 0, params[i].value.l);
                 if (rc != 0)
                     goto endjob;
 
                 if (params[i].value.l)
-                    vm->def->cputune.quota = params[i].value.l;
+                    def->cputune.quota = params[i].value.l;
             }
 
-            if (flags & VIR_DOMAIN_AFFECT_CONFIG)
-                vmdef->cputune.quota = params[i].value.l;
+            if (persistentDef)
+                persistentDefCopy->cputune.quota = params[i].value.l;
         }
     }
 
@@ -2053,13 +2050,13 @@ lxcDomainSetSchedulerParametersFlags(virDomainPtr dom,
         goto endjob;
 
 
-    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
-        rc = virDomainSaveConfig(cfg->configDir, driver->caps, vmdef);
+    if (persistentDef) {
+        rc = virDomainSaveConfig(cfg->configDir, driver->caps, persistentDefCopy);
         if (rc < 0)
             goto endjob;
 
-        virDomainObjAssignDef(vm, vmdef, false, NULL);
-        vmdef = NULL;
+        virDomainObjAssignDef(vm, persistentDefCopy, false, NULL);
+        persistentDefCopy = NULL;
     }
 
     ret = 0;
@@ -2068,7 +2065,7 @@ lxcDomainSetSchedulerParametersFlags(virDomainPtr dom,
     virLXCDomainObjEndJob(driver, vm);
 
  cleanup:
-    virDomainDefFree(vmdef);
+    virDomainDefFree(persistentDefCopy);
     virDomainObjEndAPI(&vm);
     virObjectUnref(caps);
     virObjectUnref(cfg);
@@ -2089,9 +2086,8 @@ lxcDomainGetSchedulerParametersFlags(virDomainPtr dom,
                                      int *nparams,
                                      unsigned int flags)
 {
-    virLXCDriverPtr driver = dom->conn->privateData;
-    virCapsPtr caps = NULL;
     virDomainObjPtr vm = NULL;
+    virDomainDefPtr def;
     virDomainDefPtr persistentDef;
     unsigned long long shares = 0;
     unsigned long long period = 0;
@@ -2120,14 +2116,10 @@ lxcDomainGetSchedulerParametersFlags(virDomainPtr dom,
     if (*nparams > 1)
         cpu_bw_status = virCgroupSupportsCpuBW(priv->cgroup);
 
-    if (!(caps = virLXCDriverGetCapabilities(driver, false)))
+    if (virDomainObjGetDefs(vm, flags, &def, &persistentDef) < 0)
         goto cleanup;
 
-    if (virDomainLiveConfigHelperMethod(caps, driver->xmlopt,
-                                        vm, &flags, &persistentDef) < 0)
-        goto cleanup;
-
-    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+    if (persistentDef) {
         shares = persistentDef->cputune.shares;
         if (*nparams > 1) {
             period = persistentDef->cputune.period;
@@ -2181,7 +2173,6 @@ lxcDomainGetSchedulerParametersFlags(virDomainPtr dom,
 
  cleanup:
     virDomainObjEndAPI(&vm);
-    virObjectUnref(caps);
     return ret;
 }
 
@@ -2582,10 +2573,10 @@ lxcDomainSetBlkioParameters(virDomainPtr dom,
     virLXCDriverPtr driver = dom->conn->privateData;
     size_t i;
     virDomainObjPtr vm = NULL;
+    virDomainDefPtr def = NULL;
     virDomainDefPtr persistentDef = NULL;
     int ret = -1;
     virLXCDriverConfigPtr cfg = NULL;
-    virCapsPtr caps = NULL;
     virLXCDomainObjPrivatePtr priv;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
@@ -2615,17 +2606,13 @@ lxcDomainSetBlkioParameters(virDomainPtr dom,
     if (virDomainSetBlkioParametersEnsureACL(dom->conn, vm->def, flags) < 0)
         goto cleanup;
 
-    if (!(caps = virLXCDriverGetCapabilities(driver, false)))
-        goto cleanup;
-
     if (virLXCDomainObjBeginJob(driver, vm, LXC_JOB_MODIFY) < 0)
         goto cleanup;
 
-    if (virDomainLiveConfigHelperMethod(caps, driver->xmlopt, vm, &flags,
-                                        &persistentDef) < 0)
+    if (virDomainObjGetDefs(vm, flags, &def, &persistentDef) < 0)
         goto endjob;
 
-    if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+    if (def) {
         if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_BLKIO)) {
             virReportError(VIR_ERR_OPERATION_INVALID, "%s",
                            _("blkio cgroup isn't mounted"));
@@ -2634,7 +2621,7 @@ lxcDomainSetBlkioParameters(virDomainPtr dom,
     }
 
     ret = 0;
-    if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+    if (def) {
         for (i = 0; i < nparams; i++) {
             virTypedParameterPtr param = &params[i];
 
@@ -2729,8 +2716,8 @@ lxcDomainSetBlkioParameters(virDomainPtr dom,
                 }
 
                 if (j != ndevices ||
-                    lxcDomainMergeBlkioDevice(&vm->def->blkio.devices,
-                                              &vm->def->blkio.ndevices,
+                    lxcDomainMergeBlkioDevice(&def->blkio.devices,
+                                              &def->blkio.ndevices,
                                               devices, ndevices, param->field) < 0)
                     ret = -1;
                 virBlkioDeviceArrayClear(devices, ndevices);
@@ -2740,10 +2727,7 @@ lxcDomainSetBlkioParameters(virDomainPtr dom,
     }
     if (ret < 0)
         goto endjob;
-    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
-        /* Clang can't see that if we get here, persistentDef was set.  */
-        sa_assert(persistentDef);
-
+    if (persistentDef) {
         for (i = 0; i < nparams; i++) {
             virTypedParameterPtr param = &params[i];
 
@@ -2782,7 +2766,6 @@ lxcDomainSetBlkioParameters(virDomainPtr dom,
 
  cleanup:
     virDomainObjEndAPI(&vm);
-    virObjectUnref(caps);
     virObjectUnref(cfg);
     return ret;
 }
@@ -2796,13 +2779,12 @@ lxcDomainGetBlkioParameters(virDomainPtr dom,
                             int *nparams,
                             unsigned int flags)
 {
-    virLXCDriverPtr driver = dom->conn->privateData;
-    size_t i, j;
     virDomainObjPtr vm = NULL;
+    virDomainDefPtr def = NULL;
     virDomainDefPtr persistentDef = NULL;
+    int maxparams = LXC_NB_BLKIO_PARAM;
     unsigned int val;
     int ret = -1;
-    virCapsPtr caps = NULL;
     virLXCDomainObjPrivatePtr priv;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
@@ -2822,362 +2804,56 @@ lxcDomainGetBlkioParameters(virDomainPtr dom,
     if (virDomainGetBlkioParametersEnsureACL(dom->conn, vm->def) < 0)
         goto cleanup;
 
-    if (!(caps = virLXCDriverGetCapabilities(driver, false)))
-        goto cleanup;
-
     if ((*nparams) == 0) {
         /* Current number of blkio parameters supported by cgroups */
         *nparams = LXC_NB_BLKIO_PARAM;
         ret = 0;
         goto cleanup;
+    } else if (*nparams < maxparams) {
+        maxparams = *nparams;
     }
 
-    if (virDomainLiveConfigHelperMethod(caps, driver->xmlopt, vm, &flags,
-                                        &persistentDef) < 0)
+    *nparams = 0;
+
+    if (virDomainObjGetDefs(vm, flags, &def, &persistentDef) < 0)
         goto cleanup;
 
-    if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+    if (def) {
         if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_BLKIO)) {
             virReportError(VIR_ERR_OPERATION_INVALID, "%s",
                            _("blkio cgroup isn't mounted"));
             goto cleanup;
         }
 
-        for (i = 0; i < *nparams && i < LXC_NB_BLKIO_PARAM; i++) {
-            virTypedParameterPtr param = &params[i];
-            val = 0;
+        /* fill blkio weight here */
+        if (virCgroupGetBlkioWeight(priv->cgroup, &val) < 0)
+            goto cleanup;
+        if (virTypedParameterAssign(&(params[(*nparams)++]),
+                                    VIR_DOMAIN_BLKIO_WEIGHT,
+                                    VIR_TYPED_PARAM_UINT, val) < 0)
+            goto cleanup;
 
-            switch (i) {
-            case 0: /* fill blkio weight here */
-                if (virCgroupGetBlkioWeight(priv->cgroup, &val) < 0)
-                    goto cleanup;
-                if (virTypedParameterAssign(param, VIR_DOMAIN_BLKIO_WEIGHT,
-                                            VIR_TYPED_PARAM_UINT, val) < 0)
-                    goto cleanup;
-                break;
+        if (virDomainGetBlkioParametersAssignFromDef(def, params, nparams,
+                                                     maxparams) < 0)
+            goto cleanup;
 
-            case 1: /* blkiotune.device_weight */
-                if (vm->def->blkio.ndevices > 0) {
-                    virBuffer buf = VIR_BUFFER_INITIALIZER;
-                    bool comma = false;
+    } else if (persistentDef) {
+        /* fill blkio weight here */
+        if (virTypedParameterAssign(&(params[(*nparams)++]),
+                                    VIR_DOMAIN_BLKIO_WEIGHT,
+                                    VIR_TYPED_PARAM_UINT,
+                                    persistentDef->blkio.weight) < 0)
+            goto cleanup;
 
-                    for (j = 0; j < vm->def->blkio.ndevices; j++) {
-                        if (!vm->def->blkio.devices[j].weight)
-                            continue;
-                        if (comma)
-                            virBufferAddChar(&buf, ',');
-                        else
-                            comma = true;
-                        virBufferAsprintf(&buf, "%s,%u",
-                                          vm->def->blkio.devices[j].path,
-                                          vm->def->blkio.devices[j].weight);
-                    }
-                    if (virBufferCheckError(&buf) < 0)
-                        goto cleanup;
-                    param->value.s = virBufferContentAndReset(&buf);
-                }
-                if (virTypedParameterAssign(param,
-                                            VIR_DOMAIN_BLKIO_DEVICE_WEIGHT,
-                                            VIR_TYPED_PARAM_STRING,
-                                            param->value.s) < 0)
-                    goto cleanup;
-                break;
-
-            case 2: /* blkiotune.device_read_iops */
-                if (vm->def->blkio.ndevices > 0) {
-                    virBuffer buf = VIR_BUFFER_INITIALIZER;
-                    bool comma = false;
-
-                    for (j = 0; j < vm->def->blkio.ndevices; j++) {
-                        if (!vm->def->blkio.devices[j].riops)
-                            continue;
-                        if (comma)
-                            virBufferAddChar(&buf, ',');
-                        else
-                            comma = true;
-                        virBufferAsprintf(&buf, "%s,%u",
-                                          vm->def->blkio.devices[j].path,
-                                          vm->def->blkio.devices[j].riops);
-                    }
-                    if (virBufferCheckError(&buf) < 0)
-                        goto cleanup;
-                    param->value.s = virBufferContentAndReset(&buf);
-                }
-                if (virTypedParameterAssign(param,
-                                            VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS,
-                                            VIR_TYPED_PARAM_STRING,
-                                            param->value.s) < 0)
-                    goto cleanup;
-                break;
-
-            case 3: /* blkiotune.device_write_iops */
-                if (vm->def->blkio.ndevices > 0) {
-                    virBuffer buf = VIR_BUFFER_INITIALIZER;
-                    bool comma = false;
-
-                    for (j = 0; j < vm->def->blkio.ndevices; j++) {
-                        if (!vm->def->blkio.devices[j].wiops)
-                            continue;
-                        if (comma)
-                            virBufferAddChar(&buf, ',');
-                        else
-                            comma = true;
-                        virBufferAsprintf(&buf, "%s,%u",
-                                          vm->def->blkio.devices[j].path,
-                                          vm->def->blkio.devices[j].wiops);
-                    }
-                    if (virBufferCheckError(&buf) < 0)
-                        goto cleanup;
-                    param->value.s = virBufferContentAndReset(&buf);
-                }
-                if (virTypedParameterAssign(param,
-                                            VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS,
-                                            VIR_TYPED_PARAM_STRING,
-                                            param->value.s) < 0)
-                    goto cleanup;
-                break;
-
-             case 4: /* blkiotune.device_read_bps */
-                if (vm->def->blkio.ndevices > 0) {
-                    virBuffer buf = VIR_BUFFER_INITIALIZER;
-                    bool comma = false;
-
-                    for (j = 0; j < vm->def->blkio.ndevices; j++) {
-                        if (!vm->def->blkio.devices[j].rbps)
-                            continue;
-                        if (comma)
-                            virBufferAddChar(&buf, ',');
-                        else
-                            comma = true;
-                        virBufferAsprintf(&buf, "%s,%llu",
-                                          vm->def->blkio.devices[j].path,
-                                          vm->def->blkio.devices[j].rbps);
-                    }
-                    if (virBufferCheckError(&buf) < 0)
-                        goto cleanup;
-                    param->value.s = virBufferContentAndReset(&buf);
-                }
-                if (virTypedParameterAssign(param,
-                                            VIR_DOMAIN_BLKIO_DEVICE_READ_BPS,
-                                            VIR_TYPED_PARAM_STRING,
-                                            param->value.s) < 0)
-                    goto cleanup;
-                break;
-
-             case 5: /* blkiotune.device_write_bps */
-                if (vm->def->blkio.ndevices > 0) {
-                    virBuffer buf = VIR_BUFFER_INITIALIZER;
-                    bool comma = false;
-
-                    for (j = 0; j < vm->def->blkio.ndevices; j++) {
-                        if (!vm->def->blkio.devices[j].wbps)
-                            continue;
-                        if (comma)
-                            virBufferAddChar(&buf, ',');
-                        else
-                            comma = true;
-                        virBufferAsprintf(&buf, "%s,%llu",
-                                          vm->def->blkio.devices[j].path,
-                                          vm->def->blkio.devices[j].wbps);
-                    }
-                    if (virBufferCheckError(&buf) < 0)
-                        goto cleanup;
-                    param->value.s = virBufferContentAndReset(&buf);
-                }
-                if (virTypedParameterAssign(param,
-                                            VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS,
-                                            VIR_TYPED_PARAM_STRING,
-                                            param->value.s) < 0)
-                    goto cleanup;
-                break;
-            }
-        }
-    } else if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
-        for (i = 0; i < *nparams && i < LXC_NB_BLKIO_PARAM; i++) {
-            virTypedParameterPtr param = &params[i];
-            val = 0;
-            param->value.ui = 0;
-            param->type = VIR_TYPED_PARAM_UINT;
-
-            switch (i) {
-            case 0: /* fill blkio weight here */
-                if (virStrcpyStatic(param->field, VIR_DOMAIN_BLKIO_WEIGHT) == NULL) {
-                    virReportError(VIR_ERR_INTERNAL_ERROR,
-                                   _("Field name '%s' too long"),
-                                   VIR_DOMAIN_BLKIO_WEIGHT);
-                    goto cleanup;
-                }
-                param->value.ui = persistentDef->blkio.weight;
-                break;
-
-            case 1: /* blkiotune.device_weight */
-                if (persistentDef->blkio.ndevices > 0) {
-                    virBuffer buf = VIR_BUFFER_INITIALIZER;
-                    bool comma = false;
-
-                    for (j = 0; j < persistentDef->blkio.ndevices; j++) {
-                        if (!persistentDef->blkio.devices[j].weight)
-                            continue;
-                        if (comma)
-                            virBufferAddChar(&buf, ',');
-                        else
-                            comma = true;
-                        virBufferAsprintf(&buf, "%s,%u",
-                                          persistentDef->blkio.devices[j].path,
-                                          persistentDef->blkio.devices[j].weight);
-                    }
-                    if (virBufferCheckError(&buf) < 0)
-                        goto cleanup;
-                    param->value.s = virBufferContentAndReset(&buf);
-                }
-                if (!param->value.s && VIR_STRDUP(param->value.s, "") < 0)
-                    goto cleanup;
-                param->type = VIR_TYPED_PARAM_STRING;
-                if (virStrcpyStatic(param->field,
-                                    VIR_DOMAIN_BLKIO_DEVICE_WEIGHT) == NULL) {
-                    virReportError(VIR_ERR_INTERNAL_ERROR,
-                                   _("Field name '%s' too long"),
-                                   VIR_DOMAIN_BLKIO_DEVICE_WEIGHT);
-                    goto cleanup;
-                }
-                break;
-
-            case 2: /* blkiotune.device_read_iops */
-                if (persistentDef->blkio.ndevices > 0) {
-                    virBuffer buf = VIR_BUFFER_INITIALIZER;
-                    bool comma = false;
-
-                    for (j = 0; j < persistentDef->blkio.ndevices; j++) {
-                        if (!persistentDef->blkio.devices[j].riops)
-                            continue;
-                        if (comma)
-                            virBufferAddChar(&buf, ',');
-                        else
-                            comma = true;
-                        virBufferAsprintf(&buf, "%s,%u",
-                                          persistentDef->blkio.devices[j].path,
-                                          persistentDef->blkio.devices[j].riops);
-                    }
-                    if (virBufferCheckError(&buf) < 0)
-                        goto cleanup;
-                    param->value.s = virBufferContentAndReset(&buf);
-                }
-                if (!param->value.s && VIR_STRDUP(param->value.s, "") < 0)
-                    goto cleanup;
-                param->type = VIR_TYPED_PARAM_STRING;
-                if (virStrcpyStatic(param->field,
-                                    VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS) == NULL) {
-                    virReportError(VIR_ERR_INTERNAL_ERROR,
-                                   _("Field name '%s' too long"),
-                                   VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS);
-                    goto cleanup;
-                }
-                break;
-            case 3: /* blkiotune.device_write_iops */
-                if (persistentDef->blkio.ndevices > 0) {
-                    virBuffer buf = VIR_BUFFER_INITIALIZER;
-                    bool comma = false;
-
-                    for (j = 0; j < persistentDef->blkio.ndevices; j++) {
-                        if (!persistentDef->blkio.devices[j].wiops)
-                            continue;
-                        if (comma)
-                            virBufferAddChar(&buf, ',');
-                        else
-                            comma = true;
-                        virBufferAsprintf(&buf, "%s,%u",
-                                          persistentDef->blkio.devices[j].path,
-                                          persistentDef->blkio.devices[j].wiops);
-                    }
-                    if (virBufferCheckError(&buf) < 0)
-                        goto cleanup;
-                    param->value.s = virBufferContentAndReset(&buf);
-                }
-                if (!param->value.s && VIR_STRDUP(param->value.s, "") < 0)
-                    goto cleanup;
-                param->type = VIR_TYPED_PARAM_STRING;
-                if (virStrcpyStatic(param->field,
-                                    VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS) == NULL) {
-                    virReportError(VIR_ERR_INTERNAL_ERROR,
-                                   _("Field name '%s' too long"),
-                                   VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS);
-                    goto cleanup;
-                }
-                break;
-            case 4: /* blkiotune.device_read_bps */
-                if (persistentDef->blkio.ndevices > 0) {
-                    virBuffer buf = VIR_BUFFER_INITIALIZER;
-                    bool comma = false;
-
-                    for (j = 0; j < persistentDef->blkio.ndevices; j++) {
-                        if (!persistentDef->blkio.devices[j].rbps)
-                            continue;
-                        if (comma)
-                            virBufferAddChar(&buf, ',');
-                        else
-                            comma = true;
-                        virBufferAsprintf(&buf, "%s,%llu",
-                                          persistentDef->blkio.devices[j].path,
-                                          persistentDef->blkio.devices[j].rbps);
-                    }
-                    if (virBufferCheckError(&buf) < 0)
-                        goto cleanup;
-                    param->value.s = virBufferContentAndReset(&buf);
-                }
-                if (!param->value.s && VIR_STRDUP(param->value.s, "") < 0)
-                    goto cleanup;
-                param->type = VIR_TYPED_PARAM_STRING;
-                if (virStrcpyStatic(param->field,
-                                    VIR_DOMAIN_BLKIO_DEVICE_READ_BPS) == NULL) {
-                    virReportError(VIR_ERR_INTERNAL_ERROR,
-                                   _("Field name '%s' too long"),
-                                   VIR_DOMAIN_BLKIO_DEVICE_READ_BPS);
-                    goto cleanup;
-                }
-                break;
-
-            case 5: /* blkiotune.device_write_bps */
-                if (persistentDef->blkio.ndevices > 0) {
-                    virBuffer buf = VIR_BUFFER_INITIALIZER;
-                    bool comma = false;
-
-                    for (j = 0; j < persistentDef->blkio.ndevices; j++) {
-                        if (!persistentDef->blkio.devices[j].wbps)
-                            continue;
-                        if (comma)
-                            virBufferAddChar(&buf, ',');
-                        else
-                            comma = true;
-                        virBufferAsprintf(&buf, "%s,%llu",
-                                          persistentDef->blkio.devices[j].path,
-                                          persistentDef->blkio.devices[j].wbps);
-                    }
-                    if (virBufferCheckError(&buf) < 0)
-                        goto cleanup;
-                    param->value.s = virBufferContentAndReset(&buf);
-                }
-                if (!param->value.s && VIR_STRDUP(param->value.s, "") < 0)
-                    goto cleanup;
-                param->type = VIR_TYPED_PARAM_STRING;
-                if (virStrcpyStatic(param->field,
-                                    VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS) == NULL) {
-                    virReportError(VIR_ERR_INTERNAL_ERROR,
-                                   _("Field name '%s' too long"),
-                                   VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS);
-                    goto cleanup;
-                }
-                break;
-            }
-        }
+        if (virDomainGetBlkioParametersAssignFromDef(persistentDef, params,
+                                                     nparams, maxparams) < 0)
+            goto cleanup;
     }
 
-    if (LXC_NB_BLKIO_PARAM < *nparams)
-        *nparams = LXC_NB_BLKIO_PARAM;
     ret = 0;
 
  cleanup:
     virDomainObjEndAPI(&vm);
-    virObjectUnref(caps);
     return ret;
 }
 
@@ -5317,7 +4993,8 @@ static int lxcDomainDetachDeviceFlags(virDomainPtr dom,
 
     dev = dev_copy = virDomainDeviceDefParse(xml, vm->def,
                                              caps, driver->xmlopt,
-                                             VIR_DOMAIN_DEF_PARSE_INACTIVE);
+                                             VIR_DOMAIN_DEF_PARSE_INACTIVE |
+                                             VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE);
     if (dev == NULL)
         goto endjob;
 
@@ -5479,7 +5156,7 @@ lxcNodeGetInfo(virConnectPtr conn,
     if (virNodeGetInfoEnsureACL(conn) < 0)
         return -1;
 
-    return nodeGetInfo(NULL, nodeinfo);
+    return nodeGetInfo(nodeinfo);
 }
 
 
@@ -5557,7 +5234,7 @@ lxcNodeGetCPUStats(virConnectPtr conn,
     if (virNodeGetCPUStatsEnsureACL(conn) < 0)
         return -1;
 
-    return nodeGetCPUStats(cpuNum, params, nparams, flags);
+    return virHostCPUGetStats(cpuNum, params, nparams, flags);
 }
 
 
@@ -5571,7 +5248,7 @@ lxcNodeGetMemoryStats(virConnectPtr conn,
     if (virNodeGetMemoryStatsEnsureACL(conn) < 0)
         return -1;
 
-    return nodeGetMemoryStats(NULL, cellNum, params, nparams, flags);
+    return virHostMemGetStats(cellNum, params, nparams, flags);
 }
 
 
@@ -5584,7 +5261,7 @@ lxcNodeGetCellsFreeMemory(virConnectPtr conn,
     if (virNodeGetCellsFreeMemoryEnsureACL(conn) < 0)
         return -1;
 
-    return nodeGetCellsFreeMemory(freeMems, startCell, maxCells);
+    return virHostMemGetCellsFree(freeMems, startCell, maxCells);
 }
 
 
@@ -5596,7 +5273,7 @@ lxcNodeGetFreeMemory(virConnectPtr conn)
     if (virNodeGetFreeMemoryEnsureACL(conn) < 0)
         return 0;
 
-    if (nodeGetMemory(NULL, &freeMem) < 0)
+    if (virHostMemGetInfo(NULL, &freeMem) < 0)
         return 0;
 
     return freeMem;
@@ -5612,7 +5289,7 @@ lxcNodeGetMemoryParameters(virConnectPtr conn,
     if (virNodeGetMemoryParametersEnsureACL(conn) < 0)
         return -1;
 
-    return nodeGetMemoryParameters(params, nparams, flags);
+    return virHostMemGetParameters(params, nparams, flags);
 }
 
 
@@ -5625,7 +5302,7 @@ lxcNodeSetMemoryParameters(virConnectPtr conn,
     if (virNodeSetMemoryParametersEnsureACL(conn) < 0)
         return -1;
 
-    return nodeSetMemoryParameters(params, nparams, flags);
+    return virHostMemSetParameters(params, nparams, flags);
 }
 
 
@@ -5638,7 +5315,7 @@ lxcNodeGetCPUMap(virConnectPtr conn,
     if (virNodeGetCPUMapEnsureACL(conn) < 0)
         return -1;
 
-    return nodeGetCPUMap(NULL, cpumap, online, flags);
+    return virHostCPUGetMap(cpumap, online, flags);
 }
 
 
@@ -5789,7 +5466,7 @@ lxcNodeGetFreePages(virConnectPtr conn,
     if (virNodeGetFreePagesEnsureACL(conn) < 0)
         return -1;
 
-    return nodeGetFreePages(npages, pages, startCell, cellCount, counts);
+    return virHostMemGetFreePages(npages, pages, startCell, cellCount, counts);
 }
 
 
@@ -5809,8 +5486,8 @@ lxcNodeAllocPages(virConnectPtr conn,
     if (virNodeAllocPagesEnsureACL(conn) < 0)
         return -1;
 
-    return nodeAllocPages(npages, pageSizes, pageCounts,
-                          startCell, cellCount, add);
+    return virHostMemAllocPages(npages, pageSizes, pageCounts,
+                                startCell, cellCount, add);
 }
 
 

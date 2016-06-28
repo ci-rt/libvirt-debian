@@ -64,6 +64,7 @@ local-checks-to-skip =			\
   sc_prohibit_quote_without_use		\
   sc_prohibit_quotearg_without_use	\
   sc_prohibit_stat_st_blocks		\
+  sc_prohibit_undesirable_word_seq	\
   sc_root_tests				\
   sc_space_tab				\
   sc_sun_os_names			\
@@ -420,9 +421,9 @@ sc_prohibit_gethostname:
 	  $(_sc_search_regexp)
 
 sc_prohibit_readdir:
-	@prohibit='\breaddir *\('					\
+	@prohibit='\b(read|close|open)dir *\('				\
 	exclude='exempt from syntax-check'				\
-	halt='use virDirRead, not readdir'				\
+	halt='use virDirOpen, virDirRead and VIR_DIR_CLOSE'		\
 	  $(_sc_search_regexp)
 
 sc_prohibit_gettext_noop:
@@ -440,18 +441,11 @@ sc_prohibit_PATH_MAX:
 	halt='dynamically allocate paths, do not use PATH_MAX'	\
 	  $(_sc_search_regexp)
 
-# Use a subshell for each function, to give the optimal warning message.
 include $(srcdir)/Makefile.nonreentrant
 sc_prohibit_nonreentrant:
-	@fail=0 ; \
-	for i in $(NON_REENTRANT) ; \
-	do \
-	    (prohibit="\\<$$i *\\("					\
-	     halt="use $${i}_r, not $$i"				\
-	     $(_sc_search_regexp)					\
-	    ) || fail=1;						\
-	done ; \
-	exit $$fail
+	@prohibit="\\<(${NON_REENTRANT_RE}) *\\("			\
+	halt="use re-entrant functions (usually ending with _r)"	\
+	  $(_sc_search_regexp)
 
 sc_prohibit_select:
 	@prohibit='\<select *\('					\
@@ -820,30 +814,6 @@ sc_prohibit_exit_in_tests:
 	halt='use return, not exit(), in tests'				\
 	  $(_sc_search_regexp)
 
-# Don't include duplicate header in the source (either *.c or *.h)
-sc_prohibit_duplicate_header:
-	@fail=0; for i in $$($(VC_LIST_EXCEPT) | grep '\.[chx]$$'); do	\
-	  awk '/# *include.*\.h/ {					\
-	    match($$0, /[<"][^>"]*[">]/);				\
-	    arr[substr($$0, RSTART + 1, RLENGTH - 2)]++;		\
-	  }								\
-	  END {								\
-	    for (key in arr) {						\
-	      if (arr[key] > 1)	{					\
-		fail=1;							\
-		printf("%d %s are included\n", arr[key], key);		\
-	      }								\
-	    }								\
-	    if (fail == 1) {						\
-	      printf("duplicate header(s) in " FILENAME "\n");		\
-	      exit 1;							\
-	    }								\
-	  }' $$i || fail=1;						\
-	done;								\
-	if test $$fail -eq 1; then					\
-	  { echo '$(ME): avoid duplicate headers' 1>&2; exit 1; }	\
-	fi;
-
 # Don't include "libvirt/*.h" in "" form.
 sc_prohibit_include_public_headers_quote:
 	@prohibit='# *include *"libvirt/.*\.h"'				\
@@ -1104,28 +1074,24 @@ _autogen:
 
 # regenerate HACKING as part of the syntax-check
 ifneq ($(_gl-Makefile),)
-syntax-check: $(top_srcdir)/HACKING bracket-spacing-check test-wrap-argv
+syntax-check: $(top_srcdir)/HACKING spacing-check test-wrap-argv \
+	prohibit-duplicate-header
 endif
 
-bracket-spacing-check:
+# Don't include duplicate header in the source (either *.c or *.h)
+prohibit-duplicate-header:
+	$(AM_V_GEN)files=$$($(VC_LIST_EXCEPT) | grep '\.[chx]$$'); \
+	$(PERL) -W $(top_srcdir)/build-aux/prohibit-duplicate-header.pl $$files
+
+spacing-check:
 	$(AM_V_GEN)files=`$(VC_LIST) | grep '\.c$$'`; \
-	$(PERL) $(top_srcdir)/build-aux/bracket-spacing.pl $$files || \
+	$(PERL) $(top_srcdir)/build-aux/check-spacing.pl $$files || \
 	  { echo '$(ME): incorrect formatting, see HACKING for rules' 1>&2; \
 	    exit 1; }
 
 test-wrap-argv:
 	$(AM_V_GEN)files=`$(VC_LIST) | grep -E '\.(ldargs|args)'`; \
-	for file in $$files ; \
-	do \
-	    $(PERL) $(top_srcdir)/tests/test-wrap-argv.pl $$file > $${file}-t ; \
-	    diff $$file $${file}-t; \
-	    res=$$? ; \
-	    rm $${file}-t ; \
-	    test $$res == 0 || { \
-	      echo "$(ME): Incorrect line wrapping in $$file" 1>&2; \
-              echo "$(ME): Use test-wrap-argv.pl to wrap test data files" 1>&2; \
-	      exit 1; } \
-	done
+	$(PERL) $(top_srcdir)/tests/test-wrap-argv.pl --check $$files
 
 # sc_po_check can fail if generated files are not built first
 sc_po_check: \
@@ -1181,7 +1147,7 @@ exclude_file_name_regexp--sc_prohibit_access_xok = \
 	^(cfg\.mk|src/util/virutil\.c)$$
 
 exclude_file_name_regexp--sc_prohibit_asprintf = \
-  ^(cfg\.mk|bootstrap.conf$$|src/util/virstring\.[ch]$$|tests/vircgroupmock\.c$$)
+  ^(cfg\.mk|bootstrap.conf$$|examples/|src/util/virstring\.[ch]$$|tests/vircgroupmock\.c$$)
 
 exclude_file_name_regexp--sc_prohibit_strdup = \
   ^(docs/|examples/|src/util/virstring\.c|tests/vir(netserverclient|cgroup)mock.c$$)
@@ -1190,7 +1156,7 @@ exclude_file_name_regexp--sc_prohibit_close = \
   (\.p[yl]$$|\.spec\.in$$|^docs/|^(src/util/virfile\.c|src/libvirt-stream\.c|tests/vir.+mock\.c)$$)
 
 exclude_file_name_regexp--sc_prohibit_empty_lines_at_EOF = \
-  (^tests/(qemuhelp|nodeinfo|virpcitest)data/|\.diff|tests/virconfdata/no-newline\.conf$$)
+  (^tests/(qemuhelp|virhostcpu|virpcitest)data/|\.diff|tests/virconfdata/no-newline\.conf$$)
 
 _src2=src/(util/vircommand|libvirt|lxc/lxc_controller|locking/lock_daemon|logging/log_daemon)
 exclude_file_name_regexp--sc_prohibit_fork_wrappers = \
@@ -1223,7 +1189,7 @@ exclude_file_name_regexp--sc_prohibit_sprintf = \
 
 exclude_file_name_regexp--sc_prohibit_strncpy = ^src/util/virstring\.c$$
 
-exclude_file_name_regexp--sc_prohibit_strtol = ^examples/dom.*/.*\.c$$
+exclude_file_name_regexp--sc_prohibit_strtol = ^examples/.*$$
 
 exclude_file_name_regexp--sc_prohibit_gethostby = ^docs/nss.html.in$$
 
@@ -1240,7 +1206,7 @@ exclude_file_name_regexp--sc_require_config_h_first = \
 	^(examples/|tools/virsh-edit\.c$$)
 
 exclude_file_name_regexp--sc_trailing_blank = \
-  /qemuhelpdata/|/sysinfodata/.*\.data|/nodeinfodata/.*\.cpuinfo$$
+  /qemuhelpdata/|/sysinfodata/.*\.data|/virhostcpudata/.*\.cpuinfo$$
 
 exclude_file_name_regexp--sc_unmarked_diagnostics = \
   ^(docs/apibuild.py|tests/virt-aa-helper-test)$$
@@ -1271,7 +1237,7 @@ exclude_file_name_regexp--sc_prohibit_mixed_case_abbreviations = \
   ^src/(vbox/vbox_CAPI.*.h|esx/esx_vi.(c|h)|esx/esx_storage_backend_iscsi.c)$$
 
 exclude_file_name_regexp--sc_prohibit_empty_first_line = \
-  ^(README|daemon/THREADS\.txt|src/esx/README|docs/library.xen|tests/(vmwarever|nodeinfo)data/.*)$$
+  ^(README|daemon/THREADS\.txt|src/esx/README|docs/library.xen|tests/(vmwarever|virhostcpu)data/.*)$$
 
 exclude_file_name_regexp--sc_prohibit_useless_translation = \
   ^tests/virpolkittest.c
@@ -1299,3 +1265,6 @@ exclude_file_name_regexp--sc_prohibit_dt_without_code = \
 
 exclude_file_name_regexp--sc_prohibit_always-defined_macros = \
   ^tests/virtestmock.c$$
+
+exclude_file_name_regexp--sc_prohibit_readdir = \
+  ^tests/.*mock\.c$$

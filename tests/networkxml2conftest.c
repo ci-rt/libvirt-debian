@@ -45,7 +45,7 @@ testCompareXMLToConfFiles(const char *inxml, const char *outconf, dnsmasqCapsPtr
                         dctx, caps) < 0)
         goto fail;
 
-    if (virtTestCompareToFile(actual, outconf) < 0)
+    if (virTestCompareToFile(actual, outconf) < 0)
         goto fail;
 
     ret = 0;
@@ -105,8 +105,8 @@ mymain(void)
                                                                      \
         info.name = xname;                                           \
         info.caps = xcaps;                                           \
-        if (virtTestRun("Network XML-2-Conf " xname,                 \
-                        testCompareXMLToConfHelper, &info) < 0) {    \
+        if (virTestRun("Network XML-2-Conf " xname,                  \
+                       testCompareXMLToConfHelper, &info) < 0) {     \
             ret = -1;                                                \
         }                                                            \
     } while (0)

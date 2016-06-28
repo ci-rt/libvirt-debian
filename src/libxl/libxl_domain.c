@@ -26,6 +26,7 @@
 #include <fcntl.h>
 
 #include "libxl_domain.h"
+#include "libxl_capabilities.h"
 
 #include "viralloc.h"
 #include "viratomic.h"
@@ -123,8 +124,6 @@ libxlDomainObjBeginJob(libxlDriverPrivatePtr driver ATTRIBUTE_UNUSED,
         return -1;
     then = now + LIBXL_JOB_WAIT_TIME;
 
-    virObjectRef(obj);
-
     while (priv->job.active) {
         VIR_DEBUG("Wait normal job condition for starting job: %s",
                   libxlDomainJobTypeToString(job));
@@ -157,7 +156,6 @@ libxlDomainObjBeginJob(libxlDriverPrivatePtr driver ATTRIBUTE_UNUSED,
         virReportSystemError(errno,
                              "%s", _("cannot acquire job mutex"));
 
-    virObjectUnref(obj);
     return -1;
 }
 
@@ -171,7 +169,7 @@ libxlDomainObjBeginJob(libxlDriverPrivatePtr driver ATTRIBUTE_UNUSED,
  * non-zero, false if the reference count has dropped to zero
  * and obj is disposed.
  */
-bool
+void
 libxlDomainObjEndJob(libxlDriverPrivatePtr driver ATTRIBUTE_UNUSED,
                      virDomainObjPtr obj)
 {
@@ -183,8 +181,6 @@ libxlDomainObjEndJob(libxlDriverPrivatePtr driver ATTRIBUTE_UNUSED,
 
     libxlDomainObjResetJob(priv);
     virCondSignal(&priv->job.cond);
-
-    return virObjectUnref(obj);
 }
 
 int
@@ -532,12 +528,10 @@ libxlDomainShutdownThread(void *opaque)
     }
 
  endjob:
-    if (!libxlDomainObjEndJob(driver, vm))
-        vm = NULL;
+    libxlDomainObjEndJob(driver, vm);
 
  cleanup:
-    if (vm)
-        virObjectUnlock(vm);
+    virDomainObjEndAPI(&vm);
     if (dom_event)
         libxlDomainEventQueue(driver, dom_event);
     libxl_event_free(cfg->ctx, ev);
@@ -570,7 +564,7 @@ libxlDomainEventHandler(void *data, VIR_LIBXL_EVENT_CONST libxl_event *event)
     if (xl_reason == LIBXL_SHUTDOWN_REASON_SUSPEND)
         goto error;
 
-    vm = virDomainObjListFindByID(driver->domains, event->domid);
+    vm = virDomainObjListFindByIDRef(driver->domains, event->domid);
     if (!vm) {
         VIR_INFO("Received event for unknown domain ID %d", event->domid);
         goto error;
@@ -605,8 +599,7 @@ libxlDomainEventHandler(void *data, VIR_LIBXL_EVENT_CONST libxl_event *event)
     /* Cast away any const */
     libxl_event_free(cfg->ctx, (libxl_event *)event);
     virObjectUnref(cfg);
-    if (vm)
-        virObjectUnlock(vm);
+    virDomainObjEndAPI(&vm);
     VIR_FREE(shutdown_info);
 }
 
@@ -683,7 +676,8 @@ libxlDomainSaveImageOpen(libxlDriverPrivatePtr driver,
     }
 
     if (!(def = virDomainDefParseString(xml, cfg->caps, driver->xmlopt,
-                                        VIR_DOMAIN_DEF_PARSE_INACTIVE)))
+                                        VIR_DOMAIN_DEF_PARSE_INACTIVE |
+                                        VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE)))
         goto error;
 
     VIR_FREE(xml);
@@ -737,9 +731,14 @@ libxlDomainCleanup(libxlDriverPrivatePtr driver,
     int vnc_port;
     char *file;
     virHostdevManagerPtr hostdev_mgr = driver->hostdevMgr;
+    unsigned int hostdev_flags = VIR_HOSTDEV_SP_PCI;
+
+#ifdef LIBXL_HAVE_PVUSB
+    hostdev_flags |= VIR_HOSTDEV_SP_USB;
+#endif
 
     virHostdevReAttachDomainDevices(hostdev_mgr, LIBXL_DRIVER_NAME,
-                                    vm->def, VIR_HOSTDEV_SP_PCI, NULL);
+                                    vm->def, hostdev_flags, NULL);
 
     VIR_FREE(priv->lockState);
     if (virDomainLockProcessPause(driver->lockManager, vm, &priv->lockState) < 0)
@@ -965,13 +964,17 @@ libxlConsoleCallback(libxl_ctx *ctx, libxl_event *ev, void *for_callback)
     virObjectLock(vm);
     for (i = 0; i < vm->def->nconsoles; i++) {
         virDomainChrDefPtr chr = vm->def->consoles[i];
-        if (chr && chr->source.type == VIR_DOMAIN_CHR_TYPE_PTY) {
+        if (i == 0 &&
+            chr->targetType == VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL)
+            chr = vm->def->serials[0];
+
+        if (chr->source.type == VIR_DOMAIN_CHR_TYPE_PTY) {
             libxl_console_type console_type;
             char *console = NULL;
             int ret;
 
             console_type =
-                (chr->targetType == VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL ?
+                (chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL ?
                  LIBXL_CONSOLE_TYPE_SERIAL : LIBXL_CONSOLE_TYPE_PV);
             ret = libxl_console_get_tty(ctx, ev->domid,
                                         chr->target.port, console_type,
@@ -1049,6 +1052,11 @@ libxlDomainStart(libxlDriverPrivatePtr driver,
     virHostdevManagerPtr hostdev_mgr = driver->hostdevMgr;
     libxl_asyncprogress_how aop_console_how;
     libxl_domain_restore_params params;
+    unsigned int hostdev_flags = VIR_HOSTDEV_SP_PCI;
+
+#ifdef LIBXL_HAVE_PVUSB
+    hostdev_flags |= VIR_HOSTDEV_SP_USB;
+#endif
 
     libxl_domain_config_init(&d_config);
 
@@ -1096,8 +1104,7 @@ libxlDomainStart(libxlDriverPrivatePtr driver,
         VIR_FREE(managed_save_path);
     }
 
-    if (virDomainObjSetDefTransient(cfg->caps, driver->xmlopt,
-                                    vm, true) < 0)
+    if (virDomainObjSetDefTransient(cfg->caps, driver->xmlopt, vm) < 0)
         goto cleanup;
 
     if (virDomainLockProcessStart(driver->lockManager,
@@ -1125,7 +1132,7 @@ libxlDomainStart(libxlDriverPrivatePtr driver,
         goto cleanup_dom;
 
     if (virHostdevPrepareDomainDevices(hostdev_mgr, LIBXL_DRIVER_NAME,
-                                       vm->def, VIR_HOSTDEV_SP_PCI) < 0)
+                                       vm->def, hostdev_flags) < 0)
         goto cleanup_dom;
 
     /* Unlock virDomainObj while creating the domain */

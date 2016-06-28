@@ -2,9 +2,10 @@
 # Linux-specific private symbols.
 #
 
-# nodeinfo.h
-linuxNodeGetCPUStats;
-linuxNodeInfoCPUPopulate;
+# util/virhostcpu.h
+virHostCPUGetInfoPopulateLinux;
+virHostCPUGetStatsLinux;
+virHostCPUSetSysFSSystemPathLinux;
 
 # Let emacs know we want case-insensitive sorting
 # Local Variables:

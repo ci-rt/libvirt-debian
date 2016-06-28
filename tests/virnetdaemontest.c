@@ -258,7 +258,7 @@ static int testExecRestart(const void *opaque)
     if (!(outjsonstr = virJSONValueToString(outjson, true)))
         goto cleanup;
 
-    if (virtTestCompareToFile(outjsonstr, outfile) < 0)
+    if (virTestCompareToFile(outjsonstr, outfile) < 0)
         goto cleanup;
 
     ret = 0;
@@ -321,8 +321,8 @@ mymain(void)
         struct testExecRestartData data = {                   \
             file, server_names, nservers, pass                \
         };                                                    \
-        if (virtTestRun("ExecRestart " file,                  \
-                        testExecRestart, &data) < 0)          \
+        if (virTestRun("ExecRestart " file,                   \
+                       testExecRestart, &data) < 0)           \
             ret = -1;                                         \
     } while (0)
 

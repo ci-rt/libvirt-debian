@@ -146,7 +146,7 @@ mymain(void)
         struct testFileGetMountSubtreeData data = {                \
             path, prefix, mounts, ARRAY_CARDINALITY(mounts), rev   \
         };                                                         \
-        if (virtTestRun(name, testFileGetMountSubtree, &data) < 0) \
+        if (virTestRun(name, testFileGetMountSubtree, &data) < 0)  \
             ret = -1;                                              \
     } while (0)
 
@@ -160,14 +160,14 @@ mymain(void)
     do {                                                                       \
         data1.path = PATH;                                                     \
         data1.expect = EXPECT;                                                 \
-        if (virtTestRun(virtTestCounterNext(), testFileSanitizePath,           \
-                        &data1) < 0)                                           \
+        if (virTestRun(virTestCounterNext(), testFileSanitizePath,             \
+                       &data1) < 0)                                            \
             ret = -1;                                                          \
     } while (0)
 
 #define DO_TEST_SANITIZE_PATH_SAME(PATH) DO_TEST_SANITIZE_PATH(PATH, PATH)
 
-    virtTestCounterReset("testFileSanitizePath ");
+    virTestCounterReset("testFileSanitizePath ");
     DO_TEST_SANITIZE_PATH("", "");
     DO_TEST_SANITIZE_PATH("/", "/");
     DO_TEST_SANITIZE_PATH("/path", "/path");

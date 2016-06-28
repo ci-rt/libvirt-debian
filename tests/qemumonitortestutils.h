@@ -39,8 +39,8 @@ int qemuMonitorTestAddHandler(qemuMonitorTestPtr test,
                               void *opaque,
                               virFreeCallback freecb);
 
-int qemuMonitorTestAddReponse(qemuMonitorTestPtr test,
-                              const char *response);
+int qemuMonitorTestAddResponse(qemuMonitorTestPtr test,
+                               const char *response);
 
 int qemuMonitorTestAddUnexpectedErrorResponse(qemuMonitorTestPtr test);
 
@@ -68,6 +68,10 @@ qemuMonitorTestPtr qemuMonitorTestNew(bool json,
                                       virDomainObjPtr vm,
                                       virQEMUDriverPtr driver,
                                       const char *greeting);
+
+qemuMonitorTestPtr qemuMonitorTestNewFromFile(const char *fileName,
+                                              virDomainXMLOptionPtr xmlopt,
+                                              bool simple);
 
 qemuMonitorTestPtr qemuMonitorTestNewAgent(virDomainXMLOptionPtr xmlopt);
 

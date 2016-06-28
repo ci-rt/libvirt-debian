@@ -90,7 +90,7 @@ test2(const void *data ATTRIBUTE_UNUSED)
     int ret = -1;
     int size = 1025;
 
-    if (virBitmapParse(bitsString1, 0, &bitmap, size) < 0)
+    if (virBitmapParse(bitsString1, &bitmap, size) < 0)
         goto error;
 
     if (testBit(bitmap, 1, 32, true) < 0)
@@ -218,7 +218,7 @@ test4(const void *data ATTRIBUTE_UNUSED)
 
     /* 2. partial set */
 
-    if (virBitmapParse(bitsString, 0, &bitmap, size) < 0)
+    if (virBitmapParse(bitsString, &bitmap, size) < 0)
         goto error;
     if (!bitmap)
         goto error;
@@ -495,19 +495,19 @@ test9(const void *opaque ATTRIBUTE_UNUSED)
     int ret = -1;
     virBitmapPtr bitmap = NULL;
 
-    if (virBitmapParse("100000000", 0, &bitmap, 20) != -1)
+    if (virBitmapParse("100000000", &bitmap, 20) != -1)
         goto cleanup;
 
     if (bitmap)
         goto cleanup;
 
-    if (virBitmapParse("1-1000000000", 0, &bitmap, 20) != -1)
+    if (virBitmapParse("1-1000000000", &bitmap, 20) != -1)
         goto cleanup;
 
     if (bitmap)
         goto cleanup;
 
-    if (virBitmapParse("1-10^10000000000", 0, &bitmap, 20) != -1)
+    if (virBitmapParse("1-10^10000000000", &bitmap, 20) != -1)
         goto cleanup;
 
     if (bitmap)
@@ -526,10 +526,10 @@ test10(const void *opaque ATTRIBUTE_UNUSED)
     int ret = -1;
     virBitmapPtr b1 = NULL, b2 = NULL, b3 = NULL, b4 = NULL;
 
-    if (virBitmapParse("0-3,5-8,11-15", 0, &b1, 20) < 0 ||
-        virBitmapParse("4,9,10,16-19", 0, &b2, 20) < 0 ||
-        virBitmapParse("15", 0, &b3, 20) < 0 ||
-        virBitmapParse("0,^0", 0, &b4, 20) < 0)
+    if (virBitmapParseSeparator("0-3,5-8,11-15f16", 'f', &b1, 20) < 0 ||
+        virBitmapParse("4,9,10,16-19", &b2, 20) < 0 ||
+        virBitmapParse("15", &b3, 20) < 0 ||
+        virBitmapParse("0,^0", &b4, 20) < 0)
         goto cleanup;
 
     if (!virBitmapIsAllClear(b4))
@@ -567,9 +567,9 @@ test11(const void *opaque)
     virBitmapPtr resmap = NULL;
     int ret = -1;
 
-    if (virBitmapParse(data->a, 0, &amap, 256) < 0 ||
-        virBitmapParse(data->b, 0, &bmap, 256) < 0 ||
-        virBitmapParse(data->res, 0, &resmap, 256) < 0)
+    if (virBitmapParse(data->a, &amap, 256) < 0 ||
+        virBitmapParse(data->b, &bmap, 256) < 0 ||
+        virBitmapParse(data->res, &resmap, 256) < 0)
         goto cleanup;
 
     virBitmapSubtract(amap, bmap);
@@ -632,12 +632,19 @@ test12(const void *opaque ATTRIBUTE_UNUSED)
 
     TEST_MAP(151, "100");
 
+    virBitmapFree(map);
+    if (virBitmapParseUnlimited("34,1023", &map) < 0)
+        goto cleanup;
+
+    TEST_MAP(1024, "34,1023");
+
     ret = 0;
 
  cleanup:
     virBitmapFree(map);
     return ret;
 }
+
 #undef TEST_MAP
 
 
@@ -645,7 +652,7 @@ test12(const void *opaque ATTRIBUTE_UNUSED)
     testBinaryOpData.a = A;                                                   \
     testBinaryOpData.b = B;                                                   \
     testBinaryOpData.res = RES;                                               \
-    if (virtTestRun(virtTestCounterNext(), FUNC, &testBinaryOpData) < 0)      \
+    if (virTestRun(virTestCounterNext(), FUNC, &testBinaryOpData) < 0)        \
         ret = -1;
 
 static int
@@ -654,28 +661,28 @@ mymain(void)
     struct testBinaryOpData testBinaryOpData;
     int ret = 0;
 
-    if (virtTestRun("test1", test1, NULL) < 0)
+    if (virTestRun("test1", test1, NULL) < 0)
         ret = -1;
-    if (virtTestRun("test2", test2, NULL) < 0)
+    if (virTestRun("test2", test2, NULL) < 0)
         ret = -1;
-    if (virtTestRun("test3", test3, NULL) < 0)
+    if (virTestRun("test3", test3, NULL) < 0)
         ret = -1;
-    if (virtTestRun("test4", test4, NULL) < 0)
+    if (virTestRun("test4", test4, NULL) < 0)
         ret = -1;
-    if (virtTestRun("test5", test5, NULL) < 0)
+    if (virTestRun("test5", test5, NULL) < 0)
         ret = -1;
-    if (virtTestRun("test6", test6, NULL) < 0)
+    if (virTestRun("test6", test6, NULL) < 0)
         ret = -1;
-    if (virtTestRun("test7", test7, NULL) < 0)
+    if (virTestRun("test7", test7, NULL) < 0)
         ret = -1;
-    if (virtTestRun("test8", test8, NULL) < 0)
+    if (virTestRun("test8", test8, NULL) < 0)
         ret = -1;
-    if (virtTestRun("test9", test9, NULL) < 0)
+    if (virTestRun("test9", test9, NULL) < 0)
         ret = -1;
-    if (virtTestRun("test10", test10, NULL) < 0)
+    if (virTestRun("test10", test10, NULL) < 0)
         ret = -1;
 
-    virtTestCounterReset("test11-");
+    virTestCounterReset("test11-");
     TESTBINARYOP("0", "0", "0,^0", test11);
     TESTBINARYOP("0-3", "0", "1-3", test11);
     TESTBINARYOP("0-3", "0,3", "1-2", test11);
@@ -684,7 +691,7 @@ mymain(void)
     TESTBINARYOP("0-3", "0,^0", "0-3", test11);
     TESTBINARYOP("0,2", "1,3", "0,2", test11);
 
-    if (virtTestRun("test12", test12, NULL) < 0)
+    if (virTestRun("test12", test12, NULL) < 0)
         ret = -1;
 
     return ret;

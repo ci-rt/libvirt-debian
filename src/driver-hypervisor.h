@@ -28,6 +28,7 @@
 typedef virDrvOpenStatus
 (*virDrvConnectOpen)(virConnectPtr conn,
                      virConnectAuthPtr auth,
+                     virConfPtr conf,
                      unsigned int flags);
 
 typedef int
@@ -1238,6 +1239,18 @@ typedef int
 (*virDrvConnectUnregisterCloseCallback)(virConnectPtr conn,
                                         virConnectCloseFunc cb);
 
+typedef int
+(*virDrvDomainGetGuestVcpus)(virDomainPtr domain,
+                             virTypedParameterPtr *params,
+                             unsigned int *nparams,
+                             unsigned int flags);
+
+typedef int
+(*virDrvDomainSetGuestVcpus)(virDomainPtr domain,
+                             const char *cpumap,
+                             int state,
+                             unsigned int flags);
+
 typedef struct _virHypervisorDriver virHypervisorDriver;
 typedef virHypervisorDriver *virHypervisorDriverPtr;
 
@@ -1474,6 +1487,8 @@ struct _virHypervisorDriver {
     virDrvConnectRegisterCloseCallback connectRegisterCloseCallback;
     virDrvConnectUnregisterCloseCallback connectUnregisterCloseCallback;
     virDrvDomainMigrateStartPostCopy domainMigrateStartPostCopy;
+    virDrvDomainGetGuestVcpus domainGetGuestVcpus;
+    virDrvDomainSetGuestVcpus domainSetGuestVcpus;
 };
 
 

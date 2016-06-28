@@ -78,6 +78,20 @@ struct virLogManagerProtocolDomainReadLogFileRet {
         virLogManagerProtocolNonNullString data;
 };
 typedef struct virLogManagerProtocolDomainReadLogFileRet virLogManagerProtocolDomainReadLogFileRet;
+
+struct virLogManagerProtocolDomainAppendLogFileArgs {
+        virLogManagerProtocolNonNullString driver;
+        virLogManagerProtocolDomain dom;
+        virLogManagerProtocolNonNullString path;
+        virLogManagerProtocolNonNullString message;
+        u_int flags;
+};
+typedef struct virLogManagerProtocolDomainAppendLogFileArgs virLogManagerProtocolDomainAppendLogFileArgs;
+
+struct virLogManagerProtocolDomainAppendLogFileRet {
+        int ret;
+};
+typedef struct virLogManagerProtocolDomainAppendLogFileRet virLogManagerProtocolDomainAppendLogFileRet;
 #define VIR_LOG_MANAGER_PROTOCOL_PROGRAM 0x87539319
 #define VIR_LOG_MANAGER_PROTOCOL_PROGRAM_VERSION 1
 
@@ -85,6 +99,7 @@ enum virLogManagerProtocolProcedure {
         VIR_LOG_MANAGER_PROTOCOL_PROC_DOMAIN_OPEN_LOG_FILE = 1,
         VIR_LOG_MANAGER_PROTOCOL_PROC_DOMAIN_GET_LOG_FILE_POSITION = 2,
         VIR_LOG_MANAGER_PROTOCOL_PROC_DOMAIN_READ_LOG_FILE = 3,
+        VIR_LOG_MANAGER_PROTOCOL_PROC_DOMAIN_APPEND_LOG_FILE = 4,
 };
 typedef enum virLogManagerProtocolProcedure virLogManagerProtocolProcedure;
 
@@ -105,6 +120,8 @@ extern  bool_t xdr_virLogManagerProtocolDomainGetLogFilePositionArgs (XDR *, vir
 extern  bool_t xdr_virLogManagerProtocolDomainGetLogFilePositionRet (XDR *, virLogManagerProtocolDomainGetLogFilePositionRet*);
 extern  bool_t xdr_virLogManagerProtocolDomainReadLogFileArgs (XDR *, virLogManagerProtocolDomainReadLogFileArgs*);
 extern  bool_t xdr_virLogManagerProtocolDomainReadLogFileRet (XDR *, virLogManagerProtocolDomainReadLogFileRet*);
+extern  bool_t xdr_virLogManagerProtocolDomainAppendLogFileArgs (XDR *, virLogManagerProtocolDomainAppendLogFileArgs*);
+extern  bool_t xdr_virLogManagerProtocolDomainAppendLogFileRet (XDR *, virLogManagerProtocolDomainAppendLogFileRet*);
 extern  bool_t xdr_virLogManagerProtocolProcedure (XDR *, virLogManagerProtocolProcedure*);
 
 #else /* K&R C */
@@ -122,6 +139,8 @@ extern bool_t xdr_virLogManagerProtocolDomainGetLogFilePositionArgs ();
 extern bool_t xdr_virLogManagerProtocolDomainGetLogFilePositionRet ();
 extern bool_t xdr_virLogManagerProtocolDomainReadLogFileArgs ();
 extern bool_t xdr_virLogManagerProtocolDomainReadLogFileRet ();
+extern bool_t xdr_virLogManagerProtocolDomainAppendLogFileArgs ();
+extern bool_t xdr_virLogManagerProtocolDomainAppendLogFileRet ();
 extern bool_t xdr_virLogManagerProtocolProcedure ();
 
 #endif /* K&R C */

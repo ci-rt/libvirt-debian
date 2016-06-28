@@ -1,7 +1,7 @@
 /*
  * storage_backend_iscsi.c: storage backend for iSCSI handling
  *
- * Copyright (C) 2007-2014 Red Hat, Inc.
+ * Copyright (C) 2007-2016 Red Hat, Inc.
  * Copyright (C) 2007-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -43,6 +43,7 @@
 #include "virobject.h"
 #include "virstring.h"
 #include "viruuid.h"
+#include "secret_util.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
@@ -90,7 +91,7 @@ static int
 virStorageBackendISCSIGetHostNumber(const char *sysfs_path,
                                     uint32_t *host)
 {
-    int retval = 0;
+    int ret = -1;
     DIR *sysdir = NULL;
     struct dirent *dirent = NULL;
     int direrr;
@@ -99,31 +100,32 @@ virStorageBackendISCSIGetHostNumber(const char *sysfs_path,
 
     virFileWaitForDevices();
 
-    sysdir = opendir(sysfs_path);
-
-    if (sysdir == NULL) {
-        virReportSystemError(errno,
-                             _("Failed to opendir path '%s'"), sysfs_path);
-        retval = -1;
-        goto out;
-    }
+    if (virDirOpen(&sysdir, sysfs_path) < 0)
+        goto cleanup;
 
     while ((direrr = virDirRead(sysdir, &dirent, sysfs_path)) > 0) {
-        if (STREQLEN(dirent->d_name, "target", strlen("target"))) {
-            if (sscanf(dirent->d_name,
-                       "target%u:", host) != 1) {
-                VIR_DEBUG("Failed to parse target '%s'", dirent->d_name);
-                retval = -1;
-                break;
+        if (STRPREFIX(dirent->d_name, "target")) {
+            if (sscanf(dirent->d_name, "target%u:", host) == 1) {
+                ret = 0;
+                goto cleanup;
+            } else {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Failed to parse target '%s'"), dirent->d_name);
+                goto cleanup;
             }
         }
     }
-    if (direrr < 0)
-        retval = -1;
 
-    closedir(sysdir);
- out:
-    return retval;
+    if (direrr == 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to get host number for iSCSI session "
+                         "with path '%s'"), sysfs_path);
+        goto cleanup;
+    }
+
+ cleanup:
+    VIR_DIR_CLOSE(sysdir);
+    return ret;
 }
 
 static int
@@ -138,13 +140,8 @@ virStorageBackendISCSIFindLUs(virStoragePoolObjPtr pool,
                     "/sys/class/iscsi_session/session%s/device", session) < 0)
         goto cleanup;
 
-    if (virStorageBackendISCSIGetHostNumber(sysfs_path, &host) < 0) {
-        virReportSystemError(errno,
-                             _("Failed to get host number for iSCSI session "
-                               "with path '%s'"),
-                             sysfs_path);
+    if (virStorageBackendISCSIGetHostNumber(sysfs_path, &host) < 0)
         goto cleanup;
-    }
 
     if (virStorageBackendSCSIFindLUs(pool, host) < 0)
         goto cleanup;
@@ -277,17 +274,16 @@ virStorageBackendISCSISetAuth(const char *portal,
                               virConnectPtr conn,
                               virStoragePoolSourcePtr source)
 {
-    virSecretPtr secret = NULL;
     unsigned char *secret_value = NULL;
+    size_t secret_size;
     virStorageAuthDefPtr authdef = source->auth;
     int ret = -1;
-    char uuidStr[VIR_UUID_STRING_BUFLEN];
 
     if (!authdef || authdef->authType == VIR_STORAGE_AUTH_TYPE_NONE)
         return 0;
 
-    VIR_DEBUG("username='%s' authType=%d secretType=%d",
-              authdef->username, authdef->authType, authdef->secretType);
+    VIR_DEBUG("username='%s' authType=%d seclookupdef.type=%d",
+              authdef->username, authdef->authType, authdef->seclookupdef.type);
     if (authdef->authType != VIR_STORAGE_AUTH_TYPE_CHAP) {
         virReportError(VIR_ERR_XML_ERROR, "%s",
                        _("iscsi pool only supports 'chap' auth type"));
@@ -301,45 +297,10 @@ virStorageBackendISCSISetAuth(const char *portal,
         return -1;
     }
 
-    if (authdef->secretType == VIR_STORAGE_SECRET_TYPE_UUID)
-        secret = virSecretLookupByUUID(conn, authdef->secret.uuid);
-    else
-        secret = virSecretLookupByUsage(conn, VIR_SECRET_USAGE_TYPE_ISCSI,
-                                        authdef->secret.usage);
-
-    if (secret) {
-        size_t secret_size;
-        secret_value =
-            conn->secretDriver->secretGetValue(secret, &secret_size, 0,
-                                               VIR_SECRET_GET_VALUE_INTERNAL_CALL);
-        if (!secret_value) {
-            if (authdef->secretType == VIR_STORAGE_SECRET_TYPE_UUID) {
-                virUUIDFormat(authdef->secret.uuid, uuidStr);
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("could not get the value of the secret "
-                                 "for username %s using uuid '%s'"),
-                               authdef->username, uuidStr);
-            } else {
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("could not get the value of the secret "
-                                 "for username %s using usage value '%s'"),
-                               authdef->username, authdef->secret.usage);
-            }
-            goto cleanup;
-        }
-    } else {
-        if (authdef->secretType == VIR_STORAGE_SECRET_TYPE_UUID) {
-            virUUIDFormat(authdef->secret.uuid, uuidStr);
-            virReportError(VIR_ERR_NO_SECRET,
-                           _("no secret matches uuid '%s'"),
-                           uuidStr);
-        } else {
-            virReportError(VIR_ERR_NO_SECRET,
-                           _("no secret matches usage value '%s'"),
-                           authdef->secret.usage);
-        }
+    if (virSecretGetSecretString(conn, &authdef->seclookupdef,
+                                 VIR_SECRET_USAGE_TYPE_ISCSI,
+                                 &secret_value, &secret_size) < 0)
         goto cleanup;
-    }
 
     if (virISCSINodeUpdate(portal,
                            source->devices[0].path,
@@ -358,8 +319,7 @@ virStorageBackendISCSISetAuth(const char *portal,
     ret = 0;
 
  cleanup:
-    virObjectUnref(secret);
-    VIR_FREE(secret_value);
+    VIR_DISPOSE_N(secret_value, secret_size);
     return ret;
 }
 

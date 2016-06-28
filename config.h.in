@@ -1541,9 +1541,6 @@
 /* Define to 1 if you have the 'sched_setscheduler' function. */
 #undef HAVE_SCHED_SETSCHEDULER
 
-/* Define to 1 if you have the `sd_notify' function. */
-#undef HAVE_SD_NOTIFY
-
 /* Define to 1 if you have the <search.h> header file. */
 #undef HAVE_SEARCH_H
 
@@ -2342,6 +2339,9 @@
 /* Define to 1 if time_t is signed. */
 #undef TIME_T_IS_SIGNED
 
+/* TLS default priority string */
+#undef TLS_PRIORITY
+
 /* Define to 1 if the type of the st_atim member of a struct stat is struct
    timespec. */
 #undef TYPEOF_STRUCT_STAT_ST_ATIM_IS_STRUCT_TIMESPEC
@@ -2662,9 +2662,6 @@
 
 /* whether ZFS backend for storage driver is enabled */
 #undef WITH_STORAGE_ZFS
-
-/* whether libsystemd-daemon >= 0.27.1 is available */
-#undef WITH_SYSTEMD_DAEMON
 
 /* whether Test driver is enabled */
 #undef WITH_TEST

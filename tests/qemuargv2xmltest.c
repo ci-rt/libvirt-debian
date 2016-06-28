@@ -36,8 +36,8 @@ static int testSanitizeDef(virDomainDefPtr vmdef)
         virDomainDiskDefPtr disk = vmdef->disks[i];
 
         if (disk->src->auth) {
-            disk->src->auth->secretType = VIR_STORAGE_SECRET_TYPE_USAGE;
-            if (VIR_STRDUP(disk->src->auth->secret.usage,
+            disk->src->auth->seclookupdef.type = VIR_SECRET_LOOKUP_TYPE_USAGE;
+            if (VIR_STRDUP(disk->src->auth->seclookupdef.u.usage,
                           "qemuargv2xml_usage") < 0)
                 goto fail;
         }
@@ -62,15 +62,15 @@ static int testCompareXMLToArgvFiles(const char *xmlfile,
     int ret = -1;
     virDomainDefPtr vmdef = NULL;
 
-    if (virtTestLoadFile(cmdfile, &cmd) < 0)
+    if (virTestLoadFile(cmdfile, &cmd) < 0)
         goto fail;
 
     if (!(vmdef = qemuParseCommandLineString(driver.caps, driver.xmlopt,
                                              cmd, NULL, NULL, NULL)))
         goto fail;
 
-    if (!virtTestOOMActive()) {
-        if ((log = virtTestLogContentAndReset()) == NULL)
+    if (!virTestOOMActive()) {
+        if ((log = virTestLogContentAndReset()) == NULL)
             goto fail;
         if (flags & FLAG_EXPECT_WARNING) {
             if (*log) {
@@ -103,7 +103,7 @@ static int testCompareXMLToArgvFiles(const char *xmlfile,
     if (!(actualxml = virDomainDefFormat(vmdef, driver.caps, 0)))
         goto fail;
 
-    if (virtTestCompareToFile(actualxml, xmlfile) < 0)
+    if (virTestCompareToFile(actualxml, xmlfile) < 0)
         goto fail;
 
     ret = 0;
@@ -158,8 +158,8 @@ mymain(void)
 # define DO_TEST_FULL(name, flags)                                      \
     do {                                                                \
         const struct testInfo info = { name, (flags) };                 \
-        if (virtTestRun("QEMU ARGV-2-XML " name,                        \
-                        testCompareXMLToArgvHelper, &info) < 0)         \
+        if (virTestRun("QEMU ARGV-2-XML " name,                         \
+                       testCompareXMLToArgvHelper, &info) < 0)          \
             ret = -1;                                                   \
     } while (0)
 

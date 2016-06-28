@@ -92,7 +92,10 @@ noinst_PROGRAMS = dominfo/info1$(EXEEXT) \
 	dommigrate/dommigrate$(EXEEXT) domsuspend/suspend$(EXEEXT) \
 	domtop/domtop$(EXEEXT) hellolibvirt/hellolibvirt$(EXEEXT) \
 	object-events/event-test$(EXEEXT) openauth/openauth$(EXEEXT) \
-	rename/rename$(EXEEXT)
+	rename/rename$(EXEEXT) admin/list_servers$(EXEEXT) \
+	admin/list_clients$(EXEEXT) admin/threadpool_params$(EXEEXT) \
+	admin/client_limits$(EXEEXT) admin/client_info$(EXEEXT) \
+	admin/client_close$(EXEEXT)
 subdir = examples
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
@@ -252,7 +255,6 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-result.m4 \
 	$(top_srcdir)/m4/virt-sanlock.m4 $(top_srcdir)/m4/virt-sasl.m4 \
 	$(top_srcdir)/m4/virt-selinux.m4 $(top_srcdir)/m4/virt-ssh2.m4 \
-	$(top_srcdir)/m4/virt-systemd-daemon.m4 \
 	$(top_srcdir)/m4/virt-udev.m4 \
 	$(top_srcdir)/m4/virt-wireshark.m4 \
 	$(top_srcdir)/m4/virt-yajl.m4 $(top_srcdir)/m4/vsnprintf.m4 \
@@ -272,39 +274,93 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 PROGRAMS = $(noinst_PROGRAMS)
 am__dirstamp = $(am__leading_dot)dirstamp
-am_dominfo_info1_OBJECTS = dominfo/info1.$(OBJEXT)
-dominfo_info1_OBJECTS = $(am_dominfo_info1_OBJECTS)
-dominfo_info1_LDADD = $(LDADD)
+am_admin_client_close_OBJECTS = admin/client_close.$(OBJEXT)
+admin_client_close_OBJECTS = $(am_admin_client_close_OBJECTS)
+admin_client_close_LDADD = $(LDADD)
 am__DEPENDENCIES_1 =
-dominfo_info1_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+admin_client_close_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(top_builddir)/src/libvirt.la \
-	$(top_builddir)/gnulib/lib/libgnu.la
+	$(top_builddir)/gnulib/lib/libgnu.la \
+	$(top_builddir)/src/libvirt-admin.la
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
+am_admin_client_info_OBJECTS = admin/client_info.$(OBJEXT)
+admin_client_info_OBJECTS = $(am_admin_client_info_OBJECTS)
+admin_client_info_LDADD = $(LDADD)
+admin_client_info_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(top_builddir)/src/libvirt.la \
+	$(top_builddir)/gnulib/lib/libgnu.la \
+	$(top_builddir)/src/libvirt-admin.la
+am_admin_client_limits_OBJECTS = admin/client_limits.$(OBJEXT)
+admin_client_limits_OBJECTS = $(am_admin_client_limits_OBJECTS)
+admin_client_limits_LDADD = $(LDADD)
+admin_client_limits_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(top_builddir)/src/libvirt.la \
+	$(top_builddir)/gnulib/lib/libgnu.la \
+	$(top_builddir)/src/libvirt-admin.la
+am_admin_list_clients_OBJECTS = admin/list_clients.$(OBJEXT)
+admin_list_clients_OBJECTS = $(am_admin_list_clients_OBJECTS)
+admin_list_clients_LDADD = $(LDADD)
+admin_list_clients_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(top_builddir)/src/libvirt.la \
+	$(top_builddir)/gnulib/lib/libgnu.la \
+	$(top_builddir)/src/libvirt-admin.la
+am_admin_list_servers_OBJECTS = admin/list_servers.$(OBJEXT)
+admin_list_servers_OBJECTS = $(am_admin_list_servers_OBJECTS)
+admin_list_servers_LDADD = $(LDADD)
+admin_list_servers_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(top_builddir)/src/libvirt.la \
+	$(top_builddir)/gnulib/lib/libgnu.la \
+	$(top_builddir)/src/libvirt-admin.la
+am_admin_threadpool_params_OBJECTS =  \
+	admin/threadpool_params.$(OBJEXT)
+admin_threadpool_params_OBJECTS =  \
+	$(am_admin_threadpool_params_OBJECTS)
+admin_threadpool_params_LDADD = $(LDADD)
+admin_threadpool_params_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(top_builddir)/src/libvirt.la \
+	$(top_builddir)/gnulib/lib/libgnu.la \
+	$(top_builddir)/src/libvirt-admin.la
+am_dominfo_info1_OBJECTS = dominfo/info1.$(OBJEXT)
+dominfo_info1_OBJECTS = $(am_dominfo_info1_OBJECTS)
+dominfo_info1_LDADD = $(LDADD)
+dominfo_info1_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(top_builddir)/src/libvirt.la \
+	$(top_builddir)/gnulib/lib/libgnu.la \
+	$(top_builddir)/src/libvirt-admin.la
 am_dommigrate_dommigrate_OBJECTS = dommigrate/dommigrate.$(OBJEXT)
 dommigrate_dommigrate_OBJECTS = $(am_dommigrate_dommigrate_OBJECTS)
 dommigrate_dommigrate_LDADD = $(LDADD)
 dommigrate_dommigrate_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(top_builddir)/src/libvirt.la \
-	$(top_builddir)/gnulib/lib/libgnu.la
+	$(top_builddir)/gnulib/lib/libgnu.la \
+	$(top_builddir)/src/libvirt-admin.la
 am_domsuspend_suspend_OBJECTS = domsuspend/suspend.$(OBJEXT)
 domsuspend_suspend_OBJECTS = $(am_domsuspend_suspend_OBJECTS)
 domsuspend_suspend_LDADD = $(LDADD)
 domsuspend_suspend_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(top_builddir)/src/libvirt.la \
-	$(top_builddir)/gnulib/lib/libgnu.la
+	$(top_builddir)/gnulib/lib/libgnu.la \
+	$(top_builddir)/src/libvirt-admin.la
 am_domtop_domtop_OBJECTS = domtop/domtop.$(OBJEXT)
 domtop_domtop_OBJECTS = $(am_domtop_domtop_OBJECTS)
 domtop_domtop_LDADD = $(LDADD)
 domtop_domtop_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(top_builddir)/src/libvirt.la \
-	$(top_builddir)/gnulib/lib/libgnu.la
+	$(top_builddir)/gnulib/lib/libgnu.la \
+	$(top_builddir)/src/libvirt-admin.la
 am_hellolibvirt_hellolibvirt_OBJECTS =  \
 	hellolibvirt/hellolibvirt.$(OBJEXT)
 hellolibvirt_hellolibvirt_OBJECTS =  \
@@ -313,7 +369,8 @@ hellolibvirt_hellolibvirt_LDADD = $(LDADD)
 hellolibvirt_hellolibvirt_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(top_builddir)/src/libvirt.la \
-	$(top_builddir)/gnulib/lib/libgnu.la
+	$(top_builddir)/gnulib/lib/libgnu.la \
+	$(top_builddir)/src/libvirt-admin.la
 am_object_events_event_test_OBJECTS =  \
 	object-events/object_events_event_test-event-test.$(OBJEXT)
 object_events_event_test_OBJECTS =  \
@@ -322,7 +379,8 @@ object_events_event_test_LDADD = $(LDADD)
 object_events_event_test_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(top_builddir)/src/libvirt.la \
-	$(top_builddir)/gnulib/lib/libgnu.la
+	$(top_builddir)/gnulib/lib/libgnu.la \
+	$(top_builddir)/src/libvirt-admin.la
 object_events_event_test_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(object_events_event_test_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
@@ -333,14 +391,16 @@ openauth_openauth_LDADD = $(LDADD)
 openauth_openauth_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(top_builddir)/src/libvirt.la \
-	$(top_builddir)/gnulib/lib/libgnu.la
+	$(top_builddir)/gnulib/lib/libgnu.la \
+	$(top_builddir)/src/libvirt-admin.la
 am_rename_rename_OBJECTS = rename/rename.$(OBJEXT)
 rename_rename_OBJECTS = $(am_rename_rename_OBJECTS)
 rename_rename_LDADD = $(LDADD)
 rename_rename_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(top_builddir)/src/libvirt.la \
-	$(top_builddir)/gnulib/lib/libgnu.la
+	$(top_builddir)/gnulib/lib/libgnu.la \
+	$(top_builddir)/src/libvirt-admin.la
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -375,12 +435,18 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(dominfo_info1_SOURCES) $(dommigrate_dommigrate_SOURCES) \
-	$(domsuspend_suspend_SOURCES) $(domtop_domtop_SOURCES) \
-	$(hellolibvirt_hellolibvirt_SOURCES) \
+SOURCES = $(admin_client_close_SOURCES) $(admin_client_info_SOURCES) \
+	$(admin_client_limits_SOURCES) $(admin_list_clients_SOURCES) \
+	$(admin_list_servers_SOURCES) \
+	$(admin_threadpool_params_SOURCES) $(dominfo_info1_SOURCES) \
+	$(dommigrate_dommigrate_SOURCES) $(domsuspend_suspend_SOURCES) \
+	$(domtop_domtop_SOURCES) $(hellolibvirt_hellolibvirt_SOURCES) \
 	$(object_events_event_test_SOURCES) \
 	$(openauth_openauth_SOURCES) $(rename_rename_SOURCES)
-DIST_SOURCES = $(dominfo_info1_SOURCES) \
+DIST_SOURCES = $(admin_client_close_SOURCES) \
+	$(admin_client_info_SOURCES) $(admin_client_limits_SOURCES) \
+	$(admin_list_clients_SOURCES) $(admin_list_servers_SOURCES) \
+	$(admin_threadpool_params_SOURCES) $(dominfo_info1_SOURCES) \
 	$(dommigrate_dommigrate_SOURCES) $(domsuspend_suspend_SOURCES) \
 	$(domtop_domtop_SOURCES) $(hellolibvirt_hellolibvirt_SOURCES) \
 	$(object_events_event_test_SOURCES) \
@@ -1786,8 +1852,6 @@ STDBOOL_H = @STDBOOL_H@
 STDDEF_H = @STDDEF_H@
 STDINT_H = @STDINT_H@
 STRIP = @STRIP@
-SYSTEMD_DAEMON_CFLAGS = @SYSTEMD_DAEMON_CFLAGS@
-SYSTEMD_DAEMON_LIBS = @SYSTEMD_DAEMON_LIBS@
 SYS_IOCTL_H_HAVE_WINSOCK2_H = @SYS_IOCTL_H_HAVE_WINSOCK2_H@
 SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS = @SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS@
 SYS_TIME_H_DEFINES_STRUCT_TIMESPEC = @SYS_TIME_H_DEFINES_STRUCT_TIMESPEC@
@@ -1917,7 +1981,8 @@ INCLUDES = -I$(top_builddir)/include -I$(top_srcdir)/include -I$(top_srcdir) \
 	-I$(top_builddir)/gnulib/lib -I$(top_srcdir)/gnulib/lib
 
 LDADD = $(STATIC_BINARIES) $(WARN_CFLAGS) $(COVERAGE_LDFLAGS) \
-	$(top_builddir)/src/libvirt.la $(top_builddir)/gnulib/lib/libgnu.la
+	$(top_builddir)/src/libvirt.la $(top_builddir)/gnulib/lib/libgnu.la \
+	$(top_builddir)/src/libvirt-admin.la
 
 dominfo_info1_SOURCES = dominfo/info1.c
 dommigrate_dommigrate_SOURCES = dommigrate/dommigrate.c
@@ -1931,6 +1996,12 @@ object_events_event_test_CFLAGS = \
 object_events_event_test_SOURCES = object-events/event-test.c
 openauth_openauth_SOURCES = openauth/openauth.c
 rename_rename_SOURCES = rename/rename.c
+admin_list_servers_SOURCES = admin/list_servers.c
+admin_list_clients_SOURCES = admin/list_clients.c
+admin_threadpool_params_SOURCES = admin/threadpool_params.c
+admin_client_limits_SOURCES = admin/client_limits.c
+admin_client_info_SOURCES = admin/client_info.c
+admin_client_close_SOURCES = admin/client_close.c
 @WITH_APPARMOR_PROFILES_TRUE@apparmordir = $(sysconfdir)/apparmor.d/
 @WITH_APPARMOR_PROFILES_TRUE@apparmor_DATA = \
 @WITH_APPARMOR_PROFILES_TRUE@	apparmor/usr.lib.libvirt.virt-aa-helper \
@@ -1992,6 +2063,48 @@ clean-noinstPROGRAMS:
 	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
 	echo " rm -f" $$list; \
 	rm -f $$list
+admin/$(am__dirstamp):
+	@$(MKDIR_P) admin
+	@: > admin/$(am__dirstamp)
+admin/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) admin/$(DEPDIR)
+	@: > admin/$(DEPDIR)/$(am__dirstamp)
+admin/client_close.$(OBJEXT): admin/$(am__dirstamp) \
+	admin/$(DEPDIR)/$(am__dirstamp)
+
+admin/client_close$(EXEEXT): $(admin_client_close_OBJECTS) $(admin_client_close_DEPENDENCIES) $(EXTRA_admin_client_close_DEPENDENCIES) admin/$(am__dirstamp)
+	@rm -f admin/client_close$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(admin_client_close_OBJECTS) $(admin_client_close_LDADD) $(LIBS)
+admin/client_info.$(OBJEXT): admin/$(am__dirstamp) \
+	admin/$(DEPDIR)/$(am__dirstamp)
+
+admin/client_info$(EXEEXT): $(admin_client_info_OBJECTS) $(admin_client_info_DEPENDENCIES) $(EXTRA_admin_client_info_DEPENDENCIES) admin/$(am__dirstamp)
+	@rm -f admin/client_info$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(admin_client_info_OBJECTS) $(admin_client_info_LDADD) $(LIBS)
+admin/client_limits.$(OBJEXT): admin/$(am__dirstamp) \
+	admin/$(DEPDIR)/$(am__dirstamp)
+
+admin/client_limits$(EXEEXT): $(admin_client_limits_OBJECTS) $(admin_client_limits_DEPENDENCIES) $(EXTRA_admin_client_limits_DEPENDENCIES) admin/$(am__dirstamp)
+	@rm -f admin/client_limits$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(admin_client_limits_OBJECTS) $(admin_client_limits_LDADD) $(LIBS)
+admin/list_clients.$(OBJEXT): admin/$(am__dirstamp) \
+	admin/$(DEPDIR)/$(am__dirstamp)
+
+admin/list_clients$(EXEEXT): $(admin_list_clients_OBJECTS) $(admin_list_clients_DEPENDENCIES) $(EXTRA_admin_list_clients_DEPENDENCIES) admin/$(am__dirstamp)
+	@rm -f admin/list_clients$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(admin_list_clients_OBJECTS) $(admin_list_clients_LDADD) $(LIBS)
+admin/list_servers.$(OBJEXT): admin/$(am__dirstamp) \
+	admin/$(DEPDIR)/$(am__dirstamp)
+
+admin/list_servers$(EXEEXT): $(admin_list_servers_OBJECTS) $(admin_list_servers_DEPENDENCIES) $(EXTRA_admin_list_servers_DEPENDENCIES) admin/$(am__dirstamp)
+	@rm -f admin/list_servers$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(admin_list_servers_OBJECTS) $(admin_list_servers_LDADD) $(LIBS)
+admin/threadpool_params.$(OBJEXT): admin/$(am__dirstamp) \
+	admin/$(DEPDIR)/$(am__dirstamp)
+
+admin/threadpool_params$(EXEEXT): $(admin_threadpool_params_OBJECTS) $(admin_threadpool_params_DEPENDENCIES) $(EXTRA_admin_threadpool_params_DEPENDENCIES) admin/$(am__dirstamp)
+	@rm -f admin/threadpool_params$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(admin_threadpool_params_OBJECTS) $(admin_threadpool_params_LDADD) $(LIBS)
 dominfo/$(am__dirstamp):
 	@$(MKDIR_P) dominfo
 	@: > dominfo/$(am__dirstamp)
@@ -2092,6 +2205,7 @@ rename/rename$(EXEEXT): $(rename_rename_OBJECTS) $(rename_rename_DEPENDENCIES) $
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
+	-rm -f admin/*.$(OBJEXT)
 	-rm -f dominfo/*.$(OBJEXT)
 	-rm -f dommigrate/*.$(OBJEXT)
 	-rm -f domsuspend/*.$(OBJEXT)
@@ -2104,6 +2218,12 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@admin/$(DEPDIR)/client_close.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@admin/$(DEPDIR)/client_info.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@admin/$(DEPDIR)/client_limits.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@admin/$(DEPDIR)/list_clients.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@admin/$(DEPDIR)/list_servers.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@admin/$(DEPDIR)/threadpool_params.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@dominfo/$(DEPDIR)/info1.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@dommigrate/$(DEPDIR)/dommigrate.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@domsuspend/$(DEPDIR)/suspend.Po@am__quote@
@@ -2156,6 +2276,7 @@ mostlyclean-libtool:
 
 clean-libtool:
 	-rm -rf .libs _libs
+	-rm -rf admin/.libs admin/_libs
 	-rm -rf dominfo/.libs dominfo/_libs
 	-rm -rf dommigrate/.libs dommigrate/_libs
 	-rm -rf domsuspend/.libs domsuspend/_libs
@@ -2343,6 +2464,8 @@ clean-generic:
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
+	-rm -f admin/$(DEPDIR)/$(am__dirstamp)
+	-rm -f admin/$(am__dirstamp)
 	-rm -f dominfo/$(DEPDIR)/$(am__dirstamp)
 	-rm -f dominfo/$(am__dirstamp)
 	-rm -f dommigrate/$(DEPDIR)/$(am__dirstamp)
@@ -2363,15 +2486,15 @@ distclean-generic:
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
-@WITH_NWFILTER_FALSE@uninstall-local:
 @WITH_NWFILTER_FALSE@install-data-local:
+@WITH_NWFILTER_FALSE@uninstall-local:
 clean: clean-am
 
 clean-am: clean-generic clean-libtool clean-noinstPROGRAMS \
 	mostlyclean-am
 
 distclean: distclean-am
-	-rm -rf dominfo/$(DEPDIR) dommigrate/$(DEPDIR) domsuspend/$(DEPDIR) domtop/$(DEPDIR) hellolibvirt/$(DEPDIR) object-events/$(DEPDIR) openauth/$(DEPDIR) rename/$(DEPDIR)
+	-rm -rf admin/$(DEPDIR) dominfo/$(DEPDIR) dommigrate/$(DEPDIR) domsuspend/$(DEPDIR) domtop/$(DEPDIR) hellolibvirt/$(DEPDIR) object-events/$(DEPDIR) openauth/$(DEPDIR) rename/$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -2418,7 +2541,7 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-	-rm -rf dominfo/$(DEPDIR) dommigrate/$(DEPDIR) domsuspend/$(DEPDIR) domtop/$(DEPDIR) hellolibvirt/$(DEPDIR) object-events/$(DEPDIR) openauth/$(DEPDIR) rename/$(DEPDIR)
+	-rm -rf admin/$(DEPDIR) dominfo/$(DEPDIR) dommigrate/$(DEPDIR) domsuspend/$(DEPDIR) domtop/$(DEPDIR) hellolibvirt/$(DEPDIR) object-events/$(DEPDIR) openauth/$(DEPDIR) rename/$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

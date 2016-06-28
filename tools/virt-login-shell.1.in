@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRT-LOGIN-SHELL 1"
-.TH VIRT-LOGIN-SHELL 1 "2016-04-26" "libvirt-1.3.4" "Virtualization Support"
+.TH VIRT-LOGIN-SHELL 1 "2016-06-22" "libvirt-2.0.0" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -159,6 +159,10 @@ The basic structure of most virt-login-shell usage is:
 .Ve
 .SH "OPTIONS"
 .IX Header "OPTIONS"
+.IP "\fB\-c \s-1CMD\s0\fR" 4
+.IX Item "-c CMD"
+Instruct the shell to run \s-1CMD\s0 instead of presenting an
+interactive shell prompt.
 .IP "\fB\-h, \-\-help\fR" 4
 .IX Item "-h, --help"
 Display command line help usage then exit.
@@ -171,7 +175,14 @@ By default, virt-login-shell will execute the /bin/sh program for the user.
 You can modify this behaviour by defining the shell variable in
 /etc/libvirt/virt\-login\-shell.conf.
 .PP
-eg.  shell = [ \*(L"/bin/ksh\*(R", \*(L"\-\-login\*(R"]
+eg.  shell = [ \*(L"/bin/bash\*(R" ]
+.PP
+If the 'auto_shell' config option is set then it will attempt to automatically
+detect the shell from /etc/password inside the container. This should only be
+done if the container has a separate /etc directory from the host, otherwise
+it will end up recursively invoking virt-login-shell.
+.PP
+eg. auto_shell = 1
 .PP
 By default no users are allowed to use virt-login-shell, if you want to allow
 certain users to use virt-login-shell, you need to modify the allowed_users

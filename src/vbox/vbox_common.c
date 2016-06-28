@@ -30,6 +30,7 @@
 #include "virlog.h"
 #include "viralloc.h"
 #include "nodeinfo.h"
+#include "virhostmem.h"
 #include "virstring.h"
 #include "virfile.h"
 #include "virtime.h"
@@ -318,7 +319,7 @@ static virCapsPtr vboxCapsInit(void)
                                    false, false)) == NULL)
         goto no_memory;
 
-    if (nodeCapsInitNUMA(NULL, caps) < 0)
+    if (nodeCapsInitNUMA(caps) < 0)
         goto no_memory;
 
     if ((guest = virCapabilitiesAddGuest(caps,
@@ -391,6 +392,7 @@ static void vboxUninitialize(vboxGlobalData *data)
 static virDrvOpenStatus
 vboxConnectOpen(virConnectPtr conn,
                 virConnectAuthPtr auth ATTRIBUTE_UNUSED,
+                virConfPtr conf ATTRIBUTE_UNUSED,
                 unsigned int flags)
 {
     vboxGlobalData *data = NULL;
@@ -1864,7 +1866,7 @@ vboxDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags
     virCheckFlags(VIR_DOMAIN_DEFINE_VALIDATE, NULL);
 
     if (flags & VIR_DOMAIN_DEFINE_VALIDATE)
-        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE_SCHEMA;
 
     if (!data->vboxObj)
         return ret;
@@ -4242,7 +4244,8 @@ static int vboxDomainDetachDevice(virDomainPtr dom, const char *xml)
     def->os.type = VIR_DOMAIN_OSTYPE_HVM;
 
     dev = virDomainDeviceDefParse(xml, def, data->caps, data->xmlopt,
-                                  VIR_DOMAIN_DEF_PARSE_INACTIVE);
+                                  VIR_DOMAIN_DEF_PARSE_INACTIVE |
+                                  VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE);
     if (dev == NULL)
         goto cleanup;
 
@@ -4364,8 +4367,8 @@ static int vboxCloseDisksRecursively(virDomainPtr dom, char *location)
     }
     rc = gVBoxAPI.UIMedium.GetChildren(medium, &childrenSize, &children);
     if (NS_FAILED(rc)) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s"
-                       , _("Unable to get disk children"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Unable to get disk children"));
         goto cleanup;
     }
     for (i = 0; i < childrenSize; i++) {
@@ -4382,8 +4385,8 @@ static int vboxCloseDisksRecursively(virDomainPtr dom, char *location)
             VBOX_UTF16_TO_UTF8(childLocationUtf, &childLocation);
             VBOX_UTF16_FREE(childLocationUtf);
             if (vboxCloseDisksRecursively(dom, childLocation) < 0) {
-                virReportError(VIR_ERR_INTERNAL_ERROR, "%s"
-                               , _("Unable to close disk children"));
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("Unable to close disk children"));
                 goto cleanup;
             }
             VIR_FREE(childLocation);
@@ -7525,7 +7528,7 @@ static int
 vboxNodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED,
                 virNodeInfoPtr nodeinfo)
 {
-    return nodeGetInfo(NULL, nodeinfo);
+    return nodeGetInfo(nodeinfo);
 }
 
 static int
@@ -7534,14 +7537,14 @@ vboxNodeGetCellsFreeMemory(virConnectPtr conn ATTRIBUTE_UNUSED,
                            int startCell,
                            int maxCells)
 {
-    return nodeGetCellsFreeMemory(freeMems, startCell, maxCells);
+    return virHostMemGetCellsFree(freeMems, startCell, maxCells);
 }
 
 static unsigned long long
 vboxNodeGetFreeMemory(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
     unsigned long long freeMem;
-    if (nodeGetMemory(NULL, &freeMem) < 0)
+    if (virHostMemGetInfo(NULL, &freeMem) < 0)
         return 0;
     return freeMem;
 }
@@ -7557,7 +7560,7 @@ vboxNodeGetFreePages(virConnectPtr conn ATTRIBUTE_UNUSED,
 {
     virCheckFlags(0, -1);
 
-    return nodeGetFreePages(npages, pages, startCell, cellCount, counts);
+    return virHostMemGetFreePages(npages, pages, startCell, cellCount, counts);
 }
 
 static int
@@ -7573,8 +7576,8 @@ vboxNodeAllocPages(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     virCheckFlags(VIR_NODE_ALLOC_PAGES_SET, -1);
 
-    return nodeAllocPages(npages, pageSizes, pageCounts,
-                          startCell, cellCount, add);
+    return virHostMemAllocPages(npages, pageSizes, pageCounts,
+                                startCell, cellCount, add);
 }
 
 static int

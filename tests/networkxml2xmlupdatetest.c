@@ -27,7 +27,7 @@ testCompareXMLToXMLFiles(const char *netxml, const char *updatexml,
     int ret = -1;
     virNetworkDefPtr def = NULL;
 
-    if (virtTestLoadFile(updatexml, &updateXmlData) < 0)
+    if (virTestLoadFile(updatexml, &updateXmlData) < 0)
         goto error;
 
     if (!(def = virNetworkDefParseFile(netxml)))
@@ -41,7 +41,7 @@ testCompareXMLToXMLFiles(const char *netxml, const char *updatexml,
         goto fail;
 
     if (!expectFailure) {
-        if (virtTestCompareToFile(actual, outxml) < 0)
+        if (virTestCompareToFile(actual, outxml) < 0)
             goto error;
     }
 
@@ -118,8 +118,8 @@ mymain(void)
         const struct testInfo info = {name, updatexml, netxml, outxml,      \
                                       command, section, flags,              \
                                       parentIndex, expectFailure};          \
-        if (virtTestRun("Network XML-2-XML " name,                          \
-                        testCompareXMLToXMLHelper, &info) < 0)              \
+        if (virTestRun("Network XML-2-XML " name,                           \
+                       testCompareXMLToXMLHelper, &info) < 0)               \
             ret = -1;                                                       \
     } while (0)
 

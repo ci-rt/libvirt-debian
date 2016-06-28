@@ -36,7 +36,7 @@ testCompareFiles(const char *xml, const char *sexpr)
   conn = virGetConnect();
   if (!conn) goto fail;
 
-  if (virtTestLoadFile(sexpr, &sexprData) < 0)
+  if (virTestLoadFile(sexpr, &sexprData) < 0)
       goto fail;
 
   memset(&priv, 0, sizeof(priv));
@@ -65,7 +65,7 @@ testCompareFiles(const char *xml, const char *sexpr)
   if (!(gotxml = virDomainDefFormat(def, caps, 0)))
       goto fail;
 
-  if (virtTestCompareToFile(gotxml, xml) < 0)
+  if (virTestCompareToFile(gotxml, xml) < 0)
       goto fail;
 
   ret = 0;
@@ -125,8 +125,8 @@ mymain(void)
     do {                                                               \
         struct testInfo info = { in, out };                            \
         virResetLastError();                                           \
-        if (virtTestRun("Xen SEXPR-2-XML " in " -> " out,              \
-                        testCompareHelper, &info) < 0)                 \
+        if (virTestRun("Xen SEXPR-2-XML " in " -> " out,               \
+                       testCompareHelper, &info) < 0)                  \
             ret = -1;                                                  \
     } while (0)
 

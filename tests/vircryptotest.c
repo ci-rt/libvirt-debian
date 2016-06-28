@@ -87,9 +87,11 @@ testCryptoEncrypt(const void *opaque)
         VIR_ALLOC_N(iv, ivlen) < 0)
         goto cleanup;
 
-    if (virRandomBytes(enckey, enckeylen) < 0 ||
-        virRandomBytes(iv, ivlen) < 0)
+    if (virRandomBytes(enckey, enckeylen) ||
+        virRandomBytes(iv, ivlen)) {
+        fprintf(stderr, "Failed to generate random bytes\n");
         goto cleanup;
+    }
 
     if (virCryptoEncryptData(data->algorithm, enckey, enckeylen, iv, ivlen,
                              data->input, data->inputlen,
@@ -134,7 +136,7 @@ mymain(void)
             .input = i,                         \
             .output = o,                        \
         };                                      \
-        if (virtTestRun("Hash " i, testCryptoHash, &data) < 0) \
+        if (virTestRun("Hash " i, testCryptoHash, &data) < 0)  \
             ret = -1;                                          \
     } while (0)
 
@@ -161,7 +163,7 @@ mymain(void)
             .ciphertext = c,                     \
             .ciphertextlen = cl,                 \
         };                                       \
-        if (virtTestRun("Encrypt " n, testCryptoEncrypt, &data) < 0) \
+        if (virTestRun("Encrypt " n, testCryptoEncrypt, &data) < 0)  \
             ret = -1;                                                \
     } while (0)
 

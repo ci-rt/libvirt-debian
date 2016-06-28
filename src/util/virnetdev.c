@@ -1129,7 +1129,8 @@ int virNetDevSetIPAddress(const char *ifname,
     unsigned int recvbuflen;
 
     /* The caller needs to provide a correct address */
-    if (VIR_SOCKET_ADDR_FAMILY(addr) == AF_INET && peer && !VIR_SOCKET_ADDR_VALID(peer)) {
+    if (VIR_SOCKET_ADDR_FAMILY(addr) == AF_INET &&
+        !(peer && VIR_SOCKET_ADDR_VALID(peer))) {
         /* compute a broadcast address if this is IPv4 */
         if (VIR_ALLOC(broadcast) < 0)
             return -1;
@@ -3156,12 +3157,8 @@ virNetDevRDMAFeature(const char *ifname,
     if (!virFileExists(SYSFS_INFINIBAND_DIR))
         return 0;
 
-    if (!(dirp = opendir(SYSFS_INFINIBAND_DIR))) {
-        virReportSystemError(errno,
-                             _("Failed to opendir path '%s'"),
-                             SYSFS_INFINIBAND_DIR);
+    if (virDirOpen(&dirp, SYSFS_INFINIBAND_DIR) < 0)
         return -1;
-    }
 
     if (virAsprintf(&eth_devpath, SYSFS_NET_DIR "%s/device/resource", ifname) < 0)
         goto cleanup;
@@ -3171,8 +3168,6 @@ virNetDevRDMAFeature(const char *ifname,
         goto cleanup;
 
     while (virDirRead(dirp, &dp, SYSFS_INFINIBAND_DIR) > 0) {
-        if (dp->d_name[0] == '.')
-            continue;
         if (virAsprintf(&ib_devpath, SYSFS_INFINIBAND_DIR "%s/device/resource",
                         dp->d_name) < 0)
             continue;
@@ -3187,7 +3182,7 @@ virNetDevRDMAFeature(const char *ifname,
     ret = 0;
 
  cleanup:
-    closedir(dirp);
+    VIR_DIR_CLOSE(dirp);
     VIR_FREE(eth_devpath);
     VIR_FREE(ib_devpath);
     VIR_FREE(eth_res_buf);
@@ -3200,64 +3195,117 @@ virNetDevRDMAFeature(const char *ifname,
  * virNetDevSendEthtoolIoctl
  * This function sends ethtool ioctl request
  *
- * @ifname: name of the interface
- * @cmd: reference to an ethtool command structure
+ * @fd: socket to operate on
+ * @ifr: struct ifreq with the command
  *
  * Returns 0 on success, -1 on failure.
  */
 static int
-virNetDevSendEthtoolIoctl(const char *ifname, void *cmd)
+virNetDevSendEthtoolIoctl(int fd, struct ifreq *ifr)
 {
     int ret = -1;
-    int fd = -1;
-    struct ifreq ifr;
 
-    /* Ultimately uses AF_PACKET for socket which requires privileged
-     * daemon support.
-     */
-    if ((fd = virNetDevSetupControl(ifname, &ifr)) < 0)
-        return ret;
-
-    ifr.ifr_data = cmd;
-    ret = ioctl(fd, SIOCETHTOOL, &ifr);
+    ret = ioctl(fd, SIOCETHTOOL, ifr);
     if (ret != 0) {
         switch (errno) {
-            case EINVAL: /* kernel doesn't support SIOCETHTOOL */
-                VIR_DEBUG("ethtool ioctl: invalid request");
-                break;
-            case EOPNOTSUPP: /* kernel doesn't support specific feature */
-                VIR_DEBUG("ethtool ioctl: request not supported");
-                break;
-            default:
-                virReportSystemError(errno, "%s", _("ethtool ioctl error"));
-                goto cleanup;
+        case EINVAL: /* kernel doesn't support SIOCETHTOOL */
+            VIR_DEBUG("ethtool ioctl: invalid request");
+            break;
+        case EOPNOTSUPP: /* kernel doesn't support specific feature */
+            VIR_DEBUG("ethtool ioctl: request not supported");
+            break;
+        default:
+            virReportSystemError(errno, "%s", _("ethtool ioctl error"));
+            break;
         }
     }
 
- cleanup:
-    VIR_FORCE_CLOSE(fd);
     return ret;
 }
 
+struct virNetDevEthtoolFeatureCmd {
+    const int cmd;
+    const virNetDevFeature feat;
+};
+
 
 /**
-* virNetDevFeatureAvailable
-* This function checks for the availability of a network device feature
-*
-* @ifname: name of the interface
-* @cmd: reference to an ethtool command structure
-*
-* Returns 0 if not found, 1 on success, and -1 on failure.
-*/
-static int
-virNetDevFeatureAvailable(const char *ifname, struct ethtool_value *cmd)
+ * virNetDevFeatureAvailable
+ * This function checks for the availability of a network device feature
+ *
+ * @fd: socket to operate on
+ * @ifr: struct ifreq with the command
+ * @cmd: reference to an ethtool command structure
+ *
+ * Returns true if the feature is available, false otherwise.
+ */
+static bool
+virNetDevFeatureAvailable(int fd, struct ifreq *ifr, struct ethtool_value *cmd)
 {
-    int ret = -1;
+    ifr->ifr_data = (void*)cmd;
+    if (virNetDevSendEthtoolIoctl(fd, ifr) == 0 &&
+        cmd->data > 0)
+        return true;
+    return false;
+}
 
-    cmd = (void*)cmd;
-    if (!virNetDevSendEthtoolIoctl(ifname, cmd))
-        ret = cmd->data > 0 ? 1 : 0;
-    return ret;
+
+static void
+virNetDevGetEthtoolFeatures(virBitmapPtr bitmap,
+                            int fd,
+                            struct ifreq *ifr)
+{
+    size_t i;
+    struct ethtool_value cmd = { 0 };
+
+    /* legacy ethtool getters */
+    struct virNetDevEthtoolFeatureCmd ethtool_cmds[] = {
+        {ETHTOOL_GRXCSUM, VIR_NET_DEV_FEAT_GRXCSUM},
+        {ETHTOOL_GTXCSUM, VIR_NET_DEV_FEAT_GTXCSUM},
+        {ETHTOOL_GSG, VIR_NET_DEV_FEAT_GSG},
+        {ETHTOOL_GTSO, VIR_NET_DEV_FEAT_GTSO},
+# if HAVE_DECL_ETHTOOL_GGSO
+        {ETHTOOL_GGSO, VIR_NET_DEV_FEAT_GGSO},
+# endif
+# if HAVE_DECL_ETHTOOL_GGRO
+        {ETHTOOL_GGRO, VIR_NET_DEV_FEAT_GGRO},
+# endif
+    };
+
+# if HAVE_DECL_ETHTOOL_GFLAGS
+    /* ethtool masks */
+    struct virNetDevEthtoolFeatureCmd flags[] = {
+#  if HAVE_DECL_ETH_FLAG_LRO
+        {ETH_FLAG_LRO, VIR_NET_DEV_FEAT_LRO},
+#  endif
+#  if HAVE_DECL_ETH_FLAG_TXVLAN
+        {ETH_FLAG_RXVLAN, VIR_NET_DEV_FEAT_RXVLAN},
+        {ETH_FLAG_TXVLAN, VIR_NET_DEV_FEAT_TXVLAN},
+#  endif
+#  if HAVE_DECL_ETH_FLAG_NTUBLE
+        {ETH_FLAG_NTUPLE, VIR_NET_DEV_FEAT_NTUPLE},
+#  endif
+#  if HAVE_DECL_ETH_FLAG_RXHASH
+        {ETH_FLAG_RXHASH, VIR_NET_DEV_FEAT_RXHASH},
+#  endif
+    };
+# endif
+
+    for (i = 0; i < ARRAY_CARDINALITY(ethtool_cmds); i++) {
+        cmd.cmd = ethtool_cmds[i].cmd;
+        if (virNetDevFeatureAvailable(fd, ifr, &cmd))
+            ignore_value(virBitmapSetBit(bitmap, ethtool_cmds[i].feat));
+    }
+
+# if HAVE_DECL_ETHTOOL_GFLAGS
+    cmd.cmd = ETHTOOL_GFLAGS;
+    if (virNetDevFeatureAvailable(fd, ifr, &cmd)) {
+        for (i = 0; i < ARRAY_CARDINALITY(flags); i++) {
+            if (cmd.data & flags[i].cmd)
+                ignore_value(virBitmapSetBit(bitmap, flags[i].feat));
+        }
+    }
+# endif
 }
 
 
@@ -3266,20 +3314,49 @@ virNetDevFeatureAvailable(const char *ifname, struct ethtool_value *cmd)
  * virNetDevGFeatureAvailable
  * This function checks for the availability of a network device gfeature
  *
- * @ifname: name of the interface
- * @cmd: reference to a gfeatures ethtool command structure
+ * @fd: socket to operate on
+ * @ifr: struct ifreq with the command
+ * @cmd: reference to an ethtool command structure
  *
- * Returns 0 if not found, 1 on success, and -1 on failure.
+ * Returns true if the feature is available, false otherwise.
  */
-static int
-virNetDevGFeatureAvailable(const char *ifname, struct ethtool_gfeatures *cmd)
+static bool
+virNetDevGFeatureAvailable(int fd,
+                           struct ifreq *ifr,
+                           struct ethtool_gfeatures *cmd)
 {
-    int ret = -1;
+    ifr->ifr_data = (void*)cmd;
+    if (virNetDevSendEthtoolIoctl(fd, ifr) == 0)
+        return !!FEATURE_BIT_IS_SET(cmd->features, TX_UDP_TNL, active);
+    return false;
+}
 
-    cmd = (void*)cmd;
-    if (!virNetDevSendEthtoolIoctl(ifname, cmd))
-        ret = FEATURE_BIT_IS_SET(cmd->features, TX_UDP_TNL, active);
-    return ret;
+
+static int
+virNetDevGetEthtoolGFeatures(virBitmapPtr bitmap,
+                             int fd,
+                             struct ifreq *ifr)
+{
+    struct ethtool_gfeatures *g_cmd;
+
+    if (VIR_ALLOC_VAR(g_cmd,
+                      struct ethtool_get_features_block, GFEATURES_SIZE) < 0)
+        return -1;
+
+    g_cmd->cmd = ETHTOOL_GFEATURES;
+    g_cmd->size = GFEATURES_SIZE;
+    if (virNetDevGFeatureAvailable(fd, ifr, g_cmd))
+        ignore_value(virBitmapSetBit(bitmap, VIR_NET_DEV_FEAT_TXUDPTNL));
+    VIR_FREE(g_cmd);
+    return 0;
+}
+# else
+static int
+virNetDevGetEthtoolGFeatures(virBitmapPtr bitmap ATTRIBUTE_UNUSED,
+                             int fd ATTRIBUTE_UNUSED,
+                             struct ifreq *ifr ATTRIBUTE_UNUSED)
+{
+    return 0;
 }
 # endif
 
@@ -3298,28 +3375,9 @@ int
 virNetDevGetFeatures(const char *ifname,
                      virBitmapPtr *out)
 {
-    size_t i = -1;
-    struct ethtool_value cmd = { 0 };
-# if HAVE_DECL_ETHTOOL_GFEATURES
-    struct ethtool_gfeatures *g_cmd;
-# endif
-    struct elem{
-        const int cmd;
-        const virNetDevFeature feat;
-    };
-    /* legacy ethtool getters */
-    struct elem cmds[] = {
-        {ETHTOOL_GRXCSUM, VIR_NET_DEV_FEAT_GRXCSUM},
-        {ETHTOOL_GTXCSUM, VIR_NET_DEV_FEAT_GTXCSUM},
-        {ETHTOOL_GSG, VIR_NET_DEV_FEAT_GSG},
-        {ETHTOOL_GTSO, VIR_NET_DEV_FEAT_GTSO},
-# if HAVE_DECL_ETHTOOL_GGSO
-        {ETHTOOL_GGSO, VIR_NET_DEV_FEAT_GGSO},
-# endif
-# if HAVE_DECL_ETHTOOL_GGRO
-        {ETHTOOL_GGRO, VIR_NET_DEV_FEAT_GGRO},
-# endif
-    };
+    struct ifreq ifr;
+    int ret = -1;
+    int fd = -1;
 
     if (!(*out = virBitmapNew(VIR_NET_DEV_FEAT_LAST)))
         return -1;
@@ -3330,54 +3388,24 @@ virNetDevGetFeatures(const char *ifname,
         return 0;
     }
 
-    for (i = 0; i < ARRAY_CARDINALITY(cmds); i++) {
-        cmd.cmd = cmds[i].cmd;
-        if (virNetDevFeatureAvailable(ifname, &cmd) == 1)
-            ignore_value(virBitmapSetBit(*out, cmds[i].feat));
-    }
+    /* Ultimately uses AF_PACKET for socket which requires privileged
+     * daemon support.
+     */
+    if ((fd = virNetDevSetupControl(ifname, &ifr)) < 0)
+        goto cleanup;
 
-# if HAVE_DECL_ETHTOOL_GFLAGS
-    size_t j = -1;
-    /* ethtool masks */
-    struct elem flags[] = {
-#  if HAVE_DECL_ETH_FLAG_LRO
-        {ETH_FLAG_LRO, VIR_NET_DEV_FEAT_LRO},
-#  endif
-#  if HAVE_DECL_ETH_FLAG_TXVLAN
-        {ETH_FLAG_RXVLAN, VIR_NET_DEV_FEAT_RXVLAN},
-        {ETH_FLAG_TXVLAN, VIR_NET_DEV_FEAT_TXVLAN},
-#  endif
-#  if HAVE_DECL_ETH_FLAG_NTUBLE
-        {ETH_FLAG_NTUPLE, VIR_NET_DEV_FEAT_NTUPLE},
-#  endif
-#  if HAVE_DECL_ETH_FLAG_RXHASH
-        {ETH_FLAG_RXHASH, VIR_NET_DEV_FEAT_RXHASH},
-#  endif
-    };
+    virNetDevGetEthtoolFeatures(*out, fd, &ifr);
 
-    cmd.cmd = ETHTOOL_GFLAGS;
-    if (virNetDevFeatureAvailable(ifname, &cmd) == 1) {
-        for (j = 0; j < ARRAY_CARDINALITY(flags); j++) {
-            if (cmd.data & flags[j].cmd)
-                ignore_value(virBitmapSetBit(*out, flags[j].feat));
-        }
-    }
-# endif
-
-# if HAVE_DECL_ETHTOOL_GFEATURES
-    if (VIR_ALLOC_VAR(g_cmd,
-                      struct ethtool_get_features_block, GFEATURES_SIZE) < 0)
-        return -1;
-    g_cmd->cmd = ETHTOOL_GFEATURES;
-    g_cmd->size = GFEATURES_SIZE;
-    if (virNetDevGFeatureAvailable(ifname, g_cmd) == 1)
-        ignore_value(virBitmapSetBit(*out, VIR_NET_DEV_FEAT_TXUDPTNL));
-    VIR_FREE(g_cmd);
-# endif
+    if (virNetDevGetEthtoolGFeatures(*out, fd, &ifr) < 0)
+        goto cleanup;
 
     if (virNetDevRDMAFeature(ifname, out) < 0)
-        return -1;
-    return 0;
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    VIR_FORCE_CLOSE(fd);
+    return ret;
 }
 #else
 int

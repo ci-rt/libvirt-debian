@@ -85,8 +85,9 @@ struct _virNetSocket {
 
     virSocketAddr localAddr;
     virSocketAddr remoteAddr;
-    char *localAddrStr;
-    char *remoteAddrStr;
+    char *localAddrStrSASL;
+    char *remoteAddrStrSASL;
+    char *remoteAddrStrURI;
 
 #if WITH_GNUTLS
     virNetTLSSessionPtr tlsSession;
@@ -262,11 +263,15 @@ static virNetSocketPtr virNetSocketNew(virSocketAddrPtr localAddr,
 
 
     if (localAddr &&
-        !(sock->localAddrStr = virSocketAddrFormatFull(localAddr, true, NULL)))
+        !(sock->localAddrStrSASL = virSocketAddrFormatFull(localAddr, true, ";")))
         goto error;
 
     if (remoteAddr &&
-        !(sock->remoteAddrStr = virSocketAddrFormatFull(remoteAddr, true, NULL)))
+        !(sock->remoteAddrStrSASL = virSocketAddrFormatFull(remoteAddr, true, ";")))
+        goto error;
+
+    if (remoteAddr &&
+        !(sock->remoteAddrStrURI = virSocketAddrFormatFull(remoteAddr, true, NULL)))
         goto error;
 
     sock->client = isClient;
@@ -274,7 +279,7 @@ static virNetSocketPtr virNetSocketNew(virSocketAddrPtr localAddr,
     PROBE(RPC_SOCKET_NEW,
           "sock=%p fd=%d errfd=%d pid=%lld localAddr=%s, remoteAddr=%s",
           sock, fd, errfd, (long long) pid,
-          NULLSTR(sock->localAddrStr), NULLSTR(sock->remoteAddrStr));
+          NULLSTR(sock->localAddrStrSASL), NULLSTR(sock->remoteAddrStrSASL));
 
     return sock;
 
@@ -1202,8 +1207,9 @@ void virNetSocketDispose(void *obj)
 
     virProcessAbort(sock->pid);
 
-    VIR_FREE(sock->localAddrStr);
-    VIR_FREE(sock->remoteAddrStr);
+    VIR_FREE(sock->localAddrStrSASL);
+    VIR_FREE(sock->remoteAddrStrSASL);
+    VIR_FREE(sock->remoteAddrStrURI);
 }
 
 
@@ -1455,29 +1461,20 @@ int virNetSocketSetBlocking(virNetSocketPtr sock,
 }
 
 
-const char *virNetSocketLocalAddrString(virNetSocketPtr sock)
+const char *virNetSocketLocalAddrStringSASL(virNetSocketPtr sock)
 {
-    return sock->localAddrStr;
+    return sock->localAddrStrSASL;
 }
 
-const char *virNetSocketRemoteAddrString(virNetSocketPtr sock)
+const char *virNetSocketRemoteAddrStringSASL(virNetSocketPtr sock)
 {
-    return sock->remoteAddrStr;
+    return sock->remoteAddrStrSASL;
 }
 
-/* These helper functions return a SASL-formatted socket addr string,
- * caller is responsible for freeing the string.
- */
-char *virNetSocketLocalAddrFormatSASL(virNetSocketPtr sock)
+const char *virNetSocketRemoteAddrStringURI(virNetSocketPtr sock)
 {
-    return virSocketAddrFormatFull(&sock->localAddr, true, ";");
+    return sock->remoteAddrStrURI;
 }
-
-char *virNetSocketRemoteAddrFormatSASL(virNetSocketPtr sock)
-{
-    return virSocketAddrFormatFull(&sock->remoteAddr, true, ";");
-}
-
 
 #if WITH_GNUTLS
 static ssize_t virNetSocketTLSSessionWrite(const char *buf,

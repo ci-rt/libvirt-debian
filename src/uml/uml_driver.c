@@ -46,6 +46,8 @@
 #include "uml_conf.h"
 #include "virbuffer.h"
 #include "nodeinfo.h"
+#include "virhostcpu.h"
+#include "virhostmem.h"
 #include "virstats.h"
 #include "capabilities.h"
 #include "viralloc.h"
@@ -188,8 +190,8 @@ umlAutostartDomain(virDomainObjPtr vm,
         ret = umlStartVMDaemon(data->conn, data->driver, vm, false);
         virDomainAuditStart(vm, "booted", ret >= 0);
         if (ret < 0) {
-            VIR_ERROR(_("Failed to autostart VM '%s': %s"),
-                      vm->def->name, virGetLastErrorMessage());
+            virReportError(VIR_ERR_INTERNAL_ERROR, _("Failed to autostart VM '%s': %s"),
+                           vm->def->name, virGetLastErrorMessage());
         } else {
             virObjectEventPtr event =
                 virDomainEventLifecycleNewFromObj(vm,
@@ -535,15 +537,13 @@ umlStateInitialize(bool privileged,
         goto error;
 
     if ((uml_driver->inotifyFD = inotify_init()) < 0) {
-        VIR_ERROR(_("cannot initialize inotify"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("cannot initialize inotify"));
         goto error;
     }
 
     if (virFileMakePath(uml_driver->monitorDir) < 0) {
-        char ebuf[1024];
-        VIR_ERROR(_("Failed to create monitor directory %s: %s"),
-                  uml_driver->monitorDir,
-                  virStrerror(errno, ebuf, sizeof(ebuf)));
+        virReportSystemError(errno, _("Failed to create monitor directory %s"),
+                             uml_driver->monitorDir);
         goto error;
     }
 
@@ -551,10 +551,8 @@ umlStateInitialize(bool privileged,
     if (inotify_add_watch(uml_driver->inotifyFD,
                           uml_driver->monitorDir,
                           IN_CREATE | IN_MODIFY | IN_DELETE) < 0) {
-        char ebuf[1024];
-        VIR_ERROR(_("Failed to create inotify watch on %s: %s"),
-                  uml_driver->monitorDir,
-                  virStrerror(errno, ebuf, sizeof(ebuf)));
+        virReportSystemError(errno, _("Failed to create inotify watch on %s"),
+                             uml_driver->monitorDir);
         goto error;
     }
 
@@ -582,7 +580,7 @@ umlStateInitialize(bool privileged,
     return 0;
 
  out_of_memory:
-    VIR_ERROR(_("umlStartup: out of memory"));
+    virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("umlStartup: out of memory"));
 
  error:
     VIR_FREE(userdir);
@@ -1099,8 +1097,7 @@ static int umlStartVMDaemon(virConnectPtr conn,
      * report implicit runtime defaults in the XML, like vnc listen/socket
      */
     VIR_DEBUG("Setting current domain def as transient");
-    if (virDomainObjSetDefTransient(driver->caps, driver->xmlopt,
-                                    vm, true) < 0) {
+    if (virDomainObjSetDefTransient(driver->caps, driver->xmlopt, vm) < 0) {
         VIR_FORCE_CLOSE(logfd);
         return -1;
     }
@@ -1130,7 +1127,7 @@ static int umlStartVMDaemon(virConnectPtr conn,
         umlProcessAutoDestroyAdd(driver, vm, conn) < 0)
         goto cleanup;
 
-    ret = virDomainObjSetDefTransient(driver->caps, driver->xmlopt, vm, false);
+    ret = 0;
  cleanup:
     VIR_FORCE_CLOSE(logfd);
     virCommandFree(cmd);
@@ -1200,6 +1197,7 @@ static void umlShutdownVMDaemon(struct uml_driver *driver,
 
 static virDrvOpenStatus umlConnectOpen(virConnectPtr conn,
                                        virConnectAuthPtr auth ATTRIBUTE_UNUSED,
+                                       virConfPtr conf ATTRIBUTE_UNUSED,
                                        unsigned int flags)
 {
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
@@ -1595,7 +1593,7 @@ static virDomainPtr umlDomainCreateXML(virConnectPtr conn, const char *xml,
                   VIR_DOMAIN_START_VALIDATE, NULL);
 
     if (flags & VIR_DOMAIN_START_VALIDATE)
-        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE_SCHEMA;
 
     virNWFilterReadLockFilterUpdates();
     umlDriverLock(driver);
@@ -1787,7 +1785,7 @@ umlDomainGetMaxMemory(virDomainPtr dom)
     if (virDomainGetMaxMemoryEnsureACL(dom->conn, vm->def) < 0)
         goto cleanup;
 
-    ret = virDomainDefGetMemoryActual(vm->def);
+    ret = virDomainDefGetMemoryTotal(vm->def);
 
  cleanup:
     if (vm)
@@ -1860,7 +1858,7 @@ static int umlDomainSetMemory(virDomainPtr dom, unsigned long newmem)
         goto cleanup;
     }
 
-    if (newmem > virDomainDefGetMemoryActual(vm->def)) {
+    if (newmem > virDomainDefGetMemoryTotal(vm->def)) {
         virReportError(VIR_ERR_INVALID_ARG, "%s",
                        _("cannot set memory higher than max memory"));
         goto cleanup;
@@ -1907,7 +1905,7 @@ static int umlDomainGetInfo(virDomainPtr dom,
         }
     }
 
-    info->maxMem = virDomainDefGetMemoryActual(vm->def);
+    info->maxMem = virDomainDefGetMemoryTotal(vm->def);
     info->memory = vm->def->mem.cur_balloon;
     info->nrVirtCpu = virDomainDefGetVcpus(vm->def);
     ret = 0;
@@ -2077,7 +2075,7 @@ umlDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags)
     virCheckFlags(VIR_DOMAIN_DEFINE_VALIDATE, NULL);
 
     if (flags & VIR_DOMAIN_DEFINE_VALIDATE)
-        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE;
+        parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE_SCHEMA;
 
     umlDriverLock(driver);
     if (!(def = virDomainDefParseString(xml, driver->caps, driver->xmlopt,
@@ -2366,7 +2364,8 @@ static int umlDomainDetachDevice(virDomainPtr dom, const char *xml)
     }
 
     dev = virDomainDeviceDefParse(xml, vm->def, driver->caps, driver->xmlopt,
-                                  VIR_DOMAIN_DEF_PARSE_INACTIVE);
+                                  VIR_DOMAIN_DEF_PARSE_INACTIVE |
+                                  VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE);
     if (dev == NULL)
         goto cleanup;
 
@@ -2777,7 +2776,7 @@ umlNodeGetInfo(virConnectPtr conn,
     if (virNodeGetInfoEnsureACL(conn) < 0)
         return -1;
 
-    return nodeGetInfo(NULL, nodeinfo);
+    return nodeGetInfo(nodeinfo);
 }
 
 
@@ -2791,7 +2790,7 @@ umlNodeGetCPUStats(virConnectPtr conn,
     if (virNodeGetCPUStatsEnsureACL(conn) < 0)
         return -1;
 
-    return nodeGetCPUStats(cpuNum, params, nparams, flags);
+    return virHostCPUGetStats(cpuNum, params, nparams, flags);
 }
 
 
@@ -2805,7 +2804,7 @@ umlNodeGetMemoryStats(virConnectPtr conn,
     if (virNodeGetMemoryStatsEnsureACL(conn) < 0)
         return -1;
 
-    return nodeGetMemoryStats(NULL, cellNum, params, nparams, flags);
+    return virHostMemGetStats(cellNum, params, nparams, flags);
 }
 
 
@@ -2818,7 +2817,7 @@ umlNodeGetCellsFreeMemory(virConnectPtr conn,
     if (virNodeGetCellsFreeMemoryEnsureACL(conn) < 0)
         return -1;
 
-    return nodeGetCellsFreeMemory(freeMems, startCell, maxCells);
+    return virHostMemGetCellsFree(freeMems, startCell, maxCells);
 }
 
 
@@ -2830,7 +2829,7 @@ umlNodeGetFreeMemory(virConnectPtr conn)
     if (virNodeGetFreeMemoryEnsureACL(conn) < 0)
         return 0;
 
-    if (nodeGetMemory(NULL, &freeMem) < 0)
+    if (virHostMemGetInfo(NULL, &freeMem) < 0)
         return 0;
 
     return freeMem;
@@ -2846,7 +2845,7 @@ umlNodeGetMemoryParameters(virConnectPtr conn,
     if (virNodeGetMemoryParametersEnsureACL(conn) < 0)
         return -1;
 
-    return nodeGetMemoryParameters(params, nparams, flags);
+    return virHostMemGetParameters(params, nparams, flags);
 }
 
 
@@ -2859,7 +2858,7 @@ umlNodeSetMemoryParameters(virConnectPtr conn,
     if (virNodeSetMemoryParametersEnsureACL(conn) < 0)
         return -1;
 
-    return nodeSetMemoryParameters(params, nparams, flags);
+    return virHostMemSetParameters(params, nparams, flags);
 }
 
 
@@ -2872,7 +2871,7 @@ umlNodeGetCPUMap(virConnectPtr conn,
     if (virNodeGetCPUMapEnsureACL(conn) < 0)
         return -1;
 
-    return nodeGetCPUMap(NULL, cpumap, online, flags);
+    return virHostCPUGetMap(cpumap, online, flags);
 }
 
 
@@ -2903,7 +2902,7 @@ umlNodeGetFreePages(virConnectPtr conn,
     if (virNodeGetFreePagesEnsureACL(conn) < 0)
         return -1;
 
-    return nodeGetFreePages(npages, pages, startCell, cellCount, counts);
+    return virHostMemGetFreePages(npages, pages, startCell, cellCount, counts);
 }
 
 
@@ -2923,8 +2922,8 @@ umlNodeAllocPages(virConnectPtr conn,
     if (virNodeAllocPagesEnsureACL(conn) < 0)
         return -1;
 
-    return nodeAllocPages(npages, pageSizes, pageCounts,
-                          startCell, cellCount, add);
+    return virHostMemAllocPages(npages, pageSizes, pageCounts,
+                                startCell, cellCount, add);
 }
 
 

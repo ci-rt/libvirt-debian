@@ -34,6 +34,7 @@
 #include "datatypes.h"
 #include "domain_event.h"
 #include "network_event.h"
+#include "storage_event.h"
 #include "driver.h"
 #include "virbuffer.h"
 #include "remote_driver.h"
@@ -356,6 +357,16 @@ remoteNetworkBuildEventLifecycle(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
                                  void *evdata, void *opaque);
 
 static void
+remoteStoragePoolBuildEventLifecycle(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
+                                     virNetClientPtr client ATTRIBUTE_UNUSED,
+                                     void *evdata, void *opaque);
+
+static void
+remoteStoragePoolBuildEventRefresh(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
+                                   virNetClientPtr client ATTRIBUTE_UNUSED,
+                                   void *evdata, void *opaque);
+
+static void
 remoteConnectNotifyEventConnectionClosed(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
                                          virNetClientPtr client ATTRIBUTE_UNUSED,
                                          void *evdata, void *opaque);
@@ -534,6 +545,14 @@ static virNetClientProgramEvent remoteEvents[] = {
       remoteDomainBuildEventCallbackDeviceRemovalFailed,
       sizeof(remote_domain_event_callback_device_removal_failed_msg),
       (xdrproc_t)xdr_remote_domain_event_callback_device_removal_failed_msg },
+    { REMOTE_PROC_STORAGE_POOL_EVENT_LIFECYCLE,
+      remoteStoragePoolBuildEventLifecycle,
+      sizeof(remote_storage_pool_event_lifecycle_msg),
+      (xdrproc_t)xdr_remote_storage_pool_event_lifecycle_msg },
+    { REMOTE_PROC_STORAGE_POOL_EVENT_REFRESH,
+      remoteStoragePoolBuildEventRefresh,
+      sizeof(remote_storage_pool_event_refresh_msg),
+      (xdrproc_t)xdr_remote_storage_pool_event_refresh_msg },
 };
 
 static void
@@ -638,6 +657,7 @@ static int
 doRemoteOpen(virConnectPtr conn,
              struct private_data *priv,
              virConnectAuthPtr auth ATTRIBUTE_UNUSED,
+             virConfPtr conf,
              unsigned int flags)
 {
     char *transport_str = NULL;
@@ -652,6 +672,7 @@ doRemoteOpen(virConnectPtr conn,
 #ifndef WIN32
     char *daemonPath = NULL;
 #endif
+    char *tls_priority = NULL;
 
     /* We handle *ALL* URIs here. The caller has rejected any
      * URIs we don't care about */
@@ -774,6 +795,7 @@ doRemoteOpen(virConnectPtr conn,
             EXTRACT_URI_ARG_STR("pkipath", pkipath);
             EXTRACT_URI_ARG_STR("known_hosts", knownHosts);
             EXTRACT_URI_ARG_STR("known_hosts_verify", knownHostsVerify);
+            EXTRACT_URI_ARG_STR("tls_priority", tls_priority);
 
             EXTRACT_URI_ARG_BOOL("no_sanity", sanity);
             EXTRACT_URI_ARG_BOOL("no_verify", verify);
@@ -842,14 +864,29 @@ doRemoteOpen(virConnectPtr conn,
     /* Connect to the remote service. */
     switch (transport) {
     case trans_tls:
+        if (conf && !tls_priority) {
+            virConfValuePtr val = virConfGetValue(conf, "tls_priority");
+            if (val) {
+                if (val->type != VIR_CONF_STRING) {
+                    virReportError(VIR_ERR_INVALID_ARG, "%s",
+                                   _("Config file 'tls_priority' must be a string"));
+                    goto failed;
+                }
+                if (VIR_STRDUP(tls_priority, val->str) < 0)
+                    goto failed;
+            }
+        }
+
 #ifdef WITH_GNUTLS
         priv->tls = virNetTLSContextNewClientPath(pkipath,
                                                   geteuid() != 0 ? true : false,
+                                                  tls_priority,
                                                   sanity, verify);
         if (!priv->tls)
             goto failed;
         priv->is_secure = 1;
 #else
+        (void)tls_priority;
         (void)sanity;
         (void)verify;
         virReportError(VIR_ERR_INVALID_ARG, "%s",
@@ -1125,6 +1162,7 @@ doRemoteOpen(virConnectPtr conn,
     VIR_FREE(username);
     VIR_FREE(port);
     VIR_FREE(pkipath);
+    VIR_FREE(tls_priority);
     VIR_FREE(knownHostsVerify);
     VIR_FREE(knownHosts);
 #ifndef WIN32
@@ -1175,6 +1213,7 @@ remoteAllocPrivateData(void)
 static virDrvOpenStatus
 remoteConnectOpen(virConnectPtr conn,
                   virConnectAuthPtr auth,
+                  virConfPtr conf,
                   unsigned int flags)
 {
     struct private_data *priv;
@@ -1233,7 +1272,7 @@ remoteConnectOpen(virConnectPtr conn,
 #endif
     }
 
-    ret = doRemoteOpen(conn, priv, auth, rflags);
+    ret = doRemoteOpen(conn, priv, auth, conf, rflags);
     if (ret != VIR_DRV_OPEN_SUCCESS) {
         conn->privateData = NULL;
         remoteDriverUnlock(priv);
@@ -3020,6 +3059,101 @@ remoteConnectNetworkEventDeregisterAny(virConnectPtr conn,
     return rv;
 }
 
+static int
+remoteConnectStoragePoolEventRegisterAny(virConnectPtr conn,
+                                         virStoragePoolPtr pool,
+                                         int eventID,
+                                         virConnectStoragePoolEventGenericCallback callback,
+                                         void *opaque,
+                                         virFreeCallback freecb)
+{
+    int rv = -1;
+    struct private_data *priv = conn->privateData;
+    remote_connect_storage_pool_event_register_any_args args;
+    remote_connect_storage_pool_event_register_any_ret ret;
+    int callbackID;
+    int count;
+    remote_nonnull_storage_pool storage_pool;
+
+    remoteDriverLock(priv);
+
+    if ((count = virStoragePoolEventStateRegisterClient(conn, priv->eventState,
+                                                        pool, eventID, callback,
+                                                        opaque, freecb,
+                                                        &callbackID)) < 0)
+        goto done;
+
+    /* If this is the first callback for this eventID, we need to enable
+     * events on the server */
+    if (count == 1) {
+        args.eventID = eventID;
+        if (pool) {
+            make_nonnull_storage_pool(&storage_pool, pool);
+            args.pool = &storage_pool;
+        } else {
+            args.pool = NULL;
+        }
+
+        memset(&ret, 0, sizeof(ret));
+        if (call(conn, priv, 0, REMOTE_PROC_CONNECT_STORAGE_POOL_EVENT_REGISTER_ANY,
+                 (xdrproc_t) xdr_remote_connect_storage_pool_event_register_any_args, (char *) &args,
+                 (xdrproc_t) xdr_remote_connect_storage_pool_event_register_any_ret, (char *) &ret) == -1) {
+            virObjectEventStateDeregisterID(conn, priv->eventState,
+                                            callbackID);
+            goto done;
+        }
+
+        virObjectEventStateSetRemote(conn, priv->eventState, callbackID,
+                                     ret.callbackID);
+    }
+
+    rv = callbackID;
+
+ done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteConnectStoragePoolEventDeregisterAny(virConnectPtr conn,
+                                           int callbackID)
+{
+    struct private_data *priv = conn->privateData;
+    int rv = -1;
+    remote_connect_storage_pool_event_deregister_any_args args;
+    int eventID;
+    int remoteID;
+    int count;
+
+    remoteDriverLock(priv);
+
+    if ((eventID = virObjectEventStateEventID(conn, priv->eventState,
+                                              callbackID, &remoteID)) < 0)
+        goto done;
+
+    if ((count = virObjectEventStateDeregisterID(conn, priv->eventState,
+                                                 callbackID)) < 0)
+        goto done;
+
+    /* If that was the last callback for this eventID, we need to disable
+     * events on the server */
+    if (count == 0) {
+        args.callbackID = remoteID;
+
+        if (call(conn, priv, 0, REMOTE_PROC_CONNECT_STORAGE_POOL_EVENT_DEREGISTER_ANY,
+                 (xdrproc_t) xdr_remote_connect_storage_pool_event_deregister_any_args, (char *) &args,
+                 (xdrproc_t) xdr_void, (char *) NULL) == -1)
+            goto done;
+
+    }
+
+    rv = 0;
+
+ done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
 
 static int
 remoteConnectDomainQemuMonitorEventRegister(virConnectPtr conn,
@@ -3684,8 +3818,6 @@ remoteAuthSASL(virConnectPtr conn, struct private_data *priv,
     sasl_callback_t *saslcb = NULL;
     int ret = -1;
     const char *mechlist;
-    char *localAddr = NULL;
-    char *remoteAddr = NULL;
     virNetSASLContextPtr saslCtxt;
     virNetSASLSessionPtr sasl = NULL;
     struct remoteAuthInteractState state;
@@ -3704,15 +3836,12 @@ remoteAuthSASL(virConnectPtr conn, struct private_data *priv,
         saslcb = NULL;
     }
 
-    localAddr = virNetClientLocalAddrFormatSASL(priv->client);
-    remoteAddr = virNetClientRemoteAddrFormatSASL(priv->client);
-
     /* Setup a handle for being a client */
     if (!(sasl = virNetSASLSessionNewClient(saslCtxt,
                                             "libvirt",
                                             priv->hostname,
-                                            virNetClientLocalAddrString(priv->client),
-                                            virNetClientRemoteAddrString(priv->client),
+                                            virNetClientLocalAddrStringSASL(priv->client),
+                                            virNetClientRemoteAddrStringSASL(priv->client),
                                             saslcb)))
         goto cleanup;
     /* saslcb is now owned by sasl */
@@ -3894,8 +4023,6 @@ remoteAuthSASL(virConnectPtr conn, struct private_data *priv,
 
  cleanup:
     VIR_FREE(serverin);
-    VIR_FREE(localAddr);
-    VIR_FREE(remoteAddr);
 
     remoteAuthInteractStateClear(&state, true);
     VIR_FREE(saslcb);
@@ -4993,6 +5120,48 @@ remoteNetworkBuildEventLifecycle(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
     remoteEventQueue(priv, event, msg->callbackID);
 }
 
+static void
+remoteStoragePoolBuildEventLifecycle(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
+                                     virNetClientPtr client ATTRIBUTE_UNUSED,
+                                     void *evdata, void *opaque)
+{
+    virConnectPtr conn = opaque;
+    struct private_data *priv = conn->privateData;
+    remote_storage_pool_event_lifecycle_msg *msg = evdata;
+    virStoragePoolPtr pool;
+    virObjectEventPtr event = NULL;
+
+    pool = get_nonnull_storage_pool(conn, msg->pool);
+    if (!pool)
+        return;
+
+    event = virStoragePoolEventLifecycleNew(pool->name, pool->uuid, msg->event,
+                                            msg->detail);
+    virObjectUnref(pool);
+
+    remoteEventQueue(priv, event, msg->callbackID);
+}
+
+static void
+remoteStoragePoolBuildEventRefresh(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
+                                   virNetClientPtr client ATTRIBUTE_UNUSED,
+                                   void *evdata, void *opaque)
+{
+    virConnectPtr conn = opaque;
+    struct private_data *priv = conn->privateData;
+    remote_storage_pool_event_refresh_msg *msg = evdata;
+    virStoragePoolPtr pool;
+    virObjectEventPtr event = NULL;
+
+    pool = get_nonnull_storage_pool(conn, msg->pool);
+    if (!pool)
+        return;
+
+    event = virStoragePoolEventRefreshNew(pool->name, pool->uuid);
+    virObjectUnref(pool);
+
+    remoteEventQueue(priv, event, msg->callbackID);
+}
 
 static void
 remoteDomainBuildQemuMonitorEvent(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
@@ -7835,6 +8004,8 @@ static virHypervisorDriver hypervisor_driver = {
     .connectRegisterCloseCallback = remoteConnectRegisterCloseCallback, /* 1.3.2 */
     .connectUnregisterCloseCallback = remoteConnectUnregisterCloseCallback, /* 1.3.2 */
     .domainMigrateStartPostCopy = remoteDomainMigrateStartPostCopy, /* 1.3.3 */
+    .domainGetGuestVcpus = remoteDomainGetGuestVcpus, /* 2.0.0 */
+    .domainSetGuestVcpus = remoteDomainSetGuestVcpus, /* 2.0.0 */
 };
 
 static virNetworkDriver network_driver = {
@@ -7888,6 +8059,8 @@ static virStorageDriver storage_driver = {
     .connectListDefinedStoragePools = remoteConnectListDefinedStoragePools, /* 0.4.1 */
     .connectListAllStoragePools = remoteConnectListAllStoragePools, /* 0.10.2 */
     .connectFindStoragePoolSources = remoteConnectFindStoragePoolSources, /* 0.4.5 */
+    .connectStoragePoolEventDeregisterAny = remoteConnectStoragePoolEventDeregisterAny, /* 2.0.0 */
+    .connectStoragePoolEventRegisterAny = remoteConnectStoragePoolEventRegisterAny, /* 2.0.0 */
     .storagePoolLookupByName = remoteStoragePoolLookupByName, /* 0.4.1 */
     .storagePoolLookupByUUID = remoteStoragePoolLookupByUUID, /* 0.4.1 */
     .storagePoolLookupByVolume = remoteStoragePoolLookupByVolume, /* 0.4.1 */

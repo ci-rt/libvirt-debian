@@ -57,6 +57,7 @@
 #include "virtypedparam.h"
 #include "virxml.h"
 #include "virsh-nodedev.h"
+#include "viruri.h"
 
 /* Gnulib doesn't guarantee SA_SIGINFO support.  */
 #ifndef SA_SIGINFO
@@ -5758,6 +5759,7 @@ cmdDomjobinfo(vshControl *ctl, const vshCmd *cmd)
     int nparams = 0;
     unsigned long long value;
     unsigned int flags = 0;
+    int ivalue;
     int rc;
 
     if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
@@ -5991,6 +5993,14 @@ cmdDomjobinfo(vshControl *ctl, const vshCmd *cmd)
         goto save_error;
     } else if (rc) {
         vshPrint(ctl, "%-17s %-13llu\n", _("Compression overflows:"), value);
+    }
+
+    if ((rc = virTypedParamsGetInt(params, nparams,
+                                   VIR_DOMAIN_JOB_AUTO_CONVERGE_THROTTLE,
+                                   &ivalue)) < 0) {
+        goto save_error;
+    } else if (rc) {
+        vshPrint(ctl, "%-17s %-13d\n", _("Auto converge throttle:"), ivalue);
     }
 
     ret = true;
@@ -6475,7 +6485,7 @@ virshParseCPUList(vshControl *ctl, int *cpumaplen,
             return NULL;
         virBitmapSetAll(map);
     } else {
-        if ((virBitmapParse(cpulist, '\0', &map, 1024) < 0) ||
+        if (virBitmapParse(cpulist, &map, 1024) < 0 ||
             virBitmapIsAllClear(map)) {
             vshError(ctl, _("Invalid cpulist '%s'"), cpulist);
             goto cleanup;
@@ -6760,6 +6770,93 @@ cmdSetvcpus(vshControl *ctl, const vshCmd *cmd)
     virDomainFree(dom);
     return ret;
 }
+
+
+/*
+ * "guestvcpus" command
+ */
+static const vshCmdInfo info_guestvcpus[] = {
+    {.name = "help",
+     .data = N_("query or modify state of vcpu in the guest (via agent)")
+    },
+    {.name = "desc",
+     .data = N_("Use the guest agent to query or set cpu state from guest's "
+                "point of view")
+    },
+    {.name = NULL}
+};
+
+static const vshCmdOptDef opts_guestvcpus[] = {
+    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    {.name = "cpulist",
+     .type = VSH_OT_STRING,
+     .help = N_("list of cpus to enable or disable")
+    },
+    {.name = "enable",
+     .type = VSH_OT_BOOL,
+     .help = N_("enable cpus specified by cpulist")
+    },
+    {.name = "disable",
+     .type = VSH_OT_BOOL,
+     .help = N_("disable cpus specified by cpulist")
+    },
+    {.name = NULL}
+};
+
+static bool
+cmdGuestvcpus(vshControl *ctl, const vshCmd *cmd)
+{
+    virDomainPtr dom;
+    bool enable = vshCommandOptBool(cmd, "enable");
+    bool disable = vshCommandOptBool(cmd, "disable");
+    virTypedParameterPtr params = NULL;
+    unsigned int nparams = 0;
+    const char *cpulist = NULL;
+    int state = 0;
+    size_t i;
+    bool ret = false;
+
+    VSH_EXCLUSIVE_OPTIONS_VAR(enable, disable);
+    VSH_REQUIRE_OPTION("enable", "cpulist");
+    VSH_REQUIRE_OPTION("disable", "cpulist");
+
+    if (vshCommandOptStringReq(ctl, cmd, "cpulist", &cpulist))
+        return false;
+
+    if (cpulist && !(enable | disable)) {
+        vshError(ctl, _("One of options --enable or --disable is required by "
+                        "option --cpulist"));
+        return false;
+    }
+
+    if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
+        return false;
+
+    if (enable)
+        state = 1;
+
+    if (cpulist) {
+        if (virDomainSetGuestVcpus(dom, cpulist, state, 0) < 0)
+            goto cleanup;
+    } else {
+        if (virDomainGetGuestVcpus(dom, &params, &nparams, 0) < 0)
+            goto cleanup;
+
+        for (i = 0; i < nparams; i++) {
+            char *str = vshGetTypedParamValue(ctl, &params[i]);
+            vshPrint(ctl, "%-15s: %s\n", params[i].field, str);
+            VIR_FREE(str);
+        }
+    }
+
+    ret = true;
+
+ cleanup:
+    virTypedParamsFree(params, nparams);
+    virDomainFree(dom);
+    return ret;
+}
+
 
 /*
  * "iothreadinfo" command
@@ -9333,6 +9430,9 @@ cmdLxcEnterNamespace(vshControl *ctl, const vshCmd *cmd)
                                            0) < 0)
             _exit(EXIT_CANCELED);
 
+        if (virDomainLxcEnterCGroup(dom, 0) < 0)
+            _exit(EXIT_CANCELED);
+
         if (virDomainLxcEnterNamespace(dom,
                                        nfdlist,
                                        fdlist,
@@ -9788,26 +9888,6 @@ static const vshCmdOptDef opts_migrate[] = {
      .type = VSH_OT_BOOL,
      .help = N_("compress repeated pages during live migration")
     },
-    {.name = "comp-methods",
-     .type = VSH_OT_STRING,
-     .help = N_("comma separated list of compression methods to be used")
-    },
-    {.name = "comp-mt-level",
-     .type = VSH_OT_INT,
-     .help = N_("compress level for multithread compression")
-    },
-    {.name = "comp-mt-threads",
-     .type = VSH_OT_INT,
-     .help = N_("number of compression threads for multithread compression")
-    },
-    {.name = "comp-mt-dthreads",
-     .type = VSH_OT_INT,
-     .help = N_("number of decompression threads for multithread compression")
-    },
-    {.name = "comp-xbzrle-cache",
-     .type = VSH_OT_INT,
-     .help = N_("page cache size for xbzrle compression")
-    },
     {.name = "auto-converge",
      .type = VSH_OT_BOOL,
      .help = N_("force convergence during live migration")
@@ -9868,6 +9948,34 @@ static const vshCmdOptDef opts_migrate[] = {
     {.name = "disks-port",
      .type = VSH_OT_INT,
      .help = N_("port to use by target server for incoming disks migration")
+    },
+    {.name = "comp-methods",
+     .type = VSH_OT_STRING,
+     .help = N_("comma separated list of compression methods to be used")
+    },
+    {.name = "comp-mt-level",
+     .type = VSH_OT_INT,
+     .help = N_("compress level for multithread compression")
+    },
+    {.name = "comp-mt-threads",
+     .type = VSH_OT_INT,
+     .help = N_("number of compression threads for multithread compression")
+    },
+    {.name = "comp-mt-dthreads",
+     .type = VSH_OT_INT,
+     .help = N_("number of decompression threads for multithread compression")
+    },
+    {.name = "comp-xbzrle-cache",
+     .type = VSH_OT_INT,
+     .help = N_("page cache size for xbzrle compression")
+    },
+    {.name = "auto-converge-initial",
+     .type = VSH_OT_INT,
+     .help = N_("initial CPU throttling rate for auto-convergence")
+    },
+    {.name = "auto-converge-increment",
+     .type = VSH_OT_INT,
+     .help = N_("CPU throttling rate increment for auto-convergence")
     },
     {.name = NULL}
 };
@@ -10027,6 +10135,24 @@ doMigrate(void *opaque)
             goto save_error;
         }
         VIR_FREE(xml);
+    }
+
+    if ((rv = vshCommandOptInt(ctl, cmd, "auto-converge-initial", &intOpt)) < 0) {
+        goto out;
+    } else if (rv > 0) {
+        if (virTypedParamsAddInt(&params, &nparams, &maxparams,
+                                 VIR_MIGRATE_PARAM_AUTO_CONVERGE_INITIAL,
+                                 intOpt) < 0)
+            goto save_error;
+    }
+
+    if ((rv = vshCommandOptInt(ctl, cmd, "auto-converge-increment", &intOpt)) < 0) {
+        goto out;
+    } else if (rv > 0) {
+        if (virTypedParamsAddInt(&params, &nparams, &maxparams,
+                                 VIR_MIGRATE_PARAM_AUTO_CONVERGE_INCREMENT,
+                                 intOpt) < 0)
+            goto save_error;
     }
 
     if (vshCommandOptBool(cmd, "live"))
@@ -10617,6 +10743,32 @@ cmdDomDisplay(vshControl *ctl, const vshCmd *cmd)
             VIR_FREE(xpath);
         }
 
+        /* If listen_addr is 0.0.0.0 or [::] we should try to parse URI and set
+         * listen_addr based on current URI. */
+        if (listen_addr) {
+            if (virSocketAddrParse(&addr, listen_addr, AF_UNSPEC) > 0 &&
+                virSocketAddrIsWildcard(&addr)) {
+
+                virConnectPtr conn = ((virshControlPtr)(ctl->privData))->conn;
+                char *uriStr = virConnectGetURI(conn);
+                virURIPtr uri = NULL;
+
+                if (uriStr) {
+                    uri = virURIParse(uriStr);
+                    VIR_FREE(uriStr);
+                }
+
+                /* It's safe to free the listen_addr even if parsing of URI
+                 * fails, if there is no listen_addr we will print "localhost". */
+                VIR_FREE(listen_addr);
+
+                if (uri) {
+                    listen_addr = vshStrdup(ctl, uri->server);
+                    virURIFree(uri);
+                }
+            }
+        }
+
         /* We can query this info for all the graphics types since we'll
          * get nothing for the unsupported ones (just rdp for now).
          * Also the parameter '--include-password' was already taken
@@ -10638,9 +10790,7 @@ cmdDomDisplay(vshControl *ctl, const vshCmd *cmd)
             virBufferAsprintf(&buf, ":%s@", passwd);
 
         /* Then host name or IP */
-        if (!listen_addr ||
-            (virSocketAddrParse(&addr, listen_addr, AF_UNSPEC) > 0 &&
-             virSocketAddrIsWildcard(&addr)))
+        if (!listen_addr)
             virBufferAddLit(&buf, "localhost");
         else if (strchr(listen_addr, ':'))
             virBufferAsprintf(&buf, "[%s]", listen_addr);
@@ -13572,6 +13722,12 @@ const vshCmdDef domManagementCmds[] = {
      .handler = cmdVNCDisplay,
      .opts = opts_vncdisplay,
      .info = info_vncdisplay,
+     .flags = 0
+    },
+    {.name = "guestvcpus",
+     .handler = cmdGuestvcpus,
+     .opts = opts_guestvcpus,
+     .info = info_guestvcpus,
      .flags = 0
     },
     {.name = NULL}

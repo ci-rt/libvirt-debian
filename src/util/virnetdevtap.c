@@ -95,16 +95,12 @@ virNetDevTapGetRealDeviceName(char *ifname ATTRIBUTE_UNUSED)
 #ifdef TAPGIFNAME
     char *ret = NULL;
     struct dirent *dp;
+    DIR *dirp = NULL;
     char *devpath = NULL;
     int fd;
 
-    DIR *dirp = opendir("/dev");
-    if (dirp == NULL) {
-        virReportSystemError(errno,
-                             _("Failed to opendir path '%s'"),
-                             "/dev");
+    if (virDirOpen(&dirp, "/dev") < 0)
         return NULL;
-    }
 
     while (virDirRead(dirp, &dp, "/dev") > 0) {
         if (STRPREFIX(dp->d_name, "tap")) {
@@ -144,7 +140,7 @@ virNetDevTapGetRealDeviceName(char *ifname ATTRIBUTE_UNUSED)
  cleanup:
     VIR_FREE(devpath);
     VIR_FORCE_CLOSE(fd);
-    closedir(dirp);
+    VIR_DIR_CLOSE(dirp);
     return ret;
 #else
     return NULL;

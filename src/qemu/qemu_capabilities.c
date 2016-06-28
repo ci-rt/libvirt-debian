@@ -38,6 +38,7 @@
 #include "virbitmap.h"
 #include "virnodesuspend.h"
 #include "virnuma.h"
+#include "virhostcpu.h"
 #include "qemu_monitor.h"
 #include "virstring.h"
 #include "qemu_hostdev.h"
@@ -329,6 +330,13 @@ VIR_ENUM_IMPL(virQEMUCaps, QEMU_CAPS_LAST,
               "nec-usb-xhci-ports",
               "virtio-scsi-pci.iothread",
               "name-guest",
+
+              "qxl.max_outputs", /* 225 */
+              "qxl-vga.max_outputs",
+              "spice-unix",
+              "drive-detect-zeroes",
+
+              "tls-creds-x509", /* 230 */
     );
 
 
@@ -1009,7 +1017,7 @@ virQEMUCapsInitCPU(virCapsPtr caps,
 
     cpu->arch = arch;
 
-    if (nodeGetInfo(NULL, &nodeinfo))
+    if (nodeGetInfo(&nodeinfo))
         goto error;
 
     cpu->type = VIR_CPU_TYPE_HOST;
@@ -1072,7 +1080,7 @@ virCapsPtr virQEMUCapsInit(virQEMUCapsCachePtr cache)
      * unexpected failures. We don't want to break the QEMU
      * driver in this scenario, so log errors & carry on
      */
-    if (nodeCapsInitNUMA(NULL, caps) < 0) {
+    if (nodeCapsInitNUMA(caps) < 0) {
         virCapabilitiesFreeNUMAInfo(caps);
         VIR_WARN("Failed to query host NUMA topology, disabling NUMA capabilities");
     }
@@ -1556,6 +1564,7 @@ struct virQEMUCapsStringFlags virQEMUCapsObjectTypes[] = {
     { "secret", QEMU_CAPS_OBJECT_SECRET },
     { "pxb", QEMU_CAPS_DEVICE_PXB },
     { "pxb-pcie", QEMU_CAPS_DEVICE_PXB_PCIE },
+    { "tls-creds-x509", QEMU_CAPS_OBJECT_TLS_CREDS_X509 },
 };
 
 static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsVirtioBalloon[] = {
@@ -1643,11 +1652,13 @@ static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsVmwareSvga[] = {
 static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsQxl[] = {
     { "vgamem_mb", QEMU_CAPS_QXL_VGAMEM },
     { "vram64_size_mb", QEMU_CAPS_QXL_VRAM64 },
+    { "max_outputs", QEMU_CAPS_QXL_MAX_OUTPUTS },
 };
 
 static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsQxlVga[] = {
     { "vgamem_mb", QEMU_CAPS_QXL_VGA_VGAMEM },
     { "vram64_size_mb", QEMU_CAPS_QXL_VGA_VRAM64 },
+    { "max_outputs", QEMU_CAPS_QXL_VGA_MAX_OUTPUTS },
 };
 
 static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsVirtioGpu[] = {
@@ -2164,13 +2175,11 @@ bool virQEMUCapsHasPCIMultiBus(virQEMUCapsPtr qemuCaps,
         return false;
     }
 
-    if (ARCH_IS_ARM(def->os.arch)) {
-        /* If 'virt' supports PCI, it supports multibus.
-         * No extra conditions here for simplicity.
-         */
-        if (qemuDomainMachineIsVirt(def))
-            return true;
-    }
+    /* If 'virt' supports PCI, it supports multibus.
+     * No extra conditions here for simplicity.
+     */
+    if (qemuDomainMachineIsVirt(def))
+        return true;
 
     return false;
 }
@@ -2644,6 +2653,7 @@ static struct virQEMUCapsCommandLineProps virQEMUCapsCommandLine[] = {
     { "machine", "mem-merge", QEMU_CAPS_MEM_MERGE },
     { "machine", "vmport", QEMU_CAPS_MACHINE_VMPORT_OPT },
     { "drive", "discard", QEMU_CAPS_DRIVE_DISCARD },
+    { "drive", "detect-zeroes", QEMU_CAPS_DRIVE_DETECT_ZEROES },
     { "realtime", "mlock", QEMU_CAPS_MLOCK },
     { "boot-opts", "strict", QEMU_CAPS_BOOT_STRICT },
     { "boot-opts", "reboot-timeout", QEMU_CAPS_REBOOT_TIMEOUT },
@@ -2659,6 +2669,7 @@ static struct virQEMUCapsCommandLineProps virQEMUCapsCommandLine[] = {
     { "chardev", "logfile", QEMU_CAPS_CHARDEV_LOGFILE },
     { "name", "debug-threads", QEMU_CAPS_NAME_DEBUG_THREADS },
     { "name", "guest", QEMU_CAPS_NAME_GUEST },
+    { "spice", "unix", QEMU_CAPS_SPICE_UNIX },
 };
 
 static int
@@ -3789,7 +3800,7 @@ virQEMUCapsNewForBinaryInternal(const char *binary,
     return NULL;
 }
 
-virQEMUCapsPtr
+static virQEMUCapsPtr
 virQEMUCapsNewForBinary(const char *binary,
                         const char *libDir,
                         const char *cacheDir,
@@ -4064,18 +4075,18 @@ virQEMUCapsGetDefaultMachine(virQEMUCapsPtr qemuCaps)
 
 static int
 virQEMUCapsFillDomainLoaderCaps(virDomainCapsLoaderPtr capsLoader,
-                                char **loader,
-                                size_t nloader)
+                                virFirmwarePtr *firmwares,
+                                size_t nfirmwares)
 {
     size_t i;
 
     capsLoader->supported = true;
 
-    if (VIR_ALLOC_N(capsLoader->values.values, nloader) < 0)
+    if (VIR_ALLOC_N(capsLoader->values.values, nfirmwares) < 0)
         return -1;
 
-    for (i = 0; i < nloader; i++) {
-        const char *filename = loader[i];
+    for (i = 0; i < nfirmwares; i++) {
+        const char *filename = firmwares[i]->name;
 
         if (!virFileExists(filename)) {
             VIR_DEBUG("loader filename=%s does not exist", filename);
@@ -4104,13 +4115,13 @@ virQEMUCapsFillDomainLoaderCaps(virDomainCapsLoaderPtr capsLoader,
 
 static int
 virQEMUCapsFillDomainOSCaps(virDomainCapsOSPtr os,
-                            char **loader,
-                            size_t nloader)
+                            virFirmwarePtr *firmwares,
+                            size_t nfirmwares)
 {
     virDomainCapsLoaderPtr capsLoader = &os->loader;
 
     os->supported = true;
-    if (virQEMUCapsFillDomainLoaderCaps(capsLoader, loader, nloader) < 0)
+    if (virQEMUCapsFillDomainLoaderCaps(capsLoader, firmwares, nfirmwares) < 0)
         return -1;
     return 0;
 }
@@ -4129,7 +4140,8 @@ virQEMUCapsFillDomainDeviceDiskCaps(virQEMUCapsPtr qemuCaps,
                              VIR_DOMAIN_DISK_DEVICE_LUN);
 
     /* PowerPC pseries based VMs do not support floppy device */
-    if (!(ARCH_IS_PPC64(qemuCaps->arch) && STRPREFIX(machine, "pseries")))
+    if (!ARCH_IS_PPC64(qemuCaps->arch) ||
+        (STRNEQ(machine, "pseries") && !STRPREFIX(machine, "pseries-")))
         VIR_DOMAIN_CAPS_ENUM_SET(disk->diskDevice, VIR_DOMAIN_DISK_DEVICE_FLOPPY);
 
     VIR_DOMAIN_CAPS_ENUM_SET(disk->bus,
@@ -4139,7 +4151,8 @@ virQEMUCapsFillDomainDeviceDiskCaps(virQEMUCapsPtr qemuCaps,
                              /* VIR_DOMAIN_DISK_BUS_SD */);
 
     /* PowerPC pseries based VMs do not support floppy device */
-    if (!(ARCH_IS_PPC64(qemuCaps->arch) && STRPREFIX(machine, "pseries")))
+    if (!ARCH_IS_PPC64(qemuCaps->arch) ||
+        (STRNEQ(machine, "pseries") && !STRPREFIX(machine, "pseries-")))
         VIR_DOMAIN_CAPS_ENUM_SET(disk->bus, VIR_DOMAIN_DISK_BUS_FDC);
 
     if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_USB_STORAGE))
@@ -4323,19 +4336,25 @@ virQEMUCapsFillDomainFeatureGICCaps(virQEMUCapsPtr qemuCaps,
 int
 virQEMUCapsFillDomainCaps(virDomainCapsPtr domCaps,
                           virQEMUCapsPtr qemuCaps,
-                          char **loader,
-                          size_t nloader)
+                          virFirmwarePtr *firmwares,
+                          size_t nfirmwares,
+                          virDomainVirtType virttype)
 {
     virDomainCapsOSPtr os = &domCaps->os;
     virDomainCapsDeviceDiskPtr disk = &domCaps->disk;
     virDomainCapsDeviceHostdevPtr hostdev = &domCaps->hostdev;
     virDomainCapsDeviceGraphicsPtr graphics = &domCaps->graphics;
     virDomainCapsDeviceVideoPtr video = &domCaps->video;
-    int maxvcpus = virQEMUCapsGetMachineMaxCpus(qemuCaps, domCaps->machine);
 
-    domCaps->maxvcpus = maxvcpus;
+    domCaps->maxvcpus = virQEMUCapsGetMachineMaxCpus(qemuCaps,
+                                                     domCaps->machine);
+    if (virttype == VIR_DOMAIN_VIRT_KVM) {
+        int hostmaxvcpus = virHostCPUGetKVMMaxVCPUs();
+        if (hostmaxvcpus >= 0)
+            domCaps->maxvcpus = MIN(domCaps->maxvcpus, hostmaxvcpus);
+    }
 
-    if (virQEMUCapsFillDomainOSCaps(os, loader, nloader) < 0 ||
+    if (virQEMUCapsFillDomainOSCaps(os, firmwares, nfirmwares) < 0 ||
         virQEMUCapsFillDomainDeviceDiskCaps(qemuCaps,
                                             domCaps->machine, disk) < 0 ||
         virQEMUCapsFillDomainDeviceGraphicsCaps(qemuCaps, graphics) < 0 ||

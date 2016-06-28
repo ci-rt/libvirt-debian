@@ -160,6 +160,7 @@
      <exports symbol='VIR_DOMAIN_CPU_STATS_USERTIME' type='macro'/>
      <exports symbol='VIR_DOMAIN_CPU_STATS_VCPUTIME' type='macro'/>
      <exports symbol='VIR_DOMAIN_EVENT_CALLBACK' type='macro'/>
+     <exports symbol='VIR_DOMAIN_JOB_AUTO_CONVERGE_THROTTLE' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_COMPRESSION_BYTES' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_COMPRESSION_CACHE' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_COMPRESSION_CACHE_MISSES' type='macro'/>
@@ -234,6 +235,8 @@
      <exports symbol='VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA' type='macro'/>
      <exports symbol='VIR_GET_CPUMAP' type='macro'/>
+     <exports symbol='VIR_MIGRATE_PARAM_AUTO_CONVERGE_INCREMENT' type='macro'/>
+     <exports symbol='VIR_MIGRATE_PARAM_AUTO_CONVERGE_INITIAL' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_BANDWIDTH' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_COMPRESSION' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_COMPRESSION_MT_DTHREADS' type='macro'/>
@@ -931,6 +934,7 @@
      <exports symbol='virDomainGetDiskErrors' type='function'/>
      <exports symbol='virDomainGetEmulatorPinInfo' type='function'/>
      <exports symbol='virDomainGetFSInfo' type='function'/>
+     <exports symbol='virDomainGetGuestVcpus' type='function'/>
      <exports symbol='virDomainGetHostname' type='function'/>
      <exports symbol='virDomainGetID' type='function'/>
      <exports symbol='virDomainGetIOThreadInfo' type='function'/>
@@ -1016,6 +1020,7 @@
      <exports symbol='virDomainSetAutostart' type='function'/>
      <exports symbol='virDomainSetBlkioParameters' type='function'/>
      <exports symbol='virDomainSetBlockIoTune' type='function'/>
+     <exports symbol='virDomainSetGuestVcpus' type='function'/>
      <exports symbol='virDomainSetInterfaceParameters' type='function'/>
      <exports symbol='virDomainSetMaxMemory' type='function'/>
      <exports symbol='virDomainSetMemory' type='function'/>
@@ -1421,6 +1426,7 @@
      <summary>APIs for management of storage pools and volumes</summary>
      <description>Provides APIs for the management of storage pools and volumes</description>
      <author>Daniel Veillard &lt;veillard@redhat.com&gt;  Copyright (C) 2006-2016 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </author>
+     <exports symbol='VIR_STORAGE_POOL_EVENT_CALLBACK' type='macro'/>
      <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_ACTIVE' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_AUTOSTART' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_DIR' type='enum'/>
@@ -1452,6 +1458,14 @@
      <exports symbol='VIR_STORAGE_POOL_DEGRADED' type='enum'/>
      <exports symbol='VIR_STORAGE_POOL_DELETE_NORMAL' type='enum'/>
      <exports symbol='VIR_STORAGE_POOL_DELETE_ZEROED' type='enum'/>
+     <exports symbol='VIR_STORAGE_POOL_EVENT_DEFINED' type='enum'/>
+     <exports symbol='VIR_STORAGE_POOL_EVENT_ID_LAST' type='enum'/>
+     <exports symbol='VIR_STORAGE_POOL_EVENT_ID_LIFECYCLE' type='enum'/>
+     <exports symbol='VIR_STORAGE_POOL_EVENT_ID_REFRESH' type='enum'/>
+     <exports symbol='VIR_STORAGE_POOL_EVENT_LAST' type='enum'/>
+     <exports symbol='VIR_STORAGE_POOL_EVENT_STARTED' type='enum'/>
+     <exports symbol='VIR_STORAGE_POOL_EVENT_STOPPED' type='enum'/>
+     <exports symbol='VIR_STORAGE_POOL_EVENT_UNDEFINED' type='enum'/>
      <exports symbol='VIR_STORAGE_POOL_INACCESSIBLE' type='enum'/>
      <exports symbol='VIR_STORAGE_POOL_INACTIVE' type='enum'/>
      <exports symbol='VIR_STORAGE_POOL_RUNNING' type='enum'/>
@@ -1488,6 +1502,8 @@
      <exports symbol='virStoragePoolBuildFlags' type='typedef'/>
      <exports symbol='virStoragePoolCreateFlags' type='typedef'/>
      <exports symbol='virStoragePoolDeleteFlags' type='typedef'/>
+     <exports symbol='virStoragePoolEventID' type='typedef'/>
+     <exports symbol='virStoragePoolEventLifecycleType' type='typedef'/>
      <exports symbol='virStoragePoolInfo' type='typedef'/>
      <exports symbol='virStoragePoolInfoPtr' type='typedef'/>
      <exports symbol='virStoragePoolPtr' type='typedef'/>
@@ -1510,6 +1526,10 @@
      <exports symbol='virConnectListStoragePools' type='function'/>
      <exports symbol='virConnectNumOfDefinedStoragePools' type='function'/>
      <exports symbol='virConnectNumOfStoragePools' type='function'/>
+     <exports symbol='virConnectStoragePoolEventDeregisterAny' type='function'/>
+     <exports symbol='virConnectStoragePoolEventGenericCallback' type='function'/>
+     <exports symbol='virConnectStoragePoolEventLifecycleCallback' type='function'/>
+     <exports symbol='virConnectStoragePoolEventRegisterAny' type='function'/>
      <exports symbol='virStoragePoolBuild' type='function'/>
      <exports symbol='virStoragePoolCreate' type='function'/>
      <exports symbol='virStoragePoolCreateXML' type='function'/>
@@ -1945,6 +1965,9 @@
     <macro name='VIR_DOMAIN_EVENT_CALLBACK' file='libvirt-domain'>
       <info><![CDATA[Used to cast the event specific callback into the generic one for use for virConnectDomainEventRegisterAny()]]></info>
     </macro>
+    <macro name='VIR_DOMAIN_JOB_AUTO_CONVERGE_THROTTLE' file='libvirt-domain' string='auto_converge_throttle'>
+      <info><![CDATA[virDomainGetJobStats field: current percentage guest CPUs are throttled to when auto-convergence decided migration was not converging, as VIR_TYPED_PARAM_INT.]]></info>
+    </macro>
     <macro name='VIR_DOMAIN_JOB_COMPRESSION_BYTES' file='libvirt-domain' string='compression_bytes'>
       <info><![CDATA[virDomainGetJobStats field: number of compressed bytes transferred since the beginning of migration, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
@@ -2170,6 +2193,12 @@
       <arg name='maplen' info='the length (in bytes) of one cpumap'/>
       <arg name='vcpu' info='the virtual CPU number'/>
     </macro>
+    <macro name='VIR_MIGRATE_PARAM_AUTO_CONVERGE_INCREMENT' file='libvirt-domain' string='auto_converge.increment'>
+      <info><![CDATA[virDomainMigrate* params field: the increment added to VIR_MIGRATE_PARAM_AUTO_CONVERGE_INITIAL whenever the hypervisor decides the current rate is not enough to ensure convergence of the migration. As VIR_TYPED_PARAM_INT.]]></info>
+    </macro>
+    <macro name='VIR_MIGRATE_PARAM_AUTO_CONVERGE_INITIAL' file='libvirt-domain' string='auto_converge.initial'>
+      <info><![CDATA[virDomainMigrate* params field: the initial percentage guest CPUs are throttled to when auto-convergence decides migration is not converging. As VIR_TYPED_PARAM_INT.]]></info>
+    </macro>
     <macro name='VIR_MIGRATE_PARAM_BANDWIDTH' file='libvirt-domain' string='bandwidth'>
       <info><![CDATA[virDomainMigrate* params field: the maximum bandwidth (in MiB/s) that will be used for migration as VIR_TYPED_PARAM_ULLONG. If set to 0 or omitted, libvirt will choose a suitable default. Some hypervisors do not support this feature and will return an error if this field is used and is not 0.]]></info>
     </macro>
@@ -2296,6 +2325,9 @@
     </macro>
     <macro name='VIR_SECURITY_MODEL_BUFLEN' file='libvirt-host'>
       <info><![CDATA[Macro providing the maximum length of the virSecurityModel model string.]]></info>
+    </macro>
+    <macro name='VIR_STORAGE_POOL_EVENT_CALLBACK' file='libvirt-storage'>
+      <info><![CDATA[Used to cast the event specific callback into the generic one for use for virConnectStoragePoolEventRegisterAny()]]></info>
     </macro>
     <macro name='VIR_TYPED_PARAM_FIELD_LENGTH' file='libvirt-common'>
       <info><![CDATA[Macro providing the field length of virTypedParameter name]]></info>
@@ -3230,6 +3262,16 @@ used to free allocated pages.'/>
     <enum name='VIR_STORAGE_POOL_DEGRADED' file='libvirt-storage' value='3' type='virStoragePoolState' info='Running degraded'/>
     <enum name='VIR_STORAGE_POOL_DELETE_NORMAL' file='libvirt-storage' value='0' type='virStoragePoolDeleteFlags' info='Delete metadata only    (fast)'/>
     <enum name='VIR_STORAGE_POOL_DELETE_ZEROED' file='libvirt-storage' value='1' type='virStoragePoolDeleteFlags' info='Clear all data to zeros (slow)'/>
+    <enum name='VIR_STORAGE_POOL_EVENT_DEFINED' file='libvirt-storage' value='0' type='virStoragePoolEventLifecycleType'/>
+    <enum name='VIR_STORAGE_POOL_EVENT_ID_LAST' file='libvirt-storage' value='2' type='virStoragePoolEventID' info='NB: this enum value will increase over time as new events are
+ added to the libvirt API. It reflects the last event ID supported
+ by this version of the libvirt API.'/>
+    <enum name='VIR_STORAGE_POOL_EVENT_ID_LIFECYCLE' file='libvirt-storage' value='0' type='virStoragePoolEventID' info='virConnectStoragePoolEventLifecycleCallback'/>
+    <enum name='VIR_STORAGE_POOL_EVENT_ID_REFRESH' file='libvirt-storage' value='1' type='virStoragePoolEventID' info='virConnectStoragePoolEventGenericCallback'/>
+    <enum name='VIR_STORAGE_POOL_EVENT_LAST' file='libvirt-storage' value='4' type='virStoragePoolEventLifecycleType'/>
+    <enum name='VIR_STORAGE_POOL_EVENT_STARTED' file='libvirt-storage' value='2' type='virStoragePoolEventLifecycleType'/>
+    <enum name='VIR_STORAGE_POOL_EVENT_STOPPED' file='libvirt-storage' value='3' type='virStoragePoolEventLifecycleType'/>
+    <enum name='VIR_STORAGE_POOL_EVENT_UNDEFINED' file='libvirt-storage' value='1' type='virStoragePoolEventLifecycleType'/>
     <enum name='VIR_STORAGE_POOL_INACCESSIBLE' file='libvirt-storage' value='4' type='virStoragePoolState' info='Running, but not accessible'/>
     <enum name='VIR_STORAGE_POOL_INACTIVE' file='libvirt-storage' value='0' type='virStoragePoolState' info='Not running'/>
     <enum name='VIR_STORAGE_POOL_RUNNING' file='libvirt-storage' value='2' type='virStoragePoolState' info='Running normally'/>
@@ -3736,6 +3778,8 @@ unusual numa topology'/>
     <typedef name='virStoragePoolBuildFlags' file='libvirt-storage' type='enum'/>
     <typedef name='virStoragePoolCreateFlags' file='libvirt-storage' type='enum'/>
     <typedef name='virStoragePoolDeleteFlags' file='libvirt-storage' type='enum'/>
+    <typedef name='virStoragePoolEventID' file='libvirt-storage' type='enum'/>
+    <typedef name='virStoragePoolEventLifecycleType' file='libvirt-storage' type='enum'/>
     <struct name='virStoragePoolInfo' file='libvirt-storage' type='struct _virStoragePoolInfo'>
       <field name='state' type='int' info='virStoragePoolState flags'/>
       <field name='capacity' type='unsigned long long' info='Logical size bytes'/>
@@ -4485,7 +4529,10 @@ hostname of the remote system.]]></info>
     <function name='virConnectGetMaxVcpus' file='libvirt-host' module='libvirt-host'>
       <info><![CDATA[Provides the maximum number of virtual CPUs supported for a guest VM of a
 specific type. The 'type' parameter here corresponds to the 'type'
-attribute in the <domain> element of the XML.]]></info>
+attribute in the <domain> element of the XML. This API doesn't take emulator
+limits into consideration, hence the returned value is not guaranteed to be
+usable. It is recommended to use virConnectGetDomainCapabilities() and look
+for "<vcpu max='...'>" in its output instead.]]></info>
       <return type='int' info='the maximum of virtual CPU or -1 in case of error.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
       <arg name='type' type='const char *' info='value of the &apos;type&apos; attribute in the &lt;domain&gt; element'/>
@@ -5065,6 +5112,70 @@ loop to respond to them, even if you disable keepalives by this function.]]></in
       <arg name='conn' type='virConnectPtr' info='pointer to a hypervisor connection'/>
       <arg name='interval' type='int' info='number of seconds of inactivity before a keepalive message is sent'/>
       <arg name='count' type='unsigned int' info='number of messages that can be sent in a row'/>
+    </function>
+    <function name='virConnectStoragePoolEventDeregisterAny' file='libvirt-storage' module='libvirt-storage'>
+      <info><![CDATA[Removes an event callback. The callbackID parameter should be the
+value obtained from a previous virConnectStoragePoolEventRegisterAny() method.]]></info>
+      <return type='int' info='0 on success, -1 on failure'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to the connection'/>
+      <arg name='callbackID' type='int' info='the callback identifier'/>
+    </function>
+    <functype name='virConnectStoragePoolEventGenericCallback' file='libvirt-storage' module='libvirt-storage'>
+      <info><![CDATA[A generic storage pool event callback handler, for use with
+virConnectStoragePoolEventRegisterAny(). Specific events usually
+have a customization with extra parameters, often with @opaque being
+passed in a different parameter position; use
+VIR_STORAGE_POOL_EVENT_CALLBACK() when registering an appropriate handler.]]></info>
+      <return type='void'/>
+      <arg name='conn' type='virConnectPtr' info='the connection pointer'/>
+      <arg name='pool' type='virStoragePoolPtr' info='the pool pointer'/>
+      <arg name='opaque' type='void *' info='application specified data'/>
+    </functype>
+    <functype name='virConnectStoragePoolEventLifecycleCallback' file='libvirt-storage' module='libvirt-storage'>
+      <info><![CDATA[This callback is called when a pool lifecycle action is performed, like start
+or stop.
+
+The callback signature to use when registering for an event of type
+VIR_STORAGE_POOL_EVENT_ID_LIFECYCLE with
+virConnectStoragePoolEventRegisterAny()]]></info>
+      <return type='void'/>
+      <arg name='conn' type='virConnectPtr' info='connection object'/>
+      <arg name='pool' type='virStoragePoolPtr' info='pool on which the event occurred'/>
+      <arg name='event' type='int' info='The specific virStoragePoolEventLifeCycleType which occurred'/>
+      <arg name='detail' type='int' info='contains some details on the reason of the event.'/>
+      <arg name='opaque' type='void *' info='application specified data'/>
+    </functype>
+    <function name='virConnectStoragePoolEventRegisterAny' file='libvirt-storage' module='libvirt-storage'>
+      <info><![CDATA[Adds a callback to receive notifications of arbitrary storage pool events
+occurring on a storage pool. This function requires that an event loop
+has been previously registered with virEventRegisterImpl() or
+virEventRegisterDefaultImpl().
+
+If @pool is NULL, then events will be monitored for any storage pool.
+If @pool is non-NULL, then only the specific storage pool will be monitored.
+
+Most types of events have a callback providing a custom set of parameters
+for the event. When registering an event, it is thus necessary to use
+the VIR_STORAGE_POOL_EVENT_CALLBACK() macro to cast the
+supplied function pointer to match the signature of this method.
+
+The virStoragePoolPtr object handle passed into the callback upon delivery
+of an event is only valid for the duration of execution of the callback.
+If the callback wishes to keep the storage pool object after the callback
+returns, it shall take a reference to it, by calling virStoragePoolRef().
+The reference can be released once the object is no longer required
+by calling virStoragePoolFree().
+
+The return value from this method is a positive integer identifier
+for the callback. To unregister a callback, this callback ID should
+be passed to the virConnectStoragePoolEventDeregisterAny() method.]]></info>
+      <return type='int' info='a callback identifier on success, -1 on failure.'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to the connection'/>
+      <arg name='pool' type='virStoragePoolPtr' info='pointer to the storage pool'/>
+      <arg name='eventID' type='int' info='the event type to receive'/>
+      <arg name='cb' type='virConnectStoragePoolEventGenericCallback' info='callback to the function handling network events'/>
+      <arg name='opaque' type='void *' info='opaque data to pass on to the callback'/>
+      <arg name='freecb' type='virFreeCallback' info='optional function to deallocate opaque when not used anymore'/>
     </function>
     <function name='virConnectUnregisterCloseCallback' file='libvirt-host' module='libvirt-host'>
       <info><![CDATA[Unregisters the callback previously set with the
@@ -6338,6 +6449,27 @@ specified guest and the disks.]]></info>
       <arg name='dom' type='virDomainPtr' info='a domain object'/>
       <arg name='info' type='virDomainFSInfoPtr **' info='a pointer to a variable to store an array of mount points information'/>
       <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
+    <function name='virDomainGetGuestVcpus' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[Queries the guest agent for state and information regarding vCPUs from
+guest's perspective. The reported data depends on the guest agent
+implementation.
+
+Reported fields stored in @params:
+'vcpus': string containing bitmap representing vCPU ids as reported by the
+         guest
+'online': string containing bitmap representing online vCPUs as reported
+          by the guest agent.
+'offlinable': string containing bitmap representing ids of vCPUs that can be
+              offlined
+
+This API requires the VM to run. The caller is responsible for calling
+virTypedParamsFree to free memory returned in @params.]]></info>
+      <return type='int' info='0 on success, -1 on error.'/>
+      <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
+      <arg name='params' type='virTypedParameterPtr *' info='pointer that will be filled with an array of typed parameters'/>
+      <arg name='nparams' type='unsigned int *' info='pointer filled with number of elements in @params'/>
+      <arg name='flags' type='unsigned int' info='currently unused, callers shall pass 0'/>
     </function>
     <function name='virDomainGetHostname' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Get the hostname for that domain.
@@ -8063,6 +8195,27 @@ within //domain/devices/disk.]]></info>
       <arg name='params' type='virTypedParameterPtr' info='Pointer to blkio parameter objects'/>
       <arg name='nparams' type='int' info='Number of blkio parameters (this value can be the same or less than the number of parameters supported)'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainModificationImpact'/>
+    </function>
+    <function name='virDomainSetGuestVcpus' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[Sets state of individual vcpus described by @cpumap via guest agent. Other
+vcpus are not modified.
+
+This API requires the VM to run. Various hypervisors or guest agent
+implementation may limit to operate on just 1 vCPU per call.
+
+@cpumap is a list of vCPU numbers. Its syntax is a comma separated list and
+a special markup using '-' and '^' (ex. '0-4', '0-3,^2'). The '-' denotes
+the range and the '^' denotes exclusive. The expression is sequentially
+evaluated, so "0-15,^8" is identical to "9-14,0-7,15" but not identical to
+"^8,0-15".
+
+Note that OSes (notably Linux) may require vCPU 0 to stay online to support
+low-level features a S3 sleep.]]></info>
+      <return type='int' info='0 on success, -1 on error.'/>
+      <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
+      <arg name='cpumap' type='const char *' info='text representation of a bitmap of vcpus to set'/>
+      <arg name='state' type='int' info='0 to disable/1 to enable cpus described by @cpumap'/>
+      <arg name='flags' type='unsigned int' info='currently unused, callers shall pass 0'/>
     </function>
     <function name='virDomainSetInterfaceParameters' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Change a subset or all parameters of interface; currently this

@@ -131,10 +131,10 @@ int qemuMonitorJSONGetMigrationCacheSize(qemuMonitorPtr mon,
 int qemuMonitorJSONSetMigrationCacheSize(qemuMonitorPtr mon,
                                          unsigned long long cacheSize);
 
-int qemuMonitorJSONGetMigrationCompression(qemuMonitorPtr mon,
-                                           qemuMonitorMigrationCompressionPtr compress);
-int qemuMonitorJSONSetMigrationCompression(qemuMonitorPtr mon,
-                                           qemuMonitorMigrationCompressionPtr compress);
+int qemuMonitorJSONGetMigrationParams(qemuMonitorPtr mon,
+                                      qemuMonitorMigrationParamsPtr params);
+int qemuMonitorJSONSetMigrationParams(qemuMonitorPtr mon,
+                                      qemuMonitorMigrationParamsPtr params);
 
 int qemuMonitorJSONGetMigrationStats(qemuMonitorPtr mon,
                                      qemuMonitorMigrationStatsPtr stats);
@@ -456,6 +456,10 @@ int qemuMonitorJSONDetachCharDev(qemuMonitorPtr mon,
 
 int qemuMonitorJSONGetDeviceAliases(qemuMonitorPtr mon,
                                     char ***aliases);
+
+int qemuMonitorJSONGetCPUx86Data(qemuMonitorPtr mon,
+                                 const char *property,
+                                 virCPUDataPtr *cpudata);
 
 int qemuMonitorJSONGetGuestCPU(qemuMonitorPtr mon,
                                virArch arch,

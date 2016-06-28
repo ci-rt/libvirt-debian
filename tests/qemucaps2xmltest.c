@@ -135,7 +135,7 @@ testQemuCapsXML(const void *opaque)
                     abs_srcdir, data->base) < 0)
         goto cleanup;
 
-    if (virtTestLoadFile(capsFile, &capsData) < 0)
+    if (virTestLoadFile(capsFile, &capsData) < 0)
         goto cleanup;
 
     if (!(capsProvided = testGetCaps(capsData, data)))
@@ -145,7 +145,7 @@ testQemuCapsXML(const void *opaque)
     if (!capsXml)
         goto cleanup;
 
-    if (virtTestCompareToFile(capsXml, xmlFile) < 0)
+    if (virTestCompareToFile(capsXml, xmlFile) < 0)
         goto cleanup;
 
     ret = 0;
@@ -178,7 +178,7 @@ mymain(void)
 #define DO_TEST_FULL(name, guest)                       \
     data.base = name;                                   \
     data.guestarch = guest;                             \
-    if (virtTestRun(name, testQemuCapsXML, &data) < 0)  \
+    if (virTestRun(name, testQemuCapsXML, &data) < 0)   \
         ret = -1
 
 #define DO_TEST(name) DO_TEST_FULL(name, VIR_ARCH_I686)

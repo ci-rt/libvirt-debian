@@ -29,7 +29,6 @@
 # include <gnutls/crypto.h>
 #endif
 #include <gnutls/x509.h>
-#include "gnutls_1_0_compat.h"
 
 #include "virnettlscontext.h"
 #include "virstring.h"
@@ -66,6 +65,7 @@ struct _virNetTLSContext {
     bool isServer;
     bool requireValidCert;
     const char *const*x509dnWhitelist;
+    char *priority;
 };
 
 struct _virNetTLSSession {
@@ -170,14 +170,6 @@ static int virNetTLSContextCheckCertTimes(gnutls_x509_crt_t cert,
 }
 
 
-#ifndef GNUTLS_1_0_COMPAT
-/*
- * The gnutls_x509_crt_get_basic_constraints function isn't
- * available in GNUTLS 1.0.x branches. This isn't critical
- * though, since gnutls_certificate_verify_peers2 will do
- * pretty much the same check at runtime, so we can just
- * disable this code
- */
 static int virNetTLSContextCheckCertBasicConstraints(gnutls_x509_crt_t cert,
                                                      const char *certFile,
                                                      bool isServer,
@@ -219,7 +211,6 @@ static int virNetTLSContextCheckCertBasicConstraints(gnutls_x509_crt_t cert,
 
     return 0;
 }
-#endif
 
 
 static int virNetTLSContextCheckCertKeyUsage(gnutls_x509_crt_t cert,
@@ -438,11 +429,9 @@ static int virNetTLSContextCheckCert(gnutls_x509_crt_t cert,
                                        isServer, isCA) < 0)
         return -1;
 
-#ifndef GNUTLS_1_0_COMPAT
     if (virNetTLSContextCheckCertBasicConstraints(cert, certFile,
                                                   isServer, isCA) < 0)
         return -1;
-#endif
 
     if (virNetTLSContextCheckCertKeyUsage(cert, certFile,
                                           isCA) < 0)
@@ -489,10 +478,8 @@ static int virNetTLSContextCheckCertPair(gnutls_x509_crt_t cert,
         if (status & GNUTLS_CERT_REVOKED)
             reason = _("The certificate has been revoked.");
 
-#ifndef GNUTLS_1_0_COMPAT
         if (status & GNUTLS_CERT_INSECURE_ALGORITHM)
             reason = _("The certificate uses an insecure algorithm");
-#endif
 
         virReportError(VIR_ERR_SYSTEM_ERROR,
                        _("Our own certificate %s failed validation against %s: %s"),
@@ -710,12 +697,12 @@ static virNetTLSContextPtr virNetTLSContextNew(const char *cacert,
                                                const char *cert,
                                                const char *key,
                                                const char *const*x509dnWhitelist,
+                                               const char *priority,
                                                bool sanityCheckCert,
                                                bool requireValidCert,
                                                bool isServer)
 {
     virNetTLSContextPtr ctxt;
-    const char *gnutlsdebug;
     int err;
 
     if (virNetTLSContextInitialize() < 0)
@@ -724,15 +711,8 @@ static virNetTLSContextPtr virNetTLSContextNew(const char *cacert,
     if (!(ctxt = virObjectLockableNew(virNetTLSContextClass)))
         return NULL;
 
-    if ((gnutlsdebug = virGetEnvAllowSUID("LIBVIRT_GNUTLS_DEBUG")) != NULL) {
-        int val;
-        if (virStrToLong_i(gnutlsdebug, NULL, 10, &val) < 0)
-            val = 10;
-        gnutls_global_set_log_level(val);
-        gnutls_global_set_log_function(virNetTLSLog);
-        VIR_DEBUG("Enabled GNUTLS debug");
-    }
-
+    if (VIR_STRDUP(ctxt->priority, priority) < 0)
+        goto error;
 
     err = gnutls_certificate_allocate_credentials(&ctxt->x509cred);
     if (err) {
@@ -921,6 +901,7 @@ static int virNetTLSContextLocateCredentials(const char *pkipath,
 static virNetTLSContextPtr virNetTLSContextNewPath(const char *pkipath,
                                                    bool tryUserPkiPath,
                                                    const char *const*x509dnWhitelist,
+                                                   const char *priority,
                                                    bool sanityCheckCert,
                                                    bool requireValidCert,
                                                    bool isServer)
@@ -933,7 +914,7 @@ static virNetTLSContextPtr virNetTLSContextNewPath(const char *pkipath,
         return NULL;
 
     ctxt = virNetTLSContextNew(cacert, cacrl, cert, key,
-                               x509dnWhitelist, sanityCheckCert,
+                               x509dnWhitelist, priority, sanityCheckCert,
                                requireValidCert, isServer);
 
     VIR_FREE(cacert);
@@ -947,19 +928,21 @@ static virNetTLSContextPtr virNetTLSContextNewPath(const char *pkipath,
 virNetTLSContextPtr virNetTLSContextNewServerPath(const char *pkipath,
                                                   bool tryUserPkiPath,
                                                   const char *const*x509dnWhitelist,
+                                                  const char *priority,
                                                   bool sanityCheckCert,
                                                   bool requireValidCert)
 {
-    return virNetTLSContextNewPath(pkipath, tryUserPkiPath, x509dnWhitelist,
+    return virNetTLSContextNewPath(pkipath, tryUserPkiPath, x509dnWhitelist, priority,
                                    sanityCheckCert, requireValidCert, true);
 }
 
 virNetTLSContextPtr virNetTLSContextNewClientPath(const char *pkipath,
                                                   bool tryUserPkiPath,
+                                                  const char *priority,
                                                   bool sanityCheckCert,
                                                   bool requireValidCert)
 {
-    return virNetTLSContextNewPath(pkipath, tryUserPkiPath, NULL,
+    return virNetTLSContextNewPath(pkipath, tryUserPkiPath, NULL, priority,
                                    sanityCheckCert, requireValidCert, false);
 }
 
@@ -969,10 +952,11 @@ virNetTLSContextPtr virNetTLSContextNewServer(const char *cacert,
                                               const char *cert,
                                               const char *key,
                                               const char *const*x509dnWhitelist,
+                                              const char *priority,
                                               bool sanityCheckCert,
                                               bool requireValidCert)
 {
-    return virNetTLSContextNew(cacert, cacrl, cert, key, x509dnWhitelist,
+    return virNetTLSContextNew(cacert, cacrl, cert, key, x509dnWhitelist, priority,
                                sanityCheckCert, requireValidCert, true);
 }
 
@@ -981,10 +965,11 @@ virNetTLSContextPtr virNetTLSContextNewClient(const char *cacert,
                                               const char *cacrl,
                                               const char *cert,
                                               const char *key,
+                                              const char *priority,
                                               bool sanityCheckCert,
                                               bool requireValidCert)
 {
-    return virNetTLSContextNew(cacert, cacrl, cert, key, NULL,
+    return virNetTLSContextNew(cacert, cacrl, cert, key, NULL, priority,
                                sanityCheckCert, requireValidCert, false);
 }
 
@@ -1022,10 +1007,8 @@ static int virNetTLSContextValidCertificate(virNetTLSContextPtr ctxt,
         if (status & GNUTLS_CERT_REVOKED)
             reason = _("The certificate has been revoked.");
 
-#ifndef GNUTLS_1_0_COMPAT
         if (status & GNUTLS_CERT_INSECURE_ALGORITHM)
             reason = _("The certificate uses an insecure algorithm");
-#endif
 
         virReportError(VIR_ERR_SYSTEM_ERROR,
                        _("Certificate failed validation: %s"),
@@ -1088,13 +1071,11 @@ static int virNetTLSContextValidCertificate(virNetTLSContextPtr ctxt,
             /* !sess->isServer, since on the client, we're validating the
              * server's cert, and on the server, the client's cert
              */
-#ifndef GNUTLS_1_0_COMPAT
             if (virNetTLSContextCheckCertBasicConstraints(cert, "[session]",
                                                           !sess->isServer, false) < 0) {
                 gnutls_x509_crt_deinit(cert);
                 goto authdeny;
             }
-#endif
 
             if (virNetTLSContextCheckCertKeyUsage(cert, "[session]",
                                                   false) < 0) {
@@ -1167,6 +1148,7 @@ void virNetTLSContextDispose(void *obj)
     PROBE(RPC_TLS_CONTEXT_DISPOSE,
           "ctxt=%p", ctxt);
 
+    VIR_FREE(ctxt->priority);
     gnutls_dh_params_deinit(ctxt->dhParams);
     gnutls_certificate_free_credentials(ctxt->x509cred);
 }
@@ -1226,10 +1208,12 @@ virNetTLSSessionPtr virNetTLSSessionNew(virNetTLSContextPtr ctxt,
     /* avoid calling all the priority functions, since the defaults
      * are adequate.
      */
-    if ((err = gnutls_set_default_priority(sess->session)) != 0) {
+    if ((err = gnutls_priority_set_direct(sess->session,
+                                          ctxt->priority ? ctxt->priority : TLS_PRIORITY,
+                                          NULL)) != 0) {
         virReportError(VIR_ERR_SYSTEM_ERROR,
-                       _("Failed to set TLS session priority %s"),
-                       gnutls_strerror(err));
+                       _("Failed to set TLS session priority to %s: %s"),
+                       ctxt->priority ? ctxt->priority : TLS_PRIORITY, gnutls_strerror(err));
         goto error;
     }
 
@@ -1451,5 +1435,15 @@ void virNetTLSSessionDispose(void *obj)
  */
 void virNetTLSInit(void)
 {
+    const char *gnutlsdebug;
+    if ((gnutlsdebug = virGetEnvAllowSUID("LIBVIRT_GNUTLS_DEBUG")) != NULL) {
+        int val;
+        if (virStrToLong_i(gnutlsdebug, NULL, 10, &val) < 0)
+            val = 10;
+        gnutls_global_set_log_level(val);
+        gnutls_global_set_log_function(virNetTLSLog);
+        VIR_DEBUG("Enabled GNUTLS debug");
+    }
+
     gnutls_global_init();
 }

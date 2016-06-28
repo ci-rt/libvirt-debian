@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [1.3.5], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [2.0.0], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -24,7 +24,7 @@ AH_BOTTOM([#include <config-post.h>])
 AC_CONFIG_MACRO_DIR([m4])
 dnl Make automake keep quiet about wildcards & other GNUmake-isms; also keep
 dnl quiet about the fact that we intentionally cater to automake 1.9
-AM_INIT_AUTOMAKE([-Wno-portability -Wno-obsolete tar-ustar subdir-objects])
+AM_INIT_AUTOMAKE([-Wno-portability -Wno-obsolete tar-pax no-dist-gzip dist-xz subdir-objects])
 dnl older automake's default of ARFLAGS=cru is noisy on newer binutils;
 dnl we don't really need the 'u' even in older toolchains.  Then there is
 dnl older libtool, which spelled it AR_FLAGS
@@ -117,7 +117,7 @@ fi
 
 dnl Required minimum versions of all libs we depend on
 LIBXML_REQUIRED="2.6.0"
-GNUTLS_REQUIRED="1.0.25"
+GNUTLS_REQUIRED="2.2.0"
 POLKIT_REQUIRED="0.6"
 PARTED_REQUIRED="1.8.0"
 DEVMAPPER_REQUIRED=1.0.0
@@ -256,7 +256,6 @@ LIBVIRT_CHECK_SANLOCK
 LIBVIRT_CHECK_SASL
 LIBVIRT_CHECK_SELINUX
 LIBVIRT_CHECK_SSH2
-LIBVIRT_CHECK_SYSTEMD_DAEMON
 LIBVIRT_CHECK_UDEV
 LIBVIRT_CHECK_WIRESHARK
 LIBVIRT_CHECK_NSS
@@ -418,10 +417,6 @@ AC_CHECK_LIB([intl],[gettext],[])
 dnl Do we have rpcgen?
 AC_PATH_PROGS([RPCGEN], [rpcgen portable-rpcgen], [no])
 AM_CONDITIONAL([HAVE_RPCGEN], [test "x$ac_cv_path_RPCGEN" != "xno"])
-dnl Is this GLIBC's buggy rpcgen?
-AM_CONDITIONAL([HAVE_GLIBC_RPCGEN],
-	       [test "x$ac_cv_path_RPCGEN" != "xno" &&
-	        $ac_cv_path_RPCGEN -t </dev/null >/dev/null 2>&1])
 
 dnl Miscellaneous external programs.
 AC_PATH_PROG([XMLLINT], [xmllint], [/usr/bin/xmllint])
@@ -1277,6 +1272,16 @@ AC_SUBST([GNUTLS_CFLAGS])
 AC_SUBST([GNUTLS_LIBS])
 
 
+AC_ARG_WITH([tls-priority],
+  [AS_HELP_STRING([--with-tls-priority],
+    [set the default TLS session priority string @<:@default=NORMAL@:>@])],
+  [],
+  [with_tls_priority=NORMAL])
+
+AC_DEFINE_UNQUOTED([TLS_PRIORITY], ["$with_tls_priority"],
+		   [TLS default priority string])
+
+
 dnl PolicyKit library
 POLKIT_CFLAGS=
 POLKIT_LIBS=
@@ -1842,7 +1847,7 @@ else
 fi
 AM_CONDITIONAL([WITH_STORAGE_ISCSI], [test "$with_storage_iscsi" = "yes"])
 
-if test "$with_storage_scsi" = "check"; then
+if test "$with_storage_scsi" = "check" || test "$with_storage_scsi" = "yes"; then
    with_storage_scsi=yes
 
    AC_DEFINE_UNQUOTED([WITH_STORAGE_SCSI], 1,
@@ -1850,13 +1855,16 @@ if test "$with_storage_scsi" = "check"; then
 fi
 AM_CONDITIONAL([WITH_STORAGE_SCSI], [test "$with_storage_scsi" = "yes"])
 
-if test "$with_storage_mpath" = "check"; then
+if test "$with_storage_mpath" = "check" || test "$with_storage_mpath" = "yes"; then
    if test "$with_linux" = "yes"; then
       with_storage_mpath=yes
 
       AC_DEFINE_UNQUOTED([WITH_STORAGE_MPATH], 1,
         [whether mpath backend for storage driver is enabled])
    else
+      if test "$with_storage_mpath" = "yes"; then
+        AC_MSG_ERROR([mpath storage is only supported on Linux])
+      fi
       with_storage_mpath=no
    fi
 fi
@@ -2787,7 +2795,6 @@ LIBVIRT_RESULT_SANLOCK
 LIBVIRT_RESULT_SASL
 LIBVIRT_RESULT_SELINUX
 LIBVIRT_RESULT_SSH2
-LIBVIRT_RESULT_SYSTEMD_DAEMON
 LIBVIRT_RESULT_UDEV
 LIBVIRT_RESULT_WIRESHARK
 LIBVIRT_RESULT_NSS
@@ -2876,6 +2883,7 @@ AC_MSG_NOTICE([    Default Editor: $DEFAULT_EDITOR])
 AC_MSG_NOTICE([      Loader/NVRAM: $with_loader_nvram])
 AC_MSG_NOTICE([  virt-login-shell: $with_login_shell])
 AC_MSG_NOTICE([virt-host-validate: $with_host_validate])
+AC_MSG_NOTICE([      TLS priority: $with_tls_priority])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Developer Tools])
 AC_MSG_NOTICE([])
