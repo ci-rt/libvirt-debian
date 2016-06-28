@@ -21,10 +21,10 @@ index 89b95f6..a992119 100644
 +  #include <local/usr.lib.libvirt.virt-aa-helper>
  }
 diff --git a/examples/apparmor/usr.sbin.libvirtd b/examples/apparmor/usr.sbin.libvirtd
-index 5d606e6..be4e1ef 100644
+index 23f70f5..30f6508 100644
 --- a/examples/apparmor/usr.sbin.libvirtd
 +++ b/examples/apparmor/usr.sbin.libvirtd
-@@ -66,4 +66,6 @@
+@@ -67,4 +67,6 @@
    # allow changing to our UUID-based named profiles
    change_profile -> @{LIBVIRT}-[0-9a-f]*-[0-9a-f]*-[0-9a-f]*-[0-9a-f]*-[0-9a-f]*,
  

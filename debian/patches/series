@@ -12,6 +12,4 @@ debian/Debianize-virtlockd.patch
 debian/Use-upstreams-polkit-rule.patch
 Allow-access-to-libnl-3-config-files.patch
 debian/apparmor_profiles_local_include.patch
-debian/libsystemd.patch
 virt-aa-helper-apparmor-allow-usr-share-OVMF-too.patch
-apparmor-Don-t-scrub-environment-of-virtlogd-process.patch
