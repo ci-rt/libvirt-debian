@@ -41,6 +41,7 @@
 # include "numa_conf.h"
 # include "virnetdevmacvlan.h"
 # include "virsysinfo.h"
+# include "virnetdevip.h"
 # include "virnetdevvportprofile.h"
 # include "virnetdevbandwidth.h"
 # include "virnetdevvlan.h"
@@ -382,13 +383,6 @@ typedef enum {
     VIR_DOMAIN_HOSTDEV_CAPS_TYPE_LAST
 } virDomainHostdevCapsType;
 
-typedef struct _virDomainNetIpDef virDomainNetIpDef;
-typedef virDomainNetIpDef *virDomainNetIpDefPtr;
-struct _virDomainNetIpDef {
-    virSocketAddr address;       /* ipv4 or ipv6 address */
-    unsigned int prefix; /* number of 1 bits in the net mask */
-};
-
 typedef struct _virDomainHostdevCaps virDomainHostdevCaps;
 typedef virDomainHostdevCaps *virDomainHostdevCapsPtr;
 struct _virDomainHostdevCaps {
@@ -401,11 +395,8 @@ struct _virDomainHostdevCaps {
             char *chardev;
         } misc;
         struct {
-            char *iface;
-            size_t nips;
-            virDomainNetIpDefPtr *ips;
-            size_t nroutes;
-            virNetworkRouteDefPtr *routes;
+            char *ifname;
+            virNetDevIPInfo ip;
         } net;
     } u;
 };
@@ -930,9 +921,6 @@ struct _virDomainNetDef {
         char *vhost;
     } backend;
     union {
-        struct {
-            char *dev;
-        } ethernet;
         virDomainChrSourceDefPtr vhostuser;
         struct {
             char *address;
@@ -976,8 +964,9 @@ struct _virDomainNetDef {
     char *script;
     char *domain_name; /* backend domain name */
     char *ifname;
-    char *ifname_guest;
     char *ifname_guest_actual;
+    char *ifname_guest;
+    virNetDevIPInfo guestIP;
     virDomainDeviceInfo info;
     char *filter;
     virNWFilterHashTablePtr filterparams;
@@ -985,10 +974,6 @@ struct _virDomainNetDef {
     virNetDevVlan vlan;
     int trustGuestRxFilters; /* enum virTristateBool */
     int linkstate;
-    size_t nips;
-    virDomainNetIpDefPtr *ips;
-    size_t nroutes;
-    virNetworkRouteDefPtr *routes;
 };
 
 /* Used for prefix of ifname of any network name generated dynamically
@@ -2492,6 +2477,7 @@ virDomainControllerDefPtr
 virDomainControllerDefNew(virDomainControllerType type);
 void virDomainFSDefFree(virDomainFSDefPtr def);
 void virDomainActualNetDefFree(virDomainActualNetDefPtr def);
+void virDomainNetDefClear(virDomainNetDefPtr def);
 void virDomainNetDefFree(virDomainNetDefPtr def);
 void virDomainSmartcardDefFree(virDomainSmartcardDefPtr def);
 void virDomainChrDefFree(virDomainChrDefPtr def);
@@ -2775,7 +2761,7 @@ virNetDevBandwidthPtr
 virDomainNetGetActualBandwidth(virDomainNetDefPtr iface);
 virNetDevVlanPtr virDomainNetGetActualVlan(virDomainNetDefPtr iface);
 bool virDomainNetGetActualTrustGuestRxFilters(virDomainNetDefPtr iface);
-int virDomainNetAppendIpAddress(virDomainNetDefPtr def,
+int virDomainNetAppendIPAddress(virDomainNetDefPtr def,
                                 const char *address,
                                 int family,
                                 unsigned int prefix);

@@ -23,6 +23,7 @@
 #include <config.h>
 
 #include "virnetdev.h"
+#include "virnetlink.h"
 #include "virmacaddr.h"
 #include "virfile.h"
 #include "virerror.h"
@@ -32,10 +33,6 @@
 #include "virlog.h"
 #include "virstring.h"
 #include "virutil.h"
-
-#if HAVE_GETIFADDRS
-# include <ifaddrs.h>
-#endif
 
 #include <sys/ioctl.h>
 #include <net/if.h>
@@ -96,7 +93,6 @@ VIR_LOG_INIT("util.netdev");
 # define FEATURE_BIT_IS_SET(blocks, index, field)        \
     (FEATURE_WORD(blocks, index, field) & FEATURE_FIELD_FLAG(index))
 #endif
-#define VIR_DAD_WAIT_TIMEOUT 20 /* seconds */
 
 typedef enum {
     VIR_MCAST_TYPE_INDEX_TOKEN,
@@ -1011,712 +1007,6 @@ int virNetDevGetVLanID(const char *ifname ATTRIBUTE_UNUSED,
 #endif /* ! SIOCGIFVLAN */
 
 
-#if defined(__linux__) && defined(HAVE_LIBNL)
-
-static int
-virNetDevGetIPAddressBinary(virSocketAddr *addr, void **data, size_t *len)
-{
-    if (!addr)
-        return -1;
-
-    switch (VIR_SOCKET_ADDR_FAMILY(addr)) {
-    case AF_INET:
-        *data = &addr->data.inet4.sin_addr;
-        *len = sizeof(struct in_addr);
-        break;
-    case AF_INET6:
-        *data = &addr->data.inet6.sin6_addr;
-        *len = sizeof(struct in6_addr);
-        break;
-    default:
-        return -1;
-    }
-    return 0;
-}
-
-static struct nl_msg *
-virNetDevCreateNetlinkAddressMessage(int messageType,
-                                     const char *ifname,
-                                     virSocketAddr *addr,
-                                     unsigned int prefix,
-                                     virSocketAddr *broadcast,
-                                     virSocketAddr *peer)
-{
-    struct nl_msg *nlmsg = NULL;
-    struct ifaddrmsg ifa;
-    unsigned int ifindex;
-    void *addrData = NULL;
-    void *peerData = NULL;
-    void *broadcastData = NULL;
-    size_t addrDataLen;
-
-    if (virNetDevGetIPAddressBinary(addr, &addrData, &addrDataLen) < 0)
-        return NULL;
-
-    if (peer && VIR_SOCKET_ADDR_VALID(peer)) {
-        if (virNetDevGetIPAddressBinary(peer, &peerData, &addrDataLen) < 0)
-            return NULL;
-    } else if (broadcast) {
-        if (virNetDevGetIPAddressBinary(broadcast, &broadcastData,
-                                        &addrDataLen) < 0)
-            return NULL;
-    }
-
-    /* Get the interface index */
-    if ((ifindex = if_nametoindex(ifname)) == 0)
-        return NULL;
-
-    if (!(nlmsg = nlmsg_alloc_simple(messageType,
-                                     NLM_F_REQUEST | NLM_F_CREATE | NLM_F_EXCL))) {
-        virReportOOMError();
-        return NULL;
-    }
-
-    memset(&ifa, 0, sizeof(ifa));
-
-    ifa.ifa_prefixlen = prefix;
-    ifa.ifa_family = VIR_SOCKET_ADDR_FAMILY(addr);
-    ifa.ifa_index = ifindex;
-    ifa.ifa_scope = 0;
-
-    if (nlmsg_append(nlmsg, &ifa, sizeof(ifa), NLMSG_ALIGNTO) < 0)
-        goto buffer_too_small;
-
-    if (nla_put(nlmsg, IFA_LOCAL, addrDataLen, addrData) < 0)
-        goto buffer_too_small;
-
-    if (peerData) {
-        if (nla_put(nlmsg, IFA_ADDRESS, addrDataLen, peerData) < 0)
-            goto buffer_too_small;
-    }
-
-    if (broadcastData) {
-        if (nla_put(nlmsg, IFA_BROADCAST, addrDataLen, broadcastData) < 0)
-            goto buffer_too_small;
-    }
-
-    return nlmsg;
-
- buffer_too_small:
-    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                   _("allocated netlink buffer is too small"));
-    nlmsg_free(nlmsg);
-    return NULL;
-}
-
-/**
- * virNetDevSetIPAddress:
- * @ifname: the interface name
- * @addr: the IP address (IPv4 or IPv6)
- * @peer: The IP address of peer (IPv4 or IPv6)
- * @prefix: number of 1 bits in the netmask
- *
- * Add an IP address to an interface. This function *does not* remove
- * any previously added IP addresses - that must be done separately with
- * brDelInetAddress.
- *
- * Returns 0 in case of success or -1 in case of error.
- */
-int virNetDevSetIPAddress(const char *ifname,
-                          virSocketAddr *addr,
-                          virSocketAddr *peer,
-                          unsigned int prefix)
-{
-    virSocketAddr *broadcast = NULL;
-    int ret = -1;
-    struct nl_msg *nlmsg = NULL;
-    struct nlmsghdr *resp = NULL;
-    unsigned int recvbuflen;
-
-    /* The caller needs to provide a correct address */
-    if (VIR_SOCKET_ADDR_FAMILY(addr) == AF_INET &&
-        !(peer && VIR_SOCKET_ADDR_VALID(peer))) {
-        /* compute a broadcast address if this is IPv4 */
-        if (VIR_ALLOC(broadcast) < 0)
-            return -1;
-
-        if (virSocketAddrBroadcastByPrefix(addr, prefix, broadcast) < 0)
-            goto cleanup;
-    }
-
-    if (!(nlmsg = virNetDevCreateNetlinkAddressMessage(RTM_NEWADDR, ifname,
-                                                       addr, prefix,
-                                                       broadcast, peer)))
-        goto cleanup;
-
-    if (virNetlinkCommand(nlmsg, &resp, &recvbuflen, 0, 0,
-                          NETLINK_ROUTE, 0) < 0)
-        goto cleanup;
-
-
-    if (virNetlinkGetErrorCode(resp, recvbuflen) < 0) {
-        virReportError(VIR_ERR_SYSTEM_ERROR,
-                       _("Error adding IP address to %s"), ifname);
-        goto cleanup;
-    }
-
-    ret = 0;
- cleanup:
-    nlmsg_free(nlmsg);
-    VIR_FREE(resp);
-    VIR_FREE(broadcast);
-    return ret;
-}
-
-/**
- * virNetDevAddRoute:
- * @ifname: the interface name
- * @addr: the IP network address (IPv4 or IPv6)
- * @prefix: number of 1 bits in the netmask
- * @gateway: via address for route (same as @addr)
- *
- * Add a route for a network IP address to an interface. This function
- * *does not* remove any previously added IP static routes.
- *
- * Returns 0 in case of success or -1 in case of error.
- */
-int
-virNetDevAddRoute(const char *ifname,
-                  virSocketAddrPtr addr,
-                  unsigned int prefix,
-                  virSocketAddrPtr gateway,
-                  unsigned int metric)
-{
-    int ret = -1;
-    struct nl_msg *nlmsg = NULL;
-    struct nlmsghdr *resp = NULL;
-    unsigned int recvbuflen;
-    unsigned int ifindex;
-    struct rtmsg rtmsg;
-    void *gatewayData = NULL;
-    void *addrData = NULL;
-    size_t addrDataLen;
-    int errCode;
-    virSocketAddr defaultAddr;
-    virSocketAddrPtr actualAddr;
-    char *toStr = NULL;
-    char *viaStr = NULL;
-
-    actualAddr = addr;
-
-    /* If we have no valid network address, then use the default one */
-    if (!addr || !VIR_SOCKET_ADDR_VALID(addr)) {
-        VIR_DEBUG("computing default address");
-        int family = VIR_SOCKET_ADDR_FAMILY(gateway);
-        if (family == AF_INET) {
-            if (virSocketAddrParseIPv4(&defaultAddr, VIR_SOCKET_ADDR_IPV4_ALL) < 0)
-                goto cleanup;
-        } else {
-            if (virSocketAddrParseIPv6(&defaultAddr, VIR_SOCKET_ADDR_IPV6_ALL) < 0)
-                goto cleanup;
-        }
-
-        actualAddr = &defaultAddr;
-    }
-
-    toStr = virSocketAddrFormat(actualAddr);
-    viaStr = virSocketAddrFormat(gateway);
-    VIR_DEBUG("Adding route %s/%d via %s", toStr, prefix, viaStr);
-
-    if (virNetDevGetIPAddressBinary(actualAddr, &addrData, &addrDataLen) < 0 ||
-        virNetDevGetIPAddressBinary(gateway, &gatewayData, &addrDataLen) < 0)
-        goto cleanup;
-
-    /* Get the interface index */
-    if ((ifindex = if_nametoindex(ifname)) == 0)
-        goto cleanup;
-
-    if (!(nlmsg = nlmsg_alloc_simple(RTM_NEWROUTE,
-                                     NLM_F_REQUEST | NLM_F_CREATE |
-                                     NLM_F_EXCL))) {
-        virReportOOMError();
-        goto cleanup;
-    }
-
-    memset(&rtmsg, 0, sizeof(rtmsg));
-
-    rtmsg.rtm_family = VIR_SOCKET_ADDR_FAMILY(gateway);
-    rtmsg.rtm_table = RT_TABLE_MAIN;
-    rtmsg.rtm_scope = RT_SCOPE_UNIVERSE;
-    rtmsg.rtm_protocol = RTPROT_BOOT;
-    rtmsg.rtm_type = RTN_UNICAST;
-    rtmsg.rtm_dst_len = prefix;
-
-    if (nlmsg_append(nlmsg, &rtmsg, sizeof(rtmsg), NLMSG_ALIGNTO) < 0)
-        goto buffer_too_small;
-
-    if (prefix > 0 && nla_put(nlmsg, RTA_DST, addrDataLen, addrData) < 0)
-        goto buffer_too_small;
-
-    if (nla_put(nlmsg, RTA_GATEWAY, addrDataLen, gatewayData) < 0)
-        goto buffer_too_small;
-
-    if (nla_put_u32(nlmsg, RTA_OIF, ifindex) < 0)
-        goto buffer_too_small;
-
-    if (metric > 0 && nla_put_u32(nlmsg, RTA_PRIORITY, metric) < 0)
-        goto buffer_too_small;
-
-    if (virNetlinkCommand(nlmsg, &resp, &recvbuflen, 0, 0,
-                          NETLINK_ROUTE, 0) < 0)
-        goto cleanup;
-
-    if ((errCode = virNetlinkGetErrorCode(resp, recvbuflen)) < 0) {
-        virReportSystemError(errCode, _("Error adding route to %s"), ifname);
-        goto cleanup;
-    }
-
-    ret = 0;
- cleanup:
-    VIR_FREE(toStr);
-    VIR_FREE(viaStr);
-    nlmsg_free(nlmsg);
-    return ret;
-
- buffer_too_small:
-    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                   _("allocated netlink buffer is too small"));
-    goto cleanup;
-}
-
-/**
- * virNetDevClearIPAddress:
- * @ifname: the interface name
- * @addr: the IP address (IPv4 or IPv6)
- * @prefix: number of 1 bits in the netmask
- *
- * Delete an IP address from an interface.
- *
- * Returns 0 in case of success or -1 in case of error.
- */
-int virNetDevClearIPAddress(const char *ifname,
-                            virSocketAddr *addr,
-                            unsigned int prefix)
-{
-    int ret = -1;
-    struct nl_msg *nlmsg = NULL;
-    struct nlmsghdr *resp = NULL;
-    unsigned int recvbuflen;
-
-    if (!(nlmsg = virNetDevCreateNetlinkAddressMessage(RTM_DELADDR, ifname,
-                                                       addr, prefix,
-                                                       NULL, NULL)))
-        goto cleanup;
-
-    if (virNetlinkCommand(nlmsg, &resp, &recvbuflen, 0, 0,
-                          NETLINK_ROUTE, 0) < 0)
-        goto cleanup;
-
-    if (virNetlinkGetErrorCode(resp, recvbuflen) < 0) {
-        virReportError(VIR_ERR_SYSTEM_ERROR,
-                       _("Error removing IP address from %s"), ifname);
-        goto cleanup;
-    }
-
-    ret = 0;
- cleanup:
-    nlmsg_free(nlmsg);
-    VIR_FREE(resp);
-    return ret;
-}
-
-/* return true if there is a known address with 'tentative' flag set */
-static bool
-virNetDevParseDadStatus(struct nlmsghdr *nlh, int len,
-                        virSocketAddrPtr *addrs, size_t count)
-{
-    struct ifaddrmsg *ifaddrmsg_ptr;
-    unsigned int ifaddrmsg_len;
-    struct rtattr *rtattr_ptr;
-    size_t i;
-    struct in6_addr *addr;
-
-    VIR_WARNINGS_NO_CAST_ALIGN
-    for (; NLMSG_OK(nlh, len); nlh = NLMSG_NEXT(nlh, len)) {
-    VIR_WARNINGS_RESET
-        if (NLMSG_PAYLOAD(nlh, 0) < sizeof(struct ifaddrmsg)) {
-            /* Message without payload is the last one. */
-            break;
-        }
-
-        ifaddrmsg_ptr = (struct ifaddrmsg *)NLMSG_DATA(nlh);
-        if (!(ifaddrmsg_ptr->ifa_flags & IFA_F_TENTATIVE)) {
-            /* Not tentative: we are not interested in this entry. */
-            continue;
-        }
-
-        ifaddrmsg_len = IFA_PAYLOAD(nlh);
-        VIR_WARNINGS_NO_CAST_ALIGN
-        rtattr_ptr = (struct rtattr *) IFA_RTA(ifaddrmsg_ptr);
-        for (; RTA_OK(rtattr_ptr, ifaddrmsg_len);
-            rtattr_ptr = RTA_NEXT(rtattr_ptr, ifaddrmsg_len)) {
-            VIR_WARNINGS_RESET
-            if (RTA_PAYLOAD(rtattr_ptr) != sizeof(struct in6_addr)) {
-                /* No address: ignore. */
-                continue;
-            }
-
-            /* We check only known addresses. */
-            for (i = 0; i < count; i++) {
-                addr = &addrs[i]->data.inet6.sin6_addr;
-                if (!memcmp(addr, RTA_DATA(rtattr_ptr),
-                            sizeof(struct in6_addr))) {
-                    /* We found matching tentative address. */
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
-}
-
-/* return after DAD finishes for all known IPv6 addresses or an error */
-int
-virNetDevWaitDadFinish(virSocketAddrPtr *addrs, size_t count)
-{
-    struct nl_msg *nlmsg = NULL;
-    struct ifaddrmsg ifa;
-    struct nlmsghdr *resp = NULL;
-    unsigned int recvbuflen;
-    int ret = -1;
-    bool dad = true;
-    time_t max_time = time(NULL) + VIR_DAD_WAIT_TIMEOUT;
-
-    if (!(nlmsg = nlmsg_alloc_simple(RTM_GETADDR,
-                                     NLM_F_REQUEST | NLM_F_DUMP))) {
-        virReportOOMError();
-        return -1;
-    }
-
-    memset(&ifa, 0, sizeof(ifa));
-    /* DAD is for IPv6 adresses only. */
-    ifa.ifa_family = AF_INET6;
-    if (nlmsg_append(nlmsg, &ifa, sizeof(ifa), NLMSG_ALIGNTO) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("allocated netlink buffer is too small"));
-        goto cleanup;
-    }
-
-    /* Periodically query netlink until DAD finishes on all known addresses. */
-    while (dad && time(NULL) < max_time) {
-        if (virNetlinkCommand(nlmsg, &resp, &recvbuflen, 0, 0,
-                              NETLINK_ROUTE, 0) < 0)
-            goto cleanup;
-
-        if (virNetlinkGetErrorCode(resp, recvbuflen) < 0) {
-            virReportError(VIR_ERR_SYSTEM_ERROR, "%s",
-                           _("error reading DAD state information"));
-            goto cleanup;
-        }
-
-        /* Parse response. */
-        dad = virNetDevParseDadStatus(resp, recvbuflen, addrs, count);
-        if (dad)
-            usleep(1000 * 10);
-
-        VIR_FREE(resp);
-    }
-    /* Check timeout. */
-    if (dad) {
-        virReportError(VIR_ERR_SYSTEM_ERROR,
-                       _("Duplicate Address Detection "
-                         "not finished in %d seconds"), VIR_DAD_WAIT_TIMEOUT);
-    } else {
-        ret = 0;
-    }
-
- cleanup:
-    VIR_FREE(resp);
-    nlmsg_free(nlmsg);
-    return ret;
-}
-
-#else /* defined(__linux__) && defined(HAVE_LIBNL) */
-
-int virNetDevSetIPAddress(const char *ifname,
-                          virSocketAddr *addr,
-                          virSocketAddr *peer,
-                          unsigned int prefix)
-{
-    virCommandPtr cmd = NULL;
-    char *addrstr = NULL, *bcaststr = NULL, *peerstr = NULL;
-    virSocketAddr broadcast;
-    int ret = -1;
-
-    if (!(addrstr = virSocketAddrFormat(addr)))
-        goto cleanup;
-
-    if (peer && VIR_SOCKET_ADDR_VALID(peer) && !(peerstr = virSocketAddrFormat(peer)))
-        goto cleanup;
-
-    /* format up a broadcast address if this is IPv4 */
-    if (!peerstr && ((VIR_SOCKET_ADDR_IS_FAMILY(addr, AF_INET)) &&
-        ((virSocketAddrBroadcastByPrefix(addr, prefix, &broadcast) < 0) ||
-         !(bcaststr = virSocketAddrFormat(&broadcast))))) {
-        goto cleanup;
-    }
-
-# ifdef IFCONFIG_PATH
-    cmd = virCommandNew(IFCONFIG_PATH);
-    virCommandAddArg(cmd, ifname);
-    if (VIR_SOCKET_ADDR_IS_FAMILY(addr, AF_INET6))
-        virCommandAddArg(cmd, "inet6");
-    else
-        virCommandAddArg(cmd, "inet");
-    virCommandAddArgFormat(cmd, "%s/%u", addrstr, prefix);
-    if (peerstr)
-        virCommandAddArgList(cmd, "pointopoint", peerstr, NULL);
-    if (bcaststr)
-        virCommandAddArgList(cmd, "broadcast", bcaststr, NULL);
-    virCommandAddArg(cmd, "alias");
-# else
-    cmd = virCommandNew(IP_PATH);
-    virCommandAddArgList(cmd, "addr", "add", NULL);
-    virCommandAddArgFormat(cmd, "%s/%u", addrstr, prefix);
-    if (peerstr)
-        virCommandAddArgList(cmd, "peer", peerstr, NULL);
-    if (bcaststr)
-        virCommandAddArgList(cmd, "broadcast", bcaststr, NULL);
-    virCommandAddArgList(cmd, "dev", ifname, NULL);
-# endif
-
-    if (virCommandRun(cmd, NULL) < 0)
-        goto cleanup;
-
-    ret = 0;
- cleanup:
-    VIR_FREE(addrstr);
-    VIR_FREE(bcaststr);
-    VIR_FREE(peerstr);
-    virCommandFree(cmd);
-    return ret;
-}
-
-int
-virNetDevAddRoute(const char *ifname,
-                  virSocketAddrPtr addr,
-                  unsigned int prefix,
-                  virSocketAddrPtr gateway,
-                  unsigned int metric)
-{
-    virCommandPtr cmd = NULL;
-    char *addrstr = NULL, *gatewaystr = NULL;
-    int ret = -1;
-
-    if (!(addrstr = virSocketAddrFormat(addr)))
-        goto cleanup;
-    if (!(gatewaystr = virSocketAddrFormat(gateway)))
-        goto cleanup;
-    cmd = virCommandNew(IP_PATH);
-    virCommandAddArgList(cmd, "route", "add", NULL);
-    virCommandAddArgFormat(cmd, "%s/%u", addrstr, prefix);
-    virCommandAddArgList(cmd, "via", gatewaystr, "dev", ifname,
-                              "proto", "static", "metric", NULL);
-    virCommandAddArgFormat(cmd, "%u", metric);
-
-    if (virCommandRun(cmd, NULL) < 0)
-        goto cleanup;
-
-    ret = 0;
- cleanup:
-    VIR_FREE(addrstr);
-    VIR_FREE(gatewaystr);
-    virCommandFree(cmd);
-    return ret;
-}
-
-int virNetDevClearIPAddress(const char *ifname,
-                            virSocketAddr *addr,
-                            unsigned int prefix)
-{
-    virCommandPtr cmd = NULL;
-    char *addrstr;
-    int ret = -1;
-
-    if (!(addrstr = virSocketAddrFormat(addr)))
-        goto cleanup;
-# ifdef IFCONFIG_PATH
-    cmd = virCommandNew(IFCONFIG_PATH);
-    virCommandAddArg(cmd, ifname);
-    if (VIR_SOCKET_ADDR_IS_FAMILY(addr, AF_INET6))
-        virCommandAddArg(cmd, "inet6");
-    else
-        virCommandAddArg(cmd, "inet");
-    virCommandAddArgFormat(cmd, "%s/%u", addrstr, prefix);
-    virCommandAddArg(cmd, "-alias");
-# else
-    cmd = virCommandNew(IP_PATH);
-    virCommandAddArgList(cmd, "addr", "del", NULL);
-    virCommandAddArgFormat(cmd, "%s/%u", addrstr, prefix);
-    virCommandAddArgList(cmd, "dev", ifname, NULL);
-# endif
-
-    if (virCommandRun(cmd, NULL) < 0)
-        goto cleanup;
-
-    ret = 0;
- cleanup:
-    VIR_FREE(addrstr);
-    virCommandFree(cmd);
-    return ret;
-}
-
-/* return after DAD finishes for all known IPv6 addresses or an error */
-int
-virNetDevWaitDadFinish(virSocketAddrPtr *addrs ATTRIBUTE_UNUSED,
-                       size_t count ATTRIBUTE_UNUSED)
-{
-    virReportSystemError(ENOSYS, "%s",
-                         _("Unable to wait for IPv6 DAD on this platform"));
-    return -1;
-}
-
-#endif /* defined(__linux__) && defined(HAVE_LIBNL) */
-
-/**
- * virNetDevGetIPv4AddressIoctl:
- * @ifname: name of the interface whose IP address we want
- * @addr: filled with the IPv4 address
- *
- * This function gets the IPv4 address for the interface @ifname
- * and stores it in @addr
- *
- * Returns 0 on success, -errno on failure.
- */
-#if defined(SIOCGIFADDR) && defined(HAVE_STRUCT_IFREQ)
-static int
-virNetDevGetIPv4AddressIoctl(const char *ifname,
-                             virSocketAddrPtr addr)
-{
-    int fd = -1;
-    int ret = -1;
-    struct ifreq ifr;
-
-    if ((fd = virNetDevSetupControl(ifname, &ifr)) < 0)
-        return -1;
-
-    if (ioctl(fd, SIOCGIFADDR, (char *)&ifr) < 0) {
-        virReportSystemError(errno,
-                             _("Unable to get IPv4 address for interface %s via ioctl"),
-                             ifname);
-        goto cleanup;
-    }
-
-    addr->data.stor.ss_family = AF_INET;
-    addr->len = sizeof(addr->data.inet4);
-    memcpy(&addr->data.inet4, &ifr.ifr_addr, addr->len);
-    ret = 0;
-
- cleanup:
-    VIR_FORCE_CLOSE(fd);
-    return ret;
-}
-
-#else /* ! SIOCGIFADDR */
-
-static int
-virNetDevGetIPv4AddressIoctl(const char *ifname ATTRIBUTE_UNUSED,
-                             virSocketAddrPtr addr ATTRIBUTE_UNUSED)
-{
-    return -2;
-}
-
-#endif /* ! SIOCGIFADDR */
-
-/**
- * virNetDevGetifaddrsAddress:
- * @ifname: name of the interface whose IP address we want
- * @addr: filled with the IP address
- *
- * This function gets the IP address for the interface @ifname
- * and stores it in @addr
- *
- * Returns 0 on success, -1 on failure, -2 on unsupported.
- */
-#if HAVE_GETIFADDRS
-static int
-virNetDevGetifaddrsAddress(const char *ifname,
-                           virSocketAddrPtr addr)
-{
-    struct ifaddrs *ifap, *ifa;
-    int ret = -1;
-
-    if (getifaddrs(&ifap) < 0) {
-        virReportSystemError(errno,
-                             _("Could not get interface list for '%s'"),
-                             ifname);
-        return -1;
-    }
-
-    for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
-        int family = ifa->ifa_addr->sa_family;
-
-        if (STRNEQ_NULLABLE(ifa->ifa_name, ifname))
-            continue;
-        if (family != AF_INET6 && family != AF_INET)
-            continue;
-
-        if (family == AF_INET6) {
-            addr->len = sizeof(addr->data.inet6);
-            memcpy(&addr->data.inet6, ifa->ifa_addr, addr->len);
-        } else {
-            addr->len = sizeof(addr->data.inet4);
-            memcpy(&addr->data.inet4, ifa->ifa_addr, addr->len);
-        }
-        addr->data.stor.ss_family = family;
-        ret = 0;
-        goto cleanup;
-    }
-
-    virReportError(VIR_ERR_INTERNAL_ERROR,
-                   _("no IP address found for interface '%s'"),
-                   ifname);
- cleanup:
-    freeifaddrs(ifap);
-    return ret;
-}
-
-#else  /* ! HAVE_GETIFADDRS */
-
-static int
-virNetDevGetifaddrsAddress(const char *ifname ATTRIBUTE_UNUSED,
-                           virSocketAddrPtr addr ATTRIBUTE_UNUSED)
-{
-    return -2;
-}
-
-#endif
-
-/**
- * virNetDevGetIPAddress:
- * @ifname: name of the interface whose IP address we want
- * @addr: filled with the IPv4 address
- *
- * This function gets the IPv4 address for the interface @ifname
- * and stores it in @addr
- *
- * Returns 0 on success, -errno on failure.
- */
-int
-virNetDevGetIPAddress(const char *ifname,
-                      virSocketAddrPtr addr)
-{
-    int ret;
-
-    memset(addr, 0, sizeof(*addr));
-    addr->data.stor.ss_family = AF_UNSPEC;
-
-    if ((ret = virNetDevGetifaddrsAddress(ifname, addr)) != -2)
-        return ret;
-
-    if ((ret = virNetDevGetIPv4AddressIoctl(ifname, addr)) != -2)
-        return ret;
-
-    virReportSystemError(ENOSYS, "%s",
-                         _("Unable to get IP address on this platform"));
-    return -1;
-}
-
 /**
  * virNetDevValidateConfig:
  * @ifname: Name of the interface
@@ -2086,124 +1376,6 @@ static struct nla_policy ifla_vf_policy[IFLA_VF_MAX+1] = {
                             .maxlen = sizeof(struct ifla_vf_vlan) },
 };
 
-/**
- * virNetDevLinkDump:
- *
- * @ifname:  The name of the interface; only use if ifindex <= 0
- * @ifindex: The interface index; may be <= 0 if ifname is given
- * @data:    Gets a pointer to the raw data from netlink.
-             MUST BE FREED BY CALLER!
- * @nlattr:  Pointer to a pointer of netlink attributes that will contain
- *           the results
- * @src_pid: pid used for nl_pid of the local end of the netlink message
- *           (0 == "use getpid()")
- * @dst_pid: pid of destination nl_pid if the kernel
- *           is not the target of the netlink message but it is to be
- *           sent to another process (0 if sending to the kernel)
- *
- * Get information from netlink about an interface given its name or index.
- *
- * Returns 0 on success, -1 on fatal error.
- */
-int
-virNetDevLinkDump(const char *ifname, int ifindex,
-                  void **nlData, struct nlattr **tb,
-                  uint32_t src_pid, uint32_t dst_pid)
-{
-    int rc = -1;
-    struct nlmsghdr *resp = NULL;
-    struct nlmsgerr *err;
-    struct ifinfomsg ifinfo = {
-        .ifi_family = AF_UNSPEC,
-        .ifi_index  = ifindex
-    };
-    unsigned int recvbuflen;
-    struct nl_msg *nl_msg;
-
-    if (ifname && ifindex <= 0 && virNetDevGetIndex(ifname, &ifindex) < 0)
-        return -1;
-
-    ifinfo.ifi_index = ifindex;
-
-    nl_msg = nlmsg_alloc_simple(RTM_GETLINK, NLM_F_REQUEST);
-    if (!nl_msg) {
-        virReportOOMError();
-        return -1;
-    }
-
-    if (nlmsg_append(nl_msg,  &ifinfo, sizeof(ifinfo), NLMSG_ALIGNTO) < 0)
-        goto buffer_too_small;
-
-    if (ifname) {
-        if (nla_put(nl_msg, IFLA_IFNAME, strlen(ifname)+1, ifname) < 0)
-            goto buffer_too_small;
-    }
-
-# ifdef RTEXT_FILTER_VF
-    /* if this filter exists in the kernel's netlink implementation,
-     * we need to set it, otherwise the response message will not
-     * contain the IFLA_VFINFO_LIST that we're looking for.
-     */
-    {
-        uint32_t ifla_ext_mask = RTEXT_FILTER_VF;
-
-        if (nla_put(nl_msg, IFLA_EXT_MASK,
-                    sizeof(ifla_ext_mask), &ifla_ext_mask) < 0) {
-            goto buffer_too_small;
-        }
-    }
-# endif
-
-    if (virNetlinkCommand(nl_msg, &resp, &recvbuflen,
-                          src_pid, dst_pid, NETLINK_ROUTE, 0) < 0)
-        goto cleanup;
-
-    if (recvbuflen < NLMSG_LENGTH(0) || resp == NULL)
-        goto malformed_resp;
-
-    switch (resp->nlmsg_type) {
-    case NLMSG_ERROR:
-        err = (struct nlmsgerr *)NLMSG_DATA(resp);
-        if (resp->nlmsg_len < NLMSG_LENGTH(sizeof(*err)))
-            goto malformed_resp;
-
-        if (err->error) {
-            virReportSystemError(-err->error,
-                                 _("error dumping %s (%d) interface"),
-                                 ifname, ifindex);
-            goto cleanup;
-        }
-        break;
-
-    case GENL_ID_CTRL:
-    case NLMSG_DONE:
-        rc = nlmsg_parse(resp, sizeof(struct ifinfomsg),
-                         tb, IFLA_MAX, NULL);
-        if (rc < 0)
-            goto malformed_resp;
-        break;
-
-    default:
-        goto malformed_resp;
-    }
-    rc = 0;
- cleanup:
-    nlmsg_free(nl_msg);
-    if (rc < 0)
-       VIR_FREE(resp);
-    *nlData = resp;
-    return rc;
-
- malformed_resp:
-    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                   _("malformed netlink response message"));
-    goto cleanup;
-
- buffer_too_small:
-    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                   _("allocated netlink buffer is too small"));
-    goto cleanup;
-}
 
 static int
 virNetDevSetVfConfig(const char *ifname, int ifindex, int vf,
@@ -2398,7 +1570,7 @@ virNetDevGetVfConfig(const char *ifname, int vf, virMacAddrPtr mac,
     struct nlattr *tb[IFLA_MAX + 1] = {NULL, };
     int ifindex = -1;
 
-    rc = virNetDevLinkDump(ifname, ifindex, &nlData, tb, 0, 0);
+    rc = virNetlinkDumpLink(ifname, ifindex, &nlData, tb, 0, 0);
     if (rc < 0)
         goto cleanup;
 
@@ -2640,19 +1812,6 @@ virNetDevRestoreNetConfig(const char *linkdev, int vf, const char *stateDir)
 #else /* defined(__linux__) && defined(HAVE_LIBNL) */
 
 int
-virNetDevLinkDump(const char *ifname ATTRIBUTE_UNUSED,
-                  int ifindex ATTRIBUTE_UNUSED,
-                  void **nlData ATTRIBUTE_UNUSED,
-                  struct nlattr **tb ATTRIBUTE_UNUSED,
-                  uint32_t src_pid ATTRIBUTE_UNUSED,
-                  uint32_t dst_pid ATTRIBUTE_UNUSED)
-{
-    virReportSystemError(ENOSYS, "%s",
-                         _("Unable to dump link info on this platform"));
-    return -1;
-}
-
-int
 virNetDevReplaceNetConfig(const char *linkdev ATTRIBUTE_UNUSED,
                           int vf ATTRIBUTE_UNUSED,
                           const virMacAddr *macaddress ATTRIBUTE_UNUSED,
@@ -2677,10 +1836,33 @@ virNetDevRestoreNetConfig(const char *linkdev ATTRIBUTE_UNUSED,
 
 #endif /* defined(__linux__) && defined(HAVE_LIBNL) */
 
+VIR_ENUM_IMPL(virNetDevIfState,
+              VIR_NETDEV_IF_STATE_LAST,
+              "" /* value of zero means no state */,
+              "unknown", "notpresent",
+              "down", "lowerlayerdown",
+              "testing", "dormant", "up")
+
+VIR_ENUM_IMPL(virNetDevFeature,
+              VIR_NET_DEV_FEAT_LAST,
+              "rx",
+              "tx",
+              "sg",
+              "tso",
+              "gso",
+              "gro",
+              "lro",
+              "rxvlan",
+              "txvlan",
+              "ntuple",
+              "rxhash",
+              "rdma",
+              "txudptnl")
+
 #ifdef __linux__
 int
 virNetDevGetLinkInfo(const char *ifname,
-                     virInterfaceLinkPtr lnk)
+                     virNetDevIfLinkPtr lnk)
 {
     int ret = -1;
     char *path = NULL;
@@ -2710,7 +1892,7 @@ virNetDevGetLinkInfo(const char *ifname,
 
     /* We shouldn't allow 0 here, because
      * virInterfaceState enum starts from 1. */
-    if ((tmp_state = virInterfaceStateTypeFromString(buf)) <= 0) {
+    if ((tmp_state = virNetDevIfStateTypeFromString(buf)) <= 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Unable to parse: %s"),
                        buf);
@@ -2723,7 +1905,7 @@ virNetDevGetLinkInfo(const char *ifname,
      * report several misleading values. While igb reports 65535, realtek goes
      * with 10. To avoid muddying XML with insane values, don't report link
      * speed if that's the case. */
-    if (lnk->state != VIR_INTERFACE_STATE_UP) {
+    if (lnk->state != VIR_NETDEV_IF_STATE_UP) {
         lnk->speed = 0;
         ret = 0;
         goto cleanup;
@@ -2768,7 +1950,7 @@ virNetDevGetLinkInfo(const char *ifname,
 
 int
 virNetDevGetLinkInfo(const char *ifname,
-                     virInterfaceLinkPtr lnk)
+                     virNetDevIfLinkPtr lnk)
 {
     /* Port me */
     VIR_DEBUG("Getting link info on %s is not implemented on this platform",

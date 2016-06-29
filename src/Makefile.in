@@ -1710,6 +1710,7 @@ am__objects_92 = util/libvirt_util_la-viralloc.lo \
 	util/libvirt_util_la-virnetdev.lo \
 	util/libvirt_util_la-virnetdevbandwidth.lo \
 	util/libvirt_util_la-virnetdevbridge.lo \
+	util/libvirt_util_la-virnetdevip.lo \
 	util/libvirt_util_la-virnetdevmacvlan.lo \
 	util/libvirt_util_la-virnetdevmidonet.lo \
 	util/libvirt_util_la-virnetdevopenvswitch.lo \
@@ -3788,6 +3789,7 @@ UTIL_SOURCES = \
 		util/virnetdev.h util/virnetdev.c		\
 		util/virnetdevbandwidth.h util/virnetdevbandwidth.c \
 		util/virnetdevbridge.h util/virnetdevbridge.c	\
+		util/virnetdevip.h util/virnetdevip.c		\
 		util/virnetdevmacvlan.c util/virnetdevmacvlan.h	\
 		util/virnetdevmidonet.h util/virnetdevmidonet.c \
 		util/virnetdevopenvswitch.h util/virnetdevopenvswitch.c \
@@ -6497,6 +6499,8 @@ util/libvirt_util_la-virnetdevbandwidth.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_util_la-virnetdevbridge.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
+util/libvirt_util_la-virnetdevip.lo: util/$(am__dirstamp) \
+	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_util_la-virnetdevmacvlan.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_util_la-virnetdevmidonet.lo: util/$(am__dirstamp) \
@@ -7209,6 +7213,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virnetdev.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virnetdevbandwidth.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virnetdevbridge.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virnetdevip.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virnetdevmacvlan.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virnetdevmidonet.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virnetdevopenvswitch.Plo@am__quote@
@@ -9719,6 +9724,13 @@ util/libvirt_util_la-virnetdevbridge.lo: util/virnetdevbridge.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/virnetdevbridge.c' object='util/libvirt_util_la-virnetdevbridge.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_util_la-virnetdevbridge.lo `test -f 'util/virnetdevbridge.c' || echo '$(srcdir)/'`util/virnetdevbridge.c
+
+util/libvirt_util_la-virnetdevip.lo: util/virnetdevip.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT util/libvirt_util_la-virnetdevip.lo -MD -MP -MF util/$(DEPDIR)/libvirt_util_la-virnetdevip.Tpo -c -o util/libvirt_util_la-virnetdevip.lo `test -f 'util/virnetdevip.c' || echo '$(srcdir)/'`util/virnetdevip.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) util/$(DEPDIR)/libvirt_util_la-virnetdevip.Tpo util/$(DEPDIR)/libvirt_util_la-virnetdevip.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/virnetdevip.c' object='util/libvirt_util_la-virnetdevip.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_util_la-virnetdevip.lo `test -f 'util/virnetdevip.c' || echo '$(srcdir)/'`util/virnetdevip.c
 
 util/libvirt_util_la-virnetdevmacvlan.lo: util/virnetdevmacvlan.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT util/libvirt_util_la-virnetdevmacvlan.lo -MD -MP -MF util/$(DEPDIR)/libvirt_util_la-virnetdevmacvlan.Tpo -c -o util/libvirt_util_la-virnetdevmacvlan.lo `test -f 'util/virnetdevmacvlan.c' || echo '$(srcdir)/'`util/virnetdevmacvlan.c

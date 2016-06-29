@@ -27,11 +27,9 @@
 
 # include "virbitmap.h"
 # include "virsocketaddr.h"
-# include "virnetlink.h"
 # include "virmacaddr.h"
 # include "virpci.h"
 # include "virnetdevvlan.h"
-# include "device_conf.h"
 
 # ifdef HAVE_STRUCT_IFREQ
 typedef struct ifreq virIfreq;
@@ -75,6 +73,43 @@ struct _virNetDevRxFilter {
     } vlan;
 };
 
+typedef enum {
+    VIR_NETDEV_IF_STATE_UNKNOWN = 1,
+    VIR_NETDEV_IF_STATE_NOT_PRESENT,
+    VIR_NETDEV_IF_STATE_DOWN,
+    VIR_NETDEV_IF_STATE_LOWER_LAYER_DOWN,
+    VIR_NETDEV_IF_STATE_TESTING,
+    VIR_NETDEV_IF_STATE_DORMANT,
+    VIR_NETDEV_IF_STATE_UP,
+    VIR_NETDEV_IF_STATE_LAST
+} virNetDevIfState;
+
+VIR_ENUM_DECL(virNetDevIfState)
+
+typedef struct {
+    virNetDevIfState state; /* link state */
+    unsigned int speed;      /* link speed in Mbits per second */
+} virNetDevIfLink, *virNetDevIfLinkPtr;
+
+typedef enum {
+    VIR_NET_DEV_FEAT_GRXCSUM,
+    VIR_NET_DEV_FEAT_GTXCSUM,
+    VIR_NET_DEV_FEAT_GSG,
+    VIR_NET_DEV_FEAT_GTSO,
+    VIR_NET_DEV_FEAT_GGSO,
+    VIR_NET_DEV_FEAT_GGRO,
+    VIR_NET_DEV_FEAT_LRO,
+    VIR_NET_DEV_FEAT_RXVLAN,
+    VIR_NET_DEV_FEAT_TXVLAN,
+    VIR_NET_DEV_FEAT_NTUPLE,
+    VIR_NET_DEV_FEAT_RXHASH,
+    VIR_NET_DEV_FEAT_RDMA,
+    VIR_NET_DEV_FEAT_TXUDPTNL,
+    VIR_NET_DEV_FEAT_LAST
+} virNetDevFeature;
+
+VIR_ENUM_DECL(virNetDevFeature)
+
 int virNetDevSetupControl(const char *ifname,
                           virIfreq *ifr)
     ATTRIBUTE_RETURN_CHECK;
@@ -88,27 +123,6 @@ int virNetDevSetOnline(const char *ifname,
 int virNetDevGetOnline(const char *ifname,
                       bool *online)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
-
-int virNetDevSetIPAddress(const char *ifname,
-                          virSocketAddr *addr,
-                          virSocketAddr *peer,
-                          unsigned int prefix)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
-int virNetDevAddRoute(const char *ifname,
-                      virSocketAddrPtr addr,
-                      unsigned int prefix,
-                      virSocketAddrPtr gateway,
-                      unsigned int metric)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(4)
-    ATTRIBUTE_RETURN_CHECK;
-int virNetDevClearIPAddress(const char *ifname,
-                            virSocketAddr *addr,
-                            unsigned int prefix)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
-int virNetDevGetIPAddress(const char *ifname, virSocketAddrPtr addr)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
-int virNetDevWaitDadFinish(virSocketAddrPtr *addrs, size_t count)
-    ATTRIBUTE_NONNULL(1);
 
 
 int virNetDevSetMAC(const char *ifname,
@@ -170,11 +184,6 @@ int virNetDevGetVirtualFunctions(const char *pfname,
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
     ATTRIBUTE_NONNULL(4) ATTRIBUTE_NONNULL(5) ATTRIBUTE_RETURN_CHECK;
 
-int virNetDevLinkDump(const char *ifname, int ifindex,
-                      void **nlData, struct nlattr **tb,
-                      uint32_t src_pid, uint32_t dst_pid)
-    ATTRIBUTE_RETURN_CHECK;
-
 int virNetDevReplaceNetConfig(const char *linkdev, int vf,
                               const virMacAddr *macaddress,
                               virNetDevVlanPtr vlan,
@@ -193,7 +202,7 @@ int virNetDevGetFeatures(const char *ifname,
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
 
 int virNetDevGetLinkInfo(const char *ifname,
-                         virInterfaceLinkPtr lnk)
+                         virNetDevIfLinkPtr lnk)
     ATTRIBUTE_NONNULL(1);
 
 virNetDevRxFilterPtr virNetDevRxFilterNew(void)

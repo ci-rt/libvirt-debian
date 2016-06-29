@@ -78,8 +78,6 @@ virCPUModeTypeToString;
 # conf/device_conf.h
 virInterfaceLinkFormat;
 virInterfaceLinkParseXML;
-virInterfaceStateTypeFromString;
-virInterfaceStateTypeToString;
 virPCIDeviceAddressEqual;
 virPCIDeviceAddressFormat;
 virPCIDeviceAddressIsValid;
@@ -373,7 +371,8 @@ virDomainMemoryFindByDef;
 virDomainMemoryFindInactiveByDef;
 virDomainMemoryInsert;
 virDomainMemoryRemove;
-virDomainNetAppendIpAddress;
+virDomainNetAppendIPAddress;
+virDomainNetDefClear;
 virDomainNetDefFormat;
 virDomainNetDefFree;
 virDomainNetFind;
@@ -599,7 +598,7 @@ virNetworkDefFormat;
 virNetworkDefFormatBuf;
 virNetworkDefForwardIf;
 virNetworkDefFree;
-virNetworkDefGetIpByIndex;
+virNetworkDefGetIPByIndex;
 virNetworkDefGetRouteByIndex;
 virNetworkDefParseFile;
 virNetworkDefParseNode;
@@ -607,8 +606,8 @@ virNetworkDefParseString;
 virNetworkDefUpdateSection;
 virNetworkDeleteConfig;
 virNetworkForwardTypeToString;
-virNetworkIpDefNetmask;
-virNetworkIpDefPrefix;
+virNetworkIPDefNetmask;
+virNetworkIPDefPrefix;
 virNetworkLoadAllConfigs;
 virNetworkLoadAllState;
 virNetworkObjAssignDef;
@@ -645,14 +644,9 @@ virNetworkEventStateRegisterID;
 
 
 # conf/networkcommon_conf.h
-virNetworkRouteDefCreate;
-virNetworkRouteDefFormat;
-virNetworkRouteDefFree;
-virNetworkRouteDefGetAddress;
-virNetworkRouteDefGetGateway;
-virNetworkRouteDefGetMetric;
-virNetworkRouteDefGetPrefix;
-virNetworkRouteDefParseXML;
+virNetDevIPRouteCreate;
+virNetDevIPRouteFormat;
+virNetDevIPRouteParseXML;
 
 
 # conf/node_device_conf.h
@@ -1857,13 +1851,12 @@ virMacAddrSetRaw;
 
 # util/virnetdev.h
 virNetDevAddMulti;
-virNetDevAddRoute;
-virNetDevClearIPAddress;
 virNetDevDelMulti;
 virNetDevExists;
+virNetDevFeatureTypeFromString;
+virNetDevFeatureTypeToString;
 virNetDevGetFeatures;
 virNetDevGetIndex;
-virNetDevGetIPAddress;
 virNetDevGetLinkInfo;
 virNetDevGetMAC;
 virNetDevGetMTU;
@@ -1877,8 +1870,9 @@ virNetDevGetVirtualFunctionIndex;
 virNetDevGetVirtualFunctionInfo;
 virNetDevGetVirtualFunctions;
 virNetDevGetVLanID;
+virNetDevIfStateTypeFromString;
+virNetDevIfStateTypeToString;
 virNetDevIsVirtualFunction;
-virNetDevLinkDump;
 virNetDevReplaceMacAddress;
 virNetDevReplaceNetConfig;
 virNetDevRestoreMacAddress;
@@ -1888,7 +1882,6 @@ virNetDevRxFilterFree;
 virNetDevRxFilterModeTypeFromString;
 virNetDevRxFilterModeTypeToString;
 virNetDevRxFilterNew;
-virNetDevSetIPAddress;
 virNetDevSetMAC;
 virNetDevSetMTU;
 virNetDevSetMTUFromDevice;
@@ -1901,7 +1894,6 @@ virNetDevSetRcvMulti;
 virNetDevSetupControl;
 virNetDevSysfsFile;
 virNetDevValidateConfig;
-virNetDevWaitDadFinish;
 
 
 # util/virnetdevbandwidth.h
@@ -1933,6 +1925,20 @@ virNetDevBridgeRemovePort;
 virNetDevBridgeSetSTP;
 virNetDevBridgeSetSTPDelay;
 virNetDevBridgeSetVlanFiltering;
+
+
+# util/virnetdevip.h
+virNetDevIPAddrAdd;
+virNetDevIPAddrDel;
+virNetDevIPAddrGet;
+virNetDevIPInfoClear;
+virNetDevIPRouteAdd;
+virNetDevIPRouteFree;
+virNetDevIPRouteGetAddress;
+virNetDevIPRouteGetGateway;
+virNetDevIPRouteGetMetric;
+virNetDevIPRouteGetPrefix;
+virNetDevIPWaitDadFinish;
 
 
 # util/virnetdevmacvlan.h
@@ -1992,6 +1998,7 @@ virNetDevVPortProfileOpTypeToString;
 # util/virnetlink.h
 virNetlinkCommand;
 virNetlinkDelLink;
+virNetlinkDumpLink;
 virNetlinkEventAddClient;
 virNetlinkEventRemoveClient;
 virNetlinkEventServiceIsRunning;
@@ -2256,7 +2263,7 @@ virSocketAddrCheckNetmask;
 virSocketAddrEqual;
 virSocketAddrFormat;
 virSocketAddrFormatFull;
-virSocketAddrGetIpPrefix;
+virSocketAddrGetIPPrefix;
 virSocketAddrGetNumNetmaskBits;
 virSocketAddrGetPort;
 virSocketAddrGetRange;

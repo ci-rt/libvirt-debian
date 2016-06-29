@@ -53,6 +53,7 @@
 #include "network_conf.h"
 #include "virtpm.h"
 #include "virstring.h"
+#include "virnetdev.h"
 
 #define VIR_FROM_THIS VIR_FROM_DOMAIN
 
@@ -1736,22 +1737,18 @@ virDomainActualNetDefFree(virDomainActualNetDefPtr def)
     VIR_FREE(def);
 }
 
-void virDomainNetDefFree(virDomainNetDefPtr def)
+void
+virDomainNetDefClear(virDomainNetDefPtr def)
 {
-    size_t i;
-
     if (!def)
         return;
 
     VIR_FREE(def->model);
 
     switch (def->type) {
-    case VIR_DOMAIN_NET_TYPE_ETHERNET:
-        VIR_FREE(def->data.ethernet.dev);
-        break;
-
     case VIR_DOMAIN_NET_TYPE_VHOSTUSER:
         virDomainChrSourceDefFree(def->data.vhostuser);
+        def->data.vhostuser = NULL;
         break;
 
     case VIR_DOMAIN_NET_TYPE_SERVER:
@@ -1766,6 +1763,7 @@ void virDomainNetDefFree(virDomainNetDefPtr def)
         VIR_FREE(def->data.network.name);
         VIR_FREE(def->data.network.portgroup);
         virDomainActualNetDefFree(def->data.network.actual);
+        def->data.network.actual = NULL;
         break;
 
     case VIR_DOMAIN_NET_TYPE_BRIDGE:
@@ -1784,6 +1782,7 @@ void virDomainNetDefFree(virDomainNetDefPtr def)
         virDomainHostdevDefClear(&def->data.hostdev.def);
         break;
 
+    case VIR_DOMAIN_NET_TYPE_ETHERNET:
     case VIR_DOMAIN_NET_TYPE_USER:
     case VIR_DOMAIN_NET_TYPE_LAST:
         break;
@@ -1798,22 +1797,24 @@ void virDomainNetDefFree(virDomainNetDefPtr def)
     VIR_FREE(def->ifname_guest);
     VIR_FREE(def->ifname_guest_actual);
 
-    for (i = 0; i < def->nips; i++)
-        VIR_FREE(def->ips[i]);
-    VIR_FREE(def->ips);
-
-    for (i = 0; i < def->nroutes; i++)
-        virNetworkRouteDefFree(def->routes[i]);
-    VIR_FREE(def->routes);
-
+    virNetDevIPInfoClear(&def->guestIP);
     virDomainDeviceInfoClear(&def->info);
 
     VIR_FREE(def->filter);
     virNWFilterHashTableFree(def->filterparams);
+    def->filterparams = NULL;
 
     virNetDevBandwidthFree(def->bandwidth);
+    def->bandwidth = NULL;
     virNetDevVlanClear(&def->vlan);
+}
 
+void
+virDomainNetDefFree(virDomainNetDefPtr def)
+{
+    if (!def)
+        return;
+    virDomainNetDefClear(def);
     VIR_FREE(def);
 }
 
@@ -2172,8 +2173,6 @@ virDomainHostdevSubsysSCSIiSCSIClear(virDomainHostdevSubsysSCSIiSCSIPtr iscsisrc
 
 void virDomainHostdevDefClear(virDomainHostdevDefPtr def)
 {
-    size_t i;
-
     if (!def)
         return;
 
@@ -2197,13 +2196,8 @@ void virDomainHostdevDefClear(virDomainHostdevDefPtr def)
             VIR_FREE(def->source.caps.u.misc.chardev);
             break;
         case VIR_DOMAIN_HOSTDEV_CAPS_TYPE_NET:
-            VIR_FREE(def->source.caps.u.net.iface);
-            for (i = 0; i < def->source.caps.u.net.nips; i++)
-                VIR_FREE(def->source.caps.u.net.ips[i]);
-            VIR_FREE(def->source.caps.u.net.ips);
-            for (i = 0; i < def->source.caps.u.net.nroutes; i++)
-                virNetworkRouteDefFree(def->source.caps.u.net.routes[i]);
-            VIR_FREE(def->source.caps.u.net.routes);
+            VIR_FREE(def->source.caps.u.net.ifname);
+            virNetDevIPInfoClear(&def->source.caps.u.net.ip);
             break;
         }
         break;
@@ -6118,26 +6112,20 @@ virDomainHostdevDefParseXMLSubsys(xmlNodePtr node,
     return ret;
 }
 
-static virDomainNetIpDefPtr
-virDomainNetIpParseXML(xmlNodePtr node)
+static virNetDevIPAddrPtr
+virDomainNetIPParseXML(xmlNodePtr node)
 {
     /* Parse the prefix in every case */
-    virDomainNetIpDefPtr ip = NULL, ret = NULL;
+    virNetDevIPAddrPtr ip = NULL, ret = NULL;
     char *prefixStr = NULL;
     unsigned int prefixValue = 0;
     char *familyStr = NULL;
     int family = AF_UNSPEC;
     char *address = NULL;
 
-    if (!(prefixStr = virXMLPropString(node, "prefix")) ||
-        (virStrToLong_ui(prefixStr, NULL, 10, &prefixValue) < 0)) {
-        // Don't shout, as some old config may not have a prefix
-        VIR_DEBUG("Missing or invalid network prefix");
-    }
-
     if (!(address = virXMLPropString(node, "address"))) {
-        virReportError(VIR_ERR_INVALID_ARG, "%s",
-                       _("Missing network address"));
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("Missing required address in <ip>"));
         goto cleanup;
     }
 
@@ -6153,9 +6141,20 @@ virDomainNetIpParseXML(xmlNodePtr node)
         goto cleanup;
 
     if (virSocketAddrParse(&ip->address, address, family) < 0) {
-        virReportError(VIR_ERR_INVALID_ARG,
-                       _("Failed to parse IP address: '%s'"),
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Invalid address '%s' in <ip>"),
                        address);
+        goto cleanup;
+    }
+
+    prefixStr = virXMLPropString(node, "prefix");
+    if (prefixStr &&
+        ((virStrToLong_ui(prefixStr, NULL, 10, &prefixValue) < 0) ||
+         (family == AF_INET6 && prefixValue > 128) ||
+         (family == AF_INET && prefixValue > 32))) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Invalid prefix value '%s' in <ip>"),
+                       prefixStr);
         goto cleanup;
     }
     ip->prefix = prefixValue;
@@ -6171,6 +6170,53 @@ virDomainNetIpParseXML(xmlNodePtr node)
     return ret;
 }
 
+
+/* fill in a virNetDevIPInfoPtr from the <route> and <ip>
+ * elements found in the given XML context.
+ *
+ * return 0 on success (including none found) and -1 on failure.
+ */
+static int
+virDomainNetIPInfoParseXML(const char *source,
+                           xmlXPathContextPtr ctxt,
+                           virNetDevIPInfoPtr def)
+{
+    xmlNodePtr *nodes = NULL;
+    virNetDevIPAddrPtr ip = NULL;
+    virNetDevIPRoutePtr route = NULL;
+    int nnodes;
+    int ret = -1;
+    size_t i;
+
+    if ((nnodes = virXPathNodeSet("./ip", ctxt, &nodes)) < 0)
+        goto cleanup;
+
+    for (i = 0; i < nnodes; i++) {
+        if (!(ip = virDomainNetIPParseXML(nodes[i])) ||
+            VIR_APPEND_ELEMENT(def->ips, def->nips, ip) < 0)
+            goto cleanup;
+    }
+    VIR_FREE(nodes);
+
+    if ((nnodes = virXPathNodeSet("./route", ctxt, &nodes)) < 0)
+        goto cleanup;
+
+    for (i = 0; i < nnodes; i++) {
+        if (!(route = virNetDevIPRouteParseXML(source, nodes[i], ctxt)) ||
+            VIR_APPEND_ELEMENT(def->routes, def->nroutes, route) < 0)
+            goto cleanup;
+    }
+
+    ret = 0;
+ cleanup:
+    if (ret < 0)
+        virNetDevIPInfoClear(def);
+    VIR_FREE(ip);
+    virNetDevIPRouteFree(route);
+    VIR_FREE(nodes);
+    return ret;
+}
+
 static int
 virDomainHostdevDefParseXMLCaps(xmlNodePtr node ATTRIBUTE_UNUSED,
                                 xmlXPathContextPtr ctxt,
@@ -6178,10 +6224,6 @@ virDomainHostdevDefParseXMLCaps(xmlNodePtr node ATTRIBUTE_UNUSED,
                                 virDomainHostdevDefPtr def)
 {
     xmlNodePtr sourcenode;
-    xmlNodePtr *ipnodes = NULL;
-    int nipnodes;
-    xmlNodePtr *routenodes = NULL;
-    int nroutenodes;
     int ret = -1;
 
     /* @type is passed in from the caller rather than read from the
@@ -6230,55 +6272,15 @@ virDomainHostdevDefParseXMLCaps(xmlNodePtr node ATTRIBUTE_UNUSED,
         }
         break;
     case VIR_DOMAIN_HOSTDEV_CAPS_TYPE_NET:
-        if (!(def->source.caps.u.net.iface =
+        if (!(def->source.caps.u.net.ifname =
               virXPathString("string(./source/interface[1])", ctxt))) {
             virReportError(VIR_ERR_XML_ERROR, "%s",
                            _("Missing <interface> element in hostdev net device"));
             goto error;
         }
-
-        /* Parse possible IP addresses */
-        if ((nipnodes = virXPathNodeSet("./ip", ctxt, &ipnodes)) < 0)
+        if (virDomainNetIPInfoParseXML(_("Domain hostdev device"),
+                                       ctxt, &def->source.caps.u.net.ip) < 0)
             goto error;
-
-        if (nipnodes) {
-            size_t i;
-            for (i = 0; i < nipnodes; i++) {
-                virDomainNetIpDefPtr ip = virDomainNetIpParseXML(ipnodes[i]);
-
-                if (!ip)
-                    goto error;
-
-                if (VIR_APPEND_ELEMENT(def->source.caps.u.net.ips,
-                                       def->source.caps.u.net.nips, ip) < 0) {
-                    VIR_FREE(ip);
-                    goto error;
-                }
-            }
-        }
-
-        /* Look for possible gateways */
-        if ((nroutenodes = virXPathNodeSet("./route", ctxt, &routenodes)) < 0)
-            goto error;
-
-        if (nroutenodes) {
-            size_t i;
-            for (i = 0; i < nroutenodes; i++) {
-                virNetworkRouteDefPtr route = NULL;
-
-                if (!(route = virNetworkRouteDefParseXML(_("Domain hostdev device"),
-                                                         routenodes[i],
-                                                         ctxt)))
-                    goto error;
-
-
-                if (VIR_APPEND_ELEMENT(def->source.caps.u.net.routes,
-                                       def->source.caps.u.net.nroutes, route) < 0) {
-                    virNetworkRouteDefFree(route);
-                    goto error;
-                }
-            }
-        }
         break;
     default:
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
@@ -6288,8 +6290,6 @@ virDomainHostdevDefParseXMLCaps(xmlNodePtr node ATTRIBUTE_UNUSED,
     }
     ret = 0;
  error:
-    VIR_FREE(ipnodes);
-    VIR_FREE(routenodes);
     return ret;
 }
 
@@ -8876,12 +8876,12 @@ virDomainActualNetDefParseXML(xmlNodePtr node,
 
 
 int
-virDomainNetAppendIpAddress(virDomainNetDefPtr def,
+virDomainNetAppendIPAddress(virDomainNetDefPtr def,
                             const char *address,
                             int family,
                             unsigned int prefix)
 {
-    virDomainNetIpDefPtr ipDef = NULL;
+    virNetDevIPAddrPtr ipDef = NULL;
     if (VIR_ALLOC(ipDef) < 0)
         return -1;
 
@@ -8889,7 +8889,7 @@ virDomainNetAppendIpAddress(virDomainNetDefPtr def,
         goto error;
     ipDef->prefix = prefix;
 
-    if (VIR_APPEND_ELEMENT(def->ips, def->nips, ipDef) < 0)
+    if (VIR_APPEND_ELEMENT(def->guestIP.ips, def->guestIP.nips, ipDef) < 0)
         goto error;
 
     return 0;
@@ -8951,11 +8951,6 @@ virDomainNetDefParseXML(virDomainXMLOptionPtr xmlopt,
     virDomainActualNetDefPtr actual = NULL;
     xmlNodePtr oldnode = ctxt->node;
     int ret, val;
-    size_t i;
-    size_t nips = 0;
-    virDomainNetIpDefPtr *ips = NULL;
-    size_t nroutes = 0;
-    virNetworkRouteDefPtr *routes = NULL;
 
     if (VIR_ALLOC(def) < 0)
         return NULL;
@@ -9001,12 +8996,31 @@ virDomainNetDefParseXML(virDomainXMLOptionPtr xmlopt,
                        def->type == VIR_DOMAIN_NET_TYPE_BRIDGE &&
                        xmlStrEqual(cur->name, BAD_CAST "source")) {
                 bridge = virXMLPropString(cur, "bridge");
-            } else if (!dev &&
-                       (def->type == VIR_DOMAIN_NET_TYPE_ETHERNET ||
-                        def->type == VIR_DOMAIN_NET_TYPE_DIRECT) &&
+            } else if (!dev && def->type == VIR_DOMAIN_NET_TYPE_DIRECT &&
                        xmlStrEqual(cur->name, BAD_CAST "source")) {
                 dev  = virXMLPropString(cur, "dev");
                 mode = virXMLPropString(cur, "mode");
+            } else if (!dev && def->type == VIR_DOMAIN_NET_TYPE_ETHERNET &&
+                       xmlStrEqual(cur->name, BAD_CAST "source")) {
+                /* This clause is only necessary because from 2010 to
+                 * 2016 it was possible (but never documented) to
+                 * configure the name of the guest-side interface of
+                 * an openvz domain with <source dev='blah'/>.  That
+                 * was blatant misuse of <source>, so was likely
+                 * (hopefully) never used, but just in case there was
+                 * somebody using it, we need to generate an error. If
+                 * the openvz driver is ever deprecated, this clause
+                 * can be removed from here.
+                 */
+                if ((dev = virXMLPropString(cur, "dev"))) {
+                    virReportError(VIR_ERR_XML_ERROR,
+                                   _("Invalid attempt to set <interface type='ethernet'> "
+                                     "device name with <source dev='%s'/>. "
+                                     "Use <target dev='%s'/> (for host-side) "
+                                     "or <guest dev='%s'/> (for guest-side) instead."),
+                                   dev, dev, dev);
+                    goto error;
+                }
             } else if (!vhostuser_path && !vhostuser_mode && !vhostuser_type
                        && def->type == VIR_DOMAIN_NET_TYPE_VHOSTUSER &&
                        xmlStrEqual(cur->name, BAD_CAST "source")) {
@@ -9051,24 +9065,6 @@ virDomainNetDefParseXML(virDomainXMLOptionPtr xmlopt,
                     localaddr = virXPathString("string(./local/@address)", ctxt);
                     localport = virXPathString("string(./local/@port)", ctxt);
                     ctxt->node = tmpnode;
-                }
-            } else if (xmlStrEqual(cur->name, BAD_CAST "ip")) {
-                virDomainNetIpDefPtr ip = NULL;
-
-                if (!(ip = virDomainNetIpParseXML(cur)))
-                    goto error;
-
-                if (VIR_APPEND_ELEMENT(ips, nips, ip) < 0)
-                    goto error;
-            } else if (xmlStrEqual(cur->name, BAD_CAST "route")) {
-                virNetworkRouteDefPtr route = NULL;
-                if (!(route = virNetworkRouteDefParseXML(_("Domain interface"),
-                                                         cur, ctxt)))
-                    goto error;
-
-                if (VIR_APPEND_ELEMENT(routes, nroutes, route) < 0) {
-                    virNetworkRouteDefFree(route);
-                    goto error;
                 }
             } else if (!ifname &&
                        xmlStrEqual(cur->name, BAD_CAST "target")) {
@@ -9256,13 +9252,6 @@ virDomainNetDefParseXML(virDomainXMLOptionPtr xmlopt,
         }
         break;
 
-    case VIR_DOMAIN_NET_TYPE_ETHERNET:
-        if (dev != NULL) {
-            def->data.ethernet.dev = dev;
-            dev = NULL;
-        }
-        break;
-
     case VIR_DOMAIN_NET_TYPE_BRIDGE:
         if (bridge == NULL) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -9391,17 +9380,15 @@ virDomainNetDefParseXML(virDomainXMLOptionPtr xmlopt,
         }
         break;
 
+    case VIR_DOMAIN_NET_TYPE_ETHERNET:
     case VIR_DOMAIN_NET_TYPE_USER:
     case VIR_DOMAIN_NET_TYPE_LAST:
         break;
     }
 
-    for (i = 0; i < nips; i++) {
-        if (VIR_APPEND_ELEMENT(def->ips, def->nips, ips[i]) < 0)
-            goto error;
-    }
-    def->nroutes = nroutes;
-    def->routes = routes;
+    if (virDomainNetIPInfoParseXML(_("guest interface"),
+                                   ctxt, &def->guestIP) < 0)
+        goto error;
 
     if (script != NULL) {
         def->script = script;
@@ -9683,7 +9670,6 @@ virDomainNetDefParseXML(virDomainXMLOptionPtr xmlopt,
     VIR_FREE(addrtype);
     VIR_FREE(domain_name);
     VIR_FREE(trustGuestRxFilters);
-    VIR_FREE(ips);
     VIR_FREE(vhost_path);
     VIR_FREE(localaddr);
     VIR_FREE(localport);
@@ -13653,8 +13639,8 @@ static int
 virDomainHostdevMatchCapsNet(virDomainHostdevDefPtr a,
                               virDomainHostdevDefPtr b)
 {
-    return STREQ_NULLABLE(a->source.caps.u.net.iface,
-                          b->source.caps.u.net.iface);
+    return STREQ_NULLABLE(a->source.caps.u.net.ifname,
+                          b->source.caps.u.net.ifname);
 }
 
 
@@ -20252,14 +20238,16 @@ virDomainFSDefFormat(virBufferPtr buf,
     return 0;
 }
 
+
 static int
-virDomainNetIpsFormat(virBufferPtr buf, virDomainNetIpDefPtr *ips, size_t nips)
+virDomainNetIPInfoFormat(virBufferPtr buf,
+                         virNetDevIPInfoPtr def)
 {
     size_t i;
 
     /* Output IP addresses */
-    for (i = 0; i < nips; i++) {
-        virSocketAddrPtr address = &ips[i]->address;
+    for (i = 0; i < def->nips; i++) {
+        virSocketAddrPtr address = &def->ips[i]->address;
         char *ipStr = virSocketAddrFormat(address);
         const char *familyStr = NULL;
 
@@ -20274,25 +20262,17 @@ virDomainNetIpsFormat(virBufferPtr buf, virDomainNetIpDefPtr *ips, size_t nips)
         VIR_FREE(ipStr);
         if (familyStr)
             virBufferAsprintf(buf, " family='%s'", familyStr);
-        if (ips[i]->prefix != 0)
-            virBufferAsprintf(buf, " prefix='%u'", ips[i]->prefix);
+        if (def->ips[i]->prefix)
+            virBufferAsprintf(buf, " prefix='%u'", def->ips[i]->prefix);
         virBufferAddLit(buf, "/>\n");
     }
-    return 0;
-}
 
-static int
-virDomainNetRoutesFormat(virBufferPtr buf,
-                         virNetworkRouteDefPtr *routes,
-                         size_t nroutes)
-{
-    size_t i;
-
-    for (i = 0; i < nroutes; i++)
-        if (virNetworkRouteDefFormat(buf, routes[i]) < 0)
+    for (i = 0; i < def->nroutes; i++)
+        if (virNetDevIPRouteFormat(buf, def->routes[i]) < 0)
             return -1;
     return 0;
 }
+
 
 static int
 virDomainHostdevDefFormatSubsys(virBufferPtr buf,
@@ -20434,7 +20414,7 @@ virDomainHostdevDefFormatCaps(virBufferPtr buf,
         break;
     case VIR_DOMAIN_HOSTDEV_CAPS_TYPE_NET:
         virBufferEscapeString(buf, "<interface>%s</interface>\n",
-                              def->source.caps.u.net.iface);
+                              def->source.caps.u.net.ifname);
         break;
     default:
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -20446,14 +20426,9 @@ virDomainHostdevDefFormatCaps(virBufferPtr buf,
     virBufferAdjustIndent(buf, -2);
     virBufferAddLit(buf, "</source>\n");
 
-    if (def->source.caps.type == VIR_DOMAIN_HOSTDEV_CAPS_TYPE_NET) {
-        if (virDomainNetIpsFormat(buf, def->source.caps.u.net.ips,
-                                 def->source.caps.u.net.nips) < 0)
-            return -1;
-        if (virDomainNetRoutesFormat(buf, def->source.caps.u.net.routes,
-                                     def->source.caps.u.net.nroutes) < 0)
-            return -1;
-    }
+    if (def->source.caps.type == VIR_DOMAIN_HOSTDEV_CAPS_TYPE_NET &&
+        virDomainNetIPInfoFormat(buf, &def->source.caps.u.net.ip) < 0)
+        return -1;
 
     return 0;
 }
@@ -20784,8 +20759,6 @@ virDomainNetDefFormat(virBufferPtr buf,
             break;
 
         case VIR_DOMAIN_NET_TYPE_ETHERNET:
-            virBufferEscapeString(buf, "<source dev='%s'/>\n",
-                                  def->data.ethernet.dev);
             break;
 
         case VIR_DOMAIN_NET_TYPE_VHOSTUSER:
@@ -20866,9 +20839,7 @@ virDomainNetDefFormat(virBufferPtr buf,
             return -1;
     }
 
-    if (virDomainNetIpsFormat(buf, def->ips, def->nips) < 0)
-        return -1;
-    if (virDomainNetRoutesFormat(buf, def->routes, def->nroutes) < 0)
+    if (virDomainNetIPInfoFormat(buf, &def->guestIP) < 0)
         return -1;
 
     virBufferEscapeString(buf, "<script path='%s'/>\n",

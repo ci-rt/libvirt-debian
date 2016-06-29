@@ -54,6 +54,7 @@
      <exports symbol='virAdmConnectRegisterCloseCallback' type='function'/>
      <exports symbol='virAdmConnectUnregisterCloseCallback' type='function'/>
      <exports symbol='virAdmGetVersion' type='function'/>
+     <exports symbol='virAdmInitialize' type='function'/>
      <exports symbol='virAdmServerFree' type='function'/>
      <exports symbol='virAdmServerGetClientLimits' type='function'/>
      <exports symbol='virAdmServerGetName' type='function'/>
@@ -312,6 +313,17 @@ NOTE: To get the remote side library version use virAdmConnectGetLibVersion
 instead.]]></info>
       <return type='int' info='0 on success, -1 in case of an error.'/>
       <arg name='libVer' type='unsigned long long *' info='where to store the library version'/>
+    </function>
+    <function name='virAdmInitialize' file='libvirt-admin' module='libvirt-admin'>
+      <info><![CDATA[Initialize the library.
+
+This method is automatically invoked by virAdmConnectOpen() API. Therefore,
+in most cases it is unnecessary to call this method manually, unless an
+event loop should be set up by calling virEventRegisterImpl() or the error
+reporting of the first connection attempt with virSetErrorFunc() should be
+altered prior to setting up connections. If the latter is the case, it is
+necessary for the application to call virAdmInitialize.]]></info>
+      <return type='int' info='0 in case of success, -1 in case of error'/>
     </function>
     <function name='virAdmServerFree' file='libvirt-admin' module='libvirt-admin'>
       <info><![CDATA[Release the server object. The running instance is kept alive.
