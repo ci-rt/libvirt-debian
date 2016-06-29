@@ -109,6 +109,7 @@ libvirt-qemu.so.0 libvirt0 #MINVER#
 libvirt-lxc.so.0 libvirt0 #MINVER#
  *@LIBVIRT_LXC_1.0.2 1.0.2~rc1
  *@LIBVIRT_LXC_1.0.4 1.0.4
+ *@LIBVIRT_LXC_2.0.0 2.0.0~rc2
 
 libvirt-admin.so.0 libvirt0 #MINVER#
  *@LIBVIRT_ADMIN_1.3.0 1.2.18
