@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Red Hat, Inc.
+ * Copyright (C) 2014-2016 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -26,6 +26,7 @@
 #include "vircrypto.h"
 #include "virmock.h"
 #include "virnetdev.h"
+#include "virnetdevip.h"
 #include "virnetdevtap.h"
 #include "virnuma.h"
 #include "virrandom.h"
@@ -123,6 +124,14 @@ virNetDevTapCreate(char **ifname,
 int
 virNetDevSetMAC(const char *ifname ATTRIBUTE_UNUSED,
                 const virMacAddr *macaddr ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+
+int virNetDevIPAddrAdd(const char *ifname ATTRIBUTE_UNUSED,
+                       virSocketAddr *addr ATTRIBUTE_UNUSED,
+                       virSocketAddr *peer ATTRIBUTE_UNUSED,
+                       unsigned int prefix ATTRIBUTE_UNUSED)
 {
     return 0;
 }

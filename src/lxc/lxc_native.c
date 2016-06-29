@@ -402,7 +402,7 @@ lxcCreateHostdevDef(int mode, int type, const char *data)
     hostdev->source.caps.type = type;
 
     if (type == VIR_DOMAIN_HOSTDEV_CAPS_TYPE_NET &&
-        VIR_STRDUP(hostdev->source.caps.u.net.iface, data) < 0) {
+        VIR_STRDUP(hostdev->source.caps.u.net.ifname, data) < 0) {
         virDomainHostdevDefFree(hostdev);
         hostdev = NULL;
     }
@@ -419,7 +419,7 @@ typedef struct {
     char *macvlanmode;
     char *vlanid;
     char *name;
-    virDomainNetIpDefPtr *ips;
+    virNetDevIPAddrPtr *ips;
     size_t nips;
     char *gateway_ipv4;
     char *gateway_ipv6;
@@ -430,10 +430,10 @@ typedef struct {
 static int
 lxcAddNetworkRouteDefinition(const char *address,
                              int family,
-                             virNetworkRouteDefPtr **routes,
+                             virNetDevIPRoutePtr **routes,
                              size_t *nroutes)
 {
-    virNetworkRouteDefPtr route = NULL;
+    virNetDevIPRoutePtr route = NULL;
     char *familyStr = NULL;
     char *zero = NULL;
 
@@ -444,9 +444,9 @@ lxcAddNetworkRouteDefinition(const char *address,
     if (VIR_STRDUP(familyStr, family == AF_INET ? "ipv4" : "ipv6") < 0)
         goto error;
 
-    if (!(route = virNetworkRouteDefCreate(_("Domain interface"), familyStr,
-                                          zero, NULL, address, 0, false,
-                                          0, false)))
+    if (!(route = virNetDevIPRouteCreate(_("Domain interface"), familyStr,
+                                         zero, NULL, address, 0, false,
+                                         0, false)))
         goto error;
 
     if (VIR_APPEND_ELEMENT(*routes, *nroutes, route) < 0)
@@ -460,7 +460,7 @@ lxcAddNetworkRouteDefinition(const char *address,
  error:
     VIR_FREE(familyStr);
     VIR_FREE(zero);
-    virNetworkRouteDefFree(route);
+    virNetDevIPRouteFree(route);
     return -1;
 }
 
@@ -492,25 +492,25 @@ lxcAddNetworkDefinition(lxcNetworkParseData *data)
         /* This still requires the user to manually setup the vlan interface
          * on the host */
         if (isVlan && data->vlanid) {
-            VIR_FREE(hostdev->source.caps.u.net.iface);
-            if (virAsprintf(&hostdev->source.caps.u.net.iface,
+            VIR_FREE(hostdev->source.caps.u.net.ifname);
+            if (virAsprintf(&hostdev->source.caps.u.net.ifname,
                             "%s.%s", data->link, data->vlanid) < 0)
                 goto error;
         }
 
-        hostdev->source.caps.u.net.ips = data->ips;
-        hostdev->source.caps.u.net.nips = data->nips;
+        hostdev->source.caps.u.net.ip.ips = data->ips;
+        hostdev->source.caps.u.net.ip.nips = data->nips;
 
         if (data->gateway_ipv4 &&
             lxcAddNetworkRouteDefinition(data->gateway_ipv4, AF_INET,
-                                         &hostdev->source.caps.u.net.routes,
-                                         &hostdev->source.caps.u.net.nroutes) < 0)
+                                         &hostdev->source.caps.u.net.ip.routes,
+                                         &hostdev->source.caps.u.net.ip.nroutes) < 0)
                 goto error;
 
         if (data->gateway_ipv6 &&
             lxcAddNetworkRouteDefinition(data->gateway_ipv6, AF_INET6,
-                                         &hostdev->source.caps.u.net.routes,
-                                         &hostdev->source.caps.u.net.nroutes) < 0)
+                                         &hostdev->source.caps.u.net.ip.routes,
+                                         &hostdev->source.caps.u.net.ip.nroutes) < 0)
                 goto error;
 
         if (VIR_EXPAND_N(data->def->hostdevs, data->def->nhostdevs, 1) < 0)
@@ -522,19 +522,19 @@ lxcAddNetworkDefinition(lxcNetworkParseData *data)
                                     data->name)))
             goto error;
 
-        net->ips = data->ips;
-        net->nips = data->nips;
+        net->guestIP.ips = data->ips;
+        net->guestIP.nips = data->nips;
 
         if (data->gateway_ipv4 &&
             lxcAddNetworkRouteDefinition(data->gateway_ipv4, AF_INET,
-                                         &net->routes,
-                                         &net->nroutes) < 0)
+                                         &net->guestIP.routes,
+                                         &net->guestIP.nroutes) < 0)
                 goto error;
 
         if (data->gateway_ipv6 &&
             lxcAddNetworkRouteDefinition(data->gateway_ipv6, AF_INET6,
-                                         &net->routes,
-                                         &net->nroutes) < 0)
+                                         &net->guestIP.routes,
+                                         &net->guestIP.nroutes) < 0)
                 goto error;
 
         if (VIR_EXPAND_N(data->def->nets, data->def->nnets, 1) < 0)
@@ -601,7 +601,7 @@ lxcNetworkWalkCallback(const char *name, virConfValuePtr value, void *data)
              STREQ(name, "lxc.network.ipv6")) {
         int family = AF_INET;
         char **ipparts = NULL;
-        virDomainNetIpDefPtr ip = NULL;
+        virNetDevIPAddrPtr ip = NULL;
 
         if (VIR_ALLOC(ip) < 0)
             return -1;
