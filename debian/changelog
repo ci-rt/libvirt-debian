@@ -1,3 +1,21 @@
+libvirt (2.0.0~rc2-1) experimental; urgency=medium
+
+  * [36968cf] Require build-essential for build-essential since we want to
+    build some C code
+  * [726a029] watch: Also look for xz compressed tarballs
+  * [4df5501] New upstream version 2.0.0~rc1 (Closes: #827178)
+  * [d868829] New upstream version 2.0.0~rc2
+  * [ff61cde] Bump symbol versions
+  * [e7e9ca8] Rediff patches.
+      Dropped apparmor-Don-t-scrub-environment-of-virtlogd-process.patch:
+      applied upstram
+      Dropped debian/libsystemd.patch: libsystemd-dev is not used anymore
+  * [903cbca] Switch b-d from libystemd to libdbus.
+    It was only used for sd_notify which is now open coded in libvirt itself.
+  * [7cdb8a8] Rediff patches
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 29 Jun 2016 23:21:02 +0200
+
 libvirt (1.3.5-1) unstable; urgency=medium
 
   * [afaf26b] Add qemu:///session smoke test
