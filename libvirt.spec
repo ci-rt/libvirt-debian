@@ -216,7 +216,7 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: 2.0.0
-Release: 0rc2%{?dist}%{?extra_release}
+Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -225,7 +225,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc2.tar.xz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.xz
 
 Requires: libvirt-daemon = %{version}-%{release}
 Requires: libvirt-daemon-config-network = %{version}-%{release}
@@ -302,7 +302,11 @@ BuildRequires: yajl-devel
 BuildRequires: sanlock-devel >= 2.4
 %endif
 BuildRequires: libpcap-devel
+%if 0%{?rhel} && 0%{?rhel} < 7
+BuildRequires: libnl-devel
+%else
 BuildRequires: libnl3-devel
+%endif
 BuildRequires: avahi-devel
 BuildRequires: libselinux-devel
 BuildRequires: dnsmasq >= 2.41

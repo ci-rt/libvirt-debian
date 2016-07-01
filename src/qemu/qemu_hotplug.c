@@ -544,6 +544,7 @@ qemuDomainAttachSCSIDisk(virConnectPtr conn,
                          virDomainObjPtr vm,
                          virDomainDiskDefPtr disk)
 {
+    size_t i;
     qemuDomainObjPrivatePtr priv = vm->privateData;
     char *drivestr = NULL;
     char *devstr = NULL;
@@ -559,6 +560,18 @@ qemuDomainAttachSCSIDisk(virConnectPtr conn,
                        _("unexpected disk address type %s"),
                        virDomainDeviceAddressTypeToString(disk->info.type));
         goto error;
+    }
+
+    /* Let's make sure the disk has a controller defined and loaded before
+     * trying to add it. The controller used by the disk must exist before a
+     * qemu command line string is generated.
+     *
+     * Ensure that the given controller and all controllers with a smaller index
+     * exist; there must not be any missing index in between.
+     */
+    for (i = 0; i <= disk->info.addr.drive.controller; i++) {
+        if (!qemuDomainFindOrCreateSCSIDiskController(driver, vm, i))
+            goto error;
     }
 
     if (qemuAssignDeviceDiskAlias(vm->def, disk, priv->qemuCaps) < 0)
@@ -1853,10 +1866,10 @@ qemuDomainAttachHostSCSIDevice(virConnectPtr conn,
                                virDomainObjPtr vm,
                                virDomainHostdevDefPtr hostdev)
 {
+    size_t i;
     int ret = -1;
     qemuDomainObjPrivatePtr priv = vm->privateData;
     virErrorPtr orig_err;
-    virDomainControllerDefPtr cont = NULL;
     char *devstr = NULL;
     char *drvstr = NULL;
     bool teardowncgroup = false;
@@ -1868,9 +1881,17 @@ qemuDomainAttachHostSCSIDevice(virConnectPtr conn,
         return -1;
     }
 
-    cont = qemuDomainFindOrCreateSCSIDiskController(driver, vm, hostdev->info->addr.drive.controller);
-    if (!cont)
-        return -1;
+    /* Let's make sure the disk has a controller defined and loaded before
+     * trying to add it. The controller used by the disk must exist before a
+     * qemu command line string is generated.
+     *
+     * Ensure that the given controller and all controllers with a smaller index
+     * exist; there must not be any missing index in between.
+     */
+    for (i = 0; i <= hostdev->info->addr.drive.controller; i++) {
+        if (!qemuDomainFindOrCreateSCSIDiskController(driver, vm, i))
+            return -1;
+    }
 
     if (qemuHostdevPrepareSCSIDevices(driver, vm->def->name,
                                       &hostdev, 1)) {
@@ -3933,6 +3954,7 @@ qemuDomainChangeGraphicsPasswords(virQEMUDriverPtr driver,
     time_t now = time(NULL);
     char expire_time [64];
     const char *connected = NULL;
+    const char *password;
     int ret = -1;
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
 
@@ -3940,16 +3962,14 @@ qemuDomainChangeGraphicsPasswords(virQEMUDriverPtr driver,
         ret = 0;
         goto cleanup;
     }
+    password = auth->passwd ? auth->passwd : defaultPasswd;
 
     if (auth->connected)
         connected = virDomainGraphicsAuthConnectedTypeToString(auth->connected);
 
     if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
         goto cleanup;
-    ret = qemuMonitorSetPassword(priv->mon,
-                                 type,
-                                 auth->passwd ? auth->passwd : defaultPasswd,
-                                 connected);
+    ret = qemuMonitorSetPassword(priv->mon, type, password, connected);
 
     if (ret == -2) {
         if (type != VIR_DOMAIN_GRAPHICS_TYPE_VNC) {
@@ -3957,14 +3977,15 @@ qemuDomainChangeGraphicsPasswords(virQEMUDriverPtr driver,
                            _("Graphics password only supported for VNC"));
             ret = -1;
         } else {
-            ret = qemuMonitorSetVNCPassword(priv->mon,
-                                            auth->passwd ? auth->passwd : defaultPasswd);
+            ret = qemuMonitorSetVNCPassword(priv->mon, password);
         }
     }
     if (ret != 0)
         goto end_job;
 
-    if (auth->expires) {
+    if (password[0] == '\0') {
+        snprintf(expire_time, sizeof(expire_time), "now");
+    } else if (auth->expires) {
         time_t lifetime = auth->validTo - now;
         if (lifetime <= 0)
             snprintf(expire_time, sizeof(expire_time), "now");
