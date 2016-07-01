@@ -1974,13 +1974,16 @@ qemuProcessRefreshChannelVirtioState(virQEMUDriverPtr driver,
 
 int
 qemuRefreshVirtioChannelState(virQEMUDriverPtr driver,
-                              virDomainObjPtr vm)
+                              virDomainObjPtr vm,
+                              qemuDomainAsyncJob asyncJob)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
     virHashTablePtr info = NULL;
     int ret = -1;
 
-    qemuDomainObjEnterMonitor(driver, vm);
+    if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
+        goto cleanup;
+
     ret = qemuMonitorGetChardevInfo(priv->mon, &info);
     if (qemuDomainObjExitMonitor(driver, vm) < 0)
         ret = -1;
@@ -3139,12 +3142,12 @@ qemuDomainPerfRestart(virDomainObjPtr vm)
         return -1;
 
     for (i = 0; i < VIR_PERF_EVENT_LAST; i++) {
-        if (def->perf->events[i] &&
-            def->perf->events[i] == VIR_TRISTATE_BOOL_YES) {
+        if (def->perf.events[i] &&
+            def->perf.events[i] == VIR_TRISTATE_BOOL_YES) {
 
             /* Failure to re-enable the perf event should not be fatal */
             if (virPerfEventEnable(priv->perf, i, vm->pid) < 0)
-                def->perf->events[i] = VIR_TRISTATE_BOOL_NO;
+                def->perf.events[i] = VIR_TRISTATE_BOOL_NO;
         }
     }
 
@@ -3312,7 +3315,7 @@ qemuProcessReconnect(void *opaque)
     if (qemuProcessRefreshDisks(driver, obj, QEMU_ASYNC_JOB_NONE) < 0)
         goto error;
 
-    if (qemuRefreshVirtioChannelState(driver, obj) < 0)
+    if (qemuRefreshVirtioChannelState(driver, obj, QEMU_ASYNC_JOB_NONE) < 0)
         goto error;
 
     /* If querying of guest's RTC failed, report error, but do not kill the domain. */
@@ -5217,7 +5220,7 @@ qemuProcessLaunch(virConnectPtr conn,
         goto cleanup;
 
     for (i = 0; i < VIR_PERF_EVENT_LAST; i++) {
-        if (vm->def->perf->events[i] == VIR_TRISTATE_BOOL_YES &&
+        if (vm->def->perf.events[i] == VIR_TRISTATE_BOOL_YES &&
             virPerfEventEnable(priv->perf, i, vm->pid) < 0)
             goto cleanup;
     }
