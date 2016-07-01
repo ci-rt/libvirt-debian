@@ -1,3 +1,11 @@
+libvirt (1.2.9-9+deb8u3) jessie-security; urgency=high
+
+  * [9da83d8] CVE-2016-5008: qemu: Let empty default VNC password work as
+    documented.
+  * [27d6b02] Adjust gbp.conf for jessie-security
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 01 Jul 2016 16:31:36 +0200
+
 libvirt (1.2.9-9+deb8u2) jessie; urgency=medium
 
   [ Philipp Hahn ]
