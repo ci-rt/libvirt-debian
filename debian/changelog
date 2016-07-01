@@ -1,3 +1,16 @@
+libvirt (1.2.9-9+deb8u2) jessie; urgency=medium
+
+  [ Philipp Hahn ]
+  * [16e52e6] CVE-2015-5313: Don't allow allow '/' in filesystem volume
+    (Closes: #808273)
+  * [e69dd73] libvirt-daemon: Expect qemu-bridge-helper in /usr/lib/qemu
+    like we fixed #790935 in sid. (Closes: #816602)
+
+  [ Guido Günther ]
+  * [72db643] Allow autopkg tests to print to stderr
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 25 Mar 2016 11:19:45 +0100
+
 libvirt (1.2.9-9+deb8u1) jessie; urgency=medium
 
   [ Guido Günther ]

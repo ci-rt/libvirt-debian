@@ -51,6 +51,18 @@ EOF
 This makes dnsmasq only bind to the loopback interface by default so libvirtd
 can handle the virtual bridges.
 
+Bridged network
+===============
+libvirt can use the qemu-bridge-helper to create bridged network interfaces for
+session domains. For this to work the helper must have the capability to create
+TUN/TAP devices or must have the SUID permission set.
+This can be done by running the following command as the user root:
+
+    setcap cap_net_admin+ep /usr/lib/qemu/qemu-bridge-helper
+
+The allowed bridges must be configured in the file '/etc/qemu/bridge.conf'. For
+each bridge add a line like 'allow br0'.
+
 Access Control
 ==============
 Access to the libvirt managing tasks is controlled by PolicyKit. To ease
