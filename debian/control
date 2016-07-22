@@ -206,3 +206,19 @@ Description: Sanlock plugin for virtlockd
  .
  This package contains the sanlock plugin for libvirt's locking daemon.
 
+Package: libnss-libvirt
+Architecture: linux-any
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+ libvirt0 (= ${binary:Version}),
+Priority: extra
+Description: nss plugin providing IP add ress resolution for virtual machines
+ Libvirt is a C toolkit to interact with the virtualization capabilities
+ of recent versions of Linux (and other OSes). The library aims at providing
+ a long term stable C API for different virtualization mechanisms. It currently
+ supports QEMU, KVM, XEN, OpenVZ, LXC, and VirtualBox.
+ .
+ This package contains the nss plugin for IP address resolution of libvirt
+ managed virtual machines.
+
