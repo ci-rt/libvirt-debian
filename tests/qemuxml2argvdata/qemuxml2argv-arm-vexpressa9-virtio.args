@@ -9,7 +9,7 @@ QEMU_AUDIO_DRV=none \
 -S \
 -M vexpress-a9 \
 -m 1024 \
--smp 1 \
+-smp 1,sockets=1,cores=1,threads=1 \
 -uuid 496d7ea8-9739-544b-4ebd-ef08be936e6a \
 -nographic \
 -nodefconfig \
@@ -18,7 +18,8 @@ QEMU_AUDIO_DRV=none \
 -boot c \
 -kernel /arm.kernel \
 -initrd /arm.initrd \
--append 'console=ttyAMA0,115200n8 rw root=/dev/vda3 rootwait physmap.enabled=0' \
+-append 'console=ttyAMA0,\
+115200n8 rw root=/dev/vda3 rootwait physmap.enabled=0' \
 -dtb /arm.dtb \
 -device virtio-serial-device,id=virtio-serial0 \
 -usb \

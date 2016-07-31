@@ -490,7 +490,7 @@ lxcContainerRenameAndEnableInterfaces(virDomainDefPtr vmDef,
                                       char **veths)
 {
     int ret = -1;
-    size_t i, j;
+    size_t i;
     const char *newname;
     virDomainNetDefPtr netDef;
     bool privNet = vmDef->features[VIR_DOMAIN_FEATURE_PRIVNET] ==
@@ -509,53 +509,28 @@ lxcContainerRenameAndEnableInterfaces(virDomainDefPtr vmDef,
 
         VIR_DEBUG("Renaming %s to %s", veths[i], newname);
         if (virNetDevSetName(veths[i], newname) < 0)
-           goto cleanup;
+            goto cleanup;
 
-        for (j = 0; j < netDef->guestIP.nips; j++) {
-            virNetDevIPAddrPtr ip = netDef->guestIP.ips[j];
-            int prefix;
-            char *ipStr = virSocketAddrFormat(&ip->address);
-
-            if ((prefix = virSocketAddrGetIPPrefix(&ip->address,
-                                                   NULL, ip->prefix)) < 0) {
-                ipStr = virSocketAddrFormat(&ip->address);
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("Failed to determine prefix for IP address '%s'"),
-                               ipStr);
-                VIR_FREE(ipStr);
-                goto cleanup;
-            }
-            VIR_FREE(ipStr);
-
-            if (virNetDevIPAddrAdd(newname, &ip->address, NULL, prefix) < 0)
-                goto cleanup;
-        }
-
+        /* Only enable this device if there is a reason to do so (either
+         * at least one IP was specified, or link state was set to up in
+         * the config)
+         */
         if (netDef->guestIP.nips ||
             netDef->linkstate == VIR_DOMAIN_NET_INTERFACE_LINK_STATE_UP) {
             VIR_DEBUG("Enabling %s", newname);
             if (virNetDevSetOnline(newname, true) < 0)
                 goto cleanup;
-
-            /* Set the routes */
-            for (j = 0; j < netDef->guestIP.nroutes; j++) {
-                virNetDevIPRoutePtr route = netDef->guestIP.routes[j];
-
-                if (virNetDevIPRouteAdd(newname,
-                                        virNetDevIPRouteGetAddress(route),
-                                        virNetDevIPRouteGetPrefix(route),
-                                        virNetDevIPRouteGetGateway(route),
-                                        virNetDevIPRouteGetMetric(route)) < 0) {
-                    goto cleanup;
-                }
-            }
         }
+
+        /* set IP addresses and routes */
+        if (virNetDevIPInfoAddToDev(newname, &netDef->guestIP) < 0)
+            goto cleanup;
     }
 
     /* enable lo device only if there were other net devices */
     if ((veths || privNet) &&
         virNetDevSetOnline("lo", true) < 0)
-       goto cleanup;
+        goto cleanup;
 
     ret = 0;
  cleanup:
@@ -644,27 +619,27 @@ static int lxcContainerResolveSymlinks(virDomainFSDefPtr fs, bool gentle)
     if (!fs->src || fs->symlinksResolved)
         return 0;
 
-    if (access(fs->src, F_OK)) {
+    if (access(fs->src->path, F_OK)) {
         if (gentle) {
             /* Just ignore the error for the while, we'll try again later */
-            VIR_DEBUG("Skipped unaccessible '%s'", fs->src);
+            VIR_DEBUG("Skipped unaccessible '%s'", fs->src->path);
             return 0;
         } else {
             virReportSystemError(errno,
-                                 _("Failed to access '%s'"), fs->src);
+                                 _("Failed to access '%s'"), fs->src->path);
             return -1;
         }
     }
 
-    VIR_DEBUG("Resolving '%s'", fs->src);
-    if (virFileResolveAllLinks(fs->src, &newroot) < 0) {
+    VIR_DEBUG("Resolving '%s'", fs->src->path);
+    if (virFileResolveAllLinks(fs->src->path, &newroot) < 0) {
         if (gentle) {
-            VIR_DEBUG("Skipped non-resolvable '%s'", fs->src);
+            VIR_DEBUG("Skipped non-resolvable '%s'", fs->src->path);
             return 0;
         } else {
             virReportSystemError(errno,
                                  _("Failed to resolve symlink at %s"),
-                                 fs->src);
+                                 fs->src->path);
         }
         return -1;
     }
@@ -672,10 +647,10 @@ static int lxcContainerResolveSymlinks(virDomainFSDefPtr fs, bool gentle)
     /* Mark it resolved to skip it the next time */
     fs->symlinksResolved = true;
 
-    VIR_DEBUG("Resolved '%s' to %s", fs->src, newroot);
+    VIR_DEBUG("Resolved '%s' to %s", fs->src->path, newroot);
 
-    VIR_FREE(fs->src);
-    fs->src = newroot;
+    VIR_FREE(fs->src->path);
+    fs->src->path = newroot;
 
     return 0;
 }
@@ -723,8 +698,8 @@ static int lxcContainerPrepareRoot(virDomainDefPtr def,
 
     root->dst = tmp;
     root->type = VIR_DOMAIN_FS_TYPE_MOUNT;
-    VIR_FREE(root->src);
-    root->src = dst;
+    VIR_FREE(root->src->path);
+    root->src->path = dst;
 
     return 0;
 }
@@ -736,7 +711,7 @@ static int lxcContainerPivotRoot(virDomainFSDefPtr root)
 
     ret = -1;
 
-    VIR_DEBUG("Pivot via %s", root->src);
+    VIR_DEBUG("Pivot via %s", root->src->path);
 
     /* root->parent must be private, so make / private. */
     if (mount("", "/", NULL, MS_PRIVATE|MS_REC, NULL) < 0) {
@@ -745,7 +720,7 @@ static int lxcContainerPivotRoot(virDomainFSDefPtr root)
         goto err;
     }
 
-    if (virAsprintf(&oldroot, "%s/.oldroot", root->src) < 0)
+    if (virAsprintf(&oldroot, "%s/.oldroot", root->src->path) < 0)
         goto err;
 
     if (virFileMakePath(oldroot) < 0) {
@@ -776,18 +751,18 @@ static int lxcContainerPivotRoot(virDomainFSDefPtr root)
     }
 
     /* ... and mount our root onto it */
-    if (mount(root->src, newroot, NULL, MS_BIND|MS_REC, NULL) < 0) {
+    if (mount(root->src->path, newroot, NULL, MS_BIND|MS_REC, NULL) < 0) {
         virReportSystemError(errno,
                              _("Failed to bind %s to new root %s"),
-                             root->src, newroot);
+                             root->src->path, newroot);
         goto err;
     }
 
     if (root->readonly) {
-        if (mount(root->src, newroot, NULL, MS_BIND|MS_REC|MS_RDONLY|MS_REMOUNT, NULL) < 0) {
+        if (mount(root->src->path, newroot, NULL, MS_BIND|MS_REC|MS_RDONLY|MS_REMOUNT, NULL) < 0) {
             virReportSystemError(errno,
                                  _("Failed to make new root %s readonly"),
-                                 root->src);
+                                 root->src->path);
             goto err;
         }
     }
@@ -1204,9 +1179,9 @@ static int lxcContainerMountFSBind(virDomainFSDefPtr fs,
     int ret = -1;
     struct stat st;
 
-    VIR_DEBUG("src=%s dst=%s", fs->src, fs->dst);
+    VIR_DEBUG("src=%s dst=%s", fs->src->path, fs->dst);
 
-    if (virAsprintf(&src, "%s%s", srcprefix, fs->src) < 0)
+    if (virAsprintf(&src, "%s%s", srcprefix, fs->src->path) < 0)
         goto cleanup;
 
     if (stat(fs->dst, &st) < 0) {
@@ -1539,9 +1514,9 @@ static int lxcContainerMountFSBlock(virDomainFSDefPtr fs,
     char *src = NULL;
     int ret = -1;
 
-    VIR_DEBUG("src=%s dst=%s", fs->src, fs->dst);
+    VIR_DEBUG("src=%s dst=%s", fs->src->path, fs->dst);
 
-    if (virAsprintf(&src, "%s%s", srcprefix, fs->src) < 0)
+    if (virAsprintf(&src, "%s%s", srcprefix, fs->src->path) < 0)
         goto cleanup;
 
     ret = lxcContainerMountFSBlockHelper(fs, src, srcprefix, sec_mount_options);
@@ -1647,14 +1622,14 @@ static int lxcContainerMountAllFS(virDomainDefPtr vmDef,
         if (STREQ(vmDef->fss[i]->dst, "/"))
             continue;
 
-        VIR_DEBUG("Mounting '%s' -> '%s'", vmDef->fss[i]->src, vmDef->fss[i]->dst);
+        VIR_DEBUG("Mounting '%s' -> '%s'", vmDef->fss[i]->src->path, vmDef->fss[i]->dst);
 
         if (lxcContainerResolveSymlinks(vmDef->fss[i], false) < 0)
             return -1;
 
 
         if (!(vmDef->fss[i]->src &&
-              STRPREFIX(vmDef->fss[i]->src, vmDef->fss[i]->dst)) &&
+              STRPREFIX(vmDef->fss[i]->src->path, vmDef->fss[i]->dst)) &&
             lxcContainerUnmountSubtree(vmDef->fss[i]->dst, false) < 0)
             return -1;
 
@@ -1802,7 +1777,7 @@ static int lxcContainerSetupPivotRoot(virDomainDefPtr vmDef,
 
     /* FIXME: we should find a way to unmount these mounts for container
      * even user namespace is enabled. */
-    if (STREQ(root->src, "/") && (!vmDef->idmap.nuidmap) &&
+    if (STREQ(root->src->path, "/") && (!vmDef->idmap.nuidmap) &&
         lxcContainerUnmountForSharedRoot(stateDir, vmDef->name) < 0)
         goto cleanup;
 
@@ -2269,6 +2244,15 @@ static int lxcContainerChild(void *data)
     if (lxcContainerSetupFDs(&ttyfd,
                              argv->npassFDs, argv->passFDs) < 0)
         goto cleanup;
+
+    /* Make init process of the container the leader of the new session.
+     * That is needed when checkpointing container.
+     */
+    if (setsid() < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Unable to become session leader"));
+        goto cleanup;
+    }
 
     ret = 0;
  cleanup:

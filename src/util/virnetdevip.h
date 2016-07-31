@@ -26,8 +26,9 @@
 # include "virsocketaddr.h"
 
 typedef struct {
-    virSocketAddr address;       /* ipv4 or ipv6 address */
-    unsigned int prefix; /* number of 1 bits in the net mask */
+    virSocketAddr address; /* ipv4 or ipv6 address */
+    virSocketAddr peer;    /* ipv4 or ipv6 address of peer */
+    unsigned int prefix;   /* number of 1 bits in the netmask */
 } virNetDevIPAddr, *virNetDevIPAddrPtr;
 
 typedef struct {
@@ -86,5 +87,7 @@ virSocketAddrPtr virNetDevIPRouteGetGateway(virNetDevIPRoutePtr def);
 
 /* virNetDevIPInfo object */
 void virNetDevIPInfoClear(virNetDevIPInfoPtr ip);
+int virNetDevIPInfoAddToDev(const char *ifname,
+                            virNetDevIPInfo const *ipInfo);
 
 #endif /* __VIR_NETDEVIP_H__ */

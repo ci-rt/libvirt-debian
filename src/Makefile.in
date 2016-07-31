@@ -423,9 +423,9 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/getcwd.m4 $(top_srcdir)/m4/getdelim.m4 \
 	$(top_srcdir)/m4/getdtablesize.m4 \
 	$(top_srcdir)/m4/getgroups.m4 $(top_srcdir)/m4/gethostname.m4 \
-	$(top_srcdir)/m4/getline.m4 $(top_srcdir)/m4/getpagesize.m4 \
-	$(top_srcdir)/m4/getpass.m4 $(top_srcdir)/m4/gettext.m4 \
-	$(top_srcdir)/m4/gettimeofday.m4 \
+	$(top_srcdir)/m4/getline.m4 $(top_srcdir)/m4/getopt.m4 \
+	$(top_srcdir)/m4/getpagesize.m4 $(top_srcdir)/m4/getpass.m4 \
+	$(top_srcdir)/m4/gettext.m4 $(top_srcdir)/m4/gettimeofday.m4 \
 	$(top_srcdir)/m4/getugroups.m4 $(top_srcdir)/m4/gl-openssl.m4 \
 	$(top_srcdir)/m4/glibc21.m4 $(top_srcdir)/m4/gnulib-common.m4 \
 	$(top_srcdir)/m4/gnulib-comp.m4 $(top_srcdir)/m4/grantpt.m4 \
@@ -847,7 +847,6 @@ libvirt_conf_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(LDFLAGS) -o $@
 libvirt_cpu_la_LIBADD =
 am__objects_24 = cpu/libvirt_cpu_la-cpu.lo \
-	cpu/libvirt_cpu_la-cpu_generic.lo \
 	cpu/libvirt_cpu_la-cpu_x86.lo cpu/libvirt_cpu_la-cpu_s390.lo \
 	cpu/libvirt_cpu_la-cpu_arm.lo cpu/libvirt_cpu_la-cpu_ppc64.lo \
 	cpu/libvirt_cpu_la-cpu_map.lo
@@ -929,6 +928,7 @@ libvirt_driver_bhyve_impl_la_LIBADD =
 am__libvirt_driver_bhyve_impl_la_SOURCES_DIST =  \
 	bhyve/bhyve_capabilities.c bhyve/bhyve_capabilities.h \
 	bhyve/bhyve_command.c bhyve/bhyve_command.h \
+	bhyve/bhyve_parse_command.c bhyve/bhyve_parse_command.h \
 	bhyve/bhyve_device.c bhyve/bhyve_device.h bhyve/bhyve_domain.c \
 	bhyve/bhyve_domain.h bhyve/bhyve_driver.h bhyve/bhyve_driver.c \
 	bhyve/bhyve_monitor.c bhyve/bhyve_monitor.h \
@@ -937,6 +937,7 @@ am__libvirt_driver_bhyve_impl_la_SOURCES_DIST =  \
 am__objects_33 =  \
 	bhyve/libvirt_driver_bhyve_impl_la-bhyve_capabilities.lo \
 	bhyve/libvirt_driver_bhyve_impl_la-bhyve_command.lo \
+	bhyve/libvirt_driver_bhyve_impl_la-bhyve_parse_command.lo \
 	bhyve/libvirt_driver_bhyve_impl_la-bhyve_device.lo \
 	bhyve/libvirt_driver_bhyve_impl_la-bhyve_domain.lo \
 	bhyve/libvirt_driver_bhyve_impl_la-bhyve_driver.lo \
@@ -2223,6 +2224,7 @@ FUSE_CFLAGS = @FUSE_CFLAGS@
 FUSE_LIBS = @FUSE_LIBS@
 GETADDRINFO_LIB = @GETADDRINFO_LIB@
 GETHOSTNAME_LIB = @GETHOSTNAME_LIB@
+GETOPT_H = @GETOPT_H@
 GETTEXT_CPPFLAGS = @GETTEXT_CPPFLAGS@
 GETTEXT_MACRO_VERSION = @GETTEXT_MACRO_VERSION@
 GLIBC21 = @GLIBC21@
@@ -2344,6 +2346,7 @@ GNULIB_GETSOCKOPT = @GNULIB_GETSOCKOPT@
 GNULIB_GETSUBOPT = @GNULIB_GETSUBOPT@
 GNULIB_GETTIMEOFDAY = @GNULIB_GETTIMEOFDAY@
 GNULIB_GETUSERSHELL = @GNULIB_GETUSERSHELL@
+GNULIB_GL_UNISTD_H_GETOPT = @GNULIB_GL_UNISTD_H_GETOPT@
 GNULIB_GRANTPT = @GNULIB_GRANTPT@
 GNULIB_GROUP_MEMBER = @GNULIB_GROUP_MEMBER@
 GNULIB_HYPOT = @GNULIB_HYPOT@
@@ -2771,6 +2774,7 @@ HAVE_GETDTABLESIZE = @HAVE_GETDTABLESIZE@
 HAVE_GETGROUPS = @HAVE_GETGROUPS@
 HAVE_GETHOSTNAME = @HAVE_GETHOSTNAME@
 HAVE_GETLOGIN = @HAVE_GETLOGIN@
+HAVE_GETOPT_H = @HAVE_GETOPT_H@
 HAVE_GETPAGESIZE = @HAVE_GETPAGESIZE@
 HAVE_GETSUBOPT = @HAVE_GETSUBOPT@
 HAVE_GETTIMEOFDAY = @HAVE_GETTIMEOFDAY@
@@ -3106,6 +3110,7 @@ NEXT_AS_FIRST_DIRECTIVE_CTYPE_H = @NEXT_AS_FIRST_DIRECTIVE_CTYPE_H@
 NEXT_AS_FIRST_DIRECTIVE_ERRNO_H = @NEXT_AS_FIRST_DIRECTIVE_ERRNO_H@
 NEXT_AS_FIRST_DIRECTIVE_FCNTL_H = @NEXT_AS_FIRST_DIRECTIVE_FCNTL_H@
 NEXT_AS_FIRST_DIRECTIVE_FLOAT_H = @NEXT_AS_FIRST_DIRECTIVE_FLOAT_H@
+NEXT_AS_FIRST_DIRECTIVE_GETOPT_H = @NEXT_AS_FIRST_DIRECTIVE_GETOPT_H@
 NEXT_AS_FIRST_DIRECTIVE_INTTYPES_H = @NEXT_AS_FIRST_DIRECTIVE_INTTYPES_H@
 NEXT_AS_FIRST_DIRECTIVE_LANGINFO_H = @NEXT_AS_FIRST_DIRECTIVE_LANGINFO_H@
 NEXT_AS_FIRST_DIRECTIVE_LOCALE_H = @NEXT_AS_FIRST_DIRECTIVE_LOCALE_H@
@@ -3144,6 +3149,7 @@ NEXT_CTYPE_H = @NEXT_CTYPE_H@
 NEXT_ERRNO_H = @NEXT_ERRNO_H@
 NEXT_FCNTL_H = @NEXT_FCNTL_H@
 NEXT_FLOAT_H = @NEXT_FLOAT_H@
+NEXT_GETOPT_H = @NEXT_GETOPT_H@
 NEXT_INTTYPES_H = @NEXT_INTTYPES_H@
 NEXT_LANGINFO_H = @NEXT_LANGINFO_H@
 NEXT_LOCALE_H = @NEXT_LOCALE_H@
@@ -4365,6 +4371,8 @@ BHYVE_DRIVER_SOURCES = \
 		bhyve/bhyve_capabilities.h			\
 		bhyve/bhyve_command.c				\
 		bhyve/bhyve_command.h				\
+		bhyve/bhyve_parse_command.c			\
+		bhyve/bhyve_parse_command.h			\
 		bhyve/bhyve_device.c				\
 		bhyve/bhyve_device.h				\
 		bhyve/bhyve_domain.c				\
@@ -4515,7 +4523,6 @@ NODE_DEVICE_DRIVER_UDEV_SOURCES = \
 
 CPU_SOURCES = \
 		cpu/cpu.h cpu/cpu.c				\
-		cpu/cpu_generic.h cpu/cpu_generic.c		\
 		cpu/cpu_x86.h cpu/cpu_x86.c cpu/cpu_x86_data.h	\
 		cpu/cpu_s390.h cpu/cpu_s390.c			\
 		cpu/cpu_arm.h cpu/cpu_arm.c			\
@@ -5835,8 +5842,6 @@ cpu/$(DEPDIR)/$(am__dirstamp):
 	@: > cpu/$(DEPDIR)/$(am__dirstamp)
 cpu/libvirt_cpu_la-cpu.lo: cpu/$(am__dirstamp) \
 	cpu/$(DEPDIR)/$(am__dirstamp)
-cpu/libvirt_cpu_la-cpu_generic.lo: cpu/$(am__dirstamp) \
-	cpu/$(DEPDIR)/$(am__dirstamp)
 cpu/libvirt_cpu_la-cpu_x86.lo: cpu/$(am__dirstamp) \
 	cpu/$(DEPDIR)/$(am__dirstamp)
 cpu/libvirt_cpu_la-cpu_s390.lo: cpu/$(am__dirstamp) \
@@ -5912,6 +5917,8 @@ bhyve/$(DEPDIR)/$(am__dirstamp):
 bhyve/libvirt_driver_bhyve_impl_la-bhyve_capabilities.lo:  \
 	bhyve/$(am__dirstamp) bhyve/$(DEPDIR)/$(am__dirstamp)
 bhyve/libvirt_driver_bhyve_impl_la-bhyve_command.lo:  \
+	bhyve/$(am__dirstamp) bhyve/$(DEPDIR)/$(am__dirstamp)
+bhyve/libvirt_driver_bhyve_impl_la-bhyve_parse_command.lo:  \
 	bhyve/$(am__dirstamp) bhyve/$(DEPDIR)/$(am__dirstamp)
 bhyve/libvirt_driver_bhyve_impl_la-bhyve_device.lo:  \
 	bhyve/$(am__dirstamp) bhyve/$(DEPDIR)/$(am__dirstamp)
@@ -6923,6 +6930,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@bhyve/$(DEPDIR)/libvirt_driver_bhyve_impl_la-bhyve_domain.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@bhyve/$(DEPDIR)/libvirt_driver_bhyve_impl_la-bhyve_driver.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@bhyve/$(DEPDIR)/libvirt_driver_bhyve_impl_la-bhyve_monitor.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@bhyve/$(DEPDIR)/libvirt_driver_bhyve_impl_la-bhyve_parse_command.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@bhyve/$(DEPDIR)/libvirt_driver_bhyve_impl_la-bhyve_process.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-capabilities.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-cpu_conf.Plo@am__quote@
@@ -6959,7 +6967,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_setuid_rpc_client_la-storage_event.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@cpu/$(DEPDIR)/libvirt_cpu_la-cpu.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@cpu/$(DEPDIR)/libvirt_cpu_la-cpu_arm.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@cpu/$(DEPDIR)/libvirt_cpu_la-cpu_generic.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@cpu/$(DEPDIR)/libvirt_cpu_la-cpu_map.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@cpu/$(DEPDIR)/libvirt_cpu_la-cpu_ppc64.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@cpu/$(DEPDIR)/libvirt_cpu_la-cpu_s390.Plo@am__quote@
@@ -8234,13 +8241,6 @@ cpu/libvirt_cpu_la-cpu.lo: cpu/cpu.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_cpu_la_CFLAGS) $(CFLAGS) -c -o cpu/libvirt_cpu_la-cpu.lo `test -f 'cpu/cpu.c' || echo '$(srcdir)/'`cpu/cpu.c
 
-cpu/libvirt_cpu_la-cpu_generic.lo: cpu/cpu_generic.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_cpu_la_CFLAGS) $(CFLAGS) -MT cpu/libvirt_cpu_la-cpu_generic.lo -MD -MP -MF cpu/$(DEPDIR)/libvirt_cpu_la-cpu_generic.Tpo -c -o cpu/libvirt_cpu_la-cpu_generic.lo `test -f 'cpu/cpu_generic.c' || echo '$(srcdir)/'`cpu/cpu_generic.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) cpu/$(DEPDIR)/libvirt_cpu_la-cpu_generic.Tpo cpu/$(DEPDIR)/libvirt_cpu_la-cpu_generic.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='cpu/cpu_generic.c' object='cpu/libvirt_cpu_la-cpu_generic.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_cpu_la_CFLAGS) $(CFLAGS) -c -o cpu/libvirt_cpu_la-cpu_generic.lo `test -f 'cpu/cpu_generic.c' || echo '$(srcdir)/'`cpu/cpu_generic.c
-
 cpu/libvirt_cpu_la-cpu_x86.lo: cpu/cpu_x86.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_cpu_la_CFLAGS) $(CFLAGS) -MT cpu/libvirt_cpu_la-cpu_x86.lo -MD -MP -MF cpu/$(DEPDIR)/libvirt_cpu_la-cpu_x86.Tpo -c -o cpu/libvirt_cpu_la-cpu_x86.lo `test -f 'cpu/cpu_x86.c' || echo '$(srcdir)/'`cpu/cpu_x86.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) cpu/$(DEPDIR)/libvirt_cpu_la-cpu_x86.Tpo cpu/$(DEPDIR)/libvirt_cpu_la-cpu_x86.Plo
@@ -8485,6 +8485,13 @@ bhyve/libvirt_driver_bhyve_impl_la-bhyve_command.lo: bhyve/bhyve_command.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='bhyve/bhyve_command.c' object='bhyve/libvirt_driver_bhyve_impl_la-bhyve_command.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_bhyve_impl_la_CFLAGS) $(CFLAGS) -c -o bhyve/libvirt_driver_bhyve_impl_la-bhyve_command.lo `test -f 'bhyve/bhyve_command.c' || echo '$(srcdir)/'`bhyve/bhyve_command.c
+
+bhyve/libvirt_driver_bhyve_impl_la-bhyve_parse_command.lo: bhyve/bhyve_parse_command.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_bhyve_impl_la_CFLAGS) $(CFLAGS) -MT bhyve/libvirt_driver_bhyve_impl_la-bhyve_parse_command.lo -MD -MP -MF bhyve/$(DEPDIR)/libvirt_driver_bhyve_impl_la-bhyve_parse_command.Tpo -c -o bhyve/libvirt_driver_bhyve_impl_la-bhyve_parse_command.lo `test -f 'bhyve/bhyve_parse_command.c' || echo '$(srcdir)/'`bhyve/bhyve_parse_command.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) bhyve/$(DEPDIR)/libvirt_driver_bhyve_impl_la-bhyve_parse_command.Tpo bhyve/$(DEPDIR)/libvirt_driver_bhyve_impl_la-bhyve_parse_command.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='bhyve/bhyve_parse_command.c' object='bhyve/libvirt_driver_bhyve_impl_la-bhyve_parse_command.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_bhyve_impl_la_CFLAGS) $(CFLAGS) -c -o bhyve/libvirt_driver_bhyve_impl_la-bhyve_parse_command.lo `test -f 'bhyve/bhyve_parse_command.c' || echo '$(srcdir)/'`bhyve/bhyve_parse_command.c
 
 bhyve/libvirt_driver_bhyve_impl_la-bhyve_device.lo: bhyve/bhyve_device.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_bhyve_impl_la_CFLAGS) $(CFLAGS) -MT bhyve/libvirt_driver_bhyve_impl_la-bhyve_device.lo -MD -MP -MF bhyve/$(DEPDIR)/libvirt_driver_bhyve_impl_la-bhyve_device.Tpo -c -o bhyve/libvirt_driver_bhyve_impl_la-bhyve_device.lo `test -f 'bhyve/bhyve_device.c' || echo '$(srcdir)/'`bhyve/bhyve_device.c

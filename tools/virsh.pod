@@ -524,8 +524,14 @@ Note that this flag does not filter the list of domains.
 If I<--name> is specified, domain names are printed instead of the table
 formatted one per line. If I<--uuid> is specified domain's UUID's are printed
 instead of names. Flag I<--table> specifies that the legacy table-formatted
-output should be used. This is the default. All of these are mutually
-exclusive.
+output should be used. This is the default.
+
+If both I<--name> and I<--uuid> are specified, domain UUID's and names
+are printed side by side without any header. Flag I<--table> specifies
+that the legacy table-formatted output should be used. This is the
+default if neither I<--name> nor I<--uuid> are specified. Options
+I<--uuid> and I<--name> are mutually exclusive if option I<--table> is
+specified.
 
 If I<--title> is specified, then the short domain description (title) is
 printed in an extra column. This flag is usable only with the default
@@ -800,7 +806,22 @@ on hypervisor.
 
 Get memory stats for a running domain.
 
-Depending on the hypervisor a variety of statistics can be returned
+Availability of these fields depends on hypervisor. Unsupported fields are
+missing from the output. Other fields may appear if communicating with a newer
+version of libvirtd.
+
+B<Explanation of fields>:
+  swap_in           - The amount of data read from swap space (in kB)
+  swap_out          - The amount of memory written out to swap space (in kB)
+  major_fault       - The number of page faults where disk IO was required
+  minor_fault       - The number of other page faults
+  unused            - The amount of memory left unused by the system (in kB)
+  available         - The amount of usable memory as seen by the domain (in kB)
+  actual            - Current balloon value (in KB)
+  rss               - Resident Set Size of the running domain's process (in kB)
+  usable            - The amount of memory which can be reclaimed by balloon
+without causing host swapping (in KB)
+  last-update       - Timestamp of the last update of statistics (in seconds)
 
 For QEMU/KVM with a memory balloon, setting the optional I<--period> to a
 value larger than 0 in seconds will allow the balloon driver to return
@@ -878,7 +899,17 @@ I<--cpu-total> returns:
 
 I<--balloon> returns:
 "balloon.current" - the memory in kiB currently used,
-"balloon.maximum" - the maximum memory in kiB allowed
+"balloon.maximum" - the maximum memory in kiB allowed,
+"balloon.swap_in" - the amount of data read from swap space (in kB),
+"balloon.swap_out" - the amount of memory written out to swap space (in kB),
+"balloon.major_fault" - the number of page faults then disk IO was required,
+"balloon.minor_fault" - the number of other page faults,
+"balloon.unused" - the amount of memory left unused by the system (in kB),
+"balloon.available" - the amount of usable memory as seen by the domain (in kB),
+"balloon.rss" - Resident Set Size of running domain's process (in kB),
+"balloon.usable" - the amount of memory which can be reclaimed by balloon
+without causing host swapping (in KB),
+"balloon.last-update" - timestamp of the last update of statistics (in seconds),
 
 I<--vcpu> returns:
 "vcpu.current" - current number of online virtual CPUs,

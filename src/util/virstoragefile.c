@@ -43,6 +43,7 @@
 #include "viruri.h"
 #include "dirname.h"
 #include "virbuffer.h"
+#include "virjson.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
@@ -83,7 +84,8 @@ VIR_ENUM_IMPL(virStorageNetProtocol, VIR_STORAGE_NET_PROTOCOL_LAST,
               "https",
               "ftp",
               "ftps",
-              "tftp")
+              "tftp",
+              "ssh")
 
 VIR_ENUM_IMPL(virStorageNetHostTransport, VIR_STORAGE_NET_HOST_TRANS_LAST,
               "tcp",
@@ -2500,6 +2502,7 @@ virStorageSourceParseBackingColon(virStorageSourcePtr src,
     case VIR_STORAGE_NET_PROTOCOL_TFTP:
     case VIR_STORAGE_NET_PROTOCOL_ISCSI:
     case VIR_STORAGE_NET_PROTOCOL_GLUSTER:
+    case VIR_STORAGE_NET_PROTOCOL_SSH:
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("malformed backing store path for protocol %s"),
                        protocol);
@@ -2514,10 +2517,436 @@ virStorageSourceParseBackingColon(virStorageSourcePtr src,
 }
 
 
-static virStorageSourcePtr
+static int
+virStorageSourceParseBackingJSONPath(virStorageSourcePtr src,
+                                     virJSONValuePtr json,
+                                     int type)
+{
+    const char *path;
+
+    if (!(path = virJSONValueObjectGetString(json, "filename"))) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("missing 'filename' field in JSON backing volume "
+                         "definition"));
+        return -1;
+    }
+
+    if (VIR_STRDUP(src->path, path) < 0)
+        return -1;
+
+    src->type = type;
+    return 0;
+}
+
+
+static int
+virStorageSourceParseBackingJSONUriStr(virStorageSourcePtr src,
+                                       const char *uri,
+                                       int protocol)
+{
+    if (virStorageSourceParseBackingURI(src, uri) < 0)
+        return -1;
+
+    if (src->protocol != protocol) {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("expected protocol '%s' but got '%s' in URI JSON volume "
+                         "definition"),
+                       virStorageNetProtocolTypeToString(protocol),
+                       virStorageNetProtocolTypeToString(src->protocol));
+        return -1;
+    }
+
+    return 0;
+}
+
+
+static int
+virStorageSourceParseBackingJSONUri(virStorageSourcePtr src,
+                                    virJSONValuePtr json,
+                                    int protocol)
+{
+    const char *uri;
+
+    if (!(uri = virJSONValueObjectGetString(json, "uri"))) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("missing URI in JSON backing volume definition"));
+        return -1;
+    }
+
+    return virStorageSourceParseBackingJSONUriStr(src, uri, protocol);
+}
+
+
+static int
+virStorageSourceParseBackingJSONGlusterHost(virStorageNetHostDefPtr host,
+                                            virJSONValuePtr json)
+{
+    const char *type = virJSONValueObjectGetString(json, "type");
+    const char *hostname = virJSONValueObjectGetString(json, "host");
+    const char *port = virJSONValueObjectGetString(json, "port");
+    const char *socket = virJSONValueObjectGetString(json, "socket");
+    int transport;
+
+    if ((transport = virStorageNetHostTransportTypeFromString(type)) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("unknown backing store transport protocol '%s'"), type);
+        return -1;
+    }
+
+    host->transport = transport;
+
+    switch ((virStorageNetHostTransport) transport) {
+    case VIR_STORAGE_NET_HOST_TRANS_TCP:
+        if (!hostname) {
+            virReportError(VIR_ERR_INVALID_ARG, "%s",
+                           _("missing hostname for tcp backing server in "
+                             "JSON backing definition for gluster volume"));
+            return -1;
+        }
+
+        if (VIR_STRDUP(host->name, hostname) < 0 ||
+            VIR_STRDUP(host->port, port) < 0)
+            return -1;
+        break;
+
+    case VIR_STORAGE_NET_HOST_TRANS_UNIX:
+        if (!socket) {
+            virReportError(VIR_ERR_INVALID_ARG, "%s",
+                           _("missing socket path for udp backing server in "
+                             "JSON backing definition for gluster volume"));
+            return -1;
+        }
+
+
+        if (VIR_STRDUP(host->socket, socket) < 0)
+            return -1;
+        break;
+
+    case VIR_STORAGE_NET_HOST_TRANS_RDMA:
+    case VIR_STORAGE_NET_HOST_TRANS_LAST:
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("backing store protocol '%s' is not yet supported"),
+                       type);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+static int
+virStorageSourceParseBackingJSONGluster(virStorageSourcePtr src,
+                                        virJSONValuePtr json,
+                                        int opaque ATTRIBUTE_UNUSED)
+{
+    const char *uri = virJSONValueObjectGetString(json, "filename");
+    const char *volume = virJSONValueObjectGetString(json, "volume");
+    const char *path = virJSONValueObjectGetString(json, "path");
+    virJSONValuePtr server = virJSONValueObjectGetArray(json, "server");
+    size_t nservers;
+    size_t i;
+
+    /* legacy URI based syntax passed via 'filename' option */
+    if (uri)
+        return virStorageSourceParseBackingJSONUriStr(src, uri,
+                                                      VIR_STORAGE_NET_PROTOCOL_GLUSTER);
+
+    if (!volume || !path || !server) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("missing 'volume', 'path' or 'server' attribute in "
+                         "JSON backing definition for gluster volume"));
+        return -1;
+    }
+
+    if (VIR_STRDUP(src->volume, volume) < 0 ||
+        virAsprintf(&src->path, "/%s", path) < 0)
+        return -1;
+
+    nservers = virJSONValueArraySize(server);
+
+    if (nservers < 1) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("at least 1 server is necessary in "
+                         "JSON backing definition for gluster volume"));
+    }
+
+    if (VIR_ALLOC_N(src->hosts, nservers) < 0)
+        return -1;
+    src->nhosts = nservers;
+
+    for (i = 0; i < nservers; i++) {
+        if (virStorageSourceParseBackingJSONGlusterHost(src->hosts + i,
+                                                        virJSONValueArrayGet(server, i)) < 0)
+            return -1;
+    }
+
+    return 0;
+}
+
+
+static int
+virStorageSourceParseBackingJSONiSCSI(virStorageSourcePtr src,
+                                      virJSONValuePtr json,
+                                      int opaque ATTRIBUTE_UNUSED)
+{
+    const char *uri;
+
+    /* legacy URI based syntax passed via 'filename' option */
+    if ((uri = virJSONValueObjectGetString(json, "filename")))
+        return virStorageSourceParseBackingJSONUriStr(src, uri,
+                                                      VIR_STORAGE_NET_PROTOCOL_ISCSI);
+
+    /* iSCSI currently supports only URI syntax passed in as filename */
+    virReportError(VIR_ERR_INVALID_ARG, "%s",
+                   _("missing iSCSI URI in JSON backing volume definition"));
+
+    return -1;
+}
+
+
+static int
+virStorageSourceParseBackingJSONNbd(virStorageSourcePtr src,
+                                    virJSONValuePtr json,
+                                    int opaque ATTRIBUTE_UNUSED)
+{
+    const char *path = virJSONValueObjectGetString(json, "path");
+    const char *host = virJSONValueObjectGetString(json, "host");
+    const char *port = virJSONValueObjectGetString(json, "port");
+    const char *export = virJSONValueObjectGetString(json, "export");
+
+    if (!path && !host) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("missing path or host of NBD server in JSON backing "
+                         "volume definition"));
+        return -1;
+    }
+
+    src->type = VIR_STORAGE_TYPE_NETWORK;
+    src->protocol = VIR_STORAGE_NET_PROTOCOL_NBD;
+
+    if (VIR_STRDUP(src->path, export) < 0)
+        return -1;
+
+    if (VIR_ALLOC_N(src->hosts, 1) < 0)
+        return -1;
+    src->nhosts = 1;
+
+    if (path) {
+        src->hosts[0].transport = VIR_STORAGE_NET_HOST_TRANS_UNIX;
+        if (VIR_STRDUP(src->hosts[0].socket, path) < 0)
+            return -1;
+    } else {
+        src->hosts[0].transport = VIR_STORAGE_NET_HOST_TRANS_TCP;
+        if (VIR_STRDUP(src->hosts[0].name, host) < 0)
+            return -1;
+
+        if (VIR_STRDUP(src->hosts[0].port, port) < 0)
+            return -1;
+    }
+
+    return 0;
+}
+
+
+static int
+virStorageSourceParseBackingJSONSheepdog(virStorageSourcePtr src,
+                                         virJSONValuePtr json,
+                                         int opaque ATTRIBUTE_UNUSED)
+{
+    const char *filename;
+
+    /* legacy URI based syntax passed via 'filename' option */
+    if ((filename = virJSONValueObjectGetString(json, "filename"))) {
+        if (strstr(filename, "://"))
+            return virStorageSourceParseBackingJSONUriStr(src, filename,
+                                                          VIR_STORAGE_NET_PROTOCOL_SHEEPDOG);
+
+        /* libvirt doesn't implement a parser for the legacy non-URI syntax */
+    }
+
+    /* Sheepdog currently supports only URI and legacy syntax passed in as filename */
+    virReportError(VIR_ERR_INVALID_ARG, "%s",
+                   _("missing sheepdog URI in JSON backing volume definition"));
+
+    return -1;
+}
+
+
+static int
+virStorageSourceParseBackingJSONSSH(virStorageSourcePtr src,
+                                    virJSONValuePtr json,
+                                    int opaque ATTRIBUTE_UNUSED)
+{
+    const char *path = virJSONValueObjectGetString(json, "path");
+    const char *host = virJSONValueObjectGetString(json, "host");
+    const char *port = virJSONValueObjectGetString(json, "port");
+
+    if (!host || !path) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("missing host or path of SSH JSON backing "
+                         "volume definition"));
+        return -1;
+    }
+
+    src->type = VIR_STORAGE_TYPE_NETWORK;
+    src->protocol = VIR_STORAGE_NET_PROTOCOL_SSH;
+
+    if (VIR_STRDUP(src->path, path) < 0)
+        return -1;
+
+    if (VIR_ALLOC_N(src->hosts, 1) < 0)
+        return -1;
+    src->nhosts = 1;
+
+    src->hosts[0].transport = VIR_STORAGE_NET_HOST_TRANS_TCP;
+    if (VIR_STRDUP(src->hosts[0].name, host) < 0)
+        return -1;
+
+    if (VIR_STRDUP(src->hosts[0].port, port) < 0)
+        return -1;
+
+    return 0;
+}
+
+
+struct virStorageSourceJSONDriverParser {
+    const char *drvname;
+    int (*func)(virStorageSourcePtr src, virJSONValuePtr json, int opaque);
+    int opaque;
+};
+
+static const struct virStorageSourceJSONDriverParser jsonParsers[] = {
+    {"file", virStorageSourceParseBackingJSONPath, VIR_STORAGE_TYPE_FILE},
+    {"host_device", virStorageSourceParseBackingJSONPath, VIR_STORAGE_TYPE_BLOCK},
+    {"host_cdrom", virStorageSourceParseBackingJSONPath, VIR_STORAGE_TYPE_BLOCK},
+    {"http", virStorageSourceParseBackingJSONUri, VIR_STORAGE_NET_PROTOCOL_HTTP},
+    {"https", virStorageSourceParseBackingJSONUri, VIR_STORAGE_NET_PROTOCOL_HTTPS},
+    {"ftp", virStorageSourceParseBackingJSONUri, VIR_STORAGE_NET_PROTOCOL_FTP},
+    {"ftps", virStorageSourceParseBackingJSONUri, VIR_STORAGE_NET_PROTOCOL_FTPS},
+    {"tftp", virStorageSourceParseBackingJSONUri, VIR_STORAGE_NET_PROTOCOL_TFTP},
+    {"gluster", virStorageSourceParseBackingJSONGluster, 0},
+    {"iscsi", virStorageSourceParseBackingJSONiSCSI, 0},
+    {"nbd", virStorageSourceParseBackingJSONNbd, 0},
+    {"sheepdog", virStorageSourceParseBackingJSONSheepdog, 0},
+    {"ssh", virStorageSourceParseBackingJSONSSH, 0},
+};
+
+
+static int
+virStorageSourceParseBackingJSONDeflattenWorker(const char *key,
+                                                const virJSONValue *value,
+                                                void *opaque)
+{
+    virJSONValuePtr retobj = opaque;
+    virJSONValuePtr newval = NULL;
+    const char *newkey;
+
+    if (!(newkey = STRSKIP(key, "file."))) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("JSON backing file syntax is neither nested nor "
+                         "flattened"));
+        return -1;
+    }
+
+    if (!(newval = virJSONValueCopy(value)))
+        return -1;
+
+    if (virJSONValueObjectAppend(retobj, newkey, newval) < 0) {
+        virJSONValueFree(newval);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+/**
+ * virStorageSourceParseBackingJSONDeflatten:
+ *
+ * The json: pseudo-protocol syntax in qemu allows multiple approaches to
+ * describe nesting of the values. This is due to the lax handling of the string
+ * in qemu and the fact that internally qemu is flattening the values using '.'.
+ *
+ * This allows to specify nested json strings either using nested json objects
+ * or prefixing object members with the parent object name followed by the dot.
+ *
+ * This function will attempt to reverse the process and provide a nested json
+ * hierarchy so that the parsers can be kept simple and we still can use the
+ * weird syntax some users might use.
+ *
+ * Currently this function will flatten out just the 'file.' prefix into a new
+ * tree. Any other syntax will be rejected.
+ */
+static virJSONValuePtr
+virStorageSourceParseBackingJSONDeflatten(virJSONValuePtr json)
+{
+    virJSONValuePtr ret;
+
+    if (!(ret = virJSONValueNewObject()))
+        return NULL;
+
+    if (virJSONValueObjectForeachKeyValue(json,
+                                          virStorageSourceParseBackingJSONDeflattenWorker,
+                                          ret) < 0) {
+        virJSONValueFree(ret);
+        return NULL;
+    }
+
+    return ret;
+}
+
+
+static int
+virStorageSourceParseBackingJSON(virStorageSourcePtr src,
+                                 const char *json)
+{
+    virJSONValuePtr root = NULL;
+    virJSONValuePtr fixedroot = NULL;
+    virJSONValuePtr file;
+    const char *drvname;
+    size_t i;
+    int ret = -1;
+
+    if (!(root = virJSONValueFromString(json)))
+        return -1;
+
+    if (!(file = virJSONValueObjectGetObject(root, "file"))) {
+        if (!(fixedroot = virStorageSourceParseBackingJSONDeflatten(root)))
+            goto cleanup;
+
+        file = fixedroot;
+    }
+
+    if (!(drvname = virJSONValueObjectGetString(file, "driver"))) {
+        virReportError(VIR_ERR_INVALID_ARG, _("JSON backing volume defintion "
+                                              "'%s' lacks driver name"), json);
+        goto cleanup;
+    }
+
+    for (i = 0; i < ARRAY_CARDINALITY(jsonParsers); i++) {
+        if (STREQ(drvname, jsonParsers[i].drvname)) {
+            ret = jsonParsers[i].func(src, file, jsonParsers[i].opaque);
+            goto cleanup;
+        }
+    }
+
+    virReportError(VIR_ERR_INTERNAL_ERROR,
+                   _("missing parser implementation for JSON backing volume "
+                     "driver '%s'"), drvname);
+
+ cleanup:
+    virJSONValueFree(root);
+    virJSONValueFree(fixedroot);
+    return ret;
+}
+
+
+virStorageSourcePtr
 virStorageSourceNewFromBackingAbsolute(const char *path)
 {
+    const char *json;
     virStorageSourcePtr ret;
+    int rc;
 
     if (VIR_ALLOC(ret) < 0)
         return NULL;
@@ -2531,13 +2960,15 @@ virStorageSourceNewFromBackingAbsolute(const char *path)
         ret->type = VIR_STORAGE_TYPE_NETWORK;
 
         /* handle URI formatted backing stores */
-        if (strstr(path, "://")) {
-            if (virStorageSourceParseBackingURI(ret, path) < 0)
-                goto error;
-        } else {
-            if (virStorageSourceParseBackingColon(ret, path) < 0)
-                goto error;
-        }
+        if ((json = STRSKIP(path, "json:")))
+            rc = virStorageSourceParseBackingJSON(ret, json);
+        else if (strstr(path, "://"))
+            rc = virStorageSourceParseBackingURI(ret, path);
+        else
+            rc = virStorageSourceParseBackingColon(ret, path);
+
+        if (rc < 0)
+            goto error;
     }
 
     return ret;

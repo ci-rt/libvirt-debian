@@ -106,22 +106,13 @@ qemuDomainSetSCSIControllerModel(const virDomainDef *def,
 
 
 static int
-qemuDomainAssignVirtioSerialAddresses(virDomainDefPtr def,
-                                      virDomainObjPtr obj)
+qemuDomainAssignVirtioSerialAddresses(virDomainDefPtr def)
 {
     int ret = -1;
     size_t i;
     virDomainVirtioSerialAddrSetPtr addrs = NULL;
-    qemuDomainObjPrivatePtr priv = NULL;
 
-    if (!(addrs = virDomainVirtioSerialAddrSetCreate()))
-        goto cleanup;
-
-    if (virDomainVirtioSerialAddrSetAddControllers(addrs, def) < 0)
-        goto cleanup;
-
-    if (virDomainDeviceInfoIterate(def, virDomainVirtioSerialAddrReserve,
-                                   addrs) < 0)
+    if (!(addrs = virDomainVirtioSerialAddrSetCreateFromDomain(def)))
         goto cleanup;
 
     VIR_DEBUG("Finished reserving existing ports");
@@ -144,13 +135,6 @@ qemuDomainAssignVirtioSerialAddresses(virDomainDefPtr def,
             goto cleanup;
     }
 
-    if (obj && obj->privateData) {
-        priv = obj->privateData;
-        /* if this is the live domain object, we persist the addresses */
-        virDomainVirtioSerialAddrSetFree(priv->vioserialaddrs);
-        priv->vioserialaddrs = addrs;
-        addrs = NULL;
-    }
     ret = 0;
 
  cleanup:
@@ -336,6 +320,28 @@ qemuDomainPrimeVirtioDeviceAddresses(virDomainDefPtr def,
     }
 }
 
+virDomainCCWAddressSetPtr
+qemuDomainCCWAddrSetCreateFromDomain(virDomainDefPtr def)
+{
+    virDomainCCWAddressSetPtr addrs = NULL;
+
+    if (!(addrs = virDomainCCWAddressSetCreate()))
+        goto error;
+
+    if (virDomainDeviceInfoIterate(def, virDomainCCWAddressValidate,
+                                   addrs) < 0)
+        goto error;
+
+    if (virDomainDeviceInfoIterate(def, virDomainCCWAddressAllocate,
+                                   addrs) < 0)
+        goto error;
+
+    return addrs;
+
+ error:
+    virDomainCCWAddressSetFree(addrs);
+    return NULL;
+}
 
 /*
  * Three steps populating CCW devnos
@@ -345,43 +351,25 @@ qemuDomainPrimeVirtioDeviceAddresses(virDomainDefPtr def,
  */
 static int
 qemuDomainAssignS390Addresses(virDomainDefPtr def,
-                              virQEMUCapsPtr qemuCaps,
-                              virDomainObjPtr obj)
+                              virQEMUCapsPtr qemuCaps)
 {
     int ret = -1;
     virDomainCCWAddressSetPtr addrs = NULL;
-    qemuDomainObjPrivatePtr priv = NULL;
 
     if (qemuDomainMachineIsS390CCW(def) &&
         virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_CCW)) {
         qemuDomainPrimeVirtioDeviceAddresses(
             def, VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW);
 
-        if (!(addrs = virDomainCCWAddressSetCreate()))
+        if (!(addrs = qemuDomainCCWAddrSetCreateFromDomain(def)))
             goto cleanup;
 
-        if (virDomainDeviceInfoIterate(def, virDomainCCWAddressValidate,
-                                       addrs) < 0)
-            goto cleanup;
-
-        if (virDomainDeviceInfoIterate(def, virDomainCCWAddressAllocate,
-                                       addrs) < 0)
-            goto cleanup;
     } else if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_S390)) {
         /* deal with legacy virtio-s390 */
         qemuDomainPrimeVirtioDeviceAddresses(
             def, VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390);
     }
 
-    if (obj && obj->privateData) {
-        priv = obj->privateData;
-        if (addrs) {
-            /* if this is the live domain object, we persist the CCW addresses*/
-            virDomainCCWAddressSetFree(priv->ccwaddrs);
-            priv->ccwaddrs = addrs;
-            addrs = NULL;
-        }
-    }
     ret = 0;
 
  cleanup:
@@ -1622,24 +1610,173 @@ qemuDomainAssignPCIAddresses(virDomainDefPtr def,
 }
 
 
+struct qemuAssignUSBIteratorInfo {
+    virDomainUSBAddressSetPtr addrs;
+    size_t count;
+};
+
+
+static int
+qemuDomainAssignUSBPortsIterator(virDomainDeviceInfoPtr info,
+                                 void *opaque)
+{
+    struct qemuAssignUSBIteratorInfo *data = opaque;
+
+    if (info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
+        return 0;
+
+    return virDomainUSBAddressAssign(data->addrs, info);
+}
+
+
+static int
+qemuDomainAssignUSBHubs(virDomainUSBAddressSetPtr addrs,
+                        virDomainDefPtr def)
+{
+    size_t i;
+
+    for (i = 0; i < def->nhubs; i++) {
+        virDomainHubDefPtr hub = def->hubs[i];
+        if (hub->type != VIR_DOMAIN_HUB_TYPE_USB)
+            continue;
+
+        if (hub->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_USB &&
+            virDomainUSBAddressPortIsValid(hub->info.addr.usb.port))
+            continue;
+        if (virDomainUSBAddressAssign(addrs, &hub->info) < 0)
+            return -1;
+
+        if (virDomainUSBAddressSetAddHub(addrs, hub) < 0)
+            return -1;
+    }
+
+    return 0;
+}
+
+
+static int
+qemuDomainAssignUSBPorts(virDomainUSBAddressSetPtr addrs,
+                         virDomainDefPtr def)
+{
+    struct qemuAssignUSBIteratorInfo data = { .addrs = addrs };
+
+    return virDomainUSBDeviceDefForeach(def,
+                                        qemuDomainAssignUSBPortsIterator,
+                                        &data,
+                                        true);
+}
+
+
+static int
+qemuDomainAssignUSBPortsCounter(virDomainDeviceInfoPtr info ATTRIBUTE_UNUSED,
+                                void *opaque)
+{
+    struct qemuAssignUSBIteratorInfo *data = opaque;
+
+    data->count++;
+    return 0;
+}
+
+
+static int
+qemuDomainUSBAddressAddHubs(virDomainDefPtr def)
+{
+    struct qemuAssignUSBIteratorInfo data = { .count = 0 };
+    virDomainHubDefPtr hub = NULL;
+    size_t available_ports;
+    int ret = -1;
+
+    available_ports = virDomainUSBAddressCountAllPorts(def);
+    ignore_value(virDomainUSBDeviceDefForeach(def,
+                                              qemuDomainAssignUSBPortsCounter,
+                                              &data,
+                                              false));
+    VIR_DEBUG("Found %zu USB devices and %zu provided USB ports",
+              data.count, available_ports);
+
+    /* Add one hub if there are more devices than ports
+     * otherwise it's up to the user to specify more hubs/controllers */
+    if (data.count > available_ports) {
+        if (VIR_ALLOC(hub) < 0)
+            return -1;
+        hub->type = VIR_DOMAIN_HUB_TYPE_USB;
+
+        if (VIR_APPEND_ELEMENT(def->hubs, def->nhubs, hub) < 0)
+            goto cleanup;
+    }
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(hub);
+    return ret;
+}
+
+
+static int
+qemuDomainAssignUSBAddresses(virDomainDefPtr def,
+                             virDomainObjPtr obj)
+{
+    int ret = -1;
+    virDomainUSBAddressSetPtr addrs = NULL;
+    qemuDomainObjPrivatePtr priv = NULL;
+
+    if (!(addrs = virDomainUSBAddressSetCreate()))
+        goto cleanup;
+
+    if (qemuDomainUSBAddressAddHubs(def) < 0)
+        goto cleanup;
+
+    if (virDomainUSBAddressSetAddControllers(addrs, def) < 0)
+        goto cleanup;
+
+    if (virDomainUSBDeviceDefForeach(def, virDomainUSBAddressReserve, addrs,
+                                     true) < 0)
+        goto cleanup;
+
+    VIR_DEBUG("Existing USB addresses have been reserved");
+
+    if (qemuDomainAssignUSBHubs(addrs, def) < 0)
+        goto cleanup;
+
+    if (qemuDomainAssignUSBPorts(addrs, def) < 0)
+        goto cleanup;
+
+    VIR_DEBUG("Finished assigning USB ports");
+
+    if (obj && obj->privateData) {
+        priv = obj->privateData;
+        priv->usbaddrs = addrs;
+        addrs = NULL;
+    }
+    ret = 0;
+
+ cleanup:
+    virDomainUSBAddressSetFree(addrs);
+    return ret;
+}
+
+
 int
 qemuDomainAssignAddresses(virDomainDefPtr def,
                           virQEMUCapsPtr qemuCaps,
                           virDomainObjPtr obj,
-                          bool newDomain ATTRIBUTE_UNUSED)
+                          bool newDomain)
 {
-    if (qemuDomainAssignVirtioSerialAddresses(def, obj) < 0)
+    if (qemuDomainAssignVirtioSerialAddresses(def) < 0)
         return -1;
 
     if (qemuDomainAssignSpaprVIOAddresses(def, qemuCaps) < 0)
         return -1;
 
-    if (qemuDomainAssignS390Addresses(def, qemuCaps, obj) < 0)
+    if (qemuDomainAssignS390Addresses(def, qemuCaps) < 0)
         return -1;
 
     qemuDomainAssignARMVirtioMMIOAddresses(def, qemuCaps);
 
     if (qemuDomainAssignPCIAddresses(def, qemuCaps, obj) < 0)
+        return -1;
+
+    if (newDomain && qemuDomainAssignUSBAddresses(def, obj) < 0)
         return -1;
 
     return 0;
@@ -1656,19 +1793,15 @@ qemuDomainReleaseDeviceAddress(virDomainObjPtr vm,
     if (!devstr)
         devstr = info->alias;
 
-    if (info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW &&
-        qemuDomainMachineIsS390CCW(vm->def) &&
-        virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_VIRTIO_CCW) &&
-        virDomainCCWAddressReleaseAddr(priv->ccwaddrs, info) < 0)
-        VIR_WARN("Unable to release CCW address on %s",
-                 NULLSTR(devstr));
-    else if (virDeviceInfoPCIAddressPresent(info) &&
-             virDomainPCIAddressReleaseSlot(priv->pciaddrs,
-                                            &info->addr.pci) < 0)
+    if (virDeviceInfoPCIAddressPresent(info) &&
+        virDomainPCIAddressReleaseSlot(priv->pciaddrs,
+                                       &info->addr.pci) < 0)
         VIR_WARN("Unable to release PCI address on %s",
                  NULLSTR(devstr));
-    if (info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_SERIAL &&
-        virDomainVirtioSerialAddrRelease(priv->vioserialaddrs, info) < 0)
-        VIR_WARN("Unable to release virtio-serial address on %s",
+
+    if (info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_USB &&
+        priv->usbaddrs &&
+        virDomainUSBAddressRelease(priv->usbaddrs, info) < 0)
+        VIR_WARN("Unable to release USB address on %s",
                  NULLSTR(devstr));
 }

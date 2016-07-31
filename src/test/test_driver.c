@@ -407,7 +407,8 @@ testDriverNew(void)
 }
 
 
-static const char *defaultDomainXML =
+static const char *defaultConnXML =
+"<node>"
 "<domain type='test'>"
 "  <name>test</name>"
 "  <uuid>6695eb01-f6a4-8304-79aa-97f2502e193f</uuid>"
@@ -417,10 +418,8 @@ static const char *defaultDomainXML =
 "  <os>"
 "    <type>hvm</type>"
 "  </os>"
-"</domain>";
-
-
-static const char *defaultNetworkXML =
+"</domain>"
+""
 "<network>"
 "  <name>default</name>"
 "  <uuid>dd8fe884-6c02-601e-7551-cca97df1c5df</uuid>"
@@ -431,9 +430,8 @@ static const char *defaultNetworkXML =
 "      <range start='192.168.122.2' end='192.168.122.254'/>"
 "    </dhcp>"
 "  </ip>"
-"</network>";
-
-static const char *defaultInterfaceXML =
+"</network>"
+""
 "<interface type=\"ethernet\" name=\"eth1\">"
 "  <start mode=\"onboot\"/>"
 "  <mac address=\"aa:bb:cc:dd:ee:ff\"/>"
@@ -442,16 +440,46 @@ static const char *defaultInterfaceXML =
 "    <ip address=\"192.168.0.5\" prefix=\"24\"/>"
 "    <route gateway=\"192.168.0.1\"/>"
 "  </protocol>"
-"</interface>";
-
-static const char *defaultPoolXML =
+"</interface>"
+""
 "<pool type='dir'>"
 "  <name>default-pool</name>"
 "  <uuid>dfe224cb-28fb-8dd0-c4b2-64eb3f0f4566</uuid>"
 "  <target>"
 "    <path>/default-pool</path>"
 "  </target>"
-"</pool>";
+"</pool>"
+""
+"<device>"
+"  <name>computer</name>"
+"  <capability type='system'>"
+"    <hardware>"
+"      <vendor>Libvirt</vendor>"
+"      <version>Test driver</version>"
+"      <serial>123456</serial>"
+"      <uuid>11111111-2222-3333-4444-555555555555</uuid>"
+"    </hardware>"
+"    <firmware>"
+"      <vendor>Libvirt</vendor>"
+"      <version>Test Driver</version>"
+"      <release_date>01/22/2007</release_date>"
+"    </firmware>"
+"  </capability>"
+"</device>"
+"<device>"
+"  <name>test-scsi-host-vport</name>"
+"  <parent>computer</parent>"
+"  <capability type='scsi_host'>"
+"    <host>1</host>"
+"    <capability type='fc_host'>"
+"      <wwnn>2000000012341234</wwnn>"
+"      <wwpn>1000000012341234</wwpn>"
+"    </capability>"
+"    <capability type='vport_ops'/>"
+"  </capability>"
+"</device>"
+"</node>";
+
 
 static const char *defaultPoolSourcesLogicalXML =
 "<sources>\n"
@@ -475,24 +503,6 @@ static const char *defaultPoolSourcesNetFSXML =
 "    <format type='nfs'/>\n"
 "  </source>\n"
 "</sources>\n";
-
-static const char *defaultNodeXML =
-"<device>"
-"  <name>computer</name>"
-"  <capability type='system'>"
-"    <hardware>"
-"      <vendor>Libvirt</vendor>"
-"      <version>Test driver</version>"
-"      <serial>123456</serial>"
-"      <uuid>11111111-2222-3333-4444-555555555555</uuid>"
-"    </hardware>"
-"    <firmware>"
-"      <vendor>Libvirt</vendor>"
-"      <version>Test Driver</version>"
-"      <release_date>01/22/2007</release_date>"
-"    </firmware>"
-"  </capability>"
-"</device>";
 
 static const unsigned long long defaultPoolCap = (100 * 1024 * 1024 * 1024ull);
 static const unsigned long long defaultPoolAlloc;
@@ -612,143 +622,6 @@ testDomainStartState(testDriverPtr privconn,
     if (ret < 0)
         testDomainShutdownState(NULL, dom, VIR_DOMAIN_SHUTOFF_FAILED);
     return ret;
-}
-
-
-/* Simultaneous test:///default connections should share the same
- * common state (among other things, this allows testing event
- * detection in one connection for an action caused in another).  */
-static int
-testOpenDefault(virConnectPtr conn)
-{
-    int u;
-    testDriverPtr privconn = NULL;
-    virDomainDefPtr domdef = NULL;
-    virDomainObjPtr domobj = NULL;
-    virNetworkDefPtr netdef = NULL;
-    virNetworkObjPtr netobj = NULL;
-    virInterfaceDefPtr interfacedef = NULL;
-    virInterfaceObjPtr interfaceobj = NULL;
-    virStoragePoolDefPtr pooldef = NULL;
-    virStoragePoolObjPtr poolobj = NULL;
-    virNodeDeviceDefPtr nodedef = NULL;
-    virNodeDeviceObjPtr nodeobj = NULL;
-
-    virMutexLock(&defaultLock);
-    if (defaultConnections++) {
-        conn->privateData = defaultConn;
-        virMutexUnlock(&defaultLock);
-        return VIR_DRV_OPEN_SUCCESS;
-    }
-
-    if (!(privconn = testDriverNew()))
-        goto error;
-
-    conn->privateData = privconn;
-
-    memmove(&privconn->nodeInfo, &defaultNodeInfo, sizeof(defaultNodeInfo));
-
-    /* Numa setup */
-    privconn->numCells = 2;
-    for (u = 0; u < 2; ++u) {
-        privconn->cells[u].numCpus = 8;
-        privconn->cells[u].mem = (u + 1) * 2048 * 1024;
-    }
-    for (u = 0; u < 16; u++) {
-        virBitmapPtr siblings = virBitmapNew(16);
-        if (!siblings)
-            goto error;
-        ignore_value(virBitmapSetBit(siblings, u));
-        privconn->cells[u / 8].cpus[(u % 8)].id = u;
-        privconn->cells[u / 8].cpus[(u % 8)].socket_id = u / 8;
-        privconn->cells[u / 8].cpus[(u % 8)].core_id = u % 8;
-        privconn->cells[u / 8].cpus[(u % 8)].siblings = siblings;
-    }
-
-    if (!(privconn->caps = testBuildCapabilities(conn)))
-        goto error;
-
-    if (!(domdef = virDomainDefParseString(defaultDomainXML,
-                                           privconn->caps,
-                                           privconn->xmlopt,
-                                           VIR_DOMAIN_DEF_PARSE_INACTIVE)))
-        goto error;
-
-    if (testDomainGenerateIfnames(domdef) < 0)
-        goto error;
-    if (!(domobj = virDomainObjListAdd(privconn->domains,
-                                       domdef,
-                                       privconn->xmlopt,
-                                       0, NULL)))
-        goto error;
-    domdef = NULL;
-
-    domobj->persistent = 1;
-    if (testDomainStartState(privconn, domobj,
-                             VIR_DOMAIN_RUNNING_BOOTED) < 0) {
-        virObjectUnlock(domobj);
-        goto error;
-    }
-
-    virObjectUnlock(domobj);
-
-    if (!(netdef = virNetworkDefParseString(defaultNetworkXML)))
-        goto error;
-    if (!(netobj = virNetworkAssignDef(privconn->networks, netdef, 0))) {
-        virNetworkDefFree(netdef);
-        goto error;
-    }
-    netobj->active = 1;
-    virNetworkObjEndAPI(&netobj);
-
-    if (!(interfacedef = virInterfaceDefParseString(defaultInterfaceXML)))
-        goto error;
-    if (!(interfaceobj = virInterfaceAssignDef(&privconn->ifaces, interfacedef))) {
-        virInterfaceDefFree(interfacedef);
-        goto error;
-    }
-    interfaceobj->active = 1;
-    virInterfaceObjUnlock(interfaceobj);
-
-    if (!(pooldef = virStoragePoolDefParseString(defaultPoolXML)))
-        goto error;
-
-    if (!(poolobj = virStoragePoolObjAssignDef(&privconn->pools,
-                                               pooldef))) {
-        virStoragePoolDefFree(pooldef);
-        goto error;
-    }
-
-    if (testStoragePoolObjSetDefaults(poolobj) == -1) {
-        virStoragePoolObjUnlock(poolobj);
-        goto error;
-    }
-    poolobj->active = 1;
-    virStoragePoolObjUnlock(poolobj);
-
-    /* Init default node device */
-    if (!(nodedef = virNodeDeviceDefParseString(defaultNodeXML, 0, NULL)))
-        goto error;
-    if (!(nodeobj = virNodeDeviceAssignDef(&privconn->devs,
-                                           nodedef))) {
-        virNodeDeviceDefFree(nodedef);
-        goto error;
-    }
-    virNodeDeviceObjUnlock(nodeobj);
-
-    defaultConn = privconn;
-
-    virMutexUnlock(&defaultLock);
-
-    return VIR_DRV_OPEN_SUCCESS;
-
- error:
-    testDriverFree(privconn);
-    conn->privateData = NULL;
-    virDomainDefFree(domdef);
-    defaultConnections--;
-    virMutexUnlock(&defaultLock);
-    return VIR_DRV_OPEN_ERROR;
 }
 
 
@@ -1296,6 +1169,37 @@ testParseAuthUsers(testDriverPtr privconn,
     return ret;
 }
 
+static int
+testOpenParse(testDriverPtr privconn,
+              const char *file,
+              xmlXPathContextPtr ctxt)
+{
+    if (!xmlStrEqual(ctxt->node->name, BAD_CAST "node")) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("Root element is not 'node'"));
+        goto error;
+    }
+
+    if (testParseNodeInfo(&privconn->nodeInfo, ctxt) < 0)
+        goto error;
+    if (testParseDomains(privconn, file, ctxt) < 0)
+        goto error;
+    if (testParseNetworks(privconn, file, ctxt) < 0)
+        goto error;
+    if (testParseInterfaces(privconn, file, ctxt) < 0)
+        goto error;
+    if (testParseStorage(privconn, file, ctxt) < 0)
+        goto error;
+    if (testParseNodedevs(privconn, file, ctxt) < 0)
+        goto error;
+    if (testParseAuthUsers(privconn, ctxt) < 0)
+        goto error;
+
+    return 0;
+ error:
+    return -1;
+}
+
 /* No shared state between simultaneous test connections initialized
  * from a file.  */
 static int
@@ -1317,28 +1221,10 @@ testOpenFromFile(virConnectPtr conn, const char *file)
     if (!(doc = virXMLParseFileCtxt(file, &ctxt)))
         goto error;
 
-    if (!xmlStrEqual(ctxt->node->name, BAD_CAST "node")) {
-        virReportError(VIR_ERR_XML_ERROR, "%s",
-                       _("Root element is not 'node'"));
-        goto error;
-    }
-
     privconn->numCells = 0;
     memmove(&privconn->nodeInfo, &defaultNodeInfo, sizeof(defaultNodeInfo));
 
-    if (testParseNodeInfo(&privconn->nodeInfo, ctxt) < 0)
-        goto error;
-    if (testParseDomains(privconn, file, ctxt) < 0)
-        goto error;
-    if (testParseNetworks(privconn, file, ctxt) < 0)
-        goto error;
-    if (testParseInterfaces(privconn, file, ctxt) < 0)
-        goto error;
-    if (testParseStorage(privconn, file, ctxt) < 0)
-        goto error;
-    if (testParseNodedevs(privconn, file, ctxt) < 0)
-        goto error;
-    if (testParseAuthUsers(privconn, ctxt) < 0)
+    if (testOpenParse(privconn, file, ctxt) < 0)
         goto error;
 
     xmlXPathFreeContext(ctxt);
@@ -1352,6 +1238,76 @@ testOpenFromFile(virConnectPtr conn, const char *file)
     xmlFreeDoc(doc);
     testDriverFree(privconn);
     conn->privateData = NULL;
+    return VIR_DRV_OPEN_ERROR;
+}
+
+/* Simultaneous test:///default connections should share the same
+ * common state (among other things, this allows testing event
+ * detection in one connection for an action caused in another).  */
+static int
+testOpenDefault(virConnectPtr conn)
+{
+    int u;
+    testDriverPtr privconn = NULL;
+    xmlDocPtr doc = NULL;
+    xmlXPathContextPtr ctxt = NULL;
+
+    virMutexLock(&defaultLock);
+    if (defaultConnections++) {
+        conn->privateData = defaultConn;
+        virMutexUnlock(&defaultLock);
+        return VIR_DRV_OPEN_SUCCESS;
+    }
+
+    if (!(privconn = testDriverNew()))
+        goto error;
+
+    conn->privateData = privconn;
+
+    memmove(&privconn->nodeInfo, &defaultNodeInfo, sizeof(defaultNodeInfo));
+
+    /* Numa setup */
+    privconn->numCells = 2;
+    for (u = 0; u < 2; ++u) {
+        privconn->cells[u].numCpus = 8;
+        privconn->cells[u].mem = (u + 1) * 2048 * 1024;
+    }
+    for (u = 0; u < 16; u++) {
+        virBitmapPtr siblings = virBitmapNew(16);
+        if (!siblings)
+            goto error;
+        ignore_value(virBitmapSetBit(siblings, u));
+        privconn->cells[u / 8].cpus[(u % 8)].id = u;
+        privconn->cells[u / 8].cpus[(u % 8)].socket_id = u / 8;
+        privconn->cells[u / 8].cpus[(u % 8)].core_id = u % 8;
+        privconn->cells[u / 8].cpus[(u % 8)].siblings = siblings;
+    }
+
+    if (!(privconn->caps = testBuildCapabilities(conn)))
+        goto error;
+
+    if (!(doc = virXMLParseStringCtxt(defaultConnXML,
+                                      _("(test driver)"), &ctxt)))
+        goto error;
+
+    if (testOpenParse(privconn, NULL, ctxt) < 0)
+        goto error;
+
+    defaultConn = privconn;
+
+    xmlXPathFreeContext(ctxt);
+    xmlFreeDoc(doc);
+    virMutexUnlock(&defaultLock);
+
+    return VIR_DRV_OPEN_SUCCESS;
+
+ error:
+    testDriverFree(privconn);
+    xmlXPathFreeContext(ctxt);
+    xmlFreeDoc(doc);
+    conn->privateData = NULL;
+    defaultConnections--;
+    virMutexUnlock(&defaultLock);
     return VIR_DRV_OPEN_ERROR;
 }
 
@@ -2336,6 +2292,7 @@ static int
 testDomainSetVcpusFlags(virDomainPtr domain, unsigned int nrCpus,
                         unsigned int flags)
 {
+    testDriverPtr driver = domain->conn->privateData;
     virDomainObjPtr privdom = NULL;
     virDomainDefPtr def;
     virDomainDefPtr persistentDef;
@@ -2383,7 +2340,8 @@ testDomainSetVcpusFlags(virDomainPtr domain, unsigned int nrCpus,
 
     if (persistentDef) {
         if (flags & VIR_DOMAIN_VCPU_MAXIMUM) {
-            if (virDomainDefSetVcpusMax(persistentDef, nrCpus) < 0)
+            if (virDomainDefSetVcpusMax(persistentDef, nrCpus,
+                                        driver->xmlopt) < 0)
                 goto cleanup;
         } else {
             if (virDomainDefSetVcpus(persistentDef, nrCpus) < 0)
@@ -2457,7 +2415,7 @@ static int testDomainGetVcpus(virDomainPtr domain,
     memset(cpumaps, 0, maxinfo * maplen);
 
     for (i = 0; i < maxinfo; i++) {
-        virDomainVcpuInfoPtr vcpu = virDomainDefGetVcpu(def, i);
+        virDomainVcpuDefPtr vcpu = virDomainDefGetVcpu(def, i);
         virBitmapPtr bitmap = NULL;
 
         if (!vcpu->online)
@@ -2493,7 +2451,7 @@ static int testDomainPinVcpu(virDomainPtr domain,
                              unsigned char *cpumap,
                              int maplen)
 {
-    virDomainVcpuInfoPtr vcpuinfo;
+    virDomainVcpuDefPtr vcpuinfo;
     virDomainObjPtr privdom;
     virDomainDefPtr def;
     int ret = -1;
@@ -2659,7 +2617,6 @@ static char *testDomainGetMetadata(virDomainPtr dom,
                                    const char *uri,
                                    unsigned int flags)
 {
-    testDriverPtr privconn = dom->conn->privateData;
     virDomainObjPtr privdom;
     char *ret;
 
@@ -2669,8 +2626,7 @@ static char *testDomainGetMetadata(virDomainPtr dom,
     if (!(privdom = testDomObjFromDomain(dom)))
         return NULL;
 
-    ret = virDomainObjGetMetadata(privdom, type, uri, privconn->caps,
-                                  privconn->xmlopt, flags);
+    ret = virDomainObjGetMetadata(privdom, type, uri, flags);
 
     virDomainObjEndAPI(&privdom);
     return ret;

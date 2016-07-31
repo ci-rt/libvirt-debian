@@ -86,6 +86,7 @@ MOCKLIBS_LIBS = \
 EXTRA_DIST =		\
 	.valgrind.supp \
 	bhyvexml2argvdata \
+	bhyveargv2xmldata \
 	bhyvexml2xmloutdata \
 	capabilityschemadata \
 	commanddata \
@@ -120,7 +121,8 @@ EXTRA_DIST =		\
 	qemucapabilitiesdata \
 	qemucaps2xmldata \
 	qemuhelpdata \
-	qemuhotplugtestdata \
+	qemuhotplugtestdevices \
+	qemuhotplugtestdomains \
 	qemumonitorjsondata \
 	qemuxml2argvdata \
 	qemuxml2xmloutdata \
@@ -157,11 +159,11 @@ EXTRA_DIST =		\
 	xml2sexprdata \
 	xml2vmxdata
 
-test_helpers = commandhelper ssh virconftest
+test_helpers = commandhelper ssh
 test_programs = virshtest sockettest \
 	virhostcputest virbuftest \
 	commandtest seclabeltest \
-	virhashtest \
+	virhashtest virconftest \
 	viratomictest \
 	utiltest shunloadtest \
 	virtimetest viruritest virkeyfiletest \
@@ -284,7 +286,7 @@ test_programs += vmwarevertest
 endif WITH_VMWARE
 
 if WITH_BHYVE
-test_programs += bhyvexml2argvtest bhyvexml2xmltest
+test_programs += bhyvexml2argvtest bhyvexml2xmltest bhyveargv2xmltest
 endif WITH_BHYVE
 
 if WITH_CIL
@@ -359,7 +361,6 @@ test_scripts =
 libvirtd_test_scripts =		\
 	libvirtd-fail			\
 	libvirtd-pool			\
-	virconftest.sh			\
 	virsh-cpuset			\
 	virsh-define-dev-segfault	\
 	virsh-int-overflow		\
@@ -378,8 +379,7 @@ if WITH_LIBVIRTD
 test_scripts += $(libvirtd_test_scripts)
 
 test_programs += 			\
-	eventtest			\
-	libvirtdconftest
+	eventtest
 else ! WITH_LIBVIRTD
 EXTRA_DIST += $(libvirtd_test_scripts)
 endif ! WITH_LIBVIRTD
@@ -404,6 +404,7 @@ test_libraries = libshunload.la \
 		virrandommock.la \
 		virhostcpumock.la \
 		nssmock.la \
+		domaincapsmock.la \
 		$(NULL)
 if WITH_QEMU
 test_libraries += libqemumonitortestutils.la \
@@ -415,7 +416,7 @@ test_libraries += libqemumonitortestutils.la \
 endif WITH_QEMU
 
 if WITH_BHYVE
-test_libraries += bhyvexml2argvmock.la
+test_libraries += bhyvexml2argvmock.la bhyveargv2xmlmock.la
 endif WITH_BHYVE
 
 if WITH_DBUS
@@ -741,6 +742,12 @@ bhyvexml2argvmock_la_CFLAGS = $(AM_CFLAGS)
 bhyvexml2argvmock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
 bhyvexml2argvmock_la_LIBADD = $(MOCKLIBS_LIBS)
 
+bhyveargv2xmlmock_la_SOURCES = \
+	bhyveargv2xmlmock.c
+bhyveargv2xmlmock_la_CFLAGS = $(AM_CFLAGS)
+bhyveargv2xmlmock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
+bhyveargv2xmlmock_la_LIBADD = $(MOCKLIBS_LIBS)
+
 bhyve_LDADDS = ../src/libvirt_driver_bhyve_impl.la
 if WITH_STORAGE
 bhyve_LDADDS += ../src/libvirt_driver_storage_impl.la
@@ -755,8 +762,18 @@ bhyvexml2xmltest_SOURCES = \
 	bhyvexml2xmltest.c \
 	testutils.c testutils.h
 bhyvexml2xmltest_LDADD = $(bhyve_LDADDS)
+
+bhyveargv2xmltest_SOURCES = \
+	bhyveargv2xmltest.c \
+	testutils.c testutils.h
+bhyveargv2xmltest_LDADD = $(bhyve_LDADDS)
 else ! WITH_BHYVE
-EXTRA_DIST += bhyvexml2argvtest.c bhyvexml2xmltest.c bhyvexml2argvmock.c
+EXTRA_DIST += \
+	bhyvexml2argvtest.c \
+	bhyveargv2xmltest.c \
+	bhyvexml2xmltest.c \
+	bhyvexml2argvmock.c \
+	bhyveargv2xmlmock.c
 endif ! WITH_BHYVE
 
 networkxml2xmltest_SOURCES = \
@@ -875,7 +892,7 @@ virshtest_SOURCES = \
 virshtest_LDADD = $(LDADDS)
 
 virconftest_SOURCES = \
-	virconftest.c
+	virconftest.c testutils.h testutils.c
 virconftest_LDADD = $(LDADDS)
 
 virhostcputest_SOURCES = \
@@ -919,6 +936,12 @@ vircaps2xmltest_SOURCES = \
 	vircaps2xmltest.c testutils.h testutils.c
 vircaps2xmltest_LDADD = $(LDADDS)
 
+
+domaincapsmock_la_SOURCES = domaincapsmock.c
+domaincapsmock_la_CFLAGS = $(AM_CFLAGS)
+domaincapsmock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
+domaincapsmock_la_LIBADD = $(MOCKLIBS_LIBS)
+
 domaincapstest_SOURCES = \
 	domaincapstest.c testutils.h testutils.c
 domaincapstest_LDADD = $(LDADDS)
@@ -932,15 +955,6 @@ if WITH_LIBXL
 domaincapstest_SOURCES += testutilsxen.c testutilsxen.h
 domaincapstest_LDADD += ../src/libvirt_driver_libxl_impl.la
 endif WITH_LIBXL
-
-if WITH_LIBVIRTD
-libvirtdconftest_SOURCES = \
-	libvirtdconftest.c testutils.h testutils.c \
-	$(NULL)
-libvirtdconftest_LDADD = ../daemon/libvirtd_conf.la $(LDADDS)
-else ! WITH_LIBVIRTD
-EXTRA_DIST += libvirtdconftest.c
-endif ! WITH_LIBVIRTD
 
 virnetmessagetest_SOURCES = \
 	virnetmessagetest.c testutils.h testutils.c

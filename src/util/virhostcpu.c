@@ -65,17 +65,6 @@ VIR_LOG_INIT("util.hostcpu");
 
 #define KVM_DEVICE "/dev/kvm"
 
-/* add definitions missing in older linux/kvm.h */
-#ifndef KVMIO
-# define KVMIO 0xAE
-#endif
-#ifndef KVM_CHECK_EXTENSION
-# define KVM_CHECK_EXTENSION       _IO(KVMIO,   0x03)
-#endif
-#ifndef KVM_CAP_NR_VCPUS
-# define KVM_CAP_NR_VCPUS 9       /* returns max vcpus per vm */
-#endif
-
 
 #if defined(__FreeBSD__) || defined(__APPLE__)
 static int
@@ -1249,7 +1238,6 @@ int
 virHostCPUGetThreadsPerSubcore(virArch arch)
 {
     int threads_per_subcore = 0;
-    const char *kvmpath = "/dev/kvm";
     int kvmfd;
 
     if (ARCH_IS_PPC64(arch)) {
@@ -1259,17 +1247,17 @@ virHostCPUGetThreadsPerSubcore(virArch arch)
          *   b. the kvm module might not be installed or enabled
          * In either case, falling back to the subcore-unaware thread
          * counting logic is the right thing to do */
-        if (!virFileExists(kvmpath))
+        if (!virFileExists(KVM_DEVICE))
             goto out;
 
-        if ((kvmfd = open(kvmpath, O_RDONLY)) < 0) {
+        if ((kvmfd = open(KVM_DEVICE, O_RDONLY)) < 0) {
             /* This can happen when running as a regular user if
              * permissions are tight enough, in which case erroring out
              * is better than silently falling back and reporting
              * different nodeinfo depending on the user */
             virReportSystemError(errno,
                                  _("Failed to open '%s'"),
-                                 kvmpath);
+                                 KVM_DEVICE);
             threads_per_subcore = -1;
             goto out;
         }
@@ -1300,6 +1288,7 @@ virHostCPUGetThreadsPerSubcore(virArch arch ATTRIBUTE_UNUSED)
 
 #endif /* HAVE_LINUX_KVM_H && defined(KVM_CAP_PPC_SMT) */
 
+#if HAVE_LINUX_KVM_H
 int
 virHostCPUGetKVMMaxVCPUs(void)
 {
@@ -1311,11 +1300,11 @@ virHostCPUGetKVMMaxVCPUs(void)
         return -1;
     }
 
-#ifdef KVM_CAP_MAX_VCPUS
+# ifdef KVM_CAP_MAX_VCPUS
     /* at first try KVM_CAP_MAX_VCPUS to determine the maximum count */
     if ((ret = ioctl(fd, KVM_CHECK_EXTENSION, KVM_CAP_MAX_VCPUS)) > 0)
         goto cleanup;
-#endif /* KVM_CAP_MAX_VCPUS */
+# endif /* KVM_CAP_MAX_VCPUS */
 
     /* as a fallback get KVM_CAP_NR_VCPUS (the recommended maximum number of
      * vcpus). Note that on most machines this is set to 160. */
@@ -1330,3 +1319,12 @@ virHostCPUGetKVMMaxVCPUs(void)
     VIR_FORCE_CLOSE(fd);
     return ret;
 }
+#else
+int
+virHostCPUGetKVMMaxVCPUs(void)
+{
+    virReportSystemError(ENOSYS, "%s",
+                         _("KVM is not supported on this platform"));
+    return -1;
+}
+#endif /* HAVE_LINUX_KVM_H */

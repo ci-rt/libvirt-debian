@@ -30,10 +30,11 @@ int prlsdkConnect(vzDriverPtr driver);
 void prlsdkDisconnect(vzDriverPtr driver);
 int
 prlsdkLoadDomains(vzDriverPtr driver);
+virDomainObjPtr
+prlsdkAddDomainByUUID(vzDriverPtr driver, const unsigned char *uuid);
+virDomainObjPtr
+prlsdkAddDomainByName(vzDriverPtr driver, const char *name);
 int prlsdkUpdateDomain(vzDriverPtr driver, virDomainObjPtr dom);
-int
-prlsdkLoadDomain(vzDriverPtr driver,
-                 virDomainObjPtr dom);
 int prlsdkSubscribeToPCSEvents(vzDriverPtr driver);
 void prlsdkUnsubscribeFromPCSEvents(vzDriverPtr driver);
 PRL_RESULT prlsdkStart(PRL_HANDLE sdkdom);
@@ -57,7 +58,7 @@ prlsdkApplyConfig(vzDriverPtr driver,
                   virDomainObjPtr dom,
                   virDomainDefPtr new);
 int prlsdkCreateVm(vzDriverPtr driver, virDomainDefPtr def);
-int prlsdkCreateCt(vzDriverPtr driver, virDomainDefPtr def);
+int prlsdkCreateCt(virConnectPtr conn, virDomainDefPtr def);
 int
 prlsdkUnregisterDomain(vzDriverPtr driver, virDomainObjPtr dom, unsigned int flags);
 int
@@ -76,8 +77,6 @@ int
 prlsdkGetVcpuStats(PRL_HANDLE sdkstas, int idx, unsigned long long *time);
 int
 prlsdkGetMemoryStats(PRL_HANDLE sdkstas, virDomainMemoryStatPtr stats, unsigned int nr_stats);
-void
-prlsdkDomObjFreePrivate(void *p);
 /* memsize is in MiB */
 int prlsdkSetMemsize(virDomainObjPtr dom, unsigned int memsize);
 int
@@ -94,3 +93,6 @@ prlsdkMigrate(virDomainObjPtr dom,
               const char unsigned *session_uuid,
               const char *dname,
               unsigned int flags);
+
+PRL_HANDLE
+prlsdkSdkDomainLookupByName(vzDriverPtr driver, const char *name);

@@ -151,6 +151,9 @@ typedef virDomainShmemDef *virDomainShmemDefPtr;
 typedef struct _virDomainTPMDef virDomainTPMDef;
 typedef virDomainTPMDef *virDomainTPMDefPtr;
 
+typedef struct _virDomainIOMMUDef virDomainIOMMUDef;
+typedef virDomainIOMMUDef *virDomainIOMMUDefPtr;
+
 /* Flags for the 'type' field in virDomainDeviceDef */
 typedef enum {
     VIR_DOMAIN_DEVICE_NONE = 0,
@@ -176,6 +179,7 @@ typedef enum {
     VIR_DOMAIN_DEVICE_TPM,
     VIR_DOMAIN_DEVICE_PANIC,
     VIR_DOMAIN_DEVICE_MEMORY,
+    VIR_DOMAIN_DEVICE_IOMMU,
 
     VIR_DOMAIN_DEVICE_LAST
 } virDomainDeviceType;
@@ -207,6 +211,7 @@ struct _virDomainDeviceDef {
         virDomainTPMDefPtr tpm;
         virDomainPanicDefPtr panic;
         virDomainMemoryDefPtr memory;
+        virDomainIOMMUDefPtr iommu;
     } data;
 };
 
@@ -759,6 +764,7 @@ typedef enum {
     VIR_DOMAIN_FS_TYPE_TEMPLATE, /* Expands a OS template to a guest dir */
     VIR_DOMAIN_FS_TYPE_RAM,   /* Mount a RAM filesystem on a guest dir */
     VIR_DOMAIN_FS_TYPE_BIND,  /* Binds a guest dir to another guest dir */
+    VIR_DOMAIN_FS_TYPE_VOLUME, /* Mounts storage pool volume to a guest */
 
     VIR_DOMAIN_FS_TYPE_LAST
 } virDomainFSType;
@@ -802,7 +808,7 @@ struct _virDomainFSDef {
     int wrpolicy; /* enum virDomainFSWrpolicy */
     int format; /* virStorageFileFormat */
     unsigned long long usage; /* in bytes */
-    char *src;
+    virStorageSourcePtr src;
     char *dst;
     bool readonly;
     virDomainDeviceInfo info;
@@ -963,7 +969,8 @@ struct _virDomainNetDef {
     } tune;
     char *script;
     char *domain_name; /* backend domain name */
-    char *ifname;
+    char *ifname; /* interface name on the host (<target dev='x'/>) */
+    virNetDevIPInfo hostIP;
     char *ifname_guest_actual;
     char *ifname_guest;
     virNetDevIPInfo guestIP;
@@ -2028,14 +2035,16 @@ struct _virDomainCputune {
 };
 
 
-typedef struct _virDomainVcpuInfo virDomainVcpuInfo;
-typedef virDomainVcpuInfo *virDomainVcpuInfoPtr;
+typedef struct _virDomainVcpuDef virDomainVcpuDef;
+typedef virDomainVcpuDef *virDomainVcpuDefPtr;
 
-struct _virDomainVcpuInfo {
+struct _virDomainVcpuDef {
     bool online;
     virBitmapPtr cpumask;
 
     virDomainThreadSchedParam sched;
+
+    virObjectPtr privateData;
 };
 
 typedef struct _virDomainBlkiotune virDomainBlkiotune;
@@ -2097,6 +2106,15 @@ struct _virDomainKeyWrapDef {
     int dea; /* enum virTristateSwitch */
 };
 
+typedef enum {
+    VIR_DOMAIN_IOMMU_MODEL_INTEL,
+
+    VIR_DOMAIN_IOMMU_MODEL_LAST
+} virDomainIOMMUModel;
+
+struct _virDomainIOMMUDef {
+    virDomainIOMMUModel model;
+};
 /*
  * Guest VM main configuration
  *
@@ -2116,7 +2134,7 @@ struct _virDomainDef {
     virDomainBlkiotune blkio;
     virDomainMemtune mem;
 
-    virDomainVcpuInfoPtr vcpus;
+    virDomainVcpuDefPtr *vcpus;
     size_t maxvcpus;
     int placement_mode;
     virBitmapPtr cpumask;
@@ -2234,6 +2252,7 @@ struct _virDomainDef {
     virCPUDefPtr cpu;
     virSysinfoDefPtr sysinfo;
     virDomainRedirFilterDefPtr redirfilter;
+    virDomainIOMMUDefPtr iommu;
 
     void *namespaceData;
     virDomainXMLNamespace ns;
@@ -2244,14 +2263,6 @@ struct _virDomainDef {
     xmlNodePtr metadata;
 };
 
-int virDomainDefSetVcpusMax(virDomainDefPtr def, unsigned int vcpus);
-bool virDomainDefHasVcpusOffline(const virDomainDef *def);
-unsigned int virDomainDefGetVcpusMax(const virDomainDef *def);
-int virDomainDefSetVcpus(virDomainDefPtr def, unsigned int vcpus);
-unsigned int virDomainDefGetVcpus(const virDomainDef *def);
-virBitmapPtr virDomainDefGetOnlineVcpumap(const virDomainDef *def);
-virDomainVcpuInfoPtr virDomainDefGetVcpu(virDomainDefPtr def, unsigned int vcpu)
-    ATTRIBUTE_RETURN_CHECK;
 
 unsigned long long virDomainDefGetMemoryInitial(const virDomainDef *def);
 void virDomainDefSetMemoryTotal(virDomainDefPtr def, unsigned long long size);
@@ -2403,8 +2414,11 @@ typedef virDomainXMLPrivateDataCallbacks *virDomainXMLPrivateDataCallbacksPtr;
 struct _virDomainXMLPrivateDataCallbacks {
     virDomainXMLPrivateDataAllocFunc  alloc;
     virDomainXMLPrivateDataFreeFunc   free;
+    /* note that private data for devices are not copied when using
+     * virDomainDefCopy and similar functions */
     virDomainXMLPrivateDataNewFunc    diskNew;
     virDomainXMLPrivateDataNewFunc    hostdevNew;
+    virDomainXMLPrivateDataNewFunc    vcpuNew;
     virDomainXMLPrivateDataFormatFunc format;
     virDomainXMLPrivateDataParseFunc  parse;
 };
@@ -2435,6 +2449,17 @@ virDomainObjIsActive(virDomainObjPtr dom)
 {
     return dom->def->id != -1;
 }
+
+int virDomainDefSetVcpusMax(virDomainDefPtr def,
+                            unsigned int vcpus,
+                            virDomainXMLOptionPtr xmlopt);
+bool virDomainDefHasVcpusOffline(const virDomainDef *def);
+unsigned int virDomainDefGetVcpusMax(const virDomainDef *def);
+int virDomainDefSetVcpus(virDomainDefPtr def, unsigned int vcpus);
+unsigned int virDomainDefGetVcpus(const virDomainDef *def);
+virBitmapPtr virDomainDefGetOnlineVcpumap(const virDomainDef *def);
+virDomainVcpuDefPtr virDomainDefGetVcpu(virDomainDefPtr def, unsigned int vcpu)
+    ATTRIBUTE_RETURN_CHECK;
 
 virDomainObjPtr virDomainObjNew(virDomainXMLOptionPtr caps)
     ATTRIBUTE_NONNULL(1);
@@ -2473,6 +2498,7 @@ virDomainDiskDefPtr virDomainDiskFindByBusAndDst(virDomainDefPtr def,
                                                  int bus,
                                                  char *dst);
 void virDomainControllerDefFree(virDomainControllerDefPtr def);
+virDomainFSDefPtr virDomainFSDefNew(void);
 virDomainControllerDefPtr
 virDomainControllerDefNew(virDomainControllerType type);
 void virDomainFSDefFree(virDomainFSDefPtr def);
@@ -2508,9 +2534,6 @@ virDomainDeviceInfoPtr virDomainDeviceGetInfo(virDomainDeviceDefPtr device);
 int virDomainDeviceInfoCopy(virDomainDeviceInfoPtr dst,
                             virDomainDeviceInfoPtr src);
 void virDomainDeviceInfoClear(virDomainDeviceInfoPtr info);
-void virDomainDefClearPCIAddresses(virDomainDefPtr def);
-void virDomainDefClearCCWAddresses(virDomainDefPtr def);
-void virDomainDefClearDeviceAliases(virDomainDefPtr def);
 void virDomainTPMDefFree(virDomainTPMDefPtr def);
 
 typedef int (*virDomainDeviceInfoCallback)(virDomainDefPtr def,
@@ -2555,13 +2578,6 @@ int virDomainObjGetDefs(virDomainObjPtr vm,
                         virDomainDefPtr *liveDef,
                         virDomainDefPtr *persDef);
 virDomainDefPtr virDomainObjGetOneDef(virDomainObjPtr vm, unsigned int flags);
-
-int
-virDomainLiveConfigHelperMethod(virCapsPtr caps,
-                                virDomainXMLOptionPtr xmlopt,
-                                virDomainObjPtr dom,
-                                unsigned int *flags,
-                                virDomainDefPtr *persistentDef);
 
 virDomainDefPtr virDomainDefCopy(virDomainDefPtr src,
                                  virCapsPtr caps,
@@ -2884,6 +2900,13 @@ typedef int (*virDomainDiskDefPathIterator)(virDomainDiskDefPtr disk,
                                             size_t depth,
                                             void *opaque);
 
+typedef int (*virDomainUSBDeviceDefIterator)(virDomainDeviceInfoPtr info,
+                                             void *opaque);
+int virDomainUSBDeviceDefForeach(virDomainDefPtr def,
+                                 virDomainUSBDeviceDefIterator iter,
+                                 void *opaque,
+                                 bool skipHubs);
+
 int virDomainDiskDefForeachPath(virDomainDiskDefPtr disk,
                                 bool ignoreOpenFailure,
                                 virDomainDiskDefPathIterator iter,
@@ -2992,6 +3015,7 @@ VIR_ENUM_DECL(virDomainTPMModel)
 VIR_ENUM_DECL(virDomainTPMBackend)
 VIR_ENUM_DECL(virDomainMemoryModel)
 VIR_ENUM_DECL(virDomainMemoryBackingModel)
+VIR_ENUM_DECL(virDomainIOMMUModel)
 /* from libvirt.h */
 VIR_ENUM_DECL(virDomainState)
 VIR_ENUM_DECL(virDomainNostateReason)
@@ -3044,8 +3068,6 @@ void virDomainChrSourceDefClear(virDomainChrSourceDefPtr def);
 char *virDomainObjGetMetadata(virDomainObjPtr vm,
                               int type,
                               const char *uri,
-                              virCapsPtr caps,
-                              virDomainXMLOptionPtr xmlopt,
                               unsigned int flags);
 
 int virDomainObjSetMetadata(virDomainObjPtr vm,

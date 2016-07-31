@@ -351,11 +351,11 @@ openvzReadFSConf(virDomainDefPtr def,
                        veid);
         goto error;
     } else if (ret > 0) {
-        if (VIR_ALLOC(fs) < 0)
+        if (!(fs = virDomainFSDefNew()))
             goto error;
 
         fs->type = VIR_DOMAIN_FS_TYPE_TEMPLATE;
-        if (VIR_STRDUP(fs->src, temp) < 0)
+        if (VIR_STRDUP(fs->src->path, temp) < 0)
             goto error;
     } else {
         /* OSTEMPLATE was not found, VE was booted from a private dir directly */
@@ -374,7 +374,7 @@ openvzReadFSConf(virDomainDefPtr def,
             goto error;
 
         fs->type = VIR_DOMAIN_FS_TYPE_MOUNT;
-        if (!(fs->src = virStringReplace(temp, "$VEID", veid_str)))
+        if (!(fs->src->path = virStringReplace(temp, "$VEID", veid_str)))
             goto error;
 
         VIR_FREE(veid_str);
@@ -572,7 +572,7 @@ int openvzLoadDomains(struct openvz_driver *driver)
         if (ret == 0 || vcpus == 0)
             vcpus = openvzGetNodeCPUs();
 
-        if (virDomainDefSetVcpusMax(def, vcpus) < 0)
+        if (virDomainDefSetVcpusMax(def, vcpus, driver->xmlopt) < 0)
             goto cleanup;
 
         if (virDomainDefSetVcpus(def, vcpus) < 0)

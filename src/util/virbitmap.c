@@ -60,8 +60,8 @@ struct _virBitmap {
  *
  * Allocate a bitmap capable of containing @size bits.
  *
- * Returns a pointer to the allocated bitmap or NULL if memory cannot be
- * allocated. Does not report libvirt errors.
+ * Returns a pointer to the allocated bitmap or NULL if either memory cannot be
+ * allocated or size is 0. Does not report libvirt errors.
  */
 virBitmapPtr
 virBitmapNewQuiet(size_t size)
@@ -95,8 +95,8 @@ virBitmapNewQuiet(size_t size)
  *
  * Allocate a bitmap capable of containing @size bits.
  *
- * Returns a pointer to the allocated bitmap or NULL if memory cannot be
- * allocated. Reports libvirt errors.
+ * Returns a pointer to the allocated bitmap or NULL if either memory cannot be
+ * allocated or size is 0. Reports libvirt errors.
  */
 virBitmapPtr
 virBitmapNew(size_t size)
@@ -952,7 +952,11 @@ virBitmapLastSetBit(virBitmapPtr bitmap)
     ssize_t i;
     int unusedBits;
     ssize_t sz;
-    unsigned long bits = 0;
+    unsigned long bits;
+
+    /* If bitmap is empty then there is no set bit */
+    if (bitmap->map_len == 0)
+        return -1;
 
     unusedBits = bitmap->map_len * VIR_BITMAP_BITS_PER_UNIT - bitmap->max_bit;
 
@@ -971,8 +975,8 @@ virBitmapLastSetBit(virBitmapPtr bitmap)
             goto found;
     }
 
-    if (bits == 0)
-        return -1;
+    /* Only reached if no set bit was found */
+    return -1;
 
  found:
     for (i = VIR_BITMAP_BITS_PER_UNIT - 1; i >= 0; i--) {

@@ -9,7 +9,6 @@
   <flag name='enable-kvm'/>
   <flag name='monitor-json'/>
   <flag name='sdl'/>
-  <flag name='smp-topology'/>
   <flag name='netdev'/>
   <flag name='rtc'/>
   <flag name='vhost-net'/>
@@ -157,6 +156,7 @@
   <flag name='name-guest'/>
   <flag name='drive-detect-zeroes'/>
   <flag name='tls-creds-x509'/>
+  <flag name='display'/>
   <version>2005094</version>
   <kvmVersion>0</kvmVersion>
   <package></package>

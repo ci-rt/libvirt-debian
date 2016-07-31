@@ -665,6 +665,58 @@ testPathRelative(const void *args)
 }
 
 
+struct testBackingParseData {
+    const char *backing;
+    const char *expect;
+};
+
+static int
+testBackingParse(const void *args)
+{
+    const struct testBackingParseData *data = args;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    virStorageSourcePtr src = NULL;
+    char *xml = NULL;
+    int ret = -1;
+
+    if (!(src = virStorageSourceNewFromBackingAbsolute(data->backing))) {
+        if (!data->expect)
+            ret = 0;
+
+        goto cleanup;
+    }
+
+    if (src && !data->expect) {
+        fprintf(stderr, "parsing of backing store string '%s' should "
+                        "have failed\n", data->backing);
+        goto cleanup;
+    }
+
+    if (virDomainDiskSourceFormat(&buf, src, 0, 0) < 0 ||
+        !(xml = virBufferContentAndReset(&buf))) {
+        fprintf(stderr, "failed to format disk source xml\n");
+        goto cleanup;
+    }
+
+    if (!STREQ(xml, data->expect)) {
+        fprintf(stderr, "\n backing store string '%s'\n"
+                        "expected storage source xml:\n%s\n"
+                        "actual storage source xml:\n%s\n",
+                        data->backing, data->expect, xml);
+        goto cleanup;
+    }
+
+    ret = 0;
+
+ cleanup:
+    virStorageSourceFree(src);
+    virBufferFreeAndReset(&buf);
+    VIR_FREE(xml);
+
+    return ret;
+}
+
+
 static int
 mymain(void)
 {
@@ -674,6 +726,7 @@ mymain(void)
     struct testLookupData data2;
     struct testPathCanonicalizeData data3;
     struct testPathRelativeBacking data4;
+    struct testBackingParseData data5;
     virStorageSourcePtr chain = NULL;
     virStorageSourcePtr chain2; /* short for chain->backingStore */
     virStorageSourcePtr chain3; /* short for chain2->backingStore */
@@ -1275,6 +1328,164 @@ mymain(void)
     TEST_RELATIVE_BACKING(20, backingchain[10], backingchain[10], "../../../image3");
     TEST_RELATIVE_BACKING(21, backingchain[10], backingchain[11], "../../../../blah/image4");
     TEST_RELATIVE_BACKING(22, backingchain[11], backingchain[11], "../blah/image4");
+
+
+    virTestCounterReset("Backing store parse ");
+
+#define TEST_BACKING_PARSE(bck, xml)                                           \
+    do {                                                                       \
+        data5.backing = bck;                                                   \
+        data5.expect = xml;                                                    \
+        if (virTestRun(virTestCounterNext(),                                   \
+                       testBackingParse, &data5) < 0)                          \
+            ret = -1;                                                          \
+    } while (0)
+
+    TEST_BACKING_PARSE("path", "<source file='path'/>\n");
+    TEST_BACKING_PARSE("://", NULL);
+    TEST_BACKING_PARSE("http://example.com/file",
+                       "<source protocol='http' name='file'>\n"
+                       "  <host name='example.com'/>\n"
+                       "</source>\n");
+    TEST_BACKING_PARSE("rbd:testshare:id=asdf:mon_host=example.com",
+                       "<source protocol='rbd' name='testshare'>\n"
+                       "  <host name='example.com'/>\n"
+                       "</source>\n");
+    TEST_BACKING_PARSE("nbd:example.org:6000:exportname=blah",
+                       "<source protocol='nbd' name='blah'>\n"
+                       "  <host name='example.org' port='6000'/>\n"
+                       "</source>\n");
+    TEST_BACKING_PARSE("json:", NULL);
+    TEST_BACKING_PARSE("json:asdgsdfg", NULL);
+    TEST_BACKING_PARSE("json:{}", NULL);
+    TEST_BACKING_PARSE("json: { \"file.driver\":\"blah\"}", NULL);
+    TEST_BACKING_PARSE("json:{\"file.driver\":\"file\"}", NULL);
+    TEST_BACKING_PARSE("json:{\"file.driver\":\"file\", "
+                             "\"file.filename\":\"/path/to/file\"}",
+                       "<source file='/path/to/file'/>\n");
+    TEST_BACKING_PARSE("json:{\"file.driver\":\"file\", "
+                             "\"filename\":\"/path/to/file\"}", NULL);
+    TEST_BACKING_PARSE("json:{\"file\" : { \"driver\":\"file\","
+                                          "\"filename\":\"/path/to/file\""
+                                        "}"
+                            "}",
+                       "<source file='/path/to/file'/>\n");
+    TEST_BACKING_PARSE("json:{\"file.driver\":\"host_device\", "
+                             "\"file.filename\":\"/path/to/dev\"}",
+                       "<source dev='/path/to/dev'/>\n");
+    TEST_BACKING_PARSE("json:{\"file.driver\":\"host_cdrom\", "
+                             "\"file.filename\":\"/path/to/cdrom\"}",
+                       "<source dev='/path/to/cdrom'/>\n");
+    TEST_BACKING_PARSE("json:{\"file.driver\":\"http\", "
+                             "\"file.uri\":\"http://example.com/file\"}",
+                       "<source protocol='http' name='file'>\n"
+                       "  <host name='example.com'/>\n"
+                       "</source>\n");
+    TEST_BACKING_PARSE("json:{\"file\":{ \"driver\":\"http\","
+                                        "\"uri\":\"http://example.com/file\""
+                                      "}"
+                            "}",
+                       "<source protocol='http' name='file'>\n"
+                       "  <host name='example.com'/>\n"
+                       "</source>\n");
+    TEST_BACKING_PARSE("json:{\"file.driver\":\"ftp\", "
+                             "\"file.uri\":\"http://example.com/file\"}",
+                       NULL);
+    TEST_BACKING_PARSE("json:{\"file.driver\":\"gluster\", "
+                             "\"file.filename\":\"gluster://example.com/vol/file\"}",
+                       "<source protocol='gluster' name='vol/file'>\n"
+                       "  <host name='example.com'/>\n"
+                       "</source>\n");
+    TEST_BACKING_PARSE("json:{\"file\":{\"driver\":\"gluster\","
+                                       "\"volume\":\"testvol\","
+                                       "\"path\":\"img.qcow2\","
+                                       "\"server\":[ { \"type\":\"tcp\","
+                                                      "\"host\":\"example.com\","
+                                                      "\"port\":\"1234\""
+                                                    "},"
+                                                    "{ \"type\":\"unix\","
+                                                      "\"socket\":\"/path/socket\""
+                                                    "},"
+                                                    "{ \"type\":\"tcp\","
+                                                      "\"host\":\"example.com\""
+                                                    "}"
+                                                  "]"
+                                      "}"
+                             "}",
+                        "<source protocol='none' name='testvol/img.qcow2'>\n"
+                        "  <host name='example.com' port='1234'/>\n"
+                        "  <host transport='unix' socket='/path/socket'/>\n"
+                        "  <host name='example.com'/>\n"
+                        "</source>\n");
+    TEST_BACKING_PARSE("json:{\"file.driver\":\"gluster\","
+                             "\"file.volume\":\"testvol\","
+                             "\"file.path\":\"img.qcow2\","
+                             "\"file.server\":[ { \"type\":\"tcp\","
+                                                 "\"host\":\"example.com\","
+                                                 "\"port\":\"1234\""
+                                               "},"
+                                               "{ \"type\":\"unix\","
+                                                 "\"socket\":\"/path/socket\""
+                                               "},"
+                                               "{ \"type\":\"tcp\","
+                                                 "\"host\":\"example.com\""
+                                               "}"
+                                             "]"
+                            "}",
+                        "<source protocol='none' name='testvol/img.qcow2'>\n"
+                        "  <host name='example.com' port='1234'/>\n"
+                        "  <host transport='unix' socket='/path/socket'/>\n"
+                        "  <host name='example.com'/>\n"
+                        "</source>\n");
+    TEST_BACKING_PARSE("json:{\"file\":{\"driver\":\"nbd\","
+                                       "\"path\":\"/path/to/socket\""
+                                      "}"
+                            "}",
+                       "<source protocol='nbd'>\n"
+                       "  <host transport='unix' socket='/path/to/socket'/>\n"
+                       "</source>\n");
+    TEST_BACKING_PARSE("json:{\"file.driver\":\"nbd\","
+                             "\"file.path\":\"/path/to/socket\""
+                            "}",
+                       "<source protocol='nbd'>\n"
+                       "  <host transport='unix' socket='/path/to/socket'/>\n"
+                       "</source>\n");
+    TEST_BACKING_PARSE("json:{\"file\":{\"driver\":\"nbd\","
+                                       "\"export\":\"blah\","
+                                       "\"host\":\"example.org\","
+                                       "\"port\":\"6000\""
+                                      "}"
+                            "}",
+                       "<source protocol='nbd' name='blah'>\n"
+                       "  <host name='example.org' port='6000'/>\n"
+                       "</source>\n");
+    TEST_BACKING_PARSE("json:{\"file.driver\":\"nbd\","
+                             "\"file.export\":\"blah\","
+                             "\"file.host\":\"example.org\","
+                             "\"file.port\":\"6000\""
+                            "}",
+                       "<source protocol='nbd' name='blah'>\n"
+                       "  <host name='example.org' port='6000'/>\n"
+                       "</source>\n");
+    TEST_BACKING_PARSE("json:{\"file\":{\"driver\":\"ssh\","
+                                       "\"host\":\"example.org\","
+                                       "\"port\":\"6000\","
+                                       "\"path\":\"blah\","
+                                       "\"user\":\"user\""
+                                      "}"
+                            "}",
+                       "<source protocol='ssh' name='blah'>\n"
+                       "  <host name='example.org' port='6000'/>\n"
+                       "</source>\n");
+    TEST_BACKING_PARSE("json:{\"file.driver\":\"ssh\","
+                             "\"file.host\":\"example.org\","
+                             "\"file.port\":\"6000\","
+                             "\"file.path\":\"blah\","
+                             "\"file.user\":\"user\""
+                            "}",
+                       "<source protocol='ssh' name='blah'>\n"
+                       "  <host name='example.org' port='6000'/>\n"
+                       "</source>\n");
 
  cleanup:
     /* Final cleanup */

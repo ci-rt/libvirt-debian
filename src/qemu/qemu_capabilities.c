@@ -337,6 +337,8 @@ VIR_ENUM_IMPL(virQEMUCaps, QEMU_CAPS_LAST,
               "drive-detect-zeroes",
 
               "tls-creds-x509", /* 230 */
+              "display",
+              "intel-iommu",
     );
 
 
@@ -1149,6 +1151,8 @@ virQEMUCapsComputeCmdFlags(const char *help,
     if (strstr(help, "bps="))
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_DRIVE_IOTUNE);
 
+    if (strstr(help, "-display"))
+        virQEMUCapsSet(qemuCaps, QEMU_CAPS_DISPLAY);
     if ((p = strstr(help, "-vga")) && !strstr(help, "-std-vga")) {
         const char *nl = strstr(p, "\n");
         if (strstr(p, "|qxl"))
@@ -1229,10 +1233,6 @@ virQEMUCapsComputeCmdFlags(const char *help,
 
     if (strstr(help, "-sdl"))
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_SDL);
-    if (strstr(help, "cores=") &&
-        strstr(help, "threads=") &&
-        strstr(help, "sockets="))
-        virQEMUCapsSet(qemuCaps, QEMU_CAPS_SMP_TOPOLOGY);
 
     if (strstr(help, ",vhost="))
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_VHOST_NET);
@@ -1565,6 +1565,7 @@ struct virQEMUCapsStringFlags virQEMUCapsObjectTypes[] = {
     { "pxb", QEMU_CAPS_DEVICE_PXB },
     { "pxb-pcie", QEMU_CAPS_DEVICE_PXB_PCIE },
     { "tls-creds-x509", QEMU_CAPS_OBJECT_TLS_CREDS_X509 },
+    { "intel-iommu", QEMU_CAPS_DEVICE_INTEL_IOMMU },
 };
 
 static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsVirtioBalloon[] = {
@@ -2654,7 +2655,7 @@ static struct virQEMUCapsCommandLineProps virQEMUCapsCommandLine[] = {
     { "machine", "vmport", QEMU_CAPS_MACHINE_VMPORT_OPT },
     { "drive", "discard", QEMU_CAPS_DRIVE_DISCARD },
     { "drive", "detect-zeroes", QEMU_CAPS_DRIVE_DETECT_ZEROES },
-    { "realtime", "mlock", QEMU_CAPS_MLOCK },
+    { "realtime", "mlock", QEMU_CAPS_REALTIME_MLOCK },
     { "boot-opts", "strict", QEMU_CAPS_BOOT_STRICT },
     { "boot-opts", "reboot-timeout", QEMU_CAPS_REBOOT_TIMEOUT },
     { "boot-opts", "splash-time", QEMU_CAPS_SPLASH_TIMEOUT },
@@ -3381,7 +3382,6 @@ virQEMUCapsInitQMPBasic(virQEMUCapsPtr qemuCaps)
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_CHARDEV);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_MONITOR_JSON);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_SDL);
-    virQEMUCapsSet(qemuCaps, QEMU_CAPS_SMP_TOPOLOGY);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_NETDEV);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_RTC);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_VHOST_NET);
@@ -3411,6 +3411,7 @@ virQEMUCapsInitQMPBasic(virQEMUCapsPtr qemuCaps)
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_DUMP_GUEST_CORE);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_VNC_SHARE_POLICY);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_HOST_PCI_MULTIDOMAIN);
+    virQEMUCapsSet(qemuCaps, QEMU_CAPS_DISPLAY);
 }
 
 /* Capabilities that are architecture depending
@@ -4337,8 +4338,7 @@ int
 virQEMUCapsFillDomainCaps(virDomainCapsPtr domCaps,
                           virQEMUCapsPtr qemuCaps,
                           virFirmwarePtr *firmwares,
-                          size_t nfirmwares,
-                          virDomainVirtType virttype)
+                          size_t nfirmwares)
 {
     virDomainCapsOSPtr os = &domCaps->os;
     virDomainCapsDeviceDiskPtr disk = &domCaps->disk;
@@ -4348,10 +4348,13 @@ virQEMUCapsFillDomainCaps(virDomainCapsPtr domCaps,
 
     domCaps->maxvcpus = virQEMUCapsGetMachineMaxCpus(qemuCaps,
                                                      domCaps->machine);
-    if (virttype == VIR_DOMAIN_VIRT_KVM) {
-        int hostmaxvcpus = virHostCPUGetKVMMaxVCPUs();
-        if (hostmaxvcpus >= 0)
-            domCaps->maxvcpus = MIN(domCaps->maxvcpus, hostmaxvcpus);
+    if (domCaps->virttype == VIR_DOMAIN_VIRT_KVM) {
+        int hostmaxvcpus;
+
+        if ((hostmaxvcpus = virHostCPUGetKVMMaxVCPUs()) < 0)
+            return -1;
+
+        domCaps->maxvcpus = MIN(domCaps->maxvcpus, hostmaxvcpus);
     }
 
     if (virQEMUCapsFillDomainOSCaps(os, firmwares, nfirmwares) < 0 ||

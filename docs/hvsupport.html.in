@@ -243,7 +243,7 @@ in.
 <a href="html/libvirt-libvirt-domain.html#virConnectDomainXMLFromNative">virConnectDomainXMLFromNative</a>
 </td>
 <td>0.6.4</td>
-<td></td>
+<td>2.1.0</td>
 <td>0.7.0</td>
 <td></td>
 <td>0.9.0</td>
@@ -353,7 +353,7 @@ in.
 <a href="html/libvirt-libvirt-domain.html#virConnectGetDomainCapabilities">virConnectGetDomainCapabilities</a>
 </td>
 <td>1.2.7</td>
-<td></td>
+<td>2.1.0</td>
 <td></td>
 <td></td>
 <td>2.0.0</td>
@@ -1163,7 +1163,7 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
+<td>2.1.0</td>
 <td>1.2.2</td>
 <td></td>
 <td></td>
@@ -1185,7 +1185,7 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
+<td>2.1.0</td>
 <td>1.2.2</td>
 <td></td>
 <td></td>

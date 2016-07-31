@@ -491,6 +491,7 @@
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_AVAILABLE' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_LAST' type='enum'/>
+     <exports symbol='VIR_DOMAIN_MEMORY_STAT_LAST_UPDATE' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_NR' type='enum'/>
@@ -498,6 +499,7 @@
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_SWAP_IN' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_SWAP_OUT' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_UNUSED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_MEMORY_STAT_USABLE' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEM_CONFIG' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEM_CURRENT' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEM_LIVE' type='enum'/>
@@ -1389,7 +1391,7 @@
     <file name='libvirt-secret'>
      <summary>APIs for management of secrets</summary>
      <description>Provides APIs for the management of secrets</description>
-     <author>Daniel Veillard &lt;veillard@redhat.com&gt;  Copyright (C) 2006-2014 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </author>
+     <author>Daniel Veillard &lt;veillard@redhat.com&gt;  Copyright (C) 2006-2014, 2016 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </author>
      <exports symbol='VIR_CONNECT_LIST_SECRETS_EPHEMERAL' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_SECRETS_NO_EPHEMERAL' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_SECRETS_NO_PRIVATE' type='enum'/>
@@ -2707,13 +2709,15 @@ running in post-copy mode'/>
  is in kB'/>
     <enum name='VIR_DOMAIN_MEMORY_STAT_AVAILABLE' file='libvirt-domain' value='5' type='virDomainMemoryStatTags' info='Current balloon value (in KB).'/>
     <enum name='VIR_DOMAIN_MEMORY_STAT_LAST' file='libvirt-domain' value='VIR_DOMAIN_MEMORY_STAT_NR' type='virDomainMemoryStatTags'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_LAST_UPDATE' file='libvirt-domain' value='9' type='virDomainMemoryStatTags' info='The number of statistics supported by this version of the interface.
+ To add new statistics, add them to the enum and increase this value.'/>
     <enum name='VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT' file='libvirt-domain' value='2' type='virDomainMemoryStatTags'/>
     <enum name='VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT' file='libvirt-domain' value='3' type='virDomainMemoryStatTags' info='The amount of memory left completely unused by the system.  Memory that
  is available but used for reclaimable caches should NOT be reported as
  free.  This value is expressed in kB.'/>
-    <enum name='VIR_DOMAIN_MEMORY_STAT_NR' file='libvirt-domain' value='8' type='virDomainMemoryStatTags'/>
-    <enum name='VIR_DOMAIN_MEMORY_STAT_RSS' file='libvirt-domain' value='7' type='virDomainMemoryStatTags' info='The number of statistics supported by this version of the interface.
- To add new statistics, add them to the enum and increase this value.'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_NR' file='libvirt-domain' value='10' type='virDomainMemoryStatTags'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_RSS' file='libvirt-domain' value='7' type='virDomainMemoryStatTags' info='How much the balloon can be inflated without pushing the guest system
+ to swap, corresponds to &apos;Available&apos; in /proc/meminfo'/>
     <enum name='VIR_DOMAIN_MEMORY_STAT_SWAP_IN' file='libvirt-domain' value='0' type='virDomainMemoryStatTags' info='The total amount of memory written out to swap space (in kB).'/>
     <enum name='VIR_DOMAIN_MEMORY_STAT_SWAP_OUT' file='libvirt-domain' value='1' type='virDomainMemoryStatTags' info='Page faults occur when a process makes a valid access to virtual memory
  that is not available.  When servicing the page fault, if disk IO is
@@ -2723,6 +2727,7 @@ running in post-copy mode'/>
  may be less than the amount of memory assigned to the domain if a
  balloon driver is in use or if the guest OS does not initialize all
  assigned pages.  This value is expressed in kB.'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_USABLE' file='libvirt-domain' value='8' type='virDomainMemoryStatTags' info='Timestamp of the last update of statistics, in seconds.'/>
     <enum name='VIR_DOMAIN_MEM_CONFIG' file='libvirt-domain' value='VIR_DOMAIN_AFFECT_CONFIG' type='virDomainMemoryModFlags' info='Additionally, these flags may be bitwise-OR&apos;d in.'/>
     <enum name='VIR_DOMAIN_MEM_CURRENT' file='libvirt-domain' value='VIR_DOMAIN_AFFECT_CURRENT' type='virDomainMemoryModFlags'/>
     <enum name='VIR_DOMAIN_MEM_LIVE' file='libvirt-domain' value='VIR_DOMAIN_AFFECT_LIVE' type='virDomainMemoryModFlags'/>
@@ -7154,8 +7159,13 @@ VIR_DOMAIN_MEMORY_STAT_UNUSED:
     The amount of memory which is not being used for any purpose (in kb).
 VIR_DOMAIN_MEMORY_STAT_AVAILABLE:
     The total amount of memory available to the domain's OS (in kb).
+VIR_DOMAIN_MEMORY_STAT_USABLE:
+    How much the balloon can be inflated without pushing the guest system
+    to swap, corresponds to 'Available' in /proc/meminfo
 VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON:
-    Current balloon value (in kb).]]></info>
+    Current balloon value (in kb).
+VIR_DOMAIN_MEMORY_STAT_LAST_UPDATE
+    Timestamp of the last statistic]]></info>
       <return type='int' info='The number of stats provided or -1 in case of failure.'/>
       <arg name='dom' type='virDomainPtr' info='pointer to the domain object'/>
       <arg name='stats' type='virDomainMemoryStatPtr' info='nr_stats-sized array of stat structures (returned)'/>

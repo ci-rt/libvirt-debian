@@ -1220,7 +1220,7 @@ virJSONValueObjectIsNull(virJSONValuePtr object,
  * during iteration and -1 on generic errors.
  */
 int
-virJSONValueObjectForeachKeyValue(virJSONValuePtr object,
+virJSONValueObjectForeachKeyValue(const virJSONValue *object,
                                   virJSONValueObjectIteratorFunc cb,
                                   void *opaque)
 {
@@ -1241,7 +1241,7 @@ virJSONValueObjectForeachKeyValue(virJSONValuePtr object,
 
 
 virJSONValuePtr
-virJSONValueCopy(virJSONValuePtr in)
+virJSONValueCopy(const virJSONValue *in)
 {
     size_t i;
     virJSONValuePtr out = NULL;

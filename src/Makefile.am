@@ -912,6 +912,8 @@ BHYVE_DRIVER_SOURCES =						\
 		bhyve/bhyve_capabilities.h			\
 		bhyve/bhyve_command.c				\
 		bhyve/bhyve_command.h				\
+		bhyve/bhyve_parse_command.c			\
+		bhyve/bhyve_parse_command.h			\
 		bhyve/bhyve_device.c				\
 		bhyve/bhyve_device.h				\
 		bhyve/bhyve_domain.c				\
@@ -1077,7 +1079,6 @@ NODE_DEVICE_DRIVER_UDEV_SOURCES =				\
 
 CPU_SOURCES =							\
 		cpu/cpu.h cpu/cpu.c				\
-		cpu/cpu_generic.h cpu/cpu_generic.c		\
 		cpu/cpu_x86.h cpu/cpu_x86.c cpu/cpu_x86_data.h	\
 		cpu/cpu_s390.h cpu/cpu_s390.c			\
 		cpu/cpu_arm.h cpu/cpu_arm.c			\

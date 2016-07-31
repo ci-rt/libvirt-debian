@@ -70,7 +70,8 @@ static int openvzGetProcessInfo(unsigned long long *cpuTime, int vpsid);
 static int openvzConnectGetMaxVcpus(virConnectPtr conn, const char *type);
 static int openvzDomainGetMaxVcpus(virDomainPtr dom);
 static int openvzDomainSetVcpusInternal(virDomainObjPtr vm,
-                                        unsigned int nvcpus);
+                                        unsigned int nvcpus,
+                                        virDomainXMLOptionPtr xmlopt);
 static int openvzDomainSetMemoryInternal(virDomainObjPtr vm,
                                          unsigned long long memory);
 static int openvzGetVEStatus(virDomainObjPtr vm, int *status, int *reason);
@@ -206,7 +207,7 @@ static int openvzSetInitialConfig(virDomainDefPtr vmdef)
             goto cleanup;
         }
 
-        if (openvzWriteVPSConfigParam(vpsid, "VE_PRIVATE", vmdef->fss[0]->src) < 0) {
+        if (openvzWriteVPSConfigParam(vpsid, "VE_PRIVATE", vmdef->fss[0]->src->path) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("Could not set the source dir for the filesystem"));
             goto cleanup;
@@ -1032,7 +1033,8 @@ openvzDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int fla
         goto cleanup;
     }
     if (virDomainDefGetVcpusMax(vm->def)) {
-        if (openvzDomainSetVcpusInternal(vm, virDomainDefGetVcpusMax(vm->def)) < 0) {
+        if (openvzDomainSetVcpusInternal(vm, virDomainDefGetVcpusMax(vm->def),
+                                         driver->xmlopt) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("Could not set number of vCPUs"));
              goto cleanup;
@@ -1130,7 +1132,8 @@ openvzDomainCreateXML(virConnectPtr conn, const char *xml,
     virDomainObjSetState(vm, VIR_DOMAIN_RUNNING, VIR_DOMAIN_RUNNING_BOOTED);
 
     if (virDomainDefGetVcpusMax(vm->def) > 0) {
-        if (openvzDomainSetVcpusInternal(vm, virDomainDefGetVcpusMax(vm->def)) < 0) {
+        if (openvzDomainSetVcpusInternal(vm, virDomainDefGetVcpusMax(vm->def),
+                                         driver->xmlopt) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("Could not set number of vCPUs"));
             goto cleanup;
@@ -1347,7 +1350,8 @@ static int openvzDomainGetMaxVcpus(virDomainPtr dom)
 }
 
 static int openvzDomainSetVcpusInternal(virDomainObjPtr vm,
-                                        unsigned int nvcpus)
+                                        unsigned int nvcpus,
+                                        virDomainXMLOptionPtr xmlopt)
 {
     char        str_vcpus[32];
     const char *prog[] = { VZCTL, "--quiet", "set", PROGRAM_SENTINEL,
@@ -1364,7 +1368,7 @@ static int openvzDomainSetVcpusInternal(virDomainObjPtr vm,
     if (virRun(prog, NULL) < 0)
         return -1;
 
-    if (virDomainDefSetVcpusMax(vm->def, nvcpus) < 0)
+    if (virDomainDefSetVcpusMax(vm->def, nvcpus, xmlopt) < 0)
         return -1;
 
     if (virDomainDefSetVcpus(vm->def, nvcpus) < 0)
@@ -1402,7 +1406,7 @@ static int openvzDomainSetVcpusFlags(virDomainPtr dom, unsigned int nvcpus,
         goto cleanup;
     }
 
-    if (openvzDomainSetVcpusInternal(vm, nvcpus) < 0) {
+    if (openvzDomainSetVcpusInternal(vm, nvcpus, driver->xmlopt) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("Could not set number of vCPUs"));
         goto cleanup;
@@ -2050,7 +2054,7 @@ openvzUpdateDevice(virDomainDefPtr vmdef,
         cur = vmdef->fss[pos];
 
         /* We only allow updating the quota */
-        if (STRNEQ(cur->src, fs->src)
+        if (STRNEQ(cur->src->path, fs->src->path)
             || cur->type != fs->type
             || cur->accessmode != fs->accessmode
             || cur->wrpolicy != fs->wrpolicy
@@ -2084,7 +2088,7 @@ openvzDomainUpdateDeviceFlags(virDomainPtr dom, const char *xml,
     struct  openvz_driver *driver = dom->conn->privateData;
     virDomainDeviceDefPtr dev = NULL;
     virDomainObjPtr vm = NULL;
-    virDomainDefPtr vmdef = NULL;
+    virDomainDefPtr def = NULL;
     bool persist = false;
 
     virCheckFlags(VIR_DOMAIN_DEVICE_MODIFY_LIVE |
@@ -2098,22 +2102,17 @@ openvzDomainUpdateDeviceFlags(virDomainPtr dom, const char *xml,
                        _("no domain with matching uuid"));
         goto cleanup;
     }
-    vmdef = vm->def;
 
-    if (virStrToLong_i(vmdef->name, NULL, 10, &veid) < 0) {
+    if (virStrToLong_i(vm->def->name, NULL, 10, &veid) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("Could not convert domain name to VEID"));
         goto cleanup;
     }
 
-    if (virDomainLiveConfigHelperMethod(driver->caps,
-                                        driver->xmlopt,
-                                        vm,
-                                        &flags,
-                                        &vmdef) < 0)
+    if (!(def = virDomainObjGetOneDef(vm, flags)))
         goto cleanup;
 
-    dev = virDomainDeviceDefParse(xml, vmdef, driver->caps, driver->xmlopt,
+    dev = virDomainDeviceDefParse(xml, def, driver->caps, driver->xmlopt,
                                   VIR_DOMAIN_DEF_PARSE_INACTIVE);
     if (!dev)
         goto cleanup;
@@ -2121,7 +2120,7 @@ openvzDomainUpdateDeviceFlags(virDomainPtr dom, const char *xml,
     if (flags & VIR_DOMAIN_AFFECT_CONFIG)
         persist = true;
 
-    if (openvzUpdateDevice(vmdef, dev, persist) < 0)
+    if (openvzUpdateDevice(def, dev, persist) < 0)
         goto cleanup;
 
     ret = 0;

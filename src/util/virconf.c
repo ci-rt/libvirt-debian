@@ -99,7 +99,7 @@ struct _virConfEntry {
 };
 
 struct _virConf {
-    const char* filename;
+    char *filename;
     unsigned int flags;
     virConfEntryPtr entries;
 };
@@ -204,10 +204,15 @@ static virConfPtr
 virConfCreate(const char *filename, unsigned int flags)
 {
     virConfPtr ret = virConfNew();
-    if (ret) {
-        ret->filename = filename;
-        ret->flags = flags;
+    if (!ret)
+        return NULL;
+
+    if (VIR_STRDUP(ret->filename, filename) < 0) {
+        VIR_FREE(ret);
+        return NULL;
     }
+
+    ret->flags = flags;
     return ret;
 }
 
@@ -233,6 +238,7 @@ virConfAddEntry(virConfPtr conf, char *name, virConfValuePtr value, char *comm)
     if ((comm == NULL) && (name == NULL))
         return NULL;
 
+    VIR_DEBUG("Add entry %s %p", name, value);
     if (VIR_ALLOC(ret) < 0)
         return NULL;
 
@@ -274,9 +280,11 @@ virConfSaveValue(virBufferPtr buf, virConfValuePtr val)
     switch (val->type) {
         case VIR_CONF_NONE:
             return -1;
-        case VIR_CONF_LONG:
-        case VIR_CONF_ULONG:
-            virBufferAsprintf(buf, "%ld", val->l);
+        case VIR_CONF_LLONG:
+            virBufferAsprintf(buf, "%lld", val->l);
+            break;
+        case VIR_CONF_ULLONG:
+            virBufferAsprintf(buf, "%llu", val->l);
             break;
         case VIR_CONF_STRING:
             if (strchr(val->str, '\n') != NULL) {
@@ -356,9 +364,9 @@ virConfSaveEntry(virBufferPtr buf, virConfEntryPtr cur)
  * Returns 0 in case of success and -1 in case of error
  */
 static int
-virConfParseLong(virConfParserCtxtPtr ctxt, long *val)
+virConfParseLong(virConfParserCtxtPtr ctxt, long long *val)
 {
-    long l = 0;
+    long long l = 0;
     int neg = 0;
 
     if (CUR == '-') {
@@ -468,7 +476,7 @@ virConfParseValue(virConfParserCtxtPtr ctxt)
     virConfValuePtr ret, lst = NULL, tmp, prev;
     virConfType type = VIR_CONF_NONE;
     char *str = NULL;
-    long  l = 0;
+    long long l = 0;
 
     SKIP_BLANKS;
     if (ctxt->cur >= ctxt->end) {
@@ -537,7 +545,7 @@ virConfParseValue(virConfParserCtxtPtr ctxt)
                          _("numbers not allowed in VMX format"));
             return NULL;
         }
-        type = (c_isdigit(CUR) || CUR == '+') ? VIR_CONF_ULONG : VIR_CONF_LONG;
+        type = (CUR == '-') ? VIR_CONF_LLONG : VIR_CONF_ULLONG;
         if (virConfParseLong(ctxt, &l) < 0)
             return NULL;
     } else {
@@ -779,7 +787,7 @@ virConfReadFile(const char *filename, unsigned int flags)
 
     if (len && len < MAX_CONFIG_FILE_SIZE && content[len - 1] != '\n') {
         VIR_DEBUG("appending newline to busted config file %s", filename);
-        if (VIR_REALLOC_N(content, len + 1) < 0)
+        if (VIR_REALLOC_N(content, len + 2) < 0)
             goto cleanup;
         content[len++] = '\n';
         content[len] = '\0';
@@ -843,6 +851,7 @@ virConfFree(virConfPtr conf)
         VIR_FREE(tmp);
         tmp = next;
     }
+    VIR_FREE(conf->filename);
     VIR_FREE(conf);
     return 0;
 }
@@ -875,6 +884,494 @@ virConfGetValue(virConfPtr conf, const char *setting)
         cur = cur->next;
     }
     return NULL;
+}
+
+
+/**
+ * virConfGetValueType:
+ * @conf: the config object
+ * @setting: the config entry name
+ *
+ * Query the type of the configuration entry @setting.
+ *
+ * Returns: the entry type, or VIR_CONF_NONE if not set.
+ */
+virConfType virConfGetValueType(virConfPtr conf,
+                                const char *setting)
+{
+    virConfValuePtr cval = virConfGetValue(conf, setting);
+    if (!cval)
+        return VIR_CONF_NONE;
+
+    return cval->type;
+}
+
+
+/**
+ * virConfGetValueString:
+ * @conf: the config object
+ * @setting: the config entry name
+ * @value: pointer to hold string value
+ *
+ * Get the string value of the config name @setting, storing
+ * it in @value. If the config entry is not present, then
+ * @value will be unmodified.
+ *
+ * Reports an error if the config entry is set but has
+ * an unexpected type.
+ *
+ * Returns: 1 if the value was present, 0 if missing, -1 on error
+ */
+int virConfGetValueString(virConfPtr conf,
+                          const char *setting,
+                          char **value)
+{
+    virConfValuePtr cval = virConfGetValue(conf, setting);
+
+    VIR_DEBUG("Get value string %p %d",
+              cval, cval ? cval->type : VIR_CONF_NONE);
+
+    if (!cval)
+        return 0;
+
+    if (cval->type != VIR_CONF_STRING) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("%s: expected a string for '%s' parameter"),
+                       conf->filename, setting);
+        return -1;
+    }
+
+    VIR_FREE(*value);
+    if (VIR_STRDUP(*value, cval->str) < 0)
+        return -1;
+
+    return 1;
+}
+
+
+/**
+ * virConfGetValueStringList:
+ * @conf: the config object
+ * @setting: the config entry name
+ * @compatString: true to treat string entry as a 1 element list
+ * @value: pointer to hold NULL terminated string list
+ *
+ * Get the string list value of the config name @setting, storing
+ * it in @value. If the config entry is not present, then
+ * @value will be unmodified. If @compatString is set to true
+ * and the value is present as a string, this will be turned into
+ * a 1 element list. The returned @value will be NULL terminated
+ * if set.
+ *
+ * Reports an error if the config entry is set but has
+ * an unexpected type.
+ *
+ * Returns: 1 if the value was present, 0 if missing, -1 on error
+ */
+int virConfGetValueStringList(virConfPtr conf,
+                              const char *setting,
+                              bool compatString,
+                              char ***values)
+{
+    virConfValuePtr cval = virConfGetValue(conf, setting);
+    size_t len;
+    virConfValuePtr eval;
+
+    VIR_DEBUG("Get value string list %p %d",
+              cval, cval ? cval->type : VIR_CONF_NONE);
+
+    if (!cval)
+        return 0;
+
+    virStringFreeList(*values);
+    *values = NULL;
+
+    switch (cval->type) {
+    case VIR_CONF_LIST:
+        /* Calc length and check items */
+        for (len = 0, eval = cval->list; eval; len++, eval = eval->next) {
+            if (eval->type != VIR_CONF_STRING) {
+                virReportError(VIR_ERR_CONF_SYNTAX,
+                               _("%s: expected a string list for '%s' parameter"),
+                               conf->filename, setting);
+                return -1;
+            }
+        }
+
+        if (VIR_ALLOC_N(*values, len + 1) < 0)
+            return -1;
+
+        for (len = 0, eval = cval->list; eval; len++, eval = eval->next) {
+            if (VIR_STRDUP((*values)[len], eval->str) < 0) {
+                virStringFreeList(*values);
+                *values = NULL;
+                return -1;
+            }
+        }
+        break;
+
+    case VIR_CONF_STRING:
+        if (compatString) {
+            if (VIR_ALLOC_N(*values, cval->str ? 2 : 1) < 0)
+                return -1;
+            if (cval->str &&
+                VIR_STRDUP((*values)[0], cval->str) < 0) {
+                VIR_FREE(*values);
+                return -1;
+            }
+            break;
+        }
+        /* fallthrough */
+
+    default:
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       compatString ?
+                       _("%s: expected a string or string list for '%s' parameter") :
+                       _("%s: expected a string list for '%s' parameter"),
+                       conf->filename, setting);
+        return -1;
+    }
+
+    return 1;
+}
+
+
+/**
+ * virConfGetValueBool:
+ * @conf: the config object
+ * @setting: the config entry name
+ * @value: pointer to hold boolean value
+ *
+ * Get the boolean value of the config name @setting, storing
+ * it in @value. If the config entry is not present, then
+ * @value will be unmodified.
+ *
+ * Reports an error if the config entry is set but has
+ * an unexpected type, or if the value set is not 1 or 0.
+ *
+ * Returns: 1 if the value was present, 0 if missing, -1 on error
+ */
+int virConfGetValueBool(virConfPtr conf,
+                        const char *setting,
+                        bool *value)
+{
+    virConfValuePtr cval = virConfGetValue(conf, setting);
+
+    VIR_DEBUG("Get value bool %p %d",
+              cval, cval ? cval->type : VIR_CONF_NONE);
+
+    if (!cval)
+        return 0;
+
+    if (cval->type != VIR_CONF_ULLONG) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("%s: expected a bool for '%s' parameter"),
+                       conf->filename, setting);
+        return -1;
+    }
+
+    if (((unsigned long long)cval->l) > 1) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("%s: value for '%s' parameter must be 0 or 1"),
+                       conf->filename, setting);
+        return -1;
+    }
+
+    *value = cval->l == 1;
+
+    return 1;
+}
+
+
+/**
+ * virConfGetValueInt:
+ * @conf: the config object
+ * @setting: the config entry name
+ * @value: pointer to hold integer value
+ *
+ * Get the integer value of the config name @setting, storing
+ * it in @value. If the config entry is not present, then
+ * @value will be unmodified.
+ *
+ * Reports an error if the config entry is set but has
+ * an unexpected type, or if the value is outside the
+ * range that can be stored in an 'int'
+ *
+ * Returns: 1 if the value was present, 0 if missing, -1 on error
+ */
+int virConfGetValueInt(virConfPtr conf,
+                       const char *setting,
+                       int *value)
+{
+    virConfValuePtr cval = virConfGetValue(conf, setting);
+
+    VIR_DEBUG("Get value int %p %d",
+              cval, cval ? cval->type : VIR_CONF_NONE);
+
+    if (!cval)
+        return 0;
+
+    if (cval->type != VIR_CONF_LLONG &&
+        cval->type != VIR_CONF_ULLONG) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("%s: expected a signed integer for '%s' parameter"),
+                       conf->filename, setting);
+        return -1;
+    }
+
+    if (cval->l > INT_MAX || cval->l < INT_MIN) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("%s: value for '%s' parameter must be in range %d:%d"),
+                       conf->filename, setting, INT_MIN, INT_MAX);
+        return -1;
+    }
+
+    *value = (int)cval->l;
+
+    return 1;
+}
+
+
+/**
+ * virConfGetValueUInt:
+ * @conf: the config object
+ * @setting: the config entry name
+ * @value: pointer to hold integer value
+ *
+ * Get the unsigned integer value of the config name @setting, storing
+ * it in @value. If the config entry is not present, then
+ * @value will be unmodified.
+ *
+ * Reports an error if the config entry is set but has
+ * an unexpected type, or if the value is outside the
+ * range that can be stored in an 'unsigned int'
+ *
+ * Returns: 1 if the value was present, 0 if missing, -1 on error
+ */
+int virConfGetValueUInt(virConfPtr conf,
+                        const char *setting,
+                        unsigned int *value)
+{
+    virConfValuePtr cval = virConfGetValue(conf, setting);
+
+    VIR_DEBUG("Get value uint %p %d",
+              cval, cval ? cval->type : VIR_CONF_NONE);
+
+    if (!cval)
+        return 0;
+
+    if (cval->type != VIR_CONF_ULLONG) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("%s: expected an unsigned integer for '%s' parameter"),
+                       conf->filename, setting);
+        return -1;
+    }
+
+    if (((unsigned long long)cval->l) > UINT_MAX) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("%s: value for '%s' parameter must be in range 0:%u"),
+                       conf->filename, setting, UINT_MAX);
+        return -1;
+    }
+
+    *value = (unsigned int)cval->l;
+
+    return 1;
+}
+
+
+/**
+ * virConfGetValueSizeT:
+ * @conf: the config object
+ * @setting: the config entry name
+ * @value: pointer to hold integer value
+ *
+ * Get the integer value of the config name @setting, storing
+ * it in @value. If the config entry is not present, then
+ * @value will be unmodified.
+ *
+ * Reports an error if the config entry is set but has
+ * an unexpected type, or if the value is outside the
+ * range that can be stored in a 'size_t'
+ *
+ * Returns: 1 if the value was present, 0 if missing, -1 on error
+ */
+int virConfGetValueSizeT(virConfPtr conf,
+                         const char *setting,
+                         size_t *value)
+{
+    virConfValuePtr cval = virConfGetValue(conf, setting);
+
+    VIR_DEBUG("Get value size_t %p %d",
+              cval, cval ? cval->type : VIR_CONF_NONE);
+
+    if (!cval)
+        return 0;
+
+    if (cval->type != VIR_CONF_ULLONG) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("%s: expected an unsigned integer for '%s' parameter"),
+                       conf->filename, setting);
+        return -1;
+    }
+
+#if ULLONG_MAX > SIZE_MAX
+    if (((unsigned long long)cval->l) > SIZE_MAX) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("%s: value for '%s' parameter must be in range 0:%zu"),
+                       conf->filename, setting, SIZE_MAX);
+        return -1;
+    }
+#endif
+
+    *value = (size_t)cval->l;
+
+    return 1;
+}
+
+
+/**
+ * virConfGetValueSSizeT:
+ * @conf: the config object
+ * @setting: the config entry name
+ * @value: pointer to hold integer value
+ *
+ * Get the integer value of the config name @setting, storing
+ * it in @value. If the config entry is not present, then
+ * @value will be unmodified.
+ *
+ * Reports an error if the config entry is set but has
+ * an unexpected type, or if the value is outside the
+ * range that can be stored in an 'ssize_t'
+ *
+ * Returns: 1 if the value was present, 0 if missing, -1 on error
+ */
+int virConfGetValueSSizeT(virConfPtr conf,
+                          const char *setting,
+                          ssize_t *value)
+{
+    virConfValuePtr cval = virConfGetValue(conf, setting);
+
+    VIR_DEBUG("Get value ssize_t %p %d",
+              cval, cval ? cval->type : VIR_CONF_NONE);
+
+    if (!cval)
+        return 0;
+
+    if (cval->type == VIR_CONF_ULLONG) {
+        if (((unsigned long long)cval->l) > SSIZE_MAX) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("%s: value for '%s' parameter must be in range %zd:%zd"),
+                           conf->filename, setting, (ssize_t)-SSIZE_MAX - 1, (ssize_t)SSIZE_MAX);
+            return -1;
+        }
+    } else if (cval->type == VIR_CONF_LLONG) {
+#if SSIZE_MAX < LLONG_MAX
+        if (cval->l < (-SSIZE_MAX - 1) || cval->l > SSIZE_MAX) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("%s: value for '%s' parameter must be in range %zd:%zd"),
+                           conf->filename, setting, (ssize_t)-SSIZE_MAX - 1, (ssize_t)SSIZE_MAX);
+            return -1;
+        }
+#endif
+    } else {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("%s: expected a signed integer for '%s' parameter"),
+                       conf->filename, setting);
+        return -1;
+    }
+
+    *value = (ssize_t)cval->l;
+
+    return 1;
+}
+
+
+/**
+ * virConfGetValueLLong:
+ * @conf: the config object
+ * @setting: the config entry name
+ * @value: pointer to hold integer value
+ *
+ * Get the integer value of the config name @setting, storing
+ * it in @value. If the config entry is not present, then
+ * @value will be unmodified.
+ *
+ * Reports an error if the config entry is set but has
+ * an unexpected type, or if the value is outside the
+ * range that can be stored in an 'long long'
+ *
+ * Returns: 1 if the value was present, 0 if missing, -1 on error
+ */
+int virConfGetValueLLong(virConfPtr conf,
+                         const char *setting,
+                         long long *value)
+{
+    virConfValuePtr cval = virConfGetValue(conf, setting);
+
+    VIR_DEBUG("Get value long long %p %d",
+              cval, cval ? cval->type : VIR_CONF_NONE);
+
+    if (!cval)
+        return 0;
+
+    if (cval->type == VIR_CONF_ULLONG) {
+        if (((unsigned long long)cval->l) > LLONG_MAX) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("%s: value for '%s' parameter must be in range %lld:%lld"),
+                           conf->filename, setting, LLONG_MIN, LLONG_MAX);
+            return -1;
+        }
+    } else if (cval->type != VIR_CONF_LLONG) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("%s: expected a signed integer for '%s' parameter"),
+                       conf->filename, setting);
+        return -1;
+    }
+
+    *value = cval->l;
+
+    return 1;
+}
+
+
+/**
+ * virConfGetValueULLong:
+ * @conf: the config object
+ * @setting: the config entry name
+ * @value: pointer to hold integer value
+ *
+ * Get the integer value of the config name @setting, storing
+ * it in @value. If the config entry is not present, then
+ * @value will be unmodified.
+ *
+ * Reports an error if the config entry is set but has
+ * an unexpected type.
+ *
+ * Returns: 1 if the value was present, 0 if missing, -1 on error
+ */
+int virConfGetValueULLong(virConfPtr conf,
+                          const char *setting,
+                          unsigned long long *value)
+{
+    virConfValuePtr cval = virConfGetValue(conf, setting);
+
+    VIR_DEBUG("Get value unsigned long long %p %d",
+              cval, cval ? cval->type : VIR_CONF_NONE);
+
+    if (!cval)
+        return 0;
+
+    if (cval->type != VIR_CONF_ULLONG) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("%s: expected an unsigned integer for '%s' parameter"),
+                       conf->filename, setting);
+        return -1;
+    }
+
+    *value = (unsigned long long)cval->l;
+
+    return 1;
 }
 
 /**
@@ -1069,20 +1566,16 @@ virConfLoadConfigPath(const char *name)
 {
     char *path;
     if (geteuid() == 0) {
-        if (virAsprintf(&path, "%s/libvirt/libvirt%s%s.conf",
-                        SYSCONFDIR,
-                        name ? "-" : "",
-                        name ? name : "") < 0)
+        if (virAsprintf(&path, "%s/libvirt/%s",
+                        SYSCONFDIR, name) < 0)
             return NULL;
     } else {
         char *userdir = virGetUserConfigDirectory();
         if (!userdir)
             return NULL;
 
-        if (virAsprintf(&path, "%s/libvirt%s%s.conf",
-                        userdir,
-                        name ? "-" : "",
-                        name ? name : "") < 0) {
+        if (virAsprintf(&path, "%s/%s",
+                        userdir, name) < 0) {
             VIR_FREE(userdir);
             return NULL;
         }

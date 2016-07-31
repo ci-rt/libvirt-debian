@@ -25,6 +25,7 @@
 
 # include "internal.h"
 # include "virbuffer.h"
+# include "virsecret.h"
 # include "virutil.h"
 
 # include <libxml/tree.h>
@@ -40,13 +41,26 @@ typedef struct _virStorageEncryptionSecret virStorageEncryptionSecret;
 typedef virStorageEncryptionSecret *virStorageEncryptionSecretPtr;
 struct _virStorageEncryptionSecret {
     int type; /* virStorageEncryptionSecretType */
-    unsigned char uuid[VIR_UUID_BUFLEN];
+    virSecretLookupTypeDef seclookupdef;
+};
+
+/* It's possible to dictate the cipher and if necessary iv */
+typedef struct _virStorageEncryptionInfoDef virStorageEncryptionInfoDef;
+typedef virStorageEncryptionInfoDef *virStorageEncryptionInfoDefPtr;
+struct _virStorageEncryptionInfoDef {
+    unsigned int cipher_size;
+    char *cipher_name;
+    char *cipher_mode;
+    char *cipher_hash;
+    char *ivgen_name;
+    char *ivgen_hash;
 };
 
 typedef enum {
     /* "default" is only valid for volume creation */
     VIR_STORAGE_ENCRYPTION_FORMAT_DEFAULT = 0,
     VIR_STORAGE_ENCRYPTION_FORMAT_QCOW, /* Both qcow and qcow2 */
+    VIR_STORAGE_ENCRYPTION_FORMAT_LUKS,
 
     VIR_STORAGE_ENCRYPTION_FORMAT_LAST,
 } virStorageEncryptionFormatType;
@@ -59,6 +73,8 @@ struct _virStorageEncryption {
 
     size_t nsecrets;
     virStorageEncryptionSecretPtr *secrets;
+
+    virStorageEncryptionInfoDef encinfo;
 };
 
 virStorageEncryptionPtr virStorageEncryptionCopy(const virStorageEncryption *src)

@@ -815,6 +815,10 @@
    don't. */
 #undef HAVE_DECL_GETDTABLESIZE
 
+/* Define to 1 if you have the declaration of `getenv', and to 0 if you don't.
+   */
+#undef HAVE_DECL_GETENV
+
 /* Define to 1 if you have the declaration of `getline', and to 0 if you
    don't. */
 #undef HAVE_DECL_GETLINE
@@ -1065,6 +1069,12 @@
 
 /* Define to 1 if you have the 'getmntent_r' function. */
 #undef HAVE_GETMNTENT_R
+
+/* Define to 1 if you have the <getopt.h> header file. */
+#undef HAVE_GETOPT_H
+
+/* Define to 1 if you have the `getopt_long_only' function. */
+#undef HAVE_GETOPT_LONG_ONLY
 
 /* Define to 1 if you have the `getpagesize' function. */
 #undef HAVE_GETPAGESIZE
@@ -1888,6 +1898,9 @@
 
 /* Define to 1 if you have the `ttyname_r' function. */
 #undef HAVE_TTYNAME_R
+
+/* Define to 1 if you have the 'tzset' function. */
+#undef HAVE_TZSET
 
 /* whether libudev logging can be used */
 #undef HAVE_UDEV_LOGGING
@@ -2792,6 +2805,10 @@
 /* For thread-safety on AIX, FreeBSD. */
 #undef _THREAD_SAFE
 
+/* Define to rpl_ if the getopt replacement functions and variables should be
+   used. */
+#undef __GETOPT_PREFIX
+
 /* Define to 1 if the system <stdint.h> predates C++11. */
 #undef __STDC_CONSTANT_MACROS
 
@@ -3021,7 +3038,7 @@
 /* type to use in place of socklen_t if not defined */
 #undef socklen_t
 
-/* Define as a signed type of the same size and rank as size_t. */
+/* Define as a signed type of the same size as size_t. */
 #undef ssize_t
 
 /* Define to `int' if <sys/types.h> doesn't define. */

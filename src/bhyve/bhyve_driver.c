@@ -53,10 +53,12 @@
 #include "nodeinfo.h"
 #include "virhostcpu.h"
 #include "virhostmem.h"
+#include "conf/domain_capabilities.h"
 
 #include "bhyve_device.h"
 #include "bhyve_driver.h"
 #include "bhyve_command.h"
+#include "bhyve_parse_command.h"
 #include "bhyve_domain.h"
 #include "bhyve_process.h"
 #include "bhyve_capabilities.h"
@@ -1131,9 +1133,7 @@ bhyveDomainGetMetadata(virDomainPtr dom,
                       const char *uri,
                       unsigned int flags)
 {
-    bhyveConnPtr privconn = dom->conn->privateData;
     virDomainObjPtr vm;
-    virCapsPtr caps = NULL;
     char *ret = NULL;
 
     if (!(vm = bhyveDomObjFromDomain(dom)))
@@ -1142,14 +1142,9 @@ bhyveDomainGetMetadata(virDomainPtr dom,
     if (virDomainGetMetadataEnsureACL(dom->conn, vm->def) < 0)
         goto cleanup;
 
-    if (!(caps = bhyveDriverGetCapabilities(privconn)))
-        goto cleanup;
-
-    ret = virDomainObjGetMetadata(vm, type, uri, caps,
-                                  privconn->xmlopt, flags);
+    ret = virDomainObjGetMetadata(vm, type, uri, flags);
 
  cleanup:
-    virObjectUnref(caps);
     virObjectUnlock(vm);
     return ret;
 }
@@ -1539,6 +1534,111 @@ bhyveConnectIsEncrypted(virConnectPtr conn ATTRIBUTE_UNUSED)
     return 0;
 }
 
+static char *
+bhyveConnectDomainXMLFromNative(virConnectPtr conn,
+                                const char *nativeFormat,
+                                const char *nativeConfig,
+                                unsigned int flags)
+{
+    char *xml = NULL;
+    virDomainDefPtr def = NULL;
+    bhyveConnPtr privconn = conn->privateData;
+    virCapsPtr capabilities = NULL;
+    unsigned caps = bhyveDriverGetCaps(conn);
+
+    virCheckFlags(0, NULL);
+
+    if (virConnectDomainXMLFromNativeEnsureACL(conn) < 0)
+        return NULL;
+
+    capabilities = bhyveDriverGetCapabilities(privconn);
+    if (!capabilities)
+        return NULL;
+
+    if (STRNEQ(nativeFormat, BHYVE_CONFIG_FORMAT_ARGV)) {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("unsupported config type %s"), nativeFormat);
+        goto cleanup;
+    }
+
+    def = bhyveParseCommandLineString(nativeConfig, caps, privconn->xmlopt);
+    if (def == NULL)
+        goto cleanup;
+
+    xml = virDomainDefFormat(def, capabilities, 0);
+
+ cleanup:
+    virObjectUnref(capabilities);
+    virDomainDefFree(def);
+    return xml;
+}
+
+static char *
+bhyveConnectGetDomainCapabilities(virConnectPtr conn,
+                                  const char *emulatorbin,
+                                  const char *arch_str,
+                                  const char *machine,
+                                  const char *virttype_str,
+                                  unsigned int flags)
+{
+    virDomainCapsPtr caps = NULL;
+    char *ret = NULL;
+    int virttype = VIR_DOMAIN_VIRT_BHYVE;
+    int arch = virArchFromHost(); /* virArch */
+
+    virCheckFlags(0, ret);
+
+    if (virConnectGetDomainCapabilitiesEnsureACL(conn) < 0)
+        return ret;
+
+    if (virttype_str &&
+        (virttype = virDomainVirtTypeFromString(virttype_str)) < 0) {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("unknown virttype: %s"),
+                       virttype_str);
+        goto cleanup;
+    }
+
+    if (virttype != VIR_DOMAIN_VIRT_BHYVE) {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("unknown virttype: %s"),
+                       virttype_str);
+        goto cleanup;
+    }
+
+    if (arch_str && (arch = virArchFromString(arch_str)) == VIR_ARCH_NONE) {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("unknown architecture: %s"),
+                       arch_str);
+        goto cleanup;
+    }
+
+    if (!ARCH_IS_X86(arch)) {
+        virReportError(VIR_ERR_NO_SUPPORT,
+                       _("unsupported architecture: %s"),
+                       virArchToString(arch));
+        goto cleanup;
+    }
+
+    if (emulatorbin == NULL) {
+        emulatorbin = "/usr/sbin/bhyve";
+    } else if (STRNEQ(emulatorbin, "/usr/sbin/bhyve")) {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("unknown emulator binary: %s"),
+                       emulatorbin);
+        goto cleanup;
+    }
+
+    if (!(caps = virBhyveDomainCapsBuild(emulatorbin, machine, arch, virttype)))
+        goto cleanup;
+
+    ret = virDomainCapsFormat(caps);
+
+ cleanup:
+    virObjectUnref(caps);
+    return ret;
+}
+
 static virHypervisorDriver bhyveHypervisorDriver = {
     .name = "bhyve",
     .connectOpen = bhyveConnectOpen, /* 1.2.2 */
@@ -1592,6 +1692,8 @@ static virHypervisorDriver bhyveHypervisorDriver = {
     .connectIsAlive = bhyveConnectIsAlive, /* 1.3.5 */
     .connectIsSecure = bhyveConnectIsSecure, /* 1.3.5 */
     .connectIsEncrypted = bhyveConnectIsEncrypted, /* 1.3.5 */
+    .connectDomainXMLFromNative = bhyveConnectDomainXMLFromNative, /* 2.1.0 */
+    .connectGetDomainCapabilities = bhyveConnectGetDomainCapabilities, /* 2.1.0 */
 };
 
 

@@ -200,20 +200,10 @@
         If you want to fix a translation in a .po file, join the
         appropriate language team. The libvirt release process
         automatically pulls the latest version of each translation
-        file from zanata.</li><li><p>Post patches in unified diff format, with git rename
+        file from zanata.</li><li><p>Post patches using "git send-email", with git rename
         detection enabled.  You need a one-time setup of:</p>
 <pre xml:space="preserve">
   git config diff.renames true
-</pre>
-        <p>After that, a command similar to this should work:</p>
-<pre xml:space="preserve">
-  diff -urp libvirt.orig/ libvirt.modified/ &gt; libvirt-myfeature.patch
-</pre>
-        <p>
-          or:
-        </p>
-<pre xml:space="preserve">
-  git diff &gt; libvirt-myfeature.patch
 </pre>
         <p>Also, for code motion patches, you may find that <code>git
         diff --patience</code> provides an easier-to-read patch.

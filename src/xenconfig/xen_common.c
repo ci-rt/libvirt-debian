@@ -58,7 +58,7 @@ xenConfigGetBool(virConfPtr conf,
         return 0;
     }
 
-    if (val->type == VIR_CONF_ULONG) {
+    if (val->type == VIR_CONF_ULLONG) {
         *value = val->l ? 1 : 0;
     } else if (val->type == VIR_CONF_STRING) {
         *value = STREQ(val->str, "1") ? 1 : 0;
@@ -88,7 +88,7 @@ xenConfigGetULong(virConfPtr conf,
         return 0;
     }
 
-    if (val->type == VIR_CONF_ULONG) {
+    if (val->type == VIR_CONF_ULLONG) {
         *value = val->l;
     } else if (val->type == VIR_CONF_STRING) {
         if (virStrToLong_ul(val->str, NULL, 10, value) < 0) {
@@ -122,7 +122,7 @@ xenConfigGetULongLong(virConfPtr conf,
         return 0;
     }
 
-    if (val->type == VIR_CONF_ULONG) {
+    if (val->type == VIR_CONF_ULLONG) {
         *value = val->l;
     } else if (val->type == VIR_CONF_STRING) {
         if (virStrToLong_ull(val->str, NULL, 10, value) < 0) {
@@ -276,7 +276,7 @@ xenConfigSetInt(virConfPtr conf, const char *setting, long long l)
     if (VIR_ALLOC(value) < 0)
         return -1;
 
-    value->type = VIR_CONF_LONG;
+    value->type = VIR_CONF_LLONG;
     value->next = NULL;
     value->l = l;
 
@@ -483,7 +483,9 @@ xenParsePCI(virConfPtr conf, virDomainDefPtr def)
 
 
 static int
-xenParseCPUFeatures(virConfPtr conf, virDomainDefPtr def)
+xenParseCPUFeatures(virConfPtr conf,
+                    virDomainDefPtr def,
+                    virDomainXMLOptionPtr xmlopt)
 {
     unsigned long count = 0;
     const char *str = NULL;
@@ -492,7 +494,7 @@ xenParseCPUFeatures(virConfPtr conf, virDomainDefPtr def)
     if (xenConfigGetULong(conf, "vcpus", &count, 1) < 0)
         return -1;
 
-    if (virDomainDefSetVcpusMax(def, count) < 0)
+    if (virDomainDefSetVcpusMax(def, count, xmlopt) < 0)
         return -1;
 
     if (virDomainDefSetVcpus(def, count) < 0)
@@ -502,7 +504,7 @@ xenParseCPUFeatures(virConfPtr conf, virDomainDefPtr def)
         if (xenConfigGetULong(conf, "maxvcpus", &count, 0) < 0)
             return -1;
 
-        if (virDomainDefSetVcpusMax(def, count) < 0)
+        if (virDomainDefSetVcpusMax(def, count, xmlopt) < 0)
             return -1;
     }
 
@@ -1051,7 +1053,8 @@ int
 xenParseConfigCommon(virConfPtr conf,
                      virDomainDefPtr def,
                      virCapsPtr caps,
-                     const char *nativeFormat)
+                     const char *nativeFormat,
+                     virDomainXMLOptionPtr xmlopt)
 {
     if (xenParseGeneralMeta(conf, def, caps) < 0)
         return -1;
@@ -1062,7 +1065,7 @@ xenParseConfigCommon(virConfPtr conf,
     if (xenParseEventsActions(conf, def) < 0)
         return -1;
 
-    if (xenParseCPUFeatures(conf, def) < 0)
+    if (xenParseCPUFeatures(conf, def, xmlopt) < 0)
         return -1;
 
     if (xenParseTimeOffset(conf, def) < 0)

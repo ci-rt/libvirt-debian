@@ -2280,7 +2280,7 @@
               <tr>
                 <td> gluster </td>
                 <td> a server running glusterd daemon </td>
-                <td> only one </td>
+                <td> one or more (<span class="since">Since 2.1.0</span>), just one prior to that </td>
                 <td> 24007 </td>
               </tr>
             </table>
@@ -4970,6 +4970,7 @@ qemu-kvm -net nic,model=? /dev/null
       &lt;source network='default'/&gt;
       &lt;target dev='vnet0'/&gt;
       <b>&lt;ip address='192.168.122.5' prefix='24'/&gt;</b>
+      <b>&lt;ip address='192.168.122.5' prefix='24' peer='10.0.0.10'/&gt;</b>
       <b>&lt;route family='ipv4' address='192.168.122.0' prefix='24' gateway='192.168.122.1'/&gt;</b>
       <b>&lt;route family='ipv4' address='192.168.122.8' gateway='192.168.122.1'/&gt;</b>
     &lt;/interface&gt;
@@ -4988,21 +4989,56 @@ qemu-kvm -net nic,model=? /dev/null
 </pre>
 
     <p>
-    <span class="since">Since 1.2.12</span> the network devices and host devices
-    with network capabilities can be provided zero or more IP addresses to set
-    on the target device. Note that some hypervisors or network device types
-    will simply ignore them or only use the first one. The <code>family</code>
-    attribute can be set to either <code>ipv4</code> or <code>ipv6</code>, the
-    <code>address</code> attribute holds the IP address. The <code>prefix</code>
-    is not mandatory since some hypervisors do not handle it.
+      <span class="since">Since 1.2.12</span> network devices and
+      hostdev devices with network capabilities can optionally be provided
+      one or more IP addresses to set on the network device in the
+      guest. Note that some hypervisors or network device types will
+      simply ignore them or only use the first one.
+      The <code>family</code> attribute can be set to
+      either <code>ipv4</code> or <code>ipv6</code>, and the
+      <code>address</code> attribute contains the IP address. The
+      optional <code>prefix</code> is the number of 1 bits in the
+      netmask, and will be automatically set if not specified - for
+      IPv4 the default prefix is determined according to the network
+      "class" (A, B, or C - see RFC870), and for IPv6 the default
+      prefix is 64. The optional <code>peer</code> attribute holds the
+      IP address of the other end of a point-to-point network
+      device <span class="since">(since 2.1.0)</span>.
     </p>
 
     <p>
-    <span class="since">Since 1.2.12</span> route elements can also be added
-    to define the network routes to use for the network device. The attributes
-    of this element are described in the documentation for the <code>route</code>
-    element in <a href="formatnetwork.html#elementsStaticroute">network definitions</a>.
-    This is only used by the LXC driver.
+    <span class="since">Since 1.2.12</span> route elements can also be
+    added to define IP routes to add in the guest.  The attributes of
+    this element are described in the documentation for
+    the <code>route</code> element
+    in <a href="formatnetwork.html#elementsStaticroute">network
+    definitions</a>.  This is used by the LXC driver.
+    </p>
+
+<pre>
+  ...
+  &lt;devices&gt;
+    &lt;interface type='ethernet'&gt;
+      <b>&lt;source/&gt;</b>
+        <b>&lt;ip address='192.168.123.1' prefix='24'/&gt;</b>
+        <b>&lt;ip address='10.0.0.10' prefix='24' peer='192.168.122.5'/&gt;</b>
+        <b>&lt;route family='ipv4' address='192.168.42.0' prefix='24' gateway='192.168.123.4'/&gt;</b>
+      <b>&lt;source/&gt;</b>
+      ...
+    &lt;/interface&gt;
+    ...
+  &lt;/devices&gt;
+  ...
+</pre>
+
+    <p>
+      <span class="since">Since 2.1.0</span> network devices of type
+      "ethernet" can optionally be provided one or more IP addresses
+      and one or more routes to set on the <b>host</b> side of the
+      network device. These are configured as subelements of
+      the <code>&lt;source&gt;</code> element of the interface, and
+      have the same attributes as the similarly named elements used to
+      configure the guest side of the interface (described above).
     </p>
 
     <h5><a name="elementVhostuser">vhost-user interface</a></h5>
@@ -6712,6 +6748,32 @@ qemu-kvm -net nic,model=? /dev/null
           The <code>node</code> subelement configures the guest NUMA node to
           attach the memory to. The element shall be used only if the guest has
           NUMA nodes configured.
+        </p>
+      </dd>
+    </dl>
+
+    <h4><a name="elementsIommu">IOMMU devices</a></h4>
+
+    <p>
+      The <code>iommu</code> element can be used to add an IOMMU device.
+      <span class="since">Since 2.1.0</span>
+    </p>
+
+    <p>
+      Example:
+    </p>
+<pre>
+  ...
+  &lt;devices&gt;
+    &lt;iommu model='intel'/&gt;
+  &lt;/devices&gt;
+  ...
+</pre>
+    <dl>
+      <dt><code>model</code></dt>
+      <dd>
+        <p>
+          Currently only the <code>intel</code> model is supported.
         </p>
       </dd>
     </dl>
