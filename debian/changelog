@@ -1,3 +1,14 @@
+libvirt (2.1.0~rc1-1) experimental; urgency=medium
+
+  * [8efff86] Ship virt-admin
+  * [8e2f085] Ship libvirt nss plugin build for IP resolution of virtual
+    machines
+  * [ad4f7ff] New upstream version 2.1.0~rc1
+  * [86c9db9] Rediff patches
+  * [72d0ef5] Bump symbol versions
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 31 Jul 2016 15:10:19 +0200
+
 libvirt (2.0.0-1) unstable; urgency=medium
 
   * [8fe8522] Build-Depend on libnuma-dev for ppc64 as well.  Thanks to Andrea
