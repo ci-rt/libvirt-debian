@@ -98,9 +98,14 @@ struct vzDomObj {
     int id;
     PRL_HANDLE sdkdom;
     PRL_HANDLE stats;
+    bool job;
+    virCond jobCond;
 };
 
 typedef struct vzDomObj *vzDomObjPtr;
+
+void* vzDomObjAlloc(void);
+void vzDomObjFree(void *p);
 
 virDomainObjPtr vzDomObjFromDomain(virDomainPtr domain);
 virDomainObjPtr vzDomObjFromDomainRef(virDomainPtr domain);
@@ -114,10 +119,6 @@ vzGetDriverConnection(void);
 void
 vzDestroyDriverConnection(void);
 
-virDomainObjPtr
-vzNewDomain(vzDriverPtr driver,
-            const char *name,
-            const unsigned char *uuid);
 int
 vzInitVersion(vzDriverPtr driver);
 int
@@ -140,3 +141,8 @@ int vzCheckUnsupportedGraphics(virDomainGraphicsDefPtr gr);
     OP(wr_bytes, VIR_DOMAIN_BLOCK_STATS_WRITE_BYTES, "write_total")
 
 #endif
+
+int
+vzDomainObjBeginJob(virDomainObjPtr dom);
+void
+vzDomainObjEndJob(virDomainObjPtr dom);

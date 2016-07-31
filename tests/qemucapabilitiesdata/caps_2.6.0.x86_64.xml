@@ -9,7 +9,6 @@
   <flag name='enable-kvm'/>
   <flag name='monitor-json'/>
   <flag name='sdl'/>
-  <flag name='smp-topology'/>
   <flag name='netdev'/>
   <flag name='rtc'/>
   <flag name='vhost-net'/>
@@ -193,6 +192,8 @@
   <flag name='spice-unix'/>
   <flag name='drive-detect-zeroes'/>
   <flag name='tls-creds-x509'/>
+  <flag name='display'/>
+  <flag name='intel-iommu'/>
   <version>2006000</version>
   <kvmVersion>0</kvmVersion>
   <package></package>

@@ -184,12 +184,8 @@ struct _qemuDomainObjPrivate {
     bool beingDestroyed;
     char *pidfile;
 
-    int nvcpupids;
-    int *vcpupids;
-
     virDomainPCIAddressSetPtr pciaddrs;
-    virDomainCCWAddressSetPtr ccwaddrs;
-    virDomainVirtioSerialAddrSetPtr vioserialaddrs;
+    virDomainUSBAddressSetPtr usbaddrs;
 
     virQEMUCapsPtr qemuCaps;
     char *lockState;
@@ -311,6 +307,19 @@ struct _qemuDomainDiskPrivate {
 
 # define QEMU_DOMAIN_HOSTDEV_PRIVATE(hostdev)	\
     ((qemuDomainHostdevPrivatePtr) (hostdev)->privateData)
+
+
+typedef struct _qemuDomainVcpuPrivate qemuDomainVcpuPrivate;
+typedef qemuDomainVcpuPrivate *qemuDomainVcpuPrivatePtr;
+struct _qemuDomainVcpuPrivate {
+    virObject parent;
+
+    pid_t tid; /* vcpu thread id */
+};
+
+# define QEMU_DOMAIN_VCPU_PRIVATE(vcpu)    \
+    ((qemuDomainVcpuPrivatePtr) (vcpu)->privateData)
+
 
 struct qemuDomainDiskInfo {
     bool removable;
@@ -636,7 +645,7 @@ int qemuDomainDefValidateMemoryHotplug(const virDomainDef *def,
                                        const virDomainMemoryDef *mem);
 
 bool qemuDomainHasVcpuPids(virDomainObjPtr vm);
-pid_t qemuDomainGetVcpuPid(virDomainObjPtr vm, unsigned int vcpu);
+pid_t qemuDomainGetVcpuPid(virDomainObjPtr vm, unsigned int vcpuid);
 int qemuDomainDetectVcpuPids(virQEMUDriverPtr driver, virDomainObjPtr vm,
                              int asyncJob);
 
@@ -668,6 +677,9 @@ int qemuDomainMasterKeyCreate(virDomainObjPtr vm);
 void qemuDomainMasterKeyRemove(qemuDomainObjPrivatePtr priv);
 
 void qemuDomainSecretDiskDestroy(virDomainDiskDefPtr disk)
+    ATTRIBUTE_NONNULL(1);
+
+bool qemuDomainSecretDiskCapable(virStorageSourcePtr src)
     ATTRIBUTE_NONNULL(1);
 
 int qemuDomainSecretDiskPrepare(virConnectPtr conn,

@@ -496,6 +496,7 @@
     <function name="VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON" link="libvirt-libvirt-domain.html#VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON"/>
     <function name="VIR_DOMAIN_MEMORY_STAT_AVAILABLE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_MEMORY_STAT_AVAILABLE"/>
     <function name="VIR_DOMAIN_MEMORY_STAT_LAST" link="libvirt-libvirt-domain.html#VIR_DOMAIN_MEMORY_STAT_LAST"/>
+    <function name="VIR_DOMAIN_MEMORY_STAT_LAST_UPDATE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_MEMORY_STAT_LAST_UPDATE"/>
     <function name="VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT" link="libvirt-libvirt-domain.html#VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT"/>
     <function name="VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT" link="libvirt-libvirt-domain.html#VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT"/>
     <function name="VIR_DOMAIN_MEMORY_STAT_NR" link="libvirt-libvirt-domain.html#VIR_DOMAIN_MEMORY_STAT_NR"/>
@@ -503,6 +504,7 @@
     <function name="VIR_DOMAIN_MEMORY_STAT_SWAP_IN" link="libvirt-libvirt-domain.html#VIR_DOMAIN_MEMORY_STAT_SWAP_IN"/>
     <function name="VIR_DOMAIN_MEMORY_STAT_SWAP_OUT" link="libvirt-libvirt-domain.html#VIR_DOMAIN_MEMORY_STAT_SWAP_OUT"/>
     <function name="VIR_DOMAIN_MEMORY_STAT_UNUSED" link="libvirt-libvirt-domain.html#VIR_DOMAIN_MEMORY_STAT_UNUSED"/>
+    <function name="VIR_DOMAIN_MEMORY_STAT_USABLE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_MEMORY_STAT_USABLE"/>
     <function name="VIR_DOMAIN_MEM_CONFIG" link="libvirt-libvirt-domain.html#VIR_DOMAIN_MEM_CONFIG"/>
     <function name="VIR_DOMAIN_MEM_CURRENT" link="libvirt-libvirt-domain.html#VIR_DOMAIN_MEM_CURRENT"/>
     <function name="VIR_DOMAIN_MEM_LIVE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_MEM_LIVE"/>

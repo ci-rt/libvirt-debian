@@ -11,7 +11,7 @@ QEMU_AUDIO_DRV=spice \
 -cpu core2duo,+ds,+acpi,+ss,+ht,+tm,+pbe,+ds_cpl,+vmx,+est,+tm2,+cx16,+xtpr,\
 +lahf_lm \
 -m 1024 \
--smp 2 \
+-smp 2,sockets=1,cores=2,threads=1 \
 -uuid 553effab-b5e1-2d80-dfe3-da4344826c43 \
 -nodefaults \
 -monitor unix:/tmp/lib/domain--1-f14/monitor.sock,server,nowait \
@@ -28,7 +28,7 @@ media=cdrom,id=drive-ide0-1-0,readonly=on \
 -device rtl8139,vlan=0,id=net0,mac=52:54:00:71:70:89,bus=pci.0,addr=0x7 \
 -net tap,fd=3,vlan=0,name=hostnet0 \
 -serial pty \
--device usb-tablet,id=input0 \
+-device usb-tablet,id=input0,bus=usb.0,port=1 \
 -spice port=5900,addr=127.0.0.1 \
 -vga std \
 -device AC97,id=sound0,bus=pci.0,addr=0x3 \

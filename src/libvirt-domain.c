@@ -5986,8 +5986,13 @@ virDomainGetInterfaceParameters(virDomainPtr domain,
  *     The amount of memory which is not being used for any purpose (in kb).
  * VIR_DOMAIN_MEMORY_STAT_AVAILABLE:
  *     The total amount of memory available to the domain's OS (in kb).
+ * VIR_DOMAIN_MEMORY_STAT_USABLE:
+ *     How much the balloon can be inflated without pushing the guest system
+ *     to swap, corresponds to 'Available' in /proc/meminfo
  * VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON:
  *     Current balloon value (in kb).
+ * VIR_DOMAIN_MEMORY_STAT_LAST_UPDATE
+ *     Timestamp of the last statistic
  *
  * Returns: The number of stats provided or -1 in case of failure.
  */

@@ -975,6 +975,37 @@ virDomainVirtioSerialAddrSetFree(virDomainVirtioSerialAddrSetPtr addrs)
     }
 }
 
+
+/* virDomainVirtioSerialAddrSetCreateFromDomain
++ *
++ * @def: Domain def to introspect
++ *
++ * Inspect the domain definition and return an address set containing
++ * every virtio serial address we find
++ */
+virDomainVirtioSerialAddrSetPtr
+virDomainVirtioSerialAddrSetCreateFromDomain(virDomainDefPtr def)
+{
+    virDomainVirtioSerialAddrSetPtr addrs = NULL;
+    virDomainVirtioSerialAddrSetPtr ret = NULL;
+
+    if (!(addrs = virDomainVirtioSerialAddrSetCreate()))
+        goto cleanup;
+
+    if (virDomainVirtioSerialAddrSetAddControllers(addrs, def) < 0)
+        goto cleanup;
+
+    if (virDomainDeviceInfoIterate(def, virDomainVirtioSerialAddrReserve,
+                                   addrs) < 0)
+        goto cleanup;
+
+    ret = addrs;
+    addrs = NULL;
+ cleanup:
+    virDomainVirtioSerialAddrSetFree(addrs);
+    return ret;
+}
+
 static int
 virDomainVirtioSerialAddrSetAutoaddController(virDomainDefPtr def,
                                               virDomainVirtioSerialAddrSetPtr addrs,
@@ -1249,5 +1280,539 @@ virDomainVirtioSerialAddrRelease(virDomainVirtioSerialAddrSetPtr addrs,
 
  cleanup:
     VIR_FREE(str);
+    return ret;
+}
+
+
+bool
+virDomainUSBAddressPortIsValid(unsigned int *port)
+{
+    return port[0] != 0;
+}
+
+
+void
+virDomainUSBAddressPortFormatBuf(virBufferPtr buf,
+                                 unsigned int *port)
+{
+    size_t i;
+
+    for (i = 0; i < VIR_DOMAIN_DEVICE_USB_MAX_PORT_DEPTH; i++) {
+        if (port[i] == 0)
+            break;
+        virBufferAsprintf(buf, "%u.", port[i]);
+    }
+    virBufferTrim(buf, ".", -1);
+}
+
+
+char *
+virDomainUSBAddressPortFormat(unsigned int *port)
+{
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    virDomainUSBAddressPortFormatBuf(&buf, port);
+    if (virBufferCheckError(&buf) < 0)
+        return NULL;
+    return virBufferContentAndReset(&buf);
+}
+
+
+virDomainUSBAddressSetPtr
+virDomainUSBAddressSetCreate(void)
+{
+    virDomainUSBAddressSetPtr addrs;
+
+    if (VIR_ALLOC(addrs) < 0)
+        return NULL;
+
+    return addrs;
+}
+
+
+static void
+virDomainUSBAddressHubFree(virDomainUSBAddressHubPtr hub)
+{
+    size_t i;
+
+    if (!hub)
+        return;
+
+    for (i = 0; i < hub->nports; i++)
+        virDomainUSBAddressHubFree(hub->ports[i]);
+    virBitmapFree(hub->portmap);
+    VIR_FREE(hub);
+}
+
+
+void
+virDomainUSBAddressSetFree(virDomainUSBAddressSetPtr addrs)
+{
+    size_t i;
+
+    if (!addrs)
+        return;
+
+    for (i = 0; i < addrs->nbuses; i++)
+        virDomainUSBAddressHubFree(addrs->buses[i]);
+    VIR_FREE(addrs->buses);
+    VIR_FREE(addrs);
+}
+
+
+static size_t
+virDomainUSBAddressControllerModelToPorts(virDomainControllerDefPtr cont)
+{
+    int model = cont->model;
+
+    if (model == -1)
+        model = VIR_DOMAIN_CONTROLLER_MODEL_USB_PIIX3_UHCI;
+
+    switch ((virDomainControllerModelUSB) model) {
+    case VIR_DOMAIN_CONTROLLER_MODEL_USB_PIIX3_UHCI:
+    case VIR_DOMAIN_CONTROLLER_MODEL_USB_PIIX4_UHCI:
+    case VIR_DOMAIN_CONTROLLER_MODEL_USB_VT82C686B_UHCI:
+        return 2;
+
+    case VIR_DOMAIN_CONTROLLER_MODEL_USB_EHCI:
+    case VIR_DOMAIN_CONTROLLER_MODEL_USB_ICH9_EHCI1:
+        return 6;
+
+    case VIR_DOMAIN_CONTROLLER_MODEL_USB_ICH9_UHCI1:
+    case VIR_DOMAIN_CONTROLLER_MODEL_USB_ICH9_UHCI2:
+    case VIR_DOMAIN_CONTROLLER_MODEL_USB_ICH9_UHCI3:
+        /* These have two ports each and are used to provide USB1.1
+         * ports while ICH9_EHCI1 provides 6 USB2.0 ports.
+         * Ignore these since we will add the EHCI1 too. */
+        return 0;
+
+    case VIR_DOMAIN_CONTROLLER_MODEL_USB_PCI_OHCI:
+        return 3;
+
+    case VIR_DOMAIN_CONTROLLER_MODEL_USB_NEC_XHCI:
+        if (cont->opts.usbopts.ports != -1)
+            return cont->opts.usbopts.ports;
+        return 4;
+
+    case VIR_DOMAIN_CONTROLLER_MODEL_USB_NONE:
+    case VIR_DOMAIN_CONTROLLER_MODEL_USB_LAST:
+        break;
+    }
+    return 0;
+}
+
+
+static virDomainUSBAddressHubPtr
+virDomainUSBAddressHubNew(size_t nports)
+{
+    virDomainUSBAddressHubPtr hub = NULL, ret = NULL;
+
+    if (VIR_ALLOC(hub) < 0)
+        goto cleanup;
+
+    if (!(hub->portmap = virBitmapNew(nports)))
+        goto cleanup;
+
+    if (VIR_ALLOC_N(hub->ports, nports) < 0)
+        goto cleanup;
+    hub->nports = nports;
+
+    ret = hub;
+    hub = NULL;
+ cleanup:
+    virDomainUSBAddressHubFree(hub);
+    return ret;
+}
+
+
+static int
+virDomainUSBAddressSetAddController(virDomainUSBAddressSetPtr addrs,
+                                    virDomainControllerDefPtr cont)
+{
+    size_t nports = virDomainUSBAddressControllerModelToPorts(cont);
+    virDomainUSBAddressHubPtr hub = NULL;
+    int ret = -1;
+
+    VIR_DEBUG("Adding a USB controller model=%s with %zu ports",
+              virDomainControllerModelUSBTypeToString(cont->model),
+              nports);
+
+    /* Skip UHCI{1,2,3} companions; only add the EHCI1 */
+    if (nports == 0)
+        return 0;
+
+    if (addrs->nbuses <= cont->idx) {
+        if (VIR_EXPAND_N(addrs->buses, addrs->nbuses, cont->idx - addrs->nbuses + 1) < 0)
+            goto cleanup;
+    } else if (addrs->buses[cont->idx]) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Duplicate USB controllers with index %u"),
+                       cont->idx);
+        goto cleanup;
+    }
+
+    if (!(hub = virDomainUSBAddressHubNew(nports)))
+        goto cleanup;
+
+    addrs->buses[cont->idx] = hub;
+    hub = NULL;
+
+    ret = 0;
+ cleanup:
+    virDomainUSBAddressHubFree(hub);
+    return ret;
+}
+
+
+static ssize_t
+virDomainUSBAddressGetLastIdx(virDomainDeviceInfoPtr info)
+{
+    ssize_t i;
+    for (i = VIR_DOMAIN_DEVICE_USB_MAX_PORT_DEPTH - 1; i > 0; i--) {
+        if (info->addr.usb.port[i] != 0)
+            break;
+    }
+    return i;
+}
+
+
+/* Find the USBAddressHub structure representing the hub/controller
+ * that corresponds to the bus/port path specified by info.
+ * Returns the index of the requested port in targetIdx.
+ */
+static virDomainUSBAddressHubPtr
+virDomainUSBAddressFindPort(virDomainUSBAddressSetPtr addrs,
+                            virDomainDeviceInfoPtr info,
+                            int *targetIdx,
+                            const char *portStr)
+{
+    virDomainUSBAddressHubPtr hub = NULL;
+    ssize_t i, lastIdx;
+
+    if (info->addr.usb.bus >= addrs->nbuses ||
+        !addrs->buses[info->addr.usb.bus]) {
+        virReportError(VIR_ERR_XML_ERROR, _("Missing USB bus %u"),
+                       info->addr.usb.bus);
+        return NULL;
+    }
+    hub = addrs->buses[info->addr.usb.bus];
+
+    lastIdx = virDomainUSBAddressGetLastIdx(info);
+
+    for (i = 0; i < lastIdx; i++) {
+        /* ports are numbered from 1 */
+        int portIdx = info->addr.usb.port[i] - 1;
+
+        if (hub->nports <= portIdx) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("port %u out of range in USB address bus: %u port: %s"),
+                           info->addr.usb.port[i],
+                           info->addr.usb.bus,
+                           portStr);
+            return NULL;
+        }
+        hub = hub->ports[portIdx];
+    }
+
+    *targetIdx = info->addr.usb.port[lastIdx] - 1;
+    return hub;
+}
+
+
+#define VIR_DOMAIN_USB_HUB_PORTS 8
+
+int
+virDomainUSBAddressSetAddHub(virDomainUSBAddressSetPtr addrs,
+                             virDomainHubDefPtr hub)
+{
+    virDomainUSBAddressHubPtr targetHub = NULL, newHub = NULL;
+    int ret = -1;
+    int targetPort;
+    char *portStr = NULL;
+
+    if (hub->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_USB) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("Wrong address type for USB hub"));
+        goto cleanup;
+    }
+
+    if (!(portStr = virDomainUSBAddressPortFormat(hub->info.addr.usb.port)))
+        goto cleanup;
+
+    VIR_DEBUG("Adding a USB hub with 8 ports on bus=%u port=%s",
+              hub->info.addr.usb.bus, portStr);
+
+    if (!(newHub = virDomainUSBAddressHubNew(VIR_DOMAIN_USB_HUB_PORTS)))
+        goto cleanup;
+
+    if (!(targetHub = virDomainUSBAddressFindPort(addrs, &(hub->info), &targetPort,
+                                                  portStr)))
+        goto cleanup;
+
+    if (targetHub->ports[targetPort]) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Duplicate USB hub on bus %u port %s"),
+                       hub->info.addr.usb.bus, portStr);
+        goto cleanup;
+    }
+    ignore_value(virBitmapSetBit(targetHub->portmap, targetPort));
+    targetHub->ports[targetPort] = newHub;
+    newHub = NULL;
+
+    ret = 0;
+ cleanup:
+    virDomainUSBAddressHubFree(newHub);
+    VIR_FREE(portStr);
+    return ret;
+}
+
+
+int
+virDomainUSBAddressSetAddControllers(virDomainUSBAddressSetPtr addrs,
+                                     virDomainDefPtr def)
+{
+    size_t i;
+
+    for (i = 0; i < def->ncontrollers; i++) {
+        virDomainControllerDefPtr cont = def->controllers[i];
+        if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_USB) {
+            if (virDomainUSBAddressSetAddController(addrs, cont) < 0)
+                return -1;
+        }
+    }
+
+    for (i = 0; i < def->nhubs; i++) {
+        virDomainHubDefPtr hub = def->hubs[i];
+        if (hub->type == VIR_DOMAIN_HUB_TYPE_USB &&
+            hub->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_USB &&
+            virDomainUSBAddressPortIsValid(hub->info.addr.usb.port)) {
+            /* USB hubs that do not yet have an USB address have to be
+             * dealt with later */
+            if (virDomainUSBAddressSetAddHub(addrs, hub) < 0)
+                return -1;
+        }
+    }
+    return 0;
+}
+
+
+static int
+virDomainUSBAddressFindFreePort(virDomainUSBAddressHubPtr hub,
+                                unsigned int *portpath,
+                                unsigned int level)
+{
+    unsigned int port;
+    ssize_t portIdx;
+    size_t i;
+
+    /* Look for free ports on the current hub */
+    if ((portIdx = virBitmapNextClearBit(hub->portmap, -1)) >= 0) {
+        port = portIdx + 1;
+        VIR_DEBUG("Found a free port %u at level %u", port, level);
+        portpath[level] = port;
+        return 0;
+    }
+
+    VIR_DEBUG("No ports found on hub %p, trying the hubs on it", hub);
+
+    if (level >= VIR_DOMAIN_DEVICE_USB_MAX_PORT_DEPTH - 1)
+        return -1;
+
+    /* Recursively search through the ports that contain another hub */
+    for (i = 0; i < hub->nports; i++) {
+        if (!hub->ports[i])
+            continue;
+
+        port = i + 1;
+        VIR_DEBUG("Looking at USB hub at level: %u port: %u", level, port);
+        if (virDomainUSBAddressFindFreePort(hub->ports[i], portpath,
+                                            level + 1) < 0)
+            continue;
+
+        portpath[level] = port;
+        return 0;
+    }
+    return -1;
+}
+
+
+size_t
+virDomainUSBAddressCountAllPorts(virDomainDefPtr def)
+{
+    size_t i, ret = 0;
+
+    for (i = 0; i < def->ncontrollers; i++) {
+        virDomainControllerDefPtr cont = def->controllers[i];
+        if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_USB)
+            ret += virDomainUSBAddressControllerModelToPorts(cont);
+    }
+
+    for (i = 0; i < def->nhubs; i++) {
+        virDomainHubDefPtr hub = def->hubs[i];
+        if (hub->type == VIR_DOMAIN_HUB_TYPE_USB)
+            ret += VIR_DOMAIN_USB_HUB_PORTS;
+    }
+    return ret;
+}
+
+
+/* Try to find a free port on bus @bus.
+ *
+ * Returns  0 on success
+ *         -1 on fatal error (OOM)
+ *         -2 if there is no bus at @bus or no free port on this bus
+ */
+static int
+virDomainUSBAddressAssignFromBus(virDomainUSBAddressSetPtr addrs,
+                                 virDomainDeviceInfoPtr info,
+                                 size_t bus)
+{
+    unsigned int portpath[VIR_DOMAIN_DEVICE_USB_MAX_PORT_DEPTH] = { 0 };
+    virDomainUSBAddressHubPtr hub = addrs->buses[bus];
+    char *portStr = NULL;
+    int ret = -1;
+
+    if (!hub)
+        return -2;
+
+    if (virDomainUSBAddressFindFreePort(hub, portpath, 0) < 0)
+        return -2;
+
+    /* we found a free port */
+    if (!(portStr = virDomainUSBAddressPortFormat(portpath)))
+        goto cleanup;
+
+    info->type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_USB;
+    info->addr.usb.bus = bus;
+    memcpy(info->addr.usb.port, portpath, sizeof(portpath));
+    VIR_DEBUG("Assigning USB addr bus=%u port=%s",
+              info->addr.usb.bus, portStr);
+    if (virDomainUSBAddressReserve(info, addrs) < 0)
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(portStr);
+    return ret;
+}
+
+
+int
+virDomainUSBAddressAssign(virDomainUSBAddressSetPtr addrs,
+                          virDomainDeviceInfoPtr info)
+{
+    size_t i;
+    int rc;
+
+    if (info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_USB) {
+        VIR_DEBUG("A USB port on bus %u was requested", info->addr.usb.bus);
+        if (!addrs->buses[info->addr.usb.bus]) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("USB bus %u requested but no controller "
+                             "with that index is present"), info->addr.usb.bus);
+            return -1;
+        }
+        rc = virDomainUSBAddressAssignFromBus(addrs, info, info->addr.usb.bus);
+        if (rc >= -1)
+            return rc;
+    } else {
+        VIR_DEBUG("Looking for a free USB port on all the buses");
+        for (i = 0; i < addrs->nbuses; i++) {
+            rc = virDomainUSBAddressAssignFromBus(addrs, info, i);
+            if (rc >= -1)
+                return rc;
+        }
+    }
+
+    virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("No free USB ports"));
+    return -1;
+}
+
+
+int
+virDomainUSBAddressReserve(virDomainDeviceInfoPtr info,
+                           void *data)
+{
+    virDomainUSBAddressSetPtr addrs = data;
+    virDomainUSBAddressHubPtr targetHub = NULL;
+    char *portStr = NULL;
+    int ret = -1;
+    int targetPort;
+
+    if (info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_USB)
+        return 0;
+
+    if (!virDomainUSBAddressPortIsValid(info->addr.usb.port))
+        return 0;
+
+    portStr = virDomainUSBAddressPortFormat(info->addr.usb.port);
+    if (!portStr)
+        goto cleanup;
+    VIR_DEBUG("Reserving USB address bus=%u port=%s", info->addr.usb.bus, portStr);
+
+    if (!(targetHub = virDomainUSBAddressFindPort(addrs, info, &targetPort,
+                                                  portStr)))
+        goto cleanup;
+
+    if (virBitmapIsBitSet(targetHub->portmap, targetPort)) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Duplicate USB address bus %u port %s"),
+                       info->addr.usb.bus, portStr);
+        goto cleanup;
+    }
+
+    ignore_value(virBitmapSetBit(targetHub->portmap, targetPort));
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(portStr);
+    return ret;
+}
+
+
+int
+virDomainUSBAddressEnsure(virDomainUSBAddressSetPtr addrs,
+                          virDomainDeviceInfoPtr info)
+{
+    if (info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE ||
+        (info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_USB &&
+         !virDomainUSBAddressPortIsValid(info->addr.usb.port))) {
+        if (virDomainUSBAddressAssign(addrs, info) < 0)
+            return -1;
+    } else if (info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_USB) {
+        if (virDomainUSBAddressReserve(info, addrs) < 0)
+            return -1;
+    }
+
+    return 0;
+}
+
+
+int
+virDomainUSBAddressRelease(virDomainUSBAddressSetPtr addrs,
+                           virDomainDeviceInfoPtr info)
+{
+    virDomainUSBAddressHubPtr targetHub = NULL;
+    char *portStr = NULL;
+    int targetPort;
+    int ret = -1;
+
+    if (info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_USB ||
+        !virDomainUSBAddressPortIsValid(info->addr.usb.port))
+        return 0;
+
+    portStr = virDomainUSBAddressPortFormat(info->addr.usb.port);
+    VIR_DEBUG("Releasing USB addr bus=%u port=%s", info->addr.usb.bus, portStr);
+
+    if (!(targetHub = virDomainUSBAddressFindPort(addrs, info, &targetPort,
+                                                  portStr)))
+        goto cleanup;
+
+    ignore_value(virBitmapClearBit(targetHub->portmap, targetPort));
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(portStr);
     return ret;
 }

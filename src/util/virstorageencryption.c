@@ -34,6 +34,8 @@
 #include "virerror.h"
 #include "viruuid.h"
 #include "virfile.h"
+#include "virsecret.h"
+#include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
@@ -42,13 +44,25 @@ VIR_ENUM_IMPL(virStorageEncryptionSecret,
 
 VIR_ENUM_IMPL(virStorageEncryptionFormat,
               VIR_STORAGE_ENCRYPTION_FORMAT_LAST,
-              "default", "qcow")
+              "default", "qcow", "luks")
+
+static void
+virStorageEncryptionInfoDefFree(virStorageEncryptionInfoDefPtr def)
+{
+    VIR_FREE(def->cipher_name);
+    VIR_FREE(def->cipher_mode);
+    VIR_FREE(def->cipher_hash);
+    VIR_FREE(def->ivgen_name);
+    VIR_FREE(def->ivgen_hash);
+}
+
 
 static void
 virStorageEncryptionSecretFree(virStorageEncryptionSecretPtr secret)
 {
     if (!secret)
         return;
+    virSecretLookupDefClear(&secret->seclookupdef);
     VIR_FREE(secret);
 }
 
@@ -62,6 +76,7 @@ virStorageEncryptionFree(virStorageEncryptionPtr enc)
 
     for (i = 0; i < enc->nsecrets; i++)
         virStorageEncryptionSecretFree(enc->secrets[i]);
+    virStorageEncryptionInfoDefFree(&enc->encinfo);
     VIR_FREE(enc->secrets);
     VIR_FREE(enc);
 }
@@ -78,6 +93,23 @@ virStorageEncryptionSecretCopy(const virStorageEncryptionSecret *src)
 
     return ret;
 }
+
+
+static int
+virStorageEncryptionInfoDefCopy(const virStorageEncryptionInfoDef *src,
+                                virStorageEncryptionInfoDefPtr dst)
+{
+    dst->cipher_size = src->cipher_size;
+    if (VIR_STRDUP(dst->cipher_name, src->cipher_name) < 0 ||
+        VIR_STRDUP(dst->cipher_mode, src->cipher_mode) < 0 ||
+        VIR_STRDUP(dst->cipher_hash, src->cipher_hash) < 0 ||
+        VIR_STRDUP(dst->ivgen_name, src->ivgen_name) < 0 ||
+        VIR_STRDUP(dst->ivgen_hash, src->ivgen_hash) < 0)
+        return -1;
+
+    return 0;
+}
+
 
 virStorageEncryptionPtr
 virStorageEncryptionCopy(const virStorageEncryption *src)
@@ -99,6 +131,9 @@ virStorageEncryptionCopy(const virStorageEncryption *src)
             goto error;
     }
 
+    if (virStorageEncryptionInfoDefCopy(&src->encinfo, &ret->encinfo) < 0)
+        goto error;
+
     return ret;
 
  error:
@@ -114,6 +149,7 @@ virStorageEncryptionSecretParse(xmlXPathContextPtr ctxt,
     virStorageEncryptionSecretPtr ret;
     char *type_str = NULL;
     char *uuidstr = NULL;
+    char *usagestr = NULL;
 
     if (VIR_ALLOC(ret) < 0)
         return NULL;
@@ -133,21 +169,12 @@ virStorageEncryptionSecretParse(xmlXPathContextPtr ctxt,
                        type_str);
         goto cleanup;
     }
+
+    if (virSecretLookupParseSecret(node, &ret->seclookupdef) < 0)
+        goto cleanup;
+
     VIR_FREE(type_str);
 
-    if ((uuidstr = virXPathString("string(./@uuid)", ctxt))) {
-        if (virUUIDParse(uuidstr, ret->uuid) < 0) {
-            virReportError(VIR_ERR_XML_ERROR,
-                           _("malformed volume encryption uuid '%s'"),
-                           uuidstr);
-            goto cleanup;
-        }
-        VIR_FREE(uuidstr);
-    } else {
-        virReportError(VIR_ERR_XML_ERROR, "%s",
-                       _("missing volume encryption uuid"));
-        goto cleanup;
-    }
     ctxt->node = old_node;
     return ret;
 
@@ -155,9 +182,65 @@ virStorageEncryptionSecretParse(xmlXPathContextPtr ctxt,
     VIR_FREE(type_str);
     virStorageEncryptionSecretFree(ret);
     VIR_FREE(uuidstr);
+    VIR_FREE(usagestr);
     ctxt->node = old_node;
     return NULL;
 }
+
+
+static int
+virStorageEncryptionInfoParseCipher(xmlNodePtr info_node,
+                                    virStorageEncryptionInfoDefPtr info)
+{
+    int ret = -1;
+    char *size_str = NULL;
+
+    if (!(info->cipher_name = virXMLPropString(info_node, "name"))) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("cipher info missing 'name' attribute"));
+        goto cleanup;
+    }
+
+    if ((size_str = virXMLPropString(info_node, "size")) &&
+        virStrToLong_uip(size_str, NULL, 10, &info->cipher_size) < 0) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("cannot parse cipher size: '%s'"),
+                       size_str);
+        goto cleanup;
+    }
+
+    if (!size_str) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("cipher info missing 'size' attribute"));
+        goto cleanup;
+    }
+
+    info->cipher_mode = virXMLPropString(info_node, "mode");
+    info->cipher_hash = virXMLPropString(info_node, "hash");
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(size_str);
+    return ret;
+}
+
+
+static int
+virStorageEncryptionInfoParseIvgen(xmlNodePtr info_node,
+                                   virStorageEncryptionInfoDefPtr info)
+{
+    if (!(info->ivgen_name = virXMLPropString(info_node, "name"))) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("missing ivgen info name string"));
+        return -1;
+    }
+
+    info->ivgen_hash = virXMLPropString(info_node, "hash");
+
+    return 0;
+}
+
 
 static virStorageEncryptionPtr
 virStorageEncryptionParseXML(xmlXPathContextPtr ctxt)
@@ -202,6 +285,28 @@ virStorageEncryptionParseXML(xmlXPathContextPtr ctxt)
         VIR_FREE(nodes);
     }
 
+    if (ret->format == VIR_STORAGE_ENCRYPTION_FORMAT_LUKS) {
+        xmlNodePtr tmpnode;
+
+        if ((tmpnode = virXPathNode("./cipher[1]", ctxt))) {
+            if (virStorageEncryptionInfoParseCipher(tmpnode, &ret->encinfo) < 0)
+                goto cleanup;
+        }
+
+        if ((tmpnode = virXPathNode("./ivgen[1]", ctxt))) {
+            /* If no cipher node, then fail */
+            if (!ret->encinfo.cipher_name) {
+                virReportError(VIR_ERR_XML_ERROR, "%s",
+                                _("ivgen element found, but cipher is missing"));
+                goto cleanup;
+            }
+
+            if (virStorageEncryptionInfoParseIvgen(tmpnode, &ret->encinfo) < 0)
+                goto cleanup;
+        }
+    }
+
+
     return ret;
 
  cleanup:
@@ -244,7 +349,6 @@ virStorageEncryptionSecretFormat(virBufferPtr buf,
                                  virStorageEncryptionSecretPtr secret)
 {
     const char *type;
-    char uuidstr[VIR_UUID_STRING_BUFLEN];
 
     if (!(type = virStorageEncryptionSecretTypeToString(secret->type))) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -252,11 +356,32 @@ virStorageEncryptionSecretFormat(virBufferPtr buf,
         return -1;
     }
 
-    virUUIDFormat(secret->uuid, uuidstr);
-    virBufferAsprintf(buf, "<secret type='%s' uuid='%s'/>\n",
-                      type, uuidstr);
+    virSecretLookupFormatSecret(buf, type, &secret->seclookupdef);
+
     return 0;
 }
+
+
+static void
+virStorageEncryptionInfoDefFormat(virBufferPtr buf,
+                                  const virStorageEncryptionInfoDef *enc)
+{
+    virBufferEscapeString(buf, "<cipher name='%s'", enc->cipher_name);
+    virBufferAsprintf(buf, " size='%u'", enc->cipher_size);
+    if (enc->cipher_mode)
+        virBufferEscapeString(buf, " mode='%s'", enc->cipher_mode);
+    if (enc->cipher_hash)
+        virBufferEscapeString(buf, " hash='%s'", enc->cipher_hash);
+    virBufferAddLit(buf, "/>\n");
+
+    if (enc->ivgen_name) {
+        virBufferEscapeString(buf, "<ivgen name='%s'", enc->ivgen_name);
+        if (enc->ivgen_hash)
+            virBufferEscapeString(buf, " hash='%s'", enc->ivgen_hash);
+        virBufferAddLit(buf, "/>\n");
+    }
+}
+
 
 int
 virStorageEncryptionFormat(virBufferPtr buf,
@@ -277,6 +402,10 @@ virStorageEncryptionFormat(virBufferPtr buf,
         if (virStorageEncryptionSecretFormat(buf, enc->secrets[i]) < 0)
             return -1;
     }
+
+    if (enc->format == VIR_STORAGE_ENCRYPTION_FORMAT_LUKS &&
+        enc->encinfo.cipher_name)
+        virStorageEncryptionInfoDefFormat(buf, &enc->encinfo);
 
     virBufferAdjustIndent(buf, -2);
     virBufferAddLit(buf, "</encryption>\n");

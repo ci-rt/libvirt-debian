@@ -2522,21 +2522,9 @@ static int
 qemuMigrationWaitForSpice(virDomainObjPtr vm)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
-    bool wait_for_spice = false;
-    size_t i = 0;
 
     if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_SEAMLESS_MIGRATION) ||
         !priv->job.spiceMigration)
-        return 0;
-
-    for (i = 0; i < vm->def->ngraphics; i++) {
-        if (vm->def->graphics[i]->type == VIR_DOMAIN_GRAPHICS_TYPE_SPICE) {
-            wait_for_spice = true;
-            break;
-        }
-    }
-
-    if (!wait_for_spice)
         return 0;
 
     VIR_DEBUG("Waiting for SPICE to finish migration");
@@ -6195,8 +6183,9 @@ qemuMigrationFinish(virQEMUDriverPtr driver,
     cookie_flags = QEMU_MIGRATION_COOKIE_NETWORK |
                    QEMU_MIGRATION_COOKIE_STATS |
                    QEMU_MIGRATION_COOKIE_NBD;
-    if (flags & VIR_MIGRATE_PERSIST_DEST)
-        cookie_flags |= QEMU_MIGRATION_COOKIE_PERSISTENT;
+    /* Some older versions of libvirt always send persistent XML in the cookie
+     * even though VIR_MIGRATE_PERSIST_DEST was not used. */
+    cookie_flags |= QEMU_MIGRATION_COOKIE_PERSISTENT;
 
     if (!(mig = qemuMigrationEatCookie(driver, vm, cookiein,
                                        cookieinlen, cookie_flags)))

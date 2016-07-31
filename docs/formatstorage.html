@@ -190,6 +190,8 @@
                 <a href="#exampleISCSI">iSCSI based storage pool</a>
               </li><li>
                 <a href="#exampleVol">Storage volume</a>
+              </li><li>
+                <a href="#exampleLuks">Storage volume using LUKS</a>
               </li></ul>
           </li></ul>
         <h2>
@@ -842,6 +844,23 @@
           &lt;/permissions&gt;
         &lt;/target&gt;
       &lt;/volume&gt;</pre>
+        <h3>
+          <a name="exampleLuks" shape="rect" id="exampleLuks">Storage volume using LUKS</a>
+          <a class="headerlink" href="#exampleLuks" title="Permalink to this headline">¶</a>
+        </h3>
+        <pre xml:space="preserve">
+      &lt;volume&gt;
+        &lt;name&gt;MyLuks.img&lt;/name&gt;
+        &lt;capacity unit="G"&gt;5&lt;/capacity&gt;
+        &lt;target&gt;
+          &lt;path&gt;/var/lib/virt/images/MyLuks.img&lt;/path&gt;
+          &lt;format type='luks'/&gt;
+          &lt;encryption format='luks'&gt;
+            &lt;secret type='passphrase' uuid='f52a81b2-424e-490c-823d-6bd4235bc572'/&gt;
+          &lt;/encryption&gt;
+        &lt;/target&gt;
+      &lt;/volume&gt;
+    </pre>
       </div>
     </div>
   </body>

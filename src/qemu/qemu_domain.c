@@ -217,6 +217,7 @@ qemuDomainObjResetAsyncJob(qemuDomainObjPrivatePtr priv)
     job->mask = QEMU_JOB_DEFAULT_MASK;
     job->dump_memory_only = false;
     job->abortJob = false;
+    job->spiceMigration = false;
     job->spiceMigrated = false;
     job->postcopyEnabled = false;
     VIR_FREE(job->current);
@@ -546,6 +547,15 @@ qemuDomainWriteMasterKeyFile(virQEMUDriverPtr driver,
 }
 
 
+static void
+qemuDomainMasterKeyFree(qemuDomainObjPrivatePtr priv)
+{
+    if (!priv->masterKey)
+        return;
+
+    VIR_DISPOSE_N(priv->masterKey, priv->masterKeyLen);
+}
+
 /* qemuDomainMasterKeyReadFile:
  * @priv: pointer to domain private object
  *
@@ -644,9 +654,7 @@ qemuDomainMasterKeyRemove(qemuDomainObjPrivatePtr priv)
         return;
 
     /* Clear the contents */
-    memset(priv->masterKey, 0, priv->masterKeyLen);
-    VIR_FREE(priv->masterKey);
-    priv->masterKeyLen = 0;
+    qemuDomainMasterKeyFree(priv);
 
     /* Delete the master key file */
     path = qemuDomainGetMasterKeyFilePath(priv->libDir);
@@ -811,6 +819,46 @@ qemuDomainHostdevPrivateDispose(void *obj)
 }
 
 
+static virClassPtr qemuDomainVcpuPrivateClass;
+static void qemuDomainVcpuPrivateDispose(void *obj);
+
+static int
+qemuDomainVcpuPrivateOnceInit(void)
+{
+    qemuDomainVcpuPrivateClass = virClassNew(virClassForObject(),
+                                             "qemuDomainVcpuPrivate",
+                                             sizeof(qemuDomainVcpuPrivate),
+                                             qemuDomainVcpuPrivateDispose);
+    if (!qemuDomainVcpuPrivateClass)
+        return -1;
+    else
+        return 0;
+}
+
+VIR_ONCE_GLOBAL_INIT(qemuDomainVcpuPrivate)
+
+static virObjectPtr
+qemuDomainVcpuPrivateNew(void)
+{
+    qemuDomainVcpuPrivatePtr priv;
+
+    if (qemuDomainVcpuPrivateInitialize() < 0)
+        return NULL;
+
+    if (!(priv = virObjectNew(qemuDomainVcpuPrivateClass)))
+        return NULL;
+
+    return (virObjectPtr) priv;
+}
+
+
+static void
+qemuDomainVcpuPrivateDispose(void *obj ATTRIBUTE_UNUSED)
+{
+    return;
+}
+
+
 /* qemuDomainSecretPlainSetup:
  * @conn: Pointer to connection
  * @secinfo: Pointer to secret info
@@ -847,6 +895,7 @@ qemuDomainSecretPlainSetup(virConnectPtr conn,
  * @secretUsageType: The virSecretUsageType
  * @username: username to use for authentication (may be NULL)
  * @seclookupdef: Pointer to seclookupdef data
+ * @isLuks: True/False for is for luks (alias generation)
  *
  * Taking a secinfo, fill in the AES specific information using the
  *
@@ -859,7 +908,8 @@ qemuDomainSecretAESSetup(virConnectPtr conn,
                          const char *srcalias,
                          virSecretUsageType secretUsageType,
                          const char *username,
-                         virSecretLookupTypeDefPtr seclookupdef)
+                         virSecretLookupTypeDefPtr seclookupdef,
+                         bool isLuks)
 {
     int ret = -1;
     uint8_t *raw_iv = NULL;
@@ -873,7 +923,7 @@ qemuDomainSecretAESSetup(virConnectPtr conn,
     if (VIR_STRDUP(secinfo->s.aes.username, username) < 0)
         return -1;
 
-    if (!(secinfo->s.aes.alias = qemuDomainGetSecretAESAlias(srcalias)))
+    if (!(secinfo->s.aes.alias = qemuDomainGetSecretAESAlias(srcalias, isLuks)))
         return -1;
 
     /* Create a random initialization vector */
@@ -922,6 +972,7 @@ qemuDomainSecretAESSetup(virConnectPtr conn,
  * @secretUsageType: The virSecretUsageType
  * @username: username to use for authentication (may be NULL)
  * @seclookupdef: Pointer to seclookupdef data
+ * @isLuks: True when is luks (generates different alias)
  *
  * If we have the encryption API present and can support a secret object, then
  * build the AES secret; otherwise, build the Plain secret. This is the magic
@@ -937,14 +988,16 @@ qemuDomainSecretSetup(virConnectPtr conn,
                       const char *srcalias,
                       virSecretUsageType secretUsageType,
                       const char *username,
-                      virSecretLookupTypeDefPtr seclookupdef)
+                      virSecretLookupTypeDefPtr seclookupdef,
+                      bool isLuks)
 {
     if (virCryptoHaveCipher(VIR_CRYPTO_CIPHER_AES256CBC) &&
         virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_OBJECT_SECRET) &&
-        secretUsageType == VIR_SECRET_USAGE_TYPE_CEPH) {
+        (secretUsageType == VIR_SECRET_USAGE_TYPE_CEPH ||
+         secretUsageType == VIR_SECRET_USAGE_TYPE_VOLUME)) {
         if (qemuDomainSecretAESSetup(conn, priv, secinfo, srcalias,
                                      secretUsageType, username,
-                                     seclookupdef) < 0)
+                                     seclookupdef, isLuks) < 0)
             return -1;
     } else {
         if (qemuDomainSecretPlainSetup(conn, secinfo, secretUsageType,
@@ -972,6 +1025,20 @@ qemuDomainSecretDiskDestroy(virDomainDiskDefPtr disk)
 }
 
 
+bool
+qemuDomainSecretDiskCapable(virStorageSourcePtr src)
+{
+    if (!virStorageSourceIsEmpty(src) &&
+        virStorageSourceGetActualType(src) == VIR_STORAGE_TYPE_NETWORK &&
+        src->auth &&
+        (src->protocol == VIR_STORAGE_NET_PROTOCOL_ISCSI ||
+         src->protocol == VIR_STORAGE_NET_PROTOCOL_RBD))
+        return true;
+
+    return false;
+}
+
+
 /* qemuDomainSecretDiskPrepare:
  * @conn: Pointer to connection
  * @priv: pointer to domain private object
@@ -987,16 +1054,14 @@ qemuDomainSecretDiskPrepare(virConnectPtr conn,
                             virDomainDiskDefPtr disk)
 {
     virStorageSourcePtr src = disk->src;
+    qemuDomainDiskPrivatePtr diskPriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
     qemuDomainSecretInfoPtr secinfo = NULL;
 
-    if (conn && !virStorageSourceIsEmpty(src) &&
-        virStorageSourceGetActualType(src) == VIR_STORAGE_TYPE_NETWORK &&
-        src->auth &&
-        (src->protocol == VIR_STORAGE_NET_PROTOCOL_ISCSI ||
-         src->protocol == VIR_STORAGE_NET_PROTOCOL_RBD)) {
+    if (!conn)
+        return 0;
 
+    if (qemuDomainSecretDiskCapable(src)) {
         virSecretUsageType secretUsageType = VIR_SECRET_USAGE_TYPE_ISCSI;
-        qemuDomainDiskPrivatePtr diskPriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
 
         if (VIR_ALLOC(secinfo) < 0)
             return -1;
@@ -1006,10 +1071,32 @@ qemuDomainSecretDiskPrepare(virConnectPtr conn,
 
         if (qemuDomainSecretSetup(conn, priv, secinfo, disk->info.alias,
                                   secretUsageType, src->auth->username,
-                                  &src->auth->seclookupdef) < 0)
+                                  &src->auth->seclookupdef, false) < 0)
             goto error;
 
         diskPriv->secinfo = secinfo;
+    }
+
+    if (!virStorageSourceIsEmpty(src) && src->encryption &&
+        src->format == VIR_STORAGE_FILE_LUKS) {
+
+        if (VIR_ALLOC(secinfo) < 0)
+            return -1;
+
+        if (qemuDomainSecretSetup(conn, priv, secinfo, disk->info.alias,
+                                  VIR_SECRET_USAGE_TYPE_VOLUME, NULL,
+                                  &src->encryption->secrets[0]->seclookupdef,
+                                  true) < 0)
+            goto error;
+
+        if (secinfo->type == VIR_DOMAIN_SECRET_INFO_TYPE_PLAIN) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("luks encryption requires encrypted secrets "
+                             "to be supported"));
+            goto error;
+        }
+
+        diskPriv->encinfo = secinfo;
     }
 
     return 0;
@@ -1073,7 +1160,7 @@ qemuDomainSecretHostdevPrepare(virConnectPtr conn,
             if (qemuDomainSecretSetup(conn, priv, secinfo, hostdev->info->alias,
                                       VIR_SECRET_USAGE_TYPE_ISCSI,
                                       iscsisrc->auth->username,
-                                      &iscsisrc->auth->seclookupdef) < 0)
+                                      &iscsisrc->auth->seclookupdef, false) < 0)
                 goto error;
 
             hostdevPriv->secinfo = secinfo;
@@ -1241,11 +1328,9 @@ qemuDomainObjPrivateFree(void *data)
 
     virCgroupFree(&priv->cgroup);
     virDomainPCIAddressSetFree(priv->pciaddrs);
-    virDomainCCWAddressSetFree(priv->ccwaddrs);
-    virDomainVirtioSerialAddrSetFree(priv->vioserialaddrs);
+    virDomainUSBAddressSetFree(priv->usbaddrs);
     virDomainChrSourceDefFree(priv->monConfig);
     qemuDomainObjFreeJob(priv);
-    VIR_FREE(priv->vcpupids);
     VIR_FREE(priv->lockState);
     VIR_FREE(priv->origname);
 
@@ -1267,8 +1352,36 @@ qemuDomainObjPrivateFree(void *data)
 
     VIR_FREE(priv->libDir);
     VIR_FREE(priv->channelTargetDir);
+    qemuDomainMasterKeyFree(priv);
 
     VIR_FREE(priv);
+}
+
+
+static void
+qemuDomainObjPrivateXMLFormatVcpus(virBufferPtr buf,
+                                   virDomainDefPtr def)
+{
+    size_t i;
+    size_t maxvcpus = virDomainDefGetVcpusMax(def);
+    virDomainVcpuDefPtr vcpu;
+    pid_t tid;
+
+    virBufferAddLit(buf, "<vcpus>\n");
+    virBufferAdjustIndent(buf, 2);
+
+    for (i = 0; i < maxvcpus; i++) {
+        vcpu = virDomainDefGetVcpu(def, i);
+        tid = QEMU_DOMAIN_VCPU_PRIVATE(vcpu)->tid;
+
+        if (!vcpu->online || tid == 0)
+            continue;
+
+        virBufferAsprintf(buf, "<vcpu id='%zu' pid='%d'/>\n", i, tid);
+    }
+
+    virBufferAdjustIndent(buf, -2);
+    virBufferAddLit(buf, "</vcpus>\n");
 }
 
 
@@ -1299,16 +1412,7 @@ qemuDomainObjPrivateXMLFormat(virBufferPtr buf,
                           virDomainChrTypeToString(priv->monConfig->type));
     }
 
-
-    if (priv->nvcpupids) {
-        size_t i;
-        virBufferAddLit(buf, "<vcpus>\n");
-        virBufferAdjustIndent(buf, 2);
-        for (i = 0; i < priv->nvcpupids; i++)
-            virBufferAsprintf(buf, "<vcpu pid='%d'/>\n", priv->vcpupids[i]);
-        virBufferAdjustIndent(buf, -2);
-        virBufferAddLit(buf, "</vcpus>\n");
-    }
+    qemuDomainObjPrivateXMLFormatVcpus(buf, vm->def);
 
     if (priv->qemuCaps) {
         size_t i;
@@ -1397,6 +1501,49 @@ qemuDomainObjPrivateXMLFormat(virBufferPtr buf,
     return 0;
 }
 
+
+static int
+qemuDomainObjPrivateXMLParseVcpu(xmlNodePtr node,
+                                 unsigned int idx,
+                                 virDomainDefPtr def)
+{
+    virDomainVcpuDefPtr vcpu;
+    char *idstr;
+    char *pidstr;
+    unsigned int tmp;
+    int ret = -1;
+
+    idstr = virXMLPropString(node, "id");
+
+    if (idstr &&
+        (virStrToLong_uip(idstr, NULL, 10, &idx) < 0)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("cannot parse vcpu index '%s'"), idstr);
+        goto cleanup;
+    }
+    if (!(vcpu = virDomainDefGetVcpu(def, idx))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("invalid vcpu index '%u'"), idx);
+        goto cleanup;
+    }
+
+    if (!(pidstr = virXMLPropString(node, "pid")))
+        goto cleanup;
+
+    if (virStrToLong_uip(pidstr, NULL, 10, &tmp) < 0)
+        goto cleanup;
+
+    QEMU_DOMAIN_VCPU_PRIVATE(vcpu)->tid = tmp;
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(idstr);
+    VIR_FREE(pidstr);
+    return ret;
+}
+
+
 static int
 qemuDomainObjPrivateXMLParse(xmlXPathContextPtr ctxt,
                              virDomainObjPtr vm,
@@ -1447,27 +1594,14 @@ qemuDomainObjPrivateXMLParse(xmlXPathContextPtr ctxt,
         goto error;
     }
 
-    n = virXPathNodeSet("./vcpus/vcpu", ctxt, &nodes);
-    if (n < 0)
+    if ((n = virXPathNodeSet("./vcpus/vcpu", ctxt, &nodes)) < 0)
         goto error;
-    if (n) {
-        priv->nvcpupids = n;
-        if (VIR_REALLOC_N(priv->vcpupids, priv->nvcpupids) < 0)
+
+    for (i = 0; i < n; i++) {
+        if (qemuDomainObjPrivateXMLParseVcpu(nodes[i], i, vm->def) < 0)
             goto error;
-
-        for (i = 0; i < n; i++) {
-            char *pidstr = virXMLPropString(nodes[i], "pid");
-            if (!pidstr)
-                goto error;
-
-            if (virStrToLong_i(pidstr, NULL, 10, &(priv->vcpupids[i])) < 0) {
-                VIR_FREE(pidstr);
-                goto error;
-            }
-            VIR_FREE(pidstr);
-        }
-        VIR_FREE(nodes);
     }
+    VIR_FREE(nodes);
 
     if ((n = virXPathNodeSet("./qemuCaps/flag", ctxt, &nodes)) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -1626,6 +1760,7 @@ virDomainXMLPrivateDataCallbacks virQEMUDriverPrivateDataCallbacks = {
     .alloc = qemuDomainObjPrivateAlloc,
     .free = qemuDomainObjPrivateFree,
     .diskNew = qemuDomainDiskPrivateNew,
+    .vcpuNew = qemuDomainVcpuPrivateNew,
     .hostdevNew = qemuDomainHostdevPrivateNew,
     .parse = qemuDomainObjPrivateXMLParse,
     .format = qemuDomainObjPrivateXMLFormat,
@@ -2253,6 +2388,29 @@ qemuDomainDefaultNetModel(const virDomainDef *def,
     return "rtl8139";
 }
 
+
+/*
+ * Clear auto generated unix socket path, i.e., the one which starts with our
+ * channel directory.
+ */
+static void
+qemuDomainChrDefDropDefaultPath(virDomainChrDefPtr chr,
+                                virQEMUDriverPtr driver)
+{
+    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+
+    if (chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CHANNEL &&
+        chr->targetType == VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_VIRTIO &&
+        chr->source.type == VIR_DOMAIN_CHR_TYPE_UNIX &&
+        chr->source.data.nix.path &&
+        STRPREFIX(chr->source.data.nix.path, cfg->channelTargetDir)) {
+        VIR_FREE(chr->source.data.nix.path);
+    }
+
+    virObjectUnref(cfg);
+}
+
+
 static int
 qemuDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
                              const virDomainDef *def,
@@ -2334,21 +2492,8 @@ qemuDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
 
     /* clear auto generated unix socket path for inactive definitions */
     if ((parseFlags & VIR_DOMAIN_DEF_PARSE_INACTIVE) &&
-        dev->type == VIR_DOMAIN_DEVICE_CHR &&
-        dev->data.chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CHANNEL &&
-        dev->data.chr->targetType == VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_VIRTIO &&
-        dev->data.chr->source.type == VIR_DOMAIN_CHR_TYPE_UNIX &&
-        dev->data.chr->source.data.nix.path &&
-        STRPREFIX(dev->data.chr->source.data.nix.path, cfg->channelTargetDir)) {
-        /*
-         * If the address is generated by us (starts with our
-         * channel dir), we should not keep it in the persistent
-         * XML.  If libvirt is the one who generated it, users
-         * shouldn't care about that.  If they do, they are
-         * supposed to set it themselves.
-         */
-        VIR_FREE(dev->data.chr->source.data.nix.path);
-    }
+        dev->type == VIR_DOMAIN_DEVICE_CHR)
+        qemuDomainChrDefDropDefaultPath(dev->data.chr, driver);
 
     /* forbid capabilities mode hostdev in this kind of hypervisor */
     if (dev->type == VIR_DOMAIN_DEVICE_HOSTDEV &&
@@ -3060,19 +3205,25 @@ qemuDomainDefFormatBuf(virQEMUDriverPtr driver,
                        virBuffer *buf)
 {
     int ret = -1;
-    virCPUDefPtr cpu = NULL;
-    virCPUDefPtr def_cpu = def->cpu;
-    virDomainControllerDefPtr *controllers = NULL;
-    int ncontrollers = 0;
+    virDomainDefPtr copy = NULL;
     virCapsPtr caps = NULL;
 
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
+    if (!(flags & (VIR_DOMAIN_XML_UPDATE_CPU | VIR_DOMAIN_XML_MIGRATABLE)))
+        goto format;
+
+    if (!(copy = virDomainDefCopy(def, caps, driver->xmlopt,
+                                  flags & VIR_DOMAIN_XML_MIGRATABLE)))
+        goto cleanup;
+
+    def = copy;
+
     /* Update guest CPU requirements according to host CPU */
     if ((flags & VIR_DOMAIN_XML_UPDATE_CPU) &&
-        def_cpu &&
-        (def_cpu->mode != VIR_CPU_MODE_CUSTOM || def_cpu->model)) {
+        def->cpu &&
+        (def->cpu->mode != VIR_CPU_MODE_CUSTOM || def->cpu->model)) {
         if (!caps->host.cpu ||
             !caps->host.cpu->model) {
             virReportError(VIR_ERR_OPERATION_FAILED,
@@ -3080,10 +3231,8 @@ qemuDomainDefFormatBuf(virQEMUDriverPtr driver,
             goto cleanup;
         }
 
-        if (!(cpu = virCPUDefCopy(def_cpu)) ||
-            cpuUpdate(cpu, caps->host.cpu) < 0)
+        if (cpuUpdate(def->cpu, caps->host.cpu) < 0)
             goto cleanup;
-        def->cpu = cpu;
     }
 
     if ((flags & VIR_DOMAIN_XML_MIGRATABLE)) {
@@ -3140,10 +3289,11 @@ qemuDomainDefFormatBuf(virQEMUDriverPtr driver,
         }
 
         if (toremove) {
-            controllers = def->controllers;
-            ncontrollers = def->ncontrollers;
+            virDomainControllerDefPtr *controllers = def->controllers;
+            int ncontrollers = def->ncontrollers;
+
             if (VIR_ALLOC_N(def->controllers, ncontrollers - toremove) < 0) {
-                controllers = NULL;
+                def->controllers = controllers;
                 goto cleanup;
             }
 
@@ -3152,23 +3302,23 @@ qemuDomainDefFormatBuf(virQEMUDriverPtr driver,
                 if (controllers[i] != usb && controllers[i] != pci)
                     def->controllers[def->ncontrollers++] = controllers[i];
             }
+
+            VIR_FREE(controllers);
+            virDomainControllerDefFree(pci);
+            virDomainControllerDefFree(usb);
         }
 
-
+        for (i = 0; i < def->nchannels; i++)
+            qemuDomainChrDefDropDefaultPath(def->channels[i], driver);
     }
 
-    ret = virDomainDefFormatInternal(def, driver->caps,
+ format:
+    ret = virDomainDefFormatInternal(def, caps,
                                      virDomainDefFormatConvertXMLFlags(flags),
                                      buf);
 
  cleanup:
-    def->cpu = def_cpu;
-    virCPUDefFree(cpu);
-    if (controllers) {
-        VIR_FREE(def->controllers);
-        def->controllers = controllers;
-        def->ncontrollers = ncontrollers;
-    }
+    virDomainDefFree(copy);
     virObjectUnref(caps);
     return ret;
 }
@@ -5345,10 +5495,6 @@ qemuDomainRequiresMemLock(virDomainDefPtr def)
     if (def->mem.locked)
         return true;
 
-    /* ppc64 domains need to lock some memory even when VFIO is not used */
-    if (ARCH_IS_PPC64(def->os.arch))
-        return true;
-
     for (i = 0; i < def->nhostdevs; i++) {
         virDomainHostdevDefPtr dev = def->hostdevs[i];
 
@@ -5357,6 +5503,10 @@ qemuDomainRequiresMemLock(virDomainDefPtr def)
             dev->source.subsys.u.pci.backend == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO)
             return true;
     }
+
+    /* ppc64 KVM domains need to lock some memory even when VFIO is not used */
+    if (ARCH_IS_PPC64(def->os.arch) && def->virtType == VIR_DOMAIN_VIRT_KVM)
+        return true;
 
     return false;
 }
@@ -5417,9 +5567,18 @@ qemuDomainAdjustMaxMemLock(virDomainObjPtr vm)
 bool
 qemuDomainHasVcpuPids(virDomainObjPtr vm)
 {
-    qemuDomainObjPrivatePtr priv = vm->privateData;
+    size_t i;
+    size_t maxvcpus = virDomainDefGetVcpusMax(vm->def);
+    virDomainVcpuDefPtr vcpu;
 
-    return priv->nvcpupids > 0;
+    for (i = 0; i < maxvcpus; i++) {
+        vcpu = virDomainDefGetVcpu(vm->def, i);
+
+        if (QEMU_DOMAIN_VCPU_PRIVATE(vcpu)->tid > 0)
+            return true;
+    }
+
+    return false;
 }
 
 
@@ -5432,14 +5591,10 @@ qemuDomainHasVcpuPids(virDomainObjPtr vm)
  */
 pid_t
 qemuDomainGetVcpuPid(virDomainObjPtr vm,
-                     unsigned int vcpu)
+                     unsigned int vcpuid)
 {
-    qemuDomainObjPrivatePtr priv = vm->privateData;
-
-    if (vcpu >= priv->nvcpupids)
-        return 0;
-
-    return priv->vcpupids[vcpu];
+    virDomainVcpuDefPtr vcpu = virDomainDefGetVcpu(vm->def, vcpuid);
+    return QEMU_DOMAIN_VCPU_PRIVATE(vcpu)->tid;
 }
 
 
@@ -5459,9 +5614,12 @@ qemuDomainDetectVcpuPids(virQEMUDriverPtr driver,
                          virDomainObjPtr vm,
                          int asyncJob)
 {
+    virDomainVcpuDefPtr vcpu;
+    size_t maxvcpus = virDomainDefGetVcpusMax(vm->def);
     pid_t *cpupids = NULL;
-    int ncpupids = 0;
-    qemuDomainObjPrivatePtr priv = vm->privateData;
+    int ncpupids;
+    size_t i;
+    int ret = -1;
 
     /*
      * Current QEMU *can* report info about host threads mapped
@@ -5492,22 +5650,32 @@ qemuDomainDetectVcpuPids(virQEMUDriverPtr driver,
      * to try to do this hard work.
      */
     if (vm->def->virtType == VIR_DOMAIN_VIRT_QEMU)
-        goto done;
+        return 0;
 
     if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
         return -1;
-    ncpupids = qemuMonitorGetCPUInfo(priv->mon, &cpupids);
+    ncpupids = qemuMonitorGetCPUInfo(qemuDomainGetMonitor(vm), &cpupids);
     if (qemuDomainObjExitMonitor(driver, vm) < 0) {
-        VIR_FREE(cpupids);
-        return -2;
+        ret = -2;
+        goto cleanup;
     }
+
     /* failure to get the VCPU <-> PID mapping or to execute the query
      * command will not be treated fatal as some versions of qemu don't
      * support this command */
     if (ncpupids <= 0) {
         virResetLastError();
-        ncpupids = 0;
-        goto done;
+        ret = 0;
+        goto cleanup;
+    }
+
+    for (i = 0; i < maxvcpus; i++) {
+        vcpu = virDomainDefGetVcpu(vm->def, i);
+
+        if (i < ncpupids)
+            QEMU_DOMAIN_VCPU_PRIVATE(vcpu)->tid = cpupids[i];
+        else
+            QEMU_DOMAIN_VCPU_PRIVATE(vcpu)->tid = 0;
     }
 
     if (ncpupids != virDomainDefGetVcpus(vm->def)) {
@@ -5515,15 +5683,14 @@ qemuDomainDetectVcpuPids(virQEMUDriverPtr driver,
                        _("got wrong number of vCPU pids from QEMU monitor. "
                          "got %d, wanted %d"),
                        ncpupids, virDomainDefGetVcpus(vm->def));
-        VIR_FREE(cpupids);
-        return -1;
+        goto cleanup;
     }
 
- done:
-    VIR_FREE(priv->vcpupids);
-    priv->nvcpupids = ncpupids;
-    priv->vcpupids = cpupids;
-    return ncpupids;
+    ret = ncpupids;
+
+ cleanup:
+    VIR_FREE(cpupids);
+    return ret;
 }
 
 

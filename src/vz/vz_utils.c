@@ -33,6 +33,7 @@
 #include "virstring.h"
 #include "datatypes.h"
 #include "virlog.h"
+#include "virtime.h"
 
 #define VIR_FROM_THIS VIR_FROM_PARALLELS
 #define PRLSRVCTL "prlsrvctl"
@@ -157,38 +158,6 @@ vzGetOutput(const char *binary, ...)
         return NULL;
 
     return outbuf;
-}
-
-virDomainObjPtr
-vzNewDomain(vzDriverPtr driver, const char *name, const unsigned char *uuid)
-{
-    virDomainDefPtr def = NULL;
-    virDomainObjPtr dom = NULL;
-    vzDomObjPtr pdom = NULL;
-
-    if (!(def = virDomainDefNewFull(name, uuid, -1)))
-        goto error;
-
-    if (VIR_ALLOC(pdom) < 0)
-        goto error;
-
-    pdom->stats = PRL_INVALID_HANDLE;
-    def->virtType = VIR_DOMAIN_VIRT_VZ;
-
-    if (!(dom = virDomainObjListAdd(driver->domains, def,
-                                    driver->xmlopt,
-                                    0, NULL)))
-        goto error;
-
-    dom->privateData = pdom;
-    dom->privateDataFreeFunc = prlsdkDomObjFreePrivate;
-    dom->persistent = 1;
-    return dom;
-
- error:
-    virDomainDefFree(def);
-    VIR_FREE(pdom);
-    return NULL;
 }
 
 static void
@@ -609,4 +578,79 @@ int vzCheckUnsupportedGraphics(virDomainGraphicsDefPtr gr)
     }
 
     return 0;
+}
+
+void*
+vzDomObjAlloc(void)
+{
+    vzDomObjPtr pdom = NULL;
+
+    if (VIR_ALLOC(pdom) < 0)
+        return NULL;
+
+    if (virCondInit(&pdom->jobCond) < 0)
+        goto error;
+
+    pdom->stats = PRL_INVALID_HANDLE;
+
+    return pdom;
+
+ error:
+    VIR_FREE(pdom);
+
+    return NULL;
+}
+
+void
+vzDomObjFree(void* p)
+{
+    vzDomObjPtr pdom = p;
+
+    if (!pdom)
+        return;
+
+    PrlHandle_Free(pdom->sdkdom);
+    PrlHandle_Free(pdom->stats);
+    virCondDestroy(&pdom->jobCond);
+    VIR_FREE(pdom);
+};
+
+#define VZ_JOB_WAIT_TIME (1000 * 30)
+
+int
+vzDomainObjBeginJob(virDomainObjPtr dom)
+{
+    vzDomObjPtr pdom = dom->privateData;
+    unsigned long long now;
+    unsigned long long then;
+
+    if (virTimeMillisNow(&now) < 0)
+        return -1;
+    then = now + VZ_JOB_WAIT_TIME;
+
+    while (pdom->job) {
+        if (virCondWaitUntil(&pdom->jobCond, &dom->parent.lock, then) < 0)
+            goto error;
+    }
+
+    pdom->job = true;
+    return 0;
+
+ error:
+    if (errno == ETIMEDOUT)
+        virReportError(VIR_ERR_OPERATION_TIMEOUT,
+                       "%s", _("cannot acquire state change lock"));
+    else
+        virReportSystemError(errno,
+                             "%s", _("cannot acquire job mutex"));
+    return -1;
+}
+
+void
+vzDomainObjEndJob(virDomainObjPtr dom)
+{
+    vzDomObjPtr pdom = dom->privateData;
+
+    pdom->job = false;
+    virCondSignal(&pdom->jobCond);
 }

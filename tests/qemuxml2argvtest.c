@@ -49,12 +49,22 @@ fakeSecretGetValue(virSecretPtr obj ATTRIBUTE_UNUSED,
 
 static virSecretPtr
 fakeSecretLookupByUsage(virConnectPtr conn,
-                        int usageType ATTRIBUTE_UNUSED,
+                        int usageType,
                         const char *usageID)
 {
     unsigned char uuid[VIR_UUID_BUFLEN];
-    if (STRNEQ(usageID, "mycluster_myname"))
+    if (usageType == VIR_SECRET_USAGE_TYPE_VOLUME) {
+        if (!STRPREFIX(usageID, "/storage/guest_disks/")) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           "test provided invalid volume storage prefix '%s'",
+                           usageID);
+            return NULL;
+        }
+    } else if (STRNEQ(usageID, "mycluster_myname")) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "test provided incorrect usage '%s'", usageID);
         return NULL;
+    }
 
     if (virUUIDGenerate(uuid) < 0)
         return NULL;
@@ -62,10 +72,17 @@ fakeSecretLookupByUsage(virConnectPtr conn,
     return virGetSecret(conn, uuid, usageType, usageID);
 }
 
+static virSecretPtr
+fakeSecretLookupByUUID(virConnectPtr conn,
+                       const unsigned char *uuid)
+{
+    return virGetSecret(conn, uuid, 0, "");
+}
+
 static virSecretDriver fakeSecretDriver = {
     .connectNumOfSecrets = NULL,
     .connectListSecrets = NULL,
-    .secretLookupByUUID = NULL,
+    .secretLookupByUUID = fakeSecretLookupByUUID,
     .secretLookupByUsage = fakeSecretLookupByUsage,
     .secretDefineXML = NULL,
     .secretGetXMLDesc = NULL,
@@ -265,6 +282,8 @@ static int testCompareXMLToArgvFiles(const char *xml,
     size_t i;
     qemuDomainObjPrivatePtr priv = NULL;
 
+    memset(&monitor_chr, 0, sizeof(monitor_chr));
+
     if (!(conn = virGetConnect()))
         goto out;
     conn->secretDriver = &fakeSecretDriver;
@@ -292,8 +311,6 @@ static int testCompareXMLToArgvFiles(const char *xml,
 
     vm->def->id = -1;
 
-
-    memset(&monitor_chr, 0, sizeof(monitor_chr));
     if (qemuProcessPrepareMonitorChr(&monitor_chr, priv->libDir) < 0)
         goto out;
 
@@ -363,6 +380,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
  out:
     VIR_FREE(log);
     VIR_FREE(actualargv);
+    virDomainChrSourceDefClear(&monitor_chr);
     virCommandFree(cmd);
     virObjectUnref(vm);
     virObjectUnref(conn);
@@ -622,7 +640,7 @@ mymain(void)
     DO_TEST("boot-multi", QEMU_CAPS_BOOT_MENU);
     DO_TEST("boot-menu-enable",
             QEMU_CAPS_BOOT_MENU);
-    DO_TEST("boot-menu-enable",
+    DO_TEST("boot-menu-enable-bootindex",
             QEMU_CAPS_BOOT_MENU,
             QEMU_CAPS_BOOTINDEX);
     DO_TEST("boot-menu-enable-with-timeout",
@@ -923,6 +941,8 @@ mymain(void)
     DO_TEST("graphics-sdl", QEMU_CAPS_SDL);
     DO_TEST("graphics-sdl-fullscreen", QEMU_CAPS_SDL);
     DO_TEST("nographics", NONE);
+    DO_TEST("nographics-display",
+            QEMU_CAPS_DISPLAY);
     DO_TEST("nographics-vga",
             QEMU_CAPS_VGA_NONE);
     DO_TEST("graphics-spice",
@@ -1012,6 +1032,7 @@ mymain(void)
     DO_TEST("net-eth", NONE);
     DO_TEST("net-eth-ifname", NONE);
     DO_TEST("net-eth-names", NONE);
+    DO_TEST("net-eth-hostip", NONE);
     DO_TEST("net-client", NONE);
     DO_TEST("net-server", NONE);
     DO_TEST("net-mcast", NONE);
@@ -1156,10 +1177,26 @@ mymain(void)
     DO_TEST_PARSE_ERROR("usb-ich9-no-companion",
             QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_PCI_MULTIFUNCTION, QEMU_CAPS_ICH9_USB_EHCI1);
+    DO_TEST("usb-ich9-autoassign",
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_PCI_MULTIFUNCTION, QEMU_CAPS_ICH9_USB_EHCI1,
+            QEMU_CAPS_USB_HUB);
     DO_TEST("usb-hub",
             QEMU_CAPS_CHARDEV, QEMU_CAPS_USB_HUB,
             QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("usb-hub-autoadd",
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_USB_HUB,
+            QEMU_CAPS_NODEFCONFIG);
+    DO_TEST_PARSE_ERROR("usb-hub-conflict",
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_USB_HUB,
+            QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("usb-port-missing",
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_USB_HUB,
+            QEMU_CAPS_NODEFCONFIG);
     DO_TEST("usb-ports",
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_USB_HUB,
+            QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("usb-port-autoassign",
             QEMU_CAPS_CHARDEV, QEMU_CAPS_USB_HUB,
             QEMU_CAPS_NODEFCONFIG);
     DO_TEST("usb-redir",
@@ -1216,6 +1253,10 @@ mymain(void)
     DO_TEST("usb-controller-xhci",
             QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_PIIX3_USB_UHCI,
             QEMU_CAPS_NEC_USB_XHCI, QEMU_CAPS_NEC_USB_XHCI_PORTS);
+    DO_TEST("usb-xhci-autoassign",
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_PIIX3_USB_UHCI,
+            QEMU_CAPS_NEC_USB_XHCI, QEMU_CAPS_NEC_USB_XHCI_PORTS,
+            QEMU_CAPS_USB_HUB);
 
     DO_TEST("smbios", QEMU_CAPS_SMBIOS_TYPE);
     DO_TEST_PARSE_ERROR("smbios-date", QEMU_CAPS_SMBIOS_TYPE);
@@ -1287,7 +1328,7 @@ mymain(void)
     DO_TEST("qemu-ns", NONE);
     DO_TEST("qemu-ns-no-env", NONE);
 
-    DO_TEST("smp", QEMU_CAPS_SMP_TOPOLOGY);
+    DO_TEST("smp", NONE);
 
     DO_TEST("iothreads", QEMU_CAPS_OBJECT_IOTHREAD);
     DO_TEST("iothreads-ids", QEMU_CAPS_OBJECT_IOTHREAD);
@@ -1303,8 +1344,8 @@ mymain(void)
             QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_VIRTIO_SCSI_IOTHREAD,
             QEMU_CAPS_VIRTIO_CCW, QEMU_CAPS_VIRTIO_S390);
 
-    DO_TEST("cpu-topology1", QEMU_CAPS_SMP_TOPOLOGY);
-    DO_TEST("cpu-topology2", QEMU_CAPS_SMP_TOPOLOGY);
+    DO_TEST("cpu-topology1", NONE);
+    DO_TEST("cpu-topology2", NONE);
     DO_TEST("cpu-topology3", NONE);
     DO_TEST("cpu-minimum1", QEMU_CAPS_KVM);
     DO_TEST("cpu-minimum2", QEMU_CAPS_KVM);
@@ -1315,14 +1356,13 @@ mymain(void)
     DO_TEST_FAILURE("cpu-nofallback", QEMU_CAPS_KVM);
     DO_TEST("cpu-strict1", QEMU_CAPS_KVM);
     DO_TEST("cpu-numa1", NONE);
-    DO_TEST("cpu-numa2", QEMU_CAPS_SMP_TOPOLOGY);
-    DO_TEST("cpu-numa-no-memory-element", QEMU_CAPS_SMP_TOPOLOGY);
+    DO_TEST("cpu-numa2", NONE);
+    DO_TEST("cpu-numa-no-memory-element", NONE);
     DO_TEST_PARSE_ERROR("cpu-numa3", NONE);
     DO_TEST_FAILURE("cpu-numa-disjoint", NONE);
     DO_TEST("cpu-numa-disjoint", QEMU_CAPS_NUMA);
-    DO_TEST_FAILURE("cpu-numa-memshared", QEMU_CAPS_SMP_TOPOLOGY,
-                    QEMU_CAPS_OBJECT_MEMORY_RAM);
-    DO_TEST_FAILURE("cpu-numa-memshared", QEMU_CAPS_SMP_TOPOLOGY);
+    DO_TEST_FAILURE("cpu-numa-memshared", QEMU_CAPS_OBJECT_MEMORY_RAM);
+    DO_TEST_FAILURE("cpu-numa-memshared", NONE);
     DO_TEST("cpu-host-model", NONE);
     DO_TEST("cpu-host-model-vendor", NONE);
     skipLegacyCPUs = true;
@@ -1341,6 +1381,12 @@ mymain(void)
     driver.caps->host.cpu = cpuDefault;
 
     DO_TEST("encrypted-disk", NONE);
+    DO_TEST("encrypted-disk-usage", NONE);
+# ifdef HAVE_GNUTLS_CIPHER_ENCRYPT
+    DO_TEST("luks-disks", QEMU_CAPS_OBJECT_SECRET);
+# else
+    DO_TEST_FAILURE("luks-disks", QEMU_CAPS_OBJECT_SECRET);
+# endif
 
     DO_TEST("memtune", NONE);
     DO_TEST("memtune-unlimited", NONE);
@@ -1350,7 +1396,7 @@ mymain(void)
     DO_TEST("cputune-zero-shares", NONE);
     DO_TEST_PARSE_ERROR("cputune-iothreadsched-toomuch", NONE);
     DO_TEST_PARSE_ERROR("cputune-vcpusched-overlap", NONE);
-    DO_TEST("cputune-numatune", QEMU_CAPS_SMP_TOPOLOGY,
+    DO_TEST("cputune-numatune",
             QEMU_CAPS_KVM,
             QEMU_CAPS_OBJECT_IOTHREAD,
             QEMU_CAPS_OBJECT_MEMORY_RAM,
@@ -1704,9 +1750,9 @@ mymain(void)
             QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_VIRTIO_SCSI,
             QEMU_CAPS_DEVICE_SCSI_GENERIC);
 
-    DO_TEST("mlock-on", QEMU_CAPS_MLOCK);
+    DO_TEST("mlock-on", QEMU_CAPS_REALTIME_MLOCK);
     DO_TEST_FAILURE("mlock-on", NONE);
-    DO_TEST("mlock-off", QEMU_CAPS_MLOCK);
+    DO_TEST("mlock-off", QEMU_CAPS_REALTIME_MLOCK);
     DO_TEST("mlock-unsupported", NONE);
 
     DO_TEST_PARSE_ERROR("pci-bridge-negative-index-invalid",
@@ -2023,6 +2069,8 @@ mymain(void)
                               QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_USB_HUB);
 
     DO_TEST("acpi-table", NONE);
+    DO_TEST("intel-iommu", QEMU_CAPS_DEVICE_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE, QEMU_CAPS_DEVICE_INTEL_IOMMU);
 
     qemuTestDriverFree(&driver);
 

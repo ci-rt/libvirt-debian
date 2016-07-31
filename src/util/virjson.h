@@ -167,10 +167,10 @@ typedef int (*virJSONValueObjectIteratorFunc)(const char *key,
                                               const virJSONValue *value,
                                               void *opaque);
 
-int virJSONValueObjectForeachKeyValue(virJSONValuePtr object,
+int virJSONValueObjectForeachKeyValue(const virJSONValue *object,
                                       virJSONValueObjectIteratorFunc cb,
                                       void *opaque);
 
-virJSONValuePtr virJSONValueCopy(virJSONValuePtr in);
+virJSONValuePtr virJSONValueCopy(const virJSONValue *in);
 
 #endif /* __VIR_JSON_H_ */

@@ -60,7 +60,9 @@ static int testHelpStrParsing(const void *data)
 
     if (virQEMUCapsParseHelpStr("QEMU", help, flags,
                                 &version, &is_kvm, &kvm_version, false, NULL) == -1) {
-        if (info->error && virGetLastError()->code == info->error)
+        virErrorPtr err = virGetLastError();
+
+        if (info->error && err && err->code == info->error)
             ret = 0;
         goto cleanup;
     }
@@ -154,7 +156,6 @@ mymain(void)
             QEMU_CAPS_ENABLE_KVM,
             QEMU_CAPS_SDL,
             QEMU_CAPS_CHARDEV,
-            QEMU_CAPS_SMP_TOPOLOGY,
             QEMU_CAPS_RTC,
             QEMU_CAPS_NO_HPET,
             QEMU_CAPS_BOOT_MENU,
@@ -173,7 +174,6 @@ mymain(void)
             QEMU_CAPS_CHARDEV,
             QEMU_CAPS_ENABLE_KVM,
             QEMU_CAPS_MONITOR_JSON,
-            QEMU_CAPS_SMP_TOPOLOGY,
             QEMU_CAPS_NETDEV,
             QEMU_CAPS_RTC,
             QEMU_CAPS_VHOST_NET,
@@ -214,7 +214,6 @@ mymain(void)
             QEMU_CAPS_MEM_PATH,
             QEMU_CAPS_SDL,
             QEMU_CAPS_CHARDEV,
-            QEMU_CAPS_SMP_TOPOLOGY,
             QEMU_CAPS_RTC,
             QEMU_CAPS_VHOST_NET,
             QEMU_CAPS_NO_HPET,
@@ -239,7 +238,6 @@ mymain(void)
             QEMU_CAPS_CHARDEV,
             QEMU_CAPS_ENABLE_KVM,
             QEMU_CAPS_MONITOR_JSON,
-            QEMU_CAPS_SMP_TOPOLOGY,
             QEMU_CAPS_NETDEV,
             QEMU_CAPS_RTC,
             QEMU_CAPS_VHOST_NET,
@@ -290,7 +288,6 @@ mymain(void)
             QEMU_CAPS_CHARDEV,
             QEMU_CAPS_ENABLE_KVM,
             QEMU_CAPS_MONITOR_JSON,
-            QEMU_CAPS_SMP_TOPOLOGY,
             QEMU_CAPS_NETDEV,
             QEMU_CAPS_RTC,
             QEMU_CAPS_VHOST_NET,
@@ -339,7 +336,6 @@ mymain(void)
             QEMU_CAPS_CHARDEV,
             QEMU_CAPS_ENABLE_KVM,
             QEMU_CAPS_MONITOR_JSON,
-            QEMU_CAPS_SMP_TOPOLOGY,
             QEMU_CAPS_NETDEV,
             QEMU_CAPS_RTC,
             QEMU_CAPS_VHOST_NET,
@@ -396,7 +392,6 @@ mymain(void)
             QEMU_CAPS_CHARDEV,
             QEMU_CAPS_ENABLE_KVM,
             QEMU_CAPS_MONITOR_JSON,
-            QEMU_CAPS_SMP_TOPOLOGY,
             QEMU_CAPS_NETDEV,
             QEMU_CAPS_RTC,
             QEMU_CAPS_VHOST_NET,
@@ -460,7 +455,8 @@ mymain(void)
             QEMU_CAPS_DEVICE_XIO3130_DOWNSTREAM,
             QEMU_CAPS_DEVICE_RTL8139,
             QEMU_CAPS_DEVICE_E1000,
-            QEMU_CAPS_DEVICE_VIRTIO_NET);
+            QEMU_CAPS_DEVICE_VIRTIO_NET,
+            QEMU_CAPS_DISPLAY);
     DO_TEST("qemu-1.1.0", 1001000, 0, 0,
             QEMU_CAPS_DRIVE_CACHE_UNSAFE,
             QEMU_CAPS_DRIVE_SERIAL,
@@ -469,7 +465,6 @@ mymain(void)
             QEMU_CAPS_CHARDEV,
             QEMU_CAPS_ENABLE_KVM,
             QEMU_CAPS_MONITOR_JSON,
-            QEMU_CAPS_SMP_TOPOLOGY,
             QEMU_CAPS_NETDEV,
             QEMU_CAPS_RTC,
             QEMU_CAPS_VHOST_NET,
@@ -546,7 +541,8 @@ mymain(void)
             QEMU_CAPS_DEVICE_XIO3130_DOWNSTREAM,
             QEMU_CAPS_DEVICE_RTL8139,
             QEMU_CAPS_DEVICE_E1000,
-            QEMU_CAPS_DEVICE_VIRTIO_NET);
+            QEMU_CAPS_DEVICE_VIRTIO_NET,
+            QEMU_CAPS_DISPLAY);
     DO_TEST_FULL("qemu-1.2.0", 1002000, 0, 0, VIR_ERR_CONFIG_UNSUPPORTED,
             QEMU_CAPS_LAST);
     DO_TEST_FULL("qemu-kvm-1.2.0", 1002000, 1, 0, VIR_ERR_CONFIG_UNSUPPORTED,

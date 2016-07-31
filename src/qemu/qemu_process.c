@@ -70,6 +70,7 @@
 #include "virnuma.h"
 #include "virstring.h"
 #include "virhostdev.h"
+#include "secret_util.h"
 #include "storage/storage_driver.h"
 #include "configmake.h"
 #include "nwfilter_conf.h"
@@ -377,7 +378,6 @@ qemuProcessGetVolumeQcowPassphrase(virConnectPtr conn,
                                    char **secretRet,
                                    size_t *secretLen)
 {
-    virSecretPtr secret;
     char *passphrase;
     unsigned char *data;
     size_t size;
@@ -416,14 +416,9 @@ qemuProcessGetVolumeQcowPassphrase(virConnectPtr conn,
         goto cleanup;
     }
 
-    secret = conn->secretDriver->secretLookupByUUID(conn,
-                                                    enc->secrets[0]->uuid);
-    if (secret == NULL)
-        goto cleanup;
-    data = conn->secretDriver->secretGetValue(secret, &size, 0,
-                                              VIR_SECRET_GET_VALUE_INTERNAL_CALL);
-    virObjectUnref(secret);
-    if (data == NULL)
+    if (virSecretGetSecretString(conn, &enc->secrets[0]->seclookupdef,
+                                 VIR_SECRET_USAGE_TYPE_VOLUME,
+                                 &data, &size) < 0)
         goto cleanup;
 
     if (memchr(data, '\0', size) != NULL) {
@@ -2309,73 +2304,122 @@ qemuProcessSetLinkStates(virQEMUDriverPtr driver,
 }
 
 
+/**
+ * qemuProcessSetupPid:
+ *
+ * This function sets resource properities (affinity, cgroups,
+ * scheduler) for any PID associated with a domain.  It should be used
+ * to set up emulator PIDs as well as vCPU and I/O thread pids to
+ * ensure they are all handled the same way.
+ *
+ * Returns 0 on success, -1 on error.
+ */
 static int
-qemuProcessSetupEmulator(virDomainObjPtr vm)
+qemuProcessSetupPid(virDomainObjPtr vm,
+                    pid_t pid,
+                    virCgroupThreadName nameval,
+                    int id,
+                    virBitmapPtr cpumask,
+                    unsigned long long period,
+                    long long quota,
+                    virDomainThreadSchedParamPtr sched)
 {
-    virBitmapPtr cpumask = NULL;
-    virCgroupPtr cgroup_emulator = NULL;
     qemuDomainObjPrivatePtr priv = vm->privateData;
-    unsigned long long period = vm->def->cputune.emulator_period;
-    long long quota = vm->def->cputune.emulator_quota;
+    virDomainNumatuneMemMode mem_mode;
+    virCgroupPtr cgroup = NULL;
+    virBitmapPtr use_cpumask;
+    char *mem_mask = NULL;
     int ret = -1;
 
     if ((period || quota) &&
         !virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPU)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("cgroup cpu is required for scheduler tuning"));
-        return -1;
+        goto cleanup;
     }
 
-    if (vm->def->cputune.emulatorpin)
-        cpumask = vm->def->cputune.emulatorpin;
-    else if (vm->def->placement_mode == VIR_DOMAIN_CPU_PLACEMENT_MODE_AUTO &&
-             priv->autoCpuset)
-        cpumask = priv->autoCpuset;
+    /* Infer which cpumask shall be used. */
+    if (cpumask)
+        use_cpumask = cpumask;
+    else if (vm->def->placement_mode == VIR_DOMAIN_CPU_PLACEMENT_MODE_AUTO)
+        use_cpumask = priv->autoCpuset;
     else
-        cpumask = vm->def->cpumask;
+        use_cpumask = vm->def->cpumask;
 
-    /* If CPU cgroup controller is not initialized here, then we need
+    /*
+     * If CPU cgroup controller is not initialized here, then we need
      * neither period nor quota settings.  And if CPUSET controller is
-     * not initialized either, then there's nothing to do anyway. */
+     * not initialized either, then there's nothing to do anyway.
+     */
     if (virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPU) ||
         virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPUSET)) {
 
-        if (virCgroupNewThread(priv->cgroup, VIR_CGROUP_THREAD_EMULATOR, 0,
-                               true, &cgroup_emulator) < 0)
+        if (virDomainNumatuneGetMode(vm->def->numa, -1, &mem_mode) == 0 &&
+            mem_mode == VIR_DOMAIN_NUMATUNE_MEM_STRICT &&
+            virDomainNumatuneMaybeFormatNodeset(vm->def->numa,
+                                                priv->autoNodeset,
+                                                &mem_mask, -1) < 0)
             goto cleanup;
 
-        if (virCgroupAddTask(cgroup_emulator, vm->pid) < 0)
+        if (virCgroupNewThread(priv->cgroup, nameval, id, true, &cgroup) < 0)
             goto cleanup;
 
-
-        if (cpumask) {
-            if (virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPUSET) &&
-                qemuSetupCgroupCpusetCpus(cgroup_emulator, cpumask) < 0)
+        if (virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPUSET)) {
+            if (use_cpumask &&
+                qemuSetupCgroupCpusetCpus(cgroup, use_cpumask) < 0)
                 goto cleanup;
+
+            /*
+             * Don't setup cpuset.mems for the emulator, they need to
+             * be set up after initialization in order for kvm
+             * allocations to succeed.
+             */
+            if (nameval != VIR_CGROUP_THREAD_EMULATOR &&
+                mem_mask && virCgroupSetCpusetMems(cgroup, mem_mask) < 0)
+                goto cleanup;
+
         }
 
-        if (period || quota) {
-            if (virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPU) &&
-                qemuSetupCgroupVcpuBW(cgroup_emulator, period,
-                                      quota) < 0)
-                goto cleanup;
-        }
+        if ((period || quota) &&
+            qemuSetupCgroupVcpuBW(cgroup, period, quota) < 0)
+            goto cleanup;
+
+        /* Move the thread to the sub dir */
+        if (virCgroupAddTask(cgroup, pid) < 0)
+            goto cleanup;
+
     }
 
-    if (cpumask &&
-        virProcessSetAffinity(vm->pid, cpumask) < 0)
+    /* Setup legacy affinity. */
+    if (use_cpumask && virProcessSetAffinity(pid, use_cpumask) < 0)
+        goto cleanup;
+
+    /* Set scheduler type and priority. */
+    if (sched &&
+        virProcessSetScheduler(pid, sched->policy, sched->priority) < 0)
         goto cleanup;
 
     ret = 0;
-
  cleanup:
-    if (cgroup_emulator) {
+    VIR_FREE(mem_mask);
+    if (cgroup) {
         if (ret < 0)
-            virCgroupRemove(cgroup_emulator);
-        virCgroupFree(&cgroup_emulator);
+            virCgroupRemove(cgroup);
+        virCgroupFree(&cgroup);
     }
 
     return ret;
+}
+
+
+static int
+qemuProcessSetupEmulator(virDomainObjPtr vm)
+{
+    return qemuProcessSetupPid(vm, vm->pid, VIR_CGROUP_THREAD_EMULATOR,
+                               0, vm->def->cputune.emulatorpin,
+                               vm->def->cputune.emulator_period,
+                               vm->def->cputune.emulator_quota,
+                               NULL);
 }
 
 
@@ -2417,6 +2461,12 @@ qemuProcessInitPasswords(virConnectPtr conn,
 
         if (!vm->def->disks[i]->src->encryption ||
             !virDomainDiskGetSource(vm->def->disks[i]))
+            continue;
+
+        if (vm->def->disks[i]->src->encryption->format !=
+            VIR_STORAGE_ENCRYPTION_FORMAT_DEFAULT &&
+            vm->def->disks[i]->src->encryption->format !=
+            VIR_STORAGE_ENCRYPTION_FORMAT_QCOW)
             continue;
 
         VIR_FREE(secret);
@@ -4218,19 +4268,17 @@ qemuProcessSetupBalloon(virQEMUDriverPtr driver,
 {
     unsigned long long balloon = vm->def->mem.cur_balloon;
     qemuDomainObjPrivatePtr priv = vm->privateData;
-    int period;
     int ret = -1;
 
     if (!virDomainDefHasMemballoon(vm->def))
         return 0;
 
-    period = vm->def->memballoon->period;
-
     if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
         goto cleanup;
 
-    if (period)
-        qemuMonitorSetMemoryStatsPeriod(priv->mon, period);
+    if (vm->def->memballoon->period)
+        qemuMonitorSetMemoryStatsPeriod(priv->mon, vm->def->memballoon,
+                                        vm->def->memballoon->period);
     if (qemuMonitorSetBalloon(priv->mon, balloon) < 0)
         goto cleanup;
 
@@ -4576,88 +4624,20 @@ qemuProcessSetupVcpu(virDomainObjPtr vm,
                      unsigned int vcpuid)
 {
     pid_t vcpupid = qemuDomainGetVcpuPid(vm, vcpuid);
-    virDomainVcpuInfoPtr vcpu = virDomainDefGetVcpu(vm->def, vcpuid);
-    qemuDomainObjPrivatePtr priv = vm->privateData;
-    char *mem_mask = NULL;
-    virDomainNumatuneMemMode mem_mode;
-    unsigned long long period = vm->def->cputune.period;
-    long long quota = vm->def->cputune.quota;
-    virCgroupPtr cgroup_vcpu = NULL;
-    virBitmapPtr cpumask;
-    int ret = -1;
+    virDomainVcpuDefPtr vcpu = virDomainDefGetVcpu(vm->def, vcpuid);
 
-    if (virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPU) ||
-        virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPUSET)) {
-
-        if (virDomainNumatuneGetMode(vm->def->numa, -1, &mem_mode) == 0 &&
-            mem_mode == VIR_DOMAIN_NUMATUNE_MEM_STRICT &&
-            virDomainNumatuneMaybeFormatNodeset(vm->def->numa,
-                                                priv->autoNodeset,
-                                                &mem_mask, -1) < 0)
-            goto cleanup;
-
-        if (virCgroupNewThread(priv->cgroup, VIR_CGROUP_THREAD_VCPU, vcpuid,
-                               true, &cgroup_vcpu) < 0)
-            goto cleanup;
-
-        if (period || quota) {
-            if (qemuSetupCgroupVcpuBW(cgroup_vcpu, period, quota) < 0)
-                goto cleanup;
-        }
-    }
-
-    /* infer which cpumask shall be used */
-    if (vcpu->cpumask)
-        cpumask = vcpu->cpumask;
-    else if (vm->def->placement_mode == VIR_DOMAIN_CPU_PLACEMENT_MODE_AUTO)
-        cpumask = priv->autoCpuset;
-    else
-        cpumask = vm->def->cpumask;
-
-    /* setup cgroups */
-    if (cgroup_vcpu) {
-        if (virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPUSET)) {
-            if (mem_mask && virCgroupSetCpusetMems(cgroup_vcpu, mem_mask) < 0)
-                goto cleanup;
-
-            if (cpumask && qemuSetupCgroupCpusetCpus(cgroup_vcpu, cpumask) < 0)
-                goto cleanup;
-        }
-
-        /* move the thread for vcpu to sub dir */
-        if (virCgroupAddTask(cgroup_vcpu, vcpupid) < 0)
-            goto cleanup;
-    }
-
-    /* setup legacy affinty */
-    if (cpumask && virProcessSetAffinity(vcpupid, cpumask) < 0)
-        goto cleanup;
-
-    /* set scheduler type and priority */
-    if (vcpu->sched.policy != VIR_PROC_POLICY_NONE) {
-        if (virProcessSetScheduler(vcpupid, vcpu->sched.policy,
-                                   vcpu->sched.priority) < 0)
-            goto cleanup;
-    }
-
-    ret = 0;
-
- cleanup:
-    VIR_FREE(mem_mask);
-    if (cgroup_vcpu) {
-        if (ret < 0)
-            virCgroupRemove(cgroup_vcpu);
-        virCgroupFree(&cgroup_vcpu);
-    }
-
-    return ret;
+    return qemuProcessSetupPid(vm, vcpupid, VIR_CGROUP_THREAD_VCPU,
+                               vcpuid, vcpu->cpumask,
+                               vm->def->cputune.period,
+                               vm->def->cputune.quota,
+                               &vcpu->sched);
 }
 
 
 static int
 qemuProcessSetupVcpus(virDomainObjPtr vm)
 {
-    virDomainVcpuInfoPtr vcpu;
+    virDomainVcpuDefPtr vcpu;
     unsigned int maxvcpus = virDomainDefGetVcpusMax(vm->def);
     size_t i;
 
@@ -4703,98 +4683,18 @@ qemuProcessSetupVcpus(virDomainObjPtr vm)
 }
 
 
-/**
- * qemuProcessSetupIOThread:
- * @vm: domain object
- * @iothread: iothread data structure to set the data for
- *
- * This function sets resource properities (affinity, cgroups, scheduler) for a
- * IOThread. This function expects that the IOThread is online and the IOThread
- * pids were correctly detected at the point when it's called.
- *
- * Returns 0 on success, -1 on error.
- */
 int
 qemuProcessSetupIOThread(virDomainObjPtr vm,
                          virDomainIOThreadIDDefPtr iothread)
 {
-    qemuDomainObjPrivatePtr priv = vm->privateData;
-    unsigned long long period = vm->def->cputune.period;
-    long long quota = vm->def->cputune.quota;
-    virDomainNumatuneMemMode mem_mode;
-    char *mem_mask = NULL;
-    virCgroupPtr cgroup_iothread = NULL;
-    virBitmapPtr cpumask = NULL;
-    int ret = -1;
 
-    if ((period || quota) &&
-        !virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPU)) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("cgroup cpu is required for scheduler tuning"));
-        return -1;
-    }
-
-    if (virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPU) ||
-        virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPUSET)) {
-        if (virDomainNumatuneGetMode(vm->def->numa, -1, &mem_mode) == 0 &&
-            mem_mode == VIR_DOMAIN_NUMATUNE_MEM_STRICT &&
-            virDomainNumatuneMaybeFormatNodeset(vm->def->numa,
-                                                priv->autoNodeset,
-                                                &mem_mask, -1) < 0)
-            goto cleanup;
-
-        if (virCgroupNewThread(priv->cgroup, VIR_CGROUP_THREAD_IOTHREAD,
+    return qemuProcessSetupPid(vm, iothread->thread_id,
+                               VIR_CGROUP_THREAD_IOTHREAD,
                                iothread->iothread_id,
-                               true, &cgroup_iothread) < 0)
-            goto cleanup;
-    }
-
-    if (iothread->cpumask)
-        cpumask = iothread->cpumask;
-    else if (vm->def->placement_mode == VIR_DOMAIN_CPU_PLACEMENT_MODE_AUTO)
-        cpumask = priv->autoCpuset;
-    else
-        cpumask = vm->def->cpumask;
-
-    if (period || quota) {
-        if (qemuSetupCgroupVcpuBW(cgroup_iothread, period, quota) < 0)
-            goto cleanup;
-    }
-
-    if (cgroup_iothread) {
-        if (virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPUSET)) {
-            if (mem_mask &&
-                virCgroupSetCpusetMems(cgroup_iothread, mem_mask) < 0)
-                goto cleanup;
-
-            if (cpumask &&
-                qemuSetupCgroupCpusetCpus(cgroup_iothread, cpumask) < 0)
-                goto cleanup;
-        }
-
-        if (virCgroupAddTask(cgroup_iothread, iothread->thread_id) < 0)
-            goto cleanup;
-    }
-
-    if (cpumask && virProcessSetAffinity(iothread->thread_id, cpumask) < 0)
-        goto cleanup;
-
-    if (iothread->sched.policy != VIR_PROC_POLICY_NONE &&
-        virProcessSetScheduler(iothread->thread_id, iothread->sched.policy,
-                               iothread->sched.priority) < 0)
-        goto cleanup;
-
-    ret = 0;
-
- cleanup:
-    if (cgroup_iothread) {
-        if (ret < 0)
-            virCgroupRemove(cgroup_iothread);
-        virCgroupFree(&cgroup_iothread);
-    }
-
-    VIR_FREE(mem_mask);
-    return ret;
+                               iothread->cpumask,
+                               vm->def->cputune.period,
+                               vm->def->cputune.quota,
+                               &iothread->sched);
 }
 
 
@@ -5787,8 +5687,6 @@ void qemuProcessStop(virQEMUDriverPtr driver,
     virStringFreeList(priv->qemuDevices);
     priv->qemuDevices = NULL;
 
-    virDomainDefClearDeviceAliases(vm->def);
-
     qemuHostdevReAttachDomainDevices(driver, vm->def);
 
     def = vm->def;
@@ -5898,8 +5796,6 @@ void qemuProcessStop(virQEMUDriverPtr driver,
     vm->taint = 0;
     vm->pid = -1;
     virDomainObjSetState(vm, VIR_DOMAIN_SHUTOFF, reason);
-    VIR_FREE(priv->vcpupids);
-    priv->nvcpupids = 0;
     for (i = 0; i < vm->def->niothreadids; i++)
         vm->def->iothreadids[i]->thread_id = 0;
     virObjectUnref(priv->qemuCaps);
@@ -6122,7 +6018,7 @@ int qemuProcessAttach(virConnectPtr conn ATTRIBUTE_UNUSED,
             vm->def->memballoon->model == VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO &&
             vm->def->memballoon->period) {
             qemuDomainObjEnterMonitor(driver, vm);
-            qemuMonitorSetMemoryStatsPeriod(priv->mon,
+            qemuMonitorSetMemoryStatsPeriod(priv->mon, vm->def->memballoon,
                                             vm->def->memballoon->period);
             if (qemuDomainObjExitMonitor(driver, vm) < 0)
                 goto error;

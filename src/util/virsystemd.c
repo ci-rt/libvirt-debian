@@ -41,6 +41,10 @@
 
 VIR_LOG_INIT("util.systemd");
 
+#ifndef MSG_NOSIGNAL
+# define MSG_NOSIGNAL 0
+#endif
+
 static void virSystemdEscapeName(virBufferPtr buf,
                                  const char *name)
 {
@@ -495,7 +499,6 @@ virSystemdNotifyStartup(void)
     };
     struct msghdr mh = {
         .msg_name = &un,
-        .msg_namelen = sizeof(un),
         .msg_iov = &iov,
         .msg_iovlen = 1,
     };
@@ -514,6 +517,8 @@ virSystemdNotifyStartup(void)
     memcpy(un.sun_path, path, strlen(path));
     if (un.sun_path[0] == '@')
         un.sun_path[0] = '\0';
+
+    mh.msg_namelen = offsetof(struct sockaddr_un, sun_path) + strlen(path);
 
     fd = socket(AF_UNIX, SOCK_DGRAM, 0);
     if (fd < 0) {

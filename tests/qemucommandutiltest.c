@@ -30,14 +30,15 @@ typedef struct
 {
     const char *props;
     const char *expectprops;
+    virQEMUBuildCommandLineJSONArrayFormatFunc arrayfunc;
 } testQemuCommandBuildObjectFromJSONData;
 
 static int
-testQemuCommandBuildObjectFromJSON(const void *opaque)
+testQemuCommandBuildFromJSON(const void *opaque)
 {
     const testQemuCommandBuildObjectFromJSONData *data = opaque;
     virJSONValuePtr val = NULL;
-    char *expect = NULL;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
     char *result = NULL;
     int ret = -1;
 
@@ -46,18 +47,19 @@ testQemuCommandBuildObjectFromJSON(const void *opaque)
         return -1;
     }
 
-    if (virAsprintf(&expect, "testobject,id=testalias%s%s",
-                    data->expectprops ? "," : "",
-                    data->expectprops ? data->expectprops : "") < 0)
-        return -1;
+    if (virQEMUBuildCommandLineJSON(val, &buf, data->arrayfunc) < 0) {
+        fprintf(stderr,
+                "\nvirQEMUBuildCommandlineJSON failed process JSON:\n%s\n",
+                data->props);
+        goto cleanup;
+    }
 
-    result = virQEMUBuildObjectCommandlineFromJSON("testobject",
-                                                   "testalias", val);
+    result = virBufferContentAndReset(&buf);
 
-    if (STRNEQ_NULLABLE(expect, result)) {
+    if (STRNEQ_NULLABLE(data->expectprops, result)) {
         fprintf(stderr, "\nFailed to create object string. "
                 "\nExpected:\n'%s'\nGot:\n'%s'",
-                NULLSTR(expect), NULLSTR(result));
+                NULLSTR(data->expectprops), NULLSTR(result));
         goto cleanup;
     }
 
@@ -65,7 +67,6 @@ testQemuCommandBuildObjectFromJSON(const void *opaque)
  cleanup:
     virJSONValueFree(val);
     VIR_FREE(result);
-    VIR_FREE(expect);
     return ret;
 }
 
@@ -80,20 +81,28 @@ mymain(void)
     return EXIT_AM_SKIP;
 #endif
 
-    virTestCounterReset("testQemuCommandBuildObjectFromJSON");
+    virTestCounterReset("testQemuCommandBuildFromJSON");
 
-#define DO_TEST_COMMAND_OBJECT_FROM_JSON(PROPS, EXPECT)             \
+#define DO_TEST_COMMAND_FROM_JSON(PROPS, ARRAYFUNC, EXPECT)         \
     do {                                                            \
         data1.props = PROPS;                                        \
         data1.expectprops = EXPECT;                                 \
+        data1.arrayfunc = ARRAYFUNC;                                \
         if (virTestRun(virTestCounterNext(),                        \
-                       testQemuCommandBuildObjectFromJSON,          \
+                       testQemuCommandBuildFromJSON,                \
                        &data1) < 0)                                 \
             ret = -1;                                               \
      } while (0)
 
+#define DO_TEST_COMMAND_OBJECT_FROM_JSON(PROPS, EXPECT)             \
+    DO_TEST_COMMAND_FROM_JSON(PROPS, virQEMUBuildCommandLineJSONArrayBitmap, EXPECT)
+
+#define DO_TEST_COMMAND_DRIVE_FROM_JSON(PROPS, EXPECT)              \
+    DO_TEST_COMMAND_FROM_JSON(PROPS, virQEMUBuildCommandLineJSONArrayNumbered, EXPECT)
+
     DO_TEST_COMMAND_OBJECT_FROM_JSON("{}", NULL);
     DO_TEST_COMMAND_OBJECT_FROM_JSON("{\"string\":\"qwer\"}", "string=qwer");
+    DO_TEST_COMMAND_OBJECT_FROM_JSON("{\"string\":\"qw,e,r\"}", "string=qw,,e,,r");
     DO_TEST_COMMAND_OBJECT_FROM_JSON("{\"number\":1234}", "number=1234");
     DO_TEST_COMMAND_OBJECT_FROM_JSON("{\"boolean\":true}", "boolean=yes");
     DO_TEST_COMMAND_OBJECT_FROM_JSON("{\"boolean\":false}", "boolean=no");
@@ -110,6 +119,37 @@ mymain(void)
                                      "array=bleah,array=qwerty,array=1");
     DO_TEST_COMMAND_OBJECT_FROM_JSON("{\"boolean\":true,\"hyphen-name\":1234,\"some_string\":\"bleah\"}",
                                      "boolean=yes,hyphen-name=1234,some_string=bleah");
+    DO_TEST_COMMAND_OBJECT_FROM_JSON("{\"nest\": {\"boolean\":true,"
+                                                 "\"hyphen-name\":1234,"
+                                                 "\"some_string\":\"bleah\","
+                                                 "\"bleah\":\"bl,eah\""
+                                                 "}"
+                                     "}",
+                                     "nest.boolean=yes,nest.hyphen-name=1234,"
+                                     "nest.some_string=bleah,nest.bleah=bl,,eah");
+    DO_TEST_COMMAND_DRIVE_FROM_JSON("{\"driver\":\"gluster\","
+                                     "\"volume\":\"test\","
+                                     "\"path\":\"img\","
+                                     "\"server\":[ { \"type\":\"tcp\","
+                                                         "\"host\":\"example.com\","
+                                                         "\"port\":\"1234\""
+                                                        "},"
+                                                        "{ \"type\":\"unix\","
+                                                          "\"socket\":\"/path/socket\""
+                                                        "},"
+                                                        "{ \"type\":\"tcp\","
+                                                          "\"host\":\"example.com\""
+                                                        "}"
+                                                       "]"
+                                     "}",
+                                     "driver=gluster,volume=test,path=img,"
+                                     "server.0.type=tcp,"
+                                     "server.0.host=example.com,"
+                                     "server.0.port=1234,"
+                                     "server.1.type=unix,"
+                                     "server.1.socket=/path/socket,"
+                                     "server.2.type=tcp,"
+                                     "server.2.host=example.com");
 
     return ret;
 

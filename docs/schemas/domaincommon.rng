@@ -2142,7 +2142,7 @@
           <interleave>
             <optional>
               <element name="source">
-                <empty/>
+                <ref name="interface-ip-info"/>
               </element>
             </optional>
             <ref name="interface-options"/>
@@ -2627,6 +2627,11 @@
         <optional>
           <attribute name="prefix">
             <ref name="ipPrefix"/>
+          </attribute>
+        </optional>
+        <optional>
+          <attribute name="peer">
+            <ref name="ipAddr"/>
           </attribute>
         </optional>
         <empty/>
@@ -3713,6 +3718,14 @@
    </optional>
   </define>
 
+  <define name="iommu">
+    <element name="iommu">
+      <attribute name="model">
+        <value>intel</value>
+      </attribute>
+    </element>
+  </define>
+
   <define name="input">
     <element name="input">
       <choice>
@@ -4055,9 +4068,11 @@
     <attribute name="bus">
       <ref name="usbAddr"/>
     </attribute>
-    <attribute name="port">
-      <ref name="usbPort"/>
-    </attribute>
+    <optional>
+      <attribute name="port">
+        <ref name="usbPort"/>
+      </attribute>
+    </optional>
   </define>
   <define name="spaprvioaddress">
     <optional>
@@ -4182,6 +4197,9 @@
         <zeroOrMore>
           <ref name="panic"/>
         </zeroOrMore>
+        <optional>
+          <ref name="iommu"/>
+        </optional>
       </interleave>
     </element>
   </define>
@@ -5318,29 +5336,6 @@
           </attribute>
           <attribute name='value'/>
         </element>
-      </zeroOrMore>
-    </element>
-  </define>
-
-  <define name="metadata">
-    <element name="metadata">
-      <zeroOrMore>
-        <ref name="customElement"/>
-      </zeroOrMore>
-    </element>
-  </define>
-
-  <define name="customElement">
-    <element>
-      <anyName/>
-      <zeroOrMore>
-        <choice>
-          <attribute>
-            <anyName/>
-          </attribute>
-          <text/>
-          <ref name="customElement"/>
-        </choice>
       </zeroOrMore>
     </element>
   </define>

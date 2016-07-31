@@ -304,6 +304,14 @@ virLXCProcessSetupInterfaceTap(virDomainDefPtr vm,
     if (virNetDevSetOnline(parentVeth, true) < 0)
         goto cleanup;
 
+    if (virDomainNetGetActualType(net) == VIR_DOMAIN_NET_TYPE_ETHERNET) {
+        /* Set IP info for the host side, but only if the type is
+         * 'ethernet'.
+         */
+        if (virNetDevIPInfoAddToDev(parentVeth, &net->hostIP) < 0)
+            goto cleanup;
+    }
+
     if (net->filter &&
         virDomainConfNWFilterInstantiate(vm->uuid, net) < 0)
         goto cleanup;
@@ -1145,12 +1153,12 @@ virLXCProcessEnsureRootFS(virDomainObjPtr vm)
     if (root)
         return 0;
 
-    if (VIR_ALLOC(root) < 0)
+    if (!(root = virDomainFSDefNew()))
         goto error;
 
     root->type = VIR_DOMAIN_FS_TYPE_MOUNT;
 
-    if (VIR_STRDUP(root->src, "/") < 0 ||
+    if (VIR_STRDUP(root->src->path, "/") < 0 ||
         VIR_STRDUP(root->dst, "/") < 0)
         goto error;
 

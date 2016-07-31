@@ -25,10 +25,34 @@
 # define __VIR_QEMU_H_
 
 # include "internal.h"
+# include "virbuffer.h"
 # include "virjson.h"
+# include "virstorageencryption.h"
+
+typedef int (*virQEMUBuildCommandLineJSONArrayFormatFunc)(const char *key,
+                                                          const virJSONValue *array,
+                                                          virBufferPtr buf);
+int virQEMUBuildCommandLineJSONArrayBitmap(const char *key,
+                                           const virJSONValue *array,
+                                           virBufferPtr buf);
+int virQEMUBuildCommandLineJSONArrayNumbered(const char *key,
+                                             const virJSONValue *array,
+                                             virBufferPtr buf);
+
+int virQEMUBuildCommandLineJSON(const virJSONValue *value,
+                                virBufferPtr buf,
+                                virQEMUBuildCommandLineJSONArrayFormatFunc array);
 
 char *virQEMUBuildObjectCommandlineFromJSON(const char *type,
                                             const char *alias,
                                             virJSONValuePtr props);
+
+char *virQEMUBuildDriveCommandlineFromJSON(const virJSONValue *src);
+
+void virQEMUBuildBufferEscapeComma(virBufferPtr buf, const char *str);
+void virQEMUBuildLuksOpts(virBufferPtr buf,
+                          virStorageEncryptionInfoDefPtr enc,
+                          const char *alias)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 
 #endif /* __VIR_QEMU_H_ */

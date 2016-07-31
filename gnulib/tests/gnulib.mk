@@ -622,6 +622,15 @@ EXTRA_DIST += test-getline.c signature.h macros.h
 
 ## end   gnulib module getline-tests
 
+## begin gnulib module getopt-posix-tests
+
+GNULIB_TESTS += test-getopt
+check_PROGRAMS += test-getopt
+test_getopt_LDADD = $(LDADD) $(LIBINTL)
+EXTRA_DIST += macros.h signature.h test-getopt.c test-getopt.h test-getopt_long.h
+
+## end   gnulib module getopt-posix-tests
+
 ## begin gnulib module getpagesize
 
 

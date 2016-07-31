@@ -208,6 +208,9 @@ virDomainVirtioSerialAddrSetAddControllers(virDomainVirtioSerialAddrSetPtr addrs
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 void
 virDomainVirtioSerialAddrSetFree(virDomainVirtioSerialAddrSetPtr addrs);
+virDomainVirtioSerialAddrSetPtr
+virDomainVirtioSerialAddrSetCreateFromDomain(virDomainDefPtr def)
+    ATTRIBUTE_NONNULL(1);
 bool
 virDomainVirtioSerialAddrIsComplete(virDomainDeviceInfoPtr info);
 int
@@ -237,4 +240,67 @@ virDomainVirtioSerialAddrRelease(virDomainVirtioSerialAddrSetPtr addrs,
                                  virDomainDeviceInfoPtr info)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
+bool
+virDomainUSBAddressPortIsValid(unsigned int *port)
+    ATTRIBUTE_NONNULL(1);
+
+void
+virDomainUSBAddressPortFormatBuf(virBufferPtr buf,
+                                 unsigned int *port)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+char *
+virDomainUSBAddressPortFormat(unsigned int *port)
+    ATTRIBUTE_NONNULL(1);
+
+typedef struct _virDomainUSBAddressHub virDomainUSBAddressHub;
+typedef virDomainUSBAddressHub *virDomainUSBAddressHubPtr;
+struct _virDomainUSBAddressHub {
+    /* indexes are shifted by one:
+     * ports[0] represents port 1, because ports are numbered from 1 */
+    virBitmapPtr portmap;
+    size_t nports;
+    virDomainUSBAddressHubPtr *ports;
+};
+
+struct _virDomainUSBAddressSet {
+    /* every <controller type='usb' index='i'> is represented
+     * as a hub at buses[i] */
+    virDomainUSBAddressHubPtr *buses;
+    size_t nbuses;
+};
+typedef struct _virDomainUSBAddressSet virDomainUSBAddressSet;
+typedef virDomainUSBAddressSet *virDomainUSBAddressSetPtr;
+
+virDomainUSBAddressSetPtr virDomainUSBAddressSetCreate(void);
+
+int virDomainUSBAddressSetAddControllers(virDomainUSBAddressSetPtr addrs,
+                                         virDomainDefPtr def)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+int
+virDomainUSBAddressSetAddHub(virDomainUSBAddressSetPtr addrs,
+                             virDomainHubDefPtr hub)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+size_t
+virDomainUSBAddressCountAllPorts(virDomainDefPtr def);
+void virDomainUSBAddressSetFree(virDomainUSBAddressSetPtr addrs);
+
+int
+virDomainUSBAddressReserve(virDomainDeviceInfoPtr info,
+                           void *data)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+int
+virDomainUSBAddressAssign(virDomainUSBAddressSetPtr addrs,
+                          virDomainDeviceInfoPtr info)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+int
+virDomainUSBAddressEnsure(virDomainUSBAddressSetPtr addrs,
+                          virDomainDeviceInfoPtr info)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+int
+virDomainUSBAddressRelease(virDomainUSBAddressSetPtr addrs,
+                           virDomainDeviceInfoPtr info)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 #endif /* __DOMAIN_ADDR_H__ */

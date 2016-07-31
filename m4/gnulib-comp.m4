@@ -180,6 +180,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module gethostname-tests:
   # Code from module getline:
   # Code from module getline-tests:
+  # Code from module getopt-posix:
+  # Code from module getopt-posix-tests:
   # Code from module getpagesize:
   # Code from module getpass:
   # Code from module getpeername:
@@ -728,6 +730,15 @@ AC_SUBST([LTALLOCA])
     gl_PREREQ_GETLINE
   fi
   gl_STDIO_MODULE_INDICATOR([getline])
+  gl_FUNC_GETOPT_POSIX
+  if test $REPLACE_GETOPT = 1; then
+    AC_LIBOBJ([getopt])
+    AC_LIBOBJ([getopt1])
+    gl_PREREQ_GETOPT
+    dnl Arrange for unistd.h to include getopt.h.
+    GNULIB_GL_UNISTD_H_GETOPT=1
+  fi
+  AC_SUBST([GNULIB_GL_UNISTD_H_GETOPT])
   gl_FUNC_GETPASS
   if test $HAVE_GETPASS = 0; then
     AC_LIBOBJ([getpass])
@@ -1763,6 +1774,10 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/getgroups.c
   lib/gethostname.c
   lib/getline.c
+  lib/getopt.c
+  lib/getopt.in.h
+  lib/getopt1.c
+  lib/getopt_int.h
   lib/getpass.c
   lib/getpass.h
   lib/getpeername.c
@@ -2013,6 +2028,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/getgroups.m4
   m4/gethostname.m4
   m4/getline.m4
+  m4/getopt.m4
   m4/getpagesize.m4
   m4/getpass.m4
   m4/gettimeofday.m4
@@ -2290,6 +2306,9 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-getgroups.c
   tests/test-gethostname.c
   tests/test-getline.c
+  tests/test-getopt.c
+  tests/test-getopt.h
+  tests/test-getopt_long.h
   tests/test-getpeername.c
   tests/test-getsockname.c
   tests/test-getsockopt.c

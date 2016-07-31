@@ -157,7 +157,12 @@ virStorageBackendProbeTarget(virStorageSourcePtr target,
         case VIR_STORAGE_FILE_QCOW2:
             (*encryption)->format = VIR_STORAGE_ENCRYPTION_FORMAT_QCOW;
             break;
-        default:
+
+        case VIR_STORAGE_FILE_LUKS:
+            (*encryption)->format = VIR_STORAGE_ENCRYPTION_FORMAT_LUKS;
+            break;
+
+        case VIR_STORAGE_ENCRYPTION_FORMAT_LAST:
             break;
         }
 
@@ -1312,7 +1317,8 @@ virStorageBackendFileSystemLoadDefaultSecrets(virConnectPtr conn,
     vol->target.encryption->secrets[0] = encsec;
 
     encsec->type = VIR_STORAGE_ENCRYPTION_SECRET_TYPE_PASSPHRASE;
-    virSecretGetUUID(sec, encsec->uuid);
+    encsec->seclookupdef.type = VIR_SECRET_LOOKUP_TYPE_UUID;
+    virSecretGetUUID(sec, encsec->seclookupdef.u.uuid);
     virObjectUnref(sec);
 
     return 0;

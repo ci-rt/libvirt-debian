@@ -594,7 +594,8 @@ xenParseXL(virConfPtr conf,
     def->virtType = VIR_DOMAIN_VIRT_XEN;
     def->id = -1;
 
-    if (xenParseConfigCommon(conf, def, caps, XEN_CONFIG_FORMAT_XL) < 0)
+    if (xenParseConfigCommon(conf, def, caps, XEN_CONFIG_FORMAT_XL,
+                             xmlopt) < 0)
         goto cleanup;
 
     if (xenParseXLOS(conf, def, caps) < 0)
@@ -726,6 +727,7 @@ xenFormatXLDiskSrcNet(virStorageSourcePtr src)
     case VIR_STORAGE_NET_PROTOCOL_ISCSI:
     case VIR_STORAGE_NET_PROTOCOL_GLUSTER:
     case VIR_STORAGE_NET_PROTOCOL_SHEEPDOG:
+    case VIR_STORAGE_NET_PROTOCOL_SSH:
     case VIR_STORAGE_NET_PROTOCOL_LAST:
     case VIR_STORAGE_NET_PROTOCOL_NONE:
         virReportError(VIR_ERR_NO_SUPPORT,

@@ -85,7 +85,7 @@ typedef enum {
     X_QEMU_CAPS_BALLOON, /* -balloon available */
     X_QEMU_CAPS_DEVICE, /* Is the -device arg available */
     QEMU_CAPS_SDL, /* Is the new -sdl arg available */
-    QEMU_CAPS_SMP_TOPOLOGY, /* -smp has sockets/cores/threads */
+    X_QEMU_CAPS_SMP_TOPOLOGY, /* -smp has sockets/cores/threads */
     QEMU_CAPS_NETDEV, /* -netdev flag & netdev_add/remove */
 
     /* 30 */
@@ -254,7 +254,7 @@ typedef enum {
     QEMU_CAPS_MEM_MERGE, /* -machine mem-merge */
     QEMU_CAPS_VNC_WEBSOCKET, /* -vnc x:y,websocket */
     QEMU_CAPS_DRIVE_DISCARD, /* -drive discard=off(ignore)|on(unmap) */
-    QEMU_CAPS_MLOCK, /* -realtime mlock=on|off */
+    QEMU_CAPS_REALTIME_MLOCK, /* -realtime mlock=on|off */
 
     /* 150 */
     QEMU_CAPS_VNC_SHARE_POLICY, /* set display sharing policy */
@@ -370,6 +370,8 @@ typedef enum {
 
     /* 230 */
     QEMU_CAPS_OBJECT_TLS_CREDS_X509, /* -object tls-creds-x509 */
+    QEMU_CAPS_DISPLAY, /* -display */
+    QEMU_CAPS_DEVICE_INTEL_IOMMU, /* -device intel-iommu */
 
     QEMU_CAPS_LAST /* this must always be the last item */
 } virQEMUCapsFlags;
@@ -492,7 +494,6 @@ int virQEMUCapsInitGuestFromBinary(virCapsPtr caps,
 int virQEMUCapsFillDomainCaps(virDomainCapsPtr domCaps,
                               virQEMUCapsPtr qemuCaps,
                               virFirmwarePtr *firmwares,
-                              size_t nfirmwares,
-                              virDomainVirtType virttype);
+                              size_t nfirmwares);
 
 #endif /* __QEMU_CAPABILITIES_H__*/

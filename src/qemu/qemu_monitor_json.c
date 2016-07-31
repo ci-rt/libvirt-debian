@@ -1633,10 +1633,10 @@ qemuMonitorJSONGetBalloonInfo(qemuMonitorPtr mon,
  * rates and/or whether data has been collected since a previous cycle.
  * It's currently unused.
  */
-#define GET_BALLOON_STATS(FIELD, TAG, DIVISOR)                                \
-    if (virJSONValueObjectHasKey(statsdata, FIELD) &&                         \
+#define GET_BALLOON_STATS(OBJECT, FIELD, TAG, DIVISOR)                        \
+    if (virJSONValueObjectHasKey(OBJECT, FIELD) &&                            \
        (got < nr_stats)) {                                                    \
-        if (virJSONValueObjectGetNumberUlong(statsdata, FIELD, &mem) < 0) {   \
+        if (virJSONValueObjectGetNumberUlong(OBJECT, FIELD, &mem) < 0) {      \
             VIR_DEBUG("Failed to get '%s' value", FIELD);                     \
         } else {                                                              \
             /* Not being collected? No point in providing bad data */         \
@@ -1707,18 +1707,22 @@ int qemuMonitorJSONGetMemoryStats(qemuMonitorPtr mon,
         goto cleanup;
     }
 
-    GET_BALLOON_STATS("stat-swap-in",
+    GET_BALLOON_STATS(statsdata, "stat-swap-in",
                       VIR_DOMAIN_MEMORY_STAT_SWAP_IN, 1024);
-    GET_BALLOON_STATS("stat-swap-out",
+    GET_BALLOON_STATS(statsdata, "stat-swap-out",
                       VIR_DOMAIN_MEMORY_STAT_SWAP_OUT, 1024);
-    GET_BALLOON_STATS("stat-major-faults",
+    GET_BALLOON_STATS(statsdata, "stat-major-faults",
                       VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT, 1);
-    GET_BALLOON_STATS("stat-minor-faults",
+    GET_BALLOON_STATS(statsdata, "stat-minor-faults",
                       VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT, 1);
-    GET_BALLOON_STATS("stat-free-memory",
+    GET_BALLOON_STATS(statsdata, "stat-free-memory",
                       VIR_DOMAIN_MEMORY_STAT_UNUSED, 1024);
-    GET_BALLOON_STATS("stat-total-memory",
+    GET_BALLOON_STATS(statsdata, "stat-total-memory",
                       VIR_DOMAIN_MEMORY_STAT_AVAILABLE, 1024);
+    GET_BALLOON_STATS(statsdata, "stat-available-memory",
+                      VIR_DOMAIN_MEMORY_STAT_USABLE, 1024);
+    GET_BALLOON_STATS(data, "last-update",
+                      VIR_DOMAIN_MEMORY_STAT_LAST_UPDATE, 1);
     ret = got;
  cleanup:
     virJSONValueFree(cmd);
@@ -6810,7 +6814,58 @@ qemuMonitorJSONGetMemoryDeviceInfo(qemuMonitorPtr mon,
 
 
 /**
- * Recursively search for a QOM object link.
+ * Search for a QOM object link by alias and name.
+ *
+ * For @alias and @name, this function tries to find QOM object named @name
+ * with id @alias in /machine/peripheral.
+ *
+ * Returns:
+ *   0  - Found
+ *  -1  - Error - bail out
+ *  -2  - Not found
+ */
+static int
+qemuMonitorJSONFindObjectPathByAlias(qemuMonitorPtr mon,
+                                     const char *name,
+                                     const char *alias,
+                                     char **path)
+{
+    qemuMonitorJSONListPathPtr *paths = NULL;
+    char *child = NULL;
+    int npaths;
+    int ret = -1;
+    size_t i;
+
+    npaths = qemuMonitorJSONGetObjectListPaths(mon, "/machine/peripheral", &paths);
+    if (npaths < 0)
+        return -1;
+
+    if (virAsprintf(&child, "child<%s>", name) < 0)
+        goto cleanup;
+
+    for (i = 0; i < npaths; i++) {
+        if (STREQ(paths[i]->name, alias) && STREQ(paths[i]->type, child)) {
+            if (virAsprintf(path, "/machine/peripheral/%s", alias) < 0)
+                goto cleanup;
+
+            ret = 0;
+            goto cleanup;
+        }
+    }
+
+    ret = -2;
+
+ cleanup:
+    for (i = 0; i < npaths; i++)
+        qemuMonitorJSONListPathFree(paths[i]);
+    VIR_FREE(paths);
+    VIR_FREE(child);
+    return ret;
+}
+
+
+/**
+ * Recursively search for a QOM object link only by name.
  *
  * For @name, this function finds the first QOM object
  * named @name, recursively going through all the "child<>"
@@ -6822,10 +6877,10 @@ qemuMonitorJSONGetMemoryDeviceInfo(qemuMonitorPtr mon,
  *  -2  - Not found
  */
 static int
-qemuMonitorJSONFindObjectPath(qemuMonitorPtr mon,
-                              const char *curpath,
-                              const char *name,
-                              char **path)
+qemuMonitorJSONFindObjectPathByName(qemuMonitorPtr mon,
+                                    const char *curpath,
+                                    const char *name,
+                                    char **path)
 {
     ssize_t i, npaths = 0;
     int ret = -2;
@@ -6859,7 +6914,7 @@ qemuMonitorJSONFindObjectPath(qemuMonitorPtr mon,
                 goto cleanup;
             }
 
-            ret = qemuMonitorJSONFindObjectPath(mon, nextpath, name, path);
+            ret = qemuMonitorJSONFindObjectPathByName(mon, nextpath, name, path);
             VIR_FREE(nextpath);
         }
     }
@@ -6876,8 +6931,9 @@ qemuMonitorJSONFindObjectPath(qemuMonitorPtr mon,
 /**
  * Recursively search for a QOM object link.
  *
- * For @name, this function finds the first QOM object
- * pointed to by a link in the form of 'link<@name>'
+ * For @name and @alias, this function finds the first QOM object.
+ * The search is done at first by @alias and @name and if nothing was found
+ * it continues recursively only with @name.
  *
  * Returns:
  *   0  - Found
@@ -6887,15 +6943,22 @@ qemuMonitorJSONFindObjectPath(qemuMonitorPtr mon,
 int
 qemuMonitorJSONFindLinkPath(qemuMonitorPtr mon,
                             const char *name,
+                            const char *alias,
                             char **path)
 {
     char *linkname = NULL;
     int ret = -1;
 
+    if (alias) {
+        ret = qemuMonitorJSONFindObjectPathByAlias(mon, name, alias, path);
+        if (ret == -1 || ret == 0)
+            return ret;
+    }
+
     if (virAsprintf(&linkname, "link<%s>", name) < 0)
         return -1;
 
-    ret = qemuMonitorJSONFindObjectPath(mon, "/", linkname, path);
+    ret = qemuMonitorJSONFindObjectPathByName(mon, "/", linkname, path);
     VIR_FREE(linkname);
     return ret;
 }

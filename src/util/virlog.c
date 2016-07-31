@@ -86,12 +86,10 @@ struct _virLogFilter {
     virLogPriority priority;
     unsigned int flags;
 };
-typedef struct _virLogFilter virLogFilter;
-typedef virLogFilter *virLogFilterPtr;
 
 static int virLogFiltersSerial = 1;
-static virLogFilterPtr virLogFilters;
-static int virLogNbFilters;
+static virLogFilterPtr *virLogFilters;
+static size_t virLogNbFilters;
 
 /*
  * Outputs are used to emit the messages retained
@@ -106,19 +104,17 @@ struct _virLogOutput {
     virLogDestination dest;
     char *name;
 };
-typedef struct _virLogOutput virLogOutput;
-typedef virLogOutput *virLogOutputPtr;
 
-static virLogOutputPtr virLogOutputs;
-static int virLogNbOutputs;
+static virLogOutputPtr *virLogOutputs;
+static size_t virLogNbOutputs;
 
 /*
  * Default priorities
  */
 static virLogPriority virLogDefaultPriority = VIR_LOG_DEFAULT;
 
-static int virLogResetFilters(void);
-static int virLogResetOutputs(void);
+static void virLogResetFilters(void);
+static void virLogResetOutputs(void);
 static void virLogOutputToFd(virLogSourcePtr src,
                              virLogPriority priority,
                              const char *filename,
@@ -239,20 +235,46 @@ virLogSetDefaultPriority(virLogPriority priority)
  * virLogResetFilters:
  *
  * Removes the set of logging filters defined.
- *
- * Returns the number of filters removed
  */
-static int
+static void
 virLogResetFilters(void)
+{
+    virLogFilterListFree(virLogFilters, virLogNbFilters);
+    virLogFilters = NULL;
+    virLogNbFilters = 0;
+    virLogFiltersSerial++;
+}
+
+
+void
+virLogFilterFree(virLogFilterPtr filter)
+{
+    if (!filter)
+        return;
+
+    VIR_FREE(filter->match);
+    VIR_FREE(filter);
+}
+
+
+/**
+ * virLogFilterFreeList:
+ * @list: list of filters to be freed
+ * @count: number of elements in the list
+ *
+ * Frees a list of filters.
+ */
+void
+virLogFilterListFree(virLogFilterPtr *list, int count)
 {
     size_t i;
 
-    for (i = 0; i < virLogNbFilters; i++)
-        VIR_FREE(virLogFilters[i].match);
-    VIR_FREE(virLogFilters);
-    virLogNbFilters = 0;
-    virLogFiltersSerial++;
-    return i;
+    if (!list || count < 0)
+        return;
+
+    for (i = 0; i < count; i++)
+        virLogFilterFree(list[i]);
+    VIR_FREE(list);
 }
 
 
@@ -277,6 +299,7 @@ virLogDefineFilter(const char *match,
     size_t i;
     int ret = -1;
     char *mdup = NULL;
+    virLogFilterPtr filter = NULL;
 
     virCheckFlags(VIR_LOG_STACK_TRACE, -1);
 
@@ -289,8 +312,8 @@ virLogDefineFilter(const char *match,
 
     virLogLock();
     for (i = 0; i < virLogNbFilters; i++) {
-        if (STREQ(virLogFilters[i].match, match)) {
-            virLogFilters[i].priority = priority;
+        if (STREQ(virLogFilters[i]->match, match)) {
+            virLogFilters[i]->priority = priority;
             ret = i;
             goto cleanup;
         }
@@ -298,44 +321,73 @@ virLogDefineFilter(const char *match,
 
     if (VIR_STRDUP_QUIET(mdup, match) < 0)
         goto cleanup;
-    if (VIR_REALLOC_N_QUIET(virLogFilters, virLogNbFilters + 1)) {
+
+    if (VIR_ALLOC_QUIET(filter) < 0) {
         VIR_FREE(mdup);
         goto cleanup;
     }
-    ret = virLogNbFilters;
-    virLogFilters[i].match = mdup;
-    virLogFilters[i].priority = priority;
-    virLogFilters[i].flags = flags;
-    virLogNbFilters++;
+
+    filter->match = mdup;
+    filter->priority = priority;
+    filter->flags = flags;
+
+    if (VIR_APPEND_ELEMENT_QUIET(virLogFilters, virLogNbFilters, filter) < 0)
+        goto cleanup;
+
     virLogFiltersSerial++;
  cleanup:
     virLogUnlock();
     if (ret < 0)
         virReportOOMError();
-    return ret;
+    return virLogNbFilters;
 }
 
 /**
  * virLogResetOutputs:
  *
  * Removes the set of logging output defined.
- *
- * Returns the number of output removed
  */
-static int
+static void
 virLogResetOutputs(void)
+{
+    virLogOutputListFree(virLogOutputs, virLogNbOutputs);
+    virLogOutputs = NULL;
+    virLogNbOutputs = 0;
+}
+
+
+void
+virLogOutputFree(virLogOutputPtr output)
+{
+    if (!output)
+        return;
+
+    if (output->c)
+        output->c(output->data);
+    VIR_FREE(output->name);
+    VIR_FREE(output);
+
+}
+
+
+/**
+ * virLogOutputsFreeList:
+ * @list: list of outputs to be freed
+ * @count: number of elements in the list
+ *
+ * Frees a list of outputs.
+ */
+void
+virLogOutputListFree(virLogOutputPtr *list, int count)
 {
     size_t i;
 
-    for (i = 0; i < virLogNbOutputs; i++) {
-        if (virLogOutputs[i].c != NULL)
-            virLogOutputs[i].c(virLogOutputs[i].data);
-        VIR_FREE(virLogOutputs[i].name);
-    }
-    VIR_FREE(virLogOutputs);
-    i = virLogNbOutputs;
-    virLogNbOutputs = 0;
-    return i;
+    if (!list || count < 0)
+        return;
+
+    for (i = 0; i < count; i++)
+        virLogOutputFree(list[i]);
+    VIR_FREE(list);
 }
 
 
@@ -363,8 +415,8 @@ virLogDefineOutput(virLogOutputFunc f,
                    const char *name,
                    unsigned int flags)
 {
-    int ret = -1;
     char *ndup = NULL;
+    virLogOutputPtr output = NULL;
 
     virCheckFlags(0, -1);
 
@@ -383,22 +435,26 @@ virLogDefineOutput(virLogOutputFunc f,
             return -1;
     }
 
-    virLogLock();
-    if (VIR_REALLOC_N_QUIET(virLogOutputs, virLogNbOutputs + 1)) {
+    if (VIR_ALLOC_QUIET(output) < 0) {
         VIR_FREE(ndup);
-        goto cleanup;
+        return -1;
     }
-    ret = virLogNbOutputs++;
-    virLogOutputs[ret].logInitMessage = true;
-    virLogOutputs[ret].f = f;
-    virLogOutputs[ret].c = c;
-    virLogOutputs[ret].data = data;
-    virLogOutputs[ret].priority = priority;
-    virLogOutputs[ret].dest = dest;
-    virLogOutputs[ret].name = ndup;
+
+    output->logInitMessage = true;
+    output->f = f;
+    output->c = c;
+    output->data = data;
+    output->priority = priority;
+    output->dest = dest;
+    output->name = ndup;
+
+    virLogLock();
+    if (VIR_APPEND_ELEMENT_QUIET(virLogOutputs, virLogNbOutputs, output))
+        goto cleanup;
+
  cleanup:
     virLogUnlock();
-    return ret;
+    return virLogNbOutputs;
 }
 
 
@@ -477,9 +533,9 @@ virLogSourceUpdate(virLogSourcePtr source)
         size_t i;
 
         for (i = 0; i < virLogNbFilters; i++) {
-            if (strstr(source->name, virLogFilters[i].match)) {
-                priority = virLogFilters[i].priority;
-                flags = virLogFilters[i].flags;
+            if (strstr(source->name, virLogFilters[i]->match)) {
+                priority = virLogFilters[i]->priority;
+                flags = virLogFilters[i]->flags;
                 break;
             }
         }
@@ -596,30 +652,30 @@ virLogVMessage(virLogSourcePtr source,
      * use stderr.
      */
     for (i = 0; i < virLogNbOutputs; i++) {
-        if (priority >= virLogOutputs[i].priority) {
-            if (virLogOutputs[i].logInitMessage) {
+        if (priority >= virLogOutputs[i]->priority) {
+            if (virLogOutputs[i]->logInitMessage) {
                 const char *rawinitmsg;
                 char *hoststr = NULL;
                 char *initmsg = NULL;
                 if (virLogVersionString(&rawinitmsg, &initmsg) >= 0)
-                    virLogOutputs[i].f(&virLogSelf, VIR_LOG_INFO,
+                    virLogOutputs[i]->f(&virLogSelf, VIR_LOG_INFO,
                                        __FILE__, __LINE__, __func__,
                                        timestamp, NULL, 0, rawinitmsg, initmsg,
-                                       virLogOutputs[i].data);
+                                       virLogOutputs[i]->data);
                 VIR_FREE(initmsg);
                 if (virLogHostnameString(&hoststr, &initmsg) >= 0)
-                    virLogOutputs[i].f(&virLogSelf, VIR_LOG_INFO,
+                    virLogOutputs[i]->f(&virLogSelf, VIR_LOG_INFO,
                                        __FILE__, __LINE__, __func__,
                                        timestamp, NULL, 0, hoststr, initmsg,
-                                       virLogOutputs[i].data);
+                                       virLogOutputs[i]->data);
                 VIR_FREE(hoststr);
                 VIR_FREE(initmsg);
-                virLogOutputs[i].logInitMessage = false;
+                virLogOutputs[i]->logInitMessage = false;
             }
-            virLogOutputs[i].f(source, priority,
+            virLogOutputs[i]->f(source, priority,
                                filename, linenr, funcname,
                                timestamp, metadata, filterflags,
-                               str, msg, virLogOutputs[i].data);
+                               str, msg, virLogOutputs[i]->data);
         }
     }
     if (virLogNbOutputs == 0) {
@@ -1337,12 +1393,12 @@ virLogGetFilters(void)
     virLogLock();
     for (i = 0; i < virLogNbFilters; i++) {
         const char *sep = ":";
-        if (virLogFilters[i].flags & VIR_LOG_STACK_TRACE)
+        if (virLogFilters[i]->flags & VIR_LOG_STACK_TRACE)
             sep = ":+";
         virBufferAsprintf(&filterbuf, "%d%s%s ",
-                          virLogFilters[i].priority,
+                          virLogFilters[i]->priority,
                           sep,
-                          virLogFilters[i].match);
+                          virLogFilters[i]->match);
     }
     virLogUnlock();
 
@@ -1370,20 +1426,20 @@ virLogGetOutputs(void)
 
     virLogLock();
     for (i = 0; i < virLogNbOutputs; i++) {
-        virLogDestination dest = virLogOutputs[i].dest;
+        virLogDestination dest = virLogOutputs[i]->dest;
         if (i)
             virBufferAddChar(&outputbuf, ' ');
         switch (dest) {
             case VIR_LOG_TO_SYSLOG:
             case VIR_LOG_TO_FILE:
                 virBufferAsprintf(&outputbuf, "%d:%s:%s",
-                                  virLogOutputs[i].priority,
+                                  virLogOutputs[i]->priority,
                                   virLogDestinationTypeToString(dest),
-                                  virLogOutputs[i].name);
+                                  virLogOutputs[i]->name);
                 break;
             default:
                 virBufferAsprintf(&outputbuf, "%d:%s",
-                                  virLogOutputs[i].priority,
+                                  virLogOutputs[i]->priority,
                                   virLogDestinationTypeToString(dest));
         }
     }
