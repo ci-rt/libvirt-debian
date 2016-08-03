@@ -27,8 +27,6 @@
 #include <wireshark/epan/proto.h>
 #include <wireshark/epan/packet.h>
 #include <wireshark/epan/dissectors/packet-tcp.h>
-#include <glib.h>
-#include <glib/gprintf.h>
 #ifdef HAVE_RPC_TYPES_H
 # include <rpc/types.h>
 #endif
@@ -113,7 +111,7 @@ format_xdr_bytes(guint8 *bytes, guint32 length)
     for (i = 0; i < length; i++) {
         /* We know that buf has enough size to contain
            2 * length + '\0' characters. */
-        g_sprintf(buf, "%02x", bytes[i]);
+        snprintf(buf, 2*(length - i) + 1, "%02x", bytes[i]);
         buf += 2;
     }
     return buf - length*2;
@@ -442,8 +440,14 @@ get_message_len(packet_info *pinfo ATTRIBUTE_UNUSED, tvbuff_t *tvb, int offset)
     return tvb_get_ntohl(tvb, offset);
 }
 
+#if WIRESHARK_VERSION >= 2000001
+static int
+dissect_libvirt(tvbuff_t *tvb, packet_info *pinfo,
+                proto_tree *tree, void *data ATTRIBUTE_UNUSED)
+#else
 static void
 dissect_libvirt(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
+#endif
 {
     /* Another magic const - 4; simply, how much bytes
      * is needed to tell the length of libvirt packet. */
@@ -453,6 +457,10 @@ dissect_libvirt(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 #else
     tcp_dissect_pdus(tvb, pinfo, tree, TRUE, 4,
                      get_message_len, dissect_libvirt_message, NULL);
+#endif
+
+#if WIRESHARK_VERSION >= 2000001
+    return tvb_captured_length(tvb);
 #endif
 }
 

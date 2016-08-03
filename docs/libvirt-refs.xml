@@ -6572,7 +6572,6 @@
           <ref name='virDomainSnapshotListAllChildren'/>
           <ref name='virDomainSnapshotListChildrenNames'/>
           <ref name='virDomainSnapshotNumChildren'/>
-          <ref name='virStorageVolWipe'/>
           <ref name='virStorageVolWipePattern'/>
         </word>
         <word name='Although'>
@@ -6883,6 +6882,7 @@
           <ref name='virNodeDeviceReAttach'/>
           <ref name='virStorageVolGetPath'/>
           <ref name='virStorageVolUpload'/>
+          <ref name='virStorageVolWipe'/>
         </word>
         <word name='Deprecated'>
           <ref name='virDomainCreateLinux'/>
@@ -10555,6 +10555,7 @@
           <ref name='virNodeDeviceDetachFlags'/>
           <ref name='virNodeDeviceDettach'/>
           <ref name='virStorageVolUpload'/>
+          <ref name='virStorageVolWipe'/>
         </word>
         <word name='backends'>
           <ref name='virDomainOpenGraphics'/>
@@ -10612,6 +10613,7 @@
           <ref name='virDomainGetBlockInfo'/>
           <ref name='virInterfaceDefineXML'/>
           <ref name='virInterfaceUndefine'/>
+          <ref name='virStorageVolWipe'/>
         </word>
         <word name='becomes'>
           <ref name='virConnectDomainEventIOErrorReasonCallback'/>
@@ -11563,6 +11565,7 @@
           <ref name='virDomainBlockPeek'/>
           <ref name='virDomainGetJobStats'/>
           <ref name='virDomainMigrateStartPostCopy'/>
+          <ref name='virStorageVolWipe'/>
         </word>
         <word name='completely'>
           <ref name='virDomainGetJobStats'/>
@@ -12380,6 +12383,7 @@
           <ref name='virConnectDomainXMLFromNative'/>
           <ref name='virConnectDomainXMLToNative'/>
           <ref name='virSecretGetUsageID'/>
+          <ref name='virStorageVolWipe'/>
         </word>
         <word name='depending'>
           <ref name='virConnectDomainEventBlockJobCallback'/>
@@ -12389,7 +12393,6 @@
           <ref name='virDomainFSFreeze'/>
           <ref name='virDomainFSTrim'/>
           <ref name='virDomainGetBlockJobInfo'/>
-          <ref name='virStorageVolWipe'/>
           <ref name='virStorageVolWipePattern'/>
         </word>
         <word name='depends'>
@@ -12653,6 +12656,7 @@
           <ref name='virDomainMigrateToURI2'/>
           <ref name='virDomainMigrateToURI3'/>
           <ref name='virNodeDeviceDetachFlags'/>
+          <ref name='virStorageVolWipe'/>
           <ref name='virStorageVolWipePattern'/>
         </word>
         <word name='direct'>
@@ -14695,6 +14699,7 @@
           <ref name='virDomainSnapshotListNames'/>
           <ref name='virDomainSnapshotNum'/>
           <ref name='virDomainSnapshotNumChildren'/>
+          <ref name='virStorageVolWipe'/>
         </word>
         <word name='immediate'>
           <ref name='virDomainBlockCommit'/>
@@ -14793,6 +14798,7 @@
           <ref name='virDomainSetMemoryFlags'/>
           <ref name='virDomainSetMemoryStatsPeriod'/>
           <ref name='virDomainSetVcpusFlags'/>
+          <ref name='virStorageVolWipe'/>
         </word>
         <word name='include:'>
           <ref name='virConnectListAllNodeDevices'/>
@@ -15013,6 +15019,7 @@
         <word name='initial'>
           <ref name='VIR_MIGRATE_PARAM_AUTO_CONVERGE_INITIAL'/>
           <ref name='virConnectClose'/>
+          <ref name='virStorageVolWipe'/>
         </word>
         <word name='initialization'>
           <ref name='virInitialize'/>
@@ -16987,6 +16994,7 @@
         </word>
         <word name='non-raw'>
           <ref name='virDomainBlockRebase'/>
+          <ref name='virStorageVolWipe'/>
         </word>
         <word name='non-recoverable'>
           <ref name='virStoragePoolDelete'/>
@@ -17035,7 +17043,6 @@
           <ref name='virDomainSetTime'/>
           <ref name='virDomainSetUserPassword'/>
           <ref name='virDomainSnapshotCreateXML'/>
-          <ref name='virStorageVolWipe'/>
           <ref name='virStorageVolWipePattern'/>
         </word>
         <word name='notes'>
@@ -17280,6 +17287,7 @@
           <ref name='virSecretRef'/>
           <ref name='virStoragePoolRef'/>
           <ref name='virStorageVolRef'/>
+          <ref name='virStorageVolWipe'/>
           <ref name='virStreamEventCallback'/>
           <ref name='virStreamFinish'/>
           <ref name='virStreamRef'/>
@@ -17985,6 +17993,7 @@
         </word>
         <word name='possibly'>
           <ref name='virConnectGetHostname'/>
+          <ref name='virStorageVolWipe'/>
         </word>
         <word name='possibly-filtered'>
           <ref name='virConnectListAllDomains'/>
@@ -18627,6 +18636,7 @@
           <ref name='virNetworkGetDHCPLeases'/>
           <ref name='virNetworkLookupByUUID'/>
           <ref name='virSecretLookupByUUID'/>
+          <ref name='virStorageVolWipe'/>
         </word>
         <word name='re-attached'>
           <ref name='virNodeDeviceDetachFlags'/>
@@ -18731,7 +18741,6 @@
           <ref name='VIR_DOMAIN_BLOCK_COPY_BANDWIDTH'/>
           <ref name='virDomainBlockPeek'/>
           <ref name='virDomainMemoryPeek'/>
-          <ref name='virStorageVolWipe'/>
           <ref name='virStorageVolWipePattern'/>
         </word>
         <word name='reason'>
@@ -18894,6 +18903,9 @@
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virDomainUndefineFlags'/>
           <ref name='virStorageVolResize'/>
+        </word>
+        <word name='regenerated'>
+          <ref name='virStorageVolWipe'/>
         </word>
         <word name='register'>
           <ref name='virStreamEventUpdateCallback'/>
@@ -23794,6 +23806,12 @@
         </word>
         <word name='wider'>
           <ref name='virDomainOpenConsole'/>
+        </word>
+        <word name='wipe'>
+          <ref name='virStorageVolWipe'/>
+        </word>
+        <word name='wiped'>
+          <ref name='virStorageVolWipe'/>
         </word>
         <word name='wiping'>
           <ref name='virStorageVolWipePattern'/>

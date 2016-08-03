@@ -1078,7 +1078,7 @@ qemuDomainSecretDiskPrepare(virConnectPtr conn,
     }
 
     if (!virStorageSourceIsEmpty(src) && src->encryption &&
-        src->format == VIR_STORAGE_FILE_LUKS) {
+        src->encryption->format == VIR_STORAGE_ENCRYPTION_FORMAT_LUKS) {
 
         if (VIR_ALLOC(secinfo) < 0)
             return -1;
@@ -3308,6 +3308,15 @@ qemuDomainDefFormatBuf(virQEMUDriverPtr driver,
             virDomainControllerDefFree(usb);
         }
 
+        /* Remove the panic device for selected models if present */
+        for (i = 0; i < def->npanics; i++) {
+            if (def->panics[i]->model == VIR_DOMAIN_PANIC_MODEL_S390 ||
+                def->panics[i]->model == VIR_DOMAIN_PANIC_MODEL_PSERIES) {
+                VIR_DELETE_ELEMENT(def->panics, i, def->npanics);
+                break;
+            }
+        }
+
         for (i = 0; i < def->nchannels; i++)
             qemuDomainChrDefDropDefaultPath(def->channels[i], driver);
     }
@@ -5183,8 +5192,6 @@ qemuDomainDefValidateMemoryHotplugDevice(const virDomainMemoryDef *mem,
 
     case VIR_DOMAIN_MEMORY_MODEL_NONE:
     case VIR_DOMAIN_MEMORY_MODEL_LAST:
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("invalid memory device type"));
         return -1;
     }
 
