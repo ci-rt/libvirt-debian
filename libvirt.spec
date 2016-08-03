@@ -216,7 +216,7 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: 2.1.0
-Release: 0rc1%{?dist}%{?extra_release}
+Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -225,7 +225,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc1.tar.xz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.xz
 
 Requires: libvirt-daemon = %{version}-%{release}
 Requires: libvirt-daemon-config-network = %{version}-%{release}
@@ -406,7 +406,11 @@ BuildRequires: numad
 %endif
 
 %if %{with_wireshark}
+    %if 0%{fedora} >= 24
 BuildRequires: wireshark-devel >= 2.1.0
+    %else
+BuildRequires: wireshark-devel >= 1.12.1
+    %endif
 %endif
 
 Provides: bundled(gnulib)
@@ -1212,7 +1216,13 @@ rm -f $RPM_BUILD_ROOT%{_libdir}/libvirt/lock-driver/*.a
 rm -f $RPM_BUILD_ROOT%{_libdir}/libvirt/connection-driver/*.la
 rm -f $RPM_BUILD_ROOT%{_libdir}/libvirt/connection-driver/*.a
 %if %{with_wireshark}
+    %if 0%{fedora} >= 24
 rm -f $RPM_BUILD_ROOT%{_libdir}/wireshark/plugins/libvirt.la
+    %else
+rm -f $RPM_BUILD_ROOT%{_libdir}/wireshark/plugins/*/libvirt.la
+mv $RPM_BUILD_ROOT%{_libdir}/wireshark/plugins/*/libvirt.so \
+      $RPM_BUILD_ROOT%{_libdir}/wireshark/plugins/libvirt.so
+    %endif
 %endif
 
 install -d -m 0755 $RPM_BUILD_ROOT%{_datadir}/lib/libvirt/dnsmasq/

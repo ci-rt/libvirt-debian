@@ -129,7 +129,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRT-ADMIN 1"
-.TH VIRT-ADMIN 1 "2016-07-27" "libvirt-2.1.0" "Virtualization Support"
+.TH VIRT-ADMIN 1 "2016-08-02" "libvirt-2.1.0" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -243,7 +243,7 @@ Will print the current directory.
 .IX Item "connect [URI]"
 (Re)\-Connect to a daemon's administrating server. The \fI\s-1URI\s0\fR parameter
 specifies how to connect to the administrating server.
-If \fI\s-1LIBVIRT_ADMIN_DEFAULT_URI\s0\fR or \fIadmin_uri_default\fR (see below) were set,
+If \fI\s-1LIBVIRT_ADMIN_DEFAULT_URI\s0\fR or \fIuri_default\fR (see below) were set,
 \&\fIconnect\fR is automatically issued every time a command that requires an
 active connection is executed. Note that this only applies if there is no
 connection at all or there is an inactive one.
@@ -252,8 +252,9 @@ To find the currently used \s-1URI,\s0 check the \fIuri\fR command documented be
 .IP "\fBuri\fR" 4
 .IX Item "uri"
 Prints the administrating server canonical \s-1URI,\s0 can be useful in shell mode. If
-no \fIuri\fR was specified, neither \fI\s-1LIBVIRT_ADMIN_DEFAULT_URI\s0\fR or
-\&\fIadmin_uri_default\fR were set, libvirtd:///system is used.
+no \fIuri\fR was specified, neither \fI\s-1LIBVIRT_ADMIN_DEFAULT_URI\s0\fR environment
+variable nor \fIuri_default\fR option (libvirt\-admin.conf) were set,
+libvirtd:///system is used.
 .SH "SERVER COMMANDS"
 .IX Header "SERVER COMMANDS"
 Following commands manipulate daemon's server internal configuration.

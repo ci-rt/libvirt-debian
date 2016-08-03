@@ -434,7 +434,7 @@ static vshCmdOptDef helpopt = {
 };
 static const vshCmdOptDef *
 vshCmddefGetOption(vshControl *ctl, const vshCmdDef *cmd, const char *name,
-                   uint64_t *opts_seen, int *opt_index, char **optstr,
+                   uint64_t *opts_seen, size_t *opt_index, char **optstr,
                    bool report)
 {
     size_t i;
@@ -1418,7 +1418,7 @@ vshCommandParse(vshControl *ctl, vshCommandParser *parser)
             } else if (tkdata[0] == '-' && tkdata[1] == '-' &&
                        c_isalnum(tkdata[2])) {
                 char *optstr = strchr(tkdata + 2, '=');
-                int opt_index = 0;
+                size_t opt_index = 0;
 
                 if (optstr) {
                     *optstr = '\0'; /* convert the '=' to '\0' */
@@ -2640,10 +2640,10 @@ vshReadlineParse(const char *text, int state)
     char *res = NULL;
     static char *ctext, *sanitized_text;
     static uint64_t const_opts_need_arg, const_opts_required, const_opts_seen;
-    uint64_t opts_need_arg, opts_required, opts_seen;
-    unsigned int opt_index;
+    uint64_t opts_need_arg, opts_seen;
+    size_t opt_index;
     static bool cmd_exists, opts_filled, opt_exists;
-    static bool non_bool_opt_exists, data_acomplete;
+    static bool non_bool_opt_exists;
 
     if (!state) {
         parser.pos = rl_line_buffer;
@@ -2687,7 +2687,6 @@ vshReadlineParse(const char *text, int state)
         cmd_exists = false;
         opts_filled = false;
         non_bool_opt_exists = false;
-        data_acomplete = false;
 
         const_opts_need_arg = 0;
         const_opts_required = 0;
@@ -2713,7 +2712,6 @@ vshReadlineParse(const char *text, int state)
                        c_isalnum(tkdata[2])) {
                 /* Command retrieved successfully, move to options */
                 opts_need_arg = const_opts_need_arg;
-                opts_required = const_opts_required;
                 opts_seen = const_opts_seen;
                 optstr = strchr(tkdata + 2, '=');
                 opt_index = 0;
@@ -2749,7 +2747,6 @@ vshReadlineParse(const char *text, int state)
                         tkdata = const_tkdata;
                         if (STREQ(tkdata, sanitized_text)) {
                             /* auto-complete non-bool option */
-                            data_acomplete = true;
                             break;
                         }
                     }
@@ -2833,16 +2830,10 @@ static int
 vshReadlineInit(vshControl *ctl)
 {
     char *userdir = NULL;
-    char *name_capitalized = NULL;
     int max_history = 500;
     int ret = -1;
     char *histsize_env = NULL;
     const char *histsize_str = NULL;
-    const char *strings[] = {
-        name_capitalized,
-        "HISTSIZE",
-        NULL
-    };
 
     /* Allow conditional parsing of the ~/.inputrc file.
      * Work around ancient readline 4.1 (hello Mac OS X),
@@ -2855,8 +2846,7 @@ vshReadlineInit(vshControl *ctl)
 
     rl_basic_word_break_characters = " \t\n\\`@$><=;|&{(";
 
-    if (virStringToUpper(&name_capitalized, ctl->name) < 0 ||
-        !(histsize_env = virStringJoin(strings, "_")))
+    if (virAsprintf(&histsize_env, "%s_HISTSIZE", ctl->env_prefix) < 0)
         goto cleanup;
 
     /* Limit the total size of the history buffer */
@@ -2898,7 +2888,6 @@ vshReadlineInit(vshControl *ctl)
 
  cleanup:
     VIR_FREE(userdir);
-    VIR_FREE(name_capitalized);
     VIR_FREE(histsize_env);
     return ret;
 }
@@ -2966,14 +2955,18 @@ vshReadline(vshControl *ctl, const char *prompt)
 /*
  * Initialize debug settings.
  */
-static void
+static int
 vshInitDebug(vshControl *ctl)
 {
     const char *debugEnv;
+    char *env = NULL;
 
     if (ctl->debug == VSH_DEBUG_DEFAULT) {
+        if (virAsprintf(&env, "%s_DEBUG", ctl->env_prefix) < 0)
+            return -1;
+
         /* log level not set from commandline, check env variable */
-        debugEnv = virGetEnvAllowSUID("VSH_DEBUG");
+        debugEnv = virGetEnvAllowSUID(env);
         if (debugEnv) {
             int debug;
             if (virStrToLong_i(debugEnv, NULL, 10, &debug) < 0 ||
@@ -2984,16 +2977,23 @@ vshInitDebug(vshControl *ctl)
                 ctl->debug = debug;
             }
         }
+        VIR_FREE(env);
     }
 
     if (ctl->logfile == NULL) {
+        if (virAsprintf(&env, "%s_LOG_FILE", ctl->env_prefix) < 0)
+            return -1;
+
         /* log file not set from cmdline */
-        debugEnv = virGetEnvBlockSUID("VSH_LOG_FILE");
+        debugEnv = virGetEnvBlockSUID(env);
         if (debugEnv && *debugEnv) {
             ctl->logfile = vshStrdup(ctl, debugEnv);
             vshOpenLogFile(ctl);
         }
+        VIR_FREE(env);
     }
+
+    return 0;
 }
 
 
@@ -3016,9 +3016,9 @@ vshInit(vshControl *ctl, const vshCmdGrp *groups, const vshCmdDef *set)
 
     cmdGroups = groups;
     cmdSet = set;
-    vshInitDebug(ctl);
 
-    if (ctl->imode && vshReadlineInit(ctl) < 0)
+    if (vshInitDebug(ctl) < 0 ||
+        (ctl->imode && vshReadlineInit(ctl) < 0))
         return false;
 
     return true;
@@ -3033,7 +3033,8 @@ vshInitReload(vshControl *ctl)
         return false;
     }
 
-    vshInitDebug(ctl);
+    if (vshInitDebug(ctl) < 0)
+        return false;
 
     if (ctl->imode)
         vshReadlineDeinit(ctl);

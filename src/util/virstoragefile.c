@@ -44,6 +44,7 @@
 #include "dirname.h"
 #include "virbuffer.h"
 #include "virjson.h"
+#include "virstorageencryption.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
@@ -64,7 +65,7 @@ VIR_ENUM_IMPL(virStorageFileFormat,
               "cloop", "dmg", "iso",
               "vpc", "vdi",
               /* Not direct file formats, but used for various drivers */
-              "fat", "vhd", "ploop", "luks",
+              "fat", "vhd", "ploop",
               /* Formats with backing file below here */
               "cow", "qcow", "qcow2", "qed", "vmdk")
 
@@ -115,6 +116,26 @@ enum {
 
 #define FILE_TYPE_VERSIONS_LAST 2
 
+struct FileEncryptionInfo {
+    int format; /* Encryption format to assign */
+
+    int magicOffset; /* Byte offset of the magic */
+    const char *magic; /* Optional string of magic */
+
+    enum lv_endian endian; /* Endianness of file format */
+
+    int versionOffset;    /* Byte offset from start of file
+                           * where we find version number,
+                           * -1 to always fail the version test,
+                           * -2 to always pass the version test */
+    int versionSize;      /* Size in bytes of version data (0, 2, or 4) */
+    int versionNumbers[FILE_TYPE_VERSIONS_LAST];
+                          /* Version numbers to validate. Zeroes are ignored. */
+
+    int modeOffset; /* Byte offset of the format native encryption mode */
+    char modeValue; /* Value expected at offset */
+};
+
 /* Either 'magic' or 'extension' *must* be provided */
 struct FileTypeInfo {
     int magicOffset;    /* Byte offset of the magic */
@@ -138,14 +159,13 @@ struct FileTypeInfo {
                           /* Store a COW base image path (possibly relative),
                            * or NULL if there is no COW base image, to RES;
                            * return BACKING_STORE_* */
-    int qcowCryptOffset;  /* Byte offset from start of file
-                           * where to find encryption mode,
-                           * -1 if encryption is not used */
+    const struct FileEncryptionInfo *cryptInfo; /* Encryption info */
     int (*getBackingStore)(char **res, int *format,
                            const char *buf, size_t buf_size);
     int (*getFeatures)(virBitmapPtr *features, int format,
                        char *buf, ssize_t len);
 };
+
 
 static int cowGetBackingStore(char **, int *,
                               const char *, size_t);
@@ -197,19 +217,75 @@ qedGetBackingStore(char **, int *, const char *, size_t);
 /* Format described by qemu commit id '3e308f20e' */
 #define LUKS_HDR_VERSION_OFFSET LUKS_HDR_MAGIC_LEN
 
+static struct FileEncryptionInfo const luksEncryptionInfo[] = {
+    {
+        .format = VIR_STORAGE_ENCRYPTION_FORMAT_LUKS,
+
+        /* Magic is 'L','U','K','S', 0xBA, 0xBE */
+        .magicOffset = 0,
+        .magic = "\x4c\x55\x4b\x53\xba\xbe",
+        .endian = LV_BIG_ENDIAN,
+
+        .versionOffset  = LUKS_HDR_VERSION_OFFSET,
+        .versionSize = LUKS_HDR_VERSION_LEN,
+        .versionNumbers = {1},
+
+        .modeOffset = -1,
+        .modeValue = -1,
+    },
+    { 0 }
+};
+
+static struct FileEncryptionInfo const qcow1EncryptionInfo[] = {
+    {
+        .format = VIR_STORAGE_ENCRYPTION_FORMAT_QCOW,
+
+        .magicOffset = 0,
+        .magic = NULL,
+        .endian = LV_BIG_ENDIAN,
+
+        .versionOffset  = -1,
+        .versionSize = 0,
+        .versionNumbers = {},
+
+        .modeOffset = QCOW1_HDR_CRYPT,
+        .modeValue = 1,
+    },
+    { 0 }
+};
+
+static struct FileEncryptionInfo const qcow2EncryptionInfo[] = {
+    {
+        .format = VIR_STORAGE_ENCRYPTION_FORMAT_QCOW,
+
+        .magicOffset = 0,
+        .magic = NULL,
+        .endian = LV_BIG_ENDIAN,
+
+        .versionOffset  = -1,
+        .versionSize = 0,
+        .versionNumbers = {},
+
+        .modeOffset = QCOW2_HDR_CRYPT,
+        .modeValue = 1,
+    },
+    { 0 }
+};
 
 static struct FileTypeInfo const fileTypeInfo[] = {
     [VIR_STORAGE_FILE_NONE] = { 0, NULL, NULL, LV_LITTLE_ENDIAN,
-                                -1, 0, {0}, 0, 0, 0, 0, NULL, NULL },
+                                -1, 0, {0}, 0, 0, 0, NULL, NULL, NULL },
     [VIR_STORAGE_FILE_RAW] = { 0, NULL, NULL, LV_LITTLE_ENDIAN,
-                               -1, 0, {0}, 0, 0, 0, 0, NULL, NULL },
+                               -1, 0, {0}, 0, 0, 0,
+                               luksEncryptionInfo,
+                               NULL, NULL },
     [VIR_STORAGE_FILE_DIR] = { 0, NULL, NULL, LV_LITTLE_ENDIAN,
-                               -1, 0, {0}, 0, 0, 0, 0, NULL, NULL },
+                               -1, 0, {0}, 0, 0, 0, NULL, NULL, NULL },
     [VIR_STORAGE_FILE_BOCHS] = {
         /*"Bochs Virtual HD Image", */ /* Untested */
         0, NULL, NULL,
         LV_LITTLE_ENDIAN, 64, 4, {0x20000},
-        32+16+16+4+4+4+4+4, 8, 1, -1, NULL, NULL
+        32+16+16+4+4+4+4+4, 8, 1, NULL, NULL, NULL
     },
     [VIR_STORAGE_FILE_CLOOP] = {
         /* #!/bin/sh
@@ -218,7 +294,7 @@ static struct FileTypeInfo const fileTypeInfo[] = {
         */ /* Untested */
         0, NULL, NULL,
         LV_LITTLE_ENDIAN, -1, 0, {0},
-        -1, 0, 0, -1, NULL, NULL
+        -1, 0, 0, NULL, NULL, NULL
     },
     [VIR_STORAGE_FILE_DMG] = {
         /* XXX QEMU says there's no magic for dmg,
@@ -226,70 +302,68 @@ static struct FileTypeInfo const fileTypeInfo[] = {
          * would have to match) but then disables that check. */
         0, NULL, ".dmg",
         0, -1, 0, {0},
-        -1, 0, 0, -1, NULL, NULL
+        -1, 0, 0, NULL, NULL, NULL
     },
     [VIR_STORAGE_FILE_ISO] = {
         32769, "CD001", ".iso",
         LV_LITTLE_ENDIAN, -2, 0, {0},
-        -1, 0, 0, -1, NULL, NULL
+        -1, 0, 0, NULL, NULL, NULL
     },
     [VIR_STORAGE_FILE_VPC] = {
         0, "conectix", NULL,
         LV_BIG_ENDIAN, 12, 4, {0x10000},
-        8 + 4 + 4 + 8 + 4 + 4 + 2 + 2 + 4, 8, 1, -1, NULL, NULL
+        8 + 4 + 4 + 8 + 4 + 4 + 2 + 2 + 4, 8, 1, NULL, NULL, NULL
     },
     /* TODO: add getBackingStore function */
     [VIR_STORAGE_FILE_VDI] = {
         64, "\x7f\x10\xda\xbe", ".vdi",
         LV_LITTLE_ENDIAN, 68, 4, {0x00010001},
-        64 + 5 * 4 + 256 + 7 * 4, 8, 1, -1, NULL, NULL},
+        64 + 5 * 4 + 256 + 7 * 4, 8, 1, NULL, NULL, NULL},
 
     /* Not direct file formats, but used for various drivers */
     [VIR_STORAGE_FILE_FAT] = { 0, NULL, NULL, LV_LITTLE_ENDIAN,
-                               -1, 0, {0}, 0, 0, 0, 0, NULL, NULL },
+                               -1, 0, {0}, 0, 0, 0, NULL, NULL, NULL },
     [VIR_STORAGE_FILE_VHD] = { 0, NULL, NULL, LV_LITTLE_ENDIAN,
-                               -1, 0, {0}, 0, 0, 0, 0, NULL, NULL },
+                               -1, 0, {0}, 0, 0, 0, NULL, NULL, NULL },
     [VIR_STORAGE_FILE_PLOOP] = { 0, "WithouFreSpacExt", NULL, LV_LITTLE_ENDIAN,
                                  -2, 0, {0}, PLOOP_IMAGE_SIZE_OFFSET, 0,
-                                 PLOOP_SIZE_MULTIPLIER, -1, NULL, NULL },
+                                 PLOOP_SIZE_MULTIPLIER, NULL, NULL, NULL },
 
-    /* Magic is 'L','U','K','S', 0xBA, 0xBE
-     * Set sizeOffset = -1 and let hypervisor handle */
-    [VIR_STORAGE_FILE_LUKS] = {
-        0, "\x4c\x55\x4b\x53\xba\xbe", NULL,
-        LV_BIG_ENDIAN, LUKS_HDR_VERSION_OFFSET, 2, {1},
-        -1, 0, 0, -1, NULL, NULL
-    },
     /* All formats with a backing store probe below here */
     [VIR_STORAGE_FILE_COW] = {
         0, "OOOM", NULL,
         LV_BIG_ENDIAN, 4, 4, {2},
-        4+4+1024+4, 8, 1, -1, cowGetBackingStore, NULL
+        4+4+1024+4, 8, 1, NULL, cowGetBackingStore, NULL
     },
     [VIR_STORAGE_FILE_QCOW] = {
         0, "QFI", NULL,
         LV_BIG_ENDIAN, 4, 4, {1},
-        QCOWX_HDR_IMAGE_SIZE, 8, 1, QCOW1_HDR_CRYPT, qcow1GetBackingStore, NULL
+        QCOWX_HDR_IMAGE_SIZE, 8, 1,
+        qcow1EncryptionInfo,
+        qcow1GetBackingStore, NULL
     },
     [VIR_STORAGE_FILE_QCOW2] = {
         0, "QFI", NULL,
         LV_BIG_ENDIAN, 4, 4, {2, 3},
-        QCOWX_HDR_IMAGE_SIZE, 8, 1, QCOW2_HDR_CRYPT, qcow2GetBackingStore,
+        QCOWX_HDR_IMAGE_SIZE, 8, 1,
+        qcow2EncryptionInfo,
+        qcow2GetBackingStore,
         qcow2GetFeatures
     },
     [VIR_STORAGE_FILE_QED] = {
         /* http://wiki.qemu.org/Features/QED */
         0, "QED", NULL,
         LV_LITTLE_ENDIAN, -2, 0, {0},
-        QED_HDR_IMAGE_SIZE, 8, 1, -1, qedGetBackingStore, NULL
+        QED_HDR_IMAGE_SIZE, 8, 1, NULL, qedGetBackingStore, NULL
     },
     [VIR_STORAGE_FILE_VMDK] = {
         0, "KDMV", NULL,
         LV_LITTLE_ENDIAN, 4, 4, {1, 2},
-        4+4+4, 8, 512, -1, vmdk4GetBackingStore, NULL
+        4+4+4, 8, 512, NULL, vmdk4GetBackingStore, NULL
     },
 };
 verify(ARRAY_CARDINALITY(fileTypeInfo) == VIR_STORAGE_FILE_LAST);
+
 
 /* qcow2 compatible features in the order they appear on-disk */
 enum qcow2CompatibleFeature {
@@ -600,13 +674,12 @@ qedGetBackingStore(char **res,
 
 
 static bool
-virStorageFileMatchesMagic(int format,
+virStorageFileMatchesMagic(int magicOffset,
+                           const char *magic,
                            char *buf,
                            size_t buflen)
 {
     int mlen;
-    int magicOffset = fileTypeInfo[format].magicOffset;
-    const char *magic = fileTypeInfo[format].magic;
 
     if (magic == NULL)
         return false;
@@ -624,13 +697,13 @@ virStorageFileMatchesMagic(int format,
 
 
 static bool
-virStorageFileMatchesExtension(int format,
+virStorageFileMatchesExtension(const char *extension,
                                const char *path)
 {
-    if (fileTypeInfo[format].extension == NULL)
+    if (extension == NULL)
         return false;
 
-    if (virFileHasSuffix(path, fileTypeInfo[format].extension))
+    if (virFileHasSuffix(path, extension))
         return true;
 
     return false;
@@ -638,52 +711,53 @@ virStorageFileMatchesExtension(int format,
 
 
 static bool
-virStorageFileMatchesVersion(int format,
+virStorageFileMatchesVersion(int versionOffset,
+                             int versionSize,
+                             const int *versionNumbers,
+                             int endian,
                              char *buf,
                              size_t buflen)
 {
-    int version = 0;
+    int version;
     size_t i;
 
     /* Validate version number info */
-    if (fileTypeInfo[format].versionOffset == -1)
+    if (versionOffset == -1)
         return false;
 
     /* -2 == non-versioned file format, so trivially match */
-    if (fileTypeInfo[format].versionOffset == -2)
+    if (versionOffset == -2)
         return true;
 
     /* A positive versionOffset, requires using a valid versionSize */
-    if (fileTypeInfo[format].versionSize != 2 &&
-        fileTypeInfo[format].versionSize != 4)
+    if (versionSize != 2 && versionSize != 4)
         return false;
 
-    if ((fileTypeInfo[format].versionOffset +
-         fileTypeInfo[format].versionSize) > buflen)
+    if ((versionOffset + versionSize) > buflen)
         return false;
 
-    if (fileTypeInfo[format].endian == LV_LITTLE_ENDIAN) {
-        if (fileTypeInfo[format].versionSize == 4)
+    if (endian == LV_LITTLE_ENDIAN) {
+        if (versionSize == 4)
             version = virReadBufInt32LE(buf +
-                                        fileTypeInfo[format].versionOffset);
+                                        versionOffset);
         else
             version = virReadBufInt16LE(buf +
-                                        fileTypeInfo[format].versionOffset);
+                                        versionOffset);
     } else {
-        if (fileTypeInfo[format].versionSize == 4)
+        if (versionSize == 4)
             version = virReadBufInt32BE(buf +
-                                        fileTypeInfo[format].versionOffset);
+                                        versionOffset);
         else
             version = virReadBufInt16BE(buf +
-                                        fileTypeInfo[format].versionOffset);
+                                        versionOffset);
     }
 
     for (i = 0;
-         i < FILE_TYPE_VERSIONS_LAST && fileTypeInfo[format].versionNumbers[i];
+         i < FILE_TYPE_VERSIONS_LAST && versionNumbers[i];
          i++) {
         VIR_DEBUG("Compare detected version %d vs one of the expected versions %d",
-                  version, fileTypeInfo[format].versionNumbers[i]);
-        if (version == fileTypeInfo[format].versionNumbers[i])
+                  version, versionNumbers[i]);
+        if (version == versionNumbers[i])
             return true;
     }
 
@@ -736,8 +810,16 @@ virStorageFileProbeFormatFromBuf(const char *path,
 
     /* First check file magic */
     for (i = 0; i < VIR_STORAGE_FILE_LAST; i++) {
-        if (virStorageFileMatchesMagic(i, buf, buflen)) {
-            if (!virStorageFileMatchesVersion(i, buf, buflen)) {
+        if (virStorageFileMatchesMagic(
+                fileTypeInfo[i].magicOffset,
+                fileTypeInfo[i].magic,
+                buf, buflen)) {
+            if (!virStorageFileMatchesVersion(
+                    fileTypeInfo[i].versionOffset,
+                    fileTypeInfo[i].versionSize,
+                    fileTypeInfo[i].versionNumbers,
+                    fileTypeInfo[i].endian,
+                    buf, buflen)) {
                 possibleFormat = i;
                 continue;
             }
@@ -753,7 +835,8 @@ virStorageFileProbeFormatFromBuf(const char *path,
 
     /* No magic, so check file extension */
     for (i = 0; i < VIR_STORAGE_FILE_LAST; i++) {
-        if (virStorageFileMatchesExtension(i, path)) {
+        if (virStorageFileMatchesExtension(
+                fileTypeInfo[i].extension, path)) {
             format = i;
             goto cleanup;
         }
@@ -799,6 +882,43 @@ qcow2GetFeatures(virBitmapPtr *features,
 }
 
 
+static bool
+virStorageFileHasEncryptionFormat(const struct FileEncryptionInfo *info,
+                                  char *buf,
+                                  size_t len)
+{
+    if (!info->magic && info->modeOffset == -1)
+        return 0; /* Shouldn't happen - expect at least one */
+
+    if (info->magic) {
+        if (!virStorageFileMatchesMagic(info->magicOffset,
+                                        info->magic,
+                                        buf, len))
+            return false;
+
+        if (info->versionOffset != -1 &&
+            !virStorageFileMatchesVersion(info->versionOffset,
+                                          info->versionSize,
+                                          info->versionNumbers,
+                                          info->endian,
+                                          buf, len))
+            return false;
+
+        return true;
+    } else if (info->modeOffset != -1) {
+        if (info->modeOffset >= len)
+            return false;
+
+        if (buf[info->modeOffset] != info->modeValue)
+            return false;
+
+        return true;
+    } else {
+        return false;
+    }
+}
+
+
 /* Given a header in BUF with length LEN, as parsed from the storage file
  * assuming it has the given FORMAT, populate information into META
  * with information about the file and its backing store. Return format
@@ -811,6 +931,7 @@ virStorageFileGetMetadataInternal(virStorageSourcePtr meta,
                                   int *backingFormat)
 {
     int ret = -1;
+    size_t i;
 
     VIR_DEBUG("path=%s, buf=%p, len=%zu, meta->format=%d",
               meta->path, buf, len, meta->format);
@@ -823,6 +944,18 @@ virStorageFileGetMetadataInternal(virStorageSourcePtr meta,
         virReportSystemError(EINVAL, _("unknown storage file meta->format %d"),
                              meta->format);
         goto cleanup;
+    }
+
+    if (fileTypeInfo[meta->format].cryptInfo != NULL) {
+        for (i = 0; fileTypeInfo[meta->format].cryptInfo[i].format != 0; i++) {
+            if (virStorageFileHasEncryptionFormat(&fileTypeInfo[meta->format].cryptInfo[i],
+                                                  buf, len)) {
+                if (VIR_ALLOC(meta->encryption) < 0)
+                    goto cleanup;
+
+                meta->encryption->format = fileTypeInfo[meta->format].cryptInfo[i].format;
+            }
+        }
     }
 
     /* XXX we should consider moving virStorageBackendUpdateVolInfo
@@ -847,22 +980,6 @@ virStorageFileGetMetadataInternal(virStorageSourcePtr meta,
                               fileTypeInfo[meta->format].sizeMultiplier))
             goto done;
         meta->capacity *= fileTypeInfo[meta->format].sizeMultiplier;
-    }
-
-    if (fileTypeInfo[meta->format].qcowCryptOffset != -1) {
-        int crypt_format;
-
-        crypt_format = virReadBufInt32BE(buf +
-                                         fileTypeInfo[meta->format].qcowCryptOffset);
-        if (crypt_format && !meta->encryption &&
-            VIR_ALLOC(meta->encryption) < 0)
-            goto cleanup;
-    }
-
-    if (meta->format == VIR_STORAGE_FILE_LUKS) {
-        /* By definition, this is encrypted */
-        if (!meta->encryption && VIR_ALLOC(meta->encryption) < 0)
-            goto cleanup;
     }
 
     VIR_FREE(meta->backingStoreRaw);
