@@ -122,6 +122,13 @@ DEB_CONFIGURE_EXTRA_ARGS :=      \
         --with-nss-plugin        \
         $(NULL)
 
+LIBVIRT_SYSTEM_SERVICES = \
+	libvirt-guests.service \
+	virtlockd.socket \
+	virtlockd.service \
+	$(NULL)
+
+
 DEB_BUILDDIR := $(CURDIR)/debian/build
 LOGROTATE = $(basename $(basename $(notdir $(wildcard daemon/libvirtd*.logrotate.in))))
 EXAMPLES_DIR = $(CURDIR)/debian/libvirt-doc/usr/share/doc/libvirt-doc/examples/
@@ -196,7 +203,7 @@ override_dh_installinit:
 	dh_installinit -p libvirt-daemon-system --name=libvirtd --restart-after-upgrade -- defaults 28 72
 	dh_installinit -p libvirt-daemon-system --name=libvirt-guests --no-restart-on-upgrade -- defaults 29 71
 	dh_systemd_start -p libvirt-daemon-system --restart-after-upgrade libvirtd.service
-	dh_systemd_start -p libvirt-daemon-system --no-restart-on-upgrade libvirt-guests.service virtlockd.socket virtlockd.service
+	dh_systemd_start -p libvirt-daemon-system --no-restart-on-upgrade $(LIBVIRT_SYSTEM_SERVICES)
 
 override_dh_installdocs:
 	dh_installdocs
