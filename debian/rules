@@ -124,6 +124,8 @@ DEB_CONFIGURE_EXTRA_ARGS :=      \
 
 LIBVIRT_SYSTEM_SERVICES = \
 	libvirt-guests.service \
+	virtlogd.socket \
+	virtlogd.service \
 	virtlockd.socket \
 	virtlockd.service \
 	$(NULL)
