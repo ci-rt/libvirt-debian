@@ -45,6 +45,7 @@ Build-Depends:
  systemtap-sdt-dev [amd64 armel armhf i386 ia64 powerpc s390],
  python,
  xsltproc,
+ zfsutils [kfreebsd-amd64 kfreebsd-i386],
 # for --with-storage-sheepdog
  sheepdog [linux-any],
 # for --with-storage-rados
@@ -137,7 +138,7 @@ Recommends:
  pm-utils,
 Section: admin
 Suggests: radvd, auditd, systemtap, systemd, apparmor,
- nfs-common,
+ nfs-common, zfsutils
 Breaks: avahi-daemon (<< 0.6.31-3~),
  systemd-sysv (<< 224-1~)
 Replaces: libvirt-bin (<< 1.2.7-4~)
