@@ -135,10 +135,9 @@ Recommends:
  iproute2,
  iptables (>= 1.4.10) [linux-any],
  parted,
- pm-utils,
 Section: admin
 Suggests: radvd, auditd, systemtap, systemd, apparmor,
- nfs-common, zfsutils
+ nfs-common, zfsutils, pm-utils
 Breaks: avahi-daemon (<< 0.6.31-3~),
  systemd-sysv (<< 224-1~)
 Replaces: libvirt-bin (<< 1.2.7-4~)
