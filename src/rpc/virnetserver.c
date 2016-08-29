@@ -234,18 +234,50 @@ static int virNetServerDispatchNewMessage(virNetServerClientPtr client,
     return ret;
 }
 
+/**
+ * virNetServerCheckLimits:
+ * @srv: server to check limits on
+ *
+ * Check if limits like max_clients or max_anonymous_clients
+ * are satisfied. If so, re-enable accepting new clients. If these are violated
+ * however, temporarily disable accepting new clients.
+ * The @srv must be locked when this function is called.
+ */
+static void
+virNetServerCheckLimits(virNetServerPtr srv)
+{
+    VIR_DEBUG("Checking client-related limits to re-enable or temporarily "
+              "suspend services: nclients=%zu nclients_max=%zu "
+              "nclients_unauth=%zu nclients_unauth_max=%zu",
+              srv->nclients, srv->nclients_max,
+              srv->nclients_unauth, srv->nclients_unauth_max);
+
+    /* Check the max_anonymous_clients and max_clients limits so that we can
+     * decide whether the services should be temporarily suspended, thus not
+     * accepting any more clients for a while or re-enabling the previously
+     * suspended services in order to accept new clients again.
+     * A new client can only be accepted if both max_clients and
+     * max_anonymous_clients wouldn't get overcommitted by accepting it.
+     */
+    if (srv->nclients >= srv->nclients_max ||
+        (srv->nclients_unauth_max &&
+         srv->nclients_unauth >= srv->nclients_unauth_max)) {
+        /* Temporarily stop accepting new clients */
+        VIR_INFO("Temporarily suspending services");
+        virNetServerUpdateServicesLocked(srv, false);
+    } else if (srv->nclients < srv->nclients_max &&
+               (!srv->nclients_unauth_max ||
+                srv->nclients_unauth < srv->nclients_unauth_max)) {
+        /* Now it makes sense to accept() a new client. */
+        VIR_INFO("Re-enabling services");
+        virNetServerUpdateServicesLocked(srv, true);
+    }
+}
 
 int virNetServerAddClient(virNetServerPtr srv,
                           virNetServerClientPtr client)
 {
     virObjectLock(srv);
-
-    if (srv->nclients >= srv->nclients_max) {
-        virReportError(VIR_ERR_RPC,
-                       _("Too many active clients (%zu), dropping connection from %s"),
-                       srv->nclients_max, virNetServerClientRemoteAddrStringURI(client));
-        goto error;
-    }
 
     if (virNetServerClientInit(client) < 0)
         goto error;
@@ -258,19 +290,7 @@ int virNetServerAddClient(virNetServerPtr srv,
     if (virNetServerClientNeedAuth(client))
         virNetServerTrackPendingAuthLocked(srv);
 
-    if (srv->nclients_unauth_max &&
-        srv->nclients_unauth == srv->nclients_unauth_max) {
-        /* Temporarily stop accepting new clients */
-        VIR_INFO("Temporarily suspending services "
-                 "due to max_anonymous_clients");
-        virNetServerUpdateServicesLocked(srv, false);
-    }
-
-    if (srv->nclients == srv->nclients_max) {
-        /* Temporarily stop accepting new clients */
-        VIR_INFO("Temporarily suspending services due to max_clients");
-        virNetServerUpdateServicesLocked(srv, false);
-    }
+    virNetServerCheckLimits(srv);
 
     virNetServerClientSetDispatcher(client,
                                     virNetServerDispatchNewMessage,
@@ -737,35 +757,6 @@ void virNetServerUpdateServices(virNetServerPtr srv,
     virObjectUnlock(srv);
 }
 
-/**
- * virNetServerCheckLimits:
- * @srv: server to check limits on
- *
- * Check if limits like max_clients or max_anonymous_clients
- * are satisfied and if so, re-enable accepting new clients.
- * The @srv must be locked when this function is called.
- */
-static void
-virNetServerCheckLimits(virNetServerPtr srv)
-{
-    /* Enable services if we can accept a new client.
-     * The new client can be accepted if both max_clients and
-     * max_anonymous_clients wouldn't get overcommitted by
-     * accepting it. */
-    VIR_DEBUG("Considering re-enabling services: "
-              "nclients=%zu nclients_max=%zu "
-              "nclients_unauth=%zu nclients_unauth_max=%zu",
-              srv->nclients, srv->nclients_max,
-              srv->nclients_unauth, srv->nclients_unauth_max);
-    if (srv->nclients < srv->nclients_max &&
-        (!srv->nclients_unauth_max ||
-         srv->nclients_unauth < srv->nclients_unauth_max)) {
-        /* Now it makes sense to accept() a new client. */
-        VIR_INFO("Re-enabling services");
-        virNetServerUpdateServicesLocked(srv, true);
-    }
-}
-
 void virNetServerDispose(void *obj)
 {
     virNetServerPtr srv = obj;
@@ -1046,9 +1037,9 @@ virNetServerGetClient(virNetServerPtr srv,
 }
 
 int
-virNetServerSetClientProcessingControls(virNetServerPtr srv,
-                                        long long int maxClients,
-                                        long long int maxClientsUnauth)
+virNetServerSetClientLimits(virNetServerPtr srv,
+                            long long int maxClients,
+                            long long int maxClientsUnauth)
 {
     int ret = -1;
     size_t max, max_unauth;
@@ -1072,6 +1063,8 @@ virNetServerSetClientProcessingControls(virNetServerPtr srv,
 
     if (maxClientsUnauth >= 0)
         srv->nclients_unauth_max = maxClientsUnauth;
+
+    virNetServerCheckLimits(srv);
 
     ret = 0;
  cleanup:

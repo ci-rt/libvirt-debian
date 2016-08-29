@@ -684,6 +684,12 @@ virNodeDeviceObjRemove;
 virNodeDeviceObjUnlock;
 
 
+# conf/node_device_event.h
+virNodeDeviceEventLifecycleNew;
+virNodeDeviceEventStateRegisterID;
+virNodeDeviceEventUpdateNew;
+
+
 # conf/numa_conf.h
 virDomainNumaCheckABIStability;
 virDomainNumaEquals;
@@ -1263,6 +1269,7 @@ virCgroupBindMount;
 virCgroupControllerAvailable;
 virCgroupControllerTypeFromString;
 virCgroupControllerTypeToString;
+virCgroupDelThread;
 virCgroupDenyAllDevices;
 virCgroupDenyDevice;
 virCgroupDenyDevicePath;

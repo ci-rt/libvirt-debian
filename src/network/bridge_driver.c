@@ -400,6 +400,7 @@ networkUpdateState(virNetworkObjPtr obj,
     case VIR_NETWORK_FORWARD_NONE:
     case VIR_NETWORK_FORWARD_NAT:
     case VIR_NETWORK_FORWARD_ROUTE:
+    case VIR_NETWORK_FORWARD_OPEN:
         /* If bridge doesn't exist, then mark it inactive */
         if (!(obj->def->bridge && virNetDevExists(obj->def->bridge) == 1))
             obj->active = 0;
@@ -915,6 +916,7 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
     int nbleases = 0;
     size_t i;
     virNetworkDNSDefPtr dns = &network->def->dns;
+    bool wantDNS = dns->enable != VIR_TRISTATE_BOOL_NO;
     virNetworkIPDefPtr tmpipdef, ipdef, ipv4def, ipv6def;
     bool ipv6SLAAC;
     char *saddr = NULL, *eaddr = NULL;
@@ -947,11 +949,31 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
                       "strict-order\n",
                       network->def->name);
 
-    if (network->def->dns.forwarders) {
+    /* if dns is disabled, set its listening port to 0, which
+     * tells dnsmasq to not listen
+     */
+    if (!wantDNS)
+        virBufferAddLit(&configbuf, "port=0\n");
+
+    if (wantDNS && network->def->dns.forwarders) {
         virBufferAddLit(&configbuf, "no-resolv\n");
         for (i = 0; i < network->def->dns.nfwds; i++) {
-            virBufferAsprintf(&configbuf, "server=%s\n",
-                              network->def->dns.forwarders[i]);
+            virNetworkDNSForwarderPtr fwd = &network->def->dns.forwarders[i];
+
+            virBufferAddLit(&configbuf, "server=");
+            if (fwd->domain)
+                virBufferAsprintf(&configbuf, "/%s/", fwd->domain);
+            if (VIR_SOCKET_ADDR_VALID(&fwd->addr)) {
+                char *addr = virSocketAddrFormat(&fwd->addr);
+
+                if (!addr)
+                    goto cleanup;
+                virBufferAsprintf(&configbuf, "%s\n", addr);
+                VIR_FREE(addr);
+            } else {
+                /* "don't forward requests for this domain" */
+                virBufferAddLit(&configbuf, "#\n");
+            }
         }
     }
 
@@ -967,7 +989,7 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
                           network->def->domain);
     }
 
-    if (network->def->dns.forwardPlainNames == VIR_TRISTATE_BOOL_NO) {
+    if (wantDNS && network->def->dns.forwardPlainNames == VIR_TRISTATE_BOOL_NO) {
         virBufferAddLit(&configbuf, "domain-needed\n");
         /* need to specify local=// whether or not a domain is
          * specified, unless the config says we should forward "plain"
@@ -1060,64 +1082,66 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
         }
     }
 
-    for (i = 0; i < dns->ntxts; i++) {
-        virBufferAsprintf(&configbuf, "txt-record=%s,%s\n",
-                          dns->txts[i].name,
-                          dns->txts[i].value);
-    }
-
-    for (i = 0; i < dns->nsrvs; i++) {
-        /* service/protocol are required, and should have been validated
-         * by the parser.
-         */
-        if (!dns->srvs[i].service) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Missing required 'service' "
-                             "attribute in SRV record of network '%s'"),
-                           network->def->name);
-            goto cleanup;
+    if (wantDNS) {
+        for (i = 0; i < dns->ntxts; i++) {
+            virBufferAsprintf(&configbuf, "txt-record=%s,%s\n",
+                              dns->txts[i].name,
+                              dns->txts[i].value);
         }
-        if (!dns->srvs[i].protocol) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Missing required 'service' "
-                             "attribute in SRV record of network '%s'"),
-                           network->def->name);
-            goto cleanup;
-        }
-        /* RFC2782 requires that service and protocol be preceded by
-         * an underscore.
-         */
-        virBufferAsprintf(&configbuf, "srv-host=_%s._%s",
-                          dns->srvs[i].service, dns->srvs[i].protocol);
 
-        /* domain is optional - it defaults to the domain of this network */
-        if (dns->srvs[i].domain)
-            virBufferAsprintf(&configbuf, ".%s", dns->srvs[i].domain);
-
-        /* If target is empty or ".", that means "the service is
-         * decidedly not available at this domain" (RFC2782). In that
-         * case, any port, priority, or weight is irrelevant.
-         */
-        if (dns->srvs[i].target && STRNEQ(dns->srvs[i].target, ".")) {
-
-            virBufferAsprintf(&configbuf, ",%s", dns->srvs[i].target);
-            /* port, priority, and weight are optional, but are
-             * identified by their position in the line. If an item is
-             * unspecified, but something later in the line *is*
-             * specified, we need to give the default value for the
-             * unspecified item. (According to the dnsmasq manpage,
-             * the default for port is 1).
+        for (i = 0; i < dns->nsrvs; i++) {
+            /* service/protocol are required, and should have been validated
+             * by the parser.
              */
-            if (dns->srvs[i].port ||
-                dns->srvs[i].priority || dns->srvs[i].weight)
-                virBufferAsprintf(&configbuf, ",%d",
-                                  dns->srvs[i].port ? dns->srvs[i].port : 1);
-            if (dns->srvs[i].priority || dns->srvs[i].weight)
-                virBufferAsprintf(&configbuf, ",%d", dns->srvs[i].priority);
-            if (dns->srvs[i].weight)
-                virBufferAsprintf(&configbuf, ",%d", dns->srvs[i].weight);
+            if (!dns->srvs[i].service) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Missing required 'service' "
+                                 "attribute in SRV record of network '%s'"),
+                               network->def->name);
+                goto cleanup;
+            }
+            if (!dns->srvs[i].protocol) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Missing required 'service' "
+                                 "attribute in SRV record of network '%s'"),
+                               network->def->name);
+                goto cleanup;
+            }
+            /* RFC2782 requires that service and protocol be preceded by
+             * an underscore.
+             */
+            virBufferAsprintf(&configbuf, "srv-host=_%s._%s",
+                              dns->srvs[i].service, dns->srvs[i].protocol);
+
+            /* domain is optional - it defaults to the domain of this network */
+            if (dns->srvs[i].domain)
+                virBufferAsprintf(&configbuf, ".%s", dns->srvs[i].domain);
+
+            /* If target is empty or ".", that means "the service is
+             * decidedly not available at this domain" (RFC2782). In that
+             * case, any port, priority, or weight is irrelevant.
+             */
+            if (dns->srvs[i].target && STRNEQ(dns->srvs[i].target, ".")) {
+
+                virBufferAsprintf(&configbuf, ",%s", dns->srvs[i].target);
+                /* port, priority, and weight are optional, but are
+                 * identified by their position in the line. If an item is
+                 * unspecified, but something later in the line *is*
+                 * specified, we need to give the default value for the
+                 * unspecified item. (According to the dnsmasq manpage,
+                 * the default for port is 1).
+                 */
+                if (dns->srvs[i].port ||
+                    dns->srvs[i].priority || dns->srvs[i].weight)
+                    virBufferAsprintf(&configbuf, ",%d",
+                                      dns->srvs[i].port ? dns->srvs[i].port : 1);
+                if (dns->srvs[i].priority || dns->srvs[i].weight)
+                    virBufferAsprintf(&configbuf, ",%d", dns->srvs[i].priority);
+                if (dns->srvs[i].weight)
+                    virBufferAsprintf(&configbuf, ",%d", dns->srvs[i].weight);
+            }
+            virBufferAddLit(&configbuf, "\n");
         }
-        virBufferAddLit(&configbuf, "\n");
     }
 
     /* Find the first dhcp for both IPv4 and IPv6 */
@@ -1197,7 +1221,7 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
             virBufferAsprintf(&configbuf, "dhcp-range=%s,%s",
                               saddr, eaddr);
             if (VIR_SOCKET_ADDR_IS_FAMILY(&ipdef->address, AF_INET6))
-               virBufferAsprintf(&configbuf, ",%d", prefix);
+                virBufferAsprintf(&configbuf, ",%d", prefix);
             virBufferAddLit(&configbuf, "\n");
 
             VIR_FREE(saddr);
@@ -1224,7 +1248,7 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
             virBufferAsprintf(&configbuf, "dhcp-range=%s,static",
                               bridgeaddr);
             if (VIR_SOCKET_ADDR_IS_FAMILY(&ipdef->address, AF_INET6))
-               virBufferAsprintf(&configbuf, ",%d", prefix);
+                virBufferAsprintf(&configbuf, ",%d", prefix);
             virBufferAddLit(&configbuf, "\n");
             VIR_FREE(bridgeaddr);
         }
@@ -1277,8 +1301,10 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
     /* Likewise, always create this file and put it on the
      * commandline, to allow for runtime additions.
      */
-    virBufferAsprintf(&configbuf, "addn-hosts=%s\n",
-                      dctx->addnhostsfile->path);
+    if (wantDNS) {
+        virBufferAsprintf(&configbuf, "addn-hosts=%s\n",
+                          dctx->addnhostsfile->path);
+    }
 
     /* Are we doing RA instead of radvd? */
     if (DNSMASQ_RA_SUPPORT(caps)) {
@@ -1374,13 +1400,28 @@ static int
 networkStartDhcpDaemon(virNetworkDriverStatePtr driver,
                        virNetworkObjPtr network)
 {
+    virNetworkIPDefPtr ipdef;
+    size_t i;
+    bool needDnsmasq = false;
     virCommandPtr cmd = NULL;
     char *pidfile = NULL;
     int ret = -1;
     dnsmasqContext *dctx = NULL;
 
-    if (!virNetworkDefGetIPByIndex(network->def, AF_UNSPEC, 0)) {
+    if (!(ipdef = virNetworkDefGetIPByIndex(network->def, AF_UNSPEC, 0))) {
         /* no IP addresses, so we don't need to run */
+        ret = 0;
+        goto cleanup;
+    }
+
+    /* see if there are any IP addresses that need a dhcp server */
+    for (i = 0; ipdef && !needDnsmasq;
+         ipdef = virNetworkDefGetIPByIndex(network->def, AF_UNSPEC, i + 1)) {
+        if (ipdef->nranges || ipdef->nhosts)
+            needDnsmasq = true;
+    }
+
+    if (!needDnsmasq && network->def->dns.enable == VIR_TRISTATE_BOOL_NO) {
         ret = 0;
         goto cleanup;
     }
@@ -1822,7 +1863,8 @@ networkRefreshDaemonsHelper(virNetworkObjPtr net,
     if (virNetworkObjIsActive(net) &&
         ((net->def->forward.type == VIR_NETWORK_FORWARD_NONE) ||
          (net->def->forward.type == VIR_NETWORK_FORWARD_NAT) ||
-         (net->def->forward.type == VIR_NETWORK_FORWARD_ROUTE))) {
+         (net->def->forward.type == VIR_NETWORK_FORWARD_ROUTE) ||
+         (net->def->forward.type == VIR_NETWORK_FORWARD_OPEN))) {
         /* Only the three L3 network types that are configured by
          * libvirt will have a dnsmasq or radvd daemon associated
          * with them.  Here we send a SIGHUP to an existing
@@ -1858,8 +1900,10 @@ networkReloadFirewallRulesHelper(virNetworkObjPtr net,
         ((net->def->forward.type == VIR_NETWORK_FORWARD_NONE) ||
          (net->def->forward.type == VIR_NETWORK_FORWARD_NAT) ||
          (net->def->forward.type == VIR_NETWORK_FORWARD_ROUTE))) {
-        /* Only the three L3 network types that are configured by libvirt
-         * need to have iptables rules reloaded.
+        /* Only three of the L3 network types that are configured by
+         * libvirt need to have iptables rules reloaded. The 4th L3
+         * network type, forward='open', doesn't need this because it
+         * has no iptables rules.
          */
         networkRemoveFirewallRules(net->def);
         if (networkAddFirewallRules(net->def) < 0) {
@@ -2142,7 +2186,8 @@ networkStartNetworkVirtual(virNetworkDriverStatePtr driver,
         goto err1;
 
     /* Add "once per network" rules */
-    if (networkAddFirewallRules(network->def) < 0)
+    if (network->def->forward.type != VIR_NETWORK_FORWARD_OPEN &&
+        networkAddFirewallRules(network->def) < 0)
         goto err1;
 
     for (i = 0;
@@ -2244,7 +2289,8 @@ networkStartNetworkVirtual(virNetworkDriverStatePtr driver,
  err2:
     if (!save_err)
         save_err = virSaveLastError();
-    networkRemoveFirewallRules(network->def);
+    if (network->def->forward.type != VIR_NETWORK_FORWARD_OPEN)
+        networkRemoveFirewallRules(network->def);
 
  err1:
     if (!save_err)
@@ -2300,7 +2346,8 @@ networkShutdownNetworkVirtual(virNetworkDriverStatePtr driver,
 
     ignore_value(virNetDevSetOnline(network->def->bridge, 0));
 
-    networkRemoveFirewallRules(network->def);
+    if (network->def->forward.type != VIR_NETWORK_FORWARD_OPEN)
+        networkRemoveFirewallRules(network->def);
 
     ignore_value(virNetDevBridgeDelete(network->def->bridge));
 
@@ -2407,6 +2454,7 @@ networkCreateInterfacePool(virNetworkDefPtr netdef)
         case VIR_NETWORK_FORWARD_NONE:
         case VIR_NETWORK_FORWARD_NAT:
         case VIR_NETWORK_FORWARD_ROUTE:
+        case VIR_NETWORK_FORWARD_OPEN:
         case VIR_NETWORK_FORWARD_LAST:
             /* by definition these will never be encountered here */
             break;
@@ -2500,6 +2548,7 @@ networkStartNetwork(virNetworkDriverStatePtr driver,
     case VIR_NETWORK_FORWARD_NONE:
     case VIR_NETWORK_FORWARD_NAT:
     case VIR_NETWORK_FORWARD_ROUTE:
+    case VIR_NETWORK_FORWARD_OPEN:
         if (networkStartNetworkVirtual(driver, network) < 0)
             goto cleanup;
         break;
@@ -2578,6 +2627,7 @@ networkShutdownNetwork(virNetworkDriverStatePtr driver,
     case VIR_NETWORK_FORWARD_NONE:
     case VIR_NETWORK_FORWARD_NAT:
     case VIR_NETWORK_FORWARD_ROUTE:
+    case VIR_NETWORK_FORWARD_OPEN:
         ret = networkShutdownNetworkVirtual(driver, network);
         break;
 
@@ -2926,7 +2976,8 @@ networkValidate(virNetworkDriverStatePtr driver,
      */
     if (def->forward.type == VIR_NETWORK_FORWARD_NONE ||
         def->forward.type == VIR_NETWORK_FORWARD_NAT ||
-        def->forward.type == VIR_NETWORK_FORWARD_ROUTE) {
+        def->forward.type == VIR_NETWORK_FORWARD_ROUTE ||
+        def->forward.type == VIR_NETWORK_FORWARD_OPEN) {
 
         /* if no bridge name was given in the config, find a name
          * unused by any other libvirt networks and assign it.
@@ -3367,8 +3418,10 @@ networkUpdate(virNetworkPtr net,
                  * old rules (and remember to load new ones after the
                  * update).
                  */
-                networkRemoveFirewallRules(network->def);
-                needFirewallRefresh = true;
+                if (network->def->forward.type != VIR_NETWORK_FORWARD_OPEN) {
+                    networkRemoveFirewallRules(network->def);
+                    needFirewallRefresh = true;
+                }
                 break;
             default:
                 break;
@@ -4050,7 +4103,8 @@ networkAllocateActualDevice(virDomainDefPtr dom,
 
     if ((netdef->forward.type == VIR_NETWORK_FORWARD_NONE) ||
         (netdef->forward.type == VIR_NETWORK_FORWARD_NAT) ||
-        (netdef->forward.type == VIR_NETWORK_FORWARD_ROUTE)) {
+        (netdef->forward.type == VIR_NETWORK_FORWARD_ROUTE) ||
+        (netdef->forward.type == VIR_NETWORK_FORWARD_OPEN)) {
         /* for these forward types, the actual net type really *is*
          * NETWORK; we just keep the info from the portgroup in
          * iface->data.network.actual
@@ -4594,7 +4648,8 @@ networkReleaseActualDevice(virDomainDefPtr dom,
     if (iface->data.network.actual &&
         (netdef->forward.type == VIR_NETWORK_FORWARD_NONE ||
          netdef->forward.type == VIR_NETWORK_FORWARD_NAT ||
-         netdef->forward.type == VIR_NETWORK_FORWARD_ROUTE) &&
+         netdef->forward.type == VIR_NETWORK_FORWARD_ROUTE ||
+         netdef->forward.type == VIR_NETWORK_FORWARD_OPEN) &&
         networkUnplugBandwidth(network, iface) < 0)
         goto error;
 
@@ -4741,6 +4796,7 @@ networkGetNetworkAddress(const char *netname, char **netaddr)
     case VIR_NETWORK_FORWARD_NONE:
     case VIR_NETWORK_FORWARD_NAT:
     case VIR_NETWORK_FORWARD_ROUTE:
+    case VIR_NETWORK_FORWARD_OPEN:
         ipdef = virNetworkDefGetIPByIndex(netdef, AF_UNSPEC, 0);
         if (!ipdef) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -4824,7 +4880,8 @@ networkGetActualType(virDomainNetDefPtr iface)
 
     if ((netdef->forward.type == VIR_NETWORK_FORWARD_NONE) ||
         (netdef->forward.type == VIR_NETWORK_FORWARD_NAT) ||
-        (netdef->forward.type == VIR_NETWORK_FORWARD_ROUTE)) {
+        (netdef->forward.type == VIR_NETWORK_FORWARD_ROUTE) ||
+        (netdef->forward.type == VIR_NETWORK_FORWARD_OPEN)) {
         /* for these forward types, the actual net type really *is*
          * NETWORK; we just keep the info from the portgroup in
          * iface->data.network.actual

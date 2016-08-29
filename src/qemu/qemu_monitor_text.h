@@ -49,8 +49,9 @@ int qemuMonitorTextGetStatus(qemuMonitorPtr mon,
 int qemuMonitorTextSystemPowerdown(qemuMonitorPtr mon);
 int qemuMonitorTextSystemReset(qemuMonitorPtr mon);
 
-int qemuMonitorTextGetCPUInfo(qemuMonitorPtr mon,
-                              int **pids);
+int qemuMonitorTextQueryCPUs(qemuMonitorPtr mon,
+                             struct qemuMonitorQueryCpusEntry **entries,
+                             size_t *nentries);
 int qemuMonitorTextGetVirtType(qemuMonitorPtr mon,
                                virDomainVirtType *virtType);
 int qemuMonitorTextGetBalloonInfo(qemuMonitorPtr mon,

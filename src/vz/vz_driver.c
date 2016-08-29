@@ -53,6 +53,7 @@
 #include "virtypedparam.h"
 #include "virhostmem.h"
 #include "virhostcpu.h"
+#include "viraccessapicheck.h"
 
 #include "vz_driver.h"
 #include "vz_utils.h"
@@ -229,9 +230,13 @@ vzConnectGetCapabilities(virConnectPtr conn)
     vzConnPtr privconn = conn->privateData;
     char *xml;
 
+    if (virConnectGetCapabilitiesEnsureACL(conn) < 0)
+        return NULL;
+
     xml = virCapabilitiesFormatXML(privconn->driver->caps);
     return xml;
 }
+
 static int
 vzDomainDefAddDefaultInputDevices(virDomainDefPtr def)
 {
@@ -258,11 +263,19 @@ static int
 vzDomainDefPostParse(virDomainDefPtr def,
                      virCapsPtr caps ATTRIBUTE_UNUSED,
                      unsigned int parseFlags ATTRIBUTE_UNUSED,
-                     void *opaque)
+                     void *opaque ATTRIBUTE_UNUSED)
 {
     if (vzDomainDefAddDefaultInputDevices(def) < 0)
         return -1;
 
+    return 0;
+}
+
+static int
+vzDomainDefValidate(const virDomainDef *def,
+                    virCapsPtr caps ATTRIBUTE_UNUSED,
+                    void *opaque)
+{
     if (vzCheckUnsupportedControllers(def, opaque) < 0)
         return -1;
 
@@ -284,6 +297,14 @@ vzDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
         VIR_STRDUP(dev->data.net->model, "e1000") < 0)
         return -1;
 
+    return 0;
+}
+
+static int
+vzDomainDeviceDefValidate(const virDomainDeviceDef *dev,
+                          const virDomainDef *def,
+                          void *opaque ATTRIBUTE_UNUSED)
+{
     if (dev->type == VIR_DOMAIN_DEVICE_DISK)
         return vzCheckUnsupportedDisk(def, dev->data.disk, opaque);
     else if (dev->type == VIR_DOMAIN_DEVICE_GRAPHICS)
@@ -299,8 +320,10 @@ static virDomainXMLPrivateDataCallbacks vzDomainXMLPrivateDataCallbacksPtr = {
 
 static virDomainDefParserConfig vzDomainDefParserConfig = {
     .macPrefix = {0x42, 0x1C, 0x00},
-    .devicesPostParseCallback = vzDomainDeviceDefPostParse,
     .domainPostParseCallback = vzDomainDefPostParse,
+    .devicesPostParseCallback = vzDomainDeviceDefPostParse,
+    .domainValidateCallback = vzDomainDefValidate,
+    .deviceValidateCallback = vzDomainDeviceDefValidate,
 };
 
 static vzDriverPtr
@@ -331,6 +354,11 @@ vzDriverObjNew(void)
 
     driver->hostsysinfo = virSysinfoRead();
     ignore_value(prlsdkLoadDomains(driver));
+
+    /* As far as waitDomainJob finally calls virReportErrorHelper
+     * and we are not going to report it, reset it expicitly*/
+    virResetLastError();
+
     return driver;
 }
 
@@ -372,6 +400,9 @@ vzConnectOpen(virConnectPtr conn,
                        conn->uri->path);
         return VIR_DRV_OPEN_ERROR;
     }
+
+    if (virConnectOpenEnsureACL(conn) < 0)
+        return VIR_DRV_OPEN_ERROR;
 
     if (!(driver = vzGetDriverConnection()))
         return VIR_DRV_OPEN_ERROR;
@@ -430,13 +461,20 @@ static int
 vzConnectGetVersion(virConnectPtr conn, unsigned long *hvVer)
 {
     vzConnPtr privconn = conn->privateData;
+
+    if (virConnectGetVersionEnsureACL(conn) < 0)
+        return -1;
+
     *hvVer = privconn->driver->vzVersion;
     return 0;
 }
 
 
-static char *vzConnectGetHostname(virConnectPtr conn ATTRIBUTE_UNUSED)
+static char *vzConnectGetHostname(virConnectPtr conn)
 {
+    if (virConnectGetHostnameEnsureACL(conn) < 0)
+        return NULL;
+
     return virGetHostname();
 }
 
@@ -448,6 +486,9 @@ vzConnectGetSysinfo(virConnectPtr conn, unsigned int flags)
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
     virCheckFlags(0, NULL);
+
+    if (virConnectGetSysinfoEnsureACL(conn) < 0)
+        return NULL;
 
     if (!driver->hostsysinfo) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -469,8 +510,11 @@ vzConnectListDomains(virConnectPtr conn, int *ids, int maxids)
     vzConnPtr privconn = conn->privateData;
     int n;
 
+    if (virConnectListDomainsEnsureACL(conn) < 0)
+        return -1;
+
     n = virDomainObjListGetActiveIDs(privconn->driver->domains, ids, maxids,
-                                     NULL, NULL);
+                                     virConnectListDomainsCheckACL, conn);
 
     return n;
 }
@@ -481,8 +525,11 @@ vzConnectNumOfDomains(virConnectPtr conn)
     vzConnPtr privconn = conn->privateData;
     int count;
 
+    if (virConnectNumOfDomainsEnsureACL(conn) < 0)
+        return -1;
+
     count = virDomainObjListNumOfDomains(privconn->driver->domains, true,
-                                         NULL, NULL);
+                                         virConnectNumOfDomainsCheckACL, conn);
 
     return count;
 }
@@ -493,9 +540,14 @@ vzConnectListDefinedDomains(virConnectPtr conn, char **const names, int maxnames
     vzConnPtr privconn = conn->privateData;
     int n;
 
+    if (virConnectListDefinedDomainsEnsureACL(conn) < 0)
+        return -1;
+
     memset(names, 0, sizeof(*names) * maxnames);
     n = virDomainObjListGetInactiveNames(privconn->driver->domains, names,
-                                         maxnames, NULL, NULL);
+                                         maxnames,
+                                         virConnectListDefinedDomainsCheckACL,
+                                         conn);
 
     return n;
 }
@@ -506,8 +558,12 @@ vzConnectNumOfDefinedDomains(virConnectPtr conn)
     vzConnPtr privconn = conn->privateData;
     int count;
 
+    if (virConnectNumOfDefinedDomainsEnsureACL(conn) < 0)
+        return -1;
+
     count = virDomainObjListNumOfDomains(privconn->driver->domains, false,
-                                         NULL, NULL);
+                                         virConnectNumOfDefinedDomainsCheckACL,
+                                         conn);
     return count;
 }
 
@@ -520,8 +576,12 @@ vzConnectListAllDomains(virConnectPtr conn,
     int ret = -1;
 
     virCheckFlags(VIR_CONNECT_LIST_DOMAINS_FILTERS_ALL, -1);
+
+    if (virConnectListAllDomainsEnsureACL(conn) < 0)
+        return -1;
+
     ret = virDomainObjListExport(privconn->driver->domains, conn, domains,
-                                 NULL, flags);
+                                 virConnectListAllDomainsCheckACL, flags);
 
     return ret;
 }
@@ -530,7 +590,7 @@ static virDomainPtr
 vzDomainLookupByID(virConnectPtr conn, int id)
 {
     vzConnPtr privconn = conn->privateData;
-    virDomainPtr ret;
+    virDomainPtr ret = NULL;
     virDomainObjPtr dom;
 
     dom = virDomainObjListFindByID(privconn->driver->domains, id);
@@ -540,10 +600,14 @@ vzDomainLookupByID(virConnectPtr conn, int id)
         return NULL;
     }
 
+    if (virDomainLookupByIDEnsureACL(conn, dom->def) < 0)
+        goto cleanup;
+
     ret = virGetDomain(conn, dom->def->name, dom->def->uuid);
     if (ret)
         ret->id = dom->def->id;
 
+ cleanup:
     virObjectUnlock(dom);
     return ret;
 }
@@ -552,7 +616,7 @@ static virDomainPtr
 vzDomainLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
 {
     vzConnPtr privconn = conn->privateData;
-    virDomainPtr ret;
+    virDomainPtr ret = NULL;
     virDomainObjPtr dom;
 
     dom = virDomainObjListFindByUUID(privconn->driver->domains, uuid);
@@ -565,10 +629,14 @@ vzDomainLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
         return NULL;
     }
 
+    if (virDomainLookupByUUIDEnsureACL(conn, dom->def) < 0)
+        goto cleanup;
+
     ret = virGetDomain(conn, dom->def->name, dom->def->uuid);
     if (ret)
         ret->id = dom->def->id;
 
+ cleanup:
     virObjectUnlock(dom);
     return ret;
 }
@@ -577,7 +645,7 @@ static virDomainPtr
 vzDomainLookupByName(virConnectPtr conn, const char *name)
 {
     vzConnPtr privconn = conn->privateData;
-    virDomainPtr ret;
+    virDomainPtr ret = NULL;
     virDomainObjPtr dom;
 
     dom = virDomainObjListFindByName(privconn->driver->domains, name);
@@ -588,10 +656,14 @@ vzDomainLookupByName(virConnectPtr conn, const char *name)
         return NULL;
     }
 
+    if (virDomainLookupByNameEnsureACL(conn, dom->def) < 0)
+        goto cleanup;
+
     ret = virGetDomain(conn, dom->def->name, dom->def->uuid);
     if (ret)
         ret->id = dom->def->id;
 
+ cleanup:
     virDomainObjEndAPI(&dom);
     return ret;
 }
@@ -600,9 +672,13 @@ static int
 vzDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info)
 {
     virDomainObjPtr dom;
+    vzDomObjPtr privdom;
     int ret = -1;
 
     if (!(dom = vzDomObjFromDomainRef(domain)))
+        goto cleanup;
+
+    if (virDomainGetInfoEnsureACL(domain->conn, dom->def) < 0)
         goto cleanup;
 
     info->state = virDomainObjGetState(dom, NULL);
@@ -611,12 +687,11 @@ vzDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info)
     info->nrVirtCpu = virDomainDefGetVcpus(dom->def);
     info->cpuTime = 0;
 
-    if (virDomainObjIsActive(dom)) {
-        unsigned long long vtime;
-        vzDomObjPtr privdom;
-        size_t i;
+    privdom = dom->privateData;
 
-        privdom = dom->privateData;
+    if (PRL_INVALID_HANDLE != privdom->stats && virDomainObjIsActive(dom)) {
+        unsigned long long vtime;
+        size_t i;
 
         for (i = 0; i < virDomainDefGetVcpus(dom->def); ++i) {
             if (prlsdkGetVcpuStats(privdom->stats, i, &vtime) < 0) {
@@ -643,8 +718,12 @@ vzDomainGetOSType(virDomainPtr domain)
     if (!(dom = vzDomObjFromDomain(domain)))
         return NULL;
 
+    if (virDomainGetOSTypeEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
+
     ignore_value(VIR_STRDUP(ret, virDomainOSTypeToString(dom->def->os.type)));
 
+ cleanup:
     virObjectUnlock(dom);
     return ret;
 }
@@ -653,12 +732,19 @@ static int
 vzDomainIsPersistent(virDomainPtr domain)
 {
     virDomainObjPtr dom;
+    int ret = -1;
 
     if (!(dom = vzDomObjFromDomain(domain)))
         return -1;
 
+    if (virDomainIsPersistentEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
+
+    ret = 1;
+
+ cleanup:
     virObjectUnlock(dom);
-    return 1;
+    return ret;
 }
 
 static int
@@ -666,16 +752,22 @@ vzDomainGetState(virDomainPtr domain,
                  int *state, int *reason, unsigned int flags)
 {
     virDomainObjPtr dom;
+    int ret = -1;
 
     virCheckFlags(0, -1);
 
     if (!(dom = vzDomObjFromDomain(domain)))
         return -1;
 
-    *state = virDomainObjGetState(dom, reason);
+    if (virDomainGetStateEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
 
+    *state = virDomainObjGetState(dom, reason);
+    ret = 0;
+
+ cleanup:
     virObjectUnlock(dom);
-    return 0;
+    return ret;
 }
 
 static char *
@@ -691,11 +783,15 @@ vzDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
     if (!(dom = vzDomObjFromDomain(domain)))
         return NULL;
 
+    if (virDomainGetXMLDescEnsureACL(domain->conn, dom->def, flags) < 0)
+        goto cleanup;
+
     def = (flags & VIR_DOMAIN_XML_INACTIVE) &&
         dom->newDef ? dom->newDef : dom->def;
 
     ret = virDomainDefFormat(def, privconn->driver->caps, flags);
 
+ cleanup:
     virObjectUnlock(dom);
     return ret;
 }
@@ -704,14 +800,20 @@ static int
 vzDomainGetAutostart(virDomainPtr domain, int *autostart)
 {
     virDomainObjPtr dom;
+    int ret = -1;
 
     if (!(dom = vzDomObjFromDomain(domain)))
         return -1;
 
-    *autostart = dom->autostart;
+    if (virDomainGetAutostartEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
 
+    *autostart = dom->autostart;
+    ret = 0;
+
+ cleanup:
     virObjectUnlock(dom);
-    return 0;
+    return ret;
 }
 
 static int
@@ -748,6 +850,9 @@ vzDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags)
 
     if ((def = virDomainDefParseString(xml, driver->caps, driver->xmlopt,
                                        parse_flags)) == NULL)
+        goto cleanup;
+
+    if (virDomainDefineXMLFlagsEnsureACL(conn, def) < 0)
         goto cleanup;
 
     dom = virDomainObjListFindByUUIDRef(driver->domains, def->uuid);
@@ -827,9 +932,12 @@ vzDomainDefineXML(virConnectPtr conn, const char *xml)
 
 
 static int
-vzNodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED,
+vzNodeGetInfo(virConnectPtr conn,
               virNodeInfoPtr nodeinfo)
 {
+    if (virNodeGetInfoEnsureACL(conn) < 0)
+        return -1;
+
     return nodeGetInfo(nodeinfo);
 }
 
@@ -852,12 +960,15 @@ static int vzConnectIsAlive(virConnectPtr conn ATTRIBUTE_UNUSED)
 
 
 static char *
-vzConnectBaselineCPU(virConnectPtr conn ATTRIBUTE_UNUSED,
+vzConnectBaselineCPU(virConnectPtr conn,
                      const char **xmlCPUs,
                      unsigned int ncpus,
                      unsigned int flags)
 {
     virCheckFlags(VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES, NULL);
+
+    if (virConnectBaselineCPUEnsureACL(conn) < 0)
+        return NULL;
 
     return cpuBaselineXML(xmlCPUs, ncpus, NULL, 0, flags);
 }
@@ -876,6 +987,9 @@ vzDomainGetVcpus(virDomainPtr domain,
 
     if (!(dom = vzDomObjFromDomainRef(domain)))
         return -1;
+
+    if (virDomainGetVcpusEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
 
     if (!virDomainObjIsActive(dom)) {
         virReportError(VIR_ERR_OPERATION_INVALID,
@@ -915,11 +1029,14 @@ vzDomainGetVcpus(virDomainPtr domain,
 
 
 static int
-vzNodeGetCPUMap(virConnectPtr conn ATTRIBUTE_UNUSED,
+vzNodeGetCPUMap(virConnectPtr conn,
                 unsigned char **cpumap,
                 unsigned int *online,
                 unsigned int flags)
 {
+    if (virNodeGetCPUMapEnsureACL(conn) < 0)
+        return -1;
+
     return virHostCPUGetMap(cpumap, online, flags);
 }
 
@@ -933,6 +1050,10 @@ vzConnectDomainEventRegisterAny(virConnectPtr conn,
 {
     int ret = -1;
     vzConnPtr privconn = conn->privateData;
+
+    if (virConnectDomainEventRegisterAnyEnsureACL(conn) < 0)
+        return -1;
+
     if (virDomainEventStateRegisterID(conn,
                                       privconn->driver->domainEventState,
                                       domain, eventID,
@@ -947,6 +1068,9 @@ vzConnectDomainEventDeregisterAny(virConnectPtr conn,
 {
     vzConnPtr privconn = conn->privateData;
 
+    if (virConnectDomainEventDeregisterAnyEnsureACL(conn) < 0)
+        return -1;
+
     if (virObjectEventStateDeregisterID(conn,
                                         privconn->driver->domainEventState,
                                         callbackID) < 0)
@@ -955,36 +1079,245 @@ vzConnectDomainEventDeregisterAny(virConnectPtr conn,
     return 0;
 }
 
-static int vzDomainSuspend(virDomainPtr domain)
+static int
+vzDomainSuspend(virDomainPtr domain)
 {
-    return prlsdkDomainChangeState(domain, prlsdkPause);
+    vzConnPtr privconn = domain->conn->privateData;
+    virDomainObjPtr dom;
+    int ret = -1;
+    bool job = false;
+
+    if (!(dom = vzDomObjFromDomainRef(domain)))
+        return -1;
+
+    if (virDomainSuspendEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
+
+    if (vzDomainObjBeginJob(dom) < 0)
+        goto cleanup;
+    job = true;
+
+    if (vzEnsureDomainExists(dom) < 0)
+        goto cleanup;
+
+    if (prlsdkPause(dom) < 0)
+        goto cleanup;
+
+    if (prlsdkUpdateDomain(privconn->driver, dom) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    if (job)
+        vzDomainObjEndJob(dom);
+    virDomainObjEndAPI(&dom);
+
+    return ret;
 }
 
-static int vzDomainResume(virDomainPtr domain)
+static int
+vzDomainResume(virDomainPtr domain)
 {
-    return prlsdkDomainChangeState(domain, prlsdkResume);
+    vzConnPtr privconn = domain->conn->privateData;
+    virDomainObjPtr dom;
+    int ret = -1;
+    bool job = false;
+
+    if (!(dom = vzDomObjFromDomainRef(domain)))
+        return -1;
+
+    if (virDomainResumeEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
+
+    if (vzDomainObjBeginJob(dom) < 0)
+        goto cleanup;
+    job = true;
+
+    if (vzEnsureDomainExists(dom) < 0)
+        goto cleanup;
+
+    if (prlsdkResume(dom) < 0)
+        goto cleanup;
+
+    if (prlsdkUpdateDomain(privconn->driver, dom) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    if (job)
+        vzDomainObjEndJob(dom);
+    virDomainObjEndAPI(&dom);
+
+    return ret;
 }
 
-static int vzDomainCreate(virDomainPtr domain)
+static int
+vzDomainCreateWithFlags(virDomainPtr domain, unsigned int flags)
 {
-    return prlsdkDomainChangeState(domain, prlsdkStart);
-}
+    vzConnPtr privconn = domain->conn->privateData;
+    virDomainObjPtr dom;
+    int ret = -1;
+    bool job = false;
 
-static int vzDomainDestroy(virDomainPtr domain)
-{
-    return prlsdkDomainChangeState(domain, prlsdkKill);
-}
-
-static int vzDomainShutdown(virDomainPtr domain)
-{
-    return prlsdkDomainChangeState(domain, prlsdkStop);
-}
-
-static int vzDomainReboot(virDomainPtr domain,
-                          unsigned int flags)
-{
     virCheckFlags(0, -1);
-    return prlsdkDomainChangeState(domain, prlsdkRestart);
+
+    if (!(dom = vzDomObjFromDomainRef(domain)))
+        return -1;
+
+    if (virDomainCreateWithFlagsEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
+
+    if (vzDomainObjBeginJob(dom) < 0)
+        goto cleanup;
+    job = true;
+
+    if (vzEnsureDomainExists(dom) < 0)
+        goto cleanup;
+
+    if (prlsdkStart(dom) < 0)
+        goto cleanup;
+
+    if (prlsdkUpdateDomain(privconn->driver, dom) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    if (job)
+        vzDomainObjEndJob(dom);
+    virDomainObjEndAPI(&dom);
+
+    return ret;
+}
+
+static int
+vzDomainDestroyFlags(virDomainPtr domain, unsigned int flags)
+{
+    vzConnPtr privconn = domain->conn->privateData;
+    virDomainObjPtr dom;
+    int ret = -1;
+    bool job = false;
+
+    virCheckFlags(0, -1);
+
+    if (!(dom = vzDomObjFromDomainRef(domain)))
+        return -1;
+
+    if (virDomainDestroyFlagsEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
+
+    if (vzDomainObjBeginJob(dom) < 0)
+        goto cleanup;
+    job = true;
+
+    if (vzEnsureDomainExists(dom) < 0)
+        goto cleanup;
+
+    if (prlsdkKill(dom) < 0)
+        goto cleanup;
+
+    if (prlsdkUpdateDomain(privconn->driver, dom) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    if (job)
+        vzDomainObjEndJob(dom);
+    virDomainObjEndAPI(&dom);
+
+    return ret;
+}
+
+static int
+vzDomainDestroy(virDomainPtr dom)
+{
+    return vzDomainDestroyFlags(dom, 0);
+}
+
+static int
+vzDomainShutdownFlags(virDomainPtr domain, unsigned int flags)
+{
+    vzConnPtr privconn = domain->conn->privateData;
+    virDomainObjPtr dom;
+    int ret = -1;
+    bool job = false;
+
+    virCheckFlags(0, -1);
+
+    if (!(dom = vzDomObjFromDomainRef(domain)))
+        return -1;
+
+    if (virDomainShutdownFlagsEnsureACL(domain->conn, dom->def, flags) < 0)
+        goto cleanup;
+
+    if (vzDomainObjBeginJob(dom) < 0)
+        goto cleanup;
+    job = true;
+
+    if (vzEnsureDomainExists(dom) < 0)
+        goto cleanup;
+
+    if (prlsdkStop(dom) < 0)
+        goto cleanup;
+
+    if (prlsdkUpdateDomain(privconn->driver, dom) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    if (job)
+        vzDomainObjEndJob(dom);
+    virDomainObjEndAPI(&dom);
+
+    return ret;
+}
+
+static int vzDomainShutdown(virDomainPtr dom)
+{
+    return vzDomainShutdownFlags(dom, 0);
+}
+
+static int
+vzDomainReboot(virDomainPtr domain, unsigned int flags)
+{
+    vzConnPtr privconn = domain->conn->privateData;
+    virDomainObjPtr dom;
+    int ret = -1;
+    bool job = false;
+
+    virCheckFlags(0, -1);
+
+    if (!(dom = vzDomObjFromDomainRef(domain)))
+        return -1;
+
+    if (virDomainRebootEnsureACL(domain->conn, dom->def, flags) < 0)
+        goto cleanup;
+
+    if (vzDomainObjBeginJob(dom) < 0)
+        goto cleanup;
+    job = true;
+
+    if (vzEnsureDomainExists(dom) < 0)
+        goto cleanup;
+
+    if (prlsdkRestart(dom) < 0)
+        goto cleanup;
+
+    if (prlsdkUpdateDomain(privconn->driver, dom) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    if (job)
+        vzDomainObjEndJob(dom);
+    virDomainObjEndAPI(&dom);
+
+    return ret;
 }
 
 static int vzDomainIsActive(virDomainPtr domain)
@@ -995,19 +1328,21 @@ static int vzDomainIsActive(virDomainPtr domain)
     if (!(dom = vzDomObjFromDomain(domain)))
         return -1;
 
+    if (virDomainIsActiveEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
+
     ret = virDomainObjIsActive(dom);
+
+ cleanup:
     virObjectUnlock(dom);
 
     return ret;
 }
 
 static int
-vzDomainCreateWithFlags(virDomainPtr domain, unsigned int flags)
+vzDomainCreate(virDomainPtr domain)
 {
-    /* we don't support any create flags */
-    virCheckFlags(0, -1);
-
-    return vzDomainCreate(domain);
+    return vzDomainCreateWithFlags(domain, 0);
 }
 
 static int
@@ -1024,6 +1359,9 @@ vzDomainUndefineFlags(virDomainPtr domain,
 
     if (!(dom = vzDomObjFromDomainRef(domain)))
         return -1;
+
+    if (virDomainUndefineFlagsEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
 
     if (vzDomainObjBeginJob(dom) < 0)
         goto cleanup;
@@ -1054,16 +1392,23 @@ vzDomainHasManagedSaveImage(virDomainPtr domain, unsigned int flags)
 {
     virDomainObjPtr dom = NULL;
     int state, reason;
-    int ret = 0;
+    int ret = -1;
 
     virCheckFlags(0, -1);
 
     if (!(dom = vzDomObjFromDomain(domain)))
         return -1;
 
+    if (virDomainHasManagedSaveImageEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
+
     state = virDomainObjGetState(dom, &reason);
     if (state == VIR_DOMAIN_SHUTOFF && reason == VIR_DOMAIN_SHUTOFF_SAVED)
         ret = 1;
+    else
+        ret = 0;
+
+ cleanup:
     virObjectUnlock(dom);
 
     return ret;
@@ -1084,6 +1429,9 @@ vzDomainManagedSave(virDomainPtr domain, unsigned int flags)
     if (!(dom = vzDomObjFromDomainRef(domain)))
         return -1;
 
+    if (virDomainManagedSaveEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
+
     if (vzDomainObjBeginJob(dom) < 0)
         goto cleanup;
     job = true;
@@ -1093,13 +1441,17 @@ vzDomainManagedSave(virDomainPtr domain, unsigned int flags)
 
     state = virDomainObjGetState(dom, &reason);
 
-    if (state == VIR_DOMAIN_RUNNING && (flags & VIR_DOMAIN_SAVE_PAUSED)) {
-        ret = prlsdkDomainChangeStateLocked(privconn->driver, dom, prlsdkPause);
-        if (ret)
-            goto cleanup;
-    }
+    if (state == VIR_DOMAIN_RUNNING && (flags & VIR_DOMAIN_SAVE_PAUSED) &&
+        prlsdkPause(dom) < 0)
+        goto cleanup;
 
-    ret = prlsdkDomainChangeStateLocked(privconn->driver, dom, prlsdkSuspend);
+    if (prlsdkSuspend(dom) < 0)
+        goto cleanup;
+
+    if (prlsdkUpdateDomain(privconn->driver, dom) < 0)
+        goto cleanup;
+
+    ret = 0;
 
  cleanup:
     if (job)
@@ -1119,6 +1471,9 @@ vzDomainManagedSaveRemove(virDomainPtr domain, unsigned int flags)
 
     if (!(dom = vzDomObjFromDomainRef(domain)))
         return -1;
+
+    if (virDomainManagedSaveRemoveEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
 
     state = virDomainObjGetState(dom, &reason);
 
@@ -1173,6 +1528,9 @@ static int vzDomainAttachDeviceFlags(virDomainPtr domain, const char *xml,
     if (vzCheckConfigUpdateFlags(dom, &flags) < 0)
         goto cleanup;
 
+    if (virDomainAttachDeviceFlagsEnsureACL(domain->conn, dom->def, flags) < 0)
+        goto cleanup;
+
     dev = virDomainDeviceDefParse(xml, dom->def, driver->caps,
                                   driver->xmlopt, VIR_DOMAIN_XML_INACTIVE);
     if (dev == NULL)
@@ -1186,6 +1544,9 @@ static int vzDomainAttachDeviceFlags(virDomainPtr domain, const char *xml,
         goto cleanup;
 
     if (prlsdkAttachDevice(driver, dom, dev) < 0)
+        goto cleanup;
+
+    if (prlsdkUpdateDomain(driver, dom) < 0)
         goto cleanup;
 
     ret = 0;
@@ -1223,6 +1584,9 @@ static int vzDomainDetachDeviceFlags(virDomainPtr domain, const char *xml,
     if (vzCheckConfigUpdateFlags(dom, &flags) < 0)
         goto cleanup;
 
+    if (virDomainDetachDeviceFlagsEnsureACL(domain->conn, dom->def, flags) < 0)
+        goto cleanup;
+
     dev = virDomainDeviceDefParse(xml, dom->def, driver->caps,
                                   driver->xmlopt,
                                   VIR_DOMAIN_XML_INACTIVE |
@@ -1238,6 +1602,9 @@ static int vzDomainDetachDeviceFlags(virDomainPtr domain, const char *xml,
         goto cleanup;
 
     if (prlsdkDetachDevice(driver, dom, dev) < 0)
+        goto cleanup;
+
+    if (prlsdkUpdateDomain(driver, dom) < 0)
         goto cleanup;
 
     ret = 0;
@@ -1269,6 +1636,9 @@ vzDomainSetUserPassword(virDomainPtr domain,
     virCheckFlags(0, -1);
     if (!(dom = vzDomObjFromDomainRef(domain)))
         return -1;
+
+    if (virDomainSetUserPasswordEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
 
     if (vzDomainObjBeginJob(dom) < 0)
         goto cleanup;
@@ -1303,6 +1673,9 @@ static int vzDomainUpdateDeviceFlags(virDomainPtr domain,
     if (!(dom = vzDomObjFromDomainRef(domain)))
         return -1;
 
+    if (virDomainUpdateDeviceFlagsEnsureACL(domain->conn, dom->def, flags) < 0)
+        goto cleanup;
+
     if (vzCheckConfigUpdateFlags(dom, &flags) < 0)
         goto cleanup;
 
@@ -1319,6 +1692,9 @@ static int vzDomainUpdateDeviceFlags(virDomainPtr domain,
         goto cleanup;
 
     if (prlsdkUpdateDevice(driver, dom, dev) < 0)
+        goto cleanup;
+
+    if (prlsdkUpdateDomain(driver, dom) < 0)
         goto cleanup;
 
     ret = 0;
@@ -1341,33 +1717,32 @@ vzDomainGetMaxMemory(virDomainPtr domain)
     if (!(dom = vzDomObjFromDomain(domain)))
         return -1;
 
+    if (virDomainGetMaxMemoryEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
+
     ret = virDomainDefGetMemoryTotal(dom->def);
+
+ cleanup:
     virObjectUnlock(dom);
     return ret;
 }
 
 static int
-vzDomainBlockStats(virDomainPtr domain, const char *path,
-                   virDomainBlockStatsPtr stats)
+vzDomainBlockStatsImpl(virDomainObjPtr dom,
+                       const char *path,
+                       virDomainBlockStatsPtr stats)
 {
-    virDomainObjPtr dom = NULL;
-    vzDomObjPtr privdom;
-    int ret = -1;
+    vzDomObjPtr privdom = dom->privateData;
     size_t i;
     int idx;
-
-    if (!(dom = vzDomObjFromDomainRef(domain)))
-        return -1;
-
-    privdom = dom->privateData;
 
     if (*path) {
         if ((idx = virDomainDiskIndexByName(dom->def, path, false)) < 0) {
             virReportError(VIR_ERR_INVALID_ARG, _("invalid path: %s"), path);
-            goto cleanup;
+            return -1;
         }
         if (prlsdkGetBlockStats(privdom->stats, dom->def->disks[idx], stats) < 0)
-            goto cleanup;
+            return -1;
     } else {
         virDomainBlockStatsStruct s;
 
@@ -1380,7 +1755,7 @@ vzDomainBlockStats(virDomainPtr domain, const char *path,
 
         for (i = 0; i < dom->def->ndisks; i++) {
             if (prlsdkGetBlockStats(privdom->stats, dom->def->disks[i], &s) < 0)
-                goto cleanup;
+                return -1;
 
 #define PARALLELS_SUM_STATS(VAR, TYPE, NAME)        \
     if (s.VAR != -1)                                \
@@ -1392,12 +1767,67 @@ vzDomainBlockStats(virDomainPtr domain, const char *path,
         }
     }
     stats->errs = -1;
+    return 0;
+}
+
+static int
+vzDomainBlockStats(virDomainPtr domain,
+                   const char *path,
+                   virDomainBlockStatsPtr stats)
+{
+    virDomainObjPtr dom;
+    int ret = -1;
+
+    if (!(dom = vzDomObjFromDomainRef(domain)))
+        return -1;
+
+    if (virDomainBlockStatsEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
+
+    if (vzDomainBlockStatsImpl(dom, path, stats) < 0)
+        goto cleanup;
+
     ret = 0;
 
  cleanup:
     virDomainObjEndAPI(&dom);
 
     return ret;
+}
+
+static int
+vzDomainBlockStatsToParams(virDomainBlockStatsPtr stats,
+                           virTypedParameterPtr params,
+                           int *nparams)
+{
+    size_t i;
+
+    if (*nparams == 0) {
+#define PARALLELS_COUNT_STATS(VAR, TYPE, NAME)      \
+        if ((stats->VAR) != -1)                     \
+            ++*nparams;
+
+        PARALLELS_BLOCK_STATS_FOREACH(PARALLELS_COUNT_STATS)
+
+#undef PARALLELS_COUNT_STATS
+        return 0;
+    }
+
+    i = 0;
+#define PARALLELS_BLOCK_STATS_ASSIGN_PARAM(VAR, TYPE, NAME)                     \
+    if (i < *nparams && (stats->VAR) != -1) {                                   \
+        if (virTypedParameterAssign(params + i, TYPE,                           \
+                                    VIR_TYPED_PARAM_LLONG, (stats->VAR)) < 0)   \
+            return -1;                                                          \
+        i++;                                                                    \
+    }
+
+    PARALLELS_BLOCK_STATS_FOREACH(PARALLELS_BLOCK_STATS_ASSIGN_PARAM)
+
+#undef PARALLELS_BLOCK_STATS_ASSIGN_PARAM
+
+    *nparams = i;
+    return 0;
 }
 
 static int
@@ -1408,45 +1838,30 @@ vzDomainBlockStatsFlags(virDomainPtr domain,
                         unsigned int flags)
 {
     virDomainBlockStatsStruct stats;
+    virDomainObjPtr dom;
     int ret = -1;
-    size_t i;
 
     virCheckFlags(VIR_TYPED_PARAM_STRING_OKAY, -1);
     /* We don't return strings, and thus trivially support this flag.  */
     flags &= ~VIR_TYPED_PARAM_STRING_OKAY;
 
-    if (vzDomainBlockStats(domain, path, &stats) < 0)
+    if (!(dom = vzDomObjFromDomainRef(domain)))
+        return -1;
+
+    if (virDomainBlockStatsFlagsEnsureACL(domain->conn, dom->def) < 0)
         goto cleanup;
 
-    if (*nparams == 0) {
-#define PARALLELS_COUNT_STATS(VAR, TYPE, NAME)       \
-        if ((stats.VAR) != -1)                       \
-            ++*nparams;
-
-        PARALLELS_BLOCK_STATS_FOREACH(PARALLELS_COUNT_STATS)
-
-#undef PARALLELS_COUNT_STATS
-        ret = 0;
+    if (vzDomainBlockStatsImpl(dom, path, &stats) < 0)
         goto cleanup;
-    }
 
-    i = 0;
-#define PARALLELS_BLOCK_STATS_ASSIGN_PARAM(VAR, TYPE, NAME)                    \
-    if (i < *nparams && (stats.VAR) != -1) {                                   \
-        if (virTypedParameterAssign(params + i, TYPE,                          \
-                                    VIR_TYPED_PARAM_LLONG, (stats.VAR)) < 0)   \
-            goto cleanup;                                                      \
-        i++;                                                                   \
-    }
+    if (vzDomainBlockStatsToParams(&stats, params, nparams) < 0)
+        goto cleanup;
 
-    PARALLELS_BLOCK_STATS_FOREACH(PARALLELS_BLOCK_STATS_ASSIGN_PARAM)
-
-#undef PARALLELS_BLOCK_STATS_ASSIGN_PARAM
-
-    *nparams = i;
     ret = 0;
 
  cleanup:
+    virDomainObjEndAPI(&dom);
+
     return ret;
 }
 
@@ -1457,14 +1872,19 @@ vzDomainInterfaceStats(virDomainPtr domain,
 {
     virDomainObjPtr dom = NULL;
     vzDomObjPtr privdom;
-    int ret;
+    int ret = -1;
 
     if (!(dom = vzDomObjFromDomainRef(domain)))
         return -1;
 
+    if (virDomainInterfaceStatsEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
+
     privdom = dom->privateData;
 
     ret = prlsdkGetNetStats(privdom->stats, privdom->sdkdom, path, stats);
+
+ cleanup:
     virDomainObjEndAPI(&dom);
 
     return ret;
@@ -1484,9 +1904,14 @@ vzDomainMemoryStats(virDomainPtr domain,
     if (!(dom = vzDomObjFromDomainRef(domain)))
         return -1;
 
+    if (virDomainMemoryStatsEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
+
     privdom = dom->privateData;
 
     ret = prlsdkGetMemoryStats(privdom->stats, stats, nr_stats);
+
+ cleanup:
     virDomainObjEndAPI(&dom);
 
     return ret;
@@ -1497,7 +1922,7 @@ vzDomainGetVcpusFlags(virDomainPtr domain,
                       unsigned int flags)
 {
     virDomainObjPtr dom;
-    int ret;
+    int ret = -1;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG |
@@ -1506,11 +1931,15 @@ vzDomainGetVcpusFlags(virDomainPtr domain,
     if (!(dom = vzDomObjFromDomain(domain)))
         return -1;
 
+    if (virDomainGetVcpusFlagsEnsureACL(domain->conn, dom->def, flags) < 0)
+        goto cleanup;
+
     if (flags & VIR_DOMAIN_VCPU_MAXIMUM)
         ret = virDomainDefGetVcpusMax(dom->def);
     else
         ret = virDomainDefGetVcpus(dom->def);
 
+ cleanup:
     virObjectUnlock(dom);
 
     return ret;
@@ -1525,19 +1954,29 @@ static int vzDomainGetMaxVcpus(virDomainPtr domain)
 static int vzDomainIsUpdated(virDomainPtr domain)
 {
     virDomainObjPtr dom;
+    int ret = -1;
 
     /* As far as VZ domains are always updated (e.g. current==persistent),
      * we just check for domain existence */
     if (!(dom = vzDomObjFromDomain(domain)))
         return -1;
 
+    if (virDomainIsUpdatedEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
     virObjectUnlock(dom);
-    return 0;
+    return ret;
 }
 
-static int vzConnectGetMaxVcpus(virConnectPtr conn ATTRIBUTE_UNUSED,
+static int vzConnectGetMaxVcpus(virConnectPtr conn,
                                 const char *type)
 {
+    if (virConnectGetMaxVcpusEnsureACL(conn) < 0)
+        return -1;
+
     /* As far as we have no limitation for containers
      * we report maximum */
     if (type == NULL || STRCASEEQ(type, "vz") || STRCASEEQ(type, "parallels"))
@@ -1549,38 +1988,51 @@ static int vzConnectGetMaxVcpus(virConnectPtr conn ATTRIBUTE_UNUSED,
 }
 
 static int
-vzNodeGetCPUStats(virConnectPtr conn ATTRIBUTE_UNUSED,
+vzNodeGetCPUStats(virConnectPtr conn,
                   int cpuNum,
                   virNodeCPUStatsPtr params,
                   int *nparams,
                   unsigned int flags)
 {
+    if (virNodeGetCPUStatsEnsureACL(conn) < 0)
+        return -1;
+
     return virHostCPUGetStats(cpuNum, params, nparams, flags);
 }
 
 static int
-vzNodeGetMemoryStats(virConnectPtr conn ATTRIBUTE_UNUSED,
+vzNodeGetMemoryStats(virConnectPtr conn,
                      int cellNum,
                      virNodeMemoryStatsPtr params,
                      int *nparams,
                      unsigned int flags)
 {
+    if (virNodeGetMemoryStatsEnsureACL(conn) < 0)
+        return -1;
+
     return virHostMemGetStats(cellNum, params, nparams, flags);
 }
 
 static int
-vzNodeGetCellsFreeMemory(virConnectPtr conn ATTRIBUTE_UNUSED,
+vzNodeGetCellsFreeMemory(virConnectPtr conn,
                          unsigned long long *freeMems,
                          int startCell,
                          int maxCells)
 {
+    if (virNodeGetCellsFreeMemoryEnsureACL(conn) < 0)
+        return -1;
+
     return virHostMemGetCellsFree(freeMems, startCell, maxCells);
 }
 
 static unsigned long long
-vzNodeGetFreeMemory(virConnectPtr conn ATTRIBUTE_UNUSED)
+vzNodeGetFreeMemory(virConnectPtr conn)
 {
     unsigned long long freeMem;
+
+    if (virNodeGetFreeMemoryEnsureACL(conn) < 0)
+        return -1;
+
     if (virHostMemGetInfo(NULL, &freeMem) < 0)
         return 0;
     return freeMem;
@@ -1594,6 +2046,9 @@ vzConnectRegisterCloseCallback(virConnectPtr conn,
 {
     vzConnPtr privconn = conn->privateData;
     int ret = -1;
+
+    if (virConnectRegisterCloseCallbackEnsureACL(conn) < 0)
+        return -1;
 
     virObjectLock(privconn->driver);
 
@@ -1619,6 +2074,9 @@ vzConnectUnregisterCloseCallback(virConnectPtr conn, virConnectCloseFunc cb)
     vzConnPtr privconn = conn->privateData;
     int ret = -1;
 
+    if (virConnectUnregisterCloseCallbackEnsureACL(conn) < 0)
+        return -1;
+
     virObjectLock(privconn->driver);
 
     if (virConnectCloseCallbackDataGetCallback(privconn->closeCallback) != cb) {
@@ -1636,8 +2094,8 @@ vzConnectUnregisterCloseCallback(virConnectPtr conn, virConnectCloseFunc cb)
     return ret;
 }
 
-static int vzDomainSetMemoryFlagsImpl(virDomainPtr domain, unsigned long memory,
-                                      unsigned int flags, bool useflags)
+static int vzDomainSetMemoryFlags(virDomainPtr domain, unsigned long memory,
+                                  unsigned int flags)
 {
     virDomainObjPtr dom = NULL;
     int ret = -1;
@@ -1649,7 +2107,10 @@ static int vzDomainSetMemoryFlagsImpl(virDomainPtr domain, unsigned long memory,
     if (!(dom = vzDomObjFromDomainRef(domain)))
         return -1;
 
-    if (useflags && vzCheckConfigUpdateFlags(dom, &flags) < 0)
+    if (vzCheckConfigUpdateFlags(dom, &flags) < 0)
+        goto cleanup;
+
+    if (virDomainSetMemoryFlagsEnsureACL(domain->conn, dom->def, flags) < 0)
         goto cleanup;
 
     if (vzDomainObjBeginJob(dom) < 0)
@@ -1669,15 +2130,33 @@ static int vzDomainSetMemoryFlagsImpl(virDomainPtr domain, unsigned long memory,
     return ret;
 }
 
-static int vzDomainSetMemoryFlags(virDomainPtr domain, unsigned long memory,
-                                  unsigned int flags)
-{
-    return vzDomainSetMemoryFlagsImpl(domain, memory, flags, true);
-}
-
 static int vzDomainSetMemory(virDomainPtr domain, unsigned long memory)
 {
-    return vzDomainSetMemoryFlagsImpl(domain, memory, 0, false);
+    virDomainObjPtr dom = NULL;
+    int ret = -1;
+    bool job = false;
+
+    if (!(dom = vzDomObjFromDomainRef(domain)))
+        return -1;
+
+    if (virDomainSetMemoryEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
+
+    if (vzDomainObjBeginJob(dom) < 0)
+        goto cleanup;
+    job = true;
+
+    if (vzEnsureDomainExists(dom) < 0)
+        goto cleanup;
+
+    ret = prlsdkSetMemsize(dom, memory >> 10);
+
+ cleanup:
+
+    if (job)
+        vzDomainObjEndJob(dom);
+    virDomainObjEndAPI(&dom);
+    return ret;
 }
 
 static virDomainSnapshotObjPtr
@@ -1735,6 +2214,9 @@ vzDomainSnapshotNum(virDomainPtr domain, unsigned int flags)
     if (!(dom = vzDomObjFromDomainRef(domain)))
         return -1;
 
+    if (virDomainSnapshotNumEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
+
     if (!(snapshots = prlsdkLoadSnapshots(dom)))
         goto cleanup;
 
@@ -1763,6 +2245,9 @@ vzDomainSnapshotListNames(virDomainPtr domain,
     if (!(dom = vzDomObjFromDomainRef(domain)))
         return -1;
 
+    if (virDomainSnapshotListNamesEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
+
     if (!(snapshots = prlsdkLoadSnapshots(dom)))
         goto cleanup;
 
@@ -1790,6 +2275,9 @@ vzDomainListAllSnapshots(virDomainPtr domain,
     if (!(dom = vzDomObjFromDomainRef(domain)))
         return -1;
 
+    if (virDomainListAllSnapshotsEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
+
     if (!(snapshots = prlsdkLoadSnapshots(dom)))
         goto cleanup;
 
@@ -1816,6 +2304,9 @@ vzDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot, unsigned int flags)
 
     if (!(dom = vzDomObjFromDomainRef(snapshot->domain)))
         return NULL;
+
+    if (virDomainSnapshotGetXMLDescEnsureACL(snapshot->domain->conn, dom->def, flags) < 0)
+        goto cleanup;
 
     if (!(snapshots = prlsdkLoadSnapshots(dom)))
         goto cleanup;
@@ -1850,6 +2341,9 @@ vzDomainSnapshotNumChildren(virDomainSnapshotPtr snapshot, unsigned int flags)
     if (!(dom = vzDomObjFromDomainRef(snapshot->domain)))
         return -1;
 
+    if (virDomainSnapshotNumChildrenEnsureACL(snapshot->domain->conn, dom->def) < 0)
+        goto cleanup;
+
     if (!(snapshots = prlsdkLoadSnapshots(dom)))
         goto cleanup;
 
@@ -1882,6 +2376,9 @@ vzDomainSnapshotListChildrenNames(virDomainSnapshotPtr snapshot,
     if (!(dom = vzDomObjFromDomainRef(snapshot->domain)))
         return -1;
 
+    if (virDomainSnapshotListChildrenNamesEnsureACL(snapshot->domain->conn, dom->def) < 0)
+        goto cleanup;
+
     if (!(snapshots = prlsdkLoadSnapshots(dom)))
         goto cleanup;
 
@@ -1913,6 +2410,9 @@ vzDomainSnapshotListAllChildren(virDomainSnapshotPtr snapshot,
     if (!(dom = vzDomObjFromDomainRef(snapshot->domain)))
         return -1;
 
+    if (virDomainSnapshotListAllChildrenEnsureACL(snapshot->domain->conn, dom->def) < 0)
+        goto cleanup;
+
     if (!(snapshots = prlsdkLoadSnapshots(dom)))
         goto cleanup;
 
@@ -1943,6 +2443,9 @@ vzDomainSnapshotLookupByName(virDomainPtr domain,
     if (!(dom = vzDomObjFromDomainRef(domain)))
         return NULL;
 
+    if (virDomainSnapshotLookupByNameEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
+
     if (!(snapshots = prlsdkLoadSnapshots(dom)))
         goto cleanup;
 
@@ -1970,6 +2473,9 @@ vzDomainHasCurrentSnapshot(virDomainPtr domain, unsigned int flags)
     if (!(dom = vzDomObjFromDomainRef(domain)))
         return -1;
 
+    if (virDomainHasCurrentSnapshotEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
+
     if (!(snapshots = prlsdkLoadSnapshots(dom)))
         goto cleanup;
 
@@ -1994,6 +2500,9 @@ vzDomainSnapshotGetParent(virDomainSnapshotPtr snapshot, unsigned int flags)
 
     if (!(dom = vzDomObjFromDomainRef(snapshot->domain)))
         return NULL;
+
+    if (virDomainSnapshotGetParentEnsureACL(snapshot->domain->conn, dom->def) < 0)
+        goto cleanup;
 
     if (!(snapshots = prlsdkLoadSnapshots(dom)))
         goto cleanup;
@@ -2030,6 +2539,9 @@ vzDomainSnapshotCurrent(virDomainPtr domain, unsigned int flags)
     if (!(dom = vzDomObjFromDomainRef(domain)))
         return NULL;
 
+    if (virDomainSnapshotCurrentEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
+
     if (!(snapshots = prlsdkLoadSnapshots(dom)))
         goto cleanup;
 
@@ -2061,6 +2573,9 @@ vzDomainSnapshotIsCurrent(virDomainSnapshotPtr snapshot, unsigned int flags)
     if (!(dom = vzDomObjFromDomainRef(snapshot->domain)))
         return -1;
 
+    if (virDomainSnapshotIsCurrentEnsureACL(snapshot->domain->conn, dom->def) < 0)
+        goto cleanup;
+
     if (!(snapshots = prlsdkLoadSnapshots(dom)))
         goto cleanup;
 
@@ -2087,6 +2602,9 @@ vzDomainSnapshotHasMetadata(virDomainSnapshotPtr snapshot,
 
     if (!(dom = vzDomObjFromDomainRef(snapshot->domain)))
         return -1;
+
+    if (virDomainSnapshotHasMetadataEnsureACL(snapshot->domain->conn, dom->def) < 0)
+        goto cleanup;
 
     if (!(snapshots = prlsdkLoadSnapshots(dom)))
         goto cleanup;
@@ -2122,6 +2640,9 @@ vzDomainSnapshotCreateXML(virDomainPtr domain,
 
     if (!(dom = vzDomObjFromDomainRef(domain)))
         return NULL;
+
+    if (virDomainSnapshotCreateXMLEnsureACL(domain->conn, dom->def, flags) < 0)
+        goto cleanup;
 
     if (!(def = virDomainSnapshotDefParseString(xmlDesc, driver->caps,
                                                 driver->xmlopt, parse_flags)))
@@ -2183,9 +2704,13 @@ vzDomainSnapshotDelete(virDomainSnapshotPtr snapshot, unsigned int flags)
     if (!(dom = vzDomObjFromDomainRef(snapshot->domain)))
         return -1;
 
+    if (virDomainSnapshotDeleteEnsureACL(snapshot->domain->conn, dom->def) < 0)
+        goto cleanup;
+
     ret = prlsdkDeleteSnapshot(dom, snapshot->name,
                                flags & VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN);
 
+ cleanup:
     virDomainObjEndAPI(&dom);
 
     return ret;
@@ -2202,6 +2727,9 @@ vzDomainRevertToSnapshot(virDomainSnapshotPtr snapshot, unsigned int flags)
 
     if (!(dom = vzDomObjFromDomain(snapshot->domain)))
         return -1;
+
+    if (virDomainRevertToSnapshotEnsureACL(snapshot->domain->conn, dom->def) < 0)
+        goto cleanup;
 
     if (vzDomainObjBeginJob(dom) < 0)
         goto cleanup;
@@ -2362,14 +2890,46 @@ vzEatCookie(const char *cookiein, int cookieinlen, unsigned int flags)
     goto cleanup;
 }
 
-#define VZ_MIGRATION_FLAGS         (VIR_MIGRATE_PAUSED |        \
-                                    VIR_MIGRATE_PEER2PEER)
+#define VZ_MIGRATION_FLAGS         (VIR_MIGRATE_PAUSED |          \
+                                    VIR_MIGRATE_PEER2PEER |       \
+                                    VIR_MIGRATE_LIVE |            \
+                                    VIR_MIGRATE_UNDEFINE_SOURCE | \
+                                    VIR_MIGRATE_PERSIST_DEST)
 
 #define VZ_MIGRATION_PARAMETERS                                 \
     VIR_MIGRATE_PARAM_DEST_XML,         VIR_TYPED_PARAM_STRING, \
     VIR_MIGRATE_PARAM_URI,              VIR_TYPED_PARAM_STRING, \
     VIR_MIGRATE_PARAM_DEST_NAME,        VIR_TYPED_PARAM_STRING, \
+    VIR_MIGRATE_PARAM_BANDWIDTH,        VIR_TYPED_PARAM_ULLONG, \
     NULL
+
+static char *
+vzDomainMigrateBeginStep(virDomainObjPtr dom,
+                         vzDriverPtr driver,
+                         virTypedParameterPtr params,
+                         int nparams,
+                         char **cookieout,
+                         int *cookieoutlen)
+{
+    /* we can't do this check via VZ_MIGRATION_PARAMETERS as on preparation
+     * step domain xml will be passed via this parameter and it is a common
+     * style to use single allowed parameter list definition in all steps */
+    if (virTypedParamsGet(params, nparams, VIR_MIGRATE_PARAM_DEST_XML)) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("Changing destination XML is not supported"));
+        return NULL;
+    }
+
+    /* session uuid, domain uuid and domain name are for backward compat */
+    if (vzBakeCookie(driver, dom, cookieout, cookieoutlen,
+                     VZ_MIGRATION_COOKIE_SESSION_UUID
+                     | VZ_MIGRATION_COOKIE_DOMAIN_UUID
+                     | VZ_MIGRATION_COOKIE_DOMAIN_NAME) < 0)
+        return NULL;
+
+    return virDomainDefFormat(dom->def, driver->caps,
+                              VIR_DOMAIN_XML_MIGRATABLE);
+}
 
 static char *
 vzDomainMigrateBegin3Params(virDomainPtr domain,
@@ -2382,33 +2942,31 @@ vzDomainMigrateBegin3Params(virDomainPtr domain,
     char *xml = NULL;
     virDomainObjPtr dom = NULL;
     vzConnPtr privconn = domain->conn->privateData;
+    unsigned long long bandwidth = 0;
 
     virCheckFlags(VZ_MIGRATION_FLAGS, NULL);
 
     if (virTypedParamsValidate(params, nparams, VZ_MIGRATION_PARAMETERS) < 0)
         goto cleanup;
 
-    /* we can't do this check via VZ_MIGRATION_PARAMETERS as on preparation
-     * step domain xml will be passed via this parameter and it is a common
-     * style to use single allowed parameter list definition in all steps */
-    if (virTypedParamsGet(params, nparams, VIR_MIGRATE_PARAM_DEST_XML)) {
+    if (virTypedParamsGetULLong(params, nparams, VIR_MIGRATE_PARAM_BANDWIDTH,
+                                &bandwidth) < 0)
+        goto cleanup;
+
+    if (bandwidth > 0) {
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
-                       _("Changing destination XML is not supported"));
+                       _("Bandwidth rate limiting is not supported"));
         goto cleanup;
     }
 
     if (!(dom = vzDomObjFromDomain(domain)))
         goto cleanup;
 
-    /* session uuid, domain uuid and domain name are for backward compat */
-    if (vzBakeCookie(privconn->driver, dom, cookieout, cookieoutlen,
-                     VZ_MIGRATION_COOKIE_SESSION_UUID
-                     | VZ_MIGRATION_COOKIE_DOMAIN_UUID
-                     | VZ_MIGRATION_COOKIE_DOMAIN_NAME) < 0)
+    if (virDomainMigrateBegin3ParamsEnsureACL(domain->conn, dom->def) < 0)
         goto cleanup;
 
-    xml = virDomainDefFormat(dom->def, privconn->driver->caps,
-                             VIR_DOMAIN_XML_MIGRATABLE);
+    xml = vzDomainMigrateBeginStep(dom, privconn->driver, params, nparams,
+                                   cookieout, cookieoutlen);
 
  cleanup:
 
@@ -2453,8 +3011,11 @@ vzDomainMigratePrepare3Params(virConnectPtr conn,
                               unsigned int flags)
 {
     vzConnPtr privconn = conn->privateData;
+    vzDriverPtr driver = privconn->driver;
     const char *miguri = NULL;
     const char *dname = NULL;
+    const char *dom_xml = NULL;
+    virDomainDefPtr def = NULL;
     int ret = -1;
 
     virCheckFlags(VZ_MIGRATION_FLAGS, -1);
@@ -2464,6 +3025,8 @@ vzDomainMigratePrepare3Params(virConnectPtr conn,
 
     if (virTypedParamsGetString(params, nparams,
                                 VIR_MIGRATE_PARAM_URI, &miguri) < 0 ||
+        virTypedParamsGetString(params, nparams,
+                                VIR_MIGRATE_PARAM_DEST_XML, &dom_xml) < 0 ||
         virTypedParamsGetString(params, nparams,
                                 VIR_MIGRATE_PARAM_DEST_NAME, &dname) < 0)
         goto cleanup;
@@ -2481,15 +3044,32 @@ vzDomainMigratePrepare3Params(virConnectPtr conn,
                      | VZ_MIGRATION_COOKIE_DOMAIN_NAME) < 0)
         goto cleanup;
 
+    if (!(def = virDomainDefParseString(dom_xml, driver->caps, driver->xmlopt,
+                                        VIR_DOMAIN_DEF_PARSE_INACTIVE)))
+        goto cleanup;
+
+    if (dname) {
+        VIR_FREE(def->name);
+        if (VIR_STRDUP(def->name, dname) < 0)
+            goto cleanup;
+    }
+
+    if (virDomainMigratePrepare3ParamsEnsureACL(conn, def) < 0)
+        goto cleanup;
+
     ret = 0;
 
  cleanup:
+    virDomainDefFree(def);
     return ret;
 }
 
 static int
 vzConnectSupportsFeature(virConnectPtr conn ATTRIBUTE_UNUSED, int feature)
 {
+    if (virConnectSupportsFeatureEnsureACL(conn) < 0)
+        return -1;
+
     switch (feature) {
     case VIR_DRV_FEATURE_MIGRATION_PARAMS:
     case VIR_DRV_FEATURE_MIGRATION_P2P:
@@ -2536,7 +3116,8 @@ vzParseVzURI(const char *uri_str)
 }
 
 static int
-vzDomainMigratePerformStep(virDomainPtr domain,
+vzDomainMigratePerformStep(virDomainObjPtr dom,
+                           vzDriverPtr driver,
                            virTypedParameterPtr params,
                            int nparams,
                            const char *cookiein,
@@ -2544,18 +3125,12 @@ vzDomainMigratePerformStep(virDomainPtr domain,
                            unsigned int flags)
 {
     int ret = -1;
-    virDomainObjPtr dom = NULL;
+    vzDomObjPtr privdom = dom->privateData;
     virURIPtr vzuri = NULL;
-    vzConnPtr privconn = domain->conn->privateData;
     const char *miguri = NULL;
     const char *dname = NULL;
     vzMigrationCookiePtr mig = NULL;
     bool job = false;
-
-    virCheckFlags(VZ_MIGRATION_FLAGS, -1);
-
-    if (virTypedParamsValidate(params, nparams, VZ_MIGRATION_PARAMETERS) < 0)
-        goto cleanup;
 
     if (virTypedParamsGetString(params, nparams,
                                 VIR_MIGRATE_PARAM_URI, &miguri) < 0 ||
@@ -2573,12 +3148,10 @@ vzDomainMigratePerformStep(virDomainPtr domain,
                             VZ_MIGRATION_COOKIE_SESSION_UUID)))
         goto cleanup;
 
-    if (!(dom = vzDomObjFromDomainRef(domain)))
-        goto cleanup;
-
     if (vzDomainObjBeginJob(dom) < 0)
         goto cleanup;
     job = true;
+    privdom->job.hasProgress = true;
 
     if (vzEnsureDomainExists(dom) < 0)
         goto cleanup;
@@ -2589,7 +3162,7 @@ vzDomainMigratePerformStep(virDomainPtr domain,
     if (prlsdkMigrate(dom, vzuri, mig->session_uuid, dname, flags) < 0)
         goto cleanup;
 
-    virDomainObjListRemove(privconn->driver->domains, dom);
+    virDomainObjListRemove(driver->domains, dom);
     virObjectLock(dom);
 
     ret = 0;
@@ -2597,7 +3170,6 @@ vzDomainMigratePerformStep(virDomainPtr domain,
  cleanup:
     if (job)
         vzDomainObjEndJob(dom);
-    virDomainObjEndAPI(&dom);
     virURIFree(vzuri);
     vzMigrationCookieFree(mig);
 
@@ -2605,7 +3177,8 @@ vzDomainMigratePerformStep(virDomainPtr domain,
 }
 
 static int
-vzDomainMigratePerformP2P(virDomainPtr domain,
+vzDomainMigratePerformP2P(virDomainObjPtr dom,
+                          vzDriverPtr driver,
                           const char *dconnuri,
                           virTypedParameterPtr orig_params,
                           int nparams,
@@ -2630,19 +3203,22 @@ vzDomainMigratePerformP2P(virDomainPtr domain,
     if (!(dconn = virConnectOpen(dconnuri)))
         goto done;
 
-    if (!(dom_xml = vzDomainMigrateBegin3Params(domain, params, nparams,
-                                                &cookieout, &cookieoutlen,
-                                                flags)))
+    if (!(dom_xml = vzDomainMigrateBeginStep(dom, driver, params, nparams,
+                                             &cookieout, &cookieoutlen)))
         goto done;
 
     cookiein = cookieout;
     cookieinlen = cookieoutlen;
     cookieout = NULL;
     cookieoutlen = 0;
-    if (dconn->driver->domainMigratePrepare3Params
+    virObjectUnlock(dom);
+    ret = dconn->driver->domainMigratePrepare3Params
             (dconn, params, nparams, cookiein, cookieinlen,
-             &cookieout, &cookieoutlen, &uri, flags) < 0)
+             &cookieout, &cookieoutlen, &uri, flags);
+    virObjectLock(dom);
+    if (ret < 0)
         goto done;
+    ret = -1;
 
     /* preparation step was successful, thus on any error we must perform
      * finish step to finalize migration on target
@@ -2658,7 +3234,7 @@ vzDomainMigratePerformP2P(virDomainPtr domain,
     cookieinlen = cookieoutlen;
     cookieout = NULL;
     cookieoutlen = 0;
-    if (vzDomainMigratePerformStep(domain, params, nparams, cookiein,
+    if (vzDomainMigratePerformStep(dom, driver, params, nparams, cookiein,
                                    cookieinlen, flags) < 0) {
         orig_err = virSaveLastError();
         goto finish;
@@ -2671,12 +3247,14 @@ vzDomainMigratePerformP2P(virDomainPtr domain,
                                 VIR_MIGRATE_PARAM_DEST_NAME, NULL) <= 0 &&
         virTypedParamsReplaceString(&params, &nparams,
                                     VIR_MIGRATE_PARAM_DEST_NAME,
-                                    domain->name) < 0)
+                                    dom->def->name) < 0)
         goto done;
 
+    virObjectUnlock(dom);
     ddomain = dconn->driver->domainMigrateFinish3Params(dconn, params, nparams,
                                                         NULL, 0, NULL, NULL,
                                                         flags, cancelled);
+    virObjectLock(dom);
     if (ddomain)
         ret = 0;
     virObjectUnref(ddomain);
@@ -2708,17 +3286,32 @@ vzDomainMigratePerform3Params(virDomainPtr domain,
                               int *cookieoutlen ATTRIBUTE_UNUSED,
                               unsigned int flags)
 {
+    int ret = -1;
+    virDomainObjPtr dom;
+    vzConnPtr privconn = domain->conn->privateData;
+
     virCheckFlags(VZ_MIGRATION_FLAGS, -1);
 
     if (virTypedParamsValidate(params, nparams, VZ_MIGRATION_PARAMETERS) < 0)
         return -1;
 
-    if (flags & VIR_MIGRATE_PEER2PEER)
-        return vzDomainMigratePerformP2P(domain, dconnuri, params, nparams, flags);
-    else
-        return vzDomainMigratePerformStep(domain, params, nparams,
-                                          cookiein, cookieinlen, flags);
+    if (!(dom = vzDomObjFromDomainRef(domain)))
+        return -1;
 
+    if (virDomainMigratePerform3ParamsEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
+
+    if (flags & VIR_MIGRATE_PEER2PEER)
+        ret = vzDomainMigratePerformP2P(dom, privconn->driver, dconnuri,
+                                        params, nparams, flags);
+    else
+        ret = vzDomainMigratePerformStep(dom, privconn->driver, params, nparams,
+                                         cookiein, cookieinlen, flags);
+
+ cleanup:
+    virDomainObjEndAPI(&dom);
+
+    return ret;
 }
 
 static virDomainPtr
@@ -2754,6 +3347,11 @@ vzDomainMigrateFinish3Params(virConnectPtr dconn,
     if (!(dom = prlsdkAddDomainByName(driver, name)))
         goto cleanup;
 
+    /* At first glace at may look strange that we add domain and
+     * then check ACL but we touch only cache and not real system state */
+    if (virDomainMigrateFinish3ParamsEnsureACL(dconn, dom->def) < 0)
+        goto cleanup;
+
     domain = virGetDomain(dconn, dom->def->name, dom->def->uuid);
     if (domain)
         domain->id = dom->def->id;
@@ -2782,6 +3380,121 @@ vzDomainMigrateConfirm3Params(virDomainPtr domain ATTRIBUTE_UNUSED,
         return -1;
 
     return 0;
+}
+
+static int
+vzDomainGetJobInfoImpl(virDomainObjPtr dom, virDomainJobInfoPtr info)
+{
+    vzDomObjPtr privdom = dom->privateData;
+    vzDomainJobObjPtr job = &privdom->job;
+
+    memset(info, 0, sizeof(*info));
+
+    if (!job->active || !job->hasProgress)
+        return 0;
+
+    if (vzDomainJobUpdateTime(job) < 0)
+        return -1;
+
+    info->type = VIR_DOMAIN_JOB_UNBOUNDED;
+    info->dataTotal = 100;
+    info->dataProcessed = job->progress;
+    info->dataRemaining = 100 - job->progress;
+    info->timeElapsed = job->elapsed;
+
+    return 0;
+}
+
+static int
+vzDomainGetJobInfo(virDomainPtr domain, virDomainJobInfoPtr info)
+{
+    virDomainObjPtr dom;
+    int ret = -1;
+
+    if (!(dom = vzDomObjFromDomain(domain)))
+        return -1;
+
+    if (virDomainGetJobInfoEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
+
+    ret = vzDomainGetJobInfoImpl(dom, info);
+
+ cleanup:
+    virObjectUnlock(dom);
+    return ret;
+}
+
+static int
+vzDomainJobInfoToParams(virDomainJobInfoPtr info,
+                        int *type,
+                        virTypedParameterPtr *params,
+                        int *nparams)
+{
+    virTypedParameterPtr par = NULL;
+    int maxpar = 0;
+    int npar = 0;
+
+    if (virTypedParamsAddULLong(&par, &npar, &maxpar,
+                                VIR_DOMAIN_JOB_TIME_ELAPSED,
+                                info->timeElapsed) < 0 ||
+        virTypedParamsAddULLong(&par, &npar, &maxpar,
+                                VIR_DOMAIN_JOB_DATA_TOTAL,
+                                info->dataTotal) < 0 ||
+        virTypedParamsAddULLong(&par, &npar, &maxpar,
+                                VIR_DOMAIN_JOB_DATA_PROCESSED,
+                                info->dataProcessed) < 0 ||
+        virTypedParamsAddULLong(&par, &npar, &maxpar,
+                                VIR_DOMAIN_JOB_DATA_REMAINING,
+                                info->dataRemaining) < 0)
+        goto error;
+
+
+    *type = info->type;
+    *params = par;
+    *nparams = npar;
+    return 0;
+
+ error:
+    virTypedParamsFree(par, npar);
+    return -1;
+}
+
+static int
+vzDomainGetJobStats(virDomainPtr domain,
+                    int *type,
+                    virTypedParameterPtr *params,
+                    int *nparams,
+                    unsigned int flags)
+{
+    virDomainJobInfo info;
+    virDomainObjPtr dom;
+    int ret = -1;
+
+    virCheckFlags(0, -1);
+
+    if (!(dom = vzDomObjFromDomain(domain)))
+        return -1;
+
+    if (virDomainGetJobStatsEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
+
+    if (vzDomainGetJobInfoImpl(dom, &info) < 0)
+        goto cleanup;
+
+    if (info.type == VIR_DOMAIN_JOB_NONE) {
+        *type = VIR_DOMAIN_JOB_NONE;
+        *params = NULL;
+        *nparams = 0;
+        ret = 0;
+        goto cleanup;
+    }
+
+    ret = vzDomainJobInfoToParams(&info, type, params, nparams);
+
+ cleanup:
+    virObjectUnlock(dom);
+
+    return ret;
 }
 
 static virHypervisorDriver vzHypervisorDriver = {
@@ -2817,7 +3530,9 @@ static virHypervisorDriver vzHypervisorDriver = {
     .domainSuspend = vzDomainSuspend,    /* 0.10.0 */
     .domainResume = vzDomainResume,    /* 0.10.0 */
     .domainDestroy = vzDomainDestroy,  /* 0.10.0 */
+    .domainDestroyFlags = vzDomainDestroyFlags,  /* 2.2.0 */
     .domainShutdown = vzDomainShutdown, /* 0.10.0 */
+    .domainShutdownFlags = vzDomainShutdownFlags, /* 2.2.0 */
     .domainCreate = vzDomainCreate,    /* 0.10.0 */
     .domainCreateWithFlags = vzDomainCreateWithFlags, /* 1.2.10 */
     .domainReboot = vzDomainReboot, /* 1.3.0 */
@@ -2875,6 +3590,8 @@ static virHypervisorDriver vzHypervisorDriver = {
     .domainMigrateFinish3Params = vzDomainMigrateFinish3Params, /* 1.3.5 */
     .domainMigrateConfirm3Params = vzDomainMigrateConfirm3Params, /* 1.3.5 */
     .domainUpdateDeviceFlags = vzDomainUpdateDeviceFlags, /* 2.0.0 */
+    .domainGetJobInfo = vzDomainGetJobInfo, /* 2.2.0 */
+    .domainGetJobStats = vzDomainGetJobStats, /* 2.2.0 */
 };
 
 static virConnectDriver vzConnectDriver = {

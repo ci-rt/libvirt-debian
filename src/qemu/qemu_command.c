@@ -133,6 +133,8 @@ VIR_ENUM_IMPL(qemuControllerModelUSB, VIR_DOMAIN_CONTROLLER_MODEL_USB_LAST,
               "vt82c686b-usb-uhci",
               "pci-ohci",
               "nec-usb-xhci",
+              "qusb1",
+              "qusb2",
               "none");
 
 VIR_ENUM_DECL(qemuDomainFSDriver)
@@ -269,17 +271,6 @@ qemuVirCommandGetDevSet(virCommandPtr cmd, int fd)
                        _("file descriptor %d has not been transferred"), fd);
     }
     return result;
-}
-
-
-char *qemuDeviceDriveHostAlias(virDomainDiskDefPtr disk)
-{
-    char *ret;
-
-    if (virAsprintf(&ret, "%s%s",
-                    QEMU_DRIVE_HOST_PREFIX, disk->info.alias) < 0)
-        return NULL;
-    return ret;
 }
 
 
@@ -1296,7 +1287,12 @@ qemuBuildDriveSourceStr(virDomainDiskDefPtr disk,
     virBufferAddLit(buf, ",");
 
     if (secinfo && secinfo->type == VIR_DOMAIN_SECRET_INFO_TYPE_AES) {
-        virBufferAsprintf(buf, "password-secret=%s,",
+        /* NB: If libvirt starts using the more modern option based
+         *     syntax to build the command line (e.g., "-drive driver=rbd,
+         *     filename=%s,...") instead of the legacy model (e.g."-drive
+         *     file=%s,..."), then the "file." prefix can be removed
+         */
+        virBufferAsprintf(buf, "file.password-secret=%s,",
                           secinfo->s.aes.alias);
     }
 
@@ -1436,7 +1432,11 @@ qemuBuildDriveStr(virDomainDiskDefPtr disk,
     }
 
     if (emitDeviceSyntax) {
-        virBufferAsprintf(&opt, ",id=%s%s", QEMU_DRIVE_HOST_PREFIX, disk->info.alias);
+        char *drivealias = qemuAliasFromDisk(disk);
+        if (!drivealias)
+            goto error;
+        virBufferAsprintf(&opt, ",id=%s", drivealias);
+        VIR_FREE(drivealias);
     } else {
         if (busid == -1 && unitid == -1) {
             if (idx != -1)
@@ -1797,6 +1797,7 @@ qemuBuildDriveDevStr(const virDomainDef *def,
     virBuffer opt = VIR_BUFFER_INITIALIZER;
     const char *bus = virDomainDiskQEMUBusTypeToString(disk->bus);
     const char *contAlias;
+    char *drivealias;
     int controllerModel;
 
     if (qemuCheckDiskConfig(disk) < 0)
@@ -2022,8 +2023,10 @@ qemuBuildDriveDevStr(const virDomainDef *def,
         goto error;
     }
 
-    virBufferAsprintf(&opt, ",drive=%s%s", QEMU_DRIVE_HOST_PREFIX, disk->info.alias);
-    virBufferAsprintf(&opt, ",id=%s", disk->info.alias);
+    if (!(drivealias = qemuAliasFromDisk(disk)))
+        goto error;
+    virBufferAsprintf(&opt, ",drive=%s,id=%s", drivealias, disk->info.alias);
+    VIR_FREE(drivealias);
     if (bootindex && virQEMUCapsGet(qemuCaps, QEMU_CAPS_BOOTINDEX))
         virBufferAsprintf(&opt, ",bootindex=%u", bootindex);
     if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_BLOCKIO)) {
@@ -2387,8 +2390,7 @@ qemuControllerModelUSBToCaps(int model)
 
 
 static int
-qemuBuildUSBControllerDevStr(const virDomainDef *domainDef,
-                             virDomainControllerDefPtr def,
+qemuBuildUSBControllerDevStr(virDomainControllerDefPtr def,
                              virQEMUCapsPtr qemuCaps,
                              virBuffer *buf)
 {
@@ -2398,10 +2400,9 @@ qemuBuildUSBControllerDevStr(const virDomainDef *domainDef,
     model = def->model;
 
     if (model == -1) {
-        if ARCH_IS_PPC64(domainDef->os.arch)
-            model = VIR_DOMAIN_CONTROLLER_MODEL_USB_PCI_OHCI;
-        else
-            model = VIR_DOMAIN_CONTROLLER_MODEL_USB_PIIX3_UHCI;
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       "%s", _("no model provided for USB controller"));
+        return -1;
     }
 
     smodel = qemuControllerModelUSBTypeToString(model);
@@ -2630,7 +2631,7 @@ qemuBuildControllerDevStr(const virDomainDef *domainDef,
         break;
 
     case VIR_DOMAIN_CONTROLLER_TYPE_USB:
-        if (qemuBuildUSBControllerDevStr(domainDef, def, qemuCaps, &buf) == -1)
+        if (qemuBuildUSBControllerDevStr(def, qemuCaps, &buf) == -1)
             goto error;
 
         if (nusbcontroller)
@@ -3010,30 +3011,29 @@ qemuBuildControllerDevCommandLine(virCommandPtr cmd,
 
             if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_USB &&
                 cont->model == -1 &&
-                !qemuDomainMachineIsQ35(def)) {
-                bool need_legacy = false;
+                !qemuDomainMachineIsQ35(def) &&
+                !qemuDomainMachineIsVirt(def)) {
 
-                /* We're not using legacy usb controller for q35 */
-                if (ARCH_IS_PPC64(def->os.arch)) {
-                    /* For ppc64 the legacy was OHCI */
-                    if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_PCI_OHCI))
-                        need_legacy = true;
-                } else {
-                    /* For anything else, we used PIIX3_USB_UHCI */
-                    if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_PIIX3_USB_UHCI))
-                        need_legacy = true;
+                /* An appropriate default USB controller model should already
+                 * have been selected in qemuDomainDeviceDefPostParse(); if
+                 * we still have no model by now, we have to fall back to the
+                 * legacy USB controller.
+                 *
+                 * Note that we *don't* want to end up with the legacy USB
+                 * controller for q35 and virt machines, so we go ahead and
+                 * fail in qemuBuildControllerDevStr(); on the other hand,
+                 * for s390 machines we want to ignore any USB controller
+                 * (see 548ba43028 for the full story), so we skip
+                 * qemuBuildControllerDevStr() but we don't ultimately end
+                 * up adding the legacy USB controller */
+                if (usblegacy) {
+                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                   _("Multiple legacy USB controllers are "
+                                     "not supported"));
+                    return -1;
                 }
-
-                if (need_legacy) {
-                    if (usblegacy) {
-                        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                                       _("Multiple legacy USB controllers are "
-                                         "not supported"));
-                        return -1;
-                    }
-                    usblegacy = true;
-                    continue;
-                }
+                usblegacy = true;
+                continue;
             }
 
             virCommandAddArg(cmd, "-device");
@@ -3045,6 +3045,9 @@ qemuBuildControllerDevCommandLine(virCommandPtr cmd,
         }
     }
 
+    /* We haven't added any USB controller yet, but we haven't been asked
+     * not to add one either. Add a legacy USB controller, unless we're
+     * creating a kind of guest we want to keep legacy-free */
     if (usbcontroller == 0 &&
         !qemuDomainMachineIsQ35(def) &&
         !qemuDomainMachineIsVirt(def) &&
@@ -4300,8 +4303,6 @@ qemuBuildDeviceVideoStr(const virDomainDef *def,
              virQEMUCapsGet(qemuCaps, QEMU_CAPS_QXL_MAX_OUTPUTS))) {
             if (video->heads)
                 virBufferAsprintf(&buf, ",max_outputs=%u", video->heads);
-        } else {
-            video->heads = 0;
         }
     } else if (video->vram &&
         ((video->type == VIR_DOMAIN_VIDEO_TYPE_VGA &&
@@ -4714,6 +4715,7 @@ qemuBuildSCSIHostdevDrvStr(virDomainHostdevDefPtr dev)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     char *source = NULL;
+    char *drivealias = NULL;
     virDomainHostdevSubsysSCSIPtr scsisrc = &dev->source.subsys.u.scsi;
 
     if (scsisrc->protocol == VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_ISCSI) {
@@ -4725,9 +4727,12 @@ qemuBuildSCSIHostdevDrvStr(virDomainHostdevDefPtr dev)
             goto error;
         virBufferAsprintf(&buf, "file=/dev/%s,if=none", source);
     }
-    virBufferAsprintf(&buf, ",id=%s-%s",
-                      virDomainDeviceAddressTypeToString(dev->info->type),
-                      dev->info->alias);
+    VIR_FREE(source);
+
+    if (!(drivealias = qemuAliasFromHostdev(dev)))
+        goto error;
+    virBufferAsprintf(&buf, ",id=%s", drivealias);
+    VIR_FREE(drivealias);
 
     if (dev->readonly)
         virBufferAddLit(&buf, ",readonly=on");
@@ -4735,10 +4740,8 @@ qemuBuildSCSIHostdevDrvStr(virDomainHostdevDefPtr dev)
     if (virBufferCheckError(&buf) < 0)
         goto error;
 
-    VIR_FREE(source);
     return virBufferContentAndReset(&buf);
  error:
-    VIR_FREE(source);
     virBufferFreeAndReset(&buf);
     return NULL;
 }
@@ -4750,6 +4753,7 @@ qemuBuildSCSIHostdevDevStr(const virDomainDef *def,
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     int model = -1;
+    char *driveAlias;
     const char *contAlias;
 
     model = virDomainDeviceFindControllerModel(def, dev->info,
@@ -4793,9 +4797,10 @@ qemuBuildSCSIHostdevDevStr(const virDomainDef *def,
                           dev->info->addr.drive.unit);
     }
 
-    virBufferAsprintf(&buf, ",drive=%s-%s,id=%s",
-                      virDomainDeviceAddressTypeToString(dev->info->type),
-                      dev->info->alias, dev->info->alias);
+    if (!(driveAlias = qemuAliasFromHostdev(dev)))
+        goto error;
+    virBufferAsprintf(&buf, ",drive=%s,id=%s", driveAlias, dev->info->alias);
+    VIR_FREE(driveAlias);
 
     if (dev->info->bootIndex)
         virBufferAsprintf(&buf, ",bootindex=%u", dev->info->bootIndex);
@@ -6928,7 +6933,9 @@ qemuBuildMachineCommandLine(virCommandPtr cmd,
                             const virDomainDef *def,
                             virQEMUCapsPtr qemuCaps)
 {
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
     bool obsoleteAccel = false;
+    int ret = -1;
 
     /* This should *never* be NULL, since we always provide
      * a machine in the capabilities data for QEMU. So this
@@ -6953,7 +6960,7 @@ qemuBuildMachineCommandLine(virCommandPtr cmd,
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("disable shared memory is not available "
                              "with this QEMU binary"));
-             return -1;
+            return -1;
         }
 
         obsoleteAccel = true;
@@ -6965,8 +6972,8 @@ qemuBuildMachineCommandLine(virCommandPtr cmd,
             return -1;
         }
     } else {
-        virBuffer buf = VIR_BUFFER_INITIALIZER;
         virTristateSwitch vmport = def->features[VIR_DOMAIN_FEATURE_VMPORT];
+        virTristateSwitch smm = def->features[VIR_DOMAIN_FEATURE_SMM];
 
         virCommandAddArg(cmd, "-machine");
         virBufferAdd(&buf, def->os.machine, -1);
@@ -6989,12 +6996,22 @@ qemuBuildMachineCommandLine(virCommandPtr cmd,
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                                _("vmport is not available "
                                  "with this QEMU binary"));
-                virBufferFreeAndReset(&buf);
-                return -1;
+                goto cleanup;
             }
 
             virBufferAsprintf(&buf, ",vmport=%s",
                               virTristateSwitchTypeToString(vmport));
+        }
+
+        if (smm) {
+            if (!virQEMUCapsSupportsSMM(qemuCaps, def)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("smm is not available with this QEMU binary"));
+                goto cleanup;
+            }
+
+            virBufferAsprintf(&buf, ",smm=%s",
+                              virTristateSwitchTypeToString(smm));
         }
 
         if (def->mem.dump_core) {
@@ -7002,8 +7019,7 @@ qemuBuildMachineCommandLine(virCommandPtr cmd,
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                                _("dump-guest-core is not available "
                                  "with this QEMU binary"));
-                virBufferFreeAndReset(&buf);
-                return -1;
+                goto cleanup;
             }
 
             virBufferAsprintf(&buf, ",dump-guest-core=%s",
@@ -7011,22 +7027,19 @@ qemuBuildMachineCommandLine(virCommandPtr cmd,
         }
 
         if (def->mem.nosharepages) {
-            if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_MEM_MERGE)) {
-                virBufferAddLit(&buf, ",mem-merge=off");
-            } else {
+            if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_MEM_MERGE)) {
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                                _("disable shared memory is not available "
                                  "with this QEMU binary"));
-                virBufferFreeAndReset(&buf);
-                return -1;
+                goto cleanup;
             }
+
+            virBufferAddLit(&buf, ",mem-merge=off");
         }
 
         if (def->keywrap &&
-            !qemuAppendKeyWrapMachineParms(&buf, qemuCaps, def->keywrap)) {
-            virBufferFreeAndReset(&buf);
-            return -1;
-        }
+            !qemuAppendKeyWrapMachineParms(&buf, qemuCaps, def->keywrap))
+            goto cleanup;
 
         if (def->features[VIR_DOMAIN_FEATURE_GIC] == VIR_TRISTATE_SWITCH_ON) {
             if (def->gic_version != VIR_GIC_VERSION_NONE) {
@@ -7034,8 +7047,7 @@ qemuBuildMachineCommandLine(virCommandPtr cmd,
                     virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                                    _("gic-version option is available "
                                      "only for ARM virt machine"));
-                    virBufferFreeAndReset(&buf);
-                    return -1;
+                    goto cleanup;
                 }
 
                 /* The default GIC version should not be specified on the
@@ -7046,8 +7058,7 @@ qemuBuildMachineCommandLine(virCommandPtr cmd,
                         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                                        _("gic-version option is not available "
                                          "with this QEMU binary"));
-                        virBufferFreeAndReset(&buf);
-                        return -1;
+                        goto cleanup;
                     }
 
                     virBufferAsprintf(&buf, ",gic-version=%s",
@@ -7061,24 +7072,39 @@ qemuBuildMachineCommandLine(virCommandPtr cmd,
 
     if (obsoleteAccel &&
         qemuBuildObsoleteAccelArg(cmd, def, qemuCaps) < 0)
-        return -1;
+        goto cleanup;
 
-    return 0;
+    ret = 0;
+ cleanup:
+    virBufferFreeAndReset(&buf);
+    return ret;
 }
 
 static int
 qemuBuildSmpCommandLine(virCommandPtr cmd,
-                        const virDomainDef *def)
+                        virDomainDefPtr def)
 {
     char *smp;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
+    unsigned int maxvcpus = virDomainDefGetVcpusMax(def);
+    unsigned int nvcpus = 0;
+    virDomainVcpuDefPtr vcpu;
+    size_t i;
+
+    /* count non-hotpluggable enabled vcpus. Hotpluggable ones will be added
+     * in a different way */
+    for (i = 0; i < maxvcpus; i++) {
+        vcpu = virDomainDefGetVcpu(def, i);
+        if (vcpu->online && vcpu->hotpluggable == VIR_TRISTATE_BOOL_NO)
+            nvcpus++;
+    }
 
     virCommandAddArg(cmd, "-smp");
 
-    virBufferAsprintf(&buf, "%u", virDomainDefGetVcpus(def));
+    virBufferAsprintf(&buf, "%u", nvcpus);
 
-    if (virDomainDefHasVcpusOffline(def))
-        virBufferAsprintf(&buf, ",maxcpus=%u", virDomainDefGetVcpusMax(def));
+    if (nvcpus != maxvcpus)
+        virBufferAsprintf(&buf, ",maxcpus=%u", maxvcpus);
     /* sockets, cores, and threads are either all zero
      * or all non-zero, thus checking one of them is enough */
     if (def->cpu && def->cpu->sockets) {
@@ -8899,6 +8925,13 @@ qemuBuildDomainLoaderCommandLine(virCommandPtr cmd,
             goto cleanup;
         }
 
+        if (loader->secure == VIR_TRISTATE_BOOL_YES) {
+            virCommandAddArgList(cmd,
+                                 "-global",
+                                 "driver=cfi.pflash01,property=secure,value=on",
+                                 NULL);
+        }
+
         virBufferAsprintf(&buf,
                           "file=%s,if=pflash,format=raw,unit=%d",
                           loader->path, unit);
@@ -9245,7 +9278,8 @@ qemuBuildCommandLineValidate(virQEMUDriverPtr driver,
         if (def->cputune.sharesSpecified || def->cputune.period ||
             def->cputune.quota || def->cputune.global_period ||
             def->cputune.global_quota || def->cputune.emulator_period ||
-            def->cputune.emulator_quota) {
+            def->cputune.emulator_quota || def->cputune.iothread_period ||
+            def->cputune.iothread_quota) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("CPU tuning is not available in session mode"));
             return -1;
@@ -9776,4 +9810,34 @@ qemuBuildChrDeviceStr(char **deviceStr,
     }
 
     return ret;
+}
+
+
+virJSONValuePtr
+qemuBuildHotpluggableCPUProps(const virDomainVcpuDef *vcpu)
+{
+    qemuDomainVcpuPrivatePtr vcpupriv = QEMU_DOMAIN_VCPU_PRIVATE(vcpu);
+    virJSONValuePtr ret = NULL;
+
+    if (virJSONValueObjectCreate(&ret, "s:driver", vcpupriv->type,
+                                       "s:id", vcpupriv->alias, NULL) < 0)
+        goto error;
+
+    if (vcpupriv->socket_id != -1 &&
+        virJSONValueObjectAdd(ret, "i:socket-id", vcpupriv->socket_id, NULL) < 0)
+        goto error;
+
+    if (vcpupriv->core_id != -1 &&
+        virJSONValueObjectAdd(ret, "i:core-id", vcpupriv->core_id, NULL) < 0)
+        goto error;
+
+    if (vcpupriv->thread_id != -1 &&
+        virJSONValueObjectAdd(ret, "i:thread-id", vcpupriv->thread_id, NULL) < 0)
+        goto error;
+
+    return ret;
+
+ error:
+    virJSONValueFree(ret);
+    return NULL;
 }

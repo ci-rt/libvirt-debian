@@ -111,6 +111,8 @@
     <function name="VIR_DOMAIN_SCHEDULER_EMULATOR_QUOTA" link="libvirt-libvirt-domain.html#VIR_DOMAIN_SCHEDULER_EMULATOR_QUOTA"/>
     <function name="VIR_DOMAIN_SCHEDULER_GLOBAL_PERIOD" link="libvirt-libvirt-domain.html#VIR_DOMAIN_SCHEDULER_GLOBAL_PERIOD"/>
     <function name="VIR_DOMAIN_SCHEDULER_GLOBAL_QUOTA" link="libvirt-libvirt-domain.html#VIR_DOMAIN_SCHEDULER_GLOBAL_QUOTA"/>
+    <function name="VIR_DOMAIN_SCHEDULER_IOTHREAD_PERIOD" link="libvirt-libvirt-domain.html#VIR_DOMAIN_SCHEDULER_IOTHREAD_PERIOD"/>
+    <function name="VIR_DOMAIN_SCHEDULER_IOTHREAD_QUOTA" link="libvirt-libvirt-domain.html#VIR_DOMAIN_SCHEDULER_IOTHREAD_QUOTA"/>
     <function name="VIR_DOMAIN_SCHEDULER_LIMIT" link="libvirt-libvirt-domain.html#VIR_DOMAIN_SCHEDULER_LIMIT"/>
     <function name="VIR_DOMAIN_SCHEDULER_RESERVATION" link="libvirt-libvirt-domain.html#VIR_DOMAIN_SCHEDULER_RESERVATION"/>
     <function name="VIR_DOMAIN_SCHEDULER_SHARES" link="libvirt-libvirt-domain.html#VIR_DOMAIN_SCHEDULER_SHARES"/>
@@ -140,6 +142,8 @@
     <function name="VIR_DOMAIN_TUNABLE_CPU_GLOBAL_PERIOD" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_CPU_GLOBAL_PERIOD"/>
     <function name="VIR_DOMAIN_TUNABLE_CPU_GLOBAL_QUOTA" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_CPU_GLOBAL_QUOTA"/>
     <function name="VIR_DOMAIN_TUNABLE_CPU_IOTHREADSPIN" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_CPU_IOTHREADSPIN"/>
+    <function name="VIR_DOMAIN_TUNABLE_CPU_IOTHREAD_PERIOD" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_CPU_IOTHREAD_PERIOD"/>
+    <function name="VIR_DOMAIN_TUNABLE_CPU_IOTHREAD_QUOTA" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_CPU_IOTHREAD_QUOTA"/>
     <function name="VIR_DOMAIN_TUNABLE_CPU_VCPUPIN" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_CPU_VCPUPIN"/>
     <function name="VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD"/>
     <function name="VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA"/>
@@ -169,6 +173,7 @@
     <function name="VIR_NODE_CPU_STATS_KERNEL" link="libvirt-libvirt-host.html#VIR_NODE_CPU_STATS_KERNEL"/>
     <function name="VIR_NODE_CPU_STATS_USER" link="libvirt-libvirt-host.html#VIR_NODE_CPU_STATS_USER"/>
     <function name="VIR_NODE_CPU_STATS_UTILIZATION" link="libvirt-libvirt-host.html#VIR_NODE_CPU_STATS_UTILIZATION"/>
+    <function name="VIR_NODE_DEVICE_EVENT_CALLBACK" link="libvirt-libvirt-nodedev.html#VIR_NODE_DEVICE_EVENT_CALLBACK"/>
     <function name="VIR_NODE_MEMORY_SHARED_FULL_SCANS" link="libvirt-libvirt-host.html#VIR_NODE_MEMORY_SHARED_FULL_SCANS"/>
     <function name="VIR_NODE_MEMORY_SHARED_MERGE_ACROSS_NODES" link="libvirt-libvirt-host.html#VIR_NODE_MEMORY_SHARED_MERGE_ACROSS_NODES"/>
     <function name="VIR_NODE_MEMORY_SHARED_PAGES_SHARED" link="libvirt-libvirt-host.html#VIR_NODE_MEMORY_SHARED_PAGES_SHARED"/>
@@ -946,6 +951,12 @@
     <function name="VIR_NODE_ALLOC_PAGES_ADD" link="libvirt-libvirt-host.html#VIR_NODE_ALLOC_PAGES_ADD"/>
     <function name="VIR_NODE_ALLOC_PAGES_SET" link="libvirt-libvirt-host.html#VIR_NODE_ALLOC_PAGES_SET"/>
     <function name="VIR_NODE_CPU_STATS_ALL_CPUS" link="libvirt-libvirt-host.html#VIR_NODE_CPU_STATS_ALL_CPUS"/>
+    <function name="VIR_NODE_DEVICE_EVENT_CREATED" link="libvirt-libvirt-nodedev.html#VIR_NODE_DEVICE_EVENT_CREATED"/>
+    <function name="VIR_NODE_DEVICE_EVENT_DELETED" link="libvirt-libvirt-nodedev.html#VIR_NODE_DEVICE_EVENT_DELETED"/>
+    <function name="VIR_NODE_DEVICE_EVENT_ID_LAST" link="libvirt-libvirt-nodedev.html#VIR_NODE_DEVICE_EVENT_ID_LAST"/>
+    <function name="VIR_NODE_DEVICE_EVENT_ID_LIFECYCLE" link="libvirt-libvirt-nodedev.html#VIR_NODE_DEVICE_EVENT_ID_LIFECYCLE"/>
+    <function name="VIR_NODE_DEVICE_EVENT_ID_UPDATE" link="libvirt-libvirt-nodedev.html#VIR_NODE_DEVICE_EVENT_ID_UPDATE"/>
+    <function name="VIR_NODE_DEVICE_EVENT_LAST" link="libvirt-libvirt-nodedev.html#VIR_NODE_DEVICE_EVENT_LAST"/>
     <function name="VIR_NODE_MEMORY_STATS_ALL_CELLS" link="libvirt-libvirt-host.html#VIR_NODE_MEMORY_STATS_ALL_CELLS"/>
     <function name="VIR_NODE_SUSPEND_TARGET_DISK" link="libvirt-libvirt-host.html#VIR_NODE_SUSPEND_TARGET_DISK"/>
     <function name="VIR_NODE_SUSPEND_TARGET_HYBRID" link="libvirt-libvirt-host.html#VIR_NODE_SUSPEND_TARGET_HYBRID"/>
@@ -1167,6 +1178,8 @@
     <function name="virNetworkXMLFlags" link="libvirt-libvirt-network.html#virNetworkXMLFlags"/>
     <function name="virNodeAllocPagesFlags" link="libvirt-libvirt-host.html#virNodeAllocPagesFlags"/>
     <function name="virNodeCPUStatsPtr" link="libvirt-libvirt-host.html#virNodeCPUStatsPtr"/>
+    <function name="virNodeDeviceEventID" link="libvirt-libvirt-nodedev.html#virNodeDeviceEventID"/>
+    <function name="virNodeDeviceEventLifecycleType" link="libvirt-libvirt-nodedev.html#virNodeDeviceEventLifecycleType"/>
     <function name="virNodeDevicePtr" link="libvirt-libvirt-nodedev.html#virNodeDevicePtr"/>
     <function name="virNodeGetCPUStatsAllCPUs" link="libvirt-libvirt-host.html#virNodeGetCPUStatsAllCPUs"/>
     <function name="virNodeGetMemoryStatsAllCells" link="libvirt-libvirt-host.html#virNodeGetMemoryStatsAllCells"/>
@@ -1272,6 +1285,8 @@
     <function name="virConnectDomainEventWatchdogCallback" link="libvirt-libvirt-domain.html#virConnectDomainEventWatchdogCallback"/>
     <function name="virConnectNetworkEventGenericCallback" link="libvirt-libvirt-network.html#virConnectNetworkEventGenericCallback"/>
     <function name="virConnectNetworkEventLifecycleCallback" link="libvirt-libvirt-network.html#virConnectNetworkEventLifecycleCallback"/>
+    <function name="virConnectNodeDeviceEventGenericCallback" link="libvirt-libvirt-nodedev.html#virConnectNodeDeviceEventGenericCallback"/>
+    <function name="virConnectNodeDeviceEventLifecycleCallback" link="libvirt-libvirt-nodedev.html#virConnectNodeDeviceEventLifecycleCallback"/>
     <function name="virConnectStoragePoolEventGenericCallback" link="libvirt-libvirt-storage.html#virConnectStoragePoolEventGenericCallback"/>
     <function name="virConnectStoragePoolEventLifecycleCallback" link="libvirt-libvirt-storage.html#virConnectStoragePoolEventLifecycleCallback"/>
     <function name="virErrorFunc" link="libvirt-virterror.html#virErrorFunc"/>
@@ -1335,6 +1350,8 @@
     <function name="virConnectListStoragePools ()" link="libvirt-libvirt-storage.html#virConnectListStoragePools"/>
     <function name="virConnectNetworkEventDeregisterAny ()" link="libvirt-libvirt-network.html#virConnectNetworkEventDeregisterAny"/>
     <function name="virConnectNetworkEventRegisterAny ()" link="libvirt-libvirt-network.html#virConnectNetworkEventRegisterAny"/>
+    <function name="virConnectNodeDeviceEventDeregisterAny ()" link="libvirt-libvirt-nodedev.html#virConnectNodeDeviceEventDeregisterAny"/>
+    <function name="virConnectNodeDeviceEventRegisterAny ()" link="libvirt-libvirt-nodedev.html#virConnectNodeDeviceEventRegisterAny"/>
     <function name="virConnectNumOfDefinedDomains ()" link="libvirt-libvirt-domain.html#virConnectNumOfDefinedDomains"/>
     <function name="virConnectNumOfDefinedInterfaces ()" link="libvirt-libvirt-interface.html#virConnectNumOfDefinedInterfaces"/>
     <function name="virConnectNumOfDefinedNetworks ()" link="libvirt-libvirt-network.html#virConnectNumOfDefinedNetworks"/>

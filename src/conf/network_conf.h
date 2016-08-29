@@ -46,6 +46,7 @@ typedef enum {
     VIR_NETWORK_FORWARD_NONE   = 0,
     VIR_NETWORK_FORWARD_NAT,
     VIR_NETWORK_FORWARD_ROUTE,
+    VIR_NETWORK_FORWARD_OPEN,
     VIR_NETWORK_FORWARD_BRIDGE,
     VIR_NETWORK_FORWARD_PRIVATE,
     VIR_NETWORK_FORWARD_VEPA,
@@ -124,9 +125,16 @@ struct _virNetworkDNSHostDef {
     char **names;
 };
 
+
+typedef struct _virNetworkDNSForwarder {
+    virSocketAddr addr;
+    char *domain;
+} virNetworkDNSForwarder, *virNetworkDNSForwarderPtr;
+
 typedef struct _virNetworkDNSDef virNetworkDNSDef;
 typedef virNetworkDNSDef *virNetworkDNSDefPtr;
 struct _virNetworkDNSDef {
+    int enable;            /* enum virTristateBool */
     int forwardPlainNames; /* enum virTristateBool */
     size_t ntxts;
     virNetworkDNSTxtDefPtr txts;
@@ -135,7 +143,7 @@ struct _virNetworkDNSDef {
     size_t nsrvs;
     virNetworkDNSSrvDefPtr srvs;
     size_t nfwds;
-    char **forwarders;
+    virNetworkDNSForwarderPtr forwarders;
 };
 
 typedef struct _virNetworkIPDef virNetworkIPDef;

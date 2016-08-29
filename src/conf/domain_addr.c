@@ -51,21 +51,20 @@ virDomainPCIControllerModelToConnectType(virDomainControllerModelPCI model)
         return 0;
 
     case VIR_DOMAIN_CONTROLLER_MODEL_PCI_BRIDGE:
-    case VIR_DOMAIN_CONTROLLER_MODEL_PCI_EXPANDER_BUS:
-        /* pci-bridge and pci-expander-bus are treated like a standard
-         * PCI endpoint device, because they can plug into any
-         * standard PCI slot.
+        /* pci-bridge is treated like a standard
+         * PCI endpoint device, because it can plug into any
+         * standard PCI slot (it just can't be hotplugged).
          */
         return VIR_PCI_CONNECT_TYPE_PCI_DEVICE;
 
-    case VIR_DOMAIN_CONTROLLER_MODEL_DMI_TO_PCI_BRIDGE:
+    case VIR_DOMAIN_CONTROLLER_MODEL_PCI_EXPANDER_BUS:
+        return VIR_PCI_CONNECT_TYPE_PCI_EXPANDER_BUS;
+
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_EXPANDER_BUS:
-        /* dmi-to-pci-bridge and pcie-expander-bus are treated like
-         * PCIe devices (the part of pcie-expander-bus that is plugged
-         * in isn't the expander bus itself, but a companion device
-         * used for setting it up).
-         */
-        return VIR_PCI_CONNECT_TYPE_PCIE_DEVICE;
+        return VIR_PCI_CONNECT_TYPE_PCIE_EXPANDER_BUS;
+
+    case VIR_DOMAIN_CONTROLLER_MODEL_DMI_TO_PCI_BRIDGE:
+        return VIR_PCI_CONNECT_TYPE_DMI_TO_PCI_BRIDGE;
 
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT_PORT:
         return VIR_PCI_CONNECT_TYPE_PCIE_ROOT_PORT;
@@ -118,38 +117,52 @@ virDomainPCIAddressFlagsCompatible(virPCIDeviceAddressPtr addr,
      * hot-plug and this bus doesn't have it, return false.
      */
     if (!(devFlags & busFlags & VIR_PCI_CONNECT_TYPES_MASK)) {
-        if (reportError) {
-            if (devFlags & VIR_PCI_CONNECT_TYPE_PCI_DEVICE) {
-                virReportError(errType,
-                               _("PCI bus is not compatible with the device "
-                                 "at %s. Device requires a standard PCI slot, "
-                                 "which is not provided by bus %.4x:%.2x"),
-                               addrStr, addr->domain, addr->bus);
-            } else if (devFlags & VIR_PCI_CONNECT_TYPE_PCIE_DEVICE) {
-                virReportError(errType,
-                               _("PCI bus is not compatible with the device "
-                                 "at %s. Device requires a PCI Express slot, "
-                                 "which is not provided by bus %.4x:%.2x"),
-                               addrStr, addr->domain, addr->bus);
-            } else {
-                /* this should never happen. If it does, there is a
-                 * bug in the code that sets the flag bits for devices.
-                 */
-                virReportError(errType,
-                           _("The device information for %s has no PCI "
-                             "connection types listed"), addrStr);
-            }
+        const char *connectStr;
+
+        if (!reportError)
+            return false;
+
+        if (devFlags & VIR_PCI_CONNECT_TYPE_PCI_DEVICE) {
+            connectStr = "standard PCI device";
+        } else if (devFlags & VIR_PCI_CONNECT_TYPE_PCIE_DEVICE) {
+            connectStr = "PCI Express device";
+        } else if (devFlags & VIR_PCI_CONNECT_TYPE_PCIE_ROOT_PORT) {
+            connectStr = "pcie-root-port";
+        } else if (devFlags & VIR_PCI_CONNECT_TYPE_PCIE_SWITCH_UPSTREAM_PORT) {
+            connectStr = "pci-switch-upstream-port";
+        } else if (devFlags & VIR_PCI_CONNECT_TYPE_PCIE_SWITCH_DOWNSTREAM_PORT) {
+            connectStr = "pci-switch-downstream-port";
+        } else if (devFlags & VIR_PCI_CONNECT_TYPE_DMI_TO_PCI_BRIDGE) {
+            connectStr = "dmi-to-pci-bridge";
+        } else if (devFlags & VIR_PCI_CONNECT_TYPE_PCI_EXPANDER_BUS) {
+            connectStr = "pci-expander-bus";
+        } else if (devFlags & VIR_PCI_CONNECT_TYPE_PCIE_EXPANDER_BUS) {
+            connectStr = "pcie-expander-bus";
+        } else {
+            /* this should never happen. If it does, there is a
+             * bug in the code that sets the flag bits for devices.
+             */
+            virReportError(errType,
+                           _("The device at PCI address %s has "
+                             "unrecognized connection type flags 0x%.2x"),
+                           addrStr, devFlags & VIR_PCI_CONNECT_TYPES_MASK);
+            return false;
         }
+        virReportError(errType,
+                       _("The device at PCI address %s cannot be "
+                         "plugged into the PCI controller with index='%d'. "
+                         "It requires a controller that accepts a %s."),
+                       addrStr, addr->bus, connectStr);
         return false;
     }
     if ((devFlags & VIR_PCI_CONNECT_HOTPLUGGABLE) &&
         !(busFlags & VIR_PCI_CONNECT_HOTPLUGGABLE)) {
         if (reportError) {
             virReportError(errType,
-                           _("PCI bus is not compatible with the device "
-                             "at %s. Device requires hot-plug capability, "
-                             "which is not provided by bus %.4x:%.2x"),
-                           addrStr, addr->domain, addr->bus);
+                           _("The device at PCI address %s requires "
+                             "hotplug capability, but the PCI controller "
+                             "with index='%d' doesn't support hotplug"),
+                           addrStr, addr->bus);
         }
         return false;
     }
@@ -231,8 +244,14 @@ virDomainPCIAddressBusSetModel(virDomainPCIAddressBusPtr bus,
      * bus.
      */
     switch (model) {
-    case VIR_DOMAIN_CONTROLLER_MODEL_PCI_BRIDGE:
     case VIR_DOMAIN_CONTROLLER_MODEL_PCI_ROOT:
+        bus->flags = (VIR_PCI_CONNECT_HOTPLUGGABLE |
+                      VIR_PCI_CONNECT_TYPE_PCI_DEVICE |
+                      VIR_PCI_CONNECT_TYPE_PCI_EXPANDER_BUS);
+        bus->minSlot = 1;
+        bus->maxSlot = VIR_PCI_ADDRESS_SLOT_LAST;
+        break;
+    case VIR_DOMAIN_CONTROLLER_MODEL_PCI_BRIDGE:
         bus->flags = (VIR_PCI_CONNECT_HOTPLUGGABLE |
                       VIR_PCI_CONNECT_TYPE_PCI_DEVICE);
         bus->minSlot = 1;
@@ -251,8 +270,10 @@ virDomainPCIAddressBusSetModel(virDomainPCIAddressBusPtr bus,
          * user config *and* the particular device being attached also
          * allows it.
          */
-        bus->flags = (VIR_PCI_CONNECT_TYPE_PCIE_DEVICE
-                      | VIR_PCI_CONNECT_TYPE_PCIE_ROOT_PORT);
+        bus->flags = (VIR_PCI_CONNECT_TYPE_PCIE_DEVICE |
+                      VIR_PCI_CONNECT_TYPE_PCIE_ROOT_PORT |
+                      VIR_PCI_CONNECT_TYPE_DMI_TO_PCI_BRIDGE |
+                      VIR_PCI_CONNECT_TYPE_PCIE_EXPANDER_BUS);
         bus->minSlot = 1;
         bus->maxSlot = VIR_PCI_ADDRESS_SLOT_LAST;
         break;
@@ -284,10 +305,10 @@ virDomainPCIAddressBusSetModel(virDomainPCIAddressBusPtr bus,
         break;
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_EXPANDER_BUS:
         /* single slot, no hotplug, only accepts pcie-root-port or
-         * pcie-switch-upstream-port.
+         * dmi-to-pci-bridge
          */
-        bus->flags = (VIR_PCI_CONNECT_TYPE_PCIE_ROOT_PORT
-                      | VIR_PCI_CONNECT_TYPE_PCIE_SWITCH_UPSTREAM_PORT);
+        bus->flags = (VIR_PCI_CONNECT_TYPE_PCIE_ROOT_PORT |
+                      VIR_PCI_CONNECT_TYPE_DMI_TO_PCI_BRIDGE);
         bus->minSlot = 0;
         bus->maxSlot = 0;
         break;
@@ -1339,6 +1360,7 @@ virDomainUSBAddressHubFree(virDomainUSBAddressHubPtr hub)
 
     for (i = 0; i < hub->nports; i++)
         virDomainUSBAddressHubFree(hub->ports[i]);
+    VIR_FREE(hub->ports);
     virBitmapFree(hub->portmap);
     VIR_FREE(hub);
 }
@@ -1392,6 +1414,12 @@ virDomainUSBAddressControllerModelToPorts(virDomainControllerDefPtr cont)
         if (cont->opts.usbopts.ports != -1)
             return cont->opts.usbopts.ports;
         return 4;
+
+    case VIR_DOMAIN_CONTROLLER_MODEL_USB_QUSB1:
+    case VIR_DOMAIN_CONTROLLER_MODEL_USB_QUSB2:
+        if (cont->opts.usbopts.ports != -1)
+            return cont->opts.usbopts.ports;
+        return 8;
 
     case VIR_DOMAIN_CONTROLLER_MODEL_USB_NONE:
     case VIR_DOMAIN_CONTROLLER_MODEL_USB_LAST:
@@ -1511,6 +1539,14 @@ virDomainUSBAddressFindPort(virDomainUSBAddressSetPtr addrs,
             return NULL;
         }
         hub = hub->ports[portIdx];
+        if (!hub) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("there is no hub at port %u in USB address bus: %u port: %s"),
+                           info->addr.usb.port[i],
+                           info->addr.usb.bus,
+                           portStr);
+            return NULL;
+        }
     }
 
     *targetIdx = info->addr.usb.port[lastIdx] - 1;

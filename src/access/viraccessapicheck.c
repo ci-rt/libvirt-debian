@@ -1270,6 +1270,66 @@ bool virConnectNetworkEventRegisterAnyCheckACL(virConnectPtr conn, virNetworkDef
 }
 
 /* Returns: -1 on error/denied, 0 on allowed */
+int virConnectNodeDeviceEventDeregisterAnyEnsureACL(virConnectPtr conn)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckConnect(mgr, conn->driver->name, VIR_ACCESS_PERM_CONNECT_READ)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
+int virConnectNodeDeviceEventRegisterAnyEnsureACL(virConnectPtr conn)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckConnect(mgr, conn->driver->name, VIR_ACCESS_PERM_CONNECT_SEARCH_NODE_DEVICES)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: false on error/denied, true on allowed */
+bool virConnectNodeDeviceEventRegisterAnyCheckACL(virConnectPtr conn, virNodeDeviceDefPtr device)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        virResetLastError();
+        return false;
+    }
+
+    if ((rv = virAccessManagerCheckNodeDevice(mgr, conn->driver->name, device, VIR_ACCESS_PERM_NODE_DEVICE_GETATTR)) <= 0) {
+        virObjectUnref(mgr);
+        virResetLastError();
+        return false;
+    }
+    virObjectUnref(mgr);
+    return true;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
 int virConnectNumOfDefinedDomainsEnsureACL(virConnectPtr conn)
 {
     virAccessManagerPtr mgr;
@@ -1690,6 +1750,26 @@ int virConnectOpenEnsureACL(virConnectPtr conn)
 }
 
 /* Returns: -1 on error/denied, 0 on allowed */
+int virConnectRegisterCloseCallbackEnsureACL(virConnectPtr conn)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckConnect(mgr, conn->driver->name, VIR_ACCESS_PERM_CONNECT_GETATTR)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
 int virConnectStoragePoolEventDeregisterAnyEnsureACL(virConnectPtr conn)
 {
     virAccessManagerPtr mgr;
@@ -1751,6 +1831,26 @@ bool virConnectStoragePoolEventRegisterAnyCheckACL(virConnectPtr conn, virStorag
 
 /* Returns: -1 on error/denied, 0 on allowed */
 int virConnectSupportsFeatureEnsureACL(virConnectPtr conn)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckConnect(mgr, conn->driver->name, VIR_ACCESS_PERM_CONNECT_GETATTR)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
+int virConnectUnregisterCloseCallbackEnsureACL(virConnectPtr conn)
 {
     virAccessManagerPtr mgr;
     int rv;

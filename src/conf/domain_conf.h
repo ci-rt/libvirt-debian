@@ -681,6 +681,8 @@ typedef enum {
     VIR_DOMAIN_CONTROLLER_MODEL_USB_VT82C686B_UHCI,
     VIR_DOMAIN_CONTROLLER_MODEL_USB_PCI_OHCI,
     VIR_DOMAIN_CONTROLLER_MODEL_USB_NEC_XHCI,
+    VIR_DOMAIN_CONTROLLER_MODEL_USB_QUSB1,
+    VIR_DOMAIN_CONTROLLER_MODEL_USB_QUSB2,
     VIR_DOMAIN_CONTROLLER_MODEL_USB_NONE,
 
     VIR_DOMAIN_CONTROLLER_MODEL_USB_LAST
@@ -1600,6 +1602,7 @@ typedef enum {
     VIR_DOMAIN_FEATURE_PMU,
     VIR_DOMAIN_FEATURE_VMPORT,
     VIR_DOMAIN_FEATURE_GIC,
+    VIR_DOMAIN_FEATURE_SMM,
 
     VIR_DOMAIN_FEATURE_LAST
 } virDomainFeature;
@@ -1732,6 +1735,7 @@ struct _virDomainLoaderDef {
     char *path;
     int readonly;   /* enum virTristateBool */
     virDomainLoader type;
+    int secure;     /* enum virTristateBool */
     char *nvram;    /* path to non-volatile RAM */
     char *templt;   /* user override of path to master nvram */
 };
@@ -2031,6 +2035,8 @@ struct _virDomainCputune {
     long long global_quota;
     unsigned long long emulator_period;
     long long emulator_quota;
+    unsigned long long iothread_period;
+    long long iothread_quota;
     virBitmapPtr emulatorpin;
 };
 
@@ -2040,6 +2046,9 @@ typedef virDomainVcpuDef *virDomainVcpuDefPtr;
 
 struct _virDomainVcpuDef {
     bool online;
+    virTristateBool hotpluggable;
+    unsigned int order;
+
     virBitmapPtr cpumask;
 
     virDomainThreadSchedParam sched;
@@ -2136,6 +2145,8 @@ struct _virDomainDef {
 
     virDomainVcpuDefPtr *vcpus;
     size_t maxvcpus;
+    /* set if the vcpu definition was specified individually */
+    bool individualvcpus;
     int placement_mode;
     virBitmapPtr cpumask;
 
@@ -2338,6 +2349,7 @@ typedef enum {
     VIR_DOMAIN_DEF_FEATURE_MEMORY_HOTPLUG = (1 << 1),
     VIR_DOMAIN_DEF_FEATURE_OFFLINE_VCPUPIN = (1 << 2),
     VIR_DOMAIN_DEF_FEATURE_NAME_SLASH = (1 << 3),
+    VIR_DOMAIN_DEF_FEATURE_INDIVIDUAL_VCPUS = (1 << 4),
 } virDomainDefFeatures;
 
 

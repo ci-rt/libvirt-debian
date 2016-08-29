@@ -367,11 +367,14 @@ typedef enum {
     QEMU_CAPS_QXL_VGA_MAX_OUTPUTS, /* -device qxl-vga,max-outputs= */
     QEMU_CAPS_SPICE_UNIX, /* -spice unix */
     QEMU_CAPS_DRIVE_DETECT_ZEROES, /* -drive detect-zeroes= */
+    QEMU_CAPS_OBJECT_TLS_CREDS_X509, /* -object tls-creds-x509 */
 
     /* 230 */
-    QEMU_CAPS_OBJECT_TLS_CREDS_X509, /* -object tls-creds-x509 */
     QEMU_CAPS_DISPLAY, /* -display */
     QEMU_CAPS_DEVICE_INTEL_IOMMU, /* -device intel-iommu */
+    QEMU_CAPS_MACHINE_SMM_OPT, /* -machine xxx,smm=on/off/auto */
+    QEMU_CAPS_VIRTIO_PCI_DISABLE_LEGACY, /* virtio-*pci.disable-legacy */
+    QEMU_CAPS_QUERY_HOTPLUGGABLE_CPUS, /* qmp command query-hotpluggable-cpus */
 
     QEMU_CAPS_LAST /* this must always be the last item */
 } virQEMUCapsFlags;
@@ -383,7 +386,6 @@ typedef struct _virQEMUCapsCache virQEMUCapsCache;
 typedef virQEMUCapsCache *virQEMUCapsCachePtr;
 
 virQEMUCapsPtr virQEMUCapsNew(void);
-virQEMUCapsPtr virQEMUCapsNewCopy(virQEMUCapsPtr qemuCaps);
 
 int virQEMUCapsInitQMPMonitor(virQEMUCapsPtr qemuCaps,
                               qemuMonitorPtr mon);
@@ -408,6 +410,9 @@ bool virQEMUCapsHasPCIMultiBus(virQEMUCapsPtr qemuCaps,
 bool virQEMUCapsSupportsVmport(virQEMUCapsPtr qemuCaps,
                                const virDomainDef *def);
 
+bool virQEMUCapsSupportsSMM(virQEMUCapsPtr qemuCaps,
+                            const virDomainDef *def);
+
 char *virQEMUCapsFlagsString(virQEMUCapsPtr qemuCaps);
 
 const char *virQEMUCapsGetBinary(virQEMUCapsPtr qemuCaps);
@@ -419,12 +424,12 @@ int virQEMUCapsAddCPUDefinition(virQEMUCapsPtr qemuCaps,
                                 const char *name);
 size_t virQEMUCapsGetCPUDefinitions(virQEMUCapsPtr qemuCaps,
                                     char ***names);
-size_t virQEMUCapsGetMachineTypes(virQEMUCapsPtr qemuCaps,
-                                  char ***names);
 const char *virQEMUCapsGetCanonicalMachine(virQEMUCapsPtr qemuCaps,
                                            const char *name);
 int virQEMUCapsGetMachineMaxCpus(virQEMUCapsPtr qemuCaps,
                                  const char *name);
+bool virQEMUCapsGetMachineHotplugCpus(virQEMUCapsPtr qemuCaps,
+                                      const char *name);
 int virQEMUCapsGetMachineTypesCaps(virQEMUCapsPtr qemuCaps,
                                    size_t *nmachines,
                                    virCapsGuestMachinePtr **machines);

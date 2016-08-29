@@ -31,6 +31,7 @@
 #include "viralloc.h"
 #include "virfile.h"
 #include "virstring.h"
+#include "virtime.h"
 #include "conf/node_device_conf.h"
 
 /*
@@ -74,8 +75,8 @@ cmdNodeDeviceCreate(vshControl *ctl, const vshCmd *cmd)
     VIR_FREE(buffer);
 
     if (dev != NULL) {
-        vshPrint(ctl, _("Node device %s created from %s\n"),
-                 virNodeDeviceGetName(dev), from);
+        vshPrintExtra(ctl, _("Node device %s created from %s\n"),
+                      virNodeDeviceGetName(dev), from);
         virNodeDeviceFree(dev);
     } else {
         vshError(ctl, _("Failed to create node device from %s"), from);
@@ -147,7 +148,7 @@ cmdNodeDeviceDestroy(vshControl *ctl, const vshCmd *cmd)
     }
 
     if (virNodeDeviceDestroy(dev) == 0) {
-        vshPrint(ctl, _("Destroyed node device '%s'\n"), device_value);
+        vshPrintExtra(ctl, _("Destroyed node device '%s'\n"), device_value);
     } else {
         vshError(ctl, _("Failed to destroy node device '%s'"), device_value);
         goto cleanup;
@@ -631,7 +632,7 @@ cmdNodeDeviceDetach(vshControl *ctl, const vshCmd *cmd)
     }
 
     if (ret)
-        vshPrint(ctl, _("Device %s detached\n"), name);
+        vshPrintExtra(ctl, _("Device %s detached\n"), name);
     else
         vshError(ctl, _("Failed to detach device %s"), name);
 
@@ -679,7 +680,7 @@ cmdNodeDeviceReAttach(vshControl *ctl, const vshCmd *cmd)
     }
 
     if (virNodeDeviceReAttach(device) == 0) {
-        vshPrint(ctl, _("Device %s re-attached\n"), name);
+        vshPrintExtra(ctl, _("Device %s re-attached\n"), name);
     } else {
         vshError(ctl, _("Failed to re-attach device %s"), name);
         ret = false;
@@ -729,7 +730,7 @@ cmdNodeDeviceReset(vshControl *ctl, const vshCmd *cmd)
     }
 
     if (virNodeDeviceReset(device) == 0) {
-        vshPrint(ctl, _("Device %s reset\n"), name);
+        vshPrintExtra(ctl, _("Device %s reset\n"), name);
     } else {
         vshError(ctl, _("Failed to reset device %s"), name);
         ret = false;
@@ -738,6 +739,232 @@ cmdNodeDeviceReset(vshControl *ctl, const vshCmd *cmd)
     virNodeDeviceFree(device);
     return ret;
 }
+
+/*
+ * "nodedev-event" command
+ */
+VIR_ENUM_DECL(virshNodeDeviceEvent)
+VIR_ENUM_IMPL(virshNodeDeviceEvent,
+              VIR_NODE_DEVICE_EVENT_LAST,
+              N_("Created"),
+              N_("Deleted"))
+
+static const char *
+virshNodeDeviceEventToString(int event)
+{
+    const char *str = virshNodeDeviceEventTypeToString(event);
+    return str ? _(str) : _("unknown");
+}
+
+struct vshEventCallback {
+    const char *name;
+    virConnectNodeDeviceEventGenericCallback cb;
+};
+typedef struct vshEventCallback vshEventCallback;
+
+struct virshNodeDeviceEventData {
+    vshControl *ctl;
+    bool loop;
+    bool timestamp;
+    int count;
+    vshEventCallback *cb;
+};
+typedef struct virshNodeDeviceEventData virshNodeDeviceEventData;
+
+static void
+vshEventLifecyclePrint(virConnectPtr conn ATTRIBUTE_UNUSED,
+                       virNodeDevicePtr dev,
+                       int event,
+                       int detail ATTRIBUTE_UNUSED,
+                       void *opaque)
+{
+    virshNodeDeviceEventData *data = opaque;
+
+    if (!data->loop && data->count)
+        return;
+
+    if (data->timestamp) {
+        char timestamp[VIR_TIME_STRING_BUFLEN];
+
+        if (virTimeStringNowRaw(timestamp) < 0)
+            timestamp[0] = '\0';
+
+        vshPrint(data->ctl, _("%s: event 'lifecycle' for node device %s: %s\n"),
+                 timestamp,
+                 virNodeDeviceGetName(dev), virshNodeDeviceEventToString(event));
+    } else {
+        vshPrint(data->ctl, _("event 'lifecycle' for node device %s: %s\n"),
+                 virNodeDeviceGetName(dev), virshNodeDeviceEventToString(event));
+    }
+
+    data->count++;
+    if (!data->loop)
+        vshEventDone(data->ctl);
+}
+
+static void
+vshEventGenericPrint(virConnectPtr conn ATTRIBUTE_UNUSED,
+                     virNodeDevicePtr dev,
+                     void *opaque)
+{
+    virshNodeDeviceEventData *data = opaque;
+
+    if (!data->loop && data->count)
+        return;
+
+    if (data->timestamp) {
+        char timestamp[VIR_TIME_STRING_BUFLEN];
+
+        if (virTimeStringNowRaw(timestamp) < 0)
+            timestamp[0] = '\0';
+
+        vshPrint(data->ctl, _("%s: event '%s'' for node device %s\n"),
+                 timestamp,
+                 data->cb->name,
+                 virNodeDeviceGetName(dev));
+    } else {
+        vshPrint(data->ctl, _("event '%s' for node device %s\n"),
+                 data->cb->name,
+                 virNodeDeviceGetName(dev));
+    }
+
+    data->count++;
+    if (!data->loop)
+        vshEventDone(data->ctl);
+}
+
+static vshEventCallback vshEventCallbacks[] = {
+    { "lifecycle",
+      VIR_NODE_DEVICE_EVENT_CALLBACK(vshEventLifecyclePrint), },
+    { "update", vshEventGenericPrint, }
+};
+verify(VIR_NODE_DEVICE_EVENT_ID_LAST == ARRAY_CARDINALITY(vshEventCallbacks));
+
+
+static const vshCmdInfo info_node_device_event[] = {
+    {.name = "help",
+     .data = N_("Node Device Events")
+    },
+    {.name = "desc",
+     .data = N_("List event types, or wait for node device events to occur")
+    },
+    {.name = NULL}
+};
+
+static const vshCmdOptDef opts_node_device_event[] = {
+    {.name = "device",
+     .type = VSH_OT_STRING,
+     .help = N_("filter by node device name")
+    },
+    {.name = "event",
+     .type = VSH_OT_STRING,
+     .help = N_("which event type to wait for")
+    },
+    {.name = "loop",
+     .type = VSH_OT_BOOL,
+     .help = N_("loop until timeout or interrupt, rather than one-shot")
+    },
+    {.name = "timeout",
+     .type = VSH_OT_INT,
+     .help = N_("timeout seconds")
+    },
+    {.name = "list",
+     .type = VSH_OT_BOOL,
+     .help = N_("list valid event types")
+    },
+    {.name = "timestamp",
+     .type = VSH_OT_BOOL,
+     .help = N_("show timestamp for each printed event")
+    },
+    {.name = NULL}
+};
+
+static bool
+cmdNodeDeviceEvent(vshControl *ctl, const vshCmd *cmd)
+{
+    virNodeDevicePtr dev = NULL;
+    bool ret = false;
+    int eventId = -1;
+    int timeout = 0;
+    virshNodeDeviceEventData data;
+    const char *eventName = NULL;
+    const char *device_value = NULL;
+    int event;
+    virshControlPtr priv = ctl->privData;
+
+    if (vshCommandOptBool(cmd, "list")) {
+        size_t i;
+
+        for (i = 0; i < VIR_NODE_DEVICE_EVENT_ID_LAST; i++)
+            vshPrint(ctl, "%s\n", vshEventCallbacks[i].name);
+        return true;
+    }
+
+    if (vshCommandOptStringReq(ctl, cmd, "event", &eventName) < 0)
+        return false;
+    if (!eventName) {
+        vshError(ctl, "%s", _("either --list or event type is required"));
+        return false;
+    }
+
+    for (event = 0; event < VIR_NODE_DEVICE_EVENT_ID_LAST; event++)
+        if (STREQ(eventName, vshEventCallbacks[event].name))
+            break;
+    if (event == VIR_NODE_DEVICE_EVENT_ID_LAST) {
+        vshError(ctl, _("unknown event type %s"), eventName);
+        return false;
+    }
+
+    data.ctl = ctl;
+    data.loop = vshCommandOptBool(cmd, "loop");
+    data.timestamp = vshCommandOptBool(cmd, "timestamp");
+    data.count = 0;
+    data.cb = &vshEventCallbacks[event];
+    if (vshCommandOptTimeoutToMs(ctl, cmd, &timeout) < 0)
+        return false;
+    if (vshCommandOptStringReq(ctl, cmd, "device", &device_value) < 0)
+        return false;
+
+    if (device_value) {
+        if (!(dev = virNodeDeviceLookupByName(priv->conn, device_value))) {
+            vshError(ctl, "%s '%s'",
+                     _("Could not find matching device"), device_value);
+            goto cleanup;
+        }
+    }
+    if (vshEventStart(ctl, timeout) < 0)
+        goto cleanup;
+
+    if ((eventId = virConnectNodeDeviceEventRegisterAny(priv->conn, dev, event,
+                                                     data.cb->cb,
+                                                     &data, NULL)) < 0)
+        goto cleanup;
+    switch (vshEventWait(ctl)) {
+    case VSH_EVENT_INTERRUPT:
+        vshPrint(ctl, "%s", _("event loop interrupted\n"));
+        break;
+    case VSH_EVENT_TIMEOUT:
+        vshPrint(ctl, "%s", _("event loop timed out\n"));
+        break;
+    case VSH_EVENT_DONE:
+        break;
+    default:
+        goto cleanup;
+    }
+    vshPrint(ctl, _("events received: %d\n"), data.count);
+    if (data.count)
+        ret = true;
+
+ cleanup:
+    vshEventCleanup(ctl);
+    if (eventId >= 0 &&
+        virConnectNodeDeviceEventDeregisterAny(priv->conn, eventId) < 0)
+        ret = false;
+    if (dev)
+        virNodeDeviceFree(dev);
+    return ret;
+}
+
 
 const vshCmdDef nodedevCmds[] = {
     {.name = "nodedev-create",
@@ -786,6 +1013,12 @@ const vshCmdDef nodedevCmds[] = {
      .handler = cmdNodeDeviceReset,
      .opts = opts_node_device_reset,
      .info = info_node_device_reset,
+     .flags = 0
+    },
+    {.name = "nodedev-event",
+     .handler = cmdNodeDeviceEvent,
+     .opts = opts_node_device_event,
+     .info = info_node_device_event,
      .flags = 0
     },
     {.name = NULL}

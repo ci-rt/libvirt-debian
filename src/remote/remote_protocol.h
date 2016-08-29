@@ -3752,6 +3752,36 @@ struct remote_storage_pool_event_refresh_msg {
 };
 typedef struct remote_storage_pool_event_refresh_msg remote_storage_pool_event_refresh_msg;
 
+struct remote_connect_node_device_event_register_any_args {
+        int eventID;
+        remote_node_device dev;
+};
+typedef struct remote_connect_node_device_event_register_any_args remote_connect_node_device_event_register_any_args;
+
+struct remote_connect_node_device_event_register_any_ret {
+        int callbackID;
+};
+typedef struct remote_connect_node_device_event_register_any_ret remote_connect_node_device_event_register_any_ret;
+
+struct remote_connect_node_device_event_deregister_any_args {
+        int callbackID;
+};
+typedef struct remote_connect_node_device_event_deregister_any_args remote_connect_node_device_event_deregister_any_args;
+
+struct remote_node_device_event_lifecycle_msg {
+        int callbackID;
+        remote_nonnull_node_device dev;
+        int event;
+        int detail;
+};
+typedef struct remote_node_device_event_lifecycle_msg remote_node_device_event_lifecycle_msg;
+
+struct remote_node_device_event_update_msg {
+        int callbackID;
+        remote_nonnull_node_device dev;
+};
+typedef struct remote_node_device_event_update_msg remote_node_device_event_update_msg;
+
 struct remote_domain_fsfreeze_args {
         remote_nonnull_domain dom;
         struct {
@@ -4378,8 +4408,8 @@ enum remote_procedure {
         REMOTE_PROC_DOMAIN_SET_USER_PASSWORD = 357,
         REMOTE_PROC_DOMAIN_RENAME = 358,
         REMOTE_PROC_DOMAIN_EVENT_CALLBACK_MIGRATION_ITERATION = 359,
-        REMOTE_PROC_CONNECT_CLOSE_CALLBACK_REGISTER = 360,
-        REMOTE_PROC_CONNECT_CLOSE_CALLBACK_UNREGISTER = 361,
+        REMOTE_PROC_CONNECT_REGISTER_CLOSE_CALLBACK = 360,
+        REMOTE_PROC_CONNECT_UNREGISTER_CLOSE_CALLBACK = 361,
         REMOTE_PROC_CONNECT_EVENT_CONNECTION_CLOSED = 362,
         REMOTE_PROC_DOMAIN_EVENT_CALLBACK_JOB_COMPLETED = 363,
         REMOTE_PROC_DOMAIN_MIGRATE_START_POST_COPY = 364,
@@ -4392,6 +4422,10 @@ enum remote_procedure {
         REMOTE_PROC_DOMAIN_GET_GUEST_VCPUS = 371,
         REMOTE_PROC_DOMAIN_SET_GUEST_VCPUS = 372,
         REMOTE_PROC_STORAGE_POOL_EVENT_REFRESH = 373,
+        REMOTE_PROC_CONNECT_NODE_DEVICE_EVENT_REGISTER_ANY = 374,
+        REMOTE_PROC_CONNECT_NODE_DEVICE_EVENT_DEREGISTER_ANY = 375,
+        REMOTE_PROC_NODE_DEVICE_EVENT_LIFECYCLE = 376,
+        REMOTE_PROC_NODE_DEVICE_EVENT_UPDATE = 377,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -4955,6 +4989,11 @@ extern  bool_t xdr_remote_connect_storage_pool_event_register_any_ret (XDR *, re
 extern  bool_t xdr_remote_connect_storage_pool_event_deregister_any_args (XDR *, remote_connect_storage_pool_event_deregister_any_args*);
 extern  bool_t xdr_remote_storage_pool_event_lifecycle_msg (XDR *, remote_storage_pool_event_lifecycle_msg*);
 extern  bool_t xdr_remote_storage_pool_event_refresh_msg (XDR *, remote_storage_pool_event_refresh_msg*);
+extern  bool_t xdr_remote_connect_node_device_event_register_any_args (XDR *, remote_connect_node_device_event_register_any_args*);
+extern  bool_t xdr_remote_connect_node_device_event_register_any_ret (XDR *, remote_connect_node_device_event_register_any_ret*);
+extern  bool_t xdr_remote_connect_node_device_event_deregister_any_args (XDR *, remote_connect_node_device_event_deregister_any_args*);
+extern  bool_t xdr_remote_node_device_event_lifecycle_msg (XDR *, remote_node_device_event_lifecycle_msg*);
+extern  bool_t xdr_remote_node_device_event_update_msg (XDR *, remote_node_device_event_update_msg*);
 extern  bool_t xdr_remote_domain_fsfreeze_args (XDR *, remote_domain_fsfreeze_args*);
 extern  bool_t xdr_remote_domain_fsfreeze_ret (XDR *, remote_domain_fsfreeze_ret*);
 extern  bool_t xdr_remote_domain_fsthaw_args (XDR *, remote_domain_fsthaw_args*);
@@ -5547,6 +5586,11 @@ extern bool_t xdr_remote_connect_storage_pool_event_register_any_ret ();
 extern bool_t xdr_remote_connect_storage_pool_event_deregister_any_args ();
 extern bool_t xdr_remote_storage_pool_event_lifecycle_msg ();
 extern bool_t xdr_remote_storage_pool_event_refresh_msg ();
+extern bool_t xdr_remote_connect_node_device_event_register_any_args ();
+extern bool_t xdr_remote_connect_node_device_event_register_any_ret ();
+extern bool_t xdr_remote_connect_node_device_event_deregister_any_args ();
+extern bool_t xdr_remote_node_device_event_lifecycle_msg ();
+extern bool_t xdr_remote_node_device_event_update_msg ();
 extern bool_t xdr_remote_domain_fsfreeze_args ();
 extern bool_t xdr_remote_domain_fsfreeze_ret ();
 extern bool_t xdr_remote_domain_fsthaw_args ();

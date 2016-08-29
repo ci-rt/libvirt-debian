@@ -117,6 +117,8 @@ mymain(void)
     DO_TEST("nat-network-dns-srv-record-minimal", restricted);
     DO_TEST("nat-network-name-with-quotes", restricted);
     DO_TEST("routed-network", full);
+    DO_TEST("routed-network-no-dns", full);
+    DO_TEST("open-network", full);
     DO_TEST("nat-network", dhcpv6);
     DO_TEST("nat-network-dns-txt-record", full);
     DO_TEST("nat-network-dns-srv-record", full);
@@ -127,6 +129,10 @@ mymain(void)
     DO_TEST("dhcp6-network", dhcpv6);
     DO_TEST("dhcp6-nat-network", dhcpv6);
     DO_TEST("dhcp6host-routed-network", dhcpv6);
+
+    virObjectUnref(dhcpv6);
+    virObjectUnref(full);
+    virObjectUnref(restricted);
 
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

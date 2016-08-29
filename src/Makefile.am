@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-## Copyright (C) 2005-2015 Red Hat, Inc.
+## Copyright (C) 2005-2016 Red Hat, Inc.
 ##
 ## This library is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU Lesser General Public
@@ -46,6 +46,8 @@ AM_LDFLAGS =	$(DRIVER_MODULE_LDFLAGS)			\
 		$(COVERAGE_LDFLAGS)				\
 		$(RELRO_LDFLAGS)				\
 		$(NO_INDIRECT_LDFLAGS)				\
+		$(CYGWIN_EXTRA_LDFLAGS) 			\
+		$(MINGW_EXTRA_LDFLAGS)				\
 		$(NULL)
 
 EXTRA_DIST = $(conf_DATA) util/keymaps.csv
@@ -348,6 +350,9 @@ NETWORK_EVENT_SOURCES =						\
 STORAGE_EVENT_SOURCES =						\
                 conf/storage_event.c conf/storage_event.h
 
+NODE_DEVICE_EVENT_SOURCES =					\
+                conf/node_device_event.c conf/node_device_event.h
+
 # Network driver generic impl APIs
 NETWORK_CONF_SOURCES =						\
 		conf/network_conf.c conf/network_conf.h \
@@ -399,6 +404,7 @@ CONF_SOURCES =							\
 		$(DOMAIN_EVENT_SOURCES)				\
 		$(NETWORK_EVENT_SOURCES)			\
 		$(STORAGE_EVENT_SOURCES)			\
+		$(NODE_DEVICE_EVENT_SOURCES)			\
 		$(NETWORK_CONF_SOURCES)				\
 		$(NWFILTER_CONF_SOURCES)			\
 		$(NODE_DEVICE_CONF_SOURCES)			\
@@ -653,6 +659,7 @@ STATEFUL_DRIVER_SOURCE_FILES = \
 	$(STORAGE_DRIVER_SOURCES) \
 	$(UML_DRIVER_SOURCES) \
 	$(XEN_DRIVER_SOURCES) \
+	$(VZ_DRIVER_SOURCES) \
 	$(NULL)
 
 
@@ -1168,7 +1175,7 @@ libvirt_la_BUILT_LIBADD += libvirt_driver.la
 libvirt_driver_la_SOURCES = $(DRIVER_SOURCES)
 
 libvirt_driver_la_CFLAGS = \
-		$(GNUTLS_CFLAGS) $(CURL_CFLAGS) \
+		$(GNUTLS_CFLAGS) $(CURL_CFLAGS) $(XDR_CFLAGS) \
 		-I$(srcdir)/conf $(AM_CFLAGS)
 libvirt_driver_la_LIBADD = \
 		$(GNUTLS_LIBS) $(CURL_LIBS) $(DLOPEN_LIBS)
@@ -1360,6 +1367,7 @@ endif ! WITH_DRIVER_MODULES
 libvirt_driver_qemu_impl_la_CFLAGS = \
 		$(GNUTLS_CFLAGS) \
 		$(LIBNL_CFLAGS) \
+		$(XDR_CFLAGS) \
 		-I$(srcdir)/access \
 		-I$(srcdir)/conf \
 		-I$(srcdir)/secret \
@@ -1517,7 +1525,9 @@ else ! WITH_DRIVER_MODULES
 noinst_LTLIBRARIES += libvirt_driver_vz.la
 endif ! WITH_DRIVER_MODULES
 libvirt_driver_vz_impl_la_CFLAGS = \
-		-I$(srcdir)/conf $(AM_CFLAGS) \
+		-I$(srcdir)/conf \
+		-I$(srcdir)/access \
+		$(AM_CFLAGS) \
 		$(PARALLELS_SDK_CFLAGS) $(LIBNL_CFLAGS)
 libvirt_driver_vz_impl_la_SOURCES = $(VZ_DRIVER_SOURCES)
 libvirt_driver_vz_impl_la_LIBADD =  $(PARALLELS_SDK_LIBS) $(LIBNL_LIBS)
@@ -2175,9 +2185,7 @@ libvirt_admin_la_SOURCES = \
 libvirt_admin_la_LDFLAGS = \
 		$(VERSION_SCRIPT_FLAGS)$(LIBVIRT_ADMIN_SYMBOL_FILE)	\
 		-version-info $(LIBVIRT_VERSION_INFO)			\
-		$(AM_LDFLAGS) 						\
-		$(CYGWIN_EXTRA_LDFLAGS) 				\
-		$(MINGW_EXTRA_LDFLAGS)
+		$(AM_LDFLAGS)
 
 libvirt_admin_la_LIBADD = \
 		libvirt.la		\
@@ -2219,8 +2227,6 @@ libvirt_la_LDFLAGS = \
 		-version-info $(LIBVIRT_VERSION_INFO) \
 		$(LIBVIRT_NODELETE) \
 		$(AM_LDFLAGS) \
-		$(CYGWIN_EXTRA_LDFLAGS) \
-		$(MINGW_EXTRA_LDFLAGS) \
 		$(NULL)
 libvirt_la_BUILT_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_la_LIBADD += \
@@ -2304,8 +2310,6 @@ libvirt_qemu_la_LDFLAGS = \
 		$(VERSION_SCRIPT_FLAGS)$(LIBVIRT_QEMU_SYMBOL_FILE) \
 		-version-info $(LIBVIRT_VERSION_INFO) \
 		$(AM_LDFLAGS) \
-		$(CYGWIN_EXTRA_LDFLAGS) \
-		$(MINGW_EXTRA_LDFLAGS) \
 		$(NULL)
 libvirt_qemu_la_CFLAGS = $(AM_CFLAGS)
 libvirt_qemu_la_LIBADD = libvirt.la $(CYGWIN_EXTRA_LIBADD)
@@ -2315,8 +2319,6 @@ libvirt_lxc_la_LDFLAGS = \
 		$(VERSION_SCRIPT_FLAGS)$(LIBVIRT_LXC_SYMBOL_FILE) \
 		-version-info $(LIBVIRT_VERSION_INFO) \
 		$(AM_LDFLAGS) \
-		$(CYGWIN_EXTRA_LDFLAGS) \
-		$(MINGW_EXTRA_LDFLAGS) \
 		$(NULL)
 libvirt_lxc_la_CFLAGS = $(AM_CFLAGS)
 libvirt_lxc_la_LIBADD = libvirt.la $(CYGWIN_EXTRA_LIBADD)
@@ -2369,6 +2371,7 @@ libvirt_setuid_rpc_client_la_SOURCES = 		\
 		conf/network_event.c		\
 		conf/object_event.c		\
 		conf/storage_event.c            \
+		conf/node_device_event.c	\
 		rpc/virnetsocket.c		\
 		rpc/virnetsocket.h		\
 		rpc/virnetmessage.h		\
@@ -2425,7 +2428,7 @@ lockd_la_SOURCES = \
 lockd_la_CFLAGS = -I$(srcdir)/conf \
 		$(XDR_CFLAGS) \
 		$(AM_CFLAGS)
-lockd_la_LDFLAGS = -module -avoid-version
+lockd_la_LDFLAGS = -module -avoid-version $(AM_LDFLAGS)
 lockd_la_LIBADD = ../gnulib/lib/libgnu.la \
 	libvirt-net-rpc.la \
 	libvirt-net-rpc-client.la \
@@ -2468,8 +2471,6 @@ virtlockd_CFLAGS = \
 virtlockd_LDFLAGS = \
 		$(AM_LDFLAGS) \
 		$(PIE_LDFLAGS) \
-		$(CYGWIN_EXTRA_LDFLAGS) \
-		$(MINGW_EXTRA_LDFLAGS) \
 		$(NULL)
 virtlockd_LDADD = \
 		libvirt-net-rpc-server.la \
@@ -2496,8 +2497,6 @@ virtlogd_CFLAGS = \
 virtlogd_LDFLAGS = \
 		$(AM_LDFLAGS) \
 		$(PIE_LDFLAGS) \
-		$(CYGWIN_EXTRA_LDFLAGS) \
-		$(MINGW_EXTRA_LDFLAGS) \
 		$(NULL)
 virtlogd_LDADD = \
 		libvirt-net-rpc-server.la \
@@ -2802,8 +2801,7 @@ libvirt_net_rpc_la_LDFLAGS = \
 			$(SSH2_LIBS)\
 			$(SECDRIVER_LIBS) \
 			$(AM_LDFLAGS) \
-			$(CYGWIN_EXTRA_LDFLAGS) \
-			$(MINGW_EXTRA_LDFLAGS)
+			$(NULL)
 libvirt_net_rpc_la_LIBADD = \
 			$(CYGWIN_EXTRA_LIBADD)
 
@@ -2823,8 +2821,7 @@ libvirt_net_rpc_server_la_LDFLAGS = \
 			$(AM_LDFLAGS) \
 			$(AVAHI_LIBS) \
 			$(DBUS_LIBS) \
-			$(CYGWIN_EXTRA_LDFLAGS) \
-			$(MINGW_EXTRA_LDFLAGS)
+			$(NULL)
 libvirt_net_rpc_server_la_LIBADD = \
 			$(CYGWIN_EXTRA_LIBADD)
 
@@ -2835,10 +2832,7 @@ libvirt_net_rpc_client_la_SOURCES = \
 libvirt_net_rpc_client_la_CFLAGS = \
 			$(AM_CFLAGS) \
 			$(XDR_CFLAGS)
-libvirt_net_rpc_client_la_LDFLAGS = \
-			$(AM_LDFLAGS) \
-			$(CYGWIN_EXTRA_LDFLAGS) \
-			$(MINGW_EXTRA_LDFLAGS)
+libvirt_net_rpc_client_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_net_rpc_client_la_LIBADD = \
 			$(CYGWIN_EXTRA_LIBADD)
 
@@ -3006,6 +3000,8 @@ noinst_LTLIBRARIES += libvirt-nss.la
 libvirt_nss_la_SOURCES =		\
 		util/viralloc.c			\
 		util/viralloc.h			\
+		util/viratomic.c		\
+		util/viratomic.h		\
 		util/virbitmap.c		\
 		util/virbitmap.h		\
 		util/virbuffer.c		\

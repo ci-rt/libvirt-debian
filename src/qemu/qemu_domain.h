@@ -315,6 +315,15 @@ struct _qemuDomainVcpuPrivate {
     virObject parent;
 
     pid_t tid; /* vcpu thread id */
+    int enable_id; /* order in which the vcpus were enabled in qemu */
+    char *alias;
+
+    /* information for hotpluggable cpus */
+    char *type;
+    int socket_id;
+    int core_id;
+    int thread_id;
+    int vcpus;
 };
 
 # define QEMU_DOMAIN_VCPU_PRIVATE(vcpu)    \
@@ -545,9 +554,10 @@ void qemuDomainSetFakeReboot(virQEMUDriverPtr driver,
 bool qemuDomainJobAllowed(qemuDomainObjPrivatePtr priv,
                           qemuDomainJob job);
 
-int qemuDomainCheckDiskPresence(virQEMUDriverPtr driver,
+int qemuDomainCheckDiskPresence(virConnectPtr conn,
+                                virQEMUDriverPtr driver,
                                 virDomainObjPtr vm,
-                                bool start_with_state);
+                                unsigned int flags);
 
 int qemuDomainDetermineDiskChain(virQEMUDriverPtr driver,
                                  virDomainObjPtr vm,
@@ -644,10 +654,14 @@ int qemuDomainDefValidateMemoryHotplug(const virDomainDef *def,
                                        virQEMUCapsPtr qemuCaps,
                                        const virDomainMemoryDef *mem);
 
+bool qemuDomainSupportsNewVcpuHotplug(virDomainObjPtr vm);
 bool qemuDomainHasVcpuPids(virDomainObjPtr vm);
 pid_t qemuDomainGetVcpuPid(virDomainObjPtr vm, unsigned int vcpuid);
-int qemuDomainDetectVcpuPids(virQEMUDriverPtr driver, virDomainObjPtr vm,
-                             int asyncJob);
+int qemuDomainValidateVcpuInfo(virDomainObjPtr vm);
+int qemuDomainRefreshVcpuInfo(virQEMUDriverPtr driver,
+                              virDomainObjPtr vm,
+                              int asyncJob,
+                              bool state);
 
 bool qemuDomainSupportsNicdev(virDomainDefPtr def,
                               virDomainNetDefPtr net);
@@ -707,5 +721,11 @@ int qemuDomainDefValidateDiskLunSource(const virStorageSource *src)
 int qemuDomainPrepareChannel(virDomainChrDefPtr chr,
                              const char *domainChannelTargetDir)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+bool qemuDomainVcpuHotplugIsInOrder(virDomainDefPtr def)
+    ATTRIBUTE_NONNULL(1);
+
+void qemuDomainVcpuPersistOrder(virDomainDefPtr def)
+    ATTRIBUTE_NONNULL(1);
 
 #endif /* __QEMU_DOMAIN_H__ */

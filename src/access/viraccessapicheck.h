@@ -73,6 +73,9 @@ extern bool virConnectListStoragePoolsCheckACL(virConnectPtr conn, virStoragePoo
 extern int virConnectNetworkEventDeregisterAnyEnsureACL(virConnectPtr conn);
 extern int virConnectNetworkEventRegisterAnyEnsureACL(virConnectPtr conn);
 extern bool virConnectNetworkEventRegisterAnyCheckACL(virConnectPtr conn, virNetworkDefPtr network);
+extern int virConnectNodeDeviceEventDeregisterAnyEnsureACL(virConnectPtr conn);
+extern int virConnectNodeDeviceEventRegisterAnyEnsureACL(virConnectPtr conn);
+extern bool virConnectNodeDeviceEventRegisterAnyCheckACL(virConnectPtr conn, virNodeDeviceDefPtr device);
 extern int virConnectNumOfDefinedDomainsEnsureACL(virConnectPtr conn);
 extern bool virConnectNumOfDefinedDomainsCheckACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virConnectNumOfDefinedInterfacesEnsureACL(virConnectPtr conn);
@@ -94,10 +97,12 @@ extern bool virConnectNumOfSecretsCheckACL(virConnectPtr conn, virSecretDefPtr s
 extern int virConnectNumOfStoragePoolsEnsureACL(virConnectPtr conn);
 extern bool virConnectNumOfStoragePoolsCheckACL(virConnectPtr conn, virStoragePoolDefPtr pool);
 extern int virConnectOpenEnsureACL(virConnectPtr conn);
+extern int virConnectRegisterCloseCallbackEnsureACL(virConnectPtr conn);
 extern int virConnectStoragePoolEventDeregisterAnyEnsureACL(virConnectPtr conn);
 extern int virConnectStoragePoolEventRegisterAnyEnsureACL(virConnectPtr conn);
 extern bool virConnectStoragePoolEventRegisterAnyCheckACL(virConnectPtr conn, virStoragePoolDefPtr pool);
 extern int virConnectSupportsFeatureEnsureACL(virConnectPtr conn);
+extern int virConnectUnregisterCloseCallbackEnsureACL(virConnectPtr conn);
 extern int virDomainAbortJobEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainAddIOThreadEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainAttachDeviceEnsureACL(virConnectPtr conn, virDomainDefPtr domain);

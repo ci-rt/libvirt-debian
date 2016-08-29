@@ -520,13 +520,6 @@ sc_forbid_manual_xml_indent:
 	halt='use virBufferAdjustIndent instead of spaces when indenting xml' \
 	  $(_sc_search_regexp)
 
-# Not only do they fail to deal well with ipv6, but the gethostby*
-# functions are also not thread-safe.
-sc_prohibit_gethostby:
-	@prohibit='\<gethostby(addr|name2?) *\('			\
-	halt='use getaddrinfo, not gethostby*'				\
-	  $(_sc_search_regexp)
-
 # dirname and basename from <libgen.h> are not required to be thread-safe
 sc_prohibit_libgen:
 	@prohibit='( (base|dir)name *\(|include .libgen\.h)'		\
@@ -614,8 +607,9 @@ msg_gen_function += xenapiSessionErrorHandler
 # msg_gen_function += vshPrint
 # msg_gen_function += vshError
 
-func_or := $(shell echo $(msg_gen_function)|tr -s ' ' '|')
-func_re := ($(func_or))
+space =
+space +=
+func_re= ($(subst $(space),|,$(msg_gen_function)))
 
 # Look for diagnostics that aren't marked for translation.
 # This won't find any for which error's format string is on a separate line.
@@ -992,13 +986,8 @@ sc_prohibit_pthread_create:
 	  $(_sc_search_regexp)
 
 sc_prohibit_not_streq:
-	@prohibit='! *STREQ *\(.*\)'		\
-	halt='Use STRNEQ instead of !STREQ'	\
-	  $(_sc_search_regexp)
-
-sc_prohibit_not_strneq:
-	@prohibit='! *STRNEQ *\(.*\)'       \
-	halt='Use STREQ instead of !STRNEQ'	\
+	@prohibit='! *STRN?EQ *\(.*\)'		\
+	halt='Use STRNEQ instead of !STREQ and STREQ instead of !STRNEQ'	\
 	  $(_sc_search_regexp)
 
 sc_prohibit_verbose_strcat:
@@ -1191,8 +1180,6 @@ exclude_file_name_regexp--sc_prohibit_strncpy = ^src/util/virstring\.c$$
 
 exclude_file_name_regexp--sc_prohibit_strtol = ^examples/.*$$
 
-exclude_file_name_regexp--sc_prohibit_gethostby = ^docs/nss.html.in$$
-
 exclude_file_name_regexp--sc_prohibit_xmlGetProp = ^src/util/virxml\.c$$
 
 exclude_file_name_regexp--sc_prohibit_xmlURI = ^src/util/viruri\.c$$
@@ -1253,12 +1240,6 @@ exclude_file_name_regexp--sc_prohibit_sysconf_pagesize = \
 
 exclude_file_name_regexp--sc_prohibit_pthread_create = \
   ^(cfg\.mk|src/util/virthread\.c|tests/.*)$$
-
-exclude_file_name_regexp--sc_prohibit_not_streq = \
-  ^tests/.*\.[ch]$$
-
-exclude_file_name_regexp--sc_prohibit_not_strneq = \
-  ^tests/.*\.[ch]$$
 
 exclude_file_name_regexp--sc_prohibit_dt_without_code = \
   ^docs/(newapi\.xsl|(apps|contact)\.html\.in)$$

@@ -206,17 +206,21 @@
     %define enable_werror --disable-werror
 %endif
 
-%if 0%{?fedora} >= 21
-    %define tls_priority "@SYSTEM"
+%if 0%{?fedora} >= 25
+    %define tls_priority "@LIBVIRT,SYSTEM"
 %else
-    %define tls_priority "NORMAL"
+    %if 0%{?fedora} >= 21
+        %define tls_priority "@SYSTEM"
+    %else
+        %define tls_priority "NORMAL"
+    %endif
 %endif
 
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 2.1.0
-Release: 1%{?dist}%{?extra_release}
+Version: 2.2.0
+Release: 0rc1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -225,7 +229,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.xz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc1.tar.xz
 
 Requires: libvirt-daemon = %{version}-%{release}
 Requires: libvirt-daemon-config-network = %{version}-%{release}

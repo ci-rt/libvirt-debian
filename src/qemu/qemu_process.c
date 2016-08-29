@@ -355,8 +355,7 @@ qemuProcessFindDomainDiskByAlias(virDomainObjPtr vm,
 {
     size_t i;
 
-    if (STRPREFIX(alias, QEMU_DRIVE_HOST_PREFIX))
-        alias += strlen(QEMU_DRIVE_HOST_PREFIX);
+    alias = qemuAliasDiskDriveSkipPrefix(alias);
 
     for (i = 0; i < vm->def->ndisks; i++) {
         virDomainDiskDefPtr disk;
@@ -2476,7 +2475,7 @@ qemuProcessInitPasswords(virConnectPtr conn,
             goto cleanup;
 
         VIR_FREE(alias);
-        if (VIR_STRDUP(alias, vm->def->disks[i]->info.alias) < 0)
+        if (!(alias = qemuAliasFromDisk(vm->def->disks[i])))
             goto cleanup;
         if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
             goto cleanup;
@@ -3152,6 +3151,7 @@ qemuProcessUpdateDevices(virQEMUDriverPtr driver,
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
     virDomainDeviceDef dev;
+    const char **qemuDevices;
     char **old;
     char **tmp;
     int ret = -1;
@@ -3164,9 +3164,10 @@ qemuProcessUpdateDevices(virQEMUDriverPtr driver,
     if (qemuDomainUpdateDeviceList(driver, vm, QEMU_ASYNC_JOB_NONE) < 0)
         goto cleanup;
 
+    qemuDevices = (const char **) priv->qemuDevices;
     if ((tmp = old)) {
         while (*tmp) {
-            if (!virStringArrayHasString(priv->qemuDevices, *tmp) &&
+            if (!virStringArrayHasString(qemuDevices, *tmp) &&
                 virDomainDefFindDevice(vm->def, *tmp, &dev, false) == 0 &&
                 qemuDomainRemoveDevice(driver, vm, &dev) < 0) {
                 goto cleanup;
@@ -3352,6 +3353,9 @@ qemuProcessReconnect(void *opaque)
      */
     ignore_value(virSecurityManagerCheckAllLabel(driver->securityManager,
                                                  obj->def));
+
+    if (qemuDomainRefreshVcpuInfo(driver, obj, QEMU_ASYNC_JOB_NONE, true) < 0)
+        goto error;
 
     if (virSecurityManagerReserveLabel(driver->securityManager, obj->def, obj->pid) < 0)
         goto error;
@@ -3546,14 +3550,15 @@ qemuProcessVNCAllocatePorts(virQEMUDriverPtr driver,
 
 static int
 qemuProcessSPICEAllocatePorts(virQEMUDriverPtr driver,
-                              virQEMUDriverConfigPtr cfg,
                               virDomainGraphicsDefPtr graphics,
                               bool allocate)
 {
+    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     unsigned short port = 0;
     unsigned short tlsPort;
     size_t i;
     int defaultMode = graphics->data.spice.defaultMode;
+    int ret = -1;
 
     bool needTLSPort = false;
     bool needPort = false;
@@ -3599,12 +3604,13 @@ qemuProcessSPICEAllocatePorts(virQEMUDriverPtr driver,
         if (needTLSPort || graphics->data.spice.tlsPort == -1)
             graphics->data.spice.tlsPort = 5902;
 
-        return 0;
+        ret = 0;
+        goto cleanup;
     }
 
     if (needPort || graphics->data.spice.port == -1) {
         if (virPortAllocatorAcquire(driver->remotePorts, &port) < 0)
-            goto error;
+            goto cleanup;
 
         graphics->data.spice.port = port;
 
@@ -3617,11 +3623,11 @@ qemuProcessSPICEAllocatePorts(virQEMUDriverPtr driver,
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("Auto allocation of spice TLS port requested "
                              "but spice TLS is disabled in qemu.conf"));
-            goto error;
+            goto cleanup;
         }
 
         if (virPortAllocatorAcquire(driver->remotePorts, &tlsPort) < 0)
-            goto error;
+            goto cleanup;
 
         graphics->data.spice.tlsPort = tlsPort;
 
@@ -3629,11 +3635,12 @@ qemuProcessSPICEAllocatePorts(virQEMUDriverPtr driver,
             graphics->data.spice.tlsPortReserved = true;
     }
 
-    return 0;
+    ret = 0;
 
- error:
+ cleanup:
     virPortAllocatorRelease(driver->remotePorts, port);
-    return -1;
+    virObjectUnref(cfg);
+    return ret;
 }
 
 
@@ -4005,38 +4012,82 @@ qemuProcessStartHook(virQEMUDriverPtr driver,
 
 static int
 qemuProcessGraphicsReservePorts(virQEMUDriverPtr driver,
-                                virDomainObjPtr vm)
+                                virDomainGraphicsDefPtr graphics)
 {
-    size_t i;
+    virDomainGraphicsListenDefPtr glisten;
 
-    for (i = 0; i < vm->def->ngraphics; ++i) {
-        virDomainGraphicsDefPtr graphics = vm->def->graphics[i];
-        if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC &&
-            !graphics->data.vnc.autoport) {
+    if (graphics->nListens <= 0)
+        return 0;
+
+    glisten = &graphics->listens[0];
+
+    if (glisten->type != VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_ADDRESS &&
+        glisten->type != VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_NETWORK)
+        return 0;
+
+    if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC &&
+        !graphics->data.vnc.autoport) {
+        if (virPortAllocatorSetUsed(driver->remotePorts,
+                                    graphics->data.vnc.port,
+                                    true) < 0)
+            return -1;
+        graphics->data.vnc.portReserved = true;
+
+    } else if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_SPICE &&
+               !graphics->data.spice.autoport) {
+        if (graphics->data.spice.port > 0) {
             if (virPortAllocatorSetUsed(driver->remotePorts,
-                                        graphics->data.vnc.port,
+                                        graphics->data.spice.port,
                                         true) < 0)
                 return -1;
-            graphics->data.vnc.portReserved = true;
-
-        } else if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_SPICE &&
-                   !graphics->data.spice.autoport) {
-            if (graphics->data.spice.port > 0) {
-                if (virPortAllocatorSetUsed(driver->remotePorts,
-                                            graphics->data.spice.port,
-                                            true) < 0)
-                    return -1;
-                graphics->data.spice.portReserved = true;
-            }
-
-            if (graphics->data.spice.tlsPort > 0) {
-                if (virPortAllocatorSetUsed(driver->remotePorts,
-                                            graphics->data.spice.tlsPort,
-                                            true) < 0)
-                    return -1;
-                graphics->data.spice.tlsPortReserved = true;
-            }
+            graphics->data.spice.portReserved = true;
         }
+
+        if (graphics->data.spice.tlsPort > 0) {
+            if (virPortAllocatorSetUsed(driver->remotePorts,
+                                        graphics->data.spice.tlsPort,
+                                        true) < 0)
+                return -1;
+            graphics->data.spice.tlsPortReserved = true;
+        }
+    }
+
+    return 0;
+}
+
+
+static int
+qemuProcessGraphicsAllocatePorts(virQEMUDriverPtr driver,
+                                 virDomainGraphicsDefPtr graphics,
+                                 bool allocate)
+{
+    virDomainGraphicsListenDefPtr glisten;
+
+    if (graphics->nListens <= 0)
+        return 0;
+
+    glisten = &graphics->listens[0];
+
+    if (glisten->type != VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_ADDRESS &&
+        glisten->type != VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_NETWORK)
+        return 0;
+
+    switch (graphics->type) {
+    case VIR_DOMAIN_GRAPHICS_TYPE_VNC:
+        if (qemuProcessVNCAllocatePorts(driver, graphics, allocate) < 0)
+            return -1;
+        break;
+
+    case VIR_DOMAIN_GRAPHICS_TYPE_SPICE:
+        if (qemuProcessSPICEAllocatePorts(driver, graphics, allocate) < 0)
+            return -1;
+        break;
+
+    case VIR_DOMAIN_GRAPHICS_TYPE_SDL:
+    case VIR_DOMAIN_GRAPHICS_TYPE_RDP:
+    case VIR_DOMAIN_GRAPHICS_TYPE_DESKTOP:
+    case VIR_DOMAIN_GRAPHICS_TYPE_LAST:
+        break;
     }
 
     return 0;
@@ -4071,15 +4122,17 @@ qemuProcessGraphicsSetupNetworkAddress(virDomainGraphicsListenDefPtr glisten,
 
 
 static int
-qemuProcessGraphicsSetupListen(virQEMUDriverConfigPtr cfg,
+qemuProcessGraphicsSetupListen(virQEMUDriverPtr driver,
                                virDomainGraphicsDefPtr graphics,
                                virDomainObjPtr vm)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
+    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     const char *type = virDomainGraphicsTypeToString(graphics->type);
     char *listenAddr = NULL;
     bool useSocket = false;
     size_t i;
+    int ret = -1;
 
     switch (graphics->type) {
     case VIR_DOMAIN_GRAPHICS_TYPE_VNC:
@@ -4112,12 +4165,12 @@ qemuProcessGraphicsSetupListen(virQEMUDriverConfigPtr cfg,
                     memset(glisten, 0, sizeof(virDomainGraphicsListenDef));
                     if (virAsprintf(&glisten->socket, "%s/%s.sock",
                                     priv->libDir, type) < 0)
-                        return -1;
+                        goto cleanup;
                     glisten->fromConfig = true;
                     glisten->type = VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_SOCKET;
                 } else if (listenAddr) {
                     if (VIR_STRDUP(glisten->address, listenAddr) < 0)
-                        return -1;
+                        goto cleanup;
                     glisten->fromConfig = true;
                 }
             }
@@ -4129,14 +4182,14 @@ qemuProcessGraphicsSetupListen(virQEMUDriverConfigPtr cfg,
 
             if (qemuProcessGraphicsSetupNetworkAddress(glisten,
                                                        listenAddr) < 0)
-                return -1;
+                goto cleanup;
             break;
 
         case VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_SOCKET:
             if (!glisten->socket) {
                 if (virAsprintf(&glisten->socket, "%s/%s.sock",
                                 priv->libDir, type) < 0)
-                    return -1;
+                    goto cleanup;
                 glisten->autoGenerated = true;
             }
             break;
@@ -4147,7 +4200,11 @@ qemuProcessGraphicsSetupListen(virQEMUDriverConfigPtr cfg,
         }
     }
 
-    return 0;
+    ret = 0;
+
+ cleanup:
+    virObjectUnref(cfg);
+    return ret;
 }
 
 
@@ -4156,48 +4213,37 @@ qemuProcessSetupGraphics(virQEMUDriverPtr driver,
                          virDomainObjPtr vm,
                          unsigned int flags)
 {
-    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+    virDomainGraphicsDefPtr graphics;
     bool allocate = !(flags & VIR_QEMU_PROCESS_START_PRETEND);
     size_t i;
     int ret = -1;
 
-    if (allocate && qemuProcessGraphicsReservePorts(driver, vm) < 0)
-        goto cleanup;
+    for (i = 0; i < vm->def->ngraphics; i++) {
+        graphics = vm->def->graphics[i];
+
+        if (qemuProcessGraphicsSetupListen(driver, graphics, vm) < 0)
+            goto cleanup;
+    }
+
+    if (allocate) {
+        for (i = 0; i < vm->def->ngraphics; i++) {
+            graphics = vm->def->graphics[i];
+
+            if (qemuProcessGraphicsReservePorts(driver, graphics) < 0)
+                goto cleanup;
+        }
+    }
 
     for (i = 0; i < vm->def->ngraphics; ++i) {
-        virDomainGraphicsDefPtr graphics = vm->def->graphics[i];
+        graphics = vm->def->graphics[i];
 
-        if (graphics->nListens > 0 &&
-            (graphics->listens[0].type == VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_ADDRESS ||
-             graphics->listens[0].type == VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_NETWORK)) {
-            switch (graphics->type) {
-            case VIR_DOMAIN_GRAPHICS_TYPE_VNC:
-                if (qemuProcessVNCAllocatePorts(driver, graphics, allocate) < 0)
-                    goto cleanup;
-                break;
-
-            case VIR_DOMAIN_GRAPHICS_TYPE_SPICE:
-                if (qemuProcessSPICEAllocatePorts(driver, cfg, graphics,
-                                                  allocate) < 0)
-                    goto cleanup;
-                break;
-
-            case VIR_DOMAIN_GRAPHICS_TYPE_SDL:
-            case VIR_DOMAIN_GRAPHICS_TYPE_RDP:
-            case VIR_DOMAIN_GRAPHICS_TYPE_DESKTOP:
-            case VIR_DOMAIN_GRAPHICS_TYPE_LAST:
-                break;
-            }
-        }
-
-        if (qemuProcessGraphicsSetupListen(cfg, graphics, vm) < 0)
+        if (qemuProcessGraphicsAllocatePorts(driver, graphics, allocate) < 0)
             goto cleanup;
     }
 
     ret = 0;
 
  cleanup:
-    virObjectUnref(cfg);
     return ret;
 }
 
@@ -4692,8 +4738,8 @@ qemuProcessSetupIOThread(virDomainObjPtr vm,
                                VIR_CGROUP_THREAD_IOTHREAD,
                                iothread->iothread_id,
                                iothread->cpumask,
-                               vm->def->cputune.period,
-                               vm->def->cputune.quota,
+                               vm->def->cputune.iothread_period,
+                               vm->def->cputune.iothread_quota,
                                &iothread->sched);
 }
 
@@ -4711,6 +4757,172 @@ qemuProcessSetupIOThreads(virDomainObjPtr vm)
     }
 
     return 0;
+}
+
+
+static int
+qemuProcessValidateHotpluggableVcpus(virDomainDefPtr def)
+{
+    virDomainVcpuDefPtr vcpu;
+    virDomainVcpuDefPtr subvcpu;
+    qemuDomainVcpuPrivatePtr vcpupriv;
+    unsigned int maxvcpus = virDomainDefGetVcpusMax(def);
+    size_t i = 0;
+    size_t j;
+    virBitmapPtr ordermap = NULL;
+    int ret = -1;
+
+    if (!(ordermap = virBitmapNew(maxvcpus)))
+        goto cleanup;
+
+    /* validate:
+     * - all hotpluggable entities to be hotplugged have the correct data
+     * - vcpus belonging to a hotpluggable entity share configuration
+     * - order of the hotpluggable entities is unique
+     */
+    for (i = 0; i < maxvcpus; i++) {
+        vcpu = virDomainDefGetVcpu(def, i);
+        vcpupriv = QEMU_DOMAIN_VCPU_PRIVATE(vcpu);
+
+        /* skip over hotpluggable entities  */
+        if (vcpupriv->vcpus == 0)
+            continue;
+
+        if (vcpu->order != 0) {
+            if (virBitmapIsBitSet(ordermap, vcpu->order - 1)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("duplicate vcpu order '%u'"), vcpu->order - 1);
+                goto cleanup;
+            }
+
+            ignore_value(virBitmapSetBit(ordermap, vcpu->order - 1));
+        }
+
+
+        for (j = i + 1; j < (i + vcpupriv->vcpus); j++) {
+            subvcpu = virDomainDefGetVcpu(def, j);
+            if (subvcpu->hotpluggable != vcpu->hotpluggable ||
+                subvcpu->online != vcpu->online ||
+                subvcpu->order != vcpu->order) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("vcpus '%zu' and '%zu' are in the same hotplug "
+                                 "group but differ in configuration"), i, j);
+                goto cleanup;
+            }
+        }
+
+        if (vcpu->online && vcpu->hotpluggable == VIR_TRISTATE_BOOL_YES) {
+            if ((vcpupriv->socket_id == -1 && vcpupriv->core_id == -1 &&
+                 vcpupriv->thread_id == -1) ||
+                !vcpupriv->type) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("vcpu '%zu' is missing hotplug data"), i);
+                goto cleanup;
+            }
+        }
+    }
+
+    ret = 0;
+ cleanup:
+    virBitmapFree(ordermap);
+    return ret;
+}
+
+
+static int
+qemuDomainHasHotpluggableStartupVcpus(virDomainDefPtr def)
+{
+    size_t maxvcpus = virDomainDefGetVcpusMax(def);
+    virDomainVcpuDefPtr vcpu;
+    size_t i;
+
+    for (i = 0; i < maxvcpus; i++) {
+        vcpu = virDomainDefGetVcpu(def, i);
+
+        if (vcpu->online && vcpu->hotpluggable == VIR_TRISTATE_BOOL_YES)
+            return true;
+    }
+
+    return false;
+}
+
+
+static int
+qemuProcessVcpusSortOrder(const void *a,
+                          const void *b)
+{
+    virDomainVcpuDefPtr vcpua = *((virDomainVcpuDefPtr *)a);
+    virDomainVcpuDefPtr vcpub = *((virDomainVcpuDefPtr *)b);
+
+    return vcpua->order - vcpub->order;
+}
+
+
+static int
+qemuProcessSetupHotpluggableVcpus(virQEMUDriverPtr driver,
+                                  virDomainObjPtr vm,
+                                  qemuDomainAsyncJob asyncJob)
+{
+    unsigned int maxvcpus = virDomainDefGetVcpusMax(vm->def);
+    virDomainVcpuDefPtr vcpu;
+    qemuDomainVcpuPrivatePtr vcpupriv;
+    virJSONValuePtr vcpuprops = NULL;
+    size_t i;
+    int ret = -1;
+    int rc;
+
+    virDomainVcpuDefPtr *bootHotplug = NULL;
+    size_t nbootHotplug = 0;
+
+    for (i = 0; i < maxvcpus; i++) {
+        vcpu = virDomainDefGetVcpu(vm->def, i);
+        vcpupriv = QEMU_DOMAIN_VCPU_PRIVATE(vcpu);
+
+        if (vcpu->hotpluggable == VIR_TRISTATE_BOOL_YES && vcpu->online &&
+            vcpupriv->vcpus != 0) {
+            if (virAsprintf(&vcpupriv->alias, "vcpu%zu", i) < 0)
+                goto cleanup;
+
+            if (VIR_APPEND_ELEMENT(bootHotplug, nbootHotplug, vcpu) < 0)
+                goto cleanup;
+        }
+    }
+
+    if (nbootHotplug == 0) {
+        ret = 0;
+        goto cleanup;
+    }
+
+    qsort(bootHotplug, nbootHotplug, sizeof(*bootHotplug),
+          qemuProcessVcpusSortOrder);
+
+    for (i = 0; i < nbootHotplug; i++) {
+        vcpu = bootHotplug[i];
+
+        if (!(vcpuprops = qemuBuildHotpluggableCPUProps(vcpu)))
+            goto cleanup;
+
+        if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
+            goto cleanup;
+
+        rc = qemuMonitorAddDeviceArgs(qemuDomainGetMonitor(vm), vcpuprops);
+        vcpuprops = NULL;
+
+        if (qemuDomainObjExitMonitor(driver, vm) < 0)
+            goto cleanup;
+
+        if (rc < 0)
+            goto cleanup;
+
+        virJSONValueFree(vcpuprops);
+    }
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(bootHotplug);
+    virJSONValueFree(vcpuprops);
+    return ret;
 }
 
 
@@ -4792,21 +5004,11 @@ qemuProcessPrepareDomain(virConnectPtr conn,
     if (qemuProcessSetupGraphics(driver, vm, flags) < 0)
         goto cleanup;
 
-    /* "volume" type disk's source must be translated before
-     * cgroup and security setting.
-     */
-    for (i = 0; i < vm->def->ndisks; i++) {
-        if (virStorageTranslateDiskSourcePool(conn, vm->def->disks[i]) < 0)
-            goto cleanup;
-    }
-
-    /* drop possibly missing disks from the definition. This needs to happen
-     * after the def is copied, aliases are set and disk sources are translated */
-    if (!(flags & VIR_QEMU_PROCESS_START_PRETEND)) {
-        if (qemuDomainCheckDiskPresence(driver, vm,
-                                        flags & VIR_QEMU_PROCESS_START_COLD) < 0)
-            goto cleanup;
-    }
+    /* Drop possibly missing disks from the definition. This function
+     * also resolves source pool/volume into a path and it needs to
+     * happen after the def is copied and aliases are set. */
+    if (qemuDomainCheckDiskPresence(conn, driver, vm, flags) < 0)
+        goto cleanup;
 
     VIR_DEBUG("Create domain masterKey");
     if (qemuDomainMasterKeyCreate(vm) < 0)
@@ -5200,9 +5402,26 @@ qemuProcessLaunch(virConnectPtr conn,
     if (qemuSetupCpusetMems(vm) < 0)
         goto cleanup;
 
-    VIR_DEBUG("Detecting VCPU PIDs");
-    if (qemuDomainDetectVcpuPids(driver, vm, asyncJob) < 0)
+    VIR_DEBUG("setting up hotpluggable cpus");
+    if (qemuDomainHasHotpluggableStartupVcpus(vm->def)) {
+        if (qemuDomainRefreshVcpuInfo(driver, vm, asyncJob, false) < 0)
+            goto cleanup;
+
+        if (qemuProcessValidateHotpluggableVcpus(vm->def) < 0)
+            goto cleanup;
+
+        if (qemuProcessSetupHotpluggableVcpus(driver, vm, asyncJob) < 0)
+            goto cleanup;
+    }
+
+    VIR_DEBUG("Refreshing VCPU info");
+    if (qemuDomainRefreshVcpuInfo(driver, vm, asyncJob, false) < 0)
         goto cleanup;
+
+    if (qemuDomainValidateVcpuInfo(vm) < 0)
+        goto cleanup;
+
+    qemuDomainVcpuPersistOrder(vm->def);
 
     VIR_DEBUG("Detecting IOThread PIDs");
     if (qemuProcessDetectIOThreadPIDs(driver, vm, asyncJob) < 0)
@@ -5993,7 +6212,10 @@ int qemuProcessAttach(virConnectPtr conn ATTRIBUTE_UNUSED,
     }
 
     VIR_DEBUG("Detecting VCPU PIDs");
-    if (qemuDomainDetectVcpuPids(driver, vm, QEMU_ASYNC_JOB_NONE) < 0)
+    if (qemuDomainRefreshVcpuInfo(driver, vm, QEMU_ASYNC_JOB_NONE, false) < 0)
+        goto error;
+
+    if (qemuDomainValidateVcpuInfo(vm) < 0)
         goto error;
 
     VIR_DEBUG("Detecting IOThread PIDs");

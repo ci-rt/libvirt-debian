@@ -1898,15 +1898,15 @@ fig = \
 
 schemadir = $(pkgdatadir)/schemas
 schema_DATA = $(wildcard $(srcdir)/schemas/*.rng)
-EXTRA_DIST = apibuild.py genaclperms.pl site.xsl newapi.xsl news.xsl \
-	page.xsl hacking1.xsl hacking2.xsl wrapstring.xsl $(dot_html) \
-	$(dot_html_in) $(gif) $(apihtml) $(apipng) $(devhelphtml) \
-	$(devhelppng) $(devhelpcss) $(devhelpxsl) $(xml) $(qemu_xml) \
-	$(lxc_xml) $(admin_xml) $(fig) $(png) $(css) $(patches) \
-	$(dot_php_in) $(dot_php_code_in) $(dot_php) \
-	$(internals_html_in) $(internals_html) sitemap.html.in \
-	aclperms.htmlinc todo.pl hvsupport.pl todo.cfg-example \
-	$(schema_DATA) $(APIBUILD_STAMP)
+EXTRA_DIST = apibuild.py genaclperms.pl site.xsl subsite.xsl \
+	newapi.xsl news.xsl page.xsl hacking1.xsl hacking2.xsl \
+	wrapstring.xsl $(dot_html) $(dot_html_in) $(gif) $(apihtml) \
+	$(apipng) $(devhelphtml) $(devhelppng) $(devhelpcss) \
+	$(devhelpxsl) $(xml) $(qemu_xml) $(lxc_xml) $(admin_xml) \
+	$(fig) $(png) $(css) $(patches) $(dot_php_in) \
+	$(dot_php_code_in) $(dot_php) $(internals_html_in) \
+	$(internals_html) sitemap.html.in aclperms.htmlinc todo.pl \
+	hvsupport.pl todo.cfg-example $(schema_DATA) $(APIBUILD_STAMP)
 acl_generated = aclperms.htmlinc
 MAINTAINERCLEANFILES = \
   $(addprefix $(srcdir)/,$(dot_html)) \

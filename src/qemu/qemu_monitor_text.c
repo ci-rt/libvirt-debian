@@ -31,7 +31,7 @@
 #include <string.h>
 
 #include "qemu_monitor_text.h"
-#include "qemu_command.h"
+#include "qemu_alias.h"
 #include "c-ctype.h"
 #include "c-strcasestr.h"
 #include "viralloc.h"
@@ -500,13 +500,17 @@ int qemuMonitorTextSystemReset(qemuMonitorPtr mon)
 }
 
 
-int qemuMonitorTextGetCPUInfo(qemuMonitorPtr mon,
-                              int **pids)
+int
+qemuMonitorTextQueryCPUs(qemuMonitorPtr mon,
+                         struct qemuMonitorQueryCpusEntry **entries,
+                         size_t *nentries)
 {
     char *qemucpus = NULL;
     char *line;
-    pid_t *cpupids = NULL;
-    size_t ncpupids = 0;
+    struct qemuMonitorQueryCpusEntry *cpus = NULL;
+    size_t ncpus = 0;
+    struct qemuMonitorQueryCpusEntry cpu = {0};
+    int ret = -2; /* -2 denotes a non-fatal error to get the data */
 
     if (qemuMonitorHMPCommand(mon, "info cpus", &qemucpus) < 0)
         return -1;
@@ -528,15 +532,19 @@ int qemuMonitorTextGetCPUInfo(qemuMonitorPtr mon,
 
         /* Extract host Thread ID */
         if ((offset = strstr(line, "thread_id=")) == NULL)
-            goto error;
+            goto cleanup;
 
         if (virStrToLong_i(offset + strlen("thread_id="), &end, 10, &tid) < 0)
-            goto error;
+            goto cleanup;
         if (end == NULL || !c_isspace(*end))
-            goto error;
+            goto cleanup;
 
-        if (VIR_APPEND_ELEMENT_COPY(cpupids, ncpupids, tid) < 0)
-            goto error;
+        cpu.tid = tid;
+
+        if (VIR_APPEND_ELEMENT_COPY(cpus, ncpus, cpu) < 0) {
+            ret = -1;
+            goto cleanup;
+        }
 
         VIR_DEBUG("tid=%d", tid);
 
@@ -546,20 +554,14 @@ int qemuMonitorTextGetCPUInfo(qemuMonitorPtr mon,
             line = strchr(offset, '\n');
     } while (line != NULL);
 
-    /* Validate we got data for all VCPUs we expected */
-    VIR_FREE(qemucpus);
-    *pids = cpupids;
-    return ncpupids;
+    VIR_STEAL_PTR(*entries, cpus);
+    *nentries = ncpus;
+    ret = 0;
 
- error:
+ cleanup:
+    qemuMonitorQueryCpusFree(cpus, ncpus);
     VIR_FREE(qemucpus);
-    VIR_FREE(cpupids);
-
-    /* Returning 0 to indicate non-fatal failure, since
-     * older QEMU does not have VCPU<->PID mapping and
-     * we don't want to fail on that
-     */
-    return 0;
+    return ret;
 }
 
 
@@ -753,8 +755,7 @@ int qemuMonitorTextGetBlockInfo(qemuMonitorPtr mon,
     p = reply;
 
     while (*p) {
-        if (STRPREFIX(p, QEMU_DRIVE_HOST_PREFIX))
-            p += strlen(QEMU_DRIVE_HOST_PREFIX);
+        p = (char *)qemuAliasDiskDriveSkipPrefix(p);
 
         eol = strchr(p, '\n');
         if (!eol)
@@ -839,7 +840,7 @@ qemuMonitorTextGetAllBlockStatsInfo(qemuMonitorPtr mon,
 {
     qemuBlockStatsPtr stats = NULL;
     char *info = NULL;
-    char *dev_name;
+    const char *dev_name;
     char **lines = NULL;
     char **values = NULL;
     char *line;
@@ -901,8 +902,7 @@ qemuMonitorTextGetAllBlockStatsInfo(qemuMonitorPtr mon,
         *line = '\0';
         line += 2;
 
-        if (STRPREFIX(dev_name, QEMU_DRIVE_HOST_PREFIX))
-            dev_name += strlen(QEMU_DRIVE_HOST_PREFIX);
+        dev_name = qemuAliasDiskDriveSkipPrefix(dev_name);
 
         if (!(values = virStringSplit(line, " ", 0)))
             goto cleanup;
@@ -2008,8 +2008,7 @@ int qemuMonitorTextSetDrivePassphrase(qemuMonitorPtr mon,
     if (!safe_str)
         return -1;
 
-    if (virAsprintf(&cmd, "block_passwd %s%s \"%s\"",
-                    QEMU_DRIVE_HOST_PREFIX, alias, safe_str) < 0)
+    if (virAsprintf(&cmd, "block_passwd %s \"%s\"", alias, safe_str) < 0)
         goto cleanup;
 
     if (qemuMonitorHMPCommand(mon, cmd, &reply) < 0)

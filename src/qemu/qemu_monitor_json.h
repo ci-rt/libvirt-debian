@@ -58,8 +58,9 @@ int qemuMonitorJSONGetStatus(qemuMonitorPtr mon,
 int qemuMonitorJSONSystemPowerdown(qemuMonitorPtr mon);
 int qemuMonitorJSONSystemReset(qemuMonitorPtr mon);
 
-int qemuMonitorJSONGetCPUInfo(qemuMonitorPtr mon,
-                              int **pids);
+int qemuMonitorJSONQueryCPUs(qemuMonitorPtr mon,
+                             struct qemuMonitorQueryCpusEntry **entries,
+                             size_t *nentries);
 int qemuMonitorJSONGetVirtType(qemuMonitorPtr mon,
                                virDomainVirtType *virtType);
 int qemuMonitorJSONUpdateVideoMemorySize(qemuMonitorPtr mon,
@@ -215,6 +216,8 @@ int qemuMonitorJSONAttachPCIDiskController(qemuMonitorPtr mon,
                                            const char *bus,
                                            virPCIDeviceAddress *guestAddr);
 
+int qemuMonitorJSONAddDeviceArgs(qemuMonitorPtr mon,
+                                 virJSONValuePtr args);
 int qemuMonitorJSONAddDevice(qemuMonitorPtr mon,
                              const char *devicestr);
 
@@ -491,4 +494,9 @@ int qemuMonitorJSONMigrateStartPostCopy(qemuMonitorPtr mon)
 int qemuMonitorJSONGetRTCTime(qemuMonitorPtr mon,
                               struct tm *tm)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+int qemuMonitorJSONGetHotpluggableCPUs(qemuMonitorPtr mon,
+                                       struct qemuMonitorQueryHotpluggableCpusEntry **entries,
+                                       size_t *nentries)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 #endif /* QEMU_MONITOR_JSON_H */

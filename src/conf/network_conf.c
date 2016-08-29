@@ -57,7 +57,9 @@ struct _virNetworkObjList {
 
 VIR_ENUM_IMPL(virNetworkForward,
               VIR_NETWORK_FORWARD_LAST,
-              "none", "nat", "route", "bridge", "private", "vepa", "passthrough", "hostdev")
+              "none", "nat", "route", "open",
+              "bridge", "private", "vepa", "passthrough",
+              "hostdev")
 
 VIR_ENUM_IMPL(virNetworkBridgeMACTableManager,
               VIR_NETWORK_BRIDGE_MAC_TABLE_MANAGER_LAST,
@@ -347,12 +349,20 @@ virNetworkDNSSrvDefClear(virNetworkDNSSrvDefPtr def)
     VIR_FREE(def->target);
 }
 
+
+static void
+virNetworkDNSForwarderClear(virNetworkDNSForwarderPtr def)
+{
+    VIR_FREE(def->domain);
+}
+
+
 static void
 virNetworkDNSDefClear(virNetworkDNSDefPtr def)
 {
     if (def->forwarders) {
         while (def->nfwds)
-            VIR_FREE(def->forwarders[--def->nfwds]);
+            virNetworkDNSForwarderClear(&def->forwarders[--def->nfwds]);
         VIR_FREE(def->forwarders);
     }
     if (def->txts) {
@@ -1333,12 +1343,25 @@ virNetworkDNSDefParseXML(const char *networkName,
     xmlNodePtr *txtNodes = NULL;
     xmlNodePtr *fwdNodes = NULL;
     char *forwardPlainNames = NULL;
+    char *enable = NULL;
     int nhosts, nsrvs, ntxts, nfwds;
     size_t i;
     int ret = -1;
     xmlNodePtr save = ctxt->node;
 
     ctxt->node = node;
+
+    enable = virXPathString("string(./@enable)", ctxt);
+    if (enable) {
+        def->enable = virTristateBoolTypeFromString(enable);
+        if (def->enable <= 0) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("Invalid dns enable setting '%s' "
+                             "in network '%s'"),
+                           enable, networkName);
+            goto cleanup;
+        }
+    }
 
     forwardPlainNames = virXPathString("string(./@forwardPlainNames)", ctxt);
     if (forwardPlainNames) {
@@ -1364,14 +1387,25 @@ virNetworkDNSDefParseXML(const char *networkName,
             goto cleanup;
 
         for (i = 0; i < nfwds; i++) {
-            def->forwarders[i] = virXMLPropString(fwdNodes[i], "addr");
-            if (virSocketAddrParse(NULL, def->forwarders[i], AF_UNSPEC) < 0) {
+            char *addr = virXMLPropString(fwdNodes[i], "addr");
+
+            if (addr && virSocketAddrParse(&def->forwarders[i].addr,
+                                           addr, AF_UNSPEC) < 0) {
                 virReportError(VIR_ERR_XML_ERROR,
-                           _("Invalid forwarder IP address '%s' "
-                             "in network '%s'"),
-                           def->forwarders[i], networkName);
+                               _("Invalid forwarder IP address '%s' "
+                                 "in network '%s'"),
+                               addr, networkName);
+                VIR_FREE(addr);
                 goto cleanup;
             }
+            def->forwarders[i].domain = virXMLPropString(fwdNodes[i], "domain");
+            if (!(addr || def->forwarders[i].domain)) {
+                virReportError(VIR_ERR_XML_ERROR, "%s",
+                               _("Invalid forwarder element, must contain "
+                                 "at least one of addr or domain"));
+                goto cleanup;
+            }
+            VIR_FREE(addr);
             def->nfwds++;
         }
     }
@@ -1436,8 +1470,17 @@ virNetworkDNSDefParseXML(const char *networkName,
         }
     }
 
+    if (def->enable == VIR_TRISTATE_BOOL_NO &&
+        (nfwds || nhosts || nsrvs || ntxts)) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Extra data in disabled network '%s'"),
+                       networkName);
+        goto cleanup;
+    }
+
     ret = 0;
  cleanup:
+    VIR_FREE(enable);
     VIR_FREE(forwardPlainNames);
     VIR_FREE(fwdNodes);
     VIR_FREE(hostNodes);
@@ -2333,6 +2376,7 @@ virNetworkDefParseXML(xmlXPathContextPtr ctxt)
 
     case VIR_NETWORK_FORWARD_ROUTE:
     case VIR_NETWORK_FORWARD_NAT:
+    case VIR_NETWORK_FORWARD_OPEN:
         /* It's pointless to specify L3 forwarding without specifying
          * the network we're on.
          */
@@ -2349,6 +2393,19 @@ virNetworkDefParseXML(xmlXPathContextPtr ctxt)
                            _("multiple forwarding interfaces specified "
                              "for network '%s', only one is supported"),
                            def->name);
+            goto error;
+        }
+
+        if (def->forward.type == VIR_NETWORK_FORWARD_OPEN && def->forward.nifs) {
+            /* an open network by definition can't place any restrictions
+             * on what traffic is allowed or where it goes, so specifying
+             * a forwarding device is nonsensical.
+             */
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("forward dev not allowed for "
+                             "network '%s' with forward mode='%s'"),
+                           def->name,
+                           virNetworkForwardTypeToString(def->forward.type));
             goto error;
         }
         break;
@@ -2480,12 +2537,22 @@ virNetworkDNSDefFormat(virBufferPtr buf,
 {
     size_t i, j;
 
-    if (!(def->forwardPlainNames || def->nfwds || def->nhosts ||
+    if (!(def->enable || def->forwardPlainNames || def->nfwds || def->nhosts ||
           def->nsrvs || def->ntxts))
         return 0;
 
     virBufferAddLit(buf, "<dns");
-    /* default to "yes", but don't format it in the XML */
+    if (def->enable) {
+        const char *fwd = virTristateBoolTypeToString(def->enable);
+
+        if (!fwd) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Unknown enable type %d in network"),
+                           def->enable);
+            return -1;
+        }
+        virBufferAsprintf(buf, " enable='%s'", fwd);
+    }
     if (def->forwardPlainNames) {
         const char *fwd = virTristateBoolTypeToString(def->forwardPlainNames);
 
@@ -2496,18 +2563,32 @@ virNetworkDNSDefFormat(virBufferPtr buf,
             return -1;
         }
         virBufferAsprintf(buf, " forwardPlainNames='%s'", fwd);
-        if (!(def->nfwds || def->nhosts || def->nsrvs || def->ntxts)) {
-            virBufferAddLit(buf, "/>\n");
-            return 0;
-        }
+    }
+    if (!(def->nfwds || def->nhosts || def->nsrvs || def->ntxts)) {
+        virBufferAddLit(buf, "/>\n");
+        return 0;
     }
 
     virBufferAddLit(buf, ">\n");
     virBufferAdjustIndent(buf, 2);
 
     for (i = 0; i < def->nfwds; i++) {
-        virBufferAsprintf(buf, "<forwarder addr='%s'/>\n",
-                          def->forwarders[i]);
+
+        virBufferAddLit(buf, "<forwarder");
+        if (def->forwarders[i].domain) {
+            virBufferEscapeString(buf, " domain='%s'",
+                                  def->forwarders[i].domain);
+        }
+        if (VIR_SOCKET_ADDR_VALID(&def->forwarders[i].addr)) {
+        char *addr = virSocketAddrFormat(&def->forwarders[i].addr);
+
+        if (!addr)
+            return -1;
+
+        virBufferAsprintf(buf, " addr='%s'", addr);
+        VIR_FREE(addr);
+        }
+        virBufferAddLit(buf, "/>\n");
     }
 
     for (i = 0; i < def->ntxts; i++) {
@@ -2856,13 +2937,15 @@ virNetworkDefFormatBuf(virBufferPtr buf,
     if (def->forward.type == VIR_NETWORK_FORWARD_NONE ||
         def->forward.type == VIR_NETWORK_FORWARD_NAT ||
         def->forward.type == VIR_NETWORK_FORWARD_ROUTE ||
+        def->forward.type == VIR_NETWORK_FORWARD_OPEN ||
         def->bridge || def->macTableManager) {
 
         virBufferAddLit(buf, "<bridge");
         virBufferEscapeString(buf, " name='%s'", def->bridge);
         if (def->forward.type == VIR_NETWORK_FORWARD_NONE ||
             def->forward.type == VIR_NETWORK_FORWARD_NAT ||
-            def->forward.type == VIR_NETWORK_FORWARD_ROUTE) {
+            def->forward.type == VIR_NETWORK_FORWARD_ROUTE ||
+            def->forward.type == VIR_NETWORK_FORWARD_OPEN) {
             virBufferAsprintf(buf, " stp='%s' delay='%ld'",
                               def->stp ? "on" : "off", def->delay);
         }
@@ -3235,7 +3318,8 @@ virNetworkObjPtr virNetworkLoadConfig(virNetworkObjListPtr nets,
 
     if (def->forward.type == VIR_NETWORK_FORWARD_NONE ||
         def->forward.type == VIR_NETWORK_FORWARD_NAT ||
-        def->forward.type == VIR_NETWORK_FORWARD_ROUTE) {
+        def->forward.type == VIR_NETWORK_FORWARD_ROUTE ||
+        def->forward.type == VIR_NETWORK_FORWARD_OPEN) {
 
         if (!def->mac_specified) {
             virNetworkSetBridgeMacAddr(def);
