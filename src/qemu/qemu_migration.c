@@ -36,7 +36,7 @@
 #include "qemu_domain.h"
 #include "qemu_process.h"
 #include "qemu_capabilities.h"
-#include "qemu_command.h"
+#include "qemu_alias.h"
 #include "qemu_cgroup.h"
 #include "qemu_hotplug.h"
 #include "qemu_blockjob.h"
@@ -92,6 +92,7 @@ enum qemuMigrationCookieFlags {
     QEMU_MIGRATION_COOKIE_FLAG_NBD,
     QEMU_MIGRATION_COOKIE_FLAG_STATS,
     QEMU_MIGRATION_COOKIE_FLAG_MEMORY_HOTPLUG,
+    QEMU_MIGRATION_COOKIE_FLAG_CPU_HOTPLUG,
 
     QEMU_MIGRATION_COOKIE_FLAG_LAST
 };
@@ -105,7 +106,8 @@ VIR_ENUM_IMPL(qemuMigrationCookieFlag,
               "network",
               "nbd",
               "statistics",
-              "memory-hotplug");
+              "memory-hotplug",
+              "cpu-hotplug");
 
 enum qemuMigrationCookieFeatures {
     QEMU_MIGRATION_COOKIE_GRAPHICS  = (1 << QEMU_MIGRATION_COOKIE_FLAG_GRAPHICS),
@@ -115,6 +117,7 @@ enum qemuMigrationCookieFeatures {
     QEMU_MIGRATION_COOKIE_NBD = (1 << QEMU_MIGRATION_COOKIE_FLAG_NBD),
     QEMU_MIGRATION_COOKIE_STATS = (1 << QEMU_MIGRATION_COOKIE_FLAG_STATS),
     QEMU_MIGRATION_COOKIE_MEMORY_HOTPLUG = (1 << QEMU_MIGRATION_COOKIE_FLAG_MEMORY_HOTPLUG),
+    QEMU_MIGRATION_COOKIE_CPU_HOTPLUG = (1 << QEMU_MIGRATION_COOKIE_FLAG_CPU_HOTPLUG),
 };
 
 typedef struct _qemuMigrationCookieGraphics qemuMigrationCookieGraphics;
@@ -1408,6 +1411,9 @@ qemuMigrationBakeCookie(qemuMigrationCookiePtr mig,
     if (flags & QEMU_MIGRATION_COOKIE_MEMORY_HOTPLUG)
         mig->flagsMandatory |= QEMU_MIGRATION_COOKIE_MEMORY_HOTPLUG;
 
+    if (flags & QEMU_MIGRATION_COOKIE_CPU_HOTPLUG)
+        mig->flagsMandatory |= QEMU_MIGRATION_COOKIE_CPU_HOTPLUG;
+
     if (!(*cookieout = qemuMigrationCookieXMLFormatStr(driver, mig)))
         return -1;
 
@@ -1602,7 +1608,6 @@ qemuMigrationPrecreateDisk(virConnectPtr conn,
                        _("cannot precreate storage for disk type '%s'"),
                        virStorageTypeToString(disk->src->type));
         goto cleanup;
-        break;
     }
 
     if ((vol = virStorageVolLookupByName(pool, volName))) {
@@ -1761,8 +1766,7 @@ qemuMigrationStartNBDServer(virQEMUDriverPtr driver,
             continue;
 
         VIR_FREE(diskAlias);
-        if (virAsprintf(&diskAlias, "%s%s",
-                        QEMU_DRIVE_HOST_PREFIX, disk->info.alias) < 0)
+        if (!(diskAlias = qemuAliasFromDisk(disk)))
             goto cleanup;
 
         if (qemuDomainObjEnterMonitorAsync(driver, vm,
@@ -1978,8 +1982,7 @@ qemuMigrationCancelOneDriveMirror(virQEMUDriverPtr driver,
         return 1;
     }
 
-    if (virAsprintf(&diskAlias, "%s%s",
-                    QEMU_DRIVE_HOST_PREFIX, disk->info.alias) < 0)
+    if (!(diskAlias = qemuAliasFromDisk(disk)))
         return -1;
 
     if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
@@ -2154,8 +2157,7 @@ qemuMigrationDriveMirror(virQEMUDriverPtr driver,
         if (!qemuMigrateDisk(disk, nmigrate_disks, migrate_disks))
             continue;
 
-        if ((virAsprintf(&diskAlias, "%s%s",
-                         QEMU_DRIVE_HOST_PREFIX, disk->info.alias) < 0) ||
+        if (!(diskAlias = qemuAliasFromDisk(disk)) ||
             (virAsprintf(&nbd_dest, "nbd:%s:%d:exportname=%s",
                          hoststr, port, diskAlias) < 0))
             goto cleanup;
@@ -3195,6 +3197,11 @@ qemuMigrationBeginPhase(virQEMUDriverPtr driver,
          vm->newDef && virDomainDefHasMemoryHotplug(vm->newDef)))
         cookieFlags |= QEMU_MIGRATION_COOKIE_MEMORY_HOTPLUG;
 
+    if (!qemuDomainVcpuHotplugIsInOrder(vm->def) ||
+        ((flags & VIR_MIGRATE_PERSIST_DEST) &&
+         vm->newDef && !qemuDomainVcpuHotplugIsInOrder(vm->newDef)))
+        cookieFlags |= QEMU_MIGRATION_COOKIE_CPU_HOTPLUG;
+
     if (!(mig = qemuMigrationEatCookie(driver, vm, NULL, 0, 0)))
         goto cleanup;
 
@@ -3690,7 +3697,8 @@ qemuMigrationPrepareAny(virQEMUDriverPtr driver,
     if (!(mig = qemuMigrationEatCookie(driver, vm, cookiein, cookieinlen,
                                        QEMU_MIGRATION_COOKIE_LOCKSTATE |
                                        QEMU_MIGRATION_COOKIE_NBD |
-                                       QEMU_MIGRATION_COOKIE_MEMORY_HOTPLUG)))
+                                       QEMU_MIGRATION_COOKIE_MEMORY_HOTPLUG |
+                                       QEMU_MIGRATION_COOKIE_CPU_HOTPLUG)))
         goto cleanup;
 
     if (STREQ_NULLABLE(protocol, "rdma") &&

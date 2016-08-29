@@ -112,17 +112,20 @@ struct _qemuMonitor {
  * monitor.
  */
 #define QEMU_CHECK_MONITOR_FULL(mon, force_json, exit)                         \
-    if (!mon) {                                                                \
-        virReportError(VIR_ERR_INVALID_ARG, "%s",                              \
-                       _("monitor must not be NULL"));                         \
-        exit;                                                                  \
-    }                                                                          \
-    VIR_DEBUG("mon:%p vm:%p json:%d fd:%d", mon, mon->vm, mon->json, mon->fd); \
-    if (force_json && !mon->json) {                                            \
-        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",                    \
-                       _("JSON monitor is required"));                         \
-        exit;                                                                  \
-    }
+    do {                                                                       \
+        if (!mon) {                                                            \
+            virReportError(VIR_ERR_INVALID_ARG, "%s",                          \
+                           _("monitor must not be NULL"));                     \
+            exit;                                                              \
+        }                                                                      \
+        VIR_DEBUG("mon:%p vm:%p json:%d fd:%d",                                \
+                  mon, mon->vm, mon->json, mon->fd);                           \
+        if (force_json && !mon->json) {                                        \
+            virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",                \
+                           _("JSON monitor is required"));                     \
+            exit;                                                              \
+        }                                                                      \
+    } while (0)
 
 /* Check monitor and return NULL on error */
 #define QEMU_CHECK_MONITOR_NULL(mon) \
@@ -528,12 +531,12 @@ qemuMonitorIOWrite(qemuMonitorPtr mon)
 
     PROBE(QEMU_MONITOR_IO_WRITE,
           "mon=%p buf=%s len=%zu ret=%d errno=%d",
-          mon, buf, len, done, errno);
+          mon, buf, len, done, done < 0 ? errno : 0);
 
     if (mon->msg->txFD != -1) {
         PROBE(QEMU_MONITOR_IO_SEND_FD,
               "mon=%p fd=%d ret=%d errno=%d",
-              mon, mon->msg->txFD, done, errno);
+              mon, mon->msg->txFD, done, done < 0 ? errno : 0);
     }
 
     if (done < 0) {
@@ -1653,25 +1656,275 @@ qemuMonitorSystemReset(qemuMonitorPtr mon)
 }
 
 
+static void
+qemuMonitorCPUInfoClear(qemuMonitorCPUInfoPtr cpus,
+                        size_t ncpus)
+{
+    size_t i;
+
+    for (i = 0; i < ncpus; i++) {
+        cpus[i].id = 0;
+        cpus[i].socket_id = -1;
+        cpus[i].core_id = -1;
+        cpus[i].thread_id = -1;
+        cpus[i].vcpus = 0;
+        cpus[i].tid = 0;
+
+        VIR_FREE(cpus[i].qom_path);
+        VIR_FREE(cpus[i].alias);
+        VIR_FREE(cpus[i].type);
+    }
+}
+
+
+void
+qemuMonitorCPUInfoFree(qemuMonitorCPUInfoPtr cpus,
+                       size_t ncpus)
+{
+    if (!cpus)
+        return;
+
+    qemuMonitorCPUInfoClear(cpus, ncpus);
+
+    VIR_FREE(cpus);
+}
+
+void
+qemuMonitorQueryCpusFree(struct qemuMonitorQueryCpusEntry *entries,
+                         size_t nentries)
+{
+    size_t i;
+
+    if (!entries)
+        return;
+
+    for (i = 0; i < nentries; i++)
+        VIR_FREE(entries[i].qom_path);
+
+    VIR_FREE(entries);
+}
+
+
+/**
+ * Legacy approach doesn't allow out of order cpus, thus no complex matching
+ * algorithm is necessary */
+static void
+qemuMonitorGetCPUInfoLegacy(struct qemuMonitorQueryCpusEntry *cpuentries,
+                            size_t ncpuentries,
+                            qemuMonitorCPUInfoPtr vcpus,
+                            size_t maxvcpus)
+{
+    size_t i;
+
+    for (i = 0; i < maxvcpus; i++) {
+        if (i < ncpuentries)
+            vcpus[i].tid = cpuentries[i].tid;
+
+        /* for legacy hotplug to work we need to fake the vcpu count added by
+         * enabling a given vcpu */
+        vcpus[i].vcpus = 1;
+    }
+}
+
+
+/**
+ * qemuMonitorGetCPUInfoHotplug:
+ *
+ * This function stitches together data retrieved via query-hotpluggable-cpus
+ * which returns entities on the hotpluggable level (which may describe more
+ * than one guest logical vcpu) with the output of query-cpus, having an entry
+ * per enabled guest logical vcpu.
+ *
+ * query-hotpluggable-cpus conveys following information:
+ * - topology information and number of logical vcpus this entry creates
+ * - device type name of the entry that needs to be used when hotplugging
+ * - qom path in qemu which can be used to map the entry against query-cpus
+ *
+ * query-cpus conveys following information:
+ * - thread id of a given guest logical vcpu
+ * - order in which the vcpus were inserted
+ * - qom path to allow mapping the two together
+ *
+ * The libvirt's internal structure has an entry for each possible (even
+ * disabled) guest vcpu. The purpose is to map the data together so that we are
+ * certain of the thread id mapping and the information required for vcpu
+ * hotplug.
+ *
+ * This function returns 0 on success and -1 on error, but does not report
+ * libvirt errors so that fallback approach can be used.
+ */
+static int
+qemuMonitorGetCPUInfoHotplug(struct qemuMonitorQueryHotpluggableCpusEntry *hotplugvcpus,
+                             size_t nhotplugvcpus,
+                             struct qemuMonitorQueryCpusEntry *cpuentries,
+                             size_t ncpuentries,
+                             qemuMonitorCPUInfoPtr vcpus,
+                             size_t maxvcpus)
+{
+    char *tmp;
+    int order = 1;
+    size_t totalvcpus = 0;
+    size_t i;
+    size_t j;
+
+    /* ensure that the total vcpu count reported by query-hotpluggable-cpus equals
+     * to the libvirt maximum cpu count */
+    for (i = 0; i < nhotplugvcpus; i++)
+        totalvcpus += hotplugvcpus[i].vcpus;
+
+    /* trim '/thread...' suffix from the data returned by query-cpus */
+    for (i = 0; i < ncpuentries; i++) {
+        if (cpuentries[i].qom_path &&
+            (tmp = strstr(cpuentries[i].qom_path, "/thread")))
+            *tmp = '\0';
+    }
+
+    if (totalvcpus != maxvcpus) {
+        VIR_DEBUG("expected '%zu' total vcpus got '%zu'", maxvcpus, totalvcpus);
+        return -1;
+    }
+
+    /* Note the order in which the hotpluggable entities are inserted by
+     * matching them to the query-cpus entries */
+    for (i = 0; i < ncpuentries; i++) {
+        for (j = 0; j < nhotplugvcpus; j++) {
+            if (!cpuentries[i].qom_path ||
+                !hotplugvcpus[j].qom_path ||
+                STRNEQ(cpuentries[i].qom_path, hotplugvcpus[j].qom_path))
+                continue;
+
+            /* add ordering info for hotpluggable entries */
+            if (hotplugvcpus[j].enable_id == 0)
+                hotplugvcpus[j].enable_id = order++;
+
+            break;
+        }
+    }
+
+    /* transfer appropriate data from the hotpluggable list to corresponding
+     * entries. the entries returned by qemu may in fact describe multiple
+     * logical vcpus in the guest */
+    j = 0;
+    for (i = 0; i < nhotplugvcpus; i++) {
+        vcpus[j].socket_id = hotplugvcpus[i].socket_id;
+        vcpus[j].core_id = hotplugvcpus[i].core_id;
+        vcpus[j].thread_id = hotplugvcpus[i].thread_id;
+        vcpus[j].vcpus = hotplugvcpus[i].vcpus;
+        VIR_STEAL_PTR(vcpus[j].qom_path, hotplugvcpus[i].qom_path);
+        VIR_STEAL_PTR(vcpus[j].alias, hotplugvcpus[i].alias);
+        VIR_STEAL_PTR(vcpus[j].type, hotplugvcpus[i].type);
+        vcpus[j].id = hotplugvcpus[i].enable_id;
+
+        /* skip over vcpu entries covered by this hotpluggable entry */
+        j += hotplugvcpus[i].vcpus;
+    }
+
+    /* match entries from query cpus to the output array taking into account
+     * multi-vcpu objects */
+    for (j = 0; j < ncpuentries; j++) {
+        /* find the correct entry or beginning of group of entries */
+        for (i = 0; i < maxvcpus; i++) {
+            if (cpuentries[j].qom_path && vcpus[i].qom_path &&
+                STREQ(cpuentries[j].qom_path, vcpus[i].qom_path))
+                break;
+        }
+
+        if (i == maxvcpus) {
+            VIR_DEBUG("too many query-cpus entries for a given "
+                      "query-hotpluggable-cpus entry");
+            return -1;
+        }
+
+        if (vcpus[i].vcpus != 1) {
+            /* find a possibly empty vcpu thread for core granularity systems */
+            for (; i < maxvcpus; i++) {
+                if (vcpus[i].tid == 0)
+                    break;
+            }
+        }
+
+        vcpus[i].tid = cpuentries[j].tid;
+    }
+
+    return 0;
+}
+
+
 /**
  * qemuMonitorGetCPUInfo:
  * @mon: monitor
- * @pids: returned array of thread ids corresponding to the vCPUs
+ * @vcpus: pointer filled by array of qemuMonitorCPUInfo structures
+ * @maxvcpus: total possible number of vcpus
+ * @hotplug: query data relevant for hotplug support
  *
- * Detects the vCPU thread ids. Returns count of detected vCPUs on success,
- * 0 if qemu didn't report thread ids (does not report libvirt error),
- * -1 on error (reports libvirt error).
+ * Detects VCPU information. If qemu doesn't support or fails reporting
+ * information this function will return success as other parts of libvirt
+ * are able to cope with that.
+ *
+ * Returns 0 on success (including if qemu didn't report any data) and
+ *  -1 on error (reports libvirt error).
  */
 int
 qemuMonitorGetCPUInfo(qemuMonitorPtr mon,
-                      int **pids)
+                      qemuMonitorCPUInfoPtr *vcpus,
+                      size_t maxvcpus,
+                      bool hotplug)
 {
-    QEMU_CHECK_MONITOR(mon);
+    struct qemuMonitorQueryHotpluggableCpusEntry *hotplugcpus = NULL;
+    size_t nhotplugcpus = 0;
+    struct qemuMonitorQueryCpusEntry *cpuentries = NULL;
+    size_t ncpuentries = 0;
+    int ret = -1;
+    int rc;
+    qemuMonitorCPUInfoPtr info = NULL;
+
+    if (hotplug)
+        QEMU_CHECK_MONITOR_JSON(mon);
+    else
+        QEMU_CHECK_MONITOR(mon);
+
+    if (VIR_ALLOC_N(info, maxvcpus) < 0)
+        return -1;
+
+    /* initialize a few non-zero defaults */
+    qemuMonitorCPUInfoClear(info, maxvcpus);
+
+    if (hotplug &&
+        (qemuMonitorJSONGetHotpluggableCPUs(mon, &hotplugcpus, &nhotplugcpus)) < 0)
+        goto cleanup;
 
     if (mon->json)
-        return qemuMonitorJSONGetCPUInfo(mon, pids);
+        rc = qemuMonitorJSONQueryCPUs(mon, &cpuentries, &ncpuentries);
     else
-        return qemuMonitorTextGetCPUInfo(mon, pids);
+        rc = qemuMonitorTextQueryCPUs(mon, &cpuentries, &ncpuentries);
+
+    if (rc < 0) {
+        if (rc == -2) {
+            VIR_STEAL_PTR(*vcpus, info);
+            ret = 0;
+        }
+
+        goto cleanup;
+    }
+
+    if (!hotplugcpus ||
+        qemuMonitorGetCPUInfoHotplug(hotplugcpus, nhotplugcpus,
+                                     cpuentries, ncpuentries,
+                                     info, maxvcpus) < 0) {
+        /* Fallback to the legacy algorithm. Hotplug paths will make sure that
+         * the apropriate data is present */
+        qemuMonitorCPUInfoClear(info, maxvcpus);
+        qemuMonitorGetCPUInfoLegacy(cpuentries, ncpuentries, info, maxvcpus);
+    }
+
+    VIR_STEAL_PTR(*vcpus, info);
+    ret = 0;
+
+ cleanup:
+    qemuMonitorQueryHotpluggableCpusFree(hotplugcpus, nhotplugcpus);
+    qemuMonitorQueryCpusFree(cpuentries, ncpuentries);
+    qemuMonitorCPUInfoFree(info, maxvcpus);
+    return ret;
 }
 
 
@@ -2767,6 +3020,24 @@ qemuMonitorAddDevice(qemuMonitorPtr mon,
                      const char *devicestr)
 {
     return qemuMonitorAddDeviceWithFd(mon, devicestr, -1, NULL);
+}
+
+
+/**
+ * qemuMonitorAddDeviceArgs:
+ * @mon: monitor object
+ * @args: arguments for device add, consumed on success or failure
+ *
+ * Adds a device described by @args. Requires JSON monitor.
+ * Returns 0 on success -1 on error.
+ */
+int
+qemuMonitorAddDeviceArgs(qemuMonitorPtr mon,
+                         virJSONValuePtr args)
+{
+    QEMU_CHECK_MONITOR_JSON(mon);
+
+    return qemuMonitorJSONAddDeviceArgs(mon, args);
 }
 
 

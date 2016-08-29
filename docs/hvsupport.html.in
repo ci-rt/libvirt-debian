@@ -1501,7 +1501,7 @@ virConnectSupportsFeature</td>
 <td>0.9.4</td>
 <td>0.9.4</td>
 <td>0.9.4</td>
-<td></td>
+<td>2.2.0</td>
 <td>0.9.4</td>
 <td>0.9.4</td>
 </tr>
@@ -1983,7 +1983,7 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
+<td>2.2.0</td>
 <td></td>
 <td></td>
 </tr>
@@ -2005,7 +2005,7 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
+<td>2.2.0</td>
 <td></td>
 <td></td>
 </tr>
@@ -4503,7 +4503,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.9.10</td>
 <td>0.9.10</td>
 <td>0.9.10</td>
-<td></td>
+<td>2.2.0</td>
 <td>0.9.10</td>
 <td>0.9.10</td>
 </tr>
@@ -5838,6 +5838,26 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.10.2</td>
 <td></td>
 <td>0.10.2</td>
+</tr>
+<tr>
+<td>
+<a href="html/libvirt-libvirt-nodedev.html#virConnectNodeDeviceEventDeregisterAny">virConnectNodeDeviceEventDeregisterAny</a>
+</td>
+<td>2.2.0</td>
+<td></td>
+<td>2.2.0</td>
+<td>2.2.0</td>
+<td>2.2.0</td>
+</tr>
+<tr>
+<td>
+<a href="html/libvirt-libvirt-nodedev.html#virConnectNodeDeviceEventRegisterAny">virConnectNodeDeviceEventRegisterAny</a>
+</td>
+<td>2.2.0</td>
+<td></td>
+<td>2.2.0</td>
+<td>2.2.0</td>
+<td>2.2.0</td>
 </tr>
 <tr>
 <td>

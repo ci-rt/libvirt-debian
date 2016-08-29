@@ -618,6 +618,13 @@ mymain(void)
             QEMU_CAPS_DUMP_GUEST_CORE);
     DO_TEST_FAILURE("machine-core-on", NONE);
     DO_TEST_FAILURE("machine-core-on", QEMU_CAPS_MACHINE_OPT);
+    DO_TEST("machine-smm-opt",
+            QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_PCI_BRIDGE,
+            QEMU_CAPS_ICH9_AHCI,
+            QEMU_CAPS_MACHINE_OPT,
+            QEMU_CAPS_MACHINE_SMM_OPT,
+            QEMU_CAPS_VIRTIO_SCSI);
     DO_TEST("machine-usb-opt", QEMU_CAPS_MACHINE_OPT,
             QEMU_CAPS_MACHINE_USB_OPT);
     DO_TEST("machine-vmport-opt", QEMU_CAPS_MACHINE_OPT,
@@ -678,6 +685,13 @@ mymain(void)
 
     DO_TEST("bios", QEMU_CAPS_SGA);
     DO_TEST("bios-nvram", NONE);
+    DO_TEST("bios-nvram-secure",
+            QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_PCI_BRIDGE,
+            QEMU_CAPS_ICH9_AHCI,
+            QEMU_CAPS_MACHINE_OPT,
+            QEMU_CAPS_MACHINE_SMM_OPT,
+            QEMU_CAPS_VIRTIO_SCSI);
     DO_TEST("clock-utc", QEMU_CAPS_NODEFCONFIG);
     DO_TEST("clock-localtime", NONE);
     DO_TEST("clock-localtime-basis-localtime", QEMU_CAPS_RTC);
@@ -1190,6 +1204,9 @@ mymain(void)
     DO_TEST_PARSE_ERROR("usb-hub-conflict",
             QEMU_CAPS_CHARDEV, QEMU_CAPS_USB_HUB,
             QEMU_CAPS_NODEFCONFIG);
+    DO_TEST_PARSE_ERROR("usb-hub-nonexistent",
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_USB_HUB,
+            QEMU_CAPS_NODEFCONFIG);
     DO_TEST("usb-port-missing",
             QEMU_CAPS_CHARDEV, QEMU_CAPS_USB_HUB,
             QEMU_CAPS_NODEFCONFIG);
@@ -1378,6 +1395,7 @@ mymain(void)
     DO_TEST("cpu-Haswell2", QEMU_CAPS_KVM);
     DO_TEST("cpu-Haswell3", QEMU_CAPS_KVM);
     DO_TEST("cpu-Haswell-noTSX", QEMU_CAPS_KVM);
+    DO_TEST("cpu-host-model-cmt", NONE);
     driver.caps->host.cpu = cpuDefault;
 
     DO_TEST("encrypted-disk", NONE);
@@ -1617,6 +1635,14 @@ mymain(void)
             QEMU_CAPS_PCI_MULTIFUNCTION, QEMU_CAPS_ICH9_USB_EHCI1,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
             QEMU_CAPS_VGA_QXL, QEMU_CAPS_DEVICE_QXL);
+    DO_TEST_PARSE_ERROR("q35-dmi-bad-address1",
+                        QEMU_CAPS_DEVICE_PCI_BRIDGE,
+                        QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
+                        QEMU_CAPS_DEVICE_IOH3420);
+    DO_TEST_PARSE_ERROR("q35-dmi-bad-address2",
+                        QEMU_CAPS_DEVICE_PCI_BRIDGE,
+                        QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
+                        QEMU_CAPS_DEVICE_IOH3420);
     DO_TEST("q35-pm-disable",
             QEMU_CAPS_DEVICE_PCI_BRIDGE,
             QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE, QEMU_CAPS_ICH9_AHCI,
@@ -1708,6 +1734,9 @@ mymain(void)
     DO_TEST_PARSE_ERROR("pci-expander-bus-bad-machine",
                         QEMU_CAPS_DEVICE_PCI_BRIDGE,
                         QEMU_CAPS_DEVICE_PXB);
+    DO_TEST_PARSE_ERROR("pci-expander-bus-bad-bus",
+                        QEMU_CAPS_DEVICE_PCI_BRIDGE,
+                        QEMU_CAPS_DEVICE_PXB);
 
     DO_TEST("pcie-expander-bus",
             QEMU_CAPS_DEVICE_PCI_BRIDGE,
@@ -1722,6 +1751,11 @@ mymain(void)
                         QEMU_CAPS_DEVICE_IOH3420,
                         QEMU_CAPS_DEVICE_X3130_UPSTREAM,
                         QEMU_CAPS_DEVICE_XIO3130_DOWNSTREAM,
+                        QEMU_CAPS_DEVICE_PXB_PCIE);
+    DO_TEST_PARSE_ERROR("pcie-expander-bus-bad-bus",
+                        QEMU_CAPS_DEVICE_PCI_BRIDGE,
+                        QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
+                        QEMU_CAPS_DEVICE_IOH3420,
                         QEMU_CAPS_DEVICE_PXB_PCIE);
 
     DO_TEST("hostdev-scsi-lsi",
@@ -1871,7 +1905,7 @@ mymain(void)
     DO_TEST_GIC("aarch64-gic-v2", GIC_BOTH,
             QEMU_CAPS_KVM, QEMU_CAPS_MACHINE_OPT,
             QEMU_CAPS_MACH_VIRT_GIC_VERSION);
-    DO_TEST_FAILURE("aarch64-gic-v3", GIC_NONE,
+    DO_TEST_FAILURE("aarch64-gic-v3",
             QEMU_CAPS_KVM, QEMU_CAPS_MACHINE_OPT);
     DO_TEST_GIC("aarch64-gic-v3", GIC_NONE,
             QEMU_CAPS_KVM, QEMU_CAPS_MACHINE_OPT,
@@ -1885,7 +1919,7 @@ mymain(void)
     DO_TEST_GIC("aarch64-gic-v3", GIC_BOTH,
             QEMU_CAPS_KVM, QEMU_CAPS_MACHINE_OPT,
             QEMU_CAPS_MACH_VIRT_GIC_VERSION);
-    DO_TEST_FAILURE("aarch64-gic-host", GIC_NONE,
+    DO_TEST_FAILURE("aarch64-gic-host",
             QEMU_CAPS_KVM, QEMU_CAPS_MACHINE_OPT);
     DO_TEST_GIC("aarch64-gic-host", GIC_NONE,
             QEMU_CAPS_KVM, QEMU_CAPS_MACHINE_OPT,
@@ -1899,13 +1933,13 @@ mymain(void)
     DO_TEST_GIC("aarch64-gic-host", GIC_BOTH,
             QEMU_CAPS_KVM, QEMU_CAPS_MACHINE_OPT,
             QEMU_CAPS_MACH_VIRT_GIC_VERSION);
-    DO_TEST_PARSE_ERROR("aarch64-gic-invalid", GIC_NONE,
+    DO_TEST_PARSE_ERROR("aarch64-gic-invalid",
             QEMU_CAPS_KVM, QEMU_CAPS_MACHINE_OPT,
             QEMU_CAPS_MACH_VIRT_GIC_VERSION);
-    DO_TEST_FAILURE("aarch64-gic-not-virt", GIC_NONE,
+    DO_TEST_FAILURE("aarch64-gic-not-virt",
             QEMU_CAPS_KVM, QEMU_CAPS_MACHINE_OPT,
             QEMU_CAPS_MACH_VIRT_GIC_VERSION);
-    DO_TEST_FAILURE("aarch64-gic-not-arm", GIC_NONE,
+    DO_TEST_FAILURE("aarch64-gic-not-arm",
             QEMU_CAPS_KVM, QEMU_CAPS_MACHINE_OPT,
             QEMU_CAPS_MACH_VIRT_GIC_VERSION);
 
@@ -2064,13 +2098,15 @@ mymain(void)
     DO_TEST("master-key", QEMU_CAPS_OBJECT_SECRET);
     DO_TEST("usb-long-port-path", QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_USB_HUB);
-    DO_TEST_PARSE_FLAGS_ERROR("usb-too-long-port-path-invalid",
-                              QEMU_CAPS_CHARDEV,
-                              QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_USB_HUB);
+    DO_TEST_PARSE_ERROR("usb-too-long-port-path-invalid",
+                        QEMU_CAPS_CHARDEV,
+                        QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_USB_HUB);
 
     DO_TEST("acpi-table", NONE);
     DO_TEST("intel-iommu", QEMU_CAPS_DEVICE_PCI_BRIDGE,
             QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE, QEMU_CAPS_DEVICE_INTEL_IOMMU);
+
+    DO_TEST("cpu-hotplug-startup", QEMU_CAPS_QUERY_HOTPLUGGABLE_CPUS);
 
     qemuTestDriverFree(&driver);
 

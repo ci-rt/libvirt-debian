@@ -27,6 +27,7 @@
 #include "qemu_alias.h"
 #include "qemu_cgroup.h"
 #include "qemu_command.h"
+#include "qemu_process.h"
 #include "qemu_parse_command.h"
 #include "qemu_capabilities.h"
 #include "qemu_migration.h"
@@ -853,8 +854,12 @@ qemuDomainVcpuPrivateNew(void)
 
 
 static void
-qemuDomainVcpuPrivateDispose(void *obj ATTRIBUTE_UNUSED)
+qemuDomainVcpuPrivateDispose(void *obj)
 {
+    qemuDomainVcpuPrivatePtr priv = obj;
+
+    VIR_FREE(priv->type);
+    VIR_FREE(priv->alias);
     return;
 }
 
@@ -2248,6 +2253,76 @@ qemuDomainRecheckInternalPaths(virDomainDefPtr def,
 
 
 static int
+qemuDomainDefVcpusPostParse(virDomainDefPtr def)
+{
+    unsigned int maxvcpus = virDomainDefGetVcpusMax(def);
+    virDomainVcpuDefPtr vcpu;
+    virDomainVcpuDefPtr prevvcpu;
+    size_t i;
+    bool has_order = false;
+
+    /* vcpu 0 needs to be present, first, and non-hotpluggable */
+    vcpu = virDomainDefGetVcpu(def, 0);
+    if (!vcpu->online) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("vcpu 0 can't be offline"));
+        return -1;
+    }
+    if (vcpu->hotpluggable == VIR_TRISTATE_BOOL_YES) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("vcpu0 can't be hotpluggable"));
+        return -1;
+    }
+    if (vcpu->order != 0 && vcpu->order != 1) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("vcpu0 must be enabled first"));
+        return -1;
+    }
+
+    if (vcpu->order != 0)
+        has_order = true;
+
+    prevvcpu = vcpu;
+
+    /* all online vcpus or non online vcpu need to have order set */
+    for (i = 1; i < maxvcpus; i++) {
+        vcpu = virDomainDefGetVcpu(def, i);
+
+        if (vcpu->online &&
+            (vcpu->order != 0) != has_order) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("all vcpus must have either set or unset order"));
+            return -1;
+        }
+
+        /* few conditions for non-hotpluggable (thus online) vcpus */
+        if (vcpu->hotpluggable == VIR_TRISTATE_BOOL_NO) {
+            /* they can be ordered only at the beginning */
+            if (prevvcpu->hotpluggable == VIR_TRISTATE_BOOL_YES) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("online non-hotpluggable vcpus need to be "
+                                 "ordered prior to hotplugable vcpus"));
+                return -1;
+            }
+
+            /* they need to be in order (qemu doesn't support any order yet).
+             * Also note that multiple vcpus may share order on some platforms */
+            if (prevvcpu->order > vcpu->order) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("online non-hotpluggable vcpus must be ordered "
+                                 "in ascending order"));
+                return -1;
+            }
+        }
+
+        prevvcpu = vcpu;
+    }
+
+    return 0;
+}
+
+
+static int
 qemuDomainDefPostParse(virDomainDefPtr def,
                        virCapsPtr caps,
                        unsigned int parseFlags,
@@ -2302,6 +2377,9 @@ qemuDomainDefPostParse(virDomainDefPtr def,
     if (virSecurityManagerVerify(driver->securityManager, def) < 0)
         goto cleanup;
 
+    if (qemuDomainDefVcpusPostParse(def) < 0)
+        goto cleanup;
+
     ret = 0;
  cleanup:
     virObjectUnref(qemuCaps);
@@ -2313,15 +2391,68 @@ qemuDomainDefPostParse(virDomainDefPtr def,
 static int
 qemuDomainDefValidate(const virDomainDef *def,
                       virCapsPtr caps ATTRIBUTE_UNUSED,
-                      void *opaque ATTRIBUTE_UNUSED)
+                      void *opaque)
 {
+    virQEMUDriverPtr driver = opaque;
+    virQEMUCapsPtr qemuCaps = NULL;
+    size_t topologycpus;
+    int ret = -1;
+
+    if (!(qemuCaps = virQEMUCapsCacheLookup(driver->qemuCapsCache,
+                                            def->emulator)))
+        goto cleanup;
+
     if (def->mem.min_guarantee) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Parameter 'min_guarantee' not supported by QEMU."));
-        return -1;
+        goto cleanup;
     }
 
-    return 0;
+    if (def->os.loader &&
+        def->os.loader->secure == VIR_TRISTATE_BOOL_YES) {
+        /* These are the QEMU implementation limitations. But we
+         * have to live with them for now. */
+
+        if (!qemuDomainMachineIsQ35(def)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Secure boot is supported with q35 machine types only"));
+            goto cleanup;
+        }
+
+        /* Now, technically it is possible to have secure boot on
+         * 32bits too, but that would require some -cpu xxx magic
+         * too. Not worth it unless we are explicitly asked. */
+        if (def->os.arch != VIR_ARCH_X86_64) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Secure boot is supported for x86_64 architecture only"));
+            goto cleanup;
+        }
+
+        if (def->features[VIR_DOMAIN_FEATURE_SMM] != VIR_TRISTATE_SWITCH_ON) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Secure boot requires SMM feature enabled"));
+            goto cleanup;
+        }
+    }
+
+    /* qemu as of 2.5.0 rejects SMP topologies that don't match the cpu count */
+    if (def->cpu && def->cpu->sockets) {
+        topologycpus = def->cpu->sockets * def->cpu->cores * def->cpu->threads;
+        if (topologycpus != virDomainDefGetVcpusMax(def)) {
+            /* presence of query-hotpluggable-cpus should be a good enough witness */
+            if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_QUERY_HOTPLUGGABLE_CPUS)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("CPU topology doesn't match maximum vcpu count"));
+                goto cleanup;
+            }
+        }
+    }
+
+    ret = 0;
+
+ cleanup:
+    virObjectUnref(qemuCaps);
+    return ret;
 }
 
 
@@ -2483,6 +2614,19 @@ qemuDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
         ARCH_IS_S390(def->os.arch))
         dev->data.controller->model = VIR_DOMAIN_CONTROLLER_MODEL_USB_NONE;
 
+    /* forbid usb model 'qusb1' and 'qusb2' in this kind of hyperviosr */
+    if (dev->type == VIR_DOMAIN_DEVICE_CONTROLLER &&
+        dev->data.controller->type == VIR_DOMAIN_CONTROLLER_TYPE_USB &&
+        (dev->data.controller->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_QUSB1 ||
+         dev->data.controller->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_QUSB2)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("USB controller model type 'qusb1' or 'qusb2' "
+                         "is not supported in %s"),
+                       virDomainVirtTypeToString(def->virtType));
+        goto cleanup;
+    }
+
+
     /* set the default SCSI controller model for S390 arches */
     if (dev->type == VIR_DOMAIN_DEVICE_CONTROLLER &&
         dev->data.controller->type == VIR_DOMAIN_CONTROLLER_TYPE_SCSI &&
@@ -2573,6 +2717,26 @@ qemuDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
                                virDomainNumaGetNodeCount(def->numa));
                 goto cleanup;
             }
+        } else if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_USB &&
+                   cont->model == -1) {
+            /* Pick a suitable default model for the USB controller if none
+             * has been selected by the user.
+             *
+             * We rely on device availability instead of setting the model
+             * unconditionally because, for some machine types, there's a
+             * chance we will get away with using the legacy USB controller
+             * when the relevant device is not available.
+             *
+             * See qemuBuildControllerDevCommandLine() */
+            if (ARCH_IS_PPC64(def->os.arch)) {
+                /* Default USB controller for ppc64 is pci-ohci */
+                if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_PCI_OHCI))
+                    cont->model = VIR_DOMAIN_CONTROLLER_MODEL_USB_PCI_OHCI;
+            } else {
+                /* Default USB controller for anything else is piix3-uhci */
+                if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_PIIX3_USB_UHCI))
+                    cont->model = VIR_DOMAIN_CONTROLLER_MODEL_USB_PIIX3_UHCI;
+            }
         }
     }
 
@@ -2618,7 +2782,8 @@ virDomainDefParserConfig virQEMUDriverDomainDefParserConfig = {
     .deviceValidateCallback = qemuDomainDeviceDefValidate,
 
     .features = VIR_DOMAIN_DEF_FEATURE_MEMORY_HOTPLUG |
-                VIR_DOMAIN_DEF_FEATURE_OFFLINE_VCPUPIN
+                VIR_DOMAIN_DEF_FEATURE_OFFLINE_VCPUPIN |
+                VIR_DOMAIN_DEF_FEATURE_INDIVIDUAL_VCPUS,
 };
 
 
@@ -3254,12 +3419,20 @@ qemuDomainDefFormatBuf(virQEMUDriverPtr driver,
                 usb = def->controllers[i];
             }
         }
-        /*  The original purpose of the check was the migration compatibility
-         *  with libvirt <= 0.9.4. Limitation doesn't apply to other archs
-         *  and can cause problems on PPC64.
+
+        /* In order to maintain compatibility with version of libvirt that
+         * didn't support <controller type='usb'/> (<= 0.9.4), we need to
+         * drop the default USB controller, ie. a USB controller at index
+         * zero with no model or with the default piix3-ohci model.
+         *
+         * However, we only need to do so for x86 i440fx machine types,
+         * because other architectures and machine types were introduced
+         * when libvirt already supported <controller type='usb'/>.
          */
         if (ARCH_IS_X86(def->os.arch) && qemuDomainMachineIsI440FX(def) &&
-            usb && usb->idx == 0 && usb->model == -1) {
+            usb && usb->idx == 0 &&
+            (usb->model == -1 ||
+             usb->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_PIIX3_UHCI)) {
             VIR_DEBUG("Removing default USB controller from domain '%s'"
                       " for migration compatibility", def->name);
             toremove++;
@@ -4192,6 +4365,7 @@ qemuDomainCheckDiskStartupPolicy(virQEMUDriverPtr driver,
                 return -1;
             break;
 
+        case VIR_DOMAIN_STARTUP_POLICY_DEFAULT:
         case VIR_DOMAIN_STARTUP_POLICY_MANDATORY:
             return -1;
 
@@ -4200,31 +4374,42 @@ qemuDomainCheckDiskStartupPolicy(virQEMUDriverPtr driver,
                 return -1;
             break;
 
-        case VIR_DOMAIN_STARTUP_POLICY_DEFAULT:
         case VIR_DOMAIN_STARTUP_POLICY_LAST:
             /* this should never happen */
             break;
     }
 
     qemuDomainCheckRemoveOptionalDisk(driver, vm, diskIndex);
-
+    virResetLastError();
     return 0;
 }
 
 
 int
-qemuDomainCheckDiskPresence(virQEMUDriverPtr driver,
+qemuDomainCheckDiskPresence(virConnectPtr conn,
+                            virQEMUDriverPtr driver,
                             virDomainObjPtr vm,
-                            bool cold_boot)
+                            unsigned int flags)
 {
-    int ret = -1;
     size_t i;
+    bool pretend = flags & VIR_QEMU_PROCESS_START_PRETEND;
+    bool cold_boot = flags & VIR_QEMU_PROCESS_START_COLD;
 
     VIR_DEBUG("Checking for disk presence");
     for (i = vm->def->ndisks; i > 0; i--) {
         size_t idx = i - 1;
         virDomainDiskDefPtr disk = vm->def->disks[idx];
         virStorageFileFormat format = virDomainDiskGetFormat(disk);
+
+        if (virStorageTranslateDiskSourcePool(conn, vm->def->disks[idx]) < 0) {
+            if (pretend ||
+                qemuDomainCheckDiskStartupPolicy(driver, vm, idx, cold_boot) < 0)
+                return -1;
+            continue;
+        }
+
+        if (pretend)
+            continue;
 
         if (virStorageSourceIsEmpty(disk->src))
             continue;
@@ -4241,20 +4426,13 @@ qemuDomainCheckDiskPresence(virQEMUDriverPtr driver,
         if (qemuDomainDetermineDiskChain(driver, vm, disk, true, true) >= 0)
             continue;
 
-        if (disk->startupPolicy &&
-            qemuDomainCheckDiskStartupPolicy(driver, vm, idx,
-                                             cold_boot) >= 0) {
-            virResetLastError();
+        if (qemuDomainCheckDiskStartupPolicy(driver, vm, idx, cold_boot) >= 0)
             continue;
-        }
 
-        goto error;
+        return -1;
     }
 
-    ret = 0;
-
- error:
-    return ret;
+    return 0;
 }
 
 /*
@@ -4384,8 +4562,7 @@ qemuDomainStorageAlias(const char *device, int depth)
 {
     char *alias;
 
-    if (STRPREFIX(device, QEMU_DRIVE_HOST_PREFIX))
-        device += strlen(QEMU_DRIVE_HOST_PREFIX);
+    device = qemuAliasDiskDriveSkipPrefix(device);
 
     if (!depth)
         ignore_value(VIR_STRDUP(alias, device));
@@ -5606,97 +5783,160 @@ qemuDomainGetVcpuPid(virDomainObjPtr vm,
 
 
 /**
- * qemuDomainDetectVcpuPids:
- * @driver: qemu driver data
- * @vm: domain object
- * @asyncJob: current asynchronous job type
+ * qemuDomainValidateVcpuInfo:
  *
- * Updates vCPU thread ids in the private data of @vm.
+ * Validates vcpu thread information. If vcpu thread IDs are reported by qemu,
+ * this function validates that online vcpus have thread info present and
+ * offline vcpus don't.
  *
- * Returns number of detected vCPU threads on success, -1 on error and reports
- * an appropriate error, -2 if the domain doesn't exist any more.
+ * Returns 0 on success -1 on error.
  */
 int
-qemuDomainDetectVcpuPids(virQEMUDriverPtr driver,
-                         virDomainObjPtr vm,
-                         int asyncJob)
+qemuDomainValidateVcpuInfo(virDomainObjPtr vm)
 {
-    virDomainVcpuDefPtr vcpu;
     size_t maxvcpus = virDomainDefGetVcpusMax(vm->def);
-    pid_t *cpupids = NULL;
-    int ncpupids;
+    virDomainVcpuDefPtr vcpu;
+    qemuDomainVcpuPrivatePtr vcpupriv;
     size_t i;
-    int ret = -1;
 
-    /*
-     * Current QEMU *can* report info about host threads mapped
-     * to vCPUs, but it is not in a manner we can correctly
-     * deal with. The TCG CPU emulation does have a separate vCPU
-     * thread, but it runs every vCPU in that same thread. So it
-     * is impossible to setup different affinity per thread.
-     *
-     * What's more the 'query-cpus' command returns bizarre
-     * data for the threads. It gives the TCG thread for the
-     * vCPU 0, but for vCPUs 1-> N, it actually replies with
-     * the main process thread ID.
-     *
-     * The result is that when we try to set affinity for
-     * vCPU 1, it will actually change the affinity of the
-     * emulator thread :-( When you try to set affinity for
-     * vCPUs 2, 3.... it will fail if the affinity was
-     * different from vCPU 1.
-     *
-     * We *could* allow vcpu pinning with TCG, if we made the
-     * restriction that all vCPUs had the same mask. This would
-     * at least let us separate emulator from vCPUs threads, as
-     * we do for KVM. It would need some changes to our cgroups
-     * CPU layout though, and error reporting for the config
-     * restrictions.
-     *
-     * Just disable CPU pinning with TCG until someone wants
-     * to try to do this hard work.
-     */
-    if (vm->def->virtType == VIR_DOMAIN_VIRT_QEMU)
+    if (!qemuDomainHasVcpuPids(vm))
         return 0;
-
-    if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
-        return -1;
-    ncpupids = qemuMonitorGetCPUInfo(qemuDomainGetMonitor(vm), &cpupids);
-    if (qemuDomainObjExitMonitor(driver, vm) < 0) {
-        ret = -2;
-        goto cleanup;
-    }
-
-    /* failure to get the VCPU <-> PID mapping or to execute the query
-     * command will not be treated fatal as some versions of qemu don't
-     * support this command */
-    if (ncpupids <= 0) {
-        virResetLastError();
-        ret = 0;
-        goto cleanup;
-    }
 
     for (i = 0; i < maxvcpus; i++) {
         vcpu = virDomainDefGetVcpu(vm->def, i);
+        vcpupriv = QEMU_DOMAIN_VCPU_PRIVATE(vcpu);
 
-        if (i < ncpupids)
-            QEMU_DOMAIN_VCPU_PRIVATE(vcpu)->tid = cpupids[i];
-        else
-            QEMU_DOMAIN_VCPU_PRIVATE(vcpu)->tid = 0;
+        if (vcpu->online && vcpupriv->tid == 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("qemu didn't report thread id for vcpu '%zu'"), i);
+            return -1;
+        }
+
+        if (!vcpu->online && vcpupriv->tid != 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("qemu reported thread id for inactive vcpu '%zu'"),
+                           i);
+            return -1;
+        }
     }
 
-    if (ncpupids != virDomainDefGetVcpus(vm->def)) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("got wrong number of vCPU pids from QEMU monitor. "
-                         "got %d, wanted %d"),
-                       ncpupids, virDomainDefGetVcpus(vm->def));
+    return 0;
+}
+
+
+bool
+qemuDomainSupportsNewVcpuHotplug(virDomainObjPtr vm)
+{
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+
+    return virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_QUERY_HOTPLUGGABLE_CPUS);
+}
+
+
+/**
+ * qemuDomainRefreshVcpuInfo:
+ * @driver: qemu driver data
+ * @vm: domain object
+ * @asyncJob: current asynchronous job type
+ * @state: refresh vcpu state
+ *
+ * Updates vCPU information private data of @vm. Due to historical reasons this
+ * function returns success even if some data were not reported by qemu.
+ *
+ * If @state is true, the vcpu state is refreshed as reported by the monitor.
+ *
+ * Returns 0 on success and -1 on fatal error.
+ */
+int
+qemuDomainRefreshVcpuInfo(virQEMUDriverPtr driver,
+                          virDomainObjPtr vm,
+                          int asyncJob,
+                          bool state)
+{
+    virDomainVcpuDefPtr vcpu;
+    qemuDomainVcpuPrivatePtr vcpupriv;
+    qemuMonitorCPUInfoPtr info = NULL;
+    size_t maxvcpus = virDomainDefGetVcpusMax(vm->def);
+    size_t i;
+    bool hotplug;
+    int rc;
+    int ret = -1;
+
+    hotplug = qemuDomainSupportsNewVcpuHotplug(vm);
+
+    if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
+        return -1;
+
+    rc = qemuMonitorGetCPUInfo(qemuDomainGetMonitor(vm), &info, maxvcpus, hotplug);
+
+    if (qemuDomainObjExitMonitor(driver, vm) < 0)
         goto cleanup;
+
+    if (rc < 0)
+        goto cleanup;
+
+    for (i = 0; i < maxvcpus; i++) {
+        vcpu = virDomainDefGetVcpu(vm->def, i);
+        vcpupriv = QEMU_DOMAIN_VCPU_PRIVATE(vcpu);
+
+        /*
+         * Current QEMU *can* report info about host threads mapped
+         * to vCPUs, but it is not in a manner we can correctly
+         * deal with. The TCG CPU emulation does have a separate vCPU
+         * thread, but it runs every vCPU in that same thread. So it
+         * is impossible to setup different affinity per thread.
+         *
+         * What's more the 'query-cpus' command returns bizarre
+         * data for the threads. It gives the TCG thread for the
+         * vCPU 0, but for vCPUs 1-> N, it actually replies with
+         * the main process thread ID.
+         *
+         * The result is that when we try to set affinity for
+         * vCPU 1, it will actually change the affinity of the
+         * emulator thread :-( When you try to set affinity for
+         * vCPUs 2, 3.... it will fail if the affinity was
+         * different from vCPU 1.
+         *
+         * We *could* allow vcpu pinning with TCG, if we made the
+         * restriction that all vCPUs had the same mask. This would
+         * at least let us separate emulator from vCPUs threads, as
+         * we do for KVM. It would need some changes to our cgroups
+         * CPU layout though, and error reporting for the config
+         * restrictions.
+         *
+         * Just disable CPU pinning with TCG until someone wants
+         * to try to do this hard work.
+         */
+        if (vm->def->virtType != VIR_DOMAIN_VIRT_QEMU)
+            vcpupriv->tid = info[i].tid;
+
+        vcpupriv->socket_id = info[i].socket_id;
+        vcpupriv->core_id = info[i].core_id;
+        vcpupriv->thread_id = info[i].thread_id;
+        vcpupriv->vcpus = info[i].vcpus;
+        VIR_FREE(vcpupriv->type);
+        VIR_STEAL_PTR(vcpupriv->type, info[i].type);
+        VIR_FREE(vcpupriv->alias);
+        VIR_STEAL_PTR(vcpupriv->alias, info[i].alias);
+        vcpupriv->enable_id = info[i].id;
+
+        if (hotplug && state) {
+            vcpu->online = !!info[i].qom_path;
+
+            /* mark cpus that don't have an alias as non-hotpluggable */
+            if (vcpu->online) {
+                if (vcpupriv->alias)
+                    vcpu->hotpluggable = VIR_TRISTATE_BOOL_YES;
+                else
+                    vcpu->hotpluggable = VIR_TRISTATE_BOOL_NO;
+            }
+        }
     }
 
-    ret = ncpupids;
+    ret = 0;
 
  cleanup:
-    VIR_FREE(cpupids);
+    qemuMonitorCPUInfoFree(info, maxvcpus);
     return ret;
 }
 
@@ -5797,4 +6037,73 @@ qemuDomainPrepareChannel(virDomainChrDefPtr channel,
     }
 
     return 0;
+}
+
+
+/**
+ * qemuDomainVcpuHotplugIsInOrder:
+ * @def: domain definition
+ *
+ * Returns true if online vcpus were added in order (clustered behind vcpu0
+ * with increasing order).
+ */
+bool
+qemuDomainVcpuHotplugIsInOrder(virDomainDefPtr def)
+{
+    size_t maxvcpus = virDomainDefGetVcpusMax(def);
+    virDomainVcpuDefPtr vcpu;
+    unsigned int prevorder = 0;
+    size_t seenonlinevcpus = 0;
+    size_t i;
+
+    for (i = 0; i < maxvcpus; i++) {
+        vcpu = virDomainDefGetVcpu(def, i);
+
+        if (!vcpu->online)
+            break;
+
+        if (vcpu->order < prevorder)
+            break;
+
+        if (vcpu->order > prevorder)
+            prevorder = vcpu->order;
+
+        seenonlinevcpus++;
+    }
+
+    return seenonlinevcpus == virDomainDefGetVcpus(def);
+}
+
+
+/**
+ * qemuDomainVcpuPersistOrder:
+ * @def: domain definition
+ *
+ * Saves the order of vcpus detected from qemu to the domain definition.
+ * The private data note the order only for the entry describing the
+ * hotpluggable entity. This function copies the order into the definition part
+ * of all sub entities.
+ */
+void
+qemuDomainVcpuPersistOrder(virDomainDefPtr def)
+{
+    size_t maxvcpus = virDomainDefGetVcpusMax(def);
+    virDomainVcpuDefPtr vcpu;
+    qemuDomainVcpuPrivatePtr vcpupriv;
+    unsigned int prevorder = 0;
+    size_t i;
+
+    for (i = 0; i < maxvcpus; i++) {
+        vcpu = virDomainDefGetVcpu(def, i);
+        vcpupriv = QEMU_DOMAIN_VCPU_PRIVATE(vcpu);
+
+        if (!vcpu->online) {
+            vcpu->order = 0;
+        } else {
+            if (vcpupriv->enable_id != 0)
+                prevorder = vcpupriv->enable_id;
+
+            vcpu->order = prevorder;
+        }
+    }
 }

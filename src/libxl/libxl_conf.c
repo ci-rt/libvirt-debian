@@ -493,15 +493,10 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
             }
         }
 
-        /*
-         * The following comment and calculation were taken directly from
-         * libxenlight's internal function libxl_get_required_shadow_memory():
-         *
-         * 256 pages (1MB) per vcpu, plus 1 page per MiB of RAM for the P2M map,
-         * plus 1 page per MiB of RAM to shadow the resident processes.
-         */
-        b_info->shadow_memkb = 4 * (256 * libxl_bitmap_count_set(&b_info->avail_vcpus) +
-                                    2 * (b_info->max_memkb / 1024));
+        /* Allow libxl to calculate shadow memory requirements */
+        b_info->shadow_memkb =
+            libxl_get_required_shadow_memory(b_info->max_memkb,
+                                             b_info->max_vcpus);
     } else {
         /*
          * For compatibility with the legacy xen toolstack, default to pygrub
@@ -1480,6 +1475,87 @@ int libxlDriverConfigLoadFile(libxlDriverConfigPtr cfg,
 
 #ifdef LIBXL_HAVE_PVUSB
 int
+libxlMakeUSBController(virDomainControllerDefPtr controller,
+                       libxl_device_usbctrl *usbctrl)
+{
+    usbctrl->devid = controller->idx;
+
+    if (controller->type != VIR_DOMAIN_CONTROLLER_TYPE_USB)
+        return -1;
+
+    if (controller->model == -1) {
+        usbctrl->version = 2;
+        usbctrl->type = LIBXL_USBCTRL_TYPE_QUSB;
+    } else {
+        switch (controller->model) {
+        case VIR_DOMAIN_CONTROLLER_MODEL_USB_QUSB1:
+            usbctrl->version = 1;
+            usbctrl->type = LIBXL_USBCTRL_TYPE_QUSB;
+            break;
+
+        case VIR_DOMAIN_CONTROLLER_MODEL_USB_QUSB2:
+            usbctrl->version = 2;
+            usbctrl->type = LIBXL_USBCTRL_TYPE_QUSB;
+            break;
+
+        default:
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("unsupported usb model"));
+            return -1;
+        }
+    }
+
+    if (controller->opts.usbopts.ports == -1)
+        usbctrl->ports = 8;
+    else
+        usbctrl->ports = controller->opts.usbopts.ports;
+
+    return 0;
+}
+
+static int
+libxlMakeUSBControllerList(virDomainDefPtr def, libxl_domain_config *d_config)
+{
+    virDomainControllerDefPtr *l_controllers = def->controllers;
+    size_t ncontrollers = def->ncontrollers;
+    size_t nusbctrls = 0;
+    libxl_device_usbctrl *x_usbctrls;
+    size_t i;
+
+    if (ncontrollers == 0)
+        return 0;
+
+    if (VIR_ALLOC_N(x_usbctrls, ncontrollers) < 0)
+        return -1;
+
+    for (i = 0; i < ncontrollers; i++) {
+        if (l_controllers[i]->type != VIR_DOMAIN_CONTROLLER_TYPE_USB)
+            continue;
+
+        libxl_device_usbctrl_init(&x_usbctrls[nusbctrls]);
+
+        if (libxlMakeUSBController(l_controllers[i],
+                                   &x_usbctrls[nusbctrls]) < 0)
+            goto error;
+
+        nusbctrls++;
+    }
+
+    VIR_SHRINK_N(x_usbctrls, ncontrollers, ncontrollers - nusbctrls);
+    d_config->usbctrls = x_usbctrls;
+    d_config->num_usbctrls = nusbctrls;
+
+    return 0;
+
+ error:
+    for (i = 0; i < nusbctrls; i++)
+        libxl_device_usbctrl_dispose(&x_usbctrls[i]);
+
+    VIR_FREE(x_usbctrls);
+    return -1;
+}
+
+int
 libxlMakeUSB(virDomainHostdevDefPtr hostdev, libxl_device_usbdev *usbdev)
 {
     virDomainHostdevSubsysUSBPtr usbsrc = &hostdev->source.subsys.u.usb;
@@ -1751,6 +1827,9 @@ libxlBuildDomainConfig(virPortAllocatorPtr graphicsports,
         return -1;
 
 #ifdef LIBXL_HAVE_PVUSB
+    if (libxlMakeUSBControllerList(def, d_config) < 0)
+        return -1;
+
     if (libxlMakeUSBList(def, d_config) < 0)
         return -1;
 #endif

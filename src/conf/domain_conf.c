@@ -137,7 +137,8 @@ VIR_ENUM_IMPL(virDomainFeature, VIR_DOMAIN_FEATURE_LAST,
               "capabilities",
               "pmu",
               "vmport",
-              "gic")
+              "gic",
+              "smm")
 
 VIR_ENUM_IMPL(virDomainCapabilitiesPolicy, VIR_DOMAIN_CAPABILITIES_POLICY_LAST,
               "default",
@@ -359,6 +360,8 @@ VIR_ENUM_IMPL(virDomainControllerModelUSB, VIR_DOMAIN_CONTROLLER_MODEL_USB_LAST,
               "vt82c686b-uhci",
               "pci-ohci",
               "nec-xhci",
+              "qusb1",
+              "qusb2",
               "none")
 
 VIR_ENUM_IMPL(virDomainFS, VIR_DOMAIN_FS_TYPE_LAST,
@@ -1477,8 +1480,12 @@ virDomainDefGetVcpuSched(virDomainDefPtr def,
 {
     virDomainVcpuDefPtr vcpuinfo;
 
-    if (!(vcpuinfo = virDomainDefGetVcpu(def, vcpu)))
+    if (!(vcpuinfo = virDomainDefGetVcpu(def, vcpu))) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("vCPU '%u' is not present in domain definition"),
+                       vcpu);
         return NULL;
+    }
 
     return &vcpuinfo->sched;
 }
@@ -4325,6 +4332,13 @@ virDomainDefPostParseCheckFeatures(virDomainDefPtr def,
         }
     }
 
+    if (UNSUPPORTED(VIR_DOMAIN_DEF_FEATURE_INDIVIDUAL_VCPUS) &&
+        def->individualvcpus) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("individual CPU state configuration is not supported"));
+        return -1;
+    }
+
     return 0;
 }
 
@@ -4399,6 +4413,47 @@ virDomainDefPostParseDeviceIterator(virDomainDefPtr def,
 
 
 static int
+virDomainVcpuDefPostParse(virDomainDefPtr def)
+{
+    virDomainVcpuDefPtr vcpu;
+    size_t maxvcpus = virDomainDefGetVcpusMax(def);
+    size_t i;
+
+    for (i = 0; i < maxvcpus; i++) {
+        vcpu = virDomainDefGetVcpu(def, i);
+
+        /* impossible but some compilers don't like it */
+        if (!vcpu)
+            continue;
+
+        switch (vcpu->hotpluggable) {
+        case VIR_TRISTATE_BOOL_ABSENT:
+            if (vcpu->online)
+                vcpu->hotpluggable = VIR_TRISTATE_BOOL_NO;
+            else
+                vcpu->hotpluggable = VIR_TRISTATE_BOOL_YES;
+            break;
+
+        case VIR_TRISTATE_BOOL_NO:
+            if (!vcpu->online) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("vcpu '%zu' is both offline and not "
+                                 "hotpluggable"), i);
+                return -1;
+            }
+            break;
+
+        case VIR_TRISTATE_BOOL_YES:
+        case VIR_TRISTATE_BOOL_LAST:
+            break;
+        }
+    }
+
+    return 0;
+}
+
+
+static int
 virDomainDefPostParseInternal(virDomainDefPtr def,
                               struct virDomainDefPostParseDeviceIteratorData *data)
 {
@@ -4408,6 +4463,9 @@ virDomainDefPostParseInternal(virDomainDefPtr def,
                        _("init binary must be specified"));
         return -1;
     }
+
+    if (virDomainVcpuDefPostParse(def) < 0)
+        return -1;
 
     if (virDomainDefPostParseMemory(def, data->parseFlags) < 0)
         return -1;
@@ -8265,14 +8323,14 @@ virDomainControllerDefParseXML(xmlNodePtr node,
 
     if (max_sectors && virStrToLong_ui(max_sectors, NULL, 10, &def->max_sectors) < 0) {
         virReportError(VIR_ERR_XML_ERROR,
-                       _("Malformed 'max_sectors' value %s'"), max_sectors);
+                       _("Malformed 'max_sectors' value %s"), max_sectors);
         goto error;
     }
 
     if (ioeventfd &&
         (def->ioeventfd = virTristateSwitchTypeFromString(ioeventfd)) < 0) {
         virReportError(VIR_ERR_XML_ERROR,
-                       _("Malformed 'ioeventfd' value %s'"), ioeventfd);
+                       _("Malformed 'ioeventfd' value %s"), ioeventfd);
         goto error;
     }
 
@@ -8824,7 +8882,7 @@ virDomainActualNetDefParseXML(xmlNodePtr node,
 
     vlanNode = virXPathNode("./vlan", ctxt);
     if (vlanNode && virNetDevVlanParse(vlanNode, ctxt, &actual->vlan) < 0)
-       goto error;
+        goto error;
 
     *def = actual;
     actual = NULL;
@@ -15322,9 +15380,11 @@ virDomainLoaderDefParseXML(xmlNodePtr node,
 {
     int ret = -1;
     char *readonly_str = NULL;
+    char *secure_str = NULL;
     char *type_str = NULL;
 
     readonly_str = virXMLPropString(node, "readonly");
+    secure_str = virXMLPropString(node, "secure");
     type_str = virXMLPropString(node, "type");
     loader->path = (char *) xmlNodeGetContent(node);
 
@@ -15332,6 +15392,13 @@ virDomainLoaderDefParseXML(xmlNodePtr node,
         (loader->readonly = virTristateBoolTypeFromString(readonly_str)) <= 0) {
         virReportError(VIR_ERR_XML_DETAIL,
                        _("unknown readonly value: %s"), readonly_str);
+        goto cleanup;
+    }
+
+    if (secure_str &&
+        (loader->secure = virTristateBoolTypeFromString(secure_str)) <= 0) {
+        virReportError(VIR_ERR_XML_DETAIL,
+                       _("unknown secure value: %s"), secure_str);
         goto cleanup;
     }
 
@@ -15348,6 +15415,7 @@ virDomainLoaderDefParseXML(xmlNodePtr node,
     ret = 0;
  cleanup:
     VIR_FREE(readonly_str);
+    VIR_FREE(secure_str);
     VIR_FREE(type_str);
     return ret;
 }
@@ -15477,8 +15545,12 @@ virDomainDefGetIOThreadSched(virDomainDefPtr def,
 {
     virDomainIOThreadIDDefPtr iothrinfo;
 
-    if (!(iothrinfo = virDomainIOThreadIDFind(def, iothread)))
+    if (!(iothrinfo = virDomainIOThreadIDFind(def, iothread))) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Cannot find 'iothread' : %u"),
+                       iothread);
         return NULL;
+    }
 
     return &iothrinfo->sched;
 }
@@ -15500,6 +15572,8 @@ virDomainVcpuParse(virDomainDefPtr def,
                    virDomainXMLOptionPtr xmlopt)
 {
     int n;
+    xmlNodePtr *nodes = NULL;
+    size_t i;
     char *tmp = NULL;
     unsigned int maxvcpus;
     unsigned int vcpus;
@@ -15528,8 +15602,6 @@ virDomainVcpuParse(virDomainDefPtr def,
         vcpus = maxvcpus;
     }
 
-    if (virDomainDefSetVcpus(def, vcpus) < 0)
-        goto cleanup;
 
     tmp = virXPathString("string(./vcpu[1]/@placement)", ctxt);
     if (tmp) {
@@ -15561,9 +15633,82 @@ virDomainVcpuParse(virDomainDefPtr def,
         }
     }
 
+    if ((n = virXPathNodeSet("./vcpus/vcpu", ctxt, &nodes)) < 0)
+        goto cleanup;
+
+    if (n) {
+        /* if individual vcpu states are provided take them as master */
+        def->individualvcpus = true;
+
+        for (i = 0; i < n; i++) {
+            virDomainVcpuDefPtr vcpu;
+            int state;
+            unsigned int id;
+            unsigned int order;
+
+            if (!(tmp = virXMLPropString(nodes[i], "id")) ||
+                virStrToLong_uip(tmp, NULL, 10, &id) < 0) {
+                virReportError(VIR_ERR_XML_ERROR, "%s",
+                               _("missing or invalid vcpu id"));
+                goto cleanup;
+            }
+
+            VIR_FREE(tmp);
+
+            if (id >= def->maxvcpus) {
+                virReportError(VIR_ERR_XML_ERROR,
+                               _("vcpu id '%u' is out of range of maximum "
+                                 "vcpu count"), id);
+                goto cleanup;
+            }
+
+            vcpu = virDomainDefGetVcpu(def, id);
+
+            if (!(tmp = virXMLPropString(nodes[i], "enabled"))) {
+                virReportError(VIR_ERR_XML_ERROR, "%s",
+                               _("missing vcpu enabled state"));
+                goto cleanup;
+            }
+
+            if ((state = virTristateBoolTypeFromString(tmp)) < 0) {
+                virReportError(VIR_ERR_XML_ERROR,
+                               _("invalid vcpu 'enabled' value '%s'"), tmp);
+                goto cleanup;
+            }
+            VIR_FREE(tmp);
+
+            vcpu->online = state == VIR_TRISTATE_BOOL_YES;
+
+            if ((tmp = virXMLPropString(nodes[i], "hotpluggable"))) {
+                int hotpluggable;
+                if ((hotpluggable = virTristateBoolTypeFromString(tmp)) < 0) {
+                    virReportError(VIR_ERR_XML_ERROR,
+                                   _("invalid vcpu 'hotpluggable' value '%s'"), tmp);
+                    goto cleanup;
+                }
+                vcpu->hotpluggable = hotpluggable;
+                VIR_FREE(tmp);
+            }
+
+            if ((tmp = virXMLPropString(nodes[i], "order"))) {
+                if (virStrToLong_uip(tmp, NULL, 10, &order) < 0) {
+                    virReportError(VIR_ERR_XML_ERROR, "%s",
+                                   _("invalid vcpu order"));
+                    goto cleanup;
+                }
+                vcpu->order = order;
+                VIR_FREE(tmp);
+            }
+        }
+    } else {
+        if (virDomainDefSetVcpus(def, vcpus) < 0)
+            goto cleanup;
+    }
+
     ret = 0;
 
  cleanup:
+    VIR_FREE(nodes);
     VIR_FREE(tmp);
 
     return ret;
@@ -16129,6 +16274,38 @@ virDomainDefParseXML(xmlDocPtr xml,
         goto error;
     }
 
+    if (virXPathULongLong("string(./cputune/iothread_period[1])", ctxt,
+                          &def->cputune.iothread_period) < -1) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("can't parse cputune iothread period value"));
+        goto error;
+    }
+
+    if (def->cputune.iothread_period > 0 &&
+        (def->cputune.iothread_period < 1000 ||
+         def->cputune.iothread_period > 1000000)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Value of cputune iothread_period must be in range "
+                         "[1000, 1000000]"));
+        goto error;
+    }
+
+    if (virXPathLongLong("string(./cputune/iothread_quota[1])", ctxt,
+                         &def->cputune.iothread_quota) < -1) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("can't parse cputune iothread quota value"));
+        goto error;
+    }
+
+    if (def->cputune.iothread_quota > 0 &&
+        (def->cputune.iothread_quota < 1000 ||
+         def->cputune.iothread_quota > 18446744073709551LL)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Value of cputune iothread_quota must be in range "
+                         "[1000, 18446744073709551]"));
+        goto error;
+    }
+
     if ((n = virXPathNodeSet("./cputune/vcpupin", ctxt, &nodes)) < 0)
         goto error;
 
@@ -16203,15 +16380,6 @@ virDomainDefParseXML(xmlDocPtr xml,
 
         if (def->cpu == NULL)
             goto error;
-
-        if (def->cpu->sockets &&
-            virDomainDefGetVcpusMax(def) >
-            def->cpu->sockets * def->cpu->cores * def->cpu->threads) {
-            virReportError(VIR_ERR_XML_DETAIL, "%s",
-                           _("Maximum CPUs greater than topology limit"));
-            goto error;
-        }
-
     }
 
     if (virDomainNumaDefCPUParseXML(def->numa, ctxt) < 0)
@@ -16314,6 +16482,7 @@ virDomainDefParseXML(xmlDocPtr xml,
         case VIR_DOMAIN_FEATURE_PMU:
         case VIR_DOMAIN_FEATURE_PVSPINLOCK:
         case VIR_DOMAIN_FEATURE_VMPORT:
+        case VIR_DOMAIN_FEATURE_SMM:
             node = ctxt->node;
             ctxt->node = nodes[i];
             if ((tmp = virXPathString("string(./@state)", ctxt))) {
@@ -18586,6 +18755,13 @@ virDomainDefVcpuCheckAbiStability(virDomainDefPtr src,
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("State of vCPU '%zu' differs between source and "
                              "destination definitions"), i);
+            return false;
+        }
+
+        if (svcpu->order != dvcpu->order) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("vcpu enable order of vCPU '%zu' differs between "
+                             "source and destination definitions"), i);
             return false;
         }
     }
@@ -22515,12 +22691,16 @@ virDomainLoaderDefFormat(virBufferPtr buf,
                          virDomainLoaderDefPtr loader)
 {
     const char *readonly = virTristateBoolTypeToString(loader->readonly);
+    const char *secure = virTristateBoolTypeToString(loader->secure);
     const char *type = virDomainLoaderTypeToString(loader->type);
 
     virBufferAddLit(buf, "<loader");
 
     if (loader->readonly)
         virBufferAsprintf(buf, " readonly='%s'", readonly);
+
+    if (loader->secure)
+        virBufferAsprintf(buf, " secure='%s'", secure);
 
     virBufferAsprintf(buf, " type='%s'>", type);
 
@@ -22810,6 +22990,16 @@ virDomainCputuneDefFormat(virBufferPtr buf,
                           "</emulator_quota>\n",
                           def->cputune.emulator_quota);
 
+    if (def->cputune.iothread_period)
+        virBufferAsprintf(&childrenBuf, "<iothread_period>%llu"
+                          "</iothread_period>\n",
+                          def->cputune.iothread_period);
+
+    if (def->cputune.iothread_quota)
+        virBufferAsprintf(&childrenBuf, "<iothread_quota>%lld"
+                          "</iothread_quota>\n",
+                          def->cputune.iothread_quota);
+
     for (i = 0; i < def->maxvcpus; i++) {
         char *cpumask;
         virDomainVcpuDefPtr vcpu = def->vcpus[i];
@@ -22878,6 +23068,8 @@ static int
 virDomainCpuDefFormat(virBufferPtr buf,
                       const virDomainDef *def)
 {
+    virDomainVcpuDefPtr vcpu;
+    size_t i;
     char *cpumask = NULL;
     int ret = -1;
 
@@ -22893,6 +23085,27 @@ virDomainCpuDefFormat(virBufferPtr buf,
     if (virDomainDefHasVcpusOffline(def))
         virBufferAsprintf(buf, " current='%u'", virDomainDefGetVcpus(def));
     virBufferAsprintf(buf, ">%u</vcpu>\n", virDomainDefGetVcpusMax(def));
+
+    if (def->individualvcpus) {
+        virBufferAddLit(buf, "<vcpus>\n");
+        virBufferAdjustIndent(buf, 2);
+        for (i = 0; i < def->maxvcpus; i++) {
+            vcpu = def->vcpus[i];
+
+            virBufferAsprintf(buf, "<vcpu id='%zu' enabled='%s'",
+                              i, vcpu->online ? "yes" : "no");
+            if (vcpu->hotpluggable)
+                virBufferAsprintf(buf, " hotpluggable='%s'",
+                                  virTristateBoolTypeToString(vcpu->hotpluggable));
+
+            if (vcpu->order != 0)
+                virBufferAsprintf(buf, " order='%d'", vcpu->order);
+
+            virBufferAddLit(buf, "/>\n");
+        }
+        virBufferAdjustIndent(buf, -2);
+        virBufferAddLit(buf, "</vcpus>\n");
+    }
 
     ret = 0;
 
@@ -23287,6 +23500,7 @@ virDomainDefFormatInternal(virDomainDefPtr def,
             case VIR_DOMAIN_FEATURE_PMU:
             case VIR_DOMAIN_FEATURE_PVSPINLOCK:
             case VIR_DOMAIN_FEATURE_VMPORT:
+            case VIR_DOMAIN_FEATURE_SMM:
                 switch ((virTristateSwitch) def->features[i]) {
                 case VIR_TRISTATE_SWITCH_LAST:
                 case VIR_TRISTATE_SWITCH_ABSENT:

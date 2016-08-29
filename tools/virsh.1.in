@@ -129,7 +129,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2016-07-27" "libvirt-2.1.0" "Virtualization Support"
+.TH VIRSH 1 "2016-08-22" "libvirt-2.2.0" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -1884,7 +1884,7 @@ available for each hypervisor are:
 \&\s-1LXC \s0(posix scheduler) : cpu_shares, vcpu_period, vcpu_quota
 .Sp
 \&\s-1QEMU/KVM \s0(posix scheduler): cpu_shares, vcpu_period, vcpu_quota,
-emulator_period, emulator_quota
+emulator_period, emulator_quota, iothread_quota, iothread_period
 .Sp
 Xen (credit scheduler): weight, cap
 .Sp
@@ -1902,9 +1902,10 @@ values 0 and 1 are automatically converted to a minimal value of 2.
 \&\fBNote\fR: The weight and cap parameters are defined only for the
 \&\s-1XEN_CREDIT\s0 scheduler and are now \fI\s-1DEPRECATED\s0\fR.
 .Sp
-\&\fBNote\fR: The vcpu_period/emulator_period parameters have a valid value range
-of 1000\-1000000 or 0, and the vcpu_quota/emulator_quota parameters have a
-valid value range of 1000\-18446744073709551 or less than 0. The value 0 for
+\&\fBNote\fR: The vcpu_period, emulator_period, and iothread_period parameters
+have a valid value range of 1000\-1000000 or 0, and the vcpu_quota,
+emulator_quota, and iothread_quota parameters have a valid value range of
+1000\-18446744073709551 or less than 0. The value 0 for
 either parameter is the same as not specifying that parameter.
 .IP "\fBscreenshot\fR \fIdomain\fR [\fIimagefilepath\fR] [\fI\-\-screen\fR \fBscreenID\fR]" 4
 .IX Item "screenshot domain [imagefilepath] [--screen screenID]"
@@ -2808,6 +2809,22 @@ Trigger a device reset for \fInodedev\fR, useful prior to transferring
 a node device between guest passthrough or the host.  Libvirt will
 often do this action implicitly when required, but this command
 allows an explicit reset when needed.
+.IP "\fBnodedev-event\fR {[\fInodedev\fR] \fIevent\fR [\fI\-\-loop\fR] [\fI\-\-timeout\fR \fIseconds\fR] [\fI\-\-timestamp\fR] | \fI\-\-list\fR}" 4
+.IX Item "nodedev-event {[nodedev] event [--loop] [--timeout seconds] [--timestamp] | --list}"
+Wait for a class of node device events to occur, and print appropriate
+details of events as they happen.  The events can optionally be filtered
+by \fInodedev\fR.  Using \fI\-\-list\fR as the only argument will provide a list
+of possible \fIevent\fR values known by this client, although the connection
+might not allow registering for all these events.
+.Sp
+By default, this command is one-shot, and returns success once an event
+occurs; you can send \s-1SIGINT \s0(usually via \f(CW\*(C`Ctrl\-C\*(C'\fR) to quit immediately.
+If \fI\-\-timeout\fR is specified, the command gives up waiting for events
+after \fIseconds\fR have elapsed.   With \fI\-\-loop\fR, the command prints all
+events until a timeout or interrupt key.
+.Sp
+When \fI\-\-timestamp\fR is used, a human-readable timestamp will be printed
+before the event.
 .SH "VIRTUAL NETWORK COMMANDS"
 .IX Header "VIRTUAL NETWORK COMMANDS"
 The following commands manipulate networks. Libvirt has the capability to
@@ -3615,8 +3632,9 @@ this.  If this flag is not specified, then some hypervisors may fail
 after partially performing the action, and \fBdumpxml\fR must be used to
 see whether any partial changes occurred.
 .Sp
-If \fI\-\-live\fR is specified, libvirt takes the snapshot while the guest is
-running. This increases the size of the memory image of the external
+If \fI\-\-live\fR is specified, libvirt takes the snapshot (checkpoint) while
+the guest is running. Both disk snapshot and domain memory snapshot are
+taken. This increases the size of the memory image of the external
 checkpoint. This is currently supported only for external checkpoints.
 .Sp
 Existence of snapshot metadata will prevent attempts to \fBundefine\fR

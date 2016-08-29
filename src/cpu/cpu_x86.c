@@ -767,6 +767,22 @@ x86FeatureFindInternal(const char *name)
 }
 
 
+static bool
+x86FeatureIsMigratable(const char *name,
+                       void *cpu_map)
+{
+    virCPUx86MapPtr map = cpu_map;
+    size_t i;
+
+    for (i = 0; i < map->nblockers; i++) {
+        if (STREQ(name, map->migrate_blockers[i]->name))
+            return false;
+    }
+
+    return true;
+}
+
+
 static char *
 x86FeatureNames(virCPUx86MapPtr map,
                 const char *separator,
@@ -1576,7 +1592,7 @@ x86Compute(virCPUDefPtr host,
         if (!(guest_model = x86ModelCopy(host_model)))
             goto error;
 
-        if (cpu->vendor &&
+        if (cpu->vendor && host_model->vendor &&
             virCPUx86DataAddCPUID(&guest_model->data,
                                   &host_model->vendor->cpuid) < 0)
             goto error;
@@ -1800,15 +1816,14 @@ x86Decode(virCPUDefPtr cpu,
      * Note: this only works as long as no CPU model contains non-migratable
      * features directly */
     if (flags & VIR_CONNECT_BASELINE_CPU_MIGRATABLE) {
-        for (i = 0; i < cpuModel->nfeatures; i++) {
-            size_t j;
-            for (j = 0; j < map->nblockers; j++) {
-                if (STREQ(map->migrate_blockers[j]->name,
-                          cpuModel->features[i].name)) {
-                    VIR_FREE(cpuModel->features[i].name);
-                    VIR_DELETE_ELEMENT_INPLACE(cpuModel->features, i,
-                                               cpuModel->nfeatures);
-                }
+        i = 0;
+        while (i < cpuModel->nfeatures) {
+            if (x86FeatureIsMigratable(cpuModel->features[i].name, map)) {
+                i++;
+            } else {
+                VIR_FREE(cpuModel->features[i].name);
+                VIR_DELETE_ELEMENT_INPLACE(cpuModel->features, i,
+                                           cpuModel->nfeatures);
             }
         }
     }
@@ -2527,16 +2542,20 @@ x86UpdateHostModel(virCPUDefPtr guest,
             goto cleanup;
     }
 
-    /* Remove non-migratable features by default
+    /* Remove non-migratable features and CMT related features which QEMU
+     * knows nothing about.
      * Note: this only works as long as no CPU model contains non-migratable
      * features directly */
-    for (i = 0; i < guest->nfeatures; i++) {
-        size_t j;
-        for (j = 0; j < map->nblockers; j++) {
-            if (STREQ(map->migrate_blockers[j]->name, guest->features[i].name)) {
-                VIR_FREE(guest->features[i].name);
-                VIR_DELETE_ELEMENT_INPLACE(guest->features, i, guest->nfeatures);
-            }
+    i = 0;
+    while (i < guest->nfeatures) {
+        if (x86FeatureIsMigratable(guest->features[i].name, map) &&
+            STRNEQ(guest->features[i].name, "cmt") &&
+            STRNEQ(guest->features[i].name, "mbm_total") &&
+            STRNEQ(guest->features[i].name, "mbm_local")) {
+            i++;
+        } else {
+            VIR_FREE(guest->features[i].name);
+            VIR_DELETE_ELEMENT_INPLACE(guest->features, i, guest->nfeatures);
         }
     }
     for (i = 0; !passthrough && i < oldguest->nfeatures; i++) {

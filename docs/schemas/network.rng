@@ -103,6 +103,7 @@
                 <choice>
                   <value>nat</value>
                   <value>route</value>
+                  <value>open</value>
                   <value>bridge</value>
                   <value>passthrough</value>
                   <value>private</value>
@@ -247,6 +248,11 @@
         <optional>
           <element name="dns">
             <optional>
+              <attribute name="enable">
+                <ref name="virYesNo"/>
+              </attribute>
+            </optional>
+            <optional>
               <attribute name="forwardPlainNames">
                 <ref name="virYesNo"/>
               </attribute>
@@ -254,7 +260,13 @@
             <interleave>
               <zeroOrMore>
                 <element name="forwarder">
-                  <attribute name="addr"><ref name="ipAddr"/></attribute>
+                  <optional>
+                    <attribute name="addr"><ref name="ipAddr"/></attribute>
+                  </optional>
+                  <optional>
+                    <attribute name="domain"><ref name="dnsName"/></attribute>
+                  </optional>
+                  <empty/>
                 </element>
               </zeroOrMore>
               <zeroOrMore>

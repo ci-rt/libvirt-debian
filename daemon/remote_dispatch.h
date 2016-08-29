@@ -213,56 +213,6 @@ static int remoteDispatchConnectCloseHelper(
 
 
 
-static int remoteDispatchConnectCloseCallbackRegister(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr);
-static int remoteDispatchConnectCloseCallbackRegisterHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args ATTRIBUTE_UNUSED,
-    void *ret ATTRIBUTE_UNUSED)
-{
-  int rv;
-  virThreadJobSet("remoteDispatchConnectCloseCallbackRegister");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
-            server, client, msg, rerr, args, ret);
-  rv = remoteDispatchConnectCloseCallbackRegister(server, client, msg, rerr);
-  virThreadJobClear(rv);
-  return rv;
-}
-/* remoteDispatchConnectCloseCallbackRegister body has to be implemented manually */
-
-
-
-static int remoteDispatchConnectCloseCallbackUnregister(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr);
-static int remoteDispatchConnectCloseCallbackUnregisterHelper(
-    virNetServerPtr server,
-    virNetServerClientPtr client,
-    virNetMessagePtr msg,
-    virNetMessageErrorPtr rerr,
-    void *args ATTRIBUTE_UNUSED,
-    void *ret ATTRIBUTE_UNUSED)
-{
-  int rv;
-  virThreadJobSet("remoteDispatchConnectCloseCallbackUnregister");
-  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
-            server, client, msg, rerr, args, ret);
-  rv = remoteDispatchConnectCloseCallbackUnregister(server, client, msg, rerr);
-  virThreadJobClear(rv);
-  return rv;
-}
-/* remoteDispatchConnectCloseCallbackUnregister body has to be implemented manually */
-
-
-
 static int remoteDispatchConnectCompareCPU(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -2559,6 +2509,59 @@ static int remoteDispatchConnectNetworkEventRegisterAnyHelper(
 
 
 
+static int remoteDispatchConnectNodeDeviceEventDeregisterAny(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_node_device_event_deregister_any_args *args);
+static int remoteDispatchConnectNodeDeviceEventDeregisterAnyHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchConnectNodeDeviceEventDeregisterAny");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchConnectNodeDeviceEventDeregisterAny(server, client, msg, rerr, args);
+  virThreadJobClear(rv);
+  return rv;
+}
+/* remoteDispatchConnectNodeDeviceEventDeregisterAny body has to be implemented manually */
+
+
+
+static int remoteDispatchConnectNodeDeviceEventRegisterAny(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_node_device_event_register_any_args *args,
+    remote_connect_node_device_event_register_any_ret *ret);
+static int remoteDispatchConnectNodeDeviceEventRegisterAnyHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchConnectNodeDeviceEventRegisterAny");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchConnectNodeDeviceEventRegisterAny(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+/* remoteDispatchConnectNodeDeviceEventRegisterAny body has to be implemented manually */
+
+
+
 static int remoteDispatchConnectNumOfDefinedDomains(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -3115,6 +3118,31 @@ static int remoteDispatchConnectOpenHelper(
 
 
 
+static int remoteDispatchConnectRegisterCloseCallback(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr);
+static int remoteDispatchConnectRegisterCloseCallbackHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args ATTRIBUTE_UNUSED,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchConnectRegisterCloseCallback");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchConnectRegisterCloseCallback(server, client, msg, rerr);
+  virThreadJobClear(rv);
+  return rv;
+}
+/* remoteDispatchConnectRegisterCloseCallback body has to be implemented manually */
+
+
+
 static int remoteDispatchConnectStoragePoolEventDeregisterAny(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -3192,6 +3220,31 @@ static int remoteDispatchConnectSupportsFeatureHelper(
   return rv;
 }
 /* remoteDispatchConnectSupportsFeature body has to be implemented manually */
+
+
+
+static int remoteDispatchConnectUnregisterCloseCallback(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr);
+static int remoteDispatchConnectUnregisterCloseCallbackHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args ATTRIBUTE_UNUSED,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchConnectUnregisterCloseCallback");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchConnectUnregisterCloseCallback(server, client, msg, rerr);
+  virThreadJobClear(rv);
+  return rv;
+}
+/* remoteDispatchConnectUnregisterCloseCallback body has to be implemented manually */
 
 
 
@@ -20557,8 +20610,8 @@ virNetServerProgramProc remoteProcs[] = {
    true,
    0
 },
-{ /* Method ConnectCloseCallbackRegister => 360 */
-   remoteDispatchConnectCloseCallbackRegisterHelper,
+{ /* Method ConnectRegisterCloseCallback => 360 */
+   remoteDispatchConnectRegisterCloseCallbackHelper,
    0,
    (xdrproc_t)xdr_void,
    0,
@@ -20566,8 +20619,8 @@ virNetServerProgramProc remoteProcs[] = {
    true,
    0
 },
-{ /* Method ConnectCloseCallbackUnregister => 361 */
-   remoteDispatchConnectCloseCallbackUnregisterHelper,
+{ /* Method ConnectUnregisterCloseCallback => 361 */
+   remoteDispatchConnectUnregisterCloseCallbackHelper,
    0,
    (xdrproc_t)xdr_void,
    0,
@@ -20675,6 +20728,42 @@ virNetServerProgramProc remoteProcs[] = {
    0
 },
 { /* Async event StoragePoolEventRefresh => 373 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method ConnectNodeDeviceEventRegisterAny => 374 */
+   remoteDispatchConnectNodeDeviceEventRegisterAnyHelper,
+   sizeof(remote_connect_node_device_event_register_any_args),
+   (xdrproc_t)xdr_remote_connect_node_device_event_register_any_args,
+   sizeof(remote_connect_node_device_event_register_any_ret),
+   (xdrproc_t)xdr_remote_connect_node_device_event_register_any_ret,
+   true,
+   1
+},
+{ /* Method ConnectNodeDeviceEventDeregisterAny => 375 */
+   remoteDispatchConnectNodeDeviceEventDeregisterAnyHelper,
+   sizeof(remote_connect_node_device_event_deregister_any_args),
+   (xdrproc_t)xdr_remote_connect_node_device_event_deregister_any_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   1
+},
+{ /* Async event NodeDeviceEventLifecycle => 376 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Async event NodeDeviceEventUpdate => 377 */
    NULL,
    0,
    (xdrproc_t)xdr_void,

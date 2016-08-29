@@ -999,7 +999,7 @@ testQemuMonitorJSONGetDeviceAliases(const void *data)
     qemuMonitorTestPtr test = qemuMonitorTestNewSimple(true, xmlopt);
     int ret = -1;
     char **aliases = NULL;
-    char **alias;
+    const char **alias;
     const char *expected[] = {
         "virtio-disk25", "video0", "serial0", "ide0-0-0", "usb", NULL };
 
@@ -1033,14 +1033,14 @@ testQemuMonitorJSONGetDeviceAliases(const void *data)
     }
 
     ret = 0;
-    for (alias = aliases; *alias; alias++) {
-        if (!virStringArrayHasString((char **) expected, *alias)) {
+    for (alias = (const char **) aliases; *alias; alias++) {
+        if (!virStringArrayHasString(expected, *alias)) {
             fprintf(stderr, "got unexpected device alias '%s'\n", *alias);
             ret = -1;
         }
     }
-    for (alias = (char **) expected; *alias; alias++) {
-        if (!virStringArrayHasString(aliases, *alias)) {
+    for (alias = expected; *alias; alias++) {
+        if (!virStringArrayHasString((const char **) aliases, *alias)) {
             fprintf(stderr, "missing expected alias '%s'\n", *alias);
             ret = -1;
         }
@@ -1190,7 +1190,7 @@ GEN_TEST_FUNC(qemuMonitorJSONAddNetdev, "some_dummy_netdevstr")
 GEN_TEST_FUNC(qemuMonitorJSONRemoveNetdev, "net0")
 GEN_TEST_FUNC(qemuMonitorJSONDelDevice, "ide0")
 GEN_TEST_FUNC(qemuMonitorJSONAddDevice, "some_dummy_devicestr")
-GEN_TEST_FUNC(qemuMonitorJSONSetDrivePassphrase, "vda", "secret_passhprase")
+GEN_TEST_FUNC(qemuMonitorJSONSetDrivePassphrase, "drive-vda", "secret_passhprase")
 GEN_TEST_FUNC(qemuMonitorJSONDriveMirror, "vdb", "/foo/bar", NULL, 1024, 0, 0,
               VIR_DOMAIN_BLOCK_REBASE_SHALLOW | VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT)
 GEN_TEST_FUNC(qemuMonitorJSONBlockCommit, "vdb", "/foo/bar1", "/foo/bar2", NULL, 1024)
@@ -1201,16 +1201,32 @@ GEN_TEST_FUNC(qemuMonitorJSONNBDServerStart, "localhost", 12345)
 GEN_TEST_FUNC(qemuMonitorJSONNBDServerAdd, "vda", true)
 GEN_TEST_FUNC(qemuMonitorJSONDetachCharDev, "serial1")
 
+static bool
+testQemuMonitorJSONqemuMonitorJSONQueryCPUsEqual(struct qemuMonitorQueryCpusEntry *a,
+                                                 struct qemuMonitorQueryCpusEntry *b)
+{
+    if (a->tid != b->tid ||
+        STRNEQ_NULLABLE(a->qom_path, b->qom_path))
+        return false;
+
+    return true;
+}
+
 
 static int
-testQemuMonitorJSONqemuMonitorJSONGetCPUInfo(const void *data)
+testQemuMonitorJSONqemuMonitorJSONQueryCPUs(const void *data)
 {
     virDomainXMLOptionPtr xmlopt = (virDomainXMLOptionPtr)data;
     qemuMonitorTestPtr test = qemuMonitorTestNewSimple(true, xmlopt);
     int ret = -1;
-    pid_t *cpupids = NULL;
-    pid_t expected_cpupids[] = {17622, 17624, 17626, 17628};
-    int ncpupids;
+    struct qemuMonitorQueryCpusEntry *cpudata = NULL;
+    struct qemuMonitorQueryCpusEntry expect[] = {
+        {17622, (char *) "/machine/unattached/device[0]"},
+        {17624, (char *) "/machine/unattached/device[1]"},
+        {17626, (char *) "/machine/unattached/device[2]"},
+        {17628, NULL},
+    };
+    size_t ncpudata = 0;
     size_t i;
 
     if (!test)
@@ -1222,6 +1238,7 @@ testQemuMonitorJSONqemuMonitorJSONGetCPUInfo(const void *data)
                                "        {"
                                "            \"current\": true,"
                                "            \"CPU\": 0,"
+                               "            \"qom_path\": \"/machine/unattached/device[0]\","
                                "            \"pc\": -2130530478,"
                                "            \"halted\": true,"
                                "            \"thread_id\": 17622"
@@ -1229,6 +1246,7 @@ testQemuMonitorJSONqemuMonitorJSONGetCPUInfo(const void *data)
                                "        {"
                                "            \"current\": false,"
                                "            \"CPU\": 1,"
+                               "            \"qom_path\": \"/machine/unattached/device[1]\","
                                "            \"pc\": -2130530478,"
                                "            \"halted\": true,"
                                "            \"thread_id\": 17624"
@@ -1236,6 +1254,7 @@ testQemuMonitorJSONqemuMonitorJSONGetCPUInfo(const void *data)
                                "        {"
                                "            \"current\": false,"
                                "            \"CPU\": 2,"
+                               "            \"qom_path\": \"/machine/unattached/device[2]\","
                                "            \"pc\": -2130530478,"
                                "            \"halted\": true,"
                                "            \"thread_id\": 17626"
@@ -1252,19 +1271,21 @@ testQemuMonitorJSONqemuMonitorJSONGetCPUInfo(const void *data)
                                "}") < 0)
         goto cleanup;
 
-    ncpupids = qemuMonitorJSONGetCPUInfo(qemuMonitorTestGetMonitor(test), &cpupids);
+    if (qemuMonitorJSONQueryCPUs(qemuMonitorTestGetMonitor(test),
+                                 &cpudata, &ncpudata) < 0)
+        goto cleanup;
 
-    if (ncpupids != 4) {
+    if (ncpudata != 4) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "Expecting ncpupids = 4 but got %d", ncpupids);
+                       "Expecting ncpupids = 4 but got %zu", ncpudata);
         goto cleanup;
     }
 
-    for (i = 0; i < ncpupids; i++) {
-        if (cpupids[i] != expected_cpupids[i]) {
+    for (i = 0; i < ncpudata; i++) {
+        if (!testQemuMonitorJSONqemuMonitorJSONQueryCPUsEqual(cpudata + i,
+                                                              expect + i)) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
-                           "Expecting cpupids[%zu] = %d but got %d",
-                           i, expected_cpupids[i], cpupids[i]);
+                           "vcpu entry %zu does not match expected data", i);
             goto cleanup;
         }
     }
@@ -1272,7 +1293,7 @@ testQemuMonitorJSONqemuMonitorJSONGetCPUInfo(const void *data)
     ret = 0;
 
  cleanup:
-    VIR_FREE(cpupids);
+    qemuMonitorQueryCpusFree(cpudata, ncpudata);
     qemuMonitorTestFree(test);
     return ret;
 }
@@ -2315,6 +2336,130 @@ testQemuMonitorJSONGetIOThreads(const void *data)
     return ret;
 }
 
+struct testCPUInfoData {
+    const char *name;
+    size_t maxvcpus;
+    virDomainXMLOptionPtr xmlopt;
+};
+
+
+static char *
+testQemuMonitorCPUInfoFormat(qemuMonitorCPUInfoPtr vcpus,
+                             size_t nvcpus)
+{
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    qemuMonitorCPUInfoPtr vcpu;
+    size_t i;
+
+    for (i = 0; i < nvcpus; i++) {
+        vcpu = vcpus + i;
+
+        virBufferAsprintf(&buf, "[vcpu libvirt-id='%zu']\n", i);
+        virBufferAdjustIndent(&buf, 4);
+
+        if (vcpu->tid)
+            virBufferAsprintf(&buf, "thread-id='%llu'\n",
+                              (unsigned long long) vcpu->tid);
+
+        if (vcpu->id != 0)
+            virBufferAsprintf(&buf, "qemu-id='%d'\n", vcpu->id);
+
+        if (vcpu->type)
+            virBufferAsprintf(&buf, "type='%s'\n", vcpu->type);
+
+        if (vcpu->alias)
+            virBufferAsprintf(&buf, "alias='%s'\n", vcpu->alias);
+        if (vcpu->qom_path)
+            virBufferAsprintf(&buf, "qom_path='%s'\n", vcpu->qom_path);
+
+        if (vcpu->socket_id != -1 || vcpu->core_id != -1 ||
+            vcpu->thread_id != -1 || vcpu->vcpus != 0) {
+            virBufferAddLit(&buf, "topology:");
+            if (vcpu->socket_id != -1)
+                virBufferAsprintf(&buf, " socket='%d'", vcpu->socket_id);
+            if (vcpu->core_id != -1)
+                virBufferAsprintf(&buf, " core='%d'", vcpu->core_id);
+            if (vcpu->thread_id != -1)
+                virBufferAsprintf(&buf, " thread='%d'", vcpu->thread_id);
+            if (vcpu->vcpus != 0)
+                virBufferAsprintf(&buf, " vcpus='%u'", vcpu->vcpus);
+            virBufferAddLit(&buf, "\n");
+        }
+
+        virBufferAdjustIndent(&buf, -4);
+    }
+
+    return virBufferContentAndReset(&buf);
+}
+
+
+static int
+testQemuMonitorCPUInfo(const void *opaque)
+{
+    const struct testCPUInfoData *data = opaque;
+    qemuMonitorTestPtr test = qemuMonitorTestNewSimple(true, data->xmlopt);
+    char *queryCpusFile = NULL;
+    char *queryHotpluggableFile = NULL;
+    char *dataFile = NULL;
+    char *queryCpusStr = NULL;
+    char *queryHotpluggableStr = NULL;
+    char *actual = NULL;
+    qemuMonitorCPUInfoPtr vcpus = NULL;
+    int rc;
+    int ret = -1;
+
+    if (!test)
+        return -1;
+
+    if (virAsprintf(&queryCpusFile,
+                    "%s/qemumonitorjsondata/qemumonitorjson-cpuinfo-%s-cpus.json",
+                    abs_srcdir, data->name) < 0 ||
+        virAsprintf(&queryHotpluggableFile,
+                    "%s/qemumonitorjsondata/qemumonitorjson-cpuinfo-%s-hotplug.json",
+                    abs_srcdir, data->name) < 0 ||
+        virAsprintf(&dataFile,
+                    "%s/qemumonitorjsondata/qemumonitorjson-cpuinfo-%s.data",
+                    abs_srcdir, data->name) < 0)
+        goto cleanup;
+
+    if (virTestLoadFile(queryCpusFile, &queryCpusStr) < 0)
+        goto cleanup;
+
+    if (virTestLoadFile(queryHotpluggableFile, &queryHotpluggableStr) < 0)
+        goto cleanup;
+
+    if (qemuMonitorTestAddItem(test, "query-hotpluggable-cpus",
+                               queryHotpluggableStr) < 0)
+        goto cleanup;
+
+    if (qemuMonitorTestAddItem(test, "query-cpus", queryCpusStr) < 0)
+        goto cleanup;
+
+    rc = qemuMonitorGetCPUInfo(qemuMonitorTestGetMonitor(test),
+                               &vcpus, data->maxvcpus, true);
+
+    if (rc < 0)
+        goto cleanup;
+
+    actual = testQemuMonitorCPUInfoFormat(vcpus, data->maxvcpus);
+
+    if (virTestCompareToFile(actual, dataFile) < 0)
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(queryCpusFile);
+    VIR_FREE(queryHotpluggableFile);
+    VIR_FREE(dataFile);
+    VIR_FREE(queryCpusStr);
+    VIR_FREE(queryHotpluggableStr);
+    VIR_FREE(actual);
+    qemuMonitorCPUInfoFree(vcpus, data->maxvcpus);
+    qemuMonitorTestFree(test);
+    return ret;
+}
+
+
 static int
 mymain(void)
 {
@@ -2355,6 +2500,14 @@ mymain(void)
         const char *label = "GetCPUData(" name ")";                       \
         if (virTestRun(label, testQemuMonitorJSONGetCPUData, &data) < 0)  \
             ret = -1;                                                     \
+    } while (0)
+
+#define DO_TEST_CPU_INFO(name, maxvcpus)                                       \
+    do {                                                                       \
+        struct testCPUInfoData data = {name, maxvcpus, driver.xmlopt};         \
+        if (virTestRun("GetCPUInfo(" name ")", testQemuMonitorCPUInfo,         \
+                       &data) < 0)                                             \
+            ret = -1;                                                          \
     } while (0)
 
     DO_TEST(GetStatus);
@@ -2420,7 +2573,7 @@ mymain(void)
     DO_TEST(qemuMonitorJSONSetBlockIoThrottle);
     DO_TEST(qemuMonitorJSONGetTargetArch);
     DO_TEST(qemuMonitorJSONGetMigrationCapability);
-    DO_TEST(qemuMonitorJSONGetCPUInfo);
+    DO_TEST(qemuMonitorJSONQueryCPUs);
     DO_TEST(qemuMonitorJSONGetVirtType);
     DO_TEST(qemuMonitorJSONSendKey);
     DO_TEST(qemuMonitorJSONGetDumpGuestMemoryCapability);
@@ -2430,6 +2583,15 @@ mymain(void)
     DO_TEST_CPU_DATA("host");
     DO_TEST_CPU_DATA("full");
     DO_TEST_CPU_DATA("ecx");
+
+    DO_TEST_CPU_INFO("x86-basic-pluggable", 8);
+    DO_TEST_CPU_INFO("x86-full", 11);
+
+    DO_TEST_CPU_INFO("ppc64-basic", 24);
+    DO_TEST_CPU_INFO("ppc64-hotplug-1", 24);
+    DO_TEST_CPU_INFO("ppc64-hotplug-2", 24);
+    DO_TEST_CPU_INFO("ppc64-hotplug-4", 24);
+    DO_TEST_CPU_INFO("ppc64-no-threads", 16);
 
     qemuTestDriverFree(&driver);
 

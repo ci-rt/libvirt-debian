@@ -202,6 +202,8 @@
      <exports symbol='VIR_DOMAIN_SCHEDULER_EMULATOR_QUOTA' type='macro'/>
      <exports symbol='VIR_DOMAIN_SCHEDULER_GLOBAL_PERIOD' type='macro'/>
      <exports symbol='VIR_DOMAIN_SCHEDULER_GLOBAL_QUOTA' type='macro'/>
+     <exports symbol='VIR_DOMAIN_SCHEDULER_IOTHREAD_PERIOD' type='macro'/>
+     <exports symbol='VIR_DOMAIN_SCHEDULER_IOTHREAD_QUOTA' type='macro'/>
      <exports symbol='VIR_DOMAIN_SCHEDULER_LIMIT' type='macro'/>
      <exports symbol='VIR_DOMAIN_SCHEDULER_RESERVATION' type='macro'/>
      <exports symbol='VIR_DOMAIN_SCHEDULER_SHARES' type='macro'/>
@@ -231,6 +233,8 @@
      <exports symbol='VIR_DOMAIN_TUNABLE_CPU_GLOBAL_PERIOD' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_CPU_GLOBAL_QUOTA' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_CPU_IOTHREADSPIN' type='macro'/>
+     <exports symbol='VIR_DOMAIN_TUNABLE_CPU_IOTHREAD_PERIOD' type='macro'/>
+     <exports symbol='VIR_DOMAIN_TUNABLE_CPU_IOTHREAD_QUOTA' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_CPU_VCPUPIN' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA' type='macro'/>
@@ -1333,6 +1337,7 @@
      <summary>APIs for management of nodedevs</summary>
      <description>Provides APIs for the management of nodedevs</description>
      <author>Daniel Veillard &lt;veillard@redhat.com&gt;  Copyright (C) 2006-2014 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </author>
+     <exports symbol='VIR_NODE_DEVICE_EVENT_CALLBACK' type='macro'/>
      <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_NET' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_PCI_DEV' type='enum'/>
@@ -1345,10 +1350,22 @@
      <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_DEV' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_INTERFACE' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS' type='enum'/>
+     <exports symbol='VIR_NODE_DEVICE_EVENT_CREATED' type='enum'/>
+     <exports symbol='VIR_NODE_DEVICE_EVENT_DELETED' type='enum'/>
+     <exports symbol='VIR_NODE_DEVICE_EVENT_ID_LAST' type='enum'/>
+     <exports symbol='VIR_NODE_DEVICE_EVENT_ID_LIFECYCLE' type='enum'/>
+     <exports symbol='VIR_NODE_DEVICE_EVENT_ID_UPDATE' type='enum'/>
+     <exports symbol='VIR_NODE_DEVICE_EVENT_LAST' type='enum'/>
      <exports symbol='virConnectListAllNodeDeviceFlags' type='typedef'/>
      <exports symbol='virNodeDevice' type='typedef'/>
+     <exports symbol='virNodeDeviceEventID' type='typedef'/>
+     <exports symbol='virNodeDeviceEventLifecycleType' type='typedef'/>
      <exports symbol='virNodeDevicePtr' type='typedef'/>
      <exports symbol='virConnectListAllNodeDevices' type='function'/>
+     <exports symbol='virConnectNodeDeviceEventDeregisterAny' type='function'/>
+     <exports symbol='virConnectNodeDeviceEventGenericCallback' type='function'/>
+     <exports symbol='virConnectNodeDeviceEventLifecycleCallback' type='function'/>
+     <exports symbol='virConnectNodeDeviceEventRegisterAny' type='function'/>
      <exports symbol='virNodeDeviceCreateXML' type='function'/>
      <exports symbol='virNodeDeviceDestroy' type='function'/>
      <exports symbol='virNodeDeviceDetachFlags' type='function'/>
@@ -2093,6 +2110,12 @@
     <macro name='VIR_DOMAIN_SCHEDULER_GLOBAL_QUOTA' file='libvirt-domain' string='global_quota'>
       <info><![CDATA[Macro represents the maximum bandwidth to be used within a period for whole domain, when using the posix scheduler, as an llong.]]></info>
     </macro>
+    <macro name='VIR_DOMAIN_SCHEDULER_IOTHREAD_PERIOD' file='libvirt-domain' string='iothread_period'>
+      <info><![CDATA[Macro represents the enforcement period for a quota, in microseconds, for IOThreads only, when using the posix scheduler, as a ullong.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_SCHEDULER_IOTHREAD_QUOTA' file='libvirt-domain' string='iothread_quota'>
+      <info><![CDATA[Macro represents the maximum bandwidth to be used within a period for IOThreads only, when using the posix scheduler, as an llong.]]></info>
+    </macro>
     <macro name='VIR_DOMAIN_SCHEDULER_LIMIT' file='libvirt-domain' string='limit'>
       <info><![CDATA[Macro represents the scheduler limit value, when using the allocation scheduler, as an llong.]]></info>
     </macro>
@@ -2179,6 +2202,12 @@
     </macro>
     <macro name='VIR_DOMAIN_TUNABLE_CPU_IOTHREADSPIN' file='libvirt-domain' string='cputune.iothreadpin%u'>
       <info><![CDATA[Macro represents formatted pinning for one IOThread specified by id which is appended to the parameter name, for example "cputune.iothreadpin1", as VIR_TYPED_PARAM_STRING.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_TUNABLE_CPU_IOTHREAD_PERIOD' file='libvirt-domain' string='cputune.iothread_period'>
+      <info><![CDATA[Macro represents the enforcement period for a quota, in microseconds, for iothreads only, when using the posix scheduler, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_TUNABLE_CPU_IOTHREAD_QUOTA' file='libvirt-domain' string='cputune.iothread_quota'>
+      <info><![CDATA[Macro represents the maximum bandwidth to be used within a period for iothreads only, when using the posix scheduler, as VIR_TYPED_PARAM_LLONG.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_TUNABLE_CPU_VCPUPIN' file='libvirt-domain' string='cputune.vcpupin%u'>
       <info><![CDATA[Macro represents formatted pinning for one vcpu specified by id which is appended to the parameter name, for example "cputune.vcpupin1", as VIR_TYPED_PARAM_STRING.]]></info>
@@ -2270,6 +2299,9 @@
     </macro>
     <macro name='VIR_NODE_CPU_STATS_UTILIZATION' file='libvirt-host' string='utilization'>
       <info><![CDATA[The CPU utilization of a node. The usage value is in percent and 100% represents all CPUs of the node.]]></info>
+    </macro>
+    <macro name='VIR_NODE_DEVICE_EVENT_CALLBACK' file='libvirt-nodedev'>
+      <info><![CDATA[Used to cast the event specific callback into the generic one for use for virConnectNodeDeviceEventRegisterAny()]]></info>
     </macro>
     <macro name='VIR_NODE_MEMORY_SHARED_FULL_SCANS' file='libvirt-host' string='shm_full_scans'>
       <info><![CDATA[Macro for typed parameter that represents how many times all mergeable areas have been scanned.]]></info>
@@ -3238,6 +3270,14 @@ can be used only to size up the pool.'/>
 passed number of pages. This can be
 used to free allocated pages.'/>
     <enum name='VIR_NODE_CPU_STATS_ALL_CPUS' file='libvirt-host' value='-1' type='virNodeGetCPUStatsAllCPUs'/>
+    <enum name='VIR_NODE_DEVICE_EVENT_CREATED' file='libvirt-nodedev' value='0' type='virNodeDeviceEventLifecycleType'/>
+    <enum name='VIR_NODE_DEVICE_EVENT_DELETED' file='libvirt-nodedev' value='1' type='virNodeDeviceEventLifecycleType'/>
+    <enum name='VIR_NODE_DEVICE_EVENT_ID_LAST' file='libvirt-nodedev' value='2' type='virNodeDeviceEventID' info='NB: this enum value will increase over time as new events are
+ added to the libvirt API. It reflects the last event ID supported
+ by this version of the libvirt API.'/>
+    <enum name='VIR_NODE_DEVICE_EVENT_ID_LIFECYCLE' file='libvirt-nodedev' value='0' type='virNodeDeviceEventID' info='virConnectNodeDeviceEventLifecycleCallback'/>
+    <enum name='VIR_NODE_DEVICE_EVENT_ID_UPDATE' file='libvirt-nodedev' value='1' type='virNodeDeviceEventID' info='virConnectNodeDeviceEventUpdateCallback'/>
+    <enum name='VIR_NODE_DEVICE_EVENT_LAST' file='libvirt-nodedev' value='2' type='virNodeDeviceEventLifecycleType'/>
     <enum name='VIR_NODE_MEMORY_STATS_ALL_CELLS' file='libvirt-host' value='-1' type='virNodeGetMemoryStatsAllCells'/>
     <enum name='VIR_NODE_SUSPEND_TARGET_DISK' file='libvirt-host' value='1' type='virNodeSuspendTarget'/>
     <enum name='VIR_NODE_SUSPEND_TARGET_HYBRID' file='libvirt-host' value='2' type='virNodeSuspendTarget'/>
@@ -3711,6 +3751,8 @@ see note above'/>
       <info><![CDATA[a virNodeCPUStatsPtr is a pointer to a virNodeCPUStats structure.]]></info>
     </typedef>
     <struct name='virNodeDevice' file='libvirt-nodedev' type='struct _virNodeDevice'/>
+    <typedef name='virNodeDeviceEventID' file='libvirt-nodedev' type='enum'/>
+    <typedef name='virNodeDeviceEventLifecycleType' file='libvirt-nodedev' type='enum'/>
     <typedef name='virNodeDevicePtr' file='libvirt-nodedev' type='virNodeDevice *'>
       <info><![CDATA[A virNodeDevicePtr is a pointer to a virNodeDevice structure.  Get one via virNodeDeviceLookupByName, or virNodeDeviceCreate.  Be sure to call virNodeDeviceFree when done using a virNodeDevicePtr obtained from any of the above functions to avoid leaking memory.]]></info>
     </typedef>
@@ -4961,6 +5003,70 @@ be passed to the virConnectNetworkEventDeregisterAny() method.]]></info>
       <arg name='net' type='virNetworkPtr' info='pointer to the network'/>
       <arg name='eventID' type='int' info='the event type to receive'/>
       <arg name='cb' type='virConnectNetworkEventGenericCallback' info='callback to the function handling network events'/>
+      <arg name='opaque' type='void *' info='opaque data to pass on to the callback'/>
+      <arg name='freecb' type='virFreeCallback' info='optional function to deallocate opaque when not used anymore'/>
+    </function>
+    <function name='virConnectNodeDeviceEventDeregisterAny' file='libvirt-nodedev' module='libvirt-nodedev'>
+      <info><![CDATA[Removes an event callback. The callbackID parameter should be the
+value obtained from a previous virConnectNodeDeviceEventRegisterAny() method.]]></info>
+      <return type='int' info='0 on success, -1 on failure.'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to the connection'/>
+      <arg name='callbackID' type='int' info='the callback identifier'/>
+    </function>
+    <functype name='virConnectNodeDeviceEventGenericCallback' file='libvirt-nodedev' module='libvirt-nodedev'>
+      <info><![CDATA[A generic node device event callback handler, for use with
+virConnectNodeDeviceEventRegisterAny(). Specific events usually
+have a customization with extra parameters, often with @opaque being
+passed in a different parameter position; use
+VIR_NODE_DEVICE_EVENT_CALLBACK() when registering an appropriate handler.]]></info>
+      <return type='void'/>
+      <arg name='conn' type='virConnectPtr' info='the connection pointer'/>
+      <arg name='dev' type='virNodeDevicePtr' info='the node device pointer'/>
+      <arg name='opaque' type='void *' info='application specified data'/>
+    </functype>
+    <functype name='virConnectNodeDeviceEventLifecycleCallback' file='libvirt-nodedev' module='libvirt-nodedev'>
+      <info><![CDATA[This callback is called when a node device lifecycle action is performed,
+like added or removed.
+
+The callback signature to use when registering for an event of type
+VIR_NODE_DEVICE_EVENT_ID_LIFECYCLE with
+virConnectNodeDeviceEventRegisterAny()]]></info>
+      <return type='void'/>
+      <arg name='conn' type='virConnectPtr' info='connection object'/>
+      <arg name='dev' type='virNodeDevicePtr' info='node device on which the event occurred'/>
+      <arg name='event' type='int' info='The specific virNodeDeviceEventLifeCycleType which occurred'/>
+      <arg name='detail' type='int' info='contains some details on the reason of the event.'/>
+      <arg name='opaque' type='void *' info='application specified data'/>
+    </functype>
+    <function name='virConnectNodeDeviceEventRegisterAny' file='libvirt-nodedev' module='libvirt-nodedev'>
+      <info><![CDATA[Adds a callback to receive notifications of arbitrary node device events
+occurring on a node device. This function requires that an event loop
+has been previously registered with virEventRegisterImpl() or
+virEventRegisterDefaultImpl().
+
+If @dev is NULL, then events will be monitored for any node device.
+If @dev is non-NULL, then only the specific node device will be monitored.
+
+Most types of events have a callback providing a custom set of parameters
+for the event. When registering an event, it is thus necessary to use
+the VIR_NODE_DEVICE_EVENT_CALLBACK() macro to cast the
+supplied function pointer to match the signature of this method.
+
+The virNodeDevicePtr object handle passed into the callback upon delivery
+of an event is only valid for the duration of execution of the callback.
+If the callback wishes to keep the node device object after the callback
+returns, it shall take a reference to it, by calling virNodeDeviceRef().
+The reference can be released once the object is no longer required
+by calling virNodeDeviceFree().
+
+The return value from this method is a positive integer identifier
+for the callback. To unregister a callback, this callback ID should
+be passed to the virConnectNodeDeviceEventDeregisterAny() method.]]></info>
+      <return type='int' info='a callback identifier on success, -1 on failure.'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to the connection'/>
+      <arg name='dev' type='virNodeDevicePtr' info='pointer to the node device'/>
+      <arg name='eventID' type='int' info='the event type to receive'/>
+      <arg name='cb' type='virConnectNodeDeviceEventGenericCallback' info='callback to the function handling node device events'/>
       <arg name='opaque' type='void *' info='opaque data to pass on to the callback'/>
       <arg name='freecb' type='virFreeCallback' info='optional function to deallocate opaque when not used anymore'/>
     </function>

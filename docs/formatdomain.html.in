@@ -102,7 +102,7 @@
   ...
   &lt;os&gt;
     &lt;type&gt;hvm&lt;/type&gt;
-    &lt;loader readonly='yes' type='rom'&gt;/usr/lib/xen/boot/hvmloader&lt;/loader&gt;
+    &lt;loader readonly='yes' secure='no' type='rom'&gt;/usr/lib/xen/boot/hvmloader&lt;/loader&gt;
     &lt;nvram template='/usr/share/OVMF/OVMF_VARS.fd'&gt;/var/lib/libvirt/nvram/guest_VARS.fd&lt;/nvram&gt;
     &lt;boot dev='hd'/&gt;
     &lt;boot dev='cdrom'/&gt;
@@ -140,7 +140,10 @@
         <code>pflash</code>. It tells the hypervisor where in the guest
         memory the file should be mapped.  For instance, if the loader
         path points to an UEFI image, <code>type</code> should be
-        <code>pflash</code>.</dd>
+        <code>pflash</code>. Moreover, some firmwares may
+        implement the Secure boot feature. Attribute
+        <code>secure</code> can be used then to control it.
+        <span class="since">Since 2.1.0</span></dd>
       <dt><code>nvram</code></dt>
       <dd>Some UEFI firmwares may want to use a non-volatile memory to store
         some variables. In the host, this is represented as a file and the
@@ -486,6 +489,10 @@
 &lt;domain&gt;
   ...
   &lt;vcpu placement='static' cpuset="1-4,^3,6" current="1"&gt;2&lt;/vcpu&gt;
+  &lt;vcpus&gt;
+    &lt;vcpu id='0' enabled='yes' hotpluggable='no' order='1'/&gt;
+    &lt;vcpu id='1' enabled='no' hotpluggable='yes'/&gt;
+  &lt;/vcpus&gt;
   ...
 &lt;/domain&gt;
 </pre>
@@ -538,6 +545,48 @@
            <span class="since">Since 0.9.11 (QEMU and KVM only)</span>
          </dd>
         </dl>
+      </dd>
+      <dt><code>vcpus</code></dt>
+      <dd>
+        The vcpus element allows to control state of individual vcpus.
+
+        The <code>id</code> attribute specifies the vCPU id as used by libvirt
+        in other places such as vcpu pinning, scheduler information and NUMA
+        assignment. Note that the vcpu ID as seen in the guest may differ from
+        libvirt ID in certain cases. Valid IDs are from 0 to the maximum vcpu
+        count as set by the <code>vcpu</code> element minus 1.
+
+        The <code>enabled</code> attribute allows to control the state of the
+        vcpu. Valid values are <code>yes</code> and <code>no</code>.
+
+        <code>hotpluggable</code> controls whether given vcpu can be hotplugged
+        and hotunplugged in cases when the cpu is enabled at boot. Note that
+        all disabled vcpus must be hotpluggable. Valid values are
+        <code>yes</code> and <code>no</code>.
+
+        <code>order</code> allows to specify the order to add the online vcpus.
+        For hypervisors/platforms that require to insert multiple vcpus at once
+        the order may be be duplicated accross all vcpus that need to be
+        enabled at once. Specifying order is not necessary, vcpus are then
+        added in an arbitrary order. If order info is used, it must be used for
+        all online vcpus.
+
+        Note that hypervisors may create hotpluggable vcpus differently from
+        boot vcpus thus special initialization may be necessary.
+
+        Hypervisors may require that vcpus enabled on boot which are not
+        hotpluggable are clustered at the beginning starting with ID 0. It may
+        be also required that vcpu 0 is always present and non-hotpluggable.
+
+        Note that providing state for individual cpus may be necessary to enable
+        support of addressable vCPU hotplug and this feature may not be
+        supported by all hypervisors.
+
+        For QEMU the following conditions are required. Vcpu 0 needs to be
+        enabled and non-hotpluggable. On PPC64 along with it vcpus that are in
+        the same core need to be enabled as well. All non-hotpluggable cpus
+        present at boot need to be grouped after vcpu 0.
+        <span class="since">Since 2.2.0 (QEMU only)</span>
       </dd>
     </dl>
 
@@ -616,6 +665,8 @@
     &lt;quota&gt;-1&lt;/quota&gt;
     &lt;emulator_period&gt;1000000&lt;/emulator_period&gt;
     &lt;emulator_quota&gt;-1&lt;/emulator_quota&gt;
+    &lt;iothread_period&gt;1000000&lt;/iothread_period&gt;
+    &lt;iothread_quota&gt;-1&lt;/iothread_quota&gt;
     &lt;vcpusched vcpus='0-4,^3' scheduler='fifo' priority='1'/&gt;
     &lt;iothreadsched iothreads='2' scheduler='batch'/&gt;
   &lt;/cputune&gt;
@@ -718,6 +769,29 @@
         The value should be in range [1000, 18446744073709551] or less than 0. A
         quota with value 0 means no value.
         <span class="since">Only QEMU driver support since 0.10.0</span>
+      </dd>
+
+      <dt><code>iothread_period</code></dt>
+      <dd>
+        The optional <code>iothread_period</code> element specifies the
+        enforcement interval(unit: microseconds) for IOThreads. Within
+        <code>iothread_period</code>, each IOThread of the domain will
+        not be allowed to consume more than <code>iothread_quota</code>
+        worth of runtime. The value should be in range [1000, 1000000].
+        An iothread_period with value 0 means no value.
+        <span class="since">Only QEMU driver support since 2.1.0</span>
+      </dd>
+      <dt><code>iothread_quota</code></dt>
+      <dd>
+        The optional <code>iothread_quota</code> element specifies the maximum
+        allowed bandwidth(unit: microseconds) for IOThreads. A domain with
+        <code>iothread_quota</code> as any negative value indicates that the
+        domain IOThreads have infinite bandwidth, which means that it is
+        not bandwidth controlled. The value should be in range
+        [1000, 18446744073709551] or less than 0. An <code>iothread_quota</code>
+        with value 0 means no value. You can use this feature to ensure that
+        all IOThreads run at the same speed.
+        <span class="since">Only QEMU driver support since 2.1.0</span>
       </dd>
 
       <dt><code>vcpusched</code> and <code>iothreadsched</code></dt>
@@ -1654,6 +1728,12 @@
           however, it may not be supported by all hypervisors. Accepted
           values are <code>2</code>, <code>3</code> and <code>host</code>.
           <span class="since">Since 1.2.16</span>
+      </dd>
+      <dt><code>smm</code></dt>
+      <dd>Enable System Management Mode. Possible values are
+          <code>on</code> and <code>off</code>. The default is left
+          for hypervisor to decide.
+          <span class="since">Since 2.1.0</span>
       </dd>
     </dl>
 
@@ -3086,7 +3166,7 @@
       &lt;address type='pci' domain='0x0000' bus='0x00' slot='0x0a' function='0x0'/&gt;
     &lt;/controller&gt;
     &lt;controller type='scsi' index='0' model='virtio-scsi'&gt;
-      &lt;driver iothread='4'&gt;
+      &lt;driver iothread='4'/&gt;
       &lt;address type='pci' domain='0x0000' bus='0x00' slot='0x0b' function='0x0'/&gt;
     &lt;/controller&gt;
     ...
@@ -3122,7 +3202,9 @@
         <dd>A <code>usb</code> controller has an optional attribute
         <code>model</code>, which is one of "piix3-uhci", "piix4-uhci",
         "ehci", "ich9-ehci1", "ich9-uhci1", "ich9-uhci2", "ich9-uhci3",
-        "vt82c686b-uhci", "pci-ohci" or "nec-xhci".  Additionally,
+        "vt82c686b-uhci", "pci-ohci", "nec-xhci", "qusb1" (xen pvusb
+        with qemu backend, version 1.1) or "qusb2" (xen pvusb with qemu
+        backend, version 2.0). Additionally,
          <span class="since">since 0.10.0</span>, if the USB bus needs to
          be explicitly disabled for the guest, <code>model='none'</code>
          may be used.  <span class="since">Since 1.0.5</span>, no default
@@ -3324,15 +3406,17 @@
           2nd bus-number is just being reserved for the pcie-root-port
           that must necessarily be connected to the bus in order to
           actually plug in an endpoint device. If you intend to plug
-          multiple devices into a pcie-expander-bus, you must instead
-          connect a pcie-switch-upstream-port to the
-          pcie-expander-bus, and multiple pcie-switch-downstream-ports
-          to the pcie-switch-downstream-port, and of course for this
-          to work properly, you will need to decrease the
-          pcie-expander-bus' busNr accordingly so that there are
-          enough unused bus numbers above it to accomodate giving out
-          one bus number for the upstream-port and one for each
-          downstream-port).
+          multiple devices into a pcie-expander-bus, you must connect
+          a pcie-switch-upstream-port to the pcie-root-port that is
+          plugged into the pcie-expander-bus, and multiple
+          pcie-switch-downstream-ports to the
+          pcie-switch-upstream-port, and of course for this to work
+          properly, you will need to decrease the pcie-expander-bus'
+          busNr accordingly so that there are enough unused bus
+          numbers above it to accomodate giving out one bus number for
+          the upstream-port and one for each downstream-port (in
+          addition to the pcie-root-port and the pcie-expander-bus
+          itself).
         </p>
       </dd>
       <dt><code>node</code></dt>

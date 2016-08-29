@@ -950,10 +950,21 @@ virStorageFileGetMetadataInternal(virStorageSourcePtr meta,
         for (i = 0; fileTypeInfo[meta->format].cryptInfo[i].format != 0; i++) {
             if (virStorageFileHasEncryptionFormat(&fileTypeInfo[meta->format].cryptInfo[i],
                                                   buf, len)) {
-                if (VIR_ALLOC(meta->encryption) < 0)
-                    goto cleanup;
+                int expt_fmt = fileTypeInfo[meta->format].cryptInfo[i].format;
+                if (!meta->encryption) {
+                    if (VIR_ALLOC(meta->encryption) < 0)
+                        goto cleanup;
 
-                meta->encryption->format = fileTypeInfo[meta->format].cryptInfo[i].format;
+                    meta->encryption->format = expt_fmt;
+                } else {
+                    if (meta->encryption->format != expt_fmt) {
+                        virReportError(VIR_ERR_XML_ERROR,
+                                       _("encryption format %d doesn't match "
+                                         "expected format %d"),
+                                       meta->encryption->format, expt_fmt);
+                        goto cleanup;
+                    }
+                }
             }
         }
     }
@@ -2684,9 +2695,9 @@ virStorageSourceParseBackingJSONUri(virStorageSourcePtr src,
 {
     const char *uri;
 
-    if (!(uri = virJSONValueObjectGetString(json, "uri"))) {
+    if (!(uri = virJSONValueObjectGetString(json, "url"))) {
         virReportError(VIR_ERR_INVALID_ARG, "%s",
-                       _("missing URI in JSON backing volume definition"));
+                       _("missing 'url' in JSON backing volume definition"));
         return -1;
     }
 

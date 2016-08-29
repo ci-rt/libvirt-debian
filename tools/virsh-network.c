@@ -123,9 +123,9 @@ cmdNetworkAutostart(vshControl *ctl, const vshCmd *cmd)
     }
 
     if (autostart)
-        vshPrint(ctl, _("Network %s marked as autostarted\n"), name);
+        vshPrintExtra(ctl, _("Network %s marked as autostarted\n"), name);
     else
-        vshPrint(ctl, _("Network %s unmarked as autostarted\n"), name);
+        vshPrintExtra(ctl, _("Network %s unmarked as autostarted\n"), name);
 
     virNetworkFree(network);
     return true;
@@ -168,8 +168,8 @@ cmdNetworkCreate(vshControl *ctl, const vshCmd *cmd)
     VIR_FREE(buffer);
 
     if (network != NULL) {
-        vshPrint(ctl, _("Network %s created from %s\n"),
-                 virNetworkGetName(network), from);
+        vshPrintExtra(ctl, _("Network %s created from %s\n"),
+                      virNetworkGetName(network), from);
         virNetworkFree(network);
     } else {
         vshError(ctl, _("Failed to create network from %s"), from);
@@ -216,8 +216,8 @@ cmdNetworkDefine(vshControl *ctl, const vshCmd *cmd)
     VIR_FREE(buffer);
 
     if (network != NULL) {
-        vshPrint(ctl, _("Network %s defined from %s\n"),
-                 virNetworkGetName(network), from);
+        vshPrintExtra(ctl, _("Network %s defined from %s\n"),
+                      virNetworkGetName(network), from);
         virNetworkFree(network);
     } else {
         vshError(ctl, _("Failed to define network from %s"), from);
@@ -255,7 +255,7 @@ cmdNetworkDestroy(vshControl *ctl, const vshCmd *cmd)
         return false;
 
     if (virNetworkDestroy(network) == 0) {
-        vshPrint(ctl, _("Network %s destroyed\n"), name);
+        vshPrintExtra(ctl, _("Network %s destroyed\n"), name);
     } else {
         vshError(ctl, _("Failed to destroy network %s"), name);
         ret = false;
@@ -794,7 +794,7 @@ cmdNetworkStart(vshControl *ctl, const vshCmd *cmd)
          return false;
 
     if (virNetworkCreate(network) == 0) {
-        vshPrint(ctl, _("Network %s started\n"), name);
+        vshPrintExtra(ctl, _("Network %s started\n"), name);
     } else {
         vshError(ctl, _("Failed to start network %s"), name);
         ret = false;
@@ -832,7 +832,7 @@ cmdNetworkUndefine(vshControl *ctl, const vshCmd *cmd)
         return false;
 
     if (virNetworkUndefine(network) == 0) {
-        vshPrint(ctl, _("Network %s has been undefined\n"), name);
+        vshPrintExtra(ctl, _("Network %s has been undefined\n"), name);
     } else {
         vshError(ctl, _("Failed to undefine network %s"), name);
         ret = false;
@@ -907,7 +907,6 @@ cmdNetworkUpdate(vshControl *ctl, const vshCmd *cmd)
     bool config = vshCommandOptBool(cmd, "config");
     bool live = vshCommandOptBool(cmd, "live");
     unsigned int flags = VIR_NETWORK_UPDATE_AFFECT_CURRENT;
-    const char *affected;
 
     VSH_EXCLUSIVE_OPTIONS("current", "live");
     VSH_EXCLUSIVE_OPTIONS("current", "config");
@@ -978,19 +977,22 @@ cmdNetworkUpdate(vshControl *ctl, const vshCmd *cmd)
 
     if (config) {
         if (live)
-            affected = _("persistent config and live state");
+            vshPrint(ctl, _("Updated network %s persistent config and live state"),
+                     virNetworkGetName(network));
         else
-            affected = _("persistent config");
+            vshPrint(ctl, _("Updated network %s persistent config"),
+                     virNetworkGetName(network));
     } else if (live) {
-            affected = _("live state");
+        vshPrint(ctl, _("Updated network %s live state"),
+                 virNetworkGetName(network));
     } else if (virNetworkIsActive(network)) {
-        affected = _("live state");
+        vshPrint(ctl, _("Updated network %s live state"),
+                 virNetworkGetName(network));
     } else {
-        affected = _("persistent config");
+        vshPrint(ctl, _("Updated network %s persistent config"),
+                 virNetworkGetName(network));
     }
 
-    vshPrint(ctl, _("Updated network %s %s"),
-             virNetworkGetName(network), affected);
     ret = true;
  cleanup:
     vshReportError(ctl);

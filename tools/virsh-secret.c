@@ -104,7 +104,7 @@ cmdSecretDefine(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
     }
 
-    vshPrint(ctl, _("Secret %s created\n"), uuid);
+    vshPrintExtra(ctl, _("Secret %s created\n"), uuid);
     ret = true;
 
  cleanup:
@@ -219,7 +219,7 @@ cmdSecretSetValue(vshControl *ctl, const vshCmd *cmd)
         vshError(ctl, "%s", _("Failed to set secret value"));
         goto cleanup;
     }
-    vshPrint(ctl, "%s", _("Secret value set\n"));
+    vshPrintExtra(ctl, "%s", _("Secret value set\n"));
     ret = true;
 
  cleanup:
@@ -253,7 +253,7 @@ static bool
 cmdSecretGetValue(vshControl *ctl, const vshCmd *cmd)
 {
     virSecretPtr secret;
-    char *base64;
+    char *base64 = NULL;
     unsigned char *value;
     size_t value_size;
     bool ret = false;
@@ -316,7 +316,7 @@ cmdSecretUndefine(vshControl *ctl, const vshCmd *cmd)
         vshError(ctl, _("Failed to delete secret %s"), uuid);
         goto cleanup;
     }
-    vshPrint(ctl, _("Secret %s deleted\n"), uuid);
+    vshPrintExtra(ctl, _("Secret %s deleted\n"), uuid);
     ret = true;
 
  cleanup:

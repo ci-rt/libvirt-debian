@@ -390,8 +390,63 @@ int qemuMonitorGetStatus(qemuMonitorPtr mon,
 int qemuMonitorSystemReset(qemuMonitorPtr mon);
 int qemuMonitorSystemPowerdown(qemuMonitorPtr mon);
 
+struct qemuMonitorQueryCpusEntry {
+    pid_t tid;
+    char *qom_path;
+};
+void qemuMonitorQueryCpusFree(struct qemuMonitorQueryCpusEntry *entries,
+                              size_t nentries);
+
+
+struct qemuMonitorQueryHotpluggableCpusEntry {
+    char *type; /* name of the cpu to use with device_add */
+    unsigned int vcpus; /* count of virtual cpus in the guest this entry adds */
+    char *qom_path; /* full device qom path only present for online cpus */
+    char *alias; /* device alias, may be NULL for non-hotpluggable entities */
+
+    /* topology information -1 if qemu didn't report given parameter */
+    int node_id;
+    int socket_id;
+    int core_id;
+    int thread_id;
+
+    /* internal data */
+    int enable_id;
+};
+void qemuMonitorQueryHotpluggableCpusFree(struct qemuMonitorQueryHotpluggableCpusEntry *entries,
+                                          size_t nentries);
+
+
+struct _qemuMonitorCPUInfo {
+    pid_t tid;
+    int id; /* order of enabling of the given cpu */
+
+    /* topology info for hotplug purposes. Hotplug of given vcpu impossible if
+     * all entries are -1 */
+    int socket_id;
+    int core_id;
+    int thread_id;
+    unsigned int vcpus; /* number of vcpus added if given entry is hotplugged */
+
+    /* name of the qemu type to add in case of hotplug */
+    char *type;
+
+    /* alias of an hotpluggable entry. Entries with alias can be hot-unplugged */
+    char *alias;
+
+    /* internal for use in the matching code */
+    char *qom_path;
+};
+typedef struct _qemuMonitorCPUInfo qemuMonitorCPUInfo;
+typedef qemuMonitorCPUInfo *qemuMonitorCPUInfoPtr;
+
+void qemuMonitorCPUInfoFree(qemuMonitorCPUInfoPtr list,
+                            size_t nitems);
 int qemuMonitorGetCPUInfo(qemuMonitorPtr mon,
-                          int **pids);
+                          qemuMonitorCPUInfoPtr *vcpus,
+                          size_t maxvcpus,
+                          bool hotplug);
+
 int qemuMonitorGetVirtType(qemuMonitorPtr mon,
                            virDomainVirtType *virtType);
 int qemuMonitorGetBalloonInfo(qemuMonitorPtr mon,
@@ -685,6 +740,8 @@ int qemuMonitorAttachPCIDiskController(qemuMonitorPtr mon,
                                        const char *bus,
                                        virPCIDeviceAddress *guestAddr);
 
+int qemuMonitorAddDeviceArgs(qemuMonitorPtr mon,
+                             virJSONValuePtr args);
 int qemuMonitorAddDevice(qemuMonitorPtr mon,
                          const char *devicestr);
 
@@ -835,6 +892,7 @@ struct _qemuMonitorMachineInfo {
     bool isDefault;
     char *alias;
     unsigned int maxCpus;
+    bool hotplugCpus;
 };
 
 int qemuMonitorGetMachines(qemuMonitorPtr mon,

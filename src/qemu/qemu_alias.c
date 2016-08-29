@@ -29,6 +29,8 @@
 #include "virstring.h"
 #include "network/bridge_driver.h"
 
+#define QEMU_DRIVE_HOST_PREFIX "drive-"
+
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
 VIR_LOG_INIT("qemu.qemu_alias");
@@ -451,18 +453,65 @@ qemuAssignDeviceAliases(virDomainDefPtr def, virQEMUCapsPtr qemuCaps)
 }
 
 
+/* qemuAliasFromDisk
+ * @disk: Pointer to a disk definition
+ *
+ * Generate and return an alias for the device disk '-drive'
+ *
+ * Returns NULL with error or a string containing the alias
+ */
 char *
 qemuAliasFromDisk(const virDomainDiskDef *disk)
 {
     char *ret;
 
     if (!disk->info.alias) {
-        virReportError(VIR_ERR_INVALID_ARG, "%s", _("disk does not have an alias"));
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("disk does not have an alias"));
         return NULL;
     }
 
-    ignore_value(virAsprintf(&ret, "drive-%s", disk->info.alias));
+    ignore_value(virAsprintf(&ret, "%s%s", QEMU_DRIVE_HOST_PREFIX,
+                             disk->info.alias));
 
+    return ret;
+}
+
+
+/* qemuAliasDiskDriveSkipPrefix:
+ * @dev_name: Pointer to a const char string
+ *
+ * If the QEMU_DRIVE_HOST_PREFIX exists in the input string, then
+ * increment the pointer and return it
+ */
+const char *
+qemuAliasDiskDriveSkipPrefix(const char *dev_name)
+{
+    if (STRPREFIX(dev_name, QEMU_DRIVE_HOST_PREFIX))
+        dev_name += strlen(QEMU_DRIVE_HOST_PREFIX);
+    return dev_name;
+}
+
+
+/* qemuAliasFromHostdev
+ * @hostdev: Pointer to host device
+ *
+ * Generate and return a string containing a drive alias
+ */
+char *
+qemuAliasFromHostdev(const virDomainHostdevDef *hostdev)
+{
+    char *ret;
+
+    if (!hostdev->info->alias) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("hostdev does not have an alias"));
+        return NULL;
+    }
+
+    ignore_value(virAsprintf(&ret, "%s-%s",
+                 virDomainDeviceAddressTypeToString(hostdev->info->type),
+                 hostdev->info->alias));
     return ret;
 }
 
