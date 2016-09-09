@@ -1990,14 +1990,10 @@ MANINFILES = \
 EXTRA_DIST = $(ICON_FILES) $(conf_DATA) virt-xml-validate.in \
 	virt-pki-validate.in virt-sanlock-cleanup.in \
 	libvirt-guests.sysconf virt-login-shell.conf virsh-edit.c \
-	virsh-domain.c virsh-domain-monitor.c virsh-host.c \
-	virsh-interface.c virsh-network.c virsh-nodedev.c \
-	virsh-nwfilter.c virsh-pool.c virsh-secret.c virsh-snapshot.c \
-	virsh-volume.c $(PODFILES) $(MANINFILES) $(NULL) \
-	libvirt-guests.sh.in libvirt-guests.init.in \
-	libvirt-guests.service.in wireshark/util/genxdrstub.pl \
-	wireshark/util/make-dissector-reg $(LIBVIRT_NSS_SOURCES) \
-	$(srcdir)/nss/libvirt_nss.syms \
+	$(PODFILES) $(MANINFILES) $(NULL) libvirt-guests.sh.in \
+	libvirt-guests.init.in libvirt-guests.service.in \
+	wireshark/util/genxdrstub.pl wireshark/util/make-dissector-reg \
+	$(LIBVIRT_NSS_SOURCES) $(srcdir)/nss/libvirt_nss.syms \
 	$(srcdir)/nss/libvirt_nss_bsd.syms
 CLEANFILES = $(am__append_10) $(bin_SCRIPTS) *.gcov .libs/*.gcda \
 	.libs/*.gcno *.gcno *.gcda *.i *.s $(man1_MANS) $(man8_MANS)

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt 2.1.0\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2016-08-28 22:05+0200\n"
+"POT-Creation-Date: 2016-09-02 15:18+0200\n"
 "PO-Revision-Date: 2015-02-27 04:59-0500\n"
 "Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
 "Language-Team: Icelandic (http://www.transifex.com/projects/p/fedora/"
@@ -1147,8 +1147,8 @@ msgstr ""
 #: src/conf/domain_conf.c:3038 src/libxl/libxl_driver.c:4699
 #: src/libxl/libxl_driver.c:4962 src/libxl/libxl_driver.c:5090
 #: src/libxl/libxl_driver.c:5143 src/libxl/libxl_driver.c:5508
-#: src/libxl/libxl_driver.c:5561 src/libxl/libxl_driver.c:5901
-#: src/libxl/libxl_driver.c:6254 src/lxc/lxc_driver.c:2387
+#: src/libxl/libxl_driver.c:5561 src/libxl/libxl_driver.c:5902
+#: src/libxl/libxl_driver.c:6255 src/lxc/lxc_driver.c:2387
 #: src/lxc/lxc_driver.c:2473 src/lxc/lxc_driver.c:3229
 #: src/lxc/lxc_driver.c:3307 src/lxc/lxc_driver.c:5426
 #: src/openvz/openvz_driver.c:2011 src/openvz/openvz_driver.c:2258
@@ -1217,13 +1217,13 @@ msgid "unsupported config type %s"
 msgstr ""
 
 #: src/bhyve/bhyve_driver.c:1597 src/bhyve/bhyve_driver.c:1604
-#: src/libxl/libxl_driver.c:6301 src/libxl/libxl_driver.c:6308
+#: src/libxl/libxl_driver.c:6302 src/libxl/libxl_driver.c:6309
 #: src/qemu/qemu_driver.c:18631
 #, fuzzy, c-format
 msgid "unknown virttype: %s"
 msgstr "unknown OS type %s"
 
-#: src/bhyve/bhyve_driver.c:1611 src/libxl/libxl_driver.c:6315
+#: src/bhyve/bhyve_driver.c:1611 src/libxl/libxl_driver.c:6316
 #: src/qemu/qemu_driver.c:18638
 #, fuzzy, c-format
 msgid "unknown architecture: %s"
@@ -6836,359 +6836,359 @@ msgstr ""
 msgid "%s: Invalid metric value, must be > 0 in route definition"
 msgstr ""
 
-#: src/conf/node_device_conf.c:690
+#: src/conf/node_device_conf.c:691
 #, c-format
 msgid "no block device path supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:709
+#: src/conf/node_device_conf.c:710
 #, c-format
 msgid "missing storage capability type for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:731
+#: src/conf/node_device_conf.c:732
 #, c-format
 msgid "no removable media size supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:732
+#: src/conf/node_device_conf.c:733
 #, c-format
 msgid "invalid removable media size supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:742
+#: src/conf/node_device_conf.c:743
 #, c-format
 msgid "unknown storage capability type '%s' for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:754
+#: src/conf/node_device_conf.c:755
 #, c-format
 msgid "no size supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:755
+#: src/conf/node_device_conf.c:756
 #, c-format
 msgid "invalid size supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:781 src/conf/node_device_conf.c:859
+#: src/conf/node_device_conf.c:782 src/conf/node_device_conf.c:860
 #, c-format
 msgid "no SCSI host ID supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:782 src/conf/node_device_conf.c:860
+#: src/conf/node_device_conf.c:783 src/conf/node_device_conf.c:861
 #, c-format
 msgid "invalid SCSI host ID supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:787
+#: src/conf/node_device_conf.c:788
 #, c-format
 msgid "no SCSI bus ID supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:788
+#: src/conf/node_device_conf.c:789
 #, c-format
 msgid "invalid SCSI bus ID supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:793
+#: src/conf/node_device_conf.c:794
 #, c-format
 msgid "no SCSI target ID supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:794
+#: src/conf/node_device_conf.c:795
 #, c-format
 msgid "invalid SCSI target ID supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:799
+#: src/conf/node_device_conf.c:800
 #, c-format
 msgid "no SCSI LUN ID supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:800
+#: src/conf/node_device_conf.c:801
 #, c-format
 msgid "invalid SCSI LUN ID supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:827
+#: src/conf/node_device_conf.c:828
 #, c-format
 msgid "no target name supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:867
+#: src/conf/node_device_conf.c:868
 #, fuzzy, c-format
 msgid "invalid unique_id supplied for '%s'"
 msgstr "invalid connection pointer in %s"
 
-#: src/conf/node_device_conf.c:880
+#: src/conf/node_device_conf.c:881
 #, c-format
 msgid "missing SCSI host capability type for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:903
+#: src/conf/node_device_conf.c:904
 #, c-format
 msgid "no WWNN supplied for '%s', and auto-generation failed"
 msgstr ""
 
-#: src/conf/node_device_conf.c:915
+#: src/conf/node_device_conf.c:916
 #, c-format
 msgid "no WWPN supplied for '%s', and auto-generation failed"
 msgstr ""
 
-#: src/conf/node_device_conf.c:926
+#: src/conf/node_device_conf.c:927
 #, c-format
 msgid "unknown SCSI host capability type '%s' for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:962
+#: src/conf/node_device_conf.c:963
 #, c-format
 msgid "no network interface supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:981
+#: src/conf/node_device_conf.c:982
 msgid "missing network device feature name"
 msgstr ""
 
-#: src/conf/node_device_conf.c:987
+#: src/conf/node_device_conf.c:988
 #, c-format
 msgid "unknown network device feature '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1003
+#: src/conf/node_device_conf.c:1004
 #, c-format
 msgid "invalid network type supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1036
+#: src/conf/node_device_conf.c:1037
 #, c-format
 msgid "no USB interface number supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1037
+#: src/conf/node_device_conf.c:1038
 #, c-format
 msgid "invalid USB interface number supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1042
+#: src/conf/node_device_conf.c:1043
 #, c-format
 msgid "no USB interface class supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1043
+#: src/conf/node_device_conf.c:1044
 #, c-format
 msgid "invalid USB interface class supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1048
+#: src/conf/node_device_conf.c:1049
 #, c-format
 msgid "no USB interface subclass supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1049
+#: src/conf/node_device_conf.c:1050
 #, c-format
 msgid "invalid USB interface subclass supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1054
+#: src/conf/node_device_conf.c:1055
 #, c-format
 msgid "no USB interface protocol supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1055
+#: src/conf/node_device_conf.c:1056
 #, c-format
 msgid "invalid USB interface protocol supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1103
+#: src/conf/node_device_conf.c:1104
 #, c-format
 msgid "no USB bus number supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1104
+#: src/conf/node_device_conf.c:1105
 #, c-format
 msgid "invalid USB bus number supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1109
+#: src/conf/node_device_conf.c:1110
 #, c-format
 msgid "no USB device number supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1110
+#: src/conf/node_device_conf.c:1111
 #, c-format
 msgid "invalid USB device number supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1115
+#: src/conf/node_device_conf.c:1116
 #, c-format
 msgid "no USB vendor ID supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1116
+#: src/conf/node_device_conf.c:1117
 #, c-format
 msgid "invalid USB vendor ID supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1121
+#: src/conf/node_device_conf.c:1122
 #, c-format
 msgid "no USB product ID supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1122
+#: src/conf/node_device_conf.c:1123
 #, c-format
 msgid "invalid USB product ID supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1151
+#: src/conf/node_device_conf.c:1152
 #, fuzzy
 msgid "missing iommuGroup number attribute"
 msgstr "missing source information for device"
 
-#: src/conf/node_device_conf.c:1157
+#: src/conf/node_device_conf.c:1158
 #, c-format
 msgid "invalid iommuGroup number attribute '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1203
+#: src/conf/node_device_conf.c:1204
 msgid "mandatory attribute 'width' is missing or malformed"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1210
+#: src/conf/node_device_conf.c:1211
 #, fuzzy, c-format
 msgid "malformed 'speed' attribute: %s"
 msgstr "Failed to start domain %s"
 
-#: src/conf/node_device_conf.c:1220
+#: src/conf/node_device_conf.c:1221
 #, fuzzy, c-format
 msgid "malformed 'port' attribute: %s"
 msgstr "Failed to start domain %s"
 
-#: src/conf/node_device_conf.c:1286
+#: src/conf/node_device_conf.c:1287
 msgid "Missing capability type"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1298
+#: src/conf/node_device_conf.c:1299
 msgid "Missing address in 'phys_function' capability"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1317
+#: src/conf/node_device_conf.c:1318
 msgid "Malformed 'maxCount' parameter"
-msgstr ""
-
-#: src/conf/node_device_conf.c:1378
-#, c-format
-msgid "no PCI domain ID supplied for '%s'"
 msgstr ""
 
 #: src/conf/node_device_conf.c:1379
 #, c-format
-msgid "invalid PCI domain ID supplied for '%s'"
+msgid "no PCI domain ID supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1384
+#: src/conf/node_device_conf.c:1380
 #, c-format
-msgid "no PCI bus ID supplied for '%s'"
+msgid "invalid PCI domain ID supplied for '%s'"
 msgstr ""
 
 #: src/conf/node_device_conf.c:1385
 #, c-format
-msgid "invalid PCI bus ID supplied for '%s'"
+msgid "no PCI bus ID supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1390
+#: src/conf/node_device_conf.c:1386
 #, c-format
-msgid "no PCI slot ID supplied for '%s'"
+msgid "invalid PCI bus ID supplied for '%s'"
 msgstr ""
 
 #: src/conf/node_device_conf.c:1391
 #, c-format
-msgid "invalid PCI slot ID supplied for '%s'"
+msgid "no PCI slot ID supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1396
+#: src/conf/node_device_conf.c:1392
 #, c-format
-msgid "no PCI function ID supplied for '%s'"
+msgid "invalid PCI slot ID supplied for '%s'"
 msgstr ""
 
 #: src/conf/node_device_conf.c:1397
 #, c-format
-msgid "invalid PCI function ID supplied for '%s'"
+msgid "no PCI function ID supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1402
+#: src/conf/node_device_conf.c:1398
 #, c-format
-msgid "no PCI vendor ID supplied for '%s'"
+msgid "invalid PCI function ID supplied for '%s'"
 msgstr ""
 
 #: src/conf/node_device_conf.c:1403
 #, c-format
-msgid "invalid PCI vendor ID supplied for '%s'"
+msgid "no PCI vendor ID supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1408
+#: src/conf/node_device_conf.c:1404
 #, c-format
-msgid "no PCI product ID supplied for '%s'"
+msgid "invalid PCI vendor ID supplied for '%s'"
 msgstr ""
 
 #: src/conf/node_device_conf.c:1409
 #, c-format
+msgid "no PCI product ID supplied for '%s'"
+msgstr ""
+
+#: src/conf/node_device_conf.c:1410
+#, c-format
 msgid "invalid PCI product ID supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1435
+#: src/conf/node_device_conf.c:1436
 #, fuzzy, c-format
 msgid "invalid NUMA node ID supplied for '%s'"
 msgstr "invalid connection pointer in %s"
 
-#: src/conf/node_device_conf.c:1481
+#: src/conf/node_device_conf.c:1482
 #, c-format
 msgid "no system UUID supplied for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1487
+#: src/conf/node_device_conf.c:1488
 #, c-format
 msgid "malformed uuid element for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1520
+#: src/conf/node_device_conf.c:1521
 msgid "missing capability type"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1526
+#: src/conf/node_device_conf.c:1527
 #, c-format
 msgid "unknown capability type '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1569
+#: src/conf/node_device_conf.c:1570
 #, c-format
 msgid "unknown capability type '%d' for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1621
+#: src/conf/node_device_conf.c:1622
 #, c-format
 msgid "no device capabilities for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1659
+#: src/conf/node_device_conf.c:1660
 #, c-format
 msgid "unexpected root element <%s> expecting <device>"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1688
+#: src/conf/node_device_conf.c:1689
 msgid "(node_device_definition)"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1742
+#: src/conf/node_device_conf.c:1743
 msgid "Device is not a fibre channel HBA"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1767
+#: src/conf/node_device_conf.c:1768
 #, c-format
 msgid "Could not find parent device for '%s'"
 msgstr ""
 
-#: src/conf/node_device_conf.c:1787
+#: src/conf/node_device_conf.c:1788
 #, c-format
 msgid "Parent device %s is not capable of vport operations"
 msgstr ""
@@ -11628,36 +11628,36 @@ msgstr ""
 msgid "unsupported disk driver %s"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:5713 src/qemu/qemu_driver.c:12637
+#: src/libxl/libxl_driver.c:5714 src/qemu/qemu_driver.c:12637
 #: src/xen/xen_driver.c:2341
 #, c-format
 msgid "device %s is not a PCI device"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:5757
+#: src/libxl/libxl_driver.c:5758
 #, fuzzy, c-format
 msgid "unsupported driver name '%s'"
 msgstr "unknown command: '%s'"
 
-#: src/libxl/libxl_driver.c:5890
+#: src/libxl/libxl_driver.c:5891
 msgid "Domain-0 cannot be migrated"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:6062 src/openvz/openvz_driver.c:2476
+#: src/libxl/libxl_driver.c:6063 src/openvz/openvz_driver.c:2476
 #, c-format
 msgid "Migration failed. No domain on destination host with matching name '%s'"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:6155 src/qemu/qemu_driver.c:19660
+#: src/libxl/libxl_driver.c:6156 src/qemu/qemu_driver.c:19660
 msgid "Network driver does not support DHCP lease query"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:6265
+#: src/libxl/libxl_driver.c:6266
 #, c-format
 msgid "Unsupported IP address data source %d"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:6326
+#: src/libxl/libxl_driver.c:6327
 msgid "Xen only supports 'xenpv' and 'xenfv' machines"
 msgstr ""
 
@@ -19414,7 +19414,6 @@ msgid "unknown migration protocol"
 msgstr ""
 
 #: src/qemu/qemu_migration.c:3144 src/qemu/qemu_migration.c:3622
-#: tools/virsh-domain.c:10323
 msgid "post-copy migration is not supported with non-live or paused migration"
 msgstr ""
 
@@ -37902,6 +37901,10 @@ msgstr ""
 
 #: tools/virsh-domain.c:10316
 msgid "migrate: Unexpected --timeout-* option without --timeout"
+msgstr ""
+
+#: tools/virsh-domain.c:10323
+msgid "--postcopy-after-precopy can only be used with --postcopy"
 msgstr ""
 
 #: tools/virsh-domain.c:10367
