@@ -1,3 +1,13 @@
+libvirt (2.2.0-1) unstable; urgency=medium
+
+  * [7772549] New upstream version 2.2.0~rc1
+  * [915ae31] Dropped qemu-Fix-the-command-line-generation-... applied
+    upstream
+  * [fa79b1f] Bump symbol versions
+  * [4e31006] New upstream version 2.2.0
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 09 Sep 2016 16:51:48 +0200
+
 libvirt (2.1.0-2) unstable; urgency=medium
 
   * [297be03] Reload virtlogd on updates (Closes: #833745)
