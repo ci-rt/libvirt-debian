@@ -7,11 +7,12 @@ DEB_BUILDUSER=$(shell dpkg-parsechangelog -SMaintainer)
 ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   ifneq (,$(findstring $(DEB_HOST_ARCH), i386 amd64))
     WITH_VBOX         = --with-vbox
-    MAKE_CHECK        = 1
+    FAIL_CHECK        = 1
   else
     WITH_VBOX         = --without-vbox
   endif
   ifneq (,$(findstring $(DEB_HOST_ARCH), i386 amd64 armhf arm64))
+    MAKE_CHECK        = 1
     WITH_XEN          = --with-xen
     WITH_LIBXL        = --with-libxl
     XEN_ENABLED       = 1
@@ -154,7 +155,7 @@ override_dh_auto_test:
 	if ! dh_auto_test -O--builddirectory=$(DEB_BUILDDIR); then \
 	    cat ./debian/build/gnulib/tests/test-suite.log \
 	        ./debian/build/tests/test-suite.log; \
-	    exit 1; \
+	    [ -n "$(FAIL_CHECK)" ] || exit 1; \
 	fi
 
 override_dh_install-arch:
