@@ -11,6 +11,6 @@ Depends: libvirt-daemon
 Restrictions: allow-stderr, needs-root
 
 Tests: build-test
-Depends: libvirt-dev, build-essential
+Depends: libvirt-dev, build-essential, pkg-config
 Restrictions: allow-stderr
 
