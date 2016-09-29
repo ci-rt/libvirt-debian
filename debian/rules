@@ -44,7 +44,7 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   else
       WITH_DTRACE     = --without-dtrace
   endif
-  ifneq (,$(findstring $(DEB_HOST_ARCH), amd64 i386 ia64 mips mipsel powerpc ppc64el))
+  ifneq (,$(findstring $(DEB_HOST_ARCH), amd64 arm64 i386 ia64 mips mipsel powerpc ppc64el))
       WITH_NUMA       = --with-numactl
   else
       WITH_NUMA       = --without-numactl
