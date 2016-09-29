@@ -709,9 +709,6 @@
           <ref name='virAdmServerGetClientLimits'/>
           <ref name='virAdmServerSetClientLimits'/>
         </word>
-        <word name='allways'>
-          <ref name='virAdmGetVersion'/>
-        </word>
         <word name='already'>
           <ref name='virAdmConnectIsAlive'/>
         </word>
@@ -726,6 +723,7 @@
           <ref name='virAdmClientGetInfo'/>
           <ref name='virAdmConnectListServers'/>
           <ref name='virAdmConnectLookupServer'/>
+          <ref name='virAdmGetVersion'/>
           <ref name='virAdmServerGetClientLimits'/>
           <ref name='virAdmServerGetThreadPoolParameters'/>
           <ref name='virAdmServerListClients'/>

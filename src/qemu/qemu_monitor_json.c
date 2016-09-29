@@ -941,7 +941,7 @@ qemuMonitorJSONHandleDeviceDeleted(qemuMonitorPtr mon, virJSONValuePtr data)
     const char *device;
 
     if (!(device = virJSONValueObjectGetString(data, "device"))) {
-        VIR_WARN("missing device in device deleted event");
+        VIR_DEBUG("missing device in device deleted event");
         return;
     }
 
@@ -4873,14 +4873,15 @@ int qemuMonitorJSONGetMachines(qemuMonitorPtr mon,
 }
 
 
-int qemuMonitorJSONGetCPUDefinitions(qemuMonitorPtr mon,
-                                     char ***cpus)
+int
+qemuMonitorJSONGetCPUDefinitions(qemuMonitorPtr mon,
+                                 qemuMonitorCPUDefInfoPtr **cpus)
 {
     int ret = -1;
     virJSONValuePtr cmd;
     virJSONValuePtr reply = NULL;
     virJSONValuePtr data;
-    char **cpulist = NULL;
+    qemuMonitorCPUDefInfoPtr *cpulist = NULL;
     int n = 0;
     size_t i;
 
@@ -4916,13 +4917,18 @@ int qemuMonitorJSONGetCPUDefinitions(qemuMonitorPtr mon,
         goto cleanup;
     }
 
-    /* null-terminated list */
-    if (VIR_ALLOC_N(cpulist, n + 1) < 0)
+    if (VIR_ALLOC_N(cpulist, n) < 0)
         goto cleanup;
 
     for (i = 0; i < n; i++) {
         virJSONValuePtr child = virJSONValueArrayGet(data, i);
         const char *tmp;
+        qemuMonitorCPUDefInfoPtr cpu;
+
+        if (VIR_ALLOC(cpu) < 0)
+            goto cleanup;
+
+        cpulist[i] = cpu;
 
         if (!(tmp = virJSONValueObjectGetString(child, "name"))) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -4930,7 +4936,7 @@ int qemuMonitorJSONGetCPUDefinitions(qemuMonitorPtr mon,
             goto cleanup;
         }
 
-        if (VIR_STRDUP(cpulist[i], tmp) < 0)
+        if (VIR_STRDUP(cpu->name, tmp) < 0)
             goto cleanup;
     }
 
@@ -4939,7 +4945,11 @@ int qemuMonitorJSONGetCPUDefinitions(qemuMonitorPtr mon,
     cpulist = NULL;
 
  cleanup:
-    virStringFreeList(cpulist);
+    if (cpulist) {
+        for (i = 0; i < n; i++)
+            qemuMonitorCPUDefInfoFree(cpulist[i]);
+        VIR_FREE(cpulist);
+    }
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
@@ -6155,6 +6165,7 @@ qemuMonitorJSONAttachCharDevCommand(const char *chrID,
     virJSONValuePtr data = NULL;
     virJSONValuePtr addr = NULL;
     const char *backend_type = NULL;
+    char *tlsalias = NULL;
     bool telnet;
 
     if (!(backend = virJSONValueNewObject()) ||
@@ -6200,6 +6211,13 @@ qemuMonitorJSONAttachCharDevCommand(const char *chrID,
             virJSONValueObjectAppendBoolean(data, "telnet", telnet) < 0 ||
             virJSONValueObjectAppendBoolean(data, "server", chr->data.tcp.listen) < 0)
             goto error;
+        if (chr->data.tcp.tlscreds) {
+            if (!(tlsalias = qemuAliasTLSObjFromChardevAlias(chrID)))
+                goto error;
+
+            if (virJSONValueObjectAppendString(data, "tls-creds", tlsalias) < 0)
+                goto error;
+        }
         break;
 
     case VIR_DOMAIN_CHR_TYPE_UDP:
@@ -6265,6 +6283,7 @@ qemuMonitorJSONAttachCharDevCommand(const char *chrID,
     return ret;
 
  error:
+    VIR_FREE(tlsalias);
     virJSONValueFree(addr);
     virJSONValueFree(data);
     virJSONValueFree(backend);

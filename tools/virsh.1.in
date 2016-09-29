@@ -129,7 +129,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2016-09-02" "libvirt-2.2.0" "Virtualization Support"
+.TH VIRSH 1 "2016-09-27" "libvirt-2.3.0" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -967,6 +967,12 @@ from virVcpuState enum,
 \&\*(L"perf.cmt\*(R" \- the cache usage in Byte currently used
 \&\*(L"perf.mbmt\*(R" \- total system bandwidth from one level of cache
 \&\*(L"perf.mbml\*(R" \- bandwidth of memory traffic for a memory controller
+\&\*(L"perf.cpu_cycles\*(R" \- the number of cpu cycles one instruction needs
+\&\*(L"perf.instructions\*(R" \- the count of instructions
+\&\*(L"perf.cache_references\*(R" \- the count of cache hits
+\&\*(L"perf.cache_misses\*(R" \- the count of caches misses
+.Sp
+See the \fBperf\fR command for more details about each event.
 .Sp
 \&\fI\-\-block\fR returns information about disks associated with each
 domain.  Using the \fI\-\-backing\fR flag extends this information to
@@ -2145,16 +2151,30 @@ from different sources can be supported by perf.
 Currently only \s-1QEMU/KVM\s0 supports this command. The \fI\-\-enable\fR and \fI\-\-disable\fR
 option combined with \fBeventSpec\fR can be used to enabled or disable specific
 performance event. \fBeventSpec\fR is a string list of one or more events
-separated by commas. Valid event names are \*(L"cmt\*(R", \*(L"mbmt\*(R", \*(L"mbml\*(R".
-\&\s-1CMT\s0 is a PQos (Platform Qos) feature to monitor the usage of cache by
-applications running on the platform.
-\&\s-1MBM \s0(Memory Bandwidth Monitoring) provides a way to monitor the Total
-system memory bandwidth between one level of cache and another (mbmt)
-and the amount of data (bytes/s) sent through the memory controller on
-the socket (mbml).
+separated by commas. Valid event names are as follows:
 .Sp
-The statistics can be retrieved using the \fBdomstats\fR command using the
-\&\fI\-\-perf\fR flag.
+\&\fBValid perf event names\fR
+  cmt              \- A PQos (Platform Qos) feature to monitor the
+                     usage of cache by applications running on the
+                     platform.
+  mbmt             \- Provides a way to monitor the total system
+                     memory bandwidth between one level of cache
+                     and another.
+  mbml             \- Provides a way to limit the amount of data
+                     (bytes/s) send through the memory controller
+                     on the socket.
+  cache_misses     \- Provides the count of cache misses by
+                     applications running on the platform.
+  cache_references \- Provides the count of cache hits by
+                     applications running on th e platform.
+  instructions     \- Provides the count of instructions executed
+                     by applications running on the platform.
+  cpu_cycles       \- Provides the number of cpu_cycles for one
+                     instruction. May be used with instructions
+                     in order to get a cycles per instruction.
+.Sp
+\&\fBNote\fR: The statistics can be retrieved using the \fBdomstats\fR command using
+the \fI\-\-perf\fR flag.
 .Sp
 If \fI\-\-live\fR is specified, affect a running guest.
 If \fI\-\-config\fR is specified, affect the next boot of a persistent guest.
@@ -2325,8 +2345,8 @@ elapse. This operation doesn't not necessarily fail if the domain is running.
 .IX Item "ttyconsole domain"
 Output the device used for the \s-1TTY\s0 console of the domain. If the information
 is not available the processes will provide an exit code of 1.
-.IP "\fBundefine\fR \fIdomain\fR [\fI\-\-managed\-save\fR] [\fI\-\-snapshots\-metadata\fR] [\fI\-\-nvram\fR] [ {\fI\-\-storage\fR \fBvolumes\fR | \fI\-\-remove\-all\-storage\fR [\fI\-\-delete\-snapshots\fR]} \fI\-\-wipe\-storage\fR]" 4
-.IX Item "undefine domain [--managed-save] [--snapshots-metadata] [--nvram] [ {--storage volumes | --remove-all-storage [--delete-snapshots]} --wipe-storage]"
+.IP "\fBundefine\fR \fIdomain\fR [\fI\-\-managed\-save\fR] [\fI\-\-snapshots\-metadata\fR] [\fI\-\-nvram\fR] [\fI\-\-keep\-nvram\fR] [ {\fI\-\-storage\fR \fBvolumes\fR | \fI\-\-remove\-all\-storage\fR [\fI\-\-delete\-snapshots\fR]} \fI\-\-wipe\-storage\fR]" 4
+.IX Item "undefine domain [--managed-save] [--snapshots-metadata] [--nvram] [--keep-nvram] [ {--storage volumes | --remove-all-storage [--delete-snapshots]} --wipe-storage]"
 Undefine a domain. If the domain is running, this converts it to a
 transient domain, without stopping it. If the domain is inactive,
 the domain configuration is removed.
@@ -2341,8 +2361,8 @@ domain.  Without the flag, attempts to undefine an inactive domain with
 snapshot metadata will fail.  If the domain is active, this flag is
 ignored.
 .Sp
-The \fI\-\-nvram\fR flag ensures no nvram (/domain/os/nvram/) file is
-left behind. If the domain has an nvram file and the flag is
+\&\fI\-\-nvram\fR and \fI\-\-keep\-nvram\fR specify accordingly to delete or keep nvram
+(/domain/os/nvram/) file. If the domain has an nvram file and the flags are
 omitted, the undefine will fail.
 .Sp
 The \fI\-\-storage\fR flag takes a parameter \fBvolumes\fR, which is a comma separated
@@ -2772,8 +2792,6 @@ make that device unusable by the rest of the physical host until a reboot.
 Detach \fInodedev\fR from the host, so that it can safely be used by
 guests via <hostdev> passthrough.  This is reversed with
 \&\fBnodedev-reattach\fR, and is done automatically for managed devices.
-For compatibility purposes, this command can also be spelled
-\&\fBnodedev-dettach\fR.
 .Sp
 Different backend drivers expect the device to be bound to different
 dummy devices. For example, \s-1QEMU\s0's \*(L"kvm\*(R" backend driver (the default)

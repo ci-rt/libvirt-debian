@@ -234,6 +234,9 @@ struct _qemuDomainObjPrivate {
     size_t masterKeyLen;
 };
 
+# define QEMU_DOMAIN_PRIVATE(vm)	\
+    ((qemuDomainObjPrivatePtr) (vm)->privateData)
+
 /* Type of domain secret */
 typedef enum {
     VIR_DOMAIN_SECRET_INFO_TYPE_PLAIN = 0,
@@ -722,10 +725,17 @@ int qemuDomainPrepareChannel(virDomainChrDefPtr chr,
                              const char *domainChannelTargetDir)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
+int qemuDomainPrepareShmemChardev(virDomainShmemDefPtr shmem)
+    ATTRIBUTE_NONNULL(1);
+
 bool qemuDomainVcpuHotplugIsInOrder(virDomainDefPtr def)
     ATTRIBUTE_NONNULL(1);
 
 void qemuDomainVcpuPersistOrder(virDomainDefPtr def)
     ATTRIBUTE_NONNULL(1);
+
+int qemuDomainCheckMonitor(virQEMUDriverPtr driver,
+                           virDomainObjPtr vm,
+                           qemuDomainAsyncJob asyncJob);
 
 #endif /* __QEMU_DOMAIN_H__ */

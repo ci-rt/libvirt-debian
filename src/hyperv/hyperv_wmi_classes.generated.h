@@ -3,6 +3,102 @@
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * CIM_DataFile
+ */
+
+#define CIM_DATAFILE_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/CIM_DataFile"
+
+#define CIM_DATAFILE_CLASSNAME \
+    "CIM_DataFile"
+
+#define CIM_DATAFILE_WQL_SELECT \
+    "select * from CIM_DataFile "
+
+struct _CIM_DataFile_Data {
+    XML_TYPE_UINT32 AccessMask;
+    XML_TYPE_BOOL Archive;
+    XML_TYPE_STR Caption;
+    XML_TYPE_BOOL Compressed;
+    XML_TYPE_STR CompressionMethod;
+    XML_TYPE_STR CreationClassName;
+    XML_TYPE_STR CreationDate;
+    XML_TYPE_STR CSCreationClassName;
+    XML_TYPE_STR CSName;
+    XML_TYPE_STR Description;
+    XML_TYPE_STR Drive;
+    XML_TYPE_STR EightDotThreeFileName;
+    XML_TYPE_BOOL Encrypted;
+    XML_TYPE_STR EncryptionMethod;
+    XML_TYPE_STR Extension;
+    XML_TYPE_STR FileName;
+    XML_TYPE_UINT64 FileSize;
+    XML_TYPE_STR FileType;
+    XML_TYPE_STR FSCreationClassName;
+    XML_TYPE_STR FSName;
+    XML_TYPE_BOOL Hidden;
+    XML_TYPE_STR InstallDate;
+    XML_TYPE_UINT64 InUseCount;
+    XML_TYPE_STR LastAccessed;
+    XML_TYPE_STR LastModified;
+    XML_TYPE_STR Manufacturer;
+    XML_TYPE_STR Name;
+    XML_TYPE_STR Path;
+    XML_TYPE_BOOL Readable;
+    XML_TYPE_STR Status;
+    XML_TYPE_BOOL System;
+    XML_TYPE_STR Version;
+    XML_TYPE_BOOL Writeable;
+};
+
+SER_DECLARE_TYPE(CIM_DataFile_Data);
+
+struct _CIM_DataFile {
+    XmlSerializerInfo *serializerInfo;
+    CIM_DataFile_Data *data;
+    CIM_DataFile *next;
+};
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Msvm_AllocationCapabilities
+ */
+
+#define MSVM_ALLOCATIONCAPABILITIES_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_AllocationCapabilities"
+
+#define MSVM_ALLOCATIONCAPABILITIES_CLASSNAME \
+    "Msvm_AllocationCapabilities"
+
+#define MSVM_ALLOCATIONCAPABILITIES_WQL_SELECT \
+    "select * from Msvm_AllocationCapabilities "
+
+struct _Msvm_AllocationCapabilities_Data {
+    XML_TYPE_STR Caption;
+    XML_TYPE_STR Description;
+    XML_TYPE_STR ElementName;
+    XML_TYPE_STR InstanceID;
+    XML_TYPE_STR OtherResourceType;
+    XML_TYPE_UINT16 RequestTypesSupported;
+    XML_TYPE_STR ResourceSubType;
+    XML_TYPE_UINT16 ResourceType;
+    XML_TYPE_UINT16 SharingMode;
+    XML_TYPE_DYN_ARRAY SupportedAddStates;
+    XML_TYPE_DYN_ARRAY SupportedRemoveStates;
+};
+
+SER_DECLARE_TYPE(Msvm_AllocationCapabilities_Data);
+
+struct _Msvm_AllocationCapabilities {
+    XmlSerializerInfo *serializerInfo;
+    Msvm_AllocationCapabilities_Data *data;
+    Msvm_AllocationCapabilities *next;
+};
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Msvm_ComputerSystem
  */
 
@@ -226,6 +322,395 @@ struct _Msvm_ProcessorSettingData {
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Msvm_ResourceAllocationSettingData
+ */
+
+#define MSVM_RESOURCEALLOCATIONSETTINGDATA_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_ResourceAllocationSettingData"
+
+#define MSVM_RESOURCEALLOCATIONSETTINGDATA_CLASSNAME \
+    "Msvm_ResourceAllocationSettingData"
+
+#define MSVM_RESOURCEALLOCATIONSETTINGDATA_WQL_SELECT \
+    "select * from Msvm_ResourceAllocationSettingData "
+
+struct _Msvm_ResourceAllocationSettingData_Data {
+    XML_TYPE_STR Caption;
+    XML_TYPE_STR Description;
+    XML_TYPE_STR InstanceID;
+    XML_TYPE_STR ElementName;
+    XML_TYPE_UINT16 ResourceType;
+    XML_TYPE_STR OtherResourceType;
+    XML_TYPE_STR ResourceSubType;
+    XML_TYPE_STR PoolID;
+    XML_TYPE_UINT16 ConsumerVisibility;
+    XML_TYPE_DYN_ARRAY HostResource;
+    XML_TYPE_STR AllocationUnits;
+    XML_TYPE_UINT64 VirtualQuantity;
+    XML_TYPE_UINT64 Reservation;
+    XML_TYPE_UINT64 Limit;
+    XML_TYPE_UINT32 Weight;
+    XML_TYPE_BOOL AutomaticAllocation;
+    XML_TYPE_BOOL AutomaticDeallocation;
+    XML_TYPE_STR Parent;
+    XML_TYPE_DYN_ARRAY Connection;
+    XML_TYPE_STR Address;
+    XML_TYPE_UINT16 MappingBehavior;
+    XML_TYPE_DYN_ARRAY VirtualSystemIdentifiers;
+};
+
+SER_DECLARE_TYPE(Msvm_ResourceAllocationSettingData_Data);
+
+struct _Msvm_ResourceAllocationSettingData {
+    XmlSerializerInfo *serializerInfo;
+    Msvm_ResourceAllocationSettingData_Data *data;
+    Msvm_ResourceAllocationSettingData *next;
+};
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Msvm_SwitchPort
+ */
+
+#define MSVM_SWITCHPORT_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_SwitchPort"
+
+#define MSVM_SWITCHPORT_CLASSNAME \
+    "Msvm_SwitchPort"
+
+#define MSVM_SWITCHPORT_WQL_SELECT \
+    "select * from Msvm_SwitchPort "
+
+struct _Msvm_SwitchPort_Data {
+    XML_TYPE_STR Caption;
+    XML_TYPE_STR ElementName;
+    XML_TYPE_STR InstallDate;
+    XML_TYPE_DYN_ARRAY StatusDescriptions;
+    XML_TYPE_STR Status;
+    XML_TYPE_UINT16 HealthState;
+    XML_TYPE_STR OtherEnabledState;
+    XML_TYPE_UINT16 RequestedState;
+    XML_TYPE_UINT16 EnabledDefault;
+    XML_TYPE_STR SystemCreationClassName;
+    XML_TYPE_STR SystemName;
+    XML_TYPE_STR CreationClassName;
+    XML_TYPE_STR Description;
+    XML_TYPE_DYN_ARRAY OperationalStatus;
+    XML_TYPE_UINT16 EnabledState;
+    XML_TYPE_STR TimeOfLastStateChange;
+    XML_TYPE_STR Name;
+    XML_TYPE_STR NameFormat;
+    XML_TYPE_UINT16 ProtocolType;
+    XML_TYPE_UINT16 ProtocolIFType;
+    XML_TYPE_STR OtherTypeDescription;
+    XML_TYPE_BOOL BroadcastResetSupported;
+    XML_TYPE_UINT16 PortNumber;
+    XML_TYPE_STR ScopeOfResidence;
+    XML_TYPE_UINT32 VMQOffloadWeight;
+    XML_TYPE_UINT32 ChimneyOffloadWeight;
+    XML_TYPE_UINT32 VMQOffloadUsage;
+    XML_TYPE_UINT32 ChimneyOffloadUsage;
+    XML_TYPE_UINT32 VMQOffloadLimit;
+    XML_TYPE_UINT32 ChimneyOffloadLimit;
+    XML_TYPE_BOOL AllowMacSpoofing;
+};
+
+SER_DECLARE_TYPE(Msvm_SwitchPort_Data);
+
+struct _Msvm_SwitchPort {
+    XmlSerializerInfo *serializerInfo;
+    Msvm_SwitchPort_Data *data;
+    Msvm_SwitchPort *next;
+};
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Msvm_SyntheticEthernetPortSettingData
+ */
+
+#define MSVM_SYNTHETICETHERNETPORTSETTINGDATA_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_SyntheticEthernetPortSettingData"
+
+#define MSVM_SYNTHETICETHERNETPORTSETTINGDATA_CLASSNAME \
+    "Msvm_SyntheticEthernetPortSettingData"
+
+#define MSVM_SYNTHETICETHERNETPORTSETTINGDATA_WQL_SELECT \
+    "select * from Msvm_SyntheticEthernetPortSettingData "
+
+struct _Msvm_SyntheticEthernetPortSettingData_Data {
+    XML_TYPE_STR Caption;
+    XML_TYPE_STR Description;
+    XML_TYPE_STR InstanceID;
+    XML_TYPE_STR ElementName;
+    XML_TYPE_UINT16 ResourceType;
+    XML_TYPE_STR OtherResourceType;
+    XML_TYPE_STR ResourceSubType;
+    XML_TYPE_STR PoolID;
+    XML_TYPE_UINT16 ConsumerVisibility;
+    XML_TYPE_DYN_ARRAY HostResource;
+    XML_TYPE_STR AllocationUnits;
+    XML_TYPE_UINT64 VirtualQuantity;
+    XML_TYPE_UINT64 Reservation;
+    XML_TYPE_UINT64 Limit;
+    XML_TYPE_UINT32 Weight;
+    XML_TYPE_BOOL AutomaticAllocation;
+    XML_TYPE_BOOL AutomaticDeallocation;
+    XML_TYPE_STR Parent;
+    XML_TYPE_DYN_ARRAY Connection;
+    XML_TYPE_STR Address;
+    XML_TYPE_UINT16 MappingBehavior;
+    XML_TYPE_DYN_ARRAY VirtualSystemIdentifiers;
+    XML_TYPE_BOOL StaticMacAddress;
+};
+
+SER_DECLARE_TYPE(Msvm_SyntheticEthernetPortSettingData_Data);
+
+struct _Msvm_SyntheticEthernetPortSettingData {
+    XmlSerializerInfo *serializerInfo;
+    Msvm_SyntheticEthernetPortSettingData_Data *data;
+    Msvm_SyntheticEthernetPortSettingData *next;
+};
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Msvm_VirtualHardDiskSettingData
+ */
+
+#define MSVM_VIRTUALHARDDISKSETTINGDATA_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_VirtualHardDiskSettingData"
+
+#define MSVM_VIRTUALHARDDISKSETTINGDATA_CLASSNAME \
+    "Msvm_VirtualHardDiskSettingData"
+
+#define MSVM_VIRTUALHARDDISKSETTINGDATA_WQL_SELECT \
+    "select * from Msvm_VirtualHardDiskSettingData "
+
+struct _Msvm_VirtualHardDiskSettingData_Data {
+    XML_TYPE_STR InstanceID;
+    XML_TYPE_STR Caption;
+    XML_TYPE_STR Description;
+    XML_TYPE_STR ElementName;
+    XML_TYPE_UINT16 Type;
+    XML_TYPE_UINT16 Format;
+    XML_TYPE_STR Path;
+    XML_TYPE_STR ParentPath;
+    XML_TYPE_UINT64 MaxInternalSize;
+    XML_TYPE_UINT32 BlockSize;
+    XML_TYPE_UINT32 LogicalSectorSize;
+    XML_TYPE_UINT32 PhysicalSectorSize;
+    XML_TYPE_STR VirtualDiskId;
+};
+
+SER_DECLARE_TYPE(Msvm_VirtualHardDiskSettingData_Data);
+
+struct _Msvm_VirtualHardDiskSettingData {
+    XmlSerializerInfo *serializerInfo;
+    Msvm_VirtualHardDiskSettingData_Data *data;
+    Msvm_VirtualHardDiskSettingData *next;
+};
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Msvm_VirtualSwitch
+ */
+
+#define MSVM_VIRTUALSWITCH_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_VirtualSwitch"
+
+#define MSVM_VIRTUALSWITCH_CLASSNAME \
+    "Msvm_VirtualSwitch"
+
+#define MSVM_VIRTUALSWITCH_WQL_SELECT \
+    "select * from Msvm_VirtualSwitch "
+
+struct _Msvm_VirtualSwitch_Data {
+    XML_TYPE_STR Caption;
+    XML_TYPE_STR Description;
+    XML_TYPE_STR ElementName;
+    XML_TYPE_STR InstallDate;
+    XML_TYPE_DYN_ARRAY OperationalStatus;
+    XML_TYPE_DYN_ARRAY StatusDescriptions;
+    XML_TYPE_STR Status;
+    XML_TYPE_UINT16 HealthState;
+    XML_TYPE_UINT16 EnabledState;
+    XML_TYPE_STR OtherEnabledState;
+    XML_TYPE_UINT16 RequestedState;
+    XML_TYPE_UINT16 EnabledDefault;
+    XML_TYPE_STR TimeOfLastStateChange;
+    XML_TYPE_STR CreationClassName;
+    XML_TYPE_STR Name;
+    XML_TYPE_STR PrimaryOwnerContact;
+    XML_TYPE_STR PrimaryOwnerName;
+    XML_TYPE_DYN_ARRAY Roles;
+    XML_TYPE_STR NameFormat;
+    XML_TYPE_DYN_ARRAY OtherIdentifyingInfo;
+    XML_TYPE_DYN_ARRAY IdentifyingDescriptions;
+    XML_TYPE_DYN_ARRAY Dedicated;
+    XML_TYPE_DYN_ARRAY OtherDedicatedDescriptions;
+    XML_TYPE_UINT16 ResetCapability;
+    XML_TYPE_DYN_ARRAY PowerManagementCapabilities;
+    XML_TYPE_STR ScopeOfResidence;
+    XML_TYPE_UINT32 NumLearnableAddresses;
+    XML_TYPE_UINT32 MaxVMQOffloads;
+    XML_TYPE_UINT32 MaxChimneyOffloads;
+};
+
+SER_DECLARE_TYPE(Msvm_VirtualSwitch_Data);
+
+struct _Msvm_VirtualSwitch {
+    XmlSerializerInfo *serializerInfo;
+    Msvm_VirtualSwitch_Data *data;
+    Msvm_VirtualSwitch *next;
+};
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Msvm_VirtualSwitchManagementService
+ */
+
+#define MSVM_VIRTUALSWITCHMANAGEMENTSERVICE_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_VirtualSwitchManagementService"
+
+#define MSVM_VIRTUALSWITCHMANAGEMENTSERVICE_CLASSNAME \
+    "Msvm_VirtualSwitchManagementService"
+
+#define MSVM_VIRTUALSWITCHMANAGEMENTSERVICE_WQL_SELECT \
+    "select * from Msvm_VirtualSwitchManagementService "
+
+struct _Msvm_VirtualSwitchManagementService_Data {
+    XML_TYPE_STR Caption;
+    XML_TYPE_STR Description;
+    XML_TYPE_STR ElementName;
+    XML_TYPE_STR InstallDate;
+    XML_TYPE_DYN_ARRAY OperationalStatus;
+    XML_TYPE_DYN_ARRAY StatusDescriptions;
+    XML_TYPE_STR Status;
+    XML_TYPE_UINT16 HealthState;
+    XML_TYPE_UINT16 EnabledState;
+    XML_TYPE_STR OtherEnabledState;
+    XML_TYPE_UINT16 RequestedState;
+    XML_TYPE_UINT16 EnabledDefault;
+    XML_TYPE_STR TimeOfLastStateChange;
+    XML_TYPE_STR SystemCreationClassName;
+    XML_TYPE_STR SystemName;
+    XML_TYPE_STR CreationClassName;
+    XML_TYPE_STR Name;
+    XML_TYPE_STR PrimaryOwnerName;
+    XML_TYPE_STR PrimaryOwnerContact;
+    XML_TYPE_STR StartMode;
+    XML_TYPE_BOOL Started;
+};
+
+SER_DECLARE_TYPE(Msvm_VirtualSwitchManagementService_Data);
+
+struct _Msvm_VirtualSwitchManagementService {
+    XmlSerializerInfo *serializerInfo;
+    Msvm_VirtualSwitchManagementService_Data *data;
+    Msvm_VirtualSwitchManagementService *next;
+};
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Msvm_VirtualSystemGlobalSettingData
+ */
+
+#define MSVM_VIRTUALSYSTEMGLOBALSETTINGDATA_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_VirtualSystemGlobalSettingData"
+
+#define MSVM_VIRTUALSYSTEMGLOBALSETTINGDATA_CLASSNAME \
+    "Msvm_VirtualSystemGlobalSettingData"
+
+#define MSVM_VIRTUALSYSTEMGLOBALSETTINGDATA_WQL_SELECT \
+    "select * from Msvm_VirtualSystemGlobalSettingData "
+
+struct _Msvm_VirtualSystemGlobalSettingData_Data {
+    XML_TYPE_STR Caption;
+    XML_TYPE_STR Description;
+    XML_TYPE_STR ElementName;
+    XML_TYPE_STR InstanceID;
+    XML_TYPE_STR SystemName;
+    XML_TYPE_UINT16 SettingType;
+    XML_TYPE_UINT16 VirtualSystemType;
+    XML_TYPE_STR OtherVirtualSystemType;
+    XML_TYPE_BOOL AutoActivate;
+    XML_TYPE_STR CreationTime;
+    XML_TYPE_STR ExternalDataRoot;
+    XML_TYPE_STR SnapshotDataRoot;
+    XML_TYPE_UINT16 AutomaticStartupAction;
+    XML_TYPE_STR AutomaticStartupActionDelay;
+    XML_TYPE_UINT16 AutomaticShutdownAction;
+    XML_TYPE_UINT16 AutomaticRecoveryAction;
+    XML_TYPE_STR AdditionalRecoveryInformation;
+    XML_TYPE_STR ScopeOfResidence;
+    XML_TYPE_UINT32 DebugChannelId;
+    XML_TYPE_BOOL AllowFullSCSICommandSet;
+    XML_TYPE_STR Version;
+};
+
+SER_DECLARE_TYPE(Msvm_VirtualSystemGlobalSettingData_Data);
+
+struct _Msvm_VirtualSystemGlobalSettingData {
+    XmlSerializerInfo *serializerInfo;
+    Msvm_VirtualSystemGlobalSettingData_Data *data;
+    Msvm_VirtualSystemGlobalSettingData *next;
+};
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Msvm_VirtualSystemManagementService
+ */
+
+#define MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_VirtualSystemManagementService"
+
+#define MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_CLASSNAME \
+    "Msvm_VirtualSystemManagementService"
+
+#define MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_WQL_SELECT \
+    "select * from Msvm_VirtualSystemManagementService "
+
+struct _Msvm_VirtualSystemManagementService_Data {
+    XML_TYPE_STR Caption;
+    XML_TYPE_STR Description;
+    XML_TYPE_STR ElementName;
+    XML_TYPE_STR InstallDate;
+    XML_TYPE_UINT16 OperationalStatus;
+    XML_TYPE_STR StatusDescriptions;
+    XML_TYPE_STR Status;
+    XML_TYPE_UINT16 HealthState;
+    XML_TYPE_UINT16 EnabledState;
+    XML_TYPE_STR OtherEnabledState;
+    XML_TYPE_UINT16 RequestedState;
+    XML_TYPE_UINT16 EnabledDefault;
+    XML_TYPE_STR TimeOfLastStateChange;
+    XML_TYPE_STR SystemCreationClassName;
+    XML_TYPE_STR SystemName;
+    XML_TYPE_STR CreationClassName;
+    XML_TYPE_STR Name;
+    XML_TYPE_STR PrimaryOwnerName;
+    XML_TYPE_STR PrimaryOwnerContact;
+    XML_TYPE_STR StartMode;
+    XML_TYPE_BOOL Started;
+};
+
+SER_DECLARE_TYPE(Msvm_VirtualSystemManagementService_Data);
+
+struct _Msvm_VirtualSystemManagementService {
+    XmlSerializerInfo *serializerInfo;
+    Msvm_VirtualSystemManagementService_Data *data;
+    Msvm_VirtualSystemManagementService *next;
+};
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Msvm_VirtualSystemSettingData
  */
 
@@ -351,6 +836,260 @@ struct _Win32_ComputerSystem {
     XmlSerializerInfo *serializerInfo;
     Win32_ComputerSystem_Data *data;
     Win32_ComputerSystem *next;
+};
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Win32_ComputerSystemProduct
+ */
+
+#define WIN32_COMPUTERSYSTEMPRODUCT_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_ComputerSystemProduct"
+
+#define WIN32_COMPUTERSYSTEMPRODUCT_CLASSNAME \
+    "Win32_ComputerSystemProduct"
+
+#define WIN32_COMPUTERSYSTEMPRODUCT_WQL_SELECT \
+    "select * from Win32_ComputerSystemProduct "
+
+struct _Win32_ComputerSystemProduct_Data {
+    XML_TYPE_STR Caption;
+    XML_TYPE_STR Description;
+    XML_TYPE_STR IdentifyingNumber;
+    XML_TYPE_STR Name;
+    XML_TYPE_STR SKUNumber;
+    XML_TYPE_STR UUID;
+    XML_TYPE_STR Vendor;
+    XML_TYPE_STR Version;
+};
+
+SER_DECLARE_TYPE(Win32_ComputerSystemProduct_Data);
+
+struct _Win32_ComputerSystemProduct {
+    XmlSerializerInfo *serializerInfo;
+    Win32_ComputerSystemProduct_Data *data;
+    Win32_ComputerSystemProduct *next;
+};
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Win32_OperatingSystem
+ */
+
+#define WIN32_OPERATINGSYSTEM_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_OperatingSystem"
+
+#define WIN32_OPERATINGSYSTEM_CLASSNAME \
+    "Win32_OperatingSystem"
+
+#define WIN32_OPERATINGSYSTEM_WQL_SELECT \
+    "select * from Win32_OperatingSystem "
+
+struct _Win32_OperatingSystem_Data {
+    XML_TYPE_STR BootDevice;
+    XML_TYPE_STR BuildNumber;
+    XML_TYPE_STR BuildType;
+    XML_TYPE_STR Caption;
+    XML_TYPE_STR CodeSet;
+    XML_TYPE_STR CountryCode;
+    XML_TYPE_STR CreationClassName;
+    XML_TYPE_STR CSCreationClassName;
+    XML_TYPE_STR CSDVersion;
+    XML_TYPE_STR CSName;
+    XML_TYPE_UINT16 CurrentTimeZone;
+    XML_TYPE_BOOL DataExecutionPrevention_Available;
+    XML_TYPE_BOOL DataExecutionPrevention_32BitApplications;
+    XML_TYPE_BOOL DataExecutionPrevention_Drivers;
+    XML_TYPE_UINT8 DataExecutionPrevention_SupportPolicy;
+    XML_TYPE_BOOL Debug;
+    XML_TYPE_STR Description;
+    XML_TYPE_BOOL Distributed;
+    XML_TYPE_UINT32 EncryptionLevel;
+    XML_TYPE_UINT8 ForegroundApplicationBoost;
+    XML_TYPE_UINT64 FreePhysicalMemory;
+    XML_TYPE_UINT64 FreeSpaceInPagingFiles;
+    XML_TYPE_UINT64 FreeVirtualMemory;
+    XML_TYPE_STR InstallDate;
+    XML_TYPE_UINT32 LargeSystemCache;
+    XML_TYPE_STR LastBootUpTime;
+    XML_TYPE_STR LocalDateTime;
+    XML_TYPE_STR Locale;
+    XML_TYPE_STR Manufacturer;
+    XML_TYPE_UINT32 MaxNumberOfProcesses;
+    XML_TYPE_UINT64 MaxProcessMemorySize;
+    XML_TYPE_DYN_ARRAY MUILanguages;
+    XML_TYPE_STR Name;
+    XML_TYPE_UINT32 NumberOfLicensedUsers;
+    XML_TYPE_UINT32 NumberOfProcesses;
+    XML_TYPE_UINT32 NumberOfUsers;
+    XML_TYPE_UINT32 OperatingSystemSKU;
+    XML_TYPE_STR Organization;
+    XML_TYPE_STR OSArchitecture;
+    XML_TYPE_UINT32 OSLanguage;
+    XML_TYPE_UINT32 OSProductSuite;
+    XML_TYPE_UINT16 OSType;
+    XML_TYPE_STR OtherTypeDescription;
+    XML_TYPE_BOOL PAEEnabled;
+    XML_TYPE_STR PlusProductID;
+    XML_TYPE_STR PlusVersionNumber;
+    XML_TYPE_BOOL Primary;
+    XML_TYPE_UINT32 ProductType;
+    XML_TYPE_STR RegisteredUser;
+    XML_TYPE_STR SerialNumber;
+    XML_TYPE_UINT16 ServicePackMajorVersion;
+    XML_TYPE_UINT16 ServicePackMinorVersion;
+    XML_TYPE_UINT64 SizeStoredInPagingFiles;
+    XML_TYPE_STR Status;
+    XML_TYPE_UINT32 SuiteMask;
+    XML_TYPE_STR SystemDevice;
+    XML_TYPE_STR SystemDirectory;
+    XML_TYPE_STR SystemDrive;
+    XML_TYPE_UINT64 TotalSwapSpaceSize;
+    XML_TYPE_UINT64 TotalVirtualMemorySize;
+    XML_TYPE_UINT64 TotalVisibleMemorySize;
+    XML_TYPE_STR Version;
+    XML_TYPE_STR WindowsDirectory;
+};
+
+SER_DECLARE_TYPE(Win32_OperatingSystem_Data);
+
+struct _Win32_OperatingSystem {
+    XmlSerializerInfo *serializerInfo;
+    Win32_OperatingSystem_Data *data;
+    Win32_OperatingSystem *next;
+};
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor
+ */
+
+#define WIN32_PERFRAWDATA_HVSTATS_HYPERVHYPERVISORVIRTUALPROCESSOR_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor"
+
+#define WIN32_PERFRAWDATA_HVSTATS_HYPERVHYPERVISORVIRTUALPROCESSOR_CLASSNAME \
+    "Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor"
+
+#define WIN32_PERFRAWDATA_HVSTATS_HYPERVHYPERVISORVIRTUALPROCESSOR_WQL_SELECT \
+    "select * from Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor "
+
+struct _Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor_Data {
+    XML_TYPE_UINT64 AddressDomainFlushesPersec;
+    XML_TYPE_UINT64 AddressSpaceEvictionsPersec;
+    XML_TYPE_UINT64 AddressSpaceFlushesPersec;
+    XML_TYPE_UINT64 AddressSpaceSwitchesPersec;
+    XML_TYPE_UINT64 APICEOIAccessesPersec;
+    XML_TYPE_UINT64 APICIPIsSentPersec;
+    XML_TYPE_UINT64 APICMMIOAccessesPersec;
+    XML_TYPE_UINT64 APICSelfIPIsSentPersec;
+    XML_TYPE_UINT64 APICTPRAccessesPersec;
+    XML_TYPE_STR Caption;
+    XML_TYPE_UINT64 ControlRegisterAccessesCost;
+    XML_TYPE_UINT64 ControlRegisterAccessesCost_Base;
+    XML_TYPE_UINT64 ControlRegisterAccessesPersec;
+    XML_TYPE_UINT64 CPUIDInstructionsCost;
+    XML_TYPE_UINT64 CPUIDInstructionsCost_Base;
+    XML_TYPE_UINT64 CPUIDInstructionsPersec;
+    XML_TYPE_UINT64 CPUWaitTimePerDispatch;
+    XML_TYPE_UINT64 CPUWaitTimePerDispatch_Base;
+    XML_TYPE_UINT64 DebugRegisterAccessesCost;
+    XML_TYPE_UINT64 DebugRegisterAccessesCost_Base;
+    XML_TYPE_UINT64 DebugRegisterAccessesPersec;
+    XML_TYPE_STR Description;
+    XML_TYPE_UINT64 EmulatedInstructionsCost;
+    XML_TYPE_UINT64 EmulatedInstructionsCost_Base;
+    XML_TYPE_UINT64 EmulatedInstructionsPersec;
+    XML_TYPE_UINT64 ExternalInterruptsCost;
+    XML_TYPE_UINT64 ExternalInterruptsCost_Base;
+    XML_TYPE_UINT64 ExternalInterruptsPersec;
+    XML_TYPE_UINT64 Frequency_Object;
+    XML_TYPE_UINT64 Frequency_PerfTime;
+    XML_TYPE_UINT64 Frequency_Sys100NS;
+    XML_TYPE_UINT64 GlobalGVARangeFlushesPersec;
+    XML_TYPE_UINT64 GPASpaceHypercallsPersec;
+    XML_TYPE_UINT64 GuestPageTableMapsPersec;
+    XML_TYPE_UINT64 HardwareInterruptsPersec;
+    XML_TYPE_UINT64 HLTInstructionsCost;
+    XML_TYPE_UINT64 HLTInstructionsCost_Base;
+    XML_TYPE_UINT64 HLTInstructionsPersec;
+    XML_TYPE_UINT64 HypercallsCost;
+    XML_TYPE_UINT64 HypercallsCost_Base;
+    XML_TYPE_UINT64 HypercallsPersec;
+    XML_TYPE_UINT64 IOInstructionsCost;
+    XML_TYPE_UINT64 IOInstructionsCost_Base;
+    XML_TYPE_UINT64 IOInstructionsPersec;
+    XML_TYPE_UINT64 IOInterceptMessagesPersec;
+    XML_TYPE_UINT64 LargePageTLBFillsPersec;
+    XML_TYPE_UINT64 LocalFlushedGVARangesPersec;
+    XML_TYPE_UINT64 LogicalProcessorDispatchesPersec;
+    XML_TYPE_UINT64 LogicalProcessorHypercallsPersec;
+    XML_TYPE_UINT64 LogicalProcessorMigrationsPersec;
+    XML_TYPE_UINT64 LongSpinWaitHypercallsPersec;
+    XML_TYPE_UINT64 MemoryInterceptMessagesPersec;
+    XML_TYPE_UINT64 MSRAccessesCost;
+    XML_TYPE_UINT64 MSRAccessesCost_Base;
+    XML_TYPE_UINT64 MSRAccessesPersec;
+    XML_TYPE_UINT64 MWAITInstructionsCost;
+    XML_TYPE_UINT64 MWAITInstructionsCost_Base;
+    XML_TYPE_UINT64 MWAITInstructionsPersec;
+    XML_TYPE_STR Name;
+    XML_TYPE_UINT64 NestedPageFaultInterceptsCost;
+    XML_TYPE_UINT64 NestedPageFaultInterceptsCost_Base;
+    XML_TYPE_UINT64 NestedPageFaultInterceptsPersec;
+    XML_TYPE_UINT64 OtherHypercallsPersec;
+    XML_TYPE_UINT64 OtherInterceptsCost;
+    XML_TYPE_UINT64 OtherInterceptsCost_Base;
+    XML_TYPE_UINT64 OtherInterceptsPersec;
+    XML_TYPE_UINT64 OtherMessagesPersec;
+    XML_TYPE_UINT64 PageFaultInterceptsCost;
+    XML_TYPE_UINT64 PageFaultInterceptsCost_Base;
+    XML_TYPE_UINT64 PageFaultInterceptsPersec;
+    XML_TYPE_UINT64 PageInvalidationsCost;
+    XML_TYPE_UINT64 PageInvalidationsCost_Base;
+    XML_TYPE_UINT64 PageInvalidationsPersec;
+    XML_TYPE_UINT64 PageTableAllocationsPersec;
+    XML_TYPE_UINT64 PageTableEvictionsPersec;
+    XML_TYPE_UINT64 PageTableReclamationsPersec;
+    XML_TYPE_UINT64 PageTableResetsPersec;
+    XML_TYPE_UINT64 PageTableValidationsPersec;
+    XML_TYPE_UINT64 PageTableWriteInterceptsPersec;
+    XML_TYPE_UINT64 PendingInterruptsCost;
+    XML_TYPE_UINT64 PendingInterruptsCost_Base;
+    XML_TYPE_UINT64 PendingInterruptsPersec;
+    XML_TYPE_UINT64 PercentGuestRunTime;
+    XML_TYPE_UINT64 PercentGuestRunTime_Base;
+    XML_TYPE_UINT64 PercentHypervisorRunTime;
+    XML_TYPE_UINT64 PercentHypervisorRunTime_Base;
+    XML_TYPE_UINT64 PercentRemoteRunTime;
+    XML_TYPE_UINT64 PercentRemoteRunTime_Base;
+    XML_TYPE_UINT64 PercentTotalRunTime;
+    XML_TYPE_UINT64 PercentTotalRunTime_Base;
+    XML_TYPE_UINT64 ReflectedGuestPageFaultsPersec;
+    XML_TYPE_UINT64 SmallPageTLBFillsPersec;
+    XML_TYPE_UINT64 SyntheticInterruptHypercallsPersec;
+    XML_TYPE_UINT64 SyntheticInterruptsPersec;
+    XML_TYPE_UINT64 Timestamp_Object;
+    XML_TYPE_UINT64 Timestamp_PerfTime;
+    XML_TYPE_UINT64 Timestamp_Sys100NS;
+    XML_TYPE_UINT64 TotalInterceptsCost;
+    XML_TYPE_UINT64 TotalInterceptsCost_Base;
+    XML_TYPE_UINT64 TotalInterceptsPersec;
+    XML_TYPE_UINT64 TotalMessagesPersec;
+    XML_TYPE_UINT64 VirtualInterruptHypercallsPersec;
+    XML_TYPE_UINT64 VirtualInterruptsPersec;
+    XML_TYPE_UINT64 VirtualMMUHypercallsPersec;
+    XML_TYPE_UINT64 VirtualProcessorHypercallsPersec;
+};
+
+SER_DECLARE_TYPE(Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor_Data);
+
+struct _Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor {
+    XmlSerializerInfo *serializerInfo;
+    Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor_Data *data;
+    Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor *next;
 };
 
 

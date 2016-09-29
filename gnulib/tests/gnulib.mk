@@ -649,6 +649,22 @@ EXTRA_DIST += test-getpeername.c signature.h macros.h
 
 ## end   gnulib module getpeername-tests
 
+## begin gnulib module getprogname
+
+libtests_a_SOURCES += getprogname.h getprogname.c
+
+## end   gnulib module getprogname
+
+## begin gnulib module getprogname-tests
+
+DEFS += -DEXEEXT=\"@EXEEXT@\"
+GNULIB_TESTS += test-getprogname
+check_PROGRAMS += test-getprogname
+test_getprogname_LDADD = $(LDADD)
+EXTRA_DIST += test-getprogname.c
+
+## end   gnulib module getprogname-tests
+
 ## begin gnulib module getsockname-tests
 
 GNULIB_TESTS += test-getsockname
@@ -876,6 +892,14 @@ test_ldexp_LDADD = $(LDADD) @LDEXP_LIBM@
 EXTRA_DIST += test-ldexp.c test-ldexp.h minus-zero.h infinity.h nan.h signature.h macros.h randomd.c
 
 ## end   gnulib module ldexp-tests
+
+## begin gnulib module limits-h-tests
+
+GNULIB_TESTS += test-limits-h
+check_PROGRAMS += test-limits-h
+EXTRA_DIST += test-limits-h.c
+
+## end   gnulib module limits-h-tests
 
 ## begin gnulib module listen-tests
 
@@ -1596,12 +1620,6 @@ endif
 EXTRA_DIST += test-posix_spawn1.c test-posix_spawn1.in.sh test-posix_spawn2.c test-posix_spawn2.in.sh signature.h
 
 ## end   gnulib module posix_spawnp-tests
-
-## begin gnulib module progname
-
-libtests_a_SOURCES += progname.h progname.c
-
-## end   gnulib module progname
 
 ## begin gnulib module pthread_sigmask-tests
 

@@ -3,6 +3,38 @@
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * CIM_DataFile
+ */
+
+int
+hypervGetCIMDataFileList(hypervPrivate *priv, virBufferPtr query, CIM_DataFile **list)
+{
+    return hypervEnumAndPull(priv, query, ROOT_CIMV2,
+                             CIM_DataFile_Data_TypeInfo,
+                             CIM_DATAFILE_RESOURCE_URI,
+                             CIM_DATAFILE_CLASSNAME,
+                             (hypervObject **)list);
+}
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Msvm_AllocationCapabilities
+ */
+
+int
+hypervGetMsvmAllocationCapabilitiesList(hypervPrivate *priv, virBufferPtr query, Msvm_AllocationCapabilities **list)
+{
+    return hypervEnumAndPull(priv, query, ROOT_VIRTUALIZATION,
+                             Msvm_AllocationCapabilities_Data_TypeInfo,
+                             MSVM_ALLOCATIONCAPABILITIES_RESOURCE_URI,
+                             MSVM_ALLOCATIONCAPABILITIES_CLASSNAME,
+                             (hypervObject **)list);
+}
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Msvm_ComputerSystem
  */
 
@@ -67,6 +99,134 @@ hypervGetMsvmProcessorSettingDataList(hypervPrivate *priv, virBufferPtr query, M
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Msvm_ResourceAllocationSettingData
+ */
+
+int
+hypervGetMsvmResourceAllocationSettingDataList(hypervPrivate *priv, virBufferPtr query, Msvm_ResourceAllocationSettingData **list)
+{
+    return hypervEnumAndPull(priv, query, ROOT_VIRTUALIZATION,
+                             Msvm_ResourceAllocationSettingData_Data_TypeInfo,
+                             MSVM_RESOURCEALLOCATIONSETTINGDATA_RESOURCE_URI,
+                             MSVM_RESOURCEALLOCATIONSETTINGDATA_CLASSNAME,
+                             (hypervObject **)list);
+}
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Msvm_SwitchPort
+ */
+
+int
+hypervGetMsvmSwitchPortList(hypervPrivate *priv, virBufferPtr query, Msvm_SwitchPort **list)
+{
+    return hypervEnumAndPull(priv, query, ROOT_VIRTUALIZATION,
+                             Msvm_SwitchPort_Data_TypeInfo,
+                             MSVM_SWITCHPORT_RESOURCE_URI,
+                             MSVM_SWITCHPORT_CLASSNAME,
+                             (hypervObject **)list);
+}
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Msvm_SyntheticEthernetPortSettingData
+ */
+
+int
+hypervGetMsvmSyntheticEthernetPortSettingDataList(hypervPrivate *priv, virBufferPtr query, Msvm_SyntheticEthernetPortSettingData **list)
+{
+    return hypervEnumAndPull(priv, query, ROOT_VIRTUALIZATION,
+                             Msvm_SyntheticEthernetPortSettingData_Data_TypeInfo,
+                             MSVM_SYNTHETICETHERNETPORTSETTINGDATA_RESOURCE_URI,
+                             MSVM_SYNTHETICETHERNETPORTSETTINGDATA_CLASSNAME,
+                             (hypervObject **)list);
+}
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Msvm_VirtualHardDiskSettingData
+ */
+
+int
+hypervGetMsvmVirtualHardDiskSettingDataList(hypervPrivate *priv, virBufferPtr query, Msvm_VirtualHardDiskSettingData **list)
+{
+    return hypervEnumAndPull(priv, query, ROOT_VIRTUALIZATION,
+                             Msvm_VirtualHardDiskSettingData_Data_TypeInfo,
+                             MSVM_VIRTUALHARDDISKSETTINGDATA_RESOURCE_URI,
+                             MSVM_VIRTUALHARDDISKSETTINGDATA_CLASSNAME,
+                             (hypervObject **)list);
+}
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Msvm_VirtualSwitch
+ */
+
+int
+hypervGetMsvmVirtualSwitchList(hypervPrivate *priv, virBufferPtr query, Msvm_VirtualSwitch **list)
+{
+    return hypervEnumAndPull(priv, query, ROOT_VIRTUALIZATION,
+                             Msvm_VirtualSwitch_Data_TypeInfo,
+                             MSVM_VIRTUALSWITCH_RESOURCE_URI,
+                             MSVM_VIRTUALSWITCH_CLASSNAME,
+                             (hypervObject **)list);
+}
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Msvm_VirtualSwitchManagementService
+ */
+
+int
+hypervGetMsvmVirtualSwitchManagementServiceList(hypervPrivate *priv, virBufferPtr query, Msvm_VirtualSwitchManagementService **list)
+{
+    return hypervEnumAndPull(priv, query, ROOT_VIRTUALIZATION,
+                             Msvm_VirtualSwitchManagementService_Data_TypeInfo,
+                             MSVM_VIRTUALSWITCHMANAGEMENTSERVICE_RESOURCE_URI,
+                             MSVM_VIRTUALSWITCHMANAGEMENTSERVICE_CLASSNAME,
+                             (hypervObject **)list);
+}
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Msvm_VirtualSystemGlobalSettingData
+ */
+
+int
+hypervGetMsvmVirtualSystemGlobalSettingDataList(hypervPrivate *priv, virBufferPtr query, Msvm_VirtualSystemGlobalSettingData **list)
+{
+    return hypervEnumAndPull(priv, query, ROOT_VIRTUALIZATION,
+                             Msvm_VirtualSystemGlobalSettingData_Data_TypeInfo,
+                             MSVM_VIRTUALSYSTEMGLOBALSETTINGDATA_RESOURCE_URI,
+                             MSVM_VIRTUALSYSTEMGLOBALSETTINGDATA_CLASSNAME,
+                             (hypervObject **)list);
+}
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Msvm_VirtualSystemManagementService
+ */
+
+int
+hypervGetMsvmVirtualSystemManagementServiceList(hypervPrivate *priv, virBufferPtr query, Msvm_VirtualSystemManagementService **list)
+{
+    return hypervEnumAndPull(priv, query, ROOT_VIRTUALIZATION,
+                             Msvm_VirtualSystemManagementService_Data_TypeInfo,
+                             MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI,
+                             MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_CLASSNAME,
+                             (hypervObject **)list);
+}
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Msvm_VirtualSystemSettingData
  */
 
@@ -93,6 +253,54 @@ hypervGetWin32ComputerSystemList(hypervPrivate *priv, virBufferPtr query, Win32_
                              Win32_ComputerSystem_Data_TypeInfo,
                              WIN32_COMPUTERSYSTEM_RESOURCE_URI,
                              WIN32_COMPUTERSYSTEM_CLASSNAME,
+                             (hypervObject **)list);
+}
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Win32_ComputerSystemProduct
+ */
+
+int
+hypervGetWin32ComputerSystemProductList(hypervPrivate *priv, virBufferPtr query, Win32_ComputerSystemProduct **list)
+{
+    return hypervEnumAndPull(priv, query, ROOT_CIMV2,
+                             Win32_ComputerSystemProduct_Data_TypeInfo,
+                             WIN32_COMPUTERSYSTEMPRODUCT_RESOURCE_URI,
+                             WIN32_COMPUTERSYSTEMPRODUCT_CLASSNAME,
+                             (hypervObject **)list);
+}
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Win32_OperatingSystem
+ */
+
+int
+hypervGetWin32OperatingSystemList(hypervPrivate *priv, virBufferPtr query, Win32_OperatingSystem **list)
+{
+    return hypervEnumAndPull(priv, query, ROOT_CIMV2,
+                             Win32_OperatingSystem_Data_TypeInfo,
+                             WIN32_OPERATINGSYSTEM_RESOURCE_URI,
+                             WIN32_OPERATINGSYSTEM_CLASSNAME,
+                             (hypervObject **)list);
+}
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor
+ */
+
+int
+hypervGetWin32PerfRawDataHvStatsHyperVHypervisorVirtualProcessorList(hypervPrivate *priv, virBufferPtr query, Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor **list)
+{
+    return hypervEnumAndPull(priv, query, ROOT_CIMV2,
+                             Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor_Data_TypeInfo,
+                             WIN32_PERFRAWDATA_HVSTATS_HYPERVHYPERVISORVIRTUALPROCESSOR_RESOURCE_URI,
+                             WIN32_PERFRAWDATA_HVSTATS_HYPERVHYPERVISORVIRTUALPROCESSOR_CLASSNAME,
                              (hypervObject **)list);
 }
 

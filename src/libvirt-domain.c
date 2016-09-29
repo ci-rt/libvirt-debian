@@ -3574,6 +3574,10 @@ virDomainMigrateUnmanaged(virDomainPtr domain,
  * not support this feature and will return an error if bandwidth
  * is not 0.
  *
+ * Users should note that implementation of VIR_MIGRATE_OFFLINE
+ * flag in some drivers does not copy storage or any other file
+ * based storage (e.g. UEFI variable storage).
+ *
  * Enabling the VIR_MIGRATE_POSTCOPY flag tells libvirt to enable post-copy
  * migration.  Use virDomainMigrateStartPostCopy to switch migration into
  * the post-copy mode.  See virDomainMigrateStartPostCopy for more details
@@ -3791,6 +3795,10 @@ virDomainMigrate(virDomainPtr domain,
  * not support this feature and will return an error if bandwidth
  * is not 0.
  *
+ * Users should note that implementation of VIR_MIGRATE_OFFLINE
+ * flag in some drivers does not copy storage or any other file
+ * based storage (e.g. UEFI variable storage).
+ *
  * Enabling the VIR_MIGRATE_POSTCOPY flag tells libvirt to enable post-copy
  * migration.  Use virDomainMigrateStartPostCopy to switch migration into
  * the post-copy mode.  See virDomainMigrateStartPostCopy for more details
@@ -3979,6 +3987,10 @@ virDomainMigrate2(virDomainPtr domain,
  * If you want to copy non-shared storage within migration you
  * can use either VIR_MIGRATE_NON_SHARED_DISK or
  * VIR_MIGRATE_NON_SHARED_INC as they are mutually exclusive.
+ *
+ * Users should note that implementation of VIR_MIGRATE_OFFLINE
+ * flag in some drivers does not copy storage or any other file
+ * based storage (e.g. UEFI variable storage).
  *
  * Enabling the VIR_MIGRATE_POSTCOPY flag tells libvirt to enable post-copy
  * migration.  Use virDomainMigrateStartPostCopy to switch migration into
@@ -9896,6 +9908,13 @@ virDomainBlockJobAbort(virDomainPtr dom, const char *disk,
  * can be found by calling virDomainGetXMLDesc() and inspecting
  * elements within //domain/devices/disk.
  *
+ * As a corner case underlying hypervisor may report cur == 0 and
+ * end == 0 when the block job hasn't been started yet. In this
+ * case libvirt reports cur = 0 and end = 1. However, hypervisor
+ * may return cur == 0 and end == 0 if the block job has finished
+ * and was no-op. In this case libvirt reports cur = 1 and end = 1.
+ * Since 2.3.0.
+ *
  * Returns -1 in case of failure, 0 when nothing found, 1 when info was found.
  */
 int
@@ -11457,6 +11476,15 @@ virConnectGetDomainCapabilities(virConnectPtr conn,
  * "perf.mbml" - the amount of data (bytes/s) sent through the memory controller
  *               on the socket as unsigned long long. It is produced by mbml
  *               perf event.
+ * "perf.cache_misses"     - the count of cache misses as unsigned long long.
+ *                           It is produced by cache_misses perf event.
+ * "perf.cache_references" - the count of cache hits as unsigned long long.
+ *                           It is produced by cache_references perf event.
+ * "perf.instructions"     - The count of instructions as unsigned long long.
+ *                           It is produced by instructions perf event.
+ * "perf.cpu_cycles"       - The number of cpu cycles one instruction needs as
+ *                           unsigned long long. It is produced by cpu_cycles
+ *                           perf event.
  *
  * Note that entire stats groups or individual stat fields may be missing from
  * the output in case they are not supported by the given hypervisor, are not

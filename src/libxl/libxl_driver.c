@@ -62,6 +62,7 @@
 #include "network/bridge_driver.h"
 #include "locking/domain_lock.h"
 #include "virstats.h"
+#include "cpu/cpu.h"
 
 #define VIR_FROM_THIS VIR_FROM_LIBXL
 
@@ -1026,7 +1027,7 @@ libxlDomainCreateXML(virConnectPtr conn, const char *xml,
         parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE_SCHEMA;
 
     if (!(def = virDomainDefParseString(xml, cfg->caps, driver->xmlopt,
-                                        parse_flags)))
+                                        NULL, parse_flags)))
         goto cleanup;
 
     if (virDomainCreateXMLEnsureACL(conn, def) < 0)
@@ -2654,7 +2655,7 @@ libxlConnectDomainXMLToNative(virConnectPtr conn, const char * nativeFormat,
         goto cleanup;
 
     if (!(def = virDomainDefParseString(domainXml,
-                                        cfg->caps, driver->xmlopt,
+                                        cfg->caps, driver->xmlopt, NULL,
                                         VIR_DOMAIN_DEF_PARSE_INACTIVE)))
         goto cleanup;
 
@@ -2780,7 +2781,7 @@ libxlDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flag
         parse_flags |= VIR_DOMAIN_DEF_PARSE_VALIDATE_SCHEMA;
 
     if (!(def = virDomainDefParseString(xml, cfg->caps, driver->xmlopt,
-                                        parse_flags)))
+                                        NULL, parse_flags)))
         goto cleanup;
 
     if (virDomainDefineXMLFlagsEnsureACL(conn, def) < 0)
@@ -4679,13 +4680,6 @@ libxlDomainOpenConsole(virDomainPtr dom,
 
     virCheckFlags(VIR_DOMAIN_CONSOLE_FORCE, -1);
 
-    if (dev_name) {
-        /* XXX support device aliases in future */
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("Named device aliases are not supported"));
-        goto cleanup;
-    }
-
     if (!(vm = libxlDomObjFromDomain(dom)))
         goto cleanup;
 
@@ -4701,8 +4695,16 @@ libxlDomainOpenConsole(virDomainPtr dom,
     }
 
     priv = vm->privateData;
+    if (dev_name) {
+        size_t i;
 
-    if (vm->def->nconsoles) {
+        for (i = 0; !chr && i < vm->def->nserials; i++) {
+            if (STREQ(dev_name, vm->def->serials[i]->info.alias)) {
+                chr = vm->def->serials[i];
+                break;
+            }
+        }
+    } else if (vm->def->nconsoles) {
         chr = vm->def->consoles[0];
         if (chr->targetType == VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL)
             chr = vm->def->serials[0];
@@ -6347,6 +6349,53 @@ libxlConnectGetDomainCapabilities(virConnectPtr conn,
 }
 
 
+static int
+libxlConnectCompareCPU(virConnectPtr conn,
+                       const char *xmlDesc,
+                       unsigned int flags)
+{
+    libxlDriverPrivatePtr driver = conn->privateData;
+    libxlDriverConfigPtr cfg;
+    int ret = VIR_CPU_COMPARE_ERROR;
+    bool failIncompatible;
+
+    virCheckFlags(VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE,
+                  VIR_CPU_COMPARE_ERROR);
+
+    if (virConnectCompareCPUEnsureACL(conn) < 0)
+        return ret;
+
+    failIncompatible = !!(flags & VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE);
+
+    cfg = libxlDriverConfigGet(driver);
+
+    ret = virCPUCompareXML(cfg->caps->host.arch, cfg->caps->host.cpu,
+                           xmlDesc, failIncompatible);
+
+    virObjectUnref(cfg);
+    return ret;
+}
+
+static char *
+libxlConnectBaselineCPU(virConnectPtr conn,
+                        const char **xmlCPUs,
+                        unsigned int ncpus,
+                        unsigned int flags)
+{
+    char *cpu = NULL;
+
+    virCheckFlags(VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES |
+                  VIR_CONNECT_BASELINE_CPU_MIGRATABLE, NULL);
+
+    if (virConnectBaselineCPUEnsureACL(conn) < 0)
+        goto cleanup;
+
+    cpu = cpuBaselineXML(xmlCPUs, ncpus, NULL, 0, flags);
+
+ cleanup:
+    return cpu;
+}
+
 static virHypervisorDriver libxlHypervisorDriver = {
     .name = LIBXL_DRIVER_NAME,
     .connectOpen = libxlConnectOpen, /* 0.9.0 */
@@ -6451,6 +6500,8 @@ static virHypervisorDriver libxlHypervisorDriver = {
     .nodeGetSecurityModel = libxlNodeGetSecurityModel, /* 1.2.16 */
     .domainInterfaceAddresses = libxlDomainInterfaceAddresses, /* 1.3.5 */
     .connectGetDomainCapabilities = libxlConnectGetDomainCapabilities, /* 2.0.0 */
+    .connectCompareCPU = libxlConnectCompareCPU, /* 2.3.0 */
+    .connectBaselineCPU = libxlConnectBaselineCPU, /* 2.3.0 */
 };
 
 static virConnectDriver libxlConnectDriver = {

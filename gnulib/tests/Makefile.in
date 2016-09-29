@@ -141,14 +141,15 @@ check_PROGRAMS = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-getdtablesize$(EXEEXT) test-getgroups$(EXEEXT) \
 	test-gethostname$(EXEEXT) test-getline$(EXEEXT) \
 	test-getopt$(EXEEXT) test-getpeername$(EXEEXT) \
-	test-getsockname$(EXEEXT) test-getsockopt$(EXEEXT) \
-	test-gettimeofday$(EXEEXT) test-grantpt$(EXEEXT) \
-	test-ignore-value$(EXEEXT) test-inet_ntop$(EXEEXT) \
-	test-inet_pton$(EXEEXT) test-intprops$(EXEEXT) \
-	test-inttypes$(EXEEXT) test-ioctl$(EXEEXT) \
-	test-isatty$(EXEEXT) test-isnand-nolibm$(EXEEXT) \
-	test-isnanf-nolibm$(EXEEXT) test-isnanl-nolibm$(EXEEXT) \
-	test-langinfo$(EXEEXT) test-ldexp$(EXEEXT) \
+	test-getprogname$(EXEEXT) test-getsockname$(EXEEXT) \
+	test-getsockopt$(EXEEXT) test-gettimeofday$(EXEEXT) \
+	test-grantpt$(EXEEXT) test-ignore-value$(EXEEXT) \
+	test-inet_ntop$(EXEEXT) test-inet_pton$(EXEEXT) \
+	test-intprops$(EXEEXT) test-inttypes$(EXEEXT) \
+	test-ioctl$(EXEEXT) test-isatty$(EXEEXT) \
+	test-isnand-nolibm$(EXEEXT) test-isnanf-nolibm$(EXEEXT) \
+	test-isnanl-nolibm$(EXEEXT) test-langinfo$(EXEEXT) \
+	test-ldexp$(EXEEXT) test-limits-h$(EXEEXT) \
 	test-listen$(EXEEXT) test-locale$(EXEEXT) \
 	test-localeconv$(EXEEXT) test-localename$(EXEEXT) \
 	test-lseek$(EXEEXT) test-lstat$(EXEEXT) test-malloca$(EXEEXT) \
@@ -241,19 +242,20 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/fcntl_h.m4 $(top_srcdir)/m4/fdatasync.m4 \
 	$(top_srcdir)/m4/fdopen.m4 $(top_srcdir)/m4/fflush.m4 \
 	$(top_srcdir)/m4/ffs.m4 $(top_srcdir)/m4/ffsl.m4 \
-	$(top_srcdir)/m4/float_h.m4 $(top_srcdir)/m4/fnmatch.m4 \
-	$(top_srcdir)/m4/fpieee.m4 $(top_srcdir)/m4/fpurge.m4 \
-	$(top_srcdir)/m4/freading.m4 $(top_srcdir)/m4/fseek.m4 \
-	$(top_srcdir)/m4/fseeko.m4 $(top_srcdir)/m4/fstat.m4 \
-	$(top_srcdir)/m4/fsync.m4 $(top_srcdir)/m4/ftell.m4 \
-	$(top_srcdir)/m4/ftello.m4 $(top_srcdir)/m4/ftruncate.m4 \
-	$(top_srcdir)/m4/func.m4 $(top_srcdir)/m4/getaddrinfo.m4 \
-	$(top_srcdir)/m4/getcwd.m4 $(top_srcdir)/m4/getdelim.m4 \
-	$(top_srcdir)/m4/getdtablesize.m4 \
+	$(top_srcdir)/m4/flexmember.m4 $(top_srcdir)/m4/float_h.m4 \
+	$(top_srcdir)/m4/fnmatch.m4 $(top_srcdir)/m4/fpieee.m4 \
+	$(top_srcdir)/m4/fpurge.m4 $(top_srcdir)/m4/freading.m4 \
+	$(top_srcdir)/m4/fseek.m4 $(top_srcdir)/m4/fseeko.m4 \
+	$(top_srcdir)/m4/fstat.m4 $(top_srcdir)/m4/fsync.m4 \
+	$(top_srcdir)/m4/ftell.m4 $(top_srcdir)/m4/ftello.m4 \
+	$(top_srcdir)/m4/ftruncate.m4 $(top_srcdir)/m4/func.m4 \
+	$(top_srcdir)/m4/getaddrinfo.m4 $(top_srcdir)/m4/getcwd.m4 \
+	$(top_srcdir)/m4/getdelim.m4 $(top_srcdir)/m4/getdtablesize.m4 \
 	$(top_srcdir)/m4/getgroups.m4 $(top_srcdir)/m4/gethostname.m4 \
 	$(top_srcdir)/m4/getline.m4 $(top_srcdir)/m4/getopt.m4 \
 	$(top_srcdir)/m4/getpagesize.m4 $(top_srcdir)/m4/getpass.m4 \
-	$(top_srcdir)/m4/gettext.m4 $(top_srcdir)/m4/gettimeofday.m4 \
+	$(top_srcdir)/m4/getprogname.m4 $(top_srcdir)/m4/gettext.m4 \
+	$(top_srcdir)/m4/gettimeofday.m4 \
 	$(top_srcdir)/m4/getugroups.m4 $(top_srcdir)/m4/gl-openssl.m4 \
 	$(top_srcdir)/m4/glibc21.m4 $(top_srcdir)/m4/gnulib-common.m4 \
 	$(top_srcdir)/m4/gnulib-comp.m4 $(top_srcdir)/m4/grantpt.m4 \
@@ -269,24 +271,24 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/lcmessage.m4 $(top_srcdir)/m4/ldexp.m4 \
 	$(top_srcdir)/m4/lib-ld.m4 $(top_srcdir)/m4/lib-link.m4 \
 	$(top_srcdir)/m4/lib-prefix.m4 $(top_srcdir)/m4/libtool.m4 \
-	$(top_srcdir)/m4/localcharset.m4 $(top_srcdir)/m4/locale-fr.m4 \
-	$(top_srcdir)/m4/locale-ja.m4 $(top_srcdir)/m4/locale-tr.m4 \
-	$(top_srcdir)/m4/locale-zh.m4 $(top_srcdir)/m4/locale_h.m4 \
-	$(top_srcdir)/m4/localeconv.m4 $(top_srcdir)/m4/localename.m4 \
-	$(top_srcdir)/m4/lock.m4 $(top_srcdir)/m4/longlong.m4 \
-	$(top_srcdir)/m4/lseek.m4 $(top_srcdir)/m4/lstat.m4 \
-	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
-	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
-	$(top_srcdir)/m4/malloc.m4 $(top_srcdir)/m4/malloca.m4 \
-	$(top_srcdir)/m4/manywarnings.m4 $(top_srcdir)/m4/math_h.m4 \
-	$(top_srcdir)/m4/mbrtowc.m4 $(top_srcdir)/m4/mbsinit.m4 \
-	$(top_srcdir)/m4/mbsrtowcs.m4 $(top_srcdir)/m4/mbstate_t.m4 \
-	$(top_srcdir)/m4/mbtowc.m4 $(top_srcdir)/m4/md5.m4 \
-	$(top_srcdir)/m4/memchr.m4 $(top_srcdir)/m4/mgetgroups.m4 \
-	$(top_srcdir)/m4/mkdtemp.m4 $(top_srcdir)/m4/mkostemp.m4 \
-	$(top_srcdir)/m4/mkostemps.m4 $(top_srcdir)/m4/mktime.m4 \
-	$(top_srcdir)/m4/mmap-anon.m4 $(top_srcdir)/m4/mode_t.m4 \
-	$(top_srcdir)/m4/msvc-inval.m4 \
+	$(top_srcdir)/m4/limits-h.m4 $(top_srcdir)/m4/localcharset.m4 \
+	$(top_srcdir)/m4/locale-fr.m4 $(top_srcdir)/m4/locale-ja.m4 \
+	$(top_srcdir)/m4/locale-tr.m4 $(top_srcdir)/m4/locale-zh.m4 \
+	$(top_srcdir)/m4/locale_h.m4 $(top_srcdir)/m4/localeconv.m4 \
+	$(top_srcdir)/m4/localename.m4 $(top_srcdir)/m4/lock.m4 \
+	$(top_srcdir)/m4/longlong.m4 $(top_srcdir)/m4/lseek.m4 \
+	$(top_srcdir)/m4/lstat.m4 $(top_srcdir)/m4/ltoptions.m4 \
+	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
+	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/m4/malloc.m4 \
+	$(top_srcdir)/m4/malloca.m4 $(top_srcdir)/m4/manywarnings.m4 \
+	$(top_srcdir)/m4/math_h.m4 $(top_srcdir)/m4/mbrtowc.m4 \
+	$(top_srcdir)/m4/mbsinit.m4 $(top_srcdir)/m4/mbsrtowcs.m4 \
+	$(top_srcdir)/m4/mbstate_t.m4 $(top_srcdir)/m4/mbtowc.m4 \
+	$(top_srcdir)/m4/md5.m4 $(top_srcdir)/m4/memchr.m4 \
+	$(top_srcdir)/m4/mgetgroups.m4 $(top_srcdir)/m4/mkdtemp.m4 \
+	$(top_srcdir)/m4/mkostemp.m4 $(top_srcdir)/m4/mkostemps.m4 \
+	$(top_srcdir)/m4/mktime.m4 $(top_srcdir)/m4/mmap-anon.m4 \
+	$(top_srcdir)/m4/mode_t.m4 $(top_srcdir)/m4/msvc-inval.m4 \
 	$(top_srcdir)/m4/msvc-nothrow.m4 $(top_srcdir)/m4/multiarch.m4 \
 	$(top_srcdir)/m4/nanosleep.m4 $(top_srcdir)/m4/net_if_h.m4 \
 	$(top_srcdir)/m4/netdb_h.m4 $(top_srcdir)/m4/netinet_in_h.m4 \
@@ -400,7 +402,7 @@ libtests_a_AR = $(AR) $(ARFLAGS)
 am__DEPENDENCIES_1 =
 am__dirstamp = $(am__leading_dot)dirstamp
 am_libtests_a_OBJECTS = exitfail.$(OBJEXT) fatal-signal.$(OBJEXT) \
-	localename.$(OBJEXT) math.$(OBJEXT) progname.$(OBJEXT) \
+	getprogname.$(OBJEXT) localename.$(OBJEXT) math.$(OBJEXT) \
 	glthread/thread.$(OBJEXT) wait-process.$(OBJEXT) \
 	xmalloc.$(OBJEXT) xalloc-die.$(OBJEXT)
 libtests_a_OBJECTS = $(am_libtests_a_OBJECTS)
@@ -721,6 +723,9 @@ test_getopt_DEPENDENCIES = $(am__DEPENDENCIES_2) $(am__DEPENDENCIES_1)
 test_getpeername_SOURCES = test-getpeername.c
 test_getpeername_OBJECTS = test-getpeername.$(OBJEXT)
 test_getpeername_DEPENDENCIES = $(am__DEPENDENCIES_2)
+test_getprogname_SOURCES = test-getprogname.c
+test_getprogname_OBJECTS = test-getprogname.$(OBJEXT)
+test_getprogname_DEPENDENCIES = $(am__DEPENDENCIES_2)
 test_getsockname_SOURCES = test-getsockname.c
 test_getsockname_OBJECTS = test-getsockname.$(OBJEXT)
 test_getsockname_DEPENDENCIES = $(am__DEPENDENCIES_2)
@@ -791,6 +796,11 @@ test_langinfo_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
 am_test_ldexp_OBJECTS = test-ldexp.$(OBJEXT) randomd.$(OBJEXT)
 test_ldexp_OBJECTS = $(am_test_ldexp_OBJECTS)
 test_ldexp_DEPENDENCIES = $(am__DEPENDENCIES_2)
+test_limits_h_SOURCES = test-limits-h.c
+test_limits_h_OBJECTS = test-limits-h.$(OBJEXT)
+test_limits_h_LDADD = $(LDADD)
+test_limits_h_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_listen_SOURCES = test-listen.c
 test_listen_OBJECTS = test-listen.$(OBJEXT)
 test_listen_DEPENDENCIES = $(am__DEPENDENCIES_2)
@@ -1370,11 +1380,12 @@ SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-getaddrinfo.c test-getcwd-lgpl.c test-getdelim.c \
 	test-getdtablesize.c test-getgroups.c test-gethostname.c \
 	test-getline.c test-getopt.c test-getpeername.c \
-	test-getsockname.c test-getsockopt.c test-gettimeofday.c \
-	test-grantpt.c test-ignore-value.c test-inet_ntop.c \
-	test-inet_pton.c test-intprops.c test-inttypes.c test-ioctl.c \
-	test-isatty.c test-isnand-nolibm.c test-isnanf-nolibm.c \
-	test-isnanl-nolibm.c test-langinfo.c $(test_ldexp_SOURCES) \
+	test-getprogname.c test-getsockname.c test-getsockopt.c \
+	test-gettimeofday.c test-grantpt.c test-ignore-value.c \
+	test-inet_ntop.c test-inet_pton.c test-intprops.c \
+	test-inttypes.c test-ioctl.c test-isatty.c \
+	test-isnand-nolibm.c test-isnanf-nolibm.c test-isnanl-nolibm.c \
+	test-langinfo.c $(test_ldexp_SOURCES) test-limits-h.c \
 	test-listen.c test-locale.c test-localeconv.c \
 	test-localename.c test-lseek.c test-lstat.c test-malloca.c \
 	test-math.c test-mbrtowc.c test-mbrtowc-w32.c test-mbsinit.c \
@@ -1431,11 +1442,12 @@ DIST_SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-getaddrinfo.c test-getcwd-lgpl.c test-getdelim.c \
 	test-getdtablesize.c test-getgroups.c test-gethostname.c \
 	test-getline.c test-getopt.c test-getpeername.c \
-	test-getsockname.c test-getsockopt.c test-gettimeofday.c \
-	test-grantpt.c test-ignore-value.c test-inet_ntop.c \
-	test-inet_pton.c test-intprops.c test-inttypes.c test-ioctl.c \
-	test-isatty.c test-isnand-nolibm.c test-isnanf-nolibm.c \
-	test-isnanl-nolibm.c test-langinfo.c $(test_ldexp_SOURCES) \
+	test-getprogname.c test-getsockname.c test-getsockopt.c \
+	test-gettimeofday.c test-grantpt.c test-ignore-value.c \
+	test-inet_ntop.c test-inet_pton.c test-intprops.c \
+	test-inttypes.c test-ioctl.c test-isatty.c \
+	test-isnand-nolibm.c test-isnanf-nolibm.c test-isnanl-nolibm.c \
+	test-langinfo.c $(test_ldexp_SOURCES) test-limits-h.c \
 	test-listen.c test-locale.c test-localeconv.c \
 	test-localename.c test-lseek.c test-lstat.c test-malloca.c \
 	test-math.c test-mbrtowc.c test-mbrtowc-w32.c test-mbsinit.c \
@@ -1724,14 +1736,15 @@ am__EXEEXT_2 = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-getdtablesize$(EXEEXT) test-getgroups$(EXEEXT) \
 	test-gethostname$(EXEEXT) test-getline$(EXEEXT) \
 	test-getopt$(EXEEXT) test-getpeername$(EXEEXT) \
-	test-getsockname$(EXEEXT) test-getsockopt$(EXEEXT) \
-	test-gettimeofday$(EXEEXT) test-grantpt$(EXEEXT) \
-	test-ignore-value$(EXEEXT) test-inet_ntop$(EXEEXT) \
-	test-inet_pton$(EXEEXT) test-intprops$(EXEEXT) \
-	test-inttypes$(EXEEXT) test-ioctl$(EXEEXT) \
-	test-isatty$(EXEEXT) test-isnand-nolibm$(EXEEXT) \
-	test-isnanf-nolibm$(EXEEXT) test-isnanl-nolibm$(EXEEXT) \
-	test-langinfo$(EXEEXT) test-ldexp$(EXEEXT) \
+	test-getprogname$(EXEEXT) test-getsockname$(EXEEXT) \
+	test-getsockopt$(EXEEXT) test-gettimeofday$(EXEEXT) \
+	test-grantpt$(EXEEXT) test-ignore-value$(EXEEXT) \
+	test-inet_ntop$(EXEEXT) test-inet_pton$(EXEEXT) \
+	test-intprops$(EXEEXT) test-inttypes$(EXEEXT) \
+	test-ioctl$(EXEEXT) test-isatty$(EXEEXT) \
+	test-isnand-nolibm$(EXEEXT) test-isnanf-nolibm$(EXEEXT) \
+	test-isnanl-nolibm$(EXEEXT) test-langinfo$(EXEEXT) \
+	test-ldexp$(EXEEXT) test-limits-h$(EXEEXT) \
 	test-listen$(EXEEXT) test-locale$(EXEEXT) \
 	test-localeconv$(EXEEXT) test-localename$(EXEEXT) \
 	test-lseek.sh test-lstat$(EXEEXT) test-malloca$(EXEEXT) \
@@ -1892,7 +1905,7 @@ CYGWIN_EXTRA_LDFLAGS = @CYGWIN_EXTRA_LDFLAGS@
 CYGWIN_EXTRA_LIBADD = @CYGWIN_EXTRA_LIBADD@
 DBUS_CFLAGS = @DBUS_CFLAGS@
 DBUS_LIBS = @DBUS_LIBS@
-DEFS = @DEFS@
+DEFS = @DEFS@ -DEXEEXT=\"@EXEEXT@\"
 DEPDIR = @DEPDIR@
 DEVMAPPER_CFLAGS = @DEVMAPPER_CFLAGS@
 DEVMAPPER_LIBS = @DEVMAPPER_LIBS@
@@ -2349,6 +2362,7 @@ HAVE_ATANF = @HAVE_ATANF@
 HAVE_ATANL = @HAVE_ATANL@
 HAVE_ATOLL = @HAVE_ATOLL@
 HAVE_BTOWC = @HAVE_BTOWC@
+HAVE_C99_STDINT_H = @HAVE_C99_STDINT_H@
 HAVE_CANONICALIZE_FILE_NAME = @HAVE_CANONICALIZE_FILE_NAME@
 HAVE_CBRT = @HAVE_CBRT@
 HAVE_CBRTF = @HAVE_CBRTF@
@@ -2767,6 +2781,7 @@ LIB_POSIX_SPAWN = @LIB_POSIX_SPAWN@
 LIB_PTHREAD = @LIB_PTHREAD@
 LIB_PTHREAD_SIGMASK = @LIB_PTHREAD_SIGMASK@
 LIB_SELECT = @LIB_SELECT@
+LIMITS_H = @LIMITS_H@
 LIPO = @LIPO@
 LN_S = @LN_S@
 LOCALCHARSET_TESTS_ENVIRONMENT = @LOCALCHARSET_TESTS_ENVIRONMENT@
@@ -2815,6 +2830,7 @@ NEXT_AS_FIRST_DIRECTIVE_FLOAT_H = @NEXT_AS_FIRST_DIRECTIVE_FLOAT_H@
 NEXT_AS_FIRST_DIRECTIVE_GETOPT_H = @NEXT_AS_FIRST_DIRECTIVE_GETOPT_H@
 NEXT_AS_FIRST_DIRECTIVE_INTTYPES_H = @NEXT_AS_FIRST_DIRECTIVE_INTTYPES_H@
 NEXT_AS_FIRST_DIRECTIVE_LANGINFO_H = @NEXT_AS_FIRST_DIRECTIVE_LANGINFO_H@
+NEXT_AS_FIRST_DIRECTIVE_LIMITS_H = @NEXT_AS_FIRST_DIRECTIVE_LIMITS_H@
 NEXT_AS_FIRST_DIRECTIVE_LOCALE_H = @NEXT_AS_FIRST_DIRECTIVE_LOCALE_H@
 NEXT_AS_FIRST_DIRECTIVE_MATH_H = @NEXT_AS_FIRST_DIRECTIVE_MATH_H@
 NEXT_AS_FIRST_DIRECTIVE_NETDB_H = @NEXT_AS_FIRST_DIRECTIVE_NETDB_H@
@@ -2854,6 +2870,7 @@ NEXT_FLOAT_H = @NEXT_FLOAT_H@
 NEXT_GETOPT_H = @NEXT_GETOPT_H@
 NEXT_INTTYPES_H = @NEXT_INTTYPES_H@
 NEXT_LANGINFO_H = @NEXT_LANGINFO_H@
+NEXT_LIMITS_H = @NEXT_LIMITS_H@
 NEXT_LOCALE_H = @NEXT_LOCALE_H@
 NEXT_MATH_H = @NEXT_MATH_H@
 NEXT_NETDB_H = @NEXT_NETDB_H@
@@ -3315,24 +3332,25 @@ GNULIB_TESTS = test-accept test-alloca-opt test-areadlink \
 	test-ftruncate.sh test-func test-fwrite test-getaddrinfo \
 	test-getcwd-lgpl test-getdelim test-getdtablesize \
 	test-getgroups test-gethostname test-getline test-getopt \
-	test-getpeername test-getsockname test-getsockopt \
-	test-gettimeofday test-grantpt test-ignore-value \
-	test-inet_ntop test-inet_pton test-intprops test-inttypes \
-	test-ioctl test-isatty test-isnand-nolibm test-isnanf-nolibm \
-	test-isnanl-nolibm test-langinfo test-ldexp test-listen \
-	test-locale test-localeconv test-localename test-lseek.sh \
-	test-lstat test-malloca test-math test-mbrtowc1.sh \
-	test-mbrtowc2.sh test-mbrtowc3.sh test-mbrtowc4.sh \
-	test-mbrtowc5.sh test-mbrtowc-w32-1.sh test-mbrtowc-w32-2.sh \
-	test-mbrtowc-w32-3.sh test-mbrtowc-w32-4.sh \
-	test-mbrtowc-w32-5.sh test-mbsinit.sh test-mbsrtowcs1.sh \
-	test-mbsrtowcs2.sh test-mbsrtowcs3.sh test-mbsrtowcs4.sh \
-	test-memchr test-nanosleep test-net_if test-netdb \
-	test-netinet_in test-nl_langinfo.sh test-nonblocking-pipe.sh \
-	test-nonblocking-socket.sh test-nonblocking test-open \
-	test-openpty test-passfd test-pathmax test-perror.sh \
-	test-perror2 test-pipe test-pipe2 test-poll-h test-poll \
-	test-posix_openpt test-posix_spawn_file_actions_addclose \
+	test-getpeername test-getprogname test-getsockname \
+	test-getsockopt test-gettimeofday test-grantpt \
+	test-ignore-value test-inet_ntop test-inet_pton test-intprops \
+	test-inttypes test-ioctl test-isatty test-isnand-nolibm \
+	test-isnanf-nolibm test-isnanl-nolibm test-langinfo test-ldexp \
+	test-limits-h test-listen test-locale test-localeconv \
+	test-localename test-lseek.sh test-lstat test-malloca \
+	test-math test-mbrtowc1.sh test-mbrtowc2.sh test-mbrtowc3.sh \
+	test-mbrtowc4.sh test-mbrtowc5.sh test-mbrtowc-w32-1.sh \
+	test-mbrtowc-w32-2.sh test-mbrtowc-w32-3.sh \
+	test-mbrtowc-w32-4.sh test-mbrtowc-w32-5.sh test-mbsinit.sh \
+	test-mbsrtowcs1.sh test-mbsrtowcs2.sh test-mbsrtowcs3.sh \
+	test-mbsrtowcs4.sh test-memchr test-nanosleep test-net_if \
+	test-netdb test-netinet_in test-nl_langinfo.sh \
+	test-nonblocking-pipe.sh test-nonblocking-socket.sh \
+	test-nonblocking test-open test-openpty test-passfd \
+	test-pathmax test-perror.sh test-perror2 test-pipe test-pipe2 \
+	test-poll-h test-poll test-posix_openpt \
+	test-posix_spawn_file_actions_addclose \
 	test-posix_spawn_file_actions_adddup2 \
 	test-posix_spawn_file_actions_addopen $(am__append_1) \
 	test-pthread_sigmask1 test-pthread_sigmask2 test-ptsname \
@@ -3414,23 +3432,24 @@ EXTRA_DIST = test-accept.c signature.h macros.h test-alloca-opt.c \
 	signature.h macros.h signature.h test-gethostname.c \
 	test-getline.c signature.h macros.h macros.h signature.h \
 	test-getopt.c test-getopt.h test-getopt_long.h getpagesize.c \
-	test-getpeername.c signature.h macros.h test-getsockname.c \
-	signature.h macros.h getsockopt.c w32sock.h test-getsockopt.c \
-	signature.h macros.h signature.h test-gettimeofday.c grantpt.c \
-	pty-private.h test-grantpt.c signature.h macros.h \
-	test-ignore-value.c test-inet_ntop.c signature.h macros.h \
-	test-inet_pton.c signature.h macros.h test-intprops.c macros.h \
-	inttypes.in.h test-inttypes.c test-ioctl.c signature.h \
-	macros.h test-isatty.c signature.h macros.h float+.h isnan.c \
-	isnand-nolibm.h isnand.c test-isnand-nolibm.c test-isnand.h \
-	minus-zero.h infinity.h nan.h macros.h float+.h isnan.c \
-	isnanf-nolibm.h isnanf.c test-isnanf-nolibm.c test-isnanf.h \
-	minus-zero.h infinity.h nan.h macros.h float+.h isnan.c \
-	isnanl-nolibm.h isnanl.c test-isnanl-nolibm.c test-isnanl.h \
-	minus-zero.h infinity.h nan.h macros.h test-langinfo.c \
-	test-ldexp.c test-ldexp.h minus-zero.h infinity.h nan.h \
-	signature.h macros.h randomd.c test-listen.c signature.h \
-	macros.h test-locale.c test-localeconv.c signature.h macros.h \
+	test-getpeername.c signature.h macros.h test-getprogname.c \
+	test-getsockname.c signature.h macros.h getsockopt.c w32sock.h \
+	test-getsockopt.c signature.h macros.h signature.h \
+	test-gettimeofday.c grantpt.c pty-private.h test-grantpt.c \
+	signature.h macros.h test-ignore-value.c test-inet_ntop.c \
+	signature.h macros.h test-inet_pton.c signature.h macros.h \
+	test-intprops.c macros.h inttypes.in.h test-inttypes.c \
+	test-ioctl.c signature.h macros.h test-isatty.c signature.h \
+	macros.h float+.h isnan.c isnand-nolibm.h isnand.c \
+	test-isnand-nolibm.c test-isnand.h minus-zero.h infinity.h \
+	nan.h macros.h float+.h isnan.c isnanf-nolibm.h isnanf.c \
+	test-isnanf-nolibm.c test-isnanf.h minus-zero.h infinity.h \
+	nan.h macros.h float+.h isnan.c isnanl-nolibm.h isnanl.c \
+	test-isnanl-nolibm.c test-isnanl.h minus-zero.h infinity.h \
+	nan.h macros.h test-langinfo.c test-ldexp.c test-ldexp.h \
+	minus-zero.h infinity.h nan.h signature.h macros.h randomd.c \
+	test-limits-h.c test-listen.c signature.h macros.h \
+	test-locale.c test-localeconv.c signature.h macros.h \
 	localename.h test-localename.c macros.h test-lseek.c \
 	test-lseek.sh signature.h macros.h test-lstat.h test-lstat.c \
 	signature.h macros.h test-malloca.c math.in.h test-math.c \
@@ -3565,9 +3584,9 @@ AM_CPPFLAGS = \
 
 LDADD = libtests.a ../../gnulib/lib/libgnu.la libtests.a $(LIBTESTS_LIBDEPS)
 libtests_a_SOURCES = exitfail.c fatal-signal.h fatal-signal.c \
-	localename.c math.c progname.h progname.c glthread/thread.h \
-	glthread/thread.c wait-process.h wait-process.c xmalloc.c \
-	xalloc-die.c
+	getprogname.h getprogname.c localename.c math.c \
+	glthread/thread.h glthread/thread.c wait-process.h \
+	wait-process.c xmalloc.c xalloc-die.c
 libtests_a_LIBADD = $(gltests_LIBOBJS)
 libtests_a_DEPENDENCIES = $(gltests_LIBOBJS)
 EXTRA_libtests_a_SOURCES = dup.c error.c fdopen.c ftruncate.c \
@@ -3591,6 +3610,7 @@ test_getcwd_lgpl_LDADD = $(LDADD) $(LIBINTL)
 test_gethostname_LDADD = $(LDADD) @GETHOSTNAME_LIB@
 test_getopt_LDADD = $(LDADD) $(LIBINTL)
 test_getpeername_LDADD = $(LDADD) @LIBSOCKET@
+test_getprogname_LDADD = $(LDADD)
 test_getsockname_LDADD = $(LDADD) @LIBSOCKET@
 test_getsockopt_LDADD = $(LDADD) @LIBSOCKET@
 test_inet_ntop_LDADD = $(LDADD) @INET_NTOP_LIB@
@@ -3970,6 +3990,10 @@ test-getpeername$(EXEEXT): $(test_getpeername_OBJECTS) $(test_getpeername_DEPEND
 	@rm -f test-getpeername$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_getpeername_OBJECTS) $(test_getpeername_LDADD) $(LIBS)
 
+test-getprogname$(EXEEXT): $(test_getprogname_OBJECTS) $(test_getprogname_DEPENDENCIES) $(EXTRA_test_getprogname_DEPENDENCIES) 
+	@rm -f test-getprogname$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_getprogname_OBJECTS) $(test_getprogname_LDADD) $(LIBS)
+
 test-getsockname$(EXEEXT): $(test_getsockname_OBJECTS) $(test_getsockname_DEPENDENCIES) $(EXTRA_test_getsockname_DEPENDENCIES) 
 	@rm -f test-getsockname$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_getsockname_OBJECTS) $(test_getsockname_LDADD) $(LIBS)
@@ -4033,6 +4057,10 @@ test-langinfo$(EXEEXT): $(test_langinfo_OBJECTS) $(test_langinfo_DEPENDENCIES) $
 test-ldexp$(EXEEXT): $(test_ldexp_OBJECTS) $(test_ldexp_DEPENDENCIES) $(EXTRA_test_ldexp_DEPENDENCIES) 
 	@rm -f test-ldexp$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_ldexp_OBJECTS) $(test_ldexp_LDADD) $(LIBS)
+
+test-limits-h$(EXEEXT): $(test_limits_h_OBJECTS) $(test_limits_h_DEPENDENCIES) $(EXTRA_test_limits_h_DEPENDENCIES) 
+	@rm -f test-limits-h$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_limits_h_OBJECTS) $(test_limits_h_LDADD) $(LIBS)
 
 test-listen$(EXEEXT): $(test_listen_OBJECTS) $(test_listen_DEPENDENCIES) $(EXTRA_test_listen_DEPENDENCIES) 
 	@rm -f test-listen$(EXEEXT)
@@ -4500,6 +4528,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fdopen.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ftruncate.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/getpagesize.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/getprogname.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/getsockopt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/grantpt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isnan.Po@am__quote@
@@ -4509,7 +4538,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/localename.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/math.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nanosleep.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/progname.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ptsname.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ptsname_r.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/putenv.Po@am__quote@
@@ -4596,6 +4624,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-getline.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-getopt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-getpeername.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-getprogname.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-getsockname.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-getsockopt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-gettimeofday.Po@am__quote@
@@ -4612,6 +4641,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-isnanl-nolibm.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-langinfo.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-ldexp.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-limits-h.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-listen.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-locale.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-localeconv.Po@am__quote@
@@ -5494,6 +5524,13 @@ test-getpeername.log: test-getpeername$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
+test-getprogname.log: test-getprogname$(EXEEXT)
+	@p='test-getprogname$(EXEEXT)'; \
+	b='test-getprogname'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
 test-getsockname.log: test-getsockname$(EXEEXT)
 	@p='test-getsockname$(EXEEXT)'; \
 	b='test-getsockname'; \
@@ -5602,6 +5639,13 @@ test-langinfo.log: test-langinfo$(EXEEXT)
 test-ldexp.log: test-ldexp$(EXEEXT)
 	@p='test-ldexp$(EXEEXT)'; \
 	b='test-ldexp'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+test-limits-h.log: test-limits-h$(EXEEXT)
+	@p='test-limits-h$(EXEEXT)'; \
+	b='test-limits-h'; \
 	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \

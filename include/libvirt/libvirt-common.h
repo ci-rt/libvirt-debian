@@ -49,7 +49,7 @@ extern "C" {
 #   define VIR_EXPORT_VAR extern
 #  else
 #   ifdef IN_LIBVIRT
-#    define VIR_EXPORT_VAR __declspec(dllexport)
+#    define VIR_EXPORT_VAR __declspec(dllexport) extern
 #   else
 #    define VIR_EXPORT_VAR __declspec(dllimport) extern
 #   endif
@@ -73,7 +73,7 @@ extern "C" {
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-# define LIBVIR_VERSION_NUMBER 2002000
+# define LIBVIR_VERSION_NUMBER 2003000
 
 /**
  * LIBVIR_CHECK_VERSION:

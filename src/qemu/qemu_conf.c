@@ -238,19 +238,45 @@ virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
     if (virAsprintf(&cfg->autostartDir, "%s/qemu/autostart", cfg->configBaseDir) < 0)
         goto error;
 
-
-    if (VIR_STRDUP(cfg->vncListen, "127.0.0.1") < 0)
+    /* Set the default directory to find TLS X.509 certificates.
+     * This will then be used as a fallback if the service specific
+     * directory doesn't exist (although we don't check if this exists).
+     */
+    if (VIR_STRDUP(cfg->defaultTLSx509certdir,
+                   SYSCONFDIR "/pki/qemu") < 0)
         goto error;
 
-    if (VIR_STRDUP(cfg->vncTLSx509certdir, SYSCONFDIR "/pki/libvirt-vnc") < 0)
+    if (VIR_STRDUP(cfg->vncListen, "127.0.0.1") < 0)
         goto error;
 
     if (VIR_STRDUP(cfg->spiceListen, "127.0.0.1") < 0)
         goto error;
 
-    if (VIR_STRDUP(cfg->spiceTLSx509certdir,
-                   SYSCONFDIR "/pki/libvirt-spice") < 0)
-        goto error;
+    /*
+     * If a "SYSCONFDIR" + "pki/libvirt-<val>" exists, then assume someone
+     * has created a val specific area to place service specific certificates.
+     *
+     * If the service specific directory doesn't exist, 'assume' that the
+     * user has created and populated the "SYSCONFDIR" + "pki/libvirt-default".
+     */
+#define SET_TLS_X509_CERT_DEFAULT(val)                                 \
+    do {                                                               \
+        if (virFileExists(SYSCONFDIR "/pki/libvirt-"#val)) {           \
+            if (VIR_STRDUP(cfg->val ## TLSx509certdir,                 \
+                           SYSCONFDIR "/pki/libvirt-"#val) < 0)        \
+                goto error;                                            \
+        } else {                                                       \
+            if (VIR_STRDUP(cfg->val ## TLSx509certdir,                 \
+                           cfg->defaultTLSx509certdir) < 0)            \
+                goto error;                                            \
+        }                                                              \
+    } while (false);
+
+    SET_TLS_X509_CERT_DEFAULT(vnc);
+    SET_TLS_X509_CERT_DEFAULT(spice);
+    SET_TLS_X509_CERT_DEFAULT(chardev);
+
+#undef SET_TLS_X509_CERT_DEFAULT
 
     cfg->remotePortMin = QEMU_REMOTE_PORT_MIN;
     cfg->remotePortMax = QEMU_REMOTE_PORT_MAX;
@@ -338,6 +364,8 @@ static void virQEMUDriverConfigDispose(void *obj)
     VIR_FREE(cfg->channelTargetDir);
     VIR_FREE(cfg->nvramDir);
 
+    VIR_FREE(cfg->defaultTLSx509certdir);
+
     VIR_FREE(cfg->vncTLSx509certdir);
     VIR_FREE(cfg->vncListen);
     VIR_FREE(cfg->vncPassword);
@@ -347,6 +375,8 @@ static void virQEMUDriverConfigDispose(void *obj)
     VIR_FREE(cfg->spiceListen);
     VIR_FREE(cfg->spicePassword);
     VIR_FREE(cfg->spiceSASLdir);
+
+    VIR_FREE(cfg->chardevTLSx509certdir);
 
     while (cfg->nhugetlbfs) {
         cfg->nhugetlbfs--;
@@ -392,12 +422,14 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
 {
     virConfPtr conf = NULL;
     int ret = -1;
+    int rv;
     size_t i, j;
     char *stdioHandler = NULL;
     char *user = NULL, *group = NULL;
     char **controllers = NULL;
     char **hugetlbfs = NULL;
     char **nvram = NULL;
+    char *corestr = NULL;
 
     /* Just check the file is readable before opening it, otherwise
      * libvirt emits an error.
@@ -410,12 +442,18 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
     if (!(conf = virConfReadFile(filename, 0)))
         goto cleanup;
 
+    if (virConfGetValueString(conf, "default_tls_x509_cert_dir", &cfg->defaultTLSx509certdir) < 0)
+        goto cleanup;
+    if (virConfGetValueBool(conf, "default_tls_x509_verify", &cfg->defaultTLSx509verify) < 0)
+        goto cleanup;
     if (virConfGetValueBool(conf, "vnc_auto_unix_socket", &cfg->vncAutoUnixSocket) < 0)
         goto cleanup;
     if (virConfGetValueBool(conf, "vnc_tls", &cfg->vncTLS) < 0)
         goto cleanup;
-    if (virConfGetValueBool(conf, "vnc_tls_x509_verify", &cfg->vncTLSx509verify) < 0)
+    if ((rv = virConfGetValueBool(conf, "vnc_tls_x509_verify", &cfg->vncTLSx509verify)) < 0)
         goto cleanup;
+    if (rv == 0)
+        cfg->vncTLSx509verify = cfg->defaultTLSx509verify;
     if (virConfGetValueString(conf, "vnc_tls_x509_cert_dir", &cfg->vncTLSx509certdir) < 0)
         goto cleanup;
     if (virConfGetValueString(conf, "vnc_listen", &cfg->vncListen) < 0)
@@ -467,6 +505,14 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
     if (virConfGetValueBool(conf, "spice_auto_unix_socket", &cfg->spiceAutoUnixSocket) < 0)
         goto cleanup;
 
+    if (virConfGetValueBool(conf, "chardev_tls", &cfg->chardevTLS) < 0)
+        goto cleanup;
+    if (virConfGetValueString(conf, "chardev_tls_x509_cert_dir", &cfg->chardevTLSx509certdir) < 0)
+        goto cleanup;
+    if ((rv = virConfGetValueBool(conf, "chardev_tls_x509_verify", &cfg->chardevTLSx509verify)) < 0)
+        goto cleanup;
+    if (rv == 0)
+        cfg->chardevTLSx509verify = cfg->defaultTLSx509verify;
 
     if (virConfGetValueUInt(conf, "remote_websocket_port_min", &cfg->webSocketPortMin) < 0)
         goto cleanup;
@@ -567,15 +613,18 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
                                   &controllers) < 0)
         goto cleanup;
 
-    for (i = 0; controllers != NULL && controllers[i] != NULL; i++) {
-        int ctl;
-        if ((ctl = virCgroupControllerTypeFromString(controllers[i])) < 0) {
-            virReportError(VIR_ERR_CONF_SYNTAX,
-                           _("Unknown cgroup controller '%s'"),
-                           controllers[i]);
-            goto cleanup;
+    if (controllers) {
+        cfg-> cgroupControllers = 0;
+        for (i = 0; controllers[i] != NULL; i++) {
+            int ctl;
+            if ((ctl = virCgroupControllerTypeFromString(controllers[i])) < 0) {
+                virReportError(VIR_ERR_CONF_SYNTAX,
+                               _("Unknown cgroup controller '%s'"),
+                               controllers[i]);
+                goto cleanup;
+            }
+            cfg->cgroupControllers |= (1 << ctl);
         }
-        cfg->cgroupControllers |= (1 << ctl);
     }
 
     if (virConfGetValueStringList(conf,  "cgroup_device_acl", false,
@@ -636,6 +685,24 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
     if (virConfGetValueUInt(conf, "max_processes", &cfg->maxProcesses) < 0)
         goto cleanup;
     if (virConfGetValueUInt(conf, "max_files", &cfg->maxFiles) < 0)
+        goto cleanup;
+
+    if (virConfGetValueType(conf, "max_core") == VIR_CONF_STRING) {
+        if (virConfGetValueString(conf, "max_core", &corestr) < 0)
+            goto cleanup;
+        if (STREQ(corestr, "unlimited")) {
+            cfg->maxCore = ULLONG_MAX;
+        } else {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("Unknown core size '%s'"),
+                           corestr);
+            goto cleanup;
+        }
+    } else if (virConfGetValueULLong(conf, "max_core", &cfg->maxCore) < 0) {
+        goto cleanup;
+    }
+
+    if (virConfGetValueBool(conf, "dump_guest_core", &cfg->dumpGuestCore) < 0)
         goto cleanup;
 
     if (virConfGetValueString(conf, "lock_manager", &cfg->lockManagerName) < 0)
@@ -720,6 +787,7 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
     virStringFreeList(controllers);
     virStringFreeList(hugetlbfs);
     virStringFreeList(nvram);
+    VIR_FREE(corestr);
     VIR_FREE(user);
     VIR_FREE(group);
     virConfFree(conf);
@@ -1382,6 +1450,16 @@ qemuGetHugepagePath(virHugeTLBFSPtr hugepage)
     return ret;
 }
 
+
+/**
+ * qemuGetDefaultHugepath:
+ * @hugetlbfs: array of configured hugepages
+ * @nhugetlbfs: number of item in the array
+ *
+ * Callers must ensure that @hugetlbfs contains at least one entry.
+ *
+ * Returns 0 on success, -1 otherwise.
+ * */
 char *
 qemuGetDefaultHugepath(virHugeTLBFSPtr hugetlbfs,
                        size_t nhugetlbfs)
@@ -1396,4 +1474,54 @@ qemuGetDefaultHugepath(virHugeTLBFSPtr hugetlbfs,
         i = 0;
 
     return qemuGetHugepagePath(&hugetlbfs[i]);
+}
+
+
+/**
+ * qemuGetHupageMemPath: Construct HP enabled memory backend path
+ *
+ * If no specific hugepage size is requested (@pagesize is zero)
+ * the default hugepage size is used).
+ * The resulting path is stored at @memPath.
+ *
+ * Returns 0 on success,
+ *        -1 otherwise.
+ */
+int
+qemuGetHupageMemPath(virQEMUDriverConfigPtr cfg,
+                     unsigned long long pagesize,
+                     char **memPath)
+{
+    size_t i = 0;
+
+    if (!cfg->nhugetlbfs) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("hugetlbfs filesystem is not mounted "
+                               "or disabled by administrator config"));
+        return -1;
+    }
+
+    if (!pagesize) {
+        if (!(*memPath = qemuGetDefaultHugepath(cfg->hugetlbfs,
+                                                cfg->nhugetlbfs)))
+            return -1;
+    } else {
+        for (i = 0; i < cfg->nhugetlbfs; i++) {
+            if (cfg->hugetlbfs[i].size == pagesize)
+                break;
+        }
+
+        if (i == cfg->nhugetlbfs) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Unable to find any usable hugetlbfs "
+                             "mount for %llu KiB"),
+                           pagesize);
+            return -1;
+        }
+
+        if (!(*memPath = qemuGetHugepagePath(&cfg->hugetlbfs[i])))
+            return -1;
+    }
+
+    return 0;
 }

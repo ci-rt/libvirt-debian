@@ -300,7 +300,7 @@ typedef enum {
 
 /* the backend driver used for PCI hostdev devices */
 typedef enum {
-    VIR_DOMAIN_HOSTDEV_PCI_BACKEND_DEFAULT, /* detect automaticaly, prefer VFIO */
+    VIR_DOMAIN_HOSTDEV_PCI_BACKEND_DEFAULT, /* detect automatically, prefer VFIO */
     VIR_DOMAIN_HOSTDEV_PCI_BACKEND_KVM,    /* force legacy kvm style */
     VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO,   /* force vfio */
     VIR_DOMAIN_HOSTDEV_PCI_BACKEND_XEN,    /* force legacy xen style, use pciback */
@@ -906,6 +906,7 @@ struct _virDomainNetDef {
             virTristateSwitch ioeventfd;
             virTristateSwitch event_idx;
             unsigned int queues; /* Multiqueue virtio-net */
+            unsigned int rx_queue_size;
             struct {
                 virTristateSwitch csum;
                 virTristateSwitch gso;
@@ -1091,6 +1092,7 @@ struct _virDomainChrSourceDef {
             char *service;
             bool listen;
             int protocol;
+            bool tlscreds;
         } tcp;
         struct {
             char *bindHost;
@@ -2359,24 +2361,36 @@ typedef struct _virDomainXMLOption virDomainXMLOption;
 typedef virDomainXMLOption *virDomainXMLOptionPtr;
 
 /* Called once after everything else has been parsed, for adjusting
- * overall domain defaults.  */
+ * overall domain defaults.
+ * @parseOpaque is opaque data passed by virDomainDefParse* caller,
+ * @opaque is opaque data set by driver (usually pointer to driver
+ * private data). */
 typedef int (*virDomainDefPostParseCallback)(virDomainDefPtr def,
                                              virCapsPtr caps,
                                              unsigned int parseFlags,
-                                             void *opaque);
+                                             void *opaque,
+                                             void *parseOpaque);
 /* Called once per device, for adjusting per-device settings while
- * leaving the overall domain otherwise unchanged.  */
+ * leaving the overall domain otherwise unchanged.
+ * @parseOpaque is opaque data passed by virDomainDefParse* caller,
+ * @opaque is opaque data set by driver (usually pointer to driver
+ * private data). */
 typedef int (*virDomainDeviceDefPostParseCallback)(virDomainDeviceDefPtr dev,
                                                    const virDomainDef *def,
                                                    virCapsPtr caps,
                                                    unsigned int parseFlags,
-                                                   void *opaque);
+                                                   void *opaque,
+                                                   void *parseOpaque);
 /* Drive callback for assigning device addresses, called at the end
- * of parsing, after all defaults and implicit devices have been added.  */
+ * of parsing, after all defaults and implicit devices have been added.
+ * @parseOpaque is opaque data passed by virDomainDefParse* caller,
+ * @opaque is opaque data set by driver (usually pointer to driver
+ * private data). */
 typedef int (*virDomainDefAssignAddressesCallback)(virDomainDef *def,
                                                    virCapsPtr caps,
                                                    unsigned int parseFlags,
-                                                   void *opaque);
+                                                   void *opaque,
+                                                   void *parseOpaque);
 
 /* Called in appropriate places where the domain conf parser can return failure
  * for configurations that were previously accepted. This shall not modify the
@@ -2445,11 +2459,11 @@ virDomainXMLNamespacePtr
 virDomainXMLOptionGetNamespace(virDomainXMLOptionPtr xmlopt)
     ATTRIBUTE_NONNULL(1);
 
-int
-virDomainDefPostParse(virDomainDefPtr def,
-                      virCapsPtr caps,
-                      unsigned int parseFlags,
-                      virDomainXMLOptionPtr xmlopt);
+int virDomainDefPostParse(virDomainDefPtr def,
+                          virCapsPtr caps,
+                          unsigned int parseFlags,
+                          virDomainXMLOptionPtr xmlopt,
+                          void *parseOpaque);
 
 int virDomainDefValidate(virDomainDefPtr def,
                          virCapsPtr caps,
@@ -2577,6 +2591,7 @@ void virDomainObjAssignDef(virDomainObjPtr domain,
 int virDomainObjSetDefTransient(virCapsPtr caps,
                                 virDomainXMLOptionPtr xmlopt,
                                 virDomainObjPtr domain);
+void virDomainObjRemoveTransientDef(virDomainObjPtr domain);
 virDomainDefPtr
 virDomainObjGetPersistentDef(virCapsPtr caps,
                              virDomainXMLOptionPtr xmlopt,
@@ -2589,11 +2604,15 @@ int virDomainObjGetDefs(virDomainObjPtr vm,
                         unsigned int flags,
                         virDomainDefPtr *liveDef,
                         virDomainDefPtr *persDef);
+virDomainDefPtr virDomainObjGetOneDefState(virDomainObjPtr vm,
+                                           unsigned int flags,
+                                           bool *state);
 virDomainDefPtr virDomainObjGetOneDef(virDomainObjPtr vm, unsigned int flags);
 
 virDomainDefPtr virDomainDefCopy(virDomainDefPtr src,
                                  virCapsPtr caps,
                                  virDomainXMLOptionPtr xmlopt,
+                                 void *parseOpaque,
                                  bool migratable);
 virDomainDefPtr virDomainObjCopyPersistentDef(virDomainObjPtr dom,
                                               virCapsPtr caps,
@@ -2626,6 +2645,8 @@ typedef enum {
     VIR_DOMAIN_DEF_PARSE_ABI_UPDATE = 1 << 9,
     /* skip definition validation checks meant to be executed on define time only */
     VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE = 1 << 10,
+    /* skip post parse callback */
+    VIR_DOMAIN_DEF_PARSE_SKIP_POST_PARSE = 1 << 11,
 } virDomainDefParseFlags;
 
 typedef enum {
@@ -2644,6 +2665,15 @@ typedef enum {
     VIR_DOMAIN_DEF_FORMAT_CLOCK_ADJUST    = 1 << 9,
 } virDomainDefFormatFlags;
 
+/* Use these flags to skip specific domain ABI consistency checks done
+ * in virDomainDefCheckABIStabilityFlags.
+ */
+typedef enum {
+    /* Set when domain lock must be released and there exists the possibility
+     * that some external action could alter the value, such as cur_balloon. */
+    VIR_DOMAIN_DEF_ABI_CHECK_SKIP_VOLATILE = 1 << 0,
+} virDomainDefABICheckFlags;
+
 virDomainDeviceDefPtr virDomainDeviceDefParse(const char *xmlStr,
                                               const virDomainDef *def,
                                               virCapsPtr caps,
@@ -2656,15 +2686,18 @@ virStorageSourcePtr virDomainDiskDefSourceParse(const char *xmlStr,
 virDomainDefPtr virDomainDefParseString(const char *xmlStr,
                                         virCapsPtr caps,
                                         virDomainXMLOptionPtr xmlopt,
+                                        void *parseOpaque,
                                         unsigned int flags);
 virDomainDefPtr virDomainDefParseFile(const char *filename,
                                       virCapsPtr caps,
                                       virDomainXMLOptionPtr xmlopt,
+                                      void *parseOpaque,
                                       unsigned int flags);
 virDomainDefPtr virDomainDefParseNode(xmlDocPtr doc,
                                       xmlNodePtr root,
                                       virCapsPtr caps,
                                       virDomainXMLOptionPtr xmlopt,
+                                      void *parseOpaque,
                                       unsigned int flags);
 virDomainObjPtr virDomainObjParseNode(xmlDocPtr xml,
                                       xmlNodePtr root,
@@ -2678,6 +2711,10 @@ virDomainObjPtr virDomainObjParseFile(const char *filename,
 
 bool virDomainDefCheckABIStability(virDomainDefPtr src,
                                    virDomainDefPtr dst);
+
+bool virDomainDefCheckABIStabilityFlags(virDomainDefPtr src,
+                                        virDomainDefPtr dst,
+                                        unsigned int flags);
 
 int virDomainDefAddImplicitDevices(virDomainDefPtr def);
 
@@ -2949,6 +2986,15 @@ int virDomainMemoryFindByDef(virDomainDefPtr def, virDomainMemoryDefPtr mem)
 int virDomainMemoryFindInactiveByDef(virDomainDefPtr def,
                                      virDomainMemoryDefPtr mem)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
+
+int virDomainShmemDefInsert(virDomainDefPtr def, virDomainShmemDefPtr shmem)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
+bool virDomainShmemDefEquals(virDomainShmemDefPtr src, virDomainShmemDefPtr dst)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
+ssize_t virDomainShmemDefFind(virDomainDefPtr def, virDomainShmemDefPtr shmem)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
+virDomainShmemDefPtr virDomainShmemDefRemove(virDomainDefPtr def, size_t idx)
+    ATTRIBUTE_NONNULL(1);
 
 VIR_ENUM_DECL(virDomainTaint)
 VIR_ENUM_DECL(virDomainVirt)

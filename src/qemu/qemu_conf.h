@@ -109,6 +109,9 @@ struct _virQEMUDriverConfig {
     char *channelTargetDir;
     char *nvramDir;
 
+    char *defaultTLSx509certdir;
+    bool defaultTLSx509verify;
+
     bool vncAutoUnixSocket;
     bool vncTLS;
     bool vncTLSx509verify;
@@ -125,6 +128,10 @@ struct _virQEMUDriverConfig {
     char *spiceListen;
     char *spicePassword;
     bool spiceAutoUnixSocket;
+
+    bool chardevTLS;
+    char *chardevTLSx509certdir;
+    bool chardevTLSx509verify;
 
     unsigned int remotePortMin;
     unsigned int remotePortMax;
@@ -148,6 +155,8 @@ struct _virQEMUDriverConfig {
 
     unsigned int maxProcesses;
     unsigned int maxFiles;
+    unsigned long long maxCore;
+    bool dumpGuestCore;
 
     unsigned int maxQueuedJobs;
 
@@ -326,4 +335,8 @@ int qemuTranslateSnapshotDiskSourcePool(virConnectPtr conn,
 char * qemuGetHugepagePath(virHugeTLBFSPtr hugepage);
 char * qemuGetDefaultHugepath(virHugeTLBFSPtr hugetlbfs,
                               size_t nhugetlbfs);
+
+int qemuGetHupageMemPath(virQEMUDriverConfigPtr cfg,
+                         unsigned long long pagesize,
+                         char **memPath);
 #endif /* __QEMUD_CONF_H */
