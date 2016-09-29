@@ -23,10 +23,10 @@ index 8ee5567..71a15e8 100644
  
  uninstall-local:: uninstall-init uninstall-systemd
 diff --git a/src/Makefile.in b/src/Makefile.in
-index df17a41..4cd596e 100644
+index fd690db..d61672d 100644
 --- a/src/Makefile.in
 +++ b/src/Makefile.in
-@@ -11514,8 +11514,7 @@ install-data-local: install-init install-systemd
+@@ -11519,8 +11519,7 @@ install-data-local: install-init install-systemd
  @WITH_NETWORK_TRUE@	      $(DESTDIR)$(confdir)/qemu/networks/default.xml && \
  @WITH_NETWORK_TRUE@	    rm $(DESTDIR)$(confdir)/qemu/networks/default.xml.t; }
  @WITH_NETWORK_TRUE@	( cd $(DESTDIR)$(confdir)/qemu/networks/autostart && \

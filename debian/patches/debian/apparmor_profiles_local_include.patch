@@ -5,8 +5,8 @@ Subject: apparmor_profiles_local_include
 Include local apparmor profile
 ---
  examples/apparmor/usr.lib.libvirt.virt-aa-helper | 3 +++
- examples/apparmor/usr.sbin.libvirtd              | 2 ++
- 2 files changed, 5 insertions(+)
+ examples/apparmor/usr.sbin.libvirtd              | 3 +++
+ 2 files changed, 6 insertions(+)
 
 diff --git a/examples/apparmor/usr.lib.libvirt.virt-aa-helper b/examples/apparmor/usr.lib.libvirt.virt-aa-helper
 index 89b95f6..a992119 100644
@@ -21,13 +21,14 @@ index 89b95f6..a992119 100644
 +  #include <local/usr.lib.libvirt.virt-aa-helper>
  }
 diff --git a/examples/apparmor/usr.sbin.libvirtd b/examples/apparmor/usr.sbin.libvirtd
-index 23f70f5..30f6508 100644
+index 48651b2..e0ecfe9 100644
 --- a/examples/apparmor/usr.sbin.libvirtd
 +++ b/examples/apparmor/usr.sbin.libvirtd
-@@ -67,4 +67,6 @@
-   # allow changing to our UUID-based named profiles
-   change_profile -> @{LIBVIRT}-[0-9a-f]*-[0-9a-f]*-[0-9a-f]*-[0-9a-f]*-[0-9a-f]*,
+@@ -85,4 +85,7 @@
  
+    /usr/{lib,libexec}/qemu-bridge-helper rmix,
+   }
++  
 +  # Site-specific additions and overrides. See local/README for details.
 +  #include <local/usr.sbin.libvirtd>
  }
