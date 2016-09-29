@@ -134,6 +134,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module ffsl:
   # Code from module ffsl-tests:
   # Code from module fgetc-tests:
+  # Code from module flexmember:
   # Code from module float:
   # Code from module float-tests:
   # Code from module fnmatch:
@@ -186,6 +187,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module getpass:
   # Code from module getpeername:
   # Code from module getpeername-tests:
+  # Code from module getprogname:
+  # Code from module getprogname-tests:
   # Code from module getsockname:
   # Code from module getsockname-tests:
   # Code from module getsockopt:
@@ -229,6 +232,8 @@ AC_DEFUN([gl_EARLY],
   AC_REQUIRE([AC_SYS_LARGEFILE])
   # Code from module ldexp:
   # Code from module ldexp-tests:
+  # Code from module limits-h:
+  # Code from module limits-h-tests:
   # Code from module listen:
   # Code from module listen-tests:
   # Code from module localcharset:
@@ -321,7 +326,6 @@ AC_DEFUN([gl_EARLY],
   # Code from module posix_spawnattr_setsigmask:
   # Code from module posix_spawnp:
   # Code from module posix_spawnp-tests:
-  # Code from module progname:
   # Code from module pthread:
   AC_DEFINE([_REENTRANT], 1, [For thread-safety on OSF/1, Solaris.])
   AC_DEFINE([_THREAD_SAFE], 1, [For thread-safety on AIX, FreeBSD.])
@@ -635,6 +639,7 @@ AC_SUBST([LTALLOCA])
     AC_LIBOBJ([ffsl])
   fi
   gl_STRING_MODULE_INDICATOR([ffsl])
+  AC_C_FLEXIBLE_ARRAY_MEMBER
   gl_FLOAT_H
   if test $REPLACE_FLOAT_LDBL = 1; then
     AC_LIBOBJ([float])
@@ -801,6 +806,7 @@ AC_SUBST([LTALLOCA])
   gl_LANGINFO_H
   AC_REQUIRE([gl_LARGEFILE])
   gl_FUNC_LDEXP
+  gl_LIMITS_H
   AC_REQUIRE([gl_HEADER_SYS_SOCKET])
   if test "$ac_cv_header_winsock2_h" = yes; then
     AC_LIBOBJ([listen])
@@ -1357,6 +1363,11 @@ changequote([, ])dnl
     AC_LIBOBJ([getpagesize])
   fi
   gl_UNISTD_MODULE_INDICATOR([getpagesize])
+  gl_FUNC_GETPROGNAME
+  AC_REQUIRE([gl_USE_SYSTEM_EXTENSIONS])
+  AC_CHECK_DECLS([program_invocation_name], [], [], [#include <errno.h>])
+  AC_CHECK_DECLS([program_invocation_short_name], [], [], [#include <errno.h>])
+  AC_CHECK_DECLS([__argv], [], [], [#include <stdlib.h>])
   AC_REQUIRE([gl_HEADER_SYS_SOCKET])
   if test "$ac_cv_header_winsock2_h" = yes; then
     AC_LIBOBJ([getsockopt])
@@ -1489,8 +1500,6 @@ changequote([, ])dnl
     [posix_spawn_ported=no],
     [posix_spawn_ported=yes])
   AM_CONDITIONAL([POSIX_SPAWN_PORTED], [test $posix_spawn_ported = yes])
-  AC_CHECK_DECLS([program_invocation_name], [], [], [#include <errno.h>])
-  AC_CHECK_DECLS([program_invocation_short_name], [], [], [#include <errno.h>])
   gl_FUNC_PTSNAME
   if test $HAVE_PTSNAME = 0 || test $REPLACE_PTSNAME = 1; then
     AC_LIBOBJ([ptsname])
@@ -1751,6 +1760,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/ffs.c
   lib/ffsl.c
   lib/ffsl.h
+  lib/flexmember.h
   lib/float+.h
   lib/float.c
   lib/float.in.h
@@ -1800,6 +1810,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/isatty.c
   lib/itold.c
   lib/langinfo.in.h
+  lib/limits.in.h
   lib/listen.c
   lib/localcharset.c
   lib/localcharset.h
@@ -2008,6 +2019,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/fflush.m4
   m4/ffs.m4
   m4/ffsl.m4
+  m4/flexmember.m4
   m4/float_h.m4
   m4/fnmatch.m4
   m4/fpieee.m4
@@ -2031,6 +2043,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/getopt.m4
   m4/getpagesize.m4
   m4/getpass.m4
+  m4/getprogname.m4
   m4/gettimeofday.m4
   m4/getugroups.m4
   m4/gl-openssl.m4
@@ -2059,6 +2072,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/lib-ld.m4
   m4/lib-link.m4
   m4/lib-prefix.m4
+  m4/limits-h.m4
   m4/localcharset.m4
   m4/locale-fr.m4
   m4/locale-ja.m4
@@ -2310,6 +2324,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-getopt.h
   tests/test-getopt_long.h
   tests/test-getpeername.c
+  tests/test-getprogname.c
   tests/test-getsockname.c
   tests/test-getsockopt.c
   tests/test-gettimeofday.c
@@ -2331,6 +2346,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-langinfo.c
   tests/test-ldexp.c
   tests/test-ldexp.h
+  tests/test-limits-h.c
   tests/test-listen.c
   tests/test-locale.c
   tests/test-localeconv.c
@@ -2507,6 +2523,8 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/fpucw.h
   tests=lib/ftruncate.c
   tests=lib/getpagesize.c
+  tests=lib/getprogname.c
+  tests=lib/getprogname.h
   tests=lib/getsockopt.c
   tests=lib/glthread/thread.c
   tests=lib/glthread/thread.h
@@ -2524,8 +2542,6 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/math.c
   tests=lib/math.in.h
   tests=lib/nanosleep.c
-  tests=lib/progname.c
-  tests=lib/progname.h
   tests=lib/ptsname.c
   tests=lib/ptsname_r.c
   tests=lib/pty-private.h

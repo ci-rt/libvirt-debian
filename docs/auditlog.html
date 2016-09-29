@@ -210,6 +210,8 @@
                     <a href="#typeresourceredir">Redirected device</a>
                   </li><li>
                     <a href="#typeresourcecgroup">Control group</a>
+                  </li><li>
+                    <a href="#typeresourceshmem">Shared memory</a>
                   </li></ul>
               </li></ul>
           </li></ul>
@@ -400,6 +402,14 @@
       The <code>msg</code> field will include the following sub-fields
     </p>
         <dl><dt><code>reason</code></dt><dd>The reason which caused the resource to be assigned to happen</dd><dt><code>resrc</code></dt><dd>The type of resource assigned. Set to <code>cgroup</code></dd><dt><code>cgroup</code></dt><dd>The name of the cgroup controller</dd></dl>
+        <h4>
+          <a name="typeresourceshmem" shape="rect" id="typeresourceshmem">Shared memory</a>
+          <a class="headerlink" href="#typeresourceshmem" title="Permalink to this headline">¶</a>
+        </h4>
+        <p>
+      The <code>msg</code> field will include the following sub-fields
+    </p>
+        <dl><dt><code>resrc</code></dt><dd>The type of resource assigned. Set to <code>shmem</code></dd><dt><code>reason</code></dt><dd>The reason which caused the resource to be assigned to happen</dd><dt><code>size</code></dt><dd>The size of the shared memory region</dd><dt><code>shmem</code></dt><dd>Name of the shared memory region</dd><dt><code>source</code></dt><dd>Path of the backing character device for given emulated device</dd></dl>
       </div>
     </div>
   </body>

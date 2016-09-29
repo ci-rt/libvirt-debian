@@ -353,6 +353,36 @@ qemuAssignDeviceMemoryAlias(virDomainDefPtr def,
 
 
 int
+qemuAssignDeviceShmemAlias(virDomainDefPtr def,
+                           virDomainShmemDefPtr shmem,
+                           int idx)
+{
+    if (idx == -1) {
+        size_t i;
+        idx = 0;
+        for (i = 0; i < def->nshmems; i++) {
+            int thisidx;
+
+            if ((thisidx = qemuDomainDeviceAliasIndex(&def->shmems[i]->info,
+                                                      "shmem")) < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("Unable to determine device index "
+                                 "for shmem device"));
+                return -1;
+            }
+
+            if (thisidx >= idx)
+                idx = thisidx + 1;
+        }
+    }
+
+    if (virAsprintf(&shmem->info.alias, "shmem%d", idx) < 0)
+        return -1;
+    return 0;
+}
+
+
+int
 qemuAssignDeviceAliases(virDomainDefPtr def, virQEMUCapsPtr qemuCaps)
 {
     size_t i;
@@ -421,7 +451,7 @@ qemuAssignDeviceAliases(virDomainDefPtr def, virQEMUCapsPtr qemuCaps)
             return -1;
     }
     for (i = 0; i < def->nshmems; i++) {
-        if (virAsprintf(&def->shmems[i]->info.alias, "shmem%zu", i) < 0)
+        if (qemuAssignDeviceShmemAlias(def, def->shmems[i], i) < 0)
             return -1;
     }
     for (i = 0; i < def->nsmartcards; i++) {
@@ -559,4 +589,20 @@ qemuDomainGetSecretAESAlias(const char *srcalias,
         ignore_value(virAsprintf(&alias, "%s-secret0", srcalias));
 
     return alias;
+}
+
+
+/* qemuAliasTLSObjFromChardevAlias
+ * @chardev_alias: Pointer to the chardev alias string
+ *
+ * Generate and return a string to be used as the TLS object alias
+ */
+char *
+qemuAliasTLSObjFromChardevAlias(const char *chardev_alias)
+{
+    char *ret;
+
+    ignore_value(virAsprintf(&ret, "obj%s_tls0", chardev_alias));
+
+    return ret;
 }

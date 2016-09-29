@@ -514,6 +514,7 @@ mymain(void)
     DO_TEST("net-eth-ifname", NONE);
     DO_TEST("net-eth-hostip", NONE);
     DO_TEST("net-virtio-network-portgroup", NONE);
+    DO_TEST("net-virtio-rxqueuesize", NONE);
     DO_TEST("net-hostdev", NONE);
     DO_TEST("net-hostdev-vfio", NONE);
     DO_TEST("net-midonet", NONE);
@@ -532,6 +533,7 @@ mymain(void)
     DO_TEST("serial-tcp", NONE);
     DO_TEST("serial-udp", NONE);
     DO_TEST("serial-tcp-telnet", NONE);
+    DO_TEST("serial-tcp-tlsx509-chardev", NONE);
     DO_TEST("serial-many", NONE);
     DO_TEST("serial-spiceport", NONE);
     DO_TEST("serial-spiceport-nospice", NONE);
@@ -829,6 +831,11 @@ mymain(void)
             QEMU_CAPS_DEVICE_VIRTIO_RNG, QEMU_CAPS_OBJECT_RNG_RANDOM,
             QEMU_CAPS_OBJECT_GPEX, QEMU_CAPS_DEVICE_PCI_BRIDGE,
             QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE, QEMU_CAPS_VIRTIO_SCSI);
+    DO_TEST("aarch64-video-virtio-gpu-pci",
+            QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_OBJECT_GPEX,
+            QEMU_CAPS_DEVICE_PCI_BRIDGE, QEMU_CAPS_DEVICE_IOH3420,
+            QEMU_CAPS_PCI_MULTIFUNCTION, QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
+            QEMU_CAPS_DEVICE_VIRTIO_GPU, QEMU_CAPS_BOOTINDEX);
 
     DO_TEST_FULL("aarch64-gic-none", WHEN_BOTH, GIC_NONE, NONE);
     DO_TEST_FULL("aarch64-gic-none-v2", WHEN_BOTH, GIC_V2, NONE);

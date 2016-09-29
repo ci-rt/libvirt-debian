@@ -57,4 +57,15 @@ int qemuSetupCgroupCpusetCpus(virCgroupPtr cgroup, virBitmapPtr cpumask);
 int qemuSetupGlobalCpuCgroup(virDomainObjPtr vm);
 int qemuRemoveCgroup(virDomainObjPtr vm);
 
+typedef struct _qemuCgroupEmulatorAllNodesData qemuCgroupEmulatorAllNodesData;
+typedef qemuCgroupEmulatorAllNodesData *qemuCgroupEmulatorAllNodesDataPtr;
+struct _qemuCgroupEmulatorAllNodesData {
+    virCgroupPtr emulatorCgroup;
+    char *emulatorMemMask;
+};
+
+int qemuCgroupEmulatorAllNodesAllow(virCgroupPtr cgroup,
+                                    qemuCgroupEmulatorAllNodesDataPtr *data);
+void qemuCgroupEmulatorAllNodesRestore(qemuCgroupEmulatorAllNodesDataPtr data);
+
 #endif /* __QEMU_CGROUP_H__ */

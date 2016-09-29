@@ -285,7 +285,8 @@ libxlDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
                               const virDomainDef *def,
                               virCapsPtr caps ATTRIBUTE_UNUSED,
                               unsigned int parseFlags ATTRIBUTE_UNUSED,
-                              void *opaque ATTRIBUTE_UNUSED)
+                              void *opaque ATTRIBUTE_UNUSED,
+                              void *parseOpaque ATTRIBUTE_UNUSED)
 {
     if (dev->type == VIR_DOMAIN_DEVICE_CHR &&
         dev->data.chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE &&
@@ -380,7 +381,8 @@ static int
 libxlDomainDefPostParse(virDomainDefPtr def,
                         virCapsPtr caps ATTRIBUTE_UNUSED,
                         unsigned int parseFlags ATTRIBUTE_UNUSED,
-                        void *opaque ATTRIBUTE_UNUSED)
+                        void *opaque ATTRIBUTE_UNUSED,
+                        void *parseOpaque ATTRIBUTE_UNUSED)
 {
     /* Xen PV domains always have a PV console, so add one to the domain config
      * via post-parse callback if not explicitly specified in the XML. */
@@ -421,7 +423,6 @@ virDomainDefParserConfig libxlDomainDefParserConfig = {
 struct libxlShutdownThreadInfo
 {
     libxlDriverPrivatePtr driver;
-    virDomainObjPtr vm;
     libxl_event *event;
 };
 
@@ -430,7 +431,7 @@ static void
 libxlDomainShutdownThread(void *opaque)
 {
     struct libxlShutdownThreadInfo *shutdown_info = opaque;
-    virDomainObjPtr vm = shutdown_info->vm;
+    virDomainObjPtr vm = NULL;
     libxl_event *ev = shutdown_info->event;
     libxlDriverPrivatePtr driver = shutdown_info->driver;
     virObjectEventPtr dom_event = NULL;
@@ -438,6 +439,12 @@ libxlDomainShutdownThread(void *opaque)
     libxlDriverConfigPtr cfg;
 
     cfg = libxlDriverConfigGet(driver);
+
+    vm = virDomainObjListFindByIDRef(driver->domains, ev->domid);
+    if (!vm) {
+        VIR_INFO("Received event for unknown domain ID %d", ev->domid);
+        goto cleanup;
+    }
 
     if (libxlDomainObjBeginJob(driver, vm, LIBXL_JOB_MODIFY) < 0)
         goto cleanup;
@@ -547,7 +554,6 @@ void
 libxlDomainEventHandler(void *data, VIR_LIBXL_EVENT_CONST libxl_event *event)
 {
     libxlDriverPrivatePtr driver = data;
-    virDomainObjPtr vm = NULL;
     libxl_shutdown_reason xl_reason = event->u.domain_shutdown.shutdown_reason;
     struct libxlShutdownThreadInfo *shutdown_info = NULL;
     virThread thread;
@@ -565,12 +571,6 @@ libxlDomainEventHandler(void *data, VIR_LIBXL_EVENT_CONST libxl_event *event)
     if (xl_reason == LIBXL_SHUTDOWN_REASON_SUSPEND)
         goto error;
 
-    vm = virDomainObjListFindByIDRef(driver->domains, event->domid);
-    if (!vm) {
-        VIR_INFO("Received event for unknown domain ID %d", event->domid);
-        goto error;
-    }
-
     /*
      * Start a thread to handle shutdown.  We don't want to be tying up
      * libxl's event machinery by doing a potentially lengthy shutdown.
@@ -579,7 +579,6 @@ libxlDomainEventHandler(void *data, VIR_LIBXL_EVENT_CONST libxl_event *event)
         goto error;
 
     shutdown_info->driver = driver;
-    shutdown_info->vm = vm;
     shutdown_info->event = (libxl_event *)event;
     if (virThreadCreate(&thread, false, libxlDomainShutdownThread,
                         shutdown_info) < 0) {
@@ -591,7 +590,7 @@ libxlDomainEventHandler(void *data, VIR_LIBXL_EVENT_CONST libxl_event *event)
     }
 
     /*
-     * VM is unlocked and libxl_event freed in shutdown thread
+     * libxlShutdownThreadInfo and libxl_event are freed in shutdown thread
      */
     return;
 
@@ -600,7 +599,6 @@ libxlDomainEventHandler(void *data, VIR_LIBXL_EVENT_CONST libxl_event *event)
     /* Cast away any const */
     libxl_event_free(cfg->ctx, (libxl_event *)event);
     virObjectUnref(cfg);
-    virDomainObjEndAPI(&vm);
     VIR_FREE(shutdown_info);
 }
 
@@ -676,7 +674,7 @@ libxlDomainSaveImageOpen(libxlDriverPrivatePtr driver,
         goto error;
     }
 
-    if (!(def = virDomainDefParseString(xml, cfg->caps, driver->xmlopt,
+    if (!(def = virDomainDefParseString(xml, cfg->caps, driver->xmlopt, NULL,
                                         VIR_DOMAIN_DEF_PARSE_INACTIVE |
                                         VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE)))
         goto error;
@@ -811,13 +809,7 @@ libxlDomainCleanup(libxlDriverPrivatePtr driver,
         VIR_FREE(xml);
     }
 
-    if (vm->newDef) {
-        virDomainDefFree(vm->def);
-        vm->def = vm->newDef;
-        vm->def->id = -1;
-        vm->newDef = NULL;
-    }
-
+    virDomainObjRemoveTransientDef(vm);
     virObjectUnref(cfg);
 }
 
@@ -983,24 +975,47 @@ libxlConsoleCallback(libxl_ctx *ctx, libxl_event *ev, void *for_callback)
 {
     virDomainObjPtr vm = for_callback;
     size_t i;
+    virDomainChrDefPtr chr;
+    char *console = NULL;
+    int ret;
 
     virObjectLock(vm);
     for (i = 0; i < vm->def->nconsoles; i++) {
-        virDomainChrDefPtr chr = vm->def->consoles[i];
+        chr = vm->def->consoles[i];
+
         if (i == 0 &&
             chr->targetType == VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL)
             chr = vm->def->serials[0];
 
         if (chr->source.type == VIR_DOMAIN_CHR_TYPE_PTY) {
             libxl_console_type console_type;
-            char *console = NULL;
-            int ret;
 
             console_type =
                 (chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL ?
                  LIBXL_CONSOLE_TYPE_SERIAL : LIBXL_CONSOLE_TYPE_PV);
             ret = libxl_console_get_tty(ctx, ev->domid,
                                         chr->target.port, console_type,
+                                        &console);
+            if (!ret) {
+                VIR_FREE(chr->source.data.file.path);
+                if (console && console[0] != '\0') {
+                    ignore_value(VIR_STRDUP(chr->source.data.file.path,
+                                            console));
+                }
+            }
+            VIR_FREE(console);
+        }
+    }
+    for (i = 0; i < vm->def->nserials; i++) {
+        chr = vm->def->serials[i];
+
+        ignore_value(virAsprintf(&chr->info.alias, "serial%zd", i));
+        if (chr->source.type == VIR_DOMAIN_CHR_TYPE_PTY) {
+            if (chr->source.data.file.path)
+                continue;
+            ret = libxl_console_get_tty(ctx, ev->domid,
+                                        chr->target.port,
+                                        LIBXL_CONSOLE_TYPE_SERIAL,
                                         &console);
             if (!ret) {
                 VIR_FREE(chr->source.data.file.path);
@@ -1347,8 +1362,8 @@ libxlDomainDefCheckABIStability(libxlDriverPrivatePtr driver,
     libxlDriverConfigPtr cfg = libxlDriverConfigGet(driver);
     bool ret = false;
 
-    if (!(migratableDefSrc = virDomainDefCopy(src, cfg->caps, driver->xmlopt, true)) ||
-        !(migratableDefDst = virDomainDefCopy(dst, cfg->caps, driver->xmlopt, true)))
+    if (!(migratableDefSrc = virDomainDefCopy(src, cfg->caps, driver->xmlopt, NULL, true)) ||
+        !(migratableDefDst = virDomainDefCopy(dst, cfg->caps, driver->xmlopt, NULL, true)))
         goto cleanup;
 
     ret = virDomainDefCheckABIStability(migratableDefSrc, migratableDefDst);

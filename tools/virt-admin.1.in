@@ -129,7 +129,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRT-ADMIN 1"
-.TH VIRT-ADMIN 1 "2016-08-02" "libvirt-2.1.0" "Virtualization Support"
+.TH VIRT-ADMIN 1 "2016-09-27" "libvirt-2.3.0" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -255,12 +255,20 @@ Prints the administrating server canonical \s-1URI,\s0 can be useful in shell mo
 no \fIuri\fR was specified, neither \fI\s-1LIBVIRT_ADMIN_DEFAULT_URI\s0\fR environment
 variable nor \fIuri_default\fR option (libvirt\-admin.conf) were set,
 libvirtd:///system is used.
+.SH "DAEMON COMMANDS"
+.IX Header "DAEMON COMMANDS"
+The following commands allow to monitor the daemon's state as well as directly
+change its internal configuration.
+.IP "\fBserver-list\fR" 4
+.IX Item "server-list"
+Lists all manageable servers contained within the daemon the client is
+currently connected to.
 .SH "SERVER COMMANDS"
 .IX Header "SERVER COMMANDS"
-Following commands manipulate daemon's server internal configuration.
+The following commands manipulate daemon's server internal configuration.
 The \fIserver\fR is specified by its name.
-.IP "\fBsrv-threadpool-info\fR \fIserver\fR" 4
-.IX Item "srv-threadpool-info server"
+.IP "\fBserver-threadpool-info\fR \fIserver\fR" 4
+.IX Item "server-threadpool-info server"
 Retrieve server's threadpool attributes. These attributes include:
 .RS 4
 .IP "\fIminWorkers\fR as the bottom limit to the number of active workers," 4
@@ -297,10 +305,10 @@ control and libvirt guarantees that such a task cannot hang, thus will always
 finish. An example of such a task this would be destroying a domain:
     $ virsh destroy <domain>.
 .RE
-.IP "\fBsrv-threadpool-set\fR \fIserver\fR [\fI\-\-min\-workers\fR \fBcount\fR] [\fI\-\-max\-workers\fR \fBcount\fR] [\fI\-\-priority\-workers\fR \fBcount\fR]" 4
-.IX Item "srv-threadpool-set server [--min-workers count] [--max-workers count] [--priority-workers count]"
+.IP "\fBserver-threadpool-set\fR \fIserver\fR [\fI\-\-min\-workers\fR \fBcount\fR] [\fI\-\-max\-workers\fR \fBcount\fR] [\fI\-\-priority\-workers\fR \fBcount\fR]" 4
+.IX Item "server-threadpool-set server [--min-workers count] [--max-workers count] [--priority-workers count]"
 Change threadpool attributes on a server. Only a fraction of all attributes as
-described in \fIsrv-threadpool-info\fR is supported for the setter.
+described in \fIserver-threadpool-info\fR is supported for the setter.
 .RS 4
 .IP "\fI\-\-min\-workers\fR" 4
 .IX Item "--min-workers"
@@ -317,14 +325,8 @@ The current number of active priority workers in a threadpool.
 .RE
 .RS 4
 .RE
-.IP "\fBsrv-clients-list\fR \fIserver\fR" 4
-.IX Item "srv-clients-list server"
-Print a table showing the list of clients connected to <server>, also providing
-information about transport type used on client's connection (supported
-transports include \fBunix\fR, \fBtcp\fR, and \fBtls\fR), as well as providing
-information about client's connection time (system local time is used).
-.IP "\fBsrv-clients-info\fR \fIserver\fR" 4
-.IX Item "srv-clients-info server"
+.IP "\fBserver-clients-info\fR \fIserver\fR" 4
+.IX Item "server-clients-info server"
 Get information about the current setting of limits regarding connections of new
 clients. This information comprises of the limits to the maximum number of
 clients connected to \fIserver\fR, maximum number of clients waiting for
@@ -333,13 +335,13 @@ runtime values, more specifically, the current number of clients connected to
 \&\fIserver\fR and the current number of clients waiting for authentication.
 .Sp
 \&\fBExample\fR
-    # virt-admin srv-clients-info libvirtd
+    # virt-admin server-clients-info libvirtd
     nclients_max        : 120
     nclients            : 3
     nclients_unauth_max : 20
     nclients_unauth     : 0
-.IP "\fBsrv-clients-set\fR \fIserver\fR [\fI\-\-max\-clients\fR \fBcount\fR] [\fI\-\-max\-unauth\-clients\fR \fBcount\fR]" 4
-.IX Item "srv-clients-set server [--max-clients count] [--max-unauth-clients count]"
+.IP "\fBserver-clients-set\fR \fIserver\fR [\fI\-\-max\-clients\fR \fBcount\fR] [\fI\-\-max\-unauth\-clients\fR \fBcount\fR]" 4
+.IX Item "server-clients-set server [--max-clients count] [--max-unauth-clients count]"
 Set new client-related limits on \fIserver\fR.
 .RS 4
 .IP "\fI\-\-max\-clients\fR" 4
@@ -358,10 +360,16 @@ The value for this limit has to be always lower than the value of
 .RE
 .SH "CLIENT COMMANDS"
 .IX Header "CLIENT COMMANDS"
-Following commands provide management and monitoring of clients connected to
+The following commands provide management and monitoring of clients connected to
 one of daemon's available servers. Clients are specified by their numeric \s-1ID\s0
 which is obtained by listing all clients connected to a specified server
-(see command \fBsrv-clients-list\fR).
+(see command \fBclient-list\fR).
+.IP "\fBclient-list\fR \fIserver\fR" 4
+.IX Item "client-list server"
+Print a table showing the list of clients connected to <server>, also providing
+information about transport type used on client's connection (supported
+transports include \fBunix\fR, \fBtcp\fR, and \fBtls\fR), as well as providing
+information about client's connection time (system local time is used).
 .IP "\fBclient-info\fR \fIserver\fR \fIclient\fR" 4
 .IX Item "client-info server client"
 Retrieve identity information about \fIclient\fR from \fIserver\fR. The attributes

@@ -781,21 +781,6 @@ virHostCPUGetInfoPopulateLinux(FILE *cpuinfo,
     return ret;
 }
 
-static int
-virHostCPUStatsAssign(virNodeCPUStatsPtr param,
-                      const char *name,
-                      unsigned long long value)
-{
-    if (virStrcpyStatic(param->field, name) == NULL) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("kernel cpu time field is too long"
-                               " for the destination"));
-        return -1;
-    }
-    param->value = value;
-    return 0;
-}
-
 # define TICK_TO_NSEC (1000ull * 1000ull * 1000ull / sysconf(_SC_CLK_TCK))
 
 int
@@ -953,6 +938,22 @@ virHostCPUParseMapLinux(int max_cpuid, const char *path)
 
 
 int
+virHostCPUStatsAssign(virNodeCPUStatsPtr param,
+                      const char *name,
+                      unsigned long long value)
+{
+    if (virStrcpyStatic(param->field, name) == NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("kernel cpu time field is too long"
+                               " for the destination"));
+        return -1;
+    }
+    param->value = value;
+    return 0;
+}
+
+
+int
 virHostCPUGetInfo(virArch hostarch ATTRIBUTE_UNUSED,
                   unsigned int *cpus ATTRIBUTE_UNUSED,
                   unsigned int *mhz ATTRIBUTE_UNUSED,
@@ -994,9 +995,16 @@ virHostCPUGetInfo(virArch hostarch ATTRIBUTE_UNUSED,
     *threads = 1;
 
 # ifdef __FreeBSD__
+    /* dev.cpu.%d.freq reports current active CPU frequency. It is provided by
+     * the cpufreq(4) framework. However, it might be disabled or no driver
+     * available. In this case fallback to "hw.clockrate" which reports boot time
+     * CPU frequency. */
+
     if (sysctlbyname("dev.cpu.0.freq", &cpu_freq, &cpu_freq_len, NULL, 0) < 0) {
-        virReportSystemError(errno, "%s", _("cannot obtain CPU freq"));
-        return -1;
+        if (sysctlbyname("hw.clockrate", &cpu_freq, &cpu_freq_len, NULL, 0) < 0) {
+            virReportSystemError(errno, "%s", _("cannot obtain CPU freq"));
+            return -1;
+        }
     }
 
     *mhz = cpu_freq;

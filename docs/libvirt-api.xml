@@ -255,7 +255,11 @@
      <exports symbol='VIR_MIGRATE_PARAM_MIGRATE_DISKS' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_PERSIST_XML' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_URI' type='macro'/>
+     <exports symbol='VIR_PERF_PARAM_CACHE_MISSES' type='macro'/>
+     <exports symbol='VIR_PERF_PARAM_CACHE_REFERENCES' type='macro'/>
      <exports symbol='VIR_PERF_PARAM_CMT' type='macro'/>
+     <exports symbol='VIR_PERF_PARAM_CPU_CYCLES' type='macro'/>
+     <exports symbol='VIR_PERF_PARAM_INSTRUCTIONS' type='macro'/>
      <exports symbol='VIR_PERF_PARAM_MBML' type='macro'/>
      <exports symbol='VIR_PERF_PARAM_MBMT' type='macro'/>
      <exports symbol='VIR_UNUSE_CPU' type='macro'/>
@@ -670,6 +674,7 @@
      <exports symbol='VIR_DOMAIN_STATS_STATE' type='enum'/>
      <exports symbol='VIR_DOMAIN_STATS_VCPU' type='enum'/>
      <exports symbol='VIR_DOMAIN_TIME_SYNC' type='enum'/>
+     <exports symbol='VIR_DOMAIN_UNDEFINE_KEEP_NVRAM' type='enum'/>
      <exports symbol='VIR_DOMAIN_UNDEFINE_MANAGED_SAVE' type='enum'/>
      <exports symbol='VIR_DOMAIN_UNDEFINE_NVRAM' type='enum'/>
      <exports symbol='VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA' type='enum'/>
@@ -1417,6 +1422,7 @@
      <exports symbol='VIR_SECRET_USAGE_TYPE_ISCSI' type='enum'/>
      <exports symbol='VIR_SECRET_USAGE_TYPE_LAST' type='enum'/>
      <exports symbol='VIR_SECRET_USAGE_TYPE_NONE' type='enum'/>
+     <exports symbol='VIR_SECRET_USAGE_TYPE_TLS' type='enum'/>
      <exports symbol='VIR_SECRET_USAGE_TYPE_VOLUME' type='enum'/>
      <exports symbol='virConnectListAllSecretsFlags' type='typedef'/>
      <exports symbol='virSecret' type='typedef'/>
@@ -1629,6 +1635,7 @@
      <author>Daniel Veillard &lt;veillard@redhat.com&gt; </author>
      <exports symbol='VIR_ERR_ACCESS_DENIED' type='enum'/>
      <exports symbol='VIR_ERR_AGENT_UNRESPONSIVE' type='enum'/>
+     <exports symbol='VIR_ERR_AGENT_UNSYNCED' type='enum'/>
      <exports symbol='VIR_ERR_ARGUMENT_UNSUPPORTED' type='enum'/>
      <exports symbol='VIR_ERR_AUTH_CANCELLED' type='enum'/>
      <exports symbol='VIR_ERR_AUTH_FAILED' type='enum'/>
@@ -2342,8 +2349,20 @@
     <macro name='VIR_NODE_MEMORY_STATS_TOTAL' file='libvirt-host' string='total'>
       <info><![CDATA[Macro for the total memory of specified cell: it represents the maximum memory.]]></info>
     </macro>
+    <macro name='VIR_PERF_PARAM_CACHE_MISSES' file='libvirt-domain' string='cache_misses'>
+      <info><![CDATA[Macro for typed parameter name that represents cache_misses perf event which can be used to measure the count of cache misses by applications running on the platform. It corresponds to the "perf.cache_misses" field in the *Stats APIs.]]></info>
+    </macro>
+    <macro name='VIR_PERF_PARAM_CACHE_REFERENCES' file='libvirt-domain' string='cache_references'>
+      <info><![CDATA[Macro for typed parameter name that represents cache_references perf event which can be used to measure the count of cache hits by applications running on the platform. It corresponds to the "perf.cache_references" field in the *Stats APIs.]]></info>
+    </macro>
     <macro name='VIR_PERF_PARAM_CMT' file='libvirt-domain' string='cmt'>
       <info><![CDATA[Macro for typed parameter name that represents CMT perf event which can be used to measure the usage of cache (bytes) by applications running on the platform. It corresponds to the "perf.cmt" field in the *Stats APIs.]]></info>
+    </macro>
+    <macro name='VIR_PERF_PARAM_CPU_CYCLES' file='libvirt-domain' string='cpu_cycles'>
+      <info><![CDATA[Macro for typed parameter name that represents cpu_cycles perf event which can be used to measure how many cpu cycles one instruction needs. It corresponds to the "perf.cpu_cycles" field in the *Stats APIs.]]></info>
+    </macro>
+    <macro name='VIR_PERF_PARAM_INSTRUCTIONS' file='libvirt-domain' string='instructions'>
+      <info><![CDATA[Macro for typed parameter name that represents instructions perf event which can be used to measure the count of instructions by applications running on the platform. It corresponds to the "perf.instructions" field in the *Stats APIs.]]></info>
     </macro>
     <macro name='VIR_PERF_PARAM_MBML' file='libvirt-domain' string='mbml'>
       <info><![CDATA[Macro for typed parameter name that represents MBML perf event which can be used to monitor the amount of data (bytes/s) sent through the memory controller on the socket. It corresponds to the "perf.mbml" field in the *Stats APIs.]]></info>
@@ -2987,10 +3006,11 @@ listing a domain'/>
     <enum name='VIR_DOMAIN_STATS_STATE' file='libvirt-domain' value='1' type='virDomainStatsTypes' info='return domain state'/>
     <enum name='VIR_DOMAIN_STATS_VCPU' file='libvirt-domain' value='8' type='virDomainStatsTypes' info='return domain virtual CPU info'/>
     <enum name='VIR_DOMAIN_TIME_SYNC' file='libvirt-domain' value='1' type='virDomainSetTimeFlags' info='Re-sync domain time from domain&apos;s RTC'/>
+    <enum name='VIR_DOMAIN_UNDEFINE_KEEP_NVRAM' file='libvirt-domain' value='8' type='virDomainUndefineFlagsValues' info='Keep nvram file Future undefine control flags should come here.'/>
     <enum name='VIR_DOMAIN_UNDEFINE_MANAGED_SAVE' file='libvirt-domain' value='1' type='virDomainUndefineFlagsValues' info='Also remove any
 managed save'/>
     <enum name='VIR_DOMAIN_UNDEFINE_NVRAM' file='libvirt-domain' value='4' type='virDomainUndefineFlagsValues' info='Also remove any
-nvram file Future undefine control flags should come here.'/>
+nvram file'/>
     <enum name='VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA' file='libvirt-domain' value='2' type='virDomainUndefineFlagsValues' info='If last use of domain,
 then also remove any
 snapshot metadata'/>
@@ -3012,6 +3032,8 @@ snapshot metadata'/>
 was denied'/>
     <enum name='VIR_ERR_AGENT_UNRESPONSIVE' file='virterror' value='86' type='virErrorNumber' info='guest agent is unresponsive,
 not running or not usable'/>
+    <enum name='VIR_ERR_AGENT_UNSYNCED' file='virterror' value='97' type='virErrorNumber' info='guest agent replies with wrong id
+to guest-sync command'/>
     <enum name='VIR_ERR_ARGUMENT_UNSUPPORTED' file='virterror' value='74' type='virErrorNumber' info='valid API use but unsupported by
 the given driver'/>
     <enum name='VIR_ERR_AUTH_CANCELLED' file='virterror' value='79' type='virErrorNumber' info='authentication cancelled'/>
@@ -3285,10 +3307,11 @@ used to free allocated pages.'/>
     <enum name='VIR_NODE_SUSPEND_TARGET_MEM' file='libvirt-host' value='0' type='virNodeSuspendTarget'/>
     <enum name='VIR_SECRET_USAGE_TYPE_CEPH' file='libvirt-secret' value='2' type='virSecretUsageType'/>
     <enum name='VIR_SECRET_USAGE_TYPE_ISCSI' file='libvirt-secret' value='3' type='virSecretUsageType'/>
-    <enum name='VIR_SECRET_USAGE_TYPE_LAST' file='libvirt-secret' value='4' type='virSecretUsageType' info='NB: this enum value will increase over time as new events are
+    <enum name='VIR_SECRET_USAGE_TYPE_LAST' file='libvirt-secret' value='5' type='virSecretUsageType' info='NB: this enum value will increase over time as new events are
  added to the libvirt API. It reflects the last secret owner ID
  supported by this version of the libvirt API.'/>
     <enum name='VIR_SECRET_USAGE_TYPE_NONE' file='libvirt-secret' value='0' type='virSecretUsageType'/>
+    <enum name='VIR_SECRET_USAGE_TYPE_TLS' file='libvirt-secret' value='4' type='virSecretUsageType'/>
     <enum name='VIR_SECRET_USAGE_TYPE_VOLUME' file='libvirt-secret' value='1' type='virSecretUsageType'/>
     <enum name='VIR_STORAGE_POOL_BUILDING' file='libvirt-storage' value='1' type='virStoragePoolState' info='Initializing pool, not available'/>
     <enum name='VIR_STORAGE_POOL_BUILD_NEW' file='libvirt-storage' value='0' type='virStoragePoolBuildFlags' info='Regular build from scratch'/>
@@ -4492,6 +4515,15 @@ The typed parameter keys are in this format:
 "perf.mbml" - the amount of data (bytes/s) sent through the memory controller
               on the socket as unsigned long long. It is produced by mbml
               perf event.
+"perf.cache_misses"     - the count of cache misses as unsigned long long.
+                          It is produced by cache_misses perf event.
+"perf.cache_references" - the count of cache hits as unsigned long long.
+                          It is produced by cache_references perf event.
+"perf.instructions"     - The count of instructions as unsigned long long.
+                          It is produced by instructions perf event.
+"perf.cpu_cycles"       - The number of cpu cycles one instruction needs as
+                          unsigned long long. It is produced by cpu_cycles
+                          perf event.
 
 Note that entire stats groups or individual stat fields may be missing from
 the output in case they are not supported by the given hypervisor, are not
@@ -4532,7 +4564,7 @@ VIR_CONNECT_GET_ALL_DOMAINS_STATS_OTHER for all other states.]]></info>
     </function>
     <function name='virConnectGetCPUModelNames' file='libvirt-host' module='libvirt-host'>
       <info><![CDATA[Get the list of supported CPU models for a specific architecture.]]></info>
-      <return type='int' info='-1 on error, number of elements in @models on success.'/>
+      <return type='int' info='-1 on error, number of elements in @models on success (0 means libvirt accepts any CPU model).'/>
       <arg name='conn' type='virConnectPtr' info='virConnect connection'/>
       <arg name='arch' type='const char *' info='Architecture'/>
       <arg name='models' type='char ** *' info='Pointer to a variable to store the NULL-terminated array of the CPU models supported for the specified architecture.  Each element and the array itself must be freed by the caller with free.  Pass NULL if only the list length is needed.'/>
@@ -6430,7 +6462,14 @@ block device (the <source file='...'/> sub-element, such as
 "/path/to/image"), or (since 0.9.5) the device target shorthand
 (the <target dev='...'/> sub-element, such as "vda").  Valid names
 can be found by calling virDomainGetXMLDesc() and inspecting
-elements within //domain/devices/disk.]]></info>
+elements within //domain/devices/disk.
+
+As a corner case underlying hypervisor may report cur == 0 and
+end == 0 when the block job hasn't been started yet. In this
+case libvirt reports cur = 0 and end = 1. However, hypervisor
+may return cur == 0 and end == 0 if the block job has finished
+and was no-op. In this case libvirt reports cur = 1 and end = 1.
+Since 2.3.0.]]></info>
       <return type='int' info='-1 in case of failure, 0 when nothing found, 1 when info was found.'/>
       <arg name='dom' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='disk' type='const char *' info='path to the block device, or device shorthand'/>
@@ -7337,6 +7376,10 @@ libvirt will choose a suitable default.  Some hypervisors do
 not support this feature and will return an error if bandwidth
 is not 0.
 
+Users should note that implementation of VIR_MIGRATE_OFFLINE
+flag in some drivers does not copy storage or any other file
+based storage (e.g. UEFI variable storage).
+
 Enabling the VIR_MIGRATE_POSTCOPY flag tells libvirt to enable post-copy
 migration.  Use virDomainMigrateStartPostCopy to switch migration into
 the post-copy mode.  See virDomainMigrateStartPostCopy for more details
@@ -7419,6 +7462,10 @@ libvirt will choose a suitable default.  Some hypervisors do
 not support this feature and will return an error if bandwidth
 is not 0.
 
+Users should note that implementation of VIR_MIGRATE_OFFLINE
+flag in some drivers does not copy storage or any other file
+based storage (e.g. UEFI variable storage).
+
 Enabling the VIR_MIGRATE_POSTCOPY flag tells libvirt to enable post-copy
 migration.  Use virDomainMigrateStartPostCopy to switch migration into
 the post-copy mode.  See virDomainMigrateStartPostCopy for more details
@@ -7467,6 +7514,10 @@ API, use virDomainMigrateToURI3 instead.
 If you want to copy non-shared storage within migration you
 can use either VIR_MIGRATE_NON_SHARED_DISK or
 VIR_MIGRATE_NON_SHARED_INC as they are mutually exclusive.
+
+Users should note that implementation of VIR_MIGRATE_OFFLINE
+flag in some drivers does not copy storage or any other file
+based storage (e.g. UEFI variable storage).
 
 Enabling the VIR_MIGRATE_POSTCOPY flag tells libvirt to enable post-copy
 migration.  Use virDomainMigrateStartPostCopy to switch migration into
@@ -10015,7 +10066,7 @@ node device object is no longer needed.]]></info>
       <arg name='dev' type='virNodeDevicePtr' info='the device'/>
     </function>
     <function name='virNodeDeviceReAttach' file='libvirt-nodedev' module='libvirt-nodedev'>
-      <info><![CDATA[Re-attach a previously dettached node device to the node so that it
+      <info><![CDATA[Re-attach a previously detached node device to the node so that it
 may be used by the node again.
 
 Depending on the hypervisor, this may involve operations such
@@ -10041,7 +10092,7 @@ the reference count.]]></info>
       <arg name='dev' type='virNodeDevicePtr' info='the dev to hold a reference on'/>
     </function>
     <function name='virNodeDeviceReset' file='libvirt-nodedev' module='libvirt-nodedev'>
-      <info><![CDATA[Reset a previously dettached node device to the node before or
+      <info><![CDATA[Reset a previously detached node device to the node before or
 after assigning it to a guest.
 
 The exact reset semantics depends on the hypervisor and device

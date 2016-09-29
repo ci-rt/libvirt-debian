@@ -22,8 +22,14 @@ module Libvirtd_qemu =
    let int_entry       (kw:string) = [ key kw . value_sep . int_val ]
    let str_array_entry (kw:string) = [ key kw . value_sep . str_array_val ]
 
+   let unlimited_val =  del /\"/ "\"" . store /unlimited/ . del /\"/ "\""
+   let limits_entry (kw:string) = [ key kw . value_sep . unlimited_val ] |  [ key kw . value_sep . int_val ]
+
 
    (* Config entry grouped by function - same order as example config *)
+   let default_tls_entry = str_entry "default_tls_x509_cert_dir"
+                 | bool_entry "default_tls_x509_verify"
+
    let vnc_entry = str_entry "vnc_listen"
                  | bool_entry "vnc_auto_unix_socket"
                  | bool_entry "vnc_tls"
@@ -41,6 +47,10 @@ module Libvirtd_qemu =
                  | str_entry "spice_password"
                  | bool_entry "spice_sasl"
                  | str_entry "spice_sasl_dir"
+
+   let chardev_entry = bool_entry "chardev_tls"
+                 | str_entry "chardev_tls_x509_cert_dir"
+                 | bool_entry "chardev_tls_x509_verify"
 
    let nogfx_entry = bool_entry "nographics_allow_host_audio"
 
@@ -72,6 +82,8 @@ module Libvirtd_qemu =
                  | bool_entry "set_process_name"
                  | int_entry "max_processes"
                  | int_entry "max_files"
+                 | limits_entry "max_core"
+                 | bool_entry "dump_guest_core"
                  | str_entry "stdio_handler"
 
    let device_entry = bool_entry "mac_filter"
@@ -93,8 +105,10 @@ module Libvirtd_qemu =
    let nvram_entry = str_array_entry "nvram"
 
    (* Each entry in the config is one of the following ... *)
-   let entry = vnc_entry
+   let entry = default_tls_entry
+             | vnc_entry
              | spice_entry
+             | chardev_entry
              | nogfx_entry
              | remote_display_entry
              | security_entry

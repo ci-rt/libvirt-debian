@@ -382,6 +382,7 @@ typedef enum {
 VIR_ENUM_DECL(qemuMonitorVMStatus)
 int qemuMonitorVMStatusToPausedReason(const char *status);
 
+int qemuMonitorCheck(qemuMonitorPtr mon);
 int qemuMonitorGetStatus(qemuMonitorPtr mon,
                          bool *running,
                          virDomainPausedReason *reason)
@@ -420,6 +421,10 @@ void qemuMonitorQueryHotpluggableCpusFree(struct qemuMonitorQueryHotpluggableCpu
 struct _qemuMonitorCPUInfo {
     pid_t tid;
     int id; /* order of enabling of the given cpu */
+
+    /* state data */
+    bool online;
+    bool hotpluggable;
 
     /* topology info for hotplug purposes. Hotplug of given vcpu impossible if
      * all entries are -1 */
@@ -900,8 +905,16 @@ int qemuMonitorGetMachines(qemuMonitorPtr mon,
 
 void qemuMonitorMachineInfoFree(qemuMonitorMachineInfoPtr machine);
 
+typedef struct _qemuMonitorCPUDefInfo qemuMonitorCPUDefInfo;
+typedef qemuMonitorCPUDefInfo *qemuMonitorCPUDefInfoPtr;
+
+struct _qemuMonitorCPUDefInfo {
+    char *name;
+};
+
 int qemuMonitorGetCPUDefinitions(qemuMonitorPtr mon,
-                                 char ***cpus);
+                                 qemuMonitorCPUDefInfoPtr **cpus);
+void qemuMonitorCPUDefInfoFree(qemuMonitorCPUDefInfoPtr cpu);
 
 int qemuMonitorGetCommands(qemuMonitorPtr mon,
                            char ***commands);

@@ -3,6 +3,22 @@
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * CIM_DataFile
+ */
+
+int hypervGetCIMDataFileList(hypervPrivate *priv, virBufferPtr query, CIM_DataFile **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Msvm_AllocationCapabilities
+ */
+
+int hypervGetMsvmAllocationCapabilitiesList(hypervPrivate *priv, virBufferPtr query, Msvm_AllocationCapabilities **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Msvm_ComputerSystem
  */
 
@@ -35,6 +51,70 @@ int hypervGetMsvmProcessorSettingDataList(hypervPrivate *priv, virBufferPtr quer
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Msvm_ResourceAllocationSettingData
+ */
+
+int hypervGetMsvmResourceAllocationSettingDataList(hypervPrivate *priv, virBufferPtr query, Msvm_ResourceAllocationSettingData **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Msvm_SwitchPort
+ */
+
+int hypervGetMsvmSwitchPortList(hypervPrivate *priv, virBufferPtr query, Msvm_SwitchPort **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Msvm_SyntheticEthernetPortSettingData
+ */
+
+int hypervGetMsvmSyntheticEthernetPortSettingDataList(hypervPrivate *priv, virBufferPtr query, Msvm_SyntheticEthernetPortSettingData **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Msvm_VirtualHardDiskSettingData
+ */
+
+int hypervGetMsvmVirtualHardDiskSettingDataList(hypervPrivate *priv, virBufferPtr query, Msvm_VirtualHardDiskSettingData **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Msvm_VirtualSwitch
+ */
+
+int hypervGetMsvmVirtualSwitchList(hypervPrivate *priv, virBufferPtr query, Msvm_VirtualSwitch **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Msvm_VirtualSwitchManagementService
+ */
+
+int hypervGetMsvmVirtualSwitchManagementServiceList(hypervPrivate *priv, virBufferPtr query, Msvm_VirtualSwitchManagementService **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Msvm_VirtualSystemGlobalSettingData
+ */
+
+int hypervGetMsvmVirtualSystemGlobalSettingDataList(hypervPrivate *priv, virBufferPtr query, Msvm_VirtualSystemGlobalSettingData **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Msvm_VirtualSystemManagementService
+ */
+
+int hypervGetMsvmVirtualSystemManagementServiceList(hypervPrivate *priv, virBufferPtr query, Msvm_VirtualSystemManagementService **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Msvm_VirtualSystemSettingData
  */
 
@@ -47,6 +127,30 @@ int hypervGetMsvmVirtualSystemSettingDataList(hypervPrivate *priv, virBufferPtr 
  */
 
 int hypervGetWin32ComputerSystemList(hypervPrivate *priv, virBufferPtr query, Win32_ComputerSystem **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Win32_ComputerSystemProduct
+ */
+
+int hypervGetWin32ComputerSystemProductList(hypervPrivate *priv, virBufferPtr query, Win32_ComputerSystemProduct **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Win32_OperatingSystem
+ */
+
+int hypervGetWin32OperatingSystemList(hypervPrivate *priv, virBufferPtr query, Win32_OperatingSystem **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor
+ */
+
+int hypervGetWin32PerfRawDataHvStatsHyperVHypervisorVirtualProcessorList(hypervPrivate *priv, virBufferPtr query, Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor **list);
 
 
 

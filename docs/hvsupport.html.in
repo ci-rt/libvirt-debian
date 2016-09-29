@@ -48,7 +48,7 @@ in.
 <td>1.2.4</td>
 <td></td>
 <td></td>
-<td></td>
+<td>2.3.0</td>
 <td></td>
 <td></td>
 <td></td>
@@ -92,7 +92,7 @@ in.
 <td>1.2.4</td>
 <td></td>
 <td></td>
-<td></td>
+<td>2.3.0</td>
 <td></td>
 <td></td>
 <td></td>
@@ -470,7 +470,7 @@ in.
 <td></td>
 <td>0.8.8</td>
 <td>0.8.8</td>
-<td></td>
+<td>2.3.0</td>
 <td></td>
 <td></td>
 <td></td>
@@ -492,7 +492,7 @@ in.
 <td></td>
 <td>0.2.0</td>
 <td>0.3.0</td>
-<td></td>
+<td>2.3.0</td>
 <td>0.5.0</td>
 <td></td>
 <td>0.8.7</td>
@@ -5067,7 +5067,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td>0.9.3</td>
 <td>0.9.3</td>
-<td></td>
+<td>2.3.0</td>
 <td>0.9.3</td>
 <td></td>
 <td></td>
@@ -5111,7 +5111,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td>0.4.4</td>
 <td>0.3.3</td>
-<td></td>
+<td>2.3.0</td>
 <td>0.5.0</td>
 <td>0.6.5</td>
 <td></td>
@@ -5133,7 +5133,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td>1.2.6</td>
 <td>1.2.6</td>
-<td></td>
+<td>2.3.0</td>
 <td>1.2.6</td>
 <td>1.2.6</td>
 <td></td>

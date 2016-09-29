@@ -1412,7 +1412,7 @@ mymain(void)
                                                   "]"
                                       "}"
                              "}",
-                        "<source protocol='none' name='testvol/img.qcow2'>\n"
+                        "<source protocol='gluster' name='testvol/img.qcow2'>\n"
                         "  <host name='example.com' port='1234'/>\n"
                         "  <host transport='unix' socket='/path/socket'/>\n"
                         "  <host name='example.com'/>\n"
@@ -1432,7 +1432,7 @@ mymain(void)
                                                "}"
                                              "]"
                             "}",
-                        "<source protocol='none' name='testvol/img.qcow2'>\n"
+                        "<source protocol='gluster' name='testvol/img.qcow2'>\n"
                         "  <host name='example.com' port='1234'/>\n"
                         "  <host transport='unix' socket='/path/socket'/>\n"
                         "  <host name='example.com'/>\n"
@@ -1485,6 +1485,12 @@ mymain(void)
                             "}",
                        "<source protocol='ssh' name='blah'>\n"
                        "  <host name='example.org' port='6000'/>\n"
+                       "</source>\n");
+    TEST_BACKING_PARSE("json:{\"file.driver\":\"rbd\","
+                             "\"file.filename\":\"rbd:testshare:id=asdf:mon_host=example.com\""
+                            "}",
+                       "<source protocol='rbd' name='testshare'>\n"
+                       "  <host name='example.com'/>\n"
                        "</source>\n");
 
  cleanup:

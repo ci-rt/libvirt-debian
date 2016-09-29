@@ -934,6 +934,12 @@ I<--perf> returns the statistics of all enabled perf events:
 "perf.cmt" - the cache usage in Byte currently used
 "perf.mbmt" - total system bandwidth from one level of cache
 "perf.mbml" - bandwidth of memory traffic for a memory controller
+"perf.cpu_cycles" - the number of cpu cycles one instruction needs
+"perf.instructions" - the count of instructions
+"perf.cache_references" - the count of cache hits
+"perf.cache_misses" - the count of caches misses
+
+See the B<perf> command for more details about each event.
 
 I<--block> returns information about disks associated with each
 domain.  Using the I<--backing> flag extends this information to
@@ -2223,16 +2229,30 @@ from different sources can be supported by perf.
 Currently only QEMU/KVM supports this command. The I<--enable> and I<--disable>
 option combined with B<eventSpec> can be used to enabled or disable specific
 performance event. B<eventSpec> is a string list of one or more events
-separated by commas. Valid event names are "cmt", "mbmt", "mbml".
-CMT is a PQos (Platform Qos) feature to monitor the usage of cache by
-applications running on the platform.
-MBM (Memory Bandwidth Monitoring) provides a way to monitor the Total
-system memory bandwidth between one level of cache and another (mbmt)
-and the amount of data (bytes/s) sent through the memory controller on
-the socket (mbml).
+separated by commas. Valid event names are as follows:
 
-The statistics can be retrieved using the B<domstats> command using the
-I<--perf> flag.
+B<Valid perf event names>
+  cmt              - A PQos (Platform Qos) feature to monitor the
+                     usage of cache by applications running on the
+                     platform.
+  mbmt             - Provides a way to monitor the total system
+                     memory bandwidth between one level of cache
+                     and another.
+  mbml             - Provides a way to limit the amount of data
+                     (bytes/s) send through the memory controller
+                     on the socket.
+  cache_misses     - Provides the count of cache misses by
+                     applications running on the platform.
+  cache_references - Provides the count of cache hits by
+                     applications running on th e platform.
+  instructions     - Provides the count of instructions executed
+                     by applications running on the platform.
+  cpu_cycles       - Provides the number of cpu_cycles for one
+                     instruction. May be used with instructions
+                     in order to get a cycles per instruction.
+
+B<Note>: The statistics can be retrieved using the B<domstats> command using
+the I<--perf> flag.
 
 If I<--live> is specified, affect a running guest.
 If I<--config> is specified, affect the next boot of a persistent guest.
@@ -2423,7 +2443,7 @@ Output the device used for the TTY console of the domain. If the information
 is not available the processes will provide an exit code of 1.
 
 =item B<undefine> I<domain> [I<--managed-save>] [I<--snapshots-metadata>]
-[I<--nvram>]
+[I<--nvram>] [I<--keep-nvram>]
 [ {I<--storage> B<volumes> | I<--remove-all-storage> [I<--delete-snapshots>]}
 I<--wipe-storage>]
 
@@ -2441,8 +2461,8 @@ domain.  Without the flag, attempts to undefine an inactive domain with
 snapshot metadata will fail.  If the domain is active, this flag is
 ignored.
 
-The I<--nvram> flag ensures no nvram (/domain/os/nvram/) file is
-left behind. If the domain has an nvram file and the flag is
+I<--nvram> and I<--keep-nvram> specify accordingly to delete or keep nvram
+(/domain/os/nvram/) file. If the domain has an nvram file and the flags are
 omitted, the undefine will fail.
 
 The I<--storage> flag takes a parameter B<volumes>, which is a comma separated
@@ -2916,8 +2936,6 @@ make that device unusable by the rest of the physical host until a reboot.
 Detach I<nodedev> from the host, so that it can safely be used by
 guests via <hostdev> passthrough.  This is reversed with
 B<nodedev-reattach>, and is done automatically for managed devices.
-For compatibility purposes, this command can also be spelled
-B<nodedev-dettach>.
 
 Different backend drivers expect the device to be bound to different
 dummy devices. For example, QEMU's "kvm" backend driver (the default)
