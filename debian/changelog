@@ -1,3 +1,20 @@
+libvirt (2.3.0~rc1-1) experimental; urgency=medium
+
+  [ Riku Voipio ]
+  * [439afb5] Run testsuite on arm architectures
+    (Closes: #837995)
+
+  [ Guido Günther ]
+  * [6858d33] New upstream version 2.3.0~rc1
+    (Closes: #835563)
+  * [6c294c5] Bump symbol versions
+  * [d7e6337] Rediff patches
+  * [f9ce70a] Build with numctl on arm64.
+    Thanks to dann frazier (Closes: #838949)
+  * [4ab7ff4] build-test: add missing dep on pkg-config
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 29 Sep 2016 10:02:12 +0200
+
 libvirt (2.2.0-1) unstable; urgency=medium
 
   * [7772549] New upstream version 2.2.0~rc1
