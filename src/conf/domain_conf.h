@@ -1021,6 +1021,7 @@ typedef enum {
     VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_NONE = 0,
     VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_GUESTFWD,
     VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_VIRTIO,
+    VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_XEN,
 
     VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_LAST
 } virDomainChrChannelTargetType;
@@ -2486,6 +2487,7 @@ unsigned int virDomainDefGetVcpus(const virDomainDef *def);
 virBitmapPtr virDomainDefGetOnlineVcpumap(const virDomainDef *def);
 virDomainVcpuDefPtr virDomainDefGetVcpu(virDomainDefPtr def, unsigned int vcpu)
     ATTRIBUTE_RETURN_CHECK;
+void virDomainDefVcpuOrderClear(virDomainDefPtr def);
 
 virDomainObjPtr virDomainObjNew(virDomainXMLOptionPtr caps)
     ATTRIBUTE_NONNULL(1);
