@@ -1549,11 +1549,11 @@
 /* Define to 1 if 'long double' and 'double' have the same representation. */
 #undef HAVE_SAME_LONG_DOUBLE_AS_DOUBLE
 
-/* whether Sanlock supports sanlock_add_lockspace_timeout */
-#undef HAVE_SANLOCK_ADD_LOCKSPACE_TIMEOUT
-
 /* whether sanlock supports sanlock_inq_lockspace */
 #undef HAVE_SANLOCK_INQ_LOCKSPACE
+
+/* whether sanlock supports sanlock_write_lockspace */
+#undef HAVE_SANLOCK_IO_TIMEOUT
 
 /* whether Sanlock supports sanlock_killpath */
 #undef HAVE_SANLOCK_KILLPATH

@@ -187,7 +187,11 @@
     <function name="VIR_NODE_MEMORY_STATS_FIELD_LENGTH" link="libvirt-libvirt-host.html#VIR_NODE_MEMORY_STATS_FIELD_LENGTH"/>
     <function name="VIR_NODE_MEMORY_STATS_FREE" link="libvirt-libvirt-host.html#VIR_NODE_MEMORY_STATS_FREE"/>
     <function name="VIR_NODE_MEMORY_STATS_TOTAL" link="libvirt-libvirt-host.html#VIR_NODE_MEMORY_STATS_TOTAL"/>
+    <function name="VIR_PERF_PARAM_CACHE_MISSES" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_CACHE_MISSES"/>
+    <function name="VIR_PERF_PARAM_CACHE_REFERENCES" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_CACHE_REFERENCES"/>
     <function name="VIR_PERF_PARAM_CMT" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_CMT"/>
+    <function name="VIR_PERF_PARAM_CPU_CYCLES" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_CPU_CYCLES"/>
+    <function name="VIR_PERF_PARAM_INSTRUCTIONS" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_INSTRUCTIONS"/>
     <function name="VIR_PERF_PARAM_MBML" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_MBML"/>
     <function name="VIR_PERF_PARAM_MBMT" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_MBMT"/>
     <function name="VIR_SECURITY_DOI_BUFLEN" link="libvirt-libvirt-host.html#VIR_SECURITY_DOI_BUFLEN"/>
@@ -702,6 +706,7 @@
     <function name="VIR_DOMAIN_STATS_STATE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_STATS_STATE"/>
     <function name="VIR_DOMAIN_STATS_VCPU" link="libvirt-libvirt-domain.html#VIR_DOMAIN_STATS_VCPU"/>
     <function name="VIR_DOMAIN_TIME_SYNC" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TIME_SYNC"/>
+    <function name="VIR_DOMAIN_UNDEFINE_KEEP_NVRAM" link="libvirt-libvirt-domain.html#VIR_DOMAIN_UNDEFINE_KEEP_NVRAM"/>
     <function name="VIR_DOMAIN_UNDEFINE_MANAGED_SAVE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_UNDEFINE_MANAGED_SAVE"/>
     <function name="VIR_DOMAIN_UNDEFINE_NVRAM" link="libvirt-libvirt-domain.html#VIR_DOMAIN_UNDEFINE_NVRAM"/>
     <function name="VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA" link="libvirt-libvirt-domain.html#VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA"/>
@@ -721,6 +726,7 @@
     <function name="VIR_DUMP_RESET" link="libvirt-libvirt-domain.html#VIR_DUMP_RESET"/>
     <function name="VIR_ERR_ACCESS_DENIED" link="libvirt-virterror.html#VIR_ERR_ACCESS_DENIED"/>
     <function name="VIR_ERR_AGENT_UNRESPONSIVE" link="libvirt-virterror.html#VIR_ERR_AGENT_UNRESPONSIVE"/>
+    <function name="VIR_ERR_AGENT_UNSYNCED" link="libvirt-virterror.html#VIR_ERR_AGENT_UNSYNCED"/>
     <function name="VIR_ERR_ARGUMENT_UNSUPPORTED" link="libvirt-virterror.html#VIR_ERR_ARGUMENT_UNSUPPORTED"/>
     <function name="VIR_ERR_AUTH_CANCELLED" link="libvirt-virterror.html#VIR_ERR_AUTH_CANCELLED"/>
     <function name="VIR_ERR_AUTH_FAILED" link="libvirt-virterror.html#VIR_ERR_AUTH_FAILED"/>
@@ -966,6 +972,7 @@
     <function name="VIR_SECRET_USAGE_TYPE_ISCSI" link="libvirt-libvirt-secret.html#VIR_SECRET_USAGE_TYPE_ISCSI"/>
     <function name="VIR_SECRET_USAGE_TYPE_LAST" link="libvirt-libvirt-secret.html#VIR_SECRET_USAGE_TYPE_LAST"/>
     <function name="VIR_SECRET_USAGE_TYPE_NONE" link="libvirt-libvirt-secret.html#VIR_SECRET_USAGE_TYPE_NONE"/>
+    <function name="VIR_SECRET_USAGE_TYPE_TLS" link="libvirt-libvirt-secret.html#VIR_SECRET_USAGE_TYPE_TLS"/>
     <function name="VIR_SECRET_USAGE_TYPE_VOLUME" link="libvirt-libvirt-secret.html#VIR_SECRET_USAGE_TYPE_VOLUME"/>
     <function name="VIR_STORAGE_POOL_BUILDING" link="libvirt-libvirt-storage.html#VIR_STORAGE_POOL_BUILDING"/>
     <function name="VIR_STORAGE_POOL_BUILD_NEW" link="libvirt-libvirt-storage.html#VIR_STORAGE_POOL_BUILD_NEW"/>

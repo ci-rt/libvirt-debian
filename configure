@@ -60446,9 +60446,9 @@ _ACEOF
 
     fi
 
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for sanlock_add_lockspace_timeout in -lsanlock_client" >&5
-$as_echo_n "checking for sanlock_add_lockspace_timeout in -lsanlock_client... " >&6; }
-if ${ac_cv_lib_sanlock_client_sanlock_add_lockspace_timeout+:} false; then :
+                    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for sanlock_write_lockspace in -lsanlock_client" >&5
+$as_echo_n "checking for sanlock_write_lockspace in -lsanlock_client... " >&6; }
+if ${ac_cv_lib_sanlock_client_sanlock_write_lockspace+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
@@ -60462,36 +60462,36 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 #ifdef __cplusplus
 extern "C"
 #endif
-char sanlock_add_lockspace_timeout ();
+char sanlock_write_lockspace ();
 int
 main ()
 {
-return sanlock_add_lockspace_timeout ();
+return sanlock_write_lockspace ();
   ;
   return 0;
 }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_sanlock_client_sanlock_add_lockspace_timeout=yes
+  ac_cv_lib_sanlock_client_sanlock_write_lockspace=yes
 else
-  ac_cv_lib_sanlock_client_sanlock_add_lockspace_timeout=no
+  ac_cv_lib_sanlock_client_sanlock_write_lockspace=no
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_sanlock_client_sanlock_add_lockspace_timeout" >&5
-$as_echo "$ac_cv_lib_sanlock_client_sanlock_add_lockspace_timeout" >&6; }
-if test "x$ac_cv_lib_sanlock_client_sanlock_add_lockspace_timeout" = xyes; then :
-  sanlock_add_lockspace_timeout=yes
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_sanlock_client_sanlock_write_lockspace" >&5
+$as_echo "$ac_cv_lib_sanlock_client_sanlock_write_lockspace" >&6; }
+if test "x$ac_cv_lib_sanlock_client_sanlock_write_lockspace" = xyes; then :
+  sanlock_write_lockspace=yes
 else
-  sanlock_add_lockspace_timeout=no
+  sanlock_write_lockspace=no
 fi
 
-    if test "x$sanlock_add_lockspace_timeout" = "xyes" ; then
+    if test "x$sanlock_write_lockspace" = "xyes" ; then
 
 cat >>confdefs.h <<_ACEOF
-#define HAVE_SANLOCK_ADD_LOCKSPACE_TIMEOUT 1
+#define HAVE_SANLOCK_IO_TIMEOUT 1
 _ACEOF
 
     fi
