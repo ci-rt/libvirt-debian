@@ -1,3 +1,9 @@
+libvirt (2.3.0-1) unstable; urgency=medium
+
+  * [512ba55] New upstream version 2.3.0
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 08 Oct 2016 10:06:09 +0200
+
 libvirt (2.3.0~rc2-1) experimental; urgency=medium
 
   * [dc7e4d4] New upstream version 2.3.0~rc2
