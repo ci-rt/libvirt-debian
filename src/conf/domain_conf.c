@@ -4430,9 +4430,6 @@ virDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
 {
     int ret;
 
-    if (flags & VIR_DOMAIN_DEF_PARSE_SKIP_POST_PARSE)
-        return 0;
-
     if (xmlopt->config.devicesPostParseCallback) {
         ret = xmlopt->config.devicesPostParseCallback(dev, def, caps, flags,
                                                       xmlopt->config.priv,
@@ -4581,9 +4578,6 @@ virDomainDefPostParse(virDomainDefPtr def,
         .parseFlags = parseFlags,
         .parseOpaque = parseOpaque,
     };
-
-    if (parseFlags & VIR_DOMAIN_DEF_PARSE_SKIP_POST_PARSE)
-        return 0;
 
     /* this must be done before the hypervisor-specific callback,
      * in case presence of a controller at a specific index is checked
@@ -24690,8 +24684,7 @@ virDomainDefCopy(virDomainDefPtr src,
     virDomainDefPtr ret;
     unsigned int format_flags = VIR_DOMAIN_DEF_FORMAT_SECURE;
     unsigned int parse_flags = VIR_DOMAIN_DEF_PARSE_INACTIVE |
-                               VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE |
-                               VIR_DOMAIN_DEF_PARSE_SKIP_POST_PARSE;
+                               VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE;
 
     if (migratable)
         format_flags |= VIR_DOMAIN_DEF_FORMAT_INACTIVE | VIR_DOMAIN_DEF_FORMAT_MIGRATABLE;
@@ -25178,8 +25171,7 @@ virDomainDeviceDefCopy(virDomainDeviceDefPtr src,
     xmlStr = virBufferContentAndReset(&buf);
     ret = virDomainDeviceDefParse(xmlStr, def, caps, xmlopt,
                                   VIR_DOMAIN_DEF_PARSE_INACTIVE |
-                                  VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE |
-                                  VIR_DOMAIN_DEF_PARSE_SKIP_POST_PARSE);
+                                  VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE);
 
  cleanup:
     VIR_FREE(xmlStr);
