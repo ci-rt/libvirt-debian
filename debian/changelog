@@ -1,3 +1,10 @@
+libvirt (2.3.0-2) unstable; urgency=medium
+
+  * [48f7eb0] libvirt-guests: use wants instead of requires to prevent
+    libvirtd restarts affecting libvirt-guests
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 11 Oct 2016 07:59:09 +0200
+
 libvirt (2.3.0-1) unstable; urgency=medium
 
   * [512ba55] New upstream version 2.3.0
