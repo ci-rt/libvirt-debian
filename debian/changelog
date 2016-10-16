@@ -1,3 +1,9 @@
+libvirt (2.3.0-3) unstable; urgency=medium
+
+  * [c77d29d] autopkgtests: add missing dependency on libvirt-clients
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 16 Oct 2016 16:14:45 +0200
+
 libvirt (2.3.0-2) unstable; urgency=medium
 
   * [48f7eb0] libvirt-guests: use wants instead of requires to prevent
