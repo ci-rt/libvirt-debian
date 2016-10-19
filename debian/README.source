@@ -1,57 +1,29 @@
-This package uses quilt to manage all modifications to the upstream
-source.  Changes are stored in the source package as diffs in
-debian/patches and applied during the build.
+This package is maintained with git-buildpackage(1). It follows DEP-14
+for branch naming (e.g. using debian/sid for the current version
+in Debian unstable).
 
-To configure quilt to use debian/patches instead of patches, you want
-either to export QUILT_PATCHES=debian/patches in your environment
-or use this snippet in your ~/.quiltrc:
+It uses pristine-tar(1) to store enough information in git to generate
+bit identical tarballs when building the package without having
+downloaded an upstream tarball first.
 
-    for where in ./ ../ ../../ ../../../ ../../../../ ../../../../../; do
-        if [ -e ${where}debian/rules -a -d ${where}debian/patches ]; then
-                export QUILT_PATCHES=debian/patches
-        fi
-    done
+When working with patches it is recommended to use "gbp pq import" to
+import the patches, modify the source and then use "gbp pq export
+--commit" to commit the modifications.
 
-To get the fully patched source after unpacking the source package, cd to
-the root level of the source package and run:
+The changelog is generated using "gbp dch" so if you submit any
+changes don't bother to add changelog entries but rather provide
+a nice git commit message that can then end up in the changelog.
 
-    quilt push -a
+It is recommended to build the package with pbuilder using:
 
-The last patch listed in debian/patches/series will become the current
-patch.
+    gbp builpackage --git-pbuilder
 
-To add a new set of changes, first run quilt push -a, and then run:
+For information on how to set up a pbuilder environment see the
+git-pbuilder(1) manpage. In short:
 
-    quilt new <patch>
+    DIST=sid git-pbuilder create
+    gbp clone https://anonscm.debian.org/git/pkg-libvirt/libvirt.git
+    cd libvirt
+    gbp buildpackage --git-pbuilder
 
-where <patch> is a descriptive name for the patch, used as the filename in
-debian/patches.  Then, for every file that will be modified by this patch,
-run:
-
-    quilt add <file>
-
-before editing those files.  You must tell quilt with quilt add what files
-will be part of the patch before making changes or quilt will not work
-properly.  After editing the files, run:
-
-    quilt refresh
-
-to save the results as a patch.
-
-Alternately, if you already have an external patch and you just want to
-add it to the build system, run quilt push -a and then:
-
-    quilt import -P <patch> /path/to/patch
-    quilt push -a
-
-(add -p 0 to quilt import if needed). <patch> as above is the filename to
-use in debian/patches.  The last quilt push -a will apply the patch to
-make sure it works properly.
-
-To remove an existing patch from the list of patches that will be applied,
-run:
-
-    quilt delete <patch>
-
-You may need to run quilt pop -a to unapply patches first before running
-this command.
+ -- Guido Günther <agx@sigxcpu.org>, Wed,  2 Dec 2015 18:51:15 +0100
