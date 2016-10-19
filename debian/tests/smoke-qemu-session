@@ -4,6 +4,8 @@ set -e
 set -x
 
 export LIBVIRT_DEFAULT_URI='qemu:///session'
+XML=debian/tests/smoke-qemu-session.xml
+DOMAIN=sqs
 
 cleanup()
 {
@@ -26,11 +28,17 @@ if [ $(uname -m) != "x86_64" ]; then
    exit 0
 fi
 
-virsh define debian/tests/smoke-qemu-session.xml
-virsh start sqs
-virsh list | grep -qs 'sqs[[:space:]]\+running'
-virsh destroy sqs
-virsh undefine sqs
+echo echo "Running as $USER"
+virt-host-validate qemu || true
+virsh capabilities
+virsh capabilities | grep -qs "arch name='x86_64'"
+virsh capabilities | grep -qs 'os_type>hvm'
+virt-xml-validate ${XML}
+virsh define ${XML}
+virsh start ${DOMAIN}
+virsh list | grep -qs "${DOMAIN}[[:space:]]\+running"
+virsh destroy ${DOMAIN}
+virsh undefine ${DOMAIN}
 CLEANED_UP=1
 
 echo 'Smoke test of qemu session:/// succesful'

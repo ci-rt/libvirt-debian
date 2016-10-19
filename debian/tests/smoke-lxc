@@ -5,6 +5,7 @@ set -x
 
 export LIBVIRT_DEFAULT_URI='lxc:///'
 
+XML=debian/tests/smoke-lxc.xml
 DOMAIN=sl
 
 cleanup()
@@ -18,10 +19,15 @@ cleanup()
 
 trap cleanup EXIT
 
-virsh define debian/tests/smoke-lxc.xml
+virt-host-validate lxc
+virsh capabilities
+virsh capabilities | grep -qs 'emulator>/usr/lib/libvirt/libvirt_lxc'
+virsh capabilities | grep -qs 'os_type>exe'
+virt-xml-validate ${XML}
+virsh define ${XML}
 virsh start ${DOMAIN}
 virsh list | grep -qs "${DOMAIN}[[:space:]]\+running"
-virsh -c lxc:/// lxc-enter-namespace --noseclabel ${DOMAIN} /bin/ls /bin/ls
+virsh lxc-enter-namespace --noseclabel ${DOMAIN} /bin/ls /bin/ls
 virsh destroy ${DOMAIN}
 virsh undefine ${DOMAIN}
 CLEANED_UP=1
