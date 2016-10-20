@@ -1,5 +1,5 @@
 Tests: smoke
-Depends: @
+Depends: libvirt-clients
 Restrictions: allow-stderr
 
 Tests: smoke-qemu-session
@@ -7,7 +7,7 @@ Depends: libvirt-daemon, libvirt-clients
 Restrictions: allow-stderr, isolation-container
 
 Tests: smoke-lxc
-Depends: libvirt-daemon, libvirt-clients
+Depends: libvirt-daemon-system, libvirt-clients
 Restrictions: allow-stderr, needs-root
 
 Tests: build-test
