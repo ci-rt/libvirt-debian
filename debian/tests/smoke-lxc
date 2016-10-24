@@ -17,6 +17,12 @@ cleanup()
    fi
 }
 
+check_domain()
+{
+  virsh list | grep -qs "${DOMAIN}[[:space:]]\+running"
+  virsh lxc-enter-namespace --noseclabel ${DOMAIN} /bin/ls /bin/ls
+}
+
 trap cleanup EXIT
 
 virt-host-validate lxc
@@ -25,9 +31,14 @@ virsh capabilities | grep -qs 'emulator>/usr/lib/libvirt/libvirt_lxc'
 virsh capabilities | grep -qs 'os_type>exe'
 virt-xml-validate ${XML}
 virsh define ${XML}
+rm -f /var/log/libvirt/lxc/sl.log
 virsh start ${DOMAIN}
-virsh list | grep -qs "${DOMAIN}[[:space:]]\+running"
-virsh lxc-enter-namespace --noseclabel ${DOMAIN} /bin/ls /bin/ls
+# Check virtlogd is running
+grep -qs "starting up" /var/log/libvirt/lxc/sl.log
+check_domain
+# Make sure a restart doesn't termiante the domain
+/etc/init.d/libvirtd restart
+check_domain
 virsh destroy ${DOMAIN}
 virsh undefine ${DOMAIN}
 CLEANED_UP=1
