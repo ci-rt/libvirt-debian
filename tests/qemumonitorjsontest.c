@@ -67,6 +67,12 @@ const char *queryBlockReply =
 "                \"iops_rd_max\": 11,"
 "                \"iops_wr_max\": 12,"
 "                \"iops_size\": 13,"
+"                \"bps_max_length\": 14,"
+"                \"bps_rd_max_length\": 15,"
+"                \"bps_wr_max_length\": 16,"
+"                \"iops_max_length\": 17,"
+"                \"iops_rd_max_length\": 18,"
+"                \"iops_wr_max_length\": 19,"
 "                \"file\": \"/home/zippy/work/tmp/gentoo.qcow2\","
 "                \"encryption_key_missing\": false"
 "            },"
@@ -705,86 +711,197 @@ testQemuMonitorJSONGetCommandLineOptionParameters(const void *data)
     return ret;
 }
 
+
+struct qemuMonitorJSONTestAttachChardevData {
+    qemuMonitorTestPtr test;
+    virDomainChrSourceDefPtr chr;
+    const char *expectPty;
+    bool fail;
+};
+
 static int
-testQemuMonitorJSONAttachChardev(const void *data)
+testQemuMonitorJSONAttachChardev(const void *opaque)
 {
-    virDomainXMLOptionPtr xmlopt = (virDomainXMLOptionPtr)data;
-    qemuMonitorTestPtr test = qemuMonitorTestNewSimple(true, xmlopt);
+    const struct qemuMonitorJSONTestAttachChardevData *data = opaque;
+    int rc;
+
+    if ((rc = qemuMonitorAttachCharDev(qemuMonitorTestGetMonitor(data->test),
+                                       "alias", data->chr)) < 0)
+        goto cleanup;
+
+    if (data->chr->type == VIR_DOMAIN_CHR_TYPE_PTY) {
+        if (STRNEQ_NULLABLE(data->expectPty, data->chr->data.file.path)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           "expected PTY path: %s got: %s",
+                           NULLSTR(data->expectPty),
+                           NULLSTR(data->chr->data.file.path));
+            rc = -1;
+        }
+
+        VIR_FREE(data->chr->data.file.path);
+    }
+
+ cleanup:
+    if ((rc != 0) != data->fail)
+        return -1;
+    else
+        return 0;
+}
+
+
+static int
+qemuMonitorJSONTestAttachOneChardev(virDomainXMLOptionPtr xmlopt,
+                                    const char *label,
+                                    virDomainChrSourceDefPtr chr,
+                                    const char *expectargs,
+                                    const char *reply,
+                                    const char *expectPty,
+                                    bool fail)
+
+{
+    struct qemuMonitorJSONTestAttachChardevData data = {0};
+    char *jsonreply = NULL;
+    char *fulllabel = NULL;
+    int ret = -1;
+
+    if (!reply)
+        reply = "";
+
+    if (virAsprintf(&jsonreply, "{\"return\": {%s}}", reply) < 0)
+        goto cleanup;
+
+    if (virAsprintf(&fulllabel, "qemuMonitorJSONTestAttachChardev(%s)", label) < 0)
+        goto cleanup;
+
+    data.chr = chr;
+    data.fail = fail;
+    data.expectPty = expectPty;
+    if (!(data.test = qemuMonitorTestNewSimple(true, xmlopt)))
+        goto cleanup;
+
+    if (qemuMonitorTestAddItemExpect(data.test, "chardev-add",
+                                     expectargs, true, jsonreply) < 0)
+        goto cleanup;
+
+    if (virTestRun(fulllabel, &testQemuMonitorJSONAttachChardev, &data) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    qemuMonitorTestFree(data.test);
+    VIR_FREE(jsonreply);
+    VIR_FREE(fulllabel);
+    return ret;
+}
+
+static int
+qemuMonitorJSONTestAttachChardev(virDomainXMLOptionPtr xmlopt)
+{
     virDomainChrSourceDef chr;
     int ret = 0;
 
-    if (!test)
-        return -1;
-
-#define DO_CHECK(chrID, reply, fail)                                \
-    if (qemuMonitorTestAddItem(test, "chardev-add", reply) < 0)     \
-        goto cleanup;                                               \
-    if (qemuMonitorAttachCharDev(qemuMonitorTestGetMonitor(test),   \
-                                     chrID, &chr) < 0)              \
-        ret = fail ? ret : -1;                                      \
-    else                                                            \
-        ret = fail ? -1 : ret;                                      \
-
-#define CHECK(chrID, reply) \
-    DO_CHECK(chrID, reply, false)
-
-#define CHECK_FAIL(chrID, reply) \
-    DO_CHECK(chrID, reply, true)
+#define CHECK(label, fail, expectargs)                                         \
+    if (qemuMonitorJSONTestAttachOneChardev(xmlopt, label, &chr, expectargs,   \
+                                            NULL, NULL, fail) < 0)             \
+        ret = -1
 
     chr = (virDomainChrSourceDef) { .type = VIR_DOMAIN_CHR_TYPE_NULL };
-    CHECK("chr_null", "{\"return\": {}}");
+    CHECK("null", false,
+          "{'id':'alias','backend':{'type':'null','data':{}}}");
 
     chr = (virDomainChrSourceDef) { .type = VIR_DOMAIN_CHR_TYPE_VC };
-    CHECK("chr_vc", "{\"return\": {}}");
+    CHECK("vc", false,
+          "{'id':'alias','backend':{'type':'null','data':{}}}");
 
-#define PTY_PATH "/dev/ttyS0"
     chr = (virDomainChrSourceDef) { .type = VIR_DOMAIN_CHR_TYPE_PTY };
-    CHECK("chr_pty", "{\"return\": {\"pty\" : \"" PTY_PATH "\"}}");
-    if (STRNEQ_NULLABLE(PTY_PATH, chr.data.file.path)) {
-        VIR_FREE(chr.data.file.path);
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "expected PTY path: %s got: %s",
-                       PTY_PATH, NULLSTR(chr.data.file.path));
+    if (qemuMonitorJSONTestAttachOneChardev(xmlopt, "pty", &chr,
+                                            "{'id':'alias',"
+                                             "'backend':{'type':'pty',"
+                                                        "'data':{}}}",
+                                            "\"pty\" : \"/dev/pts/0\"",
+                                            "/dev/pts/0", false) < 0)
         ret = -1;
-    }
-    VIR_FREE(chr.data.file.path);
 
     chr = (virDomainChrSourceDef) { .type = VIR_DOMAIN_CHR_TYPE_PTY };
-    CHECK_FAIL("chr_pty_fail", "{\"return\": {}}");
-#undef PTY_PATH
+    CHECK("pty missing path", true,
+          "{'id':'alias','backend':{'type':'pty','data':{}}}");
 
-    chr = (virDomainChrSourceDef) { .type = VIR_DOMAIN_CHR_TYPE_FILE };
-    CHECK("chr_file", "{\"return\": {}}");
+    memset(&chr, 0, sizeof(chr));
+    chr.type = VIR_DOMAIN_CHR_TYPE_FILE;
+    chr.data.file.path = (char *) "/test/path";
+    CHECK("file", false,
+          "{'id':'alias','backend':{'type':'file','data':{'out':'/test/path'}}}");
 
-    chr = (virDomainChrSourceDef) { .type = VIR_DOMAIN_CHR_TYPE_DEV };
-    CHECK("chr_dev", "{\"return\": {}}");
+    memset(&chr, 0, sizeof(chr));
+    chr.type = VIR_DOMAIN_CHR_TYPE_DEV;
+    chr.data.file.path = (char *) "/test/path";
+    CHECK("device", false,
+          "{'id':'alias','backend':{'type':'serial','data':{'device':'/test/path'}}}");
 
-    chr = (virDomainChrSourceDef) { .type = VIR_DOMAIN_CHR_TYPE_TCP };
-    CHECK("chr_tcp", "{\"return\": {}}");
+    memset(&chr, 0, sizeof(chr));
+    chr.type = VIR_DOMAIN_CHR_TYPE_TCP;
+    chr.data.tcp.host = (char *) "example.com";
+    chr.data.tcp.service = (char *) "1234";
+    CHECK("tcp", false,
+          "{'id':'alias',"
+           "'backend':{'type':'socket',"
+                      "'data':{'addr':{'type':'inet',"
+                                      "'data':{'host':'example.com',"
+                                              "'port':'1234'}},"
+                              "'wait':false,"
+                              "'telnet':false,"
+                              "'server':false}}}");
 
-    chr = (virDomainChrSourceDef) { .type = VIR_DOMAIN_CHR_TYPE_UDP };
-    CHECK("chr_udp", "{\"return\": {}}");
+    memset(&chr, 0, sizeof(chr));
+    chr.type = VIR_DOMAIN_CHR_TYPE_UDP;
+    chr.data.udp.connectHost = (char *) "example.com";
+    chr.data.udp.connectService = (char *) "1234";
+    CHECK("udp", false,
+          "{'id':'alias',"
+           "'backend':{'type':'udp',"
+                      "'data':{'remote':{'type':'inet',"
+                                        "'data':{'host':'example.com',"
+                                                "'port':'1234'}}}}}");
 
-    chr = (virDomainChrSourceDef) { .type = VIR_DOMAIN_CHR_TYPE_UNIX };
-    CHECK("chr_unix", "{\"return\": {}}");
+    chr.data.udp.bindHost = (char *) "localhost";
+    chr.data.udp.bindService = (char *) "4321";
+    CHECK("udp", false,
+          "{'id':'alias',"
+           "'backend':{'type':'udp',"
+                      "'data':{'remote':{'type':'inet',"
+                                        "'data':{'host':'example.com',"
+                                                "'port':'1234'}},"
+                              "'local':{'type':'inet',"
+                                       "'data':{'host':'localhost',"
+                                               "'port':'4321'}}}}}");
+
+    memset(&chr, 0, sizeof(chr));
+    chr.type = VIR_DOMAIN_CHR_TYPE_UNIX;
+    chr.data.nix.path = (char *) "/path/to/socket";
+    CHECK("unix", false,
+          "{'id':'alias',"
+           "'backend':{'type':'socket',"
+                      "'data':{'addr':{'type':'unix',"
+                                      "'data':{'path':'/path/to/socket'}},"
+                              "'wait':false,"
+                              "'server':false}}}");
 
     chr = (virDomainChrSourceDef) { .type = VIR_DOMAIN_CHR_TYPE_SPICEVMC };
-    CHECK("chr_spicevmc", "{\"return\": {}}");
+    CHECK("spicevmc", false,
+          "{'id':'alias','backend':{'type':'spicevmc','"
+                                    "data':{'type':'vdagent'}}}");
 
     chr = (virDomainChrSourceDef) { .type = VIR_DOMAIN_CHR_TYPE_PIPE };
-    CHECK_FAIL("chr_pipe", "{\"return\": {}}");
+    CHECK("pipe", true, "");
 
     chr = (virDomainChrSourceDef) { .type = VIR_DOMAIN_CHR_TYPE_STDIO };
-    CHECK_FAIL("chr_stdio", "{\"return\": {}}");
-
+    CHECK("stdio", true, "");
 #undef CHECK
-#undef CHECK_FAIL
-#undef DO_CHECK
 
- cleanup:
-    qemuMonitorTestFree(test);
     return ret;
 }
+
 
 static int
 testQemuMonitorJSONDetachChardev(const void *data)
@@ -1221,10 +1338,10 @@ testQemuMonitorJSONqemuMonitorJSONQueryCPUs(const void *data)
     int ret = -1;
     struct qemuMonitorQueryCpusEntry *cpudata = NULL;
     struct qemuMonitorQueryCpusEntry expect[] = {
-        {17622, (char *) "/machine/unattached/device[0]"},
-        {17624, (char *) "/machine/unattached/device[1]"},
-        {17626, (char *) "/machine/unattached/device[2]"},
-        {17628, NULL},
+        {17622, (char *) "/machine/unattached/device[0]", true},
+        {17624, (char *) "/machine/unattached/device[1]", true},
+        {17626, (char *) "/machine/unattached/device[2]", true},
+        {17628, NULL, true},
     };
     size_t ncpudata = 0;
     size_t i;
@@ -1885,7 +2002,7 @@ testQemuMonitorJSONqemuMonitorJSONSetBlockIoThrottle(const void *data)
     if (!test)
         return -1;
 
-    expectedInfo = (virDomainBlockIoTuneInfo) {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13};
+    expectedInfo = (virDomainBlockIoTuneInfo) {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19};
 
     if (qemuMonitorTestAddItem(test, "query-block", queryBlockReply) < 0 ||
         qemuMonitorTestAddItemParams(test, "block_set_io_throttle",
@@ -1897,6 +2014,12 @@ testQemuMonitorJSONqemuMonitorJSONSetBlockIoThrottle(const void *data)
                                      "bps_wr_max", "9",
                                      "iops_max", "10", "iops_rd_max", "11",
                                      "iops_wr_max", "12", "iops_size", "13",
+                                     "bps_max_length", "14",
+                                     "bps_rd_max_length", "15",
+                                     "bps_wr_max_length", "16",
+                                     "iops_max_length", "17",
+                                     "iops_rd_max_length", "18",
+                                     "iops_wr_max_length", "19",
                                      NULL, NULL) < 0)
         goto cleanup;
 
@@ -1911,7 +2034,8 @@ testQemuMonitorJSONqemuMonitorJSONSetBlockIoThrottle(const void *data)
     }
 
     if (qemuMonitorJSONSetBlockIoThrottle(qemuMonitorTestGetMonitor(test),
-                                          "drive-virtio-disk1", &info, true) < 0)
+                                          "drive-virtio-disk1", &info, true,
+                                          true) < 0)
         goto cleanup;
 
     ret = 0;
@@ -2520,7 +2644,8 @@ mymain(void)
     DO_TEST(GetCommands);
     DO_TEST(GetTPMModels);
     DO_TEST(GetCommandLineOptionParameters);
-    DO_TEST(AttachChardev);
+    if (qemuMonitorJSONTestAttachChardev(driver.xmlopt) < 0)
+        ret = -1;
     DO_TEST(DetachChardev);
     DO_TEST(GetListPaths);
     DO_TEST(GetObjectProperty);

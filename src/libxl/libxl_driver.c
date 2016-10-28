@@ -479,7 +479,7 @@ libxlStateCleanup(void)
     virObjectUnref(libxl_driver->migrationPorts);
     virLockManagerPluginUnref(libxl_driver->lockManager);
 
-    virObjectEventStateFree(libxl_driver->domainEventState);
+    virObjectUnref(libxl_driver->domainEventState);
     virSysinfoDefFree(libxl_driver->hostsysinfo);
 
     virMutexDestroy(&libxl_driver->lock);
@@ -3328,7 +3328,7 @@ libxlDomainAttachNetDevice(libxlDriverPrivatePtr driver,
                            virDomainNetDefPtr net)
 {
     libxlDriverConfigPtr cfg = libxlDriverConfigGet(driver);
-    int actualType;
+    virDomainNetType actualType;
     libxl_device_nic nic;
     int ret = -1;
     char mac[VIR_MAC_STRING_BUFLEN];
@@ -4724,7 +4724,7 @@ libxlDomainOpenConsole(virDomainPtr dom,
         goto cleanup;
     }
 
-    if (chr->source.type != VIR_DOMAIN_CHR_TYPE_PTY) {
+    if (chr->source->type != VIR_DOMAIN_CHR_TYPE_PTY) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("character device %s is not using a PTY"),
                        dev_name ? dev_name : NULLSTR(chr->info.alias));
@@ -4733,7 +4733,7 @@ libxlDomainOpenConsole(virDomainPtr dom,
 
     /* handle mutually exclusive access to console devices */
     ret = virChrdevOpen(priv->devs,
-                        &chr->source,
+                        chr->source,
                         st,
                         (flags & VIR_DOMAIN_CONSOLE_FORCE) != 0);
 

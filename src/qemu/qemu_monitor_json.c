@@ -1349,6 +1349,7 @@ qemuMonitorJSONExtractCPUInfo(virJSONValuePtr data,
     for (i = 0; i < ncpus; i++) {
         virJSONValuePtr entry = virJSONValueArrayGet(data, i);
         int thread = 0;
+        bool halted = false;
         const char *qom_path;
         if (!entry) {
             ret = -2;
@@ -1358,9 +1359,11 @@ qemuMonitorJSONExtractCPUInfo(virJSONValuePtr data,
         /* Some older qemu versions don't report the thread_id so treat this as
          * non-fatal, simply returning no data */
         ignore_value(virJSONValueObjectGetNumberInt(entry, "thread_id", &thread));
+        ignore_value(virJSONValueObjectGetBoolean(entry, "halted", &halted));
         qom_path = virJSONValueObjectGetString(entry, "qom_path");
 
         cpus[i].tid = thread;
+        cpus[i].halted = halted;
         if (VIR_STRDUP(cpus[i].qom_path, qom_path) < 0)
             goto cleanup;
     }
@@ -1772,49 +1775,93 @@ qemuMonitorJSONSetMemoryStatsPeriod(qemuMonitorPtr mon,
 }
 
 
+/* qemuMonitorJSONQueryBlock:
+ * @mon: Monitor pointer
+ *
+ * This helper will attempt to make a "query-block" call and check for
+ * errors before returning with the reply.
+ *
+ * Returns: NULL on error, reply on success
+ */
+static virJSONValuePtr
+qemuMonitorJSONQueryBlock(qemuMonitorPtr mon)
+{
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+    virJSONValuePtr devices = NULL;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("query-block", NULL)))
+        return NULL;
+
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0 ||
+        qemuMonitorJSONCheckError(cmd, reply) < 0)
+        goto cleanup;
+
+    if (!(devices = virJSONValueObjectStealArray(reply, "return"))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("query-block reply was missing device list"));
+        goto cleanup;
+    }
+
+ cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return devices;
+}
+
+
+static virJSONValuePtr
+qemuMonitorJSONGetBlockDev(virJSONValuePtr devices,
+                           size_t idx)
+{
+    virJSONValuePtr dev = virJSONValueArrayGet(devices, idx);
+
+    if (!dev || dev->type != VIR_JSON_TYPE_OBJECT) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("query-block device entry was not in expected format"));
+        return NULL;
+    }
+    return dev;
+}
+
+
+static const char *
+qemuMonitorJSONGetBlockDevDevice(virJSONValuePtr dev)
+{
+    const char *thisdev;
+
+    if (!(thisdev = virJSONValueObjectGetString(dev, "device"))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("query-block device entry was not in expected format"));
+        return NULL;
+    }
+
+    return thisdev;
+}
+
+
 int qemuMonitorJSONGetBlockInfo(qemuMonitorPtr mon,
                                 virHashTablePtr table)
 {
     int ret = -1;
     size_t i;
 
-    virJSONValuePtr cmd = qemuMonitorJSONMakeCommand("query-block",
-                                                     NULL);
-    virJSONValuePtr reply = NULL;
     virJSONValuePtr devices;
 
-    if (!cmd)
+    if (!(devices = qemuMonitorJSONQueryBlock(mon)))
         return -1;
 
-    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
-        goto cleanup;
-
-    if (qemuMonitorJSONCheckError(cmd, reply) < 0)
-        goto cleanup;
-
-    if (!(devices = virJSONValueObjectGetArray(reply, "return"))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("block info reply was missing device list"));
-        goto cleanup;
-    }
-
     for (i = 0; i < virJSONValueArraySize(devices); i++) {
-        virJSONValuePtr dev = virJSONValueArrayGet(devices, i);
+        virJSONValuePtr dev;
         struct qemuDomainDiskInfo *info;
         const char *thisdev;
         const char *status;
 
-        if (!dev || dev->type != VIR_JSON_TYPE_OBJECT) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("block info device entry was not in expected format"));
+        if (!(dev = qemuMonitorJSONGetBlockDev(devices, i)))
             goto cleanup;
-        }
 
-        if ((thisdev = virJSONValueObjectGetString(dev, "device")) == NULL) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("block info device entry was not in expected format"));
+        if (!(thisdev = qemuMonitorJSONGetBlockDevDevice(dev)))
             goto cleanup;
-        }
 
         thisdev = qemuAliasDiskDriveSkipPrefix(thisdev);
 
@@ -1858,8 +1905,7 @@ int qemuMonitorJSONGetBlockInfo(qemuMonitorPtr mon,
 
     ret = 0;
  cleanup:
-    virJSONValueFree(cmd);
-    virJSONValueFree(reply);
+    virJSONValueFree(devices);
     return ret;
 }
 
@@ -2056,46 +2102,23 @@ qemuMonitorJSONBlockStatsUpdateCapacity(qemuMonitorPtr mon,
                                         bool backingChain)
 {
     int ret = -1;
-    int rc;
     size_t i;
-    virJSONValuePtr cmd;
-    virJSONValuePtr reply = NULL;
     virJSONValuePtr devices;
 
-    if (!(cmd = qemuMonitorJSONMakeCommand("query-block", NULL)))
+    if (!(devices = qemuMonitorJSONQueryBlock(mon)))
         return -1;
 
-    if ((rc = qemuMonitorJSONCommand(mon, cmd, &reply)) < 0)
-        goto cleanup;
-
-    if (qemuMonitorJSONCheckError(cmd, reply) < 0)
-        goto cleanup;
-
-    if (!(devices = virJSONValueObjectGetArray(reply, "return"))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("query-block reply was missing device list"));
-        goto cleanup;
-    }
-
     for (i = 0; i < virJSONValueArraySize(devices); i++) {
-        virJSONValuePtr dev = virJSONValueArrayGet(devices, i);
+        virJSONValuePtr dev;
         virJSONValuePtr inserted;
         virJSONValuePtr image;
         const char *dev_name;
 
-        if (!dev || dev->type != VIR_JSON_TYPE_OBJECT) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("query-block device entry was not "
-                             "in expected format"));
+        if (!(dev = qemuMonitorJSONGetBlockDev(devices, i)))
             goto cleanup;
-        }
 
-        if (!(dev_name = virJSONValueObjectGetString(dev, "device"))) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("query-block device entry was not "
-                             "in expected format"));
+        if (!(dev_name = qemuMonitorJSONGetBlockDevDevice(dev)))
             goto cleanup;
-        }
 
         /* drive may be empty */
         if (!(inserted = virJSONValueObjectGetObject(dev, "inserted")) ||
@@ -2111,8 +2134,7 @@ qemuMonitorJSONBlockStatsUpdateCapacity(qemuMonitorPtr mon,
     ret = 0;
 
  cleanup:
-    virJSONValueFree(cmd);
-    virJSONValueFree(reply);
+    virJSONValueFree(devices);
     return ret;
 }
 
@@ -3987,40 +4009,23 @@ qemuMonitorJSONDiskNameLookup(qemuMonitorPtr mon,
                               virStorageSourcePtr target)
 {
     char *ret = NULL;
-    virJSONValuePtr cmd = NULL;
-    virJSONValuePtr reply = NULL;
     virJSONValuePtr devices;
     size_t i;
 
-    cmd = qemuMonitorJSONMakeCommand("query-block", NULL);
-    if (!cmd)
+    if (!(devices = qemuMonitorJSONQueryBlock(mon)))
         return NULL;
-    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
-        goto cleanup;
-
-    if (!(devices = virJSONValueObjectGetArray(reply, "return"))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("block info reply was missing device list"));
-        goto cleanup;
-    }
 
     for (i = 0; i < virJSONValueArraySize(devices); i++) {
-        virJSONValuePtr dev = virJSONValueArrayGet(devices, i);
+        virJSONValuePtr dev;
         virJSONValuePtr inserted;
         virJSONValuePtr image;
         const char *thisdev;
 
-        if (!dev || dev->type != VIR_JSON_TYPE_OBJECT) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("block info device entry was not in expected format"));
+        if (!(dev = qemuMonitorJSONGetBlockDev(devices, i)))
             goto cleanup;
-        }
 
-        if (!(thisdev = virJSONValueObjectGetString(dev, "device"))) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("block info device entry was not in expected format"));
+        if (!(thisdev = qemuMonitorJSONGetBlockDevDevice(dev)))
             goto cleanup;
-        }
 
         if (STREQ(thisdev, device)) {
             if ((inserted = virJSONValueObjectGetObject(dev, "inserted")) &&
@@ -4038,8 +4043,7 @@ qemuMonitorJSONDiskNameLookup(qemuMonitorPtr mon,
                        device);
 
  cleanup:
-    virJSONValueFree(cmd);
-    virJSONValueFree(reply);
+    virJSONValueFree(devices);
 
     return ret;
 }
@@ -4559,6 +4563,12 @@ qemuMonitorJSONBlockIoThrottleInfo(virJSONValuePtr result,
         GET_THROTTLE_STATS_OPTIONAL("iops_rd_max", read_iops_sec_max);
         GET_THROTTLE_STATS_OPTIONAL("iops_wr_max", write_iops_sec_max);
         GET_THROTTLE_STATS_OPTIONAL("iops_size", size_iops_sec);
+        GET_THROTTLE_STATS_OPTIONAL("bps_max_length", total_bytes_sec_max_length);
+        GET_THROTTLE_STATS_OPTIONAL("bps_rd_max_length", read_bytes_sec_max_length);
+        GET_THROTTLE_STATS_OPTIONAL("bps_wr_max_length", write_bytes_sec_max_length);
+        GET_THROTTLE_STATS_OPTIONAL("iops_max_length", total_iops_sec_max_length);
+        GET_THROTTLE_STATS_OPTIONAL("iops_rd_max_length", read_iops_sec_max_length);
+        GET_THROTTLE_STATS_OPTIONAL("iops_wr_max_length", write_iops_sec_max_length);
 
         break;
     }
@@ -4580,42 +4590,48 @@ qemuMonitorJSONBlockIoThrottleInfo(virJSONValuePtr result,
 int qemuMonitorJSONSetBlockIoThrottle(qemuMonitorPtr mon,
                                       const char *device,
                                       virDomainBlockIoTuneInfoPtr info,
-                                      bool supportMaxOptions)
+                                      bool supportMaxOptions,
+                                      bool supportMaxLengthOptions)
 {
     int ret = -1;
     virJSONValuePtr cmd = NULL;
     virJSONValuePtr result = NULL;
 
     /* The qemu capability check has already been made in
-     * qemuDomainSetBlockIoTune */
-    if (supportMaxOptions) {
-        cmd = qemuMonitorJSONMakeCommand("block_set_io_throttle",
-                                         "s:device", device,
-                                         "U:bps", info->total_bytes_sec,
-                                         "U:bps_rd", info->read_bytes_sec,
-                                         "U:bps_wr", info->write_bytes_sec,
-                                         "U:iops", info->total_iops_sec,
-                                         "U:iops_rd", info->read_iops_sec,
-                                         "U:iops_wr", info->write_iops_sec,
-                                         "U:bps_max", info->total_bytes_sec_max,
-                                         "U:bps_rd_max", info->read_bytes_sec_max,
-                                         "U:bps_wr_max", info->write_bytes_sec_max,
-                                         "U:iops_max", info->total_iops_sec_max,
-                                         "U:iops_rd_max", info->read_iops_sec_max,
-                                         "U:iops_wr_max", info->write_iops_sec_max,
-                                         "U:iops_size", info->size_iops_sec,
-                                         NULL);
-    } else {
-        cmd = qemuMonitorJSONMakeCommand("block_set_io_throttle",
-                                         "s:device", device,
-                                         "U:bps", info->total_bytes_sec,
-                                         "U:bps_rd", info->read_bytes_sec,
-                                         "U:bps_wr", info->write_bytes_sec,
-                                         "U:iops", info->total_iops_sec,
-                                         "U:iops_rd", info->read_iops_sec,
-                                         "U:iops_wr", info->write_iops_sec,
-                                         NULL);
-    }
+     * qemuDomainSetBlockIoTune. NB, once a NULL is found in
+     * the sequence, qemuMonitorJSONMakeCommand will stop. So
+     * let's make use of that when !supportMaxOptions and
+     * similarly when !supportMaxLengthOptions */
+   cmd = qemuMonitorJSONMakeCommand("block_set_io_throttle",
+                                    "s:device", device,
+                                    "U:bps", info->total_bytes_sec,
+                                    "U:bps_rd", info->read_bytes_sec,
+                                    "U:bps_wr", info->write_bytes_sec,
+                                    "U:iops", info->total_iops_sec,
+                                    "U:iops_rd", info->read_iops_sec,
+                                    "U:iops_wr", info->write_iops_sec,
+                                    !supportMaxOptions ? NULL :
+                                    "U:bps_max", info->total_bytes_sec_max,
+                                    "U:bps_rd_max", info->read_bytes_sec_max,
+                                    "U:bps_wr_max", info->write_bytes_sec_max,
+                                    "U:iops_max", info->total_iops_sec_max,
+                                    "U:iops_rd_max", info->read_iops_sec_max,
+                                    "U:iops_wr_max", info->write_iops_sec_max,
+                                    "U:iops_size", info->size_iops_sec,
+                                    !supportMaxLengthOptions ? NULL :
+                                    "P:bps_max_length",
+                                    info->total_bytes_sec_max_length,
+                                    "P:bps_rd_max_length",
+                                    info->read_bytes_sec_max_length,
+                                    "P:bps_wr_max_length",
+                                    info->write_bytes_sec_max_length,
+                                    "P:iops_max_length",
+                                    info->total_iops_sec_max_length,
+                                    "P:iops_rd_max_length",
+                                    info->read_iops_sec_max_length,
+                                    "P:iops_wr_max_length",
+                                    info->write_iops_sec_max_length,
+                                    NULL);
     if (!cmd)
         return -1;
 
@@ -4623,15 +4639,19 @@ int qemuMonitorJSONSetBlockIoThrottle(qemuMonitorPtr mon,
         goto cleanup;
 
     if (virJSONValueObjectHasKey(result, "error")) {
-        if (qemuMonitorJSONHasError(result, "DeviceNotActive"))
+        if (qemuMonitorJSONHasError(result, "DeviceNotActive")) {
             virReportError(VIR_ERR_OPERATION_INVALID,
                            _("No active operation on device: %s"), device);
-        else if (qemuMonitorJSONHasError(result, "NotSupported"))
+        } else if (qemuMonitorJSONHasError(result, "NotSupported")) {
             virReportError(VIR_ERR_OPERATION_INVALID,
                            _("Operation is not supported for device: %s"), device);
-        else
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("Unexpected error"));
+        } else {
+            virJSONValuePtr error = virJSONValueObjectGet(result, "error");
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("unable to execute '%s', unexpected error: '%s'"),
+                           qemuMonitorJSONCommandName(cmd),
+                           qemuMonitorJSONStringifyError(error));
+        }
         goto cleanup;
     }
 
@@ -5937,22 +5957,17 @@ qemuMonitorJSONBuildInetSocketAddress(const char *host,
     virJSONValuePtr addr = NULL;
     virJSONValuePtr data = NULL;
 
-    if (!(data = virJSONValueNewObject()) ||
-        !(addr = virJSONValueNewObject()))
-        goto error;
+    if (virJSONValueObjectCreate(&data, "s:host", host,
+                                        "s:port", port, NULL) < 0)
+        return NULL;
 
-    /* port is really expected as a string here by qemu */
-    if (virJSONValueObjectAppendString(data, "host", host) < 0 ||
-        virJSONValueObjectAppendString(data, "port", port) < 0 ||
-        virJSONValueObjectAppendString(addr, "type", "inet") < 0 ||
-        virJSONValueObjectAppend(addr, "data", data) < 0)
-        goto error;
+    if (virJSONValueObjectCreate(&addr, "s:type", "inet",
+                                        "a:data", data, NULL) < 0) {
+        virJSONValueFree(data);
+        return NULL;
+    }
 
     return addr;
- error:
-    virJSONValueFree(data);
-    virJSONValueFree(addr);
-    return NULL;
 }
 
 static virJSONValuePtr
@@ -5961,20 +5976,16 @@ qemuMonitorJSONBuildUnixSocketAddress(const char *path)
     virJSONValuePtr addr = NULL;
     virJSONValuePtr data = NULL;
 
-    if (!(data = virJSONValueNewObject()) ||
-        !(addr = virJSONValueNewObject()))
-        goto error;
+    if (virJSONValueObjectCreate(&data, "s:path", path, NULL) < 0)
+        return NULL;
 
-    if (virJSONValueObjectAppendString(data, "path", path) < 0 ||
-        virJSONValueObjectAppendString(addr, "type", "unix") < 0 ||
-        virJSONValueObjectAppend(addr, "data", data) < 0)
-        goto error;
+    if (virJSONValueObjectCreate(&addr, "s:type", "unix",
+                                        "a:data", data, NULL) < 0) {
+        virJSONValueFree(data);
+        return NULL;
+    }
 
     return addr;
- error:
-    virJSONValueFree(data);
-    virJSONValueFree(addr);
-    return NULL;
 }
 
 int
@@ -6221,12 +6232,20 @@ qemuMonitorJSONAttachCharDevCommand(const char *chrID,
         break;
 
     case VIR_DOMAIN_CHR_TYPE_UDP:
-        backend_type = "socket";
+        backend_type = "udp";
         addr = qemuMonitorJSONBuildInetSocketAddress(chr->data.udp.connectHost,
                                                      chr->data.udp.connectService);
         if (!addr ||
-            virJSONValueObjectAppend(data, "addr", addr) < 0)
+            virJSONValueObjectAppend(data, "remote", addr) < 0)
             goto error;
+
+        if (chr->data.udp.bindHost) {
+            addr = qemuMonitorJSONBuildInetSocketAddress(chr->data.udp.bindHost,
+                                                         chr->data.udp.bindService);
+            if (!addr ||
+                virJSONValueObjectAppend(data, "local", addr) < 0)
+                goto error;
+        }
         addr = NULL;
         break;
 

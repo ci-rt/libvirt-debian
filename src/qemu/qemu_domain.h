@@ -320,6 +320,7 @@ struct _qemuDomainVcpuPrivate {
     pid_t tid; /* vcpu thread id */
     int enable_id; /* order in which the vcpus were enabled in qemu */
     char *alias;
+    bool halted;
 
     /* information for hotpluggable cpus */
     char *type;
@@ -351,6 +352,20 @@ struct _qemuDomainHostdevPrivate {
      * NB: *not* to be written to qemu domain object XML */
     qemuDomainSecretInfoPtr secinfo;
 };
+
+# define QEMU_DOMAIN_CHR_SOURCE_PRIVATE(dev)	\
+    ((qemuDomainChrSourcePrivatePtr) (dev)->privateData)
+
+typedef struct _qemuDomainChrSourcePrivate qemuDomainChrSourcePrivate;
+typedef qemuDomainChrSourcePrivate *qemuDomainChrSourcePrivatePtr;
+struct _qemuDomainChrSourcePrivate {
+    virObject parent;
+
+    /* for char devices using secret
+     * NB: *not* to be written to qemu domain object XML */
+    qemuDomainSecretInfoPtr secinfo;
+};
+
 
 typedef enum {
     QEMU_PROCESS_EVENT_WATCHDOG = 0,
@@ -665,6 +680,10 @@ int qemuDomainRefreshVcpuInfo(virQEMUDriverPtr driver,
                               virDomainObjPtr vm,
                               int asyncJob,
                               bool state);
+bool qemuDomainGetVcpuHalted(virDomainObjPtr vm, unsigned int vcpu);
+int qemuDomainRefreshVcpuHalted(virQEMUDriverPtr driver,
+                                virDomainObjPtr vm,
+                                int asyncJob);
 
 bool qemuDomainSupportsNicdev(virDomainDefPtr def,
                               virDomainNetDefPtr net);
@@ -712,17 +731,38 @@ int qemuDomainSecretHostdevPrepare(virConnectPtr conn,
                                    virDomainHostdevDefPtr hostdev)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 
+void qemuDomainSecretChardevDestroy(virDomainChrSourceDefPtr dev)
+    ATTRIBUTE_NONNULL(1);
+
+int qemuDomainSecretChardevPrepare(virConnectPtr conn,
+                                   virQEMUDriverConfigPtr cfg,
+                                   qemuDomainObjPrivatePtr priv,
+                                   const char *chrAlias,
+                                   virDomainChrSourceDefPtr dev)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
+    ATTRIBUTE_NONNULL(4) ATTRIBUTE_NONNULL(5);
+
 void qemuDomainSecretDestroy(virDomainObjPtr vm)
     ATTRIBUTE_NONNULL(1);
 
-int qemuDomainSecretPrepare(virConnectPtr conn, virDomainObjPtr vm)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+int qemuDomainSecretPrepare(virConnectPtr conn,
+                            virQEMUDriverPtr driver,
+                            virDomainObjPtr vm)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 
 int qemuDomainDefValidateDiskLunSource(const virStorageSource *src)
     ATTRIBUTE_NONNULL(1);
 
 int qemuDomainPrepareChannel(virDomainChrDefPtr chr,
                              const char *domainChannelTargetDir)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+void qemuDomainPrepareChardevSourceTLS(virDomainChrSourceDefPtr source,
+                                       virQEMUDriverConfigPtr cfg)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+void qemuDomainPrepareChardevSource(virDomainDefPtr def,
+                                    virQEMUDriverPtr driver)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 int qemuDomainPrepareShmemChardev(virDomainShmemDefPtr shmem)
@@ -737,5 +777,8 @@ void qemuDomainVcpuPersistOrder(virDomainDefPtr def)
 int qemuDomainCheckMonitor(virQEMUDriverPtr driver,
                            virDomainObjPtr vm,
                            qemuDomainAsyncJob asyncJob);
+
+bool qemuDomainSupportsVideoVga(virDomainVideoDefPtr video,
+                                virQEMUCapsPtr qemuCaps);
 
 #endif /* __QEMU_DOMAIN_H__ */

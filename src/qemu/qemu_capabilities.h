@@ -110,7 +110,7 @@ typedef enum {
     QEMU_CAPS_SMBIOS_TYPE, /* Is -smbios type= available */
 
     /* 45 */
-    QEMU_CAPS_VGA_QXL, /* The 'qxl' arg for '-vga' */
+    X_QEMU_CAPS_VGA_QXL, /* The 'qxl' arg for '-vga' */
     QEMU_CAPS_SPICE, /* Is -spice avail */
     QEMU_CAPS_VGA_NONE, /* The 'none' arg for '-vga' */
     X_QEMU_CAPS_MIGRATE_QEMU_FD, /* -incoming fd:n */
@@ -128,7 +128,7 @@ typedef enum {
     QEMU_CAPS_CHARDEV_SPICEVMC, /* newer -chardev spicevmc */
     QEMU_CAPS_DEVICE_SPICEVMC, /* older -device spicevmc*/
     QEMU_CAPS_VIRTIO_TX_ALG, /* -device virtio-net-pci,tx=string */
-    QEMU_CAPS_DEVICE_QXL_VGA, /* primary qxl device named qxl-vga? */
+    X_QEMU_CAPS_DEVICE_QXL_VGA, /* primary qxl device named qxl-vga? */
 
     /* 60 */
     QEMU_CAPS_PCI_MULTIFUNCTION, /* -device multifunction=on|off */
@@ -302,7 +302,7 @@ typedef enum {
     QEMU_CAPS_VGA_VGAMEM, /* -device VGA.vgamem_mb */
     QEMU_CAPS_VMWARE_SVGA_VGAMEM, /* -device vmware-svga.vgamem_mb */
     QEMU_CAPS_QXL_VGAMEM, /* -device qxl.vgamem_mb */
-    QEMU_CAPS_QXL_VGA_VGAMEM, /* -device qxl-vga.vgamem_mb */
+    X_QEMU_CAPS_QXL_VGA_VGAMEM, /* -device qxl-vga.vgamem_mb */
     QEMU_CAPS_DEVICE_PC_DIMM, /* pc-dimm device */
 
     /* 185 */
@@ -328,8 +328,8 @@ typedef enum {
 
     /* 200 */
     QEMU_CAPS_INCOMING_DEFER, /* -incoming defer and migrate_incoming */
-    QEMU_CAPS_DEVICE_VIRTIO_GPU, /* -device virtio-gpu-* & virtio-vga */
-    QEMU_CAPS_DEVICE_VIRTIO_GPU_VIRGL, /* -device virtio-gpu-*.virgl */
+    QEMU_CAPS_DEVICE_VIRTIO_GPU, /* -device virtio-gpu-* */
+    QEMU_CAPS_VIRTIO_GPU_VIRGL, /* -device virtio-gpu-*.virgl */
     QEMU_CAPS_VIRTIO_KEYBOARD, /* -device virtio-keyboard-{device,pci} */
     QEMU_CAPS_VIRTIO_MOUSE, /* -device virtio-mouse-{device,pci} */
 
@@ -349,7 +349,7 @@ typedef enum {
     QEMU_CAPS_QXL_VRAM64, /* -device qxl.vram64_size_mb */
 
     /* 215 */
-    QEMU_CAPS_QXL_VGA_VRAM64, /* -device qxl-vga.vram64_size_mb */
+    X_QEMU_CAPS_QXL_VGA_VRAM64, /* -device qxl-vga.vram64_size_mb */
     QEMU_CAPS_CHARDEV_LOGFILE, /* -chardev logfile=xxxx */
     QEMU_CAPS_NAME_DEBUG_THREADS, /* Is -name debug-threads= available */
     QEMU_CAPS_OBJECT_SECRET, /* -object secret */
@@ -364,7 +364,7 @@ typedef enum {
 
     /* 225 */
     QEMU_CAPS_QXL_MAX_OUTPUTS, /* -device qxl,max-outputs= */
-    QEMU_CAPS_QXL_VGA_MAX_OUTPUTS, /* -device qxl-vga,max-outputs= */
+    X_QEMU_CAPS_QXL_VGA_MAX_OUTPUTS, /* -device qxl-vga,max-outputs= */
     QEMU_CAPS_SPICE_UNIX, /* -spice unix */
     QEMU_CAPS_DRIVE_DETECT_ZEROES, /* -drive detect-zeroes= */
     QEMU_CAPS_OBJECT_TLS_CREDS_X509, /* -object tls-creds-x509 */
@@ -378,6 +378,9 @@ typedef enum {
 
     /* 235 */
     QEMU_CAPS_VIRTIO_NET_RX_QUEUE_SIZE, /* virtio-net-*.rx_queue_size */
+    QEMU_CAPS_MACHINE_IOMMU, /* -machine iommu=on */
+    QEMU_CAPS_DEVICE_VIRTIO_VGA, /* -device virtio-vga */
+    QEMU_CAPS_DRIVE_IOTUNE_MAX_LENGTH, /* -drive bps_max_length = and friends */
 
     QEMU_CAPS_LAST /* this must always be the last item */
 } virQEMUCapsFlags;

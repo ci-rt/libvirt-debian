@@ -2189,10 +2189,10 @@ qemuParseCommandLine(virCapsPtr caps,
             if (STRNEQ(val, "none")) {
                 virDomainChrDefPtr chr;
 
-                if (!(chr = virDomainChrDefNew()))
+                if (!(chr = virDomainChrDefNew(NULL)))
                     goto error;
 
-                if (qemuParseCommandLineChr(&chr->source, val) < 0) {
+                if (qemuParseCommandLineChr(chr->source, val) < 0) {
                     virDomainChrDefFree(chr);
                     goto error;
                 }
@@ -2208,10 +2208,10 @@ qemuParseCommandLine(virCapsPtr caps,
             if (STRNEQ(val, "none")) {
                 virDomainChrDefPtr chr;
 
-                if (!(chr = virDomainChrDefNew()))
+                if (!(chr = virDomainChrDefNew(NULL)))
                     goto error;
 
-                if (qemuParseCommandLineChr(&chr->source, val) < 0) {
+                if (qemuParseCommandLineChr(chr->source, val) < 0) {
                     virDomainChrDefFree(chr);
                     goto error;
                 }

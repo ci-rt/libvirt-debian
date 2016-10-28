@@ -143,17 +143,23 @@
     <reference name='VIR_DOMAIN_BLOCK_COPY_SHALLOW' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_COPY_SHALLOW'/>
     <reference name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC'/>
     <reference name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX'/>
+    <reference name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX_LENGTH' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX_LENGTH'/>
     <reference name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC'/>
     <reference name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX'/>
+    <reference name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX_LENGTH' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX_LENGTH'/>
     <reference name='VIR_DOMAIN_BLOCK_IOTUNE_SIZE_IOPS_SEC' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_SIZE_IOPS_SEC'/>
     <reference name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC'/>
     <reference name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX'/>
+    <reference name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX_LENGTH' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX_LENGTH'/>
     <reference name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC'/>
     <reference name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX'/>
+    <reference name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX_LENGTH' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX_LENGTH'/>
     <reference name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC'/>
     <reference name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX'/>
+    <reference name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX_LENGTH' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX_LENGTH'/>
     <reference name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC'/>
     <reference name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX'/>
+    <reference name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX_LENGTH' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX_LENGTH'/>
     <reference name='VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC'/>
     <reference name='VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT'/>
     <reference name='VIR_DOMAIN_BLOCK_JOB_CANCELED' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_JOB_CANCELED'/>
@@ -607,17 +613,23 @@
     <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_DISK' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_DISK'/>
     <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC'/>
     <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX'/>
+    <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX_LENGTH' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX_LENGTH'/>
     <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC'/>
     <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX'/>
+    <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX_LENGTH' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX_LENGTH'/>
     <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_SIZE_IOPS_SEC' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_SIZE_IOPS_SEC'/>
     <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC'/>
     <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX'/>
+    <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX_LENGTH' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX_LENGTH'/>
     <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC'/>
     <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX'/>
+    <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX_LENGTH' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX_LENGTH'/>
     <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC'/>
     <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX'/>
+    <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX_LENGTH' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX_LENGTH'/>
     <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC'/>
     <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX'/>
+    <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX_LENGTH' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX_LENGTH'/>
     <reference name='VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES'/>
     <reference name='VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN'/>
     <reference name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD'/>
@@ -637,6 +649,7 @@
     <reference name='VIR_DOMAIN_VCPU_CONFIG' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_VCPU_CONFIG'/>
     <reference name='VIR_DOMAIN_VCPU_CURRENT' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_VCPU_CURRENT'/>
     <reference name='VIR_DOMAIN_VCPU_GUEST' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_VCPU_GUEST'/>
+    <reference name='VIR_DOMAIN_VCPU_HOTPLUGGABLE' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_VCPU_HOTPLUGGABLE'/>
     <reference name='VIR_DOMAIN_VCPU_LIVE' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_VCPU_LIVE'/>
     <reference name='VIR_DOMAIN_VCPU_MAXIMUM' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_VCPU_MAXIMUM'/>
     <reference name='VIR_DOMAIN_XML_INACTIVE' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_XML_INACTIVE'/>
@@ -1904,17 +1917,23 @@
       <ref name='VIR_DOMAIN_BLOCK_COPY_SHALLOW'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX'/>
+      <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX_LENGTH'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX'/>
+      <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX_LENGTH'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_SIZE_IOPS_SEC'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX'/>
+      <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX_LENGTH'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX'/>
+      <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX_LENGTH'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX'/>
+      <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX_LENGTH'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX'/>
+      <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX_LENGTH'/>
       <ref name='VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC'/>
       <ref name='VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT'/>
       <ref name='VIR_DOMAIN_BLOCK_JOB_CANCELED'/>
@@ -2368,17 +2387,23 @@
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_DISK'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX'/>
+      <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX_LENGTH'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX'/>
+      <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX_LENGTH'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_SIZE_IOPS_SEC'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX'/>
+      <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX_LENGTH'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX'/>
+      <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX_LENGTH'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX'/>
+      <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX_LENGTH'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX'/>
+      <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX_LENGTH'/>
       <ref name='VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES'/>
       <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN'/>
       <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD'/>
@@ -2398,6 +2423,7 @@
       <ref name='VIR_DOMAIN_VCPU_CONFIG'/>
       <ref name='VIR_DOMAIN_VCPU_CURRENT'/>
       <ref name='VIR_DOMAIN_VCPU_GUEST'/>
+      <ref name='VIR_DOMAIN_VCPU_HOTPLUGGABLE'/>
       <ref name='VIR_DOMAIN_VCPU_LIVE'/>
       <ref name='VIR_DOMAIN_VCPU_MAXIMUM'/>
       <ref name='VIR_DOMAIN_XML_INACTIVE'/>
@@ -4951,17 +4977,23 @@
       <ref name='VIR_DOMAIN_BLOCK_COPY_SHALLOW'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX'/>
+      <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX_LENGTH'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX'/>
+      <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX_LENGTH'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_SIZE_IOPS_SEC'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX'/>
+      <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX_LENGTH'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX'/>
+      <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX_LENGTH'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX'/>
+      <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX_LENGTH'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX'/>
+      <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX_LENGTH'/>
       <ref name='VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC'/>
       <ref name='VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT'/>
       <ref name='VIR_DOMAIN_BLOCK_JOB_CANCELED'/>
@@ -5389,17 +5421,23 @@
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_DISK'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX'/>
+      <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX_LENGTH'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX'/>
+      <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX_LENGTH'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_SIZE_IOPS_SEC'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX'/>
+      <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX_LENGTH'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX'/>
+      <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX_LENGTH'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX'/>
+      <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX_LENGTH'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX'/>
+      <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX_LENGTH'/>
       <ref name='VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES'/>
       <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN'/>
       <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD'/>
@@ -5419,6 +5457,7 @@
       <ref name='VIR_DOMAIN_VCPU_CONFIG'/>
       <ref name='VIR_DOMAIN_VCPU_CURRENT'/>
       <ref name='VIR_DOMAIN_VCPU_GUEST'/>
+      <ref name='VIR_DOMAIN_VCPU_HOTPLUGGABLE'/>
       <ref name='VIR_DOMAIN_VCPU_LIVE'/>
       <ref name='VIR_DOMAIN_VCPU_MAXIMUM'/>
       <ref name='VIR_DOMAIN_XML_INACTIVE'/>
@@ -6727,17 +6766,23 @@
         <word name='BlockIoTune'>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX_LENGTH'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX_LENGTH'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_SIZE_IOPS_SEC'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX_LENGTH'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX_LENGTH'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX_LENGTH'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX_LENGTH'/>
         </word>
         <word name='BlockJob'>
           <ref name='virDomainBlockJobAbort'/>
@@ -7526,12 +7571,6 @@
         </word>
         <word name='Management'>
           <ref name='virNodeDeviceReset'/>
-        </word>
-        <word name='Marco'>
-          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC'/>
-          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX'/>
-          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC'/>
-          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX'/>
         </word>
         <word name='Master'>
           <ref name='virDomainBlockPeek'/>
@@ -10198,6 +10237,18 @@
           <ref name='virDomainBlockJobSetSpeed'/>
         </word>
         <word name='allowed'>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX_LENGTH'/>
           <ref name='VIR_MIGRATE_PARAM_DEST_NAME'/>
           <ref name='_virDomainInfo'/>
           <ref name='virConnectGetAllDomainStats'/>
@@ -10885,6 +10936,12 @@
           <ref name='virDomainSetSchedulerParametersFlags'/>
         </word>
         <word name='blkdeviotune'>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX_LENGTH'/>
           <ref name='virConnectDomainEventTunableCallback'/>
         </word>
         <word name='blkio'>
@@ -11048,6 +11105,26 @@
         <word name='burst'>
           <ref name='VIR_DOMAIN_BANDWIDTH_IN_BURST'/>
           <ref name='VIR_DOMAIN_BANDWIDTH_OUT_BURST'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX_LENGTH'/>
+        </word>
+        <word name='bursts'>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX'/>
         </word>
         <word name='button'>
           <ref name='virDomainReset'/>
@@ -12578,6 +12655,7 @@
           <ref name='virDomainSnapshotCreateXML'/>
         </word>
         <word name='describing'>
+          <ref name='VIR_PERF_PARAM_CPU_CYCLES'/>
           <ref name='virConnectCompareCPU'/>
           <ref name='virConnectDomainXMLFromNative'/>
           <ref name='virConnectDomainXMLToNative'/>
@@ -13073,6 +13151,12 @@
           <ref name='virGetVersion'/>
         </word>
         <word name='duration'>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX_LENGTH'/>
           <ref name='virConnectDomainEventRegister'/>
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
@@ -13137,6 +13221,10 @@
         </word>
         <word name='elapse'>
           <ref name='virDomainPMWakeup'/>
+        </word>
+        <word name='elapsed'>
+          <ref name='VIR_PERF_PARAM_CPU_CYCLES'/>
+          <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='elements'>
           <ref name='VIR_DOMAIN_BLKIO_DEVICE_READ_BPS'/>
@@ -15293,7 +15381,6 @@
         </word>
         <word name='instruction'>
           <ref name='VIR_PERF_PARAM_CPU_CYCLES'/>
-          <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='instructions'>
           <ref name='VIR_DOMAIN_CPU_STATS_SYSTEMTIME'/>
@@ -15888,6 +15975,12 @@
           <ref name='VIR_DOMAIN_BLOCK_STATS_FIELD_LENGTH'/>
           <ref name='VIR_DOMAIN_MEMORY_FIELD_LENGTH'/>
           <ref name='VIR_DOMAIN_SCHED_FIELD_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX_LENGTH'/>
           <ref name='VIR_NODE_CPU_STATS_FIELD_LENGTH'/>
           <ref name='VIR_NODE_MEMORY_STATS_FIELD_LENGTH'/>
           <ref name='VIR_SECURITY_DOI_BUFLEN'/>
@@ -17022,7 +17115,6 @@
         <word name='needs'>
           <ref name='VIR_MIGRATE_PARAM_GRAPHICS_URI'/>
           <ref name='VIR_PERF_PARAM_CPU_CYCLES'/>
-          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virConnectRef'/>
           <ref name='virDomainRef'/>
           <ref name='virDomainSnapshotRef'/>
@@ -17886,6 +17978,12 @@
           <ref name='VIR_DOMAIN_SCHEDULER_IOTHREAD_QUOTA'/>
           <ref name='VIR_DOMAIN_SCHEDULER_VCPU_PERIOD'/>
           <ref name='VIR_DOMAIN_SCHEDULER_VCPU_QUOTA'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX_LENGTH'/>
           <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD'/>
           <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA'/>
           <ref name='VIR_DOMAIN_TUNABLE_CPU_GLOBAL_PERIOD'/>
@@ -18882,6 +18980,10 @@
         <word name='read_bps'>
           <ref name='VIR_DOMAIN_BLKIO_DEVICE_READ_BPS'/>
         </word>
+        <word name='read_bytes_sec_max'>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX_LENGTH'/>
+        </word>
         <word name='read_iops'>
           <ref name='VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS'/>
         </word>
@@ -18889,6 +18991,10 @@
           <ref name='VIR_DOMAIN_BLKIO_DEVICE_READ_BPS'/>
           <ref name='VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS'/>
           <ref name='VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS'/>
+        </word>
+        <word name='read_iops_sec_max'>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX_LENGTH'/>
         </word>
         <word name='readable'>
           <ref name='virStreamEventAddCallback'/>
@@ -19987,6 +20093,18 @@
           <ref name='virDomainBlockRebase'/>
         </word>
         <word name='seconds'>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX_LENGTH'/>
           <ref name='virConnectDomainEventRTCChangeCallback'/>
           <ref name='virConnectSetKeepAlive'/>
           <ref name='virDomainGetTime'/>
@@ -21576,6 +21694,14 @@
         <word name='topology'>
           <ref name='_virNodeInfo'/>
         </word>
+        <word name='total_bytes_sec_max'>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX_LENGTH'/>
+        </word>
+        <word name='total_iops_sec_max'>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX_LENGTH'/>
+        </word>
         <word name='track'>
           <ref name='virDomainManagedSave'/>
           <ref name='virDomainSnapshotDelete'/>
@@ -21739,33 +21865,6 @@
           <ref name='virConnectOpen'/>
           <ref name='virNodeAllocPages'/>
         </word>
-        <word name='tunable'>
-          <ref name='VIR_DOMAIN_BLKIO_DEVICE_READ_BPS'/>
-          <ref name='VIR_DOMAIN_BLKIO_DEVICE_READ_IOPS'/>
-          <ref name='VIR_DOMAIN_BLKIO_DEVICE_WEIGHT'/>
-          <ref name='VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS'/>
-          <ref name='VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS'/>
-          <ref name='VIR_DOMAIN_BLKIO_WEIGHT'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_SIZE_IOPS_SEC'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX'/>
-          <ref name='VIR_DOMAIN_MEMORY_HARD_LIMIT'/>
-          <ref name='VIR_DOMAIN_MEMORY_MIN_GUARANTEE'/>
-          <ref name='VIR_DOMAIN_MEMORY_SOFT_LIMIT'/>
-          <ref name='VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT'/>
-          <ref name='virConnectDomainEventTunableCallback'/>
-          <ref name='virDomainGetBlockIoTune'/>
-        </word>
         <word name='tunable:'>
           <ref name='VIR_DOMAIN_BLOCK_COPY_BANDWIDTH'/>
           <ref name='VIR_DOMAIN_BLOCK_COPY_BUF_SIZE'/>
@@ -21868,35 +21967,6 @@
           <ref name='VIR_DOMAIN_BLKIO_WEIGHT'/>
           <ref name='VIR_DOMAIN_SCHEDULER_CAP'/>
           <ref name='VIR_DOMAIN_SCHEDULER_WEIGHT'/>
-        </word>
-        <word name='ullong'>
-          <ref name='VIR_DOMAIN_BLOCK_COPY_BANDWIDTH'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_SIZE_IOPS_SEC'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC'/>
-          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX'/>
-          <ref name='VIR_DOMAIN_CPU_STATS_CPUTIME'/>
-          <ref name='VIR_DOMAIN_CPU_STATS_SYSTEMTIME'/>
-          <ref name='VIR_DOMAIN_CPU_STATS_USERTIME'/>
-          <ref name='VIR_DOMAIN_CPU_STATS_VCPUTIME'/>
-          <ref name='VIR_DOMAIN_MEMORY_HARD_LIMIT'/>
-          <ref name='VIR_DOMAIN_MEMORY_MIN_GUARANTEE'/>
-          <ref name='VIR_DOMAIN_MEMORY_SOFT_LIMIT'/>
-          <ref name='VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT'/>
-          <ref name='VIR_DOMAIN_SCHEDULER_CPU_SHARES'/>
-          <ref name='VIR_DOMAIN_SCHEDULER_EMULATOR_PERIOD'/>
-          <ref name='VIR_DOMAIN_SCHEDULER_GLOBAL_PERIOD'/>
-          <ref name='VIR_DOMAIN_SCHEDULER_IOTHREAD_PERIOD'/>
-          <ref name='VIR_DOMAIN_SCHEDULER_VCPU_PERIOD'/>
         </word>
         <word name='unable'>
           <ref name='virDomainAttachDeviceFlags'/>
@@ -23959,17 +24029,23 @@
           <ref name='VIR_DOMAIN_BLKIO_WEIGHT'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX_LENGTH'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX_LENGTH'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_SIZE_IOPS_SEC'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX_LENGTH'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX_LENGTH'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX_LENGTH'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX_LENGTH'/>
         </word>
         <word name='weight_device:'>
           <ref name='VIR_DOMAIN_BLKIO_DEVICE_WEIGHT'/>
@@ -24114,11 +24190,19 @@
         <word name='write_bps'>
           <ref name='VIR_DOMAIN_BLKIO_DEVICE_WRITE_BPS'/>
         </word>
+        <word name='write_bytes_sec_max'>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX_LENGTH'/>
+        </word>
         <word name='write_iops'>
           <ref name='VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS'/>
         </word>
         <word name='write_iops_device:'>
           <ref name='VIR_DOMAIN_BLKIO_DEVICE_WRITE_IOPS'/>
+        </word>
+        <word name='write_iops_sec_max'>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX_LENGTH'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX_LENGTH'/>
         </word>
         <word name='writes'>
           <ref name='VIR_DOMAIN_BLOCK_STATS_WRITE_TOTAL_TIMES'/>

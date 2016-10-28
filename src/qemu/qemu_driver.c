@@ -114,6 +114,7 @@ VIR_LOG_INIT("qemu.qemu_driver");
 
 #define QEMU_NB_BLOCK_IO_TUNE_PARAM  6
 #define QEMU_NB_BLOCK_IO_TUNE_PARAM_MAX  13
+#define QEMU_NB_BLOCK_IO_TUNE_PARAM_MAX_LENGTH 19
 
 #define QEMU_NB_NUMA_PARAM 2
 
@@ -1094,7 +1095,7 @@ qemuStateCleanup(void)
     ebtablesContextFree(qemu_driver->ebtables);
 
     /* Free domain callback list */
-    virObjectEventStateFree(qemu_driver->domainEventState);
+    virObjectUnref(qemu_driver->domainEventState);
 
     virLockManagerPluginUnref(qemu_driver->lockManager);
 
@@ -1454,7 +1455,8 @@ qemuDomainHelperGetVcpus(virDomainObjPtr vm,
                          unsigned long long *cpuwait,
                          int maxinfo,
                          unsigned char *cpumaps,
-                         int maplen)
+                         int maplen,
+                         bool *cpuhalted)
 {
     size_t ncpuinfo = 0;
     size_t i;
@@ -1473,6 +1475,9 @@ qemuDomainHelperGetVcpus(virDomainObjPtr vm,
 
     if (cpumaps)
         memset(cpumaps, 0, sizeof(*cpumaps) * maxinfo);
+
+    if (cpuhalted)
+        memset(cpuhalted, 0, sizeof(*cpuhalted) * maxinfo);
 
     for (i = 0; i < virDomainDefGetVcpusMax(vm->def) && ncpuinfo < maxinfo; i++) {
         virDomainVcpuDefPtr vcpu = virDomainDefGetVcpu(vm->def, i);
@@ -1510,6 +1515,9 @@ qemuDomainHelperGetVcpus(virDomainObjPtr vm,
             if (qemuGetSchedInfo(&(cpuwait[ncpuinfo]), vm->pid, vcpupid) < 0)
                 return -1;
         }
+
+        if (cpuhalted)
+            cpuhalted[ncpuinfo] = qemuDomainGetVcpuHalted(vm, ncpuinfo);
 
         ncpuinfo++;
     }
@@ -1918,6 +1926,10 @@ static int qemuDomainResume(virDomainPtr dom)
     if (state == VIR_DOMAIN_PMSUSPENDED) {
         virReportError(VIR_ERR_OPERATION_INVALID,
                        "%s", _("domain is pmsuspended"));
+        goto endjob;
+    } else if (state == VIR_DOMAIN_RUNNING) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("domain is already running"));
         goto endjob;
     } else if ((state == VIR_DOMAIN_CRASHED &&
                 reason == VIR_DOMAIN_CRASHED_PANICKED) ||
@@ -4718,6 +4730,7 @@ qemuDomainSetVcpusMax(virQEMUDriverPtr driver,
                       unsigned int nvcpus)
 {
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+    unsigned int topologycpus;
     int ret = -1;
 
     if (def) {
@@ -4733,16 +4746,13 @@ qemuDomainSetVcpusMax(virQEMUDriverPtr driver,
         goto cleanup;
     }
 
-    if (persistentDef->cpu && persistentDef->cpu->sockets) {
+    if (virDomainDefGetVcpusTopology(persistentDef, &topologycpus) == 0 &&
+        nvcpus != topologycpus) {
         /* allow setting a valid vcpu count for the topology so an invalid
          * setting may be corrected via this API */
-        if (nvcpus != persistentDef->cpu->sockets *
-                      persistentDef->cpu->cores *
-                      persistentDef->cpu->threads) {
-            virReportError(VIR_ERR_INVALID_ARG, "%s",
-                           _("CPU topology doesn't match the desired vcpu count"));
-            goto cleanup;
-        }
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("CPU topology doesn't match the desired vcpu count"));
+        goto cleanup;
     }
 
     /* ordering information may become invalid, thus clear it */
@@ -4915,7 +4925,8 @@ qemuDomainSetVcpusLive(virQEMUDriverPtr driver,
  */
 static void
 qemuDomainSetVcpusConfig(virDomainDefPtr def,
-                         unsigned int nvcpus)
+                         unsigned int nvcpus,
+                         bool hotpluggable)
 {
     virDomainVcpuDefPtr vcpu;
     size_t curvcpus = virDomainDefGetVcpus(def);
@@ -4936,7 +4947,12 @@ qemuDomainSetVcpusConfig(virDomainDefPtr def,
                 continue;
 
             vcpu->online = true;
-            vcpu->hotpluggable = VIR_TRISTATE_BOOL_NO;
+            if (hotpluggable) {
+                vcpu->hotpluggable = VIR_TRISTATE_BOOL_YES;
+                def->individualvcpus = true;
+            } else {
+                vcpu->hotpluggable = VIR_TRISTATE_BOOL_NO;
+            }
 
             if (++curvcpus == nvcpus)
                 break;
@@ -4963,7 +4979,8 @@ qemuDomainSetVcpusInternal(virQEMUDriverPtr driver,
                            virDomainObjPtr vm,
                            virDomainDefPtr def,
                            virDomainDefPtr persistentDef,
-                           unsigned int nvcpus)
+                           unsigned int nvcpus,
+                           bool hotpluggable)
 {
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     int ret = -1;
@@ -4988,7 +5005,7 @@ qemuDomainSetVcpusInternal(virQEMUDriverPtr driver,
         goto cleanup;
 
     if (persistentDef) {
-        qemuDomainSetVcpusConfig(persistentDef, nvcpus);
+        qemuDomainSetVcpusConfig(persistentDef, nvcpus, hotpluggable);
 
         if (virDomainSaveConfig(cfg->configDir, driver->caps, persistentDef) < 0)
             goto cleanup;
@@ -5011,12 +5028,14 @@ qemuDomainSetVcpusFlags(virDomainPtr dom,
     virDomainObjPtr vm = NULL;
     virDomainDefPtr def;
     virDomainDefPtr persistentDef;
+    bool hotpluggable = !!(flags & VIR_DOMAIN_VCPU_HOTPLUGGABLE);
     int ret = -1;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG |
                   VIR_DOMAIN_VCPU_MAXIMUM |
-                  VIR_DOMAIN_VCPU_GUEST, -1);
+                  VIR_DOMAIN_VCPU_GUEST |
+                  VIR_DOMAIN_VCPU_HOTPLUGGABLE, -1);
 
     if (!(vm = qemuDomObjFromDomain(dom)))
         goto cleanup;
@@ -5035,7 +5054,8 @@ qemuDomainSetVcpusFlags(virDomainPtr dom,
     else if (flags & VIR_DOMAIN_VCPU_MAXIMUM)
         ret = qemuDomainSetVcpusMax(driver, def, persistentDef, nvcpus);
     else
-        ret = qemuDomainSetVcpusInternal(driver, vm, def, persistentDef, nvcpus);
+        ret = qemuDomainSetVcpusInternal(driver, vm, def, persistentDef,
+                                         nvcpus, hotpluggable);
 
  endjob:
     qemuDomainObjEndJob(driver, vm);
@@ -5168,6 +5188,13 @@ qemuDomainPinVcpuFlags(virDomainPtr dom,
 
     if (virDomainObjGetDefs(vm, flags, &def, &persistentDef) < 0)
         goto endjob;
+
+    if ((def && def->virtType == VIR_DOMAIN_VIRT_QEMU) ||
+        (persistentDef && persistentDef->virtType == VIR_DOMAIN_VIRT_QEMU)) {
+        virReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                       _("Virt type 'qemu' does not support vCPU pinning"));
+        goto endjob;
+    }
 
     if (persistentDef &&
         !(vcpuinfo = virDomainDefGetVcpu(persistentDef, vcpu))) {
@@ -5447,7 +5474,8 @@ qemuDomainGetVcpus(virDomainPtr dom,
         goto cleanup;
     }
 
-    ret = qemuDomainHelperGetVcpus(vm, info, NULL, maxinfo, cpumaps, maplen);
+    ret = qemuDomainHelperGetVcpus(vm, info, NULL, maxinfo, cpumaps, maplen,
+                                   NULL);
 
  cleanup:
     virDomainObjEndAPI(&vm);
@@ -7550,7 +7578,7 @@ qemuDomainAttachDeviceLive(virDomainObjPtr vm,
         break;
 
     case VIR_DOMAIN_DEVICE_REDIRDEV:
-        ret = qemuDomainAttachRedirdevDevice(driver, vm,
+        ret = qemuDomainAttachRedirdevDevice(conn, driver, vm,
                                              dev->data.redirdev);
         if (!ret) {
             alias = dev->data.redirdev->info.alias;
@@ -7559,7 +7587,7 @@ qemuDomainAttachDeviceLive(virDomainObjPtr vm,
         break;
 
     case VIR_DOMAIN_DEVICE_CHR:
-        ret = qemuDomainAttachChrDevice(driver, vm,
+        ret = qemuDomainAttachChrDevice(conn, driver, vm,
                                         dev->data.chr);
         if (!ret) {
             alias = dev->data.chr->info.alias;
@@ -7568,7 +7596,7 @@ qemuDomainAttachDeviceLive(virDomainObjPtr vm,
         break;
 
     case VIR_DOMAIN_DEVICE_RNG:
-        ret = qemuDomainAttachRNGDevice(driver, vm,
+        ret = qemuDomainAttachRNGDevice(conn, driver, vm,
                                         dev->data.rng);
         if (!ret) {
             alias = dev->data.rng->info.alias;
@@ -15880,7 +15908,7 @@ qemuDomainOpenConsole(virDomainPtr dom,
         goto cleanup;
     }
 
-    if (chr->source.type != VIR_DOMAIN_CHR_TYPE_PTY) {
+    if (chr->source->type != VIR_DOMAIN_CHR_TYPE_PTY) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("character device %s is not using a PTY"),
                        dev_name ? dev_name : NULLSTR(chr->info.alias));
@@ -15889,7 +15917,7 @@ qemuDomainOpenConsole(virDomainPtr dom,
 
     /* handle mutually exclusive access to console devices */
     ret = virChrdevOpen(priv->devs,
-                        &chr->source,
+                        chr->source,
                         st,
                         (flags & VIR_DOMAIN_CONSOLE_FORCE) != 0);
 
@@ -15954,7 +15982,7 @@ qemuDomainOpenChannel(virDomainPtr dom,
         goto cleanup;
     }
 
-    if (chr->source.type != VIR_DOMAIN_CHR_TYPE_UNIX) {
+    if (chr->source->type != VIR_DOMAIN_CHR_TYPE_UNIX) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("channel %s is not using a UNIX socket"),
                        name ? name : NULLSTR(chr->info.alias));
@@ -15963,7 +15991,7 @@ qemuDomainOpenChannel(virDomainPtr dom,
 
     /* handle mutually exclusive access to channel devices */
     ret = virChrdevOpen(priv->devs,
-                        &chr->source,
+                        chr->source,
                         st,
                         (flags & VIR_DOMAIN_CHANNEL_FORCE) != 0);
 
@@ -17276,6 +17304,68 @@ qemuDomainOpenGraphicsFD(virDomainPtr dom,
     return ret;
 }
 
+
+/* If the user didn't specify bytes limits, inherit previous values;
+ * likewise if the user didn't specify iops limits.  */
+static void
+qemuDomainSetBlockIoTuneDefaults(virDomainBlockIoTuneInfoPtr newinfo,
+                                 virDomainBlockIoTuneInfoPtr oldinfo,
+                                 bool set_bytes,
+                                 bool set_iops,
+                                 bool set_bytes_max,
+                                 bool set_iops_max,
+                                 bool set_size_iops,
+                                 bool set_bytes_max_length,
+                                 bool set_iops_max_length)
+{
+#define SET_IOTUNE_DEFAULTS(BOOL, FIELD)                                       \
+    if (!BOOL) {                                                               \
+        newinfo->total_##FIELD = oldinfo->total_##FIELD;                       \
+        newinfo->read_##FIELD = oldinfo->read_##FIELD;                         \
+        newinfo->write_##FIELD = oldinfo->write_##FIELD;                       \
+    }
+
+    SET_IOTUNE_DEFAULTS(set_bytes, bytes_sec);
+    SET_IOTUNE_DEFAULTS(set_bytes_max, bytes_sec_max);
+    SET_IOTUNE_DEFAULTS(set_iops, iops_sec);
+    SET_IOTUNE_DEFAULTS(set_iops_max, iops_sec_max);
+#undef SET_IOTUNE_DEFAULTS
+
+    if (!set_size_iops)
+        newinfo->size_iops_sec = oldinfo->size_iops_sec;
+
+    /* The length field is handled a bit differently. If not defined/set,
+     * QEMU will default these to 0 or 1 depending on whether something in
+     * the same family is set or not.
+     *
+     * Similar to other values, if nothing in the family is defined/set,
+     * then take whatever is in the oldinfo.
+     *
+     * To clear an existing limit, a 0 is provided; however, passing that
+     * 0 onto QEMU if there's a family value defined/set (or defaulted)
+     * will cause an error. So, to mimic that, if our oldinfo was set and
+     * our newinfo is clearing, then set max_length based on whether we
+     * have a value in the family set/defined. */
+#define SET_MAX_LENGTH(BOOL, FIELD)                                            \
+    if (!BOOL)                                                                 \
+        newinfo->FIELD##_max_length = oldinfo->FIELD##_max_length;             \
+    else if (BOOL && oldinfo->FIELD##_max_length &&                            \
+             !newinfo->FIELD##_max_length)                                     \
+        newinfo->FIELD##_max_length = (newinfo->FIELD ||                       \
+                                       newinfo->FIELD##_max) ? 1 : 0;
+
+        SET_MAX_LENGTH(set_bytes_max_length, total_bytes_sec);
+        SET_MAX_LENGTH(set_bytes_max_length, read_bytes_sec);
+        SET_MAX_LENGTH(set_bytes_max_length, write_bytes_sec);
+        SET_MAX_LENGTH(set_iops_max_length, total_iops_sec);
+        SET_MAX_LENGTH(set_iops_max_length, read_iops_sec);
+        SET_MAX_LENGTH(set_iops_max_length, write_iops_sec);
+
+#undef SET_MAX_LENGTH
+
+}
+
+
 static int
 qemuDomainSetBlockIoTune(virDomainPtr dom,
                          const char *path,
@@ -17289,7 +17379,6 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
     virDomainDefPtr def = NULL;
     virDomainDefPtr persistentDef = NULL;
     virDomainBlockIoTuneInfo info;
-    virDomainBlockIoTuneInfo *oldinfo;
     char *device = NULL;
     int ret = -1;
     size_t i;
@@ -17300,7 +17389,10 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
     bool set_bytes_max = false;
     bool set_iops_max = false;
     bool set_size_iops = false;
+    bool set_bytes_max_length = false;
+    bool set_iops_max_length = false;
     bool supportMaxOptions = true;
+    bool supportMaxLengthOptions = true;
     virQEMUDriverConfigPtr cfg = NULL;
     virObjectEventPtr event = NULL;
     virTypedParameterPtr eventParams = NULL;
@@ -17336,6 +17428,18 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
                                VIR_TYPED_PARAM_ULLONG,
                                VIR_DOMAIN_BLOCK_IOTUNE_SIZE_IOPS_SEC,
                                VIR_TYPED_PARAM_ULLONG,
+                               VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX_LENGTH,
+                               VIR_TYPED_PARAM_ULLONG,
+                               VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX_LENGTH,
+                               VIR_TYPED_PARAM_ULLONG,
+                               VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX_LENGTH,
+                               VIR_TYPED_PARAM_ULLONG,
+                               VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX_LENGTH,
+                               VIR_TYPED_PARAM_ULLONG,
+                               VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX_LENGTH,
+                               VIR_TYPED_PARAM_ULLONG,
+                               VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX_LENGTH,
+                               VIR_TYPED_PARAM_ULLONG,
                                NULL) < 0)
         return -1;
 
@@ -17361,6 +17465,18 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
                                 VIR_DOMAIN_TUNABLE_BLKDEV_DISK, path) < 0)
         goto endjob;
 
+#define SET_IOTUNE_FIELD(FIELD, BOOL, CONST)                                   \
+    if (STREQ(param->field, VIR_DOMAIN_BLOCK_IOTUNE_##CONST)) {                \
+        info.FIELD = param->value.ul;                                          \
+        BOOL = true;                                                           \
+        if (virTypedParamsAddULLong(&eventParams, &eventNparams,               \
+                                    &eventMaxparams,                           \
+                                    VIR_DOMAIN_TUNABLE_BLKDEV_##CONST,         \
+                                    param->value.ul) < 0)                      \
+            goto endjob;                                                       \
+        continue;                                                              \
+    }
+
     for (i = 0; i < nparams; i++) {
         virTypedParameterPtr param = &params[i];
 
@@ -17371,124 +17487,42 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
             goto endjob;
         }
 
-        if (STREQ(param->field, VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC)) {
-            info.total_bytes_sec = param->value.ul;
-            set_bytes = true;
-            if (virTypedParamsAddULLong(&eventParams, &eventNparams,
-                                        &eventMaxparams,
-                                        VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC,
-                                        param->value.ul) < 0)
-                goto endjob;
-        } else if (STREQ(param->field,
-                         VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC)) {
-            info.read_bytes_sec = param->value.ul;
-            set_bytes = true;
-            if (virTypedParamsAddULLong(&eventParams, &eventNparams,
-                                        &eventMaxparams,
-                                        VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC,
-                                        param->value.ul) < 0)
-                goto endjob;
-        } else if (STREQ(param->field,
-                         VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC)) {
-            info.write_bytes_sec = param->value.ul;
-            set_bytes = true;
-            if (virTypedParamsAddULLong(&eventParams, &eventNparams,
-                                        &eventMaxparams,
-                                        VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC,
-                                        param->value.ul) < 0)
-                goto endjob;
-        } else if (STREQ(param->field,
-                         VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC)) {
-            info.total_iops_sec = param->value.ul;
-            set_iops = true;
-            if (virTypedParamsAddULLong(&eventParams, &eventNparams,
-                                        &eventMaxparams,
-                                        VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC,
-                                        param->value.ul) < 0)
-                goto endjob;
-        } else if (STREQ(param->field,
-                         VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC)) {
-            info.read_iops_sec = param->value.ul;
-            set_iops = true;
-            if (virTypedParamsAddULLong(&eventParams, &eventNparams,
-                                        &eventMaxparams,
-                                        VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC,
-                                        param->value.ul) < 0)
-                goto endjob;
-        } else if (STREQ(param->field,
-                         VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC)) {
-            info.write_iops_sec = param->value.ul;
-            set_iops = true;
-            if (virTypedParamsAddULLong(&eventParams, &eventNparams,
-                                        &eventMaxparams,
-                                        VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC,
-                                        param->value.ul) < 0)
-                goto endjob;
-        } else if (STREQ(param->field,
-                         VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX)) {
-            info.total_bytes_sec_max = param->value.ul;
-            set_bytes_max = true;
-            if (virTypedParamsAddULLong(&eventParams, &eventNparams,
-                                        &eventMaxparams,
-                                        VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX,
-                                        param->value.ul) < 0)
-                goto endjob;
-        } else if (STREQ(param->field,
-                         VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX)) {
-            info.read_bytes_sec_max = param->value.ul;
-            set_bytes_max = true;
-            if (virTypedParamsAddULLong(&eventParams, &eventNparams,
-                                        &eventMaxparams,
-                                        VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX,
-                                        param->value.ul) < 0)
-                goto endjob;
-        } else if (STREQ(param->field,
-                         VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX)) {
-            info.write_bytes_sec_max = param->value.ul;
-            set_bytes_max = true;
-            if (virTypedParamsAddULLong(&eventParams, &eventNparams,
-                                        &eventMaxparams,
-                                        VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX,
-                                        param->value.ul) < 0)
-                goto endjob;
-        } else if (STREQ(param->field,
-                         VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX)) {
-            info.total_iops_sec_max = param->value.ul;
-            set_iops_max = true;
-            if (virTypedParamsAddULLong(&eventParams, &eventNparams,
-                                        &eventMaxparams,
-                                        VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX,
-                                        param->value.ul) < 0)
-                goto endjob;
-        } else if (STREQ(param->field,
-                         VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX)) {
-            info.read_iops_sec_max = param->value.ul;
-            set_iops_max = true;
-            if (virTypedParamsAddULLong(&eventParams, &eventNparams,
-                                        &eventMaxparams,
-                                        VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX,
-                                        param->value.ul) < 0)
-                goto endjob;
-        } else if (STREQ(param->field,
-                         VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX)) {
-            info.write_iops_sec_max = param->value.ul;
-            set_iops_max = true;
-            if (virTypedParamsAddULLong(&eventParams, &eventNparams,
-                                        &eventMaxparams,
-                                        VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX,
-                                        param->value.ul) < 0)
-                goto endjob;
-        } else if (STREQ(param->field,
-                         VIR_DOMAIN_BLOCK_IOTUNE_SIZE_IOPS_SEC)) {
-            info.size_iops_sec = param->value.ul;
-            set_size_iops = true;
-            if (virTypedParamsAddULLong(&eventParams, &eventNparams,
-                                        &eventMaxparams,
-                                        VIR_DOMAIN_TUNABLE_BLKDEV_SIZE_IOPS_SEC,
-                                        param->value.ul) < 0)
-                goto endjob;
-        }
+        SET_IOTUNE_FIELD(total_bytes_sec, set_bytes, TOTAL_BYTES_SEC);
+        SET_IOTUNE_FIELD(read_bytes_sec, set_bytes, READ_BYTES_SEC);
+        SET_IOTUNE_FIELD(write_bytes_sec, set_bytes, WRITE_BYTES_SEC);
+        SET_IOTUNE_FIELD(total_iops_sec, set_iops, TOTAL_IOPS_SEC);
+        SET_IOTUNE_FIELD(read_iops_sec, set_iops, READ_IOPS_SEC);
+        SET_IOTUNE_FIELD(write_iops_sec, set_iops, WRITE_IOPS_SEC);
+
+        SET_IOTUNE_FIELD(total_bytes_sec_max, set_bytes_max,
+                         TOTAL_BYTES_SEC_MAX);
+        SET_IOTUNE_FIELD(read_bytes_sec_max, set_bytes_max,
+                         READ_BYTES_SEC_MAX);
+        SET_IOTUNE_FIELD(write_bytes_sec_max, set_bytes_max,
+                         WRITE_BYTES_SEC_MAX);
+        SET_IOTUNE_FIELD(total_iops_sec_max, set_iops_max,
+                         TOTAL_IOPS_SEC_MAX);
+        SET_IOTUNE_FIELD(read_iops_sec_max, set_iops_max,
+                         READ_IOPS_SEC_MAX);
+        SET_IOTUNE_FIELD(write_iops_sec_max, set_iops_max,
+                         WRITE_IOPS_SEC_MAX);
+        SET_IOTUNE_FIELD(size_iops_sec, set_size_iops, SIZE_IOPS_SEC);
+
+        SET_IOTUNE_FIELD(total_bytes_sec_max_length, set_bytes_max_length,
+                         TOTAL_BYTES_SEC_MAX_LENGTH);
+        SET_IOTUNE_FIELD(read_bytes_sec_max_length, set_bytes_max_length,
+                         READ_BYTES_SEC_MAX_LENGTH);
+        SET_IOTUNE_FIELD(write_bytes_sec_max_length, set_bytes_max_length,
+                         WRITE_BYTES_SEC_MAX_LENGTH);
+        SET_IOTUNE_FIELD(total_iops_sec_max_length, set_iops_max_length,
+                         TOTAL_IOPS_SEC_MAX_LENGTH);
+        SET_IOTUNE_FIELD(read_iops_sec_max_length, set_iops_max_length,
+                         READ_IOPS_SEC_MAX_LENGTH);
+        SET_IOTUNE_FIELD(write_iops_sec_max_length, set_iops_max_length,
+                         WRITE_IOPS_SEC_MAX_LENGTH);
     }
+
+#undef SET_IOTUNE_FIELD
 
     if ((info.total_bytes_sec && info.read_bytes_sec) ||
         (info.total_bytes_sec && info.write_bytes_sec)) {
@@ -17522,18 +17556,12 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
         goto endjob;
     }
 
-    if (persistentDef) {
-        if (!(conf_disk = virDomainDiskByName(persistentDef, path, true))) {
-            virReportError(VIR_ERR_INVALID_ARG,
-                           _("missing persistent configuration for disk '%s'"),
-                           path);
-            goto endjob;
-        }
-    }
-
     if (def) {
         supportMaxOptions = virQEMUCapsGet(priv->qemuCaps,
                                            QEMU_CAPS_DRIVE_IOTUNE_MAX);
+        supportMaxLengthOptions =
+            virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DRIVE_IOTUNE_MAX_LENGTH);
+
         if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DRIVE_IOTUNE)) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("block I/O throttling not supported with this "
@@ -17549,38 +17577,25 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
              goto endjob;
         }
 
+        if (!supportMaxLengthOptions &&
+            (set_iops_max_length || set_bytes_max_length)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("a block I/O throttling length parameter is not "
+                             "supported with this QEMU binary"));
+             goto endjob;
+        }
+
         if (!(disk = qemuDomainDiskByName(def, path)))
             goto endjob;
 
         if (!(device = qemuAliasFromDisk(disk)))
             goto endjob;
 
-        /* If the user didn't specify bytes limits, inherit previous
-         * values; likewise if the user didn't specify iops
-         * limits.  */
-        oldinfo = &disk->blkdeviotune;
-        if (!set_bytes) {
-            info.total_bytes_sec = oldinfo->total_bytes_sec;
-            info.read_bytes_sec = oldinfo->read_bytes_sec;
-            info.write_bytes_sec = oldinfo->write_bytes_sec;
-        }
-        if (!set_bytes_max) {
-            info.total_bytes_sec_max = oldinfo->total_bytes_sec_max;
-            info.read_bytes_sec_max = oldinfo->read_bytes_sec_max;
-            info.write_bytes_sec_max = oldinfo->write_bytes_sec_max;
-        }
-        if (!set_iops) {
-            info.total_iops_sec = oldinfo->total_iops_sec;
-            info.read_iops_sec = oldinfo->read_iops_sec;
-            info.write_iops_sec = oldinfo->write_iops_sec;
-        }
-        if (!set_iops_max) {
-            info.total_iops_sec_max = oldinfo->total_iops_sec_max;
-            info.read_iops_sec_max = oldinfo->read_iops_sec_max;
-            info.write_iops_sec_max = oldinfo->write_iops_sec_max;
-        }
-        if (!set_size_iops)
-            info.size_iops_sec = oldinfo->size_iops_sec;
+        qemuDomainSetBlockIoTuneDefaults(&info, &disk->blkdeviotune,
+                                         set_bytes, set_iops, set_bytes_max,
+                                         set_iops_max, set_size_iops,
+                                         set_bytes_max_length,
+                                         set_iops_max_length);
 
 #define CHECK_MAX(val)                                                  \
         do {                                                            \
@@ -17602,9 +17617,13 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
 
 #undef CHECK_MAX
 
+         /* NB: Let's let QEMU decide how to handle issues with _length
+          * via the JSON error code from the block_set_io_throttle call */
+
         qemuDomainObjEnterMonitor(driver, vm);
         ret = qemuMonitorSetBlockIoThrottle(priv->mon, device,
-                                            &info, supportMaxOptions);
+                                            &info, supportMaxOptions,
+                                            supportMaxLengthOptions);
         if (qemuDomainObjExitMonitor(driver, vm) < 0)
             ret = -1;
         if (ret < 0)
@@ -17623,17 +17642,17 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
     }
 
     if (persistentDef) {
-        oldinfo = &conf_disk->blkdeviotune;
-        if (!set_bytes) {
-            info.total_bytes_sec = oldinfo->total_bytes_sec;
-            info.read_bytes_sec = oldinfo->read_bytes_sec;
-            info.write_bytes_sec = oldinfo->write_bytes_sec;
+        if (!(conf_disk = virDomainDiskByName(persistentDef, path, true))) {
+            virReportError(VIR_ERR_INVALID_ARG,
+                           _("missing persistent configuration for disk '%s'"),
+                           path);
+            goto endjob;
         }
-        if (!set_iops) {
-            info.total_iops_sec = oldinfo->total_iops_sec;
-            info.read_iops_sec = oldinfo->read_iops_sec;
-            info.write_iops_sec = oldinfo->write_iops_sec;
-        }
+        qemuDomainSetBlockIoTuneDefaults(&info, &conf_disk->blkdeviotune,
+                                         set_bytes, set_iops, set_bytes_max,
+                                         set_iops_max, set_size_iops,
+                                         set_bytes_max_length,
+                                         set_iops_max_length);
         conf_disk->blkdeviotune = info;
         ret = virDomainSaveConfig(cfg->configDir, driver->caps, persistentDef);
         if (ret < 0)
@@ -17669,7 +17688,7 @@ qemuDomainGetBlockIoTune(virDomainPtr dom,
     virDomainBlockIoTuneInfo reply;
     char *device = NULL;
     int ret = -1;
-    int maxparams = QEMU_NB_BLOCK_IO_TUNE_PARAM_MAX;
+    int maxparams = QEMU_NB_BLOCK_IO_TUNE_PARAM_MAX_LENGTH;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG |
@@ -17705,6 +17724,9 @@ qemuDomainGetBlockIoTune(virDomainPtr dom,
 
         if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DRIVE_IOTUNE_MAX))
             maxparams = QEMU_NB_BLOCK_IO_TUNE_PARAM;
+        else if (!virQEMUCapsGet(priv->qemuCaps,
+                                 QEMU_CAPS_DRIVE_IOTUNE_MAX_LENGTH))
+            maxparams = QEMU_NB_BLOCK_IO_TUNE_PARAM_MAX;
     }
 
     if (*nparams == 0) {
@@ -17768,6 +17790,13 @@ qemuDomainGetBlockIoTune(virDomainPtr dom,
 
     BLOCK_IOTUNE_ASSIGN(SIZE_IOPS_SEC, size_iops_sec);
 
+    BLOCK_IOTUNE_ASSIGN(TOTAL_BYTES_SEC_MAX_LENGTH, total_bytes_sec_max_length);
+    BLOCK_IOTUNE_ASSIGN(READ_BYTES_SEC_MAX_LENGTH, read_bytes_sec_max_length);
+    BLOCK_IOTUNE_ASSIGN(WRITE_BYTES_SEC_MAX_LENGTH, write_bytes_sec_max_length);
+
+    BLOCK_IOTUNE_ASSIGN(TOTAL_IOPS_SEC_MAX_LENGTH, total_iops_sec_max_length);
+    BLOCK_IOTUNE_ASSIGN(READ_IOPS_SEC_MAX_LENGTH, read_iops_sec_max_length);
+    BLOCK_IOTUNE_ASSIGN(WRITE_IOPS_SEC_MAX_LENGTH, write_iops_sec_max_length);
 #undef BLOCK_IOTUNE_ASSIGN
 
     ret = 0;
@@ -18914,7 +18943,7 @@ qemuDomainGetStatsBalloon(virQEMUDriverPtr driver,
 
 
 static int
-qemuDomainGetStatsVcpu(virQEMUDriverPtr driver ATTRIBUTE_UNUSED,
+qemuDomainGetStatsVcpu(virQEMUDriverPtr driver,
                        virDomainObjPtr dom,
                        virDomainStatsRecordPtr record,
                        int *maxparams,
@@ -18925,6 +18954,7 @@ qemuDomainGetStatsVcpu(virQEMUDriverPtr driver ATTRIBUTE_UNUSED,
     char param_name[VIR_TYPED_PARAM_FIELD_LENGTH];
     virVcpuInfoPtr cpuinfo = NULL;
     unsigned long long *cpuwait = NULL;
+    bool *cpuhalted = NULL;
 
     if (virTypedParamsAddUInt(&record->params,
                               &record->nparams,
@@ -18944,9 +18974,14 @@ qemuDomainGetStatsVcpu(virQEMUDriverPtr driver ATTRIBUTE_UNUSED,
         VIR_ALLOC_N(cpuwait, virDomainDefGetVcpus(dom->def)) < 0)
         goto cleanup;
 
+    if (qemuDomainRefreshVcpuHalted(driver, dom,
+                                    QEMU_ASYNC_JOB_NONE) == 0 &&
+        VIR_ALLOC_N(cpuhalted, virDomainDefGetVcpus(dom->def)) < 0)
+        goto cleanup;
+
     if (qemuDomainHelperGetVcpus(dom, cpuinfo, cpuwait,
                                  virDomainDefGetVcpus(dom->def),
-                                 NULL, 0) < 0) {
+                                 NULL, 0, cpuhalted) < 0) {
         virResetLastError();
         ret = 0; /* it's ok to be silent and go ahead */
         goto cleanup;
@@ -18982,6 +19017,17 @@ qemuDomainGetStatsVcpu(virQEMUDriverPtr driver ATTRIBUTE_UNUSED,
                                     param_name,
                                     cpuwait[i]) < 0)
             goto cleanup;
+
+        if (cpuhalted) {
+            snprintf(param_name, VIR_TYPED_PARAM_FIELD_LENGTH,
+                     "vcpu.%u.halted", cpuinfo[i].number);
+            if (virTypedParamsAddBoolean(&record->params,
+                                         &record->nparams,
+                                         maxparams,
+                                         param_name,
+                                         cpuhalted[i]) < 0)
+                goto cleanup;
+        }
     }
 
     ret = 0;
@@ -18989,6 +19035,7 @@ qemuDomainGetStatsVcpu(virQEMUDriverPtr driver ATTRIBUTE_UNUSED,
  cleanup:
     VIR_FREE(cpuinfo);
     VIR_FREE(cpuwait);
+    VIR_FREE(cpuhalted);
     return ret;
 }
 

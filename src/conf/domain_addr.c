@@ -51,11 +51,7 @@ virDomainPCIControllerModelToConnectType(virDomainControllerModelPCI model)
         return 0;
 
     case VIR_DOMAIN_CONTROLLER_MODEL_PCI_BRIDGE:
-        /* pci-bridge is treated like a standard
-         * PCI endpoint device, because it can plug into any
-         * standard PCI slot (it just can't be hotplugged).
-         */
-        return VIR_PCI_CONNECT_TYPE_PCI_DEVICE;
+        return VIR_PCI_CONNECT_TYPE_PCI_BRIDGE;
 
     case VIR_DOMAIN_CONTROLLER_MODEL_PCI_EXPANDER_BUS:
         return VIR_PCI_CONNECT_TYPE_PCI_EXPANDER_BUS;
@@ -100,7 +96,9 @@ virDomainPCIAddressFlagsCompatible(virPCIDeviceAddressPtr addr,
     if (fromConfig) {
         /* If the requested connection was manually specified in
          * config, allow a PCI device to connect to a PCIe slot, or
-         * vice versa.
+         * vice versa. In order to do so, we add *both* the PCI_DEVICE
+         * and the PCIE_DEVICE flags to the bus if it already has either
+         * of them, using the ENDPOINT mask.
          */
         if (busFlags & VIR_PCI_CONNECT_TYPES_ENDPOINT)
             busFlags |= VIR_PCI_CONNECT_TYPES_ENDPOINT;
@@ -110,6 +108,12 @@ virDomainPCIAddressFlagsCompatible(virPCIDeviceAddressPtr addr,
          */
         if (devFlags & VIR_PCI_CONNECT_HOTPLUGGABLE)
             busFlags |= VIR_PCI_CONNECT_HOTPLUGGABLE;
+        /* if the device is a pci-bridge, allow manually
+         * assigning to any bus that would also accept a
+         * standard PCI device.
+         */
+        if (devFlags & VIR_PCI_CONNECT_TYPE_PCI_BRIDGE)
+            devFlags |= VIR_PCI_CONNECT_TYPE_PCI_DEVICE;
     }
 
     /* If this bus doesn't allow the type of connection (PCI
@@ -138,6 +142,8 @@ virDomainPCIAddressFlagsCompatible(virPCIDeviceAddressPtr addr,
             connectStr = "pci-expander-bus";
         } else if (devFlags & VIR_PCI_CONNECT_TYPE_PCIE_EXPANDER_BUS) {
             connectStr = "pcie-expander-bus";
+        } else if (devFlags & VIR_PCI_CONNECT_TYPE_PCI_BRIDGE) {
+            connectStr = "pci-bridge";
         } else {
             /* this should never happen. If it does, there is a
              * bug in the code that sets the flag bits for devices.
@@ -247,19 +253,22 @@ virDomainPCIAddressBusSetModel(virDomainPCIAddressBusPtr bus,
     case VIR_DOMAIN_CONTROLLER_MODEL_PCI_ROOT:
         bus->flags = (VIR_PCI_CONNECT_HOTPLUGGABLE |
                       VIR_PCI_CONNECT_TYPE_PCI_DEVICE |
+                      VIR_PCI_CONNECT_TYPE_PCI_BRIDGE |
                       VIR_PCI_CONNECT_TYPE_PCI_EXPANDER_BUS);
         bus->minSlot = 1;
         bus->maxSlot = VIR_PCI_ADDRESS_SLOT_LAST;
         break;
     case VIR_DOMAIN_CONTROLLER_MODEL_PCI_BRIDGE:
         bus->flags = (VIR_PCI_CONNECT_HOTPLUGGABLE |
-                      VIR_PCI_CONNECT_TYPE_PCI_DEVICE);
+                      VIR_PCI_CONNECT_TYPE_PCI_DEVICE |
+                      VIR_PCI_CONNECT_TYPE_PCI_BRIDGE);
         bus->minSlot = 1;
         bus->maxSlot = VIR_PCI_ADDRESS_SLOT_LAST;
         break;
     case VIR_DOMAIN_CONTROLLER_MODEL_PCI_EXPANDER_BUS:
         bus->flags = (VIR_PCI_CONNECT_HOTPLUGGABLE |
-                      VIR_PCI_CONNECT_TYPE_PCI_DEVICE);
+                      VIR_PCI_CONNECT_TYPE_PCI_DEVICE |
+                      VIR_PCI_CONNECT_TYPE_PCI_BRIDGE);
         bus->minSlot = 0;
         bus->maxSlot = VIR_PCI_ADDRESS_SLOT_LAST;
         break;
@@ -280,7 +289,8 @@ virDomainPCIAddressBusSetModel(virDomainPCIAddressBusPtr bus,
     case VIR_DOMAIN_CONTROLLER_MODEL_DMI_TO_PCI_BRIDGE:
         /* slots 0 - 31, standard PCI slots,
          * but *not* hot-pluggable */
-        bus->flags = VIR_PCI_CONNECT_TYPE_PCI_DEVICE;
+        bus->flags = (VIR_PCI_CONNECT_TYPE_PCI_DEVICE |
+                      VIR_PCI_CONNECT_TYPE_PCI_BRIDGE);
         bus->minSlot = 0;
         bus->maxSlot = VIR_PCI_ADDRESS_SLOT_LAST;
         break;
@@ -304,13 +314,13 @@ virDomainPCIAddressBusSetModel(virDomainPCIAddressBusPtr bus,
         bus->maxSlot = VIR_PCI_ADDRESS_SLOT_LAST;
         break;
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_EXPANDER_BUS:
-        /* single slot, no hotplug, only accepts pcie-root-port or
+        /* 32 slots, no hotplug, only accepts pcie-root-port or
          * dmi-to-pci-bridge
          */
         bus->flags = (VIR_PCI_CONNECT_TYPE_PCIE_ROOT_PORT |
                       VIR_PCI_CONNECT_TYPE_DMI_TO_PCI_BRIDGE);
         bus->minSlot = 0;
-        bus->maxSlot = 0;
+        bus->maxSlot = VIR_PCI_ADDRESS_SLOT_LAST;
         break;
 
     default:
@@ -583,7 +593,7 @@ virDomainPCIAddressSetFree(virDomainPCIAddressSetPtr addrs)
 }
 
 
-int
+static int ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2)
 virDomainPCIAddressGetNextSlot(virDomainPCIAddressSetPtr addrs,
                                virPCIDeviceAddressPtr next_addr,
                                virDomainPCIConnectFlags flags)
@@ -683,26 +693,60 @@ virDomainPCIAddressGetNextSlot(virDomainPCIAddressSetPtr addrs,
     return 0;
 }
 
+
+/**
+ * virDomainPCIAddressReserveNextAddr:
+ *
+ * @addrs: a set of PCI addresses.
+ * @dev: virDomainDeviceInfo that should get the new address.
+ * @flags: CONNECT_TYPE flags for the device that needs an address.
+ * @function: which function on the slot to mark as reserved
+ *            (if @reserveEntireSlot is false)
+ * @reserveEntireSlot: true to reserve all functions on the new slot,
+ *                     false to reserve just @function
+ *
+ * Find the next *completely unreserved* slot with compatible
+ * connection @flags, mark either one function or the entire
+ * slot as in-use (according to @function and @reserveEntireSlot),
+ * and set @dev->addr.pci with this newly reserved address.
+ *
+ * returns 0 on success, or -1 on failure.
+ */
 int
-virDomainPCIAddressReserveNextSlot(virDomainPCIAddressSetPtr addrs,
+virDomainPCIAddressReserveNextAddr(virDomainPCIAddressSetPtr addrs,
                                    virDomainDeviceInfoPtr dev,
-                                   virDomainPCIConnectFlags flags)
+                                   virDomainPCIConnectFlags flags,
+                                   unsigned int function,
+                                   bool reserveEntireSlot)
 {
     virPCIDeviceAddress addr;
+
     if (virDomainPCIAddressGetNextSlot(addrs, &addr, flags) < 0)
         return -1;
 
-    if (virDomainPCIAddressReserveSlot(addrs, &addr, flags) < 0)
+    addr.function = reserveEntireSlot ? 0 : function;
+
+    if (virDomainPCIAddressReserveAddr(addrs, &addr, flags, reserveEntireSlot, false) < 0)
         return -1;
+
+    addrs->lastaddr = addr;
+    addrs->lastFlags = flags;
 
     if (!addrs->dryRun) {
         dev->type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI;
         dev->addr.pci = addr;
     }
 
-    addrs->lastaddr = addr;
-    addrs->lastFlags = flags;
     return 0;
+}
+
+
+int
+virDomainPCIAddressReserveNextSlot(virDomainPCIAddressSetPtr addrs,
+                                   virDomainDeviceInfoPtr dev,
+                                   virDomainPCIConnectFlags flags)
+{
+    return virDomainPCIAddressReserveNextAddr(addrs, dev, flags, 0, true);
 }
 
 
@@ -1144,10 +1188,10 @@ virDomainVirtioSerialAddrNextFromController(virDomainVirtioSerialAddrSetPtr addr
  * or assign a virtio serial address to the device
  */
 int
-virDomainVirtioSerialAddrAutoAssign(virDomainDefPtr def,
-                                    virDomainVirtioSerialAddrSetPtr addrs,
-                                    virDomainDeviceInfoPtr info,
-                                    bool allowZero)
+virDomainVirtioSerialAddrAutoAssignFromCache(virDomainDefPtr def,
+                                             virDomainVirtioSerialAddrSetPtr addrs,
+                                             virDomainDeviceInfoPtr info,
+                                             bool allowZero)
 {
     bool portOnly = info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_SERIAL;
     if (info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_SERIAL &&
@@ -1155,6 +1199,27 @@ virDomainVirtioSerialAddrAutoAssign(virDomainDefPtr def,
         return virDomainVirtioSerialAddrReserve(NULL, NULL, info, addrs);
     else
         return virDomainVirtioSerialAddrAssign(def, addrs, info, allowZero, portOnly);
+}
+
+int
+virDomainVirtioSerialAddrAutoAssign(virDomainDefPtr def,
+                                    virDomainDeviceInfoPtr info,
+                                    bool allowZero)
+{
+    virDomainVirtioSerialAddrSetPtr addrs = NULL;
+    int ret = -1;
+
+    if (!(addrs = virDomainVirtioSerialAddrSetCreateFromDomain(def)))
+        goto cleanup;
+
+    if (virDomainVirtioSerialAddrAutoAssignFromCache(def, addrs, info, allowZero) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    virDomainVirtioSerialAddrSetFree(addrs);
+    return ret;
 }
 
 
@@ -1761,6 +1826,18 @@ virDomainUSBAddressAssign(virDomainUSBAddressSetPtr addrs,
     }
 
     virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("No free USB ports"));
+    return -1;
+}
+
+
+int
+virDomainUSBAddressPresent(virDomainDeviceInfoPtr info,
+                           void *data ATTRIBUTE_UNUSED)
+{
+    if (info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_USB &&
+        virDomainUSBAddressPortIsValid(info->addr.usb.port))
+        return 0;
+
     return -1;
 }
 

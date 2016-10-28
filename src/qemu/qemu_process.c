@@ -235,7 +235,7 @@ qemuConnectAgent(virQEMUDriverPtr driver, virDomainObjPtr vm)
     virObjectUnlock(vm);
 
     agent = qemuAgentOpen(vm,
-                          &config->source,
+                          config->source,
                           &agentCallbacks);
 
     virObjectLock(vm);
@@ -1836,7 +1836,7 @@ qemuProcessLookupPTYs(virDomainDefPtr def,
         virDomainChrDefPtr chr = devices[i];
         bool chardevfmt = virQEMUCapsSupportsChardev(def, qemuCaps, chr);
 
-        if (chr->source.type == VIR_DOMAIN_CHR_TYPE_PTY) {
+        if (chr->source->type == VIR_DOMAIN_CHR_TYPE_PTY) {
             char id[32];
             qemuMonitorChardevInfoPtr entry;
 
@@ -1851,7 +1851,7 @@ qemuProcessLookupPTYs(virDomainDefPtr def,
 
             entry = virHashLookup(info, id);
             if (!entry || !entry->ptyPath) {
-                if (chr->source.data.file.path == NULL) {
+                if (chr->source->data.file.path == NULL) {
                     /* neither the log output nor 'info chardev' had a
                      * pty path for this chardev, report an error
                      */
@@ -1866,8 +1866,8 @@ qemuProcessLookupPTYs(virDomainDefPtr def,
                 }
             }
 
-            VIR_FREE(chr->source.data.file.path);
-            if (VIR_STRDUP(chr->source.data.file.path, entry->ptyPath) < 0)
+            VIR_FREE(chr->source->data.file.path);
+            if (VIR_STRDUP(chr->source->data.file.path, entry->ptyPath) < 0)
                 return -1;
         }
     }
@@ -1906,8 +1906,8 @@ qemuProcessFindCharDevicePTYsMonitor(virDomainObjPtr vm,
             chr->targetType == VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL) {
             /* yes, the first console is just an alias for serials[0] */
             i = 1;
-            if (virDomainChrSourceDefCopy(&chr->source,
-                                          &((vm->def->serials[0])->source)) < 0)
+            if (virDomainChrSourceDefCopy(chr->source,
+                                          ((vm->def->serials[0])->source)) < 0)
                 return -1;
         }
     }
@@ -2500,14 +2500,14 @@ qemuProcessPrepareChardevDevice(virDomainDefPtr def ATTRIBUTE_UNUSED,
                                 void *opaque ATTRIBUTE_UNUSED)
 {
     int fd;
-    if (dev->source.type != VIR_DOMAIN_CHR_TYPE_FILE)
+    if (dev->source->type != VIR_DOMAIN_CHR_TYPE_FILE)
         return 0;
 
-    if ((fd = open(dev->source.data.file.path,
+    if ((fd = open(dev->source->data.file.path,
                    O_CREAT | O_APPEND, S_IRUSR|S_IWUSR)) < 0) {
         virReportSystemError(errno,
                              _("Unable to pre-create chardev file '%s'"),
-                             dev->source.data.file.path);
+                             dev->source->data.file.path);
         return -1;
     }
 
@@ -2522,10 +2522,10 @@ qemuProcessCleanupChardevDevice(virDomainDefPtr def ATTRIBUTE_UNUSED,
                                 virDomainChrDefPtr dev,
                                 void *opaque ATTRIBUTE_UNUSED)
 {
-    if (dev->source.type == VIR_DOMAIN_CHR_TYPE_UNIX &&
-        dev->source.data.nix.listen &&
-        dev->source.data.nix.path)
-        unlink(dev->source.data.nix.path);
+    if (dev->source->type == VIR_DOMAIN_CHR_TYPE_UNIX &&
+        dev->source->data.nix.listen &&
+        dev->source->data.nix.path)
+        unlink(dev->source->data.nix.path);
 
     return 0;
 }
@@ -2567,12 +2567,12 @@ qemuProcessUpdateVideoRamSize(virQEMUDriverPtr driver,
             break;
         case VIR_DOMAIN_VIDEO_TYPE_QXL:
             if (i == 0) {
-                if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_QXL_VGA_VGAMEM) &&
+                if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_QXL_VGAMEM) &&
                     qemuMonitorUpdateVideoMemorySize(priv->mon, video,
                                                      "qxl-vga") < 0)
                         goto error;
 
-                if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_QXL_VGA_VRAM64) &&
+                if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_QXL_VRAM64) &&
                     qemuMonitorUpdateVideoVram64Size(priv->mon, video,
                                                      "qxl-vga") < 0)
                     goto error;
@@ -4448,6 +4448,48 @@ qemuProcessStartValidateGraphics(virDomainObjPtr vm)
 
 
 static int
+qemuProcessStartValidateVideo(virDomainObjPtr vm,
+                              virQEMUCapsPtr qemuCaps)
+{
+    size_t i;
+    virDomainVideoDefPtr video;
+
+    for (i = 0; i < vm->def->nvideos; i++) {
+        video = vm->def->videos[i];
+
+        if ((video->type == VIR_DOMAIN_VIDEO_TYPE_VGA &&
+             !virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_VGA)) ||
+            (video->type == VIR_DOMAIN_VIDEO_TYPE_CIRRUS &&
+             !virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_CIRRUS_VGA)) ||
+            (video->type == VIR_DOMAIN_VIDEO_TYPE_VMVGA &&
+             !virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_VMWARE_SVGA)) ||
+            (video->type == VIR_DOMAIN_VIDEO_TYPE_QXL &&
+             !virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_QXL)) ||
+            (video->type == VIR_DOMAIN_VIDEO_TYPE_VIRTIO &&
+             !virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_VIRTIO_GPU))) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("this QEMU does not support '%s' video device"),
+                           virDomainVideoTypeToString(video->type));
+            return -1;
+        }
+
+        if (video->accel) {
+            if (video->accel->accel3d == VIR_TRISTATE_SWITCH_ON &&
+                (video->type != VIR_DOMAIN_VIDEO_TYPE_VIRTIO ||
+                 !virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_GPU_VIRGL))) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("%s 3d acceleration is not supported"),
+                               virDomainVideoTypeToString(video->type));
+                return -1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+
+static int
 qemuProcessStartValidateXML(virQEMUDriverPtr driver,
                             virDomainObjPtr vm,
                             virQEMUCapsPtr qemuCaps,
@@ -4517,11 +4559,17 @@ qemuProcessStartValidate(virQEMUDriverPtr driver,
     if (qemuProcessStartValidateXML(driver, vm, qemuCaps, caps, flags) < 0)
         return -1;
 
+    if (qemuProcessStartValidateGraphics(vm) < 0)
+        return -1;
+
+    if (qemuProcessStartValidateVideo(vm, qemuCaps) < 0)
+        return -1;
+
     VIR_DEBUG("Checking for any possible (non-fatal) issues");
 
     qemuProcessStartWarnShmem(vm);
 
-    return qemuProcessStartValidateGraphics(vm);
+    return 0;
 }
 
 
@@ -4628,7 +4676,7 @@ qemuProcessNetworkPrepareDevices(virDomainDefPtr def)
 
     for (i = 0; i < def->nnets; i++) {
         virDomainNetDefPtr net = def->nets[i];
-        int actualType;
+        virDomainNetType actualType;
 
         /* If appropriate, grab a physical device from the configured
          * network's pool of devices, or resolve bridge device name
@@ -5044,7 +5092,6 @@ qemuProcessPrepareDomain(virConnectPtr conn,
     size_t i;
     char *nodeset = NULL;
     qemuDomainObjPrivatePtr priv = vm->privateData;
-    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     virCapsPtr caps;
 
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
@@ -5110,8 +5157,11 @@ qemuProcessPrepareDomain(virConnectPtr conn,
     if (qemuDomainMasterKeyCreate(vm) < 0)
         goto cleanup;
 
-    VIR_DEBUG("Add secrets to disks and hostdevs");
-    if (qemuDomainSecretPrepare(conn, vm) < 0)
+    VIR_DEBUG("Prepare chardev source backends for TLS");
+    qemuDomainPrepareChardevSource(vm->def, driver);
+
+    VIR_DEBUG("Add secrets to disks, hostdevs, and chardevs");
+    if (qemuDomainSecretPrepare(conn, driver, vm) < 0)
         goto cleanup;
 
     for (i = 0; i < vm->def->nchannels; i++) {
@@ -5140,7 +5190,6 @@ qemuProcessPrepareDomain(virConnectPtr conn,
  cleanup:
     VIR_FREE(nodeset);
     virObjectUnref(caps);
-    virObjectUnref(cfg);
     return ret;
 }
 
@@ -5396,8 +5445,8 @@ qemuProcessLaunch(virConnectPtr conn,
                            _("Domain %s didn't show up"), vm->def->name);
             rv = -1;
         }
-        VIR_DEBUG("QEMU vm=%p name=%s running with pid=%llu",
-                  vm, vm->def->name, (unsigned long long)vm->pid);
+        VIR_DEBUG("QEMU vm=%p name=%s running with pid=%lld",
+                  vm, vm->def->name, (long long) vm->pid);
     } else {
         VIR_DEBUG("QEMU vm=%p name=%s failed to spawn",
                   vm, vm->def->name);
@@ -5788,9 +5837,9 @@ qemuProcessKill(virDomainObjPtr vm, unsigned int flags)
 {
     int ret;
 
-    VIR_DEBUG("vm=%p name=%s pid=%llu flags=%x",
+    VIR_DEBUG("vm=%p name=%s pid=%lld flags=%x",
               vm, vm->def->name,
-              (unsigned long long)vm->pid, flags);
+              (long long) vm->pid, flags);
 
     if (!(flags & VIR_QEMU_PROCESS_KILL_NOCHECK)) {
         if (!virDomainObjIsActive(vm)) {
@@ -5868,10 +5917,10 @@ void qemuProcessStop(virQEMUDriverPtr driver,
     char *timestamp;
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
 
-    VIR_DEBUG("Shutting down vm=%p name=%s id=%d pid=%llu, "
+    VIR_DEBUG("Shutting down vm=%p name=%s id=%d pid=%lld, "
               "reason=%s, asyncJob=%s, flags=%x",
               vm, vm->def->name, vm->def->id,
-              (unsigned long long)vm->pid,
+              (long long) vm->pid,
               virDomainShutoffReasonTypeToString(reason),
               qemuDomainAsyncJobTypeToString(asyncJob),
               flags);
@@ -6037,6 +6086,17 @@ void qemuProcessStop(virQEMUDriverPtr driver,
             if (!(vport && vport->virtPortType == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH))
                 ignore_value(virNetDevTapDelete(net->ifname, net->backend.tap));
 #endif
+            break;
+        case VIR_DOMAIN_NET_TYPE_USER:
+        case VIR_DOMAIN_NET_TYPE_VHOSTUSER:
+        case VIR_DOMAIN_NET_TYPE_SERVER:
+        case VIR_DOMAIN_NET_TYPE_CLIENT:
+        case VIR_DOMAIN_NET_TYPE_MCAST:
+        case VIR_DOMAIN_NET_TYPE_INTERNAL:
+        case VIR_DOMAIN_NET_TYPE_HOSTDEV:
+        case VIR_DOMAIN_NET_TYPE_UDP:
+        case VIR_DOMAIN_NET_TYPE_LAST:
+            /* No special cleanup procedure for these types. */
             break;
         }
         /* release the physical device (or any other resources used by
@@ -6386,6 +6446,9 @@ int qemuProcessAttach(virConnectPtr conn ATTRIBUTE_UNUSED,
     if (active && virAtomicIntDecAndTest(&driver->nactive) &&
         driver->inhibitCallback)
         driver->inhibitCallback(false, driver->inhibitOpaque);
+
+    qemuMonitorClose(priv->mon);
+    priv->mon = NULL;
     qemuDomainLogContextFree(logCtxt);
     VIR_FREE(seclabel);
     VIR_FREE(sec_managers);

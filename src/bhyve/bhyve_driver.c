@@ -1080,7 +1080,7 @@ bhyveDomainOpenConsole(virDomainPtr dom,
 
     chr = vm->def->serials[0];
 
-    if (virFDStreamOpenPTY(st, chr->source.data.nmdm.slave,
+    if (virFDStreamOpenPTY(st, chr->source->data.nmdm.slave,
                            0, 0, O_RDWR) < 0)
         goto cleanup;
 
@@ -1198,7 +1198,7 @@ bhyveStateCleanup(void)
     virObjectUnref(bhyve_driver->xmlopt);
     virSysinfoDefFree(bhyve_driver->hostsysinfo);
     virObjectUnref(bhyve_driver->closeCallbacks);
-    virObjectEventStateFree(bhyve_driver->domainEventState);
+    virObjectUnref(bhyve_driver->domainEventState);
 
     virMutexDestroy(&bhyve_driver->lock);
     VIR_FREE(bhyve_driver);

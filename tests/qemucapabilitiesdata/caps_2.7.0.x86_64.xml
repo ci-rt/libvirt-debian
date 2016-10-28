@@ -20,7 +20,6 @@
   <flag name='fsdev'/>
   <flag name='name-process'/>
   <flag name='smbios-type'/>
-  <flag name='vga-qxl'/>
   <flag name='spice'/>
   <flag name='vga-none'/>
   <flag name='boot-index'/>
@@ -32,7 +31,6 @@
   <flag name='ccid-passthru'/>
   <flag name='chardev-spicevmc'/>
   <flag name='virtio-tx-alg'/>
-  <flag name='device-qxl-vga'/>
   <flag name='pci-multifunction'/>
   <flag name='virtio-blk-pci.ioeventfd'/>
   <flag name='sga'/>
@@ -147,7 +145,6 @@
   <flag name='VGA.vgamem_mb'/>
   <flag name='vmware-svga.vgamem_mb'/>
   <flag name='qxl.vgamem_mb'/>
-  <flag name='qxl-vga.vgamem_mb'/>
   <flag name='pc-dimm'/>
   <flag name='machine-vmport-opt'/>
   <flag name='aes-key-wrap'/>
@@ -177,7 +174,6 @@
   <flag name='mptsas1068'/>
   <flag name='spice-gl'/>
   <flag name='qxl.vram64_size_mb'/>
-  <flag name='qxl-vga.vram64_size_mb'/>
   <flag name='chardev-logfile'/>
   <flag name='debug-threads'/>
   <flag name='secret'/>
@@ -188,7 +184,6 @@
   <flag name='virtio-scsi-pci.iothread'/>
   <flag name='name-guest'/>
   <flag name='qxl.max_outputs'/>
-  <flag name='qxl-vga.max_outputs'/>
   <flag name='spice-unix'/>
   <flag name='drive-detect-zeroes'/>
   <flag name='tls-creds-x509'/>
@@ -197,6 +192,8 @@
   <flag name='smm'/>
   <flag name='virtio-pci-disable-legacy'/>
   <flag name='query-hotpluggable-cpus'/>
+  <flag name='virtio-vga'/>
+  <flag name='drive-iotune-max-length'/>
   <version>2007000</version>
   <kvmVersion>0</kvmVersion>
   <package> (v2.7.0)</package>

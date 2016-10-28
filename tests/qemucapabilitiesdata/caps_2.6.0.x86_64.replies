@@ -2920,83 +2920,6 @@
 {
   "return": [
     {
-      "name": "rombar",
-      "type": "uint32"
-    },
-    {
-      "name": "ram_size_mb",
-      "type": "uint32"
-    },
-    {
-      "name": "command_serr_enable",
-      "description": "on/off",
-      "type": "bool"
-    },
-    {
-      "name": "multifunction",
-      "description": "on/off",
-      "type": "bool"
-    },
-    {
-      "name": "vgamem_mb",
-      "type": "uint32"
-    },
-    {
-      "name": "romfile",
-      "type": "str"
-    },
-    {
-      "name": "addr",
-      "description": "Slot and optional function number, example: 06.0 or 06",
-      "type": "int32"
-    },
-    {
-      "name": "debug",
-      "type": "uint32"
-    },
-    {
-      "name": "vram_size_mb",
-      "type": "uint32"
-    },
-    {
-      "name": "revision",
-      "type": "uint32"
-    },
-    {
-      "name": "ram_size",
-      "type": "uint32"
-    },
-    {
-      "name": "vram64_size_mb",
-      "type": "uint32"
-    },
-    {
-      "name": "guestdebug",
-      "type": "uint32"
-    },
-    {
-      "name": "vram_size",
-      "type": "uint32"
-    },
-    {
-      "name": "surfaces",
-      "type": "int32"
-    },
-    {
-      "name": "max_outputs",
-      "type": "uint16"
-    },
-    {
-      "name": "cmdlog",
-      "type": "uint32"
-    }
-  ],
-  "id": "libvirt-33"
-}
-
-{
-  "return": [
-    {
       "name": "disable-modern",
       "description": "on/off",
       "type": "bool"
@@ -3095,6 +3018,46 @@
     {
       "name": "rombar",
       "type": "uint32"
+    }
+  ],
+  "id": "libvirt-33"
+}
+
+{
+  "return": [
+    {
+      "name": "notify_on_empty",
+      "description": "on/off",
+      "type": "bool"
+    },
+    {
+      "name": "any_layout",
+      "description": "on/off",
+      "type": "bool"
+    },
+    {
+      "name": "indirect_desc",
+      "description": "on/off",
+      "type": "bool"
+    },
+    {
+      "name": "event_idx",
+      "description": "on/off",
+      "type": "bool"
+    },
+    {
+      "name": "stats",
+      "description": "on/off",
+      "type": "bool"
+    },
+    {
+      "name": "max_outputs",
+      "type": "uint32"
+    },
+    {
+      "name": "virgl",
+      "description": "on/off",
+      "type": "bool"
     }
   ],
   "id": "libvirt-34"

@@ -172,10 +172,10 @@ virDomainAuditChardev(virDomainObjPtr vm,
     virDomainChrSourceDefPtr newsrc = NULL;
 
     if (oldDef)
-        oldsrc = &oldDef->source;
+        oldsrc = oldDef->source;
 
     if (newDef)
-        newsrc = &newDef->source;
+        newsrc = newDef->source;
 
     virDomainAuditGenericDev(vm, "chardev",
                              virDomainAuditChardevPath(oldsrc),
@@ -218,7 +218,7 @@ virDomainAuditSmartcard(virDomainObjPtr vm,
 
         case VIR_DOMAIN_SMARTCARD_TYPE_PASSTHROUGH:
             virDomainAuditGenericDev(vm, "smartcard", NULL,
-                                     virDomainAuditChardevPath(&def->data.passthru),
+                                     virDomainAuditChardevPath(def->data.passthru),
                                      reason, success);
             break;
 
@@ -983,7 +983,7 @@ virDomainAuditShmem(virDomainObjPtr vm,
 
     virUUIDFormat(vm->def->uuid, uuidstr);
 
-    if (!vmname || !src || !size || !shmem ||
+    if (!vmname || !src || !shmem ||
         virAsprintfQuiet(&size, "%llu", def->size) < 0) {
         VIR_WARN("OOM while encoding audit message");
         goto cleanup;
@@ -997,7 +997,7 @@ virDomainAuditShmem(virDomainObjPtr vm,
 
     VIR_AUDIT(VIR_AUDIT_RECORD_RESOURCE, success,
               "virt=%s resrc=shmem reason=%s %s uuid=%s size=%s %s %s",
-              virt, reason, vmname, uuidstr, size ?: "?", shmem, src);
+              virt, reason, vmname, uuidstr, size, shmem, src);
 
  cleanup:
     VIR_FREE(vmname);

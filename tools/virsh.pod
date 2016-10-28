@@ -887,6 +887,9 @@ default all supported statistics groups are returned. Supported
 statistics groups flags are: I<--state>, I<--cpu-total>, I<--balloon>,
 I<--vcpu>, I<--interface>, I<--block>, I<--perf>.
 
+Note that - depending on the hypervisor type and version or the domain state
+- not all of the following statistics may be returned.
+
 When selecting the I<--state> group the following fields are returned:
 "state.state" - state of the VM, returned as number from virDomainState enum,
 "state.reason" - reason for entering given state, returned as int from
@@ -909,7 +912,7 @@ I<--balloon> returns:
 "balloon.rss" - Resident Set Size of running domain's process (in kB),
 "balloon.usable" - the amount of memory which can be reclaimed by balloon
 without causing host swapping (in KB),
-"balloon.last-update" - timestamp of the last update of statistics (in seconds),
+"balloon.last-update" - timestamp of the last update of statistics (in seconds)
 
 I<--vcpu> returns:
 "vcpu.current" - current number of online virtual CPUs,
@@ -917,6 +920,11 @@ I<--vcpu> returns:
 "vcpu.<num>.state" - state of the virtual CPU <num>, as number
 from virVcpuState enum,
 "vcpu.<num>.time" - virtual cpu time spent by virtual CPU <num>
+ (in microseconds),
+"vcpu.<num>.wait" - virtual cpu time spent by virtual CPU <num>
+waiting on I/O (in microseconds),
+"vcpu.<num>.halted" - virtual CPU <num> is halted: yes or no (may indicate
+the processor is idle or even disabled, depending on the architecture)
 
 I<--interface> returns:
 "net.count" - number of network interfaces on this domain,
@@ -931,12 +939,12 @@ I<--interface> returns:
 "net.<num>.tx.drop" - number of transmit packets dropped
 
 I<--perf> returns the statistics of all enabled perf events:
-"perf.cmt" - the cache usage in Byte currently used
-"perf.mbmt" - total system bandwidth from one level of cache
-"perf.mbml" - bandwidth of memory traffic for a memory controller
-"perf.cpu_cycles" - the number of cpu cycles one instruction needs
-"perf.instructions" - the count of instructions
-"perf.cache_references" - the count of cache hits
+"perf.cmt" - the cache usage in Byte currently used,
+"perf.mbmt" - total system bandwidth from one level of cache,
+"perf.mbml" - bandwidth of memory traffic for a memory controller,
+"perf.cpu_cycles" - the count of cpu cycles (total/elapsed),
+"perf.instructions" - the count of instructions,
+"perf.cache_references" - the count of cache hits,
 "perf.cache_misses" - the count of caches misses
 
 See the B<perf> command for more details about each event.
@@ -1127,6 +1135,10 @@ command.
 [[I<total-iops-sec>] | [I<read-iops-sec>] [I<write-iops-sec>]]
 [[I<total-bytes-sec-max>] | [I<read-bytes-sec-max>] [I<write-bytes-sec-max>]]
 [[I<total-iops-sec-max>] | [I<read-iops-sec-max>] [I<write-iops-sec-max>]]
+[[I<total-bytes-sec-max-length>] |
+[I<read-bytes-sec-max-length>] [I<write-bytes-sec-max-length>]]
+[[I<total-iops-sec-max-length>] |
+[I<read-iops-sec-max-length>] [I<write-iops-sec-max-length>]]
 [I<size-iops-sec>]
 
 Set or query the block disk io parameters for a block device of I<domain>.
@@ -1154,6 +1166,18 @@ integer, the default being bytes per second if no suffix is specified.
 I<--total-iops-sec-max> specifies maximum total I/O operations limit per second.
 I<--read-iops-sec-max> specifies maximum read I/O operations limit per second.
 I<--write-iops-sec-max> specifies maximum write I/O operations limit per second.
+I<--total-bytes-sec-max-length> specifies duration in seconds to allow maximum
+total throughput limit.
+I<--read-bytes-sec-max-length> specifies duration in seconds to allow maximum
+read throughput limit.
+I<--write-bytes-sec-max-length> specifies duration in seconds to allow maximum
+write throughput limit.
+I<--total-iops-sec-max-length> specifies duration in seconds to allow maximum
+total I/O operations limit.
+I<--read-iops-sec-max-length> specifies duration in seconds to allow maximum
+read I/O operations limit.
+I<--write-iops-sec-max-length> specifies duration in seconds to allow maximum
+write I/O operations limit.
 I<--size-iops-sec> specifies size I/O operations limit per second.
 
 Older versions of virsh only accepted these options with underscore
@@ -1163,6 +1187,11 @@ Bytes and iops values are independent, but setting only one value (such
 as --read-bytes-sec) resets the other two in that category to unlimited.
 An explicit 0 also clears any limit.  A non-zero value for a given total
 cannot be mixed with non-zero values for read or write.
+
+It is up to the hypervisor to determine how to handle the length values.
+For the qemu hypervisor, if an I/O limit value or maximum value is set,
+then the default value of 1 second will be displayed. Supplying a 0 will
+reset the value back to the default.
 
 If I<--live> is specified, affect a running guest.
 If I<--config> is specified, affect the next boot of a persistent guest.
@@ -1223,13 +1252,15 @@ I<size> is a scaled integer (see B<NOTES> above) which defaults to KiB
 "B" to get bytes (note that for historical reasons, this differs from
 B<vol-resize> which defaults to bytes without a suffix).
 
-=item B<domdisplay> I<domain> [I<--include-password>] [[I<--type>] B<type>]
+=item B<domdisplay> I<domain> [I<--include-password>]
+[[I<--type>] B<type>] [I<--all>]
 
 Output a URI which can be used to connect to the graphical display of the
 domain via VNC, SPICE or RDP.  The particular graphical display type can
 be selected using the B<type> parameter (e.g. "vnc", "spice", "rdp").  If
 I<--include-password> is specified, the SPICE channel password will be
-included in the URI.
+included in the URI. If I<--all> is specified, then all show all possible
+graphical displays, for a VM could have more than one graphical displays.
 
 =item B<domfsinfo> I<domain>
 
@@ -2247,9 +2278,10 @@ B<Valid perf event names>
                      applications running on th e platform.
   instructions     - Provides the count of instructions executed
                      by applications running on the platform.
-  cpu_cycles       - Provides the number of cpu_cycles for one
-                     instruction. May be used with instructions
-                     in order to get a cycles per instruction.
+  cpu_cycles       - Provides the count of cpu cycles
+                     (total/elapsed). May be used with
+                     instructions in order to get a cycles
+                     per instruction.
 
 B<Note>: The statistics can be retrieved using the B<domstats> command using
 the I<--perf> flag.
@@ -2283,28 +2315,28 @@ any existing per-device weights for other devices remain unchanged.
 B<device-read-iops-sec> is a single string listing one or more device/read_iops_sec
 pairs, int the format of /path/to/device,read_iops_sec,/path/to/device,read_iops_sec.
 Each read_iops_sec is a number which type is unsigned int, value 0 to remove that
-device from per-decice listing.
+device from per-device listing.
 Only the devices listed in the string are modified;
 any existing per-device read_iops_sec for other devices remain unchanged.
 
 B<device-write-iops-sec> is a single string listing one or more device/write_iops_sec
 pairs, int the format of /path/to/device,write_iops_sec,/path/to/device,write_iops_sec.
 Each write_iops_sec is a number which type is unsigned int, value 0 to remove that
-device from per-decice listing.
+device from per-device listing.
 Only the devices listed in the string are modified;
 any existing per-device write_iops_sec for other devices remain unchanged.
 
 B<device-read-bytes-sec> is a single string listing one or more device/read_bytes_sec
 pairs, int the format of /path/to/device,read_bytes_sec,/path/to/device,read_bytes_sec.
 Each read_bytes_sec is a number which type is unsigned long long, value 0 to remove
-that device from per-decice listing.
+that device from per-device listing.
 Only the devices listed in the string are modified;
 any existing per-device read_bytes_sec for other devices remain unchanged.
 
 B<device-write-bytes-sec> is a single string listing one or more device/write_bytes_sec
 pairs, int the format of /path/to/device,write_bytes_sec,/path/to/device,write_bytes_sec.
 Each write_bytes_sec is a number which type is unsigned long long, value 0 to remove
-that device from per-decice listing.
+that device from per-device listing.
 Only the devices listed in the string are modified;
 any existing per-device write_bytes_sec for other devices remain unchanged.
 
@@ -2316,7 +2348,7 @@ exclusive. If no flag is specified, behavior is different depending
 on hypervisor.
 
 =item B<setvcpus> I<domain> I<count> [I<--maximum>] [[I<--config>]
-[I<--live>] | [I<--current>]] [I<--guest>]
+[I<--live>] | [I<--current>]] [I<--guest>] [I<--hotpluggable>]
 
 Change the number of virtual CPUs active in a guest domain.  By default,
 this command works on active guest domains.  To change the settings for an
@@ -2348,6 +2380,11 @@ If I<--guest> is specified, then the count of cpus is modified in the guest
 instead of the hypervisor. This flag is usable only for live domains
 and may require guest agent to be configured in the guest.
 
+To allow adding vcpus to persistent definitions that can be later hotunplugged
+after the domain is booted it is necessary to specify the I<--hotpluggable>
+flag. Vcpus added to live domains supporting vcpu unplug are automatically
+marked as hotpluggable.
+
 The I<--maximum> flag controls the maximum number of virtual cpus that can
 be hot-plugged the next time the domain is booted.  As such, it must only be
 used with the I<--config> flag, and not with the I<--live> or the I<--current>
@@ -2361,7 +2398,7 @@ succeed, and may take a variable length of time depending on what
 services must be shutdown in the domain.
 
 The exact behavior of a domain when it shuts down is set by the
-I<on_shutdown> parameter in the domain's XML definition.
+I<on_poweroff> parameter in the domain's XML definition.
 
 If I<domain> is transient, then the metadata of any snapshots will
 be lost once the guest stops running, but the snapshot contents still
@@ -2393,7 +2430,7 @@ managedsave state is discarded and a fresh boot occurs.
 
 If I<--pass-fds> is specified, the argument is a comma separated list
 of open file descriptors which should be pass on into the guest. The
-file descriptors will be re-numered in the guest, starting from 3. This
+file descriptors will be re-numbered in the guest, starting from 3. This
 is only supported with container based virtualization.
 
 =item B<suspend> I<domain>
@@ -2520,6 +2557,55 @@ Returns basic information about the domain virtual CPUs, like the number of
 vCPUs, the running time, the affinity to physical processors.
 
 With I<--pretty>, cpu affinities are shown as ranges.
+
+An example output is
+
+ $ virsh vcpuinfo fedora
+ VCPU:           0
+ CPU:            0
+ State:          running
+ CPU time:       7,0s
+ CPU Affinity:   yyyy
+
+ VCPU:           1
+ CPU:            1
+ State:          running
+ CPU time:       0,7s
+ CPU Affinity:   yyyy
+
+B<STATES>
+
+The State field displays the current operating state of a virtual CPU
+
+=over 4
+
+=item B<offline>
+
+The virtual CPU is offline and not usable by the domain.
+This state is not supported by all hypervisors.
+
+=item B<running>
+
+The virtual CPU is available to the domain and is operating.
+
+=item B<blocked>
+
+The virtual CPU is available to the domain but is waiting for a resource.
+This state is not supported by all hypervisors, in which case I<running>
+may be reported instead.
+
+=item B<no state>
+
+The virtual CPU state could not be determined. This could happen if
+the hypervisor is newer than virsh.
+
+=item B<N/A>
+
+There's no information about the virtual CPU state available. This can
+be the case if the domain is not running or the hypervisor does
+not report the virtual CPU state.
+
+=back
 
 =item B<vcpupin> I<domain> [I<vcpu>] [I<cpulist>] [[I<--live>]
 [I<--config>] | [I<--current>]]
