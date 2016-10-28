@@ -1,3 +1,17 @@
+libvirt (2.4.0~rc1-1) experimental; urgency=medium
+
+  * [eee8467] New upstream version 2.4.0~rc1
+  * [a790aa0] autopkgtests: check capabilities
+  * [ec65bfb] autopkgtests: libvirt-lxc needs libvirt-daemon-system while
+    smoke does not
+  * [8785b7c] autopkgtests: check daemon restart and virtlogd
+  * [a7f386a] Bump symbol versions
+  * [9c2333a] README.source: use gbp's boilerplate
+  * [fd9aac5] Rediff patches.
+    Dropped libvirt-guests-use-wants-instead-of-requires.patch: fixed upstream
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 28 Oct 2016 13:45:57 +0200
+
 libvirt (2.3.0-3) unstable; urgency=medium
 
   * [c77d29d] autopkgtests: add missing dependency on libvirt-clients
