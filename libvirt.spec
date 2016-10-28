@@ -1,9 +1,10 @@
 # -*- rpm-spec -*-
 
-# This spec file assumes you are building for Fedora 20 or newer,
-# or for RHEL 6 or newer. It may need some tweaks for other distros.
+# This spec file assumes you are building on a Fedora or RHEL version
+# that's still supported by the vendor: that means Fedora 23 or newer,
+# or RHEL 6 or newer. It may need some tweaks for other distros.
 # If neither fedora nor rhel was defined, try to guess them from dist
-%if (0%{?fedora} && 0%{?fedora} >= 20) || (0%{?rhel} && 0%{?rhel} >= 6)
+%if (0%{?fedora} && 0%{?fedora} >= 23) || (0%{?rhel} && 0%{?rhel} >= 6)
     %define supported_platform 1
 %else
     %define supported_platform 0
@@ -167,7 +168,7 @@
 %endif
 
 # Enable wireshark plugins for all distros shipping libvirt 1.2.2 or newer
-%if 0%{?fedora} >= 21
+%if 0%{?fedora}
     %define with_wireshark 0%{!?_without_wireshark:1}
 %endif
 
@@ -209,7 +210,7 @@
 %if 0%{?fedora} >= 25
     %define tls_priority "@LIBVIRT,SYSTEM"
 %else
-    %if 0%{?fedora} >= 21
+    %if 0%{?fedora}
         %define tls_priority "@SYSTEM"
     %else
         %define tls_priority "NORMAL"
@@ -219,8 +220,8 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 2.3.0
-Release: 1%{?dist}%{?extra_release}
+Version: 2.4.0
+Release: 0rc1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -229,7 +230,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.xz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc1.tar.xz
 
 Requires: libvirt-daemon = %{version}-%{release}
 Requires: libvirt-daemon-config-network = %{version}-%{release}

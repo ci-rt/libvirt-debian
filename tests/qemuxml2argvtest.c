@@ -748,7 +748,8 @@ mymain(void)
             QEMU_CAPS_PCI_MULTIFUNCTION, QEMU_CAPS_DRIVE_AIO,
             QEMU_CAPS_CCID_PASSTHRU, QEMU_CAPS_CHARDEV,
             QEMU_CAPS_CHARDEV_SPICEVMC, QEMU_CAPS_SPICE,
-            QEMU_CAPS_HDA_DUPLEX, QEMU_CAPS_USB_HUB);
+            QEMU_CAPS_HDA_DUPLEX, QEMU_CAPS_USB_HUB,
+            QEMU_CAPS_DEVICE_CIRRUS_VGA);
     DO_TEST("eoi-disabled", NONE);
     DO_TEST("eoi-enabled", NONE);
     DO_TEST("pv-spinlock-disabled", NONE);
@@ -771,7 +772,7 @@ mymain(void)
             QEMU_CAPS_VIRTIO_SCSI,
             QEMU_CAPS_ICH9_USB_EHCI1, QEMU_CAPS_PCI_MULTIFUNCTION,
             QEMU_CAPS_SPICE, QEMU_CAPS_CHARDEV_SPICEVMC,
-            QEMU_CAPS_VGA_QXL,
+            QEMU_CAPS_DEVICE_QXL,
             QEMU_CAPS_HDA_DUPLEX, QEMU_CAPS_USB_REDIR,
             QEMU_CAPS_DEVICE_PC_DIMM,
             QEMU_CAPS_MEM_PATH, QEMU_CAPS_OBJECT_MEMORY_FILE);
@@ -863,7 +864,7 @@ mymain(void)
     DO_TEST("disk-drive-network-rbd-auth", NONE);
 # ifdef HAVE_GNUTLS_CIPHER_ENCRYPT
     DO_TEST("disk-drive-network-rbd-auth-AES",
-            QEMU_CAPS_OBJECT_SECRET);
+            QEMU_CAPS_OBJECT_SECRET, QEMU_CAPS_VIRTIO_SCSI);
 # endif
     DO_TEST("disk-drive-network-rbd-ipv6", NONE);
     DO_TEST_FAILURE("disk-drive-network-rbd-no-colon", NONE);
@@ -963,93 +964,97 @@ mymain(void)
             QEMU_CAPS_KVM,
             QEMU_CAPS_DRIVE_SERIAL);
 
-    DO_TEST("graphics-vnc", QEMU_CAPS_VNC);
-    DO_TEST("graphics-vnc-socket", QEMU_CAPS_VNC);
-    DO_TEST("graphics-vnc-websocket", QEMU_CAPS_VNC, QEMU_CAPS_VNC_WEBSOCKET);
-    DO_TEST("graphics-vnc-policy", QEMU_CAPS_VNC, QEMU_CAPS_VNC_SHARE_POLICY);
-    DO_TEST("graphics-vnc-no-listen-attr", QEMU_CAPS_VNC);
-    DO_TEST("graphics-vnc-remove-generated-socket", QEMU_CAPS_VNC);
+    DO_TEST("graphics-vnc", QEMU_CAPS_VNC, QEMU_CAPS_DEVICE_CIRRUS_VGA);
+    DO_TEST("graphics-vnc-socket", QEMU_CAPS_VNC, QEMU_CAPS_DEVICE_CIRRUS_VGA);
+    DO_TEST("graphics-vnc-websocket", QEMU_CAPS_VNC, QEMU_CAPS_VNC_WEBSOCKET,
+            QEMU_CAPS_DEVICE_CIRRUS_VGA);
+    DO_TEST("graphics-vnc-policy", QEMU_CAPS_VNC, QEMU_CAPS_VNC_SHARE_POLICY,
+            QEMU_CAPS_DEVICE_CIRRUS_VGA);
+    DO_TEST("graphics-vnc-no-listen-attr", QEMU_CAPS_VNC,
+            QEMU_CAPS_DEVICE_CIRRUS_VGA);
+    DO_TEST("graphics-vnc-remove-generated-socket", QEMU_CAPS_VNC,
+            QEMU_CAPS_DEVICE_CIRRUS_VGA);
     driver.config->vncAutoUnixSocket = true;
-    DO_TEST("graphics-vnc-auto-socket-cfg", QEMU_CAPS_VNC);
+    DO_TEST("graphics-vnc-auto-socket-cfg", QEMU_CAPS_VNC,
+            QEMU_CAPS_DEVICE_CIRRUS_VGA);
     driver.config->vncAutoUnixSocket = false;
-    DO_TEST("graphics-vnc-socket", QEMU_CAPS_VNC);
-    DO_TEST("graphics-vnc-auto-socket", QEMU_CAPS_VNC);
-    DO_TEST("graphics-vnc-none", QEMU_CAPS_VNC);
+    DO_TEST("graphics-vnc-socket", QEMU_CAPS_VNC, QEMU_CAPS_DEVICE_CIRRUS_VGA);
+    DO_TEST("graphics-vnc-auto-socket", QEMU_CAPS_VNC,
+            QEMU_CAPS_DEVICE_CIRRUS_VGA);
+    DO_TEST("graphics-vnc-none", QEMU_CAPS_VNC, QEMU_CAPS_DEVICE_CIRRUS_VGA);
 
     driver.config->vncSASL = 1;
     VIR_FREE(driver.config->vncSASLdir);
     ignore_value(VIR_STRDUP(driver.config->vncSASLdir, "/root/.sasl2"));
-    DO_TEST("graphics-vnc-sasl", QEMU_CAPS_VNC);
+    DO_TEST("graphics-vnc-sasl", QEMU_CAPS_VNC, QEMU_CAPS_DEVICE_CIRRUS_VGA);
     driver.config->vncTLS = 1;
     driver.config->vncTLSx509verify = 1;
-    DO_TEST("graphics-vnc-tls", QEMU_CAPS_VNC);
+    DO_TEST("graphics-vnc-tls", QEMU_CAPS_VNC, QEMU_CAPS_DEVICE_CIRRUS_VGA);
     driver.config->vncSASL = driver.config->vncTLSx509verify = driver.config->vncTLS = 0;
     VIR_FREE(driver.config->vncSASLdir);
     VIR_FREE(driver.config->vncTLSx509certdir);
 
-    DO_TEST("graphics-sdl", QEMU_CAPS_SDL);
-    DO_TEST("graphics-sdl-fullscreen", QEMU_CAPS_SDL);
+    DO_TEST("graphics-sdl", QEMU_CAPS_SDL, QEMU_CAPS_DEVICE_VGA);
+    DO_TEST("graphics-sdl-fullscreen", QEMU_CAPS_SDL,
+            QEMU_CAPS_DEVICE_CIRRUS_VGA);
     DO_TEST("nographics", NONE);
     DO_TEST("nographics-display",
             QEMU_CAPS_DISPLAY);
     DO_TEST("nographics-vga",
             QEMU_CAPS_VGA_NONE);
     DO_TEST("graphics-spice",
-            QEMU_CAPS_VGA_QXL,
             QEMU_CAPS_SPICE,
             QEMU_CAPS_DEVICE_QXL,
             QEMU_CAPS_SPICE_FILE_XFER_DISABLE);
     DO_TEST("graphics-spice-no-args",
-            QEMU_CAPS_SPICE);
+            QEMU_CAPS_SPICE, QEMU_CAPS_DEVICE_CIRRUS_VGA);
     driver.config->spiceSASL = 1;
     ignore_value(VIR_STRDUP(driver.config->spiceSASLdir, "/root/.sasl2"));
     DO_TEST("graphics-spice-sasl",
-            QEMU_CAPS_VGA_QXL,
             QEMU_CAPS_SPICE,
             QEMU_CAPS_DEVICE_QXL);
     VIR_FREE(driver.config->spiceSASLdir);
     driver.config->spiceSASL = 0;
     DO_TEST("graphics-spice-agentmouse",
-            QEMU_CAPS_VGA_QXL,
+            QEMU_CAPS_DEVICE_QXL,
             QEMU_CAPS_SPICE,
             QEMU_CAPS_CHARDEV_SPICEVMC,
-            QEMU_CAPS_NODEFCONFIG);
+            QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_DEVICE_CIRRUS_VGA);
     DO_TEST("graphics-spice-compression",
-            QEMU_CAPS_VGA_QXL,
             QEMU_CAPS_SPICE,
             QEMU_CAPS_DEVICE_QXL);
     DO_TEST("graphics-spice-timeout",
             QEMU_CAPS_KVM,
-            QEMU_CAPS_VGA_QXL,
             QEMU_CAPS_SPICE,
-            QEMU_CAPS_DEVICE_QXL_VGA);
+            QEMU_CAPS_DEVICE_QXL,
+            QEMU_CAPS_DEVICE_VGA);
     DO_TEST("graphics-spice-qxl-vga",
-            QEMU_CAPS_VGA_QXL,
             QEMU_CAPS_SPICE,
-            QEMU_CAPS_DEVICE_QXL_VGA,
             QEMU_CAPS_DEVICE_QXL);
     DO_TEST("graphics-spice-usb-redir",
             QEMU_CAPS_SPICE,
             QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_PCI_MULTIFUNCTION, QEMU_CAPS_USB_HUB,
             QEMU_CAPS_ICH9_USB_EHCI1, QEMU_CAPS_USB_REDIR,
-            QEMU_CAPS_CHARDEV_SPICEVMC);
+            QEMU_CAPS_CHARDEV_SPICEVMC, QEMU_CAPS_DEVICE_CIRRUS_VGA);
     DO_TEST("graphics-spice-agent-file-xfer",
-            QEMU_CAPS_VGA_QXL,
             QEMU_CAPS_SPICE,
-            QEMU_CAPS_DEVICE_QXL_VGA,
             QEMU_CAPS_DEVICE_QXL,
             QEMU_CAPS_SPICE_FILE_XFER_DISABLE);
     DO_TEST("graphics-spice-socket",
             QEMU_CAPS_SPICE,
-            QEMU_CAPS_SPICE_UNIX);
+            QEMU_CAPS_SPICE_UNIX,
+            QEMU_CAPS_DEVICE_CIRRUS_VGA);
     DO_TEST("graphics-spice-auto-socket",
             QEMU_CAPS_SPICE,
-            QEMU_CAPS_SPICE_UNIX);
+            QEMU_CAPS_SPICE_UNIX,
+            QEMU_CAPS_DEVICE_CIRRUS_VGA);
     driver.config->spiceAutoUnixSocket = true;
     DO_TEST("graphics-spice-auto-socket-cfg",
             QEMU_CAPS_SPICE,
-            QEMU_CAPS_SPICE_UNIX);
+            QEMU_CAPS_SPICE_UNIX,
+            QEMU_CAPS_DEVICE_CIRRUS_VGA);
     driver.config->spiceAutoUnixSocket = false;
 
     DO_TEST("input-usbmouse", NONE);
@@ -1066,6 +1071,9 @@ mymain(void)
     DO_TEST("net-vhostuser-multiq",
             QEMU_CAPS_NETDEV, QEMU_CAPS_VHOSTUSER_MULTIQUEUE);
     DO_TEST_FAILURE("net-vhostuser-multiq", QEMU_CAPS_NETDEV);
+    DO_TEST_FAILURE("net-vhostuser-fail",
+                    QEMU_CAPS_NETDEV,
+                    QEMU_CAPS_VHOSTUSER_MULTIQUEUE);
     DO_TEST("net-user", NONE);
     DO_TEST("net-virtio", NONE);
     DO_TEST("net-virtio-device",
@@ -1104,6 +1112,10 @@ mymain(void)
             QEMU_CAPS_DEVICE_VFIO_PCI, QEMU_CAPS_HOST_PCI_MULTIDOMAIN);
     DO_TEST_FAILURE("net-hostdev-vfio-multidomain",
                     QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_DEVICE_VFIO_PCI);
+    DO_TEST_FAILURE("net-hostdev-fail",
+                    QEMU_CAPS_NODEFCONFIG,
+                    QEMU_CAPS_DEVICE_VFIO_PCI);
+
 
     DO_TEST("serial-vc", NONE);
     DO_TEST("serial-pty", NONE);
@@ -1119,7 +1131,7 @@ mymain(void)
     DO_TEST("serial-spiceport",
             QEMU_CAPS_CHARDEV,
             QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
-            QEMU_CAPS_DEVICE_QXL, QEMU_CAPS_DEVICE_QXL_VGA,
+            QEMU_CAPS_DEVICE_QXL,
             QEMU_CAPS_SPICE, QEMU_CAPS_CHARDEV_SPICEPORT);
     DO_TEST("serial-spiceport-nospice", NONE);
 
@@ -1150,6 +1162,31 @@ mymain(void)
     DO_TEST("serial-tcp-tlsx509-chardev",
             QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_OBJECT_TLS_CREDS_X509);
+    driver.config->chardevTLSx509verify = 1;
+    DO_TEST("serial-tcp-tlsx509-chardev-verify",
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_OBJECT_TLS_CREDS_X509);
+    driver.config->chardevTLSx509verify = 0;
+    DO_TEST("serial-tcp-tlsx509-chardev-notls",
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_OBJECT_TLS_CREDS_X509);
+    VIR_FREE(driver.config->chardevTLSx509certdir);
+    if (VIR_STRDUP_QUIET(driver.config->chardevTLSx509certdir, "/etc/pki/libvirt-chardev") < 0)
+        return EXIT_FAILURE;
+    if (VIR_STRDUP_QUIET(driver.config->chardevTLSx509secretUUID,
+                         "6fd3f62d-9fe7-4a4e-a869-7acd6376d8ea") < 0)
+        return EXIT_FAILURE;
+# ifdef HAVE_GNUTLS_CIPHER_ENCRYPT
+    DO_TEST("serial-tcp-tlsx509-secret-chardev",
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_OBJECT_SECRET,
+            QEMU_CAPS_OBJECT_TLS_CREDS_X509);
+# else
+    DO_TEST_FAILURE("serial-tcp-tlsx509-secret-chardev",
+                    QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG,
+                    QEMU_CAPS_OBJECT_SECRET,
+                    QEMU_CAPS_OBJECT_TLS_CREDS_X509);
+# endif
     driver.config->chardevTLS = 0;
     VIR_FREE(driver.config->chardevTLSx509certdir);
     DO_TEST("serial-many-chardev",
@@ -1192,10 +1229,12 @@ mymain(void)
             QEMU_CAPS_VIRTIO_S390, QEMU_CAPS_SCLP_S390);
     DO_TEST("channel-spicevmc",
             QEMU_CAPS_NODEFCONFIG,
-            QEMU_CAPS_SPICE, QEMU_CAPS_CHARDEV_SPICEVMC);
+            QEMU_CAPS_SPICE, QEMU_CAPS_CHARDEV_SPICEVMC,
+            QEMU_CAPS_DEVICE_CIRRUS_VGA);
     DO_TEST("channel-spicevmc-old",
             QEMU_CAPS_NODEFCONFIG,
-            QEMU_CAPS_SPICE, QEMU_CAPS_DEVICE_SPICEVMC);
+            QEMU_CAPS_SPICE, QEMU_CAPS_DEVICE_SPICEVMC,
+            QEMU_CAPS_DEVICE_CIRRUS_VGA);
     DO_TEST("channel-virtio-default",
             QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_SPICE, QEMU_CAPS_CHARDEV_SPICEVMC);
@@ -1492,6 +1531,10 @@ mymain(void)
     DO_TEST("blkdeviotune-max",
             QEMU_CAPS_DRIVE_IOTUNE,
             QEMU_CAPS_DRIVE_IOTUNE_MAX);
+    DO_TEST("blkdeviotune-max-length",
+            QEMU_CAPS_DRIVE_IOTUNE,
+            QEMU_CAPS_DRIVE_IOTUNE_MAX,
+            QEMU_CAPS_DRIVE_IOTUNE_MAX_LENGTH);
 
     DO_TEST("multifunction-pci-device",
             QEMU_CAPS_NODEFCONFIG,
@@ -1567,52 +1610,54 @@ mymain(void)
     DO_TEST("video-device-pciaddr-default",
             QEMU_CAPS_KVM, QEMU_CAPS_VNC,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
-            QEMU_CAPS_DEVICE_QXL, QEMU_CAPS_DEVICE_QXL_VGA,
+            QEMU_CAPS_DEVICE_QXL,
             QEMU_CAPS_DEVICE_PCI_BRIDGE);
-    DO_TEST("video-vga-nodevice", NONE);
+    DO_TEST("video-vga-nodevice", QEMU_CAPS_DEVICE_VGA);
     DO_TEST("video-vga-device", QEMU_CAPS_DEVICE_VGA,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY);
     DO_TEST("video-vga-device-vgamem", QEMU_CAPS_DEVICE_VGA,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY, QEMU_CAPS_VGA_VGAMEM);
-    DO_TEST("video-qxl-nodevice", QEMU_CAPS_VGA_QXL);
-    DO_TEST("video-qxl-device", QEMU_CAPS_DEVICE_QXL_VGA,
+    DO_TEST("video-qxl-nodevice", QEMU_CAPS_DEVICE_QXL);
+    DO_TEST("video-qxl-device",
+            QEMU_CAPS_DEVICE_QXL,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY);
     DO_TEST("video-qxl-device-vgamem",
-            QEMU_CAPS_DEVICE_QXL_VGA, QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
-            QEMU_CAPS_QXL_VGA_VGAMEM);
-    DO_TEST_FAILURE("video-qxl-sec-nodevice", QEMU_CAPS_VGA_QXL);
-    DO_TEST("video-qxl-sec-device", QEMU_CAPS_DEVICE_QXL_VGA,
+            QEMU_CAPS_DEVICE_QXL,
+            QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
+            QEMU_CAPS_QXL_VGAMEM);
+    DO_TEST("video-qxl-sec-device",
             QEMU_CAPS_DEVICE_QXL, QEMU_CAPS_DEVICE_VIDEO_PRIMARY);
     DO_TEST("video-qxl-sec-device-vgamem",
-            QEMU_CAPS_DEVICE_QXL_VGA, QEMU_CAPS_DEVICE_QXL,
-            QEMU_CAPS_DEVICE_VIDEO_PRIMARY, QEMU_CAPS_QXL_VGA_VGAMEM,
+            QEMU_CAPS_DEVICE_QXL,
+            QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
             QEMU_CAPS_QXL_VGAMEM);
     DO_TEST("video-qxl-heads",
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
-            QEMU_CAPS_VGA_QXL,
-            QEMU_CAPS_DEVICE_QXL_VGA,
             QEMU_CAPS_DEVICE_QXL,
-            QEMU_CAPS_QXL_MAX_OUTPUTS,
-            QEMU_CAPS_QXL_VGA_MAX_OUTPUTS);
+            QEMU_CAPS_QXL_MAX_OUTPUTS);
     DO_TEST("video-qxl-noheads",
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
-            QEMU_CAPS_VGA_QXL,
-            QEMU_CAPS_DEVICE_QXL_VGA,
             QEMU_CAPS_DEVICE_QXL,
-            QEMU_CAPS_QXL_MAX_OUTPUTS,
-            QEMU_CAPS_QXL_VGA_MAX_OUTPUTS);
+            QEMU_CAPS_QXL_MAX_OUTPUTS);
     DO_TEST("video-virtio-gpu-device",
             QEMU_CAPS_DEVICE_VIRTIO_GPU,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY);
     DO_TEST("video-virtio-gpu-virgl",
             QEMU_CAPS_DEVICE_VIRTIO_GPU,
-            QEMU_CAPS_DEVICE_VIRTIO_GPU_VIRGL,
+            QEMU_CAPS_VIRTIO_GPU_VIRGL,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY);
     DO_TEST("video-virtio-gpu-spice-gl",
             QEMU_CAPS_DEVICE_VIRTIO_GPU,
-            QEMU_CAPS_DEVICE_VIRTIO_GPU_VIRGL,
+            QEMU_CAPS_VIRTIO_GPU_VIRGL,
             QEMU_CAPS_SPICE,
             QEMU_CAPS_SPICE_GL,
+            QEMU_CAPS_DEVICE_VIDEO_PRIMARY);
+    DO_TEST("video-virtio-gpu-secondary",
+            QEMU_CAPS_DEVICE_VIRTIO_GPU,
+            QEMU_CAPS_DEVICE_VIDEO_PRIMARY);
+    DO_TEST("video-virtio-vga",
+            QEMU_CAPS_DEVICE_VIRTIO_GPU,
+            QEMU_CAPS_DEVICE_VIRTIO_VGA,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY);
     DO_TEST_PARSE_ERROR("video-invalid", NONE);
 
@@ -1665,11 +1710,14 @@ mymain(void)
     DO_TEST_PARSE_ERROR("pci-slot-invalid", NONE);
     DO_TEST_PARSE_ERROR("pci-function-invalid", NONE);
 
-    DO_TEST("pci-autoadd-addr", QEMU_CAPS_DEVICE_PCI_BRIDGE);
-    DO_TEST("pci-autoadd-idx", QEMU_CAPS_DEVICE_PCI_BRIDGE);
-    DO_TEST("pci-autofill-addr", NONE);
+    DO_TEST("pci-autoadd-addr", QEMU_CAPS_DEVICE_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_CIRRUS_VGA);
+    DO_TEST("pci-autoadd-idx", QEMU_CAPS_DEVICE_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_CIRRUS_VGA);
+    DO_TEST("pci-autofill-addr", QEMU_CAPS_DEVICE_CIRRUS_VGA);
     DO_TEST("pci-many",
-            QEMU_CAPS_DEVICE_PCI_BRIDGE);
+            QEMU_CAPS_DEVICE_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_CIRRUS_VGA);
     DO_TEST("pci-bridge-many-disks",
             QEMU_CAPS_DEVICE_PCI_BRIDGE);
     DO_TEST("pcie-root",
@@ -1682,7 +1730,7 @@ mymain(void)
             QEMU_CAPS_ICH9_AHCI,
             QEMU_CAPS_PCI_MULTIFUNCTION, QEMU_CAPS_ICH9_USB_EHCI1,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
-            QEMU_CAPS_VGA_QXL, QEMU_CAPS_DEVICE_QXL);
+            QEMU_CAPS_DEVICE_QXL);
     DO_TEST_PARSE_ERROR("q35-dmi-bad-address1",
                         QEMU_CAPS_DEVICE_PCI_BRIDGE,
                         QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
@@ -1706,28 +1754,28 @@ mymain(void)
             QEMU_CAPS_ICH9_AHCI,
             QEMU_CAPS_PCI_MULTIFUNCTION, QEMU_CAPS_ICH9_USB_EHCI1,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
-            QEMU_CAPS_VGA_QXL, QEMU_CAPS_DEVICE_QXL);
+            QEMU_CAPS_DEVICE_QXL);
     DO_TEST("q35-usb2-multi",
             QEMU_CAPS_DEVICE_PCI_BRIDGE,
             QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
             QEMU_CAPS_ICH9_AHCI,
             QEMU_CAPS_PCI_MULTIFUNCTION, QEMU_CAPS_ICH9_USB_EHCI1,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
-            QEMU_CAPS_VGA_QXL, QEMU_CAPS_DEVICE_QXL);
+            QEMU_CAPS_DEVICE_QXL);
     DO_TEST("q35-usb2-reorder",
             QEMU_CAPS_DEVICE_PCI_BRIDGE,
             QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
             QEMU_CAPS_ICH9_AHCI,
             QEMU_CAPS_PCI_MULTIFUNCTION, QEMU_CAPS_ICH9_USB_EHCI1,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
-            QEMU_CAPS_VGA_QXL, QEMU_CAPS_DEVICE_QXL);
+            QEMU_CAPS_DEVICE_QXL);
     DO_TEST("pcie-root-port",
             QEMU_CAPS_DEVICE_PCI_BRIDGE,
             QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
             QEMU_CAPS_DEVICE_IOH3420,
             QEMU_CAPS_ICH9_AHCI,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
-            QEMU_CAPS_VGA_QXL, QEMU_CAPS_DEVICE_QXL);
+            QEMU_CAPS_DEVICE_QXL);
     DO_TEST("autoindex",
             QEMU_CAPS_DEVICE_PCI_BRIDGE,
             QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
@@ -1737,6 +1785,13 @@ mymain(void)
             QEMU_CAPS_ICH9_AHCI,
             QEMU_CAPS_PCI_MULTIFUNCTION, QEMU_CAPS_ICH9_USB_EHCI1,
             QEMU_CAPS_NEC_USB_XHCI);
+    /* Make sure the user can always override libvirt's default device
+     * placement policy by providing an explicit PCI address */
+    DO_TEST("q35-pci-force-address",
+            QEMU_CAPS_DEVICE_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_IOH3420,
+            QEMU_CAPS_HDA_DUPLEX);
 
     DO_TEST_PARSE_ERROR("q35-wrong-root",
             QEMU_CAPS_DEVICE_PCI_BRIDGE,
@@ -1744,7 +1799,7 @@ mymain(void)
             QEMU_CAPS_ICH9_AHCI,
             QEMU_CAPS_PCI_MULTIFUNCTION, QEMU_CAPS_ICH9_USB_EHCI1,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
-            QEMU_CAPS_VGA_QXL, QEMU_CAPS_DEVICE_QXL);
+            QEMU_CAPS_DEVICE_QXL);
     DO_TEST_PARSE_ERROR("440fx-wrong-root", NONE);
 
     DO_TEST_PARSE_ERROR("pcie-root-port-too-many",
@@ -1753,7 +1808,7 @@ mymain(void)
             QEMU_CAPS_DEVICE_IOH3420,
             QEMU_CAPS_ICH9_AHCI,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
-            QEMU_CAPS_VGA_QXL, QEMU_CAPS_DEVICE_QXL);
+            QEMU_CAPS_DEVICE_QXL);
 
     DO_TEST("pcie-switch-upstream-port",
             QEMU_CAPS_DEVICE_PCI_BRIDGE,
@@ -1762,7 +1817,7 @@ mymain(void)
             QEMU_CAPS_DEVICE_X3130_UPSTREAM,
             QEMU_CAPS_ICH9_AHCI,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
-            QEMU_CAPS_VGA_QXL, QEMU_CAPS_DEVICE_QXL);
+            QEMU_CAPS_DEVICE_QXL);
     DO_TEST("pcie-switch-downstream-port",
             QEMU_CAPS_DEVICE_PCI_BRIDGE,
             QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
@@ -1771,7 +1826,7 @@ mymain(void)
             QEMU_CAPS_DEVICE_XIO3130_DOWNSTREAM,
             QEMU_CAPS_ICH9_AHCI,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
-            QEMU_CAPS_VGA_QXL, QEMU_CAPS_DEVICE_QXL);
+            QEMU_CAPS_DEVICE_QXL);
 
     DO_TEST("pci-expander-bus",
             QEMU_CAPS_DEVICE_PCI_BRIDGE,
@@ -1856,7 +1911,7 @@ mymain(void)
             QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
             QEMU_CAPS_ICH9_AHCI,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
-            QEMU_CAPS_VGA_QXL, QEMU_CAPS_DEVICE_QXL,
+            QEMU_CAPS_DEVICE_QXL,
             QEMU_CAPS_Q35_PCI_HOLE64_SIZE);
 
     DO_TEST("arm-vexpressa9-nodevs",
@@ -2144,7 +2199,7 @@ mymain(void)
 
     DO_TEST("name-escape", QEMU_CAPS_NAME_DEBUG_THREADS,
             QEMU_CAPS_OBJECT_SECRET, QEMU_CAPS_CHARDEV, QEMU_CAPS_VNC,
-            QEMU_CAPS_NAME_GUEST);
+            QEMU_CAPS_NAME_GUEST, QEMU_CAPS_DEVICE_CIRRUS_VGA);
     DO_TEST("debug-threads", QEMU_CAPS_NAME_DEBUG_THREADS);
 
     DO_TEST("master-key", QEMU_CAPS_OBJECT_SECRET);
@@ -2157,6 +2212,8 @@ mymain(void)
     DO_TEST("acpi-table", NONE);
     DO_TEST("intel-iommu", QEMU_CAPS_DEVICE_PCI_BRIDGE,
             QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE, QEMU_CAPS_DEVICE_INTEL_IOMMU);
+    DO_TEST("intel-iommu-machine", QEMU_CAPS_DEVICE_PCI_BRIDGE, QEMU_CAPS_MACHINE_OPT,
+            QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE, QEMU_CAPS_MACHINE_IOMMU);
 
     DO_TEST("cpu-hotplug-startup", QEMU_CAPS_QUERY_HOTPLUGGABLE_CPUS);
 

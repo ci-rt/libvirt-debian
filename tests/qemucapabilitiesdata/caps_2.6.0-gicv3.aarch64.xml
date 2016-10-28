@@ -25,7 +25,6 @@
   <flag name='ccid-passthru'/>
   <flag name='chardev-spicevmc'/>
   <flag name='virtio-tx-alg'/>
-  <flag name='device-qxl-vga'/>
   <flag name='pci-multifunction'/>
   <flag name='virtio-blk-pci.ioeventfd'/>
   <flag name='virtio-blk-pci.event_idx'/>
@@ -159,6 +158,7 @@
   <flag name='display'/>
   <flag name='smm'/>
   <flag name='virtio-pci-disable-legacy'/>
+  <flag name='drive-iotune-max-length'/>
   <version>2005094</version>
   <kvmVersion>0</kvmVersion>
   <package></package>

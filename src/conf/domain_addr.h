@@ -43,6 +43,7 @@ typedef enum {
    VIR_PCI_CONNECT_TYPE_DMI_TO_PCI_BRIDGE = 1 << 6,
    VIR_PCI_CONNECT_TYPE_PCI_EXPANDER_BUS = 1 << 7,
    VIR_PCI_CONNECT_TYPE_PCIE_EXPANDER_BUS = 1 << 8,
+   VIR_PCI_CONNECT_TYPE_PCI_BRIDGE = 1 << 9,
 } virDomainPCIConnectFlags;
 
 /* a combination of all bits that describe the type of connections
@@ -55,7 +56,8 @@ typedef enum {
     VIR_PCI_CONNECT_TYPE_PCIE_ROOT_PORT | \
     VIR_PCI_CONNECT_TYPE_DMI_TO_PCI_BRIDGE | \
     VIR_PCI_CONNECT_TYPE_PCI_EXPANDER_BUS | \
-    VIR_PCI_CONNECT_TYPE_PCIE_EXPANDER_BUS)
+    VIR_PCI_CONNECT_TYPE_PCIE_EXPANDER_BUS | \
+    VIR_PCI_CONNECT_TYPE_PCI_BRIDGE)
 
 /* combination of all bits that could be used to connect a normal
  * endpoint device (i.e. excluding the connection possible between an
@@ -153,9 +155,11 @@ int virDomainPCIAddressReleaseSlot(virDomainPCIAddressSetPtr addrs,
                                    virPCIDeviceAddressPtr addr)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
-int virDomainPCIAddressGetNextSlot(virDomainPCIAddressSetPtr addrs,
-                                   virPCIDeviceAddressPtr next_addr,
-                                   virDomainPCIConnectFlags flags)
+int virDomainPCIAddressReserveNextAddr(virDomainPCIAddressSetPtr addrs,
+                                       virDomainDeviceInfoPtr dev,
+                                       virDomainPCIConnectFlags flags,
+                                       unsigned int function,
+                                       bool reserveEntireSlot)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 int virDomainPCIAddressReserveNextSlot(virDomainPCIAddressSetPtr addrs,
@@ -220,11 +224,17 @@ virDomainVirtioSerialAddrSetCreateFromDomain(virDomainDefPtr def)
 bool
 virDomainVirtioSerialAddrIsComplete(virDomainDeviceInfoPtr info);
 int
+virDomainVirtioSerialAddrAutoAssignFromCache(virDomainDefPtr def,
+                                             virDomainVirtioSerialAddrSetPtr addrs,
+                                             virDomainDeviceInfoPtr info,
+                                             bool allowZero)
+    ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+
+int
 virDomainVirtioSerialAddrAutoAssign(virDomainDefPtr def,
-                                    virDomainVirtioSerialAddrSetPtr addrs,
                                     virDomainDeviceInfoPtr info,
                                     bool allowZero)
-    ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 int
 virDomainVirtioSerialAddrAssign(virDomainDefPtr def,
@@ -290,6 +300,10 @@ size_t
 virDomainUSBAddressCountAllPorts(virDomainDefPtr def);
 void virDomainUSBAddressSetFree(virDomainUSBAddressSetPtr addrs);
 
+int
+virDomainUSBAddressPresent(virDomainDeviceInfoPtr info,
+                           void *data)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 int
 virDomainUSBAddressReserve(virDomainDeviceInfoPtr info,
                            void *data)

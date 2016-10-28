@@ -183,20 +183,12 @@ char *virLogGetOutputs(void);
 virLogPriority virLogGetDefaultPriority(void);
 int virLogSetDefaultPriority(virLogPriority priority);
 void virLogSetFromEnv(void);
-int virLogDefineFilter(const char *match,
-                       virLogPriority priority,
-                       unsigned int flags);
-int virLogDefineOutput(virLogOutputFunc f,
-                       virLogCloseFunc c,
-                       void *data,
-                       virLogPriority priority,
-                       virLogDestination dest,
-                       const char *name,
-                       unsigned int flags);
 void virLogOutputFree(virLogOutputPtr output);
 void virLogOutputListFree(virLogOutputPtr *list, int count);
 void virLogFilterFree(virLogFilterPtr filter);
 void virLogFilterListFree(virLogFilterPtr *list, int count);
+int virLogSetOutputs(const char *outputs) ATTRIBUTE_NONNULL(1);
+int virLogSetFilters(const char *filters);
 
 /*
  * Internal logging API
@@ -206,8 +198,6 @@ void virLogLock(void);
 void virLogUnlock(void);
 int virLogReset(void);
 int virLogParseDefaultPriority(const char *priority);
-int virLogParseFilters(const char *filters);
-int virLogParseOutputs(const char *output);
 int virLogPriorityFromSyslog(int priority);
 void virLogMessage(virLogSourcePtr source,
                    virLogPriority priority,
@@ -226,5 +216,25 @@ void virLogVMessage(virLogSourcePtr source,
                     va_list vargs) ATTRIBUTE_FMT_PRINTF(7, 0);
 
 bool virLogProbablyLogMessage(const char *str);
+virLogOutputPtr virLogOutputNew(virLogOutputFunc f,
+                                virLogCloseFunc c,
+                                void *data,
+                                virLogPriority priority,
+                                virLogDestination dest,
+                                const char *name) ATTRIBUTE_NONNULL(1);
+virLogFilterPtr virLogFilterNew(const char *match,
+                                virLogPriority priority,
+                                unsigned int flags) ATTRIBUTE_NONNULL(1);
+int virLogFindOutput(virLogOutputPtr *outputs, size_t noutputs,
+                     virLogDestination dest, const void *opaque);
+int virLogDefineOutputs(virLogOutputPtr *outputs,
+                        size_t noutputs) ATTRIBUTE_NONNULL(1);
+int virLogDefineFilters(virLogFilterPtr *filters, size_t nfilters);
+virLogOutputPtr virLogParseOutput(const char *src) ATTRIBUTE_NONNULL(1);
+virLogFilterPtr virLogParseFilter(const char *src) ATTRIBUTE_NONNULL(1);
+int virLogParseOutputs(const char *src,
+                       virLogOutputPtr **outputs) ATTRIBUTE_NONNULL(1);
+int virLogParseFilters(const char *src,
+                       virLogFilterPtr **filters) ATTRIBUTE_NONNULL(1);
 
 #endif

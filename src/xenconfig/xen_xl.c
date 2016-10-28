@@ -737,15 +737,15 @@ xenParseXLChannel(virConfPtr conf, virDomainDefPtr def)
                 key = nextkey;
             }
 
-            if (!(channel = virDomainChrDefNew()))
+            if (!(channel = virDomainChrDefNew(NULL)))
                 goto cleanup;
 
             if (STRPREFIX(type, "socket")) {
-                channel->source.type = VIR_DOMAIN_CHR_TYPE_UNIX;
-                channel->source.data.nix.path = path;
-                channel->source.data.nix.listen = 1;
+                channel->source->type = VIR_DOMAIN_CHR_TYPE_UNIX;
+                channel->source->data.nix.path = path;
+                channel->source->data.nix.listen = 1;
             } else if (STRPREFIX(type, "pty")) {
-                channel->source.type = VIR_DOMAIN_CHR_TYPE_PTY;
+                channel->source->type = VIR_DOMAIN_CHR_TYPE_PTY;
                 VIR_FREE(path);
             } else {
                 goto cleanup;
@@ -1022,33 +1022,33 @@ xenFormatXLDisk(virConfValuePtr list, virDomainDiskDefPtr disk)
     virBufferAddLit(&buf, "format=");
     switch (format) {
         case VIR_STORAGE_FILE_RAW:
-            virBufferAddLit(&buf, "raw,");
+            virBufferAddLit(&buf, "raw");
             break;
         case VIR_STORAGE_FILE_VHD:
-            virBufferAddLit(&buf, "xvhd,");
+            virBufferAddLit(&buf, "xvhd");
             break;
         case VIR_STORAGE_FILE_QCOW:
-            virBufferAddLit(&buf, "qcow,");
+            virBufferAddLit(&buf, "qcow");
             break;
         case VIR_STORAGE_FILE_QCOW2:
-            virBufferAddLit(&buf, "qcow2,");
+            virBufferAddLit(&buf, "qcow2");
             break;
       /* set default */
         default:
-            virBufferAddLit(&buf, "raw,");
+            virBufferAddLit(&buf, "raw");
     }
 
     /* device */
-    virBufferAsprintf(&buf, "vdev=%s,", disk->dst);
+    virBufferAsprintf(&buf, ",vdev=%s", disk->dst);
 
     /* access */
-    virBufferAddLit(&buf, "access=");
+    virBufferAddLit(&buf, ",access=");
     if (disk->src->readonly)
-        virBufferAddLit(&buf, "ro,");
+        virBufferAddLit(&buf, "ro");
     else if (disk->src->shared)
-        virBufferAddLit(&buf, "!,");
+        virBufferAddLit(&buf, "!");
     else
-        virBufferAddLit(&buf, "rw,");
+        virBufferAddLit(&buf, "rw");
     if (disk->transient) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("transient disks not supported yet"));
@@ -1057,18 +1057,18 @@ xenFormatXLDisk(virConfValuePtr list, virDomainDiskDefPtr disk)
 
     /* backendtype */
     if (driver) {
-        virBufferAddLit(&buf, "backendtype=");
+        virBufferAddLit(&buf, ",backendtype=");
         if (STREQ(driver, "qemu") || STREQ(driver, "file"))
-            virBufferAddLit(&buf, "qdisk,");
+            virBufferAddLit(&buf, "qdisk");
         else if (STREQ(driver, "tap"))
-            virBufferAddLit(&buf, "tap,");
+            virBufferAddLit(&buf, "tap");
         else if (STREQ(driver, "phy"))
-            virBufferAddLit(&buf, "phy,");
+            virBufferAddLit(&buf, "phy");
     }
 
     /* devtype */
     if (disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM)
-        virBufferAddLit(&buf, "devtype=cdrom,");
+        virBufferAddLit(&buf, ",devtype=cdrom");
 
     /*
      * target
@@ -1081,7 +1081,8 @@ xenFormatXLDisk(virConfValuePtr list, virDomainDiskDefPtr disk)
     if (xenFormatXLDiskSrc(disk->src, &target) < 0)
         goto cleanup;
 
-    virBufferAsprintf(&buf, "target=%s", target);
+    if (target)
+        virBufferAsprintf(&buf, ",target=%s", target);
 
     if (virBufferCheckError(&buf) < 0)
         goto cleanup;
@@ -1441,7 +1442,7 @@ static int
 xenFormatXLChannel(virConfValuePtr list, virDomainChrDefPtr channel)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
-    int sourceType = channel->source.type;
+    int sourceType = channel->source->type;
     virConfValuePtr val, tmp;
 
     /* connection */
@@ -1453,9 +1454,9 @@ xenFormatXLChannel(virConfValuePtr list, virDomainChrDefPtr channel)
         case VIR_DOMAIN_CHR_TYPE_UNIX:
             virBufferAddLit(&buf, "socket,");
             /* path */
-            if (channel->source.data.nix.path)
+            if (channel->source->data.nix.path)
                 virBufferAsprintf(&buf, "path=%s,",
-                                  channel->source.data.nix.path);
+                                  channel->source->data.nix.path);
             break;
         default:
             goto cleanup;

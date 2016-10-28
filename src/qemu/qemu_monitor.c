@@ -1677,6 +1677,7 @@ qemuMonitorCPUInfoClear(qemuMonitorCPUInfoPtr cpus,
         cpus[i].thread_id = -1;
         cpus[i].vcpus = 0;
         cpus[i].tid = 0;
+        cpus[i].halted = false;
 
         VIR_FREE(cpus[i].qom_path);
         VIR_FREE(cpus[i].alias);
@@ -1725,8 +1726,10 @@ qemuMonitorGetCPUInfoLegacy(struct qemuMonitorQueryCpusEntry *cpuentries,
     size_t i;
 
     for (i = 0; i < maxvcpus; i++) {
-        if (i < ncpuentries)
+        if (i < ncpuentries) {
             vcpus[i].tid = cpuentries[i].tid;
+            vcpus[i].halted = cpuentries[i].halted;
+        }
 
         /* for legacy hotplug to work we need to fake the vcpu count added by
          * enabling a given vcpu */
@@ -1864,6 +1867,7 @@ qemuMonitorGetCPUInfoHotplug(struct qemuMonitorQueryHotpluggableCpusEntry *hotpl
         }
 
         vcpus[anyvcpu].tid = cpuentries[j].tid;
+        vcpus[anyvcpu].halted = cpuentries[j].halted;
     }
 
     return 0;
@@ -1898,13 +1902,13 @@ qemuMonitorGetCPUInfo(qemuMonitorPtr mon,
     int rc;
     qemuMonitorCPUInfoPtr info = NULL;
 
-    if (hotplug)
-        QEMU_CHECK_MONITOR_JSON(mon);
-    else
-        QEMU_CHECK_MONITOR(mon);
+    QEMU_CHECK_MONITOR(mon);
 
     if (VIR_ALLOC_N(info, maxvcpus) < 0)
         return -1;
+
+    if (!mon->json)
+        hotplug = false;
 
     /* initialize a few non-zero defaults */
     qemuMonitorCPUInfoClear(info, maxvcpus);
@@ -3423,14 +3427,17 @@ int
 qemuMonitorSetBlockIoThrottle(qemuMonitorPtr mon,
                               const char *device,
                               virDomainBlockIoTuneInfoPtr info,
-                              bool supportMaxOptions)
+                              bool supportMaxOptions,
+                              bool supportMaxLengthOptions)
 {
     VIR_DEBUG("device=%p, info=%p", device, info);
 
     QEMU_CHECK_MONITOR(mon);
 
     if (mon->json)
-        return qemuMonitorJSONSetBlockIoThrottle(mon, device, info, supportMaxOptions);
+        return qemuMonitorJSONSetBlockIoThrottle(mon, device, info,
+                                                 supportMaxOptions,
+                                                 supportMaxLengthOptions);
     else
         return qemuMonitorTextSetBlockIoThrottle(mon, device, info);
 }

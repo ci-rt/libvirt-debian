@@ -1939,7 +1939,6 @@ mandir = @mandir@
 mkdir_p = @mkdir_p@
 oldincludedir = @oldincludedir@
 pdfdir = @pdfdir@
-plugindir = @plugindir@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
@@ -1952,6 +1951,8 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
+ws_plugindir = @ws_plugindir@
+@WITH_WIRESHARK_DISSECTOR_TRUE@ws_plugindir = @ws_plugindir@
 INCLUDES = \
 	-I$(top_builddir)/include -I$(top_srcdir)/include	\
 	-I$(top_builddir)/gnulib/lib -I$(top_srcdir)/gnulib/lib	\
@@ -2143,7 +2144,6 @@ virt_admin_CFLAGS = \
 BUILT_SOURCES = $(am__append_8) libvirt-guests.sh $(am__append_9)
 POD2MAN = pod2man -c "Virtualization Support" -r "$(PACKAGE)-$(VERSION)"
 SYSTEMD_UNIT_DIR = $(prefix)/lib/systemd/system
-@WITH_WIRESHARK_DISSECTOR_TRUE@ws_plugindir = $(plugindir)
 @WITH_WIRESHARK_DISSECTOR_TRUE@ws_plugin_LTLIBRARIES = wireshark/src/libvirt.la
 @WITH_WIRESHARK_DISSECTOR_TRUE@wireshark_src_libvirt_la_CPPFLAGS = \
 @WITH_WIRESHARK_DISSECTOR_TRUE@	-I wireshark/src $(WIRESHARK_DISSECTOR_CFLAGS)

@@ -344,6 +344,9 @@ VIR_ENUM_IMPL(virQEMUCaps, QEMU_CAPS_LAST,
               "query-hotpluggable-cpus",
 
               "virtio-net.rx_queue_size", /* 235 */
+              "machine-iommu",
+              "virtio-vga",
+              "drive-iotune-max-length",
     );
 
 
@@ -1175,8 +1178,6 @@ virQEMUCapsComputeCmdFlags(const char *help,
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_DISPLAY);
     if ((p = strstr(help, "-vga")) && !strstr(help, "-std-vga")) {
         const char *nl = strstr(p, "\n");
-        if (strstr(p, "|qxl"))
-            virQEMUCapsSet(qemuCaps, QEMU_CAPS_VGA_QXL);
         if ((p = strstr(p, "|none")) && p < nl)
             virQEMUCapsSet(qemuCaps, QEMU_CAPS_VGA_NONE);
     }
@@ -1527,7 +1528,6 @@ struct virQEMUCapsStringFlags virQEMUCapsObjectTypes[] = {
     { "virtio-scsi-device", QEMU_CAPS_VIRTIO_SCSI },
     { "megasas", QEMU_CAPS_SCSI_MEGASAS },
     { "spicevmc", QEMU_CAPS_DEVICE_SPICEVMC },
-    { "qxl-vga", QEMU_CAPS_DEVICE_QXL_VGA },
     { "qxl", QEMU_CAPS_DEVICE_QXL },
     { "sga", QEMU_CAPS_SGA },
     { "scsi-block", QEMU_CAPS_SCSI_BLOCK },
@@ -1573,6 +1573,7 @@ struct virQEMUCapsStringFlags virQEMUCapsObjectTypes[] = {
     { "virtio-net-device", QEMU_CAPS_DEVICE_VIRTIO_NET },
     { "virtio-gpu-pci", QEMU_CAPS_DEVICE_VIRTIO_GPU },
     { "virtio-gpu-device", QEMU_CAPS_DEVICE_VIRTIO_GPU },
+    { "virtio-vga", QEMU_CAPS_DEVICE_VIRTIO_VGA },
     { "virtio-keyboard-device", QEMU_CAPS_VIRTIO_KEYBOARD },
     { "virtio-keyboard-pci", QEMU_CAPS_VIRTIO_KEYBOARD },
     { "virtio-mouse-device", QEMU_CAPS_VIRTIO_MOUSE },
@@ -1678,14 +1679,8 @@ static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsQxl[] = {
     { "max_outputs", QEMU_CAPS_QXL_MAX_OUTPUTS },
 };
 
-static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsQxlVga[] = {
-    { "vgamem_mb", QEMU_CAPS_QXL_VGA_VGAMEM },
-    { "vram64_size_mb", QEMU_CAPS_QXL_VGA_VRAM64 },
-    { "max_outputs", QEMU_CAPS_QXL_VGA_MAX_OUTPUTS },
-};
-
 static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsVirtioGpu[] = {
-    { "virgl", QEMU_CAPS_DEVICE_VIRTIO_GPU_VIRGL },
+    { "virgl", QEMU_CAPS_VIRTIO_GPU_VIRGL },
 };
 
 static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsICH9[] = {
@@ -1752,9 +1747,9 @@ static struct virQEMUCapsObjectTypeProps virQEMUCapsObjectProps[] = {
       ARRAY_CARDINALITY(virQEMUCapsObjectPropsVmwareSvga) },
     { "qxl", virQEMUCapsObjectPropsQxl,
       ARRAY_CARDINALITY(virQEMUCapsObjectPropsQxl) },
-    { "qxl-vga", virQEMUCapsObjectPropsQxlVga,
-      ARRAY_CARDINALITY(virQEMUCapsObjectPropsQxlVga) },
     { "virtio-gpu-pci", virQEMUCapsObjectPropsVirtioGpu,
+      ARRAY_CARDINALITY(virQEMUCapsObjectPropsVirtioGpu) },
+    { "virtio-gpu-device", virQEMUCapsObjectPropsVirtioGpu,
       ARRAY_CARDINALITY(virQEMUCapsObjectPropsVirtioGpu) },
     { "ICH9-LPC", virQEMUCapsObjectPropsICH9,
       ARRAY_CARDINALITY(virQEMUCapsObjectPropsICH9) },
@@ -2650,9 +2645,6 @@ virQEMUCapsProbeQMPObjects(virQEMUCapsPtr qemuCaps,
     /* Prefer -chardev spicevmc (detected earlier) over -device spicevmc */
     if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_CHARDEV_SPICEVMC))
         virQEMUCapsClear(qemuCaps, QEMU_CAPS_DEVICE_SPICEVMC);
-    /* If qemu supports newer -device qxl it supports -vga qxl as well */
-    if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_QXL))
-        virQEMUCapsSet(qemuCaps, QEMU_CAPS_VGA_QXL);
 
     return 0;
 }
@@ -2852,6 +2844,7 @@ static struct virQEMUCapsCommandLineProps virQEMUCapsCommandLine[] = {
     { "name", "debug-threads", QEMU_CAPS_NAME_DEBUG_THREADS },
     { "name", "guest", QEMU_CAPS_NAME_GUEST },
     { "spice", "unix", QEMU_CAPS_SPICE_UNIX },
+    { "drive", "throttling.bps-total-max-length", QEMU_CAPS_DRIVE_IOTUNE_MAX_LENGTH },
 };
 
 static int
@@ -3439,6 +3432,9 @@ virQEMUCapsReset(virQEMUCapsPtr qemuCaps)
 
     VIR_FREE(qemuCaps->gicCapabilities);
     qemuCaps->ngicCapabilities = 0;
+
+    virCPUDefFree(qemuCaps->hostCPUModel);
+    qemuCaps->hostCPUModel = NULL;
 }
 
 
@@ -3637,7 +3633,6 @@ virQEMUCapsInitQMPBasic(virQEMUCapsPtr qemuCaps)
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_VGA_NONE);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_DRIVE_AIO);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_CHARDEV_SPICEVMC);
-    virQEMUCapsSet(qemuCaps, QEMU_CAPS_DEVICE_QXL_VGA);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_DRIVE_CACHE_DIRECTSYNC);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_NO_SHUTDOWN);
     virQEMUCapsSet(qemuCaps, QEMU_CAPS_DRIVE_CACHE_UNSAFE);
@@ -3803,6 +3798,17 @@ virQEMUCapsInitQMPMonitor(virQEMUCapsPtr qemuCaps,
         goto cleanup;
     if (virQEMUCapsProbeQMPMigrationCapabilities(qemuCaps, mon) < 0)
         goto cleanup;
+
+    /* 'intel-iommu' shows up as a device since 2.2.0, but can
+     * not be used with -device until 2.7.0. Before that it
+     * requires -machine iommu=on. So we must clear the device
+     * capability we detected on older QEMUs
+     */
+    if (qemuCaps->version < 2007000 &&
+        virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_INTEL_IOMMU)) {
+        virQEMUCapsClear(qemuCaps, QEMU_CAPS_DEVICE_INTEL_IOMMU);
+        virQEMUCapsSet(qemuCaps, QEMU_CAPS_MACHINE_IOMMU);
+    }
 
     /* GIC capabilities, eg. available GIC versions */
     if ((qemuCaps->arch == VIR_ARCH_AARCH64 ||
@@ -4489,7 +4495,7 @@ virQEMUCapsFillDomainDeviceVideoCaps(virQEMUCapsPtr qemuCaps,
         VIR_DOMAIN_CAPS_ENUM_SET(dev->modelType, VIR_DOMAIN_VIDEO_TYPE_CIRRUS);
     if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_VMWARE_SVGA))
         VIR_DOMAIN_CAPS_ENUM_SET(dev->modelType, VIR_DOMAIN_VIDEO_TYPE_VMVGA);
-    if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_QXL_VGA))
+    if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_QXL))
         VIR_DOMAIN_CAPS_ENUM_SET(dev->modelType, VIR_DOMAIN_VIDEO_TYPE_QXL);
     if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_VIRTIO_GPU))
         VIR_DOMAIN_CAPS_ENUM_SET(dev->modelType, VIR_DOMAIN_VIDEO_TYPE_VIRTIO);

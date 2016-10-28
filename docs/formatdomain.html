@@ -1832,7 +1832,7 @@
   &lt;/perf&gt;
   ...
 </pre>
-        <table class="top_table"><tr><th rowspan="1" colspan="1">event name</th><th rowspan="1" colspan="1">Description</th><th rowspan="1" colspan="1">stats parameter name</th></tr><tr><td rowspan="1" colspan="1"><code>cmt</code></td><td rowspan="1" colspan="1">usage of l3 cache in bytes by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.cmt</code></td></tr><tr><td rowspan="1" colspan="1"><code>mbmt</code></td><td rowspan="1" colspan="1">total system bandwidth from one level of cache</td><td rowspan="1" colspan="1"><code>perf.mbmt</code></td></tr><tr><td rowspan="1" colspan="1"><code>mbml</code></td><td rowspan="1" colspan="1">bandwidth of memory traffic for a memory controller</td><td rowspan="1" colspan="1"><code>perf.mbml</code></td></tr><tr><td rowspan="1" colspan="1"><code>cpu_cycles</code></td><td rowspan="1" colspan="1">the number of cpu cycles one instruction needs</td><td rowspan="1" colspan="1"><code>perf.cpu_cycles</code></td></tr><tr><td rowspan="1" colspan="1"><code>instructions</code></td><td rowspan="1" colspan="1">the count of instructions by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.instructions</code></td></tr><tr><td rowspan="1" colspan="1"><code>cache_references</code></td><td rowspan="1" colspan="1">the count of cache hits by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.cache_references</code></td></tr><tr><td rowspan="1" colspan="1"><code>cache_misses</code></td><td rowspan="1" colspan="1">the count of cache misses by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.cache_misses</code></td></tr></table>
+        <table class="top_table"><tr><th rowspan="1" colspan="1">event name</th><th rowspan="1" colspan="1">Description</th><th rowspan="1" colspan="1">stats parameter name</th></tr><tr><td rowspan="1" colspan="1"><code>cmt</code></td><td rowspan="1" colspan="1">usage of l3 cache in bytes by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.cmt</code></td></tr><tr><td rowspan="1" colspan="1"><code>mbmt</code></td><td rowspan="1" colspan="1">total system bandwidth from one level of cache</td><td rowspan="1" colspan="1"><code>perf.mbmt</code></td></tr><tr><td rowspan="1" colspan="1"><code>mbml</code></td><td rowspan="1" colspan="1">bandwidth of memory traffic for a memory controller</td><td rowspan="1" colspan="1"><code>perf.mbml</code></td></tr><tr><td rowspan="1" colspan="1"><code>cpu_cycles</code></td><td rowspan="1" colspan="1">the count of cpu cycles (total/elapsed)</td><td rowspan="1" colspan="1"><code>perf.cpu_cycles</code></td></tr><tr><td rowspan="1" colspan="1"><code>instructions</code></td><td rowspan="1" colspan="1">the count of instructions by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.instructions</code></td></tr><tr><td rowspan="1" colspan="1"><code>cache_references</code></td><td rowspan="1" colspan="1">the count of cache hits by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.cache_references</code></td></tr><tr><td rowspan="1" colspan="1"><code>cache_misses</code></td><td rowspan="1" colspan="1">the count of cache misses by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.cache_misses</code></td></tr></table>
         <h3>
           <a name="elementsDevices" shape="rect" id="elementsDevices">Devices</a>
           <a class="headerlink" href="#elementsDevices" title="Permalink to this headline">¶</a>
@@ -2343,7 +2343,33 @@
             or <code>write_iops_sec_max</code>.</dd><dt><code>read_iops_sec_max</code></dt><dd>The optional <code>read_iops_sec_max</code> element is the
             maximum read I/O operations per second.</dd><dt><code>write_iops_sec_max</code></dt><dd>The optional <code>write_iops_sec_max</code> element is the
             maximum write I/O operations per second.</dd><dt><code>size_iops_sec</code></dt><dd>The optional <code>size_iops_sec</code> element is the
-            size of I/O operations per second.</dd></dl>
+            size of I/O operations per second.
+          <p>
+            <span class="since">Throughput limits since 1.2.11 and QEMU 1.7</span>
+          </p>
+          </dd><dt><code>total_bytes_sec_max_length</code></dt><dd>The optional <code>total_bytes_sec_max_length</code>
+            element is the maximum duration in seconds for the
+            <code>total_bytes_sec_max</code> burst period. Only valid
+            when the <code>total_bytes_sec_max</code> is set.</dd><dt><code>read_bytes_sec_max_length</code></dt><dd>The optional <code>read_bytes_sec_max_length</code>
+            element is the maximum duration in seconds for the
+            <code>read_bytes_sec_max</code> burst period. Only valid
+            when the <code>read_bytes_sec_max</code> is set.</dd><dt><code>write_bytes_sec_max</code></dt><dd>The optional <code>write_bytes_sec_max_length</code>
+            element is the maximum duration in seconds for the
+            <code>write_bytes_sec_max</code> burst period. Only valid
+            when the <code>write_bytes_sec_max</code> is set.</dd><dt><code>total_iops_sec_max_length</code></dt><dd>The optional <code>total_iops_sec_max_length</code>
+            element is the maximum duration in seconds for the
+            <code>total_iops_sec_max</code> burst period. Only valid
+            when the <code>total_iops_sec_max</code> is set.</dd><dt><code>read_iops_sec_max_length</code></dt><dd>The optional <code>read_iops_sec_max_length</code>
+            element is the maximum duration in seconds for the
+            <code>read_iops_sec_max</code> burst period. Only valid
+            when the <code>read_iops_sec_max</code> is set.</dd><dt><code>write_iops_sec_max</code></dt><dd>The optional <code>write_iops_sec_max_length</code>
+            element is the maximum duration in seconds for the
+            <code>write_iops_sec_max</code> burst period. Only valid
+            when the <code>write_iops_sec_max</code> is set.
+          <p>
+            <span class="since">Throughput length since 2.4.0 and QEMU 2.6</span>
+          </p>
+          </dd></dl>
       </dd><dt><code>driver</code></dt><dd>
         The optional driver element allows specifying further details
         related to the hypervisor driver used to provide the disk.
@@ -5022,7 +5048,8 @@ qemu-kvm -net nic,model=? /dev/null
           video device in domain xml is the primary one, but the optional
           attribute <code>primary</code> (<span class="since">since 1.0.2</span>)
           with value 'yes' can be used to mark the primary in cases of multiple
-          video device. The non-primary must be type of "qxl".
+          video device. The non-primary must be type of "qxl" or
+          (<span class="since">since 2.4.0</span>) "virtio".
         </p>
       </dd><dt><code>model</code></dt><dd>
         <p>
@@ -5531,6 +5558,33 @@ qemu-kvm -net nic,model=? /dev/null
       &lt;source mode="bind" host="127.0.0.1" service="2445"/&gt;
       &lt;protocol type="telnet"/&gt;
       &lt;target port="1"/&gt;
+    &lt;/serial&gt;
+  &lt;/devices&gt;
+  ...</pre>
+        <p>
+      <span class="since">Since 2.4.0,</span> the optional attribute
+      <code>tls</code> can be used to control whether a chardev
+      TCP communication channel would utilize a hypervisor configured
+      TLS X.509 certificate environment in order to encrypt the data
+      channel. For the QEMU hypervisor, usage of a TLS environment can
+      be controlled on the host by the <code>chardev_tls</code> and
+      <code>chardev_tls_x509_cert_dir</code> or
+      <code>default_tls_x509_cert_dir</code> settings in the file
+      /etc/libvirt/qemu.conf. If <code>chardev_tls</code> is enabled,
+      then unless the <code>tls</code> attribute is set to "no", libvirt
+      will use the host configured TLS environment.
+      If <code>chardev_tls</code> is disabled, but the <code>tls</code>
+      attribute is set to "yes", then libvirt will attempt to use the
+      host TLS environment if either the <code>chardev_tls_x509_cert_dir</code>
+      or <code>default_tls_x509_cert_dir</code> TLS directory structure exists.
+    </p>
+        <pre xml:space="preserve">
+  ...
+  &lt;devices&gt;
+    &lt;serial type="tcp"&gt;
+      &lt;source mode='connect' host="127.0.0.1" service="5555" tls="yes"/&gt;
+      &lt;protocol type="raw"/&gt;
+      &lt;target port="0"/&gt;
     &lt;/serial&gt;
   &lt;/devices&gt;
   ...</pre>

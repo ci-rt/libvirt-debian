@@ -864,6 +864,49 @@ qemuDomainVcpuPrivateDispose(void *obj)
 }
 
 
+static virClassPtr qemuDomainChrSourcePrivateClass;
+static void qemuDomainChrSourcePrivateDispose(void *obj);
+
+static int
+qemuDomainChrSourcePrivateOnceInit(void)
+{
+    qemuDomainChrSourcePrivateClass =
+        virClassNew(virClassForObject(),
+                    "qemuDomainChrSourcePrivate",
+                    sizeof(qemuDomainChrSourcePrivate),
+                    qemuDomainChrSourcePrivateDispose);
+    if (!qemuDomainChrSourcePrivateClass)
+        return -1;
+    else
+        return 0;
+}
+
+VIR_ONCE_GLOBAL_INIT(qemuDomainChrSourcePrivate)
+
+static virObjectPtr
+qemuDomainChrSourcePrivateNew(void)
+{
+    qemuDomainChrSourcePrivatePtr priv;
+
+    if (qemuDomainChrSourcePrivateInitialize() < 0)
+        return NULL;
+
+    if (!(priv = virObjectNew(qemuDomainChrSourcePrivateClass)))
+        return NULL;
+
+    return (virObjectPtr) priv;
+}
+
+
+static void
+qemuDomainChrSourcePrivateDispose(void *obj)
+{
+    qemuDomainChrSourcePrivatePtr priv = obj;
+
+    qemuDomainSecretInfoFree(&priv->secinfo);
+}
+
+
 /* qemuDomainSecretPlainSetup:
  * @conn: Pointer to connection
  * @secinfo: Pointer to secret info
@@ -999,7 +1042,8 @@ qemuDomainSecretSetup(virConnectPtr conn,
     if (virCryptoHaveCipher(VIR_CRYPTO_CIPHER_AES256CBC) &&
         virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_OBJECT_SECRET) &&
         (secretUsageType == VIR_SECRET_USAGE_TYPE_CEPH ||
-         secretUsageType == VIR_SECRET_USAGE_TYPE_VOLUME)) {
+         secretUsageType == VIR_SECRET_USAGE_TYPE_VOLUME ||
+         secretUsageType == VIR_SECRET_USAGE_TYPE_TLS)) {
         if (qemuDomainSecretAESSetup(conn, priv, secinfo, srcalias,
                                      secretUsageType, username,
                                      seclookupdef, isLuks) < 0)
@@ -1061,9 +1105,6 @@ qemuDomainSecretDiskPrepare(virConnectPtr conn,
     virStorageSourcePtr src = disk->src;
     qemuDomainDiskPrivatePtr diskPriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
     qemuDomainSecretInfoPtr secinfo = NULL;
-
-    if (!conn)
-        return 0;
 
     if (qemuDomainSecretDiskCapable(src)) {
         virSecretUsageType secretUsageType = VIR_SECRET_USAGE_TYPE_ISCSI;
@@ -1147,7 +1188,7 @@ qemuDomainSecretHostdevPrepare(virConnectPtr conn,
     virDomainHostdevSubsysPtr subsys = &hostdev->source.subsys;
     qemuDomainSecretInfoPtr secinfo = NULL;
 
-    if (conn && hostdev->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
+    if (hostdev->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
         subsys->type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI) {
 
         virDomainHostdevSubsysSCSIPtr scsisrc = &hostdev->source.subsys.u.scsi;
@@ -1180,6 +1221,93 @@ qemuDomainSecretHostdevPrepare(virConnectPtr conn,
 }
 
 
+/* qemuDomainSecretChardevDestroy:
+ * @disk: Pointer to a chardev definition
+ *
+ * Clear and destroy memory associated with the secret
+ */
+void
+qemuDomainSecretChardevDestroy(virDomainChrSourceDefPtr dev)
+{
+    qemuDomainChrSourcePrivatePtr chrSourcePriv =
+        QEMU_DOMAIN_CHR_SOURCE_PRIVATE(dev);
+
+    if (!chrSourcePriv || !chrSourcePriv->secinfo)
+        return;
+
+    qemuDomainSecretInfoFree(&chrSourcePriv->secinfo);
+}
+
+
+/* qemuDomainSecretChardevPrepare:
+ * @conn: Pointer to connection
+ * @cfg: Pointer to driver config object
+ * @priv: pointer to domain private object
+ * @chrAlias: Alias of the chr device
+ * @dev: Pointer to a char source definition
+ *
+ * For a TCP character device, generate a qemuDomainSecretInfo to be used
+ * by the command line code to generate the secret for the tls-creds to use.
+ *
+ * Returns 0 on success, -1 on failure
+ */
+int
+qemuDomainSecretChardevPrepare(virConnectPtr conn,
+                               virQEMUDriverConfigPtr cfg,
+                               qemuDomainObjPrivatePtr priv,
+                               const char *chrAlias,
+                               virDomainChrSourceDefPtr dev)
+{
+    virSecretLookupTypeDef seclookupdef = {0};
+    qemuDomainSecretInfoPtr secinfo = NULL;
+    char *charAlias = NULL;
+
+    if (dev->type != VIR_DOMAIN_CHR_TYPE_TCP)
+        return 0;
+
+    if (dev->data.tcp.haveTLS == VIR_TRISTATE_BOOL_YES &&
+        cfg->chardevTLSx509secretUUID) {
+        qemuDomainChrSourcePrivatePtr chrSourcePriv =
+            QEMU_DOMAIN_CHR_SOURCE_PRIVATE(dev);
+
+        if (virUUIDParse(cfg->chardevTLSx509secretUUID,
+                         seclookupdef.u.uuid) < 0) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("malformed chardev TLS secret uuid in qemu.conf"));
+            goto error;
+        }
+        seclookupdef.type = VIR_SECRET_LOOKUP_TYPE_UUID;
+
+        if (VIR_ALLOC(secinfo) < 0)
+            goto error;
+
+        if (!(charAlias = qemuAliasChardevFromDevAlias(chrAlias)))
+            goto error;
+
+        if (qemuDomainSecretSetup(conn, priv, secinfo, charAlias,
+                                  VIR_SECRET_USAGE_TYPE_TLS, NULL,
+                                  &seclookupdef, false) < 0)
+            goto error;
+
+        if (secinfo->type == VIR_DOMAIN_SECRET_INFO_TYPE_PLAIN) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("TLS X.509 requires encrypted secrets "
+                             "to be supported"));
+            goto error;
+        }
+
+        chrSourcePriv->secinfo = secinfo;
+    }
+
+    VIR_FREE(charAlias);
+    return 0;
+
+ error:
+    qemuDomainSecretInfoFree(&secinfo);
+    return -1;
+}
+
+
 /* qemuDomainSecretDestroy:
  * @vm: Domain object
  *
@@ -1196,11 +1324,38 @@ qemuDomainSecretDestroy(virDomainObjPtr vm)
 
     for (i = 0; i < vm->def->nhostdevs; i++)
         qemuDomainSecretHostdevDestroy(vm->def->hostdevs[i]);
+
+    for (i = 0; i < vm->def->nserials; i++)
+        qemuDomainSecretChardevDestroy(vm->def->serials[i]->source);
+
+    for (i = 0; i < vm->def->nparallels; i++)
+        qemuDomainSecretChardevDestroy(vm->def->parallels[i]->source);
+
+    for (i = 0; i < vm->def->nchannels; i++)
+        qemuDomainSecretChardevDestroy(vm->def->channels[i]->source);
+
+    for (i = 0; i < vm->def->nconsoles; i++)
+        qemuDomainSecretChardevDestroy(vm->def->consoles[i]->source);
+
+    for (i = 0; i < vm->def->nsmartcards; i++) {
+        if (vm->def->smartcards[i]->type ==
+            VIR_DOMAIN_SMARTCARD_TYPE_PASSTHROUGH)
+            qemuDomainSecretChardevDestroy(vm->def->smartcards[i]->data.passthru);
+    }
+
+    for (i = 0; i < vm->def->nrngs; i++) {
+        if (vm->def->rngs[i]->backend == VIR_DOMAIN_RNG_BACKEND_EGD)
+            qemuDomainSecretChardevDestroy(vm->def->rngs[i]->source.chardev);
+    }
+
+    for (i = 0; i < vm->def->nredirdevs; i++)
+        qemuDomainSecretChardevDestroy(vm->def->redirdevs[i]->source);
 }
 
 
 /* qemuDomainSecretPrepare:
  * @conn: Pointer to connection
+ * @driver: Pointer to driver object
  * @vm: Domain object
  *
  * For any objects that may require an auth/secret setup, create a
@@ -1213,23 +1368,81 @@ qemuDomainSecretDestroy(virDomainObjPtr vm)
  */
 int
 qemuDomainSecretPrepare(virConnectPtr conn,
+                        virQEMUDriverPtr driver,
                         virDomainObjPtr vm)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
+    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     size_t i;
+    int ret = -1;
 
     for (i = 0; i < vm->def->ndisks; i++) {
         if (qemuDomainSecretDiskPrepare(conn, priv, vm->def->disks[i]) < 0)
-            return -1;
+            goto cleanup;
     }
 
     for (i = 0; i < vm->def->nhostdevs; i++) {
         if (qemuDomainSecretHostdevPrepare(conn, priv,
                                            vm->def->hostdevs[i]) < 0)
-            return -1;
+            goto cleanup;
     }
 
-    return 0;
+    for (i = 0; i < vm->def->nserials; i++) {
+        if (qemuDomainSecretChardevPrepare(conn, cfg, priv,
+                                           vm->def->serials[i]->info.alias,
+                                           vm->def->serials[i]->source) < 0)
+            goto cleanup;
+    }
+
+    for (i = 0; i < vm->def->nparallels; i++) {
+        if (qemuDomainSecretChardevPrepare(conn, cfg, priv,
+                                           vm->def->parallels[i]->info.alias,
+                                           vm->def->parallels[i]->source) < 0)
+            goto cleanup;
+    }
+
+    for (i = 0; i < vm->def->nchannels; i++) {
+        if (qemuDomainSecretChardevPrepare(conn, cfg, priv,
+                                           vm->def->channels[i]->info.alias,
+                                           vm->def->channels[i]->source) < 0)
+            goto cleanup;
+    }
+
+    for (i = 0; i < vm->def->nconsoles; i++) {
+        if (qemuDomainSecretChardevPrepare(conn, cfg, priv,
+                                           vm->def->consoles[i]->info.alias,
+                                           vm->def->consoles[i]->source) < 0)
+            goto cleanup;
+    }
+
+    for (i = 0; i < vm->def->nsmartcards; i++)
+        if (vm->def->smartcards[i]->type ==
+            VIR_DOMAIN_SMARTCARD_TYPE_PASSTHROUGH &&
+            qemuDomainSecretChardevPrepare(conn, cfg, priv,
+                                           vm->def->smartcards[i]->info.alias,
+                                           vm->def->smartcards[i]->data.passthru) < 0)
+            goto cleanup;
+
+    for (i = 0; i < vm->def->nrngs; i++) {
+        if (vm->def->rngs[i]->backend == VIR_DOMAIN_RNG_BACKEND_EGD &&
+            qemuDomainSecretChardevPrepare(conn, cfg, priv,
+                                           vm->def->rngs[i]->info.alias,
+                                           vm->def->rngs[i]->source.chardev) < 0)
+            goto cleanup;
+    }
+
+    for (i = 0; i < vm->def->nredirdevs; i++) {
+        if (qemuDomainSecretChardevPrepare(conn, cfg, priv,
+                                           vm->def->redirdevs[i]->info.alias,
+                                           vm->def->redirdevs[i]->source) < 0)
+            goto cleanup;
+    }
+
+    ret = 0;
+
+ cleanup:
+    virObjectUnref(cfg);
+    return ret;
 }
 
 
@@ -1767,6 +1980,7 @@ virDomainXMLPrivateDataCallbacks virQEMUDriverPrivateDataCallbacks = {
     .diskNew = qemuDomainDiskPrivateNew,
     .vcpuNew = qemuDomainVcpuPrivateNew,
     .hostdevNew = qemuDomainHostdevPrivateNew,
+    .chrSourceNew = qemuDomainChrSourcePrivateNew,
     .parse = qemuDomainObjPrivateXMLParse,
     .format = qemuDomainObjPrivateXMLFormat,
 };
@@ -2395,13 +2609,85 @@ qemuDomainDefPostParse(virDomainDefPtr def,
 
 
 static int
+qemuDomainDefValidateVideo(const virDomainDef *def)
+{
+    size_t i;
+    virDomainVideoDefPtr video;
+
+    for (i = 0; i < def->nvideos; i++) {
+        video = def->videos[i];
+
+        switch (video->type) {
+        case VIR_DOMAIN_VIDEO_TYPE_XEN:
+        case VIR_DOMAIN_VIDEO_TYPE_VBOX:
+        case VIR_DOMAIN_VIDEO_TYPE_PARALLELS:
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("video type '%s' is not supported with QEMU"),
+                           virDomainVideoTypeToString(video->type));
+            return -1;
+        case VIR_DOMAIN_VIDEO_TYPE_VGA:
+        case VIR_DOMAIN_VIDEO_TYPE_CIRRUS:
+        case VIR_DOMAIN_VIDEO_TYPE_VMVGA:
+        case VIR_DOMAIN_VIDEO_TYPE_QXL:
+        case VIR_DOMAIN_VIDEO_TYPE_VIRTIO:
+        case VIR_DOMAIN_VIDEO_TYPE_LAST:
+            break;
+        }
+
+        if (!video->primary &&
+            video->type != VIR_DOMAIN_VIDEO_TYPE_QXL &&
+            video->type != VIR_DOMAIN_VIDEO_TYPE_VIRTIO) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("video type '%s' is only valid as primary "
+                             "video device"),
+                           virDomainVideoTypeToString(video->type));
+            return -1;
+        }
+
+        if (video->accel && video->accel->accel2d == VIR_TRISTATE_SWITCH_ON) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("qemu does not support the accel2d setting"));
+            return -1;
+        }
+
+        if (video->type == VIR_DOMAIN_VIDEO_TYPE_QXL) {
+            if (video->vram > (UINT_MAX / 1024)) {
+                virReportError(VIR_ERR_OVERFLOW,
+                               _("value for 'vram' must be less than '%u'"),
+                               UINT_MAX / 1024);
+                return -1;
+            }
+            if (video->ram > (UINT_MAX / 1024)) {
+                virReportError(VIR_ERR_OVERFLOW,
+                               _("value for 'ram' must be less than '%u'"),
+                               UINT_MAX / 1024);
+                return -1;
+            }
+        }
+
+        if (video->type == VIR_DOMAIN_VIDEO_TYPE_VGA ||
+            video->type == VIR_DOMAIN_VIDEO_TYPE_VMVGA) {
+            if (video->vram && video->vram < 1024) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               "%s", _("value for 'vram' must be at least "
+                                       "1 MiB (1024 KiB)"));
+                return -1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+
+static int
 qemuDomainDefValidate(const virDomainDef *def,
                       virCapsPtr caps,
                       void *opaque)
 {
     virQEMUDriverPtr driver = opaque;
     virQEMUCapsPtr qemuCaps = NULL;
-    size_t topologycpus;
+    unsigned int topologycpus;
     int ret = -1;
 
     if (!(qemuCaps = virQEMUCapsCacheLookup(caps,
@@ -2443,17 +2729,18 @@ qemuDomainDefValidate(const virDomainDef *def,
     }
 
     /* qemu as of 2.5.0 rejects SMP topologies that don't match the cpu count */
-    if (def->cpu && def->cpu->sockets) {
-        topologycpus = def->cpu->sockets * def->cpu->cores * def->cpu->threads;
-        if (topologycpus != virDomainDefGetVcpusMax(def)) {
-            /* presence of query-hotpluggable-cpus should be a good enough witness */
-            if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_QUERY_HOTPLUGGABLE_CPUS)) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                               _("CPU topology doesn't match maximum vcpu count"));
-                goto cleanup;
-            }
+    if (virDomainDefGetVcpusTopology(def, &topologycpus) == 0 &&
+        topologycpus != virDomainDefGetVcpusMax(def)) {
+        /* presence of query-hotpluggable-cpus should be a good enough witness */
+        if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_QUERY_HOTPLUGGABLE_CPUS)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("CPU topology doesn't match maximum vcpu count"));
+            goto cleanup;
         }
     }
+
+    if (qemuDomainDefValidateVideo(def) < 0)
+        goto cleanup;
 
     ret = 0;
 
@@ -2546,10 +2833,10 @@ qemuDomainChrDefDropDefaultPath(virDomainChrDefPtr chr,
 
     if (chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CHANNEL &&
         chr->targetType == VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_VIRTIO &&
-        chr->source.type == VIR_DOMAIN_CHR_TYPE_UNIX &&
-        chr->source.data.nix.path &&
-        STRPREFIX(chr->source.data.nix.path, cfg->channelTargetDir)) {
-        VIR_FREE(chr->source.data.nix.path);
+        chr->source->type == VIR_DOMAIN_CHR_TYPE_UNIX &&
+        chr->source->data.nix.path &&
+        STRPREFIX(chr->source->data.nix.path, cfg->channelTargetDir)) {
+        VIR_FREE(chr->source->data.nix.path);
     }
 
     virObjectUnref(cfg);
@@ -5972,6 +6259,72 @@ qemuDomainRefreshVcpuInfo(virQEMUDriverPtr driver,
     return ret;
 }
 
+/**
+ * qemuDomainGetVcpuHalted:
+ * @vm: domain object
+ * @vcpu: cpu id
+ *
+ * Returns the vCPU halted state.
+  */
+bool
+qemuDomainGetVcpuHalted(virDomainObjPtr vm,
+                        unsigned int vcpuid)
+{
+    virDomainVcpuDefPtr vcpu = virDomainDefGetVcpu(vm->def, vcpuid);
+    return QEMU_DOMAIN_VCPU_PRIVATE(vcpu)->halted;
+}
+
+/**
+ * qemuDomainRefreshVcpuHalted:
+ * @driver: qemu driver data
+ * @vm: domain object
+ * @asyncJob: current asynchronous job type
+ *
+ * Updates vCPU halted state in the private data of @vm.
+ *
+ * Returns 0 on success and -1 on error
+ */
+int
+qemuDomainRefreshVcpuHalted(virQEMUDriverPtr driver,
+                            virDomainObjPtr vm,
+                            int asyncJob)
+{
+    virDomainVcpuDefPtr vcpu;
+    qemuMonitorCPUInfoPtr info = NULL;
+    size_t maxvcpus = virDomainDefGetVcpusMax(vm->def);
+    size_t i;
+    bool hotplug;
+    int rc;
+    int ret = -1;
+
+    /* Not supported currently for TCG, see qemuDomainRefreshVcpuInfo */
+    if (vm->def->virtType == VIR_DOMAIN_VIRT_QEMU)
+        return 0;
+
+    hotplug = qemuDomainSupportsNewVcpuHotplug(vm);
+
+    if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
+        return -1;
+
+    rc = qemuMonitorGetCPUInfo(qemuDomainGetMonitor(vm), &info, maxvcpus, hotplug);
+
+    if (qemuDomainObjExitMonitor(driver, vm) < 0)
+        goto cleanup;
+
+    if (rc < 0)
+        goto cleanup;
+
+    for (i = 0; i < maxvcpus; i++) {
+        vcpu = virDomainDefGetVcpu(vm->def, i);
+        QEMU_DOMAIN_VCPU_PRIVATE(vcpu)->halted = info[i].halted;
+    }
+
+    ret = 0;
+
+ cleanup:
+    qemuMonitorCPUInfoFree(info, maxvcpus);
+    return ret;
+}
 
 bool
 qemuDomainSupportsNicdev(virDomainDefPtr def,
@@ -6057,19 +6410,86 @@ qemuDomainPrepareChannel(virDomainChrDefPtr channel,
                          const char *domainChannelTargetDir)
 {
     if (channel->targetType == VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_VIRTIO &&
-        channel->source.type == VIR_DOMAIN_CHR_TYPE_UNIX &&
-        !channel->source.data.nix.path) {
-        if (virAsprintf(&channel->source.data.nix.path,
+        channel->source->type == VIR_DOMAIN_CHR_TYPE_UNIX &&
+        !channel->source->data.nix.path) {
+        if (virAsprintf(&channel->source->data.nix.path,
                         "%s/%s", domainChannelTargetDir,
                         channel->target.name ? channel->target.name
                         : "unknown.sock") < 0)
             return -1;
 
-        channel->source.data.nix.listen = true;
+        channel->source->data.nix.listen = true;
     }
 
     return 0;
 }
+
+
+/* qemuProcessPrepareDomainChardevSourceTLS:
+ * @source: pointer to host interface data for char devices
+ * @cfg: driver configuration
+ *
+ * Updates host interface TLS encryption setting based on qemu.conf
+ * for char devices.  This will be presented as "tls='yes|no'" in
+ * live XML of a guest.
+ */
+void
+qemuDomainPrepareChardevSourceTLS(virDomainChrSourceDefPtr source,
+                                  virQEMUDriverConfigPtr cfg)
+{
+    if (source->type == VIR_DOMAIN_CHR_TYPE_TCP) {
+        if (source->data.tcp.haveTLS == VIR_TRISTATE_BOOL_ABSENT) {
+            if (cfg->chardevTLS)
+                source->data.tcp.haveTLS = VIR_TRISTATE_BOOL_YES;
+            else
+                source->data.tcp.haveTLS = VIR_TRISTATE_BOOL_NO;
+            source->data.tcp.tlsFromConfig = true;
+        }
+    }
+}
+
+
+/* qemuProcessPrepareDomainChardevSource:
+ * @def: live domain definition
+ * @driver: qemu driver
+ *
+ * Iterate through all devices that use virDomainChrSourceDefPtr as host
+ * interface part.
+ */
+void
+qemuDomainPrepareChardevSource(virDomainDefPtr def,
+                               virQEMUDriverPtr driver)
+{
+    size_t i;
+    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+
+    for (i = 0; i < def->nserials; i++)
+        qemuDomainPrepareChardevSourceTLS(def->serials[i]->source, cfg);
+
+    for (i = 0; i < def->nparallels; i++)
+        qemuDomainPrepareChardevSourceTLS(def->parallels[i]->source, cfg);
+
+    for (i = 0; i < def->nchannels; i++)
+        qemuDomainPrepareChardevSourceTLS(def->channels[i]->source, cfg);
+
+    for (i = 0; i < def->nconsoles; i++)
+        qemuDomainPrepareChardevSourceTLS(def->consoles[i]->source, cfg);
+
+    for (i = 0; i < def->nrngs; i++)
+        if (def->rngs[i]->backend == VIR_DOMAIN_RNG_BACKEND_EGD)
+            qemuDomainPrepareChardevSourceTLS(def->rngs[i]->source.chardev, cfg);
+
+    for (i = 0; i < def->nsmartcards; i++)
+        if (def->smartcards[i]->type == VIR_DOMAIN_SMARTCARD_TYPE_PASSTHROUGH)
+            qemuDomainPrepareChardevSourceTLS(def->smartcards[i]->data.passthru,
+                                              cfg);
+
+    for (i = 0; i < def->nredirdevs; i++)
+        qemuDomainPrepareChardevSourceTLS(def->redirdevs[i]->source, cfg);
+
+    virObjectUnref(cfg);
+}
+
 
 
 int
@@ -6171,4 +6591,16 @@ qemuDomainCheckMonitor(virQEMUDriverPtr driver,
         return -1;
 
     return ret;
+}
+
+
+bool
+qemuDomainSupportsVideoVga(virDomainVideoDefPtr video,
+                           virQEMUCapsPtr qemuCaps)
+{
+    if (video->type == VIR_DOMAIN_VIDEO_TYPE_VIRTIO &&
+        !virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_VIRTIO_VGA))
+        return false;
+
+    return true;
 }

@@ -777,7 +777,7 @@ networkStateCleanup(void)
     if (!network_driver)
         return -1;
 
-    virObjectEventStateFree(network_driver->networkEventState);
+    virObjectUnref(network_driver->networkEventState);
 
     /* free inactive networks */
     virObjectUnref(network_driver->networks);
@@ -1258,8 +1258,10 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
 
         /* Note: the following is IPv4 only */
         if (VIR_SOCKET_ADDR_IS_FAMILY(&ipdef->address, AF_INET)) {
-            if (ipdef->nranges || ipdef->nhosts)
+            if (ipdef->nranges || ipdef->nhosts) {
                 virBufferAddLit(&configbuf, "dhcp-no-override\n");
+                virBufferAddLit(&configbuf, "dhcp-authoritative\n");
+            }
 
             if (ipdef->tftproot) {
                 virBufferAddLit(&configbuf, "enable-tftp\n");
@@ -2970,6 +2972,9 @@ networkValidate(virNetworkDriverStatePtr driver,
     bool ipv4def = false, ipv6def = false;
     bool bandwidthAllowed = true;
     bool usesInterface = false, usesAddress = false;
+
+    if (virXMLCheckIllegalChars("name", def->name, "\n") < 0)
+        return -1;
 
     /* Only the three L3 network types that are configured by libvirt
      * need to have a bridge device name / mac address provided

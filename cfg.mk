@@ -127,7 +127,6 @@ useless_free_options =				\
   --name=virDomainDiskDefFree			\
   --name=virDomainEventCallbackListFree		\
   --name=virObjectEventQueueFree		\
-  --name=virObjectEventStateFree		\
   --name=virDomainFSDefFree			\
   --name=virDomainGraphicsDefFree		\
   --name=virDomainHostdevDefFree		\
@@ -579,6 +578,11 @@ sc_prohibit_loop_var_decl:
 sc_prohibit_int_assign_bool:
 	@prohibit='\<int\>.*= *(true|false)'				\
 	halt='use bool type for boolean values'				\
+	  $(_sc_search_regexp)
+
+sc_prohibit_unsigned_pid:
+	@prohibit='\<unsigned\> [^,=;(]+pid'				\
+	halt='use signed type for pid values'				\
 	  $(_sc_search_regexp)
 
 # Many of the function names below came from this filter:
@@ -1213,6 +1217,9 @@ exclude_file_name_regexp--sc_prohibit_include_public_headers_brackets = \
 
 exclude_file_name_regexp--sc_prohibit_int_ijk = \
   ^(src/remote_protocol-structs|src/remote/remote_protocol\.x|cfg\.mk|include/libvirt/libvirt.+|src/admin_protocol-structs|src/admin/admin_protocol\.x)$$
+
+exclude_file_name_regexp--sc_prohibit_unsigned_pid = \
+  ^(include/libvirt/.*\.h|src/(qemu/qemu_driver\.c|driver-hypervisor\.h|libvirt(-[a-z]*)?\.c|.*\.x|util/vir(polkit|systemd)\.c)|tests/virpolkittest\.c|tools/virsh-domain\.c)$$
 
 exclude_file_name_regexp--sc_prohibit_getenv = \
   ^tests/.*\.[ch]$$

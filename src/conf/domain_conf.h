@@ -548,6 +548,12 @@ struct _virDomainBlockIoTuneInfo {
     unsigned long long read_iops_sec_max;
     unsigned long long write_iops_sec_max;
     unsigned long long size_iops_sec;
+    unsigned long long total_bytes_sec_max_length;
+    unsigned long long read_bytes_sec_max_length;
+    unsigned long long write_bytes_sec_max_length;
+    unsigned long long total_iops_sec_max_length;
+    unsigned long long read_iops_sec_max_length;
+    unsigned long long write_iops_sec_max_length;
 };
 typedef virDomainBlockIoTuneInfo *virDomainBlockIoTuneInfoPtr;
 
@@ -1078,6 +1084,7 @@ typedef enum {
 /* The host side information for a character device.  */
 struct _virDomainChrSourceDef {
     int type; /* virDomainChrType */
+    virObjectPtr privateData;
     union {
         /* no <source> for null, vc, stdio */
         struct {
@@ -1094,6 +1101,8 @@ struct _virDomainChrSourceDef {
             bool listen;
             int protocol;
             bool tlscreds;
+            int haveTLS; /* enum virTristateBool */
+            bool tlsFromConfig;
         } tcp;
         struct {
             char *bindHost;
@@ -1131,7 +1140,7 @@ struct _virDomainChrDef {
 
     virDomainChrDeviceState state;
 
-    virDomainChrSourceDef source;
+    virDomainChrSourceDefPtr source;
 
     virDomainDeviceInfo info;
 
@@ -1158,7 +1167,7 @@ struct _virDomainSmartcardDef {
             char *file[VIR_DOMAIN_SMARTCARD_NUM_CERTIFICATES];
             char *database;
         } cert; /* 'host-certificates' */
-        virDomainChrSourceDef passthru; /* 'passthrough' */
+        virDomainChrSourceDefPtr passthru; /* 'passthrough' */
     } data;
 
     virDomainDeviceInfo info;
@@ -1516,9 +1525,7 @@ typedef enum {
 struct _virDomainRedirdevDef {
     int bus; /* enum virDomainRedirdevBus */
 
-    union {
-        virDomainChrSourceDef chr;
-    } source;
+    virDomainChrSourceDefPtr source;
 
     virDomainDeviceInfo info; /* Guest address */
 };
@@ -1536,13 +1543,13 @@ struct _virDomainRedirFilterDef {
     virDomainRedirFilterUSBDevDefPtr *usbdevs;
 };
 
-enum {
+typedef enum {
     VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO,
     VIR_DOMAIN_MEMBALLOON_MODEL_XEN,
     VIR_DOMAIN_MEMBALLOON_MODEL_NONE,
 
     VIR_DOMAIN_MEMBALLOON_MODEL_LAST
-};
+} virDomainMemballoonModel;
 
 struct _virDomainMemballoonDef {
     int model;
@@ -2446,6 +2453,7 @@ struct _virDomainXMLPrivateDataCallbacks {
     virDomainXMLPrivateDataNewFunc    diskNew;
     virDomainXMLPrivateDataNewFunc    hostdevNew;
     virDomainXMLPrivateDataNewFunc    vcpuNew;
+    virDomainXMLPrivateDataNewFunc    chrSourceNew;
     virDomainXMLPrivateDataFormatFunc format;
     virDomainXMLPrivateDataParseFunc  parse;
 };
@@ -2488,6 +2496,8 @@ virBitmapPtr virDomainDefGetOnlineVcpumap(const virDomainDef *def);
 virDomainVcpuDefPtr virDomainDefGetVcpu(virDomainDefPtr def, unsigned int vcpu)
     ATTRIBUTE_RETURN_CHECK;
 void virDomainDefVcpuOrderClear(virDomainDefPtr def);
+int  virDomainDefGetVcpusTopology(const virDomainDef *def,
+                                  unsigned int *maxvcpus);
 
 virDomainObjPtr virDomainObjNew(virDomainXMLOptionPtr caps)
     ATTRIBUTE_NONNULL(1);
@@ -2579,7 +2589,7 @@ bool virDomainDefHasDeviceAddress(virDomainDefPtr def,
 
 void virDomainDefFree(virDomainDefPtr vm);
 
-virDomainChrDefPtr virDomainChrDefNew(void);
+virDomainChrDefPtr virDomainChrDefNew(virDomainXMLOptionPtr xmlopt);
 
 virDomainDefPtr virDomainDefNew(void);
 virDomainDefPtr virDomainDefNewFull(const char *name,
@@ -2814,7 +2824,7 @@ int virDomainGraphicsListenAppendSocket(virDomainGraphicsDefPtr def,
                                         const char *socket)
             ATTRIBUTE_NONNULL(1);
 
-int virDomainNetGetActualType(virDomainNetDefPtr iface);
+virDomainNetType virDomainNetGetActualType(virDomainNetDefPtr iface);
 const char *virDomainNetGetActualBridgeName(virDomainNetDefPtr iface);
 int virDomainNetGetActualBridgeMACTableManager(virDomainNetDefPtr iface);
 const char *virDomainNetGetActualDirectDev(virDomainNetDefPtr iface);

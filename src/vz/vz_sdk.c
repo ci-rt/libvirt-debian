@@ -639,6 +639,17 @@ prlsdkGetDiskInfo(vzDriverPtr driver,
 
     disk->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE;
 
+    if (!isCdrom) {
+        if (!(disk->serial = prlsdkGetStringParamVar(PrlVmDevHd_GetSerialNumber, prldisk)))
+            goto cleanup;
+
+        if (*disk->serial == '\0')
+            VIR_FREE(disk->serial);
+    }
+
+    if (virDomainDiskSetDriver(disk, "vz") < 0)
+        goto cleanup;
+
     ret = 0;
 
  cleanup:
@@ -1004,27 +1015,19 @@ prlsdkGetNetInfo(PRL_HANDLE netAdapter, virDomainNetDefPtr net, bool isCt)
                        PARALLELS_DOMAIN_ROUTED_NETWORK_NAME) < 0)
             goto cleanup;
     } else {
-        char *netid = NULL;
-
-        if (!(netid =
+        char *netid =
               prlsdkGetStringParamVar(PrlVmDevNet_GetVirtualNetworkId,
-                                      netAdapter)))
-            goto cleanup;
+                                      netAdapter);
 
-        /*
-         * We use VIR_DOMAIN_NET_TYPE_NETWORK for all network adapters
-         * except those whose Virtual Network Id differ from Parallels
-         * predefined ones such as PARALLELS_DOMAIN_BRIDGED_NETWORK_NAME
-         * and PARALLELS_DONAIN_ROUTED_NETWORK_NAME
-         */
-        if (STRNEQ(netid, PARALLELS_DOMAIN_BRIDGED_NETWORK_NAME)) {
+        if (emulatedType == PNA_BRIDGE) {
             net->type = VIR_DOMAIN_NET_TYPE_BRIDGE;
-            net->data.network.name = netid;
+            if (netid)
+                net->data.bridge.brname = netid;
         } else {
             net->type = VIR_DOMAIN_NET_TYPE_NETWORK;
-            net->data.bridge.brname = netid;
+            if (netid)
+                net->data.network.name = netid;
         }
-
     }
 
     if (!isCt) {
@@ -1137,46 +1140,46 @@ prlsdkGetSerialInfo(PRL_HANDLE serialPort, virDomainChrDefPtr chr)
 
     switch (emulatedType) {
     case PDT_USE_OUTPUT_FILE:
-        chr->source.type = VIR_DOMAIN_CHR_TYPE_FILE;
-        chr->source.data.file.path = friendlyName;
+        chr->source->type = VIR_DOMAIN_CHR_TYPE_FILE;
+        chr->source->data.file.path = friendlyName;
         friendlyName = NULL;
         break;
     case PDT_USE_SERIAL_PORT_SOCKET_MODE:
-        chr->source.type = VIR_DOMAIN_CHR_TYPE_UNIX;
-        chr->source.data.nix.path = friendlyName;
-        chr->source.data.nix.listen = socket_mode == PSP_SERIAL_SOCKET_SERVER;
+        chr->source->type = VIR_DOMAIN_CHR_TYPE_UNIX;
+        chr->source->data.nix.path = friendlyName;
+        chr->source->data.nix.listen = socket_mode == PSP_SERIAL_SOCKET_SERVER;
         friendlyName = NULL;
         break;
     case PDT_USE_REAL_DEVICE:
-        chr->source.type = VIR_DOMAIN_CHR_TYPE_DEV;
-        chr->source.data.file.path = friendlyName;
+        chr->source->type = VIR_DOMAIN_CHR_TYPE_DEV;
+        chr->source->data.file.path = friendlyName;
         friendlyName = NULL;
         break;
     case PDT_USE_TCP:
-        chr->source.type = VIR_DOMAIN_CHR_TYPE_TCP;
+        chr->source->type = VIR_DOMAIN_CHR_TYPE_TCP;
         if (virAsprintf(&uristr, "tcp://%s", friendlyName) < 0)
             goto cleanup;
         if (!(uri = virURIParse(uristr)))
             goto cleanup;
-        if (VIR_STRDUP(chr->source.data.tcp.host, uri->server) < 0)
+        if (VIR_STRDUP(chr->source->data.tcp.host, uri->server) < 0)
             goto cleanup;
-        if (virAsprintf(&chr->source.data.tcp.service, "%d", uri->port) < 0)
+        if (virAsprintf(&chr->source->data.tcp.service, "%d", uri->port) < 0)
             goto cleanup;
-        chr->source.data.tcp.listen = socket_mode == PSP_SERIAL_SOCKET_SERVER;
+        chr->source->data.tcp.listen = socket_mode == PSP_SERIAL_SOCKET_SERVER;
         break;
     case PDT_USE_UDP:
-        chr->source.type = VIR_DOMAIN_CHR_TYPE_UDP;
+        chr->source->type = VIR_DOMAIN_CHR_TYPE_UDP;
         if (virAsprintf(&uristr, "udp://%s", friendlyName) < 0)
             goto cleanup;
         if (!(uri = virURIParse(uristr)))
             goto cleanup;
-        if (VIR_STRDUP(chr->source.data.udp.bindHost, uri->server) < 0)
+        if (VIR_STRDUP(chr->source->data.udp.bindHost, uri->server) < 0)
             goto cleanup;
-        if (virAsprintf(&chr->source.data.udp.bindService, "%d", uri->port) < 0)
+        if (virAsprintf(&chr->source->data.udp.bindService, "%d", uri->port) < 0)
             goto cleanup;
-        if (VIR_STRDUP(chr->source.data.udp.connectHost, uri->server) < 0)
+        if (VIR_STRDUP(chr->source->data.udp.connectHost, uri->server) < 0)
             goto cleanup;
-        if (virAsprintf(&chr->source.data.udp.connectService, "%d", uri->port) < 0)
+        if (virAsprintf(&chr->source->data.udp.connectService, "%d", uri->port) < 0)
             goto cleanup;
         break;
     default:
@@ -1214,7 +1217,7 @@ prlsdkAddSerialInfo(PRL_HANDLE sdkdom,
         ret = PrlVmCfg_GetSerialPort(sdkdom, i, &serialPort);
         prlsdkCheckRetGoto(ret, cleanup);
 
-        if (!(chr = virDomainChrDefNew()))
+        if (!(chr = virDomainChrDefNew(NULL)))
             goto cleanup;
 
         if (prlsdkGetSerialInfo(serialPort, chr))
@@ -2757,11 +2760,11 @@ static int prlsdkCheckSerialUnsupportedParams(virDomainChrDefPtr chr)
         return -1;
     }
 
-    if (chr->source.type != VIR_DOMAIN_CHR_TYPE_DEV &&
-        chr->source.type != VIR_DOMAIN_CHR_TYPE_FILE &&
-        chr->source.type != VIR_DOMAIN_CHR_TYPE_UNIX &&
-        chr->source.type != VIR_DOMAIN_CHR_TYPE_TCP &&
-        chr->source.type != VIR_DOMAIN_CHR_TYPE_UDP) {
+    if (chr->source->type != VIR_DOMAIN_CHR_TYPE_DEV &&
+        chr->source->type != VIR_DOMAIN_CHR_TYPE_FILE &&
+        chr->source->type != VIR_DOMAIN_CHR_TYPE_UNIX &&
+        chr->source->type != VIR_DOMAIN_CHR_TYPE_TCP &&
+        chr->source->type != VIR_DOMAIN_CHR_TYPE_UDP) {
 
 
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -2784,20 +2787,20 @@ static int prlsdkCheckSerialUnsupportedParams(virDomainChrDefPtr chr)
         return -1;
     }
 
-   if (chr->source.type == VIR_DOMAIN_CHR_TYPE_TCP &&
-        chr->source.data.tcp.protocol != VIR_DOMAIN_CHR_TCP_PROTOCOL_RAW) {
+   if (chr->source->type == VIR_DOMAIN_CHR_TYPE_TCP &&
+        chr->source->data.tcp.protocol != VIR_DOMAIN_CHR_TCP_PROTOCOL_RAW) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Protocol '%s' is not supported for "
                          "tcp character device."),
-                       virDomainChrTcpProtocolTypeToString(chr->source.data.tcp.protocol));
+                       virDomainChrTcpProtocolTypeToString(chr->source->data.tcp.protocol));
         return -1;
     }
 
-    if (chr->source.type == VIR_DOMAIN_CHR_TYPE_UDP &&
-        (STRNEQ(chr->source.data.udp.bindHost,
-                chr->source.data.udp.connectHost) ||
-         STRNEQ(chr->source.data.udp.bindService,
-                chr->source.data.udp.connectService))) {
+    if (chr->source->type == VIR_DOMAIN_CHR_TYPE_UDP &&
+        (STRNEQ(chr->source->data.udp.bindHost,
+                chr->source->data.udp.connectHost) ||
+         STRNEQ(chr->source->data.udp.bindService,
+                chr->source->data.udp.connectService))) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Different bind and connect parameters for "
                          "udp character device is not supported."));
@@ -2967,7 +2970,7 @@ static int prlsdkApplyGraphicsParams(PRL_HANDLE sdkdom,
 
     glisten = virDomainGraphicsGetListen(gr, 0);
     pret = PrlVmCfg_SetVNCHostName(sdkdom, glisten && glisten->address ?
-                                           glisten->address : "");
+                                           glisten->address : "127.0.0.1");
     prlsdkCheckRetGoto(pret, cleanup);
 
     ret = 0;
@@ -3014,36 +3017,36 @@ static int prlsdkAddSerial(PRL_HANDLE sdkdom, virDomainChrDefPtr chr)
     pret = PrlVmCfg_CreateVmDev(sdkdom, PDE_SERIAL_PORT, &sdkchr);
     prlsdkCheckRetGoto(pret, cleanup);
 
-    switch (chr->source.type) {
+    switch (chr->source->type) {
     case VIR_DOMAIN_CHR_TYPE_DEV:
         emutype = PDT_USE_REAL_DEVICE;
-        path = chr->source.data.file.path;
+        path = chr->source->data.file.path;
         break;
     case VIR_DOMAIN_CHR_TYPE_FILE:
         emutype = PDT_USE_OUTPUT_FILE;
-        path = chr->source.data.file.path;
+        path = chr->source->data.file.path;
         break;
     case VIR_DOMAIN_CHR_TYPE_UNIX:
         emutype = PDT_USE_SERIAL_PORT_SOCKET_MODE;
-        path = chr->source.data.nix.path;
-        if (!chr->source.data.nix.listen)
+        path = chr->source->data.nix.path;
+        if (!chr->source->data.nix.listen)
             socket_mode = PSP_SERIAL_SOCKET_CLIENT;
         break;
     case VIR_DOMAIN_CHR_TYPE_TCP:
         emutype = PDT_USE_TCP;
         if (virAsprintf(&url, "%s:%s",
-                        chr->source.data.tcp.host,
-                        chr->source.data.tcp.service) < 0)
+                        chr->source->data.tcp.host,
+                        chr->source->data.tcp.service) < 0)
             goto cleanup;
-        if (!chr->source.data.tcp.listen)
+        if (!chr->source->data.tcp.listen)
             socket_mode = PSP_SERIAL_SOCKET_CLIENT;
         path = url;
         break;
     case VIR_DOMAIN_CHR_TYPE_UDP:
         emutype = PDT_USE_UDP;
         if (virAsprintf(&url, "%s:%s",
-                        chr->source.data.udp.bindHost,
-                        chr->source.data.udp.bindService) < 0)
+                        chr->source->data.udp.bindHost,
+                        chr->source->data.udp.bindService) < 0)
             goto cleanup;
         path = url;
         break;
@@ -3175,16 +3178,14 @@ static int prlsdkConfigureGateways(PRL_HANDLE sdknet, virDomainNetDefPtr net)
     return ret;
 }
 
-static int prlsdkConfigureNet(vzDriverPtr driver,
-                              virDomainObjPtr dom,
+static int prlsdkConfigureNet(vzDriverPtr driver ATTRIBUTE_UNUSED,
+                              virDomainObjPtr dom ATTRIBUTE_UNUSED,
                               PRL_HANDLE sdkdom,
                               virDomainNetDefPtr net,
                               bool isCt, bool create)
 {
     PRL_RESULT pret;
     PRL_HANDLE sdknet = PRL_INVALID_HANDLE;
-    PRL_HANDLE vnet = PRL_INVALID_HANDLE;
-    PRL_HANDLE job = PRL_INVALID_HANDLE;
     PRL_HANDLE addrlist = PRL_INVALID_HANDLE;
     size_t i;
     int ret = -1;
@@ -3291,35 +3292,17 @@ static int prlsdkConfigureNet(vzDriverPtr driver,
         if (STREQ(net->data.network.name, PARALLELS_DOMAIN_ROUTED_NETWORK_NAME)) {
             pret = PrlVmDev_SetEmulatedType(sdknet, PNA_ROUTED);
             prlsdkCheckRetGoto(pret, cleanup);
-        } else if (STREQ(net->data.network.name, PARALLELS_DOMAIN_BRIDGED_NETWORK_NAME)) {
-            pret = PrlVmDev_SetEmulatedType(sdknet, PNA_BRIDGED_ETHERNET);
+        } else {
+            pret = PrlVmDev_SetEmulatedType(sdknet, PNA_BRIDGED_NETWORK);
             prlsdkCheckRetGoto(pret, cleanup);
 
             pret = PrlVmDevNet_SetVirtualNetworkId(sdknet, net->data.network.name);
             prlsdkCheckRetGoto(pret, cleanup);
         }
+
     } else if (net->type == VIR_DOMAIN_NET_TYPE_BRIDGE) {
-        /*
-         * For this type of adapter we create a new
-         * Virtual Network assuming that bridge with given name exists
-         * Failing creating this means domain creation failure
-         */
-        pret = PrlVirtNet_Create(&vnet);
-        prlsdkCheckRetGoto(pret, cleanup);
 
-        pret = PrlVirtNet_SetNetworkId(vnet, net->data.bridge.brname);
-        prlsdkCheckRetGoto(pret, cleanup);
-
-        pret = PrlVirtNet_SetNetworkType(vnet, PVN_BRIDGED_ETHERNET);
-        prlsdkCheckRetGoto(pret, cleanup);
-
-        job = PrlSrv_AddVirtualNetwork(driver->server,
-                                       vnet,
-                                       PRL_USE_VNET_NAME_FOR_BRIDGE_NAME);
-        if (PRL_FAILED(pret = waitDomainJob(job, dom)))
-            goto cleanup;
-
-        pret = PrlVmDev_SetEmulatedType(sdknet, PNA_BRIDGED_ETHERNET);
+        pret = PrlVmDev_SetEmulatedType(sdknet, PNA_BRIDGE);
         prlsdkCheckRetGoto(pret, cleanup);
 
         pret = PrlVmDevNet_SetVirtualNetworkId(sdknet, net->data.bridge.brname);
@@ -3334,38 +3317,8 @@ static int prlsdkConfigureNet(vzDriverPtr driver,
  cleanup:
     VIR_FREE(addrstr);
     PrlHandle_Free(addrlist);
-    PrlHandle_Free(vnet);
     PrlHandle_Free(sdknet);
     return ret;
-}
-
-static void
-prlsdkCleanupBridgedNet(vzDriverPtr driver,
-                        virDomainObjPtr dom,
-                        virDomainNetDefPtr net)
-{
-    PRL_RESULT pret;
-    PRL_HANDLE vnet = PRL_INVALID_HANDLE;
-    PRL_HANDLE job = PRL_INVALID_HANDLE;
-
-    if (net->type != VIR_DOMAIN_NET_TYPE_BRIDGE)
-        return;
-
-    pret = PrlVirtNet_Create(&vnet);
-    prlsdkCheckRetGoto(pret, cleanup);
-
-    pret = PrlVirtNet_SetNetworkId(vnet, net->data.network.name);
-    prlsdkCheckRetGoto(pret, cleanup);
-
-    job = PrlSrv_DeleteVirtualNetwork(driver->server, vnet, 0);
-    ignore_value(waitDomainJob(job, dom));
-
-    /* As far as waitDomainJob finally calls virReportErrorHelper
-     * and we are not going to report it, reset it expicitly*/
-    virResetLastError();
-
- cleanup:
-    PrlHandle_Free(vnet);
 }
 
 static PRL_HANDLE
@@ -3492,6 +3445,11 @@ static int prlsdkConfigureDisk(vzDriverPtr driver,
     pret = PrlVmDev_SetStackIndex(sdkdisk, idx);
     prlsdkCheckRetGoto(pret, cleanup);
 
+    if (devType == PDE_HARD_DISK) {
+        pret = PrlVmDevHd_SetSerialNumber(sdkdisk, disk->serial);
+        prlsdkCheckRetGoto(pret, cleanup);
+    }
+
     return 0;
  cleanup:
     PrlHandle_Free(sdkdisk);
@@ -3608,7 +3566,7 @@ prlsdkAttachDevice(vzDriverPtr driver,
 }
 
 int
-prlsdkDetachDevice(vzDriverPtr driver,
+prlsdkDetachDevice(vzDriverPtr driver ATTRIBUTE_UNUSED,
                    virDomainObjPtr dom,
                    virDomainDeviceDefPtr dev)
 {
@@ -3642,8 +3600,6 @@ prlsdkDetachDevice(vzDriverPtr driver,
         sdkdev = prlsdkFindNetByMAC(privdom->sdkdom, &dev->data.net->mac);
         if (sdkdev == PRL_INVALID_HANDLE)
             goto cleanup;
-
-        prlsdkCleanupBridgedNet(driver, dom, dev->data.net);
 
         pret = PrlVmDev_Remove(sdkdev);
         prlsdkCheckRetGoto(pret, cleanup);
@@ -3957,11 +3913,6 @@ prlsdkDoApplyConfig(vzDriverPtr driver,
     if (prlsdkRemoveBootDevices(sdkdom) < 0)
         goto error;
 
-    if (dom) {
-        for (i = 0; i < dom->def->nnets; i++)
-            prlsdkCleanupBridgedNet(driver, dom, dom->def->nets[i]);
-    }
-
     for (i = 0; i < def->nnets; i++) {
         if (prlsdkConfigureNet(driver, dom, sdkdom, def->nets[i],
                                IS_CT(def), true) < 0)
@@ -4009,9 +3960,6 @@ prlsdkDoApplyConfig(vzDriverPtr driver,
 
  error:
     VIR_FREE(mask);
-
-    for (i = 0; i < def->nnets; i++)
-        prlsdkCleanupBridgedNet(driver, dom, def->nets[i]);
 
     return -1;
 }
@@ -4251,7 +4199,6 @@ prlsdkUnregisterDomain(vzDriverPtr driver, virDomainObjPtr dom, unsigned int fla
 {
     vzDomObjPtr privdom = dom->privateData;
     PRL_HANDLE job;
-    size_t i;
     virDomainSnapshotObjListPtr snapshots = NULL;
     VIRTUAL_MACHINE_STATE domainState;
     int ret = -1;
@@ -4287,9 +4234,6 @@ prlsdkUnregisterDomain(vzDriverPtr driver, virDomainObjPtr dom, unsigned int fla
     job = PrlVm_Delete(privdom->sdkdom, PRL_INVALID_HANDLE);
     if (PRL_FAILED(waitDomainJob(job, dom)))
         goto cleanup;
-
-    for (i = 0; i < dom->def->nnets; i++)
-        prlsdkCleanupBridgedNet(driver, dom, dom->def->nets[i]);
 
     prlsdkSendEvent(driver, dom, VIR_DOMAIN_EVENT_UNDEFINED,
                     VIR_DOMAIN_EVENT_UNDEFINED_REMOVED);

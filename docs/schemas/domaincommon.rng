@@ -3453,6 +3453,11 @@
             <ref name="virOnOff"/>
           </attribute>
         </optional>
+        <optional>
+          <attribute name="tls">
+            <ref name="virYesNo"/>
+          </attribute>
+        </optional>
         <zeroOrMore>
           <ref name='devSeclabel'/>
         </zeroOrMore>
@@ -4517,9 +4522,7 @@
   </define>
 
   <define name="sysinfo-value">
-    <data type="string">
-      <param name='pattern'>[a-zA-Z0-9/\-_\. \(\)]+</param>
-    </data>
+    <data type="string"/>
   </define>
 
   <define name="acpiTable">
@@ -4960,6 +4963,44 @@
             <data type="unsignedLong"/>
           </element>
         </optional>
+        <choice>
+          <element name="total_bytes_sec_max_length">
+            <data type="unsignedLong"/>
+          </element>
+          <group>
+            <interleave>
+              <optional>
+                <element name="read_bytes_sec_max_length">
+                  <data type="unsignedLong"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="write_bytes_sec_max_length">
+                  <data type="unsignedLong"/>
+                </element>
+              </optional>
+            </interleave>
+          </group>
+        </choice>
+        <choice>
+          <element name="total_iops_sec_max_length">
+            <data type="unsignedLong"/>
+          </element>
+          <group>
+            <interleave>
+              <optional>
+                <element name="read_iops_sec_max_length">
+                  <data type="unsignedLong"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="write_iops_sec_max_length">
+                  <data type="unsignedLong"/>
+                </element>
+              </optional>
+            </interleave>
+          </group>
+        </choice>
       </interleave>
     </element>
   </define>
@@ -5532,6 +5573,9 @@
             <value>s390</value>
           </choice>
         </attribute>
+      </optional>
+      <optional>
+        <ref name="alias"/>
       </optional>
       <optional>
         <ref name="address"/>

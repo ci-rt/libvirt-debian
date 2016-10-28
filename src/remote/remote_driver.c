@@ -1343,7 +1343,7 @@ doRemoteClose(virConnectPtr conn, struct private_data *priv)
     /* See comment for remoteType. */
     VIR_FREE(priv->type);
 
-    virObjectEventStateFree(priv->eventState);
+    virObjectUnref(priv->eventState);
     priv->eventState = NULL;
 
     return ret;
@@ -1762,7 +1762,7 @@ remoteDomainBlockStatsFlags(virDomainPtr domain,
     /* Deserialize the result. */
     if (virTypedParamsDeserialize((virTypedParameterRemotePtr) ret.params.params_val,
                                   ret.params.params_len,
-                                  REMOTE_DOMAIN_MEMORY_PARAMETERS_MAX,
+                                  REMOTE_DOMAIN_BLOCK_STATS_PARAMETERS_MAX,
                                   &params,
                                   nparams) < 0)
         goto cleanup;
@@ -2869,7 +2869,7 @@ static int remoteDomainGetBlockIoTune(virDomainPtr domain,
 
     if (virTypedParamsDeserialize((virTypedParameterRemotePtr) ret.params.params_val,
                                   ret.params.params_len,
-                                  REMOTE_DOMAIN_MEMORY_PARAMETERS_MAX,
+                                  REMOTE_DOMAIN_BLOCK_IO_TUNE_PARAMETERS_MAX,
                                   &params,
                                   nparams) < 0)
         goto cleanup;

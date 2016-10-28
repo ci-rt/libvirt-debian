@@ -1781,7 +1781,7 @@ static int lxcStateCleanup(void)
 
     virNWFilterUnRegisterCallbackDriver(&lxcCallbackDriver);
     virObjectUnref(lxc_driver->domains);
-    virObjectEventStateFree(lxc_driver->domainEventState);
+    virObjectUnref(lxc_driver->domainEventState);
 
     virObjectUnref(lxc_driver->closeCallbacks);
 
@@ -3156,6 +3156,7 @@ static int lxcDomainResume(virDomainPtr dom)
     virDomainObjPtr vm;
     virObjectEventPtr event = NULL;
     int ret = -1;
+    int state;
     virLXCDomainObjPrivatePtr priv;
     virLXCDriverConfigPtr cfg = virLXCDriverGetConfig(driver);
 
@@ -3176,7 +3177,12 @@ static int lxcDomainResume(virDomainPtr dom)
         goto endjob;
     }
 
-    if (virDomainObjGetState(vm, NULL) == VIR_DOMAIN_PAUSED) {
+    state = virDomainObjGetState(vm, NULL);
+    if (state == VIR_DOMAIN_RUNNING) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("domain is already running"));
+        goto endjob;
+    } else if (state == VIR_DOMAIN_PAUSED) {
         if (virCgroupSetFreezerState(priv->cgroup, "THAWED") < 0) {
             virReportError(VIR_ERR_OPERATION_FAILED,
                            "%s", _("Resume operation failed"));
@@ -3252,14 +3258,14 @@ lxcDomainOpenConsole(virDomainPtr dom,
         goto cleanup;
     }
 
-    if (chr->source.type != VIR_DOMAIN_CHR_TYPE_PTY) {
+    if (chr->source->type != VIR_DOMAIN_CHR_TYPE_PTY) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("character device %s is not using a PTY"),
                        dev_name ? dev_name : NULLSTR(chr->info.alias));
         goto cleanup;
     }
 
-    if (virFDStreamOpenFile(st, chr->source.data.file.path,
+    if (virFDStreamOpenFile(st, chr->source->data.file.path,
                             0, 0, O_RDWR) < 0)
         goto cleanup;
 
@@ -3438,7 +3444,7 @@ lxcDomainShutdownFlags(virDomainPtr dom,
             errno != ESRCH) {
             virReportSystemError(errno,
                                  _("Unable to send SIGTERM to init pid %llu"),
-                                 (unsigned long long)priv->initpid);
+                                 (long long) priv->initpid);
             goto endjob;
         }
     }
@@ -3521,7 +3527,7 @@ lxcDomainReboot(virDomainPtr dom,
             errno != ESRCH) {
             virReportSystemError(errno,
                                  _("Unable to send SIGTERM to init pid %llu"),
-                                 (unsigned long long)priv->initpid);
+                                 (long long) priv->initpid);
             goto endjob;
         }
     }
@@ -3943,7 +3949,7 @@ lxcDomainAttachDeviceNetLive(virConnectPtr conn,
 {
     virLXCDomainObjPrivatePtr priv = vm->privateData;
     int ret = -1;
-    int actualType;
+    virDomainNetType actualType;
     virNetDevBandwidthPtr actualBandwidth;
     char *veth = NULL;
 
@@ -4029,6 +4035,10 @@ lxcDomainAttachDeviceNetLive(virConnectPtr conn,
 
         case VIR_DOMAIN_NET_TYPE_DIRECT:
             ignore_value(virNetDevMacVLanDelete(veth));
+            break;
+
+        default:
+            /* no-op */
             break;
         }
     }
@@ -4430,7 +4440,8 @@ static int
 lxcDomainDetachDeviceNetLive(virDomainObjPtr vm,
                              virDomainDeviceDefPtr dev)
 {
-    int detachidx, actualType, ret = -1;
+    int detachidx, ret = -1;
+    virDomainNetType actualType;
     virDomainNetDefPtr detach = NULL;
     virNetDevVPortProfilePtr vport = NULL;
 

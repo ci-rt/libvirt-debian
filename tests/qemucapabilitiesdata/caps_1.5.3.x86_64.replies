@@ -1943,80 +1943,18 @@
 }
 
 {
-  "return": [
-    {
-      "name": "command_serr_enable",
-      "type": "on/off"
-    },
-    {
-      "name": "multifunction",
-      "type": "on/off"
-    },
-    {
-      "name": "rombar",
-      "type": "uint32"
-    },
-    {
-      "name": "romfile",
-      "type": "string"
-    },
-    {
-      "name": "addr",
-      "type": "pci-devfn"
-    },
-    {
-      "name": "surfaces",
-      "type": "int32"
-    },
-    {
-      "name": "vgamem_mb",
-      "type": "uint32"
-    },
-    {
-      "name": "vram64_size_mb",
-      "type": "uint32"
-    },
-    {
-      "name": "vram_size_mb",
-      "type": "uint32"
-    },
-    {
-      "name": "ram_size_mb",
-      "type": "uint32"
-    },
-    {
-      "name": "cmdlog",
-      "type": "uint32"
-    },
-    {
-      "name": "guestdebug",
-      "type": "uint32"
-    },
-    {
-      "name": "debug",
-      "type": "uint32"
-    },
-    {
-      "name": "revision",
-      "type": "uint32"
-    },
-    {
-      "name": "vram_size",
-      "type": "uint32"
-    },
-    {
-      "name": "ram_size",
-      "type": "uint32"
-    }
-  ],
-  "id": "libvirt-33"
+  "id": "libvirt-33",
+  "error": {
+    "class": "DeviceNotFound",
+    "desc": "Device 'virtio-gpu-pci' not found"
+  }
 }
 
 {
   "id": "libvirt-34",
   "error": {
     "class": "DeviceNotFound",
-    "desc": "Device 'virtio-gpu-pci' not found"
+    "desc": "Device 'virtio-gpu-device' not found"
   }
 }
 

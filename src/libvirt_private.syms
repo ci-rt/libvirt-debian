@@ -99,9 +99,9 @@ virDomainPCIAddressAsString;
 virDomainPCIAddressBusSetModel;
 virDomainPCIAddressEnsureAddr;
 virDomainPCIAddressFlagsCompatible;
-virDomainPCIAddressGetNextSlot;
 virDomainPCIAddressReleaseSlot;
 virDomainPCIAddressReserveAddr;
+virDomainPCIAddressReserveNextAddr;
 virDomainPCIAddressReserveNextSlot;
 virDomainPCIAddressReserveSlot;
 virDomainPCIAddressSetAlloc;
@@ -116,6 +116,7 @@ virDomainUSBAddressEnsure;
 virDomainUSBAddressPortFormat;
 virDomainUSBAddressPortFormatBuf;
 virDomainUSBAddressPortIsValid;
+virDomainUSBAddressPresent;
 virDomainUSBAddressRelease;
 virDomainUSBAddressReserve;
 virDomainUSBAddressSetAddControllers;
@@ -124,6 +125,7 @@ virDomainUSBAddressSetCreate;
 virDomainUSBAddressSetFree;
 virDomainVirtioSerialAddrAssign;
 virDomainVirtioSerialAddrAutoAssign;
+virDomainVirtioSerialAddrAutoAssignFromCache;
 virDomainVirtioSerialAddrIsComplete;
 virDomainVirtioSerialAddrRelease;
 virDomainVirtioSerialAddrReserve;
@@ -247,6 +249,7 @@ virDomainDefGetVcpu;
 virDomainDefGetVcpuPinInfoHelper;
 virDomainDefGetVcpus;
 virDomainDefGetVcpusMax;
+virDomainDefGetVcpusTopology;
 virDomainDefHasDeviceAddress;
 virDomainDefHasMemballoon;
 virDomainDefHasMemoryHotplug;
@@ -818,7 +821,6 @@ virNWFilterVarValueGetSimple;
 # conf/object_event.h
 virObjectEventStateDeregisterID;
 virObjectEventStateEventID;
-virObjectEventStateFree;
 virObjectEventStateNew;
 virObjectEventStateQueue;
 
@@ -1821,6 +1823,7 @@ virJSONValueObjectHasKey;
 virJSONValueObjectIsNull;
 virJSONValueObjectKeysNumber;
 virJSONValueObjectRemoveKey;
+virJSONValueObjectStealArray;
 virJSONValueToString;
 
 
@@ -1868,9 +1871,12 @@ virLockSpaceReleaseResourcesForOwner;
 
 
 # util/virlog.h
-virLogDefineFilter;
-virLogDefineOutput;
+virLogDefineFilters;
+virLogDefineOutputs;
 virLogFilterFree;
+virLogFilterListFree;
+virLogFilterNew;
+virLogFindOutput;
 virLogGetDefaultPriority;
 virLogGetFilters;
 virLogGetNbFilters;
@@ -1880,14 +1886,19 @@ virLogLock;
 virLogMessage;
 virLogOutputFree;
 virLogOutputListFree;
+virLogOutputNew;
 virLogParseDefaultPriority;
+virLogParseFilter;
 virLogParseFilters;
+virLogParseOutput;
 virLogParseOutputs;
 virLogPriorityFromSyslog;
 virLogProbablyLogMessage;
 virLogReset;
 virLogSetDefaultPriority;
+virLogSetFilters;
 virLogSetFromEnv;
+virLogSetOutputs;
 virLogUnlock;
 virLogVMessage;
 
@@ -2667,6 +2678,7 @@ virUUIDParse;
 
 
 # util/virxml.h
+virXMLCheckIllegalChars;
 virXMLChildElementCount;
 virXMLExtractNamespaceXML;
 virXMLNodeSanitizeNamespaces;

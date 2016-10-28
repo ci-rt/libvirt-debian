@@ -220,7 +220,9 @@ int
 virLogSetDefaultPriority(virLogPriority priority)
 {
     if ((priority < VIR_LOG_DEBUG) || (priority > VIR_LOG_ERROR)) {
-        VIR_WARN("Ignoring invalid log level setting.");
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("Failed to set logging priority, argument '%u' is "
+                         "invalid"), priority);
         return -1;
     }
     if (virLogInitialize() < 0)
@@ -279,71 +281,6 @@ virLogFilterListFree(virLogFilterPtr *list, int count)
 
 
 /**
- * virLogDefineFilter:
- * @match: the pattern to match
- * @priority: the priority to give to messages matching the pattern
- * @flags: extra flags, see virLogFilterFlags enum
- *
- * Defines a pattern used for log filtering, it allow to select or
- * reject messages independently of the default priority.
- * The filter defines a rules that will apply only to messages matching
- * the pattern (currently if @match is a substring of the message category)
- *
- * Returns -1 in case of failure or the filter number if successful
- */
-int
-virLogDefineFilter(const char *match,
-                   virLogPriority priority,
-                   unsigned int flags)
-{
-    size_t i;
-    int ret = -1;
-    char *mdup = NULL;
-    virLogFilterPtr filter = NULL;
-
-    virCheckFlags(VIR_LOG_STACK_TRACE, -1);
-
-    if (virLogInitialize() < 0)
-        return -1;
-
-    if ((match == NULL) || (priority < VIR_LOG_DEBUG) ||
-        (priority > VIR_LOG_ERROR))
-        return -1;
-
-    virLogLock();
-    for (i = 0; i < virLogNbFilters; i++) {
-        if (STREQ(virLogFilters[i]->match, match)) {
-            virLogFilters[i]->priority = priority;
-            ret = i;
-            goto cleanup;
-        }
-    }
-
-    if (VIR_STRDUP_QUIET(mdup, match) < 0)
-        goto cleanup;
-
-    if (VIR_ALLOC_QUIET(filter) < 0) {
-        VIR_FREE(mdup);
-        goto cleanup;
-    }
-
-    filter->match = mdup;
-    filter->priority = priority;
-    filter->flags = flags;
-
-    if (VIR_APPEND_ELEMENT_QUIET(virLogFilters, virLogNbFilters, filter) < 0)
-        goto cleanup;
-
-    virLogFiltersSerial++;
-    ret = virLogNbFilters - 1;
- cleanup:
-    virLogUnlock();
-    if (ret < 0)
-        virReportOOMError();
-    return ret;
-}
-
-/**
  * virLogResetOutputs:
  *
  * Removes the set of logging output defined.
@@ -389,73 +326,6 @@ virLogOutputListFree(virLogOutputPtr *list, int count)
     for (i = 0; i < count; i++)
         virLogOutputFree(list[i]);
     VIR_FREE(list);
-}
-
-
-/**
- * virLogDefineOutput:
- * @f: the function to call to output a message
- * @c: the function to call to close the output (or NULL)
- * @data: extra data passed as first arg to the function
- * @priority: minimal priority for this filter, use 0 for none
- * @dest: where to send output of this priority
- * @name: optional name data associated with an output
- * @flags: extra flag, currently unused
- *
- * Defines an output function for log messages. Each message once
- * gone though filtering is emitted through each registered output.
- *
- * Returns -1 in case of failure or the output number if successful
- */
-int
-virLogDefineOutput(virLogOutputFunc f,
-                   virLogCloseFunc c,
-                   void *data,
-                   virLogPriority priority,
-                   virLogDestination dest,
-                   const char *name,
-                   unsigned int flags)
-{
-    char *ndup = NULL;
-    virLogOutputPtr output = NULL;
-
-    virCheckFlags(0, -1);
-
-    if (virLogInitialize() < 0)
-        return -1;
-
-    if (f == NULL)
-        return -1;
-
-    if (dest == VIR_LOG_TO_SYSLOG || dest == VIR_LOG_TO_FILE) {
-        if (!name) {
-            virReportOOMError();
-            return -1;
-        }
-        if (VIR_STRDUP(ndup, name) < 0)
-            return -1;
-    }
-
-    if (VIR_ALLOC_QUIET(output) < 0) {
-        VIR_FREE(ndup);
-        return -1;
-    }
-
-    output->logInitMessage = true;
-    output->f = f;
-    output->c = c;
-    output->data = data;
-    output->priority = priority;
-    output->dest = dest;
-    output->name = ndup;
-
-    virLogLock();
-    if (VIR_APPEND_ELEMENT_QUIET(virLogOutputs, virLogNbOutputs, output))
-        goto cleanup;
-
- cleanup:
-    virLogUnlock();
-    return virLogNbOutputs;
 }
 
 
@@ -772,32 +642,32 @@ virLogCloseFd(void *data)
 }
 
 
-static int
-virLogAddOutputToStderr(virLogPriority priority)
+static virLogOutputPtr
+virLogNewOutputToStderr(virLogPriority priority)
 {
-    if (virLogDefineOutput(virLogOutputToFd, NULL, (void *)2L, priority,
-                           VIR_LOG_TO_STDERR, NULL, 0) < 0)
-        return -1;
-    return 0;
+    return virLogOutputNew(virLogOutputToFd, NULL, (void *)STDERR_FILENO,
+                           priority, VIR_LOG_TO_STDERR, NULL);
 }
 
 
-static int
-virLogAddOutputToFile(virLogPriority priority,
+static virLogOutputPtr
+virLogNewOutputToFile(virLogPriority priority,
                       const char *file)
 {
     int fd;
+    virLogOutputPtr ret = NULL;
 
     fd = open(file, O_CREAT | O_APPEND | O_WRONLY, S_IRUSR | S_IWUSR);
     if (fd < 0)
-        return -1;
-    if (virLogDefineOutput(virLogOutputToFd, virLogCloseFd,
-                           (void *)(intptr_t)fd,
-                           priority, VIR_LOG_TO_FILE, file, 0) < 0) {
-        VIR_FORCE_CLOSE(fd);
-        return -1;
+        return NULL;
+
+    if (!(ret = virLogOutputNew(virLogOutputToFd, virLogCloseFd,
+                                (void *)(intptr_t)fd,
+                                priority, VIR_LOG_TO_FILE, file))) {
+        VIR_LOG_CLOSE(fd);
+        return NULL;
     }
-    return 0;
+    return ret;
 }
 
 
@@ -866,25 +736,48 @@ virLogCloseSyslog(void *data ATTRIBUTE_UNUSED)
 }
 
 
-static int
-virLogAddOutputToSyslog(virLogPriority priority,
+static virLogOutputPtr
+virLogNewOutputToSyslog(virLogPriority priority,
                         const char *ident)
 {
-    /*
-     * ident needs to be kept around on Solaris
-     */
-    VIR_FREE(current_ident);
-    if (VIR_STRDUP(current_ident, ident) < 0)
-        return -1;
+    virLogOutputPtr ret = NULL;
+    int at = -1;
 
-    openlog(current_ident, 0, 0);
-    if (virLogDefineOutput(virLogOutputToSyslog, virLogCloseSyslog, NULL,
-                           priority, VIR_LOG_TO_SYSLOG, ident, 0) < 0) {
-        closelog();
+    /* There are a couple of issues with syslog:
+     * 1) If we re-opened the connection by calling openlog now, it would change
+     * the message tag immediately which is not what we want, since we might be
+     * in the middle of parsing of a new set of outputs where anything still can
+     * go wrong and we would introduce an inconsistent state to the log. We're
+     * also not holding a lock on the logger if we tried to change the tag
+     * while other workers are actively logging.
+     *
+     * 2) Syslog keeps the open file descriptor private, so we can't just dup()
+     * it like we would do with files if an output already existed.
+     *
+     * If a syslog connection already exists changing the message tag has to be
+     * therefore special-cased and postponed until the very last moment.
+     */
+    if ((at = virLogFindOutput(virLogOutputs, virLogNbOutputs,
+                               VIR_LOG_TO_SYSLOG, NULL)) < 0) {
+        /*
+         * rather than copying @ident, syslog uses caller's reference instead
+         */
         VIR_FREE(current_ident);
-        return -1;
+        if (VIR_STRDUP(current_ident, ident) < 0)
+            return NULL;
+
+        openlog(current_ident, 0, 0);
     }
-    return 0;
+
+    if (!(ret = virLogOutputNew(virLogOutputToSyslog, virLogCloseSyslog,
+                                NULL, priority, VIR_LOG_TO_SYSLOG, ident))) {
+        if (at < 0) {
+            closelog();
+            VIR_FREE(current_ident);
+        }
+        return NULL;
+    }
+    return ret;
 }
 
 
@@ -962,8 +855,6 @@ journalAddInt(struct journalState *state, const char *field, int value)
     state->iov += 4;
 }
 
-static int journalfd = -1;
-
 static void
 virLogOutputToJournald(virLogSourcePtr source,
                        virLogPriority priority,
@@ -975,10 +866,11 @@ virLogOutputToJournald(virLogSourcePtr source,
                        unsigned int flags,
                        const char *rawstr,
                        const char *str ATTRIBUTE_UNUSED,
-                       void *data ATTRIBUTE_UNUSED)
+                       void *data)
 {
     virCheckFlags(VIR_LOG_STACK_TRACE,);
     int buffd = -1;
+    int journalfd = (intptr_t) data;
     struct msghdr mh;
     struct sockaddr_un sa;
     union {
@@ -1084,25 +976,28 @@ virLogOutputToJournald(virLogSourcePtr source,
 }
 
 
-static void virLogCloseJournald(void *data ATTRIBUTE_UNUSED)
+static virLogOutputPtr
+virLogNewOutputToJournald(int priority)
 {
-    VIR_LOG_CLOSE(journalfd);
-}
+    int journalfd;
+    virLogOutputPtr ret = NULL;
 
-
-static int virLogAddOutputToJournald(int priority)
-{
     if ((journalfd = socket(AF_UNIX, SOCK_DGRAM, 0)) < 0)
-        return -1;
+        return NULL;
+
     if (virSetInherit(journalfd, false) < 0) {
         VIR_LOG_CLOSE(journalfd);
-        return -1;
+        return NULL;
     }
-    if (virLogDefineOutput(virLogOutputToJournald, virLogCloseJournald, NULL,
-                           priority, VIR_LOG_TO_JOURNALD, NULL, 0) < 0) {
-        return -1;
+
+    if (!(ret = virLogOutputNew(virLogOutputToJournald, virLogCloseFd,
+                                (void *)(intptr_t) journalfd, priority,
+                                VIR_LOG_TO_JOURNALD, NULL))) {
+        VIR_LOG_CLOSE(journalfd);
+        return NULL;
     }
-    return 0;
+
+    return ret;
 }
 # endif /* USE_JOURNALD */
 
@@ -1131,239 +1026,6 @@ int virLogPriorityFromSyslog(int priority ATTRIBUTE_UNUSED)
     return VIR_LOG_ERROR;
 }
 #endif /* HAVE_SYSLOG_H */
-
-#define IS_SPACE(cur)                                                   \
-    ((*cur == ' ') || (*cur == '\t') || (*cur == '\n') ||               \
-     (*cur == '\r') || (*cur == '\\'))
-
-
-static int
-virLogParseOutput(const char *src)
-{
-    int ret = -1;
-    char **tokens = NULL;
-    char *abspath = NULL;
-    size_t count = 0;
-    virLogPriority prio;
-    int dest;
-    bool isSUID = virIsSUID();
-
-    if (!src)
-        return -1;
-
-    VIR_DEBUG("output=%s", src);
-
-    /* split our format prio:destination:additional_data to tokens and parse
-     * them individually
-     */
-    if (!(tokens = virStringSplitCount(src, ":", 0, &count)))
-        return -1;
-
-    if (virStrToLong_uip(tokens[0], NULL, 10, &prio) < 0 ||
-        (prio < VIR_LOG_DEBUG) || (prio > VIR_LOG_ERROR))
-        goto cleanup;
-
-    if ((dest = virLogDestinationTypeFromString(tokens[1])) < 0)
-        goto cleanup;
-
-    if (((dest == VIR_LOG_TO_STDERR ||
-          dest == VIR_LOG_TO_JOURNALD) && count != 2) ||
-        ((dest == VIR_LOG_TO_FILE ||
-          dest == VIR_LOG_TO_SYSLOG) && count != 3))
-        goto cleanup;
-
-    /* if running with setuid, only 'stderr' is allowed */
-    if (isSUID && dest != VIR_LOG_TO_STDERR)
-        goto cleanup;
-
-    switch ((virLogDestination) dest) {
-    case VIR_LOG_TO_STDERR:
-        ret = virLogAddOutputToStderr(prio);
-        break;
-    case VIR_LOG_TO_SYSLOG:
-#if HAVE_SYSLOG_H
-        ret = virLogAddOutputToSyslog(prio, tokens[2]);
-#endif
-        break;
-    case VIR_LOG_TO_FILE:
-        if (virFileAbsPath(tokens[2], &abspath) < 0)
-            goto cleanup;
-        ret = virLogAddOutputToFile(prio, abspath);
-        VIR_FREE(abspath);
-        break;
-    case VIR_LOG_TO_JOURNALD:
-#if USE_JOURNALD
-        ret = virLogAddOutputToJournald(prio);
-#endif
-        break;
-    case VIR_LOG_TO_OUTPUT_LAST:
-        break;
-    }
-
- cleanup:
-    if (ret < 0)
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Failed to parse and define log output %s"), src);
-    virStringFreeList(tokens);
-    return ret;
-}
-
-
-/**
- * virLogParseOutputs:
- * @outputs: string defining a (set of) output(s)
- *
- * The format for an output can be:
- *    x:stderr
- *       output goes to stderr
- *    x:syslog:name
- *       use syslog for the output and use the given name as the ident
- *    x:file:file_path
- *       output to a file, with the given filepath
- * In all case the x prefix is the minimal level, acting as a filter
- *    1: DEBUG
- *    2: INFO
- *    3: WARNING
- *    4: ERROR
- *
- * Multiple output can be defined in a single @output, they just need to be
- * separated by spaces.
- *
- * If running in setuid mode, then only the 'stderr' output will
- * be allowed
- *
- * Returns the number of output parsed or -1 in case of error.
- */
-int
-virLogParseOutputs(const char *src)
-{
-    int ret = -1;
-    int count = 0;
-    size_t i;
-    char **strings = NULL;
-
-    if (!src)
-        return -1;
-
-    VIR_DEBUG("outputs=%s", src);
-
-    if (!(strings = virStringSplit(src, " ", 0)))
-        goto cleanup;
-
-    for (i = 0; strings[i]; i++) {
-        /* virStringSplit may return empty strings */
-        if (STREQ(strings[i], ""))
-            continue;
-
-        if (virLogParseOutput(strings[i]) < 0)
-            goto cleanup;
-
-        count++;
-    }
-
-    ret = count;
- cleanup:
-    virStringFreeList(strings);
-    return ret;
-}
-
-
-static int
-virLogParseFilter(const char *filter)
-{
-    int ret = -1;
-    size_t count = 0;
-    virLogPriority prio;
-    char **tokens = NULL;
-    unsigned int flags = 0;
-    char *ref = NULL;
-
-    if (!filter)
-        return -1;
-
-    VIR_DEBUG("filter=%s", filter);
-
-    if (!(tokens = virStringSplitCount(filter, ":", 0, &count)))
-        return -1;
-
-    if (count != 2)
-        goto cleanup;
-
-    if (virStrToLong_uip(tokens[0], NULL, 10, &prio) < 0 ||
-        (prio < VIR_LOG_DEBUG) || (prio > VIR_LOG_ERROR))
-        goto cleanup;
-
-    ref = tokens[1];
-    if (ref[0] == '+') {
-        flags |= VIR_LOG_STACK_TRACE;
-        ref++;
-    }
-
-    if (!*ref)
-        goto cleanup;
-
-    if (virLogDefineFilter(ref, prio, flags) < 0)
-        goto cleanup;
-
-    ret = 0;
- cleanup:
-    if (ret < 0)
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Failed to parse and define log filter %s"), filter);
-    virStringFreeList(tokens);
-    return ret;
-}
-
-/**
- * virLogParseFilters:
- * @filters: string defining a (set of) filter(s)
- *
- * The format for a filter is:
- *    x:name
- *       where name is a match string
- * the x prefix is the minimal level where the messages should be logged
- *    1: DEBUG
- *    2: INFO
- *    3: WARNING
- *    4: ERROR
- *
- * Multiple filter can be defined in a single @filters, they just need to be
- * separated by spaces.
- *
- * Returns the number of filter parsed or -1 in case of error.
- */
-int
-virLogParseFilters(const char *filters)
-{
-    int ret = -1;
-    int count = 0;
-    size_t i;
-    char **strings = NULL;
-
-    if (!filters)
-        return -1;
-
-    VIR_DEBUG("filters=%s", filters);
-
-    if (!(strings = virStringSplit(filters, " ", 0)))
-        goto cleanup;
-
-    for (i = 0; strings[i]; i++) {
-        /* virStringSplit may return empty strings */
-        if (STREQ(strings[i], ""))
-            continue;
-
-        if (virLogParseFilter(strings[i]) < 0)
-            goto cleanup;
-
-        count++;
-    }
-
-    ret = count;
- cleanup:
-    virStringFreeList(strings);
-    return ret;
-}
 
 
 /**
@@ -1481,34 +1143,33 @@ virLogGetNbOutputs(void)
 
 /**
  * virLogParseDefaultPriority:
- * @priority: string defining the desired logging level
+ * @priority: string defining the desired logging level (either a numeric or a
+ *            word form, see below)
  *
- * Parses and sets the default log priority level. It can take a string or
- * number corresponding to the following levels:
- *    1: DEBUG
- *    2: INFO
- *    3: WARNING
- *    4: ERROR
+ * Parses the desired log priority level. The input @priority shall conform to
+ * one of the following levels:
+ *    1 = DEBUG
+ *    2 = INFO
+ *    3 = WARNING
+ *    4 = ERROR
  *
- * Returns 0 if successful, -1 in case of error.
+ *
+ * Returns the corresponding priority enum on success, -1 in case of error. A
+ * call to virLogSetDefaultPriority should be issued upon returning from this
+ * function.
  */
 int
 virLogParseDefaultPriority(const char *priority)
 {
-    int ret = -1;
-
     if (STREQ(priority, "1") || STREQ(priority, "debug"))
-        ret = virLogSetDefaultPriority(VIR_LOG_DEBUG);
+        return VIR_LOG_DEBUG;
     else if (STREQ(priority, "2") || STREQ(priority, "info"))
-        ret = virLogSetDefaultPriority(VIR_LOG_INFO);
+        return VIR_LOG_INFO;
     else if (STREQ(priority, "3") || STREQ(priority, "warning"))
-        ret = virLogSetDefaultPriority(VIR_LOG_WARN);
+        return VIR_LOG_WARN;
     else if (STREQ(priority, "4") || STREQ(priority, "error"))
-        ret = virLogSetDefaultPriority(VIR_LOG_ERROR);
-    else
-        VIR_WARN("Ignoring invalid log level setting");
-
-    return ret;
+        return VIR_LOG_ERROR;
+    return -1;
 }
 
 
@@ -1528,13 +1189,13 @@ virLogSetFromEnv(void)
 
     debugEnv = virGetEnvAllowSUID("LIBVIRT_DEBUG");
     if (debugEnv && *debugEnv)
-        virLogParseDefaultPriority(debugEnv);
+        virLogSetDefaultPriority(virLogParseDefaultPriority(debugEnv));
     debugEnv = virGetEnvAllowSUID("LIBVIRT_LOG_FILTERS");
     if (debugEnv && *debugEnv)
-        virLogParseFilters(debugEnv);
+        virLogSetFilters(debugEnv);
     debugEnv = virGetEnvAllowSUID("LIBVIRT_LOG_OUTPUTS");
     if (debugEnv && *debugEnv)
-        virLogParseOutputs(debugEnv);
+        virLogSetOutputs(debugEnv);
 }
 
 
@@ -1550,5 +1211,575 @@ bool virLogProbablyLogMessage(const char *str)
         return false;
     if (regexec(virLogRegex, str, 0, NULL, 0) == 0)
         ret = true;
+    return ret;
+}
+
+
+/**
+ * virLogOutputNew:
+ * @f: the function to call to output a message
+ * @c: the function to call to close the output (or NULL)
+ * @data: extra data passed as first arg to functions @f and @c
+ * @priority: minimal priority for this filter, use 0 for none
+ * @dest: where to send output of this priority (see virLogDestination)
+ * @name: additional data associated with syslog and file-based outputs (ident
+ *        and filename respectively)
+ *
+ * Allocates and returns a new log output object. The object has to be later
+ * defined, so that the output will be taken into account when emitting a
+ * message.
+ *
+ * Returns reference to a newly created object or NULL in case of failure.
+ */
+virLogOutputPtr
+virLogOutputNew(virLogOutputFunc f,
+                virLogCloseFunc c,
+                void *data,
+                virLogPriority priority,
+                virLogDestination dest,
+                const char *name)
+{
+    virLogOutputPtr ret = NULL;
+    char *ndup = NULL;
+
+    if (dest == VIR_LOG_TO_SYSLOG || dest == VIR_LOG_TO_FILE) {
+        if (!name) {
+            virReportError(VIR_ERR_INVALID_ARG, "%s",
+                           _("Missing auxiliary data in output definition"));
+            return NULL;
+        }
+
+        if (VIR_STRDUP(ndup, name) < 0)
+            return NULL;
+    }
+
+    if (VIR_ALLOC(ret) < 0) {
+        VIR_FREE(ndup);
+        return NULL;
+    }
+
+    ret->logInitMessage = true;
+    ret->f = f;
+    ret->c = c;
+    ret->data = data;
+    ret->priority = priority;
+    ret->dest = dest;
+    ret->name = ndup;
+
+    return ret;
+}
+
+
+/**
+ * virLogFilterNew:
+ * @match: the pattern to match
+ * @priority: the priority to give to messages matching the pattern
+ * @flags: extra flags, see virLogFilterFlags enum
+ *
+ * Allocates and returns a new log filter object. The object has to be later
+ * defined, so that the pattern will be taken into account when executing the
+ * log filters (to select or reject a particular message) on messages.
+ *
+ * The filter defines a rules that will apply only to messages matching
+ * the pattern (currently if @match is a substring of the message category)
+ *
+ * Returns a reference to a newly created filter that needs to be defined using
+ * virLogDefineFilters, or NULL in case of an error.
+ */
+virLogFilterPtr
+virLogFilterNew(const char *match,
+                virLogPriority priority,
+                unsigned int flags)
+{
+    virLogFilterPtr ret = NULL;
+    char *mdup = NULL;
+
+    virCheckFlags(VIR_LOG_STACK_TRACE, NULL);
+
+    if (priority < VIR_LOG_DEBUG || priority > VIR_LOG_ERROR) {
+        virReportError(VIR_ERR_INVALID_ARG, _("Invalid log priority %d"),
+                       priority);
+        return NULL;
+    }
+
+    if (VIR_STRDUP_QUIET(mdup, match) < 0)
+        return NULL;
+
+    if (VIR_ALLOC_QUIET(ret) < 0) {
+        VIR_FREE(mdup);
+        return NULL;
+    }
+
+    ret->match = mdup;
+    ret->priority = priority;
+    ret->flags = flags;
+
+    return ret;
+}
+
+
+/**
+ * virLogFindOutput:
+ * @outputs: a list of outputs where to look for the output of type @dest
+ * @noutputs: number of elements in @outputs
+ * @dest: destination type of an output
+ * @opaque: opaque data to the method (only filename at the moment)
+ *
+ * Looks for an output of destination type @dest in the source list @outputs.
+ * If such an output exists, index of the object in the list is returned.
+ * In case of the destination being of type FILE also a comparison of the
+ * output's filename with @opaque is performed first.
+ *
+ * Returns the index of the object in the list or -1 if no object matching the
+ * specified @dest type and/or @opaque data one was found.
+ */
+int
+virLogFindOutput(virLogOutputPtr *outputs, size_t noutputs,
+                 virLogDestination dest, const void *opaque)
+{
+    size_t i;
+    const char *name = opaque;
+
+    for (i = 0; i < noutputs; i++) {
+        if (dest == outputs[i]->dest &&
+            (STREQ_NULLABLE(outputs[i]->name, name)))
+                return i;
+    }
+
+    return -1;
+}
+
+
+/**
+ * virLogDefineOutputs:
+ * @outputs: new set of outputs to be defined
+ * @noutputs: number of outputs in @outputs
+ *
+ * Resets any existing set of outputs and defines a completely new one.
+ *
+ * Returns number of outputs successfully defined or -1 in case of error;
+ */
+int
+virLogDefineOutputs(virLogOutputPtr *outputs, size_t noutputs)
+{
+#if HAVE_SYSLOG_H
+    int id;
+    char *tmp = NULL;
+#endif /* HAVE_SYSLOG_H */
+
+    if (virLogInitialize() < 0)
+        return -1;
+
+    virLogLock();
+    virLogResetOutputs();
+
+#if HAVE_SYSLOG_H
+    /* syslog needs to be special-cased, since it keeps the fd in private */
+    if ((id = virLogFindOutput(outputs, noutputs, VIR_LOG_TO_SYSLOG,
+                               current_ident)) != -1) {
+        /* nothing can go wrong now (except for malloc) and since we're also
+         * holding the lock so it's safe to call openlog and change the message
+         * tag
+         */
+        if (VIR_STRDUP_QUIET(tmp, outputs[id]->name) < 0) {
+            virLogUnlock();
+            return -1;
+        }
+        VIR_FREE(current_ident);
+        current_ident = tmp;
+        openlog(current_ident, 0, 0);
+    }
+#endif /* HAVE_SYSLOG_H */
+
+    virLogOutputs = outputs;
+    virLogNbOutputs = noutputs;
+
+    virLogUnlock();
+    return 0;
+}
+
+
+/**
+ * virLogDefineFilters:
+ * @filters: new set of filters to be defined
+ * @nfilters: number of filters in @filters
+ *
+ * Resets any existing set of filters and defines a completely new one. The
+ * resulting set can also be empty in which case NULL should be passed to
+ * @filters.
+ *
+ * Returns 0 on success or -1 in case of error.
+ */
+int
+virLogDefineFilters(virLogFilterPtr *filters, size_t nfilters)
+{
+    if (virLogInitialize() < 0)
+        return -1;
+
+    virLogLock();
+    virLogResetFilters();
+    virLogFilters = filters;
+    virLogNbFilters = nfilters;
+    virLogUnlock();
+
+    return 0;
+}
+
+
+/**
+ * virLogParseOutput:
+ * @src: string defining a single output
+ *
+ * The format of @src should be one of the following:
+ *    x:stderr - output is sent to stderr
+ *    x:journald - output is sent to journald
+ *    x:syslog:name - output is sent to syslog using 'name' as the message tag
+ *    x:file:abs_file_path - output is sent to file specified by 'abs_file_path'
+ *
+ *      'x' - minimal priority level which acts as a filter meaning that only
+ *            messages with priority level greater than or equal to 'x' will be
+ *            sent to output @src; supported values for 'x' are as follows:
+ *              1: DEBUG
+ *              2: INFO
+ *              3: WARNING
+ *              4: ERROR
+ *
+ * Parses @src string into a logging object type. If running in setuid mode,
+ * then only destination of type 'stderr' is permitted.
+ *
+ * Returns a newly created logging object from @src on success or NULL in case
+ * of an error.
+ */
+virLogOutputPtr
+virLogParseOutput(const char *src)
+{
+    virLogOutputPtr ret = NULL;
+    char **tokens = NULL;
+    char *abspath = NULL;
+    size_t count = 0;
+    virLogPriority prio;
+    int dest;
+    bool isSUID = virIsSUID();
+
+    VIR_DEBUG("output=%s", src);
+
+    /* split our format prio:destination:additional_data to tokens and parse
+     * them individually
+     */
+    if (!(tokens = virStringSplitCount(src, ":", 0, &count)) || count < 2) {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("Malformed format for output '%s'"), src);
+        goto cleanup;
+    }
+
+    if (virStrToLong_uip(tokens[0], NULL, 10, &prio) < 0 ||
+        (prio < VIR_LOG_DEBUG) || (prio > VIR_LOG_ERROR)) {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("Invalid priority '%s' for output '%s'"),
+                       tokens[0], src);
+        goto cleanup;
+    }
+
+    if ((dest = virLogDestinationTypeFromString(tokens[1])) < 0) {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("Invalid destination '%s' for output '%s'"),
+                       tokens[1], src);
+        goto cleanup;
+    }
+
+    if (((dest == VIR_LOG_TO_STDERR ||
+          dest == VIR_LOG_TO_JOURNALD) && count != 2) ||
+        ((dest == VIR_LOG_TO_FILE ||
+          dest == VIR_LOG_TO_SYSLOG) && count != 3)) {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("Output '%s' does not meet the format requirements "
+                         "for destination type '%s'"), src, tokens[1]);
+        goto cleanup;
+    }
+
+    /* if running with setuid, only 'stderr' is allowed */
+    if (isSUID && dest != VIR_LOG_TO_STDERR) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Running with SUID permits only destination of type "
+                         "'stderr'"));
+        goto cleanup;
+    }
+
+    switch ((virLogDestination) dest) {
+    case VIR_LOG_TO_STDERR:
+        ret = virLogNewOutputToStderr(prio);
+        break;
+    case VIR_LOG_TO_SYSLOG:
+#if HAVE_SYSLOG_H
+        ret = virLogNewOutputToSyslog(prio, tokens[2]);
+#endif
+        break;
+    case VIR_LOG_TO_FILE:
+        if (virFileAbsPath(tokens[2], &abspath) < 0)
+            goto cleanup;
+        ret = virLogNewOutputToFile(prio, abspath);
+        VIR_FREE(abspath);
+        break;
+    case VIR_LOG_TO_JOURNALD:
+#if USE_JOURNALD
+        ret = virLogNewOutputToJournald(prio);
+#endif
+        break;
+    case VIR_LOG_TO_OUTPUT_LAST:
+        break;
+    }
+
+ cleanup:
+    virStringFreeList(tokens);
+    return ret;
+}
+
+
+/**
+ * virLogParseFilter:
+ * @src: string defining a single filter
+ *
+ * The format of @src should be one of the following:
+ *    x:name - filter affecting all modules which match 'name'
+ *    x:+name
+ *
+ *      '+' - hints the logger to also include a stack trace for every message
+ *      'name' - match string which either matches a name of a directory in
+ *               libvirt's source tree which in turn affects all modules in
+ *               that directory or it can matches a specific module within a
+ *               directory, e.g. 'util.file' will only affect messages from
+ *               module virfile.c inside src/util/ directory
+ *      'x' - minimal priority level which acts as a filter meaning that only
+ *            messages with priority level greater than or equal to 'x' will be
+ *            sent to output; supported values for 'x' are as follows:
+ *              1: DEBUG
+ *              2: INFO
+ *              3: WARNING
+ *              4: ERROR
+ *
+ * Parses @src string into a logging object type.
+ *
+ * Returns a newly created logging object from @src on success or NULL in case
+ * of an error.
+ */
+virLogFilterPtr
+virLogParseFilter(const char *src)
+{
+    virLogFilterPtr ret = NULL;
+    size_t count = 0;
+    virLogPriority prio;
+    char **tokens = NULL;
+    unsigned int flags = 0;
+    char *match = NULL;
+
+    VIR_DEBUG("filter=%s", src);
+
+    /* split our format prio:match_str to tokens and parse them individually */
+    if (!(tokens = virStringSplitCount(src, ":", 0, &count)) || count != 2) {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("Malformed format for filter '%s'"), src);
+        goto cleanup;
+    }
+
+    if (virStrToLong_uip(tokens[0], NULL, 10, &prio) < 0 ||
+        (prio < VIR_LOG_DEBUG) || (prio > VIR_LOG_ERROR)) {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("Invalid priority '%s' for output '%s'"),
+                       tokens[0], src);
+        goto cleanup;
+    }
+
+    match = tokens[1];
+    if (match[0] == '+') {
+        flags |= VIR_LOG_STACK_TRACE;
+        match++;
+    }
+
+    /* match string cannot comprise just from a single '+' */
+    if (!*match) {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("Invalid match string '%s'"), tokens[1]);
+
+        goto cleanup;
+    }
+
+    if (!(ret = virLogFilterNew(match, prio, flags)))
+        goto cleanup;
+
+ cleanup:
+    virStringFreeList(tokens);
+    return ret;
+}
+
+/**
+ * virLogParseOutputs:
+ * @src: string defining a (set of) output(s)
+ * @outputs: user-supplied list where parsed outputs from @src shall be stored
+ *
+ * Parses a (set of) output(s) into a list of logging objects. Multiple outputs
+ * can be defined within @src string, they just need to be separated by spaces.
+ * If running in setuid mode, then only the 'stderr' output will be allowed.
+ *
+ * Returns the number of outputs parsed or -1 in case of error.
+ */
+int
+virLogParseOutputs(const char *src, virLogOutputPtr **outputs)
+{
+    int ret = -1;
+    int at = -1;
+    size_t noutputs = 0;
+    size_t i, count;
+    char **strings = NULL;
+    virLogOutputPtr output = NULL;
+    virLogOutputPtr *list = NULL;
+
+    VIR_DEBUG("outputs=%s", src);
+
+    if (!(strings = virStringSplitCount(src, " ", 0, &count)))
+        goto cleanup;
+
+    for (i = 0; i < count; i++) {
+        /* virStringSplit may return empty strings */
+        if (STREQ(strings[i], ""))
+            continue;
+
+        if (!(output = virLogParseOutput(strings[i])))
+            goto cleanup;
+
+        /* let's check if a duplicate output does not already exist in which
+         * case we need to replace it with its last occurrence, however, rather
+         * than first deleting the duplicate and then adding the new one, the
+         * new output object is added first so in case of an error we don't
+         * lose the old entry
+         */
+        at = virLogFindOutput(list, noutputs, output->dest, output->name);
+        if (VIR_APPEND_ELEMENT(list, noutputs, output) < 0) {
+            virLogOutputFree(output);
+            goto cleanup;
+        }
+        if (at >= 0) {
+            virLogOutputFree(list[at]);
+            VIR_DELETE_ELEMENT(list, at, noutputs);
+        }
+    }
+
+    ret = noutputs;
+    *outputs = list;
+    list = NULL;
+ cleanup:
+    virStringFreeList(strings);
+    return ret;
+}
+
+/**
+ * virLogParseFilters:
+ * @src: string defining a (set of) filter(s)
+ * @filters: pointer to a list where the individual filters shall be parsed
+ *
+ * This method parses @src and produces a list of individual filters which then
+ * needs to be passed to virLogDefineFilters in order to be set and taken into
+ * effect.
+ * Multiple filters can be defined in a single @src, they just need to be
+ * separated by spaces.
+ *
+ * Returns the number of filter parsed or -1 in case of error.
+ */
+int
+virLogParseFilters(const char *src, virLogFilterPtr **filters)
+{
+    int ret = -1;
+    size_t nfilters = 0;
+    size_t i, count;
+    char **strings = NULL;
+    virLogFilterPtr filter = NULL;
+    virLogFilterPtr *list = NULL;
+
+    VIR_DEBUG("filters=%s", src);
+
+    if (!(strings = virStringSplitCount(src, " ", 0, &count)))
+        goto cleanup;
+
+    for (i = 0; i < count; i++) {
+        /* virStringSplit may return empty strings */
+        if (STREQ(strings[i], ""))
+            continue;
+
+        if (!(filter = virLogParseFilter(strings[i])))
+            goto cleanup;
+
+        if (VIR_APPEND_ELEMENT(list, nfilters, filter)) {
+            virLogFilterFree(filter);
+            goto cleanup;
+        }
+    }
+
+    ret = nfilters;
+    *filters = list;
+    list = NULL;
+ cleanup:
+    virStringFreeList(strings);
+    return ret;
+}
+
+/**
+ * virLogSetOutputs:
+ * @outputs: string defining a (set of) output(s)
+ *
+ * Replaces the current set of defined outputs with a new set of outputs.
+ *
+ * Returns 0 on success or -1 in case of an error.
+ */
+int
+virLogSetOutputs(const char *src)
+{
+    int ret = -1;
+    int noutputs = 0;
+    virLogOutputPtr *outputs = NULL;
+
+    if (virLogInitialize() < 0)
+        return -1;
+
+    if ((noutputs = virLogParseOutputs(src, &outputs)) < 0)
+        goto cleanup;
+
+    if (virLogDefineOutputs(outputs, noutputs) < 0)
+        goto cleanup;
+
+    outputs = NULL;
+    ret = 0;
+ cleanup:
+    virLogOutputListFree(outputs, noutputs);
+    return ret;
+}
+
+
+/**
+ * virLogSetFilters:
+ * @src: string defining a (set of) filter(s)
+ *
+ * Replaces the current set of defined filters with a new set of filters.
+ *
+ * Returns 0 on success or -1 in case of an error.
+ */
+int
+virLogSetFilters(const char *src)
+{
+    int ret = -1;
+    int nfilters = 0;
+    virLogFilterPtr *filters = NULL;
+
+    if (virLogInitialize() < 0)
+        return -1;
+
+    if (src && (nfilters = virLogParseFilters(src, &filters)) < 0)
+        goto cleanup;
+
+    if (virLogDefineFilters(filters, nfilters) < 0)
+        goto cleanup;
+
+    filters = NULL;
+    ret = 0;
+ cleanup:
+    virLogFilterListFree(filters, nfilters);
     return ret;
 }

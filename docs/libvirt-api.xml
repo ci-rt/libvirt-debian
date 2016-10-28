@@ -134,17 +134,23 @@
      <exports symbol='VIR_DOMAIN_BLOCK_COPY_GRANULARITY' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX' type='macro'/>
+     <exports symbol='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX_LENGTH' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX' type='macro'/>
+     <exports symbol='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX_LENGTH' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLOCK_IOTUNE_SIZE_IOPS_SEC' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX' type='macro'/>
+     <exports symbol='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX_LENGTH' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX' type='macro'/>
+     <exports symbol='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX_LENGTH' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX' type='macro'/>
+     <exports symbol='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX_LENGTH' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX' type='macro'/>
+     <exports symbol='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX_LENGTH' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLOCK_STATS_ERRS' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLOCK_STATS_FIELD_LENGTH' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLOCK_STATS_FLUSH_REQ' type='macro'/>
@@ -215,17 +221,23 @@
      <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_DISK' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX' type='macro'/>
+     <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX_LENGTH' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX' type='macro'/>
+     <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX_LENGTH' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_SIZE_IOPS_SEC' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX' type='macro'/>
+     <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX_LENGTH' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX' type='macro'/>
+     <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX_LENGTH' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX' type='macro'/>
+     <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX_LENGTH' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX' type='macro'/>
+     <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX_LENGTH' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD' type='macro'/>
@@ -681,6 +693,7 @@
      <exports symbol='VIR_DOMAIN_VCPU_CONFIG' type='enum'/>
      <exports symbol='VIR_DOMAIN_VCPU_CURRENT' type='enum'/>
      <exports symbol='VIR_DOMAIN_VCPU_GUEST' type='enum'/>
+     <exports symbol='VIR_DOMAIN_VCPU_HOTPLUGGABLE' type='enum'/>
      <exports symbol='VIR_DOMAIN_VCPU_LIVE' type='enum'/>
      <exports symbol='VIR_DOMAIN_VCPU_MAXIMUM' type='enum'/>
      <exports symbol='VIR_DOMAIN_XML_INACTIVE' type='enum'/>
@@ -1913,11 +1926,17 @@
     <macro name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX' file='libvirt-domain' string='read_bytes_sec_max'>
       <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the maximum read bytes per second permitted through a block device, as a ullong.]]></info>
     </macro>
+    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX_LENGTH' file='libvirt-domain' string='read_bytes_sec_max_length'>
+      <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the duration in seconds for the burst allowed by read_bytes_sec_max, as a ullong.]]></info>
+    </macro>
     <macro name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC' file='libvirt-domain' string='read_iops_sec'>
       <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the read I/O operations per second permitted through a block device, as a ullong.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX' file='libvirt-domain' string='read_iops_sec_max'>
       <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the maximum read I/O operations per second permitted through a block device, as a ullong.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX_LENGTH' file='libvirt-domain' string='read_iops_sec_max_length'>
+      <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the duration in seconds for the burst allowed by read_iops_sec_max, as a ullong.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLOCK_IOTUNE_SIZE_IOPS_SEC' file='libvirt-domain' string='size_iops_sec'>
       <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the size I/O operations per second permitted through a block device, as a ullong.]]></info>
@@ -1928,11 +1947,17 @@
     <macro name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX' file='libvirt-domain' string='total_bytes_sec_max'>
       <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the maximum total bytes per second permitted through a block device, as a ullong.]]></info>
     </macro>
+    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX_LENGTH' file='libvirt-domain' string='total_bytes_sec_max_length'>
+      <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the duration in seconds for the burst allowed by total_bytes_sec_max, as a ullong.]]></info>
+    </macro>
     <macro name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC' file='libvirt-domain' string='total_iops_sec'>
       <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the total I/O operations per second permitted through a block device, as a ullong.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX' file='libvirt-domain' string='total_iops_sec_max'>
       <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the maximum I/O operations per second permitted through a block device, as a ullong.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX_LENGTH' file='libvirt-domain' string='total_iops_sec_max_length'>
+      <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the duration in seconds for the burst allowed by total_iops_sec_max, as a ullong.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC' file='libvirt-domain' string='write_bytes_sec'>
       <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the write bytes per second permitted through a block device, as a ullong.]]></info>
@@ -1940,11 +1965,17 @@
     <macro name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX' file='libvirt-domain' string='write_bytes_sec_max'>
       <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the maximum write bytes per second permitted through a block device, as a ullong.]]></info>
     </macro>
+    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX_LENGTH' file='libvirt-domain' string='write_bytes_sec_max_length'>
+      <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the duration in seconds for the burst allowed by write_bytes_sec_max, as a ullong.]]></info>
+    </macro>
     <macro name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC' file='libvirt-domain' string='write_iops_sec'>
       <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the write I/O operations per second permitted through a block device, as a ullong.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX' file='libvirt-domain' string='write_iops_sec_max'>
       <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the maximum write I/O operations per second permitted through a block device, as a ullong.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX_LENGTH' file='libvirt-domain' string='write_iops_sec_max_length'>
+      <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the duration in seconds for the burst allowed by write_iops_sec_max, as a ullong.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLOCK_STATS_ERRS' file='libvirt-domain' string='errs'>
       <info><![CDATA[In Xen this returns the mysterious 'oo_req', as an llong.]]></info>
@@ -2151,43 +2182,61 @@
       <info><![CDATA[Macro represents the name of guest disk for which the values are updated, as VIR_TYPED_PARAM_STRING.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC' file='libvirt-domain' string='blkdeviotune.read_bytes_sec'>
-      <info><![CDATA[Marco represents the read throughput limit in bytes per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
+      <info><![CDATA[Macro represents the read throughput limit in bytes per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX' file='libvirt-domain' string='blkdeviotune.read_bytes_sec_max'>
-      <info><![CDATA[Marco represents the read throughput limit in maximum bytes per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
+      <info><![CDATA[Macro represents the read throughput limit during bursts in maximum bytes per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX_LENGTH' file='libvirt-domain' string='blkdeviotune.read_bytes_sec_max_length'>
+      <info><![CDATA[Macro represents the length in seconds allowed for a burst period for the blkdeviotune.read_bytes_sec_max as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC' file='libvirt-domain' string='blkdeviotune.read_iops_sec'>
       <info><![CDATA[Macro represents the read I/O operations per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX' file='libvirt-domain' string='blkdeviotune.read_iops_sec_max'>
-      <info><![CDATA[Macro represents the read maximum I/O operations per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
+      <info><![CDATA[Macro represents the read maximum I/O operations per second during bursts, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX_LENGTH' file='libvirt-domain' string='blkdeviotune.read_iops_sec_max_length'>
+      <info><![CDATA[Macro represents the length in seconds allowed for a burst period for the blkdeviotune.read_iops_sec_max as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_SIZE_IOPS_SEC' file='libvirt-domain' string='blkdeviotune.size_iops_sec'>
       <info><![CDATA[Macro represents the size maximum I/O operations per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC' file='libvirt-domain' string='blkdeviotune.total_bytes_sec'>
-      <info><![CDATA[Marco represents the total throughput limit in bytes per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
+      <info><![CDATA[Macro represents the total throughput limit in bytes per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX' file='libvirt-domain' string='blkdeviotune.total_bytes_sec_max'>
-      <info><![CDATA[Marco represents the total throughput limit in maximum bytes per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
+      <info><![CDATA[Macro represents the total throughput limit during bursts in maximum bytes per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX_LENGTH' file='libvirt-domain' string='blkdeviotune.total_bytes_sec_max_length'>
+      <info><![CDATA[Macro represents the length in seconds allowed for a burst period for the blkdeviotune.total_bytes_sec_max, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC' file='libvirt-domain' string='blkdeviotune.total_iops_sec'>
       <info><![CDATA[Macro represents the total I/O operations per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX' file='libvirt-domain' string='blkdeviotune.total_iops_sec_max'>
-      <info><![CDATA[Macro represents the total maximum I/O operations per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
+      <info><![CDATA[Macro represents the total maximum I/O operations per second during bursts, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX_LENGTH' file='libvirt-domain' string='blkdeviotune.total_iops_sec_max_length'>
+      <info><![CDATA[Macro represents the length in seconds allowed for a burst period for the blkdeviotune.total_iops_sec_max as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC' file='libvirt-domain' string='blkdeviotune.write_bytes_sec'>
       <info><![CDATA[Macro represents the write throughput limit in bytes per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX' file='libvirt-domain' string='blkdeviotune.write_bytes_sec_max'>
-      <info><![CDATA[Macro represents the write throughput limit in maximum bytes per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
+      <info><![CDATA[Macro represents the write throughput limit during bursts in maximum bytes per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX_LENGTH' file='libvirt-domain' string='blkdeviotune.write_bytes_sec_max_length'>
+      <info><![CDATA[Macro represents the length in seconds allowed for a burst period for the blkdeviotune.write_bytes_sec_max as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC' file='libvirt-domain' string='blkdeviotune.write_iops_sec'>
       <info><![CDATA[Macro represents the write I/O operations per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX' file='libvirt-domain' string='blkdeviotune.write_iops_sec_max'>
-      <info><![CDATA[Macro represents the write maximum I/O operations per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
+      <info><![CDATA[Macro represents the write maximum I/O operations per second during bursts, as VIR_TYPED_PARAM_ULLONG.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX_LENGTH' file='libvirt-domain' string='blkdeviotune.write_iops_sec_max_length'>
+      <info><![CDATA[Macro represents the length in seconds allowed for a burst period for the blkdeviotune.write_iops_sec_max as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES' file='libvirt-domain' string='cputune.cpu_shares'>
       <info><![CDATA[Macro represents proportional weight of the scheduler used on the host cpu, when using the posix scheduler, as VIR_TYPED_PARAM_ULLONG.]]></info>
@@ -2359,7 +2408,7 @@
       <info><![CDATA[Macro for typed parameter name that represents CMT perf event which can be used to measure the usage of cache (bytes) by applications running on the platform. It corresponds to the "perf.cmt" field in the *Stats APIs.]]></info>
     </macro>
     <macro name='VIR_PERF_PARAM_CPU_CYCLES' file='libvirt-domain' string='cpu_cycles'>
-      <info><![CDATA[Macro for typed parameter name that represents cpu_cycles perf event which can be used to measure how many cpu cycles one instruction needs. It corresponds to the "perf.cpu_cycles" field in the *Stats APIs.]]></info>
+      <info><![CDATA[Macro for typed parameter name that represents cpu_cycles perf event describing the total/elapsed cpu cycles. This can be used to measure how many cpu cycles one instruction needs. It corresponds to the "perf.cpu_cycles" field in the *Stats APIs.]]></info>
     </macro>
     <macro name='VIR_PERF_PARAM_INSTRUCTIONS' file='libvirt-domain' string='instructions'>
       <info><![CDATA[Macro for typed parameter name that represents instructions perf event which can be used to measure the count of instructions by applications running on the platform. It corresponds to the "perf.instructions" field in the *Stats APIs.]]></info>
@@ -3017,6 +3066,7 @@ snapshot metadata'/>
     <enum name='VIR_DOMAIN_VCPU_CONFIG' file='libvirt-domain' value='VIR_DOMAIN_AFFECT_CONFIG' type='virDomainVcpuFlags' info='Additionally, these flags may be bitwise-OR&apos;d in.'/>
     <enum name='VIR_DOMAIN_VCPU_CURRENT' file='libvirt-domain' value='VIR_DOMAIN_AFFECT_CURRENT' type='virDomainVcpuFlags'/>
     <enum name='VIR_DOMAIN_VCPU_GUEST' file='libvirt-domain' value='8' type='virDomainVcpuFlags' info='Modify state of the cpu in the guest'/>
+    <enum name='VIR_DOMAIN_VCPU_HOTPLUGGABLE' file='libvirt-domain' value='16' type='virDomainVcpuFlags' info='Make vcpus added hot(un)pluggable'/>
     <enum name='VIR_DOMAIN_VCPU_LIVE' file='libvirt-domain' value='VIR_DOMAIN_AFFECT_LIVE' type='virDomainVcpuFlags'/>
     <enum name='VIR_DOMAIN_VCPU_MAXIMUM' file='libvirt-domain' value='4' type='virDomainVcpuFlags' info='Max rather than current count'/>
     <enum name='VIR_DOMAIN_XML_INACTIVE' file='libvirt-domain' value='2' type='virDomainXMLFlags' info='dump inactive domain information'/>
@@ -4521,7 +4571,7 @@ The typed parameter keys are in this format:
                           It is produced by cache_references perf event.
 "perf.instructions"     - The count of instructions as unsigned long long.
                           It is produced by instructions perf event.
-"perf.cpu_cycles"       - The number of cpu cycles one instruction needs as
+"perf.cpu_cycles"       - The count of cpu cycles (total/elapsed) as an
                           unsigned long long. It is produced by cpu_cycles
                           perf event.
 

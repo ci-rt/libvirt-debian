@@ -1263,6 +1263,54 @@ static const vshCmdOptDef opts_blkdeviotune[] = {
      .type = VSH_OT_INT,
      .help = N_("I/O size in bytes")
     },
+    {.name = "total_bytes_sec_max_length",
+     .type = VSH_OT_ALIAS,
+     .help = "total-bytes-sec-max-length"
+    },
+    {.name = "total-bytes-sec-max-length",
+     .type = VSH_OT_INT,
+     .help = N_("duration in seconds to allow total max bytes")
+    },
+    {.name = "read_bytes_sec_max_length",
+     .type = VSH_OT_ALIAS,
+     .help = "read-bytes-sec-max-length"
+    },
+    {.name = "read-bytes-sec-max-length",
+     .type = VSH_OT_INT,
+     .help = N_("duration in seconds to allow read max bytes")
+    },
+    {.name = "write_bytes_sec_max_length",
+     .type = VSH_OT_ALIAS,
+     .help = "write-bytes-sec-max-length"
+    },
+    {.name = "write-bytes-sec-max-length",
+     .type = VSH_OT_INT,
+     .help = N_("duration in seconds to allow write max bytes")
+    },
+    {.name = "total_iops_sec_max_length",
+     .type = VSH_OT_ALIAS,
+     .help = "total-iops-sec-max-length"
+    },
+    {.name = "total-iops-sec-max-length",
+     .type = VSH_OT_INT,
+     .help = N_("duration in seconds to allow total I/O operations max")
+    },
+    {.name = "read_iops_sec_max_length",
+     .type = VSH_OT_ALIAS,
+     .help = "read-iops-sec-max-length"
+    },
+    {.name = "read-iops-sec-max-length",
+     .type = VSH_OT_INT,
+     .help = N_("duration in seconds to allow read I/O operations max")
+    },
+    {.name = "write_iops_sec_max_length",
+     .type = VSH_OT_ALIAS,
+     .help = "write-iops-sec-max-length"
+    },
+    {.name = "write-iops-sec-max-length",
+     .type = VSH_OT_INT,
+     .help = N_("duration in seconds to allow write I/O operations max")
+    },
     VIRSH_COMMON_OPT_DOMAIN_CONFIG,
     VIRSH_COMMON_OPT_DOMAIN_LIVE,
     VIRSH_COMMON_OPT_DOMAIN_CURRENT,
@@ -1300,122 +1348,50 @@ cmdBlkdeviotune(vshControl *ctl, const vshCmd *cmd)
     if (vshCommandOptStringReq(ctl, cmd, "device", &disk) < 0)
         goto cleanup;
 
-    if ((rv = vshCommandOptScaledInt(ctl, cmd, "total-bytes-sec", &value, 1, ULLONG_MAX)) < 0) {
-        goto interror;
-    } else if (rv > 0) {
-        if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
-                                    VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC,
-                                    value) < 0)
-            goto save_error;
-    }
+#define VSH_ADD_IOTUNE_SCALED(PARAM, CONST)                                    \
+    if ((rv = vshCommandOptScaledInt(ctl, cmd, #PARAM, &value,                 \
+                                     1, ULLONG_MAX)) < 0) {                    \
+        goto interror;                                                         \
+    } else if (rv > 0) {                                                       \
+        if (virTypedParamsAddULLong(&params, &nparams, &maxparams,             \
+                                    VIR_DOMAIN_BLOCK_IOTUNE_##CONST,           \
+                                    value) < 0)                                \
+            goto save_error;                                                   \
+    }                                                                          \
 
-    if ((rv = vshCommandOptScaledInt(ctl, cmd, "read-bytes-sec", &value, 1, ULLONG_MAX)) < 0) {
-        goto interror;
-    } else if (rv > 0) {
-        if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
-                                    VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC,
-                                    value) < 0)
-            goto save_error;
-    }
+    VSH_ADD_IOTUNE_SCALED(total-bytes-sec, TOTAL_BYTES_SEC);
+    VSH_ADD_IOTUNE_SCALED(read-bytes-sec, READ_BYTES_SEC);
+    VSH_ADD_IOTUNE_SCALED(write-bytes-sec, WRITE_BYTES_SEC);
+    VSH_ADD_IOTUNE_SCALED(total-bytes-sec-max, TOTAL_BYTES_SEC_MAX);
+    VSH_ADD_IOTUNE_SCALED(read-bytes-sec-max, READ_BYTES_SEC_MAX);
+    VSH_ADD_IOTUNE_SCALED(write-bytes-sec-max, WRITE_BYTES_SEC_MAX);
+#undef VSH_ADD_IOTUNE_SCALED
 
-    if ((rv = vshCommandOptScaledInt(ctl, cmd, "write-bytes-sec", &value, 1, ULLONG_MAX)) < 0) {
-        goto interror;
-    } else if (rv > 0) {
-        if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
-                                    VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC,
-                                    value) < 0)
-            goto save_error;
-    }
+#define VSH_ADD_IOTUNE(PARAM, CONST)                                           \
+    if ((rv = vshCommandOptULongLong(ctl, cmd, #PARAM, &value)) < 0) {         \
+        goto interror;                                                         \
+    } else if (rv > 0) {                                                       \
+        if (virTypedParamsAddULLong(&params, &nparams, &maxparams,             \
+                                    VIR_DOMAIN_BLOCK_IOTUNE_##CONST,           \
+                                    value) < 0)                                \
+            goto save_error;                                                   \
+    }                                                                          \
 
-    if ((rv = vshCommandOptScaledInt(ctl, cmd, "total-bytes-sec-max", &value, 1, ULLONG_MAX)) < 0) {
-        goto interror;
-    } else if (rv > 0) {
-        if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
-                                    VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX,
-                                    value) < 0)
-            goto save_error;
-    }
+    VSH_ADD_IOTUNE(total-iops-sec, TOTAL_IOPS_SEC);
+    VSH_ADD_IOTUNE(read-iops-sec, READ_IOPS_SEC);
+    VSH_ADD_IOTUNE(write-iops-sec, WRITE_IOPS_SEC);
+    VSH_ADD_IOTUNE(total-iops-sec-max, TOTAL_IOPS_SEC_MAX);
+    VSH_ADD_IOTUNE(read-iops-sec-max, READ_IOPS_SEC_MAX);
+    VSH_ADD_IOTUNE(write-iops-sec-max, WRITE_IOPS_SEC_MAX);
+    VSH_ADD_IOTUNE(size-iops-sec, SIZE_IOPS_SEC);
 
-    if ((rv = vshCommandOptScaledInt(ctl, cmd, "read-bytes-sec-max", &value, 1, ULLONG_MAX)) < 0) {
-        goto interror;
-    } else if (rv > 0) {
-        if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
-                                    VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX,
-                                    value) < 0)
-            goto save_error;
-    }
-
-    if ((rv = vshCommandOptScaledInt(ctl, cmd, "write-bytes-sec-max", &value, 1, ULLONG_MAX)) < 0) {
-        goto interror;
-    } else if (rv > 0) {
-        if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
-                                    VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX,
-                                    value) < 0)
-            goto save_error;
-    }
-
-    if ((rv = vshCommandOptULongLong(ctl, cmd, "total-iops-sec", &value)) < 0) {
-        goto interror;
-    } else if (rv > 0) {
-        if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
-                                    VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC,
-                                    value) < 0)
-            goto save_error;
-    }
-
-    if ((rv = vshCommandOptULongLong(ctl, cmd, "read-iops-sec", &value)) < 0) {
-        goto interror;
-    } else if (rv > 0) {
-        if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
-                                    VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC,
-                                    value) < 0)
-            goto save_error;
-    }
-
-    if ((rv = vshCommandOptULongLong(ctl, cmd, "write-iops-sec", &value)) < 0) {
-        goto interror;
-    } else if (rv > 0) {
-        if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
-                                    VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC,
-                                    value) < 0)
-            goto save_error;
-    }
-
-    if ((rv = vshCommandOptULongLong(ctl, cmd, "write-iops-sec-max", &value)) < 0) {
-        goto interror;
-    } else if (rv > 0) {
-        if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
-                                    VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX,
-                                    value) < 0)
-            goto save_error;
-    }
-
-    if ((rv = vshCommandOptULongLong(ctl, cmd, "read-iops-sec-max", &value)) < 0) {
-        goto interror;
-    } else if (rv > 0) {
-        if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
-                                    VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX,
-                                    value) < 0)
-            goto save_error;
-    }
-
-    if ((rv = vshCommandOptULongLong(ctl, cmd, "total-iops-sec-max", &value)) < 0) {
-        goto interror;
-    } else if (rv > 0) {
-        if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
-                                    VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX,
-                                    value) < 0)
-            goto save_error;
-    }
-
-    if ((rv = vshCommandOptULongLong(ctl, cmd, "size-iops-sec", &value)) < 0) {
-        goto interror;
-    } else if (rv > 0) {
-        if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
-                                    VIR_DOMAIN_BLOCK_IOTUNE_SIZE_IOPS_SEC,
-                                    value) < 0)
-            goto save_error;
-    }
+    VSH_ADD_IOTUNE(total-bytes-sec-max-length, TOTAL_BYTES_SEC_MAX_LENGTH);
+    VSH_ADD_IOTUNE(read-bytes-sec-max-length, READ_BYTES_SEC_MAX_LENGTH);
+    VSH_ADD_IOTUNE(write-bytes-sec-max-length, WRITE_BYTES_SEC_MAX_LENGTH);
+    VSH_ADD_IOTUNE(total-iops-sec-max-length, TOTAL_IOPS_SEC_MAX_LENGTH);
+    VSH_ADD_IOTUNE(read-iops-sec-max-length, READ_IOPS_SEC_MAX_LENGTH);
+    VSH_ADD_IOTUNE(write-iops-sec-max-length, WRITE_IOPS_SEC_MAX_LENGTH);
+#undef VSH_ADD_IOTUNE
 
     if (nparams == 0) {
         if (virDomainGetBlockIoTune(dom, NULL, NULL, &nparams, flags) != 0) {
@@ -6125,50 +6101,49 @@ virshCPUCountCollect(vshControl *ctl,
         return count;
 
     /* fallback code */
-     if (!(last_error->code == VIR_ERR_NO_SUPPORT ||
-           last_error->code == VIR_ERR_INVALID_ARG))
-         goto cleanup;
+    if (!(last_error->code == VIR_ERR_NO_SUPPORT ||
+          last_error->code == VIR_ERR_INVALID_ARG))
+        goto cleanup;
 
-     if (flags & VIR_DOMAIN_VCPU_GUEST) {
-         vshError(ctl, "%s", _("Failed to retrieve vCPU count from the guest"));
-         goto cleanup;
-     }
+    if (flags & VIR_DOMAIN_VCPU_GUEST) {
+        vshError(ctl, "%s", _("Failed to retrieve vCPU count from the guest"));
+        goto cleanup;
+    }
 
-     if (!(flags & (VIR_DOMAIN_AFFECT_LIVE | VIR_DOMAIN_AFFECT_CONFIG)) &&
-         virDomainIsActive(dom) == 1)
-         flags |= VIR_DOMAIN_AFFECT_LIVE;
+    if (!(flags & (VIR_DOMAIN_AFFECT_LIVE | VIR_DOMAIN_AFFECT_CONFIG)) &&
+        virDomainIsActive(dom) == 1)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
 
-     vshResetLibvirtError();
+    vshResetLibvirtError();
 
-     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
-         if (flags & VIR_DOMAIN_VCPU_MAXIMUM) {
+    if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+        if (flags & VIR_DOMAIN_VCPU_MAXIMUM) {
             count = virDomainGetMaxVcpus(dom);
-         } else {
-            if (virDomainGetInfo(dom, &info) < 0)
-                goto cleanup;
+        } else {
+           if (virDomainGetInfo(dom, &info) < 0)
+               goto cleanup;
 
-            count = info.nrVirtCpu;
-         }
-     } else {
-         if (!(def = virDomainGetXMLDesc(dom, VIR_DOMAIN_XML_INACTIVE)))
-             goto cleanup;
+           count = info.nrVirtCpu;
+        }
+    } else {
+        if (!(def = virDomainGetXMLDesc(dom, VIR_DOMAIN_XML_INACTIVE)))
+            goto cleanup;
 
         if (!(xml = virXMLParseStringCtxt(def, _("(domain_definition)"), &ctxt)))
             goto cleanup;
 
-         if (flags & VIR_DOMAIN_VCPU_MAXIMUM) {
-             if (virXPathInt("string(/domain/vcpus)", ctxt, &count) < 0) {
-                 vshError(ctl, "%s", _("Failed to retrieve maximum vcpu count"));
-                 goto cleanup;
-             }
-         } else {
-             if (virXPathInt("string(/domain/vcpus/@current)",
-                             ctxt, &count) < 0) {
-                 vshError(ctl, "%s", _("Failed to retrieve current vcpu count"));
-                 goto cleanup;
-             }
-         }
-     }
+        if (flags & VIR_DOMAIN_VCPU_MAXIMUM) {
+            if (virXPathInt("string(/domain/vcpu)", ctxt, &count) < 0) {
+                vshError(ctl, "%s", _("Failed to retrieve maximum vcpu count"));
+                goto cleanup;
+            }
+        } else {
+            if (virXPathInt("string(/domain/vcpu/@current)", ctxt, &count) < 0) {
+                vshError(ctl, "%s", _("Failed to retrieve current vcpu count"));
+                goto cleanup;
+            }
+        }
+    }
 
     ret = count;
  cleanup:
@@ -6281,6 +6256,168 @@ static const vshCmdOptDef opts_vcpuinfo[] = {
     {.name = NULL}
 };
 
+
+static int
+virshVcpuinfoPrintAffinity(vshControl *ctl,
+                           const unsigned char *cpumap,
+                           int maxcpu,
+                           bool pretty)
+{
+    char *str = NULL;
+    size_t i;
+    int ret = -1;
+
+    vshPrint(ctl, "%-15s ", _("CPU Affinity:"));
+    if (pretty) {
+        if (!(str = virBitmapDataToString(cpumap, VIR_CPU_MAPLEN(maxcpu))))
+            goto cleanup;
+        vshPrint(ctl, _("%s (out of %d)"), str, maxcpu);
+    } else {
+        for (i = 0; i < maxcpu; i++)
+            vshPrint(ctl, "%c", VIR_CPU_USED(cpumap, i) ? 'y' : '-');
+    }
+    vshPrint(ctl, "\n");
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(str);
+    return ret;
+}
+
+
+static virBitmapPtr
+virshDomainGetVcpuBitmap(vshControl *ctl,
+                         virDomainPtr dom,
+                         bool inactive)
+{
+    unsigned int flags = 0;
+    char *def = NULL;
+    virBitmapPtr ret = NULL;
+    xmlDocPtr xml = NULL;
+    xmlXPathContextPtr ctxt = NULL;
+    xmlNodePtr *nodes = NULL;
+    xmlNodePtr old;
+    int nnodes;
+    size_t i;
+    unsigned int curvcpus = 0;
+    unsigned int maxvcpus = 0;
+    unsigned int vcpuid;
+    char *online = NULL;
+
+    if (inactive)
+        flags |= VIR_DOMAIN_XML_INACTIVE;
+
+    if (!(def = virDomainGetXMLDesc(dom, flags)))
+        goto cleanup;
+
+    if (!(xml = virXMLParseStringCtxt(def, _("(domain_definition)"), &ctxt)))
+        goto cleanup;
+
+    if (virXPathUInt("string(/domain/vcpu)", ctxt, &maxvcpus) < 0) {
+        vshError(ctl, "%s", _("Failed to retrieve maximum vcpu count"));
+        goto cleanup;
+    }
+
+    ignore_value(virXPathUInt("string(/domain/vcpu/@current)", ctxt, &curvcpus));
+
+    if (curvcpus == 0)
+        curvcpus = maxvcpus;
+
+    if (!(ret = virBitmapNew(maxvcpus)))
+        goto cleanup;
+
+    if ((nnodes = virXPathNodeSet("/domain/vcpus/vcpu", ctxt, &nodes)) <= 0) {
+        /* if the specific vcpu state is missing provide a fallback */
+        for (i = 0; i < curvcpus; i++)
+            ignore_value(virBitmapSetBit(ret, i));
+
+        goto cleanup;
+    }
+
+    old = ctxt->node;
+
+    for (i = 0; i < nnodes; i++) {
+        ctxt->node = nodes[i];
+
+        if (virXPathUInt("string(@id)", ctxt, &vcpuid) < 0 ||
+            !(online = virXPathString("string(@enabled)", ctxt)))
+            continue;
+
+        if (STREQ(online, "yes"))
+            ignore_value(virBitmapSetBit(ret, vcpuid));
+
+        VIR_FREE(online);
+    }
+
+    ctxt->node = old;
+
+    if (virBitmapCountBits(ret) != curvcpus) {
+        vshError(ctl, "%s", _("Failed to retrieve vcpu state bitmap"));
+        virBitmapFree(ret);
+        ret = NULL;
+    }
+
+ cleanup:
+    VIR_FREE(online);
+    VIR_FREE(nodes);
+    xmlXPathFreeContext(ctxt);
+    xmlFreeDoc(xml);
+    VIR_FREE(def);
+    return ret;
+}
+
+
+static bool
+virshVcpuinfoInactive(vshControl *ctl,
+                      virDomainPtr dom,
+                      int maxcpu,
+                      bool pretty)
+{
+    unsigned char *cpumaps = NULL;
+    size_t cpumaplen;
+    int ncpus;
+    virBitmapPtr vcpus = NULL;
+    ssize_t nextvcpu = -1;
+    bool ret = false;
+    bool first = true;
+
+    if (!(vcpus = virshDomainGetVcpuBitmap(ctl, dom, true)))
+        goto cleanup;
+
+    cpumaplen = VIR_CPU_MAPLEN(maxcpu);
+    cpumaps = vshMalloc(ctl, virBitmapSize(vcpus) * cpumaplen);
+
+    if ((ncpus = virDomainGetVcpuPinInfo(dom, virBitmapSize(vcpus),
+                                         cpumaps, cpumaplen,
+                                         VIR_DOMAIN_AFFECT_CONFIG)) < 0)
+        goto cleanup;
+
+    while ((nextvcpu = virBitmapNextSetBit(vcpus, nextvcpu)) >= 0) {
+        if (!first)
+            vshPrint(ctl, "\n");
+        first = false;
+
+        vshPrint(ctl, "%-15s %zd\n", _("VCPU:"), nextvcpu);
+        vshPrint(ctl, "%-15s %s\n", _("CPU:"), _("N/A"));
+        vshPrint(ctl, "%-15s %s\n", _("State:"), _("N/A"));
+        vshPrint(ctl, "%-15s %s\n", _("CPU time"), _("N/A"));
+
+        if (virshVcpuinfoPrintAffinity(ctl,
+                                       VIR_GET_CPUMAP(cpumaps, cpumaplen, nextvcpu),
+                                       maxcpu, pretty) < 0)
+            goto cleanup;
+    }
+
+    ret = true;
+
+ cleanup:
+    virBitmapFree(vcpus);
+    VIR_FREE(cpumaps);
+    return ret;
+}
+
+
 static bool
 cmdVcpuinfo(vshControl *ctl, const vshCmd *cmd)
 {
@@ -6292,7 +6429,7 @@ cmdVcpuinfo(vshControl *ctl, const vshCmd *cmd)
     size_t cpumaplen;
     bool ret = false;
     bool pretty = vshCommandOptBool(cmd, "pretty");
-    int n, m;
+    int n;
     virshControlPtr priv = ctl->privData;
 
     if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
@@ -6314,50 +6451,30 @@ cmdVcpuinfo(vshControl *ctl, const vshCmd *cmd)
         if (info.state != VIR_DOMAIN_SHUTOFF)
             goto cleanup;
 
-        /* fall back to virDomainGetVcpuPinInfo and free cpuinfo to mark this */
-        VIR_FREE(cpuinfo);
-        if ((ncpus = virDomainGetVcpuPinInfo(dom, info.nrVirtCpu,
-                                             cpumaps, cpumaplen,
-                                             VIR_DOMAIN_AFFECT_CONFIG)) < 0)
-            goto cleanup;
+        vshResetLibvirtError();
+
+        /* for offline VMs we can return pinning information */
+        ret = virshVcpuinfoInactive(ctl, dom, maxcpu, pretty);
+        goto cleanup;
     }
 
     for (n = 0; n < ncpus; n++) {
-        if (cpuinfo) {
-            vshPrint(ctl, "%-15s %d\n", _("VCPU:"), cpuinfo[n].number);
-            vshPrint(ctl, "%-15s %d\n", _("CPU:"), cpuinfo[n].cpu);
-            vshPrint(ctl, "%-15s %s\n", _("State:"),
-                     virshDomainVcpuStateToString(cpuinfo[n].state));
-            if (cpuinfo[n].cpuTime != 0) {
-                double cpuUsed = cpuinfo[n].cpuTime;
+        vshPrint(ctl, "%-15s %d\n", _("VCPU:"), cpuinfo[n].number);
+        vshPrint(ctl, "%-15s %d\n", _("CPU:"), cpuinfo[n].cpu);
+        vshPrint(ctl, "%-15s %s\n", _("State:"),
+                 virshDomainVcpuStateToString(cpuinfo[n].state));
+        if (cpuinfo[n].cpuTime != 0) {
+            double cpuUsed = cpuinfo[n].cpuTime;
 
-                cpuUsed /= 1000000000.0;
+            cpuUsed /= 1000000000.0;
 
-                vshPrint(ctl, "%-15s %.1lfs\n", _("CPU time:"), cpuUsed);
-            }
-        } else {
-            vshPrint(ctl, "%-15s %d\n", _("VCPU:"), n);
-            vshPrint(ctl, "%-15s %s\n", _("CPU:"), _("N/A"));
-            vshPrint(ctl, "%-15s %s\n", _("State:"), _("N/A"));
-            vshPrint(ctl, "%-15s %s\n", _("CPU time"), _("N/A"));
+            vshPrint(ctl, "%-15s %.1lfs\n", _("CPU time:"), cpuUsed);
         }
-        vshPrint(ctl, "%-15s ", _("CPU Affinity:"));
-        if (pretty) {
-            char *str;
 
-            str = virBitmapDataToString(VIR_GET_CPUMAP(cpumaps, cpumaplen, n),
-                                        cpumaplen);
-            if (!str)
-                goto cleanup;
-            vshPrint(ctl, _("%s (out of %d)"), str, maxcpu);
-            VIR_FREE(str);
-        } else {
-            for (m = 0; m < maxcpu; m++) {
-                vshPrint(ctl, "%c",
-                         VIR_CPU_USABLE(cpumaps, cpumaplen, n, m) ? 'y' : '-');
-            }
-        }
-        vshPrint(ctl, "\n");
+        if (virshVcpuinfoPrintAffinity(ctl, VIR_GET_CPUMAP(cpumaps, cpumaplen, n),
+                                       maxcpu, pretty) < 0)
+            goto cleanup;
+
         if (n < (ncpus - 1))
             vshPrint(ctl, "\n");
     }
@@ -6722,6 +6839,10 @@ static const vshCmdOptDef opts_setvcpus[] = {
      .type = VSH_OT_BOOL,
      .help = N_("modify cpu state in the guest")
     },
+    {.name = "hotpluggable",
+     .type = VSH_OT_BOOL,
+     .help = N_("make added vcpus hot(un)pluggable")
+    },
     {.name = NULL}
 };
 
@@ -6736,6 +6857,7 @@ cmdSetvcpus(vshControl *ctl, const vshCmd *cmd)
     bool live = vshCommandOptBool(cmd, "live");
     bool current = vshCommandOptBool(cmd, "current");
     bool guest = vshCommandOptBool(cmd, "guest");
+    bool hotpluggable = vshCommandOptBool(cmd, "hotpluggable");
     unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
 
     VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
@@ -6752,6 +6874,8 @@ cmdSetvcpus(vshControl *ctl, const vshCmd *cmd)
         flags |= VIR_DOMAIN_VCPU_GUEST;
     if (maximum)
         flags |= VIR_DOMAIN_VCPU_MAXIMUM;
+    if (hotpluggable)
+        flags |= VIR_DOMAIN_VCPU_HOTPLUGGABLE;
 
     if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
         return false;
@@ -10648,6 +10772,10 @@ static const vshCmdOptDef opts_domdisplay[] = {
      .help = N_("select particular graphical display "
                 "(e.g. \"vnc\", \"spice\", \"rdp\")")
     },
+    {.name = "all",
+     .type = VSH_OT_BOOL,
+     .help = N_("show all possible graphical displays")
+    },
     {.name = NULL}
 };
 
@@ -10671,6 +10799,7 @@ cmdDomDisplay(vshControl *ctl, const vshCmd *cmd)
     int tmp;
     int flags = 0;
     bool params = false;
+    bool all = vshCommandOptBool(cmd, "all");
     const char *xpath_fmt = "string(/domain/devices/graphics[@type='%s']/%s)";
     virSocketAddr addr;
 
@@ -10697,10 +10826,11 @@ cmdDomDisplay(vshControl *ctl, const vshCmd *cmd)
     /* Attempt to grab our display info */
     for (iter = 0; scheme[iter] != NULL; iter++) {
         /* Particular scheme requested */
-        if (type && STRNEQ(type, scheme[iter]))
+        if (!all && type && STRNEQ(type, scheme[iter]))
             continue;
 
         /* Create our XPATH lookup for the current display's port */
+        VIR_FREE(xpath);
         if (virAsprintf(&xpath, xpath_fmt, scheme[iter], "@port") < 0)
             goto cleanup;
 
@@ -10733,6 +10863,7 @@ cmdDomDisplay(vshControl *ctl, const vshCmd *cmd)
 
         /* Attempt to get the listening addr if set for the current
          * graphics scheme */
+        VIR_FREE(listen_addr);
         listen_addr = virXPathString(xpath, ctxt);
         VIR_FREE(xpath);
 
@@ -10788,6 +10919,7 @@ cmdDomDisplay(vshControl *ctl, const vshCmd *cmd)
             goto cleanup;
 
         /* Attempt to get the password */
+        VIR_FREE(passwd);
         passwd = virXPathString(xpath, ctxt);
         VIR_FREE(xpath);
 
@@ -10840,12 +10972,17 @@ cmdDomDisplay(vshControl *ctl, const vshCmd *cmd)
         }
 
         /* Print out our full URI */
+        VIR_FREE(output);
         output = virBufferContentAndReset(&buf);
         vshPrint(ctl, "%s", output);
 
         /* We got what we came for so return successfully */
         ret = true;
-        break;
+        if (!all) {
+            break;
+        } else {
+            vshPrint(ctl, "\n");
+        }
     }
 
     if (!ret) {
