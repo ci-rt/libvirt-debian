@@ -42,10 +42,10 @@ to savely detect that the command 'info migrate' is not implemented.
  1 file changed, 9 insertions(+), 1 deletion(-)
 
 diff --git a/src/qemu/qemu_monitor_text.c b/src/qemu/qemu_monitor_text.c
-index ff7cc79..89c4e7e 100644
+index f975347..4568132 100644
 --- a/src/qemu/qemu_monitor_text.c
 +++ b/src/qemu/qemu_monitor_text.c
-@@ -1465,7 +1465,15 @@ int qemuMonitorTextGetMigrationStats(qemuMonitorPtr mon,
+@@ -1471,7 +1471,15 @@ int qemuMonitorTextGetMigrationStats(qemuMonitorPtr mon,
              }
              stats->disk_total *= 1024;
          }

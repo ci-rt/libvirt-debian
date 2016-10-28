@@ -14,4 +14,3 @@ Allow-access-to-libnl-3-config-files.patch
 debian/apparmor_profiles_local_include.patch
 virt-aa-helper-apparmor-allow-usr-share-OVMF-too.patch
 Set-defaults-for-zfs-tools.patch
-libvirt-guests-use-wants-instead-of-requires.patch

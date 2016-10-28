@@ -8,7 +8,7 @@ so we don't have to build-depend on a program in contrib
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/configure.ac b/configure.ac
-index f6076bd..29af765 100644
+index dfc536f..a17874b 100644
 --- a/configure.ac
 +++ b/configure.ac
 @@ -1927,8 +1927,8 @@ AM_CONDITIONAL([WITH_STORAGE_GLUSTER], [test "$with_storage_gluster" = "yes"])
