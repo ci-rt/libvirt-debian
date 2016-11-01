@@ -1070,6 +1070,7 @@ qemuStateCleanup(void)
         return -1;
 
     virNWFilterUnRegisterCallbackDriver(&qemuCallbackDriver);
+    virThreadPoolFree(qemu_driver->workerPool);
     virObjectUnref(qemu_driver->config);
     virObjectUnref(qemu_driver->hostdevMgr);
     virHashFree(qemu_driver->sharedDevices);
@@ -1100,7 +1101,6 @@ qemuStateCleanup(void)
     virLockManagerPluginUnref(qemu_driver->lockManager);
 
     virMutexDestroy(&qemu_driver->lock);
-    virThreadPoolFree(qemu_driver->workerPool);
     VIR_FREE(qemu_driver);
 
     return 0;
@@ -3835,7 +3835,7 @@ qemuDomainScreenshot(virDomainPtr dom,
     }
     unlink_tmp = true;
 
-    virSecurityManagerSetSavedStateLabel(qemu_driver->securityManager, vm->def, tmp);
+    virSecurityManagerSetSavedStateLabel(driver->securityManager, vm->def, tmp);
 
     qemuDomainObjEnterMonitor(driver, vm);
     if (qemuMonitorScreendump(priv->mon, tmp) < 0) {
@@ -11460,7 +11460,7 @@ qemuDomainMemoryPeek(virDomainPtr dom,
         goto endjob;
     }
 
-    virSecurityManagerSetSavedStateLabel(qemu_driver->securityManager, vm->def, tmp);
+    virSecurityManagerSetSavedStateLabel(driver->securityManager, vm->def, tmp);
 
     priv = vm->privateData;
     qemuDomainObjEnterMonitor(driver, vm);
@@ -19907,6 +19907,7 @@ qemuDomainRenameCallback(virDomainObjPtr vm,
     int ret = -1;
     char *new_dom_name = NULL;
     char *old_dom_name = NULL;
+    char *new_dom_cfg_file = NULL;
     char *old_dom_cfg_file = NULL;
 
     virCheckFlags(0, ret);
@@ -19916,10 +19917,11 @@ qemuDomainRenameCallback(virDomainObjPtr vm,
     if (VIR_STRDUP(new_dom_name, new_name) < 0)
         goto cleanup;
 
-    if (!(old_dom_cfg_file = virDomainConfigFile(cfg->configDir,
-                                                 vm->def->name))) {
+    if (!(new_dom_cfg_file = virDomainConfigFile(cfg->configDir,
+                                                 new_dom_name)) ||
+        !(old_dom_cfg_file = virDomainConfigFile(cfg->configDir,
+                                                 vm->def->name)))
         goto cleanup;
-    }
 
     event_old = virDomainEventLifecycleNewFromObj(vm,
                                             VIR_DOMAIN_EVENT_UNDEFINED,
@@ -19948,6 +19950,7 @@ qemuDomainRenameCallback(virDomainObjPtr vm,
 
  cleanup:
     VIR_FREE(old_dom_cfg_file);
+    VIR_FREE(new_dom_cfg_file);
     VIR_FREE(old_dom_name);
     VIR_FREE(new_dom_name);
     qemuDomainEventQueue(driver, event_old);
@@ -19961,6 +19964,10 @@ qemuDomainRenameCallback(virDomainObjPtr vm,
         vm->def->name = old_dom_name;
         old_dom_name = NULL;
     }
+
+    if (virFileExists(new_dom_cfg_file))
+        unlink(new_dom_cfg_file);
+
     goto cleanup;
 }
 

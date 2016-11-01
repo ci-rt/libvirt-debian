@@ -43,17 +43,23 @@
     <function name="VIR_DOMAIN_BLOCK_COPY_GRANULARITY" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_COPY_GRANULARITY"/>
     <function name="VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC"/>
     <function name="VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX"/>
+    <function name="VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX_LENGTH" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX_LENGTH"/>
     <function name="VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC"/>
     <function name="VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX"/>
+    <function name="VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX_LENGTH" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC_MAX_LENGTH"/>
     <function name="VIR_DOMAIN_BLOCK_IOTUNE_SIZE_IOPS_SEC" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_SIZE_IOPS_SEC"/>
     <function name="VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC"/>
     <function name="VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX"/>
+    <function name="VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX_LENGTH" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX_LENGTH"/>
     <function name="VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC"/>
     <function name="VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX"/>
+    <function name="VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX_LENGTH" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC_MAX_LENGTH"/>
     <function name="VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC"/>
     <function name="VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX"/>
+    <function name="VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX_LENGTH" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC_MAX_LENGTH"/>
     <function name="VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC"/>
     <function name="VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX"/>
+    <function name="VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX_LENGTH" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC_MAX_LENGTH"/>
     <function name="VIR_DOMAIN_BLOCK_STATS_ERRS" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_STATS_ERRS"/>
     <function name="VIR_DOMAIN_BLOCK_STATS_FIELD_LENGTH" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_STATS_FIELD_LENGTH"/>
     <function name="VIR_DOMAIN_BLOCK_STATS_FLUSH_REQ" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_STATS_FLUSH_REQ"/>
@@ -124,17 +130,23 @@
     <function name="VIR_DOMAIN_TUNABLE_BLKDEV_DISK" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_DISK"/>
     <function name="VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC"/>
     <function name="VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX"/>
+    <function name="VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX_LENGTH" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX_LENGTH"/>
     <function name="VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC"/>
     <function name="VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX"/>
+    <function name="VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX_LENGTH" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_READ_IOPS_SEC_MAX_LENGTH"/>
     <function name="VIR_DOMAIN_TUNABLE_BLKDEV_SIZE_IOPS_SEC" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_SIZE_IOPS_SEC"/>
     <function name="VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC"/>
     <function name="VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX"/>
+    <function name="VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX_LENGTH" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX_LENGTH"/>
     <function name="VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC"/>
     <function name="VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX"/>
+    <function name="VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX_LENGTH" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX_LENGTH"/>
     <function name="VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC"/>
     <function name="VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX"/>
+    <function name="VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX_LENGTH" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX_LENGTH"/>
     <function name="VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC"/>
     <function name="VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX"/>
+    <function name="VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX_LENGTH" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX_LENGTH"/>
     <function name="VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_CPU_CPU_SHARES"/>
     <function name="VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN"/>
     <function name="VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_CPU_EMULATOR_PERIOD"/>
@@ -713,6 +725,7 @@
     <function name="VIR_DOMAIN_VCPU_CONFIG" link="libvirt-libvirt-domain.html#VIR_DOMAIN_VCPU_CONFIG"/>
     <function name="VIR_DOMAIN_VCPU_CURRENT" link="libvirt-libvirt-domain.html#VIR_DOMAIN_VCPU_CURRENT"/>
     <function name="VIR_DOMAIN_VCPU_GUEST" link="libvirt-libvirt-domain.html#VIR_DOMAIN_VCPU_GUEST"/>
+    <function name="VIR_DOMAIN_VCPU_HOTPLUGGABLE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_VCPU_HOTPLUGGABLE"/>
     <function name="VIR_DOMAIN_VCPU_LIVE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_VCPU_LIVE"/>
     <function name="VIR_DOMAIN_VCPU_MAXIMUM" link="libvirt-libvirt-domain.html#VIR_DOMAIN_VCPU_MAXIMUM"/>
     <function name="VIR_DOMAIN_XML_INACTIVE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_XML_INACTIVE"/>

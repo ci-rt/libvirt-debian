@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt 2.1.0\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2016-10-27 22:48+0200\n"
+"POT-Creation-Date: 2016-10-31 09:16+0100\n"
 "PO-Revision-Date: 2015-02-27 04:59-0500\n"
 "Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
 "Language-Team: Oriya (http://www.transifex.com/projects/p/libvirt/language/"
@@ -1134,14 +1134,14 @@ msgstr "ଅସ୍ଥାୟୀ ପରିସର ପାଇଁ ସ୍ୱୟଂଆର
 msgid "cannot create autostart directory %s"
 msgstr "ସ୍ୱୟଂଚାଳିତ ଡ଼ିରେକ୍ଟୋରୀ %s ନିର୍ମାଣ କରିପାରିବେ ନାହିଁ"
 
-#: src/bhyve/bhyve_driver.c:404 src/network/bridge_driver.c:3714
+#: src/bhyve/bhyve_driver.c:404 src/network/bridge_driver.c:3716
 #: src/storage/storage_driver.c:1345
 #, c-format
 msgid "Failed to create symlink '%s' to '%s'"
 msgstr "symlink '%s' କୁ '%s' ରେ ନିର୍ମାଣ କରିବାରେ ବିଫଳ"
 
 #: src/bhyve/bhyve_driver.c:411 src/libxl/libxl_driver.c:4447
-#: src/lxc/lxc_driver.c:2996 src/network/bridge_driver.c:3721
+#: src/lxc/lxc_driver.c:2996 src/network/bridge_driver.c:3723
 #: src/qemu/qemu_driver.c:8727 src/storage/storage_driver.c:1353
 #: src/uml/uml_driver.c:2482
 #, c-format
@@ -1192,8 +1192,8 @@ msgstr "ପରିସର %s ଟି ପୂର୍ବରୁ ଚାଲୁଅଛି"
 #: src/lxc/lxc_driver.c:3121 src/lxc/lxc_driver.c:3176
 #: src/lxc/lxc_driver.c:3412 src/lxc/lxc_driver.c:3495
 #: src/lxc/lxc_driver.c:5113 src/openvz/openvz_driver.c:622
-#: src/openvz/openvz_driver.c:660 tools/virsh-domain.c:10810
-#: tools/virsh-domain.c:11041
+#: src/openvz/openvz_driver.c:660 tools/virsh-domain.c:10805
+#: tools/virsh-domain.c:11036
 msgid "Domain is not running"
 msgstr "ଡମେନଟି ଚାଲୁନାହିଁ"
 
@@ -4716,9 +4716,9 @@ msgstr "ଅଜଣା ଟେଣ୍ଟ ପତାକା %s"
 #: tools/virsh-domain-monitor.c:602 tools/virsh-domain-monitor.c:717
 #: tools/virsh-domain.c:3081 tools/virsh-domain.c:3744
 #: tools/virsh-domain.c:6132 tools/virsh-domain.c:6314
-#: tools/virsh-domain.c:10823 tools/virsh-domain.c:11048
-#: tools/virsh-domain.c:11123 tools/virsh-domain.c:11514
-#: tools/virsh-domain.c:11674
+#: tools/virsh-domain.c:10818 tools/virsh-domain.c:11043
+#: tools/virsh-domain.c:11118 tools/virsh-domain.c:11509
+#: tools/virsh-domain.c:11669
 msgid "(domain_definition)"
 msgstr "(domain_definition)"
 
@@ -6635,12 +6635,12 @@ msgstr ""
 #: tools/virsh-domain-monitor.c:220 tools/virsh-domain-monitor.c:232
 #: tools/virsh-domain-monitor.c:238 tools/virsh-domain-monitor.c:273
 #: tools/virsh-domain-monitor.c:1223 tools/virsh-domain-monitor.c:1235
-#: tools/virsh-domain.c:5731 tools/virsh-domain.c:12101
-#: tools/virsh-domain.c:12210 tools/virsh-domain.c:12228
-#: tools/virsh-domain.c:12242 tools/virsh-domain.c:12256
-#: tools/virsh-domain.c:12270 tools/virsh-domain.c:12285
-#: tools/virsh-domain.c:12298 tools/virsh-domain.c:12311
-#: tools/virsh-domain.c:12634 tools/virsh-domain.c:12641
+#: tools/virsh-domain.c:5731 tools/virsh-domain.c:12096
+#: tools/virsh-domain.c:12205 tools/virsh-domain.c:12223
+#: tools/virsh-domain.c:12237 tools/virsh-domain.c:12251
+#: tools/virsh-domain.c:12265 tools/virsh-domain.c:12280
+#: tools/virsh-domain.c:12293 tools/virsh-domain.c:12306
+#: tools/virsh-domain.c:12629 tools/virsh-domain.c:12636
 #: tools/virsh-network.c:361 tools/virsh-network.c:1133
 #: tools/virsh-nodedev.c:756 tools/virsh-pool.c:1013 tools/virsh-pool.c:1198
 #: tools/virsh-pool.c:1213 tools/virsh-pool.c:1215 tools/virsh-pool.c:1216
@@ -10087,7 +10087,7 @@ msgid "Cannot complete within timeout period"
 msgstr "ସମୟ ସମାପ୍ତି ଅବଧି ମଧ୍ଯରେ ସମ୍ପୂର୍ଣ୍ଣ କରିପାରିବେ ନାହିଁ"
 
 #: src/hyperv/hyperv_wmi.c:324 src/hyperv/hyperv_wmi.c:345
-#: tools/virsh-domain.c:5724 tools/virsh-domain.c:12156
+#: tools/virsh-domain.c:5724 tools/virsh-domain.c:12151
 msgid "Failed"
 msgstr "ବିଫଳ ହୋଇଛି"
 
@@ -13653,8 +13653,8 @@ msgid "no network with matching uuid '%s' (%s)"
 msgstr "ମେଳ ଖାଉଥିବା uuid  '%s' (%s) ସହିତ କୌଣସି ନେଟୱର୍କ ନାହିଁ"
 
 #: src/network/bridge_driver.c:520 src/network/bridge_driver.c:654
-#: src/network/bridge_driver.c:1433 src/network/bridge_driver.c:1444
-#: src/network/bridge_driver.c:1738 src/network/bridge_driver.c:1744
+#: src/network/bridge_driver.c:1435 src/network/bridge_driver.c:1446
+#: src/network/bridge_driver.c:1740 src/network/bridge_driver.c:1746
 #: src/storage/storage_driver.c:264
 #, c-format
 msgid "cannot create directory %s"
@@ -13701,7 +13701,7 @@ msgstr ""
 msgid "For IPv6, multiple DHCP definitions cannot be specified."
 msgstr "IPv6 ପାଇଁ, ଏକାଧିକ DHCP ସଂଜ୍ଞାକୁ ଉଲ୍ଲେଖ କରିପାରିବେ ନାହିଁ।"
 
-#: src/network/bridge_driver.c:1210 src/network/bridge_driver.c:1635
+#: src/network/bridge_driver.c:1210 src/network/bridge_driver.c:1637
 #, c-format
 msgid "bridge '%s' has an invalid prefix"
 msgstr "ବ୍ରିଜ '%s' ରେ ଅବୈଧ ଉପସର୍ଗ ଅଛି"
@@ -13711,348 +13711,348 @@ msgstr "ବ୍ରିଜ '%s' ରେ ଅବୈଧ ଉପସର୍ଗ ଅଛି"
 msgid "couldn't write dnsmasq config file '%s'"
 msgstr "dnsmasq ସଂରଚନା ଫାଇଲ '%s' କୁ ଲେଖିପାରିଲା ନାହିଁ"
 
-#: src/network/bridge_driver.c:1691
+#: src/network/bridge_driver.c:1693
 #, c-format
 msgid "couldn't write radvd config file '%s'"
 msgstr "radvd ସଂରଚନା ଫାଇଲ '%s' କୁ ଲେଖିପାରିଲା ନାହିଁ"
 
-#: src/network/bridge_driver.c:1730
+#: src/network/bridge_driver.c:1732
 #, c-format
 msgid "Cannot find %s - Possibly the package isn't installed"
 msgstr "%s କୁ ଖୋଜିପାରିଲା ନାହିଁ - ସମ୍ଭବତଃ ପ୍ୟାକେଜଟି ସ୍ଥାପିତ ହୋଇନାହିଁ"
 
-#: src/network/bridge_driver.c:1977
+#: src/network/bridge_driver.c:1979
 #, fuzzy, c-format
 msgid "cannot write to %s to enable/disable IPv6 on bridge %s"
 msgstr "IPv6 କୁ ବ୍ରିଜ '%s' ଉପରେ ସକ୍ରିୟ/ନିଷ୍କ୍ରିୟ କରିବାକୁ %s ରେ ଲେଖିପାରିବେ ନାହିଁ"
 
-#: src/network/bridge_driver.c:1996 src/network/bridge_driver.c:2010
+#: src/network/bridge_driver.c:1998 src/network/bridge_driver.c:2012
 #, c-format
 msgid "cannot disable %s"
 msgstr "%s କୁ ନିଷ୍କ୍ରିୟ କରିପାରିବେ ନାହିଁ"
 
-#: src/network/bridge_driver.c:2029
+#: src/network/bridge_driver.c:2031
 #, c-format
 msgid "bridge '%s' has an invalid netmask or IP address"
 msgstr "ବ୍ରିଜ '%s' ରେ ଅବୈଧ ନେଟମାସ୍କ କିମ୍ବା IP ଠିକଣା ଅଛି"
 
-#: src/network/bridge_driver.c:2076
+#: src/network/bridge_driver.c:2078
 #, c-format
 msgid "network '%s' has an invalid netmask or IP address in route definition"
 msgstr "ରାଉଟ ସଂଜ୍ଞାରେ ନେଟୱର୍କ '%s' ପାଖରେ ଗୋଟିଏ ଅବୈଧ ନେଟମାସ୍କ କିମ୍ବା IP ଠିକଣା ଅଛି"
 
-#: src/network/bridge_driver.c:2142
+#: src/network/bridge_driver.c:2144
 #, c-format
 msgid "network '%s' has no bridge name defined"
 msgstr ""
 
-#: src/network/bridge_driver.c:2236
+#: src/network/bridge_driver.c:2238
 msgid "failed to enable IP forwarding"
 msgstr "IP ଅଗ୍ରଗମୀକୁ ସକ୍ରିୟ କରିବାରେ ବିଫଳ"
 
-#: src/network/bridge_driver.c:2414
+#: src/network/bridge_driver.c:2416
 #, c-format
 msgid "Could not get Virtual functions on %s"
 msgstr "%s ରେ ଆଭାସୀ ଫଳନ ପାଇଲା ନାହିଁ"
 
-#: src/network/bridge_driver.c:2471
+#: src/network/bridge_driver.c:2473
 #, fuzzy, c-format
 msgid "No usable Vf's present on SRIOV PF %s"
 msgstr "SRIOV PF %s ଉପରେ କୌଣସି ଉପଯୋଗୀ Vf ନାହିଁ"
 
-#: src/network/bridge_driver.c:2531
+#: src/network/bridge_driver.c:2533
 msgid "network is already active"
 msgstr "ନେଟୱର୍କଟି ପୂର୍ବରୁ ସକ୍ରିୟ ଅଛି"
 
-#: src/network/bridge_driver.c:2675
+#: src/network/bridge_driver.c:2677
 #, c-format
 msgid "no network with matching uuid '%s'"
 msgstr ""
 
-#: src/network/bridge_driver.c:2700 src/network/bridge_driver.c:4052
-#: src/network/bridge_driver.c:4461 src/network/bridge_driver.c:4647
-#: src/network/bridge_driver.c:4794 src/network/bridge_driver.c:4880
-#: src/network/bridge_driver.c:5238 src/network/bridge_driver.c:5271
+#: src/network/bridge_driver.c:2702 src/network/bridge_driver.c:4054
+#: src/network/bridge_driver.c:4463 src/network/bridge_driver.c:4649
+#: src/network/bridge_driver.c:4796 src/network/bridge_driver.c:4882
+#: src/network/bridge_driver.c:5240 src/network/bridge_driver.c:5273
 #, c-format
 msgid "no network with matching name '%s'"
 msgstr "'%s' ସହିତ ସମାନ ନାମ ବିଶିଷ୍ଟ କୌଣସି ନେଟୱର୍କ ନାହିଁ"
 
-#: src/network/bridge_driver.c:2921
+#: src/network/bridge_driver.c:2923
 #, c-format
 msgid "Bridge generation exceeded max id %d"
 msgstr "ବନ୍ଧ ନିର୍ମାଣ max id %d କୁ ଅତିକ୍ରମ କରିସାରିଛି"
 
-#: src/network/bridge_driver.c:2948
+#: src/network/bridge_driver.c:2950
 #, c-format
 msgid "bridge name '%s' already in use."
 msgstr "ବ୍ରିଜ ନାମ '%s' ପୂର୍ବରୁ ବ୍ୟବହାରରେ ଅଛି।"
 
-#: src/network/bridge_driver.c:3001
+#: src/network/bridge_driver.c:3003
 #, fuzzy, c-format
 msgid "Unsupported <mac> element in network %s with forward mode='%s'"
 msgstr "ନେଟୱର୍କ %s ରେ ଅଗ୍ରସରଣ ଧାରା='%s' ସହିତ ଅସମର୍ଥିତ <mac> ଉପାଦାନ"
 
-#: src/network/bridge_driver.c:3009
+#: src/network/bridge_driver.c:3011
 #, c-format
 msgid "Unsupported <ip> element in network %s with forward mode='%s'"
 msgstr "ନେଟୱର୍କ %s ରେ ଅଗ୍ରସରଣ ଧାରା='%s' ସହିତ ଅସମର୍ଥିତ <ip> ଉପାଦାନ"
 
-#: src/network/bridge_driver.c:3017
+#: src/network/bridge_driver.c:3019
 #, c-format
 msgid "Unsupported <dns> element in network %s with forward mode='%s'"
 msgstr "ନେଟୱର୍କ %s ରେ ଅଗ୍ରସରଣ ଧାରା='%s' ସହିତ ଅସମର୍ଥିତ <dns> ଉପାଦାନ"
 
-#: src/network/bridge_driver.c:3025
+#: src/network/bridge_driver.c:3027
 #, c-format
 msgid "Unsupported <domain> element in network %s with forward mode='%s'"
 msgstr "ନେଟୱର୍କ %s ରେ ଅଗ୍ରସରଣ ଧାରା='%s' ସହିତ ଅସମର୍ଥିତ <domain> ଉପାଦାନ"
 
-#: src/network/bridge_driver.c:3033
+#: src/network/bridge_driver.c:3035
 #, fuzzy, c-format
 msgid ""
 "Unsupported network-wide <bandwidth> element in network %s with forward "
 "mode='%s'"
 msgstr "ନେଟୱର୍କ %s ରେ ଅଗ୍ରସରଣ ଧାରା='%s' ସହିତ ଅସମର୍ଥିତ ନେଟୱର୍କରେ <bandwidth> ଉପାଦାନ"
 
-#: src/network/bridge_driver.c:3070
+#: src/network/bridge_driver.c:3072
 #, c-format
 msgid ""
 "<address>, <interface>, and <pf> elements of <forward> in network %s are "
 "mutually exclusive"
 msgstr ""
 
-#: src/network/bridge_driver.c:3086
+#: src/network/bridge_driver.c:3088
 msgid ""
 "Multiple IPv4 dhcp sections found -- dhcp is supported only for a single "
 "IPv4 address on each network"
 msgstr ""
 
-#: src/network/bridge_driver.c:3099
+#: src/network/bridge_driver.c:3101
 msgid ""
 "Multiple IPv6 dhcp sections found -- dhcp is supported only for a single "
 "IPv6 address on each network"
 msgstr ""
 
-#: src/network/bridge_driver.c:3144
+#: src/network/bridge_driver.c:3146
 #, c-format
 msgid ""
 "network '%s' has multiple default <portgroup> elements (%s and %s), but only "
 "one default is allowed"
 msgstr ""
 
-#: src/network/bridge_driver.c:3156
+#: src/network/bridge_driver.c:3158
 #, c-format
 msgid "multiple <portgroup> elements with the same name (%s) in network '%s'"
 msgstr ""
 
-#: src/network/bridge_driver.c:3164
+#: src/network/bridge_driver.c:3166
 #, fuzzy, c-format
 msgid ""
 "Unsupported <bandwidth> element in network '%s' in portgroup '%s' with "
 "forward mode='%s'"
 msgstr "ନେଟୱର୍କ %s ରେ ଅଗ୍ରସରଣ ଧାରା='%s' ସହିତ ଅସମର୍ଥିତ <ip> ଉପାଦାନ"
 
-#: src/network/bridge_driver.c:3179
+#: src/network/bridge_driver.c:3181
 #, c-format
 msgid ""
 "<vlan> element specified for network %s, whose type doesn't support vlan "
 "configuration"
 msgstr ""
 
-#: src/network/bridge_driver.c:3189
+#: src/network/bridge_driver.c:3191
 #, c-format
 msgid ""
 "unsupported <bandwidth> element in <portgroup name='%s'> of network '%s' "
 "with forward mode='%s'"
 msgstr ""
 
-#: src/network/bridge_driver.c:3323
+#: src/network/bridge_driver.c:3325
 msgid "can't undefine transient network"
 msgstr ""
 
-#: src/network/bridge_driver.c:3578 src/network/bridge_driver.c:4060
+#: src/network/bridge_driver.c:3580 src/network/bridge_driver.c:4062
 #, fuzzy, c-format
 msgid "network '%s' is not active"
 msgstr "ନେଟୱର୍କ '%s' ଟି ସକ୍ରିୟ ନାହିଁ"
 
-#: src/network/bridge_driver.c:3643 src/test/test_driver.c:3500
+#: src/network/bridge_driver.c:3645 src/test/test_driver.c:3500
 #, c-format
 msgid "network '%s' does not have a bridge name."
 msgstr "ନେଟୱର୍କ '%s' ରେ ବନ୍ଧ ନାମ ନାହିଁ।"
 
-#: src/network/bridge_driver.c:3692
+#: src/network/bridge_driver.c:3694
 msgid "cannot set autostart for transient network"
 msgstr "ଅସ୍ଥାୟୀ ନେଟୱର୍କ ପାଇଁ ସ୍ୱୟଂପ୍ରାରମ୍ଭକୁ ବିନ୍ୟାସ କରାଯାଇପାରିବ ନାହିଁ"
 
-#: src/network/bridge_driver.c:3707
+#: src/network/bridge_driver.c:3709
 #, c-format
 msgid "cannot create autostart directory '%s'"
 msgstr "ସ୍ୱୟଂଚାଳିତ ଡ଼ିରେକ୍ଟୋରୀ '%s' ନିର୍ମାଣ କରିପାରିବେ ନାହିଁ"
 
-#: src/network/bridge_driver.c:3797
+#: src/network/bridge_driver.c:3799
 #, fuzzy, c-format
 msgid "invalid json in file: %s"
 msgstr "ଫାଇଲରେ ଅବୈଧ json: %s"
 
-#: src/network/bridge_driver.c:3803 src/util/virlease.c:91
+#: src/network/bridge_driver.c:3805 src/util/virlease.c:91
 msgid "couldn't fetch array of leases"
 msgstr ""
 
-#: src/network/bridge_driver.c:3813 src/util/virlease.c:99
+#: src/network/bridge_driver.c:3815 src/util/virlease.c:99
 #: src/util/virlease.c:106 src/util/virlease.c:177 src/util/virlease.c:201
 msgid "failed to parse json"
 msgstr "json କୁ ବିଶ୍ଳେଷଣ କରିବାରେ ବିଫଳ"
 
-#: src/network/bridge_driver.c:3821
+#: src/network/bridge_driver.c:3823
 msgid "found lease without mac-address"
 msgstr ""
 
-#: src/network/bridge_driver.c:3831
+#: src/network/bridge_driver.c:3833
 msgid "found lease without expiry-time"
 msgstr ""
 
-#: src/network/bridge_driver.c:3848
+#: src/network/bridge_driver.c:3850
 msgid "found lease without ip-address"
 msgstr ""
 
-#: src/network/bridge_driver.c:4162
+#: src/network/bridge_driver.c:4164
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses a bridge "
 "device"
 msgstr ""
 
-#: src/network/bridge_driver.c:4187 src/network/bridge_driver.c:4340
+#: src/network/bridge_driver.c:4189 src/network/bridge_driver.c:4342
 #, c-format
 msgid ""
 "network '%s' requires exclusive access to interfaces, but none are available"
 msgstr ""
 
-#: src/network/bridge_driver.c:4212
+#: src/network/bridge_driver.c:4214
 #, c-format
 msgid "unrecognized driver name value %d  in network '%s'"
 msgstr "ଅଚିହ୍ନା ଡ୍ରାଇଭର ନାମ ମୂଲ୍ୟ %d  ନେଟୱର୍କ '%s' ରେ"
 
-#: src/network/bridge_driver.c:4236
+#: src/network/bridge_driver.c:4238
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses an SR-IOV "
 "Virtual Function via PCI passthrough"
 msgstr ""
 
-#: src/network/bridge_driver.c:4287
+#: src/network/bridge_driver.c:4289
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses a macvtap "
 "device"
 msgstr ""
 
-#: src/network/bridge_driver.c:4300
+#: src/network/bridge_driver.c:4302
 #, c-format
 msgid ""
 "network '%s' uses a direct mode, but has no forward dev and no interface pool"
 msgstr ""
 
-#: src/network/bridge_driver.c:4375
+#: src/network/bridge_driver.c:4377
 #, c-format
 msgid ""
 "an interface connecting to network '%s' is requesting a vlan tag, but that "
 "is not supported for this type of network"
 msgstr ""
 
-#: src/network/bridge_driver.c:4381
+#: src/network/bridge_driver.c:4383
 #, c-format
 msgid ""
 "an interface of type '%s' is requesting a vlan tag, but that is not "
 "supported for this type of connection"
 msgstr ""
 
-#: src/network/bridge_driver.c:4395
+#: src/network/bridge_driver.c:4397
 msgid "bandwidth settings are not supported for hostdev interfaces"
 msgstr ""
 
-#: src/network/bridge_driver.c:4490
+#: src/network/bridge_driver.c:4492
 #, c-format
 msgid ""
 "network '%s' uses a direct or hostdev mode, but has no forward dev and no "
 "interface pool"
 msgstr ""
 
-#: src/network/bridge_driver.c:4502 src/network/bridge_driver.c:4682
+#: src/network/bridge_driver.c:4504 src/network/bridge_driver.c:4684
 msgid "the interface uses a direct mode, but has no source dev"
 msgstr "ଅନ୍ତରାପୃଷ୍ଠ ସିଧାସଳଖ ଧାରା ବ୍ୟବହାର କରିଥାଏ, କିନ୍ତୁ କୌଣସି ଉତ୍ସ dev ନାହିଁ"
 
-#: src/network/bridge_driver.c:4519 src/network/bridge_driver.c:4698
+#: src/network/bridge_driver.c:4521 src/network/bridge_driver.c:4700
 #, c-format
 msgid "network '%s' doesn't have dev='%s' in use by domain"
 msgstr "ନେଟୱର୍କ '%s' ରେ dev='%s' ନାହିଁ ଯାହାକି ଡମେନ ଦ୍ୱାରା ବ୍ୟବହାର ହୋଇଥାଏ"
 
-#: src/network/bridge_driver.c:4536
+#: src/network/bridge_driver.c:4538
 #, c-format
 msgid "network '%s' claims dev='%s' is already in use by a different domain"
 msgstr "ନେଟୱର୍କ '%s' claims dev='%s' ପୂର୍ବରୁ ବିଭିନ୍ନ ଡମେନ ଦ୍ୱାରା ବ୍ୟବହାର ହେଉଛି"
 
-#: src/network/bridge_driver.c:4547 src/network/bridge_driver.c:4709
+#: src/network/bridge_driver.c:4549 src/network/bridge_driver.c:4711
 msgid "the interface uses a hostdev mode, but has no hostdev"
 msgstr "ଅନ୍ତରାପୃଷ୍ଠ ଗୋଟିଏ hostdev ଧାରା ବ୍ୟବହାର କରିଥାଏ, କିନ୍ତୁ କୌଣସି hostdev ନାହିଁ"
 
-#: src/network/bridge_driver.c:4565 src/network/bridge_driver.c:4725
+#: src/network/bridge_driver.c:4567 src/network/bridge_driver.c:4727
 #, c-format
 msgid "network '%s' doesn't have PCI device %04x:%02x:%02x.%x in use by domain"
 msgstr ""
 "ନେଟୱର୍କ '%s' ରେ କୌଣସି PCI ଉପକରଣ ନାହିଁ %04x:%02x:%02x.%x ଟି ଡମେନ ଦ୍ୱାରା ବ୍ୟବହାର "
 "ହୋଇଥାଏ"
 
-#: src/network/bridge_driver.c:4582
+#: src/network/bridge_driver.c:4584
 #, c-format
 msgid ""
 "network '%s' claims the PCI device at domain=%d bus=%d slot=%d function=%d "
 "is already in use by a different domain"
 msgstr ""
 
-#: src/network/bridge_driver.c:4670
+#: src/network/bridge_driver.c:4672
 #, c-format
 msgid ""
 "network '%s' uses a direct/hostdev mode, but has no forward dev and no "
 "interface pool"
 msgstr ""
 
-#: src/network/bridge_driver.c:4808
+#: src/network/bridge_driver.c:4810
 #, c-format
 msgid "network '%s' doesn't have an IP address"
 msgstr ""
 
-#: src/network/bridge_driver.c:4830
+#: src/network/bridge_driver.c:4832
 #, c-format
 msgid "network '%s' has no associated interface or bridge"
 msgstr "ନେଟୱର୍କ '%s' ରେ କୌଣସି ସମ୍ପୃକ୍ତ ଅନ୍ତରାପୃଷ୍ଠ କିମ୍ବା ବ୍ରିଜ ନାହିଁ"
 
-#: src/network/bridge_driver.c:4965
+#: src/network/bridge_driver.c:4967
 #, c-format
 msgid ""
 "Invalid use of 'floor' on interface with MAC address %s - network '%s' has "
 "no inbound QoS set"
 msgstr ""
 
-#: src/network/bridge_driver.c:4989
+#: src/network/bridge_driver.c:4991
 #, c-format
 msgid ""
 "Cannot plug '%s' interface into '%s' because it would overcommit 'peak' on "
 "network '%s'"
 msgstr ""
 
-#: src/network/bridge_driver.c:5000
+#: src/network/bridge_driver.c:5002
 #, c-format
 msgid ""
 "Cannot plug '%s' interface into '%s' because it would overcommit 'average' "
 "on network '%s'"
 msgstr ""
 
-#: src/network/bridge_driver.c:5054
+#: src/network/bridge_driver.c:5056
 msgid "Could not generate next class ID"
 msgstr "ପରବର୍ତ୍ତୀ ଶ୍ରେଣୀ ID କୁ ସୃଷ୍ଟି କରିପାରିଲା ନାହିଁ"
 
-#: src/network/bridge_driver.c:5116
+#: src/network/bridge_driver.c:5118
 #, c-format
 msgid "Cannot set bandwidth on interface '%s' of type %d"
 msgstr "ଅନ୍ତରାପୃଷ୍ଠ '%s' ଉପରେ %d ପ୍ରକାରର ବ୍ୟାଣ୍ଡୱିଡଥ ସେଟ କରିପାରିବେ ନାହିଁ"
@@ -18879,46 +18879,46 @@ msgstr ""
 msgid "Unknown IP address data source %d"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:19939
+#: src/qemu/qemu_driver.c:19941
 #, c-format
 msgid "cannot remove old domain config file %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:19988
+#: src/qemu/qemu_driver.c:19995
 msgid "cannot rename active domain"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:19994
+#: src/qemu/qemu_driver.c:20001
 msgid "cannot rename a transient domain"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:20000
+#: src/qemu/qemu_driver.c:20007
 msgid "domain with a managed saved state can't be renamed"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:20006
+#: src/qemu/qemu_driver.c:20013
 msgid "domain has to be shutoff before renaming"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:20012
+#: src/qemu/qemu_driver.c:20019
 msgid "cannot rename domain with snapshots"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:20056
+#: src/qemu/qemu_driver.c:20063
 #, c-format
 msgid "vcpu id '%u' reported by guest agent is out of range"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:20161
+#: src/qemu/qemu_driver.c:20168
 msgid "unsupported state value"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:20193
+#: src/qemu/qemu_driver.c:20200
 #, c-format
 msgid "vCPU '%u' is not offlinable"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:20206
+#: src/qemu/qemu_driver.c:20213
 #, c-format
 msgid "guest is missing vCPUs '%s'"
 msgstr ""
@@ -34220,7 +34220,7 @@ msgid "unable to wait on console condition"
 msgstr "କୋନସୋଲ ସର୍ତ୍ତରେ ଅପେକ୍ଷା କରିବାରେ ଅସମର୍ଥ"
 
 #: tools/virsh-domain-monitor.c:44 tools/virsh-domain.c:68
-#: tools/virsh-domain.c:10726 tools/virsh-snapshot.c:46
+#: tools/virsh-domain.c:10721 tools/virsh-snapshot.c:46
 msgid "domain name, id or uuid"
 msgstr "ପରିସର ନାମ, ପରିଚୟ କିମ୍ବା uuid"
 
@@ -34372,7 +34372,7 @@ msgstr ""
 msgid "post-copy failed"
 msgstr ""
 
-#: tools/virsh-domain-monitor.c:221 tools/virsh-domain.c:12220
+#: tools/virsh-domain-monitor.c:221 tools/virsh-domain.c:12215
 msgid "shutdown"
 msgstr "ବନ୍ଦ କରନ୍ତୁ"
 
@@ -34385,7 +34385,7 @@ msgstr "ନଷ୍ଟ ହୋଇଛି"
 msgid "saved"
 msgstr "ସଂରକ୍ଷିତ ହୋଇଛି"
 
-#: tools/virsh-domain-monitor.c:226 tools/virsh-domain.c:12277
+#: tools/virsh-domain-monitor.c:226 tools/virsh-domain.c:12272
 msgid "failed"
 msgstr "ବିଫଳ ହୋଇଛି"
 
@@ -34475,7 +34475,7 @@ msgid "additionally display the type and device value"
 msgstr "ଏହା ସହିତ ପ୍ରକାର ଏବଂ ଉପକରଣ ମୂଲ୍ୟକୁ ଦର୍ଶାନ୍ତୁ"
 
 #: tools/virsh-domain-monitor.c:504 tools/virsh-domain-monitor.c:611
-#: tools/virsh-domain.c:13284 tools/virsh-volume.c:1469
+#: tools/virsh-domain.c:13279 tools/virsh-volume.c:1469
 #: tools/virsh-volume.c:1505
 msgid "Type"
 msgstr "ପ୍ରକାର"
@@ -34485,7 +34485,7 @@ msgid "Device"
 msgstr "ଉପକରଣ"
 
 #: tools/virsh-domain-monitor.c:505 tools/virsh-domain-monitor.c:507
-#: tools/virsh-domain.c:13284
+#: tools/virsh-domain.c:13279
 msgid "Target"
 msgstr "ଲକ୍ଷ୍ଯସ୍ଥଳ"
 
@@ -34927,7 +34927,7 @@ msgid "Id"
 msgstr "ପରିଚୟ"
 
 #: tools/virsh-domain-monitor.c:1864 tools/virsh-domain-monitor.c:1869
-#: tools/virsh-domain-monitor.c:2223 tools/virsh-domain.c:13284
+#: tools/virsh-domain-monitor.c:2223 tools/virsh-domain.c:13279
 #: tools/virsh-interface.c:367 tools/virsh-network.c:692
 #: tools/virsh-nwfilter.c:365 tools/virsh-pool.c:1301 tools/virsh-pool.c:1322
 #: tools/virsh-pool.c:1387 tools/virsh-snapshot.c:1565
@@ -35061,7 +35061,7 @@ msgid "Failed to query for interfaces addresses"
 msgstr ""
 
 #: tools/virsh-domain-monitor.c:2224 tools/virsh-domain.c:810
-#: tools/virsh-domain.c:11488 tools/virsh-network.c:1310
+#: tools/virsh-domain.c:11483 tools/virsh-network.c:1310
 #: tools/virsh-network.c:1360
 msgid "MAC address"
 msgstr "MAC ଠିକଣା"
@@ -35107,8 +35107,8 @@ msgstr "ଗୋଟିଏ XML ଫାଇଲରୁ ଗୋଟିଏ ଉପକରଣ �
 msgid "Attach device from an XML <file>."
 msgstr "ଗୋଟିଏ XML <file> ରୁ ଗୋଟିଏ ଉପକରଣ ସଂଲଗ୍ନ କରନ୍ତୁ।"
 
-#: tools/virsh-domain.c:228 tools/virsh-domain.c:11318
-#: tools/virsh-domain.c:11399
+#: tools/virsh-domain.c:228 tools/virsh-domain.c:11313
+#: tools/virsh-domain.c:11394
 msgid "XML file"
 msgstr "XML ଫାଇଲ"
 
@@ -35133,7 +35133,7 @@ msgstr "ନୂତନ ଡିସ୍କ ଉପକରଣ ଯୋଗ କରନ୍ତ�
 msgid "source of disk device"
 msgstr "ଡିସ୍କ ଉପକରଣର ଉତ୍ସ"
 
-#: tools/virsh-domain.c:318 tools/virsh-domain.c:11927
+#: tools/virsh-domain.c:318 tools/virsh-domain.c:11922
 msgid "target of disk device"
 msgstr "ଡିସ୍କ ଉପକରଣର ଲକ୍ଷ୍ଯ"
 
@@ -35241,7 +35241,7 @@ msgstr "ନେଟୱାର୍କ ଅନ୍ତରାପୃଷ୍ଠ ଯୋଗ କ
 msgid "Attach new network interface."
 msgstr "ନେଟୱାର୍କ ଅନ୍ତରାପୃଷ୍ଠ ଯୋଗ କରନ୍ତୁ।"
 
-#: tools/virsh-domain.c:797 tools/virsh-domain.c:11484
+#: tools/virsh-domain.c:797 tools/virsh-domain.c:11479
 msgid "network interface type"
 msgstr "ନେଟୱାର୍କ ଅନ୍ତରାପୃଷ୍ଠ ପ୍ରକାର"
 
@@ -35969,7 +35969,7 @@ msgstr "XML ସୃଷ୍ଟି କରିବାରେ ବିଫଳ"
 msgid "Failed to update interface link state"
 msgstr "ଅନ୍ତରାପୃଷ୍ଠ ସଂଯୋଗିକୀ ସ୍ଥିତିକୁ ଅଦ୍ୟତନ କରିବାରେ ବିଫଳ"
 
-#: tools/virsh-domain.c:3164 tools/virsh-domain.c:11457
+#: tools/virsh-domain.c:3164 tools/virsh-domain.c:11452
 msgid "Device updated successfully\n"
 msgstr "ଉପକରଣ ସଫଳତାର ସହିତ ଅଦ୍ୟତିତ ହୋଇଛି\n"
 
@@ -37759,12 +37759,12 @@ msgstr ""
 msgid "pretty-print any JSON output"
 msgstr ""
 
-#: tools/virsh-domain.c:9205 tools/virsh-domain.c:12791
+#: tools/virsh-domain.c:9205 tools/virsh-domain.c:12786
 #: tools/virsh-network.c:1201 tools/virsh-nodedev.c:865 tools/virsh-pool.c:2020
 msgid "loop until timeout or interrupt, rather than one-shot"
 msgstr ""
 
-#: tools/virsh-domain.c:9209 tools/virsh-domain.c:12795
+#: tools/virsh-domain.c:9209 tools/virsh-domain.c:12790
 #: tools/virsh-network.c:1205 tools/virsh-nodedev.c:869 tools/virsh-pool.c:2024
 msgid "timeout seconds"
 msgstr ""
@@ -37777,22 +37777,22 @@ msgstr ""
 msgid "treat event case-insensitively"
 msgstr ""
 
-#: tools/virsh-domain.c:9221 tools/virsh-domain.c:12803
+#: tools/virsh-domain.c:9221 tools/virsh-domain.c:12798
 #: tools/virsh-network.c:1213 tools/virsh-nodedev.c:877 tools/virsh-pool.c:2032
 msgid "show timestamp for each printed event"
 msgstr ""
 
-#: tools/virsh-domain.c:9266 tools/virsh-domain.c:12893
+#: tools/virsh-domain.c:9266 tools/virsh-domain.c:12888
 #: tools/virsh-network.c:1267 tools/virsh-nodedev.c:944 tools/virsh-pool.c:2091
 msgid "event loop interrupted\n"
 msgstr ""
 
-#: tools/virsh-domain.c:9269 tools/virsh-domain.c:12896
+#: tools/virsh-domain.c:9269 tools/virsh-domain.c:12891
 #: tools/virsh-network.c:1270 tools/virsh-nodedev.c:947 tools/virsh-pool.c:2094
 msgid "event loop timed out\n"
 msgstr ""
 
-#: tools/virsh-domain.c:9276 tools/virsh-domain.c:12903
+#: tools/virsh-domain.c:9276 tools/virsh-domain.c:12898
 #: tools/virsh-network.c:1277 tools/virsh-nodedev.c:954 tools/virsh-pool.c:2101
 #, c-format
 msgid "events received: %d\n"
@@ -38130,27 +38130,23 @@ msgstr ""
 msgid "cannot read file '%s'"
 msgstr "ଫାଇଲ '%s' କୁ ପଢ଼ିପାରିବେ ନାହିଁ"
 
-#: tools/virsh-domain.c:10435
+#: tools/virsh-domain.c:10436
 msgid "migrate: Unexpected timeout for offline migration"
 msgstr "ସ୍ଥାନାନ୍ତରିତ କରନ୍ତୁ: ଅଫଲାଇନ ସ୍ଥାନାନ୍ତରଣ ପାଇଁ ଅପ୍ରତ୍ୟାଶିତ ସମୟ ସମାପ୍ତି"
 
-#: tools/virsh-domain.c:10448
+#: tools/virsh-domain.c:10449
 msgid "migrate: Unexpected --timeout-* option without --timeout"
 msgstr ""
 
-#: tools/virsh-domain.c:10455
-msgid "--postcopy-after-precopy can only be used with --postcopy"
-msgstr ""
-
-#: tools/virsh-domain.c:10499
+#: tools/virsh-domain.c:10494
 msgid "Migration"
 msgstr "ସ୍ଥାନ ପରିବର୍ତ୍ତନ"
 
-#: tools/virsh-domain.c:10519
+#: tools/virsh-domain.c:10514
 msgid "set maximum tolerable downtime"
 msgstr "ସର୍ବାଧିକ ସହନଶୀଳ ଆହରଣ ସମୟକୁ ସେଟ କରନ୍ତୁ"
 
-#: tools/virsh-domain.c:10522
+#: tools/virsh-domain.c:10517
 msgid ""
 "Set maximum tolerable downtime of a domain which is being live-migrated to "
 "another host."
@@ -38158,781 +38154,781 @@ msgstr ""
 "ଗୋଟିଏ ଡମେନର ସର୍ବାଧିକ ସହନଶୀଳ ଆହରଣ ସମୟକୁ ସେଟ କରନ୍ତୁ ଯାହାକି ଅନ୍ୟ ଏକ ହୋଷ୍ଟକୁ ଜୀବନ୍ତ-"
 "ସ୍ଥାନାନ୍ତରଣ ହୋଇଥାଏ।"
 
-#: tools/virsh-domain.c:10532
+#: tools/virsh-domain.c:10527
 msgid "maximum tolerable downtime (in milliseconds) for migration"
 msgstr "ସ୍ଥାନାନ୍ତରଣ ପାଇଁ ସର୍ବାଧିକ ସହନଶୀଳ ଆହରଣ ସମୟ (ମିଲିସେକଣ୍ଡରେ)"
 
-#: tools/virsh-domain.c:10550
+#: tools/virsh-domain.c:10545
 msgid "migrate: Invalid downtime"
 msgstr "ସ୍ଥାନାନ୍ତରଣ କରନ୍ତୁ: ଅବୈଧ ଆହରଣ ସମୟ"
 
-#: tools/virsh-domain.c:10569
+#: tools/virsh-domain.c:10564
 msgid "get/set compression cache size"
 msgstr "ସଙ୍କୋଚନ କ୍ୟାଶେ ଆକାର ପ୍ରାପ୍ତ କରନ୍ତୁ/ସେଟ କରନ୍ତୁ"
 
-#: tools/virsh-domain.c:10572
+#: tools/virsh-domain.c:10567
 msgid ""
 "Get/set size of the cache (in bytes) used for compressing repeatedly "
 "transferred memory pages during live migration."
 msgstr ""
 
-#: tools/virsh-domain.c:10583
+#: tools/virsh-domain.c:10578
 msgid "requested size of the cache (in bytes) used for compression"
 msgstr "ସଙ୍କୋଚନରେ ବ୍ୟବହୃତ କ୍ୟାଶେର ଅନୁରୋଧ କରାଯାଇଥିବା ଆକାର (ବାଇଟରେ)"
 
-#: tools/virsh-domain.c:10613
+#: tools/virsh-domain.c:10608
 #, c-format
 msgid "Compression cache: %.3lf %s"
 msgstr "ସଙ୍କୋଚନ କ୍ୟାଶେ: %.3lf %s"
 
-#: tools/virsh-domain.c:10626
+#: tools/virsh-domain.c:10621
 msgid "Set the maximum migration bandwidth"
 msgstr "ସର୍ବାଧିକ ସ୍ଥାନାନ୍ତରଣ ବ୍ୟାଣ୍ଡୱିଡଥକୁ ସେଟ କରିଥାଏ"
 
-#: tools/virsh-domain.c:10629
+#: tools/virsh-domain.c:10624
 msgid ""
 "Set the maximum migration bandwidth (in MiB/s) for a domain which is being "
 "migrated to another host."
 msgstr ""
 
-#: tools/virsh-domain.c:10640
+#: tools/virsh-domain.c:10635
 msgid "migration bandwidth limit in MiB/s"
 msgstr "MiB/s ରେ ସ୍ଥାନାନ୍ତରଣ ବ୍ୟାଣ୍ଡୱିଡଥ"
 
-#: tools/virsh-domain.c:10673
+#: tools/virsh-domain.c:10668
 msgid "Get the maximum migration bandwidth"
 msgstr "ସର୍ବାଧିକ ସ୍ଥାନାନ୍ତରଣ ବ୍ୟାଣ୍ଡୱିଡ଼ଥ ପ୍ରାପ୍ତ କରନ୍ତୁ"
 
-#: tools/virsh-domain.c:10676
+#: tools/virsh-domain.c:10671
 msgid "Get the maximum migration bandwidth (in MiB/s) for a domain."
 msgstr "ଡମେନ ପାଇଁ ସର୍ବାଧିକ ସ୍ଥାନାନ୍ତରଣ ବ୍ୟାଣ୍ଡୱିଡ଼ଥ ପ୍ରାପ୍ତ କରନ୍ତୁ  (MiB/s ରେ)"
 
-#: tools/virsh-domain.c:10713
+#: tools/virsh-domain.c:10708
 msgid "Switch running migration from pre-copy to post-copy"
 msgstr ""
 
-#: tools/virsh-domain.c:10716
+#: tools/virsh-domain.c:10711
 msgid ""
 "Switch running migration from pre-copy to post-copy. The migration must have "
 "been started with --postcopy option."
 msgstr ""
 
-#: tools/virsh-domain.c:10755
+#: tools/virsh-domain.c:10750
 msgid "domain display connection URI"
 msgstr "ଡମେନ ପ୍ରଦର୍ଶନୀ ସଂଯୋଗ URI"
 
-#: tools/virsh-domain.c:10758
+#: tools/virsh-domain.c:10753
 msgid "Output the IP address and port number for the graphical display."
 msgstr "ଆଲେଖିକ ପ୍ରଦର୍ଶନ ପାଇଁ IP ଠିକଣା ଏବଂ ସଂଯୋଗିକୀ ସଂଖ୍ଯା ପ୍ରଦାନ କରନ୍ତୁ।"
 
-#: tools/virsh-domain.c:10768
+#: tools/virsh-domain.c:10763
 msgid "includes the password into the connection URI if available"
 msgstr "ଉପଲବ୍ଧ ହେଲେ ସଂଯୋଗ URI ରେ ପ୍ରବେଶ ସଂକେତକୁ ଅନ୍ତର୍ଭୁକ୍ତ କରିଥାଏ"
 
-#: tools/virsh-domain.c:10772
+#: tools/virsh-domain.c:10767
 msgid "select particular graphical display (e.g. \"vnc\", \"spice\", \"rdp\")"
 msgstr ""
 
-#: tools/virsh-domain.c:10777
+#: tools/virsh-domain.c:10772
 msgid "show all possible graphical displays"
 msgstr ""
 
-#: tools/virsh-domain.c:10970
+#: tools/virsh-domain.c:10965
 msgid "Failed to create display URI"
 msgstr "URI କୁ ସୃଷ୍ଟି କରିବାରେ ବିଫଳ"
 
-#: tools/virsh-domain.c:10990
+#: tools/virsh-domain.c:10985
 #, c-format
 msgid "No graphical display with type '%s' found"
 msgstr ""
 
-#: tools/virsh-domain.c:10992
+#: tools/virsh-domain.c:10987
 msgid "No graphical display found"
 msgstr ""
 
-#: tools/virsh-domain.c:11012
+#: tools/virsh-domain.c:11007
 msgid "vnc display"
 msgstr "vnc ପ୍ରଦର୍ଶନ"
 
-#: tools/virsh-domain.c:11015
+#: tools/virsh-domain.c:11010
 msgid "Output the IP address and port number for the VNC display."
 msgstr "VNC ପ୍ରଦର୍ଶନ ପାଇଁ ଆଇ.ପି. ଠିକଣା ଏବଂ ସଂଯୋଗିକୀ ସଂଖ୍ଯା ପ୍ରଦାନ କରନ୍ତୁ।"
 
-#: tools/virsh-domain.c:11054
+#: tools/virsh-domain.c:11049
 msgid "Failed to get VNC port. Is this domain using VNC?"
 msgstr "VNC ପୋର୍ଟ ପାଇବାରେ ବିଫଳ। ଏହି ଡମେନ VNC କୁ ବ୍ୟବହାର କରୁଅଛି କି?"
 
-#: tools/virsh-domain.c:11093
+#: tools/virsh-domain.c:11088
 msgid "tty console"
 msgstr "tty କୋନଶୋଲ"
 
-#: tools/virsh-domain.c:11096
+#: tools/virsh-domain.c:11091
 msgid "Output the device for the TTY console."
 msgstr "TTY କୋନଶୋଲ ପାଇଁ ଉପକରଣକୁ ନିର୍ଗମ କରନ୍ତୁ।"
 
-#: tools/virsh-domain.c:11149
+#: tools/virsh-domain.c:11144
 msgid "print the domain's hostname"
 msgstr "ଡମେନର ଆଧାର ନାମକୁ ମୂଦ୍ରଣ କରନ୍ତୁ"
 
-#: tools/virsh-domain.c:11174 tools/virsh-host.c:1071
+#: tools/virsh-domain.c:11169 tools/virsh-host.c:1071
 msgid "failed to get hostname"
 msgstr "ଆଧାର ନାମ ପାଇବାରେ ବିଫଳ"
 
-#: tools/virsh-domain.c:11262 tools/virsh-domain.c:11275
+#: tools/virsh-domain.c:11257 tools/virsh-domain.c:11270
 msgid "Bad child elements counting."
 msgstr "ଖରାପ ଅନୁଗାମୀ ଉପାଦାନ ହିସାବ କରୁଅଛି।"
 
-#: tools/virsh-domain.c:11308
+#: tools/virsh-domain.c:11303
 msgid "detach device from an XML file"
 msgstr "ଗୋଟିଏ XML ଫାଇଲରୁ ଉପକରଣକୁ ପୃଥକ କରନ୍ତୁ"
 
-#: tools/virsh-domain.c:11311
+#: tools/virsh-domain.c:11306
 msgid "Detach device from an XML <file>"
 msgstr "ଗୋଟିଏ XML <file> ରୁ ଉପକରଣକୁ ପୃଥକ କରନ୍ତୁ"
 
-#: tools/virsh-domain.c:11371
+#: tools/virsh-domain.c:11366
 #, c-format
 msgid "Failed to detach device from %s"
 msgstr "%s ରୁ ଉପକରଣକୁ ପୃଥକ କରିବାରେ ବିଫଳ"
 
-#: tools/virsh-domain.c:11375
+#: tools/virsh-domain.c:11370
 msgid "Device detached successfully\n"
 msgstr "ଉପକରଣ ସଫଳତାର ସହିତ ପୃଥକ ହୋଇଛି\n"
 
-#: tools/virsh-domain.c:11389
+#: tools/virsh-domain.c:11384
 msgid "update device from an XML file"
 msgstr "ଗୋଟିଏ XML ଫାଇଲରୁ ଗୋଟିଏ ଉପକରଣକୁ ଅଦ୍ୟତନ କରନ୍ତୁ"
 
-#: tools/virsh-domain.c:11392
+#: tools/virsh-domain.c:11387
 msgid "Update device from an XML <file>."
 msgstr "ଗୋଟିଏ XML <file> ରୁ ଗୋଟିଏ ଉପକରଣ ଅଦ୍ୟତନ କରନ୍ତୁ।"
 
-#: tools/virsh-domain.c:11406
+#: tools/virsh-domain.c:11401
 msgid "force device update"
 msgstr "ଉପକରଣ ଅଦ୍ୟତନକୁ ବାଧ୍ଯକରନ୍ତୁ"
 
-#: tools/virsh-domain.c:11453
+#: tools/virsh-domain.c:11448
 #, c-format
 msgid "Failed to update device from %s"
 msgstr "%s ରୁ ଉପକରଣ ଅଦ୍ୟତନ କରିବାରେ ବିଫଳ"
 
-#: tools/virsh-domain.c:11471
+#: tools/virsh-domain.c:11466
 msgid "detach network interface"
 msgstr "ନେଟୱାର୍କ ଅନ୍ତରାପୃଷ୍ଠକୁ ଅଲଗା କରନ୍ତୁ"
 
-#: tools/virsh-domain.c:11474
+#: tools/virsh-domain.c:11469
 msgid "Detach network interface."
 msgstr "ନେଟୱାର୍କ ଅନ୍ତରାପୃଷ୍ଠକୁ ଅଲଗା କରନ୍ତୁ।"
 
-#: tools/virsh-domain.c:11515
+#: tools/virsh-domain.c:11510
 msgid "Failed to get interface information"
 msgstr "ଅନ୍ତରାପୃଷ୍ଠ ସୂଚନା ପାଇବାରେ ବିଫଳ"
 
-#: tools/virsh-domain.c:11523
+#: tools/virsh-domain.c:11518
 #, c-format
 msgid "No interface found whose type is %s"
 msgstr ""
 
-#: tools/virsh-domain.c:11528
+#: tools/virsh-domain.c:11523
 #, c-format
 msgid ""
 "Domain has %d interfaces. Please specify which one to detach using --mac"
 msgstr ""
 "ଡମେନରେ%d ଅନ୍ତରାପୃଷ୍ଠ ଅଛି। --mac କୁ ବ୍ୟବହାର କରି କାହାକୁ ପୃଥକ କରାଯିବ ଦୟାକରି ତାହା ଉଲ୍ଲେଖ କରନ୍ତୁ"
 
-#: tools/virsh-domain.c:11550
+#: tools/virsh-domain.c:11545
 #, c-format
 msgid ""
 "Domain has multiple interfaces matching MAC address %s. You must use detach-"
 "device and specify the device pci address to remove it."
 msgstr ""
 
-#: tools/virsh-domain.c:11563
+#: tools/virsh-domain.c:11558
 #, c-format
 msgid "No interface with MAC address %s was found"
 msgstr "MAC ଠିକଣା %s ସହିତ କୌଣସି ଅନ୍ତରାପୃଷ୍ଠ ନାହିଁ"
 
-#: tools/virsh-domain.c:11642
+#: tools/virsh-domain.c:11637
 msgid "Failed to detach interface"
 msgstr "ଅନ୍ତରାପୃଷ୍ଠକୁ ପୃଥକ କରିବାରେ ବିଫଳ"
 
-#: tools/virsh-domain.c:11644
+#: tools/virsh-domain.c:11639
 msgid "Interface detached successfully\n"
 msgstr "ଅନ୍ତରାପୃଷ୍ଠ ସଫଳତାର ସହିତ ପୃଥକ ହୋଇଛି\n"
 
-#: tools/virsh-domain.c:11676 tools/virsh-domain.c:11685
+#: tools/virsh-domain.c:11671 tools/virsh-domain.c:11680
 msgid "Failed to get disk information"
 msgstr "ଡିସ୍କ ସୂଚନା ପାଇବାରେ ବିଫଳ"
 
-#: tools/virsh-domain.c:11738
+#: tools/virsh-domain.c:11733
 #, c-format
 msgid "No disk found whose source path or target is %s"
 msgstr ""
 
-#: tools/virsh-domain.c:11782
+#: tools/virsh-domain.c:11777
 #, c-format
 msgid "The disk device '%s' is not removable"
 msgstr ""
 
-#: tools/virsh-domain.c:11826
+#: tools/virsh-domain.c:11821
 #, c-format
 msgid "The disk device '%s' doesn't have media"
 msgstr "ଡିସ୍କ ଉପକରଣ '%s' ରେ କୌଣସି ମେଡିଆ ନାହିଁ"
 
-#: tools/virsh-domain.c:11834
+#: tools/virsh-domain.c:11829
 msgid "New disk media source was not specified"
 msgstr ""
 
-#: tools/virsh-domain.c:11846
+#: tools/virsh-domain.c:11841
 #, c-format
 msgid "The disk device '%s' already has media"
 msgstr "ଡିସ୍କ ଉପକରଣ '%s' ରେ ପୂର୍ବରୁ ମେଡିଆ ଅଛି"
 
-#: tools/virsh-domain.c:11867
+#: tools/virsh-domain.c:11862
 msgid "Failed to allocate new source node"
 msgstr ""
 
-#: tools/virsh-domain.c:11914
+#: tools/virsh-domain.c:11909
 msgid "detach disk device"
 msgstr "ଡିସ୍କ ଉପକରଣକୁ ଅଲଗା କରନ୍ତୁ"
 
-#: tools/virsh-domain.c:11917
+#: tools/virsh-domain.c:11912
 msgid "Detach disk device."
 msgstr "ଡିସ୍କ ଉପକରଣକୁ ଅଲଗା କରନ୍ତୁ।"
 
-#: tools/virsh-domain.c:11994
+#: tools/virsh-domain.c:11989
 msgid "Failed to detach disk"
 msgstr "ଡିସ୍କକୁ ପୃଥକ କରିବାରେ ବିଫଳ"
 
-#: tools/virsh-domain.c:11998
+#: tools/virsh-domain.c:11993
 msgid "Disk detached successfully\n"
 msgstr "ଡିସ୍କ ସଫଳତାର ସହିତ ପୃଥକ ହୋଇଛି\n"
 
-#: tools/virsh-domain.c:12014
+#: tools/virsh-domain.c:12009
 msgid "edit XML configuration for a domain"
 msgstr "ପରିସର ପାଇଁ XML ବିନ୍ୟାସକୁ ସମ୍ପାଦନ କରନ୍ତୁ"
 
-#: tools/virsh-domain.c:12017
+#: tools/virsh-domain.c:12012
 msgid "Edit the XML configuration for a domain."
 msgstr "ଗୋଟିଏ ପରିସର ପାଇଁ XML ବିନ୍ୟାସକୁ ସମ୍ପାଦନ କରନ୍ତୁ"
 
-#: tools/virsh-domain.c:12026
+#: tools/virsh-domain.c:12021
 msgid "skip validation of the XML against the schema"
 msgstr ""
 
-#: tools/virsh-domain.c:12051
+#: tools/virsh-domain.c:12046
 #, c-format
 msgid "Domain %s XML configuration not changed.\n"
 msgstr "ପରିସର %s XML ବିନ୍ୟାସ ପରିବର୍ତ୍ତନ ହୋଇନାହିଁ।\n"
 
-#: tools/virsh-domain.c:12066
+#: tools/virsh-domain.c:12061
 #, c-format
 msgid "Domain %s XML configuration edited.\n"
 msgstr "ପରିସର %s XML ବିନ୍ୟାସ ସମ୍ପାଦିତ ହୋଇଥାଏ।\n"
 
-#: tools/virsh-domain.c:12087 tools/virsh-network.c:1124
+#: tools/virsh-domain.c:12082 tools/virsh-network.c:1124
 #: tools/virsh-pool.c:1899
 msgid "Defined"
 msgstr ""
 
-#: tools/virsh-domain.c:12088 tools/virsh-network.c:1125
+#: tools/virsh-domain.c:12083 tools/virsh-network.c:1125
 #: tools/virsh-pool.c:1900
 msgid "Undefined"
 msgstr ""
 
-#: tools/virsh-domain.c:12089 tools/virsh-network.c:1126
+#: tools/virsh-domain.c:12084 tools/virsh-network.c:1126
 #: tools/virsh-pool.c:1901
 msgid "Started"
 msgstr ""
 
-#: tools/virsh-domain.c:12090
+#: tools/virsh-domain.c:12085
 msgid "Suspended"
 msgstr ""
 
-#: tools/virsh-domain.c:12091
+#: tools/virsh-domain.c:12086
 msgid "Resumed"
 msgstr ""
 
-#: tools/virsh-domain.c:12092 tools/virsh-network.c:1127
+#: tools/virsh-domain.c:12087 tools/virsh-network.c:1127
 #: tools/virsh-pool.c:1902
 msgid "Stopped"
 msgstr ""
 
-#: tools/virsh-domain.c:12093 tools/virsh-domain.c:12151
+#: tools/virsh-domain.c:12088 tools/virsh-domain.c:12146
 msgid "Shutdown"
 msgstr ""
 
-#: tools/virsh-domain.c:12094
+#: tools/virsh-domain.c:12089
 msgid "PMSuspended"
 msgstr ""
 
-#: tools/virsh-domain.c:12095 tools/virsh-domain.c:12153
+#: tools/virsh-domain.c:12090 tools/virsh-domain.c:12148
 msgid "Crashed"
 msgstr ""
 
-#: tools/virsh-domain.c:12107
+#: tools/virsh-domain.c:12102
 msgid "Added"
 msgstr ""
 
-#: tools/virsh-domain.c:12108
+#: tools/virsh-domain.c:12103
 msgid "Updated"
 msgstr ""
 
-#: tools/virsh-domain.c:12109 tools/virsh-domain.c:12116
+#: tools/virsh-domain.c:12104 tools/virsh-domain.c:12111
 msgid "Renamed"
 msgstr ""
 
-#: tools/virsh-domain.c:12110 tools/virsh-domain.c:12124
-#: tools/virsh-domain.c:12135 tools/virsh-domain.c:12145
-#: tools/virsh-domain.c:12157
+#: tools/virsh-domain.c:12105 tools/virsh-domain.c:12119
+#: tools/virsh-domain.c:12130 tools/virsh-domain.c:12140
+#: tools/virsh-domain.c:12152
 msgid "Snapshot"
 msgstr ""
 
-#: tools/virsh-domain.c:12115
+#: tools/virsh-domain.c:12110
 msgid "Removed"
 msgstr ""
 
-#: tools/virsh-domain.c:12121
+#: tools/virsh-domain.c:12116
 msgid "Booted"
 msgstr ""
 
-#: tools/virsh-domain.c:12122 tools/virsh-domain.c:12131
-#: tools/virsh-domain.c:12144 tools/virsh-domain.c:12154
+#: tools/virsh-domain.c:12117 tools/virsh-domain.c:12126
+#: tools/virsh-domain.c:12139 tools/virsh-domain.c:12149
 msgid "Migrated"
 msgstr ""
 
-#: tools/virsh-domain.c:12123 tools/virsh-domain.c:12134
+#: tools/virsh-domain.c:12118 tools/virsh-domain.c:12129
 msgid "Restored"
 msgstr ""
 
-#: tools/virsh-domain.c:12125
+#: tools/virsh-domain.c:12120
 msgid "Event wakeup"
 msgstr ""
 
-#: tools/virsh-domain.c:12130
+#: tools/virsh-domain.c:12125
 msgid "Paused"
 msgstr ""
 
-#: tools/virsh-domain.c:12132
+#: tools/virsh-domain.c:12127
 msgid "I/O Error"
 msgstr ""
 
-#: tools/virsh-domain.c:12133
+#: tools/virsh-domain.c:12128
 msgid "Watchdog"
 msgstr ""
 
-#: tools/virsh-domain.c:12136
+#: tools/virsh-domain.c:12131
 msgid "API error"
 msgstr ""
 
-#: tools/virsh-domain.c:12137 tools/virsh-domain.c:12146
+#: tools/virsh-domain.c:12132 tools/virsh-domain.c:12141
 msgid "Post-copy"
 msgstr ""
 
-#: tools/virsh-domain.c:12138
+#: tools/virsh-domain.c:12133
 msgid "Post-copy Error"
 msgstr ""
 
-#: tools/virsh-domain.c:12143
+#: tools/virsh-domain.c:12138
 msgid "Unpaused"
 msgstr ""
 
-#: tools/virsh-domain.c:12152
+#: tools/virsh-domain.c:12147
 msgid "Destroyed"
 msgstr ""
 
-#: tools/virsh-domain.c:12155
+#: tools/virsh-domain.c:12150
 msgid "Saved"
 msgstr ""
 
-#: tools/virsh-domain.c:12162
+#: tools/virsh-domain.c:12157
 msgid "Finished"
 msgstr ""
 
-#: tools/virsh-domain.c:12167
+#: tools/virsh-domain.c:12162
 msgid "Memory"
 msgstr ""
 
-#: tools/virsh-domain.c:12168
+#: tools/virsh-domain.c:12163
 msgid "Disk"
 msgstr ""
 
-#: tools/virsh-domain.c:12173
+#: tools/virsh-domain.c:12168
 msgid "Panicked"
 msgstr ""
 
-#: tools/virsh-domain.c:12216 tools/virsh-domain.c:12234
+#: tools/virsh-domain.c:12211 tools/virsh-domain.c:12229
 msgid "none"
 msgstr ""
 
-#: tools/virsh-domain.c:12217 tools/virsh-domain.c:12235
+#: tools/virsh-domain.c:12212 tools/virsh-domain.c:12230
 msgid "pause"
 msgstr ""
 
-#: tools/virsh-domain.c:12218
+#: tools/virsh-domain.c:12213
 msgid "reset"
 msgstr ""
 
-#: tools/virsh-domain.c:12219
+#: tools/virsh-domain.c:12214
 msgid "poweroff"
 msgstr ""
 
-#: tools/virsh-domain.c:12221
+#: tools/virsh-domain.c:12216
 msgid "debug"
 msgstr ""
 
-#: tools/virsh-domain.c:12222
+#: tools/virsh-domain.c:12217
 msgid "inject-nmi"
 msgstr ""
 
-#: tools/virsh-domain.c:12236
+#: tools/virsh-domain.c:12231
 msgid "report"
 msgstr ""
 
-#: tools/virsh-domain.c:12248
+#: tools/virsh-domain.c:12243
 msgid "connect"
 msgstr ""
 
-#: tools/virsh-domain.c:12249
+#: tools/virsh-domain.c:12244
 msgid "initialize"
 msgstr ""
 
-#: tools/virsh-domain.c:12250
+#: tools/virsh-domain.c:12245
 msgid "disconnect"
 msgstr ""
 
-#: tools/virsh-domain.c:12262
+#: tools/virsh-domain.c:12257
 msgid "IPv4"
 msgstr ""
 
-#: tools/virsh-domain.c:12263
+#: tools/virsh-domain.c:12258
 msgid "IPv6"
 msgstr ""
 
-#: tools/virsh-domain.c:12264 tools/virt-admin.c:61
+#: tools/virsh-domain.c:12259 tools/virt-admin.c:61
 msgid "unix"
 msgstr ""
 
-#: tools/virsh-domain.c:12276
+#: tools/virsh-domain.c:12271
 msgid "completed"
 msgstr ""
 
-#: tools/virsh-domain.c:12278
+#: tools/virsh-domain.c:12273
 msgid "canceled"
 msgstr ""
 
-#: tools/virsh-domain.c:12279
+#: tools/virsh-domain.c:12274
 msgid "ready"
 msgstr ""
 
-#: tools/virsh-domain.c:12291
+#: tools/virsh-domain.c:12286
 msgid "changed"
 msgstr ""
 
-#: tools/virsh-domain.c:12292
+#: tools/virsh-domain.c:12287
 msgid "dropped"
 msgstr ""
 
-#: tools/virsh-domain.c:12304
+#: tools/virsh-domain.c:12299
 msgid "opened"
 msgstr ""
 
-#: tools/virsh-domain.c:12305
+#: tools/virsh-domain.c:12300
 msgid "closed"
 msgstr ""
 
-#: tools/virsh-domain.c:12378
+#: tools/virsh-domain.c:12373
 #, c-format
 msgid "event '%s' for domain %s\n"
 msgstr ""
 
-#: tools/virsh-domain.c:12393
+#: tools/virsh-domain.c:12388
 #, c-format
 msgid "event 'lifecycle' for domain %s: %s %s\n"
 msgstr ""
 
-#: tools/virsh-domain.c:12408
+#: tools/virsh-domain.c:12403
 #, c-format
 msgid "event 'rtc-change' for domain %s: %lld\n"
 msgstr ""
 
-#: tools/virsh-domain.c:12422
+#: tools/virsh-domain.c:12417
 #, c-format
 msgid "event 'watchdog' for domain %s: %s\n"
 msgstr ""
 
-#: tools/virsh-domain.c:12438
+#: tools/virsh-domain.c:12433
 #, c-format
 msgid "event 'io-error' for domain %s: %s (%s) %s\n"
 msgstr ""
 
-#: tools/virsh-domain.c:12459
+#: tools/virsh-domain.c:12454
 #, c-format
 msgid ""
 "event 'graphics' for domain %s: %s local[%s %s %s] remote[%s %s %s] %s\n"
 msgstr ""
 
-#: tools/virsh-domain.c:12489
+#: tools/virsh-domain.c:12484
 #, c-format
 msgid "event 'io-error-reason' for domain %s: %s (%s) %s due to %s\n"
 msgstr ""
 
-#: tools/virsh-domain.c:12509
+#: tools/virsh-domain.c:12504
 #, c-format
 msgid "event '%s' for domain %s: %s for %s %s\n"
 msgstr ""
 
-#: tools/virsh-domain.c:12529
+#: tools/virsh-domain.c:12524
 #, c-format
 msgid "event 'disk-change' for domain %s disk %s: %s -> %s: %s\n"
 msgstr ""
 
-#: tools/virsh-domain.c:12548
+#: tools/virsh-domain.c:12543
 #, c-format
 msgid "event 'tray-change' for domain %s disk %s: %s\n"
 msgstr ""
 
-#: tools/virsh-domain.c:12574
+#: tools/virsh-domain.c:12569
 #, c-format
 msgid "event 'balloon-change' for domain %s: %lluKiB\n"
 msgstr ""
 
-#: tools/virsh-domain.c:12588
+#: tools/virsh-domain.c:12583
 #, c-format
 msgid "event 'device-removed' for domain %s: %s\n"
 msgstr ""
 
-#: tools/virsh-domain.c:12602
+#: tools/virsh-domain.c:12597
 #, c-format
 msgid "event 'device-added' for domain %s: %s\n"
 msgstr ""
 
-#: tools/virsh-domain.c:12619
+#: tools/virsh-domain.c:12614
 #, c-format
 msgid "event 'tunable' for domain %s:\n"
 msgstr ""
 
-#: tools/virsh-domain.c:12635
+#: tools/virsh-domain.c:12630
 msgid "connected"
 msgstr ""
 
-#: tools/virsh-domain.c:12636
+#: tools/virsh-domain.c:12631
 msgid "disconnected"
 msgstr ""
 
-#: tools/virsh-domain.c:12642
+#: tools/virsh-domain.c:12637
 #, fuzzy
 msgid "domain started"
 msgstr "ପରିସର ଅବସ୍ଥା"
 
-#: tools/virsh-domain.c:12643
+#: tools/virsh-domain.c:12638
 msgid "channel event"
 msgstr ""
 
-#: tools/virsh-domain.c:12645
+#: tools/virsh-domain.c:12640
 #, fuzzy
 msgid "unsupported value"
 msgstr "ଅସମର୍ଥିତ ବିଶେଷତା %s"
 
-#: tools/virsh-domain.c:12655
+#: tools/virsh-domain.c:12650
 #, fuzzy, c-format
 msgid "event 'agent-lifecycle' for domain %s: state: '%s' reason: '%s'\n"
 msgstr "ଅବୈଧ ଡମେନ ସ୍ଥିତି କାରଣ '%s'"
 
-#: tools/virsh-domain.c:12671
+#: tools/virsh-domain.c:12666
 #, c-format
 msgid "event 'migration-iteration' for domain %s: iteration: '%d'\n"
 msgstr ""
 
-#: tools/virsh-domain.c:12690
+#: tools/virsh-domain.c:12685
 #, c-format
 msgid "event 'job-completed' for domain %s:\n"
 msgstr ""
 
-#: tools/virsh-domain.c:12711
+#: tools/virsh-domain.c:12706
 #, c-format
 msgid "event 'device-removal-failed' for domain %s: %s\n"
 msgstr ""
 
-#: tools/virsh-domain.c:12768
+#: tools/virsh-domain.c:12763
 msgid "Domain Events"
 msgstr ""
 
-#: tools/virsh-domain.c:12771
+#: tools/virsh-domain.c:12766
 msgid "List event types, or wait for domain events to occur"
 msgstr ""
 
-#: tools/virsh-domain.c:12779
+#: tools/virsh-domain.c:12774
 msgid "filter by domain name, id, or uuid"
 msgstr ""
 
-#: tools/virsh-domain.c:12783 tools/virsh-network.c:1197
+#: tools/virsh-domain.c:12778 tools/virsh-network.c:1197
 #: tools/virsh-nodedev.c:861 tools/virsh-pool.c:2016
 msgid "which event type to wait for"
 msgstr ""
 
-#: tools/virsh-domain.c:12787
+#: tools/virsh-domain.c:12782
 msgid "wait for all events instead of just one type"
 msgstr ""
 
-#: tools/virsh-domain.c:12799 tools/virsh-network.c:1209
+#: tools/virsh-domain.c:12794 tools/virsh-network.c:1209
 #: tools/virsh-nodedev.c:873 tools/virsh-pool.c:2028
 msgid "list valid event types"
 msgstr ""
 
-#: tools/virsh-domain.c:12837 tools/virsh-network.c:1245
+#: tools/virsh-domain.c:12832 tools/virsh-network.c:1245
 #: tools/virsh-nodedev.c:914 tools/virsh-pool.c:2068
 #, c-format
 msgid "unknown event type %s"
 msgstr ""
 
-#: tools/virsh-domain.c:12842
+#: tools/virsh-domain.c:12837
 #, fuzzy
 msgid "one of --list, --all, or --event <type> is required"
 msgstr "--%s କିମ୍ବା --current ଆବଶ୍ୟକ"
 
-#: tools/virsh-domain.c:12928
+#: tools/virsh-domain.c:12923
 msgid "Change media of CD or floppy drive"
 msgstr "CD କିମ୍ବା ଫ୍ଲପି ଡ୍ରାଇଭର ମେଡିଆକୁ ପରିବର୍ତ୍ତନ କରନ୍ତୁ"
 
-#: tools/virsh-domain.c:12931
+#: tools/virsh-domain.c:12926
 msgid "Change media of CD or floppy drive."
 msgstr "CD କିମ୍ବା ଫ୍ଲପି ଡ୍ରାଇଭର ମେଡିଆକୁ ପରିବର୍ତ୍ତନ କରନ୍ତୁ।"
 
-#: tools/virsh-domain.c:12941
+#: tools/virsh-domain.c:12936
 msgid "Fully-qualified path or target of disk device"
 msgstr "ଡିସ୍କ ଉପକରଣର ସମ୍ପୂର୍ଣ୍ଣ-ସକ୍ଷମ ପଥ"
 
-#: tools/virsh-domain.c:12945
+#: tools/virsh-domain.c:12940
 msgid "source of the media"
 msgstr "ମେଡ଼ିଆର ଉତ୍ସ"
 
-#: tools/virsh-domain.c:12949
+#: tools/virsh-domain.c:12944
 msgid "Eject the media"
 msgstr "ମେଡିଆକୁ ବାହାର କରନ୍ତୁ"
 
-#: tools/virsh-domain.c:12953
+#: tools/virsh-domain.c:12948
 msgid "Insert the media"
 msgstr "ମେଡ଼ିଆ ଭର୍ତ୍ତି କରନ୍ତୁ"
 
-#: tools/virsh-domain.c:12957
+#: tools/virsh-domain.c:12952
 msgid "Update the media"
 msgstr "ମେଡ଼ିଆକୁ ଅଦ୍ୟତନ କରନ୍ତୁ"
 
-#: tools/virsh-domain.c:12959
+#: tools/virsh-domain.c:12954
 msgid ""
 "can be either or both of --live and --config, depends on implementation "
 "hypervisor driver"
 msgstr ""
 
-#: tools/virsh-domain.c:12962
+#: tools/virsh-domain.c:12957
 msgid "alter live configuration of running domain"
 msgstr "ଚଳନ୍ତି ଡମେନର ଜୀବନ୍ତ ସଂରଚନାକୁ ପରିବର୍ତ୍ତନ କରନ୍ତୁ"
 
-#: tools/virsh-domain.c:12963
+#: tools/virsh-domain.c:12958
 msgid "alter persistent configuration, effect observed on next boot"
 msgstr ""
 
-#: tools/virsh-domain.c:12967
+#: tools/virsh-domain.c:12962
 msgid "force media changing"
 msgstr "ମେଡିଆ ପରିବର୍ତ୍ତନକୁ ବାଧ୍ଯ କରନ୍ତୁ"
 
-#: tools/virsh-domain.c:12971
+#: tools/virsh-domain.c:12966
 msgid "print XML document rather than change media"
 msgstr ""
 
-#: tools/virsh-domain.c:12975
+#: tools/virsh-domain.c:12970
 msgid "source media is a block device"
 msgstr ""
 
-#: tools/virsh-domain.c:13021
+#: tools/virsh-domain.c:13016
 msgid "Successfully ejected media."
 msgstr ""
 
-#: tools/virsh-domain.c:13027
+#: tools/virsh-domain.c:13022
 msgid "Successfully inserted media."
 msgstr ""
 
-#: tools/virsh-domain.c:13033
+#: tools/virsh-domain.c:13028
 msgid "Successfully updated media."
 msgstr ""
 
-#: tools/virsh-domain.c:13070
+#: tools/virsh-domain.c:13065
 #, c-format
 msgid "Failed to complete action %s on media"
 msgstr "କାର୍ଯ୍ୟ %s କୁ ମେଡିଆ ଉପରେ ସମ୍ପୂର୍ଣ୍ଣ କରିବାରେ ବିଫଳ"
 
-#: tools/virsh-domain.c:13089 tools/virsh-domain.c:13092
+#: tools/virsh-domain.c:13084 tools/virsh-domain.c:13087
 msgid "Invoke fstrim on domain's mounted filesystems."
 msgstr "fstrim କୁ ଡମେନର ସ୍ଥାପିତ ଫାଇଲତନ୍ତ୍ରଗୁଡ଼ିକରେ ଆମନ୍ତ୍ରଣ କରନ୍ତୁ।"
 
-#: tools/virsh-domain.c:13101
+#: tools/virsh-domain.c:13096
 msgid "Just a hint to ignore contiguous free ranges smaller than this (Bytes)"
 msgstr ""
 
-#: tools/virsh-domain.c:13106
+#: tools/virsh-domain.c:13101
 msgid "which mount point to trim"
 msgstr "କେଉଁ ସ୍ଥାପନ ବିନ୍ଦୁକୁ ଛୋଟ କରିବେ"
 
-#: tools/virsh-domain.c:13129
+#: tools/virsh-domain.c:13124
 msgid "Unable to invoke fstrim"
 msgstr "fstrim କୁ ଉତ୍ପନ୍ନ କରିବାରେ ଅସମର୍ଥ"
 
-#: tools/virsh-domain.c:13142 tools/virsh-domain.c:13145
+#: tools/virsh-domain.c:13137 tools/virsh-domain.c:13140
 msgid "Freeze domain's mounted filesystems."
 msgstr ""
 
-#: tools/virsh-domain.c:13154
+#: tools/virsh-domain.c:13149
 msgid "mountpoint path to be frozen"
 msgstr ""
 
-#: tools/virsh-domain.c:13172 tools/virsh-domain.c:13225
+#: tools/virsh-domain.c:13167 tools/virsh-domain.c:13220
 #, c-format
 msgid "%s: %d: failed to allocate mountpoints"
 msgstr ""
 
-#: tools/virsh-domain.c:13181
+#: tools/virsh-domain.c:13176
 msgid "Unable to freeze filesystems"
 msgstr ""
 
-#: tools/virsh-domain.c:13185
+#: tools/virsh-domain.c:13180
 #, c-format
 msgid "Froze %d filesystem(s)\n"
 msgstr ""
 
-#: tools/virsh-domain.c:13195 tools/virsh-domain.c:13198
+#: tools/virsh-domain.c:13190 tools/virsh-domain.c:13193
 msgid "Thaw domain's mounted filesystems."
 msgstr ""
 
-#: tools/virsh-domain.c:13207
+#: tools/virsh-domain.c:13202
 msgid "mountpoint path to be thawed"
 msgstr ""
 
-#: tools/virsh-domain.c:13234
+#: tools/virsh-domain.c:13229
 msgid "Unable to thaw filesystems"
 msgstr ""
 
-#: tools/virsh-domain.c:13238
+#: tools/virsh-domain.c:13233
 #, c-format
 msgid "Thawed %d filesystem(s)\n"
 msgstr ""
 
-#: tools/virsh-domain.c:13248 tools/virsh-domain.c:13251
+#: tools/virsh-domain.c:13243 tools/virsh-domain.c:13246
 #, fuzzy
 msgid "Get information of domain's mounted filesystems."
 msgstr "fstrim କୁ ଡମେନର ସ୍ଥାପିତ ଫାଇଲତନ୍ତ୍ରଗୁଡ଼ିକରେ ଆମନ୍ତ୍ରଣ କରନ୍ତୁ।"
 
-#: tools/virsh-domain.c:13274
+#: tools/virsh-domain.c:13269
 #, fuzzy
 msgid "Unable to get filesystem information"
 msgstr "%s ପାଇଁ  ଫାଇଲତନ୍ତ୍ରକୁ ଚିହ୍ନିବାରେ ଅସମର୍ଥ"
 
-#: tools/virsh-domain.c:13278
+#: tools/virsh-domain.c:13273
 #, fuzzy
 msgid "No filesystems are mounted in the domain"
 msgstr "ଡମେନକୁ ନିଲମ୍ବନ କରିବା ସମୟରେ ତୃଟି"
 
-#: tools/virsh-domain.c:13284
+#: tools/virsh-domain.c:13279
 msgid "Mountpoint"
 msgstr ""
 
