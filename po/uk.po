@@ -20,7 +20,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt 2.1.0\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2016-10-27 22:48+0200\n"
+"POT-Creation-Date: 2016-10-31 09:16+0100\n"
 "PO-Revision-Date: 2016-06-03 02:27-0400\n"
 "Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
 "Language-Team: Ukrainian (http://www.transifex.com/projects/p/libvirt/"
@@ -1157,14 +1157,14 @@ msgstr "не можна вказувати автозапуск для пром�
 msgid "cannot create autostart directory %s"
 msgstr "не вдалось створити каталог автозапуску %s"
 
-#: src/bhyve/bhyve_driver.c:404 src/network/bridge_driver.c:3714
+#: src/bhyve/bhyve_driver.c:404 src/network/bridge_driver.c:3716
 #: src/storage/storage_driver.c:1345
 #, c-format
 msgid "Failed to create symlink '%s' to '%s'"
 msgstr "Помилка при створенні символічного посилання «%s» на «%s»"
 
 #: src/bhyve/bhyve_driver.c:411 src/libxl/libxl_driver.c:4447
-#: src/lxc/lxc_driver.c:2996 src/network/bridge_driver.c:3721
+#: src/lxc/lxc_driver.c:2996 src/network/bridge_driver.c:3723
 #: src/qemu/qemu_driver.c:8727 src/storage/storage_driver.c:1353
 #: src/uml/uml_driver.c:2482
 #, c-format
@@ -1215,8 +1215,8 @@ msgstr "Домен вже запущено"
 #: src/lxc/lxc_driver.c:3121 src/lxc/lxc_driver.c:3176
 #: src/lxc/lxc_driver.c:3412 src/lxc/lxc_driver.c:3495
 #: src/lxc/lxc_driver.c:5113 src/openvz/openvz_driver.c:622
-#: src/openvz/openvz_driver.c:660 tools/virsh-domain.c:10810
-#: tools/virsh-domain.c:11041
+#: src/openvz/openvz_driver.c:660 tools/virsh-domain.c:10805
+#: tools/virsh-domain.c:11036
 msgid "Domain is not running"
 msgstr "Домен не запущено"
 
@@ -4855,9 +4855,9 @@ msgstr "Невідомий прапорець taint %s"
 #: tools/virsh-domain-monitor.c:602 tools/virsh-domain-monitor.c:717
 #: tools/virsh-domain.c:3081 tools/virsh-domain.c:3744
 #: tools/virsh-domain.c:6132 tools/virsh-domain.c:6314
-#: tools/virsh-domain.c:10823 tools/virsh-domain.c:11048
-#: tools/virsh-domain.c:11123 tools/virsh-domain.c:11514
-#: tools/virsh-domain.c:11674
+#: tools/virsh-domain.c:10818 tools/virsh-domain.c:11043
+#: tools/virsh-domain.c:11118 tools/virsh-domain.c:11509
+#: tools/virsh-domain.c:11669
 msgid "(domain_definition)"
 msgstr "(визначення_домену)"
 
@@ -7012,12 +7012,12 @@ msgstr ""
 #: tools/virsh-domain-monitor.c:220 tools/virsh-domain-monitor.c:232
 #: tools/virsh-domain-monitor.c:238 tools/virsh-domain-monitor.c:273
 #: tools/virsh-domain-monitor.c:1223 tools/virsh-domain-monitor.c:1235
-#: tools/virsh-domain.c:5731 tools/virsh-domain.c:12101
-#: tools/virsh-domain.c:12210 tools/virsh-domain.c:12228
-#: tools/virsh-domain.c:12242 tools/virsh-domain.c:12256
-#: tools/virsh-domain.c:12270 tools/virsh-domain.c:12285
-#: tools/virsh-domain.c:12298 tools/virsh-domain.c:12311
-#: tools/virsh-domain.c:12634 tools/virsh-domain.c:12641
+#: tools/virsh-domain.c:5731 tools/virsh-domain.c:12096
+#: tools/virsh-domain.c:12205 tools/virsh-domain.c:12223
+#: tools/virsh-domain.c:12237 tools/virsh-domain.c:12251
+#: tools/virsh-domain.c:12265 tools/virsh-domain.c:12280
+#: tools/virsh-domain.c:12293 tools/virsh-domain.c:12306
+#: tools/virsh-domain.c:12629 tools/virsh-domain.c:12636
 #: tools/virsh-network.c:361 tools/virsh-network.c:1133
 #: tools/virsh-nodedev.c:756 tools/virsh-pool.c:1013 tools/virsh-pool.c:1198
 #: tools/virsh-pool.c:1213 tools/virsh-pool.c:1215 tools/virsh-pool.c:1216
@@ -10647,7 +10647,7 @@ msgid "Cannot complete within timeout period"
 msgstr "Не вдалося виконати протягом періоду очікування"
 
 #: src/hyperv/hyperv_wmi.c:324 src/hyperv/hyperv_wmi.c:345
-#: tools/virsh-domain.c:5724 tools/virsh-domain.c:12156
+#: tools/virsh-domain.c:5724 tools/virsh-domain.c:12151
 msgid "Failed"
 msgstr "Помилка"
 
@@ -14349,8 +14349,8 @@ msgid "no network with matching uuid '%s' (%s)"
 msgstr "немає мережі з відповідним UUID, «%s» (%s)"
 
 #: src/network/bridge_driver.c:520 src/network/bridge_driver.c:654
-#: src/network/bridge_driver.c:1433 src/network/bridge_driver.c:1444
-#: src/network/bridge_driver.c:1738 src/network/bridge_driver.c:1744
+#: src/network/bridge_driver.c:1435 src/network/bridge_driver.c:1446
+#: src/network/bridge_driver.c:1740 src/network/bridge_driver.c:1746
 #: src/storage/storage_driver.c:264
 #, c-format
 msgid "cannot create directory %s"
@@ -14407,7 +14407,7 @@ msgstr ""
 msgid "For IPv6, multiple DHCP definitions cannot be specified."
 msgstr "Кратні визначення DHCP для IPv6 є неприпустимими."
 
-#: src/network/bridge_driver.c:1210 src/network/bridge_driver.c:1635
+#: src/network/bridge_driver.c:1210 src/network/bridge_driver.c:1637
 #, c-format
 msgid "bridge '%s' has an invalid prefix"
 msgstr "місток «%s» має некоректний префікс"
@@ -14417,110 +14417,110 @@ msgstr "місток «%s» має некоректний префікс"
 msgid "couldn't write dnsmasq config file '%s'"
 msgstr "не вдалося записати файл налаштувань dnsmasq «%s»"
 
-#: src/network/bridge_driver.c:1691
+#: src/network/bridge_driver.c:1693
 #, c-format
 msgid "couldn't write radvd config file '%s'"
 msgstr "не вдалося виконати запис до файла налаштувань radvd «%s»"
 
-#: src/network/bridge_driver.c:1730
+#: src/network/bridge_driver.c:1732
 #, c-format
 msgid "Cannot find %s - Possibly the package isn't installed"
 msgstr "Не вдалося знайти %s. Можливо, пакунок не встановлено."
 
-#: src/network/bridge_driver.c:1977
+#: src/network/bridge_driver.c:1979
 #, fuzzy, c-format
 msgid "cannot write to %s to enable/disable IPv6 on bridge %s"
 msgstr ""
 "не вдалося виконати запис до %s для вмикання або вимикання IPv6 на містку %s"
 
-#: src/network/bridge_driver.c:1996 src/network/bridge_driver.c:2010
+#: src/network/bridge_driver.c:1998 src/network/bridge_driver.c:2012
 #, c-format
 msgid "cannot disable %s"
 msgstr "не вдалось вимкнути %s"
 
-#: src/network/bridge_driver.c:2029
+#: src/network/bridge_driver.c:2031
 #, c-format
 msgid "bridge '%s' has an invalid netmask or IP address"
 msgstr "місток «%s» має некоректну маску мережі або IP-адресу"
 
-#: src/network/bridge_driver.c:2076
+#: src/network/bridge_driver.c:2078
 #, c-format
 msgid "network '%s' has an invalid netmask or IP address in route definition"
 msgstr ""
 "у визначенні маршруту мережі «%s» використано некоректну маску мережі або IP-"
 "адресу"
 
-#: src/network/bridge_driver.c:2142
+#: src/network/bridge_driver.c:2144
 #, c-format
 msgid "network '%s' has no bridge name defined"
 msgstr "у мережі «%s» немає визначеної назви містка"
 
-#: src/network/bridge_driver.c:2236
+#: src/network/bridge_driver.c:2238
 msgid "failed to enable IP forwarding"
 msgstr "помилка при вмиканні перенаправлення IP"
 
-#: src/network/bridge_driver.c:2414
+#: src/network/bridge_driver.c:2416
 #, c-format
 msgid "Could not get Virtual functions on %s"
 msgstr "Не вдалося отримати віртуальні функції на %s"
 
-#: src/network/bridge_driver.c:2471
+#: src/network/bridge_driver.c:2473
 #, fuzzy, c-format
 msgid "No usable Vf's present on SRIOV PF %s"
 msgstr "Немає придатних до використання Vf на SRIOV PF %s"
 
-#: src/network/bridge_driver.c:2531
+#: src/network/bridge_driver.c:2533
 msgid "network is already active"
 msgstr "мережа вже активна"
 
-#: src/network/bridge_driver.c:2675
+#: src/network/bridge_driver.c:2677
 #, c-format
 msgid "no network with matching uuid '%s'"
 msgstr "немає мережі із відповідним uuid, «%s»"
 
-#: src/network/bridge_driver.c:2700 src/network/bridge_driver.c:4052
-#: src/network/bridge_driver.c:4461 src/network/bridge_driver.c:4647
-#: src/network/bridge_driver.c:4794 src/network/bridge_driver.c:4880
-#: src/network/bridge_driver.c:5238 src/network/bridge_driver.c:5271
+#: src/network/bridge_driver.c:2702 src/network/bridge_driver.c:4054
+#: src/network/bridge_driver.c:4463 src/network/bridge_driver.c:4649
+#: src/network/bridge_driver.c:4796 src/network/bridge_driver.c:4882
+#: src/network/bridge_driver.c:5240 src/network/bridge_driver.c:5273
 #, c-format
 msgid "no network with matching name '%s'"
 msgstr "немає мережі із відповідною назвою «%s»"
 
-#: src/network/bridge_driver.c:2921
+#: src/network/bridge_driver.c:2923
 #, c-format
 msgid "Bridge generation exceeded max id %d"
 msgstr "Генерація мосту перевищила максимальний ID %d"
 
-#: src/network/bridge_driver.c:2948
+#: src/network/bridge_driver.c:2950
 #, c-format
 msgid "bridge name '%s' already in use."
 msgstr "міст «%s» вже існує."
 
-#: src/network/bridge_driver.c:3001
+#: src/network/bridge_driver.c:3003
 #, fuzzy, c-format
 msgid "Unsupported <mac> element in network %s with forward mode='%s'"
 msgstr ""
 "Непідтримуваний елемент <mac> у мережі %s з режимом переспрямовування «%s»"
 
-#: src/network/bridge_driver.c:3009
+#: src/network/bridge_driver.c:3011
 #, c-format
 msgid "Unsupported <ip> element in network %s with forward mode='%s'"
 msgstr ""
 "Непідтримуваний елемент <ip> у мережі %s з режимом переспрямовування «%s»"
 
-#: src/network/bridge_driver.c:3017
+#: src/network/bridge_driver.c:3019
 #, c-format
 msgid "Unsupported <dns> element in network %s with forward mode='%s'"
 msgstr ""
 "Непідтримуваний елемент <dns> у мережі %s з режимом переспрямовування «%s»"
 
-#: src/network/bridge_driver.c:3025
+#: src/network/bridge_driver.c:3027
 #, c-format
 msgid "Unsupported <domain> element in network %s with forward mode='%s'"
 msgstr ""
 "Непідтримуваний елемент <domain> у мережі %s з режимом переспрямовування «%s»"
 
-#: src/network/bridge_driver.c:3033
+#: src/network/bridge_driver.c:3035
 #, fuzzy, c-format
 msgid ""
 "Unsupported network-wide <bandwidth> element in network %s with forward "
@@ -14529,7 +14529,7 @@ msgstr ""
 "Непідтримуваний загальномережевий елемент <bandwidth> у мережі %s з режимом "
 "переспрямовування «%s»"
 
-#: src/network/bridge_driver.c:3070
+#: src/network/bridge_driver.c:3072
 #, fuzzy, c-format
 msgid ""
 "<address>, <interface>, and <pf> elements of <forward> in network %s are "
@@ -14538,7 +14538,7 @@ msgstr ""
 "елементи <address>, <interface> і <pf> запису <forward> у мережі %s не можна "
 "використовувати одночасно"
 
-#: src/network/bridge_driver.c:3086
+#: src/network/bridge_driver.c:3088
 msgid ""
 "Multiple IPv4 dhcp sections found -- dhcp is supported only for a single "
 "IPv4 address on each network"
@@ -14546,7 +14546,7 @@ msgstr ""
 "Знайдено декілька розділів DHCP IPv4. DHCP підтримується лише для однієї "
 "адреси IPv4 у кожній мережі."
 
-#: src/network/bridge_driver.c:3099
+#: src/network/bridge_driver.c:3101
 msgid ""
 "Multiple IPv6 dhcp sections found -- dhcp is supported only for a single "
 "IPv6 address on each network"
@@ -14554,7 +14554,7 @@ msgstr ""
 "Знайдено декілька розділів DHCP IPv6. DHCP підтримується лише для однієї "
 "адреси IPv6 у кожній мережі."
 
-#: src/network/bridge_driver.c:3144
+#: src/network/bridge_driver.c:3146
 #, c-format
 msgid ""
 "network '%s' has multiple default <portgroup> elements (%s and %s), but only "
@@ -14563,12 +14563,12 @@ msgstr ""
 "для мережі «%s» визначено декілька типових елементів <portgroup> (%s і %s), "
 "але можна використовувати лише один такий елемент"
 
-#: src/network/bridge_driver.c:3156
+#: src/network/bridge_driver.c:3158
 #, fuzzy, c-format
 msgid "multiple <portgroup> elements with the same name (%s) in network '%s'"
 msgstr "декілька елементів <portgroup> з тією самою назвою (%s) у мережі «%s»"
 
-#: src/network/bridge_driver.c:3164
+#: src/network/bridge_driver.c:3166
 #, fuzzy, c-format
 msgid ""
 "Unsupported <bandwidth> element in network '%s' in portgroup '%s' with "
@@ -14577,7 +14577,7 @@ msgstr ""
 "Непідтримуваний елемент <bandwidth> у мережі «%s» у групі портів «%s» з "
 "режимом переспрямовування «%s»"
 
-#: src/network/bridge_driver.c:3179
+#: src/network/bridge_driver.c:3181
 #, c-format
 msgid ""
 "<vlan> element specified for network %s, whose type doesn't support vlan "
@@ -14586,7 +14586,7 @@ msgstr ""
 "для мережі %s вказано елемент <vlan>, хоча типом мережі не передбачено "
 "налаштовування vlan"
 
-#: src/network/bridge_driver.c:3189
+#: src/network/bridge_driver.c:3191
 #, c-format
 msgid ""
 "unsupported <bandwidth> element in <portgroup name='%s'> of network '%s' "
@@ -14595,56 +14595,56 @@ msgstr ""
 "Непідтримуваний елемент <bandwidth> у <portgroup name='%s'> мережі «%s» із "
 "режимом переспрямовування «%s»"
 
-#: src/network/bridge_driver.c:3323
+#: src/network/bridge_driver.c:3325
 msgid "can't undefine transient network"
 msgstr "не можна скасувати визначення тимчасової мережі"
 
-#: src/network/bridge_driver.c:3578 src/network/bridge_driver.c:4060
+#: src/network/bridge_driver.c:3580 src/network/bridge_driver.c:4062
 #, fuzzy, c-format
 msgid "network '%s' is not active"
 msgstr "мережа «%s» не є активною"
 
-#: src/network/bridge_driver.c:3643 src/test/test_driver.c:3500
+#: src/network/bridge_driver.c:3645 src/test/test_driver.c:3500
 #, c-format
 msgid "network '%s' does not have a bridge name."
 msgstr "немає імені мосту для мережі «%s»"
 
-#: src/network/bridge_driver.c:3692
+#: src/network/bridge_driver.c:3694
 msgid "cannot set autostart for transient network"
 msgstr "не можна вказувати автозапуск для проміжної мережі"
 
-#: src/network/bridge_driver.c:3707
+#: src/network/bridge_driver.c:3709
 #, c-format
 msgid "cannot create autostart directory '%s'"
 msgstr "не вдалось створити= каталог автозапуску «%s»"
 
-#: src/network/bridge_driver.c:3797
+#: src/network/bridge_driver.c:3799
 #, fuzzy, c-format
 msgid "invalid json in file: %s"
 msgstr "некоректний код json у файлі: %s"
 
-#: src/network/bridge_driver.c:3803 src/util/virlease.c:91
+#: src/network/bridge_driver.c:3805 src/util/virlease.c:91
 msgid "couldn't fetch array of leases"
 msgstr "не вдалося отримати масив надання"
 
-#: src/network/bridge_driver.c:3813 src/util/virlease.c:99
+#: src/network/bridge_driver.c:3815 src/util/virlease.c:99
 #: src/util/virlease.c:106 src/util/virlease.c:177 src/util/virlease.c:201
 msgid "failed to parse json"
 msgstr "не вдалося обробити код json"
 
-#: src/network/bridge_driver.c:3821
+#: src/network/bridge_driver.c:3823
 msgid "found lease without mac-address"
 msgstr "виявлено надання без MAC-адреси"
 
-#: src/network/bridge_driver.c:3831
+#: src/network/bridge_driver.c:3833
 msgid "found lease without expiry-time"
 msgstr "виявлено надання без строку дії"
 
-#: src/network/bridge_driver.c:3848
+#: src/network/bridge_driver.c:3850
 msgid "found lease without ip-address"
 msgstr "виявлено надання без IP-адреси"
 
-#: src/network/bridge_driver.c:4162
+#: src/network/bridge_driver.c:4164
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses a bridge "
@@ -14653,7 +14653,7 @@ msgstr ""
 "Підтримки <virtualport type='%s'> для мережі «%s», яка використовує пристрій-"
 "місток, не передбачено"
 
-#: src/network/bridge_driver.c:4187 src/network/bridge_driver.c:4340
+#: src/network/bridge_driver.c:4189 src/network/bridge_driver.c:4342
 #, c-format
 msgid ""
 "network '%s' requires exclusive access to interfaces, but none are available"
@@ -14661,12 +14661,12 @@ msgstr ""
 "мережа «%s» потребує виключного доступу до інтерфейсів, але такого доступу "
 "немає"
 
-#: src/network/bridge_driver.c:4212
+#: src/network/bridge_driver.c:4214
 #, c-format
 msgid "unrecognized driver name value %d  in network '%s'"
 msgstr "нерозпізнане значення назви драйвера %d у мережі «%s»"
 
-#: src/network/bridge_driver.c:4236
+#: src/network/bridge_driver.c:4238
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses an SR-IOV "
@@ -14675,7 +14675,7 @@ msgstr ""
 "Підтримки <virtualport type='%s'> для мережі «%s», яка використовує "
 "віртуальну функцію SR-IOV з передаванням за допомогою PCI, не передбачено"
 
-#: src/network/bridge_driver.c:4287
+#: src/network/bridge_driver.c:4289
 #, c-format
 msgid ""
 "<virtualport type='%s'> not supported for network '%s' which uses a macvtap "
@@ -14684,7 +14684,7 @@ msgstr ""
 "Підтримки <virtualport type='%s'> для мережі «%s», яка використовує пристрій "
 "macvtap, не передбачено"
 
-#: src/network/bridge_driver.c:4300
+#: src/network/bridge_driver.c:4302
 #, c-format
 msgid ""
 "network '%s' uses a direct mode, but has no forward dev and no interface pool"
@@ -14692,7 +14692,7 @@ msgstr ""
 "мережа «%s» використовує безпосередній режим, але немає пристрою "
 "переспрямування та буфера інтерфейсу"
 
-#: src/network/bridge_driver.c:4375
+#: src/network/bridge_driver.c:4377
 #, c-format
 msgid ""
 "an interface connecting to network '%s' is requesting a vlan tag, but that "
@@ -14701,7 +14701,7 @@ msgstr ""
 "інтерфейсу з’єднання з мережею «%s» потрібен теґ vlan, але його підтримки "
 "для цього типу мережі не передбачено"
 
-#: src/network/bridge_driver.c:4381
+#: src/network/bridge_driver.c:4383
 #, c-format
 msgid ""
 "an interface of type '%s' is requesting a vlan tag, but that is not "
@@ -14710,11 +14710,11 @@ msgstr ""
 "інтерфейсу типу «%s» потрібен теґ vlan, але його підтримки для цього типу "
 "з’єднання не передбачено"
 
-#: src/network/bridge_driver.c:4395
+#: src/network/bridge_driver.c:4397
 msgid "bandwidth settings are not supported for hostdev interfaces"
 msgstr "підтримки параметрів каналу для інтерфейсів hostdev не передбачено"
 
-#: src/network/bridge_driver.c:4490
+#: src/network/bridge_driver.c:4492
 #, c-format
 msgid ""
 "network '%s' uses a direct or hostdev mode, but has no forward dev and no "
@@ -14723,35 +14723,35 @@ msgstr ""
 "мережа «%s» використовує безпосередній режим або режим пристрою основної "
 "системи, але немає пристрою переспрямування та буфера інтерфейсу"
 
-#: src/network/bridge_driver.c:4502 src/network/bridge_driver.c:4682
+#: src/network/bridge_driver.c:4504 src/network/bridge_driver.c:4684
 msgid "the interface uses a direct mode, but has no source dev"
 msgstr ""
 "інтерфейсом використовується безпосередній режим, але немає пристрою джерела"
 
-#: src/network/bridge_driver.c:4519 src/network/bridge_driver.c:4698
+#: src/network/bridge_driver.c:4521 src/network/bridge_driver.c:4700
 #, c-format
 msgid "network '%s' doesn't have dev='%s' in use by domain"
 msgstr "мережа «%s» не має dev='%s' у використанні домену"
 
-#: src/network/bridge_driver.c:4536
+#: src/network/bridge_driver.c:4538
 #, c-format
 msgid "network '%s' claims dev='%s' is already in use by a different domain"
 msgstr "мережа «%s» вимагає dev='%s', який вже використовується іншим доменом"
 
-#: src/network/bridge_driver.c:4547 src/network/bridge_driver.c:4709
+#: src/network/bridge_driver.c:4549 src/network/bridge_driver.c:4711
 msgid "the interface uses a hostdev mode, but has no hostdev"
 msgstr ""
 "інтерфейсом використовується режим пристрою основної системи (hostdev), але "
 "не має пристрою основної системи"
 
-#: src/network/bridge_driver.c:4565 src/network/bridge_driver.c:4725
+#: src/network/bridge_driver.c:4567 src/network/bridge_driver.c:4727
 #, c-format
 msgid "network '%s' doesn't have PCI device %04x:%02x:%02x.%x in use by domain"
 msgstr ""
 "у мережі «%s» немає пристрою PCI %04x:%02x:%02x.%x, що використовується "
 "доменом"
 
-#: src/network/bridge_driver.c:4582
+#: src/network/bridge_driver.c:4584
 #, c-format
 msgid ""
 "network '%s' claims the PCI device at domain=%d bus=%d slot=%d function=%d "
@@ -14760,7 +14760,7 @@ msgstr ""
 "мережею «%s» визначено, що пристрій PCI у домені=%d канал=%d слот=%d функція="
 "%d, вже використовується іншим доменом"
 
-#: src/network/bridge_driver.c:4670
+#: src/network/bridge_driver.c:4672
 #, c-format
 msgid ""
 "network '%s' uses a direct/hostdev mode, but has no forward dev and no "
@@ -14769,17 +14769,17 @@ msgstr ""
 "мережа «%s» використовує безпосередній режим або режим пристрою основної "
 "системи, але немає пристрою переспрямування та буфера інтерфейсу"
 
-#: src/network/bridge_driver.c:4808
+#: src/network/bridge_driver.c:4810
 #, c-format
 msgid "network '%s' doesn't have an IP address"
 msgstr "у мережі «%s» немає адреси IP"
 
-#: src/network/bridge_driver.c:4830
+#: src/network/bridge_driver.c:4832
 #, c-format
 msgid "network '%s' has no associated interface or bridge"
 msgstr "з мережею «%s» не пов’язано інтерфейсу або містка"
 
-#: src/network/bridge_driver.c:4965
+#: src/network/bridge_driver.c:4967
 #, c-format
 msgid ""
 "Invalid use of 'floor' on interface with MAC address %s - network '%s' has "
@@ -14788,7 +14788,7 @@ msgstr ""
 "Некоректне використання «floor» на інтерфейсі з MAC-адресою %s — у мережі "
 "«%s» не встановлено значення якості вхідного сигналу"
 
-#: src/network/bridge_driver.c:4989
+#: src/network/bridge_driver.c:4991
 #, c-format
 msgid ""
 "Cannot plug '%s' interface into '%s' because it would overcommit 'peak' on "
@@ -14797,7 +14797,7 @@ msgstr ""
 "Неможливо з’єднати «%s» з «%s», оскільки таке з’єднання змінить значення "
 "«peak» у записі мережі «%s»"
 
-#: src/network/bridge_driver.c:5000
+#: src/network/bridge_driver.c:5002
 #, c-format
 msgid ""
 "Cannot plug '%s' interface into '%s' because it would overcommit 'average' "
@@ -14806,11 +14806,11 @@ msgstr ""
 "Неможливо з’єднати «%s» з «%s», оскільки таке з’єднання змінить значення "
 "«average» у записі мережі «%s»"
 
-#: src/network/bridge_driver.c:5054
+#: src/network/bridge_driver.c:5056
 msgid "Could not generate next class ID"
 msgstr "Не вдалося створити ідентифікатор наступного класу"
 
-#: src/network/bridge_driver.c:5116
+#: src/network/bridge_driver.c:5118
 #, c-format
 msgid "Cannot set bandwidth on interface '%s' of type %d"
 msgstr "Встановлення пропускної здатності на інтерфейсі «%s» типу %d неможливе"
@@ -20010,46 +20010,46 @@ msgstr "Біти типів статистики 0x%x не підтримуют�
 msgid "Unknown IP address data source %d"
 msgstr "Невідоме джерело даних IP-адреси %d"
 
-#: src/qemu/qemu_driver.c:19939
+#: src/qemu/qemu_driver.c:19941
 #, c-format
 msgid "cannot remove old domain config file %s"
 msgstr "не вдалося вилучити файл налаштувань старого домену %s"
 
-#: src/qemu/qemu_driver.c:19988
+#: src/qemu/qemu_driver.c:19995
 msgid "cannot rename active domain"
 msgstr "не можна перейменовувати активний домен"
 
-#: src/qemu/qemu_driver.c:19994
+#: src/qemu/qemu_driver.c:20001
 msgid "cannot rename a transient domain"
 msgstr "не можна перейменовувати проміжний домен"
 
-#: src/qemu/qemu_driver.c:20000
+#: src/qemu/qemu_driver.c:20007
 msgid "domain with a managed saved state can't be renamed"
 msgstr "домен із керованим збереженим станом не можна перейменовувати"
 
-#: src/qemu/qemu_driver.c:20006
+#: src/qemu/qemu_driver.c:20013
 msgid "domain has to be shutoff before renaming"
 msgstr "перед перейменуванням домен слід вимкнути"
 
-#: src/qemu/qemu_driver.c:20012
+#: src/qemu/qemu_driver.c:20019
 msgid "cannot rename domain with snapshots"
 msgstr "не можна перейменовувати домен із знімками"
 
-#: src/qemu/qemu_driver.c:20056
+#: src/qemu/qemu_driver.c:20063
 #, c-format
 msgid "vcpu id '%u' reported by guest agent is out of range"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:20161
+#: src/qemu/qemu_driver.c:20168
 msgid "unsupported state value"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:20193
+#: src/qemu/qemu_driver.c:20200
 #, c-format
 msgid "vCPU '%u' is not offlinable"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:20206
+#: src/qemu/qemu_driver.c:20213
 #, c-format
 msgid "guest is missing vCPUs '%s'"
 msgstr ""
@@ -35989,7 +35989,7 @@ msgid "unable to wait on console condition"
 msgstr "не вдалося зачекати на виконання умови на консолі"
 
 #: tools/virsh-domain-monitor.c:44 tools/virsh-domain.c:68
-#: tools/virsh-domain.c:10726 tools/virsh-snapshot.c:46
+#: tools/virsh-domain.c:10721 tools/virsh-snapshot.c:46
 msgid "domain name, id or uuid"
 msgstr "назва домену, id або uuid"
 
@@ -36141,7 +36141,7 @@ msgstr "запускаємо"
 msgid "post-copy failed"
 msgstr "спроба пост-копіювання зазнала невдачі"
 
-#: tools/virsh-domain-monitor.c:221 tools/virsh-domain.c:12220
+#: tools/virsh-domain-monitor.c:221 tools/virsh-domain.c:12215
 msgid "shutdown"
 msgstr "завершення роботи"
 
@@ -36154,7 +36154,7 @@ msgstr "знищено"
 msgid "saved"
 msgstr "збережено"
 
-#: tools/virsh-domain-monitor.c:226 tools/virsh-domain.c:12277
+#: tools/virsh-domain-monitor.c:226 tools/virsh-domain.c:12272
 msgid "failed"
 msgstr "невдача"
 
@@ -36244,7 +36244,7 @@ msgid "additionally display the type and device value"
 msgstr "додатково показати значення типу і пристрою"
 
 #: tools/virsh-domain-monitor.c:504 tools/virsh-domain-monitor.c:611
-#: tools/virsh-domain.c:13284 tools/virsh-volume.c:1469
+#: tools/virsh-domain.c:13279 tools/virsh-volume.c:1469
 #: tools/virsh-volume.c:1505
 msgid "Type"
 msgstr "Тип"
@@ -36254,7 +36254,7 @@ msgid "Device"
 msgstr "Пристрій"
 
 #: tools/virsh-domain-monitor.c:505 tools/virsh-domain-monitor.c:507
-#: tools/virsh-domain.c:13284
+#: tools/virsh-domain.c:13279
 msgid "Target"
 msgstr "Призначення"
 
@@ -36701,7 +36701,7 @@ msgid "Id"
 msgstr "ID"
 
 #: tools/virsh-domain-monitor.c:1864 tools/virsh-domain-monitor.c:1869
-#: tools/virsh-domain-monitor.c:2223 tools/virsh-domain.c:13284
+#: tools/virsh-domain-monitor.c:2223 tools/virsh-domain.c:13279
 #: tools/virsh-interface.c:367 tools/virsh-network.c:692
 #: tools/virsh-nwfilter.c:365 tools/virsh-pool.c:1301 tools/virsh-pool.c:1322
 #: tools/virsh-pool.c:1387 tools/virsh-snapshot.c:1565
@@ -36836,7 +36836,7 @@ msgid "Failed to query for interfaces addresses"
 msgstr "Не вдалося запитати адреси інтерфейсів"
 
 #: tools/virsh-domain-monitor.c:2224 tools/virsh-domain.c:810
-#: tools/virsh-domain.c:11488 tools/virsh-network.c:1310
+#: tools/virsh-domain.c:11483 tools/virsh-network.c:1310
 #: tools/virsh-network.c:1360
 msgid "MAC address"
 msgstr "MAC-адреса"
@@ -36882,8 +36882,8 @@ msgstr "приєднати пристрій з файла XML"
 msgid "Attach device from an XML <file>."
 msgstr "Приєднати пристрій з файла XML <файл>."
 
-#: tools/virsh-domain.c:228 tools/virsh-domain.c:11318
-#: tools/virsh-domain.c:11399
+#: tools/virsh-domain.c:228 tools/virsh-domain.c:11313
+#: tools/virsh-domain.c:11394
 msgid "XML file"
 msgstr "Файл XML"
 
@@ -36908,7 +36908,7 @@ msgstr "Приєднати дисковий пристрій"
 msgid "source of disk device"
 msgstr "джерело для дискового пристрою"
 
-#: tools/virsh-domain.c:318 tools/virsh-domain.c:11927
+#: tools/virsh-domain.c:318 tools/virsh-domain.c:11922
 msgid "target of disk device"
 msgstr "ціль для дискового пристрою"
 
@@ -37016,7 +37016,7 @@ msgstr "приєднати мережний пристрій"
 msgid "Attach new network interface."
 msgstr "Приєднати новий мережний пристрій."
 
-#: tools/virsh-domain.c:797 tools/virsh-domain.c:11484
+#: tools/virsh-domain.c:797 tools/virsh-domain.c:11479
 msgid "network interface type"
 msgstr "тип мережного інтерфейсу"
 
@@ -37815,7 +37815,7 @@ msgstr "Не вдається створити XML"
 msgid "Failed to update interface link state"
 msgstr "Не вдалося оновити стан посилання інтерфейсу"
 
-#: tools/virsh-domain.c:3164 tools/virsh-domain.c:11457
+#: tools/virsh-domain.c:3164 tools/virsh-domain.c:11452
 msgid "Device updated successfully\n"
 msgstr "Запис пристрою успішно оновлено\n"
 
@@ -39698,13 +39698,13 @@ msgstr "фільтрувати за назвою події"
 msgid "pretty-print any JSON output"
 msgstr "форматоване виведення для усіх виведених даних JSON"
 
-#: tools/virsh-domain.c:9205 tools/virsh-domain.c:12791
+#: tools/virsh-domain.c:9205 tools/virsh-domain.c:12786
 #: tools/virsh-network.c:1201 tools/virsh-nodedev.c:865 tools/virsh-pool.c:2020
 msgid "loop until timeout or interrupt, rather than one-shot"
 msgstr ""
 "цикл до завершення часу очікування або переривання, а не одноразове виконання"
 
-#: tools/virsh-domain.c:9209 tools/virsh-domain.c:12795
+#: tools/virsh-domain.c:9209 tools/virsh-domain.c:12790
 #: tools/virsh-network.c:1205 tools/virsh-nodedev.c:869 tools/virsh-pool.c:2024
 msgid "timeout seconds"
 msgstr "час очікування у секундах"
@@ -39717,22 +39717,22 @@ msgstr "вважати запис події формальним виразом
 msgid "treat event case-insensitively"
 msgstr "обробляти події без врахування регістру"
 
-#: tools/virsh-domain.c:9221 tools/virsh-domain.c:12803
+#: tools/virsh-domain.c:9221 tools/virsh-domain.c:12798
 #: tools/virsh-network.c:1213 tools/virsh-nodedev.c:877 tools/virsh-pool.c:2032
 msgid "show timestamp for each printed event"
 msgstr "показувати часову позначку для кожного виведеного запису події"
 
-#: tools/virsh-domain.c:9266 tools/virsh-domain.c:12893
+#: tools/virsh-domain.c:9266 tools/virsh-domain.c:12888
 #: tools/virsh-network.c:1267 tools/virsh-nodedev.c:944 tools/virsh-pool.c:2091
 msgid "event loop interrupted\n"
 msgstr "роботу циклу очікування на події перервано\n"
 
-#: tools/virsh-domain.c:9269 tools/virsh-domain.c:12896
+#: tools/virsh-domain.c:9269 tools/virsh-domain.c:12891
 #: tools/virsh-network.c:1270 tools/virsh-nodedev.c:947 tools/virsh-pool.c:2094
 msgid "event loop timed out\n"
 msgstr "у циклі обробки перевищено час очікування на подію\n"
 
-#: tools/virsh-domain.c:9276 tools/virsh-domain.c:12903
+#: tools/virsh-domain.c:9276 tools/virsh-domain.c:12898
 #: tools/virsh-network.c:1277 tools/virsh-nodedev.c:954 tools/virsh-pool.c:2101
 #, fuzzy, c-format
 msgid "events received: %d\n"
@@ -40101,27 +40101,23 @@ msgstr ""
 msgid "cannot read file '%s'"
 msgstr "не вдалося прочитати файл «%s»"
 
-#: tools/virsh-domain.c:10435
+#: tools/virsh-domain.c:10436
 msgid "migrate: Unexpected timeout for offline migration"
 msgstr "перенесення: неочікуваний час очікування для перенесення без з’єднання"
 
-#: tools/virsh-domain.c:10448
+#: tools/virsh-domain.c:10449
 msgid "migrate: Unexpected --timeout-* option without --timeout"
 msgstr "migrate: неочікуваний параметр --timeout-* без --timeout"
 
-#: tools/virsh-domain.c:10455
-msgid "--postcopy-after-precopy can only be used with --postcopy"
-msgstr ""
-
-#: tools/virsh-domain.c:10499
+#: tools/virsh-domain.c:10494
 msgid "Migration"
 msgstr "Перенесення"
 
-#: tools/virsh-domain.c:10519
+#: tools/virsh-domain.c:10514
 msgid "set maximum tolerable downtime"
 msgstr "встановити максимальний можливий час вимикання"
 
-#: tools/virsh-domain.c:10522
+#: tools/virsh-domain.c:10517
 msgid ""
 "Set maximum tolerable downtime of a domain which is being live-migrated to "
 "another host."
@@ -40129,20 +40125,20 @@ msgstr ""
 "Встановити максимальний припустимий час перебування домену у стані вимикання "
 "під час інтерактивного перенесення на іншу основну систему."
 
-#: tools/virsh-domain.c:10532
+#: tools/virsh-domain.c:10527
 msgid "maximum tolerable downtime (in milliseconds) for migration"
 msgstr ""
 "максимальний припустимий час вимикання (у мілісекундах) для перенесення"
 
-#: tools/virsh-domain.c:10550
+#: tools/virsh-domain.c:10545
 msgid "migrate: Invalid downtime"
 msgstr "перенесення: некоректний час вимикання"
 
-#: tools/virsh-domain.c:10569
+#: tools/virsh-domain.c:10564
 msgid "get/set compression cache size"
 msgstr "отримати/встановити розмір кешу стискання"
 
-#: tools/virsh-domain.c:10572
+#: tools/virsh-domain.c:10567
 msgid ""
 "Get/set size of the cache (in bytes) used for compressing repeatedly "
 "transferred memory pages during live migration."
@@ -40151,20 +40147,20 @@ msgstr ""
 "для стискання повторюваних перенесених сторінок пам’яті під час "
 "інтерактивного перенесення."
 
-#: tools/virsh-domain.c:10583
+#: tools/virsh-domain.c:10578
 msgid "requested size of the cache (in bytes) used for compression"
 msgstr "бажаний розмір кешу стискання (у байтах)"
 
-#: tools/virsh-domain.c:10613
+#: tools/virsh-domain.c:10608
 #, c-format
 msgid "Compression cache: %.3lf %s"
 msgstr "Кеш стискання: %.3lf %s"
 
-#: tools/virsh-domain.c:10626
+#: tools/virsh-domain.c:10621
 msgid "Set the maximum migration bandwidth"
 msgstr "Встановити максимальну ширину каналу перенесення"
 
-#: tools/virsh-domain.c:10629
+#: tools/virsh-domain.c:10624
 msgid ""
 "Set the maximum migration bandwidth (in MiB/s) for a domain which is being "
 "migrated to another host."
@@ -40172,26 +40168,26 @@ msgstr ""
 "Встановити максимальну ширину каналу перенесення (у МіБ/с) для домену, який "
 "переноситься на іншу основну систему."
 
-#: tools/virsh-domain.c:10640
+#: tools/virsh-domain.c:10635
 msgid "migration bandwidth limit in MiB/s"
 msgstr "обмеження ширини каналу у МіБ/с"
 
-#: tools/virsh-domain.c:10673
+#: tools/virsh-domain.c:10668
 msgid "Get the maximum migration bandwidth"
 msgstr "Встановити максимальну ширину каналу перенесення"
 
-#: tools/virsh-domain.c:10676
+#: tools/virsh-domain.c:10671
 msgid "Get the maximum migration bandwidth (in MiB/s) for a domain."
 msgstr ""
 "Отримати значення максимальної ширини каналу перенесення (у МіБ/с) для "
 "домену."
 
-#: tools/virsh-domain.c:10713
+#: tools/virsh-domain.c:10708
 msgid "Switch running migration from pre-copy to post-copy"
 msgstr ""
 "Перемкнути поточний процес перенесення із перед-копіювання на пост-копіювання"
 
-#: tools/virsh-domain.c:10716
+#: tools/virsh-domain.c:10711
 msgid ""
 "Switch running migration from pre-copy to post-copy. The migration must have "
 "been started with --postcopy option."
@@ -40199,128 +40195,128 @@ msgstr ""
 "Перемкнути запущений процес перенесення з перед-копіювання на пост-"
 "копіювання. Перенесення має бути запущено із параметром --postcopy."
 
-#: tools/virsh-domain.c:10755
+#: tools/virsh-domain.c:10750
 msgid "domain display connection URI"
 msgstr "адреса з’єднання з дисплеєм домену"
 
-#: tools/virsh-domain.c:10758
+#: tools/virsh-domain.c:10753
 msgid "Output the IP address and port number for the graphical display."
 msgstr "Виведення IP-адреси і номера порту для графічного дисплея."
 
-#: tools/virsh-domain.c:10768
+#: tools/virsh-domain.c:10763
 msgid "includes the password into the connection URI if available"
 msgstr "включає пароль до адреси з’єднання, якщо такий є доступним"
 
-#: tools/virsh-domain.c:10772
+#: tools/virsh-domain.c:10767
 msgid "select particular graphical display (e.g. \"vnc\", \"spice\", \"rdp\")"
 msgstr ""
 "вибрати певний спосіб передавання графічних даних (наприклад «vnc», «spice» "
 "або «rdp»)"
 
-#: tools/virsh-domain.c:10777
+#: tools/virsh-domain.c:10772
 #, fuzzy
 msgid "show all possible graphical displays"
 msgstr "Не знайдено графічного дисплея"
 
-#: tools/virsh-domain.c:10970
+#: tools/virsh-domain.c:10965
 msgid "Failed to create display URI"
 msgstr "Не вдалося створити адресу дисплея"
 
-#: tools/virsh-domain.c:10990
+#: tools/virsh-domain.c:10985
 #, fuzzy, c-format
 msgid "No graphical display with type '%s' found"
 msgstr "Не знайдено графічного дисплея типу «%s»"
 
-#: tools/virsh-domain.c:10992
+#: tools/virsh-domain.c:10987
 msgid "No graphical display found"
 msgstr "Не знайдено графічного дисплея"
 
-#: tools/virsh-domain.c:11012
+#: tools/virsh-domain.c:11007
 msgid "vnc display"
 msgstr "дисплей vnc"
 
-#: tools/virsh-domain.c:11015
+#: tools/virsh-domain.c:11010
 msgid "Output the IP address and port number for the VNC display."
 msgstr "Виведення IP-адреси і номера порту для дисплея VNC."
 
-#: tools/virsh-domain.c:11054
+#: tools/virsh-domain.c:11049
 msgid "Failed to get VNC port. Is this domain using VNC?"
 msgstr ""
 "Не вдалося отримати дані щодо порту VNC. Чи використовується у цьому домені "
 "VNC?"
 
-#: tools/virsh-domain.c:11093
+#: tools/virsh-domain.c:11088
 msgid "tty console"
 msgstr "консоль tty"
 
-#: tools/virsh-domain.c:11096
+#: tools/virsh-domain.c:11091
 msgid "Output the device for the TTY console."
 msgstr "Вивід пристрою для консолі TTY."
 
-#: tools/virsh-domain.c:11149
+#: tools/virsh-domain.c:11144
 msgid "print the domain's hostname"
 msgstr "вивести назву вузла домену"
 
-#: tools/virsh-domain.c:11174 tools/virsh-host.c:1071
+#: tools/virsh-domain.c:11169 tools/virsh-host.c:1071
 msgid "failed to get hostname"
 msgstr "помилка отримання назви вузла гіпервізора"
 
-#: tools/virsh-domain.c:11262 tools/virsh-domain.c:11275
+#: tools/virsh-domain.c:11257 tools/virsh-domain.c:11270
 msgid "Bad child elements counting."
 msgstr "Помилкова кількість дочірніх елементів."
 
-#: tools/virsh-domain.c:11308
+#: tools/virsh-domain.c:11303
 msgid "detach device from an XML file"
 msgstr "від'єднати пристрій з файла XML"
 
-#: tools/virsh-domain.c:11311
+#: tools/virsh-domain.c:11306
 msgid "Detach device from an XML <file>"
 msgstr "Від'єднати пристрій з файла XML <файл>"
 
-#: tools/virsh-domain.c:11371
+#: tools/virsh-domain.c:11366
 #, c-format
 msgid "Failed to detach device from %s"
 msgstr "Не вдається від'єднати пристрій з %s"
 
-#: tools/virsh-domain.c:11375
+#: tools/virsh-domain.c:11370
 msgid "Device detached successfully\n"
 msgstr "Пристрій успішно від’єднано\n"
 
-#: tools/virsh-domain.c:11389
+#: tools/virsh-domain.c:11384
 msgid "update device from an XML file"
 msgstr "оновити запис пристрою з файла XML"
 
-#: tools/virsh-domain.c:11392
+#: tools/virsh-domain.c:11387
 msgid "Update device from an XML <file>."
 msgstr "Оновити запис пристрою на основі <файла> XML."
 
-#: tools/virsh-domain.c:11406
+#: tools/virsh-domain.c:11401
 msgid "force device update"
 msgstr "примусове оновлення запису пристрою"
 
-#: tools/virsh-domain.c:11453
+#: tools/virsh-domain.c:11448
 #, c-format
 msgid "Failed to update device from %s"
 msgstr "Не вдалося оновити запис пристрою з %s"
 
-#: tools/virsh-domain.c:11471
+#: tools/virsh-domain.c:11466
 msgid "detach network interface"
 msgstr "від'єднати мережний пристрій"
 
-#: tools/virsh-domain.c:11474
+#: tools/virsh-domain.c:11469
 msgid "Detach network interface."
 msgstr "Від'єднати мережний пристрій"
 
-#: tools/virsh-domain.c:11515
+#: tools/virsh-domain.c:11510
 msgid "Failed to get interface information"
 msgstr "Не вдається отримати інформацію про пристрій"
 
-#: tools/virsh-domain.c:11523
+#: tools/virsh-domain.c:11518
 #, fuzzy, c-format
 msgid "No interface found whose type is %s"
 msgstr "Не виявлено інтерфейсу з типом %s"
 
-#: tools/virsh-domain.c:11528
+#: tools/virsh-domain.c:11523
 #, c-format
 msgid ""
 "Domain has %d interfaces. Please specify which one to detach using --mac"
@@ -40328,7 +40324,7 @@ msgstr ""
 "У домені %d інтерфейсів. Будь ласка, вкажіть інтерфейс для від’єднання за "
 "допомогою --mac"
 
-#: tools/virsh-domain.c:11550
+#: tools/virsh-domain.c:11545
 #, c-format
 msgid ""
 "Domain has multiple interfaces matching MAC address %s. You must use detach-"
@@ -40338,326 +40334,326 @@ msgstr ""
 "скористатися detach-device і вказати адресу пристрою PCI, щоб вилучити зайві "
 "інтерфейси."
 
-#: tools/virsh-domain.c:11563
+#: tools/virsh-domain.c:11558
 #, c-format
 msgid "No interface with MAC address %s was found"
 msgstr "Не виявлено інтерфейсу з MAC-адресою %s"
 
-#: tools/virsh-domain.c:11642
+#: tools/virsh-domain.c:11637
 msgid "Failed to detach interface"
 msgstr "Не вдалося від’єднати інтерфейс"
 
-#: tools/virsh-domain.c:11644
+#: tools/virsh-domain.c:11639
 msgid "Interface detached successfully\n"
 msgstr "Інтерфейс успішно від’єднано\n"
 
-#: tools/virsh-domain.c:11676 tools/virsh-domain.c:11685
+#: tools/virsh-domain.c:11671 tools/virsh-domain.c:11680
 msgid "Failed to get disk information"
 msgstr "Не вдається отримати інформацію про диск"
 
-#: tools/virsh-domain.c:11738
+#: tools/virsh-domain.c:11733
 #, fuzzy, c-format
 msgid "No disk found whose source path or target is %s"
 msgstr "Не виявлено диска, чий початковий шлях або призначення %s"
 
-#: tools/virsh-domain.c:11782
+#: tools/virsh-domain.c:11777
 #, c-format
 msgid "The disk device '%s' is not removable"
 msgstr "Дисковий пристрій «%s» не є портативним"
 
-#: tools/virsh-domain.c:11826
+#: tools/virsh-domain.c:11821
 #, c-format
 msgid "The disk device '%s' doesn't have media"
 msgstr "Дисковий пристрій «%s» не має носія даних"
 
-#: tools/virsh-domain.c:11834
+#: tools/virsh-domain.c:11829
 msgid "New disk media source was not specified"
 msgstr "Нове джерело дискового носія не вказано"
 
-#: tools/virsh-domain.c:11846
+#: tools/virsh-domain.c:11841
 #, c-format
 msgid "The disk device '%s' already has media"
 msgstr "Дисковий пристрій «%s» вже має носій даних"
 
-#: tools/virsh-domain.c:11867
+#: tools/virsh-domain.c:11862
 msgid "Failed to allocate new source node"
 msgstr "Не вдалося розмістити вузол нового джерела"
 
-#: tools/virsh-domain.c:11914
+#: tools/virsh-domain.c:11909
 msgid "detach disk device"
 msgstr "від'єднати дисковий пристрій"
 
-#: tools/virsh-domain.c:11917
+#: tools/virsh-domain.c:11912
 msgid "Detach disk device."
 msgstr "Від'єднати дисковий пристрій"
 
-#: tools/virsh-domain.c:11994
+#: tools/virsh-domain.c:11989
 msgid "Failed to detach disk"
 msgstr "Не вдалося від’єднати диск"
 
-#: tools/virsh-domain.c:11998
+#: tools/virsh-domain.c:11993
 msgid "Disk detached successfully\n"
 msgstr "Диск успішно від’єднано\n"
 
-#: tools/virsh-domain.c:12014
+#: tools/virsh-domain.c:12009
 msgid "edit XML configuration for a domain"
 msgstr "змінити налаштування XML домену"
 
-#: tools/virsh-domain.c:12017
+#: tools/virsh-domain.c:12012
 msgid "Edit the XML configuration for a domain."
 msgstr "Змінити налаштування XML домену."
 
-#: tools/virsh-domain.c:12026
+#: tools/virsh-domain.c:12021
 msgid "skip validation of the XML against the schema"
 msgstr "пропустити перевірку XML за схемою"
 
-#: tools/virsh-domain.c:12051
+#: tools/virsh-domain.c:12046
 #, c-format
 msgid "Domain %s XML configuration not changed.\n"
 msgstr "Не змінено налаштування XML домену %s\n"
 
-#: tools/virsh-domain.c:12066
+#: tools/virsh-domain.c:12061
 #, c-format
 msgid "Domain %s XML configuration edited.\n"
 msgstr "Змінено налаштування XML домену %s.\n"
 
-#: tools/virsh-domain.c:12087 tools/virsh-network.c:1124
+#: tools/virsh-domain.c:12082 tools/virsh-network.c:1124
 #: tools/virsh-pool.c:1899
 msgid "Defined"
 msgstr "Визначено"
 
-#: tools/virsh-domain.c:12088 tools/virsh-network.c:1125
+#: tools/virsh-domain.c:12083 tools/virsh-network.c:1125
 #: tools/virsh-pool.c:1900
 msgid "Undefined"
 msgstr "Не визначено"
 
-#: tools/virsh-domain.c:12089 tools/virsh-network.c:1126
+#: tools/virsh-domain.c:12084 tools/virsh-network.c:1126
 #: tools/virsh-pool.c:1901
 msgid "Started"
 msgstr "Почато"
 
-#: tools/virsh-domain.c:12090
+#: tools/virsh-domain.c:12085
 msgid "Suspended"
 msgstr "Приспано"
 
-#: tools/virsh-domain.c:12091
+#: tools/virsh-domain.c:12086
 msgid "Resumed"
 msgstr "Відновлено"
 
-#: tools/virsh-domain.c:12092 tools/virsh-network.c:1127
+#: tools/virsh-domain.c:12087 tools/virsh-network.c:1127
 #: tools/virsh-pool.c:1902
 msgid "Stopped"
 msgstr "Зупинено"
 
-#: tools/virsh-domain.c:12093 tools/virsh-domain.c:12151
+#: tools/virsh-domain.c:12088 tools/virsh-domain.c:12146
 msgid "Shutdown"
 msgstr "Вимикання"
 
-#: tools/virsh-domain.c:12094
+#: tools/virsh-domain.c:12089
 msgid "PMSuspended"
 msgstr "Призупинено"
 
-#: tools/virsh-domain.c:12095 tools/virsh-domain.c:12153
+#: tools/virsh-domain.c:12090 tools/virsh-domain.c:12148
 msgid "Crashed"
 msgstr "Аварія"
 
-#: tools/virsh-domain.c:12107
+#: tools/virsh-domain.c:12102
 msgid "Added"
 msgstr "Додано"
 
-#: tools/virsh-domain.c:12108
+#: tools/virsh-domain.c:12103
 msgid "Updated"
 msgstr "Оновлено"
 
-#: tools/virsh-domain.c:12109 tools/virsh-domain.c:12116
+#: tools/virsh-domain.c:12104 tools/virsh-domain.c:12111
 msgid "Renamed"
 msgstr "Перейменовано"
 
-#: tools/virsh-domain.c:12110 tools/virsh-domain.c:12124
-#: tools/virsh-domain.c:12135 tools/virsh-domain.c:12145
-#: tools/virsh-domain.c:12157
+#: tools/virsh-domain.c:12105 tools/virsh-domain.c:12119
+#: tools/virsh-domain.c:12130 tools/virsh-domain.c:12140
+#: tools/virsh-domain.c:12152
 msgid "Snapshot"
 msgstr "Знімок"
 
-#: tools/virsh-domain.c:12115
+#: tools/virsh-domain.c:12110
 msgid "Removed"
 msgstr "Вилучено"
 
-#: tools/virsh-domain.c:12121
+#: tools/virsh-domain.c:12116
 msgid "Booted"
 msgstr "Завантажено"
 
-#: tools/virsh-domain.c:12122 tools/virsh-domain.c:12131
-#: tools/virsh-domain.c:12144 tools/virsh-domain.c:12154
+#: tools/virsh-domain.c:12117 tools/virsh-domain.c:12126
+#: tools/virsh-domain.c:12139 tools/virsh-domain.c:12149
 msgid "Migrated"
 msgstr "Перенесено"
 
-#: tools/virsh-domain.c:12123 tools/virsh-domain.c:12134
+#: tools/virsh-domain.c:12118 tools/virsh-domain.c:12129
 msgid "Restored"
 msgstr "Відновлено"
 
-#: tools/virsh-domain.c:12125
+#: tools/virsh-domain.c:12120
 msgid "Event wakeup"
 msgstr "Пробудження подією"
 
-#: tools/virsh-domain.c:12130
+#: tools/virsh-domain.c:12125
 msgid "Paused"
 msgstr "Пауза"
 
-#: tools/virsh-domain.c:12132
+#: tools/virsh-domain.c:12127
 msgid "I/O Error"
 msgstr "Помилка в/в"
 
-#: tools/virsh-domain.c:12133
+#: tools/virsh-domain.c:12128
 msgid "Watchdog"
 msgstr "Сторожовик"
 
-#: tools/virsh-domain.c:12136
+#: tools/virsh-domain.c:12131
 msgid "API error"
 msgstr "Помилка API"
 
-#: tools/virsh-domain.c:12137 tools/virsh-domain.c:12146
+#: tools/virsh-domain.c:12132 tools/virsh-domain.c:12141
 msgid "Post-copy"
 msgstr "Пост-копіювання"
 
-#: tools/virsh-domain.c:12138
+#: tools/virsh-domain.c:12133
 msgid "Post-copy Error"
 msgstr "Помилка пост-копіювання"
 
-#: tools/virsh-domain.c:12143
+#: tools/virsh-domain.c:12138
 msgid "Unpaused"
 msgstr "Поновлено"
 
-#: tools/virsh-domain.c:12152
+#: tools/virsh-domain.c:12147
 msgid "Destroyed"
 msgstr "Знищено"
 
-#: tools/virsh-domain.c:12155
+#: tools/virsh-domain.c:12150
 msgid "Saved"
 msgstr "Збережено"
 
-#: tools/virsh-domain.c:12162
+#: tools/virsh-domain.c:12157
 msgid "Finished"
 msgstr "Завершено"
 
-#: tools/virsh-domain.c:12167
+#: tools/virsh-domain.c:12162
 msgid "Memory"
 msgstr "Пам'ять"
 
-#: tools/virsh-domain.c:12168
+#: tools/virsh-domain.c:12163
 msgid "Disk"
 msgstr "Диск"
 
-#: tools/virsh-domain.c:12173
+#: tools/virsh-domain.c:12168
 msgid "Panicked"
 msgstr "Паніка"
 
-#: tools/virsh-domain.c:12216 tools/virsh-domain.c:12234
+#: tools/virsh-domain.c:12211 tools/virsh-domain.c:12229
 msgid "none"
 msgstr "немає"
 
-#: tools/virsh-domain.c:12217 tools/virsh-domain.c:12235
+#: tools/virsh-domain.c:12212 tools/virsh-domain.c:12230
 msgid "pause"
 msgstr "призупинити"
 
-#: tools/virsh-domain.c:12218
+#: tools/virsh-domain.c:12213
 msgid "reset"
 msgstr "скинути"
 
-#: tools/virsh-domain.c:12219
+#: tools/virsh-domain.c:12214
 msgid "poweroff"
 msgstr "вимкнути"
 
-#: tools/virsh-domain.c:12221
+#: tools/virsh-domain.c:12216
 msgid "debug"
 msgstr "діагностика"
 
-#: tools/virsh-domain.c:12222
+#: tools/virsh-domain.c:12217
 msgid "inject-nmi"
 msgstr "nmi-ін’єкція"
 
-#: tools/virsh-domain.c:12236
+#: tools/virsh-domain.c:12231
 msgid "report"
 msgstr "звіт"
 
-#: tools/virsh-domain.c:12248
+#: tools/virsh-domain.c:12243
 msgid "connect"
 msgstr "з’єднати"
 
-#: tools/virsh-domain.c:12249
+#: tools/virsh-domain.c:12244
 msgid "initialize"
 msgstr "ініціалізувати"
 
-#: tools/virsh-domain.c:12250
+#: tools/virsh-domain.c:12245
 msgid "disconnect"
 msgstr "від’єднати"
 
-#: tools/virsh-domain.c:12262
+#: tools/virsh-domain.c:12257
 msgid "IPv4"
 msgstr "IPv4"
 
-#: tools/virsh-domain.c:12263
+#: tools/virsh-domain.c:12258
 msgid "IPv6"
 msgstr "IPv6"
 
-#: tools/virsh-domain.c:12264 tools/virt-admin.c:61
+#: tools/virsh-domain.c:12259 tools/virt-admin.c:61
 msgid "unix"
 msgstr "unix"
 
-#: tools/virsh-domain.c:12276
+#: tools/virsh-domain.c:12271
 msgid "completed"
 msgstr "завершено"
 
-#: tools/virsh-domain.c:12278
+#: tools/virsh-domain.c:12273
 msgid "canceled"
 msgstr "скасовано"
 
-#: tools/virsh-domain.c:12279
+#: tools/virsh-domain.c:12274
 msgid "ready"
 msgstr "готово"
 
-#: tools/virsh-domain.c:12291
+#: tools/virsh-domain.c:12286
 msgid "changed"
 msgstr "змінено"
 
-#: tools/virsh-domain.c:12292
+#: tools/virsh-domain.c:12287
 msgid "dropped"
 msgstr "скинуто"
 
-#: tools/virsh-domain.c:12304
+#: tools/virsh-domain.c:12299
 msgid "opened"
 msgstr "відкрито"
 
-#: tools/virsh-domain.c:12305
+#: tools/virsh-domain.c:12300
 msgid "closed"
 msgstr "закрито"
 
-#: tools/virsh-domain.c:12378
+#: tools/virsh-domain.c:12373
 #, fuzzy, c-format
 msgid "event '%s' for domain %s\n"
 msgstr "подія «%s» для домену %s\n"
 
-#: tools/virsh-domain.c:12393
+#: tools/virsh-domain.c:12388
 #, c-format
 msgid "event 'lifecycle' for domain %s: %s %s\n"
 msgstr "подія «lifecycle» для домену %s: %s %s\n"
 
-#: tools/virsh-domain.c:12408
+#: tools/virsh-domain.c:12403
 #, c-format
 msgid "event 'rtc-change' for domain %s: %lld\n"
 msgstr "подія «rtc-change» для домену %s: %lld\n"
 
-#: tools/virsh-domain.c:12422
+#: tools/virsh-domain.c:12417
 #, c-format
 msgid "event 'watchdog' for domain %s: %s\n"
 msgstr "подія «watchdog» для домену %s: %s\n"
 
-#: tools/virsh-domain.c:12438
+#: tools/virsh-domain.c:12433
 #, c-format
 msgid "event 'io-error' for domain %s: %s (%s) %s\n"
 msgstr "подія «io-error» для домену %s: %s (%s) %s\n"
 
-#: tools/virsh-domain.c:12459
+#: tools/virsh-domain.c:12454
 #, c-format
 msgid ""
 "event 'graphics' for domain %s: %s local[%s %s %s] remote[%s %s %s] %s\n"
@@ -40665,152 +40661,152 @@ msgstr ""
 "подія «graphics» для домену %s: %s локальний[%s %s %s], віддалений[%s %s %s] "
 "%s\n"
 
-#: tools/virsh-domain.c:12489
+#: tools/virsh-domain.c:12484
 #, c-format
 msgid "event 'io-error-reason' for domain %s: %s (%s) %s due to %s\n"
 msgstr "подія «io-error-reason» для домену %s: %s (%s) %s через %s\n"
 
-#: tools/virsh-domain.c:12509
+#: tools/virsh-domain.c:12504
 #, fuzzy, c-format
 msgid "event '%s' for domain %s: %s for %s %s\n"
 msgstr "подія «%s» для домену %s: %s для %s %s\n"
 
-#: tools/virsh-domain.c:12529
+#: tools/virsh-domain.c:12524
 #, c-format
 msgid "event 'disk-change' for domain %s disk %s: %s -> %s: %s\n"
 msgstr "подія «disk-change» для домену %s, диск %s: %s -> %s: %s\n"
 
-#: tools/virsh-domain.c:12548
+#: tools/virsh-domain.c:12543
 #, c-format
 msgid "event 'tray-change' for domain %s disk %s: %s\n"
 msgstr "подія «tray-change» для домену %s, диск %s: %s\n"
 
-#: tools/virsh-domain.c:12574
+#: tools/virsh-domain.c:12569
 #, c-format
 msgid "event 'balloon-change' for domain %s: %lluKiB\n"
 msgstr "подія «balloon-change» для домену %s: %llu КіБ\n"
 
-#: tools/virsh-domain.c:12588
+#: tools/virsh-domain.c:12583
 #, fuzzy, c-format
 msgid "event 'device-removed' for domain %s: %s\n"
 msgstr "подія «device-removed» для домену %s: %s\n"
 
-#: tools/virsh-domain.c:12602
+#: tools/virsh-domain.c:12597
 #, c-format
 msgid "event 'device-added' for domain %s: %s\n"
 msgstr "подія «device-added» для домену %s: %s\n"
 
-#: tools/virsh-domain.c:12619
+#: tools/virsh-domain.c:12614
 #, fuzzy, c-format
 msgid "event 'tunable' for domain %s:\n"
 msgstr "подія «tunable» для домену %s:\n"
 
-#: tools/virsh-domain.c:12635
+#: tools/virsh-domain.c:12630
 msgid "connected"
 msgstr "з’єднано"
 
-#: tools/virsh-domain.c:12636
+#: tools/virsh-domain.c:12631
 msgid "disconnected"
 msgstr "роз’єднано"
 
-#: tools/virsh-domain.c:12642
+#: tools/virsh-domain.c:12637
 msgid "domain started"
 msgstr "домен запущено"
 
-#: tools/virsh-domain.c:12643
+#: tools/virsh-domain.c:12638
 msgid "channel event"
 msgstr "подія каналу"
 
-#: tools/virsh-domain.c:12645
+#: tools/virsh-domain.c:12640
 msgid "unsupported value"
 msgstr "непідтримуване значення"
 
-#: tools/virsh-domain.c:12655
+#: tools/virsh-domain.c:12650
 #, fuzzy, c-format
 msgid "event 'agent-lifecycle' for domain %s: state: '%s' reason: '%s'\n"
 msgstr "подія «agent-lifecycle» для домену %s: стан: «%s» причина: «%s»\n"
 
-#: tools/virsh-domain.c:12671
+#: tools/virsh-domain.c:12666
 #, c-format
 msgid "event 'migration-iteration' for domain %s: iteration: '%d'\n"
 msgstr "подія «migration-iteration» домену %s: ітерація: «%d»'\n"
 
-#: tools/virsh-domain.c:12690
+#: tools/virsh-domain.c:12685
 #, c-format
 msgid "event 'job-completed' for domain %s:\n"
 msgstr "подія «job-completed» для домену %s:\n"
 
-#: tools/virsh-domain.c:12711
+#: tools/virsh-domain.c:12706
 #, c-format
 msgid "event 'device-removal-failed' for domain %s: %s\n"
 msgstr "подія «device-removal-failed» у домені %s: %s\n"
 
-#: tools/virsh-domain.c:12768
+#: tools/virsh-domain.c:12763
 msgid "Domain Events"
 msgstr "Події домену"
 
-#: tools/virsh-domain.c:12771
+#: tools/virsh-domain.c:12766
 msgid "List event types, or wait for domain events to occur"
 msgstr "Показати список типів подій або очікувати на події домену"
 
-#: tools/virsh-domain.c:12779
+#: tools/virsh-domain.c:12774
 msgid "filter by domain name, id, or uuid"
 msgstr "фільтрувати за назвою домену, ідентифікатором або uuid"
 
-#: tools/virsh-domain.c:12783 tools/virsh-network.c:1197
+#: tools/virsh-domain.c:12778 tools/virsh-network.c:1197
 #: tools/virsh-nodedev.c:861 tools/virsh-pool.c:2016
 msgid "which event type to wait for"
 msgstr "подія, на яку слід чекати"
 
-#: tools/virsh-domain.c:12787
+#: tools/virsh-domain.c:12782
 msgid "wait for all events instead of just one type"
 msgstr "очікувати на усі події, а не на подію якогось одного типу"
 
-#: tools/virsh-domain.c:12799 tools/virsh-network.c:1209
+#: tools/virsh-domain.c:12794 tools/virsh-network.c:1209
 #: tools/virsh-nodedev.c:873 tools/virsh-pool.c:2028
 msgid "list valid event types"
 msgstr "показати список коректних типів подій"
 
-#: tools/virsh-domain.c:12837 tools/virsh-network.c:1245
+#: tools/virsh-domain.c:12832 tools/virsh-network.c:1245
 #: tools/virsh-nodedev.c:914 tools/virsh-pool.c:2068
 #, fuzzy, c-format
 msgid "unknown event type %s"
 msgstr "невідомий тип події, %s"
 
-#: tools/virsh-domain.c:12842
+#: tools/virsh-domain.c:12837
 #, fuzzy
 msgid "one of --list, --all, or --event <type> is required"
 msgstr "слід вказати --list, --all або тип події"
 
-#: tools/virsh-domain.c:12928
+#: tools/virsh-domain.c:12923
 msgid "Change media of CD or floppy drive"
 msgstr "Змінити носій даних пристрою читання компакт-диска або дискети"
 
-#: tools/virsh-domain.c:12931
+#: tools/virsh-domain.c:12926
 msgid "Change media of CD or floppy drive."
 msgstr "Змінити носій даних пристрою читання компакт-диска або дискети."
 
-#: tools/virsh-domain.c:12941
+#: tools/virsh-domain.c:12936
 msgid "Fully-qualified path or target of disk device"
 msgstr "Повний шлях або призначення дискового пристрою"
 
-#: tools/virsh-domain.c:12945
+#: tools/virsh-domain.c:12940
 msgid "source of the media"
 msgstr "джерело носія даних"
 
-#: tools/virsh-domain.c:12949
+#: tools/virsh-domain.c:12944
 msgid "Eject the media"
 msgstr "Виштовхнути носій даних"
 
-#: tools/virsh-domain.c:12953
+#: tools/virsh-domain.c:12948
 msgid "Insert the media"
 msgstr "Вставити носій даних"
 
-#: tools/virsh-domain.c:12957
+#: tools/virsh-domain.c:12952
 msgid "Update the media"
 msgstr "Оновити носій даних"
 
-#: tools/virsh-domain.c:12959
+#: tools/virsh-domain.c:12954
 msgid ""
 "can be either or both of --live and --config, depends on implementation "
 "hypervisor driver"
@@ -40818,115 +40814,115 @@ msgstr ""
 "може бути одним зі значень --live і --config або обома значенням, залежно "
 "від реалізації драйвера гіпервізора"
 
-#: tools/virsh-domain.c:12962
+#: tools/virsh-domain.c:12957
 msgid "alter live configuration of running domain"
 msgstr "змінити налаштування запущеного домену у динамічному режимі"
 
-#: tools/virsh-domain.c:12963
+#: tools/virsh-domain.c:12958
 msgid "alter persistent configuration, effect observed on next boot"
 msgstr ""
 "змінити постійне налаштування, зміни набудуть чинності під час наступного "
 "завантаження"
 
-#: tools/virsh-domain.c:12967
+#: tools/virsh-domain.c:12962
 msgid "force media changing"
 msgstr "примусова зміна носія"
 
-#: tools/virsh-domain.c:12971
+#: tools/virsh-domain.c:12966
 msgid "print XML document rather than change media"
 msgstr "вивести документ XML замість зміни носія"
 
-#: tools/virsh-domain.c:12975
+#: tools/virsh-domain.c:12970
 msgid "source media is a block device"
 msgstr "носій джерела є блоковим пристроєм"
 
-#: tools/virsh-domain.c:13021
+#: tools/virsh-domain.c:13016
 msgid "Successfully ejected media."
 msgstr "Носій успішно виштовхнуто."
 
-#: tools/virsh-domain.c:13027
+#: tools/virsh-domain.c:13022
 msgid "Successfully inserted media."
 msgstr "Носій успішно вставлено."
 
-#: tools/virsh-domain.c:13033
+#: tools/virsh-domain.c:13028
 msgid "Successfully updated media."
 msgstr "Носій успішно оновлено."
 
-#: tools/virsh-domain.c:13070
+#: tools/virsh-domain.c:13065
 #, c-format
 msgid "Failed to complete action %s on media"
 msgstr "Не вдалося завершити виконання дії %s на носії даних"
 
-#: tools/virsh-domain.c:13089 tools/virsh-domain.c:13092
+#: tools/virsh-domain.c:13084 tools/virsh-domain.c:13087
 msgid "Invoke fstrim on domain's mounted filesystems."
 msgstr "Викликати fstrim для змонтованих файлових систем домену."
 
-#: tools/virsh-domain.c:13101
+#: tools/virsh-domain.c:13096
 msgid "Just a hint to ignore contiguous free ranges smaller than this (Bytes)"
 msgstr ""
 "Просто орієнтир для ігнорування неперервних вільних діапазонів з довжиною, "
 "меншою за цю (у байтах)"
 
-#: tools/virsh-domain.c:13106
+#: tools/virsh-domain.c:13101
 msgid "which mount point to trim"
 msgstr "точка монтування, для якої слід виконати ущільнення"
 
-#: tools/virsh-domain.c:13129
+#: tools/virsh-domain.c:13124
 msgid "Unable to invoke fstrim"
 msgstr "Не вдалося викликати fstrim"
 
-#: tools/virsh-domain.c:13142 tools/virsh-domain.c:13145
+#: tools/virsh-domain.c:13137 tools/virsh-domain.c:13140
 msgid "Freeze domain's mounted filesystems."
 msgstr "Заморозити змонтовані файлові системи домену."
 
-#: tools/virsh-domain.c:13154
+#: tools/virsh-domain.c:13149
 msgid "mountpoint path to be frozen"
 msgstr "шлях до точки монтування, яку слід заморозити"
 
-#: tools/virsh-domain.c:13172 tools/virsh-domain.c:13225
+#: tools/virsh-domain.c:13167 tools/virsh-domain.c:13220
 #, fuzzy, c-format
 msgid "%s: %d: failed to allocate mountpoints"
 msgstr "%s: %d: не вдалося розмістити точки монтування"
 
-#: tools/virsh-domain.c:13181
+#: tools/virsh-domain.c:13176
 msgid "Unable to freeze filesystems"
 msgstr "Не вдалося заморозити файлові системи"
 
-#: tools/virsh-domain.c:13185
+#: tools/virsh-domain.c:13180
 #, c-format
 msgid "Froze %d filesystem(s)\n"
 msgstr "Заморожено %d файлові системи\n"
 
-#: tools/virsh-domain.c:13195 tools/virsh-domain.c:13198
+#: tools/virsh-domain.c:13190 tools/virsh-domain.c:13193
 msgid "Thaw domain's mounted filesystems."
 msgstr "Розморозити файлові системи домену."
 
-#: tools/virsh-domain.c:13207
+#: tools/virsh-domain.c:13202
 msgid "mountpoint path to be thawed"
 msgstr "шлях до точки монтування, яку слід розморозити"
 
-#: tools/virsh-domain.c:13234
+#: tools/virsh-domain.c:13229
 msgid "Unable to thaw filesystems"
 msgstr "Не вдалося розморозити файлові системи"
 
-#: tools/virsh-domain.c:13238
+#: tools/virsh-domain.c:13233
 #, c-format
 msgid "Thawed %d filesystem(s)\n"
 msgstr "Розморожено %d файлові системи\n"
 
-#: tools/virsh-domain.c:13248 tools/virsh-domain.c:13251
+#: tools/virsh-domain.c:13243 tools/virsh-domain.c:13246
 msgid "Get information of domain's mounted filesystems."
 msgstr "Отримати інформацію щодо змонтованих файлових систем домену."
 
-#: tools/virsh-domain.c:13274
+#: tools/virsh-domain.c:13269
 msgid "Unable to get filesystem information"
 msgstr "Не вдалося отримати дані щодо файлових систем"
 
-#: tools/virsh-domain.c:13278
+#: tools/virsh-domain.c:13273
 msgid "No filesystems are mounted in the domain"
 msgstr "У цьому домені не змонтовано жодних файлових систем"
 
-#: tools/virsh-domain.c:13284
+#: tools/virsh-domain.c:13279
 msgid "Mountpoint"
 msgstr "точка монтування"
 
