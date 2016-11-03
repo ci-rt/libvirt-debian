@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt 2.1.0\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2016-10-31 09:16+0100\n"
+"POT-Creation-Date: 2016-11-01 21:34+0100\n"
 "PO-Revision-Date: 2016-03-31 11:42-0400\n"
 "Last-Translator: yuliya <ypoyarko@redhat.com>\n"
 "Language-Team: Russian (http://www.transifex.com/projects/p/libvirt/language/"
@@ -10373,7 +10373,7 @@ msgstr "Система недоступна"
 
 #: src/hyperv/hyperv_wmi.c:375 tools/virsh-domain.c:5300
 #: tools/virsh-domain.c:7487 tools/virsh-pool.c:1502 tools/virsh-snapshot.c:440
-#: tools/vsh.c:1772 tools/vsh.c:2923 tools/vsh.c:2928
+#: tools/vsh.c:1772 tools/vsh.c:2924 tools/vsh.c:2929
 msgid "Out of memory"
 msgstr "Недостаточно памяти"
 
@@ -35695,8 +35695,8 @@ msgid "expecting an ide:00.00.00 address."
 msgstr "ожидается адрес ide:00.00.00"
 
 #: tools/virsh-domain.c:740 tools/virsh-domain.c:1051 tools/virsh-pool.c:379
-#: tools/virsh-volume.c:340 tools/virsh-volume.c:608 tools/vsh.c:3273
-#: tools/vsh.c:3290
+#: tools/virsh-volume.c:340 tools/virsh-volume.c:608 tools/vsh.c:3274
+#: tools/vsh.c:3291
 msgid "Failed to allocate XML buffer"
 msgstr "Не удалось выделить буфер XML"
 
@@ -43540,7 +43540,7 @@ msgstr "команда %s требует указания --%s"
 msgid "command group '%s' doesn't exist"
 msgstr "группа команд «%s» не существует"
 
-#: tools/vsh.c:613 tools/vsh.c:3137
+#: tools/vsh.c:613 tools/vsh.c:3138
 #, c-format
 msgid " %s (help keyword '%s'):\n"
 msgstr " %s (ключевое слово «%s»):\n"
@@ -43824,59 +43824,59 @@ msgstr "%s: не удалось прочитать временный файл: 
 msgid "Failed to complete tree listing"
 msgstr "Не удалось завершить построение иерархии"
 
-#: tools/vsh.c:2901
+#: tools/vsh.c:2902
 #, c-format
 msgid "Bad $%s value."
 msgstr ""
 
-#: tools/vsh.c:2904
+#: tools/vsh.c:2905
 #, c-format
 msgid "$%s value should be between 0 and %d"
 msgstr ""
 
-#: tools/vsh.c:2918
+#: tools/vsh.c:2919
 msgid "Could not determine home directory"
 msgstr "Не удалось определить домашний каталог"
 
-#: tools/vsh.c:2948
+#: tools/vsh.c:2949
 #, c-format
 msgid "Failed to create '%s': %s"
 msgstr "Не удалось создать «%s»: %s"
 
-#: tools/vsh.c:3021
+#: tools/vsh.c:3022
 msgid "VSH_DEBUG not set with a valid numeric value"
 msgstr ""
 
-#: tools/vsh.c:3053
+#: tools/vsh.c:3054
 msgid "client hooks cannot be NULL"
 msgstr ""
 
-#: tools/vsh.c:3058
+#: tools/vsh.c:3059
 msgid "command groups and command set cannot both be NULL"
 msgstr ""
 
-#: tools/vsh.c:3077
+#: tools/vsh.c:3078
 msgid "command groups and command are both NULL run vshInit before reloading"
 msgstr ""
 
-#: tools/vsh.c:3109
+#: tools/vsh.c:3110
 msgid ""
 "Prints global help, command specific help, or help for a group of related "
 "commands"
 msgstr "Вывод общей справки, справки по отдельной команде или группе команд. "
 
-#: tools/vsh.c:3116
+#: tools/vsh.c:3117
 msgid "print help"
 msgstr "печать справки"
 
-#: tools/vsh.c:3119
+#: tools/vsh.c:3120
 msgid ""
 "Prints global help, command specific help, or help for a\n"
 "    group of related commands"
 msgstr ""
 "Вывод общей справки, справки по отдельным командам или группам команд. "
 
-#: tools/vsh.c:3134
+#: tools/vsh.c:3135
 msgid ""
 "Grouped commands:\n"
 "\n"
@@ -43884,79 +43884,79 @@ msgstr ""
 "Группы команд:\n"
 "\n"
 
-#: tools/vsh.c:3158
+#: tools/vsh.c:3159
 #, c-format
 msgid "command or command group '%s' doesn't exist"
 msgstr "команда или группа команд «%s» не существует"
 
-#: tools/vsh.c:3166
+#: tools/vsh.c:3167
 msgid "directory to switch to (default: home or else root)"
 msgstr "каталог для перехода (по умолчанию домашний или корневой)"
 
-#: tools/vsh.c:3173
+#: tools/vsh.c:3174
 msgid "change the current directory"
 msgstr "изменить текущий каталог"
 
-#: tools/vsh.c:3176
+#: tools/vsh.c:3177
 msgid "Change the current directory."
 msgstr "Изменить текущий каталог."
 
-#: tools/vsh.c:3190
+#: tools/vsh.c:3191
 msgid "cd: command valid only in interactive mode"
 msgstr "команда cd доступна только в интерактивном режиме"
 
-#: tools/vsh.c:3200
+#: tools/vsh.c:3201
 #, c-format
 msgid "cd: %s: %s"
 msgstr "cd: %s: %s"
 
-#: tools/vsh.c:3212
+#: tools/vsh.c:3213
 msgid "escape for shell use"
 msgstr "вывод в формате, подходящем для использования в командах оболочки"
 
-#: tools/vsh.c:3216
+#: tools/vsh.c:3217
 msgid "escape for XML use"
 msgstr "вывод в формате XML"
 
-#: tools/vsh.c:3228
+#: tools/vsh.c:3229
 msgid "arguments to echo"
 msgstr "список отображаемых аргументов"
 
-#: tools/vsh.c:3235
+#: tools/vsh.c:3236
 msgid "echo arguments"
 msgstr "вывести аргументы"
 
-#: tools/vsh.c:3238
+#: tools/vsh.c:3239
 msgid "Echo back arguments, possibly with quoting."
 msgstr "Вывод аргументов с возможностью цитирования."
 
-#: tools/vsh.c:3302
+#: tools/vsh.c:3303
 msgid "print the current directory"
 msgstr "показать текущий каталог"
 
-#: tools/vsh.c:3305
+#: tools/vsh.c:3306
 msgid "Print the current directory."
 msgstr "Показать текущий каталог."
 
-#: tools/vsh.c:3319
+#: tools/vsh.c:3320
 #, c-format
 msgid "pwd: cannot get current directory: %s"
 msgstr "pwd: не удалось получить текущий каталог: %s"
 
-#: tools/vsh.c:3323
+#: tools/vsh.c:3324
 #, c-format
 msgid "%s\n"
 msgstr "%s\n"
 
-#: tools/vsh.c:3332
+#: tools/vsh.c:3333
 msgid "quit this interactive terminal"
 msgstr "закрыть интерактивный терминал"
 
-#: tools/vsh.c:3353
+#: tools/vsh.c:3354
 msgid "internal command for testing virt shells"
 msgstr ""
 
-#: tools/vsh.c:3356
+#: tools/vsh.c:3357
 msgid "internal use only"
 msgstr ""
 
