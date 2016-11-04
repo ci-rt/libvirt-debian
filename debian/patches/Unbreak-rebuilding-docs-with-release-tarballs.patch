@@ -1,0 +1,43 @@
+From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Fri, 4 Nov 2016 18:30:16 +0100
+Subject: Unbreak rebuilding docs with release tarballs
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+
+Release tarballs ship the include/libvirt/libvirt-common.h.
+
+when srcdir != builddir we end up including libvirt-common.h twice: from
+$top_srcdir/include/libvirt-common.h and from
+$builddir/include/libvirt-common.h leading to
+
+   function virTypedParamsGetUInt from /tmp/buildd/libvirt-2.4.0/debian/build/docs/../include/libvirt/libvirt-common.h redeclared in /tmp/buildd/libvirt-2.4.0/docs/../include/libvirt/libvirt-common.h
+function virTypedParamsAddBoolean from /tmp/buildd/libvirt-2.4.0/debian/build/docs/../include/libvirt/libvirt-common.h redeclared in /tmp/buildd/libvirt-2.4.0/docs/../include/libvirt/libvirt-common.h
+   …
+
+Only add the builddir to the search list if there is no pregenerated
+libvirt-common.h
+
+Reuse the existing check that predates the libvirt.h → libvirt-common.h
+split that probably was meant for exactly that.
+---
+ docs/apibuild.py | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/docs/apibuild.py b/docs/apibuild.py
+index 8728b27..47f340c 100755
+--- a/docs/apibuild.py
++++ b/docs/apibuild.py
+@@ -2607,10 +2607,9 @@ class app:
+             dirs = [srcdir + "/../src",
+                     srcdir + "/../src/util",
+                     srcdir + "/../include/libvirt"]
+-            if builddir:
++            if (builddir and
++                not os.path.exists(srcdir + "/../include/libvirt/libvirt-common.h")):
+                 dirs.append(builddir + "/../include/libvirt")
+-            if glob.glob(srcdir + "/../include/libvirt/libvirt.h") == [] :
+-                dirs.append("../include/libvirt")
+             builder = docBuilder(name, srcdir, dirs, [])
+         elif glob.glob("src/libvirt.c") != [] :
+             if not quiet:
