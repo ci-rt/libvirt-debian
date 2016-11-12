@@ -1,0 +1,26 @@
+From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Sat, 12 Nov 2016 14:24:53 +0100
+Subject: configure: Prefer /usr/bin over /bin for numad
+
+This makes sure the daemon is found in /usr/bin even with usrmerge
+installed during build (where /bin/ is symlinked to /usr/bin) but not on
+the system that runs the binary.
+
+Submitted-By: Guilhem Moulin
+---
+ configure.ac | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/configure.ac b/configure.ac
+index a17874b..565a2cb 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -1501,7 +1501,7 @@ AC_ARG_WITH([numad],
+ if test "$with_numad" != "no" ; then
+   fail=0
+ 
+-  AC_PATH_PROG([NUMAD], [numad], [], [/bin:/usr/bin:/usr/sbin])
++  AC_PATH_PROG([NUMAD], [numad], [], [/usr/bin:/bin:/usr/sbin])
+ 
+   if test "$with_numad" = "check"; then
+     test "$with_numactl" = "yes" || fail=1

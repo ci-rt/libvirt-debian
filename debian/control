@@ -34,6 +34,7 @@ Build-Depends:
  libyajl-dev,
  libpcap0.8-dev,
  libnuma-dev [amd64 arm64 i386 ia64 mips mipsel powerpc ppc64 ppc64el],
+ numad [amd64 arm64 i386 ia64 mips mipsel powerpc ppc64 ppc64el],
  radvd [linux-any],
  libnetcf-dev (>= 1:0.2.3-3~) [linux-any],
  libsanlock-dev [linux-any],
@@ -106,6 +107,7 @@ Recommends:
  netcat-openbsd,
 Suggests:
  libvirt-daemon-system,
+ numad,
 Description: Virtualization daemon
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing

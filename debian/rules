@@ -45,9 +45,9 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
       WITH_DTRACE     = --without-dtrace
   endif
   ifneq (,$(findstring $(DEB_HOST_ARCH), amd64 arm64 i386 ia64 mips mipsel powerpc ppc64el))
-      WITH_NUMA       = --with-numactl
+      WITH_NUMA       = --with-numactl --with-numad
   else
-      WITH_NUMA       = --without-numactl
+      WITH_NUMA       = --without-numactl --without-numad
   endif
   ifneq (,$(findstring $(DEB_HOST_ARCH), ia64))
       WITH_LXC        = --without-lxc
@@ -68,7 +68,7 @@ else
   WITH_MACVTAP        = --without-macvtap
   WITH_NETWORK        = --without-network
   WITH_LXC            = --without-lxc
-  WITH_NUMA           = --without-numactl
+  WITH_NUMA           = --without-numactl --without-numad
   WITH_NETCF          = --without-netcf
   WITH_INIT_SCRIPT    =	--with-init-script=none
   WITH_SYSTEMD        = --without-systemd-daemon
