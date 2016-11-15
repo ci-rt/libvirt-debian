@@ -98,6 +98,7 @@ Architecture: any
 Depends:
  ${misc:Depends},
  ${shlibs:Depends},
+ lsb-base,
  libvirt0 (= ${binary:Version}),
 Enhances: qemu, qemu-kvm, xen
 Section: admin
