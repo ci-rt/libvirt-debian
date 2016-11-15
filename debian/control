@@ -125,6 +125,7 @@ Depends:
  ${shlibs:Depends},
  adduser,
  gettext-base,
+ lsb-base,
  libvirt-clients (= ${binary:Version}),
  libvirt-daemon (= ${binary:Version}),
  logrotate,
