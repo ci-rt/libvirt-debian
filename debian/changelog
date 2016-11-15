@@ -1,3 +1,13 @@
+libvirt (2.4.0-2) unstable; urgency=medium
+
+  * [f964983] Unbreak rebuilding docs with release tarballs (Closes: #842452)
+  * [488910d] Enable numad support.
+    Thanks to Guilhem Moulin (Closes: #843863)
+  * [f792cd7] Pass GPG_TTY env var to the ssh binary.
+    Thanks to Guilhem Moulin (Closes: #843863)
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 15 Nov 2016 14:19:07 +0100
+
 libvirt (2.4.0-1) unstable; urgency=medium
 
   * [abba3b7] New upstream version 2.4.0
