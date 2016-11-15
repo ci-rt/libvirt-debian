@@ -1,0 +1,20 @@
+From: Guilhem Moulin <guilhem@guilhem.org>
+Date: Thu, 10 Nov 2016 11:17:05 +0100
+Subject: Pass GPG_TTY env var to the ssh binary
+
+---
+ src/rpc/virnetsocket.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/rpc/virnetsocket.c b/src/rpc/virnetsocket.c
+index 405f5ba..95cda86 100644
+--- a/src/rpc/virnetsocket.c
++++ b/src/rpc/virnetsocket.c
+@@ -839,6 +839,7 @@ int virNetSocketNewConnectSSH(const char *nodename,
+     virCommandAddEnvPassBlockSUID(cmd, "KRB5CCNAME", NULL);
+     virCommandAddEnvPassBlockSUID(cmd, "SSH_AUTH_SOCK", NULL);
+     virCommandAddEnvPassBlockSUID(cmd, "SSH_ASKPASS", NULL);
++    virCommandAddEnvPassBlockSUID(cmd, "GPG_TTY", NULL);
+     virCommandAddEnvPassBlockSUID(cmd, "DISPLAY", NULL);
+     virCommandAddEnvPassBlockSUID(cmd, "XAUTHORITY", NULL);
+     virCommandClearCaps(cmd);
