@@ -155,7 +155,7 @@ override_dh_auto_test:
 	if ! dh_auto_test -O--builddirectory=$(DEB_BUILDDIR); then \
 	    cat ./debian/build/gnulib/tests/test-suite.log \
 	        ./debian/build/tests/test-suite.log; \
-	    [ -n "$(FAIL_CHECK)" ] || exit 1; \
+	    [ -z "$(FAIL_CHECK)" ] || exit 1; \
 	fi
 
 override_dh_install-arch:
