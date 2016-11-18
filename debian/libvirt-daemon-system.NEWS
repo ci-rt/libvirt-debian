@@ -1,3 +1,25 @@
+libvirt (2.4.0-2uidgid3) UNRELEASED; urgency=medium
+
+  libvirt-daemon-system now uses the allocated uid and gid 64055
+  for the libvirt-qemu user and group on new installations, when
+  the uid/gid is available (otherwise a debconf warning is shown).
+
+  On existing installations, which have different uid/gid values
+  assigned, the recommended procedure is to reassign the uid/gid
+  (might require considerations for ownership/permission changes).
+  No debconf warning is shown in this case; only this NEWS entry.
+
+  This change is in order to prevent I/O errors during migration
+  of guests with disk image files shared over NFS, caused by the
+  different uid/gid ownership between the source and destination
+  host systems, which leads to access/permission errors with NFS.
+
+  If guest migration over NFS is not a requirement in the system,
+  there should not be any impact to the guests for not using the
+  allocated uid/gid.
+
+ -- Mauricio Faria de Oliveira <mauricfo@linux.vnet.ibm.com>  Thu, 18 Nov 2016 13:56:38 -0200
+
 libvirt (1.2.9~rc1-1) experimental; urgency=medium
 
   libvirtd now uses PolicyKit instead of unix socket domain permissions for r/w
