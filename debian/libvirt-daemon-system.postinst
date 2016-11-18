@@ -20,7 +20,7 @@ set -e
 add_users_groups()
 {
     if ! getent group libvirt >/dev/null; then
-        addgroup --system libvirt
+        addgroup --quiet --system libvirt
     fi
 
     if ! getent group kvm >/dev/null; then
@@ -41,7 +41,7 @@ add_users_groups()
     fi
     if ! getent group libvirt-qemu >/dev/null; then
         addgroup --quiet --system libvirt-qemu
-        adduser libvirt-qemu libvirt-qemu
+        adduser --quiet libvirt-qemu libvirt-qemu
     fi
 }
 
@@ -106,8 +106,8 @@ case "$1" in
 	
         # Force virtlockd to reexec if enabled
         if [ -d /run/systemd/system ]; then
-          ! systemctl is-active -q virtlogd || systemctl reload virtlogd.service
-          ! systemctl is-active -q virtlockd || systemctl reload virtlockd.service
+          ! systemctl is-active -q virtlogd || systemctl reload virtlogd.service >/dev/null
+          ! systemctl is-active -q virtlockd || systemctl reload virtlockd.service >/dev/null
         fi
 
         # Force refresh of capabilties (#731815)

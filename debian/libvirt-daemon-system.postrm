@@ -22,15 +22,15 @@ set -e
 case "$1" in
     purge)
     	if getent group libvirt >/dev/null; then
-    		delgroup libvirt || true
+    		delgroup libvirt >/dev/null || true
 	fi
 
     	if getent passwd libvirt-qemu >/dev/null; then
-    		deluser libvirt-qemu || true
+    		deluser libvirt-qemu >/dev/null || true
 	fi
 
     	if getent group libvirt-qemu >/dev/null; then
-    		delgroup libvirt-qemu || true
+    		delgroup libvirt-qemu >/dev/null || true
 	fi
 
 	# Clean up logs and cached capabilities
