@@ -20,6 +20,10 @@ set -e
 # Source debconf library.
 . /usr/share/debconf/confmodule
 
+# Allocated UID and GID for libvirt-qemu
+LIBVIRT_QEMU_UID=64055
+LIBVIRT_QEMU_GID=64055
+
 add_users_groups()
 {
     if ! getent group libvirt >/dev/null; then
@@ -31,6 +35,13 @@ add_users_groups()
     fi
     # user and group libvirt runs qemu/kvm instances with
     if ! getent passwd libvirt-qemu >/dev/null; then
+
+        # set uid if available (expected); don't fail otherwise.
+        PARAMETER_UID=''
+        if ! getent passwd $LIBVIRT_QEMU_UID >/dev/null; then
+            PARAMETER_UID="--uid $LIBVIRT_QEMU_UID"
+        fi
+
         adduser --quiet \
             --system \
             --ingroup kvm \
@@ -40,10 +51,18 @@ add_users_groups()
             --home /var/lib/libvirt \
             --no-create-home \
             --gecos "Libvirt Qemu" \
+            $PARAMETER_UID \
             libvirt-qemu
     fi
     if ! getent group libvirt-qemu >/dev/null; then
-        addgroup --quiet --system libvirt-qemu
+
+        # set gid if available (expected); don't fail otherwise.
+        PARAMETER_GID=''
+        if ! getent group $LIBVIRT_QEMU_GID >/dev/null; then
+            PARAMETER_GID="--gid $LIBVIRT_QEMU_GID"
+        fi
+
+        addgroup --quiet --system $PARAMETER_GID libvirt-qemu
         adduser --quiet libvirt-qemu libvirt-qemu
     fi
 }
