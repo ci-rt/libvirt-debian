@@ -24,7 +24,7 @@ index 11381d4..b8e4e1c 100644
    # access PKI infrastructure
    /etc/pki/libvirt-vnc/** r,
 diff --git a/src/security/virt-aa-helper.c b/src/security/virt-aa-helper.c
-index 77eeaff..ea7e34a 100644
+index 5f5d1cd..6c5fc28 100644
 --- a/src/security/virt-aa-helper.c
 +++ b/src/security/virt-aa-helper.c
 @@ -512,6 +512,7 @@ valid_path(const char *path, const bool readonly)
