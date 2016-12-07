@@ -1,3 +1,11 @@
+libvirt (2.4.0-3) unstable; urgency=medium
+
+  * [9eda310] Depend on lsb-base
+  * [c76b178] Make test failure fail the tests again on amd64.
+    Thanks to Christian Ehrhardt for spotting this (Closes: #844511)
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 07 Dec 2016 16:22:18 +0100
+
 libvirt (2.4.0-2) unstable; urgency=medium
 
   * [f964983] Unbreak rebuilding docs with release tarballs (Closes: #842452)
