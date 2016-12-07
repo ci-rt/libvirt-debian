@@ -716,6 +716,14 @@
    don't. */
 #undef HAVE_DECL_BRDGSFD
 
+/* Define to 1 if you have the declaration of `clock_get_time', and to 0 if
+   you don't. */
+#undef HAVE_DECL_CLOCK_GET_TIME
+
+/* Define to 1 if you have the declaration of `clock_serv_t', and to 0 if you
+   don't. */
+#undef HAVE_DECL_CLOCK_SERV_T
+
 /* Define to 1 if you have the declaration of `copysign', and to 0 if you
    don't. */
 #undef HAVE_DECL_COPYSIGN
@@ -844,6 +852,10 @@
    you don't. */
 #undef HAVE_DECL_GET_VLAN_VID_CMD
 
+/* Define to 1 if you have the declaration of `host_get_clock_service', and to
+   0 if you don't. */
+#undef HAVE_DECL_HOST_GET_CLOCK_SERVICE
+
 /* Define to 1 if you have the declaration of `htole64', and to 0 if you
    don't. */
 #undef HAVE_DECL_HTOLE64
@@ -927,9 +939,12 @@
    */
 #undef HAVE_DECL_STRDUP
 
-/* Define to 1 if you have the declaration of `strerror_r', and to 0 if you
-   don't. */
+/* Define to 1, since you should have the declaration of strerror_r. */
 #undef HAVE_DECL_STRERROR_R
+
+/* Define to 1 if you have the declaration of 'strerror_r' in the system
+   include files, or to 0 otherwise. */
+#undef HAVE_DECL_STRERROR_R_ORIG
 
 /* Define to 1 if you have the declaration of `strncasecmp', and to 0 if you
    don't. */
@@ -1122,14 +1137,8 @@
 /* Define to 1 if you have the 'getuid' function. */
 #undef HAVE_GETUID
 
-/* Define to 1 if you have the `gnutls_cipher_encrypt' function. */
-#undef HAVE_GNUTLS_CIPHER_ENCRYPT
-
 /* Define to 1 if you have the <gnutls/crypto.h> header file. */
 #undef HAVE_GNUTLS_CRYPTO_H
-
-/* Define to 1 if you have the `gnutls_rnd' function. */
-#undef HAVE_GNUTLS_RND
 
 /* Define to 1 if you have the `grantpt' function. */
 #undef HAVE_GRANTPT
@@ -1222,9 +1231,6 @@
 /* Define to 1 if you have the <libdevmapper.h> header file. */
 #undef HAVE_LIBDEVMAPPER_H
 
-/* Define to 1 if you have the `gnutls' library (-lgnutls). */
-#undef HAVE_LIBGNUTLS
-
 /* Define to 1 if you have the `intl' library (-lintl). */
 #undef HAVE_LIBINTL
 
@@ -1245,9 +1251,6 @@
 
 /* Define to 1 if you have the `numa' library (-lnuma). */
 #undef HAVE_LIBNUMA
-
-/* Define to 1 if you have the `parted' library (-lparted). */
-#undef HAVE_LIBPARTED
 
 /* whether libpcap can be used */
 #undef HAVE_LIBPCAP
@@ -1272,9 +1275,6 @@
 
 /* Define to 1 if you have the <libutil.h> header file. */
 #undef HAVE_LIBUTIL_H
-
-/* Define to 1 if you have the `uuid' library (-luuid). */
-#undef HAVE_LIBUUID
 
 /* Define to 1 if you have the <libxlutil.h> header file. */
 #undef HAVE_LIBXLUTIL_H
@@ -1320,6 +1320,9 @@
 
 /* Define to 1 if you have the <machine/hal_sysinfo.h> header file. */
 #undef HAVE_MACHINE_HAL_SYSINFO_H
+
+/* whether Mach clock routines are available */
+#undef HAVE_MACH_CLOCK_ROUTINES
 
 /* Define to 1 if you have the <malloc.h> header file. */
 #undef HAVE_MALLOC_H
@@ -1690,7 +1693,7 @@
 /* Define to 1 if you have the 'strdup' function. */
 #undef HAVE_STRDUP
 
-/* Define to 1 if you have the `strerror_r' function. */
+/* Define to 1, since you should have the function strerror_r. */
 #undef HAVE_STRERROR_R
 
 /* Define to 1 if you have the <strings.h> header file. */
@@ -1815,6 +1818,9 @@
 
 /* Define to 1 if you have the <sys/bitypes.h> header file. */
 #undef HAVE_SYS_BITYPES_H
+
+/* Define to 1 if you have the <sys/cdefs.h> header file. */
+#undef HAVE_SYS_CDEFS_H
 
 /* Define to 1 if you have the <sys/filio.h> header file. */
 #undef HAVE_SYS_FILIO_H
@@ -1950,6 +1956,9 @@
 
 /* Define to 1 if you have the <util.h> header file. */
 #undef HAVE_UTIL_H
+
+/* Define if you have a global __progname variable */
+#undef HAVE_VAR___PROGNAME
 
 /* Define to 1 if you have the 'vasnprintf' function. */
 #undef HAVE_VASNPRINTF
@@ -2365,7 +2374,7 @@
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
-/* Define to 1 if strerror_r returns char *. */
+/* Define to 0, since strerror_r should not return char *. */
 #undef STRERROR_R_CHAR_P
 
 /* Location or name of the tc program (see iproute2) */
@@ -2584,7 +2593,7 @@
 /* whether glusterfs-api >= 3.4.1 is available */
 #undef WITH_GLUSTERFS
 
-/* whether GNUTLS is available for encryption */
+/* whether gnutls >= 2.2.0 is available */
 #undef WITH_GNUTLS
 
 /* set to 1 if it is known or assumed that GNUTLS uses gcrypt */
@@ -2601,6 +2610,9 @@
 
 /* whether the interface driver is enabled */
 #undef WITH_INTERFACE
+
+/* whether libssh >= 0.7 is available */
+#undef WITH_LIBSSH
 
 /* whether libvirtd daemon is enabled */
 #undef WITH_LIBVIRTD
@@ -2664,9 +2676,6 @@
 
 /* whether Remote driver is enabled */
 #undef WITH_REMOTE
-
-/* whether building for the RHEL-5 API */
-#undef WITH_RHEL5_API
 
 /* whether libsanlock_client is available */
 #undef WITH_SANLOCK

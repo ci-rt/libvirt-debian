@@ -1364,10 +1364,6 @@ changequote([, ])dnl
   fi
   gl_UNISTD_MODULE_INDICATOR([getpagesize])
   gl_FUNC_GETPROGNAME
-  AC_REQUIRE([gl_USE_SYSTEM_EXTENSIONS])
-  AC_CHECK_DECLS([program_invocation_name], [], [], [#include <errno.h>])
-  AC_CHECK_DECLS([program_invocation_short_name], [], [], [#include <errno.h>])
-  AC_CHECK_DECLS([__argv], [], [], [#include <stdlib.h>])
   AC_REQUIRE([gl_HEADER_SYS_SOCKET])
   if test "$ac_cv_header_winsock2_h" = yes; then
     AC_LIBOBJ([getsockopt])

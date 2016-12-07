@@ -7,9 +7,6 @@
   exclude-result-prefixes="xsl exsl html"
   version="1.0">
 
-  <!-- The sitemap.html.in page contains the master navigation structure -->
-  <xsl:variable name="sitemap" select="document('sitemap.html.in')/html:html/html:body/html:div[@id='sitemap']"/>
-
   <xsl:template match="node() | @*" mode="content">
     <xsl:copy>
       <xsl:apply-templates select="node() | @*" mode="content"/>
@@ -23,57 +20,6 @@
 
   <xsl:template match="html:div[@id='include']" mode="content">
     <xsl:call-template name="include"/>
-  </xsl:template>
-
-  <!-- This processes the sitemap to form a context sensitive
-       navigation menu for the current page -->
-  <xsl:template match="html:ul" mode="menu">
-    <xsl:param name="pagename"/>
-    <xsl:param name="level"/>
-    <ul class="{concat('l', $level)}">
-      <xsl:for-each select="html:li">
-        <!-- The extra div tag here works around an IE6 whitespace collapsing problem -->
-        <li><div>
-          <!-- A menu is active if there is an 'a' tag with
-               a href matching this pagename at this level
-               or a child menu -->
-          <xsl:variable name="class">
-            <xsl:choose>
-              <xsl:when test="count(.//html:a[@href = $pagename]) > 0">
-                <xsl:text>active</xsl:text>
-              </xsl:when>
-              <xsl:otherwise>
-                <xsl:text>inactive</xsl:text>
-              </xsl:otherwise>
-            </xsl:choose>
-          </xsl:variable>
-
-          <!-- A menu should use a 'span' instead of 'a' if
-               the immediate 'a' tag has href matching the
-               current pagename -->
-          <xsl:choose>
-            <xsl:when test="$pagename = html:a/@href">
-              <span class="{$class}"><xsl:value-of select="html:a"/></span>
-            </xsl:when>
-            <xsl:when test="starts-with(html:a/@href, 'http://wiki.libvirt.org')">
-              <a title="{./html:span}" class="{$class}" href="{html:a/@href}"><xsl:value-of select="html:a"/></a>
-            </xsl:when>
-            <xsl:otherwise>
-              <a title="{./html:span}" class="{$class}" href="{concat($href_base, html:a/@href)}"><xsl:value-of select="html:a"/></a>
-            </xsl:otherwise>
-          </xsl:choose>
-
-          <!-- A sub-menu should only be expanded it contains
-               an 'a' tag with href matching this pagename -->
-          <xsl:if test="count(.//html:a[@href = $pagename]) > 0">
-            <xsl:apply-templates select="html:ul" mode="menu">
-              <xsl:with-param name="pagename" select="$pagename"/>
-              <xsl:with-param name="level" select="$level + 1"/>
-            </xsl:apply-templates>
-          </xsl:if>
-        </div></li>
-      </xsl:for-each>
-    </ul>
   </xsl:template>
 
   <xsl:template name="toc">
@@ -139,29 +85,60 @@
         <link rel="SHORTCUT ICON" href="{$href_base}32favicon.png"/>
         <title>libvirt: <xsl:value-of select="html:html/html:body/html:h1"/></title>
         <meta name="description" content="libvirt, virtualization, virtualization API"/>
+        <xsl:apply-templates select="/html:html/html:head/*" mode="content"/>
       </head>
       <body>
-        <div id="header">
-          <div id="headerLogo"/>
-          <div id="headerSearch">
+        <xsl:if test="html:html/html:body/@class">
+          <xsl:attribute name="class">
+            <xsl:value-of select="html:html/html:body/@class"/>
+          </xsl:attribute>
+        </xsl:if>
+        <div id="body">
+          <div id="content">
+            <xsl:apply-templates select="/html:html/html:body/*" mode="content"/>
+          </div>
+        </div>
+        <div id="nav">
+          <div id="home">
+            <a href="{$href_base}index.html">Home</a>
+          </div>
+          <div id="jumplinks">
+            <ul>
+              <li><a href="downloads.html">Download</a></li>
+              <li><a href="contribute.html">Contribute</a></li>
+              <li><a href="docs.html">Learn</a></li>
+            </ul>
+          </div>
+          <div id="search">
             <form action="{$href_base}search.php" enctype="application/x-www-form-urlencoded" method="get">
               <div>
-                <input id="query" name="query" type="text" size="12" value=""/>
-                <input id="submit" name="submit" type="submit" value="Search"/>
+                <input name="query" type="text" size="12" value=""/>
+                <input name="submit" type="submit" value="Go"/>
               </div>
             </form>
           </div>
         </div>
-        <div id="body">
-          <div id="menu">
-            <xsl:apply-templates select="exsl:node-set($sitemap)/html:ul" mode="menu">
-              <xsl:with-param name="pagename" select="$pagename"/>
-              <xsl:with-param name="level" select="0"/>
-            </xsl:apply-templates>
+        <div id="footer">
+          <div id="contact">
+            <h3>Contact</h3>
+            <ul>
+              <li><a href="contact.html#email">email</a></li>
+              <li><a href="contact.html#irc">irc</a></li>
+            </ul>
           </div>
-          <div id="content">
-            <xsl:apply-templates select="/html:html/html:body/*" mode="content"/>
+          <div id="community">
+            <h3>Community</h3>
+            <ul>
+              <li><a href="https://twitter.com/hashtag/libvirt">twitter</a></li>
+              <li><a href="https://plus.google.com/communities/109522598353007505282">google+</a></li>
+              <li><a href="http://stackoverflow.com/questions/tagged/libvirt">stackoverflow</a></li>
+              <li><a href="http://serverfault.com/questions/tagged/libvirt">serverfault</a></li>
+            </ul>
           </div>
+          <div id="conduct">
+            Participants in the libvirt project agree to abide by <a href="governance.html#codeofconduct">the project code of conduct</a>
+          </div>
+          <br class="clear"/>
         </div>
       </body>
     </html>

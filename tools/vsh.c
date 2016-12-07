@@ -179,7 +179,7 @@ vshNameSorter(const void *a, const void *b)
 /*
  * Convert the strings separated by ',' into array. The returned
  * array is a NULL terminated string list. The caller has to free
- * the array using virStringFreeList or a similar method.
+ * the array using virStringListFree or a similar method.
  *
  * Returns the length of the filled array on success, or -1
  * on error.
@@ -246,8 +246,6 @@ vshErrorHandler(void *opaque ATTRIBUTE_UNUSED, virErrorPtr error)
 {
     virFreeError(last_error);
     last_error = virSaveLastError();
-    if (virGetEnvAllowSUID("VSH_DEBUG") != NULL)
-        virDefaultErrorFunc(error);
 }
 
 /* Store a libvirt error that is from a helper API that doesn't raise errors
@@ -2655,7 +2653,7 @@ vshReadlineParse(const char *text, int state)
     static char **completed_list;
     static unsigned int completed_list_index;
     static uint64_t const_opts_need_arg, const_opts_required, const_opts_seen;
-    uint64_t opts_need_arg, opts_seen;
+    uint64_t opts_seen;
     size_t opt_index;
     static bool cmd_exists, opts_filled, opt_exists;
     static bool non_bool_opt_exists, data_complete;
@@ -2728,7 +2726,6 @@ vshReadlineParse(const char *text, int state)
                 if (vshCmddefOptParse(cmd, &const_opts_need_arg,
                                       &const_opts_required) < 0)
                     goto error;
-                opts_need_arg = const_opts_need_arg;
                 opts_seen = const_opts_seen;
                 opts_filled = true;
             } else if (tkdata[0] == '-' && tkdata[1] == '-' &&
@@ -2793,7 +2790,6 @@ vshReadlineParse(const char *text, int state)
                     || opt->type == VSH_OT_BOOL)
                     goto error;
                 opt_exists = true;
-                opts_need_arg = const_opts_need_arg;
                 opts_seen = const_opts_seen;
             } else {
                 /* In every other case, return NULL */
@@ -2839,7 +2835,7 @@ vshReadlineParse(const char *text, int state)
                 return res;
             }
             res = NULL;
-            virStringFreeList(completed_list);
+            virStringListFree(completed_list);
             completed_list_index = 0;
         }
     }
@@ -3018,8 +3014,8 @@ vshInitDebug(vshControl *ctl)
             int debug;
             if (virStrToLong_i(debugEnv, NULL, 10, &debug) < 0 ||
                 debug < VSH_ERR_DEBUG || debug > VSH_ERR_ERROR) {
-                vshError(ctl, "%s",
-                         _("VSH_DEBUG not set with a valid numeric value"));
+                vshError(ctl, _("%s_DEBUG not set with a valid numeric value"),
+                         ctl->env_prefix);
             } else {
                 ctl->debug = debug;
             }
@@ -3271,7 +3267,7 @@ cmdEcho(vshControl *ctl, const vshCmd *cmd)
         if (xml) {
             virBufferEscapeString(&xmlbuf, "%s", arg);
             if (virBufferError(&xmlbuf)) {
-                vshPrint(ctl, "%s", _("Failed to allocate XML buffer"));
+                vshError(ctl, "%s", _("Failed to allocate XML buffer"));
                 return false;
             }
             str = virBufferContentAndReset(&xmlbuf);
@@ -3288,7 +3284,7 @@ cmdEcho(vshControl *ctl, const vshCmd *cmd)
     }
 
     if (virBufferError(&buf)) {
-        vshPrint(ctl, "%s", _("Failed to allocate XML buffer"));
+        vshError(ctl, "%s", _("Failed to allocate XML buffer"));
         return false;
     }
     arg = virBufferContentAndReset(&buf);

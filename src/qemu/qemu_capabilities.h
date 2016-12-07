@@ -381,6 +381,13 @@ typedef enum {
     QEMU_CAPS_MACHINE_IOMMU, /* -machine iommu=on */
     QEMU_CAPS_DEVICE_VIRTIO_VGA, /* -device virtio-vga */
     QEMU_CAPS_DRIVE_IOTUNE_MAX_LENGTH, /* -drive bps_max_length = and friends */
+    QEMU_CAPS_DEVICE_IVSHMEM_PLAIN, /* -device ivshmem-plain */
+
+    /* 240 */
+    QEMU_CAPS_DEVICE_IVSHMEM_DOORBELL, /* -device ivshmem-doorbell */
+    QEMU_CAPS_QUERY_QMP_SCHEMA, /* query-qmp-schema command */
+    QEMU_CAPS_GLUSTER_DEBUG_LEVEL, /* -drive gluster.debug_level={0..9} */
+    QEMU_CAPS_DEVICE_VHOST_SCSI, /* -device vhost-scsi-{ccw,pci} */
 
     QEMU_CAPS_LAST /* this must always be the last item */
 } virQEMUCapsFlags;
@@ -392,12 +399,6 @@ typedef struct _virQEMUCapsCache virQEMUCapsCache;
 typedef virQEMUCapsCache *virQEMUCapsCachePtr;
 
 virQEMUCapsPtr virQEMUCapsNew(void);
-
-int virQEMUCapsInitQMPMonitor(virQEMUCapsPtr qemuCaps,
-                              qemuMonitorPtr mon);
-
-int virQEMUCapsProbeQMP(virQEMUCapsPtr qemuCaps,
-                        qemuMonitorPtr mon);
 
 void virQEMUCapsSet(virQEMUCapsPtr qemuCaps,
                     virQEMUCapsFlags flag) ATTRIBUTE_NONNULL(1);
@@ -427,9 +428,12 @@ unsigned int virQEMUCapsGetVersion(virQEMUCapsPtr qemuCaps);
 const char *virQEMUCapsGetPackage(virQEMUCapsPtr qemuCaps);
 unsigned int virQEMUCapsGetKVMVersion(virQEMUCapsPtr qemuCaps);
 int virQEMUCapsAddCPUDefinitions(virQEMUCapsPtr qemuCaps,
+                                 virDomainVirtType type,
                                  const char **name,
-                                 size_t count);
+                                 size_t count,
+                                 virDomainCapsCPUUsable usable);
 int virQEMUCapsGetCPUDefinitions(virQEMUCapsPtr qemuCaps,
+                                 virDomainVirtType type,
                                  char ***names,
                                  size_t *count);
 virCPUDefPtr virQEMUCapsGetHostModel(virQEMUCapsPtr qemuCaps);
@@ -447,7 +451,10 @@ int virQEMUCapsGetMachineTypesCaps(virQEMUCapsPtr qemuCaps,
                                    size_t *nmachines,
                                    virCapsGuestMachinePtr **machines);
 
-bool virQEMUCapsIsValid(virQEMUCapsPtr qemuCaps);
+bool virQEMUCapsIsValid(virQEMUCapsPtr qemuCaps,
+                        time_t ctime,
+                        uid_t runUid,
+                        gid_t runGid);
 
 void virQEMUCapsFilterByMachineType(virQEMUCapsPtr qemuCaps,
                                     const char *machineType);
@@ -467,7 +474,8 @@ virQEMUCapsPtr virQEMUCapsCacheLookupCopy(virCapsPtr caps,
                                           virQEMUCapsCachePtr cache,
                                           const char *binary,
                                           const char *machineType);
-virQEMUCapsPtr virQEMUCapsCacheLookupByArch(virQEMUCapsCachePtr cache,
+virQEMUCapsPtr virQEMUCapsCacheLookupByArch(virCapsPtr caps,
+                                            virQEMUCapsCachePtr cache,
                                             virArch arch);
 void virQEMUCapsCacheFree(virQEMUCapsCachePtr cache);
 

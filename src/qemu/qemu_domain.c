@@ -1185,12 +1185,9 @@ qemuDomainSecretHostdevPrepare(virConnectPtr conn,
                                qemuDomainObjPrivatePtr priv,
                                virDomainHostdevDefPtr hostdev)
 {
-    virDomainHostdevSubsysPtr subsys = &hostdev->source.subsys;
     qemuDomainSecretInfoPtr secinfo = NULL;
 
-    if (hostdev->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
-        subsys->type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI) {
-
+    if (virHostdevIsSCSIDevice(hostdev)) {
         virDomainHostdevSubsysSCSIPtr scsisrc = &hostdev->source.subsys.u.scsi;
         virDomainHostdevSubsysSCSIiSCSIPtr iscsisrc = &scsisrc->u.iscsi;
 
@@ -1552,7 +1549,7 @@ qemuDomainObjPrivateFree(void *data)
     VIR_FREE(priv->lockState);
     VIR_FREE(priv->origname);
 
-    virStringFreeList(priv->qemuDevices);
+    virStringListFree(priv->qemuDevices);
     virChrdevFree(priv->devs);
 
     /* This should never be non-NULL if we get here, but just in case... */
@@ -1966,7 +1963,7 @@ qemuDomainObjPrivateXMLParse(xmlXPathContextPtr ctxt,
     priv->monConfig = NULL;
     VIR_FREE(nodes);
     VIR_FREE(tmp);
-    virStringFreeList(priv->qemuDevices);
+    virStringListFree(priv->qemuDevices);
     priv->qemuDevices = NULL;
     virObjectUnref(qemuCaps);
     virObjectUnref(caps);
@@ -2190,10 +2187,14 @@ qemuDomainDefAddDefaultDevices(virDomainDefPtr def,
             addPCIeRoot = true;
             addImplicitSATA = true;
 
-            /* add a USB2 controller set, but only if the
-             * ich9-usb-ehci1 device is supported
+            /* Prefer adding USB3 controller if supported
+             * (nec-usb-xhci). Failing that, add a USB2 controller set
+             * if the ich9-usb-ehci1 device is supported. Otherwise
+             * don't add anything.
              */
-            if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_ICH9_USB_EHCI1))
+            if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_NEC_USB_XHCI))
+                usbModel = VIR_DOMAIN_CONTROLLER_MODEL_USB_NEC_XHCI;
+            else if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_ICH9_USB_EHCI1))
                 usbModel = VIR_DOMAIN_CONTROLLER_MODEL_USB_ICH9_EHCI1;
             else
                 addDefaultUSB = false;
@@ -2298,18 +2299,6 @@ qemuDomainDefAddDefaultDevices(virDomainDefPtr def,
                                              VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT)) {
             goto cleanup;
         }
-        /* Add a dmi-to-pci-bridge bridge if there are no PCI controllers
-         * other than the pcie-root. This is so that there will be hot-pluggable
-         * PCI slots available.
-         *
-         * We skip this step for aarch64 mach-virt guests, where we want to
-         * be able to have a pure virtio-mmio topology
-         */
-        if (virDomainControllerFind(def, VIR_DOMAIN_CONTROLLER_TYPE_PCI, 1) < 0 &&
-            !qemuDomainMachineIsVirt(def) &&
-            !virDomainDefAddController(def, VIR_DOMAIN_CONTROLLER_TYPE_PCI, 1,
-                                       VIR_DOMAIN_CONTROLLER_MODEL_DMI_TO_PCI_BRIDGE))
-            goto cleanup;
     }
 
     if (addDefaultMemballoon && !def->memballoon) {
@@ -2844,6 +2833,56 @@ qemuDomainChrDefDropDefaultPath(virDomainChrDefPtr chr,
 
 
 static int
+qemuDomainShmemDefPostParse(virDomainShmemDefPtr shm)
+{
+    /* This was the default since the introduction of this device. */
+    if (shm->model != VIR_DOMAIN_SHMEM_MODEL_IVSHMEM_DOORBELL && !shm->size)
+        shm->size = 4 << 20;
+
+    /* Nothing more to check/change for IVSHMEM */
+    if (shm->model == VIR_DOMAIN_SHMEM_MODEL_IVSHMEM)
+        return 0;
+
+    if (!shm->server.enabled) {
+        if (shm->model == VIR_DOMAIN_SHMEM_MODEL_IVSHMEM_DOORBELL) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("shmem model '%s' is supported "
+                             "only with server option enabled"),
+                           virDomainShmemModelTypeToString(shm->model));
+            return -1;
+        }
+
+        if (shm->msi.enabled) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("shmem model '%s' doesn't support "
+                             "msi"),
+                           virDomainShmemModelTypeToString(shm->model));
+        }
+    } else {
+        if (shm->model == VIR_DOMAIN_SHMEM_MODEL_IVSHMEM_PLAIN) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("shmem model '%s' is supported "
+                             "only with server option disabled"),
+                           virDomainShmemModelTypeToString(shm->model));
+            return -1;
+        }
+
+        if (shm->size) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("shmem model '%s' does not support size setting"),
+                           virDomainShmemModelTypeToString(shm->model));
+            return -1;
+        }
+        shm->msi.enabled = true;
+        if (!shm->msi.ioeventfd)
+            shm->msi.ioeventfd = VIR_TRISTATE_SWITCH_ON;
+    }
+
+    return 0;
+}
+
+
+static int
 qemuDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
                              const virDomainDef *def,
                              virCapsPtr caps,
@@ -3047,6 +3086,10 @@ qemuDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
         }
     }
 
+    if (dev->type == VIR_DOMAIN_DEVICE_SHMEM &&
+        qemuDomainShmemDefPostParse(dev->data.shmem) < 0)
+        goto cleanup;
+
     ret = 0;
 
  cleanup:
@@ -3077,7 +3120,7 @@ qemuDomainDefAssignAddresses(virDomainDef *def,
             goto cleanup;
     }
 
-    if (qemuDomainAssignAddresses(def, qemuCaps, NULL, newDomain) < 0)
+    if (qemuDomainAssignAddresses(def, qemuCaps, driver, NULL, newDomain) < 0)
         goto cleanup;
 
     ret = 0;
@@ -3572,19 +3615,6 @@ qemuDomainObjEnterMonitorAsync(virQEMUDriverPtr driver,
 }
 
 
-/**
- * qemuDomainGetAgent:
- * @vm: domain object
- *
- * Returns the agent pointer of @vm;
- */
-qemuAgentPtr
-qemuDomainGetAgent(virDomainObjPtr vm)
-{
-    return (((qemuDomainObjPrivatePtr)(vm->privateData))->agent);
-}
-
-
 /*
  * obj must be locked before calling
  *
@@ -3594,17 +3624,20 @@ qemuDomainGetAgent(virDomainObjPtr vm)
  *
  * To be followed with qemuDomainObjExitAgent() once complete
  */
-void
+qemuAgentPtr
 qemuDomainObjEnterAgent(virDomainObjPtr obj)
 {
     qemuDomainObjPrivatePtr priv = obj->privateData;
+    qemuAgentPtr agent = priv->agent;
 
     VIR_DEBUG("Entering agent (agent=%p vm=%p name=%s)",
               priv->agent, obj, obj->def->name);
-    virObjectLock(priv->agent);
-    virObjectRef(priv->agent);
-    ignore_value(virTimeMillisNow(&priv->agentStart));
+
+    virObjectLock(agent);
+    virObjectRef(agent);
     virObjectUnlock(obj);
+
+    return agent;
 }
 
 
@@ -3613,23 +3646,14 @@ qemuDomainObjEnterAgent(virDomainObjPtr obj)
  * Should be paired with an earlier qemuDomainObjEnterAgent() call
  */
 void
-qemuDomainObjExitAgent(virDomainObjPtr obj)
+qemuDomainObjExitAgent(virDomainObjPtr obj, qemuAgentPtr agent)
 {
-    qemuDomainObjPrivatePtr priv = obj->privateData;
-    bool hasRefs;
-
-    hasRefs = virObjectUnref(priv->agent);
-
-    if (hasRefs)
-        virObjectUnlock(priv->agent);
-
+    virObjectUnlock(agent);
+    virObjectUnref(agent);
     virObjectLock(obj);
-    VIR_DEBUG("Exited agent (agent=%p vm=%p name=%s)",
-              priv->agent, obj, obj->def->name);
 
-    priv->agentStart = 0;
-    if (!hasRefs)
-        priv->agent = NULL;
+    VIR_DEBUG("Exited agent (agent=%p vm=%p name=%s)",
+              agent, obj, obj->def->name);
 }
 
 void qemuDomainObjEnterRemote(virDomainObjPtr obj)
@@ -3991,12 +4015,11 @@ void qemuDomainObjCheckHostdevTaint(virQEMUDriverPtr driver,
                                     virDomainHostdevDefPtr hostdev,
                                     qemuDomainLogContextPtr logCtxt)
 {
-    virDomainHostdevSubsysSCSIPtr scsisrc = &hostdev->source.subsys.u.scsi;
+    if (!virHostdevIsSCSIDevice(hostdev))
+        return;
 
-    if (hostdev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI &&
-        scsisrc->rawio == VIR_TRISTATE_BOOL_YES)
-            qemuDomainObjTaint(driver, obj, VIR_DOMAIN_TAINT_HIGH_PRIVILEGES,
-                               logCtxt);
+    if (hostdev->source.subsys.u.scsi.rawio == VIR_TRISTATE_BOOL_YES)
+        qemuDomainObjTaint(driver, obj, VIR_DOMAIN_TAINT_HIGH_PRIVILEGES, logCtxt);
 }
 
 
@@ -5240,7 +5263,7 @@ qemuDomainUpdateDeviceList(virQEMUDriverPtr driver,
     if (rc < 0)
         return -1;
 
-    virStringFreeList(priv->qemuDevices);
+    virStringListFree(priv->qemuDevices);
     priv->qemuDevices = aliases;
     return 0;
 }
@@ -5562,6 +5585,36 @@ qemuDomainMachineIsI440FX(const virDomainDef *def)
             STRPREFIX(def->os.machine, "pc-1.") ||
             STRPREFIX(def->os.machine, "pc-i440") ||
             STRPREFIX(def->os.machine, "rhel"));
+}
+
+
+bool
+qemuDomainMachineHasPCIRoot(const virDomainDef *def)
+{
+    int root = virDomainControllerFind(def, VIR_DOMAIN_CONTROLLER_TYPE_PCI, 0);
+
+    if (root < 0)
+        return false;
+
+    if (def->controllers[root]->model != VIR_DOMAIN_CONTROLLER_MODEL_PCI_ROOT)
+        return false;
+
+    return true;
+}
+
+
+bool
+qemuDomainMachineHasPCIeRoot(const virDomainDef *def)
+{
+    int root = virDomainControllerFind(def, VIR_DOMAIN_CONTROLLER_TYPE_PCI, 0);
+
+    if (root < 0)
+        return false;
+
+    if (def->controllers[root]->model != VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT)
+        return false;
+
+    return true;
 }
 
 
@@ -6242,6 +6295,7 @@ qemuDomainRefreshVcpuInfo(virQEMUDriverPtr driver,
         VIR_FREE(vcpupriv->alias);
         VIR_STEAL_PTR(vcpupriv->alias, info[i].alias);
         vcpupriv->enable_id = info[i].id;
+        vcpupriv->qemu_id = info[i].qemu_id;
 
         if (hotplug && state) {
             vcpu->online = info[i].online;
@@ -6290,39 +6344,34 @@ qemuDomainRefreshVcpuHalted(virQEMUDriverPtr driver,
                             int asyncJob)
 {
     virDomainVcpuDefPtr vcpu;
-    qemuMonitorCPUInfoPtr info = NULL;
+    qemuDomainVcpuPrivatePtr vcpupriv;
     size_t maxvcpus = virDomainDefGetVcpusMax(vm->def);
+    virBitmapPtr haltedmap = NULL;
     size_t i;
-    bool hotplug;
-    int rc;
     int ret = -1;
 
     /* Not supported currently for TCG, see qemuDomainRefreshVcpuInfo */
     if (vm->def->virtType == VIR_DOMAIN_VIRT_QEMU)
         return 0;
 
-    hotplug = qemuDomainSupportsNewVcpuHotplug(vm);
-
     if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
         return -1;
 
-    rc = qemuMonitorGetCPUInfo(qemuDomainGetMonitor(vm), &info, maxvcpus, hotplug);
+    haltedmap = qemuMonitorGetCpuHalted(qemuDomainGetMonitor(vm), maxvcpus);
 
-    if (qemuDomainObjExitMonitor(driver, vm) < 0)
-        goto cleanup;
-
-    if (rc < 0)
+    if (qemuDomainObjExitMonitor(driver, vm) < 0 || !haltedmap)
         goto cleanup;
 
     for (i = 0; i < maxvcpus; i++) {
         vcpu = virDomainDefGetVcpu(vm->def, i);
-        QEMU_DOMAIN_VCPU_PRIVATE(vcpu)->halted = info[i].halted;
+        vcpupriv = QEMU_DOMAIN_VCPU_PRIVATE(vcpu);
+        vcpupriv->halted = virBitmapIsBitSet(haltedmap, vcpupriv->qemu_id);
     }
 
     ret = 0;
 
  cleanup:
-    qemuMonitorCPUInfoFree(info, maxvcpus);
+    virBitmapFree(haltedmap);
     return ret;
 }
 

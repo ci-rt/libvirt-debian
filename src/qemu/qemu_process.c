@@ -151,6 +151,7 @@ qemuProcessHandleAgentEOF(qemuAgentPtr agent,
 
     qemuAgentClose(agent);
     priv->agent = NULL;
+    priv->agentError = false;
 
     virObjectUnlock(vm);
     return;
@@ -204,7 +205,6 @@ int
 qemuConnectAgent(virQEMUDriverPtr driver, virDomainObjPtr vm)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
-    int ret = -1;
     qemuAgentPtr agent = NULL;
     virDomainChrDefPtr config = qemuFindAgentConfig(vm->def);
 
@@ -231,7 +231,6 @@ qemuConnectAgent(virQEMUDriverPtr driver, virDomainObjPtr vm)
      * deleted while the agent is active */
     virObjectRef(vm);
 
-    ignore_value(virTimeMillisNow(&priv->agentStart));
     virObjectUnlock(vm);
 
     agent = qemuAgentOpen(vm,
@@ -239,7 +238,6 @@ qemuConnectAgent(virQEMUDriverPtr driver, virDomainObjPtr vm)
                           &agentCallbacks);
 
     virObjectLock(vm);
-    priv->agentStart = 0;
 
     if (agent == NULL)
         virObjectUnref(vm);
@@ -248,8 +246,7 @@ qemuConnectAgent(virQEMUDriverPtr driver, virDomainObjPtr vm)
         qemuAgentClose(agent);
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("guest crashed while connecting to the guest agent"));
-        ret = -2;
-        goto cleanup;
+        return -1;
     }
 
     if (virSecurityManagerClearSocketLabel(driver->securityManager,
@@ -260,18 +257,18 @@ qemuConnectAgent(virQEMUDriverPtr driver, virDomainObjPtr vm)
         goto cleanup;
     }
 
-
     priv->agent = agent;
-
-    if (priv->agent == NULL) {
+    if (!priv->agent)
         VIR_INFO("Failed to connect agent for %s", vm->def->name);
-        goto cleanup;
-    }
-
-    ret = 0;
 
  cleanup:
-    return ret;
+    if (!priv->agent) {
+        VIR_WARN("Cannot connect to QEMU guest agent for %s", vm->def->name);
+        priv->agentError = true;
+        virResetLastError();
+    }
+
+    return 0;
 }
 
 
@@ -1726,10 +1723,6 @@ qemuConnectMonitor(virQEMUDriverPtr driver, virDomainObjPtr vm, int asyncJob,
     if (qemuMonitorSetCapabilities(priv->mon) < 0)
         goto cleanup;
 
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_MONITOR_JSON) &&
-        virQEMUCapsProbeQMP(priv->qemuCaps, priv->mon) < 0)
-        goto cleanup;
-
     if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_MIGRATION_EVENT) &&
         qemuMonitorSetMigrationCapability(priv->mon,
                                           QEMU_MONITOR_MIGRATION_CAPS_EVENTS,
@@ -2958,7 +2951,8 @@ qemuProcessRecoverMigrationOut(virQEMUDriverPtr driver,
                                virConnectPtr conn,
                                qemuMigrationJobPhase phase,
                                virDomainState state,
-                               int reason)
+                               int reason,
+                               unsigned int *stopFlags)
 {
     bool postcopy = state == VIR_DOMAIN_PAUSED &&
                     (reason == VIR_DOMAIN_PAUSED_POSTCOPY ||
@@ -3022,6 +3016,7 @@ qemuProcessRecoverMigrationOut(virQEMUDriverPtr driver,
 
     case QEMU_MIGRATION_PHASE_CONFIRM3:
         /* migration completed, we need to kill the domain here */
+        *stopFlags |= VIR_QEMU_PROCESS_STOP_MIGRATED;
         return -1;
     }
 
@@ -3047,7 +3042,8 @@ static int
 qemuProcessRecoverJob(virQEMUDriverPtr driver,
                       virDomainObjPtr vm,
                       virConnectPtr conn,
-                      const struct qemuDomainJobObj *job)
+                      const struct qemuDomainJobObj *job,
+                      unsigned int *stopFlags)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
     virDomainState state;
@@ -3058,7 +3054,7 @@ qemuProcessRecoverJob(virQEMUDriverPtr driver,
     switch (job->asyncJob) {
     case QEMU_ASYNC_JOB_MIGRATION_OUT:
         if (qemuProcessRecoverMigrationOut(driver, vm, conn, job->phase,
-                                           state, reason) < 0)
+                                           state, reason, stopFlags) < 0)
             return -1;
         break;
 
@@ -3167,7 +3163,7 @@ qemuProcessUpdateDevices(virQEMUDriverPtr driver,
     qemuDevices = (const char **) priv->qemuDevices;
     if ((tmp = old)) {
         while (*tmp) {
-            if (!virStringArrayHasString(qemuDevices, *tmp) &&
+            if (!virStringListHasString(qemuDevices, *tmp) &&
                 virDomainDefFindDevice(vm->def, *tmp, &dev, false) == 0 &&
                 qemuDomainRemoveDevice(driver, vm, &dev) < 0) {
                 goto cleanup;
@@ -3178,7 +3174,7 @@ qemuProcessUpdateDevices(virQEMUDriverPtr driver,
     ret = 0;
 
  cleanup:
-    virStringFreeList(old);
+    virStringListFree(old);
     return ret;
 }
 
@@ -3204,6 +3200,29 @@ qemuDomainPerfRestart(virDomainObjPtr vm)
 
     return 0;
 }
+
+
+static void
+qemuProcessReconnectCheckMemAliasOrderMismatch(virDomainObjPtr vm)
+{
+    size_t i;
+    int aliasidx;
+    virDomainDefPtr def = vm->def;
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+
+    if (!virDomainDefHasMemoryHotplug(def) || def->nmems == 0)
+        return;
+
+    for (i = 0; i < def->nmems; i++) {
+        aliasidx = qemuDomainDeviceAliasIndex(&def->mems[i]->info, "dimm");
+
+        if (def->mems[i]->info.addr.dimm.slot != aliasidx) {
+            priv->memAliasOrderMismatch = true;
+            break;
+        }
+    }
+}
+
 
 struct qemuProcessReconnectData {
     virConnectPtr conn;
@@ -3245,7 +3264,6 @@ qemuProcessReconnect(void *opaque)
     int reason;
     virQEMUDriverConfigPtr cfg;
     size_t i;
-    int ret;
     unsigned int stopFlags = 0;
     bool jobStarted = false;
     virCapsPtr caps = NULL;
@@ -3350,8 +3368,10 @@ qemuProcessReconnect(void *opaque)
         goto cleanup;
     }
 
-    if ((qemuDomainAssignAddresses(obj->def, priv->qemuCaps, obj, false)) < 0)
+    if ((qemuDomainAssignAddresses(obj->def, priv->qemuCaps,
+                                   driver, obj, false)) < 0) {
         goto error;
+    }
 
     /* if domain requests security driver we haven't loaded, report error, but
      * do not kill the domain
@@ -3383,22 +3403,16 @@ qemuProcessReconnect(void *opaque)
     if (qemuProcessRefreshBalloonState(driver, obj, QEMU_ASYNC_JOB_NONE) < 0)
         goto error;
 
-    if (qemuProcessRecoverJob(driver, obj, conn, &oldjob) < 0)
+    if (qemuProcessRecoverJob(driver, obj, conn, &oldjob, &stopFlags) < 0)
         goto error;
 
     if (qemuProcessUpdateDevices(driver, obj) < 0)
         goto error;
 
-    /* Failure to connect to agent shouldn't be fatal */
-    if ((ret = qemuConnectAgent(driver, obj)) < 0) {
-        if (ret == -2)
-            goto error;
+    qemuProcessReconnectCheckMemAliasOrderMismatch(obj);
 
-        VIR_WARN("Cannot connect to QEMU guest agent for %s",
-                 obj->def->name);
-        virResetLastError();
-        priv->agentError = true;
-    }
+    if (qemuConnectAgent(driver, obj) < 0)
+        goto error;
 
     /* update domain state XML with possibly updated state in virDomainObj */
     if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, obj, driver->caps) < 0)
@@ -4287,6 +4301,9 @@ qemuProcessSetupRawIO(virQEMUDriverPtr driver,
     /* If rawio not already set, check hostdevs as well */
     if (!rawio) {
         for (i = 0; i < vm->def->nhostdevs; i++) {
+            if (!virHostdevIsSCSIDevice(vm->def->hostdevs[i]))
+                continue;
+
             virDomainHostdevSubsysSCSIPtr scsisrc =
                 &vm->def->hostdevs[i]->source.subsys.u.scsi;
             if (scsisrc->rawio == VIR_TRISTATE_BOOL_YES) {
@@ -5041,6 +5058,9 @@ qemuProcessUpdateGuestCPU(virDomainDefPtr def,
         return -1;
     }
 
+    if (virCPUConvertLegacy(caps->host.arch, def->cpu) < 0)
+        return -1;
+
     /* nothing to update for host-passthrough */
     if (def->cpu->mode == VIR_CPU_MODE_HOST_PASSTHROUGH)
         return 0;
@@ -5057,15 +5077,17 @@ qemuProcessUpdateGuestCPU(virDomainDefPtr def,
                      virQEMUCapsGetHostModel(qemuCaps)) < 0)
         goto cleanup;
 
-    if (virQEMUCapsGetCPUDefinitions(qemuCaps, &models, &nmodels) < 0 ||
-        virCPUTranslate(def->os.arch, def->cpu, models, nmodels) < 0)
+    if (virQEMUCapsGetCPUDefinitions(qemuCaps, def->virtType,
+                                     &models, &nmodels) < 0 ||
+        virCPUTranslate(def->os.arch, def->cpu,
+                        (const char **) models, nmodels) < 0)
         goto cleanup;
 
     def->cpu->fallback = VIR_CPU_FALLBACK_FORBID;
     ret = 0;
 
  cleanup:
-    virStringFreeListCount(models, nmodels);
+    virStringListFreeCount(models, nmodels);
     return ret;
 }
 
@@ -5136,9 +5158,10 @@ qemuProcessPrepareDomain(virConnectPtr conn,
      * use in hotplug
      */
     VIR_DEBUG("Assigning domain PCI addresses");
-    if ((qemuDomainAssignAddresses(vm->def, priv->qemuCaps, vm,
-                                   !!(flags & VIR_QEMU_PROCESS_START_NEW))) < 0)
+    if ((qemuDomainAssignAddresses(vm->def, priv->qemuCaps, driver, vm,
+                                   !!(flags & VIR_QEMU_PROCESS_START_NEW))) < 0) {
         goto cleanup;
+    }
 
     if (qemuAssignDeviceAliases(vm->def, priv->qemuCaps) < 0)
         goto cleanup;
@@ -5533,16 +5556,8 @@ qemuProcessLaunch(virConnectPtr conn,
     if (qemuProcessWaitForMonitor(driver, vm, asyncJob, priv->qemuCaps, logCtxt) < 0)
         goto cleanup;
 
-    /* Failure to connect to agent shouldn't be fatal */
-    if ((rv = qemuConnectAgent(driver, vm)) < 0) {
-        if (rv == -2)
-            goto cleanup;
-
-        VIR_WARN("Cannot connect to QEMU guest agent for %s",
-                 vm->def->name);
-        virResetLastError();
-        priv->agentError = true;
-    }
+    if (qemuConnectAgent(driver, vm) < 0)
+        goto cleanup;
 
     VIR_DEBUG("Detecting if required emulator features are present");
     if (!qemuProcessVerifyGuestCPU(driver, vm, asyncJob))
@@ -5982,8 +5997,8 @@ void qemuProcessStop(virQEMUDriverPtr driver,
     if (priv->agent) {
         qemuAgentClose(priv->agent);
         priv->agent = NULL;
-        priv->agentError = false;
     }
+    priv->agentError = false;
 
     if (priv->mon) {
         qemuMonitorClose(priv->mon);
@@ -6055,7 +6070,7 @@ void qemuProcessStop(virQEMUDriverPtr driver,
         VIR_FREE(vm->def->seclabels[i]->imagelabel);
     }
 
-    virStringFreeList(priv->qemuDevices);
+    virStringListFree(priv->qemuDevices);
     priv->qemuDevices = NULL;
 
     qemuHostdevReAttachDomainDevices(driver, vm->def);
@@ -6232,7 +6247,6 @@ int qemuProcessAttach(virConnectPtr conn ATTRIBUTE_UNUSED,
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     virCapsPtr caps = NULL;
     bool active = false;
-    int ret;
 
     VIR_DEBUG("Beginning VM attach process");
 
@@ -6344,8 +6358,10 @@ int qemuProcessAttach(virConnectPtr conn ATTRIBUTE_UNUSED,
      * use in hotplug
      */
     VIR_DEBUG("Assigning domain PCI addresses");
-    if ((qemuDomainAssignAddresses(vm->def, priv->qemuCaps, vm, false)) < 0)
+    if ((qemuDomainAssignAddresses(vm->def, priv->qemuCaps,
+                                   driver, vm, false)) < 0) {
         goto error;
+    }
 
     if ((timestamp = virTimeStringNow()) == NULL)
         goto error;
@@ -6359,16 +6375,8 @@ int qemuProcessAttach(virConnectPtr conn ATTRIBUTE_UNUSED,
     if (qemuProcessWaitForMonitor(driver, vm, QEMU_ASYNC_JOB_NONE, priv->qemuCaps, NULL) < 0)
         goto error;
 
-    /* Failure to connect to agent shouldn't be fatal */
-    if ((ret = qemuConnectAgent(driver, vm)) < 0) {
-        if (ret == -2)
-            goto error;
-
-        VIR_WARN("Cannot connect to QEMU guest agent for %s",
-                 vm->def->name);
-        virResetLastError();
-        priv->agentError = true;
-    }
+    if (qemuConnectAgent(driver, vm) < 0)
+        goto error;
 
     VIR_DEBUG("Detecting VCPU PIDs");
     if (qemuDomainRefreshVcpuInfo(driver, vm, QEMU_ASYNC_JOB_NONE, false) < 0)

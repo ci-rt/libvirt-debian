@@ -26,6 +26,7 @@
     <mode name='custom' supported='yes'>
       <model usable='unknown'>POWER8</model>
       <model usable='unknown'>POWER7</model>
+      <model usable='unknown'>POWER8</model>
     </mode>
   </cpu>
   <devices>

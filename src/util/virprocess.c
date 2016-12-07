@@ -1014,7 +1014,7 @@ int virProcessGetStartTime(pid_t pid,
     ret = 0;
 
  cleanup:
-    virStringFreeList(tokens);
+    virStringListFree(tokens);
     VIR_FREE(filename);
     VIR_FREE(buf);
     return ret;
@@ -1183,7 +1183,7 @@ virProcessExitWithStatus(int status)
     exit(value);
 }
 
-#if HAVE_SCHED_SETSCHEDULER && defined(SCHED_BATCH) && defined(SCHED_IDLE)
+#if HAVE_SCHED_SETSCHEDULER
 
 static int
 virProcessSchedTranslatePolicy(virProcessSchedPolicy policy)
@@ -1193,10 +1193,18 @@ virProcessSchedTranslatePolicy(virProcessSchedPolicy policy)
         return SCHED_OTHER;
 
     case VIR_PROC_POLICY_BATCH:
+# ifdef SCHED_BATCH
         return SCHED_BATCH;
+# else
+        return -1;
+# endif
 
     case VIR_PROC_POLICY_IDLE:
+# ifdef SCHED_IDLE
         return SCHED_IDLE;
+# else
+        return -1;
+# endif
 
     case VIR_PROC_POLICY_FIFO:
         return SCHED_FIFO;
@@ -1220,10 +1228,18 @@ virProcessSetScheduler(pid_t pid,
     struct sched_param param = {0};
     int pol = virProcessSchedTranslatePolicy(policy);
 
-    VIR_DEBUG("pid=%d, policy=%d, priority=%u", pid, policy, priority);
+    VIR_DEBUG("pid=%lld, policy=%d, priority=%u",
+              (long long) pid, policy, priority);
 
     if (!policy)
         return 0;
+
+    if (pol < 0) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Scheduler '%s' is not supported on this platform"),
+                       virProcessSchedPolicyTypeToString(policy));
+        return -1;
+    }
 
     if (pol == SCHED_FIFO || pol == SCHED_RR) {
         int min = 0;
@@ -1255,8 +1271,8 @@ virProcessSetScheduler(pid_t pid,
 
     if (sched_setscheduler(pid, pol, &param) < 0) {
         virReportSystemError(errno,
-                             _("Cannot set scheduler parameters for pid %d"),
-                             pid);
+                             _("Cannot set scheduler parameters for pid %lld"),
+                             (long long) pid);
         return -1;
     }
 

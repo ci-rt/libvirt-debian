@@ -107,6 +107,7 @@ char *qemuDeviceDriveHostAlias(virDomainDiskDefPtr disk);
 
 /* Both legacy & current support */
 char *qemuBuildDriveStr(virDomainDiskDefPtr disk,
+                        virQEMUDriverConfigPtr cfg,
                         bool bootable,
                         virQEMUCapsPtr qemuCaps);
 
@@ -163,6 +164,11 @@ char *qemuBuildSCSIHostdevDrvStr(virDomainHostdevDefPtr dev);
 char *qemuBuildSCSIHostdevDevStr(const virDomainDef *def,
                                  virDomainHostdevDefPtr dev,
                                  virQEMUCapsPtr qemuCaps);
+char *
+qemuBuildSCSIVHostHostdevDevStr(const virDomainDef *def,
+                                virDomainHostdevDefPtr dev,
+                                virQEMUCapsPtr qemuCaps,
+                                char *vhostfdName);
 
 char *qemuBuildRedirdevDevStr(const virDomainDef *def,
                               virDomainRedirdevDefPtr dev,
@@ -186,5 +192,15 @@ bool qemuCheckCCWS390AddressSupport(const virDomainDef *def,
 
 virJSONValuePtr qemuBuildHotpluggableCPUProps(const virDomainVcpuDef *vcpu)
     ATTRIBUTE_NONNULL(1);
+
+virJSONValuePtr qemuBuildShmemBackendMemProps(virDomainShmemDefPtr shmem)
+    ATTRIBUTE_NONNULL(1);
+
+char *qemuBuildShmemDevStr(virDomainDefPtr def,
+                           virDomainShmemDefPtr shmem,
+                           virQEMUCapsPtr qemuCaps)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+
+
 
 #endif /* __QEMU_COMMAND_H__*/

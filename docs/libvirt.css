@@ -1,155 +1,113 @@
-h1, h2, h3, h4, h5, h6 {
-    color: #3c857c;
+#nav {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    height: 100px;
+    background: rgb(0, 95, 97);
+    border-bottom: 3px solid rgb(60, 133, 124);
+    width: 100%;
+    display: table;
 }
 
-#header {
-    margin: 0px;
-    height: 104px;
-    width: 100%;
-    background: url(libvirt-header-bg.png);
+#home {
+    background-image: url(logos/logo-banner-light-256.png);
+    background-repeat: no-repeat;
+    background-position: left center;
+    height: 100px;
+    width: 269px;
+    margin-left: 1em;
+    text-indent: 100%; white-space: nowrap; overflow: hidden;
+}
+
+#home a {
+    color:  rgb(0, 95, 97);
+    height: 100px;
+    width: 269px;
+    display: block;
+}
+
+#jumplinks {
+    display: table-cell;
+    vertical-align: middle;
+    font-size: 16pt;
+    text-align: right;
+}
+
+#jumplinks ul {
+    list-style: none;
+}
+
+#jumplinks li {
+    display: inline;
+    padding-left: 2em;
+    font-weight: bold;
+}
+
+#jumplinks a {
+    color: rgb(255, 255, 255);
+    text-decoration: none;
+}
+
+#jumplinks a:hover {
+    color: rgb(255, 230, 0);
+}
+
+#search {
+    display: table-cell;
+    vertical-align: middle;
+    width: 13em;
+    text-align: right;
+    padding: 1em;
+}
+
+#search input {
     border: 0px;
+    height: 2em;
+}
+
+#search input[type=text] {
+    background: rgb(230, 230, 230);
+    color: rgb(0, 0, 0);
+    width: 10em;
+    padding: 0px;
+    padding-left: 2px;
+    padding-right: 2px;
+}
+
+#search input[type=submit] {
+    background: rgb(60, 133, 124);
+    color: rgb(255, 255, 255);
+    width: 3em;
+    font-weight: bold;
+}
+
+#search input[type=submit]:active,
+#search input[type=submit]:hover {
+    color: rgb(255, 230, 0);
 }
 
 #body {
-    float: left;
-    width: 100%;
     border: 0px;
     left: 0px;
     margin: 0px;
+    margin-top: 120px;
+    margin-left: 1em;
+    margin-right: 1em;
 }
 
 #content {
-    margin-left: 230px;
-    margin-right: 1em;
+    margin-left: auto;
+    margin-right: auto;
     padding: 0px;
     padding-bottom: 1em;
+    max-width: 60em;
 }
 
-#menu {
-    float: left;
-    width: 220px;
-    margin-bottom: 1em;
-}
-
-#menu ul {
-    margin: 0px;
-    padding: 0px;
-    margin-left: 40px;
-}
-
-#menu li ul {
-    margin-left: 0px;
-}
-
-#menu ul li {
-    list-style: none;
-    color: black;
-    padding: 0px;
-    margin: 0px;
-    border: 0px;
-}
-
-#menu ul li a, #menu ul li span {
-    text-decoration: inherit;
-    color: inherit;
-    display: block;
-    padding: 6px;
-    margin: 2px;
-}
-
-#menu ul li .active {
-    background: #a4c6c2;
-}
-
-#menu ul.l0 li .inactive {
-    background: #c5dbd8;
-}
-
-
-#menu ul.l1 li .inactive,
-#menu ul.l2 li .inactive {
-    background: #dfebea;
-    border-left: 8px solid #dfebea;
-}
-
-#menu ul.l1 li .inactive,
-#menu ul.l1 li .active {
-    padding-left: 1em;
-}
-
-#menu ul.l1 li .inactive {
-    border-left: 6px solid #dfebea;
-}
-
-#menu ul.l1 li .active {
-    border-left: 6px solid #a5c6c2;
-}
-
-#menu ul.l2 li .inactive,
-#menu ul.l2 li .active {
-    padding-left: 2em;
-    border-left: 8px solid #c5dbd8;
-}
-
-#menu ul.l3 li .inactive,
-#menu ul.l3 li .active {
-    padding-left: 3em;
-}
-
-#headerLogo {
-    position: absolute;
-    top: 0px;
-    left: 0px;
-    height: 104px;
-    width: 400px;
-    background: url(libvirt-header-logo.png);
-}
-
-#headerSearch {
-    position: absolute;
-    top: 0px;
-    right: 0px;
-    padding: 2em;
-    z-index: 10;
-}
-
-#headerSearch input {
-    border: 1px solid #999999;
-    color: #999999;
-    background: white;
-    padding: 3px;
-    font-size: 1em;
-}
-
-#headerSearch #submit {
-    border: 1px solid #999999;
-    background: #eeeeee;
-    color: black;
-    padding: 3px;
-    font-size: 1em;
-}
-
-#sitemap ul li {
-    list-style: none;
-}
-
-#sitemap ul {
-    margin: 1em;
-    padding: 0em;
-}
-
-#sitemap ul ul {
-    padding-left: 2em;
-}
-
-#sitemap li {
-    margin: 0.5em;
-}
-
-#sitemap a {
-    color: inherit;
-    text-decoration: underline;
-    font-weight: bold;
+body.index #content,
+body.docs #content,
+body.hvsupport #content
+{
+    max-width: inherit;
 }
 
 pre {
@@ -160,7 +118,7 @@ pre {
 }
 
 a {
-    color: #566866;
+    color: rgb(0, 95, 97);
 }
 
 div.api {
@@ -204,10 +162,15 @@ p.image {
 
 .top_table {
     border-collapse: collapse;
+    min-width: 60%;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .top_table th {
-    background: #a4c6c2;
+    background: rgb(0, 95, 97);
+    color: rgb(255, 255, 255);
+    padding: 0.5em;
 }
 
 .top_table th a {
@@ -216,7 +179,11 @@ p.image {
 }
 
 .top_table td, .top_table th {
-    border: 1px solid #999999;
+    border: 1px solid rgb(60, 133, 124);
+}
+
+.top_table td {
+    padding: 4px;
 }
 
 .top_table tr:hover td, .top_table col:hover td {
@@ -450,4 +417,122 @@ h4:hover > a.headerlink,
 h5:hover > a.headerlink,
 h6:hover > a.headerlink {
     visibility: visible;
+}
+
+div.panel {
+    width: 24%;
+    margin-left: 7%;
+    float: left;
+    background: rgb(230, 230, 230);
+}
+
+div.panel h2 {
+    margin-top: 0px;
+    padding: 0.5em;
+    padding-left: 1em;
+    padding-right: 1em;
+    background: rgb(0, 95, 97);
+    color: rgb(255, 255, 255);
+    text-align: center;
+}
+
+body.index h1 {
+    border: 0px;
+    text-indent: 100%; white-space: nowrap; overflow: hidden;
+    background: url(logos/logo-banner-dark-800.png) no-repeat center center;
+    height: 300px;
+}
+
+br.clear {
+    clear: both;
+    border: 0px;
+}
+
+#footer {
+    clear: both;
+    border-top: 3px solid rgb(60, 133, 124);
+    margin-top: 2em;
+    padding: 1em;
+    background: rgb(0, 95, 97);
+    color: rgb(255, 255, 255);
+}
+
+#footer a {
+    color: inherit;
+    text-decoration: none;
+}
+
+#footer a:hover {
+    color: rgb(255, 230, 0);
+}
+
+#conduct {
+    float: right;
+    text-align: right;
+    font-size: smaller;
+    margin-right: 3em;
+}
+
+#conduct a {
+    text-decoration: underline;
+}
+
+#contact, #community {
+    float: left;
+    padding: 0px;
+    margin-left: 3em;
+}
+
+#footer h3 {
+    margin:0px;
+    font-size: 1em;
+    color: rgb(60, 133, 124);
+}
+
+#footer ul {
+    list-style: none;
+    margin: 0px;
+    font-size: smaller;
+}
+
+div.panel dd {
+    font-size: smaller;
+}
+
+div.panel a {
+    text-decoration: none;
+}
+
+div.panel ul,
+div.panel p,
+div.panel dl {
+    padding: 0.5em;
+    margin: 0px;
+}
+
+
+div.panel ul {
+    margin-left: 1em;
+}
+div.panel dt {
+    margin: 0px;
+}
+div.panel dd {
+    margin: 0px;
+    margin-bottom: 1em;
+}
+
+dl.mail dt {
+    background: rgb(0, 97, 95);
+    color: rgb(255, 255, 255);
+    font-weight: bold;
+    padding: 0.5em;
+}
+dl.mail dt a {
+    color: inherit;
+    text-decoration: none;
+}
+dl.mail dt a:hover {
+    color:  rgb(255, 230, 0);
+    text-decoration: none;
 }

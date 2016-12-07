@@ -1009,17 +1009,6 @@ sc_gettext_init:
 	halt='the above files do not call virGettextInitialize'		\
 	  $(_sc_search_regexp)
 
-# <dt> is mostly used to document symbols, in which case it should contain
-# a <code> element. The regular expression below trades speed and readability
-# for accuracy, and won't catch someone trying to stick a <canvas> inside a
-# <dt>, but that's what code reviews are for :)
-sc_prohibit_dt_without_code:
-	@prohibit='<dt>([^<]|<[^c])' \
-	exclude='exempt from syntax-check' \
-	in_vc_files='docs/.*$$' \
-	halt='Use <code> inside <dt> when documenting symbols' \
-	  $(_sc_search_regexp)
-
 # We don't use this feature of maint.mk.
 prev_version_file = /dev/null
 
@@ -1149,7 +1138,7 @@ exclude_file_name_regexp--sc_prohibit_close = \
   (\.p[yl]$$|\.spec\.in$$|^docs/|^(src/util/virfile\.c|src/libvirt-stream\.c|tests/vir.+mock\.c)$$)
 
 exclude_file_name_regexp--sc_prohibit_empty_lines_at_EOF = \
-  (^tests/(qemuhelp|virhostcpu|virpcitest)data/|\.diff|tests/virconfdata/no-newline\.conf$$)
+  (^tests/(qemuhelp|virhostcpu|virpcitest)data/|docs/js/.*\.js|docs/fonts/.*\.woff|\.diff|tests/virconfdata/no-newline\.conf$$)
 
 _src2=src/(util/vircommand|libvirt|lxc/lxc_controller|locking/lock_daemon|logging/log_daemon)
 exclude_file_name_regexp--sc_prohibit_fork_wrappers = \
@@ -1164,7 +1153,7 @@ exclude_file_name_regexp--sc_prohibit_newline_at_end_of_diagnostic = \
   ^src/rpc/gendispatch\.pl$$
 
 exclude_file_name_regexp--sc_prohibit_nonreentrant = \
-  ^((po|tests)/|docs/.*(py|html\.in)|run.in$$|tools/wireshark/util/genxdrstub\.pl$$)
+  ^((po|tests)/|docs/.*(py|js|html\.in)|run.in$$|tools/wireshark/util/genxdrstub\.pl$$)
 
 exclude_file_name_regexp--sc_prohibit_select = \
 	^cfg\.mk$$
@@ -1200,7 +1189,7 @@ exclude_file_name_regexp--sc_trailing_blank = \
   /qemuhelpdata/|/sysinfodata/.*\.data|/virhostcpudata/.*\.cpuinfo$$
 
 exclude_file_name_regexp--sc_unmarked_diagnostics = \
-  ^(docs/apibuild.py|tests/virt-aa-helper-test)$$
+  ^(docs/apibuild.py|tests/virt-aa-helper-test|docs/js/.*\.js)$$
 
 exclude_file_name_regexp--sc_size_of_brackets = cfg.mk
 
@@ -1247,9 +1236,6 @@ exclude_file_name_regexp--sc_prohibit_sysconf_pagesize = \
 
 exclude_file_name_regexp--sc_prohibit_pthread_create = \
   ^(cfg\.mk|src/util/virthread\.c|tests/.*)$$
-
-exclude_file_name_regexp--sc_prohibit_dt_without_code = \
-  ^docs/(newapi\.xsl|(apps|contact)\.html\.in)$$
 
 exclude_file_name_regexp--sc_prohibit_always-defined_macros = \
   ^tests/virtestmock.c$$

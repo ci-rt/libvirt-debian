@@ -73,12 +73,6 @@ typedef void
 typedef virCPUDataPtr
 (*cpuArchNodeData)  (virArch arch);
 
-typedef virCPUCompareResult
-(*cpuArchGuestData) (virCPUDefPtr host,
-                     virCPUDefPtr guest,
-                     virCPUDataPtr *data,
-                     char **message);
-
 typedef virCPUDefPtr
 (*cpuArchBaseline)  (virCPUDefPtr *cpus,
                      unsigned int ncpus,
@@ -99,18 +93,21 @@ typedef int
                               const char *feature);
 
 typedef char *
-(*cpuArchDataFormat)(const virCPUData *data);
+(*virCPUArchDataFormat)(const virCPUData *data);
 
 typedef virCPUDataPtr
-(*cpuArchDataParse) (xmlXPathContextPtr ctxt);
+(*virCPUArchDataParse)(xmlXPathContextPtr ctxt);
 
 typedef int
-(*cpuArchGetModels) (char ***models);
+(*virCPUArchGetModels)(char ***models);
 
 typedef int
 (*virCPUArchTranslate)(virCPUDefPtr cpu,
                        const char **models,
                        unsigned int nmodels);
+
+typedef int
+(*virCPUArchConvertLegacy)(virCPUDefPtr cpu);
 
 struct cpuArchDriver {
     const char *name;
@@ -121,15 +118,15 @@ struct cpuArchDriver {
     cpuArchEncode       encode;
     cpuArchDataFree     free;
     cpuArchNodeData     nodeData;
-    cpuArchGuestData    guestData;
     cpuArchBaseline     baseline;
     virCPUArchUpdate    update;
     virCPUArchCheckFeature checkFeature;
     virCPUArchDataCheckFeature dataCheckFeature;
-    cpuArchDataFormat   dataFormat;
-    cpuArchDataParse    dataParse;
-    cpuArchGetModels    getModels;
+    virCPUArchDataFormat dataFormat;
+    virCPUArchDataParse dataParse;
+    virCPUArchGetModels getModels;
     virCPUArchTranslate translate;
+    virCPUArchConvertLegacy convertLegacy;
 };
 
 
@@ -171,13 +168,6 @@ cpuDataFree (virCPUDataPtr data);
 virCPUDataPtr
 cpuNodeData (virArch arch);
 
-virCPUCompareResult
-cpuGuestData(virCPUDefPtr host,
-             virCPUDefPtr guest,
-             virCPUDataPtr *data,
-             char **msg)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
-
 char *
 cpuBaselineXML(const char **xmlCPUs,
                unsigned int ncpus,
@@ -214,28 +204,32 @@ virCPUDataCheckFeature(const virCPUData *data,
 
 
 bool
-cpuModelIsAllowed(const char *model,
-                  const char **models,
-                  unsigned int nmodels)
+virCPUModelIsAllowed(const char *model,
+                     const char **models,
+                     unsigned int nmodels)
     ATTRIBUTE_NONNULL(1);
 
 int
-cpuGetModels(virArch arch, char ***models);
+virCPUGetModels(virArch arch, char ***models);
 
 int
 virCPUTranslate(virArch arch,
                 virCPUDefPtr cpu,
-                char **models,
+                const char **models,
                 unsigned int nmodels)
     ATTRIBUTE_NONNULL(2);
 
+int
+virCPUConvertLegacy(virArch arch,
+                    virCPUDefPtr cpu)
+    ATTRIBUTE_NONNULL(2);
 
-/* cpuDataFormat and cpuDataParse are implemented for unit tests only and
+/* virCPUDataFormat and virCPUDataParse are implemented for unit tests only and
  * have no real-life usage
  */
-char *cpuDataFormat(const virCPUData *data)
+char *virCPUDataFormat(const virCPUData *data)
     ATTRIBUTE_NONNULL(1);
-virCPUDataPtr cpuDataParse(const char *xmlStr)
+virCPUDataPtr virCPUDataParse(const char *xmlStr)
     ATTRIBUTE_NONNULL(1);
 
 #endif /* __VIR_CPU_H__ */

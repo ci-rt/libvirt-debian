@@ -311,6 +311,7 @@ virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
     cfg->seccompSandbox = -1;
 
     cfg->logTimestamp = true;
+    cfg->glusterDebugLevel = 4;
     cfg->stdioLogD = true;
 
 #ifdef DEFAULT_LOADER_NVRAM
@@ -349,7 +350,7 @@ static void virQEMUDriverConfigDispose(void *obj)
     virQEMUDriverConfigPtr cfg = obj;
 
 
-    virStringFreeList(cfg->cgroupDeviceACL);
+    virStringListFree(cfg->cgroupDeviceACL);
 
     VIR_FREE(cfg->configBaseDir);
     VIR_FREE(cfg->configDir);
@@ -391,7 +392,7 @@ static void virQEMUDriverConfigDispose(void *obj)
     VIR_FREE(cfg->dumpImageFormat);
     VIR_FREE(cfg->autoDumpPath);
 
-    virStringFreeList(cfg->securityDriverNames);
+    virStringListFree(cfg->securityDriverNames);
 
     VIR_FREE(cfg->lockManagerName);
 
@@ -794,13 +795,15 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
                 goto cleanup;
         }
     }
+    if (virConfGetValueUInt(conf, "gluster_debug_level", &cfg->glusterDebugLevel) < 0)
+        goto cleanup;
 
     ret = 0;
 
  cleanup:
-    virStringFreeList(controllers);
-    virStringFreeList(hugetlbfs);
-    virStringFreeList(nvram);
+    virStringListFree(controllers);
+    virStringListFree(hugetlbfs);
+    virStringListFree(nvram);
     VIR_FREE(corestr);
     VIR_FREE(user);
     VIR_FREE(group);
@@ -1184,10 +1187,9 @@ static bool
 qemuIsSharedHostdev(virDomainHostdevDefPtr hostdev)
 {
     return (hostdev->shareable &&
-        (hostdev->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
-         hostdev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI &&
-         hostdev->source.subsys.u.scsi.protocol !=
-         VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_ISCSI));
+            (virHostdevIsSCSIDevice(hostdev) &&
+             hostdev->source.subsys.u.scsi.protocol !=
+             VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_ISCSI));
 }
 
 

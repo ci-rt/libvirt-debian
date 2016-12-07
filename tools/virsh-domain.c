@@ -878,7 +878,7 @@ virshParseRateStr(vshControl *ctl,
 
     ret = 0;
  cleanup:
-    virStringFreeList(tok);
+    virStringListFree(tok);
     return ret;
 }
 
@@ -2080,9 +2080,9 @@ cmdBlockCommit(vshControl *ctl, const vshCmd *cmd)
 
     if (!blocking) {
         if (active)
-            vshPrint(ctl, "%s", _("Active Block Commit started"));
+            vshPrintExtra(ctl, "%s", _("Active Block Commit started"));
         else
-            vshPrint(ctl, "%s", _("Block Commit started"));
+            vshPrintExtra(ctl, "%s", _("Block Commit started"));
 
         ret = true;
         goto cleanup;
@@ -2094,12 +2094,12 @@ cmdBlockCommit(vshControl *ctl, const vshCmd *cmd)
             goto cleanup;
 
         case VIR_DOMAIN_BLOCK_JOB_CANCELED:
-            vshPrint(ctl, "\n%s", _("Commit aborted"));
+            vshPrintExtra(ctl, "\n%s", _("Commit aborted"));
             goto cleanup;
             break;
 
         case VIR_DOMAIN_BLOCK_JOB_FAILED:
-            vshPrint(ctl, "\n%s", _("Commit failed"));
+            vshError(ctl, "\n%s", _("Commit failed"));
             goto cleanup;
             break;
 
@@ -2116,19 +2116,20 @@ cmdBlockCommit(vshControl *ctl, const vshCmd *cmd)
                 goto cleanup;
             }
 
-            vshPrint(ctl, "\n%s", _("Successfully pivoted"));
+            vshPrintExtra(ctl, "\n%s", _("Successfully pivoted"));
         } else if (finish) {
             if (virDomainBlockJobAbort(dom, path, abort_flags) < 0) {
                 vshError(ctl, _("failed to finish job for disk %s"), path);
                 goto cleanup;
             }
 
-            vshPrint(ctl, "\n%s", _("Commit complete, overlay image kept"));
+            vshPrintExtra(ctl, "\n%s", _("Commit complete, overlay "
+                                         "image kept"));
         } else {
-            vshPrint(ctl, "\n%s", _("Now in synchronized phase"));
+            vshPrintExtra(ctl, "\n%s", _("Now in synchronized phase"));
         }
     } else {
-        vshPrint(ctl, "\n%s", _("Commit complete"));
+        vshPrintExtra(ctl, "\n%s", _("Commit complete"));
     }
 
     ret = true;
@@ -2392,7 +2393,7 @@ cmdBlockCopy(vshControl *ctl, const vshCmd *cmd)
     }
 
     if (!blocking) {
-        vshPrint(ctl, "%s", _("Block Copy started"));
+        vshPrintExtra(ctl, "%s", _("Block Copy started"));
         ret = true;
         goto cleanup;
     }
@@ -2403,12 +2404,12 @@ cmdBlockCopy(vshControl *ctl, const vshCmd *cmd)
             goto cleanup;
 
         case VIR_DOMAIN_BLOCK_JOB_CANCELED:
-            vshPrint(ctl, "\n%s", _("Copy aborted"));
+            vshPrintExtra(ctl, "\n%s", _("Copy aborted"));
             goto cleanup;
             break;
 
         case VIR_DOMAIN_BLOCK_JOB_FAILED:
-            vshPrint(ctl, "\n%s", _("Copy failed"));
+            vshError(ctl, "\n%s", _("Copy failed"));
             goto cleanup;
             break;
 
@@ -2424,16 +2425,16 @@ cmdBlockCopy(vshControl *ctl, const vshCmd *cmd)
             goto cleanup;
         }
 
-        vshPrint(ctl, "\n%s", _("Successfully pivoted"));
+        vshPrintExtra(ctl, "\n%s", _("Successfully pivoted"));
     } else if (finish) {
         if (virDomainBlockJobAbort(dom, path, abort_flags) < 0) {
             vshError(ctl, _("failed to finish job for disk %s"), path);
             goto cleanup;
         }
 
-        vshPrint(ctl, "\n%s", _("Successfully copied"));
+        vshPrintExtra(ctl, "\n%s", _("Successfully copied"));
     } else {
-        vshPrint(ctl, "\n%s", _("Now in mirroring phase"));
+        vshPrintExtra(ctl, "\n%s", _("Now in mirroring phase"));
     }
 
     ret = true;
@@ -2571,7 +2572,7 @@ virshBlockJobInfo(vshControl *ctl,
 
     if (rc == 0) {
         if (!raw)
-            vshPrint(ctl, _("No current block job for %s"), path);
+            vshPrintExtra(ctl, _("No current block job for %s"), path);
         ret = true;
         goto cleanup;
     }
@@ -2802,7 +2803,7 @@ cmdBlockPull(vshControl *ctl, const vshCmd *cmd)
     }
 
     if (!blocking) {
-        vshPrint(ctl, "%s", _("Block Pull started"));
+        vshPrintExtra(ctl, "%s", _("Block Pull started"));
         ret = true;
         goto cleanup;
     }
@@ -2813,18 +2814,18 @@ cmdBlockPull(vshControl *ctl, const vshCmd *cmd)
             goto cleanup;
 
         case VIR_DOMAIN_BLOCK_JOB_CANCELED:
-            vshPrint(ctl, "\n%s", _("Pull aborted"));
+            vshPrintExtra(ctl, "\n%s", _("Pull aborted"));
             goto cleanup;
             break;
 
         case VIR_DOMAIN_BLOCK_JOB_FAILED:
-            vshPrint(ctl, "\n%s", _("Pull failed"));
+            vshError(ctl, "\n%s", _("Pull failed"));
             goto cleanup;
             break;
 
         case VIR_DOMAIN_BLOCK_JOB_READY:
         case VIR_DOMAIN_BLOCK_JOB_COMPLETED:
-            vshPrint(ctl, "\n%s", _("Pull complete"));
+            vshPrintExtra(ctl, "\n%s", _("Pull complete"));
             break;
     }
 
@@ -3794,7 +3795,7 @@ cmdUndefine(vshControl *ctl, const vshCmd *cmd)
                 virStoragePoolPtr storagepool = NULL;
 
                 if (!source) {
-                    vshPrint(ctl,
+                    vshError(ctl,
                              _("Missing storage volume name for disk '%s'"),
                              target);
                     continue;
@@ -3802,7 +3803,7 @@ cmdUndefine(vshControl *ctl, const vshCmd *cmd)
 
                 if (!(storagepool = virStoragePoolLookupByName(priv->conn,
                                                                pool))) {
-                    vshPrint(ctl,
+                    vshError(ctl,
                              _("Storage pool '%s' for volume '%s' not found."),
                              pool, target);
                     vshResetLibvirtError();
@@ -3817,7 +3818,7 @@ cmdUndefine(vshControl *ctl, const vshCmd *cmd)
             }
 
             if (!vol.vol) {
-                vshPrint(ctl,
+                vshError(ctl,
                          _("Storage volume '%s'(%s) is not managed by libvirt. "
                            "Remove it manually.\n"), target, source);
                 vshResetLibvirtError();
@@ -4042,14 +4043,14 @@ cmdStartGetFDs(vshControl *ctl,
         fds[nfds - 1] = fd;
     }
 
-    virStringFreeList(fdlist);
+    virStringListFree(fdlist);
 
     *fdsret = fds;
     *nfdsret = nfds;
     return 0;
 
  error:
-    virStringFreeList(fdlist);
+    virStringListFree(fdlist);
     VIR_FREE(fds);
     return -1;
 }
@@ -4563,18 +4564,18 @@ cmdSaveImageEdit(vshControl *ctl, const vshCmd *cmd)
 
 #define EDIT_GET_XML \
     virDomainSaveImageGetXMLDesc(priv->conn, file, getxml_flags)
-#define EDIT_NOT_CHANGED                                        \
-    do {                                                        \
-        vshPrint(ctl, _("Saved image %s XML configuration "     \
-                        "not changed.\n"), file);               \
-        ret = true;                                             \
-        goto edit_cleanup;                                      \
+#define EDIT_NOT_CHANGED                                             \
+    do {                                                             \
+        vshPrintExtra(ctl, _("Saved image %s XML configuration "     \
+                             "not changed.\n"), file);               \
+        ret = true;                                                  \
+        goto edit_cleanup;                                           \
     } while (0)
 #define EDIT_DEFINE \
     (virDomainSaveImageDefineXML(priv->conn, file, doc_edited, define_flags) == 0)
 #include "virsh-edit.c"
 
-    vshPrint(ctl, _("State file %s edited.\n"), file);
+    vshPrintExtra(ctl, _("State file %s edited.\n"), file);
     ret = true;
 
  cleanup:
@@ -5569,7 +5570,7 @@ cmdShutdown(vshControl *ctl, const vshCmd *cmd)
  cleanup:
     if (dom)
         virDomainFree(dom);
-    virStringFreeList(modes);
+    virStringListFree(modes);
     return ret;
 }
 
@@ -5649,7 +5650,7 @@ cmdReboot(vshControl *ctl, const vshCmd *cmd)
  cleanup:
     if (dom)
         virDomainFree(dom);
-    virStringFreeList(modes);
+    virStringListFree(modes);
     return ret;
 }
 
@@ -8826,7 +8827,7 @@ virshParseEventStr(const char *event,
 
     ret = 0;
  cleanup:
-    virStringFreeList(tok);
+    virStringListFree(tok);
     return ret;
 }
 
@@ -10021,7 +10022,7 @@ static const vshCmdOptDef opts_migrate[] = {
     },
     {.name = "rdma-pin-all",
      .type = VSH_OT_BOOL,
-     .help = N_("support memory pinning during RDMA live migration")
+     .help = N_("pin all memory before starting RDMA live migration")
     },
     {.name = "abort-on-error",
      .type = VSH_OT_BOOL,
@@ -10103,6 +10104,10 @@ static const vshCmdOptDef opts_migrate[] = {
     {.name = "auto-converge-increment",
      .type = VSH_OT_INT,
      .help = N_("CPU throttling rate increment for auto-convergence")
+    },
+    {.name = "persistent-xml",
+     .type = VSH_OT_STRING,
+     .help = N_("filename containing updated persistent XML for the target")
     },
     {.name = NULL}
 };
@@ -10258,6 +10263,24 @@ doMigrate(void *opaque)
 
         if (virTypedParamsAddString(&params, &nparams, &maxparams,
                                     VIR_MIGRATE_PARAM_DEST_XML, xml) < 0) {
+            VIR_FREE(xml);
+            goto save_error;
+        }
+        VIR_FREE(xml);
+    }
+
+    if (vshCommandOptStringReq(ctl, cmd, "persistent-xml", &opt) < 0)
+        goto out;
+    if (opt) {
+        char *xml;
+
+        if (virFileReadAll(opt, VSH_MAX_XML_FILE, &xml) < 0) {
+            vshError(ctl, _("cannot read file '%s'"), opt);
+            goto save_error;
+        }
+
+        if (virTypedParamsAddString(&params, &nparams, &maxparams,
+                                    VIR_MIGRATE_PARAM_PERSIST_XML, xml) < 0) {
             VIR_FREE(xml);
             goto save_error;
         }
@@ -10420,6 +10443,7 @@ cmdMigrate(vshControl *ctl, const vshCmd *cmd)
     VSH_EXCLUSIVE_OPTIONS("live", "offline");
     VSH_EXCLUSIVE_OPTIONS("timeout-suspend", "timeout-postcopy");
     VSH_REQUIRE_OPTION("postcopy-after-precopy", "postcopy");
+    VSH_REQUIRE_OPTION("persistent-xml", "persistent");
 
     if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
         return false;
@@ -12041,12 +12065,12 @@ cmdEdit(vshControl *ctl, const vshCmd *cmd)
         define_flags &= ~VIR_DOMAIN_DEFINE_VALIDATE;
 
 #define EDIT_GET_XML virDomainGetXMLDesc(dom, query_flags)
-#define EDIT_NOT_CHANGED                                                \
-    do {                                                                \
-        vshPrint(ctl, _("Domain %s XML configuration not changed.\n"),  \
-                 virDomainGetName(dom));                                \
-        ret = true;                                                     \
-        goto edit_cleanup;                                              \
+#define EDIT_NOT_CHANGED                                                     \
+    do {                                                                     \
+        vshPrintExtra(ctl, _("Domain %s XML configuration not changed.\n"),  \
+                      virDomainGetName(dom));                                \
+        ret = true;                                                          \
+        goto edit_cleanup;                                                   \
     } while (0)
 #define EDIT_DEFINE \
     (dom_edited = virshDomainDefine(priv->conn, doc_edited, define_flags))
@@ -12058,8 +12082,8 @@ cmdEdit(vshControl *ctl, const vshCmd *cmd)
 #include "virsh-edit.c"
 #undef EDIT_RELAX
 
-    vshPrint(ctl, _("Domain %s XML configuration edited.\n"),
-             virDomainGetName(dom_edited));
+    vshPrintExtra(ctl, _("Domain %s XML configuration edited.\n"),
+                  virDomainGetName(dom_edited));
 
     ret = true;
 
@@ -13177,7 +13201,7 @@ cmdDomFSFreeze(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
     }
 
-    vshPrint(ctl, _("Froze %d filesystem(s)\n"), ret);
+    vshPrintExtra(ctl, _("Froze %d filesystem(s)\n"), ret);
 
  cleanup:
     VIR_FREE(mountpoints);
@@ -13230,7 +13254,7 @@ cmdDomFSThaw(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
     }
 
-    vshPrint(ctl, _("Thawed %d filesystem(s)\n"), ret);
+    vshPrintExtra(ctl, _("Thawed %d filesystem(s)\n"), ret);
 
  cleanup:
     VIR_FREE(mountpoints);

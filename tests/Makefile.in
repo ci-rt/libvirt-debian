@@ -384,10 +384,10 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-driver-uml.m4 \
 	$(top_srcdir)/m4/virt-driver-vz.m4 \
 	$(top_srcdir)/m4/virt-fuse.m4 $(top_srcdir)/m4/virt-gluster.m4 \
-	$(top_srcdir)/m4/virt-hal.m4 \
+	$(top_srcdir)/m4/virt-gnutls.m4 $(top_srcdir)/m4/virt-hal.m4 \
 	$(top_srcdir)/m4/virt-host-validate.m4 \
 	$(top_srcdir)/m4/virt-init-script.m4 \
-	$(top_srcdir)/m4/virt-lib.m4 \
+	$(top_srcdir)/m4/virt-lib.m4 $(top_srcdir)/m4/virt-libssh.m4 \
 	$(top_srcdir)/m4/virt-linker-no-indirect.m4 \
 	$(top_srcdir)/m4/virt-linker-relro.m4 \
 	$(top_srcdir)/m4/virt-login-shell.m4 \
@@ -833,7 +833,8 @@ am__eventtest_SOURCES_DIST = eventtest.c testutils.h testutils.c
 @WITH_LIBVIRTD_TRUE@am_eventtest_OBJECTS = eventtest.$(OBJEXT) \
 @WITH_LIBVIRTD_TRUE@	testutils.$(OBJEXT)
 eventtest_OBJECTS = $(am_eventtest_OBJECTS)
-@WITH_LIBVIRTD_TRUE@eventtest_DEPENDENCIES = $(am__DEPENDENCIES_2)
+@WITH_LIBVIRTD_TRUE@eventtest_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+@WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_2)
 am__fchosttest_SOURCES_DIST = fchosttest.c testutils.h testutils.c
 @WITH_LINUX_TRUE@am_fchosttest_OBJECTS = fchosttest.$(OBJEXT) \
 @WITH_LINUX_TRUE@	testutils.$(OBJEXT)
@@ -2602,6 +2603,7 @@ HAVE_PTSNAME = @HAVE_PTSNAME@
 HAVE_PTSNAME_R = @HAVE_PTSNAME_R@
 HAVE_PTY_H = @HAVE_PTY_H@
 HAVE_PWRITE = @HAVE_PWRITE@
+HAVE_QSORT_R = @HAVE_QSORT_R@
 HAVE_RAISE = @HAVE_RAISE@
 HAVE_RANDOM = @HAVE_RANDOM@
 HAVE_RANDOM_H = @HAVE_RANDOM_H@
@@ -2661,6 +2663,7 @@ HAVE_STRVERSCMP = @HAVE_STRVERSCMP@
 HAVE_SYMLINK = @HAVE_SYMLINK@
 HAVE_SYMLINKAT = @HAVE_SYMLINKAT@
 HAVE_SYS_BITYPES_H = @HAVE_SYS_BITYPES_H@
+HAVE_SYS_CDEFS_H = @HAVE_SYS_CDEFS_H@
 HAVE_SYS_INTTYPES_H = @HAVE_SYS_INTTYPES_H@
 HAVE_SYS_IOCTL_H = @HAVE_SYS_IOCTL_H@
 HAVE_SYS_LOADAVG_H = @HAVE_SYS_LOADAVG_H@
@@ -2770,6 +2773,8 @@ LIBPTH_PREFIX = @LIBPTH_PREFIX@
 LIBRBD_LIBS = @LIBRBD_LIBS@
 LIBS = @LIBS@
 LIBSOCKET = @LIBSOCKET@
+LIBSSH_CFLAGS = @LIBSSH_CFLAGS@
+LIBSSH_LIBS = @LIBSSH_LIBS@
 LIBTESTS_LIBDEPS = @LIBTESTS_LIBDEPS@
 LIBTHREAD = @LIBTHREAD@
 LIBTOOL = @LIBTOOL@
@@ -4166,7 +4171,7 @@ utiltest_LDADD = $(LDADDS)
 @WITH_LIBVIRTD_TRUE@eventtest_SOURCES = \
 @WITH_LIBVIRTD_TRUE@	eventtest.c testutils.h testutils.c
 
-@WITH_LIBVIRTD_TRUE@eventtest_LDADD = -lrt $(LDADDS)
+@WITH_LIBVIRTD_TRUE@eventtest_LDADD = $(LIB_CLOCK_GETTIME) $(LDADDS)
 libshunload_la_SOURCES = shunloadhelper.c
 libshunload_la_LIBADD = ../src/libvirt.la
 libshunload_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)

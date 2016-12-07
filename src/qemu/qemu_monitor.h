@@ -392,6 +392,7 @@ int qemuMonitorSystemReset(qemuMonitorPtr mon);
 int qemuMonitorSystemPowerdown(qemuMonitorPtr mon);
 
 struct qemuMonitorQueryCpusEntry {
+    int qemu_id; /* id of the cpu as reported by qemu */
     pid_t tid;
     char *qom_path;
     bool halted;
@@ -422,6 +423,7 @@ void qemuMonitorQueryHotpluggableCpusFree(struct qemuMonitorQueryHotpluggableCpu
 struct _qemuMonitorCPUInfo {
     pid_t tid;
     int id; /* order of enabling of the given cpu */
+    int qemu_id; /* identifier of the cpu as reported by query-cpus */
 
     /* state data */
     bool online;
@@ -454,6 +456,7 @@ int qemuMonitorGetCPUInfo(qemuMonitorPtr mon,
                           qemuMonitorCPUInfoPtr *vcpus,
                           size_t maxvcpus,
                           bool hotplug);
+virBitmapPtr qemuMonitorGetCpuHalted(qemuMonitorPtr mon, size_t maxvcpus);
 
 int qemuMonitorGetVirtType(qemuMonitorPtr mon,
                            virDomainVirtType *virtType);
@@ -913,6 +916,7 @@ typedef struct _qemuMonitorCPUDefInfo qemuMonitorCPUDefInfo;
 typedef qemuMonitorCPUDefInfo *qemuMonitorCPUDefInfoPtr;
 
 struct _qemuMonitorCPUDefInfo {
+    virTristateBool usable;
     char *name;
 };
 
@@ -1007,5 +1011,7 @@ int qemuMonitorMigrateStartPostCopy(qemuMonitorPtr mon);
 
 int qemuMonitorGetRTCTime(qemuMonitorPtr mon,
                           struct tm *tm);
+
+virHashTablePtr qemuMonitorQueryQMPSchema(qemuMonitorPtr mon);
 
 #endif /* QEMU_MONITOR_H */

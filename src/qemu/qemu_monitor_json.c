@@ -1219,11 +1219,7 @@ qemuMonitorJSONGetStatus(qemuMonitorPtr mon,
     if (qemuMonitorJSONCheckError(cmd, reply) < 0)
         goto cleanup;
 
-    if (!(data = virJSONValueObjectGetObject(reply, "return"))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("query-status reply was missing return data"));
-        goto cleanup;
-    }
+    data = virJSONValueObjectGetObject(reply, "return");
 
     if (virJSONValueObjectGetBoolean(data, "running", running) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -1348,6 +1344,7 @@ qemuMonitorJSONExtractCPUInfo(virJSONValuePtr data,
 
     for (i = 0; i < ncpus; i++) {
         virJSONValuePtr entry = virJSONValueArrayGet(data, i);
+        int cpuid = -1;
         int thread = 0;
         bool halted = false;
         const char *qom_path;
@@ -1358,10 +1355,12 @@ qemuMonitorJSONExtractCPUInfo(virJSONValuePtr data,
 
         /* Some older qemu versions don't report the thread_id so treat this as
          * non-fatal, simply returning no data */
+        ignore_value(virJSONValueObjectGetNumberInt(entry, "CPU", &cpuid));
         ignore_value(virJSONValueObjectGetNumberInt(entry, "thread_id", &thread));
         ignore_value(virJSONValueObjectGetBoolean(entry, "halted", &halted));
         qom_path = virJSONValueObjectGetString(entry, "qom_path");
 
+        cpus[i].qemu_id = cpuid;
         cpus[i].tid = thread;
         cpus[i].halted = halted;
         if (VIR_STRDUP(cpus[i].qom_path, qom_path) < 0)
@@ -1443,12 +1442,7 @@ int qemuMonitorJSONGetVirtType(qemuMonitorPtr mon,
     if (qemuMonitorJSONCheckError(cmd, reply) < 0)
         goto cleanup;
 
-
-    if (!(data = virJSONValueObjectGetObject(reply, "return"))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("info kvm reply was missing return data"));
-        goto cleanup;
-    }
+    data = virJSONValueObjectGetObject(reply, "return");
 
     if (virJSONValueObjectGetBoolean(data, "enabled", &val) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -1609,12 +1603,7 @@ qemuMonitorJSONGetBalloonInfo(qemuMonitorPtr mon,
     if (qemuMonitorJSONCheckError(cmd, reply) < 0)
         goto cleanup;
 
-    /* Success */
-    if (!(data = virJSONValueObjectGetObject(reply, "return"))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("info balloon reply was missing return data"));
-        goto cleanup;
-    }
+    data = virJSONValueObjectGetObject(reply, "return");
 
     if (virJSONValueObjectGetNumberUlong(data, "actual", &mem) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -1715,11 +1704,7 @@ int qemuMonitorJSONGetMemoryStats(qemuMonitorPtr mon,
     if (qemuMonitorJSONCheckError(cmd, reply) < 0)
         goto cleanup;
 
-    if (!(data = virJSONValueObjectGetObject(reply, "return"))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("qom-get reply was missing return data"));
-        goto cleanup;
-    }
+    data = virJSONValueObjectGetObject(reply, "return");
 
     if (!(statsdata = virJSONValueObjectGet(data, "stats"))) {
         VIR_DEBUG("data does not include 'stats'");
@@ -2679,11 +2664,7 @@ qemuMonitorJSONGetMigrationStatsReply(virJSONValuePtr reply,
     int rc;
     double mbps;
 
-    if (!(ret = virJSONValueObjectGetObject(reply, "return"))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("info migration reply was missing return data"));
-        return -1;
-    }
+    ret = virJSONValueObjectGetObject(reply, "return");
 
     if (!(statusstr = virJSONValueObjectGetString(ret, "status"))) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -2976,11 +2957,7 @@ qemuMonitorJSONGetDumpGuestMemoryCapability(qemuMonitorPtr mon,
     if (qemuMonitorJSONCheckError(cmd, reply) < 0)
         goto cleanup;
 
-    if (!(caps = virJSONValueObjectGetObject(reply, "return"))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("missing dump guest memory capabilities"));
-        goto cleanup;
-    }
+    caps = virJSONValueObjectGetObject(reply, "return");
 
     if (!(formats = virJSONValueObjectGetArray(caps, "formats"))) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -3160,11 +3137,6 @@ qemuMonitorJSONAddFd(qemuMonitorPtr mon, int fdset, int fd, const char *name)
     if (ret == 0) {
         virJSONValuePtr data = virJSONValueObjectGetObject(reply, "return");
 
-        if (!data) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("missing return information"));
-            goto error;
-        }
         if (virJSONValueObjectGetNumberInt(data, "fd", &ret) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("incomplete return information"));
@@ -4745,11 +4717,7 @@ int qemuMonitorJSONGetVersion(qemuMonitorPtr mon,
     if (qemuMonitorJSONCheckError(cmd, reply) < 0)
         goto cleanup;
 
-    if (!(data = virJSONValueObjectGetObject(reply, "return"))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("query-version reply was missing 'return' data"));
-        goto cleanup;
-    }
+    data = virJSONValueObjectGetObject(reply, "return");
 
     if (!(qemu = virJSONValueObjectGetObject(data, "qemu"))) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -4815,13 +4783,8 @@ int qemuMonitorJSONGetMachines(qemuMonitorPtr mon,
     if (qemuMonitorJSONCheckError(cmd, reply) < 0)
         goto cleanup;
 
-    if (!(data = virJSONValueObjectGetArray(reply, "return"))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("query-machines reply was missing return data"));
-        goto cleanup;
-    }
-
-    if ((n = virJSONValueArraySize(data)) < 0) {
+    if (!(data = virJSONValueObjectGetArray(reply, "return")) ||
+        (n = virJSONValueArraySize(data)) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("query-machines reply data was not an array"));
         goto cleanup;
@@ -4925,13 +4888,8 @@ qemuMonitorJSONGetCPUDefinitions(qemuMonitorPtr mon,
     if (qemuMonitorJSONCheckError(cmd, reply) < 0)
         goto cleanup;
 
-    if (!(data = virJSONValueObjectGetArray(reply, "return"))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("query-cpu-definitions reply was missing return data"));
-        goto cleanup;
-    }
-
-    if ((n = virJSONValueArraySize(data)) < 0) {
+    if (!(data = virJSONValueObjectGetArray(reply, "return")) ||
+        (n = virJSONValueArraySize(data)) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("query-cpu-definitions reply data was not an array"));
         goto cleanup;
@@ -4958,6 +4916,24 @@ qemuMonitorJSONGetCPUDefinitions(qemuMonitorPtr mon,
 
         if (VIR_STRDUP(cpu->name, tmp) < 0)
             goto cleanup;
+
+        if (virJSONValueObjectHasKey(child, "unavailable-features")) {
+            virJSONValuePtr blockers;
+
+            blockers = virJSONValueObjectGetArray(child,
+                                                  "unavailable-features");
+            if (!blockers) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("unavailable-features in query-cpu-definitions "
+                                 "reply data was not an array"));
+                goto cleanup;
+            }
+
+            if (virJSONValueArraySize(blockers) > 0)
+                cpu->usable = VIR_TRISTATE_BOOL_NO;
+            else
+                cpu->usable = VIR_TRISTATE_BOOL_YES;
+        }
     }
 
     ret = n;
@@ -4998,13 +4974,8 @@ int qemuMonitorJSONGetCommands(qemuMonitorPtr mon,
     if (qemuMonitorJSONCheckError(cmd, reply) < 0)
         goto cleanup;
 
-    if (!(data = virJSONValueObjectGetArray(reply, "return"))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("query-commands reply was missing return data"));
-        goto cleanup;
-    }
-
-    if ((n = virJSONValueArraySize(data)) < 0) {
+    if (!(data = virJSONValueObjectGetArray(reply, "return")) ||
+        (n = virJSONValueArraySize(data)) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("query-commands reply data was not an array"));
         goto cleanup;
@@ -5034,7 +5005,7 @@ int qemuMonitorJSONGetCommands(qemuMonitorPtr mon,
 
 
  cleanup:
-    virStringFreeList(commandlist);
+    virStringListFree(commandlist);
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
@@ -5068,13 +5039,8 @@ int qemuMonitorJSONGetEvents(qemuMonitorPtr mon,
     if (qemuMonitorJSONCheckError(cmd, reply) < 0)
         goto cleanup;
 
-    if (!(data = virJSONValueObjectGetArray(reply, "return"))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("query-events reply was missing return data"));
-        goto cleanup;
-    }
-
-    if ((n = virJSONValueArraySize(data)) < 0) {
+    if (!(data = virJSONValueObjectGetArray(reply, "return")) ||
+        (n = virJSONValueArraySize(data)) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("query-events reply data was not an array"));
         goto cleanup;
@@ -5103,7 +5069,7 @@ int qemuMonitorJSONGetEvents(qemuMonitorPtr mon,
     eventlist = NULL;
 
  cleanup:
-    virStringFreeList(eventlist);
+    virStringListFree(eventlist);
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
@@ -5225,7 +5191,7 @@ qemuMonitorJSONGetCommandLineOptionParameters(qemuMonitorPtr mon,
     if (!qemuMonitorGetOptions(mon))
         qemuMonitorSetOptions(mon, virJSONValueNewArray());
 
-    virStringFreeList(paramlist);
+    virStringListFree(paramlist);
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
@@ -5258,11 +5224,7 @@ int qemuMonitorJSONGetKVMState(qemuMonitorPtr mon,
     if (qemuMonitorJSONCheckError(cmd, reply) < 0)
         goto cleanup;
 
-    if (!(data = virJSONValueObjectGetObject(reply, "return"))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("query-kvm reply was missing return data"));
-        goto cleanup;
-    }
+    data = virJSONValueObjectGetObject(reply, "return");
 
     if (virJSONValueObjectGetBoolean(data, "enabled", enabled) < 0 ||
         virJSONValueObjectGetBoolean(data, "present", present) < 0) {
@@ -5302,13 +5264,8 @@ int qemuMonitorJSONGetObjectTypes(qemuMonitorPtr mon,
     if (qemuMonitorJSONCheckError(cmd, reply) < 0)
         goto cleanup;
 
-    if (!(data = virJSONValueObjectGetArray(reply, "return"))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("qom-list-types reply was missing return data"));
-        goto cleanup;
-    }
-
-    if ((n = virJSONValueArraySize(data)) < 0) {
+    if (!(data = virJSONValueObjectGetArray(reply, "return")) ||
+        (n = virJSONValueArraySize(data)) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("qom-list-types reply data was not an array"));
         goto cleanup;
@@ -5337,7 +5294,7 @@ int qemuMonitorJSONGetObjectTypes(qemuMonitorPtr mon,
     typelist = NULL;
 
  cleanup:
-    virStringFreeList(typelist);
+    virStringListFree(typelist);
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
@@ -5369,13 +5326,8 @@ int qemuMonitorJSONGetObjectListPaths(qemuMonitorPtr mon,
     if (qemuMonitorJSONCheckError(cmd, reply) < 0)
         goto cleanup;
 
-    if (!(data = virJSONValueObjectGetArray(reply, "return"))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("qom-list reply was missing return data"));
-        goto cleanup;
-    }
-
-    if ((n = virJSONValueArraySize(data)) < 0) {
+    if (!(data = virJSONValueObjectGetArray(reply, "return")) ||
+        (n = virJSONValueArraySize(data)) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("qom-list reply data was not an array"));
         goto cleanup;
@@ -5613,13 +5565,8 @@ int qemuMonitorJSONGetObjectProps(qemuMonitorPtr mon,
     if (qemuMonitorJSONCheckError(cmd, reply) < 0)
         goto cleanup;
 
-    if (!(data = virJSONValueObjectGetArray(reply, "return"))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("device-list-properties reply was missing return data"));
-        goto cleanup;
-    }
-
-    if ((n = virJSONValueArraySize(data)) < 0) {
+    if (!(data = virJSONValueObjectGetArray(reply, "return")) ||
+        (n = virJSONValueArraySize(data)) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("device-list-properties reply data was not an array"));
         goto cleanup;
@@ -5648,7 +5595,7 @@ int qemuMonitorJSONGetObjectProps(qemuMonitorPtr mon,
     proplist = NULL;
 
  cleanup:
-    virStringFreeList(proplist);
+    virStringListFree(proplist);
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
@@ -5673,11 +5620,7 @@ qemuMonitorJSONGetTargetArch(qemuMonitorPtr mon)
     if (qemuMonitorJSONCheckError(cmd, reply) < 0)
         goto cleanup;
 
-    if (!(data = virJSONValueObjectGetObject(reply, "return"))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("query-target reply was missing return data"));
-        goto cleanup;
-    }
+    data = virJSONValueObjectGetObject(reply, "return");
 
     if (!(arch = virJSONValueObjectGetString(data, "arch"))) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -5758,7 +5701,7 @@ qemuMonitorJSONGetMigrationCapabilities(qemuMonitorPtr mon,
     list = NULL;
 
  cleanup:
-    virStringFreeList(list);
+    virStringListFree(list);
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
@@ -5776,9 +5719,9 @@ qemuMonitorJSONGetMigrationCapability(qemuMonitorPtr mon,
     if (qemuMonitorJSONGetMigrationCapabilities(mon, &capsList) < 0)
         return -1;
 
-    ret = virStringArrayHasString((const char **) capsList, cap);
+    ret = virStringListHasString((const char **) capsList, cap);
 
-    virStringFreeList(capsList);
+    virStringListFree(capsList);
     return ret;
 }
 
@@ -6110,14 +6053,8 @@ qemuMonitorJSONGetStringArray(qemuMonitorPtr mon, const char *qmpCmd,
     if (qemuMonitorJSONCheckError(cmd, reply) < 0)
         goto cleanup;
 
-    if (!(data = virJSONValueObjectGetArray(reply, "return"))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("%s reply was missing return data"),
-                       qmpCmd);
-        goto cleanup;
-    }
-
-    if ((n = virJSONValueArraySize(data)) < 0) {
+    if (!(data = virJSONValueObjectGetArray(reply, "return")) ||
+        (n = virJSONValueArraySize(data)) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("%s reply data was not an array"),
                        qmpCmd);
@@ -6148,7 +6085,7 @@ qemuMonitorJSONGetStringArray(qemuMonitorPtr mon, const char *qmpCmd,
     list = NULL;
 
  cleanup:
-    virStringFreeList(list);
+    virStringListFree(list);
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
@@ -6329,14 +6266,8 @@ qemuMonitorJSONAttachCharDev(qemuMonitorPtr mon,
         goto cleanup;
 
     if (chr->type == VIR_DOMAIN_CHR_TYPE_PTY) {
-        virJSONValuePtr data;
+        virJSONValuePtr data = virJSONValueObjectGetObject(reply, "return");
         const char *path;
-
-        if (!(data = virJSONValueObjectGetObject(reply, "return"))) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("chardev-add reply was missing return data"));
-            goto cleanup;
-        }
 
         if (!(path = virJSONValueObjectGetString(data, "pty"))) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -6686,13 +6617,8 @@ qemuMonitorJSONGetIOThreads(qemuMonitorPtr mon,
     if (qemuMonitorJSONCheckError(cmd, reply) < 0)
         goto cleanup;
 
-    if (!(data = virJSONValueObjectGetArray(reply, "return"))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("query-iothreads reply was missing return data"));
-        goto cleanup;
-    }
-
-    if ((n = virJSONValueArraySize(data)) < 0) {
+    if (!(data = virJSONValueObjectGetArray(reply, "return")) ||
+        (n = virJSONValueArraySize(data)) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("query-iothreads reply data was not an array"));
         goto cleanup;
@@ -6780,13 +6706,8 @@ qemuMonitorJSONGetMemoryDeviceInfo(qemuMonitorPtr mon,
     if (qemuMonitorJSONCheckError(cmd, reply) < 0)
         goto cleanup;
 
-    if (!(data = virJSONValueObjectGetArray(reply, "return"))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("query-memory-devices reply was missing return data"));
-        goto cleanup;
-    }
-
-    if ((n = virJSONValueArraySize(data)) < 0) {
+    if (!(data = virJSONValueObjectGetArray(reply, "return")) ||
+        (n = virJSONValueArraySize(data)) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("query-memory-devices reply data was not an array"));
         goto cleanup;
@@ -7276,5 +7197,72 @@ qemuMonitorJSONGetHotpluggableCPUs(qemuMonitorPtr mon,
     qemuMonitorQueryHotpluggableCpusFree(info, ninfo);
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
+    return ret;
+}
+
+
+static int
+qemuMonitorJSONFillQMPSchema(size_t pos ATTRIBUTE_UNUSED,
+                             virJSONValuePtr item,
+                             void *opaque)
+{
+    const char *name;
+    virHashTablePtr schema = opaque;
+
+    if (!(name = virJSONValueObjectGetString(item, "name"))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("malformed QMP schema"));
+        return -1;
+    }
+
+    if (virHashAddEntry(schema, name, item) < 0)
+        return -1;
+
+    return 0;
+}
+
+
+static void
+qemuMonitorJSONFreeSchemaEntry(void *opaque,
+                               const void *name ATTRIBUTE_UNUSED)
+{
+    virJSONValueFree(opaque);
+}
+
+
+virHashTablePtr
+qemuMonitorJSONQueryQMPSchema(qemuMonitorPtr mon)
+{
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+    virJSONValuePtr arr;
+    virHashTablePtr schema = NULL;
+    virHashTablePtr ret = NULL;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("query-qmp-schema", NULL)))
+        return NULL;
+
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        goto cleanup;
+
+    if (qemuMonitorJSONCheckError(cmd, reply) < 0)
+        goto cleanup;
+
+    arr = virJSONValueObjectGet(reply, "return");
+
+    if (!(schema = virHashCreate(512, qemuMonitorJSONFreeSchemaEntry)))
+        goto cleanup;
+
+    if (virJSONValueArrayForeachSteal(arr, qemuMonitorJSONFillQMPSchema,
+                                      schema) < 0)
+        goto cleanup;
+
+    VIR_STEAL_PTR(ret, schema);
+
+ cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    virHashFree(schema);
+
     return ret;
 }

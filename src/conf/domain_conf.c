@@ -55,6 +55,7 @@
 #include "virtpm.h"
 #include "virstring.h"
 #include "virnetdev.h"
+#include "virhostdev.h"
 
 #define VIR_FROM_THIS VIR_FROM_DOMAIN
 
@@ -647,7 +648,8 @@ VIR_ENUM_IMPL(virDomainHostdevMode, VIR_DOMAIN_HOSTDEV_MODE_LAST,
 VIR_ENUM_IMPL(virDomainHostdevSubsys, VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_LAST,
               "usb",
               "pci",
-              "scsi")
+              "scsi",
+              "scsi_host")
 
 VIR_ENUM_IMPL(virDomainHostdevSubsysPCIBackend,
               VIR_DOMAIN_HOSTDEV_PCI_BACKEND_TYPE_LAST,
@@ -660,6 +662,11 @@ VIR_ENUM_IMPL(virDomainHostdevSubsysSCSIProtocol,
               VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_LAST,
               "adapter",
               "iscsi")
+
+VIR_ENUM_IMPL(virDomainHostdevSubsysSCSIHostProtocol,
+              VIR_DOMAIN_HOSTDEV_SUBSYS_SCSI_HOST_PROTOCOL_TYPE_LAST,
+              "none",
+              "vhost")
 
 VIR_ENUM_IMPL(virDomainHostdevCaps, VIR_DOMAIN_HOSTDEV_CAPS_TYPE_LAST,
               "storage",
@@ -843,6 +850,11 @@ VIR_ENUM_IMPL(virDomainBlockJob, VIR_DOMAIN_BLOCK_JOB_TYPE_LAST,
 
 VIR_ENUM_IMPL(virDomainMemoryModel, VIR_DOMAIN_MEMORY_MODEL_LAST,
               "", "dimm")
+
+VIR_ENUM_IMPL(virDomainShmemModel, VIR_DOMAIN_SHMEM_MODEL_LAST,
+              "ivshmem",
+              "ivshmem-plain",
+              "ivshmem-doorbell")
 
 static virClassPtr virDomainObjClass;
 static virClassPtr virDomainXMLOptionClass;
@@ -2312,6 +2324,9 @@ void virDomainHostdevDefClear(virDomainHostdevDefPtr def)
             } else {
                 VIR_FREE(scsisrc->u.host.adapter);
             }
+        } else if (def->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI_HOST) {
+            virDomainHostdevSubsysSCSIVHostPtr hostsrc = &def->source.subsys.u.scsi_host;
+            VIR_FREE(hostsrc->wwpn);
         }
         break;
     }
@@ -4242,9 +4257,7 @@ virDomainDeviceDefPostParseInternal(virDomainDeviceDefPtr dev,
     if (dev->type == VIR_DOMAIN_DEVICE_HOSTDEV) {
         virDomainHostdevDefPtr hdev = dev->data.hostdev;
 
-        if (hdev->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
-            hdev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI) {
-
+        if (virHostdevIsSCSIDevice(hdev)) {
             if (hdev->info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE &&
                 virDomainHostdevAssignAddress(xmlopt, def, hdev) < 0) {
                 virReportError(VIR_ERR_XML_ERROR, "%s",
@@ -5002,7 +5015,8 @@ virDomainDeviceInfoFormat(virBufferPtr buf,
 
     case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DIMM:
         virBufferAsprintf(buf, " slot='%u'", info->addr.dimm.slot);
-        virBufferAsprintf(buf, " base='0x%llx'", info->addr.dimm.base);
+        if (info->addr.dimm.base)
+            virBufferAsprintf(buf, " base='0x%llx'", info->addr.dimm.base);
 
         break;
 
@@ -5403,14 +5417,15 @@ virDomainDeviceDimmAddressParseXML(xmlNodePtr node,
     }
     VIR_FREE(tmp);
 
-    if (!(tmp = virXMLPropString(node, "base")) ||
-        virStrToLong_ullp(tmp, NULL, 16, &addr->base) < 0) {
-        virReportError(VIR_ERR_XML_ERROR,
-                       _("invalid or missing dimm base address '%s'"),
-                       NULLSTR(tmp));
-        goto cleanup;
+    if ((tmp = virXMLPropString(node, "base"))) {
+        if (virStrToLong_ullp(tmp, NULL, 16, &addr->base) < 0) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("invalid dimm base address '%s'"), tmp);
+            goto cleanup;
+        }
+
+        VIR_FREE(tmp);
     }
-    VIR_FREE(tmp);
 
     ret = 0;
 
@@ -6081,6 +6096,58 @@ virDomainHostdevSubsysSCSIDefParseXML(xmlNodePtr sourcenode,
     return ret;
 }
 
+static int
+virDomainHostdevSubsysSCSIVHostDefParseXML(xmlNodePtr sourcenode,
+                                           virDomainHostdevDefPtr def)
+{
+    char *protocol = NULL;
+    virDomainHostdevSubsysSCSIVHostPtr hostsrc = &def->source.subsys.u.scsi_host;
+
+    if (!(protocol = virXMLPropString(sourcenode, "protocol"))) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("Missing scsi_host subsystem protocol"));
+        return -1;
+    }
+
+    if ((hostsrc->protocol =
+         virDomainHostdevSubsysSCSIHostProtocolTypeFromString(protocol)) <= 0) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Unknown scsi_host subsystem protocol '%s'"),
+                       protocol);
+        goto cleanup;
+    }
+
+    switch ((virDomainHostdevSubsysSCSIHostProtocolType) hostsrc->protocol) {
+    case VIR_DOMAIN_HOSTDEV_SUBSYS_SCSI_HOST_PROTOCOL_TYPE_VHOST:
+        if (!(hostsrc->wwpn = virXMLPropString(sourcenode, "wwpn"))) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("missing vhost-scsi hostdev source wwpn"));
+            goto cleanup;
+        }
+
+        if (!STRPREFIX(hostsrc->wwpn, "naa.") ||
+            !virValidateWWN(hostsrc->wwpn + 4)) {
+            virReportError(VIR_ERR_XML_ERROR, "%s", _("malformed 'wwpn' value"));
+            goto cleanup;
+        }
+        break;
+    case VIR_DOMAIN_HOSTDEV_SUBSYS_SCSI_HOST_PROTOCOL_TYPE_NONE:
+    case VIR_DOMAIN_HOSTDEV_SUBSYS_SCSI_HOST_PROTOCOL_TYPE_LAST:
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Invalid hostdev protocol '%s'"),
+                       virDomainHostdevSubsysSCSIHostProtocolTypeToString(hostsrc->protocol));
+        goto cleanup;
+        break;
+    }
+
+    return 0;
+
+ cleanup:
+    VIR_FREE(hostsrc->wwpn);
+    VIR_FREE(protocol);
+    return -1;
+}
+
 
 static int
 virDomainHostdevDefParseXMLSubsys(xmlNodePtr node,
@@ -6202,6 +6269,11 @@ virDomainHostdevDefParseXMLSubsys(xmlNodePtr node,
 
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI:
         if (virDomainHostdevSubsysSCSIDefParseXML(sourcenode, scsisrc) < 0)
+            goto error;
+        break;
+
+    case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI_HOST:
+        if (virDomainHostdevSubsysSCSIVHostDefParseXML(sourcenode, def) < 0)
             goto error;
         break;
 
@@ -12351,6 +12423,20 @@ virDomainShmemDefParseXML(xmlNodePtr node,
 
     ctxt->node = node;
 
+    tmp = virXPathString("string(./model/@type)", ctxt);
+    if (tmp) {
+        /* If there's none, we will automatically have the first one
+         * (as default).  Unfortunately this has to be done for
+         * compatibility reasons. */
+        if ((def->model = virDomainShmemModelTypeFromString(tmp)) < 0) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("Unknown shmem model type '%s'"), tmp);
+            goto cleanup;
+        }
+
+        VIR_FREE(tmp);
+    }
+
     if (!(def->name = virXMLPropString(node, "name"))) {
         virReportError(VIR_ERR_XML_ERROR, "%s",
                        _("shmem element must contain 'name' attribute"));
@@ -12973,7 +13059,7 @@ virDomainHostdevDefParseXML(virDomainXMLOptionPtr xmlopt,
     }
 
     if (def->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS) {
-        switch (def->source.subsys.type) {
+        switch ((virDomainHostdevSubsysType) def->source.subsys.type) {
         case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI:
             if (def->info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE &&
                 def->info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
@@ -12994,6 +13080,19 @@ virDomainHostdevDefParseXML(virDomainXMLOptionPtr xmlopt,
                 def->readonly = true;
             if (virXPathBoolean("boolean(./shareable)", ctxt))
                 def->shareable = true;
+            break;
+        case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI_HOST:
+            if (def->info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE &&
+                def->info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI &&
+                def->info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW) {
+                virReportError(VIR_ERR_XML_ERROR, "%s",
+                               _("SCSI_host host device must use 'pci' "
+                                 "or 'ccw' address type"));
+                goto error;
+            }
+            break;
+        case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB:
+        case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_LAST:
             break;
         }
     }
@@ -13861,7 +13960,7 @@ virDomainHostdevMatchSubsys(virDomainHostdevDefPtr a,
     if (a->source.subsys.type != b->source.subsys.type)
         return 0;
 
-    switch (a->source.subsys.type) {
+    switch ((virDomainHostdevSubsysType) a->source.subsys.type) {
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI:
         return virDomainHostdevMatchSubsysPCI(a, b);
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB:
@@ -13875,6 +13974,17 @@ virDomainHostdevMatchSubsys(virDomainHostdevDefPtr a,
             return virDomainHostdevMatchSubsysSCSIiSCSI(a, b);
         else
             return virDomainHostdevMatchSubsysSCSIHost(a, b);
+    case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI_HOST:
+        if (a->source.subsys.u.scsi_host.protocol !=
+            b->source.subsys.u.scsi_host.protocol)
+            return 0;
+        if (STREQ(a->source.subsys.u.scsi_host.wwpn,
+                  b->source.subsys.u.scsi_host.wwpn))
+            return 1;
+        else
+            return 0;
+    case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_LAST:
+        return 0;
     }
     return 0;
 }
@@ -14939,6 +15049,9 @@ virDomainShmemDefEquals(virDomainShmemDefPtr src,
     if (src->size != dst->size)
         return false;
 
+    if (src->model != dst->model)
+        return false;
+
     if (src->server.enabled != dst->server.enabled)
         return false;
 
@@ -15619,8 +15732,7 @@ virDomainDefMaybeAddHostdevSCSIcontroller(virDomainDefPtr def)
 
     for (i = 0; i < def->nhostdevs; i++) {
         hostdev = def->hostdevs[i];
-        if (hostdev->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
-            hostdev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI &&
+        if (virHostdevIsSCSIDevice(hostdev) &&
             (int)hostdev->info->addr.drive.controller > maxController) {
             maxController = hostdev->info->addr.drive.controller;
         }
@@ -16260,8 +16372,10 @@ virDomainDefParseXML(xmlDocPtr xml,
 
     /* analysis of security label, done early even though we format it
      * late, so devices can refer to this for defaults */
-    if (virSecurityLabelDefsParseXML(def, ctxt, caps, flags) == -1)
-        goto error;
+    if (!(flags & VIR_DOMAIN_DEF_PARSE_SKIP_SECLABEL)) {
+        if (virSecurityLabelDefsParseXML(def, ctxt, caps, flags) == -1)
+            goto error;
+    }
 
     /* Extract domain memory */
     if (virDomainParseMemory("./memory[1]", NULL, ctxt,
@@ -18927,6 +19041,15 @@ virDomainShmemDefCheckABIStability(virDomainShmemDefPtr src,
         return false;
     }
 
+    if (src->model != dst->model) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Target shared memory model '%s' does not match "
+                         "source model '%s'"),
+                       virDomainShmemModelTypeToString(dst->model),
+                       virDomainShmemModelTypeToString(src->model));
+        return false;
+    }
+
     if (src->size != dst->size) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Target shared memory size '%llu' does not match "
@@ -20767,9 +20890,11 @@ virDomainHostdevDefFormatSubsys(virBufferPtr buf,
                                 unsigned int flags,
                                 bool includeTypeInAddr)
 {
+    bool closedSource = false;
     virDomainHostdevSubsysUSBPtr usbsrc = &def->source.subsys.u.usb;
     virDomainHostdevSubsysPCIPtr pcisrc = &def->source.subsys.u.pci;
     virDomainHostdevSubsysSCSIPtr scsisrc = &def->source.subsys.u.scsi;
+    virDomainHostdevSubsysSCSIVHostPtr hostsrc = &def->source.subsys.u.scsi_host;
     virDomainHostdevSubsysSCSIHostPtr scsihostsrc = &scsisrc->u.host;
     virDomainHostdevSubsysSCSIiSCSIPtr iscsisrc = &scsisrc->u.iscsi;
 
@@ -20808,6 +20933,15 @@ virDomainHostdevDefFormatSubsys(virBufferPtr buf,
 
         virBufferAsprintf(buf, " protocol='%s' name='%s'",
                           protocol, iscsisrc->path);
+    }
+
+    if (def->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI_HOST) {
+        const char *protocol =
+            virDomainHostdevSubsysSCSIHostProtocolTypeToString(hostsrc->protocol);
+        closedSource = true;
+
+        virBufferAsprintf(buf, " protocol='%s' wwpn='%s'/",
+                          protocol, hostsrc->wwpn);
     }
 
     virBufferAddLit(buf, ">\n");
@@ -20863,6 +20997,8 @@ virDomainHostdevDefFormatSubsys(virBufferPtr buf,
                               scsihostsrc->unit);
         }
         break;
+    case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI_HOST:
+        break;
     default:
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("unexpected hostdev type %d"),
@@ -20878,7 +21014,8 @@ virDomainHostdevDefFormatSubsys(virBufferPtr buf,
     }
 
     virBufferAdjustIndent(buf, -2);
-    virBufferAddLit(buf, "</source>\n");
+    if (!closedSource)
+        virBufferAddLit(buf, "</source>\n");
 
     return 0;
 }
@@ -21980,19 +22117,12 @@ virDomainShmemDefFormat(virBufferPtr buf,
                         virDomainShmemDefPtr def,
                         unsigned int flags)
 {
-    virBufferEscapeString(buf, "<shmem name='%s'", def->name);
-
-    if (!def->size &&
-        !def->server.enabled &&
-        !def->msi.enabled &&
-        !virDomainDeviceInfoNeedsFormat(&def->info, flags)) {
-        virBufferAddLit(buf, "/>\n");
-        return 0;
-    } else {
-        virBufferAddLit(buf, ">\n");
-    }
+    virBufferEscapeString(buf, "<shmem name='%s'>\n", def->name);
 
     virBufferAdjustIndent(buf, 2);
+
+    virBufferAsprintf(buf, "<model type='%s'/>\n",
+                      virDomainShmemModelTypeToString(def->model));
 
     if (def->size)
         virBufferAsprintf(buf, "<size unit='M'>%llu</size>\n", def->size >> 20);

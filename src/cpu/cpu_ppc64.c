@@ -63,26 +63,18 @@ struct ppc64_map {
  *   POWER7_v2.3  => POWER7
  *   POWER7+_v2.1 => POWER7
  *   POWER8_v1.0  => POWER8 */
-static virCPUDefPtr
-ppc64ConvertLegacyCPUDef(const virCPUDef *legacy)
+static int
+virCPUppc64ConvertLegacy(virCPUDefPtr cpu)
 {
-    virCPUDefPtr cpu;
-
-    if (!(cpu = virCPUDefCopy(legacy)))
-        goto out;
-
-    if (!cpu->model ||
-        !(STREQ(cpu->model, "POWER7_v2.1") ||
-          STREQ(cpu->model, "POWER7_v2.3") ||
-          STREQ(cpu->model, "POWER7+_v2.1") ||
-          STREQ(cpu->model, "POWER8_v1.0"))) {
-        goto out;
+    if (cpu->model &&
+        (STREQ(cpu->model, "POWER7_v2.1") ||
+         STREQ(cpu->model, "POWER7_v2.3") ||
+         STREQ(cpu->model, "POWER7+_v2.1") ||
+         STREQ(cpu->model, "POWER8_v1.0"))) {
+        cpu->model[strlen("POWERx")] = 0;
     }
 
-    cpu->model[strlen("POWERx")] = 0;
-
- out:
-    return cpu;
+    return 0;
 }
 
 /* Some hosts can run guests in compatibility mode, but not all
@@ -519,7 +511,8 @@ ppc64Compute(virCPUDefPtr host,
     size_t i;
 
     /* Ensure existing configurations are handled correctly */
-    if (!(cpu = ppc64ConvertLegacyCPUDef(other)))
+    if (!(cpu = virCPUDefCopy(other)) ||
+        virCPUppc64ConvertLegacy(cpu) < 0)
         goto cleanup;
 
     if (cpu->arch != VIR_ARCH_NONE) {
@@ -691,7 +684,7 @@ ppc64DriverDecode(virCPUDefPtr cpu,
         goto cleanup;
     }
 
-    if (!cpuModelIsAllowed(model->name, models, nmodels)) {
+    if (!virCPUModelIsAllowed(model->name, models, nmodels)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("CPU model %s is not supported by hypervisor"),
                        model->name);
@@ -752,14 +745,6 @@ ppc64DriverNodeData(virArch arch)
     return NULL;
 }
 
-static virCPUCompareResult
-ppc64DriverGuestData(virCPUDefPtr host,
-                     virCPUDefPtr guest,
-                     virCPUDataPtr *data,
-                     char **message)
-{
-    return ppc64Compute(host, guest, data, message);
-}
 
 static int
 virCPUppc64Update(virCPUDefPtr guest,
@@ -876,7 +861,7 @@ ppc64DriverBaseline(virCPUDefPtr *cpus,
 }
 
 static int
-ppc64DriverGetModels(char ***models)
+virCPUppc64DriverGetModels(char ***models)
 {
     struct ppc64_map *map;
     size_t i;
@@ -903,7 +888,7 @@ ppc64DriverGetModels(char ***models)
 
  error:
     if (models) {
-        virStringFreeList(*models);
+        virStringListFree(*models);
         *models = NULL;
     }
     goto cleanup;
@@ -918,8 +903,8 @@ struct cpuArchDriver cpuDriverPPC64 = {
     .encode     = NULL,
     .free       = ppc64DriverFree,
     .nodeData   = ppc64DriverNodeData,
-    .guestData  = ppc64DriverGuestData,
     .baseline   = ppc64DriverBaseline,
     .update     = virCPUppc64Update,
-    .getModels  = ppc64DriverGetModels,
+    .getModels  = virCPUppc64DriverGetModels,
+    .convertLegacy = virCPUppc64ConvertLegacy,
 };
