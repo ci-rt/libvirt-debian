@@ -163,6 +163,7 @@ UTIL_SOURCES =							\
 		util/virrandom.h util/virrandom.c		\
 		util/virrotatingfile.h util/virrotatingfile.c   \
 		util/virscsi.c util/virscsi.h			\
+		util/virscsivhost.c util/virscsivhost.h		\
 		util/virseclabel.c util/virseclabel.h		\
 		util/virsecret.c util/virsecret.h		\
 		util/virsexpr.c util/virsexpr.h			\
@@ -800,6 +801,7 @@ VBOX_DRIVER_SOURCES =						\
 	vbox/vbox_V4_3.c vbox/vbox_CAPI_v4_3.h			\
 	vbox/vbox_V4_3_4.c vbox/vbox_CAPI_v4_3_4.h              \
 	vbox/vbox_V5_0.c vbox/vbox_CAPI_v5_0.h			\
+	vbox/vbox_V5_1.c vbox/vbox_CAPI_v5_1.h			\
 	vbox/vbox_common.c vbox/vbox_common.h                   \
 	vbox/vbox_uniformed_api.h                               \
 	vbox/vbox_get_driver.h					\
@@ -1136,7 +1138,8 @@ libvirt_util_la_LIBADD = $(CAPNG_LIBS) $(YAJL_LIBS) $(LIBNL_LIBS) \
 noinst_LTLIBRARIES += libvirt_conf.la
 libvirt_la_BUILT_LIBADD += libvirt_conf.la
 libvirt_conf_la_SOURCES = $(CONF_SOURCES)
-libvirt_conf_la_CFLAGS = $(AM_CFLAGS)
+libvirt_conf_la_CFLAGS = \
+		-I$(srcdir)/conf $(AM_CFLAGS)
 libvirt_conf_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_conf_la_LIBADD = $(LIBXML_LIBS)
 
@@ -2126,6 +2129,12 @@ else ! WITH_ATOMIC_OPS_PTHREAD
 SYM_FILES += $(srcdir)/libvirt_atomic.syms
 endif ! WITH_ATOMIC_OPS_PTHREAD
 
+if WITH_LIBSSH
+USED_SYM_FILES += $(srcdir)/libvirt_libssh.syms
+else ! WITH_LIBSSH
+SYM_FILES += $(srcdir)/libvirt_libssh.syms
+endif ! WITH_LIBSSH
+
 EXTRA_DIST += \
 	libvirt_public.syms		\
 	libvirt_lxc.syms		\
@@ -2203,7 +2212,8 @@ libvirt_admin_la_CFLAGS += \
 		$(YAJL_CFLAGS)			\
 		$(SSH2_CFLAGS)			\
 		$(SASL_CFLAGS)			\
-		$(GNUTLS_CFLAGS)
+		$(GNUTLS_CFLAGS)		\
+		$(LIBSSH_CFLAGS)
 
 libvirt_admin_la_LIBADD += \
 		$(CAPNG_LIBS)			\
@@ -2212,7 +2222,8 @@ libvirt_admin_la_LIBADD += \
 		$(LIBXML_LIBS)			\
 		$(SSH2_LIBS)			\
 		$(SASL_LIBS)			\
-		$(GNUTLS_LIBS)
+		$(GNUTLS_LIBS)			\
+		$(LIBSSH_LIBS)
 
 ADMIN_SYM_FILES = $(srcdir)/libvirt_admin_private.syms
 
@@ -2789,16 +2800,25 @@ else ! WITH_SASL
 EXTRA_DIST += \
 	rpc/virnetsaslcontext.h rpc/virnetsaslcontext.c
 endif ! WITH_SASL
+if WITH_LIBSSH
+libvirt_net_rpc_la_SOURCES += \
+	rpc/virnetlibsshsession.h rpc/virnetlibsshsession.c
+else ! WITH_LIBSSH
+EXTRA_DIST += \
+	rpc/virnetlibsshsession.h rpc/virnetlibsshsession.c
+endif ! WITH_LIBSSH
 libvirt_net_rpc_la_CFLAGS = \
 			$(GNUTLS_CFLAGS) \
 			$(SASL_CFLAGS) \
 			$(SSH2_CFLAGS) \
+			$(LIBSSH_CFLAGS) \
 			$(XDR_CFLAGS) \
 			$(AM_CFLAGS)
 libvirt_net_rpc_la_LDFLAGS = \
 			$(GNUTLS_LIBS) \
 			$(SASL_LIBS) \
 			$(SSH2_LIBS)\
+			$(LIBSSH_LIBS) \
 			$(SECDRIVER_LIBS) \
 			$(AM_LDFLAGS) \
 			$(NULL)

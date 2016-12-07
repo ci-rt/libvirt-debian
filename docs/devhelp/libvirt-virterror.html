@@ -149,7 +149,8 @@ void	<a href="#virSetErrorFunc">virSetErrorFunc</a>			(void * userData, <br/>			
     <a name="VIR_FROM_LOGGING">VIR_FROM_LOGGING</a> = 63 /* Error from log manager */
     <a name="VIR_FROM_XENXL">VIR_FROM_XENXL</a> = 64 /* Error from Xen xl config code */
     <a name="VIR_FROM_PERF">VIR_FROM_PERF</a> = 65 /* Error from perf */
-    <a name="VIR_ERR_DOMAIN_LAST">VIR_ERR_DOMAIN_LAST</a> = 66
+    <a name="VIR_FROM_LIBSSH">VIR_FROM_LIBSSH</a> = 66 /* Error from libssh connection transport */
+    <a name="VIR_ERR_DOMAIN_LAST">VIR_ERR_DOMAIN_LAST</a> = 67
 };
 </pre><p/>
 </div>
@@ -261,6 +262,7 @@ void	<a href="#virSetErrorFunc">virSetErrorFunc</a>			(void * userData, <br/>			
     <a name="VIR_ERR_NO_SERVER">VIR_ERR_NO_SERVER</a> = 95 /* Server was not found */
     <a name="VIR_ERR_NO_CLIENT">VIR_ERR_NO_CLIENT</a> = 96 /* Client was not found */
     <a name="VIR_ERR_AGENT_UNSYNCED">VIR_ERR_AGENT_UNSYNCED</a> = 97 /* guest agent replies with wrong id to guest-sync command */
+    <a name="VIR_ERR_LIBSSH">VIR_ERR_LIBSSH</a> = 98 /* error in libssh transport driver */
 };
 </pre><p/>
 </div>

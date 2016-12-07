@@ -13,80 +13,11 @@
     <meta name="description" content="libvirt, virtualization, virtualization API" />
   </head>
   <body>
-    <div id="header">
-      <div id="headerLogo"></div>
-      <div id="headerSearch">
-        <form action="search.php" enctype="application/x-www-form-urlencoded" method="get"><div>
-            <input id="query" name="query" type="text" size="12" value="" />
-            <input id="submit" name="submit" type="submit" value="Search" />
-          </div></form>
-      </div>
-    </div>
     <div id="body">
-      <div id="menu">
-        <ul class="l0"><li>
-            <div>
-              <a title="Front page of the libvirt website" class="inactive" href="index.html">Home</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="Details of new features and bugs fixed in each release" class="inactive" href="news.html">News</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="Applications known to use libvirt" class="inactive" href="apps.html">Applications</a>
-            </div>
-          </li><li>
-            <div>
-              <span class="active">Downloads</span>
-              <ul class="l1"><li>
-                  <div>
-                    <a title="Downloads for Windows" class="inactive" href="windows.html">Windows</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="Bindings of the libvirt API for languages other than C" class="inactive" href="bindings.html">Language bindings</a>
-                  </div>
-                </li></ul>
-            </div>
-          </li><li>
-            <div>
-              <a title="Information for users, administrators and developers" class="inactive" href="docs.html">Documentation</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="User contributed content" class="inactive" href="http://wiki.libvirt.org">Wiki</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="Frequently asked questions" class="inactive" href="http://wiki.libvirt.org/page/FAQ">FAQ</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="How and where to report bugs and request features" class="inactive" href="bugs.html">Bug reports</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="How to contact the developers via email and IRC" class="inactive" href="contact.html">Contact</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="Available test suites for libvirt" class="inactive" href="testsuites.html">Test suites</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="Miscellaneous links of interest related to libvirt" class="inactive" href="relatedlinks.html">Related Links</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="Overview of all content on the website" class="inactive" href="sitemap.html">Sitemap</a>
-            </div>
-          </li></ul>
-      </div>
       <div id="content">
         <h1>Downloads</h1>
         <ul><li>
-            <a href="#releases">Official Releases</a>
+            <a href="#releases">Project modules</a>
           </li><li>
             <a href="#hourly">Hourly development snapshots</a>
           </li><li>
@@ -97,19 +28,184 @@
             <a href="#maintenance">Maintenance releases</a>
           </li><li>
             <a href="#git">GIT source repository</a>
-          </li><li>
-            <a href="#appdevpdf">Application Development Guide PDF</a>
-          </li><li>
-            <a href="#appdevgit">Application Development Guide source GIT repository</a>
           </li></ul>
         <h2>
-          <a name="releases" shape="rect" id="releases">Official Releases</a>
+          <a name="releases" shape="rect" id="releases">Project modules</a>
           <a class="headerlink" href="#releases" title="Permalink to this headline">¶</a>
         </h2>
         <p>
-      The latest versions of the libvirt C library can be downloaded from:
+      The libvirt project maintains a number of inter-related modules beyond
+      the core C library/daemon.
     </p>
-        <ul><li><a href="ftp://libvirt.org/libvirt/" shape="rect">libvirt.org FTP server</a></li><li><a href="http://libvirt.org/sources/" shape="rect">libvirt.org HTTP server</a></li></ul>
+        <table class="top_table downloads"><thead><tr><th rowspan="1" colspan="1">Module</th><th rowspan="1" colspan="1">Releases</th><th rowspan="1" colspan="1">GIT Repo</th><th rowspan="1" colspan="1">GIT Mirrors</th></tr></thead><tbody><tr><td rowspan="1" colspan="1">libvirt</td><td rowspan="1" colspan="1">
+            <a href="ftp://libvirt.org/libvirt/" shape="rect">ftp</a>
+            <a href="http://libvirt.org/sources/" shape="rect">http</a>
+            <a href="https://libvirt.org/sources/" shape="rect">https</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="http://libvirt.org/git/?p=libvirt.git;a=summary" shape="rect">libvirt</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="https://gitlab.com/libvirt/libvirt" shape="rect">gitlab</a>
+            <a href="https://github.com/libvirt/libvirt" shape="rect">github</a>
+          </td></tr><tr><th colspan="7" rowspan="1">Language bindings</th></tr><tr><td rowspan="1" colspan="1">C#</td><td rowspan="1" colspan="1">
+            <a href="ftp://libvirt.org/libvirt/csharp/" shape="rect">ftp</a>
+            <a href="http://libvirt.org/sources/csharp/" shape="rect">http</a>
+            <a href="https://libvirt.org/sources/csharp/" shape="rect">https</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="http://libvirt.org/git/?p=libvirt-csharp.git;a=summary" shape="rect">libvirt</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="https://gitlab.com/libvirt/libvirt-csharp" shape="rect">gitlab</a>
+            <a href="https://github.com/libvirt/libvirt-csharp" shape="rect">github</a>
+          </td></tr><tr><td rowspan="1" colspan="1">Java</td><td rowspan="1" colspan="1">
+            <a href="ftp://libvirt.org/libvirt/java/" shape="rect">ftp</a>
+            <a href="http://libvirt.org/sources/java/" shape="rect">http</a>
+            <a href="https://libvirt.org/sources/java/" shape="rect">https</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="http://libvirt.org/git/?p=libvirt-java.git;a=summary" shape="rect">libvirt</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="https://gitlab.com/libvirt/libvirt-java" shape="rect">gitlab</a>
+            <a href="https://github.com/libvirt/libvirt-java" shape="rect">github</a>
+          </td></tr><tr><td rowspan="1" colspan="1">OCaml</td><td rowspan="1" colspan="1">
+            <a href="ftp://libvirt.org/libvirt/ocaml/" shape="rect">ftp</a>
+            <a href="http://libvirt.org/sources/ocaml/" shape="rect">http</a>
+            <a href="https://libvirt.org/sources/ocaml/" shape="rect">https</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="http://libvirt.org/git/?p=libvirt-ocaml.git;a=summary" shape="rect">libvirt</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="https://gitlab.com/libvirt/libvirt-ocaml" shape="rect">gitlab</a>
+            <a href="https://github.com/libvirt/libvirt-ocaml" shape="rect">github</a>
+          </td></tr><tr><td rowspan="1" colspan="1">Perl (Sys::Virt)</td><td rowspan="1" colspan="1">
+            <a href="http://search.cpan.org/dist/Sys-Virt/" shape="rect">cpan</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="http://libvirt.org/git/?p=libvirt-perl.git;a=summary" shape="rect">libvirt</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="https://gitlab.com/libvirt/libvirt-perl" shape="rect">gitlab</a>
+            <a href="https://github.com/libvirt/libvirt-perl" shape="rect">github</a>
+          </td></tr><tr><td rowspan="1" colspan="1">PHP</td><td rowspan="1" colspan="1">
+            <a href="ftp://libvirt.org/libvirt/php/" shape="rect">ftp</a>
+            <a href="http://libvirt.org/sources/php/" shape="rect">http</a>
+            <a href="https://libvirt.org/sources/php/" shape="rect">https</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="http://libvirt.org/git/?p=libvirt-php.git;a=summary" shape="rect">libvirt</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="https://gitlab.com/libvirt/libvirt-php" shape="rect">gitlab</a>
+            <a href="https://github.com/libvirt/libvirt-php" shape="rect">github</a>
+          </td></tr><tr><td rowspan="1" colspan="1">Python</td><td rowspan="1" colspan="1">
+            <a href="ftp://libvirt.org/libvirt/python/" shape="rect">ftp</a>
+            <a href="http://libvirt.org/sources/python/" shape="rect">http</a>
+            <a href="https://libvirt.org/sources/python/" shape="rect">https</a>
+            <a href="https://pypi.python.org/pypi/libvirt-python" shape="rect">pypi</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="http://libvirt.org/git/?p=libvirt-python.git;a=summary" shape="rect">libvirt</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="https://gitlab.com/libvirt/libvirt-python" shape="rect">gitlab</a>
+            <a href="https://github.com/libvirt/libvirt-python" shape="rect">github</a>
+          </td></tr><tr><td rowspan="1" colspan="1">Ruby</td><td rowspan="1" colspan="1">
+            <a href="ftp://libvirt.org/libvirt/ruby/" shape="rect">ftp</a>
+            <a href="http://libvirt.org/sources/ruby/" shape="rect">http</a>
+            <a href="https://libvirt.org/sources/ruby/" shape="rect">https</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="http://libvirt.org/git/?p=ruby-libvirt.git;a=summary" shape="rect">libvirt</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="https://gitlab.com/libvirt/ruby-libvirt" shape="rect">gitlab</a>
+            <a href="https://github.com/libvirt/ruby-libvirt" shape="rect">github</a>
+          </td></tr><tr><th colspan="7" rowspan="1">Integration modules</th></tr><tr><td rowspan="1" colspan="1">GLib / GConfig / GObject</td><td rowspan="1" colspan="1">
+            <a href="ftp://libvirt.org/libvirt/glib/" shape="rect">ftp</a>
+            <a href="http://libvirt.org/sources/glib/" shape="rect">http</a>
+            <a href="https://libvirt.org/sources/glib/" shape="rect">https</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="http://libvirt.org/git/?p=libvirt-glib.git;a=summary" shape="rect">libvirt</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="https://gitlab.com/libvirt/libvirt-glib" shape="rect">gitlab</a>
+            <a href="https://github.com/libvirt/libvirt-glib" shape="rect">github</a>
+          </td></tr><tr><td rowspan="1" colspan="1">CIM provider</td><td rowspan="1" colspan="1">
+            <a href="ftp://libvirt.org/libvirt/CIM/" shape="rect">ftp</a>
+            <a href="http://libvirt.org/sources/CIM/" shape="rect">http</a>
+            <a href="https://libvirt.org/sources/CIM/" shape="rect">https</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="http://libvirt.org/git/?p=libvirt-cim.git;a=summary" shape="rect">libvirt</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="https://gitlab.com/libvirt/libvirt-cim" shape="rect">gitlab</a>
+            <a href="https://github.com/libvirt/libvirt-cim" shape="rect">github</a>
+          </td></tr><tr><td rowspan="1" colspan="1">CIM utils</td><td rowspan="1" colspan="1">
+            <a href="ftp://libvirt.org/libvirt/CIM/" shape="rect">ftp</a>
+            <a href="http://libvirt.org/sources/CIM/" shape="rect">http</a>
+            <a href="https://libvirt.org/sources/CIM/" shape="rect">https</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="http://libvirt.org/git/?p=libcmpiutil.git;a=summary" shape="rect">libvirt</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="https://gitlab.com/libvirt/libcmpiutil" shape="rect">gitlab</a>
+            <a href="https://github.com/libvirt/libcmpiutil" shape="rect">github</a>
+          </td></tr><tr><td rowspan="1" colspan="1">SNMP</td><td rowspan="1" colspan="1">
+            <a href="ftp://libvirt.org/libvirt/snmp/" shape="rect">ftp</a>
+            <a href="http://libvirt.org/sources/snmp/" shape="rect">http</a>
+            <a href="https://libvirt.org/sources/snmp/" shape="rect">https</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="http://libvirt.org/git/?p=libvirt-snmp.git;a=summary" shape="rect">libvirt</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="https://gitlab.com/libvirt/libvirt-snmp" shape="rect">gitlab</a>
+            <a href="https://github.com/libvirt/libvirt-snmp" shape="rect">github</a>
+          </td></tr><tr><td rowspan="1" colspan="1">Application Sandbox</td><td rowspan="1" colspan="1">
+            <a href="ftp://libvirt.org/libvirt/sandbox/" shape="rect">ftp</a>
+            <a href="http://libvirt.org/sources/sandbox/" shape="rect">http</a>
+            <a href="https://libvirt.org/sources/sandbox/" shape="rect">https</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="http://libvirt.org/git/?p=libvirt-sandbox.git;a=summary" shape="rect">libvirt</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="https://gitlab.com/libvirt/libvirt-sandbox" shape="rect">gitlab</a>
+            <a href="https://github.com/libvirt/libvirt-sandbox" shape="rect">github</a>
+          </td></tr><tr><th colspan="7" rowspan="1">Testing</th></tr><tr><td rowspan="1" colspan="1">TCK</td><td rowspan="1" colspan="1">
+            <a href="ftp://libvirt.org/libvirt/tck/" shape="rect">ftp</a>
+            <a href="http://libvirt.org/sources/tck/" shape="rect">http</a>
+            <a href="https://libvirt.org/sources/tck/" shape="rect">https</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="http://libvirt.org/git/?p=libvirt-tck.git;a=summary" shape="rect">libvirt</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="https://gitlab.com/libvirt/libvirt-tck" shape="rect">gitlab</a>
+            <a href="https://github.com/libvirt/libvirt-tck" shape="rect">github</a>
+          </td></tr><tr><td rowspan="1" colspan="1">Test API</td><td rowspan="1" colspan="1"></td><td rowspan="1" colspan="1">
+            <a href="http://libvirt.org/git/?p=libvirt-test-API.git;a=summary" shape="rect">libvirt</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="https://gitlab.com/libvirt/libvirt-test-API" shape="rect">gitlab</a>
+            <a href="https://github.com/libvirt/libvirt-test-API" shape="rect">github</a>
+          </td></tr><tr><td rowspan="1" colspan="1">Jenkins Config</td><td rowspan="1" colspan="1"></td><td rowspan="1" colspan="1">
+            <a href="http://libvirt.org/git/?p=libvirt-jenkins-ci.git;a=summary" shape="rect">libvirt</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="https://gitlab.com/libvirt/libvirt-jenkins-ci" shape="rect">gitlab</a>
+            <a href="https://github.com/libvirt/libvirt-jenkins-ci" shape="rect">github</a>
+          </td></tr><tr><td rowspan="1" colspan="1">CIM Test</td><td rowspan="1" colspan="1"></td><td rowspan="1" colspan="1">
+            <a href="http://libvirt.org/git/?p=cimtest.git;a=summary" shape="rect">libvirt</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="https://gitlab.com/libvirt/cimtest" shape="rect">gitlab</a>
+            <a href="https://github.com/libvirt/cimtest" shape="rect">github</a>
+          </td></tr><tr><th colspan="7" rowspan="1">Documentation</th></tr><tr><td rowspan="1" colspan="1">Publican Brand</td><td rowspan="1" colspan="1"></td><td rowspan="1" colspan="1">
+            <a href="http://libvirt.org/git/?p=libvirt-publican.git;a=summary" shape="rect">libvirt</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="https://gitlab.com/libvirt/libvirt-publican" shape="rect">gitlab</a>
+            <a href="https://github.com/libvirt/libvirt-publican" shape="rect">github</a>
+          </td></tr><tr><td rowspan="1" colspan="1">App Development Guide</td><td rowspan="1" colspan="1"></td><td rowspan="1" colspan="1">
+            <a href="http://libvirt.org/git/?p=libvirt-appdev-guide.git;a=summary" shape="rect">libvirt</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="https://gitlab.com/libvirt/libvirt-appdev-guide" shape="rect">gitlab</a>
+            <a href="https://github.com/libvirt/libvirt-appdev-guide" shape="rect">github</a>
+          </td></tr><tr><td rowspan="1" colspan="1">App Development Guide Python</td><td rowspan="1" colspan="1"></td><td rowspan="1" colspan="1">
+            <a href="http://libvirt.org/git/?p=libvirt-appdev-guide-python.git;a=summary" shape="rect">libvirt</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="https://gitlab.com/libvirt/libvirt-appdev-guide-python" shape="rect">gitlab</a>
+            <a href="https://github.com/libvirt/libvirt-appdev-guide-python" shape="rect">github</a>
+          </td></tr><tr><td rowspan="1" colspan="1">virsh Command Reference</td><td rowspan="1" colspan="1"></td><td rowspan="1" colspan="1">
+            <a href="http://libvirt.org/git/?p=libvirt-virshcmdref.git;a=summary" shape="rect">libvirt</a>
+          </td><td rowspan="1" colspan="1">
+            <a href="https://gitlab.com/libvirt/libvirt-virshcmdref" shape="rect">gitlab</a>
+            <a href="https://github.com/libvirt/libvirt-virshcmdref" shape="rect">github</a>
+          </td></tr></tbody></table>
+        <h2>Primary download site</h2>
+        <p>
+      Most modules have releases made available for download on the project
+      site, via FTP, HTTP or HTTPS. Some modules are instead made available
+      at alternative locations, for example, the Perl binding is made
+      available only on CPAN.
+    </p>
+        <ul><li><a href="ftp://libvirt.org/libvirt/" shape="rect">libvirt.org FTP server</a></li><li><a href="http://libvirt.org/sources/" shape="rect">libvirt.org HTTP server</a></li><li><a href="https://libvirt.org/sources/" shape="rect">libvirt.org HTTPS server</a></li></ul>
         <h2>
           <a name="hourly" shape="rect" id="hourly">Hourly development snapshots</a>
           <a class="headerlink" href="#hourly" title="Permalink to this headline">¶</a>
@@ -127,11 +223,13 @@
           <a class="headerlink" href="#schedule" title="Permalink to this headline">¶</a>
         </h2>
         <p>
-      Libvirt follows a time based plan, with releases made once a month
-      on the 1st of each month give or take a few days. The only exception
-      is at the start of the year where there are two 6 weeks gaps (first
-      release in the middle of Jan, then skip the Feb release), giving
-      a total of 11 releases a year.
+      The core libvirt module follows a time based plan, with releases made
+      once a month on the 1st of each month give or take a few days. The only
+      exception is at the start of the year where there are two 6 weeks gaps
+      (first release in the middle of Jan, then skip the Feb release), giving
+      a total of 11 releases a year. The Python and Perl modules will aim to
+      release at the same time as the core libvirt module. Other modules have
+      independant ad-hoc releases with no fixed time schedle.
     </p>
         <h2>
           <a name="numbering" shape="rect" id="numbering">Release numbering</a>
@@ -139,28 +237,34 @@
         </h2>
         <p>
       Since libvirt 2.0.0, a time based version numbering rule
-      is applied. As such, the changes in version number have
-      do not have any implications with respect to the scope of
-      features or bugfixes included, the stability of the code,
-      or the API / ABI compatibility (libvirt API / ABI is guaranteed
-      stable forever). The rules applied for changing the libvirt
-      version number are:
+      is applied to the core library releases. As such, the changes
+      in version number have do not have any implications with respect
+      to the scope of features or bugfixes included, the stability of
+      the code, or the API / ABI compatibility (libvirt API / ABI is
+      guaranteed stable forever). The rules applied for changing the
+      libvirt version number are:
     </p>
         <dl><dt><code>major</code></dt><dd>incremented by 1 for the first release of the year (the
-        Jan 15th release)</dd><dt><code>minor</code></dt><dd>incremented by 1 for each monthly release from git master</dd><dt><code>micro</code></dt><dd>always 0 for releases from git master, incremented by 1
+        Jan 15th release)</dd><dt><code>minor</code></dt><dd>reset to 0 with every major increment, otherwise incremented by 1
+        for each monthly release from git master</dd><dt><code>micro</code></dt><dd>always 0 for releases from git master, incremented by 1
         for each stable maintenance release</dd></dl>
         <p>
       Prior to 2.0.0, the major/minor numbers were incremented
       fairly arbitrarily, and maintenance releases appended a
-      fourth digit.
+      fourth digit. The language bindings will aim to use the
+      same version number as the most recent core library API
+      they support. The other modules have their own distinct
+      release numbering sequence, though they generally aim
+      to follow the above rules for incrementing major/minor/micro
+      digits.
     </p>
         <h2>
           <a name="maintenance" shape="rect" id="maintenance">Maintenance releases</a>
           <a class="headerlink" href="#maintenance" title="Permalink to this headline">¶</a>
         </h2>
         <p>
-      In the git repository are several stable maintenance branches,
-      matching the
+      In the git repository are several stable maintenance branches
+      for the core library, matching the
       pattern <code>v<i>major</i>.<i>minor</i>-maint</code>;
       these branches are forked off the corresponding
       <code>v<i>major</i>.<i>minor</i>.0</code> formal
@@ -174,7 +278,9 @@
       to the primary releases which are made once a month, there
       is no formal schedule for the maintenance releases, which
       are made whenever there is a need to make available key
-      bugfixes to downstream consumers.
+      bugfixes to downstream consumers. The language bindings
+      and other modules generally do not provide stable branch
+      releases.
     </p>
         <p>
       For more details about contents of maintenance releases, see
@@ -186,18 +292,14 @@
           <a class="headerlink" href="#git" title="Permalink to this headline">¶</a>
         </h2>
         <p>
-      Libvirt code source is now maintained in a <a href="http://git-scm.com/" shape="rect">git</a>
-      repository available on <a href="http://libvirt.org/git/" shape="rect">libvirt.org</a>:
+      All modules maintained by the libvirt project have their primary
+      source available in the <a href="http://libvirt.org/git/" shape="rect">project GIT server</a>.
+      Each module can be cloned anonymously using:
     </p>
         <pre xml:space="preserve">
-      git clone git://libvirt.org/libvirt.git</pre>
+git clone git://libvirt.org/[module name].git</pre>
         <p>
-      It can also be browsed at:
-    </p>
-        <pre xml:space="preserve">
-      <a href="http://libvirt.org/git/?p=libvirt.git;a=summary" shape="rect">http://libvirt.org/git/?p=libvirt.git;a=summary</a></pre>
-        <p>
-      In addition to this repository, there are the following read-only git
+      In addition to this primary repository, there are the following read-only git
       repositories which mirror the master one. Note that we currently do not
       use the full set of features on these mirrors (e.g. pull requests on
       GitHub, so please don't use them). All patch review and discussion only
@@ -205,50 +307,54 @@
       note that some repositories listed below allow HTTP checkouts too.
     </p>
         <pre xml:space="preserve">
-      <a href="https://github.com/libvirt/libvirt" shape="rect">https://github.com/libvirt/libvirt</a>
-      <a href="http://repo.or.cz/w/libvirt.git" shape="rect">http://repo.or.cz/w/libvirt.git</a>
-      <a href="https://gitlab.com/libvirt/libvirt" shape="rect">https://gitlab.com/libvirt/libvirt</a></pre>
-        <br />
-        <h1>libvirt Application Development Guide</h1>
-        <p>
-      The guide is both a learning tool for developing with libvirt and an
-      API reference document. It is a work in progress, composed by a
-      professional author from contributions written by members of the
-      libvirt team.
-    </p>
-        <p>
-      Contributions to the guide are <b>VERY</b> welcome. If you'd like to get
-      your name on this and demonstrate your virtualisation prowess, a solid
-      contribution to the content here will do it. :)
-    </p>
-        <h2>
-          <a name="appdevpdf" shape="rect" id="appdevpdf">Application Development Guide PDF</a>
-          <a class="headerlink" href="#appdevpdf" title="Permalink to this headline">¶</a>
-        </h2>
-        <p>
-      PDF download is available here:
-    </p>
-        <ul><li><a href="http://libvirt.org/guide/pdf/Application_Development_Guide.pdf" shape="rect">libvirt App Dev Guide</a> (PDF)</li></ul>
-        <h2>
-          <a name="appdevgit" shape="rect" id="appdevgit">Application Development Guide source GIT repository</a>
-          <a class="headerlink" href="#appdevgit" title="Permalink to this headline">¶</a>
-        </h2>
-        <p>
-      The source is also in a git repository:
-    </p>
-        <pre xml:space="preserve">
-      git clone git://libvirt.org/libvirt-appdev-guide.git</pre>
-        <p>
-      Browsable at:
-    </p>
-        <pre xml:space="preserve">
-      <a href="http://libvirt.org/git/?p=libvirt-appdev-guide.git;a=summary" shape="rect">http://libvirt.org/git/?p=libvirt-appdev-guide.git;a=summary</a></pre>
-        <br />
-        <p>
-      Once you've have obtained the libvirt source code, you can compile it
-      using the <a href="compiling.html" shape="rect">instructions here</a>.
-    </p>
+<a href="https://github.com/libvirt/" shape="rect">https://github.com/libvirt/</a>
+<a href="https://gitlab.com/libvirt/libvirt" shape="rect">https://gitlab.com/libvirt/</a></pre>
       </div>
+    </div>
+    <div id="nav">
+      <div id="home">
+        <a href="index.html">Home</a>
+      </div>
+      <div id="jumplinks">
+        <ul><li>
+            <a href="downloads.html">Download</a>
+          </li><li>
+            <a href="contribute.html">Contribute</a>
+          </li><li>
+            <a href="docs.html">Learn</a>
+          </li></ul>
+      </div>
+      <div id="search">
+        <form action="search.php" enctype="application/x-www-form-urlencoded" method="get"><div>
+            <input name="query" type="text" size="12" value="" />
+            <input name="submit" type="submit" value="Go" />
+          </div></form>
+      </div>
+    </div>
+    <div id="footer">
+      <div id="contact">
+        <h3>Contact</h3>
+        <ul><li>
+            <a href="contact.html#email">email</a>
+          </li><li>
+            <a href="contact.html#irc">irc</a>
+          </li></ul>
+      </div>
+      <div id="community">
+        <h3>Community</h3>
+        <ul><li>
+            <a href="https://twitter.com/hashtag/libvirt">twitter</a>
+          </li><li>
+            <a href="https://plus.google.com/communities/109522598353007505282">google+</a>
+          </li><li>
+            <a href="http://stackoverflow.com/questions/tagged/libvirt">stackoverflow</a>
+          </li><li>
+            <a href="http://serverfault.com/questions/tagged/libvirt">serverfault</a>
+          </li></ul>
+      </div>
+      <div id="conduct">
+            Participants in the libvirt project agree to abide by <a href="governance.html#codeofconduct">the project code of conduct</a></div>
+      <br class="clear" />
     </div>
   </body>
 </html>

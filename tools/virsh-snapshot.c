@@ -255,7 +255,7 @@ virshParseSnapshotMemspec(vshControl *ctl, virBufferPtr buf, const char *str)
  cleanup:
     if (ret < 0)
         vshError(ctl, _("unable to parse memspec: %s"), str);
-    virStringFreeList(array);
+    virStringListFree(array);
     return ret;
 }
 
@@ -306,7 +306,7 @@ virshParseSnapshotDiskspec(vshControl *ctl, virBufferPtr buf, const char *str)
  cleanup:
     if (ret < 0)
         vshError(ctl, _("unable to parse diskspec: %s"), str);
-    virStringFreeList(array);
+    virStringListFree(array);
     return ret;
 }
 
@@ -556,16 +556,16 @@ cmdSnapshotEdit(vshControl *ctl, const vshCmd *cmd)
 
 #define EDIT_GET_XML \
     virDomainSnapshotGetXMLDesc(snapshot, getxml_flags)
-#define EDIT_NOT_CHANGED                                                \
-    do {                                                                \
-        /* Depending on flags, we re-edit even if XML is unchanged.  */ \
-        if (!(define_flags & VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT)) {     \
-            vshPrint(ctl,                                               \
-                     _("Snapshot %s XML configuration not changed.\n"), \
-                     name);                                             \
-            ret = true;                                                 \
-            goto edit_cleanup;                                          \
-        }                                                               \
+#define EDIT_NOT_CHANGED                                                     \
+    do {                                                                     \
+        /* Depending on flags, we re-edit even if XML is unchanged.  */      \
+        if (!(define_flags & VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT)) {          \
+            vshPrintExtra(ctl,                                               \
+                          _("Snapshot %s XML configuration not changed.\n"), \
+                          name);                                             \
+            ret = true;                                                      \
+            goto edit_cleanup;                                               \
+        }                                                                    \
     } while (0)
 #define EDIT_DEFINE \
     (strstr(doc, "<state>disk-snapshot</state>") ? \

@@ -30,6 +30,7 @@
 # include "virpci.h"
 # include "virusb.h"
 # include "virscsi.h"
+# include "virscsivhost.h"
 # include "domain_conf.h"
 
 typedef enum {
@@ -53,6 +54,7 @@ struct _virHostdevManager {
     virPCIDeviceListPtr inactivePCIHostdevs;
     virUSBDeviceListPtr activeUSBHostdevs;
     virSCSIDeviceListPtr activeSCSIHostdevs;
+    virSCSIVHostDeviceListPtr activeSCSIVHostHostdevs;
 };
 
 virHostdevManagerPtr virHostdevManagerGetDefault(void);
@@ -87,6 +89,13 @@ virHostdevPrepareSCSIDevices(virHostdevManagerPtr hostdev_mgr,
                              virDomainHostdevDefPtr *hostdevs,
                              int nhostdevs)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+int
+virHostdevPrepareSCSIVHostDevices(virHostdevManagerPtr hostdev_mgr,
+                                  const char *drv_name,
+                                  const char *dom_name,
+                                  virDomainHostdevDefPtr *hostdevs,
+                                  int nhostdevs)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 void
 virHostdevReAttachPCIDevices(virHostdevManagerPtr hostdev_mgr,
                              const char *drv_name,
@@ -108,6 +117,13 @@ virHostdevReAttachSCSIDevices(virHostdevManagerPtr hostdev_mgr,
                               const char *dom_name,
                               virDomainHostdevDefPtr *hostdevs,
                               int nhostdevs)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+void
+virHostdevReAttachSCSIVHostDevices(virHostdevManagerPtr hostdev_mgr,
+                                   const char *drv_name,
+                                   const char *dom_name,
+                                   virDomainHostdevDefPtr *hostdevs,
+                                   int nhostdevs)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 int
 virHostdevUpdateActivePCIDevices(virHostdevManagerPtr mgr,
@@ -149,6 +165,9 @@ virHostdevReAttachDomainDevices(virHostdevManagerPtr mgr,
                                 unsigned int flags,
                                 const char *oldStateDir)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+bool
+virHostdevIsSCSIDevice(virDomainHostdevDefPtr hostdev)
+    ATTRIBUTE_NONNULL(1);
 
 /* functions used by NodeDevDetach/Reattach/Reset */
 int virHostdevPCINodeDeviceDetach(virHostdevManagerPtr mgr,

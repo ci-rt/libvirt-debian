@@ -294,6 +294,7 @@ typedef enum {
     VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB,
     VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI,
     VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI,
+    VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI_HOST,
 
     VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_LAST
 } virDomainHostdevSubsysType;
@@ -368,6 +369,22 @@ struct _virDomainHostdevSubsysSCSI {
     } u;
 };
 
+typedef enum {
+    VIR_DOMAIN_HOSTDEV_SUBSYS_SCSI_HOST_PROTOCOL_TYPE_NONE,
+    VIR_DOMAIN_HOSTDEV_SUBSYS_SCSI_HOST_PROTOCOL_TYPE_VHOST,
+
+    VIR_DOMAIN_HOSTDEV_SUBSYS_SCSI_HOST_PROTOCOL_TYPE_LAST,
+} virDomainHostdevSubsysSCSIHostProtocolType;
+
+VIR_ENUM_DECL(virDomainHostdevSubsysSCSIHostProtocol)
+
+typedef struct _virDomainHostdevSubsysSCSIVHost virDomainHostdevSubsysSCSIVHost;
+typedef virDomainHostdevSubsysSCSIVHost *virDomainHostdevSubsysSCSIVHostPtr;
+struct _virDomainHostdevSubsysSCSIVHost {
+    int protocol; /* enum virDomainHostdevSubsysSCSIHostProtocolType */
+    char *wwpn;
+};
+
 typedef struct _virDomainHostdevSubsys virDomainHostdevSubsys;
 typedef virDomainHostdevSubsys *virDomainHostdevSubsysPtr;
 struct _virDomainHostdevSubsys {
@@ -376,6 +393,7 @@ struct _virDomainHostdevSubsys {
         virDomainHostdevSubsysUSB usb;
         virDomainHostdevSubsysPCI pci;
         virDomainHostdevSubsysSCSI scsi;
+        virDomainHostdevSubsysSCSIVHost scsi_host;
     } u;
 };
 
@@ -1562,9 +1580,18 @@ struct _virDomainNVRAMDef {
     virDomainDeviceInfo info;
 };
 
+typedef enum {
+    VIR_DOMAIN_SHMEM_MODEL_IVSHMEM,
+    VIR_DOMAIN_SHMEM_MODEL_IVSHMEM_PLAIN,
+    VIR_DOMAIN_SHMEM_MODEL_IVSHMEM_DOORBELL,
+
+    VIR_DOMAIN_SHMEM_MODEL_LAST
+} virDomainShmemModel;
+
 struct _virDomainShmemDef {
     char *name;
     unsigned long long size;
+    int model; /* enum virDomainShmemModel */
     struct {
         bool enabled;
         virDomainChrSourceDef chr;
@@ -2657,6 +2684,8 @@ typedef enum {
     VIR_DOMAIN_DEF_PARSE_ABI_UPDATE = 1 << 9,
     /* skip definition validation checks meant to be executed on define time only */
     VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE = 1 << 10,
+    /* skip parsing of security labels */
+    VIR_DOMAIN_DEF_PARSE_SKIP_SECLABEL        = 1 << 11,
 } virDomainDefParseFlags;
 
 typedef enum {
@@ -3084,6 +3113,7 @@ VIR_ENUM_DECL(virDomainTPMBackend)
 VIR_ENUM_DECL(virDomainMemoryModel)
 VIR_ENUM_DECL(virDomainMemoryBackingModel)
 VIR_ENUM_DECL(virDomainIOMMUModel)
+VIR_ENUM_DECL(virDomainShmemModel)
 /* from libvirt.h */
 VIR_ENUM_DECL(virDomainState)
 VIR_ENUM_DECL(virDomainNostateReason)

@@ -335,6 +335,51 @@ static virNetClientPtr virNetClientNew(virNetSocketPtr sock,
     return NULL;
 }
 
+/*
+ * Check whether the specified SSH key exists.
+ *
+ * Return -1 on error, 0 if it does not exist, and 1 if it does exist.
+ */
+static int
+virNetClientCheckKeyExists(const char *homedir,
+                           const char *name,
+                           char **retPath)
+{
+    char *path;
+
+    if (virAsprintf(&path, "%s/.ssh/%s", homedir, name) < 0)
+        return -1;
+
+    if (!(virFileExists(path))) {
+        VIR_FREE(path);
+        return 0;
+    }
+
+    *retPath = path;
+    return 1;
+}
+
+/*
+ * Detect the default SSH key, if existing.
+ *
+ * Return -1 on error, 0 if it does not exist, and 1 if it does exist.
+ */
+static int
+virNetClientFindDefaultSshKey(const char *homedir, char **retPath)
+{
+    size_t i;
+
+    const char *keys[] = { "identity", "id_dsa", "id_ecdsa", "id_ed25519", "id_rsa" };
+
+    for (i = 0; i < ARRAY_CARDINALITY(keys); ++i) {
+        int ret = virNetClientCheckKeyExists(homedir, keys[i], retPath);
+        if (ret != 0)
+            return ret;
+    }
+
+    return 0;
+}
+
 
 virNetClientPtr virNetClientNewUNIX(const char *path,
                                     bool spawnDaemon,
@@ -426,22 +471,8 @@ virNetClientPtr virNetClientNewLibSSH2(const char *host,
 
     if (homedir) {
         if (!privkeyPath) {
-            /* RSA */
-            virBufferAsprintf(&buf, "%s/.ssh/id_rsa", homedir);
-            if (!(privkey = virBufferContentAndReset(&buf)))
+            if (virNetClientFindDefaultSshKey(homedir, &privkey) < 0)
                 goto no_memory;
-
-            if (!(virFileExists(privkey)))
-                VIR_FREE(privkey);
-            /* DSA */
-            if (!privkey) {
-                virBufferAsprintf(&buf, "%s/.ssh/id_dsa", homedir);
-                if (!(privkey = virBufferContentAndReset(&buf)))
-                    goto no_memory;
-
-                if (!(virFileExists(privkey)))
-                    VIR_FREE(privkey);
-            }
         } else {
             if (VIR_STRDUP(privkey, privkeyPath) < 0)
                 goto cleanup;
@@ -483,6 +514,112 @@ virNetClientPtr virNetClientNewLibSSH2(const char *host,
                                       username, privkey,
                                       knownhosts, knownHostsVerify, authMethods,
                                       command, authPtr, uri, &sock) != 0)
+        goto cleanup;
+
+    if (!(ret = virNetClientNew(sock, NULL)))
+        goto cleanup;
+    sock = NULL;
+
+ cleanup:
+    VIR_FREE(command);
+    VIR_FREE(privkey);
+    VIR_FREE(knownhosts);
+    VIR_FREE(homedir);
+    VIR_FREE(confdir);
+    VIR_FREE(nc);
+    virObjectUnref(sock);
+    return ret;
+
+ no_memory:
+    virReportOOMError();
+    goto cleanup;
+}
+#undef DEFAULT_VALUE
+
+#define DEFAULT_VALUE(VAR, VAL)             \
+    if (!VAR)                               \
+        VAR = VAL;
+virNetClientPtr virNetClientNewLibssh(const char *host,
+                                      const char *port,
+                                      int family,
+                                      const char *username,
+                                      const char *privkeyPath,
+                                      const char *knownHostsPath,
+                                      const char *knownHostsVerify,
+                                      const char *authMethods,
+                                      const char *netcatPath,
+                                      const char *socketPath,
+                                      virConnectAuthPtr authPtr,
+                                      virURIPtr uri)
+{
+    virNetSocketPtr sock = NULL;
+    virNetClientPtr ret = NULL;
+
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    char *nc = NULL;
+    char *command = NULL;
+
+    char *homedir = virGetUserDirectory();
+    char *confdir = virGetUserConfigDirectory();
+    char *knownhosts = NULL;
+    char *privkey = NULL;
+
+    /* Use default paths for known hosts an public keys if not provided */
+    if (confdir) {
+        if (!knownHostsPath) {
+            if (virFileExists(confdir)) {
+                if (virAsprintf(&knownhosts, "%s/known_hosts", confdir) < 0)
+                    goto cleanup;
+            }
+        } else {
+            if (VIR_STRDUP(knownhosts, knownHostsPath) < 0)
+                goto cleanup;
+        }
+    }
+
+    if (homedir) {
+        if (!privkeyPath) {
+            if (virNetClientFindDefaultSshKey(homedir, &privkey) < 0)
+                goto no_memory;
+        } else {
+            if (VIR_STRDUP(privkey, privkeyPath) < 0)
+                goto cleanup;
+        }
+    }
+
+    if (!authMethods) {
+        if (privkey)
+            authMethods = "agent,privkey,password,keyboard-interactive";
+        else
+            authMethods = "agent,password,keyboard-interactive";
+    }
+
+    DEFAULT_VALUE(host, "localhost");
+    DEFAULT_VALUE(port, "22");
+    DEFAULT_VALUE(username, "root");
+    DEFAULT_VALUE(netcatPath, "nc");
+    DEFAULT_VALUE(knownHostsVerify, "normal");
+
+    virBufferEscapeShell(&buf, netcatPath);
+    if (!(nc = virBufferContentAndReset(&buf)))
+        goto no_memory;
+
+    if (virAsprintf(&command,
+         "sh -c "
+         "'if '%s' -q 2>&1 | grep \"requires an argument\" >/dev/null 2>&1; then "
+             "ARG=-q0;"
+         "else "
+             "ARG=;"
+         "fi;"
+         "'%s' $ARG -U %s'",
+         nc, nc, socketPath) < 0)
+        goto cleanup;
+
+    if (virNetSocketNewConnectLibssh(host, port,
+                                     family,
+                                     username, privkey,
+                                     knownhosts, knownHostsVerify, authMethods,
+                                     command, authPtr, uri, &sock) != 0)
         goto cleanup;
 
     if (!(ret = virNetClientNew(sock, NULL)))

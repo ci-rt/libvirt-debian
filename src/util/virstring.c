@@ -38,7 +38,7 @@
 VIR_LOG_INIT("util.string");
 
 /*
- * The following virStringSplit & virStringJoin methods
+ * The following virStringSplit & virStringListJoin methods
  * are derived from g_strsplit / g_strjoin in glib2,
  * also available under the LGPLv2+ license terms
  */
@@ -60,13 +60,13 @@ VIR_LOG_INIT("util.string");
  *
  * As a special case, the result of splitting the empty string "" is an empty
  * vector, not a vector containing a single string. The reason for this
- * special case is that being able to represent a empty vector is typically
+ * special case is that being able to represent an empty vector is typically
  * more useful than consistent handling of empty elements. If you do need
  * to represent empty elements, you'll need to check for the empty string
  * before calling virStringSplit().
  *
  * Return value: a newly-allocated NULL-terminated array of strings. Use
- *    virStringFreeList() to free it.
+ *    virStringListFree() to free it.
  */
 char **
 virStringSplitCount(const char *string,
@@ -137,7 +137,7 @@ virStringSplit(const char *string,
 
 
 /**
- * virStringJoin:
+ * virStringListJoin:
  * @strings: a NULL-terminated array of strings to join
  * @delim: a string to insert between each of the strings
  *
@@ -148,8 +148,8 @@ virStringSplit(const char *string,
  * Returns: a newly-allocated string containing all of the strings joined
  *     together, with @delim between them
  */
-char *virStringJoin(const char **strings,
-                    const char *delim)
+char *virStringListJoin(const char **strings,
+                        const char *delim)
 {
     char *ret;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
@@ -169,13 +169,13 @@ char *virStringJoin(const char **strings,
 
 
 /**
- * virStringFreeList:
+ * virStringListFree:
  * @str_array: a NULL-terminated array of strings to free
  *
  * Frees a NULL-terminated array of strings, and the array itself.
- * If called on a NULL value, virStringFreeList() simply returns.
+ * If called on a NULL value, virStringListFree() simply returns.
  */
-void virStringFreeList(char **strings)
+void virStringListFree(char **strings)
 {
     char **tmp = strings;
     while (tmp && *tmp) {
@@ -187,14 +187,14 @@ void virStringFreeList(char **strings)
 
 
 /**
- * virStringFreeListCount:
+ * virStringListFreeCount:
  * @strings: array of strings to free
  * @count: number of elements in the array
  *
  * Frees a string array of @count length.
  */
 void
-virStringFreeListCount(char **strings,
+virStringListFreeCount(char **strings,
                        size_t count)
 {
     size_t i;
@@ -210,8 +210,8 @@ virStringFreeListCount(char **strings,
 
 
 bool
-virStringArrayHasString(const char **strings,
-                        const char *needle)
+virStringListHasString(const char **strings,
+                       const char *needle)
 {
     size_t i = 0;
 
@@ -227,7 +227,8 @@ virStringArrayHasString(const char **strings,
 }
 
 char *
-virStringGetFirstWithPrefix(char **strings, const char *prefix)
+virStringListGetFirstWithPrefix(char **strings,
+                                const char *prefix)
 {
     size_t i = 0;
 
@@ -814,7 +815,7 @@ int virStringSortRevCompare(const void *a, const void *b)
  * @result: pointer to an array to be filled with NULL terminated list of matches
  *
  * Performs a POSIX extended regex search against a string and return all matching substrings.
- * The @result value should be freed with virStringFreeList() when no longer
+ * The @result value should be freed with virStringListFree() when no longer
  * required.
  *
  * @code
@@ -834,7 +835,7 @@ int virStringSortRevCompare(const void *a, const void *b)
  *  // matches[2] == "bbb3c75c-d60f-43b0-b802-fd56b84a4222"
  *  // matches[3] == NULL;
  *
- *  virStringFreeList(matches);
+ *  virStringListFree(matches);
  * @endcode
  *
  * Returns: -1 on error, or number of matches
@@ -902,7 +903,7 @@ virStringSearch(const char *str,
  cleanup:
     regfree(&re);
     if (ret < 0) {
-        virStringFreeList(*matches);
+        virStringListFree(*matches);
         *matches = NULL;
     }
     return ret;
@@ -1027,7 +1028,7 @@ virStringStripControlChars(char *str)
  * Capitalize the string with replacement of all '-' characters for '_'
  * characters. Caller frees the result.
  *
- * Returns 0 if src is NULL, 1 if capitalization was successfull, -1 on failure.
+ * Returns 0 if src is NULL, 1 if capitalization was successful, -1 on failure.
  */
 int
 virStringToUpper(char **dst, const char *src)

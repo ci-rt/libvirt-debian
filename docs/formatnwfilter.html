@@ -13,153 +13,7 @@
     <meta name="description" content="libvirt, virtualization, virtualization API" />
   </head>
   <body>
-    <div id="header">
-      <div id="headerLogo"></div>
-      <div id="headerSearch">
-        <form action="search.php" enctype="application/x-www-form-urlencoded" method="get"><div>
-            <input id="query" name="query" type="text" size="12" value="" />
-            <input id="submit" name="submit" type="submit" value="Search" />
-          </div></form>
-      </div>
-    </div>
     <div id="body">
-      <div id="menu">
-        <ul class="l0"><li>
-            <div>
-              <a title="Front page of the libvirt website" class="inactive" href="index.html">Home</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="Details of new features and bugs fixed in each release" class="inactive" href="news.html">News</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="Applications known to use libvirt" class="inactive" href="apps.html">Applications</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="Get the latest source releases, binary builds and get access to the source repository" class="inactive" href="downloads.html">Downloads</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="Information for users, administrators and developers" class="active" href="docs.html">Documentation</a>
-              <ul class="l1"><li>
-                  <div>
-                    <a title="How to compile libvirt" class="inactive" href="compiling.html">Compiling</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="Information about deploying and using libvirt" class="inactive" href="deployment.html">Deployment</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="Overview of the logical subsystems in the libvirt API" class="inactive" href="intro.html">Architecture</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="Description of the XML formats used in libvirt" class="active" href="format.html">XML format</a>
-                    <ul class="l2"><li>
-                        <div>
-                          <a title="The domain XML format" class="inactive" href="formatdomain.html">Domains</a>
-                        </div>
-                      </li><li>
-                        <div>
-                          <a title="The virtual network XML format" class="inactive" href="formatnetwork.html">Networks</a>
-                        </div>
-                      </li><li>
-                        <div>
-                          <span class="active">Network Filtering</span>
-                        </div>
-                      </li><li>
-                        <div>
-                          <a title="The storage pool and volume XML format" class="inactive" href="formatstorage.html">Storage</a>
-                        </div>
-                      </li><li>
-                        <div>
-                          <a title="Storage volume encryption XML format" class="inactive" href="formatstorageencryption.html">Storage Encryption</a>
-                        </div>
-                      </li><li>
-                        <div>
-                          <a title="The driver capabilities XML format" class="inactive" href="formatcaps.html">Capabilities</a>
-                        </div>
-                      </li><li>
-                        <div>
-                          <a title="The domain capabilities XML format" class="inactive" href="formatdomaincaps.html">Domain capabilities</a>
-                        </div>
-                      </li><li>
-                        <div>
-                          <a title="The host device XML format" class="inactive" href="formatnode.html">Node Devices</a>
-                        </div>
-                      </li><li>
-                        <div>
-                          <a title="The secret XML format" class="inactive" href="formatsecret.html">Secrets</a>
-                        </div>
-                      </li><li>
-                        <div>
-                          <a title="The snapshot XML format" class="inactive" href="formatsnapshot.html">Snapshots</a>
-                        </div>
-                      </li></ul>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="Hypervisor specific driver information" class="inactive" href="drivers.html">Drivers</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="Reference manual for the C public API" class="inactive" href="html/index.html">API reference</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="Bindings of the libvirt API for other languages" class="inactive" href="bindings.html">Language bindings</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="Working on the internals of libvirt API, driver and daemon code" class="inactive" href="internals.html">Internals</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="A guide and reference for developing with libvirt" class="inactive" href="devguide.html">Development Guide</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="Command reference for virsh" class="inactive" href="virshcmdref.html">Virsh Commands</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="Project governance and code of conduct" class="inactive" href="governance.html">Governance</a>
-                  </div>
-                </li></ul>
-            </div>
-          </li><li>
-            <div>
-              <a title="User contributed content" class="inactive" href="http://wiki.libvirt.org">Wiki</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="Frequently asked questions" class="inactive" href="http://wiki.libvirt.org/page/FAQ">FAQ</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="How and where to report bugs and request features" class="inactive" href="bugs.html">Bug reports</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="How to contact the developers via email and IRC" class="inactive" href="contact.html">Contact</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="Available test suites for libvirt" class="inactive" href="testsuites.html">Test suites</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="Miscellaneous links of interest related to libvirt" class="inactive" href="relatedlinks.html">Related Links</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="Overview of all content on the website" class="inactive" href="sitemap.html">Sitemap</a>
-            </div>
-          </li></ul>
-      </div>
       <div id="content">
         <h1>Network Filters</h1>
         <ul><li>
@@ -291,14 +145,14 @@
     the filter <code>clean-traffic</code>.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;interface type='bridge'&gt;
-      &lt;mac address='00:16:3e:5d:c7:9e'/&gt;
-      &lt;filterref filter='clean-traffic'/&gt;
-    &lt;/interface&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;interface type='bridge'&gt;
+    &lt;mac address='00:16:3e:5d:c7:9e'/&gt;
+    &lt;filterref filter='clean-traffic'/&gt;
+  &lt;/interface&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
     Network filters are written in XML and may either contain references
     to other filters, contain rules for traffic filtering, or
@@ -320,16 +174,16 @@
     the parameter <code>IP</code> and a dotted IP address as value.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;interface type='bridge'&gt;
-      &lt;mac address='00:16:3e:5d:c7:9e'/&gt;
-      &lt;filterref filter='clean-traffic'&gt;
-        &lt;parameter name='IP' value='10.0.0.1'/&gt;
-      &lt;/filterref&gt;
-    &lt;/interface&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;interface type='bridge'&gt;
+    &lt;mac address='00:16:3e:5d:c7:9e'/&gt;
+    &lt;filterref filter='clean-traffic'&gt;
+      &lt;parameter name='IP' value='10.0.0.1'/&gt;
+    &lt;/filterref&gt;
+  &lt;/interface&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
       In this particular example, the <code>clean-traffic</code> network
       traffic filter will be instantiated with the IP address parameter
@@ -487,18 +341,18 @@
       providing multiple elements for the IP variable is:
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;interface type='bridge'&gt;
-      &lt;mac address='00:16:3e:5d:c7:9e'/&gt;
-      &lt;filterref filter='clean-traffic'&gt;
-        &lt;parameter name='IP' value='10.0.0.1'/&gt;
-        &lt;parameter name='IP' value='10.0.0.2'/&gt;
-        &lt;parameter name='IP' value='10.0.0.3'/&gt;
-      &lt;/filterref&gt;
-    &lt;/interface&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;interface type='bridge'&gt;
+    &lt;mac address='00:16:3e:5d:c7:9e'/&gt;
+    &lt;filterref filter='clean-traffic'&gt;
+      &lt;parameter name='IP' value='10.0.0.1'/&gt;
+      &lt;parameter name='IP' value='10.0.0.2'/&gt;
+      &lt;parameter name='IP' value='10.0.0.3'/&gt;
+    &lt;/filterref&gt;
+  &lt;/interface&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
       This then allows filters to enable multiple IP addresses
       per interface. Therefore, with the list
@@ -506,11 +360,11 @@
       individual filtering rules, one for each IP address.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;rule action='accept' direction='in' priority='500'&gt;
-    &lt;tcp srpipaddr='$IP'/&gt;
-  &lt;/rule&gt;
-  ...
+...
+&lt;rule action='accept' direction='in' priority='500'&gt;
+  &lt;tcp srpipaddr='$IP'/&gt;
+&lt;/rule&gt;
+...
 </pre>
         <p>
       <span class="since">Since 0.9.10</span> it is possible to access
@@ -519,11 +373,11 @@
       of the variable DSTPORTS.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;rule action='accept' direction='in' priority='500'&gt;
-    &lt;udp dstportstart='$DSTPORTS[1]'/&gt;
-  &lt;/rule&gt;
-  ...
+...
+&lt;rule action='accept' direction='in' priority='500'&gt;
+  &lt;udp dstportstart='$DSTPORTS[1]'/&gt;
+&lt;/rule&gt;
+...
 </pre>
         <p>
       <span class="since">Since 0.9.10</span> it is possible to create
@@ -538,28 +392,28 @@
       iterators to access their elements.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;rule action='accept' direction='in' priority='500'&gt;
-    &lt;ip srcipaddr='$SRCIPADDRESSES[@1]' dstportstart='$DSTPORTS[@2]'/&gt;
-  &lt;/rule&gt;
-  ...
+...
+&lt;rule action='accept' direction='in' priority='500'&gt;
+  &lt;ip srcipaddr='$SRCIPADDRESSES[@1]' dstportstart='$DSTPORTS[@2]'/&gt;
+&lt;/rule&gt;
+...
 </pre>
         <p>
       In an example we assign concrete values to SRCIPADDRESSES and DSTPORTS
     </p>
         <pre xml:space="preserve">
-  SRCIPADDRESSES = [ 10.0.0.1, 11.1.2.3 ]
-  DSTPORTS = [ 80, 8080 ]
+SRCIPADDRESSES = [ 10.0.0.1, 11.1.2.3 ]
+DSTPORTS = [ 80, 8080 ]
 </pre>
         <p>
       Accessing the variables using $SRCIPADDRESSES[@1] and $DSTPORTS[@2] would
       then result in all combinations of addresses and ports being created:
     </p>
         <pre xml:space="preserve">
-  10.0.0.1, 80
-  10.0.0.1, 8080
-  11.1.2.3, 80
-  11.1.2.3, 8080
+10.0.0.1, 80
+10.0.0.1, 8080
+11.1.2.3, 80
+11.1.2.3, 8080
 </pre>
         <p>
       Accessing the same variables using a single iterator, for example by using
@@ -567,8 +421,8 @@
       parallel access to both lists and result in the following combinations:
     </p>
         <pre xml:space="preserve">
-  10.0.0.1, 80
-  11.1.2.3, 8080
+10.0.0.1, 80
+11.1.2.3, 8080
 </pre>
         <p>
       Further, the notation of $VARIABLE is short-hand for $VARIABLE[@0]. The
@@ -643,12 +497,12 @@
        using the DHCP snooping method:
     </p>
         <pre xml:space="preserve">
-    &lt;interface type='bridge'&gt;
-      &lt;source bridge='virbr0'/&gt;
-      &lt;filterref filter='clean-traffic'&gt;
-        &lt;parameter name='CTRL_IP_LEARNING' value='dhcp'/&gt;
-      &lt;/filterref&gt;
-    &lt;/interface&gt;
+&lt;interface type='bridge'&gt;
+  &lt;source bridge='virbr0'/&gt;
+  &lt;filterref filter='clean-traffic'&gt;
+    &lt;parameter name='CTRL_IP_LEARNING' value='dhcp'/&gt;
+  &lt;/filterref&gt;
+&lt;/interface&gt;
 </pre>
         <h3>
           <a name="nwfelemsReservedVars" shape="rect" id="nwfelemsReservedVars">Reserved Variables</a>
@@ -822,10 +676,10 @@
     </p>
         <pre xml:space="preserve">
 [...]
-  &lt;rule action='drop' direction='in'&gt;
-    &lt;protocol match='no' attribute1='value1' attribute2='value2'/&gt;
-    &lt;protocol attribute3='value3'/&gt;
-  &lt;/rule&gt;
+&lt;rule action='drop' direction='in'&gt;
+  &lt;protocol match='no' attribute1='value1' attribute2='value2'/&gt;
+  &lt;protocol attribute3='value3'/&gt;
+&lt;/rule&gt;
 [...]
 </pre>
         <p>
@@ -1046,11 +900,11 @@
      turned off for incoming connections to TCP port 12345.
     </p>
         <pre xml:space="preserve">
-   [...]
-    &lt;rule direction='in' action='accept' statematch='false'&gt;
-      &lt;tcp dstportstart='12345'/&gt;
-    &lt;/rule&gt;
-   [...]
+[...]
+&lt;rule direction='in' action='accept' statematch='false'&gt;
+  &lt;tcp dstportstart='12345'/&gt;
+&lt;/rule&gt;
+[...]
 </pre>
         <p>
      This now allows incoming traffic to TCP port 12345, but would also
@@ -1070,26 +924,26 @@
      time, the following XML fragment can be used to achieve this.
     </p>
         <pre xml:space="preserve">
-  [...]
-  &lt;rule action='drop' direction='in' priority='400'&gt;
-    &lt;tcp connlimit-above='1'/&gt;
-  &lt;/rule&gt;
-  &lt;rule action='accept' direction='in' priority='500'&gt;
-    &lt;tcp dstportstart='22'/&gt;
-  &lt;/rule&gt;
-  &lt;rule action='drop' direction='out' priority='400'&gt;
-    &lt;icmp connlimit-above='1'/&gt;
-  &lt;/rule&gt;
-  &lt;rule action='accept' direction='out' priority='500'&gt;
-    &lt;icmp/&gt;
-  &lt;/rule&gt;
-  &lt;rule action='accept' direction='out' priority='500'&gt;
-    &lt;udp dstportstart='53'/&gt;
-  &lt;/rule&gt;
-  &lt;rule action='drop' direction='inout' priority='1000'&gt;
-    &lt;all/&gt;
-  &lt;/rule&gt;
-  [...]
+[...]
+&lt;rule action='drop' direction='in' priority='400'&gt;
+  &lt;tcp connlimit-above='1'/&gt;
+&lt;/rule&gt;
+&lt;rule action='accept' direction='in' priority='500'&gt;
+  &lt;tcp dstportstart='22'/&gt;
+&lt;/rule&gt;
+&lt;rule action='drop' direction='out' priority='400'&gt;
+  &lt;icmp connlimit-above='1'/&gt;
+&lt;/rule&gt;
+&lt;rule action='accept' direction='out' priority='500'&gt;
+  &lt;icmp/&gt;
+&lt;/rule&gt;
+&lt;rule action='accept' direction='out' priority='500'&gt;
+  &lt;udp dstportstart='53'/&gt;
+&lt;/rule&gt;
+&lt;rule action='drop' direction='inout' priority='1000'&gt;
+  &lt;all/&gt;
+&lt;/rule&gt;
+[...]
 </pre>
         <p>
      Note that the rule for the limit has to logically appear
@@ -1109,7 +963,7 @@
      the timeouts have to be tuned in the host's sysfs, i.e.,
     </p>
         <pre xml:space="preserve">
-  echo 3 &gt; /proc/sys/net/netfilter/nf_conntrack_icmp_timeout
+echo 3 &gt; /proc/sys/net/netfilter/nf_conntrack_icmp_timeout
 </pre>
         <p>
       sets the ICMP connection tracking timeout to 3 seconds. The
@@ -1311,12 +1165,12 @@
      the domain XML of the <code>test</code> VM could then look like this:
     </p>
         <pre xml:space="preserve">
-   [...]
-    &lt;interface type='bridge'&gt;
-      &lt;source bridge='mybridge'/&gt;
-      &lt;filterref filter='test-eth0'/&gt;
-    &lt;/interface&gt;
-   [...]
+[...]
+&lt;interface type='bridge'&gt;
+  &lt;source bridge='mybridge'/&gt;
+  &lt;filterref filter='test-eth0'/&gt;
+&lt;/interface&gt;
+[...]
 </pre>
         <p>
      To more strictly control the ICMP traffic and enforce that only
@@ -1325,15 +1179,15 @@
      <code>ICMP</code> rule can be replaced with the following two rules:
     </p>
         <pre xml:space="preserve">
-  &lt;!-- enable outgoing ICMP echo requests--&gt;
-  &lt;rule action='accept' direction='out'&gt;
-    &lt;icmp type='8'/&gt;
-  &lt;/rule&gt;
+&lt;!-- enable outgoing ICMP echo requests--&gt;
+&lt;rule action='accept' direction='out'&gt;
+  &lt;icmp type='8'/&gt;
+&lt;/rule&gt;
 
-  &lt;!-- enable incoming ICMP echo replies--&gt;
-  &lt;rule action='accept' direction='in'&gt;
-    &lt;icmp type='0'/&gt;
-  &lt;/rule&gt;
+&lt;!-- enable incoming ICMP echo replies--&gt;
+&lt;rule action='accept' direction='in'&gt;
+  &lt;icmp type='0'/&gt;
+&lt;/rule&gt;
 </pre>
         <h3>
           <a name="nwfwriteexample2nd" shape="rect" id="nwfwriteexample2nd">Second example custom filter</a>
@@ -1431,9 +1285,9 @@
      the ftp connection with the VM is established.
     </p>
         <pre xml:space="preserve">
-    modprobe nf_conntrack_ftp   # where available  or
+modprobe nf_conntrack_ftp   # where available  or
 
-    modprobe ip_conntrack_ftp   # if above is not available
+modprobe ip_conntrack_ftp   # if above is not available
 </pre>
         <p>
      If other protocols than ftp are to be used in conjunction with the
@@ -1544,6 +1398,51 @@
       the example filter <code>clean-traffic</code> will not work as expected.
      </p>
       </div>
+    </div>
+    <div id="nav">
+      <div id="home">
+        <a href="index.html">Home</a>
+      </div>
+      <div id="jumplinks">
+        <ul><li>
+            <a href="downloads.html">Download</a>
+          </li><li>
+            <a href="contribute.html">Contribute</a>
+          </li><li>
+            <a href="docs.html">Learn</a>
+          </li></ul>
+      </div>
+      <div id="search">
+        <form action="search.php" enctype="application/x-www-form-urlencoded" method="get"><div>
+            <input name="query" type="text" size="12" value="" />
+            <input name="submit" type="submit" value="Go" />
+          </div></form>
+      </div>
+    </div>
+    <div id="footer">
+      <div id="contact">
+        <h3>Contact</h3>
+        <ul><li>
+            <a href="contact.html#email">email</a>
+          </li><li>
+            <a href="contact.html#irc">irc</a>
+          </li></ul>
+      </div>
+      <div id="community">
+        <h3>Community</h3>
+        <ul><li>
+            <a href="https://twitter.com/hashtag/libvirt">twitter</a>
+          </li><li>
+            <a href="https://plus.google.com/communities/109522598353007505282">google+</a>
+          </li><li>
+            <a href="http://stackoverflow.com/questions/tagged/libvirt">stackoverflow</a>
+          </li><li>
+            <a href="http://serverfault.com/questions/tagged/libvirt">serverfault</a>
+          </li></ul>
+      </div>
+      <div id="conduct">
+            Participants in the libvirt project agree to abide by <a href="governance.html#codeofconduct">the project code of conduct</a></div>
+      <br class="clear" />
     </div>
   </body>
 </html>

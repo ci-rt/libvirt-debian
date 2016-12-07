@@ -67,7 +67,7 @@ virCPUarmUpdate(virCPUDefPtr guest,
     if (virCPUDefCopyModel(updated, host, true) < 0)
         goto cleanup;
 
-    virCPUDefStealModel(guest, updated);
+    virCPUDefStealModel(guest, updated, false);
     guest->mode = VIR_CPU_MODE_CUSTOM;
     guest->match = VIR_CPU_MATCH_EXACT;
     ret = 0;
@@ -77,15 +77,6 @@ virCPUarmUpdate(virCPUDefPtr guest,
     return ret;
 }
 
-
-static virCPUCompareResult
-armGuestData(virCPUDefPtr host ATTRIBUTE_UNUSED,
-             virCPUDefPtr guest ATTRIBUTE_UNUSED,
-             virCPUDataPtr *data ATTRIBUTE_UNUSED,
-             char **message ATTRIBUTE_UNUSED)
-{
-    return VIR_CPU_COMPARE_IDENTICAL;
-}
 
 static virCPUDefPtr
 armBaseline(virCPUDefPtr *cpus,
@@ -128,7 +119,6 @@ struct cpuArchDriver cpuDriverArm = {
     .encode = NULL,
     .free = armDataFree,
     .nodeData = NULL,
-    .guestData = armGuestData,
     .baseline = armBaseline,
     .update = virCPUarmUpdate,
 };

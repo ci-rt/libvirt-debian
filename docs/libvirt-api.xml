@@ -1682,6 +1682,7 @@
      <exports symbol='VIR_ERR_INVALID_STORAGE_POOL' type='enum'/>
      <exports symbol='VIR_ERR_INVALID_STORAGE_VOL' type='enum'/>
      <exports symbol='VIR_ERR_INVALID_STREAM' type='enum'/>
+     <exports symbol='VIR_ERR_LIBSSH' type='enum'/>
      <exports symbol='VIR_ERR_MIGRATE_FINISH_OK' type='enum'/>
      <exports symbol='VIR_ERR_MIGRATE_PERSIST_FAILED' type='enum'/>
      <exports symbol='VIR_ERR_MIGRATE_UNSAFE' type='enum'/>
@@ -1765,6 +1766,7 @@
      <exports symbol='VIR_FROM_IDENTITY' type='enum'/>
      <exports symbol='VIR_FROM_INITCTL' type='enum'/>
      <exports symbol='VIR_FROM_INTERFACE' type='enum'/>
+     <exports symbol='VIR_FROM_LIBSSH' type='enum'/>
      <exports symbol='VIR_FROM_LIBXL' type='enum'/>
      <exports symbol='VIR_FROM_LOCKING' type='enum'/>
      <exports symbol='VIR_FROM_LOCKSPACE' type='enum'/>
@@ -3100,7 +3102,7 @@ conf file'/>
     <enum name='VIR_ERR_CPU_INCOMPATIBLE' file='virterror' value='91' type='virErrorNumber' info='given CPU is incompatible with host
 CP'/>
     <enum name='VIR_ERR_DBUS_SERVICE' file='virterror' value='89' type='virErrorNumber' info='error from a dbus service'/>
-    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='66' type='virErrorDomain'/>
+    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='67' type='virErrorDomain'/>
     <enum name='VIR_ERR_DOM_EXIST' file='virterror' value='28' type='virErrorNumber' info='the domain already exist'/>
     <enum name='VIR_ERR_DRIVER_FULL' file='virterror' value='25' type='virErrorNumber' info='too many drivers registered'/>
     <enum name='VIR_ERR_ERROR' file='virterror' value='2' type='virErrorLevel' info='An error'/>
@@ -3122,6 +3124,7 @@ CP'/>
     <enum name='VIR_ERR_INVALID_STORAGE_POOL' file='virterror' value='46' type='virErrorNumber' info='invalid storage pool object'/>
     <enum name='VIR_ERR_INVALID_STORAGE_VOL' file='virterror' value='47' type='virErrorNumber' info='invalid storage vol object'/>
     <enum name='VIR_ERR_INVALID_STREAM' file='virterror' value='73' type='virErrorNumber' info='stream pointer not valid'/>
+    <enum name='VIR_ERR_LIBSSH' file='virterror' value='98' type='virErrorNumber' info='error in libssh transport driver'/>
     <enum name='VIR_ERR_MIGRATE_FINISH_OK' file='virterror' value='93' type='virErrorNumber' info='Finish API succeeded but it is expected to return NULL'/>
     <enum name='VIR_ERR_MIGRATE_PERSIST_FAILED' file='virterror' value='69' type='virErrorNumber' info='a migration worked, but making the
 VM persist on the dest host failed'/>
@@ -3219,6 +3222,7 @@ formed or broken'/>
     <enum name='VIR_FROM_IDENTITY' file='virterror' value='53' type='virErrorDomain' info='Error from identity code'/>
     <enum name='VIR_FROM_INITCTL' file='virterror' value='52' type='virErrorDomain' info='Error from initctl device communication'/>
     <enum name='VIR_FROM_INTERFACE' file='virterror' value='26' type='virErrorDomain' info='Error when operating on an interface'/>
+    <enum name='VIR_FROM_LIBSSH' file='virterror' value='66' type='virErrorDomain' info='Error from libssh connection transport'/>
     <enum name='VIR_FROM_LIBXL' file='virterror' value='41' type='virErrorDomain' info='Error from libxenlight driver'/>
     <enum name='VIR_FROM_LOCKING' file='virterror' value='42' type='virErrorDomain' info='Error from lock manager'/>
     <enum name='VIR_FROM_LOCKSPACE' file='virterror' value='51' type='virErrorDomain' info='Error from lockspace'/>
@@ -3283,25 +3287,87 @@ Retained for ABI/API compat only'/>
     <enum name='VIR_KEYCODE_SET_XT_KBD' file='libvirt-domain' value='6' type='virKeycodeSet'/>
     <enum name='VIR_MEMORY_PHYSICAL' file='libvirt-domain' value='2' type='virDomainMemoryFlags' info='addresses are physical addresses'/>
     <enum name='VIR_MEMORY_VIRTUAL' file='libvirt-domain' value='1' type='virDomainMemoryFlags' info='addresses are virtual addresses'/>
-    <enum name='VIR_MIGRATE_ABORT_ON_ERROR' file='libvirt-domain' value='4096' type='virDomainMigrateFlags' info='abort migration on I/O errors happened during migration'/>
-    <enum name='VIR_MIGRATE_AUTO_CONVERGE' file='libvirt-domain' value='8192' type='virDomainMigrateFlags' info='force convergence'/>
-    <enum name='VIR_MIGRATE_CHANGE_PROTECTION' file='libvirt-domain' value='256' type='virDomainMigrateFlags' info='protect for changing domain configuration through the
- whole migration process; this will be used automatically
- when supported'/>
-    <enum name='VIR_MIGRATE_COMPRESSED' file='libvirt-domain' value='2048' type='virDomainMigrateFlags' info='compress data during migration'/>
-    <enum name='VIR_MIGRATE_LIVE' file='libvirt-domain' value='1' type='virDomainMigrateFlags' info='live migration'/>
-    <enum name='VIR_MIGRATE_NON_SHARED_DISK' file='libvirt-domain' value='64' type='virDomainMigrateFlags' info='migration with non-shared storage with full disk copy'/>
-    <enum name='VIR_MIGRATE_NON_SHARED_INC' file='libvirt-domain' value='128' type='virDomainMigrateFlags' info='migration with non-shared storage with incremental copy (same base image shared between source and destination)'/>
-    <enum name='VIR_MIGRATE_OFFLINE' file='libvirt-domain' value='1024' type='virDomainMigrateFlags' info='offline migrate'/>
-    <enum name='VIR_MIGRATE_PAUSED' file='libvirt-domain' value='32' type='virDomainMigrateFlags' info='pause on remote side'/>
-    <enum name='VIR_MIGRATE_PEER2PEER' file='libvirt-domain' value='2' type='virDomainMigrateFlags' info='direct source -&gt; dest host control channel Note the less-common spelling that we&apos;re stuck with:
-VIR_MIGRATE_TUNNELLED should be VIR_MIGRATE_TUNNELED'/>
-    <enum name='VIR_MIGRATE_PERSIST_DEST' file='libvirt-domain' value='8' type='virDomainMigrateFlags' info='persist the VM on the destination'/>
-    <enum name='VIR_MIGRATE_POSTCOPY' file='libvirt-domain' value='32768' type='virDomainMigrateFlags' info='enable (but do not start) post-copy migration'/>
-    <enum name='VIR_MIGRATE_RDMA_PIN_ALL' file='libvirt-domain' value='16384' type='virDomainMigrateFlags' info='RDMA memory pinning'/>
-    <enum name='VIR_MIGRATE_TUNNELLED' file='libvirt-domain' value='4' type='virDomainMigrateFlags' info='tunnel migration data over libvirtd connection'/>
-    <enum name='VIR_MIGRATE_UNDEFINE_SOURCE' file='libvirt-domain' value='16' type='virDomainMigrateFlags' info='undefine the VM on the source'/>
-    <enum name='VIR_MIGRATE_UNSAFE' file='libvirt-domain' value='512' type='virDomainMigrateFlags' info='force migration even if it is considered unsafe'/>
+    <enum name='VIR_MIGRATE_ABORT_ON_ERROR' file='libvirt-domain' value='4096' type='virDomainMigrateFlags' info='Enable algorithms that ensure a live migration will eventually converge.
+ This usually means the domain will be slowed down to make sure it does
+ not change its memory faster than a hypervisor can transfer the changed
+ memory to the destination host. VIR_MIGRATE_PARAM_AUTO_CONVERGE_*
+ parameters can be used to tune the algorithm.'/>
+    <enum name='VIR_MIGRATE_AUTO_CONVERGE' file='libvirt-domain' value='8192' type='virDomainMigrateFlags' info='This flag can be used with RDMA migration (i.e., when
+ VIR_MIGRATE_PARAM_URI starts with &quot;rdma://&quot;) to tell the hypervisor
+ to pin all domain&apos;s memory at once before migration starts rather then
+ letting it pin memory pages as needed. This means that all memory pages
+ belonging to the domain will be locked in host&apos;s memory and the host
+ will not be allowed to swap them out.
+
+ For QEMU/KVM this requires hard_limit memory tuning element (in the
+ domain XML) to be used and set to the maximum memory configured for the
+ domain plus any memory consumed by the QEMU process itself. Beware of
+ setting the memory limit too high (and thus allowing the domain to lock
+ most of the host&apos;s memory). Doing so may be dangerous to both the
+ domain and the host itself since the host&apos;s kernel may run out of
+ memory.'/>
+    <enum name='VIR_MIGRATE_CHANGE_PROTECTION' file='libvirt-domain' value='256' type='virDomainMigrateFlags' info='Force migration even if it is considered unsafe. In some cases libvirt
+ may refuse to migrate the domain because doing so may lead to potential
+ problems such as data corruption, and thus the migration is considered
+ unsafe. For a QEMU domain this may happen if the domain uses disks
+ without explicitly setting cache mode to &quot;none&quot;. Migrating such domains
+ is unsafe unless the disk images are stored on coherent clustered
+ filesystem, such as GFS2 or GPFS.'/>
+    <enum name='VIR_MIGRATE_COMPRESSED' file='libvirt-domain' value='2048' type='virDomainMigrateFlags' info='Cancel migration if a soft error (such as I/O error) happens during
+ migration.'/>
+    <enum name='VIR_MIGRATE_LIVE' file='libvirt-domain' value='1' type='virDomainMigrateFlags' info='Tell the source libvirtd to connect directly to the destination host.
+ Without this flag the client (e.g., virsh) connects to both hosts and
+ controls the migration process. In peer-to-peer mode, the source
+ libvirtd controls the migration by calling the destination daemon
+ directly.'/>
+    <enum name='VIR_MIGRATE_NON_SHARED_DISK' file='libvirt-domain' value='64' type='virDomainMigrateFlags' info='Migrate disk images in addition to domain&apos;s memory. This is similar to
+ VIR_MIGRATE_NON_SHARED_DISK, but only the top level of each disk&apos;s
+ backing chain is copied. That is, the rest of the backing chain is
+ expected to be present on the destination and to be exactly the same as
+ on the source host.
+
+ This flag and VIR_MIGRATE_NON_SHARED_DISK are mutually exclusive.'/>
+    <enum name='VIR_MIGRATE_NON_SHARED_INC' file='libvirt-domain' value='128' type='virDomainMigrateFlags' info='Protect against domain configuration changes during the migration
+ process. This flag is used automatically when both sides support it.
+ Explicitly setting this flag will cause migration to fail if either the
+ source or the destination does not support it.'/>
+    <enum name='VIR_MIGRATE_OFFLINE' file='libvirt-domain' value='1024' type='virDomainMigrateFlags' info='Compress migration data. The compression methods can be specified using
+ VIR_MIGRATE_PARAM_COMPRESSION. A hypervisor default method will be used
+ if this parameter is omitted. Individual compression methods can be
+ tuned via their specific VIR_MIGRATE_PARAM_COMPRESSION_* parameters.'/>
+    <enum name='VIR_MIGRATE_PAUSED' file='libvirt-domain' value='32' type='virDomainMigrateFlags' info='Migrate full disk images in addition to domain&apos;s memory. By default
+ only non-shared non-readonly disk images are transferred. The
+ VIR_MIGRATE_PARAM_MIGRATE_DISKS parameter can be used to specify which
+ disks should be migrated.
+
+ This flag and VIR_MIGRATE_NON_SHARED_INC are mutually exclusive.'/>
+    <enum name='VIR_MIGRATE_PEER2PEER' file='libvirt-domain' value='2' type='virDomainMigrateFlags' info='Tunnel migration data over libvirtd connection. Without this flag the
+ source hypervisor sends migration data directly to the destination
+ hypervisor. This flag can only be used when VIR_MIGRATE_PEER2PEER is
+ set as well.
+
+ Note the less-common spelling that we&apos;re stuck with:
+ VIR_MIGRATE_TUNNELLED should be VIR_MIGRATE_TUNNELED.'/>
+    <enum name='VIR_MIGRATE_PERSIST_DEST' file='libvirt-domain' value='8' type='virDomainMigrateFlags' info='Undefine the domain on the source host once migration successfully
+ finishes.'/>
+    <enum name='VIR_MIGRATE_POSTCOPY' file='libvirt-domain' value='32768' type='virDomainMigrateFlags'/>
+    <enum name='VIR_MIGRATE_RDMA_PIN_ALL' file='libvirt-domain' value='16384' type='virDomainMigrateFlags' info='Setting the VIR_MIGRATE_POSTCOPY flag tells libvirt to enable post-copy
+ migration. However, the migration will start normally and
+ virDomainMigrateStartPostCopy needs to be called to switch it into the
+ post-copy mode. See virDomainMigrateStartPostCopy for more details.'/>
+    <enum name='VIR_MIGRATE_TUNNELLED' file='libvirt-domain' value='4' type='virDomainMigrateFlags' info='Define the domain as persistent on the destination host after successful
+ migration. If the domain was persistent on the source host and
+ VIR_MIGRATE_UNDEFINE_SOURCE is not used, it will end up persistent on
+ both hosts.'/>
+    <enum name='VIR_MIGRATE_UNDEFINE_SOURCE' file='libvirt-domain' value='16' type='virDomainMigrateFlags' info='Leave the domain suspended on the destination host. virDomainResume (on
+ the virDomainPtr returned by the migration API) has to be called
+ explicitly to resume domain&apos;s virtual CPUs.'/>
+    <enum name='VIR_MIGRATE_UNSAFE' file='libvirt-domain' value='512' type='virDomainMigrateFlags' info='Migrate a domain definition without starting the domain on the
+ destination and without stopping it on the source host. Offline
+ migration requires VIR_MIGRATE_PERSIST_DEST to be set.
+
+ Offline migration may not copy disk storage or any other file based
+ storage (such as UEFI variables).'/>
     <enum name='VIR_NETWORK_EVENT_DEFINED' file='libvirt-network' value='0' type='virNetworkEventLifecycleType'/>
     <enum name='VIR_NETWORK_EVENT_ID_LAST' file='libvirt-network' value='1' type='virNetworkEventID' info='NB: this enum value will increase over time as new events are
  added to the libvirt API. It reflects the last event ID supported
@@ -7371,77 +7437,9 @@ VIR_DOMAIN_MEMORY_STAT_LAST_UPDATE
       <info><![CDATA[Migrate the domain object from its current host to the destination
 host given by dconn (a connection to the destination host).
 
-Flags may be one of more of the following:
-  VIR_MIGRATE_LIVE      Do not pause the VM during migration
-  VIR_MIGRATE_PEER2PEER Direct connection between source & destination hosts
-  VIR_MIGRATE_TUNNELLED Tunnel migration data over the libvirt RPC channel
-  VIR_MIGRATE_PERSIST_DEST If the migration is successful, persist the domain
-                           on the destination host.
-  VIR_MIGRATE_UNDEFINE_SOURCE If the migration is successful, undefine the
-                              domain on the source host.
-  VIR_MIGRATE_PAUSED    Leave the domain suspended on the remote side.
-  VIR_MIGRATE_NON_SHARED_DISK Migration with non-shared storage with full
-                              disk copy
-  VIR_MIGRATE_NON_SHARED_INC  Migration with non-shared storage with
-                              incremental disk copy
-  VIR_MIGRATE_CHANGE_PROTECTION Protect against domain configuration
-                                changes during the migration process (set
-                                automatically when supported).
-  VIR_MIGRATE_UNSAFE    Force migration even if it is considered unsafe.
-  VIR_MIGRATE_OFFLINE Migrate offline
-  VIR_MIGRATE_POSTCOPY Enable (but do not start) post-copy
-
-VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
-Applications using the VIR_MIGRATE_PEER2PEER flag will probably
-prefer to invoke virDomainMigrateToURI, avoiding the need to
-open connection to the destination host themselves.
-
-If a hypervisor supports renaming domains during migration,
-then you may set the dname parameter to the new name (otherwise
-it keeps the same name).  If this is not supported by the
-hypervisor, dname must be NULL or else you will get an error.
-
-If the VIR_MIGRATE_PEER2PEER flag is set, the uri parameter
-must be a valid libvirt connection URI, by which the source
-libvirt driver can connect to the destination libvirt. If
-omitted, the dconn connection object will be queried for its
-current URI.
-
-If the VIR_MIGRATE_PEER2PEER flag is NOT set, the URI parameter
-takes a hypervisor specific format. The hypervisor capabilities
-XML includes details of the support URI schemes. If omitted
-the dconn will be asked for a default URI.
-
-If you want to copy non-shared storage within migration you
-can use either VIR_MIGRATE_NON_SHARED_DISK or
-VIR_MIGRATE_NON_SHARED_INC as they are mutually exclusive.
-
-In either case it is typically only necessary to specify a
-URI if the destination host has multiple interfaces and a
-specific interface is required to transmit migration data.
-
-The maximum bandwidth (in MiB/s) that will be used to do migration
-can be specified with the bandwidth parameter.  If set to 0,
-libvirt will choose a suitable default.  Some hypervisors do
-not support this feature and will return an error if bandwidth
-is not 0.
-
-Users should note that implementation of VIR_MIGRATE_OFFLINE
-flag in some drivers does not copy storage or any other file
-based storage (e.g. UEFI variable storage).
-
-Enabling the VIR_MIGRATE_POSTCOPY flag tells libvirt to enable post-copy
-migration.  Use virDomainMigrateStartPostCopy to switch migration into
-the post-copy mode.  See virDomainMigrateStartPostCopy for more details
-about post-copy.
-
-To see which features are supported by the current hypervisor,
-see virConnectGetCapabilities, /capabilities/host/migration_features.
-
-There are many limitations on migration imposed by the underlying
-technology - for example it may not be possible to migrate between
-different processors even with the same architecture, or between
-different types of hypervisor.
+This function is similar to virDomainMigrate3, but it only supports a fixed
+set of parameters: @dname corresponds to VIR_MIGRATE_PARAM_DEST_NAME, @uri
+is VIR_MIGRATE_PARAM_URI, and @bandwidth is VIR_MIGRATE_PARAM_BANDWIDTH.
 
 virDomainFree should be used to free the resources after the
 returned domain object is no longer needed.]]></info>
@@ -7457,89 +7455,10 @@ returned domain object is no longer needed.]]></info>
       <info><![CDATA[Migrate the domain object from its current host to the destination
 host given by dconn (a connection to the destination host).
 
-Flags may be one of more of the following:
-  VIR_MIGRATE_LIVE      Do not pause the VM during migration
-  VIR_MIGRATE_PEER2PEER Direct connection between source & destination hosts
-  VIR_MIGRATE_TUNNELLED Tunnel migration data over the libvirt RPC channel
-  VIR_MIGRATE_PERSIST_DEST If the migration is successful, persist the domain
-                           on the destination host.
-  VIR_MIGRATE_UNDEFINE_SOURCE If the migration is successful, undefine the
-                              domain on the source host.
-  VIR_MIGRATE_PAUSED    Leave the domain suspended on the remote side.
-  VIR_MIGRATE_NON_SHARED_DISK Migration with non-shared storage with full
-                              disk copy
-  VIR_MIGRATE_NON_SHARED_INC  Migration with non-shared storage with
-                              incremental disk copy
-  VIR_MIGRATE_CHANGE_PROTECTION Protect against domain configuration
-                                changes during the migration process (set
-                                automatically when supported).
-  VIR_MIGRATE_UNSAFE    Force migration even if it is considered unsafe.
-  VIR_MIGRATE_OFFLINE Migrate offline
-  VIR_MIGRATE_POSTCOPY Enable (but do not start) post-copy
-
-VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
-Applications using the VIR_MIGRATE_PEER2PEER flag will probably
-prefer to invoke virDomainMigrateToURI, avoiding the need to
-open connection to the destination host themselves.
-
-If a hypervisor supports renaming domains during migration,
-then you may set the dname parameter to the new name (otherwise
-it keeps the same name).  If this is not supported by the
-hypervisor, dname must be NULL or else you will get an error.
-
-If the VIR_MIGRATE_PEER2PEER flag is set, the uri parameter
-must be a valid libvirt connection URI, by which the source
-libvirt driver can connect to the destination libvirt. If
-omitted, the dconn connection object will be queried for its
-current URI.
-
-If the VIR_MIGRATE_PEER2PEER flag is NOT set, the URI parameter
-takes a hypervisor specific format. The hypervisor capabilities
-XML includes details of the support URI schemes. If omitted
-the dconn will be asked for a default URI.
-
-If you want to copy non-shared storage within migration you
-can use either VIR_MIGRATE_NON_SHARED_DISK or
-VIR_MIGRATE_NON_SHARED_INC as they are mutually exclusive.
-
-In either case it is typically only necessary to specify a
-URI if the destination host has multiple interfaces and a
-specific interface is required to transmit migration data.
-
-The maximum bandwidth (in MiB/s) that will be used to do migration
-can be specified with the bandwidth parameter.  If set to 0,
-libvirt will choose a suitable default.  Some hypervisors do
-not support this feature and will return an error if bandwidth
-is not 0.
-
-Users should note that implementation of VIR_MIGRATE_OFFLINE
-flag in some drivers does not copy storage or any other file
-based storage (e.g. UEFI variable storage).
-
-Enabling the VIR_MIGRATE_POSTCOPY flag tells libvirt to enable post-copy
-migration.  Use virDomainMigrateStartPostCopy to switch migration into
-the post-copy mode.  See virDomainMigrateStartPostCopy for more details
-about post-copy.
-
-To see which features are supported by the current hypervisor,
-see virConnectGetCapabilities, /capabilities/host/migration_features.
-
-There are many limitations on migration imposed by the underlying
-technology - for example it may not be possible to migrate between
-different processors even with the same architecture, or between
-different types of hypervisor.
-
-If the hypervisor supports it, @dxml can be used to alter
-host-specific portions of the domain XML that will be used on
-the destination.  For example, it is possible to alter the
-backing filename that is associated with a disk device, in order
-to account for naming differences between source and destination
-in accessing the underlying storage.  The migration will fail
-if @dxml would cause any guest-visible changes.  Pass NULL
-if no changes are needed to the XML between source and destination.
-@dxml cannot be used to rename the domain during migration (use
-@dname for that purpose).  Domain name in @dxml must match the
-original domain name.
+This function is similar to virDomainMigrate3, but it only supports a fixed
+set of parameters: @dxml corresponds to VIR_MIGRATE_PARAM_DEST_XML, @dname
+is VIR_MIGRATE_PARAM_DEST_NAME, @uri is VIR_MIGRATE_PARAM_URI, and
+@bandwidth is VIR_MIGRATE_PARAM_BANDWIDTH.
 
 virDomainFree should be used to free the resources after the
 returned domain object is no longer needed.]]></info>
@@ -7556,23 +7475,13 @@ returned domain object is no longer needed.]]></info>
       <info><![CDATA[Migrate the domain object from its current host to the destination host
 given by dconn (a connection to the destination host).
 
+See VIR_MIGRATE_PARAM_* and virDomainMigrateFlags for detailed description
+of accepted migration parameters and flags.
+
 See virDomainMigrateFlags documentation for description of individual flags.
 
 VIR_MIGRATE_TUNNELLED and VIR_MIGRATE_PEER2PEER are not supported by this
 API, use virDomainMigrateToURI3 instead.
-
-If you want to copy non-shared storage within migration you
-can use either VIR_MIGRATE_NON_SHARED_DISK or
-VIR_MIGRATE_NON_SHARED_INC as they are mutually exclusive.
-
-Users should note that implementation of VIR_MIGRATE_OFFLINE
-flag in some drivers does not copy storage or any other file
-based storage (e.g. UEFI variable storage).
-
-Enabling the VIR_MIGRATE_POSTCOPY flag tells libvirt to enable post-copy
-migration.  Use virDomainMigrateStartPostCopy to switch migration into
-the post-copy mode.  See virDomainMigrateStartPostCopy for more details
-about post-copy.
 
 There are many limitations on migration imposed by the underlying
 technology - for example it may not be possible to migrate between
@@ -7696,69 +7605,20 @@ migration and there's no domain to run virDomainGetJobStats on).]]></info>
       <info><![CDATA[Migrate the domain object from its current host to the destination
 host given by duri.
 
-Flags may be one of more of the following:
-  VIR_MIGRATE_LIVE      Do not pause the VM during migration
-  VIR_MIGRATE_PEER2PEER Direct connection between source & destination hosts
-  VIR_MIGRATE_TUNNELLED Tunnel migration data over the libvirt RPC channel
-  VIR_MIGRATE_PERSIST_DEST If the migration is successful, persist the domain
-                           on the destination host.
-  VIR_MIGRATE_UNDEFINE_SOURCE If the migration is successful, undefine the
-                              domain on the source host.
-  VIR_MIGRATE_PAUSED    Leave the domain suspended on the remote side.
-  VIR_MIGRATE_NON_SHARED_DISK Migration with non-shared storage with full
-                              disk copy
-  VIR_MIGRATE_NON_SHARED_INC  Migration with non-shared storage with
-                              incremental disk copy
-  VIR_MIGRATE_CHANGE_PROTECTION Protect against domain configuration
-                                changes during the migration process (set
-                                automatically when supported).
-  VIR_MIGRATE_UNSAFE    Force migration even if it is considered unsafe.
-  VIR_MIGRATE_OFFLINE Migrate offline
-  VIR_MIGRATE_POSTCOPY Enable (but do not start) post-copy
+This function is similar to virDomainMigrateToURI3, but it only supports a
+fixed set of parameters: @dname corresponds to VIR_MIGRATE_PARAM_DEST_NAME,
+and @bandwidth corresponds to VIR_MIGRATE_PARAM_BANDWIDTH.
 
 The operation of this API hinges on the VIR_MIGRATE_PEER2PEER flag.
-If the VIR_MIGRATE_PEER2PEER flag is NOT set, the duri parameter
-takes a hypervisor specific format. The uri_transports element of the
-hypervisor capabilities XML includes details of the supported URI
-schemes. Not all hypervisors will support this mode of migration, so
-if the VIR_MIGRATE_PEER2PEER flag is not set, then it may be necessary
-to use the alternative virDomainMigrate API providing and explicit
-virConnectPtr for the destination host.
 
-If the VIR_MIGRATE_PEER2PEER flag IS set, the duri parameter
-must be a valid libvirt connection URI, by which the source
-libvirt driver can connect to the destination libvirt.
+If the VIR_MIGRATE_PEER2PEER flag IS set, the @duri parameter must be a
+valid libvirt connection URI, by which the source libvirt driver can connect
+to the destination libvirt. In other words, @duri corresponds to @dconnuri
+of virDomainMigrateToURI3.
 
-VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
-
-If you want to copy non-shared storage within migration you
-can use either VIR_MIGRATE_NON_SHARED_DISK or
-VIR_MIGRATE_NON_SHARED_INC as they are mutually exclusive.
-
-If a hypervisor supports renaming domains during migration,
-the dname parameter specifies the new name for the domain.
-Setting dname to NULL keeps the domain name the same.  If domain
-renaming is not supported by the hypervisor, dname must be NULL or
-else an error will be returned.
-
-The maximum bandwidth (in MiB/s) that will be used to do migration
-can be specified with the bandwidth parameter.  If set to 0,
-libvirt will choose a suitable default.  Some hypervisors do
-not support this feature and will return an error if bandwidth
-is not 0.
-
-Enabling the VIR_MIGRATE_POSTCOPY flag tells libvirt to enable post-copy
-migration.  Use virDomainMigrateStartPostCopy to switch migration into
-the post-copy mode.  See virDomainMigrateStartPostCopy for more details
-about post-copy.
-
-To see which features are supported by the current hypervisor,
-see virConnectGetCapabilities, /capabilities/host/migration_features.
-
-There are many limitations on migration imposed by the underlying
-technology - for example it may not be possible to migrate between
-different processors even with the same architecture, or between
-different types of hypervisor.]]></info>
+If the VIR_MIGRATE_PEER2PEER flag is NOT set, the @duri parameter takes a
+hypervisor specific URI used to initiate the migration. In this case @duri
+corresponds to VIR_MIGRATE_PARAM_URI of virDomainMigrateToURI3.]]></info>
       <return type='int' info='0 if the migration succeeded, -1 upon error.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='duri' type='const char *' info='mandatory URI for the destination host'/>
@@ -7768,84 +7628,24 @@ different types of hypervisor.]]></info>
     </function>
     <function name='virDomainMigrateToURI2' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Migrate the domain object from its current host to the destination
-host given by duri.
+host given by @dconnuri.
 
-Flags may be one of more of the following:
-  VIR_MIGRATE_LIVE      Do not pause the VM during migration
-  VIR_MIGRATE_PEER2PEER Direct connection between source & destination hosts
-  VIR_MIGRATE_TUNNELLED Tunnel migration data over the libvirt RPC channel
-  VIR_MIGRATE_PERSIST_DEST If the migration is successful, persist the domain
-                           on the destination host.
-  VIR_MIGRATE_UNDEFINE_SOURCE If the migration is successful, undefine the
-                              domain on the source host.
-  VIR_MIGRATE_PAUSED    Leave the domain suspended on the remote side.
-  VIR_MIGRATE_NON_SHARED_DISK Migration with non-shared storage with full
-                              disk copy
-  VIR_MIGRATE_NON_SHARED_INC  Migration with non-shared storage with
-                              incremental disk copy
-  VIR_MIGRATE_CHANGE_PROTECTION Protect against domain configuration
-                                changes during the migration process (set
-                                automatically when supported).
-  VIR_MIGRATE_UNSAFE    Force migration even if it is considered unsafe.
-  VIR_MIGRATE_OFFLINE Migrate offline
-  VIR_MIGRATE_POSTCOPY Enable (but do not start) post-copy
+This function is similar to virDomainMigrateToURI3, but it only supports a
+fixed set of parameters: @miguri corresponds to VIR_MIGRATE_PARAM_URI, @dxml
+is VIR_MIGRATE_PARAM_DEST_XML, @dname is VIR_MIGRATE_PARAM_DEST_NAME, and
+@bandwidth corresponds to VIR_MIGRATE_PARAM_BANDWIDTH.
 
 The operation of this API hinges on the VIR_MIGRATE_PEER2PEER flag.
 
-If the VIR_MIGRATE_PEER2PEER flag is set, the @dconnuri parameter
-must be a valid libvirt connection URI, by which the source
-libvirt driver can connect to the destination libvirt. If the
-VIR_MIGRATE_PEER2PEER flag is NOT set, then @dconnuri must be
-NULL.
+If the VIR_MIGRATE_PEER2PEER flag IS set, the @dconnuri parameter must be a
+valid libvirt connection URI, by which the source libvirt driver can connect
+to the destination libvirt. In other words, @dconnuri has the same semantics
+as in virDomainMigrateToURI3.
 
-If the VIR_MIGRATE_TUNNELLED flag is NOT set, then the @miguri
-parameter allows specification of a URI to use to initiate the
-VM migration. It takes a hypervisor specific format. The uri_transports
-element of the hypervisor capabilities XML includes details of the
-supported URI schemes.
-
-VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
-
-If you want to copy non-shared storage within migration you
-can use either VIR_MIGRATE_NON_SHARED_DISK or
-VIR_MIGRATE_NON_SHARED_INC as they are mutually exclusive.
-As of 1.2.11 disks of some types ('file' and 'volume') are
-precreated automatically, if there's a pool defined on the
-destination for the disk path.
-
-If a hypervisor supports changing the configuration of the guest
-during migration, the @dxml parameter specifies the new config
-for the guest. The configuration must include an identical set
-of virtual devices, to ensure a stable guest ABI across migration.
-Only parameters related to host side configuration can be
-changed in the XML. Hypervisors will validate this and refuse to
-allow migration if the provided XML would cause a change in the
-guest ABI,
-
-If a hypervisor supports renaming domains during migration,
-the dname parameter specifies the new name for the domain.
-Setting dname to NULL keeps the domain name the same.  If domain
-renaming is not supported by the hypervisor, dname must be NULL or
-else an error will be returned.
-
-The maximum bandwidth (in MiB/s) that will be used to do migration
-can be specified with the bandwidth parameter.  If set to 0,
-libvirt will choose a suitable default.  Some hypervisors do
-not support this feature and will return an error if bandwidth
-is not 0.
-
-Enabling the VIR_MIGRATE_POSTCOPY flag tells libvirt to enable post-copy
-migration.  Use virDomainMigrateStartPostCopy to switch migration into
-the post-copy mode.  See virDomainMigrateStartPostCopy for more details
-about post-copy.
-
-To see which features are supported by the current hypervisor,
-see virConnectGetCapabilities, /capabilities/host/migration_features.
-
-There are many limitations on migration imposed by the underlying
-technology - for example it may not be possible to migrate between
-different processors even with the same architecture, or between
-different types of hypervisor.]]></info>
+If the VIR_MIGRATE_PEER2PEER flag is NOT set, the @dconnuri must be NULL
+and the @miguri parameter takes a hypervisor specific URI used to initiate
+the migration. In this case @miguri corresponds to VIR_MIGRATE_PARAM_URI of
+virDomainMigrateToURI3.]]></info>
       <return type='int' info='0 if the migration succeeded, -1 upon error.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='dconnuri' type='const char *' info='(optional) URI for target libvirtd if @flags includes VIR_MIGRATE_PEER2PEER'/>
@@ -7859,7 +7659,8 @@ different types of hypervisor.]]></info>
       <info><![CDATA[Migrate the domain object from its current host to the destination host
 given by URI.
 
-See virDomainMigrateFlags documentation for description of individual flags.
+See VIR_MIGRATE_PARAM_* and virDomainMigrateFlags for detailed description
+of accepted migration parameters and flags.
 
 The operation of this API hinges on the VIR_MIGRATE_PEER2PEER flag.
 
@@ -7869,19 +7670,12 @@ to the destination libvirt.
 
 If the VIR_MIGRATE_PEER2PEER flag is NOT set, then @dconnuri must be NULL
 and VIR_MIGRATE_PARAM_URI migration parameter must be filled in with
-hypervisor specific URI used to initiate the migration. This is called
-"direct" migration.
-
-VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
-
-If you want to copy non-shared storage within migration you
-can use either VIR_MIGRATE_NON_SHARED_DISK or
-VIR_MIGRATE_NON_SHARED_INC as they are mutually exclusive.
-
-Enabling the VIR_MIGRATE_POSTCOPY flag tells libvirt to enable post-copy
-migration.  Use virDomainMigrateStartPostCopy to switch migration into
-the post-copy mode.  See virDomainMigrateStartPostCopy for more details
-about post-copy.
+hypervisor specific URI used to initiate the migration. The uri_transports
+element of the hypervisor capabilities XML includes supported URI schemes.
+This is called "direct" migration. Not all hypervisors support this mode of
+migration, so if the VIR_MIGRATE_PEER2PEER flag is not set, then it may be
+necessary to use the alternative virDomainMigrate3 API providing an explicit
+virConnectPtr for the destination host.
 
 There are many limitations on migration imposed by the underlying
 technology - for example it may not be possible to migrate between

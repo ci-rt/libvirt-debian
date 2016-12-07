@@ -1672,6 +1672,7 @@ qemuMonitorCPUInfoClear(qemuMonitorCPUInfoPtr cpus,
 
     for (i = 0; i < ncpus; i++) {
         cpus[i].id = 0;
+        cpus[i].qemu_id = -1;
         cpus[i].socket_id = -1;
         cpus[i].core_id = -1;
         cpus[i].thread_id = -1;
@@ -1729,6 +1730,7 @@ qemuMonitorGetCPUInfoLegacy(struct qemuMonitorQueryCpusEntry *cpuentries,
         if (i < ncpuentries) {
             vcpus[i].tid = cpuentries[i].tid;
             vcpus[i].halted = cpuentries[i].halted;
+            vcpus[i].qemu_id = cpuentries[i].qemu_id;
         }
 
         /* for legacy hotplug to work we need to fake the vcpu count added by
@@ -1866,6 +1868,7 @@ qemuMonitorGetCPUInfoHotplug(struct qemuMonitorQueryHotpluggableCpusEntry *hotpl
             }
         }
 
+        vcpus[anyvcpu].qemu_id = cpuentries[j].qemu_id;
         vcpus[anyvcpu].tid = cpuentries[j].tid;
         vcpus[anyvcpu].halted = cpuentries[j].halted;
     }
@@ -1948,6 +1951,46 @@ qemuMonitorGetCPUInfo(qemuMonitorPtr mon,
     qemuMonitorQueryHotpluggableCpusFree(hotplugcpus, nhotplugcpus);
     qemuMonitorQueryCpusFree(cpuentries, ncpuentries);
     qemuMonitorCPUInfoFree(info, maxvcpus);
+    return ret;
+}
+
+
+/**
+ * qemuMonitorGetCpuHalted:
+ *
+ * Returns a bitmap of vcpu id's that are halted. The id's correspond to the
+ * 'CPU' field as reported by query-cpus'.
+ */
+virBitmapPtr
+qemuMonitorGetCpuHalted(qemuMonitorPtr mon,
+                        size_t maxvcpus)
+{
+    struct qemuMonitorQueryCpusEntry *cpuentries = NULL;
+    size_t ncpuentries = 0;
+    size_t i;
+    int rc;
+    virBitmapPtr ret = NULL;
+
+    QEMU_CHECK_MONITOR_NULL(mon);
+
+    if (mon->json)
+        rc = qemuMonitorJSONQueryCPUs(mon, &cpuentries, &ncpuentries);
+    else
+        rc = qemuMonitorTextQueryCPUs(mon, &cpuentries, &ncpuentries);
+
+    if (rc < 0)
+        goto cleanup;
+
+    if (!(ret = virBitmapNew(maxvcpus)))
+        goto cleanup;
+
+    for (i = 0; i < ncpuentries; i++) {
+        if (cpuentries[i].halted)
+            ignore_value(virBitmapSetBit(ret, cpuentries[i].qemu_id));
+    }
+
+ cleanup:
+    qemuMonitorQueryCpusFree(cpuentries, ncpuentries);
     return ret;
 }
 
@@ -4032,4 +4075,15 @@ qemuMonitorGetRTCTime(qemuMonitorPtr mon,
     QEMU_CHECK_MONITOR_JSON(mon);
 
     return qemuMonitorJSONGetRTCTime(mon, tm);
+}
+
+
+virHashTablePtr
+qemuMonitorQueryQMPSchema(qemuMonitorPtr mon)
+{
+    VIR_DEBUG("mon=%p", mon);
+
+    QEMU_CHECK_MONITOR_JSON_NULL(mon);
+
+    return qemuMonitorJSONQueryQMPSchema(mon);
 }

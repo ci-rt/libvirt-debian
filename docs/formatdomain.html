@@ -13,153 +13,7 @@
     <meta name="description" content="libvirt, virtualization, virtualization API" />
   </head>
   <body>
-    <div id="header">
-      <div id="headerLogo"></div>
-      <div id="headerSearch">
-        <form action="search.php" enctype="application/x-www-form-urlencoded" method="get"><div>
-            <input id="query" name="query" type="text" size="12" value="" />
-            <input id="submit" name="submit" type="submit" value="Search" />
-          </div></form>
-      </div>
-    </div>
     <div id="body">
-      <div id="menu">
-        <ul class="l0"><li>
-            <div>
-              <a title="Front page of the libvirt website" class="inactive" href="index.html">Home</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="Details of new features and bugs fixed in each release" class="inactive" href="news.html">News</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="Applications known to use libvirt" class="inactive" href="apps.html">Applications</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="Get the latest source releases, binary builds and get access to the source repository" class="inactive" href="downloads.html">Downloads</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="Information for users, administrators and developers" class="active" href="docs.html">Documentation</a>
-              <ul class="l1"><li>
-                  <div>
-                    <a title="How to compile libvirt" class="inactive" href="compiling.html">Compiling</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="Information about deploying and using libvirt" class="inactive" href="deployment.html">Deployment</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="Overview of the logical subsystems in the libvirt API" class="inactive" href="intro.html">Architecture</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="Description of the XML formats used in libvirt" class="active" href="format.html">XML format</a>
-                    <ul class="l2"><li>
-                        <div>
-                          <span class="active">Domains</span>
-                        </div>
-                      </li><li>
-                        <div>
-                          <a title="The virtual network XML format" class="inactive" href="formatnetwork.html">Networks</a>
-                        </div>
-                      </li><li>
-                        <div>
-                          <a title="Network filter XML format" class="inactive" href="formatnwfilter.html">Network Filtering</a>
-                        </div>
-                      </li><li>
-                        <div>
-                          <a title="The storage pool and volume XML format" class="inactive" href="formatstorage.html">Storage</a>
-                        </div>
-                      </li><li>
-                        <div>
-                          <a title="Storage volume encryption XML format" class="inactive" href="formatstorageencryption.html">Storage Encryption</a>
-                        </div>
-                      </li><li>
-                        <div>
-                          <a title="The driver capabilities XML format" class="inactive" href="formatcaps.html">Capabilities</a>
-                        </div>
-                      </li><li>
-                        <div>
-                          <a title="The domain capabilities XML format" class="inactive" href="formatdomaincaps.html">Domain capabilities</a>
-                        </div>
-                      </li><li>
-                        <div>
-                          <a title="The host device XML format" class="inactive" href="formatnode.html">Node Devices</a>
-                        </div>
-                      </li><li>
-                        <div>
-                          <a title="The secret XML format" class="inactive" href="formatsecret.html">Secrets</a>
-                        </div>
-                      </li><li>
-                        <div>
-                          <a title="The snapshot XML format" class="inactive" href="formatsnapshot.html">Snapshots</a>
-                        </div>
-                      </li></ul>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="Hypervisor specific driver information" class="inactive" href="drivers.html">Drivers</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="Reference manual for the C public API" class="inactive" href="html/index.html">API reference</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="Bindings of the libvirt API for other languages" class="inactive" href="bindings.html">Language bindings</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="Working on the internals of libvirt API, driver and daemon code" class="inactive" href="internals.html">Internals</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="A guide and reference for developing with libvirt" class="inactive" href="devguide.html">Development Guide</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="Command reference for virsh" class="inactive" href="virshcmdref.html">Virsh Commands</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="Project governance and code of conduct" class="inactive" href="governance.html">Governance</a>
-                  </div>
-                </li></ul>
-            </div>
-          </li><li>
-            <div>
-              <a title="User contributed content" class="inactive" href="http://wiki.libvirt.org">Wiki</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="Frequently asked questions" class="inactive" href="http://wiki.libvirt.org/page/FAQ">FAQ</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="How and where to report bugs and request features" class="inactive" href="bugs.html">Bug reports</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="How to contact the developers via email and IRC" class="inactive" href="contact.html">Contact</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="Available test suites for libvirt" class="inactive" href="testsuites.html">Test suites</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="Miscellaneous links of interest related to libvirt" class="inactive" href="relatedlinks.html">Related Links</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="Overview of all content on the website" class="inactive" href="sitemap.html">Sitemap</a>
-            </div>
-          </li></ul>
-      </div>
       <div id="content">
         <h1>Domain XML format</h1>
         <ul><li>
@@ -436,18 +290,18 @@
       to obtain/find the boot image.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;os&gt;
-    &lt;type&gt;hvm&lt;/type&gt;
-    &lt;loader readonly='yes' secure='no' type='rom'&gt;/usr/lib/xen/boot/hvmloader&lt;/loader&gt;
-    &lt;nvram template='/usr/share/OVMF/OVMF_VARS.fd'&gt;/var/lib/libvirt/nvram/guest_VARS.fd&lt;/nvram&gt;
-    &lt;boot dev='hd'/&gt;
-    &lt;boot dev='cdrom'/&gt;
-    &lt;bootmenu enable='yes' timeout='3000'/&gt;
-    &lt;smbios mode='sysinfo'/&gt;
-    &lt;bios useserial='yes' rebootTimeout='0'/&gt;
-  &lt;/os&gt;
-  ...</pre>
+...
+&lt;os&gt;
+  &lt;type&gt;hvm&lt;/type&gt;
+  &lt;loader readonly='yes' secure='no' type='rom'&gt;/usr/lib/xen/boot/hvmloader&lt;/loader&gt;
+  &lt;nvram template='/usr/share/OVMF/OVMF_VARS.fd'&gt;/var/lib/libvirt/nvram/guest_VARS.fd&lt;/nvram&gt;
+  &lt;boot dev='hd'/&gt;
+  &lt;boot dev='cdrom'/&gt;
+  &lt;bootmenu enable='yes' timeout='3000'/&gt;
+  &lt;smbios mode='sysinfo'/&gt;
+  &lt;bios useserial='yes' rebootTimeout='0'/&gt;
+&lt;/os&gt;
+...</pre>
         <dl><dt><code>type</code></dt><dd>The content of the <code>type</code> element specifies the
         type of operating system to be booted in the virtual machine.
         <code>hvm</code> indicates that the OS is one designed to run
@@ -562,10 +416,10 @@
       <code>grub-bhyve</code>.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;bootloader&gt;/usr/bin/pygrub&lt;/bootloader&gt;
-  &lt;bootloader_args&gt;--append single&lt;/bootloader_args&gt;
-  ...</pre>
+...
+&lt;bootloader&gt;/usr/bin/pygrub&lt;/bootloader&gt;
+&lt;bootloader_args&gt;--append single&lt;/bootloader_args&gt;
+...</pre>
         <dl><dt><code>bootloader</code></dt><dd>The content of the <code>bootloader</code> element provides
         a fully qualified path to the bootloader executable in the
         host OS. This bootloader will be run to choose which kernel
@@ -585,19 +439,19 @@
       is usually available for both para and full virtualized guests.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;os&gt;
-    &lt;type&gt;hvm&lt;/type&gt;
-    &lt;loader&gt;/usr/lib/xen/boot/hvmloader&lt;/loader&gt;
-    &lt;kernel&gt;/root/f8-i386-vmlinuz&lt;/kernel&gt;
-    &lt;initrd&gt;/root/f8-i386-initrd&lt;/initrd&gt;
-    &lt;cmdline&gt;console=ttyS0 ks=http://example.com/f8-i386/os/&lt;/cmdline&gt;
-    &lt;dtb&gt;/root/ppc.dtb&lt;/dtb&gt;
-    &lt;acpi&gt;
-      &lt;table type='slic'&gt;/path/to/slic.dat&lt;/table&gt;
-    &lt;/acpi&gt;
-  &lt;/os&gt;
-  ...</pre>
+...
+&lt;os&gt;
+  &lt;type&gt;hvm&lt;/type&gt;
+  &lt;loader&gt;/usr/lib/xen/boot/hvmloader&lt;/loader&gt;
+  &lt;kernel&gt;/root/f8-i386-vmlinuz&lt;/kernel&gt;
+  &lt;initrd&gt;/root/f8-i386-initrd&lt;/initrd&gt;
+  &lt;cmdline&gt;console=ttyS0 ks=http://example.com/f8-i386/os/&lt;/cmdline&gt;
+  &lt;dtb&gt;/root/ppc.dtb&lt;/dtb&gt;
+  &lt;acpi&gt;
+    &lt;table type='slic'&gt;/path/to/slic.dat&lt;/table&gt;
+  &lt;/acpi&gt;
+&lt;/os&gt;
+...</pre>
         <dl><dt><code>type</code></dt><dd>This element has the same semantics as described earlier in the
         <a href="#elementsOSBIOS" shape="rect">BIOS boot section</a></dd><dt><code>loader</code></dt><dd>This element has the same semantics as described earlier in the
         <a href="#elementsOSBIOS" shape="rect">BIOS boot section</a></dd><dt><code>kernel</code></dt><dd>The contents of this element specify the fully-qualified path
@@ -625,12 +479,12 @@
       but will not affect init argv.
     </p>
         <pre xml:space="preserve">
-  &lt;os&gt;
-    &lt;type arch='x86_64'&gt;exe&lt;/type&gt;
-    &lt;init&gt;/bin/systemd&lt;/init&gt;
-    &lt;initarg&gt;--unit&lt;/initarg&gt;
-    &lt;initarg&gt;emergency.service&lt;/initarg&gt;
-  &lt;/os&gt;
+&lt;os&gt;
+  &lt;type arch='x86_64'&gt;exe&lt;/type&gt;
+  &lt;init&gt;/bin/systemd&lt;/init&gt;
+  &lt;initarg&gt;--unit&lt;/initarg&gt;
+  &lt;initarg&gt;emergency.service&lt;/initarg&gt;
+&lt;/os&gt;
     </pre>
         <p>
       If you want to enable user namespace, set the <code>idmap</code> element.
@@ -639,10 +493,10 @@
         <dl><dt><code>start</code></dt><dd>First user ID in container. It must be '0'.</dd><dt><code>target</code></dt><dd>The first user ID in container will be mapped to this target user
           ID in host.</dd><dt><code>count</code></dt><dd>How many users in container are allowed to map to host's user.</dd></dl>
         <pre xml:space="preserve">
-  &lt;idmap&gt;
-    &lt;uid start='0' target='1000' count='10'/&gt;
-    &lt;gid start='0' target='1000' count='10'/&gt;
-  &lt;/idmap&gt;
+&lt;idmap&gt;
+  &lt;uid start='0' target='1000' count='10'/&gt;
+  &lt;gid start='0' target='1000' count='10'/&gt;
+&lt;/idmap&gt;
     </pre>
         <h3>
           <a name="elementsSysinfo" shape="rect" id="elementsSysinfo">SMBIOS System Information</a>
@@ -657,28 +511,28 @@
       of information. <span class="since">Since 0.8.7</span>
     </p>
         <pre xml:space="preserve">
+...
+&lt;os&gt;
+  &lt;smbios mode='sysinfo'/&gt;
   ...
-  &lt;os&gt;
-    &lt;smbios mode='sysinfo'/&gt;
-    ...
-  &lt;/os&gt;
-  &lt;sysinfo type='smbios'&gt;
-    &lt;bios&gt;
-      &lt;entry name='vendor'&gt;LENOVO&lt;/entry&gt;
-    &lt;/bios&gt;
-    &lt;system&gt;
-      &lt;entry name='manufacturer'&gt;Fedora&lt;/entry&gt;
-      &lt;entry name='product'&gt;Virt-Manager&lt;/entry&gt;
-      &lt;entry name='version'&gt;0.9.4&lt;/entry&gt;
-    &lt;/system&gt;
-    &lt;baseBoard&gt;
-      &lt;entry name='manufacturer'&gt;LENOVO&lt;/entry&gt;
-      &lt;entry name='product'&gt;20BE0061MC&lt;/entry&gt;
-      &lt;entry name='version'&gt;0B98401 Pro&lt;/entry&gt;
-      &lt;entry name='serial'&gt;W1KS427111E&lt;/entry&gt;
-    &lt;/baseBoard&gt;
-  &lt;/sysinfo&gt;
-  ...</pre>
+&lt;/os&gt;
+&lt;sysinfo type='smbios'&gt;
+  &lt;bios&gt;
+    &lt;entry name='vendor'&gt;LENOVO&lt;/entry&gt;
+  &lt;/bios&gt;
+  &lt;system&gt;
+    &lt;entry name='manufacturer'&gt;Fedora&lt;/entry&gt;
+    &lt;entry name='product'&gt;Virt-Manager&lt;/entry&gt;
+    &lt;entry name='version'&gt;0.9.4&lt;/entry&gt;
+  &lt;/system&gt;
+  &lt;baseBoard&gt;
+    &lt;entry name='manufacturer'&gt;LENOVO&lt;/entry&gt;
+    &lt;entry name='product'&gt;20BE0061MC&lt;/entry&gt;
+    &lt;entry name='version'&gt;0B98401 Pro&lt;/entry&gt;
+    &lt;entry name='serial'&gt;W1KS427111E&lt;/entry&gt;
+  &lt;/baseBoard&gt;
+&lt;/sysinfo&gt;
+...</pre>
         <p>
       The <code>sysinfo</code> element has a mandatory
       attribute <code>type</code> that determine the layout of
@@ -1286,11 +1140,11 @@
       by default.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;resource&gt;
-    &lt;partition&gt;/virtualmachines/production&lt;/partition&gt;
-  &lt;/resource&gt;
-  ...
+...
+&lt;resource&gt;
+  &lt;partition&gt;/virtualmachines/production&lt;/partition&gt;
+&lt;/resource&gt;
+...
 </pre>
         <p>
       Resource partitions are currently supported by the QEMU and
@@ -1307,35 +1161,35 @@
       <span class="since">Since 0.7.5</span>
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;cpu match='exact'&gt;
-    &lt;model fallback='allow'&gt;core2duo&lt;/model&gt;
-    &lt;vendor&gt;Intel&lt;/vendor&gt;
-    &lt;topology sockets='1' cores='2' threads='1'/&gt;
-    &lt;feature policy='disable' name='lahf_lm'/&gt;
-  &lt;/cpu&gt;
-  ...</pre>
+...
+&lt;cpu match='exact'&gt;
+  &lt;model fallback='allow'&gt;core2duo&lt;/model&gt;
+  &lt;vendor&gt;Intel&lt;/vendor&gt;
+  &lt;topology sockets='1' cores='2' threads='1'/&gt;
+  &lt;feature policy='disable' name='lahf_lm'/&gt;
+&lt;/cpu&gt;
+...</pre>
         <pre xml:space="preserve">
-  &lt;cpu mode='host-model'&gt;
-    &lt;model fallback='forbid'/&gt;
-    &lt;topology sockets='1' cores='2' threads='1'/&gt;
-  &lt;/cpu&gt;
-  ...</pre>
+&lt;cpu mode='host-model'&gt;
+  &lt;model fallback='forbid'/&gt;
+  &lt;topology sockets='1' cores='2' threads='1'/&gt;
+&lt;/cpu&gt;
+...</pre>
         <pre xml:space="preserve">
-  &lt;cpu mode='host-passthrough'&gt;
-    &lt;feature policy='disable' name='lahf_lm'/&gt;
-  ...</pre>
+&lt;cpu mode='host-passthrough'&gt;
+  &lt;feature policy='disable' name='lahf_lm'/&gt;
+...</pre>
         <p>
       In case no restrictions need to be put on CPU model and its features, a
       simpler <code>cpu</code> element can be used.
       <span class="since">Since 0.7.6</span>
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;cpu&gt;
-    &lt;topology sockets='1' cores='2' threads='1'/&gt;
-  &lt;/cpu&gt;
-  ...</pre>
+...
+&lt;cpu&gt;
+  &lt;topology sockets='1' cores='2' threads='1'/&gt;
+&lt;/cpu&gt;
+...</pre>
         <dl><dt><code>cpu</code></dt><dd>The <code>cpu</code> element is the main container for describing
         guest CPU requirements. Its <code>match</code> attribute specified how
         strictly has the virtual CPU provided to the guest match these
@@ -1399,10 +1253,10 @@
           When a user needs a power7 VM to run in compatibility mode
           on a Power8 host, this can be described in XML as follows :
 <pre xml:space="preserve">
-  &lt;cpu mode='host-model'&gt;
-    &lt;model&gt;power7&lt;/model&gt;
-  &lt;/cpu&gt;
-  ...</pre>
+&lt;cpu mode='host-model'&gt;
+  &lt;model&gt;power7&lt;/model&gt;
+&lt;/cpu&gt;
+...</pre>
           </dd><dt><code>host-passthrough</code></dt><dd>With this mode, the CPU visible to the guest should be exactly
           the same as the host CPU even in the aspects that libvirt does not
           understand. Though the downside of this mode is that the guest
@@ -1463,16 +1317,16 @@
       <span class="since">Since 0.9.8</span>
     </p>
         <pre xml:space="preserve">
+...
+&lt;cpu&gt;
   ...
-  &lt;cpu&gt;
-    ...
-    &lt;numa&gt;
-      &lt;cell id='0' cpus='0-3' memory='512000' unit='KiB'/&gt;
-      &lt;cell id='1' cpus='4-7' memory='512000' unit='KiB' memAccess='shared'/&gt;
-    &lt;/numa&gt;
-    ...
-  &lt;/cpu&gt;
-  ...</pre>
+  &lt;numa&gt;
+    &lt;cell id='0' cpus='0-3' memory='512000' unit='KiB'/&gt;
+    &lt;cell id='1' cpus='4-7' memory='512000' unit='KiB' memAccess='shared'/&gt;
+  &lt;/numa&gt;
+  ...
+&lt;/cpu&gt;
+...</pre>
         <p>
       Each <code>cell</code> element specifies a NUMA cell or a NUMA node.
       <code>cpus</code> specifies the CPU or range of CPUs that are
@@ -1517,12 +1371,12 @@
       also trigger the event.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;on_poweroff&gt;destroy&lt;/on_poweroff&gt;
-  &lt;on_reboot&gt;restart&lt;/on_reboot&gt;
-  &lt;on_crash&gt;restart&lt;/on_crash&gt;
-  &lt;on_lockfailure&gt;poweroff&lt;/on_lockfailure&gt;
-  ...</pre>
+...
+&lt;on_poweroff&gt;destroy&lt;/on_poweroff&gt;
+&lt;on_reboot&gt;restart&lt;/on_reboot&gt;
+&lt;on_crash&gt;restart&lt;/on_crash&gt;
+&lt;on_lockfailure&gt;poweroff&lt;/on_lockfailure&gt;
+...</pre>
         <p>
       The following collections of elements allow the actions to be
       specified when a guest OS triggers a lifecycle operation. A
@@ -1579,12 +1433,12 @@
       OS. (NB: Only qemu driver support)
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;pm&gt;
-    &lt;suspend-to-disk enabled='no'/&gt;
-    &lt;suspend-to-mem enabled='yes'/&gt;
-  &lt;/pm&gt;
-  ...</pre>
+...
+&lt;pm&gt;
+  &lt;suspend-to-disk enabled='no'/&gt;
+  &lt;suspend-to-mem enabled='yes'/&gt;
+&lt;/pm&gt;
+...</pre>
         <dl><dt><code>pm</code></dt><dd>These elements enable ('yes') or disable ('no') BIOS support
         for S3 (suspend-to-mem) and S4 (suspend-to-disk) ACPI sleep
         states. If nothing is specified, then the hypervisor will be
@@ -1598,31 +1452,31 @@
       toggled on/off.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;features&gt;
-    &lt;pae/&gt;
-    &lt;acpi/&gt;
-    &lt;apic/&gt;
-    &lt;hap/&gt;
-    &lt;privnet/&gt;
-    &lt;hyperv&gt;
-      &lt;relaxed state='on'/&gt;
-      &lt;vapic state='on'/&gt;
-      &lt;spinlocks state='on' retries='4096'/&gt;
-      &lt;vpindex state='on'/&gt;
-      &lt;runtime state='on'/&gt;
-      &lt;synic state='on'/&gt;
-      &lt;reset state='on'/&gt;
-      &lt;vendor_id state='on' value='KVM Hv'/&gt;
-    &lt;/hyperv&gt;
-    &lt;kvm&gt;
-      &lt;hidden state='on'/&gt;
-    &lt;/kvm&gt;
-    &lt;pvspinlock state='on'/&gt;
-    &lt;gic version='2'/&gt;
+...
+&lt;features&gt;
+  &lt;pae/&gt;
+  &lt;acpi/&gt;
+  &lt;apic/&gt;
+  &lt;hap/&gt;
+  &lt;privnet/&gt;
+  &lt;hyperv&gt;
+    &lt;relaxed state='on'/&gt;
+    &lt;vapic state='on'/&gt;
+    &lt;spinlocks state='on' retries='4096'/&gt;
+    &lt;vpindex state='on'/&gt;
+    &lt;runtime state='on'/&gt;
+    &lt;synic state='on'/&gt;
+    &lt;reset state='on'/&gt;
+    &lt;vendor_id state='on' value='KVM Hv'/&gt;
+  &lt;/hyperv&gt;
+  &lt;kvm&gt;
+    &lt;hidden state='on'/&gt;
+  &lt;/kvm&gt;
+  &lt;pvspinlock state='on'/&gt;
+  &lt;gic version='2'/&gt;
 
-  &lt;/features&gt;
-  ...</pre>
+&lt;/features&gt;
+...</pre>
         <p>
       All features are listed within the <code>features</code>
       element, omitting a togglable feature tag turns it off.
@@ -1690,14 +1544,14 @@
       it to be in so called 'localtime'.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;clock offset='localtime'&gt;
-    &lt;timer name='rtc' tickpolicy='catchup' track='guest'&gt;
-      &lt;catchup threshold='123' slew='120' limit='10000'/&gt;
-    &lt;/timer&gt;
-    &lt;timer name='pit' tickpolicy='delay'/&gt;
-  &lt;/clock&gt;
-  ...</pre>
+...
+&lt;clock offset='localtime'&gt;
+  &lt;timer name='rtc' tickpolicy='catchup' track='guest'&gt;
+    &lt;catchup threshold='123' slew='120' limit='10000'/&gt;
+  &lt;/timer&gt;
+  &lt;timer name='pit' tickpolicy='delay'/&gt;
+&lt;/clock&gt;
+...</pre>
         <dl><dt><code>clock</code></dt><dd>
         <p>The <code>offset</code> attribute takes four possible
           values, allowing fine grained control over how the guest
@@ -1820,17 +1674,17 @@
       <span class="since">Since 2.0.0</span>
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;perf&gt;
-    &lt;event name='cmt' enabled='yes'/&gt;
-    &lt;event name='mbmt' enabled='no'/&gt;
-    &lt;event name='mbml' enabled='yes'/&gt;
-    &lt;event name='cpu_cycles' enabled='no'/&gt;
-    &lt;event name='instructions' enabled='yes'/&gt;
-    &lt;event name='cache_references' enabled='no'/&gt;
-    &lt;event name='cache_misses' enabled='no'/&gt;
-  &lt;/perf&gt;
-  ...
+...
+&lt;perf&gt;
+  &lt;event name='cmt' enabled='yes'/&gt;
+  &lt;event name='mbmt' enabled='no'/&gt;
+  &lt;event name='mbml' enabled='yes'/&gt;
+  &lt;event name='cpu_cycles' enabled='no'/&gt;
+  &lt;event name='instructions' enabled='yes'/&gt;
+  &lt;event name='cache_references' enabled='no'/&gt;
+  &lt;event name='cache_misses' enabled='no'/&gt;
+&lt;/perf&gt;
+...
 </pre>
         <table class="top_table"><tr><th rowspan="1" colspan="1">event name</th><th rowspan="1" colspan="1">Description</th><th rowspan="1" colspan="1">stats parameter name</th></tr><tr><td rowspan="1" colspan="1"><code>cmt</code></td><td rowspan="1" colspan="1">usage of l3 cache in bytes by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.cmt</code></td></tr><tr><td rowspan="1" colspan="1"><code>mbmt</code></td><td rowspan="1" colspan="1">total system bandwidth from one level of cache</td><td rowspan="1" colspan="1"><code>perf.mbmt</code></td></tr><tr><td rowspan="1" colspan="1"><code>mbml</code></td><td rowspan="1" colspan="1">bandwidth of memory traffic for a memory controller</td><td rowspan="1" colspan="1"><code>perf.mbml</code></td></tr><tr><td rowspan="1" colspan="1"><code>cpu_cycles</code></td><td rowspan="1" colspan="1">the count of cpu cycles (total/elapsed)</td><td rowspan="1" colspan="1"><code>perf.cpu_cycles</code></td></tr><tr><td rowspan="1" colspan="1"><code>instructions</code></td><td rowspan="1" colspan="1">the count of instructions by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.instructions</code></td></tr><tr><td rowspan="1" colspan="1"><code>cache_references</code></td><td rowspan="1" colspan="1">the count of cache hits by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.cache_references</code></td></tr><tr><td rowspan="1" colspan="1"><code>cache_misses</code></td><td rowspan="1" colspan="1">the count of cache misses by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.cache_misses</code></td></tr></table>
         <h3>
@@ -1844,11 +1698,11 @@
       <span class="since">Since 0.1.3</span>
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;emulator&gt;/usr/lib/xen/bin/qemu-dm&lt;/emulator&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;emulator&gt;/usr/lib/xen/bin/qemu-dm&lt;/emulator&gt;
+&lt;/devices&gt;
+...</pre>
         <dl><dt><code>emulator</code></dt><dd>
         The contents of the <code>emulator</code> element specify
         the fully qualified path to the device model emulator binary.
@@ -1866,166 +1720,166 @@
       element.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;disk type='file' snapshot='external'&gt;
-      &lt;driver name="tap" type="aio" cache="default"/&gt;
-      &lt;source file='/var/lib/xen/images/fv0' startupPolicy='optional'&gt;
-        &lt;seclabel relabel='no'/&gt;
-      &lt;/source&gt;
-      &lt;target dev='hda' bus='ide'/&gt;
-      &lt;iotune&gt;
-        &lt;total_bytes_sec&gt;10000000&lt;/total_bytes_sec&gt;
-        &lt;read_iops_sec&gt;400000&lt;/read_iops_sec&gt;
-        &lt;write_iops_sec&gt;100000&lt;/write_iops_sec&gt;
-      &lt;/iotune&gt;
-      &lt;boot order='2'/&gt;
-      &lt;encryption type='...'&gt;
-        ...
-      &lt;/encryption&gt;
-      &lt;shareable/&gt;
-      &lt;serial&gt;
-        ...
-      &lt;/serial&gt;
-    &lt;/disk&gt;
+...
+&lt;devices&gt;
+  &lt;disk type='file' snapshot='external'&gt;
+    &lt;driver name="tap" type="aio" cache="default"/&gt;
+    &lt;source file='/var/lib/xen/images/fv0' startupPolicy='optional'&gt;
+      &lt;seclabel relabel='no'/&gt;
+    &lt;/source&gt;
+    &lt;target dev='hda' bus='ide'/&gt;
+    &lt;iotune&gt;
+      &lt;total_bytes_sec&gt;10000000&lt;/total_bytes_sec&gt;
+      &lt;read_iops_sec&gt;400000&lt;/read_iops_sec&gt;
+      &lt;write_iops_sec&gt;100000&lt;/write_iops_sec&gt;
+    &lt;/iotune&gt;
+    &lt;boot order='2'/&gt;
+    &lt;encryption type='...'&gt;
       ...
-    &lt;disk type='network'&gt;
-      &lt;driver name="qemu" type="raw" io="threads" ioeventfd="on" event_idx="off"/&gt;
-      &lt;source protocol="sheepdog" name="image_name"&gt;
-        &lt;host name="hostname" port="7000"/&gt;
-      &lt;/source&gt;
-      &lt;target dev="hdb" bus="ide"/&gt;
-      &lt;boot order='1'/&gt;
-      &lt;transient/&gt;
-      &lt;address type='drive' controller='0' bus='1' unit='0'/&gt;
-    &lt;/disk&gt;
-    &lt;disk type='network'&gt;
-      &lt;driver name="qemu" type="raw"/&gt;
-      &lt;source protocol="rbd" name="image_name2"&gt;
-        &lt;host name="hostname" port="7000"/&gt;
-        &lt;snapshot name="snapname"/&gt;
-        &lt;config file="/path/to/file"/&gt;
-      &lt;/source&gt;
-      &lt;target dev="hdc" bus="ide"/&gt;
-      &lt;auth username='myuser'&gt;
-        &lt;secret type='ceph' usage='mypassid'/&gt;
-      &lt;/auth&gt;
-    &lt;/disk&gt;
-    &lt;disk type='block' device='cdrom'&gt;
-      &lt;driver name='qemu' type='raw'/&gt;
-      &lt;target dev='hdd' bus='ide' tray='open'/&gt;
-      &lt;readonly/&gt;
-    &lt;/disk&gt;
-    &lt;disk type='network' device='cdrom'&gt;
-      &lt;driver name='qemu' type='raw'/&gt;
-      &lt;source protocol="http" name="url_path"&gt;
-        &lt;host name="hostname" port="80"/&gt;
-      &lt;/source&gt;
-      &lt;target dev='hde' bus='ide' tray='open'/&gt;
-      &lt;readonly/&gt;
-    &lt;/disk&gt;
-    &lt;disk type='network' device='cdrom'&gt;
-      &lt;driver name='qemu' type='raw'/&gt;
-      &lt;source protocol="https" name="url_path"&gt;
-        &lt;host name="hostname" port="443"/&gt;
-      &lt;/source&gt;
-      &lt;target dev='hdf' bus='ide' tray='open'/&gt;
-      &lt;readonly/&gt;
-    &lt;/disk&gt;
-    &lt;disk type='network' device='cdrom'&gt;
-      &lt;driver name='qemu' type='raw'/&gt;
-      &lt;source protocol="ftp" name="url_path"&gt;
-        &lt;host name="hostname" port="21"/&gt;
-      &lt;/source&gt;
-      &lt;target dev='hdg' bus='ide' tray='open'/&gt;
-      &lt;readonly/&gt;
-    &lt;/disk&gt;
-    &lt;disk type='network' device='cdrom'&gt;
-      &lt;driver name='qemu' type='raw'/&gt;
-      &lt;source protocol="ftps" name="url_path"&gt;
-        &lt;host name="hostname" port="990"/&gt;
-      &lt;/source&gt;
-      &lt;target dev='hdh' bus='ide' tray='open'/&gt;
-      &lt;readonly/&gt;
-    &lt;/disk&gt;
-    &lt;disk type='network' device='cdrom'&gt;
-      &lt;driver name='qemu' type='raw'/&gt;
-      &lt;source protocol="tftp" name="url_path"&gt;
-        &lt;host name="hostname" port="69"/&gt;
-      &lt;/source&gt;
-      &lt;target dev='hdi' bus='ide' tray='open'/&gt;
-      &lt;readonly/&gt;
-    &lt;/disk&gt;
-    &lt;disk type='block' device='lun'&gt;
-      &lt;driver name='qemu' type='raw'/&gt;
-      &lt;source dev='/dev/sda'/&gt;
-      &lt;target dev='sda' bus='scsi'/&gt;
-      &lt;address type='drive' controller='0' bus='0' target='3' unit='0'/&gt;
-    &lt;/disk&gt;
-    &lt;disk type='block' device='disk'&gt;
-      &lt;driver name='qemu' type='raw'/&gt;
-      &lt;source dev='/dev/sda'/&gt;
-      &lt;geometry cyls='16383' heads='16' secs='63' trans='lba'/&gt;
-      &lt;blockio logical_block_size='512' physical_block_size='4096'/&gt;
-      &lt;target dev='hdj' bus='ide'/&gt;
-    &lt;/disk&gt;
-    &lt;disk type='volume' device='disk'&gt;
-      &lt;driver name='qemu' type='raw'/&gt;
-      &lt;source pool='blk-pool0' volume='blk-pool0-vol0'/&gt;
-      &lt;target dev='hdk' bus='ide'/&gt;
-    &lt;/disk&gt;
-    &lt;disk type='network' device='disk'&gt;
-      &lt;driver name='qemu' type='raw'/&gt;
-      &lt;source protocol='iscsi' name='iqn.2013-07.com.example:iscsi-nopool/2'&gt;
-        &lt;host name='example.com' port='3260'/&gt;
-      &lt;/source&gt;
-      &lt;auth username='myuser'&gt;
-        &lt;secret type='iscsi' usage='libvirtiscsi'/&gt;
-      &lt;/auth&gt;
-      &lt;target dev='vda' bus='virtio'/&gt;
-    &lt;/disk&gt;
-    &lt;disk type='network' device='lun'&gt;
-      &lt;driver name='qemu' type='raw'/&gt;
-      &lt;source protocol='iscsi' name='iqn.2013-07.com.example:iscsi-nopool/1'&gt;
-        &lt;host name='example.com' port='3260'/&gt;
-      &lt;/source&gt;
-      &lt;auth username='myuser'&gt;
-        &lt;secret type='iscsi' usage='libvirtiscsi'/&gt;
-      &lt;/auth&gt;
-      &lt;target dev='sdb' bus='scsi'/&gt;
-    &lt;/disk&gt;
-    &lt;disk type='volume' device='disk'&gt;
-      &lt;driver name='qemu' type='raw'/&gt;
-      &lt;source pool='iscsi-pool' volume='unit:0:0:1' mode='host'/&gt;
-      &lt;auth username='myuser'&gt;
-        &lt;secret type='iscsi' usage='libvirtiscsi'/&gt;
-      &lt;/auth&gt;
-      &lt;target dev='vdb' bus='virtio'/&gt;
-    &lt;/disk&gt;
-    &lt;disk type='volume' device='disk'&gt;
-      &lt;driver name='qemu' type='raw'/&gt;
-      &lt;source pool='iscsi-pool' volume='unit:0:0:2' mode='direct'/&gt;
-      &lt;auth username='myuser'&gt;
-        &lt;secret type='iscsi' usage='libvirtiscsi'/&gt;
-      &lt;/auth&gt;
-      &lt;target dev='vdc' bus='virtio'/&gt;
-    &lt;/disk&gt;
-    &lt;disk type='file' device='disk'&gt;
-      &lt;driver name='qemu' type='qcow2'/&gt;
-      &lt;source file='/var/lib/libvirt/images/domain.qcow'/&gt;
-      &lt;backingStore type='file'&gt;
-        &lt;format type='qcow2'/&gt;
-        &lt;source file='/var/lib/libvirt/images/snapshot.qcow'/&gt;
-        &lt;backingStore type='block'&gt;
-          &lt;format type='raw'/&gt;
-          &lt;source dev='/dev/mapper/base'/&gt;
-          &lt;backingStore/&gt;
-        &lt;/backingStore&gt;
+    &lt;/encryption&gt;
+    &lt;shareable/&gt;
+    &lt;serial&gt;
+      ...
+    &lt;/serial&gt;
+  &lt;/disk&gt;
+    ...
+  &lt;disk type='network'&gt;
+    &lt;driver name="qemu" type="raw" io="threads" ioeventfd="on" event_idx="off"/&gt;
+    &lt;source protocol="sheepdog" name="image_name"&gt;
+      &lt;host name="hostname" port="7000"/&gt;
+    &lt;/source&gt;
+    &lt;target dev="hdb" bus="ide"/&gt;
+    &lt;boot order='1'/&gt;
+    &lt;transient/&gt;
+    &lt;address type='drive' controller='0' bus='1' unit='0'/&gt;
+  &lt;/disk&gt;
+  &lt;disk type='network'&gt;
+    &lt;driver name="qemu" type="raw"/&gt;
+    &lt;source protocol="rbd" name="image_name2"&gt;
+      &lt;host name="hostname" port="7000"/&gt;
+      &lt;snapshot name="snapname"/&gt;
+      &lt;config file="/path/to/file"/&gt;
+    &lt;/source&gt;
+    &lt;target dev="hdc" bus="ide"/&gt;
+    &lt;auth username='myuser'&gt;
+      &lt;secret type='ceph' usage='mypassid'/&gt;
+    &lt;/auth&gt;
+  &lt;/disk&gt;
+  &lt;disk type='block' device='cdrom'&gt;
+    &lt;driver name='qemu' type='raw'/&gt;
+    &lt;target dev='hdd' bus='ide' tray='open'/&gt;
+    &lt;readonly/&gt;
+  &lt;/disk&gt;
+  &lt;disk type='network' device='cdrom'&gt;
+    &lt;driver name='qemu' type='raw'/&gt;
+    &lt;source protocol="http" name="url_path"&gt;
+      &lt;host name="hostname" port="80"/&gt;
+    &lt;/source&gt;
+    &lt;target dev='hde' bus='ide' tray='open'/&gt;
+    &lt;readonly/&gt;
+  &lt;/disk&gt;
+  &lt;disk type='network' device='cdrom'&gt;
+    &lt;driver name='qemu' type='raw'/&gt;
+    &lt;source protocol="https" name="url_path"&gt;
+      &lt;host name="hostname" port="443"/&gt;
+    &lt;/source&gt;
+    &lt;target dev='hdf' bus='ide' tray='open'/&gt;
+    &lt;readonly/&gt;
+  &lt;/disk&gt;
+  &lt;disk type='network' device='cdrom'&gt;
+    &lt;driver name='qemu' type='raw'/&gt;
+    &lt;source protocol="ftp" name="url_path"&gt;
+      &lt;host name="hostname" port="21"/&gt;
+    &lt;/source&gt;
+    &lt;target dev='hdg' bus='ide' tray='open'/&gt;
+    &lt;readonly/&gt;
+  &lt;/disk&gt;
+  &lt;disk type='network' device='cdrom'&gt;
+    &lt;driver name='qemu' type='raw'/&gt;
+    &lt;source protocol="ftps" name="url_path"&gt;
+      &lt;host name="hostname" port="990"/&gt;
+    &lt;/source&gt;
+    &lt;target dev='hdh' bus='ide' tray='open'/&gt;
+    &lt;readonly/&gt;
+  &lt;/disk&gt;
+  &lt;disk type='network' device='cdrom'&gt;
+    &lt;driver name='qemu' type='raw'/&gt;
+    &lt;source protocol="tftp" name="url_path"&gt;
+      &lt;host name="hostname" port="69"/&gt;
+    &lt;/source&gt;
+    &lt;target dev='hdi' bus='ide' tray='open'/&gt;
+    &lt;readonly/&gt;
+  &lt;/disk&gt;
+  &lt;disk type='block' device='lun'&gt;
+    &lt;driver name='qemu' type='raw'/&gt;
+    &lt;source dev='/dev/sda'/&gt;
+    &lt;target dev='sda' bus='scsi'/&gt;
+    &lt;address type='drive' controller='0' bus='0' target='3' unit='0'/&gt;
+  &lt;/disk&gt;
+  &lt;disk type='block' device='disk'&gt;
+    &lt;driver name='qemu' type='raw'/&gt;
+    &lt;source dev='/dev/sda'/&gt;
+    &lt;geometry cyls='16383' heads='16' secs='63' trans='lba'/&gt;
+    &lt;blockio logical_block_size='512' physical_block_size='4096'/&gt;
+    &lt;target dev='hdj' bus='ide'/&gt;
+  &lt;/disk&gt;
+  &lt;disk type='volume' device='disk'&gt;
+    &lt;driver name='qemu' type='raw'/&gt;
+    &lt;source pool='blk-pool0' volume='blk-pool0-vol0'/&gt;
+    &lt;target dev='hdk' bus='ide'/&gt;
+  &lt;/disk&gt;
+  &lt;disk type='network' device='disk'&gt;
+    &lt;driver name='qemu' type='raw'/&gt;
+    &lt;source protocol='iscsi' name='iqn.2013-07.com.example:iscsi-nopool/2'&gt;
+      &lt;host name='example.com' port='3260'/&gt;
+    &lt;/source&gt;
+    &lt;auth username='myuser'&gt;
+      &lt;secret type='iscsi' usage='libvirtiscsi'/&gt;
+    &lt;/auth&gt;
+    &lt;target dev='vda' bus='virtio'/&gt;
+  &lt;/disk&gt;
+  &lt;disk type='network' device='lun'&gt;
+    &lt;driver name='qemu' type='raw'/&gt;
+    &lt;source protocol='iscsi' name='iqn.2013-07.com.example:iscsi-nopool/1'&gt;
+      &lt;host name='example.com' port='3260'/&gt;
+    &lt;/source&gt;
+    &lt;auth username='myuser'&gt;
+      &lt;secret type='iscsi' usage='libvirtiscsi'/&gt;
+    &lt;/auth&gt;
+    &lt;target dev='sdb' bus='scsi'/&gt;
+  &lt;/disk&gt;
+  &lt;disk type='volume' device='disk'&gt;
+    &lt;driver name='qemu' type='raw'/&gt;
+    &lt;source pool='iscsi-pool' volume='unit:0:0:1' mode='host'/&gt;
+    &lt;auth username='myuser'&gt;
+      &lt;secret type='iscsi' usage='libvirtiscsi'/&gt;
+    &lt;/auth&gt;
+    &lt;target dev='vdb' bus='virtio'/&gt;
+  &lt;/disk&gt;
+  &lt;disk type='volume' device='disk'&gt;
+    &lt;driver name='qemu' type='raw'/&gt;
+    &lt;source pool='iscsi-pool' volume='unit:0:0:2' mode='direct'/&gt;
+    &lt;auth username='myuser'&gt;
+      &lt;secret type='iscsi' usage='libvirtiscsi'/&gt;
+    &lt;/auth&gt;
+    &lt;target dev='vdc' bus='virtio'/&gt;
+  &lt;/disk&gt;
+  &lt;disk type='file' device='disk'&gt;
+    &lt;driver name='qemu' type='qcow2'/&gt;
+    &lt;source file='/var/lib/libvirt/images/domain.qcow'/&gt;
+    &lt;backingStore type='file'&gt;
+      &lt;format type='qcow2'/&gt;
+      &lt;source file='/var/lib/libvirt/images/snapshot.qcow'/&gt;
+      &lt;backingStore type='block'&gt;
+        &lt;format type='raw'/&gt;
+        &lt;source dev='/dev/mapper/base'/&gt;
+        &lt;backingStore/&gt;
       &lt;/backingStore&gt;
-      &lt;target dev='vdd' bus='virtio'/&gt;
-    &lt;/disk&gt;
-  &lt;/devices&gt;
-  ...</pre>
+    &lt;/backingStore&gt;
+    &lt;target dev='vdd' bus='virtio'/&gt;
+  &lt;/disk&gt;
+&lt;/devices&gt;
+...</pre>
         <dl><dt><code>disk</code></dt><dd>The <code>disk</code> element is the main container for
       describing disks and supports the following attributes:
         <dl><dt><code>type</code></dt><dd>
@@ -2586,28 +2440,28 @@
       <span class="since">since 0.3.3, since 0.8.5 for QEMU/KVM</span>
     </p>
         <pre xml:space="preserve">
+...
+&lt;devices&gt;
+  &lt;filesystem type='template'&gt;
+    &lt;source name='my-vm-template'/&gt;
+    &lt;target dir='/'/&gt;
+  &lt;/filesystem&gt;
+  &lt;filesystem type='mount' accessmode='passthrough'&gt;
+    &lt;driver type='path' wrpolicy='immediate'/&gt;
+    &lt;source dir='/export/to/guest'/&gt;
+    &lt;target dir='/import/from/host'/&gt;
+    &lt;readonly/&gt;
+  &lt;/filesystem&gt;
+  &lt;filesystem type='file' accessmode='passthrough'&gt;
+    &lt;driver name='loop' type='raw'/&gt;
+    &lt;driver type='path' wrpolicy='immediate'/&gt;
+    &lt;source file='/export/to/guest.img'/&gt;
+    &lt;target dir='/import/from/host'/&gt;
+    &lt;readonly/&gt;
+  &lt;/filesystem&gt;
   ...
-  &lt;devices&gt;
-    &lt;filesystem type='template'&gt;
-      &lt;source name='my-vm-template'/&gt;
-      &lt;target dir='/'/&gt;
-    &lt;/filesystem&gt;
-    &lt;filesystem type='mount' accessmode='passthrough'&gt;
-      &lt;driver type='path' wrpolicy='immediate'/&gt;
-      &lt;source dir='/export/to/guest'/&gt;
-      &lt;target dir='/import/from/host'/&gt;
-      &lt;readonly/&gt;
-    &lt;/filesystem&gt;
-    &lt;filesystem type='file' accessmode='passthrough'&gt;
-      &lt;driver name='loop' type='raw'/&gt;
-      &lt;driver type='path' wrpolicy='immediate'/&gt;
-      &lt;source file='/export/to/guest.img'/&gt;
-      &lt;target dir='/import/from/host'/&gt;
-      &lt;readonly/&gt;
-    &lt;/filesystem&gt;
-    ...
-  &lt;/devices&gt;
-  ...</pre>
+&lt;/devices&gt;
+...</pre>
         <dl><dt><code>filesystem</code></dt><dd>
 
       The filesystem attribute <code>type</code> specifies the type of the
@@ -2814,20 +2668,20 @@
       it is necessary to provide an explicit controller element.
     </p>
         <pre xml:space="preserve">
+...
+&lt;devices&gt;
+  &lt;controller type='ide' index='0'/&gt;
+  &lt;controller type='virtio-serial' index='0' ports='16' vectors='4'/&gt;
+  &lt;controller type='virtio-serial' index='1'&gt;
+    &lt;address type='pci' domain='0x0000' bus='0x00' slot='0x0a' function='0x0'/&gt;
+  &lt;/controller&gt;
+  &lt;controller type='scsi' index='0' model='virtio-scsi'&gt;
+    &lt;driver iothread='4'/&gt;
+    &lt;address type='pci' domain='0x0000' bus='0x00' slot='0x0b' function='0x0'/&gt;
+  &lt;/controller&gt;
   ...
-  &lt;devices&gt;
-    &lt;controller type='ide' index='0'/&gt;
-    &lt;controller type='virtio-serial' index='0' ports='16' vectors='4'/&gt;
-    &lt;controller type='virtio-serial' index='1'&gt;
-      &lt;address type='pci' domain='0x0000' bus='0x00' slot='0x0a' function='0x0'/&gt;
-    &lt;/controller&gt;
-    &lt;controller type='scsi' index='0' model='virtio-scsi'&gt;
-      &lt;driver iothread='4'/&gt;
-      &lt;address type='pci' domain='0x0000' bus='0x00' slot='0x0b' function='0x0'/&gt;
-    &lt;/controller&gt;
-    ...
-  &lt;/devices&gt;
-  ...</pre>
+&lt;/devices&gt;
+...</pre>
         <p>
       Each controller has a mandatory attribute <code>type</code>,
       which must be one of 'ide', 'fdc', 'scsi', 'sata', 'usb',
@@ -2925,18 +2779,18 @@
       Preferred companion controllers are <code>ich-uhci[123]</code>.
     </p>
         <pre xml:space="preserve">
+...
+&lt;devices&gt;
+  &lt;controller type='usb' index='0' model='ich9-ehci1'&gt;
+    &lt;address type='pci' domain='0' bus='0' slot='4' function='7'/&gt;
+  &lt;/controller&gt;
+  &lt;controller type='usb' index='0' model='ich9-uhci1'&gt;
+    &lt;master startport='0'/&gt;
+    &lt;address type='pci' domain='0' bus='0' slot='4' function='0' multifunction='on'/&gt;
+  &lt;/controller&gt;
   ...
-  &lt;devices&gt;
-    &lt;controller type='usb' index='0' model='ich9-ehci1'&gt;
-      &lt;address type='pci' domain='0' bus='0' slot='4' function='7'/&gt;
-    &lt;/controller&gt;
-    &lt;controller type='usb' index='0' model='ich9-uhci1'&gt;
-      &lt;master startport='0'/&gt;
-      &lt;address type='pci' domain='0' bus='0' slot='4' function='0' multifunction='on'/&gt;
-    &lt;/controller&gt;
-    ...
-  &lt;/devices&gt;
-  ...</pre>
+&lt;/devices&gt;
+...</pre>
         <p>
       PCI controllers have an optional <code>model</code> attribute with
       possible values <code>pci-root</code>, <code>pcie-root</code>,
@@ -3064,14 +2918,14 @@
       configuration.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;controller type='pci' index='0' model='pci-root'/&gt;
-    &lt;controller type='pci' index='1' model='pci-bridge'&gt;
-      &lt;address type='pci' domain='0' bus='0' slot='5' function='0' multifunction='off'/&gt;
-    &lt;/controller&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;controller type='pci' index='0' model='pci-root'/&gt;
+  &lt;controller type='pci' index='1' model='pci-bridge'&gt;
+    &lt;address type='pci' domain='0' bus='0' slot='5' function='0' multifunction='off'/&gt;
+  &lt;/controller&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
       For machine types which provide an implicit PCI Express (PCIe)
       bus (for example, the machine types based on the Q35 chipset),
@@ -3125,17 +2979,17 @@
       1.2.19</span>)
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;controller type='pci' index='0' model='pcie-root'/&gt;
-    &lt;controller type='pci' index='1' model='dmi-to-pci-bridge'&gt;
-      &lt;address type='pci' domain='0' bus='0' slot='0xe' function='0'/&gt;
-    &lt;/controller&gt;
-    &lt;controller type='pci' index='2' model='pci-bridge'&gt;
-      &lt;address type='pci' domain='0' bus='1' slot='1' function='0'/&gt;
-    &lt;/controller&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;controller type='pci' index='0' model='pcie-root'/&gt;
+  &lt;controller type='pci' index='1' model='dmi-to-pci-bridge'&gt;
+    &lt;address type='pci' domain='0' bus='0' slot='0xe' function='0'/&gt;
+  &lt;/controller&gt;
+  &lt;controller type='pci' index='2' model='pci-bridge'&gt;
+    &lt;address type='pci' domain='0' bus='1' slot='1' function='0'/&gt;
+  &lt;/controller&gt;
+&lt;/devices&gt;
+...</pre>
         <h4>
           <a name="elementsLease" shape="rect" id="elementsLease">Device leases</a>
           <a class="headerlink" href="#elementsLease" title="Permalink to this headline">¶</a>
@@ -3146,17 +3000,17 @@
       the leases can be acquired.
     </p>
         <pre xml:space="preserve">
+...
+&lt;devices&gt;
   ...
-  &lt;devices&gt;
-    ...
-    &lt;lease&gt;
-      &lt;lockspace&gt;somearea&lt;/lockspace&gt;
-      &lt;key&gt;somekey&lt;/key&gt;
-      &lt;target path='/some/lease/path' offset='1024'/&gt;
-    &lt;/lease&gt;
-    ...
-  &lt;/devices&gt;
-  ...</pre>
+  &lt;lease&gt;
+    &lt;lockspace&gt;somearea&lt;/lockspace&gt;
+    &lt;key&gt;somekey&lt;/key&gt;
+    &lt;target path='/some/lease/path' offset='1024'/&gt;
+  &lt;/lease&gt;
+  ...
+&lt;/devices&gt;
+...</pre>
         <dl><dt><code>lockspace</code></dt><dd>This is an arbitrary string, identifying the lockspace
         within which the key is held. Lock managers may impose
         extra restrictions on the format, or length of the lockspace
@@ -3183,56 +3037,65 @@
         and 1.0.6 for SCSI(KVM only)</span>:
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;hostdev mode='subsystem' type='usb'&gt;
-      &lt;source startupPolicy='optional'&gt;
-        &lt;vendor id='0x1234'/&gt;
-        &lt;product id='0xbeef'/&gt;
-      &lt;/source&gt;
-      &lt;boot order='2'/&gt;
-    &lt;/hostdev&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;hostdev mode='subsystem' type='usb'&gt;
+    &lt;source startupPolicy='optional'&gt;
+      &lt;vendor id='0x1234'/&gt;
+      &lt;product id='0xbeef'/&gt;
+    &lt;/source&gt;
+    &lt;boot order='2'/&gt;
+  &lt;/hostdev&gt;
+&lt;/devices&gt;
+...</pre>
+        <p>or:</p>
+        <pre xml:space="preserve">
+...
+&lt;devices&gt;
+  &lt;hostdev mode='subsystem' type='pci' managed='yes'&gt;
+    &lt;source&gt;
+      &lt;address domain='0x0000' bus='0x06' slot='0x02' function='0x0'/&gt;
+    &lt;/source&gt;
+    &lt;boot order='1'/&gt;
+    &lt;rom bar='on' file='/etc/fake/boot.bin'/&gt;
+  &lt;/hostdev&gt;
+&lt;/devices&gt;
+...</pre>
+        <p>or:</p>
+        <pre xml:space="preserve">
+...
+&lt;devices&gt;
+  &lt;hostdev mode='subsystem' type='scsi' sgio='filtered' rawio='yes'&gt;
+    &lt;source&gt;
+      &lt;adapter name='scsi_host0'/&gt;
+      &lt;address bus='0' target='0' unit='0'/&gt;
+    &lt;/source&gt;
+    &lt;readonly/&gt;
+    &lt;address type='drive' controller='0' bus='0' target='0' unit='0'/&gt;
+  &lt;/hostdev&gt;
+&lt;/devices&gt;
+...</pre>
+        <p>or:</p>
+        <pre xml:space="preserve">
+...
+&lt;devices&gt;
+  &lt;hostdev mode='subsystem' type='scsi'&gt;
+    &lt;source protocol='iscsi' name='iqn.2014-08.com.example:iscsi-nopool/1'&gt;
+      &lt;host name='example.com' port='3260'/&gt;
+      &lt;auth username='myuser'&gt;
+        &lt;secret type='iscsi' usage='libvirtiscsi'/&gt;
+      &lt;/auth&gt;
+    &lt;/source&gt;
+    &lt;address type='drive' controller='0' bus='0' target='0' unit='0'/&gt;
+  &lt;/hostdev&gt;
+&lt;/devices&gt;
+...</pre>
         <p>or:</p>
         <pre xml:space="preserve">
   ...
   &lt;devices&gt;
-    &lt;hostdev mode='subsystem' type='pci' managed='yes'&gt;
-      &lt;source&gt;
-        &lt;address domain='0x0000' bus='0x06' slot='0x02' function='0x0'/&gt;
-      &lt;/source&gt;
-      &lt;boot order='1'/&gt;
-      &lt;rom bar='on' file='/etc/fake/boot.bin'/&gt;
-    &lt;/hostdev&gt;
-  &lt;/devices&gt;
-  ...</pre>
-        <p>or:</p>
-        <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;hostdev mode='subsystem' type='scsi' sgio='filtered' rawio='yes'&gt;
-      &lt;source&gt;
-        &lt;adapter name='scsi_host0'/&gt;
-        &lt;address bus='0' target='0' unit='0'/&gt;
-      &lt;/source&gt;
-      &lt;readonly/&gt;
-      &lt;address type='drive' controller='0' bus='0' target='0' unit='0'/&gt;
-    &lt;/hostdev&gt;
-  &lt;/devices&gt;
-  ...</pre>
-        <p>or:</p>
-        <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;hostdev mode='subsystem' type='scsi'&gt;
-      &lt;source protocol='iscsi' name='iqn.2014-08.com.example:iscsi-nopool/1'&gt;
-        &lt;host name='example.com' port='3260'/&gt;
-        &lt;auth username='myuser'&gt;
-          &lt;secret type='iscsi' usage='libvirtiscsi'/&gt;
-        &lt;/auth&gt;
-      &lt;/source&gt;
-      &lt;address type='drive' controller='0' bus='0' target='0' unit='0'/&gt;
+    &lt;hostdev mode='subsystem' type='scsi_host'&gt;
+      &lt;source protocol='vhost' wwpn='naa.50014057667280d8'/&gt;
     &lt;/hostdev&gt;
   &lt;/devices&gt;
   ...</pre>
@@ -3265,6 +3128,10 @@
             <a href="#elementsDisks" shape="rect">disk</a> section.
             If a disk lun in the domain already has the rawio capability,
             then this setting not required.
+          </dd><dt><code>scsi_host</code></dt><dd><span class="since">since 2.5.0</span>For SCSI devices, user
+            is responsible to make sure the device is not used by host. This
+            <code>type</code> passes all LUNs presented by a single HBA to
+            the guest.
           </dd></dl>
         <p>
           Note: The <code>managed</code> attribute is only used with PCI devices
@@ -3306,6 +3173,11 @@
             using the <code>auth</code> element to provide the authentication
             credentials to the iSCSI server.
             </p>
+          </dd><dt><code>scsi_host</code></dt><dd><span class="since">Since 2.5.0</span>, multiple LUNs behind a
+            single SCSI HBA are described by a <code>protocol</code>
+            attribute set to "vhost" and a <code>wwpn</code> attribute that
+            is the vhost_scsi wwpn (16 hexadecimal digits with a prefix of
+            "naa.") established in the host configfs.
           </dd></dl>
       </dd><dt><code>vendor</code>, <code>product</code></dt><dd>The <code>vendor</code> and <code>product</code> elements each have an
       <code>id</code> attribute that specifies the USB vendor and product id.
@@ -3429,18 +3301,18 @@
       only)</span>:
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;redirdev bus='usb' type='tcp'&gt;
-      &lt;source mode='connect' host='localhost' service='4000'/&gt;
-      &lt;boot order='1'/&gt;
-    &lt;/redirdev&gt;
-    &lt;redirfilter&gt;
-      &lt;usbdev class='0x08' vendor='0x1234' product='0xbeef' version='2.56' allow='yes'/&gt;
-      &lt;usbdev allow='no'/&gt;
-    &lt;/redirfilter&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;redirdev bus='usb' type='tcp'&gt;
+    &lt;source mode='connect' host='localhost' service='4000'/&gt;
+    &lt;boot order='1'/&gt;
+  &lt;/redirdev&gt;
+  &lt;redirfilter&gt;
+    &lt;usbdev class='0x08' vendor='0x1234' product='0xbeef' version='2.56' allow='yes'/&gt;
+    &lt;usbdev allow='no'/&gt;
+  &lt;/redirfilter&gt;
+&lt;/devices&gt;
+...</pre>
         <dl><dt><code>redirdev</code></dt><dd>The <code>redirdev</code> element is the main container for
         describing redirected devices. <code>bus</code> must be "usb"
         for a USB device.
@@ -3494,23 +3366,23 @@
       smartcard provider. <span class="since">Since 0.8.8</span>
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;smartcard mode='host'/&gt;
-    &lt;smartcard mode='host-certificates'&gt;
-      &lt;certificate&gt;cert1&lt;/certificate&gt;
-      &lt;certificate&gt;cert2&lt;/certificate&gt;
-      &lt;certificate&gt;cert3&lt;/certificate&gt;
-      &lt;database&gt;/etc/pki/nssdb/&lt;/database&gt;
-    &lt;/smartcard&gt;
-    &lt;smartcard mode='passthrough' type='tcp'&gt;
-      &lt;source mode='bind' host='127.0.0.1' service='2001'/&gt;
-      &lt;protocol type='raw'/&gt;
-      &lt;address type='ccid' controller='0' slot='0'/&gt;
-    &lt;/smartcard&gt;
-    &lt;smartcard mode='passthrough' type='spicevmc'/&gt;
-  &lt;/devices&gt;
-  ...
+...
+&lt;devices&gt;
+  &lt;smartcard mode='host'/&gt;
+  &lt;smartcard mode='host-certificates'&gt;
+    &lt;certificate&gt;cert1&lt;/certificate&gt;
+    &lt;certificate&gt;cert2&lt;/certificate&gt;
+    &lt;certificate&gt;cert3&lt;/certificate&gt;
+    &lt;database&gt;/etc/pki/nssdb/&lt;/database&gt;
+  &lt;/smartcard&gt;
+  &lt;smartcard mode='passthrough' type='tcp'&gt;
+    &lt;source mode='bind' host='127.0.0.1' service='2001'/&gt;
+    &lt;protocol type='raw'/&gt;
+    &lt;address type='ccid' controller='0' slot='0'/&gt;
+  &lt;/smartcard&gt;
+  &lt;smartcard mode='passthrough' type='spicevmc'/&gt;
+&lt;/devices&gt;
+...
 </pre>
         <p>
       The <code>&lt;smartcard&gt;</code> element has a mandatory
@@ -3563,16 +3435,16 @@
           <a class="headerlink" href="#elementsNICS" title="Permalink to this headline">¶</a>
         </h4>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;interface type='direct' trustGuestRxFilters='yes'&gt;
-      &lt;source dev='eth0'/&gt;
-      &lt;mac address='52:54:00:5d:c7:9e'/&gt;
-      &lt;boot order='1'/&gt;
-      &lt;rom bar='off'/&gt;
-    &lt;/interface&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;interface type='direct' trustGuestRxFilters='yes'&gt;
+    &lt;source dev='eth0'/&gt;
+    &lt;mac address='52:54:00:5d:c7:9e'/&gt;
+    &lt;boot order='1'/&gt;
+    &lt;rom bar='off'/&gt;
+  &lt;/interface&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
       There are several possibilities for specifying a network
       interface visible to the guest.  Each subsection below provides
@@ -3686,23 +3558,23 @@
       fail.
     </p>
         <pre xml:space="preserve">
+...
+&lt;devices&gt;
+  &lt;interface type='network'&gt;
+    &lt;source network='default'/&gt;
+  &lt;/interface&gt;
   ...
-  &lt;devices&gt;
-    &lt;interface type='network'&gt;
-      &lt;source network='default'/&gt;
-    &lt;/interface&gt;
-    ...
-    &lt;interface type='network'&gt;
-      &lt;source network='default' portgroup='engineering'/&gt;
-      &lt;target dev='vnet7'/&gt;
-      &lt;mac address="00:11:22:33:44:55"/&gt;
-      &lt;virtualport&gt;
-        &lt;parameters instanceid='09b11c53-8b5c-4eeb-8f00-d84eaa0aaa4f'/&gt;
-      &lt;/virtualport&gt;
+  &lt;interface type='network'&gt;
+    &lt;source network='default' portgroup='engineering'/&gt;
+    &lt;target dev='vnet7'/&gt;
+    &lt;mac address="00:11:22:33:44:55"/&gt;
+    &lt;virtualport&gt;
+      &lt;parameters instanceid='09b11c53-8b5c-4eeb-8f00-d84eaa0aaa4f'/&gt;
+    &lt;/virtualport&gt;
 
-    &lt;/interface&gt;
-  &lt;/devices&gt;
-  ...</pre>
+  &lt;/interface&gt;
+&lt;/devices&gt;
+...</pre>
         <h5>
           <a name="elementsNICSBridge" shape="rect" id="elementsNICSBridge">Bridge to LAN</a>
           <a class="headerlink" href="#elementsNICSBridge" title="Permalink to this headline">¶</a>
@@ -3740,26 +3612,26 @@
       the interfaces "port-profile".
     </p>
         <pre xml:space="preserve">
+...
+&lt;devices&gt;
   ...
-  &lt;devices&gt;
-    ...
-    &lt;interface type='bridge'&gt;
-      &lt;source bridge='br0'/&gt;
-    &lt;/interface&gt;
-    &lt;interface type='bridge'&gt;
-      &lt;source bridge='br1'/&gt;
-      &lt;target dev='vnet7'/&gt;
-      &lt;mac address="00:11:22:33:44:55"/&gt;
-    &lt;/interface&gt;
-    &lt;interface type='bridge'&gt;
-      &lt;source bridge='ovsbr'/&gt;
-      &lt;virtualport type='openvswitch'&gt;
-        &lt;parameters profileid='menial' interfaceid='09b11c53-8b5c-4eeb-8f00-d84eaa0aaa4f'/&gt;
-      &lt;/virtualport&gt;
-    &lt;/interface&gt;
-    ...
-  &lt;/devices&gt;
-  ...</pre>
+  &lt;interface type='bridge'&gt;
+    &lt;source bridge='br0'/&gt;
+  &lt;/interface&gt;
+  &lt;interface type='bridge'&gt;
+    &lt;source bridge='br1'/&gt;
+    &lt;target dev='vnet7'/&gt;
+    &lt;mac address="00:11:22:33:44:55"/&gt;
+  &lt;/interface&gt;
+  &lt;interface type='bridge'&gt;
+    &lt;source bridge='ovsbr'/&gt;
+    &lt;virtualport type='openvswitch'&gt;
+      &lt;parameters profileid='menial' interfaceid='09b11c53-8b5c-4eeb-8f00-d84eaa0aaa4f'/&gt;
+    &lt;/virtualport&gt;
+  &lt;/interface&gt;
+  ...
+&lt;/devices&gt;
+...</pre>
         <p>
       On hosts that support Open vSwitch on the kernel side and have the
       Midonet Host Agent configured, it is also possible to connect to the
@@ -3773,26 +3645,26 @@
       to the interface.
     </p>
         <pre xml:space="preserve">
+...
+&lt;devices&gt;
   ...
-  &lt;devices&gt;
-    ...
-    &lt;interface type='bridge'&gt;
-      &lt;source bridge='br0'/&gt;
-    &lt;/interface&gt;
-    &lt;interface type='bridge'&gt;
-      &lt;source bridge='br1'/&gt;
-      &lt;target dev='vnet7'/&gt;
-      &lt;mac address="00:11:22:33:44:55"/&gt;
-    &lt;/interface&gt;
-    &lt;interface type='bridge'&gt;
-      &lt;source bridge='midonet'/&gt;
-      &lt;virtualport type='midonet'&gt;
-        &lt;parameters interfaceid='0b2d64da-3d0e-431e-afdd-804415d6ebbb'/&gt;
-      &lt;/virtualport&gt;
-    &lt;/interface&gt;
-    ...
-  &lt;/devices&gt;
-  ...</pre>
+  &lt;interface type='bridge'&gt;
+    &lt;source bridge='br0'/&gt;
+  &lt;/interface&gt;
+  &lt;interface type='bridge'&gt;
+    &lt;source bridge='br1'/&gt;
+    &lt;target dev='vnet7'/&gt;
+    &lt;mac address="00:11:22:33:44:55"/&gt;
+  &lt;/interface&gt;
+  &lt;interface type='bridge'&gt;
+    &lt;source bridge='midonet'/&gt;
+    &lt;virtualport type='midonet'&gt;
+      &lt;parameters interfaceid='0b2d64da-3d0e-431e-afdd-804415d6ebbb'/&gt;
+    &lt;/virtualport&gt;
+  &lt;/interface&gt;
+  ...
+&lt;/devices&gt;
+...</pre>
         <h5>
           <a name="elementsNICSSlirp" shape="rect" id="elementsNICSSlirp">Userspace SLIRP stack</a>
           <a class="headerlink" href="#elementsNICSSlirp" title="Permalink to this headline">¶</a>
@@ -3806,15 +3678,15 @@
       VMs to have outgoing access.
     </p>
         <pre xml:space="preserve">
+...
+&lt;devices&gt;
+  &lt;interface type='user'/&gt;
   ...
-  &lt;devices&gt;
-    &lt;interface type='user'/&gt;
-    ...
-    &lt;interface type='user'&gt;
-      &lt;mac address="00:11:22:33:44:55"/&gt;
-    &lt;/interface&gt;
-  &lt;/devices&gt;
-  ...</pre>
+  &lt;interface type='user'&gt;
+    &lt;mac address="00:11:22:33:44:55"/&gt;
+  &lt;/interface&gt;
+&lt;/devices&gt;
+...</pre>
         <h5>
           <a name="elementsNICSEthernet" shape="rect" id="elementsNICSEthernet">Generic ethernet connection</a>
           <a class="headerlink" href="#elementsNICSEthernet" title="Permalink to this headline">¶</a>
@@ -3829,16 +3701,16 @@
       overridden.
     </p>
         <pre xml:space="preserve">
+...
+&lt;devices&gt;
+  &lt;interface type='ethernet'/&gt;
   ...
-  &lt;devices&gt;
-    &lt;interface type='ethernet'/&gt;
-    ...
-    &lt;interface type='ethernet'&gt;
-      &lt;target dev='vnet7'/&gt;
-      &lt;script path='/etc/qemu-ifup-mynet'/&gt;
-    &lt;/interface&gt;
-  &lt;/devices&gt;
-  ...</pre>
+  &lt;interface type='ethernet'&gt;
+    &lt;target dev='vnet7'/&gt;
+    &lt;script path='/etc/qemu-ifup-mynet'/&gt;
+  &lt;/interface&gt;
+&lt;/devices&gt;
+...</pre>
         <h5>
           <a name="elementsNICSDirect" shape="rect" id="elementsNICSDirect">Direct attachment to physical interface</a>
           <a class="headerlink" href="#elementsNICSDirect" title="Permalink to this headline">¶</a>
@@ -3886,14 +3758,14 @@
       limitations may apply; for example, on Linux this requires
       kernel 2.6.38 or newer. <span class="since">Since 0.9.2</span></dd></dl>
         <pre xml:space="preserve">
+...
+&lt;devices&gt;
   ...
-  &lt;devices&gt;
-    ...
-    &lt;interface type='direct' trustGuestRxFilters='no'&gt;
-      &lt;source dev='eth0' mode='vepa'/&gt;
-    &lt;/interface&gt;
-  &lt;/devices&gt;
-  ...</pre>
+  &lt;interface type='direct' trustGuestRxFilters='no'&gt;
+    &lt;source dev='eth0' mode='vepa'/&gt;
+  &lt;/interface&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
       The network access of direct attached virtual machines can be
       managed by the hardware switch to which the physical interface
@@ -3924,17 +3796,17 @@
         This is a globally unique identifier.
       </dd></dl>
         <pre xml:space="preserve">
+...
+&lt;devices&gt;
   ...
-  &lt;devices&gt;
-    ...
-    &lt;interface type='direct'&gt;
-      &lt;source dev='eth0.2' mode='vepa'/&gt;
-      &lt;virtualport type="802.1Qbg"&gt;
-        &lt;parameters managerid="11" typeid="1193047" typeidversion="2" instanceid="09b11c53-8b5c-4eeb-8f00-d84eaa0aaa4f"/&gt;
-      &lt;/virtualport&gt;
-    &lt;/interface&gt;
-  &lt;/devices&gt;
-  ...</pre>
+  &lt;interface type='direct'&gt;
+    &lt;source dev='eth0.2' mode='vepa'/&gt;
+    &lt;virtualport type="802.1Qbg"&gt;
+      &lt;parameters managerid="11" typeid="1193047" typeidversion="2" instanceid="09b11c53-8b5c-4eeb-8f00-d84eaa0aaa4f"/&gt;
+    &lt;/virtualport&gt;
+  &lt;/interface&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
       The interface can have additional parameters as shown below
       if the switch is conforming to the IEEE 802.1Qbh standard.
@@ -3947,18 +3819,18 @@
         and those network parameters will be applied to this interface.
       </dd></dl>
         <pre xml:space="preserve">
+...
+&lt;devices&gt;
   ...
-  &lt;devices&gt;
-    ...
-    &lt;interface type='direct'&gt;
-      &lt;source dev='eth0' mode='private'/&gt;
-      &lt;virtualport type='802.1Qbh'&gt;
-        &lt;parameters profileid='finance'/&gt;
-      &lt;/virtualport&gt;
-    &lt;/interface&gt;
-  &lt;/devices&gt;
-  ...
-  </pre>
+  &lt;interface type='direct'&gt;
+    &lt;source dev='eth0' mode='private'/&gt;
+    &lt;virtualport type='802.1Qbh'&gt;
+      &lt;parameters profileid='finance'/&gt;
+    &lt;/virtualport&gt;
+  &lt;/interface&gt;
+&lt;/devices&gt;
+...
+</pre>
         <h5>
           <a name="elementsNICSHostdev" shape="rect" id="elementsNICSHostdev">PCI Passthrough</a>
           <a class="headerlink" href="#elementsNICSHostdev" title="Permalink to this headline">¶</a>
@@ -4014,20 +3886,20 @@
       stopping the guest.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;interface type='hostdev' managed='yes'&gt;
-      &lt;driver name='vfio'/&gt;
-      &lt;source&gt;
-        &lt;address type='pci' domain='0x0000' bus='0x00' slot='0x07' function='0x0'/&gt;
-      &lt;/source&gt;
-      &lt;mac address='52:54:00:6d:90:02'/&gt;
-      &lt;virtualport type='802.1Qbh'&gt;
-        &lt;parameters profileid='finance'/&gt;
-      &lt;/virtualport&gt;
-    &lt;/interface&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;interface type='hostdev' managed='yes'&gt;
+    &lt;driver name='vfio'/&gt;
+    &lt;source&gt;
+      &lt;address type='pci' domain='0x0000' bus='0x00' slot='0x07' function='0x0'/&gt;
+    &lt;/source&gt;
+    &lt;mac address='52:54:00:6d:90:02'/&gt;
+    &lt;virtualport type='802.1Qbh'&gt;
+      &lt;parameters profileid='finance'/&gt;
+    &lt;/virtualport&gt;
+  &lt;/interface&gt;
+&lt;/devices&gt;
+...</pre>
         <h5>
           <a name="elementsNICSMulticast" shape="rect" id="elementsNICSMulticast">Multicast tunnel</a>
           <a class="headerlink" href="#elementsNICSMulticast" title="Permalink to this headline">¶</a>
@@ -4044,14 +3916,14 @@
       multicast address block.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;interface type='mcast'&gt;
-      &lt;mac address='52:54:00:6d:90:01'/&gt;
-      &lt;source address='230.0.0.1' port='5558'/&gt;
-    &lt;/interface&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;interface type='mcast'&gt;
+    &lt;mac address='52:54:00:6d:90:01'/&gt;
+    &lt;source address='230.0.0.1' port='5558'/&gt;
+  &lt;/interface&gt;
+&lt;/devices&gt;
+...</pre>
         <h5>
           <a name="elementsNICSTCP" shape="rect" id="elementsNICSTCP">TCP tunnel</a>
           <a class="headerlink" href="#elementsNICSTCP" title="Permalink to this headline">¶</a>
@@ -4065,19 +3937,19 @@
       network access, one of the VMs should have a 2nd NIC which is connected
       to one of the first 4 network types and do the appropriate routing.</p>
         <pre xml:space="preserve">
+...
+&lt;devices&gt;
+  &lt;interface type='server'&gt;
+    &lt;mac address='52:54:00:22:c9:42'/&gt;
+    &lt;source address='192.168.0.1' port='5558'/&gt;
+  &lt;/interface&gt;
   ...
-  &lt;devices&gt;
-    &lt;interface type='server'&gt;
-      &lt;mac address='52:54:00:22:c9:42'/&gt;
-      &lt;source address='192.168.0.1' port='5558'/&gt;
-    &lt;/interface&gt;
-    ...
-    &lt;interface type='client'&gt;
-      &lt;mac address='52:54:00:8b:c9:51'/&gt;
-      &lt;source address='192.168.0.1' port='5558'/&gt;
-    &lt;/interface&gt;
-  &lt;/devices&gt;
-  ...</pre>
+  &lt;interface type='client'&gt;
+    &lt;mac address='52:54:00:8b:c9:51'/&gt;
+    &lt;source address='192.168.0.1' port='5558'/&gt;
+  &lt;/interface&gt;
+&lt;/devices&gt;
+...</pre>
         <h5>
           <a name="elementsNICSUDP" shape="rect" id="elementsNICSUDP">UDP unicast tunnel</a>
           <a class="headerlink" href="#elementsNICSUDP" title="Permalink to this headline">¶</a>
@@ -4092,30 +3964,30 @@
     UDP socket packets will originate from the QEMU host.
     <span class="since">Since 1.2.20</span></p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;interface type='udp'&gt;
-      &lt;mac address='52:54:00:22:c9:42'/&gt;
-      &lt;source address='127.0.0.1' port='11115'&gt;
-        &lt;local address='127.0.0.1' port='11116'/&gt;
-      &lt;/source&gt;
-    &lt;/interface&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;interface type='udp'&gt;
+    &lt;mac address='52:54:00:22:c9:42'/&gt;
+    &lt;source address='127.0.0.1' port='11115'&gt;
+      &lt;local address='127.0.0.1' port='11116'/&gt;
+    &lt;/source&gt;
+  &lt;/interface&gt;
+&lt;/devices&gt;
+...</pre>
         <h5>
           <a name="elementsNICSModel" shape="rect" id="elementsNICSModel">Setting the NIC model</a>
           <a class="headerlink" href="#elementsNICSModel" title="Permalink to this headline">¶</a>
         </h5>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;interface type='network'&gt;
-      &lt;source network='default'/&gt;
-      &lt;target dev='vnet1'/&gt;
-      <b>&lt;model type='ne2k_pci'/&gt;</b>
-    &lt;/interface&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;interface type='network'&gt;
+    &lt;source network='default'/&gt;
+    &lt;target dev='vnet1'/&gt;
+    <b>&lt;model type='ne2k_pci'/&gt;</b>
+  &lt;/interface&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
       For hypervisors which support this, you can set the model of
       emulated network interface card.
@@ -4139,20 +4011,20 @@ qemu-kvm -net nic,model=? /dev/null
           <a class="headerlink" href="#elementsDriverBackendOptions" title="Permalink to this headline">¶</a>
         </h5>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;interface type='network'&gt;
-      &lt;source network='default'/&gt;
-      &lt;target dev='vnet1'/&gt;
-      &lt;model type='virtio'/&gt;
-      <b>&lt;driver name='vhost' txmode='iothread' ioeventfd='on' event_idx='off' queues='5' rx_queue_size='256'&gt;
-        &lt;host csum='off' gso='off' tso4='off' tso6='off' ecn='off' ufo='off' mrg_rxbuf='off'/&gt;
-        &lt;guest csum='off' tso4='off' tso6='off' ecn='off' ufo='off'/&gt;
-      &lt;/driver&gt;
-      </b>
-    &lt;/interface&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;interface type='network'&gt;
+    &lt;source network='default'/&gt;
+    &lt;target dev='vnet1'/&gt;
+    &lt;model type='virtio'/&gt;
+    <b>&lt;driver name='vhost' txmode='iothread' ioeventfd='on' event_idx='off' queues='5' rx_queue_size='256'&gt;
+      &lt;host csum='off' gso='off' tso4='off' tso6='off' ecn='off' ufo='off' mrg_rxbuf='off'/&gt;
+      &lt;guest csum='off' tso4='off' tso6='off' ecn='off' ufo='off'/&gt;
+    &lt;/driver&gt;
+    </b>
+  &lt;/interface&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
       Some NICs may have tunable driver-specific options. These are
       set as attributes of the <code>driver</code> sub-element of the
@@ -4286,17 +4158,17 @@ qemu-kvm -net nic,model=? /dev/null
           <a class="headerlink" href="#elementsBackendOptions" title="Permalink to this headline">¶</a>
         </h5>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;interface type='network'&gt;
-      &lt;source network='default'/&gt;
-      &lt;target dev='vnet1'/&gt;
-      &lt;model type='virtio'/&gt;
-      <b>&lt;backend tap='/dev/net/tun' vhost='/dev/vhost-net'/&gt;</b>
-      &lt;driver name='vhost' txmode='iothread' ioeventfd='on' event_idx='off' queues='5'/&gt;
-    &lt;/interface&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;interface type='network'&gt;
+    &lt;source network='default'/&gt;
+    &lt;target dev='vnet1'/&gt;
+    &lt;model type='virtio'/&gt;
+    <b>&lt;backend tap='/dev/net/tun' vhost='/dev/vhost-net'/&gt;</b>
+    &lt;driver name='vhost' txmode='iothread' ioeventfd='on' event_idx='off' queues='5'/&gt;
+  &lt;/interface&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
       For tuning the backend of the network, the <code>backend</code> element
       can be used. The <code>vhost</code> attribute can override the default vhost
@@ -4310,14 +4182,14 @@ qemu-kvm -net nic,model=? /dev/null
           <a class="headerlink" href="#elementsNICSTargetOverride" title="Permalink to this headline">¶</a>
         </h5>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;interface type='network'&gt;
-      &lt;source network='default'/&gt;
-      <b>&lt;target dev='vnet1'/&gt;</b>
-    &lt;/interface&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;interface type='network'&gt;
+    &lt;source network='default'/&gt;
+    <b>&lt;target dev='vnet1'/&gt;</b>
+  &lt;/interface&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
       If no target is specified, certain hypervisors will
       automatically generate a name for the created tun device. This
@@ -4333,28 +4205,28 @@ qemu-kvm -net nic,model=? /dev/null
       element should be used, as in the following snippet:
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;interface type='network'&gt;
-      &lt;source network='default'/&gt;
-      <b>&lt;guest dev='myeth'/&gt;</b>
-    &lt;/interface&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;interface type='network'&gt;
+    &lt;source network='default'/&gt;
+    <b>&lt;guest dev='myeth'/&gt;</b>
+  &lt;/interface&gt;
+&lt;/devices&gt;
+...</pre>
         <h5>
           <a name="elementsNICSBoot" shape="rect" id="elementsNICSBoot">Specifying boot order</a>
           <a class="headerlink" href="#elementsNICSBoot" title="Permalink to this headline">¶</a>
         </h5>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;interface type='network'&gt;
-      &lt;source network='default'/&gt;
-      &lt;target dev='vnet1'/&gt;
-      <b>&lt;boot order='1'/&gt;</b>
-    &lt;/interface&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;interface type='network'&gt;
+    &lt;source network='default'/&gt;
+    &lt;target dev='vnet1'/&gt;
+    <b>&lt;boot order='1'/&gt;</b>
+  &lt;/interface&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
       For hypervisors which support this, you can set a specific NIC to
       be used for network boot. The <code>order</code> attribute determines
@@ -4369,15 +4241,15 @@ qemu-kvm -net nic,model=? /dev/null
           <a class="headerlink" href="#elementsNICSROM" title="Permalink to this headline">¶</a>
         </h5>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;interface type='network'&gt;
-      &lt;source network='default'/&gt;
-      &lt;target dev='vnet1'/&gt;
-      <b>&lt;rom bar='on' file='/etc/fake/boot.bin'/&gt;</b>
-    &lt;/interface&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;interface type='network'&gt;
+    &lt;source network='default'/&gt;
+    &lt;target dev='vnet1'/&gt;
+    <b>&lt;rom bar='on' file='/etc/fake/boot.bin'/&gt;</b>
+  &lt;/interface&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
       For hypervisors which support this, you can change how a PCI Network
       device's ROM is presented to the guest. The <code>bar</code>
@@ -4399,16 +4271,16 @@ qemu-kvm -net nic,model=? /dev/null
           <a class="headerlink" href="#elementDomain" title="Permalink to this headline">¶</a>
         </h5>
         <pre xml:space="preserve">
+...
+&lt;devices&gt;
   ...
-  &lt;devices&gt;
-    ...
-    &lt;interface type='bridge'&gt;
-      &lt;source bridge='br0'/&gt;
-      <b>&lt;backenddomain name='netvm'/&gt;</b>
-    &lt;/interface&gt;
-    ...
-  &lt;/devices&gt;
-  ...</pre>
+  &lt;interface type='bridge'&gt;
+    &lt;source bridge='br0'/&gt;
+    <b>&lt;backenddomain name='netvm'/&gt;</b>
+  &lt;/interface&gt;
+  ...
+&lt;/devices&gt;
+...</pre>
         <p>
       The optional <code>backenddomain</code> element allows specifying a
       backend domain (aka driver domain) for the interface. Use the
@@ -4424,18 +4296,18 @@ qemu-kvm -net nic,model=? /dev/null
           <a class="headerlink" href="#elementQoS" title="Permalink to this headline">¶</a>
         </h5>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;interface type='network'&gt;
-      &lt;source network='default'/&gt;
-      &lt;target dev='vnet0'/&gt;
-      <b>&lt;bandwidth&gt;
-        &lt;inbound average='1000' peak='5000' floor='200' burst='1024'/&gt;
-        &lt;outbound average='128' peak='256' burst='256'/&gt;
-      &lt;/bandwidth&gt;</b>
-    &lt;/interface&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;interface type='network'&gt;
+    &lt;source network='default'/&gt;
+    &lt;target dev='vnet0'/&gt;
+    <b>&lt;bandwidth&gt;
+      &lt;inbound average='1000' peak='5000' floor='200' burst='1024'/&gt;
+      &lt;outbound average='128' peak='256' burst='256'/&gt;
+    &lt;/bandwidth&gt;</b>
+  &lt;/interface&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
       This part of interface XML provides setting quality of service. Incoming
       and outgoing traffic can be shaped independently.
@@ -4448,26 +4320,26 @@ qemu-kvm -net nic,model=? /dev/null
           <a class="headerlink" href="#elementVlanTag" title="Permalink to this headline">¶</a>
         </h5>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;interface type='bridge'&gt;
-      <b>&lt;vlan&gt;</b>
-        <b>&lt;tag id='42'/&gt;</b>
-      <b>&lt;/vlan&gt;</b>
-      &lt;source bridge='ovsbr0'/&gt;
-      &lt;virtualport type='openvswitch'&gt;
-        &lt;parameters interfaceid='09b11c53-8b5c-4eeb-8f00-d84eaa0aaa4f'/&gt;
-      &lt;/virtualport&gt;
-    &lt;/interface&gt;
-    &lt;interface type='bridge'&gt;
-      <b>&lt;vlan trunk='yes'&gt;</b>
-        <b>&lt;tag id='42'/&gt;</b>
-        <b>&lt;tag id='123' nativeMode='untagged'/&gt;</b>
-      <b>&lt;/vlan&gt;</b>
-      ...
-    &lt;/interface&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;interface type='bridge'&gt;
+    <b>&lt;vlan&gt;</b>
+      <b>&lt;tag id='42'/&gt;</b>
+    <b>&lt;/vlan&gt;</b>
+    &lt;source bridge='ovsbr0'/&gt;
+    &lt;virtualport type='openvswitch'&gt;
+      &lt;parameters interfaceid='09b11c53-8b5c-4eeb-8f00-d84eaa0aaa4f'/&gt;
+    &lt;/virtualport&gt;
+  &lt;/interface&gt;
+  &lt;interface type='bridge'&gt;
+    <b>&lt;vlan trunk='yes'&gt;</b>
+      <b>&lt;tag id='42'/&gt;</b>
+      <b>&lt;tag id='123' nativeMode='untagged'/&gt;</b>
+    <b>&lt;/vlan&gt;</b>
+    ...
+  &lt;/interface&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
       If (and only if) the network connection used by the guest
       supports VLAN tagging transparent to the guest, an
@@ -4516,15 +4388,15 @@ qemu-kvm -net nic,model=? /dev/null
           <a class="headerlink" href="#elementLink" title="Permalink to this headline">¶</a>
         </h5>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;interface type='network'&gt;
-      &lt;source network='default'/&gt;
-      &lt;target dev='vnet0'/&gt;
-      <b>&lt;link state='down'/&gt;</b>
-    &lt;/interface&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;interface type='network'&gt;
+    &lt;source network='default'/&gt;
+    &lt;target dev='vnet0'/&gt;
+    <b>&lt;link state='down'/&gt;</b>
+  &lt;/interface&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
       This element provides means of setting state of the virtual network link.
       Possible values for attribute <code>state</code> are <code>up</code> and
@@ -4538,28 +4410,28 @@ qemu-kvm -net nic,model=? /dev/null
           <a class="headerlink" href="#ipconfig" title="Permalink to this headline">¶</a>
         </h5>
         <pre xml:space="preserve">
+...
+&lt;devices&gt;
+  &lt;interface type='network'&gt;
+    &lt;source network='default'/&gt;
+    &lt;target dev='vnet0'/&gt;
+    <b>&lt;ip address='192.168.122.5' prefix='24'/&gt;</b>
+    <b>&lt;ip address='192.168.122.5' prefix='24' peer='10.0.0.10'/&gt;</b>
+    <b>&lt;route family='ipv4' address='192.168.122.0' prefix='24' gateway='192.168.122.1'/&gt;</b>
+    <b>&lt;route family='ipv4' address='192.168.122.8' gateway='192.168.122.1'/&gt;</b>
+  &lt;/interface&gt;
   ...
-  &lt;devices&gt;
-    &lt;interface type='network'&gt;
-      &lt;source network='default'/&gt;
-      &lt;target dev='vnet0'/&gt;
-      <b>&lt;ip address='192.168.122.5' prefix='24'/&gt;</b>
-      <b>&lt;ip address='192.168.122.5' prefix='24' peer='10.0.0.10'/&gt;</b>
-      <b>&lt;route family='ipv4' address='192.168.122.0' prefix='24' gateway='192.168.122.1'/&gt;</b>
-      <b>&lt;route family='ipv4' address='192.168.122.8' gateway='192.168.122.1'/&gt;</b>
-    &lt;/interface&gt;
-    ...
-    &lt;hostdev mode='capabilities' type='net'&gt;
-      &lt;source&gt;
-        &lt;interface&gt;eth0&lt;/interface&gt;
-      &lt;/source&gt;
-      <b>&lt;ip address='192.168.122.6' prefix='24'/&gt;</b>
-      <b>&lt;route family='ipv4' address='192.168.122.0' prefix='24' gateway='192.168.122.1'/&gt;</b>
-      <b>&lt;route family='ipv4' address='192.168.122.8' gateway='192.168.122.1'/&gt;</b>
-    &lt;/hostdev&gt;
+  &lt;hostdev mode='capabilities' type='net'&gt;
+    &lt;source&gt;
+      &lt;interface&gt;eth0&lt;/interface&gt;
+    &lt;/source&gt;
+    <b>&lt;ip address='192.168.122.6' prefix='24'/&gt;</b>
+    <b>&lt;route family='ipv4' address='192.168.122.0' prefix='24' gateway='192.168.122.1'/&gt;</b>
+    <b>&lt;route family='ipv4' address='192.168.122.8' gateway='192.168.122.1'/&gt;</b>
+  &lt;/hostdev&gt;
 
-  &lt;/devices&gt;
-  ...
+&lt;/devices&gt;
+...
 </pre>
         <p>
       <span class="since">Since 1.2.12</span> network devices and
@@ -4587,19 +4459,19 @@ qemu-kvm -net nic,model=? /dev/null
     definitions</a>.  This is used by the LXC driver.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;interface type='ethernet'&gt;
-      <b>&lt;source/&gt;</b>
-        <b>&lt;ip address='192.168.123.1' prefix='24'/&gt;</b>
-        <b>&lt;ip address='10.0.0.10' prefix='24' peer='192.168.122.5'/&gt;</b>
-        <b>&lt;route family='ipv4' address='192.168.42.0' prefix='24' gateway='192.168.123.4'/&gt;</b>
-      <b>&lt;source/&gt;</b>
-      ...
-    &lt;/interface&gt;
+...
+&lt;devices&gt;
+  &lt;interface type='ethernet'&gt;
+    <b>&lt;source/&gt;</b>
+      <b>&lt;ip address='192.168.123.1' prefix='24'/&gt;</b>
+      <b>&lt;ip address='10.0.0.10' prefix='24' peer='192.168.122.5'/&gt;</b>
+      <b>&lt;route family='ipv4' address='192.168.42.0' prefix='24' gateway='192.168.123.4'/&gt;</b>
+    <b>&lt;source/&gt;</b>
     ...
-  &lt;/devices&gt;
+  &lt;/interface&gt;
   ...
+&lt;/devices&gt;
+...
 </pre>
         <p>
       <span class="since">Since 2.1.0</span> network devices of type
@@ -4621,21 +4493,21 @@ qemu-kvm -net nic,model=? /dev/null
     for the control plane, while the data plane is based on shared memory.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;interface type='vhostuser'&gt;
-      &lt;mac address='52:54:00:3b:83:1a'/&gt;
-      &lt;source type='unix' path='/tmp/vhost1.sock' mode='server'/&gt;
-      &lt;model type='virtio'/&gt;
-    &lt;/interface&gt;
-    &lt;interface type='vhostuser'&gt;
-      &lt;mac address='52:54:00:3b:83:1b'/&gt;
-      &lt;source type='unix' path='/tmp/vhost2.sock' mode='client'/&gt;
-      &lt;model type='virtio'/&gt;
-      &lt;driver queues='5'/&gt;
-    &lt;/interface&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;interface type='vhostuser'&gt;
+    &lt;mac address='52:54:00:3b:83:1a'/&gt;
+    &lt;source type='unix' path='/tmp/vhost1.sock' mode='server'/&gt;
+    &lt;model type='virtio'/&gt;
+  &lt;/interface&gt;
+  &lt;interface type='vhostuser'&gt;
+    &lt;mac address='52:54:00:3b:83:1b'/&gt;
+    &lt;source type='unix' path='/tmp/vhost2.sock' mode='client'/&gt;
+    &lt;model type='virtio'/&gt;
+    &lt;driver queues='5'/&gt;
+  &lt;/interface&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
       The <code>&lt;source&gt;</code> element has to be specified
       along with the type of char device.
@@ -4659,23 +4531,23 @@ qemu-kvm -net nic,model=? /dev/null
     complete details.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;interface ...&gt;
+...
+&lt;devices&gt;
+  &lt;interface ...&gt;
+    ...
+    &lt;filterref filter='clean-traffic'/&gt;
+  &lt;/interface&gt;
+  &lt;interface ...&gt;
+    ...
+    &lt;filterref filter='myfilter'&gt;
+      &lt;parameter name='IP' value='104.207.129.11'/&gt;
+      &lt;parameter name='IP6_ADDR' value='2001:19f0:300:2102::'/&gt;
+      &lt;parameter name='IP6_MASK' value='64'/&gt;
       ...
-      &lt;filterref filter='clean-traffic'/&gt;
-    &lt;/interface&gt;
-    &lt;interface ...&gt;
-      ...
-      &lt;filterref filter='myfilter'&gt;
-        &lt;parameter name='IP' value='104.207.129.11'/&gt;
-        &lt;parameter name='IP6_ADDR' value='2001:19f0:300:2102::'/&gt;
-        &lt;parameter name='IP6_MASK' value='64'/&gt;
-        ...
-      &lt;/filterref&gt;
-    &lt;/interface&gt;
-  &lt;/devices&gt;
-  ...</pre>
+    &lt;/filterref&gt;
+  &lt;/interface&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
       The <code>filter</code> attribute specifies the name of the nwfilter
       to use. Optional <code>&lt;parameter&gt;</code> elements may be
@@ -4696,18 +4568,18 @@ qemu-kvm -net nic,model=? /dev/null
       to provide a graphics tablet for absolute cursor movement.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;input type='mouse' bus='usb'/&gt;
-    &lt;input type='keyboard' bus='usb'/&gt;
-    &lt;input type='mouse' bus='virtio'/&gt;
-    &lt;input type='keyboard' bus='virtio'/&gt;
-    &lt;input type='tablet' bus='virtio'/&gt;
-    &lt;input type='passthrough' bus='virtio'&gt;
-      &lt;source evdev='/dev/input/event1/&gt;
-    &lt;/input&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;input type='mouse' bus='usb'/&gt;
+  &lt;input type='keyboard' bus='usb'/&gt;
+  &lt;input type='mouse' bus='virtio'/&gt;
+  &lt;input type='keyboard' bus='virtio'/&gt;
+  &lt;input type='tablet' bus='virtio'/&gt;
+  &lt;input type='passthrough' bus='virtio'&gt;
+    &lt;source evdev='/dev/input/event1/&gt;
+  &lt;/input&gt;
+&lt;/devices&gt;
+...</pre>
         <dl><dt><code>input</code></dt><dd>The <code>input</code> element has one mandatory attribute,
         the <code>type</code> whose value can be 'mouse', 'tablet',
         (<span class="since">since 1.2.2</span>) 'keyboard' or
@@ -4737,11 +4609,11 @@ qemu-kvm -net nic,model=? /dev/null
       system.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;hub type='usb'/&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;hub type='usb'/&gt;
+&lt;/devices&gt;
+...</pre>
         <dl><dt><code>hub</code></dt><dd>The <code>hub</code> element has one mandatory attribute,
         the <code>type</code> whose value can only be 'usb'.</dd></dl>
         <p>
@@ -4762,19 +4634,19 @@ qemu-kvm -net nic,model=? /dev/null
       admin.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;graphics type='sdl' display=':0.0'/&gt;
-    &lt;graphics type='vnc' port='5904' sharePolicy='allow-exclusive'&gt;
-      &lt;listen type='address' address='1.2.3.4'/&gt;
-    &lt;/graphics&gt;
-    &lt;graphics type='rdp' autoport='yes' multiUser='yes' /&gt;
-    &lt;graphics type='desktop' fullscreen='yes'/&gt;
-    &lt;graphics type='spice'&gt;
-      &lt;listen type='network' network='rednet'/&gt;
-    &lt;/graphics&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;graphics type='sdl' display=':0.0'/&gt;
+  &lt;graphics type='vnc' port='5904' sharePolicy='allow-exclusive'&gt;
+    &lt;listen type='address' address='1.2.3.4'/&gt;
+  &lt;/graphics&gt;
+  &lt;graphics type='rdp' autoport='yes' multiUser='yes' /&gt;
+  &lt;graphics type='desktop' fullscreen='yes'/&gt;
+  &lt;graphics type='spice'&gt;
+    &lt;listen type='network' network='rednet'/&gt;
+  &lt;/graphics&gt;
+&lt;/devices&gt;
+...</pre>
         <dl><dt><code>graphics</code></dt><dd>
         <p>
           The <code>graphics</code> element has a mandatory <code>type</code>
@@ -4875,16 +4747,16 @@ qemu-kvm -net nic,model=? /dev/null
               and <code>usbredir</code> (<span class="since">since 0.9.12</span>).
             </p>
             <pre xml:space="preserve">
-  &lt;graphics type='spice' port='-1' tlsPort='-1' autoport='yes'&gt;
-    &lt;channel name='main' mode='secure'/&gt;
-    &lt;channel name='record' mode='insecure'/&gt;
-    &lt;image compression='auto_glz'/&gt;
-    &lt;streaming mode='filter'/&gt;
-    &lt;clipboard copypaste='no'/&gt;
-    &lt;mouse mode='client'/&gt;
-    &lt;filetransfer enable='no'/&gt;
-    &lt;gl enable='yes'/&gt;
-  &lt;/graphics&gt;</pre>
+&lt;graphics type='spice' port='-1' tlsPort='-1' autoport='yes'&gt;
+  &lt;channel name='main' mode='secure'/&gt;
+  &lt;channel name='record' mode='insecure'/&gt;
+  &lt;image compression='auto_glz'/&gt;
+  &lt;streaming mode='filter'/&gt;
+  &lt;clipboard copypaste='no'/&gt;
+  &lt;mouse mode='client'/&gt;
+  &lt;filetransfer enable='no'/&gt;
+  &lt;gl enable='yes'/&gt;
+&lt;/graphics&gt;</pre>
             <p>
               Spice supports variable compression settings for audio, images and
               streaming. These settings are accessible via the <code>compression
@@ -5024,15 +4896,15 @@ qemu-kvm -net nic,model=? /dev/null
       A video device.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;video&gt;
-      &lt;model type='vga' vram='16384' heads='1'&gt;
-        &lt;acceleration accel3d='yes' accel2d='yes'/&gt;
-      &lt;/model&gt;
-    &lt;/video&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;video&gt;
+    &lt;model type='vga' vram='16384' heads='1'&gt;
+      &lt;acceleration accel3d='yes' accel2d='yes'/&gt;
+    &lt;/model&gt;
+  &lt;/video&gt;
+&lt;/devices&gt;
+...</pre>
         <dl><dt><code>video</code></dt><dd>
         <p>
           The <code>video</code> element is the container for describing
@@ -5103,32 +4975,32 @@ qemu-kvm -net nic,model=? /dev/null
       all classed as character devices and so represented using the same syntax.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;parallel type='pty'&gt;
-      &lt;source path='/dev/pts/2'/&gt;
-      &lt;target port='0'/&gt;
-    &lt;/parallel&gt;
-    &lt;serial type='pty'&gt;
-      &lt;source path='/dev/pts/3'/&gt;
-      &lt;target port='0'/&gt;
-    &lt;/serial&gt;
-    &lt;serial type='file'&gt;
-      &lt;source path='/tmp/file' append='on'&gt;
-        &lt;seclabel model='dac' relabel='no'/&gt;
-      &lt;/source&gt;
-      &lt;target port='0'/&gt;
-    &lt;/serial&gt;
-    &lt;console type='pty'&gt;
-      &lt;source path='/dev/pts/4'/&gt;
-      &lt;target port='0'/&gt;
-    &lt;/console&gt;
-    &lt;channel type='unix'&gt;
-      &lt;source mode='bind' path='/tmp/guestfwd'/&gt;
-      &lt;target type='guestfwd' address='10.0.2.1' port='4600'/&gt;
-    &lt;/channel&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;parallel type='pty'&gt;
+    &lt;source path='/dev/pts/2'/&gt;
+    &lt;target port='0'/&gt;
+  &lt;/parallel&gt;
+  &lt;serial type='pty'&gt;
+    &lt;source path='/dev/pts/3'/&gt;
+    &lt;target port='0'/&gt;
+  &lt;/serial&gt;
+  &lt;serial type='file'&gt;
+    &lt;source path='/tmp/file' append='on'&gt;
+      &lt;seclabel model='dac' relabel='no'/&gt;
+    &lt;/source&gt;
+    &lt;target port='0'/&gt;
+  &lt;/serial&gt;
+  &lt;console type='pty'&gt;
+    &lt;source path='/dev/pts/4'/&gt;
+    &lt;target port='0'/&gt;
+  &lt;/console&gt;
+  &lt;channel type='unix'&gt;
+    &lt;source mode='bind' path='/tmp/guestfwd'/&gt;
+    &lt;target type='guestfwd' address='10.0.2.1' port='4600'/&gt;
+  &lt;/channel&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
       In each of these directives, the top-level element name (parallel, serial,
       console, channel) describes how the device is presented to the guest. The
@@ -5162,9 +5034,9 @@ qemu-kvm -net nic,model=? /dev/null
       <span class="since">Since 1.3.3</span>.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;log file="/var/log/libvirt/qemu/guestname-serial0.log" append="off"/&gt;
-  ...</pre>
+...
+&lt;log file="/var/log/libvirt/qemu/guestname-serial0.log" append="off"/&gt;
+...</pre>
         <p>
       Each character device element has an optional
       sub-element <code>&lt;address&gt;</code> which can tie the
@@ -5185,14 +5057,14 @@ qemu-kvm -net nic,model=? /dev/null
           <a class="headerlink" href="#elementCharParallel" title="Permalink to this headline">¶</a>
         </h6>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;parallel type='pty'&gt;
-      &lt;source path='/dev/pts/2'/&gt;
-      &lt;target port='0'/&gt;
-    &lt;/parallel&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;parallel type='pty'&gt;
+    &lt;source path='/dev/pts/2'/&gt;
+    &lt;target port='0'/&gt;
+  &lt;/parallel&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
       <code>target</code> can have a <code>port</code> attribute, which
       specifies the port number. Ports are numbered starting from 0. There are
@@ -5203,14 +5075,14 @@ qemu-kvm -net nic,model=? /dev/null
           <a class="headerlink" href="#elementCharSerial" title="Permalink to this headline">¶</a>
         </h6>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;serial type='pty'&gt;
-      &lt;source path='/dev/pts/3'/&gt;
-      &lt;target port='0'/&gt;
-    &lt;/serial&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;serial type='pty'&gt;
+    &lt;source path='/dev/pts/3'/&gt;
+    &lt;target port='0'/&gt;
+  &lt;/serial&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
       <code>target</code> can have a <code>port</code> attribute, which
       specifies the port number. Ports are numbered starting from 0. There are
@@ -5260,30 +5132,30 @@ qemu-kvm -net nic,model=? /dev/null
       <span class="since">Since 0.8.3</span>
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;console type='pty'&gt;
-      &lt;source path='/dev/pts/4'/&gt;
-      &lt;target port='0'/&gt;
-    &lt;/console&gt;
+...
+&lt;devices&gt;
+  &lt;console type='pty'&gt;
+    &lt;source path='/dev/pts/4'/&gt;
+    &lt;target port='0'/&gt;
+  &lt;/console&gt;
 
-    &lt;!-- KVM virtio console --&gt;
-    &lt;console type='pty'&gt;
-      &lt;source path='/dev/pts/5'/&gt;
-      &lt;target type='virtio' port='0'/&gt;
-    &lt;/console&gt;
-  &lt;/devices&gt;
-  ...</pre>
+  &lt;!-- KVM virtio console --&gt;
+  &lt;console type='pty'&gt;
+    &lt;source path='/dev/pts/5'/&gt;
+    &lt;target type='virtio' port='0'/&gt;
+  &lt;/console&gt;
+&lt;/devices&gt;
+...</pre>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;!-- KVM S390 sclp console --&gt;
-    &lt;console type='pty'&gt;
-      &lt;source path='/dev/pts/1'/&gt;
-      &lt;target type='sclp' port='0'/&gt;
-    &lt;/console&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;!-- KVM S390 sclp console --&gt;
+  &lt;console type='pty'&gt;
+    &lt;source path='/dev/pts/1'/&gt;
+    &lt;target type='sclp' port='0'/&gt;
+  &lt;/console&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
       If the console is presented as a serial port, the <code>target</code>
       element has the same attributes as for a serial port. There is usually
@@ -5298,26 +5170,26 @@ qemu-kvm -net nic,model=? /dev/null
       guest.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;channel type='unix'&gt;
-      &lt;source mode='bind' path='/tmp/guestfwd'/&gt;
-      &lt;target type='guestfwd' address='10.0.2.1' port='4600'/&gt;
-    &lt;/channel&gt;
+...
+&lt;devices&gt;
+  &lt;channel type='unix'&gt;
+    &lt;source mode='bind' path='/tmp/guestfwd'/&gt;
+    &lt;target type='guestfwd' address='10.0.2.1' port='4600'/&gt;
+  &lt;/channel&gt;
 
-    &lt;!-- KVM virtio channel --&gt;
-    &lt;channel type='pty'&gt;
-      &lt;target type='virtio' name='arbitrary.virtio.serial.port.name'/&gt;
-    &lt;/channel&gt;
-    &lt;channel type='unix'&gt;
-      &lt;source mode='bind' path='/var/lib/libvirt/qemu/f16x86_64.agent'/&gt;
-      &lt;target type='virtio' name='org.qemu.guest_agent.0' state='connected'/&gt;
-    &lt;/channel&gt;
-    &lt;channel type='spicevmc'&gt;
-      &lt;target type='virtio' name='com.redhat.spice.0'/&gt;
-    &lt;/channel&gt;
-  &lt;/devices&gt;
-  ...</pre>
+  &lt;!-- KVM virtio channel --&gt;
+  &lt;channel type='pty'&gt;
+    &lt;target type='virtio' name='arbitrary.virtio.serial.port.name'/&gt;
+  &lt;/channel&gt;
+  &lt;channel type='unix'&gt;
+    &lt;source mode='bind' path='/var/lib/libvirt/qemu/f16x86_64.agent'/&gt;
+    &lt;target type='virtio' name='org.qemu.guest_agent.0' state='connected'/&gt;
+  &lt;/channel&gt;
+  &lt;channel type='spicevmc'&gt;
+    &lt;target type='virtio' name='com.redhat.spice.0'/&gt;
+  &lt;/channel&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
       This can be implemented in a variety of ways. The specific type of
       channel is given in the <code>type</code> attribute of the
@@ -5386,13 +5258,13 @@ qemu-kvm -net nic,model=? /dev/null
       into the virtual machine's logfile
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;console type='stdio'&gt;
-      &lt;target port='1'/&gt;
-    &lt;/console&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;console type='stdio'&gt;
+    &lt;target port='1'/&gt;
+  &lt;/console&gt;
+&lt;/devices&gt;
+...</pre>
         <h6>
           <a name="elementsCharFle" shape="rect" id="elementsCharFle">Device logfile</a>
           <a class="headerlink" href="#elementsCharFle" title="Permalink to this headline">¶</a>
@@ -5402,14 +5274,14 @@ qemu-kvm -net nic,model=? /dev/null
       device is written to the file.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;serial type="file"&gt;
-      &lt;source path="/var/log/vm/vm-serial.log"/&gt;
-      &lt;target port="1"/&gt;
-    &lt;/serial&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;serial type="file"&gt;
+    &lt;source path="/var/log/vm/vm-serial.log"/&gt;
+    &lt;target port="1"/&gt;
+  &lt;/serial&gt;
+&lt;/devices&gt;
+...</pre>
         <h6>
           <a name="elementsCharVC" shape="rect" id="elementsCharVC">Virtual console</a>
           <a class="headerlink" href="#elementsCharVC" title="Permalink to this headline">¶</a>
@@ -5420,13 +5292,13 @@ qemu-kvm -net nic,model=? /dev/null
       hotkey sequence such as "ctrl+alt+3"
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;serial type='vc'&gt;
-      &lt;target port="1"/&gt;
-    &lt;/serial&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;serial type='vc'&gt;
+    &lt;target port="1"/&gt;
+  &lt;/serial&gt;
+&lt;/devices&gt;
+...</pre>
         <h6>
           <a name="elementsCharNull" shape="rect" id="elementsCharNull">Null device</a>
           <a class="headerlink" href="#elementsCharNull" title="Permalink to this headline">¶</a>
@@ -5436,13 +5308,13 @@ qemu-kvm -net nic,model=? /dev/null
       provided to the input. All data written is discarded.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;serial type='null'&gt;
-      &lt;target port="1"/&gt;
-    &lt;/serial&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;serial type='null'&gt;
+    &lt;target port="1"/&gt;
+  &lt;/serial&gt;
+&lt;/devices&gt;
+...</pre>
         <h6>
           <a name="elementsCharPTY" shape="rect" id="elementsCharPTY">Pseudo TTY</a>
           <a class="headerlink" href="#elementsCharPTY" title="Permalink to this headline">¶</a>
@@ -5453,14 +5325,14 @@ qemu-kvm -net nic,model=? /dev/null
       serial port locally.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;serial type="pty"&gt;
-      &lt;source path="/dev/pts/3"/&gt;
-      &lt;target port="1"/&gt;
-    &lt;/serial&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;serial type="pty"&gt;
+    &lt;source path="/dev/pts/3"/&gt;
+    &lt;target port="1"/&gt;
+  &lt;/serial&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
       NB special case if &lt;console type='pty'&gt;, then the TTY
       path is also duplicated as an attribute tty='/dev/pts/3'
@@ -5479,14 +5351,14 @@ qemu-kvm -net nic,model=? /dev/null
       port.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;serial type="dev"&gt;
-      &lt;source path="/dev/ttyS0"/&gt;
-      &lt;target port="1"/&gt;
-    &lt;/serial&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;serial type="dev"&gt;
+    &lt;source path="/dev/ttyS0"/&gt;
+    &lt;target port="1"/&gt;
+  &lt;/serial&gt;
+&lt;/devices&gt;
+...</pre>
         <h6>
           <a name="elementsCharPipe" shape="rect" id="elementsCharPipe">Named pipe</a>
           <a class="headerlink" href="#elementsCharPipe" title="Permalink to this headline">¶</a>
@@ -5496,14 +5368,14 @@ qemu-kvm -net nic,model=? /dev/null
       more info.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;serial type="pipe"&gt;
-      &lt;source path="/tmp/mypipe"/&gt;
-      &lt;target port="1"/&gt;
-    &lt;/serial&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;serial type="pipe"&gt;
+    &lt;source path="/tmp/mypipe"/&gt;
+    &lt;target port="1"/&gt;
+  &lt;/serial&gt;
+&lt;/devices&gt;
+...</pre>
         <h6>
           <a name="elementsCharTCP" shape="rect" id="elementsCharTCP">TCP client/server</a>
           <a class="headerlink" href="#elementsCharTCP" title="Permalink to this headline">¶</a>
@@ -5513,28 +5385,28 @@ qemu-kvm -net nic,model=? /dev/null
       remote server.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;serial type="tcp"&gt;
-      &lt;source mode="connect" host="0.0.0.0" service="2445"/&gt;
-      &lt;protocol type="raw"/&gt;
-      &lt;target port="1"/&gt;
-    &lt;/serial&gt;
-  &lt;/devices&gt;
-   ...</pre>
+...
+&lt;devices&gt;
+  &lt;serial type="tcp"&gt;
+    &lt;source mode="connect" host="0.0.0.0" service="2445"/&gt;
+    &lt;protocol type="raw"/&gt;
+    &lt;target port="1"/&gt;
+  &lt;/serial&gt;
+&lt;/devices&gt;
+ ...</pre>
         <p>
       Or as a TCP server waiting for a client connection.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;serial type="tcp"&gt;
-      &lt;source mode="bind" host="127.0.0.1" service="2445"/&gt;
-      &lt;protocol type="raw"/&gt;
-      &lt;target port="1"/&gt;
-    &lt;/serial&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;serial type="tcp"&gt;
+    &lt;source mode="bind" host="127.0.0.1" service="2445"/&gt;
+    &lt;protocol type="raw"/&gt;
+    &lt;target port="1"/&gt;
+  &lt;/serial&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
       Alternatively you can use <code>telnet</code> instead
       of <code>raw</code> TCP in order to utilize the telnet protocol
@@ -5546,21 +5418,21 @@ qemu-kvm -net nic,model=? /dev/null
       (via secure sockets layer) as the transport protocol for connections.
     </p>
         <pre xml:space="preserve">
+...
+&lt;devices&gt;
+  &lt;serial type="tcp"&gt;
+    &lt;source mode="connect" host="0.0.0.0" service="2445"/&gt;
+    &lt;protocol type="telnet"/&gt;
+    &lt;target port="1"/&gt;
+  &lt;/serial&gt;
   ...
-  &lt;devices&gt;
-    &lt;serial type="tcp"&gt;
-      &lt;source mode="connect" host="0.0.0.0" service="2445"/&gt;
-      &lt;protocol type="telnet"/&gt;
-      &lt;target port="1"/&gt;
-    &lt;/serial&gt;
-    ...
-    &lt;serial type="tcp"&gt;
-      &lt;source mode="bind" host="127.0.0.1" service="2445"/&gt;
-      &lt;protocol type="telnet"/&gt;
-      &lt;target port="1"/&gt;
-    &lt;/serial&gt;
-  &lt;/devices&gt;
-  ...</pre>
+  &lt;serial type="tcp"&gt;
+    &lt;source mode="bind" host="127.0.0.1" service="2445"/&gt;
+    &lt;protocol type="telnet"/&gt;
+    &lt;target port="1"/&gt;
+  &lt;/serial&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
       <span class="since">Since 2.4.0,</span> the optional attribute
       <code>tls</code> can be used to control whether a chardev
@@ -5579,15 +5451,15 @@ qemu-kvm -net nic,model=? /dev/null
       or <code>default_tls_x509_cert_dir</code> TLS directory structure exists.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;serial type="tcp"&gt;
-      &lt;source mode='connect' host="127.0.0.1" service="5555" tls="yes"/&gt;
-      &lt;protocol type="raw"/&gt;
-      &lt;target port="0"/&gt;
-    &lt;/serial&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;serial type="tcp"&gt;
+    &lt;source mode='connect' host="127.0.0.1" service="5555" tls="yes"/&gt;
+    &lt;protocol type="raw"/&gt;
+    &lt;target port="0"/&gt;
+  &lt;/serial&gt;
+&lt;/devices&gt;
+...</pre>
         <h6>
           <a name="elementsCharUDP" shape="rect" id="elementsCharUDP">UDP network console</a>
           <a class="headerlink" href="#elementsCharUDP" title="Permalink to this headline">¶</a>
@@ -5597,15 +5469,15 @@ qemu-kvm -net nic,model=? /dev/null
       sending and receiving packets. This is a lossy service.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;serial type="udp"&gt;
-      &lt;source mode="bind" host="0.0.0.0" service="2445"/&gt;
-      &lt;source mode="connect" host="0.0.0.0" service="2445"/&gt;
-      &lt;target port="1"/&gt;
-    &lt;/serial&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;serial type="udp"&gt;
+    &lt;source mode="bind" host="0.0.0.0" service="2445"/&gt;
+    &lt;source mode="connect" host="0.0.0.0" service="2445"/&gt;
+    &lt;target port="1"/&gt;
+  &lt;/serial&gt;
+&lt;/devices&gt;
+...</pre>
         <h6>
           <a name="elementsCharUNIX" shape="rect" id="elementsCharUNIX">UNIX domain socket client/server</a>
           <a class="headerlink" href="#elementsCharUNIX" title="Permalink to this headline">¶</a>
@@ -5615,14 +5487,14 @@ qemu-kvm -net nic,model=? /dev/null
       accepting connections from local clients.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;serial type="unix"&gt;
-      &lt;source mode="bind" path="/tmp/foo"/&gt;
-      &lt;target port="1"/&gt;
-    &lt;/serial&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;serial type="unix"&gt;
+    &lt;source mode="bind" path="/tmp/foo"/&gt;
+    &lt;target port="1"/&gt;
+  &lt;/serial&gt;
+&lt;/devices&gt;
+...</pre>
         <h6>
           <a name="elementsCharSpiceport" shape="rect" id="elementsCharSpiceport">Spice channel</a>
           <a class="headerlink" href="#elementsCharSpiceport" title="Permalink to this headline">¶</a>
@@ -5638,14 +5510,14 @@ qemu-kvm -net nic,model=? /dev/null
       graphics</a>.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;serial type="spiceport"&gt;
-      &lt;source channel="org.qemu.console.serial.0"/&gt;
-      &lt;target port="1"/&gt;
-    &lt;/serial&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;serial type="spiceport"&gt;
+    &lt;source channel="org.qemu.console.serial.0"/&gt;
+    &lt;target port="1"/&gt;
+  &lt;/serial&gt;
+&lt;/devices&gt;
+...</pre>
         <h6>
           <a name="elementsNmdm" shape="rect" id="elementsNmdm">Nmdm device</a>
           <a class="headerlink" href="#elementsNmdm" title="Permalink to this headline">¶</a>
@@ -5656,13 +5528,13 @@ qemu-kvm -net nic,model=? /dev/null
       <span class="since">Since 1.2.4</span>
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;serial type="nmdm"&gt;
-      &lt;source master="/dev/nmdm0A" slave="/dev/nmdm0B"/&gt;
-    &lt;/serial&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;serial type="nmdm"&gt;
+    &lt;source master="/dev/nmdm0A" slave="/dev/nmdm0B"/&gt;
+  &lt;/serial&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
       The <code>source</code> element has these attributes:
     </p>
@@ -5678,11 +5550,11 @@ qemu-kvm -net nic,model=? /dev/null
       <code>sound</code> element. <span class="since">Since 0.4.3</span>
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;sound model='es1370'/&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;sound model='es1370'/&gt;
+&lt;/devices&gt;
+...</pre>
         <dl><dt><code>sound</code></dt><dd>
         The <code>sound</code> element has one mandatory attribute,
         <code>model</code>, which specifies what real sound device is emulated.
@@ -5702,13 +5574,13 @@ qemu-kvm -net nic,model=? /dev/null
       (advertise a speaker and a microphone).
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;sound model='ich6'&gt;
-      &lt;codec type='micro'/&gt;
-    &lt;/sound&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;sound model='ich6'&gt;
+    &lt;codec type='micro'/&gt;
+  &lt;/sound&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
       Each <code>sound</code> element has an optional
       sub-element <code>&lt;address&gt;</code> which can tie the
@@ -5735,11 +5607,11 @@ qemu-kvm -net nic,model=? /dev/null
       libvirt.
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;watchdog model='i6300esb'/&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;watchdog model='i6300esb'/&gt;
+&lt;/devices&gt;
+...</pre>
         <pre xml:space="preserve">
   ...
   &lt;devices&gt;
@@ -5803,11 +5675,11 @@ qemu-kvm -net nic,model=? /dev/null
       Example: automatically added device with KVM
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;memballoon model='virtio'/&gt;
-  &lt;/devices&gt;
-  ...</pre>
+...
+&lt;devices&gt;
+  &lt;memballoon model='virtio'/&gt;
+&lt;/devices&gt;
+...</pre>
         <p>
       Example: manually added device with static PCI slot 2 requested
     </p>
@@ -5864,19 +5736,19 @@ qemu-kvm -net nic,model=? /dev/null
       Example: usage of the RNG device:
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;rng model='virtio'&gt;
-      &lt;rate period="2000" bytes="1234"/&gt;
-      &lt;backend model='random'&gt;/dev/random&lt;/backend&gt;
-      &lt;!-- OR --&gt;
-      &lt;backend model='egd' type='udp'&gt;
-        &lt;source mode='bind' service='1234'/&gt;
-        &lt;source mode='connect' host='1.2.3.4' service='1234'/&gt;
-      &lt;/backend&gt;
-    &lt;/rng&gt;
-  &lt;/devices&gt;
-  ...
+...
+&lt;devices&gt;
+  &lt;rng model='virtio'&gt;
+    &lt;rate period="2000" bytes="1234"/&gt;
+    &lt;backend model='random'&gt;/dev/random&lt;/backend&gt;
+    &lt;!-- OR --&gt;
+    &lt;backend model='egd' type='udp'&gt;
+      &lt;source mode='bind' service='1234'/&gt;
+      &lt;source mode='connect' host='1.2.3.4' service='1234'/&gt;
+    &lt;/backend&gt;
+  &lt;/rng&gt;
+&lt;/devices&gt;
+...
 </pre>
         <dl><dt><code>model</code></dt><dd>
         <p>
@@ -5937,15 +5809,15 @@ qemu-kvm -net nic,model=? /dev/null
      Example: usage of the TPM passthrough device
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;tpm model='tpm-tis'&gt;
-      &lt;backend type='passthrough'&gt;
-        &lt;device path='/dev/tpm0'/&gt;
-      &lt;/backend&gt;
-    &lt;/tpm&gt;
-  &lt;/devices&gt;
-  ...
+...
+&lt;devices&gt;
+  &lt;tpm model='tpm-tis'&gt;
+    &lt;backend type='passthrough'&gt;
+      &lt;device path='/dev/tpm0'/&gt;
+    &lt;/backend&gt;
+  &lt;/tpm&gt;
+&lt;/devices&gt;
+...
 </pre>
         <dl><dt><code>model</code></dt><dd>
         <p>
@@ -5985,13 +5857,13 @@ qemu-kvm -net nic,model=? /dev/null
       Example: usage of NVRAM configuration
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;nvram&gt;
-      &lt;address type='spapr-vio' reg='0x3000'/&gt;
-    &lt;/nvram&gt;
-  &lt;/devices&gt;
-  ...
+...
+&lt;devices&gt;
+  &lt;nvram&gt;
+    &lt;address type='spapr-vio' reg='0x3000'/&gt;
+  &lt;/nvram&gt;
+&lt;/devices&gt;
+...
 </pre>
         <dl><dt><code>spapr-vio</code></dt><dd>
       <p>
@@ -6023,14 +5895,14 @@ qemu-kvm -net nic,model=? /dev/null
       Example: usage of panic configuration
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;panic model='hyperv'/&gt;
-    &lt;panic model='isa'&gt;
-      &lt;address type='isa' iobase='0x505'/&gt;
-    &lt;/panic&gt;
-  &lt;/devices&gt;
-  ...
+...
+&lt;devices&gt;
+  &lt;panic model='hyperv'/&gt;
+  &lt;panic model='isa'&gt;
+    &lt;address type='isa' iobase='0x505'/&gt;
+  &lt;/panic&gt;
+&lt;/devices&gt;
+...
 </pre>
         <dl><dt><code>model</code></dt><dd>
         <p>
@@ -6058,22 +5930,32 @@ qemu-kvm -net nic,model=? /dev/null
       <span class="since">Since 1.2.10, QEMU and KVM only</span>
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;shmem name='my_shmem0'&gt;
-      &lt;size unit='M'&gt;4&lt;/size&gt;
-    &lt;/shmem&gt;
-    &lt;shmem name='shmem_server'&gt;
-      &lt;size unit='M'&gt;2&lt;/size&gt;
-      &lt;server path='/tmp/socket-shmem'/&gt;
-      &lt;msi vectors='32' ioeventfd='on'/&gt;
-    &lt;/shmem&gt;
-  &lt;/devices&gt;
-  ...
+...
+&lt;devices&gt;
+  &lt;shmem name='my_shmem0'&gt;
+    &lt;model type='ivshmem-plain'/&gt;
+    &lt;size unit='M'&gt;4&lt;/size&gt;
+  &lt;/shmem&gt;
+  &lt;shmem name='shmem_server'&gt;
+    &lt;model type='ivshmem-doorbell'/&gt;
+    &lt;size unit='M'&gt;2&lt;/size&gt;
+    &lt;server path='/tmp/socket-shmem'/&gt;
+    &lt;msi vectors='32' ioeventfd='on'/&gt;
+  &lt;/shmem&gt;
+&lt;/devices&gt;
+...
 </pre>
         <dl><dt><code>shmem</code></dt><dd>
       The <code>shmem</code> element has one mandatory attribute,
       <code>name</code> to identify the shared memory.
+    </dd><dt><code>model</code></dt><dd>
+      Attribute <code>type</code> of the optional element <code>model</code>
+      specifies the model of the underlying device providing the
+      <code>shmem</code> device.  The models currently supported are
+      <code>ivshmem</code> (supports both server and server-less shmem, but is
+      deprecated by newer QEMU in favour of the -plain and -doorbell variants),
+      <code>ivshmem-plain</code> (only for server-less shmem) and
+      <code>ivshmem-doorbell</code> (only for shmem with the server).
     </dd><dt><code>size</code></dt><dd>
       The optional <code>size</code> element specifies the size of the shared
       memory. This must be power of 2 and greater than or equal to 1 MiB.
@@ -6109,26 +5991,26 @@ qemu-kvm -net nic,model=? /dev/null
       Example: usage of the memory devices
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;memory model='dimm'&gt;
-      &lt;target&gt;
-        &lt;size unit='KiB'&gt;524287&lt;/size&gt;
-        &lt;node&gt;0&lt;/node&gt;
-      &lt;/target&gt;
-    &lt;/memory&gt;
-    &lt;memory model='dimm'&gt;
-      &lt;source&gt;
-        &lt;pagesize unit='KiB'&gt;4096&lt;/pagesize&gt;
-        &lt;nodemask&gt;1-3&lt;/nodemask&gt;
-      &lt;/source&gt;
-      &lt;target&gt;
-        &lt;size unit='KiB'&gt;524287&lt;/size&gt;
-        &lt;node&gt;1&lt;/node&gt;
-      &lt;/target&gt;
-    &lt;/memory&gt;
-  &lt;/devices&gt;
-  ...
+...
+&lt;devices&gt;
+  &lt;memory model='dimm'&gt;
+    &lt;target&gt;
+      &lt;size unit='KiB'&gt;524287&lt;/size&gt;
+      &lt;node&gt;0&lt;/node&gt;
+    &lt;/target&gt;
+  &lt;/memory&gt;
+  &lt;memory model='dimm'&gt;
+    &lt;source&gt;
+      &lt;pagesize unit='KiB'&gt;4096&lt;/pagesize&gt;
+      &lt;nodemask&gt;1-3&lt;/nodemask&gt;
+    &lt;/source&gt;
+    &lt;target&gt;
+      &lt;size unit='KiB'&gt;524287&lt;/size&gt;
+      &lt;node&gt;1&lt;/node&gt;
+    &lt;/target&gt;
+  &lt;/memory&gt;
+&lt;/devices&gt;
+...
 </pre>
         <dl><dt><code>model</code></dt><dd>
         <p>
@@ -6179,11 +6061,11 @@ qemu-kvm -net nic,model=? /dev/null
       Example:
     </p>
         <pre xml:space="preserve">
-  ...
-  &lt;devices&gt;
-    &lt;iommu model='intel'/&gt;
-  &lt;/devices&gt;
-  ...
+...
+&lt;devices&gt;
+  &lt;iommu model='intel'/&gt;
+&lt;/devices&gt;
+...
 </pre>
         <dl><dt><code>model</code></dt><dd>
         <p>
@@ -6220,21 +6102,21 @@ qemu-kvm -net nic,model=? /dev/null
       are:
     </p>
         <pre xml:space="preserve">
-  &lt;seclabel type='dynamic' model='selinux'/&gt;
+&lt;seclabel type='dynamic' model='selinux'/&gt;
 
-  &lt;seclabel type='dynamic' model='selinux'&gt;
-    &lt;baselabel&gt;system_u:system_r:my_svirt_t:s0&lt;/baselabel&gt;
-  &lt;/seclabel&gt;
+&lt;seclabel type='dynamic' model='selinux'&gt;
+  &lt;baselabel&gt;system_u:system_r:my_svirt_t:s0&lt;/baselabel&gt;
+&lt;/seclabel&gt;
 
-  &lt;seclabel type='static' model='selinux' relabel='no'&gt;
-    &lt;label&gt;system_u:system_r:svirt_t:s0:c392,c662&lt;/label&gt;
-  &lt;/seclabel&gt;
+&lt;seclabel type='static' model='selinux' relabel='no'&gt;
+  &lt;label&gt;system_u:system_r:svirt_t:s0:c392,c662&lt;/label&gt;
+&lt;/seclabel&gt;
 
-  &lt;seclabel type='static' model='selinux' relabel='yes'&gt;
-    &lt;label&gt;system_u:system_r:svirt_t:s0:c392,c662&lt;/label&gt;
-  &lt;/seclabel&gt;
+&lt;seclabel type='static' model='selinux' relabel='yes'&gt;
+  &lt;label&gt;system_u:system_r:svirt_t:s0:c392,c662&lt;/label&gt;
+&lt;/seclabel&gt;
 
-  &lt;seclabel type='none'/&gt;
+&lt;seclabel type='none'/&gt;
     </pre>
         <p>
       If no 'type' attribute is provided in the input XML, then
@@ -6342,6 +6224,51 @@ qemu-kvm -net nic,model=? /dev/null
     </p>
         <ul><li><a href="drvxen.html#xmlconfig" shape="rect">Xen examples</a></li><li><a href="drvqemu.html#xmlconfig" shape="rect">QEMU/KVM examples</a></li></ul>
       </div>
+    </div>
+    <div id="nav">
+      <div id="home">
+        <a href="index.html">Home</a>
+      </div>
+      <div id="jumplinks">
+        <ul><li>
+            <a href="downloads.html">Download</a>
+          </li><li>
+            <a href="contribute.html">Contribute</a>
+          </li><li>
+            <a href="docs.html">Learn</a>
+          </li></ul>
+      </div>
+      <div id="search">
+        <form action="search.php" enctype="application/x-www-form-urlencoded" method="get"><div>
+            <input name="query" type="text" size="12" value="" />
+            <input name="submit" type="submit" value="Go" />
+          </div></form>
+      </div>
+    </div>
+    <div id="footer">
+      <div id="contact">
+        <h3>Contact</h3>
+        <ul><li>
+            <a href="contact.html#email">email</a>
+          </li><li>
+            <a href="contact.html#irc">irc</a>
+          </li></ul>
+      </div>
+      <div id="community">
+        <h3>Community</h3>
+        <ul><li>
+            <a href="https://twitter.com/hashtag/libvirt">twitter</a>
+          </li><li>
+            <a href="https://plus.google.com/communities/109522598353007505282">google+</a>
+          </li><li>
+            <a href="http://stackoverflow.com/questions/tagged/libvirt">stackoverflow</a>
+          </li><li>
+            <a href="http://serverfault.com/questions/tagged/libvirt">serverfault</a>
+          </li></ul>
+      </div>
+      <div id="conduct">
+            Participants in the libvirt project agree to abide by <a href="governance.html#codeofconduct">the project code of conduct</a></div>
+      <br class="clear" />
     </div>
   </body>
 </html>

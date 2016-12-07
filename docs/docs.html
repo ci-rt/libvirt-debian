@@ -9,119 +9,108 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <link rel="stylesheet" type="text/css" href="main.css" />
     <link rel="SHORTCUT ICON" href="32favicon.png" />
-    <title>libvirt: Documentation</title>
+    <title>libvirt: </title>
     <meta name="description" content="libvirt, virtualization, virtualization API" />
   </head>
-  <body>
-    <div id="header">
-      <div id="headerLogo"></div>
-      <div id="headerSearch">
+  <body class="docs">
+    <div id="body">
+      <div id="content">
+        <div class="panel">
+      <h2>Deployment / operation</h2>
+
+      <dl><dt><a href="apps.html" shape="rect">Applications</a></dt><dd>Applications known to use libvirt</dd><dt><a href="windows.html" shape="rect">Windows</a></dt><dd>Downloads for Windows</dd><dt><a href="migration.html" shape="rect">Migration</a></dt><dd>Migrating guests between machines</dd><dt><a href="remote.html" shape="rect">Remote access</a></dt><dd>Enable remote access over TCP</dd><dt><a href="auth.html" shape="rect">Authentication</a></dt><dd>Configure authentication for the libvirt daemon</dd><dt><a href="acl.html" shape="rect">Access control</a></dt><dd>Configure access control libvirt APIs with <a href="aclpolkit.html" shape="rect">polkit</a></dd><dt><a href="logging.html" shape="rect">Logging</a></dt><dd>The library and the daemon logging support</dd><dt><a href="auditlog.html" shape="rect">Audit log</a></dt><dd>Audit trail logs for host operations</dd><dt><a href="firewall.html" shape="rect">Firewall</a></dt><dd>Firewall and network filter configuration</dd><dt><a href="hooks.html" shape="rect">Hooks</a></dt><dd>Hooks for system specific management</dd><dt><a href="nss.html" shape="rect">NSS module</a></dt><dd>Enable domain host name translation to IP addresses</dd><dt><a href="http://wiki.libvirt.org/page/FAQ" shape="rect">FAQ</a></dt><dd>Frequently asked questions</dd></dl>
+
+    </div>
+        <div class="panel">
+      <h2>Application development</h2>
+      <dl><dt><a href="devguide.html" shape="rect">Development Guide</a></dt><dd>A guide and reference for developing with libvirt</dd><dt><a href="virshcmdref.html" shape="rect">Virsh Commands</a></dt><dd>Command reference for virsh</dd><dt><a href="bindings.html" shape="rect">Language bindings</a></dt><dd>Bindings of the libvirt API for
+          <a href="csharp.html" shape="rect">c#</a>,
+          <a href="https://github.com/rgbkrk/libvirt-go" shape="rect">go</a>,
+          <a href="java.html" shape="rect">java</a>,
+          <a href="http://libvirt.org/ocaml/" shape="rect">ocaml</a>.
+          <a href="http://search.cpan.org/dist/Sys-Virt/" shape="rect">perl</a>,
+          <a href="python.html" shape="rect">python</a>,
+          <a href="php.html" shape="rect">php</a>,
+          <a href="http://libvirt.org/ruby/" shape="rect">ruby</a></dd><dt><a href="format.html" shape="rect">XML schemas</a></dt><dd>Description of the XML schemas for
+          <a href="formatdomain.html" shape="rect">domains</a>,
+          <a href="formatnetwork.html" shape="rect">networks</a>,
+          <a href="formatnwfilter.html" shape="rect">network filtering</a>,
+          <a href="formatstorage.html" shape="rect">storage</a>,
+          <a href="formatstorageencryption.html" shape="rect">storage encryption</a>,
+          <a href="formatcaps.html" shape="rect">capabilities</a>,
+          <a href="formatdomaincaps.html" shape="rect">domain capabilities</a>,
+          <a href="formatnode.html" shape="rect">node devices</a>,
+          <a href="formatsecret.html" shape="rect">secrets</a>,
+          <a href="formatsnapshot.html" shape="rect">snapshots</a></dd><dt><a href="uri.html" shape="rect">URI format</a></dt><dd>The URI formats used for connecting to libvirt</dd><dt><a href="locking.html" shape="rect">Disk locking</a></dt><dd>Ensuring exclusive guest access to disks with
+          <a href="locking-lockd.html" shape="rect">virtlockd</a> or
+          <a href="locking-sanlock.html" shape="rect">Sanlock</a></dd><dt><a href="cgroups.html" shape="rect">CGroups</a></dt><dd>Control groups integration</dd><dt><a href="html/index.html" shape="rect">API reference</a></dt><dd>Reference manual for the C public API, split in
+          <a href="html/libvirt-libvirt-common.html" shape="rect">common</a>,
+          <a href="html/libvirt-libvirt-domain.html" shape="rect">domain</a>,
+          <a href="html/libvirt-libvirt-domain-snapshot.html" shape="rect">domain snapshot</a>,
+          <a href="html/libvirt-virterror.html" shape="rect">error</a>,
+          <a href="html/libvirt-libvirt-event.html" shape="rect">event</a>,
+          <a href="html/libvirt-libvirt-host.html" shape="rect">host</a>,
+          <a href="html/libvirt-libvirt-interface.html" shape="rect">interface</a>,
+          <a href="html/libvirt-libvirt-network.html" shape="rect">network</a>,
+          <a href="html/libvirt-libvirt-nodedev.html" shape="rect">node device</a>,
+          <a href="html/libvirt-libvirt-nwfilter.html" shape="rect">network filter</a>,
+          <a href="html/libvirt-libvirt-secret.html" shape="rect">secret</a>,
+          <a href="html/libvirt-libvirt-storage.html" shape="rect">storage</a>,
+          <a href="html/libvirt-libvirt-stream.html" shape="rect">stream</a>
+        </dd><dt><a href="drivers.html" shape="rect">Drivers</a></dt><dd>Hypervisor specific driver information</dd><dt><a href="hvsupport.html" shape="rect">Driver support</a></dt><dd>matrix of API support per hypervisor per release</dd><dt><a href="secureusage.html" shape="rect">Secure usage</a></dt><dd>Secure usage of the libvirt APIs</dd></dl>
+    </div>
+        <div class="panel">
+      <h2>Project development</h2>
+      <dl><dt><a href="hacking.html" shape="rect">Contributor guidelines</a></dt><dd>General hacking guidelines for contributors</dd><dt><a href="bugs.html" shape="rect">Bug reports</a></dt><dd>How and where to report bugs and request features</dd><dt><a href="compiling.html" shape="rect">Compiling</a></dt><dd>How to compile libvirt</dd><dt><a href="goals.html" shape="rect">Goals</a></dt><dd>Terminology and goals of libvirt API</dd><dt><a href="api.html" shape="rect">API concepts</a></dt><dd>The libvirt API concepts</dd><dt><a href="api_extension.html" shape="rect">API extensions</a></dt><dd>Adding new public libvirt APIs</dd><dt><a href="internals/eventloop.html" shape="rect">Event loop and worker pool</a></dt><dd>Libvirt's event loop and worker pool mode</dd><dt><a href="internals/command.html" shape="rect">Spawning commands</a></dt><dd>Spawning commands from libvirt driver code</dd><dt><a href="internals/rpc.html" shape="rect">RPC protocol &amp; APIs</a></dt><dd>RPC protocol information and API / dispatch guide</dd><dt><a href="internals/locking.html" shape="rect">Lock managers</a></dt><dd>Use lock managers to protect disk content</dd><dt><a href="internals/oomtesting.html" shape="rect">Out of memory testing</a></dt><dd>Simulating OOM conditions in the test suite</dd><dt><a href="testsuites.html" shape="rect">Functional testing</a></dt><dd>Testing libvirt with <a href="testtck.html" shape="rect">TCK test suite</a> and
+         <a href="testapi.html" shape="rect">Libvirt-test-API</a></dd></dl>
+    </div>
+        <br class="clear" />
+      </div>
+    </div>
+    <div id="nav">
+      <div id="home">
+        <a href="index.html">Home</a>
+      </div>
+      <div id="jumplinks">
+        <ul><li>
+            <a href="downloads.html">Download</a>
+          </li><li>
+            <a href="contribute.html">Contribute</a>
+          </li><li>
+            <a href="docs.html">Learn</a>
+          </li></ul>
+      </div>
+      <div id="search">
         <form action="search.php" enctype="application/x-www-form-urlencoded" method="get"><div>
-            <input id="query" name="query" type="text" size="12" value="" />
-            <input id="submit" name="submit" type="submit" value="Search" />
+            <input name="query" type="text" size="12" value="" />
+            <input name="submit" type="submit" value="Go" />
           </div></form>
       </div>
     </div>
-    <div id="body">
-      <div id="menu">
-        <ul class="l0"><li>
-            <div>
-              <a title="Front page of the libvirt website" class="inactive" href="index.html">Home</a>
-            </div>
+    <div id="footer">
+      <div id="contact">
+        <h3>Contact</h3>
+        <ul><li>
+            <a href="contact.html#email">email</a>
           </li><li>
-            <div>
-              <a title="Details of new features and bugs fixed in each release" class="inactive" href="news.html">News</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="Applications known to use libvirt" class="inactive" href="apps.html">Applications</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="Get the latest source releases, binary builds and get access to the source repository" class="inactive" href="downloads.html">Downloads</a>
-            </div>
-          </li><li>
-            <div>
-              <span class="active">Documentation</span>
-              <ul class="l1"><li>
-                  <div>
-                    <a title="How to compile libvirt" class="inactive" href="compiling.html">Compiling</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="Information about deploying and using libvirt" class="inactive" href="deployment.html">Deployment</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="Overview of the logical subsystems in the libvirt API" class="inactive" href="intro.html">Architecture</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="Description of the XML formats used in libvirt" class="inactive" href="format.html">XML format</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="Hypervisor specific driver information" class="inactive" href="drivers.html">Drivers</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="Reference manual for the C public API" class="inactive" href="html/index.html">API reference</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="Bindings of the libvirt API for other languages" class="inactive" href="bindings.html">Language bindings</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="Working on the internals of libvirt API, driver and daemon code" class="inactive" href="internals.html">Internals</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="A guide and reference for developing with libvirt" class="inactive" href="devguide.html">Development Guide</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="Command reference for virsh" class="inactive" href="virshcmdref.html">Virsh Commands</a>
-                  </div>
-                </li><li>
-                  <div>
-                    <a title="Project governance and code of conduct" class="inactive" href="governance.html">Governance</a>
-                  </div>
-                </li></ul>
-            </div>
-          </li><li>
-            <div>
-              <a title="User contributed content" class="inactive" href="http://wiki.libvirt.org">Wiki</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="Frequently asked questions" class="inactive" href="http://wiki.libvirt.org/page/FAQ">FAQ</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="How and where to report bugs and request features" class="inactive" href="bugs.html">Bug reports</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="How to contact the developers via email and IRC" class="inactive" href="contact.html">Contact</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="Available test suites for libvirt" class="inactive" href="testsuites.html">Test suites</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="Miscellaneous links of interest related to libvirt" class="inactive" href="relatedlinks.html">Related Links</a>
-            </div>
-          </li><li>
-            <div>
-              <a title="Overview of all content on the website" class="inactive" href="sitemap.html">Sitemap</a>
-            </div>
+            <a href="contact.html#irc">irc</a>
           </li></ul>
       </div>
-      <div id="content">
-        <h1>Documentation</h1>
+      <div id="community">
+        <h3>Community</h3>
+        <ul><li>
+            <a href="https://twitter.com/hashtag/libvirt">twitter</a>
+          </li><li>
+            <a href="https://plus.google.com/communities/109522598353007505282">google+</a>
+          </li><li>
+            <a href="http://stackoverflow.com/questions/tagged/libvirt">stackoverflow</a>
+          </li><li>
+            <a href="http://serverfault.com/questions/tagged/libvirt">serverfault</a>
+          </li></ul>
       </div>
+      <div id="conduct">
+            Participants in the libvirt project agree to abide by <a href="governance.html#codeofconduct">the project code of conduct</a></div>
+      <br class="clear" />
     </div>
   </body>
 </html>

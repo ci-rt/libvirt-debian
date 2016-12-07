@@ -1412,7 +1412,7 @@ virCPUx86GetMap(void)
 
 
 static char *
-x86CPUDataFormat(const virCPUData *data)
+virCPUx86DataFormat(const virCPUData *data)
 {
     virCPUx86DataIterator iter = virCPUx86DataIteratorInit(&data->data.x86);
     virCPUx86CPUID *cpuid;
@@ -1437,7 +1437,7 @@ x86CPUDataFormat(const virCPUData *data)
 
 
 static virCPUDataPtr
-x86CPUDataParse(xmlXPathContextPtr ctxt)
+virCPUx86DataParse(xmlXPathContextPtr ctxt)
 {
     xmlNodePtr *nodes = NULL;
     virCPUDataPtr cpuData = NULL;
@@ -1725,22 +1725,6 @@ virCPUx86Compare(virCPUDefPtr host,
 }
 
 
-static virCPUCompareResult
-x86GuestData(virCPUDefPtr host,
-             virCPUDefPtr guest,
-             virCPUDataPtr *data,
-             char **message)
-{
-    if (!guest->model) {
-        virReportError(VIR_ERR_INVALID_ARG, "%s",
-                       _("no guest CPU model specified"));
-        return VIR_CPU_COMPARE_ERROR;
-    }
-
-    return x86Compute(host, guest, data, message);
-}
-
-
 /*
  * Checks whether a candidate model is a better fit for the CPU data than the
  * current model.
@@ -1833,7 +1817,7 @@ x86Decode(virCPUDefPtr cpu,
      */
     for (i = map->nmodels - 1; i >= 0; i--) {
         candidate = map->models[i];
-        if (!cpuModelIsAllowed(candidate->name, models, nmodels)) {
+        if (!virCPUModelIsAllowed(candidate->name, models, nmodels)) {
             if (preferred && STREQ(candidate->name, preferred)) {
                 if (cpu->fallback != VIR_CPU_FALLBACK_ALLOW) {
                     virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
@@ -2576,7 +2560,8 @@ x86UpdateHostModel(virCPUDefPtr guest,
             goto cleanup;
     }
 
-    virCPUDefStealModel(guest, updated);
+    virCPUDefStealModel(guest, updated,
+                        guest->mode == VIR_CPU_MODE_CUSTOM);
     guest->mode = VIR_CPU_MODE_CUSTOM;
     guest->match = VIR_CPU_MATCH_EXACT;
     ret = 0;
@@ -2668,7 +2653,7 @@ virCPUx86DataCheckFeature(const virCPUData *data,
 }
 
 static int
-x86GetModels(char ***models)
+virCPUx86GetModels(char ***models)
 {
     virCPUx86MapPtr map;
     size_t i;
@@ -2690,7 +2675,7 @@ x86GetModels(char ***models)
 
  error:
     if (models) {
-        virStringFreeList(*models);
+        virStringListFree(*models);
         *models = NULL;
     }
     return -1;
@@ -2737,7 +2722,7 @@ virCPUx86Translate(virCPUDefPtr cpu,
             goto cleanup;
     }
 
-    virCPUDefStealModel(cpu, translated);
+    virCPUDefStealModel(cpu, translated, true);
     ret = 0;
 
  cleanup:
@@ -2760,13 +2745,12 @@ struct cpuArchDriver cpuDriverX86 = {
 #else
     .nodeData   = NULL,
 #endif
-    .guestData  = x86GuestData,
     .baseline   = x86Baseline,
     .update     = virCPUx86Update,
     .checkFeature = virCPUx86CheckFeature,
     .dataCheckFeature = virCPUx86DataCheckFeature,
-    .dataFormat = x86CPUDataFormat,
-    .dataParse  = x86CPUDataParse,
-    .getModels  = x86GetModels,
+    .dataFormat = virCPUx86DataFormat,
+    .dataParse  = virCPUx86DataParse,
+    .getModels  = virCPUx86GetModels,
     .translate  = virCPUx86Translate,
 };

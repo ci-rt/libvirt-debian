@@ -44,6 +44,7 @@
 #include "viruuid.h"
 #include "virpci.h"
 #include "virusb.h"
+#include "virscsivhost.h"
 #include "virfile.h"
 #include "configmake.h"
 #include "vircommand.h"
@@ -352,6 +353,13 @@ AppArmorSetSecurityPCILabel(virPCIDevicePtr dev ATTRIBUTE_UNUSED,
 
 static int
 AppArmorSetSecuritySCSILabel(virSCSIDevicePtr dev ATTRIBUTE_UNUSED,
+                             const char *file, void *opaque)
+{
+    return AppArmorSetSecurityHostdevLabelHelper(file, opaque);
+}
+
+static int
+AppArmorSetSecurityHostLabel(virSCSIVHostDevicePtr dev ATTRIBUTE_UNUSED,
                              const char *file, void *opaque)
 {
     return AppArmorSetSecurityHostdevLabelHelper(file, opaque);
@@ -831,6 +839,7 @@ AppArmorSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
     virDomainHostdevSubsysUSBPtr usbsrc = &dev->source.subsys.u.usb;
     virDomainHostdevSubsysPCIPtr pcisrc = &dev->source.subsys.u.pci;
     virDomainHostdevSubsysSCSIPtr scsisrc = &dev->source.subsys.u.scsi;
+    virDomainHostdevSubsysSCSIVHostPtr hostsrc = &dev->source.subsys.u.scsi_host;
 
     if (!secdef)
         return -1;
@@ -856,7 +865,7 @@ AppArmorSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
     ptr->mgr = mgr;
     ptr->def = def;
 
-    switch (dev->source.subsys.type) {
+    switch ((virDomainHostdevSubsysType) dev->source.subsys.type) {
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB: {
         virUSBDevicePtr usb =
             virUSBDeviceNew(usbsrc->bus, usbsrc->device, vroot);
@@ -909,7 +918,20 @@ AppArmorSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
         break;
     }
 
-    default:
+    case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI_HOST: {
+        virSCSIVHostDevicePtr host = virSCSIVHostDeviceNew(hostsrc->wwpn);
+
+        if (!host)
+            goto done;
+
+        ret = virSCSIVHostDeviceFileIterate(host,
+                                            AppArmorSetSecurityHostLabel,
+                                            ptr);
+        virSCSIVHostDeviceFree(host);
+        break;
+    }
+
+    case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_LAST:
         ret = 0;
         break;
     }

@@ -432,10 +432,12 @@ testQemuMonitorJSONGetCPUDefinitions(const void *data)
                                "     \"name\": \"qemu64\" "
                                "   }, "
                                "   { "
-                               "     \"name\": \"Opteron_G4\" "
+                               "     \"name\": \"Opteron_G4\", "
+                               "     \"unavailable-features\": [\"vme\"]"
                                "   }, "
                                "   { "
-                               "     \"name\": \"Westmere\" "
+                               "     \"name\": \"Westmere\", "
+                               "     \"unavailable-features\": []"
                                "   } "
                                "  ]"
                                "}") < 0)
@@ -451,7 +453,7 @@ testQemuMonitorJSONGetCPUDefinitions(const void *data)
         goto cleanup;
     }
 
-#define CHECK(i, wantname)                                              \
+#define CHECK_FULL(i, wantname, Usable)                                 \
     do {                                                                \
         if (STRNEQ(cpus[i]->name, (wantname))) {                        \
             virReportError(VIR_ERR_INTERNAL_ERROR,                      \
@@ -459,13 +461,28 @@ testQemuMonitorJSONGetCPUDefinitions(const void *data)
                            cpus[i]->name, (wantname));                  \
             goto cleanup;                                               \
         }                                                               \
+        if (cpus[i]->usable != (Usable)) {                              \
+            virReportError(VIR_ERR_INTERNAL_ERROR,                      \
+                           "%s: expecting usable flag %d, got %d",      \
+                           cpus[i]->name, Usable, cpus[i]->usable);     \
+            goto cleanup;                                               \
+        }                                                               \
     } while (0)
 
+#define CHECK(i, wantname)                                              \
+    CHECK_FULL(i, wantname, VIR_TRISTATE_BOOL_ABSENT)
+
+#define CHECK_USABLE(i, wantname, usable)                               \
+    CHECK_FULL(i, wantname,                                             \
+               usable ? VIR_TRISTATE_BOOL_YES : VIR_TRISTATE_BOOL_NO)
+
     CHECK(0, "qemu64");
-    CHECK(1, "Opteron_G4");
-    CHECK(2, "Westmere");
+    CHECK_USABLE(1, "Opteron_G4", false);
+    CHECK_USABLE(2, "Westmere", true);
 
 #undef CHECK
+#undef CHECK_USABLE
+#undef CHECK_FULL
 
     ret = 0;
 
@@ -591,7 +608,7 @@ testQemuMonitorJSONGetTPMModels(const void *data)
 
  cleanup:
     qemuMonitorTestFree(test);
-    virStringFreeList(tpmmodels);
+    virStringListFree(tpmmodels);
     return ret;
 }
 
@@ -651,7 +668,7 @@ testQemuMonitorJSONGetCommandLineOptionParameters(const void *data)
 
 #undef CHECK
 
-    virStringFreeList(params);
+    virStringListFree(params);
     params = NULL;
 
     /* present but empty */
@@ -677,7 +694,7 @@ testQemuMonitorJSONGetCommandLineOptionParameters(const void *data)
         goto cleanup;
     }
 
-    virStringFreeList(params);
+    virStringListFree(params);
     params = NULL;
 
     /* no such option */
@@ -707,7 +724,7 @@ testQemuMonitorJSONGetCommandLineOptionParameters(const void *data)
 
  cleanup:
     qemuMonitorTestFree(test);
-    virStringFreeList(params);
+    virStringListFree(params);
     return ret;
 }
 
@@ -1151,20 +1168,20 @@ testQemuMonitorJSONGetDeviceAliases(const void *data)
 
     ret = 0;
     for (alias = (const char **) aliases; *alias; alias++) {
-        if (!virStringArrayHasString(expected, *alias)) {
+        if (!virStringListHasString(expected, *alias)) {
             fprintf(stderr, "got unexpected device alias '%s'\n", *alias);
             ret = -1;
         }
     }
     for (alias = expected; *alias; alias++) {
-        if (!virStringArrayHasString((const char **) aliases, *alias)) {
+        if (!virStringListHasString((const char **) aliases, *alias)) {
             fprintf(stderr, "missing expected alias '%s'\n", *alias);
             ret = -1;
         }
     }
 
  cleanup:
-    virStringFreeList(aliases);
+    virStringListFree(aliases);
     qemuMonitorTestFree(test);
     return ret;
 }
@@ -1338,10 +1355,10 @@ testQemuMonitorJSONqemuMonitorJSONQueryCPUs(const void *data)
     int ret = -1;
     struct qemuMonitorQueryCpusEntry *cpudata = NULL;
     struct qemuMonitorQueryCpusEntry expect[] = {
-        {17622, (char *) "/machine/unattached/device[0]", true},
-        {17624, (char *) "/machine/unattached/device[1]", true},
-        {17626, (char *) "/machine/unattached/device[2]", true},
-        {17628, NULL, true},
+        {0, 17622, (char *) "/machine/unattached/device[0]", true},
+        {1, 17624, (char *) "/machine/unattached/device[1]", true},
+        {2, 17626, (char *) "/machine/unattached/device[2]", true},
+        {3, 17628, NULL, true},
     };
     size_t ncpudata = 0;
     size_t i;
@@ -2329,7 +2346,7 @@ testQemuMonitorJSONGetCPUData(const void *opaque)
                                    &cpuData) < 0)
         goto cleanup;
 
-    if (!(actual = cpuDataFormat(cpuData)))
+    if (!(actual = virCPUDataFormat(cpuData)))
         goto cleanup;
 
     if (virTestCompareToFile(actual, dataFile) < 0)
@@ -2489,7 +2506,10 @@ testQemuMonitorCPUInfoFormat(qemuMonitorCPUInfoPtr vcpus,
                               (unsigned long long) vcpu->tid);
 
         if (vcpu->id != 0)
-            virBufferAsprintf(&buf, "qemu-id='%d'\n", vcpu->id);
+            virBufferAsprintf(&buf, "enable-id='%d'\n", vcpu->id);
+
+        if (vcpu->qemu_id != -1)
+            virBufferAsprintf(&buf, "query-cpus-id='%d'\n", vcpu->qemu_id);
 
         if (vcpu->type)
             virBufferAsprintf(&buf, "type='%s'\n", vcpu->type);

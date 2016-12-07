@@ -325,7 +325,7 @@ virFileWrapperFdClose(virFileWrapperFdPtr wfd)
         return 0;
 
     ret = virCommandWait(wfd->cmd, NULL);
-    if (wfd->err_msg)
+    if (wfd->err_msg && *wfd->err_msg)
         VIR_WARN("iohelper reports: %s", wfd->err_msg);
 
     return ret;
@@ -1735,6 +1735,40 @@ virFileActivateDirOverride(const char *argv0)
     }
 }
 
+
+/**
+ * virFileLength:
+ * @path: full path of the file
+ * @fd: open file descriptor for file (or -1 to use @path)
+ *
+ * If fd >= 0, return the length of the open file indicated by @fd.
+ * If fd < 0 (i.e. -1) return the length of the file indicated by
+ * @path.
+ *
+ * Returns the length, or -1 if the file doesn't
+ * exist or its info was inaccessible. No error is logged.
+ */
+off_t
+virFileLength(const char *path, int fd)
+{
+    struct stat s;
+
+    if (fd >= 0) {
+        if (fstat(fd, &s) < 0)
+            return -1;
+    } else {
+        if (stat(path, &s) < 0)
+            return -1;
+    }
+
+    if (!S_ISREG(s.st_mode))
+       return -1;
+
+    return s.st_size;
+
+}
+
+
 bool
 virFileIsDir(const char *path)
 {
@@ -1877,7 +1911,7 @@ virFileGetMountSubtreeImpl(const char *mtabpath,
 
  cleanup:
     if (ret < 0)
-        virStringFreeList(mounts);
+        virStringListFree(mounts);
     endmntent(procmnt);
     return ret;
 }
@@ -1906,7 +1940,7 @@ virFileGetMountSubtreeImpl(const char *mtabpath ATTRIBUTE_UNUSED,
  * the path @prefix, sorted from shortest to longest path.
  *
  * The @mountsret array will be NULL terminated and should
- * be freed with virStringFreeList
+ * be freed with virStringListFree
  *
  * Returns 0 on success, -1 on error
  */
@@ -1930,7 +1964,7 @@ int virFileGetMountSubtree(const char *mtabpath,
  * ie opposite order to which they appear in @mtabpath
  *
  * The @mountsret array will be NULL terminated and should
- * be freed with virStringFreeList
+ * be freed with virStringListFree
  *
  * Returns 0 on success, -1 on error
  */

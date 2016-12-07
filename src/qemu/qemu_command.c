@@ -1238,6 +1238,14 @@ qemuCheckDiskConfig(virDomainDiskDefPtr disk)
             return -1;
         }
 
+        if (disk->bus == VIR_DOMAIN_DISK_BUS_SCSI &&
+            disk->src->format != VIR_STORAGE_FILE_RAW) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("disk device 'lun' using target 'scsi' must use "
+                             "'raw' format"));
+            return -1;
+        }
+
         if (qemuDomainDefValidateDiskLunSource(disk->src) < 0)
             return -1;
 
@@ -1340,7 +1348,9 @@ qemuDiskBusNeedsDeviceArg(int bus)
 
 static int
 qemuBuildDriveSourceStr(virDomainDiskDefPtr disk,
-                        virBufferPtr buf)
+                        virQEMUDriverConfigPtr cfg,
+                        virBufferPtr buf,
+                        virQEMUCapsPtr qemuCaps)
 {
     int actualType = virStorageSourceGetActualType(disk->src);
     qemuDomainDiskPrivatePtr diskPriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
@@ -1409,6 +1419,12 @@ qemuBuildDriveSourceStr(virDomainDiskDefPtr disk,
     }
     virBufferAddLit(buf, ",");
 
+    if (disk->src &&
+        disk->src->protocol == VIR_STORAGE_NET_PROTOCOL_GLUSTER) {
+        if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_GLUSTER_DEBUG_LEVEL))
+            virBufferAsprintf(buf, "file.debug=%d,", cfg->glusterDebugLevel);
+    }
+
     if (secinfo && secinfo->type == VIR_DOMAIN_SECRET_INFO_TYPE_AES) {
         /* NB: If libvirt starts using the more modern option based
          *     syntax to build the command line (e.g., "-drive driver=rbd,
@@ -1443,6 +1459,7 @@ qemuBuildDriveSourceStr(virDomainDiskDefPtr disk,
 
 char *
 qemuBuildDriveStr(virDomainDiskDefPtr disk,
+                  virQEMUDriverConfigPtr cfg,
                   bool bootable,
                   virQEMUCapsPtr qemuCaps)
 {
@@ -1534,7 +1551,7 @@ qemuBuildDriveStr(virDomainDiskDefPtr disk,
         break;
     }
 
-    if (qemuBuildDriveSourceStr(disk, &opt) < 0)
+    if (qemuBuildDriveSourceStr(disk, cfg, &opt, qemuCaps) < 0)
         goto error;
 
     if (emitDeviceSyntax)
@@ -2183,6 +2200,7 @@ qemuBuildDriveDevStr(const virDomainDef *def,
 
 static int
 qemuBuildDiskDriveCommandLine(virCommandPtr cmd,
+                              virQEMUDriverConfigPtr cfg,
                               const virDomainDef *def,
                               virQEMUCapsPtr qemuCaps)
 {
@@ -2261,8 +2279,9 @@ qemuBuildDiskDriveCommandLine(virCommandPtr cmd,
 
         virCommandAddArg(cmd, "-drive");
 
-        if (!(optstr = qemuBuildDriveStr(disk, driveBoot, qemuCaps)))
+        if (!(optstr = qemuBuildDriveStr(disk, cfg, driveBoot, qemuCaps)))
             return -1;
+
         virCommandAddArg(cmd, optstr);
         VIR_FREE(optstr);
 
@@ -3478,7 +3497,8 @@ qemuBuildMemoryDeviceStr(virDomainMemoryDefPtr mem)
 
         if (mem->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DIMM) {
             virBufferAsprintf(&buf, ",slot=%d", mem->info.addr.dimm.slot);
-            virBufferAsprintf(&buf, ",addr=%llu", mem->info.addr.dimm.base);
+            if (mem->info.addr.dimm.base)
+                virBufferAsprintf(&buf, ",addr=%llu", mem->info.addr.dimm.base);
         }
 
         break;
@@ -4722,6 +4742,44 @@ qemuBuildSCSIiSCSIHostdevDrvStr(virDomainHostdevDefPtr dev)
 }
 
 char *
+qemuBuildSCSIVHostHostdevDevStr(const virDomainDef *def,
+                           virDomainHostdevDefPtr dev,
+                           virQEMUCapsPtr qemuCaps,
+                           char *vhostfdName)
+{
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    virDomainHostdevSubsysSCSIVHostPtr hostsrc = &dev->source.subsys.u.scsi_host;
+
+    if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_VHOST_SCSI)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("This QEMU doesn't support vhost-scsi devices"));
+        goto cleanup;
+    }
+
+    if (ARCH_IS_S390(def->os.arch))
+        virBufferAddLit(&buf, "vhost-scsi-ccw");
+    else
+        virBufferAddLit(&buf, "vhost-scsi-pci");
+
+    virBufferAsprintf(&buf, ",wwpn=%s,vhostfd=%s,id=%s",
+                      hostsrc->wwpn,
+                      vhostfdName,
+                      dev->info->alias);
+
+    if (qemuBuildDeviceAddressStr(&buf, def, dev->info, qemuCaps) < 0)
+        goto cleanup;
+
+    if (virBufferCheckError(&buf) < 0)
+        goto cleanup;
+
+    return virBufferContentAndReset(&buf);
+
+ cleanup:
+    virBufferFreeAndReset(&buf);
+    return NULL;
+}
+
+char *
 qemuBuildSCSIHostdevDrvStr(virDomainHostdevDefPtr dev)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
@@ -5179,8 +5237,7 @@ qemuBuildHostdevCommandLine(virCommandPtr cmd,
         }
 
         /* SCSI */
-        if (hostdev->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
-            subsys->type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI) {
+        if (virHostdevIsSCSIDevice(hostdev)) {
             if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_SCSI_GENERIC)) {
                 char *drvstr;
 
@@ -5200,6 +5257,48 @@ qemuBuildHostdevCommandLine(virCommandPtr cmd,
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                                _("SCSI passthrough is not supported by this version of qemu"));
                 return -1;
+            }
+        }
+
+        /* SCSI_host */
+        if (hostdev->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
+            subsys->type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI_HOST) {
+            if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_SCSI_GENERIC)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("SCSI passthrough is not supported by this "
+                                 "version of qemu"));
+                return -1;
+            }
+
+            if (hostdev->source.subsys.u.scsi_host.protocol ==
+                VIR_DOMAIN_HOSTDEV_SUBSYS_SCSI_HOST_PROTOCOL_TYPE_VHOST) {
+                char *vhostfdName = NULL;
+                int vhostfd = -1;
+
+                if (virSCSIVHostOpenVhostSCSI(&vhostfd) < 0)
+                    return -1;
+
+                if (virAsprintf(&vhostfdName, "%d", vhostfd) < 0) {
+                    VIR_FORCE_CLOSE(vhostfd);
+                    return -1;
+                }
+
+                virCommandPassFD(cmd, vhostfd,
+                                 VIR_COMMAND_PASS_FD_CLOSE_PARENT);
+
+                virCommandAddArg(cmd, "-device");
+                if (!(devstr = qemuBuildSCSIVHostHostdevDevStr(def,
+                                                               hostdev,
+                                                               qemuCaps,
+                                                               vhostfdName))) {
+                    VIR_FREE(vhostfdName);
+                    VIR_FORCE_CLOSE(vhostfd);
+                    return -1;
+                }
+                virCommandAddArg(cmd, devstr);
+
+                VIR_FREE(vhostfdName);
+                VIR_FREE(devstr);
             }
         }
     }
@@ -8469,6 +8568,50 @@ qemuBuildShmemDevLegacyStr(virDomainDefPtr def,
     return NULL;
 }
 
+char *
+qemuBuildShmemDevStr(virDomainDefPtr def,
+                     virDomainShmemDefPtr shmem,
+                     virQEMUCapsPtr qemuCaps)
+{
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+
+    if ((shmem->model == VIR_DOMAIN_SHMEM_MODEL_IVSHMEM_PLAIN &&
+         !virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_IVSHMEM_PLAIN)) ||
+        (shmem->model == VIR_DOMAIN_SHMEM_MODEL_IVSHMEM_DOORBELL &&
+         !virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_IVSHMEM_DOORBELL))) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("shmem model '%s' is not supported "
+                             "by this QEMU binary"),
+                           virDomainShmemModelTypeToString(shmem->model));
+        return NULL;
+    }
+
+    virBufferAdd(&buf, virDomainShmemModelTypeToString(shmem->model), -1);
+    virBufferAsprintf(&buf, ",id=%s", shmem->info.alias);
+
+    if (shmem->server.enabled)
+        virBufferAsprintf(&buf, ",chardev=char%s", shmem->info.alias);
+    else
+        virBufferAsprintf(&buf, ",memdev=shmmem-%s", shmem->info.alias);
+
+    if (shmem->msi.vectors)
+        virBufferAsprintf(&buf, ",vectors=%u", shmem->msi.vectors);
+    if (shmem->msi.ioeventfd) {
+        virBufferAsprintf(&buf, ",ioeventfd=%s",
+                          virTristateSwitchTypeToString(shmem->msi.ioeventfd));
+    }
+
+    if (qemuBuildDeviceAddressStr(&buf, def, &shmem->info, qemuCaps) < 0) {
+        virBufferFreeAndReset(&buf);
+        return NULL;
+    }
+
+    if (virBufferCheckError(&buf) < 0)
+        return NULL;
+
+    return virBufferContentAndReset(&buf);
+}
+
 static char *
 qemuBuildShmemBackendChrStr(virLogManagerPtr logManager,
                             virCommandPtr cmd,
@@ -8488,6 +8631,51 @@ qemuBuildShmemBackendChrStr(virLogManagerPtr logManager,
 
     return devstr;
 }
+
+
+virJSONValuePtr
+qemuBuildShmemBackendMemProps(virDomainShmemDefPtr shmem)
+{
+    char *mem_path = NULL;
+    virJSONValuePtr ret = NULL;
+
+    if (virAsprintf(&mem_path, "/dev/shm/%s", shmem->name) < 0)
+        return NULL;
+
+    virJSONValueObjectCreate(&ret,
+                             "s:mem-path", mem_path,
+                             "U:size", shmem->size,
+                             "b:share", true,
+                             NULL);
+
+    VIR_FREE(mem_path);
+    return ret;
+}
+
+
+static char *
+qemuBuildShmemBackendMemStr(virDomainShmemDefPtr shmem)
+{
+    char *ret = NULL;
+    char *alias = NULL;
+    virJSONValuePtr props = qemuBuildShmemBackendMemProps(shmem);
+
+    if (!props)
+        return NULL;
+
+    if (virAsprintf(&alias, "shmmem-%s", shmem->info.alias) < 0)
+        goto cleanup;
+
+    ret = virQEMUBuildObjectCommandlineFromJSON("memory-backend-file",
+                                                alias,
+                                                props);
+ cleanup:
+    VIR_FREE(alias);
+    virJSONValueFree(props);
+
+    return ret;
+}
+
 
 static int
 qemuBuildShmemCommandLine(virLogManagerPtr logManager,
@@ -8525,7 +8713,28 @@ qemuBuildShmemCommandLine(virLogManagerPtr logManager,
         return -1;
     }
 
-    if (!(devstr = qemuBuildShmemDevLegacyStr(def, shmem, qemuCaps)))
+    switch ((virDomainShmemModel)shmem->model) {
+    case VIR_DOMAIN_SHMEM_MODEL_IVSHMEM:
+        devstr = qemuBuildShmemDevLegacyStr(def, shmem, qemuCaps);
+        break;
+
+    case VIR_DOMAIN_SHMEM_MODEL_IVSHMEM_PLAIN:
+        if (!(devstr = qemuBuildShmemBackendMemStr(shmem)))
+            return -1;
+
+        virCommandAddArgList(cmd, "-object", devstr, NULL);
+        VIR_FREE(devstr);
+
+        /* fall-through */
+    case VIR_DOMAIN_SHMEM_MODEL_IVSHMEM_DOORBELL:
+        devstr = qemuBuildShmemDevStr(def, shmem, qemuCaps);
+        break;
+
+    case VIR_DOMAIN_SHMEM_MODEL_LAST:
+        break;
+    }
+
+    if (!devstr)
         return -1;
     virCommandAddArgList(cmd, "-device", devstr, NULL);
     VIR_FREE(devstr);
@@ -9490,7 +9699,7 @@ qemuBuildCommandLine(virQEMUDriverPtr driver,
     if (qemuBuildHubCommandLine(cmd, def, qemuCaps) < 0)
         goto error;
 
-    if (qemuBuildDiskDriveCommandLine(cmd, def, qemuCaps) < 0)
+    if (qemuBuildDiskDriveCommandLine(cmd, cfg, def, qemuCaps) < 0)
         goto error;
 
     if (qemuBuildFSDevCommandLine(cmd, def, qemuCaps) < 0)

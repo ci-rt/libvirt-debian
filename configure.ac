@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [2.4.0], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [2.5.0], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -117,13 +117,14 @@ fi
 
 dnl Required minimum versions of all libs we depend on
 LIBXML_REQUIRED="2.6.0"
-GNUTLS_REQUIRED="2.2.0"
 POLKIT_REQUIRED="0.6"
 PARTED_REQUIRED="1.8.0"
 DEVMAPPER_REQUIRED=1.0.0
 LIBPCAP_REQUIRED="1.0.0"
 LIBNL_REQUIRED="1.1"
 PARALLELS_SDK_REQUIRED="7.0.22"
+dnl Where we look for daemons and admin binaries during configure
+LIBVIRT_SBIN_PATH="$PATH:/sbin:/usr/sbin:/usr/local/sbin"
 
 dnl Checks for C compiler.
 AC_PROG_CC
@@ -218,6 +219,7 @@ if test "$with_remote" = "no" ; then
   with_gnutls=no
   with_ssh2=no
   with_sasl=no
+  with_libssh=no
 fi
 # Stateful drivers are useful only when building the daemon.
 if test "$with_libvirtd" = "no" ; then
@@ -247,6 +249,7 @@ LIBVIRT_CHECK_DBUS
 LIBVIRT_CHECK_FUSE
 LIBVIRT_CHECK_GLUSTER
 LIBVIRT_CHECK_HAL
+LIBVIRT_CHECK_LIBSSH
 LIBVIRT_CHECK_NETCF
 LIBVIRT_CHECK_NUMACTL
 LIBVIRT_CHECK_OPENWSMAN
@@ -260,6 +263,7 @@ LIBVIRT_CHECK_UDEV
 LIBVIRT_CHECK_WIRESHARK
 LIBVIRT_CHECK_NSS
 LIBVIRT_CHECK_YAJL
+LIBVIRT_CHECK_GNUTLS
 
 AC_MSG_CHECKING([for CPUID instruction])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
@@ -431,29 +435,29 @@ dnl We will hard-code paths to these programs unless we cannot
 dnl detect them, in which case we'll search for the program
 dnl along the $PATH at runtime and fail if it's not there.
 AC_PATH_PROG([DMIDECODE], [dmidecode], [dmidecode],
-	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
+	[$LIBVIRT_SBIN_PATH])
 AC_PATH_PROG([DNSMASQ], [dnsmasq], [dnsmasq],
-	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
+	[$LIBVIRT_SBIN_PATH])
 AC_PATH_PROG([RADVD], [radvd], [radvd],
-	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
+	[$LIBVIRT_SBIN_PATH])
 AC_PATH_PROG([TC], [tc], [tc],
-    [/sbin:/usr/sbin:/usr/local/sbin:$PATH])
+	[$LIBVIRT_SBIN_PATH])
 AC_PATH_PROG([UDEVADM], [udevadm], [],
-	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
+	[$LIBVIRT_SBIN_PATH])
 AC_PATH_PROG([UDEVSETTLE], [udevsettle], [],
-	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
+	[$LIBVIRT_SBIN_PATH])
 AC_PATH_PROG([MODPROBE], [modprobe], [modprobe],
-	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
+	[$LIBVIRT_SBIN_PATH])
 AC_PATH_PROG([RMMOD], [rmmod], [rmmod],
-	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
+	[$LIBVIRT_SBIN_PATH])
 AC_PATH_PROG([MMCTL], [mm-ctl], [mm-ctl],
-	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
+	[$LIBVIRT_SBIN_PATH])
 AC_PATH_PROG([OVSVSCTL], [ovs-vsctl], [ovs-vsctl],
-	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
+	[$LIBVIRT_SBIN_PATH])
 AC_PATH_PROG([SCRUB], [scrub], [scrub],
-	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
+	[$LIBVIRT_SBIN_PATH])
 AC_PATH_PROG([ADDR2LINE], [addr2line], [addr2line],
-        [/sbin:/usr/bin:/usr/sbin:/usr/local/sbin:$PATH])
+	[$LIBVIRT_SBIN_PATH])
 
 AC_DEFINE_UNQUOTED([DMIDECODE],["$DMIDECODE"],
         [Location or name of the dmidecode program])
@@ -634,24 +638,16 @@ fi
 AM_CONDITIONAL([WITH_SYSCTL], test "$with_sysctl" = "yes")
 AC_MSG_RESULT($with_sysctl)
 
-dnl RHEL-5 has a peculiar version of Xen, which requires some special casing
-AC_ARG_WITH([rhel5-api],
-	[AS_HELP_STRING([--with-rhel5-api=@<:@ARG@:>@],
-		[build for the RHEL-5 API @<:@default=no@:>@])])
-if test x"$with_rhel5_api" = x"yes"; then
-   AC_DEFINE([WITH_RHEL5_API], [1], [whether building for the RHEL-5 API])
-fi
-
-AC_PATH_PROG([IP_PATH], [ip], /sbin/ip, [/usr/sbin:$PATH])
+AC_PATH_PROG([IP_PATH], [ip], /sbin/ip, [$LIBVIRT_SBIN_PATH])
 AC_DEFINE_UNQUOTED([IP_PATH], "$IP_PATH", [path to ip binary])
 
-AC_PATH_PROG([IPTABLES_PATH], [iptables], /sbin/iptables, [/usr/sbin:$PATH])
+AC_PATH_PROG([IPTABLES_PATH], [iptables], /sbin/iptables, [$LIBVIRT_SBIN_PATH])
 AC_DEFINE_UNQUOTED([IPTABLES_PATH], "$IPTABLES_PATH", [path to iptables binary])
 
-AC_PATH_PROG([IP6TABLES_PATH], [ip6tables], /sbin/ip6tables, [/usr/sbin:$PATH])
+AC_PATH_PROG([IP6TABLES_PATH], [ip6tables], /sbin/ip6tables, [$LIBVIRT_SBIN_PATH])
 AC_DEFINE_UNQUOTED([IP6TABLES_PATH], "$IP6TABLES_PATH", [path to ip6tables binary])
 
-AC_PATH_PROG([EBTABLES_PATH], [ebtables], /sbin/ebtables, [/usr/sbin:$PATH])
+AC_PATH_PROG([EBTABLES_PATH], [ebtables], /sbin/ebtables, [$LIBVIRT_SBIN_PATH])
 AC_DEFINE_UNQUOTED([EBTABLES_PATH], "$EBTABLES_PATH", [path to ebtables binary])
 
 
@@ -1170,107 +1166,6 @@ AC_CHECK_MEMBER([struct _xmlURI.query_raw],
 CFLAGS="$old_CFLAGS"
 LIBS="$old_LIBS"
 
-dnl GnuTLS library
-AC_ARG_WITH([gnutls],
-  [AS_HELP_STRING([--with-gnutls],
-    [use GNUTLS for encryption @<:@default=check@:>@])],
-  [],
-  [with_gnutls=check])
-
-
-if test "x$with_gnutls" != "xno"; then
-  if test "x$with_gnutls" != "xyes" && test "x$with_gnutls" != "xcheck"; then
-    GNUTLS_CFLAGS="-I$with_gnutls/include"
-    GNUTLS_LIBS="-L$with_gnutls/lib"
-  fi
-  fail=0
-  old_CFLAGS="$CFLAGS"
-  old_LIBS="$LIBS"
-  CFLAGS="$CFLAGS $GNUTLS_CFLAGS"
-  LIBS="$LIBS $GNUTLS_LIBS"
-
-  GNUTLS_FOUND=no
-  GNUTLS_GCRYPT=unknown
-  if test -x "$PKG_CONFIG" ; then
-    dnl Triple probe: gnutls < 2.12 only used gcrypt, gnutls >= 3.0 uses
-    dnl only nettle, and versions in between had a configure option.
-    dnl Our goal is to avoid gcrypt if we can prove gnutls uses nettle,
-    dnl but it is a safe fallback to use gcrypt if we can't prove anything.
-    if $PKG_CONFIG --exists 'gnutls >= 3.0'; then
-      GNUTLS_GCRYPT=no
-    elif $PKG_CONFIG --exists 'gnutls >= 2.12'; then
-      GNUTLS_GCRYPT=probe
-    else
-      GNUTLS_GCRYPT=yes
-    fi
-    PKG_CHECK_MODULES(GNUTLS, gnutls >= $GNUTLS_REQUIRED,
-      [GNUTLS_FOUND=yes], [GNUTLS_FOUND=no])
-  fi
-  if test "$GNUTLS_FOUND" = "no"; then
-    dnl pkg-config couldn't help us, assume gcrypt is necessary
-    fail=0
-    GNUTLS_GCRYPT=yes
-    AC_CHECK_HEADER([gnutls/gnutls.h], [], [fail=1])
-    AC_CHECK_LIB([gnutls], [gnutls_handshake],[], [fail=1], [-lgcrypt])
-
-    test $fail = 0 && GNUTLS_FOUND=yes
-
-    GNUTLS_LIBS="$GNUTLS_LIBS -lgnutls"
-  fi
-  if test "$GNUTLS_FOUND" = "no"; then
-    if test "$with_gnutls" = "check"; then
-      with_gnutls=no
-      GNUTLS_LIBS=
-      GNUTLS_CFLAGS=
-    else
-      AC_MSG_ERROR([You must install the GnuTLS library in order to compile and run libvirt])
-    fi
-  else
-    dnl See comments above about when to use gcrypt.
-    if test "$GNUTLS_GCRYPT" = probe; then
-      case `$PKG_CONFIG --libs --static gnutls` in
-        *gcrypt*) GNUTLS_GCRYPT=yes     ;;
-        *nettle*) GNUTLS_GCRYPT=no      ;;
-        *)        GNUTLS_GCRYPT=unknown ;;
-      esac
-    fi
-    if test "$GNUTLS_GCRYPT" = yes || test "$GNUTLS_GCRYPT" = unknown; then
-      GNUTLS_LIBS="$GNUTLS_LIBS -lgcrypt"
-      dnl We're not using gcrypt deprecated features so define
-      dnl GCRYPT_NO_DEPRECATED to avoid deprecated warnings
-      GNUTLS_CFLAGS="$GNUTLS_CFLAGS -DGCRYPT_NO_DEPRECATED"
-      AC_DEFINE_UNQUOTED([WITH_GNUTLS_GCRYPT], 1,
-        [set to 1 if it is known or assumed that GNUTLS uses gcrypt])
-    fi
-
-    with_gnutls=yes
-  fi
-
-  dnl GNUTLS_CFLAGS and GNUTLS_LIBS have probably been updated above,
-  dnl and we need the final values for function probing to work
-  CFLAGS="$old_CFLAGS $GNUTLS_CFLAGS"
-  LIBS="$old_LIBS $GNUTLS_LIBS"
-
-  dnl gnutls 3.x moved some declarations to a new header
-  AC_CHECK_HEADERS([gnutls/crypto.h], [], [], [[
-    #include <gnutls/gnutls.h>
-  ]])
-
-  AC_CHECK_FUNCS([gnutls_rnd])
-  AC_CHECK_FUNCS([gnutls_cipher_encrypt])
-
-  CFLAGS="$old_CFLAGS"
-  LIBS="$old_LIBS"
-fi
-
-if test "x$with_gnutls" = "xyes" ; then
-  AC_DEFINE_UNQUOTED([WITH_GNUTLS], 1,
-      [whether GNUTLS is available for encryption])
-fi
-AM_CONDITIONAL([WITH_GNUTLS], [test "x$with_gnutls" = "xyes"])
-AC_SUBST([GNUTLS_CFLAGS])
-AC_SUBST([GNUTLS_LIBS])
-
 
 AC_ARG_WITH([tls-priority],
   [AS_HELP_STRING([--with-tls-priority],
@@ -1299,7 +1194,7 @@ if test "x$with_polkit" = "xyes" || test "x$with_polkit" = "xcheck"; then
   dnl but we use existence of pkcheck binary as a sign that
   dnl we should prefer polkit-1 over polkit-0, so we check
   dnl for it even though we don't ultimately use it
-  AC_PATH_PROG([PKCHECK_PATH],[pkcheck], [], [/usr/sbin:$PATH])
+  AC_PATH_PROG([PKCHECK_PATH],[pkcheck], [], [$LIBVIRT_SBIN_PATH])
   if test "x$PKCHECK_PATH" != "x" ; then
     dnl Found pkcheck, so ensure dbus-devel is present
     if test "x$with_dbus" = "xyes" ; then
@@ -1474,7 +1369,7 @@ AC_ARG_WITH([dtrace],
   [with_dtrace=check])
 
 if test "$with_dtrace" != "no" ; then
-  AC_PATH_PROG([DTRACE], [dtrace], [], [/bin:/usr/bin])
+  AC_PATH_PROG([DTRACE], [dtrace], [], [$LIBVIRT_SBIN_PATH])
   if test -z "$DTRACE" ; then
     if test "$with_dtrace" = "check"; then
       with_dtrace=no
@@ -1501,7 +1396,7 @@ AC_ARG_WITH([numad],
 if test "$with_numad" != "no" ; then
   fail=0
 
-  AC_PATH_PROG([NUMAD], [numad], [], [/bin:/usr/bin:/usr/sbin])
+  AC_PATH_PROG([NUMAD], [numad], [], [$LIBVIRT_SBIN_PATH])
 
   if test "$with_numad" = "check"; then
     test "$with_numactl" = "yes" || fail=1
@@ -1730,9 +1625,9 @@ if test "$with_storage_fs" = "yes" || test "$with_storage_fs" = "check"; then
 fi
 
 if test "$with_storage_fs" = "yes" || test "$with_storage_fs" = "check"; then
-  AC_PATH_PROG([MOUNT], [mount], [], [$PATH:/sbin:/usr/sbin])
-  AC_PATH_PROG([UMOUNT], [umount], [], [$PATH:/sbin:/usr/sbin])
-  AC_PATH_PROG([MKFS], [mkfs], [], [$PATH:/sbin:/usr/sbin])
+  AC_PATH_PROG([MOUNT], [mount], [], [$LIBVIRT_SBIN_PATH])
+  AC_PATH_PROG([UMOUNT], [umount], [], [$LIBVIRT_SBIN_PATH])
+  AC_PATH_PROG([MKFS], [mkfs], [], [$LIBVIRT_SBIN_PATH])
   if test "$with_storage_fs" = "yes" ; then
     if test -z "$MOUNT" ; then AC_MSG_ERROR([We need mount for FS storage driver]) ; fi
     if test -z "$UMOUNT" ; then AC_MSG_ERROR([We need umount for FS storage driver]) ; fi
@@ -1757,24 +1652,24 @@ if test "$with_storage_fs" = "yes" || test "$with_storage_fs" = "check"; then
 fi
 AM_CONDITIONAL([WITH_STORAGE_FS], [test "$with_storage_fs" = "yes"])
 if test "$with_storage_fs" = "yes"; then
-  AC_PATH_PROG([SHOWMOUNT], [showmount], [], [$PATH:/sbin:/usr/sbin])
+  AC_PATH_PROG([SHOWMOUNT], [showmount], [], [$LIBVIRT_SBIN_PATH])
   AC_DEFINE_UNQUOTED([SHOWMOUNT], ["$SHOWMOUNT"],
     [Location or name of the showmount program])
 fi
 
 if test "$with_storage_lvm" = "yes" || test "$with_storage_lvm" = "check"; then
-  AC_PATH_PROG([PVCREATE], [pvcreate], [], [$PATH:/sbin:/usr/sbin])
-  AC_PATH_PROG([VGCREATE], [vgcreate], [], [$PATH:/sbin:/usr/sbin])
-  AC_PATH_PROG([LVCREATE], [lvcreate], [], [$PATH:/sbin:/usr/sbin])
-  AC_PATH_PROG([PVREMOVE], [pvremove], [], [$PATH:/sbin:/usr/sbin])
-  AC_PATH_PROG([VGREMOVE], [vgremove], [], [$PATH:/sbin:/usr/sbin])
-  AC_PATH_PROG([LVREMOVE], [lvremove], [], [$PATH:/sbin:/usr/sbin])
-  AC_PATH_PROG([LVCHANGE], [lvchange], [], [$PATH:/sbin:/usr/sbin])
-  AC_PATH_PROG([VGCHANGE], [vgchange], [], [$PATH:/sbin:/usr/sbin])
-  AC_PATH_PROG([VGSCAN], [vgscan], [], [$PATH:/sbin:/usr/sbin])
-  AC_PATH_PROG([PVS], [pvs], [], [$PATH:/sbin:/usr/sbin])
-  AC_PATH_PROG([VGS], [vgs], [], [$PATH:/sbin:/usr/sbin])
-  AC_PATH_PROG([LVS], [lvs], [], [$PATH:/sbin:/usr/sbin])
+  AC_PATH_PROG([PVCREATE], [pvcreate], [], [$LIBVIRT_SBIN_PATH])
+  AC_PATH_PROG([VGCREATE], [vgcreate], [], [$LIBVIRT_SBIN_PATH])
+  AC_PATH_PROG([LVCREATE], [lvcreate], [], [$LIBVIRT_SBIN_PATH])
+  AC_PATH_PROG([PVREMOVE], [pvremove], [], [$LIBVIRT_SBIN_PATH])
+  AC_PATH_PROG([VGREMOVE], [vgremove], [], [$LIBVIRT_SBIN_PATH])
+  AC_PATH_PROG([LVREMOVE], [lvremove], [], [$LIBVIRT_SBIN_PATH])
+  AC_PATH_PROG([LVCHANGE], [lvchange], [], [$LIBVIRT_SBIN_PATH])
+  AC_PATH_PROG([VGCHANGE], [vgchange], [], [$LIBVIRT_SBIN_PATH])
+  AC_PATH_PROG([VGSCAN], [vgscan], [], [$LIBVIRT_SBIN_PATH])
+  AC_PATH_PROG([PVS], [pvs], [], [$LIBVIRT_SBIN_PATH])
+  AC_PATH_PROG([VGS], [vgs], [], [$LIBVIRT_SBIN_PATH])
+  AC_PATH_PROG([LVS], [lvs], [], [$LIBVIRT_SBIN_PATH])
 
   if test "$with_storage_lvm" = "yes" ; then
     if test -z "$PVCREATE" ; then AC_MSG_ERROR([We need pvcreate for LVM storage driver]) ; fi
@@ -1827,7 +1722,7 @@ AM_CONDITIONAL([WITH_STORAGE_LVM], [test "$with_storage_lvm" = "yes"])
 
 
 if test "$with_storage_iscsi" = "yes" || test "$with_storage_iscsi" = "check"; then
-  AC_PATH_PROG([ISCSIADM], [iscsiadm], [], [$PATH:/sbin:/usr/sbin])
+  AC_PATH_PROG([ISCSIADM], [iscsiadm], [], [$LIBVIRT_SBIN_PATH])
   if test "$with_storage_iscsi" = "yes" ; then
     if test -z "$ISCSIADM" ; then AC_MSG_ERROR([We need iscsiadm for iSCSI storage driver]) ; fi
   else
@@ -1888,7 +1783,7 @@ AC_SUBST([LIBRBD_LIBS])
 
 if test "$with_storage_sheepdog" = "yes" ||
    test "$with_storage_sheepdog" = "check"; then
-  AC_PATH_PROGS([SHEEPDOGCLI], [collie dog], [], [$PATH:/sbin:/usr/sbin])
+  AC_PATH_PROGS([SHEEPDOGCLI], [collie dog], [], [$LIBVIRT_SBIN_PATH])
 
   if test "$with_storage_sheepdog" = "yes"; then
     if test -z "$SHEEPDOGCLI"; then
@@ -1927,8 +1822,8 @@ AM_CONDITIONAL([WITH_STORAGE_GLUSTER], [test "$with_storage_gluster" = "yes"])
 
 if test "$with_storage_zfs" = "yes" ||
    test "$with_storage_zfs" = "check"; then
-  AC_PATH_PROG([ZFS], [zfs], [], [$PATH:/sbin:/usr/sbin])
-  AC_PATH_PROG([ZPOOL], [zpool], [], [$PATH:/sbin:/usr/sbin])
+  AC_PATH_PROG([ZFS], [zfs], [], [$LIBVIRT_SBIN_PATH])
+  AC_PATH_PROG([ZPOOL], [zpool], [], [$LIBVIRT_SBIN_PATH])
 
   if test "$with_storage_zfs" = "yes"; then
     if test -z "$ZFS" || test -z "$ZPOOL"; then
@@ -1956,7 +1851,7 @@ AM_CONDITIONAL([WITH_STORAGE_ZFS],
 
 if test "$with_storage_fs" = "yes" ||
    test "$with_storage_gluster" = "yes"; then
-  AC_PATH_PROG([GLUSTER_CLI], [gluster], [], [$PATH:/sbin:/usr/sbin])
+  AC_PATH_PROG([GLUSTER_CLI], [gluster], [], [$LIBVIRT_SBIN_PATH])
   if test "x$GLUSTER_CLI" != "x"; then
       AC_DEFINE_UNQUOTED([GLUSTER_CLI], ["$GLUSTER_CLI"],
         [Location or name of the gluster command line tool])
@@ -1967,7 +1862,7 @@ LIBPARTED_CFLAGS=
 LIBPARTED_LIBS=
 if test "$with_storage_disk" = "yes" ||
    test "$with_storage_disk" = "check"; then
-  AC_PATH_PROG([PARTED], [parted], [], [$PATH:/sbin:/usr/sbin])
+  AC_PATH_PROG([PARTED], [parted], [], [$LIBVIRT_SBIN_PATH])
   if test -z "$PARTED" ; then
     PARTED_FOUND=no
   else
@@ -1977,18 +1872,6 @@ if test "$with_storage_disk" = "yes" ||
   if test "$PARTED_FOUND" = "yes" && test "x$PKG_CONFIG" != "x" ; then
     PKG_CHECK_MODULES([LIBPARTED], [libparted >= $PARTED_REQUIRED], [],
       [PARTED_FOUND=no])
-  fi
-  if test "$PARTED_FOUND" = "no"; then
-    # RHEL-5 vintage parted is missing pkg-config files
-    save_LIBS="$LIBS"
-    save_CFLAGS="$CFLAGS"
-    PARTED_FOUND=yes
-    AC_CHECK_HEADER([parted/parted.h],,[PARTED_FOUND=no])
-    AC_CHECK_LIB([uuid], [uuid_generate],,[PARTED_FOUND=no])
-    AC_CHECK_LIB([parted], [ped_device_read],,[PARTED_FOUND=no])
-    LIBPARTED_LIBS="-luuid -lparted"
-    LIBS="$save_LIBS"
-    CFLAGS="$save_CFLAGS"
   fi
 
   if test "$with_storage_disk" = "yes" &&
@@ -2641,6 +2524,15 @@ AC_CHECK_MEMBERS([struct if_data.ifi_oqdrops],
 		 [#include <net/if.h>
 		 ])
 
+AC_CHECK_DECLS([clock_serv_t, host_get_clock_service, clock_get_time],
+               [AC_DEFINE([HAVE_MACH_CLOCK_ROUTINES],
+                          [1],
+                          [whether Mach clock routines are available])],
+               [],
+               [#include <mach/clock.h>
+                #include <mach/mach.h>
+               ])
+
 # Check if we need to look for ifconfig
 if test "$want_ifconfig" = "yes"; then
      AC_PATH_PROG([IFCONFIG_PATH], [ifconfig])
@@ -2786,6 +2678,7 @@ LIBVIRT_RESULT_DBUS
 LIBVIRT_RESULT_FUSE
 LIBVIRT_RESULT_GLUSTER
 LIBVIRT_RESULT_HAL
+LIBVIRT_RESULT_LIBSSH
 LIBVIRT_RESULT_NETCF
 LIBVIRT_RESULT_NUMACTL
 LIBVIRT_RESULT_OPENWSMAN
@@ -2799,17 +2692,13 @@ LIBVIRT_RESULT_UDEV
 LIBVIRT_RESULT_WIRESHARK
 LIBVIRT_RESULT_NSS
 LIBVIRT_RESULT_YAJL
+LIBVIRT_RESULT_GNUTLS
 AC_MSG_NOTICE([  libxml: $LIBXML_CFLAGS $LIBXML_LIBS])
 AC_MSG_NOTICE([  dlopen: $DLOPEN_LIBS])
 if test "$with_hyperv" = "yes" ; then
 AC_MSG_NOTICE([openwsman: $OPENWSMAN_CFLAGS $OPENWSMAN_LIBS])
 else
 AC_MSG_NOTICE([openwsman: no])
-fi
-if test "$with_gnutls" != "no" ; then
-AC_MSG_NOTICE([  gnutls: $GNUTLS_CFLAGS $GNUTLS_LIBS])
-else
-AC_MSG_NOTICE([  gnutls: no])
 fi
 AC_MSG_NOTICE([firewalld: $with_firewalld])
 if test "$with_polkit" = "yes" ; then

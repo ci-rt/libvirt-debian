@@ -61,6 +61,11 @@ testQemuCaps(const void *opaque)
                                   qemuMonitorTestGetMonitor(mon)) < 0)
         goto cleanup;
 
+    if (virQEMUCapsGet(capsActual, QEMU_CAPS_KVM) &&
+        virQEMUCapsInitQMPMonitorTCG(capsActual,
+                                     qemuMonitorTestGetMonitor(mon)) < 0)
+        goto cleanup;
+
     if (!(actual = virQEMUCapsFormatCache(capsActual, 0, 0)))
         goto cleanup;
 
@@ -163,6 +168,7 @@ mymain(void)
     DO_TEST("x86_64", "caps_2.5.0");
     DO_TEST("x86_64", "caps_2.6.0");
     DO_TEST("x86_64", "caps_2.7.0");
+    DO_TEST("x86_64", "caps_2.8.0");
     DO_TEST("aarch64", "caps_2.6.0-gicv2");
     DO_TEST("aarch64", "caps_2.6.0-gicv3");
     DO_TEST("ppc64le", "caps_2.6.0");

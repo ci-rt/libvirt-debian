@@ -474,6 +474,8 @@ virDomainShmemDefFind;
 virDomainShmemDefFree;
 virDomainShmemDefInsert;
 virDomainShmemDefRemove;
+virDomainShmemModelTypeFromString;
+virDomainShmemModelTypeToString;
 virDomainShutdownReasonTypeFromString;
 virDomainShutdownReasonTypeToString;
 virDomainShutoffReasonTypeFromString;
@@ -973,18 +975,18 @@ virSecretObjSetValueSize;
 # cpu/cpu.h
 cpuBaseline;
 cpuBaselineXML;
-cpuDataFormat;
 cpuDataFree;
-cpuDataParse;
 cpuDecode;
 cpuEncode;
-cpuGetModels;
-cpuGuestData;
 cpuNodeData;
 virCPUCheckFeature;
 virCPUCompare;
 virCPUCompareXML;
+virCPUConvertLegacy;
 virCPUDataCheckFeature;
+virCPUDataFormat;
+virCPUDataParse;
+virCPUGetModels;
 virCPUTranslate;
 virCPUUpdate;
 
@@ -1576,6 +1578,7 @@ virFileIsLink;
 virFileIsMountPoint;
 virFileIsSharedFS;
 virFileIsSharedFSType;
+virFileLength;
 virFileLinkPointsTo;
 virFileLock;
 virFileLoopDeviceAssociate;
@@ -1675,6 +1678,7 @@ virHookPresent;
 
 # util/virhostdev.h
 virHostdevFindUSBDevice;
+virHostdevIsSCSIDevice;
 virHostdevManagerGetDefault;
 virHostdevPCINodeDeviceDetach;
 virHostdevPCINodeDeviceReAttach;
@@ -1682,10 +1686,12 @@ virHostdevPCINodeDeviceReset;
 virHostdevPrepareDomainDevices;
 virHostdevPreparePCIDevices;
 virHostdevPrepareSCSIDevices;
+virHostdevPrepareSCSIVHostDevices;
 virHostdevPrepareUSBDevices;
 virHostdevReAttachDomainDevices;
 virHostdevReAttachPCIDevices;
 virHostdevReAttachSCSIDevices;
+virHostdevReAttachSCSIVHostDevices;
 virHostdevReAttachUSBDevices;
 virHostdevUpdateActiveDomainDevices;
 virHostdevUpdateActivePCIDevices;
@@ -1764,6 +1770,7 @@ virISCSIScanTargets;
 
 # util/virjson.h
 virJSONValueArrayAppend;
+virJSONValueArrayForeachSteal;
 virJSONValueArrayGet;
 virJSONValueArraySize;
 virJSONValueArraySteal;
@@ -2131,6 +2138,7 @@ virPCIDeviceCopy;
 virPCIDeviceDetach;
 virPCIDeviceFileIterate;
 virPCIDeviceFree;
+virPCIDeviceGetConfigPath;
 virPCIDeviceGetDriverPathAndName;
 virPCIDeviceGetIOMMUGroupDev;
 virPCIDeviceGetIOMMUGroupList;
@@ -2302,6 +2310,22 @@ virSCSIDeviceNew;
 virSCSIDeviceSetUsedBy;
 
 
+# util/virscsivhost.h
+virSCSIVHostDeviceFileIterate;
+virSCSIVHostDeviceFree;
+virSCSIVHostDeviceGetName;
+virSCSIVHostDeviceListAdd;
+virSCSIVHostDeviceListCount;
+virSCSIVHostDeviceListDel;
+virSCSIVHostDeviceListFind;
+virSCSIVHostDeviceListGet;
+virSCSIVHostDeviceListNew;
+virSCSIVHostDeviceListSteal;
+virSCSIVHostDeviceNew;
+virSCSIVHostDeviceSetUsedBy;
+virSCSIVHostOpenVhostSCSI;
+
+
 # util/virseclabel.h
 virSecurityDeviceLabelDefFree;
 virSecurityDeviceLabelDefNew;
@@ -2431,16 +2455,16 @@ virSkipSpacesAndBackslash;
 virSkipSpacesBackwards;
 virStrcpy;
 virStrdup;
-virStringArrayHasString;
 virStringBufferIsPrintable;
 virStringEncodeBase64;
-virStringFreeList;
-virStringFreeListCount;
-virStringGetFirstWithPrefix;
 virStringHasControlChars;
 virStringIsEmpty;
 virStringIsPrintable;
-virStringJoin;
+virStringListFree;
+virStringListFreeCount;
+virStringListGetFirstWithPrefix;
+virStringListHasString;
+virStringListJoin;
 virStringListLength;
 virStringReplace;
 virStringSearch;

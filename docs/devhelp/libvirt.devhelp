@@ -773,6 +773,7 @@
     <function name="VIR_ERR_INVALID_STORAGE_POOL" link="libvirt-virterror.html#VIR_ERR_INVALID_STORAGE_POOL"/>
     <function name="VIR_ERR_INVALID_STORAGE_VOL" link="libvirt-virterror.html#VIR_ERR_INVALID_STORAGE_VOL"/>
     <function name="VIR_ERR_INVALID_STREAM" link="libvirt-virterror.html#VIR_ERR_INVALID_STREAM"/>
+    <function name="VIR_ERR_LIBSSH" link="libvirt-virterror.html#VIR_ERR_LIBSSH"/>
     <function name="VIR_ERR_MIGRATE_FINISH_OK" link="libvirt-virterror.html#VIR_ERR_MIGRATE_FINISH_OK"/>
     <function name="VIR_ERR_MIGRATE_PERSIST_FAILED" link="libvirt-virterror.html#VIR_ERR_MIGRATE_PERSIST_FAILED"/>
     <function name="VIR_ERR_MIGRATE_UNSAFE" link="libvirt-virterror.html#VIR_ERR_MIGRATE_UNSAFE"/>
@@ -860,6 +861,7 @@
     <function name="VIR_FROM_IDENTITY" link="libvirt-virterror.html#VIR_FROM_IDENTITY"/>
     <function name="VIR_FROM_INITCTL" link="libvirt-virterror.html#VIR_FROM_INITCTL"/>
     <function name="VIR_FROM_INTERFACE" link="libvirt-virterror.html#VIR_FROM_INTERFACE"/>
+    <function name="VIR_FROM_LIBSSH" link="libvirt-virterror.html#VIR_FROM_LIBSSH"/>
     <function name="VIR_FROM_LIBXL" link="libvirt-virterror.html#VIR_FROM_LIBXL"/>
     <function name="VIR_FROM_LOCKING" link="libvirt-virterror.html#VIR_FROM_LOCKING"/>
     <function name="VIR_FROM_LOCKSPACE" link="libvirt-virterror.html#VIR_FROM_LOCKSPACE"/>

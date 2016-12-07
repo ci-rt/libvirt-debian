@@ -178,7 +178,6 @@ struct _qemuDomainObjPrivate {
 
     qemuAgentPtr agent;
     bool agentError;
-    unsigned long long agentStart;
 
     bool gotShutdown;
     bool beingDestroyed;
@@ -232,6 +231,9 @@ struct _qemuDomainObjPrivate {
     /* private XML) - need to restore at process reconnect */
     uint8_t *masterKey;
     size_t masterKeyLen;
+
+    /* note whether memory device alias does not correspond to slot number */
+    bool memAliasOrderMismatch;
 };
 
 # define QEMU_DOMAIN_PRIVATE(vm)	\
@@ -319,6 +321,7 @@ struct _qemuDomainVcpuPrivate {
 
     pid_t tid; /* vcpu thread id */
     int enable_id; /* order in which the vcpus were enabled in qemu */
+    int qemu_id; /* ID reported by qemu as 'CPU' in query-cpus */
     char *alias;
     bool halted;
 
@@ -446,11 +449,10 @@ int qemuDomainObjEnterMonitorAsync(virQEMUDriverPtr driver,
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
 
 
-qemuAgentPtr qemuDomainGetAgent(virDomainObjPtr vm);
-void qemuDomainObjEnterAgent(virDomainObjPtr obj)
+qemuAgentPtr qemuDomainObjEnterAgent(virDomainObjPtr obj)
     ATTRIBUTE_NONNULL(1);
-void qemuDomainObjExitAgent(virDomainObjPtr obj)
-    ATTRIBUTE_NONNULL(1);
+void qemuDomainObjExitAgent(virDomainObjPtr obj, qemuAgentPtr agent)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 
 void qemuDomainObjEnterRemote(virDomainObjPtr obj)
@@ -655,6 +657,8 @@ virDomainChrDefPtr qemuFindAgentConfig(virDomainDefPtr def);
 
 bool qemuDomainMachineIsQ35(const virDomainDef *def);
 bool qemuDomainMachineIsI440FX(const virDomainDef *def);
+bool qemuDomainMachineHasPCIRoot(const virDomainDef *def);
+bool qemuDomainMachineHasPCIeRoot(const virDomainDef *def);
 bool qemuDomainMachineNeedsFDC(const virDomainDef *def);
 bool qemuDomainMachineIsS390CCW(const virDomainDef *def);
 bool qemuDomainMachineIsVirt(const virDomainDef *def);

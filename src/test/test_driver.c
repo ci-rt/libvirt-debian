@@ -1731,9 +1731,14 @@ static int testDomainDestroy(virDomainPtr domain)
     virObjectEventPtr event = NULL;
     int ret = -1;
 
-
     if (!(privdom = testDomObjFromDomain(domain)))
         goto cleanup;
+
+    if (!virDomainObjIsActive(privdom)) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("domain is not running"));
+        goto cleanup;
+    }
 
     testDomainShutdownState(domain, privdom, VIR_DOMAIN_SHUTOFF_DESTROYED);
     event = virDomainEventLifecycleNewFromObj(privdom,
@@ -1862,6 +1867,12 @@ static int testDomainReboot(virDomainPtr domain,
     if (!(privdom = testDomObjFromDomain(domain)))
         goto cleanup;
 
+    if (!virDomainObjIsActive(privdom)) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("domain is not running"));
+        goto cleanup;
+    }
+
     virDomainObjSetState(privdom, VIR_DOMAIN_SHUTDOWN,
                          VIR_DOMAIN_SHUTDOWN_USER);
 
@@ -1982,6 +1993,12 @@ testDomainSaveFlags(virDomainPtr domain, const char *path,
     if (!(privdom = testDomObjFromDomain(domain)))
         goto cleanup;
 
+    if (!virDomainObjIsActive(privdom)) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("domain is not running"));
+        goto cleanup;
+    }
+
     xml = virDomainDefFormat(privdom->def, privconn->caps,
                              VIR_DOMAIN_DEF_FORMAT_SECURE);
 
@@ -2040,7 +2057,7 @@ testDomainSaveFlags(virDomainPtr domain, const char *path,
 
     /* Don't report failure in close or unlink, because
      * in either case we're already in a failure scenario
-     * and have reported a earlier error */
+     * and have reported an earlier error */
     if (ret != 0) {
         VIR_FORCE_CLOSE(fd);
         unlink(path);
@@ -2179,6 +2196,12 @@ static int testDomainCoreDumpWithFormat(virDomainPtr domain,
 
     if (!(privdom = testDomObjFromDomain(domain)))
         goto cleanup;
+
+    if (!virDomainObjIsActive(privdom)) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("domain is not running"));
+        goto cleanup;
+    }
 
     if ((fd = open(to, O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR)) < 0) {
         virReportSystemError(errno,
@@ -2616,6 +2639,9 @@ static virDomainPtr testDomainDefineXMLFlags(virConnectPtr conn,
 
     if ((def = virDomainDefParseString(xml, privconn->caps, privconn->xmlopt,
                                        NULL, parse_flags)) == NULL)
+        goto cleanup;
+
+    if (virXMLCheckIllegalChars("name", def->name, "\n") < 0)
         goto cleanup;
 
     if (testDomainGenerateIfnames(def) < 0)
@@ -3059,6 +3085,12 @@ static int testDomainBlockStats(virDomainPtr domain,
     if (!(privdom = testDomObjFromDomain(domain)))
         return ret;
 
+    if (!virDomainObjIsActive(privdom)) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("domain is not running"));
+        goto error;
+    }
+
     if (virDomainDiskIndexByName(privdom->def, path, false) < 0) {
         virReportError(VIR_ERR_INVALID_ARG,
                        _("invalid path: %s"), path);
@@ -3097,6 +3129,12 @@ static int testDomainInterfaceStats(virDomainPtr domain,
 
     if (!(privdom = testDomObjFromDomain(domain)))
         return -1;
+
+    if (!virDomainObjIsActive(privdom)) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("domain is not running"));
+        goto error;
+    }
 
     for (i = 0; i < privdom->def->nnets; i++) {
         if (privdom->def->nets[i]->ifname &&
@@ -5908,7 +5946,7 @@ testConnectGetCPUModelNames(virConnectPtr conn ATTRIBUTE_UNUSED,
         return -1;
     }
 
-    return cpuGetModels(arch, models);
+    return virCPUGetModels(arch, models);
 }
 
 static int

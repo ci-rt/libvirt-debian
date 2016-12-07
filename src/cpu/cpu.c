@@ -373,47 +373,6 @@ cpuNodeData(virArch arch)
 
 
 /**
- * cpuGuestData:
- *
- * @host: host CPU definition
- * @guest: guest CPU definition
- * @data: computed guest CPU data
- * @msg: error message describing why the @guest and @host CPUs are considered
- *       incompatible
- *
- * Computes guest CPU data for the @guest CPU definition when run on the @host
- * CPU.
- *
- * Returns VIR_CPU_COMPARE_ERROR on error, VIR_CPU_COMPARE_INCOMPATIBLE when
- * the two CPUs are incompatible (@msg will describe the incompatibility),
- * VIR_CPU_COMPARE_IDENTICAL when the two CPUs are identical,
- * VIR_CPU_COMPARE_SUPERSET when the @guest CPU is a superset of the @host CPU.
- */
-virCPUCompareResult
-cpuGuestData(virCPUDefPtr host,
-             virCPUDefPtr guest,
-             virCPUDataPtr *data,
-             char **msg)
-{
-    struct cpuArchDriver *driver;
-
-    VIR_DEBUG("host=%p, guest=%p, data=%p, msg=%p", host, guest, data, msg);
-
-    if ((driver = cpuGetSubDriver(host->arch)) == NULL)
-        return VIR_CPU_COMPARE_ERROR;
-
-    if (driver->guestData == NULL) {
-        virReportError(VIR_ERR_NO_SUPPORT,
-                       _("cannot compute guest CPU data for %s architecture"),
-                       virArchToString(host->arch));
-        return VIR_CPU_COMPARE_ERROR;
-    }
-
-    return driver->guestData(host, guest, data, msg);
-}
-
-
-/**
  * cpuBaselineXML:
  *
  * @xmlCPUs: list of host CPU XML descriptions
@@ -734,7 +693,7 @@ virCPUDataCheckFeature(const virCPUData *data,
 
 
 /**
- * cpuDataFormat:
+ * virCPUDataFormat:
  *
  * @data: internal CPU representation
  *
@@ -743,7 +702,7 @@ virCPUDataCheckFeature(const virCPUData *data,
  * Returns string representation of the XML describing @data or NULL on error.
  */
 char *
-cpuDataFormat(const virCPUData *data)
+virCPUDataFormat(const virCPUData *data)
 {
     struct cpuArchDriver *driver;
 
@@ -764,16 +723,16 @@ cpuDataFormat(const virCPUData *data)
 
 
 /**
- * cpuDataParse:
+ * virCPUDataParse:
  *
- * @xmlStr: XML string produced by cpuDataFormat
+ * @xmlStr: XML string produced by virCPUDataFormat
  *
  * Parses XML representation of virCPUData structure for test purposes.
  *
  * Returns internal CPU data structure parsed from the XML or NULL on error.
  */
 virCPUDataPtr
-cpuDataParse(const char *xmlStr)
+virCPUDataParse(const char *xmlStr)
 {
     struct cpuArchDriver *driver;
     xmlDocPtr xml = NULL;
@@ -813,10 +772,22 @@ cpuDataParse(const char *xmlStr)
     return data;
 }
 
+
+/** virCPUModelIsAllowed:
+ *
+ * @model: CPU model to be checked
+ * @models: list of supported CPU models
+ * @nmodels: number of models in @models
+ *
+ * Checks whether @model can be found in the list of supported @models.
+ * If @models is empty, all models are supported.
+ *
+ * Returns true if @model is supported, false otherwise.
+ */
 bool
-cpuModelIsAllowed(const char *model,
-                  const char **models,
-                  unsigned int nmodels)
+virCPUModelIsAllowed(const char *model,
+                     const char **models,
+                     unsigned int nmodels)
 {
     size_t i;
 
@@ -830,8 +801,9 @@ cpuModelIsAllowed(const char *model,
     return false;
 }
 
+
 /**
- * cpuGetModels:
+ * virCPUGetModels:
  *
  * @arch: CPU architecture
  * @models: where to store the NULL-terminated list of supported models
@@ -845,7 +817,7 @@ cpuModelIsAllowed(const char *model,
  * or -1 on error.
  */
 int
-cpuGetModels(virArch arch, char ***models)
+virCPUGetModels(virArch arch, char ***models)
 {
     struct cpuArchDriver *driver;
 
@@ -883,7 +855,7 @@ cpuGetModels(virArch arch, char ***models)
 int
 virCPUTranslate(virArch arch,
                 virCPUDefPtr cpu,
-                char **models,
+                const char **models,
                 unsigned int nmodels)
 {
     struct cpuArchDriver *driver;
@@ -898,7 +870,7 @@ virCPUTranslate(virArch arch,
         cpu->mode == VIR_CPU_MODE_HOST_PASSTHROUGH)
         return 0;
 
-    if (cpuModelIsAllowed(cpu->model, (const char **) models, nmodels))
+    if (virCPUModelIsAllowed(cpu->model, models, nmodels))
         return 0;
 
     if (cpu->fallback != VIR_CPU_FALLBACK_ALLOW) {
@@ -915,7 +887,42 @@ virCPUTranslate(virArch arch,
         return -1;
     }
 
-    if (driver->translate(cpu, (const char **) models, nmodels) < 0)
+    if (driver->translate(cpu, models, nmodels) < 0)
+        return -1;
+
+    VIR_DEBUG("model=%s", NULLSTR(cpu->model));
+    return 0;
+}
+
+
+/**
+ * virCPUConvertLegacy:
+ *
+ * @arch: CPU architecture
+ * @cpu: CPU definition to be converted
+ *
+ * Convert legacy CPU definition into one that the corresponding cpu driver
+ * will be able to work with. Currently this is only implemented by the PPC
+ * driver, which needs to convert legacy POWERx_v* names into POWERx.
+ *
+ * Returns -1 on error, 0 on success.
+ */
+int
+virCPUConvertLegacy(virArch arch,
+                    virCPUDefPtr cpu)
+{
+    struct cpuArchDriver *driver;
+
+    VIR_DEBUG("arch=%s, cpu=%p, model=%s",
+              virArchToString(arch), cpu, NULLSTR(cpu->model));
+
+    if (!(driver = cpuGetSubDriver(arch)))
+        return -1;
+
+    if (!driver->convertLegacy)
+        return 0;
+
+    if (driver->convertLegacy(cpu) < 0)
         return -1;
 
     VIR_DEBUG("model=%s", NULLSTR(cpu->model));
