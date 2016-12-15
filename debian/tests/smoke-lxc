@@ -25,7 +25,7 @@ check_domain()
 
 trap cleanup EXIT
 
-virt-host-validate lxc
+virt-host-validate lxc || exit 0
 virsh capabilities
 virsh capabilities | grep -qs 'emulator>/usr/lib/libvirt/libvirt_lxc'
 virsh capabilities | grep -qs 'os_type>exe'
