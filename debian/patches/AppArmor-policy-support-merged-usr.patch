@@ -1,0 +1,65 @@
+From: intrigeri <intrigeri@debian.org>
+Date: Sat, 3 Dec 2016 18:32:48 +0000
+Origin: upstream, https://libvirt.org/git/?p=libvirt.git;a=commit;h=de79efdeb8558bbdb3677dbcaaebf7c50cb3bab4
+Subject: AppArmor policy: support merged-/usr.
+
+Acked-by: Christian Ehrhardt <christian.ehrhardt@canonical.co>
+---
+ examples/apparmor/libvirt-qemu                   | 8 ++++----
+ examples/apparmor/usr.lib.libvirt.virt-aa-helper | 2 +-
+ examples/apparmor/usr.sbin.libvirtd              | 4 ++--
+ 3 files changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/examples/apparmor/libvirt-qemu b/examples/apparmor/libvirt-qemu
+index b8e4e1cb37..5256816562 100644
+--- a/examples/apparmor/libvirt-qemu
++++ b/examples/apparmor/libvirt-qemu
+@@ -137,12 +137,12 @@
+   /usr/{lib,lib64}/qemu/block-rbd.so mr,
+ 
+   # for save and resume
+-  /bin/dash rmix,
+-  /bin/dd rmix,
+-  /bin/cat rmix,
++  /{usr/,}bin/dash rmix,
++  /{usr/,}bin/dd rmix,
++  /{usr/,}bin/cat rmix,
+ 
+   # for restore
+-  /bin/bash rmix,
++  /{usr/,}bin/bash rmix,
+ 
+   # for usb access
+   /dev/bus/usb/ r,
+diff --git a/examples/apparmor/usr.lib.libvirt.virt-aa-helper b/examples/apparmor/usr.lib.libvirt.virt-aa-helper
+index a992119951..abf340d8bf 100644
+--- a/examples/apparmor/usr.lib.libvirt.virt-aa-helper
++++ b/examples/apparmor/usr.lib.libvirt.virt-aa-helper
+@@ -28,7 +28,7 @@ profile virt-aa-helper /usr/{lib,lib64}/libvirt/virt-aa-helper {
+   deny /dev/mapper/* r,
+ 
+   /usr/{lib,lib64}/libvirt/virt-aa-helper mr,
+-  /sbin/apparmor_parser Ux,
++  /{usr/,}sbin/apparmor_parser Ux,
+ 
+   /etc/apparmor.d/libvirt/* r,
+   /etc/apparmor.d/libvirt/libvirt-[0-9a-f]*-[0-9a-f]*-[0-9a-f]*-[0-9a-f]*-[0-9a-f]* rw,
+diff --git a/examples/apparmor/usr.sbin.libvirtd b/examples/apparmor/usr.sbin.libvirtd
+index 705d19eb13..60e66d005c 100644
+--- a/examples/apparmor/usr.sbin.libvirtd
++++ b/examples/apparmor/usr.sbin.libvirtd
+@@ -47,12 +47,12 @@
+   /usr/bin/* PUx,
+   /usr/sbin/virtlogd pix,
+   /usr/sbin/* PUx,
+-  /lib/udev/scsi_id PUx,
++  /{usr/,}lib/udev/scsi_id PUx,
+   /usr/{lib,lib64}/xen-common/bin/xen-toolstack PUx,
+   /usr/{lib,lib64}/xen/bin/* Ux,
+ 
+   # force the use of virt-aa-helper
+-  audit deny /sbin/apparmor_parser rwxl,
++  audit deny /{usr/,}sbin/apparmor_parser rwxl,
+   audit deny /etc/apparmor.d/libvirt/** wxl,
+   audit deny /sys/kernel/security/apparmor/features rwxl,
+   audit deny /sys/kernel/security/apparmor/matching rwxl,
