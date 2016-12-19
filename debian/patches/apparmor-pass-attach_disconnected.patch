@@ -1,0 +1,32 @@
+From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Mon, 19 Dec 2016 08:15:15 +0100
+Subject: apparmor: pass attach_disconnected
+
+to cure
+
+ + virsh lxc-enter-namespace --noseclabel sl /bin/ls /bin/ls
+ libvirt:  error : Expected at least one file descriptor
+ error: internal error: Child process (2714) unexpected exit status 125
+
+caused by
+
+ apparmor="DENIED" operation="open" info="Failed name lookup - disconnected path" error=-13 profile="/usr/sbin/libvirtd" name="" pid=1422 comm="libvirtd" requested_mask="r" denied_mask="r" fsuid=0 ouid=0
+
+Closes: #847370
+---
+ examples/apparmor/usr.sbin.libvirtd | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/examples/apparmor/usr.sbin.libvirtd b/examples/apparmor/usr.sbin.libvirtd
+index 5e2c3e4ea..c40930bb8 100644
+--- a/examples/apparmor/usr.sbin.libvirtd
++++ b/examples/apparmor/usr.sbin.libvirtd
+@@ -2,7 +2,7 @@
+ #include <tunables/global>
+ @{LIBVIRT}="libvirt"
+ 
+-/usr/sbin/libvirtd {
++/usr/sbin/libvirtd flags=(attach_disconnected) {
+   #include <abstractions/base>
+   #include <abstractions/dbus>
+ 

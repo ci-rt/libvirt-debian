@@ -16,3 +16,4 @@ virt-aa-helper-apparmor-allow-usr-share-OVMF-too.patch
 Set-defaults-for-zfs-tools.patch
 Pass-GPG_TTY-env-var-to-the-ssh-binary.patch
 AppArmor-policy-support-merged-usr.patch
+apparmor-pass-attach_disconnected.patch
