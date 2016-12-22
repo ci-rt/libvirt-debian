@@ -1,7 +1,7 @@
 Template: libvirt-daemon-system/id_warning
 Type: boolean
 Default: true
-Description: Continue with incorrect libvirt-qemu user/group ID(s)?
+_Description: Continue with incorrect libvirt-qemu user/group ID(s)?
   The user/group ID (uid/gid) allocated for libvirt-qemu (64055)
   seems to be taken by another user/group, thus it is not possible
   to create the user/group with this numeric ID.

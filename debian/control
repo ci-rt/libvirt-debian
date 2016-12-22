@@ -47,6 +47,7 @@ Build-Depends:
  python,
  xsltproc,
  zfsutils [kfreebsd-amd64 kfreebsd-i386],
+ po-debconf,
 # for --with-storage-sheepdog
  sheepdog [linux-any],
 # for --with-storage-rados
