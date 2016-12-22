@@ -1,7 +1,6 @@
 #!/bin/sh
 
 set -e
-set -x
 
 export LIBVIRT_DEFAULT_URI='lxc:///'
 
@@ -25,6 +24,7 @@ check_domain()
 
 trap cleanup EXIT
 
+set -x
 virt-host-validate lxc || exit 0
 virsh capabilities
 virsh capabilities | grep -qs 'emulator>/usr/lib/libvirt/libvirt_lxc'
@@ -42,6 +42,7 @@ check_domain
 virsh destroy ${DOMAIN}
 virsh undefine ${DOMAIN}
 CLEANED_UP=1
+set +x
 
 echo 'Smoke test of lxc:/// succesful'
 exit 0

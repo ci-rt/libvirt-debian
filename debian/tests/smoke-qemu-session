@@ -1,7 +1,6 @@
 #!/bin/sh
 
 set -e
-set -x
 
 export LIBVIRT_DEFAULT_URI='qemu:///session'
 XML=debian/tests/smoke-qemu-session.xml
@@ -29,6 +28,7 @@ if [ $(uname -m) != "x86_64" ]; then
 fi
 
 echo echo "Running as $USER"
+set -x
 virt-host-validate qemu || true
 virsh capabilities
 virsh capabilities | grep -qs "arch name='x86_64'"
@@ -40,6 +40,7 @@ virsh list | grep -qs "${DOMAIN}[[:space:]]\+running"
 virsh destroy ${DOMAIN}
 virsh undefine ${DOMAIN}
 CLEANED_UP=1
+set +x
 
 echo 'Smoke test of qemu session:/// succesful'
 exit 0
