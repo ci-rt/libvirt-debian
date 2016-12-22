@@ -1,3 +1,26 @@
+libvirt (2.5.0-2) unstable; urgency=medium
+
+  [ Guido Günther ]
+  * Upload to unstable
+  * [14eee94] Make debconf template translatable
+  * [13afd29] Adjust doc-base due to new upstream doc layouer
+  * [fd7c2bb] Skip any debconf prompting if user and group are already there
+    to not interfere with existing intallations
+  * [1afd876] Depend on iptables of firewalld (Closes: #846321)
+  * autopkgtests cleanups. Thanks to Christian Ehrhardt
+    (Closes: #848247)
+
+  [ intrigeri ]
+  * [d64731a] Apparmor fixes for merged /usr
+
+  [ Mauricio Faria de Oliveira ]
+  * [f4b33d0] Use a fixed uid/gid for libvirt-qemu usr to avoid permission
+    issues on network filesystems like NFS. On new installations warn via
+    debconf if uid/gid are already taken.
+    (Closes: #844339)
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 22 Dec 2016 14:01:08 +0100
+
 libvirt (2.5.0-1) experimental; urgency=medium
 
   * [691e163] New upstream version 2.5.0
