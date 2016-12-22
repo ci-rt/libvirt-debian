@@ -128,6 +128,7 @@ Depends:
  lsb-base,
  libvirt-clients (= ${binary:Version}),
  libvirt-daemon (= ${binary:Version}),
+ iptables (>= 1.4.10) [linux-any] | firewalld,
  logrotate,
  policykit-1,
 Recommends:
@@ -136,7 +137,6 @@ Recommends:
  dnsmasq-base (>= 2.46-1),
  ebtables [linux-any],
  iproute2,
- iptables (>= 1.4.10) [linux-any],
  parted,
 Section: admin
 Suggests: radvd, auditd, systemtap, systemd, apparmor,
