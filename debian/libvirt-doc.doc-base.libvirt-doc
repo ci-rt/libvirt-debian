@@ -4,5 +4,5 @@ Abstract: Local copy of the web site of libvirt
 Section: System/Administration
 
 Format: HTML
-Index: /usr/share/doc/libvirt-doc/intro.html
+Index: /usr/share/doc/libvirt-doc/index.html
 Files: /usr/share/doc/libvirt-doc/*.html
