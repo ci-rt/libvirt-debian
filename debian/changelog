@@ -1,3 +1,10 @@
+libvirt (2.5.0-3) unstable; urgency=medium
+
+  * [ba9fcb8] Invoke db_stop.
+    Thanks to Raphaël Halimi (Closes: #849201)
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 23 Dec 2016 16:18:12 +0100
+
 libvirt (2.5.0-2) unstable; urgency=medium
 
   [ Guido Günther ]
