@@ -12,7 +12,6 @@
   </features>
   <clock offset='utc'/>
   <devices>
-    <emulator>/usr/lib/libvirt/libvirt_lxc</emulator>
     <filesystem type='mount' accessmode='passthrough'>
       <source dir='/'/>
       <target dir='/'/>
