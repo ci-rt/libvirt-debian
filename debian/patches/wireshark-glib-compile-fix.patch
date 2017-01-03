@@ -1,0 +1,47 @@
+From ae799674c7e30d4791feb6fb0f9587aeb3d6b9f1 Mon Sep 17 00:00:00 2001
+From: Benedikt Spranger <b.spranger@linutronix.de>
+Date: Fri, 29 Jul 2016 11:40:54 +0200
+Subject: [PATCH 1/8] wireshark: glib compile fix
+
+libvirt wireshark dissector uses wireshark and glib. Since wireshark
+development files did not depend on glib add an expicit dependency.
+
+Signed-off-by: Benedikt Spranger <b.spranger@linutronix.de>
+---
+ m4/virt-wireshark.m4 | 2 ++
+ tools/Makefile.am    | 4 ++--
+ 2 files changed, 4 insertions(+), 2 deletions(-)
+
+Index: libvirt-debian-origin/m4/virt-wireshark.m4
+===================================================================
+--- libvirt-debian-origin.orig/m4/virt-wireshark.m4
++++ libvirt-debian-origin/m4/virt-wireshark.m4
+@@ -19,6 +19,7 @@ dnl
+ 
+ AC_DEFUN([LIBVIRT_CHECK_WIRESHARK],[
+   LIBVIRT_CHECK_PKG([WIRESHARK_DISSECTOR], [wireshark], [1.11.3])
++  LIBVIRT_CHECK_PKG([GLIB], [glib-2.0], [2.46.2])
+ 
+   AC_ARG_WITH([ws-plugindir],
+     [AS_HELP_STRING([--with-ws-plugindir],
+@@ -59,4 +60,5 @@ AC_DEFUN([LIBVIRT_CHECK_WIRESHARK],[
+ 
+ AC_DEFUN([LIBVIRT_RESULT_WIRESHARK],[
+   LIBVIRT_RESULT_LIB([WIRESHARK_DISSECTOR])
++  LIBVIRT_RESULT_LIB([GLIB])
+ ])
+Index: libvirt-debian-origin/tools/Makefile.am
+===================================================================
+--- libvirt-debian-origin.orig/tools/Makefile.am
++++ libvirt-debian-origin/tools/Makefile.am
+@@ -401,8 +401,8 @@ if WITH_WIRESHARK_DISSECTOR
+ ws_plugindir = @ws_plugindir@
+ ws_plugin_LTLIBRARIES = wireshark/src/libvirt.la
+ wireshark_src_libvirt_la_CPPFLAGS = \
+-	-I wireshark/src $(WIRESHARK_DISSECTOR_CFLAGS)
+-wireshark_src_libvirt_la_LDFLAGS = -avoid-version -module
++	-I wireshark/src $(WIRESHARK_DISSECTOR_CFLAGS) $(GLIB_CFLAGS)
++wireshark_src_libvirt_la_LDFLAGS = -avoid-version -module $(GLIB_LIBS)
+ nodist_wireshark_src_libvirt_la_SOURCES = wireshark/src/plugin.c
+ wireshark_src_libvirt_la_SOURCES = \
+ 	wireshark/src/packet-libvirt.h \

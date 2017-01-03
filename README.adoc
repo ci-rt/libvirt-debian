@@ -1,0 +1,58 @@
+LibVirt : simple API for virtualization - with r4d support
+==========================================================
+
+This is a customized version of libvirt. It supports the communication
+with r4d ('Remote For Device-under-test') via libvirt. Only the branch
+debian/jessie-backports is maintained! It is a clone of the debian/sid
+branch (debian version 2.4.0-1) and adapted for the needs of jessie.
+
+Prerequisite
+------------
+
+This is a description for a Debian jessie based system!
+
+First you need to build https://github.com/ci-rt/libr4d[libr4d] and
+install the development package.
+
+Cloning the git repository:
+----
+$ git clone https://github.com/ci-rt/libvirt-debian.git
+----
+
+Checking for unmet build dependencies (and install them):
+----
+$ cd libvirt-debian
+$ dpkg-checkbuilddeps
+----
+
+
+Build and install as Debian Packages
+------------------------------------
+
+Build binary packages only:
+----
+$ cd libvirt-debian
+$ dpkg-buildpackage -b
+----
+
+If you like to install libvirt-daemon and libvirt-daemon-system
+packages, you need to install the systemd-sysv package from the
+jessie-backports section of Debian.
+
+To install the built Debian packages use
+'sudo dpkg -i PATH_TO_PACKAGE'
+
+
+Default README content
+----------------------
+
+  Libvirt is a C toolkit to interact with the virtualization capabilities
+of recent versions of Linux (and other OSes). It is free software
+available under the GNU Lesser General Public License. Virtualization of
+the Linux Operating System means the ability to run multiple instances of
+Operating Systems concurrently on a single hardware system where the basic
+resources are driven by a Linux instance. The library aim at providing
+long term stable C API initially for the Xen paravirtualization but
+should be able to integrate other virtualization mechanisms if needed.
+
+Daniel Veillard <veillard@redhat.com>
