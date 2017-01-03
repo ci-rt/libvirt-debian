@@ -25,7 +25,6 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   WITH_STORAGE_DISK   =	--with-storage-disk
   WITH_STORAGE_SHEEPDOG = --with-storage-sheepdog
   WITH_STORAGE_RBD    = --with-storage-rbd
-  WITH_STORAGE_ZFS    = --with-storage-zfs
   WITH_UDEV           = --with-udev
   WITH_CAPNG          = --with-capng
   WITH_MACVTAP        = --with-macvtap
@@ -55,9 +54,6 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
       WITH_LXC        = --with-lxc
   endif
 else
-  ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
-    WITH_STORAGE_ZFS  = --with-storage-zfs
-  endif
   WITH_STORAGE_LVM    = --without-storage-lvm
   WITH_STORAGE_ISCSI  = --without-storage-iscsi
   WITH_STORAGE_DISK   =	--without-storage-disk
