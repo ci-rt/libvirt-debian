@@ -17,3 +17,4 @@ Set-defaults-for-zfs-tools.patch
 Unbreak-rebuilding-docs-with-release-tarballs.patch
 wireshark-glib-compile-fix.patch
 add-r4d-support.patch
+r4d-dirty-logger.patch
