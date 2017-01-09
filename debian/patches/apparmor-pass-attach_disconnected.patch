@@ -18,7 +18,7 @@ Closes: #847370
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/examples/apparmor/usr.sbin.libvirtd b/examples/apparmor/usr.sbin.libvirtd
-index 5e2c3e4ea..c40930bb8 100644
+index 5e2c3e4..c40930b 100644
 --- a/examples/apparmor/usr.sbin.libvirtd
 +++ b/examples/apparmor/usr.sbin.libvirtd
 @@ -2,7 +2,7 @@
