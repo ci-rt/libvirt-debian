@@ -17,3 +17,4 @@ Set-defaults-for-zfs-tools.patch
 Pass-GPG_TTY-env-var-to-the-ssh-binary.patch
 AppArmor-policy-support-merged-usr.patch
 apparmor-pass-attach_disconnected.patch
+lxc-ensure-libvirt_lxc-and-qemu-nbd-move-into-systemd-mac.patch
