@@ -12,10 +12,10 @@ some reason. Let the virtual machine read both.
  3 files changed, 8 insertions(+), 1 deletion(-)
 
 diff --git a/examples/apparmor/libvirt-qemu b/examples/apparmor/libvirt-qemu
-index 11381d4..b8e4e1c 100644
+index a9020aa..e0988bb 100644
 --- a/examples/apparmor/libvirt-qemu
 +++ b/examples/apparmor/libvirt-qemu
-@@ -67,6 +67,7 @@
+@@ -70,6 +70,7 @@
    /usr/share/vgabios/** r,
    /usr/share/seabios/** r,
    /usr/share/ovmf/** r,

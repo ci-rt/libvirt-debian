@@ -8,7 +8,7 @@ Closes: #786650
  1 file changed, 7 insertions(+)
 
 diff --git a/examples/apparmor/usr.lib.libvirt.virt-aa-helper b/examples/apparmor/usr.lib.libvirt.virt-aa-helper
-index b34fb35..89b95f6 100644
+index 4a8f197..7804b72 100644
 --- a/examples/apparmor/usr.lib.libvirt.virt-aa-helper
 +++ b/examples/apparmor/usr.lib.libvirt.virt-aa-helper
 @@ -16,9 +16,16 @@ profile virt-aa-helper /usr/{lib,lib64}/libvirt/virt-aa-helper {
@@ -27,4 +27,4 @@ index b34fb35..89b95f6 100644
 +  deny /dev/mapper/* r,
  
    /usr/{lib,lib64}/libvirt/virt-aa-helper mr,
-   /sbin/apparmor_parser Ux,
+   /{usr/,}sbin/apparmor_parser Ux,

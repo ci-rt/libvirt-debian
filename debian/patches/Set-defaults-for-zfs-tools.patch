@@ -4,21 +4,21 @@ Subject: Set defaults for zfs tools
 
 so we don't have to build-depend on a program in contrib
 ---
- configure.ac | 4 ++--
+ m4/virt-storage-zfs.m4 | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/configure.ac b/configure.ac
-index 342db89..adeb0e5 100644
---- a/configure.ac
-+++ b/configure.ac
-@@ -1822,8 +1822,8 @@ AM_CONDITIONAL([WITH_STORAGE_GLUSTER], [test "$with_storage_gluster" = "yes"])
+diff --git a/m4/virt-storage-zfs.m4 b/m4/virt-storage-zfs.m4
+index 0c52264..1d5781b 100644
+--- a/m4/virt-storage-zfs.m4
++++ b/m4/virt-storage-zfs.m4
+@@ -24,8 +24,8 @@ AC_DEFUN([LIBVIRT_STORAGE_ARG_ZFS], [
+ AC_DEFUN([LIBVIRT_STORAGE_CHECK_ZFS], [
+   if test "$with_storage_zfs" = "yes" ||
+      test "$with_storage_zfs" = "check"; then
+-    AC_PATH_PROG([ZFS], [zfs], [], [$LIBVIRT_SBIN_PATH])
+-    AC_PATH_PROG([ZPOOL], [zpool], [], [$LIBVIRT_SBIN_PATH])
++    AC_PATH_PROG([ZFS], [zfs], [/sbin/zfs], [$LIBVIRT_SBIN_PATH])
++    AC_PATH_PROG([ZPOOL], [zpool], [/sbin/zpool], [$LIBVIRT_SBIN_PATH])
  
- if test "$with_storage_zfs" = "yes" ||
-    test "$with_storage_zfs" = "check"; then
--  AC_PATH_PROG([ZFS], [zfs], [], [$LIBVIRT_SBIN_PATH])
--  AC_PATH_PROG([ZPOOL], [zpool], [], [$LIBVIRT_SBIN_PATH])
-+  AC_PATH_PROG([ZFS], [zfs], [/sbin/zfs], [$LIBVIRT_SBIN_PATH])
-+  AC_PATH_PROG([ZPOOL], [zpool], [/sbin/zpool], [$LIBVIRT_SBIN_PATH])
- 
-   if test "$with_storage_zfs" = "yes"; then
-     if test -z "$ZFS" || test -z "$ZPOOL"; then
+     if test "$with_storage_zfs" = "yes"; then
+       if test -z "$ZFS" || test -z "$ZPOOL"; then

@@ -9,7 +9,7 @@ Include local apparmor profile
  2 files changed, 6 insertions(+)
 
 diff --git a/examples/apparmor/usr.lib.libvirt.virt-aa-helper b/examples/apparmor/usr.lib.libvirt.virt-aa-helper
-index 89b95f6..a992119 100644
+index 7804b72..abf340d 100644
 --- a/examples/apparmor/usr.lib.libvirt.virt-aa-helper
 +++ b/examples/apparmor/usr.lib.libvirt.virt-aa-helper
 @@ -52,4 +52,7 @@ profile virt-aa-helper /usr/{lib,lib64}/libvirt/virt-aa-helper {
@@ -21,7 +21,7 @@ index 89b95f6..a992119 100644
 +  #include <local/usr.lib.libvirt.virt-aa-helper>
  }
 diff --git a/examples/apparmor/usr.sbin.libvirtd b/examples/apparmor/usr.sbin.libvirtd
-index 48651b2..e0ecfe9 100644
+index 8893e75..c40930b 100644
 --- a/examples/apparmor/usr.sbin.libvirtd
 +++ b/examples/apparmor/usr.sbin.libvirtd
 @@ -85,4 +85,7 @@
