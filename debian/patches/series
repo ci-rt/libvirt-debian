@@ -18,3 +18,4 @@ Unbreak-rebuilding-docs-with-release-tarballs.patch
 wireshark-glib-compile-fix.patch
 add-r4d-support.patch
 r4d-dirty-logger.patch
+add-console-log-cmd.patch
