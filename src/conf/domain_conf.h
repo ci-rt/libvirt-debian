@@ -566,6 +566,7 @@ struct _virDomainBlockIoTuneInfo {
     unsigned long long read_iops_sec_max;
     unsigned long long write_iops_sec_max;
     unsigned long long size_iops_sec;
+    char *group_name;
     unsigned long long total_bytes_sec_max_length;
     unsigned long long read_bytes_sec_max_length;
     unsigned long long write_bytes_sec_max_length;
@@ -1486,6 +1487,7 @@ struct _virDomainGraphicsDef {
             int port;
             bool portReserved;
             int websocket;
+            bool websocketGenerated;
             bool autoport;
             char *keymap;
             virDomainGraphicsAuthDef auth;
@@ -3204,11 +3206,16 @@ int virDomainDefGetVcpuPinInfoHelper(virDomainDefPtr def,
 
 bool virDomainDefHasMemballoon(const virDomainDef *def) ATTRIBUTE_NONNULL(1);
 
-char *virDomainObjGetShortName(virDomainObjPtr vm);
+char *virDomainObjGetShortName(const virDomainDef *def) ATTRIBUTE_NONNULL(1);
 
 int
 virDomainGetBlkioParametersAssignFromDef(virDomainDefPtr def,
                                          virTypedParameterPtr params,
                                          int *nparams,
                                          int maxparams);
+
+bool
+virDomainDeviceInfoAddressIsEqual(const virDomainDeviceInfo *a,
+                                  const virDomainDeviceInfo *b)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
 #endif /* __DOMAIN_CONF_H */

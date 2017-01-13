@@ -17,6 +17,10 @@ dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 dnl
 
+AC_DEFUN([LIBVIRT_ARG_LIBSSH],[
+  LIBVIRT_ARG_WITH_FEATURE([LIBSSH], [libssh], [check], [0.7])
+])
+
 AC_DEFUN([LIBVIRT_CHECK_LIBSSH],[
   LIBVIRT_CHECK_PKG([LIBSSH], [libssh], [0.7])
 ])

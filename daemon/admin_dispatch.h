@@ -167,6 +167,60 @@ cleanup:
 
 
 
+static int adminDispatchConnectGetLoggingFilters(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    admin_connect_get_logging_filters_args *args,
+    admin_connect_get_logging_filters_ret *ret);
+static int adminDispatchConnectGetLoggingFiltersHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("adminDispatchConnectGetLoggingFilters");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = adminDispatchConnectGetLoggingFilters(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+/* adminDispatchConnectGetLoggingFilters body has to be implemented manually */
+
+
+
+static int adminDispatchConnectGetLoggingOutputs(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    admin_connect_get_logging_outputs_args *args,
+    admin_connect_get_logging_outputs_ret *ret);
+static int adminDispatchConnectGetLoggingOutputsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("adminDispatchConnectGetLoggingOutputs");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = adminDispatchConnectGetLoggingOutputs(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+/* adminDispatchConnectGetLoggingOutputs body has to be implemented manually */
+
+
+
 static int adminDispatchConnectListServers(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -330,6 +384,114 @@ static int adminDispatchConnectOpenHelper(
   return rv;
 }
 /* adminDispatchConnectOpen body has to be implemented manually */
+
+
+
+static int adminDispatchConnectSetLoggingFilters(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    admin_connect_set_logging_filters_args *args);
+static int adminDispatchConnectSetLoggingFiltersHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  int rv;
+  virThreadJobSet("adminDispatchConnectSetLoggingFilters");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = adminDispatchConnectSetLoggingFilters(server, client, msg, rerr, args);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int adminDispatchConnectSetLoggingFilters(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    admin_connect_set_logging_filters_args *args)
+{
+    int rv = -1;
+    char *filters;
+    struct daemonAdmClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->dmn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    filters = args->filters ? *args->filters : NULL;
+
+    if (adminConnectSetLoggingFilters(priv->dmn, filters, args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
+static int adminDispatchConnectSetLoggingOutputs(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    admin_connect_set_logging_outputs_args *args);
+static int adminDispatchConnectSetLoggingOutputsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  int rv;
+  virThreadJobSet("adminDispatchConnectSetLoggingOutputs");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = adminDispatchConnectSetLoggingOutputs(server, client, msg, rerr, args);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int adminDispatchConnectSetLoggingOutputs(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    admin_connect_set_logging_outputs_args *args)
+{
+    int rv = -1;
+    char *outputs;
+    struct daemonAdmClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->dmn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    outputs = args->outputs ? *args->outputs : NULL;
+
+    if (adminConnectSetLoggingOutputs(priv->dmn, outputs, args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
 
 
 
@@ -714,6 +876,42 @@ virNetServerProgramProc adminProcs[] = {
    adminDispatchServerSetClientLimitsHelper,
    sizeof(admin_server_set_client_limits_args),
    (xdrproc_t)xdr_admin_server_set_client_limits_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method ConnectGetLoggingOutputs => 14 */
+   adminDispatchConnectGetLoggingOutputsHelper,
+   sizeof(admin_connect_get_logging_outputs_args),
+   (xdrproc_t)xdr_admin_connect_get_logging_outputs_args,
+   sizeof(admin_connect_get_logging_outputs_ret),
+   (xdrproc_t)xdr_admin_connect_get_logging_outputs_ret,
+   true,
+   0
+},
+{ /* Method ConnectGetLoggingFilters => 15 */
+   adminDispatchConnectGetLoggingFiltersHelper,
+   sizeof(admin_connect_get_logging_filters_args),
+   (xdrproc_t)xdr_admin_connect_get_logging_filters_args,
+   sizeof(admin_connect_get_logging_filters_ret),
+   (xdrproc_t)xdr_admin_connect_get_logging_filters_ret,
+   true,
+   0
+},
+{ /* Method ConnectSetLoggingOutputs => 16 */
+   adminDispatchConnectSetLoggingOutputsHelper,
+   sizeof(admin_connect_set_logging_outputs_args),
+   (xdrproc_t)xdr_admin_connect_set_logging_outputs_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method ConnectSetLoggingFilters => 17 */
+   adminDispatchConnectSetLoggingFiltersHelper,
+   sizeof(admin_connect_set_logging_filters_args),
+   (xdrproc_t)xdr_admin_connect_set_logging_filters_args,
    0,
    (xdrproc_t)xdr_void,
    true,

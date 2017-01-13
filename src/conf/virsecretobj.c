@@ -218,31 +218,9 @@ virSecretObjSearchName(const void *payload,
     if (secret->def->usage_type != data->usageType)
         goto cleanup;
 
-    switch (data->usageType) {
-    case VIR_SECRET_USAGE_TYPE_NONE:
-    /* never match this */
-        break;
-
-    case VIR_SECRET_USAGE_TYPE_VOLUME:
-        if (STREQ(secret->def->usage.volume, data->usageID))
-            found = 1;
-        break;
-
-    case VIR_SECRET_USAGE_TYPE_CEPH:
-        if (STREQ(secret->def->usage.ceph, data->usageID))
-            found = 1;
-        break;
-
-    case VIR_SECRET_USAGE_TYPE_ISCSI:
-        if (STREQ(secret->def->usage.target, data->usageID))
-            found = 1;
-        break;
-
-    case VIR_SECRET_USAGE_TYPE_TLS:
-        if (STREQ(secret->def->usage.name, data->usageID))
-            found = 1;
-        break;
-    }
+    if (data->usageType != VIR_SECRET_USAGE_TYPE_NONE &&
+        STREQ(secret->def->usage_id, data->usageID))
+        found = 1;
 
  cleanup:
     virObjectUnlock(secret);
@@ -352,7 +330,6 @@ virSecretObjListAddLocked(virSecretObjListPtr secrets,
 {
     virSecretObjPtr secret;
     virSecretObjPtr ret = NULL;
-    const char *newUsageID = virSecretUsageIDForDef(def);
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     char *configFile = NULL, *base64File = NULL;
 
@@ -361,17 +338,14 @@ virSecretObjListAddLocked(virSecretObjListPtr secrets,
 
     /* Is there a secret already matching this UUID */
     if ((secret = virSecretObjListFindByUUIDLocked(secrets, def->uuid))) {
-        const char *oldUsageID;
-
         virObjectLock(secret);
 
-        oldUsageID = virSecretUsageIDForDef(secret->def);
-        if (STRNEQ(oldUsageID, newUsageID)) {
+        if (STRNEQ_NULLABLE(secret->def->usage_id, def->usage_id)) {
             virUUIDFormat(secret->def->uuid, uuidstr);
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("a secret with UUID %s is already defined for "
                              "use with %s"),
-                           uuidstr, oldUsageID);
+                           uuidstr, secret->def->usage_id);
             goto cleanup;
         }
 
@@ -391,13 +365,13 @@ virSecretObjListAddLocked(virSecretObjListPtr secrets,
          * try look for matching usage instead */
         if ((secret = virSecretObjListFindByUsageLocked(secrets,
                                                         def->usage_type,
-                                                        newUsageID))) {
+                                                        def->usage_id))) {
             virObjectLock(secret);
             virUUIDFormat(secret->def->uuid, uuidstr);
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("a secret with UUID %s already defined for "
                              "use with %s"),
-                           uuidstr, newUsageID);
+                           uuidstr, def->usage_id);
             goto cleanup;
         }
 
@@ -577,7 +551,7 @@ virSecretObjListPopulate(void *payload,
 
     if (!(secret = virGetSecret(data->conn, obj->def->uuid,
                                 obj->def->usage_type,
-                                virSecretUsageIDForDef(obj->def)))) {
+                                obj->def->usage_id))) {
         data->error = true;
         goto cleanup;
     }
@@ -692,20 +666,6 @@ virSecretObjDeleteData(virSecretObjPtr secret)
    has virSecretDef stored as XML in "$basename.xml".  If a value of the
    secret is defined, it is stored as base64 (with no formatting) in
    "$basename.base64".  "$basename" is in both cases the base64-encoded UUID. */
-
-static int
-virSecretRewriteFile(int fd,
-                     void *opaque)
-{
-    char *data = opaque;
-
-    if (safewrite(fd, data, strlen(data)) < 0)
-        return -1;
-
-    return 0;
-}
-
-
 int
 virSecretObjSaveConfig(virSecretObjPtr secret)
 {
@@ -715,8 +675,7 @@ virSecretObjSaveConfig(virSecretObjPtr secret)
     if (!(xml = virSecretDefFormat(secret->def)))
         goto cleanup;
 
-    if (virFileRewrite(secret->configFile, S_IRUSR | S_IWUSR,
-                       virSecretRewriteFile, xml) < 0)
+    if (virFileRewriteStr(secret->configFile, S_IRUSR | S_IWUSR, xml) < 0)
         goto cleanup;
 
     ret = 0;
@@ -739,8 +698,7 @@ virSecretObjSaveData(virSecretObjPtr secret)
     if (!(base64 = virStringEncodeBase64(secret->value, secret->value_size)))
         goto cleanup;
 
-    if (virFileRewrite(secret->base64File, S_IRUSR | S_IWUSR,
-                       virSecretRewriteFile, base64) < 0)
+    if (virFileRewriteStr(secret->base64File, S_IRUSR | S_IWUSR, base64) < 0)
         goto cleanup;
 
     ret = 0;

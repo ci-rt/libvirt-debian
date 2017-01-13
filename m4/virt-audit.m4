@@ -17,6 +17,10 @@ dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 dnl
 
+AC_DEFUN([LIBVIRT_ARG_AUDIT],[
+  LIBVIRT_ARG_WITH_FEATURE([AUDIT], [audit], [check])
+])
+
 AC_DEFUN([LIBVIRT_CHECK_AUDIT],[
   LIBVIRT_CHECK_LIB([AUDIT], [audit],
                     [audit_encode_nv_string], [libaudit.h])

@@ -63,7 +63,7 @@ virDomainPCIControllerModelToConnectType(virDomainControllerModelPCI model)
         return VIR_PCI_CONNECT_TYPE_DMI_TO_PCI_BRIDGE;
 
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT_PORT:
-        return VIR_PCI_CONNECT_TYPE_PCIE_ROOT_PORT;
+        return VIR_PCI_CONNECT_TYPE_PCIE_ROOT_PORT | VIR_PCI_CONNECT_AGGREGATE_SLOT;
 
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_UPSTREAM_PORT:
         return VIR_PCI_CONNECT_TYPE_PCIE_SWITCH_UPSTREAM_PORT;
@@ -522,25 +522,22 @@ bool
 virDomainPCIAddressSlotInUse(virDomainPCIAddressSetPtr addrs,
                              virPCIDeviceAddressPtr addr)
 {
-    return !!addrs->buses[addr->bus].slots[addr->slot];
+    return !!addrs->buses[addr->bus].slot[addr->slot].functions;
 }
 
 
 /*
- * Reserve a slot (or just one function) for a device. If
- * reserveEntireSlot is true, all functions for the slot are reserved,
- * otherwise only one. If fromConfig is true, the address being
- * requested came directly from the config and errors should be worded
- * appropriately. If fromConfig is false, the address was
+ * Reserve a function in a slot. If fromConfig is true, the address
+ * being requested came directly from the config and errors should be
+ * worded appropriately. If fromConfig is false, the address was
  * automatically created by libvirt, so it is an internal error (not
  * XML).
  */
-int
-virDomainPCIAddressReserveAddr(virDomainPCIAddressSetPtr addrs,
-                               virPCIDeviceAddressPtr addr,
-                               virDomainPCIConnectFlags flags,
-                               bool reserveEntireSlot,
-                               bool fromConfig)
+static int ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2)
+virDomainPCIAddressReserveAddrInternal(virDomainPCIAddressSetPtr addrs,
+                                       virPCIDeviceAddressPtr addr,
+                                       virDomainPCIConnectFlags flags,
+                                       bool fromConfig)
 {
     int ret = -1;
     char *addrStr = NULL;
@@ -562,33 +559,25 @@ virDomainPCIAddressReserveAddr(virDomainPCIAddressSetPtr addrs,
 
     bus = &addrs->buses[addr->bus];
 
-    if (reserveEntireSlot) {
-        if (bus->slots[addr->slot]) {
-            virReportError(errType,
-                           _("Attempted double use of PCI slot %s "
-                             "(may need \"multifunction='on'\" for "
-                             "device on function 0)"), addrStr);
-            goto cleanup;
-        }
-        bus->slots[addr->slot] = 0xFF; /* reserve all functions of slot */
-        VIR_DEBUG("Reserving PCI slot %s (multifunction='off')", addrStr);
-    } else {
-        if (bus->slots[addr->slot] & (1 << addr->function)) {
-            if (addr->function == 0) {
-                virReportError(errType,
-                               _("Attempted double use of PCI Address %s"),
-                               addrStr);
-            } else {
-                virReportError(errType,
-                               _("Attempted double use of PCI Address %s "
-                                 "(may need \"multifunction='on'\" "
-                                 "for device on function 0)"), addrStr);
-            }
-            goto cleanup;
-        }
-        bus->slots[addr->slot] |= (1 << addr->function);
-        VIR_DEBUG("Reserving PCI address %s", addrStr);
+    if (bus->slot[addr->slot].functions & (1 << addr->function)) {
+        virReportError(errType,
+                       _("Attempted double use of PCI Address %s"), addrStr);
+        goto cleanup;
     }
+
+    /* if this is the first function to be reserved on this slot, and
+     * the device it's being reserved for can aggregate multiples on a
+     * slot, set the slot's aggregate flag.
+    */
+    if (!bus->slot[addr->slot].functions &&
+        flags & VIR_PCI_CONNECT_AGGREGATE_SLOT) {
+        bus->slot[addr->slot].aggregate = true;
+    }
+
+    /* mark the requested function as reserved */
+    bus->slot[addr->slot].functions |= (1 << addr->function);
+    VIR_DEBUG("Reserving PCI address %s (aggregate='%s')", addrStr,
+              bus->slot[addr->slot].aggregate ? "true" : "false");
 
     ret = 0;
  cleanup:
@@ -598,11 +587,11 @@ virDomainPCIAddressReserveAddr(virDomainPCIAddressSetPtr addrs,
 
 
 int
-virDomainPCIAddressReserveSlot(virDomainPCIAddressSetPtr addrs,
+virDomainPCIAddressReserveAddr(virDomainPCIAddressSetPtr addrs,
                                virPCIDeviceAddressPtr addr,
                                virDomainPCIConnectFlags flags)
 {
-    return virDomainPCIAddressReserveAddr(addrs, addr, flags, true, false);
+    return virDomainPCIAddressReserveAddrInternal(addrs, addr, flags, true);
 }
 
 int
@@ -637,10 +626,10 @@ virDomainPCIAddressEnsureAddr(virDomainPCIAddressSetPtr addrs,
                                          addrStr, flags, true))
             goto cleanup;
 
-        ret = virDomainPCIAddressReserveAddr(addrs, &dev->addr.pci, flags,
-                                             true, true);
+        ret = virDomainPCIAddressReserveAddrInternal(addrs, &dev->addr.pci,
+                                                     flags, true);
     } else {
-        ret = virDomainPCIAddressReserveNextSlot(addrs, dev, flags);
+        ret = virDomainPCIAddressReserveNextAddr(addrs, dev, flags, -1);
     }
 
  cleanup:
@@ -653,34 +642,9 @@ int
 virDomainPCIAddressReleaseAddr(virDomainPCIAddressSetPtr addrs,
                                virPCIDeviceAddressPtr addr)
 {
-    addrs->buses[addr->bus].slots[addr->slot] &= ~(1 << addr->function);
+    addrs->buses[addr->bus].slot[addr->slot].functions &= ~(1 << addr->function);
     return 0;
 }
-
-int
-virDomainPCIAddressReleaseSlot(virDomainPCIAddressSetPtr addrs,
-                               virPCIDeviceAddressPtr addr)
-{
-    /* permit any kind of connection type in validation, since we
-     * already had it, and are giving it back.
-     */
-    virDomainPCIConnectFlags flags = VIR_PCI_CONNECT_TYPES_MASK;
-    int ret = -1;
-    char *addrStr = NULL;
-
-    if (!(addrStr = virDomainPCIAddressAsString(addr)))
-        goto cleanup;
-
-    if (!virDomainPCIAddressValidate(addrs, addr, addrStr, flags, false))
-        goto cleanup;
-
-    addrs->buses[addr->bus].slots[addr->slot] = 0;
-    ret = 0;
- cleanup:
-    VIR_FREE(addrStr);
-    return ret;
-}
-
 
 virDomainPCIAddressSetPtr
 virDomainPCIAddressSetAlloc(unsigned int nbuses)
@@ -713,16 +677,84 @@ virDomainPCIAddressSetFree(virDomainPCIAddressSetPtr addrs)
 }
 
 
+static int
+virDomainPCIAddressFindUnusedFunctionOnBus(virDomainPCIAddressBusPtr bus,
+                                           virPCIDeviceAddressPtr searchAddr,
+                                           int function,
+                                           virDomainPCIConnectFlags flags,
+                                           bool *found)
+{
+    int ret = -1;
+    char *addrStr = NULL;
+
+    *found = false;
+
+    if (!(addrStr = virDomainPCIAddressAsString(searchAddr)))
+        goto cleanup;
+
+    if (!virDomainPCIAddressFlagsCompatible(searchAddr, addrStr, bus->flags,
+                                            flags, false, false)) {
+        VIR_DEBUG("PCI bus %.4x:%.2x is not compatible with the device",
+                  searchAddr->domain, searchAddr->bus);
+    } else {
+        while (searchAddr->slot <= bus->maxSlot) {
+            if (bus->slot[searchAddr->slot].functions == 0) {
+                *found = true;
+                break;
+            }
+
+            if (flags & VIR_PCI_CONNECT_AGGREGATE_SLOT &&
+                bus->slot[searchAddr->slot].aggregate) {
+                /* slot and device are okay with aggregating devices */
+                if ((bus->slot[searchAddr->slot].functions &
+                     (1 << searchAddr->function)) == 0) {
+                    *found = true;
+                    break;
+                }
+
+                /* also check for *any* unused function if caller
+                 * sent function = -1
+                 */
+                if (function == -1) {
+                    while (searchAddr->function < 8) {
+                        if ((bus->slot[searchAddr->slot].functions &
+                             (1 << searchAddr->function)) == 0) {
+                            *found = true;
+                            break; /* out of inner while */
+                        }
+                        searchAddr->function++;
+                    }
+                    if (*found)
+                       break; /* out of outer while */
+                    searchAddr->function = 0; /* reset for next try */
+                }
+            }
+
+            VIR_DEBUG("PCI slot %.4x:%.2x:%.2x already in use",
+                      searchAddr->domain, searchAddr->bus, searchAddr->slot);
+            searchAddr->slot++;
+        }
+    }
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(addrStr);
+    return ret;
+}
+
+
 static int ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2)
-virDomainPCIAddressGetNextSlot(virDomainPCIAddressSetPtr addrs,
+virDomainPCIAddressGetNextAddr(virDomainPCIAddressSetPtr addrs,
                                virPCIDeviceAddressPtr next_addr,
+                               int function,
                                virDomainPCIConnectFlags flags)
 {
     /* default to starting the search for a free slot from
      * the first slot of domain 0 bus 0...
      */
-    virPCIDeviceAddress a = {0};
-    char *addrStr = NULL;
+    virPCIDeviceAddress a = { 0 };
+    bool found = false;
 
     if (addrs->nbuses == 0) {
         virReportError(VIR_ERR_XML_ERROR, "%s", _("No PCI buses available"));
@@ -730,38 +762,32 @@ virDomainPCIAddressGetNextSlot(virDomainPCIAddressSetPtr addrs,
     }
 
     /* ...unless this search is for the exact same type of device as
-     * last time, then continue the search from the next slot after
-     * the previous match (the "next slot" may possibly be the first
-     * slot of the next bus).
+     * last time, then continue the search from the slot where we
+     * found the previous match (it's possible there will still be a
+     * function available on that slot).
      */
-    if (flags == addrs->lastFlags) {
+    if (flags == addrs->lastFlags)
         a = addrs->lastaddr;
-        if (++a.slot > addrs->buses[a.bus].maxSlot &&
-            ++a.bus < addrs->nbuses)
-            a.slot = addrs->buses[a.bus].minSlot;
-    } else {
+    else
         a.slot = addrs->buses[0].minSlot;
-    }
+
+    /* if the caller asks for "any function", give them function 0 */
+    if (function == -1)
+        a.function = 0;
+    else
+        a.function = function;
 
     while (a.bus < addrs->nbuses) {
-        VIR_FREE(addrStr);
-        if (!(addrStr = virDomainPCIAddressAsString(&a)))
+        if (virDomainPCIAddressFindUnusedFunctionOnBus(&addrs->buses[a.bus],
+                                                       &a, function,
+                                                       flags, &found) < 0) {
             goto error;
-        if (!virDomainPCIAddressFlagsCompatible(&a, addrStr,
-                                                addrs->buses[a.bus].flags,
-                                                flags, false, false)) {
-            VIR_DEBUG("PCI bus %.4x:%.2x is not compatible with the device",
-                      a.domain, a.bus);
-        } else {
-            while (a.slot <= addrs->buses[a.bus].maxSlot) {
-                if (!virDomainPCIAddressSlotInUse(addrs, &a))
-                    goto success;
-
-                VIR_DEBUG("PCI slot %.4x:%.2x:%.2x already in use",
-                          a.domain, a.bus, a.slot);
-                a.slot++;
-            }
         }
+
+        if (found)
+            goto success;
+
+        /* nothing on this bus, go to the next bus */
         if (++a.bus < addrs->nbuses)
             a.slot = addrs->buses[a.bus].minSlot;
     }
@@ -778,38 +804,27 @@ virDomainPCIAddressGetNextSlot(virDomainPCIAddressSetPtr addrs,
         /* Check the buses from 0 up to the last used one */
         for (a.bus = 0; a.bus <= addrs->lastaddr.bus; a.bus++) {
             a.slot = addrs->buses[a.bus].minSlot;
-            VIR_FREE(addrStr);
-            if (!(addrStr = virDomainPCIAddressAsString(&a)))
-                goto error;
-            if (!virDomainPCIAddressFlagsCompatible(&a, addrStr,
-                                                    addrs->buses[a.bus].flags,
-                                                    flags, false, false)) {
-                VIR_DEBUG("PCI bus %.4x:%.2x is not compatible with the device",
-                          a.domain, a.bus);
-            } else {
-                while (a.slot <= addrs->buses[a.bus].maxSlot) {
-                    if (!virDomainPCIAddressSlotInUse(addrs, &a))
-                        goto success;
 
-                    VIR_DEBUG("PCI slot %.4x:%.2x:%.2x already in use",
-                              a.domain, a.bus, a.slot);
-                    a.slot++;
-                }
+            if (virDomainPCIAddressFindUnusedFunctionOnBus(&addrs->buses[a.bus],
+                                                           &a, function,
+                                                           flags, &found) < 0) {
+                goto error;
             }
+
+            if (found)
+                goto success;
         }
     }
 
     virReportError(VIR_ERR_INTERNAL_ERROR,
                    "%s", _("No more available PCI slots"));
  error:
-    VIR_FREE(addrStr);
     return -1;
 
  success:
     VIR_DEBUG("Found free PCI slot %.4x:%.2x:%.2x",
               a.domain, a.bus, a.slot);
     *next_addr = a;
-    VIR_FREE(addrStr);
     return 0;
 }
 
@@ -821,14 +836,13 @@ virDomainPCIAddressGetNextSlot(virDomainPCIAddressSetPtr addrs,
  * @dev: virDomainDeviceInfo that should get the new address.
  * @flags: CONNECT_TYPE flags for the device that needs an address.
  * @function: which function on the slot to mark as reserved
- *            (if @reserveEntireSlot is false)
- * @reserveEntireSlot: true to reserve all functions on the new slot,
- *                     false to reserve just @function
  *
  * Find the next *completely unreserved* slot with compatible
- * connection @flags, mark either one function or the entire
- * slot as in-use (according to @function and @reserveEntireSlot),
- * and set @dev->addr.pci with this newly reserved address.
+ * connection @flags, mark one function of the slot as in-use
+ * (according to @function), then set @dev->addr.pci with this newly
+ * reserved address. If @function is -1, then the lowest unused
+ * function of the slot will be reserved (and since we only look for
+ * completely unused slots, that means "0").
  *
  * returns 0 on success, or -1 on failure.
  */
@@ -836,17 +850,14 @@ int
 virDomainPCIAddressReserveNextAddr(virDomainPCIAddressSetPtr addrs,
                                    virDomainDeviceInfoPtr dev,
                                    virDomainPCIConnectFlags flags,
-                                   unsigned int function,
-                                   bool reserveEntireSlot)
+                                   int function)
 {
     virPCIDeviceAddress addr;
 
-    if (virDomainPCIAddressGetNextSlot(addrs, &addr, flags) < 0)
+    if (virDomainPCIAddressGetNextAddr(addrs, &addr, function, flags) < 0)
         return -1;
 
-    addr.function = reserveEntireSlot ? 0 : function;
-
-    if (virDomainPCIAddressReserveAddr(addrs, &addr, flags, reserveEntireSlot, false) < 0)
+    if (virDomainPCIAddressReserveAddrInternal(addrs, &addr, flags, false) < 0)
         return -1;
 
     addrs->lastaddr = addr;
@@ -861,12 +872,86 @@ virDomainPCIAddressReserveNextAddr(virDomainPCIAddressSetPtr addrs,
 }
 
 
-int
-virDomainPCIAddressReserveNextSlot(virDomainPCIAddressSetPtr addrs,
-                                   virDomainDeviceInfoPtr dev,
-                                   virDomainPCIConnectFlags flags)
+static int
+virDomainPCIAddressSetMultiIter(virDomainDefPtr def ATTRIBUTE_UNUSED,
+                                virDomainDeviceDefPtr dev ATTRIBUTE_UNUSED,
+                                virDomainDeviceInfoPtr info,
+                                void *data)
 {
-    return virDomainPCIAddressReserveNextAddr(addrs, dev, flags, 0, true);
+    virPCIDeviceAddressPtr testAddr = data;
+    virPCIDeviceAddressPtr thisAddr;
+
+    if (!info || info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI)
+       return 0;
+
+    thisAddr = &info->addr.pci;
+
+    if (thisAddr->domain == testAddr->domain &&
+        thisAddr->bus == testAddr->bus &&
+        thisAddr->slot == testAddr->slot &&
+        thisAddr->function == 0) {
+
+        /* only set to ON if it wasn't previously set
+         * (assuming that the user must have better information
+         * than us if they explicitly set it OFF)
+         */
+        if (thisAddr->multi == VIR_TRISTATE_SWITCH_ABSENT)
+            thisAddr->multi = VIR_TRISTATE_SWITCH_ON;
+
+        return -1; /* finish early, *NOT* an error */
+    }
+
+    return 0;
+}
+
+
+static int
+virDomainPCIAddressSetAllMultiIter(virDomainDefPtr def,
+                                   virDomainDeviceDefPtr dev ATTRIBUTE_UNUSED,
+                                   virDomainDeviceInfoPtr info,
+                                   void *data ATTRIBUTE_UNUSED)
+{
+    virPCIDeviceAddressPtr testAddr;
+
+    if (!info || info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI)
+       return 0;
+
+    testAddr = &info->addr.pci;
+
+    if (testAddr->function != 0) {
+        ignore_value(virDomainDeviceInfoIterate(def,
+                                                virDomainPCIAddressSetMultiIter,
+                                                testAddr));
+    }
+
+    return 0;
+}
+
+
+/**
+ * virDomainPCIAddressSetAllMulti():
+ *
+ * @def: the domain definition whose devices may need adjusting
+ * @addrs: address set keeping track of all addresses in use.
+ *
+ * Look for any PCI slots that have multiple functions assigned, and
+ * set multi to ON in the address for the device at function 0
+ * (unless it has been explicitly set to OFF).
+ *
+ * No return code, since there is no possibility of failure.
+ */
+void
+virDomainPCIAddressSetAllMulti(virDomainDefPtr def)
+{
+    /* Use nested iterators over all the devices - the outer iterator
+     * scans through all the devices looking for those whose address
+     * has a non-0 function; when one is found, the inner iterator looks
+     * for the device that uses function 0 on the same slot and marks
+     * it as multi = ON
+     */
+    ignore_value(virDomainDeviceInfoIterate(def,
+                                            virDomainPCIAddressSetAllMultiIter,
+                                            NULL));
 }
 
 

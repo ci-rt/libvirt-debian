@@ -17,13 +17,15 @@ dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 dnl
 
+AC_DEFUN([LIBVIRT_ARG_WIRESHARK],[
+  LIBVIRT_ARG_WITH_FEATURE([WIRESHARK_DISSECTOR], [wireshark], [check], [1.11.3])
+  LIBVIRT_ARG_WITH([WS_PLUGINDIR],
+                   [wireshark plugins directory for use when installing
+                   wireshark plugin], [check])
+])
+
 AC_DEFUN([LIBVIRT_CHECK_WIRESHARK],[
   LIBVIRT_CHECK_PKG([WIRESHARK_DISSECTOR], [wireshark], [1.11.3])
-
-  AC_ARG_WITH([ws-plugindir],
-    [AS_HELP_STRING([--with-ws-plugindir],
-      [wireshark plugins directory for use when installing wireshark plugin])],
-      [], [with_ws_plugindir=check])
 
   dnl Check for system location of wireshark plugins
   if test "x$with_wireshark_dissector" != "xno" ; then

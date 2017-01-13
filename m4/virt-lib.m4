@@ -24,7 +24,8 @@ dnl config header var, WITH_XXXX make conditional and
 dnl with_XXX configure shell var.
 dnl
 dnl  LIBVIRT_CHECK_LIB([CHECK_NAME], [LIBRARY_NAME],
-dnl                    [FUNCTION_NAME], [HEADER_NAME])
+dnl                    [FUNCTION_NAME], [HEADER_NAME],
+dnl                    [FAIL_ACTION])
 dnl
 dnl  CHECK_NAME: Suffix/prefix used for variables / flags, in uppercase.
 dnl              Used to set
@@ -37,6 +38,8 @@ dnl
 dnl   LIBRARY_NAME: base name of library to check for eg libXXX.so
 dnl  FUNCTION_NAME: function to check for in libXXX.so
 dnl    HEADER_NAME: header file to check for
+dnl    FAIL_ACTION: overrides the default fail action
+dnl
 dnl
 dnl e.g.
 dnl
@@ -52,21 +55,15 @@ AC_DEFUN([LIBVIRT_CHECK_LIB],[
   m4_pushdef([library_name], [$2])
   m4_pushdef([function_name], [$3])
   m4_pushdef([header_name], [$4])
+  m4_pushdef([fail_action], [$5])
 
   m4_pushdef([check_name_lc], m4_tolower(check_name))
-  m4_pushdef([check_name_dash], m4_translit(check_name_lc, [_], [-]))
 
   m4_pushdef([config_var], [WITH_]check_name)
   m4_pushdef([make_var], [WITH_]check_name)
   m4_pushdef([cflags_var], check_name[_CFLAGS])
   m4_pushdef([libs_var], check_name[_LIBS])
-  m4_pushdef([arg_var], [with-]check_name_dash)
   m4_pushdef([with_var], [with_]check_name_lc)
-
-  m4_divert_text([DEFAULTS], [with_var][=check])
-  AC_ARG_WITH(check_name_dash,
-    [AS_HELP_STRING([--arg_var],
-                    [with lib]]m4_dquote(library_name)[[ support @<:@default=check@:>@])])
 
   old_LIBS=$LIBS
   old_CFLAGS=$CFLAGS
@@ -88,7 +85,7 @@ AC_DEFUN([LIBVIRT_CHECK_LIB],[
       with_var=no
     ])
     if test "$fail" = "0" && test "x$with_var" != "xno" ; then
-      AC_CHECK_HEADER([header_name], [
+      AC_CHECK_HEADER(header_name, [
         with_var=yes
       ],[
         if test "x$with_var" != "xcheck"; then
@@ -103,7 +100,8 @@ AC_DEFUN([LIBVIRT_CHECK_LIB],[
   CFLAGS=$old_CFLAGS
 
   if test $fail = 1; then
-    AC_MSG_ERROR([You must install the lib]library_name[ library & headers to compile libvirt])
+    m4_default(fail_action,
+      [AC_MSG_ERROR([You must install the lib]library_name[ library & headers to compile libvirt])])
   else
     if test "x$with_var" = "xyes" ; then
       if test "x$libs_var" = 'x' ; then
@@ -121,15 +119,14 @@ AC_DEFUN([LIBVIRT_CHECK_LIB],[
   fi
 
   m4_popdef([with_var])
-  m4_popdef([arg_var])
   m4_popdef([libs_var])
   m4_popdef([cflags_var])
   m4_popdef([make_var])
   m4_popdef([config_var])
 
-  m4_popdef([check_name_dash])
   m4_popdef([check_name_lc])
 
+  m4_popdef([fail_action])
   m4_popdef([header_name])
   m4_popdef([function_name])
   m4_popdef([library_name])
@@ -143,7 +140,8 @@ dnl
 dnl  LIBVIRT_CHECK_LIB_ALT([CHECK_NAME], [LIBRARY_NAME],
 dnl                        [FUNCTION_NAME], [HEADER_NAME],
 dnl                        [CHECK_NAME_ALT, [LIBRARY_NAME_ALT],
-dnl                        [FUNCTION_NAME_ALT], [HEADER_NAME_ALT])
+dnl                        [FUNCTION_NAME_ALT], [HEADER_NAME_ALT],
+dnl                        [FAIL_ACTION])
 dnl
 dnl  CHECK_NAME: Suffix/prefix used for variables / flags, in uppercase.
 dnl              Used to set
@@ -165,6 +163,7 @@ dnl                    NB all vars for CHECK_NAME are also set
 dnl   LIBRARY_NAME_ALT: alternative library name to check for
 dnl  FUNCTION_NAME_ALT: alternative function name to check for
 dnl    HEADER_NAME_ALT: alternative header file to check for
+dnl        FAIL_ACTION: overrides the default fail action
 dnl
 dnl e.g.
 dnl
@@ -182,23 +181,17 @@ AC_DEFUN([LIBVIRT_CHECK_LIB_ALT],[
   m4_pushdef([library_name_alt], [$6])
   m4_pushdef([function_name_alt], [$7])
   m4_pushdef([header_name_alt], [$8])
+  m4_pushdef([fail_action], [$9])
 
   m4_pushdef([check_name_lc], m4_tolower(check_name))
-  m4_pushdef([check_name_dash], m4_translit(check_name_lc, [_], [-]))
 
   m4_pushdef([config_var], [WITH_]check_name)
   m4_pushdef([make_var], [WITH_]check_name)
   m4_pushdef([cflags_var], check_name[_CFLAGS])
   m4_pushdef([libs_var], check_name[_LIBS])
-  m4_pushdef([arg_var], [with-]check_name_dash)
   m4_pushdef([with_var], [with_]check_name_lc)
   m4_pushdef([config_var_alt], [WITH_]check_name_alt)
   m4_pushdef([make_var_alt], [WITH_]check_name_alt)
-
-  m4_divert_text([DEFAULTS], [with_var][=check])
-  AC_ARG_WITH(check_name_dash,
-    [AS_HELP_STRING([--arg_var],
-                    [with lib]]m4_dquote(library_name)[[ support @<:@default=check@:>@])])
 
   old_LIBS=$LIBS
   old_CFLAGS=$CFLAGS
@@ -225,10 +218,10 @@ AC_DEFUN([LIBVIRT_CHECK_LIB_ALT],[
       ])
     ])
     if test "$fail" = "0" && test "x$with_var" != "xno" ; then
-      AC_CHECK_HEADER([header_name], [
+      AC_CHECK_HEADER(header_name, [
         with_var=yes
       ],[
-        AC_CHECK_HEADER([header_name_alt], [
+        AC_CHECK_HEADER(header_name_alt, [
           with_var=yes
         ],[
           if test "x$with_var" != "xcheck"; then
@@ -244,7 +237,8 @@ AC_DEFUN([LIBVIRT_CHECK_LIB_ALT],[
   CFLAGS=$old_CFLAGS
 
   if test $fail = 1; then
-    AC_MSG_ERROR([You must install the lib]library_name[ library & headers to compile libvirt])
+    m4_default(fail_action,
+      [AC_MSG_ERROR([You must install the lib]library_name[ library & headers to compile libvirt])])
   else
     if test "x$with_var" = "xyes" ; then
       if test "x$libs_var" = 'x' ; then
@@ -269,15 +263,14 @@ AC_DEFUN([LIBVIRT_CHECK_LIB_ALT],[
   m4_popdef([make_var_alt])
   m4_popdef([config_var_alt])
   m4_popdef([with_var])
-  m4_popdef([arg_var])
   m4_popdef([libs_var])
   m4_popdef([cflags_var])
   m4_popdef([make_var])
   m4_popdef([config_var])
 
   m4_popdef([check_name_lc])
-  m4_popdef([check_name_dash])
 
+  m4_popdef([fail_action])
   m4_popdef([header_name_alt])
   m4_popdef([function_name_alt])
   m4_popdef([library_name_alt])
@@ -292,7 +285,8 @@ dnl Probe for existence of libXXXX and set WITH_XXX
 dnl config header var, WITH_XXXX make conditional and
 dnl with_XXX configure shell var.
 dnl
-dnl  LIBVIRT_CHECK_PKG([CHECK_NAME], [PC_NAME], [PC_VERSION])
+dnl  LIBVIRT_CHECK_PKG([CHECK_NAME], [PC_NAME], [PC_VERSION],
+dnl                    [FAIL_ACTION])
 dnl
 dnl  CHECK_NAME: Suffix/prefix used for variables / flags, in uppercase.
 dnl              Used to set
@@ -303,6 +297,7 @@ dnl                configure: --with-xxx argument
 dnl                configure: with_xxx variable
 dnl    PC_NAME: Name of the pkg-config module
 dnl    PC_VERSION: Version of the pkg-config module
+dnl    FAIL_ACTION: overrides the default fail action
 dnl
 dnl eg
 dnl
@@ -312,21 +307,15 @@ AC_DEFUN([LIBVIRT_CHECK_PKG],[
   m4_pushdef([check_name], [$1])
   m4_pushdef([pc_name], [$2])
   m4_pushdef([pc_version], [$3])
+  m4_pushdef([fail_action], [$4])
 
   m4_pushdef([check_name_lc], m4_tolower(check_name))
-  m4_pushdef([check_name_dash], m4_translit(check_name_lc, [_], [-]))
 
   m4_pushdef([config_var], [WITH_]check_name)
   m4_pushdef([make_var], [WITH_]check_name)
   m4_pushdef([cflags_var], check_name[_CFLAGS])
   m4_pushdef([libs_var], check_name[_LIBS])
-  m4_pushdef([arg_var], [with-]check_name_dash)
   m4_pushdef([with_var], [with_]check_name_lc)
-
-  m4_divert_text([DEFAULTS], [with_var][=check])
-  AC_ARG_WITH(check_name_dash,
-    [AS_HELP_STRING([--arg_var],
-                   [with ]]m4_dquote(pc_name)[[ (>= ]]m4_dquote(pc_version)[[) support @<:@default=check@:>@])])
 
   fail=0
   if test "x$with_var" != "xno" ; then
@@ -341,7 +330,8 @@ AC_DEFUN([LIBVIRT_CHECK_PKG],[
   fi
 
   if test $fail = 1; then
-    AC_MSG_ERROR([You must install the ]pc_name[ >= ]pc_version[ pkg-config module to compile libvirt])
+    m4_default(fail_action,
+      [AC_MSG_ERROR([You must install the ]pc_name[ >= ]pc_version[ pkg-config module to compile libvirt])])
   fi
 
   if test "x$with_var" = "xyes" ; then
@@ -351,15 +341,14 @@ AC_DEFUN([LIBVIRT_CHECK_PKG],[
   AM_CONDITIONAL(make_var, [test "x$with_var" = "xyes"])
 
   m4_popdef([with_var])
-  m4_popdef([arg_var])
   m4_popdef([libs_var])
   m4_popdef([cflags_var])
   m4_popdef([make_var])
   m4_popdef([config_var])
 
   m4_popdef([check_name_lc])
-  m4_popdef([check_name_dash])
 
+  m4_popdef([fail_action])
   m4_popdef([pc_version])
   m4_popdef([pc_name])
   m4_popdef([check_name])

@@ -1472,6 +1472,15 @@ struct remote_storage_vol_get_info_ret {
         uint64_t                   capacity;
         uint64_t                   allocation;
 };
+struct remote_storage_vol_get_info_flags_args {
+        remote_nonnull_storage_vol vol;
+        u_int                      flags;
+};
+struct remote_storage_vol_get_info_flags_ret {
+        char                       type;
+        uint64_t                   capacity;
+        uint64_t                   allocation;
+};
 struct remote_storage_vol_get_path_args {
         remote_nonnull_storage_vol vol;
 };
@@ -2791,6 +2800,32 @@ struct remote_domain_set_guest_vcpus_args {
         int                        state;
         u_int                      flags;
 };
+struct remote_domain_event_callback_metadata_change_msg {
+        int                        callbackID;
+        remote_nonnull_domain      dom;
+        int                        type;
+        remote_string              nsuri;
+};
+struct remote_connect_secret_event_register_any_args {
+        int                        eventID;
+        remote_secret              secret;
+};
+struct remote_connect_secret_event_register_any_ret {
+        int                        callbackID;
+};
+struct remote_connect_secret_event_deregister_any_args {
+        int                        callbackID;
+};
+struct remote_secret_event_lifecycle_msg {
+        int                        callbackID;
+        remote_nonnull_secret      secret;
+        int                        event;
+        int                        detail;
+};
+struct remote_secret_event_value_changed_msg {
+        int                        callbackID;
+        remote_nonnull_secret      secret;
+};
 enum remote_procedure {
         REMOTE_PROC_CONNECT_OPEN = 1,
         REMOTE_PROC_CONNECT_CLOSE = 2,
@@ -3169,4 +3204,10 @@ enum remote_procedure {
         REMOTE_PROC_CONNECT_NODE_DEVICE_EVENT_DEREGISTER_ANY = 375,
         REMOTE_PROC_NODE_DEVICE_EVENT_LIFECYCLE = 376,
         REMOTE_PROC_NODE_DEVICE_EVENT_UPDATE = 377,
+        REMOTE_PROC_STORAGE_VOL_GET_INFO_FLAGS = 378,
+        REMOTE_PROC_DOMAIN_EVENT_CALLBACK_METADATA_CHANGE = 379,
+        REMOTE_PROC_CONNECT_SECRET_EVENT_REGISTER_ANY = 380,
+        REMOTE_PROC_CONNECT_SECRET_EVENT_DEREGISTER_ANY = 381,
+        REMOTE_PROC_SECRET_EVENT_LIFECYCLE = 382,
+        REMOTE_PROC_SECRET_EVENT_VALUE_CHANGED = 383,
 };

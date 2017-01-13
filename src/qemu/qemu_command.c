@@ -1442,8 +1442,7 @@ qemuBuildDriveSourceStr(virDomainDiskDefPtr disk,
     if (disk->src->format > 0 &&
         disk->src->type != VIR_STORAGE_TYPE_DIR) {
         const char *qemuformat = virStorageFileFormatTypeToString(disk->src->format);
-        if (disk->src->encryption &&
-            disk->src->encryption->format == VIR_STORAGE_ENCRYPTION_FORMAT_LUKS)
+        if (qemuDomainDiskHasEncryptionSecret(disk->src))
             qemuformat = "luks";
         virBufferAsprintf(buf, "format=%s,", qemuformat);
     }
@@ -1790,6 +1789,15 @@ qemuBuildDriveStr(virDomainDiskDefPtr disk,
         goto error;
     }
 
+    /* block I/O group 2.4 */
+    if (disk->blkdeviotune.group_name &&
+        !virQEMUCapsGet(qemuCaps, QEMU_CAPS_DRIVE_IOTUNE_GROUP)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("the block I/O throttling group parameter is "
+                         "not supported with this QEMU binary"));
+        goto error;
+    }
+
     /* block I/O throttling length 2.6 */
     if ((disk->blkdeviotune.total_bytes_sec_max_length ||
          disk->blkdeviotune.read_bytes_sec_max_length ||
@@ -1844,6 +1852,10 @@ qemuBuildDriveStr(virDomainDiskDefPtr disk,
     IOTUNE_ADD(write_iops_sec_max, "iops-write-max");
 
     IOTUNE_ADD(size_iops_sec, "iops-size");
+    if (disk->blkdeviotune.group_name) {
+        virBufferEscapeString(&opt, ",throttling.group=%s",
+                              disk->blkdeviotune.group_name);
+    }
 
     IOTUNE_ADD(total_bytes_sec_max_length, "bps-total-max-length");
     IOTUNE_ADD(read_bytes_sec_max_length, "bps-read-max-length");
@@ -3303,7 +3315,7 @@ qemuBuildMemoryBackendStr(unsigned long long size,
         return -1;
 
     if (pagesize) {
-        if (qemuGetHupageMemPath(cfg, pagesize, &mem_path) < 0)
+        if (qemuGetDomainHupageMemPath(def, cfg, pagesize, &mem_path) < 0)
             goto cleanup;
 
         *backendType = "memory-backend-file";
@@ -6230,7 +6242,7 @@ qemuBuildClockCommandLine(virCommandPtr cmd,
                    (-no-kvm-pit), otherwise, the default is catchup. */
                 if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_KVM_PIT_TICK_POLICY))
                     virCommandAddArgList(cmd, "-global",
-                                         "kvm-pit.lost_tick_policy=discard", NULL);
+                                         "kvm-pit.lost_tick_policy=delay", NULL);
                 else if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_NO_KVM_PIT))
                     virCommandAddArg(cmd, "-no-kvm-pit-reinjection");
                 break;
@@ -6249,9 +6261,15 @@ qemuBuildClockCommandLine(virCommandPtr cmd,
                     return -1;
                 }
                 break;
-            case VIR_DOMAIN_TIMER_TICKPOLICY_MERGE:
             case VIR_DOMAIN_TIMER_TICKPOLICY_DISCARD:
-                /* no way to support these modes for pit in qemu */
+                if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_KVM_PIT_TICK_POLICY))
+                    virCommandAddArgList(cmd, "-global",
+                                         "kvm-pit.lost_tick_policy=discard", NULL);
+                else if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_NO_KVM_PIT))
+                    virCommandAddArg(cmd, "-no-kvm-pit-reinjection");
+                break;
+            case VIR_DOMAIN_TIMER_TICKPOLICY_MERGE:
+                /* no way to support this mode for pit in qemu */
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                _("unsupported pit tickpolicy '%s'"),
                                virDomainTimerTickpolicyTypeToString(def->clock.timers[i]->tickpolicy));
@@ -6652,6 +6670,14 @@ qemuBuildCpuModelArgStr(virQEMUDriverPtr driver,
         break;
     }
 
+    if (ARCH_IS_S390(def->os.arch) && cpu->features &&
+        !virQEMUCapsGet(qemuCaps, QEMU_CAPS_QUERY_CPU_MODEL_EXPANSION)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("CPU features not supported by hypervisor for %s "
+                         "architecture"), virArchToString(def->os.arch));
+        goto cleanup;
+    }
+
     if (cpu->vendor_id)
         virBufferAsprintf(buf, ",vendor=%s", cpu->vendor_id);
 
@@ -6659,12 +6685,18 @@ qemuBuildCpuModelArgStr(virQEMUDriverPtr driver,
         switch ((virCPUFeaturePolicy) cpu->features[i].policy) {
         case VIR_CPU_FEATURE_FORCE:
         case VIR_CPU_FEATURE_REQUIRE:
-            virBufferAsprintf(buf, ",+%s", cpu->features[i].name);
+            if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_QUERY_CPU_MODEL_EXPANSION))
+                virBufferAsprintf(buf, ",%s=on", cpu->features[i].name);
+            else
+                virBufferAsprintf(buf, ",+%s", cpu->features[i].name);
             break;
 
         case VIR_CPU_FEATURE_DISABLE:
         case VIR_CPU_FEATURE_FORBID:
-            virBufferAsprintf(buf, ",-%s", cpu->features[i].name);
+            if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_QUERY_CPU_MODEL_EXPANSION))
+                virBufferAsprintf(buf, ",%s=off", cpu->features[i].name);
+            else
+                virBufferAsprintf(buf, ",-%s", cpu->features[i].name);
             break;
 
         case VIR_CPU_FEATURE_OPTIONAL:
@@ -7257,7 +7289,7 @@ qemuBuildMemPathStr(virQEMUDriverConfigPtr cfg,
         return -1;
     }
 
-    if (qemuGetHupageMemPath(cfg, def->mem.hugepages[0].size, &mem_path) < 0)
+    if (qemuGetDomainHupageMemPath(def, cfg, def->mem.hugepages[0].size, &mem_path) < 0)
         return -1;
 
     virCommandAddArgList(cmd, "-mem-prealloc", "-mem-path", mem_path, NULL);

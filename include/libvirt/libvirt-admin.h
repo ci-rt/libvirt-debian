@@ -404,6 +404,22 @@ int virAdmServerSetClientLimits(virAdmServerPtr srv,
                                 int nparams,
                                 unsigned int flags);
 
+int virAdmConnectGetLoggingOutputs(virAdmConnectPtr conn,
+                                   char **outputs,
+                                   unsigned int flags);
+
+int virAdmConnectGetLoggingFilters(virAdmConnectPtr conn,
+                                   char **filters,
+                                   unsigned int flags);
+
+int virAdmConnectSetLoggingOutputs(virAdmConnectPtr conn,
+                                   const char *outputs,
+                                   unsigned int flags);
+
+int virAdmConnectSetLoggingFilters(virAdmConnectPtr conn,
+                                   const char *filters,
+                                   unsigned int flags);
+
 # ifdef __cplusplus
 }
 # endif

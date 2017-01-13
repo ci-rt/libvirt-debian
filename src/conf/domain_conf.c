@@ -1656,6 +1656,7 @@ virDomainDiskDefFree(virDomainDiskDefPtr def)
     VIR_FREE(def->vendor);
     VIR_FREE(def->product);
     VIR_FREE(def->domain_name);
+    VIR_FREE(def->blkdeviotune.group_name);
     virDomainDeviceInfoClear(&def->info);
     virObjectUnref(def->privateData);
 
@@ -3350,11 +3351,10 @@ virDomainDeviceInfoNeedsFormat(virDomainDeviceInfoPtr info, unsigned int flags)
     return false;
 }
 
-static bool
+bool
 virDomainDeviceInfoAddressIsEqual(const virDomainDeviceInfo *a,
                                   const virDomainDeviceInfo *b)
 {
-
     if (a->type != b->type)
         return false;
 
@@ -4016,16 +4016,19 @@ virDomainDefPostParseGraphics(virDomainDef *def)
 }
 
 
-/* Check if a drive type address $controller:$bus:$target:$unit is already
- * taken by a disk or not.
+/**
+ * virDomainDriveAddressIsUsedByDisk:
+ * @def: domain definition containing the disks to check
+ * @bus_type: bus type
+ * @addr: address to check for duplicates
+ *
+ * Return true if any disk is already using the given address on the
+ * given bus, false otherwise.
  */
 static bool
 virDomainDriveAddressIsUsedByDisk(const virDomainDef *def,
-                                  virDomainDiskBus type,
-                                  unsigned int controller,
-                                  unsigned int bus,
-                                  unsigned int target,
-                                  unsigned int unit)
+                                  virDomainDiskBus bus_type,
+                                  const virDomainDeviceDriveAddress *addr)
 {
     virDomainDiskDefPtr disk;
     size_t i;
@@ -4033,14 +4036,14 @@ virDomainDriveAddressIsUsedByDisk(const virDomainDef *def,
     for (i = 0; i < def->ndisks; i++) {
         disk = def->disks[i];
 
-        if (disk->bus != type ||
+        if (disk->bus != bus_type ||
             disk->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE)
             continue;
 
-        if (disk->info.addr.drive.controller == controller &&
-            disk->info.addr.drive.unit == unit &&
-            disk->info.addr.drive.bus == bus &&
-            disk->info.addr.drive.target == target)
+        if (disk->info.addr.drive.controller == addr->controller &&
+            disk->info.addr.drive.unit == addr->unit &&
+            disk->info.addr.drive.bus == addr->bus &&
+            disk->info.addr.drive.target == addr->target)
             return true;
     }
 
@@ -4048,16 +4051,19 @@ virDomainDriveAddressIsUsedByDisk(const virDomainDef *def,
 }
 
 
-/* Check if a drive type address $controller:$target:$bus:$unit is already
- * taken by a host device or not.
+/**
+ * virDomainDriveAddressIsUsedByHostdev:
+ * @def: domain definition containing the hostdevs to check
+ * @type: bus type
+ * @addr: address to check for duplicates
+ *
+ * Return true if any hostdev is already using the given address on the
+ * given bus, false otherwise.
  */
 static bool
 virDomainDriveAddressIsUsedByHostdev(const virDomainDef *def,
                                      virDomainHostdevSubsysType type,
-                                     unsigned int controller,
-                                     unsigned int bus,
-                                     unsigned int target,
-                                     unsigned int unit)
+                                     const virDomainDeviceDriveAddress *addr)
 {
     virDomainHostdevDefPtr hostdev;
     size_t i;
@@ -4069,10 +4075,10 @@ virDomainDriveAddressIsUsedByHostdev(const virDomainDef *def,
             hostdev->info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE)
             continue;
 
-        if (hostdev->info->addr.drive.controller == controller &&
-            hostdev->info->addr.drive.unit == unit &&
-            hostdev->info->addr.drive.bus == bus &&
-            hostdev->info->addr.drive.target == target)
+        if (hostdev->info->addr.drive.controller == addr->controller &&
+            hostdev->info->addr.drive.unit == addr->unit &&
+            hostdev->info->addr.drive.bus == addr->bus &&
+            hostdev->info->addr.drive.target == addr->target)
             return true;
     }
 
@@ -4080,24 +4086,29 @@ virDomainDriveAddressIsUsedByHostdev(const virDomainDef *def,
 }
 
 
+/**
+ * virDomainSCSIDriveAddressIsUsed:
+ * @def: domain definition to check against
+ * @addr: address to check for duplicates
+ *
+ * Return true if the SCSI drive address is already in use, false
+ * otherwise.
+ */
 static bool
 virDomainSCSIDriveAddressIsUsed(const virDomainDef *def,
-                                unsigned int controller,
-                                unsigned int bus,
-                                unsigned int target,
-                                unsigned int unit)
+                                const virDomainDeviceDriveAddress *addr)
 {
     /* In current implementation, the maximum unit number of a controller
      * is either 16 or 7 (narrow SCSI bus), and if the maximum unit number
      * is 16, the controller itself is on unit 7 */
-    if (unit == 7)
+    if (addr->unit == 7)
         return true;
 
     if (virDomainDriveAddressIsUsedByDisk(def, VIR_DOMAIN_DISK_BUS_SCSI,
-                                          controller, bus, target, unit) ||
+                                          addr) ||
         virDomainDriveAddressIsUsedByHostdev(def,
                                              VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI,
-                                             controller, bus, target, unit))
+                                             addr))
         return true;
 
     return false;
@@ -4114,7 +4125,9 @@ virDomainControllerSCSINextUnit(const virDomainDef *def,
 
     for (i = 0; i < max_unit; i++) {
         /* Default to assigning addresses using bus = target = 0 */
-        if (!virDomainSCSIDriveAddressIsUsed(def, controller, 0, 0, i))
+        const virDomainDeviceDriveAddress addr = {controller, 0, 0, i};
+
+        if (!virDomainSCSIDriveAddressIsUsed(def, &addr))
             return i;
     }
 
@@ -4270,10 +4283,7 @@ virDomainDeviceDefPostParseInternal(virDomainDeviceDefPtr dev,
                 virDomainDeviceDriveAddressPtr addr = &hdev->info->addr.drive;
                 if (virDomainDriveAddressIsUsedByDisk(def,
                                                       VIR_DOMAIN_DISK_BUS_SCSI,
-                                                      addr->controller,
-                                                      addr->bus,
-                                                      addr->target,
-                                                      addr->unit)) {
+                                                      addr)) {
                     virReportError(VIR_ERR_XML_ERROR,
                                    _("SCSI host address controller='%u' "
                                      "bus='%u' target='%u' unit='%u' in "
@@ -4672,6 +4682,48 @@ virDomainDefPostParse(virDomainDefPtr def,
 }
 
 
+/**
+ * virDomainDiskAddressDiskBusCompatibility:
+ * @bus: disk bus type
+ * @addressType: disk address type
+ *
+ * Check if the specified disk address type @addressType is compatible
+ * with the specified disk bus type @bus. This function checks
+ * compatibility with the bus types SATA, SCSI, FDC, and IDE only,
+ * because only these are handled in common code.
+ *
+ * Returns true if compatible or can't be decided in common code,
+ *         false if known to be not compatible.
+ */
+static bool
+virDomainDiskAddressDiskBusCompatibility(virDomainDiskBus bus,
+                                         virDomainDeviceAddressType addressType)
+{
+    if (addressType == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
+        return true;
+
+    switch (bus) {
+    case VIR_DOMAIN_DISK_BUS_IDE:
+    case VIR_DOMAIN_DISK_BUS_FDC:
+    case VIR_DOMAIN_DISK_BUS_SCSI:
+    case VIR_DOMAIN_DISK_BUS_SATA:
+        return addressType == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE;
+    case VIR_DOMAIN_DISK_BUS_VIRTIO:
+    case VIR_DOMAIN_DISK_BUS_XEN:
+    case VIR_DOMAIN_DISK_BUS_USB:
+    case VIR_DOMAIN_DISK_BUS_UML:
+    case VIR_DOMAIN_DISK_BUS_SD:
+    case VIR_DOMAIN_DISK_BUS_LAST:
+        return true;
+    }
+
+    virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                   _("unexpected bus type '%d'"),
+                   bus);
+    return true;
+}
+
+
 static int
 virDomainDiskDefValidate(const virDomainDiskDef *disk)
 {
@@ -4687,6 +4739,20 @@ virDomainDiskDefValidate(const virDomainDiskDef *disk)
                              "device='lun'"), disk->dst);
             return -1;
         }
+    }
+
+    /* Reject disks with a bus type that is not compatible with the
+     * given address type. The function considers only buses that are
+     * handled in common code. For other bus types it's not possible
+     * to decide compatibility in common code.
+     */
+    if (!virDomainDiskAddressDiskBusCompatibility(disk->bus, disk->info.type)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Invalid address type '%s' for the disk '%s' with the bus type '%s'"),
+                       virDomainDeviceAddressTypeToString(disk->info.type),
+                       disk->dst,
+                       virDomainDiskBusTypeToString(disk->bus));
+        return -1;
     }
 
     return 0;
@@ -4832,11 +4898,119 @@ virDomainDefCheckDuplicateDiskInfo(const virDomainDef *def)
     return 0;
 }
 
+/**
+ * virDomainDefCheckDuplicateDriveAddresses:
+ * @def: domain definition to check against
+ *
+ * This function checks @def for duplicate drive addresses. Drive
+ * addresses are only in use for disks and hostdevs at the moment.
+ *
+ * Returns 0 in case of there are no duplicate drive addresses, -1
+ * otherwise.
+ */
+static int
+virDomainDefCheckDuplicateDriveAddresses(const virDomainDef *def)
+{
+    size_t i;
+    size_t j;
+
+    for (i = 0; i < def->ndisks; i++) {
+        virDomainDiskDefPtr disk_i = def->disks[i];
+        virDomainDeviceInfoPtr disk_info_i = &disk_i->info;
+
+        if (disk_info_i->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE)
+            continue;
+
+        for (j = i + 1; j < def->ndisks; j++) {
+            virDomainDiskDefPtr disk_j = def->disks[j];
+            virDomainDeviceInfoPtr disk_info_j = &disk_j->info;
+
+            if (disk_i->bus != disk_j->bus)
+                continue;
+
+            if (disk_info_j->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE)
+                continue;
+
+            if (virDomainDeviceInfoAddressIsEqual(disk_info_i, disk_info_j)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("Found duplicate drive address for disk with "
+                                 "target name '%s' controller='%u' bus='%u' "
+                                 "target='%u' unit='%u'"),
+                               disk_i->dst,
+                               disk_info_i->addr.drive.controller,
+                               disk_info_i->addr.drive.bus,
+                               disk_info_i->addr.drive.target,
+                               disk_info_i->addr.drive.unit);
+                return -1;
+            }
+        }
+
+        /* Note: There is no need to check for conflicts with SCSI
+         * hostdevs above, because conflicts with hostdevs are checked
+         * in the next loop.
+         */
+    }
+
+    for (i = 0; i < def->nhostdevs; i++) {
+        virDomainHostdevDefPtr hdev_i = def->hostdevs[i];
+        virDomainDeviceInfoPtr hdev_info_i = hdev_i->info;
+        virDomainDeviceDriveAddressPtr hdev_addr_i;
+
+        if (!virHostdevIsSCSIDevice(hdev_i))
+            continue;
+
+        if (hdev_i->info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE)
+            continue;
+
+        hdev_addr_i = &hdev_info_i->addr.drive;
+        for (j = i + 1; j < def->nhostdevs; j++) {
+            virDomainHostdevDefPtr hdev_j = def->hostdevs[j];
+            virDomainDeviceInfoPtr hdev_info_j = hdev_j->info;
+
+            if (!virHostdevIsSCSIDevice(hdev_j))
+                continue;
+
+            /* Address type check for hdev_j will be done implicitly
+             * in virDomainDeviceInfoAddressIsEqual() */
+
+            if (virDomainDeviceInfoAddressIsEqual(hdev_info_i, hdev_info_j)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("SCSI host address controller='%u' "
+                                 "bus='%u' target='%u' unit='%u' in "
+                                 "use by another SCSI host device"),
+                               hdev_addr_i->bus,
+                               hdev_addr_i->controller,
+                               hdev_addr_i->target,
+                               hdev_addr_i->unit);
+                return -1;
+            }
+        }
+
+        if (virDomainDriveAddressIsUsedByDisk(def, VIR_DOMAIN_DISK_BUS_SCSI,
+                                              hdev_addr_i)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("SCSI host address controller='%u' "
+                             "bus='%u' target='%u' unit='%u' in "
+                             "use by another SCSI disk"),
+                           hdev_addr_i->bus,
+                           hdev_addr_i->controller,
+                           hdev_addr_i->target,
+                           hdev_addr_i->unit);
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
 
 static int
 virDomainDefValidateInternal(const virDomainDef *def)
 {
     if (virDomainDefCheckDuplicateDiskInfo(def) < 0)
+        return -1;
+
+    if (virDomainDefCheckDuplicateDriveAddresses(def) < 0)
         return -1;
 
     if (virDomainDefGetVcpusTopology(def, NULL) < 0)
@@ -6535,6 +6709,7 @@ virDomainDiskDefAssignAddress(virDomainXMLOptionPtr xmlopt,
 
     switch (def->bus) {
     case VIR_DOMAIN_DISK_BUS_SCSI: {
+        virDomainDeviceDriveAddress addr = {0, 0, 0, 0};
         unsigned int controller;
         unsigned int unit;
 
@@ -6559,9 +6734,12 @@ virDomainDiskDefAssignAddress(virDomainXMLOptionPtr xmlopt,
             unit = idx % 7;
         }
 
+        addr.controller = controller;
+        addr.unit = unit;
+
         if (virDomainDriveAddressIsUsedByHostdev(vmdef,
                                                  VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI,
-                                                 controller, 0, 0, unit)) {
+                                                 &addr)) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("using disk target name '%s' conflicts with "
                              "SCSI host device address controller='%u' "
@@ -6570,10 +6748,7 @@ virDomainDiskDefAssignAddress(virDomainXMLOptionPtr xmlopt,
             return -1;
         }
 
-        def->info.addr.drive.controller = controller;
-        def->info.addr.drive.bus = 0;
-        def->info.addr.drive.target = 0;
-        def->info.addr.drive.unit = unit;
+        memcpy(&def->info.addr.drive, &addr, sizeof(addr));
         break;
     }
 
@@ -7280,6 +7455,9 @@ virDomainDiskDefIotuneParse(virDomainDiskDefPtr def,
     PARSE_IOTUNE(total_iops_sec_max_length);
     PARSE_IOTUNE(read_iops_sec_max_length);
     PARSE_IOTUNE(write_iops_sec_max_length);
+
+    def->blkdeviotune.group_name =
+        virXPathString("string(./iotune/group_name)", ctxt);
 
     if ((def->blkdeviotune.total_bytes_sec &&
          def->blkdeviotune.read_bytes_sec) ||
@@ -20510,6 +20688,7 @@ virDomainDiskDefFormat(virBufferPtr buf,
         def->blkdeviotune.read_iops_sec_max ||
         def->blkdeviotune.write_iops_sec_max ||
         def->blkdeviotune.size_iops_sec ||
+        def->blkdeviotune.group_name ||
         def->blkdeviotune.total_bytes_sec_max_length ||
         def->blkdeviotune.read_bytes_sec_max_length ||
         def->blkdeviotune.write_bytes_sec_max_length ||
@@ -20536,6 +20715,11 @@ virDomainDiskDefFormat(virBufferPtr buf,
         if (def->blkdeviotune.size_iops_sec) {
             virBufferAsprintf(buf, "<size_iops_sec>%llu</size_iops_sec>\n",
                               def->blkdeviotune.size_iops_sec);
+        }
+
+        if (def->blkdeviotune.group_name) {
+            virBufferEscapeString(buf, "<group_name>%s</group_name>\n",
+                                  def->blkdeviotune.group_name);
         }
 
         FORMAT_IOTUNE(total_bytes_sec_max_length);
@@ -22633,7 +22817,10 @@ virDomainGraphicsDefFormat(virBufferPtr buf,
             virBufferAsprintf(buf, " autoport='%s'",
                               def->data.vnc.autoport ? "yes" : "no");
 
-            if (def->data.vnc.websocket)
+            if (def->data.vnc.websocketGenerated &&
+                (flags & VIR_DOMAIN_DEF_FORMAT_INACTIVE))
+                virBufferAddLit(buf, " websocket='-1'");
+            else if (def->data.vnc.websocket)
                 virBufferAsprintf(buf, " websocket='%d'", def->data.vnc.websocket);
 
             virDomainGraphicsListenDefFormatAddr(buf, glisten, flags);
@@ -23165,183 +23352,35 @@ virDomainDefHasCapabilitiesFeatures(virDomainDefPtr def)
 }
 
 
-/**
- * virDomainFormatSchedDef:
- * @def: domain definiton
- * @buf: target XML buffer
- * @name: name of the target XML element
- * @func: function that returns the thread scheduler parameter struct for an object
- * @resourceMap: bitmap of indexes of objects that shall be formatted (used with @func)
- *
- * Formats one of the two scheduler tuning elements to the XML. This function
- * transforms the internal representation where the scheduler info is stored
- * per-object to the XML representation where the info is stored per group of
- * objects. This function autogroups all the relevant scheduler configs.
- *
- * Returns 0 on success -1 on error.
- */
-static int
-virDomainFormatSchedDef(virDomainDefPtr def,
-                        virBufferPtr buf,
-                        const char *name,
-                        virDomainThreadSchedParamPtr (*func)(virDomainDefPtr, unsigned int),
-                        virBitmapPtr resourceMap)
+static void
+virDomainSchedulerFormat(virBufferPtr buf,
+                         const char *name,
+                         virDomainThreadSchedParamPtr sched,
+                         size_t id)
 {
-    virBitmapPtr schedMap = NULL;
-    virBitmapPtr prioMap = NULL;
-    virDomainThreadSchedParamPtr sched;
-    char *tmp = NULL;
-    ssize_t next;
-    size_t i;
-    int ret = -1;
+    switch (sched->policy) {
+        case VIR_PROC_POLICY_BATCH:
+        case VIR_PROC_POLICY_IDLE:
+            virBufferAsprintf(buf, "<%ssched "
+                              "%ss='%zu' scheduler='%s'/>\n",
+                              name, name, id,
+                              virProcessSchedPolicyTypeToString(sched->policy));
+            break;
 
-    /* Okay, @func should never return NULL here because it does
-     * so iff corresponding resource does not exists. But if it
-     * doesn't we should not have been called in the first place.
-     * But some compilers fails to see this complex reasoning and
-     * deduct that this code is buggy. Shut them up by checking
-     * for return value of sched. Even though we don't need to.
-     */
+        case VIR_PROC_POLICY_RR:
+        case VIR_PROC_POLICY_FIFO:
+            virBufferAsprintf(buf, "<%ssched "
+                              "%ss='%zu' scheduler='%s' priority='%d'/>\n",
+                              name, name, id,
+                              virProcessSchedPolicyTypeToString(sched->policy),
+                              sched->priority);
+            break;
 
-    if (!(schedMap = virBitmapNew(VIR_DOMAIN_CPUMASK_LEN)) ||
-        !(prioMap = virBitmapNew(VIR_DOMAIN_CPUMASK_LEN)))
-        goto cleanup;
-
-    for (i = VIR_PROC_POLICY_NONE + 1; i < VIR_PROC_POLICY_LAST; i++) {
-        virBitmapClearAll(schedMap);
-
-        /* find vcpus using a particular scheduler */
-        next = -1;
-        while ((next = virBitmapNextSetBit(resourceMap, next)) > -1) {
-            sched = func(def, next);
-
-            if (sched && sched->policy == i)
-                ignore_value(virBitmapSetBit(schedMap, next));
+        case VIR_PROC_POLICY_NONE:
+        case VIR_PROC_POLICY_LAST:
+            break;
         }
 
-        /* it's necessary to discriminate priority levels for schedulers that
-         * have them */
-        while (!virBitmapIsAllClear(schedMap)) {
-            virBitmapPtr currentMap = NULL;
-            ssize_t nextprio;
-            bool hasPriority = false;
-            int priority = 0;
-
-            switch ((virProcessSchedPolicy) i) {
-            case VIR_PROC_POLICY_NONE:
-            case VIR_PROC_POLICY_BATCH:
-            case VIR_PROC_POLICY_IDLE:
-            case VIR_PROC_POLICY_LAST:
-                currentMap = schedMap;
-                break;
-
-            case VIR_PROC_POLICY_FIFO:
-            case VIR_PROC_POLICY_RR:
-                virBitmapClearAll(prioMap);
-                hasPriority = true;
-
-                /* we need to find a subset of vCPUs with the given scheduler
-                 * that share the priority */
-                nextprio = virBitmapNextSetBit(schedMap, -1);
-                if (!(sched = func(def, nextprio)))
-                    goto cleanup;
-
-                priority = sched->priority;
-                ignore_value(virBitmapSetBit(prioMap, nextprio));
-
-                while ((nextprio = virBitmapNextSetBit(schedMap, nextprio)) > -1) {
-                    sched = func(def, nextprio);
-                    if (sched && sched->priority == priority)
-                        ignore_value(virBitmapSetBit(prioMap, nextprio));
-                }
-
-                currentMap = prioMap;
-                break;
-            }
-
-            /* now we have the complete group */
-            if (!(tmp = virBitmapFormat(currentMap)))
-                goto cleanup;
-
-            virBufferAsprintf(buf,
-                              "<%sched %s='%s' scheduler='%s'",
-                              name, name, tmp,
-                              virProcessSchedPolicyTypeToString(i));
-            VIR_FREE(tmp);
-
-            if (hasPriority)
-                virBufferAsprintf(buf, " priority='%d'", priority);
-
-            virBufferAddLit(buf, "/>\n");
-
-            /* subtract all vCPUs that were already found */
-            virBitmapSubtract(schedMap, currentMap);
-        }
-    }
-
-    ret = 0;
-
- cleanup:
-    virBitmapFree(schedMap);
-    virBitmapFree(prioMap);
-    return ret;
-}
-
-
-static int
-virDomainFormatVcpuSchedDef(virDomainDefPtr def,
-                            virBufferPtr buf)
-{
-    virBitmapPtr allcpumap;
-    int ret;
-
-    if (virDomainDefGetVcpusMax(def) == 0)
-        return 0;
-
-    if (!(allcpumap = virBitmapNew(virDomainDefGetVcpusMax(def))))
-        return -1;
-
-    virBitmapSetAll(allcpumap);
-
-    ret = virDomainFormatSchedDef(def, buf, "vcpus", virDomainDefGetVcpuSched,
-                                  allcpumap);
-
-    virBitmapFree(allcpumap);
-    return ret;
-}
-
-
-static int
-virDomainFormatIOThreadSchedDef(virDomainDefPtr def,
-                                virBufferPtr buf)
-{
-    virBitmapPtr threadmap;
-    size_t i;
-    int ret = -1;
-
-    if (def->niothreadids == 0)
-        return 0;
-
-    if (!(threadmap = virBitmapNewEmpty()))
-        return -1;
-
-    for (i = 0; i < def->niothreadids; i++) {
-        if (def->iothreadids[i]->sched.policy != VIR_PROC_POLICY_NONE &&
-            virBitmapSetBitExpand(threadmap, def->iothreadids[i]->iothread_id) < 0)
-            goto cleanup;
-    }
-
-    if (virBitmapIsAllClear(threadmap)) {
-        ret = 0;
-        goto cleanup;
-    }
-
-    ret = virDomainFormatSchedDef(def, buf, "iothreads",
-                                  virDomainDefGetIOThreadSched, threadmap);
-
- cleanup:
-    virBitmapFree(threadmap);
-    return ret;
 }
 
 
@@ -23435,11 +23474,16 @@ virDomainCputuneDefFormat(virBufferPtr buf,
         VIR_FREE(cpumask);
     }
 
-    if (virDomainFormatVcpuSchedDef(def, &childrenBuf) < 0)
-        goto cleanup;
+    for (i = 0; i < def->maxvcpus; i++) {
+        virDomainSchedulerFormat(&childrenBuf, "vcpu",
+                                 &def->vcpus[i]->sched, i);
+    }
 
-    if (virDomainFormatIOThreadSchedDef(def, &childrenBuf) < 0)
-        goto cleanup;
+    for (i = 0; i < def->niothreadids; i++) {
+        virDomainSchedulerFormat(&childrenBuf, "iothread",
+                                 &def->iothreadids[i]->sched,
+                                 def->iothreadids[i]->iothread_id);
+    }
 
     if (virBufferUse(&childrenBuf)) {
         virBufferAddLit(buf, "<cputune>\n");
@@ -25715,13 +25759,13 @@ virDomainDefHasMemballoon(const virDomainDef *def)
  * Shorten domain name to avoid possible path length limitations.
  */
 char *
-virDomainObjGetShortName(virDomainObjPtr vm)
+virDomainObjGetShortName(const virDomainDef *def)
 {
     const int dommaxlen = 20;
     char *ret = NULL;
 
     ignore_value(virAsprintf(&ret, "%d-%.*s",
-                             vm->def->id, dommaxlen, vm->def->name));
+                             def->id, dommaxlen, def->name));
 
     return ret;
 }

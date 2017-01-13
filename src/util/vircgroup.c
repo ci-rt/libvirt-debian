@@ -60,6 +60,7 @@
 #include "virsystemd.h"
 #include "virtypedparam.h"
 #include "virhostcpu.h"
+#include "virthread.h"
 
 VIR_LOG_INIT("util.cgroup");
 
@@ -655,11 +656,8 @@ virCgroupDetect(virCgroupPtr group,
 
     if (controllers >= 0) {
         VIR_DEBUG("Filtering controllers %d", controllers);
+        /* First mark requested but non-existing controllers to be ignored */
         for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
-            VIR_DEBUG("Controller '%s' wanted=%s, mount='%s'",
-                      virCgroupControllerTypeToString(i),
-                      (1 << i) & controllers ? "yes" : "no",
-                      NULLSTR(group->controllers[i].mountPoint));
             if (((1 << i) & controllers)) {
                 /* Remove non-existent controllers  */
                 if (!group->controllers[i].mountPoint) {
@@ -667,7 +665,15 @@ virCgroupDetect(virCgroupPtr group,
                               virCgroupControllerTypeToString(i));
                     controllers &= ~(1 << i);
                 }
-            } else {
+            }
+        }
+        for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
+            VIR_DEBUG("Controller '%s' wanted=%s, mount='%s'",
+                      virCgroupControllerTypeToString(i),
+                      (1 << i) & controllers ? "yes" : "no",
+                      NULLSTR(group->controllers[i].mountPoint));
+            if (!((1 << i) & controllers) &&
+                group->controllers[i].mountPoint) {
                 /* Check whether a request to disable a controller
                  * clashes with co-mounting of controllers */
                 for (j = 0; j < VIR_CGROUP_CONTROLLER_LAST; j++) {
@@ -1178,16 +1184,8 @@ virCgroupNew(pid_t pid,
 }
 
 
-/**
- * virCgroupAddTask:
- *
- * @group: The cgroup to add a task to
- * @pid: The pid of the task to add
- *
- * Returns: 0 on success, -1 on error
- */
-int
-virCgroupAddTask(virCgroupPtr group, pid_t pid)
+static int
+virCgroupAddTaskInternal(virCgroupPtr group, pid_t pid, bool withSystemd)
 {
     int ret = -1;
     size_t i;
@@ -1197,8 +1195,10 @@ virCgroupAddTask(virCgroupPtr group, pid_t pid)
         if (!group->controllers[i].mountPoint)
             continue;
 
-        /* We must never add tasks in systemd's hierarchy */
-        if (i == VIR_CGROUP_CONTROLLER_SYSTEMD)
+        /* We must never add tasks in systemd's hierarchy
+         * unless we're intentionally trying to move a
+         * task into a systemd machine scope */
+        if (i == VIR_CGROUP_CONTROLLER_SYSTEMD && !withSystemd)
             continue;
 
         if (virCgroupAddTaskController(group, pid, i) < 0)
@@ -1208,6 +1208,40 @@ virCgroupAddTask(virCgroupPtr group, pid_t pid)
     ret = 0;
  cleanup:
     return ret;
+}
+
+/**
+ * virCgroupAddTask:
+ *
+ * @group: The cgroup to add a task to
+ * @pid: The pid of the task to add
+ *
+ * Will add the task to all controllers, except the
+ * systemd unit controller.
+ *
+ * Returns: 0 on success, -1 on error
+ */
+int
+virCgroupAddTask(virCgroupPtr group, pid_t pid)
+{
+    return virCgroupAddTaskInternal(group, pid, false);
+}
+
+/**
+ * virCgroupAddMachineTask:
+ *
+ * @group: The cgroup to add a task to
+ * @pid: The pid of the task to add
+ *
+ * Will add the task to all controllers, including the
+ * systemd unit controller.
+ *
+ * Returns: 0 on success, -1 on error
+ */
+int
+virCgroupAddMachineTask(virCgroupPtr group, pid_t pid)
+{
+    return virCgroupAddTaskInternal(group, pid, true);
 }
 
 
@@ -2452,6 +2486,51 @@ virCgroupGetBlkioDeviceWeight(virCgroupPtr group,
 }
 
 
+/*
+ * Retrieve the "memory.limit_in_bytes" value from the memory controller
+ * root dir. This value cannot be modified by userspace and therefore
+ * is the maximum limit value supported by cgroups on the local system.
+ * Returns this value scaled to KB or falls back to the original
+ * VIR_DOMAIN_MEMORY_PARAM_UNLIMITED. Either way, remember the return
+ * value to avoid unnecessary cgroup filesystem access.
+ */
+static unsigned long long int virCgroupMemoryUnlimitedKB;
+static virOnceControl virCgroupMemoryOnce = VIR_ONCE_CONTROL_INITIALIZER;
+
+static void
+virCgroupMemoryOnceInit(void)
+{
+    virCgroupPtr group;
+    unsigned long long int mem_unlimited = 0ULL;
+
+    if (virCgroupNew(-1, "/", NULL, -1, &group) < 0)
+        goto cleanup;
+
+    if (!virCgroupHasController(group, VIR_CGROUP_CONTROLLER_MEMORY))
+        goto cleanup;
+
+    ignore_value(virCgroupGetValueU64(group,
+                                      VIR_CGROUP_CONTROLLER_MEMORY,
+                                      "memory.limit_in_bytes",
+                                      &mem_unlimited));
+ cleanup:
+    virCgroupFree(&group);
+    virCgroupMemoryUnlimitedKB = mem_unlimited >> 10;
+}
+
+static unsigned long long int
+virCgroupGetMemoryUnlimitedKB(void)
+{
+    if (virOnce(&virCgroupMemoryOnce, virCgroupMemoryOnceInit) < 0)
+        VIR_DEBUG("Init failed, will fall back to defaults.");
+
+    if (virCgroupMemoryUnlimitedKB)
+        return virCgroupMemoryUnlimitedKB;
+    else
+        return VIR_DOMAIN_MEMORY_PARAM_UNLIMITED;
+}
+
+
 /**
  * virCgroupSetMemory:
  *
@@ -2534,20 +2613,17 @@ int
 virCgroupGetMemoryHardLimit(virCgroupPtr group, unsigned long long *kb)
 {
     long long unsigned int limit_in_bytes;
-    int ret = -1;
 
     if (virCgroupGetValueU64(group,
                              VIR_CGROUP_CONTROLLER_MEMORY,
                              "memory.limit_in_bytes", &limit_in_bytes) < 0)
-        goto cleanup;
+        return -1;
 
     *kb = limit_in_bytes >> 10;
-    if (*kb > VIR_DOMAIN_MEMORY_PARAM_UNLIMITED)
+    if (*kb >= virCgroupGetMemoryUnlimitedKB())
         *kb = VIR_DOMAIN_MEMORY_PARAM_UNLIMITED;
 
-    ret = 0;
- cleanup:
-    return ret;
+    return 0;
 }
 
 
@@ -2596,20 +2672,17 @@ int
 virCgroupGetMemorySoftLimit(virCgroupPtr group, unsigned long long *kb)
 {
     long long unsigned int limit_in_bytes;
-    int ret = -1;
 
     if (virCgroupGetValueU64(group,
                              VIR_CGROUP_CONTROLLER_MEMORY,
                              "memory.soft_limit_in_bytes", &limit_in_bytes) < 0)
-        goto cleanup;
+        return -1;
 
     *kb = limit_in_bytes >> 10;
-    if (*kb > VIR_DOMAIN_MEMORY_PARAM_UNLIMITED)
+    if (*kb >= virCgroupGetMemoryUnlimitedKB())
         *kb = VIR_DOMAIN_MEMORY_PARAM_UNLIMITED;
 
-    ret = 0;
- cleanup:
-    return ret;
+    return 0;
 }
 
 
@@ -2658,20 +2731,17 @@ int
 virCgroupGetMemSwapHardLimit(virCgroupPtr group, unsigned long long *kb)
 {
     long long unsigned int limit_in_bytes;
-    int ret = -1;
 
     if (virCgroupGetValueU64(group,
                              VIR_CGROUP_CONTROLLER_MEMORY,
                              "memory.memsw.limit_in_bytes", &limit_in_bytes) < 0)
-        goto cleanup;
+        return -1;
 
     *kb = limit_in_bytes >> 10;
-    if (*kb > VIR_DOMAIN_MEMORY_PARAM_UNLIMITED)
+    if (*kb >= virCgroupGetMemoryUnlimitedKB())
         *kb = VIR_DOMAIN_MEMORY_PARAM_UNLIMITED;
 
-    ret = 0;
- cleanup:
-    return ret;
+    return 0;
 }
 
 
@@ -4211,6 +4281,16 @@ virCgroupPathOfController(virCgroupPtr group ATTRIBUTE_UNUSED,
 int
 virCgroupAddTask(virCgroupPtr group ATTRIBUTE_UNUSED,
                  pid_t pid ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENXIO, "%s",
+                         _("Control groups not supported on this platform"));
+    return -1;
+}
+
+
+int
+virCgroupAddMachineTask(virCgroupPtr group ATTRIBUTE_UNUSED,
+                        pid_t pid ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENXIO, "%s",
                          _("Control groups not supported on this platform"));

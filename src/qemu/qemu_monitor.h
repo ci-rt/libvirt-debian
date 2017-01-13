@@ -682,10 +682,6 @@ int qemuMonitorMigrateToCommand(qemuMonitorPtr mon,
                                 unsigned int flags,
                                 const char * const *argv);
 
-int qemuMonitorMigrateToUnix(qemuMonitorPtr mon,
-                             unsigned int flags,
-                             const char *unixfile);
-
 int qemuMonitorMigrateCancel(qemuMonitorPtr mon);
 
 int qemuMonitorGetDumpGuestMemoryCapability(qemuMonitorPtr mon,
@@ -880,6 +876,7 @@ int qemuMonitorSetBlockIoThrottle(qemuMonitorPtr mon,
                                   const char *device,
                                   virDomainBlockIoTuneInfoPtr info,
                                   bool supportMaxOptions,
+                                  bool supportGroupNameOption,
                                   bool supportMaxLengthOptions);
 
 int qemuMonitorGetBlockIoThrottle(qemuMonitorPtr mon,
@@ -923,6 +920,28 @@ struct _qemuMonitorCPUDefInfo {
 int qemuMonitorGetCPUDefinitions(qemuMonitorPtr mon,
                                  qemuMonitorCPUDefInfoPtr **cpus);
 void qemuMonitorCPUDefInfoFree(qemuMonitorCPUDefInfoPtr cpu);
+
+typedef struct _qemuMonitorCPUModelInfo qemuMonitorCPUModelInfo;
+typedef qemuMonitorCPUModelInfo *qemuMonitorCPUModelInfoPtr;
+
+struct _qemuMonitorCPUModelInfo {
+    char *name;
+    size_t nprops;
+    struct {
+        char *name;
+        bool supported;
+    } *props;
+};
+
+int qemuMonitorGetCPUModelExpansion(qemuMonitorPtr mon,
+                                    const char *type,
+                                    const char *model_name,
+                                    qemuMonitorCPUModelInfoPtr *model_info);
+
+void qemuMonitorCPUModelInfoFree(qemuMonitorCPUModelInfoPtr model_info);
+
+qemuMonitorCPUModelInfoPtr
+qemuMonitorCPUModelInfoCopy(const qemuMonitorCPUModelInfo *orig);
 
 int qemuMonitorGetCommands(qemuMonitorPtr mon,
                            char ***commands);

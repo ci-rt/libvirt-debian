@@ -687,9 +687,6 @@
    libc. */
 #undef HAVE_COPYSIGN_IN_LIBC
 
-/* whether CPUID instruction is supported */
-#undef HAVE_CPUID
-
 /* Define to 1 if the system has the type `DBusBasicValue'. */
 #undef HAVE_DBUSBASICVALUE
 
@@ -1137,8 +1134,14 @@
 /* Define to 1 if you have the 'getuid' function. */
 #undef HAVE_GETUID
 
+/* Define to 1 if you have the `gnutls_cipher_encrypt' function. */
+#undef HAVE_GNUTLS_CIPHER_ENCRYPT
+
 /* Define to 1 if you have the <gnutls/crypto.h> header file. */
 #undef HAVE_GNUTLS_CRYPTO_H
+
+/* Define to 1 if you have the `gnutls_rnd' function. */
+#undef HAVE_GNUTLS_RND
 
 /* Define to 1 if you have the `grantpt' function. */
 #undef HAVE_GRANTPT
@@ -1228,9 +1231,6 @@
 /* Define to 1 if you have the `devmapper' library (-ldevmapper). */
 #undef HAVE_LIBDEVMAPPER
 
-/* Define to 1 if you have the <libdevmapper.h> header file. */
-#undef HAVE_LIBDEVMAPPER_H
-
 /* Define to 1 if you have the `intl' library (-lintl). */
 #undef HAVE_LIBINTL
 
@@ -1275,6 +1275,12 @@
 
 /* Define to 1 if you have the <libutil.h> header file. */
 #undef HAVE_LIBUTIL_H
+
+/* Define to 1 if you have the `xenlight' library (-lxenlight). */
+#undef HAVE_LIBXENLIGHT
+
+/* Define to 1 if you have the `xenserver' library (-lxenserver). */
+#undef HAVE_LIBXENSERVER
 
 /* Define to 1 if you have the <libxlutil.h> header file. */
 #undef HAVE_LIBXLUTIL_H
@@ -1491,6 +1497,10 @@
 
 /* Define if the POSIX multithreading library has read/write locks. */
 #undef HAVE_PTHREAD_RWLOCK
+
+/* Define if the 'pthread_rwlock_rdlock' function prefers a writer to a
+   reader. */
+#undef HAVE_PTHREAD_RWLOCK_RDLOCK_PREFER_WRITER
 
 /* Define to 1 if the pthread_sigmask function can be used (despite bugs). */
 #undef HAVE_PTHREAD_SIGMASK
@@ -1816,6 +1826,9 @@
 /* Define to 1 if you have the `sysmp' function. */
 #undef HAVE_SYSMP
 
+/* Define to 1 if you have the <sys/acl.h> header file. */
+#undef HAVE_SYS_ACL_H
+
 /* Define to 1 if you have the <sys/bitypes.h> header file. */
 #undef HAVE_SYS_BITYPES_H
 
@@ -1945,6 +1958,9 @@
 /* Define to 1 if you have the `unsetenv' function. */
 #undef HAVE_UNSETENV
 
+/* Define to 1 if you have the 'unshare' function. */
+#undef HAVE_UNSHARE
+
 /* Define to 1 if the system has the type 'unsigned long long int'. */
 #undef HAVE_UNSIGNED_LONG_LONG_INT
 
@@ -2072,6 +2088,16 @@
 /* Define to 1 if you have the external variable, _system_configuration with a
    member named physmem. */
 #undef HAVE__SYSTEM_CONFIGURATION
+
+/* Define to 1 if the compiler supports __builtin_expect,
+   and to 2 if <builtins.h> does.  */
+#undef HAVE___BUILTIN_EXPECT
+#ifndef HAVE___BUILTIN_EXPECT
+# define __builtin_expect(e, c) (e)
+#elif HAVE___BUILTIN_EXPECT == 2
+# include <builtins.h>
+#endif
+    
 
 /* Define to 1 if you have the '__fpurge' function. */
 #undef HAVE___FPURGE
@@ -2578,6 +2604,9 @@
 /* whether dbus-1 >= 1.0.0 is available */
 #undef WITH_DBUS
 
+/* whether libdevmapper is available */
+#undef WITH_DEVMAPPER
+
 /* whether to build drivers as modules */
 #undef WITH_DRIVER_MODULES
 
@@ -2611,14 +2640,20 @@
 /* whether the interface driver is enabled */
 #undef WITH_INTERFACE
 
+/* whether libparted >= $PARTED_REQUIRED is available */
+#undef WITH_LIBPARTED
+
 /* whether libssh >= 0.7 is available */
 #undef WITH_LIBSSH
 
 /* whether libvirtd daemon is enabled */
 #undef WITH_LIBVIRTD
 
-/* whether libxenlight driver is enabled */
+/* whether libxenlight is available */
 #undef WITH_LIBXL
+
+/* whether libxml-2.0 >= $LIBXML_REQUIRED is available */
+#undef WITH_LIBXML
 
 /* whether virt-login-shell is built */
 #undef WITH_LOGIN_SHELL
@@ -2767,7 +2802,7 @@
 /* whether Xen driver is enabled */
 #undef WITH_XEN
 
-/* whether XenAPI driver is enabled */
+/* whether libxenserver is available */
 #undef WITH_XENAPI
 
 /* whether Xen inotify sub-driver is enabled */

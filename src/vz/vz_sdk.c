@@ -50,6 +50,9 @@ static PRL_HANDLE
 prlsdkFindNetByMAC(PRL_HANDLE sdkdom, virMacAddrPtr mac);
 static PRL_HANDLE
 prlsdkGetDisk(PRL_HANDLE sdkdom, virDomainDiskDefPtr disk);
+static bool
+prlsdkInBootList(PRL_HANDLE sdkdom,
+                 PRL_HANDLE sdktargetdev);
 
 /*
  * Log error description
@@ -563,6 +566,7 @@ prlsdkGetDiskId(PRL_HANDLE disk, int *bus, char **dst)
         *dst = virIndexToDiskName(pos, "hd");
         break;
     case PMS_SCSI_DEVICE:
+    case PMS_UNKNOWN_DEVICE:
         *bus = VIR_DOMAIN_DISK_BUS_SCSI;
         *dst = virIndexToDiskName(pos, "sd");
         break;
@@ -757,7 +761,8 @@ prlsdkAddDomainHardDisksInfo(vzDriverPtr driver, PRL_HANDLE sdkdom, virDomainDef
         pret = PrlVmDev_GetEmulatedType(hdd, &emulatedType);
         prlsdkCheckRetGoto(pret, error);
 
-        if (PDT_USE_REAL_DEVICE != emulatedType && IS_CT(def)) {
+        if (IS_CT(def) &&
+            prlsdkInBootList(sdkdom, hdd)) {
 
             if (!(fs = virDomainFSDefNew()))
                 goto error;
@@ -1554,6 +1559,60 @@ virFindDiskBootIndex(virDomainDefPtr def, virDomainDiskDevice type, int index)
     return NULL;
 }
 
+static bool
+prlsdkInBootList(PRL_HANDLE sdkdom,
+                 PRL_HANDLE sdktargetdev)
+{
+    bool ret = false;
+    PRL_RESULT pret;
+    PRL_UINT32 bootNum;
+    PRL_HANDLE bootDev = PRL_INVALID_HANDLE;
+    PRL_BOOL inUse;
+    PRL_DEVICE_TYPE sdkType, targetType;
+    PRL_UINT32 sdkIndex, targetIndex;
+    size_t i;
+
+    pret = PrlVmDev_GetType(sdktargetdev, &targetType);
+    prlsdkCheckRetExit(pret, -1);
+
+    pret = PrlVmDev_GetIndex(sdktargetdev, &targetIndex);
+    prlsdkCheckRetExit(pret, -1);
+
+    pret = PrlVmCfg_GetBootDevCount(sdkdom, &bootNum);
+    prlsdkCheckRetExit(pret, -1);
+
+    for (i = 0; i < bootNum; ++i) {
+        pret = PrlVmCfg_GetBootDev(sdkdom, i, &bootDev);
+        prlsdkCheckRetGoto(pret, cleanup);
+
+        pret = PrlBootDev_IsInUse(bootDev, &inUse);
+        prlsdkCheckRetGoto(pret, cleanup);
+
+        if (!inUse) {
+            PrlHandle_Free(bootDev);
+            bootDev = PRL_INVALID_HANDLE;
+            continue;
+        }
+
+        pret = PrlBootDev_GetType(bootDev, &sdkType);
+        prlsdkCheckRetGoto(pret, cleanup);
+
+        pret = PrlBootDev_GetIndex(bootDev, &sdkIndex);
+        prlsdkCheckRetGoto(pret, cleanup);
+
+        PrlHandle_Free(bootDev);
+        bootDev = PRL_INVALID_HANDLE;
+
+        if (sdkIndex == targetIndex && sdkType == targetType) {
+            ret = true;
+            break;
+        }
+    }
+
+ cleanup:
+    PrlHandle_Free(bootDev);
+    return ret;
+}
 static int
 prlsdkBootOrderCheck(PRL_HANDLE sdkdom, PRL_DEVICE_TYPE sdkType, int sdkIndex,
                      virDomainDefPtr def, int bootIndex)
@@ -1636,8 +1695,23 @@ prlsdkBootOrderCheck(PRL_HANDLE sdkdom, PRL_DEVICE_TYPE sdkType, int sdkIndex,
     return ret;
 }
 
+static void
+prlsdkConvertBootOrderCt(virDomainDefPtr def)
+{
+    size_t i;
+    for (i = 0; i < def->nfss; i++) {
+
+        if (STREQ(def->fss[i]->dst, "/")) {
+            def->os.nBootDevs = 0;
+            return;
+        }
+    }
+    def->os.nBootDevs = 1;
+    def->os.bootDevs[0] = VIR_DOMAIN_BOOT_DISK;
+}
+
 static int
-prlsdkConvertBootOrder(PRL_HANDLE sdkdom, virDomainDefPtr def)
+prlsdkConvertBootOrderVm(PRL_HANDLE sdkdom, virDomainDefPtr def)
 {
     int ret = -1;
     PRL_RESULT pret;
@@ -1796,8 +1870,12 @@ prlsdkLoadDomain(vzDriverPtr driver,
         goto error;
 
     /* depends on prlsdkAddDomainHardware */
-    if (prlsdkConvertBootOrder(sdkdom, def) < 0)
-        goto error;
+    if (IS_CT(def)) {
+        prlsdkConvertBootOrderCt(def);
+    } else {
+        if (prlsdkConvertBootOrderVm(sdkdom, def) < 0)
+            goto error;
+    }
 
     pret = PrlVmCfg_GetEnvId(sdkdom, &envId);
     prlsdkCheckRetGoto(pret, error);
@@ -1814,7 +1892,7 @@ prlsdkLoadDomain(vzDriverPtr driver,
     if (prlsdkGetDomainState(dom, sdkdom, &domainState) < 0)
         goto error;
 
-    if (virDomainDefAddImplicitDevices(def) < 0)
+    if (!IS_CT(def) && virDomainDefAddImplicitDevices(def) < 0)
         goto error;
 
     if (def->ngraphics > 0) {
@@ -3739,23 +3817,26 @@ prlsdkSetBootOrderCt(PRL_HANDLE sdkdom, virDomainDefPtr def)
     size_t i;
     PRL_HANDLE hdd = PRL_INVALID_HANDLE;
     PRL_RESULT pret;
+    bool rootfs = false;
     int ret = -1;
 
-    /* if we have root mounted we don't need to explicitly set boot order */
     for (i = 0; i < def->nfss; i++) {
+
+        pret = prlsdkAddDeviceToBootList(sdkdom, i, PDE_HARD_DISK, i + 1);
+        prlsdkCheckRetExit(pret, -1);
+
         if (STREQ(def->fss[i]->dst, "/"))
-            return 0;
+            rootfs = true;
     }
 
-    /* else set first hard disk as boot device */
-    pret = prlsdkAddDeviceToBootList(sdkdom, 0, PDE_HARD_DISK, 0);
-    prlsdkCheckRetExit(pret, -1);
+    if (!rootfs) {
+        /* if we have root mounted we don't need to explicitly set boot order */
+        pret = PrlVmCfg_GetHardDisk(sdkdom, def->nfss, &hdd);
+        prlsdkCheckRetExit(pret, -1);
 
-    pret = PrlVmCfg_GetHardDisk(sdkdom, 0, &hdd);
-    prlsdkCheckRetExit(pret, -1);
-
-    PrlVmDevHd_SetMountPoint(hdd, "/");
-    prlsdkCheckRetGoto(pret, cleanup);
+        PrlVmDevHd_SetMountPoint(hdd, "/");
+        prlsdkCheckRetGoto(pret, cleanup);
+    }
 
     ret = 0;
 
@@ -3925,11 +4006,15 @@ prlsdkDoApplyConfig(vzDriverPtr driver,
             goto error;
     }
 
+    /* It is important that we add filesystems first and then disks as we rely
+     * on this information in prlsdkSetBootOrderCt */
     for (i = 0; i < def->nfss; i++) {
         if (prlsdkAddFS(sdkdom, def->fss[i]) < 0)
             goto error;
     }
 
+    /* filesystems first, disks go after them as we rely on this order in
+     * prlsdkSetBootOrderCt */
     for (i = 0; i < def->ndisks; i++) {
         if (prlsdkConfigureDisk(driver, sdkdom, def->disks[i],
                                 true) < 0)
@@ -4282,7 +4367,8 @@ prlsdkExtractStatsParam(PRL_HANDLE sdkstats, const char *name, long long *val)
 int
 prlsdkGetBlockStats(PRL_HANDLE sdkstats,
                     virDomainDiskDefPtr disk,
-                    virDomainBlockStatsPtr stats)
+                    virDomainBlockStatsPtr stats,
+                    bool isCt)
 {
     virDomainDeviceDriveAddressPtr address;
     int idx;
@@ -4291,23 +4377,29 @@ prlsdkGetBlockStats(PRL_HANDLE sdkstats,
     char *name = NULL;
 
     address = &disk->info.addr.drive;
-    switch (disk->bus) {
-    case VIR_DOMAIN_DISK_BUS_IDE:
-        prefix = "ide";
-        idx = address->bus * 2 + address->unit;
-        break;
-    case VIR_DOMAIN_DISK_BUS_SATA:
-        prefix = "sata";
+
+    if (isCt) {
+        prefix = "hdd";
         idx = address->unit;
-        break;
-    case VIR_DOMAIN_DISK_BUS_SCSI:
-        prefix = "scsi";
-        idx = address->unit;
-        break;
-    default:
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Unknown disk bus: %X"), disk->bus);
-        goto cleanup;
+    } else {
+        switch (disk->bus) {
+        case VIR_DOMAIN_DISK_BUS_IDE:
+            prefix = "ide";
+            idx = address->bus * 2 + address->unit;
+            break;
+        case VIR_DOMAIN_DISK_BUS_SATA:
+            prefix = "sata";
+            idx = address->unit;
+            break;
+        case VIR_DOMAIN_DISK_BUS_SCSI:
+            prefix = "scsi";
+            idx = address->unit;
+            break;
+        default:
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Unknown disk bus: %X"), disk->bus);
+            goto cleanup;
+        }
     }
 
 
@@ -4740,7 +4832,7 @@ int prlsdkSwitchToSnapshot(virDomainObjPtr dom, const char *uuid, bool paused)
  * connection to dispatcher
  */
 
-#define PRLSDK_MIGRATION_FLAGS (PSL_HIGH_SECURITY)
+#define PRLSDK_MIGRATION_FLAGS (PSL_HIGH_SECURITY | PVMT_DONT_CREATE_DISK)
 
 int prlsdkMigrate(virDomainObjPtr dom, virURIPtr uri,
                   const unsigned char *session_uuid,

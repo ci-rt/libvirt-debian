@@ -32,18 +32,23 @@
 typedef enum {
    VIR_PCI_CONNECT_HOTPLUGGABLE = 1 << 0, /* is hotplug needed/supported */
 
+   /* set for devices that can share a single slot in auto-assignment
+    * (by assigning one device to each of the 8 functions on the slot)
+    */
+   VIR_PCI_CONNECT_AGGREGATE_SLOT = 1 << 1,
+
    /* kinds of devices as a bitmap so they can be combined (some PCI
     * controllers permit connecting multiple types of devices)
     */
-   VIR_PCI_CONNECT_TYPE_PCI_DEVICE = 1 << 1,
-   VIR_PCI_CONNECT_TYPE_PCIE_DEVICE = 1 << 2,
-   VIR_PCI_CONNECT_TYPE_PCIE_ROOT_PORT = 1 << 3,
-   VIR_PCI_CONNECT_TYPE_PCIE_SWITCH_UPSTREAM_PORT = 1 << 4,
-   VIR_PCI_CONNECT_TYPE_PCIE_SWITCH_DOWNSTREAM_PORT = 1 << 5,
-   VIR_PCI_CONNECT_TYPE_DMI_TO_PCI_BRIDGE = 1 << 6,
-   VIR_PCI_CONNECT_TYPE_PCI_EXPANDER_BUS = 1 << 7,
-   VIR_PCI_CONNECT_TYPE_PCIE_EXPANDER_BUS = 1 << 8,
-   VIR_PCI_CONNECT_TYPE_PCI_BRIDGE = 1 << 9,
+   VIR_PCI_CONNECT_TYPE_PCI_DEVICE = 1 << 2,
+   VIR_PCI_CONNECT_TYPE_PCIE_DEVICE = 1 << 3,
+   VIR_PCI_CONNECT_TYPE_PCIE_ROOT_PORT = 1 << 4,
+   VIR_PCI_CONNECT_TYPE_PCIE_SWITCH_UPSTREAM_PORT = 1 << 5,
+   VIR_PCI_CONNECT_TYPE_PCIE_SWITCH_DOWNSTREAM_PORT = 1 << 6,
+   VIR_PCI_CONNECT_TYPE_DMI_TO_PCI_BRIDGE = 1 << 7,
+   VIR_PCI_CONNECT_TYPE_PCI_EXPANDER_BUS = 1 << 8,
+   VIR_PCI_CONNECT_TYPE_PCIE_EXPANDER_BUS = 1 << 9,
+   VIR_PCI_CONNECT_TYPE_PCI_BRIDGE = 1 << 10,
 } virDomainPCIConnectFlags;
 
 /* a combination of all bits that describe the type of connections
@@ -71,6 +76,20 @@ virDomainPCIConnectFlags
 virDomainPCIControllerModelToConnectType(virDomainControllerModelPCI model);
 
 typedef struct {
+    /* each function is represented by one bit, set if that function is
+     * in use by a device, or clear if it isn't.
+     */
+    uint8_t functions;
+
+    /* aggregate is true if this slot has only devices with
+     * VIR_PCI_CONNECT_AGGREGATE assigned to its functions (meaning
+     * that other devices with the same flags could also be
+     * auto-assigned to the other functions)
+     */
+    bool aggregate;
+} virDomainPCIAddressSlot;
+
+typedef struct {
     virDomainControllerModelPCI model;
     /* flags and min/max can be computed from model, but
      * having them ready makes life easier.
@@ -80,7 +99,7 @@ typedef struct {
     /* Each bit in a slot represents one function on that slot. If the
      * bit is set, that function is in use by a device.
      */
-    uint8_t slots[VIR_PCI_ADDRESS_SLOT_LAST + 1];
+    virDomainPCIAddressSlot slot[VIR_PCI_ADDRESS_SLOT_LAST + 1];
 } virDomainPCIAddressBus;
 typedef virDomainPCIAddressBus *virDomainPCIAddressBusPtr;
 
@@ -133,13 +152,6 @@ int virDomainPCIAddressSetGrow(virDomainPCIAddressSetPtr addrs,
 
 int virDomainPCIAddressReserveAddr(virDomainPCIAddressSetPtr addrs,
                                    virPCIDeviceAddressPtr addr,
-                                   virDomainPCIConnectFlags flags,
-                                   bool reserveEntireSlot,
-                                   bool fromConfig)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
-
-int virDomainPCIAddressReserveSlot(virDomainPCIAddressSetPtr addrs,
-                                   virPCIDeviceAddressPtr addr,
                                    virDomainPCIConnectFlags flags)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
@@ -152,21 +164,14 @@ int virDomainPCIAddressReleaseAddr(virDomainPCIAddressSetPtr addrs,
                                    virPCIDeviceAddressPtr addr)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
-int virDomainPCIAddressReleaseSlot(virDomainPCIAddressSetPtr addrs,
-                                   virPCIDeviceAddressPtr addr)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
-
 int virDomainPCIAddressReserveNextAddr(virDomainPCIAddressSetPtr addrs,
                                        virDomainDeviceInfoPtr dev,
                                        virDomainPCIConnectFlags flags,
-                                       unsigned int function,
-                                       bool reserveEntireSlot)
+                                       int function)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
-int virDomainPCIAddressReserveNextSlot(virDomainPCIAddressSetPtr addrs,
-                                       virDomainDeviceInfoPtr dev,
-                                       virDomainPCIConnectFlags flags)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+void virDomainPCIAddressSetAllMulti(virDomainDefPtr def)
+    ATTRIBUTE_NONNULL(1);
 
 struct _virDomainCCWAddressSet {
     virHashTablePtr defined;

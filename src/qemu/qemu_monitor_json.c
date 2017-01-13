@@ -4521,7 +4521,6 @@ qemuMonitorJSONBlockIoThrottleInfo(virJSONValuePtr result,
                              "was not in expected format"));
             goto cleanup;
         }
-
         GET_THROTTLE_STATS("bps", total_bytes_sec);
         GET_THROTTLE_STATS("bps_rd", read_bytes_sec);
         GET_THROTTLE_STATS("bps_wr", write_bytes_sec);
@@ -4535,6 +4534,11 @@ qemuMonitorJSONBlockIoThrottleInfo(virJSONValuePtr result,
         GET_THROTTLE_STATS_OPTIONAL("iops_rd_max", read_iops_sec_max);
         GET_THROTTLE_STATS_OPTIONAL("iops_wr_max", write_iops_sec_max);
         GET_THROTTLE_STATS_OPTIONAL("iops_size", size_iops_sec);
+
+        if (VIR_STRDUP(reply->group_name,
+                       virJSONValueObjectGetString(inserted, "group")) < 0)
+            goto cleanup;
+
         GET_THROTTLE_STATS_OPTIONAL("bps_max_length", total_bytes_sec_max_length);
         GET_THROTTLE_STATS_OPTIONAL("bps_rd_max_length", read_bytes_sec_max_length);
         GET_THROTTLE_STATS_OPTIONAL("bps_wr_max_length", write_bytes_sec_max_length);
@@ -4563,49 +4567,66 @@ int qemuMonitorJSONSetBlockIoThrottle(qemuMonitorPtr mon,
                                       const char *device,
                                       virDomainBlockIoTuneInfoPtr info,
                                       bool supportMaxOptions,
+                                      bool supportGroupNameOption,
                                       bool supportMaxLengthOptions)
 {
     int ret = -1;
     virJSONValuePtr cmd = NULL;
     virJSONValuePtr result = NULL;
+    virJSONValuePtr args = NULL;
 
-    /* The qemu capability check has already been made in
-     * qemuDomainSetBlockIoTune. NB, once a NULL is found in
-     * the sequence, qemuMonitorJSONMakeCommand will stop. So
-     * let's make use of that when !supportMaxOptions and
-     * similarly when !supportMaxLengthOptions */
-   cmd = qemuMonitorJSONMakeCommand("block_set_io_throttle",
-                                    "s:device", device,
-                                    "U:bps", info->total_bytes_sec,
-                                    "U:bps_rd", info->read_bytes_sec,
-                                    "U:bps_wr", info->write_bytes_sec,
-                                    "U:iops", info->total_iops_sec,
-                                    "U:iops_rd", info->read_iops_sec,
-                                    "U:iops_wr", info->write_iops_sec,
-                                    !supportMaxOptions ? NULL :
-                                    "U:bps_max", info->total_bytes_sec_max,
-                                    "U:bps_rd_max", info->read_bytes_sec_max,
-                                    "U:bps_wr_max", info->write_bytes_sec_max,
-                                    "U:iops_max", info->total_iops_sec_max,
-                                    "U:iops_rd_max", info->read_iops_sec_max,
-                                    "U:iops_wr_max", info->write_iops_sec_max,
-                                    "U:iops_size", info->size_iops_sec,
-                                    !supportMaxLengthOptions ? NULL :
-                                    "P:bps_max_length",
-                                    info->total_bytes_sec_max_length,
-                                    "P:bps_rd_max_length",
-                                    info->read_bytes_sec_max_length,
-                                    "P:bps_wr_max_length",
-                                    info->write_bytes_sec_max_length,
-                                    "P:iops_max_length",
-                                    info->total_iops_sec_max_length,
-                                    "P:iops_rd_max_length",
-                                    info->read_iops_sec_max_length,
-                                    "P:iops_wr_max_length",
-                                    info->write_iops_sec_max_length,
-                                    NULL);
-    if (!cmd)
+    if (!(cmd = qemuMonitorJSONMakeCommand("block_set_io_throttle", NULL)))
         return -1;
+
+    if (virJSONValueObjectCreate(&args,
+                                 "s:device", device,
+                                 "U:bps", info->total_bytes_sec,
+                                 "U:bps_rd", info->read_bytes_sec,
+                                 "U:bps_wr", info->write_bytes_sec,
+                                 "U:iops", info->total_iops_sec,
+                                 "U:iops_rd", info->read_iops_sec,
+                                 "U:iops_wr", info->write_iops_sec,
+                                 NULL) < 0)
+        goto cleanup;
+
+    if (supportMaxOptions &&
+        virJSONValueObjectAdd(args,
+                              "U:bps_max", info->total_bytes_sec_max,
+                              "U:bps_rd_max", info->read_bytes_sec_max,
+                              "U:bps_wr_max", info->write_bytes_sec_max,
+                              "U:iops_max", info->total_iops_sec_max,
+                              "U:iops_rd_max", info->read_iops_sec_max,
+                              "U:iops_wr_max", info->write_iops_sec_max,
+                              "U:iops_size", info->size_iops_sec,
+                              NULL) < 0)
+        goto cleanup;
+
+    if (supportGroupNameOption &&
+        virJSONValueObjectAdd(args,
+                              "s:group", info->group_name,
+                              NULL) < 0)
+        goto cleanup;
+
+    if (supportMaxLengthOptions &&
+        virJSONValueObjectAdd(args,
+                              "P:bps_max_length",
+                              info->total_bytes_sec_max_length,
+                              "P:bps_rd_max_length",
+                              info->read_bytes_sec_max_length,
+                              "P:bps_wr_max_length",
+                              info->write_bytes_sec_max_length,
+                              "P:iops_max_length",
+                              info->total_iops_sec_max_length,
+                              "P:iops_rd_max_length",
+                              info->read_iops_sec_max_length,
+                              "P:iops_wr_max_length",
+                              info->write_iops_sec_max_length,
+                              NULL) < 0)
+        goto cleanup;
+
+    if (virJSONValueObjectAppend(cmd, "arguments", args) < 0)
+        goto cleanup;
+    args = NULL; /* obj owns reference to args now */
 
     if (qemuMonitorJSONCommand(mon, cmd, &result) < 0)
         goto cleanup;
@@ -4631,6 +4652,7 @@ int qemuMonitorJSONSetBlockIoThrottle(qemuMonitorPtr mon,
  cleanup:
     virJSONValueFree(cmd);
     virJSONValueFree(result);
+    virJSONValueFree(args);
     return ret;
 }
 
@@ -4948,6 +4970,123 @@ qemuMonitorJSONGetCPUDefinitions(qemuMonitorPtr mon,
     }
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
+    return ret;
+}
+
+static int
+qemuMonitorJSONParseCPUModelProperty(const char *key,
+                                     virJSONValue *value,
+                                     void *opaque)
+{
+    qemuMonitorCPUModelInfoPtr machine_model = opaque;
+    size_t n = machine_model->nprops;
+    bool supported;
+
+    if (!key) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("query-cpu-model-expansion reply data is missing a"
+                         " property name"));
+        return -1;
+    }
+    if (VIR_STRDUP(machine_model->props[n].name, key) < 0)
+        return -1;
+
+    if (virJSONValueGetBoolean(value, &supported) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("query-cpu-model-expansion reply data is missing a"
+                         " feature support value"));
+        return -1;
+    }
+    machine_model->props[n].supported = supported;
+
+    machine_model->nprops++;
+    return 0;
+}
+
+int
+qemuMonitorJSONGetCPUModelExpansion(qemuMonitorPtr mon,
+                                    const char *type,
+                                    const char *model_name,
+                                    qemuMonitorCPUModelInfoPtr *model_info)
+{
+    int ret = -1;
+    virJSONValuePtr model;
+    virJSONValuePtr cmd = NULL;
+    virJSONValuePtr reply = NULL;
+    virJSONValuePtr data;
+    virJSONValuePtr cpu_model;
+    virJSONValuePtr cpu_props;
+    qemuMonitorCPUModelInfoPtr machine_model = NULL;
+    char const *cpu_name;
+
+    *model_info = NULL;
+
+    if (!(model = virJSONValueNewObject()))
+        goto cleanup;
+
+    if (virJSONValueObjectAppendString(model, "name", model_name) < 0)
+        goto cleanup;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("query-cpu-model-expansion",
+                                           "s:type", type,
+                                           "a:model", model,
+                                           NULL)))
+        goto cleanup;
+
+    /* model will be freed when cmd is freed. we set model
+     * to NULL to avoid double freeing.
+     */
+    model = NULL;
+
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        goto cleanup;
+
+    if (qemuMonitorJSONCheckError(cmd, reply) < 0)
+        goto cleanup;
+
+    data = virJSONValueObjectGetObject(reply, "return");
+
+    if (!(cpu_model = virJSONValueObjectGetObject(data, "model"))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("query-cpu-model-expansion reply data was missing 'model'"));
+        goto cleanup;
+    }
+
+    if (!(cpu_name = virJSONValueObjectGetString(cpu_model, "name"))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("query-cpu-model-expansion reply data was missing 'name'"));
+        goto cleanup;
+    }
+
+    if (!(cpu_props = virJSONValueObjectGetObject(cpu_model, "props"))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("query-cpu-model-expansion reply data was missing 'props'"));
+        goto cleanup;
+    }
+
+    if (VIR_ALLOC(machine_model) < 0)
+        goto cleanup;
+
+    if (VIR_STRDUP(machine_model->name, cpu_name) < 0)
+        goto cleanup;
+
+    if (VIR_ALLOC_N(machine_model->props, cpu_props->data.object.npairs) < 0)
+        goto cleanup;
+
+    if (virJSONValueObjectForeachKeyValue(cpu_props,
+                                          qemuMonitorJSONParseCPUModelProperty,
+                                          machine_model) < 0)
+        goto cleanup;
+
+    ret = 0;
+    *model_info = machine_model;
+    machine_model = NULL;
+
+ cleanup:
+    qemuMonitorCPUModelInfoFree(machine_model);
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    virJSONValueFree(model);
     return ret;
 }
 

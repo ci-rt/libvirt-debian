@@ -41,6 +41,7 @@
     <function name="VIR_DOMAIN_BLOCK_COPY_BANDWIDTH" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_COPY_BANDWIDTH"/>
     <function name="VIR_DOMAIN_BLOCK_COPY_BUF_SIZE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_COPY_BUF_SIZE"/>
     <function name="VIR_DOMAIN_BLOCK_COPY_GRANULARITY" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_COPY_GRANULARITY"/>
+    <function name="VIR_DOMAIN_BLOCK_IOTUNE_GROUP_NAME" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_GROUP_NAME"/>
     <function name="VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC"/>
     <function name="VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX"/>
     <function name="VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX_LENGTH" link="libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX_LENGTH"/>
@@ -128,6 +129,7 @@
     <function name="VIR_DOMAIN_SCHED_FIELD_LENGTH" link="libvirt-libvirt-domain.html#VIR_DOMAIN_SCHED_FIELD_LENGTH"/>
     <function name="VIR_DOMAIN_SEND_KEY_MAX_KEYS" link="libvirt-libvirt-domain.html#VIR_DOMAIN_SEND_KEY_MAX_KEYS"/>
     <function name="VIR_DOMAIN_TUNABLE_BLKDEV_DISK" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_DISK"/>
+    <function name="VIR_DOMAIN_TUNABLE_BLKDEV_GROUP_NAME" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_GROUP_NAME"/>
     <function name="VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC"/>
     <function name="VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX"/>
     <function name="VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX_LENGTH" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX_LENGTH"/>
@@ -199,6 +201,10 @@
     <function name="VIR_NODE_MEMORY_STATS_FIELD_LENGTH" link="libvirt-libvirt-host.html#VIR_NODE_MEMORY_STATS_FIELD_LENGTH"/>
     <function name="VIR_NODE_MEMORY_STATS_FREE" link="libvirt-libvirt-host.html#VIR_NODE_MEMORY_STATS_FREE"/>
     <function name="VIR_NODE_MEMORY_STATS_TOTAL" link="libvirt-libvirt-host.html#VIR_NODE_MEMORY_STATS_TOTAL"/>
+    <function name="VIR_PERF_PARAM_BRANCH_INSTRUCTIONS" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_BRANCH_INSTRUCTIONS"/>
+    <function name="VIR_PERF_PARAM_BRANCH_MISSES" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_BRANCH_MISSES"/>
+    <function name="VIR_PERF_PARAM_BUS_CYCLES" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_BUS_CYCLES"/>
+    <function name="VIR_PERF_PARAM_CACHE_L1D" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_CACHE_L1D"/>
     <function name="VIR_PERF_PARAM_CACHE_MISSES" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_CACHE_MISSES"/>
     <function name="VIR_PERF_PARAM_CACHE_REFERENCES" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_CACHE_REFERENCES"/>
     <function name="VIR_PERF_PARAM_CMT" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_CMT"/>
@@ -206,6 +212,10 @@
     <function name="VIR_PERF_PARAM_INSTRUCTIONS" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_INSTRUCTIONS"/>
     <function name="VIR_PERF_PARAM_MBML" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_MBML"/>
     <function name="VIR_PERF_PARAM_MBMT" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_MBMT"/>
+    <function name="VIR_PERF_PARAM_REF_CPU_CYCLES" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_REF_CPU_CYCLES"/>
+    <function name="VIR_PERF_PARAM_STALLED_CYCLES_BACKEND" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_STALLED_CYCLES_BACKEND"/>
+    <function name="VIR_PERF_PARAM_STALLED_CYCLES_FRONTEND" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_STALLED_CYCLES_FRONTEND"/>
+    <function name="VIR_SECRET_EVENT_CALLBACK" link="libvirt-libvirt-secret.html#VIR_SECRET_EVENT_CALLBACK"/>
     <function name="VIR_SECURITY_DOI_BUFLEN" link="libvirt-libvirt-host.html#VIR_SECURITY_DOI_BUFLEN"/>
     <function name="VIR_SECURITY_LABEL_BUFLEN" link="libvirt-libvirt-host.html#VIR_SECURITY_LABEL_BUFLEN"/>
     <function name="VIR_SECURITY_MODEL_BUFLEN" link="libvirt-libvirt-host.html#VIR_SECURITY_MODEL_BUFLEN"/>
@@ -427,6 +437,7 @@
     <function name="VIR_DOMAIN_EVENT_ID_JOB_COMPLETED" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_ID_JOB_COMPLETED"/>
     <function name="VIR_DOMAIN_EVENT_ID_LAST" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_ID_LAST"/>
     <function name="VIR_DOMAIN_EVENT_ID_LIFECYCLE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_ID_LIFECYCLE"/>
+    <function name="VIR_DOMAIN_EVENT_ID_METADATA_CHANGE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_ID_METADATA_CHANGE"/>
     <function name="VIR_DOMAIN_EVENT_ID_MIGRATION_ITERATION" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_ID_MIGRATION_ITERATION"/>
     <function name="VIR_DOMAIN_EVENT_ID_PMSUSPEND" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_ID_PMSUSPEND"/>
     <function name="VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK"/>
@@ -983,6 +994,12 @@
     <function name="VIR_NODE_SUSPEND_TARGET_HYBRID" link="libvirt-libvirt-host.html#VIR_NODE_SUSPEND_TARGET_HYBRID"/>
     <function name="VIR_NODE_SUSPEND_TARGET_LAST" link="libvirt-libvirt-host.html#VIR_NODE_SUSPEND_TARGET_LAST"/>
     <function name="VIR_NODE_SUSPEND_TARGET_MEM" link="libvirt-libvirt-host.html#VIR_NODE_SUSPEND_TARGET_MEM"/>
+    <function name="VIR_SECRET_EVENT_DEFINED" link="libvirt-libvirt-secret.html#VIR_SECRET_EVENT_DEFINED"/>
+    <function name="VIR_SECRET_EVENT_ID_LAST" link="libvirt-libvirt-secret.html#VIR_SECRET_EVENT_ID_LAST"/>
+    <function name="VIR_SECRET_EVENT_ID_LIFECYCLE" link="libvirt-libvirt-secret.html#VIR_SECRET_EVENT_ID_LIFECYCLE"/>
+    <function name="VIR_SECRET_EVENT_ID_VALUE_CHANGED" link="libvirt-libvirt-secret.html#VIR_SECRET_EVENT_ID_VALUE_CHANGED"/>
+    <function name="VIR_SECRET_EVENT_LAST" link="libvirt-libvirt-secret.html#VIR_SECRET_EVENT_LAST"/>
+    <function name="VIR_SECRET_EVENT_UNDEFINED" link="libvirt-libvirt-secret.html#VIR_SECRET_EVENT_UNDEFINED"/>
     <function name="VIR_SECRET_USAGE_TYPE_CEPH" link="libvirt-libvirt-secret.html#VIR_SECRET_USAGE_TYPE_CEPH"/>
     <function name="VIR_SECRET_USAGE_TYPE_ISCSI" link="libvirt-libvirt-secret.html#VIR_SECRET_USAGE_TYPE_ISCSI"/>
     <function name="VIR_SECRET_USAGE_TYPE_LAST" link="libvirt-libvirt-secret.html#VIR_SECRET_USAGE_TYPE_LAST"/>
@@ -1022,6 +1039,7 @@
     <function name="VIR_STORAGE_VOL_DELETE_ZEROED" link="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_DELETE_ZEROED"/>
     <function name="VIR_STORAGE_VOL_DIR" link="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_DIR"/>
     <function name="VIR_STORAGE_VOL_FILE" link="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_FILE"/>
+    <function name="VIR_STORAGE_VOL_GET_PHYSICAL" link="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_GET_PHYSICAL"/>
     <function name="VIR_STORAGE_VOL_LAST" link="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_LAST"/>
     <function name="VIR_STORAGE_VOL_NETDIR" link="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_NETDIR"/>
     <function name="VIR_STORAGE_VOL_NETWORK" link="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_NETWORK"/>
@@ -1029,6 +1047,7 @@
     <function name="VIR_STORAGE_VOL_RESIZE_ALLOCATE" link="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_RESIZE_ALLOCATE"/>
     <function name="VIR_STORAGE_VOL_RESIZE_DELTA" link="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_RESIZE_DELTA"/>
     <function name="VIR_STORAGE_VOL_RESIZE_SHRINK" link="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_RESIZE_SHRINK"/>
+    <function name="VIR_STORAGE_VOL_USE_ALLOCATION" link="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_USE_ALLOCATION"/>
     <function name="VIR_STORAGE_VOL_WIPE_ALG_BSI" link="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_WIPE_ALG_BSI"/>
     <function name="VIR_STORAGE_VOL_WIPE_ALG_DOD" link="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_WIPE_ALG_DOD"/>
     <function name="VIR_STORAGE_VOL_WIPE_ALG_GUTMANN" link="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_WIPE_ALG_GUTMANN"/>
@@ -1210,6 +1229,8 @@
     <function name="virNodeSuspendTarget" link="libvirt-libvirt-host.html#virNodeSuspendTarget"/>
     <function name="virSchedParameterPtr" link="libvirt-libvirt-domain.html#virSchedParameterPtr"/>
     <function name="virSchedParameterType" link="libvirt-libvirt-domain.html#virSchedParameterType"/>
+    <function name="virSecretEventID" link="libvirt-libvirt-secret.html#virSecretEventID"/>
+    <function name="virSecretEventLifecycleType" link="libvirt-libvirt-secret.html#virSecretEventLifecycleType"/>
     <function name="virSecretPtr" link="libvirt-libvirt-secret.html#virSecretPtr"/>
     <function name="virSecretUsageType" link="libvirt-libvirt-secret.html#virSecretUsageType"/>
     <function name="virSecurityLabelPtr" link="libvirt-libvirt-host.html#virSecurityLabelPtr"/>
@@ -1224,6 +1245,7 @@
     <function name="virStoragePoolState" link="libvirt-libvirt-storage.html#virStoragePoolState"/>
     <function name="virStorageVolCreateFlags" link="libvirt-libvirt-storage.html#virStorageVolCreateFlags"/>
     <function name="virStorageVolDeleteFlags" link="libvirt-libvirt-storage.html#virStorageVolDeleteFlags"/>
+    <function name="virStorageVolInfoFlags" link="libvirt-libvirt-storage.html#virStorageVolInfoFlags"/>
     <function name="virStorageVolInfoPtr" link="libvirt-libvirt-storage.html#virStorageVolInfoPtr"/>
     <function name="virStorageVolPtr" link="libvirt-libvirt-storage.html#virStorageVolPtr"/>
     <function name="virStorageVolResizeFlags" link="libvirt-libvirt-storage.html#virStorageVolResizeFlags"/>
@@ -1297,6 +1319,7 @@
     <function name="virConnectDomainEventIOErrorCallback" link="libvirt-libvirt-domain.html#virConnectDomainEventIOErrorCallback"/>
     <function name="virConnectDomainEventIOErrorReasonCallback" link="libvirt-libvirt-domain.html#virConnectDomainEventIOErrorReasonCallback"/>
     <function name="virConnectDomainEventJobCompletedCallback" link="libvirt-libvirt-domain.html#virConnectDomainEventJobCompletedCallback"/>
+    <function name="virConnectDomainEventMetadataChangeCallback" link="libvirt-libvirt-domain.html#virConnectDomainEventMetadataChangeCallback"/>
     <function name="virConnectDomainEventMigrationIterationCallback" link="libvirt-libvirt-domain.html#virConnectDomainEventMigrationIterationCallback"/>
     <function name="virConnectDomainEventPMSuspendCallback" link="libvirt-libvirt-domain.html#virConnectDomainEventPMSuspendCallback"/>
     <function name="virConnectDomainEventPMSuspendDiskCallback" link="libvirt-libvirt-domain.html#virConnectDomainEventPMSuspendDiskCallback"/>
@@ -1309,6 +1332,8 @@
     <function name="virConnectNetworkEventLifecycleCallback" link="libvirt-libvirt-network.html#virConnectNetworkEventLifecycleCallback"/>
     <function name="virConnectNodeDeviceEventGenericCallback" link="libvirt-libvirt-nodedev.html#virConnectNodeDeviceEventGenericCallback"/>
     <function name="virConnectNodeDeviceEventLifecycleCallback" link="libvirt-libvirt-nodedev.html#virConnectNodeDeviceEventLifecycleCallback"/>
+    <function name="virConnectSecretEventGenericCallback" link="libvirt-libvirt-secret.html#virConnectSecretEventGenericCallback"/>
+    <function name="virConnectSecretEventLifecycleCallback" link="libvirt-libvirt-secret.html#virConnectSecretEventLifecycleCallback"/>
     <function name="virConnectStoragePoolEventGenericCallback" link="libvirt-libvirt-storage.html#virConnectStoragePoolEventGenericCallback"/>
     <function name="virConnectStoragePoolEventLifecycleCallback" link="libvirt-libvirt-storage.html#virConnectStoragePoolEventLifecycleCallback"/>
     <function name="virErrorFunc" link="libvirt-virterror.html#virErrorFunc"/>
@@ -1389,6 +1414,8 @@
     <function name="virConnectOpenReadOnly ()" link="libvirt-libvirt-host.html#virConnectOpenReadOnly"/>
     <function name="virConnectRef ()" link="libvirt-libvirt-host.html#virConnectRef"/>
     <function name="virConnectRegisterCloseCallback ()" link="libvirt-libvirt-host.html#virConnectRegisterCloseCallback"/>
+    <function name="virConnectSecretEventDeregisterAny ()" link="libvirt-libvirt-secret.html#virConnectSecretEventDeregisterAny"/>
+    <function name="virConnectSecretEventRegisterAny ()" link="libvirt-libvirt-secret.html#virConnectSecretEventRegisterAny"/>
     <function name="virConnectSetKeepAlive ()" link="libvirt-libvirt-host.html#virConnectSetKeepAlive"/>
     <function name="virConnectStoragePoolEventDeregisterAny ()" link="libvirt-libvirt-storage.html#virConnectStoragePoolEventDeregisterAny"/>
     <function name="virConnectStoragePoolEventRegisterAny ()" link="libvirt-libvirt-storage.html#virConnectStoragePoolEventRegisterAny"/>
@@ -1716,6 +1743,7 @@
     <function name="virStorageVolFree ()" link="libvirt-libvirt-storage.html#virStorageVolFree"/>
     <function name="virStorageVolGetConnect ()" link="libvirt-libvirt-storage.html#virStorageVolGetConnect"/>
     <function name="virStorageVolGetInfo ()" link="libvirt-libvirt-storage.html#virStorageVolGetInfo"/>
+    <function name="virStorageVolGetInfoFlags ()" link="libvirt-libvirt-storage.html#virStorageVolGetInfoFlags"/>
     <function name="virStorageVolGetKey ()" link="libvirt-libvirt-storage.html#virStorageVolGetKey"/>
     <function name="virStorageVolGetName ()" link="libvirt-libvirt-storage.html#virStorageVolGetName"/>
     <function name="virStorageVolGetPath ()" link="libvirt-libvirt-storage.html#virStorageVolGetPath"/>

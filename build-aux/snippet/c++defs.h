@@ -1,5 +1,5 @@
 /* C++ compatible function declaration macros.
-   Copyright (C) 2010-2016 Free Software Foundation, Inc.
+   Copyright (C) 2010-2017 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published
@@ -16,6 +16,15 @@
 
 #ifndef _GL_CXXDEFS_H
 #define _GL_CXXDEFS_H
+
+/* Begin/end the GNULIB_NAMESPACE namespace.  */
+#if defined __cplusplus && defined GNULIB_NAMESPACE
+# define _GL_BEGIN_NAMESPACE namespace GNULIB_NAMESPACE {
+# define _GL_END_NAMESPACE }
+#else
+# define _GL_BEGIN_NAMESPACE
+# define _GL_END_NAMESPACE
+#endif
 
 /* The three most frequent use cases of these macros are:
 
@@ -124,8 +133,11 @@
       static const struct _gl_ ## func ## _wrapper            \
       {                                                       \
         typedef rettype (*type) parameters;                   \
-        inline type rpl () const { return ::rpl_func; }       \
-        inline operator type () const  { return rpl (); }     \
+                                                              \
+        inline operator type () const                         \
+        {                                                     \
+          return ::rpl_func;                                  \
+        }                                                     \
       } func = {};                                            \
     }                                                         \
     _GL_EXTERN_C int _gl_cxxalias_dummy
@@ -146,9 +158,11 @@
       static const struct _gl_ ## func ## _wrapper                 \
       {                                                            \
         typedef rettype (*type) parameters;                        \
-        inline type rpl () const                                   \
-        { return reinterpret_cast<type>(::rpl_func); }             \
-        inline operator type () const { return rpl (); }           \
+                                                                   \
+        inline operator type () const                              \
+        {                                                          \
+          return reinterpret_cast<type>(::rpl_func);               \
+        }                                                          \
       } func = {};                                                 \
     }                                                              \
     _GL_EXTERN_C int _gl_cxxalias_dummy
@@ -174,10 +188,13 @@
       static const struct _gl_ ## func ## _wrapper            \
       {                                                       \
         typedef rettype (*type) parameters;                   \
-        inline type rpl () const { return ::func; }           \
-        inline operator type () const { return rpl (); }      \
+                                                              \
+        inline operator type () const                         \
+        {                                                     \
+          return ::func;                                      \
+        }                                                     \
       } func = {};                                            \
-    }                                              \
+    }                                                         \
     _GL_EXTERN_C int _gl_cxxalias_dummy
 #else
 # define _GL_CXXALIAS_SYS(func,rettype,parameters) \
@@ -196,9 +213,11 @@
       static const struct _gl_ ## func ## _wrapper      \
       {                                                 \
         typedef rettype (*type) parameters;             \
-        inline type rpl () const                        \
-        { return reinterpret_cast<type>(::func); }      \
-        inline operator type () const { return rpl (); }\
+                                                        \
+        inline operator type () const                   \
+        {                                               \
+          return reinterpret_cast<type>(::func);        \
+        }                                               \
       } func = {};                                      \
     }                                                   \
     _GL_EXTERN_C int _gl_cxxalias_dummy
@@ -226,10 +245,10 @@
       {                                                                       \
         typedef rettype (*type) parameters;                                   \
                                                                               \
-        inline type rpl () const                                              \
-        { return reinterpret_cast<type>((rettype2 (*) parameters2)(::func)); }\
-                                                                              \
-        inline operator type () const { return rpl (); }                      \
+        inline operator type () const                                         \
+        {                                                                     \
+          return reinterpret_cast<type>((rettype2 (*) parameters2)(::func));  \
+        }                                                                     \
       } func = {};                                                            \
     }                                                                         \
     _GL_EXTERN_C int _gl_cxxalias_dummy

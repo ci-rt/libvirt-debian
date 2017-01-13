@@ -869,12 +869,12 @@ static int virLXCControllerSetupCgroupLimits(virLXCControllerPtr ctrl)
                                             ctrl->nicindexes)))
         goto cleanup;
 
-    if (virCgroupAddTask(ctrl->cgroup, getpid()) < 0)
+    if (virCgroupAddMachineTask(ctrl->cgroup, getpid()) < 0)
         goto cleanup;
 
     /* Add all qemu-nbd tasks to the cgroup */
     for (i = 0; i < ctrl->nnbdpids; i++) {
-        if (virCgroupAddTask(ctrl->cgroup, ctrl->nbdpids[i]) < 0)
+        if (virCgroupAddMachineTask(ctrl->cgroup, ctrl->nbdpids[i]) < 0)
             goto cleanup;
     }
 
@@ -1457,12 +1457,6 @@ static int virLXCControllerSetupDev(virLXCControllerPtr ctrl)
                     LXC_STATE_DIR, ctrl->def->name) < 0)
         goto cleanup;
 
-    if (virFileMakePath(dev) < 0) {
-        virReportSystemError(errno,
-                             _("Failed to make path %s"), dev);
-        goto cleanup;
-    }
-
     /*
      * tmpfs is limited to 64kb, since we only have device nodes in there
      * and don't want to DOS the entire OS RAM usage
@@ -1472,14 +1466,8 @@ static int virLXCControllerSetupDev(virLXCControllerPtr ctrl)
                     "mode=755,size=65536%s", mount_options) < 0)
         goto cleanup;
 
-    VIR_DEBUG("Mount devfs on %s type=tmpfs flags=%x, opts=%s",
-              dev, MS_NOSUID, opts);
-    if (mount("devfs", dev, "tmpfs", MS_NOSUID, opts) < 0) {
-        virReportSystemError(errno,
-                             _("Failed to mount devfs on %s type %s (%s)"),
-                             dev, "tmpfs", opts);
+    if (virFileSetupDev(dev, opts) < 0)
         goto cleanup;
-    }
 
     if (lxcContainerChown(ctrl->def, dev) < 0)
         goto cleanup;
@@ -2092,8 +2080,6 @@ lxcCreateTty(virLXCControllerPtr ctrl, int *ttymaster,
 static int
 virLXCControllerSetupPrivateNS(void)
 {
-    int ret = -1;
-
     /*
      * If doing a chroot style setup, we need to prepare
      * a private /dev/pts for the child now, which they
@@ -2115,21 +2101,7 @@ virLXCControllerSetupPrivateNS(void)
      * marked as shared
      */
 
-    if (unshare(CLONE_NEWNS) < 0) {
-        virReportSystemError(errno, "%s",
-                             _("Cannot unshare mount namespace"));
-        goto cleanup;
-    }
-
-    if (mount("", "/", NULL, MS_SLAVE|MS_REC, NULL) < 0) {
-        virReportSystemError(errno, "%s",
-                             _("Failed to switch root mount into slave mode"));
-        goto cleanup;
-    }
-
-    ret = 0;
- cleanup:
-    return ret;
+    return virProcessSetupPrivateMountNS();
 }
 
 

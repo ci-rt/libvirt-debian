@@ -418,17 +418,24 @@ virStorageBackendDiskRefreshPool(virConnectPtr conn ATTRIBUTE_UNUSED,
 }
 
 
+typedef enum {
+    VIR_STORAGE_PARTED_ERROR = -1,
+    VIR_STORAGE_PARTED_MATCH,       /* Valid label found and matches format */
+    VIR_STORAGE_PARTED_DIFFERENT,   /* Valid label found but not match format */
+    VIR_STORAGE_PARTED_UNKNOWN,     /* No or unrecognized label */
+    VIR_STORAGE_PARTED_NOPTTYPE,    /* Did not find the Partition Table type */
+    VIR_STORAGE_PARTED_PTTYPE_UNK,  /* Partition Table type unknown*/
+} virStorageBackendPARTEDResult;
+
 /**
- * Check for a valid disk label (partition table) on device
+ * Check for a valid disk label (partition table) on device using
+ * the PARTED command
  *
- * return: 0 - valid disk label found
- *         1 - no or unrecognized disk label
- *         2 - did not find the Partition Table type
- *         3 - Partition Table type unknown
- *        <0 - error finding the disk label
+ * returns virStorageBackendPARTEDResult
  */
-static int
-virStorageBackendDiskFindLabel(const char* device)
+static virStorageBackendPARTEDResult
+virStorageBackendPARTEDFindLabel(const char *device,
+                                 const char *format)
 {
     const char *const args[] = {
         device, "print", "--script", NULL,
@@ -437,7 +444,7 @@ virStorageBackendDiskFindLabel(const char* device)
     char *output = NULL;
     char *error = NULL;
     char *start, *end;
-    int ret = -1;
+    int ret = VIR_STORAGE_PARTED_ERROR;
 
     virCommandAddArgSet(cmd, args);
     virCommandAddEnvString(cmd, "LC_ALL=C");
@@ -449,7 +456,7 @@ virStorageBackendDiskFindLabel(const char* device)
     if (ret < 0) {
         if ((output && strstr(output, "unrecognised disk label")) ||
             (error && strstr(error, "unrecognised disk label"))) {
-            ret = 1;
+            ret = VIR_STORAGE_PARTED_UNKNOWN;
         }
         goto cleanup;
     }
@@ -460,7 +467,7 @@ virStorageBackendDiskFindLabel(const char* device)
     if (!(start = strstr(output, "Partition Table: ")) ||
         !(end = strstr(start, "\n"))) {
         VIR_DEBUG("Unable to find tag in output: %s", output);
-        ret = 2;
+        ret = VIR_STORAGE_PARTED_NOPTTYPE;
         goto cleanup;
     }
     start += strlen("Partition Table: ");
@@ -472,11 +479,15 @@ virStorageBackendDiskFindLabel(const char* device)
 
     /* Make sure we know about this type */
     if (virStoragePoolFormatDiskTypeFromString(start) < 0) {
-        ret = 3;
+        ret = VIR_STORAGE_PARTED_PTTYPE_UNK;
         goto cleanup;
     }
 
-    ret = 0;
+    /*  Does the on disk match what the pool desired? */
+    if (STREQ(start, format))
+        ret = VIR_STORAGE_PARTED_MATCH;
+
+    ret = VIR_STORAGE_PARTED_DIFFERENT;
 
  cleanup:
     virCommandFree(cmd);
@@ -484,6 +495,7 @@ virStorageBackendDiskFindLabel(const char* device)
     VIR_FREE(error);
     return ret;
 }
+
 
 /**
  * Determine whether the label on the disk is valid or in a known format
@@ -500,43 +512,61 @@ virStorageBackendDiskFindLabel(const char* device)
  * device should we allow the start since for this path we won't be
  * rewriting the label.
  *
- * Return: True if it's OK
- *         False if something's wrong
+ * Return: 0 if it's OK
+ *         -1 if something's wrong
  */
-static bool
+int
 virStorageBackendDiskValidLabel(const char *device,
+                                const char *format,
                                 bool writelabel)
 {
-    bool valid = false;
-    int check;
+    int ret = -1;
+    virStorageBackendPARTEDResult check;
 
-    check = virStorageBackendDiskFindLabel(device);
-    if (check == 1) {
-        if (writelabel)
-            valid = true;
-        else
-            virReportError(VIR_ERR_OPERATION_FAILED, "%s",
-                           _("Unrecognized disk label found, requires build"));
-    } else if (check == 2) {
-        virReportError(VIR_ERR_OPERATION_FAILED, "%s",
-                       _("Unable to determine Partition Type, "
-                         "requires build --overwrite"));
-    } else if (check == 3) {
-        virReportError(VIR_ERR_OPERATION_FAILED, "%s",
-                       _("Unknown Partition Type, requires build --overwrite"));
-    } else if (check < 0) {
+    check = virStorageBackendPARTEDFindLabel(device, format);
+    switch (check) {
+    case VIR_STORAGE_PARTED_ERROR:
         virReportError(VIR_ERR_OPERATION_FAILED, "%s",
                        _("Error checking for disk label, failed to get "
                          "disk partition information"));
-    } else {
+        break;
+
+    case VIR_STORAGE_PARTED_MATCH:
         if (writelabel)
-            virReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                           _("Valid disk label already present, "
-                             "requires --overwrite"));
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                           _("Disk label already formatted using '%s'"),
+                           format);
         else
-            valid = true;
+            ret = 0;
+        break;
+
+    case VIR_STORAGE_PARTED_DIFFERENT:
+        virReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                       _("Known, but different label format present, "
+                         "requires build --overwrite"));
+        break;
+
+    case VIR_STORAGE_PARTED_UNKNOWN:
+        if (writelabel)
+            ret = 0;
+        else
+            virReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                           _("Unrecognized disk label found, requires build"));
+        break;
+
+    case VIR_STORAGE_PARTED_NOPTTYPE:
+        virReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                       _("Unable to determine Partition Type, "
+                         "requires build --overwrite"));
+        break;
+
+    case VIR_STORAGE_PARTED_PTTYPE_UNK:
+        virReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                       _("Unknown Partition Type, requires build --overwrite"));
+        break;
     }
-    return valid;
+
+    return ret;
 }
 
 
@@ -544,17 +574,19 @@ static int
 virStorageBackendDiskStartPool(virConnectPtr conn ATTRIBUTE_UNUSED,
                                virStoragePoolObjPtr pool)
 {
+    const char *format =
+        virStoragePoolFormatDiskTypeToString(pool->def->source.format);
+    const char *path = pool->def->source.devices[0].path;
+
     virFileWaitForDevices();
 
-    if (!virFileExists(pool->def->source.devices[0].path)) {
+    if (!virFileExists(path)) {
         virReportError(VIR_ERR_INVALID_ARG,
-                       _("device path '%s' doesn't exist"),
-                       pool->def->source.devices[0].path);
+                       _("device path '%s' doesn't exist"), path);
         return -1;
     }
 
-    if (!virStorageBackendDiskValidLabel(pool->def->source.devices[0].path,
-                                         false))
+    if (!virStorageBackendDeviceIsEmpty(path, format, false))
         return -1;
 
     return 0;
@@ -569,6 +601,8 @@ virStorageBackendDiskBuildPool(virConnectPtr conn ATTRIBUTE_UNUSED,
                                virStoragePoolObjPtr pool,
                                unsigned int flags)
 {
+    int format = pool->def->source.format;
+    const char *fmt;
     bool ok_to_mklabel = false;
     int ret = -1;
     virCommandPtr cmd = NULL;
@@ -580,17 +614,17 @@ virStorageBackendDiskBuildPool(virConnectPtr conn ATTRIBUTE_UNUSED,
                              VIR_STORAGE_POOL_BUILD_NO_OVERWRITE,
                              error);
 
-    if (flags & VIR_STORAGE_POOL_BUILD_OVERWRITE)
+    fmt = virStoragePoolFormatDiskTypeToString(format);
+    if (flags & VIR_STORAGE_POOL_BUILD_OVERWRITE) {
         ok_to_mklabel = true;
-    else
-        ok_to_mklabel = virStorageBackendDiskValidLabel(
-                                            pool->def->source.devices[0].path,
-                                            true);
+    } else {
+        if (virStorageBackendDeviceIsEmpty(pool->def->source.devices[0].path,
+                                              fmt, true))
+            ok_to_mklabel = true;
+    }
 
     if (ok_to_mklabel) {
         /* eg parted /dev/sda mklabel --script msdos */
-        int format = pool->def->source.format;
-        const char *fmt;
         if (format == VIR_STORAGE_POOL_DISK_UNKNOWN)
             format = pool->def->source.format = VIR_STORAGE_POOL_DISK_DOS;
         if (format == VIR_STORAGE_POOL_DISK_DOS)

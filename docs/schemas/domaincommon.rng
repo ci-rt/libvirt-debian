@@ -427,6 +427,13 @@
               <value>instructions</value>
               <value>cache_references</value>
               <value>cache_misses</value>
+              <value>branch_instructions</value>
+              <value>branch_misses</value>
+              <value>bus_cycles</value>
+              <value>stalled_cycles_frontend</value>
+              <value>stalled_cycles_backend</value>
+              <value>ref_cpu_cycles</value>
+              <value>cache_l1d</value>
             </choice>
           </attribute>
           <attribute name="enabled">
@@ -4995,6 +5002,11 @@
         <optional>
           <element name="size_iops_sec">
             <data type="unsignedLong"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="group_name">
+            <text/>
           </element>
         </optional>
         <choice>

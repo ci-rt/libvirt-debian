@@ -57,7 +57,7 @@
 #include "virlog.h"
 #include "vircommand.h"
 #include "viruri.h"
-#include "virstats.h"
+#include "virnetdevtap.h"
 #include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_OPENVZ
@@ -2027,7 +2027,7 @@ openvzDomainInterfaceStats(virDomainPtr dom,
     }
 
     if (ret == 0)
-        ret = virNetInterfaceStats(path, stats);
+        ret = virNetDevTapInterfaceStats(path, stats);
     else
         virReportError(VIR_ERR_INVALID_ARG,
                        _("invalid path, '%s' is not a known interface"), path);

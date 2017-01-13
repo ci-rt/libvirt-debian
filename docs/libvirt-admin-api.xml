@@ -45,6 +45,8 @@
      <exports symbol='virAdmConnectClose' type='function'/>
      <exports symbol='virAdmConnectCloseFunc' type='function'/>
      <exports symbol='virAdmConnectGetLibVersion' type='function'/>
+     <exports symbol='virAdmConnectGetLoggingFilters' type='function'/>
+     <exports symbol='virAdmConnectGetLoggingOutputs' type='function'/>
      <exports symbol='virAdmConnectGetURI' type='function'/>
      <exports symbol='virAdmConnectIsAlive' type='function'/>
      <exports symbol='virAdmConnectListServers' type='function'/>
@@ -52,6 +54,8 @@
      <exports symbol='virAdmConnectOpen' type='function'/>
      <exports symbol='virAdmConnectRef' type='function'/>
      <exports symbol='virAdmConnectRegisterCloseCallback' type='function'/>
+     <exports symbol='virAdmConnectSetLoggingFilters' type='function'/>
+     <exports symbol='virAdmConnectSetLoggingOutputs' type='function'/>
      <exports symbol='virAdmConnectUnregisterCloseCallback' type='function'/>
      <exports symbol='virAdmGetVersion' type='function'/>
      <exports symbol='virAdmInitialize' type='function'/>
@@ -228,6 +232,32 @@ major * 1,000,000 + minor * 1,000 + release.]]></info>
       <arg name='conn' type='virAdmConnectPtr' info='pointer to an active admin connection'/>
       <arg name='libVer' type='unsigned long long *' info='stores the current remote libvirt version number'/>
     </function>
+    <function name='virAdmConnectGetLoggingFilters' file='libvirt-admin' module='libvirt-admin'>
+      <info><![CDATA[Retrieves a list of currently installed logging filters. Filters returned
+are contained within an automatically allocated string and delimited by
+spaces. The format of each filter conforms to the format described in
+daemon's configuration file (e.g. libvirtd.conf).
+
+To retrieve individual filters, additional parsing needs to be done by the
+caller. Caller is also responsible for freeing @filters correctly.]]></info>
+      <return type='int' info='the number of filters returned in @filters, or -1 in case of an error.'/>
+      <arg name='conn' type='virAdmConnectPtr' info='pointer to an active admin connection'/>
+      <arg name='filters' type='char **' info='pointer to a variable to store a string containing all currently defined logging filters on daemon (allocated automatically) or NULL if just the number of defined outputs is required'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
+    <function name='virAdmConnectGetLoggingOutputs' file='libvirt-admin' module='libvirt-admin'>
+      <info><![CDATA[Retrieves a list of currently installed logging outputs. Outputs returned
+are contained within an automatically allocated string and delimited by
+spaces. The format of each output conforms to the format described in
+daemon's configuration file (e.g. libvirtd.conf).
+
+To retrieve individual outputs, additional parsing needs to be done by the
+caller. Caller is also responsible for freeing @outputs correctly.]]></info>
+      <return type='int' info='the count of outputs in @outputs, or -1 in case of an error.'/>
+      <arg name='conn' type='virAdmConnectPtr' info='pointer to an active admin connection'/>
+      <arg name='outputs' type='char **' info='pointer to a variable to store a string containing all currently defined logging outputs on daemon (allocated automatically) or NULL if just the number of defined outputs is required'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
     <function name='virAdmConnectGetURI' file='libvirt-admin' module='libvirt-admin'>
       <info><![CDATA[String returned by this method is normally the same as the string passed
 to the virAdmConnectOpen. Even if NULL was passed to virAdmConnectOpen,
@@ -292,6 +322,32 @@ context.]]></info>
       <arg name='cb' type='virAdmConnectCloseFunc' info='callback to be invoked upon connection close'/>
       <arg name='opaque' type='void *' info='user data to pass to @cb'/>
       <arg name='freecb' type='virFreeCallback' info='callback to free @opaque'/>
+    </function>
+    <function name='virAdmConnectSetLoggingFilters' file='libvirt-admin' module='libvirt-admin'>
+      <info><![CDATA[Redefine the existing (set of) filter(s) with a new one specified in
+@filters. If multiple filters are specified, they need to be delimited by
+spaces. The format of each filter must conform to the format described in
+daemon's configuration file (e.g. libvirtd.conf).
+
+To clear the currently defined (set of) filter(s), pass either an empty
+string ("") or NULL in @filters.]]></info>
+      <return type='int' info='0 if the new filter or the set of filters has been defined successfully, or -1 in case of an error.'/>
+      <arg name='conn' type='virAdmConnectPtr' info='pointer to an active admin connection'/>
+      <arg name='filters' type='const char *' info='pointer to a string containing a list of filters to be defined'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
+    <function name='virAdmConnectSetLoggingOutputs' file='libvirt-admin' module='libvirt-admin'>
+      <info><![CDATA[Redefine the existing (set of) outputs(s) with a new one specified in
+@outputs. If multiple outputs are specified, they need to be delimited by
+spaces. The format of each output must conform to the format described in
+daemon's configuration file (e.g. libvirtd.conf).
+
+To reset the existing (set of) output(s) to libvirt's defaults, an empty
+string ("") or NULL should be passed in @outputs.]]></info>
+      <return type='int' info='0 if the new output or the set of outputs has been defined successfully, or -1 in case of an error.'/>
+      <arg name='conn' type='virAdmConnectPtr' info='pointer to an active admin connection'/>
+      <arg name='outputs' type='const char *' info='pointer to a string containing a list of outputs to be defined'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virAdmConnectUnregisterCloseCallback' file='libvirt-admin' module='libvirt-admin'>
       <info><![CDATA[Unregisters the callback previously set with the

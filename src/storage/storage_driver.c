@@ -2427,7 +2427,7 @@ storageVolUpload(virStorageVolPtr obj,
     if (VIR_ALLOC(cbdata) < 0 ||
         VIR_STRDUP(cbdata->pool_name, pool->def->name) < 0)
         goto cleanup;
-    if (vol->target.type == VIR_STORAGE_VOL_PLOOP &&
+    if (vol->type == VIR_STORAGE_VOL_PLOOP &&
         VIR_STRDUP(cbdata->vol_path, vol->target.path) < 0)
         goto cleanup;
 
@@ -2620,18 +2620,21 @@ storageVolWipe(virStorageVolPtr obj,
 
 
 static int
-storageVolGetInfo(virStorageVolPtr obj,
-                  virStorageVolInfoPtr info)
+storageVolGetInfoFlags(virStorageVolPtr obj,
+                       virStorageVolInfoPtr info,
+                       unsigned int flags)
 {
     virStoragePoolObjPtr pool;
     virStorageBackendPtr backend;
     virStorageVolDefPtr vol;
     int ret = -1;
 
+    virCheckFlags(VIR_STORAGE_VOL_GET_PHYSICAL, -1);
+
     if (!(vol = virStorageVolDefFromVol(obj, &pool, &backend)))
         return -1;
 
-    if (virStorageVolGetInfoEnsureACL(obj->conn, pool->def, vol) < 0)
+    if (virStorageVolGetInfoFlagsEnsureACL(obj->conn, pool->def, vol) < 0)
         goto cleanup;
 
     if (backend->refreshVol &&
@@ -2641,13 +2644,25 @@ storageVolGetInfo(virStorageVolPtr obj,
     memset(info, 0, sizeof(*info));
     info->type = vol->type;
     info->capacity = vol->target.capacity;
-    info->allocation = vol->target.allocation;
+    if (flags & VIR_STORAGE_VOL_GET_PHYSICAL)
+        info->allocation = vol->target.physical;
+    else
+        info->allocation = vol->target.allocation;
     ret = 0;
 
  cleanup:
     virStoragePoolObjUnlock(pool);
     return ret;
 }
+
+
+static int
+storageVolGetInfo(virStorageVolPtr obj,
+                  virStorageVolInfoPtr info)
+{
+    return storageVolGetInfoFlags(obj, info, 0);
+}
+
 
 static char *
 storageVolGetXMLDesc(virStorageVolPtr obj,
@@ -2803,6 +2818,7 @@ static virStorageDriver storageDriver = {
     .storageVolWipe = storageVolWipe, /* 0.8.0 */
     .storageVolWipePattern = storageVolWipePattern, /* 0.9.10 */
     .storageVolGetInfo = storageVolGetInfo, /* 0.4.0 */
+    .storageVolGetInfoFlags = storageVolGetInfoFlags, /* 3.0.0 */
     .storageVolGetXMLDesc = storageVolGetXMLDesc, /* 0.4.0 */
     .storageVolGetPath = storageVolGetPath, /* 0.4.0 */
     .storageVolResize = storageVolResize, /* 0.9.10 */
@@ -2832,7 +2848,7 @@ int storageRegister(void)
 
 /* ----------- file handlers cooperating with storage driver --------------- */
 static bool
-virStorageFileIsInitialized(virStorageSourcePtr src)
+virStorageFileIsInitialized(const virStorageSource *src)
 {
     return src && src->drv;
 }
@@ -2872,7 +2888,7 @@ virStorageFileSupportsBackingChainTraversal(virStorageSourcePtr src)
  * driver to perform labelling
  */
 bool
-virStorageFileSupportsSecurityDriver(virStorageSourcePtr src)
+virStorageFileSupportsSecurityDriver(const virStorageSource *src)
 {
     int actualType;
     virStorageFileBackendPtr backend;
@@ -3163,7 +3179,7 @@ virStorageFileAccess(virStorageSourcePtr src,
  * by libvirt storage backend.
  */
 int
-virStorageFileChown(virStorageSourcePtr src,
+virStorageFileChown(const virStorageSource *src,
                     uid_t uid,
                     gid_t gid)
 {

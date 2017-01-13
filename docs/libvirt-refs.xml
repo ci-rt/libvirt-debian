@@ -141,6 +141,7 @@
     <reference name='VIR_DOMAIN_BLOCK_COPY_GRANULARITY' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_COPY_GRANULARITY'/>
     <reference name='VIR_DOMAIN_BLOCK_COPY_REUSE_EXT' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_COPY_REUSE_EXT'/>
     <reference name='VIR_DOMAIN_BLOCK_COPY_SHALLOW' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_COPY_SHALLOW'/>
+    <reference name='VIR_DOMAIN_BLOCK_IOTUNE_GROUP_NAME' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_GROUP_NAME'/>
     <reference name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC'/>
     <reference name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX'/>
     <reference name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX_LENGTH' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX_LENGTH'/>
@@ -267,6 +268,7 @@
     <reference name='VIR_DOMAIN_EVENT_ID_JOB_COMPLETED' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_ID_JOB_COMPLETED'/>
     <reference name='VIR_DOMAIN_EVENT_ID_LAST' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_ID_LAST'/>
     <reference name='VIR_DOMAIN_EVENT_ID_LIFECYCLE' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_ID_LIFECYCLE'/>
+    <reference name='VIR_DOMAIN_EVENT_ID_METADATA_CHANGE' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_ID_METADATA_CHANGE'/>
     <reference name='VIR_DOMAIN_EVENT_ID_MIGRATION_ITERATION' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_ID_MIGRATION_ITERATION'/>
     <reference name='VIR_DOMAIN_EVENT_ID_PMSUSPEND' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_ID_PMSUSPEND'/>
     <reference name='VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK'/>
@@ -611,6 +613,7 @@
     <reference name='VIR_DOMAIN_STATS_VCPU' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_STATS_VCPU'/>
     <reference name='VIR_DOMAIN_TIME_SYNC' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TIME_SYNC'/>
     <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_DISK' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_DISK'/>
+    <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_GROUP_NAME' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_GROUP_NAME'/>
     <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC'/>
     <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX'/>
     <reference name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX_LENGTH' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX_LENGTH'/>
@@ -947,6 +950,10 @@
     <reference name='VIR_NODE_SUSPEND_TARGET_HYBRID' href='html/libvirt-libvirt-host.html#VIR_NODE_SUSPEND_TARGET_HYBRID'/>
     <reference name='VIR_NODE_SUSPEND_TARGET_LAST' href='html/libvirt-libvirt-host.html#VIR_NODE_SUSPEND_TARGET_LAST'/>
     <reference name='VIR_NODE_SUSPEND_TARGET_MEM' href='html/libvirt-libvirt-host.html#VIR_NODE_SUSPEND_TARGET_MEM'/>
+    <reference name='VIR_PERF_PARAM_BRANCH_INSTRUCTIONS' href='html/libvirt-libvirt-domain.html#VIR_PERF_PARAM_BRANCH_INSTRUCTIONS'/>
+    <reference name='VIR_PERF_PARAM_BRANCH_MISSES' href='html/libvirt-libvirt-domain.html#VIR_PERF_PARAM_BRANCH_MISSES'/>
+    <reference name='VIR_PERF_PARAM_BUS_CYCLES' href='html/libvirt-libvirt-domain.html#VIR_PERF_PARAM_BUS_CYCLES'/>
+    <reference name='VIR_PERF_PARAM_CACHE_L1D' href='html/libvirt-libvirt-domain.html#VIR_PERF_PARAM_CACHE_L1D'/>
     <reference name='VIR_PERF_PARAM_CACHE_MISSES' href='html/libvirt-libvirt-domain.html#VIR_PERF_PARAM_CACHE_MISSES'/>
     <reference name='VIR_PERF_PARAM_CACHE_REFERENCES' href='html/libvirt-libvirt-domain.html#VIR_PERF_PARAM_CACHE_REFERENCES'/>
     <reference name='VIR_PERF_PARAM_CMT' href='html/libvirt-libvirt-domain.html#VIR_PERF_PARAM_CMT'/>
@@ -954,6 +961,16 @@
     <reference name='VIR_PERF_PARAM_INSTRUCTIONS' href='html/libvirt-libvirt-domain.html#VIR_PERF_PARAM_INSTRUCTIONS'/>
     <reference name='VIR_PERF_PARAM_MBML' href='html/libvirt-libvirt-domain.html#VIR_PERF_PARAM_MBML'/>
     <reference name='VIR_PERF_PARAM_MBMT' href='html/libvirt-libvirt-domain.html#VIR_PERF_PARAM_MBMT'/>
+    <reference name='VIR_PERF_PARAM_REF_CPU_CYCLES' href='html/libvirt-libvirt-domain.html#VIR_PERF_PARAM_REF_CPU_CYCLES'/>
+    <reference name='VIR_PERF_PARAM_STALLED_CYCLES_BACKEND' href='html/libvirt-libvirt-domain.html#VIR_PERF_PARAM_STALLED_CYCLES_BACKEND'/>
+    <reference name='VIR_PERF_PARAM_STALLED_CYCLES_FRONTEND' href='html/libvirt-libvirt-domain.html#VIR_PERF_PARAM_STALLED_CYCLES_FRONTEND'/>
+    <reference name='VIR_SECRET_EVENT_CALLBACK' href='html/libvirt-libvirt-secret.html#VIR_SECRET_EVENT_CALLBACK'/>
+    <reference name='VIR_SECRET_EVENT_DEFINED' href='html/libvirt-libvirt-secret.html#VIR_SECRET_EVENT_DEFINED'/>
+    <reference name='VIR_SECRET_EVENT_ID_LAST' href='html/libvirt-libvirt-secret.html#VIR_SECRET_EVENT_ID_LAST'/>
+    <reference name='VIR_SECRET_EVENT_ID_LIFECYCLE' href='html/libvirt-libvirt-secret.html#VIR_SECRET_EVENT_ID_LIFECYCLE'/>
+    <reference name='VIR_SECRET_EVENT_ID_VALUE_CHANGED' href='html/libvirt-libvirt-secret.html#VIR_SECRET_EVENT_ID_VALUE_CHANGED'/>
+    <reference name='VIR_SECRET_EVENT_LAST' href='html/libvirt-libvirt-secret.html#VIR_SECRET_EVENT_LAST'/>
+    <reference name='VIR_SECRET_EVENT_UNDEFINED' href='html/libvirt-libvirt-secret.html#VIR_SECRET_EVENT_UNDEFINED'/>
     <reference name='VIR_SECRET_USAGE_TYPE_CEPH' href='html/libvirt-libvirt-secret.html#VIR_SECRET_USAGE_TYPE_CEPH'/>
     <reference name='VIR_SECRET_USAGE_TYPE_ISCSI' href='html/libvirt-libvirt-secret.html#VIR_SECRET_USAGE_TYPE_ISCSI'/>
     <reference name='VIR_SECRET_USAGE_TYPE_LAST' href='html/libvirt-libvirt-secret.html#VIR_SECRET_USAGE_TYPE_LAST'/>
@@ -997,6 +1014,7 @@
     <reference name='VIR_STORAGE_VOL_DELETE_ZEROED' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_VOL_DELETE_ZEROED'/>
     <reference name='VIR_STORAGE_VOL_DIR' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_VOL_DIR'/>
     <reference name='VIR_STORAGE_VOL_FILE' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_VOL_FILE'/>
+    <reference name='VIR_STORAGE_VOL_GET_PHYSICAL' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_VOL_GET_PHYSICAL'/>
     <reference name='VIR_STORAGE_VOL_LAST' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_VOL_LAST'/>
     <reference name='VIR_STORAGE_VOL_NETDIR' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_VOL_NETDIR'/>
     <reference name='VIR_STORAGE_VOL_NETWORK' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_VOL_NETWORK'/>
@@ -1004,6 +1022,7 @@
     <reference name='VIR_STORAGE_VOL_RESIZE_ALLOCATE' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_VOL_RESIZE_ALLOCATE'/>
     <reference name='VIR_STORAGE_VOL_RESIZE_DELTA' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_VOL_RESIZE_DELTA'/>
     <reference name='VIR_STORAGE_VOL_RESIZE_SHRINK' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_VOL_RESIZE_SHRINK'/>
+    <reference name='VIR_STORAGE_VOL_USE_ALLOCATION' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_VOL_USE_ALLOCATION'/>
     <reference name='VIR_STORAGE_VOL_WIPE_ALG_BSI' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_VOL_WIPE_ALG_BSI'/>
     <reference name='VIR_STORAGE_VOL_WIPE_ALG_DOD' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_VOL_WIPE_ALG_DOD'/>
     <reference name='VIR_STORAGE_VOL_WIPE_ALG_GUTMANN' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_VOL_WIPE_ALG_GUTMANN'/>
@@ -1120,6 +1139,7 @@
     <reference name='virConnectDomainEventIOErrorCallback' href='html/libvirt-libvirt-domain.html#virConnectDomainEventIOErrorCallback'/>
     <reference name='virConnectDomainEventIOErrorReasonCallback' href='html/libvirt-libvirt-domain.html#virConnectDomainEventIOErrorReasonCallback'/>
     <reference name='virConnectDomainEventJobCompletedCallback' href='html/libvirt-libvirt-domain.html#virConnectDomainEventJobCompletedCallback'/>
+    <reference name='virConnectDomainEventMetadataChangeCallback' href='html/libvirt-libvirt-domain.html#virConnectDomainEventMetadataChangeCallback'/>
     <reference name='virConnectDomainEventMigrationIterationCallback' href='html/libvirt-libvirt-domain.html#virConnectDomainEventMigrationIterationCallback'/>
     <reference name='virConnectDomainEventPMSuspendCallback' href='html/libvirt-libvirt-domain.html#virConnectDomainEventPMSuspendCallback'/>
     <reference name='virConnectDomainEventPMSuspendDiskCallback' href='html/libvirt-libvirt-domain.html#virConnectDomainEventPMSuspendDiskCallback'/>
@@ -1196,6 +1216,10 @@
     <reference name='virConnectPtr' href='html/libvirt-libvirt-host.html#virConnectPtr'/>
     <reference name='virConnectRef' href='html/libvirt-libvirt-host.html#virConnectRef'/>
     <reference name='virConnectRegisterCloseCallback' href='html/libvirt-libvirt-host.html#virConnectRegisterCloseCallback'/>
+    <reference name='virConnectSecretEventDeregisterAny' href='html/libvirt-libvirt-secret.html#virConnectSecretEventDeregisterAny'/>
+    <reference name='virConnectSecretEventGenericCallback' href='html/libvirt-libvirt-secret.html#virConnectSecretEventGenericCallback'/>
+    <reference name='virConnectSecretEventLifecycleCallback' href='html/libvirt-libvirt-secret.html#virConnectSecretEventLifecycleCallback'/>
+    <reference name='virConnectSecretEventRegisterAny' href='html/libvirt-libvirt-secret.html#virConnectSecretEventRegisterAny'/>
     <reference name='virConnectSetKeepAlive' href='html/libvirt-libvirt-host.html#virConnectSetKeepAlive'/>
     <reference name='virConnectStoragePoolEventDeregisterAny' href='html/libvirt-libvirt-storage.html#virConnectStoragePoolEventDeregisterAny'/>
     <reference name='virConnectStoragePoolEventGenericCallback' href='html/libvirt-libvirt-storage.html#virConnectStoragePoolEventGenericCallback'/>
@@ -1640,6 +1664,8 @@
     <reference name='virSchedParameterType' href='html/libvirt-libvirt-domain.html#virSchedParameterType'/>
     <reference name='virSecret' href='html/libvirt-libvirt-secret.html#virSecret'/>
     <reference name='virSecretDefineXML' href='html/libvirt-libvirt-secret.html#virSecretDefineXML'/>
+    <reference name='virSecretEventID' href='html/libvirt-libvirt-secret.html#virSecretEventID'/>
+    <reference name='virSecretEventLifecycleType' href='html/libvirt-libvirt-secret.html#virSecretEventLifecycleType'/>
     <reference name='virSecretFree' href='html/libvirt-libvirt-secret.html#virSecretFree'/>
     <reference name='virSecretGetConnect' href='html/libvirt-libvirt-secret.html#virSecretGetConnect'/>
     <reference name='virSecretGetUUID' href='html/libvirt-libvirt-secret.html#virSecretGetUUID'/>
@@ -1708,11 +1734,13 @@
     <reference name='virStorageVolFree' href='html/libvirt-libvirt-storage.html#virStorageVolFree'/>
     <reference name='virStorageVolGetConnect' href='html/libvirt-libvirt-storage.html#virStorageVolGetConnect'/>
     <reference name='virStorageVolGetInfo' href='html/libvirt-libvirt-storage.html#virStorageVolGetInfo'/>
+    <reference name='virStorageVolGetInfoFlags' href='html/libvirt-libvirt-storage.html#virStorageVolGetInfoFlags'/>
     <reference name='virStorageVolGetKey' href='html/libvirt-libvirt-storage.html#virStorageVolGetKey'/>
     <reference name='virStorageVolGetName' href='html/libvirt-libvirt-storage.html#virStorageVolGetName'/>
     <reference name='virStorageVolGetPath' href='html/libvirt-libvirt-storage.html#virStorageVolGetPath'/>
     <reference name='virStorageVolGetXMLDesc' href='html/libvirt-libvirt-storage.html#virStorageVolGetXMLDesc'/>
     <reference name='virStorageVolInfo' href='html/libvirt-libvirt-storage.html#virStorageVolInfo'/>
+    <reference name='virStorageVolInfoFlags' href='html/libvirt-libvirt-storage.html#virStorageVolInfoFlags'/>
     <reference name='virStorageVolInfoPtr' href='html/libvirt-libvirt-storage.html#virStorageVolInfoPtr'/>
     <reference name='virStorageVolLookupByKey' href='html/libvirt-libvirt-storage.html#virStorageVolLookupByKey'/>
     <reference name='virStorageVolLookupByName' href='html/libvirt-libvirt-storage.html#virStorageVolLookupByName'/>
@@ -1917,6 +1945,7 @@
       <ref name='VIR_DOMAIN_BLOCK_COPY_GRANULARITY'/>
       <ref name='VIR_DOMAIN_BLOCK_COPY_REUSE_EXT'/>
       <ref name='VIR_DOMAIN_BLOCK_COPY_SHALLOW'/>
+      <ref name='VIR_DOMAIN_BLOCK_IOTUNE_GROUP_NAME'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX_LENGTH'/>
@@ -2043,6 +2072,7 @@
       <ref name='VIR_DOMAIN_EVENT_ID_JOB_COMPLETED'/>
       <ref name='VIR_DOMAIN_EVENT_ID_LAST'/>
       <ref name='VIR_DOMAIN_EVENT_ID_LIFECYCLE'/>
+      <ref name='VIR_DOMAIN_EVENT_ID_METADATA_CHANGE'/>
       <ref name='VIR_DOMAIN_EVENT_ID_MIGRATION_ITERATION'/>
       <ref name='VIR_DOMAIN_EVENT_ID_PMSUSPEND'/>
       <ref name='VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK'/>
@@ -2387,6 +2417,7 @@
       <ref name='VIR_DOMAIN_STATS_VCPU'/>
       <ref name='VIR_DOMAIN_TIME_SYNC'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_DISK'/>
+      <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_GROUP_NAME'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX_LENGTH'/>
@@ -2723,6 +2754,10 @@
       <ref name='VIR_NODE_SUSPEND_TARGET_HYBRID'/>
       <ref name='VIR_NODE_SUSPEND_TARGET_LAST'/>
       <ref name='VIR_NODE_SUSPEND_TARGET_MEM'/>
+      <ref name='VIR_PERF_PARAM_BRANCH_INSTRUCTIONS'/>
+      <ref name='VIR_PERF_PARAM_BRANCH_MISSES'/>
+      <ref name='VIR_PERF_PARAM_BUS_CYCLES'/>
+      <ref name='VIR_PERF_PARAM_CACHE_L1D'/>
       <ref name='VIR_PERF_PARAM_CACHE_MISSES'/>
       <ref name='VIR_PERF_PARAM_CACHE_REFERENCES'/>
       <ref name='VIR_PERF_PARAM_CMT'/>
@@ -2730,6 +2765,16 @@
       <ref name='VIR_PERF_PARAM_INSTRUCTIONS'/>
       <ref name='VIR_PERF_PARAM_MBML'/>
       <ref name='VIR_PERF_PARAM_MBMT'/>
+      <ref name='VIR_PERF_PARAM_REF_CPU_CYCLES'/>
+      <ref name='VIR_PERF_PARAM_STALLED_CYCLES_BACKEND'/>
+      <ref name='VIR_PERF_PARAM_STALLED_CYCLES_FRONTEND'/>
+      <ref name='VIR_SECRET_EVENT_CALLBACK'/>
+      <ref name='VIR_SECRET_EVENT_DEFINED'/>
+      <ref name='VIR_SECRET_EVENT_ID_LAST'/>
+      <ref name='VIR_SECRET_EVENT_ID_LIFECYCLE'/>
+      <ref name='VIR_SECRET_EVENT_ID_VALUE_CHANGED'/>
+      <ref name='VIR_SECRET_EVENT_LAST'/>
+      <ref name='VIR_SECRET_EVENT_UNDEFINED'/>
       <ref name='VIR_SECRET_USAGE_TYPE_CEPH'/>
       <ref name='VIR_SECRET_USAGE_TYPE_ISCSI'/>
       <ref name='VIR_SECRET_USAGE_TYPE_LAST'/>
@@ -2773,6 +2818,7 @@
       <ref name='VIR_STORAGE_VOL_DELETE_ZEROED'/>
       <ref name='VIR_STORAGE_VOL_DIR'/>
       <ref name='VIR_STORAGE_VOL_FILE'/>
+      <ref name='VIR_STORAGE_VOL_GET_PHYSICAL'/>
       <ref name='VIR_STORAGE_VOL_LAST'/>
       <ref name='VIR_STORAGE_VOL_NETDIR'/>
       <ref name='VIR_STORAGE_VOL_NETWORK'/>
@@ -2780,6 +2826,7 @@
       <ref name='VIR_STORAGE_VOL_RESIZE_ALLOCATE'/>
       <ref name='VIR_STORAGE_VOL_RESIZE_DELTA'/>
       <ref name='VIR_STORAGE_VOL_RESIZE_SHRINK'/>
+      <ref name='VIR_STORAGE_VOL_USE_ALLOCATION'/>
       <ref name='VIR_STORAGE_VOL_WIPE_ALG_BSI'/>
       <ref name='VIR_STORAGE_VOL_WIPE_ALG_DOD'/>
       <ref name='VIR_STORAGE_VOL_WIPE_ALG_GUTMANN'/>
@@ -2900,6 +2947,7 @@
       <ref name='virConnectDomainEventIOErrorCallback'/>
       <ref name='virConnectDomainEventIOErrorReasonCallback'/>
       <ref name='virConnectDomainEventJobCompletedCallback'/>
+      <ref name='virConnectDomainEventMetadataChangeCallback'/>
       <ref name='virConnectDomainEventMigrationIterationCallback'/>
       <ref name='virConnectDomainEventPMSuspendCallback'/>
       <ref name='virConnectDomainEventPMSuspendDiskCallback'/>
@@ -2976,6 +3024,10 @@
       <ref name='virConnectPtr'/>
       <ref name='virConnectRef'/>
       <ref name='virConnectRegisterCloseCallback'/>
+      <ref name='virConnectSecretEventDeregisterAny'/>
+      <ref name='virConnectSecretEventGenericCallback'/>
+      <ref name='virConnectSecretEventLifecycleCallback'/>
+      <ref name='virConnectSecretEventRegisterAny'/>
       <ref name='virConnectSetKeepAlive'/>
       <ref name='virConnectStoragePoolEventDeregisterAny'/>
       <ref name='virConnectStoragePoolEventGenericCallback'/>
@@ -3420,6 +3472,8 @@
       <ref name='virSchedParameterType'/>
       <ref name='virSecret'/>
       <ref name='virSecretDefineXML'/>
+      <ref name='virSecretEventID'/>
+      <ref name='virSecretEventLifecycleType'/>
       <ref name='virSecretFree'/>
       <ref name='virSecretGetConnect'/>
       <ref name='virSecretGetUUID'/>
@@ -3488,11 +3542,13 @@
       <ref name='virStorageVolFree'/>
       <ref name='virStorageVolGetConnect'/>
       <ref name='virStorageVolGetInfo'/>
+      <ref name='virStorageVolGetInfoFlags'/>
       <ref name='virStorageVolGetKey'/>
       <ref name='virStorageVolGetName'/>
       <ref name='virStorageVolGetPath'/>
       <ref name='virStorageVolGetXMLDesc'/>
       <ref name='virStorageVolInfo'/>
+      <ref name='virStorageVolInfoFlags'/>
       <ref name='virStorageVolInfoPtr'/>
       <ref name='virStorageVolLookupByKey'/>
       <ref name='virStorageVolLookupByName'/>
@@ -3960,6 +4016,7 @@
       <ref name='virStorageVolCreateXMLFrom'/>
       <ref name='virStorageVolDelete'/>
       <ref name='virStorageVolDownload'/>
+      <ref name='virStorageVolGetInfoFlags'/>
       <ref name='virStorageVolGetXMLDesc'/>
       <ref name='virStorageVolResize'/>
       <ref name='virStorageVolUpload'/>
@@ -4066,6 +4123,7 @@
       <ref name='virConnectDomainEventIOErrorCallback'/>
       <ref name='virConnectDomainEventIOErrorReasonCallback'/>
       <ref name='virConnectDomainEventJobCompletedCallback'/>
+      <ref name='virConnectDomainEventMetadataChangeCallback'/>
       <ref name='virConnectDomainEventMigrationIterationCallback'/>
       <ref name='virConnectDomainEventPMSuspendCallback'/>
       <ref name='virConnectDomainEventPMSuspendDiskCallback'/>
@@ -4130,6 +4188,10 @@
       <ref name='virConnectNumOfStoragePools'/>
       <ref name='virConnectRef'/>
       <ref name='virConnectRegisterCloseCallback'/>
+      <ref name='virConnectSecretEventDeregisterAny'/>
+      <ref name='virConnectSecretEventGenericCallback'/>
+      <ref name='virConnectSecretEventLifecycleCallback'/>
+      <ref name='virConnectSecretEventRegisterAny'/>
       <ref name='virConnectSetKeepAlive'/>
       <ref name='virConnectStoragePoolEventDeregisterAny'/>
       <ref name='virConnectStoragePoolEventGenericCallback'/>
@@ -4197,6 +4259,9 @@
       <ref name='virStorageVolLookupByPath'/>
       <ref name='virStreamNew'/>
     </type>
+    <type name='virConnectSecretEventGenericCallback'>
+      <ref name='virConnectSecretEventRegisterAny'/>
+    </type>
     <type name='virConnectStoragePoolEventGenericCallback'>
       <ref name='virConnectStoragePoolEventRegisterAny'/>
     </type>
@@ -4259,6 +4324,7 @@
       <ref name='virConnectDomainEventIOErrorCallback'/>
       <ref name='virConnectDomainEventIOErrorReasonCallback'/>
       <ref name='virConnectDomainEventJobCompletedCallback'/>
+      <ref name='virConnectDomainEventMetadataChangeCallback'/>
       <ref name='virConnectDomainEventMigrationIterationCallback'/>
       <ref name='virConnectDomainEventPMSuspendCallback'/>
       <ref name='virConnectDomainEventPMSuspendDiskCallback'/>
@@ -4489,6 +4555,7 @@
       <ref name='virConnectNetworkEventRegisterAny'/>
       <ref name='virConnectNodeDeviceEventRegisterAny'/>
       <ref name='virConnectRegisterCloseCallback'/>
+      <ref name='virConnectSecretEventRegisterAny'/>
       <ref name='virConnectStoragePoolEventRegisterAny'/>
       <ref name='virEventAddHandle'/>
       <ref name='virEventAddHandleFunc'/>
@@ -4584,6 +4651,9 @@
       <ref name='virNodeGetMemoryStats'/>
     </type>
     <type name='virSecretPtr'>
+      <ref name='virConnectSecretEventGenericCallback'/>
+      <ref name='virConnectSecretEventLifecycleCallback'/>
+      <ref name='virConnectSecretEventRegisterAny'/>
       <ref name='virSecretFree'/>
       <ref name='virSecretGetConnect'/>
       <ref name='virSecretGetUUID'/>
@@ -4645,6 +4715,7 @@
     </type>
     <type name='virStorageVolInfoPtr'>
       <ref name='virStorageVolGetInfo'/>
+      <ref name='virStorageVolGetInfoFlags'/>
     </type>
     <type name='virStorageVolPtr'>
       <ref name='virStoragePoolLookupByVolume'/>
@@ -4654,6 +4725,7 @@
       <ref name='virStorageVolFree'/>
       <ref name='virStorageVolGetConnect'/>
       <ref name='virStorageVolGetInfo'/>
+      <ref name='virStorageVolGetInfoFlags'/>
       <ref name='virStorageVolGetKey'/>
       <ref name='virStorageVolGetName'/>
       <ref name='virStorageVolGetPath'/>
@@ -4767,6 +4839,7 @@
       <ref name='virConnectDomainEventIOErrorCallback'/>
       <ref name='virConnectDomainEventIOErrorReasonCallback'/>
       <ref name='virConnectDomainEventJobCompletedCallback'/>
+      <ref name='virConnectDomainEventMetadataChangeCallback'/>
       <ref name='virConnectDomainEventMigrationIterationCallback'/>
       <ref name='virConnectDomainEventPMSuspendCallback'/>
       <ref name='virConnectDomainEventPMSuspendDiskCallback'/>
@@ -4784,6 +4857,9 @@
       <ref name='virConnectNodeDeviceEventLifecycleCallback'/>
       <ref name='virConnectNodeDeviceEventRegisterAny'/>
       <ref name='virConnectRegisterCloseCallback'/>
+      <ref name='virConnectSecretEventGenericCallback'/>
+      <ref name='virConnectSecretEventLifecycleCallback'/>
+      <ref name='virConnectSecretEventRegisterAny'/>
       <ref name='virConnectStoragePoolEventGenericCallback'/>
       <ref name='virConnectStoragePoolEventLifecycleCallback'/>
       <ref name='virConnectStoragePoolEventRegisterAny'/>
@@ -4979,6 +5055,7 @@
       <ref name='VIR_DOMAIN_BLOCK_COPY_GRANULARITY'/>
       <ref name='VIR_DOMAIN_BLOCK_COPY_REUSE_EXT'/>
       <ref name='VIR_DOMAIN_BLOCK_COPY_SHALLOW'/>
+      <ref name='VIR_DOMAIN_BLOCK_IOTUNE_GROUP_NAME'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX'/>
       <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX_LENGTH'/>
@@ -5105,6 +5182,7 @@
       <ref name='VIR_DOMAIN_EVENT_ID_JOB_COMPLETED'/>
       <ref name='VIR_DOMAIN_EVENT_ID_LAST'/>
       <ref name='VIR_DOMAIN_EVENT_ID_LIFECYCLE'/>
+      <ref name='VIR_DOMAIN_EVENT_ID_METADATA_CHANGE'/>
       <ref name='VIR_DOMAIN_EVENT_ID_MIGRATION_ITERATION'/>
       <ref name='VIR_DOMAIN_EVENT_ID_PMSUSPEND'/>
       <ref name='VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK'/>
@@ -5423,6 +5501,7 @@
       <ref name='VIR_DOMAIN_STATS_VCPU'/>
       <ref name='VIR_DOMAIN_TIME_SYNC'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_DISK'/>
+      <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_GROUP_NAME'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX'/>
       <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX_LENGTH'/>
@@ -5519,6 +5598,10 @@
       <ref name='VIR_MIGRATE_TUNNELLED'/>
       <ref name='VIR_MIGRATE_UNDEFINE_SOURCE'/>
       <ref name='VIR_MIGRATE_UNSAFE'/>
+      <ref name='VIR_PERF_PARAM_BRANCH_INSTRUCTIONS'/>
+      <ref name='VIR_PERF_PARAM_BRANCH_MISSES'/>
+      <ref name='VIR_PERF_PARAM_BUS_CYCLES'/>
+      <ref name='VIR_PERF_PARAM_CACHE_L1D'/>
       <ref name='VIR_PERF_PARAM_CACHE_MISSES'/>
       <ref name='VIR_PERF_PARAM_CACHE_REFERENCES'/>
       <ref name='VIR_PERF_PARAM_CMT'/>
@@ -5526,6 +5609,9 @@
       <ref name='VIR_PERF_PARAM_INSTRUCTIONS'/>
       <ref name='VIR_PERF_PARAM_MBML'/>
       <ref name='VIR_PERF_PARAM_MBMT'/>
+      <ref name='VIR_PERF_PARAM_REF_CPU_CYCLES'/>
+      <ref name='VIR_PERF_PARAM_STALLED_CYCLES_BACKEND'/>
+      <ref name='VIR_PERF_PARAM_STALLED_CYCLES_FRONTEND'/>
       <ref name='VIR_UNUSE_CPU'/>
       <ref name='VIR_USE_CPU'/>
       <ref name='VIR_VCPU_BLOCKED'/>
@@ -5575,6 +5661,7 @@
       <ref name='virConnectDomainEventIOErrorCallback'/>
       <ref name='virConnectDomainEventIOErrorReasonCallback'/>
       <ref name='virConnectDomainEventJobCompletedCallback'/>
+      <ref name='virConnectDomainEventMetadataChangeCallback'/>
       <ref name='virConnectDomainEventMigrationIterationCallback'/>
       <ref name='virConnectDomainEventPMSuspendCallback'/>
       <ref name='virConnectDomainEventPMSuspendDiskCallback'/>
@@ -6207,6 +6294,13 @@
       <ref name='VIR_CONNECT_LIST_SECRETS_NO_EPHEMERAL'/>
       <ref name='VIR_CONNECT_LIST_SECRETS_NO_PRIVATE'/>
       <ref name='VIR_CONNECT_LIST_SECRETS_PRIVATE'/>
+      <ref name='VIR_SECRET_EVENT_CALLBACK'/>
+      <ref name='VIR_SECRET_EVENT_DEFINED'/>
+      <ref name='VIR_SECRET_EVENT_ID_LAST'/>
+      <ref name='VIR_SECRET_EVENT_ID_LIFECYCLE'/>
+      <ref name='VIR_SECRET_EVENT_ID_VALUE_CHANGED'/>
+      <ref name='VIR_SECRET_EVENT_LAST'/>
+      <ref name='VIR_SECRET_EVENT_UNDEFINED'/>
       <ref name='VIR_SECRET_USAGE_TYPE_CEPH'/>
       <ref name='VIR_SECRET_USAGE_TYPE_ISCSI'/>
       <ref name='VIR_SECRET_USAGE_TYPE_LAST'/>
@@ -6217,8 +6311,14 @@
       <ref name='virConnectListAllSecretsFlags'/>
       <ref name='virConnectListSecrets'/>
       <ref name='virConnectNumOfSecrets'/>
+      <ref name='virConnectSecretEventDeregisterAny'/>
+      <ref name='virConnectSecretEventGenericCallback'/>
+      <ref name='virConnectSecretEventLifecycleCallback'/>
+      <ref name='virConnectSecretEventRegisterAny'/>
       <ref name='virSecret'/>
       <ref name='virSecretDefineXML'/>
+      <ref name='virSecretEventID'/>
+      <ref name='virSecretEventLifecycleType'/>
       <ref name='virSecretFree'/>
       <ref name='virSecretGetConnect'/>
       <ref name='virSecretGetUUID'/>
@@ -6289,6 +6389,7 @@
       <ref name='VIR_STORAGE_VOL_DELETE_ZEROED'/>
       <ref name='VIR_STORAGE_VOL_DIR'/>
       <ref name='VIR_STORAGE_VOL_FILE'/>
+      <ref name='VIR_STORAGE_VOL_GET_PHYSICAL'/>
       <ref name='VIR_STORAGE_VOL_LAST'/>
       <ref name='VIR_STORAGE_VOL_NETDIR'/>
       <ref name='VIR_STORAGE_VOL_NETWORK'/>
@@ -6296,6 +6397,7 @@
       <ref name='VIR_STORAGE_VOL_RESIZE_ALLOCATE'/>
       <ref name='VIR_STORAGE_VOL_RESIZE_DELTA'/>
       <ref name='VIR_STORAGE_VOL_RESIZE_SHRINK'/>
+      <ref name='VIR_STORAGE_VOL_USE_ALLOCATION'/>
       <ref name='VIR_STORAGE_VOL_WIPE_ALG_BSI'/>
       <ref name='VIR_STORAGE_VOL_WIPE_ALG_DOD'/>
       <ref name='VIR_STORAGE_VOL_WIPE_ALG_GUTMANN'/>
@@ -6368,11 +6470,13 @@
       <ref name='virStorageVolFree'/>
       <ref name='virStorageVolGetConnect'/>
       <ref name='virStorageVolGetInfo'/>
+      <ref name='virStorageVolGetInfoFlags'/>
       <ref name='virStorageVolGetKey'/>
       <ref name='virStorageVolGetName'/>
       <ref name='virStorageVolGetPath'/>
       <ref name='virStorageVolGetXMLDesc'/>
       <ref name='virStorageVolInfo'/>
+      <ref name='virStorageVolInfoFlags'/>
       <ref name='virStorageVolInfoPtr'/>
       <ref name='virStorageVolLookupByKey'/>
       <ref name='virStorageVolLookupByName'/>
@@ -6621,6 +6725,10 @@
         <word name='APIs'>
           <ref name='VIR_COPY_CPUMAP'/>
           <ref name='VIR_GET_CPUMAP'/>
+          <ref name='VIR_PERF_PARAM_BRANCH_INSTRUCTIONS'/>
+          <ref name='VIR_PERF_PARAM_BRANCH_MISSES'/>
+          <ref name='VIR_PERF_PARAM_BUS_CYCLES'/>
+          <ref name='VIR_PERF_PARAM_CACHE_L1D'/>
           <ref name='VIR_PERF_PARAM_CACHE_MISSES'/>
           <ref name='VIR_PERF_PARAM_CACHE_REFERENCES'/>
           <ref name='VIR_PERF_PARAM_CMT'/>
@@ -6628,6 +6736,9 @@
           <ref name='VIR_PERF_PARAM_INSTRUCTIONS'/>
           <ref name='VIR_PERF_PARAM_MBML'/>
           <ref name='VIR_PERF_PARAM_MBMT'/>
+          <ref name='VIR_PERF_PARAM_REF_CPU_CYCLES'/>
+          <ref name='VIR_PERF_PARAM_STALLED_CYCLES_BACKEND'/>
+          <ref name='VIR_PERF_PARAM_STALLED_CYCLES_FRONTEND'/>
           <ref name='virConnectOpenReadOnly'/>
           <ref name='virConnectRegisterCloseCallback'/>
           <ref name='virEventRegisterImpl'/>
@@ -6683,6 +6794,7 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virTypedParamsAddBoolean'/>
           <ref name='virTypedParamsAddDouble'/>
@@ -6767,6 +6879,7 @@
           <ref name='VIR_DOMAIN_BLKIO_WEIGHT'/>
         </word>
         <word name='BlockIoTune'>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_GROUP_NAME'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX_LENGTH'/>
@@ -7233,6 +7346,7 @@
           <ref name='virSecretGetXMLDesc'/>
           <ref name='virStoragePoolGetAutostart'/>
           <ref name='virStorageVolGetInfo'/>
+          <ref name='virStorageVolGetInfoFlags'/>
         </word>
         <word name='Fetching'>
           <ref name='virDomainMigrateStartPostCopy'/>
@@ -7591,6 +7705,7 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
         </word>
         <word name='Must'>
@@ -8017,6 +8132,7 @@
           <ref name='virConnectDomainEventDeregisterAny'/>
           <ref name='virConnectNetworkEventDeregisterAny'/>
           <ref name='virConnectNodeDeviceEventDeregisterAny'/>
+          <ref name='virConnectSecretEventDeregisterAny'/>
           <ref name='virConnectStoragePoolEventDeregisterAny'/>
         </word>
         <word name='Rename'>
@@ -8231,6 +8347,7 @@
           <ref name='virConnectDomainEventGenericCallback'/>
           <ref name='virConnectNetworkEventGenericCallback'/>
           <ref name='virConnectNodeDeviceEventGenericCallback'/>
+          <ref name='virConnectSecretEventGenericCallback'/>
           <ref name='virConnectStoragePoolEventGenericCallback'/>
         </word>
         <word name='Specifically'>
@@ -8269,6 +8386,10 @@
           <ref name='virNodeGetCPUStats'/>
         </word>
         <word name='Stats'>
+          <ref name='VIR_PERF_PARAM_BRANCH_INSTRUCTIONS'/>
+          <ref name='VIR_PERF_PARAM_BRANCH_MISSES'/>
+          <ref name='VIR_PERF_PARAM_BUS_CYCLES'/>
+          <ref name='VIR_PERF_PARAM_CACHE_L1D'/>
           <ref name='VIR_PERF_PARAM_CACHE_MISSES'/>
           <ref name='VIR_PERF_PARAM_CACHE_REFERENCES'/>
           <ref name='VIR_PERF_PARAM_CMT'/>
@@ -8276,6 +8397,9 @@
           <ref name='VIR_PERF_PARAM_INSTRUCTIONS'/>
           <ref name='VIR_PERF_PARAM_MBML'/>
           <ref name='VIR_PERF_PARAM_MBMT'/>
+          <ref name='VIR_PERF_PARAM_REF_CPU_CYCLES'/>
+          <ref name='VIR_PERF_PARAM_STALLED_CYCLES_BACKEND'/>
+          <ref name='VIR_PERF_PARAM_STALLED_CYCLES_FRONTEND'/>
         </word>
         <word name='Stats:'>
           <ref name='virNodeGetMemoryStats'/>
@@ -8392,6 +8516,7 @@
         <word name='URI'>
           <ref name='VIR_MIGRATE_PARAM_GRAPHICS_URI'/>
           <ref name='VIR_MIGRATE_PARAM_URI'/>
+          <ref name='virConnectDomainEventMetadataChangeCallback'/>
           <ref name='virConnectGetType'/>
           <ref name='virConnectGetURI'/>
           <ref name='virConnectOpen'/>
@@ -8469,6 +8594,7 @@
           <ref name='VIR_DOMAIN_EVENT_CALLBACK'/>
           <ref name='VIR_NETWORK_EVENT_CALLBACK'/>
           <ref name='VIR_NODE_DEVICE_EVENT_CALLBACK'/>
+          <ref name='VIR_SECRET_EVENT_CALLBACK'/>
           <ref name='VIR_STORAGE_POOL_EVENT_CALLBACK'/>
         </word>
         <word name='Users'>
@@ -8909,6 +9035,9 @@
           <ref name='virConnectDomainEventJobCompletedCallback'/>
           <ref name='virDomainGetJobStats'/>
           <ref name='virDomainMigrateStartPostCopy'/>
+        </word>
+        <word name='VIR_DOMAIN_EVENT_ID_METADATA_CHANGE'>
+          <ref name='virConnectDomainEventMetadataChangeCallback'/>
         </word>
         <word name='VIR_DOMAIN_EVENT_ID_MIGRATION_ITERATION'>
           <ref name='virConnectDomainEventMigrationIterationCallback'/>
@@ -9482,6 +9611,13 @@
           <ref name='virDomainGetPerfEvents'/>
           <ref name='virDomainSetPerfEvents'/>
         </word>
+        <word name='VIR_SECRET_EVENT_CALLBACK'>
+          <ref name='virConnectSecretEventGenericCallback'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
+        </word>
+        <word name='VIR_SECRET_EVENT_ID_LIFECYCLE'>
+          <ref name='virConnectSecretEventLifecycleCallback'/>
+        </word>
         <word name='VIR_SECRET_USAGE_TYPE_VOLUME'>
           <ref name='virSecretGetUsageID'/>
         </word>
@@ -9501,6 +9637,9 @@
         <word name='VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA'>
           <ref name='virStorageVolCreateXML'/>
           <ref name='virStorageVolCreateXMLFrom'/>
+        </word>
+        <word name='VIR_STORAGE_VOL_GET_PHYSICAL'>
+          <ref name='virStorageVolGetInfoFlags'/>
         </word>
         <word name='VIR_STORAGE_VOL_RESIZE_ALLOCATE'>
           <ref name='virStorageVolResize'/>
@@ -9536,6 +9675,7 @@
         </word>
         <word name='VIR_TYPED_PARAM_STRING'>
           <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_DISK'/>
+          <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_GROUP_NAME'/>
           <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN'/>
           <ref name='VIR_DOMAIN_TUNABLE_CPU_IOTHREADSPIN'/>
           <ref name='VIR_DOMAIN_TUNABLE_CPU_VCPUPIN'/>
@@ -9709,6 +9849,7 @@
           <ref name='virSecretGetUsageType'/>
           <ref name='virStoragePoolGetInfo'/>
           <ref name='virStorageVolGetInfo'/>
+          <ref name='virStorageVolGetInfoFlags'/>
         </word>
         <word name='above'>
           <ref name='_virDomainJobInfo'/>
@@ -9780,6 +9921,7 @@
           <ref name='virConnectDomainEventIOErrorReasonCallback'/>
           <ref name='virConnectDomainEventWatchdogCallback'/>
           <ref name='virConnectNodeDeviceEventLifecycleCallback'/>
+          <ref name='virConnectSecretEventLifecycleCallback'/>
           <ref name='virConnectStoragePoolEventLifecycleCallback'/>
           <ref name='virNetworkUpdate'/>
         </word>
@@ -9832,6 +9974,7 @@
           <ref name='virConnectDomainEventDeviceAddedCallback'/>
           <ref name='virConnectDomainEventIOErrorReasonCallback'/>
           <ref name='virConnectNodeDeviceEventLifecycleCallback'/>
+          <ref name='virConnectSecretEventLifecycleCallback'/>
           <ref name='virDomainAttachDeviceFlags'/>
           <ref name='virDomainUpdateDeviceFlags'/>
           <ref name='virSecretGetUsageType'/>
@@ -9919,7 +10062,9 @@
           <ref name='virStorageVolResize'/>
         </word>
         <word name='affected'>
+          <ref name='VIR_PERF_PARAM_REF_CPU_CYCLES'/>
           <ref name='virConnectDomainEventBlockJobCallback'/>
+          <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='affecting'>
           <ref name='virDomainBlockRebase'/>
@@ -10078,10 +10223,12 @@
           <ref name='virDomainUpdateDeviceFlags'/>
           <ref name='virSaveLastError'/>
           <ref name='virStorageVolGetInfo'/>
+          <ref name='virStorageVolGetInfoFlags'/>
           <ref name='virStorageVolResize'/>
           <ref name='virStorageVolUpload'/>
         </word>
         <word name='allow'>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_GROUP_NAME'/>
           <ref name='virConnectDomainEventIOErrorReasonCallback'/>
           <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainCoreDump'/>
@@ -10239,6 +10386,7 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virDomainManagedSave'/>
           <ref name='virDomainSave'/>
@@ -10264,10 +10412,16 @@
           <ref name='virConnectRegisterCloseCallback'/>
         </word>
         <word name='applications'>
+          <ref name='VIR_PERF_PARAM_BRANCH_INSTRUCTIONS'/>
+          <ref name='VIR_PERF_PARAM_BRANCH_MISSES'/>
+          <ref name='VIR_PERF_PARAM_BUS_CYCLES'/>
+          <ref name='VIR_PERF_PARAM_CACHE_L1D'/>
           <ref name='VIR_PERF_PARAM_CACHE_MISSES'/>
           <ref name='VIR_PERF_PARAM_CACHE_REFERENCES'/>
           <ref name='VIR_PERF_PARAM_CMT'/>
           <ref name='VIR_PERF_PARAM_INSTRUCTIONS'/>
+          <ref name='VIR_PERF_PARAM_REF_CPU_CYCLES'/>
+          <ref name='VIR_PERF_PARAM_STALLED_CYCLES_FRONTEND'/>
           <ref name='virConnectDomainEventDeregister'/>
           <ref name='virConnectDomainEventRegister'/>
           <ref name='virConnectGetAllDomainStats'/>
@@ -10290,6 +10444,7 @@
           <ref name='virConnectFindStoragePoolSources'/>
           <ref name='virConnectNetworkEventGenericCallback'/>
           <ref name='virConnectNodeDeviceEventGenericCallback'/>
+          <ref name='virConnectSecretEventGenericCallback'/>
           <ref name='virConnectStoragePoolEventGenericCallback'/>
           <ref name='virDomainDestroyFlags'/>
           <ref name='virDomainGetMetadata'/>
@@ -10314,6 +10469,7 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virDomainSendProcessSignal'/>
           <ref name='virStreamRecv'/>
@@ -10349,6 +10505,7 @@
           <ref name='virNodeGetSecurityModel'/>
           <ref name='virNodeListDevices'/>
           <ref name='virNodeNumOfDevices'/>
+          <ref name='virStorageVolGetInfoFlags'/>
         </word>
         <word name='arguments'>
           <ref name='virDomainBlockCopy'/>
@@ -10600,7 +10757,9 @@
           <ref name='virDomainGetBlockInfo'/>
         </word>
         <word name='backend'>
+          <ref name='VIR_PERF_PARAM_STALLED_CYCLES_BACKEND'/>
           <ref name='virConnectFindStoragePoolSources'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainAttachDevice'/>
           <ref name='virDomainOpenConsole'/>
           <ref name='virDomainOpenGraphics'/>
@@ -10745,6 +10904,7 @@
         <word name='between'>
           <ref name='VIR_CPU_MAPLEN'/>
           <ref name='VIR_DOMAIN_BLOCK_COPY_BUF_SIZE'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_GROUP_NAME'/>
           <ref name='VIR_DOMAIN_JOB_DOWNTIME'/>
           <ref name='_virDomainBlockJobInfo'/>
           <ref name='virConnectListAllInterfaces'/>
@@ -10960,6 +11120,19 @@
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainBlockRebase'/>
         </word>
+        <word name='branch'>
+          <ref name='VIR_PERF_PARAM_BRANCH_INSTRUCTIONS'/>
+          <ref name='VIR_PERF_PARAM_BRANCH_MISSES'/>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
+        <word name='branch_instructions'>
+          <ref name='VIR_PERF_PARAM_BRANCH_INSTRUCTIONS'/>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
+        <word name='branch_misses'>
+          <ref name='VIR_PERF_PARAM_BRANCH_MISSES'/>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
         <word name='break'>
           <ref name='virStreamRecv'/>
           <ref name='virStreamSend'/>
@@ -11027,6 +11200,14 @@
           <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_BYTES_SEC_MAX'/>
           <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX'/>
         </word>
+        <word name='bus'>
+          <ref name='VIR_PERF_PARAM_BUS_CYCLES'/>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
+        <word name='bus_cycles'>
+          <ref name='VIR_PERF_PARAM_BUS_CYCLES'/>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
         <word name='button'>
           <ref name='virDomainReset'/>
         </word>
@@ -11069,6 +11250,10 @@
     </chunk>
     <chunk name='chunk8'>
       <letter name='c'>
+        <word name='cache_l1d'>
+          <ref name='VIR_PERF_PARAM_CACHE_L1D'/>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
         <word name='cache_misses'>
           <ref name='VIR_PERF_PARAM_CACHE_MISSES'/>
           <ref name='virConnectGetAllDomainStats'/>
@@ -11085,10 +11270,14 @@
         <word name='calculate'>
           <ref name='VIR_NODEINFO_MAXCPUS'/>
         </word>
+        <word name='calculated'>
+          <ref name='virStorageVolGetInfoFlags'/>
+        </word>
         <word name='callbackID'>
           <ref name='virConnectDomainEventDeregisterAny'/>
           <ref name='virConnectNetworkEventDeregisterAny'/>
           <ref name='virConnectNodeDeviceEventDeregisterAny'/>
+          <ref name='virConnectSecretEventDeregisterAny'/>
           <ref name='virConnectStoragePoolEventDeregisterAny'/>
         </word>
         <word name='callbacks'>
@@ -11190,10 +11379,12 @@
           <ref name='VIR_DOMAIN_EVENT_CALLBACK'/>
           <ref name='VIR_NETWORK_EVENT_CALLBACK'/>
           <ref name='VIR_NODE_DEVICE_EVENT_CALLBACK'/>
+          <ref name='VIR_SECRET_EVENT_CALLBACK'/>
           <ref name='VIR_STORAGE_POOL_EVENT_CALLBACK'/>
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
         </word>
         <word name='catch-all'>
@@ -11275,6 +11466,7 @@
           <ref name='virDomainBlockCopy'/>
           <ref name='virDomainBlockRebase'/>
           <ref name='virDomainSnapshotCreateXML'/>
+          <ref name='virStorageVolGetInfoFlags'/>
         </word>
         <word name='chain'>
           <ref name='virConnectGetAllDomainStats'/>
@@ -11294,6 +11486,7 @@
         <word name='changed'>
           <ref name='VIR_MIGRATE_PARAM_DEST_XML'/>
           <ref name='virConnectDomainEventDiskChangeCallback'/>
+          <ref name='virConnectDomainEventMetadataChangeCallback'/>
           <ref name='virConnectDomainEventTunableCallback'/>
           <ref name='virDomainAddIOThread'/>
           <ref name='virDomainDelIOThread'/>
@@ -12255,19 +12448,25 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
         </word>
         <word name='customization'>
           <ref name='virConnectDomainEventGenericCallback'/>
           <ref name='virConnectNetworkEventGenericCallback'/>
           <ref name='virConnectNodeDeviceEventGenericCallback'/>
+          <ref name='virConnectSecretEventGenericCallback'/>
           <ref name='virConnectStoragePoolEventGenericCallback'/>
         </word>
         <word name='cycle'>
           <ref name='virDomainMigrateStartPostCopy'/>
         </word>
         <word name='cycles'>
+          <ref name='VIR_PERF_PARAM_BUS_CYCLES'/>
           <ref name='VIR_PERF_PARAM_CPU_CYCLES'/>
+          <ref name='VIR_PERF_PARAM_REF_CPU_CYCLES'/>
+          <ref name='VIR_PERF_PARAM_STALLED_CYCLES_BACKEND'/>
+          <ref name='VIR_PERF_PARAM_STALLED_CYCLES_FRONTEND'/>
           <ref name='virConnectGetAllDomainStats'/>
         </word>
       </letter>
@@ -12324,6 +12523,7 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
         </word>
         <word name='deallocated'>
@@ -12421,6 +12621,7 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
         </word>
         <word name='demo'>
@@ -12594,6 +12795,7 @@
           <ref name='virConnectGetType'/>
           <ref name='virConnectNetworkEventLifecycleCallback'/>
           <ref name='virConnectNodeDeviceEventLifecycleCallback'/>
+          <ref name='virConnectSecretEventLifecycleCallback'/>
           <ref name='virConnectStoragePoolEventLifecycleCallback'/>
           <ref name='virDomainBlockStatsFlags'/>
           <ref name='virDomainDetachDevice'/>
@@ -12703,6 +12905,7 @@
           <ref name='virConnectDomainEventGenericCallback'/>
           <ref name='virConnectNetworkEventGenericCallback'/>
           <ref name='virConnectNodeDeviceEventGenericCallback'/>
+          <ref name='virConnectSecretEventGenericCallback'/>
           <ref name='virConnectStoragePoolEventGenericCallback'/>
           <ref name='virDomainBlockStatsFlags'/>
           <ref name='virDomainGetBlockIoTune'/>
@@ -12710,6 +12913,7 @@
           <ref name='virDomainMigrate3'/>
           <ref name='virDomainMigrateToURI3'/>
           <ref name='virNodeDeviceDetachFlags'/>
+          <ref name='virStorageVolGetInfoFlags'/>
           <ref name='virStorageVolWipe'/>
           <ref name='virStorageVolWipePattern'/>
         </word>
@@ -12939,6 +13143,7 @@
           <ref name='virNodeDeviceDettach'/>
         </word>
         <word name='drives'>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_GROUP_NAME'/>
           <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='drop'>
@@ -12994,6 +13199,7 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virDomainPMSuspendForDuration'/>
           <ref name='virDomainPMWakeup'/>
@@ -13445,6 +13651,7 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
         </word>
         <word name='exhibit'>
@@ -13769,6 +13976,7 @@
           <ref name='virInterfaceGetXMLDesc'/>
           <ref name='virStorageVolCreateXML'/>
           <ref name='virStorageVolCreateXMLFrom'/>
+          <ref name='virStorageVolGetInfoFlags'/>
           <ref name='virStorageVolWipe'/>
           <ref name='virStorageVolWipePattern'/>
         </word>
@@ -14036,11 +14244,17 @@
           <ref name='virDomainSnapshotCreateXML'/>
         </word>
         <word name='frequency'>
+          <ref name='VIR_PERF_PARAM_REF_CPU_CYCLES'/>
           <ref name='_virNodeInfo'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virEventUpdateTimeout'/>
         </word>
         <word name='front'>
           <ref name='virDomainSnapshotCreateXML'/>
+        </word>
+        <word name='frontend'>
+          <ref name='VIR_PERF_PARAM_STALLED_CYCLES_FRONTEND'/>
+          <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='frozen'>
           <ref name='virDomainFSFreeze'/>
@@ -14127,10 +14341,12 @@
           <ref name='VIR_DOMAIN_EVENT_CALLBACK'/>
           <ref name='VIR_NETWORK_EVENT_CALLBACK'/>
           <ref name='VIR_NODE_DEVICE_EVENT_CALLBACK'/>
+          <ref name='VIR_SECRET_EVENT_CALLBACK'/>
           <ref name='VIR_STORAGE_POOL_EVENT_CALLBACK'/>
           <ref name='virConnectDomainEventGenericCallback'/>
           <ref name='virConnectNetworkEventGenericCallback'/>
           <ref name='virConnectNodeDeviceEventGenericCallback'/>
+          <ref name='virConnectSecretEventGenericCallback'/>
           <ref name='virConnectStoragePoolEventGenericCallback'/>
           <ref name='virEventRegisterDefaultImpl'/>
           <ref name='virEventRegisterImpl'/>
@@ -14360,6 +14576,7 @@
           <ref name='virConnectDomainEventTunableCallback'/>
           <ref name='virConnectNetworkEventGenericCallback'/>
           <ref name='virConnectNodeDeviceEventGenericCallback'/>
+          <ref name='virConnectSecretEventGenericCallback'/>
           <ref name='virConnectStoragePoolEventGenericCallback'/>
           <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virEventRegisterImpl'/>
@@ -14382,6 +14599,7 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virDomainOpenConsole'/>
           <ref name='virEventRegisterDefaultImpl'/>
@@ -14653,6 +14871,8 @@
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventDeregisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventDeregisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventDeregisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virDomainGetMetadata'/>
@@ -14998,6 +15218,7 @@
           <ref name='virNodeGetFreePages'/>
           <ref name='virStoragePoolGetInfo'/>
           <ref name='virStorageVolGetInfo'/>
+          <ref name='virStorageVolGetInfoFlags'/>
         </word>
         <word name='inform'>
           <ref name='virStreamAbort'/>
@@ -15156,10 +15377,14 @@
         </word>
         <word name='instruction'>
           <ref name='VIR_PERF_PARAM_CPU_CYCLES'/>
+          <ref name='VIR_PERF_PARAM_STALLED_CYCLES_BACKEND'/>
+          <ref name='VIR_PERF_PARAM_STALLED_CYCLES_FRONTEND'/>
+          <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='instructions'>
           <ref name='VIR_DOMAIN_CPU_STATS_SYSTEMTIME'/>
           <ref name='VIR_DOMAIN_CPU_STATS_USERTIME'/>
+          <ref name='VIR_PERF_PARAM_BRANCH_INSTRUCTIONS'/>
           <ref name='VIR_PERF_PARAM_INSTRUCTIONS'/>
           <ref name='virConnectGetAllDomainStats'/>
         </word>
@@ -15170,6 +15395,7 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virDomainSendProcessSignal'/>
           <ref name='virEventAddTimeout'/>
@@ -15453,6 +15679,7 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainBlockRebase'/>
@@ -15763,6 +15990,7 @@
         </word>
         <word name='level'>
           <ref name='VIR_MIGRATE_PARAM_COMPRESSION_MT_LEVEL'/>
+          <ref name='VIR_PERF_PARAM_CACHE_L1D'/>
           <ref name='VIR_PERF_PARAM_MBMT'/>
           <ref name='virConnectDomainEventBalloonChangeCallback'/>
           <ref name='virConnectGetAllDomainStats'/>
@@ -15821,6 +16049,7 @@
         <word name='lifecycle'>
           <ref name='virConnectDomainEventRegister'/>
           <ref name='virConnectNodeDeviceEventLifecycleCallback'/>
+          <ref name='virConnectSecretEventLifecycleCallback'/>
           <ref name='virConnectStoragePoolEventLifecycleCallback'/>
         </word>
         <word name='lifetime'>
@@ -15834,6 +16063,7 @@
         <word name='like'>
           <ref name='virConnectClose'/>
           <ref name='virConnectNodeDeviceEventLifecycleCallback'/>
+          <ref name='virConnectSecretEventLifecycleCallback'/>
           <ref name='virConnectStoragePoolEventLifecycleCallback'/>
           <ref name='virDomainInterfaceAddresses'/>
           <ref name='virDomainResume'/>
@@ -16036,6 +16266,7 @@
           <ref name='virConnectListAllDomains'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectSetKeepAlive'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virEventAddHandle'/>
@@ -16123,6 +16354,7 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
         </word>
         <word name='macros'>
@@ -16306,6 +16538,7 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainGetCPUStats'/>
@@ -16379,11 +16612,18 @@
           <ref name='virDomainSnapshotListNames'/>
         </word>
         <word name='measure'>
+          <ref name='VIR_PERF_PARAM_BRANCH_INSTRUCTIONS'/>
+          <ref name='VIR_PERF_PARAM_BRANCH_MISSES'/>
+          <ref name='VIR_PERF_PARAM_BUS_CYCLES'/>
+          <ref name='VIR_PERF_PARAM_CACHE_L1D'/>
           <ref name='VIR_PERF_PARAM_CACHE_MISSES'/>
           <ref name='VIR_PERF_PARAM_CACHE_REFERENCES'/>
           <ref name='VIR_PERF_PARAM_CMT'/>
           <ref name='VIR_PERF_PARAM_CPU_CYCLES'/>
           <ref name='VIR_PERF_PARAM_INSTRUCTIONS'/>
+          <ref name='VIR_PERF_PARAM_REF_CPU_CYCLES'/>
+          <ref name='VIR_PERF_PARAM_STALLED_CYCLES_BACKEND'/>
+          <ref name='VIR_PERF_PARAM_STALLED_CYCLES_FRONTEND'/>
           <ref name='virDomainGetCPUStats'/>
         </word>
         <word name='measured'>
@@ -16553,6 +16793,7 @@
           <ref name='virDomainCoreDumpWithFormat'/>
         </word>
         <word name='misses'>
+          <ref name='VIR_PERF_PARAM_BRANCH_MISSES'/>
           <ref name='VIR_PERF_PARAM_CACHE_MISSES'/>
           <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainMigrateSetCompressionCache'/>
@@ -16643,6 +16884,7 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virDomainMigrateStartPostCopy'/>
           <ref name='virEventUpdateHandle'/>
@@ -16771,6 +17013,7 @@
           <ref name='virDomainCoreDumpWithFormat'/>
         </word>
         <word name='namespace'>
+          <ref name='virConnectDomainEventMetadataChangeCallback'/>
           <ref name='virDomainGetMetadata'/>
           <ref name='virDomainSendProcessSignal'/>
           <ref name='virDomainSetMetadata'/>
@@ -16834,6 +17077,7 @@
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
           <ref name='virConnectOpenAuth'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virDomainBlockCopy'/>
           <ref name='virDomainBlockStatsFlags'/>
@@ -16984,6 +17228,7 @@
           <ref name='virConnectGetURI'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virDomainGetVcpus'/>
           <ref name='virGetVersion'/>
@@ -17075,6 +17320,7 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virConnectUnregisterCloseCallback'/>
         </word>
@@ -17158,6 +17404,7 @@
           <ref name='virConnectDomainEventDeregisterAny'/>
           <ref name='virConnectNetworkEventDeregisterAny'/>
           <ref name='virConnectNodeDeviceEventDeregisterAny'/>
+          <ref name='virConnectSecretEventDeregisterAny'/>
           <ref name='virConnectStoragePoolEventDeregisterAny'/>
           <ref name='virDomainGetJobStats'/>
           <ref name='virDomainMigrateSetCompressionCache'/>
@@ -17175,6 +17422,7 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
         </word>
         <word name='occurrs'>
@@ -17235,6 +17483,7 @@
           <ref name='virConnectDomainEventGenericCallback'/>
           <ref name='virConnectNetworkEventGenericCallback'/>
           <ref name='virConnectNodeDeviceEventGenericCallback'/>
+          <ref name='virConnectSecretEventGenericCallback'/>
           <ref name='virConnectStoragePoolEventGenericCallback'/>
         </word>
         <word name='old'>
@@ -17280,6 +17529,7 @@
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
           <ref name='virConnectRef'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virDomainGetBlockInfo'/>
           <ref name='virDomainGetJobStats'/>
@@ -17331,6 +17581,7 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virEventAddHandle'/>
@@ -17624,6 +17875,8 @@
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventGenericCallback'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventGenericCallback'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventGenericCallback'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virDomainBlockRebase'/>
@@ -17732,6 +17985,7 @@
         <word name='performed'>
           <ref name='virConnectNodeDeviceEventLifecycleCallback'/>
           <ref name='virConnectOpenAuth'/>
+          <ref name='virConnectSecretEventLifecycleCallback'/>
           <ref name='virConnectStoragePoolEventLifecycleCallback'/>
           <ref name='virInitialize'/>
           <ref name='virNetworkGetXMLDesc'/>
@@ -17841,6 +18095,7 @@
           <ref name='virDomainSetMemoryFlags'/>
           <ref name='virInterfaceDefineXML'/>
           <ref name='virNetworkGetXMLDesc'/>
+          <ref name='virStorageVolGetInfoFlags'/>
           <ref name='virStorageVolWipe'/>
           <ref name='virStorageVolWipePattern'/>
         </word>
@@ -17868,6 +18123,11 @@
         <word name='pipe-to-self'>
           <ref name='virEventRunDefaultImpl'/>
         </word>
+        <word name='pipeline'>
+          <ref name='VIR_PERF_PARAM_STALLED_CYCLES_BACKEND'/>
+          <ref name='VIR_PERF_PARAM_STALLED_CYCLES_FRONTEND'/>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
         <word name='pivot'>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainBlockCopy'/>
@@ -17890,10 +18150,17 @@
           <ref name='virDomainReboot'/>
         </word>
         <word name='platform'>
+          <ref name='VIR_PERF_PARAM_BRANCH_INSTRUCTIONS'/>
+          <ref name='VIR_PERF_PARAM_BRANCH_MISSES'/>
+          <ref name='VIR_PERF_PARAM_BUS_CYCLES'/>
+          <ref name='VIR_PERF_PARAM_CACHE_L1D'/>
           <ref name='VIR_PERF_PARAM_CACHE_MISSES'/>
           <ref name='VIR_PERF_PARAM_CACHE_REFERENCES'/>
           <ref name='VIR_PERF_PARAM_CMT'/>
           <ref name='VIR_PERF_PARAM_INSTRUCTIONS'/>
+          <ref name='VIR_PERF_PARAM_REF_CPU_CYCLES'/>
+          <ref name='VIR_PERF_PARAM_STALLED_CYCLES_BACKEND'/>
+          <ref name='VIR_PERF_PARAM_STALLED_CYCLES_FRONTEND'/>
           <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='plus'>
@@ -17989,6 +18256,7 @@
           <ref name='virConnectDomainEventGenericCallback'/>
           <ref name='virConnectNetworkEventGenericCallback'/>
           <ref name='virConnectNodeDeviceEventGenericCallback'/>
+          <ref name='virConnectSecretEventGenericCallback'/>
           <ref name='virConnectStoragePoolEventGenericCallback'/>
           <ref name='virStorageVolDownload'/>
           <ref name='virStorageVolUpload'/>
@@ -18001,6 +18269,7 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virDomainGetEmulatorPinInfo'/>
           <ref name='virDomainGetVcpuPinInfo'/>
@@ -18181,6 +18450,7 @@
           <ref name='virConnectDomainEventDeregisterAny'/>
           <ref name='virConnectNetworkEventDeregisterAny'/>
           <ref name='virConnectNodeDeviceEventDeregisterAny'/>
+          <ref name='virConnectSecretEventDeregisterAny'/>
           <ref name='virConnectStoragePoolEventDeregisterAny'/>
           <ref name='virDomainDefineXML'/>
           <ref name='virDomainDefineXMLFlags'/>
@@ -18195,6 +18465,7 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virConnectUnregisterCloseCallback'/>
           <ref name='virDomainBlockCommit'/>
@@ -18300,6 +18571,9 @@
           <ref name='virNodeGetCPUStats'/>
         </word>
         <word name='processor'>
+          <ref name='VIR_PERF_PARAM_STALLED_CYCLES_BACKEND'/>
+          <ref name='VIR_PERF_PARAM_STALLED_CYCLES_FRONTEND'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainGetCPUStats'/>
         </word>
         <word name='processors'>
@@ -18437,6 +18711,7 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virDomainCreateLinux'/>
           <ref name='virDomainMigrateToURI3'/>
@@ -18499,6 +18774,7 @@
           <ref name='virDomainGetBlockInfo'/>
           <ref name='virStorageVolCreateXML'/>
           <ref name='virStorageVolCreateXMLFrom'/>
+          <ref name='virStorageVolGetInfoFlags'/>
         </word>
         <word name='qemu'>
           <ref name='virConnectGetDomainCapabilities'/>
@@ -18556,6 +18832,7 @@
           <ref name='virDomainShutdownFlags'/>
         </word>
         <word name='quota'>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_GROUP_NAME'/>
           <ref name='VIR_DOMAIN_SCHEDULER_EMULATOR_PERIOD'/>
           <ref name='VIR_DOMAIN_SCHEDULER_GLOBAL_PERIOD'/>
           <ref name='VIR_DOMAIN_SCHEDULER_IOTHREAD_PERIOD'/>
@@ -18791,6 +19068,7 @@
           <ref name='virConnectGetAllDomainStats'/>
           <ref name='virConnectNetworkEventLifecycleCallback'/>
           <ref name='virConnectNodeDeviceEventLifecycleCallback'/>
+          <ref name='virConnectSecretEventLifecycleCallback'/>
           <ref name='virConnectStoragePoolEventLifecycleCallback'/>
           <ref name='virDomainGetState'/>
           <ref name='virDomainMigrateStartPostCopy'/>
@@ -18823,6 +19101,7 @@
           <ref name='virConnectGetAllDomainStats'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virConnectUnregisterCloseCallback'/>
           <ref name='virCopyLastError'/>
@@ -18907,6 +19186,10 @@
         <word name='reduction'>
           <ref name='virStorageVolResize'/>
         </word>
+        <word name='ref_cpu_cycles'>
+          <ref name='VIR_PERF_PARAM_REF_CPU_CYCLES'/>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
         <word name='references'>
           <ref name='virConnectClose'/>
         </word>
@@ -18946,37 +19229,6 @@
         </word>
         <word name='register'>
           <ref name='virStreamEventUpdateCallback'/>
-        </word>
-        <word name='registering'>
-          <ref name='virConnectDomainEventAgentLifecycleCallback'/>
-          <ref name='virConnectDomainEventBalloonChangeCallback'/>
-          <ref name='virConnectDomainEventDeviceAddedCallback'/>
-          <ref name='virConnectDomainEventDeviceRemovalFailedCallback'/>
-          <ref name='virConnectDomainEventDeviceRemovedCallback'/>
-          <ref name='virConnectDomainEventDiskChangeCallback'/>
-          <ref name='virConnectDomainEventGenericCallback'/>
-          <ref name='virConnectDomainEventGraphicsCallback'/>
-          <ref name='virConnectDomainEventIOErrorCallback'/>
-          <ref name='virConnectDomainEventIOErrorReasonCallback'/>
-          <ref name='virConnectDomainEventJobCompletedCallback'/>
-          <ref name='virConnectDomainEventMigrationIterationCallback'/>
-          <ref name='virConnectDomainEventPMSuspendCallback'/>
-          <ref name='virConnectDomainEventPMSuspendDiskCallback'/>
-          <ref name='virConnectDomainEventPMWakeupCallback'/>
-          <ref name='virConnectDomainEventRTCChangeCallback'/>
-          <ref name='virConnectDomainEventRegisterAny'/>
-          <ref name='virConnectDomainEventTrayChangeCallback'/>
-          <ref name='virConnectDomainEventTunableCallback'/>
-          <ref name='virConnectDomainEventWatchdogCallback'/>
-          <ref name='virConnectNetworkEventGenericCallback'/>
-          <ref name='virConnectNetworkEventLifecycleCallback'/>
-          <ref name='virConnectNetworkEventRegisterAny'/>
-          <ref name='virConnectNodeDeviceEventGenericCallback'/>
-          <ref name='virConnectNodeDeviceEventLifecycleCallback'/>
-          <ref name='virConnectNodeDeviceEventRegisterAny'/>
-          <ref name='virConnectStoragePoolEventGenericCallback'/>
-          <ref name='virConnectStoragePoolEventLifecycleCallback'/>
-          <ref name='virConnectStoragePoolEventRegisterAny'/>
         </word>
         <word name='registration'>
           <ref name='virConnectUnregisterCloseCallback'/>
@@ -19067,6 +19319,7 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virDomainCreateWithFiles'/>
           <ref name='virDomainCreateWithFlags'/>
@@ -19184,6 +19437,7 @@
         <word name='removed'>
           <ref name='virConnectDomainEventDeviceRemovedCallback'/>
           <ref name='virConnectNodeDeviceEventLifecycleCallback'/>
+          <ref name='virConnectSecretEventLifecycleCallback'/>
           <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainHasManagedSaveImage'/>
           <ref name='virDomainMigrateStartPostCopy'/>
@@ -19333,6 +19587,7 @@
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
           <ref name='virConnectOpen'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virDomainAddIOThread'/>
           <ref name='virDomainBlockJobAbort'/>
@@ -19767,6 +20022,8 @@
           <ref name='virDomainBlockRebase'/>
         </word>
         <word name='scaling'>
+          <ref name='VIR_PERF_PARAM_REF_CPU_CYCLES'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainBlockJobSetSpeed'/>
           <ref name='virDomainBlockPull'/>
@@ -20085,6 +20342,7 @@
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
           <ref name='virConnectRef'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virDomainAttachDeviceFlags'/>
           <ref name='virDomainDetachDeviceFlags'/>
@@ -20119,6 +20377,7 @@
           <ref name='virDomainDetachDeviceFlags'/>
         </word>
         <word name='sharing'>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_GROUP_NAME'/>
           <ref name='VIR_NODE_MEMORY_SHARED_PAGES_SHARING'/>
           <ref name='virSecretGetUsageID'/>
           <ref name='virSecretLookupByUsage'/>
@@ -20184,6 +20443,7 @@
           <ref name='virConnectDomainEventIOErrorCallback'/>
           <ref name='virConnectDomainEventIOErrorReasonCallback'/>
           <ref name='virConnectDomainEventJobCompletedCallback'/>
+          <ref name='virConnectDomainEventMetadataChangeCallback'/>
           <ref name='virConnectDomainEventMigrationIterationCallback'/>
           <ref name='virConnectDomainEventPMSuspendCallback'/>
           <ref name='virConnectDomainEventPMSuspendDiskCallback'/>
@@ -20197,6 +20457,8 @@
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventLifecycleCallback'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventLifecycleCallback'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventLifecycleCallback'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
         </word>
@@ -20428,6 +20690,7 @@
           <ref name='virConnectGetAllDomainStats'/>
           <ref name='virStorageVolCreateXML'/>
           <ref name='virStorageVolCreateXMLFrom'/>
+          <ref name='virStorageVolGetInfoFlags'/>
           <ref name='virStorageVolResize'/>
         </word>
         <word name='special'>
@@ -20516,6 +20779,19 @@
         </word>
         <word name='stack'>
           <ref name='virEventAddHandleFunc'/>
+        </word>
+        <word name='stalled'>
+          <ref name='VIR_PERF_PARAM_STALLED_CYCLES_BACKEND'/>
+          <ref name='VIR_PERF_PARAM_STALLED_CYCLES_FRONTEND'/>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
+        <word name='stalled_cycles_backend'>
+          <ref name='VIR_PERF_PARAM_STALLED_CYCLES_BACKEND'/>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
+        <word name='stalled_cycles_frontend'>
+          <ref name='VIR_PERF_PARAM_STALLED_CYCLES_FRONTEND'/>
+          <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='start'>
           <ref name='virConnectStoragePoolEventLifecycleCallback'/>
@@ -20880,6 +21156,7 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainGetDiskErrors'/>
@@ -20986,6 +21263,7 @@
           <ref name='virConnectGetMaxVcpus'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainBlockJobAbort'/>
@@ -21222,6 +21500,9 @@
           <ref name='VIR_DOMAIN_JOB_AUTO_CONVERGE_THROTTLE'/>
           <ref name='VIR_MIGRATE_PARAM_AUTO_CONVERGE_INITIAL'/>
         </word>
+        <word name='throttling'>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_GROUP_NAME'/>
+        </word>
         <word name='through'>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX'/>
@@ -21264,6 +21545,7 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virDomainSnapshotCreateXML'/>
         </word>
@@ -21523,6 +21805,9 @@
           <ref name='virDomainSetTime'/>
           <ref name='virDomainShutdownFlags'/>
         </word>
+        <word name='triggered'>
+          <ref name='virConnectDomainEventMetadataChangeCallback'/>
+        </word>
         <word name='trim'>
           <ref name='virDomainFSTrim'/>
         </word>
@@ -21594,6 +21879,7 @@
           <ref name='virConnectListAllStoragePools'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virDomainBlockStatsFlags'/>
           <ref name='virDomainGetBlockIoTune'/>
@@ -21602,6 +21888,7 @@
           <ref name='virDomainMigrateToURI3'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virSecretGetUsageType'/>
+          <ref name='virStorageVolGetInfoFlags'/>
         </word>
         <word name='typical'>
           <ref name='virDomainBlockCommit'/>
@@ -21819,6 +22106,7 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virStreamEventUpdateCallback'/>
         </word>
@@ -21870,6 +22158,7 @@
           <ref name='virDomainGetCPUStats'/>
           <ref name='virDomainGetGuestVcpus'/>
           <ref name='virDomainInterfaceAddresses'/>
+          <ref name='virDomainSendProcessSignal'/>
           <ref name='virDomainSetGuestVcpus'/>
         </word>
         <word name='unusual'>
@@ -21963,6 +22252,7 @@
           <ref name='virNodeDeviceRef'/>
           <ref name='virSecretRef'/>
           <ref name='virStoragePoolRef'/>
+          <ref name='virStorageVolGetInfoFlags'/>
           <ref name='virStorageVolRef'/>
         </word>
         <word name='user-defined'>
@@ -21985,6 +22275,7 @@
           <ref name='virConnectDomainEventGenericCallback'/>
           <ref name='virConnectNetworkEventGenericCallback'/>
           <ref name='virConnectNodeDeviceEventGenericCallback'/>
+          <ref name='virConnectSecretEventGenericCallback'/>
           <ref name='virConnectStoragePoolEventGenericCallback'/>
           <ref name='virDomainInterfaceAddresses'/>
         </word>
@@ -22025,6 +22316,7 @@
           <ref name='virConnectListAllStoragePools'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virDomainAddIOThread'/>
           <ref name='virDomainBlockCommit'/>
@@ -22243,6 +22535,7 @@
           <ref name='virConnectDomainEventIOErrorCallback'/>
           <ref name='virConnectDomainEventIOErrorReasonCallback'/>
           <ref name='virConnectDomainEventJobCompletedCallback'/>
+          <ref name='virConnectDomainEventMetadataChangeCallback'/>
           <ref name='virConnectDomainEventMigrationIterationCallback'/>
           <ref name='virConnectDomainEventPMSuspendCallback'/>
           <ref name='virConnectDomainEventPMSuspendDiskCallback'/>
@@ -22419,6 +22712,15 @@
         </word>
         <word name='virConnectRegisterCloseCallback'>
           <ref name='virConnectUnregisterCloseCallback'/>
+        </word>
+        <word name='virConnectSecretEventDeregisterAny'>
+          <ref name='virConnectSecretEventRegisterAny'/>
+        </word>
+        <word name='virConnectSecretEventRegisterAny'>
+          <ref name='VIR_SECRET_EVENT_CALLBACK'/>
+          <ref name='virConnectSecretEventDeregisterAny'/>
+          <ref name='virConnectSecretEventGenericCallback'/>
+          <ref name='virConnectSecretEventLifecycleCallback'/>
         </word>
         <word name='virConnectSetKeepAlive'>
           <ref name='virEventRegisterImpl'/>
@@ -22795,6 +23097,9 @@
           <ref name='virDomainGetMetadata'/>
           <ref name='virDomainSetMetadata'/>
         </word>
+        <word name='virDomainMetadataTypea'>
+          <ref name='virConnectDomainEventMetadataChangeCallback'/>
+        </word>
         <word name='virDomainMigrate'>
           <ref name='VIR_MIGRATE_PARAM_AUTO_CONVERGE_INCREMENT'/>
           <ref name='VIR_MIGRATE_PARAM_AUTO_CONVERGE_INITIAL'/>
@@ -22877,9 +23182,6 @@
           <ref name='virDomainGetVcpus'/>
         </word>
         <word name='virDomainProcessSignal'>
-          <ref name='virDomainSendProcessSignal'/>
-        </word>
-        <word name='virDomainProcessSignalFlag'>
           <ref name='virDomainSendProcessSignal'/>
         </word>
         <word name='virDomainPtr'>
@@ -23096,6 +23398,7 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectSetKeepAlive'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virEventAddHandle'/>
@@ -23111,6 +23414,7 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectSetKeepAlive'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virEventAddHandle'/>
@@ -23340,8 +23644,12 @@
           <ref name='virSecretSetValue'/>
           <ref name='virSecretUndefine'/>
         </word>
+        <word name='virSecretEventLifeCycleType'>
+          <ref name='virConnectSecretEventLifecycleCallback'/>
+        </word>
         <word name='virSecretFree'>
           <ref name='virConnectListAllSecrets'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virSecretDefineXML'/>
           <ref name='virSecretLookupByUUID'/>
           <ref name='virSecretLookupByUUIDString'/>
@@ -23349,7 +23657,11 @@
           <ref name='virSecretRef'/>
         </word>
         <word name='virSecretPtr'>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virSecretUndefine'/>
+        </word>
+        <word name='virSecretRef'>
+          <ref name='virConnectSecretEventRegisterAny'/>
         </word>
         <word name='virSecretUsageType'>
           <ref name='virSecretGetUsageType'/>
@@ -23434,6 +23746,9 @@
           <ref name='virStorageVolLookupByName'/>
           <ref name='virStorageVolLookupByPath'/>
           <ref name='virStorageVolRef'/>
+        </word>
+        <word name='virStorageVolInfoFlags'>
+          <ref name='virStorageVolGetInfoFlags'/>
         </word>
         <word name='virStorageVolResizeFlags'>
           <ref name='virStorageVolResize'/>
@@ -23584,6 +23899,7 @@
         <word name='volatile'>
           <ref name='virStoragePoolGetInfo'/>
           <ref name='virStorageVolGetInfo'/>
+          <ref name='virStorageVolGetInfoFlags'/>
         </word>
         <word name='volumes'>
           <ref name='virStoragePoolListAllVolumes'/>
@@ -23657,6 +23973,7 @@
         </word>
         <word name='weight:'>
           <ref name='VIR_DOMAIN_BLKIO_WEIGHT'/>
+          <ref name='VIR_DOMAIN_BLOCK_IOTUNE_GROUP_NAME'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX'/>
           <ref name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX_LENGTH'/>
@@ -23763,6 +24080,7 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
+          <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
         </word>
         <word name='woken'>

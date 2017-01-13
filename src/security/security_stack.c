@@ -137,6 +137,51 @@ virSecurityStackPreFork(virSecurityManagerPtr mgr)
     return rc;
 }
 
+
+static int
+virSecurityStackTransactionStart(virSecurityManagerPtr mgr)
+{
+    virSecurityStackDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    virSecurityStackItemPtr item = priv->itemsHead;
+    int rc = 0;
+
+    for (; item; item = item->next) {
+        if (virSecurityManagerTransactionStart(item->securityManager) < 0)
+            rc = -1;
+    }
+
+    return rc;
+}
+
+
+static int
+virSecurityStackTransactionCommit(virSecurityManagerPtr mgr,
+                                  pid_t pid)
+{
+    virSecurityStackDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    virSecurityStackItemPtr item = priv->itemsHead;
+    int rc = 0;
+
+    for (; item; item = item->next) {
+        if (virSecurityManagerTransactionCommit(item->securityManager, pid) < 0)
+            rc = -1;
+    }
+
+    return rc;
+}
+
+
+static void
+virSecurityStackTransactionAbort(virSecurityManagerPtr mgr)
+{
+    virSecurityStackDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    virSecurityStackItemPtr item = priv->itemsHead;
+
+    for (; item; item = item->next)
+        virSecurityManagerTransactionAbort(item->securityManager);
+}
+
+
 static int
 virSecurityStackVerify(virSecurityManagerPtr mgr,
                        virDomainDefPtr def)
@@ -511,23 +556,6 @@ virSecurityStackSetTapFDLabel(virSecurityManagerPtr mgr,
     return rc;
 }
 
-static int
-virSecurityStackSetHugepages(virSecurityManagerPtr mgr,
-                             virDomainDefPtr vm,
-                             const char *path)
-{
-    virSecurityStackDataPtr priv = virSecurityManagerGetPrivateData(mgr);
-    virSecurityStackItemPtr item = priv->itemsHead;
-    int rc = 0;
-
-    for (; item; item = item->next) {
-        if (virSecurityManagerSetHugepages(item->securityManager, vm, path) < 0)
-            rc = -1;
-    }
-
-    return rc;
-}
-
 static char *
 virSecurityStackGetMountOptions(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
                                 virDomainDefPtr vm ATTRIBUTE_UNUSED)
@@ -629,6 +657,10 @@ virSecurityDriver virSecurityDriverStack = {
 
     .preFork                            = virSecurityStackPreFork,
 
+    .transactionStart                   = virSecurityStackTransactionStart,
+    .transactionCommit                  = virSecurityStackTransactionCommit,
+    .transactionAbort                   = virSecurityStackTransactionAbort,
+
     .domainSecurityVerify               = virSecurityStackVerify,
 
     .domainSetSecurityDiskLabel         = virSecurityStackSetDiskLabel,
@@ -662,8 +694,6 @@ virSecurityDriver virSecurityDriverStack = {
     .domainSetSecurityTapFDLabel        = virSecurityStackSetTapFDLabel,
 
     .domainGetSecurityMountOptions      = virSecurityStackGetMountOptions,
-
-    .domainSetSecurityHugepages         = virSecurityStackSetHugepages,
 
     .getBaseLabel                       = virSecurityStackGetBaseLabel,
 

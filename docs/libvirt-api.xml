@@ -132,6 +132,7 @@
      <exports symbol='VIR_DOMAIN_BLOCK_COPY_BANDWIDTH' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLOCK_COPY_BUF_SIZE' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLOCK_COPY_GRANULARITY' type='macro'/>
+     <exports symbol='VIR_DOMAIN_BLOCK_IOTUNE_GROUP_NAME' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX_LENGTH' type='macro'/>
@@ -219,6 +220,7 @@
      <exports symbol='VIR_DOMAIN_SCHED_FIELD_LENGTH' type='macro'/>
      <exports symbol='VIR_DOMAIN_SEND_KEY_MAX_KEYS' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_DISK' type='macro'/>
+     <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_GROUP_NAME' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC_MAX_LENGTH' type='macro'/>
@@ -267,6 +269,10 @@
      <exports symbol='VIR_MIGRATE_PARAM_MIGRATE_DISKS' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_PERSIST_XML' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_URI' type='macro'/>
+     <exports symbol='VIR_PERF_PARAM_BRANCH_INSTRUCTIONS' type='macro'/>
+     <exports symbol='VIR_PERF_PARAM_BRANCH_MISSES' type='macro'/>
+     <exports symbol='VIR_PERF_PARAM_BUS_CYCLES' type='macro'/>
+     <exports symbol='VIR_PERF_PARAM_CACHE_L1D' type='macro'/>
      <exports symbol='VIR_PERF_PARAM_CACHE_MISSES' type='macro'/>
      <exports symbol='VIR_PERF_PARAM_CACHE_REFERENCES' type='macro'/>
      <exports symbol='VIR_PERF_PARAM_CMT' type='macro'/>
@@ -274,6 +280,9 @@
      <exports symbol='VIR_PERF_PARAM_INSTRUCTIONS' type='macro'/>
      <exports symbol='VIR_PERF_PARAM_MBML' type='macro'/>
      <exports symbol='VIR_PERF_PARAM_MBMT' type='macro'/>
+     <exports symbol='VIR_PERF_PARAM_REF_CPU_CYCLES' type='macro'/>
+     <exports symbol='VIR_PERF_PARAM_STALLED_CYCLES_BACKEND' type='macro'/>
+     <exports symbol='VIR_PERF_PARAM_STALLED_CYCLES_FRONTEND' type='macro'/>
      <exports symbol='VIR_UNUSE_CPU' type='macro'/>
      <exports symbol='VIR_USE_CPU' type='macro'/>
      <exports symbol='_virBlkioParameter' type='macro'/>
@@ -421,6 +430,7 @@
      <exports symbol='VIR_DOMAIN_EVENT_ID_JOB_COMPLETED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_LIFECYCLE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_ID_METADATA_CHANGE' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_MIGRATION_ITERATION' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_PMSUSPEND' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK' type='enum'/>
@@ -894,6 +904,7 @@
      <exports symbol='virConnectDomainEventIOErrorCallback' type='function'/>
      <exports symbol='virConnectDomainEventIOErrorReasonCallback' type='function'/>
      <exports symbol='virConnectDomainEventJobCompletedCallback' type='function'/>
+     <exports symbol='virConnectDomainEventMetadataChangeCallback' type='function'/>
      <exports symbol='virConnectDomainEventMigrationIterationCallback' type='function'/>
      <exports symbol='virConnectDomainEventPMSuspendCallback' type='function'/>
      <exports symbol='virConnectDomainEventPMSuspendDiskCallback' type='function'/>
@@ -1427,10 +1438,17 @@
      <summary>APIs for management of secrets</summary>
      <description>Provides APIs for the management of secrets</description>
      <author>Daniel Veillard &lt;veillard@redhat.com&gt;  Copyright (C) 2006-2014, 2016 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </author>
+     <exports symbol='VIR_SECRET_EVENT_CALLBACK' type='macro'/>
      <exports symbol='VIR_CONNECT_LIST_SECRETS_EPHEMERAL' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_SECRETS_NO_EPHEMERAL' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_SECRETS_NO_PRIVATE' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_SECRETS_PRIVATE' type='enum'/>
+     <exports symbol='VIR_SECRET_EVENT_DEFINED' type='enum'/>
+     <exports symbol='VIR_SECRET_EVENT_ID_LAST' type='enum'/>
+     <exports symbol='VIR_SECRET_EVENT_ID_LIFECYCLE' type='enum'/>
+     <exports symbol='VIR_SECRET_EVENT_ID_VALUE_CHANGED' type='enum'/>
+     <exports symbol='VIR_SECRET_EVENT_LAST' type='enum'/>
+     <exports symbol='VIR_SECRET_EVENT_UNDEFINED' type='enum'/>
      <exports symbol='VIR_SECRET_USAGE_TYPE_CEPH' type='enum'/>
      <exports symbol='VIR_SECRET_USAGE_TYPE_ISCSI' type='enum'/>
      <exports symbol='VIR_SECRET_USAGE_TYPE_LAST' type='enum'/>
@@ -1439,11 +1457,17 @@
      <exports symbol='VIR_SECRET_USAGE_TYPE_VOLUME' type='enum'/>
      <exports symbol='virConnectListAllSecretsFlags' type='typedef'/>
      <exports symbol='virSecret' type='typedef'/>
+     <exports symbol='virSecretEventID' type='typedef'/>
+     <exports symbol='virSecretEventLifecycleType' type='typedef'/>
      <exports symbol='virSecretPtr' type='typedef'/>
      <exports symbol='virSecretUsageType' type='typedef'/>
      <exports symbol='virConnectListAllSecrets' type='function'/>
      <exports symbol='virConnectListSecrets' type='function'/>
      <exports symbol='virConnectNumOfSecrets' type='function'/>
+     <exports symbol='virConnectSecretEventDeregisterAny' type='function'/>
+     <exports symbol='virConnectSecretEventGenericCallback' type='function'/>
+     <exports symbol='virConnectSecretEventLifecycleCallback' type='function'/>
+     <exports symbol='virConnectSecretEventRegisterAny' type='function'/>
      <exports symbol='virSecretDefineXML' type='function'/>
      <exports symbol='virSecretFree' type='function'/>
      <exports symbol='virSecretGetConnect' type='function'/>
@@ -1516,6 +1540,7 @@
      <exports symbol='VIR_STORAGE_VOL_DELETE_ZEROED' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_DIR' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_FILE' type='enum'/>
+     <exports symbol='VIR_STORAGE_VOL_GET_PHYSICAL' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_LAST' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_NETDIR' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_NETWORK' type='enum'/>
@@ -1523,6 +1548,7 @@
      <exports symbol='VIR_STORAGE_VOL_RESIZE_ALLOCATE' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_RESIZE_DELTA' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_RESIZE_SHRINK' type='enum'/>
+     <exports symbol='VIR_STORAGE_VOL_USE_ALLOCATION' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_WIPE_ALG_BSI' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_WIPE_ALG_DOD' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_WIPE_ALG_GUTMANN' type='enum'/>
@@ -1550,6 +1576,7 @@
      <exports symbol='virStorageVolCreateFlags' type='typedef'/>
      <exports symbol='virStorageVolDeleteFlags' type='typedef'/>
      <exports symbol='virStorageVolInfo' type='typedef'/>
+     <exports symbol='virStorageVolInfoFlags' type='typedef'/>
      <exports symbol='virStorageVolInfoPtr' type='typedef'/>
      <exports symbol='virStorageVolPtr' type='typedef'/>
      <exports symbol='virStorageVolResizeFlags' type='typedef'/>
@@ -1602,6 +1629,7 @@
      <exports symbol='virStorageVolFree' type='function'/>
      <exports symbol='virStorageVolGetConnect' type='function'/>
      <exports symbol='virStorageVolGetInfo' type='function'/>
+     <exports symbol='virStorageVolGetInfoFlags' type='function'/>
      <exports symbol='virStorageVolGetKey' type='function'/>
      <exports symbol='virStorageVolGetName' type='function'/>
      <exports symbol='virStorageVolGetPath' type='function'/>
@@ -1922,6 +1950,9 @@
     <macro name='VIR_DOMAIN_BLOCK_COPY_GRANULARITY' file='libvirt-domain' string='granularity'>
       <info><![CDATA[Macro for the virDomainBlockCopy granularity tunable: it represents the granularity in bytes at which the copy operation recognizes dirty blocks that need copying, as an unsigned int.  Hypervisors may restrict this to be a power of two or fall within a certain range. Specifying 0 is the same as omitting this parameter, to request the hypervisor default.]]></info>
     </macro>
+    <macro name='VIR_DOMAIN_BLOCK_IOTUNE_GROUP_NAME' file='libvirt-domain' string='group_name'>
+      <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents a group name to allow sharing of I/O throttling quota between multiple drives, as a string.]]></info>
+    </macro>
     <macro name='VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC' file='libvirt-domain' string='read_bytes_sec'>
       <info><![CDATA[Macro for the BlockIoTune tunable weight: it represents the read bytes per second permitted through a block device, as a ullong.]]></info>
     </macro>
@@ -2183,6 +2214,9 @@
     <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_DISK' file='libvirt-domain' string='blkdeviotune.disk'>
       <info><![CDATA[Macro represents the name of guest disk for which the values are updated, as VIR_TYPED_PARAM_STRING.]]></info>
     </macro>
+    <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_GROUP_NAME' file='libvirt-domain' string='blkdeviotune.group_name'>
+      <info><![CDATA[Macro represents the group name to be used, as VIR_TYPED_PARAM_STRING.]]></info>
+    </macro>
     <macro name='VIR_DOMAIN_TUNABLE_BLKDEV_READ_BYTES_SEC' file='libvirt-domain' string='blkdeviotune.read_bytes_sec'>
       <info><![CDATA[Macro represents the read throughput limit in bytes per second, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
@@ -2400,6 +2434,18 @@
     <macro name='VIR_NODE_MEMORY_STATS_TOTAL' file='libvirt-host' string='total'>
       <info><![CDATA[Macro for the total memory of specified cell: it represents the maximum memory.]]></info>
     </macro>
+    <macro name='VIR_PERF_PARAM_BRANCH_INSTRUCTIONS' file='libvirt-domain' string='branch_instructions'>
+      <info><![CDATA[Macro for typed parameter name that represents branch_instructions perf event which can be used to measure the count of branch instructions by applications running on the platform. It corresponds to the "perf.branch_instructions" field in the *Stats APIs.]]></info>
+    </macro>
+    <macro name='VIR_PERF_PARAM_BRANCH_MISSES' file='libvirt-domain' string='branch_misses'>
+      <info><![CDATA[Macro for typed parameter name that represents branch_misses perf event which can be used to measure the count of branch misses by applications running on the platform. It corresponds to the "perf.branch_misses" field in the *Stats APIs.]]></info>
+    </macro>
+    <macro name='VIR_PERF_PARAM_BUS_CYCLES' file='libvirt-domain' string='bus_cycles'>
+      <info><![CDATA[Macro for typed parameter name that represents bus_cycles perf event which can be used to measure the count of bus cycles by applications running on the platform. It corresponds to the "perf.bus_cycles" field in the *Stats APIs.]]></info>
+    </macro>
+    <macro name='VIR_PERF_PARAM_CACHE_L1D' file='libvirt-domain' string='cache_l1d'>
+      <info><![CDATA[Macro for typed parameter name that represents cache_l1d perf event which can be used to measure the count of total level 1 data cache by applications running on the platform. It corresponds to the "perf.cache_l1d" field in the *Stats APIs.]]></info>
+    </macro>
     <macro name='VIR_PERF_PARAM_CACHE_MISSES' file='libvirt-domain' string='cache_misses'>
       <info><![CDATA[Macro for typed parameter name that represents cache_misses perf event which can be used to measure the count of cache misses by applications running on the platform. It corresponds to the "perf.cache_misses" field in the *Stats APIs.]]></info>
     </macro>
@@ -2420,6 +2466,18 @@
     </macro>
     <macro name='VIR_PERF_PARAM_MBMT' file='libvirt-domain' string='mbmt'>
       <info><![CDATA[Macro for typed parameter name that represents MBMT perf event which can be used to monitor total system bandwidth (bytes/s) from one level of cache to another. It corresponds to the "perf.mbmt" field in the *Stats APIs.]]></info>
+    </macro>
+    <macro name='VIR_PERF_PARAM_REF_CPU_CYCLES' file='libvirt-domain' string='ref_cpu_cycles'>
+      <info><![CDATA[Macro for typed parameter name that represents ref_cpu_cycles perf event which can be used to measure the count of total cpu cycles not affected by CPU frequency scaling by applications running on the platform. It corresponds to the "perf.ref_cpu_cycles" field in the *Stats APIs.]]></info>
+    </macro>
+    <macro name='VIR_PERF_PARAM_STALLED_CYCLES_BACKEND' file='libvirt-domain' string='stalled_cycles_backend'>
+      <info><![CDATA[Macro for typed parameter name that represents stalled_cycles_backend perf event which can be used to measure the count of stalled cpu cycles in the backend of the instruction processor pipeline by application running on the platform. It corresponds to the "perf.stalled_cycles_backend" field in the *Stats APIs.]]></info>
+    </macro>
+    <macro name='VIR_PERF_PARAM_STALLED_CYCLES_FRONTEND' file='libvirt-domain' string='stalled_cycles_frontend'>
+      <info><![CDATA[Macro for typed parameter name that represents stalled_cycles_frontend perf event which can be used to measure the count of stalled cpu cycles in the frontend of the instruction processor pipeline by applications running on the platform. It corresponds to the "perf.stalled_cycles_frontend" field in the *Stats APIs.]]></info>
+    </macro>
+    <macro name='VIR_SECRET_EVENT_CALLBACK' file='libvirt-secret'>
+      <info><![CDATA[Used to cast the event specific callback into the generic one for use for virConnectSecretEventRegisterAny()]]></info>
     </macro>
     <macro name='VIR_SECURITY_DOI_BUFLEN' file='libvirt-host'>
       <info><![CDATA[Macro providing the maximum length of the virSecurityModel doi string.]]></info>
@@ -2712,10 +2770,11 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_EVENT_ID_IO_ERROR' file='libvirt-domain' value='4' type='virDomainEventID' info='virConnectDomainEventIOErrorCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_IO_ERROR_REASON' file='libvirt-domain' value='6' type='virDomainEventID' info='virConnectDomainEventIOErrorReasonCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_JOB_COMPLETED' file='libvirt-domain' value='21' type='virDomainEventID' info='virConnectDomainEventJobCompletedCallback'/>
-    <enum name='VIR_DOMAIN_EVENT_ID_LAST' file='libvirt-domain' value='23' type='virDomainEventID' info='NB: this enum value will increase over time as new events are
+    <enum name='VIR_DOMAIN_EVENT_ID_LAST' file='libvirt-domain' value='24' type='virDomainEventID' info='NB: this enum value will increase over time as new events are
  added to the libvirt API. It reflects the last event ID supported
  by this version of the libvirt API.'/>
     <enum name='VIR_DOMAIN_EVENT_ID_LIFECYCLE' file='libvirt-domain' value='0' type='virDomainEventID' info='virConnectDomainEventCallback'/>
+    <enum name='VIR_DOMAIN_EVENT_ID_METADATA_CHANGE' file='libvirt-domain' value='23' type='virDomainEventID' info='virConnectDomainEventMetadataChangeCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_MIGRATION_ITERATION' file='libvirt-domain' value='20' type='virDomainEventID' info='virConnectDomainEventMigrationIterationCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_PMSUSPEND' file='libvirt-domain' value='12' type='virDomainEventID' info='virConnectDomainEventPMSuspendCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK' file='libvirt-domain' value='14' type='virDomainEventID' info='virConnectDomainEventPMSuspendDiskCallback'/>
@@ -3421,6 +3480,14 @@ used to free allocated pages.'/>
     <enum name='VIR_NODE_SUSPEND_TARGET_HYBRID' file='libvirt-host' value='2' type='virNodeSuspendTarget'/>
     <enum name='VIR_NODE_SUSPEND_TARGET_LAST' file='libvirt-host' value='3' type='virNodeSuspendTarget' info='This constant is subject to change'/>
     <enum name='VIR_NODE_SUSPEND_TARGET_MEM' file='libvirt-host' value='0' type='virNodeSuspendTarget'/>
+    <enum name='VIR_SECRET_EVENT_DEFINED' file='libvirt-secret' value='0' type='virSecretEventLifecycleType'/>
+    <enum name='VIR_SECRET_EVENT_ID_LAST' file='libvirt-secret' value='2' type='virSecretEventID' info='NB: this enum value will increase over time as new events are
+ added to the libvirt API. It reflects the last event ID supported
+ by this version of the libvirt API.'/>
+    <enum name='VIR_SECRET_EVENT_ID_LIFECYCLE' file='libvirt-secret' value='0' type='virSecretEventID' info='virConnectSecretEventLifecycleCallback'/>
+    <enum name='VIR_SECRET_EVENT_ID_VALUE_CHANGED' file='libvirt-secret' value='1' type='virSecretEventID' info='virConnectSecretEventGenericCallback'/>
+    <enum name='VIR_SECRET_EVENT_LAST' file='libvirt-secret' value='2' type='virSecretEventLifecycleType'/>
+    <enum name='VIR_SECRET_EVENT_UNDEFINED' file='libvirt-secret' value='1' type='virSecretEventLifecycleType'/>
     <enum name='VIR_SECRET_USAGE_TYPE_CEPH' file='libvirt-secret' value='2' type='virSecretUsageType'/>
     <enum name='VIR_SECRET_USAGE_TYPE_ISCSI' file='libvirt-secret' value='3' type='virSecretUsageType'/>
     <enum name='VIR_SECRET_USAGE_TYPE_LAST' file='libvirt-secret' value='5' type='virSecretUsageType' info='NB: this enum value will increase over time as new events are
@@ -3468,6 +3535,7 @@ used to free allocated pages.'/>
     <enum name='VIR_STORAGE_VOL_DELETE_ZEROED' file='libvirt-storage' value='1' type='virStorageVolDeleteFlags' info='Clear all data to zeros (slow)'/>
     <enum name='VIR_STORAGE_VOL_DIR' file='libvirt-storage' value='2' type='virStorageVolType' info='Directory-passthrough based volume'/>
     <enum name='VIR_STORAGE_VOL_FILE' file='libvirt-storage' value='0' type='virStorageVolType' info='Regular file based volumes'/>
+    <enum name='VIR_STORAGE_VOL_GET_PHYSICAL' file='libvirt-storage' value='1' type='virStorageVolInfoFlags'/>
     <enum name='VIR_STORAGE_VOL_LAST' file='libvirt-storage' value='6' type='virStorageVolType'/>
     <enum name='VIR_STORAGE_VOL_NETDIR' file='libvirt-storage' value='4' type='virStorageVolType' info='Network accessible directory that can
  contain other network volumes'/>
@@ -3476,6 +3544,7 @@ used to free allocated pages.'/>
     <enum name='VIR_STORAGE_VOL_RESIZE_ALLOCATE' file='libvirt-storage' value='1' type='virStorageVolResizeFlags' info='force allocation of new size'/>
     <enum name='VIR_STORAGE_VOL_RESIZE_DELTA' file='libvirt-storage' value='2' type='virStorageVolResizeFlags' info='size is relative to current'/>
     <enum name='VIR_STORAGE_VOL_RESIZE_SHRINK' file='libvirt-storage' value='4' type='virStorageVolResizeFlags' info='allow decrease in capacity'/>
+    <enum name='VIR_STORAGE_VOL_USE_ALLOCATION' file='libvirt-storage' value='0' type='virStorageVolInfoFlags' info='Return the physical size in allocation'/>
     <enum name='VIR_STORAGE_VOL_WIPE_ALG_BSI' file='libvirt-storage' value='3' type='virStorageVolWipeAlgorithm' info='9-pass method recommended by the
 German Center of Security in
 Information Technologies'/>
@@ -3944,6 +4013,8 @@ unusual numa topology'/>
     </typedef>
     <typedef name='virSchedParameterType' file='libvirt-domain' type='enum'/>
     <struct name='virSecret' file='libvirt-secret' type='struct _virSecret'/>
+    <typedef name='virSecretEventID' file='libvirt-secret' type='enum'/>
+    <typedef name='virSecretEventLifecycleType' file='libvirt-secret' type='enum'/>
     <typedef name='virSecretPtr' file='libvirt-secret' type='virSecret *'/>
     <typedef name='virSecretUsageType' file='libvirt-secret' type='enum'/>
     <struct name='virSecurityLabel' file='libvirt-host' type='struct _virSecurityLabel'>
@@ -3985,6 +4056,7 @@ unusual numa topology'/>
       <field name='capacity' type='unsigned long long' info='Logical size bytes'/>
       <field name='allocation' type='unsigned long long' info='Current allocation bytes'/>
     </struct>
+    <typedef name='virStorageVolInfoFlags' file='libvirt-storage' type='enum'/>
     <typedef name='virStorageVolInfoPtr' file='libvirt-storage' type='virStorageVolInfo *'/>
     <typedef name='virStorageVolPtr' file='libvirt-storage' type='virStorageVol *'>
       <info><![CDATA[a virStorageVolPtr is pointer to a virStorageVol private structure, this is the type used to reference a storage volume in the API.]]></info>
@@ -4335,6 +4407,18 @@ virConnectDomainEventRegisterAny().]]></info>
       <arg name='nparams' type='int' info='size of the params array'/>
       <arg name='opaque' type='void *' info='application specific data'/>
     </functype>
+    <functype name='virConnectDomainEventMetadataChangeCallback' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[This callback is triggered when the domain XML metadata is changed
+
+The callback signature to use when registering for an event of type
+VIR_DOMAIN_EVENT_ID_METADATA_CHANGE with virConnectDomainEventRegisterAny().]]></info>
+      <return type='void'/>
+      <arg name='conn' type='virConnectPtr' info='connection object'/>
+      <arg name='dom' type='virDomainPtr' info='domain on which the event occurred'/>
+      <arg name='type' type='int' info='a value from virDomainMetadataTypea'/>
+      <arg name='nsuri' type='const char *' info='XML namespace URI'/>
+      <arg name='opaque' type='void *' info='application specified data'/>
+    </functype>
     <functype name='virConnectDomainEventMigrationIterationCallback' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[This callback occurs during live migration when a new iteration over
 domain's memory starts. The @iteration value is increased by one every
@@ -4535,111 +4619,150 @@ The statistic groups are enabled using the @stats parameter which is a
 binary-OR of enum virDomainStatsTypes. The following groups are available
 (although not necessarily implemented for each hypervisor):
 
-VIR_DOMAIN_STATS_STATE: Return domain state and reason for entering that
-state. The typed parameter keys are in this format:
-"state.state" - state of the VM, returned as int from virDomainState enum
-"state.reason" - reason for entering given state, returned as int from
-                 virDomain*Reason enum corresponding to given state.
+VIR_DOMAIN_STATS_STATE:
+    Return domain state and reason for entering that state. The typed
+    parameter keys are in this format:
 
-VIR_DOMAIN_STATS_CPU_TOTAL: Return CPU statistics and usage information.
-The typed parameter keys are in this format:
-"cpu.time" - total cpu time spent for this domain in nanoseconds
-             as unsigned long long.
-"cpu.user" - user cpu time spent in nanoseconds as unsigned long long.
-"cpu.system" - system cpu time spent in nanoseconds as unsigned long long.
+    "state.state" - state of the VM, returned as int from virDomainState enum
+    "state.reason" - reason for entering given state, returned as int from
+                     virDomain*Reason enum corresponding to given state.
 
-VIR_DOMAIN_STATS_BALLOON: Return memory balloon device information.
-The typed parameter keys are in this format:
-"balloon.current" - the memory in kiB currently used
-                    as unsigned long long.
-"balloon.maximum" - the maximum memory in kiB allowed
-                    as unsigned long long.
+VIR_DOMAIN_STATS_CPU_TOTAL:
+    Return CPU statistics and usage information. The typed parameter keys
+    are in this format:
 
-VIR_DOMAIN_STATS_VCPU: Return virtual CPU statistics.
-Due to VCPU hotplug, the vcpu.<num>.* array could be sparse.
-The actual size of the array corresponds to "vcpu.current".
-The array size will never exceed "vcpu.maximum".
-The typed parameter keys are in this format:
-"vcpu.current" - current number of online virtual CPUs as unsigned int.
-"vcpu.maximum" - maximum number of online virtual CPUs as unsigned int.
-"vcpu.<num>.state" - state of the virtual CPU <num>, as int
-                     from virVcpuState enum.
-"vcpu.<num>.time" - virtual cpu time spent by virtual CPU <num>
-                    as unsigned long long.
+    "cpu.time" - total cpu time spent for this domain in nanoseconds
+                 as unsigned long long.
+    "cpu.user" - user cpu time spent in nanoseconds as unsigned long long.
+    "cpu.system" - system cpu time spent in nanoseconds as unsigned long
+                   long.
 
-VIR_DOMAIN_STATS_INTERFACE: Return network interface statistics.
-The typed parameter keys are in this format:
-"net.count" - number of network interfaces on this domain
-              as unsigned int.
-"net.<num>.name" - name of the interface <num> as string.
-"net.<num>.rx.bytes" - bytes received as unsigned long long.
-"net.<num>.rx.pkts" - packets received as unsigned long long.
-"net.<num>.rx.errs" - receive errors as unsigned long long.
-"net.<num>.rx.drop" - receive packets dropped as unsigned long long.
-"net.<num>.tx.bytes" - bytes transmitted as unsigned long long.
-"net.<num>.tx.pkts" - packets transmitted as unsigned long long.
-"net.<num>.tx.errs" - transmission errors as unsigned long long.
-"net.<num>.tx.drop" - transmit packets dropped as unsigned long long.
+VIR_DOMAIN_STATS_BALLOON:
+    Return memory balloon device information.
+    The typed parameter keys are in this format:
 
-VIR_DOMAIN_STATS_BLOCK: Return block devices statistics.  By default,
-this information is limited to the active layer of each <disk> of the
-domain (where block.count is equal to the number of disks), but adding
-VIR_CONNECT_GET_ALL_DOMAINS_STATS_BACKING to @flags will expand the
-array to cover backing chains (block.count corresponds to the number
-of host resources used together to provide the guest disks).
-The typed parameter keys are in this format:
-"block.count" - number of block devices in the subsequent list,
-                as unsigned int.
-"block.<num>.name" - name of the block device <num> as string.
-                     matches the target name (vda/sda/hda) of the
-                     block device.  If the backing chain is listed,
-                     this name is the same for all host resources tied
-                     to the same guest device.
-"block.<num>.backingIndex" - unsigned int giving the <backingStore> index,
-                             only used when backing images are listed.
-"block.<num>.path" - string describing the source of block device <num>,
-                     if it is a file or block device (omitted for network
-                     sources and drives with no media inserted).
-"block.<num>.rd.reqs" - number of read requests as unsigned long long.
-"block.<num>.rd.bytes" - number of read bytes as unsigned long long.
-"block.<num>.rd.times" - total time (ns) spent on reads as
-                         unsigned long long.
-"block.<num>.wr.reqs" - number of write requests as unsigned long long.
-"block.<num>.wr.bytes" - number of written bytes as unsigned long long.
-"block.<num>.wr.times" - total time (ns) spent on writes as
-                         unsigned long long.
-"block.<num>.fl.reqs" - total flush requests as unsigned long long.
-"block.<num>.fl.times" - total time (ns) spent on cache flushing as
-                         unsigned long long.
-"block.<num>.errors" - Xen only: the 'oo_req' value as
-                       unsigned long long.
-"block.<num>.allocation" - offset of the highest written sector
-                           as unsigned long long.
-"block.<num>.capacity" - logical size in bytes of the block device backing
-                         image as unsigned long long.
-"block.<num>.physical" - physical size in bytes of the container of the
-                         backing image as unsigned long long.
+    "balloon.current" - the memory in kiB currently used
+                        as unsigned long long.
+    "balloon.maximum" - the maximum memory in kiB allowed
+                        as unsigned long long.
 
-VIR_DOMAIN_STATS_PERF: Return perf event statistics.
-The typed parameter keys are in this format:
-"perf.cmt" - the usage of l3 cache (bytes) by applications running on the
-             platform as unsigned long long. It is produced by cmt perf
-             event.
-"perf.mbmt" - the total system bandwidth (bytes/s) from one level of cache
-              to another as unsigned long long. It is produced by mbmt perf
-              event.
-"perf.mbml" - the amount of data (bytes/s) sent through the memory controller
-              on the socket as unsigned long long. It is produced by mbml
-              perf event.
-"perf.cache_misses"     - the count of cache misses as unsigned long long.
+VIR_DOMAIN_STATS_VCPU:
+    Return virtual CPU statistics.
+    Due to VCPU hotplug, the vcpu.<num>.* array could be sparse.
+    The actual size of the array corresponds to "vcpu.current".
+    The array size will never exceed "vcpu.maximum".
+    The typed parameter keys are in this format:
+
+    "vcpu.current" - current number of online virtual CPUs as unsigned int.
+    "vcpu.maximum" - maximum number of online virtual CPUs as unsigned int.
+    "vcpu.<num>.state" - state of the virtual CPU <num>, as int
+                         from virVcpuState enum.
+    "vcpu.<num>.time" - virtual cpu time spent by virtual CPU <num>
+                        as unsigned long long.
+
+VIR_DOMAIN_STATS_INTERFACE:
+    Return network interface statistics.
+    The typed parameter keys are in this format:
+
+    "net.count" - number of network interfaces on this domain
+                  as unsigned int.
+    "net.<num>.name" - name of the interface <num> as string.
+    "net.<num>.rx.bytes" - bytes received as unsigned long long.
+    "net.<num>.rx.pkts" - packets received as unsigned long long.
+    "net.<num>.rx.errs" - receive errors as unsigned long long.
+    "net.<num>.rx.drop" - receive packets dropped as unsigned long long.
+    "net.<num>.tx.bytes" - bytes transmitted as unsigned long long.
+    "net.<num>.tx.pkts" - packets transmitted as unsigned long long.
+    "net.<num>.tx.errs" - transmission errors as unsigned long long.
+    "net.<num>.tx.drop" - transmit packets dropped as unsigned long long.
+
+VIR_DOMAIN_STATS_BLOCK:
+    Return block devices statistics.  By default,
+    this information is limited to the active layer of each <disk> of the
+    domain (where block.count is equal to the number of disks), but adding
+    VIR_CONNECT_GET_ALL_DOMAINS_STATS_BACKING to @flags will expand the
+    array to cover backing chains (block.count corresponds to the number
+    of host resources used together to provide the guest disks).
+    The typed parameter keys are in this format:
+
+    "block.count" - number of block devices in the subsequent list,
+                    as unsigned int.
+    "block.<num>.name" - name of the block device <num> as string.
+                         matches the target name (vda/sda/hda) of the
+                         block device.  If the backing chain is listed,
+                         this name is the same for all host resources tied
+                         to the same guest device.
+    "block.<num>.backingIndex" - unsigned int giving the <backingStore>
+                                  index, only used when backing images
+                                  are listed.
+    "block.<num>.path" - string describing the source of block device <num>,
+                         if it is a file or block device (omitted for network
+                         sources and drives with no media inserted).
+    "block.<num>.rd.reqs" - number of read requests as unsigned long long.
+    "block.<num>.rd.bytes" - number of read bytes as unsigned long long.
+    "block.<num>.rd.times" - total time (ns) spent on reads as
+                             unsigned long long.
+    "block.<num>.wr.reqs" - number of write requests as unsigned long long.
+    "block.<num>.wr.bytes" - number of written bytes as unsigned long long.
+    "block.<num>.wr.times" - total time (ns) spent on writes as
+                             unsigned long long.
+    "block.<num>.fl.reqs" - total flush requests as unsigned long long.
+    "block.<num>.fl.times" - total time (ns) spent on cache flushing as
+                             unsigned long long.
+    "block.<num>.errors" - Xen only: the 'oo_req' value as
+                           unsigned long long.
+    "block.<num>.allocation" - offset of the highest written sector
+                               as unsigned long long.
+    "block.<num>.capacity" - logical size in bytes of the block device
+                             backing image as unsigned long long.
+    "block.<num>.physical" - physical size in bytes of the container of the
+                             backing image as unsigned long long.
+
+VIR_DOMAIN_STATS_PERF:
+    Return perf event statistics.
+    The typed parameter keys are in this format:
+
+    "perf.cmt" - the usage of l3 cache (bytes) by applications running on
+                 the platform as unsigned long long. It is produced by cmt
+                 perf event.
+    "perf.mbmt" - the total system bandwidth (bytes/s) from one level of
+                  cache to another as unsigned long long. It is produced
+                  by mbmt perf event.
+    "perf.mbml" - the amount of data (bytes/s) sent through the memory
+                  controller on the socket as unsigned long long. It is
+                  produced by mbml perf event.
+    "perf.cache_misses" - the count of cache misses as unsigned long long.
                           It is produced by cache_misses perf event.
-"perf.cache_references" - the count of cache hits as unsigned long long.
-                          It is produced by cache_references perf event.
-"perf.instructions"     - The count of instructions as unsigned long long.
+    "perf.cache_references" - the count of cache hits as unsigned long long.
+                              It is produced by cache_references perf event.
+    "perf.instructions" - The count of instructions as unsigned long long.
                           It is produced by instructions perf event.
-"perf.cpu_cycles"       - The count of cpu cycles (total/elapsed) as an
-                          unsigned long long. It is produced by cpu_cycles
-                          perf event.
+    "perf.cpu_cycles" - The count of cpu cycles (total/elapsed) as an
+                        unsigned long long. It is produced by cpu_cycles
+                        perf event.
+    "perf.branch_instructions" - The count of branch instructions as
+                                 unsigned long long. It is produced by
+                                 branch_instructions perf event.
+    "perf.branch_misses" - The count of branch misses as unsigned long
+                           long. It is produced by branch_misses perf event.
+    "perf.bus_cycles" - The count of bus cycles as unsigned long
+                        long. It is produced by bus_cycles perf event.
+    "perf.stalled_cycles_frontend" - The count of stalled cpu cycles in the
+                                     frontend of the instruction processor
+                                     pipeline as unsigned long long. It is
+                                     produced by stalled_cycles_frontend
+                                     perf event.
+    "perf.stalled_cycles_backend"  - The count of stalled cpu cycles in the
+                                     backend of the instruction processor
+                                     pipeline as unsigned long long. It is
+                                     produced by stalled_cycles_backend
+                                     perf event.
+    "perf.ref_cpu_cycles" - The count of total cpu cycles not affected by
+                            CPU frequency scaling by applications running
+                            as unsigned long long. It is produced by the
+                            ref_cpu_cycles perf event.
+    "perf.cache_l1d" - The count of total level 1 data cache as unsigned
+                       long long. It is produced by cache_l1d perf event.
 
 Note that entire stats groups or individual stat fields may be missing from
 the output in case they are not supported by the given hypervisor, are not
@@ -5349,6 +5472,70 @@ context.]]></info>
       <arg name='cb' type='virConnectCloseFunc' info='callback to invoke upon close'/>
       <arg name='opaque' type='void *' info='user data to pass to @cb'/>
       <arg name='freecb' type='virFreeCallback' info='callback to free @opaque'/>
+    </function>
+    <function name='virConnectSecretEventDeregisterAny' file='libvirt-secret' module='libvirt-secret'>
+      <info><![CDATA[Removes an event callback. The callbackID parameter should be the
+value obtained from a previous virConnectSecretEventRegisterAny() method.]]></info>
+      <return type='int' info='0 on success, -1 on failure.'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to the connection'/>
+      <arg name='callbackID' type='int' info='the callback identifier'/>
+    </function>
+    <functype name='virConnectSecretEventGenericCallback' file='libvirt-secret' module='libvirt-secret'>
+      <info><![CDATA[A generic secret event callback handler, for use with
+virConnectSecretEventRegisterAny(). Specific events usually
+have a customization with extra parameters, often with @opaque being
+passed in a different parameter position; use
+VIR_SECRET_EVENT_CALLBACK() when registering an appropriate handler.]]></info>
+      <return type='void'/>
+      <arg name='conn' type='virConnectPtr' info='the connection pointer'/>
+      <arg name='secret' type='virSecretPtr' info='the secret pointer'/>
+      <arg name='opaque' type='void *' info='application specified data'/>
+    </functype>
+    <functype name='virConnectSecretEventLifecycleCallback' file='libvirt-secret' module='libvirt-secret'>
+      <info><![CDATA[This callback is called when a secret lifecycle action is performed,
+like added or removed.
+
+The callback signature to use when registering for an event of type
+VIR_SECRET_EVENT_ID_LIFECYCLE with
+virConnectSecretEventRegisterAny()]]></info>
+      <return type='void'/>
+      <arg name='conn' type='virConnectPtr' info='connection object'/>
+      <arg name='secret' type='virSecretPtr' info='secret on which the event occurred'/>
+      <arg name='event' type='int' info='The specific virSecretEventLifeCycleType which occurred'/>
+      <arg name='detail' type='int' info='contains some details on the reason of the event.'/>
+      <arg name='opaque' type='void *' info='application specified data'/>
+    </functype>
+    <function name='virConnectSecretEventRegisterAny' file='libvirt-secret' module='libvirt-secret'>
+      <info><![CDATA[Adds a callback to receive notifications of arbitrary secret events
+occurring on a secret. This function requires that an event loop
+has been previously registered with virEventRegisterImpl() or
+virEventRegisterDefaultImpl().
+
+If @secret is NULL, then events will be monitored for any secret.
+If @secret is non-NULL, then only the specific secret will be monitored.
+
+Most types of events have a callback providing a custom set of parameters
+for the event. When registering an event, it is thus necessary to use
+the VIR_SECRET_EVENT_CALLBACK() macro to cast the
+supplied function pointer to match the signature of this method.
+
+The virSecretPtr object handle passed into the callback upon delivery
+of an event is only valid for the duration of execution of the callback.
+If the callback wishes to keep the secret object after the callback
+returns, it shall take a reference to it, by calling virSecretRef().
+The reference can be released once the object is no longer required
+by calling virSecretFree().
+
+The return value from this method is a positive integer identifier
+for the callback. To unregister a callback, this callback ID should
+be passed to the virConnectSecretEventDeregisterAny() method.]]></info>
+      <return type='int' info='a callback identifier on success, -1 on failure.'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to the connection'/>
+      <arg name='secret' type='virSecretPtr' info='pointer to the secret'/>
+      <arg name='eventID' type='int' info='the event type to receive'/>
+      <arg name='cb' type='virConnectSecretEventGenericCallback' info='callback to the function handling secret events'/>
+      <arg name='opaque' type='void *' info='opaque data to pass on to the callback'/>
+      <arg name='freecb' type='virFreeCallback' info='optional function to deallocate opaque when not used anymore'/>
     </function>
     <function name='virConnectSetKeepAlive' file='libvirt-host' module='libvirt-host'>
       <info><![CDATA[Start sending keepalive messages after @interval seconds of inactivity and
@@ -7148,34 +7335,35 @@ range.
 The caller *must* free @ifaces when no longer needed. Usual use case
 looks like this:
 
- virDomainInterfacePtr *ifaces = NULL;
- int ifaces_count = 0;
- size_t i, j;
- virDomainPtr dom = ... obtain a domain here ...;
+  virDomainInterfacePtr *ifaces = NULL;
+  int ifaces_count = 0;
+  size_t i, j;
+  virDomainPtr dom = ... obtain a domain here ...;
 
- if ((ifaces_count = virDomainInterfaceAddresses(dom, &ifaces,
-          VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE)) < 0)
-     goto cleanup;
+  if ((ifaces_count = virDomainInterfaceAddresses(dom, &ifaces,
+           VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE)) < 0)
+      goto cleanup;
 
  ... do something with returned values, for example:
- for (i = 0; i < ifaces_count; i++) {
-     printf("name: %s", ifaces[i]->name);
-     if (ifaces[i]->hwaddr)
-         printf(" hwaddr: %s", ifaces[i]->hwaddr);
 
-     for (j = 0; j < ifaces[i]->naddrs; j++) {
-         virDomainIPAddressPtr ip_addr = ifaces[i]->addrs + j;
-         printf("[addr: %s prefix: %d type: %d]",
-                ip_addr->addr, ip_addr->prefix, ip_addr->type);
-     }
-     printf("\n");
- }
+  for (i = 0; i < ifaces_count; i++) {
+      printf("name: %s", ifaces[i]->name);
+      if (ifaces[i]->hwaddr)
+          printf(" hwaddr: %s", ifaces[i]->hwaddr);
 
- cleanup:
-     if (ifaces && ifaces_count > 0)
-         for (i = 0; i < ifaces_count; i++)
-             virDomainInterfaceFree(ifaces[i]);
-     free(ifaces);]]></info>
+      for (j = 0; j < ifaces[i]->naddrs; j++) {
+          virDomainIPAddressPtr ip_addr = ifaces[i]->addrs + j;
+          printf("[addr: %s prefix: %d type: %d]",
+                 ip_addr->addr, ip_addr->prefix, ip_addr->type);
+      }
+      printf("\n");
+  }
+
+  cleanup:
+      if (ifaces && ifaces_count > 0)
+          for (i = 0; i < ifaces_count; i++)
+              virDomainInterfaceFree(ifaces[i]);
+      free(ifaces);]]></info>
       <return type='int' info='the number of interfaces on success, -1 in case of error.'/>
       <arg name='dom' type='virDomainPtr' info='domain object'/>
       <arg name='ifaces' type='virDomainInterfacePtr **' info='pointer to an array of pointers pointing to interface objects'/>
@@ -8173,7 +8361,7 @@ the container/guest.]]></info>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='pid_value' type='long long' info='a positive integer process ID, or negative integer process group ID'/>
       <arg name='signum' type='unsigned int' info='a signal from the virDomainProcessSignal enum'/>
-      <arg name='flags' type='unsigned int' info='one of the virDomainProcessSignalFlag values'/>
+      <arg name='flags' type='unsigned int' info='currently unused, pass 0'/>
     </function>
     <function name='virDomainSetAutostart' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Configure the domain to be automatically started
@@ -10664,6 +10852,20 @@ volume such as its current allocation]]></info>
       <return type='int' info='0 on success, or -1 on failure'/>
       <arg name='vol' type='virStorageVolPtr' info='pointer to storage volume'/>
       <arg name='info' type='virStorageVolInfoPtr' info='pointer at which to store info'/>
+    </function>
+    <function name='virStorageVolGetInfoFlags' file='libvirt-storage' module='libvirt-storage'>
+      <info><![CDATA[Fetches volatile information about the storage
+volume such as its current allocation.
+
+If the @flags argument is VIR_STORAGE_VOL_GET_PHYSICAL, then the physical
+bytes used for the volume will be returned in the @info allocation field.
+This is useful for sparse files and certain volume file types where the
+physical on disk usage can be different than the calculated allocation value
+as is the case with qcow2 files.]]></info>
+      <return type='int' info='0 on success, or -1 on failure'/>
+      <arg name='vol' type='virStorageVolPtr' info='pointer to storage volume'/>
+      <arg name='info' type='virStorageVolInfoPtr' info='pointer at which to store info'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virStorageVolInfoFlags'/>
     </function>
     <function name='virStorageVolGetKey' file='libvirt-storage' module='libvirt-storage'>
       <info><![CDATA[Fetch the storage volume key. This is globally

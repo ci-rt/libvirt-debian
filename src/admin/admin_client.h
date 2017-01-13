@@ -141,6 +141,56 @@ done:
 }
 
 static int
+remoteAdminConnectSetLoggingFilters(virAdmConnectPtr conn, const char *filters, unsigned int flags)
+{
+    int rv = -1;
+    remoteAdminPrivPtr priv = conn->privateData;
+    admin_connect_set_logging_filters_args args;
+
+    virObjectLock(priv);
+
+    args.filters = filters ? (char **)&filters : NULL;
+    args.flags = flags;
+
+    if (call(conn, 0, ADMIN_PROC_CONNECT_SET_LOGGING_FILTERS,
+             (xdrproc_t)xdr_admin_connect_set_logging_filters_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    virObjectUnlock(priv);
+    return rv;
+}
+
+static int
+remoteAdminConnectSetLoggingOutputs(virAdmConnectPtr conn, const char *outputs, unsigned int flags)
+{
+    int rv = -1;
+    remoteAdminPrivPtr priv = conn->privateData;
+    admin_connect_set_logging_outputs_args args;
+
+    virObjectLock(priv);
+
+    args.outputs = outputs ? (char **)&outputs : NULL;
+    args.flags = flags;
+
+    if (call(conn, 0, ADMIN_PROC_CONNECT_SET_LOGGING_OUTPUTS,
+             (xdrproc_t)xdr_admin_connect_set_logging_outputs_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    virObjectUnlock(priv);
+    return rv;
+}
+
+static int
 remoteAdminServerListClients(virAdmServerPtr srv, virAdmClientPtr **result, unsigned int flags)
 {
     int rv = -1;

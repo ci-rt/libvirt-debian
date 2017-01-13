@@ -320,6 +320,68 @@ xdr_admin_server_set_client_limits_args (XDR *xdrs, admin_server_set_client_limi
 }
 
 bool_t
+xdr_admin_connect_get_logging_outputs_args (XDR *xdrs, admin_connect_get_logging_outputs_args *objp)
+{
+
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_admin_connect_get_logging_outputs_ret (XDR *xdrs, admin_connect_get_logging_outputs_ret *objp)
+{
+
+         if (!xdr_admin_nonnull_string (xdrs, &objp->outputs))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->noutputs))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_admin_connect_get_logging_filters_args (XDR *xdrs, admin_connect_get_logging_filters_args *objp)
+{
+
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_admin_connect_get_logging_filters_ret (XDR *xdrs, admin_connect_get_logging_filters_ret *objp)
+{
+
+         if (!xdr_admin_string (xdrs, &objp->filters))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->nfilters))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_admin_connect_set_logging_outputs_args (XDR *xdrs, admin_connect_set_logging_outputs_args *objp)
+{
+
+         if (!xdr_admin_string (xdrs, &objp->outputs))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_admin_connect_set_logging_filters_args (XDR *xdrs, admin_connect_set_logging_filters_args *objp)
+{
+
+         if (!xdr_admin_string (xdrs, &objp->filters))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_admin_procedure (XDR *xdrs, admin_procedure *objp)
 {
 

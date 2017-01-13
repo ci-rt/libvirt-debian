@@ -62,7 +62,7 @@ int virSecurityManagerStackAddNested(virSecurityManagerPtr stack,
  * @src. The callback shall return 0 on success, -1 on error and errno set (no
  * libvirt error reported) OR -2 and a libvirt error reported. */
 typedef int
-(*virSecurityManagerDACChownCallback)(virStorageSourcePtr src,
+(*virSecurityManagerDACChownCallback)(const virStorageSource *src,
                                       uid_t uid,
                                       gid_t gid);
 
@@ -75,6 +75,11 @@ virSecurityManagerPtr virSecurityManagerNewDAC(const char *virtDriver,
 
 int virSecurityManagerPreFork(virSecurityManagerPtr mgr);
 void virSecurityManagerPostFork(virSecurityManagerPtr mgr);
+
+int virSecurityManagerTransactionStart(virSecurityManagerPtr mgr);
+int virSecurityManagerTransactionCommit(virSecurityManagerPtr mgr,
+                                        pid_t pid);
+void virSecurityManagerTransactionAbort(virSecurityManagerPtr mgr);
 
 void *virSecurityManagerGetPrivateData(virSecurityManagerPtr mgr);
 
@@ -149,9 +154,6 @@ int virSecurityManagerSetTapFDLabel(virSecurityManagerPtr mgr,
 char *virSecurityManagerGetMountOptions(virSecurityManagerPtr mgr,
                                         virDomainDefPtr vm);
 virSecurityManagerPtr* virSecurityManagerGetNested(virSecurityManagerPtr mgr);
-int virSecurityManagerSetHugepages(virSecurityManagerPtr mgr,
-                                   virDomainDefPtr sec,
-                                   const char *hugepages_path);
 
 int virSecurityManagerSetImageLabel(virSecurityManagerPtr mgr,
                                     virDomainDefPtr vm,

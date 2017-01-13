@@ -169,6 +169,75 @@ char *virStringListJoin(const char **strings,
 
 
 /**
+ * virStringListAdd:
+ * @strings: a NULL-terminated array of strings
+ * @item: string to add
+ *
+ * Creates new strings list with all strings duplicated and @item
+ * at the end of the list. Callers is responsible for freeing
+ * both @strings and returned list.
+ */
+char **
+virStringListAdd(const char **strings,
+                 const char *item)
+{
+    char **ret = NULL;
+    size_t i = virStringListLength(strings);
+
+    if (VIR_ALLOC_N(ret, i + 2) < 0)
+        goto error;
+
+    for (i = 0; strings && strings[i]; i++) {
+        if (VIR_STRDUP(ret[i], strings[i]) < 0)
+            goto error;
+    }
+
+    if (VIR_STRDUP(ret[i], item) < 0)
+        goto error;
+
+    return ret;
+ error:
+    virStringListFree(ret);
+    return NULL;
+}
+
+
+/**
+ * virStringListRemove:
+ * @strings: a NULL-terminated array of strings
+ * @item: string to remove
+ *
+ * Remove every occurrence of @item in list of @strings.
+ */
+void
+virStringListRemove(char ***strings,
+                    const char *item)
+{
+    size_t r, w = 0;
+
+    if (!strings || !*strings)
+        return;
+
+    for (r = 0; (*strings)[r]; r++) {
+        if (STREQ((*strings)[r], item)) {
+            VIR_FREE((*strings)[r]);
+            continue;
+        }
+        if (r != w)
+            (*strings)[w] = (*strings)[r];
+        w++;
+    }
+
+    if (w == 0) {
+        VIR_FREE(*strings);
+    } else {
+        (*strings)[w] = NULL;
+        ignore_value(VIR_REALLOC_N(*strings, w + 1));
+    }
+}
+
+
+/**
  * virStringListFree:
  * @str_array: a NULL-terminated array of strings to free
  *

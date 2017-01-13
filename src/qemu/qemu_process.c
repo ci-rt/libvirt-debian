@@ -45,6 +45,7 @@
 #include "qemu_hotplug.h"
 #include "qemu_migration.h"
 #include "qemu_interface.h"
+#include "qemu_security.h"
 
 #include "cpu/cpu.h"
 #include "datatypes.h"
@@ -772,17 +773,6 @@ qemuProcessHandleResume(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
         event = virDomainEventLifecycleNewFromObj(vm,
                                          VIR_DOMAIN_EVENT_RESUMED,
                                          VIR_DOMAIN_EVENT_RESUMED_UNPAUSED);
-
-        VIR_DEBUG("Using lock state '%s' on resume event", NULLSTR(priv->lockState));
-        if (virDomainLockProcessResume(driver->lockManager, cfg->uri,
-                                       vm, priv->lockState) < 0) {
-            /* Don't free priv->lockState on error, because we need
-             * to make sure we have state still present if the user
-             * tries to resume again
-             */
-            goto unlock;
-        }
-        VIR_FREE(priv->lockState);
 
         if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm, driver->caps) < 0) {
             VIR_WARN("Unable to save status on vm %s after state change",
@@ -2195,6 +2185,7 @@ qemuProcessInitCpuAffinity(virDomainObjPtr vm)
     int ret = -1;
     virBitmapPtr cpumap = NULL;
     virBitmapPtr cpumapToSet = NULL;
+    virBitmapPtr hostcpumap = NULL;
     qemuDomainObjPrivatePtr priv = vm->privateData;
 
     if (!vm->pid) {
@@ -2217,20 +2208,34 @@ qemuProcessInitCpuAffinity(virDomainObjPtr vm)
              * its config file */
             int hostcpus;
 
-            /* setaffinity fails if you set bits for CPUs which
-             * aren't present, so we have to limit ourselves */
-            if ((hostcpus = virHostCPUGetCount()) < 0)
+            if (virHostCPUHasBitmap()) {
+                hostcpumap = virHostCPUGetOnlineBitmap();
+                cpumap = virProcessGetAffinity(vm->pid);
+            }
+
+            if (hostcpumap && cpumap && virBitmapEqual(hostcpumap, cpumap)) {
+                /* we're using all available CPUs, no reason to set
+                 * mask. If libvirtd is running without explicit
+                 * affinity, we can use hotplugged CPUs for this VM */
+                ret = 0;
                 goto cleanup;
+            } else {
+                /* setaffinity fails if you set bits for CPUs which
+                 * aren't present, so we have to limit ourselves */
+                if ((hostcpus = virHostCPUGetCount()) < 0)
+                    goto cleanup;
 
-            if (hostcpus > QEMUD_CPUMASK_LEN)
-                hostcpus = QEMUD_CPUMASK_LEN;
+                if (hostcpus > QEMUD_CPUMASK_LEN)
+                    hostcpus = QEMUD_CPUMASK_LEN;
 
-            if (!(cpumap = virBitmapNew(hostcpus)))
-                goto cleanup;
+                virBitmapFree(cpumap);
+                if (!(cpumap = virBitmapNew(hostcpus)))
+                    goto cleanup;
 
-            virBitmapSetAll(cpumap);
+                virBitmapSetAll(cpumap);
 
-            cpumapToSet = cpumap;
+                cpumapToSet = cpumap;
+            }
         }
     }
 
@@ -2241,6 +2246,7 @@ qemuProcessInitCpuAffinity(virDomainObjPtr vm)
 
  cleanup:
     virBitmapFree(cpumap);
+    virBitmapFree(hostcpumap);
     return ret;
 }
 
@@ -2655,6 +2661,12 @@ static int qemuProcessHook(void *data)
                                   &fd) < 0)
         goto cleanup;
     if (virSecurityManagerClearSocketLabel(h->driver->securityManager, h->vm->def) < 0)
+        goto cleanup;
+
+    if (virProcessSetupPrivateMountNS() < 0)
+        goto cleanup;
+
+    if (qemuDomainBuildNamespace(h->driver, h->vm) < 0)
         goto cleanup;
 
     if (virDomainNumatuneGetMode(h->vm->def->numa, -1, &mode) == 0) {
@@ -3081,7 +3093,8 @@ qemuProcessRecoverJob(virQEMUDriverPtr driver,
               (job->asyncJob == QEMU_ASYNC_JOB_SAVE &&
                reason == VIR_DOMAIN_PAUSED_SAVE) ||
               (job->asyncJob == QEMU_ASYNC_JOB_SNAPSHOT &&
-               reason == VIR_DOMAIN_PAUSED_SNAPSHOT) ||
+               (reason == VIR_DOMAIN_PAUSED_SNAPSHOT ||
+                reason == VIR_DOMAIN_PAUSED_MIGRATION)) ||
               reason == VIR_DOMAIN_PAUSED_UNKNOWN)) {
              if (qemuProcessStartCPUs(driver, vm, conn,
                                       VIR_DOMAIN_RUNNING_UNPAUSED,
@@ -3221,6 +3234,54 @@ qemuProcessReconnectCheckMemAliasOrderMismatch(virDomainObjPtr vm)
             break;
         }
     }
+}
+
+
+static int
+qemuProcessBuildDestroyHugepagesPath(virQEMUDriverPtr driver,
+                                     virDomainObjPtr vm,
+                                     bool build)
+{
+    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+    char *hugepagePath = NULL;
+    size_t i;
+    int ret = -1;
+
+    if (vm->def->mem.nhugepages) {
+        for (i = 0; i < cfg->nhugetlbfs; i++) {
+            VIR_FREE(hugepagePath);
+            hugepagePath = qemuGetDomainHugepagePath(vm->def, &cfg->hugetlbfs[i]);
+
+            if (!hugepagePath)
+                goto cleanup;
+
+            if (build) {
+                if (virFileMakePathWithMode(hugepagePath, 0700) < 0) {
+                    virReportSystemError(errno,
+                                         _("Unable to create %s"),
+                                         hugepagePath);
+                    goto cleanup;
+                }
+
+                if (virSecurityManagerDomainSetPathLabel(driver->securityManager,
+                                                         vm->def, hugepagePath) < 0) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   "%s", _("Unable to set huge path in security driver"));
+                    goto cleanup;
+                }
+            } else {
+                if (rmdir(hugepagePath) < 0)
+                    VIR_WARN("Unable to remove hugepage path: %s (errno=%d)",
+                             hugepagePath, errno);
+            }
+        }
+    }
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(hugepagePath);
+    virObjectUnref(cfg);
+    return ret;
 }
 
 
@@ -3367,6 +3428,9 @@ qemuProcessReconnect(void *opaque)
         qemuProcessShutdownOrReboot(driver, obj);
         goto cleanup;
     }
+
+    if (qemuProcessBuildDestroyHugepagesPath(driver, obj, true) < 0)
+        goto error;
 
     if ((qemuDomainAssignAddresses(obj->def, priv->qemuCaps,
                                    driver, obj, false)) < 0) {
@@ -3563,6 +3627,7 @@ qemuProcessVNCAllocatePorts(virQEMUDriverPtr driver,
         if (virPortAllocatorAcquire(driver->webSocketPorts, &port) < 0)
             return -1;
         graphics->data.vnc.websocket = port;
+        graphics->data.vnc.websocketGenerated = true;
     }
 
     return 0;
@@ -4045,16 +4110,26 @@ qemuProcessGraphicsReservePorts(virQEMUDriverPtr driver,
         glisten->type != VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_NETWORK)
         return 0;
 
-    if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC &&
-        !graphics->data.vnc.autoport) {
-        if (virPortAllocatorSetUsed(driver->remotePorts,
-                                    graphics->data.vnc.port,
+    switch (graphics->type) {
+    case VIR_DOMAIN_GRAPHICS_TYPE_VNC:
+        if (!graphics->data.vnc.autoport) {
+            if (virPortAllocatorSetUsed(driver->remotePorts,
+                                        graphics->data.vnc.port,
+                                        true) < 0)
+                return -1;
+            graphics->data.vnc.portReserved = true;
+        }
+        if (graphics->data.vnc.websocket > 0 &&
+            virPortAllocatorSetUsed(driver->remotePorts,
+                                    graphics->data.vnc.websocket,
                                     true) < 0)
             return -1;
-        graphics->data.vnc.portReserved = true;
+        break;
 
-    } else if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_SPICE &&
-               !graphics->data.spice.autoport) {
+    case VIR_DOMAIN_GRAPHICS_TYPE_SPICE:
+        if (graphics->data.spice.autoport)
+            return 0;
+
         if (graphics->data.spice.port > 0) {
             if (virPortAllocatorSetUsed(driver->remotePorts,
                                         graphics->data.spice.port,
@@ -4070,6 +4145,13 @@ qemuProcessGraphicsReservePorts(virQEMUDriverPtr driver,
                 return -1;
             graphics->data.spice.tlsPortReserved = true;
         }
+        break;
+
+    case VIR_DOMAIN_GRAPHICS_TYPE_SDL:
+    case VIR_DOMAIN_GRAPHICS_TYPE_RDP:
+    case VIR_DOMAIN_GRAPHICS_TYPE_DESKTOP:
+    case VIR_DOMAIN_GRAPHICS_TYPE_LAST:
+        break;
     }
 
     return 0;
@@ -5233,7 +5315,6 @@ qemuProcessPrepareHost(virQEMUDriverPtr driver,
 {
     int ret = -1;
     unsigned int hostdev_flags = 0;
-    size_t i;
     qemuDomainObjPrivatePtr priv = vm->privateData;
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
 
@@ -5265,23 +5346,8 @@ qemuProcessPrepareHost(virQEMUDriverPtr driver,
                                NULL) < 0)
         goto cleanup;
 
-    if (vm->def->mem.nhugepages) {
-        for (i = 0; i < cfg->nhugetlbfs; i++) {
-            char *hugepagePath = qemuGetHugepagePath(&cfg->hugetlbfs[i]);
-
-            if (!hugepagePath)
-                goto cleanup;
-
-            if (virSecurityManagerSetHugepages(driver->securityManager,
-                                               vm->def, hugepagePath) < 0) {
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               "%s", _("Unable to set huge path in security driver"));
-                VIR_FREE(hugepagePath);
-                goto cleanup;
-            }
-            VIR_FREE(hugepagePath);
-        }
-    }
+    if (qemuProcessBuildDestroyHugepagesPath(driver, vm, true) < 0)
+        goto cleanup;
 
     /* Ensure no historical cgroup for this VM is lying around bogus
      * settings */
@@ -5429,6 +5495,11 @@ qemuProcessLaunch(virConnectPtr conn,
 
     qemuDomainLogContextMarkPosition(logCtxt);
 
+    VIR_DEBUG("Building mount namespace");
+
+    if (qemuDomainCreateNamespace(driver, vm) < 0)
+        goto cleanup;
+
     VIR_DEBUG("Clear emulator capabilities: %d",
               cfg->clearEmulatorCapabilities);
     if (cfg->clearEmulatorCapabilities)
@@ -5511,9 +5582,9 @@ qemuProcessLaunch(virConnectPtr conn,
         goto cleanup;
 
     VIR_DEBUG("Setting domain security labels");
-    if (virSecurityManagerSetAllLabel(driver->securityManager,
-                                      vm->def,
-                                      incoming ? incoming->path : NULL) < 0)
+    if (qemuSecuritySetAllLabel(driver,
+                                vm,
+                                incoming ? incoming->path : NULL) < 0)
         goto cleanup;
 
     /* Security manager labeled all devices, therefore
@@ -5959,6 +6030,8 @@ void qemuProcessStop(virQEMUDriverPtr driver,
         goto endjob;
     }
 
+    qemuProcessBuildDestroyHugepagesPath(driver, vm, false);
+
     vm->def->id = -1;
 
     if (virAtomicIntDecAndTest(&driver->nactive) && driver->inhibitCallback)
@@ -6049,9 +6122,9 @@ void qemuProcessStop(virQEMUDriverPtr driver,
 
     /* Reset Security Labels unless caller don't want us to */
     if (!(flags & VIR_QEMU_PROCESS_STOP_NO_RELABEL))
-        virSecurityManagerRestoreAllLabel(driver->securityManager,
-                                          vm->def,
-                                          !!(flags & VIR_QEMU_PROCESS_STOP_MIGRATED));
+        qemuSecurityRestoreAllLabel(driver, vm,
+                                    !!(flags & VIR_QEMU_PROCESS_STOP_MIGRATED));
+
     virSecurityManagerReleaseLabel(driver->securityManager, vm->def);
 
     for (i = 0; i < vm->def->ndisks; i++) {
@@ -6163,8 +6236,16 @@ void qemuProcessStop(virQEMUDriverPtr driver,
                                         false);
                 graphics->data.vnc.portReserved = false;
             }
-            virPortAllocatorRelease(driver->webSocketPorts,
-                                    graphics->data.vnc.websocket);
+            if (graphics->data.vnc.websocketGenerated) {
+                virPortAllocatorRelease(driver->webSocketPorts,
+                                        graphics->data.vnc.websocket);
+                graphics->data.vnc.websocketGenerated = false;
+                graphics->data.vnc.websocket = -1;
+            } else if (graphics->data.vnc.websocket) {
+                virPortAllocatorSetUsed(driver->remotePorts,
+                                        graphics->data.vnc.websocket,
+                                        false);
+            }
         }
         if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_SPICE) {
             if (graphics->data.spice.autoport) {

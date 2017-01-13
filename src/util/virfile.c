@@ -32,6 +32,9 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
+#if defined(HAVE_SYS_MOUNT_H)
+# include <sys/mount.h>
+#endif
 #include <unistd.h>
 #include <dirent.h>
 #include <dirname.h>
@@ -44,6 +47,9 @@
 #endif
 #if HAVE_SYS_SYSCALL_H
 # include <sys/syscall.h>
+#endif
+#if HAVE_SYS_ACL_H
+# include <sys/acl.h>
 #endif
 
 #ifdef __linux__
@@ -443,7 +449,7 @@ int
 virFileRewrite(const char *path,
                mode_t mode,
                virFileRewriteFunc rewrite,
-               void *opaque)
+               const void *opaque)
 {
     char *newfile = NULL;
     int fd = -1;
@@ -491,6 +497,28 @@ virFileRewrite(const char *path,
         VIR_FREE(newfile);
     }
     return ret;
+}
+
+
+static int
+virFileRewriteStrHelper(int fd, const void *opaque)
+{
+    const char *data = opaque;
+
+    if (safewrite(fd, data, strlen(data)) < 0)
+        return -1;
+
+    return 0;
+}
+
+
+int
+virFileRewriteStr(const char *path,
+                  mode_t mode,
+                  const char *str)
+{
+    return virFileRewrite(path, mode,
+                          virFileRewriteStrHelper, str);
 }
 
 
@@ -1937,7 +1965,7 @@ virFileGetMountSubtreeImpl(const char *mtabpath ATTRIBUTE_UNUSED,
  * @nmountsret: filled with number of matching mounts, not counting NULL terminator
  *
  * Return the list of mounts from @mtabpath which contain
- * the path @prefix, sorted from shortest to longest path.
+ * the path @prefix, sorted alphabetically.
  *
  * The @mountsret array will be NULL terminated and should
  * be freed with virStringListFree
@@ -1960,8 +1988,7 @@ int virFileGetMountSubtree(const char *mtabpath,
  * @nmountsret: filled with number of matching mounts, not counting NULL terminator
  *
  * Return the list of mounts from @mtabpath which contain
- * the path @prefix, sorted from longest to shortest path.
- * ie opposite order to which they appear in @mtabpath
+ * the path @prefix, reverse-sorted alphabetically.
  *
  * The @mountsret array will be NULL terminated and should
  * be freed with virStringListFree
@@ -3534,4 +3561,151 @@ int virFileIsSharedFS(const char *path)
                                  VIR_FILE_SHFS_AFS |
                                  VIR_FILE_SHFS_SMB |
                                  VIR_FILE_SHFS_CIFS);
+}
+
+
+#if defined(__linux__) && defined(HAVE_SYS_MOUNT_H)
+int
+virFileSetupDev(const char *path,
+                const char *mount_options)
+{
+    const unsigned long mount_flags = MS_NOSUID;
+    const char *mount_fs = "tmpfs";
+    int ret = -1;
+
+    if (virFileMakePath(path) < 0) {
+        virReportSystemError(errno,
+                             _("Failed to make path %s"), path);
+        goto cleanup;
+    }
+
+    VIR_DEBUG("Mount devfs on %s type=tmpfs flags=%lx, opts=%s",
+              path, mount_flags, mount_options);
+    if (mount("devfs", path, mount_fs, mount_flags, mount_options) < 0) {
+        virReportSystemError(errno,
+                             _("Failed to mount devfs on %s type %s (%s)"),
+                             path, mount_fs, mount_options);
+        goto cleanup;
+    }
+
+    ret = 0;
+ cleanup:
+    return ret;
+}
+
+
+int
+virFileBindMountDevice(const char *src,
+                       const char *dst)
+{
+    if (virFileTouch(dst, 0666) < 0)
+        return -1;
+
+    if (mount(src, dst, "none", MS_BIND, NULL) < 0) {
+        virReportSystemError(errno, _("Failed to bind %s on to %s"), src,
+                             dst);
+        return -1;
+    }
+
+    return 0;
+}
+
+#else /* !defined(__linux__) || !defined(HAVE_SYS_MOUNT_H) */
+
+int
+virFileSetupDev(const char *path ATTRIBUTE_UNUSED,
+                const char *mount_options ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s",
+                         _("mount is not supported on this platform."));
+    return -1;
+}
+
+
+int
+virFileBindMountDevice(const char *src ATTRIBUTE_UNUSED,
+                       const char *dst ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s",
+                         _("mount is not supported on this platform."));
+    return -1;
+}
+#endif /* !defined(__linux__) || !defined(HAVE_SYS_MOUNT_H) */
+
+
+#if defined(HAVE_SYS_ACL_H)
+int
+virFileGetACLs(const char *file,
+               void **acl)
+{
+    if (!(*acl = acl_get_file(file, ACL_TYPE_ACCESS)))
+        return -1;
+
+    return 0;
+}
+
+
+int
+virFileSetACLs(const char *file,
+               void *acl)
+{
+    if (acl_set_file(file, ACL_TYPE_ACCESS, acl) < 0)
+        return -1;
+
+    return 0;
+}
+
+
+void
+virFileFreeACLs(void **acl)
+{
+    acl_free(*acl);
+    *acl = NULL;
+}
+
+#else /* !defined(HAVE_SYS_ACL_H) */
+
+int
+virFileGetACLs(const char *file ATTRIBUTE_UNUSED,
+               void **acl ATTRIBUTE_UNUSED)
+{
+    errno = ENOTSUP;
+    return -1;
+}
+
+
+int
+virFileSetACLs(const char *file ATTRIBUTE_UNUSED,
+               void *acl ATTRIBUTE_UNUSED)
+{
+    errno = ENOTSUP;
+    return -1;
+}
+
+
+void
+virFileFreeACLs(void **acl)
+{
+    *acl = NULL;
+}
+
+#endif /* !defined(HAVE_SYS_ACL_H) */
+
+int
+virFileCopyACLs(const char *src,
+                const char *dst)
+{
+    void *acl = NULL;
+    int ret = -1;
+
+    if (virFileGetACLs(src, &acl) < 0)
+        return ret;
+
+    if (virFileSetACLs(dst, acl) < 0)
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    virFileFreeACLs(&acl);
+    return ret;
 }

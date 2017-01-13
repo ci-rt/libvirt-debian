@@ -17,6 +17,10 @@ dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 dnl
 
+AC_DEFUN([LIBVIRT_ARG_GNUTLS],[
+  LIBVIRT_ARG_WITH_FEATURE([GNUTLS], [gnutls], [check], [2.2.0])
+])
+
 AC_DEFUN([LIBVIRT_CHECK_GNUTLS],[
   LIBVIRT_CHECK_PKG([GNUTLS], [gnutls], [2.2.0])
 
@@ -50,15 +54,18 @@ AC_DEFUN([LIBVIRT_CHECK_GNUTLS],[
                          [set to 1 if it is known or assumed that GNUTLS uses gcrypt])
     fi
 
+    OLD_CFLAGS="$CFLAGS"
+    OLD_LIBS="$LIBS"
+    CFLAGS="$CFLAGS $GNUTLS_CFLAGS"
+    LIBS="$LIBS $GNUTLS_LIBS"
     AC_CHECK_HEADERS([gnutls/crypto.h], [], [], [[
       #include <gnutls/gnutls.h>
     ]])
 
-    OLD_LIBS="$LIBS"
-    LIBS="$LIBS $GNUTLS_LIBS"
-    AC_CHECK_FUNC([gnutls_rnd])
-    AC_CHECK_FUNC([gnutls_cipher_encrypt])
-    LIBS=$OLD_LIBS
+    AC_CHECK_FUNCS([gnutls_rnd])
+    AC_CHECK_FUNCS([gnutls_cipher_encrypt])
+    CFLAGS="$OLD_CFLAGS"
+    LIBS="$OLD_LIBS"
   fi
 ])
 

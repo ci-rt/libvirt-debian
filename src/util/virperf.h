@@ -36,6 +36,18 @@ typedef enum {
     VIR_PERF_EVENT_INSTRUCTIONS,     /* Count of instructions for application */
     VIR_PERF_EVENT_CACHE_REFERENCES, /* Cache hits by applications */
     VIR_PERF_EVENT_CACHE_MISSES,     /* Cache misses by applications */
+    VIR_PERF_EVENT_BRANCH_INSTRUCTIONS, /* Count of branch instructions
+                                           for applications */
+    VIR_PERF_EVENT_BRANCH_MISSES,  /* Count of branch misses for applications */
+    VIR_PERF_EVENT_BUS_CYCLES,       /* Count of bus cycles for applications*/
+    VIR_PERF_EVENT_STALLED_CYCLES_FRONTEND, /* Count of stalled cpu cycles in
+                                               the frontend of the instruction
+                                               processor pipeline */
+    VIR_PERF_EVENT_STALLED_CYCLES_BACKEND, /* Count of stalled cpu cycles in
+                                              the backend of the instruction
+                                              processor pipeline */
+    VIR_PERF_EVENT_REF_CPU_CYCLES,   /* Count of ref cpu cycles */
+    VIR_PERF_EVENT_CACHE_L1D, /* Count of level 1 data cache*/
 
     VIR_PERF_EVENT_LAST
 } virPerfEventType;

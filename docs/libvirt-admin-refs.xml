@@ -37,6 +37,8 @@
     <reference name='virAdmConnectClose' href='html/libvirt-admin-libvirt-admin.html#virAdmConnectClose'/>
     <reference name='virAdmConnectCloseFunc' href='html/libvirt-admin-libvirt-admin.html#virAdmConnectCloseFunc'/>
     <reference name='virAdmConnectGetLibVersion' href='html/libvirt-admin-libvirt-admin.html#virAdmConnectGetLibVersion'/>
+    <reference name='virAdmConnectGetLoggingFilters' href='html/libvirt-admin-libvirt-admin.html#virAdmConnectGetLoggingFilters'/>
+    <reference name='virAdmConnectGetLoggingOutputs' href='html/libvirt-admin-libvirt-admin.html#virAdmConnectGetLoggingOutputs'/>
     <reference name='virAdmConnectGetURI' href='html/libvirt-admin-libvirt-admin.html#virAdmConnectGetURI'/>
     <reference name='virAdmConnectIsAlive' href='html/libvirt-admin-libvirt-admin.html#virAdmConnectIsAlive'/>
     <reference name='virAdmConnectListServers' href='html/libvirt-admin-libvirt-admin.html#virAdmConnectListServers'/>
@@ -45,6 +47,8 @@
     <reference name='virAdmConnectPtr' href='html/libvirt-admin-libvirt-admin.html#virAdmConnectPtr'/>
     <reference name='virAdmConnectRef' href='html/libvirt-admin-libvirt-admin.html#virAdmConnectRef'/>
     <reference name='virAdmConnectRegisterCloseCallback' href='html/libvirt-admin-libvirt-admin.html#virAdmConnectRegisterCloseCallback'/>
+    <reference name='virAdmConnectSetLoggingFilters' href='html/libvirt-admin-libvirt-admin.html#virAdmConnectSetLoggingFilters'/>
+    <reference name='virAdmConnectSetLoggingOutputs' href='html/libvirt-admin-libvirt-admin.html#virAdmConnectSetLoggingOutputs'/>
     <reference name='virAdmConnectUnregisterCloseCallback' href='html/libvirt-admin-libvirt-admin.html#virAdmConnectUnregisterCloseCallback'/>
     <reference name='virAdmGetVersion' href='html/libvirt-admin-libvirt-admin.html#virAdmGetVersion'/>
     <reference name='virAdmInitialize' href='html/libvirt-admin-libvirt-admin.html#virAdmInitialize'/>
@@ -100,6 +104,8 @@
       <ref name='virAdmConnectClose'/>
       <ref name='virAdmConnectCloseFunc'/>
       <ref name='virAdmConnectGetLibVersion'/>
+      <ref name='virAdmConnectGetLoggingFilters'/>
+      <ref name='virAdmConnectGetLoggingOutputs'/>
       <ref name='virAdmConnectGetURI'/>
       <ref name='virAdmConnectIsAlive'/>
       <ref name='virAdmConnectListServers'/>
@@ -108,6 +114,8 @@
       <ref name='virAdmConnectPtr'/>
       <ref name='virAdmConnectRef'/>
       <ref name='virAdmConnectRegisterCloseCallback'/>
+      <ref name='virAdmConnectSetLoggingFilters'/>
+      <ref name='virAdmConnectSetLoggingOutputs'/>
       <ref name='virAdmConnectUnregisterCloseCallback'/>
       <ref name='virAdmGetVersion'/>
       <ref name='virAdmInitialize'/>
@@ -142,6 +150,10 @@
     </type>
   </constructors>
   <functions>
+    <type name='char **'>
+      <ref name='virAdmConnectGetLoggingFilters'/>
+      <ref name='virAdmConnectGetLoggingOutputs'/>
+    </type>
     <type name='int *'>
       <ref name='virAdmClientGetInfo'/>
       <ref name='virAdmServerGetClientLimits'/>
@@ -150,9 +162,13 @@
     <type name='unsigned int'>
       <ref name='virAdmClientClose'/>
       <ref name='virAdmClientGetInfo'/>
+      <ref name='virAdmConnectGetLoggingFilters'/>
+      <ref name='virAdmConnectGetLoggingOutputs'/>
       <ref name='virAdmConnectListServers'/>
       <ref name='virAdmConnectLookupServer'/>
       <ref name='virAdmConnectOpen'/>
+      <ref name='virAdmConnectSetLoggingFilters'/>
+      <ref name='virAdmConnectSetLoggingOutputs'/>
       <ref name='virAdmServerGetClientLimits'/>
       <ref name='virAdmServerGetThreadPoolParameters'/>
       <ref name='virAdmServerListClients'/>
@@ -186,12 +202,16 @@
       <ref name='virAdmConnectClose'/>
       <ref name='virAdmConnectCloseFunc'/>
       <ref name='virAdmConnectGetLibVersion'/>
+      <ref name='virAdmConnectGetLoggingFilters'/>
+      <ref name='virAdmConnectGetLoggingOutputs'/>
       <ref name='virAdmConnectGetURI'/>
       <ref name='virAdmConnectIsAlive'/>
       <ref name='virAdmConnectListServers'/>
       <ref name='virAdmConnectLookupServer'/>
       <ref name='virAdmConnectRef'/>
       <ref name='virAdmConnectRegisterCloseCallback'/>
+      <ref name='virAdmConnectSetLoggingFilters'/>
+      <ref name='virAdmConnectSetLoggingOutputs'/>
       <ref name='virAdmConnectUnregisterCloseCallback'/>
     </type>
     <type name='virAdmServerPtr'>
@@ -262,6 +282,8 @@
       <ref name='virAdmConnectClose'/>
       <ref name='virAdmConnectCloseFunc'/>
       <ref name='virAdmConnectGetLibVersion'/>
+      <ref name='virAdmConnectGetLoggingFilters'/>
+      <ref name='virAdmConnectGetLoggingOutputs'/>
       <ref name='virAdmConnectGetURI'/>
       <ref name='virAdmConnectIsAlive'/>
       <ref name='virAdmConnectListServers'/>
@@ -270,6 +292,8 @@
       <ref name='virAdmConnectPtr'/>
       <ref name='virAdmConnectRef'/>
       <ref name='virAdmConnectRegisterCloseCallback'/>
+      <ref name='virAdmConnectSetLoggingFilters'/>
+      <ref name='virAdmConnectSetLoggingOutputs'/>
       <ref name='virAdmConnectUnregisterCloseCallback'/>
       <ref name='virAdmGetVersion'/>
       <ref name='virAdmInitialize'/>
@@ -307,6 +331,8 @@
       </letter>
       <letter name='C'>
         <word name='Caller'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectGetURI'/>
           <ref name='virAdmConnectListServers'/>
           <ref name='virAdmServerGetClientLimits'/>
@@ -345,6 +371,9 @@
         </word>
       </letter>
       <letter name='F'>
+        <word name='Filters'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+        </word>
         <word name='For'>
           <ref name='virAdmConnectRef'/>
         </word>
@@ -430,10 +459,14 @@
           <ref name='virAdmGetVersion'/>
         </word>
         <word name='NULL'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectGetURI'/>
           <ref name='virAdmConnectListServers'/>
           <ref name='virAdmConnectLookupServer'/>
           <ref name='virAdmConnectOpen'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
           <ref name='virAdmServerGetName'/>
           <ref name='virAdmServerListClients'/>
           <ref name='virAdmServerLookupClient'/>
@@ -457,6 +490,9 @@
         <word name='Other'>
           <ref name='virAdmClientGetInfo'/>
         </word>
+        <word name='Outputs'>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
+        </word>
       </letter>
       <letter name='P'>
         <word name='Pointer'>
@@ -467,6 +503,10 @@
         </word>
       </letter>
       <letter name='R'>
+        <word name='Redefine'>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
+        </word>
         <word name='Registers'>
           <ref name='virAdmConnectRegisterCloseCallback'/>
         </word>
@@ -479,6 +519,8 @@
         </word>
         <word name='Retrieves'>
           <ref name='virAdmConnectGetLibVersion'/>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmServerGetThreadPoolParameters'/>
         </word>
       </letter>
@@ -662,8 +704,14 @@
           <ref name='VIR_THREADPOOL_WORKERS_MIN'/>
           <ref name='VIR_THREADPOOL_WORKERS_PRIORITY'/>
           <ref name='virAdmConnectGetLibVersion'/>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
         </word>
         <word name='additional'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectRef'/>
         </word>
         <word name='address'>
@@ -674,10 +722,14 @@
           <ref name='virAdmClientGetTimestamp'/>
           <ref name='virAdmConnectClose'/>
           <ref name='virAdmConnectGetLibVersion'/>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectGetURI'/>
           <ref name='virAdmConnectIsAlive'/>
           <ref name='virAdmConnectOpen'/>
           <ref name='virAdmConnectRegisterCloseCallback'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
         </word>
         <word name='after'>
           <ref name='virAdmConnectClose'/>
@@ -694,6 +746,8 @@
           <ref name='VIR_THREADPOOL_WORKERS_MAX'/>
           <ref name='virAdmClientGetInfo'/>
           <ref name='virAdmConnectClose'/>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectIsAlive'/>
           <ref name='virAdmConnectListServers'/>
           <ref name='virAdmConnectRef'/>
@@ -702,6 +756,8 @@
         </word>
         <word name='allocated'>
           <ref name='virAdmClientGetInfo'/>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmServerGetClientLimits'/>
           <ref name='virAdmServerGetThreadPoolParameters'/>
         </word>
@@ -714,6 +770,8 @@
         </word>
         <word name='also'>
           <ref name='virAdmConnectClose'/>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
         </word>
         <word name='altered'>
           <ref name='virAdmInitialize'/>
@@ -721,8 +779,12 @@
         <word name='always'>
           <ref name='virAdmClientClose'/>
           <ref name='virAdmClientGetInfo'/>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectListServers'/>
           <ref name='virAdmConnectLookupServer'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
           <ref name='virAdmGetVersion'/>
           <ref name='virAdmServerGetClientLimits'/>
           <ref name='virAdmServerGetThreadPoolParameters'/>
@@ -762,7 +824,11 @@
         <word name='are'>
           <ref name='virAdmClientGetInfo'/>
           <ref name='virAdmConnectClose'/>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectRef'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
           <ref name='virAdmServerGetThreadPoolParameters'/>
           <ref name='virAdmServerSetThreadPoolParameters'/>
         </word>
@@ -834,6 +900,8 @@
         </word>
         <word name='automatically'>
           <ref name='virAdmClientGetTransport'/>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmInitialize'/>
           <ref name='virAdmServerGetClientLimits'/>
           <ref name='virAdmServerGetThreadPoolParameters'/>
@@ -861,6 +929,8 @@
           <ref name='virAdmClientGetInfo'/>
           <ref name='virAdmConnectClose'/>
           <ref name='virAdmConnectIsAlive'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
           <ref name='virAdmServerSetClientLimits'/>
         </word>
         <word name='between'>
@@ -900,13 +970,19 @@
           <ref name='virAdmConnectRegisterCloseCallback'/>
         </word>
         <word name='caller'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectRef'/>
         </word>
         <word name='callers'>
           <ref name='virAdmClientClose'/>
           <ref name='virAdmClientGetInfo'/>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectListServers'/>
           <ref name='virAdmConnectLookupServer'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
           <ref name='virAdmServerGetClientLimits'/>
           <ref name='virAdmServerGetThreadPoolParameters'/>
           <ref name='virAdmServerListClients'/>
@@ -933,10 +1009,14 @@
           <ref name='virAdmClientGetTimestamp'/>
           <ref name='virAdmClientGetTransport'/>
           <ref name='virAdmConnectCloseFunc'/>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectGetURI'/>
           <ref name='virAdmConnectListServers'/>
           <ref name='virAdmConnectLookupServer'/>
           <ref name='virAdmConnectRef'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
           <ref name='virAdmGetVersion'/>
           <ref name='virAdmInitialize'/>
           <ref name='virAdmServerGetClientLimits'/>
@@ -964,6 +1044,9 @@
         <word name='channel'>
           <ref name='virAdmClientGetTransport'/>
           <ref name='virAdmConnectIsAlive'/>
+        </word>
+        <word name='clear'>
+          <ref name='virAdmConnectSetLoggingFilters'/>
         </word>
         <word name='clients'>
           <ref name='VIR_CLIENT_INFO_SOCKET_ADDR'/>
@@ -1009,8 +1092,26 @@
         <word name='condition'>
           <ref name='virAdmConnectRegisterCloseCallback'/>
         </word>
+        <word name='conf'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
+        </word>
         <word name='configuration'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
           <ref name='virAdmServerSetClientLimits'/>
+        </word>
+        <word name='conform'>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
+        </word>
+        <word name='conforms'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
         </word>
         <word name='connect'>
           <ref name='virAdmClientGetTransport'/>
@@ -1041,14 +1142,26 @@
         <word name='considered'>
           <ref name='virAdmConnectIsAlive'/>
         </word>
+        <word name='contained'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
+        </word>
         <word name='containing'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectListServers'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
           <ref name='virAdmServerListClients'/>
         </word>
         <word name='context'>
           <ref name='VIR_CLIENT_INFO_SELINUX_CONTEXT'/>
           <ref name='virAdmClientGetInfo'/>
           <ref name='virAdmConnectRegisterCloseCallback'/>
+        </word>
+        <word name='correctly'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
         </word>
         <word name='corresponding'>
           <ref name='virAdmConnectClose'/>
@@ -1059,6 +1172,7 @@
         </word>
         <word name='count'>
           <ref name='virAdmConnectClose'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectListServers'/>
           <ref name='virAdmConnectRef'/>
           <ref name='virAdmServerListClients'/>
@@ -1080,31 +1194,13 @@
           <ref name='virAdmConnectUnregisterCloseCallback'/>
           <ref name='virAdmServerGetClientLimits'/>
         </word>
+        <word name='currently'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+        </word>
       </letter>
       <letter name='d'>
-        <word name='daemon'>
-          <ref name='VIR_CLIENT_INFO_READONLY'/>
-          <ref name='VIR_CLIENT_INFO_SASL_USER_NAME'/>
-          <ref name='VIR_CLIENT_INFO_SELINUX_CONTEXT'/>
-          <ref name='VIR_CLIENT_INFO_SOCKET_ADDR'/>
-          <ref name='VIR_CLIENT_INFO_UNIX_GROUP_ID'/>
-          <ref name='VIR_CLIENT_INFO_UNIX_GROUP_NAME'/>
-          <ref name='VIR_CLIENT_INFO_UNIX_PROCESS_ID'/>
-          <ref name='VIR_CLIENT_INFO_UNIX_USER_ID'/>
-          <ref name='VIR_CLIENT_INFO_UNIX_USER_NAME'/>
-          <ref name='VIR_CLIENT_INFO_X509_DISTINGUISHED_NAME'/>
-          <ref name='VIR_SERVER_CLIENTS_CURRENT'/>
-          <ref name='VIR_SERVER_CLIENTS_UNAUTH_CURRENT'/>
-          <ref name='VIR_THREADPOOL_JOB_QUEUE_DEPTH'/>
-          <ref name='VIR_THREADPOOL_WORKERS_CURRENT'/>
-          <ref name='VIR_THREADPOOL_WORKERS_FREE'/>
-          <ref name='virAdmClientClose'/>
-          <ref name='virAdmConnectGetLibVersion'/>
-          <ref name='virAdmConnectListServers'/>
-          <ref name='virAdmConnectLookupServer'/>
-          <ref name='virAdmConnectOpen'/>
-          <ref name='virAdmServerListClients'/>
-        </word>
         <word name='data'>
           <ref name='virAdmClientFree'/>
           <ref name='virAdmConnectCloseFunc'/>
@@ -1121,6 +1217,21 @@
         <word name='default'>
           <ref name='virAdmClientGetInfo'/>
           <ref name='virAdmConnectOpen'/>
+        </word>
+        <word name='defaults'>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
+        </word>
+        <word name='defined'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
+        </word>
+        <word name='delimited'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
         </word>
         <word name='denied'>
           <ref name='VIR_CLIENT_INFO_READONLY'/>
@@ -1145,6 +1256,12 @@
         <word name='depending'>
           <ref name='VIR_CLIENT_INFO_SELINUX_CONTEXT'/>
         </word>
+        <word name='described'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
+        </word>
         <word name='differentiate'>
           <ref name='virAdmClientGetTransport'/>
         </word>
@@ -1158,11 +1275,21 @@
         <word name='domain'>
           <ref name='virAdmConnectClose'/>
         </word>
+        <word name='done'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
+        </word>
       </letter>
+    </chunk>
+    <chunk name='chunk2'>
       <letter name='e'>
         <word name='each'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectListServers'/>
           <ref name='virAdmConnectRef'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
           <ref name='virAdmServerListClients'/>
         </word>
         <word name='easier'>
@@ -1171,10 +1298,15 @@
         </word>
         <word name='either'>
           <ref name='VIR_CLIENT_INFO_SELINUX_CONTEXT'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
         </word>
         <word name='element'>
           <ref name='virAdmConnectListServers'/>
           <ref name='virAdmServerListClients'/>
+        </word>
+        <word name='empty'>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
         </word>
         <word name='enabled'>
           <ref name='VIR_CLIENT_INFO_SASL_USER_NAME'/>
@@ -1192,11 +1324,15 @@
           <ref name='virAdmClientGetInfo'/>
           <ref name='virAdmClientGetTimestamp'/>
           <ref name='virAdmClientGetTransport'/>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectGetURI'/>
           <ref name='virAdmConnectIsAlive'/>
           <ref name='virAdmConnectLookupServer'/>
           <ref name='virAdmConnectOpen'/>
           <ref name='virAdmConnectRegisterCloseCallback'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
           <ref name='virAdmConnectUnregisterCloseCallback'/>
           <ref name='virAdmGetVersion'/>
           <ref name='virAdmInitialize'/>
@@ -1230,6 +1366,8 @@
         </word>
         <word name='existing'>
           <ref name='virAdmConnectIsAlive'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
         </word>
         <word name='explicitly'>
           <ref name='virAdmConnectClose'/>
@@ -1240,8 +1378,12 @@
         <word name='extra'>
           <ref name='virAdmClientClose'/>
           <ref name='virAdmClientGetInfo'/>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectListServers'/>
           <ref name='virAdmConnectLookupServer'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
           <ref name='virAdmServerGetClientLimits'/>
           <ref name='virAdmServerGetThreadPoolParameters'/>
           <ref name='virAdmServerListClients'/>
@@ -1253,8 +1395,6 @@
           <ref name='virAdmServerGetThreadPoolParameters'/>
         </word>
       </letter>
-    </chunk>
-    <chunk name='chunk2'>
       <letter name='f'>
         <word name='failure'>
           <ref name='virAdmClientFree'/>
@@ -1277,6 +1417,20 @@
         <word name='field'>
           <ref name='VIR_CLIENT_INFO_X509_DISTINGUISHED_NAME'/>
         </word>
+        <word name='file'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
+        </word>
+        <word name='filter'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+        </word>
+        <word name='filters'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+        </word>
         <word name='final'>
           <ref name='virAdmConnectListServers'/>
           <ref name='virAdmServerListClients'/>
@@ -1293,8 +1447,12 @@
         <word name='flags'>
           <ref name='virAdmClientClose'/>
           <ref name='virAdmClientGetInfo'/>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectListServers'/>
           <ref name='virAdmConnectLookupServer'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
           <ref name='virAdmServerGetClientLimits'/>
           <ref name='virAdmServerGetThreadPoolParameters'/>
           <ref name='virAdmServerListClients'/>
@@ -1316,37 +1474,14 @@
         <word name='follows:'>
           <ref name='virAdmGetVersion'/>
         </word>
-        <word name='for'>
-          <ref name='VIR_CLIENT_INFO_UNIX_GROUP_ID'/>
-          <ref name='VIR_CLIENT_INFO_UNIX_GROUP_NAME'/>
-          <ref name='VIR_CLIENT_INFO_UNIX_PROCESS_ID'/>
-          <ref name='VIR_CLIENT_INFO_UNIX_USER_ID'/>
-          <ref name='VIR_CLIENT_INFO_UNIX_USER_NAME'/>
-          <ref name='VIR_SERVER_CLIENTS_CURRENT'/>
-          <ref name='VIR_SERVER_CLIENTS_MAX'/>
-          <ref name='VIR_SERVER_CLIENTS_UNAUTH_CURRENT'/>
-          <ref name='VIR_SERVER_CLIENTS_UNAUTH_MAX'/>
-          <ref name='VIR_THREADPOOL_JOB_QUEUE_DEPTH'/>
-          <ref name='VIR_THREADPOOL_WORKERS_CURRENT'/>
-          <ref name='VIR_THREADPOOL_WORKERS_FREE'/>
-          <ref name='VIR_THREADPOOL_WORKERS_MAX'/>
-          <ref name='VIR_THREADPOOL_WORKERS_MIN'/>
-          <ref name='VIR_THREADPOOL_WORKERS_PRIORITY'/>
-          <ref name='virAdmClientGetID'/>
-          <ref name='virAdmClientGetInfo'/>
-          <ref name='virAdmConnectClose'/>
-          <ref name='virAdmConnectGetURI'/>
-          <ref name='virAdmConnectOpen'/>
-          <ref name='virAdmConnectRef'/>
-          <ref name='virAdmInitialize'/>
-          <ref name='virAdmServerGetClientLimits'/>
-          <ref name='virAdmServerGetName'/>
-          <ref name='virAdmServerSetClientLimits'/>
-        </word>
         <word name='forcefully'>
           <ref name='virAdmClientClose'/>
         </word>
         <word name='format'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
           <ref name='virAdmGetVersion'/>
         </word>
         <word name='format:'>
@@ -1372,6 +1507,8 @@
           <ref name='virAdmServerFree'/>
         </word>
         <word name='freeing'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectGetURI'/>
           <ref name='virAdmConnectListServers'/>
           <ref name='virAdmServerListClients'/>
@@ -1430,6 +1567,8 @@
           <ref name='virAdmClientGetInfo'/>
           <ref name='virAdmConnectClose'/>
           <ref name='virAdmConnectIsAlive'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
         </word>
         <word name='have'>
           <ref name='virAdmClientGetTimestamp'/>
@@ -1482,6 +1621,10 @@
         <word name='indistinguishable'>
           <ref name='virAdmClientGetTransport'/>
         </word>
+        <word name='individual'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
+        </word>
         <word name='information'>
           <ref name='virAdmClientGetInfo'/>
           <ref name='virAdmClientGetTimestamp'/>
@@ -1490,6 +1633,10 @@
         </word>
         <word name='initial'>
           <ref name='virAdmConnectClose'/>
+        </word>
+        <word name='installed'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
         </word>
         <word name='instance'>
           <ref name='virAdmClientFree'/>
@@ -1529,6 +1676,8 @@
           <ref name='virAdmClientGetInfo'/>
         </word>
       </letter>
+    </chunk>
+    <chunk name='chunk3'>
       <letter name='j'>
         <word name='job'>
           <ref name='VIR_THREADPOOL_WORKERS_FREE'/>
@@ -1541,6 +1690,8 @@
         </word>
         <word name='just'>
           <ref name='VIR_CLIENT_INFO_READONLY'/>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
         </word>
       </letter>
       <letter name='k'>
@@ -1578,9 +1729,16 @@
           <ref name='virAdmClientGetTransport'/>
           <ref name='virAdmConnectGetLibVersion'/>
           <ref name='virAdmConnectRegisterCloseCallback'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
         </word>
         <word name='libvirt-admin'>
           <ref name='virAdmServerSetClientLimits'/>
+        </word>
+        <word name='libvirtd'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
         </word>
         <word name='lifetime'>
           <ref name='virAdmServerGetName'/>
@@ -1606,7 +1764,11 @@
         </word>
         <word name='list'>
           <ref name='virAdmClientGetInfo'/>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectListServers'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
           <ref name='virAdmServerGetThreadPoolParameters'/>
           <ref name='virAdmServerListClients'/>
         </word>
@@ -1620,6 +1782,10 @@
           <ref name='VIR_CLIENT_INFO_UNIX_USER_ID'/>
           <ref name='VIR_CLIENT_INFO_UNIX_USER_NAME'/>
           <ref name='virAdmClientGetTransport'/>
+        </word>
+        <word name='logging'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
         </word>
         <word name='longer'>
           <ref name='virAdmConnectLookupServer'/>
@@ -1696,13 +1862,15 @@
         </word>
         <word name='multiple'>
           <ref name='virAdmConnectRef'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
         </word>
         <word name='must'>
           <ref name='virAdmConnectRegisterCloseCallback'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
         </word>
       </letter>
-    </chunk>
-    <chunk name='chunk3'>
       <letter name='n'>
         <word name='nPrioWorkers'>
           <ref name='VIR_THREADPOOL_WORKERS_PRIORITY'/>
@@ -1735,6 +1903,8 @@
         </word>
         <word name='need'>
           <ref name='virAdmConnectClose'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
           <ref name='virAdmServerGetName'/>
         </word>
         <word name='needed'>
@@ -1743,6 +1913,8 @@
           <ref name='virAdmServerLookupClient'/>
         </word>
         <word name='needs'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectRef'/>
         </word>
         <word name='network'>
@@ -1750,6 +1922,8 @@
         </word>
         <word name='new'>
           <ref name='virAdmConnectRef'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
         </word>
         <word name='non-null'>
           <ref name='virAdmConnectGetURI'/>
@@ -1764,10 +1938,14 @@
           <ref name='virAdmClientFree'/>
           <ref name='virAdmClientGetInfo'/>
           <ref name='virAdmConnectClose'/>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectIsAlive'/>
           <ref name='virAdmConnectListServers'/>
           <ref name='virAdmConnectLookupServer'/>
           <ref name='virAdmConnectRegisterCloseCallback'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
           <ref name='virAdmServerFree'/>
           <ref name='virAdmServerGetClientLimits'/>
           <ref name='virAdmServerGetThreadPoolParameters'/>
@@ -1793,6 +1971,8 @@
           <ref name='virAdmClientGetInfo'/>
           <ref name='virAdmConnectClose'/>
           <ref name='virAdmConnectGetLibVersion'/>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectListServers'/>
           <ref name='virAdmServerGetClientLimits'/>
           <ref name='virAdmServerGetThreadPoolParameters'/>
@@ -1839,6 +2019,8 @@
         </word>
         <word name='one'>
           <ref name='virAdmClientGetTransport'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
         </word>
         <word name='only'>
           <ref name='virAdmClientGetInfo'/>
@@ -1867,10 +2049,21 @@
           <ref name='virAdmConnectClose'/>
           <ref name='virAdmConnectRegisterCloseCallback'/>
         </word>
+        <word name='output'>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
+        </word>
+        <word name='outputs'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
+        </word>
         <word name='over'>
           <ref name='virAdmConnectIsAlive'/>
         </word>
       </letter>
+    </chunk>
+    <chunk name='chunk4'>
       <letter name='p'>
         <word name='parameter'>
           <ref name='virAdmServerSetThreadPoolParameters'/>
@@ -1886,12 +2079,20 @@
           <ref name='virAdmClientGetInfo'/>
           <ref name='virAdmServerGetThreadPoolParameters'/>
         </word>
+        <word name='parsing'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
+        </word>
         <word name='pass'>
           <ref name='virAdmClientClose'/>
           <ref name='virAdmClientGetInfo'/>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectListServers'/>
           <ref name='virAdmConnectLookupServer'/>
           <ref name='virAdmConnectRegisterCloseCallback'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
           <ref name='virAdmServerGetClientLimits'/>
           <ref name='virAdmServerGetThreadPoolParameters'/>
           <ref name='virAdmServerListClients'/>
@@ -1901,6 +2102,7 @@
         </word>
         <word name='passed'>
           <ref name='virAdmConnectGetURI'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
         </word>
         <word name='pattern:'>
           <ref name='virAdmConnectGetLibVersion'/>
@@ -1926,7 +2128,11 @@
           <ref name='virAdmClientGetInfo'/>
           <ref name='virAdmConnectClose'/>
           <ref name='virAdmConnectGetLibVersion'/>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectGetURI'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
           <ref name='virAdmConnectUnregisterCloseCallback'/>
           <ref name='virAdmServerGetClientLimits'/>
           <ref name='virAdmServerGetName'/>
@@ -2114,15 +2320,22 @@
           <ref name='virAdmServerLookupClient'/>
         </word>
         <word name='required'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectListServers'/>
           <ref name='virAdmConnectRef'/>
           <ref name='virAdmServerListClients'/>
+        </word>
+        <word name='reset'>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
         </word>
         <word name='resources'>
           <ref name='virAdmConnectLookupServer'/>
           <ref name='virAdmServerLookupClient'/>
         </word>
         <word name='responsible'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectGetURI'/>
           <ref name='virAdmConnectListServers'/>
           <ref name='virAdmServerGetClientLimits'/>
@@ -2135,6 +2348,10 @@
         <word name='result'>
           <ref name='virAdmServerSetThreadPoolParameters'/>
         </word>
+        <word name='retrieve'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
+        </word>
         <word name='retrieved'>
           <ref name='virAdmClientGetInfo'/>
         </word>
@@ -2146,6 +2363,8 @@
           <ref name='virAdmClientGetInfo'/>
           <ref name='virAdmConnectClose'/>
           <ref name='virAdmConnectGetLibVersion'/>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectGetURI'/>
           <ref name='virAdmConnectListServers'/>
           <ref name='virAdmGetVersion'/>
@@ -2170,7 +2389,7 @@
         </word>
       </letter>
     </chunk>
-    <chunk name='chunk4'>
+    <chunk name='chunk5'>
       <letter name='s'>
         <word name='safe'>
           <ref name='virAdmConnectRegisterCloseCallback'/>
@@ -2228,6 +2447,8 @@
           <ref name='VIR_THREADPOOL_WORKERS_CURRENT'/>
           <ref name='VIR_THREADPOOL_WORKERS_FREE'/>
           <ref name='virAdmConnectListServers'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
           <ref name='virAdmConnectUnregisterCloseCallback'/>
           <ref name='virAdmGetVersion'/>
           <ref name='virAdmInitialize'/>
@@ -2248,8 +2469,12 @@
           <ref name='virAdmClientFree'/>
           <ref name='virAdmClientGetInfo'/>
           <ref name='virAdmConnectClose'/>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectListServers'/>
           <ref name='virAdmConnectLookupServer'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
           <ref name='virAdmInitialize'/>
           <ref name='virAdmServerFree'/>
           <ref name='virAdmServerGetClientLimits'/>
@@ -2294,6 +2519,12 @@
           <ref name='virAdmConnectClose'/>
           <ref name='virAdmServerSetThreadPoolParameters'/>
         </word>
+        <word name='spaces'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
+        </word>
         <word name='spawns'>
           <ref name='virAdmClientGetTransport'/>
         </word>
@@ -2301,6 +2532,8 @@
           <ref name='virAdmClientGetInfo'/>
         </word>
         <word name='specified'>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
           <ref name='virAdmServerGetName'/>
         </word>
         <word name='standard'>
@@ -2312,6 +2545,8 @@
         </word>
         <word name='store'>
           <ref name='virAdmClientGetInfo'/>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectListServers'/>
           <ref name='virAdmGetVersion'/>
           <ref name='virAdmServerGetThreadPoolParameters'/>
@@ -2321,7 +2556,11 @@
           <ref name='virAdmConnectGetLibVersion'/>
         </word>
         <word name='string'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectGetURI'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
           <ref name='virAdmServerGetName'/>
         </word>
         <word name='structure'>
@@ -2348,6 +2587,8 @@
         <word name='successfully'>
           <ref name='virAdmClientClose'/>
           <ref name='virAdmClientGetInfo'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
           <ref name='virAdmServerSetClientLimits'/>
         </word>
         <word name='such'>
@@ -2402,6 +2643,10 @@
         </word>
         <word name='these'>
           <ref name='virAdmClientGetTimestamp'/>
+        </word>
+        <word name='they'>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
         </word>
         <word name='this'>
           <ref name='VIR_CLIENT_INFO_SELINUX_CONTEXT'/>
@@ -2492,6 +2737,8 @@
           <ref name='virAdmConnectRef'/>
         </word>
       </letter>
+    </chunk>
+    <chunk name='chunk6'>
       <letter name='u'>
         <word name='uid'>
           <ref name='virAdmClientGetInfo'/>
@@ -2538,8 +2785,12 @@
           <ref name='virAdmClientGetInfo'/>
           <ref name='virAdmClientGetTransport'/>
           <ref name='virAdmConnectGetLibVersion'/>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectListServers'/>
           <ref name='virAdmConnectLookupServer'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
           <ref name='virAdmServerFree'/>
           <ref name='virAdmServerGetClientLimits'/>
           <ref name='virAdmServerGetThreadPoolParameters'/>
@@ -2560,8 +2811,6 @@
           <ref name='virAdmConnectRef'/>
         </word>
       </letter>
-    </chunk>
-    <chunk name='chunk5'>
       <letter name='v'>
         <word name='valid'>
           <ref name='virAdmClientClose'/>
@@ -2577,6 +2826,10 @@
           <ref name='virAdmClientGetID'/>
           <ref name='virAdmConnectClose'/>
           <ref name='virAdmServerGetClientLimits'/>
+        </word>
+        <word name='variable'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
         </word>
         <word name='version'>
           <ref name='virAdmConnectGetLibVersion'/>
@@ -2716,8 +2969,14 @@
           <ref name='VIR_CLIENT_INFO_X509_DISTINGUISHED_NAME'/>
           <ref name='virAdmClientClose'/>
           <ref name='virAdmConnectClose'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
           <ref name='virAdmConnectUnregisterCloseCallback'/>
           <ref name='virAdmInitialize'/>
+        </word>
+        <word name='within'>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
         </word>
         <word name='workers'>
           <ref name='VIR_THREADPOOL_WORKERS_CURRENT'/>
@@ -2737,8 +2996,12 @@
           <ref name='VIR_SERVER_CLIENTS_UNAUTH_MAX'/>
           <ref name='virAdmClientClose'/>
           <ref name='virAdmClientGetInfo'/>
+          <ref name='virAdmConnectGetLoggingFilters'/>
+          <ref name='virAdmConnectGetLoggingOutputs'/>
           <ref name='virAdmConnectListServers'/>
           <ref name='virAdmConnectLookupServer'/>
+          <ref name='virAdmConnectSetLoggingFilters'/>
+          <ref name='virAdmConnectSetLoggingOutputs'/>
           <ref name='virAdmServerGetClientLimits'/>
           <ref name='virAdmServerGetThreadPoolParameters'/>
           <ref name='virAdmServerListClients'/>
@@ -2750,11 +3013,12 @@
     </chunk>
     <chunks>
       <chunk name='chunk0' start='A' end='a'/>
-      <chunk name='chunk1' start='b' end='e'/>
-      <chunk name='chunk2' start='f' end='m'/>
-      <chunk name='chunk3' start='n' end='r'/>
-      <chunk name='chunk4' start='s' end='u'/>
-      <chunk name='chunk5' start='v' end='y'/>
+      <chunk name='chunk1' start='b' end='d'/>
+      <chunk name='chunk2' start='e' end='i'/>
+      <chunk name='chunk3' start='j' end='o'/>
+      <chunk name='chunk4' start='p' end='r'/>
+      <chunk name='chunk5' start='s' end='t'/>
+      <chunk name='chunk6' start='u' end='y'/>
     </chunks>
   </index>
 </apirefs>

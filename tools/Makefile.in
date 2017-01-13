@@ -102,7 +102,8 @@ bin_PROGRAMS = virsh$(EXEEXT) virt-admin$(EXEEXT) $(am__EXEEXT_1) \
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@am__append_8 = libvirt-guests.init
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@am__append_9 = libvirt-guests.service
 @WITH_WIRESHARK_DISSECTOR_TRUE@am__append_10 = wireshark/src/plugin.c
-@WITH_NSS_TRUE@am__append_11 = nss/libnss_libvirt_impl.la
+@WITH_NSS_TRUE@am__append_11 = nss/libnss_libvirt_impl.la \
+@WITH_NSS_TRUE@	nss/libnss_libvirt_guest_impl.la
 subdir = tools
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
@@ -110,11 +111,11 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/arpa_inet_h.m4 \
 	$(top_srcdir)/m4/asm-underscore.m4 \
 	$(top_srcdir)/m4/autobuild.m4 $(top_srcdir)/m4/base64.m4 \
-	$(top_srcdir)/m4/btowc.m4 $(top_srcdir)/m4/byteswap.m4 \
-	$(top_srcdir)/m4/calloc.m4 $(top_srcdir)/m4/canonicalize.m4 \
-	$(top_srcdir)/m4/chown.m4 $(top_srcdir)/m4/clock_time.m4 \
-	$(top_srcdir)/m4/close.m4 $(top_srcdir)/m4/codeset.m4 \
-	$(top_srcdir)/m4/configmake.m4 \
+	$(top_srcdir)/m4/btowc.m4 $(top_srcdir)/m4/builtin-expect.m4 \
+	$(top_srcdir)/m4/byteswap.m4 $(top_srcdir)/m4/calloc.m4 \
+	$(top_srcdir)/m4/canonicalize.m4 $(top_srcdir)/m4/chown.m4 \
+	$(top_srcdir)/m4/clock_time.m4 $(top_srcdir)/m4/close.m4 \
+	$(top_srcdir)/m4/codeset.m4 $(top_srcdir)/m4/configmake.m4 \
 	$(top_srcdir)/m4/count-leading-zeros.m4 \
 	$(top_srcdir)/m4/count-one-bits.m4 $(top_srcdir)/m4/ctype.m4 \
 	$(top_srcdir)/m4/dirname.m4 \
@@ -153,30 +154,31 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/intlmacosx.m4 $(top_srcdir)/m4/intmax_t.m4 \
 	$(top_srcdir)/m4/inttypes-pri.m4 $(top_srcdir)/m4/inttypes.m4 \
 	$(top_srcdir)/m4/inttypes_h.m4 $(top_srcdir)/m4/ioctl.m4 \
-	$(top_srcdir)/m4/isatty.m4 $(top_srcdir)/m4/isnand.m4 \
-	$(top_srcdir)/m4/isnanf.m4 $(top_srcdir)/m4/isnanl.m4 \
-	$(top_srcdir)/m4/langinfo_h.m4 $(top_srcdir)/m4/largefile.m4 \
-	$(top_srcdir)/m4/lcmessage.m4 $(top_srcdir)/m4/ldexp.m4 \
-	$(top_srcdir)/m4/lib-ld.m4 $(top_srcdir)/m4/lib-link.m4 \
-	$(top_srcdir)/m4/lib-prefix.m4 $(top_srcdir)/m4/libtool.m4 \
-	$(top_srcdir)/m4/limits-h.m4 $(top_srcdir)/m4/localcharset.m4 \
-	$(top_srcdir)/m4/locale-fr.m4 $(top_srcdir)/m4/locale-ja.m4 \
-	$(top_srcdir)/m4/locale-tr.m4 $(top_srcdir)/m4/locale-zh.m4 \
-	$(top_srcdir)/m4/locale_h.m4 $(top_srcdir)/m4/localeconv.m4 \
-	$(top_srcdir)/m4/localename.m4 $(top_srcdir)/m4/lock.m4 \
-	$(top_srcdir)/m4/longlong.m4 $(top_srcdir)/m4/lseek.m4 \
-	$(top_srcdir)/m4/lstat.m4 $(top_srcdir)/m4/ltoptions.m4 \
-	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
-	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/m4/malloc.m4 \
-	$(top_srcdir)/m4/malloca.m4 $(top_srcdir)/m4/manywarnings.m4 \
-	$(top_srcdir)/m4/math_h.m4 $(top_srcdir)/m4/mbrtowc.m4 \
-	$(top_srcdir)/m4/mbsinit.m4 $(top_srcdir)/m4/mbsrtowcs.m4 \
-	$(top_srcdir)/m4/mbstate_t.m4 $(top_srcdir)/m4/mbtowc.m4 \
-	$(top_srcdir)/m4/md5.m4 $(top_srcdir)/m4/memchr.m4 \
-	$(top_srcdir)/m4/mgetgroups.m4 $(top_srcdir)/m4/mkdtemp.m4 \
-	$(top_srcdir)/m4/mkostemp.m4 $(top_srcdir)/m4/mkostemps.m4 \
-	$(top_srcdir)/m4/mktime.m4 $(top_srcdir)/m4/mmap-anon.m4 \
-	$(top_srcdir)/m4/mode_t.m4 $(top_srcdir)/m4/msvc-inval.m4 \
+	$(top_srcdir)/m4/isatty.m4 $(top_srcdir)/m4/isblank.m4 \
+	$(top_srcdir)/m4/isnand.m4 $(top_srcdir)/m4/isnanf.m4 \
+	$(top_srcdir)/m4/isnanl.m4 $(top_srcdir)/m4/langinfo_h.m4 \
+	$(top_srcdir)/m4/largefile.m4 $(top_srcdir)/m4/lcmessage.m4 \
+	$(top_srcdir)/m4/ldexp.m4 $(top_srcdir)/m4/lib-ld.m4 \
+	$(top_srcdir)/m4/lib-link.m4 $(top_srcdir)/m4/lib-prefix.m4 \
+	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/limits-h.m4 \
+	$(top_srcdir)/m4/localcharset.m4 $(top_srcdir)/m4/locale-fr.m4 \
+	$(top_srcdir)/m4/locale-ja.m4 $(top_srcdir)/m4/locale-tr.m4 \
+	$(top_srcdir)/m4/locale-zh.m4 $(top_srcdir)/m4/locale_h.m4 \
+	$(top_srcdir)/m4/localeconv.m4 $(top_srcdir)/m4/localename.m4 \
+	$(top_srcdir)/m4/lock.m4 $(top_srcdir)/m4/longlong.m4 \
+	$(top_srcdir)/m4/lseek.m4 $(top_srcdir)/m4/lstat.m4 \
+	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
+	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
+	$(top_srcdir)/m4/malloc.m4 $(top_srcdir)/m4/malloca.m4 \
+	$(top_srcdir)/m4/manywarnings.m4 $(top_srcdir)/m4/math_h.m4 \
+	$(top_srcdir)/m4/mbrtowc.m4 $(top_srcdir)/m4/mbsinit.m4 \
+	$(top_srcdir)/m4/mbsrtowcs.m4 $(top_srcdir)/m4/mbstate_t.m4 \
+	$(top_srcdir)/m4/mbtowc.m4 $(top_srcdir)/m4/md5.m4 \
+	$(top_srcdir)/m4/memchr.m4 $(top_srcdir)/m4/mgetgroups.m4 \
+	$(top_srcdir)/m4/mkdtemp.m4 $(top_srcdir)/m4/mkostemp.m4 \
+	$(top_srcdir)/m4/mkostemps.m4 $(top_srcdir)/m4/mktime.m4 \
+	$(top_srcdir)/m4/mmap-anon.m4 $(top_srcdir)/m4/mode_t.m4 \
+	$(top_srcdir)/m4/msvc-inval.m4 \
 	$(top_srcdir)/m4/msvc-nothrow.m4 $(top_srcdir)/m4/multiarch.m4 \
 	$(top_srcdir)/m4/nanosleep.m4 $(top_srcdir)/m4/net_if_h.m4 \
 	$(top_srcdir)/m4/netdb_h.m4 $(top_srcdir)/m4/netinet_in_h.m4 \
@@ -192,6 +194,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/posix_openpt.m4 \
 	$(top_srcdir)/m4/posix_spawn.m4 $(top_srcdir)/m4/printf.m4 \
 	$(top_srcdir)/m4/progtest.m4 $(top_srcdir)/m4/pthread.m4 \
+	$(top_srcdir)/m4/pthread_rwlock_rdlock.m4 \
 	$(top_srcdir)/m4/pthread_sigmask.m4 \
 	$(top_srcdir)/m4/ptsname.m4 $(top_srcdir)/m4/ptsname_r.m4 \
 	$(top_srcdir)/m4/pty.m4 $(top_srcdir)/m4/pty_h.m4 \
@@ -237,34 +240,93 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/unistd_h.m4 $(top_srcdir)/m4/unlockpt.m4 \
 	$(top_srcdir)/m4/usleep.m4 $(top_srcdir)/m4/vasnprintf.m4 \
 	$(top_srcdir)/m4/vasprintf.m4 \
-	$(top_srcdir)/m4/virt-apparmor.m4 \
-	$(top_srcdir)/m4/virt-attr.m4 $(top_srcdir)/m4/virt-audit.m4 \
-	$(top_srcdir)/m4/virt-avahi.m4 $(top_srcdir)/m4/virt-blkid.m4 \
-	$(top_srcdir)/m4/virt-capng.m4 \
+	$(top_srcdir)/m4/virt-apparmor.m4 $(top_srcdir)/m4/virt-arg.m4 \
+	$(top_srcdir)/m4/virt-atomic.m4 $(top_srcdir)/m4/virt-attr.m4 \
+	$(top_srcdir)/m4/virt-audit.m4 $(top_srcdir)/m4/virt-avahi.m4 \
+	$(top_srcdir)/m4/virt-blkid.m4 $(top_srcdir)/m4/virt-capng.m4 \
+	$(top_srcdir)/m4/virt-chrdev-lock-files.m4 \
 	$(top_srcdir)/m4/virt-compile-pie.m4 \
 	$(top_srcdir)/m4/virt-compile-warnings.m4 \
 	$(top_srcdir)/m4/virt-curl.m4 $(top_srcdir)/m4/virt-dbus.m4 \
+	$(top_srcdir)/m4/virt-debug.m4 \
+	$(top_srcdir)/m4/virt-default-editor.m4 \
+	$(top_srcdir)/m4/virt-devmapper.m4 \
+	$(top_srcdir)/m4/virt-dlopen.m4 \
 	$(top_srcdir)/m4/virt-driver-bhyve.m4 \
+	$(top_srcdir)/m4/virt-driver-esx.m4 \
+	$(top_srcdir)/m4/virt-driver-hyperv.m4 \
+	$(top_srcdir)/m4/virt-driver-interface.m4 \
+	$(top_srcdir)/m4/virt-driver-libvirtd.m4 \
+	$(top_srcdir)/m4/virt-driver-libxl.m4 \
+	$(top_srcdir)/m4/virt-driver-lxc.m4 \
+	$(top_srcdir)/m4/virt-driver-modules.m4 \
+	$(top_srcdir)/m4/virt-driver-network.m4 \
+	$(top_srcdir)/m4/virt-driver-openvz.m4 \
+	$(top_srcdir)/m4/virt-driver-phyp.m4 \
+	$(top_srcdir)/m4/virt-driver-qemu.m4 \
+	$(top_srcdir)/m4/virt-driver-remote.m4 \
+	$(top_srcdir)/m4/virt-driver-test.m4 \
 	$(top_srcdir)/m4/virt-driver-uml.m4 \
+	$(top_srcdir)/m4/virt-driver-vbox.m4 \
+	$(top_srcdir)/m4/virt-driver-vmware.m4 \
 	$(top_srcdir)/m4/virt-driver-vz.m4 \
+	$(top_srcdir)/m4/virt-driver-xen.m4 \
+	$(top_srcdir)/m4/virt-driver-xenapi.m4 \
+	$(top_srcdir)/m4/virt-dtrace.m4 \
+	$(top_srcdir)/m4/virt-external-programs.m4 \
+	$(top_srcdir)/m4/virt-firewalld.m4 \
 	$(top_srcdir)/m4/virt-fuse.m4 $(top_srcdir)/m4/virt-gluster.m4 \
 	$(top_srcdir)/m4/virt-gnutls.m4 $(top_srcdir)/m4/virt-hal.m4 \
 	$(top_srcdir)/m4/virt-host-validate.m4 \
 	$(top_srcdir)/m4/virt-init-script.m4 \
-	$(top_srcdir)/m4/virt-lib.m4 $(top_srcdir)/m4/virt-libssh.m4 \
+	$(top_srcdir)/m4/virt-lib.m4 $(top_srcdir)/m4/virt-libnl.m4 \
+	$(top_srcdir)/m4/virt-libpcap.m4 \
+	$(top_srcdir)/m4/virt-libssh.m4 \
+	$(top_srcdir)/m4/virt-libxml.m4 \
 	$(top_srcdir)/m4/virt-linker-no-indirect.m4 \
 	$(top_srcdir)/m4/virt-linker-relro.m4 \
+	$(top_srcdir)/m4/virt-loader-nvram.m4 \
 	$(top_srcdir)/m4/virt-login-shell.m4 \
+	$(top_srcdir)/m4/virt-macvtap.m4 \
 	$(top_srcdir)/m4/virt-netcf.m4 $(top_srcdir)/m4/virt-nss.m4 \
 	$(top_srcdir)/m4/virt-numactl.m4 \
+	$(top_srcdir)/m4/virt-numad.m4 \
+	$(top_srcdir)/m4/virt-nwfilter.m4 \
 	$(top_srcdir)/m4/virt-openwsman.m4 \
+	$(top_srcdir)/m4/virt-parted.m4 \
 	$(top_srcdir)/m4/virt-pciaccess.m4 \
+	$(top_srcdir)/m4/virt-pm-utils.m4 \
+	$(top_srcdir)/m4/virt-polkit.m4 \
+	$(top_srcdir)/m4/virt-pthread.m4 \
 	$(top_srcdir)/m4/virt-readline.m4 \
 	$(top_srcdir)/m4/virt-result.m4 \
 	$(top_srcdir)/m4/virt-sanlock.m4 $(top_srcdir)/m4/virt-sasl.m4 \
+	$(top_srcdir)/m4/virt-secdriver-apparmor.m4 \
+	$(top_srcdir)/m4/virt-secdriver-selinux.m4 \
 	$(top_srcdir)/m4/virt-selinux.m4 $(top_srcdir)/m4/virt-ssh2.m4 \
+	$(top_srcdir)/m4/virt-storage-dir.m4 \
+	$(top_srcdir)/m4/virt-storage-disk.m4 \
+	$(top_srcdir)/m4/virt-storage-fs.m4 \
+	$(top_srcdir)/m4/virt-storage-gluster.m4 \
+	$(top_srcdir)/m4/virt-storage-iscsi.m4 \
+	$(top_srcdir)/m4/virt-storage-lvm.m4 \
+	$(top_srcdir)/m4/virt-storage-mpath.m4 \
+	$(top_srcdir)/m4/virt-storage-rbd.m4 \
+	$(top_srcdir)/m4/virt-storage-scsi.m4 \
+	$(top_srcdir)/m4/virt-storage-sheepdog.m4 \
+	$(top_srcdir)/m4/virt-storage-zfs.m4 \
+	$(top_srcdir)/m4/virt-sysctl.m4 \
+	$(top_srcdir)/m4/virt-tls-priority.m4 \
 	$(top_srcdir)/m4/virt-udev.m4 \
+	$(top_srcdir)/m4/virt-virtualport.m4 \
+	$(top_srcdir)/m4/virt-win-common.m4 \
+	$(top_srcdir)/m4/virt-win-cygwin.m4 \
+	$(top_srcdir)/m4/virt-win-mingw.m4 \
+	$(top_srcdir)/m4/virt-win-symbols.m4 \
+	$(top_srcdir)/m4/virt-win-windres.m4 \
 	$(top_srcdir)/m4/virt-wireshark.m4 \
+	$(top_srcdir)/m4/virt-xdr.m4 \
+	$(top_srcdir)/m4/virt-xml-catalog.m4 \
 	$(top_srcdir)/m4/virt-yajl.m4 $(top_srcdir)/m4/vsnprintf.m4 \
 	$(top_srcdir)/m4/wait-process.m4 $(top_srcdir)/m4/waitpid.m4 \
 	$(top_srcdir)/m4/warnings.m4 $(top_srcdir)/m4/wchar_h.m4 \
@@ -338,13 +400,37 @@ nss_libnss_libvirt_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(LDFLAGS) -o $@
 @WITH_NSS_TRUE@am_nss_libnss_libvirt_la_rpath = -rpath $(libdir)
 am__dirstamp = $(am__leading_dot)dirstamp
+@WITH_NSS_TRUE@nss_libnss_libvirt_guest_la_DEPENDENCIES =  \
+@WITH_NSS_TRUE@	nss/libnss_libvirt_guest_impl.la
+am_nss_libnss_libvirt_guest_la_OBJECTS =
+nss_libnss_libvirt_guest_la_OBJECTS =  \
+	$(am_nss_libnss_libvirt_guest_la_OBJECTS)
+nss_libnss_libvirt_guest_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(AM_CFLAGS) $(CFLAGS) $(nss_libnss_libvirt_guest_la_LDFLAGS) \
+	$(LDFLAGS) -o $@
+@WITH_NSS_TRUE@am_nss_libnss_libvirt_guest_la_rpath = -rpath $(libdir)
+@WITH_NSS_TRUE@nss_libnss_libvirt_guest_impl_la_DEPENDENCIES =  \
+@WITH_NSS_TRUE@	../gnulib/lib/libgnu.la ../src/libvirt-nss.la
+am__nss_libnss_libvirt_guest_impl_la_SOURCES_DIST = nss/libvirt_nss.c \
+	nss/libvirt_nss.h
+am__objects_1 = nss/nss_libnss_libvirt_guest_impl_la-libvirt_nss.lo
+@WITH_NSS_TRUE@am_nss_libnss_libvirt_guest_impl_la_OBJECTS =  \
+@WITH_NSS_TRUE@	$(am__objects_1)
+nss_libnss_libvirt_guest_impl_la_OBJECTS =  \
+	$(am_nss_libnss_libvirt_guest_impl_la_OBJECTS)
+nss_libnss_libvirt_guest_impl_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(nss_libnss_libvirt_guest_impl_la_CFLAGS) $(CFLAGS) \
+	$(AM_LDFLAGS) $(LDFLAGS) -o $@
+@WITH_NSS_TRUE@am_nss_libnss_libvirt_guest_impl_la_rpath =
 @WITH_NSS_TRUE@nss_libnss_libvirt_impl_la_DEPENDENCIES =  \
 @WITH_NSS_TRUE@	../gnulib/lib/libgnu.la ../src/libvirt-nss.la
 am__nss_libnss_libvirt_impl_la_SOURCES_DIST = nss/libvirt_nss.c \
 	nss/libvirt_nss.h
-am__objects_1 = nss/nss_libnss_libvirt_impl_la-libvirt_nss.lo
+am__objects_2 = nss/nss_libnss_libvirt_impl_la-libvirt_nss.lo
 @WITH_NSS_TRUE@am_nss_libnss_libvirt_impl_la_OBJECTS =  \
-@WITH_NSS_TRUE@	$(am__objects_1)
+@WITH_NSS_TRUE@	$(am__objects_2)
 nss_libnss_libvirt_impl_la_OBJECTS =  \
 	$(am_nss_libnss_libvirt_impl_la_OBJECTS)
 nss_libnss_libvirt_impl_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
@@ -447,6 +533,8 @@ am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = $(libvirt_shell_la_SOURCES) $(nss_libnss_libvirt_la_SOURCES) \
+	$(nss_libnss_libvirt_guest_la_SOURCES) \
+	$(nss_libnss_libvirt_guest_impl_la_SOURCES) \
 	$(nss_libnss_libvirt_impl_la_SOURCES) \
 	$(wireshark_src_libvirt_la_SOURCES) \
 	$(nodist_wireshark_src_libvirt_la_SOURCES) $(virsh_SOURCES) \
@@ -454,6 +542,8 @@ SOURCES = $(libvirt_shell_la_SOURCES) $(nss_libnss_libvirt_la_SOURCES) \
 	$(virt_login_shell_SOURCES)
 DIST_SOURCES = $(libvirt_shell_la_SOURCES) \
 	$(nss_libnss_libvirt_la_SOURCES) \
+	$(nss_libnss_libvirt_guest_la_SOURCES) \
+	$(am__nss_libnss_libvirt_guest_impl_la_SOURCES_DIST) \
 	$(am__nss_libnss_libvirt_impl_la_SOURCES_DIST) \
 	$(am__wireshark_src_libvirt_la_SOURCES_DIST) $(virsh_SOURCES) \
 	$(virt_admin_SOURCES) $(virt_host_validate_SOURCES) \
@@ -493,6 +583,8 @@ am__DIST_COMMON = $(srcdir)/Makefile.in \
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 pkglibexecdir = @pkglibexecdir@
 ACLOCAL = @ACLOCAL@
+ACL_CFLAGS = @ACL_CFLAGS@
+ACL_LIBS = @ACL_LIBS@
 ADDR2LINE = @ADDR2LINE@
 ALLOCA = @ALLOCA@
 ALLOCA_H = @ALLOCA_H@
@@ -552,8 +644,8 @@ DLLTOOL = @DLLTOOL@
 DLOPEN_LIBS = @DLOPEN_LIBS@
 DMIDECODE = @DMIDECODE@
 DNSMASQ = @DNSMASQ@
-DRIVER_MODULE_LDFLAGS = @DRIVER_MODULE_LDFLAGS@
-DRIVER_MODULE_LIBS = @DRIVER_MODULE_LIBS@
+DRIVER_MODULES_LDFLAGS = @DRIVER_MODULES_LDFLAGS@
+DRIVER_MODULES_LIBS = @DRIVER_MODULES_LIBS@
 DSYMUTIL = @DSYMUTIL@
 DTRACE = @DTRACE@
 DUMPBIN = @DUMPBIN@
@@ -796,6 +888,7 @@ GNULIB_OBSTACK_PRINTF_POSIX = @GNULIB_OBSTACK_PRINTF_POSIX@
 GNULIB_OPEN = @GNULIB_OPEN@
 GNULIB_OPENAT = @GNULIB_OPENAT@
 GNULIB_OPENPTY = @GNULIB_OPENPTY@
+GNULIB_OVERRIDES_WINT_T = @GNULIB_OVERRIDES_WINT_T@
 GNULIB_PCLOSE = @GNULIB_PCLOSE@
 GNULIB_PERROR = @GNULIB_PERROR@
 GNULIB_PIPE = @GNULIB_PIPE@
@@ -1042,6 +1135,7 @@ HAVE_DECL_GETDELIM = @HAVE_DECL_GETDELIM@
 HAVE_DECL_GETDOMAINNAME = @HAVE_DECL_GETDOMAINNAME@
 HAVE_DECL_GETLINE = @HAVE_DECL_GETLINE@
 HAVE_DECL_GETLOADAVG = @HAVE_DECL_GETLOADAVG@
+HAVE_DECL_GETLOGIN = @HAVE_DECL_GETLOGIN@
 HAVE_DECL_GETLOGIN_R = @HAVE_DECL_GETLOGIN_R@
 HAVE_DECL_GETNAMEINFO = @HAVE_DECL_GETNAMEINFO@
 HAVE_DECL_GETPAGESIZE = @HAVE_DECL_GETPAGESIZE@
@@ -1408,8 +1502,6 @@ LIBVIRT_SYMBOL_FILE = @LIBVIRT_SYMBOL_FILE@
 LIBVIRT_VERSION = @LIBVIRT_VERSION@
 LIBVIRT_VERSION_INFO = @LIBVIRT_VERSION_INFO@
 LIBVIRT_VERSION_NUMBER = @LIBVIRT_VERSION_NUMBER@
-LIBXENSERVER_CFLAGS = @LIBXENSERVER_CFLAGS@
-LIBXENSERVER_LIBS = @LIBXENSERVER_LIBS@
 LIBXL_CFLAGS = @LIBXL_CFLAGS@
 LIBXL_LIBS = @LIBXL_LIBS@
 LIBXML_CFLAGS = @LIBXML_CFLAGS@
@@ -1455,7 +1547,6 @@ MKFS = @MKFS@
 MMCTL = @MMCTL@
 MODPROBE = @MODPROBE@
 MOUNT = @MOUNT@
-MSCOM_LIBS = @MSCOM_LIBS@
 MSGFMT = @MSGFMT@
 MSGFMT_015 = @MSGFMT_015@
 MSGMERGE = @MSGMERGE@
@@ -1604,6 +1695,10 @@ RANLIB = @RANLIB@
 READLINE_CFLAGS = @READLINE_CFLAGS@
 READLINE_LIBS = @READLINE_LIBS@
 RELRO_LDFLAGS = @RELRO_LDFLAGS@
+REPLACE_ACOSF = @REPLACE_ACOSF@
+REPLACE_ASINF = @REPLACE_ASINF@
+REPLACE_ATAN2F = @REPLACE_ATAN2F@
+REPLACE_ATANF = @REPLACE_ATANF@
 REPLACE_BTOWC = @REPLACE_BTOWC@
 REPLACE_CALLOC = @REPLACE_CALLOC@
 REPLACE_CANONICALIZE_FILE_NAME = @REPLACE_CANONICALIZE_FILE_NAME@
@@ -1614,12 +1709,15 @@ REPLACE_CEILF = @REPLACE_CEILF@
 REPLACE_CEILL = @REPLACE_CEILL@
 REPLACE_CHOWN = @REPLACE_CHOWN@
 REPLACE_CLOSE = @REPLACE_CLOSE@
+REPLACE_COSF = @REPLACE_COSF@
+REPLACE_COSHF = @REPLACE_COSHF@
 REPLACE_DPRINTF = @REPLACE_DPRINTF@
 REPLACE_DUP = @REPLACE_DUP@
 REPLACE_DUP2 = @REPLACE_DUP2@
 REPLACE_DUPLOCALE = @REPLACE_DUPLOCALE@
 REPLACE_EXP2 = @REPLACE_EXP2@
 REPLACE_EXP2L = @REPLACE_EXP2L@
+REPLACE_EXPF = @REPLACE_EXPF@
 REPLACE_EXPM1 = @REPLACE_EXPM1@
 REPLACE_EXPM1F = @REPLACE_EXPM1F@
 REPLACE_FABSL = @REPLACE_FABSL@
@@ -1768,9 +1866,12 @@ REPLACE_SETENV = @REPLACE_SETENV@
 REPLACE_SETLOCALE = @REPLACE_SETLOCALE@
 REPLACE_SIGNBIT = @REPLACE_SIGNBIT@
 REPLACE_SIGNBIT_USING_GCC = @REPLACE_SIGNBIT_USING_GCC@
+REPLACE_SINF = @REPLACE_SINF@
+REPLACE_SINHF = @REPLACE_SINHF@
 REPLACE_SLEEP = @REPLACE_SLEEP@
 REPLACE_SNPRINTF = @REPLACE_SNPRINTF@
 REPLACE_SPRINTF = @REPLACE_SPRINTF@
+REPLACE_SQRTF = @REPLACE_SQRTF@
 REPLACE_SQRTL = @REPLACE_SQRTL@
 REPLACE_STAT = @REPLACE_STAT@
 REPLACE_STDIO_READ_FUNCS = @REPLACE_STDIO_READ_FUNCS@
@@ -1794,6 +1895,8 @@ REPLACE_STRUCT_LCONV = @REPLACE_STRUCT_LCONV@
 REPLACE_STRUCT_TIMEVAL = @REPLACE_STRUCT_TIMEVAL@
 REPLACE_SYMLINK = @REPLACE_SYMLINK@
 REPLACE_SYMLINKAT = @REPLACE_SYMLINKAT@
+REPLACE_TANF = @REPLACE_TANF@
+REPLACE_TANHF = @REPLACE_TANHF@
 REPLACE_TIMEGM = @REPLACE_TIMEGM@
 REPLACE_TMPFILE = @REPLACE_TMPFILE@
 REPLACE_TOWLOWER = @REPLACE_TOWLOWER@
@@ -1875,6 +1978,7 @@ VIR_TEST_EXPENSIVE_DEFAULT = @VIR_TEST_EXPENSIVE_DEFAULT@
 WARN_CFLAGS = @WARN_CFLAGS@
 WCHAR_T_SUFFIX = @WCHAR_T_SUFFIX@
 WIN32_EXTRA_CFLAGS = @WIN32_EXTRA_CFLAGS@
+WIN32_EXTRA_LIBS = @WIN32_EXTRA_LIBS@
 WINDOWS_64_BIT_OFF_T = @WINDOWS_64_BIT_OFF_T@
 WINDOWS_64_BIT_ST_SIZE = @WINDOWS_64_BIT_ST_SIZE@
 WINDRES = @WINDRES@
@@ -1882,6 +1986,8 @@ WINT_T_SUFFIX = @WINT_T_SUFFIX@
 WIRESHARK_DISSECTOR_CFLAGS = @WIRESHARK_DISSECTOR_CFLAGS@
 WIRESHARK_DISSECTOR_LIBS = @WIRESHARK_DISSECTOR_LIBS@
 XDR_CFLAGS = @XDR_CFLAGS@
+XENAPI_CFLAGS = @XENAPI_CFLAGS@
+XENAPI_LIBS = @XENAPI_LIBS@
 XEN_CFLAGS = @XEN_CFLAGS@
 XEN_LIBS = @XEN_LIBS@
 XGETTEXT = @XGETTEXT@
@@ -2003,7 +2109,8 @@ EXTRA_DIST = $(ICON_FILES) $(conf_DATA) virt-xml-validate.in \
 	libvirt-guests.init.in libvirt-guests.service.in \
 	wireshark/util/genxdrstub.pl wireshark/util/make-dissector-reg \
 	$(LIBVIRT_NSS_SOURCES) $(srcdir)/nss/libvirt_nss.syms \
-	$(srcdir)/nss/libvirt_nss_bsd.syms
+	$(srcdir)/nss/libvirt_nss_bsd.syms \
+	$(srcdir)/nss/libvirt_guest_nss.syms
 CLEANFILES = $(am__append_10) $(bin_SCRIPTS) *.gcov .libs/*.gcda \
 	.libs/*.gcno *.gcno *.gcda *.i *.s $(man1_MANS) $(man8_MANS)
 DISTCLEANFILES = $(am__append_1) $(BUILT_SOURCES)
@@ -2169,6 +2276,12 @@ SYSTEMD_UNIT_DIR = $(prefix)/lib/systemd/system
 @WITH_BSD_NSS_TRUE@LIBVIRT_NSS_SYMBOL_FILE = \
 @WITH_BSD_NSS_TRUE@	$(srcdir)/nss/libvirt_nss_bsd.syms
 
+@WITH_BSD_NSS_FALSE@LIBVIRT_GUEST_NSS_SYMBOL_FILE = \
+@WITH_BSD_NSS_FALSE@	$(srcdir)/nss/libvirt_guest_nss.syms
+
+@WITH_BSD_NSS_TRUE@LIBVIRT_GUEST_NSS_SYMBOL_FILE = \
+@WITH_BSD_NSS_TRUE@	$(LIBVIRT_NSS_SYMBOL_FILE)
+
 @WITH_BSD_NSS_FALSE@NSS_SO_VER = 2
 @WITH_BSD_NSS_TRUE@NSS_SO_VER = 1
 LIBVIRT_NSS_SOURCES = \
@@ -2203,8 +2316,38 @@ LIBVIRT_NSS_SOURCES = \
 @WITH_NSS_TRUE@nss_libnss_libvirt_la_LIBADD = \
 @WITH_NSS_TRUE@	nss/libnss_libvirt_impl.la
 
+@WITH_NSS_TRUE@nss_libnss_libvirt_guest_impl_la_SOURCES = \
+@WITH_NSS_TRUE@	$(LIBVIRT_NSS_SOURCES)
+
+@WITH_NSS_TRUE@nss_libnss_libvirt_guest_impl_la_CFLAGS = \
+@WITH_NSS_TRUE@	-DLIBVIRT_NSS		\
+@WITH_NSS_TRUE@	-DLIBVIRT_NSS_GUEST	\
+@WITH_NSS_TRUE@	$(AM_CFLAGS)		\
+@WITH_NSS_TRUE@	$(WARN_CFLAGS)		\
+@WITH_NSS_TRUE@	$(PIE_CFLAGS)		\
+@WITH_NSS_TRUE@	$(COVERAGE_CFLAGS)	\
+@WITH_NSS_TRUE@	$(LIBXML_CFLAGS)
+
+@WITH_NSS_TRUE@nss_libnss_libvirt_guest_impl_la_LIBADD = \
+@WITH_NSS_TRUE@	../gnulib/lib/libgnu.la		\
+@WITH_NSS_TRUE@	../src/libvirt-nss.la
+
+@WITH_NSS_TRUE@nss_libnss_libvirt_guest_la_SOURCES = 
+@WITH_NSS_TRUE@nss_libnss_libvirt_guest_la_LDFLAGS = \
+@WITH_NSS_TRUE@	$(VERSION_SCRIPT_FLAGS)$(LIBVIRT_GUEST_NSS_SYMBOL_FILE)	\
+@WITH_NSS_TRUE@	$(AM_LDFLAGS) \
+@WITH_NSS_TRUE@	-module \
+@WITH_NSS_TRUE@	-export-dynamic \
+@WITH_NSS_TRUE@	-avoid-version \
+@WITH_NSS_TRUE@	-shared \
+@WITH_NSS_TRUE@	-shrext .so.$(NSS_SO_VER)
+
+@WITH_NSS_TRUE@nss_libnss_libvirt_guest_la_LIBADD = \
+@WITH_NSS_TRUE@	nss/libnss_libvirt_guest_impl.la
+
 @WITH_NSS_TRUE@lib_LTLIBRARIES = \
-@WITH_NSS_TRUE@	nss/libnss_libvirt.la
+@WITH_NSS_TRUE@	nss/libnss_libvirt.la \
+@WITH_NSS_TRUE@	nss/libnss_libvirt_guest.la
 
 all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-am
@@ -2330,9 +2473,17 @@ nss/$(am__dirstamp):
 
 nss/libnss_libvirt.la: $(nss_libnss_libvirt_la_OBJECTS) $(nss_libnss_libvirt_la_DEPENDENCIES) $(EXTRA_nss_libnss_libvirt_la_DEPENDENCIES) nss/$(am__dirstamp)
 	$(AM_V_CCLD)$(nss_libnss_libvirt_la_LINK) $(am_nss_libnss_libvirt_la_rpath) $(nss_libnss_libvirt_la_OBJECTS) $(nss_libnss_libvirt_la_LIBADD) $(LIBS)
+
+nss/libnss_libvirt_guest.la: $(nss_libnss_libvirt_guest_la_OBJECTS) $(nss_libnss_libvirt_guest_la_DEPENDENCIES) $(EXTRA_nss_libnss_libvirt_guest_la_DEPENDENCIES) nss/$(am__dirstamp)
+	$(AM_V_CCLD)$(nss_libnss_libvirt_guest_la_LINK) $(am_nss_libnss_libvirt_guest_la_rpath) $(nss_libnss_libvirt_guest_la_OBJECTS) $(nss_libnss_libvirt_guest_la_LIBADD) $(LIBS)
 nss/$(DEPDIR)/$(am__dirstamp):
 	@$(MKDIR_P) nss/$(DEPDIR)
 	@: > nss/$(DEPDIR)/$(am__dirstamp)
+nss/nss_libnss_libvirt_guest_impl_la-libvirt_nss.lo:  \
+	nss/$(am__dirstamp) nss/$(DEPDIR)/$(am__dirstamp)
+
+nss/libnss_libvirt_guest_impl.la: $(nss_libnss_libvirt_guest_impl_la_OBJECTS) $(nss_libnss_libvirt_guest_impl_la_DEPENDENCIES) $(EXTRA_nss_libnss_libvirt_guest_impl_la_DEPENDENCIES) nss/$(am__dirstamp)
+	$(AM_V_CCLD)$(nss_libnss_libvirt_guest_impl_la_LINK) $(am_nss_libnss_libvirt_guest_impl_la_rpath) $(nss_libnss_libvirt_guest_impl_la_OBJECTS) $(nss_libnss_libvirt_guest_impl_la_LIBADD) $(LIBS)
 nss/nss_libnss_libvirt_impl_la-libvirt_nss.lo: nss/$(am__dirstamp) \
 	nss/$(DEPDIR)/$(am__dirstamp)
 
@@ -2554,6 +2705,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virt_host_validate-virt-host-validate-qemu.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virt_host_validate-virt-host-validate.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virt_login_shell-virt-login-shell.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@nss/$(DEPDIR)/nss_libnss_libvirt_guest_impl_la-libvirt_nss.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@nss/$(DEPDIR)/nss_libnss_libvirt_impl_la-libvirt_nss.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@wireshark/src/$(DEPDIR)/wireshark_src_libvirt_la-packet-libvirt.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@wireshark/src/$(DEPDIR)/wireshark_src_libvirt_la-plugin.Plo@am__quote@
@@ -2588,6 +2740,13 @@ libvirt_shell_la-vsh.lo: vsh.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='vsh.c' object='libvirt_shell_la-vsh.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_shell_la_CFLAGS) $(CFLAGS) -c -o libvirt_shell_la-vsh.lo `test -f 'vsh.c' || echo '$(srcdir)/'`vsh.c
+
+nss/nss_libnss_libvirt_guest_impl_la-libvirt_nss.lo: nss/libvirt_nss.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nss_libnss_libvirt_guest_impl_la_CFLAGS) $(CFLAGS) -MT nss/nss_libnss_libvirt_guest_impl_la-libvirt_nss.lo -MD -MP -MF nss/$(DEPDIR)/nss_libnss_libvirt_guest_impl_la-libvirt_nss.Tpo -c -o nss/nss_libnss_libvirt_guest_impl_la-libvirt_nss.lo `test -f 'nss/libvirt_nss.c' || echo '$(srcdir)/'`nss/libvirt_nss.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) nss/$(DEPDIR)/nss_libnss_libvirt_guest_impl_la-libvirt_nss.Tpo nss/$(DEPDIR)/nss_libnss_libvirt_guest_impl_la-libvirt_nss.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='nss/libvirt_nss.c' object='nss/nss_libnss_libvirt_guest_impl_la-libvirt_nss.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nss_libnss_libvirt_guest_impl_la_CFLAGS) $(CFLAGS) -c -o nss/nss_libnss_libvirt_guest_impl_la-libvirt_nss.lo `test -f 'nss/libvirt_nss.c' || echo '$(srcdir)/'`nss/libvirt_nss.c
 
 nss/nss_libnss_libvirt_impl_la-libvirt_nss.lo: nss/libvirt_nss.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nss_libnss_libvirt_impl_la_CFLAGS) $(CFLAGS) -MT nss/nss_libnss_libvirt_impl_la-libvirt_nss.lo -MD -MP -MF nss/$(DEPDIR)/nss_libnss_libvirt_impl_la-libvirt_nss.Tpo -c -o nss/nss_libnss_libvirt_impl_la-libvirt_nss.lo `test -f 'nss/libvirt_nss.c' || echo '$(srcdir)/'`nss/libvirt_nss.c
@@ -3385,10 +3544,14 @@ libvirt-guests.service: libvirt-guests.service.in $(top_builddir)/config.status
 @WITH_BSD_NSS_TRUE@install-nss:
 @WITH_BSD_NSS_TRUE@	( cd $(DESTDIR)$(libdir) && \
 @WITH_BSD_NSS_TRUE@	  rm -f nss_libvirt.so.$(NSS_SO_VER) && \
-@WITH_BSD_NSS_TRUE@	  $(LN_S) libnss_libvirt.so.$(NSS_SO_VER) nss_libvirt.so.$(NSS_SO_VER) )
+@WITH_BSD_NSS_TRUE@	  $(LN_S) libnss_libvirt.so.$(NSS_SO_VER) nss_libvirt.so.$(NSS_SO_VER) && \
+@WITH_BSD_NSS_TRUE@	  rm -f nss_libvirt_guest.so.$(NSS_SO_VER) && \
+@WITH_BSD_NSS_TRUE@	  $(LN_S) libnss_libvirt_guest.so.$(NSS_SO_VER) \
+@WITH_BSD_NSS_TRUE@	  nss_libvirt_guest.so.$(NSS_SO_VER))
 
 @WITH_BSD_NSS_TRUE@uninstall-nss:
 @WITH_BSD_NSS_TRUE@	-rm -f $(DESTDIR)$(libdir)/nss_libvirt.so.$(NSS_SO_VER)
+@WITH_BSD_NSS_TRUE@	-rm -f $(DESTDIR)$(libdir)/nss_libvirt_guest.so.$(NSS_SO_VER)
 
 @WITH_BSD_NSS_FALSE@install-nss:
 @WITH_BSD_NSS_FALSE@uninstall-nss:

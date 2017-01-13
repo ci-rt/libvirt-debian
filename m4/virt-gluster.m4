@@ -19,6 +19,10 @@ dnl
 
 dnl Currently tested against Fedora 19 with glusterfs 3.4.1; earlier
 dnl versions may be possible but only with further testing
+AC_DEFUN([LIBVIRT_ARG_GLUSTER],[
+  LIBVIRT_ARG_WITH_FEATURE([GLUSTERFS], [glusterfs], [check], [3.4.1])
+])
+
 AC_DEFUN([LIBVIRT_CHECK_GLUSTER],[
   LIBVIRT_CHECK_PKG([GLUSTERFS], [glusterfs-api], [3.4.1])
 ])

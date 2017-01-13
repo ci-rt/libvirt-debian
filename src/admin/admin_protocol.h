@@ -190,6 +190,40 @@ struct admin_server_set_client_limits_args {
         u_int flags;
 };
 typedef struct admin_server_set_client_limits_args admin_server_set_client_limits_args;
+
+struct admin_connect_get_logging_outputs_args {
+        u_int flags;
+};
+typedef struct admin_connect_get_logging_outputs_args admin_connect_get_logging_outputs_args;
+
+struct admin_connect_get_logging_outputs_ret {
+        admin_nonnull_string outputs;
+        u_int noutputs;
+};
+typedef struct admin_connect_get_logging_outputs_ret admin_connect_get_logging_outputs_ret;
+
+struct admin_connect_get_logging_filters_args {
+        u_int flags;
+};
+typedef struct admin_connect_get_logging_filters_args admin_connect_get_logging_filters_args;
+
+struct admin_connect_get_logging_filters_ret {
+        admin_string filters;
+        u_int nfilters;
+};
+typedef struct admin_connect_get_logging_filters_ret admin_connect_get_logging_filters_ret;
+
+struct admin_connect_set_logging_outputs_args {
+        admin_string outputs;
+        u_int flags;
+};
+typedef struct admin_connect_set_logging_outputs_args admin_connect_set_logging_outputs_args;
+
+struct admin_connect_set_logging_filters_args {
+        admin_string filters;
+        u_int flags;
+};
+typedef struct admin_connect_set_logging_filters_args admin_connect_set_logging_filters_args;
 #define ADMIN_PROGRAM 0x06900690
 #define ADMIN_PROTOCOL_VERSION 1
 
@@ -207,6 +241,10 @@ enum admin_procedure {
         ADMIN_PROC_CLIENT_CLOSE = 11,
         ADMIN_PROC_SERVER_GET_CLIENT_LIMITS = 12,
         ADMIN_PROC_SERVER_SET_CLIENT_LIMITS = 13,
+        ADMIN_PROC_CONNECT_GET_LOGGING_OUTPUTS = 14,
+        ADMIN_PROC_CONNECT_GET_LOGGING_FILTERS = 15,
+        ADMIN_PROC_CONNECT_SET_LOGGING_OUTPUTS = 16,
+        ADMIN_PROC_CONNECT_SET_LOGGING_FILTERS = 17,
 };
 typedef enum admin_procedure admin_procedure;
 
@@ -238,6 +276,12 @@ extern  bool_t xdr_admin_client_close_args (XDR *, admin_client_close_args*);
 extern  bool_t xdr_admin_server_get_client_limits_args (XDR *, admin_server_get_client_limits_args*);
 extern  bool_t xdr_admin_server_get_client_limits_ret (XDR *, admin_server_get_client_limits_ret*);
 extern  bool_t xdr_admin_server_set_client_limits_args (XDR *, admin_server_set_client_limits_args*);
+extern  bool_t xdr_admin_connect_get_logging_outputs_args (XDR *, admin_connect_get_logging_outputs_args*);
+extern  bool_t xdr_admin_connect_get_logging_outputs_ret (XDR *, admin_connect_get_logging_outputs_ret*);
+extern  bool_t xdr_admin_connect_get_logging_filters_args (XDR *, admin_connect_get_logging_filters_args*);
+extern  bool_t xdr_admin_connect_get_logging_filters_ret (XDR *, admin_connect_get_logging_filters_ret*);
+extern  bool_t xdr_admin_connect_set_logging_outputs_args (XDR *, admin_connect_set_logging_outputs_args*);
+extern  bool_t xdr_admin_connect_set_logging_filters_args (XDR *, admin_connect_set_logging_filters_args*);
 extern  bool_t xdr_admin_procedure (XDR *, admin_procedure*);
 
 #else /* K&R C */
@@ -266,6 +310,12 @@ extern bool_t xdr_admin_client_close_args ();
 extern bool_t xdr_admin_server_get_client_limits_args ();
 extern bool_t xdr_admin_server_get_client_limits_ret ();
 extern bool_t xdr_admin_server_set_client_limits_args ();
+extern bool_t xdr_admin_connect_get_logging_outputs_args ();
+extern bool_t xdr_admin_connect_get_logging_outputs_ret ();
+extern bool_t xdr_admin_connect_get_logging_filters_args ();
+extern bool_t xdr_admin_connect_get_logging_filters_ret ();
+extern bool_t xdr_admin_connect_set_logging_outputs_args ();
+extern bool_t xdr_admin_connect_set_logging_filters_args ();
 extern bool_t xdr_admin_procedure ();
 
 #endif /* K&R C */

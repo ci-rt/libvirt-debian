@@ -1248,6 +1248,8 @@ qemuAgentMakeStringsArray(const char **strings, unsigned int len)
 void qemuAgentNotifyEvent(qemuAgentPtr mon,
                           qemuAgentEvent event)
 {
+    virObjectLock(mon);
+
     VIR_DEBUG("mon=%p event=%d await_event=%d", mon, event, mon->await_event);
     if (mon->await_event == event) {
         mon->await_event = QEMU_AGENT_EVENT_NONE;
@@ -1257,6 +1259,8 @@ void qemuAgentNotifyEvent(qemuAgentPtr mon,
             virCondSignal(&mon->notify);
         }
     }
+
+    virObjectUnlock(mon);
 }
 
 VIR_ENUM_DECL(qemuAgentShutdownMode);
@@ -1872,6 +1876,7 @@ qemuAgentGetFSInfo(qemuAgentPtr mon, virDomainFSInfoPtr **info,
     ndata = virJSONValueArraySize(data);
     if (!ndata) {
         ret = 0;
+        *info = NULL;
         goto cleanup;
     }
     if (VIR_ALLOC_N(info_ret, ndata) < 0)

@@ -1770,6 +1770,66 @@ int virConnectRegisterCloseCallbackEnsureACL(virConnectPtr conn)
 }
 
 /* Returns: -1 on error/denied, 0 on allowed */
+int virConnectSecretEventDeregisterAnyEnsureACL(virConnectPtr conn)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckConnect(mgr, conn->driver->name, VIR_ACCESS_PERM_CONNECT_READ)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
+int virConnectSecretEventRegisterAnyEnsureACL(virConnectPtr conn)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckConnect(mgr, conn->driver->name, VIR_ACCESS_PERM_CONNECT_SEARCH_SECRETS)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: false on error/denied, true on allowed */
+bool virConnectSecretEventRegisterAnyCheckACL(virConnectPtr conn, virSecretDefPtr secret)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        virResetLastError();
+        return false;
+    }
+
+    if ((rv = virAccessManagerCheckSecret(mgr, conn->driver->name, secret, VIR_ACCESS_PERM_SECRET_GETATTR)) <= 0) {
+        virObjectUnref(mgr);
+        virResetLastError();
+        return false;
+    }
+    virObjectUnref(mgr);
+    return true;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
 int virConnectStoragePoolEventDeregisterAnyEnsureACL(virConnectPtr conn)
 {
     virAccessManagerPtr mgr;
@@ -7600,6 +7660,26 @@ int virStorageVolDownloadEnsureACL(virConnectPtr conn, virStoragePoolDefPtr pool
 
 /* Returns: -1 on error/denied, 0 on allowed */
 int virStorageVolGetInfoEnsureACL(virConnectPtr conn, virStoragePoolDefPtr pool, virStorageVolDefPtr vol)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckStorageVol(mgr, conn->driver->name, pool, vol, VIR_ACCESS_PERM_STORAGE_VOL_READ)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
+int virStorageVolGetInfoFlagsEnsureACL(virConnectPtr conn, virStoragePoolDefPtr pool, virStorageVolDefPtr vol)
 {
     virAccessManagerPtr mgr;
     int rv;

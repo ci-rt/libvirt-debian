@@ -17,12 +17,11 @@ dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 dnl
 
-AC_DEFUN([LIBVIRT_DRIVER_CHECK_BHYVE],[
-    AC_ARG_WITH([bhyve],
-      [AS_HELP_STRING([--with-bhyve],
-        [add BHyVe support @<:@default=check@:>@])])
-    m4_divert_text([DEFAULTS], [with_bhyve=check])
+AC_DEFUN([LIBVIRT_DRIVER_ARG_BHYVE],[
+    LIBVIRT_ARG_WITH_FEATURE([BHYVE], [BHyVe], [check])
+])
 
+AC_DEFUN([LIBVIRT_DRIVER_CHECK_BHYVE],[
     if test "$with_bhyve" != "no"; then
         AC_PATH_PROG([BHYVE], [bhyve], [], [$PATH:/usr/sbin])
         AC_PATH_PROG([BHYVECTL], [bhyvectl], [], [$PATH:/usr/sbin])
@@ -56,5 +55,5 @@ dnl Build with gnulib's getopt which contains a reentrant interface
 AC_DEFUN([gl_REPLACE_GETOPT_ALWAYS], [])
 
 AC_DEFUN([LIBVIRT_DRIVER_RESULT_BHYVE],[
-    AC_MSG_NOTICE([    Bhyve: $with_bhyve])
+    LIBVIRT_RESULT([Bhyve], [$with_bhyve])
 ])

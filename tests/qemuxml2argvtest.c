@@ -300,6 +300,9 @@ testAddCPUModels(virQEMUCapsPtr caps, bool skipLegacy)
     const char *ppc64Models[] = {
         "POWER8", "POWER7",
     };
+    const char *s390xModels[] = {
+        "z990", "zEC12", "z13",
+    };
 
     if (ARCH_IS_X86(arch)) {
         if (virQEMUCapsAddCPUDefinitions(caps, VIR_DOMAIN_VIRT_KVM, x86Models,
@@ -335,6 +338,11 @@ testAddCPUModels(virQEMUCapsPtr caps, bool skipLegacy)
                                          VIR_DOMCAPS_CPU_USABLE_UNKNOWN) < 0 ||
             virQEMUCapsAddCPUDefinitions(caps, VIR_DOMAIN_VIRT_QEMU, ppc64Models,
                                          ARRAY_CARDINALITY(ppc64Models),
+                                         VIR_DOMCAPS_CPU_USABLE_UNKNOWN) < 0)
+            return -1;
+    } else if (ARCH_IS_S390(arch)) {
+        if (virQEMUCapsAddCPUDefinitions(caps, VIR_DOMAIN_VIRT_KVM, s390xModels,
+                                         ARRAY_CARDINALITY(s390xModels),
                                          VIR_DOMCAPS_CPU_USABLE_UNKNOWN) < 0)
             return -1;
     }
@@ -975,6 +983,14 @@ mymain(void)
     DO_TEST_PARSE_ERROR("disk-same-targets",
                         QEMU_CAPS_SCSI_LSI,
                         QEMU_CAPS_DEVICE_USB_STORAGE, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST_PARSE_ERROR("disk-drive-address-conflict",
+                        QEMU_CAPS_ICH9_AHCI);
+    DO_TEST_PARSE_ERROR("disk-hostdev-scsi-address-conflict",
+                        QEMU_CAPS_VIRTIO_SCSI,
+                        QEMU_CAPS_DEVICE_SCSI_GENERIC);
+    DO_TEST_PARSE_ERROR("hostdevs-drive-address-conflict",
+                        QEMU_CAPS_VIRTIO_SCSI,
+                        QEMU_CAPS_DEVICE_SCSI_GENERIC);
     DO_TEST("event_idx",
             QEMU_CAPS_VIRTIO_BLK_EVENT_IDX,
             QEMU_CAPS_VIRTIO_NET_EVENT_IDX,
@@ -987,6 +1003,14 @@ mymain(void)
     DO_TEST("disk-serial",
             QEMU_CAPS_KVM,
             QEMU_CAPS_DRIVE_SERIAL);
+    DO_TEST_PARSE_ERROR("disk-fdc-incompatible-address",
+                        NONE);
+    DO_TEST_PARSE_ERROR("disk-ide-incompatible-address",
+                        NONE);
+    DO_TEST_PARSE_ERROR("disk-sata-incompatible-address",
+                        QEMU_CAPS_ICH9_AHCI);
+    DO_TEST_PARSE_ERROR("disk-scsi-incompatible-address",
+                        QEMU_CAPS_VIRTIO_SCSI);
 
     DO_TEST("graphics-vnc", QEMU_CAPS_VNC, QEMU_CAPS_DEVICE_CIRRUS_VGA);
     DO_TEST("graphics-vnc-socket", QEMU_CAPS_VNC, QEMU_CAPS_DEVICE_CIRRUS_VGA);
@@ -1504,6 +1528,12 @@ mymain(void)
     DO_TEST_FAILURE("cpu-host-passthrough", NONE);
     DO_TEST_FAILURE("cpu-qemu-host-passthrough", QEMU_CAPS_KVM);
 
+    qemuTestSetHostArch(driver.caps, VIR_ARCH_S390X);
+    DO_TEST("cpu-s390-zEC12", QEMU_CAPS_KVM, QEMU_CAPS_VIRTIO_CCW, QEMU_CAPS_VIRTIO_S390);
+    DO_TEST("cpu-s390-features", QEMU_CAPS_KVM, QEMU_CAPS_QUERY_CPU_MODEL_EXPANSION);
+    DO_TEST_FAILURE("cpu-s390-features", QEMU_CAPS_KVM);
+    qemuTestSetHostArch(driver.caps, VIR_ARCH_NONE);
+
     qemuTestSetHostCPU(driver.caps, cpuHaswell);
     DO_TEST("cpu-Haswell", QEMU_CAPS_KVM);
     DO_TEST("cpu-Haswell2", QEMU_CAPS_KVM);
@@ -1562,6 +1592,10 @@ mymain(void)
     DO_TEST("blkdeviotune-max",
             QEMU_CAPS_DRIVE_IOTUNE,
             QEMU_CAPS_DRIVE_IOTUNE_MAX);
+    DO_TEST("blkdeviotune-group-num",
+            QEMU_CAPS_DRIVE_IOTUNE,
+            QEMU_CAPS_DRIVE_IOTUNE_MAX,
+            QEMU_CAPS_DRIVE_IOTUNE_GROUP);
     DO_TEST("blkdeviotune-max-length",
             QEMU_CAPS_DRIVE_IOTUNE,
             QEMU_CAPS_DRIVE_IOTUNE_MAX,
@@ -1904,6 +1938,29 @@ mymain(void)
             QEMU_CAPS_ICH9_USB_EHCI1,
             QEMU_CAPS_NEC_USB_XHCI,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY);
+    DO_TEST("q35-multifunction",
+            QEMU_CAPS_VIRTIO_PCI_DISABLE_LEGACY,
+            QEMU_CAPS_DEVICE_VIRTIO_RNG,
+            QEMU_CAPS_OBJECT_RNG_RANDOM,
+            QEMU_CAPS_NETDEV,
+            QEMU_CAPS_DEVICE_VIRTIO_NET,
+            QEMU_CAPS_DEVICE_VIRTIO_GPU,
+            QEMU_CAPS_VIRTIO_GPU_VIRGL,
+            QEMU_CAPS_VIRTIO_KEYBOARD,
+            QEMU_CAPS_VIRTIO_MOUSE,
+            QEMU_CAPS_VIRTIO_TABLET,
+            QEMU_CAPS_VIRTIO_INPUT_HOST,
+            QEMU_CAPS_VIRTIO_SCSI,
+            QEMU_CAPS_FSDEV,
+            QEMU_CAPS_FSDEV_WRITEOUT,
+            QEMU_CAPS_DEVICE_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_IOH3420,
+            QEMU_CAPS_ICH9_AHCI,
+            QEMU_CAPS_PCI_MULTIFUNCTION,
+            QEMU_CAPS_ICH9_USB_EHCI1,
+            QEMU_CAPS_NEC_USB_XHCI,
+            QEMU_CAPS_DEVICE_VIDEO_PRIMARY);
     DO_TEST("q35-virt-manager-basic",
             QEMU_CAPS_KVM,
             QEMU_CAPS_RTC,
@@ -1943,6 +2000,7 @@ mymain(void)
             QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
             QEMU_CAPS_DEVICE_IOH3420,
             QEMU_CAPS_ICH9_AHCI,
+            QEMU_CAPS_PCI_MULTIFUNCTION,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
             QEMU_CAPS_DEVICE_QXL);
     DO_TEST("autoindex",
@@ -1986,6 +2044,7 @@ mymain(void)
             QEMU_CAPS_DEVICE_IOH3420,
             QEMU_CAPS_DEVICE_X3130_UPSTREAM,
             QEMU_CAPS_ICH9_AHCI,
+            QEMU_CAPS_PCI_MULTIFUNCTION,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
             QEMU_CAPS_DEVICE_QXL);
     DO_TEST("pcie-switch-downstream-port",
@@ -2115,9 +2174,11 @@ mymain(void)
        specified. */
     DO_TEST("aarch64-virtio-pci-default",
             QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_DTB,
+            QEMU_CAPS_VIRTIO_PCI_DISABLE_LEGACY,
             QEMU_CAPS_DEVICE_VIRTIO_MMIO,
             QEMU_CAPS_DEVICE_VIRTIO_RNG, QEMU_CAPS_OBJECT_RNG_RANDOM,
             QEMU_CAPS_OBJECT_GPEX, QEMU_CAPS_DEVICE_PCI_BRIDGE,
+            QEMU_CAPS_PCI_MULTIFUNCTION,
             QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
             QEMU_CAPS_DEVICE_IOH3420);
     DO_TEST("aarch64-virt-2.6-virtio-pci-default",
@@ -2125,6 +2186,7 @@ mymain(void)
             QEMU_CAPS_DEVICE_VIRTIO_MMIO,
             QEMU_CAPS_DEVICE_VIRTIO_RNG, QEMU_CAPS_OBJECT_RNG_RANDOM,
             QEMU_CAPS_OBJECT_GPEX, QEMU_CAPS_DEVICE_PCI_BRIDGE,
+            QEMU_CAPS_PCI_MULTIFUNCTION,
             QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
             QEMU_CAPS_DEVICE_IOH3420);
     /* Example of using virtio-pci with no explicit PCI controller
@@ -2134,6 +2196,7 @@ mymain(void)
             QEMU_CAPS_DEVICE_VIRTIO_MMIO,
             QEMU_CAPS_DEVICE_VIRTIO_RNG, QEMU_CAPS_OBJECT_RNG_RANDOM,
             QEMU_CAPS_OBJECT_GPEX, QEMU_CAPS_DEVICE_PCI_BRIDGE,
+            QEMU_CAPS_PCI_MULTIFUNCTION,
             QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
             QEMU_CAPS_DEVICE_IOH3420,
             QEMU_CAPS_VIRTIO_SCSI);
@@ -2240,10 +2303,9 @@ mymain(void)
             QEMU_CAPS_KVM);
     qemuTestSetHostArch(driver.caps, VIR_ARCH_NONE);
 
-    DO_TEST("kvm-pit-device", QEMU_CAPS_KVM_PIT_TICK_POLICY);
-    DO_TEST("kvm-pit-delay", QEMU_CAPS_NO_KVM_PIT);
-    DO_TEST("kvm-pit-device", QEMU_CAPS_NO_KVM_PIT,
-            QEMU_CAPS_KVM_PIT_TICK_POLICY);
+    DO_TEST("kvm-pit-delay", QEMU_CAPS_KVM_PIT_TICK_POLICY);
+    DO_TEST("kvm-pit-discard", QEMU_CAPS_KVM_PIT_TICK_POLICY);
+    DO_TEST("no-kvm-pit-device", QEMU_CAPS_NO_KVM_PIT);
 
     DO_TEST("panic", QEMU_CAPS_DEVICE_PANIC,
             QEMU_CAPS_NODEFCONFIG);

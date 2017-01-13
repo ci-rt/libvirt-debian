@@ -380,8 +380,8 @@
       <code>pool</code> element for some types of pools (pool
       types <code>dir</code>, <code>fs</code>, <code>netfs</code>,
       <code>logical</code>, <code>disk</code>, <code>iscsi</code>,
-      <code>scsi</code>, <code>mpath</code>). This tag is used to
-      describe the mapping of
+      <code>scsi</code>, <code>mpath</code>, <code>zfs</code>).
+      This tag is used to describe the mapping of
       the storage pool into the host filesystem. It can contain the following
       child elements:
     </p>
@@ -396,14 +396,6 @@
       &lt;mode&gt;0744&lt;/mode&gt;
       &lt;label&gt;virt_image_t&lt;/label&gt;
     &lt;/permissions&gt;
-    &lt;timestamps&gt;
-      &lt;atime&gt;1341933637.273190990&lt;/atime&gt;
-      &lt;mtime&gt;1341930622.047245868&lt;/mtime&gt;
-      &lt;ctime&gt;1341930622.047245868&lt;/ctime&gt;
-    &lt;/timestamps&gt;
-    &lt;encryption type='...'&gt;
-      ...
-    &lt;/encryption&gt;
   &lt;/target&gt;
 &lt;/pool&gt;</pre>
 
@@ -419,6 +411,8 @@
         guaranteed stable across reboots, since they are allocated on
         demand. It is preferable to use a stable location such as one
         of the <code>/dev/disk/by-{path|id|uuid|label}</code> locations.
+        For <code>logical</code> and <code>zfs</code> pool types, a
+        provided value is ignored and a default path generated.
         For a Multipath pool (type <code>mpath</code>), the provided
         value is ignored and the default value of "/dev/mapper" is used.
         <span class="since">Since 0.4.1</span>
@@ -556,6 +550,11 @@
         specified with the same semantics as for <code>allocation</code>
         This is compulsory when creating a volume.
         <span class="since">Since 0.4.1</span></dd>
+      <dt><code>physical</code></dt>
+      <dd>This output only element provides the host physical size of
+        the target storage volume. The default output <code>unit</code>
+        will be in bytes.
+        <span class="since">Since 3.0.0</span></dd>
       <dt><code>source</code></dt>
       <dd>Provides information about the underlying storage allocation
         of the volume. This may not be available for some pool types.
@@ -585,6 +584,14 @@
     &lt;mode&gt;0744&lt;/mode&gt;
     &lt;label&gt;virt_image_t&lt;/label&gt;
   &lt;/permissions&gt;
+  &lt;timestamps&gt;
+    &lt;atime&gt;1341933637.273190990&lt;/atime&gt;
+    &lt;mtime&gt;1341930622.047245868&lt;/mtime&gt;
+    &lt;ctime&gt;1341930622.047245868&lt;/ctime&gt;
+  &lt;/timestamps&gt;
+  &lt;encryption type='...'&gt;
+    ...
+  &lt;/encryption&gt;
   &lt;compat&gt;1.1&lt;/compat&gt;
   &lt;nocow/&gt;
   &lt;features&gt;

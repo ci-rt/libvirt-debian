@@ -20,6 +20,7 @@
           <th>Releases</th>
           <th>GIT Repo</th>
           <th>GIT Mirrors</th>
+          <th>Resources</th>
         </tr>
       </thead>
       <tbody>
@@ -36,6 +37,10 @@
           <td>
             <a href="https://gitlab.com/libvirt/libvirt">gitlab</a>
             <a href="https://github.com/libvirt/libvirt">github</a>
+          </td>
+          <td>
+            <a href="html/index.html">api ref</a>
+            <a href="news.html">changes</a>
           </td>
         </tr>
         <tr>
@@ -55,6 +60,25 @@
             <a href="https://gitlab.com/libvirt/libvirt-csharp">gitlab</a>
             <a href="https://github.com/libvirt/libvirt-csharp">github</a>
           </td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>Go</td>
+          <td>
+            <a href="ftp://libvirt.org/libvirt/go/">ftp</a>
+            <a href="http://libvirt.org/sources/go/">http</a>
+            <a href="https://libvirt.org/sources/go/">https</a>
+          </td>
+          <td>
+            <a href="http://libvirt.org/git/?p=libvirt-go.git;a=summary">libvirt</a>
+          </td>
+          <td>
+            <a href="https://gitlab.com/libvirt/libvirt-go">gitlab</a>
+            <a href="https://github.com/libvirt/libvirt-go">github</a>
+          </td>
+          <td>
+            <a href="https://godoc.org/github.com/libvirt/libvirt-go">api ref</a>
+          </td>
         </tr>
         <tr>
           <td>Java</td>
@@ -70,6 +94,7 @@
             <a href="https://gitlab.com/libvirt/libvirt-java">gitlab</a>
             <a href="https://github.com/libvirt/libvirt-java">github</a>
           </td>
+          <td></td>
         </tr>
         <tr>
           <td>OCaml</td>
@@ -85,6 +110,7 @@
             <a href="https://gitlab.com/libvirt/libvirt-ocaml">gitlab</a>
             <a href="https://github.com/libvirt/libvirt-ocaml">github</a>
           </td>
+          <td></td>
         </tr>
         <tr>
           <td>Perl (Sys::Virt)</td>
@@ -97,6 +123,10 @@
           <td>
             <a href="https://gitlab.com/libvirt/libvirt-perl">gitlab</a>
             <a href="https://github.com/libvirt/libvirt-perl">github</a>
+          </td>
+          <td>
+            <a href="http://search.cpan.org/dist/Sys-Virt/">api ref</a>
+            <a href="http://libvirt.org/git/?p=libvirt-perl.git;a=blob;f=Changes;hb=HEAD">changes</a>
           </td>
         </tr>
         <tr>
@@ -113,6 +143,7 @@
             <a href="https://gitlab.com/libvirt/libvirt-php">gitlab</a>
             <a href="https://github.com/libvirt/libvirt-php">github</a>
           </td>
+          <td></td>
         </tr>
         <tr>
           <td>Python</td>
@@ -129,6 +160,7 @@
             <a href="https://gitlab.com/libvirt/libvirt-python">gitlab</a>
             <a href="https://github.com/libvirt/libvirt-python">github</a>
           </td>
+          <td></td>
         </tr>
         <tr>
           <td>Ruby</td>
@@ -144,6 +176,7 @@
             <a href="https://gitlab.com/libvirt/ruby-libvirt">gitlab</a>
             <a href="https://github.com/libvirt/ruby-libvirt">github</a>
           </td>
+          <td></td>
         </tr>
         <tr>
           <th colspan="7">Integration modules</th>
@@ -162,6 +195,7 @@
             <a href="https://gitlab.com/libvirt/libvirt-glib">gitlab</a>
             <a href="https://github.com/libvirt/libvirt-glib">github</a>
           </td>
+          <td></td>
         </tr>
         <tr>
           <td>CIM provider</td>
@@ -177,6 +211,7 @@
             <a href="https://gitlab.com/libvirt/libvirt-cim">gitlab</a>
             <a href="https://github.com/libvirt/libvirt-cim">github</a>
           </td>
+          <td></td>
         </tr>
         <tr>
           <td>CIM utils</td>
@@ -192,6 +227,7 @@
             <a href="https://gitlab.com/libvirt/libcmpiutil">gitlab</a>
             <a href="https://github.com/libvirt/libcmpiutil">github</a>
           </td>
+          <td></td>
         </tr>
         <tr>
           <td>SNMP</td>
@@ -207,6 +243,7 @@
             <a href="https://gitlab.com/libvirt/libvirt-snmp">gitlab</a>
             <a href="https://github.com/libvirt/libvirt-snmp">github</a>
           </td>
+          <td></td>
         </tr>
         <tr>
           <td>Application Sandbox</td>
@@ -222,6 +259,7 @@
             <a href="https://gitlab.com/libvirt/libvirt-sandbox">gitlab</a>
             <a href="https://github.com/libvirt/libvirt-sandbox">github</a>
           </td>
+          <td></td>
         </tr>
         <tr>
           <th colspan="7">Testing</th>
@@ -240,6 +278,7 @@
             <a href="https://gitlab.com/libvirt/libvirt-tck">gitlab</a>
             <a href="https://github.com/libvirt/libvirt-tck">github</a>
           </td>
+          <td></td>
         </tr>
         <tr>
           <td>Test API</td>
@@ -251,6 +290,7 @@
             <a href="https://gitlab.com/libvirt/libvirt-test-API">gitlab</a>
             <a href="https://github.com/libvirt/libvirt-test-API">github</a>
           </td>
+          <td></td>
         </tr>
         <tr>
           <td>Jenkins Config</td>
@@ -262,6 +302,7 @@
             <a href="https://gitlab.com/libvirt/libvirt-jenkins-ci">gitlab</a>
             <a href="https://github.com/libvirt/libvirt-jenkins-ci">github</a>
           </td>
+          <td></td>
         </tr>
         <tr>
           <td>CIM Test</td>
@@ -273,6 +314,7 @@
             <a href="https://gitlab.com/libvirt/cimtest">gitlab</a>
             <a href="https://github.com/libvirt/cimtest">github</a>
           </td>
+          <td></td>
         </tr>
         <tr>
           <th colspan="7">Documentation</th>
@@ -287,6 +329,7 @@
             <a href="https://gitlab.com/libvirt/libvirt-publican">gitlab</a>
             <a href="https://github.com/libvirt/libvirt-publican">github</a>
           </td>
+          <td></td>
         </tr>
         <tr>
           <td>App Development Guide</td>
@@ -298,6 +341,7 @@
             <a href="https://gitlab.com/libvirt/libvirt-appdev-guide">gitlab</a>
             <a href="https://github.com/libvirt/libvirt-appdev-guide">github</a>
           </td>
+          <td></td>
         </tr>
         <tr>
           <td>App Development Guide Python</td>
@@ -309,6 +353,7 @@
             <a href="https://gitlab.com/libvirt/libvirt-appdev-guide-python">gitlab</a>
             <a href="https://github.com/libvirt/libvirt-appdev-guide-python">github</a>
           </td>
+          <td></td>
         </tr>
         <tr>
           <td>virsh Command Reference</td>
@@ -320,6 +365,7 @@
             <a href="https://gitlab.com/libvirt/libvirt-virshcmdref">gitlab</a>
             <a href="https://github.com/libvirt/libvirt-virshcmdref">github</a>
           </td>
+          <td></td>
         </tr>
       </tbody>
     </table>

@@ -226,8 +226,8 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 2.5.0
-Release: 1%{?dist}%{?extra_release}
+Version: 3.0.0
+Release: 0rc1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -236,7 +236,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
     %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.xz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc1.tar.xz
 
 Requires: libvirt-daemon = %{version}-%{release}
 Requires: libvirt-daemon-config-network = %{version}-%{release}
@@ -1842,6 +1842,8 @@ exit 0
 
 %{_datadir}/libvirt/cpu_map.xml
 
+%{_datadir}/libvirt/test-screenshot.png
+
 %config(noreplace) %{_sysconfdir}/sasl2/libvirt.conf
 
 %files admin
@@ -1856,6 +1858,7 @@ exit 0
 
 %files nss
 %{_libdir}/libnss_libvirt.so.2
+%{_libdir}/libnss_libvirt_guest.so.2
 
 %if %{with_lxc}
 %files login-shell

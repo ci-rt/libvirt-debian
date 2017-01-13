@@ -289,6 +289,17 @@ networkRadvdConfigFileName(virNetworkDriverStatePtr driver,
     return configfile;
 }
 
+static char *
+networkMacMgrFileName(virNetworkDriverStatePtr driver,
+                      const char *bridge)
+{
+    char *filename;
+
+    ignore_value(virAsprintf(&filename, "%s/%s.macs",
+                             driver->dnsmasqStateDir, bridge));
+    return filename;
+}
+
 /* do needed cleanup steps and remove the network from the list */
 static int
 networkRemoveInactive(virNetworkDriverStatePtr driver,
@@ -300,6 +311,7 @@ networkRemoveInactive(virNetworkDriverStatePtr driver,
     char *configfile = NULL;
     char *radvdpidbase = NULL;
     char *statusfile = NULL;
+    char *macMapFile = NULL;
     dnsmasqContext *dctx = NULL;
     virNetworkDefPtr def = virNetworkObjGetPersistentDef(net);
 
@@ -329,11 +341,17 @@ networkRemoveInactive(virNetworkDriverStatePtr driver,
     if (!(statusfile = virNetworkConfigFile(driver->stateDir, def->name)))
         goto cleanup;
 
+    if (!(macMapFile = networkMacMgrFileName(driver, def->bridge)))
+        goto cleanup;
+
     /* dnsmasq */
     dnsmasqDelete(dctx);
     unlink(leasefile);
     unlink(customleasefile);
     unlink(configfile);
+
+    /* MAC map manager */
+    unlink(macMapFile);
 
     /* radvd */
     unlink(radvdconfigfile);
@@ -354,7 +372,68 @@ networkRemoveInactive(virNetworkDriverStatePtr driver,
     VIR_FREE(radvdconfigfile);
     VIR_FREE(radvdpidbase);
     VIR_FREE(statusfile);
+    VIR_FREE(macMapFile);
     dnsmasqContextFree(dctx);
+    return ret;
+}
+
+static int
+networkMacMgrAdd(virNetworkDriverStatePtr driver,
+                 virNetworkObjPtr network,
+                 const char *domain,
+                 const virMacAddr *mac)
+{
+    char macStr[VIR_MAC_STRING_BUFLEN];
+    char *file = NULL;
+    int ret = -1;
+
+    if (!network->macmap)
+        return 0;
+
+    virMacAddrFormat(mac, macStr);
+
+    if (!(file = networkMacMgrFileName(driver, network->def->bridge)))
+        goto cleanup;
+
+    if (virMacMapAdd(network->macmap, domain, macStr) < 0)
+        goto cleanup;
+
+    if (virMacMapWriteFile(network->macmap, file) < 0)
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(file);
+    return ret;
+}
+
+static int
+networkMacMgrDel(virNetworkDriverStatePtr driver,
+                 virNetworkObjPtr network,
+                 const char *domain,
+                 const virMacAddr *mac)
+{
+    char macStr[VIR_MAC_STRING_BUFLEN];
+    char *file = NULL;
+    int ret = -1;
+
+    if (!network->macmap)
+        return 0;
+
+    virMacAddrFormat(mac, macStr);
+
+    if (!(file = networkMacMgrFileName(driver, network->def->bridge)))
+        goto cleanup;
+
+    if (virMacMapRemove(network->macmap, domain, macStr) < 0)
+        goto cleanup;
+
+    if (virMacMapWriteFile(network->macmap, file) < 0)
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(file);
     return ret;
 }
 
@@ -430,11 +509,13 @@ networkUpdateState(virNetworkObjPtr obj,
     /* Try and read dnsmasq/radvd pids of active networks */
     if (obj->active && obj->def->ips && (obj->def->nips > 0)) {
         char *radvdpidbase;
+        char *macMapFile;
 
         ignore_value(virPidFileReadIfAlive(driver->pidDir,
                                            obj->def->name,
                                            &obj->dnsmasqPid,
                                            dnsmasqCapsGetBinaryPath(dnsmasq_caps)));
+
         radvdpidbase = networkRadvdPidfileBasename(obj->def->name);
         if (!radvdpidbase)
             goto cleanup;
@@ -443,6 +524,17 @@ networkUpdateState(virNetworkObjPtr obj,
                                            radvdpidbase,
                                            &obj->radvdPid, RADVD));
         VIR_FREE(radvdpidbase);
+
+        if (!(macMapFile = networkMacMgrFileName(driver, obj->def->bridge)))
+            goto cleanup;
+
+        if (virFileExists(macMapFile) &&
+            !(obj->macmap = virMacMapNew(macMapFile))) {
+            VIR_FREE(macMapFile);
+            goto cleanup;
+        }
+
+        VIR_FREE(macMapFile);
     }
 
     ret = 0;
@@ -718,8 +810,6 @@ networkStateInitialize(bool privileged,
     return ret;
 
  error:
-    if (network_driver)
-        networkDriverUnlock(network_driver);
     networkStateCleanup();
     goto cleanup;
 }
@@ -904,6 +994,43 @@ networkBuildDnsmasqHostsList(dnsmasqContext *dctx,
 }
 
 
+static int
+networkDnsmasqConfLocalPTRs(virBufferPtr buf,
+                            virNetworkDefPtr def)
+{
+    virNetworkIPDefPtr ip;
+    size_t i;
+    char *ptr = NULL;
+    int rc;
+
+    for (i = 0; i < def->nips; i++) {
+        ip = def->ips + i;
+
+        if (ip->localPTR != VIR_TRISTATE_BOOL_YES)
+            continue;
+
+        if ((rc = virSocketAddrPTRDomain(&ip->address,
+                                         virNetworkIPDefPrefix(ip),
+                                         &ptr)) < 0) {
+            if (rc == -2) {
+                int family = VIR_SOCKET_ADDR_FAMILY(&ip->address);
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("PTR domain for %s network with prefix %u "
+                                 "cannot be automatically created"),
+                               (family == AF_INET) ? "IPv4" : "IPv6",
+                               virNetworkIPDefPrefix(ip));
+            }
+            return -1;
+        }
+
+        virBufferAsprintf(buf, "local=/%s/\n", ptr);
+        VIR_FREE(ptr);
+    }
+
+    return 0;
+}
+
+
 int
 networkDnsmasqConfContents(virNetworkObjPtr network,
                            const char *pidfile,
@@ -938,6 +1065,8 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
      */
 
     /* create dnsmasq config file appropriate for this network */
+
+    /* Don't forget to update networkxml2conftest :-) */
     virBufferAsprintf(&configbuf,
                       "##WARNING:  THIS IS AN AUTO-GENERATED FILE. "
                       "CHANGES TO IT ARE LIKELY TO BE\n"
@@ -988,6 +1117,10 @@ networkDnsmasqConfContents(virNetworkObjPtr network,
                           "expand-hosts\n",
                           network->def->domain);
     }
+
+    if (wantDNS &&
+        networkDnsmasqConfLocalPTRs(&configbuf, network->def) < 0)
+        goto cleanup;
 
     if (wantDNS && network->def->dns.forwardPlainNames == VIR_TRISTATE_BOOL_NO) {
         virBufferAddLit(&configbuf, "domain-needed\n");
@@ -2129,6 +2262,7 @@ networkStartNetworkVirtual(virNetworkDriverStatePtr driver,
     virNetworkIPDefPtr ipdef;
     virNetDevIPRoutePtr routedef;
     char *macTapIfName = NULL;
+    char *macMapFile = NULL;
     int tapfd = -1;
 
     /* Check to see if any network IP collides with an existing route */
@@ -2174,6 +2308,10 @@ networkStartNetworkVirtual(virNetworkDriverStatePtr driver,
             goto err0;
         }
     }
+
+    if (!(macMapFile = networkMacMgrFileName(driver, network->def->bridge)) ||
+        !(network->macmap = virMacMapNew(macMapFile)))
+        goto err1;
 
     /* Set bridge options */
 
@@ -2274,6 +2412,7 @@ networkStartNetworkVirtual(virNetworkDriverStatePtr driver,
         goto err5;
 
     VIR_FREE(macTapIfName);
+    VIR_FREE(macMapFile);
 
     return 0;
 
@@ -2310,6 +2449,7 @@ networkStartNetworkVirtual(virNetworkDriverStatePtr driver,
         ignore_value(virNetDevTapDelete(macTapIfName, NULL));
         VIR_FREE(macTapIfName);
     }
+    VIR_FREE(macMapFile);
 
  err0:
     if (!save_err)
@@ -2330,6 +2470,8 @@ networkShutdownNetworkVirtual(virNetworkDriverStatePtr driver,
 {
     if (network->def->bandwidth)
         virNetDevBandwidthClear(network->def->bridge);
+
+    virObjectUnref(network->macmap);
 
     if (network->radvdPid > 0) {
         char *radvdpidbase;
@@ -4355,6 +4497,9 @@ networkAllocateActualDevice(virDomainDefPtr dom,
         }
     }
 
+    if (networkMacMgrAdd(driver, network, dom->name, &iface->mac) < 0)
+        goto error;
+
     if (virNetDevVPortProfileCheckComplete(virtport, true) < 0)
         goto error;
 
@@ -4741,6 +4886,8 @@ networkReleaseActualDevice(virDomainDefPtr dom,
     }
 
  success:
+    networkMacMgrDel(driver, network, dom->name, &iface->mac);
+
     if (iface->data.network.actual) {
         netdef->connections--;
         if (dev)

@@ -440,7 +440,7 @@ running B<virsh suspend>.  When in a paused state the domain will still
 consume allocated resources like memory, but will not be eligible for
 scheduling by the hypervisor.
 
-=item B<shutdown>
+=item B<in shutdown>
 
 The domain is in the process of shutting down, i.e. the guest operating system
 has been notified and should be in the process of stopping its operations
@@ -456,11 +456,6 @@ shut down completely, or has not been started.
 The domain has crashed, which is always a violent ending.  Usually
 this state can only occur if the domain has been configured not to
 restart on crash.
-
-=item B<dying>
-
-The domain is in process of dying, but hasn't completely shutdown or
-crashed.
 
 =item B<pmsuspended>
 
@@ -529,9 +524,8 @@ output should be used. This is the default.
 If both I<--name> and I<--uuid> are specified, domain UUID's and names
 are printed side by side without any header. Flag I<--table> specifies
 that the legacy table-formatted output should be used. This is the
-default if neither I<--name> nor I<--uuid> are specified. Options
-I<--uuid> and I<--name> are mutually exclusive if option I<--table> is
-specified.
+default if neither I<--name> nor I<--uuid> are specified. Option
+I<--table> is mutually exclusive with options I<--uuid> and I<--name>.
 
 If I<--title> is specified, then the short domain description (title) is
 printed in an extra column. This flag is usable only with the default
@@ -945,7 +939,14 @@ I<--perf> returns the statistics of all enabled perf events:
 "perf.cpu_cycles" - the count of cpu cycles (total/elapsed),
 "perf.instructions" - the count of instructions,
 "perf.cache_references" - the count of cache hits,
-"perf.cache_misses" - the count of caches misses
+"perf.cache_misses" - the count of caches misses,
+"perf.branch_instructions" - the count of branch instructions,
+"perf.branch_misses" - the count of branch misses,
+"perf.bus_cycles" - the count of bus cycles,
+"perf.stalled_cycles_frontend" - the count of stalled frontend cpu cycles,
+"perf.stalled_cycles_backend" - the count of stalled backend cpu cycles,
+"perf.ref_cpu_cycles" - the count of ref cpu cycles,
+"perf.cache_l1d" - the count of level 1 data cache
 
 See the B<perf> command for more details about each event.
 
@@ -1139,7 +1140,7 @@ command.
 [I<read-bytes-sec-max-length>] [I<write-bytes-sec-max-length>]]
 [[I<total-iops-sec-max-length>] |
 [I<read-iops-sec-max-length>] [I<write-iops-sec-max-length>]]
-[I<size-iops-sec>]
+[I<size-iops-sec>] [I<group_name>]
 
 Set or query the block disk io parameters for a block device of I<domain>.
 I<device> specifies a unique target name (<target dev='name'/>) or source
@@ -1179,6 +1180,9 @@ read I/O operations limit.
 I<--write-iops-sec-max-length> specifies duration in seconds to allow maximum
 write I/O operations limit.
 I<--size-iops-sec> specifies size I/O operations limit per second.
+I<--group_name> specifies group name to share I/O quota between multiple drives.
+For a qemu domain, if no name is provided, then the default is to have a single
+group for each I<device>.
 
 Older versions of virsh only accepted these options with underscore
 instead of dash, as in I<--total_bytes_sec>.
@@ -1664,7 +1668,7 @@ periodically increased by I<auto-converge-increment>.
 
 I<--rdma-pin-all> can be used with RDMA migration (i.e., when I<migrateuri>
 starts with rdma://) to tell the hypervisor to pin all domain's memory at once
-before migration starts rather then letting it pin memory pages as needed.
+before migration starts rather than letting it pin memory pages as needed.
 
 B<Note>: Individual hypervisors usually do not support all possible types of
 migration. For example, QEMU does not support direct migration.
@@ -2265,7 +2269,7 @@ including context-switches, minor-faults, etc.. Now dozens of events
 from different sources can be supported by perf.
 
 Currently only QEMU/KVM supports this command. The I<--enable> and I<--disable>
-option combined with B<eventSpec> can be used to enabled or disable specific
+option combined with B<eventSpec> can be used to enable or disable specific
 performance event. B<eventSpec> is a string list of one or more events
 separated by commas. Valid event names are as follows:
 
@@ -2289,6 +2293,26 @@ B<Valid perf event names>
                      (total/elapsed). May be used with
                      instructions in order to get a cycles
                      per instruction.
+  branch_instructions - Provides the count of branch instructions
+                        executed by applications running on the
+                        platform.
+  branch_misses    - Provides the count of branch misses executed
+                     by applications running on the platform.
+  bus_cycles       - Provides the count of bus cycles executed
+                     by applications running on the platform.
+  stalled_cycles_frontend - Provides the count of stalled cpu
+                            cycles in the frontend of the
+                            instruction processor pipeline by
+                            applications running on the platform.
+  stalled_cycles_backend - Provides the count of stalled cpu
+                           cycles in the backend of the
+                           instruction processor pipeline by
+                           applications running on the platform.
+  ref_cpu_cycles   -  Provides the count of total cpu cycles
+                      not affected by CPU frequency scaling by
+                      applications running on the platform.
+  cache_l1d - Provides the count of total level 1 data cache
+              by applications running on the platform.
 
 B<Note>: The statistics can be retrieved using the B<domstats> command using
 the I<--perf> flag.
@@ -3442,20 +3466,34 @@ Configure whether I<pool> should automatically start at boot.
 Build a given pool.
 
 Options I<--overwrite> and I<--no-overwrite> can only be used for
-B<pool-build> a filesystem or disk pool. For a file system pool if
-neither of them is specified, B<pool-build> makes the directory. If
-I<--no-overwrite> is specified, it probes to determine if a
-filesystem already exists on the target device, returning an error
-if exists, or using mkfs to format the target device if not. If
-I<--overwrite> is specified, mkfs is always executed and any existing
-data on the target device is overwritten unconditionally. For a disk
-pool, if neither of them is specified or I<--no-overwrite> is specified,
-B<pool-build> will use 'parted --print' in order to determine if the
-disk already has a label before attempting to create one. Only if a disk
-does not already have one will a label be created. If I<--overwrite> is
-specified or it's been determined that the disk doesn't already have one,
-'parted mklabel' will be used to create a label of the format specified
-by the pool source format type or "dos" if not specified for the pool.
+B<pool-build> a filesystem, disk, or logical pool.
+
+For a file system pool if neither flag is specified, then B<pool-build>
+just makes the target path directory and no attempt to run mkfs on the
+target volume device. If I<--no-overwrite> is specified, it probes to
+determine if a filesystem already exists on the target device, returning
+an error if one exists or using mkfs to format the target device if not.
+If I<--overwrite> is specified, mkfs is always executed and any existing
+data on the target device is overwritten unconditionally.
+
+For a disk pool, if neither of them is specified or I<--no-overwrite>
+is specified, B<pool-build> will check the target volume device for
+existing filesystems or partitions before attempting to write a new
+label on the target volume device. If the target volume device already
+has a label, the command will fail. If I<--overwrite> is specified,
+then no check will be made on the target volume device prior to writing
+a new label. Writing of the label uses the pool source format type
+or "dos" if not specified.
+
+For a logical pool, if neither of them is specified or I<--no-overwrite>
+is specified, B<pool-build> will check the target volume devices for
+existing filesystems or partitions before attempting to initialize
+and format each device for usage by the logical pool. If any target
+volume device already has a label, the command will fail. If
+I<--overwrite> is specified, then no check will be made on the target
+volume devices prior to initializing and formatting each device. Once
+all the target volume devices are properly formatted via pvcreate,
+the volume group will be created using all the devices.
 
 =item B<pool-create> I<file>
 [I<--build>] [[I<--overwrite>] | [I<--no-overwrite>]]
@@ -3578,9 +3616,10 @@ except that it does some error checking.
 The editor used can be supplied by the C<$VISUAL> or C<$EDITOR> environment
 variables, and defaults to C<vi>.
 
-=item B<pool-info> I<pool-or-uuid>
+=item B<pool-info> [I<--bytes>] I<pool-or-uuid>
 
-Returns basic information about the I<pool> object.
+Returns basic information about the I<pool> object. If I<--bytes> is specified the sizes
+of basic info are not converted to human friendly units.
 
 =item B<pool-list> [I<--inactive>] [I<--all>]
                    [I<--persistent>] [I<--transient>]
@@ -3852,13 +3891,17 @@ is in. I<vol-name-or-key-or-path> is the name or key or path of the volume
 to output the XML of.
 
 =item B<vol-info> [I<--pool> I<pool-or-uuid>] I<vol-name-or-key-or-path>
-[I<--bytes>]
+[I<--bytes>] [I<--physical>]
 
 Returns basic information about the given storage volume.
 I<--pool> I<pool-or-uuid> is the name or UUID of the storage pool the volume
 is in. I<vol-name-or-key-or-path> is the name or key or path of the volume
 to return information for. If I<--bytes> is specified the sizes are not
-converted to human friendly units.
+converted to human friendly units. If I<--physical> is specified, then the host
+physical size is returned and displayed instead of the allocation value. The
+physical value for some file types, such as qcow2 may have a different (larger)
+physical value than is shown for allocation. Additionally sparse files will
+have different physical and allocation values.
 
 =item B<vol-list> [I<--pool> I<pool-or-uuid>] [I<--details>]
 
@@ -3932,6 +3975,24 @@ properties defined in I<file>, without affecting the secret value.
 =item B<secret-dumpxml> I<secret>
 
 Output properties of I<secret> (specified by its UUID) as an XML dump to stdout.
+
+=item B<secret-event> {[I<secret>] I<event> [I<--loop>] [I<--timeout>
+I<seconds>] [I<--timestamp>] | I<--list>}
+
+Wait for a class of secret events to occur, and print appropriate details
+of events as they happen.  The events can optionally be filtered by
+I<secret>.  Using I<--list> as the only argument will provide a list
+of possible I<event> values known by this client, although the connection
+might not allow registering for all these events.
+
+By default, this command is one-shot, and returns success once an event
+occurs; you can send SIGINT (usually via C<Ctrl-C>) to quit immediately.
+If I<--timeout> is specified, the command gives up waiting for events
+after I<seconds> have elapsed.   With I<--loop>, the command prints all
+events until a timeout or interrupt key.
+
+When I<--timestamp> is used, a human-readable timestamp will be printed
+before the event.
 
 =item B<secret-set-value> I<secret> I<base64>
 
