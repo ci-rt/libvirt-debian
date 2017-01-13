@@ -183,6 +183,34 @@ struct admin_server_set_client_limits_args {
     unsigned int flags;
 };
 
+struct admin_connect_get_logging_outputs_args {
+    unsigned int flags;
+};
+
+struct admin_connect_get_logging_outputs_ret {
+    admin_nonnull_string outputs;
+    unsigned int noutputs;
+};
+
+struct admin_connect_get_logging_filters_args {
+    unsigned int flags;
+};
+
+struct admin_connect_get_logging_filters_ret {
+    admin_string filters;
+    unsigned int nfilters;
+};
+
+struct admin_connect_set_logging_outputs_args {
+    admin_string outputs;
+    unsigned int flags;
+};
+
+struct admin_connect_set_logging_filters_args {
+    admin_string filters;
+    unsigned int flags;
+};
+
 /* Define the program number, protocol version and procedure numbers here. */
 const ADMIN_PROGRAM = 0x06900690;
 const ADMIN_PROTOCOL_VERSION = 1;
@@ -268,5 +296,25 @@ enum admin_procedure {
     /**
      * @generate: none
      */
-    ADMIN_PROC_SERVER_SET_CLIENT_LIMITS = 13
+    ADMIN_PROC_SERVER_SET_CLIENT_LIMITS = 13,
+
+    /**
+     * @generate: none
+     */
+    ADMIN_PROC_CONNECT_GET_LOGGING_OUTPUTS = 14,
+
+    /**
+     * @generate: none
+     */
+    ADMIN_PROC_CONNECT_GET_LOGGING_FILTERS = 15,
+
+    /**
+     * @generate: both
+     */
+    ADMIN_PROC_CONNECT_SET_LOGGING_OUTPUTS = 16,
+
+    /**
+     * @generate: both
+     */
+    ADMIN_PROC_CONNECT_SET_LOGGING_FILTERS = 17
 };

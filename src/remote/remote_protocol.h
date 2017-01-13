@@ -148,6 +148,8 @@ typedef remote_nonnull_storage_vol *remote_storage_vol;
 
 typedef remote_nonnull_node_device *remote_node_device;
 
+typedef remote_nonnull_secret *remote_secret;
+
 struct remote_error {
         int code;
         int domain;
@@ -2192,6 +2194,19 @@ struct remote_storage_vol_get_info_ret {
 };
 typedef struct remote_storage_vol_get_info_ret remote_storage_vol_get_info_ret;
 
+struct remote_storage_vol_get_info_flags_args {
+        remote_nonnull_storage_vol vol;
+        u_int flags;
+};
+typedef struct remote_storage_vol_get_info_flags_args remote_storage_vol_get_info_flags_args;
+
+struct remote_storage_vol_get_info_flags_ret {
+        char type;
+        uint64_t capacity;
+        uint64_t allocation;
+};
+typedef struct remote_storage_vol_get_info_flags_ret remote_storage_vol_get_info_flags_ret;
+
 struct remote_storage_vol_get_path_args {
         remote_nonnull_storage_vol vol;
 };
@@ -4045,6 +4060,44 @@ struct remote_domain_set_guest_vcpus_args {
         u_int flags;
 };
 typedef struct remote_domain_set_guest_vcpus_args remote_domain_set_guest_vcpus_args;
+
+struct remote_domain_event_callback_metadata_change_msg {
+        int callbackID;
+        remote_nonnull_domain dom;
+        int type;
+        remote_string nsuri;
+};
+typedef struct remote_domain_event_callback_metadata_change_msg remote_domain_event_callback_metadata_change_msg;
+
+struct remote_connect_secret_event_register_any_args {
+        int eventID;
+        remote_secret secret;
+};
+typedef struct remote_connect_secret_event_register_any_args remote_connect_secret_event_register_any_args;
+
+struct remote_connect_secret_event_register_any_ret {
+        int callbackID;
+};
+typedef struct remote_connect_secret_event_register_any_ret remote_connect_secret_event_register_any_ret;
+
+struct remote_connect_secret_event_deregister_any_args {
+        int callbackID;
+};
+typedef struct remote_connect_secret_event_deregister_any_args remote_connect_secret_event_deregister_any_args;
+
+struct remote_secret_event_lifecycle_msg {
+        int callbackID;
+        remote_nonnull_secret secret;
+        int event;
+        int detail;
+};
+typedef struct remote_secret_event_lifecycle_msg remote_secret_event_lifecycle_msg;
+
+struct remote_secret_event_value_changed_msg {
+        int callbackID;
+        remote_nonnull_secret secret;
+};
+typedef struct remote_secret_event_value_changed_msg remote_secret_event_value_changed_msg;
 #define REMOTE_PROGRAM 0x20008086
 #define REMOTE_PROTOCOL_VERSION 1
 
@@ -4426,6 +4479,12 @@ enum remote_procedure {
         REMOTE_PROC_CONNECT_NODE_DEVICE_EVENT_DEREGISTER_ANY = 375,
         REMOTE_PROC_NODE_DEVICE_EVENT_LIFECYCLE = 376,
         REMOTE_PROC_NODE_DEVICE_EVENT_UPDATE = 377,
+        REMOTE_PROC_STORAGE_VOL_GET_INFO_FLAGS = 378,
+        REMOTE_PROC_DOMAIN_EVENT_CALLBACK_METADATA_CHANGE = 379,
+        REMOTE_PROC_CONNECT_SECRET_EVENT_REGISTER_ANY = 380,
+        REMOTE_PROC_CONNECT_SECRET_EVENT_DEREGISTER_ANY = 381,
+        REMOTE_PROC_SECRET_EVENT_LIFECYCLE = 382,
+        REMOTE_PROC_SECRET_EVENT_VALUE_CHANGED = 383,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -4450,6 +4509,7 @@ extern  bool_t xdr_remote_nwfilter (XDR *, remote_nwfilter*);
 extern  bool_t xdr_remote_storage_pool (XDR *, remote_storage_pool*);
 extern  bool_t xdr_remote_storage_vol (XDR *, remote_storage_vol*);
 extern  bool_t xdr_remote_node_device (XDR *, remote_node_device*);
+extern  bool_t xdr_remote_secret (XDR *, remote_secret*);
 extern  bool_t xdr_remote_error (XDR *, remote_error*);
 extern  bool_t xdr_remote_auth_type (XDR *, remote_auth_type*);
 extern  bool_t xdr_remote_vcpu_info (XDR *, remote_vcpu_info*);
@@ -4759,6 +4819,8 @@ extern  bool_t xdr_remote_storage_vol_get_xml_desc_args (XDR *, remote_storage_v
 extern  bool_t xdr_remote_storage_vol_get_xml_desc_ret (XDR *, remote_storage_vol_get_xml_desc_ret*);
 extern  bool_t xdr_remote_storage_vol_get_info_args (XDR *, remote_storage_vol_get_info_args*);
 extern  bool_t xdr_remote_storage_vol_get_info_ret (XDR *, remote_storage_vol_get_info_ret*);
+extern  bool_t xdr_remote_storage_vol_get_info_flags_args (XDR *, remote_storage_vol_get_info_flags_args*);
+extern  bool_t xdr_remote_storage_vol_get_info_flags_ret (XDR *, remote_storage_vol_get_info_flags_ret*);
 extern  bool_t xdr_remote_storage_vol_get_path_args (XDR *, remote_storage_vol_get_path_args*);
 extern  bool_t xdr_remote_storage_vol_get_path_ret (XDR *, remote_storage_vol_get_path_ret*);
 extern  bool_t xdr_remote_storage_vol_resize_args (XDR *, remote_storage_vol_resize_args*);
@@ -5026,6 +5088,12 @@ extern  bool_t xdr_remote_domain_event_callback_device_removal_failed_msg (XDR *
 extern  bool_t xdr_remote_domain_get_guest_vcpus_args (XDR *, remote_domain_get_guest_vcpus_args*);
 extern  bool_t xdr_remote_domain_get_guest_vcpus_ret (XDR *, remote_domain_get_guest_vcpus_ret*);
 extern  bool_t xdr_remote_domain_set_guest_vcpus_args (XDR *, remote_domain_set_guest_vcpus_args*);
+extern  bool_t xdr_remote_domain_event_callback_metadata_change_msg (XDR *, remote_domain_event_callback_metadata_change_msg*);
+extern  bool_t xdr_remote_connect_secret_event_register_any_args (XDR *, remote_connect_secret_event_register_any_args*);
+extern  bool_t xdr_remote_connect_secret_event_register_any_ret (XDR *, remote_connect_secret_event_register_any_ret*);
+extern  bool_t xdr_remote_connect_secret_event_deregister_any_args (XDR *, remote_connect_secret_event_deregister_any_args*);
+extern  bool_t xdr_remote_secret_event_lifecycle_msg (XDR *, remote_secret_event_lifecycle_msg*);
+extern  bool_t xdr_remote_secret_event_value_changed_msg (XDR *, remote_secret_event_value_changed_msg*);
 extern  bool_t xdr_remote_procedure (XDR *, remote_procedure*);
 
 #else /* K&R C */
@@ -5047,6 +5115,7 @@ extern bool_t xdr_remote_nwfilter ();
 extern bool_t xdr_remote_storage_pool ();
 extern bool_t xdr_remote_storage_vol ();
 extern bool_t xdr_remote_node_device ();
+extern bool_t xdr_remote_secret ();
 extern bool_t xdr_remote_error ();
 extern bool_t xdr_remote_auth_type ();
 extern bool_t xdr_remote_vcpu_info ();
@@ -5356,6 +5425,8 @@ extern bool_t xdr_remote_storage_vol_get_xml_desc_args ();
 extern bool_t xdr_remote_storage_vol_get_xml_desc_ret ();
 extern bool_t xdr_remote_storage_vol_get_info_args ();
 extern bool_t xdr_remote_storage_vol_get_info_ret ();
+extern bool_t xdr_remote_storage_vol_get_info_flags_args ();
+extern bool_t xdr_remote_storage_vol_get_info_flags_ret ();
 extern bool_t xdr_remote_storage_vol_get_path_args ();
 extern bool_t xdr_remote_storage_vol_get_path_ret ();
 extern bool_t xdr_remote_storage_vol_resize_args ();
@@ -5623,6 +5694,12 @@ extern bool_t xdr_remote_domain_event_callback_device_removal_failed_msg ();
 extern bool_t xdr_remote_domain_get_guest_vcpus_args ();
 extern bool_t xdr_remote_domain_get_guest_vcpus_ret ();
 extern bool_t xdr_remote_domain_set_guest_vcpus_args ();
+extern bool_t xdr_remote_domain_event_callback_metadata_change_msg ();
+extern bool_t xdr_remote_connect_secret_event_register_any_args ();
+extern bool_t xdr_remote_connect_secret_event_register_any_ret ();
+extern bool_t xdr_remote_connect_secret_event_deregister_any_args ();
+extern bool_t xdr_remote_secret_event_lifecycle_msg ();
+extern bool_t xdr_remote_secret_event_value_changed_msg ();
 extern bool_t xdr_remote_procedure ();
 
 #endif /* K&R C */

@@ -17,15 +17,14 @@ dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 dnl
 
+AC_DEFUN([LIBVIRT_ARG_SELINUX],[
+  LIBVIRT_ARG_WITH_FEATURE([SELINUX], [SELinux], [check])
+  LIBVIRT_ARG_WITH([SELINUX_MOUNT], [set SELinux mount point], [check])
+])
+
 AC_DEFUN([LIBVIRT_CHECK_SELINUX],[
   LIBVIRT_CHECK_LIB([SELINUX], [selinux],
                     [fgetfilecon_raw], [selinux/selinux.h])
-
-  AC_ARG_WITH([selinux_mount],
-    [AS_HELP_STRING([--with-selinux-mount],
-      [set SELinux mount point @<:@default=check@:>@])],
-    [],
-    [with_selinux_mount=check])
 
   if test "$with_selinux" = "yes"; then
     # libselinux changed signatures between 2.2 and 2.3

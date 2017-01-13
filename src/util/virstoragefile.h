@@ -24,6 +24,8 @@
 #ifndef __VIR_STORAGE_FILE_H__
 # define __VIR_STORAGE_FILE_H__
 
+# include <sys/stat.h>
+
 # include "virbitmap.h"
 # include "virseclabel.h"
 # include "virstorageencryption.h"
@@ -282,9 +284,6 @@ struct _virStorageSource {
 # endif
 
 int virStorageFileProbeFormat(const char *path, uid_t uid, gid_t gid);
-int virStorageFileProbeFormatFromBuf(const char *path,
-                                     char *buf,
-                                     size_t buflen);
 
 int virStorageFileGetMetadataInternal(virStorageSourcePtr meta,
                                       char *buf,
@@ -350,13 +349,19 @@ int virStorageSourceInitChainElement(virStorageSourcePtr newelem,
 void virStorageSourcePoolDefFree(virStorageSourcePoolDefPtr def);
 void virStorageSourceClear(virStorageSourcePtr def);
 int virStorageSourceGetActualType(const virStorageSource *def);
-bool virStorageSourceIsLocalStorage(virStorageSourcePtr src);
+bool virStorageSourceIsLocalStorage(const virStorageSource *src);
 bool virStorageSourceIsEmpty(virStorageSourcePtr src);
 bool virStorageSourceIsBlockLocal(const virStorageSource *src);
 void virStorageSourceFree(virStorageSourcePtr def);
 void virStorageSourceBackingStoreClear(virStorageSourcePtr def);
-int virStorageSourceUpdateBlockPhysicalSize(virStorageSourcePtr src,
-                                            bool report);
+int virStorageSourceUpdatePhysicalSize(virStorageSourcePtr src,
+                                       int fd, struct stat const *sb);
+int virStorageSourceUpdateBackingSizes(virStorageSourcePtr src,
+                                       int fd, struct stat const *sb);
+int virStorageSourceUpdateCapacity(virStorageSourcePtr src,
+                                   char *buf, ssize_t len,
+                                   bool probe);
+
 virStorageSourcePtr virStorageSourceNewFromBacking(virStorageSourcePtr parent);
 virStorageSourcePtr virStorageSourceCopy(const virStorageSource *src,
                                          bool backingChain)
@@ -382,5 +387,7 @@ int virStorageFileGetRelativeBackingPath(virStorageSourcePtr from,
 int virStorageFileCheckCompat(const char *compat);
 
 virStorageSourcePtr virStorageSourceNewFromBackingAbsolute(const char *path);
+
+bool virStorageSourceIsRelative(virStorageSourcePtr src);
 
 #endif /* __VIR_STORAGE_FILE_H__ */

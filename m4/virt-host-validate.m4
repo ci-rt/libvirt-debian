@@ -15,12 +15,11 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_DEFUN([LIBVIRT_CHECK_HOST_VALIDATE], [
-  AC_ARG_WITH([host_validate],
-    [AS_HELP_STRING([--with-host-validate],
-      [build virt-host-validate @<:@default=check@:>@])])
-  m4_divert_text([DEFAULTS], [with_host_validate=check])
+AC_DEFUN([LIBVIRT_ARG_HOST_VALIDATE], [
+  LIBVIRT_ARG_WITH([HOST_VALIDATE], [build virt-host-validate], [check])
+])
 
+AC_DEFUN([LIBVIRT_CHECK_HOST_VALIDATE], [
   if test "x$with_host_validate" != "xno"; then
     if test "x$with_win" = "xyes"; then
       if test "x$with_host_validate" = "xyes"; then
@@ -37,4 +36,8 @@ AC_DEFUN([LIBVIRT_CHECK_HOST_VALIDATE], [
       AC_DEFINE_UNQUOTED([WITH_HOST_VALIDATE], 1, [whether virt-host-validate is built])
   fi
   AM_CONDITIONAL([WITH_HOST_VALIDATE], [test "x$with_host_validate" = "xyes"])
+])
+
+AC_DEFUN([LIBVIRT_RESULT_HOST_VALIDATE], [
+  AC_MSG_NOTICE([virt-host-validate: $with_host_validate])
 ])

@@ -94,11 +94,11 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/arpa_inet_h.m4 \
 	$(top_srcdir)/m4/asm-underscore.m4 \
 	$(top_srcdir)/m4/autobuild.m4 $(top_srcdir)/m4/base64.m4 \
-	$(top_srcdir)/m4/btowc.m4 $(top_srcdir)/m4/byteswap.m4 \
-	$(top_srcdir)/m4/calloc.m4 $(top_srcdir)/m4/canonicalize.m4 \
-	$(top_srcdir)/m4/chown.m4 $(top_srcdir)/m4/clock_time.m4 \
-	$(top_srcdir)/m4/close.m4 $(top_srcdir)/m4/codeset.m4 \
-	$(top_srcdir)/m4/configmake.m4 \
+	$(top_srcdir)/m4/btowc.m4 $(top_srcdir)/m4/builtin-expect.m4 \
+	$(top_srcdir)/m4/byteswap.m4 $(top_srcdir)/m4/calloc.m4 \
+	$(top_srcdir)/m4/canonicalize.m4 $(top_srcdir)/m4/chown.m4 \
+	$(top_srcdir)/m4/clock_time.m4 $(top_srcdir)/m4/close.m4 \
+	$(top_srcdir)/m4/codeset.m4 $(top_srcdir)/m4/configmake.m4 \
 	$(top_srcdir)/m4/count-leading-zeros.m4 \
 	$(top_srcdir)/m4/count-one-bits.m4 $(top_srcdir)/m4/ctype.m4 \
 	$(top_srcdir)/m4/dirname.m4 \
@@ -137,30 +137,31 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/intlmacosx.m4 $(top_srcdir)/m4/intmax_t.m4 \
 	$(top_srcdir)/m4/inttypes-pri.m4 $(top_srcdir)/m4/inttypes.m4 \
 	$(top_srcdir)/m4/inttypes_h.m4 $(top_srcdir)/m4/ioctl.m4 \
-	$(top_srcdir)/m4/isatty.m4 $(top_srcdir)/m4/isnand.m4 \
-	$(top_srcdir)/m4/isnanf.m4 $(top_srcdir)/m4/isnanl.m4 \
-	$(top_srcdir)/m4/langinfo_h.m4 $(top_srcdir)/m4/largefile.m4 \
-	$(top_srcdir)/m4/lcmessage.m4 $(top_srcdir)/m4/ldexp.m4 \
-	$(top_srcdir)/m4/lib-ld.m4 $(top_srcdir)/m4/lib-link.m4 \
-	$(top_srcdir)/m4/lib-prefix.m4 $(top_srcdir)/m4/libtool.m4 \
-	$(top_srcdir)/m4/limits-h.m4 $(top_srcdir)/m4/localcharset.m4 \
-	$(top_srcdir)/m4/locale-fr.m4 $(top_srcdir)/m4/locale-ja.m4 \
-	$(top_srcdir)/m4/locale-tr.m4 $(top_srcdir)/m4/locale-zh.m4 \
-	$(top_srcdir)/m4/locale_h.m4 $(top_srcdir)/m4/localeconv.m4 \
-	$(top_srcdir)/m4/localename.m4 $(top_srcdir)/m4/lock.m4 \
-	$(top_srcdir)/m4/longlong.m4 $(top_srcdir)/m4/lseek.m4 \
-	$(top_srcdir)/m4/lstat.m4 $(top_srcdir)/m4/ltoptions.m4 \
-	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
-	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/m4/malloc.m4 \
-	$(top_srcdir)/m4/malloca.m4 $(top_srcdir)/m4/manywarnings.m4 \
-	$(top_srcdir)/m4/math_h.m4 $(top_srcdir)/m4/mbrtowc.m4 \
-	$(top_srcdir)/m4/mbsinit.m4 $(top_srcdir)/m4/mbsrtowcs.m4 \
-	$(top_srcdir)/m4/mbstate_t.m4 $(top_srcdir)/m4/mbtowc.m4 \
-	$(top_srcdir)/m4/md5.m4 $(top_srcdir)/m4/memchr.m4 \
-	$(top_srcdir)/m4/mgetgroups.m4 $(top_srcdir)/m4/mkdtemp.m4 \
-	$(top_srcdir)/m4/mkostemp.m4 $(top_srcdir)/m4/mkostemps.m4 \
-	$(top_srcdir)/m4/mktime.m4 $(top_srcdir)/m4/mmap-anon.m4 \
-	$(top_srcdir)/m4/mode_t.m4 $(top_srcdir)/m4/msvc-inval.m4 \
+	$(top_srcdir)/m4/isatty.m4 $(top_srcdir)/m4/isblank.m4 \
+	$(top_srcdir)/m4/isnand.m4 $(top_srcdir)/m4/isnanf.m4 \
+	$(top_srcdir)/m4/isnanl.m4 $(top_srcdir)/m4/langinfo_h.m4 \
+	$(top_srcdir)/m4/largefile.m4 $(top_srcdir)/m4/lcmessage.m4 \
+	$(top_srcdir)/m4/ldexp.m4 $(top_srcdir)/m4/lib-ld.m4 \
+	$(top_srcdir)/m4/lib-link.m4 $(top_srcdir)/m4/lib-prefix.m4 \
+	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/limits-h.m4 \
+	$(top_srcdir)/m4/localcharset.m4 $(top_srcdir)/m4/locale-fr.m4 \
+	$(top_srcdir)/m4/locale-ja.m4 $(top_srcdir)/m4/locale-tr.m4 \
+	$(top_srcdir)/m4/locale-zh.m4 $(top_srcdir)/m4/locale_h.m4 \
+	$(top_srcdir)/m4/localeconv.m4 $(top_srcdir)/m4/localename.m4 \
+	$(top_srcdir)/m4/lock.m4 $(top_srcdir)/m4/longlong.m4 \
+	$(top_srcdir)/m4/lseek.m4 $(top_srcdir)/m4/lstat.m4 \
+	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
+	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
+	$(top_srcdir)/m4/malloc.m4 $(top_srcdir)/m4/malloca.m4 \
+	$(top_srcdir)/m4/manywarnings.m4 $(top_srcdir)/m4/math_h.m4 \
+	$(top_srcdir)/m4/mbrtowc.m4 $(top_srcdir)/m4/mbsinit.m4 \
+	$(top_srcdir)/m4/mbsrtowcs.m4 $(top_srcdir)/m4/mbstate_t.m4 \
+	$(top_srcdir)/m4/mbtowc.m4 $(top_srcdir)/m4/md5.m4 \
+	$(top_srcdir)/m4/memchr.m4 $(top_srcdir)/m4/mgetgroups.m4 \
+	$(top_srcdir)/m4/mkdtemp.m4 $(top_srcdir)/m4/mkostemp.m4 \
+	$(top_srcdir)/m4/mkostemps.m4 $(top_srcdir)/m4/mktime.m4 \
+	$(top_srcdir)/m4/mmap-anon.m4 $(top_srcdir)/m4/mode_t.m4 \
+	$(top_srcdir)/m4/msvc-inval.m4 \
 	$(top_srcdir)/m4/msvc-nothrow.m4 $(top_srcdir)/m4/multiarch.m4 \
 	$(top_srcdir)/m4/nanosleep.m4 $(top_srcdir)/m4/net_if_h.m4 \
 	$(top_srcdir)/m4/netdb_h.m4 $(top_srcdir)/m4/netinet_in_h.m4 \
@@ -176,6 +177,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/posix_openpt.m4 \
 	$(top_srcdir)/m4/posix_spawn.m4 $(top_srcdir)/m4/printf.m4 \
 	$(top_srcdir)/m4/progtest.m4 $(top_srcdir)/m4/pthread.m4 \
+	$(top_srcdir)/m4/pthread_rwlock_rdlock.m4 \
 	$(top_srcdir)/m4/pthread_sigmask.m4 \
 	$(top_srcdir)/m4/ptsname.m4 $(top_srcdir)/m4/ptsname_r.m4 \
 	$(top_srcdir)/m4/pty.m4 $(top_srcdir)/m4/pty_h.m4 \
@@ -221,34 +223,93 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/unistd_h.m4 $(top_srcdir)/m4/unlockpt.m4 \
 	$(top_srcdir)/m4/usleep.m4 $(top_srcdir)/m4/vasnprintf.m4 \
 	$(top_srcdir)/m4/vasprintf.m4 \
-	$(top_srcdir)/m4/virt-apparmor.m4 \
-	$(top_srcdir)/m4/virt-attr.m4 $(top_srcdir)/m4/virt-audit.m4 \
-	$(top_srcdir)/m4/virt-avahi.m4 $(top_srcdir)/m4/virt-blkid.m4 \
-	$(top_srcdir)/m4/virt-capng.m4 \
+	$(top_srcdir)/m4/virt-apparmor.m4 $(top_srcdir)/m4/virt-arg.m4 \
+	$(top_srcdir)/m4/virt-atomic.m4 $(top_srcdir)/m4/virt-attr.m4 \
+	$(top_srcdir)/m4/virt-audit.m4 $(top_srcdir)/m4/virt-avahi.m4 \
+	$(top_srcdir)/m4/virt-blkid.m4 $(top_srcdir)/m4/virt-capng.m4 \
+	$(top_srcdir)/m4/virt-chrdev-lock-files.m4 \
 	$(top_srcdir)/m4/virt-compile-pie.m4 \
 	$(top_srcdir)/m4/virt-compile-warnings.m4 \
 	$(top_srcdir)/m4/virt-curl.m4 $(top_srcdir)/m4/virt-dbus.m4 \
+	$(top_srcdir)/m4/virt-debug.m4 \
+	$(top_srcdir)/m4/virt-default-editor.m4 \
+	$(top_srcdir)/m4/virt-devmapper.m4 \
+	$(top_srcdir)/m4/virt-dlopen.m4 \
 	$(top_srcdir)/m4/virt-driver-bhyve.m4 \
+	$(top_srcdir)/m4/virt-driver-esx.m4 \
+	$(top_srcdir)/m4/virt-driver-hyperv.m4 \
+	$(top_srcdir)/m4/virt-driver-interface.m4 \
+	$(top_srcdir)/m4/virt-driver-libvirtd.m4 \
+	$(top_srcdir)/m4/virt-driver-libxl.m4 \
+	$(top_srcdir)/m4/virt-driver-lxc.m4 \
+	$(top_srcdir)/m4/virt-driver-modules.m4 \
+	$(top_srcdir)/m4/virt-driver-network.m4 \
+	$(top_srcdir)/m4/virt-driver-openvz.m4 \
+	$(top_srcdir)/m4/virt-driver-phyp.m4 \
+	$(top_srcdir)/m4/virt-driver-qemu.m4 \
+	$(top_srcdir)/m4/virt-driver-remote.m4 \
+	$(top_srcdir)/m4/virt-driver-test.m4 \
 	$(top_srcdir)/m4/virt-driver-uml.m4 \
+	$(top_srcdir)/m4/virt-driver-vbox.m4 \
+	$(top_srcdir)/m4/virt-driver-vmware.m4 \
 	$(top_srcdir)/m4/virt-driver-vz.m4 \
+	$(top_srcdir)/m4/virt-driver-xen.m4 \
+	$(top_srcdir)/m4/virt-driver-xenapi.m4 \
+	$(top_srcdir)/m4/virt-dtrace.m4 \
+	$(top_srcdir)/m4/virt-external-programs.m4 \
+	$(top_srcdir)/m4/virt-firewalld.m4 \
 	$(top_srcdir)/m4/virt-fuse.m4 $(top_srcdir)/m4/virt-gluster.m4 \
 	$(top_srcdir)/m4/virt-gnutls.m4 $(top_srcdir)/m4/virt-hal.m4 \
 	$(top_srcdir)/m4/virt-host-validate.m4 \
 	$(top_srcdir)/m4/virt-init-script.m4 \
-	$(top_srcdir)/m4/virt-lib.m4 $(top_srcdir)/m4/virt-libssh.m4 \
+	$(top_srcdir)/m4/virt-lib.m4 $(top_srcdir)/m4/virt-libnl.m4 \
+	$(top_srcdir)/m4/virt-libpcap.m4 \
+	$(top_srcdir)/m4/virt-libssh.m4 \
+	$(top_srcdir)/m4/virt-libxml.m4 \
 	$(top_srcdir)/m4/virt-linker-no-indirect.m4 \
 	$(top_srcdir)/m4/virt-linker-relro.m4 \
+	$(top_srcdir)/m4/virt-loader-nvram.m4 \
 	$(top_srcdir)/m4/virt-login-shell.m4 \
+	$(top_srcdir)/m4/virt-macvtap.m4 \
 	$(top_srcdir)/m4/virt-netcf.m4 $(top_srcdir)/m4/virt-nss.m4 \
 	$(top_srcdir)/m4/virt-numactl.m4 \
+	$(top_srcdir)/m4/virt-numad.m4 \
+	$(top_srcdir)/m4/virt-nwfilter.m4 \
 	$(top_srcdir)/m4/virt-openwsman.m4 \
+	$(top_srcdir)/m4/virt-parted.m4 \
 	$(top_srcdir)/m4/virt-pciaccess.m4 \
+	$(top_srcdir)/m4/virt-pm-utils.m4 \
+	$(top_srcdir)/m4/virt-polkit.m4 \
+	$(top_srcdir)/m4/virt-pthread.m4 \
 	$(top_srcdir)/m4/virt-readline.m4 \
 	$(top_srcdir)/m4/virt-result.m4 \
 	$(top_srcdir)/m4/virt-sanlock.m4 $(top_srcdir)/m4/virt-sasl.m4 \
+	$(top_srcdir)/m4/virt-secdriver-apparmor.m4 \
+	$(top_srcdir)/m4/virt-secdriver-selinux.m4 \
 	$(top_srcdir)/m4/virt-selinux.m4 $(top_srcdir)/m4/virt-ssh2.m4 \
+	$(top_srcdir)/m4/virt-storage-dir.m4 \
+	$(top_srcdir)/m4/virt-storage-disk.m4 \
+	$(top_srcdir)/m4/virt-storage-fs.m4 \
+	$(top_srcdir)/m4/virt-storage-gluster.m4 \
+	$(top_srcdir)/m4/virt-storage-iscsi.m4 \
+	$(top_srcdir)/m4/virt-storage-lvm.m4 \
+	$(top_srcdir)/m4/virt-storage-mpath.m4 \
+	$(top_srcdir)/m4/virt-storage-rbd.m4 \
+	$(top_srcdir)/m4/virt-storage-scsi.m4 \
+	$(top_srcdir)/m4/virt-storage-sheepdog.m4 \
+	$(top_srcdir)/m4/virt-storage-zfs.m4 \
+	$(top_srcdir)/m4/virt-sysctl.m4 \
+	$(top_srcdir)/m4/virt-tls-priority.m4 \
 	$(top_srcdir)/m4/virt-udev.m4 \
+	$(top_srcdir)/m4/virt-virtualport.m4 \
+	$(top_srcdir)/m4/virt-win-common.m4 \
+	$(top_srcdir)/m4/virt-win-cygwin.m4 \
+	$(top_srcdir)/m4/virt-win-mingw.m4 \
+	$(top_srcdir)/m4/virt-win-symbols.m4 \
+	$(top_srcdir)/m4/virt-win-windres.m4 \
 	$(top_srcdir)/m4/virt-wireshark.m4 \
+	$(top_srcdir)/m4/virt-xdr.m4 \
+	$(top_srcdir)/m4/virt-xml-catalog.m4 \
 	$(top_srcdir)/m4/virt-yajl.m4 $(top_srcdir)/m4/vsnprintf.m4 \
 	$(top_srcdir)/m4/wait-process.m4 $(top_srcdir)/m4/waitpid.m4 \
 	$(top_srcdir)/m4/warnings.m4 $(top_srcdir)/m4/wchar_h.m4 \
@@ -318,6 +379,8 @@ am__DIST_COMMON = $(srcdir)/Makefile.in \
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 pkglibexecdir = @pkglibexecdir@
 ACLOCAL = @ACLOCAL@
+ACL_CFLAGS = @ACL_CFLAGS@
+ACL_LIBS = @ACL_LIBS@
 ADDR2LINE = @ADDR2LINE@
 ALLOCA = @ALLOCA@
 ALLOCA_H = @ALLOCA_H@
@@ -377,8 +440,8 @@ DLLTOOL = @DLLTOOL@
 DLOPEN_LIBS = @DLOPEN_LIBS@
 DMIDECODE = @DMIDECODE@
 DNSMASQ = @DNSMASQ@
-DRIVER_MODULE_LDFLAGS = @DRIVER_MODULE_LDFLAGS@
-DRIVER_MODULE_LIBS = @DRIVER_MODULE_LIBS@
+DRIVER_MODULES_LDFLAGS = @DRIVER_MODULES_LDFLAGS@
+DRIVER_MODULES_LIBS = @DRIVER_MODULES_LIBS@
 DSYMUTIL = @DSYMUTIL@
 DTRACE = @DTRACE@
 DUMPBIN = @DUMPBIN@
@@ -621,6 +684,7 @@ GNULIB_OBSTACK_PRINTF_POSIX = @GNULIB_OBSTACK_PRINTF_POSIX@
 GNULIB_OPEN = @GNULIB_OPEN@
 GNULIB_OPENAT = @GNULIB_OPENAT@
 GNULIB_OPENPTY = @GNULIB_OPENPTY@
+GNULIB_OVERRIDES_WINT_T = @GNULIB_OVERRIDES_WINT_T@
 GNULIB_PCLOSE = @GNULIB_PCLOSE@
 GNULIB_PERROR = @GNULIB_PERROR@
 GNULIB_PIPE = @GNULIB_PIPE@
@@ -867,6 +931,7 @@ HAVE_DECL_GETDELIM = @HAVE_DECL_GETDELIM@
 HAVE_DECL_GETDOMAINNAME = @HAVE_DECL_GETDOMAINNAME@
 HAVE_DECL_GETLINE = @HAVE_DECL_GETLINE@
 HAVE_DECL_GETLOADAVG = @HAVE_DECL_GETLOADAVG@
+HAVE_DECL_GETLOGIN = @HAVE_DECL_GETLOGIN@
 HAVE_DECL_GETLOGIN_R = @HAVE_DECL_GETLOGIN_R@
 HAVE_DECL_GETNAMEINFO = @HAVE_DECL_GETNAMEINFO@
 HAVE_DECL_GETPAGESIZE = @HAVE_DECL_GETPAGESIZE@
@@ -1233,8 +1298,6 @@ LIBVIRT_SYMBOL_FILE = @LIBVIRT_SYMBOL_FILE@
 LIBVIRT_VERSION = @LIBVIRT_VERSION@
 LIBVIRT_VERSION_INFO = @LIBVIRT_VERSION_INFO@
 LIBVIRT_VERSION_NUMBER = @LIBVIRT_VERSION_NUMBER@
-LIBXENSERVER_CFLAGS = @LIBXENSERVER_CFLAGS@
-LIBXENSERVER_LIBS = @LIBXENSERVER_LIBS@
 LIBXL_CFLAGS = @LIBXL_CFLAGS@
 LIBXL_LIBS = @LIBXL_LIBS@
 LIBXML_CFLAGS = @LIBXML_CFLAGS@
@@ -1280,7 +1343,6 @@ MKFS = @MKFS@
 MMCTL = @MMCTL@
 MODPROBE = @MODPROBE@
 MOUNT = @MOUNT@
-MSCOM_LIBS = @MSCOM_LIBS@
 MSGFMT = @MSGFMT@
 MSGFMT_015 = @MSGFMT_015@
 MSGMERGE = @MSGMERGE@
@@ -1429,6 +1491,10 @@ RANLIB = @RANLIB@
 READLINE_CFLAGS = @READLINE_CFLAGS@
 READLINE_LIBS = @READLINE_LIBS@
 RELRO_LDFLAGS = @RELRO_LDFLAGS@
+REPLACE_ACOSF = @REPLACE_ACOSF@
+REPLACE_ASINF = @REPLACE_ASINF@
+REPLACE_ATAN2F = @REPLACE_ATAN2F@
+REPLACE_ATANF = @REPLACE_ATANF@
 REPLACE_BTOWC = @REPLACE_BTOWC@
 REPLACE_CALLOC = @REPLACE_CALLOC@
 REPLACE_CANONICALIZE_FILE_NAME = @REPLACE_CANONICALIZE_FILE_NAME@
@@ -1439,12 +1505,15 @@ REPLACE_CEILF = @REPLACE_CEILF@
 REPLACE_CEILL = @REPLACE_CEILL@
 REPLACE_CHOWN = @REPLACE_CHOWN@
 REPLACE_CLOSE = @REPLACE_CLOSE@
+REPLACE_COSF = @REPLACE_COSF@
+REPLACE_COSHF = @REPLACE_COSHF@
 REPLACE_DPRINTF = @REPLACE_DPRINTF@
 REPLACE_DUP = @REPLACE_DUP@
 REPLACE_DUP2 = @REPLACE_DUP2@
 REPLACE_DUPLOCALE = @REPLACE_DUPLOCALE@
 REPLACE_EXP2 = @REPLACE_EXP2@
 REPLACE_EXP2L = @REPLACE_EXP2L@
+REPLACE_EXPF = @REPLACE_EXPF@
 REPLACE_EXPM1 = @REPLACE_EXPM1@
 REPLACE_EXPM1F = @REPLACE_EXPM1F@
 REPLACE_FABSL = @REPLACE_FABSL@
@@ -1593,9 +1662,12 @@ REPLACE_SETENV = @REPLACE_SETENV@
 REPLACE_SETLOCALE = @REPLACE_SETLOCALE@
 REPLACE_SIGNBIT = @REPLACE_SIGNBIT@
 REPLACE_SIGNBIT_USING_GCC = @REPLACE_SIGNBIT_USING_GCC@
+REPLACE_SINF = @REPLACE_SINF@
+REPLACE_SINHF = @REPLACE_SINHF@
 REPLACE_SLEEP = @REPLACE_SLEEP@
 REPLACE_SNPRINTF = @REPLACE_SNPRINTF@
 REPLACE_SPRINTF = @REPLACE_SPRINTF@
+REPLACE_SQRTF = @REPLACE_SQRTF@
 REPLACE_SQRTL = @REPLACE_SQRTL@
 REPLACE_STAT = @REPLACE_STAT@
 REPLACE_STDIO_READ_FUNCS = @REPLACE_STDIO_READ_FUNCS@
@@ -1619,6 +1691,8 @@ REPLACE_STRUCT_LCONV = @REPLACE_STRUCT_LCONV@
 REPLACE_STRUCT_TIMEVAL = @REPLACE_STRUCT_TIMEVAL@
 REPLACE_SYMLINK = @REPLACE_SYMLINK@
 REPLACE_SYMLINKAT = @REPLACE_SYMLINKAT@
+REPLACE_TANF = @REPLACE_TANF@
+REPLACE_TANHF = @REPLACE_TANHF@
 REPLACE_TIMEGM = @REPLACE_TIMEGM@
 REPLACE_TMPFILE = @REPLACE_TMPFILE@
 REPLACE_TOWLOWER = @REPLACE_TOWLOWER@
@@ -1700,6 +1774,7 @@ VIR_TEST_EXPENSIVE_DEFAULT = @VIR_TEST_EXPENSIVE_DEFAULT@
 WARN_CFLAGS = @WARN_CFLAGS@
 WCHAR_T_SUFFIX = @WCHAR_T_SUFFIX@
 WIN32_EXTRA_CFLAGS = @WIN32_EXTRA_CFLAGS@
+WIN32_EXTRA_LIBS = @WIN32_EXTRA_LIBS@
 WINDOWS_64_BIT_OFF_T = @WINDOWS_64_BIT_OFF_T@
 WINDOWS_64_BIT_ST_SIZE = @WINDOWS_64_BIT_ST_SIZE@
 WINDRES = @WINDRES@
@@ -1707,6 +1782,8 @@ WINT_T_SUFFIX = @WINT_T_SUFFIX@
 WIRESHARK_DISSECTOR_CFLAGS = @WIRESHARK_DISSECTOR_CFLAGS@
 WIRESHARK_DISSECTOR_LIBS = @WIRESHARK_DISSECTOR_LIBS@
 XDR_CFLAGS = @XDR_CFLAGS@
+XENAPI_CFLAGS = @XENAPI_CFLAGS@
+XENAPI_LIBS = @XENAPI_LIBS@
 XEN_CFLAGS = @XEN_CFLAGS@
 XEN_LIBS = @XEN_LIBS@
 XGETTEXT = @XGETTEXT@
@@ -1868,9 +1945,10 @@ internals_html = $(internals_html_in:%.html.in=%.html)
 # Since we ship pre-built html in the tarball, we must also
 # ship the sources, even when those sources are themselves
 # generated.
-# Generate hvsupport.html first, since it takes one extra step.
+# Generate hvsupport.html and news.html first, since they take one extra step.
 dot_html_in = \
   hvsupport.html.in \
+  news.html.in \
   $(notdir $(wildcard $(srcdir)/*.html.in))
 
 dot_html = $(dot_html_in:%.html.in=%.html)
@@ -1914,23 +1992,20 @@ fig = \
 schemadir = $(pkgdatadir)/schemas
 schema_DATA = $(wildcard $(srcdir)/schemas/*.rng)
 EXTRA_DIST = apibuild.py genaclperms.pl site.xsl subsite.xsl \
-	newapi.xsl news.xsl page.xsl hacking1.xsl hacking2.xsl \
-	wrapstring.xsl $(dot_html) $(dot_html_in) $(gif) $(apihtml) \
-	$(apipng) $(devhelphtml) $(devhelppng) $(devhelpcss) \
-	$(devhelpxsl) $(xml) $(qemu_xml) $(lxc_xml) $(admin_xml) \
-	$(fig) $(png) $(css) $(logofiles) $(patches) $(dot_php_in) \
+	newapi.xsl page.xsl hacking1.xsl hacking2.xsl wrapstring.xsl \
+	$(dot_html) $(dot_html_in) $(gif) $(apihtml) $(apipng) \
+	$(devhelphtml) $(devhelppng) $(devhelpcss) $(devhelpxsl) \
+	$(xml) $(qemu_xml) $(lxc_xml) $(admin_xml) $(fig) $(png) \
+	$(css) $(logofiles) $(patches) $(dot_php_in) \
 	$(dot_php_code_in) $(dot_php) $(internals_html_in) \
 	$(internals_html) aclperms.htmlinc hvsupport.pl $(schema_DATA) \
-	$(APIBUILD_STAMP)
+	$(srcdir)/news.xml $(srcdir)/news-html.xsl $(APIBUILD_STAMP)
 acl_generated = aclperms.htmlinc
-MAINTAINERCLEANFILES = \
-  $(addprefix $(srcdir)/,$(dot_html)) \
-  $(addprefix $(srcdir)/,$(apihtml)) \
-  $(addprefix $(srcdir)/,$(devhelphtml)) \
-  $(addprefix $(srcdir)/,$(internals_html)) \
-  $(addprefix $(srcdir)/,$(dot_php)) \
-  $(srcdir)/hvsupport.html.in $(srcdir)/aclperms.htmlinc
-
+MAINTAINERCLEANFILES = $(addprefix $(srcdir)/,$(dot_html)) $(addprefix \
+	$(srcdir)/,$(apihtml)) $(addprefix $(srcdir)/,$(devhelphtml)) \
+	$(addprefix $(srcdir)/,$(internals_html)) $(addprefix \
+	$(srcdir)/,$(dot_php)) $(srcdir)/hvsupport.html.in \
+	$(srcdir)/aclperms.htmlinc $(srcdir)/news.html.in
 python_generated_files = \
 		$(srcdir)/html/libvirt-libvirt-lxc.html \
 		$(srcdir)/html/libvirt-libvirt-qemu.html \
@@ -2214,6 +2289,24 @@ $(srcdir)/hvsupport.html.in: $(srcdir)/hvsupport.pl $(api_DATA) \
 	$(AM_V_GEN)$(PERL) $(srcdir)/hvsupport.pl $(top_srcdir)/src > $@ \
 		|| { rm $@ && exit 1; }
 
+# xsltproc seems to add the xmlns="" attribute to random output elements:
+# use sed to strip it out, as leaving it there triggers XML errors during
+# further transformation steps
+news.html.in: \
+	  $(srcdir)/news.xml \
+	  $(srcdir)/news-html.xsl
+	$(AM_V_GEN) \
+	if [ -x $(XSLTPROC) ]; then \
+	  $(XSLTPROC) --nonet \
+	    $(srcdir)/news-html.xsl \
+	    $(srcdir)/news.xml \
+	  >$@-tmp \
+	    || { rm -f $@-tmp; exit 1; }; \
+	  sed 's/ xmlns=""//g' $@-tmp >$@ \
+	    || { rm -f $@-tmp; exit 1; }; \
+	  rm -f $@-tmp; \
+	fi
+
 %.png: %.fig
 	convert -rotate 90 $< $@
 
@@ -2260,7 +2353,7 @@ $(srcdir)/hvsupport.html.in: $(srcdir)/hvsupport.pl $(api_DATA) \
 
 $(apihtml_generated): html/index.html
 
-html/index.html: libvirt-api.xml newapi.xsl page.xsl
+html/index.html: libvirt-api.xml newapi.xsl page.xsl $(APIBUILD_STAMP)
 	$(AM_V_GEN)if [ -x $(XSLTPROC) ] ; then \
 	  $(XSLTPROC) --nonet -o $(srcdir)/ \
 	  --stringparam builddir '$(abs_top_builddir)' \
@@ -2298,6 +2391,16 @@ $(APIBUILD_STAMP): $(srcdir)/apibuild.py \
 		$(top_srcdir)/include/libvirt/libvirt-admin.h \
 		$(top_srcdir)/include/libvirt/virterror.h \
 		$(top_srcdir)/src/libvirt.c \
+		$(top_srcdir)/src/libvirt-domain-snapshot.c \
+		$(top_srcdir)/src/libvirt-domain.c \
+		$(top_srcdir)/src/libvirt-host.c \
+		$(top_srcdir)/src/libvirt-interface.c \
+		$(top_srcdir)/src/libvirt-network.c \
+		$(top_srcdir)/src/libvirt-nodedev.c \
+		$(top_srcdir)/src/libvirt-nwfilter.c \
+		$(top_srcdir)/src/libvirt-secret.c \
+		$(top_srcdir)/src/libvirt-storage.c \
+		$(top_srcdir)/src/libvirt-stream.c \
 		$(top_srcdir)/src/libvirt-lxc.c \
 		$(top_srcdir)/src/libvirt-qemu.c \
 		$(top_srcdir)/src/libvirt-admin.c \
@@ -2311,7 +2414,7 @@ check-local: all
 dist-local: all
 
 clean-local:
-	rm -f *~ *.bak *.hierarchy *.signals *-unused.txt *.html
+	rm -f *~ *.bak *.hierarchy *.signals *-unused.txt *.html html/*.html
 
 maintainer-clean-local: clean-local
 	rm -rf $(srcdir)/libvirt-api.xml $(srcdir)/libvirt-refs.xml

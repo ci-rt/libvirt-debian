@@ -94,11 +94,11 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/arpa_inet_h.m4 \
 	$(top_srcdir)/m4/asm-underscore.m4 \
 	$(top_srcdir)/m4/autobuild.m4 $(top_srcdir)/m4/base64.m4 \
-	$(top_srcdir)/m4/btowc.m4 $(top_srcdir)/m4/byteswap.m4 \
-	$(top_srcdir)/m4/calloc.m4 $(top_srcdir)/m4/canonicalize.m4 \
-	$(top_srcdir)/m4/chown.m4 $(top_srcdir)/m4/clock_time.m4 \
-	$(top_srcdir)/m4/close.m4 $(top_srcdir)/m4/codeset.m4 \
-	$(top_srcdir)/m4/configmake.m4 \
+	$(top_srcdir)/m4/btowc.m4 $(top_srcdir)/m4/builtin-expect.m4 \
+	$(top_srcdir)/m4/byteswap.m4 $(top_srcdir)/m4/calloc.m4 \
+	$(top_srcdir)/m4/canonicalize.m4 $(top_srcdir)/m4/chown.m4 \
+	$(top_srcdir)/m4/clock_time.m4 $(top_srcdir)/m4/close.m4 \
+	$(top_srcdir)/m4/codeset.m4 $(top_srcdir)/m4/configmake.m4 \
 	$(top_srcdir)/m4/count-leading-zeros.m4 \
 	$(top_srcdir)/m4/count-one-bits.m4 $(top_srcdir)/m4/ctype.m4 \
 	$(top_srcdir)/m4/dirname.m4 \
@@ -137,30 +137,31 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/intlmacosx.m4 $(top_srcdir)/m4/intmax_t.m4 \
 	$(top_srcdir)/m4/inttypes-pri.m4 $(top_srcdir)/m4/inttypes.m4 \
 	$(top_srcdir)/m4/inttypes_h.m4 $(top_srcdir)/m4/ioctl.m4 \
-	$(top_srcdir)/m4/isatty.m4 $(top_srcdir)/m4/isnand.m4 \
-	$(top_srcdir)/m4/isnanf.m4 $(top_srcdir)/m4/isnanl.m4 \
-	$(top_srcdir)/m4/langinfo_h.m4 $(top_srcdir)/m4/largefile.m4 \
-	$(top_srcdir)/m4/lcmessage.m4 $(top_srcdir)/m4/ldexp.m4 \
-	$(top_srcdir)/m4/lib-ld.m4 $(top_srcdir)/m4/lib-link.m4 \
-	$(top_srcdir)/m4/lib-prefix.m4 $(top_srcdir)/m4/libtool.m4 \
-	$(top_srcdir)/m4/limits-h.m4 $(top_srcdir)/m4/localcharset.m4 \
-	$(top_srcdir)/m4/locale-fr.m4 $(top_srcdir)/m4/locale-ja.m4 \
-	$(top_srcdir)/m4/locale-tr.m4 $(top_srcdir)/m4/locale-zh.m4 \
-	$(top_srcdir)/m4/locale_h.m4 $(top_srcdir)/m4/localeconv.m4 \
-	$(top_srcdir)/m4/localename.m4 $(top_srcdir)/m4/lock.m4 \
-	$(top_srcdir)/m4/longlong.m4 $(top_srcdir)/m4/lseek.m4 \
-	$(top_srcdir)/m4/lstat.m4 $(top_srcdir)/m4/ltoptions.m4 \
-	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
-	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/m4/malloc.m4 \
-	$(top_srcdir)/m4/malloca.m4 $(top_srcdir)/m4/manywarnings.m4 \
-	$(top_srcdir)/m4/math_h.m4 $(top_srcdir)/m4/mbrtowc.m4 \
-	$(top_srcdir)/m4/mbsinit.m4 $(top_srcdir)/m4/mbsrtowcs.m4 \
-	$(top_srcdir)/m4/mbstate_t.m4 $(top_srcdir)/m4/mbtowc.m4 \
-	$(top_srcdir)/m4/md5.m4 $(top_srcdir)/m4/memchr.m4 \
-	$(top_srcdir)/m4/mgetgroups.m4 $(top_srcdir)/m4/mkdtemp.m4 \
-	$(top_srcdir)/m4/mkostemp.m4 $(top_srcdir)/m4/mkostemps.m4 \
-	$(top_srcdir)/m4/mktime.m4 $(top_srcdir)/m4/mmap-anon.m4 \
-	$(top_srcdir)/m4/mode_t.m4 $(top_srcdir)/m4/msvc-inval.m4 \
+	$(top_srcdir)/m4/isatty.m4 $(top_srcdir)/m4/isblank.m4 \
+	$(top_srcdir)/m4/isnand.m4 $(top_srcdir)/m4/isnanf.m4 \
+	$(top_srcdir)/m4/isnanl.m4 $(top_srcdir)/m4/langinfo_h.m4 \
+	$(top_srcdir)/m4/largefile.m4 $(top_srcdir)/m4/lcmessage.m4 \
+	$(top_srcdir)/m4/ldexp.m4 $(top_srcdir)/m4/lib-ld.m4 \
+	$(top_srcdir)/m4/lib-link.m4 $(top_srcdir)/m4/lib-prefix.m4 \
+	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/limits-h.m4 \
+	$(top_srcdir)/m4/localcharset.m4 $(top_srcdir)/m4/locale-fr.m4 \
+	$(top_srcdir)/m4/locale-ja.m4 $(top_srcdir)/m4/locale-tr.m4 \
+	$(top_srcdir)/m4/locale-zh.m4 $(top_srcdir)/m4/locale_h.m4 \
+	$(top_srcdir)/m4/localeconv.m4 $(top_srcdir)/m4/localename.m4 \
+	$(top_srcdir)/m4/lock.m4 $(top_srcdir)/m4/longlong.m4 \
+	$(top_srcdir)/m4/lseek.m4 $(top_srcdir)/m4/lstat.m4 \
+	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
+	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
+	$(top_srcdir)/m4/malloc.m4 $(top_srcdir)/m4/malloca.m4 \
+	$(top_srcdir)/m4/manywarnings.m4 $(top_srcdir)/m4/math_h.m4 \
+	$(top_srcdir)/m4/mbrtowc.m4 $(top_srcdir)/m4/mbsinit.m4 \
+	$(top_srcdir)/m4/mbsrtowcs.m4 $(top_srcdir)/m4/mbstate_t.m4 \
+	$(top_srcdir)/m4/mbtowc.m4 $(top_srcdir)/m4/md5.m4 \
+	$(top_srcdir)/m4/memchr.m4 $(top_srcdir)/m4/mgetgroups.m4 \
+	$(top_srcdir)/m4/mkdtemp.m4 $(top_srcdir)/m4/mkostemp.m4 \
+	$(top_srcdir)/m4/mkostemps.m4 $(top_srcdir)/m4/mktime.m4 \
+	$(top_srcdir)/m4/mmap-anon.m4 $(top_srcdir)/m4/mode_t.m4 \
+	$(top_srcdir)/m4/msvc-inval.m4 \
 	$(top_srcdir)/m4/msvc-nothrow.m4 $(top_srcdir)/m4/multiarch.m4 \
 	$(top_srcdir)/m4/nanosleep.m4 $(top_srcdir)/m4/net_if_h.m4 \
 	$(top_srcdir)/m4/netdb_h.m4 $(top_srcdir)/m4/netinet_in_h.m4 \
@@ -176,6 +177,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/posix_openpt.m4 \
 	$(top_srcdir)/m4/posix_spawn.m4 $(top_srcdir)/m4/printf.m4 \
 	$(top_srcdir)/m4/progtest.m4 $(top_srcdir)/m4/pthread.m4 \
+	$(top_srcdir)/m4/pthread_rwlock_rdlock.m4 \
 	$(top_srcdir)/m4/pthread_sigmask.m4 \
 	$(top_srcdir)/m4/ptsname.m4 $(top_srcdir)/m4/ptsname_r.m4 \
 	$(top_srcdir)/m4/pty.m4 $(top_srcdir)/m4/pty_h.m4 \
@@ -221,34 +223,93 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/unistd_h.m4 $(top_srcdir)/m4/unlockpt.m4 \
 	$(top_srcdir)/m4/usleep.m4 $(top_srcdir)/m4/vasnprintf.m4 \
 	$(top_srcdir)/m4/vasprintf.m4 \
-	$(top_srcdir)/m4/virt-apparmor.m4 \
-	$(top_srcdir)/m4/virt-attr.m4 $(top_srcdir)/m4/virt-audit.m4 \
-	$(top_srcdir)/m4/virt-avahi.m4 $(top_srcdir)/m4/virt-blkid.m4 \
-	$(top_srcdir)/m4/virt-capng.m4 \
+	$(top_srcdir)/m4/virt-apparmor.m4 $(top_srcdir)/m4/virt-arg.m4 \
+	$(top_srcdir)/m4/virt-atomic.m4 $(top_srcdir)/m4/virt-attr.m4 \
+	$(top_srcdir)/m4/virt-audit.m4 $(top_srcdir)/m4/virt-avahi.m4 \
+	$(top_srcdir)/m4/virt-blkid.m4 $(top_srcdir)/m4/virt-capng.m4 \
+	$(top_srcdir)/m4/virt-chrdev-lock-files.m4 \
 	$(top_srcdir)/m4/virt-compile-pie.m4 \
 	$(top_srcdir)/m4/virt-compile-warnings.m4 \
 	$(top_srcdir)/m4/virt-curl.m4 $(top_srcdir)/m4/virt-dbus.m4 \
+	$(top_srcdir)/m4/virt-debug.m4 \
+	$(top_srcdir)/m4/virt-default-editor.m4 \
+	$(top_srcdir)/m4/virt-devmapper.m4 \
+	$(top_srcdir)/m4/virt-dlopen.m4 \
 	$(top_srcdir)/m4/virt-driver-bhyve.m4 \
+	$(top_srcdir)/m4/virt-driver-esx.m4 \
+	$(top_srcdir)/m4/virt-driver-hyperv.m4 \
+	$(top_srcdir)/m4/virt-driver-interface.m4 \
+	$(top_srcdir)/m4/virt-driver-libvirtd.m4 \
+	$(top_srcdir)/m4/virt-driver-libxl.m4 \
+	$(top_srcdir)/m4/virt-driver-lxc.m4 \
+	$(top_srcdir)/m4/virt-driver-modules.m4 \
+	$(top_srcdir)/m4/virt-driver-network.m4 \
+	$(top_srcdir)/m4/virt-driver-openvz.m4 \
+	$(top_srcdir)/m4/virt-driver-phyp.m4 \
+	$(top_srcdir)/m4/virt-driver-qemu.m4 \
+	$(top_srcdir)/m4/virt-driver-remote.m4 \
+	$(top_srcdir)/m4/virt-driver-test.m4 \
 	$(top_srcdir)/m4/virt-driver-uml.m4 \
+	$(top_srcdir)/m4/virt-driver-vbox.m4 \
+	$(top_srcdir)/m4/virt-driver-vmware.m4 \
 	$(top_srcdir)/m4/virt-driver-vz.m4 \
+	$(top_srcdir)/m4/virt-driver-xen.m4 \
+	$(top_srcdir)/m4/virt-driver-xenapi.m4 \
+	$(top_srcdir)/m4/virt-dtrace.m4 \
+	$(top_srcdir)/m4/virt-external-programs.m4 \
+	$(top_srcdir)/m4/virt-firewalld.m4 \
 	$(top_srcdir)/m4/virt-fuse.m4 $(top_srcdir)/m4/virt-gluster.m4 \
 	$(top_srcdir)/m4/virt-gnutls.m4 $(top_srcdir)/m4/virt-hal.m4 \
 	$(top_srcdir)/m4/virt-host-validate.m4 \
 	$(top_srcdir)/m4/virt-init-script.m4 \
-	$(top_srcdir)/m4/virt-lib.m4 $(top_srcdir)/m4/virt-libssh.m4 \
+	$(top_srcdir)/m4/virt-lib.m4 $(top_srcdir)/m4/virt-libnl.m4 \
+	$(top_srcdir)/m4/virt-libpcap.m4 \
+	$(top_srcdir)/m4/virt-libssh.m4 \
+	$(top_srcdir)/m4/virt-libxml.m4 \
 	$(top_srcdir)/m4/virt-linker-no-indirect.m4 \
 	$(top_srcdir)/m4/virt-linker-relro.m4 \
+	$(top_srcdir)/m4/virt-loader-nvram.m4 \
 	$(top_srcdir)/m4/virt-login-shell.m4 \
+	$(top_srcdir)/m4/virt-macvtap.m4 \
 	$(top_srcdir)/m4/virt-netcf.m4 $(top_srcdir)/m4/virt-nss.m4 \
 	$(top_srcdir)/m4/virt-numactl.m4 \
+	$(top_srcdir)/m4/virt-numad.m4 \
+	$(top_srcdir)/m4/virt-nwfilter.m4 \
 	$(top_srcdir)/m4/virt-openwsman.m4 \
+	$(top_srcdir)/m4/virt-parted.m4 \
 	$(top_srcdir)/m4/virt-pciaccess.m4 \
+	$(top_srcdir)/m4/virt-pm-utils.m4 \
+	$(top_srcdir)/m4/virt-polkit.m4 \
+	$(top_srcdir)/m4/virt-pthread.m4 \
 	$(top_srcdir)/m4/virt-readline.m4 \
 	$(top_srcdir)/m4/virt-result.m4 \
 	$(top_srcdir)/m4/virt-sanlock.m4 $(top_srcdir)/m4/virt-sasl.m4 \
+	$(top_srcdir)/m4/virt-secdriver-apparmor.m4 \
+	$(top_srcdir)/m4/virt-secdriver-selinux.m4 \
 	$(top_srcdir)/m4/virt-selinux.m4 $(top_srcdir)/m4/virt-ssh2.m4 \
+	$(top_srcdir)/m4/virt-storage-dir.m4 \
+	$(top_srcdir)/m4/virt-storage-disk.m4 \
+	$(top_srcdir)/m4/virt-storage-fs.m4 \
+	$(top_srcdir)/m4/virt-storage-gluster.m4 \
+	$(top_srcdir)/m4/virt-storage-iscsi.m4 \
+	$(top_srcdir)/m4/virt-storage-lvm.m4 \
+	$(top_srcdir)/m4/virt-storage-mpath.m4 \
+	$(top_srcdir)/m4/virt-storage-rbd.m4 \
+	$(top_srcdir)/m4/virt-storage-scsi.m4 \
+	$(top_srcdir)/m4/virt-storage-sheepdog.m4 \
+	$(top_srcdir)/m4/virt-storage-zfs.m4 \
+	$(top_srcdir)/m4/virt-sysctl.m4 \
+	$(top_srcdir)/m4/virt-tls-priority.m4 \
 	$(top_srcdir)/m4/virt-udev.m4 \
+	$(top_srcdir)/m4/virt-virtualport.m4 \
+	$(top_srcdir)/m4/virt-win-common.m4 \
+	$(top_srcdir)/m4/virt-win-cygwin.m4 \
+	$(top_srcdir)/m4/virt-win-mingw.m4 \
+	$(top_srcdir)/m4/virt-win-symbols.m4 \
+	$(top_srcdir)/m4/virt-win-windres.m4 \
 	$(top_srcdir)/m4/virt-wireshark.m4 \
+	$(top_srcdir)/m4/virt-xdr.m4 \
+	$(top_srcdir)/m4/virt-xml-catalog.m4 \
 	$(top_srcdir)/m4/virt-yajl.m4 $(top_srcdir)/m4/vsnprintf.m4 \
 	$(top_srcdir)/m4/wait-process.m4 $(top_srcdir)/m4/waitpid.m4 \
 	$(top_srcdir)/m4/warnings.m4 $(top_srcdir)/m4/wchar_h.m4 \
@@ -416,6 +477,8 @@ am__distuninstallcheck_listfiles = $(distuninstallcheck_listfiles) \
 distcleancheck_listfiles = find . -type f -print
 pkglibexecdir = @pkglibexecdir@
 ACLOCAL = @ACLOCAL@
+ACL_CFLAGS = @ACL_CFLAGS@
+ACL_LIBS = @ACL_LIBS@
 ADDR2LINE = @ADDR2LINE@
 ALLOCA = @ALLOCA@
 ALLOCA_H = @ALLOCA_H@
@@ -475,8 +538,8 @@ DLLTOOL = @DLLTOOL@
 DLOPEN_LIBS = @DLOPEN_LIBS@
 DMIDECODE = @DMIDECODE@
 DNSMASQ = @DNSMASQ@
-DRIVER_MODULE_LDFLAGS = @DRIVER_MODULE_LDFLAGS@
-DRIVER_MODULE_LIBS = @DRIVER_MODULE_LIBS@
+DRIVER_MODULES_LDFLAGS = @DRIVER_MODULES_LDFLAGS@
+DRIVER_MODULES_LIBS = @DRIVER_MODULES_LIBS@
 DSYMUTIL = @DSYMUTIL@
 DTRACE = @DTRACE@
 DUMPBIN = @DUMPBIN@
@@ -719,6 +782,7 @@ GNULIB_OBSTACK_PRINTF_POSIX = @GNULIB_OBSTACK_PRINTF_POSIX@
 GNULIB_OPEN = @GNULIB_OPEN@
 GNULIB_OPENAT = @GNULIB_OPENAT@
 GNULIB_OPENPTY = @GNULIB_OPENPTY@
+GNULIB_OVERRIDES_WINT_T = @GNULIB_OVERRIDES_WINT_T@
 GNULIB_PCLOSE = @GNULIB_PCLOSE@
 GNULIB_PERROR = @GNULIB_PERROR@
 GNULIB_PIPE = @GNULIB_PIPE@
@@ -965,6 +1029,7 @@ HAVE_DECL_GETDELIM = @HAVE_DECL_GETDELIM@
 HAVE_DECL_GETDOMAINNAME = @HAVE_DECL_GETDOMAINNAME@
 HAVE_DECL_GETLINE = @HAVE_DECL_GETLINE@
 HAVE_DECL_GETLOADAVG = @HAVE_DECL_GETLOADAVG@
+HAVE_DECL_GETLOGIN = @HAVE_DECL_GETLOGIN@
 HAVE_DECL_GETLOGIN_R = @HAVE_DECL_GETLOGIN_R@
 HAVE_DECL_GETNAMEINFO = @HAVE_DECL_GETNAMEINFO@
 HAVE_DECL_GETPAGESIZE = @HAVE_DECL_GETPAGESIZE@
@@ -1331,8 +1396,6 @@ LIBVIRT_SYMBOL_FILE = @LIBVIRT_SYMBOL_FILE@
 LIBVIRT_VERSION = @LIBVIRT_VERSION@
 LIBVIRT_VERSION_INFO = @LIBVIRT_VERSION_INFO@
 LIBVIRT_VERSION_NUMBER = @LIBVIRT_VERSION_NUMBER@
-LIBXENSERVER_CFLAGS = @LIBXENSERVER_CFLAGS@
-LIBXENSERVER_LIBS = @LIBXENSERVER_LIBS@
 LIBXL_CFLAGS = @LIBXL_CFLAGS@
 LIBXL_LIBS = @LIBXL_LIBS@
 LIBXML_CFLAGS = @LIBXML_CFLAGS@
@@ -1378,7 +1441,6 @@ MKFS = @MKFS@
 MMCTL = @MMCTL@
 MODPROBE = @MODPROBE@
 MOUNT = @MOUNT@
-MSCOM_LIBS = @MSCOM_LIBS@
 MSGFMT = @MSGFMT@
 MSGFMT_015 = @MSGFMT_015@
 MSGMERGE = @MSGMERGE@
@@ -1527,6 +1589,10 @@ RANLIB = @RANLIB@
 READLINE_CFLAGS = @READLINE_CFLAGS@
 READLINE_LIBS = @READLINE_LIBS@
 RELRO_LDFLAGS = @RELRO_LDFLAGS@
+REPLACE_ACOSF = @REPLACE_ACOSF@
+REPLACE_ASINF = @REPLACE_ASINF@
+REPLACE_ATAN2F = @REPLACE_ATAN2F@
+REPLACE_ATANF = @REPLACE_ATANF@
 REPLACE_BTOWC = @REPLACE_BTOWC@
 REPLACE_CALLOC = @REPLACE_CALLOC@
 REPLACE_CANONICALIZE_FILE_NAME = @REPLACE_CANONICALIZE_FILE_NAME@
@@ -1537,12 +1603,15 @@ REPLACE_CEILF = @REPLACE_CEILF@
 REPLACE_CEILL = @REPLACE_CEILL@
 REPLACE_CHOWN = @REPLACE_CHOWN@
 REPLACE_CLOSE = @REPLACE_CLOSE@
+REPLACE_COSF = @REPLACE_COSF@
+REPLACE_COSHF = @REPLACE_COSHF@
 REPLACE_DPRINTF = @REPLACE_DPRINTF@
 REPLACE_DUP = @REPLACE_DUP@
 REPLACE_DUP2 = @REPLACE_DUP2@
 REPLACE_DUPLOCALE = @REPLACE_DUPLOCALE@
 REPLACE_EXP2 = @REPLACE_EXP2@
 REPLACE_EXP2L = @REPLACE_EXP2L@
+REPLACE_EXPF = @REPLACE_EXPF@
 REPLACE_EXPM1 = @REPLACE_EXPM1@
 REPLACE_EXPM1F = @REPLACE_EXPM1F@
 REPLACE_FABSL = @REPLACE_FABSL@
@@ -1691,9 +1760,12 @@ REPLACE_SETENV = @REPLACE_SETENV@
 REPLACE_SETLOCALE = @REPLACE_SETLOCALE@
 REPLACE_SIGNBIT = @REPLACE_SIGNBIT@
 REPLACE_SIGNBIT_USING_GCC = @REPLACE_SIGNBIT_USING_GCC@
+REPLACE_SINF = @REPLACE_SINF@
+REPLACE_SINHF = @REPLACE_SINHF@
 REPLACE_SLEEP = @REPLACE_SLEEP@
 REPLACE_SNPRINTF = @REPLACE_SNPRINTF@
 REPLACE_SPRINTF = @REPLACE_SPRINTF@
+REPLACE_SQRTF = @REPLACE_SQRTF@
 REPLACE_SQRTL = @REPLACE_SQRTL@
 REPLACE_STAT = @REPLACE_STAT@
 REPLACE_STDIO_READ_FUNCS = @REPLACE_STDIO_READ_FUNCS@
@@ -1717,6 +1789,8 @@ REPLACE_STRUCT_LCONV = @REPLACE_STRUCT_LCONV@
 REPLACE_STRUCT_TIMEVAL = @REPLACE_STRUCT_TIMEVAL@
 REPLACE_SYMLINK = @REPLACE_SYMLINK@
 REPLACE_SYMLINKAT = @REPLACE_SYMLINKAT@
+REPLACE_TANF = @REPLACE_TANF@
+REPLACE_TANHF = @REPLACE_TANHF@
 REPLACE_TIMEGM = @REPLACE_TIMEGM@
 REPLACE_TMPFILE = @REPLACE_TMPFILE@
 REPLACE_TOWLOWER = @REPLACE_TOWLOWER@
@@ -1798,6 +1872,7 @@ VIR_TEST_EXPENSIVE_DEFAULT = @VIR_TEST_EXPENSIVE_DEFAULT@
 WARN_CFLAGS = @WARN_CFLAGS@
 WCHAR_T_SUFFIX = @WCHAR_T_SUFFIX@
 WIN32_EXTRA_CFLAGS = @WIN32_EXTRA_CFLAGS@
+WIN32_EXTRA_LIBS = @WIN32_EXTRA_LIBS@
 WINDOWS_64_BIT_OFF_T = @WINDOWS_64_BIT_OFF_T@
 WINDOWS_64_BIT_ST_SIZE = @WINDOWS_64_BIT_ST_SIZE@
 WINDRES = @WINDRES@
@@ -1805,6 +1880,8 @@ WINT_T_SUFFIX = @WINT_T_SUFFIX@
 WIRESHARK_DISSECTOR_CFLAGS = @WIRESHARK_DISSECTOR_CFLAGS@
 WIRESHARK_DISSECTOR_LIBS = @WIRESHARK_DISSECTOR_LIBS@
 XDR_CFLAGS = @XDR_CFLAGS@
+XENAPI_CFLAGS = @XENAPI_CFLAGS@
+XENAPI_LIBS = @XENAPI_LIBS@
 XEN_CFLAGS = @XEN_CFLAGS@
 XEN_LIBS = @XEN_LIBS@
 XGETTEXT = @XGETTEXT@
@@ -1885,22 +1962,12 @@ SUBDIRS = . gnulib/lib include/libvirt src daemon tools docs gnulib/tests \
   tests po examples
 
 ACLOCAL_AMFLAGS = -I m4
-EXTRA_DIST = \
-  config-post.h \
-  ChangeLog-old \
-  libvirt.spec libvirt.spec.in \
-  mingw-libvirt.spec.in \
-  libvirt.pc.in \
-  libvirt-qemu.pc.in \
-  libvirt-lxc.pc.in \
-  libvirt-admin.pc.in \
-  autobuild.sh \
-  Makefile.nonreentrant \
-  autogen.sh \
-  cfg.mk \
-  run.in \
-  AUTHORS.in
-
+EXTRA_DIST = config-post.h ChangeLog-old libvirt.spec libvirt.spec.in \
+	mingw-libvirt.spec.in libvirt.pc.in libvirt-qemu.pc.in \
+	libvirt-lxc.pc.in libvirt-admin.pc.in autobuild.sh \
+	Makefile.nonreentrant autogen.sh cfg.mk run.in AUTHORS.in \
+	$(srcdir)/docs/news.xml $(srcdir)/docs/news-ascii.xsl \
+	$(srcdir)/docs/reformat-news.py
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libvirt.pc libvirt-qemu.pc libvirt-lxc.pc libvirt-admin.pc
 MAINTAINERCLEANFILES = .git-module-status
@@ -2437,13 +2504,21 @@ uninstall-am: uninstall-pkgconfigDATA
 XZ_OPT ?= -v -T0
 export XZ_OPT
 
-NEWS: $(top_srcdir)/docs/news.xsl $(top_srcdir)/docs/news.html.in
-	$(AM_V_GEN)if [ -x $(XSLTPROC) ] ; then			\
-	  $(XSLTPROC) --nonet $(top_srcdir)/docs/news.xsl	\
-	     $(top_srcdir)/docs/news.html.in			\
-	   | perl -0777 -pe 's/\n\n+$$/\n/'			\
-	   | perl -pe 's/[ \t]+$$//'				\
-	   > $@-t && mv $@-t $@ ; fi
+NEWS: \
+	  $(srcdir)/docs/news.xml \
+	  $(srcdir)/docs/news-ascii.xsl \
+	  $(srcdir)/docs/reformat-news.py
+	$(AM_V_GEN) \
+	if [ -x $(XSLTPROC) ]; then \
+	  $(XSLTPROC) --nonet \
+	    $(srcdir)/docs/news-ascii.xsl \
+	    $(srcdir)/docs/news.xml \
+	  >$@-tmp \
+	    || { rm -f $@-tmp; exit 1; }; \
+	  $(srcdir)/docs/reformat-news.py $@-tmp >$@ \
+	    || { rm -f $@-tmp; exit 1; }; \
+	  rm -f $@-tmp; \
+	fi
 
 $(top_srcdir)/HACKING: $(top_srcdir)/docs/hacking1.xsl \
 			$(top_srcdir)/docs/hacking2.xsl \

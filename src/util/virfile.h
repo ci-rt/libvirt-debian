@@ -101,11 +101,14 @@ void virFileWrapperFdFree(virFileWrapperFdPtr dfd);
 int virFileLock(int fd, bool shared, off_t start, off_t len, bool waitForLock);
 int virFileUnlock(int fd, off_t start, off_t len);
 
-typedef int (*virFileRewriteFunc)(int fd, void *opaque);
+typedef int (*virFileRewriteFunc)(int fd, const void *opaque);
 int virFileRewrite(const char *path,
                    mode_t mode,
                    virFileRewriteFunc rewrite,
-                   void *opaque);
+                   const void *opaque);
+int virFileRewriteStr(const char *path,
+                      mode_t mode,
+                      const char *str);
 
 int virFileTouch(const char *path, mode_t mode);
 
@@ -308,4 +311,21 @@ int virFileGetHugepageSize(const char *path,
                            unsigned long long *size);
 int virFileFindHugeTLBFS(virHugeTLBFSPtr *ret_fs,
                          size_t *ret_nfs);
+
+int virFileSetupDev(const char *path,
+                    const char *mount_options);
+
+int virFileBindMountDevice(const char *src,
+                           const char *dst);
+
+int virFileGetACLs(const char *file,
+                   void **acl);
+
+int virFileSetACLs(const char *file,
+                   void *acl);
+
+void virFileFreeACLs(void **acl);
+
+int virFileCopyACLs(const char *src,
+                    const char *dst);
 #endif /* __VIR_FILE_H */

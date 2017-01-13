@@ -2125,6 +2125,80 @@ void virDomainStatsRecordListFree(virDomainStatsRecordPtr *stats);
  */
 # define VIR_PERF_PARAM_CPU_CYCLES "cpu_cycles"
 
+/**
+ * VIR_PERF_PARAM_BRANCH_INSTRUCTIONS:
+ *
+ * Macro for typed parameter name that represents branch_instructions
+ * perf event which can be used to measure the count of branch instructions
+ * by applications running on the platform. It corresponds to the
+ * "perf.branch_instructions" field in the *Stats APIs.
+ */
+# define VIR_PERF_PARAM_BRANCH_INSTRUCTIONS "branch_instructions"
+
+/**
+ * VIR_PERF_PARAM_BRANCH_MISSES:
+ *
+ * Macro for typed parameter name that represents branch_misses
+ * perf event which can be used to measure the count of branch misses
+ * by applications running on the platform. It corresponds to the
+ * "perf.branch_misses" field in the *Stats APIs.
+ */
+# define VIR_PERF_PARAM_BRANCH_MISSES "branch_misses"
+
+/**
+ * VIR_PERF_PARAM_BUS_CYCLES:
+ *
+ * Macro for typed parameter name that represents bus_cycles
+ * perf event which can be used to measure the count of bus cycles
+ * by applications running on the platform. It corresponds to the
+ * "perf.bus_cycles" field in the *Stats APIs.
+ */
+# define VIR_PERF_PARAM_BUS_CYCLES "bus_cycles"
+
+/**
+ * VIR_PERF_PARAM_STALLED_CYCLES_FRONTEND:
+ *
+ * Macro for typed parameter name that represents stalled_cycles_frontend
+ * perf event which can be used to measure the count of stalled cpu cycles
+ * in the frontend of the instruction processor pipeline by applications
+ * running on the platform. It corresponds to the
+ * "perf.stalled_cycles_frontend" field in the *Stats APIs.
+ */
+# define VIR_PERF_PARAM_STALLED_CYCLES_FRONTEND "stalled_cycles_frontend"
+
+/**
+ * VIR_PERF_PARAM_STALLED_CYCLES_BACKEND:
+ *
+ * Macro for typed parameter name that represents stalled_cycles_backend
+ * perf event which can be used to measure the count of stalled cpu cycles
+ * in the backend of the instruction processor pipeline by application
+ * running on the platform. It corresponds to the
+ * "perf.stalled_cycles_backend" field in the *Stats APIs.
+ */
+# define VIR_PERF_PARAM_STALLED_CYCLES_BACKEND "stalled_cycles_backend"
+
+/**
+ * VIR_PERF_PARAM_REF_CPU_CYCLES:
+ *
+ * Macro for typed parameter name that represents ref_cpu_cycles
+ * perf event which can be used to measure the count of total cpu
+ * cycles not affected by CPU frequency scaling by applications
+ * running on the platform. It corresponds to the
+ * "perf.ref_cpu_cycles" field in the *Stats APIs.
+ */
+# define VIR_PERF_PARAM_REF_CPU_CYCLES "ref_cpu_cycles"
+
+/**
+ * VIR_PERF_PARAM_CACHE_L1D:
+ *
+ * Macro for typed parameter name that represents cache_l1d
+ * perf event which can be used to measure the count of total
+ * level 1 data cache by applications running on the platform.
+ * It corresponds to the "perf.cache_l1d" field in the
+ * *Stats APIs.
+ */
+# define VIR_PERF_PARAM_CACHE_L1D "cache_l1d"
+
 int virDomainGetPerfEvents(virDomainPtr dom,
                            virTypedParameterPtr *params,
                            int *nparams,
@@ -2487,6 +2561,13 @@ int virDomainBlockCommit(virDomainPtr dom, const char *disk, const char *base,
  * I/O operations per second permitted through a block device, as a ullong.
  */
 # define VIR_DOMAIN_BLOCK_IOTUNE_SIZE_IOPS_SEC "size_iops_sec"
+
+/**
+ * VIR_DOMAIN_BLOCK_IOTUNE_GROUP_NAME:
+ * Macro for the BlockIoTune tunable weight: it represents a group name to
+ * allow sharing of I/O throttling quota between multiple drives, as a string.
+ */
+# define VIR_DOMAIN_BLOCK_IOTUNE_GROUP_NAME "group_name"
 
 int
 virDomainSetBlockIoTune(virDomainPtr dom,
@@ -3700,6 +3781,25 @@ typedef void (*virConnectDomainEventDeviceRemovalFailedCallback)(virConnectPtr c
                                                                  const char *devAlias,
                                                                  void *opaque);
 
+/**
+ * virConnectDomainEventMetadataChangeCallback:
+ * @conn: connection object
+ * @dom: domain on which the event occurred
+ * @type: a value from virDomainMetadataTypea
+ * @nsuri: XML namespace URI
+ * @opaque: application specified data
+ *
+ * This callback is triggered when the domain XML metadata is changed
+ *
+ * The callback signature to use when registering for an event of type
+ * VIR_DOMAIN_EVENT_ID_METADATA_CHANGE with virConnectDomainEventRegisterAny().
+ */
+typedef void (*virConnectDomainEventMetadataChangeCallback)(virConnectPtr conn,
+                                                            virDomainPtr dom,
+                                                            int type,
+                                                            const char *nsuri,
+                                                            void *opaque);
+
 
 /**
  * virConnectDomainEventMigrationIterationCallback:
@@ -3958,6 +4058,14 @@ typedef void (*virConnectDomainEventJobCompletedCallback)(virConnectPtr conn,
 # define VIR_DOMAIN_TUNABLE_BLKDEV_SIZE_IOPS_SEC "blkdeviotune.size_iops_sec"
 
 /**
+ * VIR_DOMAIN_TUNABLE_BLKDEV_GROUP_NAME:
+ *
+ * Macro represents the group name to be used,
+ * as VIR_TYPED_PARAM_STRING.
+ */
+# define VIR_DOMAIN_TUNABLE_BLKDEV_GROUP_NAME "blkdeviotune.group_name"
+
+/**
  * VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_BYTES_SEC_MAX_LENGTH:
  *
  * Macro represents the length in seconds allowed for a burst period
@@ -4117,6 +4225,7 @@ typedef enum {
     VIR_DOMAIN_EVENT_ID_MIGRATION_ITERATION = 20, /* virConnectDomainEventMigrationIterationCallback */
     VIR_DOMAIN_EVENT_ID_JOB_COMPLETED = 21,  /* virConnectDomainEventJobCompletedCallback */
     VIR_DOMAIN_EVENT_ID_DEVICE_REMOVAL_FAILED = 22, /* virConnectDomainEventDeviceRemovalFailedCallback */
+    VIR_DOMAIN_EVENT_ID_METADATA_CHANGE = 23, /* virConnectDomainEventMetadataChangeCallback */
 
 # ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_EVENT_ID_LAST

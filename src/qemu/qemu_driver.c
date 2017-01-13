@@ -57,6 +57,7 @@
 #include "qemu_process.h"
 #include "qemu_migration.h"
 #include "qemu_blockjob.h"
+#include "qemu_security.h"
 
 #include "virerror.h"
 #include "virlog.h"
@@ -65,7 +66,8 @@
 #include "nodeinfo.h"
 #include "virhostcpu.h"
 #include "virhostmem.h"
-#include "virstats.h"
+#include "virnetdevtap.h"
+#include "virnetdevopenvswitch.h"
 #include "capabilities.h"
 #include "viralloc.h"
 #include "viruuid.h"
@@ -112,9 +114,14 @@ VIR_LOG_INIT("qemu.qemu_driver");
 
 #define QEMU_NB_MEM_PARAM  3
 
-#define QEMU_NB_BLOCK_IO_TUNE_PARAM  6
-#define QEMU_NB_BLOCK_IO_TUNE_PARAM_MAX  13
-#define QEMU_NB_BLOCK_IO_TUNE_PARAM_MAX_LENGTH 19
+#define QEMU_NB_BLOCK_IO_TUNE_BASE_PARAMS 6
+#define QEMU_NB_BLOCK_IO_TUNE_MAX_PARAMS 7
+#define QEMU_NB_BLOCK_IO_TUNE_LENGTH_PARAMS 6
+#define QEMU_NB_BLOCK_IO_TUNE_GROUP_PARAMS 1
+#define QEMU_NB_BLOCK_IO_TUNE_ALL_PARAMS (QEMU_NB_BLOCK_IO_TUNE_BASE_PARAMS + \
+                                          QEMU_NB_BLOCK_IO_TUNE_MAX_PARAMS + \
+                                          QEMU_NB_BLOCK_IO_TUNE_GROUP_PARAMS + \
+                                          QEMU_NB_BLOCK_IO_TUNE_LENGTH_PARAMS)
 
 #define QEMU_NB_NUMA_PARAM 2
 
@@ -322,10 +329,11 @@ qemuAutostartDomains(virQEMUDriverPtr driver)
 
 
 static int
-qemuSecurityChownCallback(virStorageSourcePtr src,
+qemuSecurityChownCallback(const virStorageSource *src,
                           uid_t uid,
                           gid_t gid)
 {
+    virStorageSourcePtr cpy = NULL;
     struct stat sb;
     int save_errno = 0;
     int ret = -1;
@@ -347,22 +355,28 @@ qemuSecurityChownCallback(virStorageSourcePtr src,
             }
         }
 
-        return chown(src->path, uid, gid);
-    }
+        if (chown(src->path, uid, gid) < 0)
+            goto cleanup;
+    } else {
+        if (!(cpy = virStorageSourceCopy(src, false)))
+            goto cleanup;
 
-    /* storage file init reports errors, return -2 on failure */
-    if (virStorageFileInit(src) < 0)
-        return -2;
+        /* src file init reports errors, return -2 on failure */
+        if (virStorageFileInit(cpy) < 0) {
+            ret = -2;
+            goto cleanup;
+        }
 
-    if (virStorageFileChown(src, uid, gid) < 0) {
-        save_errno = errno;
-        goto cleanup;
+        if (virStorageFileChown(cpy, uid, gid) < 0)
+            goto cleanup;
     }
 
     ret = 0;
 
  cleanup:
-    virStorageFileDeinit(src);
+    save_errno = errno;
+    virStorageFileDeinit(cpy);
+    virStorageSourceFree(cpy);
     errno = save_errno;
 
     return ret;
@@ -852,7 +866,7 @@ qemuStateInitialize(bool privileged,
      * it, since we can't assume the root mount point has permissions that
      * will let our spawned QEMU instances use it. */
     for (i = 0; i < cfg->nhugetlbfs; i++) {
-        hugepagePath = qemuGetHugepagePath(&cfg->hugetlbfs[i]);
+        hugepagePath = qemuGetBaseHugepagePath(&cfg->hugetlbfs[i]);
 
         if (!hugepagePath)
             goto error;
@@ -863,19 +877,10 @@ qemuStateInitialize(bool privileged,
                                  hugepagePath);
             goto error;
         }
-        if (privileged) {
-            if (virFileUpdatePerm(cfg->hugetlbfs[i].mnt_dir,
-                                  0, S_IXGRP | S_IXOTH) < 0)
-                goto error;
-            if (chown(hugepagePath, cfg->user, cfg->group) < 0) {
-                virReportSystemError(errno,
-                                     _("unable to set ownership on %s to %d:%d"),
-                                     hugepagePath,
-                                     (int) cfg->user,
-                                     (int) cfg->group);
-                goto error;
-            }
-        }
+        if (privileged &&
+            virFileUpdatePerm(cfg->hugetlbfs[i].mnt_dir,
+                              0, S_IXGRP | S_IXOTH) < 0)
+            goto error;
         VIR_FREE(hugepagePath);
     }
 
@@ -3295,6 +3300,9 @@ qemuGetCompressionProgram(const char *imageFormat,
     if ((ret = qemuSaveCompressionTypeFromString(imageFormat)) < 0)
         goto error;
 
+    if (ret == QEMU_SAVE_FORMAT_RAW)
+        return QEMU_SAVE_FORMAT_RAW;
+
     if (!(*compresspath = virFindFileInPath(imageFormat)))
         goto error;
 
@@ -3880,7 +3888,7 @@ getAutoDumpPath(virQEMUDriverPtr driver,
                 virDomainObjPtr vm)
 {
     char *dumpfile = NULL;
-    char *domname = virDomainObjGetShortName(vm);
+    char *domname = virDomainObjGetShortName(vm->def);
     char timestr[100];
     struct tm time_info;
     time_t curtime = time(NULL);
@@ -4942,8 +4950,19 @@ qemuDomainSetVcpusConfig(virDomainDefPtr def,
         for (i = 0; i < maxvcpus; i++) {
             vcpu = virDomainDefGetVcpu(def, i);
 
-            if (!vcpu || vcpu->online)
+            if (!vcpu)
                 continue;
+
+            if (vcpu->online) {
+                /* non-hotpluggable vcpus need to be clustered at the beggining,
+                 * thus we need to force vcpus to be hotpluggable when we find
+                 * vcpus that are hotpluggable and online prior to the ones
+                 * we are going to add */
+                if (vcpu->hotpluggable == VIR_TRISTATE_BOOL_YES)
+                    hotpluggable = true;
+
+                continue;
+            }
 
             vcpu->online = true;
             if (hotpluggable) {
@@ -9852,6 +9871,13 @@ qemuDomainSetPerfEvents(virDomainPtr dom,
                                VIR_PERF_PARAM_INSTRUCTIONS, VIR_TYPED_PARAM_BOOLEAN,
                                VIR_PERF_PARAM_CACHE_REFERENCES, VIR_TYPED_PARAM_BOOLEAN,
                                VIR_PERF_PARAM_CACHE_MISSES, VIR_TYPED_PARAM_BOOLEAN,
+                               VIR_PERF_PARAM_BRANCH_INSTRUCTIONS, VIR_TYPED_PARAM_BOOLEAN,
+                               VIR_PERF_PARAM_BRANCH_MISSES, VIR_TYPED_PARAM_BOOLEAN,
+                               VIR_PERF_PARAM_BUS_CYCLES, VIR_TYPED_PARAM_BOOLEAN,
+                               VIR_PERF_PARAM_STALLED_CYCLES_FRONTEND, VIR_TYPED_PARAM_BOOLEAN,
+                               VIR_PERF_PARAM_STALLED_CYCLES_BACKEND, VIR_TYPED_PARAM_BOOLEAN,
+                               VIR_PERF_PARAM_REF_CPU_CYCLES, VIR_TYPED_PARAM_BOOLEAN,
+                               VIR_PERF_PARAM_CACHE_L1D, VIR_TYPED_PARAM_BOOLEAN,
                                NULL) < 0)
         return -1;
 
@@ -10974,6 +11000,7 @@ qemuDomainInterfaceStats(virDomainPtr dom,
                          virDomainInterfaceStatsPtr stats)
 {
     virDomainObjPtr vm;
+    virDomainNetDefPtr net = NULL;
     size_t i;
     int ret = -1;
 
@@ -10991,19 +11018,27 @@ qemuDomainInterfaceStats(virDomainPtr dom,
 
     /* Check the path is one of the domain's network interfaces. */
     for (i = 0; i < vm->def->nnets; i++) {
-        if (vm->def->nets[i]->ifname &&
-            STREQ(vm->def->nets[i]->ifname, path)) {
-            ret = 0;
+        if (STREQ_NULLABLE(vm->def->nets[i]->ifname, path)) {
+            net = vm->def->nets[i];
             break;
         }
     }
 
-    if (ret == 0)
-        ret = virNetInterfaceStats(path, stats);
-    else
+    if (!net) {
         virReportError(VIR_ERR_INVALID_ARG,
                        _("invalid path, '%s' is not a known interface"), path);
+        goto cleanup;
+    }
 
+    if (net->type == VIR_DOMAIN_NET_TYPE_VHOSTUSER) {
+        if (virNetDevOpenvswitchInterfaceStats(path, stats) < 0)
+            goto cleanup;
+    } else {
+        if (virNetDevTapInterfaceStats(path, stats) < 0)
+            goto cleanup;
+    }
+
+    ret = 0;
  cleanup:
     virDomainObjEndAPI(&vm);
     return ret;
@@ -11532,9 +11567,123 @@ qemuDomainMemoryPeek(virDomainPtr dom,
 }
 
 
-/* Refresh the capacity and allocation limits of a given storage
- * source.  Assumes that the caller has already obtained a domain
- * job. */
+/**
+ * @driver: qemu driver data
+ * @cfg: driver configuration data
+ * @vm: domain object
+ * @src: storage source data
+ * @ret_fd: pointer to return open'd file descriptor
+ * @ret_sb: pointer to return stat buffer (local or remote)
+ *
+ * For local storage, open the file using qemuOpenFile and then use
+ * fstat() to grab the stat struct data for the caller.
+ *
+ * For remote storage, attempt to access the file and grab the stat
+ * struct data if the remote connection supports it.
+ *
+ * Returns 0 on success with @ret_fd and @ret_sb populated, -1 on failure
+ */
+static int
+qemuDomainStorageOpenStat(virQEMUDriverPtr driver,
+                          virQEMUDriverConfigPtr cfg,
+                          virDomainObjPtr vm,
+                          virStorageSourcePtr src,
+                          int *ret_fd,
+                          struct stat *ret_sb)
+{
+    if (virStorageSourceIsLocalStorage(src)) {
+        if ((*ret_fd = qemuOpenFile(driver, vm, src->path, O_RDONLY,
+                                    NULL, NULL)) == -1)
+            return -1;
+
+        if (fstat(*ret_fd, ret_sb) < 0) {
+            virReportSystemError(errno, _("cannot stat file '%s'"), src->path);
+            VIR_FORCE_CLOSE(*ret_fd);
+            return -1;
+        }
+    } else {
+        if (virStorageFileInitAs(src, cfg->user, cfg->group) < 0)
+            return -1;
+
+        if (virStorageFileStat(src, ret_sb) < 0) {
+            virStorageFileDeinit(src);
+            virReportSystemError(errno, _("failed to stat remote file '%s'"),
+                                 NULLSTR(src->path));
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+
+/**
+ * @src: storage source data
+ * @fd: file descriptor to close for local
+ *
+ * If local, then just close the file descriptor.
+ * else remote, then tear down the storage driver backend connection.
+ */
+static void
+qemuDomainStorageCloseStat(virStorageSourcePtr src,
+                           int *fd)
+{
+    if (virStorageSourceIsLocalStorage(src))
+        VIR_FORCE_CLOSE(*fd);
+    else
+        virStorageFileDeinit(src);
+}
+
+
+static int
+qemuDomainStorageUpdatePhysical(virQEMUDriverPtr driver,
+                                virQEMUDriverConfigPtr cfg,
+                                virDomainObjPtr vm,
+                                virStorageSourcePtr src)
+{
+    int ret;
+    int fd = -1;
+    struct stat sb;
+
+    if (qemuDomainStorageOpenStat(driver, cfg, vm, src, &fd, &sb) < 0)
+        return -1;
+
+    ret = virStorageSourceUpdatePhysicalSize(src, fd, &sb);
+
+    qemuDomainStorageCloseStat(src, &fd);
+
+    return ret;
+}
+
+
+/**
+ * @driver: qemu driver data
+ * @cfg: driver configuration data
+ * @vm: domain object
+ * @src: storage source data
+ *
+ * Refresh the capacity and allocation limits of a given storage source.
+ *
+ * Assumes that the caller has already obtained a domain job and only
+ * called for an offline domain. Being offline is particularly important
+ * since reading a file while qemu is writing it risks the reader seeing
+ * bogus data or avoiding opening a file in order to get stat data.
+ *
+ * We always want to check current on-disk statistics (as users have been
+ * known to change offline images behind our backs).
+ *
+ * For read-only disks, nothing should be changing unless the user has
+ * requested a block-commit action.  For read-write disks, we know some
+ * special cases: capacity should not change without a block-resize (where
+ * capacity is the only stat that requires reading a file, and even then,
+ * only for non-raw files); and physical size of a raw image or of a
+ * block device should likewise not be changing without block-resize.
+ * On the other hand, allocation of a raw file can change (if the file
+ * is sparse, but the amount of sparseness changes due to writes or
+ * punching holes), and physical size of a non-raw file can change.
+ *
+ * Returns 0 on success, -1 on failure
+ */
 static int
 qemuStorageLimitsRefresh(virQEMUDriverPtr driver,
                          virQEMUDriverConfigPtr cfg,
@@ -11543,114 +11692,30 @@ qemuStorageLimitsRefresh(virQEMUDriverPtr driver,
 {
     int ret = -1;
     int fd = -1;
-    off_t end;
-    virStorageSourcePtr meta = NULL;
     struct stat sb;
-    int format;
     char *buf = NULL;
     ssize_t len;
 
-    /* FIXME: For an offline domain, we always want to check current
-     * on-disk statistics (as users have been known to change offline
-     * images behind our backs).  For a running domain, however, it
-     * would be nice to avoid opening a file (particularly since
-     * reading a file while qemu is writing it risks the reader seeing
-     * bogus data), or even avoid a stat, if the information
-     * remembered from the previous run is still viable.
-     *
-     * For read-only disks, nothing should be changing unless the user
-     * has requested a block-commit action.  For read-write disks, we
-     * know some special cases: capacity should not change without a
-     * block-resize (where capacity is the only stat that requires
-     * reading a file, and even then, only for non-raw files); and
-     * physical size of a raw image or of a block device should
-     * likewise not be changing without block-resize.  On the other
-     * hand, allocation of a raw file can change (if the file is
-     * sparse, but the amount of sparseness changes due to writes or
-     * punching holes), and physical size of a non-raw file can
-     * change.
-     */
+    if (qemuDomainStorageOpenStat(driver, cfg, vm, src, &fd, &sb) < 0)
+        goto cleanup;
+
     if (virStorageSourceIsLocalStorage(src)) {
-        if ((fd = qemuOpenFile(driver, vm, src->path, O_RDONLY,
-                               NULL, NULL)) == -1)
-            goto cleanup;
-
-        if (fstat(fd, &sb) < 0) {
-            virReportSystemError(errno,
-                                 _("cannot stat file '%s'"), src->path);
-            goto cleanup;
-        }
-
         if ((len = virFileReadHeaderFD(fd, VIR_STORAGE_MAX_HEADER, &buf)) < 0) {
             virReportSystemError(errno, _("cannot read header '%s'"),
                                  src->path);
             goto cleanup;
         }
     } else {
-        if (virStorageFileInitAs(src, cfg->user, cfg->group) < 0)
-            goto cleanup;
-
         if ((len = virStorageFileReadHeader(src, VIR_STORAGE_MAX_HEADER,
                                             &buf)) < 0)
             goto cleanup;
-
-        if (virStorageFileStat(src, &sb) < 0) {
-            virReportSystemError(errno, _("failed to stat remote file '%s'"),
-                                 NULLSTR(src->path));
-            goto cleanup;
-        }
     }
 
-    /* Get info for normal formats */
-    if (S_ISREG(sb.st_mode) || fd == -1) {
-#ifndef WIN32
-        src->allocation = (unsigned long long)sb.st_blocks *
-            (unsigned long long)DEV_BSIZE;
-#else
-        src->allocation = sb.st_size;
-#endif
-        /* Allocation tracks when the file is sparse, physical is the
-         * last offset of the file. */
-        src->physical = sb.st_size;
-    } else {
-        /* NB. Because we configure with AC_SYS_LARGEFILE, off_t
-         * should be 64 bits on all platforms.  For block devices, we
-         * have to seek (safe even if someone else is writing) to
-         * determine physical size, and assume that allocation is the
-         * same as physical (but can refine that assumption later if
-         * qemu is still running).
-         */
-        end = lseek(fd, 0, SEEK_END);
-        if (end == (off_t)-1) {
-            virReportSystemError(errno,
-                                 _("failed to seek to end of %s"), src->path);
-            goto cleanup;
-        }
-        src->physical = end;
-        src->allocation = end;
-    }
+    if (virStorageSourceUpdateBackingSizes(src, fd, &sb) < 0)
+        goto cleanup;
 
-    /* Raw files: capacity is physical size.  For all other files: if
-     * the metadata has a capacity, use that, otherwise fall back to
-     * physical size.  */
-    if (!(format = src->format)) {
-        if (!cfg->allowDiskFormatProbing) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("no disk format for %s and probing is disabled"),
-                           src->path);
-            goto cleanup;
-        }
-
-        if ((format = virStorageFileProbeFormatFromBuf(src->path,
-                                                       buf, len)) < 0)
-            goto cleanup;
-    }
-    if (format == VIR_STORAGE_FILE_RAW)
-        src->capacity = src->physical;
-    else if ((meta = virStorageFileGetMetadataFromBuf(src->path, buf,
-                                                      len, format, NULL)))
-        src->capacity = meta->capacity ? meta->capacity : src->physical;
-    else
+    if (virStorageSourceUpdateCapacity(src, buf, len,
+                                       cfg->allowDiskFormatProbing) < 0)
         goto cleanup;
 
     /* If guest is not using raw disk format and is on a host block
@@ -11658,16 +11723,15 @@ qemuStorageLimitsRefresh(virQEMUDriverPtr driver,
      * query the highest allocated extent from QEMU
      */
     if (virStorageSourceGetActualType(src) == VIR_STORAGE_TYPE_BLOCK &&
-        format != VIR_STORAGE_FILE_RAW &&
+        src->format != VIR_STORAGE_FILE_RAW &&
         S_ISBLK(sb.st_mode))
         src->allocation = 0;
 
     ret = 0;
+
  cleanup:
     VIR_FREE(buf);
-    virStorageSourceFree(meta);
-    VIR_FORCE_CLOSE(fd);
-    virStorageFileDeinit(src);
+    qemuDomainStorageCloseStat(src, &fd);
     return ret;
 }
 
@@ -11761,16 +11825,36 @@ qemuDomainGetBlockInfo(virDomainPtr dom,
 
         info->allocation = entry->physical;
     } else {
-        info->allocation = entry->wr_highest_offset;
+        if (virStorageSourceGetActualType(disk->src) == VIR_STORAGE_TYPE_FILE &&
+            disk->src->format == VIR_STORAGE_FILE_QCOW2)
+            info->allocation = entry->physical;
+        else
+            info->allocation = entry->wr_highest_offset;
     }
 
-    if (entry->physical) {
-        info->physical = entry->physical;
-    } else {
-        if (virStorageSourceUpdateBlockPhysicalSize(disk->src, true) < 0)
+    /* Unlike GetStatsBlock, this API has defined the expected return values
+     * for allocation and physical slightly differently.
+     *
+     * Having a zero for either or if they're the same is an indication that
+     * there's a sparse file backing this device. In this case, we'll force
+     * the setting of physical based on the on disk file size.
+     *
+     * Additionally, if qemu hasn't written to the file yet, then set the
+     * allocation to whatever qemu returned for physical (e.g. the "actual-
+     * size" from the json query) as that will match the expected allocation
+     * value for this API. */
+    if (entry->physical == 0 || info->allocation == 0 ||
+        info->allocation == entry->physical) {
+        info->allocation = entry->physical;
+        if (info->allocation == 0)
+            info->allocation = entry->physical;
+
+        if (qemuDomainStorageUpdatePhysical(driver, cfg, vm, disk->src) < 0)
             goto endjob;
 
         info->physical = disk->src->physical;
+    } else {
+        info->physical = entry->physical;
     }
 
     info->capacity = entry->capacity;
@@ -14107,75 +14191,184 @@ qemuDomainSnapshotPrepare(virConnectPtr conn,
 }
 
 
+struct _qemuDomainSnapshotDiskData {
+    virStorageSourcePtr src;
+    bool initialized; /* @src was initialized in the storage driver */
+    bool created; /* @src was created by the snapshot code */
+    bool prepared; /* @src was prepared using qemuDomainDiskChainElementPrepare */
+    virDomainDiskDefPtr disk;
+
+    virStorageSourcePtr persistsrc;
+    virDomainDiskDefPtr persistdisk;
+};
+
+typedef struct _qemuDomainSnapshotDiskData qemuDomainSnapshotDiskData;
+typedef qemuDomainSnapshotDiskData *qemuDomainSnapshotDiskDataPtr;
+
+
+static void
+qemuDomainSnapshotDiskDataFree(qemuDomainSnapshotDiskDataPtr data,
+                               size_t ndata,
+                               virQEMUDriverPtr driver,
+                               virDomainObjPtr vm)
+{
+    size_t i;
+
+    if (!data)
+        return;
+
+    for (i = 0; i < ndata; i++) {
+        /* on success of the snapshot the 'src' and 'persistsrc' properties will
+         * be set to NULL by qemuDomainSnapshotUpdateDiskSources */
+        if (data[i].src) {
+            if (data[i].initialized)
+                virStorageFileDeinit(data[i].src);
+
+            if (data[i].prepared)
+                qemuDomainDiskChainElementRevoke(driver, vm, data[i].src);
+
+            virStorageSourceFree(data[i].src);
+        }
+        virStorageSourceFree(data[i].persistsrc);
+    }
+
+    VIR_FREE(data);
+}
+
+
+/**
+ * qemuDomainSnapshotDiskDataCollect:
+ *
+ * Collects and prepares a list of structures that hold information about disks
+ * that are selected for the snapshot.
+ */
+static qemuDomainSnapshotDiskDataPtr
+qemuDomainSnapshotDiskDataCollect(virQEMUDriverPtr driver,
+                                  virDomainObjPtr vm,
+                                  virDomainSnapshotObjPtr snap)
+{
+    size_t i;
+    qemuDomainSnapshotDiskDataPtr ret;
+    qemuDomainSnapshotDiskDataPtr dd;
+
+    if (VIR_ALLOC_N(ret, snap->def->ndisks) < 0)
+        return NULL;
+
+    for (i = 0; i < snap->def->ndisks; i++) {
+        if (snap->def->disks[i].snapshot == VIR_DOMAIN_SNAPSHOT_LOCATION_NONE)
+            continue;
+
+        dd = ret + i;
+
+        dd->disk = vm->def->disks[i];
+
+        if (!(dd->src = virStorageSourceCopy(snap->def->disks[i].src, false)))
+            goto error;
+
+        if (virStorageSourceInitChainElement(dd->src, dd->disk->src, false) < 0)
+            goto error;
+
+        if (qemuDomainStorageFileInit(driver, vm, dd->src) < 0)
+            goto error;
+
+        dd->initialized = true;
+
+        /* Note that it's unsafe to assume that the disks in the persistent
+         * definition match up with the disks in the live definition just by
+         * checking that the target name is the same. We've done that
+         * historically this way though. */
+        if (vm->newDef &&
+            (dd->persistdisk = virDomainDiskByName(vm->newDef, dd->disk->dst,
+                                                   false))) {
+
+            if (!(dd->persistsrc = virStorageSourceCopy(dd->src, false)))
+                goto error;
+
+            if (virStorageSourceInitChainElement(dd->persistsrc,
+                                                 dd->persistdisk->src, false) < 0)
+                goto error;
+        }
+    }
+
+    return ret;
+
+ error:
+    qemuDomainSnapshotDiskDataFree(ret, snap->def->ndisks, driver, vm);
+    return NULL;
+}
+
+
+/**
+ * qemuDomainSnapshotUpdateDiskSources:
+ * @dd: snapshot disk data object
+ * @persist: set to true if persistent config of the VM was changed
+ *
+ * Updates disk definition after a successful snapshot.
+ */
+static void
+qemuDomainSnapshotUpdateDiskSources(qemuDomainSnapshotDiskDataPtr dd,
+                                    bool *persist)
+{
+    if (!dd->src)
+        return;
+
+    /* storage driver access won'd be needed */
+    if (dd->initialized)
+        virStorageFileDeinit(dd->src);
+
+    VIR_STEAL_PTR(dd->src->backingStore, dd->disk->src);
+    VIR_STEAL_PTR(dd->disk->src, dd->src);
+
+    if (dd->persistdisk) {
+        VIR_STEAL_PTR(dd->persistsrc->backingStore, dd->persistdisk->src);
+        VIR_STEAL_PTR(dd->persistdisk->src, dd->persistsrc);
+        *persist = true;
+    }
+}
+
+
 /* The domain is expected to hold monitor lock.  */
 static int
 qemuDomainSnapshotCreateSingleDiskActive(virQEMUDriverPtr driver,
                                          virDomainObjPtr vm,
-                                         virDomainSnapshotDiskDefPtr snap,
-                                         virDomainDiskDefPtr disk,
-                                         virDomainDiskDefPtr persistDisk,
+                                         qemuDomainSnapshotDiskDataPtr dd,
                                          virJSONValuePtr actions,
                                          bool reuse,
                                          qemuDomainAsyncJob asyncJob)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
-    virStorageSourcePtr newDiskSrc = NULL;
-    virStorageSourcePtr persistDiskSrc = NULL;
     char *device = NULL;
     char *source = NULL;
     const char *formatStr = NULL;
     int ret = -1, rc;
-    bool need_unlink = false;
 
-    if (snap->snapshot != VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("unexpected code path"));
-        return -1;
-    }
-
-    if (!(device = qemuAliasFromDisk(disk)))
+    if (!(device = qemuAliasFromDisk(dd->disk)))
         goto cleanup;
 
-    if (!(newDiskSrc = virStorageSourceCopy(snap->src, false)))
+    if (qemuGetDriveSourceString(dd->src, NULL, &source) < 0)
         goto cleanup;
-
-    if (virStorageSourceInitChainElement(newDiskSrc, disk->src, false) < 0)
-        goto cleanup;
-
-    if (qemuDomainStorageFileInit(driver, vm, newDiskSrc) < 0)
-        goto cleanup;
-
-    if (qemuGetDriveSourceString(newDiskSrc, NULL, &source) < 0)
-        goto cleanup;
-
-    if (persistDisk) {
-        if (!(persistDiskSrc = virStorageSourceCopy(snap->src, false)))
-            goto cleanup;
-
-        if (virStorageSourceInitChainElement(persistDiskSrc, persistDisk->src,
-                                             false) < 0)
-            goto cleanup;
-    }
 
     /* pre-create the image file so that we can label it before handing it to qemu */
-    if (!reuse && newDiskSrc->type != VIR_STORAGE_TYPE_BLOCK) {
-        if (virStorageFileCreate(newDiskSrc) < 0) {
+    if (!reuse && dd->src->type != VIR_STORAGE_TYPE_BLOCK) {
+        if (virStorageFileCreate(dd->src) < 0) {
             virReportSystemError(errno, _("failed to create image file '%s'"),
                                  source);
             goto cleanup;
         }
-        need_unlink = true;
+        dd->created = true;
     }
 
     /* set correct security, cgroup and locking options on the new image */
-    if (qemuDomainDiskChainElementPrepare(driver, vm, newDiskSrc, false) < 0) {
-        qemuDomainDiskChainElementRevoke(driver, vm, newDiskSrc);
+    if (qemuDomainDiskChainElementPrepare(driver, vm, dd->src, false) < 0) {
+        qemuDomainDiskChainElementRevoke(driver, vm, dd->src);
         goto cleanup;
     }
 
+    dd->prepared = true;
+
     /* create the actual snapshot */
-    if (newDiskSrc->format)
-        formatStr = virStorageFileFormatTypeToString(newDiskSrc->format);
+    if (dd->src->format)
+        formatStr = virStorageFileFormatTypeToString(dd->src->format);
 
     /* The monitor is only accessed if qemu doesn't support transactions.
      * Otherwise the following monitor command only constructs the command.
@@ -14191,71 +14384,12 @@ qemuDomainSnapshotCreateSingleDiskActive(virQEMUDriverPtr driver,
             ret = -1;
     }
 
-    virDomainAuditDisk(vm, disk->src, snap->src, "snapshot", rc >= 0);
-    if (ret < 0)
-        goto cleanup;
-
-    /* Update vm in place to match changes.  */
-    need_unlink = false;
-
-    newDiskSrc->backingStore = disk->src;
-    disk->src = newDiskSrc;
-    newDiskSrc = NULL;
-
-    if (persistDisk) {
-        persistDiskSrc->backingStore = persistDisk->src;
-        persistDisk->src = persistDiskSrc;
-        persistDiskSrc = NULL;
-    }
+    virDomainAuditDisk(vm, dd->disk->src, dd->src, "snapshot", rc >= 0);
 
  cleanup:
-    if (need_unlink && virStorageFileUnlink(newDiskSrc))
-        VIR_WARN("unable to unlink just-created %s", source);
-    virStorageFileDeinit(newDiskSrc);
-    virStorageSourceFree(newDiskSrc);
-    virStorageSourceFree(persistDiskSrc);
     VIR_FREE(device);
     VIR_FREE(source);
     return ret;
-}
-
-
-/* The domain is expected to hold monitor lock.  This is the
- * counterpart to qemuDomainSnapshotCreateSingleDiskActive, called
- * only on a failed transaction. */
-static void
-qemuDomainSnapshotUndoSingleDiskActive(virQEMUDriverPtr driver,
-                                       virDomainObjPtr vm,
-                                       virDomainDiskDefPtr disk,
-                                       virDomainDiskDefPtr persistDisk,
-                                       bool need_unlink)
-{
-    virStorageSourcePtr tmp;
-    struct stat st;
-
-    ignore_value(virStorageFileInit(disk->src));
-
-    qemuDomainDiskChainElementRevoke(driver, vm, disk->src);
-
-    if (need_unlink &&
-        virStorageFileStat(disk->src, &st) == 0 && S_ISREG(st.st_mode) &&
-        virStorageFileUnlink(disk->src) < 0)
-        VIR_WARN("Unable to remove just-created %s", disk->src->path);
-
-    virStorageFileDeinit(disk->src);
-
-    /* Update vm in place to match changes. */
-    tmp = disk->src;
-    disk->src = tmp->backingStore;
-    tmp->backingStore = NULL;
-    virStorageSourceFree(tmp);
-
-    if (persistDisk) {
-        tmp = persistDisk->src;
-        persistDisk->src = tmp->backingStore;
-        tmp->backingStore = NULL;
-        virStorageSourceFree(tmp);
-    }
 }
 
 
@@ -14275,6 +14409,7 @@ qemuDomainSnapshotCreateDiskActive(virQEMUDriverPtr driver,
     bool persist = false;
     bool reuse = (flags & VIR_DOMAIN_SNAPSHOT_CREATE_REUSE_EXT) != 0;
     virQEMUDriverConfigPtr cfg = NULL;
+    qemuDomainSnapshotDiskDataPtr diskdata = NULL;
     virErrorPtr orig_err = NULL;
 
     if (!virDomainObjIsActive(vm)) {
@@ -14293,93 +14428,99 @@ qemuDomainSnapshotCreateDiskActive(virQEMUDriverPtr driver,
         return -1;
     }
 
+    /* prepare a list of objects to use in the vm definition so that we don't
+     * have to roll back later */
+    if (!(diskdata = qemuDomainSnapshotDiskDataCollect(driver, vm, snap)))
+        goto cleanup;
+
     cfg = virQEMUDriverGetConfig(driver);
 
-    /* No way to roll back if first disk succeeds but later disks
-     * fail, unless we have transaction support.
-     * Based on earlier qemuDomainSnapshotPrepare, all
-     * disks in this list are now either SNAPSHOT_NO, or
-     * SNAPSHOT_EXTERNAL with a valid file name and qcow2 format.  */
+     /* Based on earlier qemuDomainSnapshotPrepare, all disks in this list are
+      * now either VIR_DOMAIN_SNAPSHOT_LOCATION_NONE, or
+      * VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL with a valid file name and
+      * qcow2 format.  */
     for (i = 0; i < snap->def->ndisks; i++) {
-        virDomainDiskDefPtr persistDisk = NULL;
-
         if (snap->def->disks[i].snapshot == VIR_DOMAIN_SNAPSHOT_LOCATION_NONE)
             continue;
-        if (vm->newDef &&
-            (persistDisk = virDomainDiskByName(vm->newDef,
-                                               vm->def->disks[i]->dst,
-                                               false)))
-            persist = true;
 
         ret = qemuDomainSnapshotCreateSingleDiskActive(driver, vm,
-                                                       &snap->def->disks[i],
-                                                       vm->def->disks[i],
-                                                       persistDisk, actions,
-                                                       reuse, asyncJob);
+                                                       &diskdata[i],
+                                                       actions, reuse, asyncJob);
+
+        /* without transaction support the change can't be rolled back */
+        if (!actions)
+            qemuDomainSnapshotUpdateDiskSources(&diskdata[i], &persist);
+
         if (ret < 0)
-            break;
+            goto error;
 
         do_transaction = true;
     }
-    if (actions) {
-        if (ret == 0 && do_transaction) {
-            if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) == 0) {
-                ret = qemuMonitorTransaction(priv->mon, actions);
-                if (qemuDomainObjExitMonitor(driver, vm) < 0)
-                    ret = -1;
-            } else {
-                /* failed to enter monitor, clean stuff up and quit */
-                ret = -1;
-            }
-        } else {
-            VIR_DEBUG("no disks to snapshot, skipping 'transaction' command");
+
+    if (actions && do_transaction) {
+        if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
+            goto cleanup;
+
+        ret = qemuMonitorTransaction(priv->mon, actions);
+
+        if (qemuDomainObjExitMonitor(driver, vm) < 0 || ret < 0) {
+            ret = -1;
+            goto error;
         }
 
-        virJSONValueFree(actions);
+        for (i = 0; i < snap->def->ndisks; i++)
+            qemuDomainSnapshotUpdateDiskSources(&diskdata[i], &persist);
+    }
 
-        if (ret < 0) {
-            /* Transaction failed; undo the changes to vm.  */
-            bool need_unlink = !(flags & VIR_DOMAIN_SNAPSHOT_CREATE_REUSE_EXT);
-            while (i-- > 0) {
-                virDomainDiskDefPtr persistDisk = NULL;
+ error:
+    if (ret < 0) {
+        orig_err = virSaveLastError();
+        for (i = 0; i < snap->def->ndisks; i++) {
+            if (!diskdata[i].src)
+                continue;
 
-                if (snap->def->disks[i].snapshot ==
-                    VIR_DOMAIN_SNAPSHOT_LOCATION_NONE)
-                    continue;
-                if (vm->newDef &&
-                    (persistDisk = virDomainDiskByName(vm->newDef,
-                                                       vm->def->disks[i]->dst,
-                                                       false)))
-                    persist = true;
+            if (diskdata[i].prepared)
+                qemuDomainDiskChainElementRevoke(driver, vm, diskdata[i].src);
 
-                qemuDomainSnapshotUndoSingleDiskActive(driver, vm,
-                                                       vm->def->disks[i],
-                                                       persistDisk,
-                                                       need_unlink);
-            }
+            if (diskdata[i].created &&
+                virStorageFileUnlink(diskdata[i].src) < 0)
+                VIR_WARN("Unable to remove just-created %s", diskdata[i].src->path);
+        }
+    } else {
+        /* on successful snapshot we need to remove locks from the now-old
+         * disks and if the VM is paused release locks on the images since qemu
+         * stopped using them*/
+        bool paused = virDomainObjGetState(vm, NULL) != VIR_DOMAIN_RUNNING;
+
+        for (i = 0; i < snap->def->ndisks; i++) {
+            if (!diskdata[i].disk)
+                continue;
+
+            if (paused)
+                virDomainLockImageDetach(driver->lockManager, vm,
+                                         diskdata[i].disk->src);
+
+            virDomainLockImageDetach(driver->lockManager, vm,
+                                     diskdata[i].disk->src->backingStore);
         }
     }
 
-    /* recheck backing chains of all disks involved in the snapshot */
-    orig_err = virSaveLastError();
-    for (i = 0; i < snap->def->ndisks; i++) {
-        if (snap->def->disks[i].snapshot != VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL)
-            continue;
-        ignore_value(qemuDomainDetermineDiskChain(driver, vm, vm->def->disks[i],
-                                                  true, true));
-    }
-    if (orig_err) {
-        virSetError(orig_err);
-        virFreeError(orig_err);
-    }
-
-    if (ret == 0 || !virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_TRANSACTION)) {
+    if (ret == 0 || !actions) {
         if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm, driver->caps) < 0 ||
             (persist && virDomainSaveConfig(cfg->configDir, driver->caps,
                                             vm->newDef) < 0))
             ret = -1;
     }
+
+ cleanup:
+    qemuDomainSnapshotDiskDataFree(diskdata, snap->def->ndisks, driver, vm);
+    virJSONValueFree(actions);
     virObjectUnref(cfg);
+
+    if (orig_err) {
+        virSetError(orig_err);
+        virFreeError(orig_err);
+    }
 
     return ret;
 }
@@ -14427,8 +14568,6 @@ qemuDomainSnapshotCreateActiveExternal(virConnectPtr conn,
     if (virDomainObjGetState(vm, NULL) == VIR_DOMAIN_PMSUSPENDED) {
         pmsuspended = true;
     } else if (virDomainObjGetState(vm, NULL) == VIR_DOMAIN_RUNNING) {
-        resume = true;
-
         /* For external checkpoints (those with memory), the guest
          * must pause (either by libvirt up front, or by qemu after
          * _LIVE converges).  For disk-only snapshots with multiple
@@ -14440,6 +14579,9 @@ qemuDomainSnapshotCreateActiveExternal(virConnectPtr conn,
          * atomic flag now says whether we need to pause, and a
          * capability bit says whether to use transaction.
          */
+        if (memory)
+            resume = true;
+
         if ((memory && !(flags & VIR_DOMAIN_SNAPSHOT_CREATE_LIVE)) ||
             (!memory && atomic && !transaction)) {
             if (qemuProcessStopCPUs(driver, vm, VIR_DOMAIN_PAUSED_SNAPSHOT,
@@ -14451,6 +14593,8 @@ qemuDomainSnapshotCreateActiveExternal(virConnectPtr conn,
                                _("guest unexpectedly quit"));
                 goto cleanup;
             }
+
+            resume = true;
         }
     }
 
@@ -16100,11 +16244,9 @@ qemuDomainBlockPivot(virQEMUDriverPtr driver,
 
         if (disk->mirror->format &&
             disk->mirror->format != VIR_STORAGE_FILE_RAW &&
-            (virDomainLockDiskAttach(driver->lockManager, cfg->uri, vm,
-                                     disk) < 0 ||
+            (qemuDomainNamespaceSetupDisk(driver, vm, disk) < 0 ||
              qemuSetupDiskCgroup(vm, disk) < 0 ||
-             virSecurityManagerSetDiskLabel(driver->securityManager, vm->def,
-                                            disk) < 0))
+             qemuSecuritySetDiskLabel(driver, vm, disk) < 0))
             goto cleanup;
 
         disk->src = oldsrc;
@@ -16608,6 +16750,7 @@ qemuDomainBlockCopyCommon(virDomainObjPtr vm,
     virQEMUDriverConfigPtr cfg = NULL;
     const char *format = NULL;
     int desttype = virStorageSourceGetActualType(mirror);
+    virErrorPtr monitor_error = NULL;
 
     /* Preliminaries: find the disk we are editing, sanity checks */
     virCheckFlags(VIR_DOMAIN_BLOCK_COPY_SHALLOW |
@@ -16615,6 +16758,12 @@ qemuDomainBlockCopyCommon(virDomainObjPtr vm,
 
     priv = vm->privateData;
     cfg = virQEMUDriverGetConfig(driver);
+
+    if (virStorageSourceIsRelative(mirror)) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("absolute path must be used as block copy target"));
+        goto cleanup;
+    }
 
     if (qemuDomainObjBeginJob(driver, vm, QEMU_JOB_MODIFY) < 0)
         goto cleanup;
@@ -16752,6 +16901,7 @@ qemuDomainBlockCopyCommon(virDomainObjPtr vm,
     if (qemuDomainObjExitMonitor(driver, vm) < 0)
         ret = -1;
     if (ret < 0) {
+        monitor_error = virSaveLastError();
         qemuDomainDiskChainElementRevoke(driver, vm, mirror);
         goto endjob;
     }
@@ -16772,6 +16922,10 @@ qemuDomainBlockCopyCommon(virDomainObjPtr vm,
         VIR_WARN("unable to unlink just-created %s", mirror->path);
     virStorageSourceFree(mirror);
     qemuDomainObjEndJob(driver, vm);
+    if (monitor_error) {
+        virSetError(monitor_error);
+        virFreeError(monitor_error);
+    }
 
  cleanup:
     VIR_FREE(device);
@@ -17334,35 +17488,42 @@ qemuDomainOpenGraphicsFD(virDomainPtr dom,
     return ret;
 }
 
+typedef enum {
+    QEMU_BLOCK_IOTUNE_SET_BYTES            = 1 << 0,
+    QEMU_BLOCK_IOTUNE_SET_IOPS             = 1 << 1,
+    QEMU_BLOCK_IOTUNE_SET_BYTES_MAX        = 1 << 2,
+    QEMU_BLOCK_IOTUNE_SET_IOPS_MAX         = 1 << 3,
+    QEMU_BLOCK_IOTUNE_SET_SIZE_IOPS        = 1 << 4,
+    QEMU_BLOCK_IOTUNE_SET_GROUP_NAME       = 1 << 5,
+    QEMU_BLOCK_IOTUNE_SET_BYTES_MAX_LENGTH = 1 << 6,
+    QEMU_BLOCK_IOTUNE_SET_IOPS_MAX_LENGTH  = 1 << 7,
+} qemuBlockIoTuneSetFlags;
+
 
 /* If the user didn't specify bytes limits, inherit previous values;
  * likewise if the user didn't specify iops limits.  */
 static void
 qemuDomainSetBlockIoTuneDefaults(virDomainBlockIoTuneInfoPtr newinfo,
                                  virDomainBlockIoTuneInfoPtr oldinfo,
-                                 bool set_bytes,
-                                 bool set_iops,
-                                 bool set_bytes_max,
-                                 bool set_iops_max,
-                                 bool set_size_iops,
-                                 bool set_bytes_max_length,
-                                 bool set_iops_max_length)
+                                 qemuBlockIoTuneSetFlags set_fields)
 {
 #define SET_IOTUNE_DEFAULTS(BOOL, FIELD)                                       \
-    if (!BOOL) {                                                               \
+    if (!(set_fields & QEMU_BLOCK_IOTUNE_SET_##BOOL)) {                        \
         newinfo->total_##FIELD = oldinfo->total_##FIELD;                       \
         newinfo->read_##FIELD = oldinfo->read_##FIELD;                         \
         newinfo->write_##FIELD = oldinfo->write_##FIELD;                       \
     }
 
-    SET_IOTUNE_DEFAULTS(set_bytes, bytes_sec);
-    SET_IOTUNE_DEFAULTS(set_bytes_max, bytes_sec_max);
-    SET_IOTUNE_DEFAULTS(set_iops, iops_sec);
-    SET_IOTUNE_DEFAULTS(set_iops_max, iops_sec_max);
+    SET_IOTUNE_DEFAULTS(BYTES, bytes_sec);
+    SET_IOTUNE_DEFAULTS(BYTES_MAX, bytes_sec_max);
+    SET_IOTUNE_DEFAULTS(IOPS, iops_sec);
+    SET_IOTUNE_DEFAULTS(IOPS_MAX, iops_sec_max);
 #undef SET_IOTUNE_DEFAULTS
 
-    if (!set_size_iops)
+    if (!(set_fields & QEMU_BLOCK_IOTUNE_SET_SIZE_IOPS))
         newinfo->size_iops_sec = oldinfo->size_iops_sec;
+    if (!(set_fields & QEMU_BLOCK_IOTUNE_SET_GROUP_NAME))
+        VIR_STEAL_PTR(newinfo->group_name, oldinfo->group_name);
 
     /* The length field is handled a bit differently. If not defined/set,
      * QEMU will default these to 0 or 1 depending on whether something in
@@ -17377,19 +17538,20 @@ qemuDomainSetBlockIoTuneDefaults(virDomainBlockIoTuneInfoPtr newinfo,
      * our newinfo is clearing, then set max_length based on whether we
      * have a value in the family set/defined. */
 #define SET_MAX_LENGTH(BOOL, FIELD)                                            \
-    if (!BOOL)                                                                 \
+    if (!(set_fields & QEMU_BLOCK_IOTUNE_SET_##BOOL))                          \
         newinfo->FIELD##_max_length = oldinfo->FIELD##_max_length;             \
-    else if (BOOL && oldinfo->FIELD##_max_length &&                            \
+    else if ((set_fields & QEMU_BLOCK_IOTUNE_SET_##BOOL) &&                    \
+             oldinfo->FIELD##_max_length &&                                    \
              !newinfo->FIELD##_max_length)                                     \
         newinfo->FIELD##_max_length = (newinfo->FIELD ||                       \
                                        newinfo->FIELD##_max) ? 1 : 0;
 
-        SET_MAX_LENGTH(set_bytes_max_length, total_bytes_sec);
-        SET_MAX_LENGTH(set_bytes_max_length, read_bytes_sec);
-        SET_MAX_LENGTH(set_bytes_max_length, write_bytes_sec);
-        SET_MAX_LENGTH(set_iops_max_length, total_iops_sec);
-        SET_MAX_LENGTH(set_iops_max_length, read_iops_sec);
-        SET_MAX_LENGTH(set_iops_max_length, write_iops_sec);
+        SET_MAX_LENGTH(BYTES_MAX_LENGTH, total_bytes_sec);
+        SET_MAX_LENGTH(BYTES_MAX_LENGTH, read_bytes_sec);
+        SET_MAX_LENGTH(BYTES_MAX_LENGTH, write_bytes_sec);
+        SET_MAX_LENGTH(IOPS_MAX_LENGTH, total_iops_sec);
+        SET_MAX_LENGTH(IOPS_MAX_LENGTH, read_iops_sec);
+        SET_MAX_LENGTH(IOPS_MAX_LENGTH, write_iops_sec);
 
 #undef SET_MAX_LENGTH
 
@@ -17414,14 +17576,9 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
     size_t i;
     virDomainDiskDefPtr conf_disk = NULL;
     virDomainDiskDefPtr disk;
-    bool set_bytes = false;
-    bool set_iops = false;
-    bool set_bytes_max = false;
-    bool set_iops_max = false;
-    bool set_size_iops = false;
-    bool set_bytes_max_length = false;
-    bool set_iops_max_length = false;
+    qemuBlockIoTuneSetFlags set_fields = 0;
     bool supportMaxOptions = true;
+    bool supportGroupNameOption = true;
     bool supportMaxLengthOptions = true;
     virQEMUDriverConfigPtr cfg = NULL;
     virObjectEventPtr event = NULL;
@@ -17458,6 +17615,8 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
                                VIR_TYPED_PARAM_ULLONG,
                                VIR_DOMAIN_BLOCK_IOTUNE_SIZE_IOPS_SEC,
                                VIR_TYPED_PARAM_ULLONG,
+                               VIR_DOMAIN_BLOCK_IOTUNE_GROUP_NAME,
+                               VIR_TYPED_PARAM_STRING,
                                VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC_MAX_LENGTH,
                                VIR_TYPED_PARAM_ULLONG,
                                VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC_MAX_LENGTH,
@@ -17498,7 +17657,7 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
 #define SET_IOTUNE_FIELD(FIELD, BOOL, CONST)                                   \
     if (STREQ(param->field, VIR_DOMAIN_BLOCK_IOTUNE_##CONST)) {                \
         info.FIELD = param->value.ul;                                          \
-        BOOL = true;                                                           \
+        set_fields |= QEMU_BLOCK_IOTUNE_SET_##BOOL;                            \
         if (virTypedParamsAddULLong(&eventParams, &eventNparams,               \
                                     &eventMaxparams,                           \
                                     VIR_DOMAIN_TUNABLE_BLKDEV_##CONST,         \
@@ -17517,38 +17676,51 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
             goto endjob;
         }
 
-        SET_IOTUNE_FIELD(total_bytes_sec, set_bytes, TOTAL_BYTES_SEC);
-        SET_IOTUNE_FIELD(read_bytes_sec, set_bytes, READ_BYTES_SEC);
-        SET_IOTUNE_FIELD(write_bytes_sec, set_bytes, WRITE_BYTES_SEC);
-        SET_IOTUNE_FIELD(total_iops_sec, set_iops, TOTAL_IOPS_SEC);
-        SET_IOTUNE_FIELD(read_iops_sec, set_iops, READ_IOPS_SEC);
-        SET_IOTUNE_FIELD(write_iops_sec, set_iops, WRITE_IOPS_SEC);
+        SET_IOTUNE_FIELD(total_bytes_sec, BYTES, TOTAL_BYTES_SEC);
+        SET_IOTUNE_FIELD(read_bytes_sec, BYTES, READ_BYTES_SEC);
+        SET_IOTUNE_FIELD(write_bytes_sec, BYTES, WRITE_BYTES_SEC);
+        SET_IOTUNE_FIELD(total_iops_sec, IOPS, TOTAL_IOPS_SEC);
+        SET_IOTUNE_FIELD(read_iops_sec, IOPS, READ_IOPS_SEC);
+        SET_IOTUNE_FIELD(write_iops_sec, IOPS, WRITE_IOPS_SEC);
 
-        SET_IOTUNE_FIELD(total_bytes_sec_max, set_bytes_max,
+        SET_IOTUNE_FIELD(total_bytes_sec_max, BYTES_MAX,
                          TOTAL_BYTES_SEC_MAX);
-        SET_IOTUNE_FIELD(read_bytes_sec_max, set_bytes_max,
+        SET_IOTUNE_FIELD(read_bytes_sec_max, BYTES_MAX,
                          READ_BYTES_SEC_MAX);
-        SET_IOTUNE_FIELD(write_bytes_sec_max, set_bytes_max,
+        SET_IOTUNE_FIELD(write_bytes_sec_max, BYTES_MAX,
                          WRITE_BYTES_SEC_MAX);
-        SET_IOTUNE_FIELD(total_iops_sec_max, set_iops_max,
+        SET_IOTUNE_FIELD(total_iops_sec_max, IOPS_MAX,
                          TOTAL_IOPS_SEC_MAX);
-        SET_IOTUNE_FIELD(read_iops_sec_max, set_iops_max,
+        SET_IOTUNE_FIELD(read_iops_sec_max, IOPS_MAX,
                          READ_IOPS_SEC_MAX);
-        SET_IOTUNE_FIELD(write_iops_sec_max, set_iops_max,
+        SET_IOTUNE_FIELD(write_iops_sec_max, IOPS_MAX,
                          WRITE_IOPS_SEC_MAX);
-        SET_IOTUNE_FIELD(size_iops_sec, set_size_iops, SIZE_IOPS_SEC);
+        SET_IOTUNE_FIELD(size_iops_sec, SIZE_IOPS, SIZE_IOPS_SEC);
 
-        SET_IOTUNE_FIELD(total_bytes_sec_max_length, set_bytes_max_length,
+        /* NB: Cannot use macro since this is a value.s not a value.ul */
+        if (STREQ(param->field, VIR_DOMAIN_BLOCK_IOTUNE_GROUP_NAME)) {
+            if (VIR_STRDUP(info.group_name, params->value.s) < 0)
+                goto endjob;
+            set_fields |= QEMU_BLOCK_IOTUNE_SET_GROUP_NAME;
+            if (virTypedParamsAddString(&eventParams, &eventNparams,
+                                        &eventMaxparams,
+                                        VIR_DOMAIN_TUNABLE_BLKDEV_GROUP_NAME,
+                                        param->value.s) < 0)
+                goto endjob;
+            continue;
+        }
+
+        SET_IOTUNE_FIELD(total_bytes_sec_max_length, BYTES_MAX_LENGTH,
                          TOTAL_BYTES_SEC_MAX_LENGTH);
-        SET_IOTUNE_FIELD(read_bytes_sec_max_length, set_bytes_max_length,
+        SET_IOTUNE_FIELD(read_bytes_sec_max_length, BYTES_MAX_LENGTH,
                          READ_BYTES_SEC_MAX_LENGTH);
-        SET_IOTUNE_FIELD(write_bytes_sec_max_length, set_bytes_max_length,
+        SET_IOTUNE_FIELD(write_bytes_sec_max_length, BYTES_MAX_LENGTH,
                          WRITE_BYTES_SEC_MAX_LENGTH);
-        SET_IOTUNE_FIELD(total_iops_sec_max_length, set_iops_max_length,
+        SET_IOTUNE_FIELD(total_iops_sec_max_length, IOPS_MAX_LENGTH,
                          TOTAL_IOPS_SEC_MAX_LENGTH);
-        SET_IOTUNE_FIELD(read_iops_sec_max_length, set_iops_max_length,
+        SET_IOTUNE_FIELD(read_iops_sec_max_length, IOPS_MAX_LENGTH,
                          READ_IOPS_SEC_MAX_LENGTH);
-        SET_IOTUNE_FIELD(write_iops_sec_max_length, set_iops_max_length,
+        SET_IOTUNE_FIELD(write_iops_sec_max_length, IOPS_MAX_LENGTH,
                          WRITE_IOPS_SEC_MAX_LENGTH);
     }
 
@@ -17589,6 +17761,8 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
     if (def) {
         supportMaxOptions = virQEMUCapsGet(priv->qemuCaps,
                                            QEMU_CAPS_DRIVE_IOTUNE_MAX);
+        supportGroupNameOption = virQEMUCapsGet(priv->qemuCaps,
+                                                QEMU_CAPS_DRIVE_IOTUNE_GROUP);
         supportMaxLengthOptions =
             virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DRIVE_IOTUNE_MAX_LENGTH);
 
@@ -17600,15 +17774,26 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
         }
 
         if (!supportMaxOptions &&
-            (set_iops_max || set_bytes_max || set_size_iops)) {
+            (set_fields & (QEMU_BLOCK_IOTUNE_SET_BYTES_MAX |
+                           QEMU_BLOCK_IOTUNE_SET_IOPS_MAX |
+                           QEMU_BLOCK_IOTUNE_SET_SIZE_IOPS))) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("a block I/O throttling parameter is not "
                              "supported with this QEMU binary"));
              goto endjob;
         }
 
+        if (!supportGroupNameOption &&
+            (set_fields & QEMU_BLOCK_IOTUNE_SET_GROUP_NAME)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("the block I/O throttling group parameter is not "
+                             "supported with this QEMU binary"));
+             goto endjob;
+        }
+
         if (!supportMaxLengthOptions &&
-            (set_iops_max_length || set_bytes_max_length)) {
+            (set_fields & (QEMU_BLOCK_IOTUNE_SET_BYTES_MAX_LENGTH |
+                           QEMU_BLOCK_IOTUNE_SET_IOPS_MAX_LENGTH))) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("a block I/O throttling length parameter is not "
                              "supported with this QEMU binary"));
@@ -17622,10 +17807,7 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
             goto endjob;
 
         qemuDomainSetBlockIoTuneDefaults(&info, &disk->blkdeviotune,
-                                         set_bytes, set_iops, set_bytes_max,
-                                         set_iops_max, set_size_iops,
-                                         set_bytes_max_length,
-                                         set_iops_max_length);
+                                         set_fields);
 
 #define CHECK_MAX(val)                                                  \
         do {                                                            \
@@ -17653,12 +17835,14 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
         qemuDomainObjEnterMonitor(driver, vm);
         ret = qemuMonitorSetBlockIoThrottle(priv->mon, device,
                                             &info, supportMaxOptions,
+                                            supportGroupNameOption,
                                             supportMaxLengthOptions);
         if (qemuDomainObjExitMonitor(driver, vm) < 0)
             ret = -1;
         if (ret < 0)
             goto endjob;
         disk->blkdeviotune = info;
+        info.group_name = NULL;
 
         ret = virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm, driver->caps);
         if (ret < 0)
@@ -17679,11 +17863,9 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
             goto endjob;
         }
         qemuDomainSetBlockIoTuneDefaults(&info, &conf_disk->blkdeviotune,
-                                         set_bytes, set_iops, set_bytes_max,
-                                         set_iops_max, set_size_iops,
-                                         set_bytes_max_length,
-                                         set_iops_max_length);
+                                         set_fields);
         conf_disk->blkdeviotune = info;
+        info.group_name = NULL;
         ret = virDomainSaveConfig(cfg->configDir, driver->caps, persistentDef);
         if (ret < 0)
             goto endjob;
@@ -17694,6 +17876,7 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
     qemuDomainObjEndJob(driver, vm);
 
  cleanup:
+    VIR_FREE(info.group_name);
     VIR_FREE(device);
     virDomainObjEndAPI(&vm);
     if (eventNparams)
@@ -17715,10 +17898,10 @@ qemuDomainGetBlockIoTune(virDomainPtr dom,
     qemuDomainObjPrivatePtr priv = NULL;
     virDomainDefPtr def = NULL;
     virDomainDefPtr persistentDef = NULL;
-    virDomainBlockIoTuneInfo reply;
+    virDomainBlockIoTuneInfo reply = {0};
     char *device = NULL;
     int ret = -1;
-    int maxparams = QEMU_NB_BLOCK_IO_TUNE_PARAM_MAX_LENGTH;
+    int maxparams;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG |
@@ -17752,11 +17935,15 @@ qemuDomainGetBlockIoTune(virDomainPtr dom,
             goto endjob;
         }
 
-        if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DRIVE_IOTUNE_MAX))
-            maxparams = QEMU_NB_BLOCK_IO_TUNE_PARAM;
-        else if (!virQEMUCapsGet(priv->qemuCaps,
-                                 QEMU_CAPS_DRIVE_IOTUNE_MAX_LENGTH))
-            maxparams = QEMU_NB_BLOCK_IO_TUNE_PARAM_MAX;
+        maxparams = QEMU_NB_BLOCK_IO_TUNE_BASE_PARAMS;
+        if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DRIVE_IOTUNE_MAX))
+            maxparams += QEMU_NB_BLOCK_IO_TUNE_MAX_PARAMS;
+        if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DRIVE_IOTUNE_GROUP))
+            maxparams += QEMU_NB_BLOCK_IO_TUNE_GROUP_PARAMS;
+        if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DRIVE_IOTUNE_MAX_LENGTH))
+            maxparams += QEMU_NB_BLOCK_IO_TUNE_LENGTH_PARAMS;
+    } else {
+        maxparams = QEMU_NB_BLOCK_IO_TUNE_ALL_PARAMS;
     }
 
     if (*nparams == 0) {
@@ -17819,6 +18006,14 @@ qemuDomainGetBlockIoTune(virDomainPtr dom,
     BLOCK_IOTUNE_ASSIGN(WRITE_IOPS_SEC_MAX, write_iops_sec_max);
 
     BLOCK_IOTUNE_ASSIGN(SIZE_IOPS_SEC, size_iops_sec);
+
+    /* NB: Cannot use macro since this is a STRING not a ULLONG */
+    if (*nparams < maxparams &&
+        virTypedParameterAssign(&params[(*nparams)++],
+                                VIR_DOMAIN_BLOCK_IOTUNE_GROUP_NAME,
+                                VIR_TYPED_PARAM_STRING,
+                                reply.group_name) < 0)
+        goto endjob;
 
     BLOCK_IOTUNE_ASSIGN(TOTAL_BYTES_SEC_MAX_LENGTH, total_bytes_sec_max_length);
     BLOCK_IOTUNE_ASSIGN(READ_BYTES_SEC_MAX_LENGTH, read_bytes_sec_max_length);
@@ -17950,6 +18145,12 @@ qemuDomainSetMetadata(virDomainPtr dom,
     ret = virDomainObjSetMetadata(vm, type, metadata, key, uri, caps,
                                   driver->xmlopt, cfg->stateDir,
                                   cfg->configDir, flags);
+
+    if (ret == 0) {
+        virObjectEventPtr ev = NULL;
+        ev = virDomainEventMetadataChangeNewFromObj(vm, type, uri);
+        qemuDomainEventQueue(driver, ev);
+    }
 
     qemuDomainObjEndJob(driver, vm);
 
@@ -19146,9 +19347,17 @@ qemuDomainGetStatsInterface(virQEMUDriverPtr driver ATTRIBUTE_UNUSED,
         QEMU_ADD_NAME_PARAM(record, maxparams,
                             "net", "name", i, dom->def->nets[i]->ifname);
 
-        if (virNetInterfaceStats(dom->def->nets[i]->ifname, &tmp) < 0) {
-            virResetLastError();
-            continue;
+        if (dom->def->nets[i]->type == VIR_DOMAIN_NET_TYPE_VHOSTUSER) {
+            if (virNetDevOpenvswitchInterfaceStats(dom->def->nets[i]->ifname,
+                                                   &tmp) < 0) {
+                virResetLastError();
+                continue;
+            }
+        } else {
+            if (virNetDevTapInterfaceStats(dom->def->nets[i]->ifname, &tmp) < 0) {
+                virResetLastError();
+                continue;
+            }
         }
 
         QEMU_ADD_NET_PARAM(record, maxparams, i,
@@ -19322,9 +19531,11 @@ qemuDomainGetStatsOneBlock(virQEMUDriverPtr driver,
         QEMU_ADD_BLOCK_PARAM_ULL(record, maxparams, block_idx,
                                  "physical", entry->physical);
     } else {
-        if (virStorageSourceUpdateBlockPhysicalSize(src, false) == 0) {
+        if (qemuDomainStorageUpdatePhysical(driver, cfg, dom, src) == 0) {
             QEMU_ADD_BLOCK_PARAM_ULL(record, maxparams, block_idx,
                                      "physical", src->physical);
+        } else {
+            virResetLastError();
         }
     }
 
@@ -19690,6 +19901,8 @@ qemuDomainGetFSInfo(virDomainPtr dom,
     virQEMUDriverPtr driver = dom->conn->privateData;
     virDomainObjPtr vm;
     qemuAgentPtr agent;
+    virCapsPtr caps = NULL;
+    virDomainDefPtr def = NULL;
     int ret = -1;
 
     virCheckFlags(0, ret);
@@ -19712,8 +19925,14 @@ qemuDomainGetFSInfo(virDomainPtr dom,
     if (!qemuDomainAgentAvailable(vm, true))
         goto endjob;
 
+    if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
+        goto endjob;
+
+    if (!(def = virDomainDefCopy(vm->def, caps, driver->xmlopt, NULL, false)))
+        goto endjob;
+
     agent = qemuDomainObjEnterAgent(vm);
-    ret = qemuAgentGetFSInfo(agent, info, vm->def);
+    ret = qemuAgentGetFSInfo(agent, info, def);
     qemuDomainObjExitAgent(vm, agent);
 
  endjob:
@@ -19721,6 +19940,8 @@ qemuDomainGetFSInfo(virDomainPtr dom,
 
  cleanup:
     virDomainObjEndAPI(&vm);
+    virDomainDefFree(def);
+    virObjectUnref(caps);
     return ret;
 }
 

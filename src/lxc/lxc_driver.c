@@ -61,7 +61,6 @@
 #include "virhostcpu.h"
 #include "virhostmem.h"
 #include "viruuid.h"
-#include "virstats.h"
 #include "virhook.h"
 #include "virfile.h"
 #include "virpidfile.h"
@@ -2896,7 +2895,7 @@ lxcDomainInterfaceStats(virDomainPtr dom,
     }
 
     if (ret == 0)
-        ret = virNetInterfaceStats(path, stats);
+        ret = virNetDevTapInterfaceStats(path, stats);
     else
         virReportError(VIR_ERR_INVALID_ARG,
                        _("Invalid path, '%s' is not a known interface"), path);
@@ -5379,6 +5378,12 @@ lxcDomainSetMetadata(virDomainPtr dom,
     ret = virDomainObjSetMetadata(vm, type, metadata, key, uri, caps,
                                   driver->xmlopt, cfg->stateDir,
                                   cfg->configDir, flags);
+
+    if (ret == 0) {
+        virObjectEventPtr ev = NULL;
+        ev = virDomainEventMetadataChangeNewFromObj(vm, type, uri);
+        virObjectEventStateQueue(driver->domainEventState, ev);
+    }
 
     virLXCDomainObjEndJob(driver, vm);
 

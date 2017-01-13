@@ -40,7 +40,11 @@ VIR_LOG_INIT("util.perf");
 VIR_ENUM_IMPL(virPerfEvent, VIR_PERF_EVENT_LAST,
               "cmt", "mbmt", "mbml",
               "cpu_cycles", "instructions",
-              "cache_references", "cache_misses");
+              "cache_references", "cache_misses",
+              "branch_instructions", "branch_misses",
+              "bus_cycles", "stalled_cycles_frontend",
+              "stalled_cycles_backend", "ref_cpu_cycles",
+              "cache_l1d");
 
 struct virPerfEvent {
     int type;
@@ -85,6 +89,33 @@ static struct virPerfEventAttr attrs[] = {
     {.type = VIR_PERF_EVENT_CACHE_MISSES,
      .attrType = PERF_TYPE_HARDWARE,
      .attrConfig = PERF_COUNT_HW_CACHE_MISSES},
+    {.type = VIR_PERF_EVENT_BRANCH_INSTRUCTIONS,
+     .attrType = PERF_TYPE_HARDWARE,
+     .attrConfig = PERF_COUNT_HW_BRANCH_INSTRUCTIONS},
+    {.type = VIR_PERF_EVENT_BRANCH_MISSES,
+     .attrType = PERF_TYPE_HARDWARE,
+     .attrConfig = PERF_COUNT_HW_BRANCH_MISSES},
+    {.type = VIR_PERF_EVENT_BUS_CYCLES,
+     .attrType = PERF_TYPE_HARDWARE,
+     .attrConfig = PERF_COUNT_HW_BUS_CYCLES},
+    {.type = VIR_PERF_EVENT_STALLED_CYCLES_FRONTEND,
+     .attrType = PERF_TYPE_HARDWARE,
+     .attrConfig = PERF_COUNT_HW_STALLED_CYCLES_FRONTEND},
+    {.type = VIR_PERF_EVENT_STALLED_CYCLES_BACKEND,
+     .attrType = PERF_TYPE_HARDWARE,
+     .attrConfig = PERF_COUNT_HW_STALLED_CYCLES_BACKEND},
+    {.type = VIR_PERF_EVENT_REF_CPU_CYCLES,
+# ifdef PERF_COUNT_HW_REF_CPU_CYCLES
+     .attrType = PERF_TYPE_HARDWARE,
+     .attrConfig = PERF_COUNT_HW_REF_CPU_CYCLES
+# else
+     .attrType = 0,
+     .attrConfig = 0,
+# endif
+    },
+    {.type = VIR_PERF_EVENT_CACHE_L1D,
+     .attrType = PERF_TYPE_HW_CACHE,
+     .attrConfig = PERF_COUNT_HW_CACHE_L1D},
 };
 typedef struct virPerfEventAttr *virPerfEventAttrPtr;
 

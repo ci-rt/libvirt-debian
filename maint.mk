@@ -2,7 +2,7 @@
 # This Makefile fragment tries to be general-purpose enough to be
 # used by many projects via the gnulib maintainer-makefile module.
 
-## Copyright (C) 2001-2016 Free Software Foundation, Inc.
+## Copyright (C) 2001-2017 Free Software Foundation, Inc.
 ##
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -54,6 +54,10 @@ GIT = git
 VC = $(GIT)
 
 VC_LIST = $(srcdir)/$(_build-aux)/vc-list-files -C $(srcdir)
+
+# You can override this variable in cfg.mk if your gnulib submodule lives
+# in a different location.
+gnulib_dir ?= $(srcdir)/gnulib
 
 # You can override this variable in cfg.mk to set your own regexp
 # matching files to ignore.
@@ -657,17 +661,14 @@ sc_prohibit_strings_without_use:
 	re='\<(strn?casecmp|ffs(ll)?)\>'				\
 	  $(_sc_header_without_use)
 
-# Get the list of symbol names with this:
-# perl -lne '/^# *define ([A-Z]\w+)\(/ and print $1' lib/intprops.h|fmt
-_intprops_names =							\
-  TYPE_IS_INTEGER TYPE_SIGNED TYPE_MINIMUM TYPE_MAXIMUM			\
-  INT_BITS_STRLEN_BOUND INT_STRLEN_BOUND INT_BUFSIZE_BOUND		\
-  INT_ADD_RANGE_OVERFLOW INT_SUBTRACT_RANGE_OVERFLOW			\
-  INT_NEGATE_RANGE_OVERFLOW INT_MULTIPLY_RANGE_OVERFLOW			\
-  INT_DIVIDE_RANGE_OVERFLOW INT_REMAINDER_RANGE_OVERFLOW		\
-  INT_LEFT_SHIFT_RANGE_OVERFLOW INT_ADD_OVERFLOW INT_SUBTRACT_OVERFLOW	\
-  INT_NEGATE_OVERFLOW INT_MULTIPLY_OVERFLOW INT_DIVIDE_OVERFLOW		\
-  INT_REMAINDER_OVERFLOW INT_LEFT_SHIFT_OVERFLOW
+# Extract the raw list of symbol names with this:
+gl_extract_define_simple = \
+  /^\# *define ([A-Z]\w+)\(/ and print $$1
+# Filter out duplicates and convert to a space-separated list:
+_intprops_names = \
+  $(shell f=$(gnulib_dir)/lib/intprops.h;				\
+    perl -lne '$(gl_extract_define_simple)' $$f | sort -u | tr '\n' ' ')
+# Remove trailing space and convert to a regular expression:
 _intprops_syms_re = $(subst $(_sp),|,$(strip $(_intprops_names)))
 # Prohibit the inclusion of intprops.h without an actual use.
 sc_prohibit_intprops_without_use:
@@ -982,10 +983,11 @@ sc_prohibit_doubled_word:
 # Also prohibit a prefix matching "\w+ +".
 # @pxref gets the same see/also treatment and should be parenthesized;
 # presume it must *not* start a sentence.
+# POSIX spells it "timestamp" rather than "time\s+stamp", so we do, too.
 bad_xref_re_ ?= (?:[\w,:;] +|(?:see|also)\s+)\@xref\{
 bad_pxref_re_ ?= (?:[.!?]|(?:see|also))\s+\@pxref\{
 prohibit_undesirable_word_seq_RE_ ?=					\
-  /(?:\bcan\s+not\b|$(bad_xref_re_)|$(bad_pxref_re_))/gims
+  /(?:\bcan\s+not\b|\btime\s+stamps?\b|$(bad_xref_re_)|$(bad_pxref_re_))/gims
 prohibit_undesirable_word_seq_ =					\
     -e 'while ($(prohibit_undesirable_word_seq_RE_))'			\
     $(perl_filename_lineno_text_)
@@ -1291,7 +1293,6 @@ vc-diff-check:
 
 rel-files = $(DIST_ARCHIVES)
 
-gnulib_dir ?= $(srcdir)/gnulib
 gnulib-version = $$(cd $(gnulib_dir)				\
                     && { git describe || git rev-parse --short=10 HEAD; } )
 bootstrap-tools ?= autoconf,automake,gnulib
@@ -1501,7 +1502,10 @@ gen-coverage:
 		--highlight --frames --legend \
 		--title "$(PACKAGE_NAME)"
 
-coverage: init-coverage build-coverage gen-coverage
+coverage:
+	$(MAKE) init-coverage
+	$(MAKE) build-coverage
+	$(MAKE) gen-coverage
 
 # Some projects carry local adjustments for gnulib modules via patches in
 # a gnulib patch directory whose default name is gl/ (defined in bootstrap

@@ -98,6 +98,9 @@ extern int virConnectNumOfStoragePoolsEnsureACL(virConnectPtr conn);
 extern bool virConnectNumOfStoragePoolsCheckACL(virConnectPtr conn, virStoragePoolDefPtr pool);
 extern int virConnectOpenEnsureACL(virConnectPtr conn);
 extern int virConnectRegisterCloseCallbackEnsureACL(virConnectPtr conn);
+extern int virConnectSecretEventDeregisterAnyEnsureACL(virConnectPtr conn);
+extern int virConnectSecretEventRegisterAnyEnsureACL(virConnectPtr conn);
+extern bool virConnectSecretEventRegisterAnyCheckACL(virConnectPtr conn, virSecretDefPtr secret);
 extern int virConnectStoragePoolEventDeregisterAnyEnsureACL(virConnectPtr conn);
 extern int virConnectStoragePoolEventRegisterAnyEnsureACL(virConnectPtr conn);
 extern bool virConnectStoragePoolEventRegisterAnyCheckACL(virConnectPtr conn, virStoragePoolDefPtr pool);
@@ -365,6 +368,7 @@ extern int virStorageVolCreateXMLFromEnsureACL(virConnectPtr conn, virStoragePoo
 extern int virStorageVolDeleteEnsureACL(virConnectPtr conn, virStoragePoolDefPtr pool, virStorageVolDefPtr vol);
 extern int virStorageVolDownloadEnsureACL(virConnectPtr conn, virStoragePoolDefPtr pool, virStorageVolDefPtr vol);
 extern int virStorageVolGetInfoEnsureACL(virConnectPtr conn, virStoragePoolDefPtr pool, virStorageVolDefPtr vol);
+extern int virStorageVolGetInfoFlagsEnsureACL(virConnectPtr conn, virStoragePoolDefPtr pool, virStorageVolDefPtr vol);
 extern int virStorageVolGetPathEnsureACL(virConnectPtr conn, virStoragePoolDefPtr pool, virStorageVolDefPtr vol);
 extern int virStorageVolGetXMLDescEnsureACL(virConnectPtr conn, virStoragePoolDefPtr pool, virStorageVolDefPtr vol);
 extern int virStorageVolLookupByKeyEnsureACL(virConnectPtr conn, virStoragePoolDefPtr pool, virStorageVolDefPtr vol);

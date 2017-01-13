@@ -1,6 +1,6 @@
 ## DO NOT EDIT! GENERATED AUTOMATICALLY!
 ## Process this file with automake to produce Makefile.in.
-# Copyright (C) 2002-2016 Free Software Foundation, Inc.
+# Copyright (C) 2002-2017 Free Software Foundation, Inc.
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -624,10 +624,10 @@ EXTRA_DIST += test-getline.c signature.h macros.h
 
 ## begin gnulib module getopt-posix-tests
 
-GNULIB_TESTS += test-getopt
-check_PROGRAMS += test-getopt
-test_getopt_LDADD = $(LDADD) $(LIBINTL)
-EXTRA_DIST += macros.h signature.h test-getopt.c test-getopt.h test-getopt_long.h
+GNULIB_TESTS += test-getopt-posix
+check_PROGRAMS += test-getopt-posix
+test_getopt_posix_LDADD = $(LDADD) $(LIBINTL)
+EXTRA_DIST += macros.h signature.h test-getopt-posix.c test-getopt-main.h test-getopt.h
 
 ## end   gnulib module getopt-posix-tests
 
@@ -820,6 +820,23 @@ check_PROGRAMS += test-isatty
 EXTRA_DIST += test-isatty.c signature.h macros.h
 
 ## end   gnulib module isatty-tests
+
+## begin gnulib module isblank
+
+
+EXTRA_DIST += isblank.c
+
+EXTRA_libtests_a_SOURCES += isblank.c
+
+## end   gnulib module isblank
+
+## begin gnulib module isblank-tests
+
+GNULIB_TESTS += test-isblank
+check_PROGRAMS += test-isblank
+EXTRA_DIST += test-isblank.c signature.h macros.h
+
+## end   gnulib module isblank-tests
 
 ## begin gnulib module isnand-nolibm
 
@@ -1178,11 +1195,18 @@ math.h: math.in.h $(top_builddir)/config.status $(CXXDEFS_H) $(ARG_NONNULL_H) $(
 	      -e 's|@''HAVE_DECL_TRUNCF''@|$(HAVE_DECL_TRUNCF)|g' \
 	      -e 's|@''HAVE_DECL_TRUNCL''@|$(HAVE_DECL_TRUNCL)|g' \
 	  | \
-	  sed -e 's|@''REPLACE_CBRTF''@|$(REPLACE_CBRTF)|g' \
+	  sed -e 's|@''REPLACE_ACOSF''@|$(REPLACE_ACOSF)|g' \
+	      -e 's|@''REPLACE_ASINF''@|$(REPLACE_ASINF)|g' \
+	      -e 's|@''REPLACE_ATANF''@|$(REPLACE_ATANF)|g' \
+	      -e 's|@''REPLACE_ATAN2F''@|$(REPLACE_ATAN2F)|g' \
+	      -e 's|@''REPLACE_CBRTF''@|$(REPLACE_CBRTF)|g' \
 	      -e 's|@''REPLACE_CBRTL''@|$(REPLACE_CBRTL)|g' \
 	      -e 's|@''REPLACE_CEIL''@|$(REPLACE_CEIL)|g' \
 	      -e 's|@''REPLACE_CEILF''@|$(REPLACE_CEILF)|g' \
 	      -e 's|@''REPLACE_CEILL''@|$(REPLACE_CEILL)|g' \
+	      -e 's|@''REPLACE_COSF''@|$(REPLACE_COSF)|g' \
+	      -e 's|@''REPLACE_COSHF''@|$(REPLACE_COSHF)|g' \
+	      -e 's|@''REPLACE_EXPF''@|$(REPLACE_EXPF)|g' \
 	      -e 's|@''REPLACE_EXPM1''@|$(REPLACE_EXPM1)|g' \
 	      -e 's|@''REPLACE_EXPM1F''@|$(REPLACE_EXPM1F)|g' \
 	      -e 's|@''REPLACE_EXP2''@|$(REPLACE_EXP2)|g' \
@@ -1238,7 +1262,12 @@ math.h: math.in.h $(top_builddir)/config.status $(CXXDEFS_H) $(ARG_NONNULL_H) $(
 	      -e 's|@''REPLACE_ROUNDL''@|$(REPLACE_ROUNDL)|g' \
 	      -e 's|@''REPLACE_SIGNBIT''@|$(REPLACE_SIGNBIT)|g' \
 	      -e 's|@''REPLACE_SIGNBIT_USING_GCC''@|$(REPLACE_SIGNBIT_USING_GCC)|g' \
+	      -e 's|@''REPLACE_SINF''@|$(REPLACE_SINF)|g' \
+	      -e 's|@''REPLACE_SINHF''@|$(REPLACE_SINHF)|g' \
+	      -e 's|@''REPLACE_SQRTF''@|$(REPLACE_SQRTF)|g' \
 	      -e 's|@''REPLACE_SQRTL''@|$(REPLACE_SQRTL)|g' \
+	      -e 's|@''REPLACE_TANF''@|$(REPLACE_TANF)|g' \
+	      -e 's|@''REPLACE_TANHF''@|$(REPLACE_TANHF)|g' \
 	      -e 's|@''REPLACE_TRUNC''@|$(REPLACE_TRUNC)|g' \
 	      -e 's|@''REPLACE_TRUNCF''@|$(REPLACE_TRUNCF)|g' \
 	      -e 's|@''REPLACE_TRUNCL''@|$(REPLACE_TRUNCL)|g' \

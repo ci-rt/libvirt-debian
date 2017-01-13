@@ -144,6 +144,7 @@ EXTRA_DIST =		\
 	vircgroupdata \
 	virconfdata \
 	virfiledata \
+	virmacmaptestdata \
 	virmock.h \
 	virnetdaemondata \
 	virnetdevtestdata \
@@ -195,6 +196,18 @@ test_programs = virshtest sockettest \
 	virtypedparamtest \
 	$(NULL)
 
+test_libraries = libshunload.la \
+	virportallocatormock.la \
+	virnetdaemonmock.la \
+	virnetserverclientmock.la \
+	vircgroupmock.la \
+	virpcimock.la \
+	virnetdevmock.la \
+	virrandommock.la \
+	virhostcpumock.la \
+	domaincapsmock.la \
+	$(NULL)
+
 if WITH_REMOTE
 test_programs += \
 	virnetmessagetest \
@@ -210,6 +223,10 @@ endif WITH_REMOTE
 if WITH_LINUX
 test_programs += fchosttest
 test_programs += scsihosttest
+test_libraries += virusbmock.la \
+	virnetdevbandwidthmock.la \
+	virtestmock.la \
+	$(NULL)
 endif WITH_LINUX
 
 if WITH_LIBVIRTD
@@ -220,6 +237,7 @@ if WITH_DBUS
 test_programs += virdbustest \
                  virsystemdtest \
                  $(NULL)
+test_libraries += virdbusmock.la
 if WITH_POLKIT1
 test_programs += virpolkittest
 endif WITH_POLKIT1
@@ -259,6 +277,12 @@ test_programs += qemuxml2argvtest qemuxml2xmltest \
 	qemuagenttest qemucapabilitiestest qemucaps2xmltest \
 	qemucommandutiltest
 test_helpers += qemucapsprobe
+test_libraries += libqemumonitortestutils.la \
+		libqemutestdriver.la \
+		qemuxml2argvmock.la \
+		qemucaps2xmlmock.la \
+		qemucapsprobemock.la \
+		$(NULL)
 endif WITH_QEMU
 
 if WITH_LXC
@@ -287,6 +311,7 @@ endif WITH_VMWARE
 
 if WITH_BHYVE
 test_programs += bhyvexml2argvtest bhyvexml2xmltest bhyveargv2xmltest
+test_libraries += bhyvexml2argvmock.la bhyveargv2xmlmock.la
 endif WITH_BHYVE
 
 if WITH_CIL
@@ -333,8 +358,9 @@ test_programs += virscsitest
 endif WITH_LINUX
 
 if WITH_NSS
-test_helpers += nsslinktest
-test_programs += nsstest
+test_helpers += nsslinktest nssguestlinktest
+test_programs += nsstest nssguesttest
+test_libraries += nssmock.la
 endif WITH_NSS
 
 test_programs += storagevolxml2xmltest storagepoolxml2xmltest
@@ -394,43 +420,6 @@ EXTRA_DIST += virt-aa-helper-test
 endif ! WITH_SECDRIVER_APPARMOR
 
 EXTRA_DIST += $(test_scripts)
-
-test_libraries = libshunload.la \
-		virportallocatormock.la \
-		virnetdaemonmock.la \
-		virnetserverclientmock.la \
-		vircgroupmock.la \
-		virpcimock.la \
-		virnetdevmock.la \
-		virrandommock.la \
-		virhostcpumock.la \
-		nssmock.la \
-		domaincapsmock.la \
-		$(NULL)
-if WITH_QEMU
-test_libraries += libqemumonitortestutils.la \
-		libqemutestdriver.la \
-		qemuxml2argvmock.la \
-		qemucaps2xmlmock.la \
-		qemucapsprobemock.la \
-		$(NULL)
-endif WITH_QEMU
-
-if WITH_BHYVE
-test_libraries += bhyvexml2argvmock.la bhyveargv2xmlmock.la
-endif WITH_BHYVE
-
-if WITH_DBUS
-test_libraries += \
-		virdbusmock.la
-endif WITH_DBUS
-
-if WITH_LINUX
-test_libraries += virusbmock.la \
-		virnetdevbandwidthmock.la \
-		virtestmock.la \
-		$(NULL)
-endif WITH_LINUX
 
 if WITH_LINUX
 check-access: file-access-clean
@@ -1113,6 +1102,7 @@ virhostcpumock_la_CFLAGS = $(AM_CFLAGS)
 virhostcpumock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
 virhostcpumock_la_LIBADD = $(MOCKLIBS_LIBS)
 
+if WITH_NSS
 nsstest_SOURCES = \
 	nsstest.c testutils.h testutils.c
 nsstest_CFLAGS = \
@@ -1121,6 +1111,16 @@ nsstest_CFLAGS = \
 nsstest_LDADD = \
 	$(LDADDS)	\
 	../tools/nss/libnss_libvirt_impl.la
+
+nssguesttest_SOURCES = \
+	nsstest.c testutils.h testutils.c
+nssguesttest_CFLAGS = \
+	-DLIBVIRT_NSS_GUEST	\
+	$(AM_CFLAGS)	\
+	-I$(top_srcdir)/tools/nss
+nssguesttest_LDADD = \
+	$(LDADDS)	\
+	../tools/nss/libnss_libvirt_guest_impl.la
 
 nssmock_la_SOURCES = \
 	nssmock.c
@@ -1136,6 +1136,35 @@ nsslinktest_CFLAGS = 	\
 	-I$(top_srcdir)/tools/nss
 nsslinktest_LDADD = ../tools/nss/libnss_libvirt_impl.la
 nsslinktest_LDFLAGS = $(NULL)
+
+nssguestlinktest_SOURCES = nsslinktest.c
+nssguestlinktest_CFLAGS = 	\
+	-DLIBVIRT_NSS_GUEST	\
+	$(AM_CFLAGS)		\
+	-I$(top_srcdir)/tools/nss
+nssguestlinktest_LDADD = ../tools/nss/libnss_libvirt_guest_impl.la
+nssguestlinktest_LDFLAGS = $(NULL)
+else ! WITH_NSS
+EXTRA_DIST += nsstest.c nssmock.c nsslinktest.c
+endif ! WITH_NSS
+
+if WITH_YAJL
+virmacmapmock_la_SOURCES = \
+	virmacmapmock.c
+virmacmapmock_la_CFLAGS = $(AM_CFLAGS)
+virmacmapmock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
+virmacmapmock_la_LIBADD = $(MOCKLIBS_LIBS)
+
+virmacmaptest_SOURCES = \
+	virmacmaptest.c testutils.h testutils.c
+virmacmaptest_CLFAGS = $(AM_CFLAGS)
+virmacmaptest_LDADD = $(LDADDS)
+
+test_libraries += virmacmapmock.la
+test_programs += virmacmaptest
+else ! WITH_YAJL
+EXTRA_DIST += virmacmapmock.c virmacmaptest.c
+endif ! WITH_YAJL
 
 virnetdevtest_SOURCES = \
 	virnetdevtest.c testutils.h testutils.c

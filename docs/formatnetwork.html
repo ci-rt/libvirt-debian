@@ -806,14 +806,13 @@
 ...
   &lt;ip address="192.168.122.1" netmask="255.255.255.0"&gt;
     &lt;dhcp&gt;
-      &lt;range start="192.168.122.128" end="192.168.122.254" /&gt;
+      &lt;range start="192.168.122.128" end="192.168.122.254"/&gt;
     &lt;/dhcp&gt;
   &lt;/ip&gt;
-  &lt;route address="192.168.222.0" prefix="24" gateway="192.168.122.2" /&gt;
-  &lt;ip family="ipv6" address="2001:db8:ca2:2::1" prefix="64" /&gt;
+  &lt;route address="192.168.222.0" prefix="24" gateway="192.168.122.2"/&gt;
+  &lt;ip family="ipv6" address="2001:db8:ca2:2::1" prefix="64"/&gt;
   &lt;route family="ipv6" address="2001:db8:ca2:3::" prefix="64" gateway="2001:db8:ca2:2::2"/&gt;
-  &lt;route family="ipv6" address="2001:db9:4:1::" prefix="64" gateway="2001:db8:ca2:2::3" metric='2'&gt;
-  &lt;/route&gt;
+  &lt;route family="ipv6" address="2001:db9:4:1::" prefix="64" gateway="2001:db8:ca2:2::3" metric='2'/&gt;
 ...
     </pre>
         <h3>
@@ -833,25 +832,26 @@
 &lt;mac address='00:16:3E:5D:C7:9E'/&gt;
 &lt;domain name="example.com"/&gt;
 &lt;dns&gt;
-  &lt;txt name="example" value="example value" /&gt;
+  &lt;txt name="example" value="example value"/&gt;
   &lt;forwarder addr="8.8.8.8"/&gt;
   &lt;forwarder domain='example.com' addr="8.8.4.4"/&gt;
   &lt;forwarder domain='www.example.com'/&gt;
-  &lt;srv service='name' protocol='tcp' domain='test-domain-name' target='.' port='1024' priority='10' weight='10'/&gt;
+  &lt;srv service='name' protocol='tcp' domain='test-domain-name' target='.'
+    port='1024' priority='10' weight='10'/&gt;
   &lt;host ip='192.168.122.2'&gt;
     &lt;hostname&gt;myhost&lt;/hostname&gt;
     &lt;hostname&gt;myhostalias&lt;/hostname&gt;
   &lt;/host&gt;
 &lt;/dns&gt;
-&lt;ip address="192.168.122.1" netmask="255.255.255.0"&gt;
+&lt;ip address="192.168.122.1" netmask="255.255.255.0" localPtr="yes"&gt;
   &lt;dhcp&gt;
-    &lt;range start="192.168.122.100" end="192.168.122.254" /&gt;
-    &lt;host mac="00:16:3e:77:e2:ed" name="foo.example.com" ip="192.168.122.10" /&gt;
-    &lt;host mac="00:16:3e:3e:a9:1a" name="bar.example.com" ip="192.168.122.11" /&gt;
+    &lt;range start="192.168.122.100" end="192.168.122.254"/&gt;
+    &lt;host mac="00:16:3e:77:e2:ed" name="foo.example.com" ip="192.168.122.10"/&gt;
+    &lt;host mac="00:16:3e:3e:a9:1a" name="bar.example.com" ip="192.168.122.11"/&gt;
   &lt;/dhcp&gt;
 &lt;/ip&gt;
-&lt;ip family="ipv6" address="2001:db8:ca2:2::1" prefix="64" /&gt;
-&lt;route family="ipv6" address="2001:db9:ca1:1::" prefix="64" gateway="2001:db8:ca2:2::2" /&gt;
+&lt;ip family="ipv6" address="2001:db8:ca2:2::1" prefix="64" localPtr="yes"/&gt;
+&lt;route family="ipv6" address="2001:db9:ca1:1::" prefix="64" gateway="2001:db8:ca2:2::2"/&gt;
 </pre>
         <dl><dt><code>mac</code></dt><dd>The <code>address</code> attribute defines a MAC
         (hardware) address formatted as 6 groups of 2-digit
@@ -932,50 +932,53 @@
         <dl><dt><code>srv</code></dt><dd>The <code>dns</code> element can have also 0 or more <code>srv</code>
             record elements. Each <code>srv</code> record element defines a DNS SRV record
             and has 2 mandatory and 5 optional attributes. The mandatory attributes
-            are service name and protocol (tcp, udp) and the optional attributes are
-            target, port, priority, weight and domain as defined in DNS server SRV
-            RFC (RFC 2782).
+            are service <code>name</code> and <code>protocol</code> (tcp, udp)
+            and the optional attributes are <code>target</code>,
+            <code>port</code>, <code>priority</code>, <code>weight</code> and
+            <code>domain</code> as defined in DNS server SRV RFC (RFC 2782).
             <span class="since">Since 0.9.9</span>
           </dd></dl>
       </dd><dt><code>ip</code></dt><dd>The <code>address</code> attribute defines an IPv4 address in
-        dotted-decimal format, or an IPv6 address in standard
-        colon-separated hexadecimal format, that will be configured on
-        the bridge
-        device associated with the virtual network. To the guests this IPv4
-        address will be their IPv4 default route.  For IPv6, the default route is
-        established via Router Advertisement.
-        For IPv4 addresses, the <code>netmask</code>
-        attribute defines the significant bits of the network address,
-        again specified in dotted-decimal format.  For IPv6 addresses,
-        and as an alternate method for IPv4 addresses, you can specify
-        the significant bits of the network address with the <code>prefix</code>
-        attribute, which is an integer (for example, <code>netmask='255.255.255.0'</code>
-        could also be given as <code>prefix='24'</code>. The <code>family</code>
-        attribute is used to specify the type of address - 'ipv4' or 'ipv6'; if no
-        <code>family</code> is given, 'ipv4' is assumed. A network can have more than
-        one of each family of address defined, but only a single IPv4 address can have a
-        <code>dhcp</code> or <code>tftp</code> element. <span class="since">Since 0.3.0 </span>
-        IPv6, multiple addresses on a single network, <code>family</code>, and
-        <code>prefix</code> are support <span class="since">Since 0.8.7</span>.
-        Similar to IPv4, one IPv6 address per network can also have
-        a <code>dhcp</code> definition.  <span class="since">Since 1.0.1</span>
+        dotted-decimal format, or an IPv6 address in standard colon-separated
+        hexadecimal format, that will be configured on the bridge device
+        associated with the virtual network. To the guests this IPv4 address
+        will be their IPv4 default route. For IPv6, the default route is
+        established via Router Advertisement. For IPv4 addresses, the
+        <code>netmask</code> attribute defines the significant bits of the
+        network address, again specified in dotted-decimal format. For IPv6
+        addresses, and as an alternate method for IPv4 addresses, the
+        significant bits of the network address can be specified with the
+        <code>prefix</code> attribute, which is an integer (for example,
+        <code>netmask='255.255.255.0'</code> could also be given as
+        <code>prefix='24'</code>). The <code>family</code> attribute is used
+        to specify the type of address — <code>ipv4</code> or
+        <code>ipv6</code>; if no <code>family</code> is given,
+        <code>ipv4</code> is assumed. More than one address of each family can
+        be defined for a network. The optional <code>localPtr</code> attribute
+        (<span class="since">since 3.0.0</span>) configures the DNS server to
+        not forward any reverse DNS requests for IP addresses from the network
+        configured by the <code>address</code> and
+        <code>netmask</code>/<code>prefix</code> attributes. For some unusual
+        network prefixes (not divisible by 8 for IPv4 or not divisible by 4 for
+        IPv6) libvirt may be unable to compute the PTR domain automatically.
+        The <code>ip</code> element is supported <span class="since">since
+        0.3.0</span>. IPv6, multiple addresses on a single network,
+        <code>family</code>, and <code>prefix</code> are supported
+        <span class="since">since 0.8.7</span>. The <code>ip</code> element may
+        contain the following elements:
 
-        <dl><dt><code>tftp</code></dt><dd>Immediately within
-            the <code>ip</code> element there is an optional <code>tftp</code>
-            element. The presence of this element and of its attribute
-            <code>root</code> enables TFTP services.  The attribute specifies
-            the path to the root directory served via TFTP. <code>tftp</code> is not
-            supported for IPv6 addresses, and can only be specified on a single IPv4 address
-            per network.
+        <dl><dt><code>tftp</code></dt><dd>The optional <code>tftp</code> element and its mandatory
+            <code>root</code> attribute enable TFTP services. The attribute
+            specifies the path to the root directory served via TFTP. The
+            <code>tftp</code> element is not supported for IPv6 addresses,
+            and can only be specified on a single IPv4 address per network.
             <span class="since">Since 0.7.1</span>
-          </dd><dt><code>dhcp</code></dt><dd>Also within the <code>ip</code> element there is an
-            optional <code>dhcp</code> element. The presence of this element
-            enables DHCP services on the virtual network. It will further
-            contain one or more <code>range</code> elements. The
-            <code>dhcp</code> element supported for both
-            IPv4 <span class="since">Since 0.3.0</span>
-            and IPv6 <span class="since">Since 1.0.1</span>, but
-            only for one IP address of each type per network.
+          </dd><dt><code>dhcp</code></dt><dd>The presence of this element enables DHCP services on the
+            virtual network. The <code>dhcp</code> element is supported for
+            both IPv4 (<span class="since">since 0.3.0</span>) and IPv6
+            (<span class="since">since 1.0.1</span>), but only for one IP
+            address of each type per network. The following sub-elements are
+            supported:
             <dl><dt><code>range</code></dt><dd>The <code>start</code> and <code>end</code> attributes on the
                 <code>range</code> element specify the boundaries of a pool of
                 addresses to be provided to DHCP clients. These two addresses
@@ -983,34 +986,34 @@
                 <code>ip</code> element.  There may be zero or more
                 <code>range</code> elements specified.
                 <span class="since">Since 0.3.0</span>
-                <code>range</code> can be specified for one IPv4 address,
-                one IPv6 address, or both. <span class="since">Since 1.0.1</span>
-              </dd><dt><code>host</code></dt><dd>Within the <code>dhcp</code> element there may be zero or more
-                <code>host</code> elements.  These specify hosts which will be given
-                names and predefined IP addresses by the built-in DHCP server. Any
-                IPv4 <code>host</code> element must specify the MAC address of the host to be assigned
-                a given name (via the <code>mac</code> attribute), the IP to be
-                assigned to that host (via the <code>ip</code> attribute), and the
-                name to be given that host by the DHCP server (via the
-                <code>name</code> attribute).  <span class="since">Since 0.4.5</span>
-                An IPv6 <code>host</code> element differs slightly from that for IPv4:
-                there is no <code>mac</code> attribute since a MAC address has no
-                defined meaning in IPv6.  Instead, the <code>name</code> attribute is
-                used to identify the host to be assigned the IPv6 address.  For DHCPv6,
-                the name is the plain name of the client host sent by the
-                client to the server.  Note that this method of assigning a
-                specific IP address can also be used instead of the <code>mac</code>
-                attribute for IPv4.  <span class="since">Since 1.0.1</span>
-              </dd><dt><code>bootp</code></dt><dd>The optional <code>bootp</code>
-                element specifies BOOTP options to be provided by the DHCP
-                server for IPv4 only.
-                Two attributes are supported: <code>file</code> is mandatory and
-                gives the file to be used for the boot image; <code>server</code> is
-                optional and gives the address of the TFTP server from which the boot
-                image will be fetched.  <code>server</code> defaults to the same host
-                that runs the DHCP server, as is the case when the <code>tftp</code>
-                element is used.  The BOOTP options currently have to be the same
-                for all address ranges and statically assigned addresses.<span class="since">Since 0.7.1 (<code>server</code> since 0.7.3).</span>
+              </dd><dt><code>host</code></dt><dd>Within the <code>dhcp</code> element there may be zero or
+                more <code>host</code> elements. These specify hosts which will
+                be given names and predefined IP addresses by the built-in DHCP
+                server. Any IPv4 <code>host</code> element must specify the MAC
+                address of the host to be assigned a given name (via the
+                <code>mac</code> attribute), the IP to be assigned to that host
+                (via the <code>ip</code> attribute), and the name itself (the
+                <code>name</code> attribute). The IPv6 <code>host</code>
+                element differs slightly from that for IPv4: there is no
+                <code>mac</code> attribute since a MAC address has no defined
+                meaning in IPv6. Instead, the <code>name</code> attribute is
+                used to identify the host to be assigned the IPv6 address. For
+                DHCPv6, the name is the plain name of the client host sent by the
+                client to the server. Note that this method of assigning a
+                specific IP address can also be used for IPv4 instead of the
+                <code>mac</code> attribute.
+                <span class="since">Since 0.4.5</span>
+              </dd><dt><code>bootp</code></dt><dd>The optional <code>bootp</code> element specifies BOOTP
+                options to be provided by the DHCP server for IPv4 only. Two
+                attributes are supported: <code>file</code> is mandatory and
+                gives the file to be used for the boot image;
+                <code>server</code> is optional and gives the address of the
+                TFTP server from which the boot image will be fetched.
+                <code>server</code> defaults to the same host that runs the
+                DHCP server, as is the case when the <code>tftp</code> element
+                is used. The BOOTP options currently have to be the same for
+                all address ranges and statically assigned addresses. <span class="since">Since 0.7.1</span> (<code>server</code>
+                <span class="since">since 0.7.3</span>)
               </dd></dl>
           </dd></dl>
       </dd></dl>
@@ -1034,14 +1037,14 @@
         <pre xml:space="preserve">
 &lt;network&gt;
   &lt;name&gt;default&lt;/name&gt;
-  &lt;bridge name="virbr0" /&gt;
+  &lt;bridge name="virbr0"/&gt;
   &lt;forward mode="nat"/&gt;
   &lt;ip address="192.168.122.1" netmask="255.255.255.0"&gt;
     &lt;dhcp&gt;
-      &lt;range start="192.168.122.2" end="192.168.122.254" /&gt;
+      &lt;range start="192.168.122.2" end="192.168.122.254"/&gt;
     &lt;/dhcp&gt;
   &lt;/ip&gt;
-  &lt;ip family="ipv6" address="2001:db8:ca2:2::1" prefix="64" /&gt;
+  &lt;ip family="ipv6" address="2001:db8:ca2:2::1" prefix="64"/&gt;
 &lt;/network&gt;</pre>
         <p>
       Below is a variation of the above example which adds an IPv6
@@ -1050,16 +1053,16 @@
         <pre xml:space="preserve">
 &lt;network&gt;
   &lt;name&gt;default6&lt;/name&gt;
-  &lt;bridge name="virbr0" /&gt;
+  &lt;bridge name="virbr0"/&gt;
   &lt;forward mode="nat"/&gt;
   &lt;ip address="192.168.122.1" netmask="255.255.255.0"&gt;
     &lt;dhcp&gt;
-      &lt;range start="192.168.122.2" end="192.168.122.254" /&gt;
+      &lt;range start="192.168.122.2" end="192.168.122.254"/&gt;
     &lt;/dhcp&gt;
   &lt;/ip&gt;
-  &lt;ip family="ipv6" address="2001:db8:ca2:2::1" prefix="64" &gt;
+  &lt;ip family="ipv6" address="2001:db8:ca2:2::1" prefix="64"&gt;
     &lt;dhcp&gt;
-      &lt;range start="2001:db8:ca2:2:1::10" end="2001:db8:ca2:2:1::ff" /&gt;
+      &lt;range start="2001:db8:ca2:2:1::10" end="2001:db8:ca2:2:1::ff"/&gt;
     &lt;/dhcp&gt;
   &lt;/ip&gt;
 &lt;/network&gt;</pre>
@@ -1078,14 +1081,14 @@
         <pre xml:space="preserve">
 &lt;network&gt;
   &lt;name&gt;local&lt;/name&gt;
-  &lt;bridge name="virbr1" /&gt;
+  &lt;bridge name="virbr1"/&gt;
   &lt;forward mode="route" dev="eth1"/&gt;
   &lt;ip address="192.168.122.1" netmask="255.255.255.0"&gt;
     &lt;dhcp&gt;
-      &lt;range start="192.168.122.2" end="192.168.122.254" /&gt;
+      &lt;range start="192.168.122.2" end="192.168.122.254"/&gt;
     &lt;/dhcp&gt;
   &lt;/ip&gt;
-  &lt;ip family="ipv6" address="2001:db8:ca2:2::1" prefix="64" /&gt;
+  &lt;ip family="ipv6" address="2001:db8:ca2:2::1" prefix="64"/&gt;
 &lt;/network&gt;</pre>
         <p>
       Below is another IPv6 variation.  Instead of a dhcp range being
@@ -1099,19 +1102,20 @@
         <pre xml:space="preserve">
 &lt;network&gt;
   &lt;name&gt;local6&lt;/name&gt;
-  &lt;bridge name="virbr1" /&gt;
+  &lt;bridge name="virbr1"/&gt;
   &lt;forward mode="route" dev="eth1"/&gt;
   &lt;ip address="192.168.122.1" netmask="255.255.255.0"&gt;
     &lt;dhcp&gt;
-      &lt;range start="192.168.122.2" end="192.168.122.254" /&gt;
+      &lt;range start="192.168.122.2" end="192.168.122.254"/&gt;
     &lt;/dhcp&gt;
   &lt;/ip&gt;
-  &lt;ip family="ipv6" address="2001:db8:ca2:2::1" prefix="64" &gt;
+  &lt;ip family="ipv6" address="2001:db8:ca2:2::1" prefix="64"&gt;
     &lt;dhcp&gt;
-      &lt;host name="paul"   ip="2001:db8:ca2:2:3::1" /&gt;
-      &lt;host id="0:1:0:1:18:aa:62:fe:0:16:3e:44:55:66"    ip="2001:db8:ca2:2:3::2" /&gt;
-      &lt;host id="0:3:0:1:0:16:3e:11:22:33" name="ralph"  ip="2001:db8:ca2:2:3::3" /&gt;
-      &lt;host id="0:4:7e:7d:f0:7d:a8:bc:c5:d2:13:32:11:ed:16:ea:84:63" name="badbob" ip="2001:db8:ca2:2:3::4" /&gt;
+      &lt;host name="paul" ip="2001:db8:ca2:2:3::1"/&gt;
+      &lt;host id="0:1:0:1:18:aa:62:fe:0:16:3e:44:55:66" ip="2001:db8:ca2:2:3::2"/&gt;
+      &lt;host id="0:3:0:1:0:16:3e:11:22:33" name="ralph" ip="2001:db8:ca2:2:3::3"/&gt;
+      &lt;host id="0:4:7e:7d:f0:7d:a8:bc:c5:d2:13:32:11:ed:16:ea:84:63"
+        name="badbob" ip="2001:db8:ca2:2:3::4"/&gt;
     &lt;/dhcp&gt;
   &lt;/ip&gt;
 &lt;/network&gt;</pre>
@@ -1129,16 +1133,16 @@
         <pre xml:space="preserve">
 &lt;network&gt;
   &lt;name&gt;net7&lt;/name&gt;
-  &lt;bridge name="virbr7" /&gt;
+  &lt;bridge name="virbr7"/&gt;
   &lt;forward mode="route"/&gt;
-  &lt;ip family="ipv6" address="2001:db8:ca2:7::1" prefix="64" &gt;
+  &lt;ip family="ipv6" address="2001:db8:ca2:7::1" prefix="64"&gt;
     &lt;dhcp&gt;
-      &lt;range start="2001:db8:ca2:7::100" end="2001:db8:ca2::1ff" /&gt;
-      &lt;host id="0:4:7e:7d:f0:7d:a8:bc:c5:d2:13:32:11:ed:16:ea:84:63" name="lucas" ip="2001:db8:ca2:2:3::4" /&gt;
+      &lt;range start="2001:db8:ca2:7::100" end="2001:db8:ca2::1ff"/&gt;
+      &lt;host id="0:4:7e:7d:f0:7d:a8:bc:c5:d2:13:32:11:ed:16:ea:84:63"
+        name="lucas" ip="2001:db8:ca2:2:3::4"/&gt;
     &lt;/dhcp&gt;
   &lt;/ip&gt;
-  &lt;route family="ipv6" address="2001:db8:ca2:8::" prefix="64" gateway="2001:db8:ca2:7::4" &gt;
-  &lt;/route&gt;
+  &lt;route family="ipv6" address="2001:db8:ca2:8::" prefix="64" gateway="2001:db8:ca2:7::4"/&gt;
 &lt;/network&gt;</pre>
         <h3>
           <a name="examplesPrivate" shape="rect" id="examplesPrivate">Isolated network config</a>
@@ -1154,13 +1158,13 @@
         <pre xml:space="preserve">
 &lt;network&gt;
   &lt;name&gt;private&lt;/name&gt;
-  &lt;bridge name="virbr2" /&gt;
+  &lt;bridge name="virbr2"/&gt;
   &lt;ip address="192.168.152.1" netmask="255.255.255.0"&gt;
     &lt;dhcp&gt;
-      &lt;range start="192.168.152.2" end="192.168.152.254" /&gt;
+      &lt;range start="192.168.152.2" end="192.168.152.254"/&gt;
     &lt;/dhcp&gt;
   &lt;/ip&gt;
-  &lt;ip family="ipv6" address="2001:db8:ca2:3::1" prefix="64" /&gt;
+  &lt;ip family="ipv6" address="2001:db8:ca2:3::1" prefix="64"/&gt;
 &lt;/network&gt;</pre>
         <h3>
           <a name="examplesPrivate6" shape="rect" id="examplesPrivate6">Isolated IPv6 network config</a>
@@ -1177,13 +1181,14 @@
         <pre xml:space="preserve">
 &lt;network&gt;
   &lt;name&gt;sixnet&lt;/name&gt;
-  &lt;bridge name="virbr6" /&gt;
-  &lt;ip family="ipv6" address="2001:db8:ca2:6::1" prefix="64" &gt;
+  &lt;bridge name="virbr6"/&gt;
+  &lt;ip family="ipv6" address="2001:db8:ca2:6::1" prefix="64"&gt;
     &lt;dhcp&gt;
-      &lt;host name="peter"   ip="2001:db8:ca2:6:6::1" /&gt;
-      &lt;host id="0:1:0:1:18:aa:62:fe:0:16:3e:44:55:66" ip="2001:db8:ca2:6:6::2" /&gt;
-      &lt;host id="0:3:0:1:0:16:3e:11:22:33" name="dariusz" ip="2001:db8:ca2:6:6::3" /&gt;
-      &lt;host id="0:4:7e:7d:f0:7d:a8:bc:c5:d2:13:32:11:ed:16:ea:84:63" name="anita" ip="2001:db8:ca2:6:6::4" /&gt;
+      &lt;host name="peter" ip="2001:db8:ca2:6:6::1"/&gt;
+      &lt;host id="0:1:0:1:18:aa:62:fe:0:16:3e:44:55:66" ip="2001:db8:ca2:6:6::2"/&gt;
+      &lt;host id="0:3:0:1:0:16:3e:11:22:33" name="dariusz" ip="2001:db8:ca2:6:6::3"/&gt;
+      &lt;host id="0:4:7e:7d:f0:7d:a8:bc:c5:d2:13:32:11:ed:16:ea:84:63"
+        name="anita" ip="2001:db8:ca2:6:6::4"/&gt;
     &lt;/dhcp&gt;
   &lt;/ip&gt;
 &lt;/network&gt;</pre>
@@ -1257,7 +1262,7 @@
 &lt;network ipv6='yes'&gt;
   &lt;name&gt;nogw&lt;/name&gt;
   &lt;uuid&gt;7a3b7497-1ec7-8aef-6d5c-38dff9109e93&lt;/uuid&gt;
-  &lt;bridge name="virbr2" stp="on" delay="0" /&gt;
+  &lt;bridge name="virbr2" stp="on" delay="0"/&gt;
   &lt;mac address='00:16:3E:5D:C7:9E'/&gt;
 &lt;/network&gt;</pre>
       </div>

@@ -3143,6 +3143,59 @@ static int remoteDispatchConnectRegisterCloseCallbackHelper(
 
 
 
+static int remoteDispatchConnectSecretEventDeregisterAny(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_secret_event_deregister_any_args *args);
+static int remoteDispatchConnectSecretEventDeregisterAnyHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchConnectSecretEventDeregisterAny");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchConnectSecretEventDeregisterAny(server, client, msg, rerr, args);
+  virThreadJobClear(rv);
+  return rv;
+}
+/* remoteDispatchConnectSecretEventDeregisterAny body has to be implemented manually */
+
+
+
+static int remoteDispatchConnectSecretEventRegisterAny(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_secret_event_register_any_args *args,
+    remote_connect_secret_event_register_any_ret *ret);
+static int remoteDispatchConnectSecretEventRegisterAnyHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchConnectSecretEventRegisterAny");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchConnectSecretEventRegisterAny(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+/* remoteDispatchConnectSecretEventRegisterAny body has to be implemented manually */
+
+
+
 static int remoteDispatchConnectStoragePoolEventDeregisterAny(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -16834,6 +16887,33 @@ cleanup:
 
 
 
+static int remoteDispatchStorageVolGetInfoFlags(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_storage_vol_get_info_flags_args *args,
+    remote_storage_vol_get_info_flags_ret *ret);
+static int remoteDispatchStorageVolGetInfoFlagsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchStorageVolGetInfoFlags");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchStorageVolGetInfoFlags(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+/* remoteDispatchStorageVolGetInfoFlags body has to be implemented manually */
+
+
+
 static int remoteDispatchStorageVolGetPath(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -20764,6 +20844,60 @@ virNetServerProgramProc remoteProcs[] = {
    0
 },
 { /* Async event NodeDeviceEventUpdate => 377 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method StorageVolGetInfoFlags => 378 */
+   remoteDispatchStorageVolGetInfoFlagsHelper,
+   sizeof(remote_storage_vol_get_info_flags_args),
+   (xdrproc_t)xdr_remote_storage_vol_get_info_flags_args,
+   sizeof(remote_storage_vol_get_info_flags_ret),
+   (xdrproc_t)xdr_remote_storage_vol_get_info_flags_ret,
+   true,
+   1
+},
+{ /* Async event DomainEventCallbackMetadataChange => 379 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method ConnectSecretEventRegisterAny => 380 */
+   remoteDispatchConnectSecretEventRegisterAnyHelper,
+   sizeof(remote_connect_secret_event_register_any_args),
+   (xdrproc_t)xdr_remote_connect_secret_event_register_any_args,
+   sizeof(remote_connect_secret_event_register_any_ret),
+   (xdrproc_t)xdr_remote_connect_secret_event_register_any_ret,
+   true,
+   1
+},
+{ /* Method ConnectSecretEventDeregisterAny => 381 */
+   remoteDispatchConnectSecretEventDeregisterAnyHelper,
+   sizeof(remote_connect_secret_event_deregister_any_args),
+   (xdrproc_t)xdr_remote_connect_secret_event_deregister_any_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   1
+},
+{ /* Async event SecretEventLifecycle => 382 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Async event SecretEventValueChanged => 383 */
    NULL,
    0,
    (xdrproc_t)xdr_void,

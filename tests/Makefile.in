@@ -101,90 +101,89 @@ host_triplet = @host@
 
 @WITH_GNUTLS_TRUE@@WITH_REMOTE_TRUE@am__append_4 = virnettlscontexttest virnettlssessiontest
 @WITH_LINUX_TRUE@am__append_5 = fchosttest scsihosttest
-@WITH_LIBVIRTD_TRUE@am__append_6 = fdstreamtest
-@WITH_DBUS_TRUE@am__append_7 = virdbustest \
+@WITH_LINUX_TRUE@am__append_6 = virusbmock.la \
+@WITH_LINUX_TRUE@	virnetdevbandwidthmock.la \
+@WITH_LINUX_TRUE@	virtestmock.la \
+@WITH_LINUX_TRUE@	$(NULL)
+
+@WITH_LIBVIRTD_TRUE@am__append_7 = fdstreamtest
+@WITH_DBUS_TRUE@am__append_8 = virdbustest \
 @WITH_DBUS_TRUE@                 virsystemdtest \
 @WITH_DBUS_TRUE@                 $(NULL)
 
-@WITH_DBUS_TRUE@@WITH_POLKIT1_TRUE@am__append_8 = virpolkittest
-@WITH_ATTR_TRUE@@WITH_SECDRIVER_SELINUX_TRUE@am__append_9 = securityselinuxtest \
+@WITH_DBUS_TRUE@am__append_9 = virdbusmock.la
+@WITH_DBUS_TRUE@@WITH_POLKIT1_TRUE@am__append_10 = virpolkittest
+@WITH_ATTR_TRUE@@WITH_SECDRIVER_SELINUX_TRUE@am__append_11 = securityselinuxtest \
 @WITH_ATTR_TRUE@@WITH_SECDRIVER_SELINUX_TRUE@                 viridentitytest
 
-@WITH_ATTR_TRUE@@WITH_QEMU_TRUE@@WITH_SECDRIVER_SELINUX_TRUE@am__append_10 = securityselinuxlabeltest
-@WITH_DRIVER_MODULES_TRUE@am__append_11 = virdrivermoduletest
-@WITH_XEN_TRUE@am__append_12 = xml2sexprtest sexpr2xmltest \
+@WITH_ATTR_TRUE@@WITH_QEMU_TRUE@@WITH_SECDRIVER_SELINUX_TRUE@am__append_12 = securityselinuxlabeltest
+@WITH_DRIVER_MODULES_TRUE@am__append_13 = virdrivermoduletest
+@WITH_XEN_TRUE@am__append_14 = xml2sexprtest sexpr2xmltest \
 @WITH_XEN_TRUE@	xmconfigtest xencapstest
 
-@WITH_LIBXL_TRUE@am__append_13 = xlconfigtest
-@WITH_QEMU_TRUE@am__append_14 = qemuxml2argvtest qemuxml2xmltest \
+@WITH_LIBXL_TRUE@am__append_15 = xlconfigtest
+@WITH_QEMU_TRUE@am__append_16 = qemuxml2argvtest qemuxml2xmltest \
 @WITH_QEMU_TRUE@	qemuargv2xmltest qemuhelptest domainsnapshotxml2xmltest \
 @WITH_QEMU_TRUE@	qemumonitortest qemumonitorjsontest qemuhotplugtest \
 @WITH_QEMU_TRUE@	qemuagenttest qemucapabilitiestest qemucaps2xmltest \
 @WITH_QEMU_TRUE@	qemucommandutiltest
 
-@WITH_QEMU_TRUE@am__append_15 = qemucapsprobe
-@WITH_LXC_TRUE@am__append_16 = lxcxml2xmltest lxcconf2xmltest
-@WITH_OPENVZ_TRUE@am__append_17 = openvzutilstest
-@WITH_ESX_TRUE@am__append_18 = esxutilstest
-@WITH_VBOX_TRUE@am__append_19 = vboxsnapshotxmltest
-@WITH_VMX_TRUE@am__append_20 = vmx2xmltest xml2vmxtest
-@WITH_VMWARE_TRUE@am__append_21 = vmwarevertest
-@WITH_BHYVE_TRUE@am__append_22 = bhyvexml2argvtest bhyvexml2xmltest bhyveargv2xmltest
-@WITH_CIL_TRUE@am__append_23 = objectlocking
-@WITH_YAJL_TRUE@am__append_24 = jsontest
-@WITH_NETWORK_TRUE@am__append_25 = \
-@WITH_NETWORK_TRUE@		networkxml2conftest \
-@WITH_NETWORK_TRUE@		networkxml2firewalltest \
-@WITH_NETWORK_TRUE@		$(NULL)
-
-@WITH_STORAGE_SHEEPDOG_TRUE@am__append_26 = storagebackendsheepdogtest
-@WITH_NWFILTER_TRUE@am__append_27 = nwfilterebiptablestest \
-@WITH_NWFILTER_TRUE@	nwfilterxml2firewalltest
-@WITH_STORAGE_TRUE@am__append_28 = storagevolxml2argvtest
-@WITH_STORAGE_FS_TRUE@am__append_29 = virstoragetest
-@WITH_LINUX_TRUE@am__append_30 = virscsitest
-@WITH_NSS_TRUE@am__append_31 = nsslinktest
-@WITH_NSS_TRUE@am__append_32 = nsstest
-@WITH_LINUX_TRUE@am__append_33 = virusbtest \
-@WITH_LINUX_TRUE@	virnetdevbandwidthtest \
-@WITH_LINUX_TRUE@	$(NULL)
-
-@WITH_LIBVIRTD_TRUE@am__append_34 = $(libvirtd_test_scripts)
-@WITH_LIBVIRTD_TRUE@am__append_35 = \
-@WITH_LIBVIRTD_TRUE@	eventtest
-
-@WITH_LIBVIRTD_FALSE@am__append_36 = $(libvirtd_test_scripts)
-@WITH_SECDRIVER_APPARMOR_TRUE@am__append_37 = virt-aa-helper-test
-@WITH_SECDRIVER_APPARMOR_FALSE@am__append_38 = virt-aa-helper-test
-@WITH_QEMU_TRUE@am__append_39 = libqemumonitortestutils.la \
+@WITH_QEMU_TRUE@am__append_17 = qemucapsprobe
+@WITH_QEMU_TRUE@am__append_18 = libqemumonitortestutils.la \
 @WITH_QEMU_TRUE@		libqemutestdriver.la \
 @WITH_QEMU_TRUE@		qemuxml2argvmock.la \
 @WITH_QEMU_TRUE@		qemucaps2xmlmock.la \
 @WITH_QEMU_TRUE@		qemucapsprobemock.la \
 @WITH_QEMU_TRUE@		$(NULL)
 
-@WITH_BHYVE_TRUE@am__append_40 = bhyvexml2argvmock.la bhyveargv2xmlmock.la
-@WITH_DBUS_TRUE@am__append_41 = \
-@WITH_DBUS_TRUE@		virdbusmock.la
+@WITH_LXC_TRUE@am__append_19 = lxcxml2xmltest lxcconf2xmltest
+@WITH_OPENVZ_TRUE@am__append_20 = openvzutilstest
+@WITH_ESX_TRUE@am__append_21 = esxutilstest
+@WITH_VBOX_TRUE@am__append_22 = vboxsnapshotxmltest
+@WITH_VMX_TRUE@am__append_23 = vmx2xmltest xml2vmxtest
+@WITH_VMWARE_TRUE@am__append_24 = vmwarevertest
+@WITH_BHYVE_TRUE@am__append_25 = bhyvexml2argvtest bhyvexml2xmltest bhyveargv2xmltest
+@WITH_BHYVE_TRUE@am__append_26 = bhyvexml2argvmock.la bhyveargv2xmlmock.la
+@WITH_CIL_TRUE@am__append_27 = objectlocking
+@WITH_YAJL_TRUE@am__append_28 = jsontest
+@WITH_NETWORK_TRUE@am__append_29 = \
+@WITH_NETWORK_TRUE@		networkxml2conftest \
+@WITH_NETWORK_TRUE@		networkxml2firewalltest \
+@WITH_NETWORK_TRUE@		$(NULL)
 
-@WITH_LINUX_TRUE@am__append_42 = virusbmock.la \
-@WITH_LINUX_TRUE@		virnetdevbandwidthmock.la \
-@WITH_LINUX_TRUE@		virtestmock.la \
-@WITH_LINUX_TRUE@		$(NULL)
+@WITH_STORAGE_SHEEPDOG_TRUE@am__append_30 = storagebackendsheepdogtest
+@WITH_NWFILTER_TRUE@am__append_31 = nwfilterebiptablestest \
+@WITH_NWFILTER_TRUE@	nwfilterxml2firewalltest
+@WITH_STORAGE_TRUE@am__append_32 = storagevolxml2argvtest
+@WITH_STORAGE_FS_TRUE@am__append_33 = virstoragetest
+@WITH_LINUX_TRUE@am__append_34 = virscsitest
+@WITH_NSS_TRUE@am__append_35 = nsslinktest nssguestlinktest
+@WITH_NSS_TRUE@am__append_36 = nsstest nssguesttest
+@WITH_NSS_TRUE@am__append_37 = nssmock.la
+@WITH_LINUX_TRUE@am__append_38 = virusbtest \
+@WITH_LINUX_TRUE@	virnetdevbandwidthtest \
+@WITH_LINUX_TRUE@	$(NULL)
 
-@WITH_TESTS_TRUE@noinst_PROGRAMS = $(am__EXEEXT_31) $(am__EXEEXT_34)
-@WITH_TESTS_FALSE@check_PROGRAMS = $(am__EXEEXT_31) $(am__EXEEXT_34)
-TESTS = $(am__EXEEXT_31) $(am__EXEEXT_37)
-@WITH_XEN_FALSE@am__append_43 = xml2sexprtest.c sexpr2xmltest.c xmconfigtest.c \
+@WITH_LIBVIRTD_TRUE@am__append_39 = $(libvirtd_test_scripts)
+@WITH_LIBVIRTD_TRUE@am__append_40 = \
+@WITH_LIBVIRTD_TRUE@	eventtest
+
+@WITH_LIBVIRTD_FALSE@am__append_41 = $(libvirtd_test_scripts)
+@WITH_SECDRIVER_APPARMOR_TRUE@am__append_42 = virt-aa-helper-test
+@WITH_SECDRIVER_APPARMOR_FALSE@am__append_43 = virt-aa-helper-test
+@WITH_TESTS_TRUE@noinst_PROGRAMS = $(am__EXEEXT_32) $(am__EXEEXT_35)
+@WITH_TESTS_FALSE@check_PROGRAMS = $(am__EXEEXT_32) $(am__EXEEXT_35)
+TESTS = $(am__EXEEXT_32) $(am__EXEEXT_38)
+@WITH_XEN_FALSE@am__append_44 = xml2sexprtest.c sexpr2xmltest.c xmconfigtest.c \
 @WITH_XEN_FALSE@	xencapstest.c \
 @WITH_XEN_FALSE@	testutilsxen.c testutilsxen.h
 
-@WITH_LIBXL_TRUE@@WITH_NETWORK_TRUE@am__append_44 = ../src/libvirt_driver_network_impl.la
-@WITH_LIBXL_FALSE@am__append_45 = xlconfigtest.c
-@WITH_NETWORK_TRUE@@WITH_QEMU_TRUE@am__append_46 = ../src/libvirt_driver_network_impl.la
-@WITH_QEMU_TRUE@@WITH_STORAGE_TRUE@am__append_47 = ../src/libvirt_driver_storage_impl.la
-@WITH_DTRACE_PROBES_TRUE@@WITH_QEMU_TRUE@am__append_48 = ../src/libvirt_qemu_probes.lo
-@WITH_QEMU_FALSE@am__append_49 = qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c \
+@WITH_LIBXL_TRUE@@WITH_NETWORK_TRUE@am__append_45 = ../src/libvirt_driver_network_impl.la
+@WITH_LIBXL_FALSE@am__append_46 = xlconfigtest.c
+@WITH_NETWORK_TRUE@@WITH_QEMU_TRUE@am__append_47 = ../src/libvirt_driver_network_impl.la
+@WITH_QEMU_TRUE@@WITH_STORAGE_TRUE@am__append_48 = ../src/libvirt_driver_storage_impl.la
+@WITH_DTRACE_PROBES_TRUE@@WITH_QEMU_TRUE@am__append_49 = ../src/libvirt_qemu_probes.lo
+@WITH_QEMU_FALSE@am__append_50 = qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c \
 @WITH_QEMU_FALSE@	qemuhelptest.c domainsnapshotxml2xmltest.c \
 @WITH_QEMU_FALSE@	qemumonitortest.c testutilsqemu.c testutilsqemu.h \
 @WITH_QEMU_FALSE@	qemumonitorjsontest.c qemuhotplugtest.c \
@@ -192,53 +191,57 @@ TESTS = $(am__EXEEXT_31) $(am__EXEEXT_37)
 @WITH_QEMU_FALSE@	qemucaps2xmltest.c qemucommandutiltest.c \
 @WITH_QEMU_FALSE@	$(QEMUMONITORTESTUTILS_SOURCES)
 
-@WITH_LXC_TRUE@@WITH_NETWORK_TRUE@am__append_50 = ../src/libvirt_driver_network_impl.la
-@WITH_LXC_FALSE@am__append_51 = lxcxml2xmltest.c testutilslxc.c testutilslxc.h
-@WITH_OPENVZ_FALSE@am__append_52 = openvzutilstest.c
-@WITH_ESX_FALSE@am__append_53 = esxutilstest.c
-@WITH_VBOX_FALSE@am__append_54 = vboxsnapshotxmltest.c
-@WITH_VMX_FALSE@am__append_55 = vmx2xmltest.c xml2vmxtest.c
-@WITH_VMWARE_FALSE@am__append_56 = vmwarevertest.c
-@WITH_BHYVE_TRUE@@WITH_STORAGE_TRUE@am__append_57 = ../src/libvirt_driver_storage_impl.la
-@WITH_BHYVE_FALSE@am__append_58 = \
+@WITH_LXC_TRUE@@WITH_NETWORK_TRUE@am__append_51 = ../src/libvirt_driver_network_impl.la
+@WITH_LXC_FALSE@am__append_52 = lxcxml2xmltest.c testutilslxc.c testutilslxc.h
+@WITH_OPENVZ_FALSE@am__append_53 = openvzutilstest.c
+@WITH_ESX_FALSE@am__append_54 = esxutilstest.c
+@WITH_VBOX_FALSE@am__append_55 = vboxsnapshotxmltest.c
+@WITH_VMX_FALSE@am__append_56 = vmx2xmltest.c xml2vmxtest.c
+@WITH_VMWARE_FALSE@am__append_57 = vmwarevertest.c
+@WITH_BHYVE_TRUE@@WITH_STORAGE_TRUE@am__append_58 = ../src/libvirt_driver_storage_impl.la
+@WITH_BHYVE_FALSE@am__append_59 = \
 @WITH_BHYVE_FALSE@	bhyvexml2argvtest.c \
 @WITH_BHYVE_FALSE@	bhyveargv2xmltest.c \
 @WITH_BHYVE_FALSE@	bhyvexml2xmltest.c \
 @WITH_BHYVE_FALSE@	bhyvexml2argvmock.c \
 @WITH_BHYVE_FALSE@	bhyveargv2xmlmock.c
 
-@WITH_NETWORK_FALSE@am__append_59 = networkxml2conftest.c
-@WITH_STORAGE_SHEEPDOG_FALSE@am__append_60 = storagebackendsheepdogtest.c
-@WITH_STORAGE_FALSE@am__append_61 = storagevolxml2argvtest.c
-@WITH_QEMU_TRUE@am__append_62 = testutilsqemu.c testutilsqemu.h
-@WITH_QEMU_TRUE@am__append_63 = libqemumonitortestutils.la $(qemu_LDADDS) $(GNULIB_LIBS)
-@WITH_LXC_TRUE@am__append_64 = testutilslxc.c testutilslxc.h
-@WITH_QEMU_TRUE@am__append_65 = testutilsqemu.c testutilsqemu.h
-@WITH_XEN_TRUE@am__append_66 = testutilsxen.c testutilsxen.h
-@WITH_QEMU_TRUE@am__append_67 = testutilsqemu.c testutilsqemu.h
-@WITH_QEMU_TRUE@am__append_68 = $(qemu_LDADDS) $(GNULIB_LIBS)
-@WITH_LIBXL_TRUE@am__append_69 = testutilsxen.c testutilsxen.h
-@WITH_LIBXL_TRUE@am__append_70 = ../src/libvirt_driver_libxl_impl.la $(GNULIB_LIBS)
-@HAVE_LIBTASN1_TRUE@@WITH_GNUTLS_TRUE@am__append_71 = pkix_asn1_tab.c
-@HAVE_LIBTASN1_TRUE@@WITH_GNUTLS_TRUE@am__append_72 = -ltasn1
-@HAVE_LIBTASN1_TRUE@@WITH_GNUTLS_TRUE@am__append_73 = pkix_asn1_tab.c
-@HAVE_LIBTASN1_TRUE@@WITH_GNUTLS_TRUE@am__append_74 = -ltasn1
-@HAVE_LIBTASN1_FALSE@@WITH_GNUTLS_TRUE@am__append_75 = pkix_asn1_tab.c
-@WITH_GNUTLS_FALSE@am__append_76 = \
+@WITH_NETWORK_FALSE@am__append_60 = networkxml2conftest.c
+@WITH_STORAGE_SHEEPDOG_FALSE@am__append_61 = storagebackendsheepdogtest.c
+@WITH_STORAGE_FALSE@am__append_62 = storagevolxml2argvtest.c
+@WITH_QEMU_TRUE@am__append_63 = testutilsqemu.c testutilsqemu.h
+@WITH_QEMU_TRUE@am__append_64 = libqemumonitortestutils.la $(qemu_LDADDS) $(GNULIB_LIBS)
+@WITH_LXC_TRUE@am__append_65 = testutilslxc.c testutilslxc.h
+@WITH_QEMU_TRUE@am__append_66 = testutilsqemu.c testutilsqemu.h
+@WITH_XEN_TRUE@am__append_67 = testutilsxen.c testutilsxen.h
+@WITH_QEMU_TRUE@am__append_68 = testutilsqemu.c testutilsqemu.h
+@WITH_QEMU_TRUE@am__append_69 = $(qemu_LDADDS) $(GNULIB_LIBS)
+@WITH_LIBXL_TRUE@am__append_70 = testutilsxen.c testutilsxen.h
+@WITH_LIBXL_TRUE@am__append_71 = ../src/libvirt_driver_libxl_impl.la $(GNULIB_LIBS)
+@HAVE_LIBTASN1_TRUE@@WITH_GNUTLS_TRUE@am__append_72 = pkix_asn1_tab.c
+@HAVE_LIBTASN1_TRUE@@WITH_GNUTLS_TRUE@am__append_73 = -ltasn1
+@HAVE_LIBTASN1_TRUE@@WITH_GNUTLS_TRUE@am__append_74 = pkix_asn1_tab.c
+@HAVE_LIBTASN1_TRUE@@WITH_GNUTLS_TRUE@am__append_75 = -ltasn1
+@HAVE_LIBTASN1_FALSE@@WITH_GNUTLS_TRUE@am__append_76 = pkix_asn1_tab.c
+@WITH_GNUTLS_FALSE@am__append_77 = \
 @WITH_GNUTLS_FALSE@	virnettlscontexttest.c virnettlssessiontest.c \
 @WITH_GNUTLS_FALSE@	virnettlshelpers.h virnettlshelpers.c \
 @WITH_GNUTLS_FALSE@	testutils.h testutils.c pkix_asn1_tab.c
 
-@WITH_SELINUX_TRUE@am__append_77 = $(SELINUX_LIBS)
+@WITH_SELINUX_TRUE@am__append_78 = $(SELINUX_LIBS)
 @WITH_SELINUX_FALSE@viridentitytest_DEPENDENCIES =  \
 @WITH_SELINUX_FALSE@	$(am__DEPENDENCIES_2) \
 @WITH_SELINUX_FALSE@	$(am__DEPENDENCIES_6)
-@WITH_DBUS_FALSE@am__append_78 = virdbustest.c virdbusmock.c virsystemdtest.c
-@WITH_ATTR_TRUE@@WITH_SECDRIVER_SELINUX_TRUE@@WITH_TESTS_TRUE@am__append_79 = libsecurityselinuxhelper.la
-@WITH_ATTR_TRUE@@WITH_SECDRIVER_SELINUX_TRUE@@WITH_TESTS_FALSE@am__append_80 = libsecurityselinuxhelper.la
-@WITH_LINUX_FALSE@am__append_81 = fchosttest.c scsihosttest.c \
+@WITH_NSS_FALSE@am__append_79 = nsstest.c nssmock.c nsslinktest.c
+@WITH_YAJL_TRUE@am__append_80 = virmacmapmock.la
+@WITH_YAJL_TRUE@am__append_81 = virmacmaptest
+@WITH_YAJL_FALSE@am__append_82 = virmacmapmock.c virmacmaptest.c
+@WITH_DBUS_FALSE@am__append_83 = virdbustest.c virdbusmock.c virsystemdtest.c
+@WITH_ATTR_TRUE@@WITH_SECDRIVER_SELINUX_TRUE@@WITH_TESTS_TRUE@am__append_84 = libsecurityselinuxhelper.la
+@WITH_ATTR_TRUE@@WITH_SECDRIVER_SELINUX_TRUE@@WITH_TESTS_FALSE@am__append_85 = libsecurityselinuxhelper.la
+@WITH_LINUX_FALSE@am__append_86 = fchosttest.c scsihosttest.c \
 @WITH_LINUX_FALSE@	virscsitest.c
-@WITH_CIL_FALSE@am__append_82 = objectlocking.ml
+@WITH_CIL_FALSE@am__append_87 = objectlocking.ml
 subdir = tests
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
@@ -246,11 +249,11 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/arpa_inet_h.m4 \
 	$(top_srcdir)/m4/asm-underscore.m4 \
 	$(top_srcdir)/m4/autobuild.m4 $(top_srcdir)/m4/base64.m4 \
-	$(top_srcdir)/m4/btowc.m4 $(top_srcdir)/m4/byteswap.m4 \
-	$(top_srcdir)/m4/calloc.m4 $(top_srcdir)/m4/canonicalize.m4 \
-	$(top_srcdir)/m4/chown.m4 $(top_srcdir)/m4/clock_time.m4 \
-	$(top_srcdir)/m4/close.m4 $(top_srcdir)/m4/codeset.m4 \
-	$(top_srcdir)/m4/configmake.m4 \
+	$(top_srcdir)/m4/btowc.m4 $(top_srcdir)/m4/builtin-expect.m4 \
+	$(top_srcdir)/m4/byteswap.m4 $(top_srcdir)/m4/calloc.m4 \
+	$(top_srcdir)/m4/canonicalize.m4 $(top_srcdir)/m4/chown.m4 \
+	$(top_srcdir)/m4/clock_time.m4 $(top_srcdir)/m4/close.m4 \
+	$(top_srcdir)/m4/codeset.m4 $(top_srcdir)/m4/configmake.m4 \
 	$(top_srcdir)/m4/count-leading-zeros.m4 \
 	$(top_srcdir)/m4/count-one-bits.m4 $(top_srcdir)/m4/ctype.m4 \
 	$(top_srcdir)/m4/dirname.m4 \
@@ -289,30 +292,31 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/intlmacosx.m4 $(top_srcdir)/m4/intmax_t.m4 \
 	$(top_srcdir)/m4/inttypes-pri.m4 $(top_srcdir)/m4/inttypes.m4 \
 	$(top_srcdir)/m4/inttypes_h.m4 $(top_srcdir)/m4/ioctl.m4 \
-	$(top_srcdir)/m4/isatty.m4 $(top_srcdir)/m4/isnand.m4 \
-	$(top_srcdir)/m4/isnanf.m4 $(top_srcdir)/m4/isnanl.m4 \
-	$(top_srcdir)/m4/langinfo_h.m4 $(top_srcdir)/m4/largefile.m4 \
-	$(top_srcdir)/m4/lcmessage.m4 $(top_srcdir)/m4/ldexp.m4 \
-	$(top_srcdir)/m4/lib-ld.m4 $(top_srcdir)/m4/lib-link.m4 \
-	$(top_srcdir)/m4/lib-prefix.m4 $(top_srcdir)/m4/libtool.m4 \
-	$(top_srcdir)/m4/limits-h.m4 $(top_srcdir)/m4/localcharset.m4 \
-	$(top_srcdir)/m4/locale-fr.m4 $(top_srcdir)/m4/locale-ja.m4 \
-	$(top_srcdir)/m4/locale-tr.m4 $(top_srcdir)/m4/locale-zh.m4 \
-	$(top_srcdir)/m4/locale_h.m4 $(top_srcdir)/m4/localeconv.m4 \
-	$(top_srcdir)/m4/localename.m4 $(top_srcdir)/m4/lock.m4 \
-	$(top_srcdir)/m4/longlong.m4 $(top_srcdir)/m4/lseek.m4 \
-	$(top_srcdir)/m4/lstat.m4 $(top_srcdir)/m4/ltoptions.m4 \
-	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
-	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/m4/malloc.m4 \
-	$(top_srcdir)/m4/malloca.m4 $(top_srcdir)/m4/manywarnings.m4 \
-	$(top_srcdir)/m4/math_h.m4 $(top_srcdir)/m4/mbrtowc.m4 \
-	$(top_srcdir)/m4/mbsinit.m4 $(top_srcdir)/m4/mbsrtowcs.m4 \
-	$(top_srcdir)/m4/mbstate_t.m4 $(top_srcdir)/m4/mbtowc.m4 \
-	$(top_srcdir)/m4/md5.m4 $(top_srcdir)/m4/memchr.m4 \
-	$(top_srcdir)/m4/mgetgroups.m4 $(top_srcdir)/m4/mkdtemp.m4 \
-	$(top_srcdir)/m4/mkostemp.m4 $(top_srcdir)/m4/mkostemps.m4 \
-	$(top_srcdir)/m4/mktime.m4 $(top_srcdir)/m4/mmap-anon.m4 \
-	$(top_srcdir)/m4/mode_t.m4 $(top_srcdir)/m4/msvc-inval.m4 \
+	$(top_srcdir)/m4/isatty.m4 $(top_srcdir)/m4/isblank.m4 \
+	$(top_srcdir)/m4/isnand.m4 $(top_srcdir)/m4/isnanf.m4 \
+	$(top_srcdir)/m4/isnanl.m4 $(top_srcdir)/m4/langinfo_h.m4 \
+	$(top_srcdir)/m4/largefile.m4 $(top_srcdir)/m4/lcmessage.m4 \
+	$(top_srcdir)/m4/ldexp.m4 $(top_srcdir)/m4/lib-ld.m4 \
+	$(top_srcdir)/m4/lib-link.m4 $(top_srcdir)/m4/lib-prefix.m4 \
+	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/limits-h.m4 \
+	$(top_srcdir)/m4/localcharset.m4 $(top_srcdir)/m4/locale-fr.m4 \
+	$(top_srcdir)/m4/locale-ja.m4 $(top_srcdir)/m4/locale-tr.m4 \
+	$(top_srcdir)/m4/locale-zh.m4 $(top_srcdir)/m4/locale_h.m4 \
+	$(top_srcdir)/m4/localeconv.m4 $(top_srcdir)/m4/localename.m4 \
+	$(top_srcdir)/m4/lock.m4 $(top_srcdir)/m4/longlong.m4 \
+	$(top_srcdir)/m4/lseek.m4 $(top_srcdir)/m4/lstat.m4 \
+	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
+	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
+	$(top_srcdir)/m4/malloc.m4 $(top_srcdir)/m4/malloca.m4 \
+	$(top_srcdir)/m4/manywarnings.m4 $(top_srcdir)/m4/math_h.m4 \
+	$(top_srcdir)/m4/mbrtowc.m4 $(top_srcdir)/m4/mbsinit.m4 \
+	$(top_srcdir)/m4/mbsrtowcs.m4 $(top_srcdir)/m4/mbstate_t.m4 \
+	$(top_srcdir)/m4/mbtowc.m4 $(top_srcdir)/m4/md5.m4 \
+	$(top_srcdir)/m4/memchr.m4 $(top_srcdir)/m4/mgetgroups.m4 \
+	$(top_srcdir)/m4/mkdtemp.m4 $(top_srcdir)/m4/mkostemp.m4 \
+	$(top_srcdir)/m4/mkostemps.m4 $(top_srcdir)/m4/mktime.m4 \
+	$(top_srcdir)/m4/mmap-anon.m4 $(top_srcdir)/m4/mode_t.m4 \
+	$(top_srcdir)/m4/msvc-inval.m4 \
 	$(top_srcdir)/m4/msvc-nothrow.m4 $(top_srcdir)/m4/multiarch.m4 \
 	$(top_srcdir)/m4/nanosleep.m4 $(top_srcdir)/m4/net_if_h.m4 \
 	$(top_srcdir)/m4/netdb_h.m4 $(top_srcdir)/m4/netinet_in_h.m4 \
@@ -328,6 +332,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/posix_openpt.m4 \
 	$(top_srcdir)/m4/posix_spawn.m4 $(top_srcdir)/m4/printf.m4 \
 	$(top_srcdir)/m4/progtest.m4 $(top_srcdir)/m4/pthread.m4 \
+	$(top_srcdir)/m4/pthread_rwlock_rdlock.m4 \
 	$(top_srcdir)/m4/pthread_sigmask.m4 \
 	$(top_srcdir)/m4/ptsname.m4 $(top_srcdir)/m4/ptsname_r.m4 \
 	$(top_srcdir)/m4/pty.m4 $(top_srcdir)/m4/pty_h.m4 \
@@ -373,34 +378,93 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/unistd_h.m4 $(top_srcdir)/m4/unlockpt.m4 \
 	$(top_srcdir)/m4/usleep.m4 $(top_srcdir)/m4/vasnprintf.m4 \
 	$(top_srcdir)/m4/vasprintf.m4 \
-	$(top_srcdir)/m4/virt-apparmor.m4 \
-	$(top_srcdir)/m4/virt-attr.m4 $(top_srcdir)/m4/virt-audit.m4 \
-	$(top_srcdir)/m4/virt-avahi.m4 $(top_srcdir)/m4/virt-blkid.m4 \
-	$(top_srcdir)/m4/virt-capng.m4 \
+	$(top_srcdir)/m4/virt-apparmor.m4 $(top_srcdir)/m4/virt-arg.m4 \
+	$(top_srcdir)/m4/virt-atomic.m4 $(top_srcdir)/m4/virt-attr.m4 \
+	$(top_srcdir)/m4/virt-audit.m4 $(top_srcdir)/m4/virt-avahi.m4 \
+	$(top_srcdir)/m4/virt-blkid.m4 $(top_srcdir)/m4/virt-capng.m4 \
+	$(top_srcdir)/m4/virt-chrdev-lock-files.m4 \
 	$(top_srcdir)/m4/virt-compile-pie.m4 \
 	$(top_srcdir)/m4/virt-compile-warnings.m4 \
 	$(top_srcdir)/m4/virt-curl.m4 $(top_srcdir)/m4/virt-dbus.m4 \
+	$(top_srcdir)/m4/virt-debug.m4 \
+	$(top_srcdir)/m4/virt-default-editor.m4 \
+	$(top_srcdir)/m4/virt-devmapper.m4 \
+	$(top_srcdir)/m4/virt-dlopen.m4 \
 	$(top_srcdir)/m4/virt-driver-bhyve.m4 \
+	$(top_srcdir)/m4/virt-driver-esx.m4 \
+	$(top_srcdir)/m4/virt-driver-hyperv.m4 \
+	$(top_srcdir)/m4/virt-driver-interface.m4 \
+	$(top_srcdir)/m4/virt-driver-libvirtd.m4 \
+	$(top_srcdir)/m4/virt-driver-libxl.m4 \
+	$(top_srcdir)/m4/virt-driver-lxc.m4 \
+	$(top_srcdir)/m4/virt-driver-modules.m4 \
+	$(top_srcdir)/m4/virt-driver-network.m4 \
+	$(top_srcdir)/m4/virt-driver-openvz.m4 \
+	$(top_srcdir)/m4/virt-driver-phyp.m4 \
+	$(top_srcdir)/m4/virt-driver-qemu.m4 \
+	$(top_srcdir)/m4/virt-driver-remote.m4 \
+	$(top_srcdir)/m4/virt-driver-test.m4 \
 	$(top_srcdir)/m4/virt-driver-uml.m4 \
+	$(top_srcdir)/m4/virt-driver-vbox.m4 \
+	$(top_srcdir)/m4/virt-driver-vmware.m4 \
 	$(top_srcdir)/m4/virt-driver-vz.m4 \
+	$(top_srcdir)/m4/virt-driver-xen.m4 \
+	$(top_srcdir)/m4/virt-driver-xenapi.m4 \
+	$(top_srcdir)/m4/virt-dtrace.m4 \
+	$(top_srcdir)/m4/virt-external-programs.m4 \
+	$(top_srcdir)/m4/virt-firewalld.m4 \
 	$(top_srcdir)/m4/virt-fuse.m4 $(top_srcdir)/m4/virt-gluster.m4 \
 	$(top_srcdir)/m4/virt-gnutls.m4 $(top_srcdir)/m4/virt-hal.m4 \
 	$(top_srcdir)/m4/virt-host-validate.m4 \
 	$(top_srcdir)/m4/virt-init-script.m4 \
-	$(top_srcdir)/m4/virt-lib.m4 $(top_srcdir)/m4/virt-libssh.m4 \
+	$(top_srcdir)/m4/virt-lib.m4 $(top_srcdir)/m4/virt-libnl.m4 \
+	$(top_srcdir)/m4/virt-libpcap.m4 \
+	$(top_srcdir)/m4/virt-libssh.m4 \
+	$(top_srcdir)/m4/virt-libxml.m4 \
 	$(top_srcdir)/m4/virt-linker-no-indirect.m4 \
 	$(top_srcdir)/m4/virt-linker-relro.m4 \
+	$(top_srcdir)/m4/virt-loader-nvram.m4 \
 	$(top_srcdir)/m4/virt-login-shell.m4 \
+	$(top_srcdir)/m4/virt-macvtap.m4 \
 	$(top_srcdir)/m4/virt-netcf.m4 $(top_srcdir)/m4/virt-nss.m4 \
 	$(top_srcdir)/m4/virt-numactl.m4 \
+	$(top_srcdir)/m4/virt-numad.m4 \
+	$(top_srcdir)/m4/virt-nwfilter.m4 \
 	$(top_srcdir)/m4/virt-openwsman.m4 \
+	$(top_srcdir)/m4/virt-parted.m4 \
 	$(top_srcdir)/m4/virt-pciaccess.m4 \
+	$(top_srcdir)/m4/virt-pm-utils.m4 \
+	$(top_srcdir)/m4/virt-polkit.m4 \
+	$(top_srcdir)/m4/virt-pthread.m4 \
 	$(top_srcdir)/m4/virt-readline.m4 \
 	$(top_srcdir)/m4/virt-result.m4 \
 	$(top_srcdir)/m4/virt-sanlock.m4 $(top_srcdir)/m4/virt-sasl.m4 \
+	$(top_srcdir)/m4/virt-secdriver-apparmor.m4 \
+	$(top_srcdir)/m4/virt-secdriver-selinux.m4 \
 	$(top_srcdir)/m4/virt-selinux.m4 $(top_srcdir)/m4/virt-ssh2.m4 \
+	$(top_srcdir)/m4/virt-storage-dir.m4 \
+	$(top_srcdir)/m4/virt-storage-disk.m4 \
+	$(top_srcdir)/m4/virt-storage-fs.m4 \
+	$(top_srcdir)/m4/virt-storage-gluster.m4 \
+	$(top_srcdir)/m4/virt-storage-iscsi.m4 \
+	$(top_srcdir)/m4/virt-storage-lvm.m4 \
+	$(top_srcdir)/m4/virt-storage-mpath.m4 \
+	$(top_srcdir)/m4/virt-storage-rbd.m4 \
+	$(top_srcdir)/m4/virt-storage-scsi.m4 \
+	$(top_srcdir)/m4/virt-storage-sheepdog.m4 \
+	$(top_srcdir)/m4/virt-storage-zfs.m4 \
+	$(top_srcdir)/m4/virt-sysctl.m4 \
+	$(top_srcdir)/m4/virt-tls-priority.m4 \
 	$(top_srcdir)/m4/virt-udev.m4 \
+	$(top_srcdir)/m4/virt-virtualport.m4 \
+	$(top_srcdir)/m4/virt-win-common.m4 \
+	$(top_srcdir)/m4/virt-win-cygwin.m4 \
+	$(top_srcdir)/m4/virt-win-mingw.m4 \
+	$(top_srcdir)/m4/virt-win-symbols.m4 \
+	$(top_srcdir)/m4/virt-win-windres.m4 \
 	$(top_srcdir)/m4/virt-wireshark.m4 \
+	$(top_srcdir)/m4/virt-xdr.m4 \
+	$(top_srcdir)/m4/virt-xml-catalog.m4 \
 	$(top_srcdir)/m4/virt-yajl.m4 $(top_srcdir)/m4/vsnprintf.m4 \
 	$(top_srcdir)/m4/wait-process.m4 $(top_srcdir)/m4/waitpid.m4 \
 	$(top_srcdir)/m4/warnings.m4 $(top_srcdir)/m4/wchar_h.m4 \
@@ -492,14 +556,15 @@ libshunload_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$@
 @WITH_TESTS_FALSE@am_libshunload_la_rpath =
 @WITH_TESTS_TRUE@am_libshunload_la_rpath =
-nssmock_la_DEPENDENCIES = $(MOCKLIBS_LIBS)
-am_nssmock_la_OBJECTS = nssmock_la-nssmock.lo
+@WITH_NSS_TRUE@nssmock_la_DEPENDENCIES = $(MOCKLIBS_LIBS)
+am__nssmock_la_SOURCES_DIST = nssmock.c
+@WITH_NSS_TRUE@am_nssmock_la_OBJECTS = nssmock_la-nssmock.lo
 nssmock_la_OBJECTS = $(am_nssmock_la_OBJECTS)
 nssmock_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(nssmock_la_CFLAGS) \
 	$(CFLAGS) $(nssmock_la_LDFLAGS) $(LDFLAGS) -o $@
-@WITH_TESTS_FALSE@am_nssmock_la_rpath =
-@WITH_TESTS_TRUE@am_nssmock_la_rpath =
+@WITH_NSS_TRUE@@WITH_TESTS_FALSE@am_nssmock_la_rpath =
+@WITH_NSS_TRUE@@WITH_TESTS_TRUE@am_nssmock_la_rpath =
 @WITH_QEMU_TRUE@qemucaps2xmlmock_la_DEPENDENCIES = $(MOCKLIBS_LIBS)
 am__qemucaps2xmlmock_la_SOURCES_DIST = qemucaps2xmlmock.c
 @WITH_QEMU_TRUE@am_qemucaps2xmlmock_la_OBJECTS =  \
@@ -562,6 +627,17 @@ virhostcpumock_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(virhostcpumock_la_LDFLAGS) $(LDFLAGS) -o $@
 @WITH_TESTS_FALSE@am_virhostcpumock_la_rpath =
 @WITH_TESTS_TRUE@am_virhostcpumock_la_rpath =
+@WITH_YAJL_TRUE@virmacmapmock_la_DEPENDENCIES = $(MOCKLIBS_LIBS)
+am__virmacmapmock_la_SOURCES_DIST = virmacmapmock.c
+@WITH_YAJL_TRUE@am_virmacmapmock_la_OBJECTS =  \
+@WITH_YAJL_TRUE@	virmacmapmock_la-virmacmapmock.lo
+virmacmapmock_la_OBJECTS = $(am_virmacmapmock_la_OBJECTS)
+virmacmapmock_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(virmacmapmock_la_CFLAGS) $(CFLAGS) \
+	$(virmacmapmock_la_LDFLAGS) $(LDFLAGS) -o $@
+@WITH_TESTS_FALSE@@WITH_YAJL_TRUE@am_virmacmapmock_la_rpath =
+@WITH_TESTS_TRUE@@WITH_YAJL_TRUE@am_virmacmapmock_la_rpath =
 virnetdaemonmock_la_DEPENDENCIES = $(MOCKLIBS_LIBS)
 am_virnetdaemonmock_la_OBJECTS =  \
 	virnetdaemonmock_la-virnetdaemonmock.lo
@@ -708,11 +784,12 @@ virusbmock_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 @WITH_STORAGE_TRUE@am__EXEEXT_25 = storagevolxml2argvtest$(EXEEXT)
 @WITH_STORAGE_FS_TRUE@am__EXEEXT_26 = virstoragetest$(EXEEXT)
 @WITH_LINUX_TRUE@am__EXEEXT_27 = virscsitest$(EXEEXT)
-@WITH_NSS_TRUE@am__EXEEXT_28 = nsstest$(EXEEXT)
+@WITH_NSS_TRUE@am__EXEEXT_28 = nsstest$(EXEEXT) nssguesttest$(EXEEXT)
 @WITH_LINUX_TRUE@am__EXEEXT_29 = virusbtest$(EXEEXT) \
 @WITH_LINUX_TRUE@	virnetdevbandwidthtest$(EXEEXT)
 @WITH_LIBVIRTD_TRUE@am__EXEEXT_30 = eventtest$(EXEEXT)
-am__EXEEXT_31 = virshtest$(EXEEXT) sockettest$(EXEEXT) \
+@WITH_YAJL_TRUE@am__EXEEXT_31 = virmacmaptest$(EXEEXT)
+am__EXEEXT_32 = virshtest$(EXEEXT) sockettest$(EXEEXT) \
 	virhostcputest$(EXEEXT) virbuftest$(EXEEXT) \
 	commandtest$(EXEEXT) seclabeltest$(EXEEXT) \
 	virhashtest$(EXEEXT) virconftest$(EXEEXT) \
@@ -746,11 +823,13 @@ am__EXEEXT_31 = virshtest$(EXEEXT) sockettest$(EXEEXT) \
 	nodedevxml2xmltest$(EXEEXT) interfacexml2xmltest$(EXEEXT) \
 	cputest$(EXEEXT) metadatatest$(EXEEXT) \
 	secretxml2xmltest$(EXEEXT) genericxml2xmltest$(EXEEXT) \
-	$(am__EXEEXT_29) $(am__EXEEXT_30) objecteventtest$(EXEEXT)
-@WITH_QEMU_TRUE@am__EXEEXT_32 = qemucapsprobe$(EXEEXT)
-@WITH_NSS_TRUE@am__EXEEXT_33 = nsslinktest$(EXEEXT)
-am__EXEEXT_34 = commandhelper$(EXEEXT) ssh$(EXEEXT) $(am__EXEEXT_32) \
-	$(am__EXEEXT_33)
+	$(am__EXEEXT_29) $(am__EXEEXT_30) objecteventtest$(EXEEXT) \
+	$(am__EXEEXT_31)
+@WITH_QEMU_TRUE@am__EXEEXT_33 = qemucapsprobe$(EXEEXT)
+@WITH_NSS_TRUE@am__EXEEXT_34 = nsslinktest$(EXEEXT) \
+@WITH_NSS_TRUE@	nssguestlinktest$(EXEEXT)
+am__EXEEXT_35 = commandhelper$(EXEEXT) ssh$(EXEEXT) $(am__EXEEXT_33) \
+	$(am__EXEEXT_34)
 PROGRAMS = $(noinst_PROGRAMS)
 am__bhyveargv2xmltest_SOURCES_DIST = bhyveargv2xmltest.c testutils.c \
 	testutils.h
@@ -763,7 +842,7 @@ am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(PROBES_O) $(GNULIB_LIBS) ../src/libvirt.la
 @WITH_BHYVE_TRUE@am__DEPENDENCIES_3 =  \
 @WITH_BHYVE_TRUE@	../src/libvirt_driver_bhyve_impl.la \
-@WITH_BHYVE_TRUE@	$(am__append_57) $(am__DEPENDENCIES_2)
+@WITH_BHYVE_TRUE@	$(am__append_58) $(am__DEPENDENCIES_2)
 @WITH_BHYVE_TRUE@bhyveargv2xmltest_DEPENDENCIES =  \
 @WITH_BHYVE_TRUE@	$(am__DEPENDENCIES_3)
 am__bhyvexml2argvtest_SOURCES_DIST = bhyvexml2argvtest.c testutils.c \
@@ -800,7 +879,7 @@ am_cputest_OBJECTS = cputest.$(OBJEXT) testutils.$(OBJEXT) \
 	$(am__objects_2)
 cputest_OBJECTS = $(am_cputest_OBJECTS)
 cputest_DEPENDENCIES = $(am__DEPENDENCIES_2) $(am__DEPENDENCIES_1) \
-	$(am__append_63)
+	$(am__append_64)
 am__domaincapstest_SOURCES_DIST = domaincapstest.c testutils.h \
 	testutils.c testutilsqemu.c testutilsqemu.h testutilsxen.c \
 	testutilsxen.h
@@ -808,8 +887,8 @@ am__domaincapstest_SOURCES_DIST = domaincapstest.c testutils.h \
 am_domaincapstest_OBJECTS = domaincapstest.$(OBJEXT) \
 	testutils.$(OBJEXT) $(am__objects_2) $(am__objects_3)
 domaincapstest_OBJECTS = $(am_domaincapstest_OBJECTS)
-domaincapstest_DEPENDENCIES = $(am__DEPENDENCIES_2) $(am__append_68) \
-	$(am__append_70)
+domaincapstest_DEPENDENCIES = $(am__DEPENDENCIES_2) $(am__append_69) \
+	$(am__append_71)
 am_domainconftest_OBJECTS = domainconftest.$(OBJEXT) \
 	testutils.$(OBJEXT)
 domainconftest_OBJECTS = $(am_domainconftest_OBJECTS)
@@ -860,7 +939,7 @@ am__lxcconf2xmltest_SOURCES_DIST = lxcconf2xmltest.c testutilslxc.c \
 @WITH_LXC_TRUE@	testutilslxc.$(OBJEXT) testutils.$(OBJEXT)
 lxcconf2xmltest_OBJECTS = $(am_lxcconf2xmltest_OBJECTS)
 @WITH_LXC_TRUE@am__DEPENDENCIES_4 = ../src/libvirt_driver_lxc_impl.la \
-@WITH_LXC_TRUE@	$(am__append_50) $(am__DEPENDENCIES_2)
+@WITH_LXC_TRUE@	$(am__append_51) $(am__DEPENDENCIES_2)
 @WITH_LXC_TRUE@lxcconf2xmltest_DEPENDENCIES = $(am__DEPENDENCIES_4)
 am__lxcxml2xmltest_SOURCES_DIST = lxcxml2xmltest.c testutilslxc.c \
 	testutilslxc.h testutils.c testutils.h
@@ -904,17 +983,41 @@ am_nodedevxml2xmltest_OBJECTS = nodedevxml2xmltest.$(OBJEXT) \
 	testutils.$(OBJEXT)
 nodedevxml2xmltest_OBJECTS = $(am_nodedevxml2xmltest_OBJECTS)
 nodedevxml2xmltest_DEPENDENCIES = $(am__DEPENDENCIES_2)
-am_nsslinktest_OBJECTS = nsslinktest-nsslinktest.$(OBJEXT)
+am__nssguestlinktest_SOURCES_DIST = nsslinktest.c
+@WITH_NSS_TRUE@am_nssguestlinktest_OBJECTS =  \
+@WITH_NSS_TRUE@	nssguestlinktest-nsslinktest.$(OBJEXT)
+nssguestlinktest_OBJECTS = $(am_nssguestlinktest_OBJECTS)
+@WITH_NSS_TRUE@nssguestlinktest_DEPENDENCIES =  \
+@WITH_NSS_TRUE@	../tools/nss/libnss_libvirt_guest_impl.la
+nssguestlinktest_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(nssguestlinktest_CFLAGS) $(CFLAGS) \
+	$(nssguestlinktest_LDFLAGS) $(LDFLAGS) -o $@
+am__nssguesttest_SOURCES_DIST = nsstest.c testutils.h testutils.c
+@WITH_NSS_TRUE@am_nssguesttest_OBJECTS =  \
+@WITH_NSS_TRUE@	nssguesttest-nsstest.$(OBJEXT) \
+@WITH_NSS_TRUE@	nssguesttest-testutils.$(OBJEXT)
+nssguesttest_OBJECTS = $(am_nssguesttest_OBJECTS)
+@WITH_NSS_TRUE@nssguesttest_DEPENDENCIES = $(am__DEPENDENCIES_2) \
+@WITH_NSS_TRUE@	../tools/nss/libnss_libvirt_guest_impl.la
+nssguesttest_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(nssguesttest_CFLAGS) \
+	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+am__nsslinktest_SOURCES_DIST = nsslinktest.c
+@WITH_NSS_TRUE@am_nsslinktest_OBJECTS =  \
+@WITH_NSS_TRUE@	nsslinktest-nsslinktest.$(OBJEXT)
 nsslinktest_OBJECTS = $(am_nsslinktest_OBJECTS)
-nsslinktest_DEPENDENCIES = ../tools/nss/libnss_libvirt_impl.la
+@WITH_NSS_TRUE@nsslinktest_DEPENDENCIES =  \
+@WITH_NSS_TRUE@	../tools/nss/libnss_libvirt_impl.la
 nsslinktest_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(nsslinktest_CFLAGS) \
 	$(CFLAGS) $(nsslinktest_LDFLAGS) $(LDFLAGS) -o $@
-am_nsstest_OBJECTS = nsstest-nsstest.$(OBJEXT) \
-	nsstest-testutils.$(OBJEXT)
+am__nsstest_SOURCES_DIST = nsstest.c testutils.h testutils.c
+@WITH_NSS_TRUE@am_nsstest_OBJECTS = nsstest-nsstest.$(OBJEXT) \
+@WITH_NSS_TRUE@	nsstest-testutils.$(OBJEXT)
 nsstest_OBJECTS = $(am_nsstest_OBJECTS)
-nsstest_DEPENDENCIES = $(am__DEPENDENCIES_2) \
-	../tools/nss/libnss_libvirt_impl.la
+@WITH_NSS_TRUE@nsstest_DEPENDENCIES = $(am__DEPENDENCIES_2) \
+@WITH_NSS_TRUE@	../tools/nss/libnss_libvirt_impl.la
 nsstest_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(nsstest_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -1241,6 +1344,12 @@ virlockspacetest_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_virlogtest_OBJECTS = virlogtest.$(OBJEXT) testutils.$(OBJEXT)
 virlogtest_OBJECTS = $(am_virlogtest_OBJECTS)
 virlogtest_DEPENDENCIES = $(am__DEPENDENCIES_2)
+am__virmacmaptest_SOURCES_DIST = virmacmaptest.c testutils.h \
+	testutils.c
+@WITH_YAJL_TRUE@am_virmacmaptest_OBJECTS = virmacmaptest.$(OBJEXT) \
+@WITH_YAJL_TRUE@	testutils.$(OBJEXT)
+virmacmaptest_OBJECTS = $(am_virmacmaptest_OBJECTS)
+@WITH_YAJL_TRUE@virmacmaptest_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_virnetdaemontest_OBJECTS =  \
 	virnetdaemontest-virnetdaemontest.$(OBJEXT) \
 	virnetdaemontest-testutils.$(OBJEXT)
@@ -1409,7 +1518,7 @@ am__xlconfigtest_SOURCES_DIST = xlconfigtest.c testutilsxen.c \
 xlconfigtest_OBJECTS = $(am_xlconfigtest_OBJECTS)
 @WITH_LIBXL_TRUE@am__DEPENDENCIES_7 =  \
 @WITH_LIBXL_TRUE@	../src/libvirt_driver_libxl_impl.la \
-@WITH_LIBXL_TRUE@	$(am__append_44) $(am__DEPENDENCIES_2)
+@WITH_LIBXL_TRUE@	$(am__append_45) $(am__DEPENDENCIES_2)
 @WITH_LIBXL_TRUE@xlconfigtest_DEPENDENCIES = $(am__DEPENDENCIES_7)
 am__xmconfigtest_SOURCES_DIST = xmconfigtest.c testutilsxen.c \
 	testutilsxen.h testutils.c testutils.h
@@ -1471,7 +1580,7 @@ SOURCES = $(bhyveargv2xmlmock_la_SOURCES) \
 	$(qemucaps2xmlmock_la_SOURCES) $(qemucapsprobemock_la_SOURCES) \
 	$(qemuxml2argvmock_la_SOURCES) $(vircgroupmock_la_SOURCES) \
 	$(virdbusmock_la_SOURCES) $(virhostcpumock_la_SOURCES) \
-	$(virnetdaemonmock_la_SOURCES) \
+	$(virmacmapmock_la_SOURCES) $(virnetdaemonmock_la_SOURCES) \
 	$(virnetdevbandwidthmock_la_SOURCES) \
 	$(virnetdevmock_la_SOURCES) \
 	$(virnetserverclientmock_la_SOURCES) $(virpcimock_la_SOURCES) \
@@ -1490,7 +1599,8 @@ SOURCES = $(bhyveargv2xmlmock_la_SOURCES) \
 	$(networkxml2firewalltest_SOURCES) \
 	$(networkxml2xmltest_SOURCES) \
 	$(networkxml2xmlupdatetest_SOURCES) \
-	$(nodedevxml2xmltest_SOURCES) $(nsslinktest_SOURCES) \
+	$(nodedevxml2xmltest_SOURCES) $(nssguestlinktest_SOURCES) \
+	$(nssguesttest_SOURCES) $(nsslinktest_SOURCES) \
 	$(nsstest_SOURCES) $(nwfilterebiptablestest_SOURCES) \
 	$(nwfilterxml2firewalltest_SOURCES) \
 	$(nwfilterxml2xmltest_SOURCES) $(objecteventtest_SOURCES) \
@@ -1523,10 +1633,11 @@ SOURCES = $(bhyveargv2xmlmock_la_SOURCES) \
 	$(viridentitytest_SOURCES) $(viriscsitest_SOURCES) \
 	$(virkeycodetest_SOURCES) $(virkeyfiletest_SOURCES) \
 	$(virkmodtest_SOURCES) $(virlockspacetest_SOURCES) \
-	$(virlogtest_SOURCES) $(virnetdaemontest_SOURCES) \
-	$(virnetdevbandwidthtest_SOURCES) $(virnetdevtest_SOURCES) \
-	$(virnetmessagetest_SOURCES) $(virnetserverclienttest_SOURCES) \
-	$(virnetsockettest_SOURCES) $(virnettlscontexttest_SOURCES) \
+	$(virlogtest_SOURCES) $(virmacmaptest_SOURCES) \
+	$(virnetdaemontest_SOURCES) $(virnetdevbandwidthtest_SOURCES) \
+	$(virnetdevtest_SOURCES) $(virnetmessagetest_SOURCES) \
+	$(virnetserverclienttest_SOURCES) $(virnetsockettest_SOURCES) \
+	$(virnettlscontexttest_SOURCES) \
 	$(virnettlssessiontest_SOURCES) $(virpcitest_SOURCES) \
 	$(virpolkittest_SOURCES) $(virportallocatortest_SOURCES) \
 	$(virrotatingfiletest_SOURCES) $(virschematest_SOURCES) \
@@ -1544,12 +1655,14 @@ DIST_SOURCES = $(am__bhyveargv2xmlmock_la_SOURCES_DIST) \
 	$(am__libqemumonitortestutils_la_SOURCES_DIST) \
 	$(libqemutestdriver_la_SOURCES) \
 	$(am__libsecurityselinuxhelper_la_SOURCES_DIST) \
-	$(libshunload_la_SOURCES) $(nssmock_la_SOURCES) \
+	$(libshunload_la_SOURCES) $(am__nssmock_la_SOURCES_DIST) \
 	$(am__qemucaps2xmlmock_la_SOURCES_DIST) \
 	$(am__qemucapsprobemock_la_SOURCES_DIST) \
 	$(am__qemuxml2argvmock_la_SOURCES_DIST) \
 	$(vircgroupmock_la_SOURCES) $(am__virdbusmock_la_SOURCES_DIST) \
-	$(virhostcpumock_la_SOURCES) $(virnetdaemonmock_la_SOURCES) \
+	$(virhostcpumock_la_SOURCES) \
+	$(am__virmacmapmock_la_SOURCES_DIST) \
+	$(virnetdaemonmock_la_SOURCES) \
 	$(am__virnetdevbandwidthmock_la_SOURCES_DIST) \
 	$(virnetdevmock_la_SOURCES) \
 	$(virnetserverclientmock_la_SOURCES) $(virpcimock_la_SOURCES) \
@@ -1571,8 +1684,11 @@ DIST_SOURCES = $(am__bhyveargv2xmlmock_la_SOURCES_DIST) \
 	$(am__networkxml2firewalltest_SOURCES_DIST) \
 	$(networkxml2xmltest_SOURCES) \
 	$(networkxml2xmlupdatetest_SOURCES) \
-	$(nodedevxml2xmltest_SOURCES) $(nsslinktest_SOURCES) \
-	$(nsstest_SOURCES) $(am__nwfilterebiptablestest_SOURCES_DIST) \
+	$(nodedevxml2xmltest_SOURCES) \
+	$(am__nssguestlinktest_SOURCES_DIST) \
+	$(am__nssguesttest_SOURCES_DIST) \
+	$(am__nsslinktest_SOURCES_DIST) $(am__nsstest_SOURCES_DIST) \
+	$(am__nwfilterebiptablestest_SOURCES_DIST) \
 	$(am__nwfilterxml2firewalltest_SOURCES_DIST) \
 	$(nwfilterxml2xmltest_SOURCES) $(objecteventtest_SOURCES) \
 	$(am__objectlocking_SOURCES_DIST) \
@@ -1613,7 +1729,8 @@ DIST_SOURCES = $(am__bhyveargv2xmlmock_la_SOURCES_DIST) \
 	$(viridentitytest_SOURCES) $(viriscsitest_SOURCES) \
 	$(virkeycodetest_SOURCES) $(virkeyfiletest_SOURCES) \
 	$(virkmodtest_SOURCES) $(virlockspacetest_SOURCES) \
-	$(virlogtest_SOURCES) $(virnetdaemontest_SOURCES) \
+	$(virlogtest_SOURCES) $(am__virmacmaptest_SOURCES_DIST) \
+	$(virnetdaemontest_SOURCES) \
 	$(am__virnetdevbandwidthtest_SOURCES_DIST) \
 	$(virnetdevtest_SOURCES) $(virnetmessagetest_SOURCES) \
 	$(virnetserverclienttest_SOURCES) $(virnetsockettest_SOURCES) \
@@ -1841,13 +1958,13 @@ am__set_TESTS_bases = \
   bases=`echo $$bases`
 RECHECK_LOGS = $(TEST_LOGS)
 AM_RECURSIVE_TARGETS = check recheck
-am__EXEEXT_35 = libvirtd-fail libvirtd-pool virsh-cpuset \
+am__EXEEXT_36 = libvirtd-fail libvirtd-pool virsh-cpuset \
 	virsh-define-dev-segfault virsh-int-overflow virsh-optparse \
 	virsh-read-bufsiz virsh-read-non-seekable virsh-schedinfo \
 	virsh-self-test virt-admin-self-test virsh-start \
 	virsh-undefine virsh-uriprecedence virsh-vcpupin
-@WITH_LIBVIRTD_TRUE@am__EXEEXT_36 = $(am__EXEEXT_35)
-am__EXEEXT_37 = $(am__EXEEXT_36) $(am__append_37)
+@WITH_LIBVIRTD_TRUE@am__EXEEXT_37 = $(am__EXEEXT_36)
+am__EXEEXT_38 = $(am__EXEEXT_37) $(am__append_42)
 TEST_SUITE_LOG = test-suite.log
 TEST_EXTENSIONS = @EXEEXT@ .test
 LOG_DRIVER = $(SHELL) $(top_srcdir)/build-aux/test-driver
@@ -1875,6 +1992,8 @@ am__DIST_COMMON = $(srcdir)/Makefile.in \
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 pkglibexecdir = @pkglibexecdir@
 ACLOCAL = @ACLOCAL@
+ACL_CFLAGS = @ACL_CFLAGS@
+ACL_LIBS = @ACL_LIBS@
 ADDR2LINE = @ADDR2LINE@
 ALLOCA = @ALLOCA@
 ALLOCA_H = @ALLOCA_H@
@@ -1934,8 +2053,8 @@ DLLTOOL = @DLLTOOL@
 DLOPEN_LIBS = @DLOPEN_LIBS@
 DMIDECODE = @DMIDECODE@
 DNSMASQ = @DNSMASQ@
-DRIVER_MODULE_LDFLAGS = @DRIVER_MODULE_LDFLAGS@
-DRIVER_MODULE_LIBS = @DRIVER_MODULE_LIBS@
+DRIVER_MODULES_LDFLAGS = @DRIVER_MODULES_LDFLAGS@
+DRIVER_MODULES_LIBS = @DRIVER_MODULES_LIBS@
 DSYMUTIL = @DSYMUTIL@
 DTRACE = @DTRACE@
 DUMPBIN = @DUMPBIN@
@@ -2178,6 +2297,7 @@ GNULIB_OBSTACK_PRINTF_POSIX = @GNULIB_OBSTACK_PRINTF_POSIX@
 GNULIB_OPEN = @GNULIB_OPEN@
 GNULIB_OPENAT = @GNULIB_OPENAT@
 GNULIB_OPENPTY = @GNULIB_OPENPTY@
+GNULIB_OVERRIDES_WINT_T = @GNULIB_OVERRIDES_WINT_T@
 GNULIB_PCLOSE = @GNULIB_PCLOSE@
 GNULIB_PERROR = @GNULIB_PERROR@
 GNULIB_PIPE = @GNULIB_PIPE@
@@ -2424,6 +2544,7 @@ HAVE_DECL_GETDELIM = @HAVE_DECL_GETDELIM@
 HAVE_DECL_GETDOMAINNAME = @HAVE_DECL_GETDOMAINNAME@
 HAVE_DECL_GETLINE = @HAVE_DECL_GETLINE@
 HAVE_DECL_GETLOADAVG = @HAVE_DECL_GETLOADAVG@
+HAVE_DECL_GETLOGIN = @HAVE_DECL_GETLOGIN@
 HAVE_DECL_GETLOGIN_R = @HAVE_DECL_GETLOGIN_R@
 HAVE_DECL_GETNAMEINFO = @HAVE_DECL_GETNAMEINFO@
 HAVE_DECL_GETPAGESIZE = @HAVE_DECL_GETPAGESIZE@
@@ -2790,8 +2911,6 @@ LIBVIRT_SYMBOL_FILE = @LIBVIRT_SYMBOL_FILE@
 LIBVIRT_VERSION = @LIBVIRT_VERSION@
 LIBVIRT_VERSION_INFO = @LIBVIRT_VERSION_INFO@
 LIBVIRT_VERSION_NUMBER = @LIBVIRT_VERSION_NUMBER@
-LIBXENSERVER_CFLAGS = @LIBXENSERVER_CFLAGS@
-LIBXENSERVER_LIBS = @LIBXENSERVER_LIBS@
 LIBXL_CFLAGS = @LIBXL_CFLAGS@
 LIBXL_LIBS = @LIBXL_LIBS@
 LIBXML_CFLAGS = @LIBXML_CFLAGS@
@@ -2837,7 +2956,6 @@ MKFS = @MKFS@
 MMCTL = @MMCTL@
 MODPROBE = @MODPROBE@
 MOUNT = @MOUNT@
-MSCOM_LIBS = @MSCOM_LIBS@
 MSGFMT = @MSGFMT@
 MSGFMT_015 = @MSGFMT_015@
 MSGMERGE = @MSGMERGE@
@@ -2986,6 +3104,10 @@ RANLIB = @RANLIB@
 READLINE_CFLAGS = @READLINE_CFLAGS@
 READLINE_LIBS = @READLINE_LIBS@
 RELRO_LDFLAGS = @RELRO_LDFLAGS@
+REPLACE_ACOSF = @REPLACE_ACOSF@
+REPLACE_ASINF = @REPLACE_ASINF@
+REPLACE_ATAN2F = @REPLACE_ATAN2F@
+REPLACE_ATANF = @REPLACE_ATANF@
 REPLACE_BTOWC = @REPLACE_BTOWC@
 REPLACE_CALLOC = @REPLACE_CALLOC@
 REPLACE_CANONICALIZE_FILE_NAME = @REPLACE_CANONICALIZE_FILE_NAME@
@@ -2996,12 +3118,15 @@ REPLACE_CEILF = @REPLACE_CEILF@
 REPLACE_CEILL = @REPLACE_CEILL@
 REPLACE_CHOWN = @REPLACE_CHOWN@
 REPLACE_CLOSE = @REPLACE_CLOSE@
+REPLACE_COSF = @REPLACE_COSF@
+REPLACE_COSHF = @REPLACE_COSHF@
 REPLACE_DPRINTF = @REPLACE_DPRINTF@
 REPLACE_DUP = @REPLACE_DUP@
 REPLACE_DUP2 = @REPLACE_DUP2@
 REPLACE_DUPLOCALE = @REPLACE_DUPLOCALE@
 REPLACE_EXP2 = @REPLACE_EXP2@
 REPLACE_EXP2L = @REPLACE_EXP2L@
+REPLACE_EXPF = @REPLACE_EXPF@
 REPLACE_EXPM1 = @REPLACE_EXPM1@
 REPLACE_EXPM1F = @REPLACE_EXPM1F@
 REPLACE_FABSL = @REPLACE_FABSL@
@@ -3150,9 +3275,12 @@ REPLACE_SETENV = @REPLACE_SETENV@
 REPLACE_SETLOCALE = @REPLACE_SETLOCALE@
 REPLACE_SIGNBIT = @REPLACE_SIGNBIT@
 REPLACE_SIGNBIT_USING_GCC = @REPLACE_SIGNBIT_USING_GCC@
+REPLACE_SINF = @REPLACE_SINF@
+REPLACE_SINHF = @REPLACE_SINHF@
 REPLACE_SLEEP = @REPLACE_SLEEP@
 REPLACE_SNPRINTF = @REPLACE_SNPRINTF@
 REPLACE_SPRINTF = @REPLACE_SPRINTF@
+REPLACE_SQRTF = @REPLACE_SQRTF@
 REPLACE_SQRTL = @REPLACE_SQRTL@
 REPLACE_STAT = @REPLACE_STAT@
 REPLACE_STDIO_READ_FUNCS = @REPLACE_STDIO_READ_FUNCS@
@@ -3176,6 +3304,8 @@ REPLACE_STRUCT_LCONV = @REPLACE_STRUCT_LCONV@
 REPLACE_STRUCT_TIMEVAL = @REPLACE_STRUCT_TIMEVAL@
 REPLACE_SYMLINK = @REPLACE_SYMLINK@
 REPLACE_SYMLINKAT = @REPLACE_SYMLINKAT@
+REPLACE_TANF = @REPLACE_TANF@
+REPLACE_TANHF = @REPLACE_TANHF@
 REPLACE_TIMEGM = @REPLACE_TIMEGM@
 REPLACE_TMPFILE = @REPLACE_TMPFILE@
 REPLACE_TOWLOWER = @REPLACE_TOWLOWER@
@@ -3257,6 +3387,7 @@ VIR_TEST_EXPENSIVE_DEFAULT = @VIR_TEST_EXPENSIVE_DEFAULT@
 WARN_CFLAGS = @WARN_CFLAGS@
 WCHAR_T_SUFFIX = @WCHAR_T_SUFFIX@
 WIN32_EXTRA_CFLAGS = @WIN32_EXTRA_CFLAGS@
+WIN32_EXTRA_LIBS = @WIN32_EXTRA_LIBS@
 WINDOWS_64_BIT_OFF_T = @WINDOWS_64_BIT_OFF_T@
 WINDOWS_64_BIT_ST_SIZE = @WINDOWS_64_BIT_ST_SIZE@
 WINDRES = @WINDRES@
@@ -3264,6 +3395,8 @@ WINT_T_SUFFIX = @WINT_T_SUFFIX@
 WIRESHARK_DISSECTOR_CFLAGS = @WIRESHARK_DISSECTOR_CFLAGS@
 WIRESHARK_DISSECTOR_LIBS = @WIRESHARK_DISSECTOR_LIBS@
 XDR_CFLAGS = @XDR_CFLAGS@
+XENAPI_CFLAGS = @XENAPI_CFLAGS@
+XENAPI_LIBS = @XENAPI_LIBS@
 XEN_CFLAGS = @XEN_CFLAGS@
 XEN_LIBS = @XEN_LIBS@
 XGETTEXT = @XGETTEXT@
@@ -3410,21 +3543,22 @@ EXTRA_DIST = .valgrind.supp bhyvexml2argvdata bhyveargv2xmldata \
 	storagevolschemadata storagevolxml2argvdata \
 	storagevolxml2xmlin storagevolxml2xmlout sysinfodata \
 	test-lib.sh vboxsnapshotxmldata vircaps2xmldata vircgroupdata \
-	virconfdata virfiledata virmock.h virnetdaemondata \
-	virnetdevtestdata virpcitestdata virscsidata \
+	virconfdata virfiledata virmacmaptestdata virmock.h \
+	virnetdaemondata virnetdevtestdata virpcitestdata virscsidata \
 	virsh-uriprecedence virusbtestdata vmwareverdata vmx2xmldata \
 	xencapsdata xlconfigdata xmconfigdata xml2sexprdata \
-	xml2vmxdata $(am__append_36) $(am__append_38) $(test_scripts) \
+	xml2vmxdata $(am__append_41) $(am__append_43) $(test_scripts) \
 	check-file-access.pl file_access_whitelist.txt \
-	$(am__append_43) $(am__append_45) $(am__append_49) \
-	$(am__append_51) $(am__append_52) openvzutilstest.conf \
-	$(am__append_53) $(am__append_54) $(am__append_55) \
-	$(am__append_56) $(am__append_58) $(am__append_59) \
-	$(am__append_60) $(am__append_61) $(am__append_75) \
-	$(am__append_76) $(am__append_78) securityselinuxtest.c \
+	$(am__append_44) $(am__append_46) $(am__append_50) \
+	$(am__append_52) $(am__append_53) openvzutilstest.conf \
+	$(am__append_54) $(am__append_55) $(am__append_56) \
+	$(am__append_57) $(am__append_59) $(am__append_60) \
+	$(am__append_61) $(am__append_62) $(am__append_76) \
+	$(am__append_77) $(am__append_79) $(am__append_82) \
+	$(am__append_83) securityselinuxtest.c \
 	securityselinuxlabeltest.c securityselinuxhelper.c \
-	$(am__append_81) $(am__append_82)
-test_helpers = commandhelper ssh $(am__append_15) $(am__append_31)
+	$(am__append_86) $(am__append_87)
+test_helpers = commandhelper ssh $(am__append_17) $(am__append_35)
 test_programs = virshtest sockettest virhostcputest virbuftest \
 	commandtest seclabeltest virhashtest virconftest viratomictest \
 	utiltest shunloadtest virtimetest viruritest virkeyfiletest \
@@ -3435,25 +3569,31 @@ test_programs = virshtest sockettest virhostcputest virbuftest \
 	virportallocatortest sysinfotest virkmodtest vircapstest \
 	domaincapstest domainconftest virhostdevtest vircaps2xmltest \
 	virnetdevtest virtypedparamtest $(NULL) $(am__append_3) \
-	$(am__append_4) $(am__append_5) $(am__append_6) \
-	$(am__append_7) $(am__append_8) $(am__append_9) \
-	$(am__append_10) $(am__append_11) $(am__append_12) \
-	$(am__append_13) $(am__append_14) $(am__append_16) \
-	$(am__append_17) $(am__append_18) $(am__append_19) \
+	$(am__append_4) $(am__append_5) $(am__append_7) \
+	$(am__append_8) $(am__append_10) $(am__append_11) \
+	$(am__append_12) $(am__append_13) $(am__append_14) \
+	$(am__append_15) $(am__append_16) $(am__append_19) \
 	$(am__append_20) $(am__append_21) $(am__append_22) \
-	$(am__append_23) $(am__append_24) networkxml2xmltest \
-	networkxml2xmlupdatetest $(NULL) $(am__append_25) \
-	$(am__append_26) nwfilterxml2xmltest $(am__append_27) \
-	$(am__append_28) $(am__append_29) $(am__append_30) \
-	$(am__append_32) storagevolxml2xmltest storagepoolxml2xmltest \
+	$(am__append_23) $(am__append_24) $(am__append_25) \
+	$(am__append_27) $(am__append_28) networkxml2xmltest \
+	networkxml2xmlupdatetest $(NULL) $(am__append_29) \
+	$(am__append_30) nwfilterxml2xmltest $(am__append_31) \
+	$(am__append_32) $(am__append_33) $(am__append_34) \
+	$(am__append_36) storagevolxml2xmltest storagepoolxml2xmltest \
 	nodedevxml2xmltest interfacexml2xmltest cputest metadatatest \
-	secretxml2xmltest genericxml2xmltest $(am__append_33) \
-	$(am__append_35) objecteventtest
+	secretxml2xmltest genericxml2xmltest $(am__append_38) \
+	$(am__append_40) objecteventtest $(am__append_81)
+test_libraries = libshunload.la virportallocatormock.la \
+	virnetdaemonmock.la virnetserverclientmock.la vircgroupmock.la \
+	virpcimock.la virnetdevmock.la virrandommock.la \
+	virhostcpumock.la domaincapsmock.la $(NULL) $(am__append_6) \
+	$(am__append_9) $(am__append_18) $(am__append_26) \
+	$(am__append_37) $(am__append_80)
 
 # This is a fake SSH we use from virnetsockettest
 ssh_SOURCES = ssh.c
 ssh_LDADD = $(COVERAGE_LDFLAGS)
-test_scripts = $(am__append_34) $(am__append_37)
+test_scripts = $(am__append_39) $(am__append_42)
 libvirtd_test_scripts = \
 	libvirtd-fail			\
 	libvirtd-pool			\
@@ -3472,16 +3612,10 @@ libvirtd_test_scripts = \
 	virsh-vcpupin			\
 	$(NULL)
 
-test_libraries = libshunload.la virportallocatormock.la \
-	virnetdaemonmock.la virnetserverclientmock.la vircgroupmock.la \
-	virpcimock.la virnetdevmock.la virrandommock.la \
-	virhostcpumock.la nssmock.la domaincapsmock.la $(NULL) \
-	$(am__append_39) $(am__append_40) $(am__append_41) \
-	$(am__append_42)
 @WITH_TESTS_TRUE@noinst_LTLIBRARIES = $(test_libraries) \
-@WITH_TESTS_TRUE@	$(am__append_79)
+@WITH_TESTS_TRUE@	$(am__append_84)
 @WITH_TESTS_FALSE@check_LTLIBRARIES = $(test_libraries) \
-@WITH_TESTS_FALSE@	$(am__append_80)
+@WITH_TESTS_FALSE@	$(am__append_85)
 
 # NB, automake < 1.10 does not provide the real
 # abs_top_{src/build}dir or builddir variables, so don't rely
@@ -3532,7 +3666,7 @@ sockettest_LDADD = $(LDADDS)
 
 @WITH_XEN_TRUE@xencapstest_LDADD = $(xen_LDADDS)
 @WITH_LIBXL_TRUE@libxl_LDADDS = ../src/libvirt_driver_libxl_impl.la \
-@WITH_LIBXL_TRUE@	$(am__append_44) $(LDADDS)
+@WITH_LIBXL_TRUE@	$(am__append_45) $(LDADDS)
 @WITH_LIBXL_TRUE@xlconfigtest_SOURCES = \
 @WITH_LIBXL_TRUE@	xlconfigtest.c testutilsxen.c testutilsxen.h \
 @WITH_LIBXL_TRUE@	testutils.c testutils.h
@@ -3545,8 +3679,8 @@ QEMUMONITORTESTUTILS_SOURCES = \
 
 @WITH_QEMU_TRUE@libqemumonitortestutils_la_SOURCES = $(QEMUMONITORTESTUTILS_SOURCES)
 @WITH_QEMU_TRUE@qemu_LDADDS = ../src/libvirt_driver_qemu_impl.la \
-@WITH_QEMU_TRUE@	$(am__append_46) $(am__append_47) \
-@WITH_QEMU_TRUE@	$(am__append_48)
+@WITH_QEMU_TRUE@	$(am__append_47) $(am__append_48) \
+@WITH_QEMU_TRUE@	$(am__append_49)
 @WITH_QEMU_TRUE@libqemutestdriver_la_SOURCES = 
 @WITH_QEMU_TRUE@libqemutestdriver_la_LDFLAGS = $(QEMULIB_LDFLAGS)
 @WITH_QEMU_TRUE@libqemutestdriver_la_LIBADD = $(qemu_LDADDS)
@@ -3652,7 +3786,7 @@ QEMUMONITORTESTUTILS_SOURCES = \
 
 @WITH_QEMU_TRUE@domainsnapshotxml2xmltest_LDADD = $(qemu_LDADDS) $(LDADDS)
 @WITH_LXC_TRUE@lxc_LDADDS = ../src/libvirt_driver_lxc_impl.la \
-@WITH_LXC_TRUE@	$(am__append_50) $(LDADDS)
+@WITH_LXC_TRUE@	$(am__append_51) $(LDADDS)
 @WITH_LXC_TRUE@lxcxml2xmltest_SOURCES = \
 @WITH_LXC_TRUE@	lxcxml2xmltest.c testutilslxc.c testutilslxc.h \
 @WITH_LXC_TRUE@	testutils.c testutils.h
@@ -3707,7 +3841,7 @@ QEMUMONITORTESTUTILS_SOURCES = \
 @WITH_BHYVE_TRUE@bhyveargv2xmlmock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
 @WITH_BHYVE_TRUE@bhyveargv2xmlmock_la_LIBADD = $(MOCKLIBS_LIBS)
 @WITH_BHYVE_TRUE@bhyve_LDADDS = ../src/libvirt_driver_bhyve_impl.la \
-@WITH_BHYVE_TRUE@	$(am__append_57) $(LDADDS)
+@WITH_BHYVE_TRUE@	$(am__append_58) $(LDADDS)
 @WITH_BHYVE_TRUE@bhyvexml2argvtest_SOURCES = \
 @WITH_BHYVE_TRUE@	bhyvexml2argvtest.c \
 @WITH_BHYVE_TRUE@	testutils.c testutils.h
@@ -3805,8 +3939,8 @@ interfacexml2xmltest_SOURCES = \
 	testutils.c testutils.h
 
 interfacexml2xmltest_LDADD = $(LDADDS)
-cputest_SOURCES = cputest.c testutils.c testutils.h $(am__append_62)
-cputest_LDADD = $(LDADDS) $(LIBXML_LIBS) $(am__append_63)
+cputest_SOURCES = cputest.c testutils.c testutils.h $(am__append_63)
+cputest_LDADD = $(LDADDS) $(LIBXML_LIBS) $(am__append_64)
 metadatatest_SOURCES = \
 	metadatatest.c \
 	testutils.c testutils.h
@@ -3845,7 +3979,7 @@ virkmodtest_SOURCES = \
 
 virkmodtest_LDADD = $(LDADDS)
 vircapstest_SOURCES = vircapstest.c testutils.h testutils.c \
-	$(am__append_64) $(am__append_65) $(am__append_66)
+	$(am__append_65) $(am__append_66) $(am__append_67)
 vircapstest_LDADD = $(qemu_LDADDS) $(LDADDS)
 vircaps2xmltest_SOURCES = \
 	vircaps2xmltest.c testutils.h testutils.c
@@ -3856,8 +3990,8 @@ domaincapsmock_la_CFLAGS = $(AM_CFLAGS)
 domaincapsmock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
 domaincapsmock_la_LIBADD = $(MOCKLIBS_LIBS)
 domaincapstest_SOURCES = domaincapstest.c testutils.h testutils.c \
-	$(am__append_67) $(am__append_69)
-domaincapstest_LDADD = $(LDADDS) $(am__append_68) $(am__append_70)
+	$(am__append_68) $(am__append_70)
+domaincapstest_LDADD = $(LDADDS) $(am__append_69) $(am__append_71)
 virnetmessagetest_SOURCES = \
 	virnetmessagetest.c testutils.h testutils.c
 
@@ -3894,15 +4028,15 @@ virnetserverclientmock_la_LIBADD = $(MOCKLIBS_LIBS)
 @WITH_GNUTLS_TRUE@virnettlscontexttest_SOURCES =  \
 @WITH_GNUTLS_TRUE@	virnettlscontexttest.c virnettlshelpers.h \
 @WITH_GNUTLS_TRUE@	virnettlshelpers.c testutils.h testutils.c \
-@WITH_GNUTLS_TRUE@	$(am__append_71)
+@WITH_GNUTLS_TRUE@	$(am__append_72)
 @WITH_GNUTLS_TRUE@virnettlscontexttest_LDADD = $(LDADDS) \
-@WITH_GNUTLS_TRUE@	$(GNUTLS_LIBS) $(am__append_72)
+@WITH_GNUTLS_TRUE@	$(GNUTLS_LIBS) $(am__append_73)
 @WITH_GNUTLS_TRUE@virnettlssessiontest_SOURCES =  \
 @WITH_GNUTLS_TRUE@	virnettlssessiontest.c virnettlshelpers.h \
 @WITH_GNUTLS_TRUE@	virnettlshelpers.c testutils.h testutils.c \
-@WITH_GNUTLS_TRUE@	$(am__append_73)
+@WITH_GNUTLS_TRUE@	$(am__append_74)
 @WITH_GNUTLS_TRUE@virnettlssessiontest_LDADD = $(LDADDS) \
-@WITH_GNUTLS_TRUE@	$(GNUTLS_LIBS) $(am__append_74)
+@WITH_GNUTLS_TRUE@	$(GNUTLS_LIBS) $(am__append_75)
 virtimetest_SOURCES = \
 	virtimetest.c testutils.h testutils.c
 
@@ -3929,7 +4063,7 @@ virstoragetest_LDADD = $(LDADDS) \
 viridentitytest_SOURCES = \
 	viridentitytest.c testutils.h testutils.c
 
-viridentitytest_LDADD = $(LDADDS) $(am__append_77)
+viridentitytest_LDADD = $(LDADDS) $(am__append_78)
 @WITH_SELINUX_TRUE@viridentitytest_DEPENDENCIES = libsecurityselinuxhelper.la \
 @WITH_SELINUX_TRUE@	../src/libvirt.la
 
@@ -3999,30 +4133,61 @@ virhostcpumock_la_SOURCES = \
 virhostcpumock_la_CFLAGS = $(AM_CFLAGS)
 virhostcpumock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
 virhostcpumock_la_LIBADD = $(MOCKLIBS_LIBS)
-nsstest_SOURCES = \
-	nsstest.c testutils.h testutils.c
+@WITH_NSS_TRUE@nsstest_SOURCES = \
+@WITH_NSS_TRUE@	nsstest.c testutils.h testutils.c
 
-nsstest_CFLAGS = \
-	$(AM_CFLAGS)	\
-	-I$(top_srcdir)/tools/nss
+@WITH_NSS_TRUE@nsstest_CFLAGS = \
+@WITH_NSS_TRUE@	$(AM_CFLAGS)	\
+@WITH_NSS_TRUE@	-I$(top_srcdir)/tools/nss
 
-nsstest_LDADD = \
-	$(LDADDS)	\
-	../tools/nss/libnss_libvirt_impl.la
+@WITH_NSS_TRUE@nsstest_LDADD = \
+@WITH_NSS_TRUE@	$(LDADDS)	\
+@WITH_NSS_TRUE@	../tools/nss/libnss_libvirt_impl.la
 
-nssmock_la_SOURCES = \
-	nssmock.c
+@WITH_NSS_TRUE@nssguesttest_SOURCES = \
+@WITH_NSS_TRUE@	nsstest.c testutils.h testutils.c
 
-nssmock_la_CFLAGS = $(AM_CFLAGS)
-nssmock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
-nssmock_la_LIBADD = $(MOCKLIBS_LIBS)
-nsslinktest_SOURCES = nsslinktest.c
-nsslinktest_CFLAGS = \
-	$(AM_CFLAGS)		\
-	-I$(top_srcdir)/tools/nss
+@WITH_NSS_TRUE@nssguesttest_CFLAGS = \
+@WITH_NSS_TRUE@	-DLIBVIRT_NSS_GUEST	\
+@WITH_NSS_TRUE@	$(AM_CFLAGS)	\
+@WITH_NSS_TRUE@	-I$(top_srcdir)/tools/nss
 
-nsslinktest_LDADD = ../tools/nss/libnss_libvirt_impl.la
-nsslinktest_LDFLAGS = $(NULL)
+@WITH_NSS_TRUE@nssguesttest_LDADD = \
+@WITH_NSS_TRUE@	$(LDADDS)	\
+@WITH_NSS_TRUE@	../tools/nss/libnss_libvirt_guest_impl.la
+
+@WITH_NSS_TRUE@nssmock_la_SOURCES = \
+@WITH_NSS_TRUE@	nssmock.c
+
+@WITH_NSS_TRUE@nssmock_la_CFLAGS = $(AM_CFLAGS)
+@WITH_NSS_TRUE@nssmock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
+@WITH_NSS_TRUE@nssmock_la_LIBADD = $(MOCKLIBS_LIBS)
+@WITH_NSS_TRUE@nsslinktest_SOURCES = nsslinktest.c
+@WITH_NSS_TRUE@nsslinktest_CFLAGS = \
+@WITH_NSS_TRUE@	$(AM_CFLAGS)		\
+@WITH_NSS_TRUE@	-I$(top_srcdir)/tools/nss
+
+@WITH_NSS_TRUE@nsslinktest_LDADD = ../tools/nss/libnss_libvirt_impl.la
+@WITH_NSS_TRUE@nsslinktest_LDFLAGS = $(NULL)
+@WITH_NSS_TRUE@nssguestlinktest_SOURCES = nsslinktest.c
+@WITH_NSS_TRUE@nssguestlinktest_CFLAGS = \
+@WITH_NSS_TRUE@	-DLIBVIRT_NSS_GUEST	\
+@WITH_NSS_TRUE@	$(AM_CFLAGS)		\
+@WITH_NSS_TRUE@	-I$(top_srcdir)/tools/nss
+
+@WITH_NSS_TRUE@nssguestlinktest_LDADD = ../tools/nss/libnss_libvirt_guest_impl.la
+@WITH_NSS_TRUE@nssguestlinktest_LDFLAGS = $(NULL)
+@WITH_YAJL_TRUE@virmacmapmock_la_SOURCES = \
+@WITH_YAJL_TRUE@	virmacmapmock.c
+
+@WITH_YAJL_TRUE@virmacmapmock_la_CFLAGS = $(AM_CFLAGS)
+@WITH_YAJL_TRUE@virmacmapmock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
+@WITH_YAJL_TRUE@virmacmapmock_la_LIBADD = $(MOCKLIBS_LIBS)
+@WITH_YAJL_TRUE@virmacmaptest_SOURCES = \
+@WITH_YAJL_TRUE@	virmacmaptest.c testutils.h testutils.c
+
+@WITH_YAJL_TRUE@virmacmaptest_CLFAGS = $(AM_CFLAGS)
+@WITH_YAJL_TRUE@virmacmaptest_LDADD = $(LDADDS)
 virnetdevtest_SOURCES = \
 	virnetdevtest.c testutils.h testutils.c
 
@@ -4319,6 +4484,9 @@ virdbusmock.la: $(virdbusmock_la_OBJECTS) $(virdbusmock_la_DEPENDENCIES) $(EXTRA
 virhostcpumock.la: $(virhostcpumock_la_OBJECTS) $(virhostcpumock_la_DEPENDENCIES) $(EXTRA_virhostcpumock_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(virhostcpumock_la_LINK) $(am_virhostcpumock_la_rpath) $(virhostcpumock_la_OBJECTS) $(virhostcpumock_la_LIBADD) $(LIBS)
 
+virmacmapmock.la: $(virmacmapmock_la_OBJECTS) $(virmacmapmock_la_DEPENDENCIES) $(EXTRA_virmacmapmock_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(virmacmapmock_la_LINK) $(am_virmacmapmock_la_rpath) $(virmacmapmock_la_OBJECTS) $(virmacmapmock_la_LIBADD) $(LIBS)
+
 virnetdaemonmock.la: $(virnetdaemonmock_la_OBJECTS) $(virnetdaemonmock_la_DEPENDENCIES) $(EXTRA_virnetdaemonmock_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(virnetdaemonmock_la_LINK) $(am_virnetdaemonmock_la_rpath) $(virnetdaemonmock_la_OBJECTS) $(virnetdaemonmock_la_LIBADD) $(LIBS)
 
@@ -4459,6 +4627,14 @@ networkxml2xmlupdatetest$(EXEEXT): $(networkxml2xmlupdatetest_OBJECTS) $(network
 nodedevxml2xmltest$(EXEEXT): $(nodedevxml2xmltest_OBJECTS) $(nodedevxml2xmltest_DEPENDENCIES) $(EXTRA_nodedevxml2xmltest_DEPENDENCIES) 
 	@rm -f nodedevxml2xmltest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(nodedevxml2xmltest_OBJECTS) $(nodedevxml2xmltest_LDADD) $(LIBS)
+
+nssguestlinktest$(EXEEXT): $(nssguestlinktest_OBJECTS) $(nssguestlinktest_DEPENDENCIES) $(EXTRA_nssguestlinktest_DEPENDENCIES) 
+	@rm -f nssguestlinktest$(EXEEXT)
+	$(AM_V_CCLD)$(nssguestlinktest_LINK) $(nssguestlinktest_OBJECTS) $(nssguestlinktest_LDADD) $(LIBS)
+
+nssguesttest$(EXEEXT): $(nssguesttest_OBJECTS) $(nssguesttest_DEPENDENCIES) $(EXTRA_nssguesttest_DEPENDENCIES) 
+	@rm -f nssguesttest$(EXEEXT)
+	$(AM_V_CCLD)$(nssguesttest_LINK) $(nssguesttest_OBJECTS) $(nssguesttest_LDADD) $(LIBS)
 
 nsslinktest$(EXEEXT): $(nsslinktest_OBJECTS) $(nsslinktest_DEPENDENCIES) $(EXTRA_nsslinktest_DEPENDENCIES) 
 	@rm -f nsslinktest$(EXEEXT)
@@ -4704,6 +4880,10 @@ virlogtest$(EXEEXT): $(virlogtest_OBJECTS) $(virlogtest_DEPENDENCIES) $(EXTRA_vi
 	@rm -f virlogtest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(virlogtest_OBJECTS) $(virlogtest_LDADD) $(LIBS)
 
+virmacmaptest$(EXEEXT): $(virmacmaptest_OBJECTS) $(virmacmaptest_DEPENDENCIES) $(EXTRA_virmacmaptest_DEPENDENCIES) 
+	@rm -f virmacmaptest$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(virmacmaptest_OBJECTS) $(virmacmaptest_LDADD) $(LIBS)
+
 virnetdaemontest$(EXEEXT): $(virnetdaemontest_OBJECTS) $(virnetdaemontest_DEPENDENCIES) $(EXTRA_virnetdaemontest_DEPENDENCIES) 
 	@rm -f virnetdaemontest$(EXEEXT)
 	$(AM_V_CCLD)$(virnetdaemontest_LINK) $(virnetdaemontest_OBJECTS) $(virnetdaemontest_LDADD) $(LIBS)
@@ -4853,6 +5033,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/networkxml2xmltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/networkxml2xmlupdatetest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nodedevxml2xmltest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nssguestlinktest-nsslinktest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nssguesttest-nsstest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nssguesttest-testutils.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nsslinktest-nsslinktest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nssmock_la-nssmock.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nsstest-nsstest.Po@am__quote@
@@ -4931,6 +5114,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virkmodtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virlockspacetest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virlogtest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virmacmapmock_la-virmacmapmock.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virmacmaptest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virnetdaemonmock_la-virnetdaemonmock.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virnetdaemontest-testutils.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virnetdaemontest-virnetdaemontest.Po@am__quote@
@@ -5072,6 +5257,13 @@ virhostcpumock_la-virhostcpumock.lo: virhostcpumock.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virhostcpumock_la_CFLAGS) $(CFLAGS) -c -o virhostcpumock_la-virhostcpumock.lo `test -f 'virhostcpumock.c' || echo '$(srcdir)/'`virhostcpumock.c
 
+virmacmapmock_la-virmacmapmock.lo: virmacmapmock.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virmacmapmock_la_CFLAGS) $(CFLAGS) -MT virmacmapmock_la-virmacmapmock.lo -MD -MP -MF $(DEPDIR)/virmacmapmock_la-virmacmapmock.Tpo -c -o virmacmapmock_la-virmacmapmock.lo `test -f 'virmacmapmock.c' || echo '$(srcdir)/'`virmacmapmock.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virmacmapmock_la-virmacmapmock.Tpo $(DEPDIR)/virmacmapmock_la-virmacmapmock.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='virmacmapmock.c' object='virmacmapmock_la-virmacmapmock.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virmacmapmock_la_CFLAGS) $(CFLAGS) -c -o virmacmapmock_la-virmacmapmock.lo `test -f 'virmacmapmock.c' || echo '$(srcdir)/'`virmacmapmock.c
+
 virnetdaemonmock_la-virnetdaemonmock.lo: virnetdaemonmock.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virnetdaemonmock_la_CFLAGS) $(CFLAGS) -MT virnetdaemonmock_la-virnetdaemonmock.lo -MD -MP -MF $(DEPDIR)/virnetdaemonmock_la-virnetdaemonmock.Tpo -c -o virnetdaemonmock_la-virnetdaemonmock.lo `test -f 'virnetdaemonmock.c' || echo '$(srcdir)/'`virnetdaemonmock.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virnetdaemonmock_la-virnetdaemonmock.Tpo $(DEPDIR)/virnetdaemonmock_la-virnetdaemonmock.Plo
@@ -5134,6 +5326,48 @@ virusbmock_la-virusbmock.lo: virusbmock.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='virusbmock.c' object='virusbmock_la-virusbmock.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virusbmock_la_CFLAGS) $(CFLAGS) -c -o virusbmock_la-virusbmock.lo `test -f 'virusbmock.c' || echo '$(srcdir)/'`virusbmock.c
+
+nssguestlinktest-nsslinktest.o: nsslinktest.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nssguestlinktest_CFLAGS) $(CFLAGS) -MT nssguestlinktest-nsslinktest.o -MD -MP -MF $(DEPDIR)/nssguestlinktest-nsslinktest.Tpo -c -o nssguestlinktest-nsslinktest.o `test -f 'nsslinktest.c' || echo '$(srcdir)/'`nsslinktest.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/nssguestlinktest-nsslinktest.Tpo $(DEPDIR)/nssguestlinktest-nsslinktest.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='nsslinktest.c' object='nssguestlinktest-nsslinktest.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nssguestlinktest_CFLAGS) $(CFLAGS) -c -o nssguestlinktest-nsslinktest.o `test -f 'nsslinktest.c' || echo '$(srcdir)/'`nsslinktest.c
+
+nssguestlinktest-nsslinktest.obj: nsslinktest.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nssguestlinktest_CFLAGS) $(CFLAGS) -MT nssguestlinktest-nsslinktest.obj -MD -MP -MF $(DEPDIR)/nssguestlinktest-nsslinktest.Tpo -c -o nssguestlinktest-nsslinktest.obj `if test -f 'nsslinktest.c'; then $(CYGPATH_W) 'nsslinktest.c'; else $(CYGPATH_W) '$(srcdir)/nsslinktest.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/nssguestlinktest-nsslinktest.Tpo $(DEPDIR)/nssguestlinktest-nsslinktest.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='nsslinktest.c' object='nssguestlinktest-nsslinktest.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nssguestlinktest_CFLAGS) $(CFLAGS) -c -o nssguestlinktest-nsslinktest.obj `if test -f 'nsslinktest.c'; then $(CYGPATH_W) 'nsslinktest.c'; else $(CYGPATH_W) '$(srcdir)/nsslinktest.c'; fi`
+
+nssguesttest-nsstest.o: nsstest.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nssguesttest_CFLAGS) $(CFLAGS) -MT nssguesttest-nsstest.o -MD -MP -MF $(DEPDIR)/nssguesttest-nsstest.Tpo -c -o nssguesttest-nsstest.o `test -f 'nsstest.c' || echo '$(srcdir)/'`nsstest.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/nssguesttest-nsstest.Tpo $(DEPDIR)/nssguesttest-nsstest.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='nsstest.c' object='nssguesttest-nsstest.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nssguesttest_CFLAGS) $(CFLAGS) -c -o nssguesttest-nsstest.o `test -f 'nsstest.c' || echo '$(srcdir)/'`nsstest.c
+
+nssguesttest-nsstest.obj: nsstest.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nssguesttest_CFLAGS) $(CFLAGS) -MT nssguesttest-nsstest.obj -MD -MP -MF $(DEPDIR)/nssguesttest-nsstest.Tpo -c -o nssguesttest-nsstest.obj `if test -f 'nsstest.c'; then $(CYGPATH_W) 'nsstest.c'; else $(CYGPATH_W) '$(srcdir)/nsstest.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/nssguesttest-nsstest.Tpo $(DEPDIR)/nssguesttest-nsstest.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='nsstest.c' object='nssguesttest-nsstest.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nssguesttest_CFLAGS) $(CFLAGS) -c -o nssguesttest-nsstest.obj `if test -f 'nsstest.c'; then $(CYGPATH_W) 'nsstest.c'; else $(CYGPATH_W) '$(srcdir)/nsstest.c'; fi`
+
+nssguesttest-testutils.o: testutils.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nssguesttest_CFLAGS) $(CFLAGS) -MT nssguesttest-testutils.o -MD -MP -MF $(DEPDIR)/nssguesttest-testutils.Tpo -c -o nssguesttest-testutils.o `test -f 'testutils.c' || echo '$(srcdir)/'`testutils.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/nssguesttest-testutils.Tpo $(DEPDIR)/nssguesttest-testutils.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='testutils.c' object='nssguesttest-testutils.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nssguesttest_CFLAGS) $(CFLAGS) -c -o nssguesttest-testutils.o `test -f 'testutils.c' || echo '$(srcdir)/'`testutils.c
+
+nssguesttest-testutils.obj: testutils.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nssguesttest_CFLAGS) $(CFLAGS) -MT nssguesttest-testutils.obj -MD -MP -MF $(DEPDIR)/nssguesttest-testutils.Tpo -c -o nssguesttest-testutils.obj `if test -f 'testutils.c'; then $(CYGPATH_W) 'testutils.c'; else $(CYGPATH_W) '$(srcdir)/testutils.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/nssguesttest-testutils.Tpo $(DEPDIR)/nssguesttest-testutils.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='testutils.c' object='nssguesttest-testutils.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nssguesttest_CFLAGS) $(CFLAGS) -c -o nssguesttest-testutils.obj `if test -f 'testutils.c'; then $(CYGPATH_W) 'testutils.c'; else $(CYGPATH_W) '$(srcdir)/testutils.c'; fi`
 
 nsslinktest-nsslinktest.o: nsslinktest.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nsslinktest_CFLAGS) $(CFLAGS) -MT nsslinktest-nsslinktest.o -MD -MP -MF $(DEPDIR)/nsslinktest-nsslinktest.Tpo -c -o nsslinktest-nsslinktest.o `test -f 'nsslinktest.c' || echo '$(srcdir)/'`nsslinktest.c
@@ -6314,6 +6548,13 @@ nsstest.log: nsstest$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
+nssguesttest.log: nssguesttest$(EXEEXT)
+	@p='nssguesttest$(EXEEXT)'; \
+	b='nssguesttest'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
 storagevolxml2xmltest.log: storagevolxml2xmltest$(EXEEXT)
 	@p='storagevolxml2xmltest$(EXEEXT)'; \
 	b='storagevolxml2xmltest'; \
@@ -6394,6 +6635,13 @@ eventtest.log: eventtest$(EXEEXT)
 objecteventtest.log: objecteventtest$(EXEEXT)
 	@p='objecteventtest$(EXEEXT)'; \
 	b='objecteventtest'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+virmacmaptest.log: virmacmaptest$(EXEEXT)
+	@p='virmacmaptest$(EXEEXT)'; \
+	b='virmacmaptest'; \
 	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \

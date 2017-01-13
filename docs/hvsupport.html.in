@@ -2036,7 +2036,7 @@ virConnectSupportsFeature</td>
 <td></td>
 <td>0.7.0</td>
 <td></td>
-<td></td>
+<td>3.0.0</td>
 <td></td>
 <td>0.4.6</td>
 <td>0.7.3</td>
@@ -5995,6 +5995,22 @@ virDomainMigratePrepareTunnel3Params</td>
 </tr>
 <tr>
 <td>
+<a href="html/libvirt-libvirt-secret.html#virConnectSecretEventDeregisterAny">virConnectSecretEventDeregisterAny</a>
+</td>
+<td>3.0.0</td>
+<td>3.0.0</td>
+<td>3.0.0</td>
+</tr>
+<tr>
+<td>
+<a href="html/libvirt-libvirt-secret.html#virConnectSecretEventRegisterAny">virConnectSecretEventRegisterAny</a>
+</td>
+<td>3.0.0</td>
+<td>3.0.0</td>
+<td>3.0.0</td>
+</tr>
+<tr>
+<td>
 <a href="html/libvirt-libvirt-secret.html#virSecretDefineXML">virSecretDefineXML</a>
 </td>
 <td>0.7.1</td>
@@ -6445,6 +6461,17 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
 <td>0.5.0</td>
+</tr>
+<tr>
+<td>
+<a href="html/libvirt-libvirt-storage.html#virStorageVolGetInfoFlags">virStorageVolGetInfoFlags</a>
+</td>
+<td>3.0.0</td>
+<td></td>
+<td></td>
+<td>3.0.0</td>
+<td>3.0.0</td>
+<td></td>
 </tr>
 <tr>
 <td>

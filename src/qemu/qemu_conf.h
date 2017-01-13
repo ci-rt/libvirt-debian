@@ -90,6 +90,8 @@ struct _virQEMUDriverConfig {
     gid_t group;
     bool dynamicOwnership;
 
+    virBitmapPtr namespaces;
+
     int cgroupControllers;
     char **cgroupDeviceACL;
 
@@ -335,11 +337,15 @@ virDomainXMLOptionPtr virQEMUDriverCreateXMLConf(virQEMUDriverPtr driver);
 int qemuTranslateSnapshotDiskSourcePool(virConnectPtr conn,
                                         virDomainSnapshotDiskDefPtr def);
 
-char * qemuGetHugepagePath(virHugeTLBFSPtr hugepage);
-char * qemuGetDefaultHugepath(virHugeTLBFSPtr hugetlbfs,
-                              size_t nhugetlbfs);
+char * qemuGetBaseHugepagePath(virHugeTLBFSPtr hugepage);
+char * qemuGetDomainHugepagePath(const virDomainDef *def,
+                                 virHugeTLBFSPtr hugepage);
+char * qemuGetDomainDefaultHugepath(const virDomainDef *def,
+                                    virHugeTLBFSPtr hugetlbfs,
+                                    size_t nhugetlbfs);
 
-int qemuGetHupageMemPath(virQEMUDriverConfigPtr cfg,
-                         unsigned long long pagesize,
-                         char **memPath);
+int qemuGetDomainHupageMemPath(const virDomainDef *def,
+                               virQEMUDriverConfigPtr cfg,
+                               unsigned long long pagesize,
+                               char **memPath);
 #endif /* __QEMUD_CONF_H */

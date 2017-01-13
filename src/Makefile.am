@@ -42,7 +42,7 @@ AM_CFLAGS =	$(LIBXML_CFLAGS)				\
 		$(LOCK_CHECKING_CFLAGS)				\
 		$(WIN32_EXTRA_CFLAGS)				\
 		$(COVERAGE_CFLAGS)
-AM_LDFLAGS =	$(DRIVER_MODULE_LDFLAGS)			\
+AM_LDFLAGS =	$(DRIVER_MODULES_LDFLAGS)			\
 		$(COVERAGE_LDFLAGS)				\
 		$(RELRO_LDFLAGS)				\
 		$(NO_INDIRECT_LDFLAGS)				\
@@ -137,6 +137,7 @@ UTIL_SOURCES =							\
 		util/virlockspace.c util/virlockspace.h		\
 		util/virlog.c util/virlog.h			\
 		util/virmacaddr.h util/virmacaddr.c		\
+		util/virmacmap.h util/virmacmap.c		\
 		util/virnetdev.h util/virnetdev.c		\
 		util/virnetdevbandwidth.h util/virnetdevbandwidth.c \
 		util/virnetdevbridge.h util/virnetdevbridge.c	\
@@ -168,7 +169,6 @@ UTIL_SOURCES =							\
 		util/virsecret.c util/virsecret.h		\
 		util/virsexpr.c util/virsexpr.h			\
 		util/virsocketaddr.h util/virsocketaddr.c	\
-		util/virstats.c util/virstats.h	\
 		util/virstorageencryption.c util/virstorageencryption.h \
 		util/virstoragefile.c util/virstoragefile.h	\
 		util/virstring.h util/virstring.c		\
@@ -354,6 +354,9 @@ STORAGE_EVENT_SOURCES =						\
 NODE_DEVICE_EVENT_SOURCES =					\
                 conf/node_device_event.c conf/node_device_event.h
 
+SECRET_EVENT_SOURCES =					\
+                conf/secret_event.c conf/secret_event.h
+
 # Network driver generic impl APIs
 NETWORK_CONF_SOURCES =						\
 		conf/network_conf.c conf/network_conf.h \
@@ -406,6 +409,7 @@ CONF_SOURCES =							\
 		$(NETWORK_EVENT_SOURCES)			\
 		$(STORAGE_EVENT_SOURCES)			\
 		$(NODE_DEVICE_EVENT_SOURCES)			\
+		$(SECRET_EVENT_SOURCES)				\
 		$(NETWORK_CONF_SOURCES)				\
 		$(NWFILTER_CONF_SOURCES)			\
 		$(NODE_DEVICE_CONF_SOURCES)			\
@@ -691,6 +695,7 @@ check-local: check-protocol check-symfile check-symsorting \
 # Mock driver, covering domains, storage, networks, etc
 TEST_DRIVER_SOURCES =						\
 		test/test_driver.c test/test_driver.h
+TEST_DRIVER_ASSETS = test/test-screenshot.png
 
 # Now the Hypervisor specific drivers
 XEN_DRIVER_SOURCES =						\
@@ -790,10 +795,6 @@ VBOX_DRIVER_SOURCES =						\
 	vbox/vbox_glue.c vbox/vbox_glue.h			\
 	vbox/vbox_driver.c vbox/vbox_driver.h			\
 	vbox/vbox_snapshot_conf.c vbox/vbox_snapshot_conf.h     \
-	vbox/vbox_V2_2.c vbox/vbox_CAPI_v2_2.h			\
-	vbox/vbox_V3_0.c vbox/vbox_CAPI_v3_0.h			\
-	vbox/vbox_V3_1.c vbox/vbox_CAPI_v3_1.h			\
-	vbox/vbox_V3_2.c vbox/vbox_CAPI_v3_2.h			\
 	vbox/vbox_V4_0.c vbox/vbox_CAPI_v4_0.h			\
 	vbox/vbox_V4_1.c vbox/vbox_CAPI_v4_1.h			\
 	vbox/vbox_V4_2.c vbox/vbox_CAPI_v4_2.h			\
@@ -837,7 +838,8 @@ QEMU_DRIVER_SOURCES =							\
 		qemu/qemu_monitor_json.h				\
 		qemu/qemu_driver.c qemu/qemu_driver.h	\
 		qemu/qemu_interface.c qemu/qemu_interface.h		\
-		qemu/qemu_capspriv.h
+		qemu/qemu_capspriv.h					\
+		qemu/qemu_security.c qemu/qemu_security.h
 
 XENAPI_DRIVER_SOURCES =						\
 		xenapi/xenapi_driver.c xenapi/xenapi_driver.h	\
@@ -849,6 +851,7 @@ LIBXL_DRIVER_SOURCES =							\
 		libxl/libxl_capabilities.c libxl/libxl_capabilities.h	\
 		libxl/libxl_domain.c libxl/libxl_domain.h       	\
 		libxl/libxl_driver.c libxl/libxl_driver.h       	\
+		libxl/libxl_logger.c libxl/libxl_logger.h           \
 		libxl/libxl_migration.c libxl/libxl_migration.h
 
 UML_DRIVER_SOURCES =						\
@@ -1126,12 +1129,12 @@ libvirt_util_la_SOURCES =					\
 libvirt_util_la_CFLAGS = $(CAPNG_CFLAGS) $(YAJL_CFLAGS) $(LIBNL_CFLAGS) \
 		$(AM_CFLAGS) $(AUDIT_CFLAGS) $(DEVMAPPER_CFLAGS) \
 		$(DBUS_CFLAGS) $(LDEXP_LIBM) $(NUMACTL_CFLAGS)	\
-		$(POLKIT_CFLAGS) $(GNUTLS_CFLAGS) \
+		$(POLKIT_CFLAGS) $(GNUTLS_CFLAGS) $(ACL_CFLAGS) \
 		-I$(srcdir)/conf
 libvirt_util_la_LIBADD = $(CAPNG_LIBS) $(YAJL_LIBS) $(LIBNL_LIBS) \
 		$(THREAD_LIBS) $(AUDIT_LIBS) $(DEVMAPPER_LIBS) \
-		$(LIB_CLOCK_GETTIME) $(DBUS_LIBS) $(MSCOM_LIBS) $(LIBXML_LIBS) \
-		$(SECDRIVER_LIBS) $(NUMACTL_LIBS) \
+		$(LIB_CLOCK_GETTIME) $(DBUS_LIBS) $(WIN32_EXTRA_LIBS) $(LIBXML_LIBS) \
+		$(SECDRIVER_LIBS) $(NUMACTL_LIBS) $(ACL_LIBS) \
 		$(POLKIT_LIBS)
 
 
@@ -1194,6 +1197,10 @@ GENERATED_SYM_FILES = \
 	$(NULL)
 
 if WITH_TEST
+
+driver_test_asset_DATA = $(TEST_DRIVER_ASSETS)
+driver_test_assetdir = $(pkgdatadir)
+
 noinst_LTLIBRARIES += libvirt_driver_test.la
 libvirt_la_BUILT_LIBADD += libvirt_driver_test.la
 libvirt_driver_test_la_CFLAGS = \
@@ -1302,7 +1309,7 @@ libvirt_driver_vbox_impl_la_CFLAGS =				\
 		-DVBOX_DRIVER
 libvirt_driver_vbox_impl_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_vbox_impl_la_LIBADD =  $(DLOPEN_LIBS)		\
-		$(MSCOM_LIBS)					\
+		$(WIN32_EXTRA_LIBS)				\
 		$(LIBXML_LIBS)
 libvirt_driver_vbox_impl_la_SOURCES = $(VBOX_DRIVER_SOURCES)
 endif WITH_VBOX
@@ -1310,10 +1317,10 @@ endif WITH_VBOX
 if WITH_XENAPI
 noinst_LTLIBRARIES += libvirt_driver_xenapi.la
 libvirt_la_BUILT_LIBADD += libvirt_driver_xenapi.la
-libvirt_driver_xenapi_la_CFLAGS = $(LIBXENSERVER_CFLAGS) $(CURL_CFLAGS) \
+libvirt_driver_xenapi_la_CFLAGS = $(XENAPI_CFLAGS) $(CURL_CFLAGS) \
 		-I$(srcdir)/conf -I$(srcdir)/xenconfig $(AM_CFLAGS)
 libvirt_driver_xenapi_la_LDFLAGS = $(AM_LDFLAGS)
-libvirt_driver_xenapi_la_LIBADD = $(LIBXENSERVER_LIBS) $(CURL_LIBS)
+libvirt_driver_xenapi_la_LIBADD = $(XENAPI_LIBS) $(CURL_LIBS)
 libvirt_driver_xenapi_la_SOURCES = $(XENAPI_DRIVER_SOURCES)
 endif WITH_XENAPI
 
@@ -1886,6 +1893,7 @@ access/viraccessapichecklxc.c: $(srcdir)/rpc/gendispatch.pl \
 # Add all conditional sources just in case...
 EXTRA_DIST +=							\
 		$(TEST_DRIVER_SOURCES)				\
+		$(TEST_DRIVER_ASSETS)				\
 		$(REMOTE_DRIVER_SOURCES)			\
 		$(XEN_DRIVER_SOURCES)				\
 		$(QEMU_DRIVER_SOURCES)				\
@@ -2241,7 +2249,7 @@ libvirt_la_LDFLAGS = \
 		$(NULL)
 libvirt_la_BUILT_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_la_LIBADD += \
-		    $(DRIVER_MODULE_LIBS) \
+		    $(DRIVER_MODULES_LIBS) \
 		    $(CYGWIN_EXTRA_LIBADD)
 libvirt_la_CFLAGS = -DIN_LIBVIRT $(AM_CFLAGS)
 # Because we specify libvirt_la_DEPENDENCIES for $(LIBVIRT_SYMBOL_FILE), we
@@ -2383,6 +2391,7 @@ libvirt_setuid_rpc_client_la_SOURCES = 		\
 		conf/object_event.c		\
 		conf/storage_event.c            \
 		conf/node_device_event.c	\
+		conf/secret_event.c		\
 		rpc/virnetsocket.c		\
 		rpc/virnetsocket.h		\
 		rpc/virnetmessage.h		\
@@ -3015,6 +3024,7 @@ endif WITH_LIBVIRTD
 endif WITH_SECDRIVER_APPARMOR
 EXTRA_DIST += $(SECURITY_DRIVER_APPARMOR_HELPER_SOURCES)
 
+if WITH_NSS
 noinst_LTLIBRARIES += libvirt-nss.la
 
 libvirt_nss_la_SOURCES =		\
@@ -3032,6 +3042,10 @@ libvirt_nss_la_SOURCES =		\
 		util/virerror.h			\
 		util/virfile.c			\
 		util/virfile.h			\
+		util/virhash.c			\
+		util/virhash.h			\
+		util/virhashcode.c		\
+		util/virhashcode.h		\
 		util/virjson.c			\
 		util/virjson.h			\
 		util/virkmod.c			\
@@ -3040,12 +3054,16 @@ libvirt_nss_la_SOURCES =		\
 		util/virlease.h			\
 		util/virlog.c			\
 		util/virlog.h			\
+		util/virmacmap.c		\
+		util/virmacmap.h		\
 		util/virobject.c		\
 		util/virobject.h		\
 		util/virpidfile.c		\
 		util/virpidfile.h		\
 		util/virprocess.c		\
 		util/virprocess.h		\
+		util/virrandom.c		\
+		util/virrandom.h		\
 		util/virsocketaddr.c	\
 		util/virsocketaddr.h	\
 		util/virstring.c		\
@@ -3072,6 +3090,7 @@ libvirt_nss_la_LDFLAGS =		\
 libvirt_nss_la_LIBADD =			\
 		$(YAJL_LIBS)			\
 		$(NULL)
+endif WITH_NSS
 
 
 install-data-local: install-init install-systemd

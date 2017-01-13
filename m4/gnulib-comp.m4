@@ -1,5 +1,5 @@
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# Copyright (C) 2002-2016 Free Software Foundation, Inc.
+# Copyright (C) 2002-2017 Free Software Foundation, Inc.
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -67,6 +67,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module bitrotate-tests:
   # Code from module btowc:
   # Code from module btowc-tests:
+  # Code from module builtin-expect:
   # Code from module byteswap:
   # Code from module byteswap-tests:
   # Code from module c-ctype:
@@ -220,6 +221,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module ioctl-tests:
   # Code from module isatty:
   # Code from module isatty-tests:
+  # Code from module isblank:
+  # Code from module isblank-tests:
   # Code from module isnand-nolibm:
   # Code from module isnand-nolibm-tests:
   # Code from module isnanf-nolibm:
@@ -554,6 +557,7 @@ AC_SUBST([LTALLOCA])
     gl_PREREQ_BTOWC
   fi
   gl_WCHAR_MODULE_INDICATOR([btowc])
+  gl___BUILTIN_EXPECT
   gl_BYTESWAP
   gl_FUNC_CALLOC_POSIX
   if test $REPLACE_CALLOC = 1; then
@@ -1379,6 +1383,11 @@ changequote([, ])dnl
   AC_C_BIGENDIAN
   gl_INTTYPES_H
   gl_INTTYPES_INCOMPLETE
+  gl_FUNC_ISBLANK
+  if test $HAVE_ISBLANK = 0; then
+    AC_LIBOBJ([isblank])
+  fi
+  gl_CTYPE_MODULE_INDICATOR([isblank])
   gl_FUNC_ISNAND_NO_LIBM
   if test $gl_func_isnand_no_libm != yes; then
     AC_LIBOBJ([isnand])
@@ -1980,6 +1989,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/autobuild.m4
   m4/base64.m4
   m4/btowc.m4
+  m4/builtin-expect.m4
   m4/byteswap.m4
   m4/calloc.m4
   m4/canonicalize.m4
@@ -2058,6 +2068,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/inttypes_h.m4
   m4/ioctl.m4
   m4/isatty.m4
+  m4/isblank.m4
   m4/isnand.m4
   m4/isnanf.m4
   m4/isnanl.m4
@@ -2125,6 +2136,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/posix_spawn.m4
   m4/printf.m4
   m4/pthread.m4
+  m4/pthread_rwlock_rdlock.m4
   m4/pthread_sigmask.m4
   m4/ptsname.m4
   m4/ptsname_r.m4
@@ -2316,9 +2328,9 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-getgroups.c
   tests/test-gethostname.c
   tests/test-getline.c
-  tests/test-getopt.c
+  tests/test-getopt-main.h
+  tests/test-getopt-posix.c
   tests/test-getopt.h
-  tests/test-getopt_long.h
   tests/test-getpeername.c
   tests/test-getprogname.c
   tests/test-getsockname.c
@@ -2333,6 +2345,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-inttypes.c
   tests/test-ioctl.c
   tests/test-isatty.c
+  tests/test-isblank.c
   tests/test-isnand-nolibm.c
   tests/test-isnand.h
   tests/test-isnanf-nolibm.c
@@ -2526,6 +2539,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/glthread/thread.h
   tests=lib/grantpt.c
   tests=lib/inttypes.in.h
+  tests=lib/isblank.c
   tests=lib/isnan.c
   tests=lib/isnand-nolibm.h
   tests=lib/isnand.c

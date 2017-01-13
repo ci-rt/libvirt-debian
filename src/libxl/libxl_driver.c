@@ -61,7 +61,7 @@
 #include "virhostdev.h"
 #include "network/bridge_driver.h"
 #include "locking/domain_lock.h"
-#include "virstats.h"
+#include "virnetdevtap.h"
 #include "cpu/cpu.h"
 
 #define VIR_FROM_THIS VIR_FROM_LIBXL
@@ -405,6 +405,8 @@ libxlReconnectDomain(virDomainObjPtr vm,
 
     /* Update domid in case it changed (e.g. reboot) while we were gone? */
     vm->def->id = d_info.domid;
+
+    libxlLoggerOpenFile(cfg->logger, vm->def->id, vm->def->name, NULL);
 
     /* Update hostdev state */
     if (virHostdevUpdateActiveDomainDevices(hostdev_mgr, LIBXL_DRIVER_NAME,
@@ -2363,6 +2365,13 @@ libxlDomainGetVcpusFlags(virDomainPtr dom, unsigned int flags)
 }
 
 static int
+libxlDomainGetMaxVcpus(virDomainPtr dom)
+{
+    return libxlDomainGetVcpusFlags(dom, (VIR_DOMAIN_AFFECT_LIVE |
+                                          VIR_DOMAIN_VCPU_MAXIMUM));
+}
+
+static int
 libxlDomainPinVcpuFlags(virDomainPtr dom, unsigned int vcpu,
                         unsigned char *cpumap, int maplen,
                         unsigned int flags)
@@ -3379,7 +3388,7 @@ libxlDomainAttachNetDevice(libxlDriverPrivatePtr driver,
         goto cleanup;
     }
 
-    if (libxlMakeNic(vm->def, net, &nic) < 0)
+    if (libxlMakeNic(vm->def, net, &nic, true) < 0)
         goto cleanup;
 
     if (libxl_device_nic_add(cfg->ctx, vm->def->id, &nic, 0)) {
@@ -4985,7 +4994,7 @@ libxlDomainInterfaceStats(virDomainPtr dom,
     }
 
     if (ret == 0)
-        ret = virNetInterfaceStats(path, stats);
+        ret = virNetDevTapInterfaceStats(path, stats);
     else
         virReportError(VIR_ERR_INVALID_ARG,
                        _("'%s' is not a known interface"), path);
@@ -6446,6 +6455,7 @@ static virHypervisorDriver libxlHypervisorDriver = {
     .domainSetVcpus = libxlDomainSetVcpus, /* 0.9.0 */
     .domainSetVcpusFlags = libxlDomainSetVcpusFlags, /* 0.9.0 */
     .domainGetVcpusFlags = libxlDomainGetVcpusFlags, /* 0.9.0 */
+    .domainGetMaxVcpus = libxlDomainGetMaxVcpus, /* 3.0.0 */
     .domainPinVcpu = libxlDomainPinVcpu, /* 0.9.0 */
     .domainPinVcpuFlags = libxlDomainPinVcpuFlags, /* 1.2.1 */
     .domainGetVcpus = libxlDomainGetVcpus, /* 0.9.0 */

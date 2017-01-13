@@ -24,7 +24,6 @@
 #include <config.h>
 #include "virstoragefile.h"
 
-#include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdlib.h>
@@ -798,7 +797,7 @@ virStorageIsRelative(const char *backing)
 }
 
 
-int
+static int
 virStorageFileProbeFormatFromBuf(const char *path,
                                  char *buf,
                                  size_t buflen)
@@ -2083,7 +2082,7 @@ virStorageSourceGetActualType(const virStorageSource *def)
 
 
 bool
-virStorageSourceIsLocalStorage(virStorageSourcePtr src)
+virStorageSourceIsLocalStorage(const virStorageSource *src)
 {
     virStorageType type = virStorageSourceGetActualType(src);
 
@@ -2991,7 +2990,7 @@ static const struct virStorageSourceJSONDriverParser jsonParsers[] = {
 
 static int
 virStorageSourceParseBackingJSONDeflattenWorker(const char *key,
-                                                const virJSONValue *value,
+                                                virJSONValuePtr value,
                                                 void *opaque)
 {
     virJSONValuePtr retobj = opaque;
@@ -3175,40 +3174,176 @@ virStorageSourceNewFromBacking(virStorageSourcePtr parent)
 
 
 /**
- * @src: disk source definiton structure
- * @report: report libvirt errors if set to true
+ * @src: disk source definition structure
+ * @fd: file descriptor
+ * @sb: stat buffer
  *
- * Updates src->physical for block devices since qemu doesn't report the current
- * size correctly for them. Returns 0 on success, -1 on error.
+ * Updates src->physical depending on the actual type of storage being used.
+ * To be called for domain storage source reporting as the volume code does
+ * not set/use the 'type' field for the voldef->source.target
+ *
+ * Returns 0 on success, -1 on error.
  */
 int
-virStorageSourceUpdateBlockPhysicalSize(virStorageSourcePtr src,
-                                        bool report)
+virStorageSourceUpdatePhysicalSize(virStorageSourcePtr src,
+                                   int fd,
+                                   struct stat const *sb)
 {
-    int fd = -1;
     off_t end;
-    int ret = -1;
+    virStorageType actual_type = virStorageSourceGetActualType(src);
 
-    if (virStorageSourceGetActualType(src) != VIR_STORAGE_TYPE_BLOCK)
-        return 0;
+    switch (actual_type) {
+    case VIR_STORAGE_TYPE_FILE:
+    case VIR_STORAGE_TYPE_NETWORK:
+        src->physical = sb->st_size;
+        break;
 
-    if ((fd = open(src->path, O_RDONLY)) < 0) {
-        if (report)
-            virReportSystemError(errno, _("failed to open block device '%s'"),
+    case VIR_STORAGE_TYPE_BLOCK:
+        if ((end = lseek(fd, 0, SEEK_END)) == (off_t) -1) {
+            virReportSystemError(errno, _("failed to seek to end of '%s'"),
                                  src->path);
-        return -1;
-    }
+            return -1;
+        }
 
-    if ((end = lseek(fd, 0, SEEK_END)) == (off_t) -1) {
-        if (report)
-            virReportSystemError(errno,
-                                 _("failed to seek to end of '%s'"), src->path);
-    } else {
         src->physical = end;
-        ret = 0;
+        break;
+
+    case VIR_STORAGE_TYPE_DIR:
+        src->physical = 0;
+        break;
+
+    /* We shouldn't get VOLUME, but the switch requires all cases */
+    case VIR_STORAGE_TYPE_VOLUME:
+    case VIR_STORAGE_TYPE_NONE:
+    case VIR_STORAGE_TYPE_LAST:
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                      _("cannot retrieve physical for path '%s' type '%s'"),
+                      NULLSTR(src->path),
+                      virStorageTypeToString(actual_type));
+        return -1;
+        break;
     }
 
-    VIR_FORCE_CLOSE(fd);
+    return 0;
+}
+
+
+/**
+ * @src: disk source definition structure
+ * @fd: file descriptor
+ * @sb: stat buffer
+ *
+ * Update the capacity, allocation, physical values for the storage @src
+ * Shared between the domain storage source for an inactive domain and the
+ * voldef source target as the result is not affected by the 'type' field.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+int
+virStorageSourceUpdateBackingSizes(virStorageSourcePtr src,
+                                   int fd,
+                                   struct stat const *sb)
+{
+    /* Get info for normal formats */
+    if (S_ISREG(sb->st_mode) || fd == -1) {
+#ifndef WIN32
+        src->allocation = (unsigned long long)sb->st_blocks *
+            (unsigned long long)DEV_BSIZE;
+#else
+        src->allocation = sb->st_size;
+#endif
+        /* Regular files may be sparse, so logical size (capacity) is not same
+         * as actual allocation above
+         */
+        src->capacity = sb->st_size;
+
+        /* Allocation tracks when the file is sparse, physical is the
+         * last offset of the file. */
+        src->physical = sb->st_size;
+    } else if (S_ISDIR(sb->st_mode)) {
+        src->allocation = 0;
+        src->capacity = 0;
+        src->physical = 0;
+    } else if (fd >= 0) {
+        off_t end;
+
+        /* XXX this is POSIX compliant, but doesn't work for CHAR files,
+         * only BLOCK. There is a Linux specific ioctl() for getting
+         * size of both CHAR / BLOCK devices we should check for in
+         * configure
+         *
+         * NB. Because we configure with AC_SYS_LARGEFILE, off_t
+         * should be 64 bits on all platforms.  For block devices, we
+         * have to seek (safe even if someone else is writing) to
+         * determine physical size, and assume that allocation is the
+         * same as physical (but can refine that assumption later if
+         * qemu is still running).
+         */
+        if ((end = lseek(fd, 0, SEEK_END)) == (off_t)-1) {
+            virReportSystemError(errno,
+                                 _("failed to seek to end of %s"), src->path);
+            return -1;
+        }
+        src->physical = end;
+        src->allocation = end;
+        src->capacity = end;
+    }
+
+    return 0;
+}
+
+
+/**
+ * @src: disk source definition structure
+ * @buf: buffer to the storage file header
+ * @len: length of the storage file header
+ * @probe: allow probe
+ *
+ * Update the storage @src capacity. This may involve probing the storage
+ * @src in order to "see" if we can recognize what exists.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+int
+virStorageSourceUpdateCapacity(virStorageSourcePtr src,
+                               char *buf,
+                               ssize_t len,
+                               bool probe)
+{
+    int ret = -1;
+    virStorageSourcePtr meta = NULL;
+    int format = src->format;
+
+    /* Raw files: capacity is physical size.  For all other files: if
+     * the metadata has a capacity, use that, otherwise fall back to
+     * physical size.  */
+    if (format == VIR_STORAGE_FILE_NONE) {
+        if (!probe) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("no disk format for %s and probing is disabled"),
+                           src->path);
+            goto cleanup;
+        }
+
+        if ((format = virStorageFileProbeFormatFromBuf(src->path,
+                                                       buf, len)) < 0)
+            goto cleanup;
+
+        src->format = format;
+    }
+
+    if (format == VIR_STORAGE_FILE_RAW)
+        src->capacity = src->physical;
+    else if ((meta = virStorageFileGetMetadataFromBuf(src->path, buf,
+                                                      len, format, NULL)))
+        src->capacity = meta->capacity ? meta->capacity : src->physical;
+    else
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    virStorageSourceFree(meta);
     return ret;
 }
 
@@ -3536,4 +3671,35 @@ virStorageFileCheckCompat(const char *compat)
  cleanup:
     virStringListFree(version);
     return ret;
+}
+
+
+/**
+ * virStorageSourceIsRelative:
+ * @src: storage source to check
+ *
+ * Returns true if given storage source definition is a relative path.
+ */
+bool
+virStorageSourceIsRelative(virStorageSourcePtr src)
+{
+    virStorageType actual_type = virStorageSourceGetActualType(src);
+
+    if (!src->path)
+        return false;
+
+    switch (actual_type) {
+    case VIR_STORAGE_TYPE_FILE:
+    case VIR_STORAGE_TYPE_BLOCK:
+    case VIR_STORAGE_TYPE_DIR:
+        return src->path[0] != '/';
+
+    case VIR_STORAGE_TYPE_NETWORK:
+    case VIR_STORAGE_TYPE_VOLUME:
+    case VIR_STORAGE_TYPE_NONE:
+    case VIR_STORAGE_TYPE_LAST:
+        return false;
+    }
+
+    return false;
 }

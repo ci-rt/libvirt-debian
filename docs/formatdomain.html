@@ -1262,7 +1262,11 @@
           understand. Though the downside of this mode is that the guest
           environment cannot be reproduced on different hardware. Thus, if you
           hit any bugs, you are on your own. Further details of that CPU can
-          be changed using <code>feature</code> elements.</dd></dl>
+          be changed using <code>feature</code> elements. Migration of a guest
+          using host-passthrough is dangerous if the source and destination
+          hosts are not identical in both hardware and configuration. If such
+          a migration is attempted then the guest may hang or crash upon
+          resuming execution on the destination host.</dd></dl>
 
         In both <code>host-model</code> and <code>host-passthrough</code>
         mode, the real (approximate in <code>host-passthrough</code> mode) CPU
@@ -1683,10 +1687,21 @@
   &lt;event name='instructions' enabled='yes'/&gt;
   &lt;event name='cache_references' enabled='no'/&gt;
   &lt;event name='cache_misses' enabled='no'/&gt;
+  &lt;event name='branch_instructions' enabled='no'/&gt;
+  &lt;event name='branch_misses' enabled='no'/&gt;
+  &lt;event name='bus_cycles' enabled='no'/&gt;
+  &lt;event name='stalled_cycles_frontend' enabled='no'/&gt;
+  &lt;event name='stalled_cycles_backend' enabled='no'/&gt;
+  &lt;event name='ref_cpu_cycles' enabled='no'/&gt;
+  &lt;event name='cache_l1d' enabled='no'/&gt;
 &lt;/perf&gt;
 ...
 </pre>
-        <table class="top_table"><tr><th rowspan="1" colspan="1">event name</th><th rowspan="1" colspan="1">Description</th><th rowspan="1" colspan="1">stats parameter name</th></tr><tr><td rowspan="1" colspan="1"><code>cmt</code></td><td rowspan="1" colspan="1">usage of l3 cache in bytes by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.cmt</code></td></tr><tr><td rowspan="1" colspan="1"><code>mbmt</code></td><td rowspan="1" colspan="1">total system bandwidth from one level of cache</td><td rowspan="1" colspan="1"><code>perf.mbmt</code></td></tr><tr><td rowspan="1" colspan="1"><code>mbml</code></td><td rowspan="1" colspan="1">bandwidth of memory traffic for a memory controller</td><td rowspan="1" colspan="1"><code>perf.mbml</code></td></tr><tr><td rowspan="1" colspan="1"><code>cpu_cycles</code></td><td rowspan="1" colspan="1">the count of cpu cycles (total/elapsed)</td><td rowspan="1" colspan="1"><code>perf.cpu_cycles</code></td></tr><tr><td rowspan="1" colspan="1"><code>instructions</code></td><td rowspan="1" colspan="1">the count of instructions by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.instructions</code></td></tr><tr><td rowspan="1" colspan="1"><code>cache_references</code></td><td rowspan="1" colspan="1">the count of cache hits by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.cache_references</code></td></tr><tr><td rowspan="1" colspan="1"><code>cache_misses</code></td><td rowspan="1" colspan="1">the count of cache misses by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.cache_misses</code></td></tr></table>
+        <table class="top_table"><tr><th rowspan="1" colspan="1">event name</th><th rowspan="1" colspan="1">Description</th><th rowspan="1" colspan="1">stats parameter name</th></tr><tr><td rowspan="1" colspan="1"><code>cmt</code></td><td rowspan="1" colspan="1">usage of l3 cache in bytes by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.cmt</code></td></tr><tr><td rowspan="1" colspan="1"><code>mbmt</code></td><td rowspan="1" colspan="1">total system bandwidth from one level of cache</td><td rowspan="1" colspan="1"><code>perf.mbmt</code></td></tr><tr><td rowspan="1" colspan="1"><code>mbml</code></td><td rowspan="1" colspan="1">bandwidth of memory traffic for a memory controller</td><td rowspan="1" colspan="1"><code>perf.mbml</code></td></tr><tr><td rowspan="1" colspan="1"><code>cpu_cycles</code></td><td rowspan="1" colspan="1">the count of cpu cycles (total/elapsed)</td><td rowspan="1" colspan="1"><code>perf.cpu_cycles</code></td></tr><tr><td rowspan="1" colspan="1"><code>instructions</code></td><td rowspan="1" colspan="1">the count of instructions by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.instructions</code></td></tr><tr><td rowspan="1" colspan="1"><code>cache_references</code></td><td rowspan="1" colspan="1">the count of cache hits by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.cache_references</code></td></tr><tr><td rowspan="1" colspan="1"><code>cache_misses</code></td><td rowspan="1" colspan="1">the count of cache misses by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.cache_misses</code></td></tr><tr><td rowspan="1" colspan="1"><code>branch_instructions</code></td><td rowspan="1" colspan="1">the count of branch instructions by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.branch_instructions</code></td></tr><tr><td rowspan="1" colspan="1"><code>branch_misses</code></td><td rowspan="1" colspan="1">the count of branch misses by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.branch_misses</code></td></tr><tr><td rowspan="1" colspan="1"><code>bus_cycles</code></td><td rowspan="1" colspan="1">the count of bus cycles by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.bus_cycles</code></td></tr><tr><td rowspan="1" colspan="1"><code>stalled_cycles_frontend</code></td><td rowspan="1" colspan="1">the count of stalled cpu cycles in the frontend of the instruction
+          processor pipeline by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.stalled_cycles_frontend</code></td></tr><tr><td rowspan="1" colspan="1"><code>stalled_cycles_backend</code></td><td rowspan="1" colspan="1">the count of stalled cpu cycles in the backend of the instruction
+          processor pipeline by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.stalled_cycles_backend</code></td></tr><tr><td rowspan="1" colspan="1"><code>ref_cpu_cycles</code></td><td rowspan="1" colspan="1">the count of total cpu cycles not affected by CPU frequency scaling
+         by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.ref_cpu_cycles</code></td></tr><tr><td rowspan="1" colspan="1"><code>cache_l1d</code></td><td rowspan="1" colspan="1">the count of total level 1 data cache by applications running on
+           the platform</td><td rowspan="1" colspan="1"><code>perf.cache_l1d</code></td></tr></table>
         <h3>
           <a name="elementsDevices" shape="rect" id="elementsDevices">Devices</a>
           <a class="headerlink" href="#elementsDevices" title="Permalink to this headline">¶</a>
@@ -2201,6 +2216,15 @@
           <p>
             <span class="since">Throughput limits since 1.2.11 and QEMU 1.7</span>
           </p>
+          </dd><dt><code>group_name</code></dt><dd>The optional <code>group_name</code> provides the cability
+            to share I/O throttling quota between multiple drives. This
+            prevents end-users from circumventing a hosting provider's
+            throttling policy by splitting 1 large drive in N small drives
+            and getting N times the normal throttling quota. Any name may
+            be used.
+          <p>
+            <span class="since">group_name since 3.0.0 and QEMU 2.4</span>
+          </p>
           </dd><dt><code>total_bytes_sec_max_length</code></dt><dd>The optional <code>total_bytes_sec_max_length</code>
             element is the maximum duration in seconds for the
             <code>total_bytes_sec_max</code> burst period. Only valid
@@ -2651,7 +2675,13 @@
         currently only available for some <code>armv7l</code> and
         <code>aarch64</code> virtual machines. virtio-mmio addresses
         do not have any additional attributes.
-        <span class="since">Since 1.1.3</span>
+        <span class="since">Since 1.1.3</span><br />
+        If the guest architecture is <code>aarch64</code> and the machine
+        type is <code>virt</code>, libvirt will automatically assign PCI
+        addresses to devices; however, the presence of a single device
+        with virtio-mmio address in the guest configuration will cause
+        libvirt to assign virtio-mmio addresses to all further devices.
+        <span class="since">Since 3.0.0</span>
       </dd><dt><code>isa</code></dt><dd>ISA addresses have the following additional
         attributes: <code>iobase</code> and <code>irq</code>.
         <span class="since">Since 1.2.1</span>

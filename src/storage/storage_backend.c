@@ -42,6 +42,10 @@
 # endif
 #endif
 
+#if WITH_BLKID
+# include <blkid/blkid.h>
+#endif
+
 #if WITH_SELINUX
 # include <selinux/selinux.h>
 #endif
@@ -630,7 +634,7 @@ virStorageGenerateQcowEncryption(virConnectPtr conn,
         goto cleanup;
 
     def->usage_type = VIR_SECRET_USAGE_TYPE_VOLUME;
-    if (VIR_STRDUP(def->usage.volume, vol->target.path) < 0)
+    if (VIR_STRDUP(def->usage_id, vol->target.path) < 0)
         goto cleanup;
     xml = virSecretDefFormat(def);
     virSecretDefFree(def);
@@ -1884,7 +1888,6 @@ virStorageBackendUpdateVolTargetInfo(virStorageSourcePtr target,
 {
     int ret, fd = -1;
     struct stat sb;
-    virStorageSourcePtr meta = NULL;
     char *buf = NULL;
     ssize_t len = VIR_STORAGE_MAX_HEADER;
 
@@ -1929,14 +1932,10 @@ virStorageBackendUpdateVolTargetInfo(virStorageSourcePtr target,
             goto cleanup;
         }
 
-        if (!(meta = virStorageFileGetMetadataFromBuf(target->path, buf, len, target->format,
-                                                      NULL))) {
+        if (virStorageSourceUpdateCapacity(target, buf, len, false) < 0) {
             ret = -1;
             goto cleanup;
         }
-
-        if (meta->capacity)
-            target->capacity = meta->capacity;
     }
 
     if (withBlockVolFormat) {
@@ -1946,7 +1945,6 @@ virStorageBackendUpdateVolTargetInfo(virStorageSourcePtr target,
     }
 
  cleanup:
-    virStorageSourceFree(meta);
     VIR_FORCE_CLOSE(fd);
     VIR_FREE(buf);
     return ret;
@@ -2004,37 +2002,8 @@ virStorageBackendUpdateVolTargetInfoFD(virStorageSourcePtr target,
     security_context_t filecon = NULL;
 #endif
 
-    if (S_ISREG(sb->st_mode)) {
-#ifndef WIN32
-        target->allocation = (unsigned long long)sb->st_blocks *
-            (unsigned long long)DEV_BSIZE;
-#else
-        target->allocation = sb->st_size;
-#endif
-        /* Regular files may be sparse, so logical size (capacity) is not same
-         * as actual allocation above
-         */
-        target->capacity = sb->st_size;
-    } else if (S_ISDIR(sb->st_mode)) {
-        target->allocation = 0;
-        target->capacity = 0;
-    } else if (fd >= 0) {
-        off_t end;
-        /* XXX this is POSIX compliant, but doesn't work for CHAR files,
-         * only BLOCK. There is a Linux specific ioctl() for getting
-         * size of both CHAR / BLOCK devices we should check for in
-         * configure
-         */
-        end = lseek(fd, 0, SEEK_END);
-        if (end == (off_t)-1) {
-            virReportSystemError(errno,
-                                 _("cannot seek to end of file '%s'"),
-                                 target->path);
-            return -1;
-        }
-        target->allocation = end;
-        target->capacity = end;
-    }
+    if (virStorageSourceUpdateBackingSizes(target, fd, sb) < 0)
+        return -1;
 
     if (!target->perms && VIR_ALLOC(target->perms) < 0)
         return -1;
@@ -2667,3 +2636,267 @@ virStorageBackendFindGlusterPoolSources(const char *host ATTRIBUTE_UNUSED,
     return 0;
 }
 #endif /* #ifdef GLUSTER_CLI */
+
+
+#if WITH_BLKID
+
+typedef enum {
+    VIR_STORAGE_BLKID_PROBE_ERROR = -1,
+    VIR_STORAGE_BLKID_PROBE_UNDEFINED, /* Nothing found */
+    VIR_STORAGE_BLKID_PROBE_UNKNOWN,   /* Don't know libvirt fs/part type */
+    VIR_STORAGE_BLKID_PROBE_MATCH,     /* Matches the on disk format */
+    VIR_STORAGE_BLKID_PROBE_DIFFERENT, /* Format doesn't match on disk format */
+} virStorageBackendBLKIDProbeResult;
+
+/*
+ * Utility function to probe for a file system on the device using the
+ * blkid "superblock" (e.g. default) APIs.
+ *
+ * NB: In general this helper will handle the virStoragePoolFormatFileSystem
+ *     format types; however, if called from the Disk path, the initial fstype
+ *     check will fail forcing the usage of the ProbePart helper.
+ *
+ * Returns virStorageBackendBLKIDProbeResult enum
+ */
+static virStorageBackendBLKIDProbeResult
+virStorageBackendBLKIDFindFS(blkid_probe probe,
+                             const char *device,
+                             const char *format)
+{
+    const char *fstype = NULL;
+
+    /* Make sure we're doing a superblock probe from the start */
+    blkid_probe_enable_superblocks(probe, true);
+    blkid_probe_reset_superblocks_filter(probe);
+
+    if (blkid_do_probe(probe) != 0) {
+        VIR_INFO("No filesystem found on device '%s'", device);
+        return VIR_STORAGE_BLKID_PROBE_UNDEFINED;
+    }
+
+    if (blkid_probe_lookup_value(probe, "TYPE", &fstype, NULL) == 0) {
+        if (STREQ(fstype, format))
+            return VIR_STORAGE_BLKID_PROBE_MATCH;
+
+        return VIR_STORAGE_BLKID_PROBE_DIFFERENT;
+    }
+
+    if (blkid_known_fstype(format) == 0)
+        return VIR_STORAGE_BLKID_PROBE_UNKNOWN;
+
+    return VIR_STORAGE_BLKID_PROBE_ERROR;
+}
+
+
+/*
+ * Utility function to probe for a partition on the device using the
+ * blkid "partitions" APIs.
+ *
+ * NB: In general, this API will be validating the virStoragePoolFormatDisk
+ *     format types.
+ *
+ * Returns virStorageBackendBLKIDProbeResult enum
+ */
+static virStorageBackendBLKIDProbeResult
+virStorageBackendBLKIDFindPart(blkid_probe probe,
+                               const char *device,
+                               const char *format)
+{
+    const char *pttype = NULL;
+
+    /* A blkid_known_pttype on "dvh" and "pc98" returns a failure;
+     * however, the blkid_do_probe for "dvh" returns "sgi" and
+     * for "pc98" it returns "dos". So since those will cause problems
+     * with startup comparison, let's just treat them as UNKNOWN causing
+     * the caller to fallback to using PARTED */
+    if (STREQ(format, "dvh") || STREQ(format, "pc98"))
+        return VIR_STORAGE_BLKID_PROBE_UNKNOWN;
+
+    /* Make sure we're doing a partitions probe from the start */
+    blkid_probe_enable_partitions(probe, true);
+    blkid_probe_reset_partitions_filter(probe);
+
+    if (blkid_do_probe(probe) != 0) {
+        VIR_INFO("No partition found on device '%s'", device);
+        return VIR_STORAGE_BLKID_PROBE_UNDEFINED;
+    }
+
+    if (blkid_probe_lookup_value(probe, "PTTYPE", &pttype, NULL) == 0) {
+        if (STREQ(pttype, format))
+            return VIR_STORAGE_BLKID_PROBE_MATCH;
+
+        return VIR_STORAGE_BLKID_PROBE_DIFFERENT;
+    }
+
+    if (blkid_known_pttype(format) == 0)
+        return VIR_STORAGE_BLKID_PROBE_UNKNOWN;
+
+    return VIR_STORAGE_BLKID_PROBE_ERROR;
+}
+
+
+/*
+ * @device: Path to device
+ * @format: Desired format
+ * @writelabel: True if desire to write the label
+ *
+ * Use the blkid_ APIs in order to get details regarding whether a file
+ * system or partition exists on the disk already.
+ *
+ * Returns:
+ *   -2: Force usage of PARTED for unknown types
+ *   -1: An error was encountered, with error message set
+ *    0: No file system found
+ */
+static int
+virStorageBackendBLKIDFindEmpty(const char *device,
+                                const char *format,
+                                bool writelabel)
+{
+
+    int ret = -1;
+    int rc;
+    blkid_probe probe = NULL;
+
+    VIR_DEBUG("Probe for existing filesystem/partition format %s on device %s",
+              format, device);
+
+    if (!(probe = blkid_new_probe_from_filename(device))) {
+        virReportError(VIR_ERR_STORAGE_PROBE_FAILED,
+                       _("Failed to create filesystem probe for device %s"),
+                       device);
+        return -1;
+    }
+
+    /* Look for something on FS, if it either doesn't recognize the
+     * format type as a valid FS format type or it doesn't find a valid
+     * format type on the device, then perform the same check using
+     * partition probing. */
+    rc = virStorageBackendBLKIDFindFS(probe, device, format);
+    if (rc == VIR_STORAGE_BLKID_PROBE_UNDEFINED ||
+        rc == VIR_STORAGE_BLKID_PROBE_UNKNOWN) {
+
+        rc = virStorageBackendBLKIDFindPart(probe, device, format);
+        if (rc == VIR_STORAGE_BLKID_PROBE_UNKNOWN) {
+            ret = -2;
+            goto cleanup;
+        }
+    }
+
+    switch (rc) {
+    case VIR_STORAGE_BLKID_PROBE_UNDEFINED:
+        if (writelabel)
+            ret = 0;
+        else
+            virReportError(VIR_ERR_STORAGE_PROBE_FAILED,
+                           _("Device '%s' is unrecognized, requires build"),
+                           device);
+        break;
+
+    case VIR_STORAGE_BLKID_PROBE_ERROR:
+        virReportError(VIR_ERR_STORAGE_PROBE_FAILED,
+                       _("Failed to probe for format type '%s'"), format);
+        break;
+
+    case VIR_STORAGE_BLKID_PROBE_UNKNOWN:
+        virReportError(VIR_ERR_STORAGE_PROBE_FAILED,
+                       _("Not capable of probing for format type '%s', "
+                         "requires build --overwrite"),
+                       format);
+        break;
+
+    case VIR_STORAGE_BLKID_PROBE_MATCH:
+        if (writelabel)
+            virReportError(VIR_ERR_STORAGE_POOL_BUILT,
+                           _("Device '%s' already formatted using '%s'"),
+                           device, format);
+        else
+            ret = 0;
+        break;
+
+    case VIR_STORAGE_BLKID_PROBE_DIFFERENT:
+        virReportError(VIR_ERR_STORAGE_POOL_BUILT,
+                       _("Device '%s' formatted cannot overwrite using '%s', "
+                         "requires build --overwrite"),
+                       device, format);
+        break;
+    }
+
+    if (ret == 0 && blkid_do_probe(probe) != 1) {
+        virReportError(VIR_ERR_STORAGE_PROBE_FAILED, "%s",
+                       _("Found additional probes to run, probing may "
+                         "be incorrect"));
+        ret = -1;
+    }
+
+ cleanup:
+    blkid_free_probe(probe);
+
+    return ret;
+}
+
+#else /* #if WITH_BLKID */
+
+static int
+virStorageBackendBLKIDFindEmpty(const char *device ATTRIBUTE_UNUSED,
+                                const char *format ATTRIBUTE_UNUSED,
+                                bool writelabel ATTRIBUTE_UNUSED)
+{
+    virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                   _("probing for filesystems is unsupported "
+                     "by this build"));
+    return -2;
+}
+
+#endif /* #if WITH_BLKID */
+
+
+#if WITH_STORAGE_DISK
+
+static int
+virStorageBackendPARTEDValidLabel(const char *device,
+                                  const char *format,
+                                  bool writelabel)
+{
+    return virStorageBackendDiskValidLabel(device, format, writelabel);
+}
+
+#else
+
+static int
+virStorageBackendPARTEDValidLabel(const char *device ATTRIBUTE_UNUSED,
+                                  const char *format ATTRIBUTE_UNUSED,
+                                  bool writelabel ATTRIBUTE_UNUSED)
+{
+    virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                   _("PARTED is unsupported by this build"));
+    return -1;
+}
+
+#endif /* #if WITH_STORAGE_DISK */
+
+
+/* virStorageBackendDeviceIsEmpty:
+ * @devpath: Path to the device to check
+ * @format: Desired format string
+ * @writelabel: True if the caller expects to write the label
+ *
+ * Check if the @devpath has some sort of known file system using the
+ * BLKID API if available.
+ *
+ * Returns true if the probe deems the device has nothing valid on it
+ * and returns false if the probe finds something
+ */
+bool
+virStorageBackendDeviceIsEmpty(const char *devpath,
+                               const char *format,
+                               bool writelabel)
+{
+    int ret;
+
+    if ((ret = virStorageBackendBLKIDFindEmpty(devpath, format,
+                                               writelabel)) == -2)
+        ret = virStorageBackendPARTEDValidLabel(devpath, format, writelabel);
+
+    return ret == 0;
+}

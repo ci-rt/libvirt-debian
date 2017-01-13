@@ -2721,6 +2721,12 @@ static int testDomainSetMetadata(virDomainPtr dom,
                                   privconn->caps, privconn->xmlopt,
                                   NULL, NULL, flags);
 
+    if (ret == 0) {
+        virObjectEventPtr ev = NULL;
+        ev = virDomainEventMetadataChangeNewFromObj(privdom, type, uri);
+        testObjectEventQueue(privconn, ev);
+    }
+
     virDomainObjEndAPI(&privdom);
     return ret;
 }
@@ -5923,7 +5929,7 @@ testDomainScreenshot(virDomainPtr dom ATTRIBUTE_UNUSED,
     if (VIR_STRDUP(ret, "image/png") < 0)
         return NULL;
 
-    if (virFDStreamOpenFile(st, PKGDATADIR "/libvirtLogo.png", 0, 0, O_RDONLY) < 0)
+    if (virFDStreamOpenFile(st, PKGDATADIR "/test-screenshot.png", 0, 0, O_RDONLY) < 0)
         VIR_FREE(ret);
 
     return ret;

@@ -64,6 +64,83 @@ virStorageBackendLogicalSetActive(virStoragePoolObjPtr pool,
 }
 
 
+/*
+ * @path: Path to the device
+ *
+ * Remove the pv device since we're done with it. This ensures a subsequent
+ * create won't require special arguments in order for force recreation.
+ */
+static void
+virStorageBackendLogicalRemoveDevice(const char *path)
+{
+    virCommandPtr cmd = virCommandNewArgList(PVREMOVE, path, NULL);
+
+    if (virCommandRun(cmd, NULL) < 0)
+        VIR_INFO("Failed to pvremove logical device '%s'", path);
+    virCommandFree(cmd);
+}
+
+
+/*
+ * @path: Path to the device
+ *
+ * Initialize and pvcreate the device.
+ *
+ * Returns 0 on success, -1 on failure with error message set
+ */
+static int
+virStorageBackendLogicalInitializeDevice(const char *path)
+{
+    int fd = -1;
+    char zeros[PV_BLANK_SECTOR_SIZE] = {0};
+    int ret = -1;
+    virCommandPtr pvcmd = NULL;
+
+    /*
+     * LVM requires that the first sector is blanked if using
+     * a whole disk as a PV. So we just blank them out regardless
+     * rather than trying to figure out if we're a disk or partition
+     */
+    if ((fd = open(path, O_WRONLY)) < 0) {
+        virReportSystemError(errno, _("cannot open device '%s'"), path);
+        return -1;
+    }
+
+    if (safewrite(fd, zeros, sizeof(zeros)) < 0) {
+        virReportSystemError(errno, _("cannot clear device header of '%s'"),
+                             path);
+        goto cleanup;
+    }
+
+    if (fsync(fd) < 0) {
+        virReportSystemError(errno, _("cannot flush header of device'%s'"),
+                             path);
+        goto cleanup;
+    }
+
+    if (VIR_CLOSE(fd) < 0) {
+        virReportSystemError(errno, _("cannot close device '%s'"), path);
+        goto cleanup;
+    }
+
+    /*
+     * Initialize the physical volume because vgcreate is not
+     * clever enough todo this for us :-(
+     */
+    pvcmd = virCommandNewArgList(PVCREATE, path, NULL);
+    if (virCommandRun(pvcmd, NULL) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    VIR_FORCE_CLOSE(fd);
+    virCommandFree(pvcmd);
+
+    return ret;
+}
+
+
 #define VIR_STORAGE_VOL_LOGICAL_SEGTYPE_STRIPED "striped"
 #define VIR_STORAGE_VOL_LOGICAL_SEGTYPE_MIRROR  "mirror"
 #define VIR_STORAGE_VOL_LOGICAL_SEGTYPE_RAID    "raid"
@@ -666,6 +743,19 @@ static int
 virStorageBackendLogicalStartPool(virConnectPtr conn ATTRIBUTE_UNUSED,
                                   virStoragePoolObjPtr pool)
 {
+    size_t i;
+
+    /* Let's make sure the pool's devices are properly formatted */
+    for (i = 0; i < pool->def->source.ndevice; i++) {
+        const char *path = pool->def->source.devices[i].path;
+
+        /* The blkid FS and Part probing code doesn't know "lvm2" (this
+         * pool's only format type), but it does know "LVM2_member", so
+         * we'll pass that here */
+        if (!virStorageBackendDeviceIsEmpty(path, "LVM2_member", false))
+            return -1;
+    }
+
     /* Let's make sure that the pool's name matches the pvs output and
      * that the pool's source devices match the pvs output.
      */
@@ -682,66 +772,33 @@ virStorageBackendLogicalBuildPool(virConnectPtr conn ATTRIBUTE_UNUSED,
                                   virStoragePoolObjPtr pool,
                                   unsigned int flags)
 {
-    virCommandPtr vgcmd;
-    int fd;
-    char zeros[PV_BLANK_SECTOR_SIZE];
+    virCommandPtr vgcmd = NULL;
     int ret = -1;
-    size_t i;
+    size_t i = 0;
 
-    virCheckFlags(0, -1);
+    virCheckFlags(VIR_STORAGE_POOL_BUILD_OVERWRITE |
+                  VIR_STORAGE_POOL_BUILD_NO_OVERWRITE, ret);
 
-    memset(zeros, 0, sizeof(zeros));
+    VIR_EXCLUSIVE_FLAGS_GOTO(VIR_STORAGE_POOL_BUILD_OVERWRITE,
+                             VIR_STORAGE_POOL_BUILD_NO_OVERWRITE,
+                             cleanup);
 
     vgcmd = virCommandNewArgList(VGCREATE, pool->def->source.name, NULL);
 
     for (i = 0; i < pool->def->source.ndevice; i++) {
-        virCommandPtr pvcmd;
-        /*
-         * LVM requires that the first sector is blanked if using
-         * a whole disk as a PV. So we just blank them out regardless
-         * rather than trying to figure out if we're a disk or partition
-         */
-        if ((fd = open(pool->def->source.devices[i].path, O_WRONLY)) < 0) {
-            virReportSystemError(errno,
-                                 _("cannot open device '%s'"),
-                                 pool->def->source.devices[i].path);
-            goto cleanup;
-        }
-        if (safewrite(fd, zeros, sizeof(zeros)) < 0) {
-            virReportSystemError(errno,
-                                 _("cannot clear device header of '%s'"),
-                                 pool->def->source.devices[i].path);
-            VIR_FORCE_CLOSE(fd);
-            goto cleanup;
-        }
-        if (fsync(fd) < 0) {
-            virReportSystemError(errno,
-                                 _("cannot flush header of device'%s'"),
-                                 pool->def->source.devices[i].path);
-            VIR_FORCE_CLOSE(fd);
-            goto cleanup;
-        }
-        if (VIR_CLOSE(fd) < 0) {
-            virReportSystemError(errno,
-                                 _("cannot close device '%s'"),
-                                 pool->def->source.devices[i].path);
-            goto cleanup;
-        }
+        const char *path = pool->def->source.devices[i].path;
 
-        /*
-         * Initialize the physical volume because vgcreate is not
-         * clever enough todo this for us :-(
-         */
-        pvcmd = virCommandNewArgList(PVCREATE,
-                                     pool->def->source.devices[i].path,
-                                     NULL);
-        if (virCommandRun(pvcmd, NULL) < 0) {
-            virCommandFree(pvcmd);
+        /* The blkid FS and Part probing code doesn't know "lvm2" (this
+         * pool's only format type), but it does know "LVM2_member", so
+         * we'll pass that here */
+        if (!(flags & VIR_STORAGE_POOL_BUILD_OVERWRITE) &&
+            !virStorageBackendDeviceIsEmpty(path, "LVM2_member", true))
             goto cleanup;
-        }
-        virCommandFree(pvcmd);
 
-        virCommandAddArg(vgcmd, pool->def->source.devices[i].path);
+        if (virStorageBackendLogicalInitializeDevice(path) < 0)
+            goto cleanup;
+
+        virCommandAddArg(vgcmd, path);
     }
 
     /* Now create the volume group itself */
@@ -752,6 +809,15 @@ virStorageBackendLogicalBuildPool(virConnectPtr conn ATTRIBUTE_UNUSED,
 
  cleanup:
     virCommandFree(vgcmd);
+
+    /* On any failure, run through the devices that had pvcreate run in
+     * in order to run pvremove on the device; otherwise, subsequent build
+     * will fail if a pvcreate had been run already. */
+    if (ret < 0) {
+        size_t j;
+        for (j = 0; j < i; j++)
+            virStorageBackendLogicalRemoveDevice(pool->def->source.devices[j].path);
+    }
     return ret;
 }
 
@@ -845,22 +911,12 @@ virStorageBackendLogicalDeletePool(virConnectPtr conn ATTRIBUTE_UNUSED,
                                NULL);
     if (virCommandRun(cmd, NULL) < 0)
         goto cleanup;
-    virCommandFree(cmd);
-    cmd = NULL;
 
     /* now remove the pv devices and clear them out */
+    for (i = 0; i < pool->def->source.ndevice; i++)
+        virStorageBackendLogicalRemoveDevice(pool->def->source.devices[i].path);
+
     ret = 0;
-    for (i = 0; i < pool->def->source.ndevice; i++) {
-        cmd = virCommandNewArgList(PVREMOVE,
-                                   pool->def->source.devices[i].path,
-                                   NULL);
-        if (virCommandRun(cmd, NULL) < 0) {
-            ret = -1;
-            break;
-        }
-        virCommandFree(cmd);
-        cmd = NULL;
-    }
 
  cleanup:
     virCommandFree(cmd);

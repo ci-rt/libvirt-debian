@@ -695,8 +695,10 @@ createVport(virConnectPtr conn,
     unsigned int parent_host;
     char *name = NULL;
     char *parent_hoststr = NULL;
+    bool skip_capable_check = false;
     virStoragePoolFCRefreshInfoPtr cbdata = NULL;
     virThread thread;
+    int ret = -1;
 
     if (adapter->type != VIR_STORAGE_POOL_SOURCE_ADAPTER_TYPE_FC_HOST)
         return 0;
@@ -705,61 +707,68 @@ createVport(virConnectPtr conn,
               conn, NULLSTR(configFile), NULLSTR(adapter->data.fchost.parent),
               adapter->data.fchost.wwnn, adapter->data.fchost.wwpn);
 
-    /* If a parent was provided, then let's make sure it's vhost capable */
-    if (adapter->data.fchost.parent) {
-        if (virGetSCSIHostNumber(adapter->data.fchost.parent, &parent_host) < 0)
-            return -1;
-
-        if (!virIsCapableFCHost(NULL, parent_host)) {
-            virReportError(VIR_ERR_XML_ERROR,
-                           _("parent '%s' specified for vHBA "
-                             "is not vport capable"),
-                           adapter->data.fchost.parent);
-            return -1;
-        }
-    }
-
     /* If we find an existing HBA/vHBA within the fc_host sysfs
      * using the wwnn/wwpn, then a nodedev is already created for
      * this pool and we don't have to create the vHBA
      */
     if ((name = virGetFCHostNameByWWN(NULL, adapter->data.fchost.wwnn,
                                       adapter->data.fchost.wwpn))) {
-        int retval = 0;
-
         /* If a parent was provided, let's make sure the 'name' we've
          * retrieved has the same parent
          */
         if (adapter->data.fchost.parent &&
-            !checkVhbaSCSIHostParent(conn, name, adapter->data.fchost.parent))
-            retval = -1;
+            checkVhbaSCSIHostParent(conn, name, adapter->data.fchost.parent))
+            ret = 0;
 
-        VIR_FREE(name);
-        return retval;
+        goto cleanup;
     }
 
-    if (!adapter->data.fchost.parent) {
+    if (adapter->data.fchost.parent) {
+        if (VIR_STRDUP(parent_hoststr, adapter->data.fchost.parent) < 0)
+            goto cleanup;
+    } else if (adapter->data.fchost.parent_wwnn &&
+               adapter->data.fchost.parent_wwpn) {
+        if (!(parent_hoststr =
+              virGetFCHostNameByWWN(NULL, adapter->data.fchost.parent_wwnn,
+                                    adapter->data.fchost.parent_wwpn))) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("cannot find parent using provided wwnn/wwpn"));
+            goto cleanup;
+        }
+    } else if (adapter->data.fchost.parent_fabric_wwn) {
+        if (!(parent_hoststr =
+              virGetFCHostNameByFabricWWN(NULL,
+                                          adapter->data.fchost.parent_fabric_wwn))) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("cannot find parent using provided fabric_wwn"));
+            goto cleanup;
+        }
+    } else {
         if (!(parent_hoststr = virFindFCHostCapableVport(NULL))) {
             virReportError(VIR_ERR_XML_ERROR, "%s",
                            _("'parent' for vHBA not specified, and "
                              "cannot find one on this host"));
-            return -1;
+            goto cleanup;
         }
+        skip_capable_check = true;
+    }
 
-        if (virGetSCSIHostNumber(parent_hoststr, &parent_host) < 0) {
-            VIR_FREE(parent_hoststr);
-            return -1;
-        }
+    if (virGetSCSIHostNumber(parent_hoststr, &parent_host) < 0)
+        goto cleanup;
 
-        /* NOTE:
-         * We do not save the parent_hoststr in adapter->data.fchost.parent
-         * since we could be writing out the 'def' to the saved XML config.
-         * If we wrote out the name in the XML, then future starts would
-         * always use the same parent rather than finding the "best available"
-         * parent. Besides we have a way to determine the parent based on
-         * the 'name' field.
-         */
-        VIR_FREE(parent_hoststr);
+    /* NOTE:
+     * We do not save the parent_hoststr in adapter->data.fchost.parent
+     * since we could be writing out the 'def' to the saved XML config.
+     * If we wrote out the name in the XML, then future starts would
+     * always use the same parent rather than finding the "best available"
+     * parent. Besides we have a way to determine the parent based on
+     * the 'name' field.
+     */
+    if (!skip_capable_check && !virIsCapableFCHost(NULL, parent_host)) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("parent '%s' specified for vHBA is not vport capable"),
+                       parent_hoststr);
+        goto cleanup;
     }
 
     /* Since we're creating the vHBA, then we need to manage removing it
@@ -771,13 +780,13 @@ createVport(virConnectPtr conn,
         adapter->data.fchost.managed = VIR_TRISTATE_BOOL_YES;
         if (configFile) {
             if (virStoragePoolSaveConfig(configFile, pool->def) < 0)
-                return -1;
+                goto cleanup;
         }
     }
 
     if (virManageVport(parent_host, adapter->data.fchost.wwpn,
                        adapter->data.fchost.wwnn, VPORT_CREATE) < 0)
-        return -1;
+        goto cleanup;
 
     virFileWaitForDevices();
 
@@ -790,8 +799,7 @@ createVport(virConnectPtr conn,
                                       adapter->data.fchost.wwpn))) {
         if (VIR_ALLOC(cbdata) == 0) {
             memcpy(cbdata->pool_uuid, pool->def->uuid, VIR_UUID_BUFLEN);
-            cbdata->fchost_name = name;
-            name = NULL;
+            VIR_STEAL_PTR(cbdata->fchost_name, name);
 
             if (virThreadCreate(&thread, false, virStoragePoolFCRefreshThread,
                                 cbdata) < 0) {
@@ -800,10 +808,14 @@ createVport(virConnectPtr conn,
                 virStoragePoolFCRefreshDataFree(cbdata);
             }
         }
-        VIR_FREE(name);
     }
 
-    return 0;
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(name);
+    VIR_FREE(parent_hoststr);
+    return ret;
 }
 
 static int

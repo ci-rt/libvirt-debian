@@ -1,5 +1,5 @@
 /* Determine name of the slave side of a pseudo-terminal.
-   Copyright (C) 1998, 2002, 2010-2016 Free Software Foundation, Inc.
+   Copyright (C) 1998, 2002, 2010-2017 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -47,22 +47,26 @@
 
 #endif
 
+/* Get the major, minor macros.  */
+#if MAJOR_IN_MKDEV
+# include <sys/mkdev.h>
+#endif
+#if MAJOR_IN_SYSMACROS
+# include <sys/sysmacros.h>
+#endif
+
 #ifdef __sun
 /* Get ioctl() and 'struct strioctl'.  */
 # include <stropts.h>
 /* Get ISPTM.  */
 # include <sys/stream.h>
 # include <sys/ptms.h>
-/* Get the major, minor macros.  */
-# include <sys/sysmacros.h>
 # include <stdio.h>
 #endif
 
 #if defined _AIX || defined __osf__
 /* Get ioctl(), ISPTM.  */
 # include <sys/ioctl.h>
-/* Get the major, minor macros.  */
-# include <sys/sysmacros.h>
 # include <stdio.h>
 #endif
 

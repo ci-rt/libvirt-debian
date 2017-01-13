@@ -1,5 +1,5 @@
 /* Acquire ownership of the slave side of a pseudo-terminal.
-   Copyright (C) 1998-2002, 2009-2016 Free Software Foundation, Inc.
+   Copyright (C) 1998-2002, 2009-2017 Free Software Foundation, Inc.
    Contributed by Zack Weinberg <zack@rabi.phys.columbia.edu>, 1998.
 
    This program is free software: you can redistribute it and/or modify
@@ -35,7 +35,6 @@
 #include "pty-private.h"
 
 #ifndef _LIBC
-# define __builtin_expect(expr,val) (expr)
 # define __set_errno(e) errno = (e)
 # define __dup2 dup2
 # define __fork fork
