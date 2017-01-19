@@ -10,8 +10,27 @@
      and optionally a description where it's explained in more detail -->
 
 <libvirt>
-  <release version="v3.0.0" date="unreleased">
+  <release version="v3.0.0" date="2017-01-17">
     <section title="New features">
+      <change>
+        <summary>
+          Domain events for metadata content changes
+        </summary>
+        <description>
+          The domain events framework has a new event ID that can
+          be used to get notifications when domain metadata content
+          changes.
+        </description>
+      </change>
+      <change>
+        <summary>
+          Event notifications for the secret object
+        </summary>
+        <description>
+          The secret object now supports event notifications, covering
+          lifcycle changes and secret value changes.
+        </description>
+      </change>
       <change>
         <summary>
           New localPtr attribute for "ip" element in network XML
@@ -29,10 +48,10 @@
       </change>
       <change>
         <summary>
-          nss: Introduce <code>libvirt-guest</code>
+          nss: Introduce <code>libvirt_guest</code>
         </summary>
         <description>
-          New <code>libvirt-guest</code> nss module that translates libvirt
+          New <code>libvirt_guest</code> nss module that translates libvirt
           guest names into IP addresses.
         </description>
       </change>
@@ -61,6 +80,21 @@
       <change>
         <summary>
           libxl: Implement virDomainGetMaxVcpus API
+        </summary>
+      </change>
+      <change>
+        <summary>
+          storage: Add overwrite flag checking for logical pool
+        </summary>
+        <description>
+          Add support for the OVERWRITE flags for the logical storage
+          backend including checking for existing data on the target
+          volumes when building a new logical pool on target volume(s).
+        </description>
+      </change>
+      <change>
+        <summary>
+          qemu: Add support for guest CPU configuration on s390(x)
         </summary>
       </change>
     </section>
@@ -118,8 +152,45 @@
           of units in bytes rather than default of human readable output.
         </description>
       </change>
+      <change>
+        <summary>
+          scsi: Add parent wwnn/wwpn or fabric capability for createVport
+        </summary>
+        <description>
+          Improve the algorithm searching for the parent scsi_host device
+          for vHBA/NPIV scsi_host creation. Rather than supplying the
+          "parent" by name, it's now possible to define the parent by
+          it's wwnn/wwpn or fabric_wwn in the node device create XML or
+          the storage pool XML.
+        </description>
+      </change>
+      <change>
+        <summary>
+          qemu: aggregate pcie-root-ports onto multiple functions of a slot
+        </summary>
+        <description>
+          When pcie-root-ports are added to pcie-root in order to
+          provide a place to connect PCI Express endpoint devices,
+          libvirt now aggregates multiple root ports together onto the
+          same slot (up to 8 per slot) in order to conserve slots.
+          Using this method, it's possible to connect more than 200
+          endpoint devices to a guest that uses PCIe without requiring
+          setup of any PCIe switches.
+        </description>
+      </change>
     </section>
     <section title="Bug fixes">
+      <change>
+        <summary>
+          lxc: fix accidental killing of containers during libvirtd restart
+        </summary>
+        <description>
+          The libvirt_lxc process was previously not moved into the
+          container scope. As a result, if systemd reloads its config
+          after a container is started, when libvirtd is later restarted
+          it will accidentally kill the containers.
+        </description>
+      </change>
       <change>
         <summary>
           qemu: Correct GetBlockInfo values
@@ -148,6 +219,59 @@
           To avoid funny races with udev relabelling devices under our hands and
           to enhance security, libvirt now spawns each qemu process with its own
           <code>/dev</code>.
+        </description>
+      </change>
+      <change>
+        <summary>
+          storage: Fix implementation of no-overwrite for file system backend
+        </summary>
+        <description>
+          Fix file system storage backend implementation of the OVERWRITE
+          flags to be consistent between code and documentation. Add checks
+          to ensure that when building a new file system on a target volume
+          that there is not something already on the disk in a format that
+          libvirt can recognize.
+        </description>
+      </change>
+      <change>
+        <summary>
+          qemu: Create hugepage path on per domain basis
+        </summary>
+        <description>
+          Historically, all hugepage enabled domains shared the same path under
+          hugetlbfs. This left libvirt unable to correctly set security labels
+          on it. With this release, however, each domain is put into a
+          separate path which is also correctly labeled.
+        </description>
+      </change>
+      <change>
+        <summary>
+          conf: Reject domains with duplicate drive addresses
+        </summary>
+        <description>
+          Reject duplicate drive addresses for disks and hostdevs at
+          domain definition.
+        </description>
+      </change>
+      <change>
+        <summary>
+          libxl: reverse defaults on HVM net device attach
+        </summary>
+        <description>
+          Fixes network interface attach for HVM domains when no model is
+          specified. Emulated hotplug isn't yet supported and hence we should
+          default to the general working scenario.
+        </description>
+      </change>
+      <change>
+        <summary>
+          libxl: always enable pae for x86_64 HVM
+        </summary>
+        <description>
+          By default pae is disabled in libxl. Without an explicit &lt;pae/&gt;
+          setting in the domain &lt;features&gt; configuration, an x86_64 HVM
+          domain would be get an i686 environment. pae should always be enabled
+          for x86_64 HVM domains.
         </description>
       </change>
     </section>

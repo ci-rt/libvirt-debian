@@ -2777,10 +2777,6 @@ virStorageBackendBLKIDFindEmpty(const char *device,
         rc == VIR_STORAGE_BLKID_PROBE_UNKNOWN) {
 
         rc = virStorageBackendBLKIDFindPart(probe, device, format);
-        if (rc == VIR_STORAGE_BLKID_PROBE_UNKNOWN) {
-            ret = -2;
-            goto cleanup;
-        }
     }
 
     switch (rc) {
@@ -2799,10 +2795,7 @@ virStorageBackendBLKIDFindEmpty(const char *device,
         break;
 
     case VIR_STORAGE_BLKID_PROBE_UNKNOWN:
-        virReportError(VIR_ERR_STORAGE_PROBE_FAILED,
-                       _("Not capable of probing for format type '%s', "
-                         "requires build --overwrite"),
-                       format);
+        ret = -2;
         break;
 
     case VIR_STORAGE_BLKID_PROBE_MATCH:
@@ -2815,10 +2808,17 @@ virStorageBackendBLKIDFindEmpty(const char *device,
         break;
 
     case VIR_STORAGE_BLKID_PROBE_DIFFERENT:
-        virReportError(VIR_ERR_STORAGE_POOL_BUILT,
-                       _("Device '%s' formatted cannot overwrite using '%s', "
-                         "requires build --overwrite"),
-                       device, format);
+        if (writelabel)
+            virReportError(VIR_ERR_STORAGE_POOL_BUILT,
+                           _("Format of device '%s' does not match the "
+                             "expected format '%s', forced overwrite is "
+                             "necessary"),
+                           device, format);
+        else
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                           _("Format of device '%s' does not match the "
+                             "expected format '%s'"),
+                           device, format);
         break;
     }
 
@@ -2829,7 +2829,6 @@ virStorageBackendBLKIDFindEmpty(const char *device,
         ret = -1;
     }
 
- cleanup:
     blkid_free_probe(probe);
 
     return ret;
@@ -2842,9 +2841,6 @@ virStorageBackendBLKIDFindEmpty(const char *device ATTRIBUTE_UNUSED,
                                 const char *format ATTRIBUTE_UNUSED,
                                 bool writelabel ATTRIBUTE_UNUSED)
 {
-    virReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                   _("probing for filesystems is unsupported "
-                     "by this build"));
     return -2;
 }
 
@@ -2868,10 +2864,9 @@ virStorageBackendPARTEDValidLabel(const char *device ATTRIBUTE_UNUSED,
                                   const char *format ATTRIBUTE_UNUSED,
                                   bool writelabel ATTRIBUTE_UNUSED)
 {
-    virReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                   _("PARTED is unsupported by this build"));
-    return -1;
+    return -2;
 }
+
 
 #endif /* #if WITH_STORAGE_DISK */
 
@@ -2885,7 +2880,9 @@ virStorageBackendPARTEDValidLabel(const char *device ATTRIBUTE_UNUSED,
  * BLKID API if available.
  *
  * Returns true if the probe deems the device has nothing valid on it
- * and returns false if the probe finds something
+ * or when we cannot check and we're not writing the label.
+ *
+ * Returns false if the probe finds something
  */
 bool
 virStorageBackendDeviceIsEmpty(const char *devpath,
@@ -2897,6 +2894,16 @@ virStorageBackendDeviceIsEmpty(const char *devpath,
     if ((ret = virStorageBackendBLKIDFindEmpty(devpath, format,
                                                writelabel)) == -2)
         ret = virStorageBackendPARTEDValidLabel(devpath, format, writelabel);
+
+    if (ret == -2 && !writelabel)
+        ret = 0;
+
+    if (ret == -2) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       _("Unable to probe '%s' for existing data, "
+                         "forced overwrite is necessary"),
+                       devpath);
+    }
 
     return ret == 0;
 }

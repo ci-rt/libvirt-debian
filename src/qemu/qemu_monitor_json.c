@@ -4982,21 +4982,12 @@ qemuMonitorJSONParseCPUModelProperty(const char *key,
     size_t n = machine_model->nprops;
     bool supported;
 
-    if (!key) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("query-cpu-model-expansion reply data is missing a"
-                         " property name"));
-        return -1;
-    }
+    if (virJSONValueGetBoolean(value, &supported) < 0)
+        return 0;
+
     if (VIR_STRDUP(machine_model->props[n].name, key) < 0)
         return -1;
 
-    if (virJSONValueGetBoolean(value, &supported) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("query-cpu-model-expansion reply data is missing a"
-                         " feature support value"));
-        return -1;
-    }
     machine_model->props[n].supported = supported;
 
     machine_model->nprops++;
@@ -5040,6 +5031,15 @@ qemuMonitorJSONGetCPUModelExpansion(qemuMonitorPtr mon,
 
     if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
         goto cleanup;
+
+    /* Even though query-cpu-model-expansion is advertised by query-commands it
+     * may just return GenericError if it is not implemented for the requested
+     * guest architecture or it is not supported in the host environment.
+     */
+    if (qemuMonitorJSONHasError(reply, "GenericError")) {
+        ret = 0;
+        goto cleanup;
+    }
 
     if (qemuMonitorJSONCheckError(cmd, reply) < 0)
         goto cleanup;

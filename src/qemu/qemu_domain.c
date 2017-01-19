@@ -63,6 +63,9 @@
 #if defined(HAVE_SYS_MOUNT_H)
 # include <sys/mount.h>
 #endif
+#ifdef WITH_SELINUX
+# include <selinux/selinux.h>
+#endif
 
 #include <libxml/xpathInternals.h>
 
@@ -6879,7 +6882,6 @@ qemuDomainGetHostdevPath(virDomainHostdevDefPtr dev,
 }
 
 
-#if defined(__linux__)
 /**
  * qemuDomainGetPreservedMounts:
  *
@@ -6956,28 +6958,41 @@ qemuDomainCreateDevice(const char *device,
                        bool allow_noent)
 {
     char *devicePath = NULL;
+    char *canonDevicePath = NULL;
     struct stat sb;
     int ret = -1;
+#ifdef WITH_SELINUX
+    char *tcon = NULL;
+#endif
 
-    if (!STRPREFIX(device, DEVPREFIX)) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("invalid device: %s"),
-                       device);
-        goto cleanup;
-    }
-
-    if (virAsprintf(&devicePath, "%s/%s",
-                    path, device + strlen(DEVPREFIX)) < 0)
-        goto cleanup;
-
-    if (stat(device, &sb) < 0) {
+    if (virFileResolveAllLinks(device, &canonDevicePath) < 0) {
         if (errno == ENOENT && allow_noent) {
             /* Ignore non-existent device. */
             ret = 0;
             goto cleanup;
         }
 
-        virReportSystemError(errno, _("Unable to stat %s"), device);
+        virReportError(errno, _("Unable to canonicalize %s"), device);
+        goto cleanup;
+    }
+
+    if (!STRPREFIX(canonDevicePath, DEVPREFIX)) {
+        ret = 0;
+        goto cleanup;
+    }
+
+    if (virAsprintf(&devicePath, "%s/%s",
+                    path, canonDevicePath + strlen(DEVPREFIX)) < 0)
+        goto cleanup;
+
+    if (stat(canonDevicePath, &sb) < 0) {
+        if (errno == ENOENT && allow_noent) {
+            /* Ignore non-existent device. */
+            ret = 0;
+            goto cleanup;
+        }
+
+        virReportSystemError(errno, _("Unable to stat %s"), canonDevicePath);
         goto cleanup;
     }
 
@@ -7006,7 +7021,7 @@ qemuDomainCreateDevice(const char *device,
         goto cleanup;
     }
 
-    if (virFileCopyACLs(device, devicePath) < 0 &&
+    if (virFileCopyACLs(canonDevicePath, devicePath) < 0 &&
         errno != ENOTSUP) {
         virReportSystemError(errno,
                              _("Failed to copy ACLs on device %s"),
@@ -7014,9 +7029,35 @@ qemuDomainCreateDevice(const char *device,
         goto cleanup;
     }
 
+#ifdef WITH_SELINUX
+    if (getfilecon_raw(canonDevicePath, &tcon) < 0 &&
+        (errno != ENOTSUP && errno != ENODATA)) {
+        virReportSystemError(errno,
+                             _("Unable to get SELinux label from %s"),
+                             canonDevicePath);
+        goto cleanup;
+    }
+
+    if (tcon &&
+        setfilecon_raw(devicePath, (VIR_SELINUX_CTX_CONST char *) tcon) < 0) {
+        VIR_WARNINGS_NO_WLOGICALOP_EQUAL_EXPR
+        if (errno != EOPNOTSUPP && errno != ENOTSUP) {
+        VIR_WARNINGS_RESET
+            virReportSystemError(errno,
+                                 _("Unable to set SELinux label on %s"),
+                                 devicePath);
+            goto cleanup;
+        }
+    }
+#endif
+
     ret = 0;
  cleanup:
+    VIR_FREE(canonDevicePath);
     VIR_FREE(devicePath);
+#ifdef WITH_SELINUX
+    freecon(tcon);
+#endif
     return ret;
 }
 
@@ -7097,8 +7138,7 @@ qemuDomainSetupDisk(virQEMUDriverPtr driver ATTRIBUTE_UNUSED,
     int ret = -1;
 
     for (next = disk->src; next; next = next->backingStore) {
-        if (!next->path || !virStorageSourceIsLocalStorage(next) ||
-            !STRPREFIX(next->path, DEVPREFIX)) {
+        if (!next->path || !virStorageSourceIsLocalStorage(next)) {
             /* Not creating device. Just continue. */
             continue;
         }
@@ -7275,14 +7315,14 @@ qemuDomainSetupAllInputs(virQEMUDriverPtr driver,
 {
     size_t i;
 
-    VIR_DEBUG("Setting up disks");
+    VIR_DEBUG("Setting up inputs");
     for (i = 0; i < vm->def->ninputs; i++) {
         if (qemuDomainSetupInput(driver,
                                  vm->def->inputs[i],
                                  devPath) < 0)
             return -1;
     }
-    VIR_DEBUG("Setup all disks");
+    VIR_DEBUG("Setup all inputs");
     return 0;
 }
 
@@ -7332,7 +7372,6 @@ qemuDomainBuildNamespace(virQEMUDriverPtr driver,
                          virDomainObjPtr vm)
 {
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
-    const unsigned long mount_flags = MS_MOVE;
     char *devPath = NULL;
     char **devMountsPath = NULL, **devMountsSavePath = NULL;
     size_t ndevMountsPath = 0, i;
@@ -7361,6 +7400,9 @@ qemuDomainBuildNamespace(virQEMUDriverPtr driver,
         goto cleanup;
     }
 
+    if (virProcessSetupPrivateMountNS() < 0)
+        goto cleanup;
+
     if (qemuDomainSetupDev(driver, vm, devPath) < 0)
         goto cleanup;
 
@@ -7376,13 +7418,8 @@ qemuDomainBuildNamespace(virQEMUDriverPtr driver,
             goto cleanup;
         }
 
-        if (mount(devMountsPath[i], devMountsSavePath[i],
-                  NULL, mount_flags, NULL) < 0) {
-            virReportSystemError(errno,
-                                 _("Unable to move %s mount"),
-                                 devMountsPath[i]);
+        if (virFileMoveMount(devMountsPath[i], devMountsSavePath[i]) < 0)
             goto cleanup;
-        }
     }
 
     if (qemuDomainSetupAllDisks(driver, vm, devPath) < 0)
@@ -7403,12 +7440,8 @@ qemuDomainBuildNamespace(virQEMUDriverPtr driver,
     if (qemuDomainSetupAllRNGs(driver, vm, devPath) < 0)
         goto cleanup;
 
-    if (mount(devPath, "/dev", NULL, mount_flags, NULL) < 0) {
-        virReportSystemError(errno,
-                             _("Failed to mount %s on /dev"),
-                             devPath);
+    if (virFileMoveMount(devPath, "/dev") < 0)
         goto cleanup;
-    }
 
     for (i = 0; i < ndevMountsPath; i++) {
         if (devMountsSavePath[i] == devPath)
@@ -7420,14 +7453,8 @@ qemuDomainBuildNamespace(virQEMUDriverPtr driver,
             goto cleanup;
         }
 
-        if (mount(devMountsSavePath[i], devMountsPath[i],
-                  NULL, mount_flags, NULL) < 0) {
-            virReportSystemError(errno,
-                                 _("Failed to mount %s on %s"),
-                                 devMountsSavePath[i],
-                                 devMountsPath[i]);
+        if (virFileMoveMount(devMountsSavePath[i], devMountsPath[i]) < 0)
             goto cleanup;
-        }
     }
 
     ret = 0;
@@ -7448,11 +7475,19 @@ qemuDomainCreateNamespace(virQEMUDriverPtr driver,
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     int ret = -1;
 
-    if (!virBitmapIsBitSet(cfg->namespaces, QEMU_DOMAIN_NS_MOUNT) ||
-        !virQEMUDriverIsPrivileged(driver)) {
+    if (!virBitmapIsBitSet(cfg->namespaces, QEMU_DOMAIN_NS_MOUNT)) {
         ret = 0;
         goto cleanup;
     }
+
+    if (!virQEMUDriverIsPrivileged(driver)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("cannot use namespaces in session mode"));
+        goto cleanup;
+    }
+
+    if (virProcessNamespaceAvailable(VIR_PROCESS_NAMESPACE_MNT) < 0)
+        goto cleanup;
 
     if (qemuDomainEnableNamespace(vm, QEMU_DOMAIN_NS_MOUNT) < 0)
         goto cleanup;
@@ -7463,28 +7498,6 @@ qemuDomainCreateNamespace(virQEMUDriverPtr driver,
     return ret;
 }
 
-#else /* !defined(__linux__) */
-
-int
-qemuDomainBuildNamespace(virQEMUDriverPtr driver ATTRIBUTE_UNUSED,
-                         virDomainObjPtr vm ATTRIBUTE_UNUSED)
-{
-    /* Namespaces are Linux specific. On other platforms just
-     * carry on with the old behaviour. */
-    return 0;
-}
-
-
-int
-qemuDomainCreateNamespace(virQEMUDriverPtr driver ATTRIBUTE_UNUSED,
-                          virDomainObjPtr vm ATTRIBUTE_UNUSED)
-{
-    /* Namespaces are Linux specific. On other platforms just
-     * carry on with the old behaviour. */
-    return 0;
-}
-#endif /* !defined(__linux__) */
-
 
 struct qemuDomainAttachDeviceMknodData {
     virQEMUDriverPtr driver;
@@ -7493,6 +7506,9 @@ struct qemuDomainAttachDeviceMknodData {
     const char *file;
     struct stat sb;
     void *acl;
+#ifdef WITH_SELINUX
+    char *tcon;
+#endif
 };
 
 
@@ -7535,6 +7551,19 @@ qemuDomainAttachDeviceMknodHelper(pid_t pid ATTRIBUTE_UNUSED,
                              _("Unable to set ACLs on %s"), data->file);
         goto cleanup;
     }
+
+#ifdef WITH_SELINUX
+    if (setfilecon_raw(data->file, (VIR_SELINUX_CTX_CONST char *) data->tcon) < 0) {
+        VIR_WARNINGS_NO_WLOGICALOP_EQUAL_EXPR
+        if (errno != EOPNOTSUPP && errno != ENOTSUP) {
+        VIR_WARNINGS_RESET
+            virReportSystemError(errno,
+                                 _("Unable to set SELinux label on %s"),
+                                 data->file);
+            goto cleanup;
+        }
+    }
+#endif
 
     switch ((virDomainDeviceType) data->devDef->type) {
     case VIR_DOMAIN_DEVICE_DISK: {
@@ -7592,6 +7621,9 @@ qemuDomainAttachDeviceMknodHelper(pid_t pid ATTRIBUTE_UNUSED,
  cleanup:
     if (ret < 0 && delDevice)
         unlink(data->file);
+#ifdef WITH_SELINUX
+    freecon(data->tcon);
+#endif
     virFileFreeACLs(&data->acl);
     return ret;
 }
@@ -7626,6 +7658,15 @@ qemuDomainAttachDeviceMknod(virQEMUDriverPtr driver,
         return ret;
     }
 
+#ifdef WITH_SELINUX
+    if (getfilecon_raw(file, &data.tcon) < 0 &&
+        (errno != ENOTSUP && errno != ENODATA)) {
+        virReportSystemError(errno,
+                             _("Unable to get SELinux label from %s"), file);
+        goto cleanup;
+    }
+#endif
+
     if (virSecurityManagerPreFork(driver->securityManager) < 0)
         goto cleanup;
 
@@ -7640,8 +7681,11 @@ qemuDomainAttachDeviceMknod(virQEMUDriverPtr driver,
 
     ret = 0;
  cleanup:
+#ifdef WITH_SELINUX
+    freecon(data.tcon);
+#endif
     virFileFreeACLs(&data.acl);
-    return 0;
+    return ret;
 }
 
 
@@ -7748,8 +7792,7 @@ qemuDomainNamespaceSetupDisk(virQEMUDriverPtr driver,
         return 0;
 
     for (next = disk->src; next; next = next->backingStore) {
-        if (!next->path || !virStorageSourceIsBlockLocal(disk->src) ||
-            !STRPREFIX(next->path, DEVPREFIX)) {
+        if (!next->path || !virStorageSourceIsBlockLocal(disk->src)) {
             /* Not creating device. Just continue. */
             continue;
         }

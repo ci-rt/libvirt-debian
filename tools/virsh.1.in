@@ -129,7 +129,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2017-01-11" "libvirt-3.0.0" "Virtualization Support"
+.TH VIRSH 1 "2017-01-17" "libvirt-3.0.0" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -979,8 +979,7 @@ the processor is idle or even disabled, depending on the architecture)
 \&\*(L"perf.bus_cycles\*(R" \- the count of bus cycles,
 \&\*(L"perf.stalled_cycles_frontend\*(R" \- the count of stalled frontend cpu cycles,
 \&\*(L"perf.stalled_cycles_backend\*(R" \- the count of stalled backend cpu cycles,
-\&\*(L"perf.ref_cpu_cycles\*(R" \- the count of ref cpu cycles,
-\&\*(L"perf.cache_l1d\*(R" \- the count of level 1 data cache
+\&\*(L"perf.ref_cpu_cycles\*(R" \- the count of ref cpu cycles
 .Sp
 See the \fBperf\fR command for more details about each event.
 .Sp
@@ -2229,8 +2228,6 @@ separated by commas. Valid event names are as follows:
   ref_cpu_cycles   \-  Provides the count of total cpu cycles
                       not affected by \s-1CPU\s0 frequency scaling by
                       applications running on the platform.
-  cache_l1d \- Provides the count of total level 1 data cache
-              by applications running on the platform.
 .Sp
 \&\fBNote\fR: The statistics can be retrieved using the \fBdomstats\fR command using
 the \fI\-\-perf\fR flag.
