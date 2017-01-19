@@ -953,7 +953,6 @@
     <reference name='VIR_PERF_PARAM_BRANCH_INSTRUCTIONS' href='html/libvirt-libvirt-domain.html#VIR_PERF_PARAM_BRANCH_INSTRUCTIONS'/>
     <reference name='VIR_PERF_PARAM_BRANCH_MISSES' href='html/libvirt-libvirt-domain.html#VIR_PERF_PARAM_BRANCH_MISSES'/>
     <reference name='VIR_PERF_PARAM_BUS_CYCLES' href='html/libvirt-libvirt-domain.html#VIR_PERF_PARAM_BUS_CYCLES'/>
-    <reference name='VIR_PERF_PARAM_CACHE_L1D' href='html/libvirt-libvirt-domain.html#VIR_PERF_PARAM_CACHE_L1D'/>
     <reference name='VIR_PERF_PARAM_CACHE_MISSES' href='html/libvirt-libvirt-domain.html#VIR_PERF_PARAM_CACHE_MISSES'/>
     <reference name='VIR_PERF_PARAM_CACHE_REFERENCES' href='html/libvirt-libvirt-domain.html#VIR_PERF_PARAM_CACHE_REFERENCES'/>
     <reference name='VIR_PERF_PARAM_CMT' href='html/libvirt-libvirt-domain.html#VIR_PERF_PARAM_CMT'/>
@@ -2757,7 +2756,6 @@
       <ref name='VIR_PERF_PARAM_BRANCH_INSTRUCTIONS'/>
       <ref name='VIR_PERF_PARAM_BRANCH_MISSES'/>
       <ref name='VIR_PERF_PARAM_BUS_CYCLES'/>
-      <ref name='VIR_PERF_PARAM_CACHE_L1D'/>
       <ref name='VIR_PERF_PARAM_CACHE_MISSES'/>
       <ref name='VIR_PERF_PARAM_CACHE_REFERENCES'/>
       <ref name='VIR_PERF_PARAM_CMT'/>
@@ -5601,7 +5599,6 @@
       <ref name='VIR_PERF_PARAM_BRANCH_INSTRUCTIONS'/>
       <ref name='VIR_PERF_PARAM_BRANCH_MISSES'/>
       <ref name='VIR_PERF_PARAM_BUS_CYCLES'/>
-      <ref name='VIR_PERF_PARAM_CACHE_L1D'/>
       <ref name='VIR_PERF_PARAM_CACHE_MISSES'/>
       <ref name='VIR_PERF_PARAM_CACHE_REFERENCES'/>
       <ref name='VIR_PERF_PARAM_CMT'/>
@@ -6728,7 +6725,6 @@
           <ref name='VIR_PERF_PARAM_BRANCH_INSTRUCTIONS'/>
           <ref name='VIR_PERF_PARAM_BRANCH_MISSES'/>
           <ref name='VIR_PERF_PARAM_BUS_CYCLES'/>
-          <ref name='VIR_PERF_PARAM_CACHE_L1D'/>
           <ref name='VIR_PERF_PARAM_CACHE_MISSES'/>
           <ref name='VIR_PERF_PARAM_CACHE_REFERENCES'/>
           <ref name='VIR_PERF_PARAM_CMT'/>
@@ -8389,7 +8385,6 @@
           <ref name='VIR_PERF_PARAM_BRANCH_INSTRUCTIONS'/>
           <ref name='VIR_PERF_PARAM_BRANCH_MISSES'/>
           <ref name='VIR_PERF_PARAM_BUS_CYCLES'/>
-          <ref name='VIR_PERF_PARAM_CACHE_L1D'/>
           <ref name='VIR_PERF_PARAM_CACHE_MISSES'/>
           <ref name='VIR_PERF_PARAM_CACHE_REFERENCES'/>
           <ref name='VIR_PERF_PARAM_CMT'/>
@@ -10415,7 +10410,6 @@
           <ref name='VIR_PERF_PARAM_BRANCH_INSTRUCTIONS'/>
           <ref name='VIR_PERF_PARAM_BRANCH_MISSES'/>
           <ref name='VIR_PERF_PARAM_BUS_CYCLES'/>
-          <ref name='VIR_PERF_PARAM_CACHE_L1D'/>
           <ref name='VIR_PERF_PARAM_CACHE_MISSES'/>
           <ref name='VIR_PERF_PARAM_CACHE_REFERENCES'/>
           <ref name='VIR_PERF_PARAM_CMT'/>
@@ -11250,10 +11244,6 @@
     </chunk>
     <chunk name='chunk8'>
       <letter name='c'>
-        <word name='cache_l1d'>
-          <ref name='VIR_PERF_PARAM_CACHE_L1D'/>
-          <ref name='virConnectGetAllDomainStats'/>
-        </word>
         <word name='cache_misses'>
           <ref name='VIR_PERF_PARAM_CACHE_MISSES'/>
           <ref name='virConnectGetAllDomainStats'/>
@@ -15990,7 +15980,6 @@
         </word>
         <word name='level'>
           <ref name='VIR_MIGRATE_PARAM_COMPRESSION_MT_LEVEL'/>
-          <ref name='VIR_PERF_PARAM_CACHE_L1D'/>
           <ref name='VIR_PERF_PARAM_MBMT'/>
           <ref name='virConnectDomainEventBalloonChangeCallback'/>
           <ref name='virConnectGetAllDomainStats'/>
@@ -16615,7 +16604,6 @@
           <ref name='VIR_PERF_PARAM_BRANCH_INSTRUCTIONS'/>
           <ref name='VIR_PERF_PARAM_BRANCH_MISSES'/>
           <ref name='VIR_PERF_PARAM_BUS_CYCLES'/>
-          <ref name='VIR_PERF_PARAM_CACHE_L1D'/>
           <ref name='VIR_PERF_PARAM_CACHE_MISSES'/>
           <ref name='VIR_PERF_PARAM_CACHE_REFERENCES'/>
           <ref name='VIR_PERF_PARAM_CMT'/>
@@ -18153,7 +18141,6 @@
           <ref name='VIR_PERF_PARAM_BRANCH_INSTRUCTIONS'/>
           <ref name='VIR_PERF_PARAM_BRANCH_MISSES'/>
           <ref name='VIR_PERF_PARAM_BUS_CYCLES'/>
-          <ref name='VIR_PERF_PARAM_CACHE_L1D'/>
           <ref name='VIR_PERF_PARAM_CACHE_MISSES'/>
           <ref name='VIR_PERF_PARAM_CACHE_REFERENCES'/>
           <ref name='VIR_PERF_PARAM_CMT'/>

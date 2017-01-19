@@ -1693,15 +1693,13 @@
   &lt;event name='stalled_cycles_frontend' enabled='no'/&gt;
   &lt;event name='stalled_cycles_backend' enabled='no'/&gt;
   &lt;event name='ref_cpu_cycles' enabled='no'/&gt;
-  &lt;event name='cache_l1d' enabled='no'/&gt;
 &lt;/perf&gt;
 ...
 </pre>
         <table class="top_table"><tr><th rowspan="1" colspan="1">event name</th><th rowspan="1" colspan="1">Description</th><th rowspan="1" colspan="1">stats parameter name</th></tr><tr><td rowspan="1" colspan="1"><code>cmt</code></td><td rowspan="1" colspan="1">usage of l3 cache in bytes by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.cmt</code></td></tr><tr><td rowspan="1" colspan="1"><code>mbmt</code></td><td rowspan="1" colspan="1">total system bandwidth from one level of cache</td><td rowspan="1" colspan="1"><code>perf.mbmt</code></td></tr><tr><td rowspan="1" colspan="1"><code>mbml</code></td><td rowspan="1" colspan="1">bandwidth of memory traffic for a memory controller</td><td rowspan="1" colspan="1"><code>perf.mbml</code></td></tr><tr><td rowspan="1" colspan="1"><code>cpu_cycles</code></td><td rowspan="1" colspan="1">the count of cpu cycles (total/elapsed)</td><td rowspan="1" colspan="1"><code>perf.cpu_cycles</code></td></tr><tr><td rowspan="1" colspan="1"><code>instructions</code></td><td rowspan="1" colspan="1">the count of instructions by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.instructions</code></td></tr><tr><td rowspan="1" colspan="1"><code>cache_references</code></td><td rowspan="1" colspan="1">the count of cache hits by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.cache_references</code></td></tr><tr><td rowspan="1" colspan="1"><code>cache_misses</code></td><td rowspan="1" colspan="1">the count of cache misses by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.cache_misses</code></td></tr><tr><td rowspan="1" colspan="1"><code>branch_instructions</code></td><td rowspan="1" colspan="1">the count of branch instructions by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.branch_instructions</code></td></tr><tr><td rowspan="1" colspan="1"><code>branch_misses</code></td><td rowspan="1" colspan="1">the count of branch misses by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.branch_misses</code></td></tr><tr><td rowspan="1" colspan="1"><code>bus_cycles</code></td><td rowspan="1" colspan="1">the count of bus cycles by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.bus_cycles</code></td></tr><tr><td rowspan="1" colspan="1"><code>stalled_cycles_frontend</code></td><td rowspan="1" colspan="1">the count of stalled cpu cycles in the frontend of the instruction
           processor pipeline by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.stalled_cycles_frontend</code></td></tr><tr><td rowspan="1" colspan="1"><code>stalled_cycles_backend</code></td><td rowspan="1" colspan="1">the count of stalled cpu cycles in the backend of the instruction
           processor pipeline by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.stalled_cycles_backend</code></td></tr><tr><td rowspan="1" colspan="1"><code>ref_cpu_cycles</code></td><td rowspan="1" colspan="1">the count of total cpu cycles not affected by CPU frequency scaling
-         by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.ref_cpu_cycles</code></td></tr><tr><td rowspan="1" colspan="1"><code>cache_l1d</code></td><td rowspan="1" colspan="1">the count of total level 1 data cache by applications running on
-           the platform</td><td rowspan="1" colspan="1"><code>perf.cache_l1d</code></td></tr></table>
+         by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.ref_cpu_cycles</code></td></tr></table>
         <h3>
           <a name="elementsDevices" shape="rect" id="elementsDevices">Devices</a>
           <a class="headerlink" href="#elementsDevices" title="Permalink to this headline">¶</a>
@@ -4196,6 +4194,9 @@ qemu-kvm -net nic,model=? /dev/null
     &lt;model type='virtio'/&gt;
     <b>&lt;backend tap='/dev/net/tun' vhost='/dev/vhost-net'/&gt;</b>
     &lt;driver name='vhost' txmode='iothread' ioeventfd='on' event_idx='off' queues='5'/&gt;
+    <b>&lt;tune&gt;
+      &lt;sndbuf&gt;1600&lt;/sndbuf&gt;
+    &lt;/tune&gt;</b>
   &lt;/interface&gt;
 &lt;/devices&gt;
 ...</pre>
@@ -4205,7 +4206,12 @@ qemu-kvm -net nic,model=? /dev/null
       device path (<code>/dev/vhost-net</code>) for devices with <code>virtio</code> model.
       The <code>tap</code> attribute overrides the tun/tap device path (default:
       <code>/dev/net/tun</code>) for network and bridge interfaces. This does not work
-      in session mode.
+      in session mode. <span class="since">Since 1.2.9</span>
+    </p>
+        <p>
+      For tap devices there is also <code>sndbuf</code> element which can
+      adjust the size of send buffer in the host. <span class="since">Since
+      0.8.8</span>
     </p>
         <h5>
           <a name="elementsNICSTargetOverride" shape="rect" id="elementsNICSTargetOverride">Overriding the target element</a>

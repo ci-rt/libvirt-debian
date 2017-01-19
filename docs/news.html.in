@@ -12,7 +12,18 @@
         <h1>Releases</h1><p>This is the list of official releases for libvirt, along with an
         overview of the changes introduced by each of them.</p><p>For a more fine-grained view, use the
         <a href="http://libvirt.org/git/?p=libvirt.git;a=log">git log</a>.
-        </p><h3><strong>v3.0.0 (unreleased)</strong></h3><ul><li><strong>New features</strong><ul><li>
+        </p><h3><strong>v3.0.0 (2017-01-17)</strong></h3><ul><li><strong>New features</strong><ul><li>
+          Domain events for metadata content changes
+        <br/>
+          The domain events framework has a new event ID that can
+          be used to get notifications when domain metadata content
+          changes.
+        </li><li>
+          Event notifications for the secret object
+        <br/>
+          The secret object now supports event notifications, covering
+          lifcycle changes and secret value changes.
+        </li><li>
           New localPtr attribute for "ip" element in network XML
         </li><li>
           qemu: Support QEMU group I/O throttling
@@ -21,9 +32,9 @@
           domain &lt;disk&gt; &lt;iotune&gt; subelement "group_name"
           to allow sharing I/O throttling quota between multiple drives.
         </li><li>
-          nss: Introduce <code>libvirt-guest</code>
+          nss: Introduce <code>libvirt_guest</code>
         <br/>
-          New <code>libvirt-guest</code> nss module that translates libvirt
+          New <code>libvirt_guest</code> nss module that translates libvirt
           guest names into IP addresses.
         </li><li>
           daemon: Add support for runtime logging settings adjustment
@@ -41,6 +52,14 @@
           added to the virsh vol-info command to access the data.
         </li><li>
           libxl: Implement virDomainGetMaxVcpus API
+        </li><li>
+          storage: Add overwrite flag checking for logical pool
+        <br/>
+          Add support for the OVERWRITE flags for the logical storage
+          backend including checking for existing data on the target
+          volumes when building a new logical pool on target volume(s).
+        </li><li>
+          qemu: Add support for guest CPU configuration on s390(x)
         </li></ul></li><li><strong>Improvements</strong><ul><li>
           perf: Add more perf statistics
         <br/>
@@ -74,7 +93,32 @@
         <br/>
           Add option --bytes to virsh pool-info in order ti allow display
           of units in bytes rather than default of human readable output.
+        </li><li>
+          scsi: Add parent wwnn/wwpn or fabric capability for createVport
+        <br/>
+          Improve the algorithm searching for the parent scsi_host device
+          for vHBA/NPIV scsi_host creation. Rather than supplying the
+          "parent" by name, it's now possible to define the parent by
+          it's wwnn/wwpn or fabric_wwn in the node device create XML or
+          the storage pool XML.
+        </li><li>
+          qemu: aggregate pcie-root-ports onto multiple functions of a slot
+        <br/>
+          When pcie-root-ports are added to pcie-root in order to
+          provide a place to connect PCI Express endpoint devices,
+          libvirt now aggregates multiple root ports together onto the
+          same slot (up to 8 per slot) in order to conserve slots.
+          Using this method, it's possible to connect more than 200
+          endpoint devices to a guest that uses PCIe without requiring
+          setup of any PCIe switches.
         </li></ul></li><li><strong>Bug fixes</strong><ul><li>
+          lxc: fix accidental killing of containers during libvirtd restart
+        <br/>
+          The libvirt_lxc process was previously not moved into the
+          container scope. As a result, if systemd reloads its config
+          after a container is started, when libvirtd is later restarted
+          it will accidentally kill the containers.
+        </li><li>
           qemu: Correct GetBlockInfo values
         <br/>
           For an active domain, correct the physical value provided for
@@ -92,6 +136,39 @@
           To avoid funny races with udev relabelling devices under our hands and
           to enhance security, libvirt now spawns each qemu process with its own
           <code>/dev</code>.
+        </li><li>
+          storage: Fix implementation of no-overwrite for file system backend
+        <br/>
+          Fix file system storage backend implementation of the OVERWRITE
+          flags to be consistent between code and documentation. Add checks
+          to ensure that when building a new file system on a target volume
+          that there is not something already on the disk in a format that
+          libvirt can recognize.
+        </li><li>
+          qemu: Create hugepage path on per domain basis
+        <br/>
+          Historically, all hugepage enabled domains shared the same path under
+          hugetlbfs. This left libvirt unable to correctly set security labels
+          on it. With this release, however, each domain is put into a
+          separate path which is also correctly labeled.
+        </li><li>
+          conf: Reject domains with duplicate drive addresses
+        <br/>
+          Reject duplicate drive addresses for disks and hostdevs at
+          domain definition.
+        </li><li>
+          libxl: reverse defaults on HVM net device attach
+        <br/>
+          Fixes network interface attach for HVM domains when no model is
+          specified. Emulated hotplug isn't yet supported and hence we should
+          default to the general working scenario.
+        </li><li>
+          libxl: always enable pae for x86_64 HVM
+        <br/>
+          By default pae is disabled in libxl. Without an explicit &lt;pae/&gt;
+          setting in the domain &lt;features&gt; configuration, an x86_64 HVM
+          domain would be get an i686 environment. pae should always be enabled
+          for x86_64 HVM domains.
         </li></ul></li></ul><h3><strong>v2.5.0 (2016-12-04)</strong></h3><ul><li><strong>New features</strong><ul><li>
           shmem: Add support for additional models
         <br/>

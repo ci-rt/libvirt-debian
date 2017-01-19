@@ -272,7 +272,6 @@
      <exports symbol='VIR_PERF_PARAM_BRANCH_INSTRUCTIONS' type='macro'/>
      <exports symbol='VIR_PERF_PARAM_BRANCH_MISSES' type='macro'/>
      <exports symbol='VIR_PERF_PARAM_BUS_CYCLES' type='macro'/>
-     <exports symbol='VIR_PERF_PARAM_CACHE_L1D' type='macro'/>
      <exports symbol='VIR_PERF_PARAM_CACHE_MISSES' type='macro'/>
      <exports symbol='VIR_PERF_PARAM_CACHE_REFERENCES' type='macro'/>
      <exports symbol='VIR_PERF_PARAM_CMT' type='macro'/>
@@ -2442,9 +2441,6 @@
     </macro>
     <macro name='VIR_PERF_PARAM_BUS_CYCLES' file='libvirt-domain' string='bus_cycles'>
       <info><![CDATA[Macro for typed parameter name that represents bus_cycles perf event which can be used to measure the count of bus cycles by applications running on the platform. It corresponds to the "perf.bus_cycles" field in the *Stats APIs.]]></info>
-    </macro>
-    <macro name='VIR_PERF_PARAM_CACHE_L1D' file='libvirt-domain' string='cache_l1d'>
-      <info><![CDATA[Macro for typed parameter name that represents cache_l1d perf event which can be used to measure the count of total level 1 data cache by applications running on the platform. It corresponds to the "perf.cache_l1d" field in the *Stats APIs.]]></info>
     </macro>
     <macro name='VIR_PERF_PARAM_CACHE_MISSES' file='libvirt-domain' string='cache_misses'>
       <info><![CDATA[Macro for typed parameter name that represents cache_misses perf event which can be used to measure the count of cache misses by applications running on the platform. It corresponds to the "perf.cache_misses" field in the *Stats APIs.]]></info>
@@ -4761,8 +4757,6 @@ VIR_DOMAIN_STATS_PERF:
                             CPU frequency scaling by applications running
                             as unsigned long long. It is produced by the
                             ref_cpu_cycles perf event.
-    "perf.cache_l1d" - The count of total level 1 data cache as unsigned
-                       long long. It is produced by cache_l1d perf event.
 
 Note that entire stats groups or individual stat fields may be missing from
 the output in case they are not supported by the given hypervisor, are not

@@ -450,32 +450,32 @@ virNetClientPtr virNetClientNewLibSSH2(const char *host,
     char *nc = NULL;
     char *command = NULL;
 
-    char *homedir = virGetUserDirectory();
-    char *confdir = virGetUserConfigDirectory();
+    char *homedir = NULL;
+    char *confdir = NULL;
     char *knownhosts = NULL;
     char *privkey = NULL;
 
     /* Use default paths for known hosts an public keys if not provided */
-    if (confdir) {
-        if (!knownHostsPath) {
-            if (virFileExists(confdir)) {
-                virBufferAsprintf(&buf, "%s/known_hosts", confdir);
-                if (!(knownhosts = virBufferContentAndReset(&buf)))
-                    goto no_memory;
-            }
-        } else {
-            if (VIR_STRDUP(knownhosts, knownHostsPath) < 0)
-                goto cleanup;
+    if (knownHostsPath) {
+        if (VIR_STRDUP(knownhosts, knownHostsPath) < 0)
+            goto cleanup;
+    } else {
+        confdir = virGetUserConfigDirectory();
+        if (confdir) {
+            virBufferAsprintf(&buf, "%s/known_hosts", confdir);
+            if (!(knownhosts = virBufferContentAndReset(&buf)))
+                goto no_memory;
         }
     }
 
-    if (homedir) {
-        if (!privkeyPath) {
+    if (privkeyPath) {
+        if (VIR_STRDUP(privkey, privkeyPath) < 0)
+            goto cleanup;
+    } else {
+        homedir = virGetUserDirectory();
+        if (homedir) {
             if (virNetClientFindDefaultSshKey(homedir, &privkey) < 0)
                 goto no_memory;
-        } else {
-            if (VIR_STRDUP(privkey, privkeyPath) < 0)
-                goto cleanup;
         }
     }
 
@@ -559,31 +559,31 @@ virNetClientPtr virNetClientNewLibssh(const char *host,
     char *nc = NULL;
     char *command = NULL;
 
-    char *homedir = virGetUserDirectory();
-    char *confdir = virGetUserConfigDirectory();
+    char *homedir = NULL;
+    char *confdir = NULL;
     char *knownhosts = NULL;
     char *privkey = NULL;
 
     /* Use default paths for known hosts an public keys if not provided */
-    if (confdir) {
-        if (!knownHostsPath) {
-            if (virFileExists(confdir)) {
-                if (virAsprintf(&knownhosts, "%s/known_hosts", confdir) < 0)
-                    goto cleanup;
-            }
-        } else {
-            if (VIR_STRDUP(knownhosts, knownHostsPath) < 0)
+    if (knownHostsPath) {
+        if (VIR_STRDUP(knownhosts, knownHostsPath) < 0)
+            goto cleanup;
+    } else {
+        confdir = virGetUserConfigDirectory();
+        if (confdir) {
+            if (virAsprintf(&knownhosts, "%s/known_hosts", confdir) < 0)
                 goto cleanup;
         }
     }
 
-    if (homedir) {
-        if (!privkeyPath) {
+    if (privkeyPath) {
+        if (VIR_STRDUP(privkey, privkeyPath) < 0)
+            goto cleanup;
+    } else {
+        homedir = virGetUserDirectory();
+        if (homedir) {
             if (virNetClientFindDefaultSshKey(homedir, &privkey) < 0)
                 goto no_memory;
-        } else {
-            if (VIR_STRDUP(privkey, privkeyPath) < 0)
-                goto cleanup;
         }
     }
 

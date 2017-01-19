@@ -1,9 +1,17 @@
 libvirt releases
 ================
 
-# v3.0.0 (unreleased)
+# v3.0.0 (2017-01-17)
 
   * New features
+
+    - Domain events for metadata content changes
+        The domain events framework has a new event ID that can be used to get
+        notifications when domain metadata content changes.
+
+    - Event notifications for the secret object
+        The secret object now supports event notifications, covering lifcycle
+        changes and secret value changes.
 
     - New localPtr attribute for "ip" element in network XML
 
@@ -12,8 +20,8 @@ libvirt releases
         <disk> <iotune> subelement "group_name" to allow sharing I/O throttling
         quota between multiple drives.
 
-    - nss: Introduce libvirt-guest
-        New libvirt-guest nss module that translates libvirt guest names into
+    - nss: Introduce libvirt_guest
+        New libvirt_guest nss module that translates libvirt guest names into
         IP addresses.
 
     - daemon: Add support for runtime logging settings adjustment
@@ -29,6 +37,13 @@ libvirt releases
         the data.
 
     - libxl: Implement virDomainGetMaxVcpus API
+
+    - storage: Add overwrite flag checking for logical pool
+        Add support for the OVERWRITE flags for the logical storage backend
+        including checking for existing data on the target volumes when
+        building a new logical pool on target volume(s).
+
+    - qemu: Add support for guest CPU configuration on s390(x)
 
   * Improvements
 
@@ -58,7 +73,27 @@ libvirt releases
         Add option --bytes to virsh pool-info in order ti allow display of
         units in bytes rather than default of human readable output.
 
+    - scsi: Add parent wwnn/wwpn or fabric capability for createVport
+        Improve the algorithm searching for the parent scsi_host device for
+        vHBA/NPIV scsi_host creation. Rather than supplying the "parent" by
+        name, it's now possible to define the parent by it's wwnn/wwpn or
+        fabric_wwn in the node device create XML or the storage pool XML.
+
+    - qemu: aggregate pcie-root-ports onto multiple functions of a slot
+        When pcie-root-ports are added to pcie-root in order to provide a place
+        to connect PCI Express endpoint devices, libvirt now aggregates
+        multiple root ports together onto the same slot (up to 8 per slot) in
+        order to conserve slots. Using this method, it's possible to connect
+        more than 200 endpoint devices to a guest that uses PCIe without
+        requiring setup of any PCIe switches.
+
   * Bug fixes
+
+    - lxc: fix accidental killing of containers during libvirtd restart
+        The libvirt_lxc process was previously not moved into the container
+        scope. As a result, if systemd reloads its config after a container is
+        started, when libvirtd is later restarted it will accidentally kill the
+        containers.
 
     - qemu: Correct GetBlockInfo values
         For an active domain, correct the physical value provided for a raw
@@ -73,6 +108,34 @@ libvirt releases
         To avoid funny races with udev relabelling devices under our hands and
         to enhance security, libvirt now spawns each qemu process with its own
         /dev.
+
+    - storage: Fix implementation of no-overwrite for file system backend
+        Fix file system storage backend implementation of the OVERWRITE flags
+        to be consistent between code and documentation. Add checks to ensure
+        that when building a new file system on a target volume that there is
+        not something already on the disk in a format that libvirt can
+        recognize.
+
+    - qemu: Create hugepage path on per domain basis
+        Historically, all hugepage enabled domains shared the same path under
+        hugetlbfs. This left libvirt unable to correctly set security labels on
+        it. With this release, however, each domain is put into a separate path
+        which is also correctly labeled.
+
+    - conf: Reject domains with duplicate drive addresses
+        Reject duplicate drive addresses for disks and hostdevs at domain
+        definition.
+
+    - libxl: reverse defaults on HVM net device attach
+        Fixes network interface attach for HVM domains when no model is
+        specified. Emulated hotplug isn't yet supported and hence we should
+        default to the general working scenario.
+
+    - libxl: always enable pae for x86_64 HVM
+        By default pae is disabled in libxl. Without an explicit <pae/> setting
+        in the domain <features> configuration, an x86_64 HVM domain would be
+        get an i686 environment. pae should always be enabled for x86_64 HVM
+        domains.
 
 # v2.5.0 (2016-12-04)
 
