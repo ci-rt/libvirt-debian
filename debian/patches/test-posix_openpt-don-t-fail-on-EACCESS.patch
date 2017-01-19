@@ -1,6 +1,6 @@
 From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
 Date: Thu, 19 Jan 2017 17:19:38 +0100
-Subject: test-posix_openpt: don't fail on EPERM
+Subject: test-posix_openpt: don't fail on EACCESS
 
 In chroots created for Debian package builds created by pbuilder
 /dev/ptmx might not be accessible.
@@ -9,7 +9,7 @@ In chroots created for Debian package builds created by pbuilder
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/gnulib/tests/test-posix_openpt.c b/gnulib/tests/test-posix_openpt.c
-index 87243b2..9bd7db4 100644
+index 87243b2..045640f 100644
 --- a/gnulib/tests/test-posix_openpt.c
 +++ b/gnulib/tests/test-posix_openpt.c
 @@ -43,7 +43,7 @@ main (void)
@@ -17,7 +17,7 @@ index 87243b2..9bd7db4 100644
    /* Open the master of a pseudo-terminal pair.  */
    master = posix_openpt (O_RDWR | O_NOCTTY);
 -  if (master < 0 && errno == ENOSYS)
-+  if (master < 0 && (errno == ENOSYS || errno == EPERM))
++  if (master < 0 && (errno == ENOSYS || errno == EACCES))
      {
        fputs ("skipping: platform lacks pty support\n", stderr);
        return 77;

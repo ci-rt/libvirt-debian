@@ -48,7 +48,7 @@ msgid ""
 msgstr ""
 " Um Gäste mit Image Dateien die via NFS verteilt werden zu migrieren wird\n"
 " eine identische libvirt-qemu Nutzer and Gruppen ID zwischen Quell- und\n"
-" Ziel Host System benötigt.".
+" Ziel Host System benötigt."
 
 #. Type: boolean
 #. Description
