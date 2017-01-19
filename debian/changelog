@@ -1,3 +1,35 @@
+libvirt (3.0.0-1) experimental; urgency=medium
+
+  * [bf2fdf7] New upstream version 3.0.0
+  * [95b1359] New upstream version 3.0.0-rc1
+  * [57baa73] lxc smoketest: drop emulator path
+    so it's simpler to reuse this on other distros to reproduce test
+    failures.
+    Thanks to Cedric Bosdonnat
+  * [5be8cad] lxc: ensure libvirt_lxc and qemu-nbd move into systemd machine
+    slice (Closes: #848317)
+  * [5c36b50] nl debconf translation.
+    Thanks to Frans Spiesschaert (Closes: #850737)
+  * [458b927] Add Danish debconf translation.
+    Thanks to Joe Dalton (Closes: #850872)
+  * [cbe5cd0] Add fr debconf translation.
+    Thanks to Alban VIDAL (Closes: #850938)
+  * [7c3b026] Rediff patches.
+    Dropped patches fixed upstream
+      apparmor-pass-attach_disconnected.patch
+      lxc-ensure-libvirt_lxc-and-qemu-nbd-move-into-systemd-mac.patch
+      AppArmor-policy-support-merged-usr.patch
+  * [baf4b1f] Bump symbol versions
+  * [80ef821] Add de translation.
+    Thanks to Markus Hiereth for the initial draft
+  * [2be70b3] Work around lack of /dev/ptmx access in pbuilder
+    test-posix_openpt-don-t-fail-on-EPERM.patch
+    openpty-Skip-test-if-no-pty-is-available.patch
+  * [43e4ddc] Disable use of qemu mount namespaces by default. The
+    code is not complete yet.
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 19 Jan 2017 18:51:18 +0100
+
 libvirt (2.5.0-3) unstable; urgency=medium
 
   * [ba9fcb8] Invoke db_stop.
