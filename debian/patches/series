@@ -15,3 +15,5 @@ debian/apparmor_profiles_local_include.patch
 virt-aa-helper-apparmor-allow-usr-share-OVMF-too.patch
 Set-defaults-for-zfs-tools.patch
 Pass-GPG_TTY-env-var-to-the-ssh-binary.patch
+openpty-Skip-test-if-no-pty-is-available.patch
+test-posix_openpt-don-t-fail-on-EPERM.patch
