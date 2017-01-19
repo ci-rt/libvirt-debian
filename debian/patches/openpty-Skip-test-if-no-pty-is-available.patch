@@ -2,9 +2,11 @@ From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
 Date: Thu, 19 Jan 2017 17:16:06 +0100
 Subject: openpty: Skip test if no pty is available
 
-In chroots created for package builds created by pbuilder there may be
+In chroots for package builds with recent debootstrap there may be
 no ptys or they might not be accessible. This both manifests as ENOENT
 on Linux.
+
+Works around #817236
 ---
  gnulib/tests/test-openpty.c | 9 +++++++--
  1 file changed, 7 insertions(+), 2 deletions(-)

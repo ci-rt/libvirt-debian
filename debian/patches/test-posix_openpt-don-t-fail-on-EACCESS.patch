@@ -2,8 +2,9 @@ From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
 Date: Thu, 19 Jan 2017 17:19:38 +0100
 Subject: test-posix_openpt: don't fail on EACCESS
 
-In chroots created for Debian package builds created by pbuilder
-/dev/ptmx might not be accessible.
+In chroots created with recent debootstrap /dev/ptmx might not be accessible.
+
+Works around #817236
 ---
  gnulib/tests/test-posix_openpt.c | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
