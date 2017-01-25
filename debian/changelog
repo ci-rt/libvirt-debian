@@ -1,3 +1,11 @@
+libvirt (3.0.0-2) unstable; urgency=medium
+
+  * Upload to unstable
+  * [8ce689d] Add pt_BR debconf translation.
+    Thanks to Adriano Rafael Gomes (Closes: #852446)
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 25 Jan 2017 07:04:08 +0100
+
 libvirt (3.0.0-1) experimental; urgency=medium
 
   * [bf2fdf7] New upstream version 3.0.0
