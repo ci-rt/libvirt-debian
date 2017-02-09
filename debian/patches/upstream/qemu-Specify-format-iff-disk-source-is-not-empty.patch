@@ -1,0 +1,52 @@
+From: Michal Privoznik <mprivozn@redhat.com>
+Date: Mon, 28 Dec 2015 15:13:52 +0100
+Subject: qemu: Specify format= iff disk source is not empty
+
+Just recently, qemu forbade specifying format for sourceless
+disks (qemu commit 39c4ae941ed992a3bb5). It kind of makes sense.
+If there's no file to open, why specify its format. Anyway, I
+have a domain like this:
+
+    <disk type='file' device='cdrom'>
+      <driver name='qemu' type='raw'/>
+      <target dev='hda' bus='ide'/>
+      <readonly/>
+      <address type='drive' controller='0' bus='0' target='0' unit='0'/>
+    </disk>
+
+and obviously I am unable to start it. Therefore, a fix on our
+side is needed too.
+
+Signed-off-by: Michal Privoznik <mprivozn@redhat.com>
+---
+ src/qemu/qemu_command.c | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/src/qemu/qemu_command.c b/src/qemu/qemu_command.c
+index eb72451..755671d 100644
+--- a/src/qemu/qemu_command.c
++++ b/src/qemu/qemu_command.c
+@@ -3467,6 +3467,11 @@ qemuBuildDriveStr(virConnectPtr conn,
+         }
+ 
+         virBufferEscape(&opt, ',', ",", "%s,", source);
++
++        if (disk->src->format > 0 &&
++            disk->src->type != VIR_STORAGE_TYPE_DIR)
++            virBufferAsprintf(&opt, "format=%s,",
++                              virStorageFileFormatTypeToString(disk->src->format));
+     }
+     VIR_FREE(source);
+ 
+@@ -3527,11 +3532,6 @@ qemuBuildDriveStr(virConnectPtr conn,
+                        _("transient disks not supported yet"));
+         goto error;
+     }
+-    if (disk->src->format > 0 &&
+-        disk->src->type != VIR_STORAGE_TYPE_DIR &&
+-        virQEMUCapsGet(qemuCaps, QEMU_CAPS_DRIVE_FORMAT))
+-        virBufferAsprintf(&opt, ",format=%s",
+-                          virStorageFileFormatTypeToString(disk->src->format));
+ 
+     /* generate geometry command string */
+     if (disk->geometry.cylinders > 0 &&

@@ -34,3 +34,4 @@ upstream/Report-original-error-when-QMP-probing-fails-with-ne.patch
 security/CVE-2015-5313-storage-don-t-allow-in-filesystem-volu.patch
 debian/Debianize-bridge-helper-path.patch
 security/CVE-2016-5008-qemu-Let-empty-default-VNC-password-work-as.patch
+upstream/qemu-Specify-format-iff-disk-source-is-not-empty.patch
