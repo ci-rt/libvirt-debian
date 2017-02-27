@@ -1,3 +1,11 @@
+libvirt (3.0.0-3) unstable; urgency=medium
+
+  * [62ad289] Debianize virtlogd
+  * [cb216b5] CVE-2017-2635: qemu: Don't update physical storage size of empty drives
+    (Closes: #856313)
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 27 Feb 2017 20:07:41 +0100
+
 libvirt (3.0.0-2) unstable; urgency=medium
 
   * Upload to unstable
