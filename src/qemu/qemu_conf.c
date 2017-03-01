@@ -186,6 +186,8 @@ virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
             goto error;
         if (virAsprintf(&cfg->nvramDir, "%s/nvram", cfg->libDir) < 0)
             goto error;
+        if (virAsprintf(&cfg->memoryBackingDir, "%s/ram", cfg->libDir) < 0)
+            goto error;
     } else {
         char *rundir;
         char *cachedir;
@@ -230,6 +232,8 @@ virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
             goto error;
         if (virAsprintf(&cfg->nvramDir,
                         "%s/qemu/nvram", cfg->configBaseDir) < 0)
+            goto error;
+        if (virAsprintf(&cfg->memoryBackingDir, "%s/qemu/ram", cfg->configBaseDir) < 0)
             goto error;
     }
 
@@ -317,12 +321,10 @@ virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
     if (!(cfg->namespaces = virBitmapNew(QEMU_DOMAIN_NS_LAST)))
         goto error;
 
-#if defined(__linux__)
     if (privileged &&
-        virProcessNamespaceAvailable(VIR_PROCESS_NAMESPACE_MNT) == 0 &&
+        qemuDomainNamespaceAvailable(QEMU_DOMAIN_NS_MOUNT) &&
         virBitmapSetBit(cfg->namespaces, QEMU_DOMAIN_NS_MOUNT) < 0)
         goto error;
-#endif /* defined(__linux__) */
 
 #ifdef DEFAULT_LOADER_NVRAM
     if (virFirmwareParseList(DEFAULT_LOADER_NVRAM,
@@ -408,6 +410,8 @@ static void virQEMUDriverConfigDispose(void *obj)
     VIR_FREE(cfg->lockManagerName);
 
     virFirmwareFreeList(cfg->firmwares, cfg->nfirmwares);
+
+    VIR_FREE(cfg->memoryBackingDir);
 }
 
 
@@ -432,7 +436,8 @@ virQEMUDriverConfigHugeTLBFSInit(virHugeTLBFSPtr hugetlbfs,
 
 
 int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
-                                const char *filename)
+                                const char *filename,
+                                bool privileged)
 {
     virConfPtr conf = NULL;
     int ret = -1;
@@ -826,6 +831,19 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
                 goto cleanup;
             }
 
+            if (!privileged) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("cannot use namespaces in session mode"));
+                goto cleanup;
+            }
+
+            if (!qemuDomainNamespaceAvailable(ns)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("%s namespace is not available"),
+                               namespaces[i]);
+                goto cleanup;
+            }
+
             if (virBitmapSetBit(cfg->namespaces, ns) < 0) {
                 virReportError(VIR_ERR_INTERNAL_ERROR,
                                _("Unable to enable namespace: %s"),
@@ -834,6 +852,9 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
             }
         }
     }
+
+    if (virConfGetValueString(conf, "memory_backing_dir", &cfg->memoryBackingDir) < 0)
+        goto cleanup;
 
     ret = 0;
 

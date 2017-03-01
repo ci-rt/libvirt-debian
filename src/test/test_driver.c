@@ -487,17 +487,52 @@ static const char *defaultConnXML =
 "  </capability>"
 "</device>"
 "<device>"
-"  <name>test-scsi-host-vport</name>"
+"  <name>scsi_host1</name>"
 "  <parent>computer</parent>"
 "  <capability type='scsi_host'>"
 "    <host>1</host>"
+"    <unique_id>0</unique_id>"
 "    <capability type='fc_host'>"
 "      <wwnn>2000000012341234</wwnn>"
 "      <wwpn>1000000012341234</wwpn>"
+"      <fabric_wwn>2000000043214321</fabric_wwn>"
 "    </capability>"
-"    <capability type='vport_ops'/>"
+"    <capability type='vport_ops'>"
+"      <max_vports>127</max_vports>"
+"      <vports>1</vports>"
+"    </capability>"
 "  </capability>"
 "</device>"
+"<device>"
+"  <name>scsi_host2</name>"
+"  <parent>computer</parent>"
+"  <capability type='scsi_host'>"
+"    <host>2</host>"
+"    <unique_id>1</unique_id>"
+"    <capability type='fc_host'>"
+"      <wwnn>2000000056785678</wwnn>"
+"      <wwpn>1000000056785678</wwpn>"
+"      <fabric_wwn>2000000087658765</fabric_wwn>"
+"    </capability>"
+"    <capability type='vport_ops'>"
+"      <max_vports>127</max_vports>"
+"      <vports>0</vports>"
+"    </capability>"
+"  </capability>"
+"</device>"
+"<device>"
+"  <name>scsi_host11</name>"
+"  <parent>scsi_host1</parent>"
+"  <capability type='scsi_host'>"
+"    <host>11</host>"
+"    <unique_id>10</unique_id>"
+"    <capability type='fc_host'>"
+"      <wwnn>2000000034563456</wwnn>"
+"      <wwpn>1000000034563456</wwpn>"
+"      <fabric_wwn>2000000043214321</fabric_wwn>"
+"    </capability>"
+"  </capability>"
+ "</device>"
 "</node>";
 
 
@@ -5450,7 +5485,10 @@ testNodeDeviceLookupByName(virConnectPtr conn, const char *name)
         goto cleanup;
     }
 
-    ret = virGetNodeDevice(conn, name);
+    if ((ret = virGetNodeDevice(conn, name))) {
+        if (VIR_STRDUP(ret->parent, obj->def->parent) < 0)
+            virObjectUnref(ret);
+    }
 
  cleanup:
     if (obj)
@@ -5587,57 +5625,62 @@ testNodeDeviceListCaps(virNodeDevicePtr dev, char **const names, int maxnames)
     return ret;
 }
 
-static virNodeDevicePtr
-testNodeDeviceCreateXML(virConnectPtr conn,
-                        const char *xmlDesc,
-                        unsigned int flags)
+
+static virNodeDeviceDefPtr
+testNodeDeviceMockCreateVport(virConnectPtr conn,
+                              const char *wwnn,
+                              const char *wwpn)
 {
     testDriverPtr driver = conn->privateData;
+    virNodeDevicePtr devcpy = NULL;
+    char *xml = NULL;
     virNodeDeviceDefPtr def = NULL;
-    virNodeDeviceObjPtr obj = NULL;
-    char *wwnn = NULL, *wwpn = NULL;
-    int parent_host = -1;
-    virNodeDevicePtr dev = NULL;
     virNodeDevCapsDefPtr caps;
+    virNodeDeviceObjPtr obj = NULL;
     virObjectEventPtr event = NULL;
 
-    virCheckFlags(0, NULL);
-
-    testDriverLock(driver);
-
-    def = virNodeDeviceDefParseString(xmlDesc, CREATE_DEVICE, NULL);
-    if (def == NULL)
+    /* In the real code, we'd call virVHBAManageVport which would take the
+     * wwnn/wwpn from the input XML in order to call the "vport_create"
+     * function for the parent. That in turn would set off a sequence of
+     * events resulting in the creation of a vHBA scsi_hostN in the
+     * node device objects list using the "next" host number with the
+     * wwnn/wwpn from the input XML. The following will mock this by
+     * using the scsi_host11 definition, changing the name and the
+     * scsi_host capability fields before calling virNodeDeviceAssignDef
+     * to add the def to the node device objects list. */
+    if (!(devcpy = virNodeDeviceLookupByName(conn, "scsi_host11")) ||
+        !(xml = virNodeDeviceGetXMLDesc(devcpy, 0)) ||
+        !(def = virNodeDeviceDefParseString(xml, EXISTING_DEVICE, NULL)))
         goto cleanup;
 
-    /* We run these next two simply for validation */
-    if (virNodeDeviceGetWWNs(def, &wwnn, &wwpn) == -1)
-        goto cleanup;
-
-    if (virNodeDeviceGetParentHost(&driver->devs,
-                                   def->name,
-                                   def->parent,
-                                   &parent_host) == -1) {
-        goto cleanup;
-    }
-
-    /* 'name' is supposed to be filled in by the node device backend, which
-     * we don't have. Use WWPN instead. */
     VIR_FREE(def->name);
-    if (VIR_STRDUP(def->name, wwpn) < 0)
+    if (VIR_STRDUP(def->name, "scsi_host12") < 0)
         goto cleanup;
 
-    /* Fill in a random 'host' and 'unique_id' value,
-     * since this would also come from the backend */
+    /* Find the 'scsi_host' cap and alter the host # and unique_id and
+     * then for the 'fc_host' capability modify the wwnn/wwpn to be that
+     * of the input XML. */
     caps = def->caps;
     while (caps) {
         if (caps->data.type != VIR_NODE_DEV_CAP_SCSI_HOST)
             continue;
 
-        caps->data.scsi_host.host = virRandomBits(10);
-        caps->data.scsi_host.unique_id = 2;
+        /* For the "fc_host" cap - change the wwnn/wwpn to match the input */
+        if (caps->data.scsi_host.flags & VIR_NODE_DEV_CAP_FLAG_HBA_FC_HOST) {
+            VIR_FREE(caps->data.scsi_host.wwnn);
+            VIR_FREE(caps->data.scsi_host.wwpn);
+            if (VIR_STRDUP(caps->data.scsi_host.wwnn, wwnn) < 0 ||
+                VIR_STRDUP(caps->data.scsi_host.wwpn, wwpn) < 0)
+                goto cleanup;
+        } else {
+            /* For the "scsi_host" cap, increment our host and unique_id to
+             * give the appearance that something new was created - then add
+             * that to the node device driver */
+            caps->data.scsi_host.host++;
+            caps->data.scsi_host.unique_id++;
+        }
         caps = caps->next;
     }
-
 
     if (!(obj = virNodeDeviceAssignDef(&driver->devs, def)))
         goto cleanup;
@@ -5646,13 +5689,67 @@ testNodeDeviceCreateXML(virConnectPtr conn,
     event = virNodeDeviceEventLifecycleNew(def->name,
                                            VIR_NODE_DEVICE_EVENT_CREATED,
                                            0);
+    testObjectEventQueue(driver, event);
 
-    dev = virGetNodeDevice(conn, def->name);
-    def = NULL;
+ cleanup:
+    VIR_FREE(xml);
+    if (!obj) {
+        virNodeDeviceDefFree(def);
+        def = NULL;
+    }
+    if (devcpy)
+        virNodeDeviceFree(devcpy);
+
+    return def;
+}
+
+
+static virNodeDevicePtr
+testNodeDeviceCreateXML(virConnectPtr conn,
+                        const char *xmlDesc,
+                        unsigned int flags)
+{
+    testDriverPtr driver = conn->privateData;
+    virNodeDeviceDefPtr def = NULL;
+    char *wwnn = NULL, *wwpn = NULL;
+    virNodeDevicePtr dev = NULL;
+    virNodeDeviceDefPtr newdef = NULL;
+
+    virCheckFlags(0, NULL);
+
+    testDriverLock(driver);
+
+    if (!(def = virNodeDeviceDefParseString(xmlDesc, CREATE_DEVICE, NULL)))
+        goto cleanup;
+
+    /* We run this simply for validation - it essentially validates that
+     * the input XML either has a wwnn/wwpn or virNodeDevCapSCSIHostParseXML
+     * generated a wwnn/wwpn */
+    if (virNodeDeviceGetWWNs(def, &wwnn, &wwpn) < 0)
+        goto cleanup;
+
+    /* Unlike the "real" code we don't need the parent_host in order to
+     * call virVHBAManageVport, but still let's make sure the code finds
+     * something valid and no one messed up the mock environment. */
+    if (virNodeDeviceGetParentHost(&driver->devs, def, CREATE_DEVICE) < 0)
+        goto cleanup;
+
+    /* In the real code, we'd call virVHBAManageVport followed by
+     * find_new_device, but we cannot do that here since we're not
+     * mocking udev. The mock routine will copy an existing vHBA and
+     * rename a few fields to mock that. So in order to allow that to
+     * work properly, we need to drop our lock */
+    testDriverUnlock(driver);
+    if ((newdef = testNodeDeviceMockCreateVport(conn, wwnn, wwpn))) {
+        if ((dev = virNodeDeviceLookupByName(conn, newdef->name)))
+            ignore_value(VIR_STRDUP(dev->parent, def->parent));
+    }
+    testDriverLock(driver);
+    newdef = NULL;
+
  cleanup:
     testDriverUnlock(driver);
     virNodeDeviceDefFree(def);
-    testObjectEventQueue(driver, event);
     VIR_FREE(wwnn);
     VIR_FREE(wwpn);
     return dev;
@@ -5665,7 +5762,6 @@ testNodeDeviceDestroy(virNodeDevicePtr dev)
     testDriverPtr driver = dev->conn->privateData;
     virNodeDeviceObjPtr obj = NULL;
     char *parent_name = NULL, *wwnn = NULL, *wwpn = NULL;
-    int parent_host = -1;
     virObjectEventPtr event = NULL;
 
     testDriverLock(driver);
@@ -5691,11 +5787,10 @@ testNodeDeviceDestroy(virNodeDevicePtr dev)
      * any more once we have the parent's name.  */
     virNodeDeviceObjUnlock(obj);
 
-    /* We do this just for basic validation */
-    if (virNodeDeviceGetParentHost(&driver->devs,
-                                   dev->name,
-                                   parent_name,
-                                   &parent_host) == -1) {
+    /* We do this just for basic validation, but also avoid finding a
+     * vport capable HBA if for some reason our vHBA doesn't exist */
+    if (virNodeDeviceGetParentHost(&driver->devs, obj->def,
+                                   EXISTING_DEVICE) < 0) {
         obj = NULL;
         goto out;
     }

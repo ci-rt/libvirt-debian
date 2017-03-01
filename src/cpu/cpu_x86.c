@@ -100,7 +100,7 @@ KVM_FEATURE_DEF(VIR_CPU_x86_KVM_HV_STIMER,
                 0x40000003, 0x00000008);
 KVM_FEATURE_DEF(VIR_CPU_x86_KVM_HV_RELAXED,
                 0x40000003, 0x00000020);
-KVM_FEATURE_DEF(VIR_CPU_x86_KVM_HV_SPINLOCK,
+KVM_FEATURE_DEF(VIR_CPU_x86_KVM_HV_SPINLOCKS,
                 0x40000003, 0x00000022);
 KVM_FEATURE_DEF(VIR_CPU_x86_KVM_HV_VAPIC,
                 0x40000003, 0x00000030);
@@ -124,7 +124,7 @@ static virCPUx86Feature x86_kvm_features[] =
     KVM_FEATURE(VIR_CPU_x86_KVM_HV_SYNIC),
     KVM_FEATURE(VIR_CPU_x86_KVM_HV_STIMER),
     KVM_FEATURE(VIR_CPU_x86_KVM_HV_RELAXED),
-    KVM_FEATURE(VIR_CPU_x86_KVM_HV_SPINLOCK),
+    KVM_FEATURE(VIR_CPU_x86_KVM_HV_SPINLOCKS),
     KVM_FEATURE(VIR_CPU_x86_KVM_HV_VAPIC),
     KVM_FEATURE(VIR_CPU_x86_KVM_HV_VPINDEX),
     KVM_FEATURE(VIR_CPU_x86_KVM_HV_RESET),
@@ -293,7 +293,7 @@ x86DataCpuid(const virCPUx86Data *data,
     return NULL;
 }
 
-void
+static void
 virCPUx86DataClear(virCPUx86Data *data)
 {
     if (!data)
@@ -303,24 +303,8 @@ virCPUx86DataClear(virCPUx86Data *data)
 }
 
 
-virCPUDataPtr
-virCPUx86MakeData(virArch arch, virCPUx86Data *data)
-{
-    virCPUDataPtr cpuData;
-
-    if (VIR_ALLOC(cpuData) < 0)
-        return NULL;
-
-    cpuData->arch = arch;
-    cpuData->data.x86 = *data;
-    data->len = 0;
-    data->data = NULL;
-
-    return cpuData;
-}
-
 static void
-x86FreeCPUData(virCPUDataPtr data)
+virCPUx86DataFree(virCPUDataPtr data)
 {
     if (!data)
         return;
@@ -346,9 +330,9 @@ x86DataCopy(virCPUx86Data *dst, const virCPUx86Data *src)
 }
 
 
-int
-virCPUx86DataAddCPUID(virCPUx86Data *data,
-                      const virCPUx86CPUID *cpuid)
+static int
+virCPUx86DataAddCPUIDInt(virCPUx86Data *data,
+                         const virCPUx86CPUID *cpuid)
 {
     virCPUx86CPUID *existing;
 
@@ -381,7 +365,7 @@ x86DataAdd(virCPUx86Data *data1,
         if (cpuid1) {
             x86cpuidSetBits(cpuid1, cpuid2);
         } else {
-            if (virCPUx86DataAddCPUID(data1, cpuid2) < 0)
+            if (virCPUx86DataAddCPUIDInt(data1, cpuid2) < 0)
                 return -1;
         }
     }
@@ -494,6 +478,26 @@ x86DataToVendor(const virCPUx86Data *data,
 }
 
 
+static int
+virCPUx86VendorToCPUID(const char *vendor,
+                       virCPUx86CPUID *cpuid)
+{
+    if (strlen(vendor) != VENDOR_STRING_LENGTH) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Invalid CPU vendor string '%s'"), vendor);
+        return -1;
+    }
+
+    cpuid->eax_in = 0;
+    cpuid->ecx_in = 0;
+    cpuid->ebx = virReadBufInt32LE(vendor);
+    cpuid->edx = virReadBufInt32LE(vendor + 4);
+    cpuid->ecx = virReadBufInt32LE(vendor + 8);
+
+    return 0;
+}
+
+
 static uint32_t
 x86MakeSignature(unsigned int family,
                  unsigned int model)
@@ -565,7 +569,7 @@ x86DataAddSignature(virCPUx86Data *data,
 {
     virCPUx86CPUID cpuid = { .eax_in = 0x1, .eax = signature };
 
-    return virCPUx86DataAddCPUID(data, &cpuid);
+    return virCPUx86DataAddCPUIDInt(data, &cpuid);
 }
 
 
@@ -667,17 +671,9 @@ x86VendorParse(xmlXPathContextPtr ctxt,
                        vendor->name);
         goto error;
     }
-    if (strlen(string) != VENDOR_STRING_LENGTH) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Invalid CPU vendor string '%s'"), string);
-        goto error;
-    }
 
-    vendor->cpuid.eax_in = 0;
-    vendor->cpuid.ecx_in = 0;
-    vendor->cpuid.ebx = virReadBufInt32LE(string);
-    vendor->cpuid.edx = virReadBufInt32LE(string + 4);
-    vendor->cpuid.ecx = virReadBufInt32LE(string + 8);
+    if (virCPUx86VendorToCPUID(string, &vendor->cpuid) < 0)
+        goto error;
 
  cleanup:
     VIR_FREE(string);
@@ -908,7 +904,7 @@ x86FeatureParse(xmlXPathContextPtr ctxt,
                            i, feature->name);
             goto error;
         }
-        if (virCPUx86DataAddCPUID(&feature->data, &cpuid))
+        if (virCPUx86DataAddCPUIDInt(&feature->data, &cpuid))
             goto error;
     }
 
@@ -1441,7 +1437,6 @@ virCPUx86DataParse(xmlXPathContextPtr ctxt)
 {
     xmlNodePtr *nodes = NULL;
     virCPUDataPtr cpuData = NULL;
-    virCPUx86Data data = VIR_CPU_X86_DATA_INIT;
     virCPUx86CPUID cpuid;
     size_t i;
     int n;
@@ -1450,26 +1445,31 @@ virCPUx86DataParse(xmlXPathContextPtr ctxt)
     if (n <= 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("no x86 CPU data found"));
-        goto cleanup;
+        goto error;
     }
+
+    if (!(cpuData = virCPUDataNew(VIR_ARCH_X86_64)))
+        goto error;
 
     for (i = 0; i < n; i++) {
         ctxt->node = nodes[i];
         if (x86ParseCPUID(ctxt, &cpuid) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("failed to parse cpuid[%zu]"), i);
-            goto cleanup;
+            goto error;
         }
-        if (virCPUx86DataAddCPUID(&data, &cpuid) < 0)
-            goto cleanup;
+        if (virCPUx86DataAddCPUID(cpuData, &cpuid) < 0)
+            goto error;
     }
-
-    cpuData = virCPUx86MakeData(VIR_ARCH_X86_64, &data);
 
  cleanup:
     VIR_FREE(nodes);
-    virCPUx86DataClear(&data);
     return cpuData;
+
+ error:
+    virCPUx86DataFree(cpuData);
+    cpuData = NULL;
+    goto cleanup;
 }
 
 
@@ -1514,7 +1514,7 @@ x86Compute(virCPUDefPtr host,
     virCPUx86ModelPtr cpu_forbid = NULL;
     virCPUx86ModelPtr diff = NULL;
     virCPUx86ModelPtr guest_model = NULL;
-    virCPUx86Data guestData = VIR_CPU_X86_DATA_INIT;
+    virCPUDataPtr guestData = NULL;
     virCPUCompareResult ret;
     virCPUx86CompareResult result;
     virArch arch;
@@ -1617,8 +1617,8 @@ x86Compute(virCPUDefPtr host,
             goto error;
 
         if (cpu->vendor && host_model->vendor &&
-            virCPUx86DataAddCPUID(&guest_model->data,
-                                  &host_model->vendor->cpuid) < 0)
+            virCPUx86DataAddCPUIDInt(&guest_model->data,
+                                     &host_model->vendor->cpuid) < 0)
             goto error;
 
         if (x86DataAddSignature(&guest_model->data, host_model->signature) < 0)
@@ -1633,9 +1633,11 @@ x86Compute(virCPUDefPtr host,
 
         x86DataSubtract(&guest_model->data, &cpu_disable->data);
 
-        if (x86DataCopy(&guestData, &guest_model->data) < 0 ||
-            !(*guest = virCPUx86MakeData(arch, &guestData)))
+        if (!(guestData = virCPUDataNew(arch)) ||
+            x86DataCopy(&guestData->data.x86, &guest_model->data) < 0)
             goto error;
+
+        *guest = guestData;
     }
 
  cleanup:
@@ -1647,11 +1649,11 @@ x86Compute(virCPUDefPtr host,
     x86ModelFree(cpu_disable);
     x86ModelFree(cpu_forbid);
     x86ModelFree(guest_model);
-    virCPUx86DataClear(&guestData);
 
     return ret;
 
  error:
+    virCPUx86DataFree(guestData);
     ret = VIR_CPU_COMPARE_ERROR;
     goto cleanup;
 }
@@ -1958,12 +1960,12 @@ x86Encode(virArch arch,
           virCPUDataPtr *vendor)
 {
     virCPUx86MapPtr map = NULL;
-    virCPUx86Data data_forced = VIR_CPU_X86_DATA_INIT;
-    virCPUx86Data data_required = VIR_CPU_X86_DATA_INIT;
-    virCPUx86Data data_optional = VIR_CPU_X86_DATA_INIT;
-    virCPUx86Data data_disabled = VIR_CPU_X86_DATA_INIT;
-    virCPUx86Data data_forbidden = VIR_CPU_X86_DATA_INIT;
-    virCPUx86Data data_vendor = VIR_CPU_X86_DATA_INIT;
+    virCPUDataPtr data_forced = NULL;
+    virCPUDataPtr data_required = NULL;
+    virCPUDataPtr data_optional = NULL;
+    virCPUDataPtr data_disabled = NULL;
+    virCPUDataPtr data_forbidden = NULL;
+    virCPUDataPtr data_vendor = NULL;
 
     if (forced)
         *forced = NULL;
@@ -1982,23 +1984,33 @@ x86Encode(virArch arch,
         goto error;
 
     if (forced &&
-        x86EncodePolicy(&data_forced, cpu, map, VIR_CPU_FEATURE_FORCE) < 0)
+        (!(data_forced = virCPUDataNew(arch)) ||
+         x86EncodePolicy(&data_forced->data.x86, cpu, map,
+                         VIR_CPU_FEATURE_FORCE) < 0))
         goto error;
 
     if (required &&
-        x86EncodePolicy(&data_required, cpu, map, VIR_CPU_FEATURE_REQUIRE) < 0)
+        (!(data_required = virCPUDataNew(arch)) ||
+         x86EncodePolicy(&data_required->data.x86, cpu, map,
+                         VIR_CPU_FEATURE_REQUIRE) < 0))
         goto error;
 
     if (optional &&
-        x86EncodePolicy(&data_optional, cpu, map, VIR_CPU_FEATURE_OPTIONAL) < 0)
+        (!(data_optional = virCPUDataNew(arch)) ||
+         x86EncodePolicy(&data_optional->data.x86, cpu, map,
+                         VIR_CPU_FEATURE_OPTIONAL) < 0))
         goto error;
 
     if (disabled &&
-        x86EncodePolicy(&data_disabled, cpu, map, VIR_CPU_FEATURE_DISABLE) < 0)
+        (!(data_disabled = virCPUDataNew(arch)) ||
+         x86EncodePolicy(&data_disabled->data.x86, cpu, map,
+                         VIR_CPU_FEATURE_DISABLE) < 0))
         goto error;
 
     if (forbidden &&
-        x86EncodePolicy(&data_forbidden, cpu, map, VIR_CPU_FEATURE_FORBID) < 0)
+        (!(data_forbidden = virCPUDataNew(arch)) ||
+         x86EncodePolicy(&data_forbidden->data.x86, cpu, map,
+                         VIR_CPU_FEATURE_FORBID) < 0))
         goto error;
 
     if (vendor) {
@@ -2010,50 +2022,35 @@ x86Encode(virArch arch,
             goto error;
         }
 
-        if (v && virCPUx86DataAddCPUID(&data_vendor, &v->cpuid) < 0)
+        if (!(data_vendor = virCPUDataNew(arch)))
+            goto error;
+
+        if (v && virCPUx86DataAddCPUID(data_vendor, &v->cpuid) < 0)
             goto error;
     }
 
-    if (forced &&
-        !(*forced = virCPUx86MakeData(arch, &data_forced)))
-        goto error;
-    if (required &&
-        !(*required = virCPUx86MakeData(arch, &data_required)))
-        goto error;
-    if (optional &&
-        !(*optional = virCPUx86MakeData(arch, &data_optional)))
-        goto error;
-    if (disabled &&
-        !(*disabled = virCPUx86MakeData(arch, &data_disabled)))
-        goto error;
-    if (forbidden &&
-        !(*forbidden = virCPUx86MakeData(arch, &data_forbidden)))
-        goto error;
-    if (vendor &&
-        !(*vendor = virCPUx86MakeData(arch, &data_vendor)))
-        goto error;
+    if (forced)
+        *forced = data_forced;
+    if (required)
+        *required = data_required;
+    if (optional)
+        *optional = data_optional;
+    if (disabled)
+        *disabled = data_disabled;
+    if (forbidden)
+        *forbidden = data_forbidden;
+    if (vendor)
+        *vendor = data_vendor;
 
     return 0;
 
  error:
-    virCPUx86DataClear(&data_forced);
-    virCPUx86DataClear(&data_required);
-    virCPUx86DataClear(&data_optional);
-    virCPUx86DataClear(&data_disabled);
-    virCPUx86DataClear(&data_forbidden);
-    virCPUx86DataClear(&data_vendor);
-    if (forced)
-        x86FreeCPUData(*forced);
-    if (required)
-        x86FreeCPUData(*required);
-    if (optional)
-        x86FreeCPUData(*optional);
-    if (disabled)
-        x86FreeCPUData(*disabled);
-    if (forbidden)
-        x86FreeCPUData(*forbidden);
-    if (vendor)
-        x86FreeCPUData(*vendor);
+    virCPUx86DataFree(data_forced);
+    virCPUx86DataFree(data_required);
+    virCPUx86DataFree(data_optional);
+    virCPUx86DataFree(data_disabled);
+    virCPUx86DataFree(data_forbidden);
+    virCPUx86DataFree(data_vendor);
     return -1;
 }
 
@@ -2098,7 +2095,7 @@ cpuidCall(virCPUx86CPUID *cpuid)
  * Sub leaf n+1 is invalid if eax[4:0] in sub leaf n equals 0.
  */
 static int
-cpuidSetLeaf4(virCPUx86Data *data,
+cpuidSetLeaf4(virCPUDataPtr data,
               virCPUx86CPUID *subLeaf0)
 {
     virCPUx86CPUID cpuid = *subLeaf0;
@@ -2121,7 +2118,7 @@ cpuidSetLeaf4(virCPUx86Data *data,
  * Sub leaf n is invalid if n > eax in sub leaf 0.
  */
 static int
-cpuidSetLeaf7(virCPUx86Data *data,
+cpuidSetLeaf7(virCPUDataPtr data,
               virCPUx86CPUID *subLeaf0)
 {
     virCPUx86CPUID cpuid = { .eax_in = 0x7 };
@@ -2148,7 +2145,7 @@ cpuidSetLeaf7(virCPUx86Data *data,
  * meaningful data even if it was (theoretically) considered invalid.
  */
 static int
-cpuidSetLeafB(virCPUx86Data *data,
+cpuidSetLeafB(virCPUDataPtr data,
               virCPUx86CPUID *subLeaf0)
 {
     virCPUx86CPUID cpuid = *subLeaf0;
@@ -2172,7 +2169,7 @@ cpuidSetLeafB(virCPUx86Data *data,
  * and edx[n-32] from sub leaf 1 is not set.
  */
 static int
-cpuidSetLeafD(virCPUx86Data *data,
+cpuidSetLeafD(virCPUDataPtr data,
               virCPUx86CPUID *subLeaf0)
 {
     virCPUx86CPUID cpuid = { .eax_in = 0xd };
@@ -2219,7 +2216,7 @@ cpuidSetLeafD(virCPUx86Data *data,
  * 0x10: Sub leaf n is valid if ebx[n] (= res[ResID]) from sub leaf 0 is set.
  */
 static int
-cpuidSetLeafResID(virCPUx86Data *data,
+cpuidSetLeafResID(virCPUDataPtr data,
                   virCPUx86CPUID *subLeaf0,
                   uint32_t res)
 {
@@ -2247,13 +2244,13 @@ cpuidSetLeafResID(virCPUx86Data *data,
  * Sub leaves n >= 2 are valid as long as eax[3:0] != 0.
  */
 static int
-cpuidSetLeaf12(virCPUx86Data *data,
+cpuidSetLeaf12(virCPUDataPtr data,
                virCPUx86CPUID *subLeaf0)
 {
     virCPUx86CPUID cpuid = { .eax_in = 0x7 };
     virCPUx86CPUID *cpuid7;
 
-    if (!(cpuid7 = x86DataCpuid(data, &cpuid)) ||
+    if (!(cpuid7 = x86DataCpuid(&data->data.x86, &cpuid)) ||
         !(cpuid7->ebx & (1 << 2)))
         return 0;
 
@@ -2283,7 +2280,7 @@ cpuidSetLeaf12(virCPUx86Data *data,
  * Sub leaf 0 reports the maximum supported sub leaf in eax.
  */
 static int
-cpuidSetLeaf14(virCPUx86Data *data,
+cpuidSetLeaf14(virCPUDataPtr data,
                virCPUx86CPUID *subLeaf0)
 {
     virCPUx86CPUID cpuid = { .eax_in = 0x14 };
@@ -2308,7 +2305,7 @@ cpuidSetLeaf14(virCPUx86Data *data,
  * Sub leaf 0 reports the maximum supported sub leaf in eax.
  */
 static int
-cpuidSetLeaf17(virCPUx86Data *data,
+cpuidSetLeaf17(virCPUDataPtr data,
                virCPUx86CPUID *subLeaf0)
 {
     virCPUx86CPUID cpuid = { .eax_in = 0x17 };
@@ -2331,7 +2328,7 @@ cpuidSetLeaf17(virCPUx86Data *data,
 
 
 static int
-cpuidSet(uint32_t base, virCPUx86Data *data)
+cpuidSet(uint32_t base, virCPUDataPtr data)
 {
     int rc;
     uint32_t max;
@@ -2382,22 +2379,20 @@ static virCPUDataPtr
 x86NodeData(virArch arch)
 {
     virCPUDataPtr cpuData = NULL;
-    virCPUx86Data data = VIR_CPU_X86_DATA_INIT;
 
-    if (cpuidSet(CPUX86_BASIC, &data) < 0)
+    if (!(cpuData = virCPUDataNew(arch)))
         goto error;
 
-    if (cpuidSet(CPUX86_EXTENDED, &data) < 0)
+    if (cpuidSet(CPUX86_BASIC, cpuData) < 0)
         goto error;
 
-    if (!(cpuData = virCPUx86MakeData(arch, &data)))
+    if (cpuidSet(CPUX86_EXTENDED, cpuData) < 0)
         goto error;
 
     return cpuData;
 
  error:
-    virCPUx86DataClear(&data);
-
+    virCPUx86DataFree(cpuData);
     return NULL;
 }
 #endif
@@ -2501,7 +2496,8 @@ x86Baseline(virCPUDefPtr *cpus,
         goto error;
     }
 
-    if (vendor && virCPUx86DataAddCPUID(&base_model->data, &vendor->cpuid) < 0)
+    if (vendor &&
+        virCPUx86DataAddCPUIDInt(&base_model->data, &vendor->cpuid) < 0)
         goto error;
 
     if (x86Decode(cpu, &base_model->data, models, nmodels, modelName, flags) < 0)
@@ -2700,17 +2696,13 @@ virCPUx86Translate(virCPUDefPtr cpu,
         goto cleanup;
 
     if (model->vendor &&
-        virCPUx86DataAddCPUID(&model->data, &model->vendor->cpuid) < 0)
+        virCPUx86DataAddCPUIDInt(&model->data, &model->vendor->cpuid) < 0)
         goto cleanup;
 
     if (x86DataAddSignature(&model->data, model->signature) < 0)
         goto cleanup;
 
     if (!(translated = virCPUDefCopyWithoutModel(cpu)))
-        goto cleanup;
-
-    if (VIR_STRDUP(translated->vendor, cpu->vendor) < 0 ||
-        VIR_STRDUP(translated->vendor_id, cpu->vendor_id) < 0)
         goto cleanup;
 
     if (x86Decode(translated, &model->data, models, nmodels, NULL, 0) < 0)
@@ -2732,6 +2724,60 @@ virCPUx86Translate(virCPUDefPtr cpu,
 }
 
 
+int
+virCPUx86DataAddCPUID(virCPUDataPtr cpuData,
+                      const virCPUx86CPUID *cpuid)
+{
+    return virCPUx86DataAddCPUIDInt(&cpuData->data.x86, cpuid);
+}
+
+
+int
+virCPUx86DataSetSignature(virCPUDataPtr cpuData,
+                          unsigned int family,
+                          unsigned int model)
+{
+    uint32_t signature = x86MakeSignature(family, model);
+
+    return x86DataAddSignature(&cpuData->data.x86, signature);
+}
+
+
+int
+virCPUx86DataSetVendor(virCPUDataPtr cpuData,
+                       const char *vendor)
+{
+    virCPUx86CPUID cpuid = { 0 };
+
+    if (virCPUx86VendorToCPUID(vendor, &cpuid) < 0)
+        return -1;
+
+    return virCPUx86DataAddCPUID(cpuData, &cpuid);
+}
+
+
+int
+virCPUx86DataAddFeature(virCPUDataPtr cpuData,
+                        const char *name)
+{
+    virCPUx86FeaturePtr feature;
+    virCPUx86MapPtr map;
+
+    if (!(map = virCPUx86GetMap()))
+        return -1;
+
+    /* ignore unknown features */
+    if (!(feature = x86FeatureFind(map, name)) &&
+        !(feature = x86FeatureFindInternal(name)))
+        return 0;
+
+    if (x86DataAdd(&cpuData->data.x86, &feature->data) < 0)
+        return -1;
+
+    return 0;
+}
+
+
 struct cpuArchDriver cpuDriverX86 = {
     .name = "x86",
     .arch = archs,
@@ -2739,7 +2785,7 @@ struct cpuArchDriver cpuDriverX86 = {
     .compare    = virCPUx86Compare,
     .decode     = x86DecodeCPUData,
     .encode     = x86Encode,
-    .free       = x86FreeCPUData,
+    .dataFree   = virCPUx86DataFree,
 #if defined(__i386__) || defined(__x86_64__)
     .nodeData   = x86NodeData,
 #else

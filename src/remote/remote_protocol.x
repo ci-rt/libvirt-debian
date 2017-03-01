@@ -86,7 +86,7 @@ const REMOTE_STORAGE_POOL_LIST_MAX = 4096;
 const REMOTE_STORAGE_VOL_LIST_MAX = 16384;
 
 /* Upper limit on lists of node devices. */
-const REMOTE_NODE_DEVICE_LIST_MAX = 16384;
+const REMOTE_NODE_DEVICE_LIST_MAX = 65536;
 
 /* Upper limit on lists of node device capabilities. */
 const REMOTE_NODE_DEVICE_CAPS_LIST_MAX = 65536;
@@ -3353,6 +3353,13 @@ struct remote_domain_set_guest_vcpus_args {
     unsigned int flags;
 };
 
+struct remote_domain_set_vcpu_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string cpumap;
+    int state;
+    unsigned int flags;
+};
+
 
 struct remote_domain_event_callback_metadata_change_msg {
     int callbackID;
@@ -4785,7 +4792,7 @@ enum remote_procedure {
     REMOTE_PROC_DOMAIN_EVENT_IO_ERROR_REASON = 195,
 
     /**
-     * @generate: server
+     * @generate: both
      * @acl: domain:start
      */
     REMOTE_PROC_DOMAIN_CREATE_WITH_FLAGS = 196,
@@ -6018,6 +6025,13 @@ enum remote_procedure {
      * @generate: both
      * @acl: none
      */
-    REMOTE_PROC_SECRET_EVENT_VALUE_CHANGED = 383
+    REMOTE_PROC_SECRET_EVENT_VALUE_CHANGED = 383,
 
+    /**
+     * @generate: both
+     * @acl: domain:write
+     * @acl: domain:save:!VIR_DOMAIN_AFFECT_CONFIG|VIR_DOMAIN_AFFECT_LIVE
+     * @acl: domain:save:VIR_DOMAIN_AFFECT_CONFIG
+     */
+    REMOTE_PROC_DOMAIN_SET_VCPU = 384
 };

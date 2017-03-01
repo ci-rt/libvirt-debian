@@ -127,6 +127,8 @@
                       </li><li>
                         <a href="#elementLink">Modifying virtual link state</a>
                       </li><li>
+                        <a href="#mtu">MTU configuration</a>
+                      </li><li>
                         <a href="#ipconfig">IP configuration</a>
                       </li><li>
                         <a href="#elementVhostuser">vhost-user interface</a>
@@ -938,6 +940,9 @@
     &lt;/hugepages&gt;
     &lt;nosharepages/&gt;
     &lt;locked/&gt;
+    &lt;source type="file|anonymous"/&gt;
+    &lt;access mode="shared|private"/&gt;
+    &lt;allocation mode="immediate|ondemand"/&gt;
   &lt;/memoryBacking&gt;
   ...
 &lt;/domain&gt;
@@ -968,7 +973,7 @@
         setting the memory limit too high (and thus allowing the domain to lock
         most of the host's memory). Doing so may be dangerous to both the
         domain and the host itself since the host's kernel may run out of
-        memory. <span class="since">Since 1.0.6</span></dd></dl>
+        memory. <span class="since">Since 1.0.6</span></dd><dt><code>source</code></dt><dd>In this attribute you can switch to file memorybacking or keep default anonymous.</dd><dt><code>access</code></dt><dd>Specify if memory is shared or private. This can be overridden per numa node by <code>memAccess</code></dd><dt><code>allocation</code></dt><dd>Specify when allocate the memory</dd></dl>
         <h3>
           <a name="elementsMemoryTuning" shape="rect" id="elementsMemoryTuning">Memory Tuning</a>
           <a class="headerlink" href="#elementsMemoryTuning" title="Permalink to this headline">¶</a>
@@ -1245,7 +1250,7 @@
           it's a good idea to avoid using <code>host-model</code> and use
           <code>custom</code> mode with just the CPU model from host
           capabilities XML.
-          <span class="since">(Since 1.2.11)</span>. PowerISA allows
+          <span class="since">Since 1.2.11</span> PowerISA allows
           processors to run VMs in binary compatibility mode supporting an
           older version of ISA.  Libvirt on PowerPC architecture uses the
           <code>host-model</code> to signify a guest mode CPU running in
@@ -1267,16 +1272,6 @@
           hosts are not identical in both hardware and configuration. If such
           a migration is attempted then the guest may hang or crash upon
           resuming execution on the destination host.</dd></dl>
-
-        In both <code>host-model</code> and <code>host-passthrough</code>
-        mode, the real (approximate in <code>host-passthrough</code> mode) CPU
-        definition which would be used on current host can be determined by
-        specifying <code>VIR_DOMAIN_XML_UPDATE_CPU</code> flag when calling
-        <code>virDomainGetXMLDesc</code> API. When running a guest that might
-        be prone to operating system reactivation when presented with
-        different hardware, and which will be migrated between hosts with
-        different capabilities, you can use this output to rewrite XML to the
-        <code>custom</code> mode for more robust migration.
       </dd><dt><code>model</code></dt><dd>The content of the <code>model</code> element specifies CPU model
         requested by the guest. The list of available CPU models and their
         definition can be found in <code>cpu_map.xml</code> file installed
@@ -4442,6 +4437,26 @@ qemu-kvm -net nic,model=? /dev/null
       <span class="since">Since 0.9.5</span>
     </p>
         <h5>
+          <a name="mtu" shape="rect" id="mtu">MTU configuration</a>
+          <a class="headerlink" href="#mtu" title="Permalink to this headline">¶</a>
+        </h5>
+        <pre xml:space="preserve">
+...
+&lt;devices&gt;
+  &lt;interface type='network'&gt;
+    &lt;source network='default'/&gt;
+    &lt;target dev='vnet0'/&gt;
+    <b>&lt;mtu size='1500'/&gt;</b>
+  &lt;/interface&gt;
+&lt;/devices&gt;
+...</pre>
+        <p>
+      This element provides means of setting MTU of the virtual network link.
+      Currently there is just one attribute <code>size</code> which accepts a
+      non-negative integer which specifies the MTU size for the interface.
+      <span class="since">Since 3.1.0</span>
+    </p>
+        <h5>
           <a name="ipconfig" shape="rect" id="ipconfig">IP configuration</a>
           <a class="headerlink" href="#ipconfig" title="Permalink to this headline">¶</a>
         </h5>
@@ -4704,12 +4719,13 @@ qemu-kvm -net nic,model=? /dev/null
               should be auto-allocated). The <code>autoport</code> attribute is
               the new preferred syntax for indicating auto-allocation of the TCP
               port to use. The <code>passwd</code> attribute provides a VNC
-              password in clear text. The <code>keymap</code> attribute specifies
-              the keymap to use. It is possible to set a limit on the validity of
-              the password by giving an timestamp
-              <code>passwdValidTo='2010-04-09T15:51:00'</code> assumed to be
-              in UTC. The <code>connected</code> attribute allows control of
-              connected client during password changes. VNC accepts
+              password in clear text. If the <code>passwd</code> attribute is
+              set to an empty string, then VNC access is disabled. The
+              <code>keymap</code> attribute specifies the keymap to use. It is
+              possible to set a limit on the validity of the password by giving
+              an timestamp <code>passwdValidTo='2010-04-09T15:51:00'</code>
+              assumed to be in UTC. The <code>connected</code> attribute allows
+              control of connected client during password changes. VNC accepts
               <code>keep</code> value only <span class="since">since 0.9.3</span>.
               NB, this may not be supported by all hypervisors.
             </p>
@@ -4743,11 +4759,13 @@ qemu-kvm -net nic,model=? /dev/null
               an alternative secure port number. The <code>autoport</code>
               attribute is the new preferred syntax for indicating
               auto-allocation of needed port numbers. The <code>passwd</code>
-              attribute provides a SPICE password in clear text. The
-              <code>keymap</code> attribute specifies the keymap to use. It is
-              possible to set a limit on the validity of the password by giving
-              an timestamp <code>passwdValidTo='2010-04-09T15:51:00'</code>
-              assumed to be in UTC.
+              attribute provides a SPICE password in clear text. If the
+              <code>passwd</code> attribute is set to an empty string, then
+              SPICE access is disabled. The <code>keymap</code> attribute
+              specifies the keymap to use. It is possible to set a limit on
+              the validity of the password by giving an timestamp
+              <code>passwdValidTo='2010-04-09T15:51:00'</code> assumed to be
+              in UTC.
             </p>
             <p>
               The <code>connected</code> attribute allows control of connected
@@ -4791,7 +4809,7 @@ qemu-kvm -net nic,model=? /dev/null
   &lt;clipboard copypaste='no'/&gt;
   &lt;mouse mode='client'/&gt;
   &lt;filetransfer enable='no'/&gt;
-  &lt;gl enable='yes'/&gt;
+  &lt;gl enable='yes' rendernode='/dev/dri/by-path/pci-0000:00:02.0-render'/&gt;
 &lt;/graphics&gt;</pre>
             <p>
               Spice supports variable compression settings for audio, images and
@@ -4836,6 +4854,11 @@ qemu-kvm -net nic,model=? /dev/null
               You can enable or disable OpenGL support explicitly with
               the <code>gl</code> element, by setting the <code>enable</code>
               property. (QEMU only, <span class="since">since 1.3.3</span>).
+            </p>
+            <p>
+              By default, QEMU will pick the first available GPU DRM render node.
+              You may specify a DRM render node path to use instead. (QEMU only,
+              <span class="since">since 3.1.0</span>).
             </p>
           </dd><dt><code>rdp</code></dt><dd>
             <p>

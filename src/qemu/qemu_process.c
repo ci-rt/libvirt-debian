@@ -2101,33 +2101,6 @@ qemuProcessDetectIOThreadPIDs(virQEMUDriverPtr driver,
     int ret = -1;
     size_t i;
 
-    if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_OBJECT_IOTHREAD)) {
-        /* The following check is because at one time a domain could
-         * define iothreadids and start the domain - only failing the
-         * capability check when attempting to add a disk. Because the
-         * iothreads and [n]iothreadids were left untouched other code
-         * assumed it could use the ->thread_id value to make thread_id
-         * based adjustments (e.g. pinning, scheduling) which while
-         * succeeding would execute on the calling thread.
-         */
-        if (vm->def->niothreadids) {
-            for (i = 0; i < vm->def->niothreadids; i++) {
-                /* Check if the domain had defined any iothreadid elements
-                 * and supply a VIR_INFO indicating that it's being removed.
-                 */
-                if (!vm->def->iothreadids[i]->autofill)
-                    VIR_INFO("IOThreads not supported, remove iothread id '%u'",
-                             vm->def->iothreadids[i]->iothread_id);
-                virDomainIOThreadIDDefFree(vm->def->iothreadids[i]);
-            }
-            /* Remove any trace */
-            VIR_FREE(vm->def->iothreadids);
-            vm->def->niothreadids = 0;
-            vm->def->iothreads = 0;
-        }
-        return 0;
-    }
-
     /* Get the list of IOThreads from qemu */
     if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
         goto cleanup;
@@ -2663,7 +2636,7 @@ static int qemuProcessHook(void *data)
     if (virSecurityManagerClearSocketLabel(h->driver->securityManager, h->vm->def) < 0)
         goto cleanup;
 
-    if (qemuDomainBuildNamespace(h->driver, h->vm) < 0)
+    if (qemuDomainBuildNamespace(h->cfg, h->driver->securityManager, h->vm) < 0)
         goto cleanup;
 
     if (virDomainNumatuneGetMode(h->vm->def->numa, -1, &mode) == 0) {
@@ -3720,7 +3693,6 @@ qemuProcessSPICEAllocatePorts(virQEMUDriverPtr driver,
     ret = 0;
 
  cleanup:
-    virPortAllocatorRelease(driver->remotePorts, port);
     virObjectUnref(cfg);
     return ret;
 }
@@ -3819,7 +3791,7 @@ qemuProcessVerifyGuestCPU(virQEMUDriverPtr driver,
             }
         }
 
-        if (def->cpu && def->cpu->mode != VIR_CPU_MODE_HOST_PASSTHROUGH) {
+        if (def->cpu) {
             for (i = 0; i < def->cpu->nfeatures; i++) {
                 virCPUFeatureDefPtr feature = &def->cpu->features[i];
 
@@ -3843,7 +3815,7 @@ qemuProcessVerifyGuestCPU(virQEMUDriverPtr driver,
     ret = true;
 
  cleanup:
-    cpuDataFree(guestcpu);
+    virCPUDataFree(guestcpu);
     return ret;
 }
 
@@ -4498,7 +4470,7 @@ qemuProcessStartWarnShmem(virDomainObjPtr vm)
     if (!shmem && vm->def->mem.nhugepages) {
         for (i = 0; i < virDomainNumaGetNodeCount(vm->def->numa); i++) {
             if (virDomainNumaGetNodeMemoryAccessMode(vm->def->numa, i) ==
-                VIR_NUMA_MEM_ACCESS_SHARED) {
+                VIR_DOMAIN_MEMORY_ACCESS_SHARED) {
                 shmem = true;
                 break;
             }
@@ -4586,6 +4558,57 @@ qemuProcessStartValidateVideo(virDomainObjPtr vm,
 
 
 static int
+qemuProcessStartValidateIOThreads(virDomainObjPtr vm,
+                                  virQEMUCapsPtr qemuCaps)
+{
+    size_t i;
+
+    if (vm->def->niothreadids > 0 &&
+        !virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_IOTHREAD)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("IOThreads not supported for this QEMU"));
+        return -1;
+    }
+
+    for (i = 0; i < vm->def->ncontrollers; i++) {
+        virDomainControllerDefPtr cont = vm->def->controllers[i];
+
+        if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_SCSI &&
+            cont->model == VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_SCSI &&
+            cont->iothread > 0 &&
+            !virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_SCSI_IOTHREAD)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("IOThreads for virtio-scsi not supported for "
+                             "this QEMU"));
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+
+static int
+qemuProcessStartValidateShmem(virDomainObjPtr vm)
+{
+    size_t i;
+
+    for (i = 0; i < vm->def->nshmems; i++) {
+        virDomainShmemDefPtr shmem = vm->def->shmems[i];
+
+        if (strchr(shmem->name, '/')) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("shmem name '%s' must not contain '/'"),
+                           shmem->name);
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+
+static int
 qemuProcessStartValidateXML(virQEMUDriverPtr driver,
                             virDomainObjPtr vm,
                             virQEMUCapsPtr qemuCaps,
@@ -4661,6 +4684,12 @@ qemuProcessStartValidate(virQEMUDriverPtr driver,
     if (qemuProcessStartValidateVideo(vm, qemuCaps) < 0)
         return -1;
 
+    if (qemuProcessStartValidateIOThreads(vm, qemuCaps) < 0)
+        return -1;
+
+    if (qemuProcessStartValidateShmem(vm) < 0)
+        return -1;
+
     VIR_DEBUG("Checking for any possible (non-fatal) issues");
 
     qemuProcessStartWarnShmem(vm);
@@ -4725,9 +4754,14 @@ qemuProcessInit(virQEMUDriverPtr driver,
      */
     VIR_DEBUG("Setting current domain def as transient");
     if (virDomainObjSetDefTransient(caps, driver->xmlopt, vm) < 0)
-        goto stop;
+        goto cleanup;
 
-    if (!(flags & VIR_QEMU_PROCESS_START_PRETEND)) {
+    if (flags & VIR_QEMU_PROCESS_START_PRETEND) {
+        if (qemuDomainSetPrivatePaths(driver, vm) < 0) {
+            virDomainObjRemoveTransientDef(vm);
+            goto cleanup;
+        }
+    } else {
         vm->def->id = qemuDriverAllocateID(driver);
         qemuDomainSetFakeReboot(driver, vm, false);
         virDomainObjSetState(vm, VIR_DOMAIN_PAUSED, VIR_DOMAIN_PAUSED_STARTING_UP);
@@ -4740,10 +4774,10 @@ qemuProcessInit(virQEMUDriverPtr driver,
                                  VIR_HOOK_QEMU_OP_PREPARE,
                                  VIR_HOOK_SUBOP_BEGIN) < 0)
             goto stop;
-    }
 
-    if (qemuDomainSetPrivatePaths(driver, vm) < 0)
-        goto cleanup;
+        if (qemuDomainSetPrivatePaths(driver, vm) < 0)
+            goto stop;
+    }
 
     ret = 0;
 

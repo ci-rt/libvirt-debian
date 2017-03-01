@@ -174,7 +174,15 @@ int libxlDriverConfigLoadFile(libxlDriverConfigPtr cfg,
                               const char *filename);
 
 int
+libxlDriverGetDom0MaxmemConf(libxlDriverConfigPtr cfg,
+                             unsigned long long *maxmem);
+
+int
 libxlMakeDisk(virDomainDiskDefPtr l_dev, libxl_device_disk *x_dev);
+
+void
+libxlUpdateDiskDef(virDomainDiskDefPtr l_dev, libxl_device_disk *x_dev);
+
 int
 libxlMakeNic(virDomainDefPtr def,
              virDomainNetDefPtr l_nic,

@@ -37,7 +37,9 @@ typedef enum {
 } virBhyveGrubCapsFlags;
 
 typedef enum {
-    BHYVE_CAP_RTC_UTC = 1,
+    BHYVE_CAP_RTC_UTC = 1 << 0,
+    BHYVE_CAP_AHCI32SLOT = 1 << 1,
+    BHYVE_CAP_NET_E1000 = 1 << 2,
 } virBhyveCapsFlags;
 
 int virBhyveProbeGrubCaps(virBhyveGrubCapsFlags *caps);

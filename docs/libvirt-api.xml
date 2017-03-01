@@ -1068,6 +1068,7 @@
      <exports symbol='virDomainSetSchedulerParametersFlags' type='function'/>
      <exports symbol='virDomainSetTime' type='function'/>
      <exports symbol='virDomainSetUserPassword' type='function'/>
+     <exports symbol='virDomainSetVcpu' type='function'/>
      <exports symbol='virDomainSetVcpus' type='function'/>
      <exports symbol='virDomainSetVcpusFlags' type='function'/>
      <exports symbol='virDomainShutdown' type='function'/>
@@ -1366,6 +1367,7 @@
      <description>Provides APIs for the management of nodedevs</description>
      <author>Daniel Veillard &lt;veillard@redhat.com&gt;  Copyright (C) 2006-2014 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </author>
      <exports symbol='VIR_NODE_DEVICE_EVENT_CALLBACK' type='macro'/>
+     <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_DRM' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_NET' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_PCI_DEV' type='enum'/>
@@ -1505,6 +1507,7 @@
      <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_SCSI' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_SHEEPDOG' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_TRANSIENT' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_VSTORAGE' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_ZFS' type='enum'/>
      <exports symbol='VIR_STORAGE_POOL_BUILDING' type='enum'/>
      <exports symbol='VIR_STORAGE_POOL_BUILD_NEW' type='enum'/>
@@ -2560,6 +2563,7 @@ CPUs as failure'/>
     <enum name='VIR_CONNECT_LIST_NETWORKS_NO_AUTOSTART' file='libvirt-network' value='32' type='virConnectListAllNetworksFlags'/>
     <enum name='VIR_CONNECT_LIST_NETWORKS_PERSISTENT' file='libvirt-network' value='4' type='virConnectListAllNetworksFlags'/>
     <enum name='VIR_CONNECT_LIST_NETWORKS_TRANSIENT' file='libvirt-network' value='8' type='virConnectListAllNetworksFlags'/>
+    <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_DRM' file='libvirt-nodedev' value='4096' type='virConnectListAllNodeDeviceFlags' info='DRM device'/>
     <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST' file='libvirt-nodedev' value='512' type='virConnectListAllNodeDeviceFlags' info='FC Host Bus Adapter'/>
     <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_NET' file='libvirt-nodedev' value='16' type='virConnectListAllNodeDeviceFlags' info='Network device'/>
     <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_PCI_DEV' file='libvirt-nodedev' value='2' type='virConnectListAllNodeDeviceFlags' info='PCI device'/>
@@ -2596,6 +2600,7 @@ node'/>
     <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_SCSI' file='libvirt-storage' value='4096' type='virConnectListAllStoragePoolsFlags'/>
     <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_SHEEPDOG' file='libvirt-storage' value='32768' type='virConnectListAllStoragePoolsFlags'/>
     <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_TRANSIENT' file='libvirt-storage' value='8' type='virConnectListAllStoragePoolsFlags'/>
+    <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_VSTORAGE' file='libvirt-storage' value='262144' type='virConnectListAllStoragePoolsFlags'/>
     <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_ZFS' file='libvirt-storage' value='131072' type='virConnectListAllStoragePoolsFlags'/>
     <enum name='VIR_CONNECT_NO_ALIASES' file='libvirt-host' value='2' type='virConnectFlags' info='Don&apos;t try to resolve URI aliases'/>
     <enum name='VIR_CONNECT_RO' file='libvirt-host' value='1' type='virConnectFlags' info='A readonly connection'/>
@@ -5044,7 +5049,8 @@ capability type, flags include:
   VIR_CONNECT_LIST_NODE_DEVICES_CAP_STORAGE
   VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST
   VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS
-  VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_GENERIC]]></info>
+  VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_GENERIC
+  VIR_CONNECT_LIST_NODE_DEVICES_CAP_DRM]]></info>
       <return type='int' info='the number of node devices found or -1 and sets @devices to NULL in case of error.  On success, the array stored into @devices is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier.  The caller is responsible for calling virNodeDeviceFree() on each array element, then calling free() on @devices.'/>
       <arg name='conn' type='virConnectPtr' info='Pointer to the hypervisor connection.'/>
       <arg name='devices' type='virNodeDevicePtr **' info='Pointer to a variable to store the array containing the node device objects or NULL if the list is not required (just returns number of node devices).'/>
@@ -8604,6 +8610,19 @@ be configured and running in order to be able to run this API.]]></info>
       <arg name='user' type='const char *' info='the username that will get a new password'/>
       <arg name='password' type='const char *' info='the password to set'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainSetUserPasswordFlags'/>
+    </function>
+    <function name='virDomainSetVcpu' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[Enables/disables individual vcpus described by @vcpumap in the hypervisor.
+
+Various hypervisor implementations may limit to operate on just 1
+hotpluggable entity (which may contain multiple vCPUs on certain platforms).
+
+Note that OSes and hypervisors may require vCPU 0 to stay online.]]></info>
+      <return type='int' info='0 on success, -1 on error.'/>
+      <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
+      <arg name='vcpumap' type='const char *' info='text representation of a bitmap of vcpus to set'/>
+      <arg name='state' type='int' info='0 to disable/1 to enable cpus described by @vcpumap'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainModificationImpact'/>
     </function>
     <function name='virDomainSetVcpus' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Dynamically change the number of virtual CPUs used by the domain.

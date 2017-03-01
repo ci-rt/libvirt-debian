@@ -708,6 +708,8 @@ bool qemuDomainSupportsNetdev(virDomainDefPtr def,
                               virQEMUCapsPtr qemuCaps,
                               virDomainNetDefPtr net);
 
+bool qemuDomainNetSupportsMTU(virDomainNetType type);
+
 int qemuDomainNetVLAN(virDomainNetDefPtr def);
 
 int qemuDomainSetPrivatePaths(virQEMUDriverPtr driver,
@@ -800,19 +802,29 @@ int qemuDomainCheckMonitor(virQEMUDriverPtr driver,
 bool qemuDomainSupportsVideoVga(virDomainVideoDefPtr video,
                                 virQEMUCapsPtr qemuCaps);
 
-int qemuDomainBuildNamespace(virQEMUDriverPtr driver,
+int qemuDomainGetHostdevPath(virDomainDefPtr def,
+                             virDomainHostdevDefPtr dev,
+                             bool teardown,
+                             size_t *npaths,
+                             char ***path,
+                             int **perms);
+
+int qemuDomainBuildNamespace(virQEMUDriverConfigPtr cfg,
+                             virSecurityManagerPtr mgr,
                              virDomainObjPtr vm);
 
 int qemuDomainCreateNamespace(virQEMUDriverPtr driver,
                               virDomainObjPtr vm);
 
+bool qemuDomainNamespaceAvailable(qemuDomainNamespace ns);
+
 int qemuDomainNamespaceSetupDisk(virQEMUDriverPtr driver,
                                  virDomainObjPtr vm,
-                                 virDomainDiskDefPtr disk);
+                                 virStorageSourcePtr src);
 
 int qemuDomainNamespaceTeardownDisk(virQEMUDriverPtr driver,
                                     virDomainObjPtr vm,
-                                    virDomainDiskDefPtr disk);
+                                    virStorageSourcePtr src);
 
 int qemuDomainNamespaceSetupHostdev(virQEMUDriverPtr driver,
                                     virDomainObjPtr vm,
@@ -831,10 +843,10 @@ int qemuDomainNamespaceTeardownChardev(virQEMUDriverPtr driver,
                                        virDomainChrDefPtr chr);
 
 int qemuDomainNamespaceSetupRNG(virQEMUDriverPtr driver,
-                                    virDomainObjPtr vm,
-                                    virDomainRNGDefPtr rng);
+                                virDomainObjPtr vm,
+                                virDomainRNGDefPtr rng);
 
 int qemuDomainNamespaceTeardownRNG(virQEMUDriverPtr driver,
-                                       virDomainObjPtr vm,
-                                       virDomainRNGDefPtr rng);
+                                   virDomainObjPtr vm,
+                                   virDomainRNGDefPtr rng);
 #endif /* __QEMU_DOMAIN_H__ */
