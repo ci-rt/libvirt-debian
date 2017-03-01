@@ -32,7 +32,7 @@ typedef remote_nonnull_string *remote_string;
 #define REMOTE_INTERFACE_LIST_MAX 16384
 #define REMOTE_STORAGE_POOL_LIST_MAX 4096
 #define REMOTE_STORAGE_VOL_LIST_MAX 16384
-#define REMOTE_NODE_DEVICE_LIST_MAX 16384
+#define REMOTE_NODE_DEVICE_LIST_MAX 65536
 #define REMOTE_NODE_DEVICE_CAPS_LIST_MAX 65536
 #define REMOTE_NWFILTER_LIST_MAX 1024
 #define REMOTE_DOMAIN_SCHEDULER_PARAMETERS_MAX 16
@@ -4061,6 +4061,14 @@ struct remote_domain_set_guest_vcpus_args {
 };
 typedef struct remote_domain_set_guest_vcpus_args remote_domain_set_guest_vcpus_args;
 
+struct remote_domain_set_vcpu_args {
+        remote_nonnull_domain dom;
+        remote_nonnull_string cpumap;
+        int state;
+        u_int flags;
+};
+typedef struct remote_domain_set_vcpu_args remote_domain_set_vcpu_args;
+
 struct remote_domain_event_callback_metadata_change_msg {
         int callbackID;
         remote_nonnull_domain dom;
@@ -4485,6 +4493,7 @@ enum remote_procedure {
         REMOTE_PROC_CONNECT_SECRET_EVENT_DEREGISTER_ANY = 381,
         REMOTE_PROC_SECRET_EVENT_LIFECYCLE = 382,
         REMOTE_PROC_SECRET_EVENT_VALUE_CHANGED = 383,
+        REMOTE_PROC_DOMAIN_SET_VCPU = 384,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -5088,6 +5097,7 @@ extern  bool_t xdr_remote_domain_event_callback_device_removal_failed_msg (XDR *
 extern  bool_t xdr_remote_domain_get_guest_vcpus_args (XDR *, remote_domain_get_guest_vcpus_args*);
 extern  bool_t xdr_remote_domain_get_guest_vcpus_ret (XDR *, remote_domain_get_guest_vcpus_ret*);
 extern  bool_t xdr_remote_domain_set_guest_vcpus_args (XDR *, remote_domain_set_guest_vcpus_args*);
+extern  bool_t xdr_remote_domain_set_vcpu_args (XDR *, remote_domain_set_vcpu_args*);
 extern  bool_t xdr_remote_domain_event_callback_metadata_change_msg (XDR *, remote_domain_event_callback_metadata_change_msg*);
 extern  bool_t xdr_remote_connect_secret_event_register_any_args (XDR *, remote_connect_secret_event_register_any_args*);
 extern  bool_t xdr_remote_connect_secret_event_register_any_ret (XDR *, remote_connect_secret_event_register_any_ret*);
@@ -5694,6 +5704,7 @@ extern bool_t xdr_remote_domain_event_callback_device_removal_failed_msg ();
 extern bool_t xdr_remote_domain_get_guest_vcpus_args ();
 extern bool_t xdr_remote_domain_get_guest_vcpus_ret ();
 extern bool_t xdr_remote_domain_set_guest_vcpus_args ();
+extern bool_t xdr_remote_domain_set_vcpu_args ();
 extern bool_t xdr_remote_domain_event_callback_metadata_change_msg ();
 extern bool_t xdr_remote_connect_secret_event_register_any_args ();
 extern bool_t xdr_remote_connect_secret_event_register_any_ret ();

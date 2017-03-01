@@ -30,7 +30,6 @@
 # include "virbitmap.h"
 # include "virthread.h"
 # include "device_conf.h"
-# include "node_device_conf.h"
 # include "object_event.h"
 
 # include <libxml/tree.h>
@@ -95,6 +94,7 @@ typedef enum {
     VIR_STORAGE_POOL_SHEEPDOG, /* Sheepdog device */
     VIR_STORAGE_POOL_GLUSTER,  /* Gluster device */
     VIR_STORAGE_POOL_ZFS,      /* ZFS */
+    VIR_STORAGE_POOL_VSTORAGE, /* Virtuozzo Storage */
 
     VIR_STORAGE_POOL_LAST,
 } virStoragePoolType;
@@ -416,10 +416,6 @@ char *virStoragePoolSourceListFormat(virStoragePoolSourceListPtr def);
 int virStoragePoolObjIsDuplicate(virStoragePoolObjListPtr pools,
                                  virStoragePoolDefPtr def,
                                  unsigned int check_active);
-
-char *virStoragePoolGetVhbaSCSIHostParent(virConnectPtr conn,
-                                          const char *name)
-    ATTRIBUTE_NONNULL(1);
 
 int virStoragePoolSourceFindDuplicate(virConnectPtr conn,
                                       virStoragePoolObjListPtr pools,

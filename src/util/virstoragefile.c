@@ -2648,6 +2648,11 @@ virStorageSourceParseBackingColon(virStorageSourcePtr src,
 
 
 static int
+virStorageSourceParseBackingJSONInternal(virStorageSourcePtr src,
+                                         virJSONValuePtr json);
+
+
+static int
 virStorageSourceParseBackingJSONPath(virStorageSourcePtr src,
                                      virJSONValuePtr json,
                                      int type)
@@ -2963,6 +2968,16 @@ virStorageSourceParseBackingJSONRBD(virStorageSourcePtr src,
     return -1;
 }
 
+static int
+virStorageSourceParseBackingJSONRaw(virStorageSourcePtr src,
+                                    virJSONValuePtr json,
+                                    int opaque ATTRIBUTE_UNUSED)
+{
+    /* There are no interesting attributes in raw driver.
+     * Treat it as pass-through.
+     */
+    return virStorageSourceParseBackingJSONInternal(src, json);
+}
 
 struct virStorageSourceJSONDriverParser {
     const char *drvname;
@@ -2985,6 +3000,7 @@ static const struct virStorageSourceJSONDriverParser jsonParsers[] = {
     {"sheepdog", virStorageSourceParseBackingJSONSheepdog, 0},
     {"ssh", virStorageSourceParseBackingJSONSSH, 0},
     {"rbd", virStorageSourceParseBackingJSONRBD, 0},
+    {"raw", virStorageSourceParseBackingJSONRaw, 0},
 };
 
 
@@ -3053,29 +3069,28 @@ virStorageSourceParseBackingJSONDeflatten(virJSONValuePtr json)
 
 
 static int
-virStorageSourceParseBackingJSON(virStorageSourcePtr src,
-                                 const char *json)
+virStorageSourceParseBackingJSONInternal(virStorageSourcePtr src,
+                                         virJSONValuePtr json)
 {
-    virJSONValuePtr root = NULL;
     virJSONValuePtr fixedroot = NULL;
     virJSONValuePtr file;
     const char *drvname;
+    char *str = NULL;
     size_t i;
     int ret = -1;
 
-    if (!(root = virJSONValueFromString(json)))
-        return -1;
-
-    if (!(file = virJSONValueObjectGetObject(root, "file"))) {
-        if (!(fixedroot = virStorageSourceParseBackingJSONDeflatten(root)))
+    if (!(file = virJSONValueObjectGetObject(json, "file"))) {
+        if (!(fixedroot = virStorageSourceParseBackingJSONDeflatten(json)))
             goto cleanup;
 
         file = fixedroot;
     }
 
     if (!(drvname = virJSONValueObjectGetString(file, "driver"))) {
-        virReportError(VIR_ERR_INVALID_ARG, _("JSON backing volume defintion "
-                                              "'%s' lacks driver name"), json);
+        str = virJSONValueToString(json, false);
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("JSON backing volume defintion '%s' lacks driver name"),
+                       NULLSTR(str));
         goto cleanup;
     }
 
@@ -3091,8 +3106,25 @@ virStorageSourceParseBackingJSON(virStorageSourcePtr src,
                      "driver '%s'"), drvname);
 
  cleanup:
-    virJSONValueFree(root);
+    VIR_FREE(str);
     virJSONValueFree(fixedroot);
+    return ret;
+}
+
+
+static int
+virStorageSourceParseBackingJSON(virStorageSourcePtr src,
+                                 const char *json)
+{
+    virJSONValuePtr root = NULL;
+    int ret = -1;
+
+    if (!(root = virJSONValueFromString(json)))
+        return -1;
+
+    ret = virStorageSourceParseBackingJSONInternal(src, root);
+
+    virJSONValueFree(root);
     return ret;
 }
 

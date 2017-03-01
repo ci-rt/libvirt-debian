@@ -121,6 +121,7 @@ EXTRA_DIST =		\
 	qemucapabilitiesdata \
 	qemucaps2xmldata \
 	qemuhelpdata \
+	qemuhotplugtestcpus \
 	qemuhotplugtestdevices \
 	qemuhotplugtestdomains \
 	qemumonitorjsondata \
@@ -280,6 +281,7 @@ test_helpers += qemucapsprobe
 test_libraries += libqemumonitortestutils.la \
 		libqemutestdriver.la \
 		qemuxml2argvmock.la \
+		qemuxml2xmlmock.la \
 		qemucaps2xmlmock.la \
 		qemucapsprobemock.la \
 		$(NULL)
@@ -468,7 +470,8 @@ TESTS_ENVIRONMENT =				\
   $(VG)
 
 
-VALGRIND = valgrind --quiet --leak-check=full \
+VALGRIND = valgrind --quiet --leak-check=full --trace-children=yes \
+	--trace-children-skip="*/tools/virsh","*/tests/commandhelper" \
 	--suppressions=$(srcdir)/.valgrind.supp
 valgrind:
 	$(MAKE) check VG="libtool --mode=execute $(VALGRIND)"
@@ -556,6 +559,12 @@ qemuxml2argvmock_la_SOURCES = \
 qemuxml2argvmock_la_CFLAGS = $(AM_CFLAGS)
 qemuxml2argvmock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
 qemuxml2argvmock_la_LIBADD = $(MOCKLIBS_LIBS)
+
+qemuxml2xmlmock_la_SOURCES = \
+	qemuxml2xmlmock.c
+qemuxml2xmlmock_la_CFLAGS = $(AM_CFLAGS)
+qemuxml2xmlmock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
+qemuxml2xmlmock_la_LIBADD = $(MOCKLIBS_LIBS)
 
 qemuxml2xmltest_SOURCES = \
 	qemuxml2xmltest.c testutilsqemu.c testutilsqemu.h \
@@ -796,7 +805,9 @@ storagebackendsheepdogtest_SOURCES = \
 	storagebackendsheepdogtest.c \
 	testutils.c testutils.h
 storagebackendsheepdogtest_LDADD = \
-	../src/libvirt_driver_storage_impl.la $(LDADDS)
+	../src/libvirt_driver_storage_impl.la \
+	../src/libvirt_storage_backend_sheepdog_priv.la \
+	$(LDADDS)
 else ! WITH_STORAGE_SHEEPDOG
 EXTRA_DIST += storagebackendsheepdogtest.c
 endif ! WITH_STORAGE_SHEEPDOG
@@ -1194,7 +1205,9 @@ virnetdevbandwidthtest_LDADD = $(LDADDS) $(LIBXML_LIBS)
 virusbmock_la_SOURCES = virusbmock.c
 virusbmock_la_CFLAGS = $(AM_CFLAGS)
 virusbmock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
-virusbmock_la_LIBADD = $(MOCKLIBS_LIBS)
+virusbmock_la_LIBADD = $(MOCKLIBS_LIBS) \
+	$(PROBES_O) \
+	../src/libvirt_util.la
 
 virnetdevbandwidthmock_la_SOURCES = \
 	virnetdevbandwidthmock.c
@@ -1348,7 +1361,7 @@ libshunload_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
 
 shunloadtest_SOURCES = \
 	shunloadtest.c
-shunloadtest_LDADD = $(LIB_PTHREAD)
+shunloadtest_LDADD = $(LIB_PTHREAD) $(DLOPEN_LIBS)
 shunloadtest_DEPENDENCIES = libshunload.la
 
 sysinfotest_SOURCES = \

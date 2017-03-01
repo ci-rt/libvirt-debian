@@ -576,6 +576,7 @@ libxlAddDom0(libxlDriverPrivatePtr driver)
     virDomainObjPtr vm = NULL;
     virDomainDefPtr oldDef = NULL;
     libxl_dominfo d_info;
+    unsigned long long maxmem;
     int ret = -1;
 
     libxl_dominfo_init(&d_info);
@@ -615,7 +616,9 @@ libxlAddDom0(libxlDriverPrivatePtr driver)
     if (virDomainDefSetVcpus(vm->def, d_info.vcpu_online) < 0)
         goto cleanup;
     vm->def->mem.cur_balloon = d_info.current_memkb;
-    virDomainDefSetMemoryTotal(vm->def, d_info.max_memkb);
+    if (libxlDriverGetDom0MaxmemConf(cfg, &maxmem) < 0)
+        maxmem = d_info.current_memkb;
+    virDomainDefSetMemoryTotal(vm->def, maxmem);
 
     ret = 0;
 
@@ -1640,10 +1643,10 @@ libxlDomainGetInfo(virDomainPtr dom, virDomainInfoPtr info)
     if (virDomainGetInfoEnsureACL(dom->conn, vm->def) < 0)
         goto cleanup;
 
+    info->maxMem = virDomainDefGetMemoryTotal(vm->def);
     if (!virDomainObjIsActive(vm)) {
         info->cpuTime = 0;
         info->memory = vm->def->mem.cur_balloon;
-        info->maxMem = virDomainDefGetMemoryTotal(vm->def);
     } else {
         libxl_dominfo_init(&d_info);
 
@@ -1655,7 +1658,6 @@ libxlDomainGetInfo(virDomainPtr dom, virDomainInfoPtr info)
         }
         info->cpuTime = d_info.cpu_time;
         info->memory = d_info.current_memkb;
-        info->maxMem = d_info.max_memkb;
 
         libxl_dominfo_dispose(&d_info);
     }
@@ -3028,6 +3030,7 @@ libxlDomainAttachDeviceDiskLive(virDomainObjPtr vm, virDomainDeviceDefPtr dev)
                     goto cleanup;
                 }
 
+                libxlUpdateDiskDef(l_disk, &x_disk);
                 virDomainDiskInsertPreAlloced(vm->def, l_disk);
 
             } else {
@@ -4283,6 +4286,7 @@ libxlNodeGetFreeMemory(virConnectPtr conn)
     libxlDriverConfigPtr cfg = libxlDriverConfigGet(driver);
     unsigned long long ret = 0;
 
+    libxl_physinfo_init(&phy_info);
     if (virNodeGetFreeMemoryEnsureACL(conn) < 0)
         goto cleanup;
 
@@ -4295,6 +4299,7 @@ libxlNodeGetFreeMemory(virConnectPtr conn)
     ret = phy_info.free_pages * cfg->verInfo->pagesize;
 
  cleanup:
+    libxl_physinfo_dispose(&phy_info);
     virObjectUnref(cfg);
     return ret;
 }
@@ -5172,7 +5177,7 @@ libxlDomainMemoryStats(virDomainPtr dom,
         goto endjob;
     }
     mem = d_info.current_memkb;
-    maxmem = d_info.max_memkb;
+    maxmem = virDomainDefGetMemoryTotal(vm->def);
 
     LIBXL_SET_MEMSTAT(VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON, mem);
     LIBXL_SET_MEMSTAT(VIR_DOMAIN_MEMORY_STAT_AVAILABLE, maxmem);
@@ -5466,8 +5471,7 @@ libxlDomainBlockStatsGatherSingle(virDomainObjPtr vm,
         disk_drv = "qemu";
 
     if (STREQ(disk_drv, "phy")) {
-        if (disk_fmt != VIR_STORAGE_FILE_RAW &&
-            disk_fmt != VIR_STORAGE_FILE_NONE) {
+        if (disk_fmt != VIR_STORAGE_FILE_RAW) {
             virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
                            _("unsupported format %s"),
                            virStorageFileFormatTypeToString(disk_fmt));
@@ -5930,6 +5934,61 @@ libxlDomainMigrateBegin3Params(virDomainPtr domain,
 }
 
 static int
+libxlDomainMigratePrepareTunnel3Params(virConnectPtr dconn,
+                                       virStreamPtr st,
+                                       virTypedParameterPtr params,
+                                       int nparams,
+                                       const char *cookiein,
+                                       int cookieinlen,
+                                       char **cookieout ATTRIBUTE_UNUSED,
+                                       int *cookieoutlen ATTRIBUTE_UNUSED,
+                                       unsigned int flags)
+{
+    libxlDriverPrivatePtr driver = dconn->privateData;
+    virDomainDefPtr def = NULL;
+    const char *dom_xml = NULL;
+    const char *dname = NULL;
+    const char *uri_in = NULL;
+
+#ifdef LIBXL_HAVE_NO_SUSPEND_RESUME
+    virReportUnsupportedError();
+    return -1;
+#endif
+
+    virCheckFlags(LIBXL_MIGRATION_FLAGS, -1);
+    if (virTypedParamsValidate(params, nparams, LIBXL_MIGRATION_PARAMETERS) < 0)
+        goto error;
+
+    if (virTypedParamsGetString(params, nparams,
+                                VIR_MIGRATE_PARAM_DEST_XML,
+                                &dom_xml) < 0 ||
+        virTypedParamsGetString(params, nparams,
+                                VIR_MIGRATE_PARAM_DEST_NAME,
+                                &dname) < 0 ||
+        virTypedParamsGetString(params, nparams,
+                                VIR_MIGRATE_PARAM_URI,
+                                &uri_in) < 0)
+
+        goto error;
+
+    if (!(def = libxlDomainMigrationPrepareDef(driver, dom_xml, dname)))
+        goto error;
+
+    if (virDomainMigratePrepareTunnel3ParamsEnsureACL(dconn, def) < 0)
+        goto error;
+
+    if (libxlDomainMigrationPrepareTunnel3(dconn, st, &def, cookiein,
+                                           cookieinlen, flags) < 0)
+        goto error;
+
+    return 0;
+
+ error:
+    virDomainDefFree(def);
+    return -1;
+}
+
+static int
 libxlDomainMigratePrepare3Params(virConnectPtr dconn,
                                  virTypedParameterPtr params,
                                  int nparams,
@@ -6029,7 +6088,7 @@ libxlDomainMigratePerform3Params(virDomainPtr dom,
     if (virDomainMigratePerform3ParamsEnsureACL(dom->conn, vm->def) < 0)
         goto cleanup;
 
-    if (flags & VIR_MIGRATE_PEER2PEER) {
+    if ((flags & (VIR_MIGRATE_TUNNELLED | VIR_MIGRATE_PEER2PEER))) {
         if (libxlDomainMigrationPerformP2P(driver, vm, dom->conn, dom_xml,
                                            dconnuri, uri, dname, flags) < 0)
             goto cleanup;
@@ -6514,6 +6573,7 @@ static virHypervisorDriver libxlHypervisorDriver = {
     .nodeDeviceReset = libxlNodeDeviceReset, /* 1.2.3 */
     .domainMigrateBegin3Params = libxlDomainMigrateBegin3Params, /* 1.2.6 */
     .domainMigratePrepare3Params = libxlDomainMigratePrepare3Params, /* 1.2.6 */
+    .domainMigratePrepareTunnel3Params = libxlDomainMigratePrepareTunnel3Params, /* 3.1.0 */
     .domainMigratePerform3Params = libxlDomainMigratePerform3Params, /* 1.2.6 */
     .domainMigrateFinish3Params = libxlDomainMigrateFinish3Params, /* 1.2.6 */
     .domainMigrateConfirm3Params = libxlDomainMigrateConfirm3Params, /* 1.2.6 */

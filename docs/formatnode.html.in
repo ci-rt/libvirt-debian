@@ -37,6 +37,12 @@
       <dd>If this element is present, it names the parent device (that
         is, a controller to which this node belongs).
       </dd>
+      <dt><code>devnode</code></dt>
+      <dd>This node appears for each associated <code>/dev</code>
+      special file. A mandatory attribute <code>type</code> specify
+      the kind of file path, which may be either <code>dev</code> for
+      the main name, or <code>link</code> for additional symlinks.
+      </dd>
       <dt><code>capability</code></dt>
       <dd>This node appears for each capability that libvirt
         associates with a node.  A mandatory
@@ -254,7 +260,7 @@
                 number of vport in use. <code>max_vports</code> shows the
                 maximum vports the HBA supports. "fc_host" implies following
                 sub-elements: <code>wwnn</code>, <code>wwpn</code>, and
-                <code>fabric_wwn</code>.
+                optionally <code>fabric_wwn</code>.
               </dd>
             </dl>
           </dd>
@@ -306,6 +312,16 @@
                 sub-elements: <code>media_available</code> (0 or
                 1), <code>media_size</code>,
                 and <code>media_label</code>.</dd>
+            </dl>
+          </dd>
+          <dt><code>drm</code></dt>
+          <dd>Describes a Direct Rendering Manager (DRM) device.
+          Sub-elements include:
+            <dl>
+              <dt><code>type</code></dt>
+              <dd>The type of DRM device. Could be
+              <code>primary</code>, <code>control</code> or
+              <code>render</code>.</dd>
             </dl>
           </dd>
         </dl>

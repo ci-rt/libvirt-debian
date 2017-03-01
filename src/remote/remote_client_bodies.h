@@ -1915,6 +1915,36 @@ done:
     return rv;
 }
 
+static int
+remoteDomainCreateWithFlags(virDomainPtr dom, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_create_with_flags_args args;
+    remote_domain_create_with_flags_ret ret;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_CREATE_WITH_FLAGS,
+             (xdrproc_t)xdr_remote_domain_create_with_flags_args, (char *)&args,
+             (xdrproc_t)xdr_remote_domain_create_with_flags_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    dom->id = ret.dom.id;
+    xdr_free((xdrproc_t)xdr_remote_domain_create_with_flags_ret, (char *)&ret);
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
 static virDomainPtr
 remoteDomainCreateXML(virConnectPtr conn, const char *xml_desc, unsigned int flags)
 {
@@ -4529,6 +4559,33 @@ remoteDomainSetUserPassword(virDomainPtr dom, const char *user, const char *pass
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_SET_USER_PASSWORD,
              (xdrproc_t)xdr_remote_domain_set_user_password_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainSetVcpu(virDomainPtr dom, const char *cpumap, int state, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_set_vcpu_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.cpumap = (char *)cpumap;
+    args.state = state;
+    args.flags = flags;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_SET_VCPU,
+             (xdrproc_t)xdr_remote_domain_set_vcpu_args, (char *)&args,
              (xdrproc_t)xdr_void, (char *)NULL) == -1) {
         goto done;
     }

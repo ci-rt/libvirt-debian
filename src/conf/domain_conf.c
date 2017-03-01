@@ -837,6 +837,16 @@ VIR_ENUM_IMPL(virDomainDiskMirrorState, VIR_DOMAIN_DISK_MIRROR_STATE_LAST,
               "abort",
               "pivot")
 
+VIR_ENUM_IMPL(virDomainMemorySource, VIR_DOMAIN_MEMORY_SOURCE_LAST,
+              "none",
+              "file",
+              "anonymous")
+
+VIR_ENUM_IMPL(virDomainMemoryAllocation, VIR_DOMAIN_MEMORY_ALLOCATION_LAST,
+              "none",
+              "immediate",
+              "ondemand")
+
 VIR_ENUM_IMPL(virDomainLoader,
               VIR_DOMAIN_LOADER_TYPE_LAST,
               "rom",
@@ -1290,6 +1300,7 @@ void virDomainGraphicsDefFree(virDomainGraphicsDefPtr def)
         break;
 
     case VIR_DOMAIN_GRAPHICS_TYPE_SPICE:
+        VIR_FREE(def->data.spice.rendernode);
         VIR_FREE(def->data.spice.keymap);
         virDomainGraphicsAuthDefClear(&def->data.spice.auth);
         break;
@@ -2548,7 +2559,8 @@ virDomainIOThreadIDDefArrayFree(virDomainIOThreadIDDefPtr *def,
 
 
 static int
-virDomainIOThreadIDDefArrayInit(virDomainDefPtr def)
+virDomainIOThreadIDDefArrayInit(virDomainDefPtr def,
+                                unsigned int iothreads)
 {
     int retval = -1;
     size_t i;
@@ -2559,11 +2571,11 @@ virDomainIOThreadIDDefArrayInit(virDomainDefPtr def)
     /* Same value (either 0 or some number), then we have none to fill in or
      * the iothreadid array was filled from the XML
      */
-    if (def->iothreads == def->niothreadids)
+    if (iothreads == def->niothreadids)
         return 0;
 
     /* iothread's are numbered starting at 1, account for that */
-    if (!(thrmap = virBitmapNew(def->iothreads + 1)))
+    if (!(thrmap = virBitmapNew(iothreads + 1)))
         goto error;
     virBitmapSetAll(thrmap);
 
@@ -2575,11 +2587,11 @@ virDomainIOThreadIDDefArrayInit(virDomainDefPtr def)
                                        def->iothreadids[i]->iothread_id));
 
     /* resize array */
-    if (VIR_REALLOC_N(def->iothreadids, def->iothreads) < 0)
+    if (VIR_REALLOC_N(def->iothreadids, iothreads) < 0)
         goto error;
 
     /* Populate iothreadids[] using the set bit number from thrmap */
-    while (def->niothreadids < def->iothreads) {
+    while (def->niothreadids < iothreads) {
         if ((nxt = virBitmapNextSetBit(thrmap, nxt)) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("failed to populate iothreadids"));
@@ -4725,7 +4737,8 @@ virDomainDiskAddressDiskBusCompatibility(virDomainDiskBus bus,
 
 
 static int
-virDomainDiskDefValidate(const virDomainDiskDef *disk)
+virDomainDiskDefValidate(const virDomainDef *def,
+                         const virDomainDiskDef *disk)
 {
     /* Validate LUN configuration */
     if (disk->device == VIR_DOMAIN_DISK_DEVICE_LUN) {
@@ -4753,6 +4766,24 @@ virDomainDiskDefValidate(const virDomainDiskDef *disk)
                        disk->dst,
                        virDomainDiskBusTypeToString(disk->bus));
         return -1;
+    }
+
+    if (disk->iothread > 0) {
+        if (disk->bus != VIR_DOMAIN_DISK_BUS_VIRTIO ||
+            (disk->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI &&
+             disk->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("IOThreads are only available for virtio pci and "
+                             "virtio ccw disk"));
+            return -1;
+        }
+
+        if (!virDomainIOThreadIDFind(def, disk->iothread)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("Invalid IOThread id '%u' for disk '%s'"),
+                           disk->iothread, disk->dst);
+            return -1;
+        }
     }
 
     return 0;
@@ -4806,18 +4837,56 @@ virDomainNetDefValidate(const virDomainNetDef *net)
 
 
 static int
+virDomainControllerDefValidate(const virDomainDef *def,
+                               const virDomainControllerDef *cont)
+{
+    if (cont->iothread > 0) {
+        if (cont->type != VIR_DOMAIN_CONTROLLER_TYPE_SCSI ||
+            cont->model != VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_SCSI) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("IOThreads are only supported for virtio-scsi "
+                             "controllers, model is '%s'"),
+                           virDomainControllerModelSCSITypeToString(cont->model));
+            return -1;
+        }
+
+        if (cont->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI &&
+            cont->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("IOThreads are only available for virtio pci and "
+                             "virtio ccw controllers"));
+            return -1;
+        }
+
+        if (!virDomainIOThreadIDFind(def, cont->iothread)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("Invalid IOThread id '%u' for controller '%s'"),
+                           cont->iothread,
+                           virDomainControllerTypeToString(cont->type));
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+
+static int
 virDomainDeviceDefValidateInternal(const virDomainDeviceDef *dev,
                                    const virDomainDef *def)
 {
     switch ((virDomainDeviceType) dev->type) {
     case VIR_DOMAIN_DEVICE_DISK:
-        return virDomainDiskDefValidate(dev->data.disk);
+        return virDomainDiskDefValidate(def, dev->data.disk);
 
     case VIR_DOMAIN_DEVICE_REDIRDEV:
         return virDomainRedirdevDefValidate(def, dev->data.redirdev);
 
     case VIR_DOMAIN_DEVICE_NET:
         return virDomainNetDefValidate(dev->data.net);
+
+    case VIR_DOMAIN_DEVICE_CONTROLLER:
+        return virDomainControllerDefValidate(def, dev->data.controller);
 
     case VIR_DOMAIN_DEVICE_LEASE:
     case VIR_DOMAIN_DEVICE_FS:
@@ -4826,7 +4895,6 @@ virDomainDeviceDefValidateInternal(const virDomainDeviceDef *dev,
     case VIR_DOMAIN_DEVICE_VIDEO:
     case VIR_DOMAIN_DEVICE_HOSTDEV:
     case VIR_DOMAIN_DEVICE_WATCHDOG:
-    case VIR_DOMAIN_DEVICE_CONTROLLER:
     case VIR_DOMAIN_DEVICE_GRAPHICS:
     case VIR_DOMAIN_DEVICE_HUB:
     case VIR_DOMAIN_DEVICE_SMARTCARD:
@@ -6275,12 +6343,14 @@ virDomainHostdevSubsysSCSIVHostDefParseXML(xmlNodePtr sourcenode,
                                            virDomainHostdevDefPtr def)
 {
     char *protocol = NULL;
+    char *wwpn = NULL;
     virDomainHostdevSubsysSCSIVHostPtr hostsrc = &def->source.subsys.u.scsi_host;
+    int ret = -1;
 
     if (!(protocol = virXMLPropString(sourcenode, "protocol"))) {
         virReportError(VIR_ERR_XML_ERROR, "%s",
                        _("Missing scsi_host subsystem protocol"));
-        return -1;
+        return ret;
     }
 
     if ((hostsrc->protocol =
@@ -6293,17 +6363,19 @@ virDomainHostdevSubsysSCSIVHostDefParseXML(xmlNodePtr sourcenode,
 
     switch ((virDomainHostdevSubsysSCSIHostProtocolType) hostsrc->protocol) {
     case VIR_DOMAIN_HOSTDEV_SUBSYS_SCSI_HOST_PROTOCOL_TYPE_VHOST:
-        if (!(hostsrc->wwpn = virXMLPropString(sourcenode, "wwpn"))) {
+        if (!(wwpn = virXMLPropString(sourcenode, "wwpn"))) {
             virReportError(VIR_ERR_XML_ERROR, "%s",
                            _("missing vhost-scsi hostdev source wwpn"));
             goto cleanup;
         }
 
-        if (!STRPREFIX(hostsrc->wwpn, "naa.") ||
-            !virValidateWWN(hostsrc->wwpn + 4)) {
+        if (!STRPREFIX(wwpn, "naa.") ||
+            !virValidateWWN(wwpn + 4)) {
             virReportError(VIR_ERR_XML_ERROR, "%s", _("malformed 'wwpn' value"));
             goto cleanup;
         }
+        hostsrc->wwpn = wwpn;
+        wwpn = NULL;
         break;
     case VIR_DOMAIN_HOSTDEV_SUBSYS_SCSI_HOST_PROTOCOL_TYPE_NONE:
     case VIR_DOMAIN_HOSTDEV_SUBSYS_SCSI_HOST_PROTOCOL_TYPE_LAST:
@@ -6314,12 +6386,11 @@ virDomainHostdevSubsysSCSIVHostDefParseXML(xmlNodePtr sourcenode,
         break;
     }
 
-    return 0;
-
+    ret = 0;
  cleanup:
-    VIR_FREE(hostsrc->wwpn);
+    VIR_FREE(wwpn);
     VIR_FREE(protocol);
-    return -1;
+    return ret;
 }
 
 
@@ -8763,7 +8834,7 @@ virDomainControllerDefParseXML(xmlNodePtr node,
         break;
     }
     case VIR_DOMAIN_CONTROLLER_TYPE_PCI:
-        switch (def->model) {
+        switch ((virDomainControllerModelPCI) def->model) {
         case VIR_DOMAIN_CONTROLLER_MODEL_PCI_ROOT:
         case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT: {
             unsigned long long bytes;
@@ -8788,6 +8859,16 @@ virDomainControllerDefParseXML(xmlNodePtr node,
                 def->opts.pciopts.pcihole64 = true;
             def->opts.pciopts.pcihole64size = VIR_DIV_UP(bytes, 1024);
         }
+        case VIR_DOMAIN_CONTROLLER_MODEL_PCI_BRIDGE:
+        case VIR_DOMAIN_CONTROLLER_MODEL_DMI_TO_PCI_BRIDGE:
+        case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT_PORT:
+        case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_UPSTREAM_PORT:
+        case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_DOWNSTREAM_PORT:
+        case VIR_DOMAIN_CONTROLLER_MODEL_PCI_EXPANDER_BUS:
+        case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_EXPANDER_BUS:
+        case VIR_DOMAIN_CONTROLLER_MODEL_PCI_LAST:
+            /* Other controller models don't require extra checks */
+            break;
         }
         if (modelName &&
             (def->opts.pciopts.modelName
@@ -9340,7 +9421,7 @@ virDomainNetDefParseXML(virDomainXMLOptionPtr xmlopt,
     virNWFilterHashTablePtr filterparams = NULL;
     virDomainActualNetDefPtr actual = NULL;
     xmlNodePtr oldnode = ctxt->node;
-    int ret, val;
+    int rv, val;
 
     if (VIR_ALLOC(def) < 0)
         return NULL;
@@ -10038,12 +10119,18 @@ virDomainNetDefParseXML(virDomainXMLOptionPtr xmlopt,
         }
     }
 
-    ret = virXPathULong("string(./tune/sndbuf)", ctxt, &def->tune.sndbuf);
-    if (ret >= 0) {
+    rv = virXPathULong("string(./tune/sndbuf)", ctxt, &def->tune.sndbuf);
+    if (rv >= 0) {
         def->tune.sndbuf_specified = true;
-    } else if (ret == -2) {
+    } else if (rv == -2) {
         virReportError(VIR_ERR_XML_ERROR, "%s",
                        _("sndbuf must be a positive integer"));
+        goto error;
+    }
+
+    if (virXPathUInt("string(./mtu/@size)", ctxt, &def->mtu) < -1) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("malformed mtu size"));
         goto error;
     }
 
@@ -11713,6 +11800,8 @@ virDomainGraphicsDefParseXMLVNC(virDomainGraphicsDefPtr def,
             if (flags & VIR_DOMAIN_DEF_PARSE_INACTIVE)
                 def->data.vnc.port = 0;
             def->data.vnc.autoport = true;
+        } else {
+            def->data.vnc.autoport = false;
         }
     }
 
@@ -12120,11 +12209,13 @@ virDomainGraphicsDefParseXMLSpice(virDomainGraphicsDefPtr def,
                 def->data.spice.filetransfer = enableVal;
             } else if (xmlStrEqual(cur->name, BAD_CAST "gl")) {
                 char *enable = virXMLPropString(cur, "enable");
+                char *rendernode = virXMLPropString(cur, "rendernode");
                 int enableVal;
 
                 if (!enable) {
                     virReportError(VIR_ERR_XML_ERROR, "%s",
                                    _("spice gl element missing enable"));
+                    VIR_FREE(rendernode);
                     goto error;
                 }
 
@@ -12133,11 +12224,14 @@ virDomainGraphicsDefParseXMLSpice(virDomainGraphicsDefPtr def,
                     virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                    _("unknown enable value '%s'"), enable);
                     VIR_FREE(enable);
+                    VIR_FREE(rendernode);
                     goto error;
                 }
                 VIR_FREE(enable);
 
                 def->data.spice.gl = enableVal;
+                def->data.spice.rendernode = rendernode;
+
             } else if (xmlStrEqual(cur->name, BAD_CAST "mouse")) {
                 char *mode = virXMLPropString(cur, "mode");
                 int modeVal;
@@ -13296,7 +13390,7 @@ virDomainRedirdevDefParseXML(virDomainXMLOptionPtr xmlopt,
 {
     xmlNodePtr cur;
     virDomainRedirdevDefPtr def;
-    char *bus, *type = NULL;
+    char *bus = NULL, *type = NULL;
     int remaining;
 
     if (VIR_ALLOC(def) < 0)
@@ -14841,6 +14935,9 @@ virDomainChrEquals(virDomainChrDefPtr src,
     case VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL:
         if (src->targetTypeAttr != tgt->targetTypeAttr)
             return false;
+
+        ATTRIBUTE_FALLTHROUGH;
+
     case VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE:
     case VIR_DOMAIN_CHR_DEVICE_TYPE_PARALLEL:
         return src->target.port == tgt->target.port;
@@ -15517,7 +15614,7 @@ virDomainIOThreadIDDefParseXML(xmlNodePtr node,
     if (virStrToLong_uip(tmp, NULL, 10, &iothrid->iothread_id) < 0 ||
         iothrid->iothread_id == 0) {
         virReportError(VIR_ERR_XML_ERROR,
-                        _("invalid iothread 'id' value '%s'"), tmp);
+                       _("invalid iothread 'id' value '%s'"), tmp);
         goto error;
     }
 
@@ -15530,6 +15627,61 @@ virDomainIOThreadIDDefParseXML(xmlNodePtr node,
     virDomainIOThreadIDDefFree(iothrid);
     iothrid = NULL;
     goto cleanup;
+}
+
+
+static int
+virDomainDefParseIOThreads(virDomainDefPtr def,
+                           xmlXPathContextPtr ctxt)
+{
+    size_t i;
+    char *tmp;
+    int n = 0;
+    unsigned int iothreads = 0;
+    xmlNodePtr *nodes = NULL;
+
+    tmp = virXPathString("string(./iothreads[1])", ctxt);
+    if (tmp && virStrToLong_uip(tmp, NULL, 10, &iothreads) < 0) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("invalid iothreads count '%s'"), tmp);
+        goto error;
+    }
+    VIR_FREE(tmp);
+
+    /* Extract any iothread id's defined */
+    if ((n = virXPathNodeSet("./iothreadids/iothread", ctxt, &nodes)) < 0)
+        goto error;
+
+    if (n > iothreads)
+        iothreads = n;
+
+    if (n && VIR_ALLOC_N(def->iothreadids, n) < 0)
+        goto error;
+
+    for (i = 0; i < n; i++) {
+        virDomainIOThreadIDDefPtr iothrid = NULL;
+        if (!(iothrid = virDomainIOThreadIDDefParseXML(nodes[i], ctxt)))
+            goto error;
+
+        if (virDomainIOThreadIDFind(def, iothrid->iothread_id)) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("duplicate iothread id '%u' found"),
+                           iothrid->iothread_id);
+            virDomainIOThreadIDDefFree(iothrid);
+            goto error;
+        }
+        def->iothreadids[def->niothreadids++] = iothrid;
+    }
+    VIR_FREE(nodes);
+
+    if (virDomainIOThreadIDDefArrayInit(def, iothreads) < 0)
+        goto error;
+
+    return 0;
+
+ error:
+    VIR_FREE(nodes);
+    return -1;
 }
 
 
@@ -16583,48 +16735,93 @@ virDomainDefParseXML(xmlDocPtr xml,
     }
     VIR_FREE(tmp);
 
-    if ((n = virXPathNodeSet("./memoryBacking/hugepages/page", ctxt, &nodes)) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("cannot extract hugepages nodes"));
-        goto error;
+    tmp = virXPathString("string(./memoryBacking/source/@type)", ctxt);
+    if (tmp) {
+        if ((def->mem.source = virDomainMemorySourceTypeFromString(tmp)) <= 0) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("unknown memoryBacking/source/type '%s'"), tmp);
+            goto error;
+        }
+        VIR_FREE(tmp);
     }
 
-    if (n) {
-        if (VIR_ALLOC_N(def->mem.hugepages, n) < 0)
+    tmp = virXPathString("string(./memoryBacking/access/@mode)", ctxt);
+    if (tmp) {
+        if ((def->mem.access = virDomainMemoryAccessTypeFromString(tmp)) <= 0) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("unknown memoryBacking/access/mode '%s'"), tmp);
             goto error;
+        }
+        VIR_FREE(tmp);
+    }
 
-        for (i = 0; i < n; i++) {
-            if (virDomainHugepagesParseXML(nodes[i], ctxt,
-                                           &def->mem.hugepages[i]) < 0)
-                goto error;
-            def->mem.nhugepages++;
+    tmp = virXPathString("string(./memoryBacking/allocation/@mode)", ctxt);
+    if (tmp) {
+        if ((def->mem.allocation = virDomainMemoryAllocationTypeFromString(tmp)) <= 0) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("unknown memoryBacking/allocation/mode '%s'"), tmp);
+            goto error;
+        }
+        VIR_FREE(tmp);
+    }
 
-            for (j = 0; j < i; j++) {
-                if (def->mem.hugepages[i].nodemask &&
-                    def->mem.hugepages[j].nodemask &&
-                    virBitmapOverlaps(def->mem.hugepages[i].nodemask,
-                                      def->mem.hugepages[j].nodemask)) {
-                    virReportError(VIR_ERR_XML_DETAIL,
-                                   _("nodeset attribute of hugepages "
-                                     "of sizes %llu and %llu intersect"),
-                                   def->mem.hugepages[i].size,
-                                   def->mem.hugepages[j].size);
-                    goto error;
-                } else if (!def->mem.hugepages[i].nodemask &&
-                           !def->mem.hugepages[j].nodemask) {
-                    virReportError(VIR_ERR_XML_DETAIL,
-                                   _("two master hugepages detected: "
-                                     "%llu and %llu"),
-                                   def->mem.hugepages[i].size,
-                                   def->mem.hugepages[j].size);
-                    goto error;
-                }
-            }
+    if (virXPathNode("./memoryBacking/hugepages", ctxt)) {
+        /* hugepages will be used */
+
+        if (def->mem.allocation == VIR_DOMAIN_MEMORY_ALLOCATION_ONDEMAND) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("hugepages are not allowed with memory allocation ondemand"));
+            goto error;
         }
 
-        VIR_FREE(nodes);
-    } else {
-        if ((node = virXPathNode("./memoryBacking/hugepages", ctxt))) {
+        if (def->mem.source == VIR_DOMAIN_MEMORY_SOURCE_ANONYMOUS) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("hugepages are not allowed with anonymous memory source"));
+            goto error;
+        }
+
+        if ((n = virXPathNodeSet("./memoryBacking/hugepages/page", ctxt, &nodes)) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("cannot extract hugepages nodes"));
+            goto error;
+        }
+
+        if (n) {
+            if (VIR_ALLOC_N(def->mem.hugepages, n) < 0)
+                goto error;
+
+            for (i = 0; i < n; i++) {
+                if (virDomainHugepagesParseXML(nodes[i], ctxt,
+                                               &def->mem.hugepages[i]) < 0)
+                    goto error;
+                def->mem.nhugepages++;
+
+                for (j = 0; j < i; j++) {
+                    if (def->mem.hugepages[i].nodemask &&
+                        def->mem.hugepages[j].nodemask &&
+                        virBitmapOverlaps(def->mem.hugepages[i].nodemask,
+                                          def->mem.hugepages[j].nodemask)) {
+                        virReportError(VIR_ERR_XML_DETAIL,
+                                       _("nodeset attribute of hugepages "
+                                         "of sizes %llu and %llu intersect"),
+                                       def->mem.hugepages[i].size,
+                                       def->mem.hugepages[j].size);
+                        goto error;
+                    } else if (!def->mem.hugepages[i].nodemask &&
+                               !def->mem.hugepages[j].nodemask) {
+                        virReportError(VIR_ERR_XML_DETAIL,
+                                       _("two master hugepages detected: "
+                                         "%llu and %llu"),
+                                       def->mem.hugepages[i].size,
+                                       def->mem.hugepages[j].size);
+                        goto error;
+                    }
+                }
+            }
+
+            VIR_FREE(nodes);
+        } else {
+            /* no hugepage pages */
             if (VIR_ALLOC(def->mem.hugepages) < 0)
                 goto error;
 
@@ -16688,42 +16885,7 @@ virDomainDefParseXML(xmlDocPtr xml,
     if (virDomainVcpuParse(def, ctxt, xmlopt) < 0)
         goto error;
 
-    /* Optional - iothreads */
-    tmp = virXPathString("string(./iothreads[1])", ctxt);
-    if (tmp && virStrToLong_uip(tmp, NULL, 10, &def->iothreads) < 0) {
-        virReportError(VIR_ERR_XML_ERROR,
-                       _("invalid iothreads count '%s'"), tmp);
-        goto error;
-    }
-    VIR_FREE(tmp);
-
-    /* Extract any iothread id's defined */
-    if ((n = virXPathNodeSet("./iothreadids/iothread", ctxt, &nodes)) < 0)
-        goto error;
-
-    if (n > def->iothreads)
-        def->iothreads = n;
-
-    if (n && VIR_ALLOC_N(def->iothreadids, n) < 0)
-        goto error;
-
-    for (i = 0; i < n; i++) {
-        virDomainIOThreadIDDefPtr iothrid = NULL;
-        if (!(iothrid = virDomainIOThreadIDDefParseXML(nodes[i], ctxt)))
-            goto error;
-
-        if (virDomainIOThreadIDFind(def, iothrid->iothread_id)) {
-            virReportError(VIR_ERR_XML_ERROR,
-                           _("duplicate iothread id '%u' found"),
-                           iothrid->iothread_id);
-            virDomainIOThreadIDDefFree(iothrid);
-            goto error;
-        }
-        def->iothreadids[def->niothreadids++] = iothrid;
-    }
-    VIR_FREE(nodes);
-
-    if (virDomainIOThreadIDDefArrayInit(def) < 0)
+    if (virDomainDefParseIOThreads(def, ctxt) < 0)
         goto error;
 
     /* Extract cpu tunables. */
@@ -19421,11 +19583,11 @@ virDomainDefCheckABIStabilityFlags(virDomainDefPtr src,
     if (!virDomainDefVcpuCheckAbiStability(src, dst))
         goto error;
 
-    if (src->iothreads != dst->iothreads) {
+    if (src->niothreadids != dst->niothreadids) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Target domain iothreads count %u does not "
-                         "match source %u"),
-                       dst->iothreads, src->iothreads);
+                       _("Target domain iothreads count %zu does not "
+                         "match source %zu"),
+                       dst->niothreadids, src->niothreadids);
         goto error;
     }
 
@@ -20062,13 +20224,6 @@ virDomainIOThreadIDAdd(virDomainDefPtr def,
                        unsigned int iothread_id)
 {
     virDomainIOThreadIDDefPtr iothrid = NULL;
-
-    if (virDomainIOThreadIDFind(def, iothread_id)) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("cannot duplicate iothread_id '%u' in iothreadids"),
-                       iothread_id);
-        return NULL;
-    }
 
     if (VIR_ALLOC(iothrid) < 0)
         goto error;
@@ -21766,6 +21921,10 @@ virDomainNetDefFormat(virBufferPtr buf,
         virBufferAsprintf(buf, "<link state='%s'/>\n",
                           virDomainNetInterfaceLinkStateTypeToString(def->linkstate));
     }
+
+    if (def->mtu)
+        virBufferAsprintf(buf, "<mtu size='%u'/>\n", def->mtu);
+
     if (virDomainDeviceInfoFormat(buf, &def->info,
                                   flags | VIR_DOMAIN_DEF_FORMAT_ALLOW_BOOT
                                   | VIR_DOMAIN_DEF_FORMAT_ALLOW_ROM) < 0)
@@ -22002,6 +22161,8 @@ virDomainChrDefFormat(virBufferPtr buf,
                               def->target.port);
             break;
         }
+        ATTRIBUTE_FALLTHROUGH;
+
     default:
         virBufferAsprintf(buf, "<target port='%d'/>\n",
                           def->target.port);
@@ -22769,6 +22930,17 @@ virDomainGraphicsListenDefFormatAddr(virBufferPtr buf,
         virBufferAsprintf(buf, " listen='%s'", glisten->address);
 }
 
+static void
+virDomainSpiceGLDefFormat(virBufferPtr buf, virDomainGraphicsDefPtr def)
+{
+    if (def->data.spice.gl == VIR_TRISTATE_BOOL_ABSENT)
+        return;
+
+    virBufferAsprintf(buf, "<gl enable='%s'",
+                      virTristateBoolTypeToString(def->data.spice.gl));
+    virBufferEscapeString(buf, " rendernode='%s'", def->data.spice.rendernode);
+    virBufferAddLit(buf, "/>\n");
+}
 
 static int
 virDomainGraphicsDefFormat(virBufferPtr buf,
@@ -23012,9 +23184,8 @@ virDomainGraphicsDefFormat(virBufferPtr buf,
         if (def->data.spice.filetransfer)
             virBufferAsprintf(buf, "<filetransfer enable='%s'/>\n",
                               virTristateBoolTypeToString(def->data.spice.filetransfer));
-        if (def->data.spice.gl)
-            virBufferAsprintf(buf, "<gl enable='%s'/>\n",
-                              virTristateBoolTypeToString(def->data.spice.gl));
+
+        virDomainSpiceGLDefFormat(buf, def);
     }
 
     if (children) {
@@ -23551,6 +23722,20 @@ virDomainCpuDefFormat(virBufferPtr buf,
 }
 
 
+static bool
+virDomainDefIothreadShouldFormat(virDomainDefPtr def)
+{
+    size_t i;
+
+    for (i = 0; i < def->niothreadids; i++) {
+        if (!def->iothreadids[i]->autofill)
+            return true;
+    }
+
+    return false;
+}
+
+
 /* This internal version appends to an existing buffer
  * (possibly with auto-indent), rather than flattening
  * to string.
@@ -23713,7 +23898,9 @@ virDomainDefFormatInternal(virDomainDefPtr def,
         virBufferAddLit(buf, "</memtune>\n");
     }
 
-    if (def->mem.nhugepages || def->mem.nosharepages || def->mem.locked) {
+    if (def->mem.nhugepages || def->mem.nosharepages || def->mem.locked
+        || def->mem.source || def->mem.access || def->mem.allocation)
+    {
         virBufferAddLit(buf, "<memoryBacking>\n");
         virBufferAdjustIndent(buf, 2);
         if (def->mem.nhugepages)
@@ -23722,6 +23909,16 @@ virDomainDefFormatInternal(virDomainDefPtr def,
             virBufferAddLit(buf, "<nosharepages/>\n");
         if (def->mem.locked)
             virBufferAddLit(buf, "<locked/>\n");
+        if (def->mem.source)
+            virBufferAsprintf(buf, "<source type='%s'/>\n",
+                virDomainMemorySourceTypeToString(def->mem.source));
+        if (def->mem.access)
+            virBufferAsprintf(buf, "<access mode='%s'/>\n",
+                virDomainMemoryAccessTypeToString(def->mem.access));
+        if (def->mem.allocation)
+            virBufferAsprintf(buf, "<allocation mode='%s'/>\n",
+                virDomainMemoryAllocationTypeToString(def->mem.allocation));
+
         virBufferAdjustIndent(buf, -2);
         virBufferAddLit(buf, "</memoryBacking>\n");
     }
@@ -23730,19 +23927,12 @@ virDomainDefFormatInternal(virDomainDefPtr def,
         goto error;
 
     if (def->niothreadids > 0) {
-        virBufferAsprintf(buf, "<iothreads>%u</iothreads>\n",
-                          def->iothreads);
-        /* Only print out iothreadids if we read at least one */
-        for (i = 0; i < def->niothreadids; i++) {
-            if (!def->iothreadids[i]->autofill)
-                break;
-        }
-        if (i < def->niothreadids) {
+        virBufferAsprintf(buf, "<iothreads>%zu</iothreads>\n",
+                          def->niothreadids);
+        if (virDomainDefIothreadShouldFormat(def)) {
             virBufferAddLit(buf, "<iothreadids>\n");
             virBufferAdjustIndent(buf, 2);
             for (i = 0; i < def->niothreadids; i++) {
-                if (def->iothreadids[i]->autofill)
-                    continue;
                 virBufferAsprintf(buf, "<iothread id='%u'/>\n",
                                   def->iothreadids[i]->iothread_id);
             }
@@ -25829,4 +26019,31 @@ virDomainDefVcpuOrderClear(virDomainDefPtr def)
 
     for (i = 0; i < def->maxvcpus; i++)
         def->vcpus[i]->order = 0;
+}
+
+
+/**
+ * virDomainDiskSetBlockIOTune:
+ * @disk: The disk to set block I/O tuning on
+ * @info: The BlockIoTuneInfo to be set on the @disk
+ *
+ * Set the block I/O tune settings from @info on the @disk, but error out early
+ * in case of any error.  That is to make sure nothing will fail half-way.
+ *
+ * Returns: 0 on success, -1 otherwise
+ */
+int
+virDomainDiskSetBlockIOTune(virDomainDiskDefPtr disk,
+                            virDomainBlockIoTuneInfo *info)
+{
+    char *tmp_group = NULL;
+
+    if (VIR_STRDUP(tmp_group, info->group_name) < 0)
+        return -1;
+
+    VIR_FREE(disk->blkdeviotune.group_name);
+    disk->blkdeviotune = *info;
+    VIR_STEAL_PTR(disk->blkdeviotune.group_name, tmp_group);
+
+    return 0;
 }

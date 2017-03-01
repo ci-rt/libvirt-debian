@@ -204,7 +204,6 @@
     <function name="VIR_PERF_PARAM_BRANCH_INSTRUCTIONS" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_BRANCH_INSTRUCTIONS"/>
     <function name="VIR_PERF_PARAM_BRANCH_MISSES" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_BRANCH_MISSES"/>
     <function name="VIR_PERF_PARAM_BUS_CYCLES" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_BUS_CYCLES"/>
-    <function name="VIR_PERF_PARAM_CACHE_L1D" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_CACHE_L1D"/>
     <function name="VIR_PERF_PARAM_CACHE_MISSES" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_CACHE_MISSES"/>
     <function name="VIR_PERF_PARAM_CACHE_REFERENCES" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_CACHE_REFERENCES"/>
     <function name="VIR_PERF_PARAM_CMT" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_CMT"/>
@@ -275,6 +274,7 @@
     <function name="VIR_CONNECT_LIST_NETWORKS_NO_AUTOSTART" link="libvirt-libvirt-network.html#VIR_CONNECT_LIST_NETWORKS_NO_AUTOSTART"/>
     <function name="VIR_CONNECT_LIST_NETWORKS_PERSISTENT" link="libvirt-libvirt-network.html#VIR_CONNECT_LIST_NETWORKS_PERSISTENT"/>
     <function name="VIR_CONNECT_LIST_NETWORKS_TRANSIENT" link="libvirt-libvirt-network.html#VIR_CONNECT_LIST_NETWORKS_TRANSIENT"/>
+    <function name="VIR_CONNECT_LIST_NODE_DEVICES_CAP_DRM" link="libvirt-libvirt-nodedev.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_DRM"/>
     <function name="VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST" link="libvirt-libvirt-nodedev.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST"/>
     <function name="VIR_CONNECT_LIST_NODE_DEVICES_CAP_NET" link="libvirt-libvirt-nodedev.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_NET"/>
     <function name="VIR_CONNECT_LIST_NODE_DEVICES_CAP_PCI_DEV" link="libvirt-libvirt-nodedev.html#VIR_CONNECT_LIST_NODE_DEVICES_CAP_PCI_DEV"/>
@@ -308,6 +308,7 @@
     <function name="VIR_CONNECT_LIST_STORAGE_POOLS_SCSI" link="libvirt-libvirt-storage.html#VIR_CONNECT_LIST_STORAGE_POOLS_SCSI"/>
     <function name="VIR_CONNECT_LIST_STORAGE_POOLS_SHEEPDOG" link="libvirt-libvirt-storage.html#VIR_CONNECT_LIST_STORAGE_POOLS_SHEEPDOG"/>
     <function name="VIR_CONNECT_LIST_STORAGE_POOLS_TRANSIENT" link="libvirt-libvirt-storage.html#VIR_CONNECT_LIST_STORAGE_POOLS_TRANSIENT"/>
+    <function name="VIR_CONNECT_LIST_STORAGE_POOLS_VSTORAGE" link="libvirt-libvirt-storage.html#VIR_CONNECT_LIST_STORAGE_POOLS_VSTORAGE"/>
     <function name="VIR_CONNECT_LIST_STORAGE_POOLS_ZFS" link="libvirt-libvirt-storage.html#VIR_CONNECT_LIST_STORAGE_POOLS_ZFS"/>
     <function name="VIR_CONNECT_NO_ALIASES" link="libvirt-libvirt-host.html#VIR_CONNECT_NO_ALIASES"/>
     <function name="VIR_CONNECT_RO" link="libvirt-libvirt-host.html#VIR_CONNECT_RO"/>
@@ -1570,6 +1571,7 @@
     <function name="virDomainSetSchedulerParametersFlags ()" link="libvirt-libvirt-domain.html#virDomainSetSchedulerParametersFlags"/>
     <function name="virDomainSetTime ()" link="libvirt-libvirt-domain.html#virDomainSetTime"/>
     <function name="virDomainSetUserPassword ()" link="libvirt-libvirt-domain.html#virDomainSetUserPassword"/>
+    <function name="virDomainSetVcpu ()" link="libvirt-libvirt-domain.html#virDomainSetVcpu"/>
     <function name="virDomainSetVcpus ()" link="libvirt-libvirt-domain.html#virDomainSetVcpus"/>
     <function name="virDomainSetVcpusFlags ()" link="libvirt-libvirt-domain.html#virDomainSetVcpusFlags"/>
     <function name="virDomainShutdown ()" link="libvirt-libvirt-domain.html#virDomainShutdown"/>

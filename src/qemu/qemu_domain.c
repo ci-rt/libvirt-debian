@@ -31,6 +31,7 @@
 #include "qemu_parse_command.h"
 #include "qemu_capabilities.h"
 #include "qemu_migration.h"
+#include "qemu_security.h"
 #include "viralloc.h"
 #include "virlog.h"
 #include "virerror.h"
@@ -41,6 +42,7 @@
 #include "domain_addr.h"
 #include "domain_event.h"
 #include "virtime.h"
+#include "virnetdevopenvswitch.h"
 #include "virstoragefile.h"
 #include "virstring.h"
 #include "virthreadjob.h"
@@ -68,6 +70,7 @@
 #endif
 
 #include <libxml/xpathInternals.h>
+#include "dosname.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -104,6 +107,7 @@ VIR_ENUM_IMPL(qemuDomainNamespace, QEMU_DOMAIN_NS_LAST,
 
 #define PROC_MOUNTS "/proc/mounts"
 #define DEVPREFIX "/dev/"
+#define DEV_VFIO "/dev/vfio/vfio"
 
 
 struct _qemuDomainLogContext {
@@ -2830,6 +2834,16 @@ qemuDomainDefValidate(const virDomainDef *def,
         }
     }
 
+    /* Memory locking can only work properly if the memory locking limit
+     * for the QEMU process has been raised appropriately: the default one
+     * is extrememly low, so there's no way the guest will fit in there */
+    if (def->mem.locked && !virMemoryLimitIsSet(def->mem.hard_limit)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Setting <memoryBacking><locked> requires "
+                         "<memtune><hard_limit> to be set as well"));
+        goto cleanup;
+    }
+
     if (qemuDomainDefValidateVideo(def) < 0)
         goto cleanup;
 
@@ -2865,6 +2879,14 @@ qemuDomainDeviceDefValidate(const virDomainDeviceDef *dev,
             net->driver.virtio.rx_queue_size & (net->driver.virtio.rx_queue_size - 1)) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("rx_queue_size has to be a power of two"));
+            goto cleanup;
+        }
+
+        if (net->mtu &&
+            !qemuDomainNetSupportsMTU(net->type)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("setting MTU on interface type %s is not supported yet"),
+                           virDomainNetTypeToString(net->type));
             goto cleanup;
         }
     }
@@ -2984,6 +3006,9 @@ qemuDomainShmemDefPostParse(virDomainShmemDefPtr shm)
 }
 
 
+#define QEMU_USB_NEC_XHCI_MAXPORTS 15
+
+
 static int
 qemuDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
                              const virDomainDef *def,
@@ -3004,12 +3029,20 @@ qemuDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
                                           def->emulator);
     }
 
-    if (dev->type == VIR_DOMAIN_DEVICE_NET &&
-        dev->data.net->type != VIR_DOMAIN_NET_TYPE_HOSTDEV &&
-        !dev->data.net->model) {
-        if (VIR_STRDUP(dev->data.net->model,
-                       qemuDomainDefaultNetModel(def, qemuCaps)) < 0)
-            goto cleanup;
+    if (dev->type == VIR_DOMAIN_DEVICE_NET) {
+        if (dev->data.net->type != VIR_DOMAIN_NET_TYPE_HOSTDEV &&
+            !dev->data.net->model) {
+            if (VIR_STRDUP(dev->data.net->model,
+                           qemuDomainDefaultNetModel(def, qemuCaps)) < 0)
+                goto cleanup;
+        }
+        if (dev->data.net->type == VIR_DOMAIN_NET_TYPE_VHOSTUSER &&
+            !dev->data.net->ifname) {
+            if (virNetDevOpenvswitchGetVhostuserIfname(
+                   dev->data.net->data.vhostuser->data.nix.path,
+                   &dev->data.net->ifname) < 0)
+                goto cleanup;
+        }
     }
 
     /* set default disk types and drivers */
@@ -3129,6 +3162,15 @@ qemuDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
 
     if (dev->type == VIR_DOMAIN_DEVICE_CONTROLLER) {
         virDomainControllerDefPtr cont = dev->data.controller;
+
+        if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_USB &&
+            cont->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_NEC_XHCI &&
+            cont->opts.usbopts.ports > QEMU_USB_NEC_XHCI_MAXPORTS) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("nec-xhci controller only supports up to %u ports"),
+                           QEMU_USB_NEC_XHCI_MAXPORTS);
+            goto cleanup;
+        }
 
         if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_PCI) {
             if (cont->model == VIR_DOMAIN_CONTROLLER_MODEL_PCI_EXPANDER_BUS &&
@@ -3999,46 +4041,52 @@ void qemuDomainObjTaint(virQEMUDriverPtr driver,
 {
     virErrorPtr orig_err = NULL;
     bool closeLog = false;
+    char *timestamp = NULL;
+    char uuidstr[VIR_UUID_STRING_BUFLEN];
 
-    if (virDomainObjTaint(obj, taint)) {
-        char uuidstr[VIR_UUID_STRING_BUFLEN];
-        virUUIDFormat(obj->def->uuid, uuidstr);
+    if (!virDomainObjTaint(obj, taint))
+        return;
 
-        VIR_WARN("Domain id=%d name='%s' uuid=%s is tainted: %s",
-                 obj->def->id,
-                 obj->def->name,
-                 uuidstr,
-                 virDomainTaintTypeToString(taint));
+    virUUIDFormat(obj->def->uuid, uuidstr);
 
-        /* We don't care about errors logging taint info, so
-         * preserve original error, and clear any error that
-         * is raised */
-        orig_err = virSaveLastError();
-        if (logCtxt == NULL) {
-            logCtxt = qemuDomainLogContextNew(driver, obj,
-                                              QEMU_DOMAIN_LOG_CONTEXT_MODE_ATTACH);
-            if (!logCtxt) {
-                if (orig_err) {
-                    virSetError(orig_err);
-                    virFreeError(orig_err);
-                }
-                VIR_WARN("Unable to open domainlog");
-                return;
-            }
-            closeLog = true;
+    VIR_WARN("Domain id=%d name='%s' uuid=%s is tainted: %s",
+             obj->def->id,
+             obj->def->name,
+             uuidstr,
+             virDomainTaintTypeToString(taint));
+
+    /* We don't care about errors logging taint info, so
+     * preserve original error, and clear any error that
+     * is raised */
+    orig_err = virSaveLastError();
+
+    if (!(timestamp = virTimeStringNow()))
+        goto cleanup;
+
+    if (logCtxt == NULL) {
+        logCtxt = qemuDomainLogContextNew(driver, obj,
+                                          QEMU_DOMAIN_LOG_CONTEXT_MODE_ATTACH);
+        if (!logCtxt) {
+            VIR_WARN("Unable to open domainlog");
+            goto cleanup;
         }
+        closeLog = true;
+    }
 
-        if (qemuDomainLogContextWrite(logCtxt,
-                                      "Domain id=%d is tainted: %s\n",
-                                      obj->def->id,
-                                      virDomainTaintTypeToString(taint)) < 0)
-            virResetLastError();
-        if (closeLog)
-            qemuDomainLogContextFree(logCtxt);
-        if (orig_err) {
-            virSetError(orig_err);
-            virFreeError(orig_err);
-        }
+    if (qemuDomainLogContextWrite(logCtxt,
+                                  "%s: Domain id=%d is tainted: %s\n",
+                                  timestamp,
+                                  obj->def->id,
+                                  virDomainTaintTypeToString(taint)) < 0)
+        virResetLastError();
+
+ cleanup:
+    VIR_FREE(timestamp);
+    if (closeLog)
+        qemuDomainLogContextFree(logCtxt);
+    if (orig_err) {
+        virSetError(orig_err);
+        virFreeError(orig_err);
     }
 }
 
@@ -5056,13 +5104,15 @@ qemuDomainDiskChainElementRevoke(virQEMUDriverPtr driver,
                                  virDomainObjPtr vm,
                                  virStorageSourcePtr elem)
 {
-    if (virSecurityManagerRestoreImageLabel(driver->securityManager,
-                                            vm->def, elem) < 0)
-        VIR_WARN("Unable to restore security label on %s", NULLSTR(elem->path));
-
     if (qemuTeardownImageCgroup(vm, elem) < 0)
         VIR_WARN("Failed to teardown cgroup for disk path %s",
                  NULLSTR(elem->path));
+
+    if (qemuSecurityRestoreImageLabel(driver, vm, elem) < 0)
+        VIR_WARN("Unable to restore security label on %s", NULLSTR(elem->path));
+
+    if (qemuDomainNamespaceTeardownDisk(driver, vm, elem) < 0)
+        VIR_WARN("Unable to remove /dev entry for %s", NULLSTR(elem->path));
 
     if (virDomainLockImageDetach(driver->lockManager, vm, elem) < 0)
         VIR_WARN("Unable to release lock on %s", NULLSTR(elem->path));
@@ -5092,11 +5142,13 @@ qemuDomainDiskChainElementPrepare(virQEMUDriverPtr driver,
     if (virDomainLockImageAttach(driver->lockManager, cfg->uri, vm, elem) < 0)
         goto cleanup;
 
+    if (qemuDomainNamespaceSetupDisk(driver, vm, elem) < 0)
+        goto cleanup;
+
     if (qemuSetupImageCgroup(vm, elem) < 0)
         goto cleanup;
 
-    if (virSecurityManagerSetImageLabel(driver->securityManager, vm->def,
-                                        elem) < 0)
+    if (qemuSecuritySetImageLabel(driver, vm, elem) < 0)
         goto cleanup;
 
     ret = 0;
@@ -6514,6 +6566,28 @@ qemuDomainSupportsNetdev(virDomainDefPtr def,
     return virQEMUCapsGet(qemuCaps, QEMU_CAPS_NETDEV);
 }
 
+bool
+qemuDomainNetSupportsMTU(virDomainNetType type)
+{
+    switch (type) {
+    case VIR_DOMAIN_NET_TYPE_NETWORK:
+    case VIR_DOMAIN_NET_TYPE_BRIDGE:
+    case VIR_DOMAIN_NET_TYPE_ETHERNET:
+    case VIR_DOMAIN_NET_TYPE_VHOSTUSER:
+        return true;
+    case VIR_DOMAIN_NET_TYPE_USER:
+    case VIR_DOMAIN_NET_TYPE_SERVER:
+    case VIR_DOMAIN_NET_TYPE_CLIENT:
+    case VIR_DOMAIN_NET_TYPE_MCAST:
+    case VIR_DOMAIN_NET_TYPE_INTERNAL:
+    case VIR_DOMAIN_NET_TYPE_DIRECT:
+    case VIR_DOMAIN_NET_TYPE_HOSTDEV:
+    case VIR_DOMAIN_NET_TYPE_UDP:
+    case VIR_DOMAIN_NET_TYPE_LAST:
+        break;
+    }
+    return false;
+}
 
 int
 qemuDomainNetVLAN(virDomainNetDefPtr def)
@@ -6770,9 +6844,31 @@ qemuDomainSupportsVideoVga(virDomainVideoDefPtr video,
 }
 
 
-static int
-qemuDomainGetHostdevPath(virDomainHostdevDefPtr dev,
-                         char **path)
+/**
+ * qemuDomainGetHostdevPath:
+ * @def: domain definition
+ * @dev: host device definition
+ * @teardown: true if device will be removed
+ * @npaths: number of items in @path and @perms arrays
+ * @path: resulting path to @dev
+ * @perms: Optional pointer to VIR_CGROUP_DEVICE_* perms
+ *
+ * For given device @dev fetch its host path and store it at
+ * @path. If a device requires other paths to be present/allowed
+ * they are stored in the @path array after the actual path.
+ * Optionally, caller can get @perms on the path (e.g. rw/ro).
+ *
+ * The caller is responsible for freeing the memory.
+ *
+ * Returns 0 on success, -1 otherwise.
+ */
+int
+qemuDomainGetHostdevPath(virDomainDefPtr def,
+                         virDomainHostdevDefPtr dev,
+                         bool teardown,
+                         size_t *npaths,
+                         char ***path,
+                         int **perms)
 {
     int ret = -1;
     virDomainHostdevSubsysUSBPtr usbsrc = &dev->source.subsys.u.usb;
@@ -6785,8 +6881,13 @@ qemuDomainGetHostdevPath(virDomainHostdevDefPtr dev,
     virSCSIVHostDevicePtr host = NULL;
     char *tmpPath = NULL;
     bool freeTmpPath = false;
+    bool includeVFIO = false;
+    char **tmpPaths = NULL;
+    int *tmpPerms = NULL;
+    size_t i, tmpNpaths = 0;
+    int perm = 0;
 
-    *path = NULL;
+    *npaths = 0;
 
     switch ((virDomainHostdevMode) dev->mode) {
     case VIR_DOMAIN_HOSTDEV_MODE_SUBSYS:
@@ -6803,6 +6904,23 @@ qemuDomainGetHostdevPath(virDomainHostdevDefPtr dev,
                 if (!(tmpPath = virPCIDeviceGetIOMMUGroupDev(pci)))
                     goto cleanup;
                 freeTmpPath = true;
+
+                perm = VIR_CGROUP_DEVICE_RW;
+                if (teardown) {
+                    size_t nvfios = 0;
+                    for (i = 0; i < def->nhostdevs; i++) {
+                        virDomainHostdevDefPtr tmp = def->hostdevs[i];
+                        if (tmp->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
+                            tmp->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI &&
+                            tmp->source.subsys.u.pci.backend == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO)
+                            nvfios++;
+                    }
+
+                    if (nvfios == 0)
+                        includeVFIO = true;
+                } else {
+                    includeVFIO = true;
+                }
             }
             break;
 
@@ -6817,6 +6935,7 @@ qemuDomainGetHostdevPath(virDomainHostdevDefPtr dev,
 
             if (!(tmpPath = (char *) virUSBDeviceGetPath(usb)))
                 goto cleanup;
+            perm = VIR_CGROUP_DEVICE_RW;
             break;
 
         case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI:
@@ -6841,6 +6960,8 @@ qemuDomainGetHostdevPath(virDomainHostdevDefPtr dev,
 
                 if (!(tmpPath = (char *) virSCSIDeviceGetPath(scsi)))
                     goto cleanup;
+                perm = virSCSIDeviceGetReadonly(scsi) ?
+                    VIR_CGROUP_DEVICE_READ : VIR_CGROUP_DEVICE_RW;
             }
             break;
 
@@ -6852,6 +6973,7 @@ qemuDomainGetHostdevPath(virDomainHostdevDefPtr dev,
 
                 if (!(tmpPath = (char *) virSCSIVHostDeviceGetPath(host)))
                     goto cleanup;
+                perm = VIR_CGROUP_DEVICE_RW;
             }
             break;
         }
@@ -6867,11 +6989,40 @@ qemuDomainGetHostdevPath(virDomainHostdevDefPtr dev,
         break;
     }
 
-    if (VIR_STRDUP(*path, tmpPath) < 0)
-        goto cleanup;
+    if (tmpPath) {
+        size_t toAlloc = 1;
 
+        if (includeVFIO)
+            toAlloc = 2;
+
+        if (VIR_ALLOC_N(tmpPaths, toAlloc) < 0 ||
+            VIR_ALLOC_N(tmpPerms, toAlloc) < 0 ||
+            VIR_STRDUP(tmpPaths[0], tmpPath) < 0)
+            goto cleanup;
+        tmpNpaths = toAlloc;
+        tmpPerms[0] = perm;
+
+        if (includeVFIO) {
+            if (VIR_STRDUP(tmpPaths[1], DEV_VFIO) < 0)
+                goto cleanup;
+            tmpPerms[1] = VIR_CGROUP_DEVICE_RW;
+        }
+    }
+
+    *npaths = tmpNpaths;
+    tmpNpaths = 0;
+    *path = tmpPaths;
+    tmpPaths = NULL;
+    if (perms) {
+        *perms = tmpPerms;
+        tmpPerms = NULL;
+    }
     ret = 0;
  cleanup:
+    for (i = 0; i < tmpNpaths; i++)
+        VIR_FREE(tmpPaths[i]);
+    VIR_FREE(tmpPaths);
+    VIR_FREE(tmpPerms);
     virPCIDeviceFree(pci);
     virUSBDeviceFree(usb);
     virSCSIDeviceFree(scsi);
@@ -6894,13 +7045,12 @@ qemuDomainGetHostdevPath(virDomainHostdevDefPtr dev,
  * Returns 0 on success, -1 otherwise (with error reported)
  */
 static int
-qemuDomainGetPreservedMounts(virQEMUDriverPtr driver,
+qemuDomainGetPreservedMounts(virQEMUDriverConfigPtr cfg,
                              virDomainObjPtr vm,
                              char ***devPath,
                              char ***devSavePath,
                              size_t *ndevPath)
 {
-    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     char **paths = NULL, **mounts = NULL;
     size_t i, nmounts;
 
@@ -6941,87 +7091,169 @@ qemuDomainGetPreservedMounts(virQEMUDriverPtr driver,
     if (ndevPath)
         *ndevPath = nmounts;
 
-    virObjectUnref(cfg);
     return 0;
 
  error:
     virStringListFreeCount(mounts, nmounts);
     virStringListFreeCount(paths, nmounts);
-    virObjectUnref(cfg);
     return -1;
 }
 
 
 static int
-qemuDomainCreateDevice(const char *device,
-                       const char *path,
-                       bool allow_noent)
+qemuDomainCreateDeviceRecursive(const char *device,
+                                const char *path,
+                                bool allow_noent,
+                                unsigned int ttl)
 {
     char *devicePath = NULL;
-    char *canonDevicePath = NULL;
+    char *target = NULL;
     struct stat sb;
     int ret = -1;
+    bool isLink = false;
+    bool create = false;
 #ifdef WITH_SELINUX
     char *tcon = NULL;
 #endif
 
-    if (virFileResolveAllLinks(device, &canonDevicePath) < 0) {
+    if (!ttl) {
+        virReportSystemError(ELOOP,
+                             _("Too many levels of symbolic links: %s"),
+                             device);
+        return ret;
+    }
+
+    if (lstat(device, &sb) < 0) {
         if (errno == ENOENT && allow_noent) {
             /* Ignore non-existent device. */
-            ret = 0;
+            return 0;
+        }
+        virReportSystemError(errno, _("Unable to stat %s"), device);
+        return ret;
+    }
+
+    isLink = S_ISLNK(sb.st_mode);
+
+    /* Here, @device might be whatever path in the system. We
+     * should create the path in the namespace iff it's "/dev"
+     * prefixed. However, if it is a symlink, we need to traverse
+     * it too (it might point to something in "/dev"). Just
+     * consider:
+     *
+     *   /var/sym1 -> /var/sym2 -> /dev/sda  (because users can)
+     *
+     * This means, "/var/sym1" is not created (it's shared with
+     * the parent namespace), nor "/var/sym2", but "/dev/sda".
+     *
+     * TODO Remove all `.' and `..' from the @device path.
+     * Otherwise we might get fooled with `/dev/../var/my_image'.
+     * For now, lets hope callers play nice.
+     */
+    if (STRPREFIX(device, DEVPREFIX)) {
+        if (virAsprintf(&devicePath, "%s/%s",
+                        path, device + strlen(DEVPREFIX)) < 0)
+            goto cleanup;
+
+        if (virFileMakeParentPath(devicePath) < 0) {
+            virReportSystemError(errno,
+                                 _("Unable to create %s"),
+                                 devicePath);
+            goto cleanup;
+        }
+        create = true;
+    }
+
+    if (isLink) {
+        /* We are dealing with a symlink. Create a dangling symlink and descend
+         * down one level which hopefully creates the symlink's target. */
+        if (virFileReadLink(device, &target) < 0) {
+            virReportSystemError(errno,
+                                 _("unable to resolve symlink %s"),
+                                 device);
             goto cleanup;
         }
 
-        virReportError(errno, _("Unable to canonicalize %s"), device);
-        goto cleanup;
+        if (create &&
+            symlink(target, devicePath) < 0) {
+            if (errno == EEXIST) {
+                ret = 0;
+            } else {
+                virReportSystemError(errno,
+                                     _("unable to create symlink %s"),
+                                     devicePath);
+            }
+            goto cleanup;
+        }
+
+        /* Tricky part. If the target starts with a slash then we need to take
+         * it as it is. Otherwise we need to replace the last component in the
+         * original path with the link target:
+         * /dev/rtc -> rtc0 (want /dev/rtc0)
+         * /dev/disk/by-id/ata-SanDisk_SDSSDXPS480G_161101402485 -> ../../sda
+         *   (want /dev/disk/by-id/../../sda)
+         * /dev/stdout -> /proc/self/fd/1 (no change needed)
+         */
+        if (IS_RELATIVE_FILE_NAME(target)) {
+            char *c = NULL, *tmp = NULL, *devTmp = NULL;
+
+            if (VIR_STRDUP(devTmp, device) < 0)
+                goto cleanup;
+
+            if ((c = strrchr(devTmp, '/')))
+                *(c + 1) = '\0';
+
+            if (virAsprintf(&tmp, "%s%s", devTmp, target) < 0) {
+                VIR_FREE(devTmp);
+                goto cleanup;
+            }
+            VIR_FREE(devTmp);
+            VIR_FREE(target);
+            target = tmp;
+            tmp = NULL;
+        }
+
+        if (qemuDomainCreateDeviceRecursive(target, path,
+                                            allow_noent, ttl - 1) < 0)
+            goto cleanup;
+    } else {
+        if (create &&
+            mknod(devicePath, sb.st_mode, sb.st_rdev) < 0) {
+            if (errno == EEXIST) {
+                ret = 0;
+            } else {
+                virReportSystemError(errno,
+                                     _("Failed to make device %s"),
+                                     devicePath);
+            }
+            goto cleanup;
+        }
+
+        /* Set the file permissions again: mknod() is affected by the
+         * current umask, and as such might not have set them correctly */
+        if (create &&
+            chmod(devicePath, sb.st_mode) < 0) {
+            virReportSystemError(errno,
+                                 _("Failed to set permissions for device %s"),
+                                 devicePath);
+            goto cleanup;
+        }
     }
 
-    if (!STRPREFIX(canonDevicePath, DEVPREFIX)) {
+    if (!create) {
         ret = 0;
         goto cleanup;
     }
 
-    if (virAsprintf(&devicePath, "%s/%s",
-                    path, canonDevicePath + strlen(DEVPREFIX)) < 0)
-        goto cleanup;
-
-    if (stat(canonDevicePath, &sb) < 0) {
-        if (errno == ENOENT && allow_noent) {
-            /* Ignore non-existent device. */
-            ret = 0;
-            goto cleanup;
-        }
-
-        virReportSystemError(errno, _("Unable to stat %s"), canonDevicePath);
-        goto cleanup;
-    }
-
-    if (virFileMakeParentPath(devicePath) < 0) {
-        virReportSystemError(errno,
-                             _("Unable to create %s"),
-                             devicePath);
-        goto cleanup;
-    }
-
-    if (mknod(devicePath, sb.st_mode, sb.st_rdev) < 0) {
-        if (errno == EEXIST) {
-            ret = 0;
-        } else {
-            virReportSystemError(errno,
-                                 _("Failed to make device %s"),
-                                 devicePath);
-        }
-        goto cleanup;
-    }
-
-    if (chown(devicePath, sb.st_uid, sb.st_gid) < 0) {
+    if (lchown(devicePath, sb.st_uid, sb.st_gid) < 0) {
         virReportSystemError(errno,
                              _("Failed to chown device %s"),
                              devicePath);
         goto cleanup;
     }
 
-    if (virFileCopyACLs(canonDevicePath, devicePath) < 0 &&
+    /* Symlinks don't have ACLs. */
+    if (!isLink &&
+        virFileCopyACLs(device, devicePath) < 0 &&
         errno != ENOTSUP) {
         virReportSystemError(errno,
                              _("Failed to copy ACLs on device %s"),
@@ -7030,16 +7262,16 @@ qemuDomainCreateDevice(const char *device,
     }
 
 #ifdef WITH_SELINUX
-    if (getfilecon_raw(canonDevicePath, &tcon) < 0 &&
+    if (lgetfilecon_raw(device, &tcon) < 0 &&
         (errno != ENOTSUP && errno != ENODATA)) {
         virReportSystemError(errno,
                              _("Unable to get SELinux label from %s"),
-                             canonDevicePath);
+                             device);
         goto cleanup;
     }
 
     if (tcon &&
-        setfilecon_raw(devicePath, (VIR_SELINUX_CTX_CONST char *) tcon) < 0) {
+        lsetfilecon_raw(devicePath, (VIR_SELINUX_CTX_CONST char *) tcon) < 0) {
         VIR_WARNINGS_NO_WLOGICALOP_EQUAL_EXPR
         if (errno != EOPNOTSUPP && errno != ENOTSUP) {
         VIR_WARNINGS_RESET
@@ -7053,7 +7285,7 @@ qemuDomainCreateDevice(const char *device,
 
     ret = 0;
  cleanup:
-    VIR_FREE(canonDevicePath);
+    VIR_FREE(target);
     VIR_FREE(devicePath);
 #ifdef WITH_SELINUX
     freecon(tcon);
@@ -7062,13 +7294,23 @@ qemuDomainCreateDevice(const char *device,
 }
 
 
+static int
+qemuDomainCreateDevice(const char *device,
+                       const char *path,
+                       bool allow_noent)
+{
+    long symloop_max = sysconf(_SC_SYMLOOP_MAX);
+
+    return qemuDomainCreateDeviceRecursive(device, path,
+                                           allow_noent, symloop_max);
+}
+
 
 static int
-qemuDomainPopulateDevices(virQEMUDriverPtr driver,
+qemuDomainPopulateDevices(virQEMUDriverConfigPtr cfg,
                           virDomainObjPtr vm ATTRIBUTE_UNUSED,
                           const char *path)
 {
-    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     const char *const *devices = (const char *const *) cfg->cgroupDeviceACL;
     size_t i;
     int ret = -1;
@@ -7083,13 +7325,13 @@ qemuDomainPopulateDevices(virQEMUDriverPtr driver,
 
     ret = 0;
  cleanup:
-    virObjectUnref(cfg);
     return ret;
 }
 
 
 static int
-qemuDomainSetupDev(virQEMUDriverPtr driver,
+qemuDomainSetupDev(virQEMUDriverConfigPtr cfg,
+                   virSecurityManagerPtr mgr,
                    virDomainObjPtr vm,
                    const char *path)
 {
@@ -7099,7 +7341,7 @@ qemuDomainSetupDev(virQEMUDriverPtr driver,
 
     VIR_DEBUG("Setting up /dev/ for domain %s", vm->def->name);
 
-    mount_options = virSecurityManagerGetMountOptions(driver->securityManager,
+    mount_options = virSecurityManagerGetMountOptions(mgr,
                                                       vm->def);
 
     if (!mount_options &&
@@ -7117,7 +7359,7 @@ qemuDomainSetupDev(virQEMUDriverPtr driver,
     if (virFileSetupDev(path, opts) < 0)
         goto cleanup;
 
-    if (qemuDomainPopulateDevices(driver, vm, path) < 0)
+    if (qemuDomainPopulateDevices(cfg, vm, path) < 0)
         goto cleanup;
 
     ret = 0;
@@ -7129,7 +7371,7 @@ qemuDomainSetupDev(virQEMUDriverPtr driver,
 
 
 static int
-qemuDomainSetupDisk(virQEMUDriverPtr driver ATTRIBUTE_UNUSED,
+qemuDomainSetupDisk(virQEMUDriverConfigPtr cfg ATTRIBUTE_UNUSED,
                     virDomainDiskDefPtr disk,
                     const char *devPath)
 {
@@ -7155,7 +7397,7 @@ qemuDomainSetupDisk(virQEMUDriverPtr driver ATTRIBUTE_UNUSED,
 
 
 static int
-qemuDomainSetupAllDisks(virQEMUDriverPtr driver,
+qemuDomainSetupAllDisks(virQEMUDriverConfigPtr cfg,
                         virDomainObjPtr vm,
                         const char *devPath)
 {
@@ -7163,7 +7405,7 @@ qemuDomainSetupAllDisks(virQEMUDriverPtr driver,
     VIR_DEBUG("Setting up disks");
 
     for (i = 0; i < vm->def->ndisks; i++) {
-        if (qemuDomainSetupDisk(driver,
+        if (qemuDomainSetupDisk(cfg,
                                 vm->def->disks[i],
                                 devPath) < 0)
             return -1;
@@ -7175,34 +7417,33 @@ qemuDomainSetupAllDisks(virQEMUDriverPtr driver,
 
 
 static int
-qemuDomainSetupHostdev(virQEMUDriverPtr driver ATTRIBUTE_UNUSED,
+qemuDomainSetupHostdev(virQEMUDriverConfigPtr cfg ATTRIBUTE_UNUSED,
                        virDomainHostdevDefPtr dev,
                        const char *devPath)
 {
     int ret = -1;
-    char *path = NULL;
+    char **path = NULL;
+    size_t i, npaths = 0;
 
-    if (qemuDomainGetHostdevPath(dev, &path) < 0)
+    if (qemuDomainGetHostdevPath(NULL, dev, false, &npaths, &path, NULL) < 0)
         goto cleanup;
 
-    if (!path) {
-        /* There's no /dev device that we need to create. Claim success. */
-        ret = 0;
-        goto cleanup;
+    for (i = 0; i < npaths; i++) {
+        if (qemuDomainCreateDevice(path[i], devPath, false) < 0)
+            goto cleanup;
     }
-
-    if (qemuDomainCreateDevice(path, devPath, false) < 0)
-        goto cleanup;
 
     ret = 0;
  cleanup:
+    for (i = 0; i < npaths; i++)
+        VIR_FREE(path[i]);
     VIR_FREE(path);
     return ret;
 }
 
 
 static int
-qemuDomainSetupAllHostdevs(virQEMUDriverPtr driver,
+qemuDomainSetupAllHostdevs(virQEMUDriverConfigPtr cfg,
                            virDomainObjPtr vm,
                            const char *devPath)
 {
@@ -7210,7 +7451,7 @@ qemuDomainSetupAllHostdevs(virQEMUDriverPtr driver,
 
     VIR_DEBUG("Setting up hostdevs");
     for (i = 0; i < vm->def->nhostdevs; i++) {
-        if (qemuDomainSetupHostdev(driver,
+        if (qemuDomainSetupHostdev(cfg,
                                    vm->def->hostdevs[i],
                                    devPath) < 0)
             return -1;
@@ -7235,7 +7476,7 @@ qemuDomainSetupChardev(virDomainDefPtr def ATTRIBUTE_UNUSED,
 
 
 static int
-qemuDomainSetupAllChardevs(virQEMUDriverPtr driver ATTRIBUTE_UNUSED,
+qemuDomainSetupAllChardevs(virQEMUDriverConfigPtr cfg ATTRIBUTE_UNUSED,
                            virDomainObjPtr vm,
                            const char *devPath)
 {
@@ -7253,7 +7494,7 @@ qemuDomainSetupAllChardevs(virQEMUDriverPtr driver ATTRIBUTE_UNUSED,
 
 
 static int
-qemuDomainSetupTPM(virQEMUDriverPtr driver ATTRIBUTE_UNUSED,
+qemuDomainSetupTPM(virQEMUDriverConfigPtr cfg ATTRIBUTE_UNUSED,
                    virDomainObjPtr vm,
                    const char *devPath)
 {
@@ -7282,7 +7523,43 @@ qemuDomainSetupTPM(virQEMUDriverPtr driver ATTRIBUTE_UNUSED,
 
 
 static int
-qemuDomainSetupInput(virQEMUDriverPtr driver ATTRIBUTE_UNUSED,
+qemuDomainSetupGraphics(virQEMUDriverConfigPtr cfg ATTRIBUTE_UNUSED,
+                        virDomainGraphicsDefPtr gfx,
+                        const char *devPath)
+{
+    const char *rendernode = gfx->data.spice.rendernode;
+
+    if (gfx->type != VIR_DOMAIN_GRAPHICS_TYPE_SPICE ||
+        gfx->data.spice.gl != VIR_TRISTATE_BOOL_YES ||
+        !rendernode)
+        return 0;
+
+    return qemuDomainCreateDevice(rendernode, devPath, false);
+}
+
+
+static int
+qemuDomainSetupAllGraphics(virQEMUDriverConfigPtr cfg,
+                           virDomainObjPtr vm,
+                           const char *devPath)
+{
+    size_t i;
+
+    VIR_DEBUG("Setting up graphics");
+    for (i = 0; i < vm->def->ngraphics; i++) {
+        if (qemuDomainSetupGraphics(cfg,
+                                    vm->def->graphics[i],
+                                    devPath) < 0)
+            return -1;
+    }
+
+    VIR_DEBUG("Setup all graphics");
+    return 0;
+}
+
+
+static int
+qemuDomainSetupInput(virQEMUDriverConfigPtr cfg ATTRIBUTE_UNUSED,
                      virDomainInputDefPtr input,
                      const char *devPath)
 {
@@ -7309,7 +7586,7 @@ qemuDomainSetupInput(virQEMUDriverPtr driver ATTRIBUTE_UNUSED,
 
 
 static int
-qemuDomainSetupAllInputs(virQEMUDriverPtr driver,
+qemuDomainSetupAllInputs(virQEMUDriverConfigPtr cfg,
                          virDomainObjPtr vm,
                          const char *devPath)
 {
@@ -7317,7 +7594,7 @@ qemuDomainSetupAllInputs(virQEMUDriverPtr driver,
 
     VIR_DEBUG("Setting up inputs");
     for (i = 0; i < vm->def->ninputs; i++) {
-        if (qemuDomainSetupInput(driver,
+        if (qemuDomainSetupInput(cfg,
                                  vm->def->inputs[i],
                                  devPath) < 0)
             return -1;
@@ -7328,7 +7605,7 @@ qemuDomainSetupAllInputs(virQEMUDriverPtr driver,
 
 
 static int
-qemuDomainSetupRNG(virQEMUDriverPtr driver ATTRIBUTE_UNUSED,
+qemuDomainSetupRNG(virQEMUDriverConfigPtr cfg ATTRIBUTE_UNUSED,
                    virDomainRNGDefPtr rng,
                    const char *devPath)
 {
@@ -7348,7 +7625,7 @@ qemuDomainSetupRNG(virQEMUDriverPtr driver ATTRIBUTE_UNUSED,
 
 
 static int
-qemuDomainSetupAllRNGs(virQEMUDriverPtr driver,
+qemuDomainSetupAllRNGs(virQEMUDriverConfigPtr cfg,
                        virDomainObjPtr vm,
                        const char *devPath)
 {
@@ -7356,7 +7633,7 @@ qemuDomainSetupAllRNGs(virQEMUDriverPtr driver,
 
     VIR_DEBUG("Setting up RNGs");
     for (i = 0; i < vm->def->nrngs; i++) {
-        if (qemuDomainSetupRNG(driver,
+        if (qemuDomainSetupRNG(cfg,
                                vm->def->rngs[i],
                                devPath) < 0)
             return -1;
@@ -7368,10 +7645,10 @@ qemuDomainSetupAllRNGs(virQEMUDriverPtr driver,
 
 
 int
-qemuDomainBuildNamespace(virQEMUDriverPtr driver,
+qemuDomainBuildNamespace(virQEMUDriverConfigPtr cfg,
+                         virSecurityManagerPtr mgr,
                          virDomainObjPtr vm)
 {
-    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     char *devPath = NULL;
     char **devMountsPath = NULL, **devMountsSavePath = NULL;
     size_t ndevMountsPath = 0, i;
@@ -7382,7 +7659,7 @@ qemuDomainBuildNamespace(virQEMUDriverPtr driver,
         goto cleanup;
     }
 
-    if (qemuDomainGetPreservedMounts(driver, vm,
+    if (qemuDomainGetPreservedMounts(cfg, vm,
                                      &devMountsPath, &devMountsSavePath,
                                      &ndevMountsPath) < 0)
         goto cleanup;
@@ -7403,7 +7680,7 @@ qemuDomainBuildNamespace(virQEMUDriverPtr driver,
     if (virProcessSetupPrivateMountNS() < 0)
         goto cleanup;
 
-    if (qemuDomainSetupDev(driver, vm, devPath) < 0)
+    if (qemuDomainSetupDev(cfg, mgr, vm, devPath) < 0)
         goto cleanup;
 
     /* Save some mount points because we want to share them with the host */
@@ -7422,22 +7699,25 @@ qemuDomainBuildNamespace(virQEMUDriverPtr driver,
             goto cleanup;
     }
 
-    if (qemuDomainSetupAllDisks(driver, vm, devPath) < 0)
+    if (qemuDomainSetupAllDisks(cfg, vm, devPath) < 0)
         goto cleanup;
 
-    if (qemuDomainSetupAllHostdevs(driver, vm, devPath) < 0)
+    if (qemuDomainSetupAllHostdevs(cfg, vm, devPath) < 0)
         goto cleanup;
 
-    if (qemuDomainSetupAllChardevs(driver, vm, devPath) < 0)
+    if (qemuDomainSetupAllChardevs(cfg, vm, devPath) < 0)
         goto cleanup;
 
-    if (qemuDomainSetupTPM(driver, vm, devPath) < 0)
+    if (qemuDomainSetupTPM(cfg, vm, devPath) < 0)
         goto cleanup;
 
-    if (qemuDomainSetupAllInputs(driver, vm, devPath) < 0)
+    if (qemuDomainSetupAllGraphics(cfg, vm, devPath) < 0)
         goto cleanup;
 
-    if (qemuDomainSetupAllRNGs(driver, vm, devPath) < 0)
+    if (qemuDomainSetupAllInputs(cfg, vm, devPath) < 0)
+        goto cleanup;
+
+    if (qemuDomainSetupAllRNGs(cfg, vm, devPath) < 0)
         goto cleanup;
 
     if (virFileMoveMount(devPath, "/dev") < 0)
@@ -7459,7 +7739,6 @@ qemuDomainBuildNamespace(virQEMUDriverPtr driver,
 
     ret = 0;
  cleanup:
-    virObjectUnref(cfg);
     for (i = 0; i < ndevMountsPath; i++)
         rmdir(devMountsSavePath[i]);
     virStringListFreeCount(devMountsPath, ndevMountsPath);
@@ -7475,21 +7754,8 @@ qemuDomainCreateNamespace(virQEMUDriverPtr driver,
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     int ret = -1;
 
-    if (!virBitmapIsBitSet(cfg->namespaces, QEMU_DOMAIN_NS_MOUNT)) {
-        ret = 0;
-        goto cleanup;
-    }
-
-    if (!virQEMUDriverIsPrivileged(driver)) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("cannot use namespaces in session mode"));
-        goto cleanup;
-    }
-
-    if (virProcessNamespaceAvailable(VIR_PROCESS_NAMESPACE_MNT) < 0)
-        goto cleanup;
-
-    if (qemuDomainEnableNamespace(vm, QEMU_DOMAIN_NS_MOUNT) < 0)
+    if (virBitmapIsBitSet(cfg->namespaces, QEMU_DOMAIN_NS_MOUNT) &&
+        qemuDomainEnableNamespace(vm, QEMU_DOMAIN_NS_MOUNT) < 0)
         goto cleanup;
 
     ret = 0;
@@ -7499,11 +7765,40 @@ qemuDomainCreateNamespace(virQEMUDriverPtr driver,
 }
 
 
+bool
+qemuDomainNamespaceAvailable(qemuDomainNamespace ns ATTRIBUTE_UNUSED)
+{
+#if !defined(__linux__)
+    /* Namespaces are Linux specific. */
+    return false;
+
+#else /* defined(__linux__) */
+
+    switch (ns) {
+    case QEMU_DOMAIN_NS_MOUNT:
+# if !defined(HAVE_SYS_ACL_H) || !defined(WITH_SELINUX)
+        /* We can't create the exact copy of paths if either of
+         * these is not available. */
+        return false;
+# else
+        if (virProcessNamespaceAvailable(VIR_PROCESS_NAMESPACE_MNT) < 0)
+            return false;
+# endif
+        break;
+    case QEMU_DOMAIN_NS_LAST:
+        break;
+    }
+
+    return true;
+#endif /* defined(__linux__) */
+}
+
+
 struct qemuDomainAttachDeviceMknodData {
     virQEMUDriverPtr driver;
     virDomainObjPtr vm;
-    virDomainDeviceDefPtr devDef;
     const char *file;
+    const char *target;
     struct stat sb;
     void *acl;
 #ifdef WITH_SELINUX
@@ -7519,6 +7814,7 @@ qemuDomainAttachDeviceMknodHelper(pid_t pid ATTRIBUTE_UNUSED,
     struct qemuDomainAttachDeviceMknodData *data = opaque;
     int ret = -1;
     bool delDevice = false;
+    bool isLink = S_ISLNK(data->sb.st_mode);
 
     virSecurityManagerPostFork(data->driver->securityManager);
 
@@ -7528,24 +7824,47 @@ qemuDomainAttachDeviceMknodHelper(pid_t pid ATTRIBUTE_UNUSED,
         goto cleanup;
     }
 
-    VIR_DEBUG("Creating dev %s (%d,%d)",
-              data->file, major(data->sb.st_rdev), minor(data->sb.st_rdev));
-    if (mknod(data->file, data->sb.st_mode, data->sb.st_rdev) < 0) {
-        /* Because we are not removing devices on hotunplug, or
-         * we might be creating part of backing chain that
-         * already exist due to a different disk plugged to
-         * domain, accept EEXIST. */
-        if (errno != EEXIST) {
-            virReportSystemError(errno,
-                                 _("Unable to create device %s"),
-                                 data->file);
-            goto cleanup;
+    if (isLink) {
+        VIR_DEBUG("Creating symlink %s -> %s", data->file, data->target);
+        if (symlink(data->target, data->file) < 0) {
+            if (errno != EEXIST) {
+                virReportSystemError(errno,
+                                     _("Unable to create symlink %s"),
+                                     data->target);
+                goto cleanup;
+            }
+        } else {
+            delDevice = true;
         }
     } else {
-        delDevice = true;
+        VIR_DEBUG("Creating dev %s (%d,%d)",
+                  data->file, major(data->sb.st_rdev), minor(data->sb.st_rdev));
+        if (mknod(data->file, data->sb.st_mode, data->sb.st_rdev) < 0) {
+            /* Because we are not removing devices on hotunplug, or
+             * we might be creating part of backing chain that
+             * already exist due to a different disk plugged to
+             * domain, accept EEXIST. */
+            if (errno != EEXIST) {
+                virReportSystemError(errno,
+                                     _("Unable to create device %s"),
+                                     data->file);
+                goto cleanup;
+            }
+        } else {
+            delDevice = true;
+        }
     }
 
-    if (virFileSetACLs(data->file, data->acl) < 0 &&
+    if (lchown(data->file, data->sb.st_uid, data->sb.st_gid) < 0) {
+        virReportSystemError(errno,
+                             _("Failed to chown device %s"),
+                             data->file);
+        goto cleanup;
+    }
+
+    /* Symlinks don't have ACLs. */
+    if (!isLink &&
+        virFileSetACLs(data->file, data->acl) < 0 &&
         errno != ENOTSUP) {
         virReportSystemError(errno,
                              _("Unable to set ACLs on %s"), data->file);
@@ -7553,7 +7872,8 @@ qemuDomainAttachDeviceMknodHelper(pid_t pid ATTRIBUTE_UNUSED,
     }
 
 #ifdef WITH_SELINUX
-    if (setfilecon_raw(data->file, (VIR_SELINUX_CTX_CONST char *) data->tcon) < 0) {
+    if (data->tcon &&
+        lsetfilecon_raw(data->file, (VIR_SELINUX_CTX_CONST char *) data->tcon) < 0) {
         VIR_WARNINGS_NO_WLOGICALOP_EQUAL_EXPR
         if (errno != EOPNOTSUPP && errno != ENOTSUP) {
         VIR_WARNINGS_RESET
@@ -7564,58 +7884,6 @@ qemuDomainAttachDeviceMknodHelper(pid_t pid ATTRIBUTE_UNUSED,
         }
     }
 #endif
-
-    switch ((virDomainDeviceType) data->devDef->type) {
-    case VIR_DOMAIN_DEVICE_DISK: {
-        virDomainDiskDefPtr def = data->devDef->data.disk;
-        char *tmpsrc = def->src->path;
-        def->src->path = (char *) data->file;
-        if (virSecurityManagerSetDiskLabel(data->driver->securityManager,
-                                           data->vm->def, def) < 0) {
-            def->src->path = tmpsrc;
-            goto cleanup;
-        }
-        def->src->path = tmpsrc;
-    }   break;
-
-    case VIR_DOMAIN_DEVICE_HOSTDEV: {
-        virDomainHostdevDefPtr def = data->devDef->data.hostdev;
-        if (virSecurityManagerSetHostdevLabel(data->driver->securityManager,
-                                              data->vm->def, def, NULL) < 0)
-            goto cleanup;
-    }   break;
-
-    case VIR_DOMAIN_DEVICE_CHR:
-    case VIR_DOMAIN_DEVICE_RNG:
-        /* No labelling. */
-        break;
-
-    case VIR_DOMAIN_DEVICE_NONE:
-    case VIR_DOMAIN_DEVICE_LEASE:
-    case VIR_DOMAIN_DEVICE_FS:
-    case VIR_DOMAIN_DEVICE_NET:
-    case VIR_DOMAIN_DEVICE_INPUT:
-    case VIR_DOMAIN_DEVICE_SOUND:
-    case VIR_DOMAIN_DEVICE_VIDEO:
-    case VIR_DOMAIN_DEVICE_WATCHDOG:
-    case VIR_DOMAIN_DEVICE_CONTROLLER:
-    case VIR_DOMAIN_DEVICE_GRAPHICS:
-    case VIR_DOMAIN_DEVICE_HUB:
-    case VIR_DOMAIN_DEVICE_REDIRDEV:
-    case VIR_DOMAIN_DEVICE_SMARTCARD:
-    case VIR_DOMAIN_DEVICE_MEMBALLOON:
-    case VIR_DOMAIN_DEVICE_NVRAM:
-    case VIR_DOMAIN_DEVICE_SHMEM:
-    case VIR_DOMAIN_DEVICE_TPM:
-    case VIR_DOMAIN_DEVICE_PANIC:
-    case VIR_DOMAIN_DEVICE_MEMORY:
-    case VIR_DOMAIN_DEVICE_IOMMU:
-    case VIR_DOMAIN_DEVICE_LAST:
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Unexpected device type %d"),
-                       data->devDef->type);
-        goto cleanup;
-    }
 
     ret = 0;
  cleanup:
@@ -7630,36 +7898,78 @@ qemuDomainAttachDeviceMknodHelper(pid_t pid ATTRIBUTE_UNUSED,
 
 
 static int
-qemuDomainAttachDeviceMknod(virQEMUDriverPtr driver,
-                            virDomainObjPtr vm,
-                            virDomainDeviceDefPtr devDef,
-                            const char *file)
+qemuDomainAttachDeviceMknodRecursive(virQEMUDriverPtr driver,
+                                     virDomainObjPtr vm,
+                                     const char *file,
+                                     unsigned int ttl)
 {
     struct qemuDomainAttachDeviceMknodData data;
     int ret = -1;
+    char *target = NULL;
+    bool isLink;
+
+    if (!ttl) {
+        virReportSystemError(ELOOP,
+                             _("Too many levels of symbolic links: %s"),
+                             file);
+        return ret;
+    }
 
     memset(&data, 0, sizeof(data));
 
     data.driver = driver;
     data.vm = vm;
-    data.devDef = devDef;
     data.file = file;
 
-    if (stat(file, &data.sb) < 0) {
+    if (lstat(file, &data.sb) < 0) {
         virReportSystemError(errno,
                              _("Unable to access %s"), file);
         return ret;
     }
 
-    if (virFileGetACLs(file, &data.acl) < 0 &&
+    isLink = S_ISLNK(data.sb.st_mode);
+
+    if (isLink) {
+        if (virFileReadLink(file, &target) < 0) {
+            virReportSystemError(errno,
+                                 _("unable to resolve symlink %s"),
+                                 file);
+            return ret;
+        }
+
+        if (IS_RELATIVE_FILE_NAME(target)) {
+            char *c = NULL, *tmp = NULL, *fileTmp = NULL;
+
+            if (VIR_STRDUP(fileTmp, file) < 0)
+                goto cleanup;
+
+            if ((c = strrchr(fileTmp, '/')))
+                *(c + 1) = '\0';
+
+            if (virAsprintf(&tmp, "%s%s", fileTmp, target) < 0) {
+                VIR_FREE(fileTmp);
+                goto cleanup;
+            }
+            VIR_FREE(fileTmp);
+            VIR_FREE(target);
+            target = tmp;
+            tmp = NULL;
+        }
+
+        data.target = target;
+    }
+
+    /* Symlinks don't have ACLs. */
+    if (!isLink &&
+        virFileGetACLs(file, &data.acl) < 0 &&
         errno != ENOTSUP) {
         virReportSystemError(errno,
                              _("Unable to get ACLs on %s"), file);
-        return ret;
+        goto cleanup;
     }
 
 #ifdef WITH_SELINUX
-    if (getfilecon_raw(file, &data.tcon) < 0 &&
+    if (lgetfilecon_raw(file, &data.tcon) < 0 &&
         (errno != ENOTSUP && errno != ENODATA)) {
         virReportSystemError(errno,
                              _("Unable to get SELinux label from %s"), file);
@@ -7667,17 +7977,22 @@ qemuDomainAttachDeviceMknod(virQEMUDriverPtr driver,
     }
 #endif
 
-    if (virSecurityManagerPreFork(driver->securityManager) < 0)
-        goto cleanup;
+    if (STRPREFIX(file, DEVPREFIX)) {
+        if (virSecurityManagerPreFork(driver->securityManager) < 0)
+            goto cleanup;
 
-    if (virProcessRunInMountNamespace(vm->pid,
-                                      qemuDomainAttachDeviceMknodHelper,
-                                      &data) < 0) {
+        if (virProcessRunInMountNamespace(vm->pid,
+                                          qemuDomainAttachDeviceMknodHelper,
+                                          &data) < 0) {
+            virSecurityManagerPostFork(driver->securityManager);
+            goto cleanup;
+        }
         virSecurityManagerPostFork(driver->securityManager);
-        goto cleanup;
     }
 
-    virSecurityManagerPostFork(driver->securityManager);
+    if (isLink &&
+        qemuDomainAttachDeviceMknodRecursive(driver, vm, target, ttl -1) < 0)
+        goto cleanup;
 
     ret = 0;
  cleanup:
@@ -7685,7 +8000,19 @@ qemuDomainAttachDeviceMknod(virQEMUDriverPtr driver,
     freecon(data.tcon);
 #endif
     virFileFreeACLs(&data.acl);
+    VIR_FREE(target);
     return ret;
+}
+
+
+static int
+qemuDomainAttachDeviceMknod(virQEMUDriverPtr driver,
+                            virDomainObjPtr vm,
+                            const char *file)
+{
+    long symloop_max = sysconf(_SC_SYMLOOP_MAX);
+
+    return qemuDomainAttachDeviceMknodRecursive(driver, vm, file, symloop_max);
 }
 
 
@@ -7707,67 +8034,10 @@ qemuDomainDetachDeviceUnlinkHelper(pid_t pid ATTRIBUTE_UNUSED,
 
 
 static int
-qemuDomainDetachDeviceUnlink(virQEMUDriverPtr driver,
+qemuDomainDetachDeviceUnlink(virQEMUDriverPtr driver ATTRIBUTE_UNUSED,
                              virDomainObjPtr vm,
-                             virDomainDeviceDefPtr dev,
                              const char *file)
 {
-    /* Technically, this is not needed. Yet. But in the future
-     * security managers might do some reference counting over
-     * Set/Restore label and thus for every SetLabel() there
-     * should be corresponding RestoreLabel(). */
-    switch ((virDomainDeviceType) dev->type) {
-    case VIR_DOMAIN_DEVICE_DISK: {
-        virDomainDiskDefPtr def = dev->data.disk;
-        char *tmpsrc = def->src->path;
-        def->src->path = (char *) file;
-        if (virSecurityManagerRestoreDiskLabel(driver->securityManager,
-                                               vm->def, def) < 0) {
-            def->src->path = tmpsrc;
-            return -1;
-        }
-        def->src->path = tmpsrc;
-    }   break;
-
-    case VIR_DOMAIN_DEVICE_HOSTDEV: {
-        virDomainHostdevDefPtr def = dev->data.hostdev;
-        if (virSecurityManagerRestoreHostdevLabel(driver->securityManager,
-                                                  vm->def, def, NULL) < 0)
-            return -1;
-    }   break;
-
-    case VIR_DOMAIN_DEVICE_CHR:
-    case VIR_DOMAIN_DEVICE_RNG:
-        /* No labelling. */
-        break;
-
-    case VIR_DOMAIN_DEVICE_NONE:
-    case VIR_DOMAIN_DEVICE_LEASE:
-    case VIR_DOMAIN_DEVICE_FS:
-    case VIR_DOMAIN_DEVICE_NET:
-    case VIR_DOMAIN_DEVICE_INPUT:
-    case VIR_DOMAIN_DEVICE_SOUND:
-    case VIR_DOMAIN_DEVICE_VIDEO:
-    case VIR_DOMAIN_DEVICE_WATCHDOG:
-    case VIR_DOMAIN_DEVICE_CONTROLLER:
-    case VIR_DOMAIN_DEVICE_GRAPHICS:
-    case VIR_DOMAIN_DEVICE_HUB:
-    case VIR_DOMAIN_DEVICE_REDIRDEV:
-    case VIR_DOMAIN_DEVICE_SMARTCARD:
-    case VIR_DOMAIN_DEVICE_MEMBALLOON:
-    case VIR_DOMAIN_DEVICE_NVRAM:
-    case VIR_DOMAIN_DEVICE_SHMEM:
-    case VIR_DOMAIN_DEVICE_TPM:
-    case VIR_DOMAIN_DEVICE_PANIC:
-    case VIR_DOMAIN_DEVICE_MEMORY:
-    case VIR_DOMAIN_DEVICE_IOMMU:
-    case VIR_DOMAIN_DEVICE_LAST:
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Unexpected device type %d"),
-                       dev->type);
-        return -1;
-    }
-
     if (virProcessRunInMountNamespace(vm->pid,
                                       qemuDomainDetachDeviceUnlinkHelper,
                                       (void *)file) < 0)
@@ -7780,39 +8050,33 @@ qemuDomainDetachDeviceUnlink(virQEMUDriverPtr driver,
 int
 qemuDomainNamespaceSetupDisk(virQEMUDriverPtr driver,
                              virDomainObjPtr vm,
-                             virDomainDiskDefPtr disk)
+                             virStorageSourcePtr src)
 {
-    virDomainDeviceDef dev = {.type = VIR_DOMAIN_DEVICE_DISK, .data.disk = disk};
     virStorageSourcePtr next;
-    const char *src = NULL;
     struct stat sb;
     int ret = -1;
 
     if (!qemuDomainNamespaceEnabled(vm, QEMU_DOMAIN_NS_MOUNT))
         return 0;
 
-    for (next = disk->src; next; next = next->backingStore) {
-        if (!next->path || !virStorageSourceIsBlockLocal(disk->src)) {
+    for (next = src; next; next = next->backingStore) {
+        if (virStorageSourceIsEmpty(next) ||
+            !virStorageSourceIsLocalStorage(next)) {
             /* Not creating device. Just continue. */
             continue;
         }
 
         if (stat(next->path, &sb) < 0) {
             virReportSystemError(errno,
-                                 _("Unable to access %s"), src);
+                                 _("Unable to access %s"), next->path);
             goto cleanup;
         }
 
-        if (!S_ISBLK(sb.st_mode)) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                           _("Disk source %s must be a block device"),
-                           src);
-            goto cleanup;
-        }
+        if (!S_ISBLK(sb.st_mode))
+            continue;
 
         if (qemuDomainAttachDeviceMknod(driver,
                                         vm,
-                                        &dev,
                                         next->path) < 0)
             goto cleanup;
     }
@@ -7826,7 +8090,7 @@ qemuDomainNamespaceSetupDisk(virQEMUDriverPtr driver,
 int
 qemuDomainNamespaceTeardownDisk(virQEMUDriverPtr driver ATTRIBUTE_UNUSED,
                                 virDomainObjPtr vm ATTRIBUTE_UNUSED,
-                                virDomainDiskDefPtr disk ATTRIBUTE_UNUSED)
+                                virStorageSourcePtr src ATTRIBUTE_UNUSED)
 {
     /* While in hotplug case we create the whole backing chain,
      * here we must limit ourselves. The disk we want to remove
@@ -7843,29 +8107,27 @@ qemuDomainNamespaceSetupHostdev(virQEMUDriverPtr driver,
                                 virDomainObjPtr vm,
                                 virDomainHostdevDefPtr hostdev)
 {
-    virDomainDeviceDef dev = {.type = VIR_DOMAIN_DEVICE_HOSTDEV, .data.hostdev = hostdev};
     int ret = -1;
-    char *path = NULL;
+    char **path = NULL;
+    size_t i, npaths = 0;
 
     if (!qemuDomainNamespaceEnabled(vm, QEMU_DOMAIN_NS_MOUNT))
         return 0;
 
-    if (qemuDomainGetHostdevPath(hostdev, &path) < 0)
+    if (qemuDomainGetHostdevPath(NULL, hostdev, false, &npaths, &path, NULL) < 0)
         goto cleanup;
 
-    if (!path) {
-        /* There's no /dev device that we need to create. Claim success. */
-        ret = 0;
+    for (i = 0; i < npaths; i++) {
+        if (qemuDomainAttachDeviceMknod(driver,
+                                        vm,
+                                        path[i]) < 0)
         goto cleanup;
     }
 
-    if (qemuDomainAttachDeviceMknod(driver,
-                                    vm,
-                                    &dev,
-                                    path) < 0)
-        goto cleanup;
     ret = 0;
  cleanup:
+    for (i = 0; i < npaths; i++)
+        VIR_FREE(path[i]);
     VIR_FREE(path);
     return ret;
 }
@@ -7876,27 +8138,26 @@ qemuDomainNamespaceTeardownHostdev(virQEMUDriverPtr driver,
                                    virDomainObjPtr vm,
                                    virDomainHostdevDefPtr hostdev)
 {
-    virDomainDeviceDef dev = {.type = VIR_DOMAIN_DEVICE_HOSTDEV, .data.hostdev = hostdev};
     int ret = -1;
-    char *path = NULL;
+    char **path = NULL;
+    size_t i, npaths = 0;
 
     if (!qemuDomainNamespaceEnabled(vm, QEMU_DOMAIN_NS_MOUNT))
         return 0;
 
-    if (qemuDomainGetHostdevPath(hostdev, &path) < 0)
+    if (qemuDomainGetHostdevPath(vm->def, hostdev, true,
+                                 &npaths, &path, NULL) < 0)
         goto cleanup;
 
-    if (!path) {
-        /* There's no /dev device that we need to create. Claim success. */
-        ret = 0;
-        goto cleanup;
+    for (i = 0; i < npaths; i++) {
+        if (qemuDomainDetachDeviceUnlink(driver, vm, path[i]) < 0)
+            goto cleanup;
     }
-
-    if (qemuDomainDetachDeviceUnlink(driver, vm, &dev, path) < 0)
-        goto cleanup;
 
     ret = 0;
  cleanup:
+    for (i = 0; i < npaths; i++)
+        VIR_FREE(path[i]);
     VIR_FREE(path);
     return ret;
 }
@@ -7907,7 +8168,6 @@ qemuDomainNamespaceSetupChardev(virQEMUDriverPtr driver,
                                 virDomainObjPtr vm,
                                 virDomainChrDefPtr chr)
 {
-    virDomainDeviceDef dev = {.type = VIR_DOMAIN_DEVICE_CHR, .data.chr = chr};
     const char *path;
     int ret = -1;
 
@@ -7921,7 +8181,6 @@ qemuDomainNamespaceSetupChardev(virQEMUDriverPtr driver,
 
     if (qemuDomainAttachDeviceMknod(driver,
                                     vm,
-                                    &dev,
                                     path) < 0)
         goto cleanup;
     ret = 0;
@@ -7935,7 +8194,6 @@ qemuDomainNamespaceTeardownChardev(virQEMUDriverPtr driver,
                                    virDomainObjPtr vm,
                                    virDomainChrDefPtr chr)
 {
-    virDomainDeviceDef dev = {.type = VIR_DOMAIN_DEVICE_CHR, .data.chr = chr};
     int ret = -1;
     const char *path = NULL;
 
@@ -7947,7 +8205,7 @@ qemuDomainNamespaceTeardownChardev(virQEMUDriverPtr driver,
 
     path = chr->source->data.file.path;
 
-    if (qemuDomainDetachDeviceUnlink(driver, vm, &dev, path) < 0)
+    if (qemuDomainDetachDeviceUnlink(driver, vm, path) < 0)
         goto cleanup;
 
     ret = 0;
@@ -7961,7 +8219,6 @@ qemuDomainNamespaceSetupRNG(virQEMUDriverPtr driver,
                             virDomainObjPtr vm,
                             virDomainRNGDefPtr rng)
 {
-    virDomainDeviceDef dev = {.type = VIR_DOMAIN_DEVICE_RNG, .data.rng = rng};
     const char *path = NULL;
     int ret = -1;
 
@@ -7981,7 +8238,6 @@ qemuDomainNamespaceSetupRNG(virQEMUDriverPtr driver,
 
     if (qemuDomainAttachDeviceMknod(driver,
                                     vm,
-                                    &dev,
                                     path) < 0)
         goto cleanup;
     ret = 0;
@@ -7995,7 +8251,6 @@ qemuDomainNamespaceTeardownRNG(virQEMUDriverPtr driver,
                                virDomainObjPtr vm,
                                virDomainRNGDefPtr rng)
 {
-    virDomainDeviceDef dev = {.type = VIR_DOMAIN_DEVICE_RNG, .data.rng = rng};
     int ret = -1;
     const char *path = NULL;
 
@@ -8013,7 +8268,7 @@ qemuDomainNamespaceTeardownRNG(virQEMUDriverPtr driver,
         goto cleanup;
     }
 
-    if (qemuDomainDetachDeviceUnlink(driver, vm, &dev, path) < 0)
+    if (qemuDomainDetachDeviceUnlink(driver, vm, path) < 0)
         goto cleanup;
 
     ret = 0;

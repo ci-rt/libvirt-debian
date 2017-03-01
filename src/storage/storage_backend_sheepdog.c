@@ -29,10 +29,12 @@
 
 #include "virerror.h"
 #include "storage_backend_sheepdog.h"
+#include "storage_backend_sheepdog_priv.h"
 #include "storage_conf.h"
 #include "vircommand.h"
 #include "viralloc.h"
 #include "virstring.h"
+#include "storage_util.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
@@ -415,3 +417,10 @@ virStorageBackend virStorageBackendSheepdog = {
     .deleteVol = virStorageBackendSheepdogDeleteVol,
     .resizeVol = virStorageBackendSheepdogResizeVol,
 };
+
+
+int
+virStorageBackendSheepdogRegister(void)
+{
+    return virStorageBackendRegister(&virStorageBackendSheepdog);
+}

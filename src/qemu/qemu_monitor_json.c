@@ -1394,7 +1394,8 @@ qemuMonitorJSONExtractCPUInfo(virJSONValuePtr data,
 int
 qemuMonitorJSONQueryCPUs(qemuMonitorPtr mon,
                          struct qemuMonitorQueryCpusEntry **entries,
-                         size_t *nentries)
+                         size_t *nentries,
+                         bool force)
 {
     int ret = -1;
     virJSONValuePtr cmd = qemuMonitorJSONMakeCommand("query-cpus", NULL);
@@ -1405,6 +1406,9 @@ qemuMonitorJSONQueryCPUs(qemuMonitorPtr mon,
         return -1;
 
     if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        goto cleanup;
+
+    if (force && qemuMonitorJSONCheckError(cmd, reply) < 0)
         goto cleanup;
 
     if (!(data = virJSONValueObjectGetArray(reply, "return"))) {
@@ -4603,7 +4607,7 @@ int qemuMonitorJSONSetBlockIoThrottle(qemuMonitorPtr mon,
 
     if (supportGroupNameOption &&
         virJSONValueObjectAdd(args,
-                              "s:group", info->group_name,
+                              "S:group", info->group_name,
                               NULL) < 0)
         goto cleanup;
 
@@ -6299,7 +6303,7 @@ qemuMonitorJSONAttachCharDevCommand(const char *chrID,
             virJSONValueObjectAppendBoolean(data, "server", chr->data.tcp.listen) < 0)
             goto error;
         if (chr->data.tcp.tlscreds) {
-            if (!(tlsalias = qemuAliasTLSObjFromChardevAlias(chrID)))
+            if (!(tlsalias = qemuAliasTLSObjFromSrcAlias(chrID)))
                 goto error;
 
             if (virJSONValueObjectAppendString(data, "tls-creds", tlsalias) < 0)
@@ -6540,37 +6544,35 @@ qemuMonitorJSONParseCPUx86FeatureWord(virJSONValuePtr data,
 }
 
 
-static int
-qemuMonitorJSONParseCPUx86Features(virJSONValuePtr data,
-                                   virCPUDataPtr *cpudata)
+static virCPUDataPtr
+qemuMonitorJSONParseCPUx86Features(virJSONValuePtr data)
 {
-    virCPUx86Data x86Data = VIR_CPU_X86_DATA_INIT;
+    virCPUDataPtr cpudata = NULL;
     virCPUx86CPUID cpuid;
     size_t i;
     ssize_t n;
-    int ret = -1;
 
-    if ((n = virJSONValueArraySize(data)) < 0) {
+    if (!data || (n = virJSONValueArraySize(data)) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("invalid array of CPUID features"));
-        return -1;
+        goto error;
     }
+
+    if (!(cpudata = virCPUDataNew(VIR_ARCH_X86_64)))
+        goto error;
 
     for (i = 0; i < n; i++) {
         if (qemuMonitorJSONParseCPUx86FeatureWord(virJSONValueArrayGet(data, i),
                                                   &cpuid) < 0 ||
-            virCPUx86DataAddCPUID(&x86Data, &cpuid) < 0)
-            goto cleanup;
+            virCPUx86DataAddCPUID(cpudata, &cpuid) < 0)
+            goto error;
     }
 
-    if (!(*cpudata = virCPUx86MakeData(VIR_ARCH_X86_64, &x86Data)))
-        goto cleanup;
+    return cpudata;
 
-    ret = 0;
-
- cleanup:
-    virCPUx86DataClear(&x86Data);
-    return ret;
+ error:
+    virCPUDataFree(cpudata);
+    return NULL;
 }
 
 
@@ -6597,7 +6599,10 @@ qemuMonitorJSONGetCPUx86Data(qemuMonitorPtr mon,
         goto cleanup;
 
     data = virJSONValueObjectGetArray(reply, "return");
-    ret = qemuMonitorJSONParseCPUx86Features(data, cpudata);
+    if (!(*cpudata = qemuMonitorJSONParseCPUx86Features(data)))
+        goto cleanup;
+
+    ret = 0;
 
  cleanup:
     virJSONValueFree(cmd);
@@ -6640,9 +6645,8 @@ qemuMonitorJSONCheckCPUx86(qemuMonitorPtr mon)
     if (qemuMonitorJSONCheckError(cmd, reply))
         goto cleanup;
 
-    data = virJSONValueObjectGetArray(reply, "return");
-
-    if ((n = virJSONValueArraySize(data)) < 0) {
+    if (!(data = virJSONValueObjectGetArray(reply, "return")) ||
+        (n = virJSONValueArraySize(data)) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("qom-list reply data was not an array"));
         goto cleanup;

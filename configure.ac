@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [3.0.0], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [3.1.0], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -271,6 +271,7 @@ LIBVIRT_ARG_VIRTUALPORT
 LIBVIRT_ARG_WIRESHARK
 LIBVIRT_ARG_YAJL
 
+LIBVIRT_CHECK_ACL
 LIBVIRT_CHECK_APPARMOR
 LIBVIRT_CHECK_ATOMIC
 LIBVIRT_CHECK_ATTR
@@ -325,18 +326,10 @@ dnl Availability of various common headers (non-fatal if missing).
 AC_CHECK_HEADERS([pwd.h regex.h sys/un.h \
   sys/poll.h syslog.h mntent.h net/ethernet.h linux/magic.h \
   sys/un.h sys/syscall.h sys/sysctl.h netinet/tcp.h ifaddrs.h \
-  libtasn1.h sys/ucred.h sys/mount.h sys/acl.h])
+  libtasn1.h sys/ucred.h sys/mount.h])
 dnl Check whether endian provides handy macros.
 AC_CHECK_DECLS([htole64], [], [], [[#include <endian.h>]])
 AC_CHECK_FUNCS([stat stat64 __xstat __xstat64 lstat lstat64 __lxstat __lxstat64])
-
-ACL_CFLAGS=""
-ACL_LIBS=""
-if test "x$ac_cv_header_sys_acl_h:x$with_linux" = "xyes:xyes" ; then
-    ACL_LIBS="-lacl"
-fi
-AC_SUBST([ACL_CFLAGS])
-AC_SUBST([ACL_LIBS])
 
 AC_CHECK_TYPE([struct ifreq],
   [AC_DEFINE([HAVE_STRUCT_IFREQ],[1],
@@ -570,6 +563,7 @@ LIBVIRT_STORAGE_ARG_RBD
 LIBVIRT_STORAGE_ARG_SHEEPDOG
 LIBVIRT_STORAGE_ARG_GLUSTER
 LIBVIRT_STORAGE_ARG_ZFS
+LIBVIRT_STORAGE_ARG_VSTORAGE
 
 if test "$with_libvirtd" = "no"; then
   with_storage_dir=no
@@ -583,6 +577,7 @@ if test "$with_libvirtd" = "no"; then
   with_storage_sheepdog=no
   with_storage_gluster=no
   with_storage_zfs=no
+  with_storage_vstorage=no
 fi
 
 dnl storage-fs does not work on MacOS X
@@ -602,15 +597,7 @@ LIBVIRT_STORAGE_CHECK_RBD
 LIBVIRT_STORAGE_CHECK_SHEEPDOG
 LIBVIRT_STORAGE_CHECK_GLUSTER
 LIBVIRT_STORAGE_CHECK_ZFS
-
-if test "$with_storage_fs" = "yes" ||
-   test "$with_storage_gluster" = "yes"; then
-  AC_PATH_PROG([GLUSTER_CLI], [gluster], [], [$LIBVIRT_SBIN_PATH])
-  if test "x$GLUSTER_CLI" != "x"; then
-      AC_DEFINE_UNQUOTED([GLUSTER_CLI], ["$GLUSTER_CLI"],
-        [Location or name of the gluster command line tool])
-  fi
-fi
+LIBVIRT_STORAGE_CHECK_VSTORAGE
 
 with_storage=no
 for backend in dir fs lvm iscsi scsi mpath rbd disk; do
@@ -944,6 +931,7 @@ LIBVIRT_STORAGE_RESULT_RBD
 LIBVIRT_STORAGE_RESULT_SHEEPDOG
 LIBVIRT_STORAGE_RESULT_GLUSTER
 LIBVIRT_STORAGE_RESULT_ZFS
+LIBVIRT_STORAGE_RESULT_VSTORAGE
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Security Drivers])
 AC_MSG_NOTICE([])
@@ -956,6 +944,7 @@ LIBVIRT_RESULT_DRIVER_MODULES
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Libraries])
 AC_MSG_NOTICE([])
+LIBVIRT_RESULT_ACL
 LIBVIRT_RESULT_APPARMOR
 LIBVIRT_RESULT_ATTR
 LIBVIRT_RESULT_AUDIT

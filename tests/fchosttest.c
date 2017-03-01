@@ -19,40 +19,84 @@
 
 #include <config.h>
 
+#include "virlog.h"
 #include "virstring.h"
-#include "virutil.h"
+#include "virvhba.h"
 #include "testutils.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
+
+VIR_LOG_INIT("tests.fchosttest");
 
 static char *fchost_prefix;
 
 #define TEST_FC_HOST_PREFIX fchost_prefix
 #define TEST_FC_HOST_NUM 5
+#define TEST_FC_HOST_NUM_NO_FAB 6
 
-/* Test virIsCapableFCHost */
+/* virNodeDeviceCreateXML using "<parent>" to find the vport capable HBA */
+static const char test7_xml[] =
+"<device>"
+"  <parent>scsi_host1</parent>"
+"  <capability type='scsi_host'>"
+"    <capability type='fc_host'>"
+"    </capability>"
+"  </capability>"
+"</device>";
+
+/* virNodeDeviceCreateXML without "<parent>" to find the vport capable HBA */
+static const char test8_xml[] =
+"<device>"
+"  <capability type='scsi_host'>"
+"    <capability type='fc_host'>"
+"    </capability>"
+"  </capability>"
+"</device>";
+
+/* virNodeDeviceCreateXML using "<parent wwnn='%s' wwpn='%s'/>" to find
+ * the vport capable HBA */
+static const char test9_xml[] =
+"<device>"
+"  <parent wwnn='2000000012341234' wwpn='1000000012341234'/>"
+"  <capability type='scsi_host'>"
+"    <capability type='fc_host'>"
+"    </capability>"
+"  </capability>"
+"</device>";
+
+/* virNodeDeviceCreateXML using "<parent fabric_wwn='%s'/>" to find the
+ * vport capable HBA */
+static const char test10_xml[] =
+"<device>"
+"  <parent fabric_wwn='2000000043214321'/>"
+"  <capability type='scsi_host'>"
+"    <capability type='fc_host'>"
+"    </capability>"
+"  </capability>"
+"</device>";
+
+/* Test virIsVHBACapable */
 static int
 test1(const void *data ATTRIBUTE_UNUSED)
 {
-    if (virIsCapableFCHost(TEST_FC_HOST_PREFIX,
-                           TEST_FC_HOST_NUM))
+    if (virVHBAPathExists(TEST_FC_HOST_PREFIX, TEST_FC_HOST_NUM) &&
+        virVHBAPathExists(TEST_FC_HOST_PREFIX, TEST_FC_HOST_NUM_NO_FAB))
         return 0;
 
     return -1;
 }
 
-/* Test virIsCapableVport */
+/* Test virVHBAIsVportCapable */
 static int
 test2(const void *data ATTRIBUTE_UNUSED)
 {
-    if (virIsCapableVport(TEST_FC_HOST_PREFIX,
-                          TEST_FC_HOST_NUM))
+    if (virVHBAIsVportCapable(TEST_FC_HOST_PREFIX, TEST_FC_HOST_NUM))
         return 0;
 
     return -1;
 }
 
-/* Test virReadFCHost */
+/* Test virVHBAGetConfig */
 static int
 test3(const void *data ATTRIBUTE_UNUSED)
 {
@@ -68,25 +112,25 @@ test3(const void *data ATTRIBUTE_UNUSED)
     char *vports = NULL;
     int ret = -1;
 
-    if (!(wwnn = virReadFCHost(TEST_FC_HOST_PREFIX, TEST_FC_HOST_NUM,
-                               "node_name")))
+    if (!(wwnn = virVHBAGetConfig(TEST_FC_HOST_PREFIX, TEST_FC_HOST_NUM,
+                                  "node_name")))
         return -1;
 
-    if (!(wwpn = virReadFCHost(TEST_FC_HOST_PREFIX, TEST_FC_HOST_NUM,
-                               "port_name")))
+    if (!(wwpn = virVHBAGetConfig(TEST_FC_HOST_PREFIX, TEST_FC_HOST_NUM,
+                                  "port_name")))
         goto cleanup;
 
-    if (!(fabric_wwn = virReadFCHost(TEST_FC_HOST_PREFIX, TEST_FC_HOST_NUM,
-                                     "fabric_name")))
+    if (!(fabric_wwn = virVHBAGetConfig(TEST_FC_HOST_PREFIX, TEST_FC_HOST_NUM,
+                                        "fabric_name")))
         goto cleanup;
 
-    if (!(max_vports = virReadFCHost(TEST_FC_HOST_PREFIX, TEST_FC_HOST_NUM,
-                                     "max_npiv_vports")))
+    if (!(max_vports = virVHBAGetConfig(TEST_FC_HOST_PREFIX, TEST_FC_HOST_NUM,
+                                        "max_npiv_vports")))
         goto cleanup;
 
 
-    if (!(vports = virReadFCHost(TEST_FC_HOST_PREFIX, TEST_FC_HOST_NUM,
-                                 "npiv_vports_inuse")))
+    if (!(vports = virVHBAGetConfig(TEST_FC_HOST_PREFIX, TEST_FC_HOST_NUM,
+                                    "npiv_vports_inuse")))
         goto cleanup;
 
     if (STRNEQ(expect_wwnn, wwnn) ||
@@ -106,7 +150,7 @@ test3(const void *data ATTRIBUTE_UNUSED)
     return ret;
 }
 
-/* Test virGetFCHostNameByWWN */
+/* Test virVHBAGetHostByWWN */
 static int
 test4(const void *data ATTRIBUTE_UNUSED)
 {
@@ -114,9 +158,9 @@ test4(const void *data ATTRIBUTE_UNUSED)
     char *hostname = NULL;
     int ret = -1;
 
-    if (!(hostname = virGetFCHostNameByWWN(TEST_FC_HOST_PREFIX,
-                                           "2001001b32a9da4e",
-                                           "2101001b32a9da4e")))
+    if (!(hostname = virVHBAGetHostByWWN(TEST_FC_HOST_PREFIX,
+                                         "2001001b32a9da4e",
+                                         "2101001b32a9da4e")))
         return -1;
 
     if (STRNEQ(hostname, expect_hostname))
@@ -128,7 +172,10 @@ test4(const void *data ATTRIBUTE_UNUSED)
     return ret;
 }
 
-/* Test virFindFCHostCapableVport (host4 is not Online) */
+/* Test virVHBAFindVportHost
+ *
+ * NB: host4 is not Online, so it should not be found
+ */
 static int
 test5(const void *data ATTRIBUTE_UNUSED)
 {
@@ -136,7 +183,7 @@ test5(const void *data ATTRIBUTE_UNUSED)
     char *hostname = NULL;
     int ret = -1;
 
-    if (!(hostname = virFindFCHostCapableVport(TEST_FC_HOST_PREFIX)))
+    if (!(hostname = virVHBAFindVportHost(TEST_FC_HOST_PREFIX)))
         return -1;
 
     if (STRNEQ(hostname, expect_hostname))
@@ -147,6 +194,86 @@ test5(const void *data ATTRIBUTE_UNUSED)
     VIR_FREE(hostname);
     return ret;
 }
+
+/* Test virVHBAGetConfig fabric name optional */
+static int
+test6(const void *data ATTRIBUTE_UNUSED)
+{
+    const char *expect_wwnn = "2002001b32a9da4e";
+    const char *expect_wwpn = "2102001b32a9da4e";
+    char *wwnn = NULL;
+    char *wwpn = NULL;
+    char *fabric_wwn = NULL;
+    int ret = -1;
+
+    if (!(wwnn = virVHBAGetConfig(TEST_FC_HOST_PREFIX, TEST_FC_HOST_NUM_NO_FAB,
+                                  "node_name")))
+        return -1;
+
+    if (!(wwpn = virVHBAGetConfig(TEST_FC_HOST_PREFIX, TEST_FC_HOST_NUM_NO_FAB,
+                                  "port_name")))
+        goto cleanup;
+
+    if ((fabric_wwn = virVHBAGetConfig(TEST_FC_HOST_PREFIX,
+                                       TEST_FC_HOST_NUM_NO_FAB,
+                                       "fabric_name")))
+        goto cleanup;
+
+    if (STRNEQ(expect_wwnn, wwnn) ||
+        STRNEQ(expect_wwpn, wwpn))
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(wwnn);
+    VIR_FREE(wwpn);
+    VIR_FREE(fabric_wwn);
+    return ret;
+}
+
+
+
+/* Test manageVHBAByNodeDevice
+ *  - Test both virNodeDeviceCreateXML and virNodeDeviceDestroy
+ *  - Create a node device vHBA allowing usage of various different
+ *    methods based on the input data/xml argument.
+ *  - Be sure that it's possible to destroy the node device as well.
+ */
+static int
+manageVHBAByNodeDevice(const void *data)
+{
+    const char *expect_hostname = "scsi_host12";
+    virConnectPtr conn = NULL;
+    virNodeDevicePtr dev = NULL;
+    int ret = -1;
+    const char *vhba = data;
+
+    if (!(conn = virConnectOpen("test:///default")))
+        return -1;
+
+    if (!(dev = virNodeDeviceCreateXML(conn, vhba, 0)))
+        goto cleanup;
+
+    if (virNodeDeviceDestroy(dev) < 0)
+        goto cleanup;
+
+    if (STRNEQ(virNodeDeviceGetName(dev), expect_hostname)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "Expected hostname: '%s' got: '%s'",
+                       expect_hostname, virNodeDeviceGetName(dev));
+        goto cleanup;
+    }
+
+    ret = 0;
+
+ cleanup:
+    if (dev)
+        virNodeDeviceFree(dev);
+    if (conn)
+        virConnectClose(conn);
+    return ret;
+}
+
 
 static int
 mymain(void)
@@ -159,15 +286,29 @@ mymain(void)
         goto cleanup;
     }
 
-    if (virTestRun("test1", test1, NULL) < 0)
+    if (virTestRun("virVHBAPathExists", test1, NULL) < 0)
         ret = -1;
-    if (virTestRun("test2", test2, NULL) < 0)
+    if (virTestRun("virVHBAIsVportCapable", test2, NULL) < 0)
         ret = -1;
-    if (virTestRun("test3", test3, NULL) < 0)
+    if (virTestRun("virVHBAGetConfig", test3, NULL) < 0)
         ret = -1;
-    if (virTestRun("test4", test4, NULL) < 0)
+    if (virTestRun("virVHBAGetHostByWWN", test4, NULL) < 0)
         ret = -1;
-    if (virTestRun("test5", test5, NULL) < 0)
+    if (virTestRun("virVHBAFindVportHost", test5, NULL) < 0)
+        ret = -1;
+    if (virTestRun("virVHBAGetConfig-empty-fabric_wwn", test6, NULL) < 0)
+        ret = -1;
+    if (virTestRun("manageVHBAByNodeDevice-by-parent", manageVHBAByNodeDevice,
+                   test7_xml) < 0)
+        ret = -1;
+    if (virTestRun("manageVHBAByNodeDevice-no-parent", manageVHBAByNodeDevice,
+                   test8_xml) < 0)
+        ret = -1;
+    if (virTestRun("manageVHBAByNodeDevice-parent-wwn", manageVHBAByNodeDevice,
+                   test9_xml) < 0)
+        ret = -1;
+    if (virTestRun("manageVHBAByNodeDevice-parent-fabric-wwn",
+                   manageVHBAByNodeDevice, test10_xml) < 0)
         ret = -1;
 
  cleanup:
@@ -175,4 +316,4 @@ mymain(void)
     return ret;
 }
 
-VIRT_TEST_MAIN(mymain)
+VIRT_TEST_MAIN_PRELOAD(mymain, abs_builddir "/.libs/virrandommock.so")

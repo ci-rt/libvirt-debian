@@ -1,3 +1,11 @@
+libvirt (3.1.0-rc2-1~1.gbpa05f7b) UNRELEASED; urgency=medium
+
+  ** SNAPSHOT build @a05f7bd3ed4256e2012d26851455d7a41bdb9a24 **
+
+  * [603e376] New upstream version 3.1.0-rc2
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 01 Mar 2017 20:55:08 +0100
+
 libvirt (3.0.0-3) unstable; urgency=medium
 
   * [62ad289] Debianize virtlogd

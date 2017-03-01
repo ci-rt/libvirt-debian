@@ -240,7 +240,7 @@ cpuDecode(virCPUDefPtr cpu,
         return -1;
     }
 
-    if ((driver = cpuGetSubDriver(cpu->arch)) == NULL)
+    if ((driver = cpuGetSubDriver(data->arch)) == NULL)
         return -1;
 
     if (driver->decode == NULL) {
@@ -312,7 +312,26 @@ cpuEncode(virArch arch,
 
 
 /**
- * cpuDataFree:
+ * virCPUDataNew:
+ *
+ * Returns an allocated memory for virCPUData or NULL on error.
+ */
+virCPUDataPtr
+virCPUDataNew(virArch arch)
+{
+    virCPUDataPtr data;
+
+    if (VIR_ALLOC(data) < 0)
+        return NULL;
+
+    data->arch = arch;
+
+    return data;
+}
+
+
+/**
+ * virCPUDataFree:
  *
  * @data: CPU data structure to be freed
  *
@@ -321,26 +340,19 @@ cpuEncode(virArch arch,
  * Returns nothing.
  */
 void
-cpuDataFree(virCPUDataPtr data)
+virCPUDataFree(virCPUDataPtr data)
 {
     struct cpuArchDriver *driver;
 
     VIR_DEBUG("data=%p", data);
 
-    if (data == NULL)
+    if (!data)
         return;
 
-    if ((driver = cpuGetSubDriver(data->arch)) == NULL)
-        return;
-
-    if (driver->free == NULL) {
-        virReportError(VIR_ERR_NO_SUPPORT,
-                       _("cannot free CPU data for %s architecture"),
-                       virArchToString(data->arch));
-        return;
-    }
-
-    (driver->free)(data);
+    if ((driver = cpuGetSubDriver(data->arch)) && driver->dataFree)
+        driver->dataFree(data);
+    else
+        VIR_FREE(data);
 }
 
 

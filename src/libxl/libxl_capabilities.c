@@ -65,7 +65,7 @@ struct guest_arch {
 #define XEN_CAP_REGEX "(xen|hvm)-[[:digit:]]+\\.[[:digit:]]+-(aarch64|armv7l|x86_32|x86_64|ia64|powerpc64)(p|be)?"
 
 static int
-libxlCapsAddCPUID(virCPUx86Data *data, virCPUx86CPUID *cpuid, ssize_t ncaps)
+libxlCapsAddCPUID(virCPUDataPtr data, virCPUx86CPUID *cpuid, ssize_t ncaps)
 {
     size_t i;
 
@@ -112,7 +112,6 @@ libxlCapsNodeData(virCPUDefPtr cpu, libxl_hwcap hwcap,
 {
     ssize_t ncaps;
     virCPUDataPtr cpudata = NULL;
-    virCPUx86Data data = VIR_CPU_X86_DATA_INIT;
     virCPUx86CPUID cpuid[] = {
         { .eax_in = 0x00000001,
           .edx = hwcap[0] },
@@ -131,20 +130,23 @@ libxlCapsNodeData(virCPUDefPtr cpu, libxl_hwcap hwcap,
         { .eax_in = 0x80000007, .ecx_in = 0U, .edx = hwcap[7] },
     };
 
+    if (!(cpudata = virCPUDataNew(cpu->arch)))
+        goto error;
+
     ncaps = ARRAY_CARDINALITY(cpuid);
-    if (libxlCapsAddCPUID(&data, cpuid, ncaps) < 0)
+    if (libxlCapsAddCPUID(cpudata, cpuid, ncaps) < 0)
         goto error;
 
     ncaps = ARRAY_CARDINALITY(cpuid_ver1);
     if (version > LIBXL_HWCAP_V0 &&
-        libxlCapsAddCPUID(&data, cpuid_ver1, ncaps) < 0)
+        libxlCapsAddCPUID(cpudata, cpuid_ver1, ncaps) < 0)
         goto error;
 
-    cpudata = virCPUx86MakeData(cpu->arch, &data);
+    return cpudata;
 
  error:
-    virCPUx86DataClear(&data);
-    return cpudata;
+    virCPUDataFree(cpudata);
+    return NULL;
 }
 
 /* hw_caps is an array of 32-bit words whose meaning is listed in
@@ -196,7 +198,7 @@ libxlCapsInitCPU(virCapsPtr caps, libxl_physinfo *phy_info,
     }
 
  cleanup:
-    cpuDataFree(data);
+    virCPUDataFree(data);
 
     return ret;
 
@@ -211,27 +213,33 @@ libxlCapsInitHost(libxl_ctx *ctx, virCapsPtr caps)
     const libxl_version_info *ver_info;
     enum libxlHwcapVersion version;
     libxl_physinfo phy_info;
+    int ret = -1;
 
+    libxl_physinfo_init(&phy_info);
     if (libxl_get_physinfo(ctx, &phy_info) != 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("Failed to get node physical info from libxenlight"));
-        return -1;
+        goto cleanup;
     }
 
     if ((ver_info = libxl_get_version_info(ctx)) == NULL) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("Failed to get version info from libxenlight"));
-        return -1;
+        goto cleanup;
     }
 
     version = (ver_info->xen_version_minor >= 7);
     if (libxlCapsInitCPU(caps, &phy_info, version) < 0)
-        return -1;
+        goto cleanup;
 
     if (virCapabilitiesSetNetPrefix(caps, LIBXL_GENERATED_PREFIX_XEN) < 0)
-        return -1;
+        goto cleanup;
 
-    return 0;
+    ret = 0;
+
+ cleanup:
+    libxl_physinfo_dispose(&phy_info);
+    return ret;
 }
 
 static int

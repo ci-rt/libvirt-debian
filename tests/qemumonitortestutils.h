@@ -42,7 +42,9 @@ int qemuMonitorTestAddHandler(qemuMonitorTestPtr test,
 int qemuMonitorTestAddResponse(qemuMonitorTestPtr test,
                                const char *response);
 
-int qemuMonitorTestAddUnexpectedErrorResponse(qemuMonitorTestPtr test);
+int qemuMonitorTestAddInvalidCommandResponse(qemuMonitorTestPtr test,
+                                             const char *expectedcommand,
+                                             const char *actualcommand);
 
 void *qemuMonitorTestItemGetPrivateData(qemuMonitorTestItemPtr item);
 
@@ -51,6 +53,11 @@ int qemuMonitorReportError(qemuMonitorTestPtr test, const char *errmsg, ...);
 int qemuMonitorTestAddItem(qemuMonitorTestPtr test,
                            const char *command_name,
                            const char *response);
+
+int qemuMonitorTestAddItemVerbatim(qemuMonitorTestPtr test,
+                                   const char *command,
+                                   const char *cmderr,
+                                   const char *response);
 
 int qemuMonitorTestAddAgentSyncResponse(qemuMonitorTestPtr test);
 
@@ -78,6 +85,9 @@ qemuMonitorTestPtr qemuMonitorTestNew(bool json,
 qemuMonitorTestPtr qemuMonitorTestNewFromFile(const char *fileName,
                                               virDomainXMLOptionPtr xmlopt,
                                               bool simple);
+qemuMonitorTestPtr qemuMonitorTestNewFromFileFull(const char *fileName,
+                                                  virQEMUDriverPtr driver,
+                                                  virDomainObjPtr vm);
 
 qemuMonitorTestPtr qemuMonitorTestNewAgent(virDomainXMLOptionPtr xmlopt);
 
