@@ -9,10 +9,10 @@ to not interfere with existing network configurations
  2 files changed, 2 insertions(+), 4 deletions(-)
 
 diff --git a/src/Makefile.am b/src/Makefile.am
-index 21a78e0..598e659 100644
+index a85cd0d..3d5e5cf 100644
 --- a/src/Makefile.am
 +++ b/src/Makefile.am
-@@ -3144,8 +3144,7 @@ if WITH_NETWORK
+@@ -3321,8 +3321,7 @@ if WITH_NETWORK
  	      $(DESTDIR)$(confdir)/qemu/networks/default.xml && \
  	    rm $(DESTDIR)$(confdir)/qemu/networks/default.xml.t; }
  	( cd $(DESTDIR)$(confdir)/qemu/networks/autostart && \
@@ -23,10 +23,10 @@ index 21a78e0..598e659 100644
  
  uninstall-local:: uninstall-init uninstall-systemd
 diff --git a/src/Makefile.in b/src/Makefile.in
-index 7a78ed4..c8e8e3a 100644
+index 81e1405..c068bdc 100644
 --- a/src/Makefile.in
 +++ b/src/Makefile.in
-@@ -11755,8 +11755,7 @@ install-data-local: install-init install-systemd
+@@ -12260,8 +12260,7 @@ install-data-local: install-init install-systemd
  @WITH_NETWORK_TRUE@	      $(DESTDIR)$(confdir)/qemu/networks/default.xml && \
  @WITH_NETWORK_TRUE@	    rm $(DESTDIR)$(confdir)/qemu/networks/default.xml.t; }
  @WITH_NETWORK_TRUE@	( cd $(DESTDIR)$(confdir)/qemu/networks/autostart && \
