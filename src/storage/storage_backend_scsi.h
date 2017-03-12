@@ -24,16 +24,6 @@
 #ifndef __VIR_STORAGE_BACKEND_SCSI_H__
 # define __VIR_STORAGE_BACKEND_SCSI_H__
 
-# include "storage_backend.h"
-
-# define LINUX_SYSFS_SCSI_HOST_PREFIX "/sys/class/scsi_host"
-# define LINUX_SYSFS_SCSI_HOST_POSTFIX "device"
-# define LINUX_SYSFS_SCSI_HOST_SCAN_STRING "- - -"
-
-extern virStorageBackend virStorageBackendSCSI;
-
-int
-virStorageBackendSCSIFindLUs(virStoragePoolObjPtr pool,
-                             uint32_t scanhost);
+int virStorageBackendSCSIRegister(void);
 
 #endif /* __VIR_STORAGE_BACKEND_SCSI_H__ */

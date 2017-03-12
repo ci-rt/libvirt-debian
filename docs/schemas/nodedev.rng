@@ -16,6 +16,22 @@
         <element name="path"><text/></element>
       </optional>
       <optional>
+        <element name="devnode">
+          <attribute name='type'>
+            <value>dev</value>
+          </attribute>
+          <text/>
+        </element>
+      </optional>
+      <zeroOrMore>
+        <element name="devnode">
+          <attribute name='type'>
+            <value>link</value>
+          </attribute>
+          <text/>
+        </element>
+      </zeroOrMore>
+      <optional>
         <ref name="parent"/>
       </optional>
 
@@ -66,6 +82,7 @@
         <ref name="capscsitarget"/>
         <ref name="capscsi"/>
         <ref name="capstorage"/>
+        <ref name="capdrm"/>
       </choice>
     </element>
   </define>
@@ -367,9 +384,11 @@
       <ref name='wwn'/>
     </element>
 
-    <element name='fabric_wwn'>
-      <ref name='wwn'/>
-    </element>
+    <optional>
+      <element name='fabric_wwn'>
+        <ref name='wwn'/>
+      </element>
+    </optional>
   </define>
 
   <define name='capsvports'>
@@ -519,6 +538,19 @@
   <define name='capstoragefixed'>
     <element name='size'>
       <ref name='unsignedLong'/>
+    </element>
+  </define>
+
+  <define name='capdrm'>
+    <attribute name='type'>
+      <value>drm</value>
+    </attribute>
+    <element name='type'>
+      <choice>
+        <value>primary</value>
+        <value>control</value>
+        <value>render</value>
+      </choice>
     </element>
   </define>
 

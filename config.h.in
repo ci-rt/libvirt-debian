@@ -171,9 +171,6 @@
    declaration of the second argument to gettimeofday. */
 #undef GETTIMEOFDAY_TIMEZONE
 
-/* Location or name of the gluster command line tool */
-#undef GLUSTER_CLI
-
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module canonicalize-lgpl shall be considered present. */
 #undef GNULIB_CANONICALIZE_LGPL
@@ -2428,7 +2425,7 @@
 /* Location or name of the udevsettle program */
 #undef UDEVSETTLE
 
-/* Location or name of the mount program */
+/* Location or name of the umount programm */
 #undef UMOUNT
 
 /* Define to the prefix of C symbols at the assembler and linker level, either
@@ -2562,6 +2559,12 @@
 
 /* Define to 1 if unsetenv returns void instead of int. */
 #undef VOID_UNSETENV
+
+/* Location or name of the vstorage client tool */
+#undef VSTORAGE
+
+/* Location or name of the vstorage mount tool */
+#undef VSTORAGE_MOUNT
 
 /* Define to l, ll, u, ul, ull, etc., as suitable for constants of type
    'wchar_t'. */
@@ -2768,6 +2771,9 @@
 
 /* whether Sheepdog backend for storage driver is enabled */
 #undef WITH_STORAGE_SHEEPDOG
+
+/* whether Vstorage backend for storage driver is enabled */
+#undef WITH_STORAGE_VSTORAGE
 
 /* whether ZFS backend for storage driver is enabled */
 #undef WITH_STORAGE_ZFS

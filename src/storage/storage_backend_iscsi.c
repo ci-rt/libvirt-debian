@@ -32,7 +32,6 @@
 
 #include "datatypes.h"
 #include "driver.h"
-#include "storage_backend_scsi.h"
 #include "storage_backend_iscsi.h"
 #include "viralloc.h"
 #include "vircommand.h"
@@ -44,6 +43,7 @@
 #include "virstring.h"
 #include "viruuid.h"
 #include "secret_util.h"
+#include "storage_util.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
@@ -437,3 +437,10 @@ virStorageBackend virStorageBackendISCSI = {
     .downloadVol = virStorageBackendVolDownloadLocal,
     .wipeVol = virStorageBackendVolWipeLocal,
 };
+
+
+int
+virStorageBackendISCSIRegister(void)
+{
+    return virStorageBackendRegister(&virStorageBackendISCSI);
+}

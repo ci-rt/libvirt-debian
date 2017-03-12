@@ -553,6 +553,7 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
             return pciFlags;
         }
     }
+        break;
 
     case VIR_DOMAIN_DEVICE_FS:
         /* the only type of filesystem so far is virtio-9p-pci */
@@ -1983,9 +1984,7 @@ qemuDomainAssignPCIAddresses(virDomainDefPtr def,
     if (qemuDomainFillAllPCIConnectFlags(def, qemuCaps, driver) < 0)
         goto cleanup;
 
-    if (nbuses > 0 &&
-        virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_PCI_BRIDGE)) {
-
+    if (nbuses > 0) {
         /* 1st pass to figure out how many PCI bridges we need */
         if (!(addrs = qemuDomainPCIAddressSetCreate(def, nbuses, true)))
             goto cleanup;
@@ -2109,12 +2108,6 @@ qemuDomainAssignPCIAddresses(virDomainDefPtr def,
         nbuses = addrs->nbuses;
         virDomainPCIAddressSetFree(addrs);
         addrs = NULL;
-
-    } else if (max_idx > 0) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("PCI bridges are not supported "
-                         "by this QEMU binary"));
-        goto cleanup;
     }
 
     if (!(addrs = qemuDomainPCIAddressSetCreate(def, nbuses, false)))
@@ -2238,7 +2231,12 @@ qemuDomainAssignUSBPortsIterator(virDomainDeviceInfoPtr info,
 {
     struct qemuAssignUSBIteratorInfo *data = opaque;
 
-    if (info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
+    if (info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE &&
+        info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_USB)
+        return 0;
+
+    if (info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_USB &&
+        virDomainUSBAddressPortIsValid(info->addr.usb.port))
         return 0;
 
     return virDomainUSBAddressAssign(data->addrs, info);
@@ -2300,19 +2298,24 @@ qemuDomainUSBAddressAddHubs(virDomainDefPtr def)
     struct qemuAssignUSBIteratorInfo data = { .count = 0 };
     virDomainHubDefPtr hub = NULL;
     size_t available_ports;
+    size_t hubs_needed = 0;
     int ret = -1;
+    size_t i;
 
     available_ports = virDomainUSBAddressCountAllPorts(def);
     ignore_value(virDomainUSBDeviceDefForeach(def,
                                               qemuDomainAssignUSBPortsCounter,
                                               &data,
                                               false));
-    VIR_DEBUG("Found %zu USB devices and %zu provided USB ports",
-              data.count, available_ports);
 
-    /* Add one hub if there are more devices than ports
-     * otherwise it's up to the user to specify more hubs/controllers */
-    if (data.count > available_ports) {
+    if (data.count > available_ports)
+        hubs_needed = VIR_DIV_UP(data.count - available_ports + 1,
+                                 VIR_DOMAIN_USB_HUB_PORTS - 1);
+
+    VIR_DEBUG("Found %zu USB devices and %zu provided USB ports; adding %zu hubs",
+              data.count, available_ports, hubs_needed);
+
+    for (i = 0; i < hubs_needed; i++) {
         if (VIR_ALLOC(hub) < 0)
             return -1;
         hub->type = VIR_DOMAIN_HUB_TYPE_USB;

@@ -297,7 +297,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
-<td></td>
+<td>3.1.0</td>
 <td></td>
 <td></td>
 </tr>
@@ -886,7 +886,7 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
+<td>3.1.0</td>
 <td></td>
 <td></td>
 </tr>
@@ -3286,7 +3286,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
+<td>3.1.0</td>
 <td></td>
 <td></td>
 <td></td>
@@ -3756,7 +3756,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
+<td>3.1.0</td>
 <td></td>
 <td></td>
 </tr>
@@ -4418,6 +4418,28 @@ virDomainMigratePrepareTunnel3Params</td>
 </tr>
 <tr>
 <td>
+<a href="html/libvirt-libvirt-domain.html#virDomainSetVcpu">virDomainSetVcpu</a>
+</td>
+<td>3.1.0</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>3.1.0</td>
+<td>3.1.0</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>
 <a href="html/libvirt-libvirt-domain.html#virDomainSetVcpus">virDomainSetVcpus</a>
 </td>
 <td>0.1.4</td>
@@ -4527,6 +4549,26 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 </tr>
 <tr>
+<th>API</th>
+<th>Version</th>
+  <th>bhyve</th>
+  <th>esx</th>
+  <th>hyperv</th>
+  <th>libxl</th>
+  <th>lxc</th>
+  <th>openvz</th>
+  <th>phyp</th>
+  <th>qemu</th>
+  <th>remote</th>
+  <th>test</th>
+  <th>uml</th>
+  <th>vbox</th>
+  <th>vmware</th>
+  <th>vz</th>
+  <th>xen</th>
+  <th>xenapi</th>
+</tr>
+<tr>
 <td>
 <a href="html/libvirt-libvirt-domain-snapshot.html#virDomainSnapshotCurrent">virDomainSnapshotCurrent</a>
 </td>
@@ -4547,26 +4589,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>1.3.5</td>
 <td></td>
 <td></td>
-</tr>
-<tr>
-<th>API</th>
-<th>Version</th>
-  <th>bhyve</th>
-  <th>esx</th>
-  <th>hyperv</th>
-  <th>libxl</th>
-  <th>lxc</th>
-  <th>openvz</th>
-  <th>phyp</th>
-  <th>qemu</th>
-  <th>remote</th>
-  <th>test</th>
-  <th>uml</th>
-  <th>vbox</th>
-  <th>vmware</th>
-  <th>vz</th>
-  <th>xen</th>
-  <th>xenapi</th>
 </tr>
 <tr>
 <td>
@@ -4877,6 +4899,26 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.9.5</td>
 </tr>
 <tr>
+<th>API</th>
+<th>Version</th>
+  <th>bhyve</th>
+  <th>esx</th>
+  <th>hyperv</th>
+  <th>libxl</th>
+  <th>lxc</th>
+  <th>openvz</th>
+  <th>phyp</th>
+  <th>qemu</th>
+  <th>remote</th>
+  <th>test</th>
+  <th>uml</th>
+  <th>vbox</th>
+  <th>vmware</th>
+  <th>vz</th>
+  <th>xen</th>
+  <th>xenapi</th>
+</tr>
+<tr>
 <td>
 <a href="html/libvirt-libvirt-domain.html#virDomainUpdateDeviceFlags">virDomainUpdateDeviceFlags</a>
 </td>
@@ -4897,26 +4939,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>2.0.0</td>
 <td>0.8.0</td>
 <td></td>
-</tr>
-<tr>
-<th>API</th>
-<th>Version</th>
-  <th>bhyve</th>
-  <th>esx</th>
-  <th>hyperv</th>
-  <th>libxl</th>
-  <th>lxc</th>
-  <th>openvz</th>
-  <th>phyp</th>
-  <th>qemu</th>
-  <th>remote</th>
-  <th>test</th>
-  <th>uml</th>
-  <th>vbox</th>
-  <th>vmware</th>
-  <th>vz</th>
-  <th>xen</th>
-  <th>xenapi</th>
 </tr>
 <tr>
 <td>
@@ -5227,6 +5249,26 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 </tr>
 <tr>
+<th>API</th>
+<th>Version</th>
+  <th>bhyve</th>
+  <th>esx</th>
+  <th>hyperv</th>
+  <th>libxl</th>
+  <th>lxc</th>
+  <th>openvz</th>
+  <th>phyp</th>
+  <th>qemu</th>
+  <th>remote</th>
+  <th>test</th>
+  <th>uml</th>
+  <th>vbox</th>
+  <th>vmware</th>
+  <th>vz</th>
+  <th>xen</th>
+  <th>xenapi</th>
+</tr>
+<tr>
 <td>
 <a href="html/libvirt-libvirt-host.html#virNodeSetMemoryParameters">virNodeSetMemoryParameters</a>
 </td>
@@ -5247,26 +5289,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td>0.10.2</td>
 <td></td>
-</tr>
-<tr>
-<th>API</th>
-<th>Version</th>
-  <th>bhyve</th>
-  <th>esx</th>
-  <th>hyperv</th>
-  <th>libxl</th>
-  <th>lxc</th>
-  <th>openvz</th>
-  <th>phyp</th>
-  <th>qemu</th>
-  <th>remote</th>
-  <th>test</th>
-  <th>uml</th>
-  <th>vbox</th>
-  <th>vmware</th>
-  <th>vz</th>
-  <th>xen</th>
-  <th>xenapi</th>
 </tr>
 <tr>
 <td>

@@ -40,6 +40,16 @@
 
 typedef enum {
     /* Keep in sync with VIR_ENUM_IMPL in node_device_conf.c */
+    VIR_NODE_DEV_DEVNODE_DEV,
+    VIR_NODE_DEV_DEVNODE_LINK,
+
+    VIR_NODE_DEV_DEVNODE_LAST
+} virNodeDevDevnodeType;
+
+VIR_ENUM_DECL(virNodeDevDevnode)
+
+typedef enum {
+    /* Keep in sync with VIR_ENUM_IMPL in node_device_conf.c */
     VIR_NODE_DEV_CAP_SYSTEM,		/* System capability */
     VIR_NODE_DEV_CAP_PCI_DEV,		/* PCI device */
     VIR_NODE_DEV_CAP_USB_DEV,		/* USB device */
@@ -52,6 +62,7 @@ typedef enum {
     VIR_NODE_DEV_CAP_FC_HOST,		/* FC Host Bus Adapter */
     VIR_NODE_DEV_CAP_VPORTS,		/* HBA which is capable of vports */
     VIR_NODE_DEV_CAP_SCSI_GENERIC,      /* SCSI generic device */
+    VIR_NODE_DEV_CAP_DRM,               /* DRM device */
 
     VIR_NODE_DEV_CAP_LAST
 } virNodeDevCapType;
@@ -82,6 +93,17 @@ typedef enum {
     VIR_NODE_DEV_CAP_FLAG_PCI_VIRTUAL_FUNCTION      = (1 << 1),
     VIR_NODE_DEV_CAP_FLAG_PCIE                      = (1 << 2),
 } virNodeDevPCICapFlags;
+
+typedef enum {
+    /* Keep in sync with VIR_ENUM_IMPL in node_device_conf.c */
+    VIR_NODE_DEV_DRM_PRIMARY,
+    VIR_NODE_DEV_DRM_CONTROL,
+    VIR_NODE_DEV_DRM_RENDER,
+
+    VIR_NODE_DEV_DRM_LAST
+} virNodeDevDRMType;
+
+VIR_ENUM_DECL(virNodeDevDRM)
 
 typedef struct _virNodeDevCapData {
     virNodeDevCapType type;
@@ -182,6 +204,9 @@ typedef struct _virNodeDevCapData {
         struct {
             char *path;
         } sg; /* SCSI generic device */
+        struct {
+            virNodeDevDRMType type;
+        } drm;
     };
 } virNodeDevCapData, *virNodeDevCapDataPtr;
 
@@ -204,6 +229,8 @@ struct _virNodeDeviceDef {
     char *parent_wwpn;			/* optional parent wwpn */
     char *parent_fabric_wwn;		/* optional parent fabric_wwn */
     char *driver;                       /* optional driver name */
+    char *devnode;                      /* /dev path */
+    char **devlinks;                    /* /dev links */
     virNodeDevCapsDefPtr caps;		/* optional device capabilities */
 };
 
@@ -272,23 +299,8 @@ int virNodeDeviceGetWWNs(virNodeDeviceDefPtr def,
                          char **wwpn);
 
 int virNodeDeviceGetParentHost(virNodeDeviceObjListPtr devs,
-                               const char *dev_name,
-                               const char *parent_name,
-                               int *parent_host);
-
-int virNodeDeviceGetParentHostByWWNs(virNodeDeviceObjListPtr devs,
-                                     const char *dev_name,
-                                     const char *parent_wwnn,
-                                     const char *parent_wwpn,
-                                     int *parent_host);
-
-int virNodeDeviceGetParentHostByFabricWWN(virNodeDeviceObjListPtr devs,
-                                          const char *dev_name,
-                                          const char *parent_fabric_wwn,
-                                          int *parent_host);
-
-int virNodeDeviceFindVportParentHost(virNodeDeviceObjListPtr devs,
-                                     int *parent_host);
+                               virNodeDeviceDefPtr def,
+                               int create);
 
 void virNodeDeviceDefFree(virNodeDeviceDefPtr def);
 
@@ -313,7 +325,8 @@ void virNodeDeviceObjUnlock(virNodeDeviceObjPtr obj);
                  VIR_CONNECT_LIST_NODE_DEVICES_CAP_STORAGE       | \
                  VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST       | \
                  VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS        | \
-                 VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_GENERIC)
+                 VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_GENERIC  | \
+                 VIR_CONNECT_LIST_NODE_DEVICES_CAP_DRM)
 
 typedef bool (*virNodeDeviceObjListFilter)(virConnectPtr conn,
                                            virNodeDeviceDefPtr def);
@@ -323,5 +336,8 @@ int virNodeDeviceObjListExport(virConnectPtr conn,
                                virNodeDevicePtr **devices,
                                virNodeDeviceObjListFilter filter,
                                unsigned int flags);
+
+char *virNodeDeviceGetParentName(virConnectPtr conn,
+                                 const char *nodedev_name);
 
 #endif /* __VIR_NODE_DEVICE_CONF_H__ */

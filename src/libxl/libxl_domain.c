@@ -362,16 +362,21 @@ libxlDomainDeviceDefPostParse(virDomainDeviceDefPtr dev,
         }
     }
 
-    /* for network-based disks, set 'qemu' as the default driver */
     if (dev->type == VIR_DOMAIN_DEVICE_DISK) {
         virDomainDiskDefPtr disk = dev->data.disk;
         int actual_type = virStorageSourceGetActualType(disk->src);
+        int format = virDomainDiskGetFormat(disk);
 
+        /* for network-based disks, set 'qemu' as the default driver */
         if (actual_type == VIR_STORAGE_TYPE_NETWORK) {
             if (!virDomainDiskGetDriver(disk) &&
                 virDomainDiskSetDriver(disk, "qemu") < 0)
                 return -1;
         }
+
+        /* xl.cfg default format is raw. See xl-disk-configuration(5) */
+        if (format == VIR_STORAGE_FILE_NONE)
+            virDomainDiskSetFormat(disk, VIR_STORAGE_FILE_RAW);
     }
 
     return 0;
@@ -909,6 +914,7 @@ libxlDomainFreeMem(libxl_ctx *ctx, libxl_domain_config *d_config)
 {
     uint32_t needed_mem;
     uint32_t free_mem;
+    int32_t target_mem;
     int tries = 3;
     int wait_secs = 10;
 
@@ -922,7 +928,8 @@ libxlDomainFreeMem(libxl_ctx *ctx, libxl_domain_config *d_config)
         if (free_mem >= needed_mem)
             return 0;
 
-        if (libxl_set_memory_target(ctx, 0, free_mem - needed_mem,
+        target_mem = free_mem - needed_mem;
+        if (libxl_set_memory_target(ctx, 0, target_mem,
                                     /* relative */ 1, 0) < 0)
             goto error;
 
@@ -1065,6 +1072,30 @@ libxlDomainCreateIfaceNames(virDomainDefPtr def, libxl_domain_config *d_config)
     }
 }
 
+static void
+libxlDomainUpdateDiskParams(virDomainDefPtr def, libxl_ctx *ctx)
+{
+    libxl_device_disk *disks;
+    int num_disks = 0;
+    size_t i;
+    int idx;
+
+    disks = libxl_device_disk_list(ctx, def->id, &num_disks);
+    if (!disks)
+        return;
+
+    for (i = 0; i < num_disks; i++) {
+        if ((idx = virDomainDiskIndexByName(def, disks[i].vdev, false)) < 0)
+            continue;
+
+        libxlUpdateDiskDef(def->disks[idx], &disks[i]);
+    }
+
+    for (i = 0; i < num_disks; i++)
+        libxl_device_disk_dispose(&disks[i]);
+    VIR_FREE(disks);
+}
+
 #ifdef LIBXL_HAVE_DEVICE_CHANNEL
 static void
 libxlDomainCreateChannelPTY(virDomainDefPtr def, libxl_ctx *ctx)
@@ -1090,7 +1121,7 @@ libxlDomainCreateChannelPTY(virDomainDefPtr def, libxl_ctx *ctx)
                                            &channelinfo);
 
         if (!ret && channelinfo.u.pty.path &&
-            channelinfo.u.pty.path != '\0') {
+            *channelinfo.u.pty.path != '\0') {
                 VIR_FREE(chr->source->data.file.path);
                 ignore_value(VIR_STRDUP(chr->source->data.file.path,
                                         channelinfo.u.pty.path));
@@ -1308,6 +1339,7 @@ libxlDomainStart(libxlDriverPrivatePtr driver,
         goto destroy_dom;
 
     libxlDomainCreateIfaceNames(vm->def, &d_config);
+    libxlDomainUpdateDiskParams(vm->def, cfg->ctx);
 
 #ifdef LIBXL_HAVE_DEVICE_CHANNEL
     if (vm->def->nchannels > 0)

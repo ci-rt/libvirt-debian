@@ -14,6 +14,7 @@ src/access/viraccessdriverpolkit.c
 src/access/viraccessmanager.c
 src/bhyve/bhyve_command.c
 src/bhyve/bhyve_device.c
+src/bhyve/bhyve_domain.c
 src/bhyve/bhyve_driver.c
 src/bhyve/bhyve_monitor.c
 src/bhyve/bhyve_parse_command.c
@@ -175,8 +176,10 @@ src/storage/storage_backend_mpath.c
 src/storage/storage_backend_rbd.c
 src/storage/storage_backend_scsi.c
 src/storage/storage_backend_sheepdog.c
+src/storage/storage_backend_vstorage.c
 src/storage/storage_backend_zfs.c
 src/storage/storage_driver.c
+src/storage/storage_util.c
 src/test/test_driver.c
 src/uml/uml_conf.c
 src/uml/uml_driver.c
@@ -239,6 +242,7 @@ src/util/virqemu.c
 src/util/virrandom.c
 src/util/virrotatingfile.c
 src/util/virscsi.c
+src/util/virscsihost.c
 src/util/virscsivhost.c
 src/util/virsecret.c
 src/util/virsexpr.c
@@ -255,6 +259,7 @@ src/util/virtypedparam.c
 src/util/viruri.c
 src/util/virusb.c
 src/util/virutil.c
+src/util/virvhba.c
 src/util/virxml.c
 src/vbox/vbox_MSCOMGlue.c
 src/vbox/vbox_XPCOMCGlue.c

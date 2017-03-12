@@ -565,6 +565,36 @@
                 <empty/>
               </element>
             </optional>
+            <optional>
+              <element name="source">
+                <attribute name="type">
+                  <choice>
+                    <value>file</value>
+                    <value>anonymous</value>
+                  </choice>
+                </attribute>
+              </element>
+            </optional>
+            <optional>
+              <element name="access">
+                <attribute name="mode">
+                  <choice>
+                    <value>shared</value>
+                    <value>private</value>
+                  </choice>
+                </attribute>
+              </element>
+            </optional>
+            <optional>
+              <element name="allocation">
+                <attribute name="mode">
+                  <choice>
+                    <value>immediate</value>
+                    <value>ondemand</value>
+                  </choice>
+                </attribute>
+              </element>
+            </optional>
           </interleave>
         </element>
       </optional>
@@ -2466,6 +2496,9 @@
         </element>
       </optional>
       <optional>
+        <ref name="mtu"/>
+      </optional>
+      <optional>
         <element name="target">
           <attribute name="dev">
             <ref name="deviceName"/>
@@ -3000,6 +3033,11 @@
                 <attribute name="enable">
                   <ref name="virYesNo"/>
                 </attribute>
+                <optional>
+                  <attribute name="rendernode">
+                    <ref name="absFilePath"/>
+                  </attribute>
+                </optional>
                 <empty/>
               </element>
             </optional>
@@ -3595,7 +3633,11 @@
 
   <define name="shmem">
     <element name="shmem">
-      <attribute name="name"/>
+      <attribute name="name">
+        <data type="string">
+          <param name="pattern">[^/]*</param>
+        </data>
+      </attribute>
       <interleave>
         <optional>
           <element name="model">

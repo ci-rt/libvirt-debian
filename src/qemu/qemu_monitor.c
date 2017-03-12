@@ -1921,12 +1921,12 @@ qemuMonitorGetCPUInfo(qemuMonitorPtr mon,
         goto cleanup;
 
     if (mon->json)
-        rc = qemuMonitorJSONQueryCPUs(mon, &cpuentries, &ncpuentries);
+        rc = qemuMonitorJSONQueryCPUs(mon, &cpuentries, &ncpuentries, hotplug);
     else
         rc = qemuMonitorTextQueryCPUs(mon, &cpuentries, &ncpuentries);
 
     if (rc < 0) {
-        if (rc == -2) {
+        if (!hotplug && rc == -2) {
             VIR_STEAL_PTR(*vcpus, info);
             ret = 0;
         }
@@ -1974,7 +1974,7 @@ qemuMonitorGetCpuHalted(qemuMonitorPtr mon,
     QEMU_CHECK_MONITOR_NULL(mon);
 
     if (mon->json)
-        rc = qemuMonitorJSONQueryCPUs(mon, &cpuentries, &ncpuentries);
+        rc = qemuMonitorJSONQueryCPUs(mon, &cpuentries, &ncpuentries, false);
     else
         rc = qemuMonitorTextQueryCPUs(mon, &cpuentries, &ncpuentries);
 
@@ -2577,8 +2577,12 @@ qemuMonitorMigrateToHost(qemuMonitorPtr mon,
 
     QEMU_CHECK_MONITOR(mon);
 
-    if (virAsprintf(&uri, "%s:%s:%d", protocol, hostname, port) < 0)
+    if (strchr(hostname, ':')) {
+        if (virAsprintf(&uri, "%s:[%s]:%d", protocol, hostname, port) < 0)
+            return -1;
+    } else if (virAsprintf(&uri, "%s:%s:%d", protocol, hostname, port) < 0) {
         return -1;
+    }
 
     if (mon->json)
         ret = qemuMonitorJSONMigrate(mon, flags, uri);
@@ -3660,6 +3664,7 @@ qemuMonitorCPUModelInfoFree(qemuMonitorCPUModelInfoPtr model_info)
     for (i = 0; i < model_info->nprops; i++)
         VIR_FREE(model_info->props[i].name);
 
+    VIR_FREE(model_info->props);
     VIR_FREE(model_info->name);
     VIR_FREE(model_info);
 }

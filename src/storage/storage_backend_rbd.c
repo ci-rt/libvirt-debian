@@ -37,6 +37,7 @@
 #include "rados/librados.h"
 #include "rbd/librbd.h"
 #include "secret_util.h"
+#include "storage_util.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
@@ -1293,3 +1294,10 @@ virStorageBackend virStorageBackendRBD = {
     .resizeVol = virStorageBackendRBDResizeVol,
     .wipeVol = virStorageBackendRBDVolWipe
 };
+
+
+int
+virStorageBackendRBDRegister(void)
+{
+    return virStorageBackendRegister(&virStorageBackendRBD);
+}

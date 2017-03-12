@@ -2655,35 +2655,6 @@ remoteDomainCreate(virDomainPtr domain)
     return rv;
 }
 
-static int
-remoteDomainCreateWithFlags(virDomainPtr dom, unsigned int flags)
-{
-    int rv = -1;
-    struct private_data *priv = dom->conn->privateData;
-    remote_domain_create_with_flags_args args;
-    remote_domain_create_with_flags_args ret;
-
-    remoteDriverLock(priv);
-
-    make_nonnull_domain(&args.dom, dom);
-    args.flags = flags;
-
-    memset(&ret, 0, sizeof(ret));
-    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_CREATE_WITH_FLAGS,
-             (xdrproc_t)xdr_remote_domain_create_with_flags_args, (char *)&args,
-             (xdrproc_t)xdr_remote_domain_create_with_flags_ret, (char *)&ret) == -1) {
-        goto done;
-    }
-
-    dom->id = ret.dom.id;
-    xdr_free((xdrproc_t) &xdr_remote_domain_create_with_flags_ret, (char *) &ret);
-    rv = 0;
-
- done:
-    remoteDriverUnlock(priv);
-    return rv;
-}
-
 static char *
 remoteDomainGetSchedulerType(virDomainPtr domain, int *nparams)
 {
@@ -8431,6 +8402,7 @@ static virHypervisorDriver hypervisor_driver = {
     .domainMigrateStartPostCopy = remoteDomainMigrateStartPostCopy, /* 1.3.3 */
     .domainGetGuestVcpus = remoteDomainGetGuestVcpus, /* 2.0.0 */
     .domainSetGuestVcpus = remoteDomainSetGuestVcpus, /* 2.0.0 */
+    .domainSetVcpu = remoteDomainSetVcpu, /* 3.1.0 */
 };
 
 static virNetworkDriver network_driver = {

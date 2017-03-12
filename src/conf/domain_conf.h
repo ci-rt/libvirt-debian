@@ -586,6 +586,22 @@ typedef enum {
     VIR_DOMAIN_DISK_MIRROR_STATE_LAST
 } virDomainDiskMirrorState;
 
+typedef enum {
+    VIR_DOMAIN_MEMORY_SOURCE_NONE = 0,  /* No memory source defined */
+    VIR_DOMAIN_MEMORY_SOURCE_FILE,      /* Memory source is set as file */
+    VIR_DOMAIN_MEMORY_SOURCE_ANONYMOUS, /* Memory source is set as anonymous */
+
+    VIR_DOMAIN_MEMORY_SOURCE_LAST,
+} virDomainMemorySource;
+
+typedef enum {
+    VIR_DOMAIN_MEMORY_ALLOCATION_NONE = 0,  /* No memory allocation defined */
+    VIR_DOMAIN_MEMORY_ALLOCATION_IMMEDIATE, /* Memory allocation is set as immediate */
+    VIR_DOMAIN_MEMORY_ALLOCATION_ONDEMAND,  /* Memory allocation is set as ondemand */
+
+    VIR_DOMAIN_MEMORY_ALLOCATION_LAST,
+} virDomainMemoryAllocation;
+
 
 /* Stores the virtual disk configuration */
 struct _virDomainDiskDef {
@@ -1009,6 +1025,7 @@ struct _virDomainNetDef {
     virNetDevVlan vlan;
     int trustGuestRxFilters; /* enum virTristateBool */
     int linkstate;
+    unsigned int mtu;
 };
 
 /* Used for prefix of ifname of any network name generated dynamically
@@ -1527,6 +1544,7 @@ struct _virDomainGraphicsDef {
             virTristateBool copypaste;
             virTristateBool filetransfer;
             virTristateBool gl;
+            char *rendernode;
         } spice;
     } data;
     /* nListens, listens, and *port are only useful if type is vnc,
@@ -2129,6 +2147,10 @@ struct _virDomainMemtune {
     unsigned long long soft_limit; /* in kibibytes, limit at off_t bytes */
     unsigned long long min_guarantee; /* in kibibytes, limit at off_t bytes */
     unsigned long long swap_hard_limit; /* in kibibytes, limit at off_t bytes */
+
+    int source; /* enum virDomainMemorySource */
+    int access; /* enum virDomainMemoryAccess */
+    int allocation; /* enum virDomainMemoryAllocation */
 };
 
 typedef struct _virDomainPowerManagement virDomainPowerManagement;
@@ -2189,7 +2211,6 @@ struct _virDomainDef {
     int placement_mode;
     virBitmapPtr cpumask;
 
-    unsigned int iothreads;
     size_t niothreadids;
     virDomainIOThreadIDDefPtr *iothreadids;
 
@@ -3114,6 +3135,8 @@ VIR_ENUM_DECL(virDomainTPMModel)
 VIR_ENUM_DECL(virDomainTPMBackend)
 VIR_ENUM_DECL(virDomainMemoryModel)
 VIR_ENUM_DECL(virDomainMemoryBackingModel)
+VIR_ENUM_DECL(virDomainMemorySource)
+VIR_ENUM_DECL(virDomainMemoryAllocation)
 VIR_ENUM_DECL(virDomainIOMMUModel)
 VIR_ENUM_DECL(virDomainShmemModel)
 /* from libvirt.h */
@@ -3218,4 +3241,8 @@ bool
 virDomainDeviceInfoAddressIsEqual(const virDomainDeviceInfo *a,
                                   const virDomainDeviceInfo *b)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
+
+int virDomainDiskSetBlockIOTune(virDomainDiskDefPtr disk,
+                                virDomainBlockIoTuneInfo *info);
+
 #endif /* __DOMAIN_CONF_H */
