@@ -20,4 +20,5 @@ test-posix_openpt-don-t-fail-on-EACCESS.patch
 Disable-use-of-namespaces-by-default.patch
 debian/Debianize-virtlogd.patch
 CVE-2017-2635-qemu-Don-t-update-physical-storage-size-of-.patch
-qemu-allow-QMP-probing-of-CPU-definitions-to-fail.patch
+apparmor-allow-usr-lib-qemu-qemu-bridge-helper.patch
+qemu-skip-QMP-probing-of-CPU-definitions-when-missing.patch
