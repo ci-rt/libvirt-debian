@@ -1,3 +1,14 @@
+libvirt (1.2.9-9+deb8u4) jessie; urgency=medium
+
+  [ Guido Günther ]
+  * [7e378ce] Make sure the cgroup update notice is also shown in backports
+  * [bd11c4c] Unbreak compilation of qemuhelptest
+
+  [ Hilko Bengen ]
+  * [fffb132] Add patch to improve qemu v2.6+ compatibility (Closes: #841291)
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 17 Mar 2017 14:53:44 +0100
+
 libvirt (1.2.9-9+deb8u3) jessie-security; urgency=high
 
   * [9da83d8] CVE-2016-5008: qemu: Let empty default VNC password work as
