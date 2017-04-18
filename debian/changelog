@@ -1,3 +1,12 @@
+libvirt (3.0.0-4~bpo8+1) jessie-backports; urgency=medium
+
+  * Rebuild for jessie-backports.
+  * [43f5a1] Revert "Enable numad support"
+  * [db9711] Change libxml2-dev build dependency to fixed version from jessie
+  * [bceb2c] Revert "Add Breaks for older systemd"
+
+ -- Gaudenz Steinlin <gaudenz@debian.org>  Tue, 18 Apr 2017 23:09:46 +0200
+
 libvirt (3.0.0-4) unstable; urgency=medium
 
   * [2a23b23] qemu: skip QMP probing of CPU definitions when missing.
