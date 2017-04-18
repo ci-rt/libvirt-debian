@@ -140,8 +140,7 @@ Recommends:
 Section: admin
 Suggests: radvd, auditd, systemtap, systemd, apparmor,
  nfs-common, zfsutils, pm-utils
-Breaks: avahi-daemon (<< 0.6.31-3~),
- systemd-sysv (<< 224-1~)
+Breaks: avahi-daemon (<< 0.6.31-3~)
 Replaces: libvirt-bin (<< 1.2.7-4~)
 Conflicts: libvirt-bin (<< 1.2.6-1~)
 Description: Libvirt daemon configuration files
