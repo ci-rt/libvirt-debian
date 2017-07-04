@@ -152,14 +152,14 @@ qemuAssignDeviceControllerAlias(virDomainDefPtr domainDef,
          * first (and currently only) IDE controller is an integrated
          * controller hardcoded with id "ide"
          */
-        if (qemuDomainMachineHasBuiltinIDE(domainDef) &&
+        if (qemuDomainHasBuiltinIDE(domainDef) &&
             controller->idx == 0)
             return VIR_STRDUP(controller->info.alias, "ide");
     } else if (controller->type == VIR_DOMAIN_CONTROLLER_TYPE_SATA) {
         /* for any Q35 machine, the first SATA controller is the
          * integrated one, and it too is hardcoded with id "ide"
          */
-        if (qemuDomainMachineIsQ35(domainDef) && controller->idx == 0)
+        if (qemuDomainIsQ35(domainDef) && controller->idx == 0)
             return VIR_STRDUP(controller->info.alias, "ide");
     } else if (controller->type == VIR_DOMAIN_CONTROLLER_TYPE_USB) {
         /* first USB device is "usb", others are normal "usb%d" */
@@ -352,17 +352,23 @@ qemuAssignDeviceMemoryAlias(virDomainDefPtr def,
     size_t i;
     int maxidx = 0;
     int idx;
+    const char *prefix;
+
+    if (mem->model == VIR_DOMAIN_MEMORY_MODEL_DIMM)
+        prefix = "dimm";
+    else
+        prefix = "nvdimm";
 
     if (oldAlias) {
         for (i = 0; i < def->nmems; i++) {
-            if ((idx = qemuDomainDeviceAliasIndex(&def->mems[i]->info, "dimm")) >= maxidx)
+            if ((idx = qemuDomainDeviceAliasIndex(&def->mems[i]->info, prefix)) >= maxidx)
                 maxidx = idx + 1;
         }
     } else {
         maxidx = mem->info.addr.dimm.slot;
     }
 
-    if (virAsprintf(&mem->info.alias, "dimm%d", maxidx) < 0)
+    if (virAsprintf(&mem->info.alias, "%s%d", prefix, maxidx) < 0)
         return -1;
 
     return 0;

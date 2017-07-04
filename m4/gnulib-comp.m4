@@ -135,6 +135,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module ffsl:
   # Code from module ffsl-tests:
   # Code from module fgetc-tests:
+  # Code from module filename:
   # Code from module flexmember:
   # Code from module float:
   # Code from module float-tests:
@@ -246,6 +247,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module localeconv-tests:
   # Code from module localename:
   # Code from module localename-tests:
+  # Code from module localtime-buffer:
   # Code from module lock:
   # Code from module lseek:
   # Code from module lseek-tests:
@@ -676,6 +678,7 @@ AC_SUBST([LTALLOCA])
   gl_FUNC_FSTAT
   if test $REPLACE_FSTAT = 1; then
     AC_LIBOBJ([fstat])
+    AC_LIBOBJ([stat-w32])
     gl_PREREQ_FSTAT
   fi
   gl_SYS_STAT_MODULE_INDICATOR([fstat])
@@ -743,7 +746,6 @@ AC_SUBST([LTALLOCA])
   if test $REPLACE_GETOPT = 1; then
     AC_LIBOBJ([getopt])
     AC_LIBOBJ([getopt1])
-    gl_PREREQ_GETOPT
     dnl Arrange for unistd.h to include getopt.h.
     GNULIB_GL_UNISTD_H_GETOPT=1
   fi
@@ -826,6 +828,8 @@ AC_SUBST([LTALLOCA])
     gl_PREREQ_LOCALECONV
   fi
   gl_LOCALE_MODULE_INDICATOR([localeconv])
+  AC_REQUIRE([gl_LOCALTIME_BUFFER_DEFAULTS])
+  AC_LIBOBJ([localtime-buffer])
   gl_LOCK
   gl_MODULE_INDICATOR([lock])
   gl_FUNC_LSEEK
@@ -906,7 +910,7 @@ AC_SUBST([LTALLOCA])
   fi
   gl_TIME_MODULE_INDICATOR([mktime])
   gl_FUNC_MKTIME_INTERNAL
-  if test $REPLACE_MKTIME = 1; then
+  if test $WANT_MKTIME_INTERNAL = 1; then
     AC_LIBOBJ([mktime])
     gl_PREREQ_MKTIME
   fi
@@ -918,6 +922,7 @@ AC_SUBST([LTALLOCA])
   if test $HAVE_MSVC_INVALID_PARAMETER_HANDLER = 1; then
     AC_LIBOBJ([msvc-nothrow])
   fi
+  gl_MODULE_INDICATOR([msvc-nothrow])
   gl_MULTIARCH
   gl_HEADER_NET_IF
   AC_PROG_MKDIR_P
@@ -1111,6 +1116,7 @@ AC_SUBST([LTALLOCA])
   gl_FUNC_STAT
   if test $REPLACE_STAT = 1; then
     AC_LIBOBJ([stat])
+    AC_LIBOBJ([stat-w32])
     gl_PREREQ_STAT
   fi
   gl_SYS_STAT_MODULE_INDICATOR([stat])
@@ -1168,6 +1174,8 @@ AC_SUBST([LTALLOCA])
     gl_PREREQ_STRERROR_R
   fi
   gl_STRING_MODULE_INDICATOR([strerror_r])
+  dnl For the modules argp, error.
+  gl_MODULE_INDICATOR([strerror_r-posix])
   gl_HEADER_STRING_H
   gl_HEADER_STRINGS_H
   gl_FUNC_STRNDUP
@@ -1201,7 +1209,7 @@ AC_SUBST([LTALLOCA])
   gl_STRING_MODULE_INDICATOR([strtok_r])
   gl_SYS_IOCTL_H
   AC_PROG_MKDIR_P
-  gl_HEADER_SYS_SELECT
+  AC_REQUIRE([gl_HEADER_SYS_SELECT])
   AC_PROG_MKDIR_P
   AC_REQUIRE([gl_HEADER_SYS_SOCKET])
   AC_PROG_MKDIR_P
@@ -1698,13 +1706,9 @@ AC_DEFUN([gl_FILE_LIST], [
   build-aux/config.rpath
   build-aux/gitlog-to-changelog
   build-aux/mktempd
-  build-aux/snippet/_Noreturn.h
-  build-aux/snippet/arg-nonnull.h
-  build-aux/snippet/c++defs.h
-  build-aux/snippet/unused-parameter.h
-  build-aux/snippet/warn-on-use.h
   build-aux/useless-if-before-free
   build-aux/vc-list-files
+  lib/_Noreturn.h
   lib/accept.c
   lib/alloca.c
   lib/alloca.in.h
@@ -1712,6 +1716,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/allocator.h
   lib/areadlink.c
   lib/areadlink.h
+  lib/arg-nonnull.h
   lib/arpa_inet.in.h
   lib/asnprintf.c
   lib/asprintf.c
@@ -1726,6 +1731,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/bitrotate.h
   lib/btowc.c
   lib/byteswap.in.h
+  lib/c++defs.h
   lib/c-ctype.c
   lib/c-ctype.h
   lib/c-strcase.h
@@ -1765,6 +1771,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/ffs.c
   lib/ffsl.c
   lib/ffsl.h
+  lib/filename.h
   lib/flexmember.h
   lib/float+.h
   lib/float.c
@@ -1789,6 +1796,11 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/getgroups.c
   lib/gethostname.c
   lib/getline.c
+  lib/getopt-cdefs.in.h
+  lib/getopt-core.h
+  lib/getopt-ext.h
+  lib/getopt-pfx-core.h
+  lib/getopt-pfx-ext.h
   lib/getopt.c
   lib/getopt.in.h
   lib/getopt1.c
@@ -1821,6 +1833,8 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/localcharset.h
   lib/locale.in.h
   lib/localeconv.c
+  lib/localtime-buffer.c
+  lib/localtime-buffer.h
   lib/lseek.c
   lib/lstat.c
   lib/malloc.c
@@ -1912,6 +1926,8 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/sockets.h
   lib/stat-time.c
   lib/stat-time.h
+  lib/stat-w32.c
+  lib/stat-w32.h
   lib/stat.c
   lib/stdalign.in.h
   lib/stdarg.in.h
@@ -1966,6 +1982,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/unistd.c
   lib/unistd.in.h
   lib/unsetenv.c
+  lib/unused-parameter.h
   lib/usleep.c
   lib/vasnprintf.c
   lib/vasnprintf.h
@@ -1974,6 +1991,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/vsnprintf.c
   lib/w32sock.h
   lib/waitpid.c
+  lib/warn-on-use.h
   lib/wchar.in.h
   lib/wcrtomb.c
   lib/wctype-h.c
@@ -2088,6 +2106,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/locale_h.m4
   m4/localeconv.m4
   m4/localename.m4
+  m4/localtime-buffer.m4
   m4/lock.m4
   m4/longlong.m4
   m4/lseek.m4
@@ -2242,6 +2261,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/minus-zero.h
   tests/nan.h
   tests/nap.h
+  tests/null-ptr.h
   tests/randomd.c
   tests/signature.h
   tests/socket-client.h
@@ -2502,6 +2522,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-vasprintf.c
   tests/test-vc-list-files-cvs.sh
   tests/test-vc-list-files-git.sh
+  tests/test-verify-try.c
   tests/test-verify.c
   tests/test-verify.sh
   tests/test-vsnprintf.c
@@ -2519,6 +2540,9 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-xalloc-die.c
   tests/test-xalloc-die.sh
   tests/zerosize-ptr.h
+  tests=lib/_Noreturn.h
+  tests=lib/arg-nonnull.h
+  tests=lib/c++defs.h
   tests=lib/ctype.in.h
   tests=lib/dup.c
   tests=lib/error.c
@@ -2577,9 +2601,11 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/spawnp.c
   tests=lib/symlink.c
   tests=lib/unlockpt.c
+  tests=lib/unused-parameter.h
   tests=lib/w32sock.h
   tests=lib/wait-process.c
   tests=lib/wait-process.h
+  tests=lib/warn-on-use.h
   tests=lib/wctob.c
   tests=lib/wctomb-impl.h
   tests=lib/wctomb.c

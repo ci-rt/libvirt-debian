@@ -193,11 +193,9 @@ void virConnectCloseCallbackDataRegister(virConnectCloseCallbackDataPtr closeDat
         VIR_WARN("Attempt to register callback on armed"
                  " close callback object %p", closeData);
         goto cleanup;
-        return;
     }
 
-    closeData->conn = conn;
-    virObjectRef(closeData->conn);
+    closeData->conn = virObjectRef(conn);
     closeData->callback = cb;
     closeData->opaque = opaque;
     closeData->freeCallback = freecb;
@@ -261,6 +259,7 @@ virConnectCloseCallbackDataGetCallback(virConnectCloseCallbackDataPtr closeData)
  * @conn: the hypervisor connection
  * @name: pointer to the domain name
  * @uuid: pointer to the uuid
+ * @id: domain ID
  *
  * Allocates a new domain object. When the object is no longer needed,
  * virObjectUnref() must be called in order to not leak data.
@@ -268,7 +267,10 @@ virConnectCloseCallbackDataGetCallback(virConnectCloseCallbackDataPtr closeData)
  * Returns a pointer to the domain object, or NULL on error.
  */
 virDomainPtr
-virGetDomain(virConnectPtr conn, const char *name, const unsigned char *uuid)
+virGetDomain(virConnectPtr conn,
+             const char *name,
+             const unsigned char *uuid,
+             int id)
 {
     virDomainPtr ret = NULL;
 
@@ -286,7 +288,7 @@ virGetDomain(virConnectPtr conn, const char *name, const unsigned char *uuid)
         goto error;
 
     ret->conn = virObjectRef(conn);
-    ret->id = -1;
+    ret->id = id;
     memcpy(&(ret->uuid[0]), uuid, VIR_UUID_BUFLEN);
 
     return ret;
@@ -981,8 +983,7 @@ virAdmConnectCloseCallbackDataRegister(virAdmConnectCloseCallbackDataPtr cbdata,
         goto cleanup;
     }
 
-    virObjectRef(conn);
-    cbdata->conn = conn;
+    cbdata->conn = virObjectRef(conn);
     cbdata->callback = cb;
     cbdata->opaque = opaque;
     cbdata->freeCallback = freecb;

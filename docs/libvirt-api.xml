@@ -191,6 +191,7 @@
      <exports symbol='VIR_DOMAIN_JOB_MEMORY_PROCESSED' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_MEMORY_REMAINING' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_MEMORY_TOTAL' type='macro'/>
+     <exports symbol='VIR_DOMAIN_JOB_OPERATION' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_SETUP_TIME' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_TIME_ELAPSED' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_TIME_ELAPSED_NET' type='macro'/>
@@ -269,19 +270,28 @@
      <exports symbol='VIR_MIGRATE_PARAM_MIGRATE_DISKS' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_PERSIST_XML' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_URI' type='macro'/>
+     <exports symbol='VIR_PERF_PARAM_ALIGNMENT_FAULTS' type='macro'/>
      <exports symbol='VIR_PERF_PARAM_BRANCH_INSTRUCTIONS' type='macro'/>
      <exports symbol='VIR_PERF_PARAM_BRANCH_MISSES' type='macro'/>
      <exports symbol='VIR_PERF_PARAM_BUS_CYCLES' type='macro'/>
      <exports symbol='VIR_PERF_PARAM_CACHE_MISSES' type='macro'/>
      <exports symbol='VIR_PERF_PARAM_CACHE_REFERENCES' type='macro'/>
      <exports symbol='VIR_PERF_PARAM_CMT' type='macro'/>
+     <exports symbol='VIR_PERF_PARAM_CONTEXT_SWITCHES' type='macro'/>
+     <exports symbol='VIR_PERF_PARAM_CPU_CLOCK' type='macro'/>
      <exports symbol='VIR_PERF_PARAM_CPU_CYCLES' type='macro'/>
+     <exports symbol='VIR_PERF_PARAM_CPU_MIGRATIONS' type='macro'/>
+     <exports symbol='VIR_PERF_PARAM_EMULATION_FAULTS' type='macro'/>
      <exports symbol='VIR_PERF_PARAM_INSTRUCTIONS' type='macro'/>
      <exports symbol='VIR_PERF_PARAM_MBML' type='macro'/>
      <exports symbol='VIR_PERF_PARAM_MBMT' type='macro'/>
+     <exports symbol='VIR_PERF_PARAM_PAGE_FAULTS' type='macro'/>
+     <exports symbol='VIR_PERF_PARAM_PAGE_FAULTS_MAJ' type='macro'/>
+     <exports symbol='VIR_PERF_PARAM_PAGE_FAULTS_MIN' type='macro'/>
      <exports symbol='VIR_PERF_PARAM_REF_CPU_CYCLES' type='macro'/>
      <exports symbol='VIR_PERF_PARAM_STALLED_CYCLES_BACKEND' type='macro'/>
      <exports symbol='VIR_PERF_PARAM_STALLED_CYCLES_FRONTEND' type='macro'/>
+     <exports symbol='VIR_PERF_PARAM_TASK_CLOCK' type='macro'/>
      <exports symbol='VIR_UNUSE_CPU' type='macro'/>
      <exports symbol='VIR_USE_CPU' type='macro'/>
      <exports symbol='_virBlkioParameter' type='macro'/>
@@ -337,6 +347,7 @@
      <exports symbol='VIR_DOMAIN_BLOCK_COMMIT_SHALLOW' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_COPY_REUSE_EXT' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_COPY_SHALLOW' type='enum'/>
+     <exports symbol='VIR_DOMAIN_BLOCK_COPY_TRANSIENT_JOB' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_CANCELED' type='enum'/>
@@ -418,6 +429,7 @@
      <exports symbol='VIR_DOMAIN_EVENT_ID_BALLOON_CHANGE' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_BLOCK_JOB' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_BLOCK_JOB_2' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_ID_BLOCK_THRESHOLD' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_CONTROL_ERROR' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_DEVICE_ADDED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_DEVICE_REMOVAL_FAILED' type='enum'/>
@@ -456,6 +468,8 @@
      <exports symbol='VIR_DOMAIN_EVENT_RESUMED_UNPAUSED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_SHUTDOWN' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_SHUTDOWN_FINISHED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_SHUTDOWN_GUEST' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_SHUTDOWN_HOST' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_SHUTDOWN_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_STARTED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_STARTED_BOOTED' type='enum'/>
@@ -508,6 +522,16 @@
      <exports symbol='VIR_DOMAIN_JOB_FAILED' type='enum'/>
      <exports symbol='VIR_DOMAIN_JOB_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_JOB_NONE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_JOB_OPERATION_DUMP' type='enum'/>
+     <exports symbol='VIR_DOMAIN_JOB_OPERATION_LAST' type='enum'/>
+     <exports symbol='VIR_DOMAIN_JOB_OPERATION_MIGRATION_IN' type='enum'/>
+     <exports symbol='VIR_DOMAIN_JOB_OPERATION_MIGRATION_OUT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_JOB_OPERATION_RESTORE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_JOB_OPERATION_SAVE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_JOB_OPERATION_SNAPSHOT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_JOB_OPERATION_SNAPSHOT_REVERT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_JOB_OPERATION_START' type='enum'/>
+     <exports symbol='VIR_DOMAIN_JOB_OPERATION_UNKNOWN' type='enum'/>
      <exports symbol='VIR_DOMAIN_JOB_STATS_COMPLETED' type='enum'/>
      <exports symbol='VIR_DOMAIN_JOB_UNBOUNDED' type='enum'/>
      <exports symbol='VIR_DOMAIN_LAST' type='enum'/>
@@ -740,6 +764,7 @@
      <exports symbol='VIR_MIGRATE_PERSIST_DEST' type='enum'/>
      <exports symbol='VIR_MIGRATE_POSTCOPY' type='enum'/>
      <exports symbol='VIR_MIGRATE_RDMA_PIN_ALL' type='enum'/>
+     <exports symbol='VIR_MIGRATE_TLS' type='enum'/>
      <exports symbol='VIR_MIGRATE_TUNNELLED' type='enum'/>
      <exports symbol='VIR_MIGRATE_UNDEFINE_SOURCE' type='enum'/>
      <exports symbol='VIR_MIGRATE_UNSAFE' type='enum'/>
@@ -828,6 +853,7 @@
      <exports symbol='virDomainInterfaceStatsStruct' type='typedef'/>
      <exports symbol='virDomainJobInfo' type='typedef'/>
      <exports symbol='virDomainJobInfoPtr' type='typedef'/>
+     <exports symbol='virDomainJobOperation' type='typedef'/>
      <exports symbol='virDomainJobType' type='typedef'/>
      <exports symbol='virDomainMemoryFlags' type='typedef'/>
      <exports symbol='virDomainMemoryModFlags' type='typedef'/>
@@ -891,6 +917,7 @@
      <exports symbol='virConnectDomainEventAgentLifecycleCallback' type='function'/>
      <exports symbol='virConnectDomainEventBalloonChangeCallback' type='function'/>
      <exports symbol='virConnectDomainEventBlockJobCallback' type='function'/>
+     <exports symbol='virConnectDomainEventBlockThresholdCallback' type='function'/>
      <exports symbol='virConnectDomainEventCallback' type='function'/>
      <exports symbol='virConnectDomainEventDeregister' type='function'/>
      <exports symbol='virConnectDomainEventDeregisterAny' type='function'/>
@@ -1054,6 +1081,7 @@
      <exports symbol='virDomainSetAutostart' type='function'/>
      <exports symbol='virDomainSetBlkioParameters' type='function'/>
      <exports symbol='virDomainSetBlockIoTune' type='function'/>
+     <exports symbol='virDomainSetBlockThreshold' type='function'/>
      <exports symbol='virDomainSetGuestVcpus' type='function'/>
      <exports symbol='virDomainSetInterfaceParameters' type='function'/>
      <exports symbol='virDomainSetMaxMemory' type='function'/>
@@ -1367,8 +1395,11 @@
      <description>Provides APIs for the management of nodedevs</description>
      <author>Daniel Veillard &lt;veillard@redhat.com&gt;  Copyright (C) 2006-2014 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </author>
      <exports symbol='VIR_NODE_DEVICE_EVENT_CALLBACK' type='macro'/>
+     <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_CCW_DEV' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_DRM' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_MDEV' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_MDEV_TYPES' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_NET' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_PCI_DEV' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI' type='enum'/>
@@ -1541,6 +1572,7 @@
      <exports symbol='VIR_STORAGE_VOL_DELETE_WITH_SNAPSHOTS' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_DELETE_ZEROED' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_DIR' type='enum'/>
+     <exports symbol='VIR_STORAGE_VOL_DOWNLOAD_SPARSE_STREAM' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_FILE' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_GET_PHYSICAL' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_LAST' type='enum'/>
@@ -1550,6 +1582,7 @@
      <exports symbol='VIR_STORAGE_VOL_RESIZE_ALLOCATE' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_RESIZE_DELTA' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_RESIZE_SHRINK' type='enum'/>
+     <exports symbol='VIR_STORAGE_VOL_UPLOAD_SPARSE_STREAM' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_USE_ALLOCATION' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_WIPE_ALG_BSI' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_WIPE_ALG_DOD' type='enum'/>
@@ -1577,12 +1610,14 @@
      <exports symbol='virStorageVol' type='typedef'/>
      <exports symbol='virStorageVolCreateFlags' type='typedef'/>
      <exports symbol='virStorageVolDeleteFlags' type='typedef'/>
+     <exports symbol='virStorageVolDownloadFlags' type='typedef'/>
      <exports symbol='virStorageVolInfo' type='typedef'/>
      <exports symbol='virStorageVolInfoFlags' type='typedef'/>
      <exports symbol='virStorageVolInfoPtr' type='typedef'/>
      <exports symbol='virStorageVolPtr' type='typedef'/>
      <exports symbol='virStorageVolResizeFlags' type='typedef'/>
      <exports symbol='virStorageVolType' type='typedef'/>
+     <exports symbol='virStorageVolUploadFlags' type='typedef'/>
      <exports symbol='virStorageVolWipeAlgorithm' type='typedef'/>
      <exports symbol='virStorageXMLFlags' type='typedef'/>
      <exports symbol='_virStoragePoolInfo' type='struct'/>
@@ -1654,8 +1689,10 @@
      <exports symbol='VIR_STREAM_EVENT_READABLE' type='enum'/>
      <exports symbol='VIR_STREAM_EVENT_WRITABLE' type='enum'/>
      <exports symbol='VIR_STREAM_NONBLOCK' type='enum'/>
+     <exports symbol='VIR_STREAM_RECV_STOP_AT_HOLE' type='enum'/>
      <exports symbol='virStreamEventType' type='typedef'/>
      <exports symbol='virStreamFlags' type='typedef'/>
+     <exports symbol='virStreamRecvFlagsValues' type='typedef'/>
      <exports symbol='virStreamAbort' type='function'/>
      <exports symbol='virStreamEventAddCallback' type='function'/>
      <exports symbol='virStreamEventCallback' type='function'/>
@@ -1666,11 +1703,19 @@
      <exports symbol='virStreamNew' type='function'/>
      <exports symbol='virStreamRecv' type='function'/>
      <exports symbol='virStreamRecvAll' type='function'/>
+     <exports symbol='virStreamRecvFlags' type='function'/>
+     <exports symbol='virStreamRecvHole' type='function'/>
      <exports symbol='virStreamRef' type='function'/>
      <exports symbol='virStreamSend' type='function'/>
      <exports symbol='virStreamSendAll' type='function'/>
+     <exports symbol='virStreamSendHole' type='function'/>
      <exports symbol='virStreamSinkFunc' type='function'/>
+     <exports symbol='virStreamSinkHoleFunc' type='function'/>
      <exports symbol='virStreamSourceFunc' type='function'/>
+     <exports symbol='virStreamSourceHoleFunc' type='function'/>
+     <exports symbol='virStreamSourceSkipFunc' type='function'/>
+     <exports symbol='virStreamSparseRecvAll' type='function'/>
+     <exports symbol='virStreamSparseSendAll' type='function'/>
     </file>
     <file name='virterror'>
      <summary>error handling interfaces for the libvirt library</summary>
@@ -2129,6 +2174,9 @@
     <macro name='VIR_DOMAIN_JOB_MEMORY_TOTAL' file='libvirt-domain' string='memory_total'>
       <info><![CDATA[virDomainGetJobStats field: as VIR_DOMAIN_JOB_DATA_TOTAL but only tracking guest memory progress, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to memTotal field in virDomainJobInfo.]]></info>
     </macro>
+    <macro name='VIR_DOMAIN_JOB_OPERATION' file='libvirt-domain' string='operation'>
+      <info><![CDATA[virDomainGetJobStats field: the operation which started the job as VIR_TYPED_PARAM_INT. The values correspond to the items in virDomainJobOperation enum.]]></info>
+    </macro>
     <macro name='VIR_DOMAIN_JOB_SETUP_TIME' file='libvirt-domain' string='setup_time'>
       <info><![CDATA[virDomainGetJobStats field: total time in milliseconds spent preparing the migration in the 'setup' phase before the iterations begin, as VIR_TYPED_PARAM_ULLONG.]]></info>
     </macro>
@@ -2436,6 +2484,9 @@
     <macro name='VIR_NODE_MEMORY_STATS_TOTAL' file='libvirt-host' string='total'>
       <info><![CDATA[Macro for the total memory of specified cell: it represents the maximum memory.]]></info>
     </macro>
+    <macro name='VIR_PERF_PARAM_ALIGNMENT_FAULTS' file='libvirt-domain' string='alignment_faults'>
+      <info><![CDATA[Macro for typed parameter name that represents alignment_faults perf event which can be used to measure the count of alignment faults by applications running on the platform. It corresponds to the "perf.alignment_faults" field in the *Stats APIs.]]></info>
+    </macro>
     <macro name='VIR_PERF_PARAM_BRANCH_INSTRUCTIONS' file='libvirt-domain' string='branch_instructions'>
       <info><![CDATA[Macro for typed parameter name that represents branch_instructions perf event which can be used to measure the count of branch instructions by applications running on the platform. It corresponds to the "perf.branch_instructions" field in the *Stats APIs.]]></info>
     </macro>
@@ -2454,8 +2505,20 @@
     <macro name='VIR_PERF_PARAM_CMT' file='libvirt-domain' string='cmt'>
       <info><![CDATA[Macro for typed parameter name that represents CMT perf event which can be used to measure the usage of cache (bytes) by applications running on the platform. It corresponds to the "perf.cmt" field in the *Stats APIs.]]></info>
     </macro>
+    <macro name='VIR_PERF_PARAM_CONTEXT_SWITCHES' file='libvirt-domain' string='context_switches'>
+      <info><![CDATA[Macro for typed parameter name that represents context_switches perf event which can be used to measure the count of context switches by applications running on the platform. It corresponds to the "perf.context_switches" field in the *Stats APIs.]]></info>
+    </macro>
+    <macro name='VIR_PERF_PARAM_CPU_CLOCK' file='libvirt-domain' string='cpu_clock'>
+      <info><![CDATA[Macro for typed parameter name that represents cpu_clock perf event which can be used to measure the count of cpu clock time by applications running on the platform. It corresponds to the "perf.cpu_clock" field in the *Stats APIs.]]></info>
+    </macro>
     <macro name='VIR_PERF_PARAM_CPU_CYCLES' file='libvirt-domain' string='cpu_cycles'>
       <info><![CDATA[Macro for typed parameter name that represents cpu_cycles perf event describing the total/elapsed cpu cycles. This can be used to measure how many cpu cycles one instruction needs. It corresponds to the "perf.cpu_cycles" field in the *Stats APIs.]]></info>
+    </macro>
+    <macro name='VIR_PERF_PARAM_CPU_MIGRATIONS' file='libvirt-domain' string='cpu_migrations'>
+      <info><![CDATA[Macro for typed parameter name that represents cpu_migrations perf event which can be used to measure the count of cpu migrations by applications running on the platform. It corresponds to the "perf.cpu_migrations" field in the *Stats APIs.]]></info>
+    </macro>
+    <macro name='VIR_PERF_PARAM_EMULATION_FAULTS' file='libvirt-domain' string='emulation_faults'>
+      <info><![CDATA[Macro for typed parameter name that represents emulation_faults perf event which can be used to measure the count of emulation faults by applications running on the platform. It corresponds to the "perf.emulation_faults" field in the *Stats APIs.]]></info>
     </macro>
     <macro name='VIR_PERF_PARAM_INSTRUCTIONS' file='libvirt-domain' string='instructions'>
       <info><![CDATA[Macro for typed parameter name that represents instructions perf event which can be used to measure the count of instructions by applications running on the platform. It corresponds to the "perf.instructions" field in the *Stats APIs.]]></info>
@@ -2466,6 +2529,15 @@
     <macro name='VIR_PERF_PARAM_MBMT' file='libvirt-domain' string='mbmt'>
       <info><![CDATA[Macro for typed parameter name that represents MBMT perf event which can be used to monitor total system bandwidth (bytes/s) from one level of cache to another. It corresponds to the "perf.mbmt" field in the *Stats APIs.]]></info>
     </macro>
+    <macro name='VIR_PERF_PARAM_PAGE_FAULTS' file='libvirt-domain' string='page_faults'>
+      <info><![CDATA[Macro for typed parameter name that represents page_faults perf event which can be used to measure the count of page faults by applications running on the platform. It corresponds to the "perf.page_faults" field in the *Stats APIs.]]></info>
+    </macro>
+    <macro name='VIR_PERF_PARAM_PAGE_FAULTS_MAJ' file='libvirt-domain' string='page_faults_maj'>
+      <info><![CDATA[Macro for typed parameter name that represents page_faults_maj perf event which can be used to measure the count of major page faults by applications running on the platform. It corresponds to the "perf.page_faults_maj" field in the *Stats APIs.]]></info>
+    </macro>
+    <macro name='VIR_PERF_PARAM_PAGE_FAULTS_MIN' file='libvirt-domain' string='page_faults_min'>
+      <info><![CDATA[Macro for typed parameter name that represents page_faults_min perf event which can be used to measure the count of minor page faults by applications running on the platform. It corresponds to the "perf.page_faults_min" field in the *Stats APIs.]]></info>
+    </macro>
     <macro name='VIR_PERF_PARAM_REF_CPU_CYCLES' file='libvirt-domain' string='ref_cpu_cycles'>
       <info><![CDATA[Macro for typed parameter name that represents ref_cpu_cycles perf event which can be used to measure the count of total cpu cycles not affected by CPU frequency scaling by applications running on the platform. It corresponds to the "perf.ref_cpu_cycles" field in the *Stats APIs.]]></info>
     </macro>
@@ -2474,6 +2546,9 @@
     </macro>
     <macro name='VIR_PERF_PARAM_STALLED_CYCLES_FRONTEND' file='libvirt-domain' string='stalled_cycles_frontend'>
       <info><![CDATA[Macro for typed parameter name that represents stalled_cycles_frontend perf event which can be used to measure the count of stalled cpu cycles in the frontend of the instruction processor pipeline by applications running on the platform. It corresponds to the "perf.stalled_cycles_frontend" field in the *Stats APIs.]]></info>
+    </macro>
+    <macro name='VIR_PERF_PARAM_TASK_CLOCK' file='libvirt-domain' string='task_clock'>
+      <info><![CDATA[Macro for typed parameter name that represents task_clock perf event which can be used to measure the count of task clock time by applications running on the platform. It corresponds to the "perf.task_clock" field in the *Stats APIs.]]></info>
     </macro>
     <macro name='VIR_SECRET_EVENT_CALLBACK' file='libvirt-secret'>
       <info><![CDATA[Used to cast the event specific callback into the generic one for use for virConnectSecretEventRegisterAny()]]></info>
@@ -2563,8 +2638,11 @@ CPUs as failure'/>
     <enum name='VIR_CONNECT_LIST_NETWORKS_NO_AUTOSTART' file='libvirt-network' value='32' type='virConnectListAllNetworksFlags'/>
     <enum name='VIR_CONNECT_LIST_NETWORKS_PERSISTENT' file='libvirt-network' value='4' type='virConnectListAllNetworksFlags'/>
     <enum name='VIR_CONNECT_LIST_NETWORKS_TRANSIENT' file='libvirt-network' value='8' type='virConnectListAllNetworksFlags'/>
+    <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_CCW_DEV' file='libvirt-nodedev' value='32768' type='virConnectListAllNodeDeviceFlags' info='CCW device'/>
     <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_DRM' file='libvirt-nodedev' value='4096' type='virConnectListAllNodeDeviceFlags' info='DRM device'/>
     <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST' file='libvirt-nodedev' value='512' type='virConnectListAllNodeDeviceFlags' info='FC Host Bus Adapter'/>
+    <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_MDEV' file='libvirt-nodedev' value='16384' type='virConnectListAllNodeDeviceFlags' info='Mediated device'/>
+    <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_MDEV_TYPES' file='libvirt-nodedev' value='8192' type='virConnectListAllNodeDeviceFlags' info='Capable of mediated devices'/>
     <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_NET' file='libvirt-nodedev' value='16' type='virConnectListAllNodeDeviceFlags' info='Network device'/>
     <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_PCI_DEV' file='libvirt-nodedev' value='2' type='virConnectListAllNodeDeviceFlags' info='PCI device'/>
     <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI' file='libvirt-nodedev' value='128' type='virConnectListAllNodeDeviceFlags' info='SCSI device'/>
@@ -2647,6 +2725,9 @@ file, not whole chain'/>
 file for a copy'/>
     <enum name='VIR_DOMAIN_BLOCK_COPY_SHALLOW' file='libvirt-domain' value='1' type='virDomainBlockCopyFlags' info='Limit copy to top of source
 backing chain'/>
+    <enum name='VIR_DOMAIN_BLOCK_COPY_TRANSIENT_JOB' file='libvirt-domain' value='4' type='virDomainBlockCopyFlags' info='Don&apos;t force usage of
+recoverable job for the
+copy operation'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC' file='libvirt-domain' value='1' type='virDomainBlockJobAbortFlags'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT' file='libvirt-domain' value='2' type='virDomainBlockJobAbortFlags'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_CANCELED' file='libvirt-domain' value='2' type='virConnectDomainEventBlockJobStatus'/>
@@ -2762,6 +2843,7 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_EVENT_ID_BALLOON_CHANGE' file='libvirt-domain' value='13' type='virDomainEventID' info='virConnectDomainEventBalloonChangeCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_BLOCK_JOB' file='libvirt-domain' value='8' type='virDomainEventID' info='virConnectDomainEventBlockJobCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_BLOCK_JOB_2' file='libvirt-domain' value='16' type='virDomainEventID' info='virConnectDomainEventBlockJobCallback'/>
+    <enum name='VIR_DOMAIN_EVENT_ID_BLOCK_THRESHOLD' file='libvirt-domain' value='24' type='virDomainEventID' info='virConnectDomainEventBlockThresholdCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_CONTROL_ERROR' file='libvirt-domain' value='7' type='virDomainEventID' info='virConnectDomainEventGenericCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_DEVICE_ADDED' file='libvirt-domain' value='19' type='virDomainEventID' info='virConnectDomainEventDeviceAddedCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_DEVICE_REMOVAL_FAILED' file='libvirt-domain' value='22' type='virDomainEventID' info='virConnectDomainEventDeviceRemovalFailedCallback'/>
@@ -2771,7 +2853,7 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_EVENT_ID_IO_ERROR' file='libvirt-domain' value='4' type='virDomainEventID' info='virConnectDomainEventIOErrorCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_IO_ERROR_REASON' file='libvirt-domain' value='6' type='virDomainEventID' info='virConnectDomainEventIOErrorReasonCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_JOB_COMPLETED' file='libvirt-domain' value='21' type='virDomainEventID' info='virConnectDomainEventJobCompletedCallback'/>
-    <enum name='VIR_DOMAIN_EVENT_ID_LAST' file='libvirt-domain' value='24' type='virDomainEventID' info='NB: this enum value will increase over time as new events are
+    <enum name='VIR_DOMAIN_EVENT_ID_LAST' file='libvirt-domain' value='25' type='virDomainEventID' info='NB: this enum value will increase over time as new events are
  added to the libvirt API. It reflects the last event ID supported
  by this version of the libvirt API.'/>
     <enum name='VIR_DOMAIN_EVENT_ID_LIFECYCLE' file='libvirt-domain' value='0' type='virDomainEventID' info='virConnectDomainEventCallback'/>
@@ -2802,8 +2884,12 @@ limited set of commands may be allowed'/>
 running in post-copy mode'/>
     <enum name='VIR_DOMAIN_EVENT_RESUMED_UNPAUSED' file='libvirt-domain' value='0' type='virDomainEventResumedDetailType' info='Normal resume due to admin unpause'/>
     <enum name='VIR_DOMAIN_EVENT_SHUTDOWN' file='libvirt-domain' value='6' type='virDomainEventType'/>
-    <enum name='VIR_DOMAIN_EVENT_SHUTDOWN_FINISHED' file='libvirt-domain' value='0' type='virDomainEventShutdownDetailType' info='Guest finished shutdown sequence'/>
-    <enum name='VIR_DOMAIN_EVENT_SHUTDOWN_LAST' file='libvirt-domain' value='1' type='virDomainEventShutdownDetailType'/>
+    <enum name='VIR_DOMAIN_EVENT_SHUTDOWN_FINISHED' file='libvirt-domain' value='0' type='virDomainEventShutdownDetailType' info='Domain finished shutting down after request from the guest itself
+ (e.g. hardware-specific action)'/>
+    <enum name='VIR_DOMAIN_EVENT_SHUTDOWN_GUEST' file='libvirt-domain' value='1' type='virDomainEventShutdownDetailType' info='Domain finished shutting down after request from the host (e.g. killed by
+ a signal)'/>
+    <enum name='VIR_DOMAIN_EVENT_SHUTDOWN_HOST' file='libvirt-domain' value='2' type='virDomainEventShutdownDetailType'/>
+    <enum name='VIR_DOMAIN_EVENT_SHUTDOWN_LAST' file='libvirt-domain' value='3' type='virDomainEventShutdownDetailType'/>
     <enum name='VIR_DOMAIN_EVENT_STARTED' file='libvirt-domain' value='2' type='virDomainEventType'/>
     <enum name='VIR_DOMAIN_EVENT_STARTED_BOOTED' file='libvirt-domain' value='0' type='virDomainEventStartedDetailType' info='Normal startup from boot'/>
     <enum name='VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT' file='libvirt-domain' value='3' type='virDomainEventStartedDetailType' info='Restored from snapshot'/>
@@ -2855,6 +2941,16 @@ running in post-copy mode'/>
     <enum name='VIR_DOMAIN_JOB_FAILED' file='libvirt-domain' value='4' type='virDomainJobType' info='Job hit error, but isn&apos;t cleaned up'/>
     <enum name='VIR_DOMAIN_JOB_LAST' file='libvirt-domain' value='6' type='virDomainJobType'/>
     <enum name='VIR_DOMAIN_JOB_NONE' file='libvirt-domain' value='0' type='virDomainJobType' info='No job is active'/>
+    <enum name='VIR_DOMAIN_JOB_OPERATION_DUMP' file='libvirt-domain' value='8' type='virDomainJobOperation'/>
+    <enum name='VIR_DOMAIN_JOB_OPERATION_LAST' file='libvirt-domain' value='9' type='virDomainJobOperation'/>
+    <enum name='VIR_DOMAIN_JOB_OPERATION_MIGRATION_IN' file='libvirt-domain' value='4' type='virDomainJobOperation'/>
+    <enum name='VIR_DOMAIN_JOB_OPERATION_MIGRATION_OUT' file='libvirt-domain' value='5' type='virDomainJobOperation'/>
+    <enum name='VIR_DOMAIN_JOB_OPERATION_RESTORE' file='libvirt-domain' value='3' type='virDomainJobOperation'/>
+    <enum name='VIR_DOMAIN_JOB_OPERATION_SAVE' file='libvirt-domain' value='2' type='virDomainJobOperation'/>
+    <enum name='VIR_DOMAIN_JOB_OPERATION_SNAPSHOT' file='libvirt-domain' value='6' type='virDomainJobOperation'/>
+    <enum name='VIR_DOMAIN_JOB_OPERATION_SNAPSHOT_REVERT' file='libvirt-domain' value='7' type='virDomainJobOperation'/>
+    <enum name='VIR_DOMAIN_JOB_OPERATION_START' file='libvirt-domain' value='1' type='virDomainJobOperation'/>
+    <enum name='VIR_DOMAIN_JOB_OPERATION_UNKNOWN' file='libvirt-domain' value='0' type='virDomainJobOperation'/>
     <enum name='VIR_DOMAIN_JOB_STATS_COMPLETED' file='libvirt-domain' value='1' type='virDomainGetJobStatsFlags' info='return stats of a recently
  completed job'/>
     <enum name='VIR_DOMAIN_JOB_UNBOUNDED' file='libvirt-domain' value='2' type='virDomainJobType' info='Job without a finite completion time'/>
@@ -3410,11 +3506,15 @@ Retained for ABI/API compat only'/>
  VIR_MIGRATE_TUNNELLED should be VIR_MIGRATE_TUNNELED.'/>
     <enum name='VIR_MIGRATE_PERSIST_DEST' file='libvirt-domain' value='8' type='virDomainMigrateFlags' info='Undefine the domain on the source host once migration successfully
  finishes.'/>
-    <enum name='VIR_MIGRATE_POSTCOPY' file='libvirt-domain' value='32768' type='virDomainMigrateFlags'/>
+    <enum name='VIR_MIGRATE_POSTCOPY' file='libvirt-domain' value='32768' type='virDomainMigrateFlags' info='Setting the VIR_MIGRATE_TLS flag will cause the migration to attempt
+ to use the TLS environment configured by the hypervisor in order to
+ perform the migration. If incorrectly configured on either source or
+ destination, the migration will fail.'/>
     <enum name='VIR_MIGRATE_RDMA_PIN_ALL' file='libvirt-domain' value='16384' type='virDomainMigrateFlags' info='Setting the VIR_MIGRATE_POSTCOPY flag tells libvirt to enable post-copy
  migration. However, the migration will start normally and
  virDomainMigrateStartPostCopy needs to be called to switch it into the
  post-copy mode. See virDomainMigrateStartPostCopy for more details.'/>
+    <enum name='VIR_MIGRATE_TLS' file='libvirt-domain' value='65536' type='virDomainMigrateFlags'/>
     <enum name='VIR_MIGRATE_TUNNELLED' file='libvirt-domain' value='4' type='virDomainMigrateFlags' info='Define the domain as persistent on the destination host after successful
  migration. If the domain was persistent on the source host and
  VIR_MIGRATE_UNDEFINE_SOURCE is not used, it will end up persistent on
@@ -3535,6 +3635,7 @@ used to free allocated pages.'/>
     <enum name='VIR_STORAGE_VOL_DELETE_WITH_SNAPSHOTS' file='libvirt-storage' value='2' type='virStorageVolDeleteFlags' info='Force removal of volume, even if in use'/>
     <enum name='VIR_STORAGE_VOL_DELETE_ZEROED' file='libvirt-storage' value='1' type='virStorageVolDeleteFlags' info='Clear all data to zeros (slow)'/>
     <enum name='VIR_STORAGE_VOL_DIR' file='libvirt-storage' value='2' type='virStorageVolType' info='Directory-passthrough based volume'/>
+    <enum name='VIR_STORAGE_VOL_DOWNLOAD_SPARSE_STREAM' file='libvirt-storage' value='1' type='virStorageVolDownloadFlags' info='Use sparse stream'/>
     <enum name='VIR_STORAGE_VOL_FILE' file='libvirt-storage' value='0' type='virStorageVolType' info='Regular file based volumes'/>
     <enum name='VIR_STORAGE_VOL_GET_PHYSICAL' file='libvirt-storage' value='1' type='virStorageVolInfoFlags'/>
     <enum name='VIR_STORAGE_VOL_LAST' file='libvirt-storage' value='6' type='virStorageVolType'/>
@@ -3545,6 +3646,7 @@ used to free allocated pages.'/>
     <enum name='VIR_STORAGE_VOL_RESIZE_ALLOCATE' file='libvirt-storage' value='1' type='virStorageVolResizeFlags' info='force allocation of new size'/>
     <enum name='VIR_STORAGE_VOL_RESIZE_DELTA' file='libvirt-storage' value='2' type='virStorageVolResizeFlags' info='size is relative to current'/>
     <enum name='VIR_STORAGE_VOL_RESIZE_SHRINK' file='libvirt-storage' value='4' type='virStorageVolResizeFlags' info='allow decrease in capacity'/>
+    <enum name='VIR_STORAGE_VOL_UPLOAD_SPARSE_STREAM' file='libvirt-storage' value='1' type='virStorageVolUploadFlags' info='Use sparse stream'/>
     <enum name='VIR_STORAGE_VOL_USE_ALLOCATION' file='libvirt-storage' value='0' type='virStorageVolInfoFlags' info='Return the physical size in allocation'/>
     <enum name='VIR_STORAGE_VOL_WIPE_ALG_BSI' file='libvirt-storage' value='3' type='virStorageVolWipeAlgorithm' info='9-pass method recommended by the
 German Center of Security in
@@ -3572,6 +3674,7 @@ volume by using TRIM or DISCARD'/>
     <enum name='VIR_STREAM_EVENT_READABLE' file='libvirt-stream' value='1' type='virStreamEventType'/>
     <enum name='VIR_STREAM_EVENT_WRITABLE' file='libvirt-stream' value='2' type='virStreamEventType'/>
     <enum name='VIR_STREAM_NONBLOCK' file='libvirt-stream' value='1' type='virStreamFlags'/>
+    <enum name='VIR_STREAM_RECV_STOP_AT_HOLE' file='libvirt-stream' value='1' type='virStreamRecvFlagsValues'/>
     <enum name='VIR_TYPED_PARAM_BOOLEAN' file='libvirt-common' value='6' type='virTypedParameterType' info='boolean(character) case'/>
     <enum name='VIR_TYPED_PARAM_DOUBLE' file='libvirt-common' value='5' type='virTypedParameterType' info='double case'/>
     <enum name='VIR_TYPED_PARAM_INT' file='libvirt-common' value='1' type='virTypedParameterType' info='integer case'/>
@@ -3828,6 +3931,7 @@ and ERROR states)'/>
       <field name='fileRemaining' type='unsigned long long' info=''/>
     </struct>
     <typedef name='virDomainJobInfoPtr' file='libvirt-domain' type='virDomainJobInfo *'/>
+    <typedef name='virDomainJobOperation' file='libvirt-domain' type='enum'/>
     <typedef name='virDomainJobType' file='libvirt-domain' type='enum'/>
     <typedef name='virDomainMemoryFlags' file='libvirt-domain' type='enum'/>
     <typedef name='virDomainMemoryModFlags' file='libvirt-domain' type='enum'/>
@@ -4052,6 +4156,7 @@ unusual numa topology'/>
     <struct name='virStorageVol' file='libvirt-storage' type='struct _virStorageVol'/>
     <typedef name='virStorageVolCreateFlags' file='libvirt-storage' type='enum'/>
     <typedef name='virStorageVolDeleteFlags' file='libvirt-storage' type='enum'/>
+    <typedef name='virStorageVolDownloadFlags' file='libvirt-storage' type='enum'/>
     <struct name='virStorageVolInfo' file='libvirt-storage' type='struct _virStorageVolInfo'>
       <field name='type' type='int' info='virStorageVolType flags'/>
       <field name='capacity' type='unsigned long long' info='Logical size bytes'/>
@@ -4064,6 +4169,7 @@ unusual numa topology'/>
     </typedef>
     <typedef name='virStorageVolResizeFlags' file='libvirt-storage' type='enum'/>
     <typedef name='virStorageVolType' file='libvirt-storage' type='enum'/>
+    <typedef name='virStorageVolUploadFlags' file='libvirt-storage' type='enum'/>
     <typedef name='virStorageVolWipeAlgorithm' file='libvirt-storage' type='enum'/>
     <typedef name='virStorageXMLFlags' file='libvirt-storage' type='enum'/>
     <struct name='virStream' file='libvirt-host' type='struct _virStream'/>
@@ -4072,6 +4178,7 @@ unusual numa topology'/>
     <typedef name='virStreamPtr' file='libvirt-host' type='virStream *'>
       <info><![CDATA[a virStreamPtr is pointer to a virStream private structure, this is the type used to reference a data stream in the API.]]></info>
     </typedef>
+    <typedef name='virStreamRecvFlagsValues' file='libvirt-stream' type='enum'/>
     <struct name='virTypedParameter' file='libvirt-common' type='struct _virTypedParameter'>
       <field name='field' type='char field[VIR_TYPED_PARAM_FIELD_LENGTH]' info='parameter name'/>
       <field name='type' type='int' info='parameter type, virTypedParameterType'/>
@@ -4259,6 +4366,26 @@ dev='...'/> sub-element, such as "vda").]]></info>
       <arg name='disk' type='const char *' info='name associated with the affected disk (filename or target device, depending on how the callback was registered)'/>
       <arg name='type' type='int' info='type of block job (virDomainBlockJobType)'/>
       <arg name='status' type='int' info='status of the operation (virConnectDomainEventBlockJobStatus)'/>
+      <arg name='opaque' type='void *' info='application specified data'/>
+    </functype>
+    <functype name='virConnectDomainEventBlockThresholdCallback' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[The callback occurs when the hypervisor detects that the given storage
+element was written beyond the point specified by @threshold. The excess
+data size written beyond @threshold is reported by @excess (if supported
+by the hypervisor, 0 otherwise). The event is useful for thin-provisioned
+storage.
+
+The threshold size can be set via the virDomainSetBlockThreshold API.
+
+The callback signature to use when registering for an event of type
+VIR_DOMAIN_EVENT_ID_BLOCK_THRESHOLD with virConnectDomainEventRegisterAny()]]></info>
+      <return type='void'/>
+      <arg name='conn' type='virConnectPtr' info='connection object'/>
+      <arg name='dom' type='virDomainPtr' info='domain on which the event occurred'/>
+      <arg name='dev' type='const char *' info='name associated with the affected disk or storage backing chain element'/>
+      <arg name='path' type='const char *' info='for local storage, the path of the backing chain element'/>
+      <arg name='threshold' type='unsigned long long' info='threshold offset in bytes'/>
+      <arg name='excess' type='unsigned long long' info='number of bytes written beyond the threshold'/>
       <arg name='opaque' type='void *' info='application specified data'/>
     </functype>
     <functype name='virConnectDomainEventCallback' file='libvirt-domain' module='libvirt-domain'>
@@ -4718,6 +4845,9 @@ VIR_DOMAIN_STATS_BLOCK:
                              backing image as unsigned long long.
     "block.<num>.physical" - physical size in bytes of the container of the
                              backing image as unsigned long long.
+    "block.<num>.threshold" - current threshold for delivering the
+                              VIR_DOMAIN_EVENT_ID_BLOCK_THRESHOLD
+                              event in bytes. See virDomainSetBlockThreshold.
 
 VIR_DOMAIN_STATS_PERF:
     Return perf event statistics.
@@ -4762,6 +4892,31 @@ VIR_DOMAIN_STATS_PERF:
                             CPU frequency scaling by applications running
                             as unsigned long long. It is produced by the
                             ref_cpu_cycles perf event.
+    "perf.cpu_clock" - The count of cpu clock time as unsigned long long.
+                       It is produced by the cpu_clock perf event.
+    "perf.task_clock" - The count of task clock time as unsigned long long.
+                        It is produced by the task_clock perf event.
+    "perf.page_faults" - The count of page faults as unsigned long long.
+                         It is produced by the page_faults perf event
+    "perf.context_switches" - The count of context switches as unsigned long
+                              long. It is produced by the context_switches
+                              perf event.
+    "perf.cpu_migrations" - The count of cpu migrations, from one logical
+                            processor to another, as unsigned long
+                            long. It is produced by the cpu_migrations
+                            perf event.
+    "perf.page_faults_min" - The count of minor page faults as unsigned
+                             long long. It is produced by the
+                             page_faults_min perf event.
+    "perf.page_faults_maj" - The count of major page faults as unsigned
+                             long long. It is produced by the
+                             page_faults_maj perf event.
+    "perf.alignment_faults" - The count of alignment faults as unsigned
+                              long long. It is produced by the
+                              alignment_faults perf event
+    "perf.emulation_faults" - The count of emulation faults as unsigned
+                              long long. It is produced by the
+                              emulation_faults perf event
 
 Note that entire stats groups or individual stat fields may be missing from
 the output in case they are not supported by the given hypervisor, are not
@@ -5050,7 +5205,10 @@ capability type, flags include:
   VIR_CONNECT_LIST_NODE_DEVICES_CAP_FC_HOST
   VIR_CONNECT_LIST_NODE_DEVICES_CAP_VPORTS
   VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_GENERIC
-  VIR_CONNECT_LIST_NODE_DEVICES_CAP_DRM]]></info>
+  VIR_CONNECT_LIST_NODE_DEVICES_CAP_DRM
+  VIR_CONNECT_LIST_NODE_DEVICES_CAP_MDEV_TYPES
+  VIR_CONNECT_LIST_NODE_DEVICES_CAP_MDEV
+  VIR_CONNECT_LIST_NODE_DEVICES_CAP_CCW_DEV]]></info>
       <return type='int' info='the number of node devices found or -1 and sets @devices to NULL in case of error.  On success, the array stored into @devices is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier.  The caller is responsible for calling virNodeDeviceFree() on each array element, then calling free() on @devices.'/>
       <arg name='conn' type='virConnectPtr' info='Pointer to the hypervisor connection.'/>
       <arg name='devices' type='virNodeDevicePtr **' info='Pointer to a variable to store the array containing the node device objects or NULL if the list is not required (just returns number of node devices).'/>
@@ -5650,7 +5808,9 @@ One will need to free the result with virResetError()]]></info>
     </function>
     <function name='virDomainAbortJob' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Requests that the current background job be aborted at the
-soonest opportunity.]]></info>
+soonest opportunity. In case the job is a migration in a post-copy mode,
+virDomainAbortJob will report an error (see virDomainMigrateStartPostCopy
+for more details).]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
     </function>
@@ -5856,6 +6016,10 @@ of the first phase.
 Some hypervisors will restrict certain actions, such as virDomainSave()
 or virDomainDetachDevice(), while a copy job is active; they may
 also restrict a copy job to transient domains.
+
+If @flags contains VIR_DOMAIN_BLOCK_COPY_TRANSIENT_JOB the job will not be
+recoverable if the VM is turned off while job is active. This flag will
+remove the restriction of copy jobs to transient domains.
 
 The @disk parameter is either an unambiguous source name of the
 block device (the <source file='...'/> sub-element, such as
@@ -7758,7 +7922,8 @@ guest is running on the destination host, the migration can no longer be
 rolled back because none of the hosts has complete state. If this happens,
 libvirt will leave the domain paused on both hosts with
 VIR_DOMAIN_PAUSED_POSTCOPY_FAILED reason. It's up to the upper layer to
-decide what to do in such case.
+decide what to do in such case. Because of this, libvirt will refuse to
+cancel post-copy migration via virDomainAbortJob.
 
 The following domain life cycle events are emitted during post-copy
 migration:
@@ -8395,6 +8560,26 @@ within //domain/devices/disk.]]></info>
       <arg name='nparams' type='int' info='Number of blkio parameters (this value can be the same or less than the number of parameters supported)'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainModificationImpact'/>
     </function>
+    <function name='virDomainSetBlockThreshold' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[Set the threshold level for delivering the
+VIR_DOMAIN_EVENT_ID_BLOCK_THRESHOLD if the device or backing chain element
+described by @dev is written beyond the set threshold level. The threshold
+level is unset once the event fires. The event might not be delivered at all
+if libvirtd was not running at the moment when the threshold was reached.
+
+Hypervisors report the last written sector of an image in the bulk stats API
+(virConnectGetAllDomainStats/virDomainListGetStats) as
+"block.<num>.allocation" in the VIR_DOMAIN_STATS_BLOCK group. The current
+threshold value is reported as "block.<num>.threshold".
+
+This event allows to use thin-provisioned storage which needs management
+tools to grow it without the need for polling of the data.]]></info>
+      <return type='int' info='0 if the operation has started, -1 on failure.'/>
+      <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
+      <arg name='dev' type='const char *' info='string specifying the block device or backing chain element'/>
+      <arg name='threshold' type='unsigned long long' info='threshold in bytes when to fire the event'/>
+      <arg name='flags' type='unsigned int' info='currently unused, callers should pass 0'/>
+    </function>
     <function name='virDomainSetGuestVcpus' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Sets state of individual vcpus described by @cpumap via guest agent. Other
 vcpus are not modified.
@@ -8664,7 +8849,8 @@ VIR_DOMAIN_AFFECT_LIVE must be clear, and only the maximum virtual
 CPU limit is altered; generally, this value must be less than or
 equal to virConnectGetMaxVcpus().  Otherwise, this call affects the
 current virtual CPU limit, which must be less than or equal to the
-maximum limit.
+maximum limit. Note that hypervisors may not allow changing the maximum
+vcpu count if processor topology is specified.
 
 If @flags includes VIR_DOMAIN_VCPU_GUEST, then the state of processors is
 modified inside the guest instead of the hypervisor. This flag can only
@@ -9194,9 +9380,9 @@ metadata until the (now-transient) domain halts, regardless of
 whether this flag is present.  On hypervisors where snapshots do
 not use libvirt metadata, this flag has no effect.
 
-If the domain has any nvram specified, then including
-VIR_DOMAIN_UNDEFINE_NVRAM will also remove that file, and omitting the flag
-will cause the undefine process to fail.]]></info>
+If the domain has any nvram specified, the undefine process will fail
+unless VIR_DOMAIN_UNDEFINE_KEEP_NVRAM is specified, or if
+VIR_DOMAIN_UNDEFINE_NVRAM is specified to remove the nvram file.]]></info>
       <return type='int' info='0 in case of success, -1 in case of error'/>
       <arg name='domain' type='virDomainPtr' info='pointer to a defined domain'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of supported virDomainUndefineFlagsValues'/>
@@ -10830,6 +11016,13 @@ storage volume object is no longer needed.]]></info>
 is zero, then the remaining contents of the volume after
 @offset will be downloaded.
 
+If VIR_STORAGE_VOL_DOWNLOAD_SPARSE_STREAM is set in @flags
+effective transmission of holes is enabled. This assumes using
+the @stream with combination of virStreamSparseRecvAll() or
+virStreamRecvFlags(stream, ..., flags =
+VIR_STREAM_RECV_STOP_AT_HOLE) for honouring holes sent by
+server.
+
 This call sets up an asynchronous stream; subsequent use of
 stream APIs is necessary to transfer the actual data,
 determine how much data is successfully transferred, and
@@ -10840,7 +11033,7 @@ another active stream is writing to the storage volume.]]></info>
       <arg name='stream' type='virStreamPtr' info='stream to use as output'/>
       <arg name='offset' type='unsigned long long' info='position in @vol to start reading from'/>
       <arg name='length' type='unsigned long long' info='limit on amount of data to download'/>
-      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virStorageVolDownloadFlags'/>
     </function>
     <function name='virStorageVolFree' file='libvirt-storage' module='libvirt-storage'>
       <info><![CDATA[Release the storage volume handle. The underlying
@@ -10991,6 +11184,11 @@ volume. Otherwise, if @length is non-zero, an error
 will be raised if an attempt is made to upload greater
 than @length bytes of data.
 
+If VIR_STORAGE_VOL_UPLOAD_SPARSE_STREAM is set in @flags
+effective transmission of holes is enabled. This assumes using
+the @stream with combination of virStreamSparseSendAll() or
+virStreamSendHole() to preserve source file sparseness.
+
 This call sets up an asynchronous stream; subsequent use of
 stream APIs is necessary to transfer the actual data,
 determine how much data is successfully transferred, and
@@ -11009,7 +11207,7 @@ capacity, and allocation.]]></info>
       <arg name='stream' type='virStreamPtr' info='stream to use as input'/>
       <arg name='offset' type='unsigned long long' info='position to start writing to'/>
       <arg name='length' type='unsigned long long' info='limit on amount of data to upload'/>
-      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virStorageVolUploadFlags'/>
     </function>
     <function name='virStorageVolWipe' file='libvirt-storage' module='libvirt-storage'>
       <info><![CDATA[Ensure data previously on a volume is not accessible to future reads.
@@ -11046,7 +11244,10 @@ abnormally before the end of the stream has been reached.
 For output streams this can be used to inform the driver
 that the stream is being terminated early. For input
 streams this can be used to inform the driver that it
-should stop sending data.]]></info>
+should stop sending data.
+
+If the stream is non-blocking, any callback must be removed
+beforehand.]]></info>
       <return type='int' info='0 on success, -1 upon error'/>
       <arg name='stream' type='virStreamPtr' info='pointer to the stream object'/>
     </function>
@@ -11092,7 +11293,10 @@ called once virStreamRecv returns end-of-file.
 
 This method is a synchronization point for all asynchronous
 errors, so if this returns a success code the application can
-be sure that all data has been successfully processed.]]></info>
+be sure that all data has been successfully processed.
+
+If the stream is non-blocking, any callback must be removed
+beforehand.]]></info>
       <return type='int' info='0 on success, -1 upon error'/>
       <arg name='stream' type='virStreamPtr' info='pointer to the stream object'/>
     </function>
@@ -11200,6 +11404,57 @@ API looks like
       <arg name='handler' type='virStreamSinkFunc' info='sink callback for writing data to application'/>
       <arg name='opaque' type='void *' info='application defined data'/>
     </function>
+    <function name='virStreamRecvFlags' file='libvirt-stream' module='libvirt-stream'>
+      <info><![CDATA[Reads a series of bytes from the stream. This method may
+block the calling application for an arbitrary amount
+of time.
+
+This is just like virStreamRecv except this one has extra
+@flags. Calling this function with no @flags set (equal to
+zero) is equivalent to calling virStreamRecv(stream, data, nbytes).
+
+If flag VIR_STREAM_RECV_STOP_AT_HOLE is set, this function
+will stop reading from stream if it has reached a hole. In
+that case, -3 is returned and virStreamRecvHole() should be
+called to get the hole size. An example using this flag might
+look like this:
+
+  while (1) {
+    char buf[4096];
+
+    int ret = virStreamRecvFlags(st, buf, len, VIR_STREAM_STOP_AT_HOLE);
+    if (ret < 0) {
+      if (ret == -3) {
+        long long len;
+        ret = virStreamRecvHole(st, &len, 0);
+        if (ret < 0) {
+          ...error..
+        } else {
+          ...seek len bytes in target...
+        }
+      } else {
+        return -1;
+      }
+    } else {
+        ...write buf to target...
+    }
+  }]]></info>
+      <return type='int' info='0 when the end of the stream is reached, at which time the caller should invoke virStreamFinish() to get confirmation of stream completion.  Returns -1 upon error, at which time the stream will be marked as aborted, and the caller should now release the stream with virStreamFree.  Returns -2 if there is no data pending to be read &amp; the stream is marked as non-blocking.  Returns -3 if there is a hole in stream and caller requested to stop at a hole.'/>
+      <arg name='stream' type='virStreamPtr' info='pointer to the stream object'/>
+      <arg name='data' type='char *' info='buffer to read into from stream'/>
+      <arg name='nbytes' type='size_t' info='size of @data buffer'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virStreamRecvFlagsValues'/>
+    </function>
+    <function name='virStreamRecvHole' file='libvirt-stream' module='libvirt-stream'>
+      <info><![CDATA[This API is used to determine the @length in bytes of the
+empty space to be created in a @stream's target file when
+uploading or downloading sparsely populated files. This is the
+counterpart to virStreamSendHole().]]></info>
+      <return type='int' info='0 on success, -1 on error or when there&apos;s currently no hole in the stream'/>
+      <arg name='stream' type='virStreamPtr' info='pointer to the stream object'/>
+      <arg name='length' type='long long *' info='number of bytes to skip'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
     <function name='virStreamRef' file='libvirt-stream' module='libvirt-stream'>
       <info><![CDATA[Increment the reference count on the stream. For each
 additional call to this method, there shall be a corresponding
@@ -11292,10 +11547,38 @@ API looks like
       <arg name='handler' type='virStreamSourceFunc' info='source callback for reading data from application'/>
       <arg name='opaque' type='void *' info='application defined data'/>
     </function>
+    <function name='virStreamSendHole' file='libvirt-stream' module='libvirt-stream'>
+      <info><![CDATA[Rather than transmitting empty file space, this API directs
+the @stream target to create @length bytes of empty space.
+This API would be used when uploading or downloading sparsely
+populated files to avoid the needless copy of empty file
+space.
+
+An example using this with a hypothetical file upload API
+looks like:
+
+  virStream st;
+
+  while (1) {
+    char buf[4096];
+    size_t len;
+    if (..in hole...) {
+      ..get hole size...
+      virStreamSendHole(st, len, 0);
+    } else {
+      ...read len bytes...
+      virStreamSend(st, buf, len);
+    }
+  }]]></info>
+      <return type='int' info='0 on success, -1 error'/>
+      <arg name='stream' type='virStreamPtr' info='pointer to the stream object'/>
+      <arg name='length' type='long long' info='number of bytes to skip'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
     <functype name='virStreamSinkFunc' file='libvirt-stream' module='libvirt-stream'>
-      <info><![CDATA[The virStreamSinkFunc callback is used together
-with the virStreamRecvAll function for libvirt to
-provide the data that has been received.
+      <info><![CDATA[The virStreamSinkFunc callback is used together with the
+virStreamRecvAll or virStreamSparseRecvAll functions for
+libvirt to provide the data that has been received.
 
 The callback will be invoked multiple times,
 providing data in small chunks. The application
@@ -11311,10 +11594,24 @@ will abort the receive operation]]></info>
       <arg name='nbytes' type='size_t' info='size of the data array'/>
       <arg name='opaque' type='void *' info='optional application provided data'/>
     </functype>
+    <functype name='virStreamSinkHoleFunc' file='libvirt-stream' module='libvirt-stream'>
+      <info><![CDATA[This callback is used together with the virStreamSparseRecvAll
+function for libvirt to provide the size of a hole that
+occurred in the stream.
+
+The callback may be invoked multiple times as holes are found
+during processing a stream. The application should create the
+hole in the stream target and then return. A return value of
+-1 at any time will abort the receive operation.]]></info>
+      <return type='int' info='0 on success, -1 upon error'/>
+      <arg name='st' type='virStreamPtr' info='the stream object'/>
+      <arg name='length' type='long long' info='stream hole size'/>
+      <arg name='opaque' type='void *' info='optional application provided data'/>
+    </functype>
     <functype name='virStreamSourceFunc' file='libvirt-stream' module='libvirt-stream'>
-      <info><![CDATA[The virStreamSourceFunc callback is used together
-with the virStreamSendAll function for libvirt to
-obtain the data that is to be sent.
+      <info><![CDATA[The virStreamSourceFunc callback is used together with
+the virStreamSendAll and virStreamSparseSendAll functions
+for libvirt to obtain the data that is to be sent.
 
 The callback will be invoked multiple times,
 fetching data in small chunks. The application
@@ -11330,6 +11627,145 @@ of -1 at any time will abort the send operation]]></info>
       <arg name='nbytes' type='size_t' info='size of the data array'/>
       <arg name='opaque' type='void *' info='optional application provided data'/>
     </functype>
+    <functype name='virStreamSourceHoleFunc' file='libvirt-stream' module='libvirt-stream'>
+      <info><![CDATA[The virStreamSourceHoleFunc callback is used together with the
+virStreamSparseSendAll function for libvirt to obtain the
+length of section stream is currently in.
+
+Moreover, upon successful return, @length should be updated
+with how many bytes are left until the current section ends
+(either data section or hole section). Also the stream is
+currently in data section, @inData should be set to a non-zero
+value and vice versa.
+
+NB: there's an implicit hole at the end of each file. If
+that's the case, @inData and @length should be both set to 0.
+
+This function should not adjust the current position within
+the file.]]></info>
+      <return type='int' info='0 on success, -1 upon error'/>
+      <arg name='st' type='virStreamPtr' info='the stream object'/>
+      <arg name='inData' type='int *' info='are we in data section'/>
+      <arg name='length' type='long long *' info='how long is the section we are currently in'/>
+      <arg name='opaque' type='void *' info='optional application provided data'/>
+    </functype>
+    <functype name='virStreamSourceSkipFunc' file='libvirt-stream' module='libvirt-stream'>
+      <info><![CDATA[This callback is used together with the virStreamSparseSendAll
+to skip holes in the underlying file as reported by
+virStreamSourceHoleFunc.
+
+The callback may be invoked multiple times as holes are found
+during processing a stream. The application should skip
+processing the hole in the stream source and then return.
+A return value of -1 at any time will abort the send operation.]]></info>
+      <return type='int' info='0 on success, -1 upon error.'/>
+      <arg name='st' type='virStreamPtr' info='the stream object'/>
+      <arg name='length' type='long long' info='stream hole size'/>
+      <arg name='opaque' type='void *' info='optional application provided data'/>
+    </functype>
+    <function name='virStreamSparseRecvAll' file='libvirt-stream' module='libvirt-stream'>
+      <info><![CDATA[Receive the entire data stream, sending the data to the
+requested data sink @handler and calling the skip @holeHandler
+to generate holes for sparse stream targets. This is simply a
+convenient alternative to virStreamRecvFlags, for apps that do
+blocking-I/O.
+
+An example using this with a hypothetical file download
+API looks like:
+
+  int mysink(virStreamPtr st, const char *buf, int nbytes, void *opaque) {
+      int *fd = opaque;
+
+      return write(*fd, buf, nbytes);
+  }
+
+  int myskip(virStreamPtr st, long long offset, void *opaque) {
+      int *fd = opaque;
+
+      return lseek(*fd, offset, SEEK_CUR) == (off_t) -1 ? -1 : 0;
+  }
+
+  virStreamPtr st = virStreamNew(conn, 0);
+  int fd = open("demo.iso", O_WRONLY);
+
+  virConnectDownloadSparseFile(conn, st);
+  if (virStreamSparseRecvAll(st, mysink, myskip, &fd) < 0) {
+     ...report an error ...
+     goto done;
+  }
+  if (virStreamFinish(st) < 0)
+     ...report an error...
+  virStreamFree(st);
+  close(fd);
+
+Note that @opaque data is shared between both @handler and
+@holeHandler callbacks.]]></info>
+      <return type='int' info='0 if all the data was successfully received. The caller should invoke virStreamFinish(st) to flush the stream upon success and then virStreamFree(st).  Returns -1 upon any error, with virStreamAbort() already having been called, so the caller need only call virStreamFree().'/>
+      <arg name='stream' type='virStreamPtr' info='pointer to the stream object'/>
+      <arg name='handler' type='virStreamSinkFunc' info='sink callback for writing data to application'/>
+      <arg name='holeHandler' type='virStreamSinkHoleFunc' info='stream hole callback for skipping holes'/>
+      <arg name='opaque' type='void *' info='application defined data'/>
+    </function>
+    <function name='virStreamSparseSendAll' file='libvirt-stream' module='libvirt-stream'>
+      <info><![CDATA[Send the entire data stream, reading the data from the
+requested data source. This is simply a convenient alternative
+to virStreamSend, for apps that do blocking-I/O.
+
+An example using this with a hypothetical file upload
+API looks like
+
+  int mysource(virStreamPtr st, char *buf, int nbytes, void *opaque) {
+      int *fd = opaque;
+
+      return read(*fd, buf, nbytes);
+  }
+
+  int myskip(virStreamPtr st, long long offset, void *opaque) {
+      int *fd = opaque;
+
+      return lseek(*fd, offset, SEEK_CUR) == (off_t) -1 ? -1 : 0;
+  }
+
+  int myindata(virStreamPtr st, int *inData,
+               long long *offset, void *opaque) {
+      int *fd = opaque;
+
+      if (@fd in hole) {
+          *inData = 0;
+          *offset = holeSize;
+      } else {
+          *inData = 1;
+          *offset = dataSize;
+      }
+
+      return 0;
+  }
+
+  virStreamPtr st = virStreamNew(conn, 0);
+  int fd = open("demo.iso", O_RDONLY);
+
+  virConnectUploadSparseFile(conn, st);
+  if (virStreamSparseSendAll(st,
+                             mysource,
+                             myindata,
+                             myskip,
+                             &fd) < 0) {
+     ...report an error ...
+     goto done;
+  }
+  if (virStreamFinish(st) < 0)
+     ...report an error...
+  virStreamFree(st);
+  close(fd);
+
+Note that @opaque data are shared between @handler, @holeHandler and @skipHandler.]]></info>
+      <return type='int' info='0 if all the data was successfully sent. The caller should invoke virStreamFinish(st) to flush the stream upon success and then virStreamFree.  Returns -1 upon any error, with virStreamAbort() already having been called,  so the caller need only call virStreamFree().'/>
+      <arg name='stream' type='virStreamPtr' info='pointer to the stream object'/>
+      <arg name='handler' type='virStreamSourceFunc' info='source callback for reading data from application'/>
+      <arg name='holeHandler' type='virStreamSourceHoleFunc' info='source callback for determining holes'/>
+      <arg name='skipHandler' type='virStreamSourceSkipFunc' info='skip holes as reported by @holeHandler'/>
+      <arg name='opaque' type='void *' info='application defined data'/>
+    </function>
     <function name='virTypedParamsAddBoolean' file='libvirt-common' module='virtypedparam'>
       <info><![CDATA[Adds new parameter called @name with boolean type and sets its value to
 @value. If @params array points to NULL or to a space that is not large

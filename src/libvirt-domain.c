@@ -6287,9 +6287,9 @@ virDomainUndefine(virDomainPtr domain)
  * whether this flag is present.  On hypervisors where snapshots do
  * not use libvirt metadata, this flag has no effect.
  *
- * If the domain has any nvram specified, then including
- * VIR_DOMAIN_UNDEFINE_NVRAM will also remove that file, and omitting the flag
- * will cause the undefine process to fail.
+ * If the domain has any nvram specified, the undefine process will fail
+ * unless VIR_DOMAIN_UNDEFINE_KEEP_NVRAM is specified, or if
+ * VIR_DOMAIN_UNDEFINE_NVRAM is specified to remove the nvram file.
  *
  * Returns 0 in case of success, -1 in case of error
  */
@@ -7010,7 +7010,8 @@ virDomainSetVcpus(virDomainPtr domain, unsigned int nvcpus)
  * CPU limit is altered; generally, this value must be less than or
  * equal to virConnectGetMaxVcpus().  Otherwise, this call affects the
  * current virtual CPU limit, which must be less than or equal to the
- * maximum limit.
+ * maximum limit. Note that hypervisors may not allow changing the maximum
+ * vcpu count if processor topology is specified.
  *
  * If @flags includes VIR_DOMAIN_VCPU_GUEST, then the state of processors is
  * modified inside the guest instead of the hypervisor. This flag can only
@@ -7954,7 +7955,7 @@ virDomainSetMetadata(virDomainPtr domain,
                                   "newlines"));
             goto error;
         }
-        /* fallthrough */
+        ATTRIBUTE_FALLTHROUGH;
     case VIR_DOMAIN_METADATA_DESCRIPTION:
         virCheckNullArgGoto(uri, error);
         virCheckNullArgGoto(key, error);
@@ -8702,7 +8703,9 @@ virDomainGetJobStats(virDomainPtr domain,
  * @domain: a domain object
  *
  * Requests that the current background job be aborted at the
- * soonest opportunity.
+ * soonest opportunity. In case the job is a migration in a post-copy mode,
+ * virDomainAbortJob will report an error (see virDomainMigrateStartPostCopy
+ * for more details).
  *
  * Returns 0 in case of success and -1 in case of failure.
  */
@@ -8976,7 +8979,8 @@ virDomainMigrateGetMaxSpeed(virDomainPtr domain,
  * rolled back because none of the hosts has complete state. If this happens,
  * libvirt will leave the domain paused on both hosts with
  * VIR_DOMAIN_PAUSED_POSTCOPY_FAILED reason. It's up to the upper layer to
- * decide what to do in such case.
+ * decide what to do in such case. Because of this, libvirt will refuse to
+ * cancel post-copy migration via virDomainAbortJob.
  *
  * The following domain life cycle events are emitted during post-copy
  * migration:
@@ -10022,6 +10026,10 @@ virDomainBlockRebase(virDomainPtr dom, const char *disk,
  * Some hypervisors will restrict certain actions, such as virDomainSave()
  * or virDomainDetachDevice(), while a copy job is active; they may
  * also restrict a copy job to transient domains.
+ *
+ * If @flags contains VIR_DOMAIN_BLOCK_COPY_TRANSIENT_JOB the job will not be
+ * recoverable if the VM is turned off while job is active. This flag will
+ * remove the restriction of copy jobs to transient domains.
  *
  * The @disk parameter is either an unambiguous source name of the
  * block device (the <source file='...'/> sub-element, such as
@@ -11206,6 +11214,9 @@ virConnectGetDomainCapabilities(virConnectPtr conn,
  *                              backing image as unsigned long long.
  *     "block.<num>.physical" - physical size in bytes of the container of the
  *                              backing image as unsigned long long.
+ *     "block.<num>.threshold" - current threshold for delivering the
+ *                               VIR_DOMAIN_EVENT_ID_BLOCK_THRESHOLD
+ *                               event in bytes. See virDomainSetBlockThreshold.
  *
  * VIR_DOMAIN_STATS_PERF:
  *     Return perf event statistics.
@@ -11250,6 +11261,31 @@ virConnectGetDomainCapabilities(virConnectPtr conn,
  *                             CPU frequency scaling by applications running
  *                             as unsigned long long. It is produced by the
  *                             ref_cpu_cycles perf event.
+ *     "perf.cpu_clock" - The count of cpu clock time as unsigned long long.
+ *                        It is produced by the cpu_clock perf event.
+ *     "perf.task_clock" - The count of task clock time as unsigned long long.
+ *                         It is produced by the task_clock perf event.
+ *     "perf.page_faults" - The count of page faults as unsigned long long.
+ *                          It is produced by the page_faults perf event
+ *     "perf.context_switches" - The count of context switches as unsigned long
+ *                               long. It is produced by the context_switches
+ *                               perf event.
+ *     "perf.cpu_migrations" - The count of cpu migrations, from one logical
+ *                             processor to another, as unsigned long
+ *                             long. It is produced by the cpu_migrations
+ *                             perf event.
+ *     "perf.page_faults_min" - The count of minor page faults as unsigned
+ *                              long long. It is produced by the
+ *                              page_faults_min perf event.
+ *     "perf.page_faults_maj" - The count of major page faults as unsigned
+ *                              long long. It is produced by the
+ *                              page_faults_maj perf event.
+ *     "perf.alignment_faults" - The count of alignment faults as unsigned
+ *                               long long. It is produced by the
+ *                               alignment_faults perf event
+ *     "perf.emulation_faults" - The count of emulation faults as unsigned
+ *                               long long. It is produced by the
+ *                               emulation_faults perf event
  *
  * Note that entire stats groups or individual stat fields may be missing from
  * the output in case they are not supported by the given hypervisor, are not
@@ -11786,6 +11822,62 @@ virDomainSetVcpu(virDomainPtr domain,
     if (domain->conn->driver->domainSetVcpu) {
         int ret;
         ret = domain->conn->driver->domainSetVcpu(domain, vcpumap, state, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virReportUnsupportedError();
+
+ error:
+    virDispatchError(domain->conn);
+    return -1;
+}
+
+
+/**
+ * virDomainSetBlockThreshold:
+ * @domain: pointer to domain object
+ * @dev: string specifying the block device or backing chain element
+ * @threshold: threshold in bytes when to fire the event
+ * @flags: currently unused, callers should pass 0
+ *
+ * Set the threshold level for delivering the
+ * VIR_DOMAIN_EVENT_ID_BLOCK_THRESHOLD if the device or backing chain element
+ * described by @dev is written beyond the set threshold level. The threshold
+ * level is unset once the event fires. The event might not be delivered at all
+ * if libvirtd was not running at the moment when the threshold was reached.
+ *
+ * Hypervisors report the last written sector of an image in the bulk stats API
+ * (virConnectGetAllDomainStats/virDomainListGetStats) as
+ * "block.<num>.allocation" in the VIR_DOMAIN_STATS_BLOCK group. The current
+ * threshold value is reported as "block.<num>.threshold".
+ *
+ * This event allows to use thin-provisioned storage which needs management
+ * tools to grow it without the need for polling of the data.
+ *
+ * Returns 0 if the operation has started, -1 on failure.
+ */
+int
+virDomainSetBlockThreshold(virDomainPtr domain,
+                           const char *dev,
+                           unsigned long long threshold,
+                           unsigned int flags)
+{
+    VIR_DOMAIN_DEBUG(domain, "dev='%s' threshold=%llu flags=%x",
+                     NULLSTR(dev), threshold, flags);
+
+    virResetLastError();
+
+    virCheckDomainReturn(domain, -1);
+    virCheckReadOnlyGoto(domain->conn->flags, error);
+
+    virCheckNonNullArgGoto(dev, error);
+
+    if (domain->conn->driver->domainSetBlockThreshold) {
+        int ret;
+        ret = domain->conn->driver->domainSetBlockThreshold(domain, dev,
+                                                            threshold, flags);
         if (ret < 0)
             goto error;
         return ret;

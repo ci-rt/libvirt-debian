@@ -79,6 +79,8 @@
 #  define INET_ADDRSTRLEN 16
 # endif
 
+# define VIR_LOOPBACK_IPV4_ADDR "127.0.0.1"
+
 /* String equality tests, suggested by Jim Meyering. */
 # define STREQ(a, b) (strcmp(a, b) == 0)
 # define STRCASEEQ(a, b) (c_strcasecmp(a, b) == 0)
@@ -114,11 +116,6 @@
 #    define __GNUC_PREREQ(maj, min) 0
 #   endif
 
-/* Work around broken limits.h on debian etch */
-#   if defined _GCC_LIMITS_H_ && ! defined ULLONG_MAX
-#    define ULLONG_MAX   ULONG_LONG_MAX
-#   endif
-
 #  endif /* __GNUC__ */
 
 /**
@@ -149,6 +146,20 @@
 #    define ATTRIBUTE_SENTINEL __attribute__((__sentinel__))
 #   else
 #    define ATTRIBUTE_SENTINEL
+#   endif
+#  endif
+
+/**
+ * ATTRIBUTE_NOINLINE:
+ *
+ * Force compiler not to inline a method. Should be used if
+ * the method need to be overridable by test mocks.
+ */
+#  ifndef ATTRIBUTE_NOINLINE
+#   if __GNUC_PREREQ (4, 0)
+#    define ATTRIBUTE_NOINLINE __attribute__((__noinline__))
+#   else
+#    define ATTRIBUTE_NOINLINE
 #   endif
 #  endif
 
@@ -236,6 +247,9 @@
 #  ifndef ATTRIBUTE_RETURN_CHECK
 #   define ATTRIBUTE_RETURN_CHECK
 #  endif
+#  ifndef ATTRIBUTE_NOINLINE
+#   define ATTRIBUTE_NOINLINE
+#  endif
 #
 #  ifndef ATTRIBUTE_FALLTHROUGH
 #   define ATTRIBUTE_FALLTHROUGH do {} while(0)
@@ -247,6 +261,10 @@
 #  define VIR_WARNINGS_NO_CAST_ALIGN \
     _Pragma ("GCC diagnostic push") \
     _Pragma ("GCC diagnostic ignored \"-Wcast-align\"")
+
+#  define VIR_WARNINGS_NO_DEPRECATED \
+    _Pragma ("GCC diagnostic push") \
+    _Pragma ("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
 
 #  if HAVE_SUGGEST_ATTRIBUTE_FORMAT
 #   define VIR_WARNINGS_NO_PRINTF \
@@ -272,6 +290,7 @@
     _Pragma ("GCC diagnostic pop")
 # else
 #  define VIR_WARNINGS_NO_CAST_ALIGN
+#  define VIR_WARNINGS_NO_DEPRECATED
 #  define VIR_WARNINGS_NO_PRINTF
 #  define VIR_WARNINGS_NO_WLOGICALOP_EQUAL_EXPR
 #  define VIR_WARNINGS_RESET
@@ -509,6 +528,13 @@
             virReportInvalidPositiveArg(argname);   \
             goto label;                             \
         }                                           \
+    } while (0)
+# define virCheckPositiveArgReturn(argname, retval)     \
+    do {                                                \
+        if (argname <= 0) {                             \
+            virReportInvalidPositiveArg(argname);       \
+            return retval;                              \
+        }                                               \
     } while (0)
 # define virCheckNonZeroArgGoto(argname, label)     \
     do {                                            \

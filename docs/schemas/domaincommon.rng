@@ -433,6 +433,15 @@
               <value>stalled_cycles_frontend</value>
               <value>stalled_cycles_backend</value>
               <value>ref_cpu_cycles</value>
+              <value>cpu_clock</value>
+              <value>task_clock</value>
+              <value>page_faults</value>
+              <value>context_switches</value>
+              <value>cpu_migrations</value>
+              <value>page_faults_min</value>
+              <value>page_faults_maj</value>
+              <value>alignment_faults</value>
+              <value>emulation_faults</value>
             </choice>
           </attribute>
           <attribute name="enabled">
@@ -1421,124 +1430,110 @@
         <value>file</value>
       </attribute>
     </optional>
-    <interleave>
-      <optional>
-        <element name="source">
-          <optional>
-            <attribute name="file">
-              <ref name="absFilePath"/>
-            </attribute>
-          </optional>
-          <optional>
-            <ref name="storageStartupPolicy"/>
-          </optional>
-          <zeroOrMore>
-            <ref name='devSeclabel'/>
-          </zeroOrMore>
-        </element>
-      </optional>
-    </interleave>
+    <optional>
+      <element name="source">
+        <optional>
+          <attribute name="file">
+            <ref name="absFilePath"/>
+          </attribute>
+        </optional>
+        <optional>
+          <ref name="storageStartupPolicy"/>
+        </optional>
+        <zeroOrMore>
+          <ref name='devSeclabel'/>
+        </zeroOrMore>
+      </element>
+    </optional>
   </define>
 
   <define name="diskSourceBlock">
     <attribute name="type">
       <value>block</value>
     </attribute>
-    <interleave>
-      <optional>
-        <element name="source">
-          <optional>
-            <attribute name="dev">
-              <ref name="absFilePath"/>
-            </attribute>
-          </optional>
-          <optional>
-            <ref name="storageStartupPolicy"/>
-          </optional>
-          <zeroOrMore>
-            <ref name='devSeclabel'/>
-          </zeroOrMore>
-        </element>
-      </optional>
-    </interleave>
+    <optional>
+      <element name="source">
+        <optional>
+          <attribute name="dev">
+            <ref name="absFilePath"/>
+          </attribute>
+        </optional>
+        <optional>
+          <ref name="storageStartupPolicy"/>
+        </optional>
+        <zeroOrMore>
+          <ref name='devSeclabel'/>
+        </zeroOrMore>
+      </element>
+    </optional>
   </define>
 
   <define name="diskSourceDir">
     <attribute name="type">
       <value>dir</value>
     </attribute>
-    <interleave>
-      <optional>
-        <element name="source">
-          <attribute name="dir">
-            <ref name="absFilePath"/>
-          </attribute>
-          <optional>
-            <ref name="storageStartupPolicy"/>
-          </optional>
-          <empty/>
-        </element>
-      </optional>
-    </interleave>
+    <optional>
+      <element name="source">
+        <attribute name="dir">
+          <ref name="absFilePath"/>
+        </attribute>
+        <optional>
+          <ref name="storageStartupPolicy"/>
+        </optional>
+        <empty/>
+      </element>
+    </optional>
   </define>
 
-  <define name="diskSourceNetwork">
-    <attribute name="type">
-      <value>network</value>
-    </attribute>
-    <interleave>
-      <element name="source">
+  <define name="diskSourceNetworkHost">
+    <element name="host">
+      <choice>
+        <group>
+          <optional>
+            <attribute name="transport">
+              <choice>
+                <value>tcp</value>
+                <value>rdma</value>
+              </choice>
+            </attribute>
+          </optional>
+          <attribute name="name">
+            <choice>
+              <ref name="dnsName"/>
+              <ref name="ipAddr"/>
+            </choice>
+          </attribute>
+          <optional>
+            <attribute name="port">
+              <ref name="unsignedInt"/>
+            </attribute>
+          </optional>
+        </group>
+        <group>
+          <attribute name="transport">
+            <value>unix</value>
+          </attribute>
+          <attribute name="socket">
+            <ref name="absFilePath"/>
+          </attribute>
+        </group>
+      </choice>
+    </element>
+  </define>
+
+  <define name="diskSourceNetworkProtocolRBD">
+    <element name="source">
+      <interleave>
         <attribute name="protocol">
           <choice>
-            <value>nbd</value>
             <value>rbd</value>
-            <value>sheepdog</value>
-            <value>gluster</value>
-            <value>iscsi</value>
-            <value>http</value>
-            <value>https</value>
-            <value>ftp</value>
-            <value>ftps</value>
-            <value>tftp</value>
           </choice>
         </attribute>
         <optional>
           <attribute name="name"/>
         </optional>
         <zeroOrMore>
-          <element name="host">
-            <choice>
-              <group>
-                <optional>
-                  <attribute name="transport">
-                    <choice>
-                      <value>tcp</value>
-                      <value>rdma</value>
-                    </choice>
-                  </attribute>
-                </optional>
-                <attribute name="name">
-                  <choice>
-                    <ref name="dnsName"/>
-                    <ref name="ipAddr"/>
-                  </choice>
-                </attribute>
-                <optional>
-                  <attribute name="port">
-                    <ref name="unsignedInt"/>
-                  </attribute>
-                </optional>
-              </group>
-              <group>
-                <attribute name="transport">
-                  <value>unix</value>
-                </attribute>
-                <attribute name="socket">
-                  <ref name="absFilePath"/>
-                </attribute>
-              </group>
-            </choice>
-          </element>
+          <ref name="diskSourceNetworkHost"/>
         </zeroOrMore>
         <optional>
           <element name="snapshot">
@@ -1557,40 +1552,108 @@
           </element>
         </optional>
         <empty/>
-      </element>
-    </interleave>
+      </interleave>
+    </element>
+  </define>
+
+  <define name="diskSourceNetworkProtocolHTTP">
+    <element name="source">
+      <attribute name="protocol">
+        <choice>
+          <value>http</value>
+          <value>https</value>
+        </choice>
+      </attribute>
+      <attribute name="name"/>
+      <ref name="diskSourceNetworkHost"/>
+    </element>
+  </define>
+
+  <define name="diskSourceNetworkProtocolSimple">
+    <element name="source">
+      <attribute name="protocol">
+        <choice>
+          <value>sheepdog</value>
+          <value>iscsi</value>
+          <value>ftp</value>
+          <value>ftps</value>
+          <value>tftp</value>
+        </choice>
+      </attribute>
+      <attribute name="name"/>
+      <ref name="diskSourceNetworkHost"/>
+    </element>
+  </define>
+
+  <define name="diskSourceNetworkProtocolNBD">
+    <element name="source">
+      <attribute name="protocol">
+        <choice>
+          <value>nbd</value>
+        </choice>
+      </attribute>
+      <optional>
+        <attribute name="name"/>
+      </optional>
+      <ref name="diskSourceNetworkHost"/>
+    </element>
+  </define>
+
+  <define name="diskSourceNetworkProtocolGluster">
+    <element name="source">
+      <attribute name="protocol">
+        <choice>
+          <value>gluster</value>
+        </choice>
+      </attribute>
+      <attribute name="name"/>
+      <oneOrMore>
+        <ref name="diskSourceNetworkHost"/>
+      </oneOrMore>
+    </element>
+  </define>
+
+  <define name="diskSourceNetwork">
+    <attribute name="type">
+      <value>network</value>
+    </attribute>
+    <choice>
+      <ref name="diskSourceNetworkProtocolNBD"/>
+      <ref name="diskSourceNetworkProtocolGluster"/>
+      <ref name="diskSourceNetworkProtocolRBD"/>
+      <ref name="diskSourceNetworkProtocolHTTP"/>
+      <ref name="diskSourceNetworkProtocolSimple"/>
+    </choice>
   </define>
 
   <define name="diskSourceVolume">
     <attribute name="type">
       <value>volume</value>
     </attribute>
-    <interleave>
-      <optional>
-        <element name="source">
-          <attribute name="pool">
-            <ref name="genericName"/>
+    <optional>
+      <element name="source">
+        <attribute name="pool">
+          <ref name="genericName"/>
+        </attribute>
+        <attribute name="volume">
+          <ref name="volName"/>
+        </attribute>
+        <optional>
+          <attribute name="mode">
+            <choice>
+              <value>host</value>
+              <value>direct</value>
+            </choice>
           </attribute>
-          <attribute name="volume">
-            <ref name="volName"/>
-          </attribute>
-          <optional>
-            <attribute name="mode">
-              <choice>
-                <value>host</value>
-                <value>direct</value>
-              </choice>
-            </attribute>
-          </optional>
-          <optional>
-            <ref name="storageStartupPolicy"/>
-          </optional>
-          <zeroOrMore>
-            <ref name='devSeclabel'/>
-          </zeroOrMore>
-        </element>
-      </optional>
-    </interleave>
+        </optional>
+        <optional>
+          <ref name="storageStartupPolicy"/>
+        </optional>
+        <zeroOrMore>
+          <ref name='devSeclabel'/>
+        </zeroOrMore>
+      </element>
+    </optional>
   </define>
 
   <define name="diskTarget">
@@ -1707,6 +1770,7 @@
       <optional>
         <ref name="detect_zeroes"/>
       </optional>
+      <ref name="virtioOptions"/>
       <empty/>
     </element>
   </define>
@@ -1868,6 +1932,7 @@
                   <value>none</value>
                   <value>qusb1</value>
                   <value>qusb2</value>
+                  <value>qemu-xhci</value>
                 </choice>
               </attribute>
             </optional>
@@ -1895,6 +1960,7 @@
                     <value>i82801b11-bridge</value>
                     <!-- implementations of 'pcie-root-port' -->
                     <value>ioh3420</value>
+                    <value>pcie-root-port</value>
                     <!-- implementations of 'pcie-switch-upstream-port' -->
                     <value>x3130-upstream</value>
                     <!-- implementations of 'pcie-switch-downstream-port' -->
@@ -2007,6 +2073,7 @@
             <optional>
               <ref name="driverIOThread"/>
             </optional>
+            <ref name="virtioOptions"/>
           </element>
         </optional>
       </interleave>
@@ -2189,6 +2256,7 @@
           <value>immediate</value>
         </attribute>
       </optional>
+      <ref name='virtioOptions'/>
       <empty/>
     </element>
   </define>
@@ -2499,6 +2567,9 @@
         <ref name="mtu"/>
       </optional>
       <optional>
+        <ref name="coalesce"/>
+      </optional>
+      <optional>
         <element name="target">
           <attribute name="dev">
             <ref name="deviceName"/>
@@ -2618,6 +2689,7 @@
               </optional>
             </group>
           </choice>
+          <ref name="virtioOptions"/>
           <interleave>
             <optional>
               <element name='host'>
@@ -3147,6 +3219,22 @@
   <define name="video">
     <element name="video">
       <optional>
+        <element name="driver">
+          <optional>
+            <ref name="virtioOptions"/>
+          </optional>
+          <optional>
+            <attribute name="vgaconf">
+              <choice>
+                <value>io</value>
+                <value>on</value>
+                <value>off</value>
+              </choice>
+            </attribute>
+          </optional>
+        </element>
+      </optional>
+      <optional>
         <element name="model">
           <choice>
             <attribute name="type">
@@ -3157,6 +3245,7 @@
                 <value>xen</value>
                 <value>vbox</value>
                 <value>virtio</value>
+                <value>gop</value>
               </choice>
             </attribute>
             <group>
@@ -3714,6 +3803,11 @@
             </attribute>
           </element>
         </optional>
+        <optional>
+          <element name="driver">
+            <ref name="virtioOptions"/>
+          </element>
+        </optional>
       </interleave>
     </element>
   </define>
@@ -3878,11 +3972,40 @@
       <attribute name="model">
         <value>intel</value>
       </attribute>
+      <optional>
+        <element name="driver">
+          <optional>
+            <attribute name="intremap">
+              <ref name="virOnOff"/>
+            </attribute>
+          </optional>
+          <optional>
+            <attribute name="caching_mode">
+              <ref name="virOnOff"/>
+            </attribute>
+          </optional>
+          <optional>
+            <attribute name="eim">
+              <ref name="virOnOff"/>
+            </attribute>
+          </optional>
+          <optional>
+            <attribute name="iotlb">
+              <ref name="virOnOff"/>
+            </attribute>
+          </optional>
+        </element>
+      </optional>
     </element>
   </define>
 
   <define name="input">
     <element name="input">
+      <optional>
+        <element name="driver">
+          <ref name="virtioOptions"/>
+        </element>
+      </optional>
       <choice>
         <group>
           <attribute name="type">
@@ -4023,6 +4146,7 @@
       <ref name="hostdevsubsysusb"/>
       <ref name="hostdevsubsysscsi"/>
       <ref name="hostdevsubsyshost"/>
+      <ref name="hostdevsubsysmdev"/>
     </choice>
   </define>
 
@@ -4170,6 +4294,20 @@
           </attribute>
         </group>
       </choice>
+    </element>
+  </define>
+
+  <define name="hostdevsubsysmdev">
+    <attribute name="type">
+      <value>mdev</value>
+    </attribute>
+    <attribute name="model">
+      <choice>
+        <value>vfio-pci</value>
+      </choice>
+    </attribute>
+    <element name="source">
+      <ref name="mdevaddress"/>
     </element>
   </define>
 
@@ -4331,6 +4469,13 @@
       </attribute>
     </optional>
   </define>
+  <define name="mdevaddress">
+    <element name="address">
+      <attribute name="uuid">
+        <ref name="UUID"/>
+      </attribute>
+    </element>
+  </define>
   <define name="devices">
     <element name="devices">
       <interleave>
@@ -4478,6 +4623,9 @@
               </optional>
             </element>
           </optional>
+          <optional>
+            <ref name="ioapic"/>
+          </optional>
         </interleave>
       </element>
     </optional>
@@ -4492,6 +4640,9 @@
       </optional>
       <optional>
         <ref name="cpuMatch"/>
+      </optional>
+      <optional>
+        <ref name="cpuCheck"/>
       </optional>
       <interleave>
         <optional>
@@ -4508,6 +4659,9 @@
         </zeroOrMore>
         <optional>
           <ref name="cpuNuma"/>
+        </optional>
+        <optional>
+          <ref name="cpuCache"/>
         </optional>
       </interleave>
     </element>
@@ -4650,6 +4804,18 @@
     </element>
   </define>
 
+  <define name="ioapic">
+    <element name="ioapic">
+      <attribute name="driver">
+        <choice>
+          <value>qemu</value>
+          <value>kvm</value>
+        </choice>
+      </attribute>
+      <empty/>
+    </element>
+  </define>
+
   <define name="address">
     <element name="address">
       <choice>
@@ -4737,8 +4903,17 @@
       <attribute name="model">
         <choice>
           <value>dimm</value>
+          <value>nvdimm</value>
         </choice>
       </attribute>
+      <optional>
+        <attribute name="access">
+          <choice>
+            <value>shared</value>
+            <value>private</value>
+          </choice>
+        </attribute>
+      </optional>
       <interleave>
         <optional>
           <ref name="memorydev-source"/>
@@ -4756,18 +4931,27 @@
 
   <define name="memorydev-source">
     <element name="source">
-      <interleave>
-        <optional>
-          <element name="pagesize">
-            <ref name="scaledInteger"/>
+      <choice>
+        <group>
+          <interleave>
+            <optional>
+              <element name="pagesize">
+                <ref name="scaledInteger"/>
+              </element>
+            </optional>
+            <optional>
+              <element name="nodemask">
+                <ref name="cpuset"/>
+              </element>
+            </optional>
+          </interleave>
+        </group>
+        <group>
+          <element name="path">
+            <ref name="absFilePath"/>
           </element>
-        </optional>
-        <optional>
-          <element name="nodemask">
-            <ref name="cpuset"/>
-          </element>
-        </optional>
-      </interleave>
+        </group>
+      </choice>
     </element>
   </define>
 
@@ -4780,6 +4964,13 @@
         <optional>
           <element name="node">
             <ref name="unsignedInt"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="label">
+            <element name="size">
+              <ref name="scaledInteger"/>
+            </element>
           </element>
         </optional>
       </interleave>
@@ -4795,6 +4986,11 @@
       </attribute>
       <interleave>
         <ref name="rng-backend"/>
+        <optional>
+          <element name="driver">
+            <ref name="virtioOptions"/>
+          </element>
+        </optional>
         <optional>
           <ref name="rng-rate"/>
         </optional>
@@ -4845,6 +5041,17 @@
     </element>
   </define>
 
+  <define name="virtioOptions">
+    <optional>
+      <attribute name="iommu">
+        <ref name="virOnOff"/>
+      </attribute>
+      <attribute name="ats">
+        <ref name="virOnOff"/>
+      </attribute>
+    </optional>
+  </define>
+
   <define name="usbmaster">
     <element name="master">
       <attribute name="startport">
@@ -4875,6 +5082,13 @@
       <attribute name="order">
         <ref name="positiveInteger"/>
       </attribute>
+      <optional>
+        <attribute name="loadparm">
+          <data type="string">
+            <param name="pattern">[a-zA-Z0-9.\s]{1,8}</param>
+          </data>
+        </attribute>
+      </optional>
       <empty/>
     </element>
   </define>
@@ -5619,36 +5833,6 @@
     </element>
     <empty/>
   </define>
-  <define name="ccwCssidRange">
-    <choice>
-      <data type="string">
-        <param name="pattern">0x[0-9a-eA-E][0-9a-fA-F]?</param>
-      </data>
-      <data type="string">
-        <param name="pattern">0x[fF][0-9a-eA-E]?</param>
-      </data>
-      <data type="int">
-        <param name="minInclusive">0</param>
-        <param name="maxInclusive">254</param>
-      </data>
-    </choice>
-  </define>
-  <define name="ccwSsidRange">
-    <data type="string">
-      <param name="pattern">(0x)?[0-3]</param>
-    </data>
-  </define>
-  <define name="ccwDevnoRange">
-    <choice>
-      <data type="string">
-        <param name="pattern">0x[0-9a-fA-F]{1,4}</param>
-      </data>
-      <data type="int">
-        <param name="minInclusive">0</param>
-        <param name="maxInclusive">65535</param>
-      </data>
-    </choice>
-  </define>
   <define name="panic">
     <element name="panic">
       <optional>
@@ -5682,4 +5866,132 @@
       </choice>
     </attribute>
   </define>
+
+  <define name="coalesce">
+    <element name="coalesce">
+      <interleave>
+        <optional>
+          <element name="rx">
+            <optional>
+              <element name="frames">
+                <optional>
+                  <attribute name="max">
+                    <ref name="unsignedInt"/>
+                  </attribute>
+                </optional>
+                <!--
+                    This is how we'd add more Rx-related settings for
+                    frames, like irq, high, and low
+
+                <optional>
+                  <attribute name="irq">
+                    <ref name="unsignedInt"/>
+                  </attribute>
+                </optional>
+                <optional>
+                  <attribute name="high">
+                    <ref name="unsignedInt"/>
+                  </attribute>
+                </optional>
+                <optional>
+                  <attribute name="low">
+                    <ref name="unsignedInt"/>
+                  </attribute>
+                </optional>
+
+              -->
+              </element>
+            </optional>
+            <!--
+                This is how we'd add more Rx-related settings, like
+                usecs
+
+            <optional>
+              <element name="usecs">
+                <optional>
+                  <attribute name="max">
+                    <ref name="unsignedInt"/>
+                  </attribute>
+                </optional>
+                <optional>
+                  <attribute name="irq">
+                    <ref name="unsignedInt"/>
+                  </attribute>
+                </optional>
+                <optional>
+                  <attribute name="high">
+                    <ref name="unsignedInt"/>
+                  </attribute>
+                </optional>
+                <optional>
+                  <attribute name="low">
+                    <ref name="unsignedInt"/>
+                  </attribute>
+                </optional>
+              </element>
+            </optional>
+              -->
+          </element>
+        </optional>
+        <!--
+            This is how you would add more coalesce settings, like
+            Tx-related ones
+
+        <optional>
+          <element name="tx">
+            <optional>
+              <element name="frames">
+                <optional>
+                  <attribute name="max">
+                    <ref name="unsignedInt"/>
+                  </attribute>
+                </optional>
+                <optional>
+                  <attribute name="irq">
+                    <ref name="unsignedInt"/>
+                  </attribute>
+                </optional>
+                <optional>
+                  <attribute name="high">
+                    <ref name="unsignedInt"/>
+                  </attribute>
+                </optional>
+                <optional>
+                  <attribute name="low">
+                    <ref name="unsignedInt"/>
+                  </attribute>
+                </optional>
+              </element>
+            </optional>
+            <optional>
+              <element name="usecs">
+                <optional>
+                  <attribute name="max">
+                    <ref name="unsignedInt"/>
+                  </attribute>
+                </optional>
+                <optional>
+                  <attribute name="irq">
+                    <ref name="unsignedInt"/>
+                  </attribute>
+                </optional>
+                <optional>
+                  <attribute name="high">
+                    <ref name="unsignedInt"/>
+                  </attribute>
+                </optional>
+                <optional>
+                  <attribute name="low">
+                    <ref name="unsignedInt"/>
+                  </attribute>
+                </optional>
+              </element>
+            </optional>
+          </element>
+        </optional>
+        -->
+      </interleave>
+    </element>
+  </define>
+
 </grammar>

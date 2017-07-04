@@ -38,13 +38,13 @@
 #include "qemu_conf.h"
 #include "qemu_capabilities.h"
 #include "qemu_domain.h"
+#include "qemu_security.h"
 #include "viruuid.h"
 #include "virbuffer.h"
 #include "virconf.h"
 #include "viralloc.h"
 #include "datatypes.h"
 #include "virxml.h"
-#include "nodeinfo.h"
 #include "virlog.h"
 #include "cpu/cpu.h"
 #include "domain_nwfilter.h"
@@ -250,10 +250,10 @@ virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
                    SYSCONFDIR "/pki/qemu") < 0)
         goto error;
 
-    if (VIR_STRDUP(cfg->vncListen, "127.0.0.1") < 0)
+    if (VIR_STRDUP(cfg->vncListen, VIR_LOOPBACK_IPV4_ADDR) < 0)
         goto error;
 
-    if (VIR_STRDUP(cfg->spiceListen, "127.0.0.1") < 0)
+    if (VIR_STRDUP(cfg->spiceListen, VIR_LOOPBACK_IPV4_ADDR) < 0)
         goto error;
 
     /*
@@ -274,11 +274,12 @@ virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
                            cfg->defaultTLSx509certdir) < 0)            \
                 goto error;                                            \
         }                                                              \
-    } while (false);
+    } while (0)
 
     SET_TLS_X509_CERT_DEFAULT(vnc);
     SET_TLS_X509_CERT_DEFAULT(spice);
     SET_TLS_X509_CERT_DEFAULT(chardev);
+    SET_TLS_X509_CERT_DEFAULT(migrate);
 
 #undef SET_TLS_X509_CERT_DEFAULT
 
@@ -394,6 +395,9 @@ static void virQEMUDriverConfigDispose(void *obj)
     VIR_FREE(cfg->chardevTLSx509certdir);
     VIR_FREE(cfg->chardevTLSx509secretUUID);
 
+    VIR_FREE(cfg->migrateTLSx509certdir);
+    VIR_FREE(cfg->migrateTLSx509secretUUID);
+
     while (cfg->nhugetlbfs) {
         cfg->nhugetlbfs--;
         VIR_FREE(cfg->hugetlbfs[cfg->nhugetlbfs].mnt_dir);
@@ -403,6 +407,7 @@ static void virQEMUDriverConfigDispose(void *obj)
 
     VIR_FREE(cfg->saveImageFormat);
     VIR_FREE(cfg->dumpImageFormat);
+    VIR_FREE(cfg->snapshotImageFormat);
     VIR_FREE(cfg->autoDumpPath);
 
     virStringListFree(cfg->securityDriverNames);
@@ -529,22 +534,35 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
     if (virConfGetValueBool(conf, "spice_auto_unix_socket", &cfg->spiceAutoUnixSocket) < 0)
         goto cleanup;
 
+#define GET_CONFIG_TLS_CERTINFO(val)                                        \
+    do {                                                                    \
+        if ((rv = virConfGetValueBool(conf, #val "_tls_x509_verify",        \
+                                      &cfg->val## TLSx509verify)) < 0)      \
+            goto cleanup;                                                   \
+        if (rv == 0)                                                        \
+            cfg->val## TLSx509verify = cfg->defaultTLSx509verify;           \
+        if (virConfGetValueString(conf, #val "_tls_x509_cert_dir",          \
+                                  &cfg->val## TLSx509certdir) < 0)          \
+            goto cleanup;                                                   \
+        if (virConfGetValueString(conf,                                     \
+                                  #val "_tls_x509_secret_uuid",             \
+                                  &cfg->val## TLSx509secretUUID) < 0)       \
+            goto cleanup;                                                   \
+        if (!cfg->val## TLSx509secretUUID &&                                \
+            cfg->defaultTLSx509secretUUID) {                                \
+            if (VIR_STRDUP(cfg->val## TLSx509secretUUID,                    \
+                           cfg->defaultTLSx509secretUUID) < 0)              \
+                goto cleanup;                                               \
+        }                                                                   \
+    } while (0)
+
     if (virConfGetValueBool(conf, "chardev_tls", &cfg->chardevTLS) < 0)
         goto cleanup;
-    if (virConfGetValueString(conf, "chardev_tls_x509_cert_dir", &cfg->chardevTLSx509certdir) < 0)
-        goto cleanup;
-    if ((rv = virConfGetValueBool(conf, "chardev_tls_x509_verify", &cfg->chardevTLSx509verify)) < 0)
-        goto cleanup;
-    if (rv == 0)
-        cfg->chardevTLSx509verify = cfg->defaultTLSx509verify;
-    if (virConfGetValueString(conf, "chardev_tls_x509_secret_uuid",
-                              &cfg->chardevTLSx509secretUUID) < 0)
-        goto cleanup;
-    if (!cfg->chardevTLSx509secretUUID && cfg->defaultTLSx509secretUUID) {
-        if (VIR_STRDUP(cfg->chardevTLSx509secretUUID,
-                       cfg->defaultTLSx509secretUUID) < 0)
-            goto cleanup;
-    }
+    GET_CONFIG_TLS_CERTINFO(chardev);
+
+    GET_CONFIG_TLS_CERTINFO(migrate);
+
+#undef GET_CONFIG_TLS_CERTINFO
 
     if (virConfGetValueUInt(conf, "remote_websocket_port_min", &cfg->webSocketPortMin) < 0)
         goto cleanup;
@@ -859,6 +877,7 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
     ret = 0;
 
  cleanup:
+    virStringListFree(namespaces);
     virStringListFree(controllers);
     virStringListFree(hugetlbfs);
     virStringListFree(nvram);
@@ -890,7 +909,9 @@ virQEMUDriverCreateXMLConf(virQEMUDriverPtr driver)
     virQEMUDriverDomainDefParserConfig.priv = driver;
     return virDomainXMLOptionNew(&virQEMUDriverDomainDefParserConfig,
                                  &virQEMUDriverPrivateDataCallbacks,
-                                 &virQEMUDriverDomainXMLNamespace);
+                                 &virQEMUDriverDomainXMLNamespace,
+                                 &virQEMUDriverDomainABIStability,
+                                 &virQEMUDriverDomainSaveCookie);
 }
 
 
@@ -916,7 +937,7 @@ virCapsPtr virQEMUDriverCreateCapabilities(virQEMUDriverPtr driver)
     }
 
     /* access sec drivers and create a sec model for each one */
-    if (!(sec_managers = virSecurityManagerGetNested(driver->securityManager)))
+    if (!(sec_managers = qemuSecurityGetNested(driver->securityManager)))
         goto error;
 
     /* calculate length */
@@ -929,14 +950,14 @@ virCapsPtr virQEMUDriverCreateCapabilities(virQEMUDriverPtr driver)
 
     for (i = 0; sec_managers[i]; i++) {
         virCapsHostSecModelPtr sm = &caps->host.secModels[i];
-        doi = virSecurityManagerGetDOI(sec_managers[i]);
-        model = virSecurityManagerGetModel(sec_managers[i]);
+        doi = qemuSecurityGetDOI(sec_managers[i]);
+        model = qemuSecurityGetModel(sec_managers[i]);
         if (VIR_STRDUP(sm->model, model) < 0 ||
             VIR_STRDUP(sm->doi, doi) < 0)
             goto error;
 
         for (j = 0; j < ARRAY_CARDINALITY(virtTypes); j++) {
-            lbl = virSecurityManagerGetBaseLabel(sec_managers[i], virtTypes[j]);
+            lbl = qemuSecurityGetBaseLabel(sec_managers[i], virtTypes[j]);
             type = virDomainVirtTypeToString(virtTypes[j]);
             if (lbl &&
                 virCapabilitiesHostSecModelAddBaseLabel(sm, type, lbl) < 0)

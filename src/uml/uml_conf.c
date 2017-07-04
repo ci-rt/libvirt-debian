@@ -39,7 +39,6 @@
 #include "virbuffer.h"
 #include "virconf.h"
 #include "viralloc.h"
-#include "nodeinfo.h"
 #include "virlog.h"
 #include "domain_nwfilter.h"
 #include "virfile.h"
@@ -65,10 +64,13 @@ virCapsPtr umlCapsInit(void)
      * unexpected failures. We don't want to break the QEMU
      * driver in this scenario, so log errors & carry on
      */
-    if (nodeCapsInitNUMA(caps) < 0) {
+    if (virCapabilitiesInitNUMA(caps) < 0) {
         virCapabilitiesFreeNUMAInfo(caps);
         VIR_WARN("Failed to query host NUMA topology, disabling NUMA capabilities");
     }
+
+    if (virCapabilitiesInitCaches(caps) < 0)
+        VIR_WARN("Failed to get host CPU cache info");
 
     if (virNodeSuspendGetTargetMask(&caps->host.powerMgmt) < 0)
         VIR_WARN("Failed to get host power management capabilities");
@@ -113,10 +115,10 @@ umlConnectTapDevice(virDomainDefPtr vm,
     int tapfd = -1;
 
     if (!net->ifname ||
-        STRPREFIX(net->ifname, VIR_NET_GENERATED_PREFIX) ||
+        STRPREFIX(net->ifname, VIR_NET_GENERATED_TAP_PREFIX) ||
         strchr(net->ifname, '%')) {
         VIR_FREE(net->ifname);
-        if (VIR_STRDUP(net->ifname, VIR_NET_GENERATED_PREFIX "%d") < 0)
+        if (VIR_STRDUP(net->ifname, VIR_NET_GENERATED_TAP_PREFIX "%d") < 0)
             goto error;
         /* avoid exposing vnet%d in getXMLDesc or error outputs */
         template_ifname = true;
@@ -126,7 +128,7 @@ umlConnectTapDevice(virDomainDefPtr vm,
                                        vm->uuid, net->backend.tap, &tapfd, 1,
                                        virDomainNetGetActualVirtPortProfile(net),
                                        virDomainNetGetActualVlan(net),
-                                       0, NULL,
+                                       NULL, 0, NULL,
                                        VIR_NETDEV_TAP_CREATE_IFUP |
                                        VIR_NETDEV_TAP_CREATE_PERSIST) < 0) {
         if (template_ifname)
@@ -400,7 +402,7 @@ virCommandPtr umlBuildCommandLine(virConnectPtr conn,
 
     virCommandAddEnvPassCommon(cmd);
 
-    //virCommandAddArgPair(cmd, "con0", "fd:0,fd:1");
+    /* virCommandAddArgPair(cmd, "con0", "fd:0,fd:1"); */
     virCommandAddArgFormat(cmd, "mem=%lluK", vm->def->mem.cur_balloon);
     virCommandAddArgPair(cmd, "umid", vm->def->name);
     virCommandAddArgPair(cmd, "uml_dir", driver->monitorDir);

@@ -1,11 +1,46 @@
-libvirt (3.1.0-1~1.gbp9a8156) UNRELEASED; urgency=medium
+libvirt (3.1.0-1~2.gbp2217e1) UNRELEASED; urgency=medium
 
+  ** SNAPSHOT build @2217e17dcad2d655729ca2e9a2f0dd1ffcb66eda **
+
+  [ Guido Günther ]
   ** SNAPSHOT build @9a81566794213f630e9048d2e813bdb200edc4a3 **
 
   * [603e376] New upstream version 3.1.0-rc2
   * [e0507a8] New upstream version 3.1.0
+  * [172bcdf] Bump symbol versions
+  * [9c4dfe3] Rediff patches.
+    Dropped
+        CVE-2017-2635-qemu-Don-t-update-physical-storage-size-of-.patch: fixed upstream
+        Disable-use-of-namespaces-by-default.patch: not needed, namespaces
+        are now enabled
+  * [21aa1f3] Bump symbol versions
+  * [b1730fa] Rediff patches.
+    Dropped
+      CVE-2017-2635-qemu-Don-t-update-physical-storage-size-of-.patch
+    fixed upstream
+    Dropped
+      Disable-use-of-namespaces-by-default.patch
+    Namespaces can now be used with QEMU
+  * [2a23b23] qemu: skip QMP probing of CPU definitions when missing.
+    Don't probe CPU definitions if we lack the monitor command. This
+    unbreaks e.g. mips based VMs. (Closes: #85412)
+  * [21bc332] apprarmor: unbreak lbvirt invoking qemu-bridge-helpers
+  * [e581fc0] Document changes and release 3.0.0-4
+  * [7cb82a1] Add pt debconf translation.
+    Thanks to Rui Branco (Closes: #858742)
+  * [fcd509f] Remove defaults file on clean
+  * [6b9ffbb] Build depend on libparted-dev
+    to ease cross building
+    Thanks to Helmut Grohne (Closes: #864671)
+  * [b0f6946] New upstream version 3.5.0-rc2
 
- -- Guido Günther <agx@sigxcpu.org>  Sun, 12 Mar 2017 12:46:45 +0100
+  [ Christian Ehrhardt ]
+  * [8fa2c4f] Ship libvirt-admin.conf
+  * [dd2991f] Ship default file for virtlockd
+  * [aef2f3c] Ship libvirt-admin.conf (Closes: #863649)
+  * [c3b6ff2] Ship default file for virtlockd (Closes: #863648)
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 04 Jul 2017 08:45:46 +0200
 
 libvirt (3.0.0-4) unstable; urgency=medium
 

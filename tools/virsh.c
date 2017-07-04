@@ -145,6 +145,7 @@ virshConnect(vshControl *ctl, const char *uri, bool readonly)
     bool keepalive_forced = false;
     virPolkitAgentPtr pkagent = NULL;
     int authfail = 0;
+    bool agentCreated = false;
 
     if (ctl->keepalive_interval >= 0) {
         interval = ctl->keepalive_interval;
@@ -166,10 +167,12 @@ virshConnect(vshControl *ctl, const char *uri, bool readonly)
             goto cleanup;
 
         err = virGetLastError();
-        if (err && err->domain == VIR_FROM_POLKIT &&
+        if (!agentCreated &&
+            err && err->domain == VIR_FROM_POLKIT &&
             err->code == VIR_ERR_AUTH_UNAVAILABLE) {
             if (!pkagent && !(pkagent = virPolkitAgentCreate()))
                 goto cleanup;
+            agentCreated = true;
         } else if (err && err->domain == VIR_FROM_POLKIT &&
                    err->code == VIR_ERR_AUTH_FAILED) {
             authfail++;
@@ -257,14 +260,6 @@ virshReconnect(vshControl *ctl, const char *name, bool readonly, bool force)
     return 0;
 }
 
-int virshStreamSink(virStreamPtr st ATTRIBUTE_UNUSED,
-                    const char *bytes, size_t nbytes, void *opaque)
-{
-    int *fd = opaque;
-
-    return safewrite(*fd, bytes, nbytes);
-}
-
 /* ---------------
  * Command Connect
  * ---------------
@@ -347,39 +342,6 @@ virshConnectionHandler(vshControl *ctl)
 }
 
 
-/* ---------------
- * Misc utils
- * ---------------
- */
-int
-virshDomainState(vshControl *ctl, virDomainPtr dom, int *reason)
-{
-    virDomainInfo info;
-    virshControlPtr priv = ctl->privData;
-
-    if (reason)
-        *reason = -1;
-
-    if (!priv->useGetInfo) {
-        int state;
-        if (virDomainGetState(dom, &state, reason, 0) < 0) {
-            virErrorPtr err = virGetLastError();
-            if (err && err->code == VIR_ERR_NO_SUPPORT)
-                priv->useGetInfo = true;
-            else
-                return -1;
-        } else {
-            return state;
-        }
-    }
-
-    /* fall back to virDomainGetInfo if virDomainGetState is not supported */
-    if (virDomainGetInfo(dom, &info) < 0)
-        return -1;
-    else
-        return info.state;
-}
-
 /*
  * Initialize connection.
  */
@@ -399,16 +361,22 @@ virshInit(vshControl *ctl)
     /* set up the library error handler */
     virSetErrorFunc(NULL, vshErrorHandler);
 
-    if (virEventRegisterDefaultImpl() < 0)
+    if (virEventRegisterDefaultImpl() < 0) {
+        vshReportError(ctl);
         return false;
+    }
 
-    if (virThreadCreate(&ctl->eventLoop, true, vshEventLoop, ctl) < 0)
+    if (virThreadCreate(&ctl->eventLoop, true, vshEventLoop, ctl) < 0) {
+        vshReportError(ctl);
         return false;
+    }
     ctl->eventLoopStarted = true;
 
     if ((ctl->eventTimerId = virEventAddTimeout(-1, vshEventTimeout, ctl,
-                                                NULL)) < 0)
+                                                NULL)) < 0) {
+        vshReportError(ctl);
         return false;
+    }
 
     if (ctl->connname) {
         /* Connecting to a named connection must succeed, but we delay
@@ -809,7 +777,7 @@ virshParseArgv(vshControl *ctl, int argc, char **argv)
                 puts(VERSION);
                 exit(EXIT_SUCCESS);
             }
-            /* fall through */
+            ATTRIBUTE_FALLTHROUGH;
         case 'V':
             virshShowVersion(ctl);
             exit(EXIT_SUCCESS);

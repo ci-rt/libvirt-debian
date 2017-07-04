@@ -151,12 +151,14 @@ Christian Benvenuti <benve@cisco.com>
 Christian Ehrhardt <christian.ehrhardt@canonical.com>
 Christian Franke <nobody@nowhere.ws>
 Christian Loehle <cloehle@linutronix.de>
+Christoffer Dall <cdall@linaro.org>
 Christophe Fergeau <cfergeau@redhat.com>
 Chuck Short <chuck.short@canonical.com>
 Chuck Short <zulcss@gmail.com>
 Chunhe Li <lichunhe@huawei.com>
 Chunyan Liu <cyliu@suse.com>
 Clark Laughlin <clark.laughlin@linaro.org>
+Claudio André <claudioandre.br@gmail.com>
 Claudio Bley <claudio.bley@gmail.com>
 Cole Robinson <crobinso@redhat.com>
 Collin L. Walling <walling@linux.vnet.ibm.com>
@@ -173,6 +175,7 @@ Daniel Berteaud <daniel@firewall-services.com>
 Daniel Gollub <gollub@b1-systems.de>
 Daniel Hansel <daniel.hansel@linux.vnet.ibm.com>
 Daniel J Walsh <dwalsh@redhat.com>
+Daniel Liu <srwx4096@gmail.com>
 Daniel P. Berrange <berrange@redhat.com>
 Daniel Veillard <veillard@redhat.com>
 Dario Faggioli <dario.faggioli@citrix.com>
@@ -224,8 +227,10 @@ Ersek Laszlo <lacos@caesar.elte.hu>
 Eugen Feller <eugen.feller@inria.fr>
 Fabian Freyer <fabian.freyer@physik.tu-berlin.de>
 Fabiano Fidêncio <fidencio@redhat.com>
+Farhan Ali <alifm@linux.vnet.ibm.com>
 Federico Simoncelli <fsimonce@redhat.com>
 Felix Geyer <debfx@fobos.de>
+Felix Geyer <fgeyer@debian.org>
 Florian Vichot <florian.vichot@diateam.net>
 Francesco Romani <fromani@redhat.com>
 Frank Schreuder <fschreuder@transip.nl>
@@ -245,6 +250,7 @@ Gerd Hoffmann <kraxel@redhat.com>
 Gerd v. Egidy <gerd@egidy.de>
 Gerhard Stenzel <gerhard.stenzel@de.ibm.com>
 Giuseppe Scrivano <gscrivan@redhat.com>
+Gordon Messmer <gordon@dragonsdawn.net>
 Guan Qiang <hzguanqiang@corp.netease.com>
 Guannan Ren <gren@redhat.com>
 Gui Jianfeng <guijianfeng@cn.fujitsu.com>
@@ -289,6 +295,7 @@ Jeremy Fitzhardinge <jeremy@goop.org>
 Jesse Cook <code.crashenx@gmail.com>
 Jesse J. Cook <jesse.j.cook@member.fsf.org>
 Jianwei Hu <jiahu@redhat.com>
+Jie Wang <wangjie88@huawei.com>
 JieWang <wangjie88@huawei.com>
 Jim Fehlig <jfehlig@suse.com>
 Jim Meyering <meyering@redhat.com>
@@ -324,6 +331,7 @@ Kenneth Nagin <NAGIN@il.ibm.com>
 Kiarie Kahurani <davidkiarie4@gmail.com>
 Klaus Ethgen <Klaus@Ethgen.de>
 Konrad Rzeszutek Wilk <konrad@kernel.org>
+Konstantin Neumoin <kneumoin@virtuozzo.com>
 Kothapally Madhu Pavan <kmp@linux.vnet.ibm.com>
 Kyle DeFrancia <kdef@linux.vnet.ibm.com>
 Kyle Mestery <kmestery@cisco.com>
@@ -336,6 +344,7 @@ Lei Li <lilei@linux.vnet.ibm.com>
 Leno Hou <houqy@linux.vnet.ibm.com>
 Li Yang <liyang.fnst@cn.fujitsu.com>
 Li Zhang <zhlcindy@linux.vnet.ibm.com>
+Lily Zhu <lizhu@redhat.com>
 Lin Ma <lma@suse.com>
 Lincoln Myers <lincoln_myers@yahoo.com>
 Liuji (Jeremy) <jeremy.liu@huawei.com>
@@ -370,6 +379,7 @@ Matthias Dahl <mdvirt@designassembly.de>
 Matthias Gatto <matthias.gatto@outscale.com>
 Matthieu Coudron <mattator@gmail.com>
 Mattias Bolte <matthias.bolte@googlemail.com>
+Matwey V. Kornilov <matwey.kornilov@gmail.com>
 Maxim Nestratov <mnestratov@parallels.com>
 Maxim Nestratov <mnestratov@virtuozzo.com>
 Maxim Perevedentsev <mperevedentsev@virtuozzo.com>
@@ -501,6 +511,7 @@ Shivaprasad G Bhat <sbhat@linux.vnet.ibm.com>
 Shivaprasad G Bhat <shivaprasadbhat@gmail.com>
 Shradha Shah <sshah@solarflare.com>
 Simon Arlott <bugzilla.redhat.simon@arlott.org>
+Simon McVittie <smcv@debian.org>
 Simone Gotti <simone.gotti@gmail.com>
 Soren Hansen <soren@linux2go.dk>
 Spencer Shimko <sshimko@tresys.com>
@@ -559,7 +570,9 @@ Weiwei Li <nuonuoli@tencent.com>
 Wen Congyang <wency@cn.fujitsu.com>
 Wido den Hollander <wido@widodh.nl>
 Wieland Hoffmann <themineo@googlemail.com>
+William Grant <wgrant@ubuntu.com>
 William Jon McCann <william.jon.mccann@gmail.com>
+Wim ten Have <wim.ten.have@oracle.com>
 Wojciech Macek <wma@semihalf.com>
 Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 Wout Mertens <Wout.Mertens@gmail.com>
@@ -573,6 +586,7 @@ Yanbing Du <ydu@redhat.com>
 Yanbing Du <ydu@ydu-0.nay.redhat.com>
 Yaniv Kaul <ykaul@redhat.com>
 Yanqiu Zhang <yanqzhan@redhat.com>
+Yi Wang <wang.yi59@zte.com.cn>
 Yogesh Tillu <tillu.yogesh@gmail.com>
 Yohan BELLEGUIC <yohan.belleguic@diateam.net>
 Yudai Yamagish <yummy@sfc.wide.ad.jp>
@@ -589,6 +603,7 @@ Zeeshan Ali (Khattak) <zeeshanak@gnome.org>
 Zeng Junliang <zengjunliang@huawei.com>
 Zhang Bo <oscar.zhangbo@huawei.com>
 Zhang Xiaohe <zhangxh@cn.fujitsu.com>
+ZhiPeng Lu <lu.zhipeng@zte.com.cn>
 Zhou Yimin <zhouyimin@huawei.com>
 Zhou yimin <zhouyimin@huawei.com>
 gaohaifeng <gaohaifeng.gao@huawei.com>
@@ -599,6 +614,7 @@ intrigeri <intrigeri@debian.org>
 james robson <jrobson@websense.com>
 lawrancejing <lawrancejing@gmail.com>
 liguang <lig.fnst@cn.fujitsu.com>
+ning.bo <ning.bo9@zte.com.cn>
 ryan woodsmall <rwoodsmall@gmail.com>
 sannyshao <jishao@redhat.com>
 weiwei li <weiweili821@gmail.com>

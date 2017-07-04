@@ -191,3 +191,14 @@ xdr_virNetMessageError (XDR *xdrs, virNetMessageError *objp)
                  return FALSE;
         return TRUE;
 }
+
+bool_t
+xdr_virNetStreamHole (XDR *xdrs, virNetStreamHole *objp)
+{
+
+         if (!xdr_int64_t (xdrs, &objp->length))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}

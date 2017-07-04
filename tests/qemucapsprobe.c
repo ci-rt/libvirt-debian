@@ -24,7 +24,7 @@
 #include "internal.h"
 #include "virthread.h"
 #include "qemu/qemu_capabilities.h"
-#define __QEMU_CAPSRIV_H_ALLOW__ 1
+#define __QEMU_CAPSPRIV_H_ALLOW__ 1
 #include "qemu/qemu_capspriv.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
@@ -48,7 +48,7 @@ main(int argc, char **argv)
     virThread thread;
     virQEMUCapsPtr caps;
 
-    VIRT_TEST_PRELOAD(abs_builddir "/.libs/qemucapsprobemock.so");
+    VIR_TEST_PRELOAD(abs_builddir "/.libs/qemucapsprobemock.so");
 
     if (argc != 2) {
         fprintf(stderr, "%s QEMU_binary\n", argv[0]);

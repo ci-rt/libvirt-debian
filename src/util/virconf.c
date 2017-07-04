@@ -238,7 +238,10 @@ virConfAddEntry(virConfPtr conf, char *name, virConfValuePtr value, char *comm)
     if ((comm == NULL) && (name == NULL))
         return NULL;
 
-    VIR_DEBUG("Add entry %s %p", name, value);
+    /* don't log fully commented out lines */
+    if (name)
+        VIR_DEBUG("Add entry %s %p", name, value);
+
     if (VIR_ALLOC(ret) < 0)
         return NULL;
 
@@ -287,14 +290,16 @@ virConfSaveValue(virBufferPtr buf, virConfValuePtr val)
             virBufferAsprintf(buf, "%llu", val->l);
             break;
         case VIR_CONF_STRING:
-            if (strchr(val->str, '\n') != NULL) {
-                virBufferAsprintf(buf, "\"\"\"%s\"\"\"", val->str);
-            } else if (strchr(val->str, '"') == NULL) {
-                virBufferAsprintf(buf, "\"%s\"", val->str);
-            } else if (strchr(val->str, '\'') == NULL) {
-                virBufferAsprintf(buf, "'%s'", val->str);
-            } else {
-                virBufferAsprintf(buf, "\"\"\"%s\"\"\"", val->str);
+            if (val->str) {
+                if (strchr(val->str, '\n') != NULL) {
+                    virBufferAsprintf(buf, "\"\"\"%s\"\"\"", val->str);
+                } else if (strchr(val->str, '"') == NULL) {
+                    virBufferAsprintf(buf, "\"%s\"", val->str);
+                } else if (strchr(val->str, '\'') == NULL) {
+                    virBufferAsprintf(buf, "'%s'", val->str);
+                } else {
+                    virBufferAsprintf(buf, "\"\"\"%s\"\"\"", val->str);
+                }
             }
             break;
         case VIR_CONF_LIST: {
@@ -1021,7 +1026,7 @@ int virConfGetValueStringList(virConfPtr conf,
             }
             break;
         }
-        /* fallthrough */
+        ATTRIBUTE_FALLTHROUGH;
 
     default:
         virReportError(VIR_ERR_INTERNAL_ERROR,

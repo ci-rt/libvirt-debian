@@ -30,6 +30,7 @@
 # include <dirent.h>
 
 # include "internal.h"
+# include "virbitmap.h"
 # include "virstoragefile.h"
 
 typedef enum {
@@ -187,7 +188,7 @@ void virFileActivateDirOverride(const char *argv0)
 
 off_t virFileLength(const char *path, int fd) ATTRIBUTE_NONNULL(1);
 bool virFileIsDir (const char *file) ATTRIBUTE_NONNULL(1);
-bool virFileExists(const char *file) ATTRIBUTE_NONNULL(1);
+bool virFileExists(const char *file) ATTRIBUTE_NONNULL(1) ATTRIBUTE_NOINLINE;
 bool virFileIsExecutable(const char *file) ATTRIBUTE_NONNULL(1);
 
 enum {
@@ -292,8 +293,6 @@ int virFileOpenTty(int *ttymaster,
 
 char *virFileFindMountPoint(const char *type);
 
-void virFileWaitForDevices(void);
-
 /* NB: this should be combined with virFileBuildPath */
 # define virBuildPath(path, ...) \
     virBuildPathInternal(path, __VA_ARGS__, NULL)
@@ -336,4 +335,21 @@ int virFileCopyACLs(const char *src,
                     const char *dst);
 
 int virFileComparePaths(const char *p1, const char *p2);
+
+int virFileReadValueInt(int *value, const char *format, ...)
+ ATTRIBUTE_FMT_PRINTF(2, 3);
+int virFileReadValueUint(unsigned int *value, const char *format, ...)
+ ATTRIBUTE_FMT_PRINTF(2, 3);
+int virFileReadValueBitmap(virBitmapPtr *value, const char *format, ...)
+ ATTRIBUTE_FMT_PRINTF(2, 3);
+int virFileReadValueScaledInt(unsigned long long *value, const char *format, ...)
+ ATTRIBUTE_FMT_PRINTF(2, 3);
+int virFileReadValueString(char **value, const char *format, ...)
+ ATTRIBUTE_FMT_PRINTF(2, 3);
+
+
+int virFileInData(int fd,
+                  int *inData,
+                  long long *length);
+
 #endif /* __VIR_FILE_H */

@@ -755,7 +755,17 @@ LIBVIRT_3.0.0 {
 
 LIBVIRT_3.1.0 {
     global:
+        virDomainSetBlockThreshold;
         virDomainSetVcpu;
 } LIBVIRT_3.0.0;
+
+LIBVIRT_3.4.0 {
+    global:
+        virStreamRecvFlags;
+        virStreamRecvHole;
+        virStreamSendHole;
+        virStreamSparseRecvAll;
+        virStreamSparseSendAll;
+} LIBVIRT_3.1.0;
 
 # .... define new API here using predicted next version number ....

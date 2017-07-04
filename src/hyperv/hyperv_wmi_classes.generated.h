@@ -2,18 +2,20 @@
 
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * CIM_DataFile
  */
-
-#define CIM_DATAFILE_RESOURCE_URI \
-    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/CIM_DataFile"
 
 #define CIM_DATAFILE_CLASSNAME \
     "CIM_DataFile"
 
 #define CIM_DATAFILE_WQL_SELECT \
-    "select * from CIM_DataFile "
+    "SELECT * FROM CIM_DataFile "
+
+extern hypervWmiClassInfoListPtr CIM_DataFile_WmiInfo;
+
+#define CIM_DATAFILE_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/CIM_DataFile"
 
 struct _CIM_DataFile_Data {
     XML_TYPE_UINT32 AccessMask;
@@ -53,26 +55,32 @@ struct _CIM_DataFile_Data {
 
 SER_DECLARE_TYPE(CIM_DataFile_Data);
 
+/* must match hypervObject */
 struct _CIM_DataFile {
-    XmlSerializerInfo *serializerInfo;
-    CIM_DataFile_Data *data;
+    union {
+        CIM_DataFile_Data *common;
+        CIM_DataFile_Data *None;
+    } data;
+    hypervWmiClassInfoPtr info;
     CIM_DataFile *next;
 };
 
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Msvm_AllocationCapabilities
  */
-
-#define MSVM_ALLOCATIONCAPABILITIES_RESOURCE_URI \
-    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_AllocationCapabilities"
 
 #define MSVM_ALLOCATIONCAPABILITIES_CLASSNAME \
     "Msvm_AllocationCapabilities"
 
 #define MSVM_ALLOCATIONCAPABILITIES_WQL_SELECT \
-    "select * from Msvm_AllocationCapabilities "
+    "SELECT * FROM Msvm_AllocationCapabilities "
+
+extern hypervWmiClassInfoListPtr Msvm_AllocationCapabilities_WmiInfo;
+
+#define MSVM_ALLOCATIONCAPABILITIES_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_AllocationCapabilities"
 
 struct _Msvm_AllocationCapabilities_Data {
     XML_TYPE_STR Caption;
@@ -90,249 +98,572 @@ struct _Msvm_AllocationCapabilities_Data {
 
 SER_DECLARE_TYPE(Msvm_AllocationCapabilities_Data);
 
+/* must match hypervObject */
 struct _Msvm_AllocationCapabilities {
-    XmlSerializerInfo *serializerInfo;
-    Msvm_AllocationCapabilities_Data *data;
+    union {
+        Msvm_AllocationCapabilities_Data *common;
+        Msvm_AllocationCapabilities_Data *None;
+    } data;
+    hypervWmiClassInfoPtr info;
     Msvm_AllocationCapabilities *next;
 };
 
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Msvm_ComputerSystem
  */
-
-#define MSVM_COMPUTERSYSTEM_RESOURCE_URI \
-    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_ComputerSystem"
 
 #define MSVM_COMPUTERSYSTEM_CLASSNAME \
     "Msvm_ComputerSystem"
 
 #define MSVM_COMPUTERSYSTEM_WQL_SELECT \
-    "select * from Msvm_ComputerSystem "
+    "SELECT * FROM Msvm_ComputerSystem "
+
+extern hypervWmiClassInfoListPtr Msvm_ComputerSystem_WmiInfo;
 
 struct _Msvm_ComputerSystem_Data {
-    XML_TYPE_STR Caption;
+    XML_TYPE_UINT32 ProcessID;
+    XML_TYPE_STR TimeOfLastConfigurationChange;
+    XML_TYPE_UINT16 EnabledState;
+    XML_TYPE_DYN_ARRAY Dedicated;
+    XML_TYPE_STR InstallDate;
+    XML_TYPE_DYN_ARRAY PowerManagementCapabilities;
     XML_TYPE_STR Description;
     XML_TYPE_STR ElementName;
-    XML_TYPE_STR InstallDate;
-    XML_TYPE_DYN_ARRAY OperationalStatus;
-    XML_TYPE_DYN_ARRAY StatusDescriptions;
-    XML_TYPE_STR Status;
-    XML_TYPE_UINT16 HealthState;
-    XML_TYPE_UINT16 EnabledState;
-    XML_TYPE_STR OtherEnabledState;
-    XML_TYPE_UINT16 RequestedState;
-    XML_TYPE_UINT16 EnabledDefault;
-    XML_TYPE_STR TimeOfLastStateChange;
-    XML_TYPE_STR CreationClassName;
-    XML_TYPE_STR Name;
-    XML_TYPE_STR PrimaryOwnerName;
-    XML_TYPE_STR PrimaryOwnerContact;
-    XML_TYPE_DYN_ARRAY Roles;
-    XML_TYPE_STR NameFormat;
-    XML_TYPE_DYN_ARRAY OtherIdentifyingInfo;
-    XML_TYPE_DYN_ARRAY IdentifyingDescriptions;
-    XML_TYPE_DYN_ARRAY Dedicated;
-    XML_TYPE_DYN_ARRAY OtherDedicatedDescriptions;
-    XML_TYPE_UINT16 ResetCapability;
-    XML_TYPE_DYN_ARRAY PowerManagementCapabilities;
     XML_TYPE_UINT64 OnTimeInMilliseconds;
-    XML_TYPE_STR TimeOfLastConfigurationChange;
+    XML_TYPE_STR Name;
+    XML_TYPE_UINT16 ResetCapability;
+    XML_TYPE_STR NameFormat;
+    XML_TYPE_STR TimeOfLastStateChange;
+    XML_TYPE_STR OtherEnabledState;
+    XML_TYPE_DYN_ARRAY OperationalStatus;
+    XML_TYPE_DYN_ARRAY Roles;
+    XML_TYPE_DYN_ARRAY StatusDescriptions;
+    XML_TYPE_STR Caption;
+    XML_TYPE_DYN_ARRAY OtherIdentifyingInfo;
+    XML_TYPE_STR PrimaryOwnerContact;
+    XML_TYPE_UINT16 RequestedState;
+    XML_TYPE_STR Status;
+    XML_TYPE_STR CreationClassName;
+    XML_TYPE_UINT16 EnabledDefault;
+    XML_TYPE_UINT16 HealthState;
+    XML_TYPE_DYN_ARRAY IdentifyingDescriptions;
+    XML_TYPE_DYN_ARRAY OtherDedicatedDescriptions;
+    XML_TYPE_STR PrimaryOwnerName;
+};
+
+#define MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_ComputerSystem"
+
+struct _Msvm_ComputerSystem_v1_Data {
     XML_TYPE_UINT32 ProcessID;
+    XML_TYPE_STR TimeOfLastConfigurationChange;
+    XML_TYPE_UINT16 EnabledState;
+    XML_TYPE_DYN_ARRAY Dedicated;
+    XML_TYPE_STR InstallDate;
+    XML_TYPE_DYN_ARRAY PowerManagementCapabilities;
+    XML_TYPE_STR Description;
+    XML_TYPE_STR ElementName;
+    XML_TYPE_UINT64 OnTimeInMilliseconds;
+    XML_TYPE_STR Name;
+    XML_TYPE_UINT16 ResetCapability;
+    XML_TYPE_STR NameFormat;
+    XML_TYPE_STR TimeOfLastStateChange;
+    XML_TYPE_STR OtherEnabledState;
+    XML_TYPE_DYN_ARRAY OperationalStatus;
+    XML_TYPE_DYN_ARRAY Roles;
+    XML_TYPE_DYN_ARRAY StatusDescriptions;
+    XML_TYPE_STR Caption;
+    XML_TYPE_DYN_ARRAY OtherIdentifyingInfo;
+    XML_TYPE_STR PrimaryOwnerContact;
+    XML_TYPE_UINT16 RequestedState;
+    XML_TYPE_STR Status;
+    XML_TYPE_STR CreationClassName;
+    XML_TYPE_UINT16 EnabledDefault;
+    XML_TYPE_UINT16 HealthState;
+    XML_TYPE_DYN_ARRAY IdentifyingDescriptions;
+    XML_TYPE_DYN_ARRAY OtherDedicatedDescriptions;
+    XML_TYPE_STR PrimaryOwnerName;
     XML_TYPE_DYN_ARRAY AssignedNumaNodeList;
 };
 
-SER_DECLARE_TYPE(Msvm_ComputerSystem_Data);
+SER_DECLARE_TYPE(Msvm_ComputerSystem_v1_Data);
+#define MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/v2/Msvm_ComputerSystem"
 
+struct _Msvm_ComputerSystem_v2_Data {
+    XML_TYPE_UINT32 ProcessID;
+    XML_TYPE_STR TimeOfLastConfigurationChange;
+    XML_TYPE_UINT16 EnabledState;
+    XML_TYPE_DYN_ARRAY Dedicated;
+    XML_TYPE_STR InstallDate;
+    XML_TYPE_DYN_ARRAY PowerManagementCapabilities;
+    XML_TYPE_STR Description;
+    XML_TYPE_STR ElementName;
+    XML_TYPE_UINT64 OnTimeInMilliseconds;
+    XML_TYPE_STR Name;
+    XML_TYPE_UINT16 ResetCapability;
+    XML_TYPE_STR NameFormat;
+    XML_TYPE_STR TimeOfLastStateChange;
+    XML_TYPE_STR OtherEnabledState;
+    XML_TYPE_DYN_ARRAY OperationalStatus;
+    XML_TYPE_DYN_ARRAY Roles;
+    XML_TYPE_DYN_ARRAY StatusDescriptions;
+    XML_TYPE_STR Caption;
+    XML_TYPE_DYN_ARRAY OtherIdentifyingInfo;
+    XML_TYPE_STR PrimaryOwnerContact;
+    XML_TYPE_UINT16 RequestedState;
+    XML_TYPE_STR Status;
+    XML_TYPE_STR CreationClassName;
+    XML_TYPE_UINT16 EnabledDefault;
+    XML_TYPE_UINT16 HealthState;
+    XML_TYPE_DYN_ARRAY IdentifyingDescriptions;
+    XML_TYPE_DYN_ARRAY OtherDedicatedDescriptions;
+    XML_TYPE_STR PrimaryOwnerName;
+    XML_TYPE_UINT16 CommunicationStatus;
+    XML_TYPE_DYN_ARRAY AvailableRequestedStates;
+    XML_TYPE_UINT16 DetailedStatus;
+    XML_TYPE_UINT16 TransitioningToState;
+    XML_TYPE_UINT16 OperatingStatus;
+    XML_TYPE_STR InstanceID;
+    XML_TYPE_UINT16 PrimaryStatus;
+    XML_TYPE_UINT16 NumberOfNumaNodes;
+    XML_TYPE_UINT16 ReplicationState;
+    XML_TYPE_UINT16 ReplicationHealth;
+    XML_TYPE_UINT16 ReplicationMode;
+    XML_TYPE_UINT16 FailedOverReplicationType;
+    XML_TYPE_UINT16 LastReplicationType;
+    XML_TYPE_STR LastApplicationConsistentReplicationTime;
+    XML_TYPE_STR LastReplicationTime;
+    XML_TYPE_STR LastSuccessfulBackupTime;
+    XML_TYPE_UINT16 EnhancedSessionModeState;
+};
+
+SER_DECLARE_TYPE(Msvm_ComputerSystem_v2_Data);
+
+/* must match hypervObject */
 struct _Msvm_ComputerSystem {
-    XmlSerializerInfo *serializerInfo;
-    Msvm_ComputerSystem_Data *data;
+    union {
+        Msvm_ComputerSystem_Data *common;
+        Msvm_ComputerSystem_v1_Data *v1;
+        Msvm_ComputerSystem_v2_Data *v2;
+    } data;
+    hypervWmiClassInfoPtr info;
     Msvm_ComputerSystem *next;
 };
 
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Msvm_ConcreteJob
  */
-
-#define MSVM_CONCRETEJOB_RESOURCE_URI \
-    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_ConcreteJob"
 
 #define MSVM_CONCRETEJOB_CLASSNAME \
     "Msvm_ConcreteJob"
 
 #define MSVM_CONCRETEJOB_WQL_SELECT \
-    "select * from Msvm_ConcreteJob "
+    "SELECT * FROM Msvm_ConcreteJob "
+
+extern hypervWmiClassInfoListPtr Msvm_ConcreteJob_WmiInfo;
 
 struct _Msvm_ConcreteJob_Data {
-    XML_TYPE_STR Caption;
-    XML_TYPE_STR Description;
-    XML_TYPE_STR ElementName;
-    XML_TYPE_STR InstallDate;
-    XML_TYPE_DYN_ARRAY OperationalStatus;
-    XML_TYPE_DYN_ARRAY StatusDescriptions;
-    XML_TYPE_STR Status;
-    XML_TYPE_UINT16 HealthState;
-    XML_TYPE_STR JobStatus;
-    XML_TYPE_STR TimeSubmitted;
-    XML_TYPE_STR ScheduledStartTime;
-    XML_TYPE_STR StartTime;
-    XML_TYPE_STR ElapsedTime;
-    XML_TYPE_UINT32 JobRunTimes;
     XML_TYPE_UINT8 RunMonth;
-    XML_TYPE_INT8 RunDay;
-    XML_TYPE_INT8 RunDayOfWeek;
-    XML_TYPE_STR RunStartInterval;
-    XML_TYPE_UINT16 LocalOrUtcTime;
-    XML_TYPE_STR UntilTime;
-    XML_TYPE_STR Notify;
-    XML_TYPE_STR Owner;
-    XML_TYPE_UINT32 Priority;
-    XML_TYPE_UINT16 PercentComplete;
-    XML_TYPE_BOOL DeleteOnCompletion;
-    XML_TYPE_UINT16 ErrorCode;
-    XML_TYPE_STR ErrorDescription;
-    XML_TYPE_STR ErrorSummaryDescription;
-    XML_TYPE_UINT16 RecoveryAction;
-    XML_TYPE_STR OtherRecoveryAction;
-    XML_TYPE_STR InstanceID;
-    XML_TYPE_STR Name;
-    XML_TYPE_UINT16 JobState;
-    XML_TYPE_STR TimeOfLastStateChange;
     XML_TYPE_STR TimeBeforeRemoval;
+    XML_TYPE_STR JobStatus;
+    XML_TYPE_STR ScheduledStartTime;
     XML_TYPE_BOOL Cancellable;
+    XML_TYPE_UINT32 JobRunTimes;
+    XML_TYPE_STR UntilTime;
+    XML_TYPE_STR TimeSubmitted;
+    XML_TYPE_UINT16 JobState;
+    XML_TYPE_UINT16 LocalOrUtcTime;
+    XML_TYPE_UINT16 RecoveryAction;
+    XML_TYPE_UINT16 PercentComplete;
+    XML_TYPE_STR InstallDate;
+    XML_TYPE_UINT32 Priority;
+    XML_TYPE_STR Description;
+    XML_TYPE_STR Name;
+    XML_TYPE_UINT16 HealthState;
+    XML_TYPE_BOOL DeleteOnCompletion;
+    XML_TYPE_DYN_ARRAY OperationalStatus;
+    XML_TYPE_UINT16 ErrorCode;
+    XML_TYPE_STR Notify;
+    XML_TYPE_STR Caption;
+    XML_TYPE_STR Owner;
+    XML_TYPE_STR ErrorSummaryDescription;
+    XML_TYPE_STR Status;
+    XML_TYPE_STR ErrorDescription;
+    XML_TYPE_STR InstanceID;
+    XML_TYPE_STR ElapsedTime;
+    XML_TYPE_STR OtherRecoveryAction;
+    XML_TYPE_STR TimeOfLastStateChange;
+    XML_TYPE_STR RunStartInterval;
+    XML_TYPE_STR StartTime;
+    XML_TYPE_STR ElementName;
+    XML_TYPE_DYN_ARRAY StatusDescriptions;
 };
 
-SER_DECLARE_TYPE(Msvm_ConcreteJob_Data);
+#define MSVM_CONCRETEJOB_V1_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_ConcreteJob"
 
+struct _Msvm_ConcreteJob_v1_Data {
+    XML_TYPE_UINT8 RunMonth;
+    XML_TYPE_STR TimeBeforeRemoval;
+    XML_TYPE_STR JobStatus;
+    XML_TYPE_STR ScheduledStartTime;
+    XML_TYPE_BOOL Cancellable;
+    XML_TYPE_UINT32 JobRunTimes;
+    XML_TYPE_STR UntilTime;
+    XML_TYPE_STR TimeSubmitted;
+    XML_TYPE_UINT16 JobState;
+    XML_TYPE_UINT16 LocalOrUtcTime;
+    XML_TYPE_UINT16 RecoveryAction;
+    XML_TYPE_UINT16 PercentComplete;
+    XML_TYPE_STR InstallDate;
+    XML_TYPE_UINT32 Priority;
+    XML_TYPE_STR Description;
+    XML_TYPE_STR Name;
+    XML_TYPE_UINT16 HealthState;
+    XML_TYPE_BOOL DeleteOnCompletion;
+    XML_TYPE_DYN_ARRAY OperationalStatus;
+    XML_TYPE_UINT16 ErrorCode;
+    XML_TYPE_STR Notify;
+    XML_TYPE_STR Caption;
+    XML_TYPE_STR Owner;
+    XML_TYPE_STR ErrorSummaryDescription;
+    XML_TYPE_STR Status;
+    XML_TYPE_STR ErrorDescription;
+    XML_TYPE_STR InstanceID;
+    XML_TYPE_STR ElapsedTime;
+    XML_TYPE_STR OtherRecoveryAction;
+    XML_TYPE_STR TimeOfLastStateChange;
+    XML_TYPE_STR RunStartInterval;
+    XML_TYPE_STR StartTime;
+    XML_TYPE_STR ElementName;
+    XML_TYPE_DYN_ARRAY StatusDescriptions;
+    XML_TYPE_INT8 RunDay;
+    XML_TYPE_INT8 RunDayOfWeek;
+};
+
+SER_DECLARE_TYPE(Msvm_ConcreteJob_v1_Data);
+#define MSVM_CONCRETEJOB_V2_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/v2/Msvm_ConcreteJob"
+
+struct _Msvm_ConcreteJob_v2_Data {
+    XML_TYPE_UINT8 RunMonth;
+    XML_TYPE_STR TimeBeforeRemoval;
+    XML_TYPE_STR JobStatus;
+    XML_TYPE_STR ScheduledStartTime;
+    XML_TYPE_BOOL Cancellable;
+    XML_TYPE_UINT32 JobRunTimes;
+    XML_TYPE_STR UntilTime;
+    XML_TYPE_STR TimeSubmitted;
+    XML_TYPE_UINT16 JobState;
+    XML_TYPE_UINT16 LocalOrUtcTime;
+    XML_TYPE_UINT16 RecoveryAction;
+    XML_TYPE_UINT16 PercentComplete;
+    XML_TYPE_STR InstallDate;
+    XML_TYPE_UINT32 Priority;
+    XML_TYPE_STR Description;
+    XML_TYPE_STR Name;
+    XML_TYPE_UINT16 HealthState;
+    XML_TYPE_BOOL DeleteOnCompletion;
+    XML_TYPE_DYN_ARRAY OperationalStatus;
+    XML_TYPE_UINT16 ErrorCode;
+    XML_TYPE_STR Notify;
+    XML_TYPE_STR Caption;
+    XML_TYPE_STR Owner;
+    XML_TYPE_STR ErrorSummaryDescription;
+    XML_TYPE_STR Status;
+    XML_TYPE_STR ErrorDescription;
+    XML_TYPE_STR InstanceID;
+    XML_TYPE_STR ElapsedTime;
+    XML_TYPE_STR OtherRecoveryAction;
+    XML_TYPE_STR TimeOfLastStateChange;
+    XML_TYPE_STR RunStartInterval;
+    XML_TYPE_STR StartTime;
+    XML_TYPE_STR ElementName;
+    XML_TYPE_DYN_ARRAY StatusDescriptions;
+    XML_TYPE_UINT16 CommunicationStatus;
+    XML_TYPE_UINT16 PrimaryStatus;
+    XML_TYPE_INT8 RunDayOfWeek;
+    XML_TYPE_UINT16 DetailedStatus;
+    XML_TYPE_INT8 RunDay;
+    XML_TYPE_UINT16 OperatingStatus;
+    XML_TYPE_UINT16 JobType;
+};
+
+SER_DECLARE_TYPE(Msvm_ConcreteJob_v2_Data);
+
+/* must match hypervObject */
 struct _Msvm_ConcreteJob {
-    XmlSerializerInfo *serializerInfo;
-    Msvm_ConcreteJob_Data *data;
+    union {
+        Msvm_ConcreteJob_Data *common;
+        Msvm_ConcreteJob_v1_Data *v1;
+        Msvm_ConcreteJob_v2_Data *v2;
+    } data;
+    hypervWmiClassInfoPtr info;
     Msvm_ConcreteJob *next;
 };
 
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Msvm_MemorySettingData
  */
-
-#define MSVM_MEMORYSETTINGDATA_RESOURCE_URI \
-    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_MemorySettingData"
 
 #define MSVM_MEMORYSETTINGDATA_CLASSNAME \
     "Msvm_MemorySettingData"
 
 #define MSVM_MEMORYSETTINGDATA_WQL_SELECT \
-    "select * from Msvm_MemorySettingData "
+    "SELECT * FROM Msvm_MemorySettingData "
+
+extern hypervWmiClassInfoListPtr Msvm_MemorySettingData_WmiInfo;
 
 struct _Msvm_MemorySettingData_Data {
-    XML_TYPE_STR Caption;
-    XML_TYPE_STR Description;
-    XML_TYPE_STR InstanceID;
-    XML_TYPE_STR ElementName;
-    XML_TYPE_UINT16 ResourceType;
-    XML_TYPE_STR OtherResourceType;
-    XML_TYPE_STR ResourceSubType;
-    XML_TYPE_STR PoolID;
     XML_TYPE_UINT16 ConsumerVisibility;
-    XML_TYPE_DYN_ARRAY HostResource;
-    XML_TYPE_STR AllocationUnits;
-    XML_TYPE_UINT64 VirtualQuantity;
-    XML_TYPE_UINT64 Reservation;
-    XML_TYPE_UINT64 Limit;
-    XML_TYPE_UINT32 Weight;
-    XML_TYPE_BOOL AutomaticAllocation;
-    XML_TYPE_BOOL AutomaticDeallocation;
-    XML_TYPE_STR Parent;
-    XML_TYPE_DYN_ARRAY Connection;
-    XML_TYPE_STR Address;
-    XML_TYPE_UINT16 MappingBehavior;
+    XML_TYPE_STR ResourceSubType;
+    XML_TYPE_STR OtherResourceType;
     XML_TYPE_BOOL IsVirtualized;
-    XML_TYPE_STR DeviceID;
-    XML_TYPE_STR DeviceIDFormat;
     XML_TYPE_BOOL DynamicMemoryEnabled;
+    XML_TYPE_STR Description;
+    XML_TYPE_BOOL AutomaticDeallocation;
+    XML_TYPE_UINT16 MappingBehavior;
+    XML_TYPE_UINT32 Weight;
+    XML_TYPE_UINT64 VirtualQuantity;
+    XML_TYPE_STR Address;
+    XML_TYPE_STR Caption;
+    XML_TYPE_DYN_ARRAY Connection;
+    XML_TYPE_STR AllocationUnits;
+    XML_TYPE_BOOL AutomaticAllocation;
+    XML_TYPE_STR InstanceID;
+    XML_TYPE_UINT64 Reservation;
+    XML_TYPE_STR PoolID;
+    XML_TYPE_UINT16 ResourceType;
+    XML_TYPE_DYN_ARRAY HostResource;
+    XML_TYPE_STR Parent;
+    XML_TYPE_UINT64 Limit;
+    XML_TYPE_STR ElementName;
 };
 
-SER_DECLARE_TYPE(Msvm_MemorySettingData_Data);
+#define MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_MemorySettingData"
 
+struct _Msvm_MemorySettingData_v1_Data {
+    XML_TYPE_UINT16 ConsumerVisibility;
+    XML_TYPE_STR ResourceSubType;
+    XML_TYPE_STR OtherResourceType;
+    XML_TYPE_BOOL IsVirtualized;
+    XML_TYPE_BOOL DynamicMemoryEnabled;
+    XML_TYPE_STR Description;
+    XML_TYPE_BOOL AutomaticDeallocation;
+    XML_TYPE_UINT16 MappingBehavior;
+    XML_TYPE_UINT32 Weight;
+    XML_TYPE_UINT64 VirtualQuantity;
+    XML_TYPE_STR Address;
+    XML_TYPE_STR Caption;
+    XML_TYPE_DYN_ARRAY Connection;
+    XML_TYPE_STR AllocationUnits;
+    XML_TYPE_BOOL AutomaticAllocation;
+    XML_TYPE_STR InstanceID;
+    XML_TYPE_UINT64 Reservation;
+    XML_TYPE_STR PoolID;
+    XML_TYPE_UINT16 ResourceType;
+    XML_TYPE_DYN_ARRAY HostResource;
+    XML_TYPE_STR Parent;
+    XML_TYPE_UINT64 Limit;
+    XML_TYPE_STR ElementName;
+    XML_TYPE_STR DeviceIDFormat;
+    XML_TYPE_STR DeviceID;
+};
+
+SER_DECLARE_TYPE(Msvm_MemorySettingData_v1_Data);
+#define MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/v2/Msvm_MemorySettingData"
+
+struct _Msvm_MemorySettingData_v2_Data {
+    XML_TYPE_UINT16 ConsumerVisibility;
+    XML_TYPE_STR ResourceSubType;
+    XML_TYPE_STR OtherResourceType;
+    XML_TYPE_BOOL IsVirtualized;
+    XML_TYPE_BOOL DynamicMemoryEnabled;
+    XML_TYPE_STR Description;
+    XML_TYPE_BOOL AutomaticDeallocation;
+    XML_TYPE_UINT16 MappingBehavior;
+    XML_TYPE_UINT32 Weight;
+    XML_TYPE_UINT64 VirtualQuantity;
+    XML_TYPE_STR Address;
+    XML_TYPE_STR Caption;
+    XML_TYPE_DYN_ARRAY Connection;
+    XML_TYPE_STR AllocationUnits;
+    XML_TYPE_BOOL AutomaticAllocation;
+    XML_TYPE_STR InstanceID;
+    XML_TYPE_UINT64 Reservation;
+    XML_TYPE_STR PoolID;
+    XML_TYPE_UINT16 ResourceType;
+    XML_TYPE_DYN_ARRAY HostResource;
+    XML_TYPE_STR Parent;
+    XML_TYPE_UINT64 Limit;
+    XML_TYPE_STR ElementName;
+    XML_TYPE_STR AddressOnParent;
+    XML_TYPE_UINT32 TargetMemoryBuffer;
+    XML_TYPE_STR VirtualQuantityUnits;
+    XML_TYPE_BOOL SwapFilesInUse;
+    XML_TYPE_UINT64 MaxMemoryBlocksPerNumaNode;
+};
+
+SER_DECLARE_TYPE(Msvm_MemorySettingData_v2_Data);
+
+/* must match hypervObject */
 struct _Msvm_MemorySettingData {
-    XmlSerializerInfo *serializerInfo;
-    Msvm_MemorySettingData_Data *data;
+    union {
+        Msvm_MemorySettingData_Data *common;
+        Msvm_MemorySettingData_v1_Data *v1;
+        Msvm_MemorySettingData_v2_Data *v2;
+    } data;
+    hypervWmiClassInfoPtr info;
     Msvm_MemorySettingData *next;
 };
 
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Msvm_ProcessorSettingData
  */
-
-#define MSVM_PROCESSORSETTINGDATA_RESOURCE_URI \
-    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_ProcessorSettingData"
 
 #define MSVM_PROCESSORSETTINGDATA_CLASSNAME \
     "Msvm_ProcessorSettingData"
 
 #define MSVM_PROCESSORSETTINGDATA_WQL_SELECT \
-    "select * from Msvm_ProcessorSettingData "
+    "SELECT * FROM Msvm_ProcessorSettingData "
+
+extern hypervWmiClassInfoListPtr Msvm_ProcessorSettingData_WmiInfo;
 
 struct _Msvm_ProcessorSettingData_Data {
-    XML_TYPE_STR Caption;
-    XML_TYPE_STR Description;
-    XML_TYPE_STR InstanceID;
-    XML_TYPE_STR ElementName;
-    XML_TYPE_UINT16 ResourceType;
-    XML_TYPE_STR OtherResourceType;
-    XML_TYPE_STR ResourceSubType;
-    XML_TYPE_STR PoolID;
     XML_TYPE_UINT16 ConsumerVisibility;
-    XML_TYPE_DYN_ARRAY HostResource;
-    XML_TYPE_STR AllocationUnits;
-    XML_TYPE_UINT64 VirtualQuantity;
-    XML_TYPE_UINT64 Reservation;
-    XML_TYPE_UINT64 Limit;
-    XML_TYPE_UINT32 Weight;
-    XML_TYPE_BOOL AutomaticAllocation;
+    XML_TYPE_STR ResourceSubType;
+    XML_TYPE_STR OtherResourceType;
+    XML_TYPE_BOOL LimitCPUID;
+    XML_TYPE_STR Description;
     XML_TYPE_BOOL AutomaticDeallocation;
-    XML_TYPE_STR Parent;
-    XML_TYPE_DYN_ARRAY Connection;
-    XML_TYPE_STR Address;
     XML_TYPE_UINT16 MappingBehavior;
-    XML_TYPE_BOOL IsVirtualized;
-    XML_TYPE_STR DeviceID;
+    XML_TYPE_UINT32 Weight;
+    XML_TYPE_UINT64 VirtualQuantity;
+    XML_TYPE_STR Address;
+    XML_TYPE_STR Caption;
+    XML_TYPE_DYN_ARRAY Connection;
+    XML_TYPE_STR AllocationUnits;
+    XML_TYPE_BOOL AutomaticAllocation;
+    XML_TYPE_STR InstanceID;
+    XML_TYPE_UINT64 Reservation;
+    XML_TYPE_STR PoolID;
+    XML_TYPE_UINT16 ResourceType;
+    XML_TYPE_DYN_ARRAY HostResource;
+    XML_TYPE_STR Parent;
+    XML_TYPE_UINT64 Limit;
+    XML_TYPE_STR ElementName;
+    XML_TYPE_BOOL LimitProcessorFeatures;
+};
+
+#define MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_ProcessorSettingData"
+
+struct _Msvm_ProcessorSettingData_v1_Data {
+    XML_TYPE_UINT16 ConsumerVisibility;
+    XML_TYPE_STR ResourceSubType;
+    XML_TYPE_STR OtherResourceType;
+    XML_TYPE_BOOL LimitCPUID;
+    XML_TYPE_STR Description;
+    XML_TYPE_BOOL AutomaticDeallocation;
+    XML_TYPE_UINT16 MappingBehavior;
+    XML_TYPE_UINT32 Weight;
+    XML_TYPE_UINT64 VirtualQuantity;
+    XML_TYPE_STR Address;
+    XML_TYPE_STR Caption;
+    XML_TYPE_DYN_ARRAY Connection;
+    XML_TYPE_STR AllocationUnits;
+    XML_TYPE_BOOL AutomaticAllocation;
+    XML_TYPE_STR InstanceID;
+    XML_TYPE_UINT64 Reservation;
+    XML_TYPE_STR PoolID;
+    XML_TYPE_UINT16 ResourceType;
+    XML_TYPE_DYN_ARRAY HostResource;
+    XML_TYPE_STR Parent;
+    XML_TYPE_UINT64 Limit;
+    XML_TYPE_STR ElementName;
+    XML_TYPE_BOOL LimitProcessorFeatures;
     XML_TYPE_STR DeviceIDFormat;
     XML_TYPE_UINT16 ProcessorsPerSocket;
     XML_TYPE_UINT16 SocketCount;
     XML_TYPE_BOOL ThreadsEnabled;
-    XML_TYPE_BOOL LimitCPUID;
-    XML_TYPE_BOOL LimitProcessorFeatures;
+    XML_TYPE_BOOL IsVirtualized;
+    XML_TYPE_STR DeviceID;
 };
 
-SER_DECLARE_TYPE(Msvm_ProcessorSettingData_Data);
+SER_DECLARE_TYPE(Msvm_ProcessorSettingData_v1_Data);
+#define MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/v2/Msvm_ProcessorSettingData"
 
+struct _Msvm_ProcessorSettingData_v2_Data {
+    XML_TYPE_UINT16 ConsumerVisibility;
+    XML_TYPE_STR ResourceSubType;
+    XML_TYPE_STR OtherResourceType;
+    XML_TYPE_BOOL LimitCPUID;
+    XML_TYPE_STR Description;
+    XML_TYPE_BOOL AutomaticDeallocation;
+    XML_TYPE_UINT16 MappingBehavior;
+    XML_TYPE_UINT32 Weight;
+    XML_TYPE_UINT64 VirtualQuantity;
+    XML_TYPE_STR Address;
+    XML_TYPE_STR Caption;
+    XML_TYPE_DYN_ARRAY Connection;
+    XML_TYPE_STR AllocationUnits;
+    XML_TYPE_BOOL AutomaticAllocation;
+    XML_TYPE_STR InstanceID;
+    XML_TYPE_UINT64 Reservation;
+    XML_TYPE_STR PoolID;
+    XML_TYPE_UINT16 ResourceType;
+    XML_TYPE_DYN_ARRAY HostResource;
+    XML_TYPE_STR Parent;
+    XML_TYPE_UINT64 Limit;
+    XML_TYPE_STR ElementName;
+    XML_TYPE_BOOL LimitProcessorFeatures;
+    XML_TYPE_STR AddressOnParent;
+    XML_TYPE_STR VirtualQuantityUnits;
+    XML_TYPE_UINT64 MaxProcessorsPerNumaNode;
+    XML_TYPE_UINT64 MaxNumaNodesPerSocket;
+};
+
+SER_DECLARE_TYPE(Msvm_ProcessorSettingData_v2_Data);
+
+/* must match hypervObject */
 struct _Msvm_ProcessorSettingData {
-    XmlSerializerInfo *serializerInfo;
-    Msvm_ProcessorSettingData_Data *data;
+    union {
+        Msvm_ProcessorSettingData_Data *common;
+        Msvm_ProcessorSettingData_v1_Data *v1;
+        Msvm_ProcessorSettingData_v2_Data *v2;
+    } data;
+    hypervWmiClassInfoPtr info;
     Msvm_ProcessorSettingData *next;
 };
 
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Msvm_ResourceAllocationSettingData
  */
-
-#define MSVM_RESOURCEALLOCATIONSETTINGDATA_RESOURCE_URI \
-    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_ResourceAllocationSettingData"
 
 #define MSVM_RESOURCEALLOCATIONSETTINGDATA_CLASSNAME \
     "Msvm_ResourceAllocationSettingData"
 
 #define MSVM_RESOURCEALLOCATIONSETTINGDATA_WQL_SELECT \
-    "select * from Msvm_ResourceAllocationSettingData "
+    "SELECT * FROM Msvm_ResourceAllocationSettingData "
+
+extern hypervWmiClassInfoListPtr Msvm_ResourceAllocationSettingData_WmiInfo;
+
+#define MSVM_RESOURCEALLOCATIONSETTINGDATA_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_ResourceAllocationSettingData"
 
 struct _Msvm_ResourceAllocationSettingData_Data {
     XML_TYPE_STR Caption;
@@ -361,26 +692,32 @@ struct _Msvm_ResourceAllocationSettingData_Data {
 
 SER_DECLARE_TYPE(Msvm_ResourceAllocationSettingData_Data);
 
+/* must match hypervObject */
 struct _Msvm_ResourceAllocationSettingData {
-    XmlSerializerInfo *serializerInfo;
-    Msvm_ResourceAllocationSettingData_Data *data;
+    union {
+        Msvm_ResourceAllocationSettingData_Data *common;
+        Msvm_ResourceAllocationSettingData_Data *None;
+    } data;
+    hypervWmiClassInfoPtr info;
     Msvm_ResourceAllocationSettingData *next;
 };
 
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Msvm_SwitchPort
  */
-
-#define MSVM_SWITCHPORT_RESOURCE_URI \
-    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_SwitchPort"
 
 #define MSVM_SWITCHPORT_CLASSNAME \
     "Msvm_SwitchPort"
 
 #define MSVM_SWITCHPORT_WQL_SELECT \
-    "select * from Msvm_SwitchPort "
+    "SELECT * FROM Msvm_SwitchPort "
+
+extern hypervWmiClassInfoListPtr Msvm_SwitchPort_WmiInfo;
+
+#define MSVM_SWITCHPORT_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_SwitchPort"
 
 struct _Msvm_SwitchPort_Data {
     XML_TYPE_STR Caption;
@@ -418,26 +755,32 @@ struct _Msvm_SwitchPort_Data {
 
 SER_DECLARE_TYPE(Msvm_SwitchPort_Data);
 
+/* must match hypervObject */
 struct _Msvm_SwitchPort {
-    XmlSerializerInfo *serializerInfo;
-    Msvm_SwitchPort_Data *data;
+    union {
+        Msvm_SwitchPort_Data *common;
+        Msvm_SwitchPort_Data *None;
+    } data;
+    hypervWmiClassInfoPtr info;
     Msvm_SwitchPort *next;
 };
 
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Msvm_SyntheticEthernetPortSettingData
  */
-
-#define MSVM_SYNTHETICETHERNETPORTSETTINGDATA_RESOURCE_URI \
-    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_SyntheticEthernetPortSettingData"
 
 #define MSVM_SYNTHETICETHERNETPORTSETTINGDATA_CLASSNAME \
     "Msvm_SyntheticEthernetPortSettingData"
 
 #define MSVM_SYNTHETICETHERNETPORTSETTINGDATA_WQL_SELECT \
-    "select * from Msvm_SyntheticEthernetPortSettingData "
+    "SELECT * FROM Msvm_SyntheticEthernetPortSettingData "
+
+extern hypervWmiClassInfoListPtr Msvm_SyntheticEthernetPortSettingData_WmiInfo;
+
+#define MSVM_SYNTHETICETHERNETPORTSETTINGDATA_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_SyntheticEthernetPortSettingData"
 
 struct _Msvm_SyntheticEthernetPortSettingData_Data {
     XML_TYPE_STR Caption;
@@ -467,26 +810,32 @@ struct _Msvm_SyntheticEthernetPortSettingData_Data {
 
 SER_DECLARE_TYPE(Msvm_SyntheticEthernetPortSettingData_Data);
 
+/* must match hypervObject */
 struct _Msvm_SyntheticEthernetPortSettingData {
-    XmlSerializerInfo *serializerInfo;
-    Msvm_SyntheticEthernetPortSettingData_Data *data;
+    union {
+        Msvm_SyntheticEthernetPortSettingData_Data *common;
+        Msvm_SyntheticEthernetPortSettingData_Data *None;
+    } data;
+    hypervWmiClassInfoPtr info;
     Msvm_SyntheticEthernetPortSettingData *next;
 };
 
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Msvm_VirtualHardDiskSettingData
  */
-
-#define MSVM_VIRTUALHARDDISKSETTINGDATA_RESOURCE_URI \
-    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_VirtualHardDiskSettingData"
 
 #define MSVM_VIRTUALHARDDISKSETTINGDATA_CLASSNAME \
     "Msvm_VirtualHardDiskSettingData"
 
 #define MSVM_VIRTUALHARDDISKSETTINGDATA_WQL_SELECT \
-    "select * from Msvm_VirtualHardDiskSettingData "
+    "SELECT * FROM Msvm_VirtualHardDiskSettingData "
+
+extern hypervWmiClassInfoListPtr Msvm_VirtualHardDiskSettingData_WmiInfo;
+
+#define MSVM_VIRTUALHARDDISKSETTINGDATA_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_VirtualHardDiskSettingData"
 
 struct _Msvm_VirtualHardDiskSettingData_Data {
     XML_TYPE_STR InstanceID;
@@ -506,26 +855,32 @@ struct _Msvm_VirtualHardDiskSettingData_Data {
 
 SER_DECLARE_TYPE(Msvm_VirtualHardDiskSettingData_Data);
 
+/* must match hypervObject */
 struct _Msvm_VirtualHardDiskSettingData {
-    XmlSerializerInfo *serializerInfo;
-    Msvm_VirtualHardDiskSettingData_Data *data;
+    union {
+        Msvm_VirtualHardDiskSettingData_Data *common;
+        Msvm_VirtualHardDiskSettingData_Data *None;
+    } data;
+    hypervWmiClassInfoPtr info;
     Msvm_VirtualHardDiskSettingData *next;
 };
 
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Msvm_VirtualSwitch
  */
-
-#define MSVM_VIRTUALSWITCH_RESOURCE_URI \
-    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_VirtualSwitch"
 
 #define MSVM_VIRTUALSWITCH_CLASSNAME \
     "Msvm_VirtualSwitch"
 
 #define MSVM_VIRTUALSWITCH_WQL_SELECT \
-    "select * from Msvm_VirtualSwitch "
+    "SELECT * FROM Msvm_VirtualSwitch "
+
+extern hypervWmiClassInfoListPtr Msvm_VirtualSwitch_WmiInfo;
+
+#define MSVM_VIRTUALSWITCH_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_VirtualSwitch"
 
 struct _Msvm_VirtualSwitch_Data {
     XML_TYPE_STR Caption;
@@ -561,26 +916,32 @@ struct _Msvm_VirtualSwitch_Data {
 
 SER_DECLARE_TYPE(Msvm_VirtualSwitch_Data);
 
+/* must match hypervObject */
 struct _Msvm_VirtualSwitch {
-    XmlSerializerInfo *serializerInfo;
-    Msvm_VirtualSwitch_Data *data;
+    union {
+        Msvm_VirtualSwitch_Data *common;
+        Msvm_VirtualSwitch_Data *None;
+    } data;
+    hypervWmiClassInfoPtr info;
     Msvm_VirtualSwitch *next;
 };
 
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Msvm_VirtualSwitchManagementService
  */
-
-#define MSVM_VIRTUALSWITCHMANAGEMENTSERVICE_RESOURCE_URI \
-    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_VirtualSwitchManagementService"
 
 #define MSVM_VIRTUALSWITCHMANAGEMENTSERVICE_CLASSNAME \
     "Msvm_VirtualSwitchManagementService"
 
 #define MSVM_VIRTUALSWITCHMANAGEMENTSERVICE_WQL_SELECT \
-    "select * from Msvm_VirtualSwitchManagementService "
+    "SELECT * FROM Msvm_VirtualSwitchManagementService "
+
+extern hypervWmiClassInfoListPtr Msvm_VirtualSwitchManagementService_WmiInfo;
+
+#define MSVM_VIRTUALSWITCHMANAGEMENTSERVICE_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_VirtualSwitchManagementService"
 
 struct _Msvm_VirtualSwitchManagementService_Data {
     XML_TYPE_STR Caption;
@@ -608,26 +969,32 @@ struct _Msvm_VirtualSwitchManagementService_Data {
 
 SER_DECLARE_TYPE(Msvm_VirtualSwitchManagementService_Data);
 
+/* must match hypervObject */
 struct _Msvm_VirtualSwitchManagementService {
-    XmlSerializerInfo *serializerInfo;
-    Msvm_VirtualSwitchManagementService_Data *data;
+    union {
+        Msvm_VirtualSwitchManagementService_Data *common;
+        Msvm_VirtualSwitchManagementService_Data *None;
+    } data;
+    hypervWmiClassInfoPtr info;
     Msvm_VirtualSwitchManagementService *next;
 };
 
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Msvm_VirtualSystemGlobalSettingData
  */
-
-#define MSVM_VIRTUALSYSTEMGLOBALSETTINGDATA_RESOURCE_URI \
-    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_VirtualSystemGlobalSettingData"
 
 #define MSVM_VIRTUALSYSTEMGLOBALSETTINGDATA_CLASSNAME \
     "Msvm_VirtualSystemGlobalSettingData"
 
 #define MSVM_VIRTUALSYSTEMGLOBALSETTINGDATA_WQL_SELECT \
-    "select * from Msvm_VirtualSystemGlobalSettingData "
+    "SELECT * FROM Msvm_VirtualSystemGlobalSettingData "
+
+extern hypervWmiClassInfoListPtr Msvm_VirtualSystemGlobalSettingData_WmiInfo;
+
+#define MSVM_VIRTUALSYSTEMGLOBALSETTINGDATA_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_VirtualSystemGlobalSettingData"
 
 struct _Msvm_VirtualSystemGlobalSettingData_Data {
     XML_TYPE_STR Caption;
@@ -655,26 +1022,32 @@ struct _Msvm_VirtualSystemGlobalSettingData_Data {
 
 SER_DECLARE_TYPE(Msvm_VirtualSystemGlobalSettingData_Data);
 
+/* must match hypervObject */
 struct _Msvm_VirtualSystemGlobalSettingData {
-    XmlSerializerInfo *serializerInfo;
-    Msvm_VirtualSystemGlobalSettingData_Data *data;
+    union {
+        Msvm_VirtualSystemGlobalSettingData_Data *common;
+        Msvm_VirtualSystemGlobalSettingData_Data *None;
+    } data;
+    hypervWmiClassInfoPtr info;
     Msvm_VirtualSystemGlobalSettingData *next;
 };
 
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Msvm_VirtualSystemManagementService
  */
-
-#define MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI \
-    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_VirtualSystemManagementService"
 
 #define MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_CLASSNAME \
     "Msvm_VirtualSystemManagementService"
 
 #define MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_WQL_SELECT \
-    "select * from Msvm_VirtualSystemManagementService "
+    "SELECT * FROM Msvm_VirtualSystemManagementService "
+
+extern hypervWmiClassInfoListPtr Msvm_VirtualSystemManagementService_WmiInfo;
+
+#define MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_VirtualSystemManagementService"
 
 struct _Msvm_VirtualSystemManagementService_Data {
     XML_TYPE_STR Caption;
@@ -702,73 +1075,154 @@ struct _Msvm_VirtualSystemManagementService_Data {
 
 SER_DECLARE_TYPE(Msvm_VirtualSystemManagementService_Data);
 
+/* must match hypervObject */
 struct _Msvm_VirtualSystemManagementService {
-    XmlSerializerInfo *serializerInfo;
-    Msvm_VirtualSystemManagementService_Data *data;
+    union {
+        Msvm_VirtualSystemManagementService_Data *common;
+        Msvm_VirtualSystemManagementService_Data *None;
+    } data;
+    hypervWmiClassInfoPtr info;
     Msvm_VirtualSystemManagementService *next;
 };
 
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Msvm_VirtualSystemSettingData
  */
-
-#define MSVM_VIRTUALSYSTEMSETTINGDATA_RESOURCE_URI \
-    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_VirtualSystemSettingData"
 
 #define MSVM_VIRTUALSYSTEMSETTINGDATA_CLASSNAME \
     "Msvm_VirtualSystemSettingData"
 
 #define MSVM_VIRTUALSYSTEMSETTINGDATA_WQL_SELECT \
-    "select * from Msvm_VirtualSystemSettingData "
+    "SELECT * FROM Msvm_VirtualSystemSettingData "
+
+extern hypervWmiClassInfoListPtr Msvm_VirtualSystemSettingData_WmiInfo;
 
 struct _Msvm_VirtualSystemSettingData_Data {
-    XML_TYPE_STR Caption;
-    XML_TYPE_STR Description;
-    XML_TYPE_STR ElementName;
-    XML_TYPE_STR InstanceID;
-    XML_TYPE_STR SystemName;
-    XML_TYPE_UINT16 SettingType;
-    XML_TYPE_UINT16 VirtualSystemType;
-    XML_TYPE_STR OtherVirtualSystemType;
-    XML_TYPE_BOOL AutoActivate;
     XML_TYPE_STR CreationTime;
-    XML_TYPE_STR Notes;
     XML_TYPE_STR BIOSGUID;
+    XML_TYPE_STR Description;
     XML_TYPE_STR BIOSSerialNumber;
-    XML_TYPE_STR BaseBoardSerialNumber;
+    XML_TYPE_DYN_ARRAY BootOrder;
+    XML_TYPE_STR Caption;
     XML_TYPE_STR ChassisSerialNumber;
     XML_TYPE_STR ChassisAssetTag;
-    XML_TYPE_BOOL BIOSNumLock;
-    XML_TYPE_DYN_ARRAY BootOrder;
+    XML_TYPE_STR BaseBoardSerialNumber;
+    XML_TYPE_STR InstanceID;
     XML_TYPE_STR Parent;
+    XML_TYPE_BOOL BIOSNumLock;
+    XML_TYPE_STR ElementName;
+};
+
+#define MSVM_VIRTUALSYSTEMSETTINGDATA_V1_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_VirtualSystemSettingData"
+
+struct _Msvm_VirtualSystemSettingData_v1_Data {
+    XML_TYPE_STR CreationTime;
+    XML_TYPE_STR BIOSGUID;
+    XML_TYPE_STR Description;
+    XML_TYPE_STR BIOSSerialNumber;
+    XML_TYPE_DYN_ARRAY BootOrder;
+    XML_TYPE_STR Caption;
+    XML_TYPE_STR ChassisSerialNumber;
+    XML_TYPE_STR ChassisAssetTag;
+    XML_TYPE_STR BaseBoardSerialNumber;
+    XML_TYPE_STR InstanceID;
+    XML_TYPE_STR Parent;
+    XML_TYPE_BOOL BIOSNumLock;
+    XML_TYPE_STR ElementName;
+    XML_TYPE_BOOL AutoActivate;
+    XML_TYPE_UINT16 VirtualSystemType;
+    XML_TYPE_STR OtherVirtualSystemType;
+    XML_TYPE_UINT16 SettingType;
+    XML_TYPE_STR SystemName;
+    XML_TYPE_STR Notes;
     XML_TYPE_DYN_ARRAY NumaNodeList;
     XML_TYPE_BOOL NumaNodesAreRequired;
 };
 
-SER_DECLARE_TYPE(Msvm_VirtualSystemSettingData_Data);
+SER_DECLARE_TYPE(Msvm_VirtualSystemSettingData_v1_Data);
+#define MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/v2/Msvm_VirtualSystemSettingData"
 
+struct _Msvm_VirtualSystemSettingData_v2_Data {
+    XML_TYPE_STR CreationTime;
+    XML_TYPE_STR BIOSGUID;
+    XML_TYPE_STR Description;
+    XML_TYPE_STR BIOSSerialNumber;
+    XML_TYPE_DYN_ARRAY BootOrder;
+    XML_TYPE_STR Caption;
+    XML_TYPE_STR ChassisSerialNumber;
+    XML_TYPE_STR ChassisAssetTag;
+    XML_TYPE_STR BaseBoardSerialNumber;
+    XML_TYPE_STR InstanceID;
+    XML_TYPE_STR Parent;
+    XML_TYPE_BOOL BIOSNumLock;
+    XML_TYPE_STR ElementName;
+    XML_TYPE_STR SwapFileDataRoot;
+    XML_TYPE_STR LogDataRoot;
+    XML_TYPE_UINT16 AutomaticStartupAction;
+    XML_TYPE_STR AutomaticStartupActionDelay;
+    XML_TYPE_UINT16 AutomaticStartupActionSequenceNumber;
+    XML_TYPE_UINT16 AutomaticShutdownAction;
+    XML_TYPE_UINT16 AutomaticRecoveryAction;
+    XML_TYPE_STR RecoveryFile;
+    XML_TYPE_STR VirtualSystemType;
+    XML_TYPE_STR SuspendDataRoot;
+    XML_TYPE_STR ConfigurationID;
+    XML_TYPE_DYN_ARRAY Notes;
+    XML_TYPE_STR ConfigurationDataRoot;
+    XML_TYPE_STR SnapshotDataRoot;
+    XML_TYPE_STR VirtualSystemIdentifier;
+    XML_TYPE_STR ConfigurationFile;
+    XML_TYPE_BOOL IsSaved;
+    XML_TYPE_STR AdditionalRecoveryInformation;
+    XML_TYPE_BOOL AllowFullSCSICommandSet;
+    XML_TYPE_UINT32 DebugChannelId;
+    XML_TYPE_UINT16 DebugPortEnabled;
+    XML_TYPE_UINT32 DebugPort;
+    XML_TYPE_STR Version;
+    XML_TYPE_BOOL IncrementalBackupEnabled;
+    XML_TYPE_BOOL VirtualNumaEnabled;
+    XML_TYPE_BOOL AllowReducedFcRedundancy;
+    XML_TYPE_STR VirtualSystemSubType;
+    XML_TYPE_DYN_ARRAY BootSourceOrder;
+    XML_TYPE_BOOL PauseAfterBootFailure;
+    XML_TYPE_UINT16 NetworkBootPreferredProtocol;
+    XML_TYPE_BOOL SecureBootEnabled;
+    XML_TYPE_UINT64 LowMmioGapSize;
+};
+
+SER_DECLARE_TYPE(Msvm_VirtualSystemSettingData_v2_Data);
+
+/* must match hypervObject */
 struct _Msvm_VirtualSystemSettingData {
-    XmlSerializerInfo *serializerInfo;
-    Msvm_VirtualSystemSettingData_Data *data;
+    union {
+        Msvm_VirtualSystemSettingData_Data *common;
+        Msvm_VirtualSystemSettingData_v1_Data *v1;
+        Msvm_VirtualSystemSettingData_v2_Data *v2;
+    } data;
+    hypervWmiClassInfoPtr info;
     Msvm_VirtualSystemSettingData *next;
 };
 
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Win32_ComputerSystem
  */
-
-#define WIN32_COMPUTERSYSTEM_RESOURCE_URI \
-    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_ComputerSystem"
 
 #define WIN32_COMPUTERSYSTEM_CLASSNAME \
     "Win32_ComputerSystem"
 
 #define WIN32_COMPUTERSYSTEM_WQL_SELECT \
-    "select * from Win32_ComputerSystem "
+    "SELECT * FROM Win32_ComputerSystem "
+
+extern hypervWmiClassInfoListPtr Win32_ComputerSystem_WmiInfo;
+
+#define WIN32_COMPUTERSYSTEM_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_ComputerSystem"
 
 struct _Win32_ComputerSystem_Data {
     XML_TYPE_UINT16 AdminPasswordStatus;
@@ -832,26 +1286,32 @@ struct _Win32_ComputerSystem_Data {
 
 SER_DECLARE_TYPE(Win32_ComputerSystem_Data);
 
+/* must match hypervObject */
 struct _Win32_ComputerSystem {
-    XmlSerializerInfo *serializerInfo;
-    Win32_ComputerSystem_Data *data;
+    union {
+        Win32_ComputerSystem_Data *common;
+        Win32_ComputerSystem_Data *None;
+    } data;
+    hypervWmiClassInfoPtr info;
     Win32_ComputerSystem *next;
 };
 
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Win32_ComputerSystemProduct
  */
-
-#define WIN32_COMPUTERSYSTEMPRODUCT_RESOURCE_URI \
-    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_ComputerSystemProduct"
 
 #define WIN32_COMPUTERSYSTEMPRODUCT_CLASSNAME \
     "Win32_ComputerSystemProduct"
 
 #define WIN32_COMPUTERSYSTEMPRODUCT_WQL_SELECT \
-    "select * from Win32_ComputerSystemProduct "
+    "SELECT * FROM Win32_ComputerSystemProduct "
+
+extern hypervWmiClassInfoListPtr Win32_ComputerSystemProduct_WmiInfo;
+
+#define WIN32_COMPUTERSYSTEMPRODUCT_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_ComputerSystemProduct"
 
 struct _Win32_ComputerSystemProduct_Data {
     XML_TYPE_STR Caption;
@@ -866,26 +1326,32 @@ struct _Win32_ComputerSystemProduct_Data {
 
 SER_DECLARE_TYPE(Win32_ComputerSystemProduct_Data);
 
+/* must match hypervObject */
 struct _Win32_ComputerSystemProduct {
-    XmlSerializerInfo *serializerInfo;
-    Win32_ComputerSystemProduct_Data *data;
+    union {
+        Win32_ComputerSystemProduct_Data *common;
+        Win32_ComputerSystemProduct_Data *None;
+    } data;
+    hypervWmiClassInfoPtr info;
     Win32_ComputerSystemProduct *next;
 };
 
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Win32_OperatingSystem
  */
-
-#define WIN32_OPERATINGSYSTEM_RESOURCE_URI \
-    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_OperatingSystem"
 
 #define WIN32_OPERATINGSYSTEM_CLASSNAME \
     "Win32_OperatingSystem"
 
 #define WIN32_OPERATINGSYSTEM_WQL_SELECT \
-    "select * from Win32_OperatingSystem "
+    "SELECT * FROM Win32_OperatingSystem "
+
+extern hypervWmiClassInfoListPtr Win32_OperatingSystem_WmiInfo;
+
+#define WIN32_OPERATINGSYSTEM_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_OperatingSystem"
 
 struct _Win32_OperatingSystem_Data {
     XML_TYPE_STR BootDevice;
@@ -955,26 +1421,32 @@ struct _Win32_OperatingSystem_Data {
 
 SER_DECLARE_TYPE(Win32_OperatingSystem_Data);
 
+/* must match hypervObject */
 struct _Win32_OperatingSystem {
-    XmlSerializerInfo *serializerInfo;
-    Win32_OperatingSystem_Data *data;
+    union {
+        Win32_OperatingSystem_Data *common;
+        Win32_OperatingSystem_Data *None;
+    } data;
+    hypervWmiClassInfoPtr info;
     Win32_OperatingSystem *next;
 };
 
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor
  */
-
-#define WIN32_PERFRAWDATA_HVSTATS_HYPERVHYPERVISORVIRTUALPROCESSOR_RESOURCE_URI \
-    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor"
 
 #define WIN32_PERFRAWDATA_HVSTATS_HYPERVHYPERVISORVIRTUALPROCESSOR_CLASSNAME \
     "Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor"
 
 #define WIN32_PERFRAWDATA_HVSTATS_HYPERVHYPERVISORVIRTUALPROCESSOR_WQL_SELECT \
-    "select * from Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor "
+    "SELECT * FROM Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor "
+
+extern hypervWmiClassInfoListPtr Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor_WmiInfo;
+
+#define WIN32_PERFRAWDATA_HVSTATS_HYPERVHYPERVISORVIRTUALPROCESSOR_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor"
 
 struct _Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor_Data {
     XML_TYPE_UINT64 AddressDomainFlushesPersec;
@@ -1086,26 +1558,32 @@ struct _Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor_Data {
 
 SER_DECLARE_TYPE(Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor_Data);
 
+/* must match hypervObject */
 struct _Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor {
-    XmlSerializerInfo *serializerInfo;
-    Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor_Data *data;
+    union {
+        Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor_Data *common;
+        Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor_Data *None;
+    } data;
+    hypervWmiClassInfoPtr info;
     Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor *next;
 };
 
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Win32_Processor
  */
-
-#define WIN32_PROCESSOR_RESOURCE_URI \
-    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_Processor"
 
 #define WIN32_PROCESSOR_CLASSNAME \
     "Win32_Processor"
 
 #define WIN32_PROCESSOR_WQL_SELECT \
-    "select * from Win32_Processor "
+    "SELECT * FROM Win32_Processor "
+
+extern hypervWmiClassInfoListPtr Win32_Processor_WmiInfo;
+
+#define WIN32_PROCESSOR_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_Processor"
 
 struct _Win32_Processor_Data {
     XML_TYPE_UINT16 AddressWidth;
@@ -1160,9 +1638,13 @@ struct _Win32_Processor_Data {
 
 SER_DECLARE_TYPE(Win32_Processor_Data);
 
+/* must match hypervObject */
 struct _Win32_Processor {
-    XmlSerializerInfo *serializerInfo;
-    Win32_Processor_Data *data;
+    union {
+        Win32_Processor_Data *common;
+        Win32_Processor_Data *None;
+    } data;
+    hypervWmiClassInfoPtr info;
     Win32_Processor *next;
 };
 

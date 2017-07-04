@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [3.1.0], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [3.5.0], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -192,6 +192,7 @@ if test $with_linux = no; then
         with_lxc=no
     fi
     with_dtrace=no
+    with_storage_scsi=no
 fi
 
 if test $with_freebsd = yes; then
@@ -318,15 +319,16 @@ AC_CHECK_SIZEOF([long])
 dnl Availability of various common functions (non-fatal if missing),
 dnl and various less common threadsafe functions
 AC_CHECK_FUNCS_ONCE([cfmakeraw fallocate geteuid getgid getgrnam_r \
-  getmntent_r getpwuid_r getrlimit getuid kill mmap newlocale posix_fallocate \
-  posix_memalign prlimit regexec sched_getaffinity setgroups setns \
-  setrlimit symlink sysctlbyname getifaddrs sched_setscheduler unshare])
+  getmntent_r getpwuid_r getrlimit getuid if_indextoname kill mmap \
+  newlocale posix_fallocate posix_memalign prlimit regexec \
+  sched_getaffinity setgroups setns setrlimit symlink sysctlbyname \
+  getifaddrs sched_setscheduler unshare])
 
 dnl Availability of various common headers (non-fatal if missing).
 AC_CHECK_HEADERS([pwd.h regex.h sys/un.h \
   sys/poll.h syslog.h mntent.h net/ethernet.h linux/magic.h \
   sys/un.h sys/syscall.h sys/sysctl.h netinet/tcp.h ifaddrs.h \
-  libtasn1.h sys/ucred.h sys/mount.h])
+  libtasn1.h sys/ucred.h sys/mount.h stdarg.h])
 dnl Check whether endian provides handy macros.
 AC_CHECK_DECLS([htole64], [], [], [[#include <endian.h>]])
 AC_CHECK_FUNCS([stat stat64 __xstat __xstat64 lstat lstat64 __lxstat __lxstat64])
@@ -345,9 +347,15 @@ AC_CHECK_TYPE([struct sockpeercred],
   ]])
 
 AC_CHECK_DECLS([ETH_FLAG_TXVLAN, ETH_FLAG_NTUPLE, ETH_FLAG_RXHASH, ETH_FLAG_LRO,
-                ETHTOOL_GGSO, ETHTOOL_GGRO, ETHTOOL_GFLAGS, ETHTOOL_GFEATURES],
+                ETHTOOL_GGSO, ETHTOOL_GGRO, ETHTOOL_GFLAGS, ETHTOOL_GFEATURES,
+                ETHTOOL_SCOALESCE, ETHTOOL_GCOALESCE],
   [], [], [[#include <linux/ethtool.h>
   ]])
+
+AC_CHECK_DECLS([SEEK_HOLE], [], [],
+               [#include <sys/types.h>
+                #include <unistd.h>])
+
 
 dnl Our only use of libtasn1.h is in the testsuite, and can be skipped
 dnl if the header is not present.  Assume -ltasn1 is present if the
@@ -621,9 +629,12 @@ fi
 
 dnl Allow perl/python overrides
 AC_PATH_PROGS([PYTHON], [python2 python])
+if test -z "$PYTHON"; then
+         AC_MSG_ERROR(['python' or 'python2' binary is required to build libvirt])
+fi
 AC_PATH_PROG([PERL], [perl])
 if test -z "$PERL"; then
-         AC_MSG_ERROR([Failed to find perl.])
+         AC_MSG_ERROR(['perl' binary is required to build libvirt])
 fi
 
 LIBVIRT_ARG_WITH([TEST_SUITE], [build test suite by default], [check])
@@ -876,6 +887,8 @@ AC_CONFIG_FILES([\
         Makefile src/Makefile include/libvirt/Makefile docs/Makefile \
         gnulib/lib/Makefile \
         gnulib/tests/Makefile \
+        .color_coded \
+        .ycm_extra_conf.py \
         libvirt.pc \
         libvirt-qemu.pc \
         libvirt-lxc.pc \
@@ -992,8 +1005,8 @@ LIBVIRT_WIN_RESULT_WINDRES
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Test suite])
 AC_MSG_NOTICE([])
-AC_MSG_NOTICE([         Coverage: $enable_coverage])
-AC_MSG_NOTICE([        Alloc OOM: $enable_oom])
+AC_MSG_NOTICE([         Coverage: $enable_test_coverage])
+AC_MSG_NOTICE([        Alloc OOM: $enable_test_oom])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Miscellaneous])
 AC_MSG_NOTICE([])

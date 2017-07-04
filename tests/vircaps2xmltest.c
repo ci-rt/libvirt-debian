@@ -25,99 +25,62 @@
 #include "testutils.h"
 #include "capabilities.h"
 #include "virbitmap.h"
+#include "virfilewrapper.h"
 
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
-static virCapsPtr
-buildVirCapabilities(int max_cells,
-                     int max_cpus_in_cell,
-                     int max_mem_in_cell)
-{
-    virCapsPtr caps;
-    virCapsHostNUMACellCPUPtr cell_cpus = NULL;
-    virCapsHostNUMACellSiblingInfoPtr siblings = NULL;
-    int core_id, cell_id, nsiblings;
-    int id;
-    size_t i;
-
-    if ((caps = virCapabilitiesNew(VIR_ARCH_X86_64, false, false)) == NULL)
-        goto error;
-
-    id = 0;
-    for (cell_id = 0; cell_id < max_cells; cell_id++) {
-        if (VIR_ALLOC_N(cell_cpus, max_cpus_in_cell) < 0)
-            goto error;
-
-        for (core_id = 0; core_id < max_cpus_in_cell; core_id++) {
-            cell_cpus[core_id].id = id;
-            cell_cpus[core_id].socket_id = cell_id;
-            cell_cpus[core_id].core_id = id + core_id;
-            if (!(cell_cpus[core_id].siblings =
-                  virBitmapNew(max_cpus_in_cell)))
-                goto error;
-            ignore_value(virBitmapSetBit(cell_cpus[core_id].siblings, id));
-        }
-        id++;
-
-        if (VIR_ALLOC_N(siblings, max_cells) < 0)
-            goto error;
-        nsiblings = max_cells;
-
-        for (i = 0; i < nsiblings; i++) {
-            siblings[i].node = i;
-            /* Some magical constants, see virNumaGetDistances()
-             * for their description. */
-            siblings[i].distance = cell_id == i ? 10 : 20;
-        }
-
-        if (virCapabilitiesAddHostNUMACell(caps, cell_id,
-                                           max_mem_in_cell,
-                                           max_cpus_in_cell, cell_cpus,
-                                           nsiblings, siblings,
-                                           0, NULL) < 0)
-           goto error;
-
-        cell_cpus = NULL;
-        siblings = NULL;
-    }
-
-    return caps;
-
- error:
-    virCapabilitiesClearHostNUMACellCPUTopology(cell_cpus, max_cpus_in_cell);
-    VIR_FREE(cell_cpus);
-    VIR_FREE(siblings);
-    virObjectUnref(caps);
-    return NULL;
-}
-
-
-struct virCapabilitiesFormatData {
+struct virCapabilitiesData {
     const char *filename;
-    int max_cells;
-    int max_cpus_in_cell;
-    int max_mem_in_cell;
+    virArch arch;
+    bool offlineMigrate;
+    bool liveMigrate;
+    bool resctrl; /* Whether both resctrl and system sysfs are used */
 };
 
 static int
-test_virCapabilitiesFormat(const void *opaque)
+test_virCapabilities(const void *opaque)
 {
-    struct virCapabilitiesFormatData *data = (struct virCapabilitiesFormatData *) opaque;
+    struct virCapabilitiesData *data = (struct virCapabilitiesData *) opaque;
+    const char *archStr = virArchToString(data->arch);
     virCapsPtr caps = NULL;
     char *capsXML = NULL;
     char *path = NULL;
+    char *dir = NULL;
+    char *resctrl = NULL;
     int ret = -1;
 
-    if (!(caps = buildVirCapabilities(data->max_cells, data->max_cpus_in_cell,
-                                      data->max_mem_in_cell)))
+    /*
+     * We want to keep our directory structure clean, so if there's both resctrl
+     * and system used, we need to use slightly different path; a subdir.
+     */
+    if (virAsprintf(&dir, "%s/vircaps2xmldata/linux-%s%s",
+                    abs_srcdir, data->filename,
+                    data->resctrl ? "/system" : "") < 0)
         goto cleanup;
+
+    if (virAsprintf(&resctrl, "%s/vircaps2xmldata/linux-%s/resctrl",
+                    abs_srcdir, data->filename) < 0)
+        goto cleanup;
+
+    virFileWrapperAddPrefix("/sys/devices/system", dir);
+    virFileWrapperAddPrefix("/sys/fs/resctrl", resctrl);
+    caps = virCapabilitiesNew(data->arch, data->offlineMigrate, data->liveMigrate);
+
+    if (!caps)
+        goto cleanup;
+
+    if (virCapabilitiesInitNUMA(caps) < 0 ||
+        virCapabilitiesInitCaches(caps) < 0)
+        goto cleanup;
+
+    virFileWrapperClearPrefixes();
 
     if (!(capsXML = virCapabilitiesFormatXML(caps)))
         goto cleanup;
 
-    if (virAsprintf(&path, "%s/vircaps2xmldata/vircaps-%s.xml",
-                    abs_srcdir, data->filename) < 0)
+    if (virAsprintf(&path, "%s/vircaps2xmldata/vircaps-%s-%s.xml",
+                    abs_srcdir, archStr, data->filename) < 0)
         goto cleanup;
 
     if (virTestCompareToFile(capsXML, path) < 0)
@@ -126,6 +89,8 @@ test_virCapabilitiesFormat(const void *opaque)
     ret = 0;
 
  cleanup:
+    VIR_FREE(dir);
+    VIR_FREE(resctrl);
     VIR_FREE(path);
     VIR_FREE(capsXML);
     virObjectUnref(caps);
@@ -137,19 +102,27 @@ mymain(void)
 {
     int ret = 0;
 
-#define DO_TEST(filename, max_cells,                                        \
-                max_cpus_in_cell, max_mem_in_cell)                          \
-    do {                                                                    \
-        struct virCapabilitiesFormatData data = {filename, max_cells,       \
-                                                 max_cpus_in_cell,          \
-                                                 max_mem_in_cell};          \
-        if (virTestRun(filename, test_virCapabilitiesFormat, &data) < 0)    \
-            ret = -1;                                                       \
+#define DO_TEST_FULL(filename, arch, offlineMigrate, liveMigrate, resctrl) \
+    do {                                                                \
+        struct virCapabilitiesData data = {filename, arch,              \
+                                           offlineMigrate,              \
+                                           liveMigrate, resctrl};       \
+        if (virTestRun(filename, test_virCapabilities, &data) < 0)      \
+            ret = -1;                                                   \
     } while (0)
 
-    DO_TEST("basic-4-4-2G", 4, 4, 2*1024*1024);
+#define DO_TEST(filename, arch) DO_TEST_FULL(filename, arch, true, true, false)
+
+    DO_TEST_FULL("basic", VIR_ARCH_X86_64, false, false, false);
+    DO_TEST_FULL("basic", VIR_ARCH_AARCH64, true, false, false);
+
+    DO_TEST("caches", VIR_ARCH_X86_64);
+
+    DO_TEST_FULL("resctrl", VIR_ARCH_X86_64, true, true, true);
+    DO_TEST_FULL("resctrl-cdp", VIR_ARCH_X86_64, true, true, true);
+    DO_TEST_FULL("resctrl-skx", VIR_ARCH_X86_64, true, true, true);
 
     return ret;
 }
 
-VIRT_TEST_MAIN(mymain)
+VIR_TEST_MAIN_PRELOAD(mymain, abs_builddir "/.libs/virnumamock.so")

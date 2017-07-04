@@ -65,6 +65,7 @@
 #endif
 
 #include "configmake.h"
+#include "intprops.h"
 #include "viralloc.h"
 #include "vircommand.h"
 #include "virerror.h"
@@ -2860,11 +2861,11 @@ virDirOpenQuiet(DIR **dirp, const char *name)
 /**
  * virDirRead:
  * @dirp: directory to read
- * @end: output one entry
+ * @ent: output one entry
  * @name: if non-NULL, the name related to @dirp for use in error reporting
  *
  * Wrapper around readdir. Typical usage:
- *   struct dirent ent;
+ *   struct dirent *ent;
  *   int rc;
  *   DIR *dir;
  *   if (virDirOpen(&dir, name) < 0)
@@ -3792,5 +3793,372 @@ virFileComparePaths(const char *p1, const char *p2)
  cleanup:
     VIR_FREE(res1);
     VIR_FREE(res2);
+
+    return ret;
+}
+
+
+#if HAVE_DECL_SEEK_HOLE
+/**
+ * virFileInData:
+ * @fd: file to check
+ * @inData: true if current position in the @fd is in data section
+ * @length: amount of bytes until the end of the current section
+ *
+ * With sparse files not every extent has to be physically stored on
+ * the disk. This results in so called data or hole sections.  This
+ * function checks whether the current position in the file @fd is
+ * in a data section (@inData = 1) or in a hole (@inData = 0). Also,
+ * it sets @length to match the number of bytes remaining until the
+ * end of the current section.
+ *
+ * As a special case, there is an implicit hole at the end of any
+ * file. In this case, the function sets @inData = 0, @length = 0.
+ *
+ * Upon its return, the position in the @fd is left unchanged, i.e.
+ * despite this function lseek()-ing back and forth it always
+ * restores the original position in the file.
+ *
+ * NB, @length is type of long long because it corresponds to off_t
+ * the best.
+ *
+ * Returns 0 on success,
+ *        -1 otherwise.
+ */
+int
+virFileInData(int fd,
+              int *inData,
+              long long *length)
+{
+    int ret = -1;
+    off_t cur, data, hole, end;
+
+    /* Get current position */
+    cur = lseek(fd, 0, SEEK_CUR);
+    if (cur == (off_t) -1) {
+        virReportSystemError(errno, "%s",
+                             _("Unable to get current position in file"));
+        goto cleanup;
+    }
+
+    /* Now try to get data and hole offsets */
+    data = lseek(fd, cur, SEEK_DATA);
+
+    /* There are four options:
+     * 1) data == cur;  @cur is in data
+     * 2) data > cur; @cur is in a hole, next data at @data
+     * 3) data < 0, errno = ENXIO; either @cur is in trailing hole, or @cur is beyond EOF.
+     * 4) data < 0, errno != ENXIO; we learned nothing
+     */
+
+    if (data == (off_t) -1) {
+        /* cases 3 and 4 */
+        if (errno != ENXIO) {
+            virReportSystemError(errno, "%s",
+                                 _("Unable to seek to data"));
+            goto cleanup;
+        }
+
+        *inData = 0;
+        /* There are two situations now. There is always an
+         * implicit hole at EOF. However, there might be a
+         * trailing hole just before EOF too. If that's the case
+         * report it. */
+        if ((end = lseek(fd, 0, SEEK_END)) == (off_t) -1) {
+            virReportSystemError(errno, "%s",
+                                 _("Unable to seek to EOF"));
+            goto cleanup;
+        }
+        *length = end - cur;
+    } else if (data > cur) {
+        /* case 2 */
+        *inData = 0;
+        *length = data - cur;
+    } else {
+        /* case 1 */
+        *inData = 1;
+
+        /* We don't know where does the next hole start. Let's
+         * find out. Here we get the same 4 possibilities as
+         * described above.*/
+        hole = lseek(fd, data, SEEK_HOLE);
+        if (hole == (off_t) -1 || hole == data) {
+            /* cases 1, 3 and 4 */
+            /* Wait a second. The reason why we are here is
+             * because we are in data. But at the same time we
+             * are in a trailing hole? Wut!? Do the best what we
+             * can do here. */
+            virReportSystemError(errno, "%s",
+                                 _("unable to seek to hole"));
+            goto cleanup;
+        } else {
+            /* case 2 */
+            *length = (hole - data);
+        }
+    }
+
+    ret = 0;
+ cleanup:
+    /* At any rate, reposition back to where we started. */
+    if (cur != (off_t) -1)
+        ignore_value(lseek(fd, cur, SEEK_SET));
+    return ret;
+}
+
+#else /* !HAVE_DECL_SEEK_HOLE */
+
+int
+virFileInData(int fd ATTRIBUTE_UNUSED,
+              int *inData ATTRIBUTE_UNUSED,
+              long long *length ATTRIBUTE_UNUSED)
+{
+    errno = ENOSYS;
+    virReportSystemError(errno, "%s",
+                         _("sparse files not supported"));
+    return -1;
+}
+
+#endif /* !HAVE_DECL_SEEK_HOLE */
+
+
+/**
+ * virFileReadValueInt:
+ * @value: pointer to int to be filled in with the value
+ * @format, ...: file to read from
+ *
+ * Read int from @format and put it into @value.
+ *
+ * Return -2 for non-existing file, -1 on other errors and 0 if everything went
+ * fine.
+ */
+int
+virFileReadValueInt(int *value, const char *format, ...)
+{
+    int ret = -1;
+    char *str = NULL;
+    char *path = NULL;
+    va_list ap;
+
+    va_start(ap, format);
+    if (virVasprintf(&path, format, ap) < 0) {
+        va_end(ap);
+        goto cleanup;
+    }
+    va_end(ap);
+
+    if (!virFileExists(path)) {
+        ret = -2;
+        goto cleanup;
+    }
+
+    if (virFileReadAll(path, INT_BUFSIZE_BOUND(*value), &str) < 0)
+        goto cleanup;
+
+    virStringTrimOptionalNewline(str);
+
+    if (virStrToLong_i(str, NULL, 10, value) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Invalid integer value '%s' in file '%s'"),
+                       str, path);
+        goto cleanup;
+    }
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(path);
+    VIR_FREE(str);
+    return ret;
+}
+
+
+/**
+ * virFileReadValueUint:
+ * @value: pointer to int to be filled in with the value
+ * @format, ...: file to read from
+ *
+ * Read unsigned int from @format and put it into @value.
+ *
+ * Return -2 for non-existing file, -1 on other errors and 0 if everything went
+ * fine.
+ */
+int
+virFileReadValueUint(unsigned int *value, const char *format, ...)
+{
+    int ret = -1;
+    char *str = NULL;
+    char *path = NULL;
+    va_list ap;
+
+    va_start(ap, format);
+    if (virVasprintf(&path, format, ap) < 0) {
+        va_end(ap);
+        goto cleanup;
+    }
+    va_end(ap);
+
+    if (!virFileExists(path)) {
+        ret = -2;
+        goto cleanup;
+    }
+
+    if (virFileReadAll(path, INT_BUFSIZE_BOUND(*value), &str) < 0)
+        goto cleanup;
+
+    virStringTrimOptionalNewline(str);
+
+    if (virStrToLong_uip(str, NULL, 10, value) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Invalid unsigned integer value '%s' in file '%s'"),
+                       str, path);
+        goto cleanup;
+    }
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(path);
+    VIR_FREE(str);
+    return ret;
+}
+
+
+/**
+ * virFileReadValueScaledInt:
+ * @value: pointer to unsigned long long int to be filled in with the value
+ * @format, ...: file to read from
+ *
+ * Read unsigned scaled int from @format and put it into @value.
+ *
+ * Return -2 for non-existing file, -1 on other errors and 0 if everything went
+ * fine.
+ */
+int
+virFileReadValueScaledInt(unsigned long long *value, const char *format, ...)
+{
+    int ret = -1;
+    char *str = NULL;
+    char *endp = NULL;
+    char *path = NULL;
+    va_list ap;
+
+    va_start(ap, format);
+    if (virVasprintf(&path, format, ap) < 0) {
+        va_end(ap);
+        goto cleanup;
+    }
+    va_end(ap);
+
+    if (!virFileExists(path)) {
+        ret = -2;
+        goto cleanup;
+    }
+
+    if (virFileReadAll(path, INT_BUFSIZE_BOUND(*value), &str) < 0)
+        goto cleanup;
+
+    virStringTrimOptionalNewline(str);
+
+    if (virStrToLong_ullp(str, &endp, 10, value) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Invalid unsigned scaled integer value '%s' in file '%s'"),
+                       str, path);
+        goto cleanup;
+    }
+
+    ret = virScaleInteger(value, endp, 1024, ULLONG_MAX);
+ cleanup:
+    VIR_FREE(path);
+    VIR_FREE(str);
+    return ret;
+}
+
+/* Arbitrarily sized number, feel free to change, but the function should be
+ * used for small, interface-like files, so it should not be huge (subjective) */
+#define VIR_FILE_READ_VALUE_STRING_MAX 4096
+
+/**
+ * virFileReadValueBitmap:
+ * @value: pointer to virBitmapPtr to be allocated and filled in with the value
+ * @format, ...: file to read from
+ *
+ * Read int from @format and put it into @value.
+ *
+ * Return -2 for non-existing file, -1 on other errors and 0 if everything went
+ * fine.
+ */
+int
+virFileReadValueBitmap(virBitmapPtr *value, const char *format, ...)
+{
+    int ret = -1;
+    char *str = NULL;
+    char *path = NULL;
+    va_list ap;
+
+    va_start(ap, format);
+    if (virVasprintf(&path, format, ap) < 0) {
+        va_end(ap);
+        goto cleanup;
+    }
+    va_end(ap);
+
+    if (!virFileExists(path)) {
+        ret = -2;
+        goto cleanup;
+    }
+
+    if (virFileReadAll(path, VIR_FILE_READ_VALUE_STRING_MAX, &str) < 0)
+        goto cleanup;
+
+    virStringTrimOptionalNewline(str);
+
+    *value = virBitmapParseUnlimited(str);
+    if (!*value)
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(path);
+    VIR_FREE(str);
+    return ret;
+}
+
+/**
+ * virFileReadValueString:
+ * @value: pointer to char * to be allocated and filled in with the value
+ * @format, ...: file to read from
+ *
+ * Read string from @format and put it into @value.  Don't get this mixed with
+ * virFileReadAll().  This function is a wrapper over it with the behaviour
+ * aligned to other virFileReadValue* functions
+ *
+ * Return -2 for non-existing file, -1 on other errors and 0 if everything went
+ * fine.
+ */
+int
+virFileReadValueString(char **value, const char *format, ...)
+{
+    int ret = -1;
+    char *str = NULL;
+    char *path = NULL;
+    va_list ap;
+
+    va_start(ap, format);
+    if (virVasprintf(&path, format, ap) < 0) {
+        va_end(ap);
+        goto cleanup;
+    }
+    va_end(ap);
+
+    if (!virFileExists(path)) {
+        ret = -2;
+        goto cleanup;
+    }
+
+    ret = virFileReadAll(path, VIR_FILE_READ_VALUE_STRING_MAX, value);
+
+    if (*value)
+        virStringTrimOptionalNewline(*value);
+ cleanup:
+    VIR_FREE(path);
+    VIR_FREE(str);
     return ret;
 }

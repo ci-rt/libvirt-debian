@@ -98,11 +98,17 @@ bin_PROGRAMS = virsh$(EXEEXT) virt-admin$(EXEEXT) $(am__EXEEXT_1) \
 @WITH_LOGIN_SHELL_TRUE@am__append_4 = virt-login-shell.1
 @WITH_HOST_VALIDATE_TRUE@am__append_5 = virt-host-validate
 @WITH_HOST_VALIDATE_TRUE@am__append_6 = virt-host-validate.1
-@WITH_WIN_ICON_TRUE@am__append_7 = virsh_win_icon.$(OBJEXT)
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@am__append_8 = libvirt-guests.init
-@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@am__append_9 = libvirt-guests.service
-@WITH_WIRESHARK_DISSECTOR_TRUE@am__append_10 = wireshark/src/plugin.c
-@WITH_NSS_TRUE@am__append_11 = nss/libnss_libvirt_impl.la \
+@WITH_QEMU_TRUE@am__append_7 = $(VIRT_HOST_VALIDATE_QEMU)
+@WITH_QEMU_FALSE@am__append_8 = $(VIRT_HOST_VALIDATE_QEMU)
+@WITH_LXC_TRUE@am__append_9 = $(VIRT_HOST_VALIDATE_LXC)
+@WITH_LXC_FALSE@am__append_10 = $(VIRT_HOST_VALIDATE_LXC)
+@WITH_BHYVE_TRUE@am__append_11 = $(VIRT_HOST_VALIDATE_BHYVE)
+@WITH_BHYVE_FALSE@am__append_12 = $(VIRT_HOST_VALIDATE_BHYVE)
+@WITH_WIN_ICON_TRUE@am__append_13 = virsh_win_icon.$(OBJEXT)
+@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@am__append_14 = libvirt-guests.init
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@am__append_15 = libvirt-guests.service
+@WITH_WIRESHARK_DISSECTOR_TRUE@am__append_16 = wireshark/src/plugin.c
+@WITH_NSS_TRUE@am__append_17 = nss/libnss_libvirt_impl.la \
 @WITH_NSS_TRUE@	nss/libnss_libvirt_guest_impl.la
 subdir = tools
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -165,20 +171,20 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/locale-ja.m4 $(top_srcdir)/m4/locale-tr.m4 \
 	$(top_srcdir)/m4/locale-zh.m4 $(top_srcdir)/m4/locale_h.m4 \
 	$(top_srcdir)/m4/localeconv.m4 $(top_srcdir)/m4/localename.m4 \
-	$(top_srcdir)/m4/lock.m4 $(top_srcdir)/m4/longlong.m4 \
-	$(top_srcdir)/m4/lseek.m4 $(top_srcdir)/m4/lstat.m4 \
-	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
-	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
-	$(top_srcdir)/m4/malloc.m4 $(top_srcdir)/m4/malloca.m4 \
-	$(top_srcdir)/m4/manywarnings.m4 $(top_srcdir)/m4/math_h.m4 \
-	$(top_srcdir)/m4/mbrtowc.m4 $(top_srcdir)/m4/mbsinit.m4 \
-	$(top_srcdir)/m4/mbsrtowcs.m4 $(top_srcdir)/m4/mbstate_t.m4 \
-	$(top_srcdir)/m4/mbtowc.m4 $(top_srcdir)/m4/md5.m4 \
-	$(top_srcdir)/m4/memchr.m4 $(top_srcdir)/m4/mgetgroups.m4 \
-	$(top_srcdir)/m4/mkdtemp.m4 $(top_srcdir)/m4/mkostemp.m4 \
-	$(top_srcdir)/m4/mkostemps.m4 $(top_srcdir)/m4/mktime.m4 \
-	$(top_srcdir)/m4/mmap-anon.m4 $(top_srcdir)/m4/mode_t.m4 \
-	$(top_srcdir)/m4/msvc-inval.m4 \
+	$(top_srcdir)/m4/localtime-buffer.m4 $(top_srcdir)/m4/lock.m4 \
+	$(top_srcdir)/m4/longlong.m4 $(top_srcdir)/m4/lseek.m4 \
+	$(top_srcdir)/m4/lstat.m4 $(top_srcdir)/m4/ltoptions.m4 \
+	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
+	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/m4/malloc.m4 \
+	$(top_srcdir)/m4/malloca.m4 $(top_srcdir)/m4/manywarnings.m4 \
+	$(top_srcdir)/m4/math_h.m4 $(top_srcdir)/m4/mbrtowc.m4 \
+	$(top_srcdir)/m4/mbsinit.m4 $(top_srcdir)/m4/mbsrtowcs.m4 \
+	$(top_srcdir)/m4/mbstate_t.m4 $(top_srcdir)/m4/mbtowc.m4 \
+	$(top_srcdir)/m4/md5.m4 $(top_srcdir)/m4/memchr.m4 \
+	$(top_srcdir)/m4/mgetgroups.m4 $(top_srcdir)/m4/mkdtemp.m4 \
+	$(top_srcdir)/m4/mkostemp.m4 $(top_srcdir)/m4/mkostemps.m4 \
+	$(top_srcdir)/m4/mktime.m4 $(top_srcdir)/m4/mmap-anon.m4 \
+	$(top_srcdir)/m4/mode_t.m4 $(top_srcdir)/m4/msvc-inval.m4 \
 	$(top_srcdir)/m4/msvc-nothrow.m4 $(top_srcdir)/m4/multiarch.m4 \
 	$(top_srcdir)/m4/nanosleep.m4 $(top_srcdir)/m4/net_if_h.m4 \
 	$(top_srcdir)/m4/netdb_h.m4 $(top_srcdir)/m4/netinet_in_h.m4 \
@@ -463,10 +469,10 @@ am_virsh_OBJECTS = virsh-virsh.$(OBJEXT) virsh-virsh-console.$(OBJEXT) \
 	virsh-virsh-network.$(OBJEXT) virsh-virsh-nodedev.$(OBJEXT) \
 	virsh-virsh-nwfilter.$(OBJEXT) virsh-virsh-pool.$(OBJEXT) \
 	virsh-virsh-secret.$(OBJEXT) virsh-virsh-snapshot.$(OBJEXT) \
-	virsh-virsh-volume.$(OBJEXT)
+	virsh-virsh-util.$(OBJEXT) virsh-virsh-volume.$(OBJEXT)
 virsh_OBJECTS = $(am_virsh_OBJECTS)
 virsh_DEPENDENCIES = $(am__DEPENDENCIES_1) ../src/libvirt-lxc.la \
-	../src/libvirt-qemu.la libvirt_shell.la $(am__append_7)
+	../src/libvirt-qemu.la libvirt_shell.la $(am__append_13)
 virsh_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(virsh_CFLAGS) $(CFLAGS) \
 	$(virsh_LDFLAGS) $(LDFLAGS) -o $@
@@ -477,11 +483,21 @@ virt_admin_DEPENDENCIES = ../src/libvirt-admin.la libvirt_shell.la \
 virt_admin_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(virt_admin_CFLAGS) \
 	$(CFLAGS) $(virt_admin_LDFLAGS) $(LDFLAGS) -o $@
+am__virt_host_validate_SOURCES_DIST = virt-host-validate.c \
+	virt-host-validate-common.c virt-host-validate-common.h \
+	virt-host-validate-qemu.c virt-host-validate-qemu.h \
+	virt-host-validate-lxc.c virt-host-validate-lxc.h \
+	virt-host-validate-bhyve.c virt-host-validate-bhyve.h
+am__objects_3 = virt_host_validate-virt-host-validate-qemu.$(OBJEXT)
+@WITH_QEMU_TRUE@am__objects_4 = $(am__objects_3)
+am__objects_5 = virt_host_validate-virt-host-validate-lxc.$(OBJEXT)
+@WITH_LXC_TRUE@am__objects_6 = $(am__objects_5)
+am__objects_7 = virt_host_validate-virt-host-validate-bhyve.$(OBJEXT)
+@WITH_BHYVE_TRUE@am__objects_8 = $(am__objects_7)
 am_virt_host_validate_OBJECTS =  \
 	virt_host_validate-virt-host-validate.$(OBJEXT) \
 	virt_host_validate-virt-host-validate-common.$(OBJEXT) \
-	virt_host_validate-virt-host-validate-qemu.$(OBJEXT) \
-	virt_host_validate-virt-host-validate-lxc.$(OBJEXT)
+	$(am__objects_4) $(am__objects_6) $(am__objects_8)
 virt_host_validate_OBJECTS = $(am_virt_host_validate_OBJECTS)
 virt_host_validate_DEPENDENCIES = ../src/libvirt.la \
 	../gnulib/lib/libgnu.la
@@ -547,7 +563,7 @@ DIST_SOURCES = $(libvirt_shell_la_SOURCES) \
 	$(am__nss_libnss_libvirt_guest_impl_la_SOURCES_DIST) \
 	$(am__nss_libnss_libvirt_impl_la_SOURCES_DIST) \
 	$(am__wireshark_src_libvirt_la_SOURCES_DIST) $(virsh_SOURCES) \
-	$(virt_admin_SOURCES) $(virt_host_validate_SOURCES) \
+	$(virt_admin_SOURCES) $(am__virt_host_validate_SOURCES_DIST) \
 	$(virt_login_shell_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
@@ -671,6 +687,7 @@ FUSE_CFLAGS = @FUSE_CFLAGS@
 FUSE_LIBS = @FUSE_LIBS@
 GETADDRINFO_LIB = @GETADDRINFO_LIB@
 GETHOSTNAME_LIB = @GETHOSTNAME_LIB@
+GETOPT_CDEFS_H = @GETOPT_CDEFS_H@
 GETOPT_H = @GETOPT_H@
 GETTEXT_CPPFLAGS = @GETTEXT_CPPFLAGS@
 GETTEXT_MACRO_VERSION = @GETTEXT_MACRO_VERSION@
@@ -709,6 +726,7 @@ GNULIB_COPYSIGNL = @GNULIB_COPYSIGNL@
 GNULIB_COSF = @GNULIB_COSF@
 GNULIB_COSHF = @GNULIB_COSHF@
 GNULIB_COSL = @GNULIB_COSL@
+GNULIB_CTIME = @GNULIB_CTIME@
 GNULIB_DPRINTF = @GNULIB_DPRINTF@
 GNULIB_DUP = @GNULIB_DUP@
 GNULIB_DUP2 = @GNULIB_DUP2@
@@ -824,6 +842,7 @@ GNULIB_LINK = @GNULIB_LINK@
 GNULIB_LINKAT = @GNULIB_LINKAT@
 GNULIB_LISTEN = @GNULIB_LISTEN@
 GNULIB_LOCALECONV = @GNULIB_LOCALECONV@
+GNULIB_LOCALTIME = @GNULIB_LOCALTIME@
 GNULIB_LOG = @GNULIB_LOG@
 GNULIB_LOG10 = @GNULIB_LOG10@
 GNULIB_LOG10F = @GNULIB_LOG10F@
@@ -888,6 +907,7 @@ GNULIB_OBSTACK_PRINTF_POSIX = @GNULIB_OBSTACK_PRINTF_POSIX@
 GNULIB_OPEN = @GNULIB_OPEN@
 GNULIB_OPENAT = @GNULIB_OPENAT@
 GNULIB_OPENPTY = @GNULIB_OPENPTY@
+GNULIB_OVERRIDES_STRUCT_STAT = @GNULIB_OVERRIDES_STRUCT_STAT@
 GNULIB_OVERRIDES_WINT_T = @GNULIB_OVERRIDES_WINT_T@
 GNULIB_PCLOSE = @GNULIB_PCLOSE@
 GNULIB_PERROR = @GNULIB_PERROR@
@@ -989,6 +1009,7 @@ GNULIB_STRCHRNUL = @GNULIB_STRCHRNUL@
 GNULIB_STRDUP = @GNULIB_STRDUP@
 GNULIB_STRERROR = @GNULIB_STRERROR@
 GNULIB_STRERROR_R = @GNULIB_STRERROR_R@
+GNULIB_STRFTIME = @GNULIB_STRFTIME@
 GNULIB_STRNCAT = @GNULIB_STRNCAT@
 GNULIB_STRNDUP = @GNULIB_STRNDUP@
 GNULIB_STRNLEN = @GNULIB_STRNLEN@
@@ -1017,9 +1038,11 @@ GNULIB_TIME_RZ = @GNULIB_TIME_RZ@
 GNULIB_TMPFILE = @GNULIB_TMPFILE@
 GNULIB_TOWCTRANS = @GNULIB_TOWCTRANS@
 GNULIB_TRUNC = @GNULIB_TRUNC@
+GNULIB_TRUNCATE = @GNULIB_TRUNCATE@
 GNULIB_TRUNCF = @GNULIB_TRUNCF@
 GNULIB_TRUNCL = @GNULIB_TRUNCL@
 GNULIB_TTYNAME_R = @GNULIB_TTYNAME_R@
+GNULIB_TZSET = @GNULIB_TZSET@
 GNULIB_UNAME = @GNULIB_UNAME@
 GNULIB_UNISTD_H_NONBLOCKING = @GNULIB_UNISTD_H_NONBLOCKING@
 GNULIB_UNISTD_H_SIGPIPE = @GNULIB_UNISTD_H_SIGPIPE@
@@ -1051,6 +1074,7 @@ GNULIB_WCSCOLL = @GNULIB_WCSCOLL@
 GNULIB_WCSCPY = @GNULIB_WCSCPY@
 GNULIB_WCSCSPN = @GNULIB_WCSCSPN@
 GNULIB_WCSDUP = @GNULIB_WCSDUP@
+GNULIB_WCSFTIME = @GNULIB_WCSFTIME@
 GNULIB_WCSLEN = @GNULIB_WCSLEN@
 GNULIB_WCSNCASECMP = @GNULIB_WCSNCASECMP@
 GNULIB_WCSNCAT = @GNULIB_WCSNCAT@
@@ -1105,6 +1129,7 @@ HAVE_COPYSIGNL = @HAVE_COPYSIGNL@
 HAVE_COSF = @HAVE_COSF@
 HAVE_COSHF = @HAVE_COSHF@
 HAVE_COSL = @HAVE_COSL@
+HAVE_CRTDEFS_H = @HAVE_CRTDEFS_H@
 HAVE_DECL_ACOSL = @HAVE_DECL_ACOSL@
 HAVE_DECL_ASINL = @HAVE_DECL_ASINL@
 HAVE_DECL_ATANL = @HAVE_DECL_ATANL@
@@ -1392,7 +1417,9 @@ HAVE_TANL = @HAVE_TANL@
 HAVE_TERMIOS_H = @HAVE_TERMIOS_H@
 HAVE_TIMEGM = @HAVE_TIMEGM@
 HAVE_TIMEZONE_T = @HAVE_TIMEZONE_T@
+HAVE_TRUNCATE = @HAVE_TRUNCATE@
 HAVE_TYPE_VOLATILE_SIG_ATOMIC_T = @HAVE_TYPE_VOLATILE_SIG_ATOMIC_T@
+HAVE_TZSET = @HAVE_TZSET@
 HAVE_UNAME = @HAVE_UNAME@
 HAVE_UNISTD_H = @HAVE_UNISTD_H@
 HAVE_UNLINKAT = @HAVE_UNLINKAT@
@@ -1416,6 +1443,7 @@ HAVE_WCSCOLL = @HAVE_WCSCOLL@
 HAVE_WCSCPY = @HAVE_WCSCPY@
 HAVE_WCSCSPN = @HAVE_WCSCSPN@
 HAVE_WCSDUP = @HAVE_WCSDUP@
+HAVE_WCSFTIME = @HAVE_WCSFTIME@
 HAVE_WCSLEN = @HAVE_WCSLEN@
 HAVE_WCSNCASECMP = @HAVE_WCSNCASECMP@
 HAVE_WCSNCAT = @HAVE_WCSNCAT@
@@ -1694,6 +1722,7 @@ RADVD = @RADVD@
 RANLIB = @RANLIB@
 READLINE_CFLAGS = @READLINE_CFLAGS@
 READLINE_LIBS = @READLINE_LIBS@
+RELAXED_FRAME_LIMIT_CFLAGS = @RELAXED_FRAME_LIMIT_CFLAGS@
 RELRO_LDFLAGS = @RELRO_LDFLAGS@
 REPLACE_ACOSF = @REPLACE_ACOSF@
 REPLACE_ASINF = @REPLACE_ASINF@
@@ -1711,6 +1740,7 @@ REPLACE_CHOWN = @REPLACE_CHOWN@
 REPLACE_CLOSE = @REPLACE_CLOSE@
 REPLACE_COSF = @REPLACE_COSF@
 REPLACE_COSHF = @REPLACE_COSHF@
+REPLACE_CTIME = @REPLACE_CTIME@
 REPLACE_DPRINTF = @REPLACE_DPRINTF@
 REPLACE_DUP = @REPLACE_DUP@
 REPLACE_DUP2 = @REPLACE_DUP2@
@@ -1882,6 +1912,7 @@ REPLACE_STRCHRNUL = @REPLACE_STRCHRNUL@
 REPLACE_STRDUP = @REPLACE_STRDUP@
 REPLACE_STRERROR = @REPLACE_STRERROR@
 REPLACE_STRERROR_R = @REPLACE_STRERROR_R@
+REPLACE_STRFTIME = @REPLACE_STRFTIME@
 REPLACE_STRNCAT = @REPLACE_STRNCAT@
 REPLACE_STRNDUP = @REPLACE_STRNDUP@
 REPLACE_STRNLEN = @REPLACE_STRNLEN@
@@ -1901,9 +1932,11 @@ REPLACE_TIMEGM = @REPLACE_TIMEGM@
 REPLACE_TMPFILE = @REPLACE_TMPFILE@
 REPLACE_TOWLOWER = @REPLACE_TOWLOWER@
 REPLACE_TRUNC = @REPLACE_TRUNC@
+REPLACE_TRUNCATE = @REPLACE_TRUNCATE@
 REPLACE_TRUNCF = @REPLACE_TRUNCF@
 REPLACE_TRUNCL = @REPLACE_TRUNCL@
 REPLACE_TTYNAME_R = @REPLACE_TTYNAME_R@
+REPLACE_TZSET = @REPLACE_TZSET@
 REPLACE_UNLINK = @REPLACE_UNLINK@
 REPLACE_UNLINKAT = @REPLACE_UNLINKAT@
 REPLACE_UNSETENV = @REPLACE_UNSETENV@
@@ -1916,6 +1949,7 @@ REPLACE_VPRINTF = @REPLACE_VPRINTF@
 REPLACE_VSNPRINTF = @REPLACE_VSNPRINTF@
 REPLACE_VSPRINTF = @REPLACE_VSPRINTF@
 REPLACE_WCRTOMB = @REPLACE_WCRTOMB@
+REPLACE_WCSFTIME = @REPLACE_WCSFTIME@
 REPLACE_WCSNRTOMBS = @REPLACE_WCSNRTOMBS@
 REPLACE_WCSRTOMBS = @REPLACE_WCSRTOMBS@
 REPLACE_WCSWIDTH = @REPLACE_WCSWIDTH@
@@ -1949,6 +1983,7 @@ STDARG_H = @STDARG_H@
 STDBOOL_H = @STDBOOL_H@
 STDDEF_H = @STDDEF_H@
 STDINT_H = @STDINT_H@
+STRICT_FRAME_LIMIT_CFLAGS = @STRICT_FRAME_LIMIT_CFLAGS@
 STRIP = @STRIP@
 SYS_IOCTL_H_HAVE_WINSOCK2_H = @SYS_IOCTL_H_HAVE_WINSOCK2_H@
 SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS = @SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS@
@@ -1977,12 +2012,14 @@ VGSCAN = @VGSCAN@
 VIR_TEST_EXPENSIVE_DEFAULT = @VIR_TEST_EXPENSIVE_DEFAULT@
 VSTORAGE = @VSTORAGE@
 VSTORAGE_MOUNT = @VSTORAGE_MOUNT@
-WARN_CFLAGS = @WARN_CFLAGS@
+WARN_CFLAGS = @WARN_CFLAGS@ $(STRICT_FRAME_LIMIT_CFLAGS)
 WCHAR_T_SUFFIX = @WCHAR_T_SUFFIX@
 WIN32_EXTRA_CFLAGS = @WIN32_EXTRA_CFLAGS@
 WIN32_EXTRA_LIBS = @WIN32_EXTRA_LIBS@
 WINDOWS_64_BIT_OFF_T = @WINDOWS_64_BIT_OFF_T@
 WINDOWS_64_BIT_ST_SIZE = @WINDOWS_64_BIT_ST_SIZE@
+WINDOWS_STAT_INODES = @WINDOWS_STAT_INODES@
+WINDOWS_STAT_TIMESPEC = @WINDOWS_STAT_TIMESPEC@
 WINDRES = @WINDRES@
 WINT_T_SUFFIX = @WINT_T_SUFFIX@
 WIRESHARK_DISSECTOR_CFLAGS = @WIRESHARK_DISSECTOR_CFLAGS@
@@ -2107,13 +2144,14 @@ MANINFILES = \
 EXTRA_DIST = $(ICON_FILES) $(conf_DATA) virt-xml-validate.in \
 	virt-pki-validate.in virt-sanlock-cleanup.in \
 	libvirt-guests.sysconf virt-login-shell.conf virsh-edit.c \
-	$(PODFILES) $(MANINFILES) $(NULL) libvirt-guests.sh.in \
+	$(PODFILES) $(MANINFILES) $(NULL) $(am__append_8) \
+	$(am__append_10) $(am__append_12) libvirt-guests.sh.in \
 	libvirt-guests.init.in libvirt-guests.service.in \
 	wireshark/util/genxdrstub.pl wireshark/util/make-dissector-reg \
 	$(LIBVIRT_NSS_SOURCES) $(srcdir)/nss/libvirt_nss.syms \
 	$(srcdir)/nss/libvirt_nss_bsd.syms \
 	$(srcdir)/nss/libvirt_guest_nss.syms
-CLEANFILES = $(am__append_10) $(bin_SCRIPTS) *.gcov .libs/*.gcda \
+CLEANFILES = $(am__append_16) $(bin_SCRIPTS) *.gcov .libs/*.gcda \
 	.libs/*.gcno *.gcno *.gcda *.i *.s $(man1_MANS) $(man8_MANS)
 DISTCLEANFILES = $(am__append_1) $(BUILT_SOURCES)
 MAINTAINERCLEANFILES = $(MANINFILES)
@@ -2125,7 +2163,7 @@ man1_MANS = virt-pki-validate.1 virt-xml-validate.1 virsh.1 \
 	virt-admin.1 $(am__append_4) $(am__append_6)
 @WITH_SANLOCK_TRUE@sbin_SCRIPTS = virt-sanlock-cleanup
 @WITH_SANLOCK_TRUE@man8_MANS = virt-sanlock-cleanup.8
-noinst_LTLIBRARIES = libvirt_shell.la $(am__append_11)
+noinst_LTLIBRARIES = libvirt_shell.la $(am__append_17)
 libvirt_shell_la_CFLAGS = \
 		$(AM_CFLAGS)						\
 		$(PIE_CFLAGS)						\
@@ -2147,12 +2185,20 @@ libvirt_shell_la_LIBADD = \
 		$(NULL)
 
 libvirt_shell_la_SOURCES = vsh.c vsh.h
-virt_host_validate_SOURCES = \
-		virt-host-validate.c \
-		virt-host-validate-common.c virt-host-validate-common.h \
-		virt-host-validate-qemu.c virt-host-validate-qemu.h \
-		virt-host-validate-lxc.c virt-host-validate-lxc.h \
-		$(NULL)
+virt_host_validate_SOURCES = virt-host-validate.c \
+	virt-host-validate-common.c virt-host-validate-common.h \
+	$(am__append_7) $(am__append_9) $(am__append_11)
+VIRT_HOST_VALIDATE_QEMU = \
+		virt-host-validate-qemu.c \
+		virt-host-validate-qemu.h
+
+VIRT_HOST_VALIDATE_LXC = \
+		virt-host-validate-lxc.c \
+		virt-host-validate-lxc.h
+
+VIRT_HOST_VALIDATE_BHYVE = \
+		virt-host-validate-bhyve.c \
+		virt-host-validate-bhyve.h
 
 virt_host_validate_LDFLAGS = \
 		$(AM_LDFLAGS) \
@@ -2212,6 +2258,7 @@ virsh_SOURCES = \
 		virsh-pool.c virsh-pool.h			\
 		virsh-secret.c virsh-secret.h			\
 		virsh-snapshot.c virsh-snapshot.h		\
+		virsh-util.c virsh-util.h			\
 		virsh-volume.c virsh-volume.h			\
 		$(NULL)
 
@@ -2222,12 +2269,13 @@ virsh_LDFLAGS = \
 		$(NULL)
 
 virsh_LDADD = $(STATIC_BINARIES) ../src/libvirt-lxc.la \
-	../src/libvirt-qemu.la libvirt_shell.la $(am__append_7)
+	../src/libvirt-qemu.la libvirt_shell.la $(am__append_13)
 virsh_CFLAGS = \
 		$(WARN_CFLAGS)					\
 		$(PIE_CFLAGS)					\
 		$(COVERAGE_CFLAGS)				\
-		$(LIBXML_CFLAGS)
+		$(LIBXML_CFLAGS)				\
+		$(READLINE_CFLAGS)
 
 virt_admin_SOURCES = \
 		virt-admin.c virt-admin.h			\
@@ -2253,7 +2301,7 @@ virt_admin_CFLAGS = \
 		$(LIBXML_CFLAGS)				\
 		$(READLINE_CFLAGS)
 
-BUILT_SOURCES = $(am__append_8) libvirt-guests.sh $(am__append_9)
+BUILT_SOURCES = $(am__append_14) libvirt-guests.sh $(am__append_15)
 POD2MAN = pod2man -c "Virtualization Support" -r "$(PACKAGE)-$(VERSION)"
 SYSTEMD_UNIT_DIR = $(prefix)/lib/systemd/system
 @WITH_WIRESHARK_DISSECTOR_TRUE@ws_plugin_LTLIBRARIES = wireshark/src/libvirt.la
@@ -2699,9 +2747,11 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-virsh-pool.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-virsh-secret.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-virsh-snapshot.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-virsh-util.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-virsh-volume.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-virsh.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virt_admin-virt-admin.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virt_host_validate-virt-host-validate-bhyve.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virt_host_validate-virt-host-validate-common.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virt_host_validate-virt-host-validate-lxc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virt_host_validate-virt-host-validate-qemu.Po@am__quote@
@@ -2939,6 +2989,20 @@ virsh-virsh-snapshot.obj: virsh-snapshot.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -c -o virsh-virsh-snapshot.obj `if test -f 'virsh-snapshot.c'; then $(CYGPATH_W) 'virsh-snapshot.c'; else $(CYGPATH_W) '$(srcdir)/virsh-snapshot.c'; fi`
 
+virsh-virsh-util.o: virsh-util.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -MT virsh-virsh-util.o -MD -MP -MF $(DEPDIR)/virsh-virsh-util.Tpo -c -o virsh-virsh-util.o `test -f 'virsh-util.c' || echo '$(srcdir)/'`virsh-util.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virsh-virsh-util.Tpo $(DEPDIR)/virsh-virsh-util.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='virsh-util.c' object='virsh-virsh-util.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -c -o virsh-virsh-util.o `test -f 'virsh-util.c' || echo '$(srcdir)/'`virsh-util.c
+
+virsh-virsh-util.obj: virsh-util.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -MT virsh-virsh-util.obj -MD -MP -MF $(DEPDIR)/virsh-virsh-util.Tpo -c -o virsh-virsh-util.obj `if test -f 'virsh-util.c'; then $(CYGPATH_W) 'virsh-util.c'; else $(CYGPATH_W) '$(srcdir)/virsh-util.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virsh-virsh-util.Tpo $(DEPDIR)/virsh-virsh-util.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='virsh-util.c' object='virsh-virsh-util.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -c -o virsh-virsh-util.obj `if test -f 'virsh-util.c'; then $(CYGPATH_W) 'virsh-util.c'; else $(CYGPATH_W) '$(srcdir)/virsh-util.c'; fi`
+
 virsh-virsh-volume.o: virsh-volume.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -MT virsh-virsh-volume.o -MD -MP -MF $(DEPDIR)/virsh-virsh-volume.Tpo -c -o virsh-virsh-volume.o `test -f 'virsh-volume.c' || echo '$(srcdir)/'`virsh-volume.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virsh-virsh-volume.Tpo $(DEPDIR)/virsh-virsh-volume.Po
@@ -3022,6 +3086,20 @@ virt_host_validate-virt-host-validate-lxc.obj: virt-host-validate-lxc.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='virt-host-validate-lxc.c' object='virt_host_validate-virt-host-validate-lxc.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virt_host_validate_CFLAGS) $(CFLAGS) -c -o virt_host_validate-virt-host-validate-lxc.obj `if test -f 'virt-host-validate-lxc.c'; then $(CYGPATH_W) 'virt-host-validate-lxc.c'; else $(CYGPATH_W) '$(srcdir)/virt-host-validate-lxc.c'; fi`
+
+virt_host_validate-virt-host-validate-bhyve.o: virt-host-validate-bhyve.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virt_host_validate_CFLAGS) $(CFLAGS) -MT virt_host_validate-virt-host-validate-bhyve.o -MD -MP -MF $(DEPDIR)/virt_host_validate-virt-host-validate-bhyve.Tpo -c -o virt_host_validate-virt-host-validate-bhyve.o `test -f 'virt-host-validate-bhyve.c' || echo '$(srcdir)/'`virt-host-validate-bhyve.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virt_host_validate-virt-host-validate-bhyve.Tpo $(DEPDIR)/virt_host_validate-virt-host-validate-bhyve.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='virt-host-validate-bhyve.c' object='virt_host_validate-virt-host-validate-bhyve.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virt_host_validate_CFLAGS) $(CFLAGS) -c -o virt_host_validate-virt-host-validate-bhyve.o `test -f 'virt-host-validate-bhyve.c' || echo '$(srcdir)/'`virt-host-validate-bhyve.c
+
+virt_host_validate-virt-host-validate-bhyve.obj: virt-host-validate-bhyve.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virt_host_validate_CFLAGS) $(CFLAGS) -MT virt_host_validate-virt-host-validate-bhyve.obj -MD -MP -MF $(DEPDIR)/virt_host_validate-virt-host-validate-bhyve.Tpo -c -o virt_host_validate-virt-host-validate-bhyve.obj `if test -f 'virt-host-validate-bhyve.c'; then $(CYGPATH_W) 'virt-host-validate-bhyve.c'; else $(CYGPATH_W) '$(srcdir)/virt-host-validate-bhyve.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virt_host_validate-virt-host-validate-bhyve.Tpo $(DEPDIR)/virt_host_validate-virt-host-validate-bhyve.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='virt-host-validate-bhyve.c' object='virt_host_validate-virt-host-validate-bhyve.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virt_host_validate_CFLAGS) $(CFLAGS) -c -o virt_host_validate-virt-host-validate-bhyve.obj `if test -f 'virt-host-validate-bhyve.c'; then $(CYGPATH_W) 'virt-host-validate-bhyve.c'; else $(CYGPATH_W) '$(srcdir)/virt-host-validate-bhyve.c'; fi`
 
 virt_login_shell-virt-login-shell.o: virt-login-shell.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virt_login_shell_CFLAGS) $(CFLAGS) -MT virt_login_shell-virt-login-shell.o -MD -MP -MF $(DEPDIR)/virt_login_shell-virt-login-shell.Tpo -c -o virt_login_shell-virt-login-shell.o `test -f 'virt-login-shell.c' || echo '$(srcdir)/'`virt-login-shell.c

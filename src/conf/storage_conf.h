@@ -31,6 +31,7 @@
 # include "virthread.h"
 # include "device_conf.h"
 # include "object_event.h"
+# include "storage_adapter_conf.h"
 
 # include <libxml/tree.h>
 
@@ -170,39 +171,6 @@ struct _virStoragePoolSourceDevice {
     } geometry;
 };
 
-typedef enum {
-    VIR_STORAGE_POOL_SOURCE_ADAPTER_TYPE_DEFAULT = 0,
-    VIR_STORAGE_POOL_SOURCE_ADAPTER_TYPE_SCSI_HOST,
-    VIR_STORAGE_POOL_SOURCE_ADAPTER_TYPE_FC_HOST,
-
-    VIR_STORAGE_POOL_SOURCE_ADAPTER_TYPE_LAST,
-} virStoragePoolSourceAdapterType;
-VIR_ENUM_DECL(virStoragePoolSourceAdapter)
-
-typedef struct _virStoragePoolSourceAdapter virStoragePoolSourceAdapter;
-typedef virStoragePoolSourceAdapter *virStoragePoolSourceAdapterPtr;
-struct _virStoragePoolSourceAdapter {
-    int type; /* virStoragePoolSourceAdapterType */
-
-    union {
-        struct {
-            char *name;
-            virPCIDeviceAddress parentaddr; /* host address */
-            int unique_id;
-            bool has_parent;
-        } scsi_host;
-        struct {
-            char *parent;
-            char *parent_wwnn;
-            char *parent_wwpn;
-            char *parent_fabric_wwn;
-            char *wwnn;
-            char *wwpn;
-            int managed;        /* enum virTristateSwitch */
-        } fchost;
-    } data;
-};
-
 typedef struct _virStoragePoolSource virStoragePoolSource;
 typedef virStoragePoolSource *virStoragePoolSourcePtr;
 struct _virStoragePoolSource {
@@ -218,7 +186,7 @@ struct _virStoragePoolSource {
     char *dir;
 
     /* Or an adapter */
-    virStoragePoolSourceAdapter adapter;
+    virStorageAdapter adapter;
 
     /* Or a name */
     char *name;
@@ -263,48 +231,6 @@ struct _virStoragePoolDef {
     virStoragePoolTarget target;
 };
 
-typedef struct _virStoragePoolObj virStoragePoolObj;
-typedef virStoragePoolObj *virStoragePoolObjPtr;
-
-struct _virStoragePoolObj {
-    virMutex lock;
-
-    char *configFile;
-    char *autostartLink;
-    bool active;
-    int autostart;
-    unsigned int asyncjobs;
-
-    virStoragePoolDefPtr def;
-    virStoragePoolDefPtr newDef;
-
-    virStorageVolDefList volumes;
-};
-
-typedef struct _virStoragePoolObjList virStoragePoolObjList;
-typedef virStoragePoolObjList *virStoragePoolObjListPtr;
-struct _virStoragePoolObjList {
-    size_t count;
-    virStoragePoolObjPtr *objs;
-};
-
-typedef struct _virStorageDriverState virStorageDriverState;
-typedef virStorageDriverState *virStorageDriverStatePtr;
-
-struct _virStorageDriverState {
-    virMutex lock;
-
-    virStoragePoolObjList pools;
-
-    char *configDir;
-    char *autostartDir;
-    char *stateDir;
-    bool privileged;
-
-    /* Immutable pointer, self-locking APIs */
-    virObjectEventStatePtr storageEventState;
-};
-
 typedef struct _virStoragePoolSourceList virStoragePoolSourceList;
 typedef virStoragePoolSourceList *virStoragePoolSourceListPtr;
 struct _virStoragePoolSourceList {
@@ -313,53 +239,21 @@ struct _virStoragePoolSourceList {
     virStoragePoolSourcePtr sources;
 };
 
-typedef bool (*virStoragePoolObjListFilter)(virConnectPtr conn,
-                                            virStoragePoolDefPtr def);
+virStoragePoolDefPtr
+virStoragePoolDefParseXML(xmlXPathContextPtr ctxt);
 
-static inline int
-virStoragePoolObjIsActive(virStoragePoolObjPtr pool)
-{
-    return pool->active;
-}
+virStoragePoolDefPtr
+virStoragePoolDefParseString(const char *xml);
 
-int virStoragePoolLoadAllConfigs(virStoragePoolObjListPtr pools,
-                                 const char *configDir,
-                                 const char *autostartDir);
+virStoragePoolDefPtr
+virStoragePoolDefParseFile(const char *filename);
 
-int virStoragePoolLoadAllState(virStoragePoolObjListPtr pools,
-                               const char *stateDir);
+virStoragePoolDefPtr
+virStoragePoolDefParseNode(xmlDocPtr xml,
+                           xmlNodePtr root);
 
-virStoragePoolObjPtr
-virStoragePoolLoadState(virStoragePoolObjListPtr pools,
-                        const char *stateDir,
-                        const char *name);
-virStoragePoolObjPtr
-virStoragePoolObjFindByUUID(virStoragePoolObjListPtr pools,
-                            const unsigned char *uuid);
-virStoragePoolObjPtr
-virStoragePoolObjFindByName(virStoragePoolObjListPtr pools,
-                            const char *name);
-virStoragePoolObjPtr
-virStoragePoolSourceFindDuplicateDevices(virStoragePoolObjPtr pool,
-                                         virStoragePoolDefPtr def);
-
-virStorageVolDefPtr
-virStorageVolDefFindByKey(virStoragePoolObjPtr pool,
-                          const char *key);
-virStorageVolDefPtr
-virStorageVolDefFindByPath(virStoragePoolObjPtr pool,
-                           const char *path);
-virStorageVolDefPtr
-virStorageVolDefFindByName(virStoragePoolObjPtr pool,
-                           const char *name);
-
-void virStoragePoolObjClearVols(virStoragePoolObjPtr pool);
-
-virStoragePoolDefPtr virStoragePoolDefParseString(const char *xml);
-virStoragePoolDefPtr virStoragePoolDefParseFile(const char *filename);
-virStoragePoolDefPtr virStoragePoolDefParseNode(xmlDocPtr xml,
-                                                xmlNodePtr root);
-char *virStoragePoolDefFormat(virStoragePoolDefPtr def);
+char *
+virStoragePoolDefFormat(virStoragePoolDefPtr def);
 
 typedef enum {
     /* do not require volume capacity at all */
@@ -367,63 +261,59 @@ typedef enum {
     /* do not require volume capacity if the volume has a backing store */
     VIR_VOL_XML_PARSE_OPT_CAPACITY = 1 << 1,
 } virStorageVolDefParseFlags;
+
 virStorageVolDefPtr
 virStorageVolDefParseString(virStoragePoolDefPtr pool,
                             const char *xml,
                             unsigned int flags);
+
 virStorageVolDefPtr
 virStorageVolDefParseFile(virStoragePoolDefPtr pool,
                           const char *filename,
                           unsigned int flags);
+
 virStorageVolDefPtr
 virStorageVolDefParseNode(virStoragePoolDefPtr pool,
                           xmlDocPtr xml,
                           xmlNodePtr root,
                           unsigned int flags);
-char *virStorageVolDefFormat(virStoragePoolDefPtr pool,
-                             virStorageVolDefPtr def);
 
-virStoragePoolObjPtr
-virStoragePoolObjAssignDef(virStoragePoolObjListPtr pools,
-                           virStoragePoolDefPtr def);
+char *
+virStorageVolDefFormat(virStoragePoolDefPtr pool,
+                       virStorageVolDefPtr def);
 
-int virStoragePoolSaveState(const char *stateFile,
-                            virStoragePoolDefPtr def);
-int virStoragePoolSaveConfig(const char *configFile,
-                             virStoragePoolDefPtr def);
-int virStoragePoolObjSaveDef(virStorageDriverStatePtr driver,
-                             virStoragePoolObjPtr pool,
-                             virStoragePoolDefPtr def);
-int virStoragePoolObjDeleteDef(virStoragePoolObjPtr pool);
+int
+virStoragePoolSaveState(const char *stateFile,
+                        virStoragePoolDefPtr def);
 
-void virStorageVolDefFree(virStorageVolDefPtr def);
-void virStoragePoolSourceClear(virStoragePoolSourcePtr source);
-void virStoragePoolSourceDeviceClear(virStoragePoolSourceDevicePtr dev);
-void virStoragePoolSourceFree(virStoragePoolSourcePtr source);
-void virStoragePoolDefFree(virStoragePoolDefPtr def);
-void virStoragePoolObjFree(virStoragePoolObjPtr pool);
-void virStoragePoolObjListFree(virStoragePoolObjListPtr pools);
-void virStoragePoolObjRemove(virStoragePoolObjListPtr pools,
-                             virStoragePoolObjPtr pool);
+int
+virStoragePoolSaveConfig(const char *configFile,
+                         virStoragePoolDefPtr def);
+
+void
+virStorageVolDefFree(virStorageVolDefPtr def);
+
+void
+virStoragePoolSourceClear(virStoragePoolSourcePtr source);
+
+void
+virStoragePoolSourceDeviceClear(virStoragePoolSourceDevicePtr dev);
+
+void
+virStoragePoolSourceFree(virStoragePoolSourcePtr source);
+
+void
+virStoragePoolDefFree(virStoragePoolDefPtr def);
 
 virStoragePoolSourcePtr
 virStoragePoolDefParseSourceString(const char *srcSpec,
                                    int pool_type);
+
 virStoragePoolSourcePtr
 virStoragePoolSourceListNewSource(virStoragePoolSourceListPtr list);
-char *virStoragePoolSourceListFormat(virStoragePoolSourceListPtr def);
 
-int virStoragePoolObjIsDuplicate(virStoragePoolObjListPtr pools,
-                                 virStoragePoolDefPtr def,
-                                 unsigned int check_active);
-
-int virStoragePoolSourceFindDuplicate(virConnectPtr conn,
-                                      virStoragePoolObjListPtr pools,
-                                      virStoragePoolDefPtr def);
-
-void virStoragePoolObjLock(virStoragePoolObjPtr obj);
-void virStoragePoolObjUnlock(virStoragePoolObjPtr obj);
-
+char *
+virStoragePoolSourceListFormat(virStoragePoolSourceListPtr def);
 
 typedef enum {
     VIR_STORAGE_POOL_FS_AUTO = 0,
@@ -544,18 +434,13 @@ VIR_ENUM_DECL(virStoragePartedFs)
                  VIR_CONNECT_LIST_STORAGE_POOLS_RBD      | \
                  VIR_CONNECT_LIST_STORAGE_POOLS_SHEEPDOG | \
                  VIR_CONNECT_LIST_STORAGE_POOLS_GLUSTER  | \
-                 VIR_CONNECT_LIST_STORAGE_POOLS_ZFS)
+                 VIR_CONNECT_LIST_STORAGE_POOLS_ZFS      | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_VSTORAGE)
 
 # define VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_ALL                  \
                 (VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_ACTIVE     | \
                  VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_PERSISTENT | \
                  VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_AUTOSTART  | \
                  VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_POOL_TYPE)
-
-int virStoragePoolObjListExport(virConnectPtr conn,
-                                virStoragePoolObjList poolobjs,
-                                virStoragePoolPtr **pools,
-                                virStoragePoolObjListFilter filter,
-                                unsigned int flags);
 
 #endif /* __VIR_STORAGE_CONF_H__ */

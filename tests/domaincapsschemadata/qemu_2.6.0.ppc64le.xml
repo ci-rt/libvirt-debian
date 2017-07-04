@@ -37,10 +37,10 @@
         <value>lun</value>
       </enum>
       <enum name='bus'>
-        <value>ide</value>
         <value>scsi</value>
         <value>virtio</value>
         <value>usb</value>
+        <value>sata</value>
       </enum>
     </disk>
     <graphics supported='yes'>

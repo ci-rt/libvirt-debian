@@ -210,7 +210,7 @@ virSecurityStackGenLabel(virSecurityManagerPtr mgr,
     if (virSecurityManagerGenLabel(virSecurityStackGetPrimary(mgr), vm) < 0)
         rc = -1;
 
-// TODO
+/* TODO */
 #if 0
     /* We don't allow secondary drivers to generate labels.
      * This may have to change in the future, but requires
@@ -235,7 +235,7 @@ virSecurityStackReleaseLabel(virSecurityManagerPtr mgr,
     if (virSecurityManagerReleaseLabel(virSecurityStackGetPrimary(mgr), vm) < 0)
         rc = -1;
 
-// TODO
+/* TODO */
 #if 0
     /* XXX See note in GenLabel */
     if (virSecurityManagerReleaseLabel(priv->secondary, vm) < 0)
@@ -255,7 +255,7 @@ virSecurityStackReserveLabel(virSecurityManagerPtr mgr,
 
     if (virSecurityManagerReserveLabel(virSecurityStackGetPrimary(mgr), vm, pid) < 0)
         rc = -1;
-// TODO
+/* TODO */
 #if 0
     /* XXX See note in GenLabel */
     if (virSecurityManagerReserveLabel(priv->secondary, vm, pid) < 0)
@@ -350,14 +350,16 @@ virSecurityStackRestoreHostdevLabel(virSecurityManagerPtr mgr,
 static int
 virSecurityStackSetAllLabel(virSecurityManagerPtr mgr,
                             virDomainDefPtr vm,
-                            const char *stdin_path)
+                            const char *stdin_path,
+                            bool chardevStdioLogd)
 {
     virSecurityStackDataPtr priv = virSecurityManagerGetPrivateData(mgr);
     virSecurityStackItemPtr item = priv->itemsHead;
     int rc = 0;
 
     for (; item; item = item->next) {
-        if (virSecurityManagerSetAllLabel(item->securityManager, vm, stdin_path) < 0)
+        if (virSecurityManagerSetAllLabel(item->securityManager, vm,
+                                          stdin_path, chardevStdioLogd) < 0)
             rc = -1;
     }
 
@@ -368,14 +370,16 @@ virSecurityStackSetAllLabel(virSecurityManagerPtr mgr,
 static int
 virSecurityStackRestoreAllLabel(virSecurityManagerPtr mgr,
                                 virDomainDefPtr vm,
-                                bool migrated)
+                                bool migrated,
+                                bool chardevStdioLogd)
 {
     virSecurityStackDataPtr priv = virSecurityManagerGetPrivateData(mgr);
     virSecurityStackItemPtr item = priv->itemsHead;
     int rc = 0;
 
     for (; item; item = item->next) {
-        if (virSecurityManagerRestoreAllLabel(item->securityManager, vm, migrated) < 0)
+        if (virSecurityManagerRestoreAllLabel(item->securityManager, vm,
+                                              migrated, chardevStdioLogd) < 0)
             rc = -1;
     }
 
@@ -460,7 +464,7 @@ virSecurityStackGetProcessLabel(virSecurityManagerPtr mgr,
 {
     int rc = 0;
 
-// TODO
+/* TODO */
 #if 0
     if (virSecurityManagerGetProcessLabel(priv->secondary, vm, pid, seclabel) < 0)
         rc = -1;
@@ -628,6 +632,41 @@ virSecurityStackRestoreImageLabel(virSecurityManagerPtr mgr,
 }
 
 static int
+virSecurityStackSetMemoryLabel(virSecurityManagerPtr mgr,
+                               virDomainDefPtr vm,
+                               virDomainMemoryDefPtr mem)
+{
+    virSecurityStackDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    virSecurityStackItemPtr item = priv->itemsHead;
+    int rc = 0;
+
+    for (; item; item = item->next) {
+        if (virSecurityManagerSetMemoryLabel(item->securityManager, vm, mem) < 0)
+            rc = -1;
+    }
+
+    return rc;
+}
+
+static int
+virSecurityStackRestoreMemoryLabel(virSecurityManagerPtr mgr,
+                                   virDomainDefPtr vm,
+                                   virDomainMemoryDefPtr mem)
+{
+    virSecurityStackDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    virSecurityStackItemPtr item = priv->itemsHead;
+    int rc = 0;
+
+    for (; item; item = item->next) {
+        if (virSecurityManagerRestoreMemoryLabel(item->securityManager,
+                                                 vm, mem) < 0)
+            rc = -1;
+    }
+
+    return rc;
+}
+
+static int
 virSecurityStackDomainSetPathLabel(virSecurityManagerPtr mgr,
                                    virDomainDefPtr vm,
                                    const char *path)
@@ -668,6 +707,9 @@ virSecurityDriver virSecurityDriverStack = {
 
     .domainSetSecurityImageLabel        = virSecurityStackSetImageLabel,
     .domainRestoreSecurityImageLabel    = virSecurityStackRestoreImageLabel,
+
+    .domainSetSecurityMemoryLabel       = virSecurityStackSetMemoryLabel,
+    .domainRestoreSecurityMemoryLabel   = virSecurityStackRestoreMemoryLabel,
 
     .domainSetSecurityDaemonSocketLabel = virSecurityStackSetDaemonSocketLabel,
     .domainSetSecuritySocketLabel       = virSecurityStackSetSocketLabel,

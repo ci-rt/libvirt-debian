@@ -24,6 +24,7 @@
 # define __VIR_NETDEV_TAP_H__
 
 # include "internal.h"
+# include "virnetdev.h"
 # include "virnetdevvportprofile.h"
 # include "virnetdevvlan.h"
 
@@ -38,7 +39,7 @@ int virNetDevTapCreate(char **ifname,
                        int *tapfd,
                        size_t tapfdSize,
                        unsigned int flags)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK ATTRIBUTE_NOINLINE;
 
 int virNetDevTapDelete(const char *ifname,
                        const char *tunpath)
@@ -48,7 +49,7 @@ int virNetDevTapGetName(int tapfd, char **ifname)
     ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
 
 char* virNetDevTapGetRealDeviceName(char *ifname)
-      ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
+      ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK ATTRIBUTE_NOINLINE;
 
 typedef enum {
    VIR_NETDEV_TAP_CREATE_NONE = 0,
@@ -62,6 +63,18 @@ typedef enum {
    VIR_NETDEV_TAP_CREATE_PERSIST            = 1 << 3,
 } virNetDevTapCreateFlags;
 
+int
+virNetDevTapAttachBridge(const char *tapname,
+                         const char *brname,
+                         const virMacAddr *macaddr,
+                         const unsigned char *vmuuid,
+                         virNetDevVPortProfilePtr virtPortProfile,
+                         virNetDevVlanPtr virtVlan,
+                         unsigned int mtu,
+                         unsigned int *actualMTU)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
+    ATTRIBUTE_RETURN_CHECK;
+
 int virNetDevTapCreateInBridgePort(const char *brname,
                                    char **ifname,
                                    const virMacAddr *macaddr,
@@ -71,11 +84,12 @@ int virNetDevTapCreateInBridgePort(const char *brname,
                                    size_t tapfdSize,
                                    virNetDevVPortProfilePtr virtPortProfile,
                                    virNetDevVlanPtr virtVlan,
+                                   virNetDevCoalescePtr coalesce,
                                    unsigned int mtu,
                                    unsigned int *actualMTU,
                                    unsigned int flags)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
-    ATTRIBUTE_RETURN_CHECK;
+    ATTRIBUTE_RETURN_CHECK ATTRIBUTE_NOINLINE;
 
 int virNetDevTapInterfaceStats(const char *ifname,
                                virDomainInterfaceStatsPtr stats)

@@ -82,7 +82,7 @@ testCompareFiles(const char *xml, const char *vmx, int virtualHW_version)
     if (def == NULL)
         goto failure;
 
-    if (!virDomainDefCheckABIStability(def, def)) {
+    if (!virDomainDefCheckABIStability(def, def, xmlopt)) {
         fprintf(stderr, "ABI stability check failed on %s", xml);
         goto failure;
     }
@@ -304,7 +304,7 @@ mymain(void)
     return result == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-VIRT_TEST_MAIN(mymain)
+VIR_TEST_MAIN(mymain)
 
 #else
 

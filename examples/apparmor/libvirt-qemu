@@ -70,6 +70,10 @@
   /usr/share/vgabios/** r,
   /usr/share/seabios/** r,
   /usr/share/ovmf/** r,
+  /usr/share/OVMF/** r,
+  /usr/share/AAVMF/** r,
+  /usr/share/qemu-efi/** r,
+  /usr/share/slof/** r,
 
   # access PKI infrastructure
   /etc/pki/libvirt-vnc/** r,
@@ -138,6 +142,12 @@
   /usr/{lib,lib64}/qemu/block-curl.so mr,
   /usr/{lib,lib64}/qemu/block-rbd.so mr,
 
+  # for use by libvirt-vnc (LP: #901272)
+  /etc/pki/CA/ r,
+  /etc/pki/CA/* r,
+  /etc/pki/libvirt/ r,
+  /etc/pki/libvirt/** r,
+
   # for save and resume
   /{usr/,}bin/dash rmix,
   /{usr/,}bin/dd rmix,
@@ -151,3 +161,11 @@
   /etc/udev/udev.conf r,
   /sys/bus/ r,
   /sys/class/ r,
+
+  # for rbd
+  /etc/ceph/ceph.conf r,
+
+  # for ppc device-tree access
+  @{PROC}/device-tree/ r,
+  @{PROC}/device-tree/** r,
+  /sys/firmware/devicetree/** r,

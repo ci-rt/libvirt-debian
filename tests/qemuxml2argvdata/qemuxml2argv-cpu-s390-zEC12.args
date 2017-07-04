@@ -4,7 +4,7 @@ HOME=/home/test \
 USER=test \
 LOGNAME=test \
 QEMU_AUDIO_DRV=none \
-/usr/bin/qemu-kvm \
+/usr/bin/qemu-system-s390x \
 -name guest1 \
 -S \
 -M s390-ccw-virtio \
@@ -15,5 +15,4 @@ QEMU_AUDIO_DRV=none \
 -nographic \
 -nodefaults \
 -monitor unix:/tmp/lib/domain--1-guest1/monitor.sock,server,nowait \
--no-acpi \
 -boot c

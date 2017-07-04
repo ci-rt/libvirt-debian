@@ -48,7 +48,6 @@
 #include "openvz_util.h"
 #include "virbuffer.h"
 #include "openvz_conf.h"
-#include "nodeinfo.h"
 #include "virhostcpu.h"
 #include "virhostmem.h"
 #include "viralloc.h"
@@ -330,9 +329,7 @@ static virDomainPtr openvzDomainLookupByID(virConnectPtr conn,
         goto cleanup;
     }
 
-    dom = virGetDomain(conn, vm->def->name, vm->def->uuid);
-    if (dom)
-        dom->id = vm->def->id;
+    dom = virGetDomain(conn, vm->def->name, vm->def->uuid, vm->def->id);
 
  cleanup:
     if (vm)
@@ -396,9 +393,7 @@ static virDomainPtr openvzDomainLookupByUUID(virConnectPtr conn,
         goto cleanup;
     }
 
-    dom = virGetDomain(conn, vm->def->name, vm->def->uuid);
-    if (dom)
-        dom->id = vm->def->id;
+    dom = virGetDomain(conn, vm->def->name, vm->def->uuid, vm->def->id);
 
  cleanup:
     if (vm)
@@ -422,9 +417,7 @@ static virDomainPtr openvzDomainLookupByName(virConnectPtr conn,
         goto cleanup;
     }
 
-    dom = virGetDomain(conn, vm->def->name, vm->def->uuid);
-    if (dom)
-        dom->id = vm->def->id;
+    dom = virGetDomain(conn, vm->def->name, vm->def->uuid, vm->def->id);
 
  cleanup:
     virDomainObjEndAPI(&vm);
@@ -1054,9 +1047,7 @@ openvzDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int fla
         }
     }
 
-    dom = virGetDomain(conn, vm->def->name, vm->def->uuid);
-    if (dom)
-        dom->id = -1;
+    dom = virGetDomain(conn, vm->def->name, vm->def->uuid, -1);
 
  cleanup:
     virDomainDefFree(vmdef);
@@ -1145,9 +1136,7 @@ openvzDomainCreateXML(virConnectPtr conn, const char *xml,
         }
     }
 
-    dom = virGetDomain(conn, vm->def->name, vm->def->uuid);
-    if (dom)
-        dom->id = vm->def->id;
+    dom = virGetDomain(conn, vm->def->name, vm->def->uuid, vm->def->id);
 
  cleanup:
     virDomainDefFree(vmdef);
@@ -1362,7 +1351,7 @@ static int openvzDomainSetVcpusInternal(virDomainObjPtr vm,
     const char *prog[] = { VZCTL, "--quiet", "set", PROGRAM_SENTINEL,
                            "--cpus", str_vcpus, "--save", NULL };
     unsigned int pcpus;
-    pcpus = openvzGetNodeCPUs();
+    pcpus = virHostCPUGetCount();
     if (pcpus > 0 && pcpus < nvcpus)
         nvcpus = pcpus;
 
@@ -1494,7 +1483,7 @@ static virDrvOpenStatus openvzConnectOpen(virConnectPtr conn,
         goto cleanup;
 
     if (!(driver->xmlopt = virDomainXMLOptionNew(&openvzDomainDefParserConfig,
-                                                 NULL, NULL)))
+                                                 NULL, NULL, NULL, NULL)))
         goto cleanup;
 
     if (openvzLoadDomains(driver) < 0)
@@ -2162,7 +2151,7 @@ static int
 openvzNodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED,
                   virNodeInfoPtr nodeinfo)
 {
-    return nodeGetInfo(nodeinfo);
+    return virCapabilitiesGetNodeInfo(nodeinfo);
 }
 
 
@@ -2497,9 +2486,7 @@ openvzDomainMigrateFinish3Params(virConnectPtr dconn,
     vm->def->id = strtoI(vm->def->name);
     virDomainObjSetState(vm, VIR_DOMAIN_RUNNING, VIR_DOMAIN_RUNNING_MIGRATED);
 
-    dom = virGetDomain(dconn, vm->def->name, vm->def->uuid);
-    if (dom)
-        dom->id = vm->def->id;
+    dom = virGetDomain(dconn, vm->def->name, vm->def->uuid, vm->def->id);
 
  cleanup:
     virDomainObjEndAPI(&vm);

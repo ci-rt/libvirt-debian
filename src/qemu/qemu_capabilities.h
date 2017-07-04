@@ -119,7 +119,7 @@ typedef enum {
     /* 50 */
     QEMU_CAPS_HDA_DUPLEX, /* -device hda-duplex */
     QEMU_CAPS_DRIVE_AIO, /* -drive aio= supported */
-    QEMU_CAPS_PCI_MULTIBUS, /* bus=pci.0 vs bus=pci */
+    X_QEMU_CAPS_PCI_MULTIBUS, /* bus=pci.0 vs bus=pci */
     QEMU_CAPS_PCI_BOOTINDEX, /* pci-assign.bootindex */
     QEMU_CAPS_CCID_EMULATED, /* -device ccid-card-emulated */
 
@@ -394,6 +394,28 @@ typedef enum {
     QEMU_CAPS_QUERY_CPU_MODEL_EXPANSION, /* qmp query-cpu-model-expansion */
     QEMU_CAPS_VIRTIO_NET_HOST_MTU, /* virtio-net-*.host_mtu */
     QEMU_CAPS_SPICE_RENDERNODE, /* -spice rendernode */
+    QEMU_CAPS_DEVICE_NVDIMM, /* -device nvdimm */
+    QEMU_CAPS_DEVICE_PCIE_ROOT_PORT, /* -device pcie-root-port */
+
+    /* 250 */
+    QEMU_CAPS_QUERY_CPU_DEFINITIONS, /* qmp query-cpu-definitions */
+    QEMU_CAPS_BLOCK_WRITE_THRESHOLD, /* BLOCK_WRITE_THRESHOLD event */
+    QEMU_CAPS_QUERY_NAMED_BLOCK_NODES, /* qmp query-named-block-nodes */
+    QEMU_CAPS_CPU_CACHE, /* -cpu supports host-cache-info and l3-cache properties */
+    QEMU_CAPS_DEVICE_QEMU_XHCI, /* -device qemu-xhci */
+
+    /* 255 */
+    QEMU_CAPS_MACHINE_KERNEL_IRQCHIP, /* -machine kernel_irqchip */
+    QEMU_CAPS_MACHINE_KERNEL_IRQCHIP_SPLIT, /* -machine kernel_irqchip=split */
+    QEMU_CAPS_INTEL_IOMMU_INTREMAP, /* intel-iommu.intremap */
+    QEMU_CAPS_INTEL_IOMMU_CACHING_MODE, /* intel-iommu.caching-mode */
+    QEMU_CAPS_INTEL_IOMMU_EIM, /* intel-iommu.eim */
+
+    /* 260 */
+    QEMU_CAPS_INTEL_IOMMU_DEVICE_IOTLB, /* intel-iommu.device-iotlb */
+    QEMU_CAPS_VIRTIO_PCI_IOMMU_PLATFORM, /* virtio-*-pci.iommu_platform */
+    QEMU_CAPS_VIRTIO_PCI_ATS, /* virtio-*-pci.ats */
+    QEMU_CAPS_LOADPARM, /* -machine loadparm */
 
     QEMU_CAPS_LAST /* this must always be the last item */
 } virQEMUCapsFlags;
@@ -442,7 +464,22 @@ int virQEMUCapsGetCPUDefinitions(virQEMUCapsPtr qemuCaps,
                                  virDomainVirtType type,
                                  char ***names,
                                  size_t *count);
-virCPUDefPtr virQEMUCapsGetHostModel(virQEMUCapsPtr qemuCaps);
+
+typedef enum {
+    /* Host CPU definition reported in domain capabilities. */
+    VIR_QEMU_CAPS_HOST_CPU_REPORTED,
+    /* Migratable host CPU definition used for updating guest CPU. */
+    VIR_QEMU_CAPS_HOST_CPU_MIGRATABLE,
+    /* CPU definition with features detected by libvirt using virCPUGetHost
+     * combined with features reported by QEMU. This is used for backward
+     * compatible comparison between a guest CPU and a host CPU. */
+    VIR_QEMU_CAPS_HOST_CPU_FULL,
+} virQEMUCapsHostCPUType;
+
+virCPUDefPtr virQEMUCapsGetHostModel(virQEMUCapsPtr qemuCaps,
+                                     virDomainVirtType type,
+                                     virQEMUCapsHostCPUType cpuType);
+
 bool virQEMUCapsIsCPUModeSupported(virQEMUCapsPtr qemuCaps,
                                    virCapsPtr caps,
                                    virDomainVirtType type,
@@ -465,11 +502,6 @@ bool virQEMUCapsIsValid(virQEMUCapsPtr qemuCaps,
 void virQEMUCapsFilterByMachineType(virQEMUCapsPtr qemuCaps,
                                     const char *machineType);
 
-/* Only for use by test suite */
-void virQEMUCapsSetGICCapabilities(virQEMUCapsPtr qemuCaps,
-                                   virGICCapability *capabilities,
-                                   size_t ncapabilities);
-
 virQEMUCapsCachePtr virQEMUCapsCacheNew(const char *libDir,
                                         const char *cacheDir,
                                         uid_t uid, gid_t gid);
@@ -490,18 +522,6 @@ virCapsPtr virQEMUCapsInit(virQEMUCapsCachePtr cache);
 int virQEMUCapsGetDefaultVersion(virCapsPtr caps,
                                  virQEMUCapsCachePtr capsCache,
                                  unsigned int *version);
-
-/* Only for use by test suite */
-int virQEMUCapsParseHelpStr(const char *qemu,
-                            const char *str,
-                            virQEMUCapsPtr qemuCaps,
-                            unsigned int *version,
-                            bool *is_kvm,
-                            unsigned int *kvm_version,
-                            bool check_yajl,
-                            const char *qmperr);
-/* Only for use by test suite */
-int virQEMUCapsParseDeviceStr(virQEMUCapsPtr qemuCaps, const char *str);
 
 VIR_ENUM_DECL(virQEMUCaps);
 

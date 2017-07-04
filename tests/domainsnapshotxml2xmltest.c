@@ -101,6 +101,7 @@ testCompareXMLToXMLFiles(const char *inxml,
         goto cleanup;
 
     if (!(actual = virDomainSnapshotDefFormat(uuid, def, driver.caps,
+                                              driver.xmlopt,
                                               VIR_DOMAIN_DEF_FORMAT_SECURE,
                                               internal)))
         goto cleanup;
@@ -230,7 +231,7 @@ mymain(void)
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-VIRT_TEST_MAIN(mymain)
+VIR_TEST_MAIN(mymain)
 
 #else
 

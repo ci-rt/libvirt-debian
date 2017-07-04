@@ -70,7 +70,7 @@ typedef remote_nonnull_string *remote_string;
 #define REMOTE_CONNECT_CPU_MODELS_MAX 8192
 #define REMOTE_DOMAIN_FSFREEZE_MOUNTPOINTS_MAX 256
 #define REMOTE_NETWORK_DHCP_LEASES_MAX 65536
-#define REMOTE_CONNECT_GET_ALL_DOMAIN_STATS_MAX 4096
+#define REMOTE_CONNECT_GET_ALL_DOMAIN_STATS_MAX 262144
 #define REMOTE_DOMAIN_EVENT_TUNABLE_MAX 2048
 #define REMOTE_DOMAIN_FSINFO_MAX 256
 #define REMOTE_DOMAIN_FSINFO_DISKS_MAX 256
@@ -3675,6 +3675,16 @@ struct remote_domain_event_block_job_2_msg {
 };
 typedef struct remote_domain_event_block_job_2_msg remote_domain_event_block_job_2_msg;
 
+struct remote_domain_event_block_threshold_msg {
+        int callbackID;
+        remote_nonnull_domain dom;
+        remote_nonnull_string dev;
+        remote_string path;
+        uint64_t threshold;
+        uint64_t excess;
+};
+typedef struct remote_domain_event_block_threshold_msg remote_domain_event_block_threshold_msg;
+
 struct remote_domain_event_callback_tunable_msg {
         int callbackID;
         remote_nonnull_domain dom;
@@ -4106,6 +4116,14 @@ struct remote_secret_event_value_changed_msg {
         remote_nonnull_secret secret;
 };
 typedef struct remote_secret_event_value_changed_msg remote_secret_event_value_changed_msg;
+
+struct remote_domain_set_block_threshold_args {
+        remote_nonnull_domain dom;
+        remote_nonnull_string dev;
+        uint64_t threshold;
+        u_int flags;
+};
+typedef struct remote_domain_set_block_threshold_args remote_domain_set_block_threshold_args;
 #define REMOTE_PROGRAM 0x20008086
 #define REMOTE_PROTOCOL_VERSION 1
 
@@ -4494,6 +4512,8 @@ enum remote_procedure {
         REMOTE_PROC_SECRET_EVENT_LIFECYCLE = 382,
         REMOTE_PROC_SECRET_EVENT_VALUE_CHANGED = 383,
         REMOTE_PROC_DOMAIN_SET_VCPU = 384,
+        REMOTE_PROC_DOMAIN_EVENT_BLOCK_THRESHOLD = 385,
+        REMOTE_PROC_DOMAIN_SET_BLOCK_THRESHOLD = 386,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -5046,6 +5066,7 @@ extern  bool_t xdr_remote_domain_migrate_confirm3_params_args (XDR *, remote_dom
 extern  bool_t xdr_remote_domain_event_device_removed_msg (XDR *, remote_domain_event_device_removed_msg*);
 extern  bool_t xdr_remote_domain_event_callback_device_removed_msg (XDR *, remote_domain_event_callback_device_removed_msg*);
 extern  bool_t xdr_remote_domain_event_block_job_2_msg (XDR *, remote_domain_event_block_job_2_msg*);
+extern  bool_t xdr_remote_domain_event_block_threshold_msg (XDR *, remote_domain_event_block_threshold_msg*);
 extern  bool_t xdr_remote_domain_event_callback_tunable_msg (XDR *, remote_domain_event_callback_tunable_msg*);
 extern  bool_t xdr_remote_domain_event_callback_device_added_msg (XDR *, remote_domain_event_callback_device_added_msg*);
 extern  bool_t xdr_remote_connect_event_connection_closed_msg (XDR *, remote_connect_event_connection_closed_msg*);
@@ -5104,6 +5125,7 @@ extern  bool_t xdr_remote_connect_secret_event_register_any_ret (XDR *, remote_c
 extern  bool_t xdr_remote_connect_secret_event_deregister_any_args (XDR *, remote_connect_secret_event_deregister_any_args*);
 extern  bool_t xdr_remote_secret_event_lifecycle_msg (XDR *, remote_secret_event_lifecycle_msg*);
 extern  bool_t xdr_remote_secret_event_value_changed_msg (XDR *, remote_secret_event_value_changed_msg*);
+extern  bool_t xdr_remote_domain_set_block_threshold_args (XDR *, remote_domain_set_block_threshold_args*);
 extern  bool_t xdr_remote_procedure (XDR *, remote_procedure*);
 
 #else /* K&R C */
@@ -5653,6 +5675,7 @@ extern bool_t xdr_remote_domain_migrate_confirm3_params_args ();
 extern bool_t xdr_remote_domain_event_device_removed_msg ();
 extern bool_t xdr_remote_domain_event_callback_device_removed_msg ();
 extern bool_t xdr_remote_domain_event_block_job_2_msg ();
+extern bool_t xdr_remote_domain_event_block_threshold_msg ();
 extern bool_t xdr_remote_domain_event_callback_tunable_msg ();
 extern bool_t xdr_remote_domain_event_callback_device_added_msg ();
 extern bool_t xdr_remote_connect_event_connection_closed_msg ();
@@ -5711,6 +5734,7 @@ extern bool_t xdr_remote_connect_secret_event_register_any_ret ();
 extern bool_t xdr_remote_connect_secret_event_deregister_any_args ();
 extern bool_t xdr_remote_secret_event_lifecycle_msg ();
 extern bool_t xdr_remote_secret_event_value_changed_msg ();
+extern bool_t xdr_remote_domain_set_block_threshold_args ();
 extern bool_t xdr_remote_procedure ();
 
 #endif /* K&R C */

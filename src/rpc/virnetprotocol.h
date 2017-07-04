@@ -18,9 +18,9 @@ extern "C" {
 #include <arpa/inet.h>
 #define VIR_NET_MESSAGE_INITIAL 65536
 #define VIR_NET_MESSAGE_LEGACY_PAYLOAD_MAX 262120
-#define VIR_NET_MESSAGE_MAX 16777216
+#define VIR_NET_MESSAGE_MAX 33554432
 #define VIR_NET_MESSAGE_HEADER_MAX 24
-#define VIR_NET_MESSAGE_PAYLOAD_MAX 16777192
+#define VIR_NET_MESSAGE_PAYLOAD_MAX 33554408
 #define VIR_NET_MESSAGE_LEN_MAX 4
 #define VIR_NET_MESSAGE_STRING_MAX 4194304
 #define VIR_NET_MESSAGE_NUM_FDS_MAX 32
@@ -32,6 +32,7 @@ enum virNetMessageType {
         VIR_NET_STREAM = 3,
         VIR_NET_CALL_WITH_FDS = 4,
         VIR_NET_REPLY_WITH_FDS = 5,
+        VIR_NET_STREAM_HOLE = 6,
 };
 typedef enum virNetMessageType virNetMessageType;
 
@@ -91,6 +92,12 @@ struct virNetMessageError {
 };
 typedef struct virNetMessageError virNetMessageError;
 
+struct virNetStreamHole {
+        int64_t length;
+        u_int flags;
+};
+typedef struct virNetStreamHole virNetStreamHole;
+
 /* the xdr functions */
 
 #if defined(__STDC__) || defined(__cplusplus)
@@ -105,6 +112,7 @@ extern  bool_t xdr_virNetMessageNonnullNetwork (XDR *, virNetMessageNonnullNetwo
 extern  bool_t xdr_virNetMessageDomain (XDR *, virNetMessageDomain*);
 extern  bool_t xdr_virNetMessageNetwork (XDR *, virNetMessageNetwork*);
 extern  bool_t xdr_virNetMessageError (XDR *, virNetMessageError*);
+extern  bool_t xdr_virNetStreamHole (XDR *, virNetStreamHole*);
 
 #else /* K&R C */
 extern bool_t xdr_virNetMessageType ();
@@ -118,6 +126,7 @@ extern bool_t xdr_virNetMessageNonnullNetwork ();
 extern bool_t xdr_virNetMessageDomain ();
 extern bool_t xdr_virNetMessageNetwork ();
 extern bool_t xdr_virNetMessageError ();
+extern bool_t xdr_virNetStreamHole ();
 
 #endif /* K&R C */
 

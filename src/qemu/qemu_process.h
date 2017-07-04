@@ -38,6 +38,11 @@ int qemuProcessStopCPUs(virQEMUDriverPtr driver,
                         virDomainPausedReason reason,
                         qemuDomainAsyncJob asyncJob);
 
+int qemuProcessBuildDestroyHugepagesPath(virQEMUDriverPtr driver,
+                                         virDomainObjPtr vm,
+                                         virDomainMemoryDefPtr mem,
+                                         bool build);
+
 void qemuProcessAutostartAll(virQEMUDriverPtr driver);
 void qemuProcessReconnectAll(virConnectPtr conn, virQEMUDriverPtr driver);
 
@@ -59,7 +64,8 @@ qemuProcessIncomingDefPtr qemuProcessIncomingDefNew(virQEMUCapsPtr qemuCaps,
 void qemuProcessIncomingDefFree(qemuProcessIncomingDefPtr inc);
 
 int qemuProcessBeginJob(virQEMUDriverPtr driver,
-                        virDomainObjPtr vm);
+                        virDomainObjPtr vm,
+                        virDomainJobOperation operation);
 void qemuProcessEndJob(virQEMUDriverPtr driver,
                        virDomainObjPtr vm);
 
@@ -74,6 +80,7 @@ typedef enum {
 int qemuProcessStart(virConnectPtr conn,
                      virQEMUDriverPtr driver,
                      virDomainObjPtr vm,
+                     virCPUDefPtr updatedCPU,
                      qemuDomainAsyncJob asyncJob,
                      const char *migrateFrom,
                      int stdin_fd,
@@ -92,6 +99,7 @@ virCommandPtr qemuProcessCreatePretendCmd(virConnectPtr conn,
 
 int qemuProcessInit(virQEMUDriverPtr driver,
                     virDomainObjPtr vm,
+                    virCPUDefPtr updatedCPU,
                     qemuDomainAsyncJob asyncJob,
                     bool migration,
                     unsigned int flags);

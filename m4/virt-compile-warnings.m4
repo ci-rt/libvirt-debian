@@ -61,6 +61,9 @@ AC_DEFUN([LIBVIRT_COMPILE_WARNINGS],[
     dontwarn="$dontwarn -Wenum-compare"
     # gcc 5.1 -Wformat-signedness mishandles enums, not ready for prime time
     dontwarn="$dontwarn -Wformat-signedness"
+    # Several conditionals expand the same on both branches
+    # depending on the particular platform/architecture
+    dontwarn="$dontwarn -Wduplicated-branches"
 
     # gcc 4.2 treats attribute(format) as an implicit attribute(nonnull),
     # which triggers spurious warnings for our usage
@@ -166,11 +169,15 @@ AC_DEFUN([LIBVIRT_COMPILE_WARNINGS],[
       wantwarn="$wantwarn -Wno-format"
     fi
 
+    # -Wformat enables this by default, and we should keep it,
+    # but need to rewrite various areas of code first
+    wantwarn="$wantwarn -Wno-format-truncation"
+
     # This should be < 256 really. Currently we're down to 4096,
     # but using 1024 bytes sized buffers (mostly for virStrerror)
     # stops us from going down further
-    wantwarn="$wantwarn -Wframe-larger-than=4096"
-    dnl wantwarn="$wantwarn -Wframe-larger-than=256"
+    gl_WARN_ADD(["-Wframe-larger-than=4096"], [STRICT_FRAME_LIMIT_CFLAGS])
+    gl_WARN_ADD(["-Wframe-larger-than=25600"], [RELAXED_FRAME_LIMIT_CFLAGS])
 
     # Extra special flags
     dnl -fstack-protector stuff passes gl_WARN_ADD with gcc

@@ -114,7 +114,8 @@ vmwareDomainXMLConfigInit(void)
     virDomainXMLPrivateDataCallbacks priv = { .alloc = vmwareDataAllocFunc,
                                               .free = vmwareDataFreeFunc };
 
-    return virDomainXMLOptionNew(&vmwareDomainDefParserConfig, &priv, NULL);
+    return virDomainXMLOptionNew(&vmwareDomainDefParserConfig, &priv,
+                                 NULL, NULL, NULL);
 }
 
 static virDrvOpenStatus
@@ -427,9 +428,7 @@ vmwareDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int fla
     vmdef = NULL;
     vm->persistent = 1;
 
-    dom = virGetDomain(conn, vm->def->name, vm->def->uuid);
-    if (dom)
-        dom->id = -1;
+    dom = virGetDomain(conn, vm->def->name, vm->def->uuid, -1);
 
  cleanup:
     virDomainDefFree(vmdef);
@@ -728,9 +727,7 @@ vmwareDomainCreateXML(virConnectPtr conn, const char *xml,
         goto cleanup;
     }
 
-    dom = virGetDomain(conn, vm->def->name, vm->def->uuid);
-    if (dom)
-        dom->id = vm->def->id;
+    dom = virGetDomain(conn, vm->def->name, vm->def->uuid, vm->def->id);
 
  cleanup:
     virDomainDefFree(vmdef);
@@ -855,9 +852,7 @@ vmwareDomainLookupByID(virConnectPtr conn, int id)
         goto cleanup;
     }
 
-    dom = virGetDomain(conn, vm->def->name, vm->def->uuid);
-    if (dom)
-        dom->id = vm->def->id;
+    dom = virGetDomain(conn, vm->def->name, vm->def->uuid, vm->def->id);
 
  cleanup:
     if (vm)
@@ -906,9 +901,7 @@ vmwareDomainLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
         goto cleanup;
     }
 
-    dom = virGetDomain(conn, vm->def->name, vm->def->uuid);
-    if (dom)
-        dom->id = vm->def->id;
+    dom = virGetDomain(conn, vm->def->name, vm->def->uuid, vm->def->id);
 
  cleanup:
     if (vm)
@@ -932,9 +925,7 @@ vmwareDomainLookupByName(virConnectPtr conn, const char *name)
         goto cleanup;
     }
 
-    dom = virGetDomain(conn, vm->def->name, vm->def->uuid);
-    if (dom)
-        dom->id = vm->def->id;
+    dom = virGetDomain(conn, vm->def->name, vm->def->uuid, vm->def->id);
 
  cleanup:
     if (vm)

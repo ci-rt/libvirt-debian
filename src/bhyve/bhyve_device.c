@@ -106,7 +106,9 @@ bhyveAssignDevicePCISlots(virDomainDefPtr def,
 
     for (i = 0; i < def->ncontrollers; i++) {
         if ((def->controllers[i]->type == VIR_DOMAIN_CONTROLLER_TYPE_PCI) ||
-            (def->controllers[i]->type == VIR_DOMAIN_CONTROLLER_TYPE_SATA)) {
+            (def->controllers[i]->type == VIR_DOMAIN_CONTROLLER_TYPE_SATA) ||
+            ((def->controllers[i]->type == VIR_DOMAIN_CONTROLLER_TYPE_USB) &&
+             (def->controllers[i]->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_NEC_XHCI))) {
             if (def->controllers[i]->model == VIR_DOMAIN_CONTROLLER_MODEL_PCI_ROOT ||
                 !virDeviceInfoPCIAddressWanted(&def->controllers[i]->info))
                 continue;
@@ -144,6 +146,17 @@ bhyveAssignDevicePCISlots(virDomainDefPtr def,
                                                -1) < 0)
             goto error;
     }
+
+    for (i = 0; i < def->nvideos; i++) {
+        if (!virDeviceInfoPCIAddressWanted(&def->videos[i]->info))
+            continue;
+        if (virDomainPCIAddressReserveNextAddr(addrs,
+                                               &def->videos[i]->info,
+                                               VIR_PCI_CONNECT_TYPE_PCI_DEVICE,
+                                               -1) < 0)
+            goto error;
+    }
+
 
     return 0;
 

@@ -127,10 +127,12 @@ struct _virNetworkDNSHostDef {
 };
 
 
-typedef struct _virNetworkDNSForwarder {
+typedef struct _virNetworkDNSForwarder virNetworkDNSForwarder;
+typedef virNetworkDNSForwarder *virNetworkDNSForwarderPtr;
+struct _virNetworkDNSForwarder {
     virSocketAddr addr;
     char *domain;
-} virNetworkDNSForwarder, *virNetworkDNSForwarderPtr;
+};
 
 typedef struct _virNetworkDNSDef virNetworkDNSDef;
 typedef virNetworkDNSDef *virNetworkDNSDefPtr;
@@ -270,35 +272,6 @@ struct _virNetworkDef {
     xmlNodePtr metadata;
 };
 
-typedef struct _virNetworkObj virNetworkObj;
-typedef virNetworkObj *virNetworkObjPtr;
-struct _virNetworkObj {
-    virObjectLockable parent;
-
-    pid_t dnsmasqPid;
-    pid_t radvdPid;
-    unsigned int active : 1;
-    unsigned int autostart : 1;
-    unsigned int persistent : 1;
-
-    virNetworkDefPtr def; /* The current definition */
-    virNetworkDefPtr newDef; /* New definition to activate at shutdown */
-
-    virBitmapPtr class_id; /* bitmap of class IDs for QoS */
-    unsigned long long floor_sum; /* sum of all 'floor'-s of attached NICs */
-
-    unsigned int taint;
-
-    /* Immutable pointer, self locking APIs */
-    virMacMapPtr macmap;
-};
-
-virNetworkObjPtr virNetworkObjNew(void);
-void virNetworkObjEndAPI(virNetworkObjPtr *net);
-
-typedef struct _virNetworkObjList virNetworkObjList;
-typedef virNetworkObjList *virNetworkObjListPtr;
-
 typedef enum {
     VIR_NETWORK_TAINT_HOOK,                 /* Hook script was executed over
                                                network. We can't guarantee
@@ -310,121 +283,78 @@ typedef enum {
     VIR_NETWORK_TAINT_LAST
 } virNetworkTaintFlags;
 
-static inline int
-virNetworkObjIsActive(const virNetworkObj *net)
-{
-    return net->active;
-}
-
-virNetworkObjListPtr virNetworkObjListNew(void);
-
-virNetworkObjPtr virNetworkObjFindByUUIDLocked(virNetworkObjListPtr nets,
-                                               const unsigned char *uuid);
-virNetworkObjPtr virNetworkObjFindByUUID(virNetworkObjListPtr nets,
-                                         const unsigned char *uuid);
-virNetworkObjPtr virNetworkObjFindByNameLocked(virNetworkObjListPtr nets,
-                                               const char *name);
-virNetworkObjPtr virNetworkObjFindByName(virNetworkObjListPtr nets,
-                                         const char *name);
-bool virNetworkObjTaint(virNetworkObjPtr obj,
-                        virNetworkTaintFlags taint);
-
 void virNetworkDefFree(virNetworkDefPtr def);
-
-typedef bool (*virNetworkObjListFilter)(virConnectPtr conn,
-                                        virNetworkDefPtr def);
 
 enum {
     VIR_NETWORK_OBJ_LIST_ADD_LIVE = (1 << 0),
     VIR_NETWORK_OBJ_LIST_ADD_CHECK_LIVE = (1 << 1),
 };
-virNetworkObjPtr virNetworkAssignDef(virNetworkObjListPtr nets,
-                                     virNetworkDefPtr def,
-                                     unsigned int flags);
-void virNetworkObjAssignDef(virNetworkObjPtr network,
-                            virNetworkDefPtr def,
-                            bool live);
-int virNetworkObjSetDefTransient(virNetworkObjPtr network, bool live);
-void virNetworkObjUnsetDefTransient(virNetworkObjPtr network);
-virNetworkDefPtr virNetworkObjGetPersistentDef(virNetworkObjPtr network);
-int virNetworkObjReplacePersistentDef(virNetworkObjPtr network,
-                                      virNetworkDefPtr def);
-virNetworkDefPtr virNetworkDefCopy(virNetworkDefPtr def, unsigned int flags);
-int virNetworkConfigChangeSetup(virNetworkObjPtr dom, unsigned int flags);
 
-void virNetworkRemoveInactive(virNetworkObjListPtr nets,
-                              virNetworkObjPtr net);
+virNetworkDefPtr
+virNetworkDefCopy(virNetworkDefPtr def, unsigned int flags);
 
-virNetworkDefPtr virNetworkDefParseString(const char *xmlStr);
-virNetworkDefPtr virNetworkDefParseFile(const char *filename);
-virNetworkDefPtr virNetworkDefParseNode(xmlDocPtr xml,
-                                        xmlNodePtr root);
-char *virNetworkDefFormat(const virNetworkDef *def, unsigned int flags);
-int virNetworkDefFormatBuf(virBufferPtr buf,
-                           const virNetworkDef *def,
-                           unsigned int flags);
+virNetworkDefPtr
+virNetworkDefParseXML(xmlXPathContextPtr ctxt);
 
-const char * virNetworkDefForwardIf(const virNetworkDef *def, size_t n);
+virNetworkDefPtr
+virNetworkDefParseString(const char *xmlStr);
 
-virPortGroupDefPtr virPortGroupFindByName(virNetworkDefPtr net,
-                                          const char *portgroup);
+virNetworkDefPtr
+virNetworkDefParseFile(const char *filename);
+
+virNetworkDefPtr
+virNetworkDefParseNode(xmlDocPtr xml,
+                       xmlNodePtr root);
+
+char *
+virNetworkDefFormat(const virNetworkDef *def,
+                    unsigned int flags);
+
+int
+virNetworkDefFormatBuf(virBufferPtr buf,
+                       const virNetworkDef *def,
+                       unsigned int flags);
+
+const char *
+virNetworkDefForwardIf(const virNetworkDef *def,
+                       size_t n);
+
+virPortGroupDefPtr
+virPortGroupFindByName(virNetworkDefPtr net,
+                       const char *portgroup);
 
 virNetworkIPDefPtr
 virNetworkDefGetIPByIndex(const virNetworkDef *def,
-                          int family, size_t n);
+                          int family,
+                          size_t n);
+
 virNetDevIPRoutePtr
 virNetworkDefGetRouteByIndex(const virNetworkDef *def,
-                             int family, size_t n);
-int virNetworkIPDefPrefix(const virNetworkIPDef *def);
-int virNetworkIPDefNetmask(const virNetworkIPDef *def,
-                           virSocketAddrPtr netmask);
-
-int virNetworkSaveXML(const char *configDir,
-                      virNetworkDefPtr def,
-                      const char *xml);
-
-int virNetworkSaveConfig(const char *configDir,
-                         virNetworkDefPtr def);
-
-int virNetworkSaveStatus(const char *statusDir,
-                         virNetworkObjPtr net) ATTRIBUTE_RETURN_CHECK;
-
-virNetworkObjPtr virNetworkLoadConfig(virNetworkObjListPtr nets,
-                                      const char *configDir,
-                                      const char *autostartDir,
-                                      const char *file);
-
-virNetworkObjPtr virNetworkLoadState(virNetworkObjListPtr nets,
-                                     const char *stateDir,
-                                     const char *name);
-
-int virNetworkLoadAllConfigs(virNetworkObjListPtr nets,
-                             const char *configDir,
-                             const char *autostartDir);
-
-int virNetworkLoadAllState(virNetworkObjListPtr nets,
-                           const char *stateDir);
-
-int virNetworkDeleteConfig(const char *configDir,
-                           const char *autostartDir,
-                           virNetworkObjPtr net);
-
-char *virNetworkConfigFile(const char *dir,
-                           const char *name);
-
-int virNetworkBridgeInUse(virNetworkObjListPtr nets,
-                          const char *bridge,
-                          const char *skipname);
-
-void virNetworkSetBridgeMacAddr(virNetworkDefPtr def);
+                             int family,
+                             size_t n);
 
 int
-virNetworkObjUpdate(virNetworkObjPtr obj,
-                    unsigned int command, /* virNetworkUpdateCommand */
-                    unsigned int section, /* virNetworkUpdateSection */
-                    int parentIndex,
-                    const char *xml,
-                    unsigned int flags);  /* virNetworkUpdateFlags */
+virNetworkIPDefPrefix(const virNetworkIPDef *def);
+
+int
+virNetworkIPDefNetmask(const virNetworkIPDef *def,
+                       virSocketAddrPtr netmask);
+
+int
+virNetworkSaveXML(const char *configDir,
+                  virNetworkDefPtr def,
+                  const char *xml);
+
+int
+virNetworkSaveConfig(const char *configDir,
+                     virNetworkDefPtr def);
+
+char *
+virNetworkConfigFile(const char *dir,
+                     const char *name);
+
+void
+virNetworkSetBridgeMacAddr(virNetworkDefPtr def);
 
 VIR_ENUM_DECL(virNetworkForward)
 
@@ -444,34 +374,6 @@ VIR_ENUM_DECL(virNetworkForward)
                 (VIR_CONNECT_LIST_NETWORKS_FILTERS_ACTIVE     | \
                  VIR_CONNECT_LIST_NETWORKS_FILTERS_PERSISTENT | \
                  VIR_CONNECT_LIST_NETWORKS_FILTERS_AUTOSTART)
-
-int virNetworkObjListExport(virConnectPtr conn,
-                            virNetworkObjListPtr netobjs,
-                            virNetworkPtr **nets,
-                            virNetworkObjListFilter filter,
-                            unsigned int flags);
-
-typedef int (*virNetworkObjListIterator)(virNetworkObjPtr net,
-                                         void *opaque);
-
-int virNetworkObjListForEach(virNetworkObjListPtr nets,
-                             virNetworkObjListIterator callback,
-                             void *opaque);
-
-int virNetworkObjListGetNames(virNetworkObjListPtr nets,
-                              bool active,
-                              char **names,
-                              int nnames,
-                              virNetworkObjListFilter filter,
-                              virConnectPtr conn);
-
-int virNetworkObjListNumOfNetworks(virNetworkObjListPtr nets,
-                                   bool active,
-                                   virNetworkObjListFilter filter,
-                                   virConnectPtr conn);
-
-void virNetworkObjListPrune(virNetworkObjListPtr nets,
-                            unsigned int flags);
 
 /* for testing */
 int

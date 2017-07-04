@@ -4,7 +4,7 @@ HOME=/home/test \
 USER=test \
 LOGNAME=test \
 QEMU_AUDIO_DRV=none \
-/usr/bin/qemu \
+/usr/bin/qemu-system-s390x \
 -name QEMUGuest1 \
 -S \
 -M s390-ccw \
@@ -15,6 +15,5 @@ QEMU_AUDIO_DRV=none \
 -nodefconfig \
 -nodefaults \
 -monitor unix:/tmp/lib/domain--1-QEMUGuest1/monitor.sock,server,nowait \
--no-acpi \
 -boot c \
 -device virtio-balloon-ccw,id=balloon0,devno=fe.0.000a,deflate-on-oom=on

@@ -811,8 +811,8 @@ virSecurityManagerCheckChardevLabel(virSecurityManagerPtr mgr,
 {
     size_t i;
 
-    for (i = 0; i < dev->nseclabels; i++) {
-        if (virSecurityManagerCheckModel(mgr, dev->seclabels[i]->model) < 0)
+    for (i = 0; i < dev->source->nseclabels; i++) {
+        if (virSecurityManagerCheckModel(mgr, dev->source->seclabels[i]->model) < 0)
             return -1;
     }
 
@@ -856,12 +856,14 @@ int virSecurityManagerCheckAllLabel(virSecurityManagerPtr mgr,
 int
 virSecurityManagerSetAllLabel(virSecurityManagerPtr mgr,
                               virDomainDefPtr vm,
-                              const char *stdin_path)
+                              const char *stdin_path,
+                              bool chardevStdioLogd)
 {
     if (mgr->drv->domainSetSecurityAllLabel) {
         int ret;
         virObjectLock(mgr);
-        ret = mgr->drv->domainSetSecurityAllLabel(mgr, vm, stdin_path);
+        ret = mgr->drv->domainSetSecurityAllLabel(mgr, vm, stdin_path,
+                                                  chardevStdioLogd);
         virObjectUnlock(mgr);
         return ret;
     }
@@ -874,12 +876,14 @@ virSecurityManagerSetAllLabel(virSecurityManagerPtr mgr,
 int
 virSecurityManagerRestoreAllLabel(virSecurityManagerPtr mgr,
                                   virDomainDefPtr vm,
-                                  bool migrated)
+                                  bool migrated,
+                                  bool chardevStdioLogd)
 {
     if (mgr->drv->domainRestoreSecurityAllLabel) {
         int ret;
         virObjectLock(mgr);
-        ret = mgr->drv->domainRestoreSecurityAllLabel(mgr, vm, migrated);
+        ret = mgr->drv->domainRestoreSecurityAllLabel(mgr, vm, migrated,
+                                                      chardevStdioLogd);
         virObjectUnlock(mgr);
         return ret;
     }
@@ -1051,4 +1055,60 @@ virSecurityManagerDomainSetPathLabel(virSecurityManagerPtr mgr,
     }
 
     return 0;
+}
+
+
+/**
+ * virSecurityManagerSetMemoryLabel:
+ * @mgr: security manager object
+ * @vm: domain definition object
+ * @mem: memory module to operate on
+ *
+ * Labels the host part of a memory module.
+ *
+ * Returns: 0 on success, -1 on error.
+ */
+int
+virSecurityManagerSetMemoryLabel(virSecurityManagerPtr mgr,
+                                     virDomainDefPtr vm,
+                                     virDomainMemoryDefPtr mem)
+{
+    if (mgr->drv->domainSetSecurityMemoryLabel) {
+        int ret;
+        virObjectLock(mgr);
+        ret = mgr->drv->domainSetSecurityMemoryLabel(mgr, vm, mem);
+        virObjectUnlock(mgr);
+        return ret;
+    }
+
+    virReportUnsupportedError();
+    return -1;
+}
+
+
+/**
+ * virSecurityManagerRestoreMemoryLabel:
+ * @mgr: security manager object
+ * @vm: domain definition object
+ * @mem: memory module to operate on
+ *
+ * Removes security label from the host part of a memory module.
+ *
+ * Returns: 0 on success, -1 on error.
+ */
+int
+virSecurityManagerRestoreMemoryLabel(virSecurityManagerPtr mgr,
+                                        virDomainDefPtr vm,
+                                        virDomainMemoryDefPtr mem)
+{
+    if (mgr->drv->domainRestoreSecurityMemoryLabel) {
+        int ret;
+        virObjectLock(mgr);
+        ret = mgr->drv->domainRestoreSecurityMemoryLabel(mgr, vm, mem);
+        virObjectUnlock(mgr);
+        return ret;
+    }
+
+    virReportUnsupportedError();
+    return -1;
 }

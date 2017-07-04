@@ -151,7 +151,8 @@ virSecurityDomainReleaseLabelNop(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
 static int
 virSecurityDomainSetAllLabelNop(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
                                 virDomainDefPtr sec ATTRIBUTE_UNUSED,
-                                const char *stdin_path ATTRIBUTE_UNUSED)
+                                const char *stdin_path ATTRIBUTE_UNUSED,
+                                bool chardevStdioLogd ATTRIBUTE_UNUSED)
 {
     return 0;
 }
@@ -159,7 +160,8 @@ virSecurityDomainSetAllLabelNop(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
 static int
 virSecurityDomainRestoreAllLabelNop(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
                                     virDomainDefPtr vm ATTRIBUTE_UNUSED,
-                                    bool migrated ATTRIBUTE_UNUSED)
+                                    bool migrated ATTRIBUTE_UNUSED,
+                                    bool chardevStdioLogd ATTRIBUTE_UNUSED)
 {
     return 0;
 }
@@ -236,6 +238,22 @@ virSecurityDomainSetImageLabelNop(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
     return 0;
 }
 
+static int
+virSecurityDomainSetMemoryLabelNop(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
+                                   virDomainDefPtr def ATTRIBUTE_UNUSED,
+                                   virDomainMemoryDefPtr mem ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+
+static int
+virSecurityDomainRestoreMemoryLabelNop(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
+                                       virDomainDefPtr def ATTRIBUTE_UNUSED,
+                                       virDomainMemoryDefPtr mem ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+
 
 virSecurityDriver virSecurityDriverNop = {
     .privateDataLen                     = 0,
@@ -254,6 +272,9 @@ virSecurityDriver virSecurityDriverNop = {
 
     .domainSetSecurityImageLabel        = virSecurityDomainSetImageLabelNop,
     .domainRestoreSecurityImageLabel    = virSecurityDomainRestoreImageLabelNop,
+
+    .domainSetSecurityMemoryLabel       = virSecurityDomainSetMemoryLabelNop,
+    .domainRestoreSecurityMemoryLabel   = virSecurityDomainRestoreMemoryLabelNop,
 
     .domainSetSecurityDaemonSocketLabel = virSecurityDomainSetDaemonSocketLabelNop,
     .domainSetSecuritySocketLabel       = virSecurityDomainSetSocketLabelNop,

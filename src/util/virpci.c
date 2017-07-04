@@ -53,7 +53,7 @@ VIR_LOG_INIT("util.pci");
 #define PCI_ADDR_LEN 13 /* "XXXX:XX:XX.X" */
 
 VIR_ENUM_IMPL(virPCIELinkSpeed, VIR_PCIE_LINK_SPEED_LAST,
-              "", "2.5", "5", "8")
+              "", "2.5", "5", "8", "16")
 
 VIR_ENUM_IMPL(virPCIStubDriver, VIR_PCI_STUB_DRIVER_LAST,
               "none",
@@ -1101,6 +1101,31 @@ virPCIDeviceUnbind(virPCIDevicePtr dev)
     return ret;
 }
 
+
+/**
+ * virPCIDeviceRebind:
+ *  @dev: virPCIDevice object describing the device to rebind
+ *
+ * unbind a device from its driver, then immediately rebind it.
+ *
+ * Returns 0 on success, -1 on failure
+ */
+int virPCIDeviceRebind(virPCIDevicePtr dev)
+{
+    if (virPCIDeviceUnbind(dev) < 0)
+        return -1;
+
+    if (virFileWriteStr(PCI_SYSFS "drivers_probe", dev->name, 0) < 0) {
+        virReportSystemError(errno,
+                             _("Failed to trigger a probe for PCI device '%s'"),
+                             dev->name);
+        return -1;
+    }
+
+    return 0;
+}
+
+
 /*
  * Bind a PCI device to a driver using driver_override sysfs interface.
  * E.g.
@@ -1130,15 +1155,8 @@ virPCIDeviceBindWithDriverOverride(virPCIDevicePtr dev,
         goto cleanup;
     }
 
-    if (virPCIDeviceUnbind(dev) < 0)
+    if (virPCIDeviceRebind(dev) < 0)
         goto cleanup;
-
-    if (virFileWriteStr(PCI_SYSFS "drivers_probe", dev->name, 0) < 0) {
-        virReportSystemError(errno,
-                             _("Failed to trigger a probe for PCI device '%s'"),
-                             dev->name);
-        goto cleanup;
-    }
 
     ret = 0;
 
@@ -2594,13 +2612,12 @@ virPCIDeviceAddressIsEqual(virPCIDeviceAddressPtr bdf1,
             (bdf1->function == bdf2->function));
 }
 
-static virPCIDeviceAddressPtr
+virPCIDeviceAddressPtr
 virPCIGetDeviceAddressFromSysfsLink(const char *device_link)
 {
     virPCIDeviceAddressPtr bdf = NULL;
     char *config_address = NULL;
     char *device_path = NULL;
-    char errbuf[64];
 
     if (!virFileExists(device_link)) {
         VIR_DEBUG("'%s' does not exist", device_link);
@@ -2609,7 +2626,6 @@ virPCIGetDeviceAddressFromSysfsLink(const char *device_link)
 
     device_path = canonicalize_file_name(device_link);
     if (device_path == NULL) {
-        memset(errbuf, '\0', sizeof(errbuf));
         virReportSystemError(errno,
                              _("Failed to resolve device link '%s'"),
                              device_link);
@@ -2854,8 +2870,11 @@ virPCIGetNetName(char *device_link_sysfs_path, char **netname)
         return -1;
     }
 
-    if (virDirOpenQuiet(&dir, pcidev_sysfs_net_path) < 0)
+    if (virDirOpenQuiet(&dir, pcidev_sysfs_net_path) < 0) {
+        /* this *isn't* an error - caller needs to check for netname == NULL */
+        ret = 0;
         goto out;
+    }
 
     while (virDirRead(dir, &entry, pcidev_sysfs_net_path) > 0) {
         /* Assume a single directory entry */
@@ -2881,24 +2900,35 @@ virPCIGetVirtualFunctionInfo(const char *vf_sysfs_device_path,
     int ret = -1;
 
     if (virPCIGetPhysicalFunction(vf_sysfs_device_path, &pf_config_address) < 0)
-        return ret;
+        goto cleanup;
 
     if (!pf_config_address)
-        return ret;
+        goto cleanup;
 
     if (virPCIDeviceAddressGetSysfsFile(pf_config_address,
                                         &pf_sysfs_device_path) < 0) {
-
-        VIR_FREE(pf_config_address);
-        return ret;
+        goto cleanup;
     }
 
-    if (virPCIGetVirtualFunctionIndex(pf_sysfs_device_path, vf_sysfs_device_path,
-                                      vf_index) < 0)
+    if (virPCIGetVirtualFunctionIndex(pf_sysfs_device_path,
+                                      vf_sysfs_device_path, vf_index) < 0) {
+        goto cleanup;
+    }
+
+    if (virPCIGetNetName(pf_sysfs_device_path, pfname) < 0)
         goto cleanup;
 
-    ret = virPCIGetNetName(pf_sysfs_device_path, pfname);
+    if (!*pfname) {
+        /* this shouldn't be possible. A VF can't exist unless its
+         * PF device is bound to a network driver
+         */
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("The PF device for VF %s has no network device name"),
+                       vf_sysfs_device_path);
+        goto cleanup;
+    }
 
+    ret = 0;
  cleanup:
     VIR_FREE(pf_config_address);
     VIR_FREE(pf_sysfs_device_path);
@@ -2908,6 +2938,14 @@ virPCIGetVirtualFunctionInfo(const char *vf_sysfs_device_path,
 
 #else
 static const char *unsupported = N_("not supported on non-linux platforms");
+
+virPCIDeviceAddressPtr
+virPCIGetDeviceAddressFromSysfsLink(const char *device_link ATTRIBUTE_UNUSED)
+{
+    virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _(unsupported));
+    return NULL;
+}
+
 
 int
 virPCIGetPhysicalFunction(const char *vf_sysfs_path ATTRIBUTE_UNUSED,

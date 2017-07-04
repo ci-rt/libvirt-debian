@@ -206,6 +206,7 @@ check_PROGRAMS = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-wchar$(EXEEXT) test-wcrtomb$(EXEEXT) \
 	test-wcrtomb-w32$(EXEEXT) test-wctype-h$(EXEEXT) \
 	test-write$(EXEEXT) test-xalloc-die$(EXEEXT)
+EXTRA_PROGRAMS = test-verify-try$(EXEEXT)
 @POSIX_SPAWN_PORTED_TRUE@am__append_1 = test-posix_spawn1 test-posix_spawn2
 @POSIX_SPAWN_PORTED_TRUE@am__append_2 = test-posix_spawn1 test-posix_spawn2
 @POSIX_SPAWN_PORTED_TRUE@am__append_3 = test-posix_spawn1.sh \
@@ -276,20 +277,20 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/locale-ja.m4 $(top_srcdir)/m4/locale-tr.m4 \
 	$(top_srcdir)/m4/locale-zh.m4 $(top_srcdir)/m4/locale_h.m4 \
 	$(top_srcdir)/m4/localeconv.m4 $(top_srcdir)/m4/localename.m4 \
-	$(top_srcdir)/m4/lock.m4 $(top_srcdir)/m4/longlong.m4 \
-	$(top_srcdir)/m4/lseek.m4 $(top_srcdir)/m4/lstat.m4 \
-	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
-	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
-	$(top_srcdir)/m4/malloc.m4 $(top_srcdir)/m4/malloca.m4 \
-	$(top_srcdir)/m4/manywarnings.m4 $(top_srcdir)/m4/math_h.m4 \
-	$(top_srcdir)/m4/mbrtowc.m4 $(top_srcdir)/m4/mbsinit.m4 \
-	$(top_srcdir)/m4/mbsrtowcs.m4 $(top_srcdir)/m4/mbstate_t.m4 \
-	$(top_srcdir)/m4/mbtowc.m4 $(top_srcdir)/m4/md5.m4 \
-	$(top_srcdir)/m4/memchr.m4 $(top_srcdir)/m4/mgetgroups.m4 \
-	$(top_srcdir)/m4/mkdtemp.m4 $(top_srcdir)/m4/mkostemp.m4 \
-	$(top_srcdir)/m4/mkostemps.m4 $(top_srcdir)/m4/mktime.m4 \
-	$(top_srcdir)/m4/mmap-anon.m4 $(top_srcdir)/m4/mode_t.m4 \
-	$(top_srcdir)/m4/msvc-inval.m4 \
+	$(top_srcdir)/m4/localtime-buffer.m4 $(top_srcdir)/m4/lock.m4 \
+	$(top_srcdir)/m4/longlong.m4 $(top_srcdir)/m4/lseek.m4 \
+	$(top_srcdir)/m4/lstat.m4 $(top_srcdir)/m4/ltoptions.m4 \
+	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
+	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/m4/malloc.m4 \
+	$(top_srcdir)/m4/malloca.m4 $(top_srcdir)/m4/manywarnings.m4 \
+	$(top_srcdir)/m4/math_h.m4 $(top_srcdir)/m4/mbrtowc.m4 \
+	$(top_srcdir)/m4/mbsinit.m4 $(top_srcdir)/m4/mbsrtowcs.m4 \
+	$(top_srcdir)/m4/mbstate_t.m4 $(top_srcdir)/m4/mbtowc.m4 \
+	$(top_srcdir)/m4/md5.m4 $(top_srcdir)/m4/memchr.m4 \
+	$(top_srcdir)/m4/mgetgroups.m4 $(top_srcdir)/m4/mkdtemp.m4 \
+	$(top_srcdir)/m4/mkostemp.m4 $(top_srcdir)/m4/mkostemps.m4 \
+	$(top_srcdir)/m4/mktime.m4 $(top_srcdir)/m4/mmap-anon.m4 \
+	$(top_srcdir)/m4/mode_t.m4 $(top_srcdir)/m4/msvc-inval.m4 \
 	$(top_srcdir)/m4/msvc-nothrow.m4 $(top_srcdir)/m4/multiarch.m4 \
 	$(top_srcdir)/m4/nanosleep.m4 $(top_srcdir)/m4/net_if_h.m4 \
 	$(top_srcdir)/m4/netdb_h.m4 $(top_srcdir)/m4/netinet_in_h.m4 \
@@ -1362,6 +1363,11 @@ test_verify_OBJECTS = test-verify.$(OBJEXT)
 test_verify_LDADD = $(LDADD)
 test_verify_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
 	libtests.a $(am__DEPENDENCIES_1)
+test_verify_try_SOURCES = test-verify-try.c
+test_verify_try_OBJECTS = test-verify-try.$(OBJEXT)
+test_verify_try_LDADD = $(LDADD)
+test_verify_try_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_vsnprintf_SOURCES = test-vsnprintf.c
 test_vsnprintf_OBJECTS = test-vsnprintf.$(OBJEXT)
 test_vsnprintf_LDADD = $(LDADD)
@@ -1488,7 +1494,7 @@ SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-thread_self.c test-time.c test-ttyname_r.c test-uname.c \
 	test-unistd.c test-unlockpt.c test-unsetenv.c test-usleep.c \
 	test-vasnprintf.c test-vasprintf.c test-verify.c \
-	test-vsnprintf.c test-wchar.c test-wcrtomb.c \
+	test-verify-try.c test-vsnprintf.c test-wchar.c test-wcrtomb.c \
 	test-wcrtomb-w32.c test-wctype-h.c test-write.c \
 	test-xalloc-die.c
 DIST_SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
@@ -1550,7 +1556,7 @@ DIST_SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-thread_self.c test-time.c test-ttyname_r.c test-uname.c \
 	test-unistd.c test-unlockpt.c test-unsetenv.c test-usleep.c \
 	test-vasnprintf.c test-vasprintf.c test-verify.c \
-	test-vsnprintf.c test-wchar.c test-wcrtomb.c \
+	test-verify-try.c test-vsnprintf.c test-wchar.c test-wcrtomb.c \
 	test-wcrtomb-w32.c test-wctype-h.c test-write.c \
 	test-xalloc-die.c
 RECURSIVE_TARGETS = all-recursive check-recursive cscopelist-recursive \
@@ -2009,6 +2015,7 @@ FUSE_CFLAGS = @FUSE_CFLAGS@
 FUSE_LIBS = @FUSE_LIBS@
 GETADDRINFO_LIB = @GETADDRINFO_LIB@
 GETHOSTNAME_LIB = @GETHOSTNAME_LIB@
+GETOPT_CDEFS_H = @GETOPT_CDEFS_H@
 GETOPT_H = @GETOPT_H@
 GETTEXT_CPPFLAGS = @GETTEXT_CPPFLAGS@
 GETTEXT_MACRO_VERSION = @GETTEXT_MACRO_VERSION@
@@ -2047,6 +2054,7 @@ GNULIB_COPYSIGNL = @GNULIB_COPYSIGNL@
 GNULIB_COSF = @GNULIB_COSF@
 GNULIB_COSHF = @GNULIB_COSHF@
 GNULIB_COSL = @GNULIB_COSL@
+GNULIB_CTIME = @GNULIB_CTIME@
 GNULIB_DPRINTF = @GNULIB_DPRINTF@
 GNULIB_DUP = @GNULIB_DUP@
 GNULIB_DUP2 = @GNULIB_DUP2@
@@ -2162,6 +2170,7 @@ GNULIB_LINK = @GNULIB_LINK@
 GNULIB_LINKAT = @GNULIB_LINKAT@
 GNULIB_LISTEN = @GNULIB_LISTEN@
 GNULIB_LOCALECONV = @GNULIB_LOCALECONV@
+GNULIB_LOCALTIME = @GNULIB_LOCALTIME@
 GNULIB_LOG = @GNULIB_LOG@
 GNULIB_LOG10 = @GNULIB_LOG10@
 GNULIB_LOG10F = @GNULIB_LOG10F@
@@ -2226,6 +2235,7 @@ GNULIB_OBSTACK_PRINTF_POSIX = @GNULIB_OBSTACK_PRINTF_POSIX@
 GNULIB_OPEN = @GNULIB_OPEN@
 GNULIB_OPENAT = @GNULIB_OPENAT@
 GNULIB_OPENPTY = @GNULIB_OPENPTY@
+GNULIB_OVERRIDES_STRUCT_STAT = @GNULIB_OVERRIDES_STRUCT_STAT@
 GNULIB_OVERRIDES_WINT_T = @GNULIB_OVERRIDES_WINT_T@
 GNULIB_PCLOSE = @GNULIB_PCLOSE@
 GNULIB_PERROR = @GNULIB_PERROR@
@@ -2327,6 +2337,7 @@ GNULIB_STRCHRNUL = @GNULIB_STRCHRNUL@
 GNULIB_STRDUP = @GNULIB_STRDUP@
 GNULIB_STRERROR = @GNULIB_STRERROR@
 GNULIB_STRERROR_R = @GNULIB_STRERROR_R@
+GNULIB_STRFTIME = @GNULIB_STRFTIME@
 GNULIB_STRNCAT = @GNULIB_STRNCAT@
 GNULIB_STRNDUP = @GNULIB_STRNDUP@
 GNULIB_STRNLEN = @GNULIB_STRNLEN@
@@ -2355,9 +2366,11 @@ GNULIB_TIME_RZ = @GNULIB_TIME_RZ@
 GNULIB_TMPFILE = @GNULIB_TMPFILE@
 GNULIB_TOWCTRANS = @GNULIB_TOWCTRANS@
 GNULIB_TRUNC = @GNULIB_TRUNC@
+GNULIB_TRUNCATE = @GNULIB_TRUNCATE@
 GNULIB_TRUNCF = @GNULIB_TRUNCF@
 GNULIB_TRUNCL = @GNULIB_TRUNCL@
 GNULIB_TTYNAME_R = @GNULIB_TTYNAME_R@
+GNULIB_TZSET = @GNULIB_TZSET@
 GNULIB_UNAME = @GNULIB_UNAME@
 GNULIB_UNISTD_H_NONBLOCKING = @GNULIB_UNISTD_H_NONBLOCKING@
 GNULIB_UNISTD_H_SIGPIPE = @GNULIB_UNISTD_H_SIGPIPE@
@@ -2389,6 +2402,7 @@ GNULIB_WCSCOLL = @GNULIB_WCSCOLL@
 GNULIB_WCSCPY = @GNULIB_WCSCPY@
 GNULIB_WCSCSPN = @GNULIB_WCSCSPN@
 GNULIB_WCSDUP = @GNULIB_WCSDUP@
+GNULIB_WCSFTIME = @GNULIB_WCSFTIME@
 GNULIB_WCSLEN = @GNULIB_WCSLEN@
 GNULIB_WCSNCASECMP = @GNULIB_WCSNCASECMP@
 GNULIB_WCSNCAT = @GNULIB_WCSNCAT@
@@ -2443,6 +2457,7 @@ HAVE_COPYSIGNL = @HAVE_COPYSIGNL@
 HAVE_COSF = @HAVE_COSF@
 HAVE_COSHF = @HAVE_COSHF@
 HAVE_COSL = @HAVE_COSL@
+HAVE_CRTDEFS_H = @HAVE_CRTDEFS_H@
 HAVE_DECL_ACOSL = @HAVE_DECL_ACOSL@
 HAVE_DECL_ASINL = @HAVE_DECL_ASINL@
 HAVE_DECL_ATANL = @HAVE_DECL_ATANL@
@@ -2730,7 +2745,9 @@ HAVE_TANL = @HAVE_TANL@
 HAVE_TERMIOS_H = @HAVE_TERMIOS_H@
 HAVE_TIMEGM = @HAVE_TIMEGM@
 HAVE_TIMEZONE_T = @HAVE_TIMEZONE_T@
+HAVE_TRUNCATE = @HAVE_TRUNCATE@
 HAVE_TYPE_VOLATILE_SIG_ATOMIC_T = @HAVE_TYPE_VOLATILE_SIG_ATOMIC_T@
+HAVE_TZSET = @HAVE_TZSET@
 HAVE_UNAME = @HAVE_UNAME@
 HAVE_UNISTD_H = @HAVE_UNISTD_H@
 HAVE_UNLINKAT = @HAVE_UNLINKAT@
@@ -2754,6 +2771,7 @@ HAVE_WCSCOLL = @HAVE_WCSCOLL@
 HAVE_WCSCPY = @HAVE_WCSCPY@
 HAVE_WCSCSPN = @HAVE_WCSCSPN@
 HAVE_WCSDUP = @HAVE_WCSDUP@
+HAVE_WCSFTIME = @HAVE_WCSFTIME@
 HAVE_WCSLEN = @HAVE_WCSLEN@
 HAVE_WCSNCASECMP = @HAVE_WCSNCASECMP@
 HAVE_WCSNCAT = @HAVE_WCSNCAT@
@@ -3032,6 +3050,7 @@ RADVD = @RADVD@
 RANLIB = @RANLIB@
 READLINE_CFLAGS = @READLINE_CFLAGS@
 READLINE_LIBS = @READLINE_LIBS@
+RELAXED_FRAME_LIMIT_CFLAGS = @RELAXED_FRAME_LIMIT_CFLAGS@
 RELRO_LDFLAGS = @RELRO_LDFLAGS@
 REPLACE_ACOSF = @REPLACE_ACOSF@
 REPLACE_ASINF = @REPLACE_ASINF@
@@ -3049,6 +3068,7 @@ REPLACE_CHOWN = @REPLACE_CHOWN@
 REPLACE_CLOSE = @REPLACE_CLOSE@
 REPLACE_COSF = @REPLACE_COSF@
 REPLACE_COSHF = @REPLACE_COSHF@
+REPLACE_CTIME = @REPLACE_CTIME@
 REPLACE_DPRINTF = @REPLACE_DPRINTF@
 REPLACE_DUP = @REPLACE_DUP@
 REPLACE_DUP2 = @REPLACE_DUP2@
@@ -3220,6 +3240,7 @@ REPLACE_STRCHRNUL = @REPLACE_STRCHRNUL@
 REPLACE_STRDUP = @REPLACE_STRDUP@
 REPLACE_STRERROR = @REPLACE_STRERROR@
 REPLACE_STRERROR_R = @REPLACE_STRERROR_R@
+REPLACE_STRFTIME = @REPLACE_STRFTIME@
 REPLACE_STRNCAT = @REPLACE_STRNCAT@
 REPLACE_STRNDUP = @REPLACE_STRNDUP@
 REPLACE_STRNLEN = @REPLACE_STRNLEN@
@@ -3239,9 +3260,11 @@ REPLACE_TIMEGM = @REPLACE_TIMEGM@
 REPLACE_TMPFILE = @REPLACE_TMPFILE@
 REPLACE_TOWLOWER = @REPLACE_TOWLOWER@
 REPLACE_TRUNC = @REPLACE_TRUNC@
+REPLACE_TRUNCATE = @REPLACE_TRUNCATE@
 REPLACE_TRUNCF = @REPLACE_TRUNCF@
 REPLACE_TRUNCL = @REPLACE_TRUNCL@
 REPLACE_TTYNAME_R = @REPLACE_TTYNAME_R@
+REPLACE_TZSET = @REPLACE_TZSET@
 REPLACE_UNLINK = @REPLACE_UNLINK@
 REPLACE_UNLINKAT = @REPLACE_UNLINKAT@
 REPLACE_UNSETENV = @REPLACE_UNSETENV@
@@ -3254,6 +3277,7 @@ REPLACE_VPRINTF = @REPLACE_VPRINTF@
 REPLACE_VSNPRINTF = @REPLACE_VSNPRINTF@
 REPLACE_VSPRINTF = @REPLACE_VSPRINTF@
 REPLACE_WCRTOMB = @REPLACE_WCRTOMB@
+REPLACE_WCSFTIME = @REPLACE_WCSFTIME@
 REPLACE_WCSNRTOMBS = @REPLACE_WCSNRTOMBS@
 REPLACE_WCSRTOMBS = @REPLACE_WCSRTOMBS@
 REPLACE_WCSWIDTH = @REPLACE_WCSWIDTH@
@@ -3287,6 +3311,7 @@ STDARG_H = @STDARG_H@
 STDBOOL_H = @STDBOOL_H@
 STDDEF_H = @STDDEF_H@
 STDINT_H = @STDINT_H@
+STRICT_FRAME_LIMIT_CFLAGS = @STRICT_FRAME_LIMIT_CFLAGS@
 STRIP = @STRIP@
 SYS_IOCTL_H_HAVE_WINSOCK2_H = @SYS_IOCTL_H_HAVE_WINSOCK2_H@
 SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS = @SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS@
@@ -3321,6 +3346,8 @@ WIN32_EXTRA_CFLAGS = @WIN32_EXTRA_CFLAGS@
 WIN32_EXTRA_LIBS = @WIN32_EXTRA_LIBS@
 WINDOWS_64_BIT_OFF_T = @WINDOWS_64_BIT_OFF_T@
 WINDOWS_64_BIT_ST_SIZE = @WINDOWS_64_BIT_ST_SIZE@
+WINDOWS_STAT_INODES = @WINDOWS_STAT_INODES@
+WINDOWS_STAT_TIMESPEC = @WINDOWS_STAT_TIMESPEC@
 WINDRES = @WINDRES@
 WINT_T_SUFFIX = @WINT_T_SUFFIX@
 WIRESHARK_DISSECTOR_CFLAGS = @WIRESHARK_DISSECTOR_CFLAGS@
@@ -3489,7 +3516,7 @@ EXTRA_DIST = test-accept.c signature.h macros.h test-alloca-opt.c \
 	signature.h macros.h test-byteswap.c macros.h test-c-ctype.c \
 	macros.h test-c-strcase.sh test-c-strcasecmp.c \
 	test-c-strncasecmp.c macros.h test-c-strcasestr.c macros.h \
-	test-canonicalize-lgpl.c signature.h macros.h nap.h \
+	test-canonicalize-lgpl.c signature.h null-ptr.h macros.h nap.h \
 	test-chown.h test-chown.c signature.h macros.h test-cloexec.c \
 	macros.h test-close.c signature.h macros.h test-connect.c \
 	signature.h macros.h test-count-leading-zeros.c macros.h \
@@ -3582,10 +3609,10 @@ EXTRA_DIST = test-accept.c signature.h macros.h test-alloca-opt.c \
 	test-posix_spawn2.in.sh signature.h test-pthread_sigmask1.c \
 	test-pthread_sigmask2.c signature.h macros.h ptsname.c \
 	test-ptsname.c signature.h macros.h ptsname_r.c \
-	test-ptsname_r.c signature.h macros.h putenv.c test-raise.c \
-	signature.h macros.h test-random_r.c signature.h macros.h \
-	test-rawmemchr.c zerosize-ptr.h signature.h macros.h read.c \
-	test-read.c signature.h macros.h test-readlink.h \
+	test-ptsname_r.c signature.h null-ptr.h macros.h putenv.c \
+	test-raise.c signature.h macros.h test-random_r.c signature.h \
+	macros.h test-rawmemchr.c zerosize-ptr.h signature.h macros.h \
+	read.c test-read.c signature.h macros.h test-readlink.h \
 	test-readlink.c signature.h macros.h test-recv.c signature.h \
 	macros.h test-regex.c macros.h same-inode.h test-sched.c \
 	macros.h signature.h test-select.c test-select.h \
@@ -3597,23 +3624,19 @@ EXTRA_DIST = test-accept.c signature.h macros.h test-alloca-opt.c \
 	signature.h macros.h test-sigaction.c signature.h macros.h \
 	test-signal-h.c float+.h signbitd.c signbitf.c signbitl.c \
 	test-signbit.c minus-zero.h infinity.h macros.h test-sigpipe.c \
-	test-sigpipe.sh test-sigprocmask.c signature.h macros.h \
-	test-sleep.c signature.h macros.h \
-	$(top_srcdir)/build-aux/snippet/_Noreturn.h \
-	$(top_srcdir)/build-aux/snippet/arg-nonnull.h \
-	$(top_srcdir)/build-aux/snippet/c++defs.h \
-	$(top_srcdir)/build-aux/snippet/unused-parameter.h \
-	$(top_srcdir)/build-aux/snippet/warn-on-use.h test-snprintf.c \
-	signature.h macros.h test-sockets.c spawn.in.h test-spawn.c \
-	test-stat.h test-stat.c signature.h macros.h test-stat-time.c \
-	macros.h nap.h test-stdalign.c macros.h test-stdbool.c \
-	test-stddef.c test-stdint.c test-stdio.c test-stdlib.c \
-	test-sys_wait.h test-strchrnul.c signature.h macros.h \
-	test-strerror.c signature.h macros.h test-strerror_r.c \
-	signature.h macros.h test-string.c test-strings.c \
-	test-strnlen.c zerosize-ptr.h signature.h macros.h symlink.c \
-	test-symlink.h test-symlink.c signature.h macros.h \
-	test-sys_ioctl.c test-sys_select.c signature.h \
+	test-sigpipe.sh macros.h test-sigprocmask.c signature.h \
+	macros.h test-sleep.c signature.h macros.h _Noreturn.h \
+	arg-nonnull.h c++defs.h unused-parameter.h warn-on-use.h \
+	test-snprintf.c signature.h macros.h test-sockets.c spawn.in.h \
+	test-spawn.c test-stat.h test-stat.c signature.h macros.h \
+	test-stat-time.c macros.h nap.h test-stdalign.c macros.h \
+	test-stdbool.c test-stddef.c test-stdint.c test-stdio.c \
+	test-stdlib.c test-sys_wait.h test-strchrnul.c signature.h \
+	macros.h test-strerror.c signature.h macros.h \
+	test-strerror_r.c signature.h macros.h test-string.c \
+	test-strings.c test-strnlen.c zerosize-ptr.h signature.h \
+	macros.h symlink.c test-symlink.h test-symlink.c signature.h \
+	macros.h test-sys_ioctl.c test-sys_select.c signature.h \
 	test-sys_socket.c test-sys_stat.c test-sys_time.c \
 	test-sys_types.c test-sys_uio.c test-sys_utsname.c \
 	test-sys_wait.c test-sys_wait.h test-termios.c init.sh \
@@ -3624,44 +3647,25 @@ EXTRA_DIST = test-accept.c signature.h macros.h test-alloca-opt.c \
 	test-usleep.c signature.h macros.h test-vasnprintf.c macros.h \
 	test-vasprintf.c signature.h macros.h \
 	test-vc-list-files-git.sh test-vc-list-files-cvs.sh \
-	test-verify.c test-verify.sh test-vsnprintf.c signature.h \
-	macros.h test-wchar.c test-wcrtomb.sh test-wcrtomb.c \
-	test-wcrtomb-w32-1.sh test-wcrtomb-w32-2.sh \
-	test-wcrtomb-w32-3.sh test-wcrtomb-w32-4.sh \
-	test-wcrtomb-w32-5.sh test-wcrtomb-w32.c signature.h macros.h \
-	wctob.c wctomb-impl.h wctomb.c test-wctype-h.c macros.h \
-	write.c test-write.c signature.h macros.h xalloc.h \
-	test-xalloc-die.c test-xalloc-die.sh
-
-# The BUILT_SOURCES created by this Makefile snippet are not used via #include
-# statements but through direct file reference. Therefore this snippet must be
-# present in all Makefile.am that need it. This is ensured by the applicability
-# 'all' defined above.
-
-# The BUILT_SOURCES created by this Makefile snippet are not used via #include
-# statements but through direct file reference. Therefore this snippet must be
-# present in all Makefile.am that need it. This is ensured by the applicability
-# 'all' defined above.
-
-# The BUILT_SOURCES created by this Makefile snippet are not used via #include
-# statements but through direct file reference. Therefore this snippet must be
-# present in all Makefile.am that need it. This is ensured by the applicability
-# 'all' defined above.
-BUILT_SOURCES = ctype.h inttypes.h math.h $(am__append_3) \
-	arg-nonnull.h c++defs.h unused-parameter.h warn-on-use.h \
-	spawn.h
+	test-verify.c test-verify-try.c test-verify.sh \
+	test-vsnprintf.c signature.h macros.h test-wchar.c \
+	test-wcrtomb.sh test-wcrtomb.c test-wcrtomb-w32-1.sh \
+	test-wcrtomb-w32-2.sh test-wcrtomb-w32-3.sh \
+	test-wcrtomb-w32-4.sh test-wcrtomb-w32-5.sh test-wcrtomb-w32.c \
+	signature.h macros.h wctob.c wctomb-impl.h wctomb.c \
+	test-wctype-h.c macros.h write.c test-write.c signature.h \
+	macros.h xalloc.h test-xalloc-die.c test-xalloc-die.sh
+BUILT_SOURCES = ctype.h inttypes.h math.h $(am__append_3) spawn.h
 SUFFIXES = 
 
-# This test expects compilation of test-verify.c to fail, and
+# This test expects compilation of test-verify-try.c to fail, and
 # each time it fails, the makefile rule does not perform the usual
 #  "mv -f $name.Tpo $name.po, so tell make clean to remove that file.
 MOSTLYCLEANFILES = core *.stackdump ctype.h ctype.h-t test-fflush.txt \
 	t-fpurge.tmp t-freading.tmp t-ftell3.tmp t-ftello3.tmp \
 	test-getdelim.txt test-getline.txt inttypes.h inttypes.h-t \
-	math.h math.h-t $(am__append_4) arg-nonnull.h arg-nonnull.h-t \
-	c++defs.h c++defs.h-t unused-parameter.h unused-parameter.h-t \
-	warn-on-use.h warn-on-use.h-t spawn.h spawn.h-t \
-	.deps/test-verify.Tpo
+	math.h math.h-t $(am__append_4) spawn.h spawn.h-t \
+	.deps/test-verify-try.Tpo
 MOSTLYCLEANDIRS = 
 CLEANFILES = 
 DISTCLEANFILES = 
@@ -3730,13 +3734,29 @@ test_send_LDADD = $(LDADD) @LIBSOCKET@
 test_setsockopt_LDADD = $(LDADD) @LIBSOCKET@
 
 # Because this Makefile snippet defines a variable used by other
-# gnulib Makefile snippets, it must be present in all Makefile.am that
+# gnulib Makefile snippets, it must be present in all makefiles that
 # need it. This is ensured by the applicability 'all' defined above.
-_NORETURN_H = $(top_srcdir)/build-aux/snippet/_Noreturn.h
-ARG_NONNULL_H = arg-nonnull.h
-CXXDEFS_H = c++defs.h
-UNUSED_PARAMETER_H = unused-parameter.h
-WARN_ON_USE_H = warn-on-use.h
+_NORETURN_H = $(srcdir)/_Noreturn.h
+
+# Because this Makefile snippet defines a variable used by other
+# gnulib Makefile snippets, it must be present in all makefiles that
+# need it. This is ensured by the applicability 'all' defined above.
+ARG_NONNULL_H = $(srcdir)/arg-nonnull.h
+
+# Because this Makefile snippet defines a variable used by other
+# gnulib Makefile snippets, it must be present in all makefiles that
+# need it. This is ensured by the applicability 'all' defined above.
+CXXDEFS_H = $(srcdir)/c++defs.h
+
+# Because this Makefile snippet defines a variable used by other
+# gnulib Makefile snippets, it must be present in all makefiles that
+# need it. This is ensured by the applicability 'all' defined above.
+UNUSED_PARAMETER_H = $(srcdir)/unused-parameter.h
+
+# Because this Makefile snippet defines a variable used by other
+# gnulib Makefile snippets, it must be present in all makefiles that
+# need it. This is ensured by the applicability 'all' defined above.
+WARN_ON_USE_H = $(srcdir)/warn-on-use.h
 test_sockets_LDADD = $(LDADD) @LIBSOCKET@
 test_stat_LDADD = $(LDADD) $(LIBINTL)
 test_stat_time_LDADD = $(LDADD) $(LIB_NANOSLEEP)
@@ -4580,6 +4600,10 @@ test-verify$(EXEEXT): $(test_verify_OBJECTS) $(test_verify_DEPENDENCIES) $(EXTRA
 	@rm -f test-verify$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_verify_OBJECTS) $(test_verify_LDADD) $(LIBS)
 
+test-verify-try$(EXEEXT): $(test_verify_try_OBJECTS) $(test_verify_try_DEPENDENCIES) $(EXTRA_test_verify_try_DEPENDENCIES) 
+	@rm -f test-verify-try$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_verify_try_OBJECTS) $(test_verify_try_LDADD) $(LIBS)
+
 test-vsnprintf$(EXEEXT): $(test_vsnprintf_OBJECTS) $(test_vsnprintf_DEPENDENCIES) $(EXTRA_test_vsnprintf_DEPENDENCIES) 
 	@rm -f test-vsnprintf$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_vsnprintf_OBJECTS) $(test_vsnprintf_LDADD) $(LIBS)
@@ -4843,6 +4867,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-usleep.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-vasnprintf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-vasprintf.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-verify-try.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-verify.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-vsnprintf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-wchar.Po@am__quote@
@@ -7216,41 +7241,6 @@ math.h: math.in.h $(top_builddir)/config.status $(CXXDEFS_H) $(ARG_NONNULL_H) $(
 @POSIX_SPAWN_PORTED_TRUE@	$(AM_V_GEN)rm -f $@-t $@ && \
 @POSIX_SPAWN_PORTED_TRUE@	cp $(srcdir)/test-posix_spawn2.in.sh $@-t && \
 @POSIX_SPAWN_PORTED_TRUE@	mv $@-t $@
-# The arg-nonnull.h that gets inserted into generated .h files is the same as
-# build-aux/snippet/arg-nonnull.h, except that it has the copyright header cut
-# off.
-arg-nonnull.h: $(top_srcdir)/build-aux/snippet/arg-nonnull.h
-	$(AM_V_GEN)rm -f $@-t $@ && \
-	sed -n -e '/GL_ARG_NONNULL/,$$p' \
-	  < $(top_srcdir)/build-aux/snippet/arg-nonnull.h \
-	  > $@-t && \
-	mv $@-t $@
-# The c++defs.h that gets inserted into generated .h files is the same as
-# build-aux/snippet/c++defs.h, except that it has the copyright header cut off.
-c++defs.h: $(top_srcdir)/build-aux/snippet/c++defs.h
-	$(AM_V_GEN)rm -f $@-t $@ && \
-	sed -n -e '/_GL_CXXDEFS/,$$p' \
-	  < $(top_srcdir)/build-aux/snippet/c++defs.h \
-	  > $@-t && \
-	mv $@-t $@
-# The unused-parameter.h that gets inserted into generated .h files is the same
-# as build-aux/snippet/unused-parameter.h, except that it has the copyright
-# header cut off.
-unused-parameter.h: $(top_srcdir)/build-aux/snippet/unused-parameter.h
-	$(AM_V_GEN)rm -f $@-t $@ && \
-	sed -n -e '/GL_UNUSED_PARAMETER/,$$p' \
-	  < $(top_srcdir)/build-aux/snippet/unused-parameter.h \
-	  > $@-t && \
-	mv $@-t $@
-# The warn-on-use.h that gets inserted into generated .h files is the same as
-# build-aux/snippet/warn-on-use.h, except that it has the copyright header cut
-# off.
-warn-on-use.h: $(top_srcdir)/build-aux/snippet/warn-on-use.h
-	$(AM_V_GEN)rm -f $@-t $@ && \
-	sed -n -e '/^.ifndef/,$$p' \
-	  < $(top_srcdir)/build-aux/snippet/warn-on-use.h \
-	  > $@-t && \
-	mv $@-t $@
 
 # We need the following in order to create a replacement for <spawn.h> when
 # the system doesn't have one.

@@ -138,6 +138,41 @@ struct _virCapsHostSecModel {
     virCapsHostSecModelLabelPtr labels;
 };
 
+typedef enum {
+    VIR_CACHE_TYPE_BOTH,
+    VIR_CACHE_TYPE_CODE,
+    VIR_CACHE_TYPE_DATA,
+
+    VIR_CACHE_TYPE_LAST
+} virCacheType;
+
+VIR_ENUM_DECL(virCache);
+
+typedef struct _virCapsHostCacheControl virCapsHostCacheControl;
+typedef virCapsHostCacheControl *virCapsHostCacheControlPtr;
+struct _virCapsHostCacheControl {
+    /* Smallest possible increase of the allocation size in bytes */
+    unsigned long long granularity;
+    /* Minimal allocatable size in bytes (if different from granularity) */
+    unsigned long long min;
+    /* Type of the allocation */
+    virCacheType scope;
+    /* Maximum number of simultaneous allocations */
+    unsigned int max_allocation;
+};
+
+typedef struct _virCapsHostCacheBank virCapsHostCacheBank;
+typedef virCapsHostCacheBank *virCapsHostCacheBankPtr;
+struct _virCapsHostCacheBank {
+    unsigned int id;
+    unsigned int level; /* 1=L1, 2=L2, 3=L3, etc. */
+    unsigned long long size; /* B */
+    virCacheType type;  /* Data, Instruction or Unified */
+    virBitmapPtr cpus;  /* All CPUs that share this bank */
+    size_t ncontrols;
+    virCapsHostCacheControlPtr *controls;
+};
+
 typedef struct _virCapsHost virCapsHost;
 typedef virCapsHost *virCapsHostPtr;
 struct _virCapsHost {
@@ -156,6 +191,9 @@ struct _virCapsHost {
     size_t nnumaCell;
     size_t nnumaCell_max;
     virCapsHostNUMACellPtr *numaCell;
+
+    size_t ncaches;
+    virCapsHostCacheBankPtr *caches;
 
     size_t nsecModels;
     virCapsHostSecModelPtr secModels;
@@ -248,6 +286,9 @@ void
 virCapabilitiesFreeMachines(virCapsGuestMachinePtr *machines,
                             int nmachines);
 
+void
+virCapabilitiesFreeGuest(virCapsGuestPtr guest);
+
 virCapsGuestPtr
 virCapabilitiesAddGuest(virCapsPtr caps,
                         int ostype,
@@ -293,5 +334,17 @@ virCapabilitiesFormatXML(virCapsPtr caps);
 
 virBitmapPtr virCapabilitiesGetCpusForNodemask(virCapsPtr caps,
                                                virBitmapPtr nodemask);
+
+int virCapabilitiesGetNodeInfo(virNodeInfoPtr nodeinfo);
+
+int virCapabilitiesInitPages(virCapsPtr caps);
+
+int virCapabilitiesInitNUMA(virCapsPtr caps);
+
+bool virCapsHostCacheBankEquals(virCapsHostCacheBankPtr a,
+                                virCapsHostCacheBankPtr b);
+void virCapsHostCacheBankFree(virCapsHostCacheBankPtr ptr);
+
+int virCapabilitiesInitCaches(virCapsPtr caps);
 
 #endif /* __VIR_CAPABILITIES_H */

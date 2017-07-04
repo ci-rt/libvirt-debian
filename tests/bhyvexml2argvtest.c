@@ -52,8 +52,11 @@ static int testCompareXMLToArgvFiles(const char *xml,
     conn->privateData = &driver;
 
     cmd = virBhyveProcessBuildBhyveCmd(conn, vmdef, false);
-    ldcmd = virBhyveProcessBuildLoadCmd(conn, vmdef, "<device.map>",
-                                        &actualdm);
+    if (vmdef->os.loader)
+        ldcmd = virCommandNew("dummy");
+    else
+        ldcmd = virBhyveProcessBuildLoadCmd(conn, vmdef, "<device.map>",
+                                            &actualdm);
 
     if ((cmd == NULL) || (ldcmd == NULL)) {
         if (flags & FLAG_EXPECT_FAILURE) {
@@ -162,7 +165,9 @@ mymain(void)
     DO_TEST_FULL(name, FLAG_EXPECT_PARSE_ERROR)
 
     driver.grubcaps = BHYVE_GRUB_CAP_CONSDEV;
-    driver.bhyvecaps = BHYVE_CAP_RTC_UTC | BHYVE_CAP_AHCI32SLOT | BHYVE_CAP_NET_E1000;
+    driver.bhyvecaps = BHYVE_CAP_RTC_UTC | BHYVE_CAP_AHCI32SLOT | \
+                       BHYVE_CAP_NET_E1000 | BHYVE_CAP_LPC_BOOTROM | \
+                       BHYVE_CAP_FBUF | BHYVE_CAP_XHCI;
 
     DO_TEST("base");
     DO_TEST("acpiapic");
@@ -186,6 +191,11 @@ mymain(void)
     DO_TEST("serial-grub");
     DO_TEST("localtime");
     DO_TEST("net-e1000");
+    DO_TEST("uefi");
+    DO_TEST("vnc");
+    DO_TEST("vnc-vgaconf-on");
+    DO_TEST("vnc-vgaconf-off");
+    DO_TEST("vnc-vgaconf-io");
 
     /* Address allocation tests */
     DO_TEST("addr-single-sata-disk");
@@ -200,6 +210,14 @@ mymain(void)
     DO_TEST("addr-no32devs-multiple-sata-disks");
     DO_TEST_FAILURE("addr-no32devs-more-than-32-sata-disks");
 
+    /* USB xhci tablet */
+    DO_TEST("input-xhci-tablet");
+    DO_TEST_FAILURE("xhci-multiple-controllers");
+    DO_TEST_FAILURE("xhci-no-devs");
+    DO_TEST_FAILURE("xhci-multiple-devs");
+    driver.bhyvecaps ^= BHYVE_CAP_XHCI;
+    DO_TEST_FAILURE("input-xhci-tablet");
+
     driver.grubcaps = 0;
 
     DO_TEST("serial-grub-nocons");
@@ -208,13 +226,19 @@ mymain(void)
 
     DO_TEST_FAILURE("net-e1000");
 
+    driver.bhyvecaps &= ~BHYVE_CAP_LPC_BOOTROM;
+    DO_TEST_FAILURE("uefi");
+
+    driver.bhyvecaps &= ~BHYVE_CAP_FBUF;
+    DO_TEST_FAILURE("vnc");
+
     virObjectUnref(driver.caps);
     virObjectUnref(driver.xmlopt);
 
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-VIRT_TEST_MAIN_PRELOAD(mymain, abs_builddir "/.libs/bhyvexml2argvmock.so")
+VIR_TEST_MAIN_PRELOAD(mymain, abs_builddir "/.libs/bhyvexml2argvmock.so")
 
 #else
 

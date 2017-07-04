@@ -254,14 +254,10 @@ testInfoSet(struct testInfo *info,
     if (!(info->qemuCaps = virQEMUCapsNew()))
         goto error;
 
-    virQEMUCapsSetList(info->qemuCaps,
-                       QEMU_CAPS_LAST);
-
     if (testQemuCapsSetGIC(info->qemuCaps, gic) < 0)
         goto error;
 
-    if (qemuTestCapsCacheInsert(driver.qemuCapsCache, name,
-                                info->qemuCaps) < 0)
+    if (qemuTestCapsCacheInsert(driver.qemuCapsCache, info->qemuCaps) < 0)
         goto error;
 
     if (virAsprintf(&info->inName, "%s/qemuxml2argvdata/qemuxml2argv-%s.xml",
@@ -366,6 +362,7 @@ mymain(void)
     DO_TEST("minimal", NONE);
     DO_TEST("machine-core-on", NONE);
     DO_TEST("machine-core-off", NONE);
+    DO_TEST("machine-loadparm-multiple-disks-nets-s390", NONE);
     DO_TEST("default-kvm-host-arch", NONE);
     DO_TEST("default-qemu-host-arch", NONE);
     DO_TEST("boot-cdrom", NONE);
@@ -419,7 +416,12 @@ mymain(void)
     DO_TEST("hugepages-pages", NONE);
     DO_TEST("hugepages-pages2", NONE);
     DO_TEST("hugepages-pages3", NONE);
+    DO_TEST("hugepages-pages4", NONE);
+    DO_TEST("hugepages-pages5", NONE);
+    DO_TEST("hugepages-pages6", NONE);
     DO_TEST("hugepages-shared", NONE);
+    DO_TEST("hugepages-memaccess", NONE);
+    DO_TEST("hugepages-memaccess2", NONE);
     DO_TEST("nosharepages", NONE);
     DO_TEST("restore-v2", NONE);
     DO_TEST("migrate", NONE);
@@ -532,6 +534,7 @@ mymain(void)
     DO_TEST("net-bandwidth", NONE);
     DO_TEST("net-bandwidth2", NONE);
     DO_TEST("net-mtu", NONE);
+    DO_TEST("net-coalesce", NONE);
 
     DO_TEST("serial-vc", NONE);
     DO_TEST("serial-pty", NONE);
@@ -554,9 +557,12 @@ mymain(void)
     DO_TEST("channel-virtio", NONE);
     DO_TEST("channel-virtio-state", NONE);
 
+    DO_TEST_FULL("channel-unix-source-path", WHEN_INACTIVE, GIC_NONE, NONE);
+
     DO_TEST("hostdev-usb-address", NONE);
     DO_TEST("hostdev-pci-address", NONE);
     DO_TEST("hostdev-vfio", NONE);
+    DO_TEST("hostdev-mdev-precreated", NONE);
     DO_TEST("pci-rom", NONE);
     DO_TEST("pci-serial-dev-chardev", NONE);
 
@@ -884,12 +890,26 @@ mymain(void)
             QEMU_CAPS_ICH9_AHCI,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
             QEMU_CAPS_DEVICE_QXL);
+
+    /* Test automatic and manual setting of pcie-root-port attributes */
     DO_TEST("pcie-root-port",
             QEMU_CAPS_DEVICE_IOH3420,
             QEMU_CAPS_ICH9_AHCI,
             QEMU_CAPS_PCI_MULTIFUNCTION,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
             QEMU_CAPS_DEVICE_QXL);
+
+    /* Make sure the default model for PCIe Root Ports is picked correctly
+     * based on QEMU binary capabilities. We use x86/q35 for the test, but
+     * any PCIe machine type (such as aarch64/virt) will behave the same */
+    DO_TEST("pcie-root-port-model-generic",
+            QEMU_CAPS_DEVICE_PCIE_ROOT_PORT,
+            QEMU_CAPS_DEVICE_IOH3420,
+            QEMU_CAPS_PCI_MULTIFUNCTION);
+    DO_TEST("pcie-root-port-model-ioh3420",
+            QEMU_CAPS_DEVICE_IOH3420,
+            QEMU_CAPS_PCI_MULTIFUNCTION);
+
     DO_TEST("pcie-switch-upstream-port",
             QEMU_CAPS_DEVICE_IOH3420,
             QEMU_CAPS_DEVICE_X3130_UPSTREAM,
@@ -1058,6 +1078,7 @@ mymain(void)
     DO_TEST_FULL("aarch64-gic-none-v2", WHEN_BOTH, GIC_V2, NONE);
     DO_TEST_FULL("aarch64-gic-none-v3", WHEN_BOTH, GIC_V3, NONE);
     DO_TEST_FULL("aarch64-gic-none-both", WHEN_BOTH, GIC_BOTH, NONE);
+    DO_TEST_FULL("aarch64-gic-none-tcg", WHEN_BOTH, GIC_BOTH, NONE);
     DO_TEST_FULL("aarch64-gic-default", WHEN_BOTH, GIC_NONE, NONE);
     DO_TEST_FULL("aarch64-gic-default", WHEN_BOTH, GIC_V2, NONE);
     DO_TEST_FULL("aarch64-gic-default", WHEN_BOTH, GIC_V3, NONE);
@@ -1078,6 +1099,9 @@ mymain(void)
     DO_TEST("memory-hotplug", NONE);
     DO_TEST("memory-hotplug-nonuma", NONE);
     DO_TEST("memory-hotplug-dimm", NONE);
+    DO_TEST("memory-hotplug-nvdimm", NONE);
+    DO_TEST("memory-hotplug-nvdimm-access", NONE);
+    DO_TEST("memory-hotplug-nvdimm-label", NONE);
     DO_TEST("net-udp", NONE);
 
     DO_TEST("video-virtio-gpu-device", NONE);
@@ -1088,6 +1112,7 @@ mymain(void)
 
     DO_TEST("memorybacking-set", NONE);
     DO_TEST("memorybacking-unset", NONE);
+    DO_TEST("virtio-options", QEMU_CAPS_VIRTIO_SCSI);
 
     virObjectUnref(cfg);
 
@@ -1107,13 +1132,25 @@ mymain(void)
     DO_TEST("intel-iommu-machine",
             QEMU_CAPS_MACHINE_OPT,
             QEMU_CAPS_MACHINE_IOMMU);
+    DO_TEST("intel-iommu-ioapic", NONE);
+    DO_TEST("intel-iommu-caching-mode", NONE);
+    DO_TEST("intel-iommu-eim", NONE);
+    DO_TEST("intel-iommu-device-iotlb", NONE);
+
+    DO_TEST("cpu-check-none", NONE);
+    DO_TEST("cpu-check-partial", NONE);
+    DO_TEST("cpu-check-full", NONE);
+    DO_TEST("cpu-check-default-none", NONE);
+    DO_TEST("cpu-check-default-none2", NONE);
+    DO_TEST("cpu-check-default-partial", NONE);
+    DO_TEST("cpu-check-default-partial2", NONE);
 
     qemuTestDriverFree(&driver);
 
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-VIRT_TEST_MAIN_PRELOAD(mymain, abs_builddir "/.libs/qemuxml2xmlmock.so")
+VIR_TEST_MAIN(mymain)
 
 #else
 

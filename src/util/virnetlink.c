@@ -209,6 +209,72 @@ virNetlinkCreateSocket(int protocol)
     goto cleanup;
 }
 
+static virNetlinkHandle *
+virNetlinkSendRequest(struct nl_msg *nl_msg, uint32_t src_pid,
+                      struct sockaddr_nl nladdr,
+                      unsigned int protocol, unsigned int groups)
+{
+    ssize_t nbytes;
+    int fd;
+    int n;
+    virNetlinkHandle *nlhandle = NULL;
+    struct pollfd fds[1];
+    struct nlmsghdr *nlmsg = nlmsg_hdr(nl_msg);
+
+    if (protocol >= MAX_LINKS) {
+        virReportSystemError(EINVAL,
+                             _("invalid protocol argument: %d"), protocol);
+        goto error;
+    }
+
+    if (!(nlhandle = virNetlinkCreateSocket(protocol)))
+        goto error;
+
+    fd = nl_socket_get_fd(nlhandle);
+    if (fd < 0) {
+        virReportSystemError(errno,
+                             "%s", _("cannot get netlink socket fd"));
+        goto error;
+    }
+
+    if (groups && nl_socket_add_membership(nlhandle, groups) < 0) {
+        virReportSystemError(errno,
+                             "%s", _("cannot add netlink membership"));
+        goto error;
+    }
+
+    nlmsg_set_dst(nl_msg, &nladdr);
+
+    nlmsg->nlmsg_pid = src_pid ? src_pid : getpid();
+
+    nbytes = nl_send_auto_complete(nlhandle, nl_msg);
+    if (nbytes < 0) {
+        virReportSystemError(errno,
+                             "%s", _("cannot send to netlink socket"));
+        goto error;
+    }
+
+    memset(fds, 0, sizeof(fds));
+
+    fds[0].fd = fd;
+    fds[0].events = POLLIN;
+
+    n = poll(fds, ARRAY_CARDINALITY(fds), NETLINK_ACK_TIMEOUT_S);
+    if (n <= 0) {
+        if (n < 0)
+            virReportSystemError(errno, "%s",
+                                 _("error in poll call"));
+        if (n == 0)
+            virReportSystemError(ETIMEDOUT, "%s",
+                                 _("no valid netlink response was received"));
+    }
+
+    return nlhandle;
+
+ error:
+    virNetlinkFree(nlhandle);
+    return NULL;
+}
 
 /**
  * virNetlinkCommand:
@@ -236,61 +302,15 @@ int virNetlinkCommand(struct nl_msg *nl_msg,
             .nl_pid    = dst_pid,
             .nl_groups = 0,
     };
-    ssize_t nbytes;
     struct pollfd fds[1];
-    int fd;
-    int n;
-    struct nlmsghdr *nlmsg = nlmsg_hdr(nl_msg);
     virNetlinkHandle *nlhandle = NULL;
     int len = 0;
 
-    if (protocol >= MAX_LINKS) {
-        virReportSystemError(EINVAL,
-                             _("invalid protocol argument: %d"), protocol);
-        goto cleanup;
-    }
-
-    if (!(nlhandle = virNetlinkCreateSocket(protocol)))
-        goto cleanup;
-
-    fd = nl_socket_get_fd(nlhandle);
-    if (fd < 0) {
-        virReportSystemError(errno,
-                             "%s", _("cannot get netlink socket fd"));
-        goto cleanup;
-    }
-
-    if (groups && nl_socket_add_membership(nlhandle, groups) < 0) {
-        virReportSystemError(errno,
-                             "%s", _("cannot add netlink membership"));
-        goto cleanup;
-    }
-
-    nlmsg_set_dst(nl_msg, &nladdr);
-
-    nlmsg->nlmsg_pid = src_pid ? src_pid : getpid();
-
-    nbytes = nl_send_auto_complete(nlhandle, nl_msg);
-    if (nbytes < 0) {
-        virReportSystemError(errno,
-                             "%s", _("cannot send to netlink socket"));
-        goto cleanup;
-    }
-
     memset(fds, 0, sizeof(fds));
-    fds[0].fd = fd;
-    fds[0].events = POLLIN;
 
-    n = poll(fds, ARRAY_CARDINALITY(fds), NETLINK_ACK_TIMEOUT_S);
-    if (n <= 0) {
-        if (n < 0)
-            virReportSystemError(errno, "%s",
-                                 _("error in poll call"));
-        if (n == 0)
-            virReportSystemError(ETIMEDOUT, "%s",
-                                 _("no valid netlink response was received"));
+    if (!(nlhandle = virNetlinkSendRequest(nl_msg, src_pid, nladdr,
+                                           protocol, groups)))
         goto cleanup;
-    }
 
     len = nl_recv(nlhandle, &nladdr, (unsigned char **)resp, NULL);
     if (len == 0) {
@@ -315,6 +335,52 @@ int virNetlinkCommand(struct nl_msg *nl_msg,
     return ret;
 }
 
+int
+virNetlinkDumpCommand(struct nl_msg *nl_msg,
+                      virNetlinkDumpCallback callback,
+                      uint32_t src_pid, uint32_t dst_pid,
+                      unsigned int protocol, unsigned int groups,
+                      void *opaque)
+{
+    int ret = -1;
+    bool end = false;
+    int len = 0;
+    struct nlmsghdr *resp = NULL;
+    struct nlmsghdr *msg = NULL;
+
+    struct sockaddr_nl nladdr = {
+            .nl_family = AF_NETLINK,
+            .nl_pid    = dst_pid,
+            .nl_groups = 0,
+    };
+    virNetlinkHandle *nlhandle = NULL;
+
+    if (!(nlhandle = virNetlinkSendRequest(nl_msg, src_pid, nladdr,
+                                           protocol, groups)))
+        goto cleanup;
+
+    while (!end) {
+        len = nl_recv(nlhandle, &nladdr, (unsigned char **)&resp, NULL);
+        VIR_WARNINGS_NO_CAST_ALIGN
+        for (msg = resp; NLMSG_OK(msg, len); msg = NLMSG_NEXT(msg, len)) {
+            VIR_WARNINGS_RESET
+            if (msg->nlmsg_type == NLMSG_DONE)
+                end = true;
+
+            if (virNetlinkGetErrorCode(msg, len) < 0)
+                goto cleanup;
+
+            if (callback(msg, opaque) < 0)
+                goto cleanup;
+        }
+    }
+
+    ret = 0;
+
+ cleanup:
+    virNetlinkFree(nlhandle);
+    return ret;
+}
 
 /**
  * virNetlinkDumpLink:
@@ -692,6 +758,7 @@ virNetlinkEventServiceStop(unsigned int protocol)
     }
 
     server[protocol] = NULL;
+    VIR_FREE(srv->handles);
     virNetlinkEventServerUnlock(srv);
 
     virMutexDestroy(&srv->lock);
@@ -709,32 +776,12 @@ virNetlinkEventServiceStop(unsigned int protocol)
 int
 virNetlinkEventServiceStopAll(void)
 {
-    size_t i, j;
-    virNetlinkEventSrvPrivatePtr srv = NULL;
+    size_t i;
 
     VIR_INFO("stopping all netlink event services");
 
-    for (i = 0; i < MAX_LINKS; i++) {
-        srv = server[i];
-        if (!srv)
-            continue;
-
-        virNetlinkEventServerLock(srv);
-        nl_close(srv->netlinknh);
-        virNetlinkFree(srv->netlinknh);
-        virEventRemoveHandle(srv->eventwatch);
-
-        for (j = 0; j < srv->handlesCount; j++) {
-            if (srv->handles[j].deleted == VIR_NETLINK_HANDLE_VALID)
-                virNetlinkEventRemoveClientPrimitive(j, i);
-        }
-
-        server[i] = NULL;
-        virNetlinkEventServerUnlock(srv);
-
-        virMutexDestroy(&srv->lock);
-        VIR_FREE(srv);
-    }
+    for (i = 0; i < MAX_LINKS; i++)
+        virNetlinkEventServiceStop(i);
 
     return 0;
 }
@@ -1042,6 +1089,18 @@ int virNetlinkCommand(struct nl_msg *nl_msg ATTRIBUTE_UNUSED,
     return -1;
 }
 
+int
+virNetlinkDumpCommand(struct nl_msg *nl_msg ATTRIBUTE_UNUSED,
+                      virNetlinkDumpCallback callback ATTRIBUTE_UNUSED,
+                      uint32_t src_pid ATTRIBUTE_UNUSED,
+                      uint32_t dst_pid ATTRIBUTE_UNUSED,
+                      unsigned int protocol ATTRIBUTE_UNUSED,
+                      unsigned int groups ATTRIBUTE_UNUSED,
+                      void *opaque ATTRIBUTE_UNUSED)
+{
+    virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _(unsupported));
+    return -1;
+}
 
 int
 virNetlinkDumpLink(const char *ifname ATTRIBUTE_UNUSED,

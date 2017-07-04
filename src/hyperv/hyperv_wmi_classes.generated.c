@@ -2,10 +2,9 @@
 
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * CIM_DataFile
  */
-
 SER_START_ITEMS(CIM_DataFile_Data)
     SER_NS_UINT32(CIM_DATAFILE_RESOURCE_URI, "AccessMask", 1),
     SER_NS_BOOL(CIM_DATAFILE_RESOURCE_URI, "Archive", 1),
@@ -42,12 +41,23 @@ SER_START_ITEMS(CIM_DataFile_Data)
     SER_NS_BOOL(CIM_DATAFILE_RESOURCE_URI, "Writeable", 1),
 SER_END_ITEMS(CIM_DataFile_Data);
 
+hypervWmiClassInfoListPtr CIM_DataFile_WmiInfo = &(hypervWmiClassInfoList) {
+    .count = 1,
+    .objs = (hypervWmiClassInfoPtr []) {
+        &(hypervWmiClassInfo) {
+            .name = CIM_DATAFILE_CLASSNAME,
+            .version = NULL,
+            .rootUri = ROOT_CIMV2,
+            .resourceUri = CIM_DATAFILE_RESOURCE_URI,
+            .serializerInfo = CIM_DataFile_Data_TypeInfo
+        },
+    }
+};
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Msvm_AllocationCapabilities
  */
-
 SER_START_ITEMS(Msvm_AllocationCapabilities_Data)
     SER_NS_STR(MSVM_ALLOCATIONCAPABILITIES_RESOURCE_URI, "Caption", 1),
     SER_NS_STR(MSVM_ALLOCATIONCAPABILITIES_RESOURCE_URI, "Description", 1),
@@ -62,167 +72,403 @@ SER_START_ITEMS(Msvm_AllocationCapabilities_Data)
     SER_NS_DYN_ARRAY(MSVM_ALLOCATIONCAPABILITIES_RESOURCE_URI, "SupportedRemoveStates", 0, 0, uint16),
 SER_END_ITEMS(Msvm_AllocationCapabilities_Data);
 
+hypervWmiClassInfoListPtr Msvm_AllocationCapabilities_WmiInfo = &(hypervWmiClassInfoList) {
+    .count = 1,
+    .objs = (hypervWmiClassInfoPtr []) {
+        &(hypervWmiClassInfo) {
+            .name = MSVM_ALLOCATIONCAPABILITIES_CLASSNAME,
+            .version = NULL,
+            .rootUri = ROOT_VIRTUALIZATION,
+            .resourceUri = MSVM_ALLOCATIONCAPABILITIES_RESOURCE_URI,
+            .serializerInfo = Msvm_AllocationCapabilities_Data_TypeInfo
+        },
+    }
+};
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Msvm_ComputerSystem
  */
+SER_START_ITEMS(Msvm_ComputerSystem_v1_Data)
+    SER_NS_UINT32(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "ProcessID", 1),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "TimeOfLastConfigurationChange", 1),
+    SER_NS_UINT16(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "EnabledState", 1),
+    SER_NS_DYN_ARRAY(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "Dedicated", 0, 0, uint16),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "InstallDate", 1),
+    SER_NS_DYN_ARRAY(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "PowerManagementCapabilities", 0, 0, uint16),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "Description", 1),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "ElementName", 1),
+    SER_NS_UINT64(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "OnTimeInMilliseconds", 1),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "Name", 1),
+    SER_NS_UINT16(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "ResetCapability", 1),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "NameFormat", 1),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "TimeOfLastStateChange", 1),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "OtherEnabledState", 1),
+    SER_NS_DYN_ARRAY(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "OperationalStatus", 0, 0, uint16),
+    SER_NS_DYN_ARRAY(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "Roles", 0, 0, string),
+    SER_NS_DYN_ARRAY(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "StatusDescriptions", 0, 0, string),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "Caption", 1),
+    SER_NS_DYN_ARRAY(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "OtherIdentifyingInfo", 0, 0, string),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "PrimaryOwnerContact", 1),
+    SER_NS_UINT16(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "RequestedState", 1),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "Status", 1),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "CreationClassName", 1),
+    SER_NS_UINT16(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "EnabledDefault", 1),
+    SER_NS_UINT16(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "HealthState", 1),
+    SER_NS_DYN_ARRAY(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "IdentifyingDescriptions", 0, 0, string),
+    SER_NS_DYN_ARRAY(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "OtherDedicatedDescriptions", 0, 0, string),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "PrimaryOwnerName", 1),
+    SER_NS_DYN_ARRAY(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "AssignedNumaNodeList", 0, 0, uint16),
+SER_END_ITEMS(Msvm_ComputerSystem_v1_Data);
 
-SER_START_ITEMS(Msvm_ComputerSystem_Data)
-    SER_NS_STR(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "Caption", 1),
-    SER_NS_STR(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "Description", 1),
-    SER_NS_STR(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "ElementName", 1),
-    SER_NS_STR(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "InstallDate", 1),
-    SER_NS_DYN_ARRAY(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "OperationalStatus", 0, 0, uint16),
-    SER_NS_DYN_ARRAY(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "StatusDescriptions", 0, 0, string),
-    SER_NS_STR(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "Status", 1),
-    SER_NS_UINT16(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "HealthState", 1),
-    SER_NS_UINT16(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "EnabledState", 1),
-    SER_NS_STR(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "OtherEnabledState", 1),
-    SER_NS_UINT16(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "RequestedState", 1),
-    SER_NS_UINT16(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "EnabledDefault", 1),
-    SER_NS_STR(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "TimeOfLastStateChange", 1),
-    SER_NS_STR(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "CreationClassName", 1),
-    SER_NS_STR(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "Name", 1),
-    SER_NS_STR(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "PrimaryOwnerName", 1),
-    SER_NS_STR(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "PrimaryOwnerContact", 1),
-    SER_NS_DYN_ARRAY(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "Roles", 0, 0, string),
-    SER_NS_STR(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "NameFormat", 1),
-    SER_NS_DYN_ARRAY(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "OtherIdentifyingInfo", 0, 0, string),
-    SER_NS_DYN_ARRAY(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "IdentifyingDescriptions", 0, 0, string),
-    SER_NS_DYN_ARRAY(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "Dedicated", 0, 0, uint16),
-    SER_NS_DYN_ARRAY(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "OtherDedicatedDescriptions", 0, 0, string),
-    SER_NS_UINT16(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "ResetCapability", 1),
-    SER_NS_DYN_ARRAY(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "PowerManagementCapabilities", 0, 0, uint16),
-    SER_NS_UINT64(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "OnTimeInMilliseconds", 1),
-    SER_NS_STR(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "TimeOfLastConfigurationChange", 1),
-    SER_NS_UINT32(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "ProcessID", 1),
-    SER_NS_DYN_ARRAY(MSVM_COMPUTERSYSTEM_RESOURCE_URI, "AssignedNumaNodeList", 0, 0, uint16),
-SER_END_ITEMS(Msvm_ComputerSystem_Data);
+SER_START_ITEMS(Msvm_ComputerSystem_v2_Data)
+    SER_NS_UINT32(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "ProcessID", 1),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "TimeOfLastConfigurationChange", 1),
+    SER_NS_UINT16(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "EnabledState", 1),
+    SER_NS_DYN_ARRAY(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "Dedicated", 0, 0, uint16),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "InstallDate", 1),
+    SER_NS_DYN_ARRAY(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "PowerManagementCapabilities", 0, 0, uint16),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "Description", 1),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "ElementName", 1),
+    SER_NS_UINT64(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "OnTimeInMilliseconds", 1),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "Name", 1),
+    SER_NS_UINT16(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "ResetCapability", 1),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "NameFormat", 1),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "TimeOfLastStateChange", 1),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "OtherEnabledState", 1),
+    SER_NS_DYN_ARRAY(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "OperationalStatus", 0, 0, uint16),
+    SER_NS_DYN_ARRAY(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "Roles", 0, 0, string),
+    SER_NS_DYN_ARRAY(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "StatusDescriptions", 0, 0, string),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "Caption", 1),
+    SER_NS_DYN_ARRAY(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "OtherIdentifyingInfo", 0, 0, string),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "PrimaryOwnerContact", 1),
+    SER_NS_UINT16(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "RequestedState", 1),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "Status", 1),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "CreationClassName", 1),
+    SER_NS_UINT16(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "EnabledDefault", 1),
+    SER_NS_UINT16(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "HealthState", 1),
+    SER_NS_DYN_ARRAY(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "IdentifyingDescriptions", 0, 0, string),
+    SER_NS_DYN_ARRAY(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "OtherDedicatedDescriptions", 0, 0, string),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "PrimaryOwnerName", 1),
+    SER_NS_UINT16(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "CommunicationStatus", 1),
+    SER_NS_DYN_ARRAY(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "AvailableRequestedStates", 0, 0, uint16),
+    SER_NS_UINT16(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "DetailedStatus", 1),
+    SER_NS_UINT16(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "TransitioningToState", 1),
+    SER_NS_UINT16(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "OperatingStatus", 1),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "InstanceID", 1),
+    SER_NS_UINT16(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "PrimaryStatus", 1),
+    SER_NS_UINT16(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "NumberOfNumaNodes", 1),
+    SER_NS_UINT16(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "ReplicationState", 1),
+    SER_NS_UINT16(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "ReplicationHealth", 1),
+    SER_NS_UINT16(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "ReplicationMode", 1),
+    SER_NS_UINT16(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "FailedOverReplicationType", 1),
+    SER_NS_UINT16(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "LastReplicationType", 1),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "LastApplicationConsistentReplicationTime", 1),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "LastReplicationTime", 1),
+    SER_NS_STR(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "LastSuccessfulBackupTime", 1),
+    SER_NS_UINT16(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "EnhancedSessionModeState", 1),
+SER_END_ITEMS(Msvm_ComputerSystem_v2_Data);
+
+hypervWmiClassInfoListPtr Msvm_ComputerSystem_WmiInfo = &(hypervWmiClassInfoList) {
+    .count = 2,
+    .objs = (hypervWmiClassInfoPtr []) {
+        &(hypervWmiClassInfo) {
+            .name = MSVM_COMPUTERSYSTEM_CLASSNAME,
+            .version = "v1",
+            .rootUri = ROOT_VIRTUALIZATION,
+            .resourceUri = MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI,
+            .serializerInfo = Msvm_ComputerSystem_v1_Data_TypeInfo
+        },
+        &(hypervWmiClassInfo) {
+            .name = MSVM_COMPUTERSYSTEM_CLASSNAME,
+            .version = "v2",
+            .rootUri = ROOT_VIRTUALIZATION_V2,
+            .resourceUri = MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI,
+            .serializerInfo = Msvm_ComputerSystem_v2_Data_TypeInfo
+        },
+    }
+};
 
 
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Msvm_ConcreteJob
  */
+SER_START_ITEMS(Msvm_ConcreteJob_v1_Data)
+    SER_NS_UINT8(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "RunMonth", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "TimeBeforeRemoval", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "JobStatus", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "ScheduledStartTime", 1),
+    SER_NS_BOOL(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "Cancellable", 1),
+    SER_NS_UINT32(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "JobRunTimes", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "UntilTime", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "TimeSubmitted", 1),
+    SER_NS_UINT16(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "JobState", 1),
+    SER_NS_UINT16(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "LocalOrUtcTime", 1),
+    SER_NS_UINT16(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "RecoveryAction", 1),
+    SER_NS_UINT16(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "PercentComplete", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "InstallDate", 1),
+    SER_NS_UINT32(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "Priority", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "Description", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "Name", 1),
+    SER_NS_UINT16(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "HealthState", 1),
+    SER_NS_BOOL(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "DeleteOnCompletion", 1),
+    SER_NS_DYN_ARRAY(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "OperationalStatus", 0, 0, uint16),
+    SER_NS_UINT16(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "ErrorCode", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "Notify", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "Caption", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "Owner", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "ErrorSummaryDescription", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "Status", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "ErrorDescription", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "InstanceID", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "ElapsedTime", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "OtherRecoveryAction", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "TimeOfLastStateChange", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "RunStartInterval", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "StartTime", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "ElementName", 1),
+    SER_NS_DYN_ARRAY(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "StatusDescriptions", 0, 0, string),
+    SER_NS_INT8(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "RunDay", 1),
+    SER_NS_INT8(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "RunDayOfWeek", 1),
+SER_END_ITEMS(Msvm_ConcreteJob_v1_Data);
 
-SER_START_ITEMS(Msvm_ConcreteJob_Data)
-    SER_NS_STR(MSVM_CONCRETEJOB_RESOURCE_URI, "Caption", 1),
-    SER_NS_STR(MSVM_CONCRETEJOB_RESOURCE_URI, "Description", 1),
-    SER_NS_STR(MSVM_CONCRETEJOB_RESOURCE_URI, "ElementName", 1),
-    SER_NS_STR(MSVM_CONCRETEJOB_RESOURCE_URI, "InstallDate", 1),
-    SER_NS_DYN_ARRAY(MSVM_CONCRETEJOB_RESOURCE_URI, "OperationalStatus", 0, 0, uint16),
-    SER_NS_DYN_ARRAY(MSVM_CONCRETEJOB_RESOURCE_URI, "StatusDescriptions", 0, 0, string),
-    SER_NS_STR(MSVM_CONCRETEJOB_RESOURCE_URI, "Status", 1),
-    SER_NS_UINT16(MSVM_CONCRETEJOB_RESOURCE_URI, "HealthState", 1),
-    SER_NS_STR(MSVM_CONCRETEJOB_RESOURCE_URI, "JobStatus", 1),
-    SER_NS_STR(MSVM_CONCRETEJOB_RESOURCE_URI, "TimeSubmitted", 1),
-    SER_NS_STR(MSVM_CONCRETEJOB_RESOURCE_URI, "ScheduledStartTime", 1),
-    SER_NS_STR(MSVM_CONCRETEJOB_RESOURCE_URI, "StartTime", 1),
-    SER_NS_STR(MSVM_CONCRETEJOB_RESOURCE_URI, "ElapsedTime", 1),
-    SER_NS_UINT32(MSVM_CONCRETEJOB_RESOURCE_URI, "JobRunTimes", 1),
-    SER_NS_UINT8(MSVM_CONCRETEJOB_RESOURCE_URI, "RunMonth", 1),
-    SER_NS_INT8(MSVM_CONCRETEJOB_RESOURCE_URI, "RunDay", 1),
-    SER_NS_INT8(MSVM_CONCRETEJOB_RESOURCE_URI, "RunDayOfWeek", 1),
-    SER_NS_STR(MSVM_CONCRETEJOB_RESOURCE_URI, "RunStartInterval", 1),
-    SER_NS_UINT16(MSVM_CONCRETEJOB_RESOURCE_URI, "LocalOrUtcTime", 1),
-    SER_NS_STR(MSVM_CONCRETEJOB_RESOURCE_URI, "UntilTime", 1),
-    SER_NS_STR(MSVM_CONCRETEJOB_RESOURCE_URI, "Notify", 1),
-    SER_NS_STR(MSVM_CONCRETEJOB_RESOURCE_URI, "Owner", 1),
-    SER_NS_UINT32(MSVM_CONCRETEJOB_RESOURCE_URI, "Priority", 1),
-    SER_NS_UINT16(MSVM_CONCRETEJOB_RESOURCE_URI, "PercentComplete", 1),
-    SER_NS_BOOL(MSVM_CONCRETEJOB_RESOURCE_URI, "DeleteOnCompletion", 1),
-    SER_NS_UINT16(MSVM_CONCRETEJOB_RESOURCE_URI, "ErrorCode", 1),
-    SER_NS_STR(MSVM_CONCRETEJOB_RESOURCE_URI, "ErrorDescription", 1),
-    SER_NS_STR(MSVM_CONCRETEJOB_RESOURCE_URI, "ErrorSummaryDescription", 1),
-    SER_NS_UINT16(MSVM_CONCRETEJOB_RESOURCE_URI, "RecoveryAction", 1),
-    SER_NS_STR(MSVM_CONCRETEJOB_RESOURCE_URI, "OtherRecoveryAction", 1),
-    SER_NS_STR(MSVM_CONCRETEJOB_RESOURCE_URI, "InstanceID", 1),
-    SER_NS_STR(MSVM_CONCRETEJOB_RESOURCE_URI, "Name", 1),
-    SER_NS_UINT16(MSVM_CONCRETEJOB_RESOURCE_URI, "JobState", 1),
-    SER_NS_STR(MSVM_CONCRETEJOB_RESOURCE_URI, "TimeOfLastStateChange", 1),
-    SER_NS_STR(MSVM_CONCRETEJOB_RESOURCE_URI, "TimeBeforeRemoval", 1),
-    SER_NS_BOOL(MSVM_CONCRETEJOB_RESOURCE_URI, "Cancellable", 1),
-SER_END_ITEMS(Msvm_ConcreteJob_Data);
+SER_START_ITEMS(Msvm_ConcreteJob_v2_Data)
+    SER_NS_UINT8(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "RunMonth", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "TimeBeforeRemoval", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "JobStatus", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "ScheduledStartTime", 1),
+    SER_NS_BOOL(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "Cancellable", 1),
+    SER_NS_UINT32(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "JobRunTimes", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "UntilTime", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "TimeSubmitted", 1),
+    SER_NS_UINT16(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "JobState", 1),
+    SER_NS_UINT16(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "LocalOrUtcTime", 1),
+    SER_NS_UINT16(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "RecoveryAction", 1),
+    SER_NS_UINT16(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "PercentComplete", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "InstallDate", 1),
+    SER_NS_UINT32(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "Priority", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "Description", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "Name", 1),
+    SER_NS_UINT16(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "HealthState", 1),
+    SER_NS_BOOL(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "DeleteOnCompletion", 1),
+    SER_NS_DYN_ARRAY(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "OperationalStatus", 0, 0, uint16),
+    SER_NS_UINT16(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "ErrorCode", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "Notify", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "Caption", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "Owner", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "ErrorSummaryDescription", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "Status", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "ErrorDescription", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "InstanceID", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "ElapsedTime", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "OtherRecoveryAction", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "TimeOfLastStateChange", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "RunStartInterval", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "StartTime", 1),
+    SER_NS_STR(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "ElementName", 1),
+    SER_NS_DYN_ARRAY(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "StatusDescriptions", 0, 0, string),
+    SER_NS_UINT16(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "CommunicationStatus", 1),
+    SER_NS_UINT16(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "PrimaryStatus", 1),
+    SER_NS_INT8(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "RunDayOfWeek", 1),
+    SER_NS_UINT16(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "DetailedStatus", 1),
+    SER_NS_INT8(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "RunDay", 1),
+    SER_NS_UINT16(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "OperatingStatus", 1),
+    SER_NS_UINT16(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "JobType", 1),
+SER_END_ITEMS(Msvm_ConcreteJob_v2_Data);
+
+hypervWmiClassInfoListPtr Msvm_ConcreteJob_WmiInfo = &(hypervWmiClassInfoList) {
+    .count = 2,
+    .objs = (hypervWmiClassInfoPtr []) {
+        &(hypervWmiClassInfo) {
+            .name = MSVM_CONCRETEJOB_CLASSNAME,
+            .version = "v1",
+            .rootUri = ROOT_VIRTUALIZATION,
+            .resourceUri = MSVM_CONCRETEJOB_V1_RESOURCE_URI,
+            .serializerInfo = Msvm_ConcreteJob_v1_Data_TypeInfo
+        },
+        &(hypervWmiClassInfo) {
+            .name = MSVM_CONCRETEJOB_CLASSNAME,
+            .version = "v2",
+            .rootUri = ROOT_VIRTUALIZATION_V2,
+            .resourceUri = MSVM_CONCRETEJOB_V2_RESOURCE_URI,
+            .serializerInfo = Msvm_ConcreteJob_v2_Data_TypeInfo
+        },
+    }
+};
 
 
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Msvm_MemorySettingData
  */
+SER_START_ITEMS(Msvm_MemorySettingData_v1_Data)
+    SER_NS_UINT16(MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI, "ConsumerVisibility", 1),
+    SER_NS_STR(MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI, "ResourceSubType", 1),
+    SER_NS_STR(MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI, "OtherResourceType", 1),
+    SER_NS_BOOL(MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI, "IsVirtualized", 1),
+    SER_NS_BOOL(MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI, "DynamicMemoryEnabled", 1),
+    SER_NS_STR(MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI, "Description", 1),
+    SER_NS_BOOL(MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI, "AutomaticDeallocation", 1),
+    SER_NS_UINT16(MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI, "MappingBehavior", 1),
+    SER_NS_UINT32(MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI, "Weight", 1),
+    SER_NS_UINT64(MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI, "VirtualQuantity", 1),
+    SER_NS_STR(MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI, "Address", 1),
+    SER_NS_STR(MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI, "Caption", 1),
+    SER_NS_DYN_ARRAY(MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI, "Connection", 0, 0, string),
+    SER_NS_STR(MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI, "AllocationUnits", 1),
+    SER_NS_BOOL(MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI, "AutomaticAllocation", 1),
+    SER_NS_STR(MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI, "InstanceID", 1),
+    SER_NS_UINT64(MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI, "Reservation", 1),
+    SER_NS_STR(MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI, "PoolID", 1),
+    SER_NS_UINT16(MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI, "ResourceType", 1),
+    SER_NS_DYN_ARRAY(MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI, "HostResource", 0, 0, string),
+    SER_NS_STR(MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI, "Parent", 1),
+    SER_NS_UINT64(MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI, "Limit", 1),
+    SER_NS_STR(MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI, "ElementName", 1),
+    SER_NS_STR(MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI, "DeviceIDFormat", 1),
+    SER_NS_STR(MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI, "DeviceID", 1),
+SER_END_ITEMS(Msvm_MemorySettingData_v1_Data);
 
-SER_START_ITEMS(Msvm_MemorySettingData_Data)
-    SER_NS_STR(MSVM_MEMORYSETTINGDATA_RESOURCE_URI, "Caption", 1),
-    SER_NS_STR(MSVM_MEMORYSETTINGDATA_RESOURCE_URI, "Description", 1),
-    SER_NS_STR(MSVM_MEMORYSETTINGDATA_RESOURCE_URI, "InstanceID", 1),
-    SER_NS_STR(MSVM_MEMORYSETTINGDATA_RESOURCE_URI, "ElementName", 1),
-    SER_NS_UINT16(MSVM_MEMORYSETTINGDATA_RESOURCE_URI, "ResourceType", 1),
-    SER_NS_STR(MSVM_MEMORYSETTINGDATA_RESOURCE_URI, "OtherResourceType", 1),
-    SER_NS_STR(MSVM_MEMORYSETTINGDATA_RESOURCE_URI, "ResourceSubType", 1),
-    SER_NS_STR(MSVM_MEMORYSETTINGDATA_RESOURCE_URI, "PoolID", 1),
-    SER_NS_UINT16(MSVM_MEMORYSETTINGDATA_RESOURCE_URI, "ConsumerVisibility", 1),
-    SER_NS_DYN_ARRAY(MSVM_MEMORYSETTINGDATA_RESOURCE_URI, "HostResource", 0, 0, string),
-    SER_NS_STR(MSVM_MEMORYSETTINGDATA_RESOURCE_URI, "AllocationUnits", 1),
-    SER_NS_UINT64(MSVM_MEMORYSETTINGDATA_RESOURCE_URI, "VirtualQuantity", 1),
-    SER_NS_UINT64(MSVM_MEMORYSETTINGDATA_RESOURCE_URI, "Reservation", 1),
-    SER_NS_UINT64(MSVM_MEMORYSETTINGDATA_RESOURCE_URI, "Limit", 1),
-    SER_NS_UINT32(MSVM_MEMORYSETTINGDATA_RESOURCE_URI, "Weight", 1),
-    SER_NS_BOOL(MSVM_MEMORYSETTINGDATA_RESOURCE_URI, "AutomaticAllocation", 1),
-    SER_NS_BOOL(MSVM_MEMORYSETTINGDATA_RESOURCE_URI, "AutomaticDeallocation", 1),
-    SER_NS_STR(MSVM_MEMORYSETTINGDATA_RESOURCE_URI, "Parent", 1),
-    SER_NS_DYN_ARRAY(MSVM_MEMORYSETTINGDATA_RESOURCE_URI, "Connection", 0, 0, string),
-    SER_NS_STR(MSVM_MEMORYSETTINGDATA_RESOURCE_URI, "Address", 1),
-    SER_NS_UINT16(MSVM_MEMORYSETTINGDATA_RESOURCE_URI, "MappingBehavior", 1),
-    SER_NS_BOOL(MSVM_MEMORYSETTINGDATA_RESOURCE_URI, "IsVirtualized", 1),
-    SER_NS_STR(MSVM_MEMORYSETTINGDATA_RESOURCE_URI, "DeviceID", 1),
-    SER_NS_STR(MSVM_MEMORYSETTINGDATA_RESOURCE_URI, "DeviceIDFormat", 1),
-    SER_NS_BOOL(MSVM_MEMORYSETTINGDATA_RESOURCE_URI, "DynamicMemoryEnabled", 1),
-SER_END_ITEMS(Msvm_MemorySettingData_Data);
+SER_START_ITEMS(Msvm_MemorySettingData_v2_Data)
+    SER_NS_UINT16(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "ConsumerVisibility", 1),
+    SER_NS_STR(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "ResourceSubType", 1),
+    SER_NS_STR(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "OtherResourceType", 1),
+    SER_NS_BOOL(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "IsVirtualized", 1),
+    SER_NS_BOOL(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "DynamicMemoryEnabled", 1),
+    SER_NS_STR(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "Description", 1),
+    SER_NS_BOOL(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "AutomaticDeallocation", 1),
+    SER_NS_UINT16(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "MappingBehavior", 1),
+    SER_NS_UINT32(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "Weight", 1),
+    SER_NS_UINT64(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "VirtualQuantity", 1),
+    SER_NS_STR(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "Address", 1),
+    SER_NS_STR(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "Caption", 1),
+    SER_NS_DYN_ARRAY(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "Connection", 0, 0, string),
+    SER_NS_STR(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "AllocationUnits", 1),
+    SER_NS_BOOL(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "AutomaticAllocation", 1),
+    SER_NS_STR(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "InstanceID", 1),
+    SER_NS_UINT64(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "Reservation", 1),
+    SER_NS_STR(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "PoolID", 1),
+    SER_NS_UINT16(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "ResourceType", 1),
+    SER_NS_DYN_ARRAY(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "HostResource", 0, 0, string),
+    SER_NS_STR(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "Parent", 1),
+    SER_NS_UINT64(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "Limit", 1),
+    SER_NS_STR(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "ElementName", 1),
+    SER_NS_STR(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "AddressOnParent", 1),
+    SER_NS_UINT32(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "TargetMemoryBuffer", 1),
+    SER_NS_STR(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "VirtualQuantityUnits", 1),
+    SER_NS_BOOL(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "SwapFilesInUse", 1),
+    SER_NS_UINT64(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "MaxMemoryBlocksPerNumaNode", 1),
+SER_END_ITEMS(Msvm_MemorySettingData_v2_Data);
+
+hypervWmiClassInfoListPtr Msvm_MemorySettingData_WmiInfo = &(hypervWmiClassInfoList) {
+    .count = 2,
+    .objs = (hypervWmiClassInfoPtr []) {
+        &(hypervWmiClassInfo) {
+            .name = MSVM_MEMORYSETTINGDATA_CLASSNAME,
+            .version = "v1",
+            .rootUri = ROOT_VIRTUALIZATION,
+            .resourceUri = MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI,
+            .serializerInfo = Msvm_MemorySettingData_v1_Data_TypeInfo
+        },
+        &(hypervWmiClassInfo) {
+            .name = MSVM_MEMORYSETTINGDATA_CLASSNAME,
+            .version = "v2",
+            .rootUri = ROOT_VIRTUALIZATION_V2,
+            .resourceUri = MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI,
+            .serializerInfo = Msvm_MemorySettingData_v2_Data_TypeInfo
+        },
+    }
+};
 
 
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Msvm_ProcessorSettingData
  */
+SER_START_ITEMS(Msvm_ProcessorSettingData_v1_Data)
+    SER_NS_UINT16(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "ConsumerVisibility", 1),
+    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "ResourceSubType", 1),
+    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "OtherResourceType", 1),
+    SER_NS_BOOL(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "LimitCPUID", 1),
+    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "Description", 1),
+    SER_NS_BOOL(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "AutomaticDeallocation", 1),
+    SER_NS_UINT16(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "MappingBehavior", 1),
+    SER_NS_UINT32(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "Weight", 1),
+    SER_NS_UINT64(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "VirtualQuantity", 1),
+    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "Address", 1),
+    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "Caption", 1),
+    SER_NS_DYN_ARRAY(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "Connection", 0, 0, string),
+    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "AllocationUnits", 1),
+    SER_NS_BOOL(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "AutomaticAllocation", 1),
+    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "InstanceID", 1),
+    SER_NS_UINT64(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "Reservation", 1),
+    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "PoolID", 1),
+    SER_NS_UINT16(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "ResourceType", 1),
+    SER_NS_DYN_ARRAY(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "HostResource", 0, 0, string),
+    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "Parent", 1),
+    SER_NS_UINT64(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "Limit", 1),
+    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "ElementName", 1),
+    SER_NS_BOOL(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "LimitProcessorFeatures", 1),
+    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "DeviceIDFormat", 1),
+    SER_NS_UINT16(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "ProcessorsPerSocket", 1),
+    SER_NS_UINT16(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "SocketCount", 1),
+    SER_NS_BOOL(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "ThreadsEnabled", 1),
+    SER_NS_BOOL(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "IsVirtualized", 1),
+    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "DeviceID", 1),
+SER_END_ITEMS(Msvm_ProcessorSettingData_v1_Data);
 
-SER_START_ITEMS(Msvm_ProcessorSettingData_Data)
-    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "Caption", 1),
-    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "Description", 1),
-    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "InstanceID", 1),
-    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "ElementName", 1),
-    SER_NS_UINT16(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "ResourceType", 1),
-    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "OtherResourceType", 1),
-    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "ResourceSubType", 1),
-    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "PoolID", 1),
-    SER_NS_UINT16(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "ConsumerVisibility", 1),
-    SER_NS_DYN_ARRAY(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "HostResource", 0, 0, string),
-    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "AllocationUnits", 1),
-    SER_NS_UINT64(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "VirtualQuantity", 1),
-    SER_NS_UINT64(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "Reservation", 1),
-    SER_NS_UINT64(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "Limit", 1),
-    SER_NS_UINT32(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "Weight", 1),
-    SER_NS_BOOL(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "AutomaticAllocation", 1),
-    SER_NS_BOOL(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "AutomaticDeallocation", 1),
-    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "Parent", 1),
-    SER_NS_DYN_ARRAY(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "Connection", 0, 0, string),
-    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "Address", 1),
-    SER_NS_UINT16(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "MappingBehavior", 1),
-    SER_NS_BOOL(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "IsVirtualized", 1),
-    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "DeviceID", 1),
-    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "DeviceIDFormat", 1),
-    SER_NS_UINT16(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "ProcessorsPerSocket", 1),
-    SER_NS_UINT16(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "SocketCount", 1),
-    SER_NS_BOOL(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "ThreadsEnabled", 1),
-    SER_NS_BOOL(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "LimitCPUID", 1),
-    SER_NS_BOOL(MSVM_PROCESSORSETTINGDATA_RESOURCE_URI, "LimitProcessorFeatures", 1),
-SER_END_ITEMS(Msvm_ProcessorSettingData_Data);
+SER_START_ITEMS(Msvm_ProcessorSettingData_v2_Data)
+    SER_NS_UINT16(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "ConsumerVisibility", 1),
+    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "ResourceSubType", 1),
+    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "OtherResourceType", 1),
+    SER_NS_BOOL(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "LimitCPUID", 1),
+    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "Description", 1),
+    SER_NS_BOOL(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "AutomaticDeallocation", 1),
+    SER_NS_UINT16(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "MappingBehavior", 1),
+    SER_NS_UINT32(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "Weight", 1),
+    SER_NS_UINT64(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "VirtualQuantity", 1),
+    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "Address", 1),
+    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "Caption", 1),
+    SER_NS_DYN_ARRAY(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "Connection", 0, 0, string),
+    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "AllocationUnits", 1),
+    SER_NS_BOOL(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "AutomaticAllocation", 1),
+    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "InstanceID", 1),
+    SER_NS_UINT64(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "Reservation", 1),
+    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "PoolID", 1),
+    SER_NS_UINT16(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "ResourceType", 1),
+    SER_NS_DYN_ARRAY(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "HostResource", 0, 0, string),
+    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "Parent", 1),
+    SER_NS_UINT64(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "Limit", 1),
+    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "ElementName", 1),
+    SER_NS_BOOL(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "LimitProcessorFeatures", 1),
+    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "AddressOnParent", 1),
+    SER_NS_STR(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "VirtualQuantityUnits", 1),
+    SER_NS_UINT64(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "MaxProcessorsPerNumaNode", 1),
+    SER_NS_UINT64(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "MaxNumaNodesPerSocket", 1),
+SER_END_ITEMS(Msvm_ProcessorSettingData_v2_Data);
+
+hypervWmiClassInfoListPtr Msvm_ProcessorSettingData_WmiInfo = &(hypervWmiClassInfoList) {
+    .count = 2,
+    .objs = (hypervWmiClassInfoPtr []) {
+        &(hypervWmiClassInfo) {
+            .name = MSVM_PROCESSORSETTINGDATA_CLASSNAME,
+            .version = "v1",
+            .rootUri = ROOT_VIRTUALIZATION,
+            .resourceUri = MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI,
+            .serializerInfo = Msvm_ProcessorSettingData_v1_Data_TypeInfo
+        },
+        &(hypervWmiClassInfo) {
+            .name = MSVM_PROCESSORSETTINGDATA_CLASSNAME,
+            .version = "v2",
+            .rootUri = ROOT_VIRTUALIZATION_V2,
+            .resourceUri = MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI,
+            .serializerInfo = Msvm_ProcessorSettingData_v2_Data_TypeInfo
+        },
+    }
+};
 
 
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Msvm_ResourceAllocationSettingData
  */
-
 SER_START_ITEMS(Msvm_ResourceAllocationSettingData_Data)
     SER_NS_STR(MSVM_RESOURCEALLOCATIONSETTINGDATA_RESOURCE_URI, "Caption", 1),
     SER_NS_STR(MSVM_RESOURCEALLOCATIONSETTINGDATA_RESOURCE_URI, "Description", 1),
@@ -248,12 +494,23 @@ SER_START_ITEMS(Msvm_ResourceAllocationSettingData_Data)
     SER_NS_DYN_ARRAY(MSVM_RESOURCEALLOCATIONSETTINGDATA_RESOURCE_URI, "VirtualSystemIdentifiers", 0, 0, string),
 SER_END_ITEMS(Msvm_ResourceAllocationSettingData_Data);
 
+hypervWmiClassInfoListPtr Msvm_ResourceAllocationSettingData_WmiInfo = &(hypervWmiClassInfoList) {
+    .count = 1,
+    .objs = (hypervWmiClassInfoPtr []) {
+        &(hypervWmiClassInfo) {
+            .name = MSVM_RESOURCEALLOCATIONSETTINGDATA_CLASSNAME,
+            .version = NULL,
+            .rootUri = ROOT_VIRTUALIZATION,
+            .resourceUri = MSVM_RESOURCEALLOCATIONSETTINGDATA_RESOURCE_URI,
+            .serializerInfo = Msvm_ResourceAllocationSettingData_Data_TypeInfo
+        },
+    }
+};
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Msvm_SwitchPort
  */
-
 SER_START_ITEMS(Msvm_SwitchPort_Data)
     SER_NS_STR(MSVM_SWITCHPORT_RESOURCE_URI, "Caption", 1),
     SER_NS_STR(MSVM_SWITCHPORT_RESOURCE_URI, "ElementName", 1),
@@ -288,12 +545,23 @@ SER_START_ITEMS(Msvm_SwitchPort_Data)
     SER_NS_BOOL(MSVM_SWITCHPORT_RESOURCE_URI, "AllowMacSpoofing", 1),
 SER_END_ITEMS(Msvm_SwitchPort_Data);
 
+hypervWmiClassInfoListPtr Msvm_SwitchPort_WmiInfo = &(hypervWmiClassInfoList) {
+    .count = 1,
+    .objs = (hypervWmiClassInfoPtr []) {
+        &(hypervWmiClassInfo) {
+            .name = MSVM_SWITCHPORT_CLASSNAME,
+            .version = NULL,
+            .rootUri = ROOT_VIRTUALIZATION,
+            .resourceUri = MSVM_SWITCHPORT_RESOURCE_URI,
+            .serializerInfo = Msvm_SwitchPort_Data_TypeInfo
+        },
+    }
+};
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Msvm_SyntheticEthernetPortSettingData
  */
-
 SER_START_ITEMS(Msvm_SyntheticEthernetPortSettingData_Data)
     SER_NS_STR(MSVM_SYNTHETICETHERNETPORTSETTINGDATA_RESOURCE_URI, "Caption", 1),
     SER_NS_STR(MSVM_SYNTHETICETHERNETPORTSETTINGDATA_RESOURCE_URI, "Description", 1),
@@ -320,12 +588,23 @@ SER_START_ITEMS(Msvm_SyntheticEthernetPortSettingData_Data)
     SER_NS_BOOL(MSVM_SYNTHETICETHERNETPORTSETTINGDATA_RESOURCE_URI, "StaticMacAddress", 1),
 SER_END_ITEMS(Msvm_SyntheticEthernetPortSettingData_Data);
 
+hypervWmiClassInfoListPtr Msvm_SyntheticEthernetPortSettingData_WmiInfo = &(hypervWmiClassInfoList) {
+    .count = 1,
+    .objs = (hypervWmiClassInfoPtr []) {
+        &(hypervWmiClassInfo) {
+            .name = MSVM_SYNTHETICETHERNETPORTSETTINGDATA_CLASSNAME,
+            .version = NULL,
+            .rootUri = ROOT_VIRTUALIZATION,
+            .resourceUri = MSVM_SYNTHETICETHERNETPORTSETTINGDATA_RESOURCE_URI,
+            .serializerInfo = Msvm_SyntheticEthernetPortSettingData_Data_TypeInfo
+        },
+    }
+};
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Msvm_VirtualHardDiskSettingData
  */
-
 SER_START_ITEMS(Msvm_VirtualHardDiskSettingData_Data)
     SER_NS_STR(MSVM_VIRTUALHARDDISKSETTINGDATA_RESOURCE_URI, "InstanceID", 1),
     SER_NS_STR(MSVM_VIRTUALHARDDISKSETTINGDATA_RESOURCE_URI, "Caption", 1),
@@ -342,12 +621,23 @@ SER_START_ITEMS(Msvm_VirtualHardDiskSettingData_Data)
     SER_NS_STR(MSVM_VIRTUALHARDDISKSETTINGDATA_RESOURCE_URI, "VirtualDiskId", 1),
 SER_END_ITEMS(Msvm_VirtualHardDiskSettingData_Data);
 
+hypervWmiClassInfoListPtr Msvm_VirtualHardDiskSettingData_WmiInfo = &(hypervWmiClassInfoList) {
+    .count = 1,
+    .objs = (hypervWmiClassInfoPtr []) {
+        &(hypervWmiClassInfo) {
+            .name = MSVM_VIRTUALHARDDISKSETTINGDATA_CLASSNAME,
+            .version = NULL,
+            .rootUri = ROOT_VIRTUALIZATION,
+            .resourceUri = MSVM_VIRTUALHARDDISKSETTINGDATA_RESOURCE_URI,
+            .serializerInfo = Msvm_VirtualHardDiskSettingData_Data_TypeInfo
+        },
+    }
+};
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Msvm_VirtualSwitch
  */
-
 SER_START_ITEMS(Msvm_VirtualSwitch_Data)
     SER_NS_STR(MSVM_VIRTUALSWITCH_RESOURCE_URI, "Caption", 1),
     SER_NS_STR(MSVM_VIRTUALSWITCH_RESOURCE_URI, "Description", 1),
@@ -380,12 +670,23 @@ SER_START_ITEMS(Msvm_VirtualSwitch_Data)
     SER_NS_UINT32(MSVM_VIRTUALSWITCH_RESOURCE_URI, "MaxChimneyOffloads", 1),
 SER_END_ITEMS(Msvm_VirtualSwitch_Data);
 
+hypervWmiClassInfoListPtr Msvm_VirtualSwitch_WmiInfo = &(hypervWmiClassInfoList) {
+    .count = 1,
+    .objs = (hypervWmiClassInfoPtr []) {
+        &(hypervWmiClassInfo) {
+            .name = MSVM_VIRTUALSWITCH_CLASSNAME,
+            .version = NULL,
+            .rootUri = ROOT_VIRTUALIZATION,
+            .resourceUri = MSVM_VIRTUALSWITCH_RESOURCE_URI,
+            .serializerInfo = Msvm_VirtualSwitch_Data_TypeInfo
+        },
+    }
+};
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Msvm_VirtualSwitchManagementService
  */
-
 SER_START_ITEMS(Msvm_VirtualSwitchManagementService_Data)
     SER_NS_STR(MSVM_VIRTUALSWITCHMANAGEMENTSERVICE_RESOURCE_URI, "Caption", 1),
     SER_NS_STR(MSVM_VIRTUALSWITCHMANAGEMENTSERVICE_RESOURCE_URI, "Description", 1),
@@ -410,12 +711,23 @@ SER_START_ITEMS(Msvm_VirtualSwitchManagementService_Data)
     SER_NS_BOOL(MSVM_VIRTUALSWITCHMANAGEMENTSERVICE_RESOURCE_URI, "Started", 1),
 SER_END_ITEMS(Msvm_VirtualSwitchManagementService_Data);
 
+hypervWmiClassInfoListPtr Msvm_VirtualSwitchManagementService_WmiInfo = &(hypervWmiClassInfoList) {
+    .count = 1,
+    .objs = (hypervWmiClassInfoPtr []) {
+        &(hypervWmiClassInfo) {
+            .name = MSVM_VIRTUALSWITCHMANAGEMENTSERVICE_CLASSNAME,
+            .version = NULL,
+            .rootUri = ROOT_VIRTUALIZATION,
+            .resourceUri = MSVM_VIRTUALSWITCHMANAGEMENTSERVICE_RESOURCE_URI,
+            .serializerInfo = Msvm_VirtualSwitchManagementService_Data_TypeInfo
+        },
+    }
+};
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Msvm_VirtualSystemGlobalSettingData
  */
-
 SER_START_ITEMS(Msvm_VirtualSystemGlobalSettingData_Data)
     SER_NS_STR(MSVM_VIRTUALSYSTEMGLOBALSETTINGDATA_RESOURCE_URI, "Caption", 1),
     SER_NS_STR(MSVM_VIRTUALSYSTEMGLOBALSETTINGDATA_RESOURCE_URI, "Description", 1),
@@ -440,12 +752,23 @@ SER_START_ITEMS(Msvm_VirtualSystemGlobalSettingData_Data)
     SER_NS_STR(MSVM_VIRTUALSYSTEMGLOBALSETTINGDATA_RESOURCE_URI, "Version", 1),
 SER_END_ITEMS(Msvm_VirtualSystemGlobalSettingData_Data);
 
+hypervWmiClassInfoListPtr Msvm_VirtualSystemGlobalSettingData_WmiInfo = &(hypervWmiClassInfoList) {
+    .count = 1,
+    .objs = (hypervWmiClassInfoPtr []) {
+        &(hypervWmiClassInfo) {
+            .name = MSVM_VIRTUALSYSTEMGLOBALSETTINGDATA_CLASSNAME,
+            .version = NULL,
+            .rootUri = ROOT_VIRTUALIZATION,
+            .resourceUri = MSVM_VIRTUALSYSTEMGLOBALSETTINGDATA_RESOURCE_URI,
+            .serializerInfo = Msvm_VirtualSystemGlobalSettingData_Data_TypeInfo
+        },
+    }
+};
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Msvm_VirtualSystemManagementService
  */
-
 SER_START_ITEMS(Msvm_VirtualSystemManagementService_Data)
     SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI, "Caption", 1),
     SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI, "Description", 1),
@@ -470,42 +793,119 @@ SER_START_ITEMS(Msvm_VirtualSystemManagementService_Data)
     SER_NS_BOOL(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI, "Started", 1),
 SER_END_ITEMS(Msvm_VirtualSystemManagementService_Data);
 
+hypervWmiClassInfoListPtr Msvm_VirtualSystemManagementService_WmiInfo = &(hypervWmiClassInfoList) {
+    .count = 1,
+    .objs = (hypervWmiClassInfoPtr []) {
+        &(hypervWmiClassInfo) {
+            .name = MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_CLASSNAME,
+            .version = NULL,
+            .rootUri = ROOT_VIRTUALIZATION,
+            .resourceUri = MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI,
+            .serializerInfo = Msvm_VirtualSystemManagementService_Data_TypeInfo
+        },
+    }
+};
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Msvm_VirtualSystemSettingData
  */
+SER_START_ITEMS(Msvm_VirtualSystemSettingData_v1_Data)
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V1_RESOURCE_URI, "CreationTime", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V1_RESOURCE_URI, "BIOSGUID", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V1_RESOURCE_URI, "Description", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V1_RESOURCE_URI, "BIOSSerialNumber", 1),
+    SER_NS_DYN_ARRAY(MSVM_VIRTUALSYSTEMSETTINGDATA_V1_RESOURCE_URI, "BootOrder", 0, 0, uint16),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V1_RESOURCE_URI, "Caption", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V1_RESOURCE_URI, "ChassisSerialNumber", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V1_RESOURCE_URI, "ChassisAssetTag", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V1_RESOURCE_URI, "BaseBoardSerialNumber", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V1_RESOURCE_URI, "InstanceID", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V1_RESOURCE_URI, "Parent", 1),
+    SER_NS_BOOL(MSVM_VIRTUALSYSTEMSETTINGDATA_V1_RESOURCE_URI, "BIOSNumLock", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V1_RESOURCE_URI, "ElementName", 1),
+    SER_NS_BOOL(MSVM_VIRTUALSYSTEMSETTINGDATA_V1_RESOURCE_URI, "AutoActivate", 1),
+    SER_NS_UINT16(MSVM_VIRTUALSYSTEMSETTINGDATA_V1_RESOURCE_URI, "VirtualSystemType", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V1_RESOURCE_URI, "OtherVirtualSystemType", 1),
+    SER_NS_UINT16(MSVM_VIRTUALSYSTEMSETTINGDATA_V1_RESOURCE_URI, "SettingType", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V1_RESOURCE_URI, "SystemName", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V1_RESOURCE_URI, "Notes", 1),
+    SER_NS_DYN_ARRAY(MSVM_VIRTUALSYSTEMSETTINGDATA_V1_RESOURCE_URI, "NumaNodeList", 0, 0, uint16),
+    SER_NS_BOOL(MSVM_VIRTUALSYSTEMSETTINGDATA_V1_RESOURCE_URI, "NumaNodesAreRequired", 1),
+SER_END_ITEMS(Msvm_VirtualSystemSettingData_v1_Data);
 
-SER_START_ITEMS(Msvm_VirtualSystemSettingData_Data)
-    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_RESOURCE_URI, "Caption", 1),
-    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_RESOURCE_URI, "Description", 1),
-    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_RESOURCE_URI, "ElementName", 1),
-    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_RESOURCE_URI, "InstanceID", 1),
-    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_RESOURCE_URI, "SystemName", 1),
-    SER_NS_UINT16(MSVM_VIRTUALSYSTEMSETTINGDATA_RESOURCE_URI, "SettingType", 1),
-    SER_NS_UINT16(MSVM_VIRTUALSYSTEMSETTINGDATA_RESOURCE_URI, "VirtualSystemType", 1),
-    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_RESOURCE_URI, "OtherVirtualSystemType", 1),
-    SER_NS_BOOL(MSVM_VIRTUALSYSTEMSETTINGDATA_RESOURCE_URI, "AutoActivate", 1),
-    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_RESOURCE_URI, "CreationTime", 1),
-    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_RESOURCE_URI, "Notes", 1),
-    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_RESOURCE_URI, "BIOSGUID", 1),
-    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_RESOURCE_URI, "BIOSSerialNumber", 1),
-    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_RESOURCE_URI, "BaseBoardSerialNumber", 1),
-    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_RESOURCE_URI, "ChassisSerialNumber", 1),
-    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_RESOURCE_URI, "ChassisAssetTag", 1),
-    SER_NS_BOOL(MSVM_VIRTUALSYSTEMSETTINGDATA_RESOURCE_URI, "BIOSNumLock", 1),
-    SER_NS_DYN_ARRAY(MSVM_VIRTUALSYSTEMSETTINGDATA_RESOURCE_URI, "BootOrder", 0, 0, uint16),
-    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_RESOURCE_URI, "Parent", 1),
-    SER_NS_DYN_ARRAY(MSVM_VIRTUALSYSTEMSETTINGDATA_RESOURCE_URI, "NumaNodeList", 0, 0, uint16),
-    SER_NS_BOOL(MSVM_VIRTUALSYSTEMSETTINGDATA_RESOURCE_URI, "NumaNodesAreRequired", 1),
-SER_END_ITEMS(Msvm_VirtualSystemSettingData_Data);
+SER_START_ITEMS(Msvm_VirtualSystemSettingData_v2_Data)
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "CreationTime", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "BIOSGUID", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "Description", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "BIOSSerialNumber", 1),
+    SER_NS_DYN_ARRAY(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "BootOrder", 0, 0, uint16),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "Caption", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "ChassisSerialNumber", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "ChassisAssetTag", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "BaseBoardSerialNumber", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "InstanceID", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "Parent", 1),
+    SER_NS_BOOL(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "BIOSNumLock", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "ElementName", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "SwapFileDataRoot", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "LogDataRoot", 1),
+    SER_NS_UINT16(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "AutomaticStartupAction", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "AutomaticStartupActionDelay", 1),
+    SER_NS_UINT16(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "AutomaticStartupActionSequenceNumber", 1),
+    SER_NS_UINT16(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "AutomaticShutdownAction", 1),
+    SER_NS_UINT16(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "AutomaticRecoveryAction", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "RecoveryFile", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "VirtualSystemType", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "SuspendDataRoot", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "ConfigurationID", 1),
+    SER_NS_DYN_ARRAY(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "Notes", 0, 0, string),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "ConfigurationDataRoot", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "SnapshotDataRoot", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "VirtualSystemIdentifier", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "ConfigurationFile", 1),
+    SER_NS_BOOL(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "IsSaved", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "AdditionalRecoveryInformation", 1),
+    SER_NS_BOOL(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "AllowFullSCSICommandSet", 1),
+    SER_NS_UINT32(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "DebugChannelId", 1),
+    SER_NS_UINT16(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "DebugPortEnabled", 1),
+    SER_NS_UINT32(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "DebugPort", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "Version", 1),
+    SER_NS_BOOL(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "IncrementalBackupEnabled", 1),
+    SER_NS_BOOL(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "VirtualNumaEnabled", 1),
+    SER_NS_BOOL(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "AllowReducedFcRedundancy", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "VirtualSystemSubType", 1),
+    SER_NS_DYN_ARRAY(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "BootSourceOrder", 0, 0, string),
+    SER_NS_BOOL(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "PauseAfterBootFailure", 1),
+    SER_NS_UINT16(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "NetworkBootPreferredProtocol", 1),
+    SER_NS_BOOL(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "SecureBootEnabled", 1),
+    SER_NS_UINT64(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "LowMmioGapSize", 1),
+SER_END_ITEMS(Msvm_VirtualSystemSettingData_v2_Data);
+
+hypervWmiClassInfoListPtr Msvm_VirtualSystemSettingData_WmiInfo = &(hypervWmiClassInfoList) {
+    .count = 2,
+    .objs = (hypervWmiClassInfoPtr []) {
+        &(hypervWmiClassInfo) {
+            .name = MSVM_VIRTUALSYSTEMSETTINGDATA_CLASSNAME,
+            .version = "v1",
+            .rootUri = ROOT_VIRTUALIZATION,
+            .resourceUri = MSVM_VIRTUALSYSTEMSETTINGDATA_V1_RESOURCE_URI,
+            .serializerInfo = Msvm_VirtualSystemSettingData_v1_Data_TypeInfo
+        },
+        &(hypervWmiClassInfo) {
+            .name = MSVM_VIRTUALSYSTEMSETTINGDATA_CLASSNAME,
+            .version = "v2",
+            .rootUri = ROOT_VIRTUALIZATION_V2,
+            .resourceUri = MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI,
+            .serializerInfo = Msvm_VirtualSystemSettingData_v2_Data_TypeInfo
+        },
+    }
+};
 
 
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Win32_ComputerSystem
  */
-
 SER_START_ITEMS(Win32_ComputerSystem_Data)
     SER_NS_UINT16(WIN32_COMPUTERSYSTEM_RESOURCE_URI, "AdminPasswordStatus", 1),
     SER_NS_BOOL(WIN32_COMPUTERSYSTEM_RESOURCE_URI, "AutomaticManagedPagefile", 1),
@@ -566,12 +966,23 @@ SER_START_ITEMS(Win32_ComputerSystem_Data)
     SER_NS_STR(WIN32_COMPUTERSYSTEM_RESOURCE_URI, "Workgroup", 1),
 SER_END_ITEMS(Win32_ComputerSystem_Data);
 
+hypervWmiClassInfoListPtr Win32_ComputerSystem_WmiInfo = &(hypervWmiClassInfoList) {
+    .count = 1,
+    .objs = (hypervWmiClassInfoPtr []) {
+        &(hypervWmiClassInfo) {
+            .name = WIN32_COMPUTERSYSTEM_CLASSNAME,
+            .version = NULL,
+            .rootUri = ROOT_CIMV2,
+            .resourceUri = WIN32_COMPUTERSYSTEM_RESOURCE_URI,
+            .serializerInfo = Win32_ComputerSystem_Data_TypeInfo
+        },
+    }
+};
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Win32_ComputerSystemProduct
  */
-
 SER_START_ITEMS(Win32_ComputerSystemProduct_Data)
     SER_NS_STR(WIN32_COMPUTERSYSTEMPRODUCT_RESOURCE_URI, "Caption", 1),
     SER_NS_STR(WIN32_COMPUTERSYSTEMPRODUCT_RESOURCE_URI, "Description", 1),
@@ -583,12 +994,23 @@ SER_START_ITEMS(Win32_ComputerSystemProduct_Data)
     SER_NS_STR(WIN32_COMPUTERSYSTEMPRODUCT_RESOURCE_URI, "Version", 1),
 SER_END_ITEMS(Win32_ComputerSystemProduct_Data);
 
+hypervWmiClassInfoListPtr Win32_ComputerSystemProduct_WmiInfo = &(hypervWmiClassInfoList) {
+    .count = 1,
+    .objs = (hypervWmiClassInfoPtr []) {
+        &(hypervWmiClassInfo) {
+            .name = WIN32_COMPUTERSYSTEMPRODUCT_CLASSNAME,
+            .version = NULL,
+            .rootUri = ROOT_CIMV2,
+            .resourceUri = WIN32_COMPUTERSYSTEMPRODUCT_RESOURCE_URI,
+            .serializerInfo = Win32_ComputerSystemProduct_Data_TypeInfo
+        },
+    }
+};
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Win32_OperatingSystem
  */
-
 SER_START_ITEMS(Win32_OperatingSystem_Data)
     SER_NS_STR(WIN32_OPERATINGSYSTEM_RESOURCE_URI, "BootDevice", 1),
     SER_NS_STR(WIN32_OPERATINGSYSTEM_RESOURCE_URI, "BuildNumber", 1),
@@ -655,12 +1077,23 @@ SER_START_ITEMS(Win32_OperatingSystem_Data)
     SER_NS_STR(WIN32_OPERATINGSYSTEM_RESOURCE_URI, "WindowsDirectory", 1),
 SER_END_ITEMS(Win32_OperatingSystem_Data);
 
+hypervWmiClassInfoListPtr Win32_OperatingSystem_WmiInfo = &(hypervWmiClassInfoList) {
+    .count = 1,
+    .objs = (hypervWmiClassInfoPtr []) {
+        &(hypervWmiClassInfo) {
+            .name = WIN32_OPERATINGSYSTEM_CLASSNAME,
+            .version = NULL,
+            .rootUri = ROOT_CIMV2,
+            .resourceUri = WIN32_OPERATINGSYSTEM_RESOURCE_URI,
+            .serializerInfo = Win32_OperatingSystem_Data_TypeInfo
+        },
+    }
+};
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor
  */
-
 SER_START_ITEMS(Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor_Data)
     SER_NS_UINT64(WIN32_PERFRAWDATA_HVSTATS_HYPERVHYPERVISORVIRTUALPROCESSOR_RESOURCE_URI, "AddressDomainFlushesPersec", 1),
     SER_NS_UINT64(WIN32_PERFRAWDATA_HVSTATS_HYPERVHYPERVISORVIRTUALPROCESSOR_RESOURCE_URI, "AddressSpaceEvictionsPersec", 1),
@@ -769,12 +1202,23 @@ SER_START_ITEMS(Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor_Data)
     SER_NS_UINT64(WIN32_PERFRAWDATA_HVSTATS_HYPERVHYPERVISORVIRTUALPROCESSOR_RESOURCE_URI, "VirtualProcessorHypercallsPersec", 1),
 SER_END_ITEMS(Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor_Data);
 
+hypervWmiClassInfoListPtr Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor_WmiInfo = &(hypervWmiClassInfoList) {
+    .count = 1,
+    .objs = (hypervWmiClassInfoPtr []) {
+        &(hypervWmiClassInfo) {
+            .name = WIN32_PERFRAWDATA_HVSTATS_HYPERVHYPERVISORVIRTUALPROCESSOR_CLASSNAME,
+            .version = NULL,
+            .rootUri = ROOT_CIMV2,
+            .resourceUri = WIN32_PERFRAWDATA_HVSTATS_HYPERVHYPERVISORVIRTUALPROCESSOR_RESOURCE_URI,
+            .serializerInfo = Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor_Data_TypeInfo
+        },
+    }
+};
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+/****************************************************
  * Win32_Processor
  */
-
 SER_START_ITEMS(Win32_Processor_Data)
     SER_NS_UINT16(WIN32_PROCESSOR_RESOURCE_URI, "AddressWidth", 1),
     SER_NS_UINT16(WIN32_PROCESSOR_RESOURCE_URI, "Architecture", 1),
@@ -826,5 +1270,17 @@ SER_START_ITEMS(Win32_Processor_Data)
     SER_NS_UINT32(WIN32_PROCESSOR_RESOURCE_URI, "VoltageCaps", 1),
 SER_END_ITEMS(Win32_Processor_Data);
 
+hypervWmiClassInfoListPtr Win32_Processor_WmiInfo = &(hypervWmiClassInfoList) {
+    .count = 1,
+    .objs = (hypervWmiClassInfoPtr []) {
+        &(hypervWmiClassInfo) {
+            .name = WIN32_PROCESSOR_CLASSNAME,
+            .version = NULL,
+            .rootUri = ROOT_CIMV2,
+            .resourceUri = WIN32_PROCESSOR_RESOURCE_URI,
+            .serializerInfo = Win32_Processor_Data_TypeInfo
+        },
+    }
+};
 
 

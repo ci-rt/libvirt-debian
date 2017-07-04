@@ -33,6 +33,8 @@ INCLUDES = \
 	-I$(top_srcdir)/src/conf \
 	$(GETTEXT_CPPFLAGS)
 
+WARN_CFLAGS += $(RELAXED_FRAME_LIMIT_CFLAGS)
+
 AM_CFLAGS = \
 	-Dabs_builddir="\"$(abs_builddir)\"" \
 	-Dabs_topbuilddir="\"$(abs_topbuilddir)\"" \
@@ -127,6 +129,7 @@ EXTRA_DIST =		\
 	qemumonitorjsondata \
 	qemuxml2argvdata \
 	qemuxml2xmloutdata \
+	qemumemlockdata \
 	secretxml2xmlin \
 	securityselinuxhelperdata \
 	securityselinuxlabeldata \
@@ -159,7 +162,9 @@ EXTRA_DIST =		\
 	xlconfigdata \
 	xmconfigdata \
 	xml2sexprdata \
-	xml2vmxdata
+	xml2vmxdata \
+	virstorageutildata \
+	$(NULL)
 
 test_helpers = commandhelper ssh
 test_programs = virshtest sockettest \
@@ -192,7 +197,6 @@ test_programs = virshtest sockettest \
 	domaincapstest \
 	domainconftest \
 	virhostdevtest \
-	vircaps2xmltest \
 	virnetdevtest \
 	virtypedparamtest \
 	$(NULL)
@@ -224,8 +228,10 @@ endif WITH_REMOTE
 if WITH_LINUX
 test_programs += fchosttest
 test_programs += scsihosttest
+test_programs += vircaps2xmltest
 test_libraries += virusbmock.la \
 	virnetdevbandwidthmock.la \
+	virnumamock.la \
 	virtestmock.la \
 	$(NULL)
 endif WITH_LINUX
@@ -276,14 +282,15 @@ test_programs += qemuxml2argvtest qemuxml2xmltest \
 	qemuargv2xmltest qemuhelptest domainsnapshotxml2xmltest \
 	qemumonitortest qemumonitorjsontest qemuhotplugtest \
 	qemuagenttest qemucapabilitiestest qemucaps2xmltest \
+	qemumemlocktest \
 	qemucommandutiltest
 test_helpers += qemucapsprobe
 test_libraries += libqemumonitortestutils.la \
 		libqemutestdriver.la \
 		qemuxml2argvmock.la \
-		qemuxml2xmlmock.la \
 		qemucaps2xmlmock.la \
 		qemucapsprobemock.la \
+		qemucpumock.la \
 		$(NULL)
 endif WITH_QEMU
 
@@ -349,6 +356,7 @@ endif WITH_NWFILTER
 
 if WITH_STORAGE
 test_programs += storagevolxml2argvtest
+test_programs += virstorageutiltest
 endif WITH_STORAGE
 
 if WITH_STORAGE_FS
@@ -549,22 +557,22 @@ libqemutestdriver_la_SOURCES =
 libqemutestdriver_la_LDFLAGS = $(QEMULIB_LDFLAGS)
 libqemutestdriver_la_LIBADD = $(qemu_LDADDS)
 
+qemucpumock_la_SOURCES = \
+	qemucpumock.c
+qemucpumock_la_CFLAGS = $(AM_CFLAGS)
+qemucpumock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
+qemucpumock_la_LIBADD = $(MOCKLIBS_LIBS)
+
 qemuxml2argvtest_SOURCES = \
 	qemuxml2argvtest.c testutilsqemu.c testutilsqemu.h \
 	testutils.c testutils.h
-qemuxml2argvtest_LDADD = $(qemu_LDADDS) $(LDADDS) $(LIBXML_LIBS)
+qemuxml2argvtest_LDADD = libqemutestdriver.la $(LDADDS) $(LIBXML_LIBS)
 
 qemuxml2argvmock_la_SOURCES = \
 	qemuxml2argvmock.c
 qemuxml2argvmock_la_CFLAGS = $(AM_CFLAGS)
 qemuxml2argvmock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
 qemuxml2argvmock_la_LIBADD = $(MOCKLIBS_LIBS)
-
-qemuxml2xmlmock_la_SOURCES = \
-	qemuxml2xmlmock.c
-qemuxml2xmlmock_la_CFLAGS = $(AM_CFLAGS)
-qemuxml2xmlmock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
-qemuxml2xmlmock_la_LIBADD = $(MOCKLIBS_LIBS)
 
 qemuxml2xmltest_SOURCES = \
 	qemuxml2xmltest.c testutilsqemu.c testutilsqemu.h \
@@ -651,6 +659,12 @@ domainsnapshotxml2xmltest_SOURCES = \
 	domainsnapshotxml2xmltest.c testutilsqemu.c testutilsqemu.h \
 	testutils.c testutils.h
 domainsnapshotxml2xmltest_LDADD = $(qemu_LDADDS) $(LDADDS)
+
+qemumemlocktest_SOURCES = \
+	qemumemlocktest.c \
+	testutilsqemu.c testutilsqemu.h \
+	testutils.c testutils.h
+qemumemlocktest_LDADD = $(qemu_LDADDS) $(LDADDS)
 else ! WITH_QEMU
 EXTRA_DIST += qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c \
 	qemuhelptest.c domainsnapshotxml2xmltest.c \
@@ -658,6 +672,7 @@ EXTRA_DIST += qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c \
 	qemumonitorjsontest.c qemuhotplugtest.c \
 	qemuagenttest.c qemucapabilitiestest.c \
 	qemucaps2xmltest.c qemucommandutiltest.c \
+	qemumemlocktest.c \
 	$(QEMUMONITORTESTUTILS_SOURCES)
 endif ! WITH_QEMU
 
@@ -842,6 +857,16 @@ genericxml2xmltest_LDADD = $(LDADDS)
 
 
 if WITH_STORAGE
+virstorageutiltest_SOURCES = \
+	virstorageutiltest.c \
+	testutils.c \
+	testutils.h \
+	$(NULL)
+virstorageutiltest_LDADD = \
+	../src/libvirt_driver_storage_impl.la \
+	$(LDADDS) \
+	$(NULL)
+
 storagevolxml2argvtest_SOURCES = \
     storagevolxml2argvtest.c \
     testutils.c testutils.h
@@ -851,6 +876,7 @@ storagevolxml2argvtest_LDADD = \
 
 else ! WITH_STORAGE
 EXTRA_DIST += storagevolxml2argvtest.c
+EXTRA_DIST += virstorageutiltest.c
 endif ! WITH_STORAGE
 
 storagevolxml2xmltest_SOURCES = \
@@ -897,7 +923,7 @@ virconftest_SOURCES = \
 virconftest_LDADD = $(LDADDS)
 
 virhostcputest_SOURCES = \
-	virhostcputest.c testutils.h testutils.c
+	virhostcputest.c testutils.h testutils.c virfilewrapper.h virfilewrapper.c
 virhostcputest_LDADD = $(LDADDS)
 
 commandtest_SOURCES = \
@@ -933,11 +959,6 @@ vircapstest_SOURCES += testutilsxen.c testutilsxen.h
 endif WITH_XEN
 vircapstest_LDADD = $(qemu_LDADDS) $(LDADDS)
 
-vircaps2xmltest_SOURCES = \
-	vircaps2xmltest.c testutils.h testutils.c
-vircaps2xmltest_LDADD = $(LDADDS)
-
-
 domaincapsmock_la_SOURCES = domaincapsmock.c
 domaincapsmock_la_CFLAGS = $(AM_CFLAGS)
 domaincapsmock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
@@ -949,13 +970,17 @@ domaincapstest_LDADD = $(LDADDS)
 
 if WITH_QEMU
 domaincapstest_SOURCES += testutilsqemu.c testutilsqemu.h
-domaincapstest_LDADD += $(qemu_LDADDS) $(GNULIB_LIBS)
+domaincapstest_LDADD += libqemutestdriver.la $(GNULIB_LIBS)
 endif WITH_QEMU
 
 if WITH_LIBXL
 domaincapstest_SOURCES += testutilsxen.c testutilsxen.h
 domaincapstest_LDADD += ../src/libvirt_driver_libxl_impl.la $(GNULIB_LIBS)
 endif WITH_LIBXL
+
+if WITH_BHYVE
+domaincapstest_LDADD += ../src/libvirt_driver_bhyve_impl.la $(GNULIB_LIBS)
+endif WITH_BHYVE
 
 virnetmessagetest_SOURCES = \
 	virnetmessagetest.c testutils.h testutils.c
@@ -1112,6 +1137,21 @@ virhostcpumock_la_SOURCES = \
 virhostcpumock_la_CFLAGS = $(AM_CFLAGS)
 virhostcpumock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
 virhostcpumock_la_LIBADD = $(MOCKLIBS_LIBS)
+
+if WITH_LINUX
+vircaps2xmltest_SOURCES = \
+	vircaps2xmltest.c testutils.h testutils.c virfilewrapper.h virfilewrapper.c
+vircaps2xmltest_LDADD = $(LDADDS)
+
+virnumamock_la_SOURCES = \
+	virnumamock.c
+virnumamock_la_CFLAGS = $(AM_CFLAGS)
+virnumamock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
+virnumamock_la_LIBADD = $(MOCKLIBS_LIBS)
+
+else ! WITH_LINUX
+EXTRA_DIST += vircaps2xmltest.c virnumamock.c virfilewrapper.c virfilewrapper.h
+endif ! WITH_LINUX
 
 if WITH_NSS
 nsstest_SOURCES = \

@@ -33,6 +33,7 @@
 #include "virlog.h"
 #include "virstring.h"
 #include "viraccessapicheck.h"
+#include "virinterfaceobj.h"
 
 #define VIR_FROM_THIS VIR_FROM_INTERFACE
 
@@ -621,8 +622,10 @@ netcfConnectListAllInterfaces(virConnectPtr conn,
         }
 
         if (ifaces) {
-            if (!(iface_obj = virGetInterface(conn, def->name, def->mac)))
+            if (!(iface_obj = virGetInterface(conn, def->name, def->mac))) {
+                virInterfaceDefFree(def);
                 goto cleanup;
+            }
             tmp_iface_objs[niface_objs] = iface_obj;
         }
         niface_objs++;

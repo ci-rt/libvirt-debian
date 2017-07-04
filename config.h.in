@@ -196,6 +196,10 @@
 #undef GNULIB_MKOSTEMPS
 
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
+   whether the gnulib module msvc-nothrow shall be considered present. */
+#undef GNULIB_MSVC_NOTHROW
+
+/* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module nonblocking shall be considered present. */
 #undef GNULIB_NONBLOCKING
 
@@ -222,6 +226,10 @@
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module strerror shall be considered present. */
 #undef GNULIB_STRERROR
+
+/* Define to a C preprocessor expression that evaluates to 1 or 0, depending
+   whether the gnulib module strerror_r-posix shall be considered present. */
+#undef GNULIB_STRERROR_R_POSIX
 
 /* Define to 1 when the gnulib module accept should be tested. */
 #undef GNULIB_TEST_ACCEPT
@@ -684,6 +692,9 @@
    libc. */
 #undef HAVE_COPYSIGN_IN_LIBC
 
+/* Define to 1 if you have the <crtdefs.h> header file. */
+#undef HAVE_CRTDEFS_H
+
 /* Define to 1 if the system has the type `DBusBasicValue'. */
 #undef HAVE_DBUSBASICVALUE
 
@@ -734,6 +745,10 @@
    if you don't. */
 #undef HAVE_DECL_CPUSET_GETAFFINITY
 
+/* Define to 1 if you have the declaration of `ETHTOOL_GCOALESCE', and to 0 if
+   you don't. */
+#undef HAVE_DECL_ETHTOOL_GCOALESCE
+
 /* Define to 1 if you have the declaration of `ETHTOOL_GFEATURES', and to 0 if
    you don't. */
 #undef HAVE_DECL_ETHTOOL_GFEATURES
@@ -749,6 +764,10 @@
 /* Define to 1 if you have the declaration of `ETHTOOL_GGSO', and to 0 if you
    don't. */
 #undef HAVE_DECL_ETHTOOL_GGSO
+
+/* Define to 1 if you have the declaration of `ETHTOOL_SCOALESCE', and to 0 if
+   you don't. */
+#undef HAVE_DECL_ETHTOOL_SCOALESCE
 
 /* Define to 1 if you have the declaration of `ETH_FLAG_LRO', and to 0 if you
    don't. */
@@ -825,10 +844,6 @@
 /* Define to 1 if you have the declaration of `getdtablesize', and to 0 if you
    don't. */
 #undef HAVE_DECL_GETDTABLESIZE
-
-/* Define to 1 if you have the declaration of `getenv', and to 0 if you don't.
-   */
-#undef HAVE_DECL_GETENV
 
 /* Define to 1 if you have the declaration of `getline', and to 0 if you
    don't. */
@@ -917,6 +932,10 @@
    you don't. */
 #undef HAVE_DECL_SANLK_INQ_WAIT
 
+/* Define to 1 if you have the declaration of `SEEK_HOLE', and to 0 if you
+   don't. */
+#undef HAVE_DECL_SEEK_HOLE
+
 /* Define to 1 if you have the declaration of `setenv', and to 0 if you don't.
    */
 #undef HAVE_DECL_SETENV
@@ -933,12 +952,9 @@
    */
 #undef HAVE_DECL_STRDUP
 
-/* Define to 1, since you should have the declaration of strerror_r. */
+/* Define to 1 if you have the declaration of `strerror_r', and to 0 if you
+   don't. */
 #undef HAVE_DECL_STRERROR_R
-
-/* Define to 1 if you have the declaration of 'strerror_r' in the system
-   include files, or to 0 otherwise. */
-#undef HAVE_DECL_STRERROR_R_ORIG
 
 /* Define to 1 if you have the declaration of `strncasecmp', and to 0 if you
    don't. */
@@ -1151,6 +1167,9 @@
 
 /* Define to 1 if you have the <ifaddrs.h> header file. */
 #undef HAVE_IFADDRS_H
+
+/* Define to 1 if you have the 'if_indextoname' function. */
+#undef HAVE_IF_INDEXTONAME
 
 /* Define if you have if_nameindex. */
 #undef HAVE_IF_NAMEINDEX
@@ -1532,6 +1551,9 @@
 /* Define to 1 if you have the `rawmemchr' function. */
 #undef HAVE_RAWMEMCHR
 
+/* Define to 1 if you have the `rbd_get_features' function. */
+#undef HAVE_RBD_GET_FEATURES
+
 /* Define to 1 if you have the 'readlink' function. */
 #undef HAVE_READLINK
 
@@ -1567,6 +1589,9 @@
 
 /* whether Sanlock supports sanlock_killpath */
 #undef HAVE_SANLOCK_KILLPATH
+
+/* whether sanlock supports sanlock_strerror */
+#undef HAVE_SANLOCK_STRERROR
 
 /* Define to 1 if the system has the type `sa_family_t'. */
 #undef HAVE_SA_FAMILY_T
@@ -1675,6 +1700,9 @@
 /* Define to 1 if you have the `stat64' function. */
 #undef HAVE_STAT64
 
+/* Define to 1 if you have the <stdarg.h> header file. */
+#undef HAVE_STDARG_H
+
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
 
@@ -1700,7 +1728,7 @@
 /* Define to 1 if you have the 'strdup' function. */
 #undef HAVE_STRDUP
 
-/* Define to 1, since you should have the function strerror_r. */
+/* Define to 1 if you have the `strerror_r' function. */
 #undef HAVE_STRERROR_R
 
 /* Define to 1 if you have the <strings.h> header file. */
@@ -1883,9 +1911,6 @@
 /* Define to 1 if you have the <sys/table.h> header file. */
 #undef HAVE_SYS_TABLE_H
 
-/* Define to 1 if you have the <sys/timeb.h> header file. */
-#undef HAVE_SYS_TIMEB_H
-
 /* Define to 1 if you have the <sys/time.h> header file. */
 #undef HAVE_SYS_TIME_H
 
@@ -1942,6 +1967,10 @@
 
 /* whether libudev logging can be used */
 #undef HAVE_UDEV_LOGGING
+
+/* Define to 1 if you have the `udev_monitor_set_receive_buffer_size'
+   function. */
+#undef HAVE_UDEV_MONITOR_SET_RECEIVE_BUFFER_SIZE
 
 /* Define to 1 if you have the `uname' function. */
 #undef HAVE_UNAME
@@ -2072,9 +2101,6 @@
 
 /* Define to 1 if you have the `_ftelli64' function. */
 #undef HAVE__FTELLI64
-
-/* Define to 1 if you have the `_ftime' function. */
-#undef HAVE__FTIME
 
 /* Define to 1 if you have the `_getpty' function. */
 #undef HAVE__GETPTY
@@ -2234,6 +2260,17 @@
 /* Location or name of the mount program */
 #undef MOUNT
 
+/* Define if the compilation of mktime.c should define 'mktime_internal'. */
+#undef NEED_MKTIME_INTERNAL
+
+/* Define if the compilation of mktime.c should define 'mktime' with the
+   native Windows TZ workaround. */
+#undef NEED_MKTIME_WINDOWS
+
+/* Define if the compilation of mktime.c should define 'mktime' with the
+   algorithmic workarounds. */
+#undef NEED_MKTIME_WORKING
+
 /* define to 1 if Linux kernel headers require a workaround to avoid
    compilation errors when mixed with glibc netinet headers */
 #undef NETINET_LINUX_WORKAROUND
@@ -2331,10 +2368,6 @@
 /* Define to 1 if readlink fails to recognize a trailing slash. */
 #undef READLINK_TRAILING_SLASH_BUG
 
-/* Define to 1 if stat needs help when passed a directory name with a trailing
-   slash */
-#undef REPLACE_FUNC_STAT_DIR
-
 /* Define to 1 if stat needs help when passed a file name with a trailing
    slash */
 #undef REPLACE_FUNC_STAT_FILE
@@ -2397,7 +2430,7 @@
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
-/* Define to 0, since strerror_r should not return char *. */
+/* Define to 1 if strerror_r returns char *. */
 #undef STRERROR_R_CHAR_P
 
 /* Location or name of the tc program (see iproute2) */
@@ -2847,10 +2880,6 @@
 /* Number of bits in a file offset, on hosts where this is settable. */
 #undef _FILE_OFFSET_BITS
 
-/* Define to 1 if Gnulib overrides 'struct stat' on Windows so that struct
-   stat.st_size becomes 64-bit. */
-#undef _GL_WINDOWS_64_BIT_ST_SIZE
-
 /* Define to 1 to make fseeko visible on some hosts (e.g. glibc 2.2). */
 #undef _LARGEFILE_SOURCE
 
@@ -2906,6 +2935,9 @@
 
 /* For thread-safety on AIX, FreeBSD. */
 #undef _THREAD_SAFE
+
+/* For standard stat data types on VMS. */
+#undef _USE_STD_STAT
 
 /* Define to rpl_ if the getopt replacement functions and variables should be
    used. */

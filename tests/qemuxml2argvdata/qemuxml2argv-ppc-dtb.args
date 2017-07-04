@@ -14,7 +14,6 @@ QEMU_AUDIO_DRV=none \
 -nographic \
 -nodefaults \
 -monitor unix:/tmp/lib/domain--1-QEMUGuest1/monitor.sock,server,nowait \
--no-acpi \
 -boot c \
 -kernel /media/ram/uImage \
 -initrd /media/ram/ramdisk \
@@ -22,4 +21,4 @@ QEMU_AUDIO_DRV=none \
 -dtb /media/ram/test.dtb \
 -usb \
 -serial pty \
--device virtio-balloon-pci,id=balloon0,bus=pci,addr=0x2
+-device virtio-balloon-pci,id=balloon0,bus=pci.0,addr=0x2

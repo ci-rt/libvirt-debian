@@ -72,6 +72,8 @@
                   </li><li>
                     <a href="#elementsAddress">Device Addresses</a>
                   </li><li>
+                    <a href="#elementsVirtio">Virtio-related options</a>
+                  </li><li>
                     <a href="#elementsControllers">Controllers</a>
                   </li><li>
                     <a href="#elementsLease">Device leases</a>
@@ -128,6 +130,8 @@
                         <a href="#elementLink">Modifying virtual link state</a>
                       </li><li>
                         <a href="#mtu">MTU configuration</a>
+                      </li><li>
+                        <a href="#coalesce">Coalesce settings</a>
                       </li><li>
                         <a href="#ipconfig">IP configuration</a>
                       </li><li>
@@ -647,7 +651,7 @@
 
         <code>order</code> allows to specify the order to add the online vcpus.
         For hypervisors/platforms that require to insert multiple vcpus at once
-        the order may be be duplicated accross all vcpus that need to be
+        the order may be duplicated accross all vcpus that need to be
         enabled at once. Specifying order is not necessary, vcpus are then
         added in an arbitrary order. If order info is used, it must be used for
         all online vcpus. Hypervisors may clear or update ordering information
@@ -966,14 +970,21 @@
       <a href="#elementsNUMATuning" shape="rect">this</a>.</dd><dt><code>nosharepages</code></dt><dd>Instructs hypervisor to disable shared pages (memory merge, KSM) for
         this domain. <span class="since">Since 1.0.6</span></dd><dt><code>locked</code></dt><dd>When set and supported by the hypervisor, memory pages belonging
         to the domain will be locked in host's memory and the host will not
-        be allowed to swap them out. For QEMU/KVM this requires
-        <code>hard_limit</code> <a href="#elementsMemoryTuning" shape="rect">memory tuning</a>
-        element to be used and set to the maximum memory configured for the
-        domain plus any memory consumed by the QEMU process itself. Beware of
-        setting the memory limit too high (and thus allowing the domain to lock
-        most of the host's memory). Doing so may be dangerous to both the
-        domain and the host itself since the host's kernel may run out of
-        memory. <span class="since">Since 1.0.6</span></dd><dt><code>source</code></dt><dd>In this attribute you can switch to file memorybacking or keep default anonymous.</dd><dt><code>access</code></dt><dd>Specify if memory is shared or private. This can be overridden per numa node by <code>memAccess</code></dd><dt><code>allocation</code></dt><dd>Specify when allocate the memory</dd></dl>
+        be allowed to swap them out, which might be required for some
+        workloads such as real-time. For QEMU/KVM guests, the memory used by
+        the QEMU process itself will be locked too: unlike guest memory, this
+        is an amount libvirt has no way of figuring out in advance, so it has
+        to remove the limit on locked memory altogether. Thus, enabling this
+        option opens up to a potential security risk: the host will be unable
+        to reclaim the locked memory back from the guest when it's running out
+        of memory, which means a malicious guest allocating large amounts of
+        locked memory could cause a denial-of-service attach on the host.
+        Because of this, using this option is discouraged unless your workload
+        demands it; even then, it's highly recommended to set an
+        <code>hard_limit</code> (see
+        <a href="#elementsMemoryTuning" shape="rect">memory tuning</a>) on memory allocation
+        suitable for the specific environment at the same time to mitigate
+        the risks described above. <span class="since">Since 1.0.6</span></dd><dt><code>source</code></dt><dd>In this attribute you can switch to file memorybacking or keep default anonymous.</dd><dt><code>access</code></dt><dd>Specify if memory is shared or private. This can be overridden per numa node by <code>memAccess</code></dd><dt><code>allocation</code></dt><dd>Specify when allocate the memory</dd></dl>
         <h3>
           <a name="elementsMemoryTuning" shape="rect" id="elementsMemoryTuning">Memory Tuning</a>
           <a class="headerlink" href="#elementsMemoryTuning" title="Permalink to this headline">¶</a>
@@ -1006,12 +1017,18 @@
         Possible values for all *_limit parameters are in range from 0 to
         VIR_DOMAIN_MEMORY_PARAM_UNLIMITED.</dd><dt><code>hard_limit</code></dt><dd> The optional <code>hard_limit</code> element is the maximum memory
         the guest can use. The units for this value are kibibytes (i.e. blocks
-        of 1024 bytes). <strong>However, users of QEMU and KVM are strongly
-        advised not to set this limit as domain may get killed by the kernel
-        if the guess is too low. To determine the memory needed for a process
-        to run is an
+        of 1024 bytes). Users of QEMU and KVM are strongly advised not to set
+        this limit as domain may get killed by the kernel if the guess is too
+        low, and determining the memory needed for a process to run is an
         <a href="http://en.wikipedia.org/wiki/Undecidable_problem" shape="rect">
-        undecidable problem</a>.</strong></dd><dt><code>soft_limit</code></dt><dd> The optional <code>soft_limit</code> element is the memory limit to
+        undecidable problem</a>; that said, if you already set
+        <code>locked</code> in
+        <a href="#elementsMemoryBacking" shape="rect">memory backing</a> because your
+        workload demands it, you'll have to take into account the specifics of
+        your deployment and figure out a value for <code>hard_limit</code> that
+        balances the risk of your guest being killed because the limit was set
+        too low and the risk of your host crashing because it cannot reclaim
+        the memory used by the guest due to <code>locked</code>. Good luck!</dd><dt><code>soft_limit</code></dt><dd> The optional <code>soft_limit</code> element is the memory limit to
         enforce during memory contention. The units for this value are
         kibibytes (i.e. blocks of 1024 bytes)</dd><dt><code>swap_hard_limit</code></dt><dd> The optional <code>swap_hard_limit</code> element is the maximum
         memory plus swap the guest can use. The units for this value are
@@ -1171,6 +1188,7 @@
   &lt;model fallback='allow'&gt;core2duo&lt;/model&gt;
   &lt;vendor&gt;Intel&lt;/vendor&gt;
   &lt;topology sockets='1' cores='2' threads='1'/&gt;
+  &lt;cache level='3' mode='emulate'/&gt;
   &lt;feature policy='disable' name='lahf_lm'/&gt;
 &lt;/cpu&gt;
 ...</pre>
@@ -1182,6 +1200,7 @@
 ...</pre>
         <pre xml:space="preserve">
 &lt;cpu mode='host-passthrough'&gt;
+  &lt;cache mode='passthrough'/&gt;
   &lt;feature policy='disable' name='lahf_lm'/&gt;
 ...</pre>
         <p>
@@ -1196,20 +1215,47 @@
 &lt;/cpu&gt;
 ...</pre>
         <dl><dt><code>cpu</code></dt><dd>The <code>cpu</code> element is the main container for describing
-        guest CPU requirements. Its <code>match</code> attribute specified how
-        strictly has the virtual CPU provided to the guest match these
+        guest CPU requirements. Its <code>match</code> attribute specifies how
+        strictly the virtual CPU provided to the guest matches these
         requirements. <span class="since">Since 0.7.6</span> the
         <code>match</code> attribute can be omitted if <code>topology</code>
         is the only element within <code>cpu</code>. Possible values for the
         <code>match</code> attribute are:
 
         <dl><dt><code>minimum</code></dt><dd>The specified CPU model and features describes the minimum
-            requested CPU.</dd><dt><code>exact</code></dt><dd>The virtual CPU provided to the guest will exactly match the
-            specification</dd><dt><code>strict</code></dt><dd>The guest will not be created unless the host CPU does exactly
-            match the specification.</dd></dl>
+            requested CPU. A better CPU will be provided to the guest if it
+            is possible with the requested hypervisor on the current host.
+            This is a constrained <code>host-model</code> mode; the domain
+            will not be created if the provided virtual CPU does not meet
+            the requirements.</dd><dt><code>exact</code></dt><dd>The virtual CPU provided to the guest should exactly match the
+            specification. If such CPU is not supported, libvirt will refuse
+            to start the domain.</dd><dt><code>strict</code></dt><dd>The domain will not be created unless the host CPU exactly
+            matches the specification. This is not very useful in practice
+            and should only be used if there is a real reason.</dd></dl>
 
         <span class="since">Since 0.8.5</span> the <code>match</code>
         attribute can be omitted and will default to <code>exact</code>.
+
+        Sometimes the hypervisor is not able to create a virtual CPU exactly
+        matching the specification passed by libvirt.
+        <span class="since">Since 3.2.0</span>, an optional <code>check</code>
+        attribute can be used to request a specific way of checking whether
+        the virtual CPU matches the specification. It is usually safe to omit
+        this attribute when starting a domain and stick with the default
+        value. Once the domain starts, libvirt will automatically change the
+        <code>check</code> attribute to the best supported value to ensure the
+        virtual CPU does not change when the domain is migrated to another
+        host. The following values can be used:
+
+        <dl><dt><code>none</code></dt><dd>Libvirt does no checking and it is up to the hypervisor to
+            refuse to start the domain if it cannot provide the requested CPU.
+            With QEMU this means no checking is done at all since the default
+            behavior of QEMU is to emit warnings, but start the domain anyway.
+          </dd><dt><code>partial</code></dt><dd>Libvirt will check the guest CPU specification before starting
+            a domain, but the rest is left on the hypervisor. It can still
+            provide a different virtual CPU.</dd><dt><code>full</code></dt><dd>The virtual CPU created by the hypervisor will be checked
+            against the CPU specification and the domain will not be started
+            unless the two CPUs match.</dd></dl>
 
         <span class="since">Since 0.9.10</span>, an optional <code>mode</code>
         attribute may be used to make it easier to configure a guest CPU to be
@@ -1240,19 +1286,21 @@
           model even if the destination host contains more capable CPUs for
           the running instance of the guest; but shutting down and restarting
           the guest may present different hardware to the guest according to
-          the capabilities of the new host. <strong>Beware</strong>, due to the
-          way libvirt detects host CPU and due to the fact libvirt does not
-          talk to QEMU/KVM when creating the CPU model, CPU configuration
-          created using <code>host-model</code> may not work as expected. The
-          guest CPU may differ from the configuration and it may also confuse
-          guest OS by using a combination of CPU features and other parameters
-          (such as CPUID level) that don't work. Until these issues are fixed,
-          it's a good idea to avoid using <code>host-model</code> and use
-          <code>custom</code> mode with just the CPU model from host
-          capabilities XML.
-          <span class="since">Since 1.2.11</span> PowerISA allows
-          processors to run VMs in binary compatibility mode supporting an
-          older version of ISA.  Libvirt on PowerPC architecture uses the
+          the capabilities of the new host. Prior to libvirt 3.2.0 and QEMU
+          2.9.0 detection of the host CPU model via QEMU is not supported.
+          Thus the CPU configuration created using <code>host-model</code>
+          may not work as expected.
+          <span class="since">Since 3.2.0 and QEMU 2.9.0</span> this mode
+          works the way it was designed and it is indicated by the
+          <code>fallback</code> attribute set to <code>forbid</code> in the
+          host-model CPU definition advertised in
+          <a href="formatdomaincaps.html#elementsCPU" shape="rect">domain capabilities XML</a>.
+          When <code>fallback</code> attribute is set to <code>allow</code>
+          in the domain capabilities XML, it is recommended to use
+          <code>custom</code> mode with just the CPU model from the host
+          capabilities XML. <span class="since">Since 1.2.11</span> PowerISA
+          allows processors to run VMs in binary compatibility mode supporting
+          an older version of ISA.  Libvirt on PowerPC architecture uses the
           <code>host-model</code> to signify a guest mode CPU running in
           binary compatibility mode. Example:
           When a user needs a power7 VM to run in compatibility mode
@@ -1272,6 +1320,15 @@
           hosts are not identical in both hardware and configuration. If such
           a migration is attempted then the guest may hang or crash upon
           resuming execution on the destination host.</dd></dl>
+
+        Both <code>host-model</code> and <code>host-passthrough</code> modes
+        make sense when a domain can run directly on the host CPUs (for
+        example, domains with type <code>kvm</code>). The actual host CPU is
+        irrelevant for domains with emulated virtual CPUs (such as domains with
+        type <code>qemu</code>). However, for backward compatibility
+        <code>host-model</code> may be implemented even for domains running on
+        emulated CPUs in which case the best CPU the hypervisor is able to
+        emulate may be used rather then trying to mimic the host CPU model.
       </dd><dt><code>model</code></dt><dd>The content of the <code>model</code> element specifies CPU model
         requested by the guest. The list of available CPU models and their
         definition can be found in <code>cpu_map.xml</code> file installed
@@ -1295,7 +1352,10 @@
         virtual CPU provided to the guest. Three non-zero values have to be
         given for <code>sockets</code>, <code>cores</code>, and
         <code>threads</code>: total number of CPU sockets, number of cores per
-        socket, and number of threads per core, respectively.</dd><dt><code>feature</code></dt><dd>The <code>cpu</code> element can contain zero or more
+        socket, and number of threads per core, respectively. Hypervisors may
+        require that the maximum number of vCPUs specified by the
+        <code>cpus</code> element equals to the number of vcpus resulting
+        from the topology.</dd><dt><code>feature</code></dt><dd>The <code>cpu</code> element can contain zero or more
         <code>elements</code> used to fine-tune features provided by the
         selected CPU model. The list of known feature names can be found in
         the same file as CPU models. The meaning of each <code>feature</code>
@@ -1310,6 +1370,21 @@
 
         <span class="since">Since 0.8.5</span> the <code>policy</code>
         attribute can be omitted and will default to <code>require</code>.
+      </dd><dt><code>cache</code></dt><dd><span class="since">Since 3.3.0</span> the <code>cache</code>
+        element describes the virtual CPU cache. If the element is missing,
+        the hypervisor will use a sensible default.
+
+        <dl><dt><code>level</code></dt><dd>This optional attribute specifies which cache level is described
+            by the element. Missing attribute means the element describes all
+            CPU cache levels at once. Mixing <code>cache</code> elements with
+            the <code>level</code> attribute set and those without the
+            attribute is forbidden.</dd><dt><code>mode</code></dt><dd>
+            The following values are supported:
+            <dl><dt><code>emulate</code></dt><dd>The hypervisor will provide a fake CPU cache data.</dd><dt><code>passthrough</code></dt><dd>The real CPU cache data reported by the host CPU will be
+                passed through to the virtual CPU.</dd><dt><code>disable</code></dt><dd>The virtual CPU will report no CPU cache of the specified
+                level (or no cache at all if the <code>level</code> attribute
+                is missing).</dd></dl>
+          </dd></dl>
       </dd></dl>
         <p>
       Guest NUMA topology can be specified using the <code>numa</code> element.
@@ -1343,7 +1418,7 @@
       <span class="since">Since 1.2.9</span> the optional attribute
       <code>memAccess</code> can control whether the memory is to be
       mapped as "shared" or "private".  This is valid only for
-      hugepages-backed memory.
+      hugepages-backed memory and nvdimm modules.
     </p>
         <p>
       This guest NUMA specification is currently available only for QEMU/KVM.
@@ -1473,6 +1548,7 @@
   &lt;/kvm&gt;
   &lt;pvspinlock state='on'/&gt;
   &lt;gic version='2'/&gt;
+  &lt;ioapic driver='qemu'/&gt;
 
 &lt;/features&gt;
 ...</pre>
@@ -1531,6 +1607,12 @@
           <code>on</code> and <code>off</code>. The default is left
           for hypervisor to decide.
           <span class="since">Since 2.1.0</span>
+      </dd><dt><code>ioapic</code></dt><dd>Tune the I/O APIC. Possible values for the
+          <code>driver</code> attribute are:
+          <code>kvm</code> (default for KVM domains)
+          and <code>qemu</code> which puts I/O APIC in userspace
+          which is also known as a split I/O APIC mode.
+          <span class="since">Since 3.4.0</span> (QEMU/KVM only)
       </dd></dl>
         <h3>
           <a name="elementsTime" shape="rect" id="elementsTime">Time keeping</a>
@@ -1688,13 +1770,42 @@
   &lt;event name='stalled_cycles_frontend' enabled='no'/&gt;
   &lt;event name='stalled_cycles_backend' enabled='no'/&gt;
   &lt;event name='ref_cpu_cycles' enabled='no'/&gt;
+  &lt;event name='cpu_clock' enabled='no'/&gt;
+  &lt;event name='task_clock' enabled='no'/&gt;
+  &lt;event name='page_faults' enabled='no'/&gt;
+  &lt;event name='context_switches' enabled='no'/&gt;
+  &lt;event name='cpu_migrations' enabled='no'/&gt;
+  &lt;event name='page_faults_min' enabled='no'/&gt;
+  &lt;event name='page_faults_maj' enabled='no'/&gt;
+  &lt;event name='alignment_faults' enabled='no'/&gt;
+  &lt;event name='emulation_faults' enabled='no'/&gt;
 &lt;/perf&gt;
 ...
 </pre>
         <table class="top_table"><tr><th rowspan="1" colspan="1">event name</th><th rowspan="1" colspan="1">Description</th><th rowspan="1" colspan="1">stats parameter name</th></tr><tr><td rowspan="1" colspan="1"><code>cmt</code></td><td rowspan="1" colspan="1">usage of l3 cache in bytes by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.cmt</code></td></tr><tr><td rowspan="1" colspan="1"><code>mbmt</code></td><td rowspan="1" colspan="1">total system bandwidth from one level of cache</td><td rowspan="1" colspan="1"><code>perf.mbmt</code></td></tr><tr><td rowspan="1" colspan="1"><code>mbml</code></td><td rowspan="1" colspan="1">bandwidth of memory traffic for a memory controller</td><td rowspan="1" colspan="1"><code>perf.mbml</code></td></tr><tr><td rowspan="1" colspan="1"><code>cpu_cycles</code></td><td rowspan="1" colspan="1">the count of cpu cycles (total/elapsed)</td><td rowspan="1" colspan="1"><code>perf.cpu_cycles</code></td></tr><tr><td rowspan="1" colspan="1"><code>instructions</code></td><td rowspan="1" colspan="1">the count of instructions by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.instructions</code></td></tr><tr><td rowspan="1" colspan="1"><code>cache_references</code></td><td rowspan="1" colspan="1">the count of cache hits by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.cache_references</code></td></tr><tr><td rowspan="1" colspan="1"><code>cache_misses</code></td><td rowspan="1" colspan="1">the count of cache misses by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.cache_misses</code></td></tr><tr><td rowspan="1" colspan="1"><code>branch_instructions</code></td><td rowspan="1" colspan="1">the count of branch instructions by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.branch_instructions</code></td></tr><tr><td rowspan="1" colspan="1"><code>branch_misses</code></td><td rowspan="1" colspan="1">the count of branch misses by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.branch_misses</code></td></tr><tr><td rowspan="1" colspan="1"><code>bus_cycles</code></td><td rowspan="1" colspan="1">the count of bus cycles by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.bus_cycles</code></td></tr><tr><td rowspan="1" colspan="1"><code>stalled_cycles_frontend</code></td><td rowspan="1" colspan="1">the count of stalled cpu cycles in the frontend of the instruction
           processor pipeline by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.stalled_cycles_frontend</code></td></tr><tr><td rowspan="1" colspan="1"><code>stalled_cycles_backend</code></td><td rowspan="1" colspan="1">the count of stalled cpu cycles in the backend of the instruction
           processor pipeline by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.stalled_cycles_backend</code></td></tr><tr><td rowspan="1" colspan="1"><code>ref_cpu_cycles</code></td><td rowspan="1" colspan="1">the count of total cpu cycles not affected by CPU frequency scaling
-         by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.ref_cpu_cycles</code></td></tr></table>
+         by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.ref_cpu_cycles</code></td></tr><tr><td rowspan="1" colspan="1"><code>cpu_clock</code></td><td rowspan="1" colspan="1">the count of cpu clock time, as measured by a monotonic
+          high-resolution per-CPU timer, by applications running on
+          the platform</td><td rowspan="1" colspan="1"><code>perf.cpu_clock</code></td></tr><tr><td rowspan="1" colspan="1"><code>task_clock</code></td><td rowspan="1" colspan="1">the count of task clock time, as measured by a monotonic
+          high-resolution CPU timer, specific to the task that
+          is run by applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.task_clock</code></td></tr><tr><td rowspan="1" colspan="1"><code>page_faults</code></td><td rowspan="1" colspan="1">the count of page faults by applications running on the
+          platform. This includes minor, major, invalid and other
+          types of page faults</td><td rowspan="1" colspan="1"><code>perf.page_faults</code></td></tr><tr><td rowspan="1" colspan="1"><code>context_switches</code></td><td rowspan="1" colspan="1">the count of context switches by applications running on
+          the platform</td><td rowspan="1" colspan="1"><code>perf.context_switches</code></td></tr><tr><td rowspan="1" colspan="1"><code>cpu_migrations</code></td><td rowspan="1" colspan="1">the count of cpu migrations, that is, where the process
+          moved from one logical processor to another, by
+          applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.cpu_migrations</code></td></tr><tr><td rowspan="1" colspan="1"><code>page_faults_min</code></td><td rowspan="1" colspan="1">the count of minor page faults, that is, where the
+          page was present in the page cache, and therefore
+          the fault avoided loading it from storage, by
+          applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.page_faults_min</code></td></tr><tr><td rowspan="1" colspan="1"><code>page_faults_maj</code></td><td rowspan="1" colspan="1">the count of major page faults, that is, where the
+          page was not present in the page cache, and
+          therefore had to be fetched from storage, by
+          applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.page_faults_maj</code></td></tr><tr><td rowspan="1" colspan="1"><code>alignment_faults</code></td><td rowspan="1" colspan="1">the count of alignment faults, that is when
+          the load or store is not aligned properly, by
+          applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.alignment_faults</code></td></tr><tr><td rowspan="1" colspan="1"><code>emulation_faults</code></td><td rowspan="1" colspan="1">the count of emulation faults, that is when
+          the kernel traps on unimplemented instrucions
+          and emulates them for user space, by
+          applications running on the platform</td><td rowspan="1" colspan="1"><code>perf.emulation_faults</code></td></tr></table>
         <h3>
           <a name="elementsDevices" shape="rect" id="elementsDevices">Devices</a>
           <a class="headerlink" href="#elementsDevices" title="Permalink to this headline">¶</a>
@@ -2271,8 +2382,8 @@
             how the hypervisor will behave on a disk read or write
             error, possible values are "stop", "report", "ignore", and
             "enospace".<span class="since">Since 0.8.0, "report" since
-            0.9.7</span> The default setting of error_policy is "report".
-            There is also an
+            0.9.7</span> The default is left to the discretion of the
+            hypervisor. There is also an
             optional <code>rerror_policy</code> that controls behavior
             for read errors only. <span class="since">Since
             0.9.7</span>. If no rerror_policy is given, error_policy
@@ -2281,8 +2392,7 @@
             read errors. Also note that "enospace" is not a valid
             policy for read errors, so if <code>error_policy</code> is
             set to "enospace" and no <code>rerror_policy</code> is
-            given, the read error policy will be left at its default,
-            which is "report".
+            given, the read error policy will be left at its default.
           </li><li>
             The optional <code>io</code> attribute controls specific
             policies on I/O; qemu guests support "threads" and
@@ -2347,6 +2457,10 @@
             for a disk device <code>target</code> configured to use "virtio"
             <code>bus</code> and "pci" or "ccw" <code>address</code> types.
             <span class="since">Since 1.2.8 (QEMU 2.1)</span>
+          </li><li>
+          For virtio disks,
+          <a href="#elementsVirtio" shape="rect">Virtio-specific options</a> can also be
+          set. (<span class="since">Since 3.5.0</span>)
           </li></ul>
       </dd><dt><code>backenddomain</code></dt><dd>The optional <code>backenddomain</code> element allows specifying a
           backend domain (aka driver domain) hosting the disk.  Use the
@@ -2354,8 +2468,13 @@
           <span class="since">Since 1.2.13 (Xen only)</span>
       </dd><dt><code>boot</code></dt><dd>Specifies that the disk is bootable. The <code>order</code>
         attribute determines the order in which devices will be tried during
-        boot sequence. The per-device <code>boot</code> elements cannot be
-        used together with general boot elements in
+        boot sequence. On the S390 architecture only the first boot device is
+        used. The optional <code>loadparm</code> attribute is an 8 character
+        string which can be queried by guests on S390 via sclp or diag 308.
+        Linux guests on S390 can use <code>loadparm</code> to select a boot
+        entry. <span class="since">Since 3.5.0</span>
+        The per-device <code>boot</code> elements cannot be used together
+        with general boot elements in
         <a href="#elementsOSBIOS" shape="rect">BIOS bootloader</a> section.
         <span class="since">Since 0.8.8</span>
       </dd><dt><code>encryption</code></dt><dd>If present, specifies how the volume is encrypted.  See
@@ -2556,6 +2675,10 @@
             "nbd" with any format. QEMU supports a type of "path"
             or "handle", but no formats. Virtuozzo driver supports
             a type of "ploop" with a format of "ploop".
+          </li><li>
+          For virtio-backed devices,
+          <a href="#elementsVirtio" shape="rect">Virtio-specific options</a> can also be
+          set. (<span class="since">Since 3.5.0</span>)
           </li></ul>
       </dd><dt><code>source</code></dt><dd>
         The resource on the host that is being accessed in the guest. The
@@ -2680,6 +2803,20 @@
         <span class="since">Since 1.2.1</span>
       </dd></dl>
         <h4>
+          <a name="elementsVirtio" shape="rect" id="elementsVirtio">Virtio-related options</a>
+          <a class="headerlink" href="#elementsVirtio" title="Permalink to this headline">¶</a>
+        </h4>
+        <p>
+      QEMU's virtio devices have some attributes related to the virtio transport under
+      the <code>driver</code> element:
+      The <code>iommu</code> attribute enables the use of emulated IOMMU
+      by the device. The attribute <code>ats</code> controls the Address
+      Translation Service support for PCIe devices. This is needed to make use
+      of IOTLB support (see <a href="#elementsIommu" shape="rect">IOMMU device</a>).
+      Possible values are <code>on</code> or <code>off</code>.
+      <span class="since">Since 3.5.0</span>
+    </p>
+        <h4>
           <a name="elementsControllers" shape="rect" id="elementsControllers">Controllers</a>
           <a class="headerlink" href="#elementsControllers" title="Permalink to this headline">¶</a>
         </h4>
@@ -2728,8 +2865,8 @@
         <code>model</code>, which is one of "piix3-uhci", "piix4-uhci",
         "ehci", "ich9-ehci1", "ich9-uhci1", "ich9-uhci2", "ich9-uhci3",
         "vt82c686b-uhci", "pci-ohci", "nec-xhci", "qusb1" (xen pvusb
-        with qemu backend, version 1.1) or "qusb2" (xen pvusb with qemu
-        backend, version 2.0). Additionally,
+        with qemu backend, version 1.1), "qusb2" (xen pvusb with qemu
+        backend, version 2.0) or "qemu-xhci". Additionally,
          <span class="since">since 0.10.0</span>, if the USB bus needs to
          be explicitly disabled for the guest, <code>model='none'</code>
          may be used.  <span class="since">Since 1.0.5</span>, no default
@@ -2788,6 +2925,10 @@
         multiple controllers must be defined each having a specific
         <code>iothread</code> value. The <code>iothread</code> value
         must be within the range 1 to the domain iothreads value.
+      </dd><dt>virtio options</dt><dd>
+        For virtio controllers,
+        <a href="#elementsVirtio" shape="rect">Virtio-specific options</a> can also be
+        set. (<span class="since">Since 3.5.0</span>)
       </dd></dl>
         <p>
       USB companion controllers have an optional
@@ -3122,6 +3263,17 @@
     &lt;/hostdev&gt;
   &lt;/devices&gt;
   ...</pre>
+        <p>or:</p>
+        <pre xml:space="preserve">
+  ...
+  &lt;devices&gt;
+    &lt;hostdev mode='subsystem' type='mdev' model='vfio-pci'&gt;
+    &lt;source&gt;
+      &lt;address uuid='c2177883-f1bb-47f0-914d-32a22e3a8804'&gt;
+    &lt;/source&gt;
+    &lt;/hostdev&gt;
+  &lt;/devices&gt;
+  ...</pre>
         <dl><dt><code>hostdev</code></dt><dd>The <code>hostdev</code> element is the main container for describing
         host devices. For each device, the <code>mode</code> is always
         "subsystem" and the <code>type</code> is one of the following values
@@ -3155,12 +3307,20 @@
             is responsible to make sure the device is not used by host. This
             <code>type</code> passes all LUNs presented by a single HBA to
             the guest.
-          </dd></dl>
+          </dd><dt><code>mdev</code></dt><dd>For mediated devices (<span class="since">Since 3.2.0</span>)
+          the <code>model</code> attribute specifies the device API which
+          determines how the host's vfio driver will expose the device to the
+          guest. Currently, only <code>model='vfio-pci'</code> is supported.
+          There are also some implications on the usage of guest's address type
+          depending on the <code>model</code> attribute, see the
+          <code>address</code> element below.</dd></dl>
         <p>
-          Note: The <code>managed</code> attribute is only used with PCI devices
-          and is ignored by all the other device types, thus setting
-          <code>managed</code> explicitly with other than PCI device has the same
-          effect as omitting it.
+          Note: The <code>managed</code> attribute is only used with
+          <code>type='pci'</code> and is ignored by all the other device types,
+          thus setting <code>managed</code> explicitly with other than a PCI
+          device has the same effect as omitting it. Similarly,
+          <code>model</code> attribute is only supported by mediated devices and
+          ignored by all other device types.
         </p>
       </dd><dt><code>source</code></dt><dd>The source element describes the device as seen from the host using
         the following mechanism to describe:
@@ -3201,6 +3361,10 @@
             attribute set to "vhost" and a <code>wwpn</code> attribute that
             is the vhost_scsi wwpn (16 hexadecimal digits with a prefix of
             "naa.") established in the host configfs.
+          </dd><dt><code>mdev</code></dt><dd>Mediated devices (<span class="since">Since 3.2.0</span>) are
+            described by the <code>address</code> element. The
+            <code>address</code> element contains a single mandatory attribute
+            <code>uuid</code>.
           </dd></dl>
       </dd><dt><code>vendor</code>, <code>product</code></dt><dd>The <code>vendor</code> and <code>product</code> elements each have an
       <code>id</code> attribute that specifies the USB vendor and product id.
@@ -3236,8 +3400,13 @@
       For PCI devices the element carries 4 attributes allowing to designate
       the device as can be found with the <code>lspci</code> or
       with <code>virsh nodedev-list</code>. For SCSI devices a 'drive'
-      address type must be used. <a href="#elementsAddress" shape="rect">See above</a> for
-      more details on the address element.</dd><dt><code>driver</code></dt><dd>
+      address type must be used. For mediated devices, which are software-only
+      devices defining an allocation of resources on the physical parent device,
+      the address type used must conform to the <code>model</code> attribute
+      of element <code>hostdev</code>, e.g. any address type other than PCI for
+      <code>vfio-pci</code> device API will result in an error.
+      <a href="#elementsAddress" shape="rect">See above</a> for more details on the address
+      element.</dd><dt><code>driver</code></dt><dd>
         PCI devices can have an optional <code>driver</code>
         subelement that specifies which backend driver to use for PCI
         device assignment. Use the <code>name</code> attribute to
@@ -4152,6 +4321,10 @@ qemu-kvm -net nic,model=? /dev/null
 
         <b>In general you should leave this option alone, unless you
         are very certain you know what you are doing.</b>
+      </dd><dt>virtio options</dt><dd>
+        For virtio interfaces,
+        <a href="#elementsVirtio" shape="rect">Virtio-specific options</a> can also be
+        set. (<span class="since">Since 3.5.0</span>)
       </dd></dl>
         <p>
       Offloading options for the host and guest can be configured using
@@ -4225,9 +4398,9 @@ qemu-kvm -net nic,model=? /dev/null
       If no target is specified, certain hypervisors will
       automatically generate a name for the created tun device. This
       name can be manually specified, however the name <i>should not
-      start with either 'vnet' or 'vif'</i>, which are prefixes
-      reserved by libvirt and certain hypervisors. Manually specified
-      targets using these prefixes may be ignored.
+      start with either 'vnet', 'vif', 'macvtap', or 'macvlan'</i>,
+      which are prefixes reserved by libvirt and certain hypervisors.
+      Manually specified targets using these prefixes may be ignored.
     </p>
         <p>
       Note that for LXC containers, this defines the name of the interface
@@ -4457,6 +4630,34 @@ qemu-kvm -net nic,model=? /dev/null
       <span class="since">Since 3.1.0</span>
     </p>
         <h5>
+          <a name="coalesce" shape="rect" id="coalesce">Coalesce settings</a>
+          <a class="headerlink" href="#coalesce" title="Permalink to this headline">¶</a>
+        </h5>
+        <pre xml:space="preserve">
+...
+&lt;devices&gt;
+  &lt;interface type='network'&gt;
+    &lt;source network='default'/&gt;
+    &lt;target dev='vnet0'/&gt;
+    <b>&lt;coalesce&gt;
+      &lt;rx&gt;
+        &lt;frames max='7'/&gt;
+      &lt;/rx&gt;
+    &lt;/coalesce&gt;</b>
+  &lt;/interface&gt;
+&lt;/devices&gt;
+...</pre>
+        <p>
+      This element provides means of setting coalesce settings for
+      some interface devices (currently only type <code>network</code>
+      and <code>bridge</code>.  Currently there is just one attribute,
+      <code>max</code>, to tweak, in element <code>frames</code> for
+      the <code>rx</code> group, which accepts a non-negative integer
+      that specifies the maximum number of packets that will be
+      received before an interrupt.
+      <span class="since">Since 3.3.0</span>
+    </p>
+        <h5>
           <a name="ipconfig" shape="rect" id="ipconfig">IP configuration</a>
           <a class="headerlink" href="#ipconfig" title="Permalink to this headline">¶</a>
         </h5>
@@ -4649,6 +4850,12 @@ qemu-kvm -net nic,model=? /dev/null
       For type <code>passthrough</code>, the mandatory sub-element <code>source</code>
       must have an <code>evdev</code> attribute containing the absolute path to the
       event device passed through to guests. (KVM only)
+    </p>
+        <p>
+        The subelement <code>driver</code> can be used to tune the virtio
+        options of the device:
+        <a href="#elementsVirtio" shape="rect">Virtio-specific options</a> can also be
+        set. (<span class="since">Since 3.5.0</span>)
     </p>
         <h4>
           <a name="elementsHub" shape="rect" id="elementsHub">Hub devices</a>
@@ -4986,8 +5193,9 @@ qemu-kvm -net nic,model=? /dev/null
         <p>
           The <code>model</code> element has a mandatory <code>type</code>
           attribute which takes the value "vga", "cirrus", "vmvga", "xen",
-          "vbox", "qxl" (<span class="since">since 0.8.6</span>) or
+          "vbox", "qxl" (<span class="since">since 0.8.6</span>),
           "virtio" (<span class="since">since 1.3.0</span>)
+          or "gop" (<span class="since">since 3.2.0</span>)
           depending on the hypervisor features available.
         </p>
         <p>
@@ -5023,6 +5231,17 @@ qemu-kvm -net nic,model=? /dev/null
       </dd><dt><code>address</code></dt><dd>
         The optional <code>address</code> sub-element can be used to
         tie the video device to a particular PCI slot.
+      </dd><dt><code>driver</code></dt><dd>
+        The subelement <code>driver</code> can be used to tune the device:
+        <dl><dt>virtio options</dt><dd>
+          <a href="#elementsVirtio" shape="rect">Virtio-specific options</a> can also be
+          set (<span class="since">Since 3.5.0</span>)
+          </dd><dt>VGA configuration</dt><dd>
+          Control how the video devices exposed to the guest using the
+          <code>vgaconf</code> attribute which takes the value "io", "on" or "off".
+          At present, it's only applicable to the bhyve's "gop" video model type
+          (<span class="since">Since 3.5.0</span>)
+          </dd></dl>
       </dd></dl>
         <h4>
           <a name="elementsConsole" shape="rect" id="elementsConsole">Consoles, serial, parallel &amp; channel devices</a>
@@ -5748,6 +5967,7 @@ qemu-kvm -net nic,model=? /dev/null
     &lt;memballoon model='virtio'&gt;
       &lt;address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x0'/&gt;
       &lt;stats period='10'/&gt;
+      &lt;driver iommu='on' ats='on'/&gt;
     &lt;/memballoon&gt;
   &lt;/devices&gt;
 &lt;/domain&gt;</pre>
@@ -5781,6 +6001,10 @@ qemu-kvm -net nic,model=? /dev/null
           period will fail.  Large values (e.g. many years) might be ignored.
           <span class="since">Since 1.1.1, requires QEMU 1.5</span>
         </p>
+      </dd><dt><code>driver</code></dt><dd>
+        For model <code>virtio</code> memballoon,
+        <a href="#elementsVirtio" shape="rect">Virtio-specific options</a> can also be
+        set. (<span class="since">Since 3.5.0</span>)
       </dd></dl>
         <h4>
           <a name="elementsRng" shape="rect" id="elementsRng">Random number generator device</a>
@@ -5848,6 +6072,12 @@ qemu-kvm -net nic,model=? /dev/null
               <a href="#elementsCharHostInterface" shape="rect">character device host interface</a>
               for more information.
             </p>
+          </dd></dl>
+      </dd><dt><code>driver</code></dt><dd>
+        The subelement <code>driver</code> can be used to tune the device:
+        <dl><dt>virtio options</dt><dd>
+          <a href="#elementsVirtio" shape="rect">Virtio-specific options</a> can also be
+          set. (<span class="since">Since 3.5.0</span>)
           </dd></dl>
       </dd></dl>
         <h4>
@@ -6044,7 +6274,6 @@ qemu-kvm -net nic,model=? /dev/null
         guests' memory resource needs.
 
         Some hypervisors may require NUMA configured for the guest.
-      <span class="since">Since 1.2.14</span>
     </p>
         <p>
       Example: usage of the memory devices
@@ -6052,7 +6281,7 @@ qemu-kvm -net nic,model=? /dev/null
         <pre xml:space="preserve">
 ...
 &lt;devices&gt;
-  &lt;memory model='dimm'&gt;
+  &lt;memory model='dimm' access='private'&gt;
     &lt;target&gt;
       &lt;size unit='KiB'&gt;524287&lt;/size&gt;
       &lt;node&gt;0&lt;/node&gt;
@@ -6068,30 +6297,65 @@ qemu-kvm -net nic,model=? /dev/null
       &lt;node&gt;1&lt;/node&gt;
     &lt;/target&gt;
   &lt;/memory&gt;
+  &lt;memory model='nvdimm'&gt;
+    &lt;source&gt;
+      &lt;path&gt;/tmp/nvdimm&lt;/path&gt;
+    &lt;/source&gt;
+    &lt;target&gt;
+      &lt;size unit='KiB'&gt;524288&lt;/size&gt;
+      &lt;node&gt;1&lt;/node&gt;
+      &lt;label&gt;
+        &lt;size unit='KiB'&gt;128&lt;/size&gt;
+      &lt;/label&gt;
+    &lt;/target&gt;
+  &lt;/memory&gt;
 &lt;/devices&gt;
 ...
 </pre>
         <dl><dt><code>model</code></dt><dd>
         <p>
-          Currently only the <code>dimm</code> model is supported in order to
-          add a virtual DIMM module to the guest.
+          Provide <code>dimm</code> to add a virtual DIMM module to the guest.
+          <span class="since">Since 1.2.14</span>
+          Provide <code>nvdimm</code> model adds a Non-Volatile DIMM
+          module. <span class="since">Since 3.2.0</span>
+        </p>
+      </dd><dt><code>access</code></dt><dd>
+        <p>
+          An optional attribute <code>access</code>
+          (<span class="since">since 3.2.0</span>) that provides
+          capability to fine tune mapping of the memory on per
+          module basis. Values are the same as
+          <a href="#elementsMemoryBacking" shape="rect">Memory Backing</a>:
+          <code>shared</code> and <code>private</code>.
         </p>
       </dd><dt><code>source</code></dt><dd>
         <p>
-          The optional source element allows to fine tune the source of the
-          memory used for the given memory device. If the element is not
-          provided defaults configured via <code>numatune</code> are used.
+          For model <code>dimm</code> this element is optional and allows to
+          fine tune the source of the memory used for the given memory device.
+          If the element is not provided defaults configured via
+          <code>numatune</code> are used. If <code>dimm</code> is provided,
+          then the following optional elements can be provided as well:
         </p>
-        <p>
-          <code>pagesize</code> can optionally be used to override the default
-          host page size used for backing the memory device.
 
-          The configured value must correspond to a page size supported by the
-          host.
-        </p>
+        <dl><dt><code>pagesize</code></dt><dd>
+            <p>
+              This element can be used to override the default
+              host page size used for backing the memory device.
+              The configured value must correspond to a page size
+              supported by the host.
+            </p>
+          </dd><dt><code>nodemask</code></dt><dd>
+            <p>
+              This element can be used to override the default
+              set of NUMA nodes where the memory would be
+              allocated.
+            </p>
+          </dd></dl>
+
         <p>
-          <code>nodemask</code> can optionally be used to override the default
-          set of NUMA nodes where the memory would be allocated.
+          For model <code>nvdimm</code> this element is mandatory and has a
+          single child element <code>path</code> that represents a path
+          in the host that backs the nvdimm module in the guest.
         </p>
       </dd><dt><code>target</code></dt><dd>
         <p>
@@ -6107,6 +6371,17 @@ qemu-kvm -net nic,model=? /dev/null
           attach the memory to. The element shall be used only if the guest has
           NUMA nodes configured.
         </p>
+        <p>
+          For NVDIMM type devices one can optionally use
+          <code>label</code> and its subelement <code>size</code>
+          to configure the size of namespaces label storage
+          within the NVDIMM module. The <code>size</code> element
+          has usual meaning described
+          <a href="#elementsMemoryAllocation" shape="rect">here</a>.
+          For QEMU domains the following restrictions apply:
+        </p>
+        <ol><li>the minimum label size is 128KiB,</li><li>the remaining size (total-size - label-size) has to be aligned to
+            4KiB</li></ol>
       </dd></dl>
         <h4>
           <a name="elementsIommu" shape="rect" id="elementsIommu">IOMMU devices</a>
@@ -6122,7 +6397,9 @@ qemu-kvm -net nic,model=? /dev/null
         <pre xml:space="preserve">
 ...
 &lt;devices&gt;
-  &lt;iommu model='intel'/&gt;
+  &lt;iommu model='intel'&gt;
+    &lt;driver intremap='on'/&gt;
+  &lt;/iommu&gt;
 &lt;/devices&gt;
 ...
 </pre>
@@ -6130,6 +6407,47 @@ qemu-kvm -net nic,model=? /dev/null
         <p>
           Currently only the <code>intel</code> model is supported.
         </p>
+      </dd><dt><code>driver</code></dt><dd>
+        <p>
+          The <code>driver</code> subelement can be used to configure
+          additional options:
+        </p>
+        <dl><dt><code>intremap</code></dt><dd>
+            <p>
+              The <code>intremap</code> attribute with possible values
+              <code>on</code> and <code>off</code> can be used to
+              turn on interrupt remapping, a part of the VT-d functionality.
+              Currently this requires split I/O APIC
+              (<code>&lt;ioapic driver='qemu'/&gt;</code>).
+              <span class="since">Since 3.4.0</span> (QEMU/KVM only)
+            </p>
+          </dd><dt><code>caching_mode</code></dt><dd>
+            <p>
+              The <code>caching_mode</code> attribute with possible values
+              <code>on</code> and <code>off</code> can be used to
+              turn on the VT-d caching mode (useful for assigned devices).
+              <span class="since">Since 3.4.0</span> (QEMU/KVM only)
+            </p>
+          </dd><dt><code>eim</code></dt><dd>
+            <p>
+              The <code>eim</code> attribute (with possible values
+              <code>on</code> and <code>off</code>) can be used to
+              configure Extended Interrupt Mode. A q35 domain with
+              split I/O APIC (as described in
+              <a href="#elementsFeatures" shape="rect">hypervisor features</a>),
+              and both interrupt remapping and EIM turned on for
+              the IOMMU, will be able to use more than 255 vCPUs.
+              <span class="since">Since 3.4.0</span> (QEMU/KVM only)
+            </p>
+          </dd><dt><code>iotlb</code></dt><dd>
+            <p>
+              The <code>iotlb</code> attribute with possible values
+              <code>on</code> and <code>off</code> can be used to
+              turn on the IOTLB used to cache address translation
+              requests from devices.
+              <span class="since">Since 3.5.0</span> (QEMU/KVM only)
+            </p>
+          </dd></dl>
       </dd></dl>
         <h3>
           <a name="seclabel" shape="rect" id="seclabel">Security label</a>

@@ -23,6 +23,8 @@ INCLUDES = \
 	-I$(top_srcdir)						\
 	$(GETTEXT_CPPFLAGS)
 
+WARN_CFLAGS += $(STRICT_FRAME_LIMIT_CFLAGS)
+
 AM_LDFLAGS = \
 	$(RELRO_LDFLAGS)					\
 	$(NO_INDIRECT_LDFLAGS)					\
@@ -139,10 +141,34 @@ libvirt_shell_la_SOURCES = vsh.c vsh.h
 
 virt_host_validate_SOURCES = \
 		virt-host-validate.c \
-		virt-host-validate-common.c virt-host-validate-common.h \
-		virt-host-validate-qemu.c virt-host-validate-qemu.h \
-		virt-host-validate-lxc.c virt-host-validate-lxc.h \
-		$(NULL)
+		virt-host-validate-common.c virt-host-validate-common.h
+
+VIRT_HOST_VALIDATE_QEMU = \
+		virt-host-validate-qemu.c \
+		virt-host-validate-qemu.h
+VIRT_HOST_VALIDATE_LXC = \
+		virt-host-validate-lxc.c \
+		virt-host-validate-lxc.h
+VIRT_HOST_VALIDATE_BHYVE = \
+		virt-host-validate-bhyve.c \
+		virt-host-validate-bhyve.h
+if WITH_QEMU
+virt_host_validate_SOURCES += $(VIRT_HOST_VALIDATE_QEMU)
+else ! WITH_QEMU
+EXTRA_DIST += $(VIRT_HOST_VALIDATE_QEMU)
+endif ! WITH_QEMU
+
+if WITH_LXC
+virt_host_validate_SOURCES += $(VIRT_HOST_VALIDATE_LXC)
+else ! WITH_LXC
+EXTRA_DIST += $(VIRT_HOST_VALIDATE_LXC)
+endif ! WITH_LXC
+
+if WITH_BHYVE
+virt_host_validate_SOURCES += $(VIRT_HOST_VALIDATE_BHYVE)
+else ! WITH_BHYVE
+EXTRA_DIST += $(VIRT_HOST_VALIDATE_BHYVE)
+endif ! WITH_BHYVE
 
 virt_host_validate_LDFLAGS = \
 		$(AM_LDFLAGS) \
@@ -200,6 +226,7 @@ virsh_SOURCES =							\
 		virsh-pool.c virsh-pool.h			\
 		virsh-secret.c virsh-secret.h			\
 		virsh-snapshot.c virsh-snapshot.h		\
+		virsh-util.c virsh-util.h			\
 		virsh-volume.c virsh-volume.h			\
 		$(NULL)
 
@@ -217,7 +244,8 @@ virsh_CFLAGS =							\
 		$(WARN_CFLAGS)					\
 		$(PIE_CFLAGS)					\
 		$(COVERAGE_CFLAGS)				\
-		$(LIBXML_CFLAGS)
+		$(LIBXML_CFLAGS)				\
+		$(READLINE_CFLAGS)
 
 virt_admin_SOURCES =						\
 		virt-admin.c virt-admin.h			\

@@ -35,7 +35,6 @@
 #include "virbitmap.h"
 #include "virbuffer.h"
 #include "viralloc.h"
-#include "virsh-domain.h"
 #include "virxml.h"
 #include "virtypedparam.h"
 #include "virstring.h"
@@ -209,7 +208,7 @@ cmdFreecell(vshControl *ctl, const vshCmd *cmd)
         for (i = 0; i < nodes_cnt; i++) {
             unsigned long id;
             char *val = virXMLPropString(nodes[i], "id");
-            if (virStrToLong_ul(val, NULL, 10, &id)) {
+            if (virStrToLong_ulp(val, NULL, 10, &id)) {
                 vshError(ctl, "%s", _("conversion from string failed"));
                 VIR_FREE(val);
                 goto cleanup;
@@ -355,7 +354,7 @@ cmdFreepages(vshControl *ctl, const vshCmd *cmd)
             for (i = 0; i < nodes_cnt; i++) {
                 char *val = virXMLPropString(nodes[i], "size");
 
-                if (virStrToLong_ui(val, NULL, 10, &pagesize[i]) < 0) {
+                if (virStrToLong_uip(val, NULL, 10, &pagesize[i]) < 0) {
                     vshError(ctl, _("unable to parse page size: %s"), val);
                     VIR_FREE(val);
                     goto cleanup;
@@ -554,7 +553,7 @@ cmdAllocpages(vshControl *ctl, const vshCmd *cmd)
         for (i = 0; i < nodes_cnt; i++) {
             unsigned long id;
             char *val = virXMLPropString(nodes[i], "id");
-            if (virStrToLong_ul(val, NULL, 10, &id)) {
+            if (virStrToLong_ulp(val, NULL, 10, &id)) {
                 vshError(ctl, "%s", _("conversion from string failed"));
                 VIR_FREE(val);
                 goto cleanup;

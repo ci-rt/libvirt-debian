@@ -89,6 +89,7 @@ static void qemuMonitorJSONHandleSpiceMigrated(qemuMonitorPtr mon, virJSONValueP
 static void qemuMonitorJSONHandleMigrationStatus(qemuMonitorPtr mon, virJSONValuePtr data);
 static void qemuMonitorJSONHandleMigrationPass(qemuMonitorPtr mon, virJSONValuePtr data);
 static void qemuMonitorJSONHandleAcpiOstInfo(qemuMonitorPtr mon, virJSONValuePtr data);
+static void qemuMonitorJSONHandleBlockThreshold(qemuMonitorPtr mon, virJSONValuePtr data);
 
 typedef struct {
     const char *type;
@@ -102,6 +103,7 @@ static qemuEventHandler eventHandlers[] = {
     { "BLOCK_JOB_CANCELLED", qemuMonitorJSONHandleBlockJobCanceled, },
     { "BLOCK_JOB_COMPLETED", qemuMonitorJSONHandleBlockJobCompleted, },
     { "BLOCK_JOB_READY", qemuMonitorJSONHandleBlockJobReady, },
+    { "BLOCK_WRITE_THRESHOLD", qemuMonitorJSONHandleBlockThreshold, },
     { "DEVICE_DELETED", qemuMonitorJSONHandleDeviceDeleted, },
     { "DEVICE_TRAY_MOVED", qemuMonitorJSONHandleTrayChange, },
     { "GUEST_PANICKED", qemuMonitorJSONHandleGuestPanic, },
@@ -521,9 +523,15 @@ qemuMonitorJSONKeywordStringToJSON(const char *str, const char *firstkeyword)
 }
 
 
-static void qemuMonitorJSONHandleShutdown(qemuMonitorPtr mon, virJSONValuePtr data ATTRIBUTE_UNUSED)
+static void qemuMonitorJSONHandleShutdown(qemuMonitorPtr mon, virJSONValuePtr data)
 {
-    qemuMonitorEmitShutdown(mon);
+    bool guest = false;
+    virTristateBool guest_initiated = VIR_TRISTATE_BOOL_ABSENT;
+
+    if (data && virJSONValueObjectGetBoolean(data, "guest", &guest) == 0)
+        guest_initiated = guest ? VIR_TRISTATE_BOOL_YES : VIR_TRISTATE_BOOL_NO;
+
+    qemuMonitorEmitShutdown(mon, guest_initiated);
 }
 
 static void qemuMonitorJSONHandleReset(qemuMonitorPtr mon, virJSONValuePtr data ATTRIBUTE_UNUSED)
@@ -546,10 +554,62 @@ static void qemuMonitorJSONHandleResume(qemuMonitorPtr mon, virJSONValuePtr data
     qemuMonitorEmitResume(mon);
 }
 
-static void qemuMonitorJSONHandleGuestPanic(qemuMonitorPtr mon, virJSONValuePtr data ATTRIBUTE_UNUSED)
+
+static qemuMonitorEventPanicInfoPtr
+qemuMonitorJSONGuestPanicExtractInfoHyperv(virJSONValuePtr data)
 {
-    qemuMonitorEmitGuestPanic(mon);
+    qemuMonitorEventPanicInfoPtr ret;
+
+    if (VIR_ALLOC(ret) < 0)
+        return NULL;
+
+    ret->type = QEMU_MONITOR_EVENT_PANIC_INFO_TYPE_HYPERV;
+
+    if (virJSONValueObjectGetNumberUlong(data, "arg1", &ret->data.hyperv.arg1) < 0 ||
+        virJSONValueObjectGetNumberUlong(data, "arg2", &ret->data.hyperv.arg2) < 0 ||
+        virJSONValueObjectGetNumberUlong(data, "arg3", &ret->data.hyperv.arg3) < 0 ||
+        virJSONValueObjectGetNumberUlong(data, "arg4", &ret->data.hyperv.arg4) < 0 ||
+        virJSONValueObjectGetNumberUlong(data, "arg5", &ret->data.hyperv.arg5) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("malformed hyperv panic data"));
+        goto error;
+    }
+
+    return ret;
+
+ error:
+    qemuMonitorEventPanicInfoFree(ret);
+    return NULL;
 }
+
+
+static qemuMonitorEventPanicInfoPtr
+qemuMonitorJSONGuestPanicExtractInfo(virJSONValuePtr data)
+{
+    const char *type = virJSONValueObjectGetString(data, "type");
+
+    if (STREQ_NULLABLE(type, "hyper-v"))
+        return qemuMonitorJSONGuestPanicExtractInfoHyperv(data);
+
+    virReportError(VIR_ERR_INTERNAL_ERROR,
+                   _("unknown panic info type '%s'"), NULLSTR(type));
+    return NULL;
+}
+
+
+static void
+qemuMonitorJSONHandleGuestPanic(qemuMonitorPtr mon,
+                                virJSONValuePtr data)
+{
+    virJSONValuePtr infojson = virJSONValueObjectGetObject(data, "info");
+    qemuMonitorEventPanicInfoPtr info = NULL;
+
+    if (infojson)
+        info = qemuMonitorJSONGuestPanicExtractInfo(infojson);
+
+    qemuMonitorEmitGuestPanic(mon, info);
+}
+
 
 static void qemuMonitorJSONHandleRTCChange(qemuMonitorPtr mon, virJSONValuePtr data)
 {
@@ -1065,6 +1125,30 @@ qemuMonitorJSONHandleAcpiOstInfo(qemuMonitorPtr mon, virJSONValuePtr data)
 }
 
 
+static void
+qemuMonitorJSONHandleBlockThreshold(qemuMonitorPtr mon, virJSONValuePtr data)
+{
+    const char *nodename;
+    unsigned long long threshold;
+    unsigned long long excess;
+
+    if (!(nodename = virJSONValueObjectGetString(data, "node-name")))
+        goto error;
+
+    if (virJSONValueObjectGetNumberUlong(data, "write-threshold", &threshold) < 0)
+        goto error;
+
+    if (virJSONValueObjectGetNumberUlong(data, "amount-exceeded", &excess) < 0)
+        goto error;
+
+    qemuMonitorEmitBlockThreshold(mon, nodename, threshold, excess);
+    return;
+
+ error:
+    VIR_WARN("malformed 'BLOCK_WRITE_THRESHOLD' event");
+}
+
+
 int
 qemuMonitorJSONHumanCommandWithFd(qemuMonitorPtr mon,
                                   const char *cmd_str,
@@ -1388,7 +1472,7 @@ qemuMonitorJSONExtractCPUInfo(virJSONValuePtr data,
  * extract results does not produce an error as libvirt can continue without
  * this information.
  *
- * Returns 0 on success success, -1 on a fatal error (oom ...) and -2 if the
+ * Returns 0 on success, -1 on a fatal error (oom ...) and -2 if the
  * query failed gracefully.
  */
 int
@@ -1842,9 +1926,11 @@ int qemuMonitorJSONGetBlockInfo(qemuMonitorPtr mon,
 
     for (i = 0; i < virJSONValueArraySize(devices); i++) {
         virJSONValuePtr dev;
+        virJSONValuePtr image;
         struct qemuDomainDiskInfo *info;
         const char *thisdev;
         const char *status;
+        const char *nodename;
 
         if (!(dev = qemuMonitorJSONGetBlockDev(devices, i)))
             goto cleanup;
@@ -1881,8 +1967,12 @@ int qemuMonitorJSONGetBlockInfo(qemuMonitorPtr mon,
             info->tray = true;
 
         /* presence of 'inserted' notifies that a medium is in the device */
-        if (!virJSONValueObjectGetObject(dev, "inserted"))
+        if ((image = virJSONValueObjectGetObject(dev, "inserted"))) {
+            if ((nodename = virJSONValueObjectGetString(image, "node-name")))
+                ignore_value(VIR_STRDUP(info->nodename, nodename));
+        } else {
             info->empty = true;
+        }
 
         /* Missing io-status indicates no error */
         if ((status = virJSONValueObjectGetString(dev, "io-status"))) {
@@ -2566,6 +2656,7 @@ qemuMonitorJSONGetMigrationParams(qemuMonitorPtr mon,
     virJSONValuePtr result;
     virJSONValuePtr cmd = NULL;
     virJSONValuePtr reply = NULL;
+    const char *tlsStr = NULL;
 
     memset(params, 0, sizeof(*params));
 
@@ -2574,6 +2665,11 @@ qemuMonitorJSONGetMigrationParams(qemuMonitorPtr mon,
 
     if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
         goto cleanup;
+
+    if (qemuMonitorJSONHasError(reply, "CommandNotFound")) {
+        ret = 0;
+        goto cleanup;
+    }
 
     if (qemuMonitorJSONCheckError(cmd, reply) < 0)
         goto cleanup;
@@ -2594,6 +2690,16 @@ qemuMonitorJSONGetMigrationParams(qemuMonitorPtr mon,
     PARSE(cpuThrottleIncrement, "cpu-throttle-increment");
 
 #undef PARSE
+
+    if ((tlsStr = virJSONValueObjectGetString(result, "tls-creds"))) {
+        if (VIR_STRDUP(params->migrateTLSAlias, tlsStr) < 0)
+            goto cleanup;
+    }
+
+    if ((tlsStr = virJSONValueObjectGetString(result, "tls-hostname"))) {
+        if (VIR_STRDUP(params->migrateTLSHostname, tlsStr) < 0)
+            goto cleanup;
+    }
 
     ret = 0;
  cleanup:
@@ -2636,6 +2742,16 @@ qemuMonitorJSONSetMigrationParams(qemuMonitorPtr mon,
     APPEND(cpuThrottleIncrement, "cpu-throttle-increment");
 
 #undef APPEND
+
+    if (params->migrateTLSAlias &&
+        virJSONValueObjectAppendString(args, "tls-creds",
+                                       params->migrateTLSAlias) < 0)
+        goto cleanup;
+
+    if (params->migrateTLSHostname &&
+        virJSONValueObjectAppendString(args, "tls-hostname",
+                                       params->migrateTLSHostname) < 0)
+        goto cleanup;
 
     if (virJSONValueObjectAppend(cmd, "arguments", args) < 0)
         goto cleanup;
@@ -4977,35 +5093,63 @@ qemuMonitorJSONGetCPUDefinitions(qemuMonitorPtr mon,
     return ret;
 }
 
+
+VIR_ENUM_IMPL(qemuMonitorCPUProperty,
+              QEMU_MONITOR_CPU_PROPERTY_LAST,
+              "boolean", "string", "number")
+
 static int
 qemuMonitorJSONParseCPUModelProperty(const char *key,
                                      virJSONValue *value,
                                      void *opaque)
 {
     qemuMonitorCPUModelInfoPtr machine_model = opaque;
-    size_t n = machine_model->nprops;
-    bool supported;
+    qemuMonitorCPUPropertyPtr prop;
 
-    if (virJSONValueGetBoolean(value, &supported) < 0)
+    prop = machine_model->props + machine_model->nprops;
+
+    switch ((virJSONType) value->type) {
+    case VIR_JSON_TYPE_STRING:
+        if (VIR_STRDUP(prop->value.string, virJSONValueGetString(value)) < 0)
+            return -1;
+        prop->type = QEMU_MONITOR_CPU_PROPERTY_STRING;
+        break;
+
+    case VIR_JSON_TYPE_NUMBER:
+        /* Ignore numbers which cannot be parsed as unsigned long long */
+        if (virJSONValueGetNumberLong(value, &prop->value.number) < 0)
+            return 0;
+        prop->type = QEMU_MONITOR_CPU_PROPERTY_NUMBER;
+        break;
+
+    case VIR_JSON_TYPE_BOOLEAN:
+        virJSONValueGetBoolean(value, &prop->value.boolean);
+        prop->type = QEMU_MONITOR_CPU_PROPERTY_BOOLEAN;
+        break;
+
+    case VIR_JSON_TYPE_OBJECT:
+    case VIR_JSON_TYPE_ARRAY:
+    case VIR_JSON_TYPE_NULL:
         return 0;
-
-    if (VIR_STRDUP(machine_model->props[n].name, key) < 0)
-        return -1;
-
-    machine_model->props[n].supported = supported;
+    }
 
     machine_model->nprops++;
+    if (VIR_STRDUP(prop->name, key) < 0)
+        return -1;
+
     return 0;
 }
 
 int
 qemuMonitorJSONGetCPUModelExpansion(qemuMonitorPtr mon,
-                                    const char *type,
+                                    qemuMonitorCPUModelExpansionType type,
                                     const char *model_name,
+                                    bool migratable,
                                     qemuMonitorCPUModelInfoPtr *model_info)
 {
     int ret = -1;
-    virJSONValuePtr model;
+    virJSONValuePtr model = NULL;
+    virJSONValuePtr props = NULL;
     virJSONValuePtr cmd = NULL;
     virJSONValuePtr reply = NULL;
     virJSONValuePtr data;
@@ -5013,6 +5157,7 @@ qemuMonitorJSONGetCPUModelExpansion(qemuMonitorPtr mon,
     virJSONValuePtr cpu_props;
     qemuMonitorCPUModelInfoPtr machine_model = NULL;
     char const *cpu_name;
+    const char *typeStr = "";
 
     *model_info = NULL;
 
@@ -5022,8 +5167,28 @@ qemuMonitorJSONGetCPUModelExpansion(qemuMonitorPtr mon,
     if (virJSONValueObjectAppendString(model, "name", model_name) < 0)
         goto cleanup;
 
+    if (!migratable) {
+        if (!(props = virJSONValueNewObject()) ||
+            virJSONValueObjectAppendBoolean(props, "migratable", false) < 0 ||
+            virJSONValueObjectAppend(model, "props", props) < 0)
+            goto cleanup;
+        props = NULL;
+    }
+
+ retry:
+    switch (type) {
+    case QEMU_MONITOR_CPU_MODEL_EXPANSION_STATIC:
+    case QEMU_MONITOR_CPU_MODEL_EXPANSION_STATIC_FULL:
+        typeStr = "static";
+        break;
+
+    case QEMU_MONITOR_CPU_MODEL_EXPANSION_FULL:
+        typeStr = "full";
+        break;
+    }
+
     if (!(cmd = qemuMonitorJSONMakeCommand("query-cpu-model-expansion",
-                                           "s:type", type,
+                                           "s:type", typeStr,
                                            "a:model", model,
                                            NULL)))
         goto cleanup;
@@ -5054,6 +5219,19 @@ qemuMonitorJSONGetCPUModelExpansion(qemuMonitorPtr mon,
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("query-cpu-model-expansion reply data was missing 'model'"));
         goto cleanup;
+    }
+
+    /* QEMU_MONITOR_CPU_MODEL_EXPANSION_STATIC_FULL requests "full" expansion
+     * on the result of the initial "static" expansion.
+     */
+    if (type == QEMU_MONITOR_CPU_MODEL_EXPANSION_STATIC_FULL) {
+        if (!(model = virJSONValueCopy(cpu_model)))
+            goto cleanup;
+
+        virJSONValueFree(cmd);
+        virJSONValueFree(reply);
+        type = QEMU_MONITOR_CPU_MODEL_EXPANSION_FULL;
+        goto retry;
     }
 
     if (!(cpu_name = virJSONValueObjectGetString(cpu_model, "name"))) {
@@ -5091,6 +5269,7 @@ qemuMonitorJSONGetCPUModelExpansion(qemuMonitorPtr mon,
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     virJSONValueFree(model);
+    virJSONValueFree(props);
     return ret;
 }
 
@@ -6251,8 +6430,8 @@ static virJSONValuePtr
 qemuMonitorJSONAttachCharDevCommand(const char *chrID,
                                     const virDomainChrSourceDef *chr)
 {
-    virJSONValuePtr ret;
-    virJSONValuePtr backend;
+    virJSONValuePtr ret = NULL;
+    virJSONValuePtr backend = NULL;
     virJSONValuePtr data = NULL;
     virJSONValuePtr addr = NULL;
     const char *backend_type = NULL;
@@ -6261,7 +6440,7 @@ qemuMonitorJSONAttachCharDevCommand(const char *chrID,
 
     if (!(backend = virJSONValueNewObject()) ||
         !(data = virJSONValueNewObject())) {
-        goto error;
+        goto cleanup;
     }
 
     switch ((virDomainChrType) chr->type) {
@@ -6277,14 +6456,14 @@ qemuMonitorJSONAttachCharDevCommand(const char *chrID,
     case VIR_DOMAIN_CHR_TYPE_FILE:
         backend_type = "file";
         if (virJSONValueObjectAppendString(data, "out", chr->data.file.path) < 0)
-            goto error;
+            goto cleanup;
         break;
 
     case VIR_DOMAIN_CHR_TYPE_DEV:
         backend_type = STRPREFIX(chrID, "parallel") ? "parallel" : "serial";
         if (virJSONValueObjectAppendString(data, "device",
                                            chr->data.file.path) < 0)
-            goto error;
+            goto cleanup;
         break;
 
     case VIR_DOMAIN_CHR_TYPE_TCP:
@@ -6293,7 +6472,7 @@ qemuMonitorJSONAttachCharDevCommand(const char *chrID,
                                                      chr->data.tcp.service);
         if (!addr ||
             virJSONValueObjectAppend(data, "addr", addr) < 0)
-            goto error;
+            goto cleanup;
         addr = NULL;
 
         telnet = chr->data.tcp.protocol == VIR_DOMAIN_CHR_TCP_PROTOCOL_TELNET;
@@ -6301,13 +6480,13 @@ qemuMonitorJSONAttachCharDevCommand(const char *chrID,
         if (virJSONValueObjectAppendBoolean(data, "wait", false) < 0 ||
             virJSONValueObjectAppendBoolean(data, "telnet", telnet) < 0 ||
             virJSONValueObjectAppendBoolean(data, "server", chr->data.tcp.listen) < 0)
-            goto error;
+            goto cleanup;
         if (chr->data.tcp.tlscreds) {
             if (!(tlsalias = qemuAliasTLSObjFromSrcAlias(chrID)))
-                goto error;
+                goto cleanup;
 
             if (virJSONValueObjectAppendString(data, "tls-creds", tlsalias) < 0)
-                goto error;
+                goto cleanup;
         }
         break;
 
@@ -6317,14 +6496,14 @@ qemuMonitorJSONAttachCharDevCommand(const char *chrID,
                                                      chr->data.udp.connectService);
         if (!addr ||
             virJSONValueObjectAppend(data, "remote", addr) < 0)
-            goto error;
+            goto cleanup;
 
         if (chr->data.udp.bindHost) {
             addr = qemuMonitorJSONBuildInetSocketAddress(chr->data.udp.bindHost,
                                                          chr->data.udp.bindService);
             if (!addr ||
                 virJSONValueObjectAppend(data, "local", addr) < 0)
-                goto error;
+                goto cleanup;
         }
         addr = NULL;
         break;
@@ -6335,12 +6514,12 @@ qemuMonitorJSONAttachCharDevCommand(const char *chrID,
 
         if (!addr ||
             virJSONValueObjectAppend(data, "addr", addr) < 0)
-            goto error;
+            goto cleanup;
         addr = NULL;
 
         if (virJSONValueObjectAppendBoolean(data, "wait", false) < 0 ||
             virJSONValueObjectAppendBoolean(data, "server", chr->data.nix.listen) < 0)
-            goto error;
+            goto cleanup;
         break;
 
     case VIR_DOMAIN_CHR_TYPE_SPICEVMC:
@@ -6348,7 +6527,7 @@ qemuMonitorJSONAttachCharDevCommand(const char *chrID,
 
         if (virJSONValueObjectAppendString(data, "type",
                                            virDomainChrSpicevmcTypeToString(chr->data.spicevmc)) < 0)
-            goto error;
+            goto cleanup;
         break;
 
     case VIR_DOMAIN_CHR_TYPE_SPICEPORT:
@@ -6365,28 +6544,27 @@ qemuMonitorJSONAttachCharDevCommand(const char *chrID,
                            _("Hotplug unsupported for char device type '%d'"),
                            chr->type);
         }
-        goto error;
+        goto cleanup;
     }
 
     if (virJSONValueObjectAppendString(backend, "type", backend_type) < 0 ||
         virJSONValueObjectAppend(backend, "data", data) < 0)
-        goto error;
+        goto cleanup;
     data = NULL;
 
     if (!(ret = qemuMonitorJSONMakeCommand("chardev-add",
                                            "s:id", chrID,
                                            "a:backend", backend,
                                            NULL)))
-        goto error;
+        goto cleanup;
+    backend = NULL;
 
-    return ret;
-
- error:
+ cleanup:
     VIR_FREE(tlsalias);
     virJSONValueFree(addr);
     virJSONValueFree(data);
     virJSONValueFree(backend);
-    return NULL;
+    return ret;
 }
 
 
@@ -6676,6 +6854,7 @@ qemuMonitorJSONCheckCPUx86(qemuMonitorPtr mon)
  * @mon: Pointer to the monitor
  * @arch: arch of the guest
  * @data: returns the cpu data of the guest
+ * @disabled: returns the CPU data for features which were disabled by QEMU
  *
  * Retrieve the definition of the guest CPU from a running qemu instance.
  *
@@ -6685,26 +6864,43 @@ qemuMonitorJSONCheckCPUx86(qemuMonitorPtr mon)
 int
 qemuMonitorJSONGetGuestCPU(qemuMonitorPtr mon,
                            virArch arch,
-                           virCPUDataPtr *data)
+                           virCPUDataPtr *data,
+                           virCPUDataPtr *disabled)
 {
+    virCPUDataPtr cpuEnabled = NULL;
+    virCPUDataPtr cpuDisabled = NULL;
     int rc;
 
-    switch (arch) {
-    case VIR_ARCH_X86_64:
-    case VIR_ARCH_I686:
+    if (ARCH_IS_X86(arch)) {
         if ((rc = qemuMonitorJSONCheckCPUx86(mon)) < 0)
             return -1;
         else if (!rc)
             return -2;
 
-        return qemuMonitorJSONGetCPUx86Data(mon, "feature-words", data);
+        if (qemuMonitorJSONGetCPUx86Data(mon, "feature-words",
+                                         &cpuEnabled) < 0)
+            goto error;
 
-    default:
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("CPU definition retrieval isn't supported for '%s'"),
-                       virArchToString(arch));
-        return -1;
+        if (disabled &&
+            qemuMonitorJSONGetCPUx86Data(mon, "filtered-features",
+                                         &cpuDisabled) < 0)
+            goto error;
+
+        *data = cpuEnabled;
+        if (disabled)
+            *disabled = cpuDisabled;
+        return 0;
     }
+
+    virReportError(VIR_ERR_INTERNAL_ERROR,
+                   _("CPU definition retrieval isn't supported for '%s'"),
+                   virArchToString(arch));
+    return -1;
+
+ error:
+    virCPUDataFree(cpuEnabled);
+    virCPUDataFree(cpuDisabled);
+    return -1;
 }
 
 int
@@ -7365,14 +7561,6 @@ qemuMonitorJSONFillQMPSchema(size_t pos ATTRIBUTE_UNUSED,
 }
 
 
-static void
-qemuMonitorJSONFreeSchemaEntry(void *opaque,
-                               const void *name ATTRIBUTE_UNUSED)
-{
-    virJSONValueFree(opaque);
-}
-
-
 virHashTablePtr
 qemuMonitorJSONQueryQMPSchema(qemuMonitorPtr mon)
 {
@@ -7393,7 +7581,7 @@ qemuMonitorJSONQueryQMPSchema(qemuMonitorPtr mon)
 
     arr = virJSONValueObjectGet(reply, "return");
 
-    if (!(schema = virHashCreate(512, qemuMonitorJSONFreeSchemaEntry)))
+    if (!(schema = virHashCreate(512, virJSONValueHashFree)))
         goto cleanup;
 
     if (virJSONValueArrayForeachSteal(arr, qemuMonitorJSONFillQMPSchema,
@@ -7406,6 +7594,63 @@ qemuMonitorJSONQueryQMPSchema(qemuMonitorPtr mon)
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     virHashFree(schema);
+
+    return ret;
+}
+
+
+int
+qemuMonitorJSONSetBlockThreshold(qemuMonitorPtr mon,
+                                 const char *nodename,
+                                 unsigned long long threshold)
+{
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+    int ret = -1;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("block-set-write-threshold",
+                                           "s:node-name", nodename,
+                                           "U:write-threshold", threshold,
+                                           NULL)))
+        return -1;
+
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        goto cleanup;
+
+    if (qemuMonitorJSONCheckError(cmd, reply) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+
+    return ret;
+}
+
+
+virJSONValuePtr
+qemuMonitorJSONQueryNamedBlockNodes(qemuMonitorPtr mon)
+{
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+    virJSONValuePtr ret = NULL;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("query-named-block-nodes", NULL)))
+        return NULL;
+
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        goto cleanup;
+
+    if (qemuMonitorJSONCheckError(cmd, reply) < 0)
+        goto cleanup;
+
+    ret = virJSONValueObjectStealArray(reply, "return");
+
+ cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
 
     return ret;
 }

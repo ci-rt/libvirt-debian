@@ -428,10 +428,10 @@ qemuInterfaceEthernetConnect(virDomainDefPtr def,
     }
 
     if (!net->ifname ||
-        STRPREFIX(net->ifname, VIR_NET_GENERATED_PREFIX) ||
+        STRPREFIX(net->ifname, VIR_NET_GENERATED_TAP_PREFIX) ||
         strchr(net->ifname, '%')) {
         VIR_FREE(net->ifname);
-        if (VIR_STRDUP(net->ifname, VIR_NET_GENERATED_PREFIX "%d") < 0)
+        if (VIR_STRDUP(net->ifname, VIR_NET_GENERATED_TAP_PREFIX "%d") < 0)
             goto cleanup;
         /* avoid exposing vnet%d in getXMLDesc or error outputs */
         template_ifname = true;
@@ -503,8 +503,7 @@ qemuInterfaceBridgeConnect(virDomainDefPtr def,
                            virQEMUDriverPtr driver,
                            virDomainNetDefPtr net,
                            int *tapfd,
-                           size_t *tapfdSize,
-                           unsigned int *mtu)
+                           size_t *tapfdSize)
 {
     const char *brname;
     int ret = -1;
@@ -528,10 +527,10 @@ qemuInterfaceBridgeConnect(virDomainDefPtr def,
     }
 
     if (!net->ifname ||
-        STRPREFIX(net->ifname, VIR_NET_GENERATED_PREFIX) ||
+        STRPREFIX(net->ifname, VIR_NET_GENERATED_TAP_PREFIX) ||
         strchr(net->ifname, '%')) {
         VIR_FREE(net->ifname);
-        if (VIR_STRDUP(net->ifname, VIR_NET_GENERATED_PREFIX "%d") < 0)
+        if (VIR_STRDUP(net->ifname, VIR_NET_GENERATED_TAP_PREFIX "%d") < 0)
             goto cleanup;
         /* avoid exposing vnet%d in getXMLDesc or error outputs */
         template_ifname = true;
@@ -545,7 +544,7 @@ qemuInterfaceBridgeConnect(virDomainDefPtr def,
                                            def->uuid, tunpath, tapfd, *tapfdSize,
                                            virDomainNetGetActualVirtPortProfile(net),
                                            virDomainNetGetActualVlan(net),
-                                           net->mtu, mtu,
+                                           net->coalesce, 0, NULL,
                                            tap_create_flags) < 0) {
             virDomainAuditNetDevice(def, net, tunpath, false);
             goto cleanup;
@@ -555,7 +554,7 @@ qemuInterfaceBridgeConnect(virDomainDefPtr def,
             /* libvirt is managing the FDB of the bridge this device
              * is attaching to, so we need to turn off learning and
              * unicast_flood on the device to prevent the kernel from
-             * adding any FDB entries for it. We will add add an fdb
+             * adding any FDB entries for it. We will add an fdb
              * entry ourselves (during qemuInterfaceStartDevices(),
              * using the MAC address from the interface config.
              */
