@@ -1,38 +1,26 @@
-libvirt (3.1.0-1~2.gbp2217e1) UNRELEASED; urgency=medium
+libvirt (3.0.5~rc2-1.gbpb3ae1f) UNRELEASED; urgency=medium
 
-  ** SNAPSHOT build @2217e17dcad2d655729ca2e9a2f0dd1ffcb66eda **
+  ** SNAPSHOT build @b3ae1f42743afd41f18623ecee4759d9fa7f2dae **
 
-  [ Guido Günther ]
-  ** SNAPSHOT build @9a81566794213f630e9048d2e813bdb200edc4a3 **
-
-  * [603e376] New upstream version 3.1.0-rc2
+  * [b0f6946] New upstream version 3.5.0-rc2
   * [e0507a8] New upstream version 3.1.0
-  * [172bcdf] Bump symbol versions
-  * [9c4dfe3] Rediff patches.
-    Dropped
-        CVE-2017-2635-qemu-Don-t-update-physical-storage-size-of-.patch: fixed upstream
-        Disable-use-of-namespaces-by-default.patch: not needed, namespaces
-        are now enabled
-  * [21aa1f3] Bump symbol versions
-  * [b1730fa] Rediff patches.
-    Dropped
-      CVE-2017-2635-qemu-Don-t-update-physical-storage-size-of-.patch
-    fixed upstream
-    Dropped
-      Disable-use-of-namespaces-by-default.patch
-    Namespaces can now be used with QEMU
-  * [2a23b23] qemu: skip QMP probing of CPU definitions when missing.
-    Don't probe CPU definitions if we lack the monitor command. This
-    unbreaks e.g. mips based VMs. (Closes: #85412)
-  * [21bc332] apprarmor: unbreak lbvirt invoking qemu-bridge-helpers
-  * [e581fc0] Document changes and release 3.0.0-4
+  * [603e376] New upstream version 3.1.0-rc2
+  * [172bcdf,21aa1f3] Bump symbol versions
+  * [9c4dfe3] Dropped Disable-use-of-namespaces-by-default.patch: not needed,
+    namespaces are now enabled
   * [7cb82a1] Add pt debconf translation.
     Thanks to Rui Branco (Closes: #858742)
   * [fcd509f] Remove defaults file on clean
-  * [6b9ffbb] Build depend on libparted-dev
-    to ease cross building
+  * [6b9ffbb] Build depend on libparted-dev to ease cross building
     Thanks to Helmut Grohne (Closes: #864671)
-  * [b0f6946] New upstream version 3.5.0-rc2
+  * [849c8e2] Rediff patches.
+    Dropped patches for things fixed upstream:
+     CVE-2017-2635-qemu-Don-t-update-physical-storage-size-of-.patch
+     apparmor-allow-usr-lib-qemu-qemu-bridge-helper.patchupstream
+     virt-aa-helper-apparmor-allow-usr-share-OVMF-too.patch
+     Allow-access-to-libnl-3-config-files.patch
+     Dropped qemu-skip-QMP-probing-of-CPU-definitions-when-missing.patch
+  * [a0cd0f0] Update key for upstream tarball verification
 
   [ Christian Ehrhardt ]
   * [8fa2c4f] Ship libvirt-admin.conf
@@ -40,7 +28,7 @@ libvirt (3.1.0-1~2.gbp2217e1) UNRELEASED; urgency=medium
   * [aef2f3c] Ship libvirt-admin.conf (Closes: #863649)
   * [c3b6ff2] Ship default file for virtlockd (Closes: #863648)
 
- -- Guido Günther <agx@sigxcpu.org>  Tue, 04 Jul 2017 08:45:46 +0200
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 04 Jul 2017 21:46:35 +0200
 
 libvirt (3.0.0-4) unstable; urgency=medium
 
