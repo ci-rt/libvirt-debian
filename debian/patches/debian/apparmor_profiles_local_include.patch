@@ -9,10 +9,10 @@ Include local apparmor profile
  2 files changed, 6 insertions(+)
 
 diff --git a/examples/apparmor/usr.lib.libvirt.virt-aa-helper b/examples/apparmor/usr.lib.libvirt.virt-aa-helper
-index 7804b72..abf340d 100644
+index 012080c..93ba74e 100644
 --- a/examples/apparmor/usr.lib.libvirt.virt-aa-helper
 +++ b/examples/apparmor/usr.lib.libvirt.virt-aa-helper
-@@ -52,4 +52,7 @@ profile virt-aa-helper /usr/{lib,lib64}/libvirt/virt-aa-helper {
+@@ -56,4 +56,7 @@ profile virt-aa-helper /usr/{lib,lib64}/libvirt/virt-aa-helper {
    /**.vmdk r,
    /**.[iI][sS][oO] r,
    /**/disk{,.*} r,
@@ -21,12 +21,12 @@ index 7804b72..abf340d 100644
 +  #include <local/usr.lib.libvirt.virt-aa-helper>
  }
 diff --git a/examples/apparmor/usr.sbin.libvirtd b/examples/apparmor/usr.sbin.libvirtd
-index 8893e75..c40930b 100644
+index acb59e0..d9869a5 100644
 --- a/examples/apparmor/usr.sbin.libvirtd
 +++ b/examples/apparmor/usr.sbin.libvirtd
-@@ -85,4 +85,7 @@
+@@ -86,4 +86,7 @@
  
-    /usr/{lib,libexec}/qemu-bridge-helper rmix,
+    /usr/{lib,lib64,lib/qemu,libexec}/qemu-bridge-helper rmix,
    }
 +  
 +  # Site-specific additions and overrides. See local/README for details.

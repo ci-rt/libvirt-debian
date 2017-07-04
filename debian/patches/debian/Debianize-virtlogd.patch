@@ -7,7 +7,7 @@ Subject: Debianize virtlogd
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/logging/virtlogd.service.in b/src/logging/virtlogd.service.in
-index 09e0740..87ac468 100644
+index 8b67317..959e625 100644
 --- a/src/logging/virtlogd.service.in
 +++ b/src/logging/virtlogd.service.in
 @@ -6,7 +6,7 @@ Documentation=man:virtlogd(8)
