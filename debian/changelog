@@ -1,3 +1,12 @@
+libvirt (3.1.0-1~1.gbp9a8156) UNRELEASED; urgency=medium
+
+  ** SNAPSHOT build @9a81566794213f630e9048d2e813bdb200edc4a3 **
+
+  * [603e376] New upstream version 3.1.0-rc2
+  * [e0507a8] New upstream version 3.1.0
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 12 Mar 2017 12:46:45 +0100
+
 libvirt (3.0.0-4) unstable; urgency=medium
 
   * [2a23b23] qemu: skip QMP probing of CPU definitions when missing.

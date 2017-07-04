@@ -164,53 +164,6 @@ int virGetDeviceUnprivSGIO(const char *path,
                            int *unpriv_sgio);
 char *virGetUnprivSGIOSysfsPath(const char *path,
                                 const char *sysfs_dir);
-int virReadSCSIUniqueId(const char *sysfs_prefix,
-                        int host,
-                        int *result)
-    ATTRIBUTE_NONNULL(3);
-char *
-virFindSCSIHostByPCI(const char *sysfs_prefix,
-                     const char *parentaddr,
-                     unsigned int unique_id);
-int
-virGetSCSIHostNumber(const char *adapter_name,
-                     unsigned int *result)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
-char *
-virGetSCSIHostNameByParentaddr(unsigned int domain,
-                               unsigned int bus,
-                               unsigned int slot,
-                               unsigned int function,
-                               unsigned int unique_id);
-char *virReadFCHost(const char *sysfs_prefix,
-                    int host,
-                    const char *entry)
-    ATTRIBUTE_NONNULL(3);
-
-bool virIsCapableFCHost(const char *sysfs_prefix, int host);
-bool virIsCapableVport(const char *sysfs_prefix, int host);
-
-enum {
-    VPORT_CREATE,
-    VPORT_DELETE,
-};
-
-int virManageVport(const int parent_host,
-                   const char *wwpn,
-                   const char *wwnn,
-                   int operation)
-    ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
-
-char *virGetFCHostNameByWWN(const char *sysfs_prefix,
-                            const char *wwnn,
-                            const char *wwpn)
-    ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
-
-char *virGetFCHostNameByFabricWWN(const char *sysfs_prefix,
-                                  const char *fabric_wwn)
-    ATTRIBUTE_NONNULL(2);
-
-char *virFindFCHostCapableVport(const char *sysfs_prefix);
 
 int virParseOwnershipIds(const char *label, uid_t *uidPtr, gid_t *gidPtr);
 

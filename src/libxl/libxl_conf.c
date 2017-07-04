@@ -34,6 +34,7 @@
 #include "internal.h"
 #include "virlog.h"
 #include "virerror.h"
+#include "c-ctype.h"
 #include "datatypes.h"
 #include "virconf.h"
 #include "virfile.h"
@@ -313,19 +314,50 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
     for (i = 0; i < virDomainDefGetVcpus(def); i++)
         libxl_bitmap_set((&b_info->avail_vcpus), i);
 
-    if (def->clock.ntimers > 0 &&
-        def->clock.timers[0]->name == VIR_DOMAIN_TIMER_NAME_TSC) {
-        switch (def->clock.timers[0]->mode) {
+    for (i = 0; i < def->clock.ntimers; i++) {
+        switch ((virDomainTimerNameType) def->clock.timers[i]->name) {
+        case VIR_DOMAIN_TIMER_NAME_TSC:
+            switch (def->clock.timers[i]->mode) {
             case VIR_DOMAIN_TIMER_MODE_NATIVE:
-                b_info->tsc_mode = 2;
+                b_info->tsc_mode = LIBXL_TSC_MODE_NATIVE;
                 break;
             case VIR_DOMAIN_TIMER_MODE_PARAVIRT:
-                b_info->tsc_mode = 3;
+                b_info->tsc_mode = LIBXL_TSC_MODE_NATIVE_PARAVIRT;
+                break;
+            case VIR_DOMAIN_TIMER_MODE_EMULATE:
+                b_info->tsc_mode = LIBXL_TSC_MODE_ALWAYS_EMULATE;
                 break;
             default:
-                b_info->tsc_mode = 1;
+                b_info->tsc_mode = LIBXL_TSC_MODE_DEFAULT;
+            }
+            break;
+
+        case VIR_DOMAIN_TIMER_NAME_HPET:
+            if (!hvm) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("unsupported timer type (name) '%s'"),
+                               virDomainTimerNameTypeToString(def->clock.timers[i]->name));
+                return -1;
+            }
+            if (def->clock.timers[i]->present == 1)
+                libxl_defbool_set(&b_info->u.hvm.hpet, 1);
+            break;
+
+        case VIR_DOMAIN_TIMER_NAME_PLATFORM:
+        case VIR_DOMAIN_TIMER_NAME_KVMCLOCK:
+        case VIR_DOMAIN_TIMER_NAME_HYPERVCLOCK:
+        case VIR_DOMAIN_TIMER_NAME_RTC:
+        case VIR_DOMAIN_TIMER_NAME_PIT:
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("unsupported timer type (name) '%s'"),
+                           virDomainTimerNameTypeToString(def->clock.timers[i]->name));
+            return -1;
+
+        case VIR_DOMAIN_TIMER_NAME_LAST:
+            break;
         }
     }
+
     b_info->sched_params.weight = 1000;
     b_info->max_memkb = virDomainDefGetMemoryInitial(def);
     b_info->target_memkb = def->mem.cur_balloon;
@@ -341,12 +373,6 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
         libxl_defbool_set(&b_info->u.hvm.acpi,
                           def->features[VIR_DOMAIN_FEATURE_ACPI] ==
                           VIR_TRISTATE_SWITCH_ON);
-        for (i = 0; i < def->clock.ntimers; i++) {
-            if (def->clock.timers[i]->name == VIR_DOMAIN_TIMER_NAME_HPET &&
-                def->clock.timers[i]->present == 1) {
-                libxl_defbool_set(&b_info->u.hvm.hpet, 1);
-            }
-        }
 
         if (def->nsounds > 0) {
             /*
@@ -740,8 +766,6 @@ libxlMakeDisk(virDomainDiskDefPtr l_disk, libxl_device_disk *x_disk)
                 x_disk->format = LIBXL_DISK_FORMAT_VHD;
                 x_disk->backend = LIBXL_DISK_BACKEND_TAP;
                 break;
-            case VIR_STORAGE_FILE_NONE:
-                /* No subtype specified, default to raw/tap */
             case VIR_STORAGE_FILE_RAW:
                 x_disk->format = LIBXL_DISK_FORMAT_RAW;
                 x_disk->backend = LIBXL_DISK_BACKEND_TAP;
@@ -777,8 +801,6 @@ libxlMakeDisk(virDomainDiskDefPtr l_disk, libxl_device_disk *x_disk)
             case VIR_STORAGE_FILE_VHD:
                 x_disk->format = LIBXL_DISK_FORMAT_VHD;
                 break;
-            case VIR_STORAGE_FILE_NONE:
-                /* No subtype specified, default to raw */
             case VIR_STORAGE_FILE_RAW:
                 x_disk->format = LIBXL_DISK_FORMAT_RAW;
                 break;
@@ -791,8 +813,7 @@ libxlMakeDisk(virDomainDiskDefPtr l_disk, libxl_device_disk *x_disk)
                 return -1;
             }
         } else if (STREQ(driver, "file")) {
-            if (format != VIR_STORAGE_FILE_NONE &&
-                format != VIR_STORAGE_FILE_RAW) {
+            if (format != VIR_STORAGE_FILE_RAW) {
                 virReportError(VIR_ERR_INTERNAL_ERROR,
                                _("libxenlight does not support disk format %s "
                                  "with disk driver %s"),
@@ -803,8 +824,7 @@ libxlMakeDisk(virDomainDiskDefPtr l_disk, libxl_device_disk *x_disk)
             x_disk->format = LIBXL_DISK_FORMAT_RAW;
             x_disk->backend = LIBXL_DISK_BACKEND_QDISK;
         } else if (STREQ(driver, "phy")) {
-            if (format != VIR_STORAGE_FILE_NONE &&
-                format != VIR_STORAGE_FILE_RAW) {
+            if (format != VIR_STORAGE_FILE_RAW) {
                 virReportError(VIR_ERR_INTERNAL_ERROR,
                                _("libxenlight does not support disk format %s "
                                  "with disk driver %s"),
@@ -886,6 +906,38 @@ libxlMakeDiskList(virDomainDefPtr def, libxl_domain_config *d_config)
         libxl_device_disk_dispose(&x_disks[i]);
     VIR_FREE(x_disks);
     return -1;
+}
+
+/*
+ * Update libvirt disk config with libxl disk config.
+ *
+ * This function can be used to update the libvirt disk config with default
+ * values selected by libxl. Currently only the backend type is selected by
+ * libxl when not explicitly specified by the user.
+ */
+void
+libxlUpdateDiskDef(virDomainDiskDefPtr l_disk, libxl_device_disk *x_disk)
+{
+    const char *driver = NULL;
+
+    if (virDomainDiskGetDriver(l_disk))
+        return;
+
+    switch (x_disk->backend) {
+    case LIBXL_DISK_BACKEND_QDISK:
+        driver = "qemu";
+        break;
+    case LIBXL_DISK_BACKEND_TAP:
+        driver = "tap";
+        break;
+    case LIBXL_DISK_BACKEND_PHY:
+        driver = "phy";
+        break;
+    case LIBXL_DISK_BACKEND_UNKNOWN:
+        break;
+    }
+    if (driver)
+        ignore_value(virDomainDiskSetDriver(l_disk, driver));
 }
 
 int
@@ -1330,8 +1382,11 @@ libxlGetAutoballoonConf(libxlDriverConfigPtr cfg,
     regex_t regex;
     int res;
 
-    if (virConfGetValueBool(conf, "autoballoon", &cfg->autoballoon) < 0)
+    res = virConfGetValueBool(conf, "autoballoon", &cfg->autoballoon);
+    if (res < 0)
         return -1;
+    else if (res == 1)
+        return 0;
 
     if ((res = regcomp(&regex,
                       "(^| )dom0_mem=((|min:|max:)[0-9]+[bBkKmMgG]?,?)+($| )",
@@ -1504,6 +1559,90 @@ int libxlDriverConfigLoadFile(libxlDriverConfigPtr cfg,
     return ret;
 
 }
+
+/*
+ * dom0's maximum memory can be controled by the user with the 'dom0_mem' Xen
+ * command line parameter. E.g. to set dom0's initial memory to 4G and max
+ * memory to 8G: dom0_mem=4G,max:8G
+ * Supported unit suffixes are [bBkKmMgGtT]. If not specified the default
+ * unit is kilobytes.
+ *
+ * If not constrained by the user, dom0 can effectively use all host memory.
+ * This function returns the configured maximum memory for dom0 in kilobytes,
+ * either the user-specified value or total physical memory as a default.
+ */
+int
+libxlDriverGetDom0MaxmemConf(libxlDriverConfigPtr cfg,
+                             unsigned long long *maxmem)
+{
+    char **cmd_tokens = NULL;
+    char **mem_tokens = NULL;
+    size_t i;
+    size_t j;
+    libxl_physinfo physinfo;
+    int ret = -1;
+
+    if (cfg->verInfo->commandline == NULL ||
+        !(cmd_tokens = virStringSplit(cfg->verInfo->commandline, " ", 0)))
+        goto physmem;
+
+    for (i = 0; cmd_tokens[i] != NULL; i++) {
+        if (!STRPREFIX(cmd_tokens[i], "dom0_mem="))
+            continue;
+
+        if (!(mem_tokens = virStringSplit(cmd_tokens[i], ",", 0)))
+            break;
+        for (j = 0; mem_tokens[j] != NULL; j++) {
+            if (STRPREFIX(mem_tokens[j], "max:")) {
+                char *p = mem_tokens[j] + 4;
+                unsigned long long multiplier = 1;
+
+                while (c_isdigit(*p))
+                    p++;
+                if (virStrToLong_ull(mem_tokens[j] + 4, &p, 10, maxmem) < 0)
+                    break;
+                if (*p) {
+                    switch (*p) {
+                    case 'm':
+                    case 'M':
+                        multiplier = 1024;
+                        break;
+                    case 'g':
+                    case 'G':
+                        multiplier = 1024 * 1024;
+                        break;
+                    case 't':
+                    case 'T':
+                        multiplier = 1024 * 1024 * 1024;
+                        break;
+                    }
+                }
+                *maxmem = *maxmem * multiplier;
+                ret = 0;
+                goto cleanup;
+            }
+        }
+        virStringListFree(mem_tokens);
+        mem_tokens = NULL;
+    }
+
+ physmem:
+    /* No 'max' specified in dom0_mem, so dom0 can use all physical memory */
+    libxl_physinfo_init(&physinfo);
+    if (libxl_get_physinfo(cfg->ctx, &physinfo)) {
+        VIR_WARN("libxl_get_physinfo failed");
+        goto cleanup;
+    }
+    *maxmem = (physinfo.total_pages * cfg->verInfo->pagesize) / 1024;
+    libxl_physinfo_dispose(&physinfo);
+    ret = 0;
+
+ cleanup:
+    virStringListFree(cmd_tokens);
+    virStringListFree(mem_tokens);
+    return ret;
+}
+
 
 #ifdef LIBXL_HAVE_DEVICE_CHANNEL
 static int
@@ -1915,6 +2054,7 @@ libxlDriverNodeGetInfo(libxlDriverPrivatePtr driver, virNodeInfoPtr info)
     libxlDriverConfigPtr cfg = libxlDriverConfigGet(driver);
     int ret = -1;
 
+    libxl_physinfo_init(&phy_info);
     if (libxl_get_physinfo(cfg->ctx, &phy_info)) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("libxl_get_physinfo_info failed"));
@@ -1939,6 +2079,7 @@ libxlDriverNodeGetInfo(libxlDriverPrivatePtr driver, virNodeInfoPtr info)
     ret = 0;
 
  cleanup:
+    libxl_physinfo_dispose(&phy_info);
     virObjectUnref(cfg);
     return ret;
 }

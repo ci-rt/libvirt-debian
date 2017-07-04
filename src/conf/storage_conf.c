@@ -35,6 +35,7 @@
 
 #include "virerror.h"
 #include "datatypes.h"
+#include "node_device_conf.h"
 #include "storage_conf.h"
 #include "virstoragefile.h"
 
@@ -43,8 +44,10 @@
 #include "virbuffer.h"
 #include "viralloc.h"
 #include "virfile.h"
+#include "virscsihost.h"
 #include "virstring.h"
 #include "virlog.h"
+#include "virvhba.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
@@ -60,7 +63,8 @@ VIR_ENUM_IMPL(virStoragePool,
               "dir", "fs", "netfs",
               "logical", "disk", "iscsi",
               "scsi", "mpath", "rbd",
-              "sheepdog", "gluster", "zfs")
+              "sheepdog", "gluster", "zfs",
+              "vstorage")
 
 VIR_ENUM_IMPL(virStoragePoolFormatFileSystem,
               VIR_STORAGE_POOL_FS_LAST,
@@ -272,6 +276,16 @@ static virStoragePoolTypeInfo poolTypeInfo[] = {
          .flags = (VIR_STORAGE_POOL_SOURCE_NAME |
                    VIR_STORAGE_POOL_SOURCE_DEVICE),
          .defaultFormat = VIR_STORAGE_FILE_RAW,
+     },
+    },
+    {.poolType = VIR_STORAGE_POOL_VSTORAGE,
+     .poolOptions = {
+        .flags = VIR_STORAGE_POOL_SOURCE_NAME,
+     },
+     .volOptions = {
+        .defaultFormat = VIR_STORAGE_FILE_RAW,
+        .formatFromString = virStorageVolumeFormatFromString,
+        .formatToString = virStorageFileFormatTypeToString,
      },
     },
 };
@@ -2263,64 +2277,6 @@ virStoragePoolObjIsDuplicate(virStoragePoolObjListPtr pools,
     return ret;
 }
 
-/*
- * virStoragePoolGetVhbaSCSIHostParent:
- *
- * Using the Node Device Driver, find the host# name found via wwnn/wwpn
- * lookup in the fc_host sysfs tree (e.g. virGetFCHostNameByWWN) to get
- * the parent 'scsi_host#'.
- *
- * @conn: Connection pointer (must be non-NULL on entry)
- * @name: Pointer a string from a virGetFCHostNameByWWN (e.g., "host#")
- *
- * Returns a "scsi_host#" string of the parent of the vHBA
- */
-char *
-virStoragePoolGetVhbaSCSIHostParent(virConnectPtr conn,
-                                    const char *name)
-{
-    char *nodedev_name = NULL;
-    virNodeDevicePtr device = NULL;
-    char *xml = NULL;
-    virNodeDeviceDefPtr def = NULL;
-    char *vhba_parent = NULL;
-
-    VIR_DEBUG("conn=%p, name=%s", conn, name);
-
-    /* We get passed "host#" from the return from virGetFCHostNameByWWN,
-     * so we need to adjust that to what the nodedev lookup expects
-     */
-    if (virAsprintf(&nodedev_name, "scsi_%s", name) < 0)
-        goto cleanup;
-
-    /* Compare the scsi_host for the name with the provided parent
-     * if not the same, then fail
-     */
-    if (!(device = virNodeDeviceLookupByName(conn, nodedev_name))) {
-        virReportError(VIR_ERR_XML_ERROR,
-                       _("Cannot find '%s' in node device database"),
-                       nodedev_name);
-        goto cleanup;
-    }
-
-    if (!(xml = virNodeDeviceGetXMLDesc(device, 0)))
-        goto cleanup;
-
-    if (!(def = virNodeDeviceDefParseString(xml, EXISTING_DEVICE, NULL)))
-        goto cleanup;
-
-    /* The caller checks whether the returned value is NULL or not
-     * before continuing
-     */
-    ignore_value(VIR_STRDUP(vhba_parent, def->parent));
-
- cleanup:
-    VIR_FREE(nodedev_name);
-    virNodeDeviceDefFree(def);
-    VIR_FREE(xml);
-    virObjectUnref(device);
-    return vhba_parent;
-}
 
 static int
 getSCSIHostNumber(virStoragePoolSourceAdapter adapter,
@@ -2334,16 +2290,16 @@ getSCSIHostNumber(virStoragePoolSourceAdapter adapter,
         virPCIDeviceAddress addr = adapter.data.scsi_host.parentaddr;
         unsigned int unique_id = adapter.data.scsi_host.unique_id;
 
-        if (!(name = virGetSCSIHostNameByParentaddr(addr.domain,
+        if (!(name = virSCSIHostGetNameByParentaddr(addr.domain,
                                                     addr.bus,
                                                     addr.slot,
                                                     addr.function,
                                                     unique_id)))
             goto cleanup;
-        if (virGetSCSIHostNumber(name, &num) < 0)
+        if (virSCSIHostGetNumber(name, &num) < 0)
             goto cleanup;
     } else {
-        if (virGetSCSIHostNumber(adapter.data.scsi_host.name, &num) < 0)
+        if (virSCSIHostGetNumber(adapter.data.scsi_host.name, &num) < 0)
             goto cleanup;
     }
 
@@ -2354,6 +2310,21 @@ getSCSIHostNumber(virStoragePoolSourceAdapter adapter,
     VIR_FREE(name);
     return ret;
 }
+
+
+static bool
+virStorageIsSameHostnum(const char *name,
+                        unsigned int scsi_hostnum)
+{
+    unsigned int fc_hostnum;
+
+    if (virSCSIHostGetNumber(name, &fc_hostnum) == 0 &&
+        scsi_hostnum == fc_hostnum)
+        return true;
+
+    return false;
+}
+
 
 /*
  * matchFCHostToSCSIHost:
@@ -2370,31 +2341,30 @@ matchFCHostToSCSIHost(virConnectPtr conn,
                       virStoragePoolSourceAdapter fc_adapter,
                       unsigned int scsi_hostnum)
 {
+    bool ret = false;
     char *name = NULL;
+    char *scsi_host_name = NULL;
     char *parent_name = NULL;
-    unsigned int fc_hostnum;
 
     /* If we have a parent defined, get its hostnum, and compare to the
      * scsi_hostnum. If they are the same, then we have a match
      */
     if (fc_adapter.data.fchost.parent &&
-        virGetSCSIHostNumber(fc_adapter.data.fchost.parent, &fc_hostnum) == 0 &&
-        scsi_hostnum == fc_hostnum)
+        virStorageIsSameHostnum(fc_adapter.data.fchost.parent, scsi_hostnum))
         return true;
 
     /* If we find an fc_adapter name, then either libvirt created a vHBA
      * for this fc_host or a 'virsh nodedev-create' generated a vHBA.
      */
-    if ((name = virGetFCHostNameByWWN(NULL, fc_adapter.data.fchost.wwnn,
-                                      fc_adapter.data.fchost.wwpn))) {
+    if ((name = virVHBAGetHostByWWN(NULL, fc_adapter.data.fchost.wwnn,
+                                    fc_adapter.data.fchost.wwpn))) {
 
         /* Get the scsi_hostN for the vHBA in order to see if it
          * matches our scsi_hostnum
          */
-        if (virGetSCSIHostNumber(name, &fc_hostnum) == 0 &&
-            scsi_hostnum == fc_hostnum) {
-            VIR_FREE(name);
-            return true;
+        if (virStorageIsSameHostnum(name, scsi_hostnum)) {
+            ret = true;
+            goto cleanup;
         }
 
         /* We weren't provided a parent, so we have to query the node
@@ -2403,22 +2373,20 @@ matchFCHostToSCSIHost(virConnectPtr conn,
          * have a match.
          */
         if (conn && !fc_adapter.data.fchost.parent) {
-            parent_name = virStoragePoolGetVhbaSCSIHostParent(conn, name);
-            if (parent_name) {
-                if (virGetSCSIHostNumber(parent_name, &fc_hostnum) == 0 &&
-                    scsi_hostnum == fc_hostnum) {
-                    VIR_FREE(parent_name);
-                    VIR_FREE(name);
-                    return true;
+            if (virAsprintf(&scsi_host_name, "scsi_%s", name) < 0)
+                goto cleanup;
+            if ((parent_name = virNodeDeviceGetParentName(conn,
+                                                          scsi_host_name))) {
+                if (virStorageIsSameHostnum(parent_name, scsi_hostnum)) {
+                    ret = true;
+                    goto cleanup;
                 }
-                VIR_FREE(parent_name);
             } else {
                 /* Throw away the error and fall through */
                 virResetLastError();
                 VIR_DEBUG("Could not determine parent vHBA");
             }
         }
-        VIR_FREE(name);
     }
 
     /* NB: Lack of a name means that this vHBA hasn't yet been created,
@@ -2428,7 +2396,12 @@ matchFCHostToSCSIHost(virConnectPtr conn,
      *     conflict with an existing scsi_host definition, but there's no
      *     way to know that now.
      */
-    return false;
+
+ cleanup:
+    VIR_FREE(name);
+    VIR_FREE(parent_name);
+    VIR_FREE(scsi_host_name);
+    return ret;
 }
 
 static bool
@@ -2610,6 +2583,10 @@ virStoragePoolSourceFindDuplicate(virConnectPtr conn,
         case VIR_STORAGE_POOL_MPATH:
             /* Only one mpath pool is valid per host */
             matchpool = pool;
+            break;
+        case VIR_STORAGE_POOL_VSTORAGE:
+            if (STREQ(pool->def->source.name, def->source.name))
+                matchpool = pool;
             break;
         case VIR_STORAGE_POOL_RBD:
         case VIR_STORAGE_POOL_LAST:

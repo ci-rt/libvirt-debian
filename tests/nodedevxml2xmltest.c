@@ -87,6 +87,7 @@ mymain(void)
     DO_TEST("pci_8086_27c5_scsi_host_scsi_host");
     DO_TEST("pci_8086_27c5_scsi_host");
     DO_TEST("storage_serial_SATA_HTS721010G9SA00_MPCZ12Y0GNGWSE");
+    DO_TEST("storage_serial_3600c0ff000d7a2a5d463ff4902000000");
     DO_TEST("usb_device_1d6b_1_0000_00_1d_0_if0");
     DO_TEST("usb_device_1d6b_1_0000_00_1d_0");
     DO_TEST("pci_8086_4238_pcie_wireless");
@@ -99,6 +100,7 @@ mymain(void)
     DO_TEST("pci_0000_02_10_7_sriov_zero_vfs_max_count");
     DO_TEST("pci_0000_02_10_7_sriov_pf_vfs_all");
     DO_TEST("pci_0000_02_10_7_sriov_pf_vfs_all_header_type");
+    DO_TEST("drm_renderD129");
 
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

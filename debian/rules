@@ -168,6 +168,8 @@ override_dh_install-arch:
 	    debian/libvirt-daemon-system.libvirt-guests.default
 	cp src/logging/virtlogd.sysconf \
 	    debian/libvirt-daemon-system.virtlogd.default
+	cp src/locking/virtlockd.sysconf \
+	    debian/libvirt-daemon-system.virtlockd.default
 	# Add our backward compat polkit rule
 	cp debian/polkit/60-libvirt.pkla \
 	    debian/libvirt-daemon-system/var/lib/polkit-1/localauthority/10-vendor.d/
@@ -224,10 +226,13 @@ override_dh_installdocs:
 
 override_dh_auto_clean:
 	[ ! -f Makefile ] || dh_auto_clean
-	rm -f $(CURDIR)/debian/libvirt-daemon-system.libvirt-guests.init
-	rm -f $(CURDIR)/debian/libvirt-daemon-system.libvirt-guests.default
-	rm -f $(CURDIR)/debian/libvirt-daemon-system.*.logrotate
-	rm -f $(CURDIR)/debian/*.service
+	rm -f $(CURDIR)/debian/libvirt-daemon-system.libvirt-guests.init \
+	      $(CURDIR)/debian/libvirt-daemon-system.libvirt-guests.default \
+	      $(CURDIR)/debian/libvirt-daemon-system.*.logrotate \
+	      $(CURDIR)/debian/*.service \
+	      $(CURDIR)/debian/libvirt-daemon-system.virtlogd.default \
+	      $(CURDIR)/debian/libvirt-daemon-system.virtlockd.default \
+	      $(NULL)
 	rm -rf $(DEB_BUILDDIR)
 
 override_dh_installchangelogs:

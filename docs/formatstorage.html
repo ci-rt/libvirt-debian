@@ -68,8 +68,9 @@
       (<span class="since">since 0.9.13</span>), <code>sheepdog</code>
       (<span class="since">since 0.10.0</span>),
       <code>gluster</code> (<span class="since">since
-      1.2.0</span>) or <code>zfs</code> (<span class="since">since
-      1.2.8</span>). This corresponds to the
+      1.2.0</span>),  <code>zfs</code> (<span class="since">since
+      1.2.8</span>) or <code>vstorage</code> (<span class="since">since
+      3.1.0</span>). This corresponds to the
       storage backend drivers listed further along in this document.
     </p>
         <h3>
@@ -151,7 +152,7 @@
 ...</pre>
         <dl><dt><code>device</code></dt><dd>Provides the source for pools backed by physical devices
         (pool types <code>fs</code>, <code>logical</code>, <code>disk</code>,
-        <code>iscsi</code>, <code>zfs</code>).
+        <code>iscsi</code>, <code>zfs</code>, <code>vstorage</code>).
         May be repeated multiple times depending on backend driver. Contains
         a required attribute <code>path</code> which is either the fully
         qualified path to the block device node or for <code>iscsi</code>
@@ -165,7 +166,10 @@
         causes libvirt to attempt to generate and find target volume path's
         using a "p" separator. The default algorithm used by device mapper
         is to add the "p" separator only when the source device path ends
-        with a number.
+        with a number; however, it's possible to configure the devmapper
+        device to not use 'user_friendly_names' thus creating partitions
+        with the "p" separator even when the device source path does not
+        end with a number.
         <span class="since">Since 1.3.1</span></p></dd><dt><code>dir</code></dt><dd>Provides the source for pools backed by directories (pool
         types <code>dir</code>, <code>netfs</code>, <code>gluster</code>),
         or optionally to select a subdirectory

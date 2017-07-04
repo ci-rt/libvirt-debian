@@ -43,6 +43,8 @@ static int
 prlsdkUUIDParse(const char *uuidstr, unsigned char *uuid);
 static void
 prlsdkConvertError(PRL_RESULT pret);
+static PRL_RESULT
+prlsdkEventsHandler(PRL_HANDLE prlEvent, PRL_VOID_PTR opaque);
 
 VIR_LOG_INIT("parallels.sdk");
 
@@ -243,13 +245,22 @@ waitDomainJobHelper(PRL_HANDLE job, virDomainObjPtr dom, unsigned int timeout,
                     const char *filename, const char *funcname,
                     size_t linenr)
 {
+    vzDomObjPtr pdom = dom->privateData;
     PRL_RESULT ret;
 
+    if (pdom->job.cancelled) {
+        virReportError(VIR_ERR_OPERATION_ABORTED, "%s",
+                       _("Operation cancelled by client"));
+        return PRL_ERR_FAILURE;
+    }
+
+    pdom->job.sdkJob = job;
     if (dom)
         virObjectUnlock(dom);
     ret = waitJobHelper(job, timeout, filename, funcname, linenr);
     if (dom)
         virObjectLock(dom);
+    pdom->job.sdkJob = NULL;
 
     return ret;
 }
@@ -259,6 +270,30 @@ waitDomainJobHelper(PRL_HANDLE job, virDomainObjPtr dom, unsigned int timeout,
                         __FUNCTION__, __LINE__)
 
 typedef PRL_RESULT (*prlsdkParamGetterType)(PRL_HANDLE, char*, PRL_UINT32*);
+
+int
+prlsdkCancelJob(virDomainObjPtr dom)
+{
+    vzDomObjPtr privdom = dom->privateData;
+    PRL_RESULT pret;
+    PRL_HANDLE job;
+
+    if (!privdom->job.active) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("no job is active on the domain"));
+        return -1;
+    }
+
+   privdom->job.cancelled = true;
+   job = PrlJob_Cancel(privdom->job.sdkJob);
+
+   virObjectUnlock(dom);
+   pret = waitJobHelper(job, JOB_INFINIT_WAIT_TIMEOUT,
+                        __FILE__, __FUNCTION__, __LINE__);
+   virObjectLock(dom);
+
+   return PRL_FAILED(pret) ? -1 : 0;
+}
 
 static char*
 prlsdkGetStringParamVar(prlsdkParamGetterType getter, PRL_HANDLE handle)
@@ -330,41 +365,62 @@ prlsdkConnect(vzDriverPtr driver)
     job = PrlSrv_LoginLocalEx(driver->server, NULL, 0,
                               PSL_HIGH_SECURITY, PACF_NON_INTERACTIVE_MODE);
     if (PRL_FAILED(getJobResult(job, &result)))
-        goto cleanup;
+        goto destroy;
 
     pret = PrlResult_GetParam(result, &response);
-    prlsdkCheckRetGoto(pret, cleanup);
+    prlsdkCheckRetGoto(pret, logoff);
 
     pret = prlsdkGetStringParamBuf(PrlLoginResponse_GetSessionUuid,
                                    response, session_uuid, sizeof(session_uuid));
-    prlsdkCheckRetGoto(pret, cleanup);
+    prlsdkCheckRetGoto(pret, logoff);
 
     if (prlsdkUUIDParse(session_uuid, driver->session_uuid) < 0)
-        goto cleanup;
+        goto logoff;
+
+    pret = PrlSrv_RegEventHandler(driver->server,
+                                  prlsdkEventsHandler,
+                                  driver);
+    prlsdkCheckRetGoto(pret, logoff);
 
     ret = 0;
 
  cleanup:
-    if (ret < 0) {
-        PrlHandle_Free(driver->server);
-        driver->server = PRL_INVALID_HANDLE;
-    }
-
     PrlHandle_Free(result);
     PrlHandle_Free(response);
 
     return ret;
+
+ logoff:
+    job = PrlSrv_Logoff(driver->server);
+    waitJob(job);
+
+ destroy:
+    PrlHandle_Free(driver->server);
+    driver->server = PRL_INVALID_HANDLE;
+
+    goto cleanup;
 }
 
 void
 prlsdkDisconnect(vzDriverPtr driver)
 {
     PRL_HANDLE job;
+    PRL_RESULT ret;
+
+    if (driver->server == PRL_INVALID_HANDLE)
+        return;
+
+    ret = PrlSrv_UnregEventHandler(driver->server,
+                                   prlsdkEventsHandler,
+                                   driver);
+    if (PRL_FAILED(ret))
+        logPrlError(ret);
 
     job = PrlSrv_Logoff(driver->server);
     waitJob(job);
 
     PrlHandle_Free(driver->server);
+    driver->server = PRL_INVALID_HANDLE;
 }
 
 static int
@@ -596,6 +652,7 @@ prlsdkGetDiskInfo(vzDriverPtr driver,
     char *buf = NULL;
     PRL_RESULT pret;
     PRL_UINT32 emulatedType;
+    PRL_UINT32 size;
     virDomainDeviceDriveAddressPtr address;
     int busIdx, devIdx;
     int ret = -1;
@@ -653,6 +710,13 @@ prlsdkGetDiskInfo(vzDriverPtr driver,
 
     if (virDomainDiskSetDriver(disk, "vz") < 0)
         goto cleanup;
+
+    if (disk->device == VIR_DOMAIN_DISK_DEVICE_DISK) {
+        pret = PrlVmDevHd_GetDiskSize(prldisk, &size);
+        prlsdkCheckRetGoto(pret, cleanup);
+        /* from MiB to bytes */
+        disk->src->capacity = ((unsigned long long)size) << 20;
+    }
 
     ret = 0;
 
@@ -1695,21 +1759,6 @@ prlsdkBootOrderCheck(PRL_HANDLE sdkdom, PRL_DEVICE_TYPE sdkType, int sdkIndex,
     return ret;
 }
 
-static void
-prlsdkConvertBootOrderCt(virDomainDefPtr def)
-{
-    size_t i;
-    for (i = 0; i < def->nfss; i++) {
-
-        if (STREQ(def->fss[i]->dst, "/")) {
-            def->os.nBootDevs = 0;
-            return;
-        }
-    }
-    def->os.nBootDevs = 1;
-    def->os.bootDevs[0] = VIR_DOMAIN_BOOT_DISK;
-}
-
 static int
 prlsdkConvertBootOrderVm(PRL_HANDLE sdkdom, virDomainDefPtr def)
 {
@@ -1870,12 +1919,8 @@ prlsdkLoadDomain(vzDriverPtr driver,
         goto error;
 
     /* depends on prlsdkAddDomainHardware */
-    if (IS_CT(def)) {
-        prlsdkConvertBootOrderCt(def);
-    } else {
-        if (prlsdkConvertBootOrderVm(sdkdom, def) < 0)
-            goto error;
-    }
+    if (!IS_CT(def) && prlsdkConvertBootOrderVm(sdkdom, def) < 0)
+        goto error;
 
     pret = PrlVmCfg_GetEnvId(sdkdom, &envId);
     prlsdkCheckRetGoto(pret, error);
@@ -2125,6 +2170,7 @@ prlsdkHandleVmStateEvent(vzDriverPtr driver,
     prlsdkSendEvent(driver, dom, lvEventType, lvEventTypeDetails);
 
  cleanup:
+    PrlHandle_Free(eventParam);
     virObjectUnlock(dom);
     return;
 }
@@ -2197,8 +2243,6 @@ prlsdkHandleVmRemovedEvent(vzDriverPtr driver,
     return;
 }
 
-#define PARALLELS_STATISTICS_DROP_COUNT 3
-
 static void
 prlsdkHandlePerfEvent(vzDriverPtr driver,
                       PRL_HANDLE event,
@@ -2207,8 +2251,10 @@ prlsdkHandlePerfEvent(vzDriverPtr driver,
     virDomainObjPtr dom = NULL;
     vzDomObjPtr privdom = NULL;
 
-    if (!(dom = virDomainObjListFindByUUID(driver->domains, uuid)))
+    if (!(dom = virDomainObjListFindByUUID(driver->domains, uuid))) {
+        PrlHandle_Free(event);
         return;
+    }
 
     privdom = dom->privateData;
     PrlHandle_Free(privdom->stats);
@@ -2312,30 +2358,6 @@ prlsdkEventsHandler(PRL_HANDLE prlEvent, PRL_VOID_PTR opaque)
     return PRL_ERR_SUCCESS;
 }
 
-int prlsdkSubscribeToPCSEvents(vzDriverPtr driver)
-{
-    PRL_RESULT pret = PRL_ERR_UNINITIALIZED;
-
-    pret = PrlSrv_RegEventHandler(driver->server,
-                                  prlsdkEventsHandler,
-                                  driver);
-    prlsdkCheckRetGoto(pret, error);
-    return 0;
-
- error:
-    return -1;
-}
-
-void prlsdkUnsubscribeFromPCSEvents(vzDriverPtr driver)
-{
-    PRL_RESULT ret = PRL_ERR_UNINITIALIZED;
-    ret = PrlSrv_UnregEventHandler(driver->server,
-                                   prlsdkEventsHandler,
-                                   driver);
-    if (PRL_FAILED(ret))
-        logPrlError(ret);
-}
-
 int prlsdkStart(virDomainObjPtr dom)
 {
     PRL_HANDLE job = PRL_INVALID_HANDLE;
@@ -2433,6 +2455,21 @@ int prlsdkRestart(virDomainObjPtr dom)
     PRL_RESULT pret;
 
     job = PrlVm_Restart(privdom->sdkdom);
+    if (PRL_FAILED(pret = waitDomainJob(job, dom))) {
+        prlsdkConvertError(pret);
+        return -1;
+    }
+
+    return 0;
+}
+
+int prlsdkReset(virDomainObjPtr dom)
+{
+    PRL_HANDLE job = PRL_INVALID_HANDLE;
+    vzDomObjPtr privdom = dom->privateData;
+    PRL_RESULT pret;
+
+    job = PrlVm_Reset(privdom->sdkdom);
     if (PRL_FAILED(pret = waitDomainJob(job, dom))) {
         prlsdkConvertError(pret);
         return -1;
@@ -4480,7 +4517,7 @@ prlsdkGetNetStats(PRL_HANDLE sdkstats, PRL_HANDLE sdkdom, const char *path,
     prlsdkCheckRetGoto(pret, cleanup);
 
 #define PRLSDK_GET_NET_COUNTER(VAL, NAME)                           \
-    if (virAsprintf(&name, "net.nic%d.%s", net_index, NAME) < 0)    \
+    if (virAsprintf(&name, "net.nic%u.%s", net_index, NAME) < 0)    \
         goto cleanup;                                               \
     if (prlsdkExtractStatsParam(sdkstats, name, &stats->VAL) < 0)   \
         goto cleanup;                                               \

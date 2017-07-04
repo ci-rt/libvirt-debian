@@ -35,9 +35,8 @@ VIR_LOG_INIT("conf.domain_addr");
 virDomainPCIConnectFlags
 virDomainPCIControllerModelToConnectType(virDomainControllerModelPCI model)
 {
-    /* given a VIR_DOMAIN_CONTROLLER_MODEL_PCI*, set connectType to
-     * the equivalent VIR_PCI_CONNECT_TYPE_*. return 0 on success, -1
-     * if the model wasn't recognized.
+    /* given a VIR_DOMAIN_CONTROLLER_MODEL_PCI*, return
+     * the equivalent VIR_PCI_CONNECT_TYPE_*.
      */
     switch (model) {
     case VIR_DOMAIN_CONTROLLER_MODEL_PCI_LAST:
@@ -70,14 +69,6 @@ virDomainPCIControllerModelToConnectType(virDomainControllerModelPCI model)
 
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_DOWNSTREAM_PORT:
         return VIR_PCI_CONNECT_TYPE_PCIE_SWITCH_DOWNSTREAM_PORT;
-
-        /* if this happens, there is an error in the code. A
-         * PCI controller should always have a proper model
-         * set
-         */
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("PCI controller model incorrectly set to 'last'"));
-        return -1;
     }
     return 0;
 }
@@ -353,9 +344,9 @@ virDomainPCIAddressBusSetModel(virDomainPCIAddressBusPtr bus,
         bus->maxSlot = VIR_PCI_ADDRESS_SLOT_LAST;
         break;
 
-    default:
+    case VIR_DOMAIN_CONTROLLER_MODEL_PCI_LAST:
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Invalid PCI controller model %d"), model);
+                       "%s", _("PCI controller model was not set correctly"));
         return -1;
     }
 
@@ -1785,7 +1776,7 @@ virDomainUSBAddressFindPort(virDomainUSBAddressSetPtr addrs,
                             const char *portStr)
 {
     virDomainUSBAddressHubPtr hub = NULL;
-    ssize_t i, lastIdx;
+    ssize_t i, lastIdx, targetPort;
 
     if (info->addr.usb.bus >= addrs->nbuses ||
         !addrs->buses[info->addr.usb.bus]) {
@@ -1820,12 +1811,18 @@ virDomainUSBAddressFindPort(virDomainUSBAddressSetPtr addrs,
         }
     }
 
-    *targetIdx = info->addr.usb.port[lastIdx] - 1;
+    targetPort = info->addr.usb.port[lastIdx] - 1;
+    if (targetPort >= virBitmapSize(hub->portmap)) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("requested USB port %s not present on USB bus %u"),
+                       portStr, info->addr.usb.bus);
+        return NULL;
+    }
+
+    *targetIdx = targetPort;
     return hub;
 }
 
-
-#define VIR_DOMAIN_USB_HUB_PORTS 8
 
 int
 virDomainUSBAddressSetAddHub(virDomainUSBAddressSetPtr addrs,
@@ -2071,13 +2068,6 @@ virDomainUSBAddressReserve(virDomainDeviceInfoPtr info,
     if (!(targetHub = virDomainUSBAddressFindPort(addrs, info, &targetPort,
                                                   portStr)))
         goto cleanup;
-
-    if (targetPort >= virBitmapSize(targetHub->portmap)) {
-        virReportError(VIR_ERR_XML_ERROR,
-                       _("requested USB port %s not present on USB bus %u"),
-                       portStr, info->addr.usb.bus);
-        goto cleanup;
-    }
 
     if (virBitmapIsBitSet(targetHub->portmap, targetPort)) {
         virReportError(VIR_ERR_XML_ERROR,

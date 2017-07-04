@@ -31,6 +31,7 @@
 #include "virstoragefile.h"
 #include "virstring.h"
 #include "viruri.h"
+#include "storage_util.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
@@ -490,6 +491,7 @@ virStorageBackendGlusterFindPoolSources(virConnectPtr conn ATTRIBUTE_UNUSED,
                                     };
     virStoragePoolSourcePtr source = NULL;
     char *ret = NULL;
+    int rc;
     size_t i;
 
     virCheckFlags(0, NULL);
@@ -510,10 +512,17 @@ virStorageBackendGlusterFindPoolSources(virConnectPtr conn ATTRIBUTE_UNUSED,
         goto cleanup;
     }
 
-    if (virStorageBackendFindGlusterPoolSources(source->hosts[0].name,
-                                                0, /* currently ignored */
-                                                &list) < 0)
+    if ((rc = virStorageBackendFindGlusterPoolSources(source->hosts[0].name,
+                                                      0, /* currently ignored */
+                                                      &list, true)) < 0)
         goto cleanup;
+
+    if (rc == 0) {
+        virReportError(VIR_ERR_OPERATION_FAILED,
+                       _("no storage pools were found on host '%s'"),
+                       source->hosts[0].name);
+        goto cleanup;
+    }
 
     if (!(ret = virStoragePoolSourceListFormat(&list)))
         goto cleanup;
@@ -834,6 +843,17 @@ virStorageFileBackend virStorageFileBackendGluster = {
     .storageFileChown = virStorageFileBackendGlusterChown,
 
     .storageFileGetUniqueIdentifier = virStorageFileBackendGlusterGetUniqueIdentifier,
-
-
 };
+
+
+int
+virStorageBackendGlusterRegister(void)
+{
+    if (virStorageBackendRegister(&virStorageBackendGluster) < 0)
+        return -1;
+
+    if (virStorageBackendFileRegister(&virStorageFileBackendGluster) < 0)
+        return -1;
+
+    return 0;
+}

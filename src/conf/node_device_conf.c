@@ -37,8 +37,15 @@
 #include "virbuffer.h"
 #include "viruuid.h"
 #include "virrandom.h"
+#include "virlog.h"
 
 #define VIR_FROM_THIS VIR_FROM_NODEDEV
+
+VIR_LOG_INIT("conf.node_device_conf");
+
+VIR_ENUM_IMPL(virNodeDevDevnode, VIR_NODE_DEV_DEVNODE_LAST,
+              "dev",
+              "link")
 
 VIR_ENUM_IMPL(virNodeDevCap, VIR_NODE_DEV_CAP_LAST,
               "system",
@@ -52,11 +59,17 @@ VIR_ENUM_IMPL(virNodeDevCap, VIR_NODE_DEV_CAP_LAST,
               "storage",
               "fc_host",
               "vports",
-              "scsi_generic")
+              "scsi_generic",
+              "drm")
 
 VIR_ENUM_IMPL(virNodeDevNetCap, VIR_NODE_DEV_CAP_NET_LAST,
               "80203",
               "80211")
+
+VIR_ENUM_IMPL(virNodeDevDRM, VIR_NODE_DEV_DRM_LAST,
+              "primary",
+              "control",
+              "render")
 
 static int
 virNodeDevCapsDefParseString(const char *xpath,
@@ -252,6 +265,8 @@ void virNodeDeviceDefFree(virNodeDeviceDefPtr def)
     VIR_FREE(def->driver);
     VIR_FREE(def->sysfs_path);
     VIR_FREE(def->parent_sysfs_path);
+    VIR_FREE(def->devnode);
+    virStringListFree(def->devlinks);
 
     caps = def->caps;
     while (caps) {
@@ -387,6 +402,14 @@ char *virNodeDeviceDefFormat(const virNodeDeviceDef *def)
     virBufferAdjustIndent(&buf, 2);
     virBufferEscapeString(&buf, "<name>%s</name>\n", def->name);
     virBufferEscapeString(&buf, "<path>%s</path>\n", def->sysfs_path);
+    if (def->devnode)
+        virBufferEscapeString(&buf, "<devnode type='dev'>%s</devnode>\n",
+                              def->devnode);
+    if (def->devlinks) {
+        for (i = 0; def->devlinks[i]; i++)
+            virBufferEscapeString(&buf, "<devnode type='link'>%s</devnode>\n",
+                                  def->devlinks[i]);
+    }
     if (def->parent)
         virBufferEscapeString(&buf, "<parent>%s</parent>\n", def->parent);
     if (def->driver) {
@@ -678,11 +701,14 @@ char *virNodeDeviceDefFormat(const virNodeDeviceDef *def)
                                       data->storage.num_blocks);
             }
             if (data->storage.flags & VIR_NODE_DEV_CAP_STORAGE_HOTPLUGGABLE)
-                virBufferAddLit(&buf, "<capability type='hotpluggable' />\n");
+                virBufferAddLit(&buf, "<capability type='hotpluggable'/>\n");
             break;
         case VIR_NODE_DEV_CAP_SCSI_GENERIC:
             virBufferEscapeString(&buf, "<char>%s</char>\n",
                                   data->sg.path);
+            break;
+        case VIR_NODE_DEV_CAP_DRM:
+            virBufferEscapeString(&buf, "<type>%s</type>\n", virNodeDevDRMTypeToString(data->drm.type));
             break;
         case VIR_NODE_DEV_CAP_FC_HOST:
         case VIR_NODE_DEV_CAP_VPORTS:
@@ -782,6 +808,36 @@ virNodeDevCapsDefParseULongLong(const char *xpath,
 
     *value = val;
     return 0;
+}
+
+static int
+virNodeDevCapDRMParseXML(xmlXPathContextPtr ctxt,
+                         virNodeDeviceDefPtr def,
+                         xmlNodePtr node,
+                         virNodeDevCapDataPtr data)
+{
+    xmlNodePtr orignode;
+    int ret = -1, val;
+    char *type = NULL;
+
+    orignode = ctxt->node;
+    ctxt->node = node;
+
+    type = virXPathString("string(./type[1])", ctxt);
+
+    if ((val = virNodeDevDRMTypeFromString(type)) < 0) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("unknown drm type '%s' for '%s'"), type, def->name);
+        goto out;
+    }
+    data->drm.type = val;
+
+    ret = 0;
+
+ out:
+    VIR_FREE(type);
+    ctxt->node = orignode;
+    return ret;
 }
 
 static int
@@ -1032,6 +1088,11 @@ virNodeDevCapSCSIHostParseXML(xmlXPathContextPtr ctxt,
                     goto out;
                 }
             }
+
+            if (virNodeDevCapsDefParseString("string(./fabric_wwn[1])",
+                                             ctxt,
+                                             &data->scsi_host.fabric_wwn) < 0)
+                VIR_DEBUG("No fabric_wwn defined for '%s'", def->name);
 
             ctxt->node = orignode2;
 
@@ -1675,6 +1736,9 @@ virNodeDevCapsDefParseXML(xmlXPathContextPtr ctxt,
     case VIR_NODE_DEV_CAP_STORAGE:
         ret = virNodeDevCapStorageParseXML(ctxt, def, node, &caps->data);
         break;
+    case VIR_NODE_DEV_CAP_DRM:
+        ret = virNodeDevCapDRMParseXML(ctxt, def, node, &caps->data);
+        break;
     case VIR_NODE_DEV_CAP_FC_HOST:
     case VIR_NODE_DEV_CAP_VPORTS:
     case VIR_NODE_DEV_CAP_SCSI_GENERIC:
@@ -1702,8 +1766,8 @@ virNodeDeviceDefParseXML(xmlXPathContextPtr ctxt,
 {
     virNodeDeviceDefPtr def;
     virNodeDevCapsDefPtr *next_cap;
-    xmlNodePtr *nodes;
-    int n;
+    xmlNodePtr *nodes = NULL;
+    int n, m;
     size_t i;
 
     if (VIR_ALLOC(def) < 0)
@@ -1722,6 +1786,47 @@ virNodeDeviceDefParseXML(xmlXPathContextPtr ctxt,
             goto error;
     }
 
+    def->sysfs_path = virXPathString("string(./path[1])", ctxt);
+
+    /* Parse devnodes */
+    if ((n = virXPathNodeSet("./devnode", ctxt, &nodes)) < 0)
+        goto error;
+
+    if (VIR_ALLOC_N(def->devlinks, n + 1) < 0)
+        goto error;
+
+    for (i = 0, m = 0; i < n; i++) {
+        xmlNodePtr node = nodes[i];
+        char *tmp = virXMLPropString(node, "type");
+        virNodeDevDevnodeType type;
+        int val;
+
+        if (!tmp) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           "%s", _("missing devnode type"));
+            goto error;
+        }
+
+        if ((val = virNodeDevDevnodeTypeFromString(tmp)) < 0) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("unknown devnode type '%s'"), tmp);
+            VIR_FREE(tmp);
+            goto error;
+        }
+        type = val;
+
+        switch (type) {
+        case VIR_NODE_DEV_DEVNODE_DEV:
+            def->devnode = (char*)xmlNodeGetContent(node);
+            break;
+        case VIR_NODE_DEV_DEVNODE_LINK:
+            def->devlinks[m++] = (char*)xmlNodeGetContent(node);
+            break;
+        case VIR_NODE_DEV_DEVNODE_LAST:
+            break;
+        }
+    }
+
     /* Extract device parent, if any */
     def->parent = virXPathString("string(./parent[1])", ctxt);
     def->parent_wwnn = virXPathString("string(./parent[1]/@wwnn)", ctxt);
@@ -1736,7 +1841,7 @@ virNodeDeviceDefParseXML(xmlXPathContextPtr ctxt,
                                             ctxt);
 
     /* Parse device capabilities */
-    nodes = NULL;
+    VIR_FREE(nodes);
     if ((n = virXPathNodeSet("./capability", ctxt, &nodes)) < 0)
         goto error;
 
@@ -1753,10 +1858,8 @@ virNodeDeviceDefParseXML(xmlXPathContextPtr ctxt,
                                               nodes[i],
                                               create,
                                               virt_type);
-        if (!*next_cap) {
-            VIR_FREE(nodes);
+        if (!*next_cap)
             goto error;
-        }
 
         next_cap = &(*next_cap)->next;
     }
@@ -1766,6 +1869,7 @@ virNodeDeviceDefParseXML(xmlXPathContextPtr ctxt,
 
  error:
     virNodeDeviceDefFree(def);
+    VIR_FREE(nodes);
     return NULL;
 }
 
@@ -1877,17 +1981,15 @@ virNodeDeviceGetWWNs(virNodeDeviceDefPtr def,
  */
 /* virNodeDeviceFindFCParentHost:
  * @parent: Pointer to node device object
- * @parent_host: Pointer to return parent host number
  *
  * Search the capabilities for the device to find the FC capabilities
  * in order to set the parent_host value.
  *
  * Returns:
- *   0 on success with parent_host set, -1 otherwise;
+ *   parent_host value on success (>= 0), -1 otherwise.
  */
 static int
-virNodeDeviceFindFCParentHost(virNodeDeviceObjPtr parent,
-                              int *parent_host)
+virNodeDeviceFindFCParentHost(virNodeDeviceObjPtr parent)
 {
     virNodeDevCapsDefPtr cap = virNodeDeviceFindVPORTCapDef(parent);
 
@@ -1899,16 +2001,14 @@ virNodeDeviceFindFCParentHost(virNodeDeviceObjPtr parent,
         return -1;
     }
 
-    *parent_host = cap->data.scsi_host.host;
-    return 0;
+    return cap->data.scsi_host.host;
 }
 
 
-int
-virNodeDeviceGetParentHost(virNodeDeviceObjListPtr devs,
-                           const char *dev_name,
-                           const char *parent_name,
-                           int *parent_host)
+static int
+virNodeDeviceGetParentHostByParent(virNodeDeviceObjListPtr devs,
+                                   const char *dev_name,
+                                   const char *parent_name)
 {
     virNodeDeviceObjPtr parent = NULL;
     int ret;
@@ -1920,7 +2020,7 @@ virNodeDeviceGetParentHost(virNodeDeviceObjListPtr devs,
         return -1;
     }
 
-    ret = virNodeDeviceFindFCParentHost(parent, parent_host);
+    ret = virNodeDeviceFindFCParentHost(parent);
 
     virNodeDeviceObjUnlock(parent);
 
@@ -1928,12 +2028,11 @@ virNodeDeviceGetParentHost(virNodeDeviceObjListPtr devs,
 }
 
 
-int
+static int
 virNodeDeviceGetParentHostByWWNs(virNodeDeviceObjListPtr devs,
                                  const char *dev_name,
                                  const char *parent_wwnn,
-                                 const char *parent_wwpn,
-                                 int *parent_host)
+                                 const char *parent_wwpn)
 {
     virNodeDeviceObjPtr parent = NULL;
     int ret;
@@ -1945,7 +2044,7 @@ virNodeDeviceGetParentHostByWWNs(virNodeDeviceObjListPtr devs,
         return -1;
     }
 
-    ret = virNodeDeviceFindFCParentHost(parent, parent_host);
+    ret = virNodeDeviceFindFCParentHost(parent);
 
     virNodeDeviceObjUnlock(parent);
 
@@ -1953,11 +2052,10 @@ virNodeDeviceGetParentHostByWWNs(virNodeDeviceObjListPtr devs,
 }
 
 
-int
+static int
 virNodeDeviceGetParentHostByFabricWWN(virNodeDeviceObjListPtr devs,
                                       const char *dev_name,
-                                      const char *parent_fabric_wwn,
-                                      int *parent_host)
+                                      const char *parent_fabric_wwn)
 {
     virNodeDeviceObjPtr parent = NULL;
     int ret;
@@ -1969,7 +2067,7 @@ virNodeDeviceGetParentHostByFabricWWN(virNodeDeviceObjListPtr devs,
         return -1;
     }
 
-    ret = virNodeDeviceFindFCParentHost(parent, parent_host);
+    ret = virNodeDeviceFindFCParentHost(parent);
 
     virNodeDeviceObjUnlock(parent);
 
@@ -1977,9 +2075,8 @@ virNodeDeviceGetParentHostByFabricWWN(virNodeDeviceObjListPtr devs,
 }
 
 
-int
-virNodeDeviceFindVportParentHost(virNodeDeviceObjListPtr devs,
-                                 int *parent_host)
+static int
+virNodeDeviceFindVportParentHost(virNodeDeviceObjListPtr devs)
 {
     virNodeDeviceObjPtr parent = NULL;
     const char *cap = virNodeDevCapTypeToString(VIR_NODE_DEV_CAP_VPORTS);
@@ -1991,11 +2088,38 @@ virNodeDeviceFindVportParentHost(virNodeDeviceObjListPtr devs,
         return -1;
     }
 
-    ret = virNodeDeviceFindFCParentHost(parent, parent_host);
+    ret = virNodeDeviceFindFCParentHost(parent);
 
     virNodeDeviceObjUnlock(parent);
 
     return ret;
+}
+
+
+int
+virNodeDeviceGetParentHost(virNodeDeviceObjListPtr devs,
+                           virNodeDeviceDefPtr def,
+                           int create)
+{
+    int parent_host = -1;
+
+    if (def->parent) {
+        parent_host = virNodeDeviceGetParentHostByParent(devs, def->name,
+                                                         def->parent);
+    } else if (def->parent_wwnn && def->parent_wwpn) {
+        parent_host = virNodeDeviceGetParentHostByWWNs(devs, def->name,
+                                                       def->parent_wwnn,
+                                                       def->parent_wwpn);
+    } else if (def->parent_fabric_wwn) {
+        parent_host =
+            virNodeDeviceGetParentHostByFabricWWN(devs, def->name,
+                                                  def->parent_fabric_wwn);
+    } else if (create == CREATE_DEVICE) {
+        /* Try to find a vport capable scsi_host when no parent supplied */
+        parent_host = virNodeDeviceFindVportParentHost(devs);
+    }
+
+    return parent_host;
 }
 
 
@@ -2062,6 +2186,7 @@ void virNodeDevCapsDefFree(virNodeDevCapsDefPtr caps)
     case VIR_NODE_DEV_CAP_SCSI_GENERIC:
         VIR_FREE(data->sg.path);
         break;
+    case VIR_NODE_DEV_CAP_DRM:
     case VIR_NODE_DEV_CAP_FC_HOST:
     case VIR_NODE_DEV_CAP_VPORTS:
     case VIR_NODE_DEV_CAP_LAST:
@@ -2128,7 +2253,8 @@ virNodeDeviceMatch(virNodeDeviceObjPtr devobj,
               MATCH(STORAGE)       ||
               MATCH(FC_HOST)       ||
               MATCH(VPORTS)        ||
-              MATCH(SCSI_GENERIC)))
+              MATCH(SCSI_GENERIC)  ||
+              MATCH(DRM)))
             return false;
     }
 
@@ -2158,8 +2284,9 @@ virNodeDeviceObjListExport(virConnectPtr conn,
         if ((!filter || filter(conn, devobj->def)) &&
             virNodeDeviceMatch(devobj, flags)) {
             if (devices) {
-                if (!(device = virGetNodeDevice(conn,
-                                                devobj->def->name))) {
+                if (!(device = virGetNodeDevice(conn, devobj->def->name)) ||
+                    VIR_STRDUP(device->parent, devobj->def->parent) < 0) {
+                    virObjectUnref(device);
                     virNodeDeviceObjUnlock(devobj);
                     goto cleanup;
                 }
@@ -2187,4 +2314,34 @@ virNodeDeviceObjListExport(virConnectPtr conn,
 
     VIR_FREE(tmp_devices);
     return ret;
+}
+
+
+/* virNodeDeviceGetParentName
+ * @conn: Connection pointer
+ * @nodedev_name: Node device to lookup
+ *
+ * Lookup the node device by name and return the parent name
+ *
+ * Returns parent name on success, caller is responsible for freeing;
+ * otherwise, returns NULL on failure
+ */
+char *
+virNodeDeviceGetParentName(virConnectPtr conn,
+                           const char *nodedev_name)
+{
+    virNodeDevicePtr device = NULL;
+    char *parent;
+
+    if (!(device = virNodeDeviceLookupByName(conn, nodedev_name))) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Cannot find '%s' in node device database"),
+                       nodedev_name);
+        return NULL;
+    }
+
+    ignore_value(VIR_STRDUP(parent, virNodeDeviceGetParent(device)));
+    virObjectUnref(device);
+
+    return parent;
 }

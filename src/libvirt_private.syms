@@ -314,6 +314,7 @@ virDomainDiskMirrorStateTypeToString;
 virDomainDiskPathByName;
 virDomainDiskRemove;
 virDomainDiskRemoveByName;
+virDomainDiskSetBlockIOTune;
 virDomainDiskSetDriver;
 virDomainDiskSetFormat;
 virDomainDiskSetSource;
@@ -701,10 +702,8 @@ virNodeDeviceDefParseNode;
 virNodeDeviceDefParseString;
 virNodeDeviceFindByName;
 virNodeDeviceFindBySysfsPath;
-virNodeDeviceFindVportParentHost;
 virNodeDeviceGetParentHost;
-virNodeDeviceGetParentHostByFabricWWN;
-virNodeDeviceGetParentHostByWWNs;
+virNodeDeviceGetParentName;
 virNodeDeviceGetWWNs;
 virNodeDeviceHasCap;
 virNodeDeviceObjListExport;
@@ -887,7 +886,6 @@ virStoragePoolFormatDiskTypeToString;
 virStoragePoolFormatFileSystemNetTypeToString;
 virStoragePoolFormatFileSystemTypeToString;
 virStoragePoolFormatLogicalTypeToString;
-virStoragePoolGetVhbaSCSIHostParent;
 virStoragePoolLoadAllConfigs;
 virStoragePoolLoadAllState;
 virStoragePoolObjAssignDef;
@@ -986,7 +984,6 @@ virSecretObjSetValueSize;
 # cpu/cpu.h
 cpuBaseline;
 cpuBaselineXML;
-cpuDataFree;
 cpuDecode;
 cpuEncode;
 cpuNodeData;
@@ -996,6 +993,8 @@ virCPUCompareXML;
 virCPUConvertLegacy;
 virCPUDataCheckFeature;
 virCPUDataFormat;
+virCPUDataFree;
+virCPUDataNew;
 virCPUDataParse;
 virCPUGetModels;
 virCPUTranslate;
@@ -1004,8 +1003,9 @@ virCPUUpdate;
 
 # cpu/cpu_x86.h
 virCPUx86DataAddCPUID;
-virCPUx86DataClear;
-virCPUx86MakeData;
+virCPUx86DataAddFeature;
+virCPUx86DataSetSignature;
+virCPUx86DataSetVendor;
 
 
 # datatypes.h
@@ -1287,6 +1287,7 @@ virBufferContentAndReset;
 virBufferCurrentContent;
 virBufferError;
 virBufferEscape;
+virBufferEscapeN;
 virBufferEscapeSexpr;
 virBufferEscapeShell;
 virBufferEscapeString;
@@ -1574,6 +1575,7 @@ virFileActivateDirOverride;
 virFileBindMountDevice;
 virFileBuildPath;
 virFileClose;
+virFileComparePaths;
 virFileCopyACLs;
 virFileDeleteTree;
 virFileDirectFdFlag;
@@ -1615,6 +1617,7 @@ virFileReadAllQuiet;
 virFileReadBufQuiet;
 virFileReadHeaderFD;
 virFileReadLimFD;
+virFileReadLink;
 virFileRelLinkPointsTo;
 virFileRemove;
 virFileRemoveLastComponent;
@@ -1791,6 +1794,7 @@ virISCSIScanTargets;
 
 
 # util/virjson.h
+virJSONStringReformat;
 virJSONValueArrayAppend;
 virJSONValueArrayForeachSteal;
 virJSONValueArrayGet;
@@ -2071,9 +2075,11 @@ virNetDevMidonetUnbindPort;
 # util/virnetdevopenvswitch.h
 virNetDevOpenvswitchAddPort;
 virNetDevOpenvswitchGetMigrateData;
+virNetDevOpenvswitchGetVhostuserIfname;
 virNetDevOpenvswitchInterfaceStats;
 virNetDevOpenvswitchRemovePort;
 virNetDevOpenvswitchSetMigrateData;
+virNetDevOpenvswitchSetTimeout;
 
 
 # util/virnetdevtap.h
@@ -2293,6 +2299,7 @@ virProcessWait;
 
 
 # util/virqemu.h
+virQEMUBuildBufferEscape;
 virQEMUBuildBufferEscapeComma;
 virQEMUBuildCommandLineJSON;
 virQEMUBuildCommandLineJSONArrayBitmap;
@@ -2347,6 +2354,12 @@ virSCSIDeviceListSteal;
 virSCSIDeviceNew;
 virSCSIDeviceSetUsedBy;
 
+
+# util/virscsihost.h
+virSCSIHostFindByPCI;
+virSCSIHostGetNameByParentaddr;
+virSCSIHostGetNumber;
+virSCSIHostGetUniqueId;
 
 # util/virscsivhost.h
 virSCSIVHostDeviceFileIterate;
@@ -2673,23 +2686,17 @@ virUSBDeviceSetUsedBy;
 virDoubleToStr;
 virEnumFromString;
 virEnumToString;
-virFindFCHostCapableVport;
-virFindSCSIHostByPCI;
 virFormatIntDecimal;
 virGetDeviceID;
 virGetDeviceUnprivSGIO;
 virGetEnvAllowSUID;
 virGetEnvBlockSUID;
-virGetFCHostNameByFabricWWN;
-virGetFCHostNameByWWN;
 virGetGroupID;
 virGetGroupList;
 virGetGroupName;
 virGetHostname;
 virGetHostnameQuiet;
 virGetListenFDs;
-virGetSCSIHostNameByParentaddr;
-virGetSCSIHostNumber;
 virGetSelfLastChanged;
 virGetSystemPageSize;
 virGetSystemPageSizeKB;
@@ -2704,11 +2711,8 @@ virGetUserRuntimeDirectory;
 virGetUserShell;
 virHexToBin;
 virIndexToDiskName;
-virIsCapableFCHost;
-virIsCapableVport;
 virIsDevMapperDevice;
 virIsSUID;
-virManageVport;
 virMemoryLimitIsSet;
 virMemoryLimitTruncate;
 virMemoryMaxValue;
@@ -2716,8 +2720,6 @@ virParseNumber;
 virParseOwnershipIds;
 virParseVersionString;
 virPipeReadUntilEOF;
-virReadFCHost;
-virReadSCSIUniqueId;
 virScaleInteger;
 virSetBlocking;
 virSetCloseExec;
@@ -2742,6 +2744,16 @@ virUUIDFormat;
 virUUIDGenerate;
 virUUIDIsValid;
 virUUIDParse;
+
+
+# util/virvhba.h
+virVHBAFindVportHost;
+virVHBAGetConfig;
+virVHBAGetHostByFabricWWN;
+virVHBAGetHostByWWN;
+virVHBAIsVportCapable;
+virVHBAManageVport;
+virVHBAPathExists;
 
 
 # util/virxml.h

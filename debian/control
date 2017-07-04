@@ -19,7 +19,7 @@ Build-Depends:
  libxen-dev (>= 4.3) [i386 amd64 armhf arm64],
  lvm2 [linux-any],
  open-iscsi [linux-any],
- libparted0-dev (>= 2.2),
+ libparted-dev (>= 2.2),
  parted (>= 2.2),
  libdevmapper-dev [linux-any],
  uuid-dev,
