@@ -1673,6 +1673,7 @@ virDomainUSBAddressControllerModelToPorts(virDomainControllerDefPtr cont)
         return 3;
 
     case VIR_DOMAIN_CONTROLLER_MODEL_USB_NEC_XHCI:
+    case VIR_DOMAIN_CONTROLLER_MODEL_USB_QEMU_XHCI:
         if (cont->opts.usbopts.ports != -1)
             return cont->opts.usbopts.ports;
         return 4;
@@ -2009,7 +2010,8 @@ virDomainUSBAddressAssign(virDomainUSBAddressSetPtr addrs,
 
     if (info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_USB) {
         VIR_DEBUG("A USB port on bus %u was requested", info->addr.usb.bus);
-        if (!addrs->buses[info->addr.usb.bus]) {
+        if (info->addr.usb.bus >= addrs->nbuses ||
+            !addrs->buses[info->addr.usb.bus]) {
             virReportError(VIR_ERR_XML_ERROR,
                            _("USB bus %u requested but no controller "
                              "with that index is present"), info->addr.usb.bus);

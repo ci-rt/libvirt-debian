@@ -31,7 +31,6 @@
 
 #include "testutils.h"
 #include "internal.h"
-#include "nodeinfo.h"
 #include "viralloc.h"
 #include "vircommand.h"
 #include "virfile.h"
@@ -1094,6 +1093,9 @@ static int test25(const void *unused ATTRIBUTE_UNUSED)
         virCommandPtr cmd = virCommandNew("some/nonexistent/binary");
 
         rv = virCommandExec(cmd);
+
+        virCommandFree(cmd);
+
         if (safewrite(pipeFD[1], &rv, sizeof(rv)) < 0)
             fprintf(stderr, "Unable to write to pipe\n");
         _exit(EXIT_FAILURE);
@@ -1306,6 +1308,6 @@ mymain(void)
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-VIRT_TEST_MAIN(mymain)
+VIR_TEST_MAIN(mymain)
 
 #endif /* !WIN32 */

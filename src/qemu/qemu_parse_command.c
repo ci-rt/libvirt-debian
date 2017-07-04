@@ -417,7 +417,7 @@ qemuParseKeywords(const char *str,
 
         endmark = start;
         do {
-            /* Qemu accepts ',,' as an escape for a literal comma;
+            /* QEMU accepts ',,' as an escape for a literal comma;
              * skip past those here while searching for the end of the
              * value, then strip them down below */
             endmark = strchr(endmark, ',');
@@ -654,7 +654,7 @@ qemuParseCommandLineDisk(virDomainXMLOptionPtr xmlopt,
     if (VIR_ALLOC(def->src) < 0)
         goto error;
 
-    if (qemuDomainMachineIsPSeries(dom))
+    if (qemuDomainIsPSeries(dom))
         def->bus = VIR_DOMAIN_DISK_BUS_SCSI;
     else
        def->bus = VIR_DOMAIN_DISK_BUS_IDE;
@@ -746,7 +746,7 @@ qemuParseCommandLineDisk(virDomainXMLOptionPtr xmlopt,
         } else if (STREQ(keywords[i], "if")) {
             if (STREQ(values[i], "ide")) {
                 def->bus = VIR_DOMAIN_DISK_BUS_IDE;
-                if (qemuDomainMachineIsPSeries(dom)) {
+                if (qemuDomainIsPSeries(dom)) {
                     virReportError(VIR_ERR_INTERNAL_ERROR,
                                    _("pseries systems do not support ide devices '%s'"), val);
                     goto error;
@@ -1441,8 +1441,7 @@ qemuParseCommandLineCPU(virDomainDefPtr dom,
             if (*feature == '\0')
                 goto syntax;
 
-            if (dom->os.arch != VIR_ARCH_X86_64 &&
-                dom->os.arch != VIR_ARCH_I686) {
+            if (!ARCH_IS_X86(dom->os.arch)) {
                 virReportError(VIR_ERR_INTERNAL_ERROR,
                                _("%s platform doesn't support CPU features'"),
                                virArchToString(dom->os.arch));
@@ -1863,8 +1862,7 @@ qemuParseCommandLine(virCapsPtr caps,
     else
         def->os.arch = VIR_ARCH_I686;
 
-    if ((def->os.arch == VIR_ARCH_I686) ||
-        (def->os.arch == VIR_ARCH_X86_64))
+    if (ARCH_IS_X86(def->os.arch))
         def->features[VIR_DOMAIN_FEATURE_ACPI] = VIR_TRISTATE_SWITCH_ON;
 
 #define WANT_VALUE()                                                   \
@@ -1952,7 +1950,7 @@ qemuParseCommandLine(virCapsPtr caps,
             }
             if (STREQ(arg, "-cdrom")) {
                 disk->device = VIR_DOMAIN_DISK_DEVICE_CDROM;
-                if (qemuDomainMachineIsPSeries(def))
+                if (qemuDomainIsPSeries(def))
                     disk->bus = VIR_DOMAIN_DISK_BUS_SCSI;
                 if (VIR_STRDUP(disk->dst, "hdc") < 0)
                     goto error;
@@ -1967,7 +1965,7 @@ qemuParseCommandLine(virCapsPtr caps,
                         disk->bus = VIR_DOMAIN_DISK_BUS_IDE;
                     else
                         disk->bus = VIR_DOMAIN_DISK_BUS_SCSI;
-                   if (qemuDomainMachineIsPSeries(def))
+                   if (qemuDomainIsPSeries(def))
                        disk->bus = VIR_DOMAIN_DISK_BUS_SCSI;
                 }
                 if (VIR_STRDUP(disk->dst, arg + 1) < 0)

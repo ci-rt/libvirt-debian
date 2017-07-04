@@ -25,6 +25,7 @@
 
 #include <config.h>
 #include "virsh-domain-monitor.h"
+#include "virsh-util.h"
 
 #include <libxml/parser.h>
 #include <libxml/tree.h>
@@ -36,7 +37,6 @@
 #include "intprops.h"
 #include "viralloc.h"
 #include "virmacaddr.h"
-#include "virsh-domain.h"
 #include "virxml.h"
 #include "virstring.h"
 
@@ -63,7 +63,6 @@ virshGetDomainDescription(vshControl *ctl, virDomainPtr dom, bool title,
                           unsigned int flags)
 {
     char *desc = NULL;
-    char *domxml = NULL;
     virErrorPtr err = NULL;
     xmlDocPtr doc = NULL;
     xmlXPathContextPtr ctxt = NULL;
@@ -90,16 +89,9 @@ virshGetDomainDescription(vshControl *ctl, virDomainPtr dom, bool title,
     }
 
     /* fall back to xml */
-    /* get domain's xml description and extract the title/description */
-    if (!(domxml = virDomainGetXMLDesc(dom, flags))) {
-        vshError(ctl, "%s", _("Failed to retrieve domain XML"));
+    if (virshDomainGetXMLFromDom(ctl, dom, flags, &doc, &ctxt) < 0)
         goto cleanup;
-    }
-    doc = virXMLParseStringCtxt(domxml, _("(domain_definition)"), &ctxt);
-    if (!doc) {
-        vshError(ctl, "%s", _("Couldn't parse domain XML"));
-        goto cleanup;
-    }
+
     if (title)
         desc = virXPathString("string(./title[1])", ctxt);
     else
@@ -109,7 +101,6 @@ virshGetDomainDescription(vshControl *ctl, virDomainPtr dom, bool title,
         desc = vshStrdup(ctl, "");
 
  cleanup:
-    VIR_FREE(domxml);
     xmlXPathFreeContext(ctxt);
     xmlFreeDoc(doc);
 
@@ -381,7 +372,7 @@ cmdDomMemStat(vshControl *ctl, const vshCmd *cmd)
 
     ret = true;
  cleanup:
-    virDomainFree(dom);
+    virshDomainFree(dom);
     return ret;
 }
 
@@ -405,6 +396,10 @@ static const vshCmdOptDef opts_domblkinfo[] = {
      .flags = VSH_OFLAG_REQ,
      .help = N_("block device")
     },
+    {.name = "human",
+     .type = VSH_OT_BOOL,
+     .help = N_("Human readable output")
+    },
     {.name = NULL}
 };
 
@@ -414,6 +409,7 @@ cmdDomblkinfo(vshControl *ctl, const vshCmd *cmd)
     virDomainBlockInfo info;
     virDomainPtr dom;
     bool ret = false;
+    bool human = false;
     const char *device = NULL;
 
     if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
@@ -425,14 +421,28 @@ cmdDomblkinfo(vshControl *ctl, const vshCmd *cmd)
     if (virDomainGetBlockInfo(dom, device, &info, 0) < 0)
         goto cleanup;
 
-    vshPrint(ctl, "%-15s %llu\n", _("Capacity:"), info.capacity);
-    vshPrint(ctl, "%-15s %llu\n", _("Allocation:"), info.allocation);
-    vshPrint(ctl, "%-15s %llu\n", _("Physical:"), info.physical);
+    human = vshCommandOptBool(cmd, "human");
+
+    if (!human) {
+        vshPrint(ctl, "%-15s %llu\n", _("Capacity:"), info.capacity);
+        vshPrint(ctl, "%-15s %llu\n", _("Allocation:"), info.allocation);
+        vshPrint(ctl, "%-15s %llu\n", _("Physical:"), info.physical);
+    } else {
+        double val;
+        const char *unit;
+
+        val = vshPrettyCapacity(info.capacity, &unit);
+        vshPrint(ctl, "%-15s %-.3lf %s\n", _("Capacity:"), val, unit);
+        val = vshPrettyCapacity(info.allocation, &unit);
+        vshPrint(ctl, "%-15s %-.3lf %s\n", _("Allocation:"), val, unit);
+        val = vshPrettyCapacity(info.physical, &unit);
+        vshPrint(ctl, "%-15s %-.3lf %s\n", _("Physical:"), val, unit);
+    }
 
     ret = true;
 
  cleanup:
-    virDomainFree(dom);
+    virshDomainFree(dom);
     return ret;
 }
 
@@ -465,10 +475,8 @@ static const vshCmdOptDef opts_domblklist[] = {
 static bool
 cmdDomblklist(vshControl *ctl, const vshCmd *cmd)
 {
-    virDomainPtr dom;
     bool ret = false;
     unsigned int flags = 0;
-    char *xml = NULL;
     xmlDocPtr xmldoc = NULL;
     xmlXPathContextPtr ctxt = NULL;
     int ndisks;
@@ -485,15 +493,7 @@ cmdDomblklist(vshControl *ctl, const vshCmd *cmd)
 
     details = vshCommandOptBool(cmd, "details");
 
-    if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
-        return false;
-
-    xml = virDomainGetXMLDesc(dom, flags);
-    if (!xml)
-        goto cleanup;
-
-    xmldoc = virXMLParseStringCtxt(xml, _("(domain_definition)"), &ctxt);
-    if (!xmldoc)
+    if (virshDomainGetXML(ctl, cmd, flags, &xmldoc, &ctxt) < 0)
         goto cleanup;
 
     ndisks = virXPathNodeSet("./devices/disk", ctxt, &disks);
@@ -553,8 +553,6 @@ cmdDomblklist(vshControl *ctl, const vshCmd *cmd)
     VIR_FREE(disks);
     xmlXPathFreeContext(ctxt);
     xmlFreeDoc(xmldoc);
-    VIR_FREE(xml);
-    virDomainFree(dom);
     return ret;
 }
 
@@ -579,10 +577,8 @@ static const vshCmdOptDef opts_domiflist[] = {
 static bool
 cmdDomiflist(vshControl *ctl, const vshCmd *cmd)
 {
-    virDomainPtr dom;
     bool ret = false;
     unsigned int flags = 0;
-    char *xml = NULL;
     xmlDocPtr xmldoc = NULL;
     xmlXPathContextPtr ctxt = NULL;
     int ninterfaces;
@@ -592,15 +588,7 @@ cmdDomiflist(vshControl *ctl, const vshCmd *cmd)
     if (vshCommandOptBool(cmd, "inactive"))
         flags |= VIR_DOMAIN_XML_INACTIVE;
 
-    if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
-        return false;
-
-    xml = virDomainGetXMLDesc(dom, flags);
-    if (!xml)
-        goto cleanup;
-
-    xmldoc = virXMLParseStringCtxt(xml, _("(domain_definition)"), &ctxt);
-    if (!xmldoc)
+    if (virshDomainGetXML(ctl, cmd, flags, &xmldoc, &ctxt) < 0)
         goto cleanup;
 
     ninterfaces = virXPathNodeSet("./devices/interface", ctxt, &interfaces);
@@ -648,8 +636,6 @@ cmdDomiflist(vshControl *ctl, const vshCmd *cmd)
 
  cleanup:
     VIR_FREE(interfaces);
-    virDomainFree(dom);
-    VIR_FREE(xml);
     xmlFreeDoc(xmldoc);
     xmlXPathFreeContext(ctxt);
     return ret;
@@ -686,13 +672,11 @@ static const vshCmdOptDef opts_domif_getlink[] = {
 static bool
 cmdDomIfGetLink(vshControl *ctl, const vshCmd *cmd)
 {
-    virDomainPtr dom;
     const char *iface = NULL;
     char *state = NULL;
     char *xpath = NULL;
     virMacAddr macaddr;
     char macstr[VIR_MAC_STRING_BUFLEN] = "";
-    char *desc = NULL;
     xmlDocPtr xml = NULL;
     xmlXPathContextPtr ctxt = NULL;
     xmlNodePtr *interfaces = NULL;
@@ -703,21 +687,11 @@ cmdDomIfGetLink(vshControl *ctl, const vshCmd *cmd)
     if (vshCommandOptStringReq(ctl, cmd, "interface", &iface) < 0)
         return false;
 
-    if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
-        return false;
-
     if (vshCommandOptBool(cmd, "config"))
         flags = VIR_DOMAIN_XML_INACTIVE;
 
-    if (!(desc = virDomainGetXMLDesc(dom, flags))) {
-        vshError(ctl, _("Failed to get domain description xml"));
+    if (virshDomainGetXML(ctl, cmd, flags, &xml, &ctxt) < 0)
         goto cleanup;
-    }
-
-    if (!(xml = virXMLParseStringCtxt(desc, _("(domain_definition)"), &ctxt))) {
-        vshError(ctl, _("Failed to parse domain description xml"));
-        goto cleanup;
-    }
 
     /* normalize the mac addr */
     if (virMacAddrParse(iface, &macaddr) == 0)
@@ -752,13 +726,11 @@ cmdDomIfGetLink(vshControl *ctl, const vshCmd *cmd)
     ret = true;
 
  cleanup:
-    VIR_FREE(desc);
     VIR_FREE(state);
     VIR_FREE(interfaces);
     VIR_FREE(xpath);
     xmlXPathFreeContext(ctxt);
     xmlFreeDoc(xml);
-    virDomainFree(dom);
 
     return ret;
 }
@@ -811,7 +783,7 @@ cmdDomControl(vshControl *ctl, const vshCmd *cmd)
     }
 
  cleanup:
-    virDomainFree(dom);
+    virshDomainFree(dom);
     return ret;
 }
 
@@ -997,7 +969,7 @@ cmdDomblkstat(vshControl *ctl, const vshCmd *cmd)
 
  cleanup:
     VIR_FREE(params);
-    virDomainFree(dom);
+    virshDomainFree(dom);
     return ret;
 }
 #undef DOMBLKSTAT_LEGACY_PRINT
@@ -1071,7 +1043,7 @@ cmdDomIfstat(vshControl *ctl, const vshCmd *cmd)
     ret = true;
 
  cleanup:
-    virDomainFree(dom);
+    virshDomainFree(dom);
     return ret;
 }
 
@@ -1132,7 +1104,7 @@ cmdDomBlkError(vshControl *ctl, const vshCmd *cmd)
 
  cleanup:
     VIR_FREE(disks);
-    virDomainFree(dom);
+    virshDomainFree(dom);
     return ret;
 }
 
@@ -1241,7 +1213,7 @@ cmdDominfo(vshControl *ctl, const vshCmd *cmd)
     memset(&secmodel, 0, sizeof(secmodel));
     if (virNodeGetSecurityModel(priv->conn, &secmodel) == -1) {
         if (last_error->code != VIR_ERR_NO_SUPPORT) {
-            virDomainFree(dom);
+            virshDomainFree(dom);
             return false;
         } else {
             vshResetLibvirtError();
@@ -1254,12 +1226,12 @@ cmdDominfo(vshControl *ctl, const vshCmd *cmd)
 
             /* Security labels are only valid for active domains */
             if (VIR_ALLOC(seclabel) < 0) {
-                virDomainFree(dom);
+                virshDomainFree(dom);
                 return false;
             }
 
             if (virDomainGetSecurityLabel(dom, seclabel) == -1) {
-                virDomainFree(dom);
+                virshDomainFree(dom);
                 VIR_FREE(seclabel);
                 return false;
             } else {
@@ -1271,7 +1243,7 @@ cmdDominfo(vshControl *ctl, const vshCmd *cmd)
             VIR_FREE(seclabel);
         }
     }
-    virDomainFree(dom);
+    virshDomainFree(dom);
     return ret;
 }
 
@@ -1323,7 +1295,7 @@ cmdDomstate(vshControl *ctl, const vshCmd *cmd)
     }
 
  cleanup:
-    virDomainFree(dom);
+    virshDomainFree(dom);
     return ret;
 }
 
@@ -1427,7 +1399,7 @@ cmdDomTime(vshControl *ctl, const vshCmd *cmd)
 
     ret = true;
  cleanup:
-    virDomainFree(dom);
+    virshDomainFree(dom);
     return ret;
 }
 
@@ -1493,7 +1465,7 @@ virshDomainListFree(virshDomainListPtr domlist)
     if (domlist && domlist->domains) {
         for (i = 0; i < domlist->ndomains; i++) {
             if (domlist->domains[i])
-                virDomainFree(domlist->domains[i]);
+                virshDomainFree(domlist->domains[i]);
         }
         VIR_FREE(domlist->domains);
     }
@@ -1689,7 +1661,7 @@ virshDomainListCollect(vshControl *ctl, unsigned int flags)
 
  remove_entry:
         /* the domain has to be removed as it failed one of the filters */
-        virDomainFree(list->domains[i]);
+        virshDomainFree(list->domains[i]);
         list->domains[i] = NULL;
         deleted++;
     }
@@ -2047,7 +2019,6 @@ virshDomainStatsPrintRecord(vshControl *ctl ATTRIBUTE_UNUSED,
         VIR_FREE(param);
     }
 
-    vshPrint(ctl, "\n");
     return true;
 }
 
@@ -2145,9 +2116,13 @@ cmdDomstats(vshControl *ctl, const vshCmd *cmd)
            goto cleanup;
     }
 
-    for (next = records; *next; next++) {
+    next = records;
+    while (*next) {
         if (!virshDomainStatsPrintRecord(ctl, *next, raw))
             goto cleanup;
+
+        if (*(++next))
+            vshPrint(ctl, "\n");
     }
 
     ret = true;
@@ -2291,7 +2266,7 @@ cmdDomIfAddr(vshControl *ctl, const vshCmd *cmd)
     }
     VIR_FREE(ifaces);
 
-    virDomainFree(dom);
+    virshDomainFree(dom);
     return ret;
 }
 

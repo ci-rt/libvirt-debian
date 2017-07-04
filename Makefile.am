@@ -36,11 +36,11 @@ EXTRA_DIST = \
   libvirt-qemu.pc.in \
   libvirt-lxc.pc.in \
   libvirt-admin.pc.in \
-  autobuild.sh \
   Makefile.nonreentrant \
   autogen.sh \
   cfg.mk \
   run.in \
+  README.md \
   AUTHORS.in
 
 pkgconfigdir = $(libdir)/pkgconfig
@@ -65,17 +65,6 @@ EXTRA_DIST += \
 	$(srcdir)/docs/news.xml \
 	$(srcdir)/docs/news-ascii.xsl \
 	$(srcdir)/docs/reformat-news.py
-
-$(top_srcdir)/HACKING: $(top_srcdir)/docs/hacking1.xsl \
-			$(top_srcdir)/docs/hacking2.xsl \
-			$(top_srcdir)/docs/wrapstring.xsl \
-			$(top_srcdir)/docs/hacking.html.in
-	$(AM_V_GEN)if [ -x $(XSLTPROC) ] ; then \
-	   $(XSLTPROC) --nonet $(top_srcdir)/docs/hacking1.xsl \
-		$(top_srcdir)/docs/hacking.html.in | \
-	   $(XSLTPROC) --nonet $(top_srcdir)/docs/hacking2.xsl - \
-	   | perl -0777 -pe 's/\n\n+$$/\n/' \
-	   > $@-t && mv $@-t $@ ; fi;
 
 rpm: clean
 	@(unset CDPATH ; $(MAKE) dist && rpmbuild -ta $(distdir).tar.xz)

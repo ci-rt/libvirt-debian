@@ -26,7 +26,6 @@
 #include "virerror.h"
 #include "viralloc.h"
 #include "virstring.h"
-#include "nodeinfo.h"
 #include "virlog.h"
 #include "datatypes.h"
 #include "domain_conf.h"
@@ -2895,7 +2894,7 @@ static int prlsdkCheckSerialUnsupportedParams(virDomainChrDefPtr chr)
         return -1;
     }
 
-    if (chr->nseclabels > 0) {
+    if (chr->source->nseclabels > 0) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Setting security labels is not "
                          "supported by vz driver."));
@@ -3085,7 +3084,7 @@ static int prlsdkApplyGraphicsParams(PRL_HANDLE sdkdom,
 
     glisten = virDomainGraphicsGetListen(gr, 0);
     pret = PrlVmCfg_SetVNCHostName(sdkdom, glisten && glisten->address ?
-                                           glisten->address : "127.0.0.1");
+                                           glisten->address : VIR_LOOPBACK_IPV4_ADDR);
     prlsdkCheckRetGoto(pret, cleanup);
 
     ret = 0;
@@ -3928,13 +3927,8 @@ prlsdkDomainSetUserPassword(virDomainObjPtr dom,
                             const char *user,
                             const char *password)
 {
-    int ret = -1;
     vzDomObjPtr privdom = dom->privateData;
     PRL_HANDLE job = PRL_INVALID_HANDLE;
-
-    job = PrlVm_BeginEdit(privdom->sdkdom);
-    if (PRL_FAILED(waitDomainJob(job, dom)))
-        goto cleanup;
 
     job = PrlVm_SetUserPasswd(privdom->sdkdom,
                               user,
@@ -3942,16 +3936,9 @@ prlsdkDomainSetUserPassword(virDomainObjPtr dom,
                               0);
 
     if (PRL_FAILED(waitDomainJob(job, dom)))
-        goto cleanup;
+        return -1;
 
-    job = PrlVm_CommitEx(privdom->sdkdom, 0);
-    if (PRL_FAILED(waitDomainJob(job, dom)))
-        goto cleanup;
-
-    ret = 0;
-
- cleanup:
-    return ret;
+    return 0;
 }
 
 static int
@@ -4901,5 +4888,65 @@ int prlsdkMigrate(virDomainObjPtr dom, virURIPtr uri,
     ret = 0;
 
  cleanup:
+    return ret;
+}
+
+int prlsdkSetCpuCount(virDomainObjPtr dom, unsigned int count)
+{
+    vzDomObjPtr privdom = dom->privateData;
+    PRL_HANDLE job;
+    PRL_RESULT pret;
+
+    job = PrlVm_BeginEdit(privdom->sdkdom);
+    if (PRL_FAILED(waitDomainJob(job, dom)))
+        goto error;
+
+    pret = PrlVmCfg_SetCpuCount(privdom->sdkdom, count);
+    prlsdkCheckRetGoto(pret, error);
+
+    job = PrlVm_CommitEx(privdom->sdkdom, 0);
+    if (PRL_FAILED(waitDomainJob(job, dom)))
+        goto error;
+
+    return 0;
+
+ error:
+    return -1;
+}
+
+int prlsdkResizeImage(virDomainObjPtr dom, virDomainDiskDefPtr disk,
+                      unsigned long long newsize)
+{
+    int ret = -1;
+    PRL_RESULT pret;
+    vzDomObjPtr privdom = dom->privateData;
+    PRL_UINT32 emulatedType;
+    PRL_HANDLE job = PRL_INVALID_HANDLE;
+    PRL_HANDLE prldisk = PRL_INVALID_HANDLE;
+
+    prldisk = prlsdkGetDisk(privdom->sdkdom, disk);
+    if (prldisk == PRL_INVALID_HANDLE)
+        goto cleanup;
+
+    pret = PrlVmDev_GetEmulatedType(prldisk, &emulatedType);
+    prlsdkCheckRetGoto(pret, cleanup);
+
+    if (emulatedType != PDT_USE_IMAGE_FILE &&
+        emulatedType != PDT_USE_FILE_SYSTEM) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("Only disk image supported for resize"));
+        goto cleanup;
+    }
+
+    job = PrlVmDev_ResizeImage(prldisk, newsize,
+                               PRIF_RESIZE_LAST_PARTITION);
+    if (PRL_FAILED(waitDomainJob(job, dom)))
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+
+    PrlHandle_Free(prldisk);
     return ret;
 }

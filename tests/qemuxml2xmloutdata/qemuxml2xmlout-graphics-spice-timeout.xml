@@ -15,7 +15,7 @@
     <apic/>
     <pae/>
   </features>
-  <cpu mode='custom' match='exact'>
+  <cpu mode='custom' match='exact' check='partial'>
     <model fallback='allow'>core2duo</model>
     <vendor>Intel</vendor>
     <topology sockets='1' cores='2' threads='1'/>
@@ -38,7 +38,7 @@
   <on_reboot>restart</on_reboot>
   <on_crash>restart</on_crash>
   <devices>
-    <emulator>/usr/bin/qemu-kvm</emulator>
+    <emulator>/usr/bin/qemu-system-i686</emulator>
     <disk type='file' device='disk'>
       <driver name='qemu' type='qcow2'/>
       <source file='/var/lib/libvirt/images/f14.img'/>

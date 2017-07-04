@@ -29,8 +29,8 @@
         file from zanata.</p>
       </li>
 
-      <li><p>Post patches using "git send-email", with git rename
-        detection enabled.  You need a one-time setup of:</p>
+      <li><p>Post patches using <code>git send-email</code>, with git
+        rename detection enabled.  You need a one-time setup of:</p>
 <pre>
   git config diff.renames true
 </pre>
@@ -50,22 +50,44 @@
   git pull --rebase
   (fix any conflicts)
   git send-email --cover-letter --no-chain-reply-to --annotate \
-                 --to=libvir-list@redhat.com master
+                 --confirm=always --to=libvir-list@redhat.com master
 </pre>
-        <p>(Note that the "git send-email" subcommand may not be in
-        the main git package and using it may require installation of a
-        separate package, for example the "git-email" package in
-        Fedora.)  For a single patch you can omit
+        <p>For a single patch you can omit
         <code>--cover-letter</code>, but a series of two or more
-        patches needs a cover letter. If you get tired of typing
-        <code>--to=libvir-list@redhat.com</code> designation you can
-        set it in git config:</p>
+        patches needs a cover letter.</p>
+        <p>Note that the <code>git send-email</code> subcommand may not
+        be in the main git package and using it may require installation
+        of a separate package, for example the "git-email" package in
+        Fedora and Debian.  If this is your first time using
+        <code>git send-email</code>, you might need to configure it to
+        point it to your SMTP server with something like:</p>
+<pre>
+  git config --global sendemail.smtpServer stmp.youremailprovider.net
+</pre>
+        <p>If you get tired of typing
+        <code>--to=libvir-list@redhat.com</code> all the time, you can
+        configure that to be automatically handled as well:</p>
 <pre>
   git config sendemail.to libvir-list@redhat.com
 </pre>
+        <p>As a rule, patches should be sent to the mailing list only: all
+        developers are subscribed to libvir-list and read it regularly, so
+        please don't CC individual developers unless they've explicitly
+        asked you to.</p>
+        <p>Avoid using mail clients for sending patches, as most of them
+        will mangle the messages in some way, making them unusable for our
+        purposes.  Gmail and other Web-based mail clients are particularly
+        bad at this.</p>
+        <p>If everything went well, your patch should show up on the
+        <a href="https://www.redhat.com/archives/libvir-list/">libvir-list
+        archives</a> in a matter of minutes; if you still can't find it on
+        there after an hour or so, you should double-check your setup.  Note
+        that your very first post to the mailing list will be subject to
+        moderation, and it's not uncommon for that to take around a day.</p>
         <p>Please follow this as close as you can, especially the rebase and
-        git send-email part, as it makes life easier for other developers to
-        review your patch set. One should avoid sending patches as attachments,
+        <code>git send-email</code> part, as it makes life easier for other
+        developers to review your patch set.</p>
+        <p>One should avoid sending patches as attachments,
         but rather send them in email body along with commit message. If a
         developer is sending another version of the patch (e.g. to address
         review comments), they are advised to note differences to previous
@@ -314,6 +336,119 @@
         Richard Jones' guide to working with open source projects</a>.
     </p>
 
+    <h2><a name="tooling">Tooling</a></h2>
+
+    <p>
+      libvirt includes support for some useful development tools right in its
+      source repository, meaning users will be able to take advantage of them
+      without little or no configuration. Examples include:
+    </p>
+
+    <ul>
+      <li>
+        <a href="https://github.com/jeaye/color_coded">color_coded</a>,
+        a vim plugin for libclang-powered semantic syntax highlighting;
+      </li>
+
+      <li>
+        <a href="http://valloric.github.io/YouCompleteMe/">YouCompleteMe</a>,
+        a vim plugin for libclang-powered semantic code completion.
+      </li>
+    </ul>
+
+    <h2><a name="naming">Naming conventions</a></h2>
+
+    <p>
+      When reading libvirt code, a number of different naming conventions will
+      be evident due to various changes in thinking over the course of the
+      project's lifetime. The conventions documented below should be followed
+      when creating any entirely new files in libvirt. When working on existing
+      files, while it is desirable to apply these conventions, keeping a
+      consistent style with existing code in that particular file is generally
+      more important. The overall guiding principal is that every file, enum,
+      struct, function, macro and typedef name must have a 'vir' or 'VIR' prefix.
+      All local scope variable names are exempt, and global variables are exempt,
+      unless exported in a header file.
+    </p>
+
+    <dl>
+      <dt>File names</dt>
+      <dd>
+        <p>
+          File naming varies depending on the subdirectory. The preferred
+          style is to have a 'vir' prefix, followed by a name which matches
+          the name of the functions / objects inside the file. For example,
+          a file containing an object  'virHashtable' is stored in files
+          'virhashtable.c' and 'virhashtable.h'. Sometimes, methods which
+          would otherwise be declared 'static' need to be exported for use
+          by a test suite. For this purpose a second header file should be
+          added with a suffix of 'priv', e.g. 'virhashtablepriv.h'. Use of
+          underscores in file names is discouraged when using the 'vir'
+          prefix style. The 'vir' prefix naming applies to src/util,
+          src/rpc and tests/ directories. Most other directories do not
+          follow this convention.
+        </p>
+      </dd>
+      <dt>Enum type &amp; field names</dt>
+      <dd>
+        <p>
+          All enums should have a 'vir' prefix in their typedef name,
+          and each following word should have its first letter in
+          uppercase. The enum name should match the typedef name with
+          a leading underscore. The enum member names should be in all
+          uppercase, and use an underscore to separate each word. The
+          enum member name prefix should match the enum typedef name.
+        </p>
+        <pre>
+    typedef enum _virSocketType virSocketType;
+    enum _virSocketType {
+        VIR_SOCKET_TYPE_IPV4,
+        VIR_SOCKET_TYPE_IPV6,
+    };</pre>
+      </dd>
+      <dt>Struct type names</dt>
+      <dd>
+        <p>
+          All structs should have a 'vir' prefix in their typedef name,
+          and each following word should have its first letter in
+          uppercase. The struct name should be the same as the typedef
+          name with a leading underscore. A second typedef should be
+          given for a pointer to the struct with a 'Ptr' suffix.
+        </p>
+        <pre>
+    typedef struct _virHashTable virHashTable;
+    typedef virHashTable *virHashTablePtr;
+    struct _virHashTable {
+       ...
+    };</pre>
+      </dd>
+      <dt>Function names</dt>
+      <dd>
+        <p>
+          All functions should have a 'vir' prefix in their name,
+          followed by one or more words with first letter of each
+          word capitalized. Underscores should not be used in function
+          names. If the function is operating on an object, then the
+          function name prefix should match the object typedef name,
+          otherwise it should match the filename. Following this
+          comes the verb / action name, and finally an optional
+          subject name. For example, given an object 'virHashTable',
+          all functions should have a name 'virHashTable$VERB' or
+          'virHashTable$VERB$SUBJECT", e.g. 'virHashTableLookup'
+          or 'virHashTableGetValue'.
+        </p>
+      </dd>
+      <dt>Macro names</dt>
+      <dd>
+        <p>
+          All macros should have a "VIR" prefix in their name, followed
+          by one or more uppercase words separated by underscores. The
+          macro argument names should be in lowercase. Aside from having
+          a "VIR" prefix there are no common practices for the rest of
+          the macro name.
+        </p>
+      </dd>
+    </dl>
 
     <h2><a name="indent">Code indentation</a></h2>
     <p>

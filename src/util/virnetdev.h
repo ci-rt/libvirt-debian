@@ -37,6 +37,11 @@ typedef struct ifreq virIfreq;
 typedef void virIfreq;
 # endif
 
+/* Used for prefix of ifname of any tap device name generated
+ * dynamically by libvirt, cannot be used for a persistent network name.
+ */
+# define VIR_NET_GENERATED_TAP_PREFIX "vnet"
+
 typedef enum {
    VIR_NETDEV_RX_FILTER_MODE_NONE = 0,
    VIR_NETDEV_RX_FILTER_MODE_NORMAL,
@@ -86,10 +91,12 @@ typedef enum {
 
 VIR_ENUM_DECL(virNetDevIfState)
 
-typedef struct {
+typedef struct _virNetDevIfLink virNetDevIfLink;
+typedef virNetDevIfLink *virNetDevIfLinkPtr;
+struct _virNetDevIfLink {
     virNetDevIfState state; /* link state */
     unsigned int speed;      /* link speed in Mbits per second */
-} virNetDevIfLink, *virNetDevIfLinkPtr;
+};
 
 typedef enum {
     VIR_NET_DEV_FEAT_GRXCSUM,
@@ -110,6 +117,36 @@ typedef enum {
 
 VIR_ENUM_DECL(virNetDevFeature)
 
+/* Modeled after struct ethtool_coalesce, see linux/ethtool.h for explanations
+ * of particular fields */
+typedef struct _virNetDevCoalesce virNetDevCoalesce;
+typedef virNetDevCoalesce *virNetDevCoalescePtr;
+struct _virNetDevCoalesce {
+    uint32_t rx_coalesce_usecs;
+    uint32_t rx_max_coalesced_frames;
+    uint32_t rx_coalesce_usecs_irq;
+    uint32_t rx_max_coalesced_frames_irq;
+    uint32_t tx_coalesce_usecs;
+    uint32_t tx_max_coalesced_frames;
+    uint32_t tx_coalesce_usecs_irq;
+    uint32_t tx_max_coalesced_frames_irq;
+    uint32_t stats_block_coalesce_usecs;
+    uint32_t use_adaptive_rx_coalesce;
+    uint32_t use_adaptive_tx_coalesce;
+    uint32_t pkt_rate_low;
+    uint32_t rx_coalesce_usecs_low;
+    uint32_t rx_max_coalesced_frames_low;
+    uint32_t tx_coalesce_usecs_low;
+    uint32_t tx_max_coalesced_frames_low;
+    uint32_t pkt_rate_high;
+    uint32_t rx_coalesce_usecs_high;
+    uint32_t rx_max_coalesced_frames_high;
+    uint32_t tx_coalesce_usecs_high;
+    uint32_t tx_max_coalesced_frames_high;
+    uint32_t rate_sample_interval;
+};
+
+
 int virNetDevSetupControl(const char *ifname,
                           virIfreq *ifr)
     ATTRIBUTE_RETURN_CHECK;
@@ -119,7 +156,7 @@ int virNetDevExists(const char *brname)
 
 int virNetDevSetOnline(const char *ifname,
                        bool online)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK ATTRIBUTE_NOINLINE;
 int virNetDevGetOnline(const char *ifname,
                       bool *online)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
@@ -127,7 +164,7 @@ int virNetDevGetOnline(const char *ifname,
 
 int virNetDevSetMAC(const char *ifname,
                     const virMacAddr *macaddr)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK ATTRIBUTE_NOINLINE;
 int virNetDevGetMAC(const char *ifname,
                     virMacAddrPtr macaddr)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
@@ -142,6 +179,11 @@ int virNetDevRestoreMacAddress(const char *linkdev,
                                const char *stateDir)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
 
+int virNetDevSetCoalesce(const char *ifname,
+                         virNetDevCoalescePtr coalesce,
+                         bool update)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
+
 int virNetDevSetMTU(const char *ifname,
                     int mtu)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
@@ -155,11 +197,16 @@ int virNetDevSetNamespace(const char *ifname, pid_t pidInNs)
 int virNetDevSetName(const char *ifname, const char *newifname)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
 
+char *virNetDevGetName(int ifindex)
+    ATTRIBUTE_RETURN_CHECK;
 int virNetDevGetIndex(const char *ifname, int *ifindex)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
 
 int virNetDevGetVLanID(const char *ifname, int *vlanid)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
+
+int virNetDevGetMaster(const char *ifname, char **master)
+   ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
 
 int virNetDevValidateConfig(const char *ifname,
                             const virMacAddr *macaddr, int ifindex)
@@ -176,6 +223,9 @@ int virNetDevGetVirtualFunctionIndex(const char *pfname, const char *vfname,
 int virNetDevGetPhysicalFunction(const char *ifname, char **pfname)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
 
+int virNetDevPFGetVF(const char *pfname, int vf, char **vfname)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
+
 int virNetDevGetVirtualFunctions(const char *pfname,
                                  char ***vfname,
                                  virPCIDeviceAddressPtr **virt_fns,
@@ -184,14 +234,27 @@ int virNetDevGetVirtualFunctions(const char *pfname,
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
     ATTRIBUTE_NONNULL(4) ATTRIBUTE_NONNULL(5) ATTRIBUTE_RETURN_CHECK;
 
-int virNetDevReplaceNetConfig(const char *linkdev, int vf,
-                              const virMacAddr *macaddress,
-                              virNetDevVlanPtr vlan,
-                              const char *stateDir)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(5);
+int virNetDevSaveNetConfig(const char *linkdev, int vf,
+                           const char *stateDir,
+                           bool saveVlan)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(3) ATTRIBUTE_RETURN_CHECK;
 
-int virNetDevRestoreNetConfig(const char *linkdev, int vf, const char *stateDir)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(3);
+int
+virNetDevReadNetConfig(const char *linkdev, int vf,
+                       const char *stateDir,
+                       virMacAddrPtr *adminMAC,
+                       virNetDevVlanPtr *vlan,
+                       virMacAddrPtr *MAC)
+   ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(4)
+   ATTRIBUTE_NONNULL(5) ATTRIBUTE_NONNULL(6) ATTRIBUTE_RETURN_CHECK;
+
+int
+virNetDevSetNetConfig(const char *linkdev, int vf,
+                      const virMacAddr *adminMAC,
+                      virNetDevVlanPtr vlan,
+                      const virMacAddr *MAC,
+                      bool setVLan)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
 
 int virNetDevGetVirtualFunctionInfo(const char *vfname, char **pfname,
                                     int *vf)
@@ -240,7 +303,8 @@ int virNetDevSysfsFile(char **pf_sysfs_device_link,
                        const char *ifname,
                        const char *file)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
-    ATTRIBUTE_RETURN_CHECK;
+    ATTRIBUTE_RETURN_CHECK ATTRIBUTE_NOINLINE;
 
-int virNetDevRunEthernetScript(const char *ifname, const char *script);
+int virNetDevRunEthernetScript(const char *ifname, const char *script)
+    ATTRIBUTE_NOINLINE;
 #endif /* __VIR_NETDEV_H__ */

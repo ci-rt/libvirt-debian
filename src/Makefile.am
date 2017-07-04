@@ -37,6 +37,8 @@ INCLUDES =	-I../gnulib/lib					\
 		-Dabs_topsrcdir="\"$(abs_topsrcdir)\""		\
 		$(GETTEXT_CPPFLAGS)
 
+WARN_CFLAGS += $(STRICT_FRAME_LIMIT_CFLAGS)
+
 AM_CFLAGS =	$(LIBXML_CFLAGS)				\
 		$(WARN_CFLAGS)					\
 		$(LOCK_CHECKING_CFLAGS)				\
@@ -50,7 +52,9 @@ AM_LDFLAGS =	$(DRIVER_MODULES_LDFLAGS)			\
 		$(MINGW_EXTRA_LDFLAGS)				\
 		$(NULL)
 
-EXTRA_DIST = $(conf_DATA) util/keymaps.csv
+POD2MAN = pod2man -c "Virtualization Support" -r "$(PACKAGE)-$(VERSION)"
+
+EXTRA_DIST = $(conf_DATA)
 
 BUILT_SOURCES =
 CLEANFILES =
@@ -113,6 +117,8 @@ UTIL_SOURCES =							\
 		util/virerror.c util/virerror.h			\
 		util/virevent.c util/virevent.h			\
 		util/vireventpoll.c util/vireventpoll.h		\
+		util/virfcp.c util/virfcp.h			\
+		util/virfdstream.c util/virfdstream.h		\
 		util/virfile.c util/virfile.h			\
 		util/virfirewall.c util/virfirewall.h		\
 		util/virfirewallpriv.h				\
@@ -132,7 +138,6 @@ UTIL_SOURCES =							\
 		util/virjson.c util/virjson.h			\
 		util/virkeycode.c util/virkeycode.h		\
 		util/virkeyfile.c util/virkeyfile.h		\
-		util/virkeymaps.h				\
 		util/virlease.c util/virlease.h			\
 		util/virlockspace.c util/virlockspace.h		\
 		util/virlog.c util/virlog.h			\
@@ -173,8 +178,8 @@ UTIL_SOURCES =							\
 		util/virstorageencryption.c util/virstorageencryption.h \
 		util/virstoragefile.c util/virstoragefile.h	\
 		util/virstring.h util/virstring.c		\
-		util/virsysinfo.c util/virsysinfo.h		\
-		util/virsystemd.c util/virsystemd.h		\
+		util/virsysinfo.c util/virsysinfo.h util/virsysinfopriv.h		\
+		util/virsystemd.c util/virsystemd.h util/virsystemdpriv.h \
 		util/virthread.c util/virthread.h		\
 		util/virthreadjob.c util/virthreadjob.h		\
 		util/virthreadpool.c util/virthreadpool.h	\
@@ -188,21 +193,84 @@ UTIL_SOURCES =							\
 		util/virvhba.c util/virvhba.h			\
 		util/virxdrdefs.h                               \
 		util/virxml.c util/virxml.h			\
+		util/virmdev.c util/virmdev.h			\
 		$(NULL)
 
-EXTRA_DIST += $(srcdir)/util/keymaps.csv $(srcdir)/util/virkeycode-mapgen.py
+EXTRA_DIST += \
+	$(srcdir)/keycodemapdb/data/keymaps.csv \
+	$(srcdir)/keycodemapdb/tools/keymap-gen \
+	$(NULL)
 
-BUILT_SOURCES += util/virkeymaps.h
-MAINTAINERCLEANFILES += util/virkeymaps.h
+util/virkeycodetable_%.h: $(srcdir)/keycodemapdb/data/keymaps.csv \
+			$(srcdir)/keycodemapdb/tools/keymap-gen Makefile.am
+	$(AM_V_GEN)export NAME=`echo $@ | sed -e 's,util/virkeycodetable_,,' \
+					      -e 's,\.h,,'` && \
+		$(MKDIR_P) util/ && \
+		$(PYTHON) $(srcdir)/keycodemapdb/tools/keymap-gen \
+			--lang stdc --varname virKeyCodeTable_$$NAME code-table \
+			$(srcdir)/keycodemapdb/data/keymaps.csv $$NAME > $@-tmp && \
+		mv $@-tmp $@ || rm -f $@-tmp
 
-util/virkeymaps.h: $(srcdir)/util/keymaps.csv	\
-		$(srcdir)/util/virkeycode-mapgen.py
-	$(MKDIR_P) util/
-	$(AM_V_GEN)$(PYTHON) $(srcdir)/util/virkeycode-mapgen.py \
-	  <$(srcdir)/util/keymaps.csv >util/virkeymaps.h
+util/virkeynametable_%.h: $(srcdir)/keycodemapdb/data/keymaps.csv \
+			$(srcdir)/keycodemapdb/tools/keymap-gen Makefile.am
+	$(AM_V_GEN)export NAME=`echo $@ | sed -e 's,util/virkeynametable_,,' \
+					      -e 's,\.h,,'` && \
+		$(MKDIR_P) util/ && \
+		$(PYTHON) $(srcdir)/keycodemapdb/tools/keymap-gen \
+			--lang stdc --varname virKeyNameTable_$$NAME name-table \
+			$(srcdir)/keycodemapdb/data/keymaps.csv $$NAME > $@-tmp && \
+		mv $@-tmp $@ || rm -f $@-tmp
+
+util/virkeycode-%.pod: $(srcdir)/keycodemapdb/data/keymaps.csv \
+			$(srcdir)/keycodemapdb/tools/keymap-gen Makefile.am
+	$(AM_V_GEN)export NAME=`echo $@ | sed -e 's,util/virkeycode-,,' \
+					      -e 's,\.pod,,'` && \
+		$(MKDIR_P) util/ && \
+		$(PYTHON) $(srcdir)/keycodemapdb/tools/keymap-gen \
+		--lang pod --varname "Key code values for $$NAME" code-docs \
+		$(srcdir)/keycodemapdb/data/keymaps.csv $$NAME > \
+			$@-tmp && mv $@-tmp $@ || rm $@-tmp
+
+util/virkeyname-%.pod: $(srcdir)/keycodemapdb/data/keymaps.csv \
+			$(srcdir)/keycodemapdb/tools/keymap-gen Makefile.am
+	$(AM_V_GEN)export NAME=`echo $@ | sed -e 's,util/virkeyname-,,' \
+					      -e 's,\.pod,,'` && \
+		$(MKDIR_P) util/ && \
+		$(PYTHON) $(srcdir)/keycodemapdb/tools/keymap-gen \
+		--lang pod --varname "Key name values for $$NAME" name-docs \
+		$(srcdir)/keycodemapdb/data/keymaps.csv $$NAME > \
+			$@-tmp && mv $@-tmp $@ || rm $@-tmp
+
+util/virkey%.7: util/virkey%.pod
+	$(AM_V_GEN)$(POD2MAN) --section=7 $< $@-t1 && \
+	if grep 'POD ERROR' $@-t1; then rm $@-t1; exit 1; fi && \
+	sed \
+		-e 's|SYSCONFDIR|\@sysconfdir\@|g' \
+		-e 's|LOCALSTATEDIR|\@localstatedir\@|g' \
+		< $@-t1 > $@-t2 && \
+	rm -f $@-t1 && \
+	mv $@-t2 $@
+
+KEYCODES = linux osx atset1 atset2 atset3 xt xtkbd usb win32 rfb
+KEYNAMES = linux osx win32
+
+KEYTABLES = \
+	$(KEYCODES:%=util/virkeycodetable_%.h) \
+	$(KEYNAMES:%=util/virkeynametable_%.h) \
+	$(NULL)
+
+KEYPODS = $(KEYCODES:%=util/virkeycode-%.pod) \
+	  $(KEYNAMES:%=util/virkeyname-%.pod)
+KEYMANS = $(KEYPODS:%.pod=%.7)
+
+man7_MANS = $(KEYMANS)
+
+UTIL_SOURCES += $(KEYTABLES)
+BUILT_SOURCES += $(KEYTABLES)
+MAINTAINERCLEANFILES += $(KEYTABLES)
+CLEANFILES += $(KEYMANS) $(KEYPODS)
 
 # Internal generic driver infrastructure
-NODE_INFO_SOURCES = nodeinfo.h nodeinfo.c
 DATATYPES_SOURCES = datatypes.h datatypes.c
 DRIVER_SOURCES =							\
 		driver.c driver.h					\
@@ -217,8 +285,6 @@ DRIVER_SOURCES =							\
 		driver-stream.h						\
 		internal.h						\
 		$(DATATYPES_SOURCES)					\
-		fdstream.c fdstream.h					\
-		$(NODE_INFO_SOURCES)					\
 		libvirt.c libvirt_internal.h				\
 		libvirt-domain.c 					\
 		libvirt-domain-snapshot.c 				\
@@ -336,6 +402,7 @@ DOMAIN_CONF_SOURCES =						\
 		conf/domain_conf.c conf/domain_conf.h		\
 		conf/domain_audit.c conf/domain_audit.h		\
 		conf/domain_nwfilter.c conf/domain_nwfilter.h	\
+		conf/virsavecookie.c conf/virsavecookie.h	\
 		conf/snapshot_conf.c conf/snapshot_conf.h	\
 		conf/numa_conf.c conf/numa_conf.h	\
 		conf/virdomainobjlist.c conf/virdomainobjlist.h
@@ -361,7 +428,8 @@ SECRET_EVENT_SOURCES =					\
 
 # Network driver generic impl APIs
 NETWORK_CONF_SOURCES =						\
-		conf/network_conf.c conf/network_conf.h \
+		conf/network_conf.c conf/network_conf.h		\
+		conf/virnetworkobj.c conf/virnetworkobj.h	\
 		conf/networkcommon_conf.c conf/networkcommon_conf.h
 
 # Network filter driver generic impl APIs
@@ -369,19 +437,24 @@ NWFILTER_PARAM_CONF_SOURCES =					\
 		conf/nwfilter_params.c conf/nwfilter_params.h	\
 		conf/nwfilter_ipaddrmap.c			\
 		conf/nwfilter_ipaddrmap.h			\
-		conf/nwfilter_conf.h
+		conf/nwfilter_conf.h                            \
+		conf/virnwfilterobj.h
 
 NWFILTER_CONF_SOURCES =						\
 		$(NWFILTER_PARAM_CONF_SOURCES)			\
-		conf/nwfilter_conf.c conf/nwfilter_conf.h
+		conf/nwfilter_conf.c conf/nwfilter_conf.h	\
+		conf/virnwfilterobj.c conf/virnwfilterobj.h
 
 # Storage driver generic impl APIs
 STORAGE_CONF_SOURCES =                                         \
-		conf/storage_conf.h conf/storage_conf.c
+		conf/storage_adapter_conf.h conf/storage_adapter_conf.c \
+		conf/storage_conf.h conf/storage_conf.c        \
+		conf/virstorageobj.h conf/virstorageobj.c
 
 # Interface driver generic impl APIs
 INTERFACE_CONF_SOURCES =                                       \
-		conf/interface_conf.c conf/interface_conf.h
+		conf/interface_conf.c conf/interface_conf.h    \
+		conf/virinterfaceobj.c conf/virinterfaceobj.h
 
 # Secret driver generic impl APIs
 SECRET_CONF_SOURCES =                                          \
@@ -390,7 +463,8 @@ SECRET_CONF_SOURCES =                                          \
 
 # Network driver generic impl APIs
 NODE_DEVICE_CONF_SOURCES =                                     \
-		conf/node_device_conf.c conf/node_device_conf.h
+		conf/node_device_conf.c conf/node_device_conf.h \
+		conf/virnodedeviceobj.c conf/virnodedeviceobj.h
 
 CPU_CONF_SOURCES =						\
 		conf/cpu_conf.c conf/cpu_conf.h
@@ -819,6 +893,7 @@ VBOX_DRIVER_EXTRA_DIST =					\
 QEMU_DRIVER_SOURCES =							\
 		qemu/qemu_agent.c qemu/qemu_agent.h			\
 		qemu/qemu_alias.c qemu/qemu_alias.h			\
+		qemu/qemu_block.c qemu/qemu_block.h			\
 		qemu/qemu_blockjob.c qemu/qemu_blockjob.h		\
 		qemu/qemu_capabilities.c qemu/qemu_capabilities.h	\
 		qemu/qemu_command.c qemu/qemu_command.h			\
@@ -833,6 +908,7 @@ QEMU_DRIVER_SOURCES =							\
 		qemu/qemu_process.c qemu/qemu_process.h			\
 		qemu/qemu_processpriv.h					\
 		qemu/qemu_migration.c qemu/qemu_migration.h		\
+		qemu/qemu_migration_cookie.c qemu/qemu_migration_cookie.h \
 		qemu/qemu_monitor.c qemu/qemu_monitor.h			\
 		qemu/qemu_monitor_text.c				\
 		qemu/qemu_monitor_text.h				\
@@ -902,8 +978,6 @@ HYPERV_DRIVER_SOURCES =									\
 		hyperv/openwsman.h
 
 HYPERV_DRIVER_GENERATED =							\
-		hyperv/hyperv_wmi.generated.c					\
-		hyperv/hyperv_wmi.generated.h					\
 		hyperv/hyperv_wmi_classes.generated.c				\
 		hyperv/hyperv_wmi_classes.generated.h				\
 		hyperv/hyperv_wmi_classes.generated.typedef
@@ -926,6 +1000,8 @@ BHYVE_DRIVER_SOURCES =						\
 		bhyve/bhyve_capabilities.h			\
 		bhyve/bhyve_command.c				\
 		bhyve/bhyve_command.h				\
+		bhyve/bhyve_conf.c				\
+		bhyve/bhyve_conf.h				\
 		bhyve/bhyve_parse_command.c			\
 		bhyve/bhyve_parse_command.h			\
 		bhyve/bhyve_device.c				\
@@ -1571,7 +1647,14 @@ libvirt_driver_bhyve_impl_la_CFLAGS = \
 	$(AM_CFLAGS)
 libvirt_driver_bhyve_impl_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_bhyve_impl_la_SOURCES = $(BHYVE_DRIVER_SOURCES)
+
+conf_DATA += bhyve/bhyve.conf
+augeas_DATA += bhyve/libvirtd_bhyve.aug
+augeastest_DATA += test_libvirtd_bhyve.aug
 endif WITH_BHYVE
+EXTRA_DIST += bhyve/bhyve.conf \
+	bhyve/libvirtd_bhyve.aug \
+	bhyve/test_libvirtd_bhyve.aug.in
 
 if WITH_NETWORK
 noinst_LTLIBRARIES += libvirt_driver_network_impl.la
@@ -2121,11 +2204,12 @@ check-local: check-augeas
 	check-augeas-sanlock \
 	check-augeas-lockd \
 	check-augeas-libxl \
+	check-augeas-bhyve \
 	$(NULL)
 
 check-augeas: check-augeas-qemu check-augeas-lxc check-augeas-sanlock \
 	check-augeas-lockd check-augeas-virtlockd check-augeas-libxl \
-	check-augeas-virtlogd
+	check-augeas-bhyve check-augeas-virtlogd
 
 AUG_GENTEST = $(PERL) $(top_srcdir)/build-aux/augeas-gentest.pl
 EXTRA_DIST += $(top_srcdir)/build-aux/augeas-gentest.pl
@@ -2207,6 +2291,19 @@ check-augeas-libxl: test_libvirtd_libxl.aug
 else ! WITH_LIBXL
 check-augeas-libxl:
 endif ! WITH_LIBXL
+
+if WITH_BHYVE
+test_libvirtd_bhyve.aug: bhyve/test_libvirtd_bhyve.aug.in \
+		$(srcdir)/bhyve/bhyve.conf $(AUG_GENTEST)
+	$(AM_V_GEN)$(AUG_GENTEST) $(srcdir)/bhyve/bhyve.conf $< $@
+
+check-augeas-bhyve: test_libvirtd_bhyve.aug
+	$(AM_V_GEN)if test -x '$(AUGPARSE)'; then \
+	    '$(AUGPARSE)' -I $(srcdir)/bhyve test_libvirtd_bhyve.aug; \
+	fi
+else ! WITH_BHYVE
+check-augeas-bhyve:
+endif ! WITH_BHYVE
 
 test_virtlogd.aug: logging/test_virtlogd.aug.in \
 		logging/virtlogd.conf $(AUG_GENTEST)
@@ -2776,8 +2873,6 @@ virtlogd.init: logging/virtlogd.init.in $(top_builddir)/config.status
 	    chmod a+x $@-t &&					\
 	    mv $@-t $@
 
-POD2MAN = pod2man -c "Virtualization Support" -r "$(PACKAGE)-$(VERSION)"
-
 virtlockd.8.in: locking/virtlockd.pod
 	$(AM_V_GEN)$(POD2MAN) --section=8 $< $@-t1 && \
 	if grep 'POD ERROR' $@-t1; then rm $@-t1; exit 1; fi && \
@@ -3136,7 +3231,6 @@ libexec_PROGRAMS += libvirt_lxc
 
 libvirt_lxc_SOURCES =						\
 		$(LXC_CONTROLLER_SOURCES)			\
-		$(NODE_INFO_SOURCES)				\
 		$(DATATYPES_SOURCES)
 libvirt_lxc_LDFLAGS = \
 		$(AM_LDFLAGS) \

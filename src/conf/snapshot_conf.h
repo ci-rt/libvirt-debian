@@ -76,6 +76,8 @@ struct _virDomainSnapshotDef {
 
     virDomainDefPtr dom;
 
+    virObjectPtr cookie;
+
     /* Internal use.  */
     bool current; /* At most one snapshot in the list should have this set */
 };
@@ -114,6 +116,7 @@ void virDomainSnapshotDefFree(virDomainSnapshotDefPtr def);
 char *virDomainSnapshotDefFormat(const char *domain_uuid,
                                  virDomainSnapshotDefPtr def,
                                  virCapsPtr caps,
+                                 virDomainXMLOptionPtr xmlopt,
                                  unsigned int flags,
                                  int internal);
 int virDomainSnapshotAlignDisks(virDomainSnapshotDefPtr snapshot,
@@ -181,6 +184,7 @@ int virDomainSnapshotRedefinePrep(virDomainPtr domain,
                                   virDomainObjPtr vm,
                                   virDomainSnapshotDefPtr *def,
                                   virDomainSnapshotObjPtr *snap,
+                                  virDomainXMLOptionPtr xmlopt,
                                   bool *update_current,
                                   unsigned int flags);
 

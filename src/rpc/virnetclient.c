@@ -1284,6 +1284,7 @@ virNetClientCallDispatch(virNetClientPtr client)
         return virNetClientCallDispatchMessage(client);
 
     case VIR_NET_STREAM: /* Stream protocol */
+    case VIR_NET_STREAM_HOLE: /* Sparse stream protocol*/
         return virNetClientCallDispatchStream(client);
 
     default:
@@ -1595,6 +1596,7 @@ static int virNetClientIOEventLoop(virNetClientPtr client,
 {
     struct pollfd fds[2];
     bool error = false;
+    int closeReason;
     int ret;
 
     fds[0].fd = virNetSocketGetFD(client->sock);
@@ -1703,9 +1705,14 @@ static int virNetClientIOEventLoop(virNetClientPtr client,
             }
         }
 
+        if (fds[0].revents & POLLHUP)
+            closeReason = VIR_CONNECT_CLOSE_REASON_EOF;
+        else
+            closeReason = VIR_CONNECT_CLOSE_REASON_ERROR;
+
         if (fds[0].revents & POLLOUT) {
             if (virNetClientIOHandleOutput(client) < 0) {
-                virNetClientMarkClose(client, VIR_CONNECT_CLOSE_REASON_ERROR);
+                virNetClientMarkClose(client, closeReason);
                 error = true;
                 /* Fall through to process any pending data. */
             }
@@ -1713,7 +1720,7 @@ static int virNetClientIOEventLoop(virNetClientPtr client,
 
         if (fds[0].revents & POLLIN) {
             if (virNetClientIOHandleInput(client) < 0) {
-                virNetClientMarkClose(client, VIR_CONNECT_CLOSE_REASON_ERROR);
+                virNetClientMarkClose(client, closeReason);
                 error = true;
                 /* Fall through to process any pending data. */
             }
@@ -1743,10 +1750,16 @@ static int virNetClientIOEventLoop(virNetClientPtr client,
         if (error)
             goto error;
 
-        if (fds[0].revents & (POLLHUP | POLLERR)) {
-            virNetClientMarkClose(client, VIR_CONNECT_CLOSE_REASON_EOF);
+        if (fds[0].revents & POLLHUP) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("received hangup / error event on socket"));
+                           _("received hangup event on socket"));
+            virNetClientMarkClose(client, closeReason);
+            goto error;
+        }
+        if (fds[0].revents & POLLERR) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("received error event on socket"));
+            virNetClientMarkClose(client, closeReason);
             goto error;
         }
     }
@@ -1962,6 +1975,7 @@ void virNetClientIncomingEvent(virNetSocketPtr sock,
                                void *opaque)
 {
     virNetClientPtr client = opaque;
+    int closeReason;
 
     virObjectLock(client);
 
@@ -1975,23 +1989,25 @@ void virNetClientIncomingEvent(virNetSocketPtr sock,
 
     VIR_DEBUG("Event fired %p %d", sock, events);
 
+    if (events & VIR_EVENT_HANDLE_HANGUP)
+        closeReason = VIR_CONNECT_CLOSE_REASON_EOF;
+    else
+        closeReason = VIR_CONNECT_CLOSE_REASON_ERROR;
+
     if (events & VIR_EVENT_HANDLE_WRITABLE) {
         if (virNetClientIOHandleOutput(client) < 0)
-            virNetClientMarkClose(client, VIR_CONNECT_CLOSE_REASON_ERROR);
+            virNetClientMarkClose(client, closeReason);
     }
 
     if (events & VIR_EVENT_HANDLE_READABLE) {
         if (virNetClientIOHandleInput(client) < 0)
-            virNetClientMarkClose(client, VIR_CONNECT_CLOSE_REASON_ERROR);
+            virNetClientMarkClose(client, closeReason);
     }
 
     if (events & (VIR_EVENT_HANDLE_HANGUP | VIR_EVENT_HANDLE_ERROR)) {
         VIR_DEBUG("VIR_EVENT_HANDLE_HANGUP or "
                   "VIR_EVENT_HANDLE_ERROR encountered");
-        virNetClientMarkClose(client,
-                              (events & VIR_EVENT_HANDLE_HANGUP) ?
-                              VIR_CONNECT_CLOSE_REASON_EOF :
-                              VIR_CONNECT_CLOSE_REASON_ERROR);
+        virNetClientMarkClose(client, closeReason);
         goto done;
     }
 

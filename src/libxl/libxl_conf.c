@@ -47,6 +47,7 @@
 #include "libxl_utils.h"
 #include "virstoragefile.h"
 #include "secret_util.h"
+#include "cpu/cpu.h"
 
 
 #define VIR_FROM_THIS VIR_FROM_LIBXL
@@ -293,6 +294,7 @@ libxlMakeChrdevStr(virDomainChrDefPtr def, char **buf)
 static int
 libxlMakeDomBuildInfo(virDomainDefPtr def,
                       libxl_ctx *ctx,
+                      virCapsPtr caps,
                       libxl_domain_config *d_config)
 {
     libxl_domain_build_info *b_info = &d_config->b_info;
@@ -373,6 +375,40 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
         libxl_defbool_set(&b_info->u.hvm.acpi,
                           def->features[VIR_DOMAIN_FEATURE_ACPI] ==
                           VIR_TRISTATE_SWITCH_ON);
+
+        if (caps &&
+            def->cpu && def->cpu->mode == (VIR_CPU_MODE_HOST_PASSTHROUGH)) {
+            bool hasHwVirt = false;
+            bool svm = false, vmx = false;
+
+            if (ARCH_IS_X86(def->os.arch)) {
+                vmx = virCPUCheckFeature(caps->host.arch, caps->host.cpu, "vmx");
+                svm = virCPUCheckFeature(caps->host.arch, caps->host.cpu, "svm");
+                hasHwVirt = vmx | svm;
+            }
+
+            if (def->cpu->nfeatures) {
+                for (i = 0; i < def->cpu->nfeatures; i++) {
+
+                    switch (def->cpu->features[i].policy) {
+
+                        case VIR_CPU_FEATURE_DISABLE:
+                        case VIR_CPU_FEATURE_FORBID:
+                            if ((vmx && STREQ(def->cpu->features[i].name, "vmx")) ||
+                                (svm && STREQ(def->cpu->features[i].name, "svm")))
+                                hasHwVirt = false;
+                            break;
+
+                        case VIR_CPU_FEATURE_FORCE:
+                        case VIR_CPU_FEATURE_REQUIRE:
+                        case VIR_CPU_FEATURE_OPTIONAL:
+                        case VIR_CPU_FEATURE_LAST:
+                            break;
+                    }
+                }
+            }
+            libxl_defbool_set(&b_info->u.hvm.nested_hvm, hasHwVirt);
+        }
 
         if (def->nsounds > 0) {
             /*
@@ -1012,7 +1048,7 @@ libxlMakeNic(virDomainDefPtr def,
             if (VIR_STRDUP(x_nic->bridge,
                            virDomainNetGetActualBridgeName(l_nic)) < 0)
                 goto cleanup;
-            /* fallthrough */
+            ATTRIBUTE_FALLTHROUGH;
         case VIR_DOMAIN_NET_TYPE_ETHERNET:
             if (VIR_STRDUP(x_nic->script, l_nic->script) < 0)
                 goto cleanup;
@@ -1191,13 +1227,18 @@ libxlMakeVfb(virPortAllocatorPtr graphicsports,
             }
             x_vfb->vnc.display = l_vfb->data.vnc.port - LIBXL_VNC_PORT_MIN;
 
-            if ((glisten = virDomainGraphicsGetListen(l_vfb, 0)) &&
-                glisten->address) {
-                /* libxl_device_vfb_init() does VIR_STRDUP("127.0.0.1") */
-                VIR_FREE(x_vfb->vnc.listen);
-                if (VIR_STRDUP(x_vfb->vnc.listen, glisten->address) < 0)
-                    return -1;
+            if ((glisten = virDomainGraphicsGetListen(l_vfb, 0))) {
+                if (glisten->address) {
+                    /* libxl_device_vfb_init() does VIR_STRDUP("127.0.0.1") */
+                    VIR_FREE(x_vfb->vnc.listen);
+                    if (VIR_STRDUP(x_vfb->vnc.listen, glisten->address) < 0)
+                        return -1;
+                } else {
+                    if (VIR_STRDUP(glisten->address, VIR_LOOPBACK_IPV4_ADDR) < 0)
+                        return -1;
+                }
             }
+
             if (VIR_STRDUP(x_vfb->vnc.passwd, l_vfb->data.vnc.auth.passwd) < 0)
                 return -1;
             if (VIR_STRDUP(x_vfb->keymap, l_vfb->data.vnc.keymap) < 0)
@@ -1299,10 +1340,16 @@ libxlMakeBuildInfoVfb(virPortAllocatorPtr graphicsports,
         }
         b_info->u.hvm.spice.port = l_vfb->data.spice.port;
 
-        if ((glisten = virDomainGraphicsGetListen(l_vfb, 0)) &&
-            glisten->address &&
-            VIR_STRDUP(b_info->u.hvm.spice.host, glisten->address) < 0)
-            return -1;
+        if ((glisten = virDomainGraphicsGetListen(l_vfb, 0))) {
+            if (glisten->address) {
+                if (VIR_STRDUP(b_info->u.hvm.spice.host, glisten->address) < 0)
+                    return -1;
+            } else {
+                if (VIR_STRDUP(b_info->u.hvm.spice.host, VIR_LOOPBACK_IPV4_ADDR) < 0 ||
+                    VIR_STRDUP(glisten->address, VIR_LOOPBACK_IPV4_ADDR) < 0)
+                    return -1;
+            }
+        }
 
         if (VIR_STRDUP(b_info->u.hvm.keymap, l_vfb->data.spice.keymap) < 0)
             return -1;
@@ -1786,34 +1833,94 @@ libxlMakeUSBController(virDomainControllerDefPtr controller,
 }
 
 static int
+libxlMakeDefaultUSBControllers(virDomainDefPtr def,
+                               libxl_domain_config *d_config)
+{
+    virDomainControllerDefPtr l_controller = NULL;
+    libxl_device_usbctrl *x_controllers = NULL;
+    size_t nusbdevs = 0;
+    size_t ncontrollers;
+    size_t i;
+
+    for (i = 0; i < def->nhostdevs; i++) {
+        if (def->hostdevs[i]->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
+            def->hostdevs[i]->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB)
+            nusbdevs++;
+    }
+
+    /* No controllers needed if there are no USB devs */
+    if (nusbdevs == 0)
+        return 0;
+
+    /* Create USB controllers with 8 ports */
+    ncontrollers = VIR_DIV_UP(nusbdevs, 8);
+    if (VIR_ALLOC_N(x_controllers, ncontrollers) < 0)
+        return -1;
+
+    for (i = 0; i < ncontrollers; i++) {
+        if (!(l_controller = virDomainControllerDefNew(VIR_DOMAIN_CONTROLLER_TYPE_USB)))
+            goto error;
+
+        l_controller->model = VIR_DOMAIN_CONTROLLER_MODEL_USB_QUSB2;
+        l_controller->idx = i;
+        l_controller->opts.usbopts.ports = 8;
+
+        libxl_device_usbctrl_init(&x_controllers[i]);
+
+        if (libxlMakeUSBController(l_controller, &x_controllers[i]) < 0)
+            goto error;
+
+        if (virDomainControllerInsert(def, l_controller) < 0)
+            goto error;
+
+        l_controller = NULL;
+    }
+
+    d_config->usbctrls = x_controllers;
+    d_config->num_usbctrls = ncontrollers;
+    return 0;
+
+ error:
+     virDomainControllerDefFree(l_controller);
+     for (i = 0; i < ncontrollers; i++)
+         libxl_device_usbctrl_dispose(&x_controllers[i]);
+     VIR_FREE(x_controllers);
+     return -1;
+}
+
+static int
 libxlMakeUSBControllerList(virDomainDefPtr def, libxl_domain_config *d_config)
 {
     virDomainControllerDefPtr *l_controllers = def->controllers;
     size_t ncontrollers = def->ncontrollers;
     size_t nusbctrls = 0;
     libxl_device_usbctrl *x_usbctrls;
-    size_t i;
-
-    if (ncontrollers == 0)
-        return 0;
-
-    if (VIR_ALLOC_N(x_usbctrls, ncontrollers) < 0)
-        return -1;
+    size_t i, j;
 
     for (i = 0; i < ncontrollers; i++) {
+        if (l_controllers[i]->type == VIR_DOMAIN_CONTROLLER_TYPE_USB)
+            nusbctrls++;
+    }
+
+    if (nusbctrls == 0)
+        return libxlMakeDefaultUSBControllers(def, d_config);
+
+    if (VIR_ALLOC_N(x_usbctrls, nusbctrls) < 0)
+        return -1;
+
+    for (i = 0, j = 0; i < ncontrollers && j < nusbctrls; i++) {
         if (l_controllers[i]->type != VIR_DOMAIN_CONTROLLER_TYPE_USB)
             continue;
 
-        libxl_device_usbctrl_init(&x_usbctrls[nusbctrls]);
+        libxl_device_usbctrl_init(&x_usbctrls[j]);
 
         if (libxlMakeUSBController(l_controllers[i],
-                                   &x_usbctrls[nusbctrls]) < 0)
+                                   &x_usbctrls[j]) < 0)
             goto error;
 
-        nusbctrls++;
+        j++;
     }
 
-    VIR_SHRINK_N(x_usbctrls, ncontrollers, ncontrollers - nusbctrls);
     d_config->usbctrls = x_usbctrls;
     d_config->num_usbctrls = nusbctrls;
 
@@ -2089,6 +2196,7 @@ libxlBuildDomainConfig(virPortAllocatorPtr graphicsports,
                        virDomainDefPtr def,
                        const char *channelDir LIBXL_ATTR_UNUSED,
                        libxl_ctx *ctx,
+                       virCapsPtr caps,
                        libxl_domain_config *d_config)
 {
     libxl_domain_config_init(d_config);
@@ -2096,7 +2204,7 @@ libxlBuildDomainConfig(virPortAllocatorPtr graphicsports,
     if (libxlMakeDomCreateInfo(ctx, def, &d_config->c_info) < 0)
         return -1;
 
-    if (libxlMakeDomBuildInfo(def, ctx, d_config) < 0)
+    if (libxlMakeDomBuildInfo(def, ctx, caps, d_config) < 0)
         return -1;
 
     if (libxlMakeDiskList(def, d_config) < 0)
@@ -2147,5 +2255,5 @@ libxlCreateXMLConf(void)
 {
     return virDomainXMLOptionNew(&libxlDomainDefParserConfig,
                                  &libxlDomainXMLPrivateDataCallbacks,
-                                 NULL);
+                                 NULL, NULL, NULL);
 }

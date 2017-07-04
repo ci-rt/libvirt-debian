@@ -70,6 +70,7 @@
         <value>qxl</value>
         <value>parallels</value>
         <value>virtio</value>
+        <value>gop</value>
       </enum>
     </video>
     <hostdev supported='yes'>
@@ -88,6 +89,7 @@
         <value>pci</value>
         <value>scsi</value>
         <value>scsi_host</value>
+        <value>mdev</value>
       </enum>
       <enum name='capsType'>
         <value>storage</value>

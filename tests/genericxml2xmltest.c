@@ -99,6 +99,11 @@ mymain(void)
     DO_TEST("perf");
 
     DO_TEST("vcpus-individual");
+    DO_TEST("disk-network-http");
+
+    DO_TEST("cpu-cache-emulate");
+    DO_TEST("cpu-cache-passthrough");
+    DO_TEST("cpu-cache-disable");
 
     virObjectUnref(caps);
     virObjectUnref(xmlopt);
@@ -106,4 +111,4 @@ mymain(void)
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-VIRT_TEST_MAIN(mymain)
+VIR_TEST_MAIN(mymain)

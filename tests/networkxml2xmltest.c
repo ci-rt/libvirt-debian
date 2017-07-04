@@ -141,6 +141,7 @@ mymain(void)
     DO_TEST("nat-network-dns-hosts");
     DO_TEST("nat-network-dns-forward-plain");
     DO_TEST("nat-network-dns-forwarders");
+    DO_TEST("nat-network-dns-forwarder-no-resolv");
     DO_TEST("nat-network-forward-nat-address");
     DO_TEST("nat-network-forward-nat-no-address");
     DO_TEST("8021Qbh-net");
@@ -163,4 +164,4 @@ mymain(void)
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-VIRT_TEST_MAIN(mymain)
+VIR_TEST_MAIN(mymain)

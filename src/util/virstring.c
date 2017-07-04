@@ -24,10 +24,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <regex.h>
+#include <locale.h>
 
 #include "base64.h"
 #include "c-ctype.h"
 #include "virstring.h"
+#include "virthread.h"
 #include "viralloc.h"
 #include "virbuffer.h"
 #include "virerror.h"
@@ -516,17 +518,108 @@ virStrToLong_ullp(char const *s, char **end_ptr, int base,
     return 0;
 }
 
+/* In case thread-safe locales are available */
+#if HAVE_NEWLOCALE
+
+typedef locale_t virLocale;
+static virLocale virLocaleRaw;
+
+static int
+virLocaleOnceInit(void)
+{
+    virLocaleRaw = newlocale(LC_ALL_MASK, "C", (locale_t)0);
+    if (!virLocaleRaw)
+        return -1;
+    return 0;
+}
+
+VIR_ONCE_GLOBAL_INIT(virLocale);
+
+/**
+ * virLocaleSetRaw:
+ *
+ * @oldlocale: set to old locale pointer
+ *
+ * Sets the locale to 'C' to allow operating on non-localized objects.
+ * Returns 0 on success -1 on error.
+ */
+static int
+virLocaleSetRaw(virLocale *oldlocale)
+{
+    if (virLocaleInitialize() < 0)
+        return -1;
+    *oldlocale = uselocale(virLocaleRaw);
+    return 0;
+}
+
+static void
+virLocaleRevert(virLocale *oldlocale)
+{
+    uselocale(*oldlocale);
+}
+
+static void
+virLocaleFixupRadix(char **strp ATTRIBUTE_UNUSED)
+{
+}
+
+#else /* !HAVE_NEWLOCALE */
+
+typedef int virLocale;
+
+static int
+virLocaleSetRaw(virLocale *oldlocale ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+
+static void
+virLocaleRevert(virLocale *oldlocale ATTRIBUTE_UNUSED)
+{
+}
+
+static void
+virLocaleFixupRadix(char **strp)
+{
+    char *radix, *tmp;
+    struct lconv *lc;
+
+    lc = localeconv();
+    radix = lc->decimal_point;
+    tmp = strstr(*strp, radix);
+    if (tmp) {
+        *tmp = '.';
+        if (strlen(radix) > 1)
+            memmove(tmp + 1, tmp + strlen(radix), strlen(*strp) - (tmp - *strp));
+    }
+}
+
+#endif /* !HAVE_NEWLOCALE */
+
+
+/**
+ * virStrToDouble
+ *
+ * converts string with C locale (thread-safe) to double.
+ *
+ * Returns -1 on error or returns 0 on success.
+ */
 int
 virStrToDouble(char const *s,
                char **end_ptr,
                double *result)
 {
+    virLocale oldlocale;
     double val;
     char *p;
     int err;
 
     errno = 0;
+    if (virLocaleSetRaw(&oldlocale) < 0)
+        return -1;
     val = strtod(s, &p); /* exempt from syntax-check */
+    virLocaleRevert(&oldlocale);
+
     err = (errno || (!end_ptr && *p) || p == s);
     if (end_ptr)
         *end_ptr = p;
@@ -535,6 +628,31 @@ virStrToDouble(char const *s,
     *result = val;
     return 0;
 }
+
+/**
+ * virDoubleToStr
+ *
+ * converts double to string with C locale (thread-safe).
+ *
+ * Returns -1 on error, size of the string otherwise.
+ */
+int
+virDoubleToStr(char **strp, double number)
+{
+    virLocale oldlocale;
+    int ret = -1;
+
+    if (virLocaleSetRaw(&oldlocale) < 0)
+        return -1;
+
+    ret = virAsprintf(strp, "%lf", number);
+
+    virLocaleRevert(&oldlocale);
+    virLocaleFixupRadix(strp);
+
+    return ret;
+}
+
 
 int
 virVasprintfInternal(bool report,
@@ -979,6 +1097,38 @@ virStringSearch(const char *str,
 }
 
 /**
+ * virStringMatch:
+ * @str: string to match
+ * @regexp: POSIX Extended regular expression pattern used for matching
+ *
+ * Performs a POSIX extended regex match against a string.
+ * Returns true on match, false on error or no match.
+ */
+bool
+virStringMatch(const char *str,
+               const char *regexp)
+{
+    regex_t re;
+    int rv;
+
+    VIR_DEBUG("match '%s' for '%s'", str, regexp);
+
+    if ((rv = regcomp(&re, regexp, REG_EXTENDED | REG_NOSUB)) != 0) {
+        char error[100];
+        regerror(rv, &re, error, sizeof(error));
+        VIR_WARN("error while compiling regular expression '%s': %s",
+                 regexp, error);
+        return false;
+    }
+
+    rv = regexec(&re, str, 0, NULL, 0);
+
+    regfree(&re);
+
+    return rv == 0;
+}
+
+/**
  * virStringReplace:
  * @haystack: the source string to process
  * @oldneedle: the substring to locate
@@ -1179,4 +1329,18 @@ virStringEncodeBase64(const uint8_t *buf, size_t buflen)
     }
 
     return ret;
+}
+
+/**
+ * virStringTrimOptionalNewline:
+ * @str: the string to modify in-place
+ *
+ * Modify @str to remove a single '\n' character
+ * from its end, if one exists.
+ */
+void virStringTrimOptionalNewline(char *str)
+{
+    char *tmp = str + strlen(str) - 1;
+    if (*tmp == '\n')
+        *tmp = '\0';
 }

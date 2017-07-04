@@ -44,7 +44,7 @@
 #include "libxl_migration.h"
 #include "locking/domain_lock.h"
 #include "virtypedparam.h"
-#include "fdstream.h"
+#include "virfdstream.h"
 
 #define VIR_FROM_THIS VIR_FROM_LIBXL
 
@@ -325,7 +325,7 @@ libxlMigrateReceive(virNetSocketPtr sock,
         goto fail;
     }
     VIR_DEBUG("Accepted migration connection."
-              "  Spawing thread to process migration data");
+              "  Spawning thread to process migration data");
     recvfd = virNetSocketDupFD(client_sock, true);
     virObjectUnref(client_sock);
 
@@ -1322,7 +1322,7 @@ libxlDomainMigrationFinish(virConnectPtr dconn,
     if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm, cfg->caps) < 0)
         goto cleanup;
 
-    dom = virGetDomain(dconn, vm->def->name, vm->def->uuid);
+    dom = virGetDomain(dconn, vm->def->name, vm->def->uuid, vm->def->id);
 
  cleanup:
     if (dom == NULL) {

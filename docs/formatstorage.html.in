@@ -444,7 +444,7 @@
         namespace. It provides information about the permissions to use for the
         final directory when the pool is built. There are 4 child elements.
         The <code>mode</code> element contains the octal permission set.
-        The <code>mode</code> defaults to 0755 when not provided.
+        The <code>mode</code> defaults to 0711 when not provided.
         The <code>owner</code> element contains the numeric user ID.
         The <code>group</code> element contains the numeric group ID.
         If <code>owner</code> or <code>group</code> aren't specified when
@@ -455,24 +455,6 @@
         For running directory or filesystem based pools, these fields
         will be filled with the values used by the existing directory.
         <span class="since">Since 1.2.16</span>
-      </dd>
-      <dt><code>timestamps</code></dt>
-      <dd>Provides timing information about the volume. Up to four
-        sub-elements are present,
-        where <code>atime</code>, <code>btime</code>, <code>ctime</code>
-        and <code>mtime</code> hold the access, birth, change and
-        modification time of the volume, where known. The used time
-        format is &lt;seconds&gt;.&lt;nanoseconds&gt; since the
-        beginning of the epoch (1 Jan 1970). If nanosecond resolution
-        is 0 or otherwise unsupported by the host OS or filesystem,
-        then the nanoseconds part is omitted.  This is a readonly
-        attribute and is ignored when creating a volume.
-        <span class="since">Since 0.10.0</span>
-      </dd>
-      <dt><code>encryption</code></dt>
-      <dd>If present, specifies how the volume is encrypted.  See
-        the <a href="formatstorageencryption.html">Storage Encryption</a> page
-        for more information.
       </dd>
     </dl>
 
@@ -657,6 +639,24 @@
         For existing directory or filesystem based volumes, these fields
         will be filled with the values used by the existing file.
         <span class="since">Since 0.4.1</span>
+      </dd>
+      <dt><code>timestamps</code></dt>
+      <dd>Provides timing information about the volume. Up to four
+        sub-elements are present,
+        where <code>atime</code>, <code>btime</code>, <code>ctime</code>
+        and <code>mtime</code> hold the access, birth, change and
+        modification time of the volume, where known. The used time
+        format is &lt;seconds&gt;.&lt;nanoseconds&gt; since the
+        beginning of the epoch (1 Jan 1970). If nanosecond resolution
+        is 0 or otherwise unsupported by the host OS or filesystem,
+        then the nanoseconds part is omitted.  This is a readonly
+        attribute and is ignored when creating a volume.
+        <span class="since">Since 0.10.0</span>
+      </dd>
+      <dt><code>encryption</code></dt>
+      <dd>If present, specifies how the volume is encrypted.  See
+        the <a href="formatstorageencryption.html">Storage Encryption</a> page
+        for more information.
       </dd>
       <dt><code>compat</code></dt>
       <dd>Specify compatibility level. So far, this is only used for

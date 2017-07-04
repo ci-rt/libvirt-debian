@@ -1359,6 +1359,8 @@ mymain(void)
                        "<source protocol='nbd' name='blah'>\n"
                        "  <host name='example.org' port='6000'/>\n"
                        "</source>\n");
+
+#ifdef WITH_YAJL
     TEST_BACKING_PARSE("json:", NULL);
     TEST_BACKING_PARSE("json:asdgsdfg", NULL);
     TEST_BACKING_PARSE("json:{}", NULL);
@@ -1431,7 +1433,7 @@ mymain(void)
                                                "{ \"type\":\"unix\","
                                                  "\"socket\":\"/path/socket\""
                                                "},"
-                                               "{ \"type\":\"tcp\","
+                                               "{ \"type\":\"inet\","
                                                  "\"host\":\"example.com\""
                                                "}"
                                              "]"
@@ -1471,6 +1473,17 @@ mymain(void)
                        "<source protocol='nbd' name='blah'>\n"
                        "  <host name='example.org' port='6000'/>\n"
                        "</source>\n");
+    TEST_BACKING_PARSE("json:{\"file\":{\"driver\":\"nbd\","
+                                       "\"export\":\"blah\","
+                                       "\"server\": { \"type\":\"inet\","
+                                                     "\"host\":\"example.org\","
+                                                     "\"port\":\"6000\""
+                                                   "}"
+                                      "}"
+                            "}",
+                       "<source protocol='nbd' name='blah'>\n"
+                       "  <host name='example.org' port='6000'/>\n"
+                       "</source>\n");
     TEST_BACKING_PARSE("json:{\"file\":{\"driver\":\"ssh\","
                                        "\"host\":\"example.org\","
                                        "\"port\":\"6000\","
@@ -1490,18 +1503,79 @@ mymain(void)
                        "<source protocol='ssh' name='blah'>\n"
                        "  <host name='example.org' port='6000'/>\n"
                        "</source>\n");
+    TEST_BACKING_PARSE("json:{\"file\":{\"driver\":\"ssh\","
+                                       "\"path\":\"blah\","
+                                       "\"server\":{ \"host\":\"example.org\","
+                                                    "\"port\":\"6000\""
+                                                  "},"
+                                       "\"user\":\"user\""
+                                      "}"
+                            "}",
+                       "<source protocol='ssh' name='blah'>\n"
+                       "  <host name='example.org' port='6000'/>\n"
+                       "</source>\n");
     TEST_BACKING_PARSE("json:{\"file.driver\":\"rbd\","
                              "\"file.filename\":\"rbd:testshare:id=asdf:mon_host=example.com\""
                             "}",
                        "<source protocol='rbd' name='testshare'>\n"
                        "  <host name='example.com'/>\n"
                        "</source>\n");
+    TEST_BACKING_PARSE("json:{\"file\":{\"driver\":\"rbd\","
+                                       "\"image\":\"test\","
+                                       "\"pool\":\"libvirt\","
+                                       "\"conf\":\"/path/to/conf\","
+                                       "\"snapshot\":\"snapshotname\","
+                                       "\"server\":[ {\"host\":\"example.com\","
+                                                      "\"port\":\"1234\""
+                                                    "},"
+                                                    "{\"host\":\"example2.com\""
+                                                    "}"
+                                                  "]"
+                                      "}"
+                             "}",
+                        "<source protocol='rbd' name='libvirt/test'>\n"
+                        "  <host name='example.com' port='1234'/>\n"
+                        "  <host name='example2.com'/>\n"
+                        "  <snapshot name='snapshotname'/>\n"
+                        "  <config file='/path/to/conf'/>\n"
+                        "</source>\n");
     TEST_BACKING_PARSE("json:{ \"file\": { "
                                 "\"driver\": \"raw\","
                                 "\"file\": {"
                                     "\"driver\": \"file\","
                                     "\"filename\": \"/path/to/file\" } } }",
                        "<source file='/path/to/file'/>\n");
+    TEST_BACKING_PARSE("json:{\"file\":{\"driver\":\"iscsi\","
+                                       "\"transport\":\"tcp\","
+                                       "\"portal\":\"test.org\","
+                                       "\"target\":\"iqn.2016-12.com.virttest:emulated-iscsi-noauth.target\""
+                                      "}"
+                            "}",
+                       "<source protocol='iscsi' name='iqn.2016-12.com.virttest:emulated-iscsi-noauth.target/0'>\n"
+                       "  <host name='test.org'/>\n"
+                       "</source>\n");
+    TEST_BACKING_PARSE("json:{\"file\":{\"driver\":\"iscsi\","
+                                       "\"transport\":\"tcp\","
+                                       "\"portal\":\"test.org:1234\","
+                                       "\"target\":\"iqn.2016-12.com.virttest:emulated-iscsi-noauth.target\","
+                                       "\"lun\":6"
+                                      "}"
+                            "}",
+                       "<source protocol='iscsi' name='iqn.2016-12.com.virttest:emulated-iscsi-noauth.target/6'>\n"
+                       "  <host name='test.org' port='1234'/>\n"
+                       "</source>\n");
+    TEST_BACKING_PARSE("json:{\"file\":{\"driver\":\"sheepdog\","
+                                       "\"vdi\":\"test\","
+                                       "\"server\":{ \"type\":\"inet\","
+                                                    "\"host\":\"example.com\","
+                                                    "\"port\":\"321\""
+                                                  "}"
+                                      "}"
+                            "}",
+                       "<source protocol='sheepdog' name='test'>\n"
+                       "  <host name='example.com' port='321'/>\n"
+                       "</source>\n");
+#endif /* WITH_YAJL */
 
  cleanup:
     /* Final cleanup */
@@ -1512,4 +1586,4 @@ mymain(void)
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-VIRT_TEST_MAIN(mymain)
+VIR_TEST_MAIN(mymain)

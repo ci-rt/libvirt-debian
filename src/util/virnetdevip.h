@@ -25,13 +25,17 @@
 
 # include "virsocketaddr.h"
 
-typedef struct {
+typedef struct _virNetDevIPAddr virNetDevIPAddr;
+typedef virNetDevIPAddr *virNetDevIPAddrPtr;
+struct _virNetDevIPAddr {
     virSocketAddr address; /* ipv4 or ipv6 address */
     virSocketAddr peer;    /* ipv4 or ipv6 address of peer */
     unsigned int prefix;   /* number of 1 bits in the netmask */
-} virNetDevIPAddr, *virNetDevIPAddrPtr;
+};
 
-typedef struct {
+typedef struct _virNetDevIPRoute virNetDevIPRoute;
+typedef virNetDevIPRoute *virNetDevIPRoutePtr;
+struct _virNetDevIPRoute {
     char *family;               /* ipv4 or ipv6 - default is ipv4 */
     virSocketAddr address;      /* Routed Network IP address */
 
@@ -46,22 +50,24 @@ typedef struct {
     unsigned int metric;        /* value for metric (defaults to 1) */
     bool has_metric;            /* metric= was specified */
     virSocketAddr gateway;      /* gateway IP address for ip-route */
-} virNetDevIPRoute, *virNetDevIPRoutePtr;
+};
 
 /* A full set of all IP config info for a network device */
-typedef struct {
+typedef struct _virNetDevIPInfo virNetDevIPInfo;
+typedef virNetDevIPInfo *virNetDevIPInfoPtr;
+ struct _virNetDevIPInfo {
     size_t nips;
     virNetDevIPAddrPtr *ips;
     size_t nroutes;
     virNetDevIPRoutePtr *routes;
-} virNetDevIPInfo, *virNetDevIPInfoPtr;
+};
 
 /* manipulating/querying the netdev */
 int virNetDevIPAddrAdd(const char *ifname,
                        virSocketAddr *addr,
                        virSocketAddr *peer,
                        unsigned int prefix)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK ATTRIBUTE_NOINLINE;
 int virNetDevIPRouteAdd(const char *ifname,
                         virSocketAddrPtr addr,
                         unsigned int prefix,
@@ -77,6 +83,7 @@ int virNetDevIPAddrGet(const char *ifname, virSocketAddrPtr addr)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
 int virNetDevIPWaitDadFinish(virSocketAddrPtr *addrs, size_t count)
     ATTRIBUTE_NONNULL(1);
+bool virNetDevIPCheckIPv6Forwarding(void);
 
 /* virNetDevIPRoute object */
 void virNetDevIPRouteFree(virNetDevIPRoutePtr def);

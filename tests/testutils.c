@@ -240,7 +240,7 @@ virTestRun(const char *title,
         for (i = start; i < end; i++) {
             bool missingFail = false;
 # ifdef TEST_OOM_TRACE
-            memset(testAllocStack, 0, ARRAY_CARDINALITY(testAllocStack));
+            memset(testAllocStack, 0, sizeof(testAllocStack));
             ntestAllocStack = 0;
 # endif
             virAllocTestOOM(i + 1, 1);
@@ -722,6 +722,33 @@ virTestCompareToFile(const char *strcontent,
 }
 
 /*
+ * @param content: Input content
+ * @param src: Source to compare @content against
+ */
+int
+virTestCompareToULL(unsigned long long content,
+                    unsigned long long src)
+{
+    char *strcontent = NULL;
+    char *strsrc = NULL;
+    int ret = -1;
+
+    if (virAsprintf(&strcontent, "%llu", content) < 0)
+        goto cleanup;
+
+    if (virAsprintf(&strsrc, "%llu", src) < 0)
+        goto cleanup;
+
+    ret = virTestCompareToString(strcontent, strsrc);
+
+ cleanup:
+    VIR_FREE(strcontent);
+    VIR_FREE(strsrc);
+
+    return ret;
+}
+
+/*
  * @param strcontent: String input content
  * @param strsrc: String source to compare strcontent against
  */
@@ -877,11 +904,11 @@ int virTestMain(int argc,
     virLogOutputPtr *outputs = NULL;
 
     if (getenv("VIR_TEST_FILE_ACCESS"))
-        VIRT_TEST_PRELOAD(TEST_MOCK);
+        VIR_TEST_PRELOAD(TEST_MOCK);
 
     va_start(ap, func);
     while ((lib = va_arg(ap, const char *)))
-        VIRT_TEST_PRELOAD(lib);
+        VIR_TEST_PRELOAD(lib);
     va_end(ap);
 
     progname = last_component(argv[0]);
@@ -926,7 +953,7 @@ int virTestMain(int argc,
     }
 
     if ((testRange = getenv("VIR_TEST_RANGE")) != NULL) {
-        if (virBitmapParseUnlimited(testRange, &testBitmap) < 0) {
+        if (!(testBitmap = virBitmapParseUnlimited(testRange))) {
             fprintf(stderr, "Cannot parse range %s\n", testRange);
             return EXIT_FAILURE;
         }
@@ -1109,7 +1136,7 @@ virDomainXMLOptionPtr virTestGenericDomainXMLConfInit(void)
 {
     return virDomainXMLOptionNew(&virTestGenericDomainDefParserConfig,
                                  &virTestGenericPrivateDataCallbacks,
-                                 NULL);
+                                 NULL, NULL, NULL);
 }
 
 
@@ -1142,7 +1169,7 @@ testCompareDomXML2XMLFiles(virCapsPtr caps, virDomainXMLOptionPtr xmlopt,
         goto out;
     }
 
-    if (!virDomainDefCheckABIStability(def, def)) {
+    if (!virDomainDefCheckABIStability(def, def, xmlopt)) {
         VIR_TEST_DEBUG("ABI stability check failed on %s", infile);
         result = TEST_COMPARE_DOM_XML2XML_RESULT_FAIL_STABILITY;
         goto out;

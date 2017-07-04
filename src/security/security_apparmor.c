@@ -51,6 +51,7 @@
 #include "virlog.h"
 #include "virstring.h"
 #include "virscsi.h"
+#include "virmdev.h"
 
 #define VIR_FROM_THIS VIR_FROM_SECURITY
 
@@ -488,7 +489,9 @@ AppArmorGenSecurityLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
 
 static int
 AppArmorSetSecurityAllLabel(virSecurityManagerPtr mgr,
-                            virDomainDefPtr def, const char *stdin_path)
+                            virDomainDefPtr def,
+                            const char *stdin_path,
+                            bool chardevStdioLogd ATTRIBUTE_UNUSED)
 {
     virSecurityLabelDefPtr secdef = virDomainDefGetSecurityLabelDef(def,
                                                     SECURITY_APPARMOR_NAME);
@@ -566,7 +569,8 @@ AppArmorReleaseSecurityLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
 static int
 AppArmorRestoreSecurityAllLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
                                 virDomainDefPtr def,
-                                bool migrated ATTRIBUTE_UNUSED)
+                                bool migrated ATTRIBUTE_UNUSED,
+                                bool chardevStdioLogd ATTRIBUTE_UNUSED)
 {
     int rc = 0;
     virSecurityLabelDefPtr secdef =
@@ -813,6 +817,7 @@ AppArmorSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
     virDomainHostdevSubsysPCIPtr pcisrc = &dev->source.subsys.u.pci;
     virDomainHostdevSubsysSCSIPtr scsisrc = &dev->source.subsys.u.scsi;
     virDomainHostdevSubsysSCSIVHostPtr hostsrc = &dev->source.subsys.u.scsi_host;
+    virDomainHostdevSubsysMediatedDevPtr mdevsrc = &dev->source.subsys.u.mdev;
 
     if (!secdef || !secdef->relabel)
         return 0;
@@ -898,6 +903,18 @@ AppArmorSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
                                             AppArmorSetSecurityHostLabel,
                                             ptr);
         virSCSIVHostDeviceFree(host);
+        break;
+    }
+
+    case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_MDEV: {
+        char *vfiodev = NULL;
+
+        if (!(vfiodev = virMediatedDeviceGetIOMMUGroupDev(mdevsrc->uuidstr)))
+            goto done;
+
+        ret = AppArmorSetSecurityHostdevLabelHelper(vfiodev, ptr);
+
+        VIR_FREE(vfiodev);
         break;
     }
 

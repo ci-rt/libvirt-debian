@@ -47,7 +47,6 @@
 #include "configmake.h"
 #include "virfile.h"
 #include "virstoragefile.h"
-#include "nodeinfo.h"
 #include "virstring.h"
 #include "cpu/cpu.h"
 #include "virtypedparam.h"
@@ -99,8 +98,6 @@ static virCapsPtr
 vzBuildCapabilities(void)
 {
     virCapsPtr caps = NULL;
-    virCPUDefPtr cpu = NULL;
-    virCPUDataPtr data = NULL;
     virNodeInfo nodeinfo;
     virDomainOSType ostypes[] = {
         VIR_DOMAIN_OSTYPE_HVM,
@@ -118,45 +115,36 @@ vzBuildCapabilities(void)
                                    false, false)) == NULL)
         return NULL;
 
-    if (nodeCapsInitNUMA(caps) < 0)
+    if (virCapabilitiesInitNUMA(caps) < 0)
         goto error;
 
-    for (i = 0; i < 2; i++)
-        for (j = 0; j < 2; j++)
-            for (k = 0; k < 2; k++)
+    if (virCapabilitiesInitCaches(caps) < 0)
+        goto error;
+
+    verify(ARRAY_CARDINALITY(archs) == ARRAY_CARDINALITY(emulators));
+
+    for (i = 0; i < ARRAY_CARDINALITY(ostypes); i++)
+        for (j = 0; j < ARRAY_CARDINALITY(archs); j++)
+            for (k = 0; k < ARRAY_CARDINALITY(emulators); k++)
                 if (vzCapsAddGuestDomain(caps, ostypes[i], archs[j],
                                          emulators[k], virt_types[k]) < 0)
                     goto error;
 
-    if (nodeGetInfo(&nodeinfo))
+    if (virCapabilitiesGetNodeInfo(&nodeinfo))
         goto error;
 
-    if (VIR_ALLOC(cpu) < 0)
+    if (!(caps->host.cpu = virCPUGetHost(caps->host.arch, VIR_CPU_TYPE_HOST,
+                                         &nodeinfo, NULL, 0)))
         goto error;
-
-    cpu->arch = caps->host.arch;
-    cpu->type = VIR_CPU_TYPE_HOST;
-    cpu->sockets = nodeinfo.sockets;
-    cpu->cores = nodeinfo.cores;
-    cpu->threads = nodeinfo.threads;
-
-    caps->host.cpu = cpu;
 
     if (virCapabilitiesAddHostMigrateTransport(caps, "vzmigr") < 0)
         goto error;
 
-    if (!(data = cpuNodeData(cpu->arch))
-        || cpuDecode(cpu, data, NULL, 0, NULL) < 0) {
-        goto cleanup;
-    }
-
- cleanup:
-    virCPUDataFree(data);
     return caps;
 
  error:
     virObjectUnref(caps);
-    goto cleanup;
+    return NULL;
 }
 
 static void vzDriverDispose(void * obj)
@@ -340,7 +328,7 @@ vzDriverObjNew(void)
     if (!(driver->caps = vzBuildCapabilities()) ||
         !(driver->xmlopt = virDomainXMLOptionNew(&vzDomainDefParserConfig,
                                                  &vzDomainXMLPrivateDataCallbacksPtr,
-                                                 NULL)) ||
+                                                 NULL, NULL, NULL)) ||
         !(driver->domains = virDomainObjListNew()) ||
         !(driver->domainEventState = virObjectEventStateNew()) ||
         (vzInitVersion(driver) < 0) ||
@@ -600,9 +588,7 @@ vzDomainLookupByID(virConnectPtr conn, int id)
     if (virDomainLookupByIDEnsureACL(conn, dom->def) < 0)
         goto cleanup;
 
-    ret = virGetDomain(conn, dom->def->name, dom->def->uuid);
-    if (ret)
-        ret->id = dom->def->id;
+    ret = virGetDomain(conn, dom->def->name, dom->def->uuid, dom->def->id);
 
  cleanup:
     virObjectUnlock(dom);
@@ -629,9 +615,7 @@ vzDomainLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
     if (virDomainLookupByUUIDEnsureACL(conn, dom->def) < 0)
         goto cleanup;
 
-    ret = virGetDomain(conn, dom->def->name, dom->def->uuid);
-    if (ret)
-        ret->id = dom->def->id;
+    ret = virGetDomain(conn, dom->def->name, dom->def->uuid, dom->def->id);
 
  cleanup:
     virObjectUnlock(dom);
@@ -656,9 +640,7 @@ vzDomainLookupByName(virConnectPtr conn, const char *name)
     if (virDomainLookupByNameEnsureACL(conn, dom->def) < 0)
         goto cleanup;
 
-    ret = virGetDomain(conn, dom->def->name, dom->def->uuid);
-    if (ret)
-        ret->id = dom->def->id;
+    ret = virGetDomain(conn, dom->def->name, dom->def->uuid, dom->def->id);
 
  cleanup:
     virDomainObjEndAPI(&dom);
@@ -890,7 +872,7 @@ vzDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags)
              * So forbid this operation, if config is changed. If it's
              * not changed - just do nothing. */
 
-            if (!virDomainDefCheckABIStability(dom->def, def)) {
+            if (!virDomainDefCheckABIStability(dom->def, def, driver->xmlopt)) {
                 virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
                                _("Can't change domain configuration "
                                  "in managed save state"));
@@ -912,9 +894,7 @@ vzDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags)
         }
     }
 
-    retdom = virGetDomain(conn, def->name, def->uuid);
-    if (retdom)
-        retdom->id = def->id;
+    retdom = virGetDomain(conn, def->name, def->uuid, def->id);
 
  cleanup:
     if (job)
@@ -938,7 +918,7 @@ vzNodeGetInfo(virConnectPtr conn,
     if (virNodeGetInfoEnsureACL(conn) < 0)
         return -1;
 
-    return nodeGetInfo(nodeinfo);
+    return virCapabilitiesGetNodeInfo(nodeinfo);
 }
 
 static int vzConnectIsEncrypted(virConnectPtr conn ATTRIBUTE_UNUSED)
@@ -1073,7 +1053,7 @@ vzConnectDomainEventDeregisterAny(virConnectPtr conn,
 
     if (virObjectEventStateDeregisterID(conn,
                                         privconn->driver->domainEventState,
-                                        callbackID) < 0)
+                                        callbackID, true) < 0)
         return -1;
 
     return 0;
@@ -2323,6 +2303,7 @@ vzDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot, unsigned int flags)
     virUUIDFormat(snapshot->domain->uuid, uuidstr);
 
     xml = virDomainSnapshotDefFormat(uuidstr, snap->def, privconn->driver->caps,
+                                     privconn->driver->xmlopt,
                                      virDomainDefFormatConvertXMLFlags(flags),
                                      0);
 
@@ -3365,9 +3346,7 @@ vzDomainMigrateFinish3Params(virConnectPtr dconn,
     if (virDomainMigrateFinish3ParamsEnsureACL(dconn, dom->def) < 0)
         goto cleanup;
 
-    domain = virGetDomain(dconn, dom->def->name, dom->def->uuid);
-    if (domain)
-        domain->id = dom->def->id;
+    domain = virGetDomain(dconn, dom->def->name, dom->def->uuid, dom->def->id);
 
  cleanup:
     /* In this situation we have to restore domain on source. But the migration
@@ -3781,7 +3760,7 @@ vzDomainGetAllStats(virConnectPtr conn,
     if (vzDomainGetBalloonStats(dom, stat, &maxparams) < 0)
         goto error;
 
-    if (!(stat->dom = virGetDomain(conn, dom->def->name, dom->def->uuid)))
+    if (!(stat->dom = virGetDomain(conn, dom->def->name, dom->def->uuid, dom->def->id)))
         goto error;
 
     return stat;
@@ -3929,6 +3908,104 @@ vzDomainReset(virDomainPtr domain, unsigned int flags)
     return ret;
 }
 
+static int vzDomainSetVcpusFlags(virDomainPtr domain, unsigned int nvcpus,
+                                 unsigned int flags)
+{
+    virDomainObjPtr dom = NULL;
+    int ret = -1;
+    bool job = false;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG, -1);
+
+    if (!(dom = vzDomObjFromDomainRef(domain)))
+        goto cleanup;
+
+    if (vzCheckConfigUpdateFlags(dom, &flags) < 0)
+        goto cleanup;
+
+    if (virDomainSetVcpusFlagsEnsureACL(domain->conn, dom->def, flags) < 0)
+        goto cleanup;
+
+    if (vzDomainObjBeginJob(dom) < 0)
+        goto cleanup;
+    job = true;
+
+    if (vzEnsureDomainExists(dom) < 0)
+        goto cleanup;
+
+    ret = prlsdkSetCpuCount(dom, nvcpus);
+
+ cleanup:
+    if (job)
+        vzDomainObjEndJob(dom);
+    virDomainObjEndAPI(&dom);
+    return ret;
+}
+
+static int vzDomainSetVcpus(virDomainPtr dom, unsigned int nvcpus)
+{
+    return vzDomainSetVcpusFlags(dom, nvcpus,
+                                 VIR_DOMAIN_AFFECT_LIVE | VIR_DOMAIN_AFFECT_CONFIG);
+}
+static int
+vzDomainBlockResize(virDomainPtr domain,
+                    const char *path,
+                    unsigned long long size,
+                    unsigned int flags)
+{
+    virDomainObjPtr dom = NULL;
+    virDomainDiskDefPtr disk = NULL;
+    int ret = -1;
+    bool job = false;
+
+    virCheckFlags(VIR_DOMAIN_BLOCK_RESIZE_BYTES, -1);
+
+    if (!(dom = vzDomObjFromDomainRef(domain)))
+        goto cleanup;
+
+    if (virDomainBlockResizeEnsureACL(domain->conn, dom->def) < 0)
+        goto cleanup;
+
+    if (path[0] == '\0') {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       "%s", _("empty path"));
+        goto cleanup;
+    }
+
+    /* sdk wants Mb */
+    if (flags & VIR_DOMAIN_BLOCK_RESIZE_BYTES)
+        size /= 1024;
+    size /= 1024;
+
+    if (vzDomainObjBeginJob(dom) < 0)
+        goto cleanup;
+    job = true;
+
+    if (vzEnsureDomainExists(dom) < 0)
+        goto cleanup;
+
+    if (!virDomainObjIsActive(dom)) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("domain is not running"));
+        goto cleanup;
+    }
+
+    if (!(disk = virDomainDiskByName(dom->def, path, false))) {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("invalid path: %s"), path);
+        goto cleanup;
+    }
+
+    ret = prlsdkResizeImage(dom, disk, size);
+
+ cleanup:
+    if (job)
+        vzDomainObjEndJob(dom);
+    virDomainObjEndAPI(&dom);
+    return ret;
+}
+
 static virHypervisorDriver vzHypervisorDriver = {
     .name = "vz",
     .connectOpen = vzConnectOpen,            /* 0.10.0 */
@@ -3978,6 +4055,8 @@ static virHypervisorDriver vzHypervisorDriver = {
     .domainDetachDeviceFlags = vzDomainDetachDeviceFlags, /* 1.2.15 */
     .domainIsActive = vzDomainIsActive, /* 1.2.10 */
     .domainIsUpdated = vzDomainIsUpdated,     /* 1.2.21 */
+    .domainSetVcpus = vzDomainSetVcpus, /* 3.3.0 */
+    .domainSetVcpusFlags = vzDomainSetVcpusFlags, /* 3.3.0 */
     .domainGetVcpusFlags = vzDomainGetVcpusFlags, /* 1.2.21 */
     .domainGetMaxVcpus = vzDomainGetMaxVcpus, /* 1.2.21 */
     .domainSetUserPassword = vzDomainSetUserPassword, /* 2.0.0 */
@@ -4027,6 +4106,7 @@ static virHypervisorDriver vzHypervisorDriver = {
     .connectGetAllDomainStats = vzConnectGetAllDomainStats, /* 3.1.0 */
     .domainAbortJob = vzDomainAbortJob, /* 3.1.0 */
     .domainReset = vzDomainReset, /* 3.1.0 */
+    .domainBlockResize = vzDomainBlockResize, /* 3.3.0 */
 };
 
 static virConnectDriver vzConnectDriver = {

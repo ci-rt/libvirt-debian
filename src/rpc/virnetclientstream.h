@@ -32,9 +32,11 @@ typedef virNetClientStream *virNetClientStreamPtr;
 typedef void (*virNetClientStreamEventCallback)(virNetClientStreamPtr stream,
                                                 int events, void *opaque);
 
-virNetClientStreamPtr virNetClientStreamNew(virNetClientProgramPtr prog,
+virNetClientStreamPtr virNetClientStreamNew(virStreamPtr stream,
+                                            virNetClientProgramPtr prog,
                                             int proc,
-                                            unsigned serial);
+                                            unsigned serial,
+                                            bool allowSkip);
 
 bool virNetClientStreamRaiseError(virNetClientStreamPtr st);
 
@@ -57,7 +59,17 @@ int virNetClientStreamRecvPacket(virNetClientStreamPtr st,
                                  virNetClientPtr client,
                                  char *data,
                                  size_t nbytes,
-                                 bool nonblock);
+                                 bool nonblock,
+                                 unsigned int flags);
+
+int virNetClientStreamSendHole(virNetClientStreamPtr st,
+                               virNetClientPtr client,
+                               long long length,
+                               unsigned int flags);
+
+int virNetClientStreamRecvHole(virNetClientPtr client,
+                               virNetClientStreamPtr st,
+                               long long *length);
 
 int virNetClientStreamEventAddCallback(virNetClientStreamPtr st,
                                        int events,

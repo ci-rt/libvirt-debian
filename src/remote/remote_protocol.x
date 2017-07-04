@@ -233,7 +233,7 @@ const REMOTE_DOMAIN_FSFREEZE_MOUNTPOINTS_MAX = 256;
 const REMOTE_NETWORK_DHCP_LEASES_MAX = 65536;
 
 /* Upper limit on count of parameters returned via bulk stats API */
-const REMOTE_CONNECT_GET_ALL_DOMAIN_STATS_MAX = 4096;
+const REMOTE_CONNECT_GET_ALL_DOMAIN_STATS_MAX = 262144;
 
 /* Upper limit of message size for tunable event. */
 const REMOTE_DOMAIN_EVENT_TUNABLE_MAX = 2048;
@@ -3071,6 +3071,15 @@ struct remote_domain_event_block_job_2_msg {
     int status;
 };
 
+struct remote_domain_event_block_threshold_msg {
+    int callbackID;
+    remote_nonnull_domain dom;
+    remote_nonnull_string dev;
+    remote_string path;
+    unsigned hyper threshold;
+    unsigned hyper excess;
+};
+
 struct remote_domain_event_callback_tunable_msg {
     int callbackID;
     remote_nonnull_domain dom;
@@ -3392,6 +3401,14 @@ struct remote_secret_event_value_changed_msg {
     int callbackID;
     remote_nonnull_secret secret;
 };
+
+struct remote_domain_set_block_threshold_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string dev;
+    unsigned hyper threshold;
+    unsigned int flags;
+};
+
 
 /*----- Protocol. -----*/
 
@@ -4879,6 +4896,7 @@ enum remote_procedure {
     /**
      * @generate: both
      * @writestream: 1
+     * @sparseflag: VIR_STORAGE_VOL_UPLOAD_SPARSE_STREAM
      * @acl: storage_vol:data_write
      */
     REMOTE_PROC_STORAGE_VOL_UPLOAD = 208,
@@ -4886,6 +4904,7 @@ enum remote_procedure {
     /**
      * @generate: both
      * @readstream: 1
+     * @sparseflag: VIR_STORAGE_VOL_DOWNLOAD_SPARSE_STREAM
      * @acl: storage_vol:data_read
      */
     REMOTE_PROC_STORAGE_VOL_DOWNLOAD = 209,
@@ -6033,5 +6052,19 @@ enum remote_procedure {
      * @acl: domain:save:!VIR_DOMAIN_AFFECT_CONFIG|VIR_DOMAIN_AFFECT_LIVE
      * @acl: domain:save:VIR_DOMAIN_AFFECT_CONFIG
      */
-    REMOTE_PROC_DOMAIN_SET_VCPU = 384
+    REMOTE_PROC_DOMAIN_SET_VCPU = 384,
+
+    /**
+     * @generate: both
+     * @acl: none
+     */
+    REMOTE_PROC_DOMAIN_EVENT_BLOCK_THRESHOLD = 385,
+
+    /**
+     * @generate: both
+     * @acl: domain:write
+     */
+    REMOTE_PROC_DOMAIN_SET_BLOCK_THRESHOLD = 386
+
+
 };

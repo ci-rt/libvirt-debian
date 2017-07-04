@@ -23,18 +23,38 @@
 
 #include <config.h>
 
+#include <stdio.h>
+#include <string.h>
 #include <strings.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <unistd.h>
 
 #include "capabilities.h"
-#include "virbuffer.h"
-#include "viralloc.h"
-#include "viruuid.h"
+#include "c-ctype.h"
+#include "count-one-bits.h"
 #include "cpu_conf.h"
-#include "virerror.h"
-#include "virstring.h"
 #include "domain_conf.h"
+#include "physmem.h"
+#include "viralloc.h"
+#include "virarch.h"
+#include "virbuffer.h"
+#include "virerror.h"
+#include "virfile.h"
+#include "virhostcpu.h"
+#include "virhostmem.h"
+#include "virlog.h"
+#include "virnuma.h"
+#include "virstring.h"
+#include "virtypedparam.h"
+#include "viruuid.h"
 
 #define VIR_FROM_THIS VIR_FROM_CAPABILITIES
+
+#define SYSFS_SYSTEM_PATH "/sys/devices/system"
+#define SYSFS_RESCTRL_PATH "/sys/fs/resctrl"
+
+VIR_LOG_INIT("conf.capabilities")
 
 VIR_ENUM_DECL(virCapsHostPMTarget)
 VIR_ENUM_IMPL(virCapsHostPMTarget, VIR_NODE_SUSPEND_TARGET_LAST,
@@ -148,7 +168,7 @@ virCapabilitiesFreeGuestFeature(virCapsGuestFeaturePtr feature)
     VIR_FREE(feature);
 }
 
-static void
+void
 virCapabilitiesFreeGuest(virCapsGuestPtr guest)
 {
     size_t i;
@@ -220,6 +240,10 @@ virCapabilitiesDispose(void *object)
     for (i = 0; i < caps->host.nsecModels; i++)
         virCapabilitiesClearSecModel(&caps->host.secModels[i]);
     VIR_FREE(caps->host.secModels);
+
+    for (i = 0; i < caps->host.ncaches; i++)
+        virCapsHostCacheBankFree(caps->host.caches[i]);
+    VIR_FREE(caps->host.caches);
 
     VIR_FREE(caps->host.netprefix);
     VIR_FREE(caps->host.pagesSize);
@@ -844,6 +868,85 @@ virCapabilitiesFormatNUMATopology(virBufferPtr buf,
     return 0;
 }
 
+static int
+virCapabilitiesFormatCaches(virBufferPtr buf,
+                            size_t ncaches,
+                            virCapsHostCacheBankPtr *caches)
+{
+    size_t i = 0;
+    size_t j = 0;
+    int indent = virBufferGetIndent(buf, false);
+    virBuffer controlBuf = VIR_BUFFER_INITIALIZER;
+
+    if (!ncaches)
+        return 0;
+
+    virBufferAddLit(buf, "<cache>\n");
+    virBufferAdjustIndent(buf, 2);
+
+    for (i = 0; i < ncaches; i++) {
+        virCapsHostCacheBankPtr bank = caches[i];
+        char *cpus_str = virBitmapFormat(bank->cpus);
+        bool kilos = !(bank->size % 1024);
+
+        if (!cpus_str)
+            return -1;
+
+        /*
+         * Let's just *hope* the size is aligned to KiBs so that it does not
+         * bite is back in the future
+         */
+        virBufferAsprintf(buf,
+                          "<bank id='%u' level='%u' type='%s' "
+                          "size='%llu' unit='%s' cpus='%s'",
+                          bank->id, bank->level,
+                          virCacheTypeToString(bank->type),
+                          bank->size >> (kilos * 10),
+                          kilos ? "KiB" : "B",
+                          cpus_str);
+
+        virBufferAdjustIndent(&controlBuf, indent + 4);
+        for (j = 0; j < bank->ncontrols; j++) {
+            bool min_kilos = !(bank->controls[j]->granularity % 1024);
+
+            /* Only use KiB if both values are divisible */
+            if (bank->controls[j]->min)
+                min_kilos = min_kilos && !(bank->controls[j]->min % 1024);
+
+            virBufferAsprintf(&controlBuf,
+                              "<control granularity='%llu'",
+                              bank->controls[j]->granularity >> (min_kilos * 10));
+
+            if (bank->controls[j]->min) {
+                virBufferAsprintf(&controlBuf,
+                                  " min='%llu'",
+                                  bank->controls[j]->min >> (min_kilos * 10));
+            }
+
+            virBufferAsprintf(&controlBuf,
+                              " unit='%s' type='%s' maxAllocs='%u'/>\n",
+                              min_kilos ? "KiB" : "B",
+                              virCacheTypeToString(bank->controls[j]->scope),
+                              bank->controls[j]->max_allocation);
+        }
+
+        if (virBufferUse(&controlBuf)) {
+            virBufferAddLit(buf, ">\n");
+            virBufferAddBuffer(buf, &controlBuf);
+            virBufferAddLit(buf, "</bank>\n");
+        } else {
+            virBufferAddLit(buf, "/>\n");
+        }
+
+        VIR_FREE(cpus_str);
+    }
+
+    virBufferAdjustIndent(buf, -2);
+    virBufferAddLit(buf, "</cache>\n");
+
+    return 0;
+}
+
 /**
  * virCapabilitiesFormatXML:
  * @caps: capabilities to format
@@ -938,7 +1041,11 @@ virCapabilitiesFormatXML(virCapsPtr caps)
     if (caps->host.nnumaCell &&
         virCapabilitiesFormatNUMATopology(&buf, caps->host.nnumaCell,
                                           caps->host.numaCell) < 0)
-        return NULL;
+        goto error;
+
+    if (virCapabilitiesFormatCaches(&buf, caps->host.ncaches,
+                                    caps->host.caches) < 0)
+        goto error;
 
     for (i = 0; i < caps->host.nsecModels; i++) {
         virBufferAddLit(&buf, "<secmodel>\n");
@@ -1055,6 +1162,10 @@ virCapabilitiesFormatXML(virCapsPtr caps)
         return NULL;
 
     return virBufferContentAndReset(&buf);
+
+ error:
+    virBufferFreeAndReset(&buf);
+    return NULL;
 }
 
 /* get the maximum ID of cpus in the host */
@@ -1126,5 +1237,576 @@ virCapabilitiesGetCpusForNodemask(virCapsPtr caps,
         }
     }
 
+    return ret;
+}
+
+
+int
+virCapabilitiesGetNodeInfo(virNodeInfoPtr nodeinfo)
+{
+    virArch hostarch = virArchFromHost();
+    unsigned long long memorybytes;
+
+    memset(nodeinfo, 0, sizeof(*nodeinfo));
+
+    if (virStrcpyStatic(nodeinfo->model, virArchToString(hostarch)) == NULL)
+        return -1;
+
+    if (virHostMemGetInfo(&memorybytes, NULL) < 0)
+        return -1;
+    nodeinfo->memory = memorybytes / 1024;
+
+    if (virHostCPUGetInfo(hostarch,
+                          &nodeinfo->cpus, &nodeinfo->mhz,
+                          &nodeinfo->nodes, &nodeinfo->sockets,
+                          &nodeinfo->cores, &nodeinfo->threads) < 0)
+        return -1;
+
+    return 0;
+}
+
+/* returns 1 on success, 0 if the detection failed and -1 on hard error */
+static int
+virCapabilitiesFillCPUInfo(int cpu_id ATTRIBUTE_UNUSED,
+                           virCapsHostNUMACellCPUPtr cpu ATTRIBUTE_UNUSED)
+{
+#ifdef __linux__
+    cpu->id = cpu_id;
+
+    if (virHostCPUGetSocket(cpu_id, &cpu->socket_id) < 0 ||
+        virHostCPUGetCore(cpu_id, &cpu->core_id) < 0)
+        return -1;
+
+    if (!(cpu->siblings = virHostCPUGetSiblingsList(cpu_id)))
+        return -1;
+
+    return 0;
+#else
+    virReportError(VIR_ERR_NO_SUPPORT, "%s",
+                   _("node cpu info not implemented on this platform"));
+    return -1;
+#endif
+}
+
+static int
+virCapabilitiesGetNUMASiblingInfo(int node,
+                                  virCapsHostNUMACellSiblingInfoPtr *siblings,
+                                  int *nsiblings)
+{
+    virCapsHostNUMACellSiblingInfoPtr tmp = NULL;
+    int tmp_size = 0;
+    int ret = -1;
+    int *distances = NULL;
+    int ndistances = 0;
+    size_t i;
+
+    if (virNumaGetDistances(node, &distances, &ndistances) < 0)
+        goto cleanup;
+
+    if (!distances) {
+        *siblings = NULL;
+        *nsiblings = 0;
+        return 0;
+    }
+
+    if (VIR_ALLOC_N(tmp, ndistances) < 0)
+        goto cleanup;
+
+    for (i = 0; i < ndistances; i++) {
+        if (!distances[i])
+            continue;
+
+        tmp[tmp_size].node = i;
+        tmp[tmp_size].distance = distances[i];
+        tmp_size++;
+    }
+
+    if (VIR_REALLOC_N(tmp, tmp_size) < 0)
+        goto cleanup;
+
+    *siblings = tmp;
+    *nsiblings = tmp_size;
+    tmp = NULL;
+    tmp_size = 0;
+    ret = 0;
+ cleanup:
+    VIR_FREE(distances);
+    VIR_FREE(tmp);
+    return ret;
+}
+
+static int
+virCapabilitiesGetNUMAPagesInfo(int node,
+                                virCapsHostNUMACellPageInfoPtr *pageinfo,
+                                int *npageinfo)
+{
+    int ret = -1;
+    unsigned int *pages_size = NULL, *pages_avail = NULL;
+    size_t npages, i;
+
+    if (virNumaGetPages(node, &pages_size, &pages_avail, NULL, &npages) < 0)
+        goto cleanup;
+
+    if (VIR_ALLOC_N(*pageinfo, npages) < 0)
+        goto cleanup;
+    *npageinfo = npages;
+
+    for (i = 0; i < npages; i++) {
+        (*pageinfo)[i].size = pages_size[i];
+        (*pageinfo)[i].avail = pages_avail[i];
+    }
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(pages_avail);
+    VIR_FREE(pages_size);
+    return ret;
+}
+
+
+static int
+virCapabilitiesInitNUMAFake(virCapsPtr caps)
+{
+    virNodeInfo nodeinfo;
+    virCapsHostNUMACellCPUPtr cpus;
+    int ncpus;
+    int s, c, t;
+    int id, cid;
+    int onlinecpus ATTRIBUTE_UNUSED;
+    bool tmp;
+
+    if (virCapabilitiesGetNodeInfo(&nodeinfo) < 0)
+        return -1;
+
+    ncpus = VIR_NODEINFO_MAXCPUS(nodeinfo);
+    onlinecpus = nodeinfo.cpus;
+
+    if (VIR_ALLOC_N(cpus, ncpus) < 0)
+        return -1;
+
+    id = cid = 0;
+    for (s = 0; s < nodeinfo.sockets; s++) {
+        for (c = 0; c < nodeinfo.cores; c++) {
+            for (t = 0; t < nodeinfo.threads; t++) {
+                if (virHostCPUGetOnline(id, &tmp) < 0)
+                    goto error;
+                if (tmp) {
+                    cpus[cid].id = id;
+                    cpus[cid].socket_id = s;
+                    cpus[cid].core_id = c;
+                    if (!(cpus[cid].siblings = virBitmapNew(ncpus)))
+                        goto error;
+                    ignore_value(virBitmapSetBit(cpus[cid].siblings, id));
+                    cid++;
+                }
+
+                id++;
+            }
+        }
+    }
+
+    if (virCapabilitiesAddHostNUMACell(caps, 0,
+                                       nodeinfo.memory,
+#ifdef __linux__
+                                       onlinecpus, cpus,
+#else
+                                       ncpus, cpus,
+#endif
+                                       0, NULL,
+                                       0, NULL) < 0)
+        goto error;
+
+    return 0;
+
+ error:
+    for (; id >= 0; id--)
+        virBitmapFree(cpus[id].siblings);
+    VIR_FREE(cpus);
+    return -1;
+}
+
+int
+virCapabilitiesInitNUMA(virCapsPtr caps)
+{
+    int n;
+    unsigned long long memory;
+    virCapsHostNUMACellCPUPtr cpus = NULL;
+    virBitmapPtr cpumap = NULL;
+    virCapsHostNUMACellSiblingInfoPtr siblings = NULL;
+    int nsiblings = 0;
+    virCapsHostNUMACellPageInfoPtr pageinfo = NULL;
+    int npageinfo;
+    int ret = -1;
+    int ncpus = 0;
+    int cpu;
+    bool topology_failed = false;
+    int max_node;
+
+    if (!virNumaIsAvailable())
+        return virCapabilitiesInitNUMAFake(caps);
+
+    if ((max_node = virNumaGetMaxNode()) < 0)
+        goto cleanup;
+
+    for (n = 0; n <= max_node; n++) {
+        size_t i;
+
+        if ((ncpus = virNumaGetNodeCPUs(n, &cpumap)) < 0) {
+            if (ncpus == -2)
+                continue;
+
+            goto cleanup;
+        }
+
+        if (VIR_ALLOC_N(cpus, ncpus) < 0)
+            goto cleanup;
+        cpu = 0;
+
+        for (i = 0; i < virBitmapSize(cpumap); i++) {
+            if (virBitmapIsBitSet(cpumap, i)) {
+                if (virCapabilitiesFillCPUInfo(i, cpus + cpu++) < 0) {
+                    topology_failed = true;
+                    virResetLastError();
+                }
+            }
+        }
+
+        if (virCapabilitiesGetNUMASiblingInfo(n, &siblings, &nsiblings) < 0)
+            goto cleanup;
+
+        if (virCapabilitiesGetNUMAPagesInfo(n, &pageinfo, &npageinfo) < 0)
+            goto cleanup;
+
+        /* Detect the amount of memory in the numa cell in KiB */
+        virNumaGetNodeMemory(n, &memory, NULL);
+        memory >>= 10;
+
+        if (virCapabilitiesAddHostNUMACell(caps, n, memory,
+                                           ncpus, cpus,
+                                           nsiblings, siblings,
+                                           npageinfo, pageinfo) < 0)
+            goto cleanup;
+
+        cpus = NULL;
+        siblings = NULL;
+        pageinfo = NULL;
+        virBitmapFree(cpumap);
+        cpumap = NULL;
+    }
+
+    ret = 0;
+
+ cleanup:
+    if ((topology_failed || ret < 0) && cpus)
+        virCapabilitiesClearHostNUMACellCPUTopology(cpus, ncpus);
+
+    virBitmapFree(cpumap);
+    VIR_FREE(cpus);
+    VIR_FREE(siblings);
+    VIR_FREE(pageinfo);
+    return ret;
+}
+
+int
+virCapabilitiesInitPages(virCapsPtr caps)
+{
+    int ret = -1;
+    unsigned int *pages_size = NULL;
+    size_t npages;
+
+    if (virNumaGetPages(-1 /* Magic constant for overall info */,
+                        &pages_size, NULL, NULL, &npages) < 0)
+        goto cleanup;
+
+    caps->host.pagesSize = pages_size;
+    pages_size = NULL;
+    caps->host.nPagesSize = npages;
+    npages = 0;
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(pages_size);
+    return ret;
+}
+
+/* Cache name mapping for Linux kernel naming */
+VIR_ENUM_DECL(virCacheKernel);
+VIR_ENUM_IMPL(virCacheKernel, VIR_CACHE_TYPE_LAST,
+              "Unified",
+              "Instruction",
+              "Data")
+
+/* Our naming for cache types and scopes */
+VIR_ENUM_IMPL(virCache, VIR_CACHE_TYPE_LAST,
+              "both",
+              "code",
+              "data")
+
+bool
+virCapsHostCacheBankEquals(virCapsHostCacheBankPtr a,
+                           virCapsHostCacheBankPtr b)
+{
+    return (a->id == b->id &&
+            a->level == b->level &&
+            a->type == b->type &&
+            a->size == b->size &&
+            virBitmapEqual(a->cpus, b->cpus));
+}
+
+void
+virCapsHostCacheBankFree(virCapsHostCacheBankPtr ptr)
+{
+    size_t i;
+
+    if (!ptr)
+        return;
+
+    virBitmapFree(ptr->cpus);
+    for (i = 0; i < ptr->ncontrols; i++)
+        VIR_FREE(ptr->controls[i]);
+    VIR_FREE(ptr->controls);
+    VIR_FREE(ptr);
+}
+
+/*
+ * This function tests which TYPE of cache control is supported
+ * Return values are:
+ *  -1: not supported
+ *   0: CAT
+ *   1: CDP
+ */
+static int
+virCapabilitiesGetCacheControlType(virCapsHostCacheBankPtr bank)
+{
+    int ret = -1;
+    char *path = NULL;
+
+    if (virAsprintf(&path,
+                    SYSFS_RESCTRL_PATH "/info/L%u",
+                    bank->level) < 0)
+        return -1;
+
+    if (virFileExists(path)) {
+        ret = 0;
+    } else {
+        VIR_FREE(path);
+        /*
+         * If CDP is enabled, there will be both CODE and DATA, but it's enough
+         * to check one of those only.
+         */
+        if (virAsprintf(&path,
+                        SYSFS_RESCTRL_PATH "/info/L%uCODE",
+                        bank->level) < 0)
+            return -1;
+        if (virFileExists(path))
+            ret = 1;
+    }
+
+    VIR_FREE(path);
+    return ret;
+}
+
+static int
+virCapabilitiesGetCacheControl(virCapsHostCacheBankPtr bank,
+                               virCacheType scope)
+{
+    int ret = -1;
+    char *tmp = NULL;
+    char *path = NULL;
+    char *cbm_mask = NULL;
+    char *type_upper = NULL;
+    unsigned int bits = 0;
+    unsigned int min_cbm_bits = 0;
+    virCapsHostCacheControlPtr control;
+
+    if (VIR_ALLOC(control) < 0)
+        goto cleanup;
+
+    if (scope != VIR_CACHE_TYPE_BOTH &&
+        virStringToUpper(&type_upper, virCacheTypeToString(scope)) < 0)
+        goto cleanup;
+
+    if (virFileReadValueUint(&control->max_allocation,
+                             SYSFS_RESCTRL_PATH "/info/L%u%s/num_closids",
+                             bank->level,
+                             type_upper ? type_upper : "") < 0)
+        goto cleanup;
+
+    if (virFileReadValueString(&cbm_mask,
+                               SYSFS_RESCTRL_PATH
+                               "/info/L%u%s/cbm_mask",
+                               bank->level,
+                               type_upper ? type_upper: "") < 0)
+        goto cleanup;
+
+    if (virFileReadValueUint(&min_cbm_bits,
+                             SYSFS_RESCTRL_PATH "/info/L%u%s/min_cbm_bits",
+                             bank->level,
+                             type_upper ? type_upper : "") < 0)
+        goto cleanup;
+
+    virStringTrimOptionalNewline(cbm_mask);
+
+    for (tmp = cbm_mask; *tmp != '\0'; tmp++) {
+        if (c_isxdigit(*tmp))
+            bits += count_one_bits(virHexToBin(*tmp));
+    }
+
+    control->granularity = bank->size / bits;
+    if (min_cbm_bits != 1)
+        control->min = min_cbm_bits * control->granularity;
+
+    control->scope = scope;
+
+    if (VIR_APPEND_ELEMENT(bank->controls,
+                           bank->ncontrols,
+                           control) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(path);
+    VIR_FREE(cbm_mask);
+    VIR_FREE(type_upper);
+    VIR_FREE(control);
+    return ret;
+}
+
+int
+virCapabilitiesInitCaches(virCapsPtr caps)
+{
+    size_t i = 0;
+    virBitmapPtr cpus = NULL;
+    ssize_t pos = -1;
+    DIR *dirp = NULL;
+    int ret = -1;
+    int typeret;
+    char *path = NULL;
+    char *type = NULL;
+    struct dirent *ent = NULL;
+    virCapsHostCacheBankPtr bank = NULL;
+
+    /* Minimum level to expose in capabilities.  Can be lowered or removed (with
+     * the appropriate code below), but should not be increased, because we'd
+     * lose information. */
+    const int cache_min_level = 3;
+
+    /* offline CPUs don't provide cache info */
+    if (virFileReadValueBitmap(&cpus, "%s/cpu/online", SYSFS_SYSTEM_PATH) < 0)
+        return -1;
+
+    while ((pos = virBitmapNextSetBit(cpus, pos)) >= 0) {
+        int rv = -1;
+
+        VIR_FREE(path);
+        if (virAsprintf(&path, "%s/cpu/cpu%zd/cache/", SYSFS_SYSTEM_PATH, pos) < 0)
+            goto cleanup;
+
+        VIR_DIR_CLOSE(dirp);
+
+        rv = virDirOpenIfExists(&dirp, path);
+        if (rv < 0)
+            goto cleanup;
+
+        if (!dirp)
+            continue;
+
+        while ((rv = virDirRead(dirp, &ent, path)) > 0) {
+            int kernel_type;
+            unsigned int level;
+
+            if (!STRPREFIX(ent->d_name, "index"))
+                continue;
+
+            if (virFileReadValueUint(&level,
+                                     "%s/cpu/cpu%zd/cache/%s/level",
+                                     SYSFS_SYSTEM_PATH, pos, ent->d_name) < 0)
+                goto cleanup;
+
+            if (level < cache_min_level)
+                continue;
+
+            if (VIR_ALLOC(bank) < 0)
+                goto cleanup;
+
+            bank->level = level;
+
+            if (virFileReadValueUint(&bank->id,
+                                     "%s/cpu/cpu%zd/cache/%s/id",
+                                     SYSFS_SYSTEM_PATH, pos, ent->d_name) < 0)
+                goto cleanup;
+
+            if (virFileReadValueUint(&bank->level,
+                                     "%s/cpu/cpu%zd/cache/%s/level",
+                                     SYSFS_SYSTEM_PATH, pos, ent->d_name) < 0)
+                goto cleanup;
+
+            if (virFileReadValueString(&type,
+                                       "%s/cpu/cpu%zd/cache/%s/type",
+                                       SYSFS_SYSTEM_PATH, pos, ent->d_name) < 0)
+                goto cleanup;
+
+            if (virFileReadValueScaledInt(&bank->size,
+                                          "%s/cpu/cpu%zd/cache/%s/size",
+                                          SYSFS_SYSTEM_PATH, pos, ent->d_name) < 0)
+                goto cleanup;
+
+            if (virFileReadValueBitmap(&bank->cpus,
+                                       "%s/cpu/cpu%zd/cache/%s/shared_cpu_list",
+                                       SYSFS_SYSTEM_PATH, pos, ent->d_name) < 0)
+                goto cleanup;
+
+            typeret = virCapabilitiesGetCacheControlType(bank);
+
+            if (typeret == 0) {
+                if (virCapabilitiesGetCacheControl(bank,
+                                                   VIR_CACHE_TYPE_BOTH) < 0)
+                    goto cleanup;
+            } else if (typeret == 1) {
+                if (virCapabilitiesGetCacheControl(bank,
+                                                   VIR_CACHE_TYPE_CODE) < 0 ||
+                    virCapabilitiesGetCacheControl(bank,
+                                                   VIR_CACHE_TYPE_DATA) < 0)
+                    goto cleanup;
+            }
+
+            kernel_type = virCacheKernelTypeFromString(type);
+            if (kernel_type < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Unknown cache type '%s'"), type);
+                goto cleanup;
+            }
+
+            bank->type = kernel_type;
+            VIR_FREE(type);
+
+            for (i = 0; i < caps->host.ncaches; i++) {
+                if (virCapsHostCacheBankEquals(bank, caps->host.caches[i]))
+                    break;
+            }
+            if (i == caps->host.ncaches) {
+                if (VIR_APPEND_ELEMENT(caps->host.caches,
+                                       caps->host.ncaches,
+                                       bank) < 0) {
+                    goto cleanup;
+                }
+            }
+
+            virCapsHostCacheBankFree(bank);
+            bank = NULL;
+        }
+        if (rv < 0)
+            goto cleanup;
+    }
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(type);
+    VIR_FREE(path);
+    VIR_DIR_CLOSE(dirp);
+    virCapsHostCacheBankFree(bank);
+    virBitmapFree(cpus);
     return ret;
 }

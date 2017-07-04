@@ -66,7 +66,7 @@ getopt_loop (int argc, const char **argv,
           ASSERT (options[0] == ':'
                   || ((options[0] == '-' || options[0] == '+')
                       && options[1] == ':'));
-          /* fall through */
+          FALLTHROUGH;
         case '?':
           *unrecognized = optopt;
           break;

@@ -26,6 +26,9 @@
 # include <sys/un.h>
 #endif
 
+#define __VIR_SYSTEMD_PRIV_H_ALLOW__ 1
+#include "virsystemdpriv.h"
+
 #include "virsystemd.h"
 #include "viratomic.h"
 #include "virbuffer.h"
@@ -132,6 +135,8 @@ virSystemdAppendValidMachineName(virBufferPtr buf,
     bool skip_dot = false;
 
     for (; *name; name++) {
+        if (virBufferError(buf))
+            break;
         if (strlen(virBufferCurrentContent(buf)) >= 64)
             break;
 
@@ -182,6 +187,41 @@ virSystemdMakeMachineName(const char *drivername,
     return machinename;
 }
 
+static int virSystemdHasMachinedCachedValue = -1;
+
+/* Reset the cache from tests for testing the underlying dbus calls
+ * as well */
+void virSystemdHasMachinedResetCachedValue(void)
+{
+    virSystemdHasMachinedCachedValue = -1;
+}
+
+/* -2 = machine1 is not supported on this machine
+ * -1 = error
+ *  0 = machine1 is available
+ */
+static int
+virSystemdHasMachined(void)
+{
+    int ret;
+    int val;
+
+    val = virAtomicIntGet(&virSystemdHasMachinedCachedValue);
+    if (val != -1)
+        return val;
+
+    if ((ret = virDBusIsServiceEnabled("org.freedesktop.machine1")) < 0) {
+        if (ret == -2)
+            virAtomicIntSet(&virSystemdHasMachinedCachedValue, -2);
+        return ret;
+    }
+
+    if ((ret = virDBusIsServiceRegistered("org.freedesktop.systemd1")) == -1)
+        return ret;
+    virAtomicIntSet(&virSystemdHasMachinedCachedValue, ret);
+    return ret;
+}
+
 
 char *
 virSystemdGetMachineNameByPID(pid_t pid)
@@ -190,10 +230,7 @@ virSystemdGetMachineNameByPID(pid_t pid)
     DBusMessage *reply = NULL;
     char *name = NULL, *object = NULL;
 
-    if (virDBusIsServiceEnabled("org.freedesktop.machine1") < 0)
-        goto cleanup;
-
-    if (virDBusIsServiceRegistered("org.freedesktop.systemd1") < 0)
+    if (virSystemdHasMachined() < 0)
         goto cleanup;
 
     if (!(conn = virDBusGetSystemBus()))
@@ -209,6 +246,9 @@ virSystemdGetMachineNameByPID(pid_t pid)
 
     if (virDBusMessageRead(reply, "o", &object) < 0)
         goto cleanup;
+
+    virDBusMessageUnref(reply);
+    reply = NULL;
 
     VIR_DEBUG("Domain with pid %lld has object path '%s'",
               (long long) pid, object);
@@ -268,11 +308,7 @@ int virSystemdCreateMachine(const char *name,
     char *slicename = NULL;
     static int hasCreateWithNetwork = 1;
 
-    ret = virDBusIsServiceEnabled("org.freedesktop.machine1");
-    if (ret < 0)
-        return ret;
-
-    if ((ret = virDBusIsServiceRegistered("org.freedesktop.systemd1")) < 0)
+    if ((ret = virSystemdHasMachined()) < 0)
         return ret;
 
     if (!(conn = virDBusGetSystemBus()))
@@ -434,11 +470,7 @@ int virSystemdTerminateMachine(const char *name)
 
     memset(&error, 0, sizeof(error));
 
-    ret = virDBusIsServiceEnabled("org.freedesktop.machine1");
-    if (ret < 0)
-        goto cleanup;
-
-    if ((ret = virDBusIsServiceRegistered("org.freedesktop.systemd1")) < 0)
+    if ((ret = virSystemdHasMachined()) < 0)
         goto cleanup;
 
     ret = -1;

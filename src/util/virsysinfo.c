@@ -37,6 +37,9 @@
 #include "virfile.h"
 #include "virstring.h"
 
+#define __VIR_SYSINFO_PRIV_H_ALLOW__
+#include "virsysinfopriv.h"
+
 #define VIR_FROM_THIS VIR_FROM_SYSINFO
 
 
@@ -52,12 +55,11 @@ static const char *sysinfoCpuinfo = "/proc/cpuinfo";
 #define CPUINFO sysinfoCpuinfo
 #define CPUINFO_FILE_LEN (1024*1024)	/* 1MB limit for /proc/cpuinfo file */
 
-/* only to be used test programs, therefore not in sysinfo.h */
-extern void virSysinfoSetup(const char *dmidecode, const char *sysinfo,
-                            const char *cpuinfo);
 
-void virSysinfoSetup(const char *dmidecode, const char *sysinfo,
-                     const char *cpuinfo)
+void
+virSysinfoSetup(const char *dmidecode,
+                const char *sysinfo,
+                const char *cpuinfo)
 {
     sysinfoDmidecode = dmidecode;
     sysinfoSysinfo = sysinfo;
@@ -156,17 +158,9 @@ void virSysinfoDefFree(virSysinfoDefPtr def)
     VIR_FREE(def);
 }
 
-/**
- * virSysinfoRead:
- *
- * Tries to read the SMBIOS information from the current host
- *
- * Returns: a filled up sysinfo structure or NULL in case of error
- */
 
-#if defined(__powerpc__)
 static int
-virSysinfoParseSystem(const char *base, virSysinfoSystemDefPtr *sysdef)
+virSysinfoParsePPCSystem(const char *base, virSysinfoSystemDefPtr *sysdef)
 {
     int ret = -1;
     char *eol = NULL;
@@ -218,7 +212,7 @@ virSysinfoParseSystem(const char *base, virSysinfoSystemDefPtr *sysdef)
 }
 
 static int
-virSysinfoParseProcessor(const char *base, virSysinfoDefPtr ret)
+virSysinfoParsePPCProcessor(const char *base, virSysinfoDefPtr ret)
 {
     const char *cur;
     char *eol, *tmp_base;
@@ -237,6 +231,7 @@ virSysinfoParseProcessor(const char *base, virSysinfoDefPtr ret)
         if (eol && VIR_STRNDUP(processor->processor_socket_destination,
                                cur, eol - cur) < 0)
             return -1;
+        base = cur;
 
         if ((cur = strstr(base, "cpu")) != NULL) {
             cur = strchr(cur, ':') + 1;
@@ -245,6 +240,7 @@ virSysinfoParseProcessor(const char *base, virSysinfoDefPtr ret)
             if (eol && VIR_STRNDUP(processor->processor_type,
                                    cur, eol - cur) < 0)
                 return -1;
+            base = cur;
         }
 
         if ((cur = strstr(base, "revision")) != NULL) {
@@ -254,9 +250,9 @@ virSysinfoParseProcessor(const char *base, virSysinfoDefPtr ret)
             if (eol && VIR_STRNDUP(processor->processor_version,
                                    cur, eol - cur) < 0)
                 return -1;
+            base = cur;
         }
 
-        base = cur;
     }
 
     return 0;
@@ -265,7 +261,7 @@ virSysinfoParseProcessor(const char *base, virSysinfoDefPtr ret)
 /* virSysinfoRead for PowerPC
  * Gathers sysinfo data from /proc/cpuinfo */
 virSysinfoDefPtr
-virSysinfoRead(void)
+virSysinfoReadPPC(void)
 {
     virSysinfoDefPtr ret = NULL;
     char *outbuf = NULL;
@@ -276,27 +272,29 @@ virSysinfoRead(void)
     if (virFileReadAll(CPUINFO, CPUINFO_FILE_LEN, &outbuf) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Failed to open %s"), CPUINFO);
-        return NULL;
+        goto no_memory;
     }
 
     ret->nprocessor = 0;
     ret->processor = NULL;
-    if (virSysinfoParseProcessor(outbuf, ret) < 0)
+    if (virSysinfoParsePPCProcessor(outbuf, ret) < 0)
         goto no_memory;
 
-    if (virSysinfoParseSystem(outbuf, &ret->system) < 0)
+    if (virSysinfoParsePPCSystem(outbuf, &ret->system) < 0)
         goto no_memory;
 
+    VIR_FREE(outbuf);
     return ret;
 
  no_memory:
     VIR_FREE(outbuf);
+    virSysinfoDefFree(ret);
     return NULL;
 }
 
-#elif defined(__arm__) || defined(__aarch64__)
+
 static int
-virSysinfoParseSystem(const char *base, virSysinfoSystemDefPtr *sysdef)
+virSysinfoParseARMSystem(const char *base, virSysinfoSystemDefPtr *sysdef)
 {
     int ret = -1;
     char *eol = NULL;
@@ -348,7 +346,7 @@ virSysinfoParseSystem(const char *base, virSysinfoSystemDefPtr *sysdef)
 }
 
 static int
-virSysinfoParseProcessor(const char *base, virSysinfoDefPtr ret)
+virSysinfoParseARMProcessor(const char *base, virSysinfoDefPtr ret)
 {
     const char *cur;
     char *eol, *tmp_base;
@@ -397,7 +395,7 @@ virSysinfoParseProcessor(const char *base, virSysinfoDefPtr ret)
 /* virSysinfoRead for ARMv7
  * Gathers sysinfo data from /proc/cpuinfo */
 virSysinfoDefPtr
-virSysinfoRead(void)
+virSysinfoReadARM(void)
 {
     virSysinfoDefPtr ret = NULL;
     char *outbuf = NULL;
@@ -408,32 +406,33 @@ virSysinfoRead(void)
     if (virFileReadAll(CPUINFO, CPUINFO_FILE_LEN, &outbuf) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Failed to open %s"), CPUINFO);
-        return NULL;
+        goto no_memory;
     }
 
     ret->nprocessor = 0;
     ret->processor = NULL;
-    if (virSysinfoParseProcessor(outbuf, ret) < 0)
+    if (virSysinfoParseARMProcessor(outbuf, ret) < 0)
         goto no_memory;
 
-    if (virSysinfoParseSystem(outbuf, &ret->system) < 0)
+    if (virSysinfoParseARMSystem(outbuf, &ret->system) < 0)
         goto no_memory;
 
+    VIR_FREE(outbuf);
     return ret;
 
  no_memory:
     VIR_FREE(outbuf);
+    virSysinfoDefFree(ret);
     return NULL;
 }
 
 
-#elif defined(__s390__) || defined(__s390x__)
 
 VIR_WARNINGS_NO_WLOGICALOP_STRCHR
 
 static char *
-virSysinfoParseDelimited(const char *base, const char *name, char **value,
-                         char delim1, char delim2)
+virSysinfoParseS390Delimited(const char *base, const char *name, char **value,
+                             char delim1, char delim2)
 {
     const char *start;
     char *end;
@@ -453,13 +452,13 @@ virSysinfoParseDelimited(const char *base, const char *name, char **value,
 }
 
 static char *
-virSysinfoParseLine(const char *base, const char *name, char **value)
+virSysinfoParseS390Line(const char *base, const char *name, char **value)
 {
-    return virSysinfoParseDelimited(base, name, value, ':', '\n');
+    return virSysinfoParseS390Delimited(base, name, value, ':', '\n');
 }
 
 static int
-virSysinfoParseSystem(const char *base, virSysinfoSystemDefPtr *sysdef)
+virSysinfoParseS390System(const char *base, virSysinfoSystemDefPtr *sysdef)
 {
     int ret = -1;
     virSysinfoSystemDefPtr def;
@@ -467,16 +466,13 @@ virSysinfoParseSystem(const char *base, virSysinfoSystemDefPtr *sysdef)
     if (VIR_ALLOC(def) < 0)
         return ret;
 
-    if (!virSysinfoParseLine(base, "Manufacturer",
-                             &def->manufacturer))
+    if (!virSysinfoParseS390Line(base, "Manufacturer", &def->manufacturer))
         goto cleanup;
 
-    if (!virSysinfoParseLine(base, "Type",
-                             &def->family))
+    if (!virSysinfoParseS390Line(base, "Type", &def->family))
         goto cleanup;
 
-    if (!virSysinfoParseLine(base, "Sequence Code",
-                             &def->serial))
+    if (!virSysinfoParseS390Line(base, "Sequence Code", &def->serial))
         goto cleanup;
 
     if (!def->manufacturer && !def->product && !def->version &&
@@ -494,7 +490,7 @@ virSysinfoParseSystem(const char *base, virSysinfoSystemDefPtr *sysdef)
 }
 
 static int
-virSysinfoParseProcessor(const char *base, virSysinfoDefPtr ret)
+virSysinfoParseS390Processor(const char *base, virSysinfoDefPtr ret)
 {
     char *tmp_base;
     char *manufacturer = NULL;
@@ -502,29 +498,31 @@ virSysinfoParseProcessor(const char *base, virSysinfoDefPtr ret)
     int result = -1;
     virSysinfoProcessorDefPtr processor;
 
-    if (!(tmp_base = virSysinfoParseLine(base, "vendor_id", &manufacturer)))
+    if (!(tmp_base = virSysinfoParseS390Line(base, "vendor_id", &manufacturer)))
         goto cleanup;
 
     /* Find processor N: line and gather the processor manufacturer,
        version, serial number, and family */
     while ((tmp_base = strstr(tmp_base, "processor "))
-           && (tmp_base = virSysinfoParseLine(tmp_base, "processor ",
-                                              &procline))) {
+           && (tmp_base = virSysinfoParseS390Line(tmp_base, "processor ",
+                                                  &procline))) {
         if (VIR_EXPAND_N(ret->processor, ret->nprocessor, 1) < 0)
             goto cleanup;
         processor = &ret->processor[ret->nprocessor - 1];
         if (VIR_STRDUP(processor->processor_manufacturer, manufacturer) < 0)
             goto cleanup;
-        if (!virSysinfoParseDelimited(procline, "version",
-                                      &processor->processor_version,
-                                      '=', ',') ||
-            !virSysinfoParseDelimited(procline, "identification",
-                                      &processor->processor_serial_number,
-                                      '=', ',') ||
-            !virSysinfoParseDelimited(procline, "machine",
-                                      &processor->processor_family,
-                                      '=', '\n'))
+        if (!virSysinfoParseS390Delimited(procline, "version",
+                                          &processor->processor_version,
+                                          '=', ',') ||
+            !virSysinfoParseS390Delimited(procline, "identification",
+                                          &processor->processor_serial_number,
+                                          '=', ',') ||
+            !virSysinfoParseS390Delimited(procline, "machine",
+                                          &processor->processor_family,
+                                          '=', '\n'))
             goto cleanup;
+
+        VIR_FREE(procline);
     }
     result = 0;
 
@@ -537,7 +535,7 @@ virSysinfoParseProcessor(const char *base, virSysinfoDefPtr ret)
 /* virSysinfoRead for s390x
  * Gathers sysinfo data from /proc/sysinfo and /proc/cpuinfo */
 virSysinfoDefPtr
-virSysinfoRead(void)
+virSysinfoReadS390(void)
 {
     virSysinfoDefPtr ret = NULL;
     char *outbuf = NULL;
@@ -549,12 +547,12 @@ virSysinfoRead(void)
     if (virFileReadAll(CPUINFO, CPUINFO_FILE_LEN, &outbuf) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Failed to open %s"), CPUINFO);
-        return NULL;
+        goto no_memory;
     }
 
     ret->nprocessor = 0;
     ret->processor = NULL;
-    if (virSysinfoParseProcessor(outbuf, ret) < 0)
+    if (virSysinfoParseS390Processor(outbuf, ret) < 0)
         goto no_memory;
 
     /* Free buffer before reading next file */
@@ -564,12 +562,13 @@ virSysinfoRead(void)
     if (virFileReadAll(SYSINFO, 8192, &outbuf) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Failed to open %s"), SYSINFO);
-        return NULL;
+        goto no_memory;
     }
 
-    if (virSysinfoParseSystem(outbuf, &ret->system) < 0)
+    if (virSysinfoParseS390System(outbuf, &ret->system) < 0)
         goto no_memory;
 
+    VIR_FREE(outbuf);
     return ret;
 
  no_memory:
@@ -578,26 +577,6 @@ virSysinfoRead(void)
     return NULL;
 }
 
-#elif defined(WIN32) || \
-    !(defined(__x86_64__) || \
-      defined(__i386__) ||   \
-      defined(__amd64__) || \
-      defined(__arm__) || \
-      defined(__aarch64__) || \
-      defined(__powerpc__))
-virSysinfoDefPtr
-virSysinfoRead(void)
-{
-    /*
-     * this can probably be extracted from Windows using API or registry
-     * http://www.microsoft.com/whdc/system/platform/firmware/SMBIOS.mspx
-     */
-    virReportSystemError(ENOSYS, "%s",
-                         _("Host sysinfo extraction not supported on this platform"));
-    return NULL;
-}
-
-#else /* !WIN32 && x86 */
 
 static int
 virSysinfoParseBIOS(const char *base, virSysinfoBIOSDefPtr *bios)
@@ -653,7 +632,7 @@ virSysinfoParseBIOS(const char *base, virSysinfoBIOSDefPtr *bios)
 }
 
 static int
-virSysinfoParseSystem(const char *base, virSysinfoSystemDefPtr *sysdef)
+virSysinfoParseX86System(const char *base, virSysinfoSystemDefPtr *sysdef)
 {
     int ret = -1;
     const char *cur, *eol = NULL;
@@ -724,9 +703,9 @@ virSysinfoParseSystem(const char *base, virSysinfoSystemDefPtr *sysdef)
 }
 
 static int
-virSysinfoParseBaseBoard(const char *base,
-                         virSysinfoBaseBoardDefPtr *baseBoard,
-                         size_t *nbaseBoard)
+virSysinfoParseX86BaseBoard(const char *base,
+                            virSysinfoBaseBoardDefPtr *baseBoard,
+                            size_t *nbaseBoard)
 {
     int ret = -1;
     const char *cur, *eol = NULL;
@@ -802,7 +781,7 @@ virSysinfoParseBaseBoard(const char *base,
 }
 
 static int
-virSysinfoParseProcessor(const char *base, virSysinfoDefPtr ret)
+virSysinfoParseX86Processor(const char *base, virSysinfoDefPtr ret)
 {
     const char *cur, *tmp_base;
     char *eol;
@@ -909,7 +888,7 @@ virSysinfoParseProcessor(const char *base, virSysinfoDefPtr ret)
 }
 
 static int
-virSysinfoParseMemory(const char *base, virSysinfoDefPtr ret)
+virSysinfoParseX86Memory(const char *base, virSysinfoDefPtr ret)
 {
     const char *cur, *tmp_base;
     char *eol;
@@ -1008,7 +987,7 @@ virSysinfoParseMemory(const char *base, virSysinfoDefPtr ret)
 }
 
 virSysinfoDefPtr
-virSysinfoRead(void)
+virSysinfoReadX86(void)
 {
     char *path;
     virSysinfoDefPtr ret = NULL;
@@ -1037,20 +1016,20 @@ virSysinfoRead(void)
     if (virSysinfoParseBIOS(outbuf, &ret->bios) < 0)
         goto error;
 
-    if (virSysinfoParseSystem(outbuf, &ret->system) < 0)
+    if (virSysinfoParseX86System(outbuf, &ret->system) < 0)
         goto error;
 
-    if (virSysinfoParseBaseBoard(outbuf, &ret->baseBoard, &ret->nbaseBoard) < 0)
+    if (virSysinfoParseX86BaseBoard(outbuf, &ret->baseBoard, &ret->nbaseBoard) < 0)
         goto error;
 
     ret->nprocessor = 0;
     ret->processor = NULL;
-    if (virSysinfoParseProcessor(outbuf, ret) < 0)
+    if (virSysinfoParseX86Processor(outbuf, ret) < 0)
         goto error;
 
     ret->nmemory = 0;
     ret->memory = NULL;
-    if (virSysinfoParseMemory(outbuf, ret) < 0)
+    if (virSysinfoParseX86Memory(outbuf, ret) < 0)
         goto error;
 
  cleanup:
@@ -1064,7 +1043,43 @@ virSysinfoRead(void)
     ret = NULL;
     goto cleanup;
 }
+
+
+/**
+ * virSysinfoRead:
+ *
+ * Tries to read the SMBIOS information from the current host
+ *
+ * Returns: a filled up sysinfo structure or NULL in case of error
+ */
+virSysinfoDefPtr
+virSysinfoRead(void)
+{
+#if defined(__powerpc__)
+    return virSysinfoReadPPC();
+#elif defined(__arm__) || defined(__aarch64__)
+    return virSysinfoReadARM();
+#elif defined(__s390__) || defined(__s390x__)
+    return virSysinfoReadS390();
+#elif defined(WIN32) || \
+    !(defined(__x86_64__) || \
+      defined(__i386__) ||   \
+      defined(__amd64__) || \
+      defined(__arm__) || \
+      defined(__aarch64__) || \
+      defined(__powerpc__))
+    /*
+     * this can probably be extracted from Windows using API or registry
+     * http://www.microsoft.com/whdc/system/platform/firmware/SMBIOS.mspx
+     */
+    virReportSystemError(ENOSYS, "%s",
+                         _("Host sysinfo extraction not supported on this platform"));
+    return NULL;
+#else /* !WIN32 && x86 */
+    return virSysinfoReadX86();
 #endif /* !WIN32 && x86 */
+}
+
 
 static void
 virSysinfoBIOSFormat(virBufferPtr buf, virSysinfoBIOSDefPtr def)

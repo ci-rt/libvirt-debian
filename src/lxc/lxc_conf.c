@@ -28,7 +28,6 @@
 
 #include "lxc_conf.h"
 #include "lxc_domain.h"
-#include "nodeinfo.h"
 #include "virerror.h"
 #include "virconf.h"
 #include "viralloc.h"
@@ -77,10 +76,13 @@ virCapsPtr virLXCDriverCapsInit(virLXCDriverPtr driver)
      * unexpected failures. We don't want to break the lxc
      * driver in this scenario, so log errors & carry on
      */
-    if (nodeCapsInitNUMA(caps) < 0) {
+    if (virCapabilitiesInitNUMA(caps) < 0) {
         virCapabilitiesFreeNUMAInfo(caps);
         VIR_WARN("Failed to query host NUMA topology, disabling NUMA capabilities");
     }
+
+    if (virCapabilitiesInitCaches(caps) < 0)
+        VIR_WARN("Failed to get host CPU cache info");
 
     /* Only probe for power management capabilities in the driver,
      * not in the emulator */
@@ -213,7 +215,8 @@ lxcDomainXMLConfInit(void)
 {
     return virDomainXMLOptionNew(&virLXCDriverDomainDefParserConfig,
                                  &virLXCDriverPrivateDataCallbacks,
-                                 &virLXCDriverDomainXMLNamespace);
+                                 &virLXCDriverDomainXMLNamespace,
+                                 NULL, NULL);
 }
 
 

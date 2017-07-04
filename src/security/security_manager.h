@@ -130,10 +130,12 @@ int virSecurityManagerCheckAllLabel(virSecurityManagerPtr mgr,
                                     virDomainDefPtr sec);
 int virSecurityManagerSetAllLabel(virSecurityManagerPtr mgr,
                                   virDomainDefPtr sec,
-                                  const char *stdin_path);
+                                  const char *stdin_path,
+                                  bool chardevStdioLogd);
 int virSecurityManagerRestoreAllLabel(virSecurityManagerPtr mgr,
                                       virDomainDefPtr def,
-                                      bool migrated);
+                                      bool migrated,
+                                      bool chardevStdioLogd);
 int virSecurityManagerGetProcessLabel(virSecurityManagerPtr mgr,
                                       virDomainDefPtr def,
                                       pid_t pid,
@@ -161,6 +163,13 @@ int virSecurityManagerSetImageLabel(virSecurityManagerPtr mgr,
 int virSecurityManagerRestoreImageLabel(virSecurityManagerPtr mgr,
                                         virDomainDefPtr vm,
                                         virStorageSourcePtr src);
+
+int virSecurityManagerSetMemoryLabel(virSecurityManagerPtr mgr,
+                                     virDomainDefPtr vm,
+                                     virDomainMemoryDefPtr mem);
+int virSecurityManagerRestoreMemoryLabel(virSecurityManagerPtr mgr,
+                                        virDomainDefPtr vm,
+                                        virDomainMemoryDefPtr mem);
 
 int virSecurityManagerDomainSetPathLabel(virSecurityManagerPtr mgr,
                                          virDomainDefPtr vm,

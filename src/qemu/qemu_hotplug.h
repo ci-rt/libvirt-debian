@@ -33,6 +33,32 @@ int qemuDomainChangeEjectableMedia(virQEMUDriverPtr driver,
                                    virDomainDiskDefPtr disk,
                                    virStorageSourcePtr newsrc,
                                    bool force);
+
+void qemuDomainDelTLSObjects(virQEMUDriverPtr driver,
+                             virDomainObjPtr vm,
+                             qemuDomainAsyncJob asyncJob,
+                             const char *secAlias,
+                             const char *tlsAlias);
+
+int qemuDomainAddTLSObjects(virQEMUDriverPtr driver,
+                            virDomainObjPtr vm,
+                            qemuDomainAsyncJob asyncJob,
+                            const char *secAlias,
+                            virJSONValuePtr *secProps,
+                            const char *tlsAlias,
+                            virJSONValuePtr *tlsProps);
+
+int qemuDomainGetTLSObjects(virQEMUCapsPtr qemuCaps,
+                            qemuDomainSecretInfoPtr secinfo,
+                            const char *tlsCertdir,
+                            bool tlsListen,
+                            bool tlsVerify,
+                            const char *srcAlias,
+                            virJSONValuePtr *tlsProps,
+                            char **tlsAlias,
+                            virJSONValuePtr *secProps,
+                            char **secAlias);
+
 int qemuDomainAttachControllerDevice(virQEMUDriverPtr driver,
                                      virDomainObjPtr vm,
                                      virDomainControllerDefPtr controller);
@@ -114,9 +140,6 @@ int qemuDomainDetachRNGDevice(virQEMUDriverPtr driver,
                               virDomainObjPtr vm,
                               virDomainRNGDefPtr rng);
 
-int qemuDomainHotplugDelVcpu(virQEMUDriverPtr driver,
-                             virDomainObjPtr vm,
-                             unsigned int vcpu);
 void qemuDomainRemoveVcpuAlias(virQEMUDriverPtr driver,
                                virDomainObjPtr vm,
                                const char *alias);

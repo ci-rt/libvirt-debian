@@ -45,7 +45,6 @@
 #include "uml_driver.h"
 #include "uml_conf.h"
 #include "virbuffer.h"
-#include "nodeinfo.h"
 #include "virhostcpu.h"
 #include "virhostmem.h"
 #include "capabilities.h"
@@ -58,7 +57,7 @@
 #include "domain_nwfilter.h"
 #include "nwfilter_conf.h"
 #include "virfile.h"
-#include "fdstream.h"
+#include "virfdstream.h"
 #include "configmake.h"
 #include "virnetdevtap.h"
 #include "virnodesuspend.h"
@@ -534,7 +533,7 @@ umlStateInitialize(bool privileged,
         goto out_of_memory;
 
     if (!(uml_driver->xmlopt = virDomainXMLOptionNew(&umlDriverDomainDefParserConfig,
-                                                     &privcb, NULL)))
+                                                     &privcb, NULL, NULL, NULL)))
         goto error;
 
     if ((uml_driver->inotifyFD = inotify_init()) < 0) {
@@ -1360,8 +1359,7 @@ static virDomainPtr umlDomainLookupByID(virConnectPtr conn,
     if (virDomainLookupByIDEnsureACL(conn, vm->def) < 0)
         goto cleanup;
 
-    dom = virGetDomain(conn, vm->def->name, vm->def->uuid);
-    if (dom) dom->id = vm->def->id;
+    dom = virGetDomain(conn, vm->def->name, vm->def->uuid, vm->def->id);
 
  cleanup:
     if (vm)
@@ -1388,8 +1386,7 @@ static virDomainPtr umlDomainLookupByUUID(virConnectPtr conn,
     if (virDomainLookupByUUIDEnsureACL(conn, vm->def) < 0)
         goto cleanup;
 
-    dom = virGetDomain(conn, vm->def->name, vm->def->uuid);
-    if (dom) dom->id = vm->def->id;
+    dom = virGetDomain(conn, vm->def->name, vm->def->uuid, vm->def->id);
 
  cleanup:
     if (vm)
@@ -1416,8 +1413,7 @@ static virDomainPtr umlDomainLookupByName(virConnectPtr conn,
     if (virDomainLookupByNameEnsureACL(conn, vm->def) < 0)
         goto cleanup;
 
-    dom = virGetDomain(conn, vm->def->name, vm->def->uuid);
-    if (dom) dom->id = vm->def->id;
+    dom = virGetDomain(conn, vm->def->name, vm->def->uuid, vm->def->id);
 
  cleanup:
     virDomainObjEndAPI(&vm);
@@ -1617,8 +1613,7 @@ static virDomainPtr umlDomainCreateXML(virConnectPtr conn, const char *xml,
                                      VIR_DOMAIN_EVENT_STARTED,
                                      VIR_DOMAIN_EVENT_STARTED_BOOTED);
 
-    dom = virGetDomain(conn, vm->def->name, vm->def->uuid);
-    if (dom) dom->id = vm->def->id;
+    dom = virGetDomain(conn, vm->def->name, vm->def->uuid, vm->def->id);
 
  cleanup:
     virDomainDefFree(def);
@@ -2094,8 +2089,7 @@ umlDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags)
         goto cleanup;
     }
 
-    dom = virGetDomain(conn, vm->def->name, vm->def->uuid);
-    if (dom) dom->id = vm->def->id;
+    dom = virGetDomain(conn, vm->def->name, vm->def->uuid, vm->def->id);
 
  cleanup:
     virDomainDefFree(def);
@@ -2727,7 +2721,7 @@ umlConnectDomainEventDeregisterAny(virConnectPtr conn,
     umlDriverLock(driver);
     if (virObjectEventStateDeregisterID(conn,
                                         driver->domainEventState,
-                                        callbackID) < 0)
+                                        callbackID, true) < 0)
         ret = -1;
     umlDriverUnlock(driver);
 
@@ -2770,7 +2764,7 @@ umlNodeGetInfo(virConnectPtr conn,
     if (virNodeGetInfoEnsureACL(conn) < 0)
         return -1;
 
-    return nodeGetInfo(nodeinfo);
+    return virCapabilitiesGetNodeInfo(nodeinfo);
 }
 
 
@@ -2878,7 +2872,7 @@ umlNodeSuspendForDuration(virConnectPtr conn,
     if (virNodeSuspendForDurationEnsureACL(conn) < 0)
         return -1;
 
-    return nodeSuspendForDuration(target, duration, flags);
+    return virNodeSuspend(target, duration, flags);
 }
 
 

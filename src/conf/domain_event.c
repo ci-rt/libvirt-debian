@@ -60,6 +60,7 @@ static virClassPtr virDomainEventMigrationIterationClass;
 static virClassPtr virDomainEventJobCompletedClass;
 static virClassPtr virDomainEventDeviceRemovalFailedClass;
 static virClassPtr virDomainEventMetadataChangeClass;
+static virClassPtr virDomainEventBlockThresholdClass;
 
 static void virDomainEventDispose(void *obj);
 static void virDomainEventLifecycleDispose(void *obj);
@@ -81,6 +82,7 @@ static void virDomainEventMigrationIterationDispose(void *obj);
 static void virDomainEventJobCompletedDispose(void *obj);
 static void virDomainEventDeviceRemovalFailedDispose(void *obj);
 static void virDomainEventMetadataChangeDispose(void *obj);
+static void virDomainEventBlockThresholdDispose(void *obj);
 
 static void
 virDomainEventDispatchDefaultFunc(virConnectPtr conn,
@@ -277,6 +279,17 @@ struct _virDomainEventMetadataCange {
 typedef struct _virDomainEventMetadataCange virDomainEventMetadataChange;
 typedef virDomainEventMetadataChange *virDomainEventMetadataChangePtr;
 
+struct _virDomainEventBlockThreshold {
+    virDomainEvent parent;
+
+    char *dev;
+    char *path;
+
+    unsigned long long threshold;
+    unsigned long long excess;
+};
+typedef struct _virDomainEventBlockThreshold virDomainEventBlockThreshold;
+typedef virDomainEventBlockThreshold *virDomainEventBlockThresholdPtr;
 
 
 static int
@@ -401,6 +414,12 @@ virDomainEventsOnceInit(void)
                       "virDomainEventMetadataChange",
                       sizeof(virDomainEventMetadataChange),
                       virDomainEventMetadataChangeDispose)))
+        return -1;
+    if (!(virDomainEventBlockThresholdClass =
+          virClassNew(virDomainEventClass,
+                      "virDomainEventBlockThreshold",
+                      sizeof(virDomainEventBlockThreshold),
+                      virDomainEventBlockThresholdDispose)))
         return -1;
     return 0;
 }
@@ -597,6 +616,17 @@ virDomainEventMetadataChangeDispose(void *obj)
     VIR_DEBUG("obj=%p", event);
 
     VIR_FREE(event->nsuri);
+}
+
+
+static void
+virDomainEventBlockThresholdDispose(void *obj)
+{
+    virDomainEventBlockThresholdPtr event = obj;
+    VIR_DEBUG("obj=%p", event);
+
+    VIR_FREE(event->dev);
+    VIR_FREE(event->path);
 }
 
 
@@ -1413,7 +1443,7 @@ virDomainEventDeviceRemovalFailedNew(int id,
     if (virDomainEventsInitialize() < 0)
         return NULL;
 
-    if (!(ev = virDomainEventNew(virDomainEventDeviceAddedClass,
+    if (!(ev = virDomainEventNew(virDomainEventDeviceRemovalFailedClass,
                                  VIR_DOMAIN_EVENT_ID_DEVICE_REMOVAL_FAILED,
                                  id, name, uuid)))
         return NULL;
@@ -1674,16 +1704,71 @@ virDomainEventMetadataChangeNewFromDom(virDomainPtr dom,
 }
 
 
+static virObjectEventPtr
+virDomainEventBlockThresholdNew(int id,
+                                const char *name,
+                                unsigned char *uuid,
+                                const char *dev,
+                                const char *path,
+                                unsigned long long threshold,
+                                unsigned long long excess)
+{
+    virDomainEventBlockThresholdPtr ev;
+
+    if (virDomainEventsInitialize() < 0)
+        return NULL;
+
+    if (!(ev = virDomainEventNew(virDomainEventBlockThresholdClass,
+                                 VIR_DOMAIN_EVENT_ID_BLOCK_THRESHOLD,
+                                 id, name, uuid)))
+        return NULL;
+
+    if (VIR_STRDUP(ev->dev, dev) < 0 ||
+        VIR_STRDUP(ev->path, path) < 0) {
+        virObjectUnref(ev);
+        return NULL;
+    }
+    ev->threshold = threshold;
+    ev->excess = excess;
+
+    return (virObjectEventPtr)ev;
+}
+
+virObjectEventPtr
+virDomainEventBlockThresholdNewFromObj(virDomainObjPtr obj,
+                                       const char *dev,
+                                       const char *path,
+                                       unsigned long long threshold,
+                                       unsigned long long excess)
+{
+    return virDomainEventBlockThresholdNew(obj->def->id, obj->def->name,
+                                           obj->def->uuid, dev, path,
+                                           threshold, excess);
+}
+
+virObjectEventPtr
+virDomainEventBlockThresholdNewFromDom(virDomainPtr dom,
+                                       const char *dev,
+                                       const char *path,
+                                       unsigned long long threshold,
+                                       unsigned long long excess)
+{
+    return virDomainEventBlockThresholdNew(dom->id, dom->name, dom->uuid,
+                                           dev, path, threshold, excess);
+}
+
+
 static void
 virDomainEventDispatchDefaultFunc(virConnectPtr conn,
                                   virObjectEventPtr event,
                                   virConnectObjectEventGenericCallback cb,
                                   void *cbopaque)
 {
-    virDomainPtr dom = virGetDomain(conn, event->meta.name, event->meta.uuid);
+    virDomainPtr dom = virGetDomain(conn, event->meta.name,
+                                    event->meta.uuid, event->meta.id);
+
     if (!dom)
         return;
-    dom->id = event->meta.id;
 
     switch ((virDomainEventID) event->eventID) {
     case VIR_DOMAIN_EVENT_ID_LIFECYCLE:
@@ -1943,6 +2028,19 @@ virDomainEventDispatchDefaultFunc(virConnectPtr conn,
             goto cleanup;
         }
 
+    case VIR_DOMAIN_EVENT_ID_BLOCK_THRESHOLD:
+        {
+            virDomainEventBlockThresholdPtr blockThresholdEvent;
+
+            blockThresholdEvent = (virDomainEventBlockThresholdPtr)event;
+            ((virConnectDomainEventBlockThresholdCallback)cb)(conn, dom,
+                                                              blockThresholdEvent->dev,
+                                                              blockThresholdEvent->path,
+                                                              blockThresholdEvent->threshold,
+                                                              blockThresholdEvent->excess,
+                                                              cbopaque);
+            goto cleanup;
+        }
     case VIR_DOMAIN_EVENT_ID_LAST:
         break;
     }
@@ -2011,13 +2109,13 @@ virDomainQemuMonitorEventDispatchFunc(virConnectPtr conn,
                                       virConnectObjectEventGenericCallback cb,
                                       void *cbopaque)
 {
-    virDomainPtr dom = virGetDomain(conn, event->meta.name, event->meta.uuid);
+    virDomainPtr dom;
     virDomainQemuMonitorEventPtr qemuMonitorEvent;
     virDomainQemuMonitorEventData *data = cbopaque;
 
-    if (!dom)
+    if (!(dom = virGetDomain(conn, event->meta.name,
+                             event->meta.uuid, event->meta.id)))
         return;
-    dom->id = event->meta.id;
 
     qemuMonitorEvent = (virDomainQemuMonitorEventPtr)event;
     ((virConnectDomainQemuMonitorEventCallback)cb)(conn, dom,
@@ -2203,7 +2301,7 @@ virDomainEventStateDeregister(virConnectPtr conn,
                                                NULL);
     if (callbackID < 0)
         return -1;
-    return virObjectEventStateDeregisterID(conn, state, callbackID);
+    return virObjectEventStateDeregisterID(conn, state, callbackID, true);
 }
 
 

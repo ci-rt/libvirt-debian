@@ -53,7 +53,6 @@
 #include "viruuid.h"
 #include "domain_conf.h"
 #include "storage_conf.h"
-#include "nodeinfo.h"
 #include "virfile.h"
 #include "interface_conf.h"
 #include "phyp_driver.h"
@@ -335,11 +334,14 @@ phypCapsInit(void)
      * unexpected failures. We don't want to break the QEMU
      * driver in this scenario, so log errors & carry on
      */
-    if (nodeCapsInitNUMA(caps) < 0) {
+    if (virCapabilitiesInitNUMA(caps) < 0) {
         virCapabilitiesFreeNUMAInfo(caps);
         VIR_WARN
             ("Failed to query host NUMA topology, disabling NUMA capabilities");
     }
+
+    if (virCapabilitiesInitCaches(caps) < 0)
+        VIR_WARN("Failed to get host CPU cache info");
 
     if ((guest = virCapabilitiesAddGuest(caps,
                                          VIR_DOMAIN_OSTYPE_LINUX,
@@ -1200,7 +1202,7 @@ phypConnectOpen(virConnectPtr conn,
         goto failure;
 
     if (!(phyp_driver->xmlopt = virDomainXMLOptionNew(&virPhypDriverDomainDefParserConfig,
-                                                      NULL, NULL)))
+                                                      NULL, NULL, NULL, NULL)))
         goto failure;
 
     conn->privateData = phyp_driver;
@@ -2467,8 +2469,7 @@ phypBuildStoragePool(virConnectPtr conn, virStoragePoolDefPtr def)
     int exit_status = 0;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
-    if (source.adapter.type !=
-        VIR_STORAGE_POOL_SOURCE_ADAPTER_TYPE_SCSI_HOST) {
+    if (source.adapter.type != VIR_STORAGE_ADAPTER_TYPE_SCSI_HOST) {
         virReportError(VIR_ERR_XML_ERROR, "%s",
                        _("Only 'scsi_host' adapter is supported"));
         goto cleanup;
@@ -3216,10 +3217,7 @@ phypDomainLookupByName(virConnectPtr conn, const char *lpar_name)
     if (phypGetLparUUID(lpar_uuid, lpar_id, conn) == -1)
         return NULL;
 
-    dom = virGetDomain(conn, lpar_name, lpar_uuid);
-
-    if (dom)
-        dom->id = lpar_id;
+    dom = virGetDomain(conn, lpar_name, lpar_uuid, lpar_id);
 
     return dom;
 }
@@ -3239,10 +3237,7 @@ phypDomainLookupByID(virConnectPtr conn, int lpar_id)
     if (phypGetLparUUID(lpar_uuid, lpar_id, conn) == -1)
         goto cleanup;
 
-    dom = virGetDomain(conn, lpar_name, lpar_uuid);
-
-    if (dom)
-        dom->id = lpar_id;
+    dom = virGetDomain(conn, lpar_name, lpar_uuid, lpar_id);
 
  cleanup:
     VIR_FREE(lpar_name);
@@ -3595,7 +3590,7 @@ phypDomainCreateXML(virConnectPtr conn,
         }
     }
 
-    if ((dom = virGetDomain(conn, def->name, def->uuid)) == NULL)
+    if ((dom = virGetDomain(conn, def->name, def->uuid, def->id)) == NULL)
         goto err;
 
     if (phypBuildLpar(conn, def) == -1)

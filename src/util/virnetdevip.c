@@ -44,7 +44,7 @@
 #ifdef __linux__
 # include <linux/sockios.h>
 # include <linux/if_vlan.h>
-# define VIR_NETDEV_FAMILY AF_PACKET
+# define VIR_NETDEV_FAMILY AF_UNIX
 #elif defined(HAVE_STRUCT_IFREQ) && defined(AF_LOCAL)
 # define VIR_NETDEV_FAMILY AF_LOCAL
 #else
@@ -508,6 +508,175 @@ virNetDevIPWaitDadFinish(virSocketAddrPtr *addrs, size_t count)
     return ret;
 }
 
+static int
+virNetDevIPGetAcceptRA(const char *ifname)
+{
+    char *path = NULL;
+    char *buf = NULL;
+    char *suffix;
+    int accept_ra = -1;
+
+    if (virAsprintf(&path, "/proc/sys/net/ipv6/conf/%s/accept_ra",
+                    ifname ? ifname : "all") < 0)
+        goto cleanup;
+
+    if ((virFileReadAll(path, 512, &buf) < 0) ||
+        (virStrToLong_i(buf, &suffix, 10, &accept_ra) < 0))
+        goto cleanup;
+
+ cleanup:
+    VIR_FREE(path);
+    VIR_FREE(buf);
+
+    return accept_ra;
+}
+
+struct virNetDevIPCheckIPv6ForwardingData {
+    bool hasRARoutes;
+
+    /* Devices with conflicting accept_ra */
+    char **devices;
+    size_t ndevices;
+};
+
+static int
+virNetDevIPCheckIPv6ForwardingCallback(const struct nlmsghdr *resp,
+                                       void *opaque)
+{
+    struct rtmsg *rtmsg = NLMSG_DATA(resp);
+    int accept_ra = -1;
+    struct rtattr *rta;
+    char *ifname = NULL;
+    struct virNetDevIPCheckIPv6ForwardingData *data = opaque;
+    int ret = 0;
+    int len = RTM_PAYLOAD(resp);
+    int oif = -1;
+    size_t i;
+    bool hasDevice;
+
+    /* Ignore messages other than route ones */
+    if (resp->nlmsg_type != RTM_NEWROUTE)
+        return ret;
+
+    /* Extract a device ID attribute */
+    VIR_WARNINGS_NO_CAST_ALIGN
+    for (rta = RTM_RTA(rtmsg); RTA_OK(rta, len); rta = RTA_NEXT(rta, len)) {
+        VIR_WARNINGS_RESET
+        if (rta->rta_type == RTA_OIF) {
+            oif = *(int *)RTA_DATA(rta);
+
+            /* Should never happen: netlink message would be broken */
+            if (ifname) {
+                char *ifname2 = virNetDevGetName(oif);
+                VIR_WARN("Single route has unexpected 2nd interface "
+                         "- '%s' and '%s'", ifname, ifname2);
+                VIR_FREE(ifname2);
+                break;
+            }
+
+            if (!(ifname = virNetDevGetName(oif)))
+                goto error;
+        }
+    }
+
+    /* No need to do anything else for non RA routes */
+    if (rtmsg->rtm_protocol != RTPROT_RA)
+        goto cleanup;
+
+    data->hasRARoutes = true;
+
+    /* Check the accept_ra value for the interface */
+    accept_ra = virNetDevIPGetAcceptRA(ifname);
+    VIR_DEBUG("Checking route for device %s, accept_ra: %d", ifname, accept_ra);
+
+    hasDevice = false;
+    for (i = 0; i < data->ndevices && !hasDevice; i++) {
+        if (STREQ(data->devices[i], ifname))
+            hasDevice = true;
+    }
+    if (accept_ra != 2 && !hasDevice &&
+        VIR_APPEND_ELEMENT(data->devices, data->ndevices, ifname) < 0)
+        goto error;
+
+ cleanup:
+    VIR_FREE(ifname);
+    return ret;
+
+ error:
+    ret = -1;
+    goto cleanup;
+}
+
+bool
+virNetDevIPCheckIPv6Forwarding(void)
+{
+    struct nl_msg *nlmsg = NULL;
+    bool valid = false;
+    struct rtgenmsg genmsg;
+    size_t i;
+    struct virNetDevIPCheckIPv6ForwardingData data = {
+        .hasRARoutes = false,
+        .devices = NULL,
+        .ndevices = 0
+    };
+
+
+    /* Prepare the request message */
+    if (!(nlmsg = nlmsg_alloc_simple(RTM_GETROUTE,
+                                     NLM_F_REQUEST | NLM_F_DUMP))) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    memset(&genmsg, 0, sizeof(genmsg));
+    genmsg.rtgen_family = AF_INET6;
+
+    if (nlmsg_append(nlmsg, &genmsg, sizeof(genmsg), NLMSG_ALIGNTO) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("allocated netlink buffer is too small"));
+        goto cleanup;
+    }
+
+    /* Send the request and loop over the responses */
+    if (virNetlinkDumpCommand(nlmsg, virNetDevIPCheckIPv6ForwardingCallback,
+                              0, 0, NETLINK_ROUTE, 0, &data) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Failed to loop over IPv6 routes"));
+        goto cleanup;
+    }
+
+    valid = !data.hasRARoutes || data.ndevices == 0;
+
+    /* Check the global accept_ra if at least one isn't set on a
+       per-device basis */
+    if (!valid && data.hasRARoutes) {
+        int accept_ra = virNetDevIPGetAcceptRA(NULL);
+        valid = accept_ra == 2;
+        VIR_DEBUG("Checked global accept_ra: %d", accept_ra);
+    }
+
+    if (!valid) {
+        virBuffer buf = VIR_BUFFER_INITIALIZER;
+        for (i = 0; i < data.ndevices; i++) {
+            virBufferAdd(&buf, data.devices[i], -1);
+            if (i < data.ndevices - 1)
+                virBufferAddLit(&buf, ", ");
+        }
+
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Check the host setup: enabling IPv6 forwarding with "
+                         "RA routes without accept_ra set to 2 is likely to cause "
+                         "routes loss. Interfaces to look at: %s"),
+                       virBufferCurrentContent(&buf));
+        virBufferFreeAndReset(&buf);
+    }
+
+ cleanup:
+    nlmsg_free(nlmsg);
+    for (i = 0; i < data.ndevices; i++)
+        VIR_FREE(data.devices[i]);
+    return valid;
+}
 
 #else /* defined(__linux__) && defined(HAVE_LIBNL) */
 
@@ -655,6 +824,12 @@ virNetDevIPWaitDadFinish(virSocketAddrPtr *addrs ATTRIBUTE_UNUSED,
     return -1;
 }
 
+bool
+virNetDevIPCheckIPv6Forwarding(void)
+{
+    VIR_WARN("built without libnl: unable to check if IPv6 forwarding can be safely enabled");
+    return true;
+}
 
 #endif /* defined(__linux__) && defined(HAVE_LIBNL) */
 
@@ -735,10 +910,15 @@ virNetDevGetifaddrsAddress(const char *ifname,
     }
 
     for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
-        int family = ifa->ifa_addr->sa_family;
+        int family;
 
         if (STRNEQ_NULLABLE(ifa->ifa_name, ifname))
             continue;
+
+        if (!ifa->ifa_addr)
+            continue;
+        family = ifa->ifa_addr->sa_family;
+
         if (family != AF_INET6 && family != AF_INET)
             continue;
 

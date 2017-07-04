@@ -52,7 +52,9 @@ virNetClientStreamMatches;
 virNetClientStreamNew;
 virNetClientStreamQueuePacket;
 virNetClientStreamRaiseError;
+virNetClientStreamRecvHole;
 virNetClientStreamRecvPacket;
+virNetClientStreamSendHole;
 virNetClientStreamSendPacket;
 virNetClientStreamSetError;
 
@@ -178,6 +180,7 @@ virNetServerProgramNew;
 virNetServerProgramSendReplyError;
 virNetServerProgramSendStreamData;
 virNetServerProgramSendStreamError;
+virNetServerProgramSendStreamHole;
 virNetServerProgramUnknownError;
 
 

@@ -1064,8 +1064,7 @@ qemuMonitorCommonTestNew(virDomainXMLOptionPtr xmlopt,
         goto error;
 
     if (vm) {
-        virObjectRef(vm);
-        test->vm = vm;
+        test->vm = virObjectRef(vm);
     } else {
         test->vm = virDomainObjNew(xmlopt);
         if (!test->vm)
@@ -1175,6 +1174,7 @@ qemuMonitorTestNew(bool json,
     if (!(test->mon = qemuMonitorOpen(test->vm,
                                       &src,
                                       json,
+                                      0,
                                       &qemuMonitorTestCallbacks,
                                       driver)))
         goto error;

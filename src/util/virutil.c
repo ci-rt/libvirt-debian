@@ -45,7 +45,6 @@
 #include <sys/ioctl.h>
 #include <string.h>
 #include <termios.h>
-#include <locale.h>
 
 #if WITH_DEVMAPPER
 # include <libdevmapper.h>
@@ -75,7 +74,6 @@
 #include "virlog.h"
 #include "virbuffer.h"
 #include "viralloc.h"
-#include "virthread.h"
 #include "verify.h"
 #include "virfile.h"
 #include "vircommand.h"
@@ -312,19 +310,19 @@ virScaleInteger(unsigned long long *value, const char *suffix,
         switch (c_tolower(*suffix)) {
         case 'e':
             scale *= base;
-            /* fallthrough */
+            ATTRIBUTE_FALLTHROUGH;
         case 'p':
             scale *= base;
-            /* fallthrough */
+            ATTRIBUTE_FALLTHROUGH;
         case 't':
             scale *= base;
-            /* fallthrough */
+            ATTRIBUTE_FALLTHROUGH;
         case 'g':
             scale *= base;
-            /* fallthrough */
+            ATTRIBUTE_FALLTHROUGH;
         case 'm':
             scale *= base;
-            /* fallthrough */
+            ATTRIBUTE_FALLTHROUGH;
         case 'k':
             scale *= base;
             break;
@@ -435,68 +433,6 @@ int virEnumFromString(const char *const*types,
             return i;
 
     return -1;
-}
-
-/* In case thread-safe locales are available */
-#if HAVE_NEWLOCALE
-
-static locale_t virLocale;
-
-static int
-virLocaleOnceInit(void)
-{
-    virLocale = newlocale(LC_ALL_MASK, "C", (locale_t)0);
-    if (!virLocale)
-        return -1;
-    return 0;
-}
-
-VIR_ONCE_GLOBAL_INIT(virLocale)
-#endif
-
-/**
- * virDoubleToStr
- *
- * converts double to string with C locale (thread-safe).
- *
- * Returns -1 on error, size of the string otherwise.
- */
-int
-virDoubleToStr(char **strp, double number)
-{
-    int ret = -1;
-
-#if HAVE_NEWLOCALE
-
-    locale_t old_loc;
-
-    if (virLocaleInitialize() < 0)
-        goto error;
-
-    old_loc = uselocale(virLocale);
-    ret = virAsprintf(strp, "%lf", number);
-    uselocale(old_loc);
-
-#else
-
-    char *radix, *tmp;
-    struct lconv *lc;
-
-    if ((ret = virAsprintf(strp, "%lf", number) < 0))
-        goto error;
-
-    lc = localeconv();
-    radix = lc->decimal_point;
-    tmp = strstr(*strp, radix);
-    if (tmp) {
-        *tmp = '.';
-        if (strlen(radix) > 1)
-            memmove(tmp + 1, tmp + strlen(radix), strlen(*strp) - (tmp - *strp));
-    }
-
-#endif /* HAVE_NEWLOCALE */
- error:
-    return ret;
 }
 
 
@@ -1582,7 +1518,7 @@ virSetUIDGIDWithCaps(uid_t uid, gid_t gid, gid_t *groups, int ngroups,
 
 
 #if defined(UDEVADM) || defined(UDEVSETTLE)
-void virFileWaitForDevices(void)
+void virWaitForDevices(void)
 {
 # ifdef UDEVADM
     const char *const settleprog[] = { UDEVADM, "settle", NULL };
@@ -1603,7 +1539,7 @@ void virFileWaitForDevices(void)
     ignore_value(virRun(settleprog, &exitstatus));
 }
 #else
-void virFileWaitForDevices(void)
+void virWaitForDevices(void)
 {}
 #endif
 

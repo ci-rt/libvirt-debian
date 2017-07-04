@@ -383,11 +383,11 @@ virSocketAddrFormatFull(const virSocketAddr *addr,
      * nicely for UNIX sockets */
     if (addr->data.sa.sa_family == AF_UNIX) {
         if (withService) {
-            if (virAsprintf(&addrstr, "127.0.0.1%s0",
+            if (virAsprintf(&addrstr, VIR_LOOPBACK_IPV4_ADDR"%s0",
                             separator ? separator : ":") < 0)
                 goto error;
         } else {
-            if (VIR_STRDUP(addrstr, "127.0.0.1") < 0)
+            if (VIR_STRDUP(addrstr, VIR_LOOPBACK_IPV4_ADDR) < 0)
                 goto error;
         }
         return addrstr;
@@ -417,8 +417,10 @@ virSocketAddrFormatFull(const virSocketAddr *addr,
 
         if (virAsprintf(&addrstr, "%s%s%s",
                         ipv6_host ? ipv6_host : host,
-                        separator ? separator : ":", port) == -1)
+                        separator ? separator : ":", port) == -1) {
+            VIR_FREE(ipv6_host);
             goto error;
+        }
 
         VIR_FREE(ipv6_host);
     } else {

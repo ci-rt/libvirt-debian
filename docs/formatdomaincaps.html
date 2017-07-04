@@ -97,7 +97,8 @@
 </pre>
         <dl><dt><code>path</code></dt><dd>The full path to the emulator binary.</dd><dt><code>domain</code></dt><dd>Describes the <a href="formatdomain.html#elements" shape="rect">virtualization
           type</a> (or so called domain type).</dd><dt><code>machine</code></dt><dd>The domain's <a href="formatdomain.html#elementsOSBIOS" shape="rect">machine
-          type</a>.</dd><dt><code>arch</code></dt><dd>The domain's <a href="formatdomain.html#elementsOSBIOS" shape="rect">
+          type</a>. Since not every hypervisor has a sense of machine types
+          this element might be omitted in such drivers.</dd><dt><code>arch</code></dt><dd>The domain's <a href="formatdomain.html#elementsOSBIOS" shape="rect">
           architecture</a>.</dd></dl>
         <h3>
           <a name="elementsCPUAllocation" shape="rect" id="elementsCPUAllocation">CPU Allocation</a>

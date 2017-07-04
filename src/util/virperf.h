@@ -47,6 +47,15 @@ typedef enum {
                                               the backend of the instruction
                                               processor pipeline */
     VIR_PERF_EVENT_REF_CPU_CYCLES,   /* Count of ref cpu cycles */
+    VIR_PERF_EVENT_CPU_CLOCK,   /* Count of cpu clock time*/
+    VIR_PERF_EVENT_TASK_CLOCK,   /* Count of task clock time*/
+    VIR_PERF_EVENT_PAGE_FAULTS,   /* Count of total page faults */
+    VIR_PERF_EVENT_CONTEXT_SWITCHES,   /* Count of context switches */
+    VIR_PERF_EVENT_CPU_MIGRATIONS,   /* Count of cpu migrations */
+    VIR_PERF_EVENT_PAGE_FAULTS_MIN,   /* Count of minor page faults */
+    VIR_PERF_EVENT_PAGE_FAULTS_MAJ,   /* Count of major page faults */
+    VIR_PERF_EVENT_ALIGNMENT_FAULTS,   /* Count of alignment faults */
+    VIR_PERF_EVENT_EMULATION_FAULTS,   /* Count of emulation faults */
 
     VIR_PERF_EVENT_LAST
 } virPerfEventType;

@@ -58,7 +58,7 @@ static int
 qemuHotplugCreateObjects(virDomainXMLOptionPtr xmlopt,
                          virDomainObjPtr *vm,
                          const char *domxml,
-                         bool event, const char *testname)
+                         bool event)
 {
     int ret = -1;
     qemuDomainObjPrivatePtr priv = NULL;
@@ -76,11 +76,11 @@ qemuHotplugCreateObjects(virDomainXMLOptionPtr xmlopt,
     virQEMUCapsSet(priv->qemuCaps, QEMU_CAPS_VIRTIO_CCW);
     virQEMUCapsSet(priv->qemuCaps, QEMU_CAPS_DEVICE_IVSHMEM_PLAIN);
     virQEMUCapsSet(priv->qemuCaps, QEMU_CAPS_DEVICE_IVSHMEM_DOORBELL);
+    virQEMUCapsSet(priv->qemuCaps, QEMU_CAPS_SCSI_DISK_WWN);
     if (event)
         virQEMUCapsSet(priv->qemuCaps, QEMU_CAPS_DEVICE_DEL_EVENT);
 
-    if (qemuTestCapsCacheInsert(driver.qemuCapsCache, testname,
-                                priv->qemuCaps) < 0)
+    if (qemuTestCapsCacheInsert(driver.qemuCapsCache, priv->qemuCaps) < 0)
         goto cleanup;
 
     if (!((*vm)->def = virDomainDefParseString(domxml,
@@ -262,8 +262,7 @@ testQemuHotplug(const void *data)
         vm = test->vm;
     } else {
         if (qemuHotplugCreateObjects(driver.xmlopt, &vm, domain_xml,
-                                     test->deviceDeletedEvent,
-                                     test->domain_filename) < 0)
+                                     test->deviceDeletedEvent) < 0)
             goto cleanup;
     }
 
@@ -415,8 +414,7 @@ testQemuHotplugCpuPrepare(const char *test,
     if (virTestLoadFile(data->file_xml_dom, &data->xml_dom) < 0)
         goto error;
 
-    if (qemuHotplugCreateObjects(driver.xmlopt, &data->vm, data->xml_dom, true,
-                                 "cpu-hotplug-test-domain") < 0)
+    if (qemuHotplugCreateObjects(driver.xmlopt, &data->vm, data->xml_dom, true) < 0)
         goto error;
 
     if (!(caps = virQEMUDriverGetCapabilities(&driver, false)))
@@ -812,6 +810,10 @@ mymain(void)
     DO_TEST_DETACH("base-live", "ivshmem-plain-detach", false, false,
                    "device_del", QMP_OK,
                    "object-del", QMP_OK);
+    DO_TEST_ATTACH("base-live+disk-scsi-wwn",
+                   "disk-scsi-duplicate-wwn", false, true,
+                   "human-monitor-command", HMP("OK\\r\\n"),
+                   "device_add", QMP_OK);
 
 #define DO_TEST_CPU_GROUP(prefix, vcpus, modernhp, expectfail)                 \
     do {                                                                       \
@@ -856,4 +858,4 @@ mymain(void)
     return (ret == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-VIRT_TEST_MAIN(mymain)
+VIR_TEST_MAIN(mymain)

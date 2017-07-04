@@ -95,7 +95,7 @@ static int testCompareXMLToArgvFiles(const char *xmlfile,
     if (testSanitizeDef(vmdef) < 0)
         goto fail;
 
-    if (!virDomainDefCheckABIStability(vmdef, vmdef)) {
+    if (!virDomainDefCheckABIStability(vmdef, vmdef, driver.xmlopt)) {
         VIR_TEST_DEBUG("ABI stability check failed on %s", xmlfile);
         goto fail;
     }
@@ -293,7 +293,7 @@ mymain(void)
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-VIRT_TEST_MAIN(mymain)
+VIR_TEST_MAIN(mymain)
 
 #else
 

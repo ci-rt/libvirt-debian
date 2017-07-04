@@ -104,6 +104,10 @@ mymain(void)
     DO_TEST_DIFFERENT("serial");
     DO_TEST_DIFFERENT("serial-grub");
     DO_TEST_DIFFERENT("serial-grub-nocons");
+    DO_TEST_DIFFERENT("vnc");
+    DO_TEST_DIFFERENT("vnc-vgaconf-on");
+    DO_TEST_DIFFERENT("vnc-vgaconf-off");
+    DO_TEST_DIFFERENT("vnc-vgaconf-io");
 
     /* Address allocation tests */
     DO_TEST_DIFFERENT("addr-single-sata-disk");
@@ -118,13 +122,16 @@ mymain(void)
     DO_TEST_DIFFERENT("addr-no32devs-multiple-sata-disks");
     DO_TEST_FAILURE("addr-no32devs-more-than-32-sata-disks");
 
+    /* USB xhci tablet */
+    DO_TEST_DIFFERENT("input-xhci-tablet");
+
     virObjectUnref(driver.caps);
     virObjectUnref(driver.xmlopt);
 
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-VIRT_TEST_MAIN(mymain)
+VIR_TEST_MAIN_PRELOAD(mymain, abs_builddir "/.libs/bhyvexml2argvmock.so")
 
 #else
 

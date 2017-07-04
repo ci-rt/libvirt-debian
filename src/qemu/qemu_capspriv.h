@@ -21,7 +21,7 @@
  * Author: Pavel Fedin <p.fedin@samsung.com>
  */
 
-#ifndef __QEMU_CAPSRIV_H_ALLOW__
+#ifndef __QEMU_CAPSPRIV_H_ALLOW__
 # error "qemu_capspriv.h may only be included by qemu_capabilities.c or test suites"
 #endif
 
@@ -70,6 +70,49 @@ virQEMUCapsSetArch(virQEMUCapsPtr qemuCaps,
                    virArch arch);
 
 void
+virQEMUCapsSetVersion(virQEMUCapsPtr qemuCaps,
+                      unsigned int version);
+
+void
 virQEMUCapsInitHostCPUModel(virQEMUCapsPtr qemuCaps,
-                            virCapsPtr caps);
+                            virCapsPtr caps,
+                            virDomainVirtType type);
+
+int
+virQEMUCapsInitCPUModel(virQEMUCapsPtr qemuCaps,
+                        virDomainVirtType type,
+                        virCPUDefPtr cpu,
+                        bool migratable);
+
+void
+virQEMUCapsInitQMPBasicArch(virQEMUCapsPtr qemuCaps);
+
+void
+virQEMUCapsSetCPUModelInfo(virQEMUCapsPtr qemuCaps,
+                           virDomainVirtType type,
+                           qemuMonitorCPUModelInfoPtr modelInfo);
+
+virCPUDefPtr
+virQEMUCapsProbeHostCPUForEmulator(virCapsPtr caps,
+                                   virQEMUCapsPtr qemuCaps,
+                                   virDomainVirtType type) ATTRIBUTE_NOINLINE;
+
+void
+virQEMUCapsSetGICCapabilities(virQEMUCapsPtr qemuCaps,
+                              virGICCapability *capabilities,
+                              size_t ncapabilities);
+
+int
+virQEMUCapsParseHelpStr(const char *qemu,
+                        const char *str,
+                        virQEMUCapsPtr qemuCaps,
+                        unsigned int *version,
+                        bool *is_kvm,
+                        unsigned int *kvm_version,
+                        bool check_yajl,
+                        const char *qmperr);
+
+int
+virQEMUCapsParseDeviceStr(virQEMUCapsPtr qemuCaps,
+                          const char *str);
 #endif

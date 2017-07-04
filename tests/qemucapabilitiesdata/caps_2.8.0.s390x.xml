@@ -129,26 +129,31 @@
   <flag name='vhost-scsi'/>
   <flag name='drive-iotune-group'/>
   <flag name='query-cpu-model-expansion'/>
+  <flag name='query-cpu-definitions'/>
+  <flag name='block-write-threshold'/>
+  <flag name='query-named-block-nodes'/>
+  <flag name='kernel-irqchip'/>
+  <flag name='kernel-irqchip.split'/>
   <version>2007093</version>
   <kvmVersion>0</kvmVersion>
   <package></package>
   <arch>s390x</arch>
-  <hostCPU model='zEC12.2-base'>
-    <feature name='aefsi' supported='yes'/>
-    <feature name='msa5' supported='yes'/>
-    <feature name='msa4' supported='yes'/>
-    <feature name='msa3' supported='yes'/>
-    <feature name='msa2' supported='yes'/>
-    <feature name='msa1' supported='yes'/>
-    <feature name='sthyi' supported='yes'/>
-    <feature name='edat' supported='yes'/>
-    <feature name='ri' supported='yes'/>
-    <feature name='edat2' supported='yes'/>
-    <feature name='ipter' supported='yes'/>
-    <feature name='esop' supported='yes'/>
-    <feature name='cte' supported='yes'/>
-    <feature name='te' supported='yes'/>
-    <feature name='cmm' supported='yes'/>
+  <hostCPU type='kvm' model='zEC12.2-base' migratability='no'>
+    <property name='aefsi' type='boolean' value='true'/>
+    <property name='msa5' type='boolean' value='true'/>
+    <property name='msa4' type='boolean' value='true'/>
+    <property name='msa3' type='boolean' value='true'/>
+    <property name='msa2' type='boolean' value='true'/>
+    <property name='msa1' type='boolean' value='true'/>
+    <property name='sthyi' type='boolean' value='true'/>
+    <property name='edat' type='boolean' value='true'/>
+    <property name='ri' type='boolean' value='true'/>
+    <property name='edat2' type='boolean' value='true'/>
+    <property name='ipter' type='boolean' value='true'/>
+    <property name='esop' type='boolean' value='true'/>
+    <property name='cte' type='boolean' value='true'/>
+    <property name='te' type='boolean' value='true'/>
+    <property name='cmm' type='boolean' value='true'/>
   </hostCPU>
   <cpu type='kvm' name='z10EC-base'/>
   <cpu type='kvm' name='z9EC-base'/>

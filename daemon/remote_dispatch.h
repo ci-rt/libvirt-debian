@@ -7915,6 +7915,7 @@ static int remoteDispatchDomainMigratePrepareTunnel(
         virNetServerClientGetPrivateData(client);
     virStreamPtr st = NULL;
     daemonClientStreamPtr stream = NULL;
+    const bool sparse = false;
 
     if (!priv->conn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
@@ -7930,7 +7931,7 @@ static int remoteDispatchDomainMigratePrepareTunnel(
     if (!(st = virStreamNew(priv->conn, VIR_STREAM_NONBLOCK)))
         goto cleanup;
 
-    if (!(stream = daemonCreateClientStream(client, st, remoteProgram, &msg->header)))
+    if (!(stream = daemonCreateClientStream(client, st, remoteProgram, &msg->header, sparse)))
         goto cleanup;
 
     if (virDomainMigratePrepareTunnel(priv->conn, st, flags, dname, resource, args->dom_xml) < 0)
@@ -7997,6 +7998,7 @@ static int remoteDispatchDomainMigratePrepareTunnel3(
         virNetServerClientGetPrivateData(client);
     virStreamPtr st = NULL;
     daemonClientStreamPtr stream = NULL;
+    const bool sparse = false;
 
     if (!priv->conn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
@@ -8012,7 +8014,7 @@ static int remoteDispatchDomainMigratePrepareTunnel3(
     if (!(st = virStreamNew(priv->conn, VIR_STREAM_NONBLOCK)))
         goto cleanup;
 
-    if (!(stream = daemonCreateClientStream(client, st, remoteProgram, &msg->header)))
+    if (!(stream = daemonCreateClientStream(client, st, remoteProgram, &msg->header, sparse)))
         goto cleanup;
 
     if (virDomainMigratePrepareTunnel3(priv->conn, st, args->cookie_in.cookie_in_val, args->cookie_in.cookie_in_len, &cookie_out, &cookie_out_len, flags, dname, resource, args->dom_xml) < 0)
@@ -8331,6 +8333,7 @@ static int remoteDispatchDomainOpenChannel(
         virNetServerClientGetPrivateData(client);
     virStreamPtr st = NULL;
     daemonClientStreamPtr stream = NULL;
+    const bool sparse = false;
 
     if (!priv->conn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
@@ -8345,7 +8348,7 @@ static int remoteDispatchDomainOpenChannel(
     if (!(st = virStreamNew(priv->conn, VIR_STREAM_NONBLOCK)))
         goto cleanup;
 
-    if (!(stream = daemonCreateClientStream(client, st, remoteProgram, &msg->header)))
+    if (!(stream = daemonCreateClientStream(client, st, remoteProgram, &msg->header, sparse)))
         goto cleanup;
 
     if (virDomainOpenChannel(dom, name, st, args->flags) < 0)
@@ -8408,6 +8411,7 @@ static int remoteDispatchDomainOpenConsole(
         virNetServerClientGetPrivateData(client);
     virStreamPtr st = NULL;
     daemonClientStreamPtr stream = NULL;
+    const bool sparse = false;
 
     if (!priv->conn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
@@ -8422,7 +8426,7 @@ static int remoteDispatchDomainOpenConsole(
     if (!(st = virStreamNew(priv->conn, VIR_STREAM_NONBLOCK)))
         goto cleanup;
 
-    if (!(stream = daemonCreateClientStream(client, st, remoteProgram, &msg->header)))
+    if (!(stream = daemonCreateClientStream(client, st, remoteProgram, &msg->header, sparse)))
         goto cleanup;
 
     if (virDomainOpenConsole(dom, dev_name, st, args->flags) < 0)
@@ -9464,6 +9468,7 @@ static int remoteDispatchDomainScreenshot(
         virNetServerClientGetPrivateData(client);
     virStreamPtr st = NULL;
     daemonClientStreamPtr stream = NULL;
+    const bool sparse = false;
 
     if (!priv->conn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
@@ -9476,7 +9481,7 @@ static int remoteDispatchDomainScreenshot(
     if (!(st = virStreamNew(priv->conn, VIR_STREAM_NONBLOCK)))
         goto cleanup;
 
-    if (!(stream = daemonCreateClientStream(client, st, remoteProgram, &msg->header)))
+    if (!(stream = daemonCreateClientStream(client, st, remoteProgram, &msg->header, sparse)))
         goto cleanup;
 
     if ((mime = virDomainScreenshot(dom, st, args->screen, args->flags)) == NULL)
@@ -9807,6 +9812,62 @@ cleanup:
         virNetMessageSaveError(rerr);
     virObjectUnref(dom);
     virTypedParamsFree(params, nparams);
+    return rv;
+}
+
+
+
+static int remoteDispatchDomainSetBlockThreshold(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_set_block_threshold_args *args);
+static int remoteDispatchDomainSetBlockThresholdHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchDomainSetBlockThreshold");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchDomainSetBlockThreshold(server, client, msg, rerr, args);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchDomainSetBlockThreshold(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_set_block_threshold_args *args)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if (virDomainSetBlockThreshold(dom, args->dev, args->threshold, args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(dom);
     return rv;
 }
 
@@ -16842,6 +16903,7 @@ static int remoteDispatchStorageVolDownload(
         virNetServerClientGetPrivateData(client);
     virStreamPtr st = NULL;
     daemonClientStreamPtr stream = NULL;
+    const bool sparse = args->flags & VIR_STORAGE_VOL_DOWNLOAD_SPARSE_STREAM;
 
     if (!priv->conn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
@@ -16854,7 +16916,7 @@ static int remoteDispatchStorageVolDownload(
     if (!(st = virStreamNew(priv->conn, VIR_STREAM_NONBLOCK)))
         goto cleanup;
 
-    if (!(stream = daemonCreateClientStream(client, st, remoteProgram, &msg->header)))
+    if (!(stream = daemonCreateClientStream(client, st, remoteProgram, &msg->header, sparse)))
         goto cleanup;
 
     if (virStorageVolDownload(vol, st, args->offset, args->length, args->flags) < 0)
@@ -17354,6 +17416,7 @@ static int remoteDispatchStorageVolUpload(
         virNetServerClientGetPrivateData(client);
     virStreamPtr st = NULL;
     daemonClientStreamPtr stream = NULL;
+    const bool sparse = args->flags & VIR_STORAGE_VOL_UPLOAD_SPARSE_STREAM;
 
     if (!priv->conn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
@@ -17366,7 +17429,7 @@ static int remoteDispatchStorageVolUpload(
     if (!(st = virStreamNew(priv->conn, VIR_STREAM_NONBLOCK)))
         goto cleanup;
 
-    if (!(stream = daemonCreateClientStream(client, st, remoteProgram, &msg->header)))
+    if (!(stream = daemonCreateClientStream(client, st, remoteProgram, &msg->header, sparse)))
         goto cleanup;
 
     if (virStorageVolUpload(vol, st, args->offset, args->length, args->flags) < 0)
@@ -20966,6 +21029,24 @@ virNetServerProgramProc remoteProcs[] = {
    remoteDispatchDomainSetVcpuHelper,
    sizeof(remote_domain_set_vcpu_args),
    (xdrproc_t)xdr_remote_domain_set_vcpu_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Async event DomainEventBlockThreshold => 385 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method DomainSetBlockThreshold => 386 */
+   remoteDispatchDomainSetBlockThresholdHelper,
+   sizeof(remote_domain_set_block_threshold_args),
+   (xdrproc_t)xdr_remote_domain_set_block_threshold_args,
    0,
    (xdrproc_t)xdr_void,
    true,

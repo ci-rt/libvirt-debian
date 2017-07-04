@@ -29,7 +29,6 @@
 #include "domain_event.h"
 #include "virlog.h"
 #include "viralloc.h"
-#include "nodeinfo.h"
 #include "virhostmem.h"
 #include "virstring.h"
 #include "virfile.h"
@@ -37,7 +36,7 @@
 #include "virkeycode.h"
 #include "snapshot_conf.h"
 #include "vbox_snapshot_conf.h"
-#include "fdstream.h"
+#include "virfdstream.h"
 #include "configmake.h"
 
 #include "vbox_common.h"
@@ -77,7 +76,10 @@ vboxCapsInit(void)
                                    false, false)) == NULL)
         goto no_memory;
 
-    if (nodeCapsInitNUMA(caps) < 0)
+    if (virCapabilitiesInitNUMA(caps) < 0)
+        goto no_memory;
+
+    if (virCapabilitiesInitCaches(caps) < 0)
         goto no_memory;
 
     if ((guest = virCapabilitiesAddGuest(caps,
@@ -140,7 +142,7 @@ vboxDriverObjNew(void)
 
     if (!(driver->caps = vboxCapsInit()) ||
         !(driver->xmlopt = virDomainXMLOptionNew(&vboxDomainDefParserConfig,
-                                                 NULL, NULL)))
+                                                 NULL, NULL, NULL, NULL)))
         goto cleanup;
 
     return driver;
@@ -807,9 +809,7 @@ static virDomainPtr vboxDomainLookupByID(virConnectPtr conn, int id)
      * itself, so need not worry.
      */
 
-    ret = virGetDomain(conn, machineNameUtf8, uuid);
-    if (ret)
-        ret->id = id + 1;
+    ret = virGetDomain(conn, machineNameUtf8, uuid, id + 1);
 
     /* Cleanup all the XPCOM allocated stuff here */
     VBOX_UTF8_FREE(machineNameUtf8);
@@ -863,8 +863,9 @@ virDomainPtr vboxDomainLookupByUUID(virConnectPtr conn,
         vboxIIDUnalloc(&iid);
 
         if (memcmp(uuid, iid_as_uuid, VIR_UUID_BUFLEN) == 0) {
-
             PRUint32 state;
+            int id = -1;
+
 
             matched = true;
 
@@ -873,16 +874,10 @@ virDomainPtr vboxDomainLookupByUUID(virConnectPtr conn,
 
             gVBoxAPI.UIMachine.GetState(machine, &state);
 
-            /* get a new domain pointer from virGetDomain, if it fails
-             * then no need to assign the id, else assign the id, cause
-             * it is -1 by default. rest is taken care by virGetDomain
-             * itself, so need not worry.
-             */
+            if (gVBoxAPI.machineStateChecker.Online(state))
+                id = i + 1;
 
-            ret = virGetDomain(conn, machineNameUtf8, iid_as_uuid);
-            if (ret &&
-                gVBoxAPI.machineStateChecker.Online(state))
-                ret->id = i + 1;
+            ret = virGetDomain(conn, machineNameUtf8, iid_as_uuid, id);
          }
 
          if (matched)
@@ -937,8 +932,8 @@ vboxDomainLookupByName(virConnectPtr conn, const char *name)
         VBOX_UTF16_TO_UTF8(machineNameUtf16, &machineNameUtf8);
 
         if (STREQ(name, machineNameUtf8)) {
-
             PRUint32 state;
+            int id = -1;
 
             matched = true;
 
@@ -948,16 +943,10 @@ vboxDomainLookupByName(virConnectPtr conn, const char *name)
 
             gVBoxAPI.UIMachine.GetState(machine, &state);
 
-            /* get a new domain pointer from virGetDomain, if it fails
-             * then no need to assign the id, else assign the id, cause
-             * it is -1 by default. rest is taken care by virGetDomain
-             * itself, so need not worry.
-             */
+            if (gVBoxAPI.machineStateChecker.Online(state))
+                id = i + 1;
 
-            ret = virGetDomain(conn, machineNameUtf8, uuid);
-            if (ret &&
-                gVBoxAPI.machineStateChecker.Online(state))
-                ret->id = i + 1;
+            ret = virGetDomain(conn, machineNameUtf8, uuid, id);
         }
 
         VBOX_UTF8_FREE(machineNameUtf8);
@@ -1983,7 +1972,7 @@ vboxDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags
     gVBoxAPI.UISession.Close(data->vboxSession);
     vboxIIDUnalloc(&mchiid);
 
-    ret = virGetDomain(conn, def->name, def->uuid);
+    ret = virGetDomain(conn, def->name, def->uuid, -1);
     VBOX_RELEASE(machine);
 
     virDomainDefFree(def);
@@ -5116,7 +5105,7 @@ vboxSnapshotRedefine(virDomainPtr dom,
         VIR_FREE(currentSnapshotXmlFilePath);
         if (virAsprintf(&currentSnapshotXmlFilePath, "%s%s.xml", machineLocationPath, snapshotMachineDesc->currentSnapshot) < 0)
             goto cleanup;
-        char *snapshotContent = virDomainSnapshotDefFormat(NULL, def, data->caps, VIR_DOMAIN_DEF_FORMAT_SECURE, 0);
+        char *snapshotContent = virDomainSnapshotDefFormat(NULL, def, data->caps, data->xmlopt, VIR_DOMAIN_DEF_FORMAT_SECURE, 0);
         if (snapshotContent == NULL) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("Unable to get snapshot content"));
@@ -6038,7 +6027,7 @@ static char *vboxDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
 
     virUUIDFormat(dom->uuid, uuidstr);
     memcpy(def->dom->uuid, dom->uuid, VIR_UUID_BUFLEN);
-    ret = virDomainSnapshotDefFormat(uuidstr, def, data->caps,
+    ret = virDomainSnapshotDefFormat(uuidstr, def, data->caps, data->xmlopt,
                                       virDomainDefFormatConvertXMLFlags(flags),
                                       0);
 
@@ -7334,6 +7323,7 @@ vboxConnectListAllDomains(virConnectPtr conn,
 
     for (i = 0; i < machines.count; i++) {
         IMachine *machine = machines.items[i];
+        int id = -1;
 
         if (!machine)
             continue;
@@ -7398,16 +7388,16 @@ vboxConnectListAllDomains(virConnectPtr conn,
       vboxIIDToUUID(&iid, uuid);
       vboxIIDUnalloc(&iid);
 
-      dom = virGetDomain(conn, machineNameUtf8, uuid);
+      if (active)
+          id = i + 1;
+
+      dom = virGetDomain(conn, machineNameUtf8, uuid, id);
 
       VBOX_UTF8_FREE(machineNameUtf8);
       VBOX_UTF16_FREE(machineNameUtf16);
 
       if (!dom)
           goto cleanup;
-
-      if (active)
-          dom->id = i + 1;
 
       doms[count++] = dom;
     }
@@ -7438,7 +7428,7 @@ static int
 vboxNodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED,
                 virNodeInfoPtr nodeinfo)
 {
-    return nodeGetInfo(nodeinfo);
+    return virCapabilitiesGetNodeInfo(nodeinfo);
 }
 
 static int

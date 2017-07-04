@@ -505,6 +505,77 @@ int virNetDevTapDelete(const char *ifname ATTRIBUTE_UNUSED,
 
 
 /**
+ * virNetDevTapAttachBridge:
+ * @tapname: the tap interface name (or name template)
+ * @brname: the bridge name
+ * @macaddr: desired MAC address
+ * @virtPortProfile: bridge/port specific configuration
+ * @virtVlan: vlan tag info
+ * @mtu: requested MTU for port (or 0 for "default")
+ * @actualMTU: MTU actually set for port (after accounting for bridge's MTU)
+ *
+ * This attaches an existing tap device (@tapname) to a bridge
+ * (@brname).
+ *
+ * Returns 0 in case of success or -1 on failure
+ */
+int
+virNetDevTapAttachBridge(const char *tapname,
+                         const char *brname,
+                         const virMacAddr *macaddr,
+                         const unsigned char *vmuuid,
+                         virNetDevVPortProfilePtr virtPortProfile,
+                         virNetDevVlanPtr virtVlan,
+                         unsigned int mtu,
+                         unsigned int *actualMTU)
+{
+    /* If an MTU is specified for the new device, set it before
+     * attaching the device to the bridge, as it may affect the MTU of
+     * the bridge (in particular if it is the first device attached to
+     * the bridge, or if it is smaller than the current MTU of the
+     * bridge). If MTU isn't specified for the new device (i.e. 0),
+     * we need to set the interface MTU to the current MTU of the
+     * bridge (to avoid inadvertantly changing the bridge's MTU).
+     */
+    if (mtu > 0) {
+        if (virNetDevSetMTU(tapname, mtu) < 0)
+            goto error;
+    } else {
+        if (virNetDevSetMTUFromDevice(tapname, brname) < 0)
+            goto error;
+    }
+    if (actualMTU) {
+        int retMTU = virNetDevGetMTU(tapname);
+
+        if (retMTU < 0)
+            goto error;
+
+        *actualMTU = retMTU;
+    }
+
+
+    if (virtPortProfile) {
+        if (virtPortProfile->virtPortType == VIR_NETDEV_VPORT_PROFILE_MIDONET) {
+            if (virNetDevMidonetBindPort(tapname, virtPortProfile) < 0)
+                goto error;
+        } else if (virtPortProfile->virtPortType == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH) {
+            if (virNetDevOpenvswitchAddPort(brname, tapname, macaddr, vmuuid,
+                                            virtPortProfile, virtVlan) < 0)
+                goto error;
+        }
+    } else {
+        if (virNetDevBridgeAddPort(brname, tapname) < 0)
+            goto error;
+    }
+
+    return 0;
+
+ error:
+    return -1;
+}
+
+
+/**
  * virNetDevTapCreateInBridgePort:
  * @brname: the bridge name
  * @ifname: the interface name (or name template)
@@ -513,6 +584,7 @@ int virNetDevTapDelete(const char *ifname ATTRIBUTE_UNUSED,
  * @tapfd: array of file descriptor return value for the new tap device
  * @tapfdSize: number of file descriptors in @tapfd
  * @virtPortProfile: bridge/port specific configuration
+ * @coalesce: optional coalesce parameters
  * @mtu: requested MTU for port (or 0 for "default")
  * @actualMTU: MTU actually set for port (after accounting for bridge's MTU)
  * @flags: OR of virNetDevTapCreateFlags:
@@ -545,6 +617,7 @@ int virNetDevTapCreateInBridgePort(const char *brname,
                                    size_t tapfdSize,
                                    virNetDevVPortProfilePtr virtPortProfile,
                                    virNetDevVlanPtr virtVlan,
+                                   virNetDevCoalescePtr coalesce,
                                    unsigned int mtu,
                                    unsigned int *actualMTU,
                                    unsigned int flags)
@@ -582,46 +655,15 @@ int virNetDevTapCreateInBridgePort(const char *brname,
     if (virNetDevSetMAC(*ifname, &tapmac) < 0)
         goto error;
 
-    /* If an MTU is specified for the new device, set it before
-     * attaching the device to the bridge, as it may affect the MTU of
-     * the bridge (in particular if it is the first device attached to
-     * the bridge, or if it is smaller than the current MTU of the
-     * bridge). If MTU isn't specified for the new device (i.e. 0),
-     * we need to set the interface MTU to the current MTU of the
-     * bridge (to avoid inadvertantly changing the bridge's MTU).
-     */
-    if (mtu > 0) {
-        if (virNetDevSetMTU(*ifname, mtu) < 0)
-            goto error;
-    } else {
-        if (virNetDevSetMTUFromDevice(*ifname, brname) < 0)
-            goto error;
-    }
-    if (actualMTU) {
-        int retMTU = virNetDevGetMTU(*ifname);
-
-        if (retMTU < 0)
-            goto error;
-
-        *actualMTU = retMTU;
-    }
-
-
-    if (virtPortProfile) {
-        if (virtPortProfile->virtPortType == VIR_NETDEV_VPORT_PROFILE_MIDONET) {
-            if (virNetDevMidonetBindPort(*ifname, virtPortProfile) < 0)
-                goto error;
-        } else if (virtPortProfile->virtPortType == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH) {
-            if (virNetDevOpenvswitchAddPort(brname, *ifname, macaddr, vmuuid,
-                                            virtPortProfile, virtVlan) < 0)
-                goto error;
-        }
-    } else {
-        if (virNetDevBridgeAddPort(brname, *ifname) < 0)
-            goto error;
+    if (virNetDevTapAttachBridge(*ifname, brname, macaddr, vmuuid,
+                                 virtPortProfile, virtVlan, mtu, actualMTU) < 0) {
+        goto error;
     }
 
     if (virNetDevSetOnline(*ifname, !!(flags & VIR_NETDEV_TAP_CREATE_IFUP)) < 0)
+        goto error;
+
+    if (virNetDevSetCoalesce(*ifname, coalesce, false) < 0)
         goto error;
 
     return 0;
@@ -725,6 +767,9 @@ virNetDevTapInterfaceStats(const char *ifname,
     }
 
     for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
+        if (!ifa->ifa_addr)
+            continue;
+
         if (ifa->ifa_addr->sa_family != AF_LINK)
             continue;
 

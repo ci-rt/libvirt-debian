@@ -59,12 +59,11 @@
 #include "node_device_conf.h"
 #include "virpci.h"
 #include "viruuid.h"
-#include "fdstream.h"
+#include "virfdstream.h"
 #include "virfile.h"
 #include "viruri.h"
 #include "vircommand.h"
 #include "virnodesuspend.h"
-#include "nodeinfo.h"
 #include "virhostmem.h"
 #include "configmake.h"
 #include "virstring.h"
@@ -402,7 +401,7 @@ virDomainXMLOptionPtr
 xenDomainXMLConfInit(void)
 {
     return virDomainXMLOptionNew(&xenDomainDefParserConfig,
-                                 NULL, NULL);
+                                 NULL, NULL, NULL, NULL);
 }
 
 
@@ -775,9 +774,7 @@ xenUnifiedDomainCreateXML(virConnectPtr conn,
     if (xenDaemonCreateXML(conn, def) < 0)
         goto cleanup;
 
-    ret = virGetDomain(conn, def->name, def->uuid);
-    if (ret)
-        ret->id = def->id;
+    ret = virGetDomain(conn, def->name, def->uuid, def->id);
 
  cleanup:
     virDomainDefFree(def);
@@ -796,10 +793,7 @@ xenUnifiedDomainLookupByID(virConnectPtr conn, int id)
     if (virDomainLookupByIDEnsureACL(conn, def) < 0)
         goto cleanup;
 
-    if (!(ret = virGetDomain(conn, def->name, def->uuid)))
-        goto cleanup;
-
-    ret->id = def->id;
+    ret = virGetDomain(conn, def->name, def->uuid, def->id);
 
  cleanup:
     virDomainDefFree(def);
@@ -819,10 +813,7 @@ xenUnifiedDomainLookupByUUID(virConnectPtr conn,
     if (virDomainLookupByUUIDEnsureACL(conn, def) < 0)
         goto cleanup;
 
-    if (!(ret = virGetDomain(conn, def->name, def->uuid)))
-        goto cleanup;
-
-    ret->id = def->id;
+    ret = virGetDomain(conn, def->name, def->uuid, def->id);
 
  cleanup:
     virDomainDefFree(def);
@@ -842,10 +833,7 @@ xenUnifiedDomainLookupByName(virConnectPtr conn,
     if (virDomainLookupByNameEnsureACL(conn, def) < 0)
         goto cleanup;
 
-    if (!(ret = virGetDomain(conn, def->name, def->uuid)))
-        goto cleanup;
-
-    ret->id = def->id;
+    ret = virGetDomain(conn, def->name, def->uuid, def->id);
 
  cleanup:
     virDomainDefFree(def);
@@ -1721,9 +1709,7 @@ xenUnifiedDomainMigrateFinish(virConnectPtr dconn,
             goto cleanup;
     }
 
-    ret = virGetDomain(dconn, minidef->name, minidef->uuid);
-    if (ret)
-        ret->id = minidef->id;
+    ret = virGetDomain(dconn, minidef->name, minidef->uuid, minidef->id);
 
  cleanup:
     virDomainDefFree(def);
@@ -1818,10 +1804,7 @@ xenUnifiedDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int
 
     if (xenDaemonDomainDefineXML(conn, def) < 0)
         goto cleanup;
-    ret = virGetDomain(conn, def->name, def->uuid);
-
-    if (ret)
-        ret->id = -1;
+    ret = virGetDomain(conn, def->name, def->uuid, -1);
 
  cleanup:
     virDomainDefFree(def);
@@ -2301,7 +2284,7 @@ xenUnifiedConnectDomainEventDeregisterAny(virConnectPtr conn,
 
     if (virObjectEventStateDeregisterID(conn,
                                         priv->domainEvents,
-                                        callbackID) < 0)
+                                        callbackID, true) < 0)
         ret = -1;
 
     xenUnifiedUnlock(priv);
@@ -2597,7 +2580,7 @@ xenUnifiedNodeSuspendForDuration(virConnectPtr conn,
     if (virNodeSuspendForDurationEnsureACL(conn) < 0)
         return -1;
 
-    return nodeSuspendForDuration(target, duration, flags);
+    return virNodeSuspend(target, duration, flags);
 }
 
 

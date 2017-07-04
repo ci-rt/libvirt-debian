@@ -91,7 +91,7 @@ endif
 
 # Files that should never cause syntax check failures.
 VC_LIST_ALWAYS_EXCLUDE_REGEX = \
-  (^(HACKING|docs/(news(-[0-9]*)?\.html\.in|.*\.patch))|\.(po|fig|gif|ico|png))$$
+  (^(docs/(news(-[0-9]*)?\.html\.in|.*\.patch))|\.(po|fig|gif|ico|png))$$
 
 # Functions like free() that are no-ops on NULL arguments.
 useless_free_options =				\
@@ -666,7 +666,7 @@ sc_prohibit_useless_translation:
 	halt='found useless translation'				\
 	  $(_sc_search_regexp)
 	@prohibit='\<N?_ *\('						\
-	in_vc_files='^(tests|examples)/'				\
+	in_vc_files='(tests|examples)/'					\
 	halt='no translations in tests or examples'			\
 	  $(_sc_search_regexp)
 
@@ -777,7 +777,7 @@ sc_prohibit_cross_inclusion:
 	    locking/) safe="($$dir|util|conf|rpc)";;			\
 	    cpu/| network/| node_device/| rpc/| security/| storage/)	\
 	      safe="($$dir|util|conf|storage)";;			\
-	    xenapi/ | xenconfig/ ) safe="($$dir|util|conf|xen)";;	\
+	    xenapi/ | xenconfig/ ) safe="($$dir|util|conf|xen|cpu)";;	\
 	    *) safe="($$dir|$(mid_dirs)|util)";;			\
 	  esac;								\
 	  in_vc_files="^src/$$dir"					\
@@ -808,7 +808,7 @@ sc_prohibit_semicolon_at_eol_in_python:
 # mymain() in test files should use return, not exit, for nicer output
 sc_prohibit_exit_in_tests:
 	@prohibit='\<exit *\('						\
-	in_vc_files='^tests/'						\
+	in_vc_files='tests/.*\.c$$'					\
 	halt='use return, not exit(), in tests'				\
 	  $(_sc_search_regexp)
 
@@ -878,7 +878,7 @@ sc_prohibit_wrong_filename_in_comment:
 
 sc_prohibit_virConnectOpen_in_virsh:
 	@prohibit='\bvirConnectOpen[a-zA-Z]* *\('                      \
-	in_vc_files='^tools/virsh-.*\.[ch]$$'                          \
+	in_vc_files='tools/virsh-.*\.[ch]$$'                           \
 	halt='Use vshConnect() in virsh instead of virConnectOpen*'    \
 	  $(_sc_search_regexp)
 
@@ -910,12 +910,11 @@ sc_curly_braces_style:
 '^\s*(?!([a-zA-Z_]*for_?each[a-zA-Z_]*) ?\()([_a-zA-Z0-9]+( [_a-zA-Z0-9]+)* ?\()?(\*?[_a-zA-Z0-9]+(,? \*?[_a-zA-Z0-9\[\]]+)+|void)\) ?\{'		\
 	$$files; then							\
 	  echo '$(ME): Non-K&R style used for curly braces around'	\
-		'function body, see HACKING' 1>&2; exit 1;		\
+	    'function body' 1>&2; exit 1;		\
 	fi;								\
 	if $(GREP) -A1 -En ' ((if|for|while|switch) \(|(else|do)\b)[^{]*$$'\
 	  $$files | $(GREP) '^[^ ]*- *{'; then				\
-	  echo '$(ME): Use hanging braces for compound statements,'	\
-		'see HACKING' 1>&2; exit 1;				\
+	  echo '$(ME): Use hanging braces for compound statements' 1>&2; exit 1; \
 	fi
 
 sc_prohibit_windows_special_chars_in_filename:
@@ -983,6 +982,11 @@ sc_prohibit_sysconf_pagesize:
 	halt='use virGetSystemPageSize[KB] instead of sysconf(_SC_PAGESIZE)' \
 	  $(_sc_search_regexp)
 
+sc_prohibit_virSecurity:
+	@grep -Pn 'virSecurityManager(?!Ptr)' $$($(VC_LIST_EXCEPT) | grep 'src/qemu/' | \
+		grep -v 'src/qemu/qemu_security') && \
+		{ echo '$(ME): prefer qemuSecurity wrappers' 1>&2; exit 1; } || :
+
 sc_prohibit_pthread_create:
 	@prohibit='\bpthread_create\b' \
 	exclude='sc_prohibit_pthread_create' \
@@ -1009,38 +1013,42 @@ sc_gettext_init:
 	halt='the above files do not call virGettextInitialize'		\
 	  $(_sc_search_regexp)
 
+sc_prohibit_obj_free_apis_in_virsh:
+	@prohibit='\bvir(Domain|DomainSnapshot)Free\b' \
+	in_vc_files='virsh.*\.[ch]$$'                              \
+	exclude='sc_prohibit_obj_free_apis_in_virsh' \
+	halt='avoid using virDomain(Snapshot)Free in virsh, use virsh-prefixed wrappers instead' \
+	  $(_sc_search_regexp)
+
 # We don't use this feature of maint.mk.
 prev_version_file = /dev/null
 
 ifneq ($(_gl-Makefile),)
 ifeq (0,$(MAKELEVEL))
-  _curr_status = .git-module-status
-  # The sed filter accommodates those who check out on a commit from which
-  # no tag is reachable.  In that case, git submodule status prints a "-"
-  # in column 1 and does not print a "git describe"-style string after the
-  # submodule name.  Contrast these:
-  # -b653eda3ac4864de205419d9f41eec267cb89eeb .gnulib
-  #  b653eda3ac4864de205419d9f41eec267cb89eeb .gnulib (v0.0-2286-gb653eda)
-  # $ cat .git-module-status
-  # b653eda3ac4864de205419d9f41eec267cb89eeb
-  #
-  # Keep this logic in sync with autogen.sh.
-  _submodule_hash = $(SED) 's/^[ +-]//;s/ .*//'
-  _update_required := $(shell						\
-      cd '$(srcdir)';							\
-      test -d .git || { echo 0; exit; };				\
-      test -f po/Makevars || { echo 1; exit; };				\
-      test -f AUTHORS || { echo 1; exit; };				\
-      test "no-git" = "$$(cat $(_curr_status))" && { echo 0; exit; };	\
-      actual=$$(git submodule status | $(_submodule_hash);		\
-		git hash-object bootstrap.conf;				\
-		git ls-tree -d HEAD gnulib/local | awk '{print $$3}';	\
-		git diff .gnulib);					\
-      stamp="$$($(_submodule_hash) $(_curr_status) 2>/dev/null)";	\
-      test "$$stamp" = "$$actual"; echo $$?)
+  _dry_run_result := $(shell \
+      cd '$(srcdir)'; \
+      test -d .git || test -f .git || { echo 0; exit; }; \
+      $(srcdir)/autogen.sh --dry-run >/dev/null 2>&1; \
+      echo $$?; \
+  )
   _clean_requested = $(filter %clean,$(MAKECMDGOALS))
-  ifeq (1,$(_update_required)$(_clean_requested))
-    $(info INFO: gnulib update required; running ./autogen.sh first)
+
+  # A return value of 0 means no action is required
+
+  # A return value of 1 means a genuine error has occurred while
+  # performing the dry run, and it should be reported so it can
+  # be investigated
+  ifeq (1,$(_dry_run_result))
+    $(info INFO: autogen.sh error, running again to show details)
+maint.mk Makefile: _autogen_error
+  endif
+
+  # A return value of 2 means that autogen.sh needs to be executed
+  # in earnest before building, probably because of gnulib updates.
+  # We don't run autogen.sh if the clean target has been invoked,
+  # though, as it would be quite pointless
+  ifeq (2,$(_dry_run_result)$(_clean_requested))
+    $(info INFO: running autogen.sh is required, running it now...)
     $(shell touch $(srcdir)/AUTHORS $(srcdir)/ChangeLog)
 maint.mk Makefile: _autogen
   endif
@@ -1054,10 +1062,13 @@ _autogen:
 	$(srcdir)/autogen.sh
 	./config.status
 
-# regenerate HACKING as part of the syntax-check
+.PHONY: _autogen_error
+_autogen_error:
+	$(srcdir)/autogen.sh --dry-run
+
 ifneq ($(_gl-Makefile),)
-syntax-check: $(top_srcdir)/HACKING spacing-check test-wrap-argv \
-	prohibit-duplicate-header
+syntax-check: spacing-check test-wrap-argv \
+	prohibit-duplicate-header mock-noinline
 endif
 
 # Don't include duplicate header in the source (either *.c or *.h)
@@ -1068,8 +1079,11 @@ prohibit-duplicate-header:
 spacing-check:
 	$(AM_V_GEN)files=`$(VC_LIST) | grep '\.c$$'`; \
 	$(PERL) $(top_srcdir)/build-aux/check-spacing.pl $$files || \
-	  { echo '$(ME): incorrect formatting, see HACKING for rules' 1>&2; \
-	    exit 1; }
+	  { echo '$(ME): incorrect formatting' 1>&2; exit 1; }
+
+mock-noinline:
+	$(AM_V_GEN)files=`$(VC_LIST) | grep '\.[ch]$$'`; \
+	$(PERL) $(top_srcdir)/build-aux/mock-noinline.pl $$files
 
 test-wrap-argv:
 	$(AM_V_GEN)files=`$(VC_LIST) | grep -E '\.(ldargs|args)'`; \
@@ -1096,7 +1110,7 @@ $(srcdir)/src/admin/admin_client.h: $(srcdir)/src/admin/admin_protocol.x
 # List all syntax-check exemptions:
 exclude_file_name_regexp--sc_avoid_strcase = ^tools/vsh\.h$$
 
-_src1=libvirt-stream|fdstream|qemu/qemu_monitor|util/(vircommand|virfile)|xen/xend_internal|rpc/virnetsocket|lxc/lxc_controller|locking/lock_daemon|logging/log_daemon
+_src1=libvirt-stream|qemu/qemu_monitor|util/vir(command|file|fdstream)|xen/xend_internal|rpc/virnetsocket|lxc/lxc_controller|locking/lock_daemon|logging/log_daemon
 _test1=shunloadtest|virnettlscontexttest|virnettlssessiontest|vircgroupmock
 exclude_file_name_regexp--sc_avoid_write = \
   ^(src/($(_src1))|daemon/libvirtd|tools/virsh-console|tests/($(_test1)))\.c$$
@@ -1112,7 +1126,7 @@ exclude_file_name_regexp--sc_copyright_usage = \
   ^COPYING(|\.LESSER)$$
 
 exclude_file_name_regexp--sc_flags_usage = \
-  ^(cfg\.mk|docs/|src/util/virnetdevtap\.c$$|tests/(vir(cgroup|pci|test|usb)|nss|qemuxml2argv)mock\.c$$)
+  ^(cfg\.mk|docs/|src/util/virnetdevtap\.c$$|tests/((vir(cgroup|pci|test|usb)|nss|qemuxml2argv)mock|virfilewrapper)\.c$$)
 
 exclude_file_name_regexp--sc_libvirt_unmarked_diagnostics = \
   ^(src/rpc/gendispatch\.pl$$|tests/)
@@ -1241,7 +1255,7 @@ exclude_file_name_regexp--sc_prohibit_always-defined_macros = \
   ^tests/virtestmock.c$$
 
 exclude_file_name_regexp--sc_prohibit_readdir = \
-  ^tests/.*mock\.c$$
+  ^tests/(.*mock|virfilewrapper)\.c$$
 
 exclude_file_name_regexp--sc_prohibit_cross_inclusion = \
   ^(src/util/virclosecallbacks\.h|src/util/virhostdev\.h)$$

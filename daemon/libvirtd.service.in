@@ -24,8 +24,16 @@ ExecStart=@sbindir@/libvirtd $LIBVIRTD_ARGS
 ExecReload=/bin/kill -HUP $MAINPID
 KillMode=process
 Restart=on-failure
-# Override the maximum number of opened files
-#LimitNOFILE=2048
+# At least 1 FD per guest, often 2 (eg qemu monitor + qemu agent).
+# eg if we want to support 4096 guests, we'll typically need 8192 FDs
+# If changing this, also consider virtlogd.service & virtlockd.service
+# limits which are also related to number of guests
+LimitNOFILE=8192
+# The cgroups pids controller can limit the number of tasks started by
+# the daemon, which can limit the number of domains for some hypervisors.
+# A conservative default of 8 tasks per guest results in a TasksMax of
+# 32k to support 4096 guests.
+TasksMax=32768
 
 [Install]
 WantedBy=multi-user.target

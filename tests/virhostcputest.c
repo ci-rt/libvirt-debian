@@ -10,8 +10,11 @@
 #include "virhostcpupriv.h"
 #include "virfile.h"
 #include "virstring.h"
+#include "virfilewrapper.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
+
+#define SYSFS_SYSTEM_PATH "/sys/devices/system"
 
 #if !(defined __linux__)
 
@@ -177,9 +180,9 @@ linuxTestHostCPU(const void *opaque)
         goto cleanup;
     }
 
-    virHostCPUSetSysFSSystemPathLinux(sysfs_prefix);
+    virFileWrapperAddPrefix(SYSFS_SYSTEM_PATH, sysfs_prefix);
     result = linuxTestCompareFiles(cpuinfo, data->arch, output);
-    virHostCPUSetSysFSSystemPathLinux(NULL);
+    virFileWrapperRemovePrefix(SYSFS_SYSTEM_PATH);
 
  cleanup:
     VIR_FREE(cpuinfo);
@@ -249,8 +252,8 @@ mymain(void)
         return EXIT_FAILURE;
 
     for (i = 0; i < ARRAY_CARDINALITY(nodeData); i++)
-      if (virTestRun(nodeData[i].testName, linuxTestHostCPU, &nodeData[i]) != 0)
-        ret = -1;
+        if (virTestRun(nodeData[i].testName, linuxTestHostCPU, &nodeData[i]) != 0)
+            ret = -1;
 
 # define DO_TEST_CPU_STATS(name, ncpus) \
     do { \
@@ -264,6 +267,6 @@ mymain(void)
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-VIRT_TEST_MAIN_PRELOAD(mymain, abs_builddir "/.libs/virhostcpumock.so")
+VIR_TEST_MAIN_PRELOAD(mymain, abs_builddir "/.libs/virhostcpumock.so")
 
 #endif /* __linux__ */

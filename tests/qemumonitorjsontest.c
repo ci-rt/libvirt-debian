@@ -23,6 +23,7 @@
 #include "testutilsqemu.h"
 #include "qemumonitortestutils.h"
 #include "qemu/qemu_domain.h"
+#include "qemu/qemu_block.h"
 #include "qemu/qemu_monitor_json.h"
 #include "virthread.h"
 #include "virerror.h"
@@ -1789,7 +1790,9 @@ testQemuMonitorJSONqemuMonitorJSONGetMigrationParams(const void *data)
                                "        \"cpu-throttle-increment\": 10,"
                                "        \"compress-threads\": 8,"
                                "        \"compress-level\": 1,"
-                               "        \"cpu-throttle-initial\": 20"
+                               "        \"cpu-throttle-initial\": 20,"
+                               "        \"tls-creds\": \"tls0\","
+                               "        \"tls-hostname\": \"\""
                                "    }"
                                "}") < 0) {
         goto cleanup;
@@ -1821,9 +1824,30 @@ testQemuMonitorJSONqemuMonitorJSONGetMigrationParams(const void *data)
 
 #undef CHECK
 
+#define CHECK(VAR, FIELD, VALUE)                                            \
+    do {                                                                    \
+        if (!params.VAR) {                                                  \
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s is not set", FIELD); \
+            goto cleanup;                                                   \
+        }                                                                   \
+        if (STRNEQ(params.VAR, VALUE)) {                                    \
+            virReportError(VIR_ERR_INTERNAL_ERROR,                          \
+                           "Invalid %s:'%s', expected '%s'",                \
+                           FIELD, params.VAR, VALUE);                       \
+            goto cleanup;                                                   \
+        }                                                                   \
+    } while (0)
+
+    CHECK(migrateTLSAlias, "tls-creds", "tls0");
+    CHECK(migrateTLSHostname, "tls-hostname", "");
+
+#undef CHECK
+
     ret = 0;
 
  cleanup:
+    VIR_FREE(params.migrateTLSAlias);
+    VIR_FREE(params.migrateTLSHostname);
     qemuMonitorTestFree(test);
     return ret;
 }
@@ -2011,27 +2035,27 @@ testQemuMonitorJSONqemuMonitorJSONGetChardevInfo(const void *data)
 
 
 static int
-testValidateGetBlockIoThrottle(virDomainBlockIoTuneInfo info,
-                               virDomainBlockIoTuneInfo expectedInfo)
+testValidateGetBlockIoThrottle(const virDomainBlockIoTuneInfo *info,
+                               const virDomainBlockIoTuneInfo *expectedInfo)
 {
 #define VALIDATE_IOTUNE(field) \
-    if (info.field != expectedInfo.field) { \
+    if (info->field != expectedInfo->field) { \
         virReportError(VIR_ERR_INTERNAL_ERROR, \
-                       "info.%s=%llu != expected=%llu",  \
-                       #field, info.field, expectedInfo.field); \
+                       "info->%s=%llu != expected=%llu",  \
+                       #field, info->field, expectedInfo->field); \
         return -1; \
     } \
-    if (info.field##_max != expectedInfo.field##_max) { \
+    if (info->field##_max != expectedInfo->field##_max) { \
         virReportError(VIR_ERR_INTERNAL_ERROR, \
-                       "info.%s_max=%llu != expected=%llu",  \
-                       #field, info.field##_max, expectedInfo.field##_max); \
+                       "info->%s_max=%llu != expected=%llu",  \
+                       #field, info->field##_max, expectedInfo->field##_max); \
         return -1; \
     } \
-    if (info.field##_max_length != expectedInfo.field##_max_length) { \
+    if (info->field##_max_length != expectedInfo->field##_max_length) { \
         virReportError(VIR_ERR_INTERNAL_ERROR, \
-                       "info.%s_max_length=%llu != expected=%llu",  \
-                       #field, info.field##_max_length, \
-                       expectedInfo.field##_max_length); \
+                       "info->%s_max_length=%llu != expected=%llu",  \
+                       #field, info->field##_max_length, \
+                       expectedInfo->field##_max_length); \
         return -1; \
     }
     VALIDATE_IOTUNE(total_bytes_sec);
@@ -2040,16 +2064,16 @@ testValidateGetBlockIoThrottle(virDomainBlockIoTuneInfo info,
     VALIDATE_IOTUNE(total_iops_sec);
     VALIDATE_IOTUNE(read_iops_sec);
     VALIDATE_IOTUNE(write_iops_sec);
-    if (info.size_iops_sec != expectedInfo.size_iops_sec) {
+    if (info->size_iops_sec != expectedInfo->size_iops_sec) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "info.size_iops_sec=%llu != expected=%llu",
-                       info.size_iops_sec, expectedInfo.size_iops_sec);
+                       "info->size_iops_sec=%llu != expected=%llu",
+                       info->size_iops_sec, expectedInfo->size_iops_sec);
         return -1;
     }
-    if (STRNEQ(info.group_name, expectedInfo.group_name)) {
+    if (STRNEQ(info->group_name, expectedInfo->group_name)) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "info.group_name=%s != expected=%s",
-                       info.group_name, expectedInfo.group_name);
+                       "info->group_name=%s != expected=%s",
+                       info->group_name, expectedInfo->group_name);
         return -1;
     }
 #undef VALIDATE_IOTUNE
@@ -2097,7 +2121,7 @@ testQemuMonitorJSONqemuMonitorJSONSetBlockIoThrottle(const void *data)
                                           "drive-virtio-disk0", &info) < 0)
         goto cleanup;
 
-    if (testValidateGetBlockIoThrottle(info, expectedInfo) < 0)
+    if (testValidateGetBlockIoThrottle(&info, &expectedInfo) < 0)
         goto cleanup;
 
     if (qemuMonitorJSONSetBlockIoThrottle(qemuMonitorTestGetMonitor(test),
@@ -2395,7 +2419,7 @@ testQemuMonitorJSONGetCPUData(const void *opaque)
 
     if (qemuMonitorJSONGetGuestCPU(qemuMonitorTestGetMonitor(test),
                                    VIR_ARCH_X86_64,
-                                   &cpuData) < 0)
+                                   &cpuData, NULL) < 0)
         goto cleanup;
 
     if (!(actual = virCPUDataFormat(cpuData)))
@@ -2438,7 +2462,7 @@ testQemuMonitorJSONGetNonExistingCPUData(const void *opaque)
 
     rv = qemuMonitorJSONGetGuestCPU(qemuMonitorTestGetMonitor(test),
                                    VIR_ARCH_X86_64,
-                                   &cpuData);
+                                   &cpuData, NULL);
     if (rv != -2) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        "Unexpected return value %d, expecting -2", rv);
@@ -2659,6 +2683,109 @@ testQemuMonitorCPUInfo(const void *opaque)
 }
 
 
+struct testBlockNodeNameDetectData {
+    const char *name;
+    const char *nodenames;
+};
+
+
+static void
+testBlockNodeNameDetectFormat(virBufferPtr buf,
+                              const char *basenode,
+                              virHashTablePtr nodedata)
+{
+    qemuBlockNodeNameBackingChainDataPtr entry = NULL;
+    const char *node = basenode;
+
+    virBufferSetIndent(buf, 0);
+
+    while (node) {
+        if (!(entry = virHashLookup(nodedata, node)))
+            break;
+
+        virBufferAsprintf(buf, "filename    : '%s'\n", entry->qemufilename);
+        virBufferAsprintf(buf, "format node : '%s'\n",
+                          NULLSTR(entry->nodeformat));
+        virBufferAsprintf(buf, "storage node: '%s'\n",
+                          NULLSTR(entry->nodestorage));
+        virBufferAsprintf(buf, "backingfile : '%s'\n",
+                          NULLSTR(entry->backingstore));
+        virBufferAsprintf(buf, "backing ptr : '%s'\n",
+                          NULLSTR(entry->nodebacking));
+
+        virBufferAdjustIndent(buf, 2);
+
+        node = entry->nodebacking;
+    }
+
+    virBufferSetIndent(buf, 0);
+    virBufferAddLit(buf, "\n");
+}
+
+
+static int
+testBlockNodeNameDetect(const void *opaque)
+{
+    const struct testBlockNodeNameDetectData *data = opaque;
+    char *jsonFile = NULL;
+    char *jsonStr = NULL;
+    char *resultFile = NULL;
+    char *actual = NULL;
+    char **nodenames = NULL;
+    char **next;
+    virJSONValuePtr json = NULL;
+    virHashTablePtr nodedata = NULL;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    int ret = -1;
+
+    if (virAsprintf(&jsonFile,
+                    "%s/qemumonitorjsondata/qemumonitorjson-nodename-%s.json",
+                    abs_srcdir, data->name) < 0 ||
+        virAsprintf(&resultFile,
+                    "%s/qemumonitorjsondata/qemumonitorjson-nodename-%s.result",
+                    abs_srcdir, data->name) < 0)
+        goto cleanup;
+
+    if (!(nodenames = virStringSplit(data->nodenames, ",", 0)))
+        goto cleanup;
+
+    if (virTestLoadFile(jsonFile, &jsonStr) < 0)
+        goto cleanup;
+
+    if (!(json = virJSONValueFromString(jsonStr)))
+        goto cleanup;
+
+    if (!(nodedata = qemuBlockNodeNameGetBackingChain(json)))
+        goto cleanup;
+
+    for (next = nodenames; *next; next++)
+        testBlockNodeNameDetectFormat(&buf, *next, nodedata);
+
+    virBufferTrim(&buf, "\n", -1);
+
+    if (virBufferCheckError(&buf) < 0)
+        goto cleanup;
+
+    actual = virBufferContentAndReset(&buf);
+
+    if (virTestCompareToFile(actual, resultFile) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(jsonFile);
+    VIR_FREE(resultFile);
+    VIR_FREE(jsonStr);
+    VIR_FREE(actual);
+    virHashFree(nodedata);
+    virStringListFree(nodenames);
+    virJSONValueFree(json);
+
+    return ret;
+}
+
+
 static int
 mymain(void)
 {
@@ -2793,9 +2920,25 @@ mymain(void)
     DO_TEST_CPU_INFO("ppc64-hotplug-4", 24);
     DO_TEST_CPU_INFO("ppc64-no-threads", 16);
 
+#define DO_TEST_BLOCK_NODE_DETECT(testname, testnodes)                         \
+    do {                                                                       \
+        struct testBlockNodeNameDetectData testdata = {testname, testnodes};   \
+        if (virTestRun("node-name-detect(" testname ")",                       \
+                       testBlockNodeNameDetect, &testdata) < 0)                \
+            ret = -1;                                                          \
+    } while (0)
+
+    DO_TEST_BLOCK_NODE_DETECT("1", "#block118");
+    DO_TEST_BLOCK_NODE_DETECT("2", "#block161");
+    DO_TEST_BLOCK_NODE_DETECT("same-backing", "#block170,#block574");
+    DO_TEST_BLOCK_NODE_DETECT("relative", "#block153,#block1177");
+    DO_TEST_BLOCK_NODE_DETECT("gluster", "#block1008");
+
+#undef DO_TEST_BLOCK_NODE_DETECT
+
     qemuTestDriverFree(&driver);
 
     return (ret == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-VIRT_TEST_MAIN(mymain)
+VIR_TEST_MAIN(mymain)

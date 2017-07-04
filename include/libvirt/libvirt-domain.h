@@ -815,6 +815,14 @@ typedef enum {
      * post-copy mode. See virDomainMigrateStartPostCopy for more details.
      */
     VIR_MIGRATE_POSTCOPY          = (1 << 15),
+
+    /* Setting the VIR_MIGRATE_TLS flag will cause the migration to attempt
+     * to use the TLS environment configured by the hypervisor in order to
+     * perform the migration. If incorrectly configured on either source or
+     * destination, the migration will fail.
+     */
+    VIR_MIGRATE_TLS               = (1 << 16),
+
 } virDomainMigrateFlags;
 
 
@@ -2188,6 +2196,98 @@ void virDomainStatsRecordListFree(virDomainStatsRecordPtr *stats);
  */
 # define VIR_PERF_PARAM_REF_CPU_CYCLES "ref_cpu_cycles"
 
+/**
+ * VIR_PERF_PARAM_CPU_CLOCK:
+ *
+ * Macro for typed parameter name that represents cpu_clock
+ * perf event which can be used to measure the count of cpu
+ * clock time by applications running on the platform. It
+ * corresponds to the "perf.cpu_clock" field in the *Stats
+ * APIs.
+ */
+# define VIR_PERF_PARAM_CPU_CLOCK "cpu_clock"
+
+/**
+ * VIR_PERF_PARAM_TASK_CLOCK:
+ *
+ * Macro for typed parameter name that represents task_clock
+ * perf event which can be used to measure the count of task
+ * clock time by applications running on the platform. It
+ * corresponds to the "perf.task_clock" field in the *Stats
+ * APIs.
+ */
+# define VIR_PERF_PARAM_TASK_CLOCK "task_clock"
+
+/**
+* VIR_PERF_PARAM_PAGE_FAULTS:
+*
+* Macro for typed parameter name that represents page_faults
+* perf event which can be used to measure the count of page
+* faults by applications running on the platform. It corresponds
+* to the "perf.page_faults" field in the *Stats APIs.
+*/
+# define VIR_PERF_PARAM_PAGE_FAULTS "page_faults"
+
+/**
+ * VIR_PERF_PARAM_CONTEXT_SWITCHES:
+ *
+ * Macro for typed parameter name that represents context_switches
+ * perf event which can be used to measure the count of context
+ * switches by applications running on the platform. It corresponds
+ * to the "perf.context_switches" field in the *Stats APIs.
+ */
+# define VIR_PERF_PARAM_CONTEXT_SWITCHES "context_switches"
+
+/**
+ * VIR_PERF_PARAM_CPU_MIGRATIONS:
+ *
+ * Macro for typed parameter name that represents cpu_migrations
+ * perf event which can be used to measure the count of cpu
+ * migrations by applications running on the platform. It corresponds
+ * to the "perf.cpu_migrations" field in the *Stats APIs.
+ */
+# define VIR_PERF_PARAM_CPU_MIGRATIONS "cpu_migrations"
+
+/**
+ * VIR_PERF_PARAM_PAGE_FAULTS_MIN:
+ *
+ * Macro for typed parameter name that represents page_faults_min
+ * perf event which can be used to measure the count of minor page
+ * faults by applications running on the platform. It corresponds
+ * to the "perf.page_faults_min" field in the *Stats APIs.
+ */
+# define VIR_PERF_PARAM_PAGE_FAULTS_MIN  "page_faults_min"
+
+/**
+ * VIR_PERF_PARAM_PAGE_FAULTS_MAJ:
+ *
+ * Macro for typed parameter name that represents page_faults_maj
+ * perf event which can be used to measure the count of major page
+ * faults by applications running on the platform. It corresponds
+ * to the "perf.page_faults_maj" field in the *Stats APIs.
+ */
+# define VIR_PERF_PARAM_PAGE_FAULTS_MAJ  "page_faults_maj"
+
+/**
+ * VIR_PERF_PARAM_ALIGNMENT_FAULTS:
+ *
+ * Macro for typed parameter name that represents alignment_faults
+ * perf event which can be used to measure the count of alignment
+ * faults by applications running on the platform. It corresponds
+ * to the "perf.alignment_faults" field in the *Stats APIs.
+ */
+# define VIR_PERF_PARAM_ALIGNMENT_FAULTS  "alignment_faults"
+
+/**
+ * VIR_PERF_PARAM_EMULATION_FAULTS:
+ *
+ * Macro for typed parameter name that represents emulation_faults
+ * perf event which can be used to measure the count of emulation
+ * faults by applications running on the platform. It corresponds
+ * to the "perf.emulation_faults" field in the *Stats APIs.
+ */
+# define VIR_PERF_PARAM_EMULATION_FAULTS  "emulation_faults"
+
 int virDomainGetPerfEvents(virDomainPtr dom,
                            virTypedParameterPtr *params,
                            int *nparams,
@@ -2328,6 +2428,9 @@ typedef enum {
                                                  backing chain */
     VIR_DOMAIN_BLOCK_COPY_REUSE_EXT = 1 << 1, /* Reuse existing external
                                                  file for a copy */
+    VIR_DOMAIN_BLOCK_COPY_TRANSIENT_JOB = 1 << 2, /* Don't force usage of
+                                                     recoverable job for the
+                                                     copy operation */
 } virDomainBlockCopyFlags;
 
 /**
@@ -2883,7 +2986,16 @@ typedef enum {
  * Details on the cause of a 'shutdown' lifecycle event
  */
 typedef enum {
-    VIR_DOMAIN_EVENT_SHUTDOWN_FINISHED = 0, /* Guest finished shutdown sequence */
+    /* Guest finished shutdown sequence */
+    VIR_DOMAIN_EVENT_SHUTDOWN_FINISHED = 0,
+
+    /* Domain finished shutting down after request from the guest itself
+     * (e.g. hardware-specific action) */
+    VIR_DOMAIN_EVENT_SHUTDOWN_GUEST = 1,
+
+    /* Domain finished shutting down after request from the host (e.g. killed by
+     * a signal) */
+    VIR_DOMAIN_EVENT_SHUTDOWN_HOST = 2,
 
 # ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_EVENT_SHUTDOWN_LAST
@@ -3016,6 +3128,31 @@ int virDomainGetJobStats(virDomainPtr domain,
                          int *nparams,
                          unsigned int flags);
 int virDomainAbortJob(virDomainPtr dom);
+
+typedef enum {
+    VIR_DOMAIN_JOB_OPERATION_UNKNOWN = 0,
+    VIR_DOMAIN_JOB_OPERATION_START = 1,
+    VIR_DOMAIN_JOB_OPERATION_SAVE = 2,
+    VIR_DOMAIN_JOB_OPERATION_RESTORE = 3,
+    VIR_DOMAIN_JOB_OPERATION_MIGRATION_IN = 4,
+    VIR_DOMAIN_JOB_OPERATION_MIGRATION_OUT = 5,
+    VIR_DOMAIN_JOB_OPERATION_SNAPSHOT = 6,
+    VIR_DOMAIN_JOB_OPERATION_SNAPSHOT_REVERT = 7,
+    VIR_DOMAIN_JOB_OPERATION_DUMP = 8,
+
+# ifdef VIR_ENUM_SENTINELS
+    VIR_DOMAIN_JOB_OPERATION_LAST
+# endif
+} virDomainJobOperation;
+
+/**
+ * VIR_DOMAIN_JOB_OPERATION:
+ *
+ * virDomainGetJobStats field: the operation which started the job as
+ * VIR_TYPED_PARAM_INT. The values correspond to the items in
+ * virDomainJobOperation enum.
+ */
+# define VIR_DOMAIN_JOB_OPERATION                "operation"
 
 /**
  * VIR_DOMAIN_JOB_TIME_ELAPSED:
@@ -4175,6 +4312,36 @@ typedef void (*virConnectDomainEventAgentLifecycleCallback)(virConnectPtr conn,
 
 
 /**
+ * virConnectDomainEventBlockThresholdCallback:
+ * @conn: connection object
+ * @dom: domain on which the event occurred
+ * @dev: name associated with the affected disk or storage backing chain
+ *       element
+ * @path: for local storage, the path of the backing chain element
+ * @threshold: threshold offset in bytes
+ * @excess: number of bytes written beyond the threshold
+ * @opaque: application specified data
+ *
+ * The callback occurs when the hypervisor detects that the given storage
+ * element was written beyond the point specified by @threshold. The excess
+ * data size written beyond @threshold is reported by @excess (if supported
+ * by the hypervisor, 0 otherwise). The event is useful for thin-provisioned
+ * storage.
+ *
+ * The threshold size can be set via the virDomainSetBlockThreshold API.
+ *
+ * The callback signature to use when registering for an event of type
+ * VIR_DOMAIN_EVENT_ID_BLOCK_THRESHOLD with virConnectDomainEventRegisterAny()
+ */
+typedef void (*virConnectDomainEventBlockThresholdCallback)(virConnectPtr conn,
+                                                            virDomainPtr dom,
+                                                            const char *dev,
+                                                            const char *path,
+                                                            unsigned long long threshold,
+                                                            unsigned long long excess,
+                                                            void *opaque);
+
+/**
  * VIR_DOMAIN_EVENT_CALLBACK:
  *
  * Used to cast the event specific callback into the generic one
@@ -4215,6 +4382,7 @@ typedef enum {
     VIR_DOMAIN_EVENT_ID_JOB_COMPLETED = 21,  /* virConnectDomainEventJobCompletedCallback */
     VIR_DOMAIN_EVENT_ID_DEVICE_REMOVAL_FAILED = 22, /* virConnectDomainEventDeviceRemovalFailedCallback */
     VIR_DOMAIN_EVENT_ID_METADATA_CHANGE = 23, /* virConnectDomainEventMetadataChangeCallback */
+    VIR_DOMAIN_EVENT_ID_BLOCK_THRESHOLD = 24, /* virConnectDomainEventBlockThresholdCallback */
 
 # ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_EVENT_ID_LAST
@@ -4532,5 +4700,10 @@ int virDomainSetVcpu(virDomainPtr domain,
                      const char *vcpumap,
                      int state,
                      unsigned int flags);
+
+int virDomainSetBlockThreshold(virDomainPtr domain,
+                               const char *dev,
+                               unsigned long long threshold,
+                               unsigned int flags);
 
 #endif /* __VIR_LIBVIRT_DOMAIN_H__ */

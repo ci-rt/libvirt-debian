@@ -88,10 +88,10 @@ bhyveBuildNetArgStr(virConnectPtr conn,
     }
 
     if (!net->ifname ||
-        STRPREFIX(net->ifname, VIR_NET_GENERATED_PREFIX) ||
+        STRPREFIX(net->ifname, VIR_NET_GENERATED_TAP_PREFIX) ||
         strchr(net->ifname, '%')) {
         VIR_FREE(net->ifname);
-        if (VIR_STRDUP(net->ifname, VIR_NET_GENERATED_PREFIX "%d") < 0)
+        if (VIR_STRDUP(net->ifname, VIR_NET_GENERATED_TAP_PREFIX "%d") < 0)
             goto cleanup;
     }
 
@@ -100,7 +100,7 @@ bhyveBuildNetArgStr(virConnectPtr conn,
                                            def->uuid, NULL, NULL, 0,
                                            virDomainNetGetActualVirtPortProfile(net),
                                            virDomainNetGetActualVlan(net),
-                                           0, NULL,
+                                           NULL, 0, NULL,
                                            VIR_NETDEV_TAP_CREATE_IFUP | VIR_NETDEV_TAP_CREATE_PERSIST) < 0) {
             goto cleanup;
         }
@@ -163,7 +163,6 @@ bhyveBuildConsoleArgStr(const virDomainDef *def, virCommandPtr cmd)
         return -1;
     }
 
-    virCommandAddArgList(cmd, "-s", "1,lpc", NULL);
     virCommandAddArg(cmd, "-l");
     virCommandAddArgFormat(cmd, "com%d,%s",
                            chr->target.port + 1, chr->source->data.file.path);
@@ -250,6 +249,45 @@ bhyveBuildAHCIControllerArgStr(const virDomainDef *def,
 }
 
 static int
+bhyveBuildUSBControllerArgStr(const virDomainDef *def,
+                              virDomainControllerDefPtr controller,
+                              virCommandPtr cmd)
+{
+    size_t i;
+    int ndevices = 0;
+
+    for (i = 0; i < def->ninputs; i++) {
+        virDomainInputDefPtr input = def->inputs[i];
+
+        if (input->bus != VIR_DOMAIN_INPUT_BUS_USB) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("only USB input devices are supported"));
+            return -1;
+        }
+
+        if (input->type != VIR_DOMAIN_INPUT_TYPE_TABLET) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("only tablet input devices are supported"));
+            return -1;
+        }
+        ndevices++;
+    }
+
+    if (ndevices != 1) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("only single input device is supported"));
+        return -1;
+    }
+
+    virCommandAddArg(cmd, "-s");
+    virCommandAddArgFormat(cmd, "%d:%d,xhci,tablet",
+                           controller->info.addr.pci.slot,
+                           controller->info.addr.pci.function);
+
+    return 0;
+}
+
+static int
 bhyveBuildVirtIODiskArgStr(const virDomainDef *def ATTRIBUTE_UNUSED,
                      virDomainDiskDefPtr disk,
                      virConnectPtr conn,
@@ -283,6 +321,106 @@ bhyveBuildVirtIODiskArgStr(const virDomainDef *def ATTRIBUTE_UNUSED,
     return 0;
 }
 
+static int
+bhyveBuildLPCArgStr(const virDomainDef *def ATTRIBUTE_UNUSED,
+                    virCommandPtr cmd)
+{
+    virCommandAddArgList(cmd, "-s", "1,lpc", NULL);
+    return 0;
+}
+
+static int
+bhyveBuildGraphicsArgStr(const virDomainDef *def ATTRIBUTE_UNUSED,
+                         virDomainGraphicsDefPtr graphics,
+                         virDomainVideoDefPtr video,
+                         virConnectPtr conn,
+                         virCommandPtr cmd)
+{
+    virBuffer opt = VIR_BUFFER_INITIALIZER;
+    virDomainGraphicsListenDefPtr glisten = NULL;
+    bool escapeAddr;
+
+    if (!(bhyveDriverGetCaps(conn) & BHYVE_CAP_LPC_BOOTROM) ||
+        def->os.bootloader ||
+        !def->os.loader) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Graphics are only supported"
+                         " when booting using UEFI"));
+        return -1;
+    }
+
+    if (!(bhyveDriverGetCaps(conn) & BHYVE_CAP_FBUF)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Bhyve version does not support framebuffer"));
+        return -1;
+    }
+
+    if (graphics->type != VIR_DOMAIN_GRAPHICS_TYPE_VNC) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Only VNC supported"));
+        return -1;
+    }
+
+    if (!(glisten = virDomainGraphicsGetListen(graphics, 0))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Missing listen element"));
+        goto error;
+    }
+
+    virBufferAsprintf(&opt, "%d:%d,fbuf", video->info.addr.pci.slot, video->info.addr.pci.function);
+
+    switch (glisten->type) {
+    case VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_ADDRESS:
+    case VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_NETWORK:
+        virBufferAddLit(&opt, ",tcp=");
+
+        if (!graphics->data.vnc.autoport &&
+            (graphics->data.vnc.port < 5900 ||
+             graphics->data.vnc.port > 65535)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("vnc port must be in range [5900,65535]"));
+            goto error;
+        }
+
+        if (graphics->data.vnc.auth.passwd) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("vnc password auth not supported"));
+            goto error;
+        } else {
+             /* Bhyve doesn't support VNC Auth yet, so print a warning about
+              * unauthenticated VNC sessions */
+             VIR_WARN("%s", _("Security warning: currently VNC auth is not"
+                              " supported."));
+        }
+
+        if (glisten->address) {
+            escapeAddr = strchr(glisten->address, ':') != NULL;
+            if (escapeAddr)
+                virBufferAsprintf(&opt, "[%s]", glisten->address);
+            else
+                virBufferAdd(&opt, glisten->address, -1);
+        }
+
+        virBufferAsprintf(&opt, ":%d", graphics->data.vnc.port);
+        break;
+    default:
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Unsupported listen type"));
+    }
+
+    if (video->driver)
+        virBufferAsprintf(&opt, ",vga=%s",
+                          virDomainVideoVGAConfTypeToString(video->driver->vgaconf));
+
+    virCommandAddArg(cmd, "-s");
+    virCommandAddArgBuffer(cmd, &opt);
+    return 0;
+
+ error:
+    virBufferFreeAndReset(&opt);
+    return -1;
+}
+
 virCommandPtr
 virBhyveProcessBuildBhyveCmd(virConnectPtr conn,
                              virDomainDefPtr def, bool dryRun)
@@ -296,6 +434,8 @@ virBhyveProcessBuildBhyveCmd(virConnectPtr conn,
      *            vm0
      */
     size_t i;
+    bool add_lpc = false;
+    int nusbcontrollers = 0;
 
     virCommandPtr cmd = virCommandNew(BHYVE);
 
@@ -350,6 +490,21 @@ virBhyveProcessBuildBhyveCmd(virConnectPtr conn,
     virCommandAddArg(cmd, "-P"); /* vmexit from guest on pause */
 
     virCommandAddArgList(cmd, "-s", "0:0,hostbridge", NULL);
+
+    if (def->os.bootloader == NULL &&
+        def->os.loader) {
+        if ((bhyveDriverGetCaps(conn) & BHYVE_CAP_LPC_BOOTROM)) {
+            virCommandAddArg(cmd, "-l");
+            virCommandAddArgFormat(cmd, "bootrom,%s", def->os.loader->path);
+            add_lpc = true;
+        } else {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Installed bhyve binary does not support "
+                             "UEFI loader"));
+            goto error;
+        }
+    }
+
     /* Devices */
     for (i = 0; i < def->ncontrollers; i++) {
         virDomainControllerDefPtr controller = def->controllers[i];
@@ -363,6 +518,16 @@ virBhyveProcessBuildBhyveCmd(virConnectPtr conn,
                 break;
         case VIR_DOMAIN_CONTROLLER_TYPE_SATA:
                 if (bhyveBuildAHCIControllerArgStr(def, controller, conn, cmd) < 0)
+                    goto error;
+                break;
+        case VIR_DOMAIN_CONTROLLER_TYPE_USB:
+                if (++nusbcontrollers > 1) {
+                        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                       "%s", _("only single USB controller is supported"));
+                        goto error;
+                }
+
+                if (bhyveBuildUSBControllerArgStr(def, controller, cmd) < 0)
                     goto error;
                 break;
         }
@@ -389,8 +554,25 @@ virBhyveProcessBuildBhyveCmd(virConnectPtr conn,
             goto error;
         }
     }
+
+    if (def->ngraphics && def->nvideos) {
+        if (def->ngraphics == 1 && def->nvideos == 1) {
+            if (bhyveBuildGraphicsArgStr(def, def->graphics[0], def->videos[0], conn, cmd) < 0)
+                goto error;
+            add_lpc = true;
+        } else {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Multiple graphics devices are not supported"));
+             goto error;
+        }
+    }
+
+    if (add_lpc || def->nserials)
+        bhyveBuildLPCArgStr(def, cmd);
+
     if (bhyveBuildConsoleArgStr(def, cmd) < 0)
         goto error;
+
     virCommandAddArg(cmd, def->name);
 
     return cmd;

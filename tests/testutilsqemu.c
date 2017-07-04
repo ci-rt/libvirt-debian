@@ -8,7 +8,7 @@
 # include "cpu_conf.h"
 # include "qemu/qemu_driver.h"
 # include "qemu/qemu_domain.h"
-# define __QEMU_CAPSRIV_H_ALLOW__
+# define __QEMU_CAPSPRIV_H_ALLOW__
 # include "qemu/qemu_capspriv.h"
 # include "virstring.h"
 
@@ -17,6 +17,7 @@
 virCPUDefPtr cpuDefault;
 virCPUDefPtr cpuHaswell;
 virCPUDefPtr cpuPower8;
+virCPUDefPtr cpuPower9;
 
 static virCPUFeatureDef cpuDefaultFeatures[] = {
     { (char *) "ds",        -1 },
@@ -34,20 +35,16 @@ static virCPUFeatureDef cpuDefaultFeatures[] = {
     { (char *) "lahf_lm",   -1 },
 };
 static virCPUDef cpuDefaultData = {
-    VIR_CPU_TYPE_HOST,      /* type */
-    0,                      /* mode */
-    0,                      /* match */
-    VIR_ARCH_X86_64,        /* arch */
-    (char *) "core2duo",    /* model */
-    NULL,                   /* vendor_id */
-    0,                      /* fallback */
-    (char *) "Intel",       /* vendor */
-    1,                      /* sockets */
-    2,                      /* cores */
-    1,                      /* threads */
-    ARRAY_CARDINALITY(cpuDefaultFeatures), /* nfeatures */
-    ARRAY_CARDINALITY(cpuDefaultFeatures), /* nfeatures_max */
-    cpuDefaultFeatures,     /* features */
+    .type = VIR_CPU_TYPE_HOST,
+    .arch = VIR_ARCH_X86_64,
+    .model = (char *) "core2duo",
+    .vendor = (char *) "Intel",
+    .sockets = 1,
+    .cores = 2,
+    .threads = 1,
+    .nfeatures = ARRAY_CARDINALITY(cpuDefaultFeatures),
+    .nfeatures_max = ARRAY_CARDINALITY(cpuDefaultFeatures),
+    .features = cpuDefaultFeatures,
 };
 
 static virCPUFeatureDef cpuHaswellFeatures[] = {
@@ -77,20 +74,16 @@ static virCPUFeatureDef cpuHaswellFeatures[] = {
     { (char *) "lahf_lm",   -1 },
 };
 static virCPUDef cpuHaswellData = {
-    VIR_CPU_TYPE_HOST,      /* type */
-    0,                      /* mode */
-    0,                      /* match */
-    VIR_ARCH_X86_64,        /* arch */
-    (char *) "Haswell",     /* model */
-    NULL,                   /* vendor_id */
-    0,                      /* fallback */
-    (char *) "Intel",       /* vendor */
-    1,                      /* sockets */
-    2,                      /* cores */
-    2,                      /* threads */
-    ARRAY_CARDINALITY(cpuHaswellFeatures), /* nfeatures */
-    ARRAY_CARDINALITY(cpuHaswellFeatures), /* nfeatures_max */
-    cpuHaswellFeatures,     /* features */
+    .type = VIR_CPU_TYPE_HOST,
+    .arch = VIR_ARCH_X86_64,
+    .model = (char *) "Haswell",
+    .vendor = (char *) "Intel",
+    .sockets = 1,
+    .cores = 2,
+    .threads = 2,
+    .nfeatures = ARRAY_CARDINALITY(cpuHaswellFeatures),
+    .nfeatures_max = ARRAY_CARDINALITY(cpuHaswellFeatures),
+    .features = cpuHaswellFeatures,
 };
 
 static virCPUDef cpuPower8Data = {
@@ -101,6 +94,36 @@ static virCPUDef cpuPower8Data = {
     .cores = 8,
     .threads = 8,
 };
+
+static virCPUDef cpuPower9Data = {
+    .type = VIR_CPU_TYPE_HOST,
+    .arch = VIR_ARCH_PPC64,
+    .model = (char *) "POWER9",
+    .sockets = 1,
+    .cores = 16,
+    .threads = 1,
+};
+
+typedef enum {
+    TEST_UTILS_QEMU_BIN_I686,
+    TEST_UTILS_QEMU_BIN_X86_64,
+    TEST_UTILS_QEMU_BIN_AARCH64,
+    TEST_UTILS_QEMU_BIN_ARM,
+    TEST_UTILS_QEMU_BIN_PPC64,
+    TEST_UTILS_QEMU_BIN_PPC,
+    TEST_UTILS_QEMU_BIN_S390X
+} QEMUBinType;
+
+static const char *QEMUBinList[] = {
+    "/usr/bin/qemu-system-i686",
+    "/usr/bin/qemu-system-x86_64",
+    "/usr/bin/qemu-system-aarch64",
+    "/usr/bin/qemu-system-arm",
+    "/usr/bin/qemu-system-ppc64",
+    "/usr/bin/qemu-system-ppc",
+    "/usr/bin/qemu-system-s390x"
+};
+
 
 static virCapsGuestMachinePtr *testQemuAllocMachines(int *nmachines)
 {
@@ -149,6 +172,118 @@ static virCapsGuestMachinePtr *testQemuAllocNewerMachines(int *nmachines)
 }
 
 
+static int
+testQemuAddI686Guest(virCapsPtr caps)
+{
+    int nmachines = 0;
+    virCapsGuestMachinePtr *machines = NULL;
+    virCapsGuestPtr guest;
+
+    if (!(machines = testQemuAllocMachines(&nmachines)))
+        goto error;
+
+    if (!(guest = virCapabilitiesAddGuest(caps,
+                                          VIR_DOMAIN_OSTYPE_HVM,
+                                          VIR_ARCH_I686,
+                                          QEMUBinList[TEST_UTILS_QEMU_BIN_I686],
+                                          NULL,
+                                          nmachines,
+                                          machines)))
+        goto error;
+
+    if (!virCapabilitiesAddGuestFeature(guest, "cpuselection", true, false))
+        goto error;
+
+    machines = NULL;
+
+    if (!virCapabilitiesAddGuestDomain(guest,
+                                       VIR_DOMAIN_VIRT_QEMU,
+                                       NULL,
+                                       NULL,
+                                       0,
+                                       NULL))
+        goto error;
+
+    if (!(machines = testQemuAllocMachines(&nmachines)))
+        goto error;
+
+    if (!virCapabilitiesAddGuestDomain(guest,
+                                       VIR_DOMAIN_VIRT_KVM,
+                                       QEMUBinList[TEST_UTILS_QEMU_BIN_I686],
+                                       NULL,
+                                       nmachines,
+                                       machines))
+        goto error;
+
+    return 0;
+
+ error:
+    virCapabilitiesFreeMachines(machines, nmachines);
+    return -1;
+}
+
+
+static int
+testQemuAddX86_64Guest(virCapsPtr caps)
+{
+    int nmachines = 0;
+    virCapsGuestMachinePtr *machines = NULL;
+    virCapsGuestPtr guest;
+
+    if (!(machines = testQemuAllocNewerMachines(&nmachines)))
+        goto error;
+
+    if (!(guest = virCapabilitiesAddGuest(caps,
+                                          VIR_DOMAIN_OSTYPE_HVM,
+                                          VIR_ARCH_X86_64,
+                                          QEMUBinList[TEST_UTILS_QEMU_BIN_X86_64],
+                                          NULL,
+                                          nmachines,
+                                          machines)))
+        goto error;
+
+    if (!virCapabilitiesAddGuestFeature(guest, "cpuselection", true, false))
+        goto error;
+
+    machines = NULL;
+
+    if (!virCapabilitiesAddGuestDomain(guest,
+                                       VIR_DOMAIN_VIRT_QEMU,
+                                       NULL,
+                                       NULL,
+                                       0,
+                                       NULL))
+        goto error;
+
+    if (!(machines = testQemuAllocMachines(&nmachines)))
+        goto error;
+
+    if (!virCapabilitiesAddGuestDomain(guest,
+                                       VIR_DOMAIN_VIRT_KVM,
+                                       QEMUBinList[TEST_UTILS_QEMU_BIN_X86_64],
+                                       NULL,
+                                       nmachines,
+                                       machines))
+        goto error;
+
+    machines = NULL;
+
+    if (!virCapabilitiesAddGuestDomain(guest,
+                                       VIR_DOMAIN_VIRT_KVM,
+                                       QEMUBinList[TEST_UTILS_QEMU_BIN_X86_64],
+                                       NULL,
+                                       0,
+                                       NULL))
+        goto error;
+
+    return 0;
+
+ error:
+    virCapabilitiesFreeMachines(machines, nmachines);
+    return -1;
+}
+
+
 static int testQemuAddPPC64Guest(virCapsPtr caps)
 {
     static const char *machine[] = { "pseries" };
@@ -160,8 +295,8 @@ static int testQemuAddPPC64Guest(virCapsPtr caps)
         goto error;
 
     guest = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_HVM, VIR_ARCH_PPC64,
-                                    "/usr/bin/qemu-system-ppc64", NULL,
-                                     1, machines);
+                                    QEMUBinList[TEST_UTILS_QEMU_BIN_PPC64],
+                                    NULL, 1, machines);
     if (!guest)
         goto error;
 
@@ -187,8 +322,8 @@ static int testQemuAddPPC64LEGuest(virCapsPtr caps)
         goto error;
 
     guest = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_HVM, VIR_ARCH_PPC64LE,
-                                    "/usr/bin/qemu-system-ppc64", NULL,
-                                     1, machines);
+                                    QEMUBinList[TEST_UTILS_QEMU_BIN_PPC64],
+                                    NULL, 1, machines);
     if (!guest)
         goto error;
 
@@ -217,8 +352,8 @@ static int testQemuAddPPCGuest(virCapsPtr caps)
         goto error;
 
     guest = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_HVM, VIR_ARCH_PPC,
-                                    "/usr/bin/qemu-system-ppc", NULL,
-                                     1, machines);
+                                    QEMUBinList[TEST_UTILS_QEMU_BIN_PPC],
+                                    NULL, 1, machines);
     if (!guest)
         goto error;
 
@@ -246,7 +381,8 @@ static int testQemuAddS390Guest(virCapsPtr caps)
         goto error;
 
     guest = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_HVM, VIR_ARCH_S390X,
-                                    "/usr/bin/qemu-system-s390x", NULL,
+                                    QEMUBinList[TEST_UTILS_QEMU_BIN_S390X],
+                                    NULL,
                                     ARRAY_CARDINALITY(s390_machines),
                                     machines);
     if (!guest)
@@ -276,7 +412,8 @@ static int testQemuAddArmGuest(virCapsPtr caps)
         goto error;
 
     guest = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_HVM, VIR_ARCH_ARMV7L,
-                                    "/usr/bin/qemu-system-arm", NULL,
+                                    QEMUBinList[TEST_UTILS_QEMU_BIN_ARM],
+                                    NULL,
                                     ARRAY_CARDINALITY(machines),
                                     capsmachines);
     if (!guest)
@@ -304,7 +441,8 @@ static int testQemuAddAARCH64Guest(virCapsPtr caps)
         goto error;
 
     guest = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_HVM, VIR_ARCH_AARCH64,
-                                    "/usr/bin/qemu-system-aarch64", NULL,
+                                    QEMUBinList[TEST_UTILS_QEMU_BIN_AARCH64],
+                                    NULL,
                                     ARRAY_CARDINALITY(machines),
                                     capsmachines);
     if (!guest)
@@ -323,9 +461,6 @@ static int testQemuAddAARCH64Guest(virCapsPtr caps)
 virCapsPtr testQemuCapsInit(void)
 {
     virCapsPtr caps;
-    virCapsGuestPtr guest;
-    virCapsGuestMachinePtr *machines = NULL;
-    int nmachines = 0;
 
     if (!(caps = virCapabilitiesNew(VIR_ARCH_X86_64, false, false)))
         return NULL;
@@ -342,79 +477,18 @@ virCapsPtr testQemuCapsInit(void)
 
     if (!(cpuDefault = virCPUDefCopy(&cpuDefaultData)) ||
         !(cpuHaswell = virCPUDefCopy(&cpuHaswellData)) ||
-        !(cpuPower8 = virCPUDefCopy(&cpuPower8Data)))
+        !(cpuPower8 = virCPUDefCopy(&cpuPower8Data)) ||
+        !(cpuPower9 = virCPUDefCopy(&cpuPower9Data)))
         goto cleanup;
 
     qemuTestSetHostCPU(caps, NULL);
 
     caps->host.nnumaCell_max = 4;
 
-    if ((machines = testQemuAllocMachines(&nmachines)) == NULL)
+    if (testQemuAddI686Guest(caps) < 0)
         goto cleanup;
 
-    if ((guest = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_HVM, VIR_ARCH_I686,
-                                         "/usr/bin/qemu", NULL,
-                                         nmachines, machines)) == NULL ||
-        !virCapabilitiesAddGuestFeature(guest, "cpuselection", true, false))
-        goto cleanup;
-    machines = NULL;
-
-    if (virCapabilitiesAddGuestDomain(guest,
-                                      VIR_DOMAIN_VIRT_QEMU,
-                                      NULL,
-                                      NULL,
-                                      0,
-                                      NULL) == NULL)
-        goto cleanup;
-
-    if ((machines = testQemuAllocMachines(&nmachines)) == NULL)
-        goto cleanup;
-
-    if (virCapabilitiesAddGuestDomain(guest,
-                                      VIR_DOMAIN_VIRT_KVM,
-                                      "/usr/bin/qemu-kvm",
-                                      NULL,
-                                      nmachines,
-                                      machines) == NULL)
-        goto cleanup;
-    machines = NULL;
-
-    if ((machines = testQemuAllocNewerMachines(&nmachines)) == NULL)
-        goto cleanup;
-
-    if ((guest = virCapabilitiesAddGuest(caps, VIR_DOMAIN_OSTYPE_HVM, VIR_ARCH_X86_64,
-                                         "/usr/bin/qemu-system-x86_64", NULL,
-                                         nmachines, machines)) == NULL ||
-        !virCapabilitiesAddGuestFeature(guest, "cpuselection", true, false))
-        goto cleanup;
-    machines = NULL;
-
-    if (virCapabilitiesAddGuestDomain(guest,
-                                      VIR_DOMAIN_VIRT_QEMU,
-                                      NULL,
-                                      NULL,
-                                      0,
-                                      NULL) == NULL)
-        goto cleanup;
-
-    if ((machines = testQemuAllocMachines(&nmachines)) == NULL)
-        goto cleanup;
-
-    if (virCapabilitiesAddGuestDomain(guest,
-                                      VIR_DOMAIN_VIRT_KVM,
-                                      "/usr/bin/kvm",
-                                      NULL,
-                                      nmachines,
-                                      machines) == NULL)
-        goto cleanup;
-    machines = NULL;
-
-    if (virCapabilitiesAddGuestDomain(guest,
-                                      VIR_DOMAIN_VIRT_KVM,
-                                      "/usr/bin/kvm",
-                                      NULL,
-                                      0,
-                                      NULL) == NULL)
+    if (testQemuAddX86_64Guest(caps) < 0)
         goto cleanup;
 
     if (testQemuAddPPC64Guest(caps))
@@ -450,7 +524,6 @@ virCapsPtr testQemuCapsInit(void)
     return caps;
 
  cleanup:
-    virCapabilitiesFreeMachines(machines, nmachines);
     caps->host.cpu = NULL;
     virCPUDefFree(cpuDefault);
     virCPUDefFree(cpuHaswell);
@@ -513,6 +586,10 @@ qemuTestParseCapabilities(virCapsPtr caps,
 void qemuTestDriverFree(virQEMUDriver *driver)
 {
     virMutexDestroy(&driver->lock);
+    if (driver->config) {
+        virFileDeleteTree(driver->config->stateDir);
+        virFileDeleteTree(driver->config->configDir);
+    }
     virQEMUCapsCacheFree(driver->qemuCapsCache);
     virObjectUnref(driver->xmlopt);
     virObjectUnref(driver->caps);
@@ -520,37 +597,44 @@ void qemuTestDriverFree(virQEMUDriver *driver)
     virObjectUnref(driver->securityManager);
 }
 
-int qemuTestCapsCacheInsert(virQEMUCapsCachePtr cache, const char *binary,
+int qemuTestCapsCacheInsert(virQEMUCapsCachePtr cache,
                             virQEMUCapsPtr caps)
 {
-    int ret;
+    size_t i;
+    virQEMUCapsPtr tmpCaps;
 
     if (caps) {
-        /* Our caps were created artificially, so we don't want
-         * virQEMUCapsCacheFree() to attempt to deallocate them */
-        virObjectRef(caps);
+        tmpCaps = caps;
     } else {
-        caps = virQEMUCapsNew();
-        if (!caps)
+        if (!(tmpCaps = virQEMUCapsNew()))
             return -ENOMEM;
     }
 
-    /* We can have repeating names for our test data sets,
-     * so make sure there's no old copy */
-    virHashRemoveEntry(cache->binaries, binary);
+    for (i = 0; i < ARRAY_CARDINALITY(QEMUBinList); i++) {
+        virObjectRef(tmpCaps);
+        if (virHashUpdateEntry(cache->binaries,
+                               QEMUBinList[i],
+                               tmpCaps) < 0) {
+            virObjectUnref(tmpCaps);
+            return -1;
+        }
+    }
 
-    ret = virHashAddEntry(cache->binaries, binary, caps);
-    if (ret < 0)
-        virObjectUnref(caps);
-    else
-        qemuTestCapsName = binary;
+    if (!caps)
+        virObjectUnref(tmpCaps);
 
-    return ret;
+    return 0;
 }
+
+
+# define STATEDIRTEMPLATE abs_builddir "/qemustatedir-XXXXXX"
+# define CONFIGDIRTEMPLATE abs_builddir "/qemuconfigdir-XXXXXX"
 
 int qemuTestDriverInit(virQEMUDriver *driver)
 {
     virSecurityManagerPtr mgr = NULL;
+    char statedir[] = STATEDIRTEMPLATE;
+    char configdir[] = CONFIGDIRTEMPLATE;
 
     memset(driver, 0, sizeof(*driver));
 
@@ -561,12 +645,37 @@ int qemuTestDriverInit(virQEMUDriver *driver)
     if (!driver->config)
         goto error;
 
+    /* Do this early so that qemuTestDriverFree() doesn't see (unlink) the real
+     * dirs. */
+    VIR_FREE(driver->config->stateDir);
+    VIR_FREE(driver->config->configDir);
+
     /* Overwrite some default paths so it's consistent for tests. */
     VIR_FREE(driver->config->libDir);
     VIR_FREE(driver->config->channelTargetDir);
     if (VIR_STRDUP(driver->config->libDir, "/tmp/lib") < 0 ||
         VIR_STRDUP(driver->config->channelTargetDir, "/tmp/channel") < 0)
         goto error;
+
+    if (!mkdtemp(statedir)) {
+        virFilePrintf(stderr, "Cannot create fake stateDir");
+        goto error;
+    }
+
+    if (VIR_STRDUP(driver->config->stateDir, statedir) < 0) {
+        rmdir(statedir);
+        goto error;
+    }
+
+    if (!mkdtemp(configdir)) {
+        virFilePrintf(stderr, "Cannot create fake configDir");
+        goto error;
+    }
+
+    if (VIR_STRDUP(driver->config->configDir, configdir) < 0) {
+        rmdir(configdir);
+        goto error;
+    }
 
     driver->caps = testQemuCapsInit();
     if (!driver->caps)
@@ -582,7 +691,7 @@ int qemuTestDriverInit(virQEMUDriver *driver)
     if (!driver->xmlopt)
         goto error;
 
-    if (qemuTestCapsCacheInsert(driver->qemuCapsCache, "empty", NULL) < 0)
+    if (qemuTestCapsCacheInsert(driver->qemuCapsCache, NULL) < 0)
         goto error;
 
     if (!(mgr = virSecurityManagerNew("none", "qemu",

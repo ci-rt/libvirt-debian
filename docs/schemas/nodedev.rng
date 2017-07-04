@@ -83,6 +83,8 @@
         <ref name="capscsi"/>
         <ref name="capstorage"/>
         <ref name="capdrm"/>
+        <ref name="capmdev"/>
+        <ref name="capccwdev"/>
       </choice>
     </element>
   </define>
@@ -203,6 +205,32 @@
         </attribute>
       </element>
     </optional>
+
+    <optional>
+      <element name='capability'>
+        <attribute name='type'>
+          <value>mdev_types</value>
+        </attribute>
+        <oneOrMore>
+          <element name='type'>
+            <attribute name='id'>
+              <data type='string'/>
+            </attribute>
+            <optional>
+              <element name='name'><text/></element>
+            </optional>
+            <element name='deviceAPI'>
+              <choice>
+                <value>vfio-pci</value>
+              </choice>
+            </element>
+            <element name='availableInstances'>
+              <ref name='unsignedInt'/>
+            </element>
+          </element>
+        </oneOrMore>
+      </element>
+   </optional>
 
     <optional>
       <element name='iommuGroup'>
@@ -430,6 +458,20 @@
     </optional>
   </define>
 
+  <define name='capsfcrport'>
+    <attribute name='type'>
+      <value>fc_remote_port</value>
+    </attribute>
+
+    <element name='rport'>
+      <text/>
+    </element>
+
+    <element name='wwpn'>
+      <ref name='wwn'/>
+    </element>
+  </define>
+
   <define name='capscsitarget'>
     <attribute name='type'>
       <value>scsi_target</value>
@@ -438,6 +480,12 @@
     <element name='target'>
       <text/>
     </element>
+
+    <optional>
+      <element name='capability'>
+        <ref name='capsfcrport'/>
+      </element>
+    </optional>
   </define>
 
   <define name='capscsi'>
@@ -551,6 +599,37 @@
         <value>control</value>
         <value>render</value>
       </choice>
+    </element>
+  </define>
+
+  <define name='capmdev'>
+    <attribute name='type'>
+      <value>mdev</value>
+    </attribute>
+    <element name='type'>
+      <attribute name='id'>
+        <data type='string'/>
+      </attribute>
+    </element>
+    <element name='iommuGroup'>
+      <attribute name='number'>
+        <ref name='unsignedInt'/>
+      </attribute>
+    </element>
+  </define>
+
+  <define name='capccwdev'>
+    <attribute name='type'>
+      <value>ccw</value>
+    </attribute>
+    <element name='cssid'>
+      <ref name='ccwCssidRange'/>
+    </element>
+    <element name='ssid'>
+      <ref name='ccwSsidRange'/>
+    </element>
+    <element name='devno'>
+      <ref name='ccwDevnoRange'/>
     </element>
   </define>
 

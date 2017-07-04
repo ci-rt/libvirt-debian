@@ -88,6 +88,25 @@ virBufferAdjustIndent(virBufferPtr buf, int indent)
     buf->indent += indent;
 }
 
+
+/**
+ * virBufferSetIndent:
+ * @buf: the buffer
+ * @indent: new indentation size.
+ *
+ * Set the auto-indent value to @indent. See virBufferAdjustIndent on how auto
+ * indentation is applied.
+ */
+void
+virBufferSetIndent(virBufferPtr buf, int indent)
+{
+    if (!buf || buf->error)
+        return;
+
+    buf->indent = indent;
+}
+
+
 /**
  * virBufferGetIndent:
  * @buf: the buffer
@@ -534,6 +553,25 @@ virBufferEscapeSexpr(virBufferPtr buf,
                      const char *str)
 {
     virBufferEscape(buf, '\\', "\\'", format, str);
+}
+
+/**
+ * virBufferEscapeRegex:
+ * @buf: the buffer to append to
+ * @format: a printf like format string but with only one %s parameter
+ * @str: the string argument which needs to be escaped
+ *
+ * Do a formatted print with a single string to a buffer.  The @str is
+ * escaped to avoid using POSIX extended regular expression meta-characters.
+ * Escaping is not applied to characters specified in @format. Auto
+ * indentation may be applied.
+ */
+void
+virBufferEscapeRegex(virBufferPtr buf,
+                     const char *format,
+                     const char *str)
+{
+    virBufferEscape(buf, '\\', "^$.|?*+()[]{}\\", format, str);
 }
 
 /**

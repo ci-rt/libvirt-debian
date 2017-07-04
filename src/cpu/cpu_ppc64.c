@@ -92,22 +92,22 @@ ppc64CheckCompatibilityMode(const char *host_model,
     if (!compat_mode)
         return VIR_CPU_COMPARE_IDENTICAL;
 
-    /* Valid host CPUs: POWER6, POWER7, POWER8 */
+    /* Valid host CPUs: POWER6, POWER7, POWER8, POWER9 */
     if (!STRPREFIX(host_model, "POWER") ||
         !(tmp = (char *) host_model + strlen("POWER")) ||
         virStrToLong_i(tmp, NULL, 10, &host) < 0 ||
-        host < 6 || host > 8) {
+        host < 6 || host > 9) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        "%s",
                        _("Host CPU does not support compatibility modes"));
         goto out;
     }
 
-    /* Valid compatibility modes: power6, power7, power8 */
+    /* Valid compatibility modes: power6, power7, power8, power9 */
     if (!STRPREFIX(compat_mode, "power") ||
         !(tmp = (char *) compat_mode + strlen("power")) ||
         virStrToLong_i(tmp, NULL, 10, &compat) < 0 ||
-        compat < 6 || compat > 8) {
+        compat < 6 || compat > 9) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Unknown compatibility mode %s"),
                        compat_mode);
@@ -576,7 +576,7 @@ ppc64Compute(virCPUDefPtr host,
                 ret = tmp;
                 goto cleanup;
             }
-            /* fallthrough */
+            ATTRIBUTE_FALLTHROUGH;
 
         case VIR_CPU_MODE_HOST_PASSTHROUGH:
             /* host-model and host-passthrough:
@@ -665,14 +665,11 @@ ppc64DriverDecode(virCPUDefPtr cpu,
                   const virCPUData *data,
                   const char **models,
                   unsigned int nmodels,
-                  const char *preferred ATTRIBUTE_UNUSED,
-                  unsigned int flags)
+                  const char *preferred ATTRIBUTE_UNUSED)
 {
     int ret = -1;
     struct ppc64_map *map;
     const struct ppc64_model *model;
-
-    virCheckFlags(VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES, -1);
 
     if (!data || !(map = ppc64LoadMap()))
         return -1;
@@ -714,19 +711,23 @@ virCPUppc64DataFree(virCPUDataPtr data)
     VIR_FREE(data);
 }
 
-static virCPUDataPtr
-ppc64DriverNodeData(virArch arch)
+
+static int
+virCPUppc64GetHost(virCPUDefPtr cpu,
+                   const char **models,
+                   unsigned int nmodels)
 {
-    virCPUDataPtr nodeData;
+    virCPUDataPtr cpuData = NULL;
     virCPUppc64Data *data;
+    int ret = -1;
 
-    if (VIR_ALLOC(nodeData) < 0)
-        goto error;
+    if (!(cpuData = virCPUDataNew(archs[0])))
+        goto cleanup;
 
-    data = &nodeData->data.ppc64;
+    data = &cpuData->data.ppc64;
 
     if (VIR_ALLOC_N(data->pvr, 1) < 0)
-        goto error;
+        goto cleanup;
 
     data->len = 1;
 
@@ -736,13 +737,11 @@ ppc64DriverNodeData(virArch arch)
 #endif
     data->pvr[0].mask = 0xfffffffful;
 
-    nodeData->arch = arch;
+    ret = ppc64DriverDecode(cpu, cpuData, models, nmodels, NULL);
 
-    return nodeData;
-
- error:
-    virCPUppc64DataFree(nodeData);
-    return NULL;
+ cleanup:
+    virCPUppc64DataFree(cpuData);
+    return ret;
 }
 
 
@@ -769,16 +768,13 @@ ppc64DriverBaseline(virCPUDefPtr *cpus,
                     unsigned int ncpus,
                     const char **models ATTRIBUTE_UNUSED,
                     unsigned int nmodels ATTRIBUTE_UNUSED,
-                    unsigned int flags)
+                    bool migratable ATTRIBUTE_UNUSED)
 {
     struct ppc64_map *map;
     const struct ppc64_model *model;
     const struct ppc64_vendor *vendor = NULL;
     virCPUDefPtr cpu = NULL;
     size_t i;
-
-    virCheckFlags(VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES |
-                  VIR_CONNECT_BASELINE_CPU_MIGRATABLE, NULL);
 
     if (!(map = ppc64LoadMap()))
         goto error;
@@ -902,7 +898,7 @@ struct cpuArchDriver cpuDriverPPC64 = {
     .decode     = ppc64DriverDecode,
     .encode     = NULL,
     .dataFree   = virCPUppc64DataFree,
-    .nodeData   = ppc64DriverNodeData,
+    .getHost    = virCPUppc64GetHost,
     .baseline   = ppc64DriverBaseline,
     .update     = virCPUppc64Update,
     .getModels  = virCPUppc64DriverGetModels,

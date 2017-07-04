@@ -92,8 +92,6 @@ virStorageBackendLogicalRemoveDevice(const char *path)
 static int
 virStorageBackendLogicalInitializeDevice(const char *path)
 {
-    int fd = -1;
-    char zeros[PV_BLANK_SECTOR_SIZE] = {0};
     int ret = -1;
     virCommandPtr pvcmd = NULL;
 
@@ -102,27 +100,8 @@ virStorageBackendLogicalInitializeDevice(const char *path)
      * a whole disk as a PV. So we just blank them out regardless
      * rather than trying to figure out if we're a disk or partition
      */
-    if ((fd = open(path, O_WRONLY)) < 0) {
-        virReportSystemError(errno, _("cannot open device '%s'"), path);
+    if (virStorageBackendZeroPartitionTable(path, 1024 * 1024) < 0)
         return -1;
-    }
-
-    if (safewrite(fd, zeros, sizeof(zeros)) < 0) {
-        virReportSystemError(errno, _("cannot clear device header of '%s'"),
-                             path);
-        goto cleanup;
-    }
-
-    if (fsync(fd) < 0) {
-        virReportSystemError(errno, _("cannot flush header of device'%s'"),
-                             path);
-        goto cleanup;
-    }
-
-    if (VIR_CLOSE(fd) < 0) {
-        virReportSystemError(errno, _("cannot close device '%s'"), path);
-        goto cleanup;
-    }
 
     /*
      * Initialize the physical volume because vgcreate is not
@@ -135,7 +114,6 @@ virStorageBackendLogicalInitializeDevice(const char *path)
     ret = 0;
 
  cleanup:
-    VIR_FORCE_CLOSE(fd);
     virCommandFree(pvcmd);
 
     return ret;
@@ -831,7 +809,7 @@ virStorageBackendLogicalRefreshPool(virConnectPtr conn ATTRIBUTE_UNUSED,
     virCommandPtr cmd = NULL;
     int ret = -1;
 
-    virFileWaitForDevices();
+    virWaitForDevices();
 
     /* Get list of all logical volumes */
     if (virStorageBackendLogicalFindLVs(pool, NULL) < 0)
@@ -925,7 +903,7 @@ virStorageBackendLogicalDeleteVol(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     virCheckFlags(0, -1);
 
-    virFileWaitForDevices();
+    virWaitForDevices();
 
     lvchange_cmd = virCommandNewArgList(LVCHANGE, "-aln", vol->target.path, NULL);
     lvremove_cmd = virCommandNewArgList(LVREMOVE, "-f", vol->target.path, NULL);

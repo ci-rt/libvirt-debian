@@ -108,6 +108,14 @@ testCompareXMLToIPTablesHelper(const void *data)
     return result;
 }
 
+static bool
+hasNetfilterTools(void)
+{
+    return virFileIsExecutable(IPTABLES_PATH) &&
+        virFileIsExecutable(IP6TABLES_PATH) &&
+        virFileIsExecutable(EBTABLES_PATH);
+}
+
 
 static int
 mymain(void)
@@ -131,6 +139,11 @@ mymain(void)
     virFirewallSetLockOverride(true);
 
     if (virFirewallSetBackend(VIR_FIREWALL_BACKEND_DIRECT) < 0) {
+        if (!hasNetfilterTools()) {
+            fprintf(stderr, "iptables/ip6tables/ebtables tools not present");
+            return EXIT_AM_SKIP;
+        }
+
         ret = -1;
         goto cleanup;
     }
@@ -147,7 +160,7 @@ mymain(void)
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-VIRT_TEST_MAIN(mymain)
+VIR_TEST_MAIN(mymain)
 
 #else /* ! defined (__linux__) */
 
