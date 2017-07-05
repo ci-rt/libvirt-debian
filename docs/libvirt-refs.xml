@@ -19466,8 +19466,6 @@
         </word>
         <word name='really'>
           <ref name='VIR_DOMAIN_BLOCK_COPY_BANDWIDTH'/>
-          <ref name='virDomainBlockPeek'/>
-          <ref name='virDomainMemoryPeek'/>
           <ref name='virStorageVolWipePattern'/>
         </word>
         <word name='reason'>

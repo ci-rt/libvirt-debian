@@ -1,6 +1,6 @@
-libvirt (3.0.5~rc2-1.gbpb3ae1f) UNRELEASED; urgency=medium
+libvirt (3.5.0-1.gbpf90aa3) UNRELEASED; urgency=medium
 
-  ** SNAPSHOT build @b3ae1f42743afd41f18623ecee4759d9fa7f2dae **
+  ** SNAPSHOT build @f90aa3e2e80a37372cd78383d2b922e695149408 **
 
   * [b0f6946] New upstream version 3.5.0-rc2
   * [e0507a8] New upstream version 3.1.0
@@ -28,7 +28,10 @@ libvirt (3.0.5~rc2-1.gbpb3ae1f) UNRELEASED; urgency=medium
   * [aef2f3c] Ship libvirt-admin.conf (Closes: #863649)
   * [c3b6ff2] Ship default file for virtlockd (Closes: #863648)
 
- -- Guido Günther <agx@sigxcpu.org>  Tue, 04 Jul 2017 21:46:35 +0200
+  [ Guido Günther ]
+  * [116cb98] New upstream version 3.5.0
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 05 Jul 2017 08:38:03 +0200
 
 libvirt (3.0.0-4) unstable; urgency=medium
 
