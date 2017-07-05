@@ -12,7 +12,7 @@
         <h1>Releases</h1><p>This is the list of official releases for libvirt, along with an
         overview of the changes introduced by each of them.</p><p>For a more fine-grained view, use the
         <a href="http://libvirt.org/git/?p=libvirt.git;a=log">git log</a>.
-        </p><h3><strong>v3.5.0 (unreleased)</strong></h3><ul><li><strong>New features</strong><ul><li>
+        </p><h3><strong>v3.5.0 (2017-07-04)</strong></h3><ul><li><strong>New features</strong><ul><li>
           qemu: Add support for loadparm for a boot device
         <br/>
           Add an optional boot parameter 'loadparm' for a boot device.
@@ -33,6 +33,11 @@
           Users can now use <code>virsh update-device</code> to change
           the coalesce settings of an interfaces while the domain is
           running.
+        </li><li>
+          qemu: Allow VirtIO devices to use vIOMMU
+        <br/>
+          It is now possible to turn on IOTBL for the vIOMMU and have VirtIO
+          devices use it, provided they have been configured appropriately.
         </li></ul></li><li><strong>Improvements</strong><ul><li>
           qemu: block copy job can be used with persistent domains
         <br/>
@@ -51,6 +56,13 @@
         <br/>
           Various information about resource control from the host is
           gathered and presented in capabilities if available.
+        </li><li>
+          apparmor: Several improvements
+        <br/>
+          Allow access to Ceph config, EFI firmware on both x86_64 and
+          aarch64, device tree on ppc64 and more.
+        </li><li>
+          qemu: Support host-model on POWER9 machines
         </li></ul></li><li><strong>Bug fixes</strong><ul><li>
           qemu: snapshot: retrieve image metadata from user provided files
         <br/>
@@ -60,6 +72,49 @@
 
           The metadata is necessary to allow keeping relative paths between
           images when doing a block-commit.
+        </li><li>
+          Parse decimal numbers in a locale-independent way
+        <br/>
+          Some locales, such as <code>de_DE</code> and <code>pt_BR</code>,
+          use comma rather than dot to separate the integer part from the
+          fractional part of a decimal number; however, several data sources
+          such as the kernel use a locale-independent representation and need
+          to be treated accordingly.
+        </li><li>
+          Support compilation with newer compiler and libc versions
+        <br/>
+          Several fixes have been included to make compilation with Clang
+          4.0.0, GCC 7.1 and glibc &gt;= 2.25.90 possible.
+        </li><li>
+          qemu: Query name for vhost-user interfaces at runtime
+        <br/>
+          This makes it possible to use <code>virsh</code> subcommands such
+          as <code>domiflist</code> and <code>domifstat</code> on vhost-user
+          interfaces.
+        </li><li>
+          qemu: Set MTU for hotplugged interfaces correctly
+        <br/>
+          When hotplugging a network interface, the MTU was only set on the
+          guest side. Set it on the host side as well.
+        </li><li>
+          qemu: Forbid updating MTU for interfaces of running guests
+        <br/>
+          The MTU setting can't be modified while the guest is running, so any
+          attempt to alter it at runtime will now result in an error rather
+          than being silently ignored.
+        </li><li>
+          qemu: Fix specifying QXL heads with older QEMU releases
+        <br/>
+          Specifying the number of QXL heads was not working correctly for
+          QEMU releases older than 1.6.
+        </li><li>
+          qemu: Fix migration to older libvirt/QEMU versions
+        <br/>
+          When the guest is started, libvirt updates the CPU definition to
+          reflect the actual CPU features to enforce ABI. We need to send
+          original and updated CPU definition in order to support migration
+          to older libvirt/QEMU versions. Only the updated CPU definition
+          was sent to destination.
         </li></ul></li></ul><h3><strong>v3.4.0 (2017-06-02)</strong></h3><ul><li><strong>New features</strong><ul><li>
           Improved streams to efficiently transfer sparseness
         <br/>
