@@ -204,6 +204,7 @@ endif
 
 	# Don't ship any la files
 	rm debian/libvirt-daemon/usr/lib/libvirt/connection-driver/*.la
+	rm debian/libvirt-daemon/usr/lib/libvirt/storage-backend/*.la
 	# Don't ship api files in the daemon package
 	rm -r debian/libvirt-daemon/usr/share/libvirt/api/
 
