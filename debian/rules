@@ -39,6 +39,7 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   WITH_AUDIT          = --with-audit
   WITH_SELINUX        = --with-selinux --with-secdriver-selinux --with-selinux-mount=/sys/fs/selinux
   WITH_APPARMOR       = --with-apparmor --with-secdriver-apparmor --with-apparmor-profiles
+  WITH_NSS_PLUGIN     = --with-nss-plugin
   ifneq (,$(findstring $(DEB_HOST_ARCH), amd64 armel armhf i386 ia64 powerpc s390))
       WITH_DTRACE     = --with-dtrace
   else
@@ -76,6 +77,7 @@ else
   WITH_AUDIT          = --without-audit
   WITH_SELINUX        = --without-selinux
   WITH_APPARMOR       = --without-apparmor
+  WITH_NSS_PLUGIN     = --without-nss-plugin
   WITH_DTRACE         = --without-dtrace
   WITH_XEN            = --without-xen
   WITH_LIBXL          = --without-libxl
@@ -126,7 +128,7 @@ DEB_CONFIGURE_EXTRA_ARGS :=      \
 	--without-hal            \
 	$(WITH_FIREWALLD)        \
 	--without-attr           \
-        --with-nss-plugin        \
+	$(WITH_NSS_PLUGIN)       \
         $(NULL)
 
 LIBVIRT_SYSTEM_SERVICES = \
@@ -189,12 +191,12 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
 	dh_install -p libvirt-daemon-system etc/libvirt/qemu/networks/
 	dh_install -p libvirt-daemon-system etc/libvirt/nwfilter/
 	dh_install -p libvirt-clients etc/libvirt/virt-login-shell.conf
+	dh_install -p libnss-libvirt usr/lib/libnss_libvirt.so.2 lib/$(DEB_HOST_MULTIARCH)/
 endif
 ifeq ($(XEN_ENABLED), 1)
 	dh_install -p libvirt-daemon-system etc/libvirt/libxl.conf
 	dh_install -p libvirt-daemon-system etc/libvirt/libxl-lockd.conf
 endif
-	dh_install -p libnss-libvirt usr/lib/libnss_libvirt.so.2 lib/$(DEB_HOST_MULTIARCH)/
 
 	for l in $(LOGROTATE); do \
 		cp $(CURDIR)/debian/build/daemon/$$l.logrotate \
