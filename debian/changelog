@@ -1,11 +1,14 @@
-libvirt (3.5.0-1.gbpf90aa3) UNRELEASED; urgency=medium
+libvirt (3.5.0-1) unstable; urgency=medium
 
-  ** SNAPSHOT build @f90aa3e2e80a37372cd78383d2b922e695149408 **
-
+  [ Guido Günther ]
+  * [116cb98] New upstream version 3.5.0
+  * [22f685c] Explicitly enable directory based storage backend.  We do so for
+    the other storage backends as well.
+  * [1619c0f] Ship storage backends
   * [b0f6946] New upstream version 3.5.0-rc2
   * [e0507a8] New upstream version 3.1.0
   * [603e376] New upstream version 3.1.0-rc2
-  * [172bcdf,21aa1f3] Bump symbol versions
+  * [172bcdf,21aa1f3,0d45d3b] Bump symbol versions
   * [9c4dfe3] Dropped Disable-use-of-namespaces-by-default.patch: not needed,
     namespaces are now enabled
   * [7cb82a1] Add pt debconf translation.
@@ -28,10 +31,7 @@ libvirt (3.5.0-1.gbpf90aa3) UNRELEASED; urgency=medium
   * [aef2f3c] Ship libvirt-admin.conf (Closes: #863649)
   * [c3b6ff2] Ship default file for virtlockd (Closes: #863648)
 
-  [ Guido Günther ]
-  * [116cb98] New upstream version 3.5.0
-
- -- Guido Günther <agx@sigxcpu.org>  Wed, 05 Jul 2017 08:38:03 +0200
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 06 Jul 2017 11:04:21 +0200
 
 libvirt (3.0.0-4) unstable; urgency=medium
 
