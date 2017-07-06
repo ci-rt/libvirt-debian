@@ -99,6 +99,7 @@ DEB_CONFIGURE_EXTRA_ARGS :=      \
 	--with-polkit		 \
 	$(WITH_UDEV)		 \
 	--with-storage-fs        \
+	--with-storage-dir       \
 	$(WITH_STORAGE_LVM)	 \
 	$(WITH_STORAGE_ISCSI)	 \
 	$(WITH_STORAGE_DISK)	 \
