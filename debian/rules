@@ -112,7 +112,7 @@ DEB_CONFIGURE_EXTRA_ARGS :=      \
 	$(WITH_NUMA)             \
 	$(WITH_SELINUX)          \
 	$(WITH_APPARMOR)         \
-	--without-esx		 \
+	--with-esx               \
 	--without-phyp           \
 	$(WITH_CAPNG)		 \
 	--enable-debug		 \

@@ -27,6 +27,7 @@ Build-Depends:
  libpciaccess-dev,
  kmod [linux-any],
  policykit-1 (>= 0.105-4~),
+ libcurl4-gnutls-dev,
  libpolkit-gobject-1-dev,
  libcap-ng-dev [linux-any],
  libnl-3-dev [linux-any],
