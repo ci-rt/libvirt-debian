@@ -41,6 +41,43 @@ SER_START_ITEMS(CIM_DataFile_Data)
     SER_NS_BOOL(CIM_DATAFILE_RESOURCE_URI, "Writeable", 1),
 SER_END_ITEMS(CIM_DataFile_Data);
 
+hypervCimType CIM_DataFile_Typemap[] = {
+    { "AccessMask", "uint32", false },
+    { "Archive", "boolean", false },
+    { "Caption", "string", false },
+    { "Compressed", "boolean", false },
+    { "CompressionMethod", "string", false },
+    { "CreationClassName", "string", false },
+    { "CreationDate", "datetime", false },
+    { "CSCreationClassName", "string", false },
+    { "CSName", "string", false },
+    { "Description", "string", false },
+    { "Drive", "string", false },
+    { "EightDotThreeFileName", "string", false },
+    { "Encrypted", "boolean", false },
+    { "EncryptionMethod", "string", false },
+    { "Extension", "string", false },
+    { "FileName", "string", false },
+    { "FileSize", "uint64", false },
+    { "FileType", "string", false },
+    { "FSCreationClassName", "string", false },
+    { "FSName", "string", false },
+    { "Hidden", "boolean", false },
+    { "InstallDate", "datetime", false },
+    { "InUseCount", "uint64", false },
+    { "LastAccessed", "datetime", false },
+    { "LastModified", "datetime", false },
+    { "Manufacturer", "string", false },
+    { "Name", "string", false },
+    { "Path", "string", false },
+    { "Readable", "boolean", false },
+    { "Status", "string", false },
+    { "System", "boolean", false },
+    { "Version", "string", false },
+    { "Writeable", "boolean", false },
+    { "", "", 0 },
+};
+
 hypervWmiClassInfoListPtr CIM_DataFile_WmiInfo = &(hypervWmiClassInfoList) {
     .count = 1,
     .objs = (hypervWmiClassInfoPtr []) {
@@ -49,7 +86,8 @@ hypervWmiClassInfoListPtr CIM_DataFile_WmiInfo = &(hypervWmiClassInfoList) {
             .version = NULL,
             .rootUri = ROOT_CIMV2,
             .resourceUri = CIM_DATAFILE_RESOURCE_URI,
-            .serializerInfo = CIM_DataFile_Data_TypeInfo
+            .serializerInfo = CIM_DataFile_Data_TypeInfo,
+            .propertyInfo = CIM_DataFile_Typemap
         },
     }
 };
@@ -72,6 +110,21 @@ SER_START_ITEMS(Msvm_AllocationCapabilities_Data)
     SER_NS_DYN_ARRAY(MSVM_ALLOCATIONCAPABILITIES_RESOURCE_URI, "SupportedRemoveStates", 0, 0, uint16),
 SER_END_ITEMS(Msvm_AllocationCapabilities_Data);
 
+hypervCimType Msvm_AllocationCapabilities_Typemap[] = {
+    { "Caption", "string", false },
+    { "Description", "string", false },
+    { "ElementName", "string", false },
+    { "InstanceID", "string", false },
+    { "OtherResourceType", "string", false },
+    { "RequestTypesSupported", "uint16", false },
+    { "ResourceSubType", "string", false },
+    { "ResourceType", "uint16", false },
+    { "SharingMode", "uint16", false },
+    { "SupportedAddStates", "uint16", true },
+    { "SupportedRemoveStates", "uint16", true },
+    { "", "", 0 },
+};
+
 hypervWmiClassInfoListPtr Msvm_AllocationCapabilities_WmiInfo = &(hypervWmiClassInfoList) {
     .count = 1,
     .objs = (hypervWmiClassInfoPtr []) {
@@ -80,7 +133,8 @@ hypervWmiClassInfoListPtr Msvm_AllocationCapabilities_WmiInfo = &(hypervWmiClass
             .version = NULL,
             .rootUri = ROOT_VIRTUALIZATION,
             .resourceUri = MSVM_ALLOCATIONCAPABILITIES_RESOURCE_URI,
-            .serializerInfo = Msvm_AllocationCapabilities_Data_TypeInfo
+            .serializerInfo = Msvm_AllocationCapabilities_Data_TypeInfo,
+            .propertyInfo = Msvm_AllocationCapabilities_Typemap
         },
     }
 };
@@ -120,6 +174,39 @@ SER_START_ITEMS(Msvm_ComputerSystem_v1_Data)
     SER_NS_STR(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "PrimaryOwnerName", 1),
     SER_NS_DYN_ARRAY(MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI, "AssignedNumaNodeList", 0, 0, uint16),
 SER_END_ITEMS(Msvm_ComputerSystem_v1_Data);
+
+hypervCimType Msvm_ComputerSystem_v1_Typemap[] = {
+    { "ProcessID", "uint32", false },
+    { "TimeOfLastConfigurationChange", "datetime", false },
+    { "EnabledState", "uint16", false },
+    { "Dedicated", "uint16", true },
+    { "InstallDate", "datetime", false },
+    { "PowerManagementCapabilities", "uint16", true },
+    { "Description", "string", false },
+    { "ElementName", "string", false },
+    { "OnTimeInMilliseconds", "uint64", false },
+    { "Name", "string", false },
+    { "ResetCapability", "uint16", false },
+    { "NameFormat", "string", false },
+    { "TimeOfLastStateChange", "datetime", false },
+    { "OtherEnabledState", "string", false },
+    { "OperationalStatus", "uint16", true },
+    { "Roles", "string", true },
+    { "StatusDescriptions", "string", true },
+    { "Caption", "string", false },
+    { "OtherIdentifyingInfo", "string", true },
+    { "PrimaryOwnerContact", "string", false },
+    { "RequestedState", "uint16", false },
+    { "Status", "string", false },
+    { "CreationClassName", "string", false },
+    { "EnabledDefault", "uint16", false },
+    { "HealthState", "uint16", false },
+    { "IdentifyingDescriptions", "string", true },
+    { "OtherDedicatedDescriptions", "string", true },
+    { "PrimaryOwnerName", "string", false },
+    { "AssignedNumaNodeList", "uint16", true },
+    { "", "", 0 },
+};
 
 SER_START_ITEMS(Msvm_ComputerSystem_v2_Data)
     SER_NS_UINT32(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "ProcessID", 1),
@@ -169,6 +256,55 @@ SER_START_ITEMS(Msvm_ComputerSystem_v2_Data)
     SER_NS_UINT16(MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI, "EnhancedSessionModeState", 1),
 SER_END_ITEMS(Msvm_ComputerSystem_v2_Data);
 
+hypervCimType Msvm_ComputerSystem_v2_Typemap[] = {
+    { "ProcessID", "uint32", false },
+    { "TimeOfLastConfigurationChange", "datetime", false },
+    { "EnabledState", "uint16", false },
+    { "Dedicated", "uint16", true },
+    { "InstallDate", "datetime", false },
+    { "PowerManagementCapabilities", "uint16", true },
+    { "Description", "string", false },
+    { "ElementName", "string", false },
+    { "OnTimeInMilliseconds", "uint64", false },
+    { "Name", "string", false },
+    { "ResetCapability", "uint16", false },
+    { "NameFormat", "string", false },
+    { "TimeOfLastStateChange", "datetime", false },
+    { "OtherEnabledState", "string", false },
+    { "OperationalStatus", "uint16", true },
+    { "Roles", "string", true },
+    { "StatusDescriptions", "string", true },
+    { "Caption", "string", false },
+    { "OtherIdentifyingInfo", "string", true },
+    { "PrimaryOwnerContact", "string", false },
+    { "RequestedState", "uint16", false },
+    { "Status", "string", false },
+    { "CreationClassName", "string", false },
+    { "EnabledDefault", "uint16", false },
+    { "HealthState", "uint16", false },
+    { "IdentifyingDescriptions", "string", true },
+    { "OtherDedicatedDescriptions", "string", true },
+    { "PrimaryOwnerName", "string", false },
+    { "CommunicationStatus", "uint16", false },
+    { "AvailableRequestedStates", "uint16", true },
+    { "DetailedStatus", "uint16", false },
+    { "TransitioningToState", "uint16", false },
+    { "OperatingStatus", "uint16", false },
+    { "InstanceID", "string", false },
+    { "PrimaryStatus", "uint16", false },
+    { "NumberOfNumaNodes", "uint16", false },
+    { "ReplicationState", "uint16", false },
+    { "ReplicationHealth", "uint16", false },
+    { "ReplicationMode", "uint16", false },
+    { "FailedOverReplicationType", "uint16", false },
+    { "LastReplicationType", "uint16", false },
+    { "LastApplicationConsistentReplicationTime", "datetime", false },
+    { "LastReplicationTime", "datetime", false },
+    { "LastSuccessfulBackupTime", "datetime", false },
+    { "EnhancedSessionModeState", "uint16", false },
+    { "", "", 0 },
+};
+
 hypervWmiClassInfoListPtr Msvm_ComputerSystem_WmiInfo = &(hypervWmiClassInfoList) {
     .count = 2,
     .objs = (hypervWmiClassInfoPtr []) {
@@ -177,14 +313,16 @@ hypervWmiClassInfoListPtr Msvm_ComputerSystem_WmiInfo = &(hypervWmiClassInfoList
             .version = "v1",
             .rootUri = ROOT_VIRTUALIZATION,
             .resourceUri = MSVM_COMPUTERSYSTEM_V1_RESOURCE_URI,
-            .serializerInfo = Msvm_ComputerSystem_v1_Data_TypeInfo
+            .serializerInfo = Msvm_ComputerSystem_v1_Data_TypeInfo,
+            .propertyInfo = Msvm_ComputerSystem_v1_Typemap
         },
         &(hypervWmiClassInfo) {
             .name = MSVM_COMPUTERSYSTEM_CLASSNAME,
             .version = "v2",
             .rootUri = ROOT_VIRTUALIZATION_V2,
             .resourceUri = MSVM_COMPUTERSYSTEM_V2_RESOURCE_URI,
-            .serializerInfo = Msvm_ComputerSystem_v2_Data_TypeInfo
+            .serializerInfo = Msvm_ComputerSystem_v2_Data_TypeInfo,
+            .propertyInfo = Msvm_ComputerSystem_v2_Typemap
         },
     }
 };
@@ -232,6 +370,46 @@ SER_START_ITEMS(Msvm_ConcreteJob_v1_Data)
     SER_NS_INT8(MSVM_CONCRETEJOB_V1_RESOURCE_URI, "RunDayOfWeek", 1),
 SER_END_ITEMS(Msvm_ConcreteJob_v1_Data);
 
+hypervCimType Msvm_ConcreteJob_v1_Typemap[] = {
+    { "RunMonth", "uint8", false },
+    { "TimeBeforeRemoval", "datetime", false },
+    { "JobStatus", "string", false },
+    { "ScheduledStartTime", "datetime", false },
+    { "Cancellable", "boolean", false },
+    { "JobRunTimes", "uint32", false },
+    { "UntilTime", "datetime", false },
+    { "TimeSubmitted", "datetime", false },
+    { "JobState", "uint16", false },
+    { "LocalOrUtcTime", "uint16", false },
+    { "RecoveryAction", "uint16", false },
+    { "PercentComplete", "uint16", false },
+    { "InstallDate", "datetime", false },
+    { "Priority", "uint32", false },
+    { "Description", "string", false },
+    { "Name", "string", false },
+    { "HealthState", "uint16", false },
+    { "DeleteOnCompletion", "boolean", false },
+    { "OperationalStatus", "uint16", true },
+    { "ErrorCode", "uint16", false },
+    { "Notify", "string", false },
+    { "Caption", "string", false },
+    { "Owner", "string", false },
+    { "ErrorSummaryDescription", "string", false },
+    { "Status", "string", false },
+    { "ErrorDescription", "string", false },
+    { "InstanceID", "string", false },
+    { "ElapsedTime", "datetime", false },
+    { "OtherRecoveryAction", "string", false },
+    { "TimeOfLastStateChange", "datetime", false },
+    { "RunStartInterval", "datetime", false },
+    { "StartTime", "datetime", false },
+    { "ElementName", "string", false },
+    { "StatusDescriptions", "string", true },
+    { "RunDay", "int8", false },
+    { "RunDayOfWeek", "int8", false },
+    { "", "", 0 },
+};
+
 SER_START_ITEMS(Msvm_ConcreteJob_v2_Data)
     SER_NS_UINT8(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "RunMonth", 1),
     SER_NS_STR(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "TimeBeforeRemoval", 1),
@@ -276,6 +454,51 @@ SER_START_ITEMS(Msvm_ConcreteJob_v2_Data)
     SER_NS_UINT16(MSVM_CONCRETEJOB_V2_RESOURCE_URI, "JobType", 1),
 SER_END_ITEMS(Msvm_ConcreteJob_v2_Data);
 
+hypervCimType Msvm_ConcreteJob_v2_Typemap[] = {
+    { "RunMonth", "uint8", false },
+    { "TimeBeforeRemoval", "datetime", false },
+    { "JobStatus", "string", false },
+    { "ScheduledStartTime", "datetime", false },
+    { "Cancellable", "boolean", false },
+    { "JobRunTimes", "uint32", false },
+    { "UntilTime", "datetime", false },
+    { "TimeSubmitted", "datetime", false },
+    { "JobState", "uint16", false },
+    { "LocalOrUtcTime", "uint16", false },
+    { "RecoveryAction", "uint16", false },
+    { "PercentComplete", "uint16", false },
+    { "InstallDate", "datetime", false },
+    { "Priority", "uint32", false },
+    { "Description", "string", false },
+    { "Name", "string", false },
+    { "HealthState", "uint16", false },
+    { "DeleteOnCompletion", "boolean", false },
+    { "OperationalStatus", "uint16", true },
+    { "ErrorCode", "uint16", false },
+    { "Notify", "string", false },
+    { "Caption", "string", false },
+    { "Owner", "string", false },
+    { "ErrorSummaryDescription", "string", false },
+    { "Status", "string", false },
+    { "ErrorDescription", "string", false },
+    { "InstanceID", "string", false },
+    { "ElapsedTime", "datetime", false },
+    { "OtherRecoveryAction", "string", false },
+    { "TimeOfLastStateChange", "datetime", false },
+    { "RunStartInterval", "datetime", false },
+    { "StartTime", "datetime", false },
+    { "ElementName", "string", false },
+    { "StatusDescriptions", "string", true },
+    { "CommunicationStatus", "uint16", false },
+    { "PrimaryStatus", "uint16", false },
+    { "RunDayOfWeek", "sint8", false },
+    { "DetailedStatus", "uint16", false },
+    { "RunDay", "sint8", false },
+    { "OperatingStatus", "uint16", false },
+    { "JobType", "uint16", false },
+    { "", "", 0 },
+};
+
 hypervWmiClassInfoListPtr Msvm_ConcreteJob_WmiInfo = &(hypervWmiClassInfoList) {
     .count = 2,
     .objs = (hypervWmiClassInfoPtr []) {
@@ -284,14 +507,214 @@ hypervWmiClassInfoListPtr Msvm_ConcreteJob_WmiInfo = &(hypervWmiClassInfoList) {
             .version = "v1",
             .rootUri = ROOT_VIRTUALIZATION,
             .resourceUri = MSVM_CONCRETEJOB_V1_RESOURCE_URI,
-            .serializerInfo = Msvm_ConcreteJob_v1_Data_TypeInfo
+            .serializerInfo = Msvm_ConcreteJob_v1_Data_TypeInfo,
+            .propertyInfo = Msvm_ConcreteJob_v1_Typemap
         },
         &(hypervWmiClassInfo) {
             .name = MSVM_CONCRETEJOB_CLASSNAME,
             .version = "v2",
             .rootUri = ROOT_VIRTUALIZATION_V2,
             .resourceUri = MSVM_CONCRETEJOB_V2_RESOURCE_URI,
-            .serializerInfo = Msvm_ConcreteJob_v2_Data_TypeInfo
+            .serializerInfo = Msvm_ConcreteJob_v2_Data_TypeInfo,
+            .propertyInfo = Msvm_ConcreteJob_v2_Typemap
+        },
+    }
+};
+
+
+/****************************************************
+ * Msvm_Keyboard
+ */
+SER_START_ITEMS(Msvm_Keyboard_v1_Data)
+    SER_NS_UINT64(MSVM_KEYBOARD_V1_RESOURCE_URI, "MaxQuiesceTime", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V1_RESOURCE_URI, "SystemCreationClassName", 1),
+    SER_NS_BOOL(MSVM_KEYBOARD_V1_RESOURCE_URI, "IsLocked", 1),
+    SER_NS_UINT16(MSVM_KEYBOARD_V1_RESOURCE_URI, "Availability", 1),
+    SER_NS_DYN_ARRAY(MSVM_KEYBOARD_V1_RESOURCE_URI, "AdditionalAvailability", 0, 0, uint16),
+    SER_NS_UINT16(MSVM_KEYBOARD_V1_RESOURCE_URI, "EnabledState", 1),
+    SER_NS_BOOL(MSVM_KEYBOARD_V1_RESOURCE_URI, "PowerManagementSupported", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V1_RESOURCE_URI, "InstallDate", 1),
+    SER_NS_BOOL(MSVM_KEYBOARD_V1_RESOURCE_URI, "ErrorCleared", 1),
+    SER_NS_DYN_ARRAY(MSVM_KEYBOARD_V1_RESOURCE_URI, "PowerManagementCapabilities", 0, 0, uint16),
+    SER_NS_UINT16(MSVM_KEYBOARD_V1_RESOURCE_URI, "Password", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V1_RESOURCE_URI, "Description", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V1_RESOURCE_URI, "Name", 1),
+    SER_NS_UINT16(MSVM_KEYBOARD_V1_RESOURCE_URI, "EnabledDefault", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V1_RESOURCE_URI, "TimeOfLastStateChange", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V1_RESOURCE_URI, "OtherEnabledState", 1),
+    SER_NS_DYN_ARRAY(MSVM_KEYBOARD_V1_RESOURCE_URI, "OperationalStatus", 0, 0, uint16),
+    SER_NS_UINT64(MSVM_KEYBOARD_V1_RESOURCE_URI, "TotalPowerOnHours", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V1_RESOURCE_URI, "Caption", 1),
+    SER_NS_DYN_ARRAY(MSVM_KEYBOARD_V1_RESOURCE_URI, "OtherIdentifyingInfo", 0, 0, string),
+    SER_NS_UINT16(MSVM_KEYBOARD_V1_RESOURCE_URI, "StatusInfo", 1),
+    SER_NS_UINT16(MSVM_KEYBOARD_V1_RESOURCE_URI, "RequestedState", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V1_RESOURCE_URI, "Status", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V1_RESOURCE_URI, "CreationClassName", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V1_RESOURCE_URI, "ErrorDescription", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V1_RESOURCE_URI, "Layout", 1),
+    SER_NS_UINT64(MSVM_KEYBOARD_V1_RESOURCE_URI, "PowerOnHours", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V1_RESOURCE_URI, "SystemName", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V1_RESOURCE_URI, "DeviceID", 1),
+    SER_NS_UINT16(MSVM_KEYBOARD_V1_RESOURCE_URI, "HealthState", 1),
+    SER_NS_DYN_ARRAY(MSVM_KEYBOARD_V1_RESOURCE_URI, "IdentifyingDescriptions", 0, 0, string),
+    SER_NS_UINT16(MSVM_KEYBOARD_V1_RESOURCE_URI, "NumberOfFunctionKeys", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V1_RESOURCE_URI, "ElementName", 1),
+    SER_NS_DYN_ARRAY(MSVM_KEYBOARD_V1_RESOURCE_URI, "StatusDescriptions", 0, 0, string),
+    SER_NS_UINT32(MSVM_KEYBOARD_V1_RESOURCE_URI, "LastErrorCode", 1),
+    SER_NS_UINT16(MSVM_KEYBOARD_V1_RESOURCE_URI, "LocationIndicator", 1),
+SER_END_ITEMS(Msvm_Keyboard_v1_Data);
+
+hypervCimType Msvm_Keyboard_v1_Typemap[] = {
+    { "MaxQuiesceTime", "uint64", false },
+    { "SystemCreationClassName", "string", false },
+    { "IsLocked", "boolean", false },
+    { "Availability", "uint16", false },
+    { "AdditionalAvailability", "uint16", true },
+    { "EnabledState", "uint16", false },
+    { "PowerManagementSupported", "boolean", false },
+    { "InstallDate", "datetime", false },
+    { "ErrorCleared", "boolean", false },
+    { "PowerManagementCapabilities", "uint16", true },
+    { "Password", "uint16", false },
+    { "Description", "string", false },
+    { "Name", "string", false },
+    { "EnabledDefault", "uint16", false },
+    { "TimeOfLastStateChange", "datetime", false },
+    { "OtherEnabledState", "string", false },
+    { "OperationalStatus", "uint16", true },
+    { "TotalPowerOnHours", "uint64", false },
+    { "Caption", "string", false },
+    { "OtherIdentifyingInfo", "string", true },
+    { "StatusInfo", "uint16", false },
+    { "RequestedState", "uint16", false },
+    { "Status", "string", false },
+    { "CreationClassName", "string", false },
+    { "ErrorDescription", "string", false },
+    { "Layout", "string", false },
+    { "PowerOnHours", "uint64", false },
+    { "SystemName", "string", false },
+    { "DeviceID", "string", false },
+    { "HealthState", "uint16", false },
+    { "IdentifyingDescriptions", "string", true },
+    { "NumberOfFunctionKeys", "uint16", false },
+    { "ElementName", "string", false },
+    { "StatusDescriptions", "string", true },
+    { "LastErrorCode", "uint32", false },
+    { "LocationIndicator", "uint16", false },
+    { "", "", 0 },
+};
+
+SER_START_ITEMS(Msvm_Keyboard_v2_Data)
+    SER_NS_UINT64(MSVM_KEYBOARD_V2_RESOURCE_URI, "MaxQuiesceTime", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V2_RESOURCE_URI, "SystemCreationClassName", 1),
+    SER_NS_BOOL(MSVM_KEYBOARD_V2_RESOURCE_URI, "IsLocked", 1),
+    SER_NS_UINT16(MSVM_KEYBOARD_V2_RESOURCE_URI, "Availability", 1),
+    SER_NS_DYN_ARRAY(MSVM_KEYBOARD_V2_RESOURCE_URI, "AdditionalAvailability", 0, 0, uint16),
+    SER_NS_UINT16(MSVM_KEYBOARD_V2_RESOURCE_URI, "EnabledState", 1),
+    SER_NS_BOOL(MSVM_KEYBOARD_V2_RESOURCE_URI, "PowerManagementSupported", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V2_RESOURCE_URI, "InstallDate", 1),
+    SER_NS_BOOL(MSVM_KEYBOARD_V2_RESOURCE_URI, "ErrorCleared", 1),
+    SER_NS_DYN_ARRAY(MSVM_KEYBOARD_V2_RESOURCE_URI, "PowerManagementCapabilities", 0, 0, uint16),
+    SER_NS_UINT16(MSVM_KEYBOARD_V2_RESOURCE_URI, "Password", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V2_RESOURCE_URI, "Description", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V2_RESOURCE_URI, "Name", 1),
+    SER_NS_UINT16(MSVM_KEYBOARD_V2_RESOURCE_URI, "EnabledDefault", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V2_RESOURCE_URI, "TimeOfLastStateChange", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V2_RESOURCE_URI, "OtherEnabledState", 1),
+    SER_NS_DYN_ARRAY(MSVM_KEYBOARD_V2_RESOURCE_URI, "OperationalStatus", 0, 0, uint16),
+    SER_NS_UINT64(MSVM_KEYBOARD_V2_RESOURCE_URI, "TotalPowerOnHours", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V2_RESOURCE_URI, "Caption", 1),
+    SER_NS_DYN_ARRAY(MSVM_KEYBOARD_V2_RESOURCE_URI, "OtherIdentifyingInfo", 0, 0, string),
+    SER_NS_UINT16(MSVM_KEYBOARD_V2_RESOURCE_URI, "StatusInfo", 1),
+    SER_NS_UINT16(MSVM_KEYBOARD_V2_RESOURCE_URI, "RequestedState", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V2_RESOURCE_URI, "Status", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V2_RESOURCE_URI, "CreationClassName", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V2_RESOURCE_URI, "ErrorDescription", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V2_RESOURCE_URI, "Layout", 1),
+    SER_NS_UINT64(MSVM_KEYBOARD_V2_RESOURCE_URI, "PowerOnHours", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V2_RESOURCE_URI, "SystemName", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V2_RESOURCE_URI, "DeviceID", 1),
+    SER_NS_UINT16(MSVM_KEYBOARD_V2_RESOURCE_URI, "HealthState", 1),
+    SER_NS_DYN_ARRAY(MSVM_KEYBOARD_V2_RESOURCE_URI, "IdentifyingDescriptions", 0, 0, string),
+    SER_NS_UINT16(MSVM_KEYBOARD_V2_RESOURCE_URI, "NumberOfFunctionKeys", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V2_RESOURCE_URI, "ElementName", 1),
+    SER_NS_DYN_ARRAY(MSVM_KEYBOARD_V2_RESOURCE_URI, "StatusDescriptions", 0, 0, string),
+    SER_NS_UINT32(MSVM_KEYBOARD_V2_RESOURCE_URI, "LastErrorCode", 1),
+    SER_NS_UINT16(MSVM_KEYBOARD_V2_RESOURCE_URI, "TransitioningToState", 1),
+    SER_NS_UINT16(MSVM_KEYBOARD_V2_RESOURCE_URI, "PrimaryStatus", 1),
+    SER_NS_STR(MSVM_KEYBOARD_V2_RESOURCE_URI, "InstanceID", 1),
+    SER_NS_UINT16(MSVM_KEYBOARD_V2_RESOURCE_URI, "DetailedStatus", 1),
+    SER_NS_UINT16(MSVM_KEYBOARD_V2_RESOURCE_URI, "OperatingStatus", 1),
+    SER_NS_DYN_ARRAY(MSVM_KEYBOARD_V2_RESOURCE_URI, "AvailableRequestedStates", 0, 0, uint16),
+    SER_NS_UINT16(MSVM_KEYBOARD_V2_RESOURCE_URI, "CommunicationStatus", 1),
+    SER_NS_BOOL(MSVM_KEYBOARD_V2_RESOURCE_URI, "UnicodeSupported", 1),
+SER_END_ITEMS(Msvm_Keyboard_v2_Data);
+
+hypervCimType Msvm_Keyboard_v2_Typemap[] = {
+    { "MaxQuiesceTime", "uint64", false },
+    { "SystemCreationClassName", "string", false },
+    { "IsLocked", "boolean", false },
+    { "Availability", "uint16", false },
+    { "AdditionalAvailability", "uint16", true },
+    { "EnabledState", "uint16", false },
+    { "PowerManagementSupported", "boolean", false },
+    { "InstallDate", "datetime", false },
+    { "ErrorCleared", "boolean", false },
+    { "PowerManagementCapabilities", "uint16", true },
+    { "Password", "uint16", false },
+    { "Description", "string", false },
+    { "Name", "string", false },
+    { "EnabledDefault", "uint16", false },
+    { "TimeOfLastStateChange", "datetime", false },
+    { "OtherEnabledState", "string", false },
+    { "OperationalStatus", "uint16", true },
+    { "TotalPowerOnHours", "uint64", false },
+    { "Caption", "string", false },
+    { "OtherIdentifyingInfo", "string", true },
+    { "StatusInfo", "uint16", false },
+    { "RequestedState", "uint16", false },
+    { "Status", "string", false },
+    { "CreationClassName", "string", false },
+    { "ErrorDescription", "string", false },
+    { "Layout", "string", false },
+    { "PowerOnHours", "uint64", false },
+    { "SystemName", "string", false },
+    { "DeviceID", "string", false },
+    { "HealthState", "uint16", false },
+    { "IdentifyingDescriptions", "string", true },
+    { "NumberOfFunctionKeys", "uint16", false },
+    { "ElementName", "string", false },
+    { "StatusDescriptions", "string", true },
+    { "LastErrorCode", "uint32", false },
+    { "TransitioningToState", "uint16", false },
+    { "PrimaryStatus", "uint16", false },
+    { "InstanceID", "string", false },
+    { "DetailedStatus", "uint16", false },
+    { "OperatingStatus", "uint16", false },
+    { "AvailableRequestedStates", "uint16", true },
+    { "CommunicationStatus", "uint16", false },
+    { "UnicodeSupported", "boolean", false },
+    { "", "", 0 },
+};
+
+hypervWmiClassInfoListPtr Msvm_Keyboard_WmiInfo = &(hypervWmiClassInfoList) {
+    .count = 2,
+    .objs = (hypervWmiClassInfoPtr []) {
+        &(hypervWmiClassInfo) {
+            .name = MSVM_KEYBOARD_CLASSNAME,
+            .version = "v1",
+            .rootUri = ROOT_VIRTUALIZATION,
+            .resourceUri = MSVM_KEYBOARD_V1_RESOURCE_URI,
+            .serializerInfo = Msvm_Keyboard_v1_Data_TypeInfo,
+            .propertyInfo = Msvm_Keyboard_v1_Typemap
+        },
+        &(hypervWmiClassInfo) {
+            .name = MSVM_KEYBOARD_CLASSNAME,
+            .version = "v2",
+            .rootUri = ROOT_VIRTUALIZATION_V2,
+            .resourceUri = MSVM_KEYBOARD_V2_RESOURCE_URI,
+            .serializerInfo = Msvm_Keyboard_v2_Data_TypeInfo,
+            .propertyInfo = Msvm_Keyboard_v2_Typemap
         },
     }
 };
@@ -328,6 +751,35 @@ SER_START_ITEMS(Msvm_MemorySettingData_v1_Data)
     SER_NS_STR(MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI, "DeviceID", 1),
 SER_END_ITEMS(Msvm_MemorySettingData_v1_Data);
 
+hypervCimType Msvm_MemorySettingData_v1_Typemap[] = {
+    { "ConsumerVisibility", "uint16", false },
+    { "ResourceSubType", "string", false },
+    { "OtherResourceType", "string", false },
+    { "IsVirtualized", "boolean", false },
+    { "DynamicMemoryEnabled", "boolean", false },
+    { "Description", "string", false },
+    { "AutomaticDeallocation", "boolean", false },
+    { "MappingBehavior", "uint16", false },
+    { "Weight", "uint32", false },
+    { "VirtualQuantity", "uint64", false },
+    { "Address", "string", false },
+    { "Caption", "string", false },
+    { "Connection", "string", true },
+    { "AllocationUnits", "string", false },
+    { "AutomaticAllocation", "boolean", false },
+    { "InstanceID", "string", false },
+    { "Reservation", "uint64", false },
+    { "PoolID", "string", false },
+    { "ResourceType", "uint16", false },
+    { "HostResource", "string", true },
+    { "Parent", "string", false },
+    { "Limit", "uint64", false },
+    { "ElementName", "string", false },
+    { "DeviceIDFormat", "string", false },
+    { "DeviceID", "string", false },
+    { "", "", 0 },
+};
+
 SER_START_ITEMS(Msvm_MemorySettingData_v2_Data)
     SER_NS_UINT16(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "ConsumerVisibility", 1),
     SER_NS_STR(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "ResourceSubType", 1),
@@ -359,6 +811,38 @@ SER_START_ITEMS(Msvm_MemorySettingData_v2_Data)
     SER_NS_UINT64(MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI, "MaxMemoryBlocksPerNumaNode", 1),
 SER_END_ITEMS(Msvm_MemorySettingData_v2_Data);
 
+hypervCimType Msvm_MemorySettingData_v2_Typemap[] = {
+    { "ConsumerVisibility", "uint16", false },
+    { "ResourceSubType", "string", false },
+    { "OtherResourceType", "string", false },
+    { "IsVirtualized", "boolean", false },
+    { "DynamicMemoryEnabled", "boolean", false },
+    { "Description", "string", false },
+    { "AutomaticDeallocation", "boolean", false },
+    { "MappingBehavior", "uint16", false },
+    { "Weight", "uint32", false },
+    { "VirtualQuantity", "uint64", false },
+    { "Address", "string", false },
+    { "Caption", "string", false },
+    { "Connection", "string", true },
+    { "AllocationUnits", "string", false },
+    { "AutomaticAllocation", "boolean", false },
+    { "InstanceID", "string", false },
+    { "Reservation", "uint64", false },
+    { "PoolID", "string", false },
+    { "ResourceType", "uint16", false },
+    { "HostResource", "string", true },
+    { "Parent", "string", false },
+    { "Limit", "uint64", false },
+    { "ElementName", "string", false },
+    { "AddressOnParent", "string", false },
+    { "TargetMemoryBuffer", "uint32", false },
+    { "VirtualQuantityUnits", "string", false },
+    { "SwapFilesInUse", "boolean", false },
+    { "MaxMemoryBlocksPerNumaNode", "uint64", false },
+    { "", "", 0 },
+};
+
 hypervWmiClassInfoListPtr Msvm_MemorySettingData_WmiInfo = &(hypervWmiClassInfoList) {
     .count = 2,
     .objs = (hypervWmiClassInfoPtr []) {
@@ -367,14 +851,16 @@ hypervWmiClassInfoListPtr Msvm_MemorySettingData_WmiInfo = &(hypervWmiClassInfoL
             .version = "v1",
             .rootUri = ROOT_VIRTUALIZATION,
             .resourceUri = MSVM_MEMORYSETTINGDATA_V1_RESOURCE_URI,
-            .serializerInfo = Msvm_MemorySettingData_v1_Data_TypeInfo
+            .serializerInfo = Msvm_MemorySettingData_v1_Data_TypeInfo,
+            .propertyInfo = Msvm_MemorySettingData_v1_Typemap
         },
         &(hypervWmiClassInfo) {
             .name = MSVM_MEMORYSETTINGDATA_CLASSNAME,
             .version = "v2",
             .rootUri = ROOT_VIRTUALIZATION_V2,
             .resourceUri = MSVM_MEMORYSETTINGDATA_V2_RESOURCE_URI,
-            .serializerInfo = Msvm_MemorySettingData_v2_Data_TypeInfo
+            .serializerInfo = Msvm_MemorySettingData_v2_Data_TypeInfo,
+            .propertyInfo = Msvm_MemorySettingData_v2_Typemap
         },
     }
 };
@@ -415,6 +901,39 @@ SER_START_ITEMS(Msvm_ProcessorSettingData_v1_Data)
     SER_NS_STR(MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI, "DeviceID", 1),
 SER_END_ITEMS(Msvm_ProcessorSettingData_v1_Data);
 
+hypervCimType Msvm_ProcessorSettingData_v1_Typemap[] = {
+    { "ConsumerVisibility", "uint16", false },
+    { "ResourceSubType", "string", false },
+    { "OtherResourceType", "string", false },
+    { "LimitCPUID", "boolean", false },
+    { "Description", "string", false },
+    { "AutomaticDeallocation", "boolean", false },
+    { "MappingBehavior", "uint16", false },
+    { "Weight", "uint32", false },
+    { "VirtualQuantity", "uint64", false },
+    { "Address", "string", false },
+    { "Caption", "string", false },
+    { "Connection", "string", true },
+    { "AllocationUnits", "string", false },
+    { "AutomaticAllocation", "boolean", false },
+    { "InstanceID", "string", false },
+    { "Reservation", "uint64", false },
+    { "PoolID", "string", false },
+    { "ResourceType", "uint16", false },
+    { "HostResource", "string", true },
+    { "Parent", "string", false },
+    { "Limit", "uint64", false },
+    { "ElementName", "string", false },
+    { "LimitProcessorFeatures", "boolean", false },
+    { "DeviceIDFormat", "string", false },
+    { "ProcessorsPerSocket", "uint16", false },
+    { "SocketCount", "uint16", false },
+    { "ThreadsEnabled", "boolean", false },
+    { "IsVirtualized", "boolean", false },
+    { "DeviceID", "string", false },
+    { "", "", 0 },
+};
+
 SER_START_ITEMS(Msvm_ProcessorSettingData_v2_Data)
     SER_NS_UINT16(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "ConsumerVisibility", 1),
     SER_NS_STR(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "ResourceSubType", 1),
@@ -445,6 +964,37 @@ SER_START_ITEMS(Msvm_ProcessorSettingData_v2_Data)
     SER_NS_UINT64(MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI, "MaxNumaNodesPerSocket", 1),
 SER_END_ITEMS(Msvm_ProcessorSettingData_v2_Data);
 
+hypervCimType Msvm_ProcessorSettingData_v2_Typemap[] = {
+    { "ConsumerVisibility", "uint16", false },
+    { "ResourceSubType", "string", false },
+    { "OtherResourceType", "string", false },
+    { "LimitCPUID", "boolean", false },
+    { "Description", "string", false },
+    { "AutomaticDeallocation", "boolean", false },
+    { "MappingBehavior", "uint16", false },
+    { "Weight", "uint32", false },
+    { "VirtualQuantity", "uint64", false },
+    { "Address", "string", false },
+    { "Caption", "string", false },
+    { "Connection", "string", true },
+    { "AllocationUnits", "string", false },
+    { "AutomaticAllocation", "boolean", false },
+    { "InstanceID", "string", false },
+    { "Reservation", "uint64", false },
+    { "PoolID", "string", false },
+    { "ResourceType", "uint16", false },
+    { "HostResource", "string", true },
+    { "Parent", "string", false },
+    { "Limit", "uint64", false },
+    { "ElementName", "string", false },
+    { "LimitProcessorFeatures", "boolean", false },
+    { "AddressOnParent", "string", false },
+    { "VirtualQuantityUnits", "string", false },
+    { "MaxProcessorsPerNumaNode", "uint64", false },
+    { "MaxNumaNodesPerSocket", "uint64", false },
+    { "", "", 0 },
+};
+
 hypervWmiClassInfoListPtr Msvm_ProcessorSettingData_WmiInfo = &(hypervWmiClassInfoList) {
     .count = 2,
     .objs = (hypervWmiClassInfoPtr []) {
@@ -453,14 +1003,16 @@ hypervWmiClassInfoListPtr Msvm_ProcessorSettingData_WmiInfo = &(hypervWmiClassIn
             .version = "v1",
             .rootUri = ROOT_VIRTUALIZATION,
             .resourceUri = MSVM_PROCESSORSETTINGDATA_V1_RESOURCE_URI,
-            .serializerInfo = Msvm_ProcessorSettingData_v1_Data_TypeInfo
+            .serializerInfo = Msvm_ProcessorSettingData_v1_Data_TypeInfo,
+            .propertyInfo = Msvm_ProcessorSettingData_v1_Typemap
         },
         &(hypervWmiClassInfo) {
             .name = MSVM_PROCESSORSETTINGDATA_CLASSNAME,
             .version = "v2",
             .rootUri = ROOT_VIRTUALIZATION_V2,
             .resourceUri = MSVM_PROCESSORSETTINGDATA_V2_RESOURCE_URI,
-            .serializerInfo = Msvm_ProcessorSettingData_v2_Data_TypeInfo
+            .serializerInfo = Msvm_ProcessorSettingData_v2_Data_TypeInfo,
+            .propertyInfo = Msvm_ProcessorSettingData_v2_Typemap
         },
     }
 };
@@ -494,6 +1046,32 @@ SER_START_ITEMS(Msvm_ResourceAllocationSettingData_Data)
     SER_NS_DYN_ARRAY(MSVM_RESOURCEALLOCATIONSETTINGDATA_RESOURCE_URI, "VirtualSystemIdentifiers", 0, 0, string),
 SER_END_ITEMS(Msvm_ResourceAllocationSettingData_Data);
 
+hypervCimType Msvm_ResourceAllocationSettingData_Typemap[] = {
+    { "Caption", "string", false },
+    { "Description", "string", false },
+    { "InstanceID", "string", false },
+    { "ElementName", "string", false },
+    { "ResourceType", "uint16", false },
+    { "OtherResourceType", "string", false },
+    { "ResourceSubType", "string", false },
+    { "PoolID", "string", false },
+    { "ConsumerVisibility", "uint16", false },
+    { "HostResource", "string", true },
+    { "AllocationUnits", "string", false },
+    { "VirtualQuantity", "uint64", false },
+    { "Reservation", "uint64", false },
+    { "Limit", "uint64", false },
+    { "Weight", "uint32", false },
+    { "AutomaticAllocation", "boolean", false },
+    { "AutomaticDeallocation", "boolean", false },
+    { "Parent", "string", false },
+    { "Connection", "string", true },
+    { "Address", "string", false },
+    { "MappingBehavior", "uint16", false },
+    { "VirtualSystemIdentifiers", "string", true },
+    { "", "", 0 },
+};
+
 hypervWmiClassInfoListPtr Msvm_ResourceAllocationSettingData_WmiInfo = &(hypervWmiClassInfoList) {
     .count = 1,
     .objs = (hypervWmiClassInfoPtr []) {
@@ -502,7 +1080,8 @@ hypervWmiClassInfoListPtr Msvm_ResourceAllocationSettingData_WmiInfo = &(hypervW
             .version = NULL,
             .rootUri = ROOT_VIRTUALIZATION,
             .resourceUri = MSVM_RESOURCEALLOCATIONSETTINGDATA_RESOURCE_URI,
-            .serializerInfo = Msvm_ResourceAllocationSettingData_Data_TypeInfo
+            .serializerInfo = Msvm_ResourceAllocationSettingData_Data_TypeInfo,
+            .propertyInfo = Msvm_ResourceAllocationSettingData_Typemap
         },
     }
 };
@@ -545,6 +1124,41 @@ SER_START_ITEMS(Msvm_SwitchPort_Data)
     SER_NS_BOOL(MSVM_SWITCHPORT_RESOURCE_URI, "AllowMacSpoofing", 1),
 SER_END_ITEMS(Msvm_SwitchPort_Data);
 
+hypervCimType Msvm_SwitchPort_Typemap[] = {
+    { "Caption", "string", false },
+    { "ElementName", "string", false },
+    { "InstallDate", "datetime", false },
+    { "StatusDescriptions", "string", true },
+    { "Status", "string", false },
+    { "HealthState", "uint16", false },
+    { "OtherEnabledState", "string", false },
+    { "RequestedState", "uint16", false },
+    { "EnabledDefault", "uint16", false },
+    { "SystemCreationClassName", "string", false },
+    { "SystemName", "string", false },
+    { "CreationClassName", "string", false },
+    { "Description", "string", false },
+    { "OperationalStatus", "uint16", true },
+    { "EnabledState", "uint16", false },
+    { "TimeOfLastStateChange", "datetime", false },
+    { "Name", "string", false },
+    { "NameFormat", "string", false },
+    { "ProtocolType", "uint16", false },
+    { "ProtocolIFType", "uint16", false },
+    { "OtherTypeDescription", "string", false },
+    { "BroadcastResetSupported", "boolean", false },
+    { "PortNumber", "uint16", false },
+    { "ScopeOfResidence", "string", false },
+    { "VMQOffloadWeight", "uint32", false },
+    { "ChimneyOffloadWeight", "uint32", false },
+    { "VMQOffloadUsage", "uint32", false },
+    { "ChimneyOffloadUsage", "uint32", false },
+    { "VMQOffloadLimit", "uint32", false },
+    { "ChimneyOffloadLimit", "uint32", false },
+    { "AllowMacSpoofing", "boolean", false },
+    { "", "", 0 },
+};
+
 hypervWmiClassInfoListPtr Msvm_SwitchPort_WmiInfo = &(hypervWmiClassInfoList) {
     .count = 1,
     .objs = (hypervWmiClassInfoPtr []) {
@@ -553,7 +1167,8 @@ hypervWmiClassInfoListPtr Msvm_SwitchPort_WmiInfo = &(hypervWmiClassInfoList) {
             .version = NULL,
             .rootUri = ROOT_VIRTUALIZATION,
             .resourceUri = MSVM_SWITCHPORT_RESOURCE_URI,
-            .serializerInfo = Msvm_SwitchPort_Data_TypeInfo
+            .serializerInfo = Msvm_SwitchPort_Data_TypeInfo,
+            .propertyInfo = Msvm_SwitchPort_Typemap
         },
     }
 };
@@ -588,6 +1203,33 @@ SER_START_ITEMS(Msvm_SyntheticEthernetPortSettingData_Data)
     SER_NS_BOOL(MSVM_SYNTHETICETHERNETPORTSETTINGDATA_RESOURCE_URI, "StaticMacAddress", 1),
 SER_END_ITEMS(Msvm_SyntheticEthernetPortSettingData_Data);
 
+hypervCimType Msvm_SyntheticEthernetPortSettingData_Typemap[] = {
+    { "Caption", "string", false },
+    { "Description", "string", false },
+    { "InstanceID", "string", false },
+    { "ElementName", "string", false },
+    { "ResourceType", "uint16", false },
+    { "OtherResourceType", "string", false },
+    { "ResourceSubType", "string", false },
+    { "PoolID", "string", false },
+    { "ConsumerVisibility", "uint16", false },
+    { "HostResource", "string", true },
+    { "AllocationUnits", "string", false },
+    { "VirtualQuantity", "uint64", false },
+    { "Reservation", "uint64", false },
+    { "Limit", "uint64", false },
+    { "Weight", "uint32", false },
+    { "AutomaticAllocation", "boolean", false },
+    { "AutomaticDeallocation", "boolean", false },
+    { "Parent", "string", false },
+    { "Connection", "string", true },
+    { "Address", "string", false },
+    { "MappingBehavior", "uint16", false },
+    { "VirtualSystemIdentifiers", "string", true },
+    { "StaticMacAddress", "boolean", false },
+    { "", "", 0 },
+};
+
 hypervWmiClassInfoListPtr Msvm_SyntheticEthernetPortSettingData_WmiInfo = &(hypervWmiClassInfoList) {
     .count = 1,
     .objs = (hypervWmiClassInfoPtr []) {
@@ -596,7 +1238,8 @@ hypervWmiClassInfoListPtr Msvm_SyntheticEthernetPortSettingData_WmiInfo = &(hype
             .version = NULL,
             .rootUri = ROOT_VIRTUALIZATION,
             .resourceUri = MSVM_SYNTHETICETHERNETPORTSETTINGDATA_RESOURCE_URI,
-            .serializerInfo = Msvm_SyntheticEthernetPortSettingData_Data_TypeInfo
+            .serializerInfo = Msvm_SyntheticEthernetPortSettingData_Data_TypeInfo,
+            .propertyInfo = Msvm_SyntheticEthernetPortSettingData_Typemap
         },
     }
 };
@@ -621,6 +1264,23 @@ SER_START_ITEMS(Msvm_VirtualHardDiskSettingData_Data)
     SER_NS_STR(MSVM_VIRTUALHARDDISKSETTINGDATA_RESOURCE_URI, "VirtualDiskId", 1),
 SER_END_ITEMS(Msvm_VirtualHardDiskSettingData_Data);
 
+hypervCimType Msvm_VirtualHardDiskSettingData_Typemap[] = {
+    { "InstanceID", "string", false },
+    { "Caption", "string", false },
+    { "Description", "string", false },
+    { "ElementName", "string", false },
+    { "Type", "uint16", false },
+    { "Format", "uint16", false },
+    { "Path", "string", false },
+    { "ParentPath", "string", false },
+    { "MaxInternalSize", "uint64", false },
+    { "BlockSize", "uint32", false },
+    { "LogicalSectorSize", "uint32", false },
+    { "PhysicalSectorSize", "uint32", false },
+    { "VirtualDiskId", "string", false },
+    { "", "", 0 },
+};
+
 hypervWmiClassInfoListPtr Msvm_VirtualHardDiskSettingData_WmiInfo = &(hypervWmiClassInfoList) {
     .count = 1,
     .objs = (hypervWmiClassInfoPtr []) {
@@ -629,7 +1289,8 @@ hypervWmiClassInfoListPtr Msvm_VirtualHardDiskSettingData_WmiInfo = &(hypervWmiC
             .version = NULL,
             .rootUri = ROOT_VIRTUALIZATION,
             .resourceUri = MSVM_VIRTUALHARDDISKSETTINGDATA_RESOURCE_URI,
-            .serializerInfo = Msvm_VirtualHardDiskSettingData_Data_TypeInfo
+            .serializerInfo = Msvm_VirtualHardDiskSettingData_Data_TypeInfo,
+            .propertyInfo = Msvm_VirtualHardDiskSettingData_Typemap
         },
     }
 };
@@ -670,6 +1331,39 @@ SER_START_ITEMS(Msvm_VirtualSwitch_Data)
     SER_NS_UINT32(MSVM_VIRTUALSWITCH_RESOURCE_URI, "MaxChimneyOffloads", 1),
 SER_END_ITEMS(Msvm_VirtualSwitch_Data);
 
+hypervCimType Msvm_VirtualSwitch_Typemap[] = {
+    { "Caption", "string", false },
+    { "Description", "string", false },
+    { "ElementName", "string", false },
+    { "InstallDate", "datetime", false },
+    { "OperationalStatus", "uint16", true },
+    { "StatusDescriptions", "string", true },
+    { "Status", "string", false },
+    { "HealthState", "uint16", false },
+    { "EnabledState", "uint16", false },
+    { "OtherEnabledState", "string", false },
+    { "RequestedState", "uint16", false },
+    { "EnabledDefault", "uint16", false },
+    { "TimeOfLastStateChange", "datetime", false },
+    { "CreationClassName", "string", false },
+    { "Name", "string", false },
+    { "PrimaryOwnerContact", "string", false },
+    { "PrimaryOwnerName", "string", false },
+    { "Roles", "string", true },
+    { "NameFormat", "string", false },
+    { "OtherIdentifyingInfo", "string", true },
+    { "IdentifyingDescriptions", "string", true },
+    { "Dedicated", "uint16", true },
+    { "OtherDedicatedDescriptions", "string", true },
+    { "ResetCapability", "uint16", false },
+    { "PowerManagementCapabilities", "uint16", true },
+    { "ScopeOfResidence", "string", false },
+    { "NumLearnableAddresses", "uint32", false },
+    { "MaxVMQOffloads", "uint32", false },
+    { "MaxChimneyOffloads", "uint32", false },
+    { "", "", 0 },
+};
+
 hypervWmiClassInfoListPtr Msvm_VirtualSwitch_WmiInfo = &(hypervWmiClassInfoList) {
     .count = 1,
     .objs = (hypervWmiClassInfoPtr []) {
@@ -678,7 +1372,8 @@ hypervWmiClassInfoListPtr Msvm_VirtualSwitch_WmiInfo = &(hypervWmiClassInfoList)
             .version = NULL,
             .rootUri = ROOT_VIRTUALIZATION,
             .resourceUri = MSVM_VIRTUALSWITCH_RESOURCE_URI,
-            .serializerInfo = Msvm_VirtualSwitch_Data_TypeInfo
+            .serializerInfo = Msvm_VirtualSwitch_Data_TypeInfo,
+            .propertyInfo = Msvm_VirtualSwitch_Typemap
         },
     }
 };
@@ -711,6 +1406,31 @@ SER_START_ITEMS(Msvm_VirtualSwitchManagementService_Data)
     SER_NS_BOOL(MSVM_VIRTUALSWITCHMANAGEMENTSERVICE_RESOURCE_URI, "Started", 1),
 SER_END_ITEMS(Msvm_VirtualSwitchManagementService_Data);
 
+hypervCimType Msvm_VirtualSwitchManagementService_Typemap[] = {
+    { "Caption", "string", false },
+    { "Description", "string", false },
+    { "ElementName", "string", false },
+    { "InstallDate", "datetime", false },
+    { "OperationalStatus", "uint16", true },
+    { "StatusDescriptions", "string", true },
+    { "Status", "string", false },
+    { "HealthState", "uint16", false },
+    { "EnabledState", "uint16", false },
+    { "OtherEnabledState", "string", false },
+    { "RequestedState", "uint16", false },
+    { "EnabledDefault", "uint16", false },
+    { "TimeOfLastStateChange", "datetime", false },
+    { "SystemCreationClassName", "string", false },
+    { "SystemName", "string", false },
+    { "CreationClassName", "string", false },
+    { "Name", "string", false },
+    { "PrimaryOwnerName", "string", false },
+    { "PrimaryOwnerContact", "string", false },
+    { "StartMode", "string", false },
+    { "Started", "boolean", false },
+    { "", "", 0 },
+};
+
 hypervWmiClassInfoListPtr Msvm_VirtualSwitchManagementService_WmiInfo = &(hypervWmiClassInfoList) {
     .count = 1,
     .objs = (hypervWmiClassInfoPtr []) {
@@ -719,7 +1439,8 @@ hypervWmiClassInfoListPtr Msvm_VirtualSwitchManagementService_WmiInfo = &(hyperv
             .version = NULL,
             .rootUri = ROOT_VIRTUALIZATION,
             .resourceUri = MSVM_VIRTUALSWITCHMANAGEMENTSERVICE_RESOURCE_URI,
-            .serializerInfo = Msvm_VirtualSwitchManagementService_Data_TypeInfo
+            .serializerInfo = Msvm_VirtualSwitchManagementService_Data_TypeInfo,
+            .propertyInfo = Msvm_VirtualSwitchManagementService_Typemap
         },
     }
 };
@@ -752,6 +1473,31 @@ SER_START_ITEMS(Msvm_VirtualSystemGlobalSettingData_Data)
     SER_NS_STR(MSVM_VIRTUALSYSTEMGLOBALSETTINGDATA_RESOURCE_URI, "Version", 1),
 SER_END_ITEMS(Msvm_VirtualSystemGlobalSettingData_Data);
 
+hypervCimType Msvm_VirtualSystemGlobalSettingData_Typemap[] = {
+    { "Caption", "string", false },
+    { "Description", "string", false },
+    { "ElementName", "string", false },
+    { "InstanceID", "string", false },
+    { "SystemName", "string", false },
+    { "SettingType", "uint16", false },
+    { "VirtualSystemType", "uint16", false },
+    { "OtherVirtualSystemType", "string", false },
+    { "AutoActivate", "boolean", false },
+    { "CreationTime", "datetime", false },
+    { "ExternalDataRoot", "string", false },
+    { "SnapshotDataRoot", "string", false },
+    { "AutomaticStartupAction", "uint16", false },
+    { "AutomaticStartupActionDelay", "datetime", false },
+    { "AutomaticShutdownAction", "uint16", false },
+    { "AutomaticRecoveryAction", "uint16", false },
+    { "AdditionalRecoveryInformation", "string", false },
+    { "ScopeOfResidence", "string", false },
+    { "DebugChannelId", "uint32", false },
+    { "AllowFullSCSICommandSet", "boolean", false },
+    { "Version", "string", false },
+    { "", "", 0 },
+};
+
 hypervWmiClassInfoListPtr Msvm_VirtualSystemGlobalSettingData_WmiInfo = &(hypervWmiClassInfoList) {
     .count = 1,
     .objs = (hypervWmiClassInfoPtr []) {
@@ -760,7 +1506,8 @@ hypervWmiClassInfoListPtr Msvm_VirtualSystemGlobalSettingData_WmiInfo = &(hyperv
             .version = NULL,
             .rootUri = ROOT_VIRTUALIZATION,
             .resourceUri = MSVM_VIRTUALSYSTEMGLOBALSETTINGDATA_RESOURCE_URI,
-            .serializerInfo = Msvm_VirtualSystemGlobalSettingData_Data_TypeInfo
+            .serializerInfo = Msvm_VirtualSystemGlobalSettingData_Data_TypeInfo,
+            .propertyInfo = Msvm_VirtualSystemGlobalSettingData_Typemap
         },
     }
 };
@@ -769,39 +1516,136 @@ hypervWmiClassInfoListPtr Msvm_VirtualSystemGlobalSettingData_WmiInfo = &(hyperv
 /****************************************************
  * Msvm_VirtualSystemManagementService
  */
-SER_START_ITEMS(Msvm_VirtualSystemManagementService_Data)
-    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI, "Caption", 1),
-    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI, "Description", 1),
-    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI, "ElementName", 1),
-    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI, "InstallDate", 1),
-    SER_NS_UINT16(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI, "OperationalStatus", 1),
-    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI, "StatusDescriptions", 1),
-    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI, "Status", 1),
-    SER_NS_UINT16(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI, "HealthState", 1),
-    SER_NS_UINT16(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI, "EnabledState", 1),
-    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI, "OtherEnabledState", 1),
-    SER_NS_UINT16(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI, "RequestedState", 1),
-    SER_NS_UINT16(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI, "EnabledDefault", 1),
-    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI, "TimeOfLastStateChange", 1),
-    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI, "SystemCreationClassName", 1),
-    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI, "SystemName", 1),
-    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI, "CreationClassName", 1),
-    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI, "Name", 1),
-    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI, "PrimaryOwnerName", 1),
-    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI, "PrimaryOwnerContact", 1),
-    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI, "StartMode", 1),
-    SER_NS_BOOL(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI, "Started", 1),
-SER_END_ITEMS(Msvm_VirtualSystemManagementService_Data);
+SER_START_ITEMS(Msvm_VirtualSystemManagementService_v1_Data)
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V1_RESOURCE_URI, "SystemCreationClassName", 1),
+    SER_NS_UINT16(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V1_RESOURCE_URI, "EnabledState", 1),
+    SER_NS_UINT16(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V1_RESOURCE_URI, "EnabledDefault", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V1_RESOURCE_URI, "InstallDate", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V1_RESOURCE_URI, "Description", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V1_RESOURCE_URI, "ElementName", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V1_RESOURCE_URI, "Name", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V1_RESOURCE_URI, "TimeOfLastStateChange", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V1_RESOURCE_URI, "OtherEnabledState", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V1_RESOURCE_URI, "StartMode", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V1_RESOURCE_URI, "Caption", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V1_RESOURCE_URI, "PrimaryOwnerContact", 1),
+    SER_NS_UINT16(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V1_RESOURCE_URI, "RequestedState", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V1_RESOURCE_URI, "Status", 1),
+    SER_NS_BOOL(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V1_RESOURCE_URI, "Started", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V1_RESOURCE_URI, "CreationClassName", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V1_RESOURCE_URI, "SystemName", 1),
+    SER_NS_UINT16(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V1_RESOURCE_URI, "HealthState", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V1_RESOURCE_URI, "PrimaryOwnerName", 1),
+    SER_NS_UINT16(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V1_RESOURCE_URI, "OperationalStatus", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V1_RESOURCE_URI, "StatusDescriptions", 1),
+SER_END_ITEMS(Msvm_VirtualSystemManagementService_v1_Data);
+
+hypervCimType Msvm_VirtualSystemManagementService_v1_Typemap[] = {
+    { "SystemCreationClassName", "string", false },
+    { "EnabledState", "uint16", false },
+    { "EnabledDefault", "uint16", false },
+    { "InstallDate", "datetime", false },
+    { "Description", "string", false },
+    { "ElementName", "string", false },
+    { "Name", "string", false },
+    { "TimeOfLastStateChange", "datetime", false },
+    { "OtherEnabledState", "string", false },
+    { "StartMode", "string", false },
+    { "Caption", "string", false },
+    { "PrimaryOwnerContact", "string", false },
+    { "RequestedState", "uint16", false },
+    { "Status", "string", false },
+    { "Started", "boolean", false },
+    { "CreationClassName", "string", false },
+    { "SystemName", "string", false },
+    { "HealthState", "uint16", false },
+    { "PrimaryOwnerName", "string", false },
+    { "OperationalStatus", "uint16", false },
+    { "StatusDescriptions", "string", false },
+    { "", "", 0 },
+};
+
+SER_START_ITEMS(Msvm_VirtualSystemManagementService_v2_Data)
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI, "SystemCreationClassName", 1),
+    SER_NS_UINT16(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI, "EnabledState", 1),
+    SER_NS_UINT16(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI, "EnabledDefault", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI, "InstallDate", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI, "Description", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI, "ElementName", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI, "Name", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI, "TimeOfLastStateChange", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI, "OtherEnabledState", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI, "StartMode", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI, "Caption", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI, "PrimaryOwnerContact", 1),
+    SER_NS_UINT16(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI, "RequestedState", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI, "Status", 1),
+    SER_NS_BOOL(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI, "Started", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI, "CreationClassName", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI, "SystemName", 1),
+    SER_NS_UINT16(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI, "HealthState", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI, "PrimaryOwnerName", 1),
+    SER_NS_DYN_ARRAY(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI, "AvailableRequestedStates", 0, 0, uint16),
+    SER_NS_UINT16(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI, "TransitioningToState", 1),
+    SER_NS_STR(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI, "InstanceID", 1),
+    SER_NS_UINT16(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI, "OperatingStatus", 1),
+    SER_NS_UINT16(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI, "PrimaryStatus", 1),
+    SER_NS_DYN_ARRAY(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI, "StatusDescriptions", 0, 0, string),
+    SER_NS_UINT16(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI, "DetailedStatus", 1),
+    SER_NS_DYN_ARRAY(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI, "OperationalStatus", 0, 0, uint16),
+    SER_NS_UINT16(MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI, "CommunicationStatus", 1),
+SER_END_ITEMS(Msvm_VirtualSystemManagementService_v2_Data);
+
+hypervCimType Msvm_VirtualSystemManagementService_v2_Typemap[] = {
+    { "SystemCreationClassName", "string", false },
+    { "EnabledState", "uint16", false },
+    { "EnabledDefault", "uint16", false },
+    { "InstallDate", "datetime", false },
+    { "Description", "string", false },
+    { "ElementName", "string", false },
+    { "Name", "string", false },
+    { "TimeOfLastStateChange", "datetime", false },
+    { "OtherEnabledState", "string", false },
+    { "StartMode", "string", false },
+    { "Caption", "string", false },
+    { "PrimaryOwnerContact", "string", false },
+    { "RequestedState", "uint16", false },
+    { "Status", "string", false },
+    { "Started", "boolean", false },
+    { "CreationClassName", "string", false },
+    { "SystemName", "string", false },
+    { "HealthState", "uint16", false },
+    { "PrimaryOwnerName", "string", false },
+    { "AvailableRequestedStates", "uint16", true },
+    { "TransitioningToState", "uint16", false },
+    { "InstanceID", "string", false },
+    { "OperatingStatus", "uint16", false },
+    { "PrimaryStatus", "uint16", false },
+    { "StatusDescriptions", "string", true },
+    { "DetailedStatus", "uint16", false },
+    { "OperationalStatus", "uint16", true },
+    { "CommunicationStatus", "uint16", false },
+    { "", "", 0 },
+};
 
 hypervWmiClassInfoListPtr Msvm_VirtualSystemManagementService_WmiInfo = &(hypervWmiClassInfoList) {
-    .count = 1,
+    .count = 2,
     .objs = (hypervWmiClassInfoPtr []) {
         &(hypervWmiClassInfo) {
             .name = MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_CLASSNAME,
-            .version = NULL,
+            .version = "v1",
             .rootUri = ROOT_VIRTUALIZATION,
-            .resourceUri = MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI,
-            .serializerInfo = Msvm_VirtualSystemManagementService_Data_TypeInfo
+            .resourceUri = MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V1_RESOURCE_URI,
+            .serializerInfo = Msvm_VirtualSystemManagementService_v1_Data_TypeInfo,
+            .propertyInfo = Msvm_VirtualSystemManagementService_v1_Typemap
+        },
+        &(hypervWmiClassInfo) {
+            .name = MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_CLASSNAME,
+            .version = "v2",
+            .rootUri = ROOT_VIRTUALIZATION_V2,
+            .resourceUri = MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI,
+            .serializerInfo = Msvm_VirtualSystemManagementService_v2_Data_TypeInfo,
+            .propertyInfo = Msvm_VirtualSystemManagementService_v2_Typemap
         },
     }
 };
@@ -833,6 +1677,31 @@ SER_START_ITEMS(Msvm_VirtualSystemSettingData_v1_Data)
     SER_NS_DYN_ARRAY(MSVM_VIRTUALSYSTEMSETTINGDATA_V1_RESOURCE_URI, "NumaNodeList", 0, 0, uint16),
     SER_NS_BOOL(MSVM_VIRTUALSYSTEMSETTINGDATA_V1_RESOURCE_URI, "NumaNodesAreRequired", 1),
 SER_END_ITEMS(Msvm_VirtualSystemSettingData_v1_Data);
+
+hypervCimType Msvm_VirtualSystemSettingData_v1_Typemap[] = {
+    { "CreationTime", "datetime", false },
+    { "BIOSGUID", "string", false },
+    { "Description", "string", false },
+    { "BIOSSerialNumber", "string", false },
+    { "BootOrder", "uint16", true },
+    { "Caption", "string", false },
+    { "ChassisSerialNumber", "string", false },
+    { "ChassisAssetTag", "string", false },
+    { "BaseBoardSerialNumber", "string", false },
+    { "InstanceID", "string", false },
+    { "Parent", "string", false },
+    { "BIOSNumLock", "boolean", false },
+    { "ElementName", "string", false },
+    { "AutoActivate", "boolean", false },
+    { "VirtualSystemType", "uint16", false },
+    { "OtherVirtualSystemType", "string", false },
+    { "SettingType", "uint16", false },
+    { "SystemName", "string", false },
+    { "Notes", "string", false },
+    { "NumaNodeList", "uint16", true },
+    { "NumaNodesAreRequired", "boolean", false },
+    { "", "", 0 },
+};
 
 SER_START_ITEMS(Msvm_VirtualSystemSettingData_v2_Data)
     SER_NS_STR(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "CreationTime", 1),
@@ -882,6 +1751,55 @@ SER_START_ITEMS(Msvm_VirtualSystemSettingData_v2_Data)
     SER_NS_UINT64(MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI, "LowMmioGapSize", 1),
 SER_END_ITEMS(Msvm_VirtualSystemSettingData_v2_Data);
 
+hypervCimType Msvm_VirtualSystemSettingData_v2_Typemap[] = {
+    { "CreationTime", "datetime", false },
+    { "BIOSGUID", "string", false },
+    { "Description", "string", false },
+    { "BIOSSerialNumber", "string", false },
+    { "BootOrder", "uint16", true },
+    { "Caption", "string", false },
+    { "ChassisSerialNumber", "string", false },
+    { "ChassisAssetTag", "string", false },
+    { "BaseBoardSerialNumber", "string", false },
+    { "InstanceID", "string", false },
+    { "Parent", "string", false },
+    { "BIOSNumLock", "boolean", false },
+    { "ElementName", "string", false },
+    { "SwapFileDataRoot", "string", false },
+    { "LogDataRoot", "string", false },
+    { "AutomaticStartupAction", "uint16", false },
+    { "AutomaticStartupActionDelay", "datetime", false },
+    { "AutomaticStartupActionSequenceNumber", "uint16", false },
+    { "AutomaticShutdownAction", "uint16", false },
+    { "AutomaticRecoveryAction", "uint16", false },
+    { "RecoveryFile", "string", false },
+    { "VirtualSystemType", "string", false },
+    { "SuspendDataRoot", "string", false },
+    { "ConfigurationID", "string", false },
+    { "Notes", "string", true },
+    { "ConfigurationDataRoot", "string", false },
+    { "SnapshotDataRoot", "string", false },
+    { "VirtualSystemIdentifier", "string", false },
+    { "ConfigurationFile", "string", false },
+    { "IsSaved", "boolean", false },
+    { "AdditionalRecoveryInformation", "string", false },
+    { "AllowFullSCSICommandSet", "boolean", false },
+    { "DebugChannelId", "uint32", false },
+    { "DebugPortEnabled", "uint16", false },
+    { "DebugPort", "uint32", false },
+    { "Version", "string", false },
+    { "IncrementalBackupEnabled", "boolean", false },
+    { "VirtualNumaEnabled", "boolean", false },
+    { "AllowReducedFcRedundancy", "boolean", false },
+    { "VirtualSystemSubType", "string", false },
+    { "BootSourceOrder", "string", true },
+    { "PauseAfterBootFailure", "boolean", false },
+    { "NetworkBootPreferredProtocol", "uint16", false },
+    { "SecureBootEnabled", "boolean", false },
+    { "LowMmioGapSize", "uint64", false },
+    { "", "", 0 },
+};
+
 hypervWmiClassInfoListPtr Msvm_VirtualSystemSettingData_WmiInfo = &(hypervWmiClassInfoList) {
     .count = 2,
     .objs = (hypervWmiClassInfoPtr []) {
@@ -890,14 +1808,16 @@ hypervWmiClassInfoListPtr Msvm_VirtualSystemSettingData_WmiInfo = &(hypervWmiCla
             .version = "v1",
             .rootUri = ROOT_VIRTUALIZATION,
             .resourceUri = MSVM_VIRTUALSYSTEMSETTINGDATA_V1_RESOURCE_URI,
-            .serializerInfo = Msvm_VirtualSystemSettingData_v1_Data_TypeInfo
+            .serializerInfo = Msvm_VirtualSystemSettingData_v1_Data_TypeInfo,
+            .propertyInfo = Msvm_VirtualSystemSettingData_v1_Typemap
         },
         &(hypervWmiClassInfo) {
             .name = MSVM_VIRTUALSYSTEMSETTINGDATA_CLASSNAME,
             .version = "v2",
             .rootUri = ROOT_VIRTUALIZATION_V2,
             .resourceUri = MSVM_VIRTUALSYSTEMSETTINGDATA_V2_RESOURCE_URI,
-            .serializerInfo = Msvm_VirtualSystemSettingData_v2_Data_TypeInfo
+            .serializerInfo = Msvm_VirtualSystemSettingData_v2_Data_TypeInfo,
+            .propertyInfo = Msvm_VirtualSystemSettingData_v2_Typemap
         },
     }
 };
@@ -966,6 +1886,67 @@ SER_START_ITEMS(Win32_ComputerSystem_Data)
     SER_NS_STR(WIN32_COMPUTERSYSTEM_RESOURCE_URI, "Workgroup", 1),
 SER_END_ITEMS(Win32_ComputerSystem_Data);
 
+hypervCimType Win32_ComputerSystem_Typemap[] = {
+    { "AdminPasswordStatus", "uint16", false },
+    { "AutomaticManagedPagefile", "boolean", false },
+    { "AutomaticResetBootOption", "boolean", false },
+    { "AutomaticResetCapability", "boolean", false },
+    { "BootOptionOnLimit", "uint16", false },
+    { "BootOptionOnWatchDog", "uint16", false },
+    { "BootROMSupported", "boolean", false },
+    { "BootupState", "string", false },
+    { "Caption", "string", false },
+    { "ChassisBootupState", "uint16", false },
+    { "CreationClassName", "string", false },
+    { "CurrentTimeZone", "int16", false },
+    { "DaylightInEffect", "boolean", false },
+    { "Description", "string", false },
+    { "DNSHostName", "string", false },
+    { "Domain", "string", false },
+    { "DomainRole", "uint16", false },
+    { "EnableDaylightSavingsTime", "boolean", false },
+    { "FrontPanelResetStatus", "uint16", false },
+    { "InfraredSupported", "boolean", false },
+    { "InstallDate", "datetime", false },
+    { "KeyboardPasswordStatus", "uint16", false },
+    { "LastLoadInfo", "string", false },
+    { "Manufacturer", "string", false },
+    { "Model", "string", false },
+    { "Name", "string", false },
+    { "NameFormat", "string", false },
+    { "NetworkServerModeEnabled", "boolean", false },
+    { "NumberOfLogicalProcessors", "uint32", false },
+    { "NumberOfProcessors", "uint32", false },
+    { "OEMLogoBitmap", "uint8", true },
+    { "OEMStringArray", "string", true },
+    { "PartOfDomain", "boolean", false },
+    { "PauseAfterReset", "int64", false },
+    { "PCSystemType", "uint16", false },
+    { "PowerManagementCapabilities", "uint16", true },
+    { "PowerManagementSupported", "boolean", false },
+    { "PowerOnPasswordStatus", "uint16", false },
+    { "PowerState", "uint16", false },
+    { "PowerSupplyState", "uint16", false },
+    { "PrimaryOwnerContact", "string", false },
+    { "PrimaryOwnerName", "string", false },
+    { "ResetCapability", "uint16", false },
+    { "ResetCount", "int16", false },
+    { "ResetLimit", "int16", false },
+    { "Roles", "string", true },
+    { "Status", "string", false },
+    { "SupportContactDescription", "string", true },
+    { "SystemStartupDelay", "uint16", false },
+    { "SystemStartupOptions", "string", true },
+    { "SystemStartupSetting", "uint8", false },
+    { "SystemType", "string", false },
+    { "ThermalState", "uint16", false },
+    { "TotalPhysicalMemory", "uint64", false },
+    { "UserName", "string", false },
+    { "WakeUpType", "uint16", false },
+    { "Workgroup", "string", false },
+    { "", "", 0 },
+};
+
 hypervWmiClassInfoListPtr Win32_ComputerSystem_WmiInfo = &(hypervWmiClassInfoList) {
     .count = 1,
     .objs = (hypervWmiClassInfoPtr []) {
@@ -974,7 +1955,8 @@ hypervWmiClassInfoListPtr Win32_ComputerSystem_WmiInfo = &(hypervWmiClassInfoLis
             .version = NULL,
             .rootUri = ROOT_CIMV2,
             .resourceUri = WIN32_COMPUTERSYSTEM_RESOURCE_URI,
-            .serializerInfo = Win32_ComputerSystem_Data_TypeInfo
+            .serializerInfo = Win32_ComputerSystem_Data_TypeInfo,
+            .propertyInfo = Win32_ComputerSystem_Typemap
         },
     }
 };
@@ -994,6 +1976,18 @@ SER_START_ITEMS(Win32_ComputerSystemProduct_Data)
     SER_NS_STR(WIN32_COMPUTERSYSTEMPRODUCT_RESOURCE_URI, "Version", 1),
 SER_END_ITEMS(Win32_ComputerSystemProduct_Data);
 
+hypervCimType Win32_ComputerSystemProduct_Typemap[] = {
+    { "Caption", "string", false },
+    { "Description", "string", false },
+    { "IdentifyingNumber", "string", false },
+    { "Name", "string", false },
+    { "SKUNumber", "string", false },
+    { "UUID", "string", false },
+    { "Vendor", "string", false },
+    { "Version", "string", false },
+    { "", "", 0 },
+};
+
 hypervWmiClassInfoListPtr Win32_ComputerSystemProduct_WmiInfo = &(hypervWmiClassInfoList) {
     .count = 1,
     .objs = (hypervWmiClassInfoPtr []) {
@@ -1002,7 +1996,8 @@ hypervWmiClassInfoListPtr Win32_ComputerSystemProduct_WmiInfo = &(hypervWmiClass
             .version = NULL,
             .rootUri = ROOT_CIMV2,
             .resourceUri = WIN32_COMPUTERSYSTEMPRODUCT_RESOURCE_URI,
-            .serializerInfo = Win32_ComputerSystemProduct_Data_TypeInfo
+            .serializerInfo = Win32_ComputerSystemProduct_Data_TypeInfo,
+            .propertyInfo = Win32_ComputerSystemProduct_Typemap
         },
     }
 };
@@ -1077,6 +2072,73 @@ SER_START_ITEMS(Win32_OperatingSystem_Data)
     SER_NS_STR(WIN32_OPERATINGSYSTEM_RESOURCE_URI, "WindowsDirectory", 1),
 SER_END_ITEMS(Win32_OperatingSystem_Data);
 
+hypervCimType Win32_OperatingSystem_Typemap[] = {
+    { "BootDevice", "string", false },
+    { "BuildNumber", "string", false },
+    { "BuildType", "string", false },
+    { "Caption", "string", false },
+    { "CodeSet", "string", false },
+    { "CountryCode", "string", false },
+    { "CreationClassName", "string", false },
+    { "CSCreationClassName", "string", false },
+    { "CSDVersion", "string", false },
+    { "CSName", "string", false },
+    { "CurrentTimeZone", "uint16", false },
+    { "DataExecutionPrevention_Available", "boolean", false },
+    { "DataExecutionPrevention_32BitApplications", "boolean", false },
+    { "DataExecutionPrevention_Drivers", "boolean", false },
+    { "DataExecutionPrevention_SupportPolicy", "uint8", false },
+    { "Debug", "boolean", false },
+    { "Description", "string", false },
+    { "Distributed", "boolean", false },
+    { "EncryptionLevel", "uint32", false },
+    { "ForegroundApplicationBoost", "uint8", false },
+    { "FreePhysicalMemory", "uint64", false },
+    { "FreeSpaceInPagingFiles", "uint64", false },
+    { "FreeVirtualMemory", "uint64", false },
+    { "InstallDate", "datetime", false },
+    { "LargeSystemCache", "uint32", false },
+    { "LastBootUpTime", "datetime", false },
+    { "LocalDateTime", "datetime", false },
+    { "Locale", "string", false },
+    { "Manufacturer", "string", false },
+    { "MaxNumberOfProcesses", "uint32", false },
+    { "MaxProcessMemorySize", "uint64", false },
+    { "MUILanguages", "string", true },
+    { "Name", "string", false },
+    { "NumberOfLicensedUsers", "uint32", false },
+    { "NumberOfProcesses", "uint32", false },
+    { "NumberOfUsers", "uint32", false },
+    { "OperatingSystemSKU", "uint32", false },
+    { "Organization", "string", false },
+    { "OSArchitecture", "string", false },
+    { "OSLanguage", "uint32", false },
+    { "OSProductSuite", "uint32", false },
+    { "OSType", "uint16", false },
+    { "OtherTypeDescription", "string", false },
+    { "PAEEnabled", "boolean", false },
+    { "PlusProductID", "string", false },
+    { "PlusVersionNumber", "string", false },
+    { "Primary", "boolean", false },
+    { "ProductType", "uint32", false },
+    { "RegisteredUser", "string", false },
+    { "SerialNumber", "string", false },
+    { "ServicePackMajorVersion", "uint16", false },
+    { "ServicePackMinorVersion", "uint16", false },
+    { "SizeStoredInPagingFiles", "uint64", false },
+    { "Status", "string", false },
+    { "SuiteMask", "uint32", false },
+    { "SystemDevice", "string", false },
+    { "SystemDirectory", "string", false },
+    { "SystemDrive", "string", false },
+    { "TotalSwapSpaceSize", "uint64", false },
+    { "TotalVirtualMemorySize", "uint64", false },
+    { "TotalVisibleMemorySize", "uint64", false },
+    { "Version", "string", false },
+    { "WindowsDirectory", "string", false },
+    { "", "", 0 },
+};
+
 hypervWmiClassInfoListPtr Win32_OperatingSystem_WmiInfo = &(hypervWmiClassInfoList) {
     .count = 1,
     .objs = (hypervWmiClassInfoPtr []) {
@@ -1085,7 +2147,8 @@ hypervWmiClassInfoListPtr Win32_OperatingSystem_WmiInfo = &(hypervWmiClassInfoLi
             .version = NULL,
             .rootUri = ROOT_CIMV2,
             .resourceUri = WIN32_OPERATINGSYSTEM_RESOURCE_URI,
-            .serializerInfo = Win32_OperatingSystem_Data_TypeInfo
+            .serializerInfo = Win32_OperatingSystem_Data_TypeInfo,
+            .propertyInfo = Win32_OperatingSystem_Typemap
         },
     }
 };
@@ -1202,6 +2265,115 @@ SER_START_ITEMS(Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor_Data)
     SER_NS_UINT64(WIN32_PERFRAWDATA_HVSTATS_HYPERVHYPERVISORVIRTUALPROCESSOR_RESOURCE_URI, "VirtualProcessorHypercallsPersec", 1),
 SER_END_ITEMS(Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor_Data);
 
+hypervCimType Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor_Typemap[] = {
+    { "AddressDomainFlushesPersec", "uint64", false },
+    { "AddressSpaceEvictionsPersec", "uint64", false },
+    { "AddressSpaceFlushesPersec", "uint64", false },
+    { "AddressSpaceSwitchesPersec", "uint64", false },
+    { "APICEOIAccessesPersec", "uint64", false },
+    { "APICIPIsSentPersec", "uint64", false },
+    { "APICMMIOAccessesPersec", "uint64", false },
+    { "APICSelfIPIsSentPersec", "uint64", false },
+    { "APICTPRAccessesPersec", "uint64", false },
+    { "Caption", "string", false },
+    { "ControlRegisterAccessesCost", "uint64", false },
+    { "ControlRegisterAccessesCost_Base", "uint64", false },
+    { "ControlRegisterAccessesPersec", "uint64", false },
+    { "CPUIDInstructionsCost", "uint64", false },
+    { "CPUIDInstructionsCost_Base", "uint64", false },
+    { "CPUIDInstructionsPersec", "uint64", false },
+    { "CPUWaitTimePerDispatch", "uint64", false },
+    { "CPUWaitTimePerDispatch_Base", "uint64", false },
+    { "DebugRegisterAccessesCost", "uint64", false },
+    { "DebugRegisterAccessesCost_Base", "uint64", false },
+    { "DebugRegisterAccessesPersec", "uint64", false },
+    { "Description", "string", false },
+    { "EmulatedInstructionsCost", "uint64", false },
+    { "EmulatedInstructionsCost_Base", "uint64", false },
+    { "EmulatedInstructionsPersec", "uint64", false },
+    { "ExternalInterruptsCost", "uint64", false },
+    { "ExternalInterruptsCost_Base", "uint64", false },
+    { "ExternalInterruptsPersec", "uint64", false },
+    { "Frequency_Object", "uint64", false },
+    { "Frequency_PerfTime", "uint64", false },
+    { "Frequency_Sys100NS", "uint64", false },
+    { "GlobalGVARangeFlushesPersec", "uint64", false },
+    { "GPASpaceHypercallsPersec", "uint64", false },
+    { "GuestPageTableMapsPersec", "uint64", false },
+    { "HardwareInterruptsPersec", "uint64", false },
+    { "HLTInstructionsCost", "uint64", false },
+    { "HLTInstructionsCost_Base", "uint64", false },
+    { "HLTInstructionsPersec", "uint64", false },
+    { "HypercallsCost", "uint64", false },
+    { "HypercallsCost_Base", "uint64", false },
+    { "HypercallsPersec", "uint64", false },
+    { "IOInstructionsCost", "uint64", false },
+    { "IOInstructionsCost_Base", "uint64", false },
+    { "IOInstructionsPersec", "uint64", false },
+    { "IOInterceptMessagesPersec", "uint64", false },
+    { "LargePageTLBFillsPersec", "uint64", false },
+    { "LocalFlushedGVARangesPersec", "uint64", false },
+    { "LogicalProcessorDispatchesPersec", "uint64", false },
+    { "LogicalProcessorHypercallsPersec", "uint64", false },
+    { "LogicalProcessorMigrationsPersec", "uint64", false },
+    { "LongSpinWaitHypercallsPersec", "uint64", false },
+    { "MemoryInterceptMessagesPersec", "uint64", false },
+    { "MSRAccessesCost", "uint64", false },
+    { "MSRAccessesCost_Base", "uint64", false },
+    { "MSRAccessesPersec", "uint64", false },
+    { "MWAITInstructionsCost", "uint64", false },
+    { "MWAITInstructionsCost_Base", "uint64", false },
+    { "MWAITInstructionsPersec", "uint64", false },
+    { "Name", "string", false },
+    { "NestedPageFaultInterceptsCost", "uint64", false },
+    { "NestedPageFaultInterceptsCost_Base", "uint64", false },
+    { "NestedPageFaultInterceptsPersec", "uint64", false },
+    { "OtherHypercallsPersec", "uint64", false },
+    { "OtherInterceptsCost", "uint64", false },
+    { "OtherInterceptsCost_Base", "uint64", false },
+    { "OtherInterceptsPersec", "uint64", false },
+    { "OtherMessagesPersec", "uint64", false },
+    { "PageFaultInterceptsCost", "uint64", false },
+    { "PageFaultInterceptsCost_Base", "uint64", false },
+    { "PageFaultInterceptsPersec", "uint64", false },
+    { "PageInvalidationsCost", "uint64", false },
+    { "PageInvalidationsCost_Base", "uint64", false },
+    { "PageInvalidationsPersec", "uint64", false },
+    { "PageTableAllocationsPersec", "uint64", false },
+    { "PageTableEvictionsPersec", "uint64", false },
+    { "PageTableReclamationsPersec", "uint64", false },
+    { "PageTableResetsPersec", "uint64", false },
+    { "PageTableValidationsPersec", "uint64", false },
+    { "PageTableWriteInterceptsPersec", "uint64", false },
+    { "PendingInterruptsCost", "uint64", false },
+    { "PendingInterruptsCost_Base", "uint64", false },
+    { "PendingInterruptsPersec", "uint64", false },
+    { "PercentGuestRunTime", "uint64", false },
+    { "PercentGuestRunTime_Base", "uint64", false },
+    { "PercentHypervisorRunTime", "uint64", false },
+    { "PercentHypervisorRunTime_Base", "uint64", false },
+    { "PercentRemoteRunTime", "uint64", false },
+    { "PercentRemoteRunTime_Base", "uint64", false },
+    { "PercentTotalRunTime", "uint64", false },
+    { "PercentTotalRunTime_Base", "uint64", false },
+    { "ReflectedGuestPageFaultsPersec", "uint64", false },
+    { "SmallPageTLBFillsPersec", "uint64", false },
+    { "SyntheticInterruptHypercallsPersec", "uint64", false },
+    { "SyntheticInterruptsPersec", "uint64", false },
+    { "Timestamp_Object", "uint64", false },
+    { "Timestamp_PerfTime", "uint64", false },
+    { "Timestamp_Sys100NS", "uint64", false },
+    { "TotalInterceptsCost", "uint64", false },
+    { "TotalInterceptsCost_Base", "uint64", false },
+    { "TotalInterceptsPersec", "uint64", false },
+    { "TotalMessagesPersec", "uint64", false },
+    { "VirtualInterruptHypercallsPersec", "uint64", false },
+    { "VirtualInterruptsPersec", "uint64", false },
+    { "VirtualMMUHypercallsPersec", "uint64", false },
+    { "VirtualProcessorHypercallsPersec", "uint64", false },
+    { "", "", 0 },
+};
+
 hypervWmiClassInfoListPtr Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor_WmiInfo = &(hypervWmiClassInfoList) {
     .count = 1,
     .objs = (hypervWmiClassInfoPtr []) {
@@ -1210,7 +2382,8 @@ hypervWmiClassInfoListPtr Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProce
             .version = NULL,
             .rootUri = ROOT_CIMV2,
             .resourceUri = WIN32_PERFRAWDATA_HVSTATS_HYPERVHYPERVISORVIRTUALPROCESSOR_RESOURCE_URI,
-            .serializerInfo = Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor_Data_TypeInfo
+            .serializerInfo = Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor_Data_TypeInfo,
+            .propertyInfo = Win32_PerfRawData_HvStats_HyperVHypervisorVirtualProcessor_Typemap
         },
     }
 };
@@ -1270,6 +2443,58 @@ SER_START_ITEMS(Win32_Processor_Data)
     SER_NS_UINT32(WIN32_PROCESSOR_RESOURCE_URI, "VoltageCaps", 1),
 SER_END_ITEMS(Win32_Processor_Data);
 
+hypervCimType Win32_Processor_Typemap[] = {
+    { "AddressWidth", "uint16", false },
+    { "Architecture", "uint16", false },
+    { "Availability", "uint16", false },
+    { "Caption", "string", false },
+    { "ConfigManagerErrorCode", "uint32", false },
+    { "ConfigManagerUserConfig", "boolean", false },
+    { "CpuStatus", "uint16", false },
+    { "CreationClassName", "string", false },
+    { "CurrentClockSpeed", "uint32", false },
+    { "CurrentVoltage", "uint16", false },
+    { "DataWidth", "uint16", false },
+    { "Description", "string", false },
+    { "DeviceID", "string", false },
+    { "ErrorCleared", "boolean", false },
+    { "ErrorDescription", "string", false },
+    { "ExtClock", "uint32", false },
+    { "Family", "uint16", false },
+    { "InstallDate", "datetime", false },
+    { "L2CacheSize", "uint32", false },
+    { "L2CacheSpeed", "uint32", false },
+    { "L3CacheSize", "uint32", false },
+    { "L3CacheSpeed", "uint32", false },
+    { "LastErrorCode", "uint32", false },
+    { "Level", "uint16", false },
+    { "LoadPercentage", "uint16", false },
+    { "Manufacturer", "string", false },
+    { "MaxClockSpeed", "uint32", false },
+    { "Name", "string", false },
+    { "NumberOfCores", "uint32", false },
+    { "NumberOfLogicalProcessors", "uint32", false },
+    { "OtherFamilyDescription", "string", false },
+    { "PNPDeviceID", "string", false },
+    { "PowerManagementCapabilities", "uint16", true },
+    { "PowerManagementSupported", "boolean", false },
+    { "ProcessorId", "string", false },
+    { "ProcessorType", "uint16", false },
+    { "Revision", "uint16", false },
+    { "Role", "string", false },
+    { "SocketDesignation", "string", false },
+    { "Status", "string", false },
+    { "StatusInfo", "uint16", false },
+    { "Stepping", "string", false },
+    { "SystemCreationClassName", "string", false },
+    { "SystemName", "string", false },
+    { "UniqueId", "string", false },
+    { "UpgradeMethod", "uint16", false },
+    { "Version", "string", false },
+    { "VoltageCaps", "uint32", false },
+    { "", "", 0 },
+};
+
 hypervWmiClassInfoListPtr Win32_Processor_WmiInfo = &(hypervWmiClassInfoList) {
     .count = 1,
     .objs = (hypervWmiClassInfoPtr []) {
@@ -1278,7 +2503,8 @@ hypervWmiClassInfoListPtr Win32_Processor_WmiInfo = &(hypervWmiClassInfoList) {
             .version = NULL,
             .rootUri = ROOT_CIMV2,
             .resourceUri = WIN32_PROCESSOR_RESOURCE_URI,
-            .serializerInfo = Win32_Processor_Data_TypeInfo
+            .serializerInfo = Win32_Processor_Data_TypeInfo,
+            .propertyInfo = Win32_Processor_Typemap
         },
     }
 };

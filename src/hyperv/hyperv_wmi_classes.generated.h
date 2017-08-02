@@ -410,6 +410,163 @@ struct _Msvm_ConcreteJob {
 
 
 /****************************************************
+ * Msvm_Keyboard
+ */
+
+#define MSVM_KEYBOARD_CLASSNAME \
+    "Msvm_Keyboard"
+
+#define MSVM_KEYBOARD_WQL_SELECT \
+    "SELECT * FROM Msvm_Keyboard "
+
+extern hypervWmiClassInfoListPtr Msvm_Keyboard_WmiInfo;
+
+struct _Msvm_Keyboard_Data {
+    XML_TYPE_UINT64 MaxQuiesceTime;
+    XML_TYPE_STR SystemCreationClassName;
+    XML_TYPE_BOOL IsLocked;
+    XML_TYPE_UINT16 Availability;
+    XML_TYPE_DYN_ARRAY AdditionalAvailability;
+    XML_TYPE_UINT16 EnabledState;
+    XML_TYPE_BOOL PowerManagementSupported;
+    XML_TYPE_STR InstallDate;
+    XML_TYPE_BOOL ErrorCleared;
+    XML_TYPE_DYN_ARRAY PowerManagementCapabilities;
+    XML_TYPE_UINT16 Password;
+    XML_TYPE_STR Description;
+    XML_TYPE_STR Name;
+    XML_TYPE_UINT16 EnabledDefault;
+    XML_TYPE_STR TimeOfLastStateChange;
+    XML_TYPE_STR OtherEnabledState;
+    XML_TYPE_DYN_ARRAY OperationalStatus;
+    XML_TYPE_UINT64 TotalPowerOnHours;
+    XML_TYPE_STR Caption;
+    XML_TYPE_DYN_ARRAY OtherIdentifyingInfo;
+    XML_TYPE_UINT16 StatusInfo;
+    XML_TYPE_UINT16 RequestedState;
+    XML_TYPE_STR Status;
+    XML_TYPE_STR CreationClassName;
+    XML_TYPE_STR ErrorDescription;
+    XML_TYPE_STR Layout;
+    XML_TYPE_UINT64 PowerOnHours;
+    XML_TYPE_STR SystemName;
+    XML_TYPE_STR DeviceID;
+    XML_TYPE_UINT16 HealthState;
+    XML_TYPE_DYN_ARRAY IdentifyingDescriptions;
+    XML_TYPE_UINT16 NumberOfFunctionKeys;
+    XML_TYPE_STR ElementName;
+    XML_TYPE_DYN_ARRAY StatusDescriptions;
+    XML_TYPE_UINT32 LastErrorCode;
+};
+
+#define MSVM_KEYBOARD_V1_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_Keyboard"
+
+struct _Msvm_Keyboard_v1_Data {
+    XML_TYPE_UINT64 MaxQuiesceTime;
+    XML_TYPE_STR SystemCreationClassName;
+    XML_TYPE_BOOL IsLocked;
+    XML_TYPE_UINT16 Availability;
+    XML_TYPE_DYN_ARRAY AdditionalAvailability;
+    XML_TYPE_UINT16 EnabledState;
+    XML_TYPE_BOOL PowerManagementSupported;
+    XML_TYPE_STR InstallDate;
+    XML_TYPE_BOOL ErrorCleared;
+    XML_TYPE_DYN_ARRAY PowerManagementCapabilities;
+    XML_TYPE_UINT16 Password;
+    XML_TYPE_STR Description;
+    XML_TYPE_STR Name;
+    XML_TYPE_UINT16 EnabledDefault;
+    XML_TYPE_STR TimeOfLastStateChange;
+    XML_TYPE_STR OtherEnabledState;
+    XML_TYPE_DYN_ARRAY OperationalStatus;
+    XML_TYPE_UINT64 TotalPowerOnHours;
+    XML_TYPE_STR Caption;
+    XML_TYPE_DYN_ARRAY OtherIdentifyingInfo;
+    XML_TYPE_UINT16 StatusInfo;
+    XML_TYPE_UINT16 RequestedState;
+    XML_TYPE_STR Status;
+    XML_TYPE_STR CreationClassName;
+    XML_TYPE_STR ErrorDescription;
+    XML_TYPE_STR Layout;
+    XML_TYPE_UINT64 PowerOnHours;
+    XML_TYPE_STR SystemName;
+    XML_TYPE_STR DeviceID;
+    XML_TYPE_UINT16 HealthState;
+    XML_TYPE_DYN_ARRAY IdentifyingDescriptions;
+    XML_TYPE_UINT16 NumberOfFunctionKeys;
+    XML_TYPE_STR ElementName;
+    XML_TYPE_DYN_ARRAY StatusDescriptions;
+    XML_TYPE_UINT32 LastErrorCode;
+    XML_TYPE_UINT16 LocationIndicator;
+};
+
+SER_DECLARE_TYPE(Msvm_Keyboard_v1_Data);
+#define MSVM_KEYBOARD_V2_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/v2/Msvm_Keyboard"
+
+struct _Msvm_Keyboard_v2_Data {
+    XML_TYPE_UINT64 MaxQuiesceTime;
+    XML_TYPE_STR SystemCreationClassName;
+    XML_TYPE_BOOL IsLocked;
+    XML_TYPE_UINT16 Availability;
+    XML_TYPE_DYN_ARRAY AdditionalAvailability;
+    XML_TYPE_UINT16 EnabledState;
+    XML_TYPE_BOOL PowerManagementSupported;
+    XML_TYPE_STR InstallDate;
+    XML_TYPE_BOOL ErrorCleared;
+    XML_TYPE_DYN_ARRAY PowerManagementCapabilities;
+    XML_TYPE_UINT16 Password;
+    XML_TYPE_STR Description;
+    XML_TYPE_STR Name;
+    XML_TYPE_UINT16 EnabledDefault;
+    XML_TYPE_STR TimeOfLastStateChange;
+    XML_TYPE_STR OtherEnabledState;
+    XML_TYPE_DYN_ARRAY OperationalStatus;
+    XML_TYPE_UINT64 TotalPowerOnHours;
+    XML_TYPE_STR Caption;
+    XML_TYPE_DYN_ARRAY OtherIdentifyingInfo;
+    XML_TYPE_UINT16 StatusInfo;
+    XML_TYPE_UINT16 RequestedState;
+    XML_TYPE_STR Status;
+    XML_TYPE_STR CreationClassName;
+    XML_TYPE_STR ErrorDescription;
+    XML_TYPE_STR Layout;
+    XML_TYPE_UINT64 PowerOnHours;
+    XML_TYPE_STR SystemName;
+    XML_TYPE_STR DeviceID;
+    XML_TYPE_UINT16 HealthState;
+    XML_TYPE_DYN_ARRAY IdentifyingDescriptions;
+    XML_TYPE_UINT16 NumberOfFunctionKeys;
+    XML_TYPE_STR ElementName;
+    XML_TYPE_DYN_ARRAY StatusDescriptions;
+    XML_TYPE_UINT32 LastErrorCode;
+    XML_TYPE_UINT16 TransitioningToState;
+    XML_TYPE_UINT16 PrimaryStatus;
+    XML_TYPE_STR InstanceID;
+    XML_TYPE_UINT16 DetailedStatus;
+    XML_TYPE_UINT16 OperatingStatus;
+    XML_TYPE_DYN_ARRAY AvailableRequestedStates;
+    XML_TYPE_UINT16 CommunicationStatus;
+    XML_TYPE_BOOL UnicodeSupported;
+};
+
+SER_DECLARE_TYPE(Msvm_Keyboard_v2_Data);
+
+/* must match hypervObject */
+struct _Msvm_Keyboard {
+    union {
+        Msvm_Keyboard_Data *common;
+        Msvm_Keyboard_v1_Data *v1;
+        Msvm_Keyboard_v2_Data *v2;
+    } data;
+    hypervWmiClassInfoPtr info;
+    Msvm_Keyboard *next;
+};
+
+
+
+/****************************************************
  * Msvm_MemorySettingData
  */
 
@@ -1046,40 +1203,98 @@ struct _Msvm_VirtualSystemGlobalSettingData {
 
 extern hypervWmiClassInfoListPtr Msvm_VirtualSystemManagementService_WmiInfo;
 
-#define MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_RESOURCE_URI \
-    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_VirtualSystemManagementService"
-
 struct _Msvm_VirtualSystemManagementService_Data {
-    XML_TYPE_STR Caption;
+    XML_TYPE_STR SystemCreationClassName;
+    XML_TYPE_UINT16 EnabledState;
+    XML_TYPE_UINT16 EnabledDefault;
+    XML_TYPE_STR InstallDate;
     XML_TYPE_STR Description;
     XML_TYPE_STR ElementName;
-    XML_TYPE_STR InstallDate;
-    XML_TYPE_UINT16 OperationalStatus;
-    XML_TYPE_STR StatusDescriptions;
-    XML_TYPE_STR Status;
-    XML_TYPE_UINT16 HealthState;
-    XML_TYPE_UINT16 EnabledState;
-    XML_TYPE_STR OtherEnabledState;
-    XML_TYPE_UINT16 RequestedState;
-    XML_TYPE_UINT16 EnabledDefault;
-    XML_TYPE_STR TimeOfLastStateChange;
-    XML_TYPE_STR SystemCreationClassName;
-    XML_TYPE_STR SystemName;
-    XML_TYPE_STR CreationClassName;
     XML_TYPE_STR Name;
-    XML_TYPE_STR PrimaryOwnerName;
-    XML_TYPE_STR PrimaryOwnerContact;
+    XML_TYPE_STR TimeOfLastStateChange;
+    XML_TYPE_STR OtherEnabledState;
     XML_TYPE_STR StartMode;
+    XML_TYPE_STR Caption;
+    XML_TYPE_STR PrimaryOwnerContact;
+    XML_TYPE_UINT16 RequestedState;
+    XML_TYPE_STR Status;
     XML_TYPE_BOOL Started;
+    XML_TYPE_STR CreationClassName;
+    XML_TYPE_STR SystemName;
+    XML_TYPE_UINT16 HealthState;
+    XML_TYPE_STR PrimaryOwnerName;
 };
 
-SER_DECLARE_TYPE(Msvm_VirtualSystemManagementService_Data);
+#define MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V1_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/Msvm_VirtualSystemManagementService"
+
+struct _Msvm_VirtualSystemManagementService_v1_Data {
+    XML_TYPE_STR SystemCreationClassName;
+    XML_TYPE_UINT16 EnabledState;
+    XML_TYPE_UINT16 EnabledDefault;
+    XML_TYPE_STR InstallDate;
+    XML_TYPE_STR Description;
+    XML_TYPE_STR ElementName;
+    XML_TYPE_STR Name;
+    XML_TYPE_STR TimeOfLastStateChange;
+    XML_TYPE_STR OtherEnabledState;
+    XML_TYPE_STR StartMode;
+    XML_TYPE_STR Caption;
+    XML_TYPE_STR PrimaryOwnerContact;
+    XML_TYPE_UINT16 RequestedState;
+    XML_TYPE_STR Status;
+    XML_TYPE_BOOL Started;
+    XML_TYPE_STR CreationClassName;
+    XML_TYPE_STR SystemName;
+    XML_TYPE_UINT16 HealthState;
+    XML_TYPE_STR PrimaryOwnerName;
+    XML_TYPE_UINT16 OperationalStatus;
+    XML_TYPE_STR StatusDescriptions;
+};
+
+SER_DECLARE_TYPE(Msvm_VirtualSystemManagementService_v1_Data);
+#define MSVM_VIRTUALSYSTEMMANAGEMENTSERVICE_V2_RESOURCE_URI \
+    "http://schemas.microsoft.com/wbem/wsman/1/wmi/root/virtualization/v2/Msvm_VirtualSystemManagementService"
+
+struct _Msvm_VirtualSystemManagementService_v2_Data {
+    XML_TYPE_STR SystemCreationClassName;
+    XML_TYPE_UINT16 EnabledState;
+    XML_TYPE_UINT16 EnabledDefault;
+    XML_TYPE_STR InstallDate;
+    XML_TYPE_STR Description;
+    XML_TYPE_STR ElementName;
+    XML_TYPE_STR Name;
+    XML_TYPE_STR TimeOfLastStateChange;
+    XML_TYPE_STR OtherEnabledState;
+    XML_TYPE_STR StartMode;
+    XML_TYPE_STR Caption;
+    XML_TYPE_STR PrimaryOwnerContact;
+    XML_TYPE_UINT16 RequestedState;
+    XML_TYPE_STR Status;
+    XML_TYPE_BOOL Started;
+    XML_TYPE_STR CreationClassName;
+    XML_TYPE_STR SystemName;
+    XML_TYPE_UINT16 HealthState;
+    XML_TYPE_STR PrimaryOwnerName;
+    XML_TYPE_DYN_ARRAY AvailableRequestedStates;
+    XML_TYPE_UINT16 TransitioningToState;
+    XML_TYPE_STR InstanceID;
+    XML_TYPE_UINT16 OperatingStatus;
+    XML_TYPE_UINT16 PrimaryStatus;
+    XML_TYPE_DYN_ARRAY StatusDescriptions;
+    XML_TYPE_UINT16 DetailedStatus;
+    XML_TYPE_DYN_ARRAY OperationalStatus;
+    XML_TYPE_UINT16 CommunicationStatus;
+};
+
+SER_DECLARE_TYPE(Msvm_VirtualSystemManagementService_v2_Data);
 
 /* must match hypervObject */
 struct _Msvm_VirtualSystemManagementService {
     union {
         Msvm_VirtualSystemManagementService_Data *common;
-        Msvm_VirtualSystemManagementService_Data *None;
+        Msvm_VirtualSystemManagementService_v1_Data *v1;
+        Msvm_VirtualSystemManagementService_v2_Data *v2;
     } data;
     hypervWmiClassInfoPtr info;
     Msvm_VirtualSystemManagementService *next;

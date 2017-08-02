@@ -895,6 +895,17 @@ qemuMonitorJSONTestAttachChardev(virDomainXMLOptionPtr xmlopt)
                                        "'data':{'host':'localhost',"
                                                "'port':'4321'}}}}}");
 
+    chr.data.udp.bindHost = NULL;
+    chr.data.udp.bindService = (char *) "4321";
+    CHECK("udp", false,
+          "{'id':'alias',"
+           "'backend':{'type':'udp',"
+                      "'data':{'remote':{'type':'inet',"
+                                        "'data':{'host':'example.com',"
+                                                "'port':'1234'}},"
+                              "'local':{'type':'inet',"
+                                       "'data':{'host':'',"
+                                               "'port':'4321'}}}}}");
     memset(&chr, 0, sizeof(chr));
     chr.type = VIR_DOMAIN_CHR_TYPE_UNIX;
     chr.data.nix.path = (char *) "/path/to/socket";
@@ -2604,6 +2615,8 @@ testQemuMonitorCPUInfoFormat(qemuMonitorCPUInfoPtr vcpus,
                 virBufferAsprintf(&buf, " core='%d'", vcpu->core_id);
             if (vcpu->thread_id != -1)
                 virBufferAsprintf(&buf, " thread='%d'", vcpu->thread_id);
+            if (vcpu->node_id != -1)
+                virBufferAsprintf(&buf, " node='%d'", vcpu->node_id);
             if (vcpu->vcpus != 0)
                 virBufferAsprintf(&buf, " vcpus='%u'", vcpu->vcpus);
             virBufferAddLit(&buf, "\n");
@@ -2683,83 +2696,70 @@ testQemuMonitorCPUInfo(const void *opaque)
 }
 
 
-struct testBlockNodeNameDetectData {
-    const char *name;
-    const char *nodenames;
-};
-
-
-static void
-testBlockNodeNameDetectFormat(virBufferPtr buf,
-                              const char *basenode,
-                              virHashTablePtr nodedata)
+static int
+testBlockNodeNameDetectFormat(void *payload,
+                              const void *name,
+                              void *opaque)
 {
-    qemuBlockNodeNameBackingChainDataPtr entry = NULL;
-    const char *node = basenode;
+    qemuBlockNodeNameBackingChainDataPtr entry = payload;
+    const char *diskalias = name;
+    virBufferPtr buf = opaque;
 
     virBufferSetIndent(buf, 0);
 
-    while (node) {
-        if (!(entry = virHashLookup(nodedata, node)))
-            break;
+    virBufferAdd(buf, diskalias, -1);
+    virBufferAddLit(buf, "\n");
 
+    while (entry) {
         virBufferAsprintf(buf, "filename    : '%s'\n", entry->qemufilename);
         virBufferAsprintf(buf, "format node : '%s'\n",
                           NULLSTR(entry->nodeformat));
+        virBufferAsprintf(buf, "format drv  : '%s'\n", NULLSTR(entry->drvformat));
         virBufferAsprintf(buf, "storage node: '%s'\n",
                           NULLSTR(entry->nodestorage));
-        virBufferAsprintf(buf, "backingfile : '%s'\n",
-                          NULLSTR(entry->backingstore));
-        virBufferAsprintf(buf, "backing ptr : '%s'\n",
-                          NULLSTR(entry->nodebacking));
+        virBufferAsprintf(buf, "storage drv : '%s'\n", NULLSTR(entry->drvstorage));
 
         virBufferAdjustIndent(buf, 2);
 
-        node = entry->nodebacking;
+        entry = entry->backing;
     }
 
     virBufferSetIndent(buf, 0);
     virBufferAddLit(buf, "\n");
+    return 0;
 }
 
 
 static int
 testBlockNodeNameDetect(const void *opaque)
 {
-    const struct testBlockNodeNameDetectData *data = opaque;
-    char *jsonFile = NULL;
-    char *jsonStr = NULL;
+    const char *testname = opaque;
+    const char *pathprefix = "qemumonitorjsondata/qemumonitorjson-nodename-";
     char *resultFile = NULL;
     char *actual = NULL;
-    char **nodenames = NULL;
-    char **next;
-    virJSONValuePtr json = NULL;
+    virJSONValuePtr namedNodesJson = NULL;
+    virJSONValuePtr blockstatsJson = NULL;
     virHashTablePtr nodedata = NULL;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     int ret = -1;
 
-    if (virAsprintf(&jsonFile,
-                    "%s/qemumonitorjsondata/qemumonitorjson-nodename-%s.json",
-                    abs_srcdir, data->name) < 0 ||
-        virAsprintf(&resultFile,
-                    "%s/qemumonitorjsondata/qemumonitorjson-nodename-%s.result",
-                    abs_srcdir, data->name) < 0)
+    if (virAsprintf(&resultFile, "%s/%s%s.result",
+                    abs_srcdir, pathprefix, testname) < 0)
         goto cleanup;
 
-    if (!(nodenames = virStringSplit(data->nodenames, ",", 0)))
+    if (!(namedNodesJson = virTestLoadFileJSON(pathprefix, testname,
+                                               "-named-nodes.json", NULL)))
         goto cleanup;
 
-    if (virTestLoadFile(jsonFile, &jsonStr) < 0)
+    if (!(blockstatsJson = virTestLoadFileJSON(pathprefix, testname,
+                                               "-blockstats.json", NULL)))
         goto cleanup;
 
-    if (!(json = virJSONValueFromString(jsonStr)))
+    if (!(nodedata = qemuBlockNodeNameGetBackingChain(namedNodesJson,
+                                                      blockstatsJson)))
         goto cleanup;
 
-    if (!(nodedata = qemuBlockNodeNameGetBackingChain(json)))
-        goto cleanup;
-
-    for (next = nodenames; *next; next++)
-        testBlockNodeNameDetectFormat(&buf, *next, nodedata);
+    virHashForEach(nodedata, testBlockNodeNameDetectFormat, &buf);
 
     virBufferTrim(&buf, "\n", -1);
 
@@ -2774,13 +2774,11 @@ testBlockNodeNameDetect(const void *opaque)
     ret = 0;
 
  cleanup:
-    VIR_FREE(jsonFile);
     VIR_FREE(resultFile);
-    VIR_FREE(jsonStr);
     VIR_FREE(actual);
     virHashFree(nodedata);
-    virStringListFree(nodenames);
-    virJSONValueFree(json);
+    virJSONValueFree(namedNodesJson);
+    virJSONValueFree(blockstatsJson);
 
     return ret;
 }
@@ -2913,6 +2911,7 @@ mymain(void)
 
     DO_TEST_CPU_INFO("x86-basic-pluggable", 8);
     DO_TEST_CPU_INFO("x86-full", 11);
+    DO_TEST_CPU_INFO("x86-node-full", 8);
 
     DO_TEST_CPU_INFO("ppc64-basic", 24);
     DO_TEST_CPU_INFO("ppc64-hotplug-1", 24);
@@ -2920,19 +2919,22 @@ mymain(void)
     DO_TEST_CPU_INFO("ppc64-hotplug-4", 24);
     DO_TEST_CPU_INFO("ppc64-no-threads", 16);
 
-#define DO_TEST_BLOCK_NODE_DETECT(testname, testnodes)                         \
+#define DO_TEST_BLOCK_NODE_DETECT(testname)                                    \
     do {                                                                       \
-        struct testBlockNodeNameDetectData testdata = {testname, testnodes};   \
         if (virTestRun("node-name-detect(" testname ")",                       \
-                       testBlockNodeNameDetect, &testdata) < 0)                \
+                       testBlockNodeNameDetect, testname) < 0)                 \
             ret = -1;                                                          \
     } while (0)
 
-    DO_TEST_BLOCK_NODE_DETECT("1", "#block118");
-    DO_TEST_BLOCK_NODE_DETECT("2", "#block161");
-    DO_TEST_BLOCK_NODE_DETECT("same-backing", "#block170,#block574");
-    DO_TEST_BLOCK_NODE_DETECT("relative", "#block153,#block1177");
-    DO_TEST_BLOCK_NODE_DETECT("gluster", "#block1008");
+    DO_TEST_BLOCK_NODE_DETECT("basic");
+    DO_TEST_BLOCK_NODE_DETECT("same-backing");
+    DO_TEST_BLOCK_NODE_DETECT("relative");
+    DO_TEST_BLOCK_NODE_DETECT("gluster");
+    DO_TEST_BLOCK_NODE_DETECT("blockjob");
+    DO_TEST_BLOCK_NODE_DETECT("luks");
+    DO_TEST_BLOCK_NODE_DETECT("iscsi");
+    DO_TEST_BLOCK_NODE_DETECT("old");
+    DO_TEST_BLOCK_NODE_DETECT("empty");
 
 #undef DO_TEST_BLOCK_NODE_DETECT
 
@@ -2941,4 +2943,4 @@ mymain(void)
     return (ret == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-VIR_TEST_MAIN(mymain)
+VIR_TEST_MAIN_PRELOAD(mymain, abs_builddir "/.libs/virdeterministichashmock.so")

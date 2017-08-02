@@ -100,6 +100,7 @@
 #include "viraccessapicheck.h"
 #include "viraccessapicheckqemu.h"
 #include "storage/storage_driver.h"
+#include "storage/storage_source.h"
 #include "virhostdev.h"
 #include "domain_capabilities.h"
 #include "vircgroup.h"
@@ -158,7 +159,7 @@ static int qemuGetDHCPInterfaces(virDomainPtr dom,
                                  virDomainObjPtr vm,
                                  virDomainInterfacePtr **ifaces);
 
-virQEMUDriverPtr qemu_driver = NULL;
+static virQEMUDriverPtr qemu_driver;
 
 
 static void
@@ -1078,7 +1079,7 @@ qemuStateCleanup(void)
     virObjectUnref(qemu_driver->hostdevMgr);
     virHashFree(qemu_driver->sharedDevices);
     virObjectUnref(qemu_driver->caps);
-    virQEMUCapsCacheFree(qemu_driver->qemuCapsCache);
+    virObjectUnref(qemu_driver->qemuCapsCache);
 
     virObjectUnref(qemu_driver->domains);
     virObjectUnref(qemu_driver->remotePorts);
@@ -6110,11 +6111,8 @@ static int qemuDomainGetSecurityLabel(virDomainPtr dom, virSecurityLabelPtr secl
      */
     if (virDomainObjIsActive(vm)) {
         if (qemuSecurityGetProcessLabel(driver->securityManager,
-                                        vm->def, vm->pid, seclabel) < 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           "%s", _("Failed to get security label"));
+                                        vm->def, vm->pid, seclabel) < 0)
             goto cleanup;
-        }
     }
 
     ret = 0;
@@ -6172,8 +6170,6 @@ static int qemuDomainGetSecurityLabelList(virDomainPtr dom,
         for (i = 0; i < len; i++) {
             if (qemuSecurityGetProcessLabel(mgrs[i], vm->def, vm->pid,
                                             &(*seclabels)[i]) < 0) {
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               "%s", _("Failed to get security label"));
                 VIR_FREE(mgrs);
                 VIR_FREE(*seclabels);
                 goto cleanup;
@@ -10118,7 +10114,7 @@ qemuDomainSetSchedulerParametersFlags(virDomainPtr dom,
             }
 
             if (persistentDef)
-                persistentDefCopy->cputune.period = params[i].value.ul;
+                persistentDefCopy->cputune.period = value_ul;
 
         } else if (STREQ(param->field, VIR_DOMAIN_SCHEDULER_VCPU_QUOTA)) {
             SCHED_RANGE_CHECK(value_l, VIR_DOMAIN_SCHEDULER_VCPU_QUOTA,
@@ -10158,7 +10154,7 @@ qemuDomainSetSchedulerParametersFlags(virDomainPtr dom,
             }
 
             if (persistentDef)
-                persistentDefCopy->cputune.period = params[i].value.ul;
+                persistentDefCopy->cputune.period = value_ul;
 
         } else if (STREQ(param->field, VIR_DOMAIN_SCHEDULER_GLOBAL_QUOTA)) {
             SCHED_RANGE_CHECK(value_l, VIR_DOMAIN_SCHEDULER_GLOBAL_QUOTA,
@@ -10240,7 +10236,7 @@ qemuDomainSetSchedulerParametersFlags(virDomainPtr dom,
             }
 
             if (persistentDef)
-                persistentDefCopy->cputune.iothread_period = params[i].value.ul;
+                persistentDefCopy->cputune.iothread_period = value_ul;
 
         } else if (STREQ(param->field, VIR_DOMAIN_SCHEDULER_IOTHREAD_QUOTA)) {
             SCHED_RANGE_CHECK(value_l, VIR_DOMAIN_SCHEDULER_IOTHREAD_QUOTA,
@@ -10993,22 +10989,22 @@ qemuDomainSetInterfaceParameters(virDomainPtr dom,
         virTypedParameterPtr param = &params[i];
 
         if (STREQ(param->field, VIR_DOMAIN_BANDWIDTH_IN_AVERAGE)) {
-            bandwidth->in->average = params[i].value.ui;
+            bandwidth->in->average = param->value.ui;
             inboundSpecified = true;
         } else if (STREQ(param->field, VIR_DOMAIN_BANDWIDTH_IN_PEAK)) {
-            bandwidth->in->peak = params[i].value.ui;
+            bandwidth->in->peak = param->value.ui;
         } else if (STREQ(param->field, VIR_DOMAIN_BANDWIDTH_IN_BURST)) {
-            bandwidth->in->burst = params[i].value.ui;
+            bandwidth->in->burst = param->value.ui;
         } else if (STREQ(param->field, VIR_DOMAIN_BANDWIDTH_IN_FLOOR)) {
-            bandwidth->in->floor = params[i].value.ui;
+            bandwidth->in->floor = param->value.ui;
             inboundSpecified = true;
         } else if (STREQ(param->field, VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE)) {
-            bandwidth->out->average = params[i].value.ui;
+            bandwidth->out->average = param->value.ui;
             outboundSpecified = true;
         } else if (STREQ(param->field, VIR_DOMAIN_BANDWIDTH_OUT_PEAK)) {
-            bandwidth->out->peak = params[i].value.ui;
+            bandwidth->out->peak = param->value.ui;
         } else if (STREQ(param->field, VIR_DOMAIN_BANDWIDTH_OUT_BURST)) {
-            bandwidth->out->burst = params[i].value.ui;
+            bandwidth->out->burst = param->value.ui;
         }
     }
 
@@ -11308,9 +11304,9 @@ qemuDomainBlockPeek(virDomainPtr dom,
                     unsigned int flags)
 {
     virQEMUDriverPtr driver = dom->conn->privateData;
+    virDomainDiskDefPtr disk = NULL;
     virDomainObjPtr vm;
-    int fd = -1, ret = -1;
-    const char *actual;
+    int ret = -1;
 
     virCheckFlags(0, -1);
 
@@ -11321,32 +11317,29 @@ qemuDomainBlockPeek(virDomainPtr dom,
         goto cleanup;
 
     /* Check the path belongs to this domain.  */
-    if (!(actual = virDomainDiskPathByName(vm->def, path))) {
+    if (!(disk = virDomainDiskByName(vm->def, path, true))) {
         virReportError(VIR_ERR_INVALID_ARG,
-                       _("invalid path '%s'"), path);
+                       _("invalid disk or path '%s'"), path);
         goto cleanup;
     }
-    path = actual;
 
-    fd = qemuOpenFile(driver, vm, path, O_RDONLY, NULL, NULL);
-    if (fd < 0)
-        goto cleanup;
-
-    /* Seek and read. */
-    /* NB. Because we configure with AC_SYS_LARGEFILE, off_t should
-     * be 64 bits on all platforms.
-     */
-    if (lseek(fd, offset, SEEK_SET) == (off_t) -1 ||
-        saferead(fd, buffer, size) == (ssize_t) -1) {
-        virReportSystemError(errno,
-                             _("%s: failed to seek or read"), path);
+    if (disk->src->format != VIR_STORAGE_FILE_RAW) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("peeking is supported only for RAW disks"));
         goto cleanup;
     }
+
+    if (qemuDomainStorageFileInit(driver, vm, disk->src) < 0)
+        goto cleanup;
+
+    if (virStorageFileRead(disk->src, offset, size, buffer) < 0)
+        goto cleanup;
 
     ret = 0;
 
  cleanup:
-    VIR_FORCE_CLOSE(fd);
+    if (disk)
+        virStorageFileDeinit(disk->src);
     virDomainObjEndAPI(&vm);
     return ret;
 }
@@ -11583,8 +11576,7 @@ qemuStorageLimitsRefresh(virQEMUDriverPtr driver,
             goto cleanup;
         }
     } else {
-        if ((len = virStorageFileReadHeader(src, VIR_STORAGE_MAX_HEADER,
-                                            &buf)) < 0)
+        if ((len = virStorageFileRead(src, 0, VIR_STORAGE_MAX_HEADER, &buf)) < 0)
             goto cleanup;
     }
 
@@ -11711,10 +11703,9 @@ qemuDomainGetBlockInfo(virDomainPtr dom,
      * Additionally, if qemu hasn't written to the file yet, then set the
      * allocation to whatever qemu returned for physical (e.g. the "actual-
      * size" from the json query) as that will match the expected allocation
-     * value for this API. */
+     * value for this API. NB: May still be 0 for block. */
     if (entry->physical == 0 || info->allocation == 0 ||
         info->allocation == entry->physical) {
-        info->allocation = entry->physical;
         if (info->allocation == 0)
             info->allocation = entry->physical;
 
@@ -15938,7 +15929,7 @@ static virDomainPtr qemuDomainQemuAttach(virConnectPtr conn,
         virAsprintf(&def->name, "attach-pid-%u", pid_value) < 0)
         goto cleanup;
 
-    if (!(qemuCaps = virQEMUCapsCacheLookup(caps, driver->qemuCapsCache,
+    if (!(qemuCaps = virQEMUCapsCacheLookup(driver->qemuCapsCache,
                                             def->emulator)))
         goto cleanup;
 
@@ -16688,6 +16679,63 @@ qemuDomainBlockJobSetSpeed(virDomainPtr dom,
 }
 
 
+static int
+qemuDomainBlockCopyValidateMirror(virStorageSourcePtr mirror,
+                                  const char *dst,
+                                  bool *reuse)
+{
+    int desttype = virStorageSourceGetActualType(mirror);
+    struct stat st;
+
+    if (virStorageFileAccess(mirror, F_OK) < 0) {
+        if (errno != ENOENT) {
+            virReportSystemError(errno, "%s",
+                                 _("unable to verify existance of "
+                                   "block copy target"));
+            return -1;
+        }
+
+        if (*reuse || desttype == VIR_STORAGE_TYPE_BLOCK) {
+            virReportSystemError(errno,
+                                 _("missing destination file for disk %s: %s"),
+                                 dst, mirror->path);
+            return -1;
+        }
+    } else {
+        if (virStorageFileStat(mirror, &st) < 0) {
+            virReportSystemError(errno,
+                                 _("unable to stat block copy target '%s'"),
+                                 mirror->path);
+            return -1;
+        }
+
+        if (S_ISBLK(st.st_mode)) {
+            /* if the target is a block device, assume that we are reusing it,
+             * so there are no attempts to create it */
+            *reuse = true;
+        } else {
+            if (st.st_size && !(*reuse)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("external destination file for disk %s already "
+                                 "exists and is not a block device: %s"),
+                               dst, mirror->path);
+                return -1;
+            }
+
+            if (desttype == VIR_STORAGE_TYPE_BLOCK) {
+                virReportError(VIR_ERR_INVALID_ARG,
+                               _("blockdev flag requested for disk %s, but file "
+                                 "'%s' is not a block device"),
+                               dst, mirror->path);
+                return -1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+
 /* bandwidth in bytes/s.  Caller must lock vm beforehand, and not
  * access mirror afterwards.  */
 static int
@@ -16706,12 +16754,11 @@ qemuDomainBlockCopyCommon(virDomainObjPtr vm,
     char *device = NULL;
     virDomainDiskDefPtr disk = NULL;
     int ret = -1;
-    struct stat st;
     bool need_unlink = false;
     virQEMUDriverConfigPtr cfg = NULL;
     const char *format = NULL;
-    int desttype = virStorageSourceGetActualType(mirror);
     virErrorPtr monitor_error = NULL;
+    bool reuse = !!(flags & VIR_DOMAIN_BLOCK_COPY_REUSE_EXT);
 
     /* Preliminaries: find the disk we are editing, sanity checks */
     virCheckFlags(VIR_DOMAIN_BLOCK_COPY_SHALLOW |
@@ -16772,8 +16819,7 @@ qemuDomainBlockCopyCommon(virDomainObjPtr vm,
 
     /* unless the user provides a pre-created file, shallow copy into a raw
      * file is not possible */
-    if ((flags & VIR_DOMAIN_BLOCK_COPY_SHALLOW) &&
-        !(flags & VIR_DOMAIN_BLOCK_COPY_REUSE_EXT) &&
+    if ((flags & VIR_DOMAIN_BLOCK_COPY_SHALLOW) && !reuse &&
         mirror->format == VIR_STORAGE_FILE_RAW) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("shallow copy of disk '%s' into a raw file "
@@ -16789,37 +16835,15 @@ qemuDomainBlockCopyCommon(virDomainObjPtr vm,
                        _("non-file destination not supported yet"));
         goto endjob;
     }
-    if (stat(mirror->path, &st) < 0) {
-        if (errno != ENOENT) {
-            virReportSystemError(errno, _("unable to stat for disk %s: %s"),
-                                 disk->dst, mirror->path);
-            goto endjob;
-        } else if (flags & VIR_DOMAIN_BLOCK_COPY_REUSE_EXT ||
-                   desttype == VIR_STORAGE_TYPE_BLOCK) {
-            virReportSystemError(errno,
-                                 _("missing destination file for disk %s: %s"),
-                                 disk->dst, mirror->path);
-            goto endjob;
-        }
-    } else if (!S_ISBLK(st.st_mode)) {
-        if (st.st_size && !(flags & VIR_DOMAIN_BLOCK_COPY_REUSE_EXT)) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                           _("external destination file for disk %s already "
-                             "exists and is not a block device: %s"),
-                           disk->dst, mirror->path);
-            goto endjob;
-        }
-        if (desttype == VIR_STORAGE_TYPE_BLOCK) {
-            virReportError(VIR_ERR_INVALID_ARG,
-                           _("blockdev flag requested for disk %s, but file "
-                             "'%s' is not a block device"),
-                           disk->dst, mirror->path);
-            goto endjob;
-        }
-    }
+
+    if (qemuDomainStorageFileInit(driver, vm, mirror) < 0)
+        goto endjob;
+
+    if (qemuDomainBlockCopyValidateMirror(mirror, disk->dst, &reuse) < 0)
+        goto endjob;
 
     if (!mirror->format) {
-        if (!(flags & VIR_DOMAIN_BLOCK_COPY_REUSE_EXT)) {
+        if (!reuse) {
             mirror->format = disk->src->format;
         } else {
             /* If the user passed the REUSE_EXT flag, then either they
@@ -16832,13 +16856,13 @@ qemuDomainBlockCopyCommon(virDomainObjPtr vm,
     }
 
     /* pre-create the image file */
-    if (!(flags & VIR_DOMAIN_BLOCK_COPY_REUSE_EXT)) {
-        int fd = qemuOpenFile(driver, vm, mirror->path,
-                              O_WRONLY | O_TRUNC | O_CREAT,
-                              &need_unlink, NULL);
-        if (fd < 0)
+    if (!reuse) {
+        if (virStorageFileCreate(mirror) < 0) {
+            virReportSystemError(errno, "%s", _("failed to create copy target"));
             goto endjob;
-        VIR_FORCE_CLOSE(fd);
+        }
+
+        need_unlink = true;
     }
 
     if (mirror->format > 0)
@@ -16855,6 +16879,8 @@ qemuDomainBlockCopyCommon(virDomainObjPtr vm,
 
     /* Actually start the mirroring */
     qemuDomainObjEnterMonitor(driver, vm);
+    /* qemuMonitorDriveMirror needs to honor the REUSE_EXT flag as specified
+     * by the user regardless of how @reuse was modified */
     ret = qemuMonitorDriveMirror(priv->mon, device, mirror->path, format,
                                  bandwidth, granularity, buf_size, flags);
     virDomainAuditDisk(vm, NULL, mirror, "mirror", ret >= 0);
@@ -16868,6 +16894,7 @@ qemuDomainBlockCopyCommon(virDomainObjPtr vm,
 
     /* Update vm in place to match changes.  */
     need_unlink = false;
+    virStorageFileDeinit(mirror);
     disk->mirror = mirror;
     mirror = NULL;
     disk->mirrorJob = VIR_DOMAIN_BLOCK_JOB_TYPE_COPY;
@@ -16878,8 +16905,9 @@ qemuDomainBlockCopyCommon(virDomainObjPtr vm,
                  vm->def->name);
 
  endjob:
-    if (need_unlink && unlink(mirror->path))
-        VIR_WARN("unable to unlink just-created %s", mirror->path);
+    if (need_unlink && virStorageFileUnlink(mirror) < 0)
+        VIR_WARN("%s", _("unable to remove just-created copy target"));
+    virStorageFileDeinit(mirror);
     qemuDomainObjEndJob(driver, vm);
     if (monitor_error) {
         virSetError(monitor_error);
@@ -18951,8 +18979,7 @@ qemuConnectGetDomainCapabilities(virConnectPtr conn,
     if (emulatorbin) {
         virArch arch_from_caps;
 
-        if (!(qemuCaps = virQEMUCapsCacheLookup(caps,
-                                                driver->qemuCapsCache,
+        if (!(qemuCaps = virQEMUCapsCacheLookup(driver->qemuCapsCache,
                                                 emulatorbin)))
             goto cleanup;
 
@@ -18971,8 +18998,7 @@ qemuConnectGetDomainCapabilities(virConnectPtr conn,
             goto cleanup;
         }
     } else {
-        if (!(qemuCaps = virQEMUCapsCacheLookupByArch(caps,
-                                                      driver->qemuCapsCache,
+        if (!(qemuCaps = virQEMUCapsCacheLookupByArch(driver->qemuCapsCache,
                                                       arch)))
             goto cleanup;
 
@@ -19464,8 +19490,8 @@ qemuDomainGetStatsOneBlockNode(virDomainStatsRecordPtr record,
     unsigned long long tmp;
     int ret = -1;
 
-    if (src->nodebacking &&
-        (data = virHashLookup(nodedata, src->nodebacking))) {
+    if (src->nodestorage &&
+        (data = virHashLookup(nodedata, src->nodestorage))) {
         if (virJSONValueObjectGetNumberUlong(data, "write_threshold", &tmp) == 0 &&
             tmp > 0)
             QEMU_ADD_BLOCK_PARAM_ULL(record, maxparams, block_idx,
@@ -20648,18 +20674,18 @@ qemuDomainSetBlockThreshold(virDomainPtr dom,
     if (!(src = qemuDomainGetStorageSourceByDevstr(dev, vm->def)))
         goto endjob;
 
-    if (!src->nodebacking &&
+    if (!src->nodestorage &&
         qemuBlockNodeNamesDetect(driver, vm, QEMU_ASYNC_JOB_NONE) < 0)
         goto endjob;
 
-    if (!src->nodebacking) {
+    if (!src->nodestorage) {
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
                        _("threshold currently can't be set for block device '%s'"),
                        dev);
         goto endjob;
     }
 
-    if (VIR_STRDUP(nodename, src->nodebacking) < 0)
+    if (VIR_STRDUP(nodename, src->nodestorage) < 0)
         goto endjob;
 
     qemuDomainObjEnterMonitor(driver, vm);

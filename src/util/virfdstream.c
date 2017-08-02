@@ -106,7 +106,7 @@ struct virFDStreamData {
     /* Thread data */
     virThreadPtr thread;
     virCond threadCond;
-    int threadErr;
+    virErrorPtr threadErr;
     bool threadQuit;
     bool threadAbort;
     bool threadDoRead;
@@ -123,6 +123,7 @@ virFDStreamDataDispose(void *obj)
     virFDStreamDataPtr fdst = obj;
 
     VIR_DEBUG("obj=%p", fdst);
+    virFreeError(fdst->threadErr);
     virFDStreamMsgQueueFree(&fdst->msg);
 }
 
@@ -310,6 +311,11 @@ static void virFDStreamEvent(int watch ATTRIBUTE_UNUSED,
     if (!fdst->cb) {
         virObjectUnlock(fdst);
         return;
+    }
+
+    if (fdst->threadErr) {
+        events |= VIR_STREAM_EVENT_ERROR;
+        virSetError(fdst->threadErr);
     }
 
     cb = fdst->cb;
@@ -638,7 +644,7 @@ virFDStreamThread(void *opaque)
     return;
 
  error:
-    fdst->threadErr = errno;
+    fdst->threadErr = virSaveLastError();
     goto cleanup;
 }
 
@@ -791,10 +797,10 @@ static int virFDStreamWrite(virStreamPtr st, const char *bytes, size_t nbytes)
     if (fdst->thread) {
         char *buf;
 
-        if (fdst->threadQuit) {
+        if (fdst->threadQuit || fdst->threadErr) {
             virReportSystemError(EBADF, "%s",
                                  _("cannot write to stream"));
-            return -1;
+            goto cleanup;
         }
 
         if (VIR_ALLOC(msg) < 0 ||
@@ -870,7 +876,7 @@ static int virFDStreamRead(virStreamPtr st, char *bytes, size_t nbytes)
         virFDStreamMsgPtr msg = NULL;
 
         while (!(msg = fdst->msg)) {
-            if (fdst->threadQuit) {
+            if (fdst->threadQuit || fdst->threadErr) {
                 if (nbytes) {
                     virReportSystemError(EBADF, "%s",
                                          _("stream is not open"));
@@ -971,6 +977,13 @@ virFDStreamSendHole(virStreamPtr st,
          * the thread to do the lseek() for us. Under no
          * circumstances we can do the lseek() ourselves here. We
          * might mess up file position for the thread. */
+
+        if (fdst->threadQuit || fdst->threadErr) {
+            virReportSystemError(EBADF, "%s",
+                                 _("stream is not open"));
+            goto cleanup;
+        }
+
         if (fdst->threadDoRead) {
             msg = fdst->msg;
             if (msg->type != VIR_FDSTREAM_MSG_TYPE_HOLE) {
@@ -1024,6 +1037,9 @@ virFDStreamInData(virStreamPtr st,
 
     if (fdst->thread) {
         virFDStreamMsgPtr msg;
+
+        if (fdst->threadErr)
+            goto cleanup;
 
         while (!(msg = fdst->msg)) {
             if (fdst->threadQuit) {

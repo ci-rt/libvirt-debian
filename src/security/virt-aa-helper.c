@@ -41,6 +41,7 @@
 #include "viralloc.h"
 #include "vircommand.h"
 #include "virlog.h"
+#include "driver.h"
 
 #include "security_driver.h"
 #include "security_apparmor.h"
@@ -55,7 +56,7 @@
 #include "virstring.h"
 #include "virgettext.h"
 
-#include "storage/storage_driver.h"
+#include "storage/storage_source.h"
 
 #define VIR_FROM_THIS VIR_FROM_SECURITY
 
@@ -926,6 +927,11 @@ get_files(vahControl * ctl)
         goto cleanup;
     }
 
+    /* load the storage driver so that backing store can be accessed */
+#ifdef WITH_STORAGE
+    virDriverLoadModule("storage", "storageRegister");
+#endif
+
     for (i = 0; i < ctl->def->ndisks; i++) {
         virDomainDiskDefPtr disk = ctl->def->disks[i];
 
@@ -1282,6 +1288,8 @@ main(int argc, char **argv)
         fprintf(stderr, _("%s: initialization failed\n"), argv[0]);
         exit(EXIT_FAILURE);
     }
+
+    virFileActivateDirOverride(argv[0]);
 
     /* Initialize the log system */
     virLogSetFromEnv();

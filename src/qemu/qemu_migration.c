@@ -108,7 +108,7 @@ qemuMigrationCheckTLSCreds(virQEMUDriverPtr driver,
     qemuMonitorMigrationParams migParams = { 0 };
 
     if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
-        goto cleanup;
+        return -1;
 
     if (qemuMonitorGetMigrationParams(priv->mon, &migParams) < 0)
         goto cleanup;
@@ -1160,11 +1160,12 @@ qemuMigrationIsSafe(virDomainDefPtr def,
         const char *src = virDomainDiskGetSource(disk);
 
         /* Our code elsewhere guarantees shared disks are either readonly (in
-         * which case cache mode doesn't matter) or used with cache=none */
+         * which case cache mode doesn't matter) or used with cache=none or used with cache=directsync */
         if (virStorageSourceIsEmpty(disk->src) ||
             disk->src->readonly ||
             disk->src->shared ||
-            disk->cachemode == VIR_DOMAIN_DISK_CACHE_DISABLE)
+            disk->cachemode == VIR_DOMAIN_DISK_CACHE_DISABLE ||
+            disk->cachemode == VIR_DOMAIN_DISK_CACHE_DIRECTSYNC)
             continue;
 
         /* disks which are migrated by qemu are safe too */
@@ -1188,7 +1189,7 @@ qemuMigrationIsSafe(virDomainDefPtr def,
 
         virReportError(VIR_ERR_MIGRATE_UNSAFE, "%s",
                        _("Migration may lead to data corruption if disks"
-                         " use cache != none"));
+                         " use cache != none or cache != directsync"));
         return false;
     }
 

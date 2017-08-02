@@ -171,12 +171,8 @@ virSecretObjListDispose(void *obj)
  */
 static virSecretObjPtr
 virSecretObjListFindByUUIDLocked(virSecretObjListPtr secrets,
-                                 const unsigned char *uuid)
+                                 const char *uuidstr)
 {
-    char uuidstr[VIR_UUID_STRING_BUFLEN];
-
-    virUUIDFormat(uuid, uuidstr);
-
     return virObjectRef(virHashLookup(secrets->objs, uuidstr));
 }
 
@@ -184,7 +180,7 @@ virSecretObjListFindByUUIDLocked(virSecretObjListPtr secrets,
 /**
  * virSecretObjFindByUUID:
  * @secrets: list of secret objects
- * @uuid: secret uuid to find
+ * @uuidstr: secret uuid to find
  *
  * This function locks @secrets and finds the secret object which
  * corresponds to @uuid.
@@ -193,12 +189,12 @@ virSecretObjListFindByUUIDLocked(virSecretObjListPtr secrets,
  */
 virSecretObjPtr
 virSecretObjListFindByUUID(virSecretObjListPtr secrets,
-                           const unsigned char *uuid)
+                           const char *uuidstr)
 {
     virSecretObjPtr obj;
 
     virObjectLock(secrets);
-    obj = virSecretObjListFindByUUIDLocked(secrets, uuid);
+    obj = virSecretObjListFindByUUIDLocked(secrets, uuidstr);
     virObjectUnlock(secrets);
     if (obj)
         virObjectLock(obj);
@@ -251,7 +247,7 @@ virSecretObjListFindByUsageLocked(virSecretObjListPtr secrets,
     struct virSecretSearchData data = { .usageType = usageType,
                                         .usageID = usageID };
 
-    obj = virHashSearch(secrets->objs, virSecretObjSearchName, &data);
+    obj = virHashSearch(secrets->objs, virSecretObjSearchName, &data, NULL);
     if (obj)
         virObjectRef(obj);
     return obj;
@@ -336,40 +332,40 @@ virSecretObjListAdd(virSecretObjListPtr secrets,
                     virSecretDefPtr *oldDef)
 {
     virSecretObjPtr obj;
-    virSecretDefPtr def;
+    virSecretDefPtr objdef;
     virSecretObjPtr ret = NULL;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
-    char *configFile = NULL, *base64File = NULL;
 
     virObjectLock(secrets);
 
     if (oldDef)
         *oldDef = NULL;
 
-    /* Is there a secret already matching this UUID */
-    if ((obj = virSecretObjListFindByUUIDLocked(secrets, newdef->uuid))) {
-        virObjectLock(obj);
-        def = obj->def;
+    virUUIDFormat(newdef->uuid, uuidstr);
 
-        if (STRNEQ_NULLABLE(def->usage_id, newdef->usage_id)) {
-            virUUIDFormat(def->uuid, uuidstr);
+    /* Is there a secret already matching this UUID */
+    if ((obj = virSecretObjListFindByUUIDLocked(secrets, uuidstr))) {
+        virObjectLock(obj);
+        objdef = obj->def;
+
+        if (STRNEQ_NULLABLE(objdef->usage_id, newdef->usage_id)) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("a secret with UUID %s is already defined for "
                              "use with %s"),
-                           uuidstr, def->usage_id);
+                           uuidstr, objdef->usage_id);
             goto cleanup;
         }
 
-        if (def->isprivate && !newdef->isprivate) {
+        if (objdef->isprivate && !newdef->isprivate) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("cannot change private flag on existing secret"));
             goto cleanup;
         }
 
         if (oldDef)
-            *oldDef = def;
+            *oldDef = objdef;
         else
-            virSecretDefFree(def);
+            virSecretDefFree(objdef);
         obj->def = newdef;
     } else {
         /* No existing secret with same UUID,
@@ -378,8 +374,8 @@ virSecretObjListAdd(virSecretObjListPtr secrets,
                                                      newdef->usage_type,
                                                      newdef->usage_id))) {
             virObjectLock(obj);
-            def = obj->def;
-            virUUIDFormat(def->uuid, uuidstr);
+            objdef = obj->def;
+            virUUIDFormat(objdef->uuid, uuidstr);
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("a secret with UUID %s already defined for "
                              "use with %s"),
@@ -387,23 +383,20 @@ virSecretObjListAdd(virSecretObjListPtr secrets,
             goto cleanup;
         }
 
+        if (!(obj = virSecretObjNew()))
+            goto cleanup;
+
         /* Generate the possible configFile and base64File strings
          * using the configDir, uuidstr, and appropriate suffix
          */
-        virUUIDFormat(newdef->uuid, uuidstr);
-        if (!(configFile = virFileBuildPath(configDir, uuidstr, ".xml")) ||
-            !(base64File = virFileBuildPath(configDir, uuidstr, ".base64")))
-            goto cleanup;
-
-        if (!(obj = virSecretObjNew()))
+        if (!(obj->configFile = virFileBuildPath(configDir, uuidstr, ".xml")) ||
+            !(obj->base64File = virFileBuildPath(configDir, uuidstr, ".base64")))
             goto cleanup;
 
         if (virHashAddEntry(secrets->objs, uuidstr, obj) < 0)
             goto cleanup;
 
         obj->def = newdef;
-        VIR_STEAL_PTR(obj->configFile, configFile);
-        VIR_STEAL_PTR(obj->base64File, base64File);
         virObjectRef(obj);
     }
 
@@ -412,8 +405,6 @@ virSecretObjListAdd(virSecretObjListPtr secrets,
 
  cleanup:
     virSecretObjEndAPI(&obj);
-    VIR_FREE(configFile);
-    VIR_FREE(base64File);
     virObjectUnlock(secrets);
     return ret;
 }
@@ -923,7 +914,6 @@ virSecretLoad(virSecretObjListPtr secrets,
 {
     virSecretDefPtr def = NULL;
     virSecretObjPtr obj = NULL;
-    virSecretObjPtr ret = NULL;
 
     if (!(def = virSecretDefParseFile(path)))
         goto cleanup;
@@ -935,16 +925,15 @@ virSecretLoad(virSecretObjListPtr secrets,
         goto cleanup;
     def = NULL;
 
-    if (virSecretLoadValue(obj) < 0)
-        goto cleanup;
-
-    ret = obj;
-    obj = NULL;
+    if (virSecretLoadValue(obj) < 0) {
+        virSecretObjListRemove(secrets, obj);
+        virObjectUnref(obj);
+        obj = NULL;
+    }
 
  cleanup:
-    virSecretObjListRemove(secrets, obj);
     virSecretDefFree(def);
-    return ret;
+    return obj;
 }
 
 

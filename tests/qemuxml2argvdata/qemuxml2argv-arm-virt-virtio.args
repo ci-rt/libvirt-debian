@@ -14,7 +14,9 @@ QEMU_AUDIO_DRV=none \
 -nographic \
 -nodefconfig \
 -nodefaults \
--monitor unix:/tmp/lib/domain--1-armtest/monitor.sock,server,nowait \
+-chardev socket,id=charmonitor,path=/tmp/lib/domain--1-armtest/monitor.sock,\
+server,nowait \
+-mon chardev=charmonitor,id=monitor,mode=readline \
 -boot c \
 -kernel /arm.kernel \
 -initrd /arm.initrd \
@@ -25,7 +27,8 @@ QEMU_AUDIO_DRV=none \
 -device virtio-blk-device,drive=drive-virtio-disk0,id=virtio-disk0 \
 -device virtio-net-device,vlan=0,id=net0,mac=52:54:00:09:a4:37 \
 -net user,vlan=0,name=hostnet0 \
--serial pty \
+-chardev pty,id=charserial0 \
+-serial chardev:charserial0 \
 -chardev pty,id=charconsole1 \
 -device virtconsole,chardev=charconsole1,id=console1 \
 -device virtio-balloon-device,id=balloon0 \

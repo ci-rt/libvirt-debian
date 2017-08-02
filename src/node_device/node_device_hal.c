@@ -449,7 +449,7 @@ dev_create(const char *udi)
 {
     LibHalContext *ctx;
     char *parent_key = NULL;
-    virNodeDeviceObjPtr dev = NULL;
+    virNodeDeviceObjPtr obj = NULL;
     virNodeDeviceDefPtr def = NULL;
     virNodeDeviceDefPtr objdef;
     const char *name = hal_name(udi);
@@ -482,15 +482,15 @@ dev_create(const char *udi)
     /* Some devices don't have a path in sysfs, so ignore failure */
     (void)get_str_prop(ctx, udi, "linux.sysfs_path", &devicePath);
 
-    if (!(dev = virNodeDeviceObjAssignDef(&driver->devs, def))) {
+    if (!(obj = virNodeDeviceObjListAssignDef(driver->devs, def))) {
         VIR_FREE(devicePath);
         goto failure;
     }
-    objdef = virNodeDeviceObjGetDef(dev);
+    objdef = virNodeDeviceObjGetDef(obj);
 
     objdef->sysfs_path = devicePath;
 
-    virNodeDeviceObjUnlock(dev);
+    virNodeDeviceObjEndAPI(&obj);
 
     nodeDeviceUnlock();
     return;
@@ -506,22 +506,18 @@ static void
 dev_refresh(const char *udi)
 {
     const char *name = hal_name(udi);
-    virNodeDeviceObjPtr dev;
+    virNodeDeviceObjPtr obj;
 
-    nodeDeviceLock();
-    dev = virNodeDeviceObjFindByName(&driver->devs, name);
-    if (dev) {
+    if ((obj = virNodeDeviceObjListFindByName(driver->devs, name))) {
         /* Simply "rediscover" device -- incrementally handling changes
          * to sub-capabilities (like net.80203) is nasty ... so avoid it.
          */
-        virNodeDeviceObjRemove(&driver->devs, &dev);
+        virNodeDeviceObjListRemove(driver->devs, obj);
+        virObjectUnref(obj);
+        dev_create(udi);
     } else {
         VIR_DEBUG("no device named %s", name);
     }
-    nodeDeviceUnlock();
-
-    if (dev)
-        dev_create(udi);
 }
 
 static void
@@ -538,16 +534,15 @@ device_removed(LibHalContext *ctx ATTRIBUTE_UNUSED,
                const char *udi)
 {
     const char *name = hal_name(udi);
-    virNodeDeviceObjPtr dev;
+    virNodeDeviceObjPtr obj;
 
-    nodeDeviceLock();
-    dev = virNodeDeviceObjFindByName(&driver->devs, name);
+    obj = virNodeDeviceObjListFindByName(driver->devs, name);
     VIR_DEBUG("%s", name);
-    if (dev)
-        virNodeDeviceObjRemove(&driver->devs, &dev);
+    if (obj)
+        virNodeDeviceObjListRemove(driver->devs, obj);
     else
         VIR_DEBUG("no device named %s", name);
-    nodeDeviceUnlock();
+    virObjectUnref(obj);
 }
 
 
@@ -556,17 +551,14 @@ device_cap_added(LibHalContext *ctx,
                  const char *udi, const char *cap)
 {
     const char *name = hal_name(udi);
-    virNodeDeviceObjPtr dev;
+    virNodeDeviceObjPtr obj;
     virNodeDeviceDefPtr def;
 
-    nodeDeviceLock();
-    dev = virNodeDeviceObjFindByName(&driver->devs, name);
-    nodeDeviceUnlock();
     VIR_DEBUG("%s %s", cap, name);
-    if (dev) {
-        def = virNodeDeviceObjGetDef(dev);
+    if ((obj = virNodeDeviceObjListFindByName(driver->devs, name))) {
+        def = virNodeDeviceObjGetDef(obj);
         (void)gather_capability(ctx, udi, cap, &def->caps);
-        virNodeDeviceObjUnlock(dev);
+        virNodeDeviceObjEndAPI(&obj);
     } else {
         VIR_DEBUG("no device named %s", name);
     }
@@ -624,6 +616,9 @@ nodeStateInitialize(bool privileged ATTRIBUTE_UNUSED,
         return -1;
     }
     nodeDeviceLock();
+
+    if (!(driver->devs = virNodeDeviceObjListNew()))
+        goto failure;
 
     dbus_error_init(&err);
     if (!(sysbus = virDBusGetSystemBus())) {
@@ -699,7 +694,7 @@ nodeStateInitialize(bool privileged ATTRIBUTE_UNUSED,
                        _("%s: %s"), err.name, err.message);
         dbus_error_free(&err);
     }
-    virNodeDeviceObjListFree(&driver->devs);
+    virNodeDeviceObjListFree(driver->devs);
     if (hal_ctx)
         (void)libhal_ctx_free(hal_ctx);
     nodeDeviceUnlock();
@@ -715,7 +710,7 @@ nodeStateCleanup(void)
     if (driver) {
         nodeDeviceLock();
         LibHalContext *hal_ctx = DRV_STATE_HAL_CTX(driver);
-        virNodeDeviceObjListFree(&driver->devs);
+        virNodeDeviceObjListFree(driver->devs);
         (void)libhal_ctx_shutdown(hal_ctx, NULL);
         (void)libhal_ctx_free(hal_ctx);
         nodeDeviceUnlock();
@@ -739,7 +734,7 @@ nodeStateReload(void)
     VIR_INFO("Reloading HAL device state");
     nodeDeviceLock();
     VIR_INFO("Removing existing objects");
-    virNodeDeviceObjListFree(&driver->devs);
+    virNodeDeviceObjListFree(driver->devs);
     nodeDeviceUnlock();
 
     hal_ctx = DRV_STATE_HAL_CTX(driver);

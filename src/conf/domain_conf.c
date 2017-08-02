@@ -349,6 +349,7 @@ VIR_ENUM_IMPL(virDomainControllerPCIModelName,
               "pxb",
               "pxb-pcie",
               "pcie-root-port",
+              "spapr-pci-host-bridge",
 );
 
 VIR_ENUM_IMPL(virDomainControllerModelSCSI, VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LAST,
@@ -1322,15 +1323,6 @@ bool virDomainObjTaint(virDomainObjPtr obj,
     return true;
 }
 
-static void
-virDomainDeviceInfoFree(virDomainDeviceInfoPtr info)
-{
-    if (info) {
-        virDomainDeviceInfoClear(info);
-        VIR_FREE(info);
-    }
-}
-
 
 static void
 virDomainGraphicsAuthDefClear(virDomainGraphicsAuthDefPtr def)
@@ -1871,6 +1863,7 @@ virDomainControllerDefNew(virDomainControllerType type)
         def->opts.pciopts.chassis = -1;
         def->opts.pciopts.port = -1;
         def->opts.pciopts.busNr = -1;
+        def->opts.pciopts.targetIndex = -1;
         def->opts.pciopts.numaNode = -1;
         break;
     case VIR_DOMAIN_CONTROLLER_TYPE_IDE:
@@ -1896,6 +1889,37 @@ void virDomainControllerDefFree(virDomainControllerDefPtr def)
 
     VIR_FREE(def);
 }
+
+
+/**
+ * virDomainControllerIsPSeriesPHB:
+ * @cont: controller
+ *
+ * Checks whether @cont is a PCI Host Bridge (PHB), a specific type
+ * of PCI controller used by pSeries guests.
+ *
+ * Returns: true if @cont is a PHB, false otherwise.
+ */
+bool
+virDomainControllerIsPSeriesPHB(const virDomainControllerDef *cont)
+{
+    virDomainControllerPCIModelName name;
+
+    /* PHBs are pci-root controllers */
+    if (cont->type != VIR_DOMAIN_CONTROLLER_TYPE_PCI ||
+        cont->model != VIR_DOMAIN_CONTROLLER_MODEL_PCI_ROOT) {
+        return false;
+    }
+
+    name = cont->opts.pciopts.modelName;
+
+    /* The actual device used for PHBs is spapr-pci-host-bridge */
+    if (name != VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_SPAPR_PCI_HOST_BRIDGE)
+        return false;
+
+    return true;
+}
+
 
 virDomainFSDefPtr
 virDomainFSDefNew(void)
@@ -2038,6 +2062,39 @@ virDomainNetDefFree(virDomainNetDefPtr def)
     virDomainNetDefClear(def);
     VIR_FREE(def);
 }
+
+
+const char *
+virDomainChrSourceDefGetPath(virDomainChrSourceDefPtr chr)
+{
+    if (!chr)
+        return NULL;
+
+    switch ((virDomainChrType) chr->type) {
+    case VIR_DOMAIN_CHR_TYPE_PTY:
+    case VIR_DOMAIN_CHR_TYPE_DEV:
+    case VIR_DOMAIN_CHR_TYPE_FILE:
+    case VIR_DOMAIN_CHR_TYPE_PIPE:
+    case VIR_DOMAIN_CHR_TYPE_NMDM:
+        return chr->data.file.path;
+
+    case VIR_DOMAIN_CHR_TYPE_UNIX:
+        return chr->data.nix.path;
+
+    case VIR_DOMAIN_CHR_TYPE_TCP:
+    case VIR_DOMAIN_CHR_TYPE_UDP:
+    case VIR_DOMAIN_CHR_TYPE_NULL:
+    case VIR_DOMAIN_CHR_TYPE_VC:
+    case VIR_DOMAIN_CHR_TYPE_STDIO:
+    case VIR_DOMAIN_CHR_TYPE_SPICEVMC:
+    case VIR_DOMAIN_CHR_TYPE_SPICEPORT:
+    case VIR_DOMAIN_CHR_TYPE_LAST:
+        return NULL;
+    }
+
+    return NULL;
+}
+
 
 void ATTRIBUTE_NONNULL(1)
 virDomainChrSourceDefClear(virDomainChrSourceDefPtr def)
@@ -2366,15 +2423,15 @@ void virDomainVideoDefFree(virDomainVideoDefPtr def)
 
 
 virDomainHostdevDefPtr
-virDomainHostdevDefAlloc(virDomainXMLOptionPtr xmlopt)
+virDomainHostdevDefNew(virDomainXMLOptionPtr xmlopt)
 {
-    virDomainHostdevDefPtr def = NULL;
+    virDomainHostdevDefPtr def;
 
-    if (VIR_ALLOC(def) < 0 ||
-        VIR_ALLOC(def->info) < 0) {
-        VIR_FREE(def);
+    if (VIR_ALLOC(def) < 0)
         return NULL;
-    }
+
+    if (VIR_ALLOC(def->info) < 0)
+        goto error;
 
     if (xmlopt &&
         xmlopt->privateData.hostdevNew &&
@@ -2874,6 +2931,12 @@ void virDomainDefFree(virDomainDefPtr def)
     for (i = 0; def->os.initargv && def->os.initargv[i]; i++)
         VIR_FREE(def->os.initargv[i]);
     VIR_FREE(def->os.initargv);
+    for (i = 0; def->os.initenv && def->os.initenv[i]; i++)
+        VIR_FREE(def->os.initenv[i]);
+    VIR_FREE(def->os.initdir);
+    VIR_FREE(def->os.inituser);
+    VIR_FREE(def->os.initgroup);
+    VIR_FREE(def->os.initenv);
     VIR_FREE(def->os.kernel);
     VIR_FREE(def->os.initrd);
     VIR_FREE(def->os.cmdline);
@@ -2969,7 +3032,8 @@ virDomainObjNew(virDomainXMLOptionPtr xmlopt)
     }
 
     if (xmlopt->privateData.alloc) {
-        if (!(domain->privateData = (xmlopt->privateData.alloc)()))
+        domain->privateData = (xmlopt->privateData.alloc)(xmlopt->config.priv);
+        if (!domain->privateData)
             goto error;
         domain->privateDataFreeFunc = xmlopt->privateData.free;
     }
@@ -3482,77 +3546,6 @@ virDomainDeviceInfoNeedsFormat(virDomainDeviceInfoPtr info, unsigned int flags)
     return false;
 }
 
-bool
-virDomainDeviceInfoAddressIsEqual(const virDomainDeviceInfo *a,
-                                  const virDomainDeviceInfo *b)
-{
-    if (a->type != b->type)
-        return false;
-
-    switch ((virDomainDeviceAddressType) a->type) {
-    case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE:
-    case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_LAST:
-    /* address types below don't have any specific data */
-    case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_MMIO:
-    case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390:
-        break;
-
-    case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI:
-        /* the 'multi' field shouldn't be checked */
-        if (a->addr.pci.domain != b->addr.pci.domain ||
-            a->addr.pci.bus != b->addr.pci.bus ||
-            a->addr.pci.slot != b->addr.pci.slot ||
-            a->addr.pci.function != b->addr.pci.function)
-            return false;
-        break;
-
-    case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE:
-        if (memcmp(&a->addr.drive, &b->addr.drive, sizeof(a->addr.drive)))
-            return false;
-        break;
-
-    case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_SERIAL:
-        if (memcmp(&a->addr.vioserial, &b->addr.vioserial, sizeof(a->addr.vioserial)))
-            return false;
-        break;
-
-    case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCID:
-        if (memcmp(&a->addr.ccid, &b->addr.ccid, sizeof(a->addr.ccid)))
-            return false;
-        break;
-
-    case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_USB:
-        if (memcmp(&a->addr.usb, &b->addr.usb, sizeof(a->addr.usb)))
-            return false;
-        break;
-
-    case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_SPAPRVIO:
-        if (memcmp(&a->addr.spaprvio, &b->addr.spaprvio, sizeof(a->addr.spaprvio)))
-            return false;
-        break;
-
-    case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW:
-        /* the 'assigned' field denotes that the address was generated */
-        if (a->addr.ccw.cssid != b->addr.ccw.cssid ||
-            a->addr.ccw.ssid != b->addr.ccw.ssid ||
-            a->addr.ccw.devno != b->addr.ccw.devno)
-            return false;
-        break;
-
-    case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_ISA:
-        if (memcmp(&a->addr.isa, &b->addr.isa, sizeof(a->addr.isa)))
-            return false;
-        break;
-
-    case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DIMM:
-        if (memcmp(&a->addr.dimm, &b->addr.dimm, sizeof(a->addr.dimm)))
-            return false;
-        break;
-    }
-
-    return true;
-}
-
 
 static int
 virDomainDefHasDeviceAddressIterator(virDomainDefPtr def ATTRIBUTE_UNUSED,
@@ -3567,37 +3560,6 @@ virDomainDefHasDeviceAddressIterator(virDomainDefPtr def ATTRIBUTE_UNUSED,
         return -1;
 
     return 0;
-}
-
-
-int
-virDomainDeviceInfoCopy(virDomainDeviceInfoPtr dst,
-                        virDomainDeviceInfoPtr src)
-{
-    /* Assume that dst is already cleared */
-
-    /* first a shallow copy of *everything* */
-    *dst = *src;
-
-    /* then copy whatever's left */
-    dst->alias = NULL;
-    dst->romfile = NULL;
-    dst->loadparm = NULL;
-
-    if (VIR_STRDUP(dst->alias, src->alias) < 0 ||
-        VIR_STRDUP(dst->romfile, src->romfile) < 0 ||
-        VIR_STRDUP(dst->loadparm, src->loadparm) < 0)
-        return -1;
-    return 0;
-}
-
-void virDomainDeviceInfoClear(virDomainDeviceInfoPtr info)
-{
-    VIR_FREE(info->alias);
-    memset(&info->addr, 0, sizeof(info->addr));
-    info->type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE;
-    VIR_FREE(info->romfile);
-    VIR_FREE(info->loadparm);
 }
 
 
@@ -6355,78 +6317,94 @@ virDomainHostdevSubsysPCIDefParseXML(xmlNodePtr node,
     return ret;
 }
 
+
 static int
-virDomainStorageHostParse(xmlNodePtr node,
-                          virStorageNetHostDefPtr *hosts,
-                          size_t *nhosts)
+virDomainStorageNetworkParseHost(xmlNodePtr hostnode,
+                                 virStorageNetHostDefPtr *hosts,
+                                 size_t *nhosts)
 {
     int ret = -1;
-    xmlNodePtr child;
     char *transport = NULL;
+    char *port = NULL;
     virStorageNetHostDef host;
 
     memset(&host, 0, sizeof(host));
+    host.transport = VIR_STORAGE_NET_HOST_TRANS_TCP;
 
-    child = node->children;
-    while (child != NULL) {
-        if (child->type == XML_ELEMENT_NODE &&
-            xmlStrEqual(child->name, BAD_CAST "host")) {
+    /* transport can be tcp (default), unix or rdma.  */
+    if ((transport = virXMLPropString(hostnode, "transport"))) {
+        host.transport = virStorageNetHostTransportTypeFromString(transport);
+        if (host.transport < 0) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("unknown protocol transport type '%s'"),
+                           transport);
+            goto cleanup;
+        }
+    }
 
-            host.transport = VIR_STORAGE_NET_HOST_TRANS_TCP;
+    host.socket = virXMLPropString(hostnode, "socket");
 
-            /* transport can be tcp (default), unix or rdma.  */
-            if ((transport = virXMLPropString(child, "transport"))) {
-                host.transport = virStorageNetHostTransportTypeFromString(transport);
-                if (host.transport < 0) {
-                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                                   _("unknown protocol transport type '%s'"),
-                                   transport);
-                    goto cleanup;
-                }
-            }
+    if (host.transport == VIR_STORAGE_NET_HOST_TRANS_UNIX &&
+        host.socket == NULL) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("missing socket for unix transport"));
+        goto cleanup;
+    }
 
-            host.socket = virXMLPropString(child, "socket");
+    if (host.transport != VIR_STORAGE_NET_HOST_TRANS_UNIX &&
+        host.socket != NULL) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("transport '%s' does not support "
+                         "socket attribute"),
+                       transport);
+        goto cleanup;
+    }
 
-            if (host.transport == VIR_STORAGE_NET_HOST_TRANS_UNIX &&
-                host.socket == NULL) {
-                virReportError(VIR_ERR_XML_ERROR, "%s",
-                               _("missing socket for unix transport"));
-                goto cleanup;
-            }
+    if (host.transport != VIR_STORAGE_NET_HOST_TRANS_UNIX) {
+        if (!(host.name = virXMLPropString(hostnode, "name"))) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("missing name for host"));
+            goto cleanup;
+        }
 
-            if (host.transport != VIR_STORAGE_NET_HOST_TRANS_UNIX &&
-                host.socket != NULL) {
-                virReportError(VIR_ERR_XML_ERROR,
-                               _("transport '%s' does not support "
-                                 "socket attribute"),
-                               transport);
-                goto cleanup;
-            }
-
-            VIR_FREE(transport);
-
-            if (host.transport != VIR_STORAGE_NET_HOST_TRANS_UNIX) {
-                if (!(host.name = virXMLPropString(child, "name"))) {
-                    virReportError(VIR_ERR_XML_ERROR, "%s",
-                                   _("missing name for host"));
-                    goto cleanup;
-                }
-
-                host.port = virXMLPropString(child, "port");
-            }
-
-            if (VIR_APPEND_ELEMENT(*hosts, *nhosts, host) < 0)
+        if ((port = virXMLPropString(hostnode, "port"))) {
+            if (virStringParsePort(port, &host.port) < 0)
                 goto cleanup;
         }
-        child = child->next;
     }
+
+    if (VIR_APPEND_ELEMENT(*hosts, *nhosts, host) < 0)
+        goto cleanup;
+
     ret = 0;
 
  cleanup:
     virStorageNetHostDefClear(&host);
     VIR_FREE(transport);
+    VIR_FREE(port);
     return ret;
 }
+
+
+static int
+virDomainStorageNetworkParseHosts(xmlNodePtr node,
+                                  virStorageNetHostDefPtr *hosts,
+                                  size_t *nhosts)
+{
+    xmlNodePtr child;
+
+    for (child = node->children; child; child = child->next) {
+        if (child->type == XML_ELEMENT_NODE &&
+            xmlStrEqual(child->name, BAD_CAST "host")) {
+
+            if (virDomainStorageNetworkParseHost(child, hosts, nhosts) < 0)
+                return -1;
+        }
+    }
+
+    return 0;
+}
+
 
 static int
 virDomainHostdevSubsysSCSIHostDefParseXML(xmlNodePtr sourcenode,
@@ -6535,8 +6513,8 @@ virDomainHostdevSubsysSCSIiSCSIDefParseXML(xmlNodePtr sourcenode,
         goto cleanup;
     }
 
-    if (virDomainStorageHostParse(sourcenode, &iscsisrc->hosts,
-                                  &iscsisrc->nhosts) < 0)
+    if (virDomainStorageNetworkParseHosts(sourcenode, &iscsisrc->hosts,
+                                          &iscsisrc->nhosts) < 0)
         goto cleanup;
 
     if (iscsisrc->nhosts < 1) {
@@ -7805,8 +7783,11 @@ virDomainDiskSourceParse(xmlNodePtr node,
         /* config file currently only works with remote disks */
         src->configFile = virXPathString("string(./config/@file)", ctxt);
 
-        if (virDomainStorageHostParse(node, &src->hosts, &src->nhosts) < 0)
+        if (virDomainStorageNetworkParseHosts(node, &src->hosts, &src->nhosts) < 0)
             goto cleanup;
+
+        virStorageSourceNetworkAssignDefaultPorts(src);
+
         break;
     case VIR_STORAGE_TYPE_VOLUME:
         if (virDomainDiskSourcePoolDefParse(node, &src->srcpool) < 0)
@@ -9066,6 +9047,7 @@ virDomainControllerDefParseXML(xmlNodePtr node,
     char *chassis = NULL;
     char *port = NULL;
     char *busNr = NULL;
+    char *targetIndex = NULL;
     int numaNode = -1;
     char *ioeventfd = NULL;
     char *portsStr = NULL;
@@ -9138,6 +9120,7 @@ virDomainControllerDefParseXML(xmlNodePtr node,
                 chassis = virXMLPropString(cur, "chassis");
                 port = virXMLPropString(cur, "port");
                 busNr = virXMLPropString(cur, "busNr");
+                targetIndex = virXMLPropString(cur, "index");
                 processedTarget = true;
             }
         }
@@ -9260,12 +9243,6 @@ virDomainControllerDefParseXML(xmlNodePtr node,
                                  "have an address"));
                 goto error;
             }
-            if (def->idx > 0) {
-                virReportError(VIR_ERR_XML_ERROR, "%s",
-                               _("pci-root and pcie-root controllers "
-                                 "should have index 0"));
-                goto error;
-            }
             if ((rc = virDomainParseScaledValue("./pcihole64", NULL,
                                                 ctxt, &bytes, 1024,
                                                 1024ULL * ULONG_MAX, false)) < 0)
@@ -9362,8 +9339,39 @@ virDomainControllerDefParseXML(xmlNodePtr node,
                 goto error;
             }
         }
-        if (numaNode >= 0)
+        if (targetIndex) {
+            if (virStrToLong_i(targetIndex, NULL, 0,
+                               &def->opts.pciopts.targetIndex) < 0) {
+                virReportError(VIR_ERR_XML_ERROR,
+                               _("Invalid target index '%s' in PCI controller"),
+                               targetIndex);
+                goto error;
+            }
+            if (def->opts.pciopts.targetIndex < 0 ||
+                def->opts.pciopts.targetIndex > 31) {
+                virReportError(VIR_ERR_XML_ERROR,
+                               _("PCI controller target index '%s' out of "
+                                 "range - must be 0-31"),
+                               targetIndex);
+                goto error;
+            }
+            if ((def->idx == 0 && def->opts.pciopts.targetIndex != 0) ||
+                (def->idx != 0 && def->opts.pciopts.targetIndex == 0)) {
+                virReportError(VIR_ERR_XML_ERROR, "%s",
+                               _("Only the PCI controller with index 0 can "
+                                 "have target index 0, and vice versa"));
+                goto error;
+            }
+        }
+        if (numaNode >= 0) {
+            if (def->idx == 0) {
+                virReportError(VIR_ERR_XML_ERROR, "%s",
+                               _("The PCI controller with index=0 can't "
+                                 "be associated with a NUMA node"));
+                goto error;
+            }
             def->opts.pciopts.numaNode = numaNode;
+        }
         break;
 
     default:
@@ -9383,6 +9391,7 @@ virDomainControllerDefParseXML(xmlNodePtr node,
     VIR_FREE(chassis);
     VIR_FREE(port);
     VIR_FREE(busNr);
+    VIR_FREE(targetIndex);
     VIR_FREE(ioeventfd);
     VIR_FREE(portsStr);
     VIR_FREE(iothread);
@@ -13798,7 +13807,7 @@ virDomainHostdevDefParseXML(virDomainXMLOptionPtr xmlopt,
 
     ctxt->node = node;
 
-    if (!(def = virDomainHostdevDefAlloc(xmlopt)))
+    if (!(def = virDomainHostdevDefNew(xmlopt)))
         goto error;
 
     if (mode) {
@@ -14811,7 +14820,7 @@ virDomainHostdevMatchSubsysSCSIiSCSI(virDomainHostdevDefPtr first,
         &second->source.subsys.u.scsi.u.iscsi;
 
     if (STREQ(first_iscsisrc->hosts[0].name, second_iscsisrc->hosts[0].name) &&
-        STREQ(first_iscsisrc->hosts[0].port, second_iscsisrc->hosts[0].port) &&
+        first_iscsisrc->hosts[0].port == second_iscsisrc->hosts[0].port &&
         STREQ(first_iscsisrc->path, second_iscsisrc->path))
         return 1;
     return 0;
@@ -17048,6 +17057,7 @@ virDomainDefParseBootOptions(virDomainDefPtr def,
     xmlNodePtr *nodes = NULL;
     xmlNodePtr oldnode;
     char *tmp = NULL;
+    char *name = NULL;
     int ret = -1;
     size_t i;
     int n;
@@ -17064,6 +17074,9 @@ virDomainDefParseBootOptions(virDomainDefPtr def,
     if (def->os.type == VIR_DOMAIN_OSTYPE_EXE) {
         def->os.init = virXPathString("string(./os/init[1])", ctxt);
         def->os.cmdline = virXPathString("string(./os/cmdline[1])", ctxt);
+        def->os.initdir = virXPathString("string(./os/initdir[1])", ctxt);
+        def->os.inituser = virXPathString("string(./os/inituser[1])", ctxt);
+        def->os.initgroup = virXPathString("string(./os/initgroup[1])", ctxt);
 
         if ((n = virXPathNodeSet("./os/initarg", ctxt, &nodes)) < 0)
             goto error;
@@ -17082,6 +17095,37 @@ virDomainDefParseBootOptions(virDomainDefPtr def,
                 goto error;
         }
         def->os.initargv[n] = NULL;
+        VIR_FREE(nodes);
+
+        if ((n = virXPathNodeSet("./os/initenv", ctxt, &nodes)) < 0)
+            goto error;
+
+        if (VIR_ALLOC_N(def->os.initenv, n+1) < 0)
+            goto error;
+        for (i = 0; i < n; i++) {
+            if (!(name = virXMLPropString(nodes[i], "name"))) {
+                virReportError(VIR_ERR_XML_ERROR, "%s",
+                                _("No name supplied for <initenv> element"));
+                goto error;
+            }
+
+            if (!nodes[i]->children ||
+                !nodes[i]->children->content) {
+                virReportError(VIR_ERR_XML_ERROR,
+                               _("No value supplied for <initenv name='%s'> element"),
+                               name);
+                goto error;
+            }
+
+            if (VIR_ALLOC(def->os.initenv[i]) < 0)
+                goto error;
+
+            def->os.initenv[i]->name = name;
+            if (VIR_STRDUP(def->os.initenv[i]->value,
+                           (const char*) nodes[i]->children->content) < 0)
+                goto error;
+        }
+        def->os.initenv[n] = NULL;
         VIR_FREE(nodes);
     }
 
@@ -21275,7 +21319,9 @@ virDomainDiskSourceFormatNetwork(virBufferPtr buf,
         for (n = 0; n < src->nhosts; n++) {
             virBufferAddLit(buf, "<host");
             virBufferEscapeString(buf, " name='%s'", src->hosts[n].name);
-            virBufferEscapeString(buf, " port='%s'", src->hosts[n].port);
+
+            if (src->hosts[n].port)
+                virBufferAsprintf(buf, " port='%u'", src->hosts[n].port);
 
             if (src->hosts[n].transport)
                 virBufferAsprintf(buf, " transport='%s'",
@@ -21786,7 +21832,30 @@ virDomainControllerDefFormat(virBufferPtr buf,
     }
 
     if (def->type == VIR_DOMAIN_CONTROLLER_TYPE_PCI) {
-        if (def->opts.pciopts.modelName != VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_NONE) {
+        bool formatModelName = true;
+
+        if (def->opts.pciopts.modelName == VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_NONE)
+            formatModelName = false;
+
+        /* Historically, libvirt didn't support specifying a model name for
+         * pci-root controllers; starting from 3.6.0, however, pSeries guests
+         * use pci-root controllers with model name spapr-pci-host-bridge to
+         * represent all PHBs, including the default one.
+         *
+         * In order to allow migration of pSeries guests from older libvirt
+         * versions and back, we don't format the model name in the migratable
+         * XML if it's spapr-pci-host-bridge, thus making "no model name" and
+         * "spapr-pci-host-bridge model name" basically equivalent.
+         *
+         * The spapr-pci-host-bridge device is specific to pSeries.
+         */
+        if (def->model == VIR_DOMAIN_CONTROLLER_MODEL_PCI_ROOT &&
+            def->opts.pciopts.modelName == VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_SPAPR_PCI_HOST_BRIDGE &&
+            flags & VIR_DOMAIN_DEF_FORMAT_MIGRATABLE) {
+            formatModelName = false;
+        }
+
+        if (formatModelName) {
             modelName = virDomainControllerPCIModelNameTypeToString(def->opts.pciopts.modelName);
             if (!modelName) {
                 virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -21801,6 +21870,7 @@ virDomainControllerDefFormat(virBufferPtr buf,
             def->opts.pciopts.chassis != -1 ||
             def->opts.pciopts.port != -1 ||
             def->opts.pciopts.busNr != -1 ||
+            def->opts.pciopts.targetIndex != -1 ||
             def->opts.pciopts.numaNode != -1) {
             virBufferAddLit(&childBuf, "<target");
             if (def->opts.pciopts.chassisNr != -1)
@@ -21815,6 +21885,9 @@ virDomainControllerDefFormat(virBufferPtr buf,
             if (def->opts.pciopts.busNr != -1)
                 virBufferAsprintf(&childBuf, " busNr='%d'",
                                   def->opts.pciopts.busNr);
+            if (def->opts.pciopts.targetIndex != -1)
+                virBufferAsprintf(&childBuf, " index='%d'",
+                                  def->opts.pciopts.targetIndex);
             if (def->opts.pciopts.numaNode == -1) {
                 virBufferAddLit(&childBuf, "/>\n");
             } else {
@@ -22118,7 +22191,8 @@ virDomainHostdevDefFormatSubsys(virBufferPtr buf,
         if (scsisrc->protocol == VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_ISCSI) {
             virBufferAddLit(buf, "<host");
             virBufferEscapeString(buf, " name='%s'", iscsisrc->hosts[0].name);
-            virBufferEscapeString(buf, " port='%s'", iscsisrc->hosts[0].port);
+            if (iscsisrc->hosts[0].port)
+                virBufferAsprintf(buf, " port='%u'", iscsisrc->hosts[0].port);
             virBufferAddLit(buf, "/>\n");
         } else {
             virBufferAsprintf(buf, "<adapter name='%s'/>\n",
@@ -24915,6 +24989,17 @@ virDomainDefFormatInternal(virDomainDefPtr def,
     for (i = 0; def->os.initargv && def->os.initargv[i]; i++)
         virBufferEscapeString(buf, "<initarg>%s</initarg>\n",
                               def->os.initargv[i]);
+    for (i = 0; def->os.initenv && def->os.initenv[i]; i++)
+        virBufferAsprintf(buf, "<initenv name='%s'>%s</initenv>\n",
+                          def->os.initenv[i]->name, def->os.initenv[i]->value);
+    if (def->os.initdir)
+        virBufferEscapeString(buf, "<initdir>%s</initdir>\n",
+                              def->os.initdir);
+    if (def->os.inituser)
+        virBufferAsprintf(buf, "<inituser>%s</inituser>\n", def->os.inituser);
+    if (def->os.initgroup)
+        virBufferAsprintf(buf, "<initgroup>%s</initgroup>\n", def->os.initgroup);
+
     if (def->os.loader)
         virDomainLoaderDefFormat(buf, def->os.loader);
     virBufferEscapeString(buf, "<kernel>%s</kernel>\n",
@@ -26944,4 +27029,66 @@ virDomainDiskSetBlockIOTune(virDomainDiskDefPtr disk,
     VIR_STEAL_PTR(disk->blkdeviotune.group_name, tmp_group);
 
     return 0;
+}
+
+#define HOSTNAME_CHARS                                                  \
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-"
+
+static void
+virDomainMachineNameAppendValid(virBufferPtr buf,
+                                const char *name)
+{
+    bool skip_dot = false;
+
+    for (; *name; name++) {
+        if (virBufferError(buf))
+            break;
+        if (strlen(virBufferCurrentContent(buf)) >= 64)
+            break;
+
+        if (*name == '.') {
+            if (!skip_dot)
+                virBufferAddChar(buf, *name);
+            skip_dot = true;
+            continue;
+        }
+
+        skip_dot = false;
+
+        if (!strchr(HOSTNAME_CHARS, *name))
+            continue;
+
+        virBufferAddChar(buf, *name);
+    }
+}
+
+#undef HOSTNAME_CHARS
+
+char *
+virDomainGenerateMachineName(const char *drivername,
+                             int id,
+                             const char *name,
+                             bool privileged)
+{
+    char *machinename = NULL;
+    char *username = NULL;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+
+    if (privileged) {
+        virBufferAsprintf(&buf, "%s-", drivername);
+    } else {
+        if (!(username = virGetUserName(geteuid())))
+            goto cleanup;
+
+        virBufferAsprintf(&buf, "%s-%s-", username, drivername);
+    }
+
+    virBufferAsprintf(&buf, "%d-", id);
+    virDomainMachineNameAppendValid(&buf, name);
+
+    machinename = virBufferContentAndReset(&buf);
+ cleanup:
+    VIR_FREE(username);
+
+    return machinename;
 }

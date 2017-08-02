@@ -134,10 +134,6 @@ struct _virDomainDeviceDimmAddress {
 typedef struct _virDomainDeviceInfo virDomainDeviceInfo;
 typedef virDomainDeviceInfo *virDomainDeviceInfoPtr;
 struct _virDomainDeviceInfo {
-    /* If adding to this struct, ensure that
-     * virDomainDeviceInfoIsSet() is updated
-     * to consider the new fields
-     */
     char *alias;
     int type; /* virDomainDeviceAddressType */
     union {
@@ -168,8 +164,26 @@ struct _virDomainDeviceInfo {
      */
     int pciConnectFlags; /* enum virDomainPCIConnectFlags */
     char *loadparm;
+
+    /* PCI devices will only be automatically placed on a PCI bus
+     * that shares the same isolation group */
+    unsigned int isolationGroup;
+
+    /* Usually, PCI buses will take on the same isolation group
+     * as the first device that is plugged into them, but in some
+     * cases we might want to prevent that from happening by
+     * locking the isolation group */
+    bool isolationGroupLocked;
 };
 
+int virDomainDeviceInfoCopy(virDomainDeviceInfoPtr dst,
+                            virDomainDeviceInfoPtr src);
+void virDomainDeviceInfoClear(virDomainDeviceInfoPtr info);
+void virDomainDeviceInfoFree(virDomainDeviceInfoPtr info);
+
+bool virDomainDeviceInfoAddressIsEqual(const virDomainDeviceInfo *a,
+                                       const virDomainDeviceInfo *b)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
 
 int virPCIDeviceAddressIsValid(virPCIDeviceAddressPtr addr,
                                bool report);

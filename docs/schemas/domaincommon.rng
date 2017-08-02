@@ -385,6 +385,35 @@
             <text/>
           </element>
         </zeroOrMore>
+        <zeroOrMore>
+          <element name="initenv">
+            <attribute name="name">
+              <data type='string'>
+                <param name='pattern'>[a-zA-Z_]+[a-zA-Z0-9_]*</param>
+              </data>
+            </attribute>
+            <text/>
+          </element>
+        </zeroOrMore>
+        <optional>
+          <element name="initdir">
+            <ref name="absFilePath"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="inituser">
+            <choice>
+              <ref name="unsignedInt"/>
+              <ref name="genericName"/>
+            </choice>
+          </element>
+          <element name="initgroup">
+            <choice>
+              <ref name="unsignedInt"/>
+              <ref name="genericName"/>
+            </choice>
+          </element>
+        </optional>
       </interleave>
     </element>
   </define>
@@ -1775,9 +1804,11 @@
     </element>
   </define>
   <define name="driverFormat">
-    <attribute name="name">
-      <ref name="genericName"/>
-    </attribute>
+    <optional>
+      <attribute name="name">
+        <ref name="genericName"/>
+      </attribute>
+    </optional>
     <optional>
       <attribute name='type'>
         <choice>
@@ -1954,6 +1985,8 @@
               <element name="model">
                 <attribute name="name">
                   <choice>
+                    <!-- implementations of 'pci-root' -->
+                    <value>spapr-pci-host-bridge</value>
                     <!-- implementations of 'pci-bridge' -->
                     <value>pci-bridge</value>
                     <!-- implementations of 'dmi-to-pci-bridge' -->
@@ -1993,6 +2026,11 @@
                 </optional>
                 <optional>
                   <attribute name='busNr'>
+                    <ref name='uint8'/>
+                  </attribute>
+                </optional>
+                <optional>
+                  <attribute name='index'>
                     <ref name='uint8'/>
                   </attribute>
                 </optional>

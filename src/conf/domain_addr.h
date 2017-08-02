@@ -100,16 +100,22 @@ typedef struct {
      * bit is set, that function is in use by a device.
      */
     virDomainPCIAddressSlot slot[VIR_PCI_ADDRESS_SLOT_LAST + 1];
+
+    /* See virDomainDeviceInfo::isolationGroup */
+    unsigned int isolationGroup;
+
+    /* See virDomainDeviceInfo::isolationGroupLocked */
+    bool isolationGroupLocked;
 } virDomainPCIAddressBus;
 typedef virDomainPCIAddressBus *virDomainPCIAddressBusPtr;
 
 struct _virDomainPCIAddressSet {
     virDomainPCIAddressBus *buses;
     size_t nbuses;
-    virPCIDeviceAddress lastaddr;
-    virDomainPCIConnectFlags lastFlags;
     bool dryRun;          /* on a dry run, new buses are auto-added
                              and addresses aren't saved in device infos */
+    /* If true, the guest can have multiple pci-root controllers */
+    bool multipleRootsSupported;
 };
 typedef struct _virDomainPCIAddressSet virDomainPCIAddressSet;
 typedef virDomainPCIAddressSet *virDomainPCIAddressSetPtr;
@@ -120,14 +126,6 @@ char *virDomainPCIAddressAsString(virPCIDeviceAddressPtr addr)
 virDomainPCIAddressSetPtr virDomainPCIAddressSetAlloc(unsigned int nbuses);
 
 void virDomainPCIAddressSetFree(virDomainPCIAddressSetPtr addrs);
-
-bool virDomainPCIAddressFlagsCompatible(virPCIDeviceAddressPtr addr,
-                                        const char *addrStr,
-                                        virDomainPCIConnectFlags busFlags,
-                                        virDomainPCIConnectFlags devFlags,
-                                        bool reportError,
-                                        bool fromConfig)
-     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 bool virDomainPCIAddressValidate(virDomainPCIAddressSetPtr addrs,
                                  virPCIDeviceAddressPtr addr,
@@ -141,18 +139,26 @@ int virDomainPCIAddressBusSetModel(virDomainPCIAddressBusPtr bus,
                                    virDomainControllerModelPCI model)
     ATTRIBUTE_NONNULL(1);
 
+bool virDomainPCIAddressBusIsFullyReserved(virDomainPCIAddressBusPtr bus)
+    ATTRIBUTE_NONNULL(1);
+
+bool virDomainPCIAddressBusIsEmpty(virDomainPCIAddressBusPtr bus)
+    ATTRIBUTE_NONNULL(1);
+
 bool virDomainPCIAddressSlotInUse(virDomainPCIAddressSetPtr addrs,
                                   virPCIDeviceAddressPtr addr)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
-int virDomainPCIAddressSetGrow(virDomainPCIAddressSetPtr addrs,
-                               virPCIDeviceAddressPtr addr,
-                               virDomainPCIConnectFlags flags)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
-
 int virDomainPCIAddressReserveAddr(virDomainPCIAddressSetPtr addrs,
                                    virPCIDeviceAddressPtr addr,
-                                   virDomainPCIConnectFlags flags)
+                                   virDomainPCIConnectFlags flags,
+                                   unsigned int isolationGroup)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+int virDomainPCIAddressReserveNextAddr(virDomainPCIAddressSetPtr addrs,
+                                       virDomainDeviceInfoPtr dev,
+                                       virDomainPCIConnectFlags flags,
+                                       int function)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 int virDomainPCIAddressEnsureAddr(virDomainPCIAddressSetPtr addrs,
@@ -162,12 +168,6 @@ int virDomainPCIAddressEnsureAddr(virDomainPCIAddressSetPtr addrs,
 
 int virDomainPCIAddressReleaseAddr(virDomainPCIAddressSetPtr addrs,
                                    virPCIDeviceAddressPtr addr)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
-
-int virDomainPCIAddressReserveNextAddr(virDomainPCIAddressSetPtr addrs,
-                                       virDomainDeviceInfoPtr dev,
-                                       virDomainPCIConnectFlags flags,
-                                       int function)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 void virDomainPCIAddressSetAllMulti(virDomainDefPtr def)

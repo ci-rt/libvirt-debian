@@ -31,19 +31,19 @@ typedef struct qemuBlockNodeNameBackingChainData qemuBlockNodeNameBackingChainDa
 typedef qemuBlockNodeNameBackingChainData *qemuBlockNodeNameBackingChainDataPtr;
 struct qemuBlockNodeNameBackingChainData {
     char *qemufilename; /* name of the image from qemu */
-    char *backingstore;
     char *nodeformat;   /* node name of the format layer */
     char *nodestorage;  /* node name of the storage backing the format node */
 
-    char *nodebacking; /* node name of the backing file format layer */
+    qemuBlockNodeNameBackingChainDataPtr backing;
 
-    /* data necessary for detection of the node names from qemu */
-    virJSONValuePtr *elems;
-    size_t nelems;
+    /* for testing purposes */
+    char *drvformat;
+    char *drvstorage;
 };
 
 virHashTablePtr
-qemuBlockNodeNameGetBackingChain(virJSONValuePtr data);
+qemuBlockNodeNameGetBackingChain(virJSONValuePtr namednodesdata,
+                                 virJSONValuePtr blockstats);
 
 int
 qemuBlockNodeNamesDetect(virQEMUDriverPtr driver,
@@ -52,5 +52,8 @@ qemuBlockNodeNamesDetect(virQEMUDriverPtr driver,
 
 virHashTablePtr
 qemuBlockGetNodeData(virJSONValuePtr data);
+
+virJSONValuePtr
+qemuBlockStorageSourceGetBackendProps(virStorageSourcePtr src);
 
 #endif /* __QEMU_BLOCK_H__ */

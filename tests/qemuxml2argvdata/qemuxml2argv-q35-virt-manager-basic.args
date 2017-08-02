@@ -12,7 +12,9 @@ QEMU_AUDIO_DRV=spice \
 -smp 2,sockets=2,cores=1,threads=1 \
 -uuid 1b826c23-8767-47ad-a6b5-c83a88277f71 \
 -nodefaults \
--monitor unix:/tmp/lib/domain--1-virt-manager-basic/monitor.sock,server,nowait \
+-chardev socket,id=charmonitor,\
+path=/tmp/lib/domain--1-virt-manager-basic/monitor.sock,server,nowait \
+-mon chardev=charmonitor,id=monitor,mode=readline \
 -rtc base=utc,driftfix=slew \
 -no-kvm-pit-reinjection \
 -no-hpet \
@@ -35,7 +37,8 @@ id=virtio-disk0 \
 -netdev user,id=hostnet0 \
 -device virtio-net-pci,netdev=hostnet0,id=net0,mac=52:54:00:9a:e6:c6,bus=pci.1,\
 addr=0x0 \
--serial pty \
+-chardev pty,id=charserial0 \
+-device isa-serial,chardev=charserial0,id=serial0 \
 -chardev socket,id=charchannel0,\
 path=/tmp/channel/domain--1-virt-manager-basic/org.qemu.guest_agent.0,server,\
 nowait \

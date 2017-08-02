@@ -332,7 +332,8 @@ remoteConnectListAllDomains(virConnectPtr conn, virDomainPtr **result, unsigned 
 
     if (ret.domains.domains_len > REMOTE_DOMAIN_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote domains: %d > %d"),
+                       _("too many remote domains: %d > %d,"
+                         "in parameter 'domains' for 'virConnectListAllDomains'"),
                        ret.domains.domains_len, REMOTE_DOMAIN_LIST_MAX);
         goto cleanup;
     }
@@ -391,7 +392,8 @@ remoteConnectListAllInterfaces(virConnectPtr conn, virInterfacePtr **result, uns
 
     if (ret.ifaces.ifaces_len > REMOTE_INTERFACE_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote interfaces: %d > %d"),
+                       _("too many remote interfaces: %d > %d,"
+                         "in parameter 'ifaces' for 'virConnectListAllInterfaces'"),
                        ret.ifaces.ifaces_len, REMOTE_INTERFACE_LIST_MAX);
         goto cleanup;
     }
@@ -450,7 +452,8 @@ remoteConnectListAllNetworks(virConnectPtr conn, virNetworkPtr **result, unsigne
 
     if (ret.nets.nets_len > REMOTE_NETWORK_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote networks: %d > %d"),
+                       _("too many remote networks: %d > %d,"
+                         "in parameter 'nets' for 'virConnectListAllNetworks'"),
                        ret.nets.nets_len, REMOTE_NETWORK_LIST_MAX);
         goto cleanup;
     }
@@ -509,7 +512,8 @@ remoteConnectListAllNodeDevices(virConnectPtr conn, virNodeDevicePtr **result, u
 
     if (ret.devices.devices_len > REMOTE_NODE_DEVICE_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote node_devices: %d > %d"),
+                       _("too many remote node_devices: %d > %d,"
+                         "in parameter 'devices' for 'virConnectListAllNodeDevices'"),
                        ret.devices.devices_len, REMOTE_NODE_DEVICE_LIST_MAX);
         goto cleanup;
     }
@@ -568,7 +572,8 @@ remoteConnectListAllNWFilters(virConnectPtr conn, virNWFilterPtr **result, unsig
 
     if (ret.filters.filters_len > REMOTE_NWFILTER_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote nwfilters: %d > %d"),
+                       _("too many remote nwfilters: %d > %d,"
+                         "in parameter 'filters' for 'virConnectListAllNWFilters'"),
                        ret.filters.filters_len, REMOTE_NWFILTER_LIST_MAX);
         goto cleanup;
     }
@@ -627,7 +632,8 @@ remoteConnectListAllSecrets(virConnectPtr conn, virSecretPtr **result, unsigned 
 
     if (ret.secrets.secrets_len > REMOTE_SECRET_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote secrets: %d > %d"),
+                       _("too many remote secrets: %d > %d,"
+                         "in parameter 'secrets' for 'virConnectListAllSecrets'"),
                        ret.secrets.secrets_len, REMOTE_SECRET_LIST_MAX);
         goto cleanup;
     }
@@ -686,7 +692,8 @@ remoteConnectListAllStoragePools(virConnectPtr conn, virStoragePoolPtr **result,
 
     if (ret.pools.pools_len > REMOTE_STORAGE_POOL_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote storage_pools: %d > %d"),
+                       _("too many remote storage_pools: %d > %d,"
+                         "in parameter 'pools' for 'virConnectListAllStoragePools'"),
                        ret.pools.pools_len, REMOTE_STORAGE_POOL_LIST_MAX);
         goto cleanup;
     }
@@ -733,7 +740,8 @@ remoteConnectListDefinedDomains(virConnectPtr conn, char **const names, int maxn
 
     if (maxnames > REMOTE_DOMAIN_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote undefineds: %d > %d"),
+                       _("too many remote strings: %d > %d,"
+                         "in parameter 'names' for 'virConnectListDefinedDomains'"),
                        maxnames, REMOTE_DOMAIN_LIST_MAX);
         goto done;
     }
@@ -750,7 +758,8 @@ remoteConnectListDefinedDomains(virConnectPtr conn, char **const names, int maxn
 
     if (ret.names.names_len > maxnames) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote undefineds: %d > %d"),
+                       _("too many remote strings: %d > %d,"
+                         "in parameter 'names' for 'virConnectListDefinedDomains'"),
                        ret.names.names_len, maxnames);
         goto cleanup;
     }
@@ -793,7 +802,8 @@ remoteConnectListDefinedInterfaces(virConnectPtr conn, char **const names, int m
 
     if (maxnames > REMOTE_INTERFACE_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote undefineds: %d > %d"),
+                       _("too many remote strings: %d > %d,"
+                         "in parameter 'names' for 'virConnectListDefinedInterfaces'"),
                        maxnames, REMOTE_INTERFACE_LIST_MAX);
         goto done;
     }
@@ -810,7 +820,8 @@ remoteConnectListDefinedInterfaces(virConnectPtr conn, char **const names, int m
 
     if (ret.names.names_len > maxnames) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote undefineds: %d > %d"),
+                       _("too many remote strings: %d > %d,"
+                         "in parameter 'names' for 'virConnectListDefinedInterfaces'"),
                        ret.names.names_len, maxnames);
         goto cleanup;
     }
@@ -853,7 +864,8 @@ remoteConnectListDefinedNetworks(virConnectPtr conn, char **const names, int max
 
     if (maxnames > REMOTE_NETWORK_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote undefineds: %d > %d"),
+                       _("too many remote strings: %d > %d,"
+                         "in parameter 'names' for 'virConnectListDefinedNetworks'"),
                        maxnames, REMOTE_NETWORK_LIST_MAX);
         goto done;
     }
@@ -870,7 +882,8 @@ remoteConnectListDefinedNetworks(virConnectPtr conn, char **const names, int max
 
     if (ret.names.names_len > maxnames) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote undefineds: %d > %d"),
+                       _("too many remote strings: %d > %d,"
+                         "in parameter 'names' for 'virConnectListDefinedNetworks'"),
                        ret.names.names_len, maxnames);
         goto cleanup;
     }
@@ -913,7 +926,8 @@ remoteConnectListDefinedStoragePools(virConnectPtr conn, char **const names, int
 
     if (maxnames > REMOTE_STORAGE_POOL_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote undefineds: %d > %d"),
+                       _("too many remote strings: %d > %d,"
+                         "in parameter 'names' for 'virConnectListDefinedStoragePools'"),
                        maxnames, REMOTE_STORAGE_POOL_LIST_MAX);
         goto done;
     }
@@ -930,7 +944,8 @@ remoteConnectListDefinedStoragePools(virConnectPtr conn, char **const names, int
 
     if (ret.names.names_len > maxnames) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote undefineds: %d > %d"),
+                       _("too many remote strings: %d > %d,"
+                         "in parameter 'names' for 'virConnectListDefinedStoragePools'"),
                        ret.names.names_len, maxnames);
         goto cleanup;
     }
@@ -973,7 +988,8 @@ remoteConnectListInterfaces(virConnectPtr conn, char **const names, int maxnames
 
     if (maxnames > REMOTE_INTERFACE_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote undefineds: %d > %d"),
+                       _("too many remote strings: %d > %d,"
+                         "in parameter 'names' for 'virConnectListInterfaces'"),
                        maxnames, REMOTE_INTERFACE_LIST_MAX);
         goto done;
     }
@@ -990,7 +1006,8 @@ remoteConnectListInterfaces(virConnectPtr conn, char **const names, int maxnames
 
     if (ret.names.names_len > maxnames) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote undefineds: %d > %d"),
+                       _("too many remote strings: %d > %d,"
+                         "in parameter 'names' for 'virConnectListInterfaces'"),
                        ret.names.names_len, maxnames);
         goto cleanup;
     }
@@ -1033,7 +1050,8 @@ remoteConnectListNetworks(virConnectPtr conn, char **const names, int maxnames)
 
     if (maxnames > REMOTE_NETWORK_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote undefineds: %d > %d"),
+                       _("too many remote strings: %d > %d,"
+                         "in parameter 'names' for 'virConnectListNetworks'"),
                        maxnames, REMOTE_NETWORK_LIST_MAX);
         goto done;
     }
@@ -1050,7 +1068,8 @@ remoteConnectListNetworks(virConnectPtr conn, char **const names, int maxnames)
 
     if (ret.names.names_len > maxnames) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote undefineds: %d > %d"),
+                       _("too many remote strings: %d > %d,"
+                         "in parameter 'names' for 'virConnectListNetworks'"),
                        ret.names.names_len, maxnames);
         goto cleanup;
     }
@@ -1093,7 +1112,8 @@ remoteConnectListNWFilters(virConnectPtr conn, char **const names, int maxnames)
 
     if (maxnames > REMOTE_NWFILTER_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote undefineds: %d > %d"),
+                       _("too many remote strings: %d > %d,"
+                         "in parameter 'names' for 'virConnectListNWFilters'"),
                        maxnames, REMOTE_NWFILTER_LIST_MAX);
         goto done;
     }
@@ -1110,7 +1130,8 @@ remoteConnectListNWFilters(virConnectPtr conn, char **const names, int maxnames)
 
     if (ret.names.names_len > maxnames) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote undefineds: %d > %d"),
+                       _("too many remote strings: %d > %d,"
+                         "in parameter 'names' for 'virConnectListNWFilters'"),
                        ret.names.names_len, maxnames);
         goto cleanup;
     }
@@ -1153,7 +1174,8 @@ remoteConnectListSecrets(virConnectPtr conn, char **const uuids, int maxuuids)
 
     if (maxuuids > REMOTE_SECRET_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote undefineds: %d > %d"),
+                       _("too many remote strings: %d > %d,"
+                         "in parameter 'uuids' for 'virConnectListSecrets'"),
                        maxuuids, REMOTE_SECRET_LIST_MAX);
         goto done;
     }
@@ -1170,7 +1192,8 @@ remoteConnectListSecrets(virConnectPtr conn, char **const uuids, int maxuuids)
 
     if (ret.uuids.uuids_len > maxuuids) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote undefineds: %d > %d"),
+                       _("too many remote strings: %d > %d,"
+                         "in parameter 'uuids' for 'virConnectListSecrets'"),
                        ret.uuids.uuids_len, maxuuids);
         goto cleanup;
     }
@@ -1213,7 +1236,8 @@ remoteConnectListStoragePools(virConnectPtr conn, char **const names, int maxnam
 
     if (maxnames > REMOTE_STORAGE_POOL_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote undefineds: %d > %d"),
+                       _("too many remote strings: %d > %d,"
+                         "in parameter 'names' for 'virConnectListStoragePools'"),
                        maxnames, REMOTE_STORAGE_POOL_LIST_MAX);
         goto done;
     }
@@ -1230,7 +1254,8 @@ remoteConnectListStoragePools(virConnectPtr conn, char **const names, int maxnam
 
     if (ret.names.names_len > maxnames) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote undefineds: %d > %d"),
+                       _("too many remote strings: %d > %d,"
+                         "in parameter 'names' for 'virConnectListStoragePools'"),
                        ret.names.names_len, maxnames);
         goto cleanup;
     }
@@ -2962,7 +2987,8 @@ remoteDomainListAllSnapshots(virDomainPtr dom, virDomainSnapshotPtr **result, un
 
     if (ret.snapshots.snapshots_len > REMOTE_DOMAIN_SNAPSHOT_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote domain_snapshots: %d > %d"),
+                       _("too many remote domain_snapshots: %d > %d,"
+                         "in parameter 'snapshots' for 'virDomainListAllSnapshots'"),
                        ret.snapshots.snapshots_len, REMOTE_DOMAIN_SNAPSHOT_LIST_MAX);
         goto cleanup;
     }
@@ -4951,7 +4977,8 @@ remoteDomainSnapshotListAllChildren(virDomainSnapshotPtr snapshot, virDomainSnap
 
     if (ret.snapshots.snapshots_len > REMOTE_DOMAIN_SNAPSHOT_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote domain_snapshots: %d > %d"),
+                       _("too many remote domain_snapshots: %d > %d,"
+                         "in parameter 'snapshots' for 'virDomainSnapshotListAllChildren'"),
                        ret.snapshots.snapshots_len, REMOTE_DOMAIN_SNAPSHOT_LIST_MAX);
         goto cleanup;
     }
@@ -4998,7 +5025,8 @@ remoteDomainSnapshotListChildrenNames(virDomainSnapshotPtr snap, char **const na
 
     if (maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote undefineds: %d > %d"),
+                       _("too many remote strings: %d > %d,"
+                         "in parameter 'names' for 'virDomainSnapshotListChildrenNames'"),
                        maxnames, REMOTE_DOMAIN_SNAPSHOT_LIST_MAX);
         goto done;
     }
@@ -5017,7 +5045,8 @@ remoteDomainSnapshotListChildrenNames(virDomainSnapshotPtr snap, char **const na
 
     if (ret.names.names_len > maxnames) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote undefineds: %d > %d"),
+                       _("too many remote strings: %d > %d,"
+                         "in parameter 'names' for 'virDomainSnapshotListChildrenNames'"),
                        ret.names.names_len, maxnames);
         goto cleanup;
     }
@@ -5060,7 +5089,8 @@ remoteDomainSnapshotListNames(virDomainPtr dom, char **const names, int maxnames
 
     if (maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote undefineds: %d > %d"),
+                       _("too many remote strings: %d > %d,"
+                         "in parameter 'names' for 'virDomainSnapshotListNames'"),
                        maxnames, REMOTE_DOMAIN_SNAPSHOT_LIST_MAX);
         goto done;
     }
@@ -5079,7 +5109,8 @@ remoteDomainSnapshotListNames(virDomainPtr dom, char **const names, int maxnames
 
     if (ret.names.names_len > maxnames) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote undefineds: %d > %d"),
+                       _("too many remote strings: %d > %d,"
+                         "in parameter 'names' for 'virDomainSnapshotListNames'"),
                        ret.names.names_len, maxnames);
         goto cleanup;
     }
@@ -6077,7 +6108,8 @@ remoteNodeDeviceListCaps(virNodeDevicePtr dev, char **const names, int maxnames)
 
     if (maxnames > REMOTE_NODE_DEVICE_CAPS_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote undefineds: %d > %d"),
+                       _("too many remote strings: %d > %d,"
+                         "in parameter 'names' for 'virNodeDeviceListCaps'"),
                        maxnames, REMOTE_NODE_DEVICE_CAPS_LIST_MAX);
         goto done;
     }
@@ -6095,7 +6127,8 @@ remoteNodeDeviceListCaps(virNodeDevicePtr dev, char **const names, int maxnames)
 
     if (ret.names.names_len > maxnames) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote undefineds: %d > %d"),
+                       _("too many remote strings: %d > %d,"
+                         "in parameter 'names' for 'virNodeDeviceListCaps'"),
                        ret.names.names_len, maxnames);
         goto cleanup;
     }
@@ -6279,7 +6312,8 @@ remoteNodeListDevices(virConnectPtr conn, const char *cap, char **const names, i
 
     if (maxnames > REMOTE_NODE_DEVICE_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote undefineds: %d > %d"),
+                       _("too many remote strings: %d > %d,"
+                         "in parameter 'names' for 'virNodeListDevices'"),
                        maxnames, REMOTE_NODE_DEVICE_LIST_MAX);
         goto done;
     }
@@ -6298,7 +6332,8 @@ remoteNodeListDevices(virConnectPtr conn, const char *cap, char **const names, i
 
     if (ret.names.names_len > maxnames) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote undefineds: %d > %d"),
+                       _("too many remote strings: %d > %d,"
+                         "in parameter 'names' for 'virNodeListDevices'"),
                        ret.names.names_len, maxnames);
         goto cleanup;
     }
@@ -7048,7 +7083,8 @@ remoteStoragePoolListAllVolumes(virStoragePoolPtr pool, virStorageVolPtr **resul
 
     if (ret.vols.vols_len > REMOTE_STORAGE_VOL_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote storage_vols: %d > %d"),
+                       _("too many remote storage_vols: %d > %d,"
+                         "in parameter 'vols' for 'virStoragePoolListAllVolumes'"),
                        ret.vols.vols_len, REMOTE_STORAGE_VOL_LIST_MAX);
         goto cleanup;
     }
@@ -7095,7 +7131,8 @@ remoteStoragePoolListVolumes(virStoragePoolPtr pool, char **const names, int max
 
     if (maxnames > REMOTE_STORAGE_VOL_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote undefineds: %d > %d"),
+                       _("too many remote strings: %d > %d,"
+                         "in parameter 'names' for 'virStoragePoolListVolumes'"),
                        maxnames, REMOTE_STORAGE_VOL_LIST_MAX);
         goto done;
     }
@@ -7113,7 +7150,8 @@ remoteStoragePoolListVolumes(virStoragePoolPtr pool, char **const names, int max
 
     if (ret.names.names_len > maxnames) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote undefineds: %d > %d"),
+                       _("too many remote strings: %d > %d,"
+                         "in parameter 'names' for 'virStoragePoolListVolumes'"),
                        ret.names.names_len, maxnames);
         goto cleanup;
     }

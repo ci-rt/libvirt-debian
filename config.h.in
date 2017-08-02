@@ -2643,9 +2643,6 @@
 /* whether libdevmapper is available */
 #undef WITH_DEVMAPPER
 
-/* whether to build drivers as modules */
-#undef WITH_DRIVER_MODULES
-
 /* whether DTrace static probes are available */
 #undef WITH_DTRACE_PROBES
 

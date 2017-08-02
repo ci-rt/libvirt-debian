@@ -31,6 +31,7 @@
 #include "virutil.h"
 #include "virfile.h"
 #include "virtime.h"
+#include "virsystemd.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 #define LXC_NAMESPACE_HREF "http://libvirt.org/schemas/domain/lxc/1.0"
@@ -150,7 +151,7 @@ virLXCDomainObjEndJob(virLXCDriverPtr driver ATTRIBUTE_UNUSED,
 
 
 static void *
-virLXCDomainObjPrivateAlloc(void)
+virLXCDomainObjPrivateAlloc(void *opaque ATTRIBUTE_UNUSED)
 {
     virLXCDomainObjPrivatePtr priv;
 
@@ -397,3 +398,21 @@ virDomainDefParserConfig virLXCDriverDomainDefParserConfig = {
     .domainPostParseCallback = virLXCDomainDefPostParse,
     .devicesPostParseCallback = virLXCDomainDeviceDefPostParse,
 };
+
+
+char *
+virLXCDomainGetMachineName(virDomainDefPtr def, pid_t pid)
+{
+    char *ret = NULL;
+
+    if (pid) {
+        ret = virSystemdGetMachineNameByPID(pid);
+        if (!ret)
+            virResetLastError();
+    }
+
+    if (!ret)
+        ret = virDomainGenerateMachineName("lxc", def->id, def->name, true);
+
+    return ret;
+}

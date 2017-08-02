@@ -245,6 +245,13 @@ static virCommandPtr lxcContainerBuildInitCmd(virDomainDefPtr vmDef,
     virCommandAddEnvPair(cmd, "LIBVIRT_LXC_NAME", vmDef->name);
     if (vmDef->os.cmdline)
         virCommandAddEnvPair(cmd, "LIBVIRT_LXC_CMDLINE", vmDef->os.cmdline);
+    if (vmDef->os.initdir)
+        virCommandSetWorkingDirectory(cmd, vmDef->os.initdir);
+
+    for (i = 0; vmDef->os.initenv[i]; i++) {
+        virCommandAddEnvPair(cmd, vmDef->os.initenv[i]->name,
+                                  vmDef->os.initenv[i]->value);
+    }
 
     virBufferFreeAndReset(&buf);
     return cmd;
@@ -2103,6 +2110,55 @@ static int lxcAttachNS(int *ns_fd)
     return 0;
 }
 
+/**
+ * lxcContainerSetUserGroup:
+ * @cmd: command to update
+ * @vmDef: domain definition for the container
+ * @ttyPath: guest path to the tty
+ *
+ * Set the command UID and GID. As this function attempts at
+ * converting the user/group name into uid/gid, it needs to
+ * be called after the pivot root is done.
+ *
+ * The owner of the tty is also changed to the given user.
+ */
+static int lxcContainerSetUserGroup(virCommandPtr cmd,
+                                    virDomainDefPtr vmDef,
+                                    const char *ttyPath)
+{
+    uid_t uid;
+    gid_t gid;
+
+    if (vmDef->os.inituser) {
+        if (virGetUserID(vmDef->os.inituser, &uid) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, _("User %s doesn't exist"),
+                           vmDef->os.inituser);
+            return -1;
+        }
+        virCommandSetUID(cmd, uid);
+
+        /* Change the newly created tty owner to the inituid for
+         * shells to have job control. */
+        if (chown(ttyPath, uid, -1) < 0) {
+            virReportSystemError(errno,
+                                 _("Failed to change ownership of tty %s"),
+                                 ttyPath);
+            return -1;
+        }
+    }
+
+    if (vmDef->os.initgroup) {
+        if (virGetGroupID(vmDef->os.initgroup, &gid) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, _("Group %s doesn't exist"),
+                           vmDef->os.initgroup);
+            return -1;
+        }
+        virCommandSetGID(cmd, gid);
+    }
+
+    return 0;
+}
+
 
 /**
  * lxcContainerChild:
@@ -2200,6 +2256,9 @@ static int lxcContainerChild(void *data)
                     vmDef->os.init);
         goto cleanup;
     }
+
+    if (lxcContainerSetUserGroup(cmd, vmDef, argv->ttyPaths[0]) < 0)
+        goto cleanup;
 
     /* rename and enable interfaces */
     if (lxcContainerRenameAndEnableInterfaces(vmDef,

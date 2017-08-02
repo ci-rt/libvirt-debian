@@ -217,6 +217,8 @@ struct _qemuDomainSecretInfo {
 typedef struct _qemuDomainObjPrivate qemuDomainObjPrivate;
 typedef qemuDomainObjPrivate *qemuDomainObjPrivatePtr;
 struct _qemuDomainObjPrivate {
+    virQEMUDriverPtr driver;
+
     struct qemuDomainJobObj job;
 
     virBitmapPtr namespaces;
@@ -359,6 +361,7 @@ struct _qemuDomainVcpuPrivate {
     int socket_id;
     int core_id;
     int thread_id;
+    int node_id;
     int vcpus;
 };
 
@@ -930,5 +933,8 @@ int
 qemuDomainUpdateCPU(virDomainObjPtr vm,
                     virCPUDefPtr cpu,
                     virCPUDefPtr *origCPU);
+
+char *
+qemuDomainGetMachineName(virDomainObjPtr vm);
 
 #endif /* __QEMU_DOMAIN_H__ */

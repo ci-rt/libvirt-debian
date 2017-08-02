@@ -1,6 +1,65 @@
 libvirt releases
 ================
 
+# v3.6.0 (2017-08-02)
+
+  * New features
+
+    - hyperv: Implement virDomainSetMemory and virDomainSendKey APIs
+
+    - qemu: Support multiple PHBs for pSeries guests
+        pSeries guests can now have multiple PHBs (PCI Host Bridges), which
+        show up as separate PCI domains in the guest. To create additional
+        PHBs, simply add PCI controllers with model pci-root to the guest
+        configuration.
+
+    - qemu: Isolate hostdevs on pSeries guests
+        To enable better error reporting and recovery, unrelated hostdevs will
+        now be automatically isolated on pSeries guests by placing them on
+        separate PHBs (PCI Host Bridges).
+
+  * Improvements
+
+    - qemu: platform serial devices can now use chardev features
+        QEMU VMs that depend on platform serial devices can now use QEMU's
+        -chardev option, which enables access to advanced features like log
+        file configuration. This applies to the default serial devices for arm,
+        aarch64, and some ppc configurations.
+
+    - Require use of GCC 4.4 or Clang compilers
+        We only ever test libvirt with GCC or Clang (which provides a GCC
+        compatible compilation environment). Between them, these compilers
+        cover every supported operating system platform, including Windows.
+
+    - qemu: shared disks with directsync cache should be safe for migration
+        At present shared disks can be migrated with either readonly or
+        cache=none. But cache=directsync should be safe for migration, because
+        both cache=directsync and cache=none don't use the host page cache, and
+        cache=direct write through qemu block layer cache.
+
+    - Handle hotplug change on VLAN configuration using OVS
+        Libvirt was taught to handle VLAN change for running OVS interface.
+
+  * Bug fixes
+
+    - qemu: Use vCPU 'node-id' property and pass it back to qemu
+        vCPU properties gathered from query-hotpluggable-cpus need to be passed
+        back to QEMU. As QEMU did not use the node-id property until now and
+        libvirt forgot to pass it back properly (it was parsed but not passed
+        around) we did not honor this.
+
+    - Miscellaneous stream fixes
+        After introducing sparse stream features there were still some known
+        bugs left. Those are fixed in this release.
+
+    - qemu: Miscellaneous domain NS fixes
+        Libvirt starts qemu domains in separate Linux namespaces for a while
+        now. However, there were still some bugs lingering. For instance
+        libvirt did not know how to handle file based bind mounts.
+
+    - Various CPU driver improvements
+        There were some minor bugs when using 'host-model' CPU.
+
 # v3.5.0 (2017-07-04)
 
   * New features

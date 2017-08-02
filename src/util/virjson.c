@@ -905,6 +905,16 @@ virJSONValueObjectGetValue(virJSONValuePtr object,
 
 
 bool
+virJSONValueIsObject(virJSONValuePtr object)
+{
+    if (object)
+        return object->type == VIR_JSON_TYPE_OBJECT;
+    else
+        return false;
+}
+
+
+bool
 virJSONValueIsArray(virJSONValuePtr array)
 {
     return array->type == VIR_JSON_TYPE_ARRAY;
@@ -1953,5 +1963,110 @@ virJSONStringReformat(const char *jsonstr,
     ret = virJSONValueToString(json, pretty);
 
     virJSONValueFree(json);
+    return ret;
+}
+
+
+static int
+virJSONValueObjectDeflattenWorker(const char *key,
+                                  virJSONValuePtr value,
+                                  void *opaque)
+{
+    virJSONValuePtr retobj = opaque;
+    virJSONValuePtr newval = NULL;
+    virJSONValuePtr existobj;
+    char **tokens = NULL;
+    size_t ntokens = 0;
+    int ret = -1;
+
+    /* non-nested keys only need to be copied */
+    if (!strchr(key, '.')) {
+
+        if (virJSONValueIsObject(value))
+            newval = virJSONValueObjectDeflatten(value);
+        else
+            newval = virJSONValueCopy(value);
+
+        if (!newval)
+            return -1;
+
+        if (virJSONValueObjectHasKey(retobj, key)) {
+            virReportError(VIR_ERR_INVALID_ARG,
+                           _("can't deflatten colliding key '%s'"), key);
+            goto cleanup;
+        }
+
+        if (virJSONValueObjectAppend(retobj, key, newval) < 0)
+            goto cleanup;
+
+        return 0;
+    }
+
+    if (!(tokens = virStringSplitCount(key, ".", 2, &ntokens)))
+        goto cleanup;
+
+    if (ntokens != 2) {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("invalid nested value key '%s'"), key);
+        goto cleanup;
+    }
+
+    if (!(existobj = virJSONValueObjectGet(retobj, tokens[0]))) {
+        if (!(existobj = virJSONValueNewObject()))
+            goto cleanup;
+
+        if (virJSONValueObjectAppend(retobj, tokens[0], existobj) < 0)
+            goto cleanup;
+
+    } else {
+        if (!virJSONValueIsObject(existobj)) {
+            virReportError(VIR_ERR_INVALID_ARG, "%s",
+                           _("mixing nested objects and values is forbidden in "
+                             "JSON deflattening"));
+            goto cleanup;
+        }
+    }
+
+    ret = virJSONValueObjectDeflattenWorker(tokens[1], value, existobj);
+
+ cleanup:
+    virStringListFreeCount(tokens, ntokens);
+    virJSONValueFree(newval);
+
+    return ret;
+}
+
+
+/**
+ * virJSONValueObjectDeflatten:
+ *
+ * In some cases it's possible to nest JSON objects by prefixing object members
+ * with the parent object name followed by the dot and then the attribute name
+ * rather than directly using a nested value object (e.g qemu's JSON
+ * pseudo-protocol in backing file definition).
+ *
+ * This function will attempt to reverse the process and provide a nested json
+ * hierarchy so that the parsers can be kept simple and we still can use the
+ * weird syntax some users might use.
+ */
+virJSONValuePtr
+virJSONValueObjectDeflatten(virJSONValuePtr json)
+{
+    virJSONValuePtr deflattened;
+    virJSONValuePtr ret = NULL;
+
+    if (!(deflattened = virJSONValueNewObject()))
+        return NULL;
+
+    if (virJSONValueObjectForeachKeyValue(json,
+                                          virJSONValueObjectDeflattenWorker,
+                                          deflattened) < 0)
+        goto cleanup;
+
+    VIR_STEAL_PTR(ret, deflattened);
+
+ cleanup:
+    virJSONValueFree(deflattened);
+
     return ret;
 }

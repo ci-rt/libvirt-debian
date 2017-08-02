@@ -328,23 +328,6 @@ struct _virNodeDeviceDef {
     virNodeDevCapsDefPtr caps;		/* optional device capabilities */
 };
 
-
-typedef struct _virNodeDeviceObj virNodeDeviceObj;
-typedef virNodeDeviceObj *virNodeDeviceObjPtr;
-struct _virNodeDeviceObj {
-    virMutex lock;
-
-    virNodeDeviceDefPtr def;		/* device definition */
-
-};
-
-typedef struct _virNodeDeviceObjList virNodeDeviceObjList;
-typedef virNodeDeviceObjList *virNodeDeviceObjListPtr;
-struct _virNodeDeviceObjList {
-    size_t count;
-    virNodeDeviceObjPtr *objs;
-};
-
 char *
 virNodeDeviceDefFormat(const virNodeDeviceDef *def);
 
@@ -401,11 +384,13 @@ virNodeDeviceGetParentName(virConnectPtr conn,
                            const char *nodedev_name);
 
 char *
-virNodeDeviceCreateVport(virConnectPtr conn,
-                         virStorageAdapterFCHostPtr fchost);
+virNodeDeviceCreateVport(virStorageAdapterFCHostPtr fchost);
 
 int
 virNodeDeviceDeleteVport(virConnectPtr conn,
                          virStorageAdapterFCHostPtr fchost);
+
+int
+virNodeDeviceGetSCSIHostCaps(virNodeDevCapSCSIHostPtr scsi_host);
 
 #endif /* __VIR_NODE_DEVICE_CONF_H__ */

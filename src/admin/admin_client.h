@@ -77,7 +77,8 @@ remoteAdminConnectListServers(virAdmConnectPtr conn, virAdmServerPtr **result, u
 
     if (ret.servers.servers_len > ADMIN_SERVER_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote servers: %d > %d"),
+                       _("too many remote servers: %d > %d,"
+                         "in parameter 'servers' for 'virConnectListServers'"),
                        ret.servers.servers_len, ADMIN_SERVER_LIST_MAX);
         goto cleanup;
     }
@@ -216,7 +217,8 @@ remoteAdminServerListClients(virAdmServerPtr srv, virAdmClientPtr **result, unsi
 
     if (ret.clients.clients_len > ADMIN_CLIENT_LIST_MAX) {
         virReportError(VIR_ERR_RPC,
-                       _("too many remote clients: %d > %d"),
+                       _("too many remote clients: %d > %d,"
+                         "in parameter 'clients' for 'virServerListClients'"),
                        ret.clients.clients_len, ADMIN_CLIENT_LIST_MAX);
         goto cleanup;
     }

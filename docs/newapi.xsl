@@ -307,16 +307,21 @@
           <tr>
             <td><a name="{@name}"><xsl:value-of select="@name"/></a></td>
             <td><xsl:text> = </xsl:text></td>
-            <td><xsl:value-of select="@value"/></td>
-            <xsl:if test="@info != ''">
-              <td>
-                <div class="comment">
-                  <xsl:call-template name="dumptext">
-                    <xsl:with-param name="text" select="@info"/>
-                  </xsl:call-template>
-                </div>
-              </td>
-            </xsl:if>
+            <xsl:choose>
+              <xsl:when test="@info != ''">
+                <td><xsl:value-of select="@value"/></td>
+                <td>
+                  <div class="comment">
+                    <xsl:call-template name="dumptext">
+                      <xsl:with-param name="text" select="@info"/>
+                    </xsl:call-template>
+                  </div>
+                </td>
+              </xsl:when>
+              <xsl:otherwise>
+                <td colspan="2"><xsl:value-of select="@value"/></td>
+              </xsl:otherwise>
+            </xsl:choose>
           </tr>
         </xsl:for-each>
       </table>
@@ -813,6 +818,7 @@
       doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
       <xsl:apply-templates select="exsl:node-set($mainpage)" mode="page">
         <xsl:with-param name="pagename" select="concat($htmldir, '/index.html')"/>
+        <xsl:with-param name="timestamp" select="$timestamp"/>
       </xsl:apply-templates>
     </xsl:document>
 
@@ -829,6 +835,7 @@
         doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
         <xsl:apply-templates select="exsl:node-set($subpage)" mode="page">
           <xsl:with-param name="pagename" select="concat($htmldir, '/libvirt-', @name, '.html')"/>
+          <xsl:with-param name="timestamp" select="$timestamp"/>
         </xsl:apply-templates>
       </xsl:document>
     </xsl:for-each>
