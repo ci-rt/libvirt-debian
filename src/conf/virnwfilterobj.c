@@ -190,6 +190,29 @@ virNWFilterObjListFindByName(virNWFilterObjListPtr nwfilters,
 }
 
 
+virNWFilterObjPtr
+virNWFilterObjListFindInstantiateFilter(virNWFilterObjListPtr nwfilters,
+                                        const char *filtername)
+{
+    virNWFilterObjPtr obj;
+
+    if (!(obj = virNWFilterObjListFindByName(nwfilters, filtername))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("referenced filter '%s' is missing"), filtername);
+        return NULL;
+    }
+
+    if (virNWFilterObjWantRemoved(obj)) {
+        virReportError(VIR_ERR_NO_NWFILTER,
+                       _("Filter '%s' is in use."), filtername);
+        virNWFilterObjUnlock(obj);
+        return NULL;
+    }
+
+    return obj;
+}
+
+
 static int
 _virNWFilterObjListDefLoopDetect(virNWFilterObjListPtr nwfilters,
                                  virNWFilterDefPtr def,
@@ -253,7 +276,7 @@ virNWFilterObjTestUnassignDef(virNWFilterObjPtr obj)
 
     obj->wantRemoved = true;
     /* trigger the update on VMs referencing the filter */
-    if (virNWFilterTriggerVMFilterRebuild())
+    if (virNWFilterTriggerVMFilterRebuild() < 0)
         rc = -1;
 
     obj->wantRemoved = false;
@@ -345,7 +368,7 @@ virNWFilterObjListAssignDef(virNWFilterObjListPtr nwfilters,
 
         obj->newDef = def;
         /* trigger the update on VMs referencing the filter */
-        if (virNWFilterTriggerVMFilterRebuild()) {
+        if (virNWFilterTriggerVMFilterRebuild() < 0) {
             obj->newDef = NULL;
             virNWFilterObjUnlock(obj);
             return NULL;
@@ -501,12 +524,12 @@ virNWFilterObjListLoadConfig(virNWFilterObjListPtr nwfilters,
         goto error;
     }
 
-    if (!(obj = virNWFilterObjListAssignDef(nwfilters, def)))
-        goto error;
-
     /* We generated a UUID, make it permanent by saving the config to disk */
     if (!def->uuid_specified &&
         virNWFilterSaveConfig(configDir, def) < 0)
+        goto error;
+
+    if (!(obj = virNWFilterObjListAssignDef(nwfilters, def)))
         goto error;
 
     VIR_FREE(configFile);

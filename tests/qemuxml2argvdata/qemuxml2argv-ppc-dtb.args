@@ -13,12 +13,15 @@ QEMU_AUDIO_DRV=none \
 -uuid 49545eb3-75e1-2d0a-acdd-f0294406c99e \
 -nographic \
 -nodefaults \
--monitor unix:/tmp/lib/domain--1-QEMUGuest1/monitor.sock,server,nowait \
+-chardev socket,id=charmonitor,path=/tmp/lib/domain--1-QEMUGuest1/monitor.sock,\
+server,nowait \
+-mon chardev=charmonitor,id=monitor,mode=readline \
 -boot c \
 -kernel /media/ram/uImage \
 -initrd /media/ram/ramdisk \
 -append 'root=/dev/ram rw console=ttyS0,115200' \
 -dtb /media/ram/test.dtb \
 -usb \
--serial pty \
+-chardev pty,id=charserial0 \
+-serial chardev:charserial0 \
 -device virtio-balloon-pci,id=balloon0,bus=pci.0,addr=0x2

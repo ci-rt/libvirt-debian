@@ -8112,6 +8112,11 @@
           <ref name='virDomainGetTime'/>
           <ref name='virDomainSetTime'/>
           <ref name='virDomainSetUserPassword'/>
+          <ref name='virStreamSinkFunc'/>
+          <ref name='virStreamSinkHoleFunc'/>
+          <ref name='virStreamSourceFunc'/>
+          <ref name='virStreamSourceHoleFunc'/>
+          <ref name='virStreamSourceSkipFunc'/>
         </word>
         <word name='Pointer'>
           <ref name='virConnectGetAllDomainStats'/>
@@ -10145,6 +10150,13 @@
           <ref name='virDomainListGetStats'/>
           <ref name='virDomainSnapshotCreateXML'/>
         </word>
+        <word name='accurate'>
+          <ref name='virStreamSinkFunc'/>
+          <ref name='virStreamSinkHoleFunc'/>
+          <ref name='virStreamSourceFunc'/>
+          <ref name='virStreamSourceHoleFunc'/>
+          <ref name='virStreamSourceSkipFunc'/>
+        </word>
         <word name='acknowledge'>
           <ref name='virDomainRevertToSnapshot'/>
         </word>
@@ -10680,6 +10692,11 @@
           <ref name='virDomainSetMetadata'/>
           <ref name='virNetworkUpdate'/>
           <ref name='virNodeDeviceReAttach'/>
+          <ref name='virStreamSinkFunc'/>
+          <ref name='virStreamSinkHoleFunc'/>
+          <ref name='virStreamSourceFunc'/>
+          <ref name='virStreamSourceHoleFunc'/>
+          <ref name='virStreamSourceSkipFunc'/>
         </word>
         <word name='approximate'>
           <ref name='_virDomainBlockJobInfo'/>
@@ -13854,6 +13871,11 @@
         </word>
         <word name='errno'>
           <ref name='virSaveLastError'/>
+          <ref name='virStreamSinkFunc'/>
+          <ref name='virStreamSinkHoleFunc'/>
+          <ref name='virStreamSourceFunc'/>
+          <ref name='virStreamSourceHoleFunc'/>
+          <ref name='virStreamSourceSkipFunc'/>
         </word>
         <word name='errors'>
           <ref name='virConnCopyLastError'/>
@@ -17746,6 +17768,11 @@
           <ref name='virDomainSetUserPassword'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virStorageVolWipePattern'/>
+          <ref name='virStreamSinkFunc'/>
+          <ref name='virStreamSinkHoleFunc'/>
+          <ref name='virStreamSourceFunc'/>
+          <ref name='virStreamSourceHoleFunc'/>
+          <ref name='virStreamSourceSkipFunc'/>
         </word>
         <word name='notes'>
           <ref name='virConnectOpenAuth'/>
@@ -19943,6 +19970,11 @@
         <word name='reporting'>
           <ref name='virDefaultErrorFunc'/>
           <ref name='virInitialize'/>
+          <ref name='virStreamSinkFunc'/>
+          <ref name='virStreamSinkHoleFunc'/>
+          <ref name='virStreamSourceFunc'/>
+          <ref name='virStreamSourceHoleFunc'/>
+          <ref name='virStreamSourceSkipFunc'/>
         </word>
         <word name='reports'>
           <ref name='virDomainGetBlockJobInfo'/>

@@ -211,6 +211,90 @@ getAdapterName(virStorageAdapterPtr adapter)
 }
 
 
+/**
+ * @name: Name from a wwnn/wwpn lookup
+ *
+ * Validate that the @name fetched from the wwnn/wwpn is a vHBA
+ * and not an HBA as that should be a configuration error. It's only
+ * possible to use an existing wwnn/wwpn of a vHBA because that's
+ * what someone would have created using the node device create via XML
+ * functionality. Using the HBA "just because" it has a wwnn/wwpn and
+ * the characteristics of a vHBA is just not valid
+ *
+ * Returns true if the @name is OK, false on error
+ */
+static bool
+checkName(const char *name)
+{
+    unsigned int host_num;
+
+    if (virSCSIHostGetNumber(name, &host_num) &&
+        virVHBAIsVportCapable(NULL, host_num))
+        return true;
+
+    virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                   _("the wwnn/wwpn for '%s' are assigned to an HBA"), name);
+    return false;
+}
+
+
+/*
+ * Using the host# name found via wwnn/wwpn lookup in the fc_host
+ * sysfs tree to get the parent 'scsi_host#' to ensure it matches.
+ */
+static bool
+checkParent(virConnectPtr conn,
+            const char *name,
+            const char *parent_name)
+{
+    unsigned int host_num;
+    char *scsi_host_name = NULL;
+    char *vhba_parent = NULL;
+    bool retval = false;
+
+    VIR_DEBUG("conn=%p, name=%s, parent_name=%s", conn, name, parent_name);
+
+    /* autostarted pool - assume we're OK */
+    if (!conn)
+        return true;
+
+    if (virSCSIHostGetNumber(parent_name, &host_num) < 0) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("parent '%s' is not properly formatted"),
+                       parent_name);
+        goto cleanup;
+    }
+
+    if (!virVHBAPathExists(NULL, host_num)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("parent '%s' is not an fc_host for the wwnn/wwpn"),
+                       parent_name);
+        goto cleanup;
+    }
+
+    if (virAsprintf(&scsi_host_name, "scsi_%s", name) < 0)
+        goto cleanup;
+
+    if (!(vhba_parent = virNodeDeviceGetParentName(conn, scsi_host_name)))
+        goto cleanup;
+
+    if (STRNEQ(parent_name, vhba_parent)) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Parent attribute '%s' does not match parent '%s' "
+                         "determined for the '%s' wwnn/wwpn lookup."),
+                       parent_name, vhba_parent, name);
+        goto cleanup;
+    }
+
+    retval = true;
+
+ cleanup:
+    VIR_FREE(vhba_parent);
+    VIR_FREE(scsi_host_name);
+    return retval;
+}
+
+
 static int
 createVport(virConnectPtr conn,
             virStoragePoolDefPtr def,
@@ -226,6 +310,21 @@ createVport(virConnectPtr conn,
               conn, NULLSTR(configFile), NULLSTR(fchost->parent),
               fchost->wwnn, fchost->wwpn);
 
+    /* If we find an existing HBA/vHBA within the fc_host sysfs
+     * using the wwnn/wwpn, then a nodedev is already created for
+     * this pool and we don't have to create the vHBA
+     */
+    if ((name = virVHBAGetHostByWWN(NULL, fchost->wwnn, fchost->wwpn))) {
+        if (!(checkName(name)))
+            goto cleanup;
+
+        /* If a parent was provided, let's make sure the 'name' we've
+         * retrieved has the same parent. If not this will cause failure. */
+        if (!fchost->parent || checkParent(conn, name, fchost->parent))
+            ret = 0;
+
+        goto cleanup;
+    }
 
     /* Since we're creating the vHBA, then we need to manage removing it
      * as well. Since we need this setting to "live" through a libvirtd
@@ -240,7 +339,7 @@ createVport(virConnectPtr conn,
         }
     }
 
-    if (!(name = virNodeDeviceCreateVport(conn, fchost)))
+    if (!(name = virNodeDeviceCreateVport(fchost)))
         goto cleanup;
 
     /* Creating our own VPORT didn't leave enough time to find any LUN's,

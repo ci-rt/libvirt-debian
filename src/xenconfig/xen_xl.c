@@ -733,7 +733,7 @@ xenParseXLUSB(virConfPtr conf, virDomainDefPtr def)
                 goto skipusb;
             if (virStrToLong_i(device, NULL, 16, &devNum) < 0)
                 goto skipusb;
-            if (!(hostdev = virDomainHostdevDefAlloc(NULL)))
+            if (!(hostdev = virDomainHostdevDefNew(NULL)))
                return -1;
 
             hostdev->managed = false;
@@ -1057,7 +1057,7 @@ xenFormatXLDiskSrcNet(virStorageSourcePtr src)
                     virBufferAsprintf(&buf, "%s", src->hosts[i].name);
 
                 if (src->hosts[i].port)
-                    virBufferAsprintf(&buf, "\\\\:%s", src->hosts[i].port);
+                    virBufferAsprintf(&buf, "\\\\:%u", src->hosts[i].port);
             }
         }
 

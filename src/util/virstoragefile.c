@@ -1689,7 +1689,6 @@ virStorageNetHostDefClear(virStorageNetHostDefPtr def)
         return;
 
     VIR_FREE(def->name);
-    VIR_FREE(def->port);
     VIR_FREE(def->socket);
 }
 
@@ -1736,11 +1735,9 @@ virStorageNetHostDefCopy(size_t nhosts,
         virStorageNetHostDefPtr dst = &ret[i];
 
         dst->transport = src->transport;
+        dst->port = src->port;
 
         if (VIR_STRDUP(dst->name, src->name) < 0)
-            goto error;
-
-        if (VIR_STRDUP(dst->port, src->port) < 0)
             goto error;
 
         if (VIR_STRDUP(dst->socket, src->socket) < 0)
@@ -2053,7 +2050,7 @@ virStorageSourceCopy(const virStorageSource *src,
         VIR_STRDUP(ret->snapshot, src->snapshot) < 0 ||
         VIR_STRDUP(ret->configFile, src->configFile) < 0 ||
         VIR_STRDUP(ret->nodeformat, src->nodeformat) < 0 ||
-        VIR_STRDUP(ret->nodebacking, src->nodebacking) < 0 ||
+        VIR_STRDUP(ret->nodestorage, src->nodestorage) < 0 ||
         VIR_STRDUP(ret->compat, src->compat) < 0)
         goto error;
 
@@ -2274,7 +2271,7 @@ virStorageSourceClear(virStorageSourcePtr def)
     virStorageNetHostDefFree(def->nhosts, def->hosts);
     virStorageAuthDefFree(def->auth);
 
-    VIR_FREE(def->nodebacking);
+    VIR_FREE(def->nodestorage);
     VIR_FREE(def->nodeformat);
 
     virStorageSourceBackingStoreClear(def);
@@ -2430,10 +2427,7 @@ virStorageSourceParseBackingURI(virStorageSourcePtr src,
         tmp[0] = '\0';
     }
 
-    if (uri->port > 0) {
-        if (virAsprintf(&src->hosts->port, "%d", uri->port) < 0)
-            goto cleanup;
-    }
+    src->hosts->port = uri->port;
 
     if (VIR_STRDUP(src->hosts->name, uri->server) < 0)
         goto cleanup;
@@ -2470,7 +2464,7 @@ virStorageSourceRBDAddHost(virStorageSourcePtr src,
     if (port) {
         *port = '\0';
         port += skip;
-        if (VIR_STRDUP(src->hosts[src->nhosts - 1].port, port) < 0)
+        if (virStringParsePort(port, &src->hosts[src->nhosts - 1].port) < 0)
             goto error;
     }
 
@@ -2488,7 +2482,6 @@ virStorageSourceRBDAddHost(virStorageSourcePtr src,
     return 0;
 
  error:
-    VIR_FREE(src->hosts[src->nhosts-1].port);
     VIR_FREE(src->hosts[src->nhosts-1].name);
     return -1;
 }
@@ -2649,7 +2642,7 @@ virStorageSourceParseNBDColonString(const char *nbdstr,
             goto cleanup;
         }
 
-        if (VIR_STRDUP(src->hosts->port, backing[2]) < 0)
+        if (virStringParsePort(backing[2], &src->hosts->port) < 0)
             goto cleanup;
     }
 
@@ -2825,7 +2818,7 @@ virStorageSourceParseBackingJSONInetSocketAddress(virStorageNetHostDefPtr host,
     host->transport = VIR_STORAGE_NET_HOST_TRANS_TCP;
 
     if (VIR_STRDUP(host->name, hostname) < 0 ||
-        VIR_STRDUP(host->port, port) < 0)
+        virStringParsePort(port, &host->port) < 0)
         return -1;
 
     return 0;
@@ -2985,11 +2978,8 @@ virStorageSourceParseBackingJSONiSCSI(virStorageSourcePtr src,
         goto cleanup;
 
     if ((port = strchr(src->hosts->name, ':'))) {
-        if (VIR_STRDUP(src->hosts->port, port + 1) < 0)
+        if (virStringParsePort(port + 1, &src->hosts->port) < 0)
             goto cleanup;
-
-        if (strlen(src->hosts->port) == 0)
-            VIR_FREE(src->hosts->port);
 
         *port = '\0';
     }
@@ -3050,7 +3040,7 @@ virStorageSourceParseBackingJSONNbd(virStorageSourcePtr src,
             if (VIR_STRDUP(src->hosts[0].name, host) < 0)
                 return -1;
 
-            if (VIR_STRDUP(src->hosts[0].port, port) < 0)
+            if (virStringParsePort(port, &src->hosts[0].port) < 0)
                 return -1;
         }
     }
@@ -3136,8 +3126,9 @@ virStorageSourceParseBackingJSONSSH(virStorageSourcePtr src,
             return -1;
     } else {
         src->hosts[0].transport = VIR_STORAGE_NET_HOST_TRANS_TCP;
+
         if (VIR_STRDUP(src->hosts[0].name, host) < 0 ||
-            VIR_STRDUP(src->hosts[0].port, port) < 0)
+            virStringParsePort(port, &src->hosts[0].port) < 0)
             return -1;
     }
 
@@ -3244,86 +3235,27 @@ static const struct virStorageSourceJSONDriverParser jsonParsers[] = {
 };
 
 
-static int
-virStorageSourceParseBackingJSONDeflattenWorker(const char *key,
-                                                virJSONValuePtr value,
-                                                void *opaque)
-{
-    virJSONValuePtr retobj = opaque;
-    virJSONValuePtr newval = NULL;
-    const char *newkey;
-
-    if (!(newkey = STRSKIP(key, "file."))) {
-        virReportError(VIR_ERR_INVALID_ARG, "%s",
-                       _("JSON backing file syntax is neither nested nor "
-                         "flattened"));
-        return -1;
-    }
-
-    if (!(newval = virJSONValueCopy(value)))
-        return -1;
-
-    if (virJSONValueObjectAppend(retobj, newkey, newval) < 0) {
-        virJSONValueFree(newval);
-        return -1;
-    }
-
-    return 0;
-}
-
-
-/**
- * virStorageSourceParseBackingJSONDeflatten:
- *
- * The json: pseudo-protocol syntax in qemu allows multiple approaches to
- * describe nesting of the values. This is due to the lax handling of the string
- * in qemu and the fact that internally qemu is flattening the values using '.'.
- *
- * This allows to specify nested json strings either using nested json objects
- * or prefixing object members with the parent object name followed by the dot.
- *
- * This function will attempt to reverse the process and provide a nested json
- * hierarchy so that the parsers can be kept simple and we still can use the
- * weird syntax some users might use.
- *
- * Currently this function will flatten out just the 'file.' prefix into a new
- * tree. Any other syntax will be rejected.
- */
-static virJSONValuePtr
-virStorageSourceParseBackingJSONDeflatten(virJSONValuePtr json)
-{
-    virJSONValuePtr ret;
-
-    if (!(ret = virJSONValueNewObject()))
-        return NULL;
-
-    if (virJSONValueObjectForeachKeyValue(json,
-                                          virStorageSourceParseBackingJSONDeflattenWorker,
-                                          ret) < 0) {
-        virJSONValueFree(ret);
-        return NULL;
-    }
-
-    return ret;
-}
-
 
 static int
 virStorageSourceParseBackingJSONInternal(virStorageSourcePtr src,
                                          virJSONValuePtr json)
 {
-    virJSONValuePtr fixedroot = NULL;
+    virJSONValuePtr deflattened = NULL;
     virJSONValuePtr file;
     const char *drvname;
     char *str = NULL;
     size_t i;
     int ret = -1;
 
-    if (!(file = virJSONValueObjectGetObject(json, "file"))) {
-        if (!(fixedroot = virStorageSourceParseBackingJSONDeflatten(json)))
-            goto cleanup;
+    if (!(deflattened = virJSONValueObjectDeflatten(json)))
+        goto cleanup;
 
-        file = fixedroot;
+    if (!(file = virJSONValueObjectGetObject(deflattened, "file"))) {
+        str = virJSONValueToString(json, false);
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("JSON backing volume defintion '%s' lacks 'file' object"),
+                       NULLSTR(str));
+        goto cleanup;
     }
 
     if (!(drvname = virJSONValueObjectGetString(file, "driver"))) {
@@ -3347,7 +3279,7 @@ virStorageSourceParseBackingJSONInternal(virStorageSourcePtr src,
 
  cleanup:
     VIR_FREE(str);
-    virJSONValueFree(fixedroot);
+    virJSONValueFree(deflattened);
     return ret;
 }
 
@@ -3399,6 +3331,8 @@ virStorageSourceNewFromBackingAbsolute(const char *path)
 
         if (rc < 0)
             goto error;
+
+        virStorageSourceNetworkAssignDefaultPorts(ret);
     }
 
     return ret;
@@ -4007,7 +3941,7 @@ virStorageSourceFindByNodeName(virStorageSourcePtr top,
 
     for (tmp = top; tmp; tmp = tmp->backingStore) {
         if ((tmp->nodeformat && STREQ(tmp->nodeformat, nodeName)) ||
-            (tmp->nodebacking && STREQ(tmp->nodebacking, nodeName)))
+            (tmp->nodestorage && STREQ(tmp->nodestorage, nodeName)))
             return tmp;
 
         if (idx)
@@ -4017,4 +3951,64 @@ virStorageSourceFindByNodeName(virStorageSourcePtr top,
     if (idx)
         *idx = 0;
     return NULL;
+}
+
+
+static unsigned int
+virStorageSourceNetworkDefaultPort(virStorageNetProtocol protocol)
+{
+    switch (protocol) {
+        case VIR_STORAGE_NET_PROTOCOL_HTTP:
+            return 80;
+
+        case VIR_STORAGE_NET_PROTOCOL_HTTPS:
+            return 443;
+
+        case VIR_STORAGE_NET_PROTOCOL_FTP:
+            return 21;
+
+        case VIR_STORAGE_NET_PROTOCOL_FTPS:
+            return 990;
+
+        case VIR_STORAGE_NET_PROTOCOL_TFTP:
+            return 69;
+
+        case VIR_STORAGE_NET_PROTOCOL_SHEEPDOG:
+            return 7000;
+
+        case VIR_STORAGE_NET_PROTOCOL_NBD:
+            return 10809;
+
+        case VIR_STORAGE_NET_PROTOCOL_SSH:
+            return 22;
+
+        case VIR_STORAGE_NET_PROTOCOL_ISCSI:
+            return 3260;
+
+        case VIR_STORAGE_NET_PROTOCOL_GLUSTER:
+            return 24007;
+
+        case VIR_STORAGE_NET_PROTOCOL_RBD:
+            /* we don't provide a default for RBD */
+            return 0;
+
+        case VIR_STORAGE_NET_PROTOCOL_LAST:
+        case VIR_STORAGE_NET_PROTOCOL_NONE:
+            return 0;
+    }
+
+    return 0;
+}
+
+
+void
+virStorageSourceNetworkAssignDefaultPorts(virStorageSourcePtr src)
+{
+    size_t i;
+
+    for (i = 0; i < src->nhosts; i++) {
+        if (src->hosts[i].transport == VIR_STORAGE_NET_HOST_TRANS_TCP &&
+            src->hosts[i].port == 0)
+            src->hosts[i].port = virStorageSourceNetworkDefaultPort(src->protocol);
+    }
 }

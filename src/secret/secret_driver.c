@@ -72,12 +72,12 @@ secretDriverLock(void)
     virMutexLock(&driver->lock);
 }
 
+
 static void
 secretDriverUnlock(void)
 {
     virMutexUnlock(&driver->lock);
 }
-
 
 
 static virSecretObjPtr
@@ -86,8 +86,8 @@ secretObjFromSecret(virSecretPtr secret)
     virSecretObjPtr obj;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
 
-    if (!(obj = virSecretObjListFindByUUID(driver->secrets, secret->uuid))) {
-        virUUIDFormat(secret->uuid, uuidstr);
+    virUUIDFormat(secret->uuid, uuidstr);
+    if (!(obj = virSecretObjListFindByUUID(driver->secrets, uuidstr))) {
         virReportError(VIR_ERR_NO_SECRET,
                        _("no secret with matching uuid '%s'"), uuidstr);
         return NULL;
@@ -108,6 +108,7 @@ secretConnectNumOfSecrets(virConnectPtr conn)
                                         virConnectNumOfSecretsCheckACL,
                                         conn);
 }
+
 
 static int
 secretConnectListSecrets(virConnectPtr conn,
@@ -147,10 +148,10 @@ secretLookupByUUID(virConnectPtr conn,
     virSecretPtr ret = NULL;
     virSecretObjPtr obj;
     virSecretDefPtr def;
+    char uuidstr[VIR_UUID_STRING_BUFLEN];
 
-    if (!(obj = virSecretObjListFindByUUID(driver->secrets, uuid))) {
-        char uuidstr[VIR_UUID_STRING_BUFLEN];
-        virUUIDFormat(uuid, uuidstr);
+    virUUIDFormat(uuid, uuidstr);
+    if (!(obj = virSecretObjListFindByUUID(driver->secrets, uuidstr))) {
         virReportError(VIR_ERR_NO_SECRET,
                        _("no secret with matching uuid '%s'"), uuidstr);
         goto cleanup;
@@ -209,6 +210,7 @@ secretDefineXML(virConnectPtr conn,
 {
     virSecretPtr ret = NULL;
     virSecretObjPtr obj = NULL;
+    virSecretDefPtr objDef;
     virSecretDefPtr backup = NULL;
     virSecretDefPtr def;
     virObjectEventPtr event = NULL;
@@ -224,8 +226,9 @@ secretDefineXML(virConnectPtr conn,
     if (!(obj = virSecretObjListAdd(driver->secrets, def,
                                     driver->configDir, &backup)))
         goto cleanup;
+    VIR_STEAL_PTR(objDef, def);
 
-    if (!def->isephemeral) {
+    if (!objDef->isephemeral) {
         if (backup && backup->isephemeral) {
             if (virSecretObjSaveData(obj) < 0)
                 goto restore_backup;
@@ -247,28 +250,29 @@ secretDefineXML(virConnectPtr conn,
     /* Saved successfully - drop old values */
     virSecretDefFree(backup);
 
-    event = virSecretEventLifecycleNew(def->uuid,
-                                       def->usage_type,
-                                       def->usage_id,
+    event = virSecretEventLifecycleNew(objDef->uuid,
+                                       objDef->usage_type,
+                                       objDef->usage_id,
                                        VIR_SECRET_EVENT_DEFINED,
                                        0);
 
     ret = virGetSecret(conn,
-                       def->uuid,
-                       def->usage_type,
-                       def->usage_id);
-    def = NULL;
+                       objDef->uuid,
+                       objDef->usage_type,
+                       objDef->usage_id);
     goto cleanup;
 
  restore_backup:
     /* If we have a backup, then secret was defined before, so just restore
-     * the backup. The current def will be handled below.
-     * Otherwise, this is a new secret, thus remove it.
-     */
-    if (backup)
+     * the backup; otherwise, this is a new secret, thus remove it. */
+    if (backup) {
         virSecretObjSetDef(obj, backup);
-    else
+        VIR_STEAL_PTR(def, objDef);
+    } else {
         virSecretObjListRemove(driver->secrets, obj);
+        virObjectUnref(obj);
+        obj = NULL;
+    }
 
  cleanup:
     virSecretDefFree(def);
@@ -278,6 +282,7 @@ secretDefineXML(virConnectPtr conn,
 
     return ret;
 }
+
 
 static char *
 secretGetXMLDesc(virSecretPtr secret,
@@ -303,6 +308,7 @@ secretGetXMLDesc(virSecretPtr secret,
 
     return ret;
 }
+
 
 static int
 secretSetValue(virSecretPtr secret,
@@ -339,6 +345,7 @@ secretSetValue(virSecretPtr secret,
 
     return ret;
 }
+
 
 static unsigned char *
 secretGetValue(virSecretPtr secret,
@@ -377,6 +384,7 @@ secretGetValue(virSecretPtr secret,
     return ret;
 }
 
+
 static int
 secretUndefine(virSecretPtr secret)
 {
@@ -404,6 +412,8 @@ secretUndefine(virSecretPtr secret)
     virSecretObjDeleteData(obj);
 
     virSecretObjListRemove(driver->secrets, obj);
+    virObjectUnref(obj);
+    obj = NULL;
 
     ret = 0;
 
@@ -414,6 +424,7 @@ secretUndefine(virSecretPtr secret)
 
     return ret;
 }
+
 
 static int
 secretStateCleanup(void)
@@ -434,6 +445,7 @@ secretStateCleanup(void)
 
     return 0;
 }
+
 
 static int
 secretStateInitialize(bool privileged,
@@ -486,6 +498,7 @@ secretStateInitialize(bool privileged,
     return -1;
 }
 
+
 static int
 secretStateReload(void)
 {
@@ -499,6 +512,7 @@ secretStateReload(void)
     secretDriverUnlock();
     return 0;
 }
+
 
 static int
 secretConnectSecretEventRegisterAny(virConnectPtr conn,
@@ -520,6 +534,7 @@ secretConnectSecretEventRegisterAny(virConnectPtr conn,
  cleanup:
     return callbackID;
 }
+
 
 static int
 secretConnectSecretEventDeregisterAny(virConnectPtr conn,
@@ -564,6 +579,7 @@ static virStateDriver stateDriver = {
     .stateCleanup = secretStateCleanup,
     .stateReload = secretStateReload,
 };
+
 
 int
 secretRegister(void)

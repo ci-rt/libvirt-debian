@@ -71,9 +71,9 @@ typedef bool
                                virStoragePoolDefPtr def);
 
 static inline int
-virStoragePoolObjIsActive(virStoragePoolObjPtr pool)
+virStoragePoolObjIsActive(virStoragePoolObjPtr obj)
 {
-    return pool->active;
+    return obj->active;
 }
 
 int
@@ -94,19 +94,19 @@ virStoragePoolObjFindByName(virStoragePoolObjListPtr pools,
                             const char *name);
 
 virStorageVolDefPtr
-virStorageVolDefFindByKey(virStoragePoolObjPtr pool,
+virStorageVolDefFindByKey(virStoragePoolObjPtr obj,
                           const char *key);
 
 virStorageVolDefPtr
-virStorageVolDefFindByPath(virStoragePoolObjPtr pool,
+virStorageVolDefFindByPath(virStoragePoolObjPtr obj,
                            const char *path);
 
 virStorageVolDefPtr
-virStorageVolDefFindByName(virStoragePoolObjPtr pool,
+virStorageVolDefFindByName(virStoragePoolObjPtr obj,
                            const char *name);
 
 void
-virStoragePoolObjClearVols(virStoragePoolObjPtr pool);
+virStoragePoolObjClearVols(virStoragePoolObjPtr obj);
 
 typedef bool
 (*virStoragePoolVolumeACLFilter)(virConnectPtr conn,
@@ -114,23 +114,20 @@ typedef bool
                                  virStorageVolDefPtr def);
 
 int
-virStoragePoolObjNumOfVolumes(virStorageVolDefListPtr volumes,
+virStoragePoolObjNumOfVolumes(virStoragePoolObjPtr obj,
                               virConnectPtr conn,
-                              virStoragePoolDefPtr pooldef,
                               virStoragePoolVolumeACLFilter aclfilter);
 
 int
-virStoragePoolObjVolumeGetNames(virStorageVolDefListPtr volumes,
+virStoragePoolObjVolumeGetNames(virStoragePoolObjPtr obj,
                                 virConnectPtr conn,
-                                virStoragePoolDefPtr pooldef,
                                 virStoragePoolVolumeACLFilter aclfilter,
                                 char **const names,
                                 int maxnames);
 
 int
 virStoragePoolObjVolumeListExport(virConnectPtr conn,
-                                  virStorageVolDefListPtr volumes,
-                                  virStoragePoolDefPtr pooldef,
+                                  virStoragePoolObjPtr obj,
                                   virStorageVolPtr **vols,
                                   virStoragePoolVolumeACLFilter aclfilter);
 
@@ -140,11 +137,11 @@ virStoragePoolObjAssignDef(virStoragePoolObjListPtr pools,
 
 int
 virStoragePoolObjSaveDef(virStorageDriverStatePtr driver,
-                         virStoragePoolObjPtr pool,
+                         virStoragePoolObjPtr obj,
                          virStoragePoolDefPtr def);
 
 int
-virStoragePoolObjDeleteDef(virStoragePoolObjPtr pool);
+virStoragePoolObjDeleteDef(virStoragePoolObjPtr obj);
 
 typedef bool (*virStoragePoolObjListACLFilter)(virConnectPtr conn,
                                                virStoragePoolDefPtr def);
@@ -164,14 +161,14 @@ virStoragePoolObjGetNames(virStoragePoolObjListPtr pools,
                           int maxnames);
 
 void
-virStoragePoolObjFree(virStoragePoolObjPtr pool);
+virStoragePoolObjFree(virStoragePoolObjPtr obj);
 
 void
 virStoragePoolObjListFree(virStoragePoolObjListPtr pools);
 
 void
 virStoragePoolObjRemove(virStoragePoolObjListPtr pools,
-                        virStoragePoolObjPtr pool);
+                        virStoragePoolObjPtr obj);
 
 int
 virStoragePoolObjIsDuplicate(virStoragePoolObjListPtr pools,

@@ -252,17 +252,14 @@ static bool
 virCgroupValidateMachineGroup(virCgroupPtr group,
                               const char *name,
                               const char *drivername,
-                              int id,
-                              bool privileged,
-                              bool stripEmulatorSuffix)
+                              bool stripEmulatorSuffix,
+                              const char *machinename)
 {
     size_t i;
     bool valid = false;
     char *partname = NULL;
     char *scopename_old = NULL;
     char *scopename_new = NULL;
-    char *machinename = virSystemdMakeMachineName(drivername, id,
-                                                  name, privileged);
     char *partmachinename = NULL;
 
     if (virAsprintf(&partname, "%s.libvirt-%s",
@@ -343,7 +340,6 @@ virCgroupValidateMachineGroup(virCgroupPtr group,
     VIR_FREE(partname);
     VIR_FREE(scopename_old);
     VIR_FREE(scopename_new);
-    VIR_FREE(machinename);
     return valid;
 }
 
@@ -382,6 +378,8 @@ virCgroupDetectMountsFromFile(virCgroupPtr group,
     FILE *mounts = NULL;
     struct mntent entry;
     char buf[CGROUP_MAX_VAL];
+    char *linksrc = NULL;
+    int ret = -1;
 
     mounts = fopen(path, "r");
     if (mounts == NULL) {
@@ -397,6 +395,7 @@ virCgroupDetectMountsFromFile(virCgroupPtr group,
             const char *typestr = virCgroupControllerTypeToString(i);
             int typelen = strlen(typestr);
             char *tmp = entry.mnt_opts;
+            struct virCgroupController *controller = &group->controllers[i];
             while (tmp) {
                 char *next = strchr(tmp, ',');
                 int len;
@@ -406,54 +405,58 @@ virCgroupDetectMountsFromFile(virCgroupPtr group,
                 } else {
                     len = strlen(tmp);
                 }
-                /* NB, the same controller can appear >1 time in mount list
-                 * due to bind mounts from one location to another. Pick the
-                 * first entry only
-                 */
-                if (typelen == len && STREQLEN(typestr, tmp, len) &&
-                    !group->controllers[i].mountPoint) {
-                    char *linksrc;
+
+                if (typelen == len && STREQLEN(typestr, tmp, len)) {
                     struct stat sb;
                     char *tmp2;
 
-                    if (VIR_STRDUP(group->controllers[i].mountPoint,
-                                   entry.mnt_dir) < 0)
-                        goto error;
+                    /* Note that the lines in /proc/mounts have the same
+                     * order than the mount operations, and that there may
+                     * be duplicates due to bind mounts. This means
+                     * that the same mount point may be processed more than
+                     * once. We need to save the results of the last one,
+                     * and we need to be careful to release the memory used
+                     * by previous processing. */
+                    VIR_FREE(controller->mountPoint);
+                    VIR_FREE(controller->linkPoint);
+                    if (VIR_STRDUP(controller->mountPoint, entry.mnt_dir) < 0)
+                        goto cleanup;
 
                     tmp2 = strrchr(entry.mnt_dir, '/');
                     if (!tmp2) {
                         virReportError(VIR_ERR_INTERNAL_ERROR,
                                        _("Missing '/' separator in cgroup mount '%s'"),
                                        entry.mnt_dir);
-                        goto error;
+                        goto cleanup;
                     }
 
                     /* If it is a co-mount it has a filename like "cpu,cpuacct"
                      * and we must identify the symlink path */
                     if (checkLinks && strchr(tmp2 + 1, ',')) {
                         *tmp2 = '\0';
+                        VIR_FREE(linksrc);
                         if (virAsprintf(&linksrc, "%s/%s",
                                         entry.mnt_dir, typestr) < 0)
-                            goto error;
+                            goto cleanup;
                         *tmp2 = '/';
 
                         if (lstat(linksrc, &sb) < 0) {
                             if (errno == ENOENT) {
                                 VIR_WARN("Controller %s co-mounted at %s is missing symlink at %s",
                                          typestr, entry.mnt_dir, linksrc);
-                                VIR_FREE(linksrc);
                             } else {
                                 virReportSystemError(errno,
                                                      _("Cannot stat %s"),
                                                      linksrc);
-                                goto error;
+                                goto cleanup;
                             }
                         } else {
                             if (!S_ISLNK(sb.st_mode)) {
                                 VIR_WARN("Expecting a symlink at %s for controller %s",
                                          linksrc, typestr);
                             } else {
-                                group->controllers[i].linkPoint = linksrc;
+                                controller->linkPoint = linksrc;
+                                linksrc = NULL;
                             }
                         }
                     }
@@ -463,13 +466,11 @@ virCgroupDetectMountsFromFile(virCgroupPtr group,
         }
     }
 
+    ret = 0;
+ cleanup:
+    VIR_FREE(linksrc);
     VIR_FORCE_FCLOSE(mounts);
-
-    return 0;
-
- error:
-    VIR_FORCE_FCLOSE(mounts);
-    return -1;
+    return ret;
 }
 
 static int
@@ -1534,10 +1535,9 @@ virCgroupNewDetect(pid_t pid,
 int
 virCgroupNewDetectMachine(const char *name,
                           const char *drivername,
-                          int id,
-                          bool privileged,
                           pid_t pid,
                           int controllers,
+                          char *machinename,
                           virCgroupPtr *group)
 {
     if (virCgroupNewDetect(pid, controllers, group) < 0) {
@@ -1547,7 +1547,7 @@ virCgroupNewDetectMachine(const char *name,
     }
 
     if (!virCgroupValidateMachineGroup(*group, name, drivername,
-                                       id, privileged, true)) {
+                                       true, machinename)) {
         VIR_DEBUG("Failed to validate machine name for '%s' driver '%s'",
                   name, drivername);
         virCgroupFree(group);
@@ -4203,10 +4203,9 @@ virCgroupNewDetect(pid_t pid ATTRIBUTE_UNUSED,
 int
 virCgroupNewDetectMachine(const char *name ATTRIBUTE_UNUSED,
                           const char *drivername ATTRIBUTE_UNUSED,
-                          int id ATTRIBUTE_UNUSED,
-                          bool privileged ATTRIBUTE_UNUSED,
                           pid_t pid ATTRIBUTE_UNUSED,
                           int controllers ATTRIBUTE_UNUSED,
+                          char *machinename ATTRIBUTE_UNUSED,
                           virCgroupPtr *group ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENXIO, "%s",

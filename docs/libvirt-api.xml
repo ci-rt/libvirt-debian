@@ -2739,16 +2739,16 @@ instead of MiB/s'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_READY' file='libvirt-domain' value='3' type='virConnectDomainEventBlockJobStatus'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_SPEED_BANDWIDTH_BYTES' file='libvirt-domain' value='1' type='virDomainBlockJobSetSpeedFlags' info='bandwidth in bytes/s
 instead of MiB/s'/>
-    <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_ACTIVE_COMMIT' file='libvirt-domain' value='4' type='virDomainBlockJobType' info='Active Block Commit (virDomainBlockCommit with flags), job
+    <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_ACTIVE_COMMIT' file='libvirt-domain' value='4' type='virDomainBlockJobType'/>
+    <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT' file='libvirt-domain' value='3' type='virDomainBlockJobType' info='Active Block Commit (virDomainBlockCommit with flags), job
  exists as long as sync is active'/>
-    <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT' file='libvirt-domain' value='3' type='virDomainBlockJobType' info='Block Commit (virDomainBlockCommit without flags), job ends on
+    <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_COPY' file='libvirt-domain' value='2' type='virDomainBlockJobType' info='Block Commit (virDomainBlockCommit without flags), job ends on
  completion'/>
-    <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_COPY' file='libvirt-domain' value='2' type='virDomainBlockJobType' info='Block Copy (virDomainBlockCopy, or virDomainBlockRebase with
- flags), job exists as long as mirroring is active'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_LAST' file='libvirt-domain' value='5' type='virDomainBlockJobType'/>
-    <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_PULL' file='libvirt-domain' value='1' type='virDomainBlockJobType' info='Block Pull (virDomainBlockPull, or virDomainBlockRebase without
+    <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_PULL' file='libvirt-domain' value='1' type='virDomainBlockJobType' info='Block Copy (virDomainBlockCopy, or virDomainBlockRebase with
+ flags), job exists as long as mirroring is active'/>
+    <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN' file='libvirt-domain' value='0' type='virDomainBlockJobType' info='Placeholder Block Pull (virDomainBlockPull, or virDomainBlockRebase without
  flags), job ends on completion'/>
-    <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN' file='libvirt-domain' value='0' type='virDomainBlockJobType' info='Placeholder'/>
     <enum name='VIR_DOMAIN_BLOCK_PULL_BANDWIDTH_BYTES' file='libvirt-domain' value='64' type='virDomainBlockPullFlags' info='bandwidth in bytes/s
 instead of MiB/s'/>
     <enum name='VIR_DOMAIN_BLOCK_REBASE_BANDWIDTH_BYTES' file='libvirt-domain' value='64' type='virDomainBlockRebaseFlags' info='bandwidth in bytes/s
@@ -2808,10 +2808,9 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_DEFINE_VALIDATE' file='libvirt-domain' value='1' type='virDomainDefineFlags' info='Validate the XML document against schema'/>
     <enum name='VIR_DOMAIN_DESTROY_DEFAULT' file='libvirt-domain' value='0' type='virDomainDestroyFlagsValues' info='Default behavior - could lead to data loss!!'/>
     <enum name='VIR_DOMAIN_DESTROY_GRACEFUL' file='libvirt-domain' value='1' type='virDomainDestroyFlagsValues' info='only SIGTERM, no SIGKILL'/>
-    <enum name='VIR_DOMAIN_DEVICE_MODIFY_CONFIG' file='libvirt-domain' value='VIR_DOMAIN_AFFECT_CONFIG' type='virDomainDeviceModifyFlags' info='Additionally, these flags may be bitwise-OR&apos;d in.'/>
-    <enum name='VIR_DOMAIN_DEVICE_MODIFY_CURRENT' file='libvirt-domain' value='VIR_DOMAIN_AFFECT_CURRENT' type='virDomainDeviceModifyFlags'/>
-    <enum name='VIR_DOMAIN_DEVICE_MODIFY_FORCE' file='libvirt-domain' value='4' type='virDomainDeviceModifyFlags' info='Forcibly modify device
-(ex. force eject a cdrom)'/>
+    <enum name='VIR_DOMAIN_DEVICE_MODIFY_CONFIG' file='libvirt-domain' value='VIR_DOMAIN_AFFECT_CONFIG' type='virDomainDeviceModifyFlags'/>
+    <enum name='VIR_DOMAIN_DEVICE_MODIFY_CURRENT' file='libvirt-domain' value='VIR_DOMAIN_AFFECT_CURRENT' type='virDomainDeviceModifyFlags' info='See virDomainModificationImpact for these flags.'/>
+    <enum name='VIR_DOMAIN_DEVICE_MODIFY_FORCE' file='libvirt-domain' value='4' type='virDomainDeviceModifyFlags' info='Additionally, these flags may be bitwise-OR&apos;d in.'/>
     <enum name='VIR_DOMAIN_DEVICE_MODIFY_LIVE' file='libvirt-domain' value='VIR_DOMAIN_AFFECT_LIVE' type='virDomainDeviceModifyFlags'/>
     <enum name='VIR_DOMAIN_DISK_ERROR_LAST' file='libvirt-domain' value='3' type='virDomainDiskErrorCode'/>
     <enum name='VIR_DOMAIN_DISK_ERROR_NONE' file='libvirt-domain' value='0' type='virDomainDiskErrorCode' info='no error'/>
@@ -2827,9 +2826,9 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_EVENT_DEFINED_RENAMED' file='libvirt-domain' value='2' type='virDomainEventDefinedDetailType' info='Domain was renamed'/>
     <enum name='VIR_DOMAIN_EVENT_DEFINED_UPDATED' file='libvirt-domain' value='1' type='virDomainEventDefinedDetailType' info='Changed config file'/>
     <enum name='VIR_DOMAIN_EVENT_DISK_CHANGE_LAST' file='libvirt-domain' value='2' type='virConnectDomainEventDiskChangeReason'/>
-    <enum name='VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START' file='libvirt-domain' value='0' type='virConnectDomainEventDiskChangeReason' info='removable media changed to empty according to startup policy as source
+    <enum name='VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START' file='libvirt-domain' value='0' type='virConnectDomainEventDiskChangeReason' info='Removable media changed to empty according to startup policy as source
  was missing. oldSrcPath is set, newSrcPath is NULL'/>
-    <enum name='VIR_DOMAIN_EVENT_DISK_DROP_MISSING_ON_START' file='libvirt-domain' value='1' type='virConnectDomainEventDiskChangeReason' info='disk was dropped from domain as source file was missing.
+    <enum name='VIR_DOMAIN_EVENT_DISK_DROP_MISSING_ON_START' file='libvirt-domain' value='1' type='virConnectDomainEventDiskChangeReason' info='Disk was dropped from domain as source file was missing.
  oldSrcPath is set, newSrcPath is NULL'/>
     <enum name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV4' file='libvirt-domain' value='0' type='virDomainEventGraphicsAddressType' info='IPv4 address'/>
     <enum name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV6' file='libvirt-domain' value='1' type='virDomainEventGraphicsAddressType' info='IPv6 address'/>
@@ -2884,11 +2883,11 @@ limited set of commands may be allowed'/>
 running in post-copy mode'/>
     <enum name='VIR_DOMAIN_EVENT_RESUMED_UNPAUSED' file='libvirt-domain' value='0' type='virDomainEventResumedDetailType' info='Normal resume due to admin unpause'/>
     <enum name='VIR_DOMAIN_EVENT_SHUTDOWN' file='libvirt-domain' value='6' type='virDomainEventType'/>
-    <enum name='VIR_DOMAIN_EVENT_SHUTDOWN_FINISHED' file='libvirt-domain' value='0' type='virDomainEventShutdownDetailType' info='Domain finished shutting down after request from the guest itself
+    <enum name='VIR_DOMAIN_EVENT_SHUTDOWN_FINISHED' file='libvirt-domain' value='0' type='virDomainEventShutdownDetailType' info='Guest finished shutdown sequence'/>
+    <enum name='VIR_DOMAIN_EVENT_SHUTDOWN_GUEST' file='libvirt-domain' value='1' type='virDomainEventShutdownDetailType' info='Domain finished shutting down after request from the guest itself
  (e.g. hardware-specific action)'/>
-    <enum name='VIR_DOMAIN_EVENT_SHUTDOWN_GUEST' file='libvirt-domain' value='1' type='virDomainEventShutdownDetailType' info='Domain finished shutting down after request from the host (e.g. killed by
+    <enum name='VIR_DOMAIN_EVENT_SHUTDOWN_HOST' file='libvirt-domain' value='2' type='virDomainEventShutdownDetailType' info='Domain finished shutting down after request from the host (e.g. killed by
  a signal)'/>
-    <enum name='VIR_DOMAIN_EVENT_SHUTDOWN_HOST' file='libvirt-domain' value='2' type='virDomainEventShutdownDetailType'/>
     <enum name='VIR_DOMAIN_EVENT_SHUTDOWN_LAST' file='libvirt-domain' value='3' type='virDomainEventShutdownDetailType'/>
     <enum name='VIR_DOMAIN_EVENT_STARTED' file='libvirt-domain' value='2' type='virDomainEventType'/>
     <enum name='VIR_DOMAIN_EVENT_STARTED_BOOTED' file='libvirt-domain' value='0' type='virDomainEventStartedDetailType' info='Normal startup from boot'/>
@@ -2963,33 +2962,33 @@ running in post-copy mode'/>
     <enum name='VIR_DOMAIN_MEMORY_PARAM_LLONG' file='libvirt-domain' value='VIR_TYPED_PARAM_LLONG' type='virMemoryParameterType'/>
     <enum name='VIR_DOMAIN_MEMORY_PARAM_UINT' file='libvirt-domain' value='VIR_TYPED_PARAM_UINT' type='virMemoryParameterType'/>
     <enum name='VIR_DOMAIN_MEMORY_PARAM_ULLONG' file='libvirt-domain' value='VIR_TYPED_PARAM_ULLONG' type='virMemoryParameterType'/>
-    <enum name='VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON' file='libvirt-domain' value='6' type='virDomainMemoryStatTags' info='Resident Set Size of the process running the domain. This value
- is in kB'/>
-    <enum name='VIR_DOMAIN_MEMORY_STAT_AVAILABLE' file='libvirt-domain' value='5' type='virDomainMemoryStatTags' info='Current balloon value (in KB).'/>
-    <enum name='VIR_DOMAIN_MEMORY_STAT_LAST' file='libvirt-domain' value='VIR_DOMAIN_MEMORY_STAT_NR' type='virDomainMemoryStatTags'/>
-    <enum name='VIR_DOMAIN_MEMORY_STAT_LAST_UPDATE' file='libvirt-domain' value='9' type='virDomainMemoryStatTags' info='The number of statistics supported by this version of the interface.
- To add new statistics, add them to the enum and increase this value.'/>
-    <enum name='VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT' file='libvirt-domain' value='2' type='virDomainMemoryStatTags'/>
-    <enum name='VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT' file='libvirt-domain' value='3' type='virDomainMemoryStatTags' info='The amount of memory left completely unused by the system.  Memory that
- is available but used for reclaimable caches should NOT be reported as
- free.  This value is expressed in kB.'/>
-    <enum name='VIR_DOMAIN_MEMORY_STAT_NR' file='libvirt-domain' value='10' type='virDomainMemoryStatTags'/>
-    <enum name='VIR_DOMAIN_MEMORY_STAT_RSS' file='libvirt-domain' value='7' type='virDomainMemoryStatTags' info='How much the balloon can be inflated without pushing the guest system
- to swap, corresponds to &apos;Available&apos; in /proc/meminfo'/>
-    <enum name='VIR_DOMAIN_MEMORY_STAT_SWAP_IN' file='libvirt-domain' value='0' type='virDomainMemoryStatTags' info='The total amount of memory written out to swap space (in kB).'/>
-    <enum name='VIR_DOMAIN_MEMORY_STAT_SWAP_OUT' file='libvirt-domain' value='1' type='virDomainMemoryStatTags' info='Page faults occur when a process makes a valid access to virtual memory
- that is not available.  When servicing the page fault, if disk IO is
- required, it is considered a major fault.  If not, it is a minor fault.
- These are expressed as the number of faults that have occurred.'/>
-    <enum name='VIR_DOMAIN_MEMORY_STAT_UNUSED' file='libvirt-domain' value='4' type='virDomainMemoryStatTags' info='The total amount of usable memory as seen by the domain.  This value
+    <enum name='VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON' file='libvirt-domain' value='6' type='virDomainMemoryStatTags' info='Current balloon value (in KB).'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_AVAILABLE' file='libvirt-domain' value='5' type='virDomainMemoryStatTags' info='The total amount of usable memory as seen by the domain.  This value
  may be less than the amount of memory assigned to the domain if a
  balloon driver is in use or if the guest OS does not initialize all
  assigned pages.  This value is expressed in kB.'/>
-    <enum name='VIR_DOMAIN_MEMORY_STAT_USABLE' file='libvirt-domain' value='8' type='virDomainMemoryStatTags' info='Timestamp of the last update of statistics, in seconds.'/>
-    <enum name='VIR_DOMAIN_MEM_CONFIG' file='libvirt-domain' value='VIR_DOMAIN_AFFECT_CONFIG' type='virDomainMemoryModFlags' info='Additionally, these flags may be bitwise-OR&apos;d in.'/>
-    <enum name='VIR_DOMAIN_MEM_CURRENT' file='libvirt-domain' value='VIR_DOMAIN_AFFECT_CURRENT' type='virDomainMemoryModFlags'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_LAST' file='libvirt-domain' value='VIR_DOMAIN_MEMORY_STAT_NR' type='virDomainMemoryStatTags'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_LAST_UPDATE' file='libvirt-domain' value='9' type='virDomainMemoryStatTags' info='Timestamp of the last update of statistics, in seconds.'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT' file='libvirt-domain' value='2' type='virDomainMemoryStatTags' info='Page faults occur when a process makes a valid access to virtual memory
+ that is not available.  When servicing the page fault, if disk IO is
+ required, it is considered a major fault.  If not, it is a minor fault.
+ These are expressed as the number of faults that have occurred.'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT' file='libvirt-domain' value='3' type='virDomainMemoryStatTags'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_NR' file='libvirt-domain' value='10' type='virDomainMemoryStatTags' info='The number of statistics supported by this version of the interface.
+ To add new statistics, add them to the enum and increase this value.'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_RSS' file='libvirt-domain' value='7' type='virDomainMemoryStatTags' info='Resident Set Size of the process running the domain. This value
+ is in kB'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_SWAP_IN' file='libvirt-domain' value='0' type='virDomainMemoryStatTags' info='The total amount of data read from swap space (in kB).'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_SWAP_OUT' file='libvirt-domain' value='1' type='virDomainMemoryStatTags' info='The total amount of memory written out to swap space (in kB).'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_UNUSED' file='libvirt-domain' value='4' type='virDomainMemoryStatTags' info='The amount of memory left completely unused by the system.  Memory that
+ is available but used for reclaimable caches should NOT be reported as
+ free.  This value is expressed in kB.'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_USABLE' file='libvirt-domain' value='8' type='virDomainMemoryStatTags' info='How much the balloon can be inflated without pushing the guest system
+ to swap, corresponds to &apos;Available&apos; in /proc/meminfo'/>
+    <enum name='VIR_DOMAIN_MEM_CONFIG' file='libvirt-domain' value='VIR_DOMAIN_AFFECT_CONFIG' type='virDomainMemoryModFlags'/>
+    <enum name='VIR_DOMAIN_MEM_CURRENT' file='libvirt-domain' value='VIR_DOMAIN_AFFECT_CURRENT' type='virDomainMemoryModFlags' info='See virDomainModificationImpact for these flags.'/>
     <enum name='VIR_DOMAIN_MEM_LIVE' file='libvirt-domain' value='VIR_DOMAIN_AFFECT_LIVE' type='virDomainMemoryModFlags'/>
-    <enum name='VIR_DOMAIN_MEM_MAXIMUM' file='libvirt-domain' value='4' type='virDomainMemoryModFlags' info='affect Max rather than current'/>
+    <enum name='VIR_DOMAIN_MEM_MAXIMUM' file='libvirt-domain' value='4' type='virDomainMemoryModFlags' info='Additionally, these flags may be bitwise-OR&apos;d in.'/>
     <enum name='VIR_DOMAIN_METADATA_DESCRIPTION' file='libvirt-domain' value='0' type='virDomainMetadataType' info='Operate on &lt;description&gt;'/>
     <enum name='VIR_DOMAIN_METADATA_ELEMENT' file='libvirt-domain' value='2' type='virDomainMetadataType' info='Operate on &lt;metadata&gt;'/>
     <enum name='VIR_DOMAIN_METADATA_LAST' file='libvirt-domain' value='3' type='virDomainMetadataType'/>
@@ -3221,12 +3220,12 @@ nvram file'/>
     <enum name='VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA' file='libvirt-domain' value='2' type='virDomainUndefineFlagsValues' info='If last use of domain,
 then also remove any
 snapshot metadata'/>
-    <enum name='VIR_DOMAIN_VCPU_CONFIG' file='libvirt-domain' value='VIR_DOMAIN_AFFECT_CONFIG' type='virDomainVcpuFlags' info='Additionally, these flags may be bitwise-OR&apos;d in.'/>
-    <enum name='VIR_DOMAIN_VCPU_CURRENT' file='libvirt-domain' value='VIR_DOMAIN_AFFECT_CURRENT' type='virDomainVcpuFlags'/>
-    <enum name='VIR_DOMAIN_VCPU_GUEST' file='libvirt-domain' value='8' type='virDomainVcpuFlags' info='Modify state of the cpu in the guest'/>
-    <enum name='VIR_DOMAIN_VCPU_HOTPLUGGABLE' file='libvirt-domain' value='16' type='virDomainVcpuFlags' info='Make vcpus added hot(un)pluggable'/>
+    <enum name='VIR_DOMAIN_VCPU_CONFIG' file='libvirt-domain' value='VIR_DOMAIN_AFFECT_CONFIG' type='virDomainVcpuFlags'/>
+    <enum name='VIR_DOMAIN_VCPU_CURRENT' file='libvirt-domain' value='VIR_DOMAIN_AFFECT_CURRENT' type='virDomainVcpuFlags' info='See virDomainModificationImpact for these flags.'/>
+    <enum name='VIR_DOMAIN_VCPU_GUEST' file='libvirt-domain' value='8' type='virDomainVcpuFlags' info='Max rather than current count'/>
+    <enum name='VIR_DOMAIN_VCPU_HOTPLUGGABLE' file='libvirt-domain' value='16' type='virDomainVcpuFlags' info='Modify state of the cpu in the guest'/>
     <enum name='VIR_DOMAIN_VCPU_LIVE' file='libvirt-domain' value='VIR_DOMAIN_AFFECT_LIVE' type='virDomainVcpuFlags'/>
-    <enum name='VIR_DOMAIN_VCPU_MAXIMUM' file='libvirt-domain' value='4' type='virDomainVcpuFlags' info='Max rather than current count'/>
+    <enum name='VIR_DOMAIN_VCPU_MAXIMUM' file='libvirt-domain' value='4' type='virDomainVcpuFlags' info='Additionally, these flags may be bitwise-OR&apos;d in.'/>
     <enum name='VIR_DOMAIN_XML_INACTIVE' file='libvirt-domain' value='2' type='virDomainXMLFlags' info='dump inactive domain information'/>
     <enum name='VIR_DOMAIN_XML_MIGRATABLE' file='libvirt-domain' value='8' type='virDomainXMLFlags' info='dump XML suitable for migration'/>
     <enum name='VIR_DOMAIN_XML_SECURE' file='libvirt-domain' value='1' type='virDomainXMLFlags' info='dump security sensitive information too'/>
@@ -3443,12 +3442,62 @@ Retained for ABI/API compat only'/>
     <enum name='VIR_KEYCODE_SET_XT_KBD' file='libvirt-domain' value='6' type='virKeycodeSet'/>
     <enum name='VIR_MEMORY_PHYSICAL' file='libvirt-domain' value='2' type='virDomainMemoryFlags' info='addresses are physical addresses'/>
     <enum name='VIR_MEMORY_VIRTUAL' file='libvirt-domain' value='1' type='virDomainMemoryFlags' info='addresses are virtual addresses'/>
-    <enum name='VIR_MIGRATE_ABORT_ON_ERROR' file='libvirt-domain' value='4096' type='virDomainMigrateFlags' info='Enable algorithms that ensure a live migration will eventually converge.
+    <enum name='VIR_MIGRATE_ABORT_ON_ERROR' file='libvirt-domain' value='4096' type='virDomainMigrateFlags' info='Cancel migration if a soft error (such as I/O error) happens during
+ migration.'/>
+    <enum name='VIR_MIGRATE_AUTO_CONVERGE' file='libvirt-domain' value='8192' type='virDomainMigrateFlags' info='Enable algorithms that ensure a live migration will eventually converge.
  This usually means the domain will be slowed down to make sure it does
  not change its memory faster than a hypervisor can transfer the changed
  memory to the destination host. VIR_MIGRATE_PARAM_AUTO_CONVERGE_*
  parameters can be used to tune the algorithm.'/>
-    <enum name='VIR_MIGRATE_AUTO_CONVERGE' file='libvirt-domain' value='8192' type='virDomainMigrateFlags' info='This flag can be used with RDMA migration (i.e., when
+    <enum name='VIR_MIGRATE_CHANGE_PROTECTION' file='libvirt-domain' value='256' type='virDomainMigrateFlags' info='Protect against domain configuration changes during the migration
+ process. This flag is used automatically when both sides support it.
+ Explicitly setting this flag will cause migration to fail if either the
+ source or the destination does not support it.'/>
+    <enum name='VIR_MIGRATE_COMPRESSED' file='libvirt-domain' value='2048' type='virDomainMigrateFlags' info='Compress migration data. The compression methods can be specified using
+ VIR_MIGRATE_PARAM_COMPRESSION. A hypervisor default method will be used
+ if this parameter is omitted. Individual compression methods can be
+ tuned via their specific VIR_MIGRATE_PARAM_COMPRESSION_* parameters.'/>
+    <enum name='VIR_MIGRATE_LIVE' file='libvirt-domain' value='1' type='virDomainMigrateFlags' info='Do not pause the domain during migration. The domain&apos;s memory will
+ be transferred to the destination host while the domain is running.
+ The migration may never converge if the domain is changing its memory
+ faster then it can be transferred. The domain can be manually paused
+ anytime during migration using virDomainSuspend.'/>
+    <enum name='VIR_MIGRATE_NON_SHARED_DISK' file='libvirt-domain' value='64' type='virDomainMigrateFlags' info='Migrate full disk images in addition to domain&apos;s memory. By default
+ only non-shared non-readonly disk images are transferred. The
+ VIR_MIGRATE_PARAM_MIGRATE_DISKS parameter can be used to specify which
+ disks should be migrated.
+
+ This flag and VIR_MIGRATE_NON_SHARED_INC are mutually exclusive.'/>
+    <enum name='VIR_MIGRATE_NON_SHARED_INC' file='libvirt-domain' value='128' type='virDomainMigrateFlags' info='Migrate disk images in addition to domain&apos;s memory. This is similar to
+ VIR_MIGRATE_NON_SHARED_DISK, but only the top level of each disk&apos;s
+ backing chain is copied. That is, the rest of the backing chain is
+ expected to be present on the destination and to be exactly the same as
+ on the source host.
+
+ This flag and VIR_MIGRATE_NON_SHARED_DISK are mutually exclusive.'/>
+    <enum name='VIR_MIGRATE_OFFLINE' file='libvirt-domain' value='1024' type='virDomainMigrateFlags' info='Migrate a domain definition without starting the domain on the
+ destination and without stopping it on the source host. Offline
+ migration requires VIR_MIGRATE_PERSIST_DEST to be set.
+
+ Offline migration may not copy disk storage or any other file based
+ storage (such as UEFI variables).'/>
+    <enum name='VIR_MIGRATE_PAUSED' file='libvirt-domain' value='32' type='virDomainMigrateFlags' info='Leave the domain suspended on the destination host. virDomainResume (on
+ the virDomainPtr returned by the migration API) has to be called
+ explicitly to resume domain&apos;s virtual CPUs.'/>
+    <enum name='VIR_MIGRATE_PEER2PEER' file='libvirt-domain' value='2' type='virDomainMigrateFlags' info='Tell the source libvirtd to connect directly to the destination host.
+ Without this flag the client (e.g., virsh) connects to both hosts and
+ controls the migration process. In peer-to-peer mode, the source
+ libvirtd controls the migration by calling the destination daemon
+ directly.'/>
+    <enum name='VIR_MIGRATE_PERSIST_DEST' file='libvirt-domain' value='8' type='virDomainMigrateFlags' info='Define the domain as persistent on the destination host after successful
+ migration. If the domain was persistent on the source host and
+ VIR_MIGRATE_UNDEFINE_SOURCE is not used, it will end up persistent on
+ both hosts.'/>
+    <enum name='VIR_MIGRATE_POSTCOPY' file='libvirt-domain' value='32768' type='virDomainMigrateFlags' info='Setting the VIR_MIGRATE_POSTCOPY flag tells libvirt to enable post-copy
+ migration. However, the migration will start normally and
+ virDomainMigrateStartPostCopy needs to be called to switch it into the
+ post-copy mode. See virDomainMigrateStartPostCopy for more details.'/>
+    <enum name='VIR_MIGRATE_RDMA_PIN_ALL' file='libvirt-domain' value='16384' type='virDomainMigrateFlags' info='This flag can be used with RDMA migration (i.e., when
  VIR_MIGRATE_PARAM_URI starts with &quot;rdma://&quot;) to tell the hypervisor
  to pin all domain&apos;s memory at once before migration starts rather then
  letting it pin memory pages as needed. This means that all memory pages
@@ -3462,72 +3511,26 @@ Retained for ABI/API compat only'/>
  most of the host&apos;s memory). Doing so may be dangerous to both the
  domain and the host itself since the host&apos;s kernel may run out of
  memory.'/>
-    <enum name='VIR_MIGRATE_CHANGE_PROTECTION' file='libvirt-domain' value='256' type='virDomainMigrateFlags' info='Force migration even if it is considered unsafe. In some cases libvirt
- may refuse to migrate the domain because doing so may lead to potential
- problems such as data corruption, and thus the migration is considered
- unsafe. For a QEMU domain this may happen if the domain uses disks
- without explicitly setting cache mode to &quot;none&quot;. Migrating such domains
- is unsafe unless the disk images are stored on coherent clustered
- filesystem, such as GFS2 or GPFS.'/>
-    <enum name='VIR_MIGRATE_COMPRESSED' file='libvirt-domain' value='2048' type='virDomainMigrateFlags' info='Cancel migration if a soft error (such as I/O error) happens during
- migration.'/>
-    <enum name='VIR_MIGRATE_LIVE' file='libvirt-domain' value='1' type='virDomainMigrateFlags' info='Tell the source libvirtd to connect directly to the destination host.
- Without this flag the client (e.g., virsh) connects to both hosts and
- controls the migration process. In peer-to-peer mode, the source
- libvirtd controls the migration by calling the destination daemon
- directly.'/>
-    <enum name='VIR_MIGRATE_NON_SHARED_DISK' file='libvirt-domain' value='64' type='virDomainMigrateFlags' info='Migrate disk images in addition to domain&apos;s memory. This is similar to
- VIR_MIGRATE_NON_SHARED_DISK, but only the top level of each disk&apos;s
- backing chain is copied. That is, the rest of the backing chain is
- expected to be present on the destination and to be exactly the same as
- on the source host.
-
- This flag and VIR_MIGRATE_NON_SHARED_DISK are mutually exclusive.'/>
-    <enum name='VIR_MIGRATE_NON_SHARED_INC' file='libvirt-domain' value='128' type='virDomainMigrateFlags' info='Protect against domain configuration changes during the migration
- process. This flag is used automatically when both sides support it.
- Explicitly setting this flag will cause migration to fail if either the
- source or the destination does not support it.'/>
-    <enum name='VIR_MIGRATE_OFFLINE' file='libvirt-domain' value='1024' type='virDomainMigrateFlags' info='Compress migration data. The compression methods can be specified using
- VIR_MIGRATE_PARAM_COMPRESSION. A hypervisor default method will be used
- if this parameter is omitted. Individual compression methods can be
- tuned via their specific VIR_MIGRATE_PARAM_COMPRESSION_* parameters.'/>
-    <enum name='VIR_MIGRATE_PAUSED' file='libvirt-domain' value='32' type='virDomainMigrateFlags' info='Migrate full disk images in addition to domain&apos;s memory. By default
- only non-shared non-readonly disk images are transferred. The
- VIR_MIGRATE_PARAM_MIGRATE_DISKS parameter can be used to specify which
- disks should be migrated.
-
- This flag and VIR_MIGRATE_NON_SHARED_INC are mutually exclusive.'/>
-    <enum name='VIR_MIGRATE_PEER2PEER' file='libvirt-domain' value='2' type='virDomainMigrateFlags' info='Tunnel migration data over libvirtd connection. Without this flag the
+    <enum name='VIR_MIGRATE_TLS' file='libvirt-domain' value='65536' type='virDomainMigrateFlags' info='Setting the VIR_MIGRATE_TLS flag will cause the migration to attempt
+ to use the TLS environment configured by the hypervisor in order to
+ perform the migration. If incorrectly configured on either source or
+ destination, the migration will fail.'/>
+    <enum name='VIR_MIGRATE_TUNNELLED' file='libvirt-domain' value='4' type='virDomainMigrateFlags' info='Tunnel migration data over libvirtd connection. Without this flag the
  source hypervisor sends migration data directly to the destination
  hypervisor. This flag can only be used when VIR_MIGRATE_PEER2PEER is
  set as well.
 
  Note the less-common spelling that we&apos;re stuck with:
  VIR_MIGRATE_TUNNELLED should be VIR_MIGRATE_TUNNELED.'/>
-    <enum name='VIR_MIGRATE_PERSIST_DEST' file='libvirt-domain' value='8' type='virDomainMigrateFlags' info='Undefine the domain on the source host once migration successfully
+    <enum name='VIR_MIGRATE_UNDEFINE_SOURCE' file='libvirt-domain' value='16' type='virDomainMigrateFlags' info='Undefine the domain on the source host once migration successfully
  finishes.'/>
-    <enum name='VIR_MIGRATE_POSTCOPY' file='libvirt-domain' value='32768' type='virDomainMigrateFlags' info='Setting the VIR_MIGRATE_TLS flag will cause the migration to attempt
- to use the TLS environment configured by the hypervisor in order to
- perform the migration. If incorrectly configured on either source or
- destination, the migration will fail.'/>
-    <enum name='VIR_MIGRATE_RDMA_PIN_ALL' file='libvirt-domain' value='16384' type='virDomainMigrateFlags' info='Setting the VIR_MIGRATE_POSTCOPY flag tells libvirt to enable post-copy
- migration. However, the migration will start normally and
- virDomainMigrateStartPostCopy needs to be called to switch it into the
- post-copy mode. See virDomainMigrateStartPostCopy for more details.'/>
-    <enum name='VIR_MIGRATE_TLS' file='libvirt-domain' value='65536' type='virDomainMigrateFlags'/>
-    <enum name='VIR_MIGRATE_TUNNELLED' file='libvirt-domain' value='4' type='virDomainMigrateFlags' info='Define the domain as persistent on the destination host after successful
- migration. If the domain was persistent on the source host and
- VIR_MIGRATE_UNDEFINE_SOURCE is not used, it will end up persistent on
- both hosts.'/>
-    <enum name='VIR_MIGRATE_UNDEFINE_SOURCE' file='libvirt-domain' value='16' type='virDomainMigrateFlags' info='Leave the domain suspended on the destination host. virDomainResume (on
- the virDomainPtr returned by the migration API) has to be called
- explicitly to resume domain&apos;s virtual CPUs.'/>
-    <enum name='VIR_MIGRATE_UNSAFE' file='libvirt-domain' value='512' type='virDomainMigrateFlags' info='Migrate a domain definition without starting the domain on the
- destination and without stopping it on the source host. Offline
- migration requires VIR_MIGRATE_PERSIST_DEST to be set.
-
- Offline migration may not copy disk storage or any other file based
- storage (such as UEFI variables).'/>
+    <enum name='VIR_MIGRATE_UNSAFE' file='libvirt-domain' value='512' type='virDomainMigrateFlags' info='Force migration even if it is considered unsafe. In some cases libvirt
+ may refuse to migrate the domain because doing so may lead to potential
+ problems such as data corruption, and thus the migration is considered
+ unsafe. For a QEMU domain this may happen if the domain uses disks
+ without explicitly setting cache mode to &quot;none&quot;. Migrating such domains
+ is unsafe unless the disk images are stored on coherent clustered
+ filesystem, such as GFS2 or GPFS.'/>
     <enum name='VIR_NETWORK_EVENT_DEFINED' file='libvirt-network' value='0' type='virNetworkEventLifecycleType'/>
     <enum name='VIR_NETWORK_EVENT_ID_LAST' file='libvirt-network' value='1' type='virNetworkEventID' info='NB: this enum value will increase over time as new events are
  added to the libvirt API. It reflects the last event ID supported
@@ -3574,7 +3577,7 @@ used to free allocated pages.'/>
  added to the libvirt API. It reflects the last event ID supported
  by this version of the libvirt API.'/>
     <enum name='VIR_NODE_DEVICE_EVENT_ID_LIFECYCLE' file='libvirt-nodedev' value='0' type='virNodeDeviceEventID' info='virConnectNodeDeviceEventLifecycleCallback'/>
-    <enum name='VIR_NODE_DEVICE_EVENT_ID_UPDATE' file='libvirt-nodedev' value='1' type='virNodeDeviceEventID' info='virConnectNodeDeviceEventUpdateCallback'/>
+    <enum name='VIR_NODE_DEVICE_EVENT_ID_UPDATE' file='libvirt-nodedev' value='1' type='virNodeDeviceEventID' info='virConnectNodeDeviceEventGenericCallback'/>
     <enum name='VIR_NODE_DEVICE_EVENT_LAST' file='libvirt-nodedev' value='2' type='virNodeDeviceEventLifecycleType'/>
     <enum name='VIR_NODE_MEMORY_STATS_ALL_CELLS' file='libvirt-host' value='-1' type='virNodeGetMemoryStatsAllCells'/>
     <enum name='VIR_NODE_SUSPEND_TARGET_DISK' file='libvirt-host' value='1' type='virNodeSuspendTarget'/>
@@ -3681,7 +3684,15 @@ volume by using TRIM or DISCARD'/>
     <enum name='VIR_TYPED_PARAM_LAST' file='libvirt-common' value='8' type='virTypedParameterType'/>
     <enum name='VIR_TYPED_PARAM_LLONG' file='libvirt-common' value='3' type='virTypedParameterType' info='long long case'/>
     <enum name='VIR_TYPED_PARAM_STRING' file='libvirt-common' value='7' type='virTypedParameterType' info='string case'/>
-    <enum name='VIR_TYPED_PARAM_STRING_OKAY' file='libvirt-common' value='4' type='virTypedParameterFlags'/>
+    <enum name='VIR_TYPED_PARAM_STRING_OKAY' file='libvirt-common' value='4' type='virTypedParameterFlags' info='1 &lt;&lt; 0 is reserved for virDomainModificationImpact 1 &lt;&lt; 1 is reserved for virDomainModificationImpact Older servers lacked the ability to handle string typed
+ parameters.  Attempts to set a string parameter with an older
+ server will fail at the client, but attempts to retrieve
+ parameters must not return strings from a new server to an
+ older client, so this flag exists to identify newer clients to
+ newer servers.  This flag is automatically set when needed, so
+ the user does not have to worry about it; however, manually
+ setting the flag can be used to reject servers that cannot
+ return typed strings, even if no strings would be returned.'/>
     <enum name='VIR_TYPED_PARAM_UINT' file='libvirt-common' value='2' type='virTypedParameterType' info='unsigned integer case'/>
     <enum name='VIR_TYPED_PARAM_ULLONG' file='libvirt-common' value='4' type='virTypedParameterType' info='unsigned long long case'/>
     <enum name='VIR_VCPU_BLOCKED' file='libvirt-domain' value='2' type='virVcpuState' info='the virtual CPU is blocked on resource'/>
@@ -11347,8 +11358,10 @@ API looks like
     while (1) {
         char buf[1024];
         int got = virStreamRecv(st, buf, 1024);
-        if (got < 0)
+        if (got < 0) {
+           virStreamAbort(st);
            break;
+        }
         if (got == 0) {
            virStreamFinish(st);
            break;
@@ -11542,7 +11555,7 @@ API looks like
      ...report an error...
   virStreamFree(st);
   close(fd);]]></info>
-      <return type='int' info='0 if all the data was successfully sent. The caller should invoke virStreamFinish(st) to flush the stream upon success and then virStreamFree  Returns -1 upon any error, with virStreamAbort() already having been called,  so the caller need only call virStreamFree()'/>
+      <return type='int' info='0 if all the data was successfully sent. The caller should invoke virStreamFinish(st) to flush the stream upon success and then virStreamFree  Returns -1 upon any error, with virStreamAbort() already having been called,  so the caller need only call virStreamFree().'/>
       <arg name='stream' type='virStreamPtr' info='pointer to the stream object'/>
       <arg name='handler' type='virStreamSourceFunc' info='source callback for reading data from application'/>
       <arg name='opaque' type='void *' info='application defined data'/>
@@ -11587,7 +11600,10 @@ of data and then return the number actual number
 of bytes consumed. The callback will continue to be
 invoked until it indicates the end of the stream
 has been reached. A return value of -1 at any time
-will abort the receive operation]]></info>
+will abort the receive operation
+
+Please note that for more accurate error reporting the
+callback should set appropriate errno on failure.]]></info>
       <return type='int' info='the number of bytes consumed or -1 upon error'/>
       <arg name='st' type='virStreamPtr' info='the stream object'/>
       <arg name='data' type='const char *' info='preallocated array to be filled with data'/>
@@ -11602,7 +11618,10 @@ occurred in the stream.
 The callback may be invoked multiple times as holes are found
 during processing a stream. The application should create the
 hole in the stream target and then return. A return value of
--1 at any time will abort the receive operation.]]></info>
+-1 at any time will abort the receive operation.
+
+Please note that for more accurate error reporting the
+callback should set appropriate errno on failure.]]></info>
       <return type='int' info='0 on success, -1 upon error'/>
       <arg name='st' type='virStreamPtr' info='the stream object'/>
       <arg name='length' type='long long' info='stream hole size'/>
@@ -11620,7 +11639,10 @@ of data and then return the number actual number
 of bytes. The callback will continue to be
 invoked until it indicates the end of the source
 has been reached by returning 0. A return value
-of -1 at any time will abort the send operation]]></info>
+of -1 at any time will abort the send operation.
+
+Please note that for more accurate error reporting the
+callback should set appropriate errno on failure.]]></info>
       <return type='int' info='the number of bytes filled, 0 upon end of file, or -1 upon error'/>
       <arg name='st' type='virStreamPtr' info='the stream object'/>
       <arg name='data' type='char *' info='preallocated array to be filled with data'/>
@@ -11642,7 +11664,10 @@ NB: there's an implicit hole at the end of each file. If
 that's the case, @inData and @length should be both set to 0.
 
 This function should not adjust the current position within
-the file.]]></info>
+the file.
+
+Please note that for more accurate error reporting the
+callback should set appropriate errno on failure.]]></info>
       <return type='int' info='0 on success, -1 upon error'/>
       <arg name='st' type='virStreamPtr' info='the stream object'/>
       <arg name='inData' type='int *' info='are we in data section'/>
@@ -11657,7 +11682,10 @@ virStreamSourceHoleFunc.
 The callback may be invoked multiple times as holes are found
 during processing a stream. The application should skip
 processing the hole in the stream source and then return.
-A return value of -1 at any time will abort the send operation.]]></info>
+A return value of -1 at any time will abort the send operation.
+
+Please note that for more accurate error reporting the
+callback should set appropriate errno on failure.]]></info>
       <return type='int' info='0 on success, -1 upon error.'/>
       <arg name='st' type='virStreamPtr' info='the stream object'/>
       <arg name='length' type='long long' info='stream hole size'/>

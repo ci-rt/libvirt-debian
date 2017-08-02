@@ -30,6 +30,7 @@
 # include "qemu_monitor.h"
 # include "domain_capabilities.h"
 # include "virfirmware.h"
+# include "virfilecache.h"
 
 /*
  * Internal flags to keep track of qemu command line capabilities
@@ -77,7 +78,7 @@ typedef enum {
     /* 20 */
     X_QEMU_CAPS_XEN_DOMID, /* -xen-domid */
     X_QEMU_CAPS_MIGRATE_QEMU_UNIX, /* qemu migration via unix sockets */
-    QEMU_CAPS_CHARDEV, /* Is the new -chardev arg available */
+    X_QEMU_CAPS_CHARDEV, /* Is the new -chardev arg available */
     QEMU_CAPS_ENABLE_KVM, /* -enable-kvm flag */
     QEMU_CAPS_MONITOR_JSON, /* JSON mode for monitor */
 
@@ -416,15 +417,17 @@ typedef enum {
     QEMU_CAPS_VIRTIO_PCI_IOMMU_PLATFORM, /* virtio-*-pci.iommu_platform */
     QEMU_CAPS_VIRTIO_PCI_ATS, /* virtio-*-pci.ats */
     QEMU_CAPS_LOADPARM, /* -machine loadparm */
+    QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE, /* -device spapr-pci-host-bridge */
+
+    /* 265 */
+    QEMU_CAPS_SPAPR_PCI_HOST_BRIDGE_NUMA_NODE, /* spapr-pci-host-bridge.numa_node= */
+    QEMU_CAPS_VNC_MULTI_SERVERS, /* -vnc vnc=unix:/path */
 
     QEMU_CAPS_LAST /* this must always be the last item */
 } virQEMUCapsFlags;
 
 typedef struct _virQEMUCaps virQEMUCaps;
 typedef virQEMUCaps *virQEMUCapsPtr;
-
-typedef struct _virQEMUCapsCache virQEMUCapsCache;
-typedef virQEMUCapsCache *virQEMUCapsCachePtr;
 
 virQEMUCapsPtr virQEMUCapsNew(void);
 
@@ -494,40 +497,27 @@ int virQEMUCapsGetMachineTypesCaps(virQEMUCapsPtr qemuCaps,
                                    size_t *nmachines,
                                    virCapsGuestMachinePtr **machines);
 
-bool virQEMUCapsIsValid(virQEMUCapsPtr qemuCaps,
-                        time_t ctime,
-                        uid_t runUid,
-                        gid_t runGid);
-
 void virQEMUCapsFilterByMachineType(virQEMUCapsPtr qemuCaps,
                                     const char *machineType);
 
-virQEMUCapsCachePtr virQEMUCapsCacheNew(const char *libDir,
+virFileCachePtr virQEMUCapsCacheNew(const char *libDir,
                                         const char *cacheDir,
                                         uid_t uid, gid_t gid);
-virQEMUCapsPtr virQEMUCapsCacheLookup(virCapsPtr caps,
-                                      virQEMUCapsCachePtr cache,
+virQEMUCapsPtr virQEMUCapsCacheLookup(virFileCachePtr cache,
                                       const char *binary);
-virQEMUCapsPtr virQEMUCapsCacheLookupCopy(virCapsPtr caps,
-                                          virQEMUCapsCachePtr cache,
+virQEMUCapsPtr virQEMUCapsCacheLookupCopy(virFileCachePtr cache,
                                           const char *binary,
                                           const char *machineType);
-virQEMUCapsPtr virQEMUCapsCacheLookupByArch(virCapsPtr caps,
-                                            virQEMUCapsCachePtr cache,
+virQEMUCapsPtr virQEMUCapsCacheLookupByArch(virFileCachePtr cache,
                                             virArch arch);
-void virQEMUCapsCacheFree(virQEMUCapsCachePtr cache);
 
-virCapsPtr virQEMUCapsInit(virQEMUCapsCachePtr cache);
+virCapsPtr virQEMUCapsInit(virFileCachePtr cache);
 
 int virQEMUCapsGetDefaultVersion(virCapsPtr caps,
-                                 virQEMUCapsCachePtr capsCache,
+                                 virFileCachePtr capsCache,
                                  unsigned int *version);
 
 VIR_ENUM_DECL(virQEMUCaps);
-
-bool virQEMUCapsSupportsChardev(const virDomainDef *def,
-                                virQEMUCapsPtr qemuCaps,
-                                virDomainChrDefPtr chr);
 
 bool virQEMUCapsSupportsGICVersion(virQEMUCapsPtr qemuCaps,
                                    virDomainVirtType virtType,
@@ -550,5 +540,8 @@ int virQEMUCapsFillDomainCaps(virCapsPtr caps,
                               virQEMUCapsPtr qemuCaps,
                               virFirmwarePtr *firmwares,
                               size_t nfirmwares);
+
+bool virQEMUCapsGuestIsNative(virArch host,
+                              virArch guest);
 
 #endif /* __QEMU_CAPABILITIES_H__*/

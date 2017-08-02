@@ -2259,50 +2259,7 @@ virNodeDeviceGetParentName(virConnectPtr conn,
 }
 
 
-/*
- * Using the host# name found via wwnn/wwpn lookup in the fc_host
- * sysfs tree to get the parent 'scsi_host#' to ensure it matches.
- */
-static bool
-checkParent(virConnectPtr conn,
-            const char *name,
-            const char *parent_name)
-{
-    char *scsi_host_name = NULL;
-    char *vhba_parent = NULL;
-    bool retval = false;
-
-    VIR_DEBUG("conn=%p, name=%s, parent_name=%s", conn, name, parent_name);
-
-    /* autostarted pool - assume we're OK */
-    if (!conn)
-        return true;
-
-    if (virAsprintf(&scsi_host_name, "scsi_%s", name) < 0)
-        goto cleanup;
-
-    if (!(vhba_parent = virNodeDeviceGetParentName(conn, scsi_host_name)))
-        goto cleanup;
-
-    if (STRNEQ(parent_name, vhba_parent)) {
-        virReportError(VIR_ERR_XML_ERROR,
-                       _("Parent attribute '%s' does not match parent '%s' "
-                         "determined for the '%s' wwnn/wwpn lookup."),
-                       parent_name, vhba_parent, name);
-        goto cleanup;
-    }
-
-    retval = true;
-
- cleanup:
-    VIR_FREE(vhba_parent);
-    VIR_FREE(scsi_host_name);
-    return retval;
-}
-
-
 /**
- * @conn: Connection pointer
  * @fchost: Pointer to vHBA adapter
  *
  * Create a vHBA for Storage. This code accomplishes this via searching
@@ -2315,29 +2272,15 @@ checkParent(virConnectPtr conn,
  * Returns vHBA name on success, NULL on failure with an error message set
  */
 char *
-virNodeDeviceCreateVport(virConnectPtr conn,
-                         virStorageAdapterFCHostPtr fchost)
+virNodeDeviceCreateVport(virStorageAdapterFCHostPtr fchost)
 {
     unsigned int parent_host;
     char *name = NULL;
     char *parent_hoststr = NULL;
     bool skip_capable_check = false;
 
-    VIR_DEBUG("conn=%p, parent='%s', wwnn='%s' wwpn='%s'",
-              conn, NULLSTR(fchost->parent), fchost->wwnn, fchost->wwpn);
-
-    /* If we find an existing HBA/vHBA within the fc_host sysfs
-     * using the wwnn/wwpn, then a nodedev is already created for
-     * this pool and we don't have to create the vHBA
-     */
-    if ((name = virVHBAGetHostByWWN(NULL, fchost->wwnn, fchost->wwpn))) {
-        /* If a parent was provided, let's make sure the 'name' we've
-         * retrieved has the same parent. If not this will cause failure. */
-        if (fchost->parent && checkParent(conn, name, fchost->parent))
-            VIR_FREE(name);
-
-        return name;
-    }
+    VIR_DEBUG("parent='%s', wwnn='%s' wwpn='%s'",
+              NULLSTR(fchost->parent), fchost->wwnn, fchost->wwpn);
 
     if (fchost->parent) {
         if (VIR_STRDUP(parent_hoststr, fchost->parent) < 0)
@@ -2481,5 +2424,87 @@ virNodeDeviceDeleteVport(virConnectPtr conn,
     VIR_FREE(name);
     VIR_FREE(vhba_parent);
     VIR_FREE(scsi_host_name);
+    return ret;
+}
+
+
+int
+virNodeDeviceGetSCSIHostCaps(virNodeDevCapSCSIHostPtr scsi_host)
+{
+    char *tmp = NULL;
+    int ret = -1;
+
+    if ((scsi_host->unique_id =
+         virSCSIHostGetUniqueId(NULL, scsi_host->host)) < 0) {
+        VIR_DEBUG("Failed to read unique_id for host%d", scsi_host->host);
+        scsi_host->unique_id = -1;
+    }
+
+    VIR_DEBUG("Checking if host%d is an FC HBA", scsi_host->host);
+
+    if (virVHBAPathExists(NULL, scsi_host->host)) {
+        scsi_host->flags |= VIR_NODE_DEV_CAP_FLAG_HBA_FC_HOST;
+
+        if (!(tmp = virVHBAGetConfig(NULL, scsi_host->host, "port_name"))) {
+            VIR_WARN("Failed to read WWPN for host%d", scsi_host->host);
+            goto cleanup;
+        }
+        VIR_FREE(scsi_host->wwpn);
+        VIR_STEAL_PTR(scsi_host->wwpn, tmp);
+
+        if (!(tmp = virVHBAGetConfig(NULL, scsi_host->host, "node_name"))) {
+            VIR_WARN("Failed to read WWNN for host%d", scsi_host->host);
+            goto cleanup;
+        }
+        VIR_FREE(scsi_host->wwnn);
+        VIR_STEAL_PTR(scsi_host->wwnn, tmp);
+
+        if ((tmp = virVHBAGetConfig(NULL, scsi_host->host, "fabric_name"))) {
+            VIR_FREE(scsi_host->fabric_wwn);
+            VIR_STEAL_PTR(scsi_host->fabric_wwn, tmp);
+        }
+    }
+
+    if (virVHBAIsVportCapable(NULL, scsi_host->host)) {
+        scsi_host->flags |= VIR_NODE_DEV_CAP_FLAG_HBA_VPORT_OPS;
+
+        if (!(tmp = virVHBAGetConfig(NULL, scsi_host->host,
+                                     "max_npiv_vports"))) {
+            VIR_WARN("Failed to read max_npiv_vports for host%d",
+                     scsi_host->host);
+            goto cleanup;
+        }
+
+        if (virStrToLong_i(tmp, NULL, 10, &scsi_host->max_vports) < 0) {
+            VIR_WARN("Failed to parse value of max_npiv_vports '%s'", tmp);
+            goto cleanup;
+        }
+
+        VIR_FREE(tmp);
+        if (!(tmp = virVHBAGetConfig(NULL, scsi_host->host,
+                                      "npiv_vports_inuse"))) {
+            VIR_WARN("Failed to read npiv_vports_inuse for host%d",
+                     scsi_host->host);
+            goto cleanup;
+        }
+
+        if (virStrToLong_i(tmp, NULL, 10, &scsi_host->vports) < 0) {
+            VIR_WARN("Failed to parse value of npiv_vports_inuse '%s'", tmp);
+            goto cleanup;
+        }
+    }
+
+    ret = 0;
+ cleanup:
+    if (ret < 0) {
+        /* Clear the two flags in case of producing confusing XML output */
+        scsi_host->flags &= ~(VIR_NODE_DEV_CAP_FLAG_HBA_FC_HOST |
+                              VIR_NODE_DEV_CAP_FLAG_HBA_VPORT_OPS);
+
+        VIR_FREE(scsi_host->wwnn);
+        VIR_FREE(scsi_host->wwpn);
+        VIR_FREE(scsi_host->fabric_wwn);
+    }
+    VIR_FREE(tmp);
     return ret;
 }

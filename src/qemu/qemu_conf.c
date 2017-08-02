@@ -49,6 +49,7 @@
 #include "cpu/cpu.h"
 #include "domain_nwfilter.h"
 #include "virfile.h"
+#include "virsocketaddr.h"
 #include "virstring.h"
 #include "viratomic.h"
 #include "storage_conf.h"
@@ -124,12 +125,14 @@ void qemuDomainCmdlineDefFree(qemuDomainCmdlineDefPtr def)
 }
 
 
-#define VIR_QEMU_OVMF_LOADER_PATH "/usr/share/OVMF/OVMF_CODE.fd"
-#define VIR_QEMU_OVMF_NVRAM_PATH "/usr/share/OVMF/OVMF_VARS.fd"
-#define VIR_QEMU_OVMF_SEC_LOADER_PATH "/usr/share/OVMF/OVMF_CODE.secboot.fd"
-#define VIR_QEMU_OVMF_SEC_NVRAM_PATH "/usr/share/OVMF/OVMF_VARS.fd"
-#define VIR_QEMU_AAVMF_LOADER_PATH "/usr/share/AAVMF/AAVMF_CODE.fd"
-#define VIR_QEMU_AAVMF_NVRAM_PATH "/usr/share/AAVMF/AAVMF_VARS.fd"
+#ifndef DEFAULT_LOADER_NVRAM
+# define DEFAULT_LOADER_NVRAM \
+    "/usr/share/OVMF/OVMF_CODE.fd:/usr/share/OVMF/OVMF_VARS.fd:" \
+    "/usr/share/OVMF/OVMF_CODE.secboot.fd:/usr/share/OVMF/OVMF_VARS.fd:" \
+    "/usr/share/AAVMF/AAVMF_CODE.fd:/usr/share/AAVMF/AAVMF_VARS.fd:" \
+    "/usr/share/AAVMF/AAVMF32_CODE.fd:/usr/share/AAVMF/AAVMF32_VARS.fd"
+#endif
+
 
 virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
 {
@@ -327,28 +330,10 @@ virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
         virBitmapSetBit(cfg->namespaces, QEMU_DOMAIN_NS_MOUNT) < 0)
         goto error;
 
-#ifdef DEFAULT_LOADER_NVRAM
     if (virFirmwareParseList(DEFAULT_LOADER_NVRAM,
                              &cfg->firmwares,
                              &cfg->nfirmwares) < 0)
         goto error;
-
-#else
-    if (VIR_ALLOC_N(cfg->firmwares, 3) < 0)
-        goto error;
-    cfg->nfirmwares = 3;
-    if (VIR_ALLOC(cfg->firmwares[0]) < 0 || VIR_ALLOC(cfg->firmwares[1]) < 0 ||
-        VIR_ALLOC(cfg->firmwares[2]) < 0)
-        goto error;
-
-    if (VIR_STRDUP(cfg->firmwares[0]->name, VIR_QEMU_AAVMF_LOADER_PATH) < 0 ||
-        VIR_STRDUP(cfg->firmwares[0]->nvram, VIR_QEMU_AAVMF_NVRAM_PATH) < 0  ||
-        VIR_STRDUP(cfg->firmwares[1]->name, VIR_QEMU_OVMF_LOADER_PATH) < 0 ||
-        VIR_STRDUP(cfg->firmwares[1]->nvram, VIR_QEMU_OVMF_NVRAM_PATH) < 0 ||
-        VIR_STRDUP(cfg->firmwares[2]->name, VIR_QEMU_OVMF_SEC_LOADER_PATH) < 0 ||
-        VIR_STRDUP(cfg->firmwares[2]->nvram, VIR_QEMU_OVMF_SEC_NVRAM_PATH) < 0)
-        goto error;
-#endif
 
     return cfg;
 

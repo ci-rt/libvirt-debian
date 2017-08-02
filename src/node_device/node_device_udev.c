@@ -1312,20 +1312,18 @@ udevGetDeviceDetails(struct udev_device *device,
 static int
 udevRemoveOneDevice(struct udev_device *device)
 {
-    virNodeDeviceObjPtr dev = NULL;
+    virNodeDeviceObjPtr obj = NULL;
     virNodeDeviceDefPtr def;
     virObjectEventPtr event = NULL;
     const char *name = NULL;
 
     name = udev_device_get_syspath(device);
-    dev = virNodeDeviceObjFindBySysfsPath(&driver->devs, name);
-
-    if (!dev) {
+    if (!(obj = virNodeDeviceObjListFindBySysfsPath(driver->devs, name))) {
         VIR_DEBUG("Failed to find device to remove that has udev name '%s'",
                   name);
         return -1;
     }
-    def = virNodeDeviceObjGetDef(dev);
+    def = virNodeDeviceObjGetDef(obj);
 
     event = virNodeDeviceEventLifecycleNew(def->name,
                                            VIR_NODE_DEVICE_EVENT_DELETED,
@@ -1333,7 +1331,8 @@ udevRemoveOneDevice(struct udev_device *device)
 
     VIR_DEBUG("Removing device '%s' with sysfs path '%s'",
               def->name, name);
-    virNodeDeviceObjRemove(&driver->devs, &dev);
+    virNodeDeviceObjListRemove(driver->devs, obj);
+    virObjectUnref(obj);
 
     if (event)
         virObjectEventStateQueue(driver->nodeDeviceEventState, event);
@@ -1347,7 +1346,7 @@ udevSetParent(struct udev_device *device,
 {
     struct udev_device *parent_device = NULL;
     const char *parent_sysfs_path = NULL;
-    virNodeDeviceObjPtr dev = NULL;
+    virNodeDeviceObjPtr obj = NULL;
     virNodeDeviceDefPtr objdef;
     int ret = -1;
 
@@ -1366,15 +1365,14 @@ udevSetParent(struct udev_device *device,
             goto cleanup;
         }
 
-        dev = virNodeDeviceObjFindBySysfsPath(&driver->devs,
-                                              parent_sysfs_path);
-        if (dev != NULL) {
-            objdef = virNodeDeviceObjGetDef(dev);
+        if ((obj = virNodeDeviceObjListFindBySysfsPath(driver->devs,
+                                                       parent_sysfs_path))) {
+            objdef = virNodeDeviceObjGetDef(obj);
             if (VIR_STRDUP(def->parent, objdef->name) < 0) {
-                virNodeDeviceObjUnlock(dev);
+                virNodeDeviceObjEndAPI(&obj);
                 goto cleanup;
             }
-            virNodeDeviceObjUnlock(dev);
+            virNodeDeviceObjEndAPI(&obj);
 
             if (VIR_STRDUP(def->parent_sysfs_path, parent_sysfs_path) < 0)
                 goto cleanup;
@@ -1396,7 +1394,7 @@ static int
 udevAddOneDevice(struct udev_device *device)
 {
     virNodeDeviceDefPtr def = NULL;
-    virNodeDeviceObjPtr dev = NULL;
+    virNodeDeviceObjPtr obj = NULL;
     virNodeDeviceDefPtr objdef;
     virObjectEventPtr event = NULL;
     bool new_device = true;
@@ -1426,18 +1424,16 @@ udevAddOneDevice(struct udev_device *device)
     if (udevSetParent(device, def) != 0)
         goto cleanup;
 
-    dev = virNodeDeviceObjFindByName(&driver->devs, def->name);
-    if (dev) {
-        virNodeDeviceObjUnlock(dev);
+    if ((obj = virNodeDeviceObjListFindByName(driver->devs, def->name))) {
+        virNodeDeviceObjEndAPI(&obj);
         new_device = false;
     }
 
     /* If this is a device change, the old definition will be freed
      * and the current definition will take its place. */
-    dev = virNodeDeviceObjAssignDef(&driver->devs, def);
-    if (dev == NULL)
+    if (!(obj = virNodeDeviceObjListAssignDef(driver->devs, def)))
         goto cleanup;
-    objdef = virNodeDeviceObjGetDef(dev);
+    objdef = virNodeDeviceObjGetDef(obj);
 
     if (new_device)
         event = virNodeDeviceEventLifecycleNew(objdef->name,
@@ -1446,7 +1442,7 @@ udevAddOneDevice(struct udev_device *device)
     else
         event = virNodeDeviceEventUpdateNew(objdef->name);
 
-    virNodeDeviceObjUnlock(dev);
+    virNodeDeviceObjEndAPI(&obj);
 
     ret = 0;
 
@@ -1589,7 +1585,7 @@ nodeStateCleanup(void)
     if (udev != NULL)
         udev_unref(udev);
 
-    virNodeDeviceObjListFree(&driver->devs);
+    virNodeDeviceObjListFree(driver->devs);
     nodeDeviceUnlock();
     virMutexDestroy(&driver->lock);
     VIR_FREE(driver);
@@ -1611,7 +1607,6 @@ udevEventHandleCallback(int watch ATTRIBUTE_UNUSED,
     const char *action = NULL;
     int udev_fd = -1;
 
-    nodeDeviceLock();
     udev_fd = udev_monitor_get_fd(udev_monitor);
     if (fd != udev_fd) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -1643,7 +1638,6 @@ udevEventHandleCallback(int watch ATTRIBUTE_UNUSED,
 
  cleanup:
     udev_device_unref(device);
-    nodeDeviceUnlock();
     return;
 }
 
@@ -1709,7 +1703,7 @@ static int
 udevSetupSystemDev(void)
 {
     virNodeDeviceDefPtr def = NULL;
-    virNodeDeviceObjPtr dev = NULL;
+    virNodeDeviceObjPtr obj = NULL;
     int ret = -1;
 
     if (VIR_ALLOC(def) < 0)
@@ -1725,11 +1719,10 @@ udevSetupSystemDev(void)
     udevGetDMIData(&def->caps->data.system);
 #endif
 
-    dev = virNodeDeviceObjAssignDef(&driver->devs, def);
-    if (dev == NULL)
+    if (!(obj = virNodeDeviceObjListAssignDef(driver->devs, def)))
         goto cleanup;
 
-    virNodeDeviceObjUnlock(dev);
+    virNodeDeviceObjEndAPI(&obj);
 
     ret = 0;
 
@@ -1772,7 +1765,6 @@ nodeStateInitialize(bool privileged,
 {
     udevPrivate *priv = NULL;
     struct udev *udev = NULL;
-    int ret = -1;
 
     if (VIR_ALLOC(priv) < 0)
         return -1;
@@ -1795,16 +1787,20 @@ nodeStateInitialize(bool privileged,
 
     driver->privateData = priv;
     nodeDeviceLock();
+
+    if (!(driver->devs = virNodeDeviceObjListNew()))
+        goto unlock;
+
     driver->nodeDeviceEventState = virObjectEventStateNew();
 
     if (udevPCITranslateInit(privileged) < 0)
-        goto cleanup;
+        goto unlock;
 
     udev = udev_new();
     if (!udev) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("failed to create udev context"));
-        goto cleanup;
+        goto unlock;
     }
 #if HAVE_UDEV_LOGGING
     /* cast to get rid of missing-format-attribute warning */
@@ -1815,7 +1811,7 @@ nodeStateInitialize(bool privileged,
     if (priv->udev_monitor == NULL) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("udev_monitor_new_from_netlink returned NULL"));
-        goto cleanup;
+        goto unlock;
     }
 
     udev_monitor_enable_receiving(priv->udev_monitor);
@@ -1841,25 +1837,27 @@ nodeStateInitialize(bool privileged,
                                     VIR_EVENT_HANDLE_READABLE,
                                     udevEventHandleCallback, NULL, NULL);
     if (priv->watch == -1)
-        goto cleanup;
+        goto unlock;
 
     /* Create a fictional 'computer' device to root the device tree. */
     if (udevSetupSystemDev() != 0)
-        goto cleanup;
+        goto unlock;
+
+    nodeDeviceUnlock();
 
     /* Populate with known devices */
-
     if (udevEnumerateDevices(udev) != 0)
         goto cleanup;
 
-    ret = 0;
+    return 0;
 
  cleanup:
-    nodeDeviceUnlock();
+    nodeStateCleanup();
+    return -1;
 
-    if (ret == -1)
-        nodeStateCleanup();
-    return ret;
+ unlock:
+    nodeDeviceUnlock();
+    goto cleanup;
 }
 
 

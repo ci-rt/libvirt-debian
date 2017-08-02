@@ -92,23 +92,9 @@ host_triplet = @host@
 @WITH_LIBVIRTD_TRUE@sbin_PROGRAMS = libvirtd$(EXEEXT)
 @WITH_LIBVIRTD_TRUE@am__append_1 = test_libvirtd.aug
 @WITH_DTRACE_PROBES_TRUE@@WITH_LIBVIRTD_TRUE@am__append_2 = ../src/libvirt_probes.lo
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_QEMU_TRUE@am__append_3 = ../src/libvirt_driver_qemu.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_DTRACE_PROBES_TRUE@@WITH_LIBVIRTD_TRUE@@WITH_QEMU_TRUE@am__append_4 = ../src/libvirt_qemu_probes.lo
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@am__append_5 = ../src/libvirt_driver_lxc.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_XEN_TRUE@am__append_6 = ../src/libvirt_driver_xen.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_LIBXL_TRUE@am__append_7 = ../src/libvirt_driver_libxl.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_UML_TRUE@am__append_8 = ../src/libvirt_driver_uml.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_VBOX_TRUE@am__append_9 = ../src/libvirt_driver_vbox.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_VZ_TRUE@am__append_10 = ../src/libvirt_driver_vz.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_STORAGE_TRUE@am__append_11 = ../src/libvirt_driver_storage.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NETWORK_TRUE@am__append_12 = ../src/libvirt_driver_network.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_INTERFACE_TRUE@@WITH_LIBVIRTD_TRUE@am__append_13 = ../src/libvirt_driver_interface.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NODE_DEVICES_TRUE@am__append_14 = ../src/libvirt_driver_nodedev.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_SECRETS_TRUE@am__append_15 = ../src/libvirt_driver_secret.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NWFILTER_TRUE@am__append_16 = ../src/libvirt_driver_nwfilter.la
-@WITH_LIBVIRTD_TRUE@am__append_17 = libvirtd.policy $(LOGROTATE_CONFS)
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@am__append_18 = libvirtd.init
-@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@am__append_19 = libvirtd.service
+@WITH_LIBVIRTD_TRUE@am__append_3 = libvirtd.policy $(LOGROTATE_CONFS)
+@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@am__append_4 = libvirtd.init
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@am__append_5 = libvirtd.service
 subdir = daemon
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
@@ -400,13 +386,6 @@ libvirtd_OBJECTS = $(am_libvirtd_OBJECTS)
 @WITH_LIBVIRTD_TRUE@	../src/libvirt-lxc.la \
 @WITH_LIBVIRTD_TRUE@	../src/libvirt-qemu.la \
 @WITH_LIBVIRTD_TRUE@	../src/libvirt_driver_remote.la \
-@WITH_LIBVIRTD_TRUE@	$(am__append_3) $(am__append_4) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_5) $(am__append_6) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_7) $(am__append_8) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_9) $(am__append_10) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_11) $(am__append_12) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_13) $(am__append_14) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_15) $(am__append_16) \
 @WITH_LIBVIRTD_TRUE@	../src/libvirt.la ../gnulib/lib/libgnu.la \
 @WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1)
 libvirtd_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -2080,7 +2059,7 @@ EXTRA_DIST = \
 	$(LIBVIRTD_CONF_SOURCES)			\
 	$(NULL)
 
-BUILT_SOURCES = $(am__append_17) $(am__append_18) $(am__append_19)
+BUILT_SOURCES = $(am__append_3) $(am__append_4) $(am__append_5)
 REMOTE_PROTOCOL = $(top_srcdir)/src/remote/remote_protocol.x
 LXC_PROTOCOL = $(top_srcdir)/src/remote/lxc_protocol.x
 QEMU_PROTOCOL = $(top_srcdir)/src/remote/qemu_protocol.x
@@ -2160,13 +2139,6 @@ ADMIN_PROTOCOL = $(top_srcdir)/src/admin/admin_protocol.x
 @WITH_LIBVIRTD_TRUE@	libvirtd_admin.la ../src/libvirt-lxc.la \
 @WITH_LIBVIRTD_TRUE@	../src/libvirt-qemu.la \
 @WITH_LIBVIRTD_TRUE@	../src/libvirt_driver_remote.la $(NULL) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_3) $(am__append_4) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_5) $(am__append_6) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_7) $(am__append_8) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_9) $(am__append_10) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_11) $(am__append_12) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_13) $(am__append_14) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_15) $(am__append_16) \
 @WITH_LIBVIRTD_TRUE@	../src/libvirt.la ../gnulib/lib/libgnu.la \
 @WITH_LIBVIRTD_TRUE@	$(LIBSOCKET)
 @WITH_LIBVIRTD_TRUE@@WITH_POLKIT0_FALSE@@WITH_POLKIT_TRUE@policydir = $(datadir)/polkit-1/actions

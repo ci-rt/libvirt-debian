@@ -65,22 +65,6 @@
 # include "ignore-value.h"
 # include "count-leading-zeros.h"
 
-/* On architectures which lack these limits, define them (ie. Cygwin).
- * Note that the libvirt code should be robust enough to handle the
- * case where actual value is longer than these limits (eg. by setting
- * length correctly in second argument to gethostname and by always
- * using strncpy instead of strcpy).
- */
-# ifndef HOST_NAME_MAX
-#  define HOST_NAME_MAX 256
-# endif
-
-# ifndef INET_ADDRSTRLEN
-#  define INET_ADDRSTRLEN 16
-# endif
-
-# define VIR_LOOPBACK_IPV4_ADDR "127.0.0.1"
-
 /* String equality tests, suggested by Jim Meyering. */
 # define STREQ(a, b) (strcmp(a, b) == 0)
 # define STRCASEEQ(a, b) (c_strcasecmp(a, b) == 0)
@@ -101,53 +85,32 @@
 # define NUL_TERMINATE(buf) do { (buf)[sizeof(buf)-1] = '\0'; } while (0)
 # define ARRAY_CARDINALITY(Array) (sizeof(Array) / sizeof(*(Array)))
 
-/* C99 uses __func__.  __FUNCTION__ is legacy. */
-# ifndef __GNUC__
-#  define __FUNCTION__ __func__
-# endif
-
-# ifdef __GNUC__
-
-#  ifndef __GNUC_PREREQ
-#   if defined __GNUC__ && defined __GNUC_MINOR__
-#    define __GNUC_PREREQ(maj, min)                                        \
-    ((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
-#   else
-#    define __GNUC_PREREQ(maj, min) 0
-#   endif
-
-#  endif /* __GNUC__ */
-
 /**
  * ATTRIBUTE_UNUSED:
  *
  * Macro to flag consciously unused parameters to functions
  */
-#  ifndef ATTRIBUTE_UNUSED
-#   define ATTRIBUTE_UNUSED __attribute__((__unused__))
-#  endif
+# ifndef ATTRIBUTE_UNUSED
+#  define ATTRIBUTE_UNUSED __attribute__((__unused__))
+# endif
 
 /**
  * ATTRIBUTE_NORETURN:
  *
  * Macro to indicate that a function won't return to the caller
  */
-#  ifndef ATTRIBUTE_NORETURN
-#   define ATTRIBUTE_NORETURN __attribute__((__noreturn__))
-#  endif
+# ifndef ATTRIBUTE_NORETURN
+#  define ATTRIBUTE_NORETURN __attribute__((__noreturn__))
+# endif
 
 /**
  * ATTRIBUTE_SENTINEL:
  *
  * Macro to check for NULL-terminated varargs lists
  */
-#  ifndef ATTRIBUTE_SENTINEL
-#   if __GNUC_PREREQ (4, 0)
-#    define ATTRIBUTE_SENTINEL __attribute__((__sentinel__))
-#   else
-#    define ATTRIBUTE_SENTINEL
-#   endif
-#  endif
+# ifndef ATTRIBUTE_SENTINEL
+#  define ATTRIBUTE_SENTINEL __attribute__((__sentinel__))
+# endif
 
 /**
  * ATTRIBUTE_NOINLINE:
@@ -155,13 +118,9 @@
  * Force compiler not to inline a method. Should be used if
  * the method need to be overridable by test mocks.
  */
-#  ifndef ATTRIBUTE_NOINLINE
-#   if __GNUC_PREREQ (4, 0)
-#    define ATTRIBUTE_NOINLINE __attribute__((__noinline__))
-#   else
-#    define ATTRIBUTE_NOINLINE
-#   endif
-#  endif
+# ifndef ATTRIBUTE_NOINLINE
+#  define ATTRIBUTE_NOINLINE __attribute__((__noinline__))
+# endif
 
 /**
  * ATTRIBUTE_FMT_PRINTF
@@ -173,23 +132,19 @@
  * printf format specifiers even on broken Win32 platforms
  * hence we have to force 'gnu_printf' for new GCC
  */
-#  ifndef ATTRIBUTE_FMT_PRINTF
-#   if __GNUC_PREREQ (4, 4)
-#    define ATTRIBUTE_FMT_PRINTF(fmtpos, argpos) \
-    __attribute__((__format__ (__gnu_printf__, fmtpos, argpos)))
-#   else
-#    define ATTRIBUTE_FMT_PRINTF(fmtpos, argpos) \
-    __attribute__((__format__ (__printf__, fmtpos, argpos)))
-#   endif
+# ifndef ATTRIBUTE_FMT_PRINTF
+#  ifndef __clang__
+#   define ATTRIBUTE_FMT_PRINTF(fmtpos, argpos) \
+       __attribute__((__format__ (__gnu_printf__, fmtpos, argpos)))
+#  else
+#   define ATTRIBUTE_FMT_PRINTF(fmtpos, argpos) \
+       __attribute__((__format__ (__printf__, fmtpos, argpos)))
 #  endif
+# endif
 
-#  ifndef ATTRIBUTE_RETURN_CHECK
-#   if __GNUC_PREREQ (3, 4)
-#    define ATTRIBUTE_RETURN_CHECK __attribute__((__warn_unused_result__))
-#   else
-#    define ATTRIBUTE_RETURN_CHECK
-#   endif
-#  endif
+# ifndef ATTRIBUTE_RETURN_CHECK
+#  define ATTRIBUTE_RETURN_CHECK __attribute__((__warn_unused_result__))
+# endif
 
 /**
  * ATTRIBUTE_PACKED
@@ -200,13 +155,9 @@
  * ethernet packets.
  * Others compiler than gcc may use something different e.g. #pragma pack(1)
  */
-#  ifndef ATTRIBUTE_PACKED
-#   if __GNUC_PREREQ (3, 3)
-#    define ATTRIBUTE_PACKED __attribute__((packed))
-#   else
-#    error "Need an __attribute__((packed)) equivalent"
-#   endif
-#  endif
+# ifndef ATTRIBUTE_PACKED
+#  define ATTRIBUTE_PACKED __attribute__((packed))
+# endif
 
 /* gcc's handling of attribute nonnull is less than stellar - it does
  * NOT improve diagnostics, and merely allows gcc to optimize away
@@ -217,45 +168,21 @@
  * based on whether we are compiling for real or for analysis, while
  * still requiring correct gcc syntax when it is turned off.  See also
  * http://gcc.gnu.org/bugzilla/show_bug.cgi?id=17308 */
-#  ifndef ATTRIBUTE_NONNULL
-#   if __GNUC_PREREQ (3, 3)
-#    if STATIC_ANALYSIS
-#     define ATTRIBUTE_NONNULL(m) __attribute__((__nonnull__(m)))
-#    else
-#     define ATTRIBUTE_NONNULL(m) __attribute__(())
-#    endif
-#   else
-#    define ATTRIBUTE_NONNULL(m)
-#   endif
+# ifndef ATTRIBUTE_NONNULL
+#  if STATIC_ANALYSIS
+#   define ATTRIBUTE_NONNULL(m) __attribute__((__nonnull__(m)))
+#  else
+#   define ATTRIBUTE_NONNULL(m) __attribute__(())
 #  endif
+# endif
 
-#  ifndef ATTRIBUTE_FALLTHROUGH
-#   if __GNUC_PREREQ (7, 0)
-#    define ATTRIBUTE_FALLTHROUGH __attribute__((fallthrough))
-#   else
-#    define ATTRIBUTE_FALLTHROUGH do {} while(0)
-#   endif
-#  endif
-
-# else
-#  ifndef ATTRIBUTE_UNUSED
-#   define ATTRIBUTE_UNUSED
-#  endif
-#  ifndef ATTRIBUTE_FMT_PRINTF
-#   define ATTRIBUTE_FMT_PRINTF(...)
-#  endif
-#  ifndef ATTRIBUTE_RETURN_CHECK
-#   define ATTRIBUTE_RETURN_CHECK
-#  endif
-#  ifndef ATTRIBUTE_NOINLINE
-#   define ATTRIBUTE_NOINLINE
-#  endif
-#
-#  ifndef ATTRIBUTE_FALLTHROUGH
+# ifndef ATTRIBUTE_FALLTHROUGH
+#  if __GNUC_PREREQ (7, 0)
+#   define ATTRIBUTE_FALLTHROUGH __attribute__((fallthrough))
+#  else
 #   define ATTRIBUTE_FALLTHROUGH do {} while(0)
 #  endif
-# endif				/* __GNUC__ */
-
+# endif
 
 # if WORKING_PRAGMA_PUSH
 #  define VIR_WARNINGS_NO_CAST_ALIGN \
@@ -315,15 +242,6 @@
  * Similar to NULLSTR, but print '-' to make it more user friendly.
  */
 # define EMPTYSTR(s) ((s) ? (s) : "-")
-
-/**
- * TODO:
- *
- * macro to flag unimplemented blocks
- */
-# define TODO								\
-    fprintf(stderr, "Unimplemented block at %s:%d\n",			\
-            __FILE__, __LINE__);
 
 /**
  * SWAP:

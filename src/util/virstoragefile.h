@@ -155,7 +155,7 @@ typedef struct _virStorageNetHostDef virStorageNetHostDef;
 typedef virStorageNetHostDef *virStorageNetHostDefPtr;
 struct _virStorageNetHostDef {
     char *name;
-    char *port;
+    unsigned int port;
     int transport; /* virStorageNetHostTransport */
     char *socket;  /* path to unix socket */
 };
@@ -279,7 +279,7 @@ struct _virStorageSource {
 
     /* metadata that allows identifying given storage source */
     char *nodeformat;  /* name of the format handler object */
-    char *nodebacking; /* name of the backing storage object */
+    char *nodestorage; /* name of the storage object */
 };
 
 
@@ -405,5 +405,9 @@ virStorageSourceFindByNodeName(virStorageSourcePtr top,
                                const char *nodeName,
                                unsigned int *index)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+void
+virStorageSourceNetworkAssignDefaultPorts(virStorageSourcePtr src)
+    ATTRIBUTE_NONNULL(1);
 
 #endif /* __VIR_STORAGE_FILE_H__ */

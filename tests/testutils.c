@@ -289,9 +289,17 @@ virTestRun(const char *title,
     return ret;
 }
 
-/* Allocate BUF to the size of FILE. Read FILE into buffer BUF.
-   Upon any failure, diagnose it and return -1, but don't bother trying
-   to preserve errno. Otherwise, return the number of bytes copied into BUF. */
+
+/**
+ * virTestLoadFile:
+ * @file: name of the file to load
+ * @buf: buffer to load the file into
+ *
+ * Allocates @buf to the size of FILE. Reads FILE into buffer BUF.
+ * Upon any failure, error is printed to stderr and -1 is returned. 'errno' is
+ * not preserved. On success 0 is returned. Caller is responsible for freeing
+ * @buf.
+ */
 int
 virTestLoadFile(const char *file, char **buf)
 {
@@ -345,8 +353,93 @@ virTestLoadFile(const char *file, char **buf)
     }
 
     VIR_FORCE_FCLOSE(fp);
-    return strlen(*buf);
+    return 0;
 }
+
+
+static char *
+virTestLoadFileGetPath(const char *p,
+                       va_list ap)
+{
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    char *path = NULL;
+
+    virBufferAddLit(&buf, abs_srcdir "/");
+
+    if (p) {
+        virBufferAdd(&buf, p, -1);
+        virBufferStrcatVArgs(&buf, ap);
+    }
+
+    if (!(path = virBufferContentAndReset(&buf)))
+        VIR_TEST_VERBOSE("failed to format file path");
+
+    return path;
+}
+
+
+/**
+ * virTestLoadFilePath:
+ * @...: file name components terminated with a NULL
+ *
+ * Constructs the test file path from variable arguments and loads the file.
+ * 'abs_srcdir' is automatically prepended.
+ */
+char *
+virTestLoadFilePath(const char *p, ...)
+{
+    char *path = NULL;
+    char *ret = NULL;
+    va_list ap;
+
+    va_start(ap, p);
+
+    if (!(path = virTestLoadFileGetPath(p, ap)))
+        goto cleanup;
+
+    ignore_value(virTestLoadFile(path, &ret));
+
+ cleanup:
+    va_end(ap);
+    VIR_FREE(path);
+
+    return ret;
+}
+
+
+/**
+ * virTestLoadFileJSON:
+ * @...: name components terminated with a NULL
+ *
+ * Constructs the test file path from variable arguments and loads and parses
+ * the JSON file. 'abs_srcdir' is automatically prepended to the path.
+ */
+virJSONValuePtr
+virTestLoadFileJSON(const char *p, ...)
+{
+    virJSONValuePtr ret = NULL;
+    char *jsonstr = NULL;
+    char *path = NULL;
+    va_list ap;
+
+    va_start(ap, p);
+
+    if (!(path = virTestLoadFileGetPath(p, ap)))
+        goto cleanup;
+
+    if (virTestLoadFile(path, &jsonstr) < 0)
+        goto cleanup;
+
+    if (!(ret = virJSONValueFromString(jsonstr)))
+        VIR_TEST_VERBOSE("failed to parse json from file '%s'", path);
+
+ cleanup:
+    va_end(ap);
+    VIR_FREE(jsonstr);
+    VIR_FREE(path);
+    return ret;
+}
+
 
 #ifndef WIN32
 static
@@ -358,9 +451,7 @@ void virTestCaptureProgramExecChild(const char *const argv[],
     int stdinfd = -1;
     const char *const env[] = {
         "LANG=C",
-# if WITH_DRIVER_MODULES
         "LIBVIRT_DRIVER_DIR=" TEST_DRIVER_DIR,
-# endif
         NULL
     };
 
@@ -686,6 +777,8 @@ int virTestDifferenceBin(FILE *stream,
 /*
  * @param strcontent: String input content
  * @param filename: File to compare strcontent against
+ *
+ * If @strcontent is NULL, it's treated as an empty string.
  */
 int
 virTestCompareToFile(const char *strcontent,
@@ -695,6 +788,9 @@ virTestCompareToFile(const char *strcontent,
     char *filecontent = NULL;
     char *fixedcontent = NULL;
     const char *cmpcontent = strcontent;
+
+    if (!cmpcontent)
+        cmpcontent = "";
 
     if (virTestLoadFile(filename, &filecontent) < 0 && !virTestGetRegenerate())
         goto failure;
@@ -1130,13 +1226,11 @@ virCapsPtr virTestGenericCapsInit(void)
 static virDomainDefParserConfig virTestGenericDomainDefParserConfig = {
     .features = VIR_DOMAIN_DEF_FEATURE_INDIVIDUAL_VCPUS,
 };
-static virDomainXMLPrivateDataCallbacks virTestGenericPrivateDataCallbacks;
 
 virDomainXMLOptionPtr virTestGenericDomainXMLConfInit(void)
 {
     return virDomainXMLOptionNew(&virTestGenericDomainDefParserConfig,
-                                 &virTestGenericPrivateDataCallbacks,
-                                 NULL, NULL, NULL);
+                                 NULL, NULL, NULL, NULL);
 }
 
 

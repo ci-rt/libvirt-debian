@@ -710,6 +710,7 @@ typedef enum {
     VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_PXB,
     VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_PXB_PCIE,
     VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_PCIE_ROOT_PORT,
+    VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_SPAPR_PCI_HOST_BRIDGE,
 
     VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_LAST
 } virDomainControllerPCIModelName;
@@ -785,6 +786,7 @@ struct _virDomainPCIControllerOpts {
     int chassis;
     int port;
     int busNr; /* used by pci-expander-bus, -1 == unspecified */
+    int targetIndex; /* used by spapr-pci-host-bridge, -1 == unspecified */
     /* numaNode is a *subelement* of target (to match existing
      * item in memory target config) -1 == unspecified
      */
@@ -1848,6 +1850,13 @@ typedef enum {
 VIR_ENUM_DECL(virDomainIOAPIC);
 
 /* Operating system configuration data & machine / arch */
+typedef struct _virDomainOSEnv virDomainOSEnv;
+typedef virDomainOSEnv *virDomainOSEnvPtr;
+struct _virDomainOSEnv {
+    char *name;
+    char *value;
+};
+
 typedef struct _virDomainOSDef virDomainOSDef;
 typedef virDomainOSDef *virDomainOSDefPtr;
 struct _virDomainOSDef {
@@ -1861,6 +1870,10 @@ struct _virDomainOSDef {
     bool bm_timeout_set;
     char *init;
     char **initargv;
+    virDomainOSEnvPtr *initenv;
+    char *initdir;
+    char *inituser;
+    char *initgroup;
     char *kernel;
     char *initrd;
     char *cmdline;
@@ -2549,7 +2562,7 @@ struct _virDomainDefParserConfig {
     unsigned char macPrefix[VIR_MAC_PREFIX_BUFLEN];
 };
 
-typedef void *(*virDomainXMLPrivateDataAllocFunc)(void);
+typedef void *(*virDomainXMLPrivateDataAllocFunc)(void *);
 typedef void (*virDomainXMLPrivateDataFreeFunc)(void *);
 typedef virObjectPtr (*virDomainXMLPrivateDataNewFunc)(void);
 typedef int (*virDomainXMLPrivateDataFormatFunc)(virBufferPtr,
@@ -2665,10 +2678,12 @@ int virDomainDeviceFindControllerModel(const virDomainDef *def,
 virDomainDiskDefPtr virDomainDiskFindByBusAndDst(virDomainDefPtr def,
                                                  int bus,
                                                  char *dst);
+
+virDomainControllerDefPtr virDomainControllerDefNew(virDomainControllerType type);
 void virDomainControllerDefFree(virDomainControllerDefPtr def);
+bool virDomainControllerIsPSeriesPHB(const virDomainControllerDef *cont);
+
 virDomainFSDefPtr virDomainFSDefNew(void);
-virDomainControllerDefPtr
-virDomainControllerDefNew(virDomainControllerType type);
 void virDomainFSDefFree(virDomainFSDefPtr def);
 void virDomainActualNetDefFree(virDomainActualNetDefPtr def);
 void virDomainNetDefClear(virDomainNetDefPtr def);
@@ -2684,7 +2699,7 @@ void virDomainMemballoonDefFree(virDomainMemballoonDefPtr def);
 void virDomainNVRAMDefFree(virDomainNVRAMDefPtr def);
 void virDomainWatchdogDefFree(virDomainWatchdogDefPtr def);
 void virDomainVideoDefFree(virDomainVideoDefPtr def);
-virDomainHostdevDefPtr virDomainHostdevDefAlloc(virDomainXMLOptionPtr xmlopt);
+virDomainHostdevDefPtr virDomainHostdevDefNew(virDomainXMLOptionPtr xmlopt);
 void virDomainHostdevDefClear(virDomainHostdevDefPtr def);
 void virDomainHostdevDefFree(virDomainHostdevDefPtr def);
 void virDomainHubDefFree(virDomainHubDefPtr def);
@@ -2699,9 +2714,6 @@ virDomainDeviceDefPtr virDomainDeviceDefCopy(virDomainDeviceDefPtr src,
 int virDomainDeviceAddressIsValid(virDomainDeviceInfoPtr info,
                                   int type);
 virDomainDeviceInfoPtr virDomainDeviceGetInfo(virDomainDeviceDefPtr device);
-int virDomainDeviceInfoCopy(virDomainDeviceInfoPtr dst,
-                            virDomainDeviceInfoPtr src);
-void virDomainDeviceInfoClear(virDomainDeviceInfoPtr info);
 void virDomainTPMDefFree(virDomainTPMDefPtr def);
 
 typedef int (*virDomainDeviceInfoCallback)(virDomainDefPtr def,
@@ -3273,6 +3285,8 @@ int virDomainDefFindDevice(virDomainDefPtr def,
                            virDomainDeviceDefPtr dev,
                            bool reportError);
 
+const char *virDomainChrSourceDefGetPath(virDomainChrSourceDefPtr chr);
+
 void virDomainChrSourceDefClear(virDomainChrSourceDefPtr def);
 
 char *virDomainObjGetMetadata(virDomainObjPtr vm,
@@ -3324,12 +3338,12 @@ virDomainGetBlkioParametersAssignFromDef(virDomainDefPtr def,
                                          int *nparams,
                                          int maxparams);
 
-bool
-virDomainDeviceInfoAddressIsEqual(const virDomainDeviceInfo *a,
-                                  const virDomainDeviceInfo *b)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
-
 int virDomainDiskSetBlockIOTune(virDomainDiskDefPtr disk,
                                 virDomainBlockIoTuneInfo *info);
 
+char *
+virDomainGenerateMachineName(const char *drivername,
+                             int id,
+                             const char *name,
+                             bool privileged);
 #endif /* __DOMAIN_CONF_H */

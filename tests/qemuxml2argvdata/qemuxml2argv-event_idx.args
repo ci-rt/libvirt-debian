@@ -13,7 +13,9 @@ QEMU_AUDIO_DRV=none \
 -uuid bba65c0e-c049-934f-b6aa-4e2c0582acdf \
 -nographic \
 -nodefaults \
--monitor unix:/tmp/lib/domain--1-test/monitor.sock,server,nowait \
+-chardev socket,id=charmonitor,path=/tmp/lib/domain--1-test/monitor.sock,\
+server,nowait \
+-mon chardev=charmonitor,id=monitor,mode=readline \
 -no-acpi \
 -boot dc \
 -device virtio-serial-pci,id=virtio-serial0,bus=pci.0,addr=0x6 \
@@ -28,5 +30,4 @@ media=cdrom,id=drive-ide0-1-0,readonly=on \
 -device virtio-net-pci,event_idx=off,vlan=0,id=net0,mac=52:54:00:e5:48:58,\
 bus=pci.0,addr=0x3 \
 -net user,vlan=0,name=hostnet0 \
--serial pty \
 -device virtio-balloon-pci,id=balloon0,bus=pci.0,addr=0x5
