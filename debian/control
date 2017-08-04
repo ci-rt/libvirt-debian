@@ -116,7 +116,7 @@ Description: Virtualization daemon
  a long term stable C API for different virtualization mechanisms. It currently
  supports QEMU, KVM, XEN, OpenVZ, LXC, and VirtualBox.
  .
- This package contains the deaemon libvirtd to manage the hypvervisors.
+ This package contains the daemon libvirtd to manage the hypvervisors.
 
 Package: libvirt-daemon-system
 Architecture: any
