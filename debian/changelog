@@ -1,16 +1,18 @@
-libvirt (3.6.0-1~1.gbp545c02) UNRELEASED; urgency=medium
+libvirt (3.6.0-1) unstable; urgency=medium
 
-  ** SNAPSHOT build @545c02a9db4f0a95881e4c982b9620e3e8239e92 **
-
-  * [f807f7e] Move debianization patches to front of pq
-    since these are unlikely to go away
-  * [a06e5a6] Don't build nss on non-linux
-    since it depends on network support which is not available on non-linux.
+  * [ece8d56] New upstream version 3.6.0 (Closes: #870626)
+  * [f807f7e] Move debianization patches to front of pq since these are
+    unlikely to go away
+  * [a06e5a6] Don't build nss on non-linux since it depends on network support
+    which is not available on non-linux.
     Thanks to Pino Toscano (Closes: #867393)
   * [6982266] Enable esx support (Closes: #602807)
-  * [ece8d56] New upstream version 3.6.0
+  * [2c29499] Bump symbol versions
+  * [f974bd9] d/control: fix typo.
+    Thanks to lintian
+  * [d4f1521] Bump standards version to 4.0.0
 
- -- Guido Günther <agx@sigxcpu.org>  Wed, 02 Aug 2017 15:31:33 -0300
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 04 Aug 2017 00:05:47 -0300
 
 libvirt (3.5.0-1) unstable; urgency=medium
 
