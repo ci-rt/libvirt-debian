@@ -2712,6 +2712,11 @@
                 </attribute>
               </optional>
               <optional>
+                <attribute name='tx_queue_size'>
+                  <ref name='positiveInteger'/>
+                </attribute>
+              </optional>
+              <optional>
                 <attribute name="txmode">
                   <choice>
                     <value>iothread</value>
@@ -3628,6 +3633,18 @@
           <attribute name="tls">
             <ref name="virYesNo"/>
           </attribute>
+        </optional>
+        <optional>
+          <element name="reconnect">
+            <attribute name="enabled">
+              <ref name="virYesNo"/>
+            </attribute>
+            <optional>
+              <attribute name="timeout">
+                <ref name="unsignedInt"/>
+              </attribute>
+            </optional>
+          </element>
         </optional>
         <zeroOrMore>
           <ref name='devSeclabel'/>

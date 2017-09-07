@@ -969,6 +969,7 @@ struct _virDomainNetDef {
             virTristateSwitch event_idx;
             unsigned int queues; /* Multiqueue virtio-net */
             unsigned int rx_queue_size;
+            unsigned int tx_queue_size;
             struct {
                 virTristateSwitch csum;
                 virTristateSwitch gso;
@@ -1120,7 +1121,7 @@ typedef enum {
 } virDomainChrType;
 
 typedef enum {
-    VIR_DOMAIN_CHR_TCP_PROTOCOL_RAW,
+    VIR_DOMAIN_CHR_TCP_PROTOCOL_RAW = 0,
     VIR_DOMAIN_CHR_TCP_PROTOCOL_TELNET,
     VIR_DOMAIN_CHR_TCP_PROTOCOL_TELNETS, /* secure telnet */
     VIR_DOMAIN_CHR_TCP_PROTOCOL_TLS,
@@ -1135,6 +1136,15 @@ typedef enum {
 
     VIR_DOMAIN_CHR_SPICEVMC_LAST
 } virDomainChrSpicevmcName;
+
+
+struct _virDomainChrSourceReconnectDef {
+    virTristateBool enabled;
+    unsigned int timeout;
+};
+typedef struct _virDomainChrSourceReconnectDef virDomainChrSourceReconnectDef;
+typedef virDomainChrSourceReconnectDef *virDomainChrSourceReconnectDefPtr;
+
 
 /* The host side information for a character device.  */
 struct _virDomainChrSourceDef {
@@ -1158,6 +1168,7 @@ struct _virDomainChrSourceDef {
             bool tlscreds;
             int haveTLS; /* enum virTristateBool */
             bool tlsFromConfig;
+            virDomainChrSourceReconnectDef reconnect;
         } tcp;
         struct {
             char *bindHost;
@@ -1168,6 +1179,7 @@ struct _virDomainChrSourceDef {
         struct {
             char *path;
             bool listen;
+            virDomainChrSourceReconnectDef reconnect;
         } nix;
         int spicevmc;
         struct {
@@ -2410,6 +2422,12 @@ struct _virDomainDef {
 
     /* Application-specific custom metadata */
     xmlNodePtr metadata;
+
+    /* internal fields */
+    bool postParseFailed; /* set to true if one of the custom post parse
+                             callbacks failed for a non-critical reason
+                             (was not able to fill in some data) and thus
+                             should be re-run before starting */
 };
 
 
@@ -2496,11 +2514,23 @@ typedef enum {
 typedef struct _virDomainXMLOption virDomainXMLOption;
 typedef virDomainXMLOption *virDomainXMLOptionPtr;
 
+
+/* Called after everything else has been parsed, for adjusting basics.
+ * This has similar semantics to virDomainDefPostParseCallback, but no
+ * parseOpaque is used. This callback is run prior to
+ * virDomainDefPostParseCallback. */
+typedef int (*virDomainDefPostParseBasicCallback)(virDomainDefPtr def,
+                                                  virCapsPtr caps,
+                                                  void *opaque);
+
 /* Called once after everything else has been parsed, for adjusting
  * overall domain defaults.
  * @parseOpaque is opaque data passed by virDomainDefParse* caller,
  * @opaque is opaque data set by driver (usually pointer to driver
- * private data). */
+ * private data). Non-fatal failures should be reported by returning 1. In
+ * cases when that is allowed, such failure is translated to a success return
+ * value and the failure is noted in def->postParseFailed. Drivers should then
+ * re-run the post parse callback when attempting to use such definition. */
 typedef int (*virDomainDefPostParseCallback)(virDomainDefPtr def,
                                              virCapsPtr caps,
                                              unsigned int parseFlags,
@@ -2528,6 +2558,13 @@ typedef int (*virDomainDefAssignAddressesCallback)(virDomainDef *def,
                                                    void *opaque,
                                                    void *parseOpaque);
 
+typedef int (*virDomainDefPostParseDataAlloc)(const virDomainDef *def,
+                                              virCapsPtr caps,
+                                              unsigned int parseFlags,
+                                              void *opaque,
+                                              void **parseOpaque);
+typedef void (*virDomainDefPostParseDataFree)(void *parseOpaque);
+
 /* Called in appropriate places where the domain conf parser can return failure
  * for configurations that were previously accepted. This shall not modify the
  * config. */
@@ -2545,9 +2582,12 @@ typedef struct _virDomainDefParserConfig virDomainDefParserConfig;
 typedef virDomainDefParserConfig *virDomainDefParserConfigPtr;
 struct _virDomainDefParserConfig {
     /* driver domain definition callbacks */
+    virDomainDefPostParseBasicCallback domainPostParseBasicCallback;
+    virDomainDefPostParseDataAlloc domainPostParseDataAlloc;
     virDomainDefPostParseCallback domainPostParseCallback;
     virDomainDeviceDefPostParseCallback devicesPostParseCallback;
     virDomainDefAssignAddressesCallback assignAddressesCallback;
+    virDomainDefPostParseDataFree domainPostParseDataFree;
 
     /* validation callbacks */
     virDomainDefValidateCallback domainValidateCallback;
@@ -2698,6 +2738,7 @@ void virDomainSoundDefFree(virDomainSoundDefPtr def);
 void virDomainMemballoonDefFree(virDomainMemballoonDefPtr def);
 void virDomainNVRAMDefFree(virDomainNVRAMDefPtr def);
 void virDomainWatchdogDefFree(virDomainWatchdogDefPtr def);
+virDomainVideoDefPtr virDomainVideoDefNew(void);
 void virDomainVideoDefFree(virDomainVideoDefPtr def);
 virDomainHostdevDefPtr virDomainHostdevDefNew(virDomainXMLOptionPtr xmlopt);
 void virDomainHostdevDefClear(virDomainHostdevDefPtr def);
@@ -2805,6 +2846,11 @@ typedef enum {
      * that would break ABI otherwise.  This should be used only if it's safe
      * to do such change. */
     VIR_DOMAIN_DEF_PARSE_ABI_UPDATE_MIGRATION = 1 << 12,
+    /* Allows to ignore certain failures in the post parse callbacks, which
+     * may happen due to missing packages and can be fixed by re-running the
+     * post parse callbacks before starting. Failure of the post parse callback
+     * is recorded as def->postParseFail */
+    VIR_DOMAIN_DEF_PARSE_ALLOW_POST_PARSE_FAIL = 1 << 13,
 } virDomainDefParseFlags;
 
 typedef enum {

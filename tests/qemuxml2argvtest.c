@@ -709,6 +709,7 @@ mymain(void)
     DO_TEST("kvm", QEMU_CAPS_MACHINE_OPT);
     DO_TEST("default-kvm-host-arch", QEMU_CAPS_MACHINE_OPT);
     DO_TEST("default-qemu-host-arch", QEMU_CAPS_MACHINE_OPT);
+    DO_TEST("x86-kvm-32-on-64", QEMU_CAPS_MACHINE_OPT);
     DO_TEST("boot-cdrom", NONE);
     DO_TEST("boot-network", NONE);
     DO_TEST("boot-floppy", NONE);
@@ -844,6 +845,8 @@ mymain(void)
             QEMU_CAPS_OBJECT_MEMORY_RAM, QEMU_CAPS_OBJECT_MEMORY_FILE);
     DO_TEST("hugepages-pages5", QEMU_CAPS_MEM_PATH);
     DO_TEST("hugepages-pages6", NONE);
+    DO_TEST("hugepages-pages7", QEMU_CAPS_MEM_PATH,
+            QEMU_CAPS_DEVICE_PC_DIMM, QEMU_CAPS_OBJECT_MEMORY_FILE);
     DO_TEST("hugepages-memaccess", QEMU_CAPS_OBJECT_MEMORY_FILE,
             QEMU_CAPS_OBJECT_MEMORY_RAM, QEMU_CAPS_DEVICE_PC_DIMM,
             QEMU_CAPS_NUMA);
@@ -1167,8 +1170,9 @@ mymain(void)
             QEMU_CAPS_VIRTIO_S390);
     DO_TEST("net-virtio-ccw",
             QEMU_CAPS_VIRTIO_CCW, QEMU_CAPS_VIRTIO_S390);
-    DO_TEST("net-virtio-rxqueuesize",
-            QEMU_CAPS_VIRTIO_NET_RX_QUEUE_SIZE);
+    DO_TEST("net-virtio-rxtxqueuesize",
+            QEMU_CAPS_VIRTIO_NET_RX_QUEUE_SIZE,
+            QEMU_CAPS_VIRTIO_NET_TX_QUEUE_SIZE);
     DO_TEST_PARSE_ERROR("net-virtio-rxqueuesize-invalid-size", NONE);
     DO_TEST("net-eth", NONE);
     DO_TEST("net-eth-ifname", NONE);
@@ -1336,6 +1340,20 @@ mymain(void)
     DO_TEST("smartcard-controller",
             QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_CCID_EMULATED);
+
+    DO_TEST("chardev-reconnect",
+            QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_CHARDEV_RECONNECT,
+            QEMU_CAPS_USB_REDIR,
+            QEMU_CAPS_DEVICE_VIRTIO_RNG,
+            QEMU_CAPS_OBJECT_RNG_EGD,
+            QEMU_CAPS_CCID_PASSTHRU);
+    DO_TEST_PARSE_ERROR("chardev-reconnect-invalid-timeout",
+                        QEMU_CAPS_NODEFCONFIG,
+                        QEMU_CAPS_CHARDEV_RECONNECT);
+    DO_TEST_PARSE_ERROR("chardev-reconnect-generated-path",
+                        QEMU_CAPS_NODEFCONFIG,
+                        QEMU_CAPS_CHARDEV_RECONNECT);
 
     DO_TEST("usb-controller",
             QEMU_CAPS_NODEFCONFIG);
@@ -1557,6 +1575,7 @@ mymain(void)
 
     DO_TEST("qemu-ns", NONE);
     DO_TEST("qemu-ns-no-env", NONE);
+    DO_TEST("qemu-ns-alt", NONE);
 
     DO_TEST("smp", NONE);
 
@@ -1759,13 +1778,15 @@ mymain(void)
     DO_TEST("pseries-phb-default-missing",
             QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE);
-    DO_TEST_PARSE_ERROR("pseries-phb-wrong-target-index", NONE);
     DO_TEST("pseries-phb-numa-node",
             QEMU_CAPS_NUMA,
             QEMU_CAPS_OBJECT_MEMORY_RAM,
             QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE,
             QEMU_CAPS_SPAPR_PCI_HOST_BRIDGE_NUMA_NODE);
     DO_TEST_PARSE_ERROR("pseries-default-phb-numa-node", NONE);
+    DO_TEST_PARSE_ERROR("pseries-phb-invalid-target-index-1", NONE);
+    DO_TEST_PARSE_ERROR("pseries-phb-invalid-target-index-2", NONE);
+    DO_TEST_PARSE_ERROR("pseries-phb-invalid-target-index-3", NONE);
 
     DO_TEST("pseries-many-devices",
             QEMU_CAPS_NODEFCONFIG,
@@ -1865,7 +1886,8 @@ mymain(void)
     DO_TEST("video-virtio-vga",
             QEMU_CAPS_DEVICE_VIRTIO_GPU,
             QEMU_CAPS_DEVICE_VIRTIO_VGA,
-            QEMU_CAPS_DEVICE_VIDEO_PRIMARY);
+            QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
+            QEMU_CAPS_VIRTIO_GPU_MAX_OUTPUTS);
     DO_TEST_PARSE_ERROR("video-invalid", NONE);
 
     DO_TEST("virtio-rng-default",

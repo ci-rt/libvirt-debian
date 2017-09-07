@@ -1,6 +1,91 @@
 libvirt releases
 ================
 
+# v3.7.0 (2017-09-04)
+
+  * New features
+
+    - qemu: Add managedsave-edit commands
+        Using managedsave-dumpxml, managedsave-define and managedsave-edit
+        commands, now we can dump and edit the XML configuration of domain
+        which has managedsave image.
+
+    - qemu: Add migrate-getmaxdowntime command
+        Currently, the maximum tolerable downtime for a domain being migrated
+        is write-only from libvirt, via migrate-setmaxdowntime. This implements
+        a complementary migrate-getmaxdowntime command
+
+    - bhyve: Support autoport for VNC ports
+        It's no longer necessary to explicitly specify VNC port for the bhyve
+        guests. With the autoport feature it will be allocated automatically.
+        Please refer to the bhyve driver documentation for examples.
+
+    - qemu: Added support for setting heads of virtio GPU
+
+    - qemu: Added support to configure reconnect timeout for chardev devices
+        When you have a TCP or UNIX chardev device and it's connected somewhere
+        you can configure reconnect timeout if the connection is closed.
+
+  * Improvements
+
+    - qemu: Report a clear error when dropping a VM during startup
+        "Failed to load config for domain 'DOMNAME'" is now reported if a VM
+        config can't be parsed for some reason, and thus provides a clear
+        indication for users (and devs).
+
+    - apparmor: Update for QEMU 2.10 compatibility
+        Starting with QEMU 2.10, disk images and NVRAM files get automatically
+        locked to prevent them from being corrupted; however, file locking
+        needs to be explicitly allowed through virt-aa-helper or AppArmor will
+        reject the requests and the guest will not be able to run.
+
+    - virsh: List Unix sockets in 'domdisplay' output
+        VNC and SPICE graphics can use Unix sockets instead of TCP/IP sockets
+        as connection endpoints, but such a configuration was not handled
+        correctly by virsh domdisplay, causing the respective endpoints to be
+        missing from the output.
+
+    - qemu: Don't check whether offline migration is safe
+        Since offline migration only copies the guest definition to the
+        destination host, data corruption is not a concern and the operation
+        can always be performed safely.
+
+    - virt-host-validate: Fix IOMMU detection on ppc64
+
+  * Bug fixes
+
+    - qemu: Better support for international domain names (with wide
+      characters)
+        There were some issues with multi-byte domains getting lost on daemon
+        restart due to truncation, so the code now handles multi-byte names a
+        bit better.
+
+    - qemu: Support long domain names with namespaces
+        Domains with extremely long names would fail to start due to temporary
+        namespace paths being created with the whole name. The path is now
+        generated with shortened name instead.
+
+    - qemu: Tolerate missing emulator binary during libvirtd restart
+        For some time libvirt required qemu capabilities being present when
+        parsing VM configs during startup. As a side effect VM configs would
+        fail to parse and thus vanish, if the emulator binary would be
+        uninstalled or broken. Libvirt now tolerates when capabilities are
+        missing during startup.
+
+    - qemu: Prevent pSeries guests from disappearing in some situations
+        pSeries guest would disappear if any of the host devices they were
+        configured to use was not available during libvirtd startup, which
+        could easily happen for SR-IOV Virtual Functions. This scenario is now
+        handled correctly.
+
+    - qemu: Honor <on_reboot/> setting
+        The setting was accepted by the parser, but not actually implemented.
+
+    - Fix --verbose option for all daemons
+        Since v3.0.0, the option had been ignored by all libvirt deamons
+        (libvirtd, virtlogd and virtlockd); it's now working as intended once
+        again.
+
 # v3.6.0 (2017-08-02)
 
   * New features

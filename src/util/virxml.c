@@ -92,6 +92,24 @@ virXPathString(const char *xpath,
     return ret;
 }
 
+
+static char *
+virXMLStringLimitInternal(char *value,
+                          size_t maxlen,
+                          const char *name)
+{
+    if (value != NULL && strlen(value) >= maxlen) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("'%s' value longer than '%zu' bytes"),
+                       name, maxlen);
+        VIR_FREE(value);
+        return NULL;
+    }
+
+    return value;
+}
+
+
 /**
  * virXPathStringLimit:
  * @xpath: the XPath string to evaluate
@@ -111,15 +129,7 @@ virXPathStringLimit(const char *xpath,
 {
     char *tmp = virXPathString(xpath, ctxt);
 
-    if (tmp != NULL && strlen(tmp) >= maxlen) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("\'%s\' value longer than %zu bytes"),
-                       xpath, maxlen);
-        VIR_FREE(tmp);
-        return NULL;
-    }
-
-    return tmp;
+    return virXMLStringLimitInternal(tmp, maxlen, xpath);
 }
 
 /**
@@ -506,6 +516,46 @@ virXMLPropString(xmlNodePtr node,
     return (char *)xmlGetProp(node, BAD_CAST name);
 }
 
+
+/**
+ * virXMLPropStringLimit:
+ * @node: XML dom node pointer
+ * @name: Name of the property (attribute) to get
+ * @maxlen: maximum permitted length of the string
+ *
+ * Wrapper for virXMLPropString, which validates the length of the returned
+ * string.
+ *
+ * Returns a new string which must be deallocated by the caller or NULL if
+ * the evaluation failed.
+ */
+char *
+virXMLPropStringLimit(xmlNodePtr node,
+                      const char *name,
+                      size_t maxlen)
+{
+    char *tmp = (char *)xmlGetProp(node, BAD_CAST name);
+
+    return virXMLStringLimitInternal(tmp, maxlen, name);
+}
+
+
+/**
+ * virXMLNodeContentString:
+ * @node: XML dom node pointer
+ *
+ * Convenience function to return copy of content of an XML node.
+ *
+ * Returns the content value as string or NULL in case of failure.
+ * The caller is responsible for freeing the returned buffer.
+ */
+char *
+virXMLNodeContentString(xmlNodePtr node)
+{
+    return (char *)xmlNodeGetContent(node);
+}
+
+
 /**
  * virXPathBoolean:
  * @xpath: the XPath string to evaluate
@@ -671,7 +721,7 @@ catchXMLError(void *ctx, const char *msg ATTRIBUTE_UNUSED, ...)
         return;
 
     if (ctxt->_private)
-            domcode = ((struct virParserData *) ctxt->_private)->domcode;
+        domcode = ((struct virParserData *) ctxt->_private)->domcode;
 
 
     cur = ctxt->input->cur;
@@ -718,7 +768,7 @@ catchXMLError(void *ctx, const char *msg ATTRIBUTE_UNUSED, ...)
                               contextstr,
                               pointerstr);
     } else {
-         virGenericReportError(domcode, VIR_ERR_XML_DETAIL,
+        virGenericReportError(domcode, VIR_ERR_XML_DETAIL,
                               _("at line %d: %s%s\n%s"),
                               ctxt->lastError.line,
                               ctxt->lastError.message,
@@ -928,27 +978,43 @@ char *
 virXMLNodeToString(xmlDocPtr doc,
                    xmlNodePtr node)
 {
-     xmlBufferPtr xmlbuf = NULL;
-     char *ret = NULL;
+    xmlBufferPtr xmlbuf = NULL;
+    char *ret = NULL;
 
-     if (!(xmlbuf = xmlBufferCreate())) {
-         virReportOOMError();
-         return NULL;
-     }
+    if (!(xmlbuf = xmlBufferCreate())) {
+        virReportOOMError();
+        return NULL;
+    }
 
-     if (xmlNodeDump(xmlbuf, doc, node, 0, 1) == 0) {
-         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("failed to convert the XML node tree"));
-         goto cleanup;
-     }
+    if (xmlNodeDump(xmlbuf, doc, node, 0, 1) == 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("failed to convert the XML node tree"));
+        goto cleanup;
+    }
 
-     ignore_value(VIR_STRDUP(ret, (const char *)xmlBufferContent(xmlbuf)));
+    ignore_value(VIR_STRDUP(ret, (const char *)xmlBufferContent(xmlbuf)));
 
  cleanup:
-     xmlBufferFree(xmlbuf);
+    xmlBufferFree(xmlbuf);
 
-     return ret;
+    return ret;
 }
+
+
+/**
+ * virXMLNodeNameEqual:
+ * @node: xml Node pointer to check
+ * @name: name of the @node
+ *
+ * Compares the @node name with @name.
+ */
+bool
+virXMLNodeNameEqual(xmlNodePtr node,
+                    const char *name)
+{
+    return xmlStrEqual(node->name, BAD_CAST name);
+}
+
 
 typedef int (*virXMLForeachCallback)(xmlNodePtr node,
                                      void *opaque);
@@ -1126,7 +1192,7 @@ virXMLNodeSanitizeNamespaces(xmlNodePtr node)
     xmlNodePtr dupl;
 
     if (!node)
-       return;
+        return;
 
     child = node->children;
     while (child) {
@@ -1287,4 +1353,51 @@ virXMLValidatorFree(virXMLValidatorPtr validator)
     xmlRelaxNGFreeValidCtxt(validator->rngValid);
     xmlRelaxNGFree(validator->rng);
     VIR_FREE(validator);
+}
+
+
+/**
+ * virXMLFormatElement
+ * @buf: the parent buffer where the element will be placed
+ * @name: the name of the element
+ * @attrBuf: buffer with attributes for element, may be NULL
+ * @childBuf: buffer with child elements, may be NULL
+ *
+ * Helper to format element where attributes or child elements
+ * are optional and may not be formatted.  If both @attrBuf and
+ * @childBuf are NULL or are empty buffers the element is not
+ * formatted.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+int
+virXMLFormatElement(virBufferPtr buf,
+                    const char *name,
+                    virBufferPtr attrBuf,
+                    virBufferPtr childBuf)
+{
+    if ((!attrBuf || virBufferUse(attrBuf) == 0) &&
+        (!childBuf || virBufferUse(childBuf) == 0)) {
+        return 0;
+    }
+
+    if ((attrBuf && virBufferCheckError(attrBuf) < 0) ||
+        (childBuf && virBufferCheckError(childBuf) < 0)) {
+        return -1;
+    }
+
+    virBufferAsprintf(buf, "<%s", name);
+
+    if (attrBuf && virBufferUse(attrBuf) > 0)
+        virBufferAddBuffer(buf, attrBuf);
+
+    if (childBuf && virBufferUse(childBuf) > 0) {
+        virBufferAddLit(buf, ">\n");
+        virBufferAddBuffer(buf, childBuf);
+        virBufferAsprintf(buf, "</%s>\n", name);
+    } else {
+        virBufferAddLit(buf, "/>\n");
+    }
+
+    return 0;
 }

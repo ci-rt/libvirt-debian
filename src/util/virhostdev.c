@@ -307,7 +307,9 @@ virHostdevIsVirtualFunction(virDomainHostdevDefPtr hostdev)
 
 
 static int
-virHostdevNetDevice(virDomainHostdevDefPtr hostdev, char **linkdev,
+virHostdevNetDevice(virDomainHostdevDefPtr hostdev,
+                    int pfNetDevIdx,
+                    char **linkdev,
                     int *vf)
 {
     int ret = -1;
@@ -317,16 +319,17 @@ virHostdevNetDevice(virDomainHostdevDefPtr hostdev, char **linkdev,
         return ret;
 
     if (virPCIIsVirtualFunction(sysfs_path) == 1) {
-        if (virPCIGetVirtualFunctionInfo(sysfs_path, linkdev,
-                                         vf) < 0)
+        if (virPCIGetVirtualFunctionInfo(sysfs_path, pfNetDevIdx,
+                                         linkdev, vf) < 0) {
             goto cleanup;
+        }
     } else {
         /* In practice this should never happen, since we currently
          * only support assigning SRIOV VFs via <interface
          * type='hostdev'>, and it is only those devices that should
          * end up calling this function.
          */
-        if (virPCIGetNetName(sysfs_path, linkdev) < 0)
+        if (virPCIGetNetName(sysfs_path, 0, NULL, linkdev) < 0)
             goto cleanup;
 
         if (!linkdev) {
@@ -444,7 +447,7 @@ virHostdevSaveNetConfig(virDomainHostdevDefPtr hostdev,
         goto cleanup;
     }
 
-    if (virHostdevNetDevice(hostdev, &linkdev, &vf) < 0)
+    if (virHostdevNetDevice(hostdev, -1, &linkdev, &vf) < 0)
         goto cleanup;
 
     if (virNetDevSaveNetConfig(linkdev, vf, stateDir, true) < 0)
@@ -482,7 +485,7 @@ virHostdevSetNetConfig(virDomainHostdevDefPtr hostdev,
     if (!virHostdevIsPCINetDevice(hostdev))
         return 0;
 
-    if (virHostdevNetDevice(hostdev, &linkdev, &vf) < 0)
+    if (virHostdevNetDevice(hostdev, -1, &linkdev, &vf) < 0)
         goto cleanup;
 
     vlan = virDomainNetGetActualVlan(hostdev->parent.data.net);
@@ -531,6 +534,10 @@ virHostdevRestoreNetConfig(virDomainHostdevDefPtr hostdev,
     int ret = -1;
     int vf = -1;
     bool port_profile_associate = false;
+    virMacAddrPtr MAC = NULL;
+    virMacAddrPtr adminMAC = NULL;
+    virNetDevVlanPtr vlan = NULL;
+
 
     /* This is only needed for PCI devices that have been defined
      * using <interface type='hostdev'>. For all others, it is a NOP.
@@ -545,7 +552,7 @@ virHostdevRestoreNetConfig(virDomainHostdevDefPtr hostdev,
         return ret;
     }
 
-    if (virHostdevNetDevice(hostdev, &linkdev, &vf) < 0)
+    if (virHostdevNetDevice(hostdev, 0, &linkdev, &vf) < 0)
         return ret;
 
     virtPort = virDomainNetGetActualVirtPortProfile(
@@ -556,50 +563,92 @@ virHostdevRestoreNetConfig(virDomainHostdevDefPtr hostdev,
                                                  NULL,
                                                  port_profile_associate);
     } else {
-        virMacAddrPtr MAC = NULL;
-        virMacAddrPtr adminMAC = NULL;
-        virNetDevVlanPtr vlan = NULL;
+        /* we need to try 3 different places for the config file:
+         * 1) ${stateDir}/${PF}_vf${vf}
+         *    This is almost always where the saved config is
+         *
+         * 2) ${oldStateDir/${PF}_vf${vf}
+         *    saved config is only here if this machine was running a
+         *    (by now *very*) old version of libvirt that saved the
+         *    file in a different directory
+         *
+         * 3) ${stateDir}${PF[1]}_vf${VF}
+         *    PF[1] means "the netdev for port 2 of the PF device", and
+         *    is only valid when the PF is a Mellanox dual port NIC with
+         *    a VF that was created in "single port" mode.
+         *
+         *  NB: if virNetDevReadNetConfig() returns < 0, then it found
+         *  the file, but there was a problem, so we should
+         *  immediately return an error to our caller. If it returns
+         *  0, but all of the interesting stuff is NULL, that means
+         *  the file wasn't found, so we can/should check other
+         *  locations for it.
+         */
 
-        ret = virNetDevReadNetConfig(linkdev, vf, stateDir, &adminMAC, &vlan, &MAC);
-        if (ret < 0 && oldStateDir)
-            ret = virNetDevReadNetConfig(linkdev, vf, oldStateDir,
-                                         &adminMAC, &vlan, &MAC);
-
-        if (ret == 0) {
-            /* if a MAC was stored for the VF, we should now restore
-             * that as the adminMAC. We have to do it this way because
-             * the VF is still not bound to the host's net driver, so
-             * we can't directly set its MAC (and even after it is
-             * re-bound to the host net driver, it will still have its
-             * "administratively set" flag on, and that prohibits the
-             * VF's net driver from directly setting the MAC
-             * anyway). But it we set the desired VF MAC as the "admin
-             * MAC" *now*, then when the VF is re-bound to the host
-             * net driver (which will happen soon after returning from
-             * this function), that adminMAC will be set (by the PF)
-             * as the VF's new initial MAC.
-             *
-             * If no MAC was stored for the VF, that means it wasn't
-             * bound to a net driver before we used it anyway, so the
-             * adminMAC is all we have, and we can just restore it
-             * directly.
-             */
-            if (MAC) {
-                VIR_FREE(adminMAC);
-                adminMAC = MAC;
-                MAC = NULL;
-            }
-
-            ignore_value(virNetDevSetNetConfig(linkdev, vf,
-                                               adminMAC, vlan, MAC, true));
+        /* 1) standard location */
+        if (virNetDevReadNetConfig(linkdev, vf, stateDir,
+                                   &adminMAC, &vlan, &MAC) < 0) {
+            goto cleanup;
         }
 
-        VIR_FREE(MAC);
-        VIR_FREE(adminMAC);
-        virNetDevVlanFree(vlan);
+        /* 2) "old" (pre-1.2.3 circa 2014) location - whenever we get
+        *  to the point that nobody will ever upgrade directly from
+        *  1.2.3 (or older) directly to current libvirt, we can
+        *  eliminate this clause
+        **/
+        if (!(adminMAC || vlan || MAC) && oldStateDir &&
+            virNetDevReadNetConfig(linkdev, vf, oldStateDir,
+                                   &adminMAC, &vlan, &MAC) < 0) {
+            goto cleanup;
+        }
+
+        /* 3) try using the PF's "port 2" netdev as the name of the
+         * config file
+         */
+        if (!(adminMAC || vlan || MAC)) {
+            VIR_FREE(linkdev);
+
+            if (virHostdevNetDevice(hostdev, 1, &linkdev, &vf) < 0 ||
+                virNetDevReadNetConfig(linkdev, vf, stateDir,
+                                       &adminMAC, &vlan, &MAC) < 0) {
+                goto cleanup;
+            }
+        }
+
+        /* if a MAC was stored for the VF, we should now restore
+         * that as the adminMAC. We have to do it this way because
+         * the VF is still not bound to the host's net driver, so
+         * we can't directly set its MAC (and even after it is
+         * re-bound to the host net driver, it will still have its
+         * "administratively set" flag on, and that prohibits the
+         * VF's net driver from directly setting the MAC
+         * anyway). But it we set the desired VF MAC as the "admin
+         * MAC" *now*, then when the VF is re-bound to the host
+         * net driver (which will happen soon after returning from
+         * this function), that adminMAC will be set (by the PF)
+         * as the VF's new initial MAC.
+         *
+         * If no MAC was stored for the VF, that means it wasn't
+         * bound to a net driver before we used it anyway, so the
+         * adminMAC is all we have, and we can just restore it
+         * directly.
+         */
+        if (MAC) {
+            VIR_FREE(adminMAC);
+            adminMAC = MAC;
+            MAC = NULL;
+        }
+
+        ignore_value(virNetDevSetNetConfig(linkdev, vf,
+                                           adminMAC, vlan, MAC, true));
+        ret = 0;
     }
 
+ cleanup:
     VIR_FREE(linkdev);
+    VIR_FREE(MAC);
+    VIR_FREE(adminMAC);
+    virNetDevVlanFree(vlan);
 
     return ret;
 }

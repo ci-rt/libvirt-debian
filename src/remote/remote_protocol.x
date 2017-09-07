@@ -80,7 +80,7 @@ const REMOTE_NETWORK_LIST_MAX = 16384;
 const REMOTE_INTERFACE_LIST_MAX = 16384;
 
 /* Upper limit on lists of storage pools. */
-const REMOTE_STORAGE_POOL_LIST_MAX = 4096;
+const REMOTE_STORAGE_POOL_LIST_MAX = 16384;
 
 /* Upper limit on lists of storage vols. */
 const REMOTE_STORAGE_VOL_LIST_MAX = 16384;
@@ -92,7 +92,7 @@ const REMOTE_NODE_DEVICE_LIST_MAX = 65536;
 const REMOTE_NODE_DEVICE_CAPS_LIST_MAX = 65536;
 
 /* Upper limit on lists of network filters. */
-const REMOTE_NWFILTER_LIST_MAX = 1024;
+const REMOTE_NWFILTER_LIST_MAX = 16384;
 
 /* Upper limit on list of scheduler parameters. */
 const REMOTE_DOMAIN_SCHEDULER_PARAMETERS_MAX = 16;
@@ -137,7 +137,7 @@ const REMOTE_AUTH_TYPE_LIST_MAX = 20;
 const REMOTE_DOMAIN_MEMORY_STATS_MAX = 1024;
 
 /* Upper limit on lists of domain snapshots. */
-const REMOTE_DOMAIN_SNAPSHOT_LIST_MAX = 1024;
+const REMOTE_DOMAIN_SNAPSHOT_LIST_MAX = 16384;
 
 /* Maximum length of a block peek buffer message.
  * Note applications need to be aware of this limit and issue multiple
@@ -2326,6 +2326,15 @@ struct remote_domain_abort_job_args {
 };
 
 
+struct remote_domain_migrate_get_max_downtime_args {
+    remote_nonnull_domain dom;
+    unsigned int flags;
+};
+
+struct remote_domain_migrate_get_max_downtime_ret {
+     unsigned hyper downtime; /* insert@1 */
+};
+
 struct remote_domain_migrate_set_max_downtime_args {
     remote_nonnull_domain dom;
     unsigned hyper downtime;
@@ -2544,6 +2553,21 @@ struct remote_domain_has_managed_save_image_ret {
 
 struct remote_domain_managed_save_remove_args {
     remote_nonnull_domain dom;
+    unsigned int flags;
+};
+
+struct remote_domain_managed_save_get_xml_desc_args {
+    remote_nonnull_domain dom;
+    unsigned int flags;
+};
+
+struct remote_domain_managed_save_get_xml_desc_ret {
+    remote_nonnull_string xml;
+};
+
+struct remote_domain_managed_save_define_xml_args {
+    remote_nonnull_domain dom;
+    remote_string dxml;
     unsigned int flags;
 };
 
@@ -6064,7 +6088,25 @@ enum remote_procedure {
      * @generate: both
      * @acl: domain:write
      */
-    REMOTE_PROC_DOMAIN_SET_BLOCK_THRESHOLD = 386
+    REMOTE_PROC_DOMAIN_SET_BLOCK_THRESHOLD = 386,
 
+    /**
+     * @generate: both
+     * @acl: domain:migrate
+     */
+    REMOTE_PROC_DOMAIN_MIGRATE_GET_MAX_DOWNTIME = 387,
 
+    /**
+     * @generate: both
+     * @acl: domain:read
+     * @acl: domain:read_secure:VIR_DOMAIN_XML_SECURE
+     */
+    REMOTE_PROC_DOMAIN_MANAGED_SAVE_GET_XML_DESC = 388,
+
+    /**
+     * @generate: both
+     * @acl: domain:write
+     * @acl: domain:hibernate
+     */
+    REMOTE_PROC_DOMAIN_MANAGED_SAVE_DEFINE_XML = 389
 };

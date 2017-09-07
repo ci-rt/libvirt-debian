@@ -616,7 +616,7 @@ caps_mockup(vahControl * ctl, const char *xmlStr)
         goto cleanup;
     }
 
-    if (!xmlStrEqual(ctxt->node->name, BAD_CAST "domain")) {
+    if (!virXMLNodeNameEqual(ctxt->node, "domain")) {
         vah_error(NULL, 0, _("unexpected root element, expecting <domain>"));
         goto cleanup;
     }
@@ -892,11 +892,11 @@ add_file_path(virDomainDiskDefPtr disk,
 
     if (depth == 0) {
         if (disk->src->readonly)
-            ret = vah_add_file(buf, path, "r");
+            ret = vah_add_file(buf, path, "rk");
         else
-            ret = vah_add_file(buf, path, "rw");
+            ret = vah_add_file(buf, path, "rwk");
     } else {
-        ret = vah_add_file(buf, path, "r");
+        ret = vah_add_file(buf, path, "rk");
     }
 
     if (ret != 0)
@@ -1029,11 +1029,11 @@ get_files(vahControl * ctl)
             goto cleanup;
 
     if (ctl->def->os.loader && ctl->def->os.loader->path)
-        if (vah_add_file(&buf, ctl->def->os.loader->path, "r") != 0)
+        if (vah_add_file(&buf, ctl->def->os.loader->path, "rk") != 0)
             goto cleanup;
 
     if (ctl->def->os.loader && ctl->def->os.loader->nvram)
-        if (vah_add_file(&buf, ctl->def->os.loader->nvram, "rw") != 0)
+        if (vah_add_file(&buf, ctl->def->os.loader->nvram, "rwk") != 0)
             goto cleanup;
 
     for (i = 0; i < ctl->def->ngraphics; i++) {

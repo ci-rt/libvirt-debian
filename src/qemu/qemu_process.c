@@ -484,6 +484,7 @@ qemuProcessHandleReset(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
     virObjectEventPtr event;
     qemuDomainObjPrivatePtr priv;
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+    int ret = -1;
 
     virObjectLock(vm);
 
@@ -495,12 +496,32 @@ qemuProcessHandleReset(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
     if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm, driver->caps) < 0)
         VIR_WARN("Failed to save status on vm %s", vm->def->name);
 
+    if (vm->def->onReboot == VIR_DOMAIN_LIFECYCLE_DESTROY ||
+        vm->def->onReboot == VIR_DOMAIN_LIFECYCLE_PRESERVE) {
+
+        if (qemuDomainObjBeginJob(driver, vm, QEMU_JOB_MODIFY) < 0)
+            goto cleanup;
+
+        if (!virDomainObjIsActive(vm)) {
+            VIR_DEBUG("Ignoring RESET event from inactive domain %s",
+                      vm->def->name);
+            goto endjob;
+        }
+
+        qemuProcessStop(driver, vm, VIR_DOMAIN_SHUTOFF_DESTROYED,
+                        QEMU_ASYNC_JOB_NONE, 0);
+        virDomainAuditStop(vm, "destroyed");
+        qemuDomainRemoveInactive(driver, vm);
+     endjob:
+        qemuDomainObjEndJob(driver, vm);
+    }
+
+    ret = 0;
+ cleanup:
     virObjectUnlock(vm);
-
     qemuDomainEventQueue(driver, event);
-
     virObjectUnref(cfg);
-    return 0;
+    return ret;
 }
 
 
@@ -4691,6 +4712,15 @@ qemuProcessInit(virQEMUDriverPtr driver,
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
+    /* in case when the post parse callback failed we need to re-run it on the
+     * old config prior we start the VM */
+    if (vm->def->postParseFailed) {
+        VIR_DEBUG("re-running the post parse callback");
+
+        if (virDomainDefPostParse(vm->def, caps, 0, driver->xmlopt, NULL) < 0)
+            goto cleanup;
+    }
+
     VIR_DEBUG("Determining emulator version");
     virObjectUnref(priv->qemuCaps);
     if (!(priv->qemuCaps = virQEMUCapsCacheLookupCopy(driver->qemuCapsCache,
@@ -5324,6 +5354,11 @@ qemuProcessPrepareDomain(virConnectPtr conn,
     VIR_DEBUG("Updating guest CPU definition");
     if (qemuProcessUpdateGuestCPU(vm->def, priv->qemuCaps, caps, flags) < 0)
         goto cleanup;
+
+    for (i = 0; i < vm->def->nshmems; i++) {
+        if (qemuDomainPrepareShmemChardev(vm->def->shmems[i]) < 0)
+            goto cleanup;
+    }
 
     ret = 0;
  cleanup:
@@ -6647,9 +6682,9 @@ qemuProcessAutoDestroy(virDomainObjPtr dom,
                                      VIR_DOMAIN_EVENT_STOPPED,
                                      VIR_DOMAIN_EVENT_STOPPED_DESTROYED);
 
-    qemuDomainObjEndJob(driver, dom);
-
     qemuDomainRemoveInactive(driver, dom);
+
+    qemuDomainObjEndJob(driver, dom);
 
     qemuDomainEventQueue(driver, event);
 
@@ -6807,8 +6842,6 @@ qemuProcessReconnect(void *opaque)
     /* Restore the masterKey */
     if (qemuDomainMasterKeyReadFile(priv) < 0)
         goto error;
-
-    virNWFilterReadLockFilterUpdates();
 
     VIR_DEBUG("Reconnect monitor to %p '%s'", obj, obj->def->name);
 
@@ -6984,10 +7017,14 @@ qemuProcessReconnect(void *opaque)
         driver->inhibitCallback(true, driver->inhibitOpaque);
 
  cleanup:
-    if (jobStarted)
+    if (jobStarted) {
+        if (!virDomainObjIsActive(obj))
+            qemuDomainRemoveInactive(driver, obj);
         qemuDomainObjEndJob(driver, obj);
-    if (!virDomainObjIsActive(obj))
-        qemuDomainRemoveInactive(driver, obj);
+    } else {
+        if (!virDomainObjIsActive(obj))
+            qemuDomainRemoveInactiveJob(driver, obj);
+    }
     virDomainObjEndAPI(&obj);
     virObjectUnref(conn);
     virObjectUnref(cfg);
@@ -7038,6 +7075,8 @@ qemuProcessReconnectHelper(virDomainObjPtr obj,
     memcpy(data, src, sizeof(*data));
     data->obj = obj;
 
+    virNWFilterReadLockFilterUpdates();
+
     /* this lock and reference will be eventually transferred to the thread
      * that handles the reconnect */
     virObjectLock(obj);
@@ -7060,9 +7099,10 @@ qemuProcessReconnectHelper(virDomainObjPtr obj,
          */
         qemuProcessStop(src->driver, obj, VIR_DOMAIN_SHUTOFF_FAILED,
                         QEMU_ASYNC_JOB_NONE, 0);
-        qemuDomainRemoveInactive(src->driver, obj);
+        qemuDomainRemoveInactiveJob(src->driver, obj);
 
         virDomainObjEndAPI(&obj);
+        virNWFilterUnlockFilterUpdates();
         virObjectUnref(data->conn);
         VIR_FREE(data);
         return -1;

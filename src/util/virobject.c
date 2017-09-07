@@ -47,6 +47,24 @@ struct _virClass {
     virObjectDisposeCallback dispose;
 };
 
+#define VIR_OBJECT_NOTVALID(obj) (!obj || ((obj->u.s.magic & 0xFFFF0000) != 0xCAFE0000))
+
+#define VIR_OBJECT_USAGE_PRINT_WARNING(anyobj, objclass)                    \
+    do {                                                                    \
+        virObjectPtr obj = anyobj;                                          \
+        if (VIR_OBJECT_NOTVALID(obj)) {                                     \
+            if (!obj)                                                       \
+                VIR_WARN("Object cannot be NULL");                          \
+            else                                                            \
+                VIR_WARN("Object %p has a bad magic number %X",             \
+                         obj, obj->u.s.magic);                              \
+        } else {                                                            \
+            VIR_WARN("Object %p (%s) is not a %s instance",                 \
+                      anyobj, obj->klass->name, #objclass);                 \
+        }                                                                   \
+    } while (0)
+
+
 static virClassPtr virObjectClass;
 static virClassPtr virObjectLockableClass;
 static virClassPtr virObjectRWLockableClass;
@@ -166,9 +184,14 @@ virClassNew(virClassPtr parent,
         goto error;
 
     klass->parent = parent;
+    klass->magic = virAtomicIntInc(&magicCounter);
+    if (klass->magic > 0xCAFEFFFF) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("too many object classes defined"));
+        goto error;
+    }
     if (VIR_STRDUP(klass->name, name) < 0)
         goto error;
-    klass->magic = virAtomicIntInc(&magicCounter);
     klass->objectSize = objectSize;
     klass->dispose = dispose;
 
@@ -320,7 +343,7 @@ virObjectUnref(void *anyobj)
 {
     virObjectPtr obj = anyobj;
 
-    if (!obj)
+    if (VIR_OBJECT_NOTVALID(obj))
         return false;
 
     bool lastRef = virAtomicIntDecAndTest(&obj->u.s.refs);
@@ -359,11 +382,33 @@ virObjectRef(void *anyobj)
 {
     virObjectPtr obj = anyobj;
 
-    if (!obj)
+    if (VIR_OBJECT_NOTVALID(obj))
         return NULL;
     virAtomicIntInc(&obj->u.s.refs);
     PROBE(OBJECT_REF, "obj=%p", obj);
     return anyobj;
+}
+
+
+static virObjectLockablePtr
+virObjectGetLockableObj(void *anyobj)
+{
+    if (virObjectIsClass(anyobj, virObjectLockableClass))
+        return anyobj;
+
+    VIR_OBJECT_USAGE_PRINT_WARNING(anyobj, virObjectLockable);
+    return NULL;
+}
+
+
+static virObjectRWLockablePtr
+virObjectGetRWLockableObj(void *anyobj)
+{
+    if (virObjectIsClass(anyobj, virObjectRWLockableClass))
+        return anyobj;
+
+    VIR_OBJECT_USAGE_PRINT_WARNING(anyobj, virObjectRWLockable);
+    return NULL;
 }
 
 
@@ -372,8 +417,7 @@ virObjectRef(void *anyobj)
  * @anyobj: any instance of virObjectLockable or virObjectRWLockable
  *
  * Acquire a lock on @anyobj. The lock must be released by
- * virObjectUnlock. In case the passed object is instance of
- * virObjectRWLockable a write lock is acquired.
+ * virObjectUnlock.
  *
  * The caller is expected to have acquired a reference
  * on the object before locking it (eg virObjectRef).
@@ -383,69 +427,108 @@ virObjectRef(void *anyobj)
 void
 virObjectLock(void *anyobj)
 {
-    if (virObjectIsClass(anyobj, virObjectLockableClass)) {
-        virObjectLockablePtr obj = anyobj;
-        virMutexLock(&obj->lock);
-    } else if (virObjectIsClass(anyobj, virObjectRWLockableClass)) {
-        virObjectRWLockablePtr obj = anyobj;
-        virRWLockWrite(&obj->lock);
-    } else {
-        virObjectPtr obj = anyobj;
-        VIR_WARN("Object %p (%s) is not a virObjectLockable "
-                 "nor virObjectRWLockable instance",
-                 anyobj, obj ? obj->klass->name : "(unknown)");
-    }
+    virObjectLockablePtr obj = virObjectGetLockableObj(anyobj);
+
+    if (!obj)
+        return;
+
+    virMutexLock(&obj->lock);
 }
 
 
 /**
- * virObjectLockRead:
+ * virObjectRWLockRead:
  * @anyobj: any instance of virObjectRWLockable
  *
  * Acquire a read lock on @anyobj. The lock must be
- * released by virObjectUnlock.
+ * released by virObjectRWUnlock.
  *
  * The caller is expected to have acquired a reference
  * on the object before locking it (eg virObjectRef).
  * The object must be unlocked before releasing this
  * reference.
+ *
+ * NB: It's possible to return without the lock if
+ *     @anyobj was invalid - this has been considered
+ *     a programming error rather than something that
+ *     should be checked.
  */
 void
-virObjectLockRead(void *anyobj)
+virObjectRWLockRead(void *anyobj)
 {
-    if (virObjectIsClass(anyobj, virObjectRWLockableClass)) {
-        virObjectRWLockablePtr obj = anyobj;
-        virRWLockRead(&obj->lock);
-    } else {
-        virObjectPtr obj = anyobj;
-        VIR_WARN("Object %p (%s) is not a virObjectRWLockable instance",
-                 anyobj, obj ? obj->klass->name : "(unknown)");
-    }
+    virObjectRWLockablePtr obj = virObjectGetRWLockableObj(anyobj);
+
+    if (!obj)
+        return;
+
+    virRWLockRead(&obj->lock);
+}
+
+
+/**
+ * virObjectRWLockWrite:
+ * @anyobj: any instance of virObjectRWLockable
+ *
+ * Acquire a write lock on @anyobj. The lock must be
+ * released by virObjectRWUnlock.
+ *
+ * The caller is expected to have acquired a reference
+ * on the object before locking it (eg virObjectRef).
+ * The object must be unlocked before releasing this
+ * reference.
+ *
+ * NB: It's possible to return without the lock if
+ *     @anyobj was invalid - this has been considered
+ *     a programming error rather than something that
+ *     should be checked.
+ */
+void
+virObjectRWLockWrite(void *anyobj)
+{
+    virObjectRWLockablePtr obj = virObjectGetRWLockableObj(anyobj);
+
+    if (!obj)
+        return;
+
+    virRWLockWrite(&obj->lock);
 }
 
 
 /**
  * virObjectUnlock:
- * @anyobj: any instance of virObjectLockable or virObjectRWLockable
+ * @anyobj: any instance of virObjectLockable
  *
  * Release a lock on @anyobj. The lock must have been acquired by
- * virObjectLock or virObjectLockRead.
+ * virObjectLock.
  */
 void
 virObjectUnlock(void *anyobj)
 {
-    if (virObjectIsClass(anyobj, virObjectLockableClass)) {
-        virObjectLockablePtr obj = anyobj;
-        virMutexUnlock(&obj->lock);
-    } else if (virObjectIsClass(anyobj, virObjectRWLockableClass)) {
-        virObjectRWLockablePtr obj = anyobj;
-        virRWLockUnlock(&obj->lock);
-    } else {
-        virObjectPtr obj = anyobj;
-        VIR_WARN("Object %p (%s) is not a virObjectLockable "
-                 "nor virObjectRWLockable instance",
-                 anyobj, obj ? obj->klass->name : "(unknown)");
-    }
+    virObjectLockablePtr obj = virObjectGetLockableObj(anyobj);
+
+    if (!obj)
+        return;
+
+    virMutexUnlock(&obj->lock);
+}
+
+
+/**
+ * virObjectRWUnlock:
+ * @anyobj: any instance of virObjectRWLockable
+ *
+ * Release a lock on @anyobj. The lock must have been acquired by
+ * virObjectRWLockRead or virObjectRWLockWrite.
+ */
+void
+virObjectRWUnlock(void *anyobj)
+{
+    virObjectRWLockablePtr obj = virObjectGetRWLockableObj(anyobj);
+
+    if (!obj)
+        return;
+
+    virRWLockUnlock(&obj->lock);
 }
 
 
@@ -464,7 +547,7 @@ virObjectIsClass(void *anyobj,
                  virClassPtr klass)
 {
     virObjectPtr obj = anyobj;
-    if (!obj)
+    if (VIR_OBJECT_NOTVALID(obj))
         return false;
 
     return virClassIsDerivedFrom(obj->klass, klass);

@@ -920,6 +920,7 @@
     <function name="VIR_FROM_PROXY" link="libvirt-virterror.html#VIR_FROM_PROXY"/>
     <function name="VIR_FROM_QEMU" link="libvirt-virterror.html#VIR_FROM_QEMU"/>
     <function name="VIR_FROM_REMOTE" link="libvirt-virterror.html#VIR_FROM_REMOTE"/>
+    <function name="VIR_FROM_RESCTRL" link="libvirt-virterror.html#VIR_FROM_RESCTRL"/>
     <function name="VIR_FROM_RPC" link="libvirt-virterror.html#VIR_FROM_RPC"/>
     <function name="VIR_FROM_SECRET" link="libvirt-virterror.html#VIR_FROM_SECRET"/>
     <function name="VIR_FROM_SECURITY" link="libvirt-virterror.html#VIR_FROM_SECURITY"/>
@@ -1553,6 +1554,8 @@
     <function name="virDomainLookupByUUID ()" link="libvirt-libvirt-domain.html#virDomainLookupByUUID"/>
     <function name="virDomainLookupByUUIDString ()" link="libvirt-libvirt-domain.html#virDomainLookupByUUIDString"/>
     <function name="virDomainManagedSave ()" link="libvirt-libvirt-domain.html#virDomainManagedSave"/>
+    <function name="virDomainManagedSaveDefineXML ()" link="libvirt-libvirt-domain.html#virDomainManagedSaveDefineXML"/>
+    <function name="virDomainManagedSaveGetXMLDesc ()" link="libvirt-libvirt-domain.html#virDomainManagedSaveGetXMLDesc"/>
     <function name="virDomainManagedSaveRemove ()" link="libvirt-libvirt-domain.html#virDomainManagedSaveRemove"/>
     <function name="virDomainMemoryPeek ()" link="libvirt-libvirt-domain.html#virDomainMemoryPeek"/>
     <function name="virDomainMemoryStats ()" link="libvirt-libvirt-domain.html#virDomainMemoryStats"/>
@@ -1560,6 +1563,7 @@
     <function name="virDomainMigrate2 ()" link="libvirt-libvirt-domain.html#virDomainMigrate2"/>
     <function name="virDomainMigrate3 ()" link="libvirt-libvirt-domain.html#virDomainMigrate3"/>
     <function name="virDomainMigrateGetCompressionCache ()" link="libvirt-libvirt-domain.html#virDomainMigrateGetCompressionCache"/>
+    <function name="virDomainMigrateGetMaxDowntime ()" link="libvirt-libvirt-domain.html#virDomainMigrateGetMaxDowntime"/>
     <function name="virDomainMigrateGetMaxSpeed ()" link="libvirt-libvirt-domain.html#virDomainMigrateGetMaxSpeed"/>
     <function name="virDomainMigrateSetCompressionCache ()" link="libvirt-libvirt-domain.html#virDomainMigrateSetCompressionCache"/>
     <function name="virDomainMigrateSetMaxDowntime ()" link="libvirt-libvirt-domain.html#virDomainMigrateSetMaxDowntime"/>

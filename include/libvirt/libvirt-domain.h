@@ -1039,6 +1039,10 @@ int virDomainMigrateToURI3(virDomainPtr domain,
                            unsigned int nparams,
                            unsigned int flags);
 
+int virDomainMigrateGetMaxDowntime(virDomainPtr domain,
+                                   unsigned long long *downtime,
+                                   unsigned int flags);
+
 int virDomainMigrateSetMaxDowntime (virDomainPtr domain,
                                     unsigned long long downtime,
                                     unsigned int flags);
@@ -1209,6 +1213,12 @@ int                    virDomainHasManagedSaveImage(virDomainPtr dom,
                                                     unsigned int flags);
 int                    virDomainManagedSaveRemove(virDomainPtr dom,
                                                   unsigned int flags);
+char *                 virDomainManagedSaveGetXMLDesc(virDomainPtr domain,
+                                                      unsigned int flags);
+int                    virDomainManagedSaveDefineXML(virDomainPtr domain,
+                                                     const char *dxml,
+                                                     unsigned int flags);
+
 
 /*
  * Domain core dump

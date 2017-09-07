@@ -433,6 +433,7 @@ mymain(void)
     DO_TEST("hugepages-pages4", NONE);
     DO_TEST("hugepages-pages5", NONE);
     DO_TEST("hugepages-pages6", NONE);
+    DO_TEST("hugepages-pages7", NONE);
     DO_TEST("hugepages-shared", NONE);
     DO_TEST("hugepages-memaccess", NONE);
     DO_TEST("hugepages-memaccess2", NONE);
@@ -537,7 +538,7 @@ mymain(void)
     DO_TEST("net-eth-ifname", NONE);
     DO_TEST("net-eth-hostip", NONE);
     DO_TEST("net-virtio-network-portgroup", NONE);
-    DO_TEST("net-virtio-rxqueuesize", NONE);
+    DO_TEST("net-virtio-rxtxqueuesize", NONE);
     DO_TEST("net-hostdev", NONE);
     DO_TEST("net-hostdev-vfio", NONE);
     DO_TEST("net-midonet", NONE);
@@ -1198,6 +1199,12 @@ mymain(void)
     DO_TEST("cpu-check-default-none2", NONE);
     DO_TEST("cpu-check-default-partial", NONE);
     DO_TEST("cpu-check-default-partial2", NONE);
+
+    DO_TEST("smartcard-host", NONE);
+    DO_TEST("smartcard-host-certificates", NONE);
+    DO_TEST("smartcard-passthrough-tcp", NONE);
+    DO_TEST("smartcard-passthrough-spicevmc", NONE);
+    DO_TEST("smartcard-controller", NONE);
 
     if (getenv("LIBVIRT_SKIP_CLEANUP") == NULL)
         virFileDeleteTree(fakerootdir);

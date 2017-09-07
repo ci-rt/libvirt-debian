@@ -280,7 +280,7 @@ virCPUDefParseXML(xmlXPathContextPtr ctxt,
         goto cleanup;
     }
 
-    if (!xmlStrEqual(ctxt->node->name, BAD_CAST "cpu")) {
+    if (!virXMLNodeNameEqual(ctxt->node, "cpu")) {
         virReportError(VIR_ERR_XML_ERROR, "%s",
                        _("XML does not contain expected 'cpu' element"));
         goto cleanup;
@@ -599,7 +599,6 @@ virCPUDefFormatBufFull(virBufferPtr buf,
     int ret = -1;
     virBuffer attributeBuf = VIR_BUFFER_INITIALIZER;
     virBuffer childrenBuf = VIR_BUFFER_INITIALIZER;
-    int indent = virBufferGetIndent(buf, false);
 
     if (!def)
         return 0;
@@ -636,7 +635,7 @@ virCPUDefFormatBufFull(virBufferPtr buf,
     }
 
     /* Format children */
-    virBufferAdjustIndent(&childrenBuf, indent + 2);
+    virBufferSetChildIndent(&childrenBuf, buf);
     if (def->type == VIR_CPU_TYPE_HOST && def->arch)
         virBufferAsprintf(&childrenBuf, "<arch>%s</arch>\n",
                           virArchToString(def->arch));
@@ -644,6 +643,10 @@ virCPUDefFormatBufFull(virBufferPtr buf,
         goto cleanup;
 
     if (virDomainNumaDefCPUFormat(&childrenBuf, numa) < 0)
+        goto cleanup;
+
+    if (virBufferCheckError(&attributeBuf) < 0 ||
+        virBufferCheckError(&childrenBuf) < 0)
         goto cleanup;
 
     /* Put it all together */

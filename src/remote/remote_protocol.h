@@ -30,11 +30,11 @@ typedef remote_nonnull_string *remote_string;
 #define REMOTE_MIGRATE_COOKIE_MAX 4194304
 #define REMOTE_NETWORK_LIST_MAX 16384
 #define REMOTE_INTERFACE_LIST_MAX 16384
-#define REMOTE_STORAGE_POOL_LIST_MAX 4096
+#define REMOTE_STORAGE_POOL_LIST_MAX 16384
 #define REMOTE_STORAGE_VOL_LIST_MAX 16384
 #define REMOTE_NODE_DEVICE_LIST_MAX 65536
 #define REMOTE_NODE_DEVICE_CAPS_LIST_MAX 65536
-#define REMOTE_NWFILTER_LIST_MAX 1024
+#define REMOTE_NWFILTER_LIST_MAX 16384
 #define REMOTE_DOMAIN_SCHEDULER_PARAMETERS_MAX 16
 #define REMOTE_DOMAIN_BLKIO_PARAMETERS_MAX 16
 #define REMOTE_DOMAIN_MEMORY_PARAMETERS_MAX 16
@@ -49,7 +49,7 @@ typedef remote_nonnull_string *remote_string;
 #define REMOTE_AUTH_SASL_DATA_MAX 65536
 #define REMOTE_AUTH_TYPE_LIST_MAX 20
 #define REMOTE_DOMAIN_MEMORY_STATS_MAX 1024
-#define REMOTE_DOMAIN_SNAPSHOT_LIST_MAX 1024
+#define REMOTE_DOMAIN_SNAPSHOT_LIST_MAX 16384
 #define REMOTE_DOMAIN_BLOCK_PEEK_BUFFER_MAX 4194304
 #define REMOTE_DOMAIN_MEMORY_PEEK_BUFFER_MAX 4194304
 #define REMOTE_SECURITY_LABEL_LIST_MAX 64
@@ -2651,6 +2651,17 @@ struct remote_domain_abort_job_args {
 };
 typedef struct remote_domain_abort_job_args remote_domain_abort_job_args;
 
+struct remote_domain_migrate_get_max_downtime_args {
+        remote_nonnull_domain dom;
+        u_int flags;
+};
+typedef struct remote_domain_migrate_get_max_downtime_args remote_domain_migrate_get_max_downtime_args;
+
+struct remote_domain_migrate_get_max_downtime_ret {
+        uint64_t downtime;
+};
+typedef struct remote_domain_migrate_get_max_downtime_ret remote_domain_migrate_get_max_downtime_ret;
+
 struct remote_domain_migrate_set_max_downtime_args {
         remote_nonnull_domain dom;
         uint64_t downtime;
@@ -2929,6 +2940,24 @@ struct remote_domain_managed_save_remove_args {
         u_int flags;
 };
 typedef struct remote_domain_managed_save_remove_args remote_domain_managed_save_remove_args;
+
+struct remote_domain_managed_save_get_xml_desc_args {
+        remote_nonnull_domain dom;
+        u_int flags;
+};
+typedef struct remote_domain_managed_save_get_xml_desc_args remote_domain_managed_save_get_xml_desc_args;
+
+struct remote_domain_managed_save_get_xml_desc_ret {
+        remote_nonnull_string xml;
+};
+typedef struct remote_domain_managed_save_get_xml_desc_ret remote_domain_managed_save_get_xml_desc_ret;
+
+struct remote_domain_managed_save_define_xml_args {
+        remote_nonnull_domain dom;
+        remote_string dxml;
+        u_int flags;
+};
+typedef struct remote_domain_managed_save_define_xml_args remote_domain_managed_save_define_xml_args;
 
 struct remote_domain_snapshot_create_xml_args {
         remote_nonnull_domain dom;
@@ -4514,6 +4543,9 @@ enum remote_procedure {
         REMOTE_PROC_DOMAIN_SET_VCPU = 384,
         REMOTE_PROC_DOMAIN_EVENT_BLOCK_THRESHOLD = 385,
         REMOTE_PROC_DOMAIN_SET_BLOCK_THRESHOLD = 386,
+        REMOTE_PROC_DOMAIN_MIGRATE_GET_MAX_DOWNTIME = 387,
+        REMOTE_PROC_DOMAIN_MANAGED_SAVE_GET_XML_DESC = 388,
+        REMOTE_PROC_DOMAIN_MANAGED_SAVE_DEFINE_XML = 389,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -4926,6 +4958,8 @@ extern  bool_t xdr_remote_domain_get_job_info_ret (XDR *, remote_domain_get_job_
 extern  bool_t xdr_remote_domain_get_job_stats_args (XDR *, remote_domain_get_job_stats_args*);
 extern  bool_t xdr_remote_domain_get_job_stats_ret (XDR *, remote_domain_get_job_stats_ret*);
 extern  bool_t xdr_remote_domain_abort_job_args (XDR *, remote_domain_abort_job_args*);
+extern  bool_t xdr_remote_domain_migrate_get_max_downtime_args (XDR *, remote_domain_migrate_get_max_downtime_args*);
+extern  bool_t xdr_remote_domain_migrate_get_max_downtime_ret (XDR *, remote_domain_migrate_get_max_downtime_ret*);
 extern  bool_t xdr_remote_domain_migrate_set_max_downtime_args (XDR *, remote_domain_migrate_set_max_downtime_args*);
 extern  bool_t xdr_remote_domain_migrate_get_compression_cache_args (XDR *, remote_domain_migrate_get_compression_cache_args*);
 extern  bool_t xdr_remote_domain_migrate_get_compression_cache_ret (XDR *, remote_domain_migrate_get_compression_cache_ret*);
@@ -4970,6 +5004,9 @@ extern  bool_t xdr_remote_domain_managed_save_args (XDR *, remote_domain_managed
 extern  bool_t xdr_remote_domain_has_managed_save_image_args (XDR *, remote_domain_has_managed_save_image_args*);
 extern  bool_t xdr_remote_domain_has_managed_save_image_ret (XDR *, remote_domain_has_managed_save_image_ret*);
 extern  bool_t xdr_remote_domain_managed_save_remove_args (XDR *, remote_domain_managed_save_remove_args*);
+extern  bool_t xdr_remote_domain_managed_save_get_xml_desc_args (XDR *, remote_domain_managed_save_get_xml_desc_args*);
+extern  bool_t xdr_remote_domain_managed_save_get_xml_desc_ret (XDR *, remote_domain_managed_save_get_xml_desc_ret*);
+extern  bool_t xdr_remote_domain_managed_save_define_xml_args (XDR *, remote_domain_managed_save_define_xml_args*);
 extern  bool_t xdr_remote_domain_snapshot_create_xml_args (XDR *, remote_domain_snapshot_create_xml_args*);
 extern  bool_t xdr_remote_domain_snapshot_create_xml_ret (XDR *, remote_domain_snapshot_create_xml_ret*);
 extern  bool_t xdr_remote_domain_snapshot_get_xml_desc_args (XDR *, remote_domain_snapshot_get_xml_desc_args*);
@@ -5535,6 +5572,8 @@ extern bool_t xdr_remote_domain_get_job_info_ret ();
 extern bool_t xdr_remote_domain_get_job_stats_args ();
 extern bool_t xdr_remote_domain_get_job_stats_ret ();
 extern bool_t xdr_remote_domain_abort_job_args ();
+extern bool_t xdr_remote_domain_migrate_get_max_downtime_args ();
+extern bool_t xdr_remote_domain_migrate_get_max_downtime_ret ();
 extern bool_t xdr_remote_domain_migrate_set_max_downtime_args ();
 extern bool_t xdr_remote_domain_migrate_get_compression_cache_args ();
 extern bool_t xdr_remote_domain_migrate_get_compression_cache_ret ();
@@ -5579,6 +5618,9 @@ extern bool_t xdr_remote_domain_managed_save_args ();
 extern bool_t xdr_remote_domain_has_managed_save_image_args ();
 extern bool_t xdr_remote_domain_has_managed_save_image_ret ();
 extern bool_t xdr_remote_domain_managed_save_remove_args ();
+extern bool_t xdr_remote_domain_managed_save_get_xml_desc_args ();
+extern bool_t xdr_remote_domain_managed_save_get_xml_desc_ret ();
+extern bool_t xdr_remote_domain_managed_save_define_xml_args ();
 extern bool_t xdr_remote_domain_snapshot_create_xml_args ();
 extern bool_t xdr_remote_domain_snapshot_create_xml_ret ();
 extern bool_t xdr_remote_domain_snapshot_get_xml_desc_args ();

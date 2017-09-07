@@ -24,6 +24,7 @@
 #include <config.h>
 
 #include "virpci.h"
+#include "virnetdev.h"
 
 #include <dirent.h>
 #include <fcntl.h>
@@ -2853,16 +2854,30 @@ virPCIDeviceAddressGetSysfsFile(virPCIDeviceAddressPtr addr,
     return 0;
 }
 
-/*
- * Returns the network device name of a pci device
+/**
+ * virPCIGetNetName:
+ * @device_link_sysfs_path: sysfs path to the PCI device
+ * @idx: used to choose which netdev when there are several
+ *       (ignored if physPortID is set)
+ * @physPortID: match this string in the netdev's phys_port_id
+ *       (or NULL to ignore and use idx instead)
+ * @netname: used to return the name of the netdev
+ *       (set to NULL (but returns success) if there is no netdev)
+ *
+ * Returns 0 on success, -1 on error (error has been logged)
  */
 int
-virPCIGetNetName(char *device_link_sysfs_path, char **netname)
+virPCIGetNetName(const char *device_link_sysfs_path,
+                 size_t idx,
+                 char *physPortID,
+                 char **netname)
 {
     char *pcidev_sysfs_net_path = NULL;
     int ret = -1;
     DIR *dir = NULL;
     struct dirent *entry = NULL;
+    char *thisPhysPortID = NULL;
+    size_t i = 0;
 
     if (virBuildPath(&pcidev_sysfs_net_path, device_link_sysfs_path,
                      "net") == -1) {
@@ -2873,30 +2888,61 @@ virPCIGetNetName(char *device_link_sysfs_path, char **netname)
     if (virDirOpenQuiet(&dir, pcidev_sysfs_net_path) < 0) {
         /* this *isn't* an error - caller needs to check for netname == NULL */
         ret = 0;
-        goto out;
+        goto cleanup;
     }
 
     while (virDirRead(dir, &entry, pcidev_sysfs_net_path) > 0) {
-        /* Assume a single directory entry */
-        if (VIR_STRDUP(*netname, entry->d_name) > 0)
-            ret = 0;
+        /* if the caller sent a physPortID, compare it to the
+         * physportID of this netdev. If not, look for entry[idx].
+         */
+        if (physPortID) {
+            if (virNetDevGetPhysPortID(entry->d_name, &thisPhysPortID) < 0)
+                goto cleanup;
+
+            /* if this one doesn't match, keep looking */
+            if (STRNEQ_NULLABLE(physPortID, thisPhysPortID)) {
+                VIR_FREE(thisPhysPortID);
+                continue;
+            }
+        } else {
+            if (i++ < idx)
+                continue;
+        }
+
+        if (VIR_STRDUP(*netname, entry->d_name) < 0)
+            goto cleanup;
+
+        ret = 0;
         break;
     }
 
+    if (ret < 0) {
+        if (physPortID) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Could not find network device with "
+                             "phys_port_id '%s' under PCI device at %s"),
+                           physPortID, device_link_sysfs_path);
+        } else {
+            ret = 0; /* no netdev at the given index is *not* an error */
+        }
+    }
+ cleanup:
     VIR_DIR_CLOSE(dir);
-
- out:
     VIR_FREE(pcidev_sysfs_net_path);
-
+    VIR_FREE(thisPhysPortID);
     return ret;
 }
 
 int
 virPCIGetVirtualFunctionInfo(const char *vf_sysfs_device_path,
-                             char **pfname, int *vf_index)
+                             int pfNetDevIdx,
+                             char **pfname,
+                             int *vf_index)
 {
     virPCIDeviceAddressPtr pf_config_address = NULL;
     char *pf_sysfs_device_path = NULL;
+    char *vfname = NULL;
+    char *vfPhysPortID = NULL;
     int ret = -1;
 
     if (virPCIGetPhysicalFunction(vf_sysfs_device_path, &pf_config_address) < 0)
@@ -2915,8 +2961,28 @@ virPCIGetVirtualFunctionInfo(const char *vf_sysfs_device_path,
         goto cleanup;
     }
 
-    if (virPCIGetNetName(pf_sysfs_device_path, pfname) < 0)
+    /* If the caller hasn't asked for a specific pfNetDevIdx, and VF
+     * is bound to a netdev, learn that netdev's phys_port_id (if
+     * available). This can be used to disambiguate when the PF has
+     * multiple netdevs. If the VF isn't bound to a netdev, then we
+     * return netdev[pfNetDevIdx] on the PF, which may or may not be
+     * correct.
+     */
+    if (pfNetDevIdx == -1) {
+        if (virPCIGetNetName(vf_sysfs_device_path, 0, NULL, &vfname) < 0)
+            goto cleanup;
+
+        if (vfname) {
+            if (virNetDevGetPhysPortID(vfname, &vfPhysPortID) < 0)
+                goto cleanup;
+        }
+        pfNetDevIdx = 0;
+    }
+
+    if (virPCIGetNetName(pf_sysfs_device_path,
+                         pfNetDevIdx, vfPhysPortID, pfname) < 0) {
         goto cleanup;
+    }
 
     if (!*pfname) {
         /* this shouldn't be possible. A VF can't exist unless its
@@ -2932,6 +2998,8 @@ virPCIGetVirtualFunctionInfo(const char *vf_sysfs_device_path,
  cleanup:
     VIR_FREE(pf_config_address);
     VIR_FREE(pf_sysfs_device_path);
+    VIR_FREE(vfname);
+    VIR_FREE(vfPhysPortID);
 
     return ret;
 }
@@ -2991,7 +3059,9 @@ virPCIDeviceAddressGetSysfsFile(virPCIDeviceAddressPtr dev ATTRIBUTE_UNUSED,
 }
 
 int
-virPCIGetNetName(char *device_link_sysfs_path ATTRIBUTE_UNUSED,
+virPCIGetNetName(const char *device_link_sysfs_path ATTRIBUTE_UNUSED,
+                 size_t idx ATTRIBUTE_UNUSED,
+                 char *physPortID ATTRIBUTE_UNUSED,
                  char **netname ATTRIBUTE_UNUSED)
 {
     virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _(unsupported));
@@ -3000,6 +3070,7 @@ virPCIGetNetName(char *device_link_sysfs_path ATTRIBUTE_UNUSED,
 
 int
 virPCIGetVirtualFunctionInfo(const char *vf_sysfs_device_path ATTRIBUTE_UNUSED,
+                             int pfNetDevIdx ATTRIBUTE_UNUSED,
                              char **pfname ATTRIBUTE_UNUSED,
                              int *vf_index ATTRIBUTE_UNUSED)
 {

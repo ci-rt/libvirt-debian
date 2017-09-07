@@ -419,12 +419,12 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/nl_langinfo.m4 $(top_srcdir)/m4/nls.m4 \
 	$(top_srcdir)/m4/nocrash.m4 $(top_srcdir)/m4/nonblocking.m4 \
 	$(top_srcdir)/m4/off_t.m4 $(top_srcdir)/m4/onceonly.m4 \
-	$(top_srcdir)/m4/open.m4 $(top_srcdir)/m4/passfd.m4 \
-	$(top_srcdir)/m4/pathmax.m4 $(top_srcdir)/m4/perror.m4 \
-	$(top_srcdir)/m4/physmem.m4 $(top_srcdir)/m4/pipe.m4 \
-	$(top_srcdir)/m4/pipe2.m4 $(top_srcdir)/m4/po.m4 \
-	$(top_srcdir)/m4/poll.m4 $(top_srcdir)/m4/poll_h.m4 \
-	$(top_srcdir)/m4/posix-shell.m4 \
+	$(top_srcdir)/m4/open-cloexec.m4 $(top_srcdir)/m4/open.m4 \
+	$(top_srcdir)/m4/passfd.m4 $(top_srcdir)/m4/pathmax.m4 \
+	$(top_srcdir)/m4/perror.m4 $(top_srcdir)/m4/physmem.m4 \
+	$(top_srcdir)/m4/pipe.m4 $(top_srcdir)/m4/pipe2.m4 \
+	$(top_srcdir)/m4/po.m4 $(top_srcdir)/m4/poll.m4 \
+	$(top_srcdir)/m4/poll_h.m4 $(top_srcdir)/m4/posix-shell.m4 \
 	$(top_srcdir)/m4/posix_openpt.m4 \
 	$(top_srcdir)/m4/posix_spawn.m4 $(top_srcdir)/m4/printf.m4 \
 	$(top_srcdir)/m4/progtest.m4 $(top_srcdir)/m4/pthread.m4 \
@@ -1928,6 +1928,7 @@ am__objects_90 = util/libvirt_util_la-viralloc.lo \
 	util/libvirt_util_la-virprocess.lo \
 	util/libvirt_util_la-virqemu.lo \
 	util/libvirt_util_la-virrandom.lo \
+	util/libvirt_util_la-virresctrl.lo \
 	util/libvirt_util_la-virrotatingfile.lo \
 	util/libvirt_util_la-virscsi.lo \
 	util/libvirt_util_la-virscsihost.lo \
@@ -2501,6 +2502,7 @@ GNULIB_EXP2F = @GNULIB_EXP2F@
 GNULIB_EXP2L = @GNULIB_EXP2L@
 GNULIB_EXPF = @GNULIB_EXPF@
 GNULIB_EXPL = @GNULIB_EXPL@
+GNULIB_EXPLICIT_BZERO = @GNULIB_EXPLICIT_BZERO@
 GNULIB_EXPM1 = @GNULIB_EXPM1@
 GNULIB_EXPM1F = @GNULIB_EXPM1F@
 GNULIB_EXPM1L = @GNULIB_EXPM1L@
@@ -2720,6 +2722,7 @@ GNULIB_RAWMEMCHR = @GNULIB_RAWMEMCHR@
 GNULIB_READ = @GNULIB_READ@
 GNULIB_READLINK = @GNULIB_READLINK@
 GNULIB_READLINKAT = @GNULIB_READLINKAT@
+GNULIB_REALLOCARRAY = @GNULIB_REALLOCARRAY@
 GNULIB_REALLOC_POSIX = @GNULIB_REALLOC_POSIX@
 GNULIB_REALPATH = @GNULIB_REALPATH@
 GNULIB_RECV = @GNULIB_RECV@
@@ -2931,6 +2934,7 @@ HAVE_DECL_IMAXABS = @HAVE_DECL_IMAXABS@
 HAVE_DECL_IMAXDIV = @HAVE_DECL_IMAXDIV@
 HAVE_DECL_INET_NTOP = @HAVE_DECL_INET_NTOP@
 HAVE_DECL_INET_PTON = @HAVE_DECL_INET_PTON@
+HAVE_DECL_INITSTATE = @HAVE_DECL_INITSTATE@
 HAVE_DECL_LDEXPL = @HAVE_DECL_LDEXPL@
 HAVE_DECL_LOCALTIME_R = @HAVE_DECL_LOCALTIME_R@
 HAVE_DECL_LOG10L = @HAVE_DECL_LOG10L@
@@ -2950,6 +2954,7 @@ HAVE_DECL_ROUNDF = @HAVE_DECL_ROUNDF@
 HAVE_DECL_ROUNDL = @HAVE_DECL_ROUNDL@
 HAVE_DECL_SETENV = @HAVE_DECL_SETENV@
 HAVE_DECL_SETHOSTNAME = @HAVE_DECL_SETHOSTNAME@
+HAVE_DECL_SETSTATE = @HAVE_DECL_SETSTATE@
 HAVE_DECL_SINL = @HAVE_DECL_SINL@
 HAVE_DECL_SNPRINTF = @HAVE_DECL_SNPRINTF@
 HAVE_DECL_SQRTL = @HAVE_DECL_SQRTL@
@@ -2979,6 +2984,7 @@ HAVE_DUPLOCALE = @HAVE_DUPLOCALE@
 HAVE_EUIDACCESS = @HAVE_EUIDACCESS@
 HAVE_EXPF = @HAVE_EXPF@
 HAVE_EXPL = @HAVE_EXPL@
+HAVE_EXPLICIT_BZERO = @HAVE_EXPLICIT_BZERO@
 HAVE_EXPM1 = @HAVE_EXPM1@
 HAVE_EXPM1F = @HAVE_EXPM1F@
 HAVE_FABSF = @HAVE_FABSF@
@@ -3110,6 +3116,7 @@ HAVE_RANDOM_R = @HAVE_RANDOM_R@
 HAVE_RAWMEMCHR = @HAVE_RAWMEMCHR@
 HAVE_READLINK = @HAVE_READLINK@
 HAVE_READLINKAT = @HAVE_READLINKAT@
+HAVE_REALLOCARRAY = @HAVE_REALLOCARRAY@
 HAVE_REALPATH = @HAVE_REALPATH@
 HAVE_REMAINDER = @HAVE_REMAINDER@
 HAVE_REMAINDERF = @HAVE_REMAINDERF@
@@ -3794,7 +3801,6 @@ XEN_LIBS = @XEN_LIBS@
 XGETTEXT = @XGETTEXT@
 XGETTEXT_015 = @XGETTEXT_015@
 XGETTEXT_EXTRA_OPTIONS = @XGETTEXT_EXTRA_OPTIONS@
-XMLCATALOG = @XMLCATALOG@
 XMLLINT = @XMLLINT@
 XML_CATALOG_FILE = @XML_CATALOG_FILE@
 XSLTPROC = @XSLTPROC@
@@ -4073,25 +4079,26 @@ UTIL_SOURCES = util/viralloc.c util/viralloc.h util/virarch.h \
 	util/virportallocator.c util/virportallocator.h \
 	util/virprobe.h util/virprocess.c util/virprocess.h \
 	util/virqemu.c util/virqemu.h util/virrandom.h \
-	util/virrandom.c util/virrotatingfile.h util/virrotatingfile.c \
-	util/virscsi.c util/virscsi.h util/virscsihost.c \
-	util/virscsihost.h util/virscsivhost.c util/virscsivhost.h \
-	util/virseclabel.c util/virseclabel.h util/virsecret.c \
-	util/virsecret.h util/virsexpr.c util/virsexpr.h \
-	util/virsocketaddr.h util/virsocketaddr.c \
-	util/virstorageencryption.c util/virstorageencryption.h \
-	util/virstoragefile.c util/virstoragefile.h util/virstring.h \
-	util/virstring.c util/virsysinfo.c util/virsysinfo.h \
-	util/virsysinfopriv.h util/virsystemd.c util/virsystemd.h \
-	util/virsystemdpriv.h util/virthread.c util/virthread.h \
-	util/virthreadjob.c util/virthreadjob.h util/virthreadpool.c \
-	util/virthreadpool.h util/virtime.h util/virtime.c \
-	util/virtpm.h util/virtpm.c util/virtypedparam.c \
-	util/virtypedparam.h util/virusb.c util/virusb.h util/viruri.h \
-	util/viruri.c util/virutil.c util/virutil.h util/viruuid.c \
-	util/viruuid.h util/virvhba.c util/virvhba.h util/virxdrdefs.h \
-	util/virxml.c util/virxml.h util/virmdev.c util/virmdev.h \
-	util/virfilecache.c util/virfilecache.h $(NULL) $(KEYTABLES)
+	util/virrandom.c util/virresctrl.h util/virresctrl.c \
+	util/virrotatingfile.h util/virrotatingfile.c util/virscsi.c \
+	util/virscsi.h util/virscsihost.c util/virscsihost.h \
+	util/virscsivhost.c util/virscsivhost.h util/virseclabel.c \
+	util/virseclabel.h util/virsecret.c util/virsecret.h \
+	util/virsexpr.c util/virsexpr.h util/virsocketaddr.h \
+	util/virsocketaddr.c util/virstorageencryption.c \
+	util/virstorageencryption.h util/virstoragefile.c \
+	util/virstoragefile.h util/virstring.h util/virstring.c \
+	util/virsysinfo.c util/virsysinfo.h util/virsysinfopriv.h \
+	util/virsystemd.c util/virsystemd.h util/virsystemdpriv.h \
+	util/virthread.c util/virthread.h util/virthreadjob.c \
+	util/virthreadjob.h util/virthreadpool.c util/virthreadpool.h \
+	util/virtime.h util/virtime.c util/virtpm.h util/virtpm.c \
+	util/virtypedparam.c util/virtypedparam.h util/virusb.c \
+	util/virusb.h util/viruri.h util/viruri.c util/virutil.c \
+	util/virutil.h util/viruuid.c util/viruuid.h util/virvhba.c \
+	util/virvhba.h util/virxdrdefs.h util/virxml.c util/virxml.h \
+	util/virmdev.c util/virmdev.h util/virfilecache.c \
+	util/virfilecache.h $(NULL) $(KEYTABLES)
 KEYCODES = linux osx atset1 atset2 atset3 xt xtkbd usb win32 rfb
 KEYNAMES = linux osx win32
 KEYTABLES = \
@@ -7076,6 +7083,8 @@ util/libvirt_util_la-virqemu.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_util_la-virrandom.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
+util/libvirt_util_la-virresctrl.lo: util/$(am__dirstamp) \
+	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_util_la-virrotatingfile.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_util_la-virscsi.lo: util/$(am__dirstamp) \
@@ -7807,6 +7816,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virprocess.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virqemu.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virrandom.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virresctrl.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virrotatingfile.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virscsi.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virscsihost.Plo@am__quote@
@@ -10612,6 +10622,13 @@ util/libvirt_util_la-virrandom.lo: util/virrandom.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/virrandom.c' object='util/libvirt_util_la-virrandom.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_util_la-virrandom.lo `test -f 'util/virrandom.c' || echo '$(srcdir)/'`util/virrandom.c
+
+util/libvirt_util_la-virresctrl.lo: util/virresctrl.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT util/libvirt_util_la-virresctrl.lo -MD -MP -MF util/$(DEPDIR)/libvirt_util_la-virresctrl.Tpo -c -o util/libvirt_util_la-virresctrl.lo `test -f 'util/virresctrl.c' || echo '$(srcdir)/'`util/virresctrl.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) util/$(DEPDIR)/libvirt_util_la-virresctrl.Tpo util/$(DEPDIR)/libvirt_util_la-virresctrl.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/virresctrl.c' object='util/libvirt_util_la-virresctrl.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_util_la-virresctrl.lo `test -f 'util/virresctrl.c' || echo '$(srcdir)/'`util/virresctrl.c
 
 util/libvirt_util_la-virrotatingfile.lo: util/virrotatingfile.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT util/libvirt_util_la-virrotatingfile.lo -MD -MP -MF util/$(DEPDIR)/libvirt_util_la-virrotatingfile.Tpo -c -o util/libvirt_util_la-virrotatingfile.lo `test -f 'util/virrotatingfile.c' || echo '$(srcdir)/'`util/virrotatingfile.c

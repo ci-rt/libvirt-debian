@@ -475,7 +475,7 @@ qemuBuildIoEventFdStr(virBufferPtr buf,
 }
 
 #define QEMU_SERIAL_PARAM_ACCEPTED_CHARS \
-  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_ "
+  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_ .+"
 
 static int
 qemuSafeSerialParamValue(const char *value)
@@ -3250,8 +3250,6 @@ qemuBuildMemoryBackendStr(virJSONValuePtr *backendProps,
                           virBitmapPtr autoNodeset,
                           bool force)
 {
-    virDomainHugePagePtr master_hugepage = NULL;
-    virDomainHugePagePtr hugepage = NULL;
     virDomainNumatuneMemMode mode;
     const long system_page_size = virGetSystemPageSizeKB();
     virDomainMemoryAccess memAccess = mem->access;
@@ -3264,6 +3262,13 @@ qemuBuildMemoryBackendStr(virJSONValuePtr *backendProps,
     bool nodeSpecified = virDomainNumatuneNodeSpecified(def->numa, mem->targetNode);
     unsigned long long pagesize = mem->pagesize;
     bool needHugepage = !!pagesize;
+    bool useHugepage = !!pagesize;
+
+    /* The difference between @needHugepage and @useHugepage is that the latter
+     * is true whenever huge page is defined for the current memory cell.
+     * Either directly, or transitively via global domain huge pages. The
+     * former is true whenever "memory-backend-file" must be used to satisfy
+     * @useHugepage. */
 
     *backendProps = NULL;
     *backendType = NULL;
@@ -3290,6 +3295,8 @@ qemuBuildMemoryBackendStr(virJSONValuePtr *backendProps,
         mode = VIR_DOMAIN_NUMATUNE_MEM_STRICT;
 
     if (pagesize == 0) {
+        virDomainHugePagePtr master_hugepage = NULL;
+        virDomainHugePagePtr hugepage = NULL;
         bool thisHugepage = false;
 
         /* Find the huge page size we want to use */
@@ -3327,8 +3334,10 @@ qemuBuildMemoryBackendStr(virJSONValuePtr *backendProps,
             hugepage = master_hugepage;
         }
 
-        if (hugepage)
+        if (hugepage) {
             pagesize = hugepage->size;
+            useHugepage = true;
+        }
     }
 
     if (pagesize == system_page_size) {
@@ -3336,17 +3345,18 @@ qemuBuildMemoryBackendStr(virJSONValuePtr *backendProps,
          * of regular system page size, it's as if they
          * hasn't specified any huge pages at all. */
         pagesize = 0;
-        hugepage = NULL;
+        needHugepage = false;
+        useHugepage = false;
     }
 
     if (!(props = virJSONValueNewObject()))
         return -1;
 
-    if (pagesize || mem->nvdimmPath || memAccess ||
+    if (useHugepage || mem->nvdimmPath || memAccess ||
         def->mem.source == VIR_DOMAIN_MEMORY_SOURCE_FILE) {
         *backendType = "memory-backend-file";
 
-        if (pagesize) {
+        if (useHugepage) {
             if (qemuGetDomainHupageMemPath(def, cfg, pagesize, &memPath) < 0)
                 goto cleanup;
             prealloc = true;
@@ -3724,6 +3734,14 @@ qemuBuildNicDevStr(virDomainDefPtr def,
             goto error;
         }
         virBufferAsprintf(&buf, ",rx_queue_size=%u", net->driver.virtio.rx_queue_size);
+    }
+    if (usingVirtio && net->driver.virtio.tx_queue_size) {
+        if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_NET_TX_QUEUE_SIZE)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("virtio tx_queue_size option is not supported with this QEMU binary"));
+            goto error;
+        }
+        virBufferAsprintf(&buf, ",tx_queue_size=%u", net->driver.virtio.tx_queue_size);
     }
 
     if (usingVirtio && net->mtu) {
@@ -4466,6 +4484,11 @@ qemuBuildDeviceVideoStr(const virDomainDef *def,
             if (video->heads)
                 virBufferAsprintf(&buf, ",max_outputs=%u", video->heads);
         }
+    } else if (video->type == VIR_DOMAIN_VIDEO_TYPE_VIRTIO) {
+        if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_GPU_MAX_OUTPUTS)) {
+            if (video->heads)
+                virBufferAsprintf(&buf, ",max_outputs=%u", video->heads);
+        }
     } else if (video->vram &&
         ((video->type == VIR_DOMAIN_VIDEO_TYPE_VGA &&
           virQEMUCapsGet(qemuCaps, QEMU_CAPS_VGA_VGAMEM)) ||
@@ -5026,6 +5049,19 @@ qemuBuildChrChardevFileStr(virLogManagerPtr logManager,
     return 0;
 }
 
+
+static void
+qemuBuildChrChardevReconnectStr(virBufferPtr buf,
+                                const virDomainChrSourceReconnectDef *def)
+{
+    if (def->enabled == VIR_TRISTATE_BOOL_YES) {
+        virBufferAsprintf(buf, ",reconnect=%u", def->timeout);
+    } else if (def->enabled == VIR_TRISTATE_BOOL_NO) {
+        virBufferAddLit(buf, ",reconnect=0");
+    }
+}
+
+
 /* This function outputs a -chardev command line option which describes only the
  * host side of the character device */
 static char *
@@ -5124,6 +5160,8 @@ qemuBuildChrChardevStr(virLogManagerPtr logManager,
         if (dev->data.tcp.listen)
             virBufferAdd(&buf, nowait ? ",server,nowait" : ",server", -1);
 
+        qemuBuildChrChardevReconnectStr(&buf, &dev->data.tcp.reconnect);
+
         if (dev->data.tcp.haveTLS == VIR_TRISTATE_BOOL_YES) {
             qemuDomainChrSourcePrivatePtr chrSourcePriv =
                 QEMU_DOMAIN_CHR_SOURCE_PRIVATE(dev);
@@ -5157,6 +5195,8 @@ qemuBuildChrChardevStr(virLogManagerPtr logManager,
         virQEMUBuildBufferEscapeComma(&buf, dev->data.nix.path);
         if (dev->data.nix.listen)
             virBufferAdd(&buf, nowait ? ",server,nowait" : ",server", -1);
+
+        qemuBuildChrChardevReconnectStr(&buf, &dev->data.nix.reconnect);
         break;
 
     case VIR_DOMAIN_CHR_TYPE_SPICEVMC:
@@ -6804,24 +6844,17 @@ qemuBuildCpuCommandLine(virCommandPtr cmd,
                         virQEMUCapsPtr qemuCaps)
 {
     virArch hostarch = virArchFromHost();
-    char *cpu = NULL;
+    char *cpu = NULL, *cpu_flags = NULL;
     bool hasHwVirt = false;
-    const char *default_model;
-    bool have_cpu = false;
     int ret = -1;
+    virBuffer cpu_buf = VIR_BUFFER_INITIALIZER;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     size_t i;
 
-    if (def->os.arch == VIR_ARCH_I686)
-        default_model = "qemu32";
-    else
-        default_model = "qemu64";
-
     if (def->cpu &&
         (def->cpu->mode != VIR_CPU_MODE_CUSTOM || def->cpu->model)) {
-        if (qemuBuildCpuModelArgStr(driver, def, &buf, qemuCaps) < 0)
+        if (qemuBuildCpuModelArgStr(driver, def, &cpu_buf, qemuCaps) < 0)
             goto cleanup;
-        have_cpu = true;
 
         /* Only 'svm' requires --enable-nesting. The nested 'vmx' patches now
          * simply hook off the CPU features. */
@@ -6859,8 +6892,7 @@ qemuBuildCpuCommandLine(virCommandPtr cmd,
             ((hostarch == VIR_ARCH_X86_64 &&
               strstr(def->emulator, "kvm")) ||
              strstr(def->emulator, "x86_64"))) {
-            virBufferAdd(&buf, default_model, -1);
-            have_cpu = true;
+            virBufferAddLit(&cpu_buf, "qemu32");
         }
     }
 
@@ -6870,21 +6902,14 @@ qemuBuildCpuCommandLine(virCommandPtr cmd,
 
         if (timer->name == VIR_DOMAIN_TIMER_NAME_KVMCLOCK &&
             timer->present != -1) {
-            virBufferAsprintf(&buf, "%s,%ckvmclock",
-                              have_cpu ? "" : default_model,
+            virBufferAsprintf(&buf, ",%ckvmclock",
                               timer->present ? '+' : '-');
-            have_cpu = true;
         } else if (timer->name == VIR_DOMAIN_TIMER_NAME_HYPERVCLOCK &&
                    timer->present == 1) {
-            virBufferAsprintf(&buf, "%s,hv_time",
-                              have_cpu ? "" : default_model);
-            have_cpu = true;
+            virBufferAddLit(&buf, ",hv_time");
         } else if (timer->name == VIR_DOMAIN_TIMER_NAME_TSC &&
                    timer->frequency > 0) {
-            virBufferAsprintf(&buf, "%s,tsc-frequency=%lu",
-                              have_cpu ? "" : default_model,
-                              timer->frequency);
-            have_cpu = true;
+            virBufferAsprintf(&buf, ",tsc-frequency=%lu", timer->frequency);
         }
     }
 
@@ -6895,10 +6920,7 @@ qemuBuildCpuCommandLine(virCommandPtr cmd,
         else
             sign = '-';
 
-        virBufferAsprintf(&buf, "%s,%ckvm_pv_eoi",
-                          have_cpu ? "" : default_model,
-                          sign);
-        have_cpu = true;
+        virBufferAsprintf(&buf, ",%ckvm_pv_eoi", sign);
     }
 
     if (def->features[VIR_DOMAIN_FEATURE_PVSPINLOCK]) {
@@ -6909,18 +6931,10 @@ qemuBuildCpuCommandLine(virCommandPtr cmd,
         else
             sign = '-';
 
-        virBufferAsprintf(&buf, "%s,%ckvm_pv_unhalt",
-                          have_cpu ? "" : default_model,
-                          sign);
-        have_cpu = true;
+        virBufferAsprintf(&buf, ",%ckvm_pv_unhalt", sign);
     }
 
     if (def->features[VIR_DOMAIN_FEATURE_HYPERV] == VIR_TRISTATE_SWITCH_ON) {
-        if (!have_cpu) {
-            virBufferAdd(&buf, default_model, -1);
-            have_cpu = true;
-        }
-
         for (i = 0; i < VIR_DOMAIN_HYPERV_LAST; i++) {
             switch ((virDomainHyperv) i) {
             case VIR_DOMAIN_HYPERV_RELAXED:
@@ -6956,22 +6970,12 @@ qemuBuildCpuCommandLine(virCommandPtr cmd,
 
     for (i = 0; i < def->npanics; i++) {
         if (def->panics[i]->model == VIR_DOMAIN_PANIC_MODEL_HYPERV) {
-            if (!have_cpu) {
-                virBufferAdd(&buf, default_model, -1);
-                have_cpu = true;
-            }
-
             virBufferAddLit(&buf, ",hv_crash");
             break;
         }
     }
 
     if (def->features[VIR_DOMAIN_FEATURE_KVM] == VIR_TRISTATE_SWITCH_ON) {
-        if (!have_cpu) {
-            virBufferAdd(&buf, default_model, -1);
-            have_cpu = true;
-        }
-
         for (i = 0; i < VIR_DOMAIN_KVM_LAST; i++) {
             switch ((virDomainKVM) i) {
             case VIR_DOMAIN_KVM_HIDDEN:
@@ -6988,23 +6992,14 @@ qemuBuildCpuCommandLine(virCommandPtr cmd,
 
     if (def->features[VIR_DOMAIN_FEATURE_PMU]) {
         virTristateSwitch pmu = def->features[VIR_DOMAIN_FEATURE_PMU];
-        if (!have_cpu)
-            virBufferAdd(&buf, default_model, -1);
-
         virBufferAsprintf(&buf, ",pmu=%s",
                           virTristateSwitchTypeToString(pmu));
-        have_cpu = true;
     }
 
     if (def->cpu && def->cpu->cache) {
         virCPUCacheDefPtr cache = def->cpu->cache;
         bool hostOff = false;
         bool l3Off = false;
-
-        if (!have_cpu) {
-            virBufferAdd(&buf, default_model, -1);
-            have_cpu = true;
-        }
 
         switch (cache->mode) {
         case VIR_CPU_CACHE_MODE_EMULATE:
@@ -7035,13 +7030,39 @@ qemuBuildCpuCommandLine(virCommandPtr cmd,
             virBufferAddLit(&buf, ",l3-cache=off");
     }
 
+    if (virBufferCheckError(&cpu_buf) < 0)
+        goto cleanup;
     if (virBufferCheckError(&buf) < 0)
         goto cleanup;
 
-    cpu = virBufferContentAndReset(&buf);
+    cpu = virBufferContentAndReset(&cpu_buf);
+    cpu_flags = virBufferContentAndReset(&buf);
+
+    if (cpu_flags && !cpu) {
+        const char *default_model;
+
+        switch (def->os.arch) {
+        case VIR_ARCH_I686:
+            default_model = "qemu32";
+            break;
+        case VIR_ARCH_X86_64:
+            default_model = "qemu64";
+            break;
+        default:
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("CPU flags requested but can't determine "
+                             "default CPU for arch %s"),
+                           virArchToString(def->os.arch));
+            goto cleanup;
+        }
+
+        if (VIR_STRDUP(cpu, default_model) < 0)
+            goto cleanup;
+    }
 
     if (cpu) {
-        virCommandAddArgList(cmd, "-cpu", cpu, NULL);
+        virCommandAddArg(cmd, "-cpu");
+        virCommandAddArgFormat(cmd, "%s%s", cpu, cpu_flags ? cpu_flags : "");
 
         if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_NESTING) && hasHwVirt)
             virCommandAddArg(cmd, "-enable-nesting");
@@ -7051,7 +7072,9 @@ qemuBuildCpuCommandLine(virCommandPtr cmd,
 
  cleanup:
     VIR_FREE(cpu);
+    VIR_FREE(cpu_flags);
     virBufferFreeAndReset(&buf);
+    virBufferFreeAndReset(&cpu_buf);
     return ret;
 }
 
@@ -7083,10 +7106,6 @@ qemuBuildObsoleteAccelArg(virCommandPtr cmd,
                            _("the QEMU binary does not support kvm"));
             return -1;
         }
-        break;
-
-    case VIR_DOMAIN_VIRT_XEN:
-        /* XXX better check for xenner */
         break;
 
     default:
@@ -8879,28 +8898,6 @@ qemuBuildShmemDevStr(virDomainDefPtr def,
     return virBufferContentAndReset(&buf);
 }
 
-static char *
-qemuBuildShmemBackendChrStr(virLogManagerPtr logManager,
-                            virCommandPtr cmd,
-                            virQEMUDriverConfigPtr cfg,
-                            virDomainDefPtr def,
-                            virDomainShmemDefPtr shmem,
-                            virQEMUCapsPtr qemuCaps,
-                            bool chardevStdioLogd)
-{
-    char *devstr = NULL;
-
-    if (qemuDomainPrepareShmemChardev(shmem) < 0)
-        return NULL;
-
-    devstr = qemuBuildChrChardevStr(logManager, cmd, cfg, def,
-                                    &shmem->server.chr,
-                                    shmem->info.alias, qemuCaps, true,
-                                    chardevStdioLogd);
-
-    return devstr;
-}
-
 
 virJSONValuePtr
 qemuBuildShmemBackendMemProps(virDomainShmemDefPtr shmem)
@@ -9010,9 +9007,11 @@ qemuBuildShmemCommandLine(virLogManagerPtr logManager,
     VIR_FREE(devstr);
 
     if (shmem->server.enabled) {
-        if (!(devstr = qemuBuildShmemBackendChrStr(logManager, cmd, cfg, def,
-                                                   shmem, qemuCaps,
-                                                   chardevStdioLogd)))
+        devstr = qemuBuildChrChardevStr(logManager, cmd, cfg, def,
+                                        &shmem->server.chr,
+                                        shmem->info.alias, qemuCaps, true,
+                                        chardevStdioLogd);
+        if (!devstr)
             return -1;
 
         virCommandAddArgList(cmd, "-chardev", devstr, NULL);

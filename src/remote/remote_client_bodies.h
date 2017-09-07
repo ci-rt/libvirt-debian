@@ -3133,6 +3133,60 @@ done:
 }
 
 static int
+remoteDomainManagedSaveDefineXML(virDomainPtr dom, const char *dxml, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_managed_save_define_xml_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.dxml = dxml ? (char **)&dxml : NULL;
+    args.flags = flags;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_MANAGED_SAVE_DEFINE_XML,
+             (xdrproc_t)xdr_remote_domain_managed_save_define_xml_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static char *
+remoteDomainManagedSaveGetXMLDesc(virDomainPtr dom, unsigned int flags)
+{
+    char *rv = NULL;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_managed_save_get_xml_desc_args args;
+    remote_domain_managed_save_get_xml_desc_ret ret;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_MANAGED_SAVE_GET_XML_DESC,
+             (xdrproc_t)xdr_remote_domain_managed_save_get_xml_desc_args, (char *)&args,
+             (xdrproc_t)xdr_remote_domain_managed_save_get_xml_desc_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = ret.xml;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
 remoteDomainManagedSaveRemove(virDomainPtr dom, unsigned int flags)
 {
     int rv = -1;
@@ -3258,6 +3312,35 @@ remoteDomainMigrateGetCompressionCache(virDomainPtr dom, unsigned long long *cac
     }
 
     if (cacheSize) *cacheSize = ret.cacheSize;
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainMigrateGetMaxDowntime(virDomainPtr dom, unsigned long long *downtime, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_migrate_get_max_downtime_args args;
+    remote_domain_migrate_get_max_downtime_ret ret;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_MIGRATE_GET_MAX_DOWNTIME,
+             (xdrproc_t)xdr_remote_domain_migrate_get_max_downtime_args, (char *)&args,
+             (xdrproc_t)xdr_remote_domain_migrate_get_max_downtime_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    if (downtime) *downtime = ret.downtime;
     rv = 0;
 
 done:

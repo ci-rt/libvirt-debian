@@ -1946,7 +1946,7 @@ qemuMigrationBeginPhase(virQEMUDriverPtr driver,
     if (!qemuMigrationIsAllowed(driver, vm, true, flags))
         goto cleanup;
 
-    if (!(flags & VIR_MIGRATE_UNSAFE) &&
+    if (!(flags & (VIR_MIGRATE_UNSAFE | VIR_MIGRATE_OFFLINE)) &&
         !qemuMigrationIsSafe(vm->def, nmigrate_disks, migrate_disks, flags))
         goto cleanup;
 
@@ -2850,7 +2850,7 @@ qemuMigrationPrepareAny(virQEMUDriverPtr driver,
             virPortAllocatorRelease(driver->migrationPorts, priv->nbdPort);
         priv->nbdPort = 0;
         virDomainObjRemoveTransientDef(vm);
-        qemuDomainRemoveInactive(driver, vm);
+        qemuDomainRemoveInactiveJob(driver, vm);
     }
     qemuMigrationParamsClear(&migParams);
     virDomainObjEndAPI(&vm);
@@ -3291,7 +3291,7 @@ qemuMigrationConfirm(virConnectPtr conn,
             virDomainDeleteConfig(cfg->configDir, cfg->autostartDir, vm);
             vm->persistent = 0;
         }
-        qemuDomainRemoveInactive(driver, vm);
+        qemuDomainRemoveInactiveJob(driver, vm);
     }
 
  cleanup:
@@ -4809,7 +4809,7 @@ qemuMigrationPerformJob(virQEMUDriverPtr driver,
     if (!qemuMigrationIsAllowed(driver, vm, true, flags))
         goto endjob;
 
-    if (!(flags & VIR_MIGRATE_UNSAFE) &&
+    if (!(flags & (VIR_MIGRATE_UNSAFE | VIR_MIGRATE_OFFLINE)) &&
         !qemuMigrationIsSafe(vm->def, nmigrate_disks, migrate_disks, flags))
         goto endjob;
 
@@ -4867,7 +4867,7 @@ qemuMigrationPerformJob(virQEMUDriverPtr driver,
             virDomainDeleteConfig(cfg->configDir, cfg->autostartDir, vm);
             vm->persistent = 0;
         }
-        qemuDomainRemoveInactive(driver, vm);
+        qemuDomainRemoveInactiveJob(driver, vm);
     }
 
     if (orig_err) {
@@ -4947,7 +4947,7 @@ qemuMigrationPerformPhase(virQEMUDriverPtr driver,
     }
 
     if (!virDomainObjIsActive(vm))
-        qemuDomainRemoveInactive(driver, vm);
+        qemuDomainRemoveInactiveJob(driver, vm);
 
  cleanup:
     virDomainObjEndAPI(&vm);
@@ -5388,7 +5388,7 @@ qemuMigrationFinish(virQEMUDriverPtr driver,
 
     qemuMigrationJobFinish(driver, vm);
     if (!virDomainObjIsActive(vm))
-        qemuDomainRemoveInactive(driver, vm);
+        qemuDomainRemoveInactiveJob(driver, vm);
 
  cleanup:
     VIR_FREE(jobInfo);

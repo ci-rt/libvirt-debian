@@ -129,7 +129,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2017-06-28" "libvirt-3.5.0" "Virtualization Support"
+.TH VIRSH 1 "2017-08-29" "libvirt-3.7.0" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -1609,6 +1609,44 @@ has any managed save image.
 .IX Item "managedsave-remove domain"
 Remove the \fBmanagedsave\fR state file for a domain, if it exists.  This
 ensures the domain will do a full boot the next time it is started.
+.IP "\fBmanagedsave-define\fR \fIdomain\fR \fIxml\fR [{\fI\-\-running\fR | \fI\-\-paused\fR}]" 4
+.IX Item "managedsave-define domain xml [{--running | --paused}]"
+Update the domain \s-1XML\s0 that will be used when \fIdomain\fR is later
+started. The \fIxml\fR argument must be a file name containing
+the alternative \s-1XML,\s0 with changes only in the host-specific portions of
+the domain \s-1XML.\s0 For example, it can be used to change disk file paths.
+.Sp
+The managed save image records whether the domain should be started to a
+running or paused state.  Normally, this command does not alter the
+recorded state; passing either the \fI\-\-running\fR or \fI\-\-paused\fR flag
+will allow overriding which state the \fBstart\fR should use.
+.IP "\fBmanagedsave-dumpxml\fR \fIdomain\fR [\fI\-\-security\-info\fR]" 4
+.IX Item "managedsave-dumpxml domain [--security-info]"
+Extract the domain \s-1XML\s0 that was in effect at the time the saved state
+file \fIfile\fR was created with the \fBmanagedsave\fR command.  Using
+\&\fI\-\-security\-info\fR will also include security sensitive information.
+.IP "\fBmanagedsave-edit\fR \fIdomain\fR [{\fI\-\-running\fR | \fI\-\-paused\fR}]" 4
+.IX Item "managedsave-edit domain [{--running | --paused}]"
+Edit the \s-1XML\s0 configuration associated with a saved state file of a
+\&\fIdomain\fR was created by the \fBmanagedsave\fR command.
+.Sp
+The managed save image records whether the domain should be started to a
+running or paused state.  Normally, this command does not alter the
+recorded state; passing either the \fI\-\-running\fR or \fI\-\-paused\fR flag
+will allow overriding which state the \fBrestore\fR should use.
+.Sp
+This is equivalent to:
+.Sp
+.Vb 3
+\& virsh managedsave\-dumpxml domain\-name > state\-file.xml
+\& vi state\-file.xml (or make changes with your other text editor)
+\& virsh managedsave\-define domain\-name state\-file\-xml
+.Ve
+.Sp
+except that it does some error checking.
+.Sp
+The editor used can be supplied by the \f(CW$VISUAL\fR or \f(CW$EDITOR\fR environment
+variables, and defaults to \f(CW\*(C`vi\*(C'\fR.
 .IP "\fBmaxvcpus\fR [\fItype\fR]" 4
 .IX Item "maxvcpus [type]"
 Provide the maximum number of virtual CPUs supported for a guest \s-1VM\s0 on
@@ -1821,6 +1859,11 @@ bind to for incoming disks traffic. Currently it is supported only by qemu.
 .IX Item "migrate-setmaxdowntime domain downtime"
 Set maximum tolerable downtime for a domain which is being live-migrated to
 another host.  The \fIdowntime\fR is a number of milliseconds the guest is allowed
+to be down at the end of live migration.
+.IP "\fBmigrate-getmaxdowntime\fR \fIdomain\fR" 4
+.IX Item "migrate-getmaxdowntime domain"
+Get the maximum tolerable downtime for a domain which is being live-migrated to
+another host.  This is the number of milliseconds the guest is allowed
 to be down at the end of live migration.
 .IP "\fBmigrate-compcache\fR \fIdomain\fR [\fI\-\-size\fR \fBbytes\fR]" 4
 .IX Item "migrate-compcache domain [--size bytes]"

@@ -58,7 +58,7 @@ int virBufferCheckErrorInternal(const virBuffer *buf,
                                 const char *filename,
                                 const char *funcname,
                                 size_t linenr)
-    ATTRIBUTE_RETURN_CHECK ATTRIBUTE_NONNULL(1);
+    ATTRIBUTE_NONNULL(1);
 /**
  * virBufferCheckError
  *
@@ -101,6 +101,15 @@ void virBufferURIEncodeString(virBufferPtr buf, const char *str);
 
 void virBufferAdjustIndent(virBufferPtr buf, int indent);
 void virBufferSetIndent(virBufferPtr, int indent);
+
+/**
+ * virBufferSetChildIndent
+ *
+ * Gets the parent indentation, increments it by 2 and sets it to
+ * child buffer.
+ */
+# define virBufferSetChildIndent(childBuf_, parentBuf_) \
+    virBufferAdjustIndent(childBuf_, virBufferGetIndent(parentBuf_, false) + 2)
 
 int virBufferGetIndent(const virBuffer *buf, bool dynamic);
 

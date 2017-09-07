@@ -435,7 +435,10 @@ VIR_ENUM_IMPL(virQEMUCaps, QEMU_CAPS_LAST,
 
               /* 265 */
               "spapr-pci-host-bridge.numa_node",
-              "vnc-multi-servers"
+              "vnc-multi-servers",
+              "virtio-net.tx_queue_size",
+              "chardev-reconnect",
+              "virtio-gpu.max_outputs",
     );
 
 
@@ -1705,6 +1708,7 @@ static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsVirtioNet[] = {
     { "tx", QEMU_CAPS_VIRTIO_TX_ALG },
     { "event_idx", QEMU_CAPS_VIRTIO_NET_EVENT_IDX },
     { "rx_queue_size", QEMU_CAPS_VIRTIO_NET_RX_QUEUE_SIZE },
+    { "tx_queue_size", QEMU_CAPS_VIRTIO_NET_TX_QUEUE_SIZE },
     { "host_mtu", QEMU_CAPS_VIRTIO_NET_HOST_MTU },
 };
 
@@ -1784,6 +1788,7 @@ static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsQxl[] = {
 
 static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsVirtioGpu[] = {
     { "virgl", QEMU_CAPS_VIRTIO_GPU_VIRGL },
+    { "max_outputs", QEMU_CAPS_VIRTIO_GPU_MAX_OUTPUTS },
 };
 
 static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsICH9[] = {
@@ -2737,15 +2742,21 @@ int virQEMUCapsGetMachineTypesCaps(virQEMUCapsPtr qemuCaps,
 }
 
 
-
-
+/**
+ * virQEMUCapsGetCanonicalMachine:
+ * @qemuCaps: qemu capabilities object
+ * @name: machine name
+ *
+ * Resolves aliased machine names to the actual machine name. If qemuCaps isn't
+ * present @name is returned.
+ */
 const char *virQEMUCapsGetCanonicalMachine(virQEMUCapsPtr qemuCaps,
                                            const char *name)
 {
     size_t i;
 
-    if (!name)
-        return NULL;
+    if (!name || !qemuCaps)
+        return name;
 
     for (i = 0; i < qemuCaps->nmachineTypes; i++) {
         if (!qemuCaps->machineTypes[i].alias)
@@ -3227,6 +3238,7 @@ static struct virQEMUCapsCommandLineProps virQEMUCapsCommandLine[] = {
     { "machine", "kernel_irqchip", QEMU_CAPS_MACHINE_KERNEL_IRQCHIP },
     { "machine", "loadparm", QEMU_CAPS_LOADPARM },
     { "vnc", "vnc", QEMU_CAPS_VNC_MULTI_SERVERS },
+    { "chardev", "reconnect", QEMU_CAPS_CHARDEV_RECONNECT },
 };
 
 static int
@@ -5668,7 +5680,8 @@ virQEMUCapsFillDomainDeviceHostdevCaps(virQEMUCapsPtr qemuCaps,
  * @version: GIC version
  *
  * Checks the QEMU binary with capabilities @qemuCaps supports a specific
- * GIC version for a domain of type @virtType.
+ * GIC version for a domain of type @virtType. If @qemuCaps is NULL, the GIC
+ * @version is considered unsupported.
  *
  * Returns: true if the binary supports the requested GIC version, false
  *          otherwise
@@ -5679,6 +5692,9 @@ virQEMUCapsSupportsGICVersion(virQEMUCapsPtr qemuCaps,
                               virGICVersion version)
 {
     size_t i;
+
+    if (!qemuCaps)
+        return false;
 
     for (i = 0; i < qemuCaps->ngicCapabilities; i++) {
         virGICCapabilityPtr cap = &(qemuCaps->gicCapabilities[i]);
