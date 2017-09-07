@@ -1039,6 +1039,8 @@
      <exports symbol='virDomainLookupByUUID' type='function'/>
      <exports symbol='virDomainLookupByUUIDString' type='function'/>
      <exports symbol='virDomainManagedSave' type='function'/>
+     <exports symbol='virDomainManagedSaveDefineXML' type='function'/>
+     <exports symbol='virDomainManagedSaveGetXMLDesc' type='function'/>
      <exports symbol='virDomainManagedSaveRemove' type='function'/>
      <exports symbol='virDomainMemoryPeek' type='function'/>
      <exports symbol='virDomainMemoryStats' type='function'/>
@@ -1046,6 +1048,7 @@
      <exports symbol='virDomainMigrate2' type='function'/>
      <exports symbol='virDomainMigrate3' type='function'/>
      <exports symbol='virDomainMigrateGetCompressionCache' type='function'/>
+     <exports symbol='virDomainMigrateGetMaxDowntime' type='function'/>
      <exports symbol='virDomainMigrateGetMaxSpeed' type='function'/>
      <exports symbol='virDomainMigrateSetCompressionCache' type='function'/>
      <exports symbol='virDomainMigrateSetMaxDowntime' type='function'/>
@@ -1861,6 +1864,7 @@
      <exports symbol='VIR_FROM_PROXY' type='enum'/>
      <exports symbol='VIR_FROM_QEMU' type='enum'/>
      <exports symbol='VIR_FROM_REMOTE' type='enum'/>
+     <exports symbol='VIR_FROM_RESCTRL' type='enum'/>
      <exports symbol='VIR_FROM_RPC' type='enum'/>
      <exports symbol='VIR_FROM_SECRET' type='enum'/>
      <exports symbol='VIR_FROM_SECURITY' type='enum'/>
@@ -3257,7 +3261,7 @@ conf file'/>
     <enum name='VIR_ERR_CPU_INCOMPATIBLE' file='virterror' value='91' type='virErrorNumber' info='given CPU is incompatible with host
 CP'/>
     <enum name='VIR_ERR_DBUS_SERVICE' file='virterror' value='89' type='virErrorNumber' info='error from a dbus service'/>
-    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='67' type='virErrorDomain'/>
+    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='68' type='virErrorDomain'/>
     <enum name='VIR_ERR_DOM_EXIST' file='virterror' value='28' type='virErrorNumber' info='the domain already exist'/>
     <enum name='VIR_ERR_DRIVER_FULL' file='virterror' value='25' type='virErrorNumber' info='too many drivers registered'/>
     <enum name='VIR_ERR_ERROR' file='virterror' value='2' type='virErrorLevel' info='An error'/>
@@ -3399,6 +3403,7 @@ Retained for ABI/API compat only'/>
 0.8.6'/>
     <enum name='VIR_FROM_QEMU' file='virterror' value='10' type='virErrorDomain' info='Error at the QEMU daemon'/>
     <enum name='VIR_FROM_REMOTE' file='virterror' value='13' type='virErrorDomain' info='Error from remote driver'/>
+    <enum name='VIR_FROM_RESCTRL' file='virterror' value='67' type='virErrorDomain' info='Error from resource control'/>
     <enum name='VIR_FROM_RPC' file='virterror' value='7' type='virErrorDomain' info='Error in the XML-RPC code'/>
     <enum name='VIR_FROM_SECRET' file='virterror' value='30' type='virErrorDomain' info='Error from secret storage'/>
     <enum name='VIR_FROM_SECURITY' file='virterror' value='24' type='virErrorDomain' info='Error from security framework'/>
@@ -7022,11 +7027,7 @@ getting per-cpu stats:
     <function name='virDomainGetConnect' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Provides the connection pointer associated with a domain.  The
 reference counter on the connection is not increased by this
-call.
-
-WARNING: When writing libvirt bindings in other languages, do
-not use this function.  Instead, store the connection and
-the domain object together.]]></info>
+call.]]></info>
       <return type='virConnectPtr' info='the virConnectPtr or NULL in case of failure.'/>
       <arg name='dom' type='virDomainPtr' info='pointer to a domain'/>
     </function>
@@ -7725,6 +7726,38 @@ flags are mutually exclusive.]]></info>
       <arg name='dom' type='virDomainPtr' info='pointer to the domain'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainSaveRestoreFlags'/>
     </function>
+    <function name='virDomainManagedSaveDefineXML' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[This updates the definition of a domain stored in a saved state
+file.
+
+@dxml can be used to alter host-specific portions of the domain XML
+that will be used on the next start of the domain. For example, it is
+possible to alter the backing filename that is associated with a
+disk device.
+
+Normally, the saved state file will remember whether the domain was
+running or paused, and restore defaults to the same state.
+Specifying VIR_DOMAIN_SAVE_RUNNING or VIR_DOMAIN_SAVE_PAUSED in
+@flags will override the default saved into the file; omitting both
+leaves the file's default unchanged.  These two flags are mutually
+exclusive.]]></info>
+      <return type='int' info='0 in case of success and -1 in case of failure.'/>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='dxml' type='const char *' info='XML config for adjusting guest xml used on restore'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainSaveRestoreFlags'/>
+    </function>
+    <function name='virDomainManagedSaveGetXMLDesc' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[This method will extract the XML description of the managed save
+state file of a domain.
+
+No security-sensitive data will be included unless @flags contains
+VIR_DOMAIN_XML_SECURE; this flag is rejected on read-only
+connections.  For this API, @flags should not contain either
+VIR_DOMAIN_XML_INACTIVE or VIR_DOMAIN_XML_UPDATE_CPU.]]></info>
+      <return type='char *' info='a 0 terminated UTF-8 encoded XML instance, or NULL in case of error.  The caller must free() the returned value.'/>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of subset of virDomainXMLFlags'/>
+    </function>
     <function name='virDomainManagedSaveRemove' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Remove any managed save image for this domain.]]></info>
       <return type='int' info='0 in case of success, and -1 in case of error'/>
@@ -7866,6 +7899,14 @@ transferred memory pages during live migration.]]></info>
       <return type='int' info='0 in case of success, -1 otherwise.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='cacheSize' type='unsigned long long *' info='return value of current size of the cache (in bytes)'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
+    <function name='virDomainMigrateGetMaxDowntime' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[Gets current maximum tolerable time for which the domain may be paused
+at the end of live migration.]]></info>
+      <return type='int' info='0 in case of success, -1 otherwise.'/>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='downtime' type='unsigned long long *' info='return value of the maximum tolerable downtime for live migration, in milliseconds'/>
       <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainMigrateGetMaxSpeed' file='libvirt-domain' module='libvirt-domain'>
@@ -9056,20 +9097,14 @@ The data structure is freed and should not be used thereafter.]]></info>
     <function name='virDomainSnapshotGetConnect' file='libvirt-domain-snapshot' module='libvirt-domain-snapshot'>
       <info><![CDATA[Provides the connection pointer associated with a snapshot.  The
 reference counter on the connection is not increased by this
-call.
-
-WARNING: When writing libvirt bindings in other languages, do not use this
-function.  Instead, store the connection and the snapshot object together.]]></info>
+call.]]></info>
       <return type='virConnectPtr' info='the connection or NULL.'/>
       <arg name='snapshot' type='virDomainSnapshotPtr' info='a snapshot object'/>
     </function>
     <function name='virDomainSnapshotGetDomain' file='libvirt-domain-snapshot' module='libvirt-domain-snapshot'>
       <info><![CDATA[Provides the domain pointer associated with a snapshot.  The
 reference counter on the domain is not increased by this
-call.
-
-WARNING: When writing libvirt bindings in other languages, do not use this
-function.  Instead, store the domain and the snapshot object together.]]></info>
+call.]]></info>
       <return type='virDomainPtr' info='the domain or NULL.'/>
       <arg name='snapshot' type='virDomainSnapshotPtr' info='a snapshot object'/>
     </function>
@@ -9784,11 +9819,7 @@ The data structure is freed and should not be used thereafter.]]></info>
     <function name='virInterfaceGetConnect' file='libvirt-interface' module='libvirt-interface'>
       <info><![CDATA[Provides the connection pointer associated with an interface.  The
 reference counter on the connection is not increased by this
-call.
-
-WARNING: When writing libvirt bindings in other languages, do
-not use this function.  Instead, store the connection and
-the interface object together.]]></info>
+call.]]></info>
       <return type='virConnectPtr' info='the virConnectPtr or NULL in case of failure.'/>
       <arg name='iface' type='virInterfacePtr' info='pointer to an interface'/>
     </function>
@@ -10021,11 +10052,7 @@ a network interface in order to join the network.]]></info>
     <function name='virNetworkGetConnect' file='libvirt-network' module='libvirt-network'>
       <info><![CDATA[Provides the connection pointer associated with a network.  The
 reference counter on the connection is not increased by this
-call.
-
-WARNING: When writing libvirt bindings in other languages, do
-not use this function.  Instead, store the connection and
-the network object together.]]></info>
+call.]]></info>
       <return type='virConnectPtr' info='the virConnectPtr or NULL in case of failure.'/>
       <arg name='net' type='virNetworkPtr' info='pointer to a network'/>
     </function>
@@ -10646,10 +10673,7 @@ secret object is no longer needed.]]></info>
     </function>
     <function name='virSecretGetConnect' file='libvirt-secret' module='libvirt-secret'>
       <info><![CDATA[Provides the connection pointer associated with a secret.  The reference
-counter on the connection is not increased by this call.
-
-WARNING: When writing libvirt bindings in other languages, do not use this
-function.  Instead, store the connection and the secret object together.]]></info>
+counter on the connection is not increased by this call.]]></info>
       <return type='virConnectPtr' info='the virConnectPtr or NULL in case of failure.'/>
       <arg name='secret' type='virSecretPtr' info='A virSecret secret'/>
     </function>
@@ -10838,11 +10862,7 @@ whether the pool is automatically started at boot time]]></info>
     <function name='virStoragePoolGetConnect' file='libvirt-storage' module='libvirt-storage'>
       <info><![CDATA[Provides the connection pointer associated with a storage pool.  The
 reference counter on the connection is not increased by this
-call.
-
-WARNING: When writing libvirt bindings in other languages, do
-not use this function.  Instead, store the connection and
-the pool object together.]]></info>
+call.]]></info>
       <return type='virConnectPtr' info='the virConnectPtr or NULL in case of failure.'/>
       <arg name='pool' type='virStoragePoolPtr' info='pointer to a pool'/>
     </function>
@@ -11055,11 +11075,7 @@ storage volume continues to exist.]]></info>
     <function name='virStorageVolGetConnect' file='libvirt-storage' module='libvirt-storage'>
       <info><![CDATA[Provides the connection pointer associated with a storage volume.  The
 reference counter on the connection is not increased by this
-call.
-
-WARNING: When writing libvirt bindings in other languages, do
-not use this function.  Instead, store the connection and
-the volume object together.]]></info>
+call.]]></info>
       <return type='virConnectPtr' info='the virConnectPtr or NULL in case of failure.'/>
       <arg name='vol' type='virStorageVolPtr' info='pointer to a pool'/>
     </function>

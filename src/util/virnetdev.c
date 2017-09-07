@@ -1170,6 +1170,46 @@ virNetDevGetPCIDevice(const char *devName)
 
 
 /**
+ * virNetDevGetPhysPortID:
+ *
+ * @ifname: name of a netdev
+ *
+ * @physPortID: pointer to char* that will receive @ifname's
+ *              phys_port_id from sysfs (null terminated
+ *              string). Could be NULL if @ifname's net driver doesn't
+ *              support phys_port_id (most netdev drivers
+ *              don't). Caller is responsible for freeing the string
+ *              when finished.
+ *
+ * Returns 0 on success or -1 on failure.
+ */
+int
+virNetDevGetPhysPortID(const char *ifname,
+                       char **physPortID)
+{
+    int ret = -1;
+    char *physPortIDFile = NULL;
+
+    *physPortID = NULL;
+
+    if (virNetDevSysfsFile(&physPortIDFile, ifname, "phys_port_id") < 0)
+        goto cleanup;
+
+    /* a failure to read just means the driver doesn't support
+     * phys_port_id, so set success now and ignore the return from
+     * virFileReadAllQuiet().
+     */
+    ret = 0;
+
+    ignore_value(virFileReadAllQuiet(physPortIDFile, 1024, physPortID));
+
+ cleanup:
+    VIR_FREE(physPortIDFile);
+    return ret;
+}
+
+
+/**
  * virNetDevGetVirtualFunctions:
  *
  * @pfname : name of the physical function interface name
@@ -1191,13 +1231,17 @@ virNetDevGetVirtualFunctions(const char *pfname,
     char *pf_sysfs_device_link = NULL;
     char *pci_sysfs_device_link = NULL;
     char *pciConfigAddr = NULL;
+    char *pfPhysPortID = NULL;
 
     *virt_fns = NULL;
     *n_vfname = 0;
     *max_vfs = 0;
 
+    if (virNetDevGetPhysPortID(pfname, &pfPhysPortID) < 0)
+        goto cleanup;
+
     if (virNetDevSysfsFile(&pf_sysfs_device_link, pfname, "device") < 0)
-        return ret;
+        goto cleanup;
 
     if (virPCIGetVirtualFunctions(pf_sysfs_device_link, virt_fns,
                                   n_vfname, max_vfs) < 0)
@@ -1222,8 +1266,10 @@ virNetDevGetVirtualFunctions(const char *pfname,
             goto cleanup;
         }
 
-        if (virPCIGetNetName(pci_sysfs_device_link, &((*vfname)[i])) < 0)
+        if (virPCIGetNetName(pci_sysfs_device_link, 0,
+                             pfPhysPortID, &((*vfname)[i])) < 0) {
             goto cleanup;
+        }
 
         if (!(*vfname)[i])
             VIR_INFO("VF does not have an interface name");
@@ -1236,6 +1282,7 @@ virNetDevGetVirtualFunctions(const char *pfname,
         VIR_FREE(*vfname);
         VIR_FREE(*virt_fns);
     }
+    VIR_FREE(pfPhysPortID);
     VIR_FREE(pf_sysfs_device_link);
     VIR_FREE(pci_sysfs_device_link);
     VIR_FREE(pciConfigAddr);
@@ -1317,13 +1364,19 @@ int
 virNetDevGetPhysicalFunction(const char *ifname, char **pfname)
 {
     char *physfn_sysfs_path = NULL;
+    char *vfPhysPortID = NULL;
     int ret = -1;
 
-    if (virNetDevSysfsDeviceFile(&physfn_sysfs_path, ifname, "physfn") < 0)
-        return ret;
-
-    if (virPCIGetNetName(physfn_sysfs_path, pfname) < 0)
+    if (virNetDevGetPhysPortID(ifname, &vfPhysPortID) < 0)
         goto cleanup;
+
+    if (virNetDevSysfsDeviceFile(&physfn_sysfs_path, ifname, "physfn") < 0)
+        goto cleanup;
+
+    if (virPCIGetNetName(physfn_sysfs_path, 0,
+                         vfPhysPortID, pfname) < 0) {
+        goto cleanup;
+    }
 
     if (!*pfname) {
         /* this shouldn't be possible. A VF can't exist unless its
@@ -1337,6 +1390,7 @@ virNetDevGetPhysicalFunction(const char *ifname, char **pfname)
 
     ret = 0;
  cleanup:
+    VIR_FREE(vfPhysPortID);
     VIR_FREE(physfn_sysfs_path);
     return ret;
 }
@@ -1364,7 +1418,15 @@ virNetDevPFGetVF(const char *pfname, int vf, char **vfname)
 {
     char *virtfnName = NULL;
     char *virtfnSysfsPath = NULL;
+    char *pfPhysPortID = NULL;
     int ret = -1;
+
+    /* a VF may have multiple "ports", each one having its own netdev,
+     * and each netdev having a different phys_port_id. Be sure we get
+     * the VF netdev with a phys_port_id matchine that of pfname
+     */
+    if (virNetDevGetPhysPortID(pfname, &pfPhysPortID) < 0)
+        goto cleanup;
 
     if (virAsprintf(&virtfnName, "virtfn%d", vf) < 0)
         goto cleanup;
@@ -1382,11 +1444,12 @@ virNetDevPFGetVF(const char *pfname, int vf, char **vfname)
      * isn't bound to a netdev driver, it won't have a netdev name,
      * and vfname will be NULL).
      */
-    ret = virPCIGetNetName(virtfnSysfsPath, vfname);
+    ret = virPCIGetNetName(virtfnSysfsPath, 0, pfPhysPortID, vfname);
 
  cleanup:
     VIR_FREE(virtfnName);
     VIR_FREE(virtfnSysfsPath);
+    VIR_FREE(pfPhysPortID);
 
     return ret;
 }
@@ -1432,6 +1495,17 @@ virNetDevGetVirtualFunctionInfo(const char *vfname, char **pfname,
 }
 
 #else /* !__linux__ */
+int
+virNetDevGetPhysPortID(const char *ifname ATTRIBUTE_UNUSED,
+                       char **physPortID)
+{
+    /* this actually should never be called, and is just here to
+     * satisfy the linker.
+     */
+    *physPortID = NULL;
+    return 0;
+}
+
 int
 virNetDevGetVirtualFunctions(const char *pfname ATTRIBUTE_UNUSED,
                              char ***vfname ATTRIBUTE_UNUSED,
@@ -1804,8 +1878,9 @@ virNetDevSaveNetConfig(const char *linkdev, int vf,
             goto cleanup;
 
         linkdev = vfDevOrig;
+        saveVlan = true;
 
-    } else if (saveVlan && virNetDevIsVirtualFunction(linkdev) == 1) {
+    } else if (virNetDevIsVirtualFunction(linkdev) == 1) {
         /* when vf is -1, linkdev might be a standard netdevice (not
          * SRIOV), or it might be an SRIOV VF. If it's a VF, normalize
          * it to PF + VFname
@@ -1820,6 +1895,34 @@ virNetDevSaveNetConfig(const char *linkdev, int vf,
             goto cleanup;
     }
 
+    if (pfDevName) {
+        bool pfIsOnline;
+
+        /* Assure that PF is online before trying to use it to set
+         * anything up for this VF. It *should* be online already,
+         * but if it isn't online the changes made to the VF via the
+         * PF won't take effect, yet there will be no error
+         * reported. In the case that the PF isn't online, we need to
+         * fail and report the error, rather than automatically
+         * setting it online, since setting an unconfigured interface
+         * online automatically turns on IPv6 autoconfig, which may
+         * not be what the admin expects, so we require them to
+         * explicitly enable the PF in the host system network config.
+         */
+        if (virNetDevGetOnline(pfDevName, &pfIsOnline) < 0)
+            goto cleanup;
+
+        if (!pfIsOnline) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Unable to configure VF %d of PF '%s' "
+                             "because the PF is not online. Please "
+                             "change host network config to put the "
+                             "PF online."),
+                           vf, pfDevName);
+            goto cleanup;
+        }
+    }
+
     if (!(configJSON = virJSONValueNewObject()))
         goto cleanup;
 
@@ -1828,15 +1931,13 @@ virNetDevSaveNetConfig(const char *linkdev, int vf,
      * on the host)
      */
 
-    if (pfDevName) {
+    if (pfDevName && saveVlan) {
         if (virAsprintf(&filePath, "%s/%s_vf%d", stateDir, pfDevName, vf) < 0)
             goto cleanup;
 
         /* get admin MAC and vlan tag */
-        if (virNetDevGetVfConfig(pfDevName, vf, &oldMAC,
-                                 saveVlan ? &oldVlanTag : NULL) < 0) {
+        if (virNetDevGetVfConfig(pfDevName, vf, &oldMAC, &oldVlanTag) < 0)
             goto cleanup;
-        }
 
         if (virJSONValueObjectAppendString(configJSON,
                                            VIR_NETDEV_KEYNAME_ADMIN_MAC,
@@ -1897,7 +1998,9 @@ virNetDevSaveNetConfig(const char *linkdev, int vf,
  * @linkdev:@vf from a file in @stateDir. (see virNetDevSaveNetConfig
  * for details of file name and format).
  *
- * Returns 0 on success, -1 on failure.
+ * Returns 0 on success, -1 on failure. It is *NOT* considered failure
+ * if no file is found to read. In that case, adminMAC, vlan, and MAC
+ * are set to NULL, and success is returned.
  *
  * The caller MUST free adminMAC, vlan, and MAC when it is finished
  * with them (they will be NULL if they weren't found in the file)
@@ -1962,8 +2065,8 @@ virNetDevReadNetConfig(const char *linkdev, int vf,
         if (linkdev && !virFileExists(filePath)) {
             /* the device may have been stored in a file named for the
              * VF due to saveVlan == false (or an older version of
-             * libvirt), so reset filePath so we'll try the other
-             * filename before failing.
+             * libvirt), so reset filePath and pfDevName so we'll try
+             * the other filename.
              */
             VIR_FREE(filePath);
             pfDevName = NULL;
@@ -1973,6 +2076,14 @@ virNetDevReadNetConfig(const char *linkdev, int vf,
     if (!pfDevName) {
         if (virAsprintf(&filePath, "%s/%s", stateDir, linkdev) < 0)
             goto cleanup;
+    }
+
+    if (!virFileExists(filePath)) {
+        /* having no file to read is not necessarily an error, so we
+         * just return success, but with MAC, adminMAC, and vlan set to NULL
+         */
+        ret = 0;
+        goto cleanup;
     }
 
     if (virFileReadAll(filePath, 128, &fileStr) < 0)
@@ -2167,32 +2278,6 @@ virNetDevSetNetConfig(const char *linkdev, int vf,
         }
 
     } else {
-        bool pfIsOnline;
-
-        /* Assure that PF is online before trying to use it to set
-         * anything up for this VF. It *should* be online already,
-         * but if it isn't online the changes made to the VF via the
-         * PF won't take effect, yet there will be no error
-         * reported. In the case that the PF isn't online, we need to
-         * fail and report the error, rather than automatically
-         * setting it online, since setting an unconfigured interface
-         * online automatically turns on IPv6 autoconfig, which may
-         * not be what the admin expects, so we require them to
-         * explicitly enable the PF in the host system network config.
-         */
-        if (virNetDevGetOnline(pfDevName, &pfIsOnline) < 0)
-            goto cleanup;
-
-        if (!pfIsOnline) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Unable to configure VF %d of PF '%s' "
-                             "because the PF is not online. Please "
-                             "change host network config to put the "
-                             "PF online."),
-                           vf, pfDevName);
-            goto cleanup;
-        }
-
         if (vlan) {
             if (vlan->nTags != 1 || vlan->trunk) {
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",

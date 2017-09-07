@@ -982,8 +982,6 @@ int
 qemuDomainFillDeviceIsolationGroup(virDomainDefPtr def,
                                    virDomainDeviceDefPtr dev)
 {
-    int ret = -1;
-
     /* Only host devices need their isolation group to be different from
      * the default. Interfaces of type hostdev are just host devices in
      * disguise, but we don't need to handle them separately because for
@@ -1013,10 +1011,10 @@ qemuDomainFillDeviceIsolationGroup(virDomainDefPtr def,
 
         if (tmp < 0) {
             VIR_WARN("Can't look up isolation group for host device "
-                     "%04x:%02x:%02x.%x",
+                     "%04x:%02x:%02x.%x, device won't be isolated",
                      hostAddr->domain, hostAddr->bus,
                      hostAddr->slot, hostAddr->function);
-            goto cleanup;
+            goto skip;
         }
 
         /* The isolation group for a host device is its IOMMU group,
@@ -1057,9 +1055,10 @@ qemuDomainFillDeviceIsolationGroup(virDomainDefPtr def,
 
         if (tmp == 0) {
             VIR_WARN("Can't obtain usable isolation group for interface "
-                     "configured to use hostdev-backed network '%s'",
+                     "configured to use hostdev-backed network '%s', "
+                     "device won't be isolated",
                      iface->data.network.name);
-            goto cleanup;
+            goto skip;
         }
 
         info->isolationGroup = tmp;
@@ -1070,10 +1069,7 @@ qemuDomainFillDeviceIsolationGroup(virDomainDefPtr def,
     }
 
  skip:
-    ret = 0;
-
- cleanup:
-    return ret;
+    return 0;
 }
 
 

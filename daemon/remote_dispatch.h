@@ -7143,6 +7143,125 @@ cleanup:
 
 
 
+static int remoteDispatchDomainManagedSaveDefineXML(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_managed_save_define_xml_args *args);
+static int remoteDispatchDomainManagedSaveDefineXMLHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchDomainManagedSaveDefineXML");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchDomainManagedSaveDefineXML(server, client, msg, rerr, args);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchDomainManagedSaveDefineXML(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_managed_save_define_xml_args *args)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    char *dxml;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    dxml = args->dxml ? *args->dxml : NULL;
+
+    if (virDomainManagedSaveDefineXML(dom, dxml, args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(dom);
+    return rv;
+}
+
+
+
+static int remoteDispatchDomainManagedSaveGetXMLDesc(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_managed_save_get_xml_desc_args *args,
+    remote_domain_managed_save_get_xml_desc_ret *ret);
+static int remoteDispatchDomainManagedSaveGetXMLDescHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchDomainManagedSaveGetXMLDesc");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchDomainManagedSaveGetXMLDesc(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchDomainManagedSaveGetXMLDesc(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_managed_save_get_xml_desc_args *args,
+    remote_domain_managed_save_get_xml_desc_ret *ret)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    char *xml;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if ((xml = virDomainManagedSaveGetXMLDesc(dom, args->flags)) == NULL)
+        goto cleanup;
+
+    ret->xml = xml;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(dom);
+    return rv;
+}
+
+
+
 static int remoteDispatchDomainManagedSaveRemove(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -7580,6 +7699,66 @@ static int remoteDispatchDomainMigrateGetCompressionCache(
         goto cleanup;
 
     ret->cacheSize = cacheSize;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(dom);
+    return rv;
+}
+
+
+
+static int remoteDispatchDomainMigrateGetMaxDowntime(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_migrate_get_max_downtime_args *args,
+    remote_domain_migrate_get_max_downtime_ret *ret);
+static int remoteDispatchDomainMigrateGetMaxDowntimeHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchDomainMigrateGetMaxDowntime");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchDomainMigrateGetMaxDowntime(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchDomainMigrateGetMaxDowntime(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_migrate_get_max_downtime_args *args,
+    remote_domain_migrate_get_max_downtime_ret *ret)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    unsigned long long downtime;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if (virDomainMigrateGetMaxDowntime(dom, &downtime, args->flags) < 0)
+        goto cleanup;
+
+    ret->downtime = downtime;
     rv = 0;
 
 cleanup:
@@ -21047,6 +21226,33 @@ virNetServerProgramProc remoteProcs[] = {
    remoteDispatchDomainSetBlockThresholdHelper,
    sizeof(remote_domain_set_block_threshold_args),
    (xdrproc_t)xdr_remote_domain_set_block_threshold_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method DomainMigrateGetMaxDowntime => 387 */
+   remoteDispatchDomainMigrateGetMaxDowntimeHelper,
+   sizeof(remote_domain_migrate_get_max_downtime_args),
+   (xdrproc_t)xdr_remote_domain_migrate_get_max_downtime_args,
+   sizeof(remote_domain_migrate_get_max_downtime_ret),
+   (xdrproc_t)xdr_remote_domain_migrate_get_max_downtime_ret,
+   true,
+   0
+},
+{ /* Method DomainManagedSaveGetXMLDesc => 388 */
+   remoteDispatchDomainManagedSaveGetXMLDescHelper,
+   sizeof(remote_domain_managed_save_get_xml_desc_args),
+   (xdrproc_t)xdr_remote_domain_managed_save_get_xml_desc_args,
+   sizeof(remote_domain_managed_save_get_xml_desc_ret),
+   (xdrproc_t)xdr_remote_domain_managed_save_get_xml_desc_ret,
+   true,
+   0
+},
+{ /* Method DomainManagedSaveDefineXML => 389 */
+   remoteDispatchDomainManagedSaveDefineXMLHelper,
+   sizeof(remote_domain_managed_save_define_xml_args),
+   (xdrproc_t)xdr_remote_domain_managed_save_define_xml_args,
    0,
    (xdrproc_t)xdr_void,
    true,

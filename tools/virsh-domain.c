@@ -3061,7 +3061,7 @@ cmdDomIfSetLink(vshControl *ctl, const vshCmd *cmd)
 
         while (cur) {
             if (cur->type == XML_ELEMENT_NODE &&
-                xmlStrEqual(cur->name, BAD_CAST element)) {
+                virXMLNodeNameEqual(cur, element)) {
                 value = virXMLPropString(cur, attr);
 
                 if (STRCASEEQ(value, iface)) {
@@ -3084,7 +3084,7 @@ cmdDomIfSetLink(vshControl *ctl, const vshCmd *cmd)
 
     while (cur) {
         if (cur->type == XML_ELEMENT_NODE &&
-            xmlStrEqual(cur->name, BAD_CAST "link")) {
+            virXMLNodeNameEqual(cur, "link")) {
             /* found, just modify the property */
             xmlSetProp(cur, BAD_CAST "state", BAD_CAST state);
 
@@ -4701,6 +4701,192 @@ cmdManagedSaveRemove(vshControl *ctl, const vshCmd *cmd)
 
  cleanup:
     virshDomainFree(dom);
+    return ret;
+}
+
+/*
+ * "managedsave-edit" command
+ */
+static const vshCmdInfo info_managed_save_edit[] = {
+   {.name = "help",
+    .data = N_("edit XML for a domain's managed save state file")
+   },
+   {.name = "desc",
+    .data = N_("Edit the domain XML associated with the managed save state file")
+   },
+   {.name = NULL}
+};
+
+static const vshCmdOptDef opts_managed_save_edit[] = {
+    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    {.name = "running",
+     .type = VSH_OT_BOOL,
+     .help = N_("set domain to be running on start")
+    },
+    {.name = "paused",
+     .type = VSH_OT_BOOL,
+     .help = N_("set domain to be paused on start")
+    },
+    {.name = NULL}
+};
+
+static bool
+cmdManagedSaveEdit(vshControl *ctl, const vshCmd *cmd)
+{
+    bool ret = false;
+    virDomainPtr dom = NULL;
+    unsigned int getxml_flags = VIR_DOMAIN_XML_SECURE;
+    unsigned int define_flags = 0;
+
+    if (vshCommandOptBool(cmd, "running"))
+        define_flags |= VIR_DOMAIN_SAVE_RUNNING;
+    if (vshCommandOptBool(cmd, "paused"))
+        define_flags |= VIR_DOMAIN_SAVE_PAUSED;
+
+    VSH_EXCLUSIVE_OPTIONS("running", "paused");
+
+    dom = virshCommandOptDomain(ctl, cmd, NULL);
+    if (dom == NULL)
+        goto cleanup;
+
+#define EDIT_GET_XML virDomainManagedSaveGetXMLDesc(dom, getxml_flags)
+#define EDIT_NOT_CHANGED                                                          \
+    do {                                                                          \
+        vshPrintExtra(ctl, _("Managed save image of domain %s XML configuration " \
+                             "not changed.\n"), virDomainGetName(dom));           \
+        ret = true;                                                               \
+        goto edit_cleanup;                                                        \
+    } while (0)
+#define EDIT_DEFINE \
+    (virDomainManagedSaveDefineXML(dom, doc_edited, define_flags) == 0)
+#include "virsh-edit.c"
+
+    vshPrintExtra(ctl, _("Managed save image of Domain %s XML configuration edited.\n"),
+                  virDomainGetName(dom));
+    ret = true;
+
+ cleanup:
+    virshDomainFree(dom);
+    return ret;
+}
+
+/*
+ * "managedsave-dumpxml" command
+ */
+static const vshCmdInfo info_managed_save_dumpxml[] = {
+   {.name = "help",
+    .data = N_("Domain information of managed save state file in XML")
+   },
+   {.name = "desc",
+    .data = N_("Dump XML of domain information for a managed save state file to stdout.")
+   },
+   {.name = NULL}
+};
+
+static const vshCmdOptDef opts_managed_save_dumpxml[] = {
+    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    {.name = "security-info",
+     .type = VSH_OT_BOOL,
+     .help = N_("include security sensitive information in XML dump")
+    },
+    {.name = NULL}
+};
+
+static bool
+cmdManagedSaveDumpxml(vshControl *ctl, const vshCmd *cmd)
+{
+    bool ret = false;
+    virDomainPtr dom = NULL;
+    unsigned int flags = 0;
+    char *xml = NULL;
+
+    if (vshCommandOptBool(cmd, "security-info"))
+        flags |= VIR_DOMAIN_XML_SECURE;
+
+    if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
+        goto cleanup;
+
+    if (!(xml = virDomainManagedSaveGetXMLDesc(dom, flags)))
+        goto cleanup;
+
+    vshPrint(ctl, "%s", xml);
+    ret = true;
+
+ cleanup:
+    virshDomainFree(dom);
+    VIR_FREE(xml);
+    return ret;
+}
+
+/*
+ * "managedsave-define" command
+ */
+static const vshCmdInfo info_managed_save_define[] = {
+    {.name = "help",
+     .data = N_("redefine the XML for a domain's managed save state file")
+    },
+    {.name = "desc",
+     .data = N_("Replace the domain XML associated with a managed save state file")
+    },
+    {.name = NULL}
+};
+
+static const vshCmdOptDef opts_managed_save_define[] = {
+    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    {.name = "xml",
+     .type = VSH_OT_DATA,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("filename containing updated XML for the target")
+    },
+    {.name = "running",
+     .type = VSH_OT_BOOL,
+     .help = N_("set domain to be running on start")
+    },
+    {.name = "paused",
+     .type = VSH_OT_BOOL,
+     .help = N_("set domain to be paused on start")
+    },
+    {.name = NULL}
+};
+
+static bool
+cmdManagedSaveDefine(vshControl *ctl, const vshCmd *cmd)
+{
+    bool ret = false;
+    virDomainPtr dom = NULL;
+    const char *xmlfile = NULL;
+    char *xml = NULL;
+    unsigned int flags = 0;
+
+    if (vshCommandOptBool(cmd, "running"))
+        flags |= VIR_DOMAIN_SAVE_RUNNING;
+    if (vshCommandOptBool(cmd, "paused"))
+        flags |= VIR_DOMAIN_SAVE_PAUSED;
+
+    VSH_EXCLUSIVE_OPTIONS("running", "paused");
+
+    if (vshCommandOptStringReq(ctl, cmd, "xml", &xmlfile) < 0)
+        return false;
+
+    if (virFileReadAll(xmlfile, VSH_MAX_XML_FILE, &xml) < 0)
+        return false;
+
+    if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
+        goto cleanup;
+
+    if (virDomainManagedSaveDefineXML(dom, xml, flags) < 0) {
+        vshError(ctl, _("Failed to update %s XML configuration"),
+                        virDomainGetName(dom));
+        goto cleanup;
+    }
+
+    vshPrintExtra(ctl, _("Managed save state file of domain %s updated.\n"),
+                         virDomainGetName(dom));
+    ret = true;
+
+ cleanup:
+    virshDomainFree(dom);
+    VIR_FREE(xml);
     return ret;
 }
 
@@ -10719,6 +10905,47 @@ cmdMigrateSetMaxDowntime(vshControl *ctl, const vshCmd *cmd)
     return ret;
 }
 
+
+/*
+ * "migrate-getmaxdowntime" command
+ */
+static const vshCmdInfo info_migrate_getmaxdowntime[] = {
+    {.name = "help",
+     .data = N_("get maximum tolerable downtime")
+    },
+    {.name = "desc",
+     .data = N_("Get maximum tolerable downtime of a domain which is being live-migrated to another host.")
+    },
+    {.name = NULL}
+};
+
+static const vshCmdOptDef opts_migrate_getmaxdowntime[] = {
+    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    {.name = NULL}
+};
+
+static bool
+cmdMigrateGetMaxDowntime(vshControl *ctl, const vshCmd *cmd)
+{
+    virDomainPtr dom = NULL;
+    unsigned long long downtime;
+    bool ret = false;
+
+    if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
+        return false;
+
+    if (virDomainMigrateGetMaxDowntime(dom, &downtime, 0) < 0)
+        goto done;
+
+    vshPrint(ctl, "%llu\n", downtime);
+    ret = true;
+
+ done:
+    virshDomainFree(dom);
+    return ret;
+}
+
+
 /*
  * "migrate-compcache" command
  */
@@ -10948,6 +11175,8 @@ cmdDomDisplay(vshControl *ctl, const vshCmd *cmd)
     char *xpath = NULL;
     char *listen_addr = NULL;
     int port, tls_port = 0;
+    char *type_conn = NULL;
+    char *sockpath = NULL;
     char *passwd = NULL;
     char *output = NULL;
     const char *scheme[] = { "vnc", "spice", "rdp", NULL };
@@ -11008,9 +11237,6 @@ cmdDomDisplay(vshControl *ctl, const vshCmd *cmd)
         if (tmp)
             tls_port = 0;
 
-        if (!port && !tls_port)
-            continue;
-
         /* Create our XPATH lookup for the current display's address */
         if (virAsprintf(&xpath, xpath_fmt, scheme[iter], "@listen") < 0)
             goto cleanup;
@@ -11020,6 +11246,29 @@ cmdDomDisplay(vshControl *ctl, const vshCmd *cmd)
         VIR_FREE(listen_addr);
         listen_addr = virXPathString(xpath, ctxt);
         VIR_FREE(xpath);
+
+        /* Create our XPATH lookup for the current spice type. */
+        if (virAsprintf(&xpath, xpath_fmt, scheme[iter], "listen/@type") < 0)
+            goto cleanup;
+
+        /* Attempt to get the type of spice connection */
+        VIR_FREE(type_conn);
+        type_conn = virXPathString(xpath, ctxt);
+        VIR_FREE(xpath);
+
+        if (STREQ_NULLABLE(type_conn, "socket")) {
+            if (!sockpath) {
+                if (virAsprintf(&xpath, xpath_fmt, scheme[iter], "listen/@socket") < 0)
+                    goto cleanup;
+
+                sockpath = virXPathString(xpath, ctxt);
+
+                VIR_FREE(xpath);
+            }
+        }
+
+        if (!port && !tls_port && !sockpath)
+            continue;
 
         if (!listen_addr) {
             /* The subelement address - <listen address='xyz'/> -
@@ -11035,11 +11284,9 @@ cmdDomDisplay(vshControl *ctl, const vshCmd *cmd)
 
             listen_addr = virXPathString(xpath, ctxt);
             VIR_FREE(xpath);
-        }
-
-        /* If listen_addr is 0.0.0.0 or [::] we should try to parse URI and set
-         * listen_addr based on current URI. */
-        if (listen_addr) {
+        } else {
+            /* If listen_addr is 0.0.0.0 or [::] we should try to parse URI and set
+             * listen_addr based on current URI. */
             if (virSocketAddrParse(&addr, listen_addr, AF_UNSPEC) > 0 &&
                 virSocketAddrIsWildcard(&addr)) {
 
@@ -11078,19 +11325,27 @@ cmdDomDisplay(vshControl *ctl, const vshCmd *cmd)
         VIR_FREE(xpath);
 
         /* Build up the full URI, starting with the scheme */
-        virBufferAsprintf(&buf, "%s://", scheme[iter]);
+        if (sockpath)
+            virBufferAsprintf(&buf, "%s+unix://", scheme[iter]);
+        else
+            virBufferAsprintf(&buf, "%s://", scheme[iter]);
 
         /* There is no user, so just append password if there's any */
         if (STREQ(scheme[iter], "vnc") && passwd)
             virBufferAsprintf(&buf, ":%s@", passwd);
 
         /* Then host name or IP */
-        if (!listen_addr)
+        if (!listen_addr && !sockpath)
             virBufferAddLit(&buf, "localhost");
-        else if (strchr(listen_addr, ':'))
+        else if (!sockpath && strchr(listen_addr, ':'))
             virBufferAsprintf(&buf, "[%s]", listen_addr);
+        else if (sockpath)
+            virBufferAsprintf(&buf, "%s", sockpath);
         else
             virBufferAsprintf(&buf, "%s", listen_addr);
+
+        /* Free socket to prepare the pointer for the next iteration */
+        VIR_FREE(sockpath);
 
         /* Add the port */
         if (port) {
@@ -11148,6 +11403,8 @@ cmdDomDisplay(vshControl *ctl, const vshCmd *cmd)
 
  cleanup:
     VIR_FREE(xpath);
+    VIR_FREE(type_conn);
+    VIR_FREE(sockpath);
     VIR_FREE(passwd);
     VIR_FREE(listen_addr);
     VIR_FREE(output);
@@ -11674,7 +11931,7 @@ virshDomainDetachInterface(char *doc,
         cur = obj->nodesetval->nodeTab[i]->children;
         while (cur != NULL) {
             if (cur->type == XML_ELEMENT_NODE &&
-                xmlStrEqual(cur->name, BAD_CAST "mac")) {
+                virXMLNodeNameEqual(cur, "mac")) {
                 char *tmp_mac = virXMLPropString(cur, "address");
                 diff_mac = virMacAddrCompare(tmp_mac, mac);
                 VIR_FREE(tmp_mac);
@@ -11829,7 +12086,7 @@ virshFindDisk(const char *doc,
             is_supported = false;
 
             /* Check if the disk is CDROM or floppy disk */
-            if (xmlStrEqual(n->name, BAD_CAST "disk")) {
+            if (virXMLNodeNameEqual(n, "disk")) {
                 char *device_value = virXMLPropString(n, "device");
 
                 if (STREQ(device_value, "cdrom") ||
@@ -11848,13 +12105,13 @@ virshFindDisk(const char *doc,
             if (cur->type == XML_ELEMENT_NODE) {
                 char *tmp = NULL;
 
-                if (xmlStrEqual(cur->name, BAD_CAST "source")) {
+                if (virXMLNodeNameEqual(cur, "source")) {
                     if ((tmp = virXMLPropString(cur, "file")) ||
                         (tmp = virXMLPropString(cur, "dev")) ||
                         (tmp = virXMLPropString(cur, "dir")) ||
                         (tmp = virXMLPropString(cur, "name"))) {
                     }
-                } else if (xmlStrEqual(cur->name, BAD_CAST "target")) {
+                } else if (virXMLNodeNameEqual(cur, "target")) {
                     tmp = virXMLPropString(cur, "dev");
                 }
 
@@ -11933,13 +12190,13 @@ virshUpdateDiskXML(xmlNodePtr disk_node,
         if (tmp->type != XML_ELEMENT_NODE)
             continue;
 
-        if (xmlStrEqual(tmp->name, BAD_CAST "source"))
+        if (virXMLNodeNameEqual(tmp, "source"))
             source = tmp;
 
-        if (xmlStrEqual(tmp->name, BAD_CAST "target"))
+        if (virXMLNodeNameEqual(tmp, "target"))
             target_node = tmp;
 
-        if (xmlStrEqual(tmp->name, BAD_CAST "backingStore"))
+        if (virXMLNodeNameEqual(tmp, "backingStore"))
             backingStore = tmp;
 
         /*
@@ -13815,6 +14072,24 @@ const vshCmdDef domManagementCmds[] = {
      .info = info_managedsaveremove,
      .flags = 0
     },
+    {.name = "managedsave-edit",
+     .handler = cmdManagedSaveEdit,
+     .opts = opts_managed_save_edit,
+     .info = info_managed_save_edit,
+     .flags = 0
+    },
+    {.name = "managedsave-dumpxml",
+     .handler = cmdManagedSaveDumpxml,
+     .opts = opts_managed_save_dumpxml,
+     .info = info_managed_save_dumpxml,
+     .flags = 0
+    },
+    {.name = "managedsave-define",
+     .handler = cmdManagedSaveDefine,
+     .opts = opts_managed_save_define,
+     .info = info_managed_save_define,
+     .flags = 0
+    },
     {.name = "memtune",
      .handler = cmdMemtune,
      .opts = opts_memtune,
@@ -13843,6 +14118,12 @@ const vshCmdDef domManagementCmds[] = {
      .handler = cmdMigrateSetMaxDowntime,
      .opts = opts_migrate_setmaxdowntime,
      .info = info_migrate_setmaxdowntime,
+     .flags = 0
+    },
+    {.name = "migrate-getmaxdowntime",
+     .handler = cmdMigrateGetMaxDowntime,
+     .opts = opts_migrate_getmaxdowntime,
+     .info = info_migrate_getmaxdowntime,
      .flags = 0
     },
     {.name = "migrate-compcache",

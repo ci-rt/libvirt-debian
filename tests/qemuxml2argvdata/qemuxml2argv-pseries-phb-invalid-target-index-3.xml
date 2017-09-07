@@ -8,13 +8,10 @@
   </os>
   <devices>
     <emulator>/usr/bin/qemu-system-ppc64</emulator>
-    <!-- The default PHB (controller index 0) must have target index 0 -->
-    <controller type='pci' index='0' model='pci-root'>
-      <target index='1'/>
-    </controller>
-    <!-- Other PHBs can't have target index 0 -->
-    <controller type='pci' index='1' model='pci-root'>
-      <target index='0'/>
+    <!-- QEMU only supports 31 PHBs with target index in the range 0-30,
+         so attempting to use target index 31 should fail -->
+    <controller type='pci' model='pci-root'>
+      <target index='31'/>
     </controller>
     <controller type='usb' model='none'/>
     <memballoon model='none'/>

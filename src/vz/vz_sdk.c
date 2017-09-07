@@ -553,12 +553,11 @@ prlsdkAddDomainVideoInfoCt(virDomainDefPtr def)
     if (def->ngraphics == 0)
         return 0;
 
-    if (VIR_ALLOC(video) < 0)
+    if (!(video = virDomainVideoDefNew()))
         goto cleanup;
 
     video->type = VIR_DOMAIN_VIDEO_TYPE_PARALLELS;
     video->vram = 0;
-    video->heads = 1;
 
     if (VIR_APPEND_ELEMENT(def->videos, def->nvideos, video) < 0)
         goto cleanup;
@@ -1790,11 +1789,8 @@ prlsdkConvertBootOrderVm(PRL_HANDLE sdkdom, virDomainDefPtr def)
         pret = PrlBootDev_IsInUse(bootDev, &inUse);
         prlsdkCheckRetGoto(pret, cleanup);
 
-        if (!inUse) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("Boot ordering with disabled items is not supported"));
-            goto cleanup;
-        }
+        if (!inUse)
+            continue;
 
         pret = PrlBootDev_GetSequenceIndex(bootDev, &bootIndex);
         prlsdkCheckRetGoto(pret, cleanup);
@@ -4676,7 +4672,7 @@ prlsdkParseSnapshotTree(const char *treexml)
         goto cleanup;
 
     root = xmlDocGetRootElement(xml);
-    if (!xmlStrEqual(root->name, BAD_CAST "ParallelsSavedStates")) {
+    if (!virXMLNodeNameEqual(root, "ParallelsSavedStates")) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("unexpected root element: '%s'"), root->name);
         goto cleanup;

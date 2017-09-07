@@ -553,23 +553,41 @@ static virDomainDefParserConfig virVMXDomainDefParserConfig = {
                  VIR_DOMAIN_DEF_FEATURE_NAME_SLASH),
 };
 
+struct virVMXDomainDefNamespaceData {
+    char *datacenterPath;
+    char *moref;
+};
+
 static void
 virVMXDomainDefNamespaceFree(void *nsdata)
 {
-    VIR_FREE(nsdata);
+    struct virVMXDomainDefNamespaceData *data = nsdata;
+
+    if (data) {
+        VIR_FREE(data->datacenterPath);
+        VIR_FREE(data->moref);
+    }
+    VIR_FREE(data);
 }
 
 static int
 virVMXDomainDefNamespaceFormatXML(virBufferPtr buf, void *nsdata)
 {
-    const char *datacenterPath = nsdata;
+    struct virVMXDomainDefNamespaceData *data = nsdata;
 
-    if (!datacenterPath)
+    if (!data)
         return 0;
 
-    virBufferAddLit(buf, "<vmware:datacenterpath>");
-    virBufferEscapeString(buf, "%s", datacenterPath);
-    virBufferAddLit(buf, "</vmware:datacenterpath>\n");
+    if (data->datacenterPath) {
+        virBufferAddLit(buf, "<vmware:datacenterpath>");
+        virBufferEscapeString(buf, "%s", data->datacenterPath);
+        virBufferAddLit(buf, "</vmware:datacenterpath>\n");
+    }
+    if (data->moref) {
+        virBufferAddLit(buf, "<vmware:moref>");
+        virBufferEscapeString(buf, "%s", data->moref);
+        virBufferAddLit(buf, "</vmware:moref>\n");
+    }
 
     return 0;
 }
@@ -1304,7 +1322,6 @@ virVMXParseConfig(virVMXContext *ctx,
     bool hgfs_disabled = true;
     long long sharedFolder_maxNum = 0;
     int cpumasklen;
-    char *namespaceData;
 
     if (ctx->parseFileName == NULL) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -1312,7 +1329,7 @@ virVMXParseConfig(virVMXContext *ctx,
         return NULL;
     }
 
-    conf = virConfReadMem(vmx, strlen(vmx), VIR_CONF_FLAG_VMX_FORMAT);
+    conf = virConfReadString(vmx, VIR_CONF_FLAG_VMX_FORMAT);
 
     if (conf == NULL)
         return NULL;
@@ -1332,7 +1349,7 @@ virVMXParseConfig(virVMXContext *ctx,
         if (utf8 == NULL)
             goto cleanup;
 
-        conf = virConfReadMem(utf8, strlen(utf8), VIR_CONF_FLAG_VMX_FORMAT);
+        conf = virConfReadString(utf8, VIR_CONF_FLAG_VMX_FORMAT);
 
         VIR_FREE(utf8);
 
@@ -1650,6 +1667,18 @@ virVMXParseConfig(virVMXContext *ctx,
             if (def->disks[def->ndisks] != NULL)
                 ++def->ndisks;
         }
+
+    }
+
+    /* add all the SCSI controllers we've seen, up until the last one that is
+     * currently used by a disk */
+    if (def->ndisks != 0) {
+        virDomainDeviceInfoPtr info = &def->disks[def->ndisks - 1]->info;
+        for (controller = 0; controller <= info->addr.drive.controller; controller++) {
+            if (!virDomainDefAddController(def, VIR_DOMAIN_CONTROLLER_TYPE_SCSI,
+                                           controller, scsi_virtualDev[controller]))
+                goto cleanup;
+        }
     }
 
     /* def:disks (ide) */
@@ -1687,26 +1716,6 @@ virVMXParseConfig(virVMXContext *ctx,
 
         if (def->disks[def->ndisks] != NULL)
             ++def->ndisks;
-    }
-
-    /* def:controllers */
-    if (virDomainDefAddImplicitDevices(def) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Could not add controllers"));
-        goto cleanup;
-    }
-
-    for (controller = 0; controller < def->ncontrollers; ++controller) {
-        if (def->controllers[controller]->type == VIR_DOMAIN_CONTROLLER_TYPE_SCSI) {
-            if (def->controllers[controller]->idx > 3) {
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("SCSI controller index %d out of [0..3] range"),
-                               def->controllers[controller]->idx);
-                goto cleanup;
-            }
-
-            def->controllers[controller]->model =
-              scsi_virtualDev[def->controllers[controller]->idx];
-        }
     }
 
     /* def:fss */
@@ -1810,12 +1819,18 @@ virVMXParseConfig(virVMXContext *ctx,
     }
 
     /* ctx:datacenterPath -> def:namespaceData */
-    if (ctx->datacenterPath) {
-        if (VIR_STRDUP(namespaceData, ctx->datacenterPath) < 0)
+    if (ctx->datacenterPath || ctx->moref) {
+        struct virVMXDomainDefNamespaceData *nsdata = NULL;
+
+        if (VIR_ALLOC(nsdata) < 0 ||
+            VIR_STRDUP(nsdata->datacenterPath, ctx->datacenterPath) < 0 ||
+            VIR_STRDUP(nsdata->moref, ctx->moref) < 0) {
+            virVMXDomainDefNamespaceFree(nsdata);
             goto cleanup;
+        }
 
         def->ns = *virDomainXMLOptionGetNamespace(xmlopt);
-        def->namespaceData = namespaceData;
+        def->namespaceData = nsdata;
     }
 
     if (virDomainDefPostParse(def, caps, VIR_DOMAIN_DEF_PARSE_ABI_UPDATE,

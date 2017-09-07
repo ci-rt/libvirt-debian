@@ -73,6 +73,10 @@ int              virXPathNodeSet(const char *xpath,
                                  xmlNodePtr **list);
 char *          virXMLPropString(xmlNodePtr node,
                                  const char *name);
+char *     virXMLPropStringLimit(xmlNodePtr node,
+                                 const char *name,
+                                 size_t maxlen);
+char *   virXMLNodeContentString(xmlNodePtr node);
 long     virXMLChildElementCount(xmlNodePtr node);
 
 /* Internal function; prefer the macros below.  */
@@ -168,6 +172,9 @@ int virXMLSaveFile(const char *path,
 
 char *virXMLNodeToString(xmlDocPtr doc, xmlNodePtr node);
 
+bool virXMLNodeNameEqual(xmlNodePtr node,
+                         const char *name);
+
 xmlNodePtr virXMLFindChildNodeByNs(xmlNodePtr root,
                                    const char *uri);
 
@@ -207,5 +214,11 @@ virXMLValidateAgainstSchema(const char *schemafile,
                             xmlDocPtr xml);
 void
 virXMLValidatorFree(virXMLValidatorPtr validator);
+
+int
+virXMLFormatElement(virBufferPtr buf,
+                    const char *name,
+                    virBufferPtr attrBuf,
+                    virBufferPtr childBuf);
 
 #endif                          /* __VIR_XML_H__ */

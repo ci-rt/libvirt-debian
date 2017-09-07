@@ -667,6 +667,9 @@ qemuStateInitialize(bool privileged,
         goto error;
     VIR_FREE(driverConf);
 
+    if (virQEMUDriverConfigValidate(cfg) < 0)
+        goto error;
+
     if (virFileMakePath(cfg->stateDir) < 0) {
         virReportSystemError(errno, _("Failed to create state dir %s"),
                              cfg->stateDir);
@@ -1776,7 +1779,7 @@ static virDomainPtr qemuDomainCreateXML(virConnectPtr conn,
     def = NULL;
 
     if (qemuProcessBeginJob(driver, vm, VIR_DOMAIN_JOB_OPERATION_START) < 0) {
-        qemuDomainRemoveInactive(driver, vm);
+        qemuDomainRemoveInactiveJob(driver, vm);
         goto cleanup;
     }
 
@@ -1785,8 +1788,8 @@ static virDomainPtr qemuDomainCreateXML(virConnectPtr conn,
                          VIR_NETDEV_VPORT_PROFILE_OP_CREATE,
                          start_flags) < 0) {
         virDomainAuditStart(vm, "booted", false);
-        qemuProcessEndJob(driver, vm);
         qemuDomainRemoveInactive(driver, vm);
+        qemuProcessEndJob(driver, vm);
         goto cleanup;
     }
 
@@ -2256,9 +2259,9 @@ qemuDomainDestroyFlags(virDomainPtr dom,
 
     ret = 0;
  endjob:
-    qemuDomainObjEndJob(driver, vm);
     if (ret == 0)
         qemuDomainRemoveInactive(driver, vm);
+    qemuDomainObjEndJob(driver, vm);
 
  cleanup:
     virDomainObjEndAPI(&vm);
@@ -3393,7 +3396,7 @@ qemuDomainSaveInternal(virQEMUDriverPtr driver, virDomainPtr dom,
     }
     qemuDomainObjEndAsyncJob(driver, vm);
     if (ret == 0)
-        qemuDomainRemoveInactive(driver, vm);
+        qemuDomainRemoveInactiveJob(driver, vm);
 
  cleanup:
     virObjectUnref(cookie);
@@ -3913,7 +3916,7 @@ qemuDomainCoreDumpWithFormat(virDomainPtr dom,
 
     qemuDomainObjEndAsyncJob(driver, vm);
     if (ret == 0 && flags & VIR_DUMP_CRASH)
-        qemuDomainRemoveInactive(driver, vm);
+        qemuDomainRemoveInactiveJob(driver, vm);
 
  cleanup:
     virDomainObjEndAPI(&vm);
@@ -4224,7 +4227,7 @@ processGuestPanicEvent(virQEMUDriverPtr driver,
  endjob:
     qemuDomainObjEndAsyncJob(driver, vm);
     if (removeInactive)
-        qemuDomainRemoveInactive(driver, vm);
+        qemuDomainRemoveInactiveJob(driver, vm);
 
  cleanup:
     virObjectUnref(cfg);
@@ -4726,8 +4729,8 @@ processMonitorEOFEvent(virQEMUDriverPtr driver,
     qemuDomainEventQueue(driver, event);
 
  endjob:
-    qemuDomainObjEndJob(driver, vm);
     qemuDomainRemoveInactive(driver, vm);
+    qemuDomainObjEndJob(driver, vm);
 }
 
 
@@ -6677,7 +6680,7 @@ qemuDomainRestoreFlags(virConnectPtr conn,
     VIR_FREE(xmlout);
     virFileWrapperFdFree(wrapperFd);
     if (vm && ret < 0)
-        qemuDomainRemoveInactive(driver, vm);
+        qemuDomainRemoveInactiveJob(driver, vm);
     virDomainObjEndAPI(&vm);
     virNWFilterUnlockFilterUpdates();
     return ret;
@@ -6791,6 +6794,83 @@ qemuDomainSaveImageDefineXML(virConnectPtr conn, const char *path,
     virDomainDefFree(newdef);
     VIR_FORCE_CLOSE(fd);
     virQEMUSaveDataFree(data);
+    return ret;
+}
+
+static char *
+qemuDomainManagedSaveGetXMLDesc(virDomainPtr dom, unsigned int flags)
+{
+    virQEMUDriverPtr driver = dom->conn->privateData;
+    virDomainObjPtr vm;
+    char *path = NULL;
+    char *ret = NULL;
+    virDomainDefPtr def = NULL;
+    int fd = -1;
+    virQEMUSaveDataPtr data = NULL;
+
+    /* We only take subset of virDomainDefFormat flags.  */
+    virCheckFlags(VIR_DOMAIN_XML_SECURE, NULL);
+
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        return ret;
+
+    if (virDomainManagedSaveGetXMLDescEnsureACL(dom->conn, vm->def, flags) < 0)
+        goto cleanup;
+
+    if (!(path = qemuDomainManagedSavePath(driver, vm)))
+        goto cleanup;
+
+    if (!virFileExists(path)) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("domain does not have managed save image"));
+        goto cleanup;
+    }
+
+    if ((fd = qemuDomainSaveImageOpen(driver, path, &def, &data,
+                                      false, NULL, false, false)) < 0)
+        goto cleanup;
+
+    ret = qemuDomainDefFormatXML(driver, def, flags);
+
+ cleanup:
+    virQEMUSaveDataFree(data);
+    virDomainDefFree(def);
+    VIR_FORCE_CLOSE(fd);
+    virDomainObjEndAPI(&vm);
+    VIR_FREE(path);
+    return ret;
+}
+
+static int
+qemuDomainManagedSaveDefineXML(virDomainPtr dom, const char *dxml,
+                               unsigned int flags)
+{
+    virQEMUDriverPtr driver = dom->conn->privateData;
+    virConnectPtr conn = dom->conn;
+    virDomainObjPtr vm;
+    char *path = NULL;
+    int ret = -1;
+
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        return -1;
+
+    if (virDomainManagedSaveDefineXMLEnsureACL(conn, vm->def) < 0)
+        goto cleanup;
+
+    if (!(path = qemuDomainManagedSavePath(driver, vm)))
+        goto cleanup;
+
+    if (!virFileExists(path)) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("domain does not have managed save image"));
+        goto cleanup;
+    }
+
+    ret = qemuDomainSaveImageDefineXML(conn, path, dxml, flags);
+
+ cleanup:
+    virDomainObjEndAPI(&vm);
+    VIR_FREE(path);
     return ret;
 }
 
@@ -7260,7 +7340,7 @@ qemuDomainDefineXMLFlags(virConnectPtr conn,
             /* Brand new domain. Remove it */
             VIR_INFO("Deleting domain '%s'", vm->def->name);
             vm->persistent = 0;
-            qemuDomainRemoveInactive(driver, vm);
+            qemuDomainRemoveInactiveJob(driver, vm);
         }
         goto cleanup;
     }
@@ -7322,10 +7402,13 @@ qemuDomainUndefineFlags(virDomainPtr dom,
     if (virDomainUndefineFlagsEnsureACL(dom->conn, vm->def) < 0)
         goto cleanup;
 
+    if (qemuDomainObjBeginJob(driver, vm, QEMU_JOB_MODIFY) < 0)
+        goto cleanup;
+
     if (!vm->persistent) {
         virReportError(VIR_ERR_OPERATION_INVALID,
                        "%s", _("cannot undefine transient domain"));
-        goto cleanup;
+        goto endjob;
     }
 
     if (!virDomainObjIsActive(vm) &&
@@ -7335,15 +7418,15 @@ qemuDomainUndefineFlags(virDomainPtr dom,
                            _("cannot delete inactive domain with %d "
                              "snapshots"),
                            nsnapshots);
-            goto cleanup;
+            goto endjob;
         }
         if (qemuDomainSnapshotDiscardAllMetadata(driver, vm) < 0)
-            goto cleanup;
+            goto endjob;
     }
 
     name = qemuDomainManagedSavePath(driver, vm);
     if (name == NULL)
-        goto cleanup;
+        goto endjob;
 
     if (virFileExists(name)) {
         if (flags & VIR_DOMAIN_UNDEFINE_MANAGED_SAVE) {
@@ -7351,35 +7434,35 @@ qemuDomainUndefineFlags(virDomainPtr dom,
                 virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                _("Failed to remove domain managed "
                                  "save image"));
-                goto cleanup;
+                goto endjob;
             }
         } else {
             virReportError(VIR_ERR_OPERATION_INVALID, "%s",
                            _("Refusing to undefine while domain managed "
                              "save image exists"));
-            goto cleanup;
+            goto endjob;
         }
     }
 
-    if (!virDomainObjIsActive(vm) &&
-        vm->def->os.loader && vm->def->os.loader->nvram &&
+    if (vm->def->os.loader &&
+        vm->def->os.loader->nvram &&
         virFileExists(vm->def->os.loader->nvram)) {
         if ((flags & VIR_DOMAIN_UNDEFINE_NVRAM)) {
             if (unlink(vm->def->os.loader->nvram) < 0) {
                 virReportSystemError(errno,
                                      _("failed to remove nvram: %s"),
                                      vm->def->os.loader->nvram);
-                goto cleanup;
+                goto endjob;
             }
         } else if (!(flags & VIR_DOMAIN_UNDEFINE_KEEP_NVRAM)) {
             virReportError(VIR_ERR_OPERATION_INVALID, "%s",
                            _("cannot delete inactive domain with nvram"));
-            goto cleanup;
+            goto endjob;
         }
     }
 
     if (virDomainDeleteConfig(cfg->configDir, cfg->autostartDir, vm) < 0)
-        goto cleanup;
+        goto endjob;
 
     event = virDomainEventLifecycleNewFromObj(vm,
                                      VIR_DOMAIN_EVENT_UNDEFINED,
@@ -7396,6 +7479,8 @@ qemuDomainUndefineFlags(virDomainPtr dom,
         qemuDomainRemoveInactive(driver, vm);
 
     ret = 0;
+ endjob:
+    qemuDomainObjEndJob(driver, vm);
 
  cleanup:
     VIR_FREE(name);
@@ -13147,6 +13232,61 @@ qemuDomainMigrateSetMaxDowntime(virDomainPtr dom,
     return ret;
 }
 
+
+static int
+qemuDomainMigrateGetMaxDowntime(virDomainPtr dom,
+                                unsigned long long *downtime,
+                                unsigned int flags)
+{
+    virQEMUDriverPtr driver = dom->conn->privateData;
+    virDomainObjPtr vm;
+    qemuDomainObjPrivatePtr priv;
+    qemuMonitorMigrationParams migparams = { 0 };
+    int ret = -1;
+
+    virCheckFlags(0, -1);
+
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        return -1;
+
+    if (virDomainMigrateGetMaxDowntimeEnsureACL(dom->conn, vm->def) < 0)
+        goto cleanup;
+
+    if (qemuDomainObjBeginJob(driver, vm, QEMU_JOB_QUERY) < 0)
+        goto cleanup;
+
+    if (!virDomainObjIsActive(vm)) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("domain is not running"));
+        goto endjob;
+    }
+
+    priv = vm->privateData;
+    qemuDomainObjEnterMonitor(driver, vm);
+
+    if (qemuMonitorGetMigrationParams(priv->mon, &migparams) == 0) {
+        if (migparams.downtimeLimit_set) {
+            *downtime = migparams.downtimeLimit;
+            ret = 0;
+        } else {
+            virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                           _("Querying migration downtime is not supported by "
+                             "QEMU binary"));
+        }
+    }
+
+    if (qemuDomainObjExitMonitor(driver, vm) < 0)
+        ret = -1;
+
+ endjob:
+    qemuDomainObjEndJob(driver, vm);
+
+ cleanup:
+    virDomainObjEndAPI(&vm);
+    return ret;
+}
+
+
 static int
 qemuDomainMigrateGetCompressionCache(virDomainPtr dom,
                                      unsigned long long *cacheSize,
@@ -15322,7 +15462,7 @@ qemuDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
     virNWFilterReadLockFilterUpdates();
 
     if (!(vm = qemuDomObjFromSnapshot(snapshot)))
-        return -1;
+        goto cleanup;
 
     cfg = virQEMUDriverGetConfig(driver);
 
@@ -15588,8 +15728,8 @@ qemuDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
         }
 
         if (qemuDomainSnapshotRevertInactive(driver, vm, snap) < 0) {
-            qemuProcessEndJob(driver, vm);
             qemuDomainRemoveInactive(driver, vm);
+            qemuProcessEndJob(driver, vm);
             goto cleanup;
         }
         if (config)
@@ -15610,8 +15750,8 @@ qemuDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
                                   start_flags);
             virDomainAuditStart(vm, "from-snapshot", rc >= 0);
             if (rc < 0) {
-                qemuProcessEndJob(driver, vm);
                 qemuDomainRemoveInactive(driver, vm);
+                qemuProcessEndJob(driver, vm);
                 goto cleanup;
             }
             detail = VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT;
@@ -15954,8 +16094,8 @@ static virDomainPtr qemuDomainQemuAttach(virConnectPtr conn,
     if (qemuProcessAttach(conn, driver, vm, pid,
                           pidfile, monConfig, monJSON) < 0) {
         monConfig = NULL;
-        qemuDomainObjEndJob(driver, vm);
         qemuDomainRemoveInactive(driver, vm);
+        qemuDomainObjEndJob(driver, vm);
         goto cleanup;
     }
 
@@ -20826,6 +20966,7 @@ static virHypervisorDriver qemuHypervisorDriver = {
     .domainGetJobInfo = qemuDomainGetJobInfo, /* 0.7.7 */
     .domainGetJobStats = qemuDomainGetJobStats, /* 1.0.3 */
     .domainAbortJob = qemuDomainAbortJob, /* 0.7.7 */
+    .domainMigrateGetMaxDowntime = qemuDomainMigrateGetMaxDowntime, /* 3.7.0 */
     .domainMigrateSetMaxDowntime = qemuDomainMigrateSetMaxDowntime, /* 0.8.0 */
     .domainMigrateGetCompressionCache = qemuDomainMigrateGetCompressionCache, /* 1.0.3 */
     .domainMigrateSetCompressionCache = qemuDomainMigrateSetCompressionCache, /* 1.0.3 */
@@ -20836,6 +20977,8 @@ static virHypervisorDriver qemuHypervisorDriver = {
     .domainManagedSave = qemuDomainManagedSave, /* 0.8.0 */
     .domainHasManagedSaveImage = qemuDomainHasManagedSaveImage, /* 0.8.0 */
     .domainManagedSaveRemove = qemuDomainManagedSaveRemove, /* 0.8.0 */
+    .domainManagedSaveGetXMLDesc = qemuDomainManagedSaveGetXMLDesc, /* 3.7.0 */
+    .domainManagedSaveDefineXML = qemuDomainManagedSaveDefineXML, /* 3.7.0 */
     .domainSnapshotCreateXML = qemuDomainSnapshotCreateXML, /* 0.8.0 */
     .domainSnapshotGetXMLDesc = qemuDomainSnapshotGetXMLDesc, /* 0.8.0 */
     .domainSnapshotNum = qemuDomainSnapshotNum, /* 0.8.0 */

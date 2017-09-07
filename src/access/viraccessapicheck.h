@@ -185,6 +185,8 @@ extern int virDomainLookupByIDEnsureACL(virConnectPtr conn, virDomainDefPtr doma
 extern int virDomainLookupByNameEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainLookupByUUIDEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainManagedSaveEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainManagedSaveDefineXMLEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainManagedSaveGetXMLDescEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainManagedSaveRemoveEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainMemoryPeekEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainMemoryStatsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
@@ -197,6 +199,7 @@ extern int virDomainMigrateFinish2EnsureACL(virConnectPtr conn, virDomainDefPtr 
 extern int virDomainMigrateFinish3EnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainMigrateFinish3ParamsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainMigrateGetCompressionCacheEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainMigrateGetMaxDowntimeEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainMigrateGetMaxSpeedEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainMigratePerformEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainMigratePerform3EnsureACL(virConnectPtr conn, virDomainDefPtr domain);

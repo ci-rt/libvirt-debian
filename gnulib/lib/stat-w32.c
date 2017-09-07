@@ -412,4 +412,10 @@ _gl_fstat_by_handle (HANDLE h, const char *path, struct stat *buf)
   }
 }
 
+#else
+
+/* This declaration is solely to ensure that after preprocessing
+   this file is never empty.  */
+typedef int dummy;
+
 #endif

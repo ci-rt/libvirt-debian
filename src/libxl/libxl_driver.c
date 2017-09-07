@@ -2605,14 +2605,14 @@ libxlConnectDomainXMLFromNative(virConnectPtr conn,
         goto cleanup;
 
     if (STREQ(nativeFormat, XEN_CONFIG_FORMAT_XL)) {
-        if (!(conf = virConfReadMem(nativeConfig, strlen(nativeConfig), 0)))
+        if (!(conf = virConfReadString(nativeConfig, 0)))
             goto cleanup;
         if (!(def = xenParseXL(conf,
                                cfg->caps,
                                driver->xmlopt)))
             goto cleanup;
     } else if (STREQ(nativeFormat, XEN_CONFIG_FORMAT_XM)) {
-        if (!(conf = virConfReadMem(nativeConfig, strlen(nativeConfig), 0)))
+        if (!(conf = virConfReadString(nativeConfig, 0)))
             goto cleanup;
 
         if (!(def = xenParseXM(conf,
@@ -5374,7 +5374,7 @@ libxlDomainBlockStatsVBD(virDomainObjPtr vm,
     int devno = libxlDiskPathToID(dev);
     int size;
     char *path, *name, *val;
-    unsigned long long stat;
+    unsigned long long status;
 
     path = name = val = NULL;
     if (devno < 0) {
@@ -5401,12 +5401,12 @@ libxlDomainBlockStatsVBD(virDomainObjPtr vm,
 # define LIBXL_SET_VBDSTAT(FIELD, VAR, MUL)           \
     if ((virAsprintf(&name, "%s/"FIELD, path) < 0) || \
         (virFileReadAll(name, 256, &val) < 0) ||      \
-        (sscanf(val, "%llu", &stat) != 1)) {          \
+        (sscanf(val, "%llu", &status) != 1)) {        \
         virReportError(VIR_ERR_OPERATION_FAILED,      \
                        _("cannot read %s"), name);    \
         goto cleanup;                                 \
     }                                                 \
-    VAR += (stat * MUL);                              \
+    VAR += (status * MUL);                            \
     VIR_FREE(name);                                   \
     VIR_FREE(val);
 

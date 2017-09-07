@@ -207,7 +207,10 @@ int virPCIGetVirtualFunctionIndex(const char *pf_sysfs_device_link,
 int virPCIDeviceAddressGetSysfsFile(virPCIDeviceAddressPtr addr,
                                     char **pci_sysfs_device_link);
 
-int virPCIGetNetName(char *device_link_sysfs_path, char **netname);
+int virPCIGetNetName(const char *device_link_sysfs_path,
+                     size_t idx,
+                     char *physPortID,
+                     char **netname);
 
 int virPCIGetSysfsFile(char *virPCIDeviceName,
                              char **pci_sysfs_device_link)
@@ -223,7 +226,9 @@ int virPCIGetAddrString(unsigned int domain,
 int virPCIDeviceAddressParse(char *address, virPCIDeviceAddressPtr bdf);
 
 int virPCIGetVirtualFunctionInfo(const char *vf_sysfs_device_path,
-                                 char **pfname, int *vf_index);
+                                 int pfNetDevIdx,
+                                 char **pfname,
+                                 int *vf_index);
 
 int virPCIDeviceUnbind(virPCIDevicePtr dev);
 int virPCIDeviceRebind(virPCIDevicePtr dev);

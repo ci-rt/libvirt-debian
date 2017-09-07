@@ -530,6 +530,7 @@ virDomainUSBDeviceDefForeach;
 virDomainVideoDefaultRAM;
 virDomainVideoDefaultType;
 virDomainVideoDefFree;
+virDomainVideoDefNew;
 virDomainVideoTypeFromString;
 virDomainVideoTypeToString;
 virDomainVideoVGAConfTypeFromString;
@@ -941,10 +942,18 @@ virNetworkObjBridgeInUse;
 virNetworkObjDeleteConfig;
 virNetworkObjEndAPI;
 virNetworkObjFindByName;
-virNetworkObjFindByNameLocked;
 virNetworkObjFindByUUID;
-virNetworkObjFindByUUIDLocked;
+virNetworkObjGetClassIdMap;
+virNetworkObjGetDef;
+virNetworkObjGetDnsmasqPid;
+virNetworkObjGetFloorSum;
+virNetworkObjGetMacMap;
+virNetworkObjGetNewDef;
 virNetworkObjGetPersistentDef;
+virNetworkObjGetRadvdPid;
+virNetworkObjIsActive;
+virNetworkObjIsAutostart;
+virNetworkObjIsPersistent;
 virNetworkObjListExport;
 virNetworkObjListForEach;
 virNetworkObjListGetNames;
@@ -953,12 +962,22 @@ virNetworkObjListNumOfNetworks;
 virNetworkObjListPrune;
 virNetworkObjLoadAllConfigs;
 virNetworkObjLoadAllState;
+virNetworkObjMacMgrAdd;
+virNetworkObjMacMgrDel;
 virNetworkObjNew;
 virNetworkObjRemoveInactive;
 virNetworkObjReplacePersistentDef;
 virNetworkObjSaveStatus;
+virNetworkObjSetActive;
+virNetworkObjSetAutostart;
+virNetworkObjSetDef;
 virNetworkObjSetDefTransient;
+virNetworkObjSetDnsmasqPid;
+virNetworkObjSetFloorSum;
+virNetworkObjSetMacMap;
+virNetworkObjSetRadvdPid;
 virNetworkObjTaint;
+virNetworkObjUnrefMacMap;
 virNetworkObjUnsetDefTransient;
 virNetworkObjUpdate;
 virNetworkObjUpdateAssignDef;
@@ -1522,7 +1541,7 @@ virConfGetValueULLong;
 virConfLoadConfig;
 virConfNew;
 virConfReadFile;
-virConfReadMem;
+virConfReadString;
 virConfSetValue;
 virConfTypeFromString;
 virConfTypeToString;
@@ -1774,6 +1793,10 @@ virHashSteal;
 virHashTableSize;
 virHashUpdateEntry;
 virHashValueFree;
+
+
+# util/virhashcode.h
+virHashCodeGen;
 
 
 # util/virhook.h
@@ -2068,6 +2091,7 @@ virMacAddrSetRaw;
 # util/virmacmap.h
 virMacMapAdd;
 virMacMapDumpStr;
+virMacMapFileName;
 virMacMapLookup;
 virMacMapNew;
 virMacMapRemove;
@@ -2111,6 +2135,7 @@ virNetDevGetMTU;
 virNetDevGetName;
 virNetDevGetOnline;
 virNetDevGetPhysicalFunction;
+virNetDevGetPhysPortID;
 virNetDevGetPromiscuous;
 virNetDevGetRcvAllMulti;
 virNetDevGetRcvMulti;
@@ -2305,10 +2330,12 @@ virObjectListFree;
 virObjectListFreeCount;
 virObjectLock;
 virObjectLockableNew;
-virObjectLockRead;
 virObjectNew;
 virObjectRef;
 virObjectRWLockableNew;
+virObjectRWLockRead;
+virObjectRWLockWrite;
+virObjectRWUnlock;
 virObjectUnlock;
 virObjectUnref;
 
@@ -2460,6 +2487,13 @@ virRandomBits;
 virRandomBytes;
 virRandomGenerateWWN;
 virRandomInt;
+
+
+# util/virresctrl.h
+virCacheTypeFromString;
+virCacheTypeToString;
+virResctrlGetCacheControlType;
+virResctrlGetCacheInfo;
 
 
 # util/virrotatingfile.h
@@ -2659,6 +2693,7 @@ virStrcpy;
 virStrdup;
 virStringBufferIsPrintable;
 virStringEncodeBase64;
+virStringHasChars;
 virStringHasControlChars;
 virStringIsEmpty;
 virStringIsPrintable;
@@ -2921,11 +2956,15 @@ virVHBAPathExists;
 virXMLCheckIllegalChars;
 virXMLChildElementCount;
 virXMLExtractNamespaceXML;
+virXMLFormatElement;
+virXMLNodeContentString;
+virXMLNodeNameEqual;
 virXMLNodeSanitizeNamespaces;
 virXMLNodeToString;
 virXMLParseHelper;
 virXMLPickShellSafeComment;
 virXMLPropString;
+virXMLPropStringLimit;
 virXMLSaveFile;
 virXMLValidateAgainstSchema;
 virXMLValidatorFree;

@@ -26,29 +26,82 @@
 
 typedef struct _virNetworkObj virNetworkObj;
 typedef virNetworkObj *virNetworkObjPtr;
-struct _virNetworkObj {
-    virObjectLockable parent;
-
-    pid_t dnsmasqPid;
-    pid_t radvdPid;
-    unsigned int active : 1;
-    unsigned int autostart : 1;
-    unsigned int persistent : 1;
-
-    virNetworkDefPtr def; /* The current definition */
-    virNetworkDefPtr newDef; /* New definition to activate at shutdown */
-
-    virBitmapPtr class_id; /* bitmap of class IDs for QoS */
-    unsigned long long floor_sum; /* sum of all 'floor'-s of attached NICs */
-
-    unsigned int taint;
-
-    /* Immutable pointer, self locking APIs */
-    virMacMapPtr macmap;
-};
 
 virNetworkObjPtr
 virNetworkObjNew(void);
+
+virNetworkDefPtr
+virNetworkObjGetDef(virNetworkObjPtr obj);
+
+void
+virNetworkObjSetDef(virNetworkObjPtr obj,
+                    virNetworkDefPtr def);
+
+virNetworkDefPtr
+virNetworkObjGetNewDef(virNetworkObjPtr obj);
+
+bool
+virNetworkObjIsActive(virNetworkObjPtr obj);
+
+void
+virNetworkObjSetActive(virNetworkObjPtr obj,
+                       bool active);
+
+bool
+virNetworkObjIsPersistent(virNetworkObjPtr obj);
+
+bool
+virNetworkObjIsAutostart(virNetworkObjPtr obj);
+
+void
+virNetworkObjSetAutostart(virNetworkObjPtr obj,
+                          bool autostart);
+
+virMacMapPtr
+virNetworkObjGetMacMap(virNetworkObjPtr obj);
+
+pid_t
+virNetworkObjGetDnsmasqPid(virNetworkObjPtr obj);
+
+void
+virNetworkObjSetDnsmasqPid(virNetworkObjPtr obj,
+                           pid_t dnsmasqPid);
+
+pid_t
+virNetworkObjGetRadvdPid(virNetworkObjPtr obj);
+
+void
+virNetworkObjSetRadvdPid(virNetworkObjPtr obj,
+                         pid_t radvdPid);
+
+virBitmapPtr
+virNetworkObjGetClassIdMap(virNetworkObjPtr obj);
+
+unsigned long long
+virNetworkObjGetFloorSum(virNetworkObjPtr obj);
+
+void
+virNetworkObjSetFloorSum(virNetworkObjPtr obj,
+                         unsigned long long floor_sum);
+
+void
+virNetworkObjSetMacMap(virNetworkObjPtr obj,
+                       virMacMapPtr macmap);
+
+void
+virNetworkObjUnrefMacMap(virNetworkObjPtr obj);
+
+int
+virNetworkObjMacMgrAdd(virNetworkObjPtr obj,
+                       const char *dnsmasqStateDir,
+                       const char *domain,
+                       const virMacAddr *mac);
+
+int
+virNetworkObjMacMgrDel(virNetworkObjPtr obj,
+                       const char *dnsmasqStateDir,
+                       const char *domain,
+                       const virMacAddr *mac);
 
 void
 virNetworkObjEndAPI(virNetworkObjPtr *net);
@@ -56,26 +109,12 @@ virNetworkObjEndAPI(virNetworkObjPtr *net);
 typedef struct _virNetworkObjList virNetworkObjList;
 typedef virNetworkObjList *virNetworkObjListPtr;
 
-static inline int
-virNetworkObjIsActive(const virNetworkObj *net)
-{
-    return net->active;
-}
-
 virNetworkObjListPtr
 virNetworkObjListNew(void);
 
 virNetworkObjPtr
-virNetworkObjFindByUUIDLocked(virNetworkObjListPtr nets,
-                              const unsigned char *uuid);
-
-virNetworkObjPtr
 virNetworkObjFindByUUID(virNetworkObjListPtr nets,
                         const unsigned char *uuid);
-
-virNetworkObjPtr
-virNetworkObjFindByNameLocked(virNetworkObjListPtr nets,
-                              const char *name);
 
 virNetworkObjPtr
 virNetworkObjFindByName(virNetworkObjListPtr nets,
@@ -135,7 +174,7 @@ virNetworkObjDeleteConfig(const char *configDir,
                           const char *autostartDir,
                           virNetworkObjPtr net);
 
-int
+bool
 virNetworkObjBridgeInUse(virNetworkObjListPtr nets,
                          const char *bridge,
                          const char *skipname);
@@ -168,7 +207,7 @@ int
 virNetworkObjListGetNames(virNetworkObjListPtr nets,
                           bool active,
                           char **names,
-                          int nnames,
+                          int maxnames,
                           virNetworkObjListFilter filter,
                           virConnectPtr conn);
 

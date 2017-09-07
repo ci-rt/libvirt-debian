@@ -678,7 +678,11 @@ AC_SUBST([LTALLOCA])
   gl_FUNC_FSTAT
   if test $REPLACE_FSTAT = 1; then
     AC_LIBOBJ([fstat])
-    AC_LIBOBJ([stat-w32])
+    case "$host_os" in
+      mingw*)
+        AC_LIBOBJ([stat-w32])
+        ;;
+    esac
     gl_PREREQ_FSTAT
   fi
   gl_SYS_STAT_MODULE_INDICATOR([fstat])
@@ -1116,7 +1120,11 @@ AC_SUBST([LTALLOCA])
   gl_FUNC_STAT
   if test $REPLACE_STAT = 1; then
     AC_LIBOBJ([stat])
-    AC_LIBOBJ([stat-w32])
+    case "$host_os" in
+      mingw*)
+        AC_LIBOBJ([stat-w32])
+        ;;
+    esac
     gl_PREREQ_STAT
   fi
   gl_SYS_STAT_MODULE_INDICATOR([stat])
@@ -2113,6 +2121,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/lstat.m4
   m4/malloc.m4
   m4/malloca.m4
+  m4/manywarnings-c++.m4
   m4/manywarnings.m4
   m4/math_h.m4
   m4/mbrtowc.m4
@@ -2141,6 +2150,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/nonblocking.m4
   m4/off_t.m4
   m4/onceonly.m4
+  m4/open-cloexec.m4
   m4/open.m4
   m4/passfd.m4
   m4/pathmax.m4

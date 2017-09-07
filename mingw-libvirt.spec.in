@@ -54,12 +54,18 @@ BuildRequires:  mingw32-libxml2
 BuildRequires:  mingw64-libxml2
 BuildRequires:  mingw32-portablexdr
 BuildRequires:  mingw64-portablexdr
+BuildRequires:  mingw32-dlfcn
+BuildRequires:  mingw64-dlfcn
 
 BuildRequires:  pkgconfig
 # Need native version for msgfmt
 BuildRequires:  gettext
 BuildRequires:  python
+%if 0%{?fedora} >= 27
+BuildRequires:  perl-interpreter
+%else
 BuildRequires:  perl
+%endif
 BuildRequires:  perl(Getopt::Long)
 %if 0%{?enable_autotools}
 BuildRequires: autoconf

@@ -134,6 +134,24 @@ AC_DEFUN([LIBVIRT_COMPILE_WARNINGS],[
         [lv_cv_gcc_wlogical_op_equal_expr_broken=yes])
         CFLAGS="$save_CFLAGS"])
 
+    AC_CACHE_CHECK([whether clang gives bogus warnings for -Wdouble-promotion],
+      [lv_cv_clang_double_promotion_broken], [
+        save_CFLAGS="$CFLAGS"
+        CFLAGS="-O2 -Wdouble-promotion -Werror"
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+          #include <math.h>
+        ]], [[
+          float f = 0.0;
+	  return isnan(f);]])],
+        [lv_cv_clang_double_promotion_broken=no],
+        [lv_cv_clang_double_promotion_broken=yes])
+        CFLAGS="$save_CFLAGS"])
+
+    if test "$lv_cv_clang_double_promotion_broken" = "yes";
+    then
+      dontwarn="$dontwarn -Wdouble-promotion"
+    fi
+
     # We might fundamentally need some of these disabled forever, but
     # ideally we'd turn many of them on
     dontwarn="$dontwarn -Wfloat-equal"
@@ -176,8 +194,8 @@ AC_DEFUN([LIBVIRT_COMPILE_WARNINGS],[
     # This should be < 256 really. Currently we're down to 4096,
     # but using 1024 bytes sized buffers (mostly for virStrerror)
     # stops us from going down further
-    gl_WARN_ADD(["-Wframe-larger-than=4096"], [STRICT_FRAME_LIMIT_CFLAGS])
-    gl_WARN_ADD(["-Wframe-larger-than=25600"], [RELAXED_FRAME_LIMIT_CFLAGS])
+    gl_WARN_ADD([-Wframe-larger-than=4096], [STRICT_FRAME_LIMIT_CFLAGS])
+    gl_WARN_ADD([-Wframe-larger-than=25600], [RELAXED_FRAME_LIMIT_CFLAGS])
 
     # Extra special flags
     dnl -fstack-protector stuff passes gl_WARN_ADD with gcc
@@ -232,7 +250,7 @@ AC_DEFUN([LIBVIRT_COMPILE_WARNINGS],[
         *-fstack-protector-strong*)
         ;;
         *)
-            gl_WARN_ADD(["-fstack-protector-all"])
+            gl_WARN_ADD([-fstack-protector-all])
         ;;
         esac
         ;;
