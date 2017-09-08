@@ -131,6 +131,7 @@ DEB_CONFIGURE_EXTRA_ARGS :=      \
 	$(WITH_FIREWALLD)        \
 	--without-attr           \
 	$(WITH_NSS_PLUGIN)       \
+        --with-wireshark-dissector \
         $(NULL)
 
 LIBVIRT_SYSTEM_SERVICES = \
@@ -209,6 +210,7 @@ endif
 	# Don't ship any la files
 	rm debian/libvirt-daemon/usr/lib/libvirt/connection-driver/*.la
 	rm debian/libvirt-daemon/usr/lib/libvirt/storage-backend/*.la
+	rm debian/libvirt-wireshark/usr/lib/*/wireshark/plugins/*/*.la
 	# Don't ship api files in the daemon package
 	rm -r debian/libvirt-daemon/usr/share/libvirt/api/
 

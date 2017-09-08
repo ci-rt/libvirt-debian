@@ -56,6 +56,8 @@ Build-Depends:
  librados-dev [linux-any],
 # for --with-storage-gluster
  glusterfs-common (>= 3.4.0),
+# for --with-wireshark-dissector
+ libwireshark-dev (>= 1.11.3),
 # for lxc fuse support
  libfuse-dev [linux-any],
 # for libssh2 connection URIs
@@ -228,4 +230,18 @@ Description: nss plugin providing IP add ress resolution for virtual machines
  .
  This package contains the nss plugin for IP address resolution of libvirt
  managed virtual machines.
+
+Package: libvirt-wireshark
+Architecture: any
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+Priority: extra
+Description: Wireshark dissector for the libvirt protocol
+ Libvirt is a C toolkit to interact with the virtualization capabilities
+ of recent versions of Linux (and other OSes). The library aims at providing
+ a long term stable C API for different virtualization mechanisms. It currently
+ supports QEMU, KVM, XEN, OpenVZ, LXC, and VirtualBox.
+ .
+ This package contains the wireshark dissector.
 
