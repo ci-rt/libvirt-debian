@@ -54,6 +54,8 @@ Build-Depends:
 # for --with-storage-rados
  librbd-dev [linux-any],
  librados-dev [linux-any],
+# for --with-storage-gluster
+ glusterfs-common (>= 3.4.0),
 # for lxc fuse support
  libfuse-dev [linux-any],
 # for libssh2 connection URIs
