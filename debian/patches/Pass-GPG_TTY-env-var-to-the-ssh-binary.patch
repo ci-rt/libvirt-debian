@@ -7,7 +7,7 @@ Subject: Pass GPG_TTY env var to the ssh binary
  1 file changed, 1 insertion(+)
 
 diff --git a/src/rpc/virnetsocket.c b/src/rpc/virnetsocket.c
-index d228c8a..021687f 100644
+index 23089af..c477f7e 100644
 --- a/src/rpc/virnetsocket.c
 +++ b/src/rpc/virnetsocket.c
 @@ -849,6 +849,7 @@ int virNetSocketNewConnectSSH(const char *nodename,

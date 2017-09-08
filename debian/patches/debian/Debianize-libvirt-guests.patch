@@ -92,7 +92,7 @@ index 791d927..8da0743 100644
      if [ -f "$LISTFILE" ]; then
          gettext "stopped, with saved guests"; echo
 diff --git a/tools/libvirt-guests.sysconf b/tools/libvirt-guests.sysconf
-index 2770056..f6e4010 100644
+index 08204ca..55127fb 100644
 --- a/tools/libvirt-guests.sysconf
 +++ b/tools/libvirt-guests.sysconf
 @@ -8,7 +8,7 @@
@@ -111,5 +111,5 @@ index 2770056..f6e4010 100644
 -#ON_SHUTDOWN=suspend
 +#ON_SHUTDOWN=shutdown
  
- # If set to non-zero, shutdown will suspend guests concurrently. Number of
- # guests on shutdown at any time will not exceed number set in this variable.
+ # Number of guests will be shutdown concurrently, taking effect when
+ # "ON_SHUTDOWN" is set to "shutdown". If Set to 0, guests will be shutdown one

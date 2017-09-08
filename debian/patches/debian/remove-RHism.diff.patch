@@ -7,7 +7,7 @@ Subject: remove-RHism.diff
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/tools/virsh.pod b/tools/virsh.pod
-index 43d6f0c..2c604e7 100644
+index c13f96f..ec15d6b 100644
 --- a/tools/virsh.pod
 +++ b/tools/virsh.pod
 @@ -119,7 +119,7 @@ virsh is coming from and which options and driver are compiled in.
