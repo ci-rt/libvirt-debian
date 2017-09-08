@@ -1,20 +1,32 @@
 From: Guilhem Moulin <guilhem@guilhem.org>
-Date: Thu, 10 Nov 2016 11:17:05 +0100
+Date: Fri, 9 Dec 2016 22:06:12 +0100
 Subject: Pass GPG_TTY env var to the ssh binary
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 
+Z3BnLWFnZW50KDEpIGNhbiBlbXVsYXRlIHRoZSBPcGVuU1NIIEFnZW50IHByb3RvY29sICh3aGlj
+aCBwcm92aWRlcwpwdWJrZXktYXV0aGVudGljYXRpb24gdXNpbmcgYW4gYXV0aGVudGljYXRpb24t
+Y2FwYWJsZSBPcGVuUEdQIGtleSwgaW4KYWRkaXRpb24gdG8gdGhlIHVzdWFsIGlkZW50aXR5IGZp
+bGVzKS4gIEhvd2V2ZXIgZm9yIGEgY29uc29sZS1iYXNlZApwYXNzd29yZCBwcm9tcHQgdG8gd29y
+aywgdGhlIOKAmEdQR19UVFnigJkgZW52aXJvbm1lbnQgdmFyaWFibGUgbmVlZHMgdG8gYmUKc2V0
+IHRvIHRoZSBjdXJyZW50IFRUWS4gIEZ1cnRoZXJtb3JlLCBjdXJzZXMtYmFzZWQgcGFzc3dvcmQg
+cHJvbXB0cyBhbHNvCnJlcXVpcmUgdGhlIOKAmFRFUk3igJkgZW52aXJvbm1lbnQgdmFyaWFibGUg
+dG8gYmUgc2V0IHRvIHRoZSB0ZXJtaW5hbCB0eXBlLgo=
 ---
- src/rpc/virnetsocket.c | 1 +
- 1 file changed, 1 insertion(+)
+ src/rpc/virnetsocket.c | 2 ++
+ 1 file changed, 2 insertions(+)
 
 diff --git a/src/rpc/virnetsocket.c b/src/rpc/virnetsocket.c
-index 23089af..c477f7e 100644
+index 23089af..d056d59 100644
 --- a/src/rpc/virnetsocket.c
 +++ b/src/rpc/virnetsocket.c
-@@ -849,6 +849,7 @@ int virNetSocketNewConnectSSH(const char *nodename,
+@@ -849,6 +849,8 @@ int virNetSocketNewConnectSSH(const char *nodename,
      virCommandAddEnvPassBlockSUID(cmd, "KRB5CCNAME", NULL);
      virCommandAddEnvPassBlockSUID(cmd, "SSH_AUTH_SOCK", NULL);
      virCommandAddEnvPassBlockSUID(cmd, "SSH_ASKPASS", NULL);
 +    virCommandAddEnvPassBlockSUID(cmd, "GPG_TTY", NULL);
++    virCommandAddEnvPassBlockSUID(cmd, "TERM", NULL);
      virCommandAddEnvPassBlockSUID(cmd, "DISPLAY", NULL);
      virCommandAddEnvPassBlockSUID(cmd, "XAUTHORITY", NULL);
      virCommandClearCaps(cmd);
