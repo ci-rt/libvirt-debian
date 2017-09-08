@@ -1,10 +1,14 @@
-libvirt (3.7.0-1~1.gbp85f9c2) UNRELEASED; urgency=medium
-
-  ** SNAPSHOT build @85f9c222ae271a8e0aab0d2892fdec830ea88a8c **
+libvirt (3.7.0-1) unstable; urgency=medium
 
   * New upstream version 3.7.0 (Closes: #874323)
+  * Rediff patches
+  * Bump symbol versions
+  * Also pass $TERM to ssh so pinentry works
+    Thanks to Guilhem Moulin (Closes: #843863)
+  * Enable Gluster support (Closes: #755545)
+  * Enable wireshark dissector (Closes: #862989)
 
- -- Guido Günther <agx@sigxcpu.org>  Thu, 07 Sep 2017 18:17:19 +0200
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 08 Sep 2017 14:52:38 +0200
 
 libvirt (3.6.0-1) unstable; urgency=medium
 
