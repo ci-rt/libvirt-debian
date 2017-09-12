@@ -4,121 +4,155 @@ It was downloaded from http://libvirt.org/sources/
 
 Upstream Author:
 
-   Alex Jia <ajia@redhat.com>
-   Anthony Liguori <aliguori@us.ibm.com>
-   Chris Lalancette <clalance@redhat.com>
-   Christophe Fergeau <cfergeau@redhat.com>
-   Claudio Bley <cbley@av-test.de>
-   Cole Robinson <crobinso@redhat.com>
-   Daniel Berrange <berrange@redhat.com>
-   Daniel Veillard <veillard@redhat.com>
-   Dave Allan <dallan@redhat.com>
-   Doug Goldstein <cardoe@gentoo.org>
-   Eric Blake <eblake@redhat.com>
-   Gao Feng <gaofeng@cn.fujitsu.com>
-   Guannan Ren <gren@redhat.com>
-   Guido Günther <agx@sigxcpu.org>
-   Ján Tomko <jtomko@redhat.com>
-   Jim Fehlig <jfehlig@suse.com>
-   Jim Meyering <meyering@redhat.com>
-   Jiří Denemark <jdenemar@redhat.com>
-   John Ferlan <jferlan@redhat.com>
-   John Levon <john.levon@sun.com>
-   Laine Stump <laine@redhat.com>
-   Mark McLoughlin <markmc@redhat.com>
-   Martin Kletzander <mkletzan@redhat.com>
-   Matthias Bolte <matthias.bolte@googlemail.com>
-   Michal Prívozník <mprivozn@redhat.com>
-   Osier Yang <jyang@redhat.com>
-   Pavel Hrdina <phrdina@redhat.com>
-   Peter Krempa <pkrempa@redhat.com>
-   Richard W.M. Jones <rjones@redhat.com>
-   Roman Bogorodskiy <bogorodskiy@gmail.com>
-   Stefan Berger <stefanb@us.ibm.com>
-   Wen Congyang <wency@cn.fujitsu.com>
-   Atsushi SAKAI <sakaia@jp.fujitsu.com>
-   Dan Smith <danms@us.ibm.com>
-   Dave Leskovec <dlesko@linux.vnet.ibm.com>
-   Justin Clift <jclift@redhat.com>
-   Karel Zak <kzak@redhat.com>
+  Alex Jia <ajia@redhat.com>
+  Andrea Bolognani <abologna@redhat.com>
+  Anoop Joe Cyriac <anoop@binarykarma.com>
+  Ansis Atteka <aatteka@nicira.com>
+  Anthony Liguori <aliguori@us.ibm.com>
+  Anton Blanchard <anton@au.ibm.com>
+  Antoni Segura Puimedon <toni@midokura.com>
+  Ata E Husain Bohra <ata.husain@hotmail.com>
+  Atsushi SAKAI <sakaia@jp.fujitsu.com>
+  Bruno Haible <haible@clisp.cons.org>.
+  Chris Lalancette <clalance@redhat.com>
+  Christophe Fergeau <cfergeau@redhat.com>
+  Chuck Short <chuck.short@canonical.com>
+  Chunyan Liu <cyliu@suse.com>
+  Claudio Bley <cbley@av-test.de>
+  Cole Robinson <crobinso@redhat.com>
+  Conrad Meyer <cse.cem@gmail.com>
+  Cédric Bosdonnat <cbosdonnat@suse.com>
+  Dan Nicholson <dbn.lists@gmail.com>
+  Dan Smith <danms@us.ibm.com>
+  Dan Walsh <dwalsh@redhat.com>
+  Dan Wendlandt <dan@nicira.com>
+  Daniel Berrange <berrange@redhat.com>
+  Daniel Veillard <veillard@redhat.com>
+  Dave Allan <dallan@redhat.com>
+  Dave Leskovec <dlesko@linux.vnet.ibm.com>
+  David F. Lively <dlively@virtualiron.com>
+  David L Stevens <dlstevens@us.ibm.com>
+  David MacKenzie <djm@gnu.ai.mit.edu>
+  Doug Goldstein <cardoe@gentoo.org>
+  Eric Blake <eblake@redhat.com>
+  Eric Farman <farman@linux.vnet.ibm.com>
+  Erik Skultety <eskultet@redhat.com>
+  Fabian Freyer <fabian.freyer@physik.tu-berlin.de>
+  Francesco Romani <fromani@redhat.com>
+  Frank Spijkerman <frank.spijkerman@avira.com>
+  Frans Spiesschaert <Frans.Spiesschaert@yucom.be>
+  Gao Feng <gaofeng@cn.fujitsu.com>
+  Gerhard Stenzel <gerhard.stenzel@de.ibm.com>
+  Gordon Matzigkeit <gord@gnu.ai.mit.edu>
+  Guannan Ren <gren@redhat.com>
+  Han Cheng <hanc.fnst@cn.fujitsu.com>
+  Hu Tao <hutao@cn.fujitsu.com>
+  James Morris <jmorris@namei.org>
+  James Robson <jrobson@websense.com>
+  James Youngman <jay@gnu.org>
+  Jamie Strandboge <jamie@canonical.com>
+  Jan Tomko <jtomko@redhat.com>
+  Jim Fehlig <jfehlig@suse.com>
+  Jim Meyering <meyering@redhat.com>
+  Jiří Denemark <jdenemar@redhat.com>
+  Joe Hansen <joedalton2@yahoo.dk>
+  John Ferlan <jferlan@redhat.com>
+  John Levon <john.levon@sun.com>
+  Justin Clift <jclift@redhat.com>
+  Ján Tomko <jtomko@redhat.com>
+  Karel Zak <kzak@redhat.com>
+  Kiarie Kahurani <davidkiarie4@gmail.com>
+  Kyle Mestery <kmestery@cisco.com>
+  Laine Stump <laine@laine.org>
+  Li Zhang <zhlcindy@linux.vnet.ibm.com>
+  Mark McLoughlin <markmc@redhat.com>
+  Markus Groß <gross@univention.de>
+  Markus Hiereth <markus.hiereth@freenet.de>
+  Martin Kletzander <mkletzan@redhat.com>
+  Matthew J. Rosato <mjrosato@linux.vnet.ibm.com>
+  Matthias Bolte <matthias.bolte@googlemail.com>
+  Maximilian Wilhelm <max@rfc2324.org>
+  Michael Sievers <msievers83@googlemail.com>
+  Michal Prívozník <mprivozn@redhat.com>
+  Miloslav Trmač <mitr@redhat.com>
+  Nehal J Wani <nehaljw.kkd1@gmail.com>
+  Osier Yang <jyang@redhat.com>
+  Oskar Liljeblad <oskar@osk.mine.nu>
+  Pavel Fedin <p.fedin@samsung.com>
+  Pavel Hrdina <phrdina@redhat.com>
+  Peter Krempa <pkrempa@redhat.com>
+  Peter Rosin <peda@lysator.liu.se>.
+  Pino Toscano <ptoscano@redhat.com>
+  Prerna Saxena <prerna@linux.vnet.ibm.com>
+  Ren Qiaowei <qiaowei.ren@intel.com>
+  Richard Jones <rjones@redhat.com>
+  Richard W.M. Jones <rjones@redhat.com>
+  Roman Bogorodskiy <bogorodskiy@gmail.com>
+  Sahid Orentino Ferdjaoui <sahid.ferdjaoui@cloudwatt.com>
+  Samuel A. Falvo II <kc5tja@dolphin.openprojects.net> reports
+  Satoru SATOH <satoru.satoh@gmail.com>
+  Scott James Remnant <scott@netsplit.com>.
+  Sebastian Wiedenroth <sebastian.wiedenroth@skylime.net>
+  Sharadha Prabhakar <sharadha.prabhakar@citrix.com>
+  Shuveb Hussain <shuveb@binarykarma.com>
+  Simon Josefsson <simon@josefsson.org>
+  Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+  Stefan Berger <stefanb@us.ibm.com>
+  Thang Pham <thang.pham@us.ibm.com>
+  Tom Tromey <tromey@cygnus.com>.
+  Ulrich Drepper <drepper@cygnus.com>
+  Viktor Mihajlovski <mihajlov@linux.vnet.ibm.com>
+  Wen Congyang <wency@cn.fujitsu.com>
+  Wido den Hollander <wido@widodh.nl>
+  Yoann Vandoorselaere <yoann@prelude-ids.org>.
+  Yuto KAWAMURA(kawamuray) <kawamuray.dadada@gmail.com>
 
-Copyright:
+Files: *
+Copyright: 2005-2017 Red Hat, Inc
+License: LGPL-2.1 or later
 
-   2005-2014 Red Hat, Inc
+Files: src/conf
+Copyright: 2005-2014 Red Hat, Inc
+ 2006-2014 Red Hat, Inc.
+ 2015 SUSE LINUX Products GmbH, Nuernberg, Germany.
+License: LGPL-2.1 or later
 
-Licenses:
-
-  This library is free software; you can redistribute it and/or
-  modify it under the terms of the GNU Lesser General Public
-  License as published by the Free Software Foundation; either
-  version 2.1 of the License, or (at your option) any later version.
-
-  This library is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-  Lesser General Public License for more details.
-
-  You should have received a copy of the GNU Lesser General Public
-  License along with this library; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
-
- src/hash.c:
-
-  Copyright (C) 2000 Bjorn Reese and Daniel Veillard.
-
+Files: src/hash.c:
+License:
   Permission to use, copy, modify, and distribute this software for any
   purpose with or without fee is hereby granted, provided that the above
   copyright notice and this permission notice appear in all copies.
-
+  .
   THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR IMPLIED
   WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
   MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE AUTHORS AND
   CONTRIBUTORS ACCEPT NO RESPONSIBILITY IN ANY CONCEIVABLE MANNER.
 
- gnulib/tests/
- build-aux/snippet/
+Files:
+  build-aux/ltmain.sh:
+  tests/pkix_asn1_tab.c:
+  tests/virsh-cpuset:
+  tests/virsh-optparse:
+  tests/virsh-read-bufsiz:
+  tests/virsh-read-non-seekable:
+  tests/virsh-schedinfo:
+  tests/virsh-self-test:
+  tests/virsh-start:
+  tests/virsh-undefine:
+  tests/virsh-vcpupin:
+  tests/virt-admin-self-test:
+License: GPL-2 or later
 
-   Copyright (C) 2008-2014 Free Software Foundation, Inc.
+Files: gnulib/lib
+Copyright: 1989-2017 Free Software Foundation, Inc.
+License: LGPL-2.1 or later
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 3 of the License, or
-   (at your option) any later version.
+Files: gnulib/tests/
+  build-aux/snippet/
+License: GPL-3 or later
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
- build-aux/ltmain.sh:
-
-   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005, 2006,
-   2007, 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
-   This is free software; see the source for copying conditions.  There is NO
-   warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-   GNU Libtool is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2 of the License, or
-   (at your option) any later version.
-
-   As a special exception to the GNU General Public License,
-   if you distribute this file as part of a program or library that
-   is built using GNU Libtool, you may include this file under the
-   same distribution terms that you use for the rest of that program.
-
-   GNU Libtool is distributed in the hope that it will be useful, but
-   WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   General Public License for more details.
-
- docs/wrapstring.xsl:
-
-   Copyright 2010 Aristotle Pagaltzis; under the MIT licence
-
+Files: docs/wrapstring.xsl:
+License:
    Permission is hereby granted, free of charge, to any person obtaining a copy
    of this software and associated documentation files (the "Software"), to deal
    in the Software without restriction, including without limitation the rights
