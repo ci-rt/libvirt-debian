@@ -1,0 +1,23 @@
+From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Fri, 15 Sep 2017 18:04:21 +0200
+Subject: apparmor: cater for new AAVMF image location
+
+Things moved again, sigh.
+---
+ src/security/virt-aa-helper.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src/security/virt-aa-helper.c b/src/security/virt-aa-helper.c
+index 322c5e4..7944dc1 100644
+--- a/src/security/virt-aa-helper.c
++++ b/src/security/virt-aa-helper.c
+@@ -516,7 +516,8 @@ valid_path(const char *path, const bool readonly)
+         "/usr/share/OVMF/",              /* for OVMF images */
+         "/usr/share/ovmf/",              /* for OVMF images */
+         "/usr/share/AAVMF/",             /* for AAVMF images */
+-        "/usr/share/qemu-efi/"           /* for AAVMF images */
++        "/usr/share/qemu-efi/",          /* for AAVMF images */
++        "/usr/share/qemu-efi-aarch64/"   /* for AAVMF images */
+     };
+     /* override the above with these */
+     const char * const override[] = {
