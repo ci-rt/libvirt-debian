@@ -5,4 +5,9 @@ usr/lib/libvirt/connection-driver
 usr/share/augeas/*
 usr/share/libvirt/*
 usr/share/man/man8/*
-usr/lib/libvirt/storage-backend/
+usr/lib/libvirt/storage-backend/libvirt_storage_backend_disk.so
+usr/lib/libvirt/storage-backend/libvirt_storage_backend_fs.so
+usr/lib/libvirt/storage-backend/libvirt_storage_backend_iscsi.so
+usr/lib/libvirt/storage-backend/libvirt_storage_backend_logical.so
+usr/lib/libvirt/storage-backend/libvirt_storage_backend_mpath.so
+usr/lib/libvirt/storage-backend/libvirt_storage_backend_scsi.so
