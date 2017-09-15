@@ -1,3 +1,12 @@
+libvirt (3.7.0-3) unstable; urgency=medium
+
+  * Move glusterfs, rbd, sheepdog and zfs storage drivers into separate
+    packages.  This reduces the dependencies pulled into default
+    installations.
+    (Closes: #875834)
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 15 Sep 2017 14:09:31 +0200
+
 libvirt (3.7.0-2) unstable; urgency=medium
 
   * Update copyright file
