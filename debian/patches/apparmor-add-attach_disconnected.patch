@@ -1,0 +1,38 @@
+From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Fri, 15 Sep 2017 17:13:16 +0200
+Subject: apparmor: add attach_disconnected
+
+Otherwise we fail to reconnect to /dev/net/tun opened by libvirtd
+like
+
+    [ 8144.507756] audit: type=1400 audit(1505488162.386:38069121): apparmor="DENIED" operation="file_perm" info="Failed name lookup - disconnected path" error=-13 profile="libvirt-5dfcc8a7-b79a-4fa9-a41f-f6271651934c" name="dev/net/tun" pid=9607 comm="qemu-system-x86" requested_mask="r" denied_mask="r" fsuid=117 ouid=0
+---
+ examples/apparmor/TEMPLATE.lxc  | 2 +-
+ examples/apparmor/TEMPLATE.qemu | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/examples/apparmor/TEMPLATE.lxc b/examples/apparmor/TEMPLATE.lxc
+index 7b64885..f1005dc 100644
+--- a/examples/apparmor/TEMPLATE.lxc
++++ b/examples/apparmor/TEMPLATE.lxc
+@@ -4,7 +4,7 @@
+ 
+ #include <tunables/global>
+ 
+-profile LIBVIRT_TEMPLATE {
++profile LIBVIRT_TEMPLATE flags=(attach_disconnected) {
+   #include <abstractions/libvirt-lxc>
+ 
+   # Globally allows everything to run under this profile
+diff --git a/examples/apparmor/TEMPLATE.qemu b/examples/apparmor/TEMPLATE.qemu
+index 008a221..a327315 100644
+--- a/examples/apparmor/TEMPLATE.qemu
++++ b/examples/apparmor/TEMPLATE.qemu
+@@ -4,6 +4,6 @@
+ 
+ #include <tunables/global>
+ 
+-profile LIBVIRT_TEMPLATE {
++profile LIBVIRT_TEMPLATE flags=(attach_disconnected) {
+   #include <abstractions/libvirt-qemu>
+ }
