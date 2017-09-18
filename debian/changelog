@@ -1,3 +1,12 @@
+libvirt (3.7.0-4) unstable; urgency=medium
+
+  * Pass-GPG_TTY-env-var-to-the-ssh-binary.patch: sanitize commit message
+  * apparmor: add attach_disconnected (Closes: #876071)
+  * apparmor: cater for new AAVMF image location
+  * apparmor: delete profile on VM shutdown
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 18 Sep 2017 20:24:07 +0200
+
 libvirt (3.7.0-3) unstable; urgency=medium
 
   * Move glusterfs, rbd, sheepdog and zfs storage drivers into separate
