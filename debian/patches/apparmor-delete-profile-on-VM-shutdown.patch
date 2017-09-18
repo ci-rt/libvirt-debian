@@ -1,0 +1,23 @@
+From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Mon, 18 Sep 2017 20:23:11 +0200
+Subject: apparmor: delete profile on VM shutdown
+
+instead of only unloading it. This makes sure old profiles don't pile up
+and we get updates to modified templates on VM restart.
+---
+ src/security/security_apparmor.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/security/security_apparmor.c b/src/security/security_apparmor.c
+index 5afe0c5..1db94c6 100644
+--- a/src/security/security_apparmor.c
++++ b/src/security/security_apparmor.c
+@@ -220,7 +220,7 @@ remove_profile(const char *profile)
+ {
+     int rc = -1;
+     const char * const argv[] = {
+-        VIRT_AA_HELPER, "-R", "-u", profile, NULL
++        VIRT_AA_HELPER, "-D", "-u", profile, NULL
+     };
+ 
+     if (virRun(argv, NULL) == 0)
