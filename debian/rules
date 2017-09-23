@@ -3,6 +3,7 @@
 DEB_RELEASE=$(shell dpkg-parsechangelog -SVersion | sed 's/[^-]\+-//')
 DEB_BUILDDATE=$(shell dpkg-parsechangelog -SDate)
 DEB_BUILDUSER=$(shell dpkg-parsechangelog -SMaintainer)
+NULL=
 
 ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   ifneq (,$(findstring $(DEB_HOST_ARCH), i386 amd64))
@@ -226,10 +227,12 @@ override_dh_installdocs:
 	dh_installdocs
 	# Remove binaries and object files examples
 	[ ! -d $(EXAMPLES_DIR) ] || find $(EXAMPLES_DIR) -name "*.o" -type f -delete -o -name .libs -type d -exec rm -rf {} \;
-	rm -f $(EXAMPLES_DIR)domain-events/events-c/event-test
-	rm -f $(EXAMPLES_DIR)dominfo/info1
-	rm -f $(EXAMPLES_DIR)domsuspend/suspend
-	rm -f $(EXAMPLES_DIR)hellolibvirt/hellolibvirt
+	rm -f $(EXAMPLES_DIR)domain-events/events-c/event-test \
+	      $(EXAMPLES_DIR)dominfo/info1 \
+	      $(EXAMPLES_DIR)domsuspend/suspend \
+	      $(EXAMPLES_DIR)hellolibvirt/hellolibvirt \
+	      $(EXAMPLES_DIR)apparmor/* \
+	      $(NULL)
 
 override_dh_auto_clean:
 	[ ! -f Makefile ] || dh_auto_clean
