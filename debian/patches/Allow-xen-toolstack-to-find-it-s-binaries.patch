@@ -19,7 +19,7 @@ Closes: #685749
  12 files changed, 24 insertions(+), 26 deletions(-)
 
 diff --git a/docs/schemas/capability.rng b/docs/schemas/capability.rng
-index 071090c..fb20125 100644
+index e1ab5c2..763c3df 100644
 --- a/docs/schemas/capability.rng
 +++ b/docs/schemas/capability.rng
 @@ -351,13 +351,13 @@

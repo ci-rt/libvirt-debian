@@ -9,7 +9,7 @@ to not interfere with existing network configurations
  2 files changed, 2 insertions(+), 4 deletions(-)
 
 diff --git a/src/Makefile.am b/src/Makefile.am
-index c3c7a8f..975032c 100644
+index 173fba1..73dcfaa 100644
 --- a/src/Makefile.am
 +++ b/src/Makefile.am
 @@ -3260,8 +3260,7 @@ if WITH_NETWORK
@@ -23,7 +23,7 @@ index c3c7a8f..975032c 100644
  
  uninstall-local:: uninstall-init uninstall-systemd
 diff --git a/src/Makefile.in b/src/Makefile.in
-index 566ebda..5861752 100644
+index d8a1884..0095949 100644
 --- a/src/Makefile.in
 +++ b/src/Makefile.in
 @@ -12379,8 +12379,7 @@ install-data-local: install-init install-systemd

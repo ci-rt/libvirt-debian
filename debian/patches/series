@@ -16,6 +16,3 @@ debian/Use-upstreams-polkit-rule.patch
 debian/apparmor_profiles_local_include.patch
 Set-defaults-for-zfs-tools.patch
 Pass-GPG_TTY-env-var-to-the-ssh-binary.patch
-apparmor-add-attach_disconnected.patch
-apparmor-cater-for-new-AAVMF-image-location.patch
-apparmor-delete-profile-on-VM-shutdown.patch
