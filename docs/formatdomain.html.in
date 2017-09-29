@@ -2385,17 +2385,11 @@
   &lt;disk type='volume' device='disk'&gt;
     &lt;driver name='qemu' type='raw'/&gt;
     &lt;source pool='iscsi-pool' volume='unit:0:0:1' mode='host'/&gt;
-    &lt;auth username='myuser'&gt;
-      &lt;secret type='iscsi' usage='libvirtiscsi'/&gt;
-    &lt;/auth&gt;
     &lt;target dev='vdb' bus='virtio'/&gt;
   &lt;/disk&gt;
   &lt;disk type='volume' device='disk'&gt;
     &lt;driver name='qemu' type='raw'/&gt;
     &lt;source pool='iscsi-pool' volume='unit:0:0:2' mode='direct'/&gt;
-    &lt;auth username='myuser'&gt;
-      &lt;secret type='iscsi' usage='libvirtiscsi'/&gt;
-    &lt;/auth&gt;
     &lt;target dev='vdc' bus='virtio'/&gt;
   &lt;/disk&gt;
   &lt;disk type='file' device='disk'&gt;
@@ -2520,16 +2514,39 @@
               <dd>
               The <code>protocol</code> attribute specifies the protocol to
               access to the requested image. Possible values are "nbd",
-              "iscsi", "rbd", "sheepdog" or "gluster".  If the
-              <code>protocol</code> attribute is "rbd", "sheepdog" or
-              "gluster", an additional attribute <code>name</code> is
-              mandatory to specify which volume/image will be used. For "nbd",
-              the <code>name</code> attribute is optional. For "iscsi"
-              (<span class="since">since 1.0.4</span>), the <code>name</code>
-              attribute may include a logical unit number, separated from the
-              target's name by a slash (e.g.,
+              "iscsi", "rbd", "sheepdog", "gluster" or "vxhs".
+
+              <p>If the <code>protocol</code> attribute is "rbd", "sheepdog",
+              "gluster", or "vxhs", an additional attribute <code>name</code>
+              is mandatory to specify which volume/image will be used.
+              </p>
+
+              <p>For "nbd", the <code>name</code> attribute is optional.
+              </p>
+
+              <p>For "iscsi" (<span class="since">since 1.0.4</span>), the
+              <code>name</code> attribute may include a logical unit number,
+              separated from the target's name by a slash (e.g.,
               <code>iqn.2013-07.com.example:iscsi-pool/1</code>). If not
               specified, the default LUN is zero.
+              </p>
+
+              <p>For "vxhs" (<span class="since">since 3.8.0</span>), the
+              <code>name</code> is the UUID of the volume, assigned by the
+              HyperScale server. Additionally, an optional attribute
+              <code>tls</code> (QEMU only) can be used to control whether a
+              VxHS block device would utilize a hypervisor configured TLS
+              X.509 certificate environment in order to encrypt the data
+              channel. For the QEMU hypervisor, usage of a TLS environment can
+              also be globally controlled on the host by the
+              <code>vxhs_tls</code> and <code>vxhs_tls_x509_cert_dir</code> or
+              <code>default_tls_x509_cert_dir</code> settings in the file
+              /etc/libvirt/qemu.conf. If <code>vxhs_tls</code> is enabled,
+              then unless the domain <code>tls</code> attribute is set to "no",
+              libvirt will use the host configured TLS environment. If the
+              <code>tls</code> attribute is set to "yes", then regardless of
+              the qemu.conf setting, TLS authentication will be attempted.
+              </p>
               <span class="since">Since 0.8.7</span>
               </dd>
             <dt><code>volume</code></dt>
@@ -2631,6 +2648,12 @@
                 <td> a server running glusterd daemon </td>
                 <td> one or more (<span class="since">Since 2.1.0</span>), just one prior to that </td>
                 <td> 24007 </td>
+              </tr>
+              <tr>
+                <td> vxhs </td>
+                <td> a server running Veritas HyperScale daemon </td>
+                <td> only one </td>
+                <td> 9999 </td>
               </tr>
             </table>
             <p>
@@ -4017,7 +4040,7 @@
   &lt;devices&gt;
     &lt;hostdev mode='subsystem' type='mdev' model='vfio-pci'&gt;
     &lt;source&gt;
-      &lt;address uuid='c2177883-f1bb-47f0-914d-32a22e3a8804'&gt;
+      &lt;address uuid='c2177883-f1bb-47f0-914d-32a22e3a8804'/&gt;
     &lt;/source&gt;
     &lt;/hostdev&gt;
   &lt;/devices&gt;
@@ -4701,7 +4724,15 @@
       starting from <code>10.0.2.15</code>. The default router will be
       <code>10.0.2.2</code> and the DNS server will be <code>10.0.2.3</code>.
       This networking is the only option for unprivileged users who need their
-      VMs to have outgoing access.
+      VMs to have outgoing access. <span class="since">Since 3.8.0</span>
+      it is possible to override the default network address by
+      including an <code>ip</code> element specifying an IPv4
+      address in its one mandatory attribute, <code>address</code>.
+      Optionally, a second <code>ip</code> element with a
+      <code>family</code> attribute set to "ipv6" can be
+      specified to add an IPv6 address to the interface.
+      <code>address</code>. Optionally, address
+      <code>prefix</code> can be specified.
     </p>
 
 <pre>
@@ -4711,6 +4742,8 @@
   ...
   &lt;interface type='user'&gt;
     &lt;mac address="00:11:22:33:44:55"/&gt;
+    &lt;ip family='ipv4' address='172.17.2.0' prefix='24'/&gt;
+    &lt;ip family='ipv6' address='2001:db8:ac10:fd01::' prefix='64'/&gt;
   &lt;/interface&gt;
 &lt;/devices&gt;
 ...</pre>

@@ -195,18 +195,15 @@ virCPUDefIsEqual(virCPUDefPtr src,
 
 char *
 virCPUDefFormat(virCPUDefPtr def,
-                virDomainNumaPtr numa,
-                bool updateCPU);
+                virDomainNumaPtr numa);
 
 int
 virCPUDefFormatBuf(virBufferPtr buf,
-                   virCPUDefPtr def,
-                   bool updateCPU);
+                   virCPUDefPtr def);
 int
 virCPUDefFormatBufFull(virBufferPtr buf,
                        virCPUDefPtr def,
-                       virDomainNumaPtr numa,
-                       bool updateCPU);
+                       virDomainNumaPtr numa);
 
 int
 virCPUDefAddFeature(virCPUDefPtr cpu,
@@ -217,5 +214,12 @@ int
 virCPUDefUpdateFeature(virCPUDefPtr cpu,
                        const char *name,
                        int policy);
+
+virCPUDefPtr *
+virCPUDefListParse(const char **xmlCPUs,
+                   unsigned int ncpus,
+                   virCPUType cpuType);
+void
+virCPUDefListFree(virCPUDefPtr *cpus);
 
 #endif /* __VIR_CPU_CONF_H__ */

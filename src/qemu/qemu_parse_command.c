@@ -28,9 +28,9 @@
 #include "dirname.h"
 #include "viralloc.h"
 #include "virlog.h"
+#include "virsecret.h"
 #include "virstring.h"
 #include "c-ctype.h"
-#include "secret_conf.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -736,6 +736,11 @@ qemuParseCommandLineDisk(virDomainXMLOptionPtr xmlopt,
                         if (VIR_STRDUP(def->src->path, vdi) < 0)
                             goto error;
                     }
+                } else if (STRPREFIX(def->src->path, "vxhs:")) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("VxHS protocol does not support URI syntax '%s'"),
+                                   def->src->path);
+                    goto error;
                 } else {
                     def->src->type = VIR_STORAGE_TYPE_FILE;
                 }
@@ -1944,6 +1949,10 @@ qemuParseCommandLine(virCapsPtr caps,
                 disk->src->type = VIR_STORAGE_TYPE_NETWORK;
                 disk->src->protocol = VIR_STORAGE_NET_PROTOCOL_SHEEPDOG;
                 val += strlen("sheepdog:");
+            } else if (STRPREFIX(val, "vxhs:")) {
+                disk->src->type = VIR_STORAGE_TYPE_NETWORK;
+                disk->src->protocol = VIR_STORAGE_NET_PROTOCOL_VXHS;
+                val += strlen("vxhs:");
             } else {
                 disk->src->type = VIR_STORAGE_TYPE_FILE;
             }
@@ -2019,6 +2028,12 @@ qemuParseCommandLine(virCapsPtr caps,
                     if (qemuParseISCSIString(disk) < 0)
                         goto error;
 
+                    break;
+                case VIR_STORAGE_NET_PROTOCOL_VXHS:
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("VxHS protocol does not support URI "
+                                   "syntax '%s'"), disk->src->path);
+                    goto error;
                     break;
                 case VIR_STORAGE_NET_PROTOCOL_HTTP:
                 case VIR_STORAGE_NET_PROTOCOL_HTTPS:

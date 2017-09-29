@@ -37,6 +37,135 @@
 VIR_LOG_INIT("conf.virstorageobj");
 
 
+virStoragePoolObjPtr
+virStoragePoolObjNew(void)
+{
+    virStoragePoolObjPtr obj;
+
+    if (VIR_ALLOC(obj) < 0)
+        return NULL;
+
+    if (virMutexInit(&obj->lock) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("cannot initialize mutex"));
+        VIR_FREE(obj);
+        return NULL;
+    }
+    virStoragePoolObjLock(obj);
+    obj->active = false;
+    return obj;
+}
+
+
+virStoragePoolDefPtr
+virStoragePoolObjGetDef(virStoragePoolObjPtr obj)
+{
+    return obj->def;
+}
+
+
+void
+virStoragePoolObjSetDef(virStoragePoolObjPtr obj,
+                        virStoragePoolDefPtr def)
+{
+    virStoragePoolDefFree(obj->def);
+    obj->def = def;
+}
+
+
+virStoragePoolDefPtr
+virStoragePoolObjGetNewDef(virStoragePoolObjPtr obj)
+{
+    return obj->newDef;
+}
+
+
+void
+virStoragePoolObjDefUseNewDef(virStoragePoolObjPtr obj)
+{
+    virStoragePoolDefFree(obj->def);
+    obj->def = obj->newDef;
+    obj->newDef = NULL;
+}
+
+
+char *
+virStoragePoolObjGetConfigFile(virStoragePoolObjPtr obj)
+{
+    return obj->configFile;
+}
+
+
+void
+virStoragePoolObjSetConfigFile(virStoragePoolObjPtr obj,
+                               char *configFile)
+{
+    VIR_FREE(obj->configFile);
+    obj->configFile = configFile;
+}
+
+
+char *
+virStoragePoolObjGetAutostartLink(virStoragePoolObjPtr obj)
+{
+    return obj->autostartLink;
+}
+
+
+bool
+virStoragePoolObjIsActive(virStoragePoolObjPtr obj)
+{
+    return obj->active;
+}
+
+
+void
+virStoragePoolObjSetActive(virStoragePoolObjPtr obj,
+                           bool active)
+{
+    obj->active = active;
+}
+
+
+bool
+virStoragePoolObjIsAutostart(virStoragePoolObjPtr obj)
+{
+    if (!obj->configFile)
+        return 0;
+
+    return obj->autostart;
+}
+
+
+void
+virStoragePoolObjSetAutostart(virStoragePoolObjPtr obj,
+                              bool autostart)
+{
+    obj->autostart = autostart;
+}
+
+
+unsigned int
+virStoragePoolObjGetAsyncjobs(virStoragePoolObjPtr obj)
+{
+    return obj->asyncjobs;
+}
+
+
+void
+virStoragePoolObjIncrAsyncjobs(virStoragePoolObjPtr obj)
+{
+    obj->asyncjobs++;
+}
+
+
+void
+virStoragePoolObjDecrAsyncjobs(virStoragePoolObjPtr obj)
+{
+    obj->asyncjobs--;
+}
+
+
 void
 virStoragePoolObjFree(virStoragePoolObjPtr obj)
 {
@@ -150,6 +279,75 @@ virStoragePoolObjClearVols(virStoragePoolObjPtr obj)
 
     VIR_FREE(obj->volumes.objs);
     obj->volumes.count = 0;
+}
+
+
+int
+virStoragePoolObjAddVol(virStoragePoolObjPtr obj,
+                        virStorageVolDefPtr voldef)
+{
+    if (VIR_APPEND_ELEMENT(obj->volumes.objs, obj->volumes.count, voldef) < 0)
+        return -1;
+    return 0;
+}
+
+
+void
+virStoragePoolObjRemoveVol(virStoragePoolObjPtr obj,
+                           virStorageVolDefPtr voldef)
+{
+    virStoragePoolDefPtr def = virStoragePoolObjGetDef(obj);
+    size_t i;
+
+    for (i = 0; i < obj->volumes.count; i++) {
+        if (obj->volumes.objs[i] == voldef) {
+            VIR_INFO("Deleting volume '%s' from storage pool '%s'",
+                     voldef->name, def->name);
+            virStorageVolDefFree(voldef);
+
+            VIR_DELETE_ELEMENT(obj->volumes.objs, i, obj->volumes.count);
+            return;
+        }
+    }
+}
+
+
+size_t
+virStoragePoolObjGetVolumesCount(virStoragePoolObjPtr obj)
+{
+    return obj->volumes.count;
+}
+
+
+int
+virStoragePoolObjForEachVolume(virStoragePoolObjPtr obj,
+                               virStorageVolObjListIterator iter,
+                               const void *opaque)
+{
+    size_t i;
+
+    for (i = 0; i < obj->volumes.count; i++) {
+        if (iter(obj->volumes.objs[i], opaque) < 0)
+            return -1;
+    }
+
+    return 0;
+}
+
+
+virStorageVolDefPtr
+virStoragePoolObjSearchVolume(virStoragePoolObjPtr obj,
+                              virStorageVolObjListSearcher iter,
+                              const void *opaque)
+{
+    size_t i;
+
+    for (i = 0; i < obj->volumes.count; i++) {
+        if (iter(obj->volumes.objs[i], opaque))
+            return obj->volumes.objs[i];
+    }
+
+    return NULL;
 }
 
 
@@ -312,17 +510,8 @@ virStoragePoolObjAssignDef(virStoragePoolObjListPtr pools,
         return obj;
     }
 
-    if (VIR_ALLOC(obj) < 0)
+    if (!(obj = virStoragePoolObjNew()))
         return NULL;
-
-    if (virMutexInit(&obj->lock) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("cannot initialize mutex"));
-        VIR_FREE(obj);
-        return NULL;
-    }
-    virStoragePoolObjLock(obj);
-    obj->active = 0;
 
     if (VIR_APPEND_ELEMENT_COPY(pools->objs, pools->count, obj) < 0) {
         virStoragePoolObjUnlock(obj);
@@ -424,7 +613,7 @@ virStoragePoolObjLoadState(virStoragePoolObjListPtr pools,
      * as active
      */
 
-    obj->active = 1;
+    obj->active = true;
 
  cleanup:
     VIR_FREE(stateFile);

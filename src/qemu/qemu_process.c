@@ -741,8 +741,8 @@ qemuProcessHandleStop(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
         }
 
         if (priv->job.asyncJob == QEMU_ASYNC_JOB_MIGRATION_OUT) {
-            if (priv->job.current->stats.status ==
-                        QEMU_MONITOR_MIGRATION_STATUS_POSTCOPY) {
+            if (priv->job.current->status ==
+                        QEMU_DOMAIN_JOB_STATUS_POSTCOPY) {
                 reason = VIR_DOMAIN_PAUSED_POSTCOPY;
                 detail = VIR_DOMAIN_EVENT_SUSPENDED_POSTCOPY;
             } else {
@@ -3993,15 +3993,11 @@ qemuProcessBeginJob(virQEMUDriverPtr driver,
                     virDomainObjPtr vm,
                     virDomainJobOperation operation)
 {
-    qemuDomainObjPrivatePtr priv = vm->privateData;
-
     if (qemuDomainObjBeginAsyncJob(driver, vm, QEMU_ASYNC_JOB_START,
                                    operation) < 0)
         return -1;
 
     qemuDomainObjSetAsyncJobMask(vm, QEMU_JOB_NONE);
-    priv->job.current->type = VIR_DOMAIN_JOB_UNBOUNDED;
-
     return 0;
 }
 
@@ -4039,7 +4035,8 @@ qemuProcessStartHook(virQEMUDriverPtr driver,
 
 static int
 qemuProcessGraphicsReservePorts(virQEMUDriverPtr driver,
-                                virDomainGraphicsDefPtr graphics)
+                                virDomainGraphicsDefPtr graphics,
+                                bool reconnect)
 {
     virDomainGraphicsListenDefPtr glisten;
 
@@ -4054,7 +4051,8 @@ qemuProcessGraphicsReservePorts(virQEMUDriverPtr driver,
 
     switch (graphics->type) {
     case VIR_DOMAIN_GRAPHICS_TYPE_VNC:
-        if (!graphics->data.vnc.autoport) {
+        if (!graphics->data.vnc.autoport ||
+            reconnect) {
             if (virPortAllocatorSetUsed(driver->remotePorts,
                                         graphics->data.vnc.port,
                                         true) < 0)
@@ -4069,7 +4067,7 @@ qemuProcessGraphicsReservePorts(virQEMUDriverPtr driver,
         break;
 
     case VIR_DOMAIN_GRAPHICS_TYPE_SPICE:
-        if (graphics->data.spice.autoport)
+        if (graphics->data.spice.autoport && !reconnect)
             return 0;
 
         if (graphics->data.spice.port > 0) {
@@ -4273,7 +4271,7 @@ qemuProcessSetupGraphics(virQEMUDriverPtr driver,
         for (i = 0; i < vm->def->ngraphics; i++) {
             graphics = vm->def->graphics[i];
 
-            if (qemuProcessGraphicsReservePorts(driver, graphics) < 0)
+            if (qemuProcessGraphicsReservePorts(driver, graphics, false) < 0)
                 goto cleanup;
         }
     }
@@ -4582,6 +4580,32 @@ qemuProcessStartValidateShmem(virDomainObjPtr vm)
 
 
 static int
+qemuProcessStartValidateDisks(virDomainObjPtr vm,
+                              virQEMUCapsPtr qemuCaps)
+{
+    size_t i;
+
+    for (i = 0; i < vm->def->ndisks; i++) {
+        virStorageSourcePtr src = vm->def->disks[i]->src;
+
+        /* This is a best effort check as we can only check if the command
+         * option exists, but we cannot determine whether the running QEMU
+         * was build with '--enable-vxhs'. */
+        if (src->type == VIR_STORAGE_TYPE_NETWORK &&
+            src->protocol == VIR_STORAGE_NET_PROTOCOL_VXHS &&
+            !virQEMUCapsGet(qemuCaps, QEMU_CAPS_VXHS)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("VxHS protocol is not supported with this "
+                             "QEMU binary"));
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+
+static int
 qemuProcessStartValidateXML(virQEMUDriverPtr driver,
                             virDomainObjPtr vm,
                             virQEMUCapsPtr qemuCaps,
@@ -4661,6 +4685,13 @@ qemuProcessStartValidate(virQEMUDriverPtr driver,
         return -1;
 
     if (qemuProcessStartValidateShmem(vm) < 0)
+        return -1;
+
+    if (vm->def->cpu &&
+        virCPUValidateFeatures(vm->def->os.arch, vm->def->cpu) < 0)
+        return -1;
+
+    if (qemuProcessStartValidateDisks(vm, qemuCaps) < 0)
         return -1;
 
     VIR_DEBUG("Checking for any possible (non-fatal) issues");
@@ -5326,8 +5357,12 @@ qemuProcessPrepareDomain(virConnectPtr conn,
     if (qemuDomainMasterKeyCreate(vm) < 0)
         goto cleanup;
 
+    VIR_DEBUG("Prepare disk source backends for TLS");
+    if (qemuDomainPrepareDiskSource(vm->def, cfg) < 0)
+        goto cleanup;
+
     VIR_DEBUG("Prepare chardev source backends for TLS");
-    qemuDomainPrepareChardevSource(vm->def, driver);
+    qemuDomainPrepareChardevSource(vm->def, cfg);
 
     VIR_DEBUG("Add secrets to disks, hostdevs, and chardevs");
     if (qemuDomainSecretPrepare(conn, driver, vm) < 0)
@@ -5756,14 +5791,6 @@ qemuProcessLaunch(virConnectPtr conn,
     if (qemuProcessSetLinkStates(driver, vm, asyncJob) < 0)
         goto cleanup;
 
-    VIR_DEBUG("Fetching list of active devices");
-    if (qemuDomainUpdateDeviceList(driver, vm, asyncJob) < 0)
-        goto cleanup;
-
-    VIR_DEBUG("Updating info of memory devices");
-    if (qemuDomainUpdateMemoryDeviceInfo(driver, vm, asyncJob) < 0)
-        goto cleanup;
-
     VIR_DEBUG("Setting initial memory amount");
     if (qemuProcessSetupBalloon(driver, vm, asyncJob) < 0)
         goto cleanup;
@@ -5773,14 +5800,6 @@ qemuProcessLaunch(virConnectPtr conn,
      * and friends return the correct size in case they can't grab the job */
     if (!incoming && !snapshot &&
         qemuProcessRefreshBalloonState(driver, vm, asyncJob) < 0)
-        goto cleanup;
-
-    VIR_DEBUG("Detecting actual memory size for video device");
-    if (qemuProcessUpdateVideoRamSize(driver, vm, asyncJob) < 0)
-        goto cleanup;
-
-    VIR_DEBUG("Updating disk data");
-    if (qemuProcessRefreshDisks(driver, vm, asyncJob) < 0)
         goto cleanup;
 
     if (flags & VIR_QEMU_PROCESS_START_AUTODESTROY &&
@@ -5801,6 +5820,41 @@ qemuProcessLaunch(virConnectPtr conn,
 
 
 /**
+ * qemuProcessRefreshState:
+ * @driver: qemu driver data
+ * @vm: domain to refresh
+ * @asyncJob: async job type
+ *
+ * This function gathers calls to refresh qemu state after startup. This
+ * function is called after a deferred migration finishes so that we can update
+ * state influenced by the migration stream.
+ */
+static int
+qemuProcessRefreshState(virQEMUDriverPtr driver,
+                        virDomainObjPtr vm,
+                        qemuDomainAsyncJob asyncJob)
+{
+    VIR_DEBUG("Fetching list of active devices");
+    if (qemuDomainUpdateDeviceList(driver, vm, asyncJob) < 0)
+        return -1;
+
+    VIR_DEBUG("Updating info of memory devices");
+    if (qemuDomainUpdateMemoryDeviceInfo(driver, vm, asyncJob) < 0)
+        return -1;
+
+    VIR_DEBUG("Detecting actual memory size for video device");
+    if (qemuProcessUpdateVideoRamSize(driver, vm, asyncJob) < 0)
+        return -1;
+
+    VIR_DEBUG("Updating disk data");
+    if (qemuProcessRefreshDisks(driver, vm, asyncJob) < 0)
+        return -1;
+
+    return 0;
+}
+
+
+/**
  * qemuProcessFinishStartup:
  *
  * Finish starting a new domain.
@@ -5815,6 +5869,9 @@ qemuProcessFinishStartup(virConnectPtr conn,
 {
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     int ret = -1;
+
+    if (qemuProcessRefreshState(driver, vm, asyncJob) < 0)
+        goto cleanup;
 
     if (startCPUs) {
         VIR_DEBUG("Starting domain CPUs");
@@ -5997,7 +6054,7 @@ qemuProcessKill(virDomainObjPtr vm, unsigned int flags)
 {
     int ret;
 
-    VIR_DEBUG("vm=%p name=%s pid=%lld flags=%x",
+    VIR_DEBUG("vm=%p name=%s pid=%lld flags=0x%x",
               vm, vm->def->name,
               (long long) vm->pid, flags);
 
@@ -6078,7 +6135,7 @@ void qemuProcessStop(virQEMUDriverPtr driver,
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
 
     VIR_DEBUG("Shutting down vm=%p name=%s id=%d pid=%lld, "
-              "reason=%s, asyncJob=%s, flags=%x",
+              "reason=%s, asyncJob=%s, flags=0x%x",
               vm, vm->def->name, vm->def->id,
               (long long) vm->pid,
               virDomainShutoffReasonTypeToString(reason),
@@ -6165,8 +6222,6 @@ void qemuProcessStop(virQEMUDriverPtr driver,
     virFileDeleteTree(priv->libDir);
     virFileDeleteTree(priv->channelTargetDir);
 
-    qemuDomainClearPrivatePaths(vm);
-
     ignore_value(virDomainChrDefForeach(vm->def,
                                         false,
                                         qemuProcessCleanupChardevDevice,
@@ -6216,9 +6271,6 @@ void qemuProcessStop(virQEMUDriverPtr driver,
             VIR_FREE(vm->def->seclabels[i]->label);
         VIR_FREE(vm->def->seclabels[i]->imagelabel);
     }
-
-    virStringListFree(priv->qemuDevices);
-    priv->qemuDevices = NULL;
 
     qemuHostdevReAttachDomainDevices(driver, vm->def);
 
@@ -6288,10 +6340,6 @@ void qemuProcessStop(virQEMUDriverPtr driver,
         VIR_WARN("Failed to remove cgroup for %s",
                  vm->def->name);
     }
-    virCgroupFree(&priv->cgroup);
-
-    virPerfFree(priv->perf);
-    priv->perf = NULL;
 
     qemuProcessRemoveDomainStatus(driver, vm);
 
@@ -6345,37 +6393,14 @@ void qemuProcessStop(virQEMUDriverPtr driver,
         }
     }
 
-    VIR_FREE(priv->machineName);
-
     vm->taint = 0;
     vm->pid = -1;
     virDomainObjSetState(vm, VIR_DOMAIN_SHUTOFF, reason);
     for (i = 0; i < vm->def->niothreadids; i++)
         vm->def->iothreadids[i]->thread_id = 0;
-    virObjectUnref(priv->qemuCaps);
-    priv->qemuCaps = NULL;
-    VIR_FREE(priv->pidfile);
 
-    /* remove automatic pinning data */
-    virBitmapFree(priv->autoNodeset);
-    priv->autoNodeset = NULL;
-    virBitmapFree(priv->autoCpuset);
-    priv->autoCpuset = NULL;
-
-    /* remove address data */
-    virDomainPCIAddressSetFree(priv->pciaddrs);
-    priv->pciaddrs = NULL;
-    virDomainUSBAddressSetFree(priv->usbaddrs);
-    priv->usbaddrs = NULL;
-
-    /* clean up migration data */
-    VIR_FREE(priv->migTLSAlias);
-    virCPUDefFree(priv->origCPU);
-    priv->origCPU = NULL;
-
-    /* clear previously used namespaces */
-    virBitmapFree(priv->namespaces);
-    priv->namespaces = NULL;
+    /* clear all private data entries which are no longer needed */
+    qemuDomainObjPrivateDataClear(priv);
 
     /* The "release" hook cleans up additional resources */
     if (virHookPresent(VIR_HOOK_DRIVER_QEMU)) {
@@ -6878,6 +6903,13 @@ qemuProcessReconnect(void *opaque)
         dev.type = VIR_DOMAIN_DEVICE_DISK;
         dev.data.disk = obj->def->disks[i];
         if (qemuAddSharedDevice(driver, &dev, obj->def->name) < 0)
+            goto error;
+    }
+
+    for (i = 0; i < obj->def->ngraphics; i++) {
+        if (qemuProcessGraphicsReservePorts(driver,
+                                            obj->def->graphics[i],
+                                            true) < 0)
             goto error;
     }
 

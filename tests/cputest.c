@@ -150,8 +150,7 @@ cpuTestLoadMultiXML(virArch arch,
 static int
 cpuTestCompareXML(virArch arch,
                   virCPUDef *cpu,
-                  const char *name,
-                  bool updateCPU)
+                  const char *name)
 {
     char *xml = NULL;
     char *actual = NULL;
@@ -161,7 +160,7 @@ cpuTestCompareXML(virArch arch,
                     abs_srcdir, virArchToString(arch), name) < 0)
         goto cleanup;
 
-    if (!(actual = virCPUDefFormat(cpu, NULL, updateCPU)))
+    if (!(actual = virCPUDefFormat(cpu, NULL)))
         goto cleanup;
 
     if (virTestCompareToFile(actual, xml) < 0)
@@ -281,7 +280,7 @@ cpuTestGuestCPU(const void *arg)
     }
     result = virBufferContentAndReset(&buf);
 
-    if (cpuTestCompareXML(data->arch, cpu, result, false) < 0)
+    if (cpuTestCompareXML(data->arch, cpu, result) < 0)
         goto cleanup;
 
     ret = 0;
@@ -355,7 +354,7 @@ cpuTestBaseline(const void *arg)
     if (virAsprintf(&result, "%s-%s", data->name, suffix) < 0)
         goto cleanup;
 
-    if (cpuTestCompareXML(data->arch, baseline, result, false) < 0)
+    if (cpuTestCompareXML(data->arch, baseline, result) < 0)
         goto cleanup;
 
     for (i = 0; i < ncpus; i++) {
@@ -409,7 +408,7 @@ cpuTestUpdate(const void *arg)
     if (virAsprintf(&result, "%s+%s", data->host, data->name) < 0)
         goto cleanup;
 
-    ret = cpuTestCompareXML(data->arch, cpu, result, true);
+    ret = cpuTestCompareXML(data->arch, cpu, result);
 
  cleanup:
     virCPUDefFree(host);
@@ -501,7 +500,7 @@ cpuTestCPUID(bool guest, const void *arg)
                     guest ? "guest" : "host") < 0)
         goto cleanup;
 
-    ret = cpuTestCompareXML(data->arch, cpu, result, false);
+    ret = cpuTestCompareXML(data->arch, cpu, result);
 
  cleanup:
     VIR_FREE(hostFile);
@@ -716,7 +715,7 @@ cpuTestJSONCPUID(const void *arg)
     if (virQEMUCapsInitCPUModel(qemuCaps, VIR_DOMAIN_VIRT_KVM, cpu, false) != 0)
         goto cleanup;
 
-    ret = cpuTestCompareXML(data->arch, cpu, result, false);
+    ret = cpuTestCompareXML(data->arch, cpu, result);
 
  cleanup:
     qemuMonitorCPUModelInfoFree(model);
@@ -994,6 +993,7 @@ mymain(void)
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i7-5600U-arat", true);
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Core2-E6850", true);
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Core2-Q9500", false);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "EPYC-7601-32-Core", true);
     DO_TEST_CPUID(VIR_ARCH_X86_64, "FX-8150", false);
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Opteron-1352", false);
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Opteron-2350", true);
@@ -1001,12 +1001,14 @@ mymain(void)
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Opteron-6282", false);
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Pentium-P6100", false);
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Phenom-B95", true);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Ryzen-7-1800X-Eight-Core", true);
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-5110", false);
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-E3-1245", true);
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-E5-2630", true);
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-E5-2650", true);
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-E7-4820", true);
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-E7-8890", false);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-Gold-6148", true);
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-W3520", true);
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-X5460", false);
 

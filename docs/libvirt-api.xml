@@ -1556,7 +1556,9 @@
      <exports symbol='VIR_STORAGE_POOL_DEGRADED' type='enum'/>
      <exports symbol='VIR_STORAGE_POOL_DELETE_NORMAL' type='enum'/>
      <exports symbol='VIR_STORAGE_POOL_DELETE_ZEROED' type='enum'/>
+     <exports symbol='VIR_STORAGE_POOL_EVENT_CREATED' type='enum'/>
      <exports symbol='VIR_STORAGE_POOL_EVENT_DEFINED' type='enum'/>
+     <exports symbol='VIR_STORAGE_POOL_EVENT_DELETED' type='enum'/>
      <exports symbol='VIR_STORAGE_POOL_EVENT_ID_LAST' type='enum'/>
      <exports symbol='VIR_STORAGE_POOL_EVENT_ID_LIFECYCLE' type='enum'/>
      <exports symbol='VIR_STORAGE_POOL_EVENT_ID_REFRESH' type='enum'/>
@@ -3622,13 +3624,15 @@ used to free allocated pages.'/>
     <enum name='VIR_STORAGE_POOL_DEGRADED' file='libvirt-storage' value='3' type='virStoragePoolState' info='Running degraded'/>
     <enum name='VIR_STORAGE_POOL_DELETE_NORMAL' file='libvirt-storage' value='0' type='virStoragePoolDeleteFlags' info='Delete metadata only    (fast)'/>
     <enum name='VIR_STORAGE_POOL_DELETE_ZEROED' file='libvirt-storage' value='1' type='virStoragePoolDeleteFlags' info='Clear all data to zeros (slow)'/>
+    <enum name='VIR_STORAGE_POOL_EVENT_CREATED' file='libvirt-storage' value='4' type='virStoragePoolEventLifecycleType'/>
     <enum name='VIR_STORAGE_POOL_EVENT_DEFINED' file='libvirt-storage' value='0' type='virStoragePoolEventLifecycleType'/>
+    <enum name='VIR_STORAGE_POOL_EVENT_DELETED' file='libvirt-storage' value='5' type='virStoragePoolEventLifecycleType'/>
     <enum name='VIR_STORAGE_POOL_EVENT_ID_LAST' file='libvirt-storage' value='2' type='virStoragePoolEventID' info='NB: this enum value will increase over time as new events are
  added to the libvirt API. It reflects the last event ID supported
  by this version of the libvirt API.'/>
     <enum name='VIR_STORAGE_POOL_EVENT_ID_LIFECYCLE' file='libvirt-storage' value='0' type='virStoragePoolEventID' info='virConnectStoragePoolEventLifecycleCallback'/>
     <enum name='VIR_STORAGE_POOL_EVENT_ID_REFRESH' file='libvirt-storage' value='1' type='virStoragePoolEventID' info='virConnectStoragePoolEventGenericCallback'/>
-    <enum name='VIR_STORAGE_POOL_EVENT_LAST' file='libvirt-storage' value='4' type='virStoragePoolEventLifecycleType'/>
+    <enum name='VIR_STORAGE_POOL_EVENT_LAST' file='libvirt-storage' value='6' type='virStoragePoolEventLifecycleType'/>
     <enum name='VIR_STORAGE_POOL_EVENT_STARTED' file='libvirt-storage' value='2' type='virStoragePoolEventLifecycleType'/>
     <enum name='VIR_STORAGE_POOL_EVENT_STOPPED' file='libvirt-storage' value='3' type='virStoragePoolEventLifecycleType'/>
     <enum name='VIR_STORAGE_POOL_EVENT_UNDEFINED' file='libvirt-storage' value='1' type='virStoragePoolEventLifecycleType'/>
@@ -9562,7 +9566,14 @@ unexpectedly closing the connection due to inactivity.
 If an application does not need to integrate with an
 existing event loop implementation, then the
 virEventRegisterDefaultImpl() method can be used to setup
-the generic libvirt implementation.]]></info>
+the generic libvirt implementation.
+
+Once registered, the event loop implementation cannot be
+changed, and must be run continuously. Note that callbacks
+may remain registered for a short time even after calling
+virConnectClose on all open connections, so it is not safe
+to stop running the event loop immediately after closing
+the connection.]]></info>
       <return type='void'/>
       <arg name='addHandle' type='virEventAddHandleFunc' info='the callback to add fd handles'/>
       <arg name='updateHandle' type='virEventUpdateHandleFunc' info='the callback to update fd handles'/>

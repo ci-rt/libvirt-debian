@@ -1024,7 +1024,9 @@
     <reference name='VIR_STORAGE_POOL_DELETE_NORMAL' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_POOL_DELETE_NORMAL'/>
     <reference name='VIR_STORAGE_POOL_DELETE_ZEROED' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_POOL_DELETE_ZEROED'/>
     <reference name='VIR_STORAGE_POOL_EVENT_CALLBACK' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_POOL_EVENT_CALLBACK'/>
+    <reference name='VIR_STORAGE_POOL_EVENT_CREATED' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_POOL_EVENT_CREATED'/>
     <reference name='VIR_STORAGE_POOL_EVENT_DEFINED' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_POOL_EVENT_DEFINED'/>
+    <reference name='VIR_STORAGE_POOL_EVENT_DELETED' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_POOL_EVENT_DELETED'/>
     <reference name='VIR_STORAGE_POOL_EVENT_ID_LAST' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_POOL_EVENT_ID_LAST'/>
     <reference name='VIR_STORAGE_POOL_EVENT_ID_LIFECYCLE' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_POOL_EVENT_ID_LIFECYCLE'/>
     <reference name='VIR_STORAGE_POOL_EVENT_ID_REFRESH' href='html/libvirt-libvirt-storage.html#VIR_STORAGE_POOL_EVENT_ID_REFRESH'/>
@@ -2879,7 +2881,9 @@
       <ref name='VIR_STORAGE_POOL_DELETE_NORMAL'/>
       <ref name='VIR_STORAGE_POOL_DELETE_ZEROED'/>
       <ref name='VIR_STORAGE_POOL_EVENT_CALLBACK'/>
+      <ref name='VIR_STORAGE_POOL_EVENT_CREATED'/>
       <ref name='VIR_STORAGE_POOL_EVENT_DEFINED'/>
+      <ref name='VIR_STORAGE_POOL_EVENT_DELETED'/>
       <ref name='VIR_STORAGE_POOL_EVENT_ID_LAST'/>
       <ref name='VIR_STORAGE_POOL_EVENT_ID_LIFECYCLE'/>
       <ref name='VIR_STORAGE_POOL_EVENT_ID_REFRESH'/>
@@ -6557,7 +6561,9 @@
       <ref name='VIR_STORAGE_POOL_DELETE_NORMAL'/>
       <ref name='VIR_STORAGE_POOL_DELETE_ZEROED'/>
       <ref name='VIR_STORAGE_POOL_EVENT_CALLBACK'/>
+      <ref name='VIR_STORAGE_POOL_EVENT_CREATED'/>
       <ref name='VIR_STORAGE_POOL_EVENT_DEFINED'/>
+      <ref name='VIR_STORAGE_POOL_EVENT_DELETED'/>
       <ref name='VIR_STORAGE_POOL_EVENT_ID_LAST'/>
       <ref name='VIR_STORAGE_POOL_EVENT_ID_LIFECYCLE'/>
       <ref name='VIR_STORAGE_POOL_EVENT_ID_REFRESH'/>
@@ -8052,6 +8058,7 @@
           <ref name='virDomainBlockPull'/>
           <ref name='virDomainBlockRebase'/>
           <ref name='virEventRegisterDefaultImpl'/>
+          <ref name='virEventRegisterImpl'/>
           <ref name='virInterfaceChangeBegin'/>
           <ref name='virNodeDeviceDetachFlags'/>
           <ref name='virNodeDeviceDettach'/>
@@ -11526,6 +11533,7 @@
         </word>
         <word name='callbacks'>
           <ref name='virEventAddHandleFunc'/>
+          <ref name='virEventRegisterImpl'/>
           <ref name='virStreamSparseRecvAll'/>
         </word>
         <word name='calloc'>
@@ -11750,6 +11758,7 @@
           <ref name='virDomainSetVcpusFlags'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virDomainUpdateDeviceFlags'/>
+          <ref name='virEventRegisterImpl'/>
           <ref name='virStreamEventUpdateCallback'/>
         </word>
         <word name='changed?'>
@@ -12266,6 +12275,7 @@
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virDomainSnapshotGetXMLDesc'/>
           <ref name='virEventRegisterDefaultImpl'/>
+          <ref name='virEventRegisterImpl'/>
           <ref name='virInitialize'/>
         </word>
         <word name='connectivity'>
@@ -12438,6 +12448,9 @@
         <word name='continuing'>
           <ref name='virDomainCoreDump'/>
           <ref name='virDomainCoreDumpWithFormat'/>
+        </word>
+        <word name='continuously'>
+          <ref name='virEventRegisterImpl'/>
         </word>
         <word name='contract'>
           <ref name='virConnectDomainEventDeregister'/>
@@ -13921,6 +13934,7 @@
           <ref name='virDomainMigrate3'/>
           <ref name='virDomainMigrateToURI3'/>
           <ref name='virDomainSnapshotCreateXML'/>
+          <ref name='virEventRegisterImpl'/>
           <ref name='virInitialize'/>
           <ref name='virStorageVolResize'/>
           <ref name='virTypedParamsGet'/>
@@ -15391,6 +15405,7 @@
           <ref name='virDomainCreateXMLWithFiles'/>
           <ref name='virDomainMigrateStartPostCopy'/>
           <ref name='virDomainReset'/>
+          <ref name='virEventRegisterImpl'/>
           <ref name='virInterfaceDefineXML'/>
         </word>
         <word name='impact'>
@@ -19850,6 +19865,7 @@
           <ref name='virDomainMigrateStartPostCopy'/>
           <ref name='virDomainRef'/>
           <ref name='virDomainSnapshotRef'/>
+          <ref name='virEventRegisterImpl'/>
           <ref name='virInterfaceRef'/>
           <ref name='virNWFilterRef'/>
           <ref name='virNetworkRef'/>
@@ -20450,6 +20466,7 @@
           <ref name='virDomainSetGuestVcpus'/>
           <ref name='virDomainSetTime'/>
           <ref name='virDomainSetUserPassword'/>
+          <ref name='virEventRegisterImpl'/>
         </word>
         <word name='runs'>
           <ref name='virDomainGetMaxMemory'/>
@@ -20470,6 +20487,7 @@
         <word name='safe'>
           <ref name='virConnectRegisterCloseCallback'/>
           <ref name='virDomainOpenConsole'/>
+          <ref name='virEventRegisterImpl'/>
           <ref name='virEventRemoveHandleFunc'/>
           <ref name='virEventRemoveTimeoutFunc'/>
           <ref name='virFreeCallback'/>
@@ -20918,6 +20936,7 @@
         <word name='short'>
           <ref name='virDomainMigrateStartPostCopy'/>
           <ref name='virDomainSetMetadata'/>
+          <ref name='virEventRegisterImpl'/>
           <ref name='virNodeSuspendForDuration'/>
         </word>
         <word name='shortcut'>
@@ -21484,6 +21503,7 @@
           <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainSaveFlags'/>
           <ref name='virDomainSnapshotCreateXML'/>
+          <ref name='virEventRegisterImpl'/>
           <ref name='virEventRemoveHandleFunc'/>
           <ref name='virNetworkUndefine'/>
           <ref name='virStreamAbort'/>
@@ -23093,6 +23113,7 @@
           <ref name='virConnectClose'/>
           <ref name='virConnectOpen'/>
           <ref name='virConnectRef'/>
+          <ref name='virEventRegisterImpl'/>
         </word>
         <word name='virConnectCloseReason'>
           <ref name='virConnectCloseFunc'/>

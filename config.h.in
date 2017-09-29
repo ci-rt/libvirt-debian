@@ -745,6 +745,10 @@
    if you don't. */
 #undef HAVE_DECL_CPUSET_GETAFFINITY
 
+/* Define to 1 if you have the declaration of `DEVLINK_CMD_ESWITCH_GET', and
+   to 0 if you don't. */
+#undef HAVE_DECL_DEVLINK_CMD_ESWITCH_GET
+
 /* Define to 1 if you have the declaration of `ETHTOOL_GCOALESCE', and to 0 if
    you don't. */
 #undef HAVE_DECL_ETHTOOL_GCOALESCE
@@ -1312,6 +1316,9 @@
 
 /* Define to 1 if you have the <linux/btrfs.h> header file. */
 #undef HAVE_LINUX_BTRFS_H
+
+/* Define to 1 if you have the <linux/devlink.h> header file. */
+#undef HAVE_LINUX_DEVLINK_H
 
 /* Define to 1 if you have the <linux/if_bridge.h> header file. */
 #undef HAVE_LINUX_IF_BRIDGE_H

@@ -4474,13 +4474,12 @@ qemuMonitorJSONBlockStream(qemuMonitorPtr mon,
                            const char *device,
                            const char *base,
                            const char *backingName,
-                           unsigned long long speed,
-                           bool modern)
+                           unsigned long long speed)
 {
     int ret = -1;
     virJSONValuePtr cmd = NULL;
     virJSONValuePtr reply = NULL;
-    const char *cmd_name = modern ? "block-stream" : "block_stream";
+    const char *cmd_name = "block-stream";
 
     if (!(cmd = qemuMonitorJSONMakeCommand(cmd_name,
                                            "s:device", device,
@@ -4507,13 +4506,12 @@ qemuMonitorJSONBlockStream(qemuMonitorPtr mon,
 
 int
 qemuMonitorJSONBlockJobCancel(qemuMonitorPtr mon,
-                              const char *device,
-                              bool modern)
+                              const char *device)
 {
     int ret = -1;
     virJSONValuePtr cmd = NULL;
     virJSONValuePtr reply = NULL;
-    const char *cmd_name = modern ? "block-job-cancel" : "block_job_cancel";
+    const char *cmd_name = "block-job-cancel";
 
     if (!(cmd = qemuMonitorJSONMakeCommand(cmd_name,
                                            "s:device", device,
@@ -4538,17 +4536,16 @@ qemuMonitorJSONBlockJobCancel(qemuMonitorPtr mon,
 int
 qemuMonitorJSONBlockJobSetSpeed(qemuMonitorPtr mon,
                                 const char *device,
-                                unsigned long long speed,
-                                bool modern)
+                                unsigned long long speed)
 {
     int ret = -1;
     virJSONValuePtr cmd;
     virJSONValuePtr reply = NULL;
-    const char *cmd_name = modern ? "block-job-set-speed" : "block_job_set_speed";
+    const char *cmd_name = "block-job-set-speed";
 
     if (!(cmd = qemuMonitorJSONMakeCommand(cmd_name,
                                            "s:device", device,
-                                           modern ? "J:speed" : "J:value", speed,
+                                           "J:speed", speed,
                                            NULL)))
         return -1;
 
@@ -6444,6 +6441,16 @@ int qemuMonitorJSONGetTPMTypes(qemuMonitorPtr mon,
     return qemuMonitorJSONGetStringArray(mon, "query-tpm-types", tpmtypes);
 }
 
+static int
+qemuMonitorJSONBuildChrChardevReconnect(virJSONValuePtr object,
+                                        const virDomainChrSourceReconnectDef *def)
+{
+    if (def->enabled != VIR_TRISTATE_BOOL_YES)
+        return 0;
+
+    return virJSONValueObjectAppendNumberUint(object, "reconnect", def->timeout);
+}
+
 static virJSONValuePtr
 qemuMonitorJSONAttachCharDevCommand(const char *chrID,
                                     const virDomainChrSourceDef *chr)
@@ -6508,11 +6515,17 @@ qemuMonitorJSONAttachCharDevCommand(const char *chrID,
             if (virJSONValueObjectAppendString(data, "tls-creds", tlsalias) < 0)
                 goto cleanup;
         }
+
+        if (qemuMonitorJSONBuildChrChardevReconnect(data, &chr->data.tcp.reconnect) < 0)
+            goto cleanup;
         break;
 
     case VIR_DOMAIN_CHR_TYPE_UDP:
         backend_type = "udp";
-        addr = qemuMonitorJSONBuildInetSocketAddress(chr->data.udp.connectHost,
+        host = chr->data.udp.connectHost;
+        if (!host)
+            host = "";
+        addr = qemuMonitorJSONBuildInetSocketAddress(host,
                                                      chr->data.udp.connectService);
         if (!addr ||
             virJSONValueObjectAppend(data, "remote", addr) < 0)
@@ -6544,6 +6557,9 @@ qemuMonitorJSONAttachCharDevCommand(const char *chrID,
 
         if (virJSONValueObjectAppendBoolean(data, "wait", false) < 0 ||
             virJSONValueObjectAppendBoolean(data, "server", chr->data.nix.listen) < 0)
+            goto cleanup;
+
+        if (qemuMonitorJSONBuildChrChardevReconnect(data, &chr->data.nix.reconnect) < 0)
             goto cleanup;
         break;
 

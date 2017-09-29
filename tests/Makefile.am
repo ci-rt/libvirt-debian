@@ -885,7 +885,10 @@ storagevolxml2argvtest_SOURCES = \
     testutils.c testutils.h
 storagevolxml2argvtest_LDADD = \
 	$(LIBXML_LIBS) \
-	../src/libvirt_driver_storage_impl.la $(LDADDS)
+	../src/libvirt_driver_storage_impl.la \
+	../src/libvirt_conf.la \
+	../src/libvirt_util.la \
+	$(LDADDS)
 
 else ! WITH_STORAGE
 EXTRA_DIST += storagevolxml2argvtest.c
@@ -943,12 +946,14 @@ commandtest_SOURCES = \
 	commandtest.c testutils.h testutils.c
 commandtest_LDADD = $(LDADDS)
 
+# Must not link to any libvirt modules - libc / gnulib only
+# otherwise external libraries might unexpectedly leak
+# file descriptors into commandhelper invalidating the
+# test logic assumptions
 commandhelper_SOURCES = \
 	commandhelper.c
 commandhelper_LDADD = \
 	$(NO_INDIRECT_LDFLAGS) \
-	$(PROBES_O) \
-	../src/libvirt_util.la \
 	$(GNULIB_LIBS)
 
 commandhelper_LDFLAGS = -static

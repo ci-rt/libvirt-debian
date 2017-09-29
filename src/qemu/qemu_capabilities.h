@@ -174,7 +174,7 @@ typedef enum {
     QEMU_CAPS_TRANSACTION, /* transaction monitor command */
 
     /* 90 */
-    QEMU_CAPS_BLOCKJOB_SYNC, /* old block_job_cancel, block_stream */
+    X_QEMU_CAPS_BLOCKJOB_SYNC, /* old block_job_cancel, block_stream */
     QEMU_CAPS_BLOCKJOB_ASYNC, /* new block-job-cancel, block-stream */
     QEMU_CAPS_SCSI_CD, /* -device scsi-cd */
     QEMU_CAPS_IDE_CD, /* -device ide-cd */
@@ -426,6 +426,9 @@ typedef enum {
     QEMU_CAPS_CHARDEV_RECONNECT, /* -chardev reconnect */
     QEMU_CAPS_VIRTIO_GPU_MAX_OUTPUTS, /* -device virtio-(vga|gpu-*),max-outputs= */
 
+    /* 270 */
+    QEMU_CAPS_VXHS, /* -drive file.driver=vxhs via query-qmp-schema */
+
     QEMU_CAPS_LAST /* this must always be the last item */
 } virQEMUCapsFlags;
 
@@ -546,5 +549,8 @@ int virQEMUCapsFillDomainCaps(virCapsPtr caps,
 
 bool virQEMUCapsGuestIsNative(virArch host,
                               virArch guest);
+
+bool virQEMUCapsCPUFilterFeatures(const char *name,
+                                  void *opaque);
 
 #endif /* __QEMU_CAPABILITIES_H__*/

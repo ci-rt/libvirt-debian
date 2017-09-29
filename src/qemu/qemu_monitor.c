@@ -2649,7 +2649,7 @@ qemuMonitorMigrateToFd(qemuMonitorPtr mon,
                        int fd)
 {
     int ret;
-    VIR_DEBUG("fd=%d flags=%x", fd, flags);
+    VIR_DEBUG("fd=%d flags=0x%x", fd, flags);
 
     QEMU_CHECK_MONITOR(mon);
 
@@ -2679,7 +2679,7 @@ qemuMonitorMigrateToHost(qemuMonitorPtr mon,
 {
     int ret;
     char *uri = NULL;
-    VIR_DEBUG("hostname=%s port=%d flags=%x", hostname, port, flags);
+    VIR_DEBUG("hostname=%s port=%d flags=0x%x", hostname, port, flags);
 
     QEMU_CHECK_MONITOR(mon);
 
@@ -2708,7 +2708,7 @@ qemuMonitorMigrateToCommand(qemuMonitorPtr mon,
     char *argstr;
     char *dest = NULL;
     int ret = -1;
-    VIR_DEBUG("argv=%p flags=%x", argv, flags);
+    VIR_DEBUG("argv=%p flags=0x%x", argv, flags);
 
     QEMU_CHECK_MONITOR(mon);
 
@@ -3330,7 +3330,7 @@ qemuMonitorDriveMirror(qemuMonitorPtr mon,
                        unsigned int flags)
 {
     VIR_DEBUG("device=%s, file=%s, format=%s, bandwidth=%lld, "
-              "granularity=%#x, buf_size=%lld, flags=%x",
+              "granularity=%#x, buf_size=%lld, flags=0x%x",
               device, file, NULLSTR(format), bandwidth, granularity,
               buf_size, flags);
 
@@ -3475,43 +3475,39 @@ qemuMonitorBlockStream(qemuMonitorPtr mon,
                        const char *device,
                        const char *base,
                        const char *backingName,
-                       unsigned long long bandwidth,
-                       bool modern)
+                       unsigned long long bandwidth)
 {
-    VIR_DEBUG("device=%s, base=%s, backingName=%s, bandwidth=%lluB, modern=%d",
-              device, NULLSTR(base), NULLSTR(backingName), bandwidth, modern);
+    VIR_DEBUG("device=%s, base=%s, backingName=%s, bandwidth=%lluB",
+              device, NULLSTR(base), NULLSTR(backingName), bandwidth);
 
     QEMU_CHECK_MONITOR_JSON(mon);
 
-    return qemuMonitorJSONBlockStream(mon, device, base, backingName,
-                                      bandwidth, modern);
+    return qemuMonitorJSONBlockStream(mon, device, base, backingName, bandwidth);
 }
 
 
 int
 qemuMonitorBlockJobCancel(qemuMonitorPtr mon,
-                          const char *device,
-                          bool modern)
+                          const char *device)
 {
-    VIR_DEBUG("device=%s, modern=%d", device, modern);
+    VIR_DEBUG("device=%s", device);
 
     QEMU_CHECK_MONITOR_JSON(mon);
 
-    return qemuMonitorJSONBlockJobCancel(mon, device, modern);
+    return qemuMonitorJSONBlockJobCancel(mon, device);
 }
 
 
 int
 qemuMonitorBlockJobSetSpeed(qemuMonitorPtr mon,
                             const char *device,
-                            unsigned long long bandwidth,
-                            bool modern)
+                            unsigned long long bandwidth)
 {
-    VIR_DEBUG("device=%s, bandwidth=%lluB, modern=%d", device, bandwidth, modern);
+    VIR_DEBUG("device=%s, bandwidth=%lluB", device, bandwidth);
 
     QEMU_CHECK_MONITOR_JSON(mon);
 
-    return qemuMonitorJSONBlockJobSetSpeed(mon, device, bandwidth, modern);
+    return qemuMonitorJSONBlockJobSetSpeed(mon, device, bandwidth);
 }
 
 

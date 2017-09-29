@@ -48,6 +48,7 @@
 #include "virfile.h"
 #include "virfdstream.h"
 #include "configmake.h"
+#include "virsecret.h"
 #include "virstring.h"
 #include "viraccessapicheck.h"
 //#include "dirname.h"
@@ -91,13 +92,11 @@ virStoragePoolUpdateInactive(virStoragePoolObjPtr *objptr)
 {
     virStoragePoolObjPtr obj = *objptr;
 
-    if (obj->configFile == NULL) {
+    if (!virStoragePoolObjGetConfigFile(obj)) {
         virStoragePoolObjRemove(&driver->pools, obj);
         *objptr = NULL;
-    } else if (obj->newDef) {
-        virStoragePoolDefFree(obj->def);
-        obj->def = obj->newDef;
-        obj->newDef = NULL;
+    } else if (virStoragePoolObjGetNewDef(obj)) {
+        virStoragePoolObjDefUseNewDef(obj);
     }
 }
 
@@ -145,9 +144,9 @@ storagePoolUpdateState(virStoragePoolObjPtr obj)
         }
     }
 
-    obj->active = active;
+    virStoragePoolObjSetActive(obj, active);
 
-    if (!obj->active)
+    if (!virStoragePoolObjIsActive(obj))
         virStoragePoolUpdateInactive(&obj);
 
  cleanup:
@@ -196,7 +195,7 @@ storageDriverAutostart(void)
             continue;
         }
 
-        if (obj->autostart &&
+        if (virStoragePoolObjIsAutostart(obj) &&
             !virStoragePoolObjIsActive(obj)) {
             if (backend->startPool &&
                 backend->startPool(conn, obj) < 0) {
@@ -226,7 +225,7 @@ storageDriverAutostart(void)
                                _("Failed to autostart storage pool '%s': %s"),
                                obj->def->name, virGetLastErrorMessage());
             } else {
-                obj->active = true;
+                virStoragePoolObjSetActive(obj, true);
             }
             VIR_FREE(stateFile);
         }
@@ -643,7 +642,7 @@ storagePoolIsPersistent(virStoragePoolPtr pool)
     if (virStoragePoolIsPersistentEnsureACL(pool->conn, obj->def) < 0)
         goto cleanup;
 
-    ret = obj->configFile ? 1 : 0;
+    ret = virStoragePoolObjGetConfigFile(obj) ? 1 : 0;
 
  cleanup:
     virStoragePoolObjUnlock(obj);
@@ -735,7 +734,7 @@ storagePoolCreateXML(virConnectPtr conn,
                                             0);
 
     VIR_INFO("Creating storage pool '%s'", obj->def->name);
-    obj->active = true;
+    virStoragePoolObjSetActive(obj, true);
 
     pool = virGetStoragePool(conn, obj->def->name, obj->def->uuid, NULL, NULL);
 
@@ -814,6 +813,7 @@ static int
 storagePoolUndefine(virStoragePoolPtr pool)
 {
     virStoragePoolObjPtr obj;
+    const char *autostartLink;
     virObjectEventPtr event = NULL;
     int ret = -1;
 
@@ -831,26 +831,24 @@ storagePoolUndefine(virStoragePoolPtr pool)
         goto cleanup;
     }
 
-    if (obj->asyncjobs > 0) {
+    if (virStoragePoolObjGetAsyncjobs(obj) > 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("pool '%s' has asynchronous jobs running."),
                        obj->def->name);
         goto cleanup;
     }
 
+    autostartLink = virStoragePoolObjGetAutostartLink(obj);
     if (virStoragePoolObjDeleteDef(obj) < 0)
         goto cleanup;
 
-    if (unlink(obj->autostartLink) < 0 &&
-        errno != ENOENT &&
-        errno != ENOTDIR) {
+    if (autostartLink && unlink(autostartLink) < 0 &&
+        errno != ENOENT && errno != ENOTDIR) {
         char ebuf[1024];
         VIR_ERROR(_("Failed to delete autostart link '%s': %s"),
-                  obj->autostartLink, virStrerror(errno, ebuf, sizeof(ebuf)));
+                  autostartLink, virStrerror(errno, ebuf, sizeof(ebuf)));
     }
 
-    VIR_FREE(obj->configFile);
-    VIR_FREE(obj->autostartLink);
 
     event = virStoragePoolEventLifecycleNew(obj->def->name,
                                             obj->def->uuid,
@@ -941,7 +939,7 @@ storagePoolCreate(virStoragePoolPtr pool,
                                             VIR_STORAGE_POOL_EVENT_STARTED,
                                             0);
 
-    obj->active = true;
+    virStoragePoolObjSetActive(obj, true);
     ret = 0;
 
  cleanup:
@@ -959,6 +957,7 @@ storagePoolBuild(virStoragePoolPtr pool,
 {
     virStoragePoolObjPtr obj;
     virStorageBackendPtr backend;
+    virObjectEventPtr event = NULL;
     int ret = -1;
 
     if (!(obj = virStoragePoolObjFromStoragePool(pool)))
@@ -980,9 +979,17 @@ storagePoolBuild(virStoragePoolPtr pool,
     if (backend->buildPool &&
         backend->buildPool(pool->conn, obj, flags) < 0)
         goto cleanup;
+
+    event = virStoragePoolEventLifecycleNew(obj->def->name,
+                                            obj->def->uuid,
+                                            VIR_STORAGE_POOL_EVENT_CREATED,
+                                            0);
+
     ret = 0;
 
  cleanup:
+    if (event)
+        virObjectEventStateQueue(driver->storageEventState, event);
     virStoragePoolObjUnlock(obj);
     return ret;
 }
@@ -1015,7 +1022,7 @@ storagePoolDestroy(virStoragePoolPtr pool)
         goto cleanup;
     }
 
-    if (obj->asyncjobs > 0) {
+    if (virStoragePoolObjGetAsyncjobs(obj) > 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("pool '%s' has asynchronous jobs running."),
                        obj->def->name);
@@ -1041,7 +1048,7 @@ storagePoolDestroy(virStoragePoolPtr pool)
                                             VIR_STORAGE_POOL_EVENT_STOPPED,
                                             0);
 
-    obj->active = false;
+    virStoragePoolObjSetActive(obj, false);
 
     virStoragePoolUpdateInactive(&obj);
 
@@ -1062,6 +1069,7 @@ storagePoolDelete(virStoragePoolPtr pool,
 {
     virStoragePoolObjPtr obj;
     virStorageBackendPtr backend;
+    virObjectEventPtr event = NULL;
     char *stateFile = NULL;
     int ret = -1;
 
@@ -1083,7 +1091,7 @@ storagePoolDelete(virStoragePoolPtr pool,
         goto cleanup;
     }
 
-    if (obj->asyncjobs > 0) {
+    if (virStoragePoolObjGetAsyncjobs(obj) > 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("pool '%s' has asynchronous jobs running."),
                        obj->def->name);
@@ -1106,9 +1114,16 @@ storagePoolDelete(virStoragePoolPtr pool,
     if (backend->deletePool(pool->conn, obj, flags) < 0)
         goto cleanup;
 
+    event = virStoragePoolEventLifecycleNew(obj->def->name,
+                                            obj->def->uuid,
+                                            VIR_STORAGE_POOL_EVENT_DELETED,
+                                            0);
+
     ret = 0;
 
  cleanup:
+    if (event)
+        virObjectEventStateQueue(driver->storageEventState, event);
     virStoragePoolObjUnlock(obj);
     return ret;
 }
@@ -1141,7 +1156,7 @@ storagePoolRefresh(virStoragePoolPtr pool,
         goto cleanup;
     }
 
-    if (obj->asyncjobs > 0) {
+    if (virStoragePoolObjGetAsyncjobs(obj) > 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("pool '%s' has asynchronous jobs running."),
                        obj->def->name);
@@ -1157,7 +1172,7 @@ storagePoolRefresh(virStoragePoolPtr pool,
                                                 obj->def->uuid,
                                                 VIR_STORAGE_POOL_EVENT_STOPPED,
                                                 0);
-        obj->active = false;
+        virStoragePoolObjSetActive(obj, false);
 
         virStoragePoolUpdateInactive(&obj);
 
@@ -1195,7 +1210,7 @@ storagePoolGetInfo(virStoragePoolPtr pool,
         goto cleanup;
 
     memset(info, 0, sizeof(virStoragePoolInfo));
-    if (obj->active)
+    if (virStoragePoolObjIsActive(obj))
         info->state = VIR_STORAGE_POOL_RUNNING;
     else
         info->state = VIR_STORAGE_POOL_INACTIVE;
@@ -1250,11 +1265,7 @@ storagePoolGetAutostart(virStoragePoolPtr pool,
     if (virStoragePoolGetAutostartEnsureACL(pool->conn, obj->def) < 0)
         goto cleanup;
 
-    if (!obj->configFile) {
-        *autostart = 0;
-    } else {
-        *autostart = obj->autostart;
-    }
+    *autostart = virStoragePoolObjIsAutostart(obj) ? 1 : 0;
 
     ret = 0;
 
@@ -1268,6 +1279,10 @@ storagePoolSetAutostart(virStoragePoolPtr pool,
                         int autostart)
 {
     virStoragePoolObjPtr obj;
+    const char *configFile;
+    const char *autostartLink;
+    bool new_autostart;
+    bool cur_autostart;
     int ret = -1;
 
     storageDriverLock();
@@ -1277,16 +1292,18 @@ storagePoolSetAutostart(virStoragePoolPtr pool,
     if (virStoragePoolSetAutostartEnsureACL(pool->conn, obj->def) < 0)
         goto cleanup;
 
-    if (!obj->configFile) {
+    if (!(configFile = virStoragePoolObjGetConfigFile(obj))) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        "%s", _("pool has no config file"));
         goto cleanup;
     }
 
-    autostart = (autostart != 0);
+    autostartLink = virStoragePoolObjGetAutostartLink(obj);
 
-    if (obj->autostart != autostart) {
-        if (autostart) {
+    new_autostart = (autostart != 0);
+    cur_autostart = virStoragePoolObjIsAutostart(obj);
+    if (cur_autostart != new_autostart) {
+        if (new_autostart) {
             if (virFileMakePath(driver->autostartDir) < 0) {
                 virReportSystemError(errno,
                                      _("cannot create autostart directory %s"),
@@ -1294,22 +1311,22 @@ storagePoolSetAutostart(virStoragePoolPtr pool,
                 goto cleanup;
             }
 
-            if (symlink(obj->configFile, obj->autostartLink) < 0) {
+            if (symlink(configFile, autostartLink) < 0) {
                 virReportSystemError(errno,
                                      _("Failed to create symlink '%s' to '%s'"),
-                                     obj->autostartLink, obj->configFile);
+                                     autostartLink, configFile);
                 goto cleanup;
             }
         } else {
-            if (unlink(obj->autostartLink) < 0 &&
+            if (autostartLink && unlink(autostartLink) < 0 &&
                 errno != ENOENT && errno != ENOTDIR) {
                 virReportSystemError(errno,
                                      _("Failed to delete symlink '%s'"),
-                                     obj->autostartLink);
+                                     autostartLink);
                 goto cleanup;
             }
         }
-        obj->autostart = autostart;
+        virStoragePoolObjSetAutostart(obj, new_autostart);
     }
 
     ret = 0;
@@ -1626,25 +1643,6 @@ storagePoolLookupByTargetPath(virConnectPtr conn,
 }
 
 
-static void
-storageVolRemoveFromPool(virStoragePoolObjPtr obj,
-                         virStorageVolDefPtr voldef)
-{
-    size_t i;
-
-    for (i = 0; i < obj->volumes.count; i++) {
-        if (obj->volumes.objs[i] == voldef) {
-            VIR_INFO("Deleting volume '%s' from storage pool '%s'",
-                     voldef->name, obj->def->name);
-            virStorageVolDefFree(voldef);
-
-            VIR_DELETE_ELEMENT(obj->volumes.objs, i, obj->volumes.count);
-            break;
-        }
-    }
-}
-
-
 static int
 storageVolDeleteInternal(virStorageVolPtr vol,
                          virStorageBackendPtr backend,
@@ -1676,7 +1674,7 @@ storageVolDeleteInternal(virStorageVolPtr vol,
         }
     }
 
-    storageVolRemoveFromPool(obj, voldef);
+    virStoragePoolObjRemoveVol(obj, voldef);
     ret = 0;
 
  cleanup:
@@ -1815,24 +1813,19 @@ storageVolCreateXML(virStoragePoolPtr pool,
         goto cleanup;
     }
 
-    if (VIR_REALLOC_N(obj->volumes.objs,
-                      obj->volumes.count + 1) < 0)
-        goto cleanup;
-
     /* Wipe any key the user may have suggested, as volume creation
      * will generate the canonical key.  */
     VIR_FREE(voldef->key);
     if (backend->createVol(pool->conn, obj, voldef) < 0)
         goto cleanup;
 
-    obj->volumes.objs[obj->volumes.count++] = voldef;
-    newvol = virGetStorageVol(pool->conn, obj->def->name, voldef->name,
-                              voldef->key, NULL, NULL);
-    if (!newvol) {
-        obj->volumes.count--;
+    if (!(newvol = virGetStorageVol(pool->conn, obj->def->name, voldef->name,
+                                    voldef->key, NULL, NULL)))
         goto cleanup;
-    }
 
+    /* NB: Upon success voldef "owned" by storage pool for deletion purposes */
+    if (virStoragePoolObjAddVol(obj, voldef) < 0)
+        goto cleanup;
 
     if (backend->buildVol) {
         int buildret;
@@ -1850,7 +1843,7 @@ storageVolCreateXML(virStoragePoolPtr pool,
         memcpy(buildvoldef, voldef, sizeof(*voldef));
 
         /* Drop the pool lock during volume allocation */
-        obj->asyncjobs++;
+        virStoragePoolObjIncrAsyncjobs(obj);
         voldef->building = true;
         virStoragePoolObjUnlock(obj);
 
@@ -1863,11 +1856,11 @@ storageVolCreateXML(virStoragePoolPtr pool,
         storageDriverUnlock();
 
         voldef->building = false;
-        obj->asyncjobs--;
+        virStoragePoolObjDecrAsyncjobs(obj);
 
         if (buildret < 0) {
             /* buildVol handles deleting volume on failure */
-            storageVolRemoveFromPool(obj, voldef);
+            virStoragePoolObjRemoveVol(obj, voldef);
             voldef = NULL;
             goto cleanup;
         }
@@ -2018,9 +2011,6 @@ storageVolCreateXMLFrom(virStoragePoolPtr pool,
         backend->refreshVol(pool->conn, obj, voldefsrc) < 0)
         goto cleanup;
 
-    if (VIR_REALLOC_N(obj->volumes.objs, obj->volumes.count + 1) < 0)
-        goto cleanup;
-
     /* 'Define' the new volume so we get async progress reporting.
      * Wipe any key the user may have suggested, as volume creation
      * will generate the canonical key.  */
@@ -2037,22 +2027,22 @@ storageVolCreateXMLFrom(virStoragePoolPtr pool,
 
     memcpy(shadowvol, voldef, sizeof(*voldef));
 
-    obj->volumes.objs[obj->volumes.count++] = voldef;
-    newvol = virGetStorageVol(pool->conn, obj->def->name, voldef->name,
-                              voldef->key, NULL, NULL);
-    if (!newvol) {
-        obj->volumes.count--;
+    if (!(newvol = virGetStorageVol(pool->conn, obj->def->name, voldef->name,
+                                    voldef->key, NULL, NULL)))
         goto cleanup;
-    }
+
+    /* NB: Upon success voldef "owned" by storage pool for deletion purposes */
+    if (virStoragePoolObjAddVol(obj, voldef) < 0)
+        goto cleanup;
 
     /* Drop the pool lock during volume allocation */
-    obj->asyncjobs++;
+    virStoragePoolObjIncrAsyncjobs(obj);
     voldef->building = true;
     voldefsrc->in_use++;
     virStoragePoolObjUnlock(obj);
 
     if (objsrc) {
-        objsrc->asyncjobs++;
+        virStoragePoolObjIncrAsyncjobs(objsrc);
         virStoragePoolObjUnlock(objsrc);
     }
 
@@ -2066,10 +2056,10 @@ storageVolCreateXMLFrom(virStoragePoolPtr pool,
 
     voldefsrc->in_use--;
     voldef->building = false;
-    obj->asyncjobs--;
+    virStoragePoolObjDecrAsyncjobs(obj);
 
     if (objsrc) {
-        objsrc->asyncjobs--;
+        virStoragePoolObjDecrAsyncjobs(objsrc);
         virStoragePoolObjUnlock(objsrc);
         objsrc = NULL;
     }

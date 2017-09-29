@@ -97,6 +97,7 @@ VIR_ENUM_IMPL(qemuDiskCacheV2, VIR_DOMAIN_DISK_CACHE_LAST,
               "unsafe");
 
 VIR_ENUM_IMPL(qemuVideo, VIR_DOMAIN_VIDEO_TYPE_LAST,
+              "", /* default value, we shouldn't see this */
               "std",
               "cirrus",
               "vmware",
@@ -110,6 +111,7 @@ VIR_ENUM_IMPL(qemuVideo, VIR_DOMAIN_VIDEO_TYPE_LAST,
 VIR_ENUM_DECL(qemuDeviceVideo)
 
 VIR_ENUM_IMPL(qemuDeviceVideo, VIR_DOMAIN_VIDEO_TYPE_LAST,
+              "", /* default value, we shouldn't see this */
               "VGA",
               "cirrus-vga",
               "vmware-svga",
@@ -123,6 +125,7 @@ VIR_ENUM_IMPL(qemuDeviceVideo, VIR_DOMAIN_VIDEO_TYPE_LAST,
 VIR_ENUM_DECL(qemuDeviceVideoSecondary)
 
 VIR_ENUM_IMPL(qemuDeviceVideoSecondary, VIR_DOMAIN_VIDEO_TYPE_LAST,
+              "", /* default value, we shouldn't see this */
               "", /* no secondary device for VGA */
               "", /* no secondary device for cirrus-vga */
               "", /* no secondary device for vmware-svga */
@@ -791,6 +794,35 @@ qemuBuildTLSx509CommandLine(virCommandPtr cmd,
 }
 
 
+/* qemuBuildDiskSrcTLSx509CommandLine:
+ *
+ * Add TLS object if the disk src uses a secure communication channel
+ *
+ * Returns 0 on success, -1 w/ error on some sort of failure.
+ */
+static int
+qemuBuildDiskSrcTLSx509CommandLine(virCommandPtr cmd,
+                                   virStorageSourcePtr src,
+                                   const char *srcalias,
+                                   virQEMUCapsPtr qemuCaps)
+{
+
+
+    /* other protocols may be added later */
+    if (src->protocol == VIR_STORAGE_NET_PROTOCOL_VXHS &&
+        src->haveTLS == VIR_TRISTATE_BOOL_YES) {
+        if (!(src->tlsAlias = qemuAliasTLSObjFromSrcAlias(srcalias)))
+            return -1;
+
+        return qemuBuildTLSx509CommandLine(cmd, src->tlsCertdir,
+                                           false, src->tlsVerify,
+                                           false, srcalias, qemuCaps);
+    }
+
+    return 0;
+}
+
+
 static char *
 qemuBuildNetworkDriveURI(virStorageSourcePtr src,
                          qemuDomainSecretInfoPtr secinfo)
@@ -990,6 +1022,11 @@ qemuBuildNetworkDriveStr(virStorageSourcePtr src,
 
             ret = virBufferContentAndReset(&buf);
             break;
+
+        case VIR_STORAGE_NET_PROTOCOL_VXHS:
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("VxHS protocol does not support URI syntax"));
+            goto cleanup;
 
         case VIR_STORAGE_NET_PROTOCOL_SSH:
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -1323,6 +1360,10 @@ qemuDiskSourceNeedsProps(virStorageSourcePtr src)
     if (actualType == VIR_STORAGE_TYPE_NETWORK &&
         src->protocol == VIR_STORAGE_NET_PROTOCOL_GLUSTER &&
         src->nhosts > 1)
+        return true;
+
+    if (actualType == VIR_STORAGE_TYPE_NETWORK &&
+        src->protocol == VIR_STORAGE_NET_PROTOCOL_VXHS)
         return true;
 
     return false;
@@ -2207,6 +2248,10 @@ qemuBuildDiskDriveCommandLine(virCommandPtr cmd,
             return -1;
 
         if (qemuBuildDiskSecinfoCommandLine(cmd, encinfo) < 0)
+            return -1;
+
+        if (qemuBuildDiskSrcTLSx509CommandLine(cmd, disk->src, disk->info.alias,
+                                               qemuCaps) < 0)
             return -1;
 
         virCommandAddArg(cmd, "-drive");
@@ -3122,6 +3167,7 @@ qemuBuildControllerDevCommandLine(virCommandPtr cmd,
         VIR_DOMAIN_CONTROLLER_TYPE_VIRTIO_SERIAL,
         VIR_DOMAIN_CONTROLLER_TYPE_CCID,
     };
+    int ret = -1;
 
     for (j = 0; j < ARRAY_CARDINALITY(contOrder); j++) {
         for (i = 0; i < def->ncontrollers; i++) {
@@ -3183,7 +3229,7 @@ qemuBuildControllerDevCommandLine(virCommandPtr cmd,
                     virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                                    _("Multiple legacy USB controllers are "
                                      "not supported"));
-                    return -1;
+                    goto cleanup;
                 }
                 usblegacy = true;
                 continue;
@@ -3191,7 +3237,7 @@ qemuBuildControllerDevCommandLine(virCommandPtr cmd,
 
             if (qemuBuildControllerDevStr(def, cont, qemuCaps,
                                           &devstr, &usbcontroller) < 0)
-                return -1;
+                goto cleanup;
 
             if (devstr) {
                 virCommandAddArg(cmd, "-device");
@@ -3201,16 +3247,20 @@ qemuBuildControllerDevCommandLine(virCommandPtr cmd,
         }
     }
 
-    /* We haven't added any USB controller yet, but we haven't been asked
-     * not to add one either. Add a legacy USB controller, unless we're
-     * creating a kind of guest we want to keep legacy-free */
     if (usbcontroller == 0 &&
         !qemuDomainIsQ35(def) &&
         !qemuDomainIsVirt(def) &&
-        !ARCH_IS_S390(def->os.arch))
+        !ARCH_IS_S390(def->os.arch)) {
+        /* We haven't added any USB controller yet, but we haven't been asked
+         * not to add one either. Add a legacy USB controller, unless we're
+         * creating a kind of guest we want to keep legacy-free */
         virCommandAddArg(cmd, "-usb");
+    }
 
-    return 0;
+    ret = 0;
+
+ cleanup:
+    return ret;
 }
 
 
@@ -3797,13 +3847,14 @@ qemuBuildHostNetStr(virDomainNetDefPtr net,
     virDomainNetType netType = virDomainNetGetActualType(net);
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     size_t i;
+    char *addr = NULL;
+    char *ret = NULL;
 
     if (net->script && netType != VIR_DOMAIN_NET_TYPE_ETHERNET) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("scripts are not supported on interfaces of type %s"),
                        virDomainNetTypeToString(netType));
-        virObjectUnref(cfg);
-        return NULL;
+        goto cleanup;
     }
 
     switch (netType) {
@@ -3865,6 +3916,27 @@ qemuBuildHostNetStr(virDomainNetDefPtr net,
         break;
 
     case VIR_DOMAIN_NET_TYPE_USER:
+        virBufferAsprintf(&buf, "user%c", type_sep);
+        for (i = 0; i < net->guestIP.nips; i++) {
+            const virNetDevIPAddr *ip = net->guestIP.ips[i];
+            const char *prefix = "";
+
+            if (!(addr = virSocketAddrFormat(&ip->address)))
+                goto cleanup;
+
+            if (VIR_SOCKET_ADDR_IS_FAMILY(&ip->address, AF_INET))
+                prefix = "net=";
+            if (VIR_SOCKET_ADDR_IS_FAMILY(&ip->address, AF_INET6))
+                prefix = "ipv6-net=";
+
+            virBufferAsprintf(&buf, "%s%s", prefix, addr);
+            if (ip->prefix)
+                virBufferAsprintf(&buf, "/%u", ip->prefix);
+            virBufferAddChar(&buf, ',');
+            VIR_FREE(addr);
+        }
+        break;
+
     case VIR_DOMAIN_NET_TYPE_INTERNAL:
         virBufferAsprintf(&buf, "user%c", type_sep);
         break;
@@ -3911,13 +3983,17 @@ qemuBuildHostNetStr(virDomainNetDefPtr net,
             virBufferAsprintf(&buf, "sndbuf=%lu,", net->tune.sndbuf);
     }
 
-    virObjectUnref(cfg);
 
     virBufferTrim(&buf, ",", -1);
     if (virBufferCheckError(&buf) < 0)
-        return NULL;
+        goto cleanup;
 
-    return virBufferContentAndReset(&buf);
+    ret = virBufferContentAndReset(&buf);
+ cleanup:
+    virBufferFreeAndReset(&buf);
+    virObjectUnref(cfg);
+    VIR_FREE(addr);
+    return ret;
 }
 
 
