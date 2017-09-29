@@ -44,7 +44,7 @@
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
 static int
-runIO(const char *path, int fd, int oflags, unsigned long long length)
+runIO(const char *path, int fd, int oflags)
 {
     void *base = NULL; /* Location to be freed */
     char *buf = NULL; /* Aligned location within base */
@@ -55,7 +55,6 @@ runIO(const char *path, int fd, int oflags, unsigned long long length)
     const char *fdinname, *fdoutname;
     unsigned long long total = 0;
     bool direct = O_DIRECT && ((oflags & O_DIRECT) != 0);
-    bool shortRead = false; /* true if we hit a short read */
     off_t end = 0;
 
 #if HAVE_POSIX_MEMALIGN
@@ -79,7 +78,7 @@ runIO(const char *path, int fd, int oflags, unsigned long long length)
         fdoutname = "stdout";
         /* To make the implementation simpler, we give up on any
          * attempt to use O_DIRECT in a non-trivial manner.  */
-        if (direct && ((end = lseek(fd, 0, SEEK_CUR)) != 0 || length)) {
+        if (direct && ((end = lseek(fd, 0, SEEK_CUR)) != 0)) {
             virReportSystemError(end < 0 ? errno : EINVAL, "%s",
                                  _("O_DIRECT read needs entire seekable file"));
             goto cleanup;
@@ -110,40 +109,38 @@ runIO(const char *path, int fd, int oflags, unsigned long long length)
     while (1) {
         ssize_t got;
 
-        if (length &&
-            (length - total) < buflen)
-            buflen = length - total;
-
-        if (buflen == 0)
-            break; /* End of requested data from client */
-
-        if ((got = saferead(fdin, buf, buflen)) < 0) {
+        if ((got = read(fdin, buf, buflen)) < 0) {
+            if (errno == EINTR)
+                continue;
             virReportSystemError(errno, _("Unable to read %s"), fdinname);
             goto cleanup;
         }
         if (got == 0)
-            break; /* End of file before end of requested data */
-        if (got < buflen || (buflen & alignMask)) {
-            /* O_DIRECT can handle at most one short read, at end of file */
-            if (direct && shortRead) {
-                virReportSystemError(EINVAL, "%s",
-                                     _("Too many short reads for O_DIRECT"));
-            }
-            shortRead = true;
-        }
+            break;
 
         total += got;
-        if (fdout == fd && direct && shortRead) {
-            end = total;
-            memset(buf + got, 0, buflen - got);
-            got = (got + alignMask) & ~alignMask;
+
+        /* handle last write size align in direct case */
+        if (got < buflen && direct && fdout == fd) {
+            ssize_t aligned_got = (got + alignMask) & ~alignMask;
+
+            memset(buf + got, 0, aligned_got - got);
+
+            if (safewrite(fdout, buf, aligned_got) < 0) {
+                virReportSystemError(errno, _("Unable to write %s"), fdoutname);
+                goto cleanup;
+            }
+
+            if (ftruncate(fd, total) < 0) {
+                virReportSystemError(errno, _("Unable to truncate %s"), fdoutname);
+                goto cleanup;
+            }
+
+            break;
         }
+
         if (safewrite(fdout, buf, got) < 0) {
             virReportSystemError(errno, _("Unable to write %s"), fdoutname);
-            goto cleanup;
-        }
-        if (end && ftruncate(fd, end) < 0) {
-            virReportSystemError(errno, _("Unable to truncate %s"), fdoutname);
             goto cleanup;
         }
     }
@@ -178,7 +175,7 @@ usage(int status)
     if (status) {
         fprintf(stderr, _("%s: try --help for more details"), program_name);
     } else {
-        printf(_("Usage: %s FILENAME LENGTH FD\n"), program_name);
+        printf(_("Usage: %s FILENAME FD\n"), program_name);
     }
     exit(status);
 }
@@ -187,7 +184,6 @@ int
 main(int argc, char **argv)
 {
     const char *path;
-    unsigned long long length;
     int oflags = -1;
     int fd = -1;
 
@@ -204,14 +200,8 @@ main(int argc, char **argv)
 
     if (argc > 1 && STREQ(argv[1], "--help"))
         usage(EXIT_SUCCESS);
-    if (argc == 4) { /* FILENAME LENGTH FD */
-        if (virStrToLong_ull(argv[2], NULL, 10, &length) < 0) {
-            fprintf(stderr, _("%s: malformed file length %s"),
-                    program_name, argv[2]);
-            exit(EXIT_FAILURE);
-        }
-
-        if (virStrToLong_i(argv[3], NULL, 10, &fd) < 0) {
+    if (argc == 3) { /* FILENAME FD */
+        if (virStrToLong_i(argv[2], NULL, 10, &fd) < 0) {
             fprintf(stderr, _("%s: malformed fd %s"),
                     program_name, argv[3]);
             exit(EXIT_FAILURE);
@@ -234,7 +224,7 @@ main(int argc, char **argv)
         usage(EXIT_FAILURE);
     }
 
-    if (fd < 0 || runIO(path, fd, oflags, length) < 0)
+    if (fd < 0 || runIO(path, fd, oflags) < 0)
         goto error;
 
     return 0;

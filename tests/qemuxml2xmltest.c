@@ -474,6 +474,8 @@ mymain(void)
     DO_TEST("disk-drive-network-rbd-ipv6", NONE);
     DO_TEST("disk-drive-network-rbd-ceph-env", NONE);
     DO_TEST("disk-drive-network-sheepdog", NONE);
+    DO_TEST("disk-drive-network-vxhs", NONE);
+    DO_TEST("disk-drive-network-tlsx509-vxhs", NONE);
     DO_TEST("disk-scsi-device",
             QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_SCSI_LSI);
     DO_TEST("disk-scsi-vscsi", NONE);
@@ -531,6 +533,7 @@ mymain(void)
     DO_TEST("misc-uuid", NONE);
     DO_TEST("net-vhostuser", NONE);
     DO_TEST("net-user", NONE);
+    DO_TEST("net-user-addr", QEMU_CAPS_NETDEV);
     DO_TEST("net-virtio", NONE);
     DO_TEST("net-virtio-device", NONE);
     DO_TEST("net-virtio-disable-offloads", NONE);
@@ -1128,6 +1131,16 @@ mymain(void)
             QEMU_CAPS_DEVICE_PCI_BRIDGE,
             QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
             QEMU_CAPS_DEVICE_PCIE_ROOT_PORT);
+    DO_TEST("aarch64-video-default",
+            QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_OBJECT_GPEX,
+            QEMU_CAPS_DEVICE_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_IOH3420,
+            QEMU_CAPS_PCI_MULTIFUNCTION,
+            QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
+            QEMU_CAPS_DEVICE_VIRTIO_GPU,
+            QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
+            QEMU_CAPS_VNC);
 
     DO_TEST_FULL("aarch64-gic-none", WHEN_BOTH, GIC_NONE, NONE);
     DO_TEST_FULL("aarch64-gic-none-v2", WHEN_BOTH, GIC_V2, NONE);
@@ -1187,7 +1200,6 @@ mymain(void)
     DO_TEST("intel-iommu-machine",
             QEMU_CAPS_MACHINE_OPT,
             QEMU_CAPS_MACHINE_IOMMU);
-    DO_TEST("intel-iommu-ioapic", NONE);
     DO_TEST("intel-iommu-caching-mode", NONE);
     DO_TEST("intel-iommu-eim", NONE);
     DO_TEST("intel-iommu-device-iotlb", NONE);
@@ -1205,6 +1217,10 @@ mymain(void)
     DO_TEST("smartcard-passthrough-tcp", NONE);
     DO_TEST("smartcard-passthrough-spicevmc", NONE);
     DO_TEST("smartcard-controller", NONE);
+
+    DO_TEST("pseries-cpu-compat-power9", NONE);
+    DO_TEST("pseries-cpu-compat", NONE);
+    DO_TEST("pseries-cpu-exact", NONE);
 
     if (getenv("LIBVIRT_SKIP_CLEANUP") == NULL)
         virFileDeleteTree(fakerootdir);

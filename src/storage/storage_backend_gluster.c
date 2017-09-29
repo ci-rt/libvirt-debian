@@ -386,8 +386,7 @@ virStorageBackendGlusterRefreshPool(virConnectPtr conn ATTRIBUTE_UNUSED,
 
         if (okay < 0)
             goto cleanup;
-        if (vol && VIR_APPEND_ELEMENT(pool->volumes.objs, pool->volumes.count,
-                                      vol) < 0)
+        if (vol && virStoragePoolObjAddVol(pool, vol) < 0)
             goto cleanup;
     }
     if (errno) {
@@ -545,7 +544,7 @@ virStorageBackendGlusterCheckPool(virStoragePoolObjPtr pool,
     /* Return previous state remembered by the status XML. If the pool is not
      * available we will fail to refresh it and end up in the same situation.
      * This will save one attempt to open the connection to the remote server */
-    *active = pool->active;
+    *active = virStoragePoolObjIsActive(pool);
     return 0;
 }
 

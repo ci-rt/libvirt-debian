@@ -134,6 +134,7 @@ typedef enum {
     VIR_STORAGE_NET_PROTOCOL_FTPS,
     VIR_STORAGE_NET_PROTOCOL_TFTP,
     VIR_STORAGE_NET_PROTOCOL_SSH,
+    VIR_STORAGE_NET_PROTOCOL_VXHS,
 
     VIR_STORAGE_NET_PROTOCOL_LAST
 } virStorageNetProtocol;
@@ -280,6 +281,20 @@ struct _virStorageSource {
     /* metadata that allows identifying given storage source */
     char *nodeformat;  /* name of the format handler object */
     char *nodestorage; /* name of the storage object */
+
+    /* An optional setting to enable usage of TLS for the storage source */
+    int haveTLS; /* enum virTristateBool */
+
+    /* Indication whether the haveTLS value was altered due to qemu.conf
+     * setting when haveTLS is missing from the domain config file */
+    bool tlsFromConfig;
+
+    /* If TLS is used, then mgmt of the TLS credentials occurs via an
+     * object that is generated using a specific alias for a specific
+     * certificate directory with listen and verify bools. */
+    char *tlsAlias;
+    char *tlsCertdir;
+    bool tlsVerify;
 };
 
 
@@ -327,7 +342,6 @@ virStorageSourcePtr virStorageFileChainLookup(virStorageSourcePtr chain,
 
 int virStorageFileResize(const char *path,
                          unsigned long long capacity,
-                         unsigned long long orig_capacity,
                          bool pre_allocate);
 
 int virStorageFileIsClusterFS(const char *path);

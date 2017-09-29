@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [3.7.0], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [3.8.0], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -625,6 +625,20 @@ dnl check for kernel headers required by btrfs ioctl
 dnl
 if test "$with_linux" = "yes"; then
     AC_CHECK_HEADERS([linux/btrfs.h])
+fi
+
+dnl
+dnl check for DEVLINK_CMD_ESWITCH_GET
+dnl
+dnl Assume DEVLINK_ESWITCH_MODE_SWITCHDEV is also
+dnl available, as it was introudced in kernel 4.8
+dnl along with the original spelling of this constant
+dnl (DEVLINK_CMD_ESWITCH_MODE_GET, not supported by libvirt)
+dnl
+if test "$with_linux" = "yes"; then
+    AC_CHECK_HEADERS([linux/devlink.h])
+    AC_CHECK_DECLS([DEVLINK_CMD_ESWITCH_GET], [], [],
+                   [[#include <linux/devlink.h>]])
 fi
 
 dnl Allow perl/python overrides

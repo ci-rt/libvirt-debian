@@ -313,7 +313,7 @@ virLockManagerSanlockSetupLockspace(virLockManagerSanlockDriverPtr driver)
                 goto error_unlink;
             }
 
-            if ((rv = virLockManagerSanlockInitLockspace(driver, &ls) < 0)) {
+            if ((rv = virLockManagerSanlockInitLockspace(driver, &ls)) < 0) {
                 char *err = NULL;
                 if (virLockManagerSanlockError(rv, &err)) {
                     virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -427,7 +427,7 @@ static int virLockManagerSanlockInit(unsigned int version,
 {
     virLockManagerSanlockDriverPtr driver;
 
-    VIR_DEBUG("version=%u configFile=%s flags=%x",
+    VIR_DEBUG("version=%u configFile=%s flags=0x%x",
               version, NULLSTR(configFile), flags);
     virCheckFlags(0, -1);
 

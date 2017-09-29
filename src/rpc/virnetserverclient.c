@@ -198,7 +198,7 @@ virNetServerClientCalculateHandleMode(virNetServerClientPtr client)
 #if WITH_GNUTLS
     }
 #endif
-    VIR_DEBUG("mode=%o", mode);
+    VIR_DEBUG("mode=0%o", mode);
     return mode;
 }
 
@@ -1189,8 +1189,7 @@ static void virNetServerClientDispatchRead(virNetServerClientPtr client)
         /* Now figure out if we need to read more data to get some
          * file descriptors */
         if (msg->header.type == VIR_NET_CALL_WITH_FDS) {
-            if (msg->nfds == 0 &&
-                virNetMessageDecodeNumFDs(msg) < 0) {
+            if (virNetMessageDecodeNumFDs(msg) < 0) {
                 virNetMessageQueueServe(&client->rx);
                 virNetMessageFree(msg);
                 client->wantClose = true;

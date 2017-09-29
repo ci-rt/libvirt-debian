@@ -1660,16 +1660,13 @@ static int lxcStateInitialize(bool privileged,
     if (!(lxc_driver->hostdevMgr = virHostdevManagerGetDefault()))
         goto cleanup;
 
-    if ((virLXCDriverGetCapabilities(lxc_driver, true)) == NULL)
+    if (!(caps = virLXCDriverGetCapabilities(lxc_driver, true)))
         goto cleanup;
 
     if (!(lxc_driver->xmlopt = lxcDomainXMLConfInit()))
         goto cleanup;
 
     if (!(lxc_driver->closeCallbacks = virCloseCallbacksNew()))
-        goto cleanup;
-
-    if (!(caps = virLXCDriverGetCapabilities(lxc_driver, false)))
         goto cleanup;
 
     if (virFileMakePath(cfg->stateDir) < 0) {
@@ -1700,6 +1697,7 @@ static int lxcStateInitialize(bool privileged,
         goto cleanup;
 
     virNWFilterRegisterCallbackDriver(&lxcCallbackDriver);
+    virObjectUnref(caps);
     return 0;
 
  cleanup:
@@ -4808,8 +4806,7 @@ static int lxcDomainAttachDeviceFlags(virDomainPtr dom,
         if (!vmdef)
             goto endjob;
 
-        if (virDomainDefCompatibleDevice(vmdef, dev,
-                                         VIR_DOMAIN_DEVICE_ACTION_ATTACH) < 0)
+        if (virDomainDefCompatibleDevice(vmdef, dev) < 0)
             goto endjob;
 
         if ((ret = lxcDomainAttachDeviceConfig(vmdef, dev)) < 0)
@@ -4817,8 +4814,7 @@ static int lxcDomainAttachDeviceFlags(virDomainPtr dom,
     }
 
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
-        if (virDomainDefCompatibleDevice(vm->def, dev_copy,
-                                         VIR_DOMAIN_DEVICE_ACTION_ATTACH) < 0)
+        if (virDomainDefCompatibleDevice(vm->def, dev_copy) < 0)
             goto endjob;
 
         if ((ret = lxcDomainAttachDeviceLive(dom->conn, driver, vm, dev_copy)) < 0)
@@ -4921,8 +4917,7 @@ static int lxcDomainUpdateDeviceFlags(virDomainPtr dom,
         if (!vmdef)
             goto endjob;
 
-        if (virDomainDefCompatibleDevice(vmdef, dev,
-                                         VIR_DOMAIN_DEVICE_ACTION_UPDATE) < 0)
+        if (virDomainDefCompatibleDevice(vmdef, dev) < 0)
             goto endjob;
 
         if ((ret = lxcDomainUpdateDeviceConfig(vmdef, dev)) < 0)
@@ -4930,8 +4925,7 @@ static int lxcDomainUpdateDeviceFlags(virDomainPtr dom,
     }
 
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
-        if (virDomainDefCompatibleDevice(vm->def, dev_copy,
-                                         VIR_DOMAIN_DEVICE_ACTION_UPDATE) < 0)
+        if (virDomainDefCompatibleDevice(vm->def, dev_copy) < 0)
             goto endjob;
 
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
@@ -5018,19 +5012,11 @@ static int lxcDomainDetachDeviceFlags(virDomainPtr dom,
         if (!vmdef)
             goto endjob;
 
-        if (virDomainDefCompatibleDevice(vmdef, dev,
-                                         VIR_DOMAIN_DEVICE_ACTION_DETACH) < 0)
-            goto endjob;
-
         if ((ret = lxcDomainDetachDeviceConfig(vmdef, dev)) < 0)
             goto endjob;
     }
 
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
-        if (virDomainDefCompatibleDevice(vm->def, dev_copy,
-                                         VIR_DOMAIN_DEVICE_ACTION_DETACH) < 0)
-            goto endjob;
-
         if ((ret = lxcDomainDetachDeviceLive(driver, vm, dev_copy)) < 0)
             goto endjob;
         /*

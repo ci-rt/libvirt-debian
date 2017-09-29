@@ -612,9 +612,6 @@ qemuMigrationCookieStatisticsXMLFormat(virBufferPtr buf,
     virBufferAsprintf(buf, "<%1$s>%2$llu</%1$s>\n",
                       VIR_DOMAIN_JOB_TIME_ELAPSED,
                       jobInfo->timeElapsed);
-    virBufferAsprintf(buf, "<%1$s>%2$llu</%1$s>\n",
-                      VIR_DOMAIN_JOB_TIME_REMAINING,
-                      jobInfo->timeRemaining);
     if (stats->downtime_set)
         virBufferAsprintf(buf, "<%1$s>%2$llu</%1$s>\n",
                           VIR_DOMAIN_JOB_DOWNTIME,
@@ -774,7 +771,7 @@ qemuMigrationCookieXMLFormat(virQEMUDriverPtr driver,
         qemuMigrationCookieStatisticsXMLFormat(buf, mig->jobInfo);
 
     if (mig->flags & QEMU_MIGRATION_COOKIE_CPU && mig->cpu)
-        virCPUDefFormatBufFull(buf, mig->cpu, NULL, false);
+        virCPUDefFormatBufFull(buf, mig->cpu, NULL);
 
     virBufferAdjustIndent(buf, -2);
     virBufferAddLit(buf, "</qemu-migration>\n");
@@ -977,7 +974,7 @@ qemuMigrationCookieStatisticsXMLParse(xmlXPathContextPtr ctxt)
         goto cleanup;
 
     stats = &jobInfo->stats;
-    jobInfo->type = VIR_DOMAIN_JOB_COMPLETED;
+    jobInfo->status = QEMU_DOMAIN_JOB_STATUS_COMPLETED;
 
     virXPathULongLong("string(./started[1])", ctxt, &jobInfo->started);
     virXPathULongLong("string(./stopped[1])", ctxt, &jobInfo->stopped);
@@ -987,8 +984,6 @@ qemuMigrationCookieStatisticsXMLParse(xmlXPathContextPtr ctxt)
 
     virXPathULongLong("string(./" VIR_DOMAIN_JOB_TIME_ELAPSED "[1])",
                       ctxt, &jobInfo->timeElapsed);
-    virXPathULongLong("string(./" VIR_DOMAIN_JOB_TIME_REMAINING "[1])",
-                      ctxt, &jobInfo->timeRemaining);
 
     if (virXPathULongLong("string(./" VIR_DOMAIN_JOB_DOWNTIME "[1])",
                           ctxt, &stats->downtime) == 0)

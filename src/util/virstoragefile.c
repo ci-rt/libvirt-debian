@@ -44,6 +44,7 @@
 #include "virbuffer.h"
 #include "virjson.h"
 #include "virstorageencryption.h"
+#include "virsecret.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
@@ -85,7 +86,8 @@ VIR_ENUM_IMPL(virStorageNetProtocol, VIR_STORAGE_NET_PROTOCOL_LAST,
               "ftp",
               "ftps",
               "tftp",
-              "ssh")
+              "ssh",
+              "vxhs")
 
 VIR_ENUM_IMPL(virStorageNetHostTransport, VIR_STORAGE_NET_HOST_TRANS_LAST,
               "tcp",
@@ -1313,17 +1315,11 @@ virStorageFileChainGetBroken(virStorageSourcePtr chain,
 int
 virStorageFileResize(const char *path,
                      unsigned long long capacity,
-                     unsigned long long orig_capacity,
                      bool pre_allocate)
 {
     int fd = -1;
     int ret = -1;
-    int rc ATTRIBUTE_UNUSED;
-    off_t offset ATTRIBUTE_UNUSED;
-    off_t len ATTRIBUTE_UNUSED;
-
-    offset = orig_capacity;
-    len = capacity - orig_capacity;
+    int rc;
 
     if ((fd = open(path, O_RDWR)) < 0) {
         virReportSystemError(errno, _("Unable to open '%s'"), path);
@@ -1331,18 +1327,23 @@ virStorageFileResize(const char *path,
     }
 
     if (pre_allocate) {
-        if (safezero(fd, offset, len) != 0) {
-            virReportSystemError(errno,
-                                 _("Failed to pre-allocate space for "
-                                   "file '%s'"), path);
+        if ((rc = virFileAllocate(fd, 0, capacity)) != 0) {
+            if (rc == -2) {
+                virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                               _("preallocate is not supported on this platform"));
+            } else {
+                virReportSystemError(errno,
+                                     _("Failed to pre-allocate space for "
+                                       "file '%s'"), path);
+            }
             goto cleanup;
         }
-    } else {
-        if (ftruncate(fd, capacity) < 0) {
-            virReportSystemError(errno,
-                                 _("Failed to truncate file '%s'"), path);
-            goto cleanup;
-        }
+    }
+
+    if (ftruncate(fd, capacity) < 0) {
+        virReportSystemError(errno,
+                             _("Failed to truncate file '%s'"), path);
+        goto cleanup;
     }
 
     if (VIR_CLOSE(fd) < 0) {
@@ -2038,6 +2039,9 @@ virStorageSourceCopy(const virStorageSource *src,
     ret->physical = src->physical;
     ret->readonly = src->readonly;
     ret->shared = src->shared;
+    ret->haveTLS = src->haveTLS;
+    ret->tlsFromConfig = src->tlsFromConfig;
+    ret->tlsVerify = src->tlsVerify;
 
     /* storage driver metadata are not copied */
     ret->drv = NULL;
@@ -2051,7 +2055,9 @@ virStorageSourceCopy(const virStorageSource *src,
         VIR_STRDUP(ret->configFile, src->configFile) < 0 ||
         VIR_STRDUP(ret->nodeformat, src->nodeformat) < 0 ||
         VIR_STRDUP(ret->nodestorage, src->nodestorage) < 0 ||
-        VIR_STRDUP(ret->compat, src->compat) < 0)
+        VIR_STRDUP(ret->compat, src->compat) < 0 ||
+        VIR_STRDUP(ret->tlsAlias, src->tlsAlias) < 0 ||
+        VIR_STRDUP(ret->tlsCertdir, src->tlsCertdir) < 0)
         goto error;
 
     if (src->nhosts) {
@@ -2275,6 +2281,9 @@ virStorageSourceClear(virStorageSourcePtr def)
     VIR_FREE(def->nodeformat);
 
     virStorageSourceBackingStoreClear(def);
+
+    VIR_FREE(def->tlsAlias);
+    VIR_FREE(def->tlsCertdir);
 
     memset(def, 0, sizeof(*def));
 }
@@ -2546,7 +2555,7 @@ virStorageSourceParseRBDColonString(const char *rbdstr,
                 goto error;
 
             if (VIR_STRDUP(authdef->secrettype,
-                           virStorageAuthTypeToString(VIR_STORAGE_AUTH_TYPE_CEPHX)) < 0)
+                           virSecretUsageTypeToString(VIR_SECRET_USAGE_TYPE_CEPH)) < 0)
                 goto error;
             src->auth = authdef;
             authdef = NULL;
@@ -2712,6 +2721,7 @@ virStorageSourceParseBackingColon(virStorageSourcePtr src,
     case VIR_STORAGE_NET_PROTOCOL_ISCSI:
     case VIR_STORAGE_NET_PROTOCOL_GLUSTER:
     case VIR_STORAGE_NET_PROTOCOL_SSH:
+    case VIR_STORAGE_NET_PROTOCOL_VXHS:
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("malformed backing store path for protocol %s"),
                        protocol);
@@ -3210,6 +3220,40 @@ virStorageSourceParseBackingJSONRaw(virStorageSourcePtr src,
     return virStorageSourceParseBackingJSONInternal(src, json);
 }
 
+
+static int
+virStorageSourceParseBackingJSONVxHS(virStorageSourcePtr src,
+                                     virJSONValuePtr json,
+                                     int opaque ATTRIBUTE_UNUSED)
+{
+    const char *vdisk_id = virJSONValueObjectGetString(json, "vdisk-id");
+    virJSONValuePtr server = virJSONValueObjectGetObject(json, "server");
+
+    if (!vdisk_id || !server) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("missing 'vdisk-id' or 'server' attribute in "
+                         "JSON backing definition for VxHS volume"));
+        return -1;
+    }
+
+    src->type = VIR_STORAGE_TYPE_NETWORK;
+    src->protocol = VIR_STORAGE_NET_PROTOCOL_VXHS;
+
+    if (VIR_STRDUP(src->path, vdisk_id) < 0)
+        return -1;
+
+    if (VIR_ALLOC_N(src->hosts, 1) < 0)
+        return -1;
+    src->nhosts = 1;
+
+    if (virStorageSourceParseBackingJSONInetSocketAddress(src->hosts,
+                                                          server) < 0)
+        return -1;
+
+    return 0;
+}
+
+
 struct virStorageSourceJSONDriverParser {
     const char *drvname;
     int (*func)(virStorageSourcePtr src, virJSONValuePtr json, int opaque);
@@ -3232,6 +3276,7 @@ static const struct virStorageSourceJSONDriverParser jsonParsers[] = {
     {"ssh", virStorageSourceParseBackingJSONSSH, 0},
     {"rbd", virStorageSourceParseBackingJSONRBD, 0},
     {"raw", virStorageSourceParseBackingJSONRaw, 0},
+    {"vxhs", virStorageSourceParseBackingJSONVxHS, 0},
 };
 
 
@@ -3253,7 +3298,7 @@ virStorageSourceParseBackingJSONInternal(virStorageSourcePtr src,
     if (!(file = virJSONValueObjectGetObject(deflattened, "file"))) {
         str = virJSONValueToString(json, false);
         virReportError(VIR_ERR_INVALID_ARG,
-                       _("JSON backing volume defintion '%s' lacks 'file' object"),
+                       _("JSON backing volume definition '%s' lacks 'file' object"),
                        NULLSTR(str));
         goto cleanup;
     }
@@ -3261,7 +3306,7 @@ virStorageSourceParseBackingJSONInternal(virStorageSourcePtr src,
     if (!(drvname = virJSONValueObjectGetString(file, "driver"))) {
         str = virJSONValueToString(json, false);
         virReportError(VIR_ERR_INVALID_ARG,
-                       _("JSON backing volume defintion '%s' lacks driver name"),
+                       _("JSON backing volume definition '%s' lacks driver name"),
                        NULLSTR(str));
         goto cleanup;
     }
@@ -3991,6 +4036,9 @@ virStorageSourceNetworkDefaultPort(virStorageNetProtocol protocol)
         case VIR_STORAGE_NET_PROTOCOL_RBD:
             /* we don't provide a default for RBD */
             return 0;
+
+        case VIR_STORAGE_NET_PROTOCOL_VXHS:
+            return 9999;
 
         case VIR_STORAGE_NET_PROTOCOL_LAST:
         case VIR_STORAGE_NET_PROTOCOL_NONE:

@@ -33,7 +33,7 @@ struct _virStoragePoolObj {
     char *configFile;
     char *autostartLink;
     bool active;
-    int autostart;
+    bool autostart;
     unsigned int asyncjobs;
 
     virStoragePoolDefPtr def;
@@ -70,11 +70,54 @@ typedef bool
 (*virStoragePoolObjListFilter)(virConnectPtr conn,
                                virStoragePoolDefPtr def);
 
-static inline int
-virStoragePoolObjIsActive(virStoragePoolObjPtr obj)
-{
-    return obj->active;
-}
+virStoragePoolObjPtr
+virStoragePoolObjNew(void);
+
+virStoragePoolDefPtr
+virStoragePoolObjGetDef(virStoragePoolObjPtr obj);
+
+void
+virStoragePoolObjSetDef(virStoragePoolObjPtr obj,
+                        virStoragePoolDefPtr def);
+
+virStoragePoolDefPtr
+virStoragePoolObjGetNewDef(virStoragePoolObjPtr obj);
+
+void
+virStoragePoolObjDefUseNewDef(virStoragePoolObjPtr obj);
+
+char *
+virStoragePoolObjGetConfigFile(virStoragePoolObjPtr obj);
+
+void
+virStoragePoolObjSetConfigFile(virStoragePoolObjPtr obj,
+                               char *configFile);
+
+char *
+virStoragePoolObjGetAutostartLink(virStoragePoolObjPtr obj);
+
+bool
+virStoragePoolObjIsActive(virStoragePoolObjPtr obj);
+
+void
+virStoragePoolObjSetActive(virStoragePoolObjPtr obj,
+                           bool active);
+
+bool
+virStoragePoolObjIsAutostart(virStoragePoolObjPtr obj);
+
+void
+virStoragePoolObjSetAutostart(virStoragePoolObjPtr obj,
+                              bool autostart);
+
+unsigned int
+virStoragePoolObjGetAsyncjobs(virStoragePoolObjPtr obj);
+
+void
+virStoragePoolObjIncrAsyncjobs(virStoragePoolObjPtr obj);
+
+void
+virStoragePoolObjDecrAsyncjobs(virStoragePoolObjPtr obj);
 
 int
 virStoragePoolObjLoadAllConfigs(virStoragePoolObjListPtr pools,
@@ -92,6 +135,35 @@ virStoragePoolObjFindByUUID(virStoragePoolObjListPtr pools,
 virStoragePoolObjPtr
 virStoragePoolObjFindByName(virStoragePoolObjListPtr pools,
                             const char *name);
+
+int
+virStoragePoolObjAddVol(virStoragePoolObjPtr obj,
+                        virStorageVolDefPtr voldef);
+
+void
+virStoragePoolObjRemoveVol(virStoragePoolObjPtr obj,
+                           virStorageVolDefPtr voldef);
+
+size_t
+virStoragePoolObjGetVolumesCount(virStoragePoolObjPtr obj);
+
+typedef int
+(*virStorageVolObjListIterator)(virStorageVolDefPtr voldef,
+                                const void *opaque);
+
+int
+virStoragePoolObjForEachVolume(virStoragePoolObjPtr obj,
+                               virStorageVolObjListIterator iter,
+                               const void *opaque);
+
+typedef bool
+(*virStorageVolObjListSearcher)(virStorageVolDefPtr voldef,
+                                const void *opaque);
+
+virStorageVolDefPtr
+virStoragePoolObjSearchVolume(virStoragePoolObjPtr obj,
+                              virStorageVolObjListSearcher iter,
+                              const void *opaque);
 
 virStorageVolDefPtr
 virStorageVolDefFindByKey(virStoragePoolObjPtr obj,

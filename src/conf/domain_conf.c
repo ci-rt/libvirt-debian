@@ -53,6 +53,7 @@
 #include "device_conf.h"
 #include "network_conf.h"
 #include "virtpm.h"
+#include "virsecret.h"
 #include "virstring.h"
 #include "virnetdev.h"
 #include "virnetdevmacvlan.h"
@@ -87,7 +88,6 @@ struct _virDomainXMLOption {
 #define VIR_DOMAIN_DEF_FORMAT_COMMON_FLAGS             \
     (VIR_DOMAIN_DEF_FORMAT_SECURE |                    \
      VIR_DOMAIN_DEF_FORMAT_INACTIVE |                  \
-     VIR_DOMAIN_DEF_FORMAT_UPDATE_CPU |                \
      VIR_DOMAIN_DEF_FORMAT_MIGRATABLE)
 
 VIR_ENUM_IMPL(virDomainTaint, VIR_DOMAIN_TAINT_LAST,
@@ -551,6 +551,7 @@ VIR_ENUM_IMPL(virDomainPanicModel, VIR_DOMAIN_PANIC_MODEL_LAST,
               "s390")
 
 VIR_ENUM_IMPL(virDomainVideo, VIR_DOMAIN_VIDEO_TYPE_LAST,
+              "default",
               "vga",
               "cirrus",
               "vmvga",
@@ -4307,16 +4308,54 @@ virDomainHostdevAssignAddress(virDomainXMLOptionPtr xmlopt,
 }
 
 
+/**
+ * virDomainPostParseCheckISCSIPath
+ * @srcpath: Source path read (a/k/a, IQN) either disk or hostdev
+ *
+ * The details of an IQN is defined by RFC 3720 and 3721, but
+ * we just need to make sure there's a lun provided. If not
+ * provided, then default to zero. For an ISCSI LUN that is
+ * is provided by /dev/disk/by-path/... , then that path will
+ * have the specific lun requested.
+ *
+ * Returns 0 on success, -1 on failure
+ */
+static int
+virDomainPostParseCheckISCSIPath(char **srcpath)
+{
+    char *path = NULL;
+
+    if (strchr(*srcpath, '/'))
+        return 0;
+
+    if (virAsprintf(&path, "%s/0", *srcpath) < 0)
+        return -1;
+    VIR_FREE(*srcpath);
+    VIR_STEAL_PTR(*srcpath, path);
+    return 0;
+}
+
+
 static int
 virDomainHostdevDefPostParse(virDomainHostdevDefPtr dev,
                              const virDomainDef *def,
                              virDomainXMLOptionPtr xmlopt)
 {
+    virDomainHostdevSubsysSCSIPtr scsisrc;
+
     if (dev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
         return 0;
 
     switch (dev->source.subsys.type) {
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI:
+        scsisrc = &dev->source.subsys.u.scsi;
+        if (scsisrc->protocol == VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_ISCSI) {
+            virDomainHostdevSubsysSCSIiSCSIPtr iscsisrc = &scsisrc->u.iscsi;
+
+            if (virDomainPostParseCheckISCSIPath(&iscsisrc->path) < 0)
+                return -1;
+        }
+
         if (dev->info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE &&
             virDomainHostdevAssignAddress(xmlopt, def, dev) < 0) {
             virReportError(VIR_ERR_XML_ERROR, "%s",
@@ -4453,6 +4492,11 @@ virDomainDeviceDefPostParseCommon(virDomainDeviceDefPtr dev,
                 return -1;
             }
         }
+
+        if (disk->src->type == VIR_STORAGE_TYPE_NETWORK &&
+            disk->src->protocol == VIR_STORAGE_NET_PROTOCOL_ISCSI &&
+            virDomainPostParseCheckISCSIPath(&disk->src->path) < 0)
+            return -1;
 
         if (disk->bus != VIR_DOMAIN_DISK_BUS_VIRTIO &&
             virDomainCheckVirtioOptions(disk->virtio) < 0)
@@ -5335,7 +5379,18 @@ virDomainHostdevDefValidate(const virDomainHostdevDef *hostdev)
             break;
         }
     }
+    return 0;
+}
 
+
+static int
+virDomainVideoDefValidate(const virDomainVideoDef *video)
+{
+    if (video->type == VIR_DOMAIN_VIDEO_TYPE_DEFAULT) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("missing video model and cannot determine default"));
+        return -1;
+    }
     return 0;
 }
 
@@ -5369,11 +5424,13 @@ virDomainDeviceDefValidateInternal(const virDomainDeviceDef *dev,
     case VIR_DOMAIN_DEVICE_HOSTDEV:
         return virDomainHostdevDefValidate(dev->data.hostdev);
 
+    case VIR_DOMAIN_DEVICE_VIDEO:
+        return virDomainVideoDefValidate(dev->data.video);
+
     case VIR_DOMAIN_DEVICE_LEASE:
     case VIR_DOMAIN_DEVICE_FS:
     case VIR_DOMAIN_DEVICE_INPUT:
     case VIR_DOMAIN_DEVICE_SOUND:
-    case VIR_DOMAIN_DEVICE_VIDEO:
     case VIR_DOMAIN_DEVICE_WATCHDOG:
     case VIR_DOMAIN_DEVICE_GRAPHICS:
     case VIR_DOMAIN_DEVICE_HUB:
@@ -5560,6 +5617,24 @@ virDomainDefValidateInternal(const virDomainDef *def)
 
     if (virDomainDefGetVcpusTopology(def, NULL) < 0)
         return -1;
+
+    if (def->iommu &&
+        def->iommu->intremap == VIR_TRISTATE_SWITCH_ON &&
+        (def->features[VIR_DOMAIN_FEATURE_IOAPIC] != VIR_TRISTATE_SWITCH_ON ||
+         def->ioapic != VIR_DOMAIN_IOAPIC_QEMU)) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("IOMMU interrupt remapping requires split I/O APIC "
+                         "(ioapic driver='qemu')"));
+        return -1;
+    }
+
+    if (def->iommu &&
+        def->iommu->eim == VIR_TRISTATE_SWITCH_ON &&
+        def->iommu->intremap != VIR_TRISTATE_SWITCH_ON) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("IOMMU eim requires interrupt remapping to be enabled"));
+        return -1;
+    }
 
     return 0;
 }
@@ -8034,11 +8109,15 @@ virDomainDiskSourcePoolDefParse(xmlNodePtr node,
 int
 virDomainDiskSourceParse(xmlNodePtr node,
                          xmlXPathContextPtr ctxt,
-                         virStorageSourcePtr src)
+                         virStorageSourcePtr src,
+                         unsigned int flags)
 {
     int ret = -1;
     char *protocol = NULL;
     xmlNodePtr saveNode = ctxt->node;
+    char *haveTLS = NULL;
+    char *tlsCfg = NULL;
+    int tlsCfgVal;
 
     ctxt->node = node;
 
@@ -8070,6 +8149,30 @@ virDomainDiskSourceParse(xmlNodePtr node,
             virReportError(VIR_ERR_XML_ERROR, "%s",
                            _("missing name for disk source"));
             goto cleanup;
+        }
+
+        /* Check tls=yes|no domain setting for the block device
+         * At present only VxHS. Other block devices may be added later */
+        if (src->protocol == VIR_STORAGE_NET_PROTOCOL_VXHS &&
+            (haveTLS = virXMLPropString(node, "tls"))) {
+            if ((src->haveTLS =
+                virTristateBoolTypeFromString(haveTLS)) <= 0) {
+                virReportError(VIR_ERR_XML_ERROR,
+                           _("unknown disk source 'tls' setting '%s'"),
+                           haveTLS);
+                goto cleanup;
+            }
+        }
+
+        if ((flags & VIR_DOMAIN_DEF_PARSE_STATUS) &&
+            (tlsCfg = virXMLPropString(node, "tlsFromConfig"))) {
+            if (virStrToLong_i(tlsCfg, NULL, 10, &tlsCfgVal) < 0) {
+                virReportError(VIR_ERR_XML_ERROR,
+                               _("Invalid tlsFromConfig value: %s"),
+                               tlsCfg);
+                goto cleanup;
+            }
+            src->tlsFromConfig = !!tlsCfgVal;
         }
 
         /* for historical reasons the volume name for gluster volume is stored
@@ -8127,6 +8230,8 @@ virDomainDiskSourceParse(xmlNodePtr node,
 
  cleanup:
     VIR_FREE(protocol);
+    VIR_FREE(haveTLS);
+    VIR_FREE(tlsCfg);
     ctxt->node = saveNode;
     return ret;
 }
@@ -8134,7 +8239,8 @@ virDomainDiskSourceParse(xmlNodePtr node,
 
 static int
 virDomainDiskBackingStoreParse(xmlXPathContextPtr ctxt,
-                               virStorageSourcePtr src)
+                               virStorageSourcePtr src,
+                               unsigned int flags)
 {
     virStorageSourcePtr backingStore = NULL;
     xmlNodePtr save_ctxt = ctxt->node;
@@ -8183,8 +8289,8 @@ virDomainDiskBackingStoreParse(xmlXPathContextPtr ctxt,
         goto cleanup;
     }
 
-    if (virDomainDiskSourceParse(source, ctxt, backingStore) < 0 ||
-        virDomainDiskBackingStoreParse(ctxt, backingStore) < 0)
+    if (virDomainDiskSourceParse(source, ctxt, backingStore, flags) < 0 ||
+        virDomainDiskBackingStoreParse(ctxt, backingStore, flags) < 0)
         goto cleanup;
 
     src->backingStore = backingStore;
@@ -8285,7 +8391,8 @@ virDomainDiskDefIotuneParse(virDomainDiskDefPtr def,
 static int
 virDomainDiskDefMirrorParse(virDomainDiskDefPtr def,
                             xmlNodePtr cur,
-                            xmlXPathContextPtr ctxt)
+                            xmlXPathContextPtr ctxt,
+                            unsigned int flags)
 {
     xmlNodePtr mirrorNode;
     char *mirrorFormat = NULL;
@@ -8323,7 +8430,7 @@ virDomainDiskDefMirrorParse(virDomainDiskDefPtr def,
             goto cleanup;
         }
 
-        if (virDomainDiskSourceParse(mirrorNode, ctxt, def->mirror) < 0)
+        if (virDomainDiskSourceParse(mirrorNode, ctxt, def->mirror, flags) < 0)
             goto cleanup;
     } else {
         /* For back-compat reasons, we handle a file name
@@ -8425,6 +8532,36 @@ virDomainDiskDefGeometryParse(virDomainDiskDefPtr def,
 
 
 static int
+virDomainDiskSourceDefParseAuthValidate(const virStorageSource *src)
+{
+    virStorageAuthDefPtr authdef = src->auth;
+    int actUsage;
+
+    if (src->type != VIR_STORAGE_TYPE_NETWORK || !authdef)
+        return 0;
+
+    if ((actUsage = virSecretUsageTypeFromString(authdef->secrettype)) < 0) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("unknown secret type '%s'"),
+                       NULLSTR(authdef->secrettype));
+        return -1;
+    }
+
+    if ((src->protocol == VIR_STORAGE_NET_PROTOCOL_ISCSI &&
+         actUsage != VIR_SECRET_USAGE_TYPE_ISCSI) ||
+        (src->protocol == VIR_STORAGE_NET_PROTOCOL_RBD &&
+         actUsage != VIR_SECRET_USAGE_TYPE_CEPH)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("invalid secret type '%s'"),
+                       virSecretUsageTypeToString(actUsage));
+        return -1;
+    }
+
+    return 0;
+}
+
+
+static int
 virDomainDiskDefParseValidate(const virDomainDiskDef *def)
 {
     if (def->bus != VIR_DOMAIN_DISK_BUS_VIRTIO) {
@@ -8493,6 +8630,22 @@ virDomainDiskDefParseValidate(const virDomainDiskDef *def)
             virReportError(VIR_ERR_XML_ERROR, "%s",
                            _("Setting disk 'requisite' is allowed only for "
                              "cdrom or floppy"));
+            return -1;
+        }
+    }
+
+    if (virDomainDiskSourceDefParseAuthValidate(def->src) < 0)
+        return -1;
+
+    if (def->src->encryption) {
+        virStorageEncryptionPtr encryption = def->src->encryption;
+
+        if (encryption->format == VIR_STORAGE_ENCRYPTION_FORMAT_LUKS &&
+            encryption->encinfo.cipher_name) {
+
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("supplying <cipher> for domain disk definition "
+                             "is unnecessary"));
             return -1;
         }
     }
@@ -8656,8 +8809,6 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
     char *vendor = NULL;
     char *product = NULL;
     char *domain_name = NULL;
-    int expected_secret_usage = -1;
-    int auth_secret_usage = -1;
 
     if (!(def = virDomainDiskDefNew(xmlopt)))
         return NULL;
@@ -8696,17 +8847,10 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
         if (!source && virXMLNodeNameEqual(cur, "source")) {
             sourceNode = cur;
 
-            if (virDomainDiskSourceParse(cur, ctxt, def->src) < 0)
+            if (virDomainDiskSourceParse(cur, ctxt, def->src, flags) < 0)
                 goto error;
 
             source = true;
-
-            if (def->src->type == VIR_STORAGE_TYPE_NETWORK) {
-                if (def->src->protocol == VIR_STORAGE_NET_PROTOCOL_ISCSI)
-                    expected_secret_usage = VIR_SECRET_USAGE_TYPE_ISCSI;
-                else if (def->src->protocol == VIR_STORAGE_NET_PROTOCOL_RBD)
-                    expected_secret_usage = VIR_SECRET_USAGE_TYPE_CEPH;
-            }
 
             startupPolicy = virXMLPropString(cur, "startupPolicy");
 
@@ -8759,23 +8903,12 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
         } else if (!def->mirror &&
                    virXMLNodeNameEqual(cur, "mirror") &&
                    !(flags & VIR_DOMAIN_DEF_PARSE_INACTIVE)) {
-            if (virDomainDiskDefMirrorParse(def, cur, ctxt) < 0)
+            if (virDomainDiskDefMirrorParse(def, cur, ctxt, flags) < 0)
                 goto error;
         } else if (!authdef &&
                    virXMLNodeNameEqual(cur, "auth")) {
             if (!(authdef = virStorageAuthDefParse(node->doc, cur)))
                 goto error;
-            /* Disk volume types won't have the secrettype filled in until
-             * after virStorageTranslateDiskSourcePool is run
-             */
-            if (def->src->type != VIR_STORAGE_TYPE_VOLUME &&
-                (auth_secret_usage =
-                 virSecretUsageTypeFromString(authdef->secrettype)) < 0) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                               _("invalid secret type %s"),
-                               authdef->secrettype);
-                goto error;
-            }
         } else if (virXMLNodeNameEqual(cur, "iotune")) {
             if (virDomainDiskDefIotuneParse(def, ctxt) < 0)
                 goto error;
@@ -8838,18 +8971,6 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
             /* boot is parsed as part of virDomainDeviceInfoParseXML */
         }
     }
-
-    /* Disk volume types will have authentication information handled in
-     * virStorageTranslateDiskSourcePool
-     */
-    if (def->src->type != VIR_STORAGE_TYPE_VOLUME &&
-        auth_secret_usage != -1 && auth_secret_usage != expected_secret_usage) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("invalid secret type '%s'"),
-                       virSecretUsageTypeToString(auth_secret_usage));
-        goto error;
-    }
-
 
     /* Only CDROM and Floppy devices are allowed missing source path
      * to indicate no media present. LUN is for raw access CD-ROMs
@@ -9019,17 +9140,6 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
         def->startupPolicy = val;
     }
 
-    if (encryption) {
-        if (encryption->format == VIR_STORAGE_ENCRYPTION_FORMAT_LUKS &&
-            encryption->encinfo.cipher_name) {
-
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("supplying the <cipher> for a domain is "
-                             "unnecessary"));
-            goto error;
-        }
-    }
-
     def->dst = target;
     target = NULL;
     def->src->auth = authdef;
@@ -9048,7 +9158,7 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
     product = NULL;
 
     if (!(flags & VIR_DOMAIN_DEF_PARSE_DISK_SOURCE)) {
-        if (virDomainDiskBackingStoreParse(ctxt, def->src) < 0)
+        if (virDomainDiskBackingStoreParse(ctxt, def->src, flags) < 0)
             goto error;
     }
 
@@ -13925,9 +14035,6 @@ virDomainVideoDefaultType(const virDomainDef *def)
 {
     switch (def->virtType) {
     case VIR_DOMAIN_VIRT_TEST:
-    case VIR_DOMAIN_VIRT_QEMU:
-    case VIR_DOMAIN_VIRT_KQEMU:
-    case VIR_DOMAIN_VIRT_KVM:
     case VIR_DOMAIN_VIRT_XEN:
         if (def->os.type == VIR_DOMAIN_OSTYPE_XEN ||
             def->os.type == VIR_DOMAIN_OSTYPE_LINUX)
@@ -13952,7 +14059,7 @@ virDomainVideoDefaultType(const virDomainDef *def)
     case VIR_DOMAIN_VIRT_BHYVE:
         return VIR_DOMAIN_VIDEO_TYPE_GOP;
     default:
-        return -1;
+        return VIR_DOMAIN_VIDEO_TYPE_DEFAULT;
     }
 }
 
@@ -14101,11 +14208,7 @@ virDomainVideoDefParseXML(xmlNodePtr node,
             goto error;
         }
     } else {
-        if ((def->type = virDomainVideoDefaultType(dom)) < 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("missing video model and cannot determine default"));
-            goto error;
-        }
+        def->type = virDomainVideoDefaultType(dom);
     }
 
     if (ram) {
@@ -21311,11 +21414,6 @@ virDomainDefAddImplicitVideo(virDomainDefPtr def)
     if (!(video = virDomainVideoDefNew()))
         goto cleanup;
     video->type = virDomainVideoDefaultType(def);
-    if (video->type < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("cannot determine default video type"));
-        goto cleanup;
-    }
     if (VIR_APPEND_ELEMENT(def->videos, def->nvideos, video) < 0)
         goto cleanup;
 
@@ -21605,13 +21703,15 @@ virDomainSourceDefFormatSeclabel(virBufferPtr buf,
 
 
 static int
-virDomainDiskSourceFormatNetwork(virBufferPtr buf,
-                                 virStorageSourcePtr src)
+virDomainDiskSourceFormatNetwork(virBufferPtr attrBuf,
+                                 virBufferPtr childBuf,
+                                 virStorageSourcePtr src,
+                                 unsigned int flags)
 {
     size_t n;
     char *path = NULL;
 
-    virBufferAsprintf(buf, "<source protocol='%s'",
+    virBufferAsprintf(attrBuf, " protocol='%s'",
                       virStorageNetProtocolTypeToString(src->protocol));
 
     if (src->volume) {
@@ -21619,37 +21719,35 @@ virDomainDiskSourceFormatNetwork(virBufferPtr buf,
             return -1;
     }
 
-    virBufferEscapeString(buf, " name='%s'", path ? path : src->path);
+    virBufferEscapeString(attrBuf, " name='%s'", path ? path : src->path);
 
     VIR_FREE(path);
 
-    if (src->nhosts == 0 && !src->snapshot && !src->configFile) {
-        virBufferAddLit(buf, "/>\n");
-    } else {
-        virBufferAddLit(buf, ">\n");
-        virBufferAdjustIndent(buf, 2);
+    if (src->haveTLS != VIR_TRISTATE_BOOL_ABSENT &&
+        !(flags & VIR_DOMAIN_DEF_FORMAT_MIGRATABLE &&
+          src->tlsFromConfig))
+        virBufferAsprintf(attrBuf, " tls='%s'",
+                          virTristateBoolTypeToString(src->haveTLS));
+    if (flags & VIR_DOMAIN_DEF_FORMAT_STATUS)
+        virBufferAsprintf(attrBuf, " tlsFromConfig='%d'", src->tlsFromConfig);
 
-        for (n = 0; n < src->nhosts; n++) {
-            virBufferAddLit(buf, "<host");
-            virBufferEscapeString(buf, " name='%s'", src->hosts[n].name);
+    for (n = 0; n < src->nhosts; n++) {
+        virBufferAddLit(childBuf, "<host");
+        virBufferEscapeString(childBuf, " name='%s'", src->hosts[n].name);
 
-            if (src->hosts[n].port)
-                virBufferAsprintf(buf, " port='%u'", src->hosts[n].port);
+        if (src->hosts[n].port)
+            virBufferAsprintf(childBuf, " port='%u'", src->hosts[n].port);
 
-            if (src->hosts[n].transport)
-                virBufferAsprintf(buf, " transport='%s'",
-                                  virStorageNetHostTransportTypeToString(src->hosts[n].transport));
+        if (src->hosts[n].transport)
+            virBufferAsprintf(childBuf, " transport='%s'",
+                              virStorageNetHostTransportTypeToString(src->hosts[n].transport));
 
-            virBufferEscapeString(buf, " socket='%s'", src->hosts[n].socket);
-            virBufferAddLit(buf, "/>\n");
-        }
-
-        virBufferEscapeString(buf, "<snapshot name='%s'/>\n", src->snapshot);
-        virBufferEscapeString(buf, "<config file='%s'/>\n", src->configFile);
-
-        virBufferAdjustIndent(buf, -2);
-        virBufferAddLit(buf, "</source>\n");
+        virBufferEscapeString(childBuf, " socket='%s'", src->hosts[n].socket);
+        virBufferAddLit(childBuf, "/>\n");
     }
+
+    virBufferEscapeString(childBuf, "<snapshot name='%s'/>\n", src->snapshot);
+    virBufferEscapeString(childBuf, "<config file='%s'/>\n", src->configFile);
 
     return 0;
 }
@@ -21697,7 +21795,8 @@ virDomainDiskSourceFormatInternal(virBufferPtr buf,
             break;
 
         case VIR_STORAGE_TYPE_NETWORK:
-            if (virDomainDiskSourceFormatNetwork(buf, src) < 0)
+            if (virDomainDiskSourceFormatNetwork(&attrBuf, &childBuf,
+                                                 src, flags) < 0)
                 goto error;
             break;
 
@@ -23226,19 +23325,15 @@ virDomainChrSourceDefFormat(virBufferPtr buf,
     case VIR_DOMAIN_CHR_TYPE_UDP:
         if (def->data.udp.bindService || def->data.udp.bindHost) {
             virBufferAddLit(buf, "<source mode='bind'");
-            if (def->data.udp.bindService)
-                virBufferEscapeString(buf, " host='%s'", def->data.udp.bindHost);
-            if (def->data.udp.bindService)
-                virBufferEscapeString(buf, " service='%s'", def->data.udp.bindService);
+            virBufferEscapeString(buf, " host='%s'", def->data.udp.bindHost);
+            virBufferEscapeString(buf, " service='%s'", def->data.udp.bindService);
             virBufferAddLit(buf, "/>\n");
         }
 
         if (def->data.udp.connectService || def->data.udp.connectHost) {
             virBufferAddLit(buf, "<source mode='connect'");
-            if (def->data.udp.connectService)
-                virBufferEscapeString(buf, " host='%s'", def->data.udp.connectHost);
-            if (def->data.udp.connectService)
-                virBufferEscapeString(buf, " service='%s'", def->data.udp.connectService);
+            virBufferEscapeString(buf, " host='%s'", def->data.udp.connectHost);
+            virBufferEscapeString(buf, " service='%s'", def->data.udp.connectService);
             virBufferAddLit(buf, "/>\n");
         }
         break;
@@ -25066,47 +25161,49 @@ virDomainDefIothreadShouldFormat(virDomainDefPtr def)
 }
 
 
-static void
+static int
 virDomainIOMMUDefFormat(virBufferPtr buf,
                         const virDomainIOMMUDef *iommu)
 {
     virBuffer childBuf = VIR_BUFFER_INITIALIZER;
+    virBuffer attrBuf = VIR_BUFFER_INITIALIZER;
+    virBuffer driverAttrBuf = VIR_BUFFER_INITIALIZER;
+    int ret = -1;
 
     virBufferSetChildIndent(&childBuf, buf);
 
-    if (iommu->intremap != VIR_TRISTATE_SWITCH_ABSENT ||
-        iommu->caching_mode != VIR_TRISTATE_SWITCH_ABSENT ||
-        iommu->iotlb != VIR_TRISTATE_SWITCH_ABSENT) {
-        virBufferAddLit(&childBuf, "<driver");
-        if (iommu->intremap != VIR_TRISTATE_SWITCH_ABSENT) {
-            virBufferAsprintf(&childBuf, " intremap='%s'",
-                              virTristateSwitchTypeToString(iommu->intremap));
-        }
-        if (iommu->caching_mode != VIR_TRISTATE_SWITCH_ABSENT) {
-            virBufferAsprintf(&childBuf, " caching_mode='%s'",
-                              virTristateSwitchTypeToString(iommu->caching_mode));
-        }
-        if (iommu->eim != VIR_TRISTATE_SWITCH_ABSENT) {
-            virBufferAsprintf(&childBuf, " eim='%s'",
-                              virTristateSwitchTypeToString(iommu->eim));
-        }
-        if (iommu->iotlb != VIR_TRISTATE_SWITCH_ABSENT) {
-            virBufferAsprintf(&childBuf, " iotlb='%s'",
-                              virTristateSwitchTypeToString(iommu->iotlb));
-        }
-        virBufferAddLit(&childBuf, "/>\n");
+    if (iommu->intremap != VIR_TRISTATE_SWITCH_ABSENT) {
+        virBufferAsprintf(&driverAttrBuf, " intremap='%s'",
+                          virTristateSwitchTypeToString(iommu->intremap));
+    }
+    if (iommu->caching_mode != VIR_TRISTATE_SWITCH_ABSENT) {
+        virBufferAsprintf(&driverAttrBuf, " caching_mode='%s'",
+                          virTristateSwitchTypeToString(iommu->caching_mode));
+    }
+    if (iommu->eim != VIR_TRISTATE_SWITCH_ABSENT) {
+        virBufferAsprintf(&driverAttrBuf, " eim='%s'",
+                          virTristateSwitchTypeToString(iommu->eim));
+    }
+    if (iommu->iotlb != VIR_TRISTATE_SWITCH_ABSENT) {
+        virBufferAsprintf(&driverAttrBuf, " iotlb='%s'",
+                          virTristateSwitchTypeToString(iommu->iotlb));
     }
 
-    virBufferAsprintf(buf, "<iommu model='%s'",
+    if (virXMLFormatElement(&childBuf, "driver", &driverAttrBuf, NULL) < 0)
+        goto cleanup;
+
+    virBufferAsprintf(&attrBuf, " model='%s'",
                       virDomainIOMMUModelTypeToString(iommu->model));
 
-    if (virBufferError(&childBuf) != 0 || virBufferUse(&childBuf)) {
-        virBufferAddLit(buf, ">\n");
-        virBufferAddBuffer(buf, &childBuf);
-        virBufferAddLit(buf, "</iommu>\n");
-    } else {
-        virBufferAddLit(buf, "/>\n");
-    }
+    if (virXMLFormatElement(buf, "iommu", &attrBuf, &childBuf) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    virBufferFreeAndReset(&childBuf);
+    virBufferFreeAndReset(&driverAttrBuf);
+    return ret;
 }
 
 
@@ -25661,8 +25758,7 @@ virDomainDefFormatInternal(virDomainDefPtr def,
         virBufferAddLit(buf, "</features>\n");
     }
 
-    if (virCPUDefFormatBufFull(buf, def->cpu, def->numa,
-                               !!(flags & VIR_DOMAIN_DEF_FORMAT_UPDATE_CPU)) < 0)
+    if (virCPUDefFormatBufFull(buf, def->cpu, def->numa) < 0)
         goto error;
 
     virBufferAsprintf(buf, "<clock offset='%s'",
@@ -25876,8 +25972,9 @@ virDomainDefFormatInternal(virDomainDefPtr def,
             goto error;
     }
 
-    if (def->iommu)
-        virDomainIOMMUDefFormat(buf, def->iommu);
+    if (def->iommu &&
+        virDomainIOMMUDefFormat(buf, def->iommu) < 0)
+        goto error;
 
     virBufferAdjustIndent(buf, -2);
     virBufferAddLit(buf, "</devices>\n");
@@ -25915,8 +26012,6 @@ unsigned int virDomainDefFormatConvertXMLFlags(unsigned int flags)
         formatFlags |= VIR_DOMAIN_DEF_FORMAT_SECURE;
     if (flags & VIR_DOMAIN_XML_INACTIVE)
         formatFlags |= VIR_DOMAIN_DEF_FORMAT_INACTIVE;
-    if (flags & VIR_DOMAIN_XML_UPDATE_CPU)
-        formatFlags |= VIR_DOMAIN_DEF_FORMAT_UPDATE_CPU;
     if (flags & VIR_DOMAIN_XML_MIGRATABLE)
         formatFlags |= VIR_DOMAIN_DEF_FORMAT_MIGRATABLE;
 
@@ -26021,13 +26116,9 @@ virDomainDeviceInfoCheckBootIndex(virDomainDefPtr def ATTRIBUTE_UNUSED,
 
 int
 virDomainDefCompatibleDevice(virDomainDefPtr def,
-                             virDomainDeviceDefPtr dev,
-                             virDomainDeviceAction action)
+                             virDomainDeviceDefPtr dev)
 {
     virDomainDeviceInfoPtr info = virDomainDeviceGetInfo(dev);
-
-    if (action != VIR_DOMAIN_DEVICE_ACTION_ATTACH)
-        return 0;
 
     if (!virDomainDefHasUSB(def) &&
         def->os.type != VIR_DOMAIN_OSTYPE_EXE &&

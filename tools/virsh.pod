@@ -636,13 +636,20 @@ the I<--force> flag may be specified, requesting to disconnect any existing
 sessions, such as in a case of a broken connection.
 
 =item B<create> I<FILE> [I<--console>] [I<--paused>] [I<--autodestroy>]
-[I<--pass-fds N,M,...>]
+[I<--pass-fds N,M,...>] [I<--validate>]
 
-Create a domain from an XML <file>. An easy way to create the XML
-<file> is to use the B<dumpxml> command to obtain the definition of a
-pre-existing guest.  The domain will be paused if the I<--paused> option
-is used and supported by the driver; otherwise it will be running.
-If I<--console> is requested, attach to the console after creation.
+Create a domain from an XML <file>. Optionally, I<--validate> option can be
+passed to validate the format of the input XML file against an internal RNG
+schema (identical to using L<virt-xml-validate(1)> tool). Domains created using
+this command are going to be either transient (temporary ones that will vanish
+once destroyed) or existing persistent domains that will run with one-time use
+configuration, leaving the persistent XML untouched (this can come handy during
+an automated testing of various configurations all based on the original XML).
+See the B<Example> section for usage demonstration.
+
+The domain will be paused if the I<--paused> option is used
+and supported by the driver; otherwise it will be running. If I<--console> is
+requested, attach to the console after creation.
 If I<--autodestroy> is requested, then the guest will be automatically
 destroyed when virsh closes its connection to libvirt, or otherwise
 exits.
@@ -654,14 +661,31 @@ is only supported with container based virtualization.
 
 B<Example>
 
- virsh dumpxml <domain> > domain.xml
- vi domain.xml (or make changes with your other text editor)
- virsh create domain.xml
+ 1) prepare a template from an existing domain (skip directly to 3a if writing
+    one from scratch)
 
-=item B<define> I<FILE>
+ # virsh dumpxml <domain> > domain.xml
 
-Define a domain from an XML <file>. The domain definition is registered
-but not started.  If domain is already running, the changes will take
+ 2) edit the template using an editor of your choice and:
+    a) DO CHANGE! <name> and <uuid> (<uuid> can also be removed), or
+    b) DON'T CHANGE! either <name> or <uuid>
+
+ # $EDITOR domain.xml
+
+ 3) create a domain from domain.xml, depending on whether following 2a or 2b
+    respectively:
+    a) the domain is going to be transient
+    b) an existing persistent domain will run with a modified one-time
+       configuration
+
+ # virsh create domain.xml
+
+=item B<define> I<FILE> [I<--validate>]
+
+Define a domain from an XML <file>. Optionally, the format of the input XML
+file can be validated against an internal RNG schema with I<--validate>
+(identical to using L<virt-xml-validate(1)> tool). The domain definition is
+registered but not started.  If domain is already running, the changes will take
 effect on the next boot.
 
 =item B<desc> I<domain> [[I<--live>] [I<--config>] |
@@ -806,16 +830,16 @@ missing from the output. Other fields may appear if communicating with a newer
 version of libvirtd.
 
 B<Explanation of fields>:
-  swap_in           - The amount of data read from swap space (in kB)
-  swap_out          - The amount of memory written out to swap space (in kB)
+  swap_in           - The amount of data read from swap space (in KiB)
+  swap_out          - The amount of memory written out to swap space (in KiB)
   major_fault       - The number of page faults where disk IO was required
   minor_fault       - The number of other page faults
-  unused            - The amount of memory left unused by the system (in kB)
-  available         - The amount of usable memory as seen by the domain (in kB)
-  actual            - Current balloon value (in KB)
-  rss               - Resident Set Size of the running domain's process (in kB)
+  unused            - The amount of memory left unused by the system (in KiB)
+  available         - The amount of usable memory as seen by the domain (in KiB)
+  actual            - Current balloon value (in KiB)
+  rss               - Resident Set Size of the running domain's process (in KiB)
   usable            - The amount of memory which can be reclaimed by balloon
-without causing host swapping (in KB)
+without causing host swapping (in KiB)
   last-update       - Timestamp of the last update of statistics (in seconds)
 
 For QEMU/KVM with a memory balloon, setting the optional I<--period> to a
@@ -902,22 +926,22 @@ I<--cpu-total> returns:
 
 I<--balloon> returns:
 
- "balloon.current" - the memory in kiB currently used
- "balloon.maximum" - the maximum memory in kiB allowed
- "balloon.swap_in" - the amount of data read from swap space (in kB)
+ "balloon.current" - the memory in KiB currently used
+ "balloon.maximum" - the maximum memory in KiB allowed
+ "balloon.swap_in" - the amount of data read from swap space (in KiB)
  "balloon.swap_out" - the amount of memory written out to swap
-                      space (in kB)
+                      space (in KiB)
  "balloon.major_fault" - the number of page faults then disk IO
                          was required
  "balloon.minor_fault" - the number of other page faults
  "balloon.unused" - the amount of memory left unused by the
-                    system (in kB)
+                    system (in KiB)
  "balloon.available" - the amount of usable memory as seen by
-                       the domain (in kB)
+                       the domain (in KiB)
  "balloon.rss" - Resident Set Size of running domain's process
-                 (in kB)
+                 (in KiB)
  "balloon.usable" - the amount of memory which can be reclaimed by
-                    balloon without causing host swapping (in KB)
+                    balloon without causing host swapping (in KiB)
  "balloon.last-update" - timestamp of the last update of statistics
                          (in seconds)
 
@@ -1763,7 +1787,13 @@ periodically increased by I<auto-converge-increment>.
 
 I<--rdma-pin-all> can be used with RDMA migration (i.e., when I<migrateuri>
 starts with rdma://) to tell the hypervisor to pin all domain's memory at once
-before migration starts rather than letting it pin memory pages as needed.
+before migration starts rather than letting it pin memory pages as needed. For
+QEMU/KVM this requires hard_limit memory tuning element (in the domain XML) to
+be used and set to the maximum memory configured for the domain plus any memory
+consumed by the QEMU process itself. Beware of setting the memory limit too
+high (and thus allowing the domain to lock most of the host's memory). Doing so
+may be dangerous to both the domain and the host itself since the host's kernel
+may run out of memory.
 
 B<Note>: Individual hypervisors usually do not support all possible types of
 migration. For example, QEMU does not support direct migration.
@@ -3673,7 +3703,8 @@ just I<--build> is provided, then B<pool-build> is called with no flags.
 =item B<pool-create-as> I<name> I<type>
 [I<--source-host hostname>] [I<--source-path path>] [I<--source-dev path>]
 [I<--source-name name>] [I<--target path>] [I<--source-format format>]
-[I<--auth-type authtype> I<--auth-username username> I<--secret-usage usage>]
+[I<--auth-type authtype> I<--auth-username username>
+[I<--secret-usage usage> | I<--secret-uuid uuid>]]
 [[I<--adapter-name name>] | [I<--adapter-wwnn> I<--adapter-wwpn>]
 [I<--adapter-parent parent>]]
 [I<--build>] [[I<--overwrite>] | [I<--no-overwrite>]] [I<--print-xml>]
@@ -3707,10 +3738,12 @@ the host file system.
 [I<--source-format format>] provides information about the format of the
 pool (pool types fs, netfs, disk, logical).
 
-[I<--auth-type authtype> I<--auth-username username> I<--secret-usage usage>]
+[I<--auth-type authtype> I<--auth-username username>
+[I<--secret-usage usage> | I<--secret-uuid uuid>]]
 provides the elements required to generate authentication credentials for
 the storage pool. The I<authtype> is either chap for iscsi I<type> pools or
-ceph for rbd I<type> pools.
+ceph for rbd I<type> pools. Either the secret I<usage> or I<uuid> value may
+be provided, but not both.
 
 [I<--adapter-name name>] defines the scsi_hostN adapter name to be used for
 the scsi_host adapter type pool.
@@ -3740,7 +3773,8 @@ from the XML I<file>.
 =item B<pool-define-as> I<name> I<type>
 [I<--source-host hostname>] [I<--source-path path>] [I<--source-dev path>]
 [I<--source-name name>] [I<--target path>] [I<--source-format format>]
-[I<--auth-type authtype> I<--auth-username username> I<--secret-usage usage>]
+[I<--auth-type authtype> I<--auth-username username>
+[I<--secret-usage usage> | I<--secret-uuid uuid>]]
 [[I<--adapter-name name>] | [I<--adapter-wwnn> I<--adapter-wwpn>]
 [I<--adapter-parent parent>]] [I<--print-xml>]
 

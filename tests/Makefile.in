@@ -917,8 +917,7 @@ bhyvexml2xmltest_OBJECTS = $(am_bhyvexml2xmltest_OBJECTS)
 @WITH_BHYVE_TRUE@	$(am__DEPENDENCIES_3)
 am_commandhelper_OBJECTS = commandhelper.$(OBJEXT)
 commandhelper_OBJECTS = $(am_commandhelper_OBJECTS)
-commandhelper_DEPENDENCIES = $(am__DEPENDENCIES_1) $(PROBES_O) \
-	../src/libvirt_util.la $(GNULIB_LIBS)
+commandhelper_DEPENDENCIES = $(am__DEPENDENCIES_1) $(GNULIB_LIBS)
 commandhelper_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(commandhelper_LDFLAGS) $(LDFLAGS) -o $@
@@ -1287,6 +1286,8 @@ storagevolxml2argvtest_OBJECTS = $(am_storagevolxml2argvtest_OBJECTS)
 @WITH_STORAGE_TRUE@storagevolxml2argvtest_DEPENDENCIES =  \
 @WITH_STORAGE_TRUE@	$(am__DEPENDENCIES_1) \
 @WITH_STORAGE_TRUE@	../src/libvirt_driver_storage_impl.la \
+@WITH_STORAGE_TRUE@	../src/libvirt_conf.la \
+@WITH_STORAGE_TRUE@	../src/libvirt_util.la \
 @WITH_STORAGE_TRUE@	$(am__DEPENDENCIES_2)
 am_storagevolxml2xmltest_OBJECTS = storagevolxml2xmltest.$(OBJEXT) \
 	testutils.$(OBJEXT)
@@ -4082,7 +4083,10 @@ genericxml2xmltest_LDADD = $(LDADDS)
 
 @WITH_STORAGE_TRUE@storagevolxml2argvtest_LDADD = \
 @WITH_STORAGE_TRUE@	$(LIBXML_LIBS) \
-@WITH_STORAGE_TRUE@	../src/libvirt_driver_storage_impl.la $(LDADDS)
+@WITH_STORAGE_TRUE@	../src/libvirt_driver_storage_impl.la \
+@WITH_STORAGE_TRUE@	../src/libvirt_conf.la \
+@WITH_STORAGE_TRUE@	../src/libvirt_util.la \
+@WITH_STORAGE_TRUE@	$(LDADDS)
 
 storagevolxml2xmltest_SOURCES = \
 	storagevolxml2xmltest.c \
@@ -4128,13 +4132,16 @@ commandtest_SOURCES = \
 	commandtest.c testutils.h testutils.c
 
 commandtest_LDADD = $(LDADDS)
+
+# Must not link to any libvirt modules - libc / gnulib only
+# otherwise external libraries might unexpectedly leak
+# file descriptors into commandhelper invalidating the
+# test logic assumptions
 commandhelper_SOURCES = \
 	commandhelper.c
 
 commandhelper_LDADD = \
 	$(NO_INDIRECT_LDFLAGS) \
-	$(PROBES_O) \
-	../src/libvirt_util.la \
 	$(GNULIB_LIBS)
 
 commandhelper_LDFLAGS = -static

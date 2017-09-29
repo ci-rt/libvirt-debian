@@ -129,7 +129,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2017-08-29" "libvirt-3.7.0" "Virtualization Support"
+.TH VIRSH 1 "2017-09-28" "libvirt-3.8.0" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -693,13 +693,20 @@ if the driver supports safe console handling. This flag specifies that
 the server has to ensure exclusive access to console devices. Optionally
 the \fI\-\-force\fR flag may be specified, requesting to disconnect any existing
 sessions, such as in a case of a broken connection.
-.IP "\fBcreate\fR \fI\s-1FILE\s0\fR [\fI\-\-console\fR] [\fI\-\-paused\fR] [\fI\-\-autodestroy\fR] [\fI\-\-pass\-fds N,M,...\fR]" 4
-.IX Item "create FILE [--console] [--paused] [--autodestroy] [--pass-fds N,M,...]"
-Create a domain from an \s-1XML\s0 <file>. An easy way to create the \s-1XML\s0
-<file> is to use the \fBdumpxml\fR command to obtain the definition of a
-pre-existing guest.  The domain will be paused if the \fI\-\-paused\fR option
-is used and supported by the driver; otherwise it will be running.
-If \fI\-\-console\fR is requested, attach to the console after creation.
+.IP "\fBcreate\fR \fI\s-1FILE\s0\fR [\fI\-\-console\fR] [\fI\-\-paused\fR] [\fI\-\-autodestroy\fR] [\fI\-\-pass\-fds N,M,...\fR] [\fI\-\-validate\fR]" 4
+.IX Item "create FILE [--console] [--paused] [--autodestroy] [--pass-fds N,M,...] [--validate]"
+Create a domain from an \s-1XML\s0 <file>. Optionally, \fI\-\-validate\fR option can be
+passed to validate the format of the input \s-1XML\s0 file against an internal \s-1RNG\s0
+schema (identical to using \fIvirt\-xml\-validate\fR\|(1) tool). Domains created using
+this command are going to be either transient (temporary ones that will vanish
+once destroyed) or existing persistent domains that will run with one-time use
+configuration, leaving the persistent \s-1XML\s0 untouched (this can come handy during
+an automated testing of various configurations all based on the original \s-1XML\s0).
+See the \fBExample\fR section for usage demonstration.
+.Sp
+The domain will be paused if the \fI\-\-paused\fR option is used
+and supported by the driver; otherwise it will be running. If \fI\-\-console\fR is
+requested, attach to the console after creation.
 If \fI\-\-autodestroy\fR is requested, then the guest will be automatically
 destroyed when virsh closes its connection to libvirt, or otherwise
 exits.
@@ -711,15 +718,32 @@ is only supported with container based virtualization.
 .Sp
 \&\fBExample\fR
 .Sp
-.Vb 3
-\& virsh dumpxml <domain> > domain.xml
-\& vi domain.xml (or make changes with your other text editor)
-\& virsh create domain.xml
+.Vb 2
+\& 1) prepare a template from an existing domain (skip directly to 3a if writing
+\&    one from scratch)
+\&
+\& # virsh dumpxml <domain> > domain.xml
+\&
+\& 2) edit the template using an editor of your choice and:
+\&    a) DO CHANGE! <name> and <uuid> (<uuid> can also be removed), or
+\&    b) DON\*(AqT CHANGE! either <name> or <uuid>
+\&
+\& # $EDITOR domain.xml
+\&
+\& 3) create a domain from domain.xml, depending on whether following 2a or 2b
+\&    respectively:
+\&    a) the domain is going to be transient
+\&    b) an existing persistent domain will run with a modified one\-time
+\&       configuration
+\&
+\& # virsh create domain.xml
 .Ve
-.IP "\fBdefine\fR \fI\s-1FILE\s0\fR" 4
-.IX Item "define FILE"
-Define a domain from an \s-1XML\s0 <file>. The domain definition is registered
-but not started.  If domain is already running, the changes will take
+.IP "\fBdefine\fR \fI\s-1FILE\s0\fR [\fI\-\-validate\fR]" 4
+.IX Item "define FILE [--validate]"
+Define a domain from an \s-1XML\s0 <file>. Optionally, the format of the input \s-1XML\s0
+file can be validated against an internal \s-1RNG\s0 schema with \fI\-\-validate\fR
+(identical to using \fIvirt\-xml\-validate\fR\|(1) tool). The domain definition is
+registered but not started.  If domain is already running, the changes will take
 effect on the next boot.
 .IP "\fBdesc\fR \fIdomain\fR [[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]] [\fI\-\-title\fR] [\fI\-\-edit\fR] [\fI\-\-new\-desc\fR New description or title message]" 4
 .IX Item "desc domain [[--live] [--config] | [--current]] [--title] [--edit] [--new-desc New description or title message]"
@@ -847,16 +871,16 @@ missing from the output. Other fields may appear if communicating with a newer
 version of libvirtd.
 .Sp
 \&\fBExplanation of fields\fR:
-  swap_in           \- The amount of data read from swap space (in kB)
-  swap_out          \- The amount of memory written out to swap space (in kB)
+  swap_in           \- The amount of data read from swap space (in KiB)
+  swap_out          \- The amount of memory written out to swap space (in KiB)
   major_fault       \- The number of page faults where disk \s-1IO\s0 was required
   minor_fault       \- The number of other page faults
-  unused            \- The amount of memory left unused by the system (in kB)
-  available         \- The amount of usable memory as seen by the domain (in kB)
-  actual            \- Current balloon value (in \s-1KB\s0)
-  rss               \- Resident Set Size of the running domain's process (in kB)
+  unused            \- The amount of memory left unused by the system (in KiB)
+  available         \- The amount of usable memory as seen by the domain (in KiB)
+  actual            \- Current balloon value (in KiB)
+  rss               \- Resident Set Size of the running domain's process (in KiB)
   usable            \- The amount of memory which can be reclaimed by balloon
-without causing host swapping (in \s-1KB\s0)
+without causing host swapping (in KiB)
   last-update       \- Timestamp of the last update of statistics (in seconds)
 .Sp
 For \s-1QEMU/KVM\s0 with a memory balloon, setting the optional \fI\-\-period\fR to a
@@ -940,22 +964,22 @@ When selecting the \fI\-\-state\fR group the following fields are returned:
 \&\fI\-\-balloon\fR returns:
 .Sp
 .Vb 10
-\& "balloon.current" \- the memory in kiB currently used
-\& "balloon.maximum" \- the maximum memory in kiB allowed
-\& "balloon.swap_in" \- the amount of data read from swap space (in kB)
+\& "balloon.current" \- the memory in KiB currently used
+\& "balloon.maximum" \- the maximum memory in KiB allowed
+\& "balloon.swap_in" \- the amount of data read from swap space (in KiB)
 \& "balloon.swap_out" \- the amount of memory written out to swap
-\&                      space (in kB)
+\&                      space (in KiB)
 \& "balloon.major_fault" \- the number of page faults then disk IO
 \&                         was required
 \& "balloon.minor_fault" \- the number of other page faults
 \& "balloon.unused" \- the amount of memory left unused by the
-\&                    system (in kB)
+\&                    system (in KiB)
 \& "balloon.available" \- the amount of usable memory as seen by
-\&                       the domain (in kB)
+\&                       the domain (in KiB)
 \& "balloon.rss" \- Resident Set Size of running domain\*(Aqs process
-\&                 (in kB)
+\&                 (in KiB)
 \& "balloon.usable" \- the amount of memory which can be reclaimed by
-\&                    balloon without causing host swapping (in KB)
+\&                    balloon without causing host swapping (in KiB)
 \& "balloon.last\-update" \- timestamp of the last update of statistics
 \&                         (in seconds)
 .Ve
@@ -1727,7 +1751,13 @@ periodically increased by \fIauto-converge-increment\fR.
 .Sp
 \&\fI\-\-rdma\-pin\-all\fR can be used with \s-1RDMA\s0 migration (i.e., when \fImigrateuri\fR
 starts with rdma://) to tell the hypervisor to pin all domain's memory at once
-before migration starts rather than letting it pin memory pages as needed.
+before migration starts rather than letting it pin memory pages as needed. For
+\&\s-1QEMU/KVM\s0 this requires hard_limit memory tuning element (in the domain \s-1XML\s0) to
+be used and set to the maximum memory configured for the domain plus any memory
+consumed by the \s-1QEMU\s0 process itself. Beware of setting the memory limit too
+high (and thus allowing the domain to lock most of the host's memory). Doing so
+may be dangerous to both the domain and the host itself since the host's kernel
+may run out of memory.
 .Sp
 \&\fBNote\fR: Individual hypervisors usually do not support all possible types of
 migration. For example, \s-1QEMU\s0 does not support direct migration.
@@ -3464,8 +3494,8 @@ Create and start a pool object from the \s-1XML\s0 \fIfile\fR.
 follow-up command to build the pool. The \fI\-\-overwrite\fR and
 \&\fI\-\-no\-overwrite\fR flags follow the same rules as \fBpool-build\fR. If
 just \fI\-\-build\fR is provided, then \fBpool-build\fR is called with no flags.
-.IP "\fBpool-create-as\fR \fIname\fR \fItype\fR [\fI\-\-source\-host hostname\fR] [\fI\-\-source\-path path\fR] [\fI\-\-source\-dev path\fR] [\fI\-\-source\-name name\fR] [\fI\-\-target path\fR] [\fI\-\-source\-format format\fR] [\fI\-\-auth\-type authtype\fR \fI\-\-auth\-username username\fR \fI\-\-secret\-usage usage\fR] [[\fI\-\-adapter\-name name\fR] | [\fI\-\-adapter\-wwnn\fR \fI\-\-adapter\-wwpn\fR] [\fI\-\-adapter\-parent parent\fR]] [\fI\-\-build\fR] [[\fI\-\-overwrite\fR] | [\fI\-\-no\-overwrite\fR]] [\fI\-\-print\-xml\fR]" 4
-.IX Item "pool-create-as name type [--source-host hostname] [--source-path path] [--source-dev path] [--source-name name] [--target path] [--source-format format] [--auth-type authtype --auth-username username --secret-usage usage] [[--adapter-name name] | [--adapter-wwnn --adapter-wwpn] [--adapter-parent parent]] [--build] [[--overwrite] | [--no-overwrite]] [--print-xml]"
+.IP "\fBpool-create-as\fR \fIname\fR \fItype\fR [\fI\-\-source\-host hostname\fR] [\fI\-\-source\-path path\fR] [\fI\-\-source\-dev path\fR] [\fI\-\-source\-name name\fR] [\fI\-\-target path\fR] [\fI\-\-source\-format format\fR] [\fI\-\-auth\-type authtype\fR \fI\-\-auth\-username username\fR [\fI\-\-secret\-usage usage\fR | \fI\-\-secret\-uuid uuid\fR]] [[\fI\-\-adapter\-name name\fR] | [\fI\-\-adapter\-wwnn\fR \fI\-\-adapter\-wwpn\fR] [\fI\-\-adapter\-parent parent\fR]] [\fI\-\-build\fR] [[\fI\-\-overwrite\fR] | [\fI\-\-no\-overwrite\fR]] [\fI\-\-print\-xml\fR]" 4
+.IX Item "pool-create-as name type [--source-host hostname] [--source-path path] [--source-dev path] [--source-name name] [--target path] [--source-format format] [--auth-type authtype --auth-username username [--secret-usage usage | --secret-uuid uuid]] [[--adapter-name name] | [--adapter-wwnn --adapter-wwpn] [--adapter-parent parent]] [--build] [[--overwrite] | [--no-overwrite]] [--print-xml]"
 Create and start a pool object \fIname\fR from the raw parameters.  If
 \&\fI\-\-print\-xml\fR is specified, then print the \s-1XML\s0 of the pool object
 without creating the pool.  Otherwise, the pool has the specified
@@ -3494,10 +3524,12 @@ the host file system.
 [\fI\-\-source\-format format\fR] provides information about the format of the
 pool (pool types fs, netfs, disk, logical).
 .Sp
-[\fI\-\-auth\-type authtype\fR \fI\-\-auth\-username username\fR \fI\-\-secret\-usage usage\fR]
+[\fI\-\-auth\-type authtype\fR \fI\-\-auth\-username username\fR
+[\fI\-\-secret\-usage usage\fR | \fI\-\-secret\-uuid uuid\fR]]
 provides the elements required to generate authentication credentials for
 the storage pool. The \fIauthtype\fR is either chap for iscsi \fItype\fR pools or
-ceph for rbd \fItype\fR pools.
+ceph for rbd \fItype\fR pools. Either the secret \fIusage\fR or \fIuuid\fR value may
+be provided, but not both.
 .Sp
 [\fI\-\-adapter\-name name\fR] defines the scsi_hostN adapter name to be used for
 the scsi_host adapter type pool.
@@ -3522,8 +3554,8 @@ using the [\fI\-\-source\-name\fR] (or as generated from the [\fI\-\-name\fR]).
 .IX Item "pool-define file"
 Define an inactive persistent storage pool or modify an existing persistent one
 from the \s-1XML\s0 \fIfile\fR.
-.IP "\fBpool-define-as\fR \fIname\fR \fItype\fR [\fI\-\-source\-host hostname\fR] [\fI\-\-source\-path path\fR] [\fI\-\-source\-dev path\fR] [\fI\-\-source\-name name\fR] [\fI\-\-target path\fR] [\fI\-\-source\-format format\fR] [\fI\-\-auth\-type authtype\fR \fI\-\-auth\-username username\fR \fI\-\-secret\-usage usage\fR] [[\fI\-\-adapter\-name name\fR] | [\fI\-\-adapter\-wwnn\fR \fI\-\-adapter\-wwpn\fR] [\fI\-\-adapter\-parent parent\fR]] [\fI\-\-print\-xml\fR]" 4
-.IX Item "pool-define-as name type [--source-host hostname] [--source-path path] [--source-dev path] [--source-name name] [--target path] [--source-format format] [--auth-type authtype --auth-username username --secret-usage usage] [[--adapter-name name] | [--adapter-wwnn --adapter-wwpn] [--adapter-parent parent]] [--print-xml]"
+.IP "\fBpool-define-as\fR \fIname\fR \fItype\fR [\fI\-\-source\-host hostname\fR] [\fI\-\-source\-path path\fR] [\fI\-\-source\-dev path\fR] [\fI\-\-source\-name name\fR] [\fI\-\-target path\fR] [\fI\-\-source\-format format\fR] [\fI\-\-auth\-type authtype\fR \fI\-\-auth\-username username\fR [\fI\-\-secret\-usage usage\fR | \fI\-\-secret\-uuid uuid\fR]] [[\fI\-\-adapter\-name name\fR] | [\fI\-\-adapter\-wwnn\fR \fI\-\-adapter\-wwpn\fR] [\fI\-\-adapter\-parent parent\fR]] [\fI\-\-print\-xml\fR]" 4
+.IX Item "pool-define-as name type [--source-host hostname] [--source-path path] [--source-dev path] [--source-name name] [--target path] [--source-format format] [--auth-type authtype --auth-username username [--secret-usage usage | --secret-uuid uuid]] [[--adapter-name name] | [--adapter-wwnn --adapter-wwpn] [--adapter-parent parent]] [--print-xml]"
 Create, but do not start, a pool object \fIname\fR from the raw parameters.  If
 \&\fI\-\-print\-xml\fR is specified, then print the \s-1XML\s0 of the pool object
 without defining the pool.  Otherwise, the pool has the specified

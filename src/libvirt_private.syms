@@ -82,6 +82,8 @@ virCPUDefFree;
 virCPUDefFreeFeatures;
 virCPUDefFreeModel;
 virCPUDefIsEqual;
+virCPUDefListFree;
+virCPUDefListParse;
 virCPUDefParseXML;
 virCPUDefStealModel;
 virCPUDefUpdateFeature;
@@ -539,6 +541,7 @@ virDomainVirtTypeFromString;
 virDomainVirtTypeToString;
 virDomainWatchdogActionTypeFromString;
 virDomainWatchdogActionTypeToString;
+virDomainWatchdogDefFree;
 virDomainWatchdogModelTypeFromString;
 virDomainWatchdogModelTypeToString;
 virDomainXMLOptionGetNamespace;
@@ -1050,22 +1053,42 @@ virSecretObjSetValueSize;
 
 
 # conf/virstorageobj.h
+virStoragePoolObjAddVol;
 virStoragePoolObjAssignDef;
 virStoragePoolObjClearVols;
+virStoragePoolObjDecrAsyncjobs;
+virStoragePoolObjDefUseNewDef;
 virStoragePoolObjDeleteDef;
 virStoragePoolObjFindByName;
 virStoragePoolObjFindByUUID;
+virStoragePoolObjForEachVolume;
+virStoragePoolObjGetAsyncjobs;
+virStoragePoolObjGetAutostartLink;
+virStoragePoolObjGetConfigFile;
+virStoragePoolObjGetDef;
 virStoragePoolObjGetNames;
+virStoragePoolObjGetNewDef;
+virStoragePoolObjGetVolumesCount;
+virStoragePoolObjIncrAsyncjobs;
+virStoragePoolObjIsActive;
+virStoragePoolObjIsAutostart;
 virStoragePoolObjIsDuplicate;
 virStoragePoolObjListExport;
 virStoragePoolObjListFree;
 virStoragePoolObjLoadAllConfigs;
 virStoragePoolObjLoadAllState;
 virStoragePoolObjLock;
+virStoragePoolObjNew;
 virStoragePoolObjNumOfStoragePools;
 virStoragePoolObjNumOfVolumes;
 virStoragePoolObjRemove;
+virStoragePoolObjRemoveVol;
 virStoragePoolObjSaveDef;
+virStoragePoolObjSearchVolume;
+virStoragePoolObjSetActive;
+virStoragePoolObjSetAutostart;
+virStoragePoolObjSetConfigFile;
+virStoragePoolObjSetDef;
 virStoragePoolObjSourceFindDuplicate;
 virStoragePoolObjUnlock;
 virStoragePoolObjVolumeGetNames;
@@ -1074,7 +1097,6 @@ virStoragePoolObjVolumeListExport;
 
 # cpu/cpu.h
 cpuBaseline;
-cpuBaselineXML;
 cpuDecode;
 cpuEncode;
 virCPUCheckFeature;
@@ -1095,6 +1117,7 @@ virCPUProbeHost;
 virCPUTranslate;
 virCPUUpdate;
 virCPUUpdateLive;
+virCPUValidateFeatures;
 
 
 # cpu/cpu_x86.h
@@ -1604,6 +1627,8 @@ ebtablesRemoveForwardAllowIn;
 virDispatchError;
 virErrorCopyNew;
 virErrorInitialize;
+virErrorPreserveLast;
+virErrorRestore;
 virErrorSetErrnoFromLastError;
 virLastErrorIsSystemErrno;
 virRaiseErrorFull;

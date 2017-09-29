@@ -33,6 +33,36 @@
      -->
 
 <libvirt>
+  <release version="v3.8.0" date="unreleased">
+    <section title="New features">
+    </section>
+    <section title="Improvements">
+      <change>
+        <summary>
+          qemu: Set DAC permissions properly for spice rendernode
+        </summary>
+        <description>
+          When a <code>rendernode</code> path is set for SPICE GL on
+          <code>qemu:///system</code>, we now correctly set DAC permissions
+          on the device at VM startup. This is the last remaining hurdle to
+          let SPICE GL work for <code>qemu:///system</code> without any
+          external host changes.
+        </description>
+      </change>
+      <change>
+        <summary>
+          nodedev: Add switchdev offload query to NIC capabilities
+        </summary>
+        <description>
+            Allow querying the NIC interface capabilities for the
+            availability of switchdev offloading (also known as
+            kernel-forward-plane-offload).
+        </description>
+      </change>
+    </section>
+    <section title="Bug fixes">
+    </section>
+  </release>
   <release version="v3.7.0" date="2017-09-04">
     <section title="New features">
       <change>
@@ -187,7 +217,7 @@
           Fix --verbose option for all daemons
         </summary>
         <description>
-          Since v3.0.0, the option had been ignored by all libvirt deamons
+          Since v3.0.0, the option had been ignored by all libvirt daemons
           (<code>libvirtd</code>, <code>virtlogd</code> and
           <code>virtlockd</code>); it's now working as intended once again.
         </description>

@@ -2329,8 +2329,7 @@ virStorageBackendVolResizeLocal(virConnectPtr conn ATTRIBUTE_UNUSED,
     bool pre_allocate = flags & VIR_STORAGE_VOL_RESIZE_ALLOCATE;
 
     if (vol->target.format == VIR_STORAGE_FILE_RAW) {
-        return virStorageFileResize(vol->target.path, capacity,
-                                    vol->target.allocation, pre_allocate);
+        return virStorageFileResize(vol->target.path, capacity, pre_allocate);
     } else if (vol->target.format == VIR_STORAGE_FILE_PLOOP) {
         return storagePloopResize(vol, capacity);
     } else {
@@ -3623,13 +3622,13 @@ virStorageBackendRefreshLocal(virConnectPtr conn ATTRIBUTE_UNUSED,
             goto cleanup;
         }
 
-        if (VIR_APPEND_ELEMENT(pool->volumes.objs, pool->volumes.count, vol) < 0)
+        if (virStoragePoolObjAddVol(pool, vol) < 0)
             goto cleanup;
+        vol = NULL;
     }
     if (direrr < 0)
         goto cleanup;
     VIR_DIR_CLOSE(dir);
-    vol = NULL;
 
     if (VIR_ALLOC(target))
         goto cleanup;
@@ -3811,10 +3810,10 @@ virStorageBackendSCSINewLun(virStoragePoolObjPtr pool,
     pool->def->capacity += vol->target.capacity;
     pool->def->allocation += vol->target.allocation;
 
-    if (VIR_APPEND_ELEMENT(pool->volumes.objs, pool->volumes.count, vol) < 0)
+    if (virStoragePoolObjAddVol(pool, vol) < 0)
         goto cleanup;
-
     vol = NULL;
+
     retval = 0;
 
  cleanup:

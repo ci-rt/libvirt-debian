@@ -15,7 +15,6 @@
 # touch configure.ac or Makefile.am.
 %{!?enable_autotools:%global enable_autotools 0}
 
-
 # The hypervisor drivers that run in libvirtd
 %define with_xen           0%{!?_without_xen:1}
 %define with_qemu          0%{!?_without_qemu:1}
@@ -240,7 +239,7 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: @VERSION@
-Release: 1%{?dist}%{?extra_release}
+Release: 0rc1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -249,7 +248,7 @@ URL: https://libvirt.org/
 %if %(echo %{version} | grep -q "\.0$"; echo $?) == 1
     %define mainturl stable_updates/
 %endif
-Source: https://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.xz
+Source: https://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc1.tar.xz
 
 Requires: libvirt-daemon = %{version}-%{release}
 Requires: libvirt-daemon-config-network = %{version}-%{release}
@@ -1794,6 +1793,8 @@ exit 0
 %dir %attr(0711, root, root) %{_localstatedir}/cache/libvirt/
 
 
+%dir %attr(0755, root, root) %{_libdir}/libvirt/
+%dir %attr(0755, root, root) %{_libdir}/libvirt/connection-driver/
 %dir %attr(0755, root, root) %{_libdir}/libvirt/lock-driver
 %attr(0755, root, root) %{_libdir}/libvirt/lock-driver/lockd.so
 
@@ -2028,7 +2029,9 @@ exit 0
 %attr(0755, root, root) %{_libexecdir}/libvirt-guests.sh
 
 %files libs -f %{name}.lang
-%doc COPYING COPYING.LESSER
+# RHEL6 doesn't have 'license' macro
+%{!?_licensedir:%global license %%doc}
+%license COPYING COPYING.LESSER
 %config(noreplace) %{_sysconfdir}/libvirt/libvirt.conf
 %config(noreplace) %{_sysconfdir}/libvirt/libvirt-admin.conf
 %{_libdir}/libvirt.so.*

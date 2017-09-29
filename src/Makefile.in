@@ -1859,7 +1859,7 @@ libvirt_util_la_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_7) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1)
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 am__objects_89 = $(am__objects_44) $(am__objects_44)
 am__objects_90 = util/libvirt_util_la-viralloc.lo \
 	util/libvirt_util_la-virarch.lo \
@@ -4874,7 +4874,7 @@ libvirt_util_la_LIBADD = $(CAPNG_LIBS) $(YAJL_LIBS) $(LIBNL_LIBS) \
 		$(THREAD_LIBS) $(AUDIT_LIBS) $(DEVMAPPER_LIBS) \
 		$(LIB_CLOCK_GETTIME) $(DBUS_LIBS) $(WIN32_EXTRA_LIBS) $(LIBXML_LIBS) \
 		$(SECDRIVER_LIBS) $(NUMACTL_LIBS) $(ACL_LIBS) \
-		$(POLKIT_LIBS)
+		$(POLKIT_LIBS) $(GNUTLS_LIBS)
 
 libvirt_conf_la_SOURCES = $(CONF_SOURCES)
 libvirt_conf_la_CFLAGS = \

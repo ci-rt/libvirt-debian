@@ -496,110 +496,6 @@ virCPUProbeHost(virArch arch)
 
 
 /**
- * cpuBaselineXML:
- *
- * @xmlCPUs: list of host CPU XML descriptions
- * @ncpus: number of CPUs in @xmlCPUs
- * @models: list of CPU models that can be considered for the baseline CPU
- * @nmodels: number of CPU models in @models
- * @flags: bitwise-OR of virConnectBaselineCPUFlags
- *
- * Computes the most feature-rich CPU which is compatible with all given
- * host CPUs. If @models array is NULL, all models supported by libvirt will
- * be considered when computing the baseline CPU model, otherwise the baseline
- * CPU model will be one of the provided CPU @models.
- *
- * If @flags includes VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES then libvirt
- * will explicitly list all CPU features that are part of the host CPU,
- * without this flag features that are part of the CPU model will not be
- * listed.
- *
- * Returns XML description of the baseline CPU or NULL on error.
- */
-char *
-cpuBaselineXML(const char **xmlCPUs,
-               unsigned int ncpus,
-               const char **models,
-               unsigned int nmodels,
-               unsigned int flags)
-{
-    xmlDocPtr doc = NULL;
-    xmlXPathContextPtr ctxt = NULL;
-    virCPUDefPtr *cpus = NULL;
-    virCPUDefPtr cpu = NULL;
-    char *cpustr;
-    size_t i;
-
-    VIR_DEBUG("ncpus=%u, nmodels=%u", ncpus, nmodels);
-
-    virCheckFlags(VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES |
-                  VIR_CONNECT_BASELINE_CPU_MIGRATABLE, NULL);
-
-    if (xmlCPUs) {
-        for (i = 0; i < ncpus; i++)
-            VIR_DEBUG("xmlCPUs[%zu]=%s", i, NULLSTR(xmlCPUs[i]));
-    }
-    if (models) {
-        for (i = 0; i < nmodels; i++)
-            VIR_DEBUG("models[%zu]=%s", i, NULLSTR(models[i]));
-    }
-
-    if (xmlCPUs == NULL && ncpus != 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("nonzero ncpus doesn't match with NULL xmlCPUs"));
-        return NULL;
-    }
-
-    if (ncpus < 1) {
-        virReportError(VIR_ERR_INVALID_ARG, "%s", _("No CPUs given"));
-        return NULL;
-    }
-
-    if (VIR_ALLOC_N(cpus, ncpus))
-        goto error;
-
-    for (i = 0; i < ncpus; i++) {
-        if (!(doc = virXMLParseStringCtxt(xmlCPUs[i], _("(CPU_definition)"), &ctxt)))
-            goto error;
-
-        if (virCPUDefParseXML(ctxt, NULL, VIR_CPU_TYPE_HOST, &cpus[i]) < 0)
-            goto error;
-
-        xmlXPathFreeContext(ctxt);
-        xmlFreeDoc(doc);
-        ctxt = NULL;
-        doc = NULL;
-    }
-
-    if (!(cpu = cpuBaseline(cpus, ncpus, models, nmodels,
-                            !!(flags & VIR_CONNECT_BASELINE_CPU_MIGRATABLE))))
-        goto error;
-
-    if ((flags & VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES) &&
-        virCPUExpandFeatures(cpus[0]->arch, cpu) < 0)
-        goto error;
-
-    cpustr = virCPUDefFormat(cpu, NULL, false);
-
- cleanup:
-    if (cpus) {
-        for (i = 0; i < ncpus; i++)
-            virCPUDefFree(cpus[i]);
-        VIR_FREE(cpus);
-    }
-    virCPUDefFree(cpu);
-    xmlXPathFreeContext(ctxt);
-    xmlFreeDoc(doc);
-
-    return cpustr;
-
- error:
-    cpustr = NULL;
-    goto cleanup;
-}
-
-
-/**
  * cpuBaseline:
  *
  * @cpus: list of host CPU definitions
@@ -1179,4 +1075,33 @@ virCPUCopyMigratable(virArch arch,
         return driver->copyMigratable(cpu);
     else
         return virCPUDefCopy(cpu);
+}
+
+
+/**
+ * virCPUValidateFeatures:
+ *
+ * @arch: CPU architecture
+ * @cpu: CPU definition to be checked
+ *
+ * Checks whether all CPU features specified in @cpu are valid.
+ *
+ * Returns 0 on success (all features are valid), -1 on error.
+ */
+int
+virCPUValidateFeatures(virArch arch,
+                       virCPUDefPtr cpu)
+{
+    struct cpuArchDriver *driver;
+
+    VIR_DEBUG("arch=%s, cpu=%p, nfeatures=%zu",
+              virArchToString(arch), cpu, cpu->nfeatures);
+
+    if (!(driver = cpuGetSubDriver(arch)))
+        return -1;
+
+    if (driver->validateFeatures)
+        return driver->validateFeatures(cpu);
+    else
+        return 0;
 }

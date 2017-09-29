@@ -40,8 +40,7 @@
 # include "logging/log_manager.h"
 
 # define QEMU_DOMAIN_FORMAT_LIVE_FLAGS      \
-    (VIR_DOMAIN_XML_SECURE |                \
-     VIR_DOMAIN_XML_UPDATE_CPU)
+    (VIR_DOMAIN_XML_SECURE)
 
 # if ULONG_MAX == 4294967295
 /* QEMU has a 64-bit limit, but we are limited by our historical choice of
@@ -99,10 +98,29 @@ typedef enum {
 } qemuDomainAsyncJob;
 VIR_ENUM_DECL(qemuDomainAsyncJob)
 
+typedef enum {
+    QEMU_DOMAIN_JOB_STATUS_NONE = 0,
+    QEMU_DOMAIN_JOB_STATUS_ACTIVE,
+    QEMU_DOMAIN_JOB_STATUS_MIGRATING,
+    QEMU_DOMAIN_JOB_STATUS_QEMU_COMPLETED,
+    QEMU_DOMAIN_JOB_STATUS_POSTCOPY,
+    QEMU_DOMAIN_JOB_STATUS_COMPLETED,
+    QEMU_DOMAIN_JOB_STATUS_FAILED,
+    QEMU_DOMAIN_JOB_STATUS_CANCELED,
+} qemuDomainJobStatus;
+
+
+typedef struct _qemuDomainMirrorStats qemuDomainMirrorStats;
+typedef qemuDomainMirrorStats *qemuDomainMirrorStatsPtr;
+struct _qemuDomainMirrorStats {
+    unsigned long long transferred;
+    unsigned long long total;
+};
+
 typedef struct _qemuDomainJobInfo qemuDomainJobInfo;
 typedef qemuDomainJobInfo *qemuDomainJobInfoPtr;
 struct _qemuDomainJobInfo {
-    virDomainJobType type;
+    qemuDomainJobStatus status;
     virDomainJobOperation operation;
     unsigned long long started; /* When the async job started */
     unsigned long long stopped; /* When the domain's CPUs were stopped */
@@ -112,7 +130,6 @@ struct _qemuDomainJobInfo {
                                     info from the source (migrations only). */
     /* Computed values */
     unsigned long long timeElapsed;
-    unsigned long long timeRemaining;
     long long timeDelta; /* delta = received - sent, i.e., the difference
                             between the source and the destination time plus
                             the time between the end of Perform phase on the
@@ -121,6 +138,7 @@ struct _qemuDomainJobInfo {
     bool timeDeltaSet;
     /* Raw values from QEMU */
     qemuMonitorMigrationStats stats;
+    qemuDomainMirrorStats mirrorStats;
 };
 
 struct qemuDomainJobObj {
@@ -658,6 +676,8 @@ void qemuDomainCleanupRemove(virDomainObjPtr vm,
 void qemuDomainCleanupRun(virQEMUDriverPtr driver,
                           virDomainObjPtr vm);
 
+void qemuDomainObjPrivateDataClear(qemuDomainObjPrivatePtr priv);
+
 extern virDomainXMLPrivateDataCallbacks virQEMUDriverPrivateDataCallbacks;
 extern virDomainXMLNamespace virQEMUDriverDomainXMLNamespace;
 extern virDomainDefParserConfig virQEMUDriverDomainDefParserConfig;
@@ -696,7 +716,7 @@ int qemuDomainJobInfoToParams(qemuDomainJobInfoPtr jobInfo,
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2)
     ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(4);
 
-int qemuDomainSupportsBlockJobs(virDomainObjPtr vm, bool *modern)
+int qemuDomainSupportsBlockJobs(virDomainObjPtr vm)
     ATTRIBUTE_NONNULL(1);
 bool qemuDomainDiskBlockJobIsActive(virDomainDiskDefPtr disk);
 bool qemuDomainHasBlockjob(virDomainObjPtr vm, bool copy_only)
@@ -764,8 +784,6 @@ int qemuDomainNetVLAN(virDomainNetDefPtr def);
 
 int qemuDomainSetPrivatePaths(virQEMUDriverPtr driver,
                               virDomainObjPtr vm);
-
-void qemuDomainClearPrivatePaths(virDomainObjPtr vm);
 
 virDomainDiskDefPtr qemuDomainDiskByName(virDomainDefPtr def, const char *name);
 
@@ -842,7 +860,18 @@ void qemuDomainPrepareChardevSourceTLS(virDomainChrSourceDefPtr source,
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 void qemuDomainPrepareChardevSource(virDomainDefPtr def,
-                                    virQEMUDriverPtr driver)
+                                    virQEMUDriverConfigPtr cfg)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+int
+qemuDomainPrepareDiskSourceTLS(virStorageSourcePtr src,
+                               const char *diskAlias,
+                               virQEMUDriverConfigPtr cfg)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(3);
+
+int
+qemuDomainPrepareDiskSource(virDomainDefPtr def,
+                            virQEMUDriverConfigPtr cfg)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 int qemuDomainPrepareShmemChardev(virDomainShmemDefPtr shmem)
