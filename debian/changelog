@@ -1,3 +1,21 @@
+libvirt (3.8.0~rc1-1) experimental; urgency=medium
+
+  * apparmor: add attach_disconnected
+  * apparmor: cater for new AAVMF image location
+  * Don't ship apparmor profiles in the doc package too.
+    This is just confusing since things are installed in
+    libvirt-daemon-system.
+  * Drpo maintscript helpers for versions predating jessie and wheezy-backports
+  * New upstream version 3.8.0~rc1
+  * New upstream version 3.8.0~rc1
+  * Rediff patches
+    apparmor-cater-for-new-AAVMF-image-location.patch
+    apparmor-delete-profile-on-VM-shutdown.patch
+    apparmor-add-attach_disconnected.patch
+  * Bump symbol versions
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 29 Sep 2017 12:53:25 +0200
+
 libvirt (3.7.0-4) unstable; urgency=medium
 
   * Pass-GPG_TTY-env-var-to-the-ssh-binary.patch: sanitize commit message
