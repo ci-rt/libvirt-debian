@@ -1049,7 +1049,9 @@
     <function name="VIR_STORAGE_POOL_DEGRADED" link="libvirt-libvirt-storage.html#VIR_STORAGE_POOL_DEGRADED"/>
     <function name="VIR_STORAGE_POOL_DELETE_NORMAL" link="libvirt-libvirt-storage.html#VIR_STORAGE_POOL_DELETE_NORMAL"/>
     <function name="VIR_STORAGE_POOL_DELETE_ZEROED" link="libvirt-libvirt-storage.html#VIR_STORAGE_POOL_DELETE_ZEROED"/>
+    <function name="VIR_STORAGE_POOL_EVENT_CREATED" link="libvirt-libvirt-storage.html#VIR_STORAGE_POOL_EVENT_CREATED"/>
     <function name="VIR_STORAGE_POOL_EVENT_DEFINED" link="libvirt-libvirt-storage.html#VIR_STORAGE_POOL_EVENT_DEFINED"/>
+    <function name="VIR_STORAGE_POOL_EVENT_DELETED" link="libvirt-libvirt-storage.html#VIR_STORAGE_POOL_EVENT_DELETED"/>
     <function name="VIR_STORAGE_POOL_EVENT_ID_LAST" link="libvirt-libvirt-storage.html#VIR_STORAGE_POOL_EVENT_ID_LAST"/>
     <function name="VIR_STORAGE_POOL_EVENT_ID_LIFECYCLE" link="libvirt-libvirt-storage.html#VIR_STORAGE_POOL_EVENT_ID_LIFECYCLE"/>
     <function name="VIR_STORAGE_POOL_EVENT_ID_REFRESH" link="libvirt-libvirt-storage.html#VIR_STORAGE_POOL_EVENT_ID_REFRESH"/>

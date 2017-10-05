@@ -1,9 +1,17 @@
 libvirt releases
 ================
 
-# v3.8.0 (unreleased)
+# v3.8.0 (2017-10-04)
 
   * New features
+
+    - qemu: Added support for cold-(un)plug of watchdog devices
+
+    - qemu: Added support for setting IP address os usernet interfaces
+
+    - qemu: Added support for Veritas Hyperscale (VxHS) block devices
+
+    - storage: Added new events for pool-build and pool-delete
 
   * Improvements
 
@@ -17,7 +25,38 @@ libvirt releases
         Allow querying the NIC interface capabilities for the availability of
         switchdev offloading (also known as kernel-forward-plane-offload).
 
+    - New CPU models for AMD and Intel
+        AMD EPYC and Intel Skylake-Server CPU models were added together with
+        their features
+
+    - Improve long waiting when saving a domain
+        While waiting for a write to disk to be finished, e.g. during save,
+        even simple operations like virsh list would be blocking due to domain
+        lock. This is now resolved by unlocking the domain in places where it
+        is not needed.
+
   * Bug fixes
+
+    - Proper units are now used in virsh manpage for dom(mem)stats
+        Previously the documentation used multiples of 1000, but now it is
+        fixed to use multiples of 1024.
+
+    - qemu: Fix error reporting when disk attachment fails
+        There was a possibility for the actual error to be overridden or
+        cleared during the rollback.
+
+    - qemu: Fix assignment of graphics ports after daemon restart
+        This could be seen with newer kernels that have bug regarding
+        SO_REUSEADDR. After libvirtd was restarted it could assign already used
+        address to new guests which would make them fail to start. This is
+        fixed by marking used ports unavailable when reconnecting to running
+        QEMU domains.
+
+    - Fix message decoding which was causing a very strange bug
+        When parsing an RPC message with file descriptors was interrupted and
+        had to restart, the offset of the payload was calculated badly causing
+        strange issues like not being able to find a domain that was not
+        requested.
 
 # v3.7.0 (2017-09-04)
 
