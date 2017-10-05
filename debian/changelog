@@ -1,3 +1,10 @@
+libvirt (3.8.0-1) experimental; urgency=medium
+
+  * [842dee5] Add id-length to gbp.conf
+  * [6cf2527] New upstream version 3.8.0
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 05 Oct 2017 18:30:55 +0200
+
 libvirt (3.8.0~rc1-1) experimental; urgency=medium
 
   * apparmor: add attach_disconnected
