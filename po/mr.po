@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt 3.3.0\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2017-09-29 09:33+0200\n"
+"POT-Creation-Date: 2017-10-04 10:18+0200\n"
 "PO-Revision-Date: 2015-02-27 01:03-0500\n"
 "Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
 "Language-Team: Marathi (http://www.transifex.com/projects/p/libvirt/language/"
@@ -15218,148 +15218,148 @@ msgstr ""
 msgid "udev_monitor_new_from_netlink returned NULL"
 msgstr "udev_monitor_new_from_netlink ने NULL पुरवले"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:583
+#: src/nwfilter/nwfilter_dhcpsnoop.c:580
 #, c-format
 msgid "virNWFilterSnoopReqNew called with invalid key \"%s\" (%zu)"
 msgstr "अवैध कि \"%s\" (%zu) सह virNWFilterSnoopReqNew कॉल केले"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:891
+#: src/nwfilter/nwfilter_dhcpsnoop.c:888
 msgid "virNWFilterSnoopListDel failed"
 msgstr "virNWFilterSnoopListDel अपयशी"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:1112
+#: src/nwfilter/nwfilter_dhcpsnoop.c:1109
 msgid "pcap_create failed"
 msgstr "pcap_create अपयशी"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:1120
+#: src/nwfilter/nwfilter_dhcpsnoop.c:1117
 #, fuzzy, c-format
 msgid "setup of pcap handle failed: %s"
 msgstr "pcap हँडलची मांडणी अपयशी: %s"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:1127
+#: src/nwfilter/nwfilter_dhcpsnoop.c:1124
 #, c-format
 msgid "pcap_compile: %s"
 msgstr "pcap_compile: %s"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:1133
+#: src/nwfilter/nwfilter_dhcpsnoop.c:1130
 #, c-format
 msgid "pcap_setfilter: %s"
 msgstr "pcap_setfilter: %s"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:1139
+#: src/nwfilter/nwfilter_dhcpsnoop.c:1136
 #, c-format
 msgid "pcap_setdirection: %s"
 msgstr "pcap_setdirection: %s"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:1174
+#: src/nwfilter/nwfilter_dhcpsnoop.c:1171
 #, c-format
 msgid "Instantiation of rules failed on interface '%s'"
 msgstr "इंटरफेस '%s' वरील नियम सुरू करणे अपयशी"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:1483
+#: src/nwfilter/nwfilter_dhcpsnoop.c:1480
 #, c-format
 msgid "interface '%s' failing; reopening"
 msgstr "इंटरफेस '%s' अपयशी; पुनःउघडत आहे"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:1537
+#: src/nwfilter/nwfilter_dhcpsnoop.c:1534
 #, c-format
 msgid "Job submission failed on interface '%s'"
 msgstr "इंटरफेस '%s' वरील जॉब सादरिकरण अपयशी"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:1642
+#: src/nwfilter/nwfilter_dhcpsnoop.c:1639
 #: src/nwfilter/nwfilter_learnipaddr.c:705
 msgid ""
 "IP parameter must be provided since snooping the IP address does not work "
 "possibly due to missing tools"
 msgstr "साधन न आढळल्याने IP घटक स्नूपिंग कार्य करत नसल्याने घटक पुरवणे आवश्यक"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:1654
+#: src/nwfilter/nwfilter_dhcpsnoop.c:1651
 msgid "applyDHCPOnlyRules failed - spoofing not protected!"
 msgstr "applyDHCPOnlyRules failed - स्पूफिंग सुरक्षित नाही!"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:1661
+#: src/nwfilter/nwfilter_dhcpsnoop.c:1658
 #, c-format
 msgid "virNWFilterDHCPSnoopReq: can't copy variables on if %s"
 msgstr "virNWFilterDHCPSnoopReq: %s असल्यास वेरियेब्ल्स्चे प्रत बनवणे अशक्य"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:1671
+#: src/nwfilter/nwfilter_dhcpsnoop.c:1668
 #, c-format
 msgid ""
 "virNWFilterDHCPSnoopReq ifname map failed on interface \"%s\" key \"%s\""
 msgstr "इंटरफेस \"%s\" कि \"%s\" वरील virNWFilterDHCPSnoopReq ifname मॅप अपयशी"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:1680
+#: src/nwfilter/nwfilter_dhcpsnoop.c:1677
 #, c-format
 msgid "virNWFilterDHCPSnoopReq req add failed on interface \"%s\" ifkey \"%s\""
 msgstr "इंटरफेस \"%s\" ifkey \"%s\" वरील virNWFilterDHCPSnoopReq req add अपयशी"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:1692
+#: src/nwfilter/nwfilter_dhcpsnoop.c:1689
 #, c-format
 msgid "virNWFilterDHCPSnoopReq virThreadCreate failed on interface '%s'"
 msgstr "इंटरफेस '%s' वरील virNWFilterDHCPSnoopReq virThreadCreate अपयशी"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:1704
+#: src/nwfilter/nwfilter_dhcpsnoop.c:1701
 #, c-format
 msgid "Activation of snoop request failed on interface '%s'"
 msgstr "इंटरफेस '%s' वरील स्नूप विनंती सुरू करणे अपयशी"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:1711
+#: src/nwfilter/nwfilter_dhcpsnoop.c:1708
 #, c-format
 msgid "Restoring of leases failed on interface '%s'"
 msgstr "इंटरफेस '%s' वरील लिज्ला पुनःसाठवणे अपयशी"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:1790
+#: src/nwfilter/nwfilter_dhcpsnoop.c:1787
 msgid "lease file write failed"
 msgstr "लिज फाइल राइट अपयशी"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:1898
+#: src/nwfilter/nwfilter_dhcpsnoop.c:1895
 #, c-format
 msgid "mkdir(\"%s\")"
 msgstr "mkdir(\"%s\")"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:1903
+#: src/nwfilter/nwfilter_dhcpsnoop.c:1900
 #, c-format
 msgid "unlink(\"%s\")"
 msgstr "unlink(\"%s\")"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:1908
+#: src/nwfilter/nwfilter_dhcpsnoop.c:1905
 #, c-format
 msgid "open(\"%s\")"
 msgstr "open(\"%s\")"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:1922 src/qemu/qemu_driver.c:3304
+#: src/nwfilter/nwfilter_dhcpsnoop.c:1919 src/qemu/qemu_driver.c:3304
 #: src/qemu/qemu_driver.c:4051 src/vbox/vbox_common.c:7237
 #, c-format
 msgid "unable to close %s"
 msgstr "%s बंद करण्यास अशक्य"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:1928
+#: src/nwfilter/nwfilter_dhcpsnoop.c:1925
 #, c-format
 msgid "rename(\"%s\", \"%s\")"
 msgstr "rename(\"%s\", \"%s\")"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:1958
-#: src/nwfilter/nwfilter_dhcpsnoop.c:1967
+#: src/nwfilter/nwfilter_dhcpsnoop.c:1955
+#: src/nwfilter/nwfilter_dhcpsnoop.c:1964
 #, c-format
 msgid "virNWFilterSnoopLeaseFileLoad lease file line %d corrupt"
 msgstr "virNWFilterSnoopLeaseFileLoad लिज फाइल लाइन %d सदोषीत"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:1984
+#: src/nwfilter/nwfilter_dhcpsnoop.c:1981
 #, c-format
 msgid "virNWFilterSnoopLeaseFileLoad req add failed on interface \"%s\""
 msgstr "इंटरफेस \"%s\" वरील virNWFilterSnoopLeaseFileLoad req add अपयशी"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:1992
+#: src/nwfilter/nwfilter_dhcpsnoop.c:1989
 #, c-format
 msgid "line %d corrupt ipaddr \"%s\""
 msgstr "लाइन %d सदोषीत ipaddr \"%s\" "
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:2155
+#: src/nwfilter/nwfilter_dhcpsnoop.c:2152
 #, c-format
 msgid "ifkey \"%s\" has no req"
 msgstr "ifkey \"%s\" मध्ये req नाही"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:2236
+#: src/nwfilter/nwfilter_dhcpsnoop.c:2233
 msgid "libvirt was not compiled with libpcap and \""
 msgstr "libvirt libpcap व सह कंपाइल केले जात नाही \""
 

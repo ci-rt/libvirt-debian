@@ -53,33 +53,35 @@ int
 virNWFilterIPAddrMapAddIPAddr(const char *ifname, char *addr)
 {
     int ret = -1;
+    char *addrCopy;
     virNWFilterVarValuePtr val;
-    char *tmp = NULL;
+
+    if (VIR_STRDUP(addrCopy, addr) < 0)
+        return -1;
 
     virMutexLock(&ipAddressMapLock);
 
     val = virHashLookup(ipAddressMap->hashTable, ifname);
     if (!val) {
-        val = virNWFilterVarValueCreateSimple(addr);
+        val = virNWFilterVarValueCreateSimple(addrCopy);
         if (!val)
             goto cleanup;
+        addrCopy = NULL;
         ret = virNWFilterHashTablePut(ipAddressMap, ifname, val);
         if (ret < 0)
             virNWFilterVarValueFree(val);
         goto cleanup;
     } else {
-        if (VIR_STRDUP(tmp, addr) < 0)
+        if (virNWFilterVarValueAddValue(val, addrCopy) < 0)
             goto cleanup;
-        if (virNWFilterVarValueAddValue(val, tmp) < 0)
-            goto cleanup;
-        tmp = NULL;
+        addrCopy = NULL;
     }
 
     ret = 0;
 
  cleanup:
     virMutexUnlock(&ipAddressMapLock);
-    VIR_FREE(tmp);
+    VIR_FREE(addrCopy);
 
     return ret;
 }
