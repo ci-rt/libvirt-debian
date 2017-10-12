@@ -17,3 +17,4 @@ debian/apparmor_profiles_local_include.patch
 Set-defaults-for-zfs-tools.patch
 Pass-GPG_TTY-env-var-to-the-ssh-binary.patch
 apparmor-add-dnsmasq-ptrace-rule-to-libvirtd-profile.patch
+virt-host-validate-require-fuse-for-LXC-if-compiled-in.patch

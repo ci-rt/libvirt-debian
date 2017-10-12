@@ -1,0 +1,33 @@
+From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Thu, 12 Oct 2017 16:51:13 +0200
+Subject: virt-host-validate: require fuse for LXC if compiled in
+
+Domains fail to start without fuse like
+
+  error: internal error: guest failed to start: fuse: device not found, try 'modprobe fuse' first
+  Failure in libvirt_lxc startup: no error
+
+so check for it too.
+
+References: https://ci.debian.net/data/autopkgtest/unstable/amd64/libv/libvirt/20171012_105903/log.gz
+---
+ tools/virt-host-validate-lxc.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/tools/virt-host-validate-lxc.c b/tools/virt-host-validate-lxc.c
+index 2b906cc..64d9279 100644
+--- a/tools/virt-host-validate-lxc.c
++++ b/tools/virt-host-validate-lxc.c
+@@ -93,5 +93,12 @@ int virHostValidateLXC(void)
+                                         "BLK_CGROUP") < 0)
+         ret = -1;
+ 
++#if WITH_FUSE
++    if (virHostValidateDeviceExists("LXC", "/sys/fs/fuse/connections",
++                                    VIR_HOST_VALIDATE_FAIL,
++                                    _("Load the 'fuse' module to enable /proc/ overrides")) < 0)
++        ret = -1;
++#endif
++
+     return ret;
+ }
