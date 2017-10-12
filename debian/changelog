@@ -1,3 +1,11 @@
+libvirt (3.8.0-2) unstable; urgency=medium
+
+  * Upload to unstable
+    Closes: #878153
+  * [646a20f] apparmor: add dnsmasq ptrace rule to libvirtd profile
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 12 Oct 2017 10:27:25 +0200
+
 libvirt (3.8.0-1) experimental; urgency=medium
 
   * [842dee5] Add id-length to gbp.conf
