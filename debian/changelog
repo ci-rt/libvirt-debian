@@ -1,3 +1,10 @@
+libvirt (3.0.0-4+deb9u1) stretch-security; urgency=high
+
+  * CVE-2017-1000256: qemu: ensure TLS clients always verify the server
+    certificate (Closes: #878799)
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 16 Oct 2017 22:48:55 +0200
+
 libvirt (3.0.0-4) unstable; urgency=medium
 
   * [2a23b23] qemu: skip QMP probing of CPU definitions when missing.
