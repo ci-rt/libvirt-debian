@@ -1,3 +1,14 @@
+libvirt (3.8.0-3) unstable; urgency=medium
+
+  * [e0e0a42] virt-host-validate: require fuse for LXC if compiled in.
+    This should make us skip the lxc test properly on debci.
+  * [d16ae50] Drop libvirt-bin upgrade handling
+    libvirt-bin was dropped before Jessie
+  * [3f18a26] CVE-2017-1000256: qemu: ensure TLS clients always verify the
+    server certificate (Closes: #878799)
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 16 Oct 2017 19:36:25 +0200
+
 libvirt (3.8.0-2) unstable; urgency=medium
 
   * Upload to unstable
