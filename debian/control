@@ -87,8 +87,6 @@ Depends:
  ${shlibs:Depends},
  libvirt0 (= ${binary:Version}),
 Section: admin
-Replaces: libvirt-bin (<< 1.2.6-1~)
-Conflicts: libvirt-bin (<< 1.2.6-1~)
 Suggests:
  libvirt-daemon,
 Description: Programs for the libvirt library
@@ -196,8 +194,6 @@ Description: Virtualization daemon ZFS storage driver
 
 Package: libvirt-daemon-system
 Architecture: any
-# Needed to clean up old libvirt-bin cruft, can be removed post jessie
-Pre-Depends: init-system-helpers (>= 1.18~)
 Depends:
  ${misc:Depends},
  ${shlibs:Depends},
@@ -221,8 +217,6 @@ Suggests: radvd, auditd, systemtap, systemd, apparmor,
  nfs-common, zfsutils, pm-utils
 Breaks: avahi-daemon (<< 0.6.31-3~),
  systemd-sysv (<< 224-1~)
-Replaces: libvirt-bin (<< 1.2.7-4~)
-Conflicts: libvirt-bin (<< 1.2.6-1~)
 Description: Libvirt daemon configuration files
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
@@ -260,7 +254,6 @@ Package: libvirt-dev
 Architecture: any
 Section: libdevel
 Depends: ${misc:Depends}, libvirt0 (= ${binary:Version}), libxen-dev [i386 amd64 armhf arm64]
-Replaces: libvirt-bin (<< 1.2.0~)
 Recommends: pkg-config
 Description: development files for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities
