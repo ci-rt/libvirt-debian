@@ -27,6 +27,7 @@
 # include <sys/stat.h>
 
 # include "virbitmap.h"
+# include "virobject.h"
 # include "virseclabel.h"
 # include "virstorageencryption.h"
 # include "virutil.h"
@@ -227,6 +228,7 @@ typedef virStorageSource *virStorageSourcePtr;
  * IMPORTANT: When adding fields to this struct it's also necessary to add
  * appropriate code to the virStorageSourceCopy deep copy function */
 struct _virStorageSource {
+    unsigned int id; /* backing chain identifier, 0 is unset */
     int type; /* virStorageType */
     char *path;
     int protocol; /* virStorageNetProtocol */
@@ -238,7 +240,11 @@ struct _virStorageSource {
     virStorageNetHostDefPtr hosts;
     virStorageSourcePoolDefPtr srcpool;
     virStorageAuthDefPtr auth;
+    bool authInherited;
     virStorageEncryptionPtr encryption;
+    bool encryptionInherited;
+
+    virObjectPtr privateData;
 
     char *driverName;
     int format; /* virStorageFileFormat in domain backing chains, but
@@ -295,6 +301,8 @@ struct _virStorageSource {
     char *tlsAlias;
     char *tlsCertdir;
     bool tlsVerify;
+
+    bool detected; /* true if this entry was not provided by the user */
 };
 
 
@@ -423,5 +431,11 @@ virStorageSourceFindByNodeName(virStorageSourcePtr top,
 void
 virStorageSourceNetworkAssignDefaultPorts(virStorageSourcePtr src)
     ATTRIBUTE_NONNULL(1);
+
+bool
+virStorageSourceIsBacking(const virStorageSource *src);
+bool
+virStorageSourceHasBacking(const virStorageSource *src);
+
 
 #endif /* __VIR_STORAGE_FILE_H__ */

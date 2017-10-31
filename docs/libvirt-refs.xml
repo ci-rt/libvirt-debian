@@ -376,6 +376,7 @@
     <reference name='VIR_DOMAIN_JOB_MEMORY_ITERATION' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_MEMORY_ITERATION'/>
     <reference name='VIR_DOMAIN_JOB_MEMORY_NORMAL' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_MEMORY_NORMAL'/>
     <reference name='VIR_DOMAIN_JOB_MEMORY_NORMAL_BYTES' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_MEMORY_NORMAL_BYTES'/>
+    <reference name='VIR_DOMAIN_JOB_MEMORY_PAGE_SIZE' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_MEMORY_PAGE_SIZE'/>
     <reference name='VIR_DOMAIN_JOB_MEMORY_PROCESSED' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_MEMORY_PROCESSED'/>
     <reference name='VIR_DOMAIN_JOB_MEMORY_REMAINING' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_MEMORY_REMAINING'/>
     <reference name='VIR_DOMAIN_JOB_MEMORY_TOTAL' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_MEMORY_TOTAL'/>
@@ -398,6 +399,17 @@
     <reference name='VIR_DOMAIN_JOB_TIME_REMAINING' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_TIME_REMAINING'/>
     <reference name='VIR_DOMAIN_JOB_UNBOUNDED' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_UNBOUNDED'/>
     <reference name='VIR_DOMAIN_LAST' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_LAST'/>
+    <reference name='VIR_DOMAIN_LIFECYCLE_ACTION_COREDUMP_DESTROY' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_LIFECYCLE_ACTION_COREDUMP_DESTROY'/>
+    <reference name='VIR_DOMAIN_LIFECYCLE_ACTION_COREDUMP_RESTART' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_LIFECYCLE_ACTION_COREDUMP_RESTART'/>
+    <reference name='VIR_DOMAIN_LIFECYCLE_ACTION_DESTROY' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_LIFECYCLE_ACTION_DESTROY'/>
+    <reference name='VIR_DOMAIN_LIFECYCLE_ACTION_LAST' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_LIFECYCLE_ACTION_LAST'/>
+    <reference name='VIR_DOMAIN_LIFECYCLE_ACTION_PRESERVE' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_LIFECYCLE_ACTION_PRESERVE'/>
+    <reference name='VIR_DOMAIN_LIFECYCLE_ACTION_RESTART' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_LIFECYCLE_ACTION_RESTART'/>
+    <reference name='VIR_DOMAIN_LIFECYCLE_ACTION_RESTART_RENAME' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_LIFECYCLE_ACTION_RESTART_RENAME'/>
+    <reference name='VIR_DOMAIN_LIFECYCLE_CRASH' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_LIFECYCLE_CRASH'/>
+    <reference name='VIR_DOMAIN_LIFECYCLE_LAST' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_LIFECYCLE_LAST'/>
+    <reference name='VIR_DOMAIN_LIFECYCLE_POWEROFF' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_LIFECYCLE_POWEROFF'/>
+    <reference name='VIR_DOMAIN_LIFECYCLE_REBOOT' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_LIFECYCLE_REBOOT'/>
     <reference name='VIR_DOMAIN_MEMORY_FIELD_LENGTH' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_MEMORY_FIELD_LENGTH'/>
     <reference name='VIR_DOMAIN_MEMORY_HARD_LIMIT' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_MEMORY_HARD_LIMIT'/>
     <reference name='VIR_DOMAIN_MEMORY_MIN_GUARANTEE' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_MEMORY_MIN_GUARANTEE'/>
@@ -1422,6 +1434,8 @@
     <reference name='virDomainJobInfoPtr' href='html/libvirt-libvirt-domain.html#virDomainJobInfoPtr'/>
     <reference name='virDomainJobOperation' href='html/libvirt-libvirt-domain.html#virDomainJobOperation'/>
     <reference name='virDomainJobType' href='html/libvirt-libvirt-domain.html#virDomainJobType'/>
+    <reference name='virDomainLifecycle' href='html/libvirt-libvirt-domain.html#virDomainLifecycle'/>
+    <reference name='virDomainLifecycleAction' href='html/libvirt-libvirt-domain.html#virDomainLifecycleAction'/>
     <reference name='virDomainListAllSnapshots' href='html/libvirt-libvirt-domain-snapshot.html#virDomainListAllSnapshots'/>
     <reference name='virDomainListGetStats' href='html/libvirt-libvirt-domain.html#virDomainListGetStats'/>
     <reference name='virDomainLookupByID' href='html/libvirt-libvirt-domain.html#virDomainLookupByID'/>
@@ -1497,6 +1511,7 @@
     <reference name='virDomainSetBlockThreshold' href='html/libvirt-libvirt-domain.html#virDomainSetBlockThreshold'/>
     <reference name='virDomainSetGuestVcpus' href='html/libvirt-libvirt-domain.html#virDomainSetGuestVcpus'/>
     <reference name='virDomainSetInterfaceParameters' href='html/libvirt-libvirt-domain.html#virDomainSetInterfaceParameters'/>
+    <reference name='virDomainSetLifecycleAction' href='html/libvirt-libvirt-domain.html#virDomainSetLifecycleAction'/>
     <reference name='virDomainSetMaxMemory' href='html/libvirt-libvirt-domain.html#virDomainSetMaxMemory'/>
     <reference name='virDomainSetMemory' href='html/libvirt-libvirt-domain.html#virDomainSetMemory'/>
     <reference name='virDomainSetMemoryFlags' href='html/libvirt-libvirt-domain.html#virDomainSetMemoryFlags'/>
@@ -2233,6 +2248,7 @@
       <ref name='VIR_DOMAIN_JOB_MEMORY_ITERATION'/>
       <ref name='VIR_DOMAIN_JOB_MEMORY_NORMAL'/>
       <ref name='VIR_DOMAIN_JOB_MEMORY_NORMAL_BYTES'/>
+      <ref name='VIR_DOMAIN_JOB_MEMORY_PAGE_SIZE'/>
       <ref name='VIR_DOMAIN_JOB_MEMORY_PROCESSED'/>
       <ref name='VIR_DOMAIN_JOB_MEMORY_REMAINING'/>
       <ref name='VIR_DOMAIN_JOB_MEMORY_TOTAL'/>
@@ -2255,6 +2271,17 @@
       <ref name='VIR_DOMAIN_JOB_TIME_REMAINING'/>
       <ref name='VIR_DOMAIN_JOB_UNBOUNDED'/>
       <ref name='VIR_DOMAIN_LAST'/>
+      <ref name='VIR_DOMAIN_LIFECYCLE_ACTION_COREDUMP_DESTROY'/>
+      <ref name='VIR_DOMAIN_LIFECYCLE_ACTION_COREDUMP_RESTART'/>
+      <ref name='VIR_DOMAIN_LIFECYCLE_ACTION_DESTROY'/>
+      <ref name='VIR_DOMAIN_LIFECYCLE_ACTION_LAST'/>
+      <ref name='VIR_DOMAIN_LIFECYCLE_ACTION_PRESERVE'/>
+      <ref name='VIR_DOMAIN_LIFECYCLE_ACTION_RESTART'/>
+      <ref name='VIR_DOMAIN_LIFECYCLE_ACTION_RESTART_RENAME'/>
+      <ref name='VIR_DOMAIN_LIFECYCLE_CRASH'/>
+      <ref name='VIR_DOMAIN_LIFECYCLE_LAST'/>
+      <ref name='VIR_DOMAIN_LIFECYCLE_POWEROFF'/>
+      <ref name='VIR_DOMAIN_LIFECYCLE_REBOOT'/>
       <ref name='VIR_DOMAIN_MEMORY_FIELD_LENGTH'/>
       <ref name='VIR_DOMAIN_MEMORY_HARD_LIMIT'/>
       <ref name='VIR_DOMAIN_MEMORY_MIN_GUARANTEE'/>
@@ -3283,6 +3310,8 @@
       <ref name='virDomainJobInfoPtr'/>
       <ref name='virDomainJobOperation'/>
       <ref name='virDomainJobType'/>
+      <ref name='virDomainLifecycle'/>
+      <ref name='virDomainLifecycleAction'/>
       <ref name='virDomainListAllSnapshots'/>
       <ref name='virDomainListGetStats'/>
       <ref name='virDomainLookupByID'/>
@@ -3358,6 +3387,7 @@
       <ref name='virDomainSetBlockThreshold'/>
       <ref name='virDomainSetGuestVcpus'/>
       <ref name='virDomainSetInterfaceParameters'/>
+      <ref name='virDomainSetLifecycleAction'/>
       <ref name='virDomainSetMaxMemory'/>
       <ref name='virDomainSetMemory'/>
       <ref name='virDomainSetMemoryFlags'/>
@@ -4065,6 +4095,7 @@
       <ref name='virDomainSetBlockThreshold'/>
       <ref name='virDomainSetGuestVcpus'/>
       <ref name='virDomainSetInterfaceParameters'/>
+      <ref name='virDomainSetLifecycleAction'/>
       <ref name='virDomainSetMemoryFlags'/>
       <ref name='virDomainSetMemoryParameters'/>
       <ref name='virDomainSetMemoryStatsPeriod'/>
@@ -4582,6 +4613,7 @@
       <ref name='virDomainSetBlockThreshold'/>
       <ref name='virDomainSetGuestVcpus'/>
       <ref name='virDomainSetInterfaceParameters'/>
+      <ref name='virDomainSetLifecycleAction'/>
       <ref name='virDomainSetMaxMemory'/>
       <ref name='virDomainSetMemory'/>
       <ref name='virDomainSetMemoryFlags'/>
@@ -5441,6 +5473,7 @@
       <ref name='VIR_DOMAIN_JOB_MEMORY_ITERATION'/>
       <ref name='VIR_DOMAIN_JOB_MEMORY_NORMAL'/>
       <ref name='VIR_DOMAIN_JOB_MEMORY_NORMAL_BYTES'/>
+      <ref name='VIR_DOMAIN_JOB_MEMORY_PAGE_SIZE'/>
       <ref name='VIR_DOMAIN_JOB_MEMORY_PROCESSED'/>
       <ref name='VIR_DOMAIN_JOB_MEMORY_REMAINING'/>
       <ref name='VIR_DOMAIN_JOB_MEMORY_TOTAL'/>
@@ -5463,6 +5496,17 @@
       <ref name='VIR_DOMAIN_JOB_TIME_REMAINING'/>
       <ref name='VIR_DOMAIN_JOB_UNBOUNDED'/>
       <ref name='VIR_DOMAIN_LAST'/>
+      <ref name='VIR_DOMAIN_LIFECYCLE_ACTION_COREDUMP_DESTROY'/>
+      <ref name='VIR_DOMAIN_LIFECYCLE_ACTION_COREDUMP_RESTART'/>
+      <ref name='VIR_DOMAIN_LIFECYCLE_ACTION_DESTROY'/>
+      <ref name='VIR_DOMAIN_LIFECYCLE_ACTION_LAST'/>
+      <ref name='VIR_DOMAIN_LIFECYCLE_ACTION_PRESERVE'/>
+      <ref name='VIR_DOMAIN_LIFECYCLE_ACTION_RESTART'/>
+      <ref name='VIR_DOMAIN_LIFECYCLE_ACTION_RESTART_RENAME'/>
+      <ref name='VIR_DOMAIN_LIFECYCLE_CRASH'/>
+      <ref name='VIR_DOMAIN_LIFECYCLE_LAST'/>
+      <ref name='VIR_DOMAIN_LIFECYCLE_POWEROFF'/>
+      <ref name='VIR_DOMAIN_LIFECYCLE_REBOOT'/>
       <ref name='VIR_DOMAIN_MEMORY_FIELD_LENGTH'/>
       <ref name='VIR_DOMAIN_MEMORY_HARD_LIMIT'/>
       <ref name='VIR_DOMAIN_MEMORY_MIN_GUARANTEE'/>
@@ -6021,6 +6065,8 @@
       <ref name='virDomainJobInfoPtr'/>
       <ref name='virDomainJobOperation'/>
       <ref name='virDomainJobType'/>
+      <ref name='virDomainLifecycle'/>
+      <ref name='virDomainLifecycleAction'/>
       <ref name='virDomainListGetStats'/>
       <ref name='virDomainLookupByID'/>
       <ref name='virDomainLookupByName'/>
@@ -6094,6 +6140,7 @@
       <ref name='virDomainSetBlockThreshold'/>
       <ref name='virDomainSetGuestVcpus'/>
       <ref name='virDomainSetInterfaceParameters'/>
+      <ref name='virDomainSetLifecycleAction'/>
       <ref name='virDomainSetMaxMemory'/>
       <ref name='virDomainSetMemory'/>
       <ref name='virDomainSetMemoryFlags'/>
@@ -7172,6 +7219,7 @@
           <ref name='virNodeSetMemoryParameters'/>
         </word>
         <word name='Changes'>
+          <ref name='virDomainSetLifecycleAction'/>
           <ref name='virStorageVolResize'/>
           <ref name='virStreamEventUpdateCallback'/>
         </word>
@@ -7824,6 +7872,7 @@
         <word name='MAC'>
           <ref name='_virNetworkDHCPLease'/>
           <ref name='virDomainInterfaceAddresses'/>
+          <ref name='virDomainInterfaceStats'/>
           <ref name='virInterfaceGetMACString'/>
           <ref name='virInterfaceLookupByMACString'/>
           <ref name='virNetworkGetDHCPLeases'/>
@@ -8244,6 +8293,7 @@
           <ref name='virDomainFSThaw'/>
           <ref name='virDomainGetBlockInfo'/>
           <ref name='virDomainPMSuspendForDuration'/>
+          <ref name='virDomainSetLifecycleAction'/>
           <ref name='virNodeDeviceDetachFlags'/>
         </word>
         <word name='Queries'>
@@ -9335,6 +9385,9 @@
           <ref name='VIR_DOMAIN_JOB_TIME_REMAINING'/>
           <ref name='_virDomainJobInfo'/>
         </word>
+        <word name='VIR_DOMAIN_JOB_COMPRESSION_PAGES'>
+          <ref name='VIR_DOMAIN_JOB_MEMORY_PAGE_SIZE'/>
+        </word>
         <word name='VIR_DOMAIN_JOB_DATA_PROCESSED'>
           <ref name='VIR_DOMAIN_JOB_DATA_TOTAL'/>
           <ref name='VIR_DOMAIN_JOB_DISK_PROCESSED'/>
@@ -9349,6 +9402,9 @@
           <ref name='VIR_DOMAIN_JOB_DATA_TOTAL'/>
           <ref name='VIR_DOMAIN_JOB_DISK_TOTAL'/>
           <ref name='VIR_DOMAIN_JOB_MEMORY_TOTAL'/>
+        </word>
+        <word name='VIR_DOMAIN_JOB_MEMORY_DIRTY_RATE'>
+          <ref name='VIR_DOMAIN_JOB_MEMORY_PAGE_SIZE'/>
         </word>
         <word name='VIR_DOMAIN_JOB_MEMORY_NORMAL'>
           <ref name='VIR_DOMAIN_JOB_MEMORY_NORMAL_BYTES'/>
@@ -10192,11 +10248,13 @@
           <ref name='virConnectNodeDeviceEventLifecycleCallback'/>
           <ref name='virConnectSecretEventLifecycleCallback'/>
           <ref name='virConnectStoragePoolEventLifecycleCallback'/>
+          <ref name='virDomainSetLifecycleAction'/>
           <ref name='virNetworkUpdate'/>
         </word>
         <word name='actions'>
           <ref name='virDomainBlockCopy'/>
           <ref name='virDomainBlockRebase'/>
+          <ref name='virDomainSetLifecycleAction'/>
           <ref name='virDomainUpdateDeviceFlags'/>
         </word>
         <word name='activate'>
@@ -10291,6 +10349,7 @@
           <ref name='virConnectDomainEventGraphicsCallback'/>
           <ref name='virDomainGetInterfaceParameters'/>
           <ref name='virDomainInterfaceAddresses'/>
+          <ref name='virDomainInterfaceStats'/>
           <ref name='virDomainSetInterfaceParameters'/>
           <ref name='virInterfaceGetMACString'/>
           <ref name='virInterfaceGetXMLDesc'/>
@@ -12494,6 +12553,7 @@
           <ref name='VIR_MIGRATE_PARAM_AUTO_CONVERGE_INITIAL'/>
         </word>
         <word name='convert'>
+          <ref name='VIR_DOMAIN_JOB_MEMORY_PAGE_SIZE'/>
           <ref name='virDomainBlockRebase'/>
         </word>
         <word name='converted'>
@@ -13079,6 +13139,7 @@
           <ref name='virDomainCreateWithFlags'/>
           <ref name='virDomainCreateXML'/>
           <ref name='virDomainCreateXMLWithFiles'/>
+          <ref name='virDomainSetLifecycleAction'/>
         </word>
         <word name='destroyed'>
           <ref name='virDomainCreateWithFiles'/>
@@ -15233,9 +15294,13 @@
         </word>
         <word name='http:'>
           <ref name='virConnectGetType'/>
-          <ref name='virConnectOpen'/>
+        </word>
+        <word name='https:'>
           <ref name='virConnectOpenAuth'/>
           <ref name='virConnectOpenReadOnly'/>
+        </word>
+        <word name='httsp:'>
+          <ref name='virConnectOpen'/>
         </word>
         <word name='huge'>
           <ref name='virNodeAllocPages'/>
@@ -16486,6 +16551,7 @@
           <ref name='virConnectNodeDeviceEventLifecycleCallback'/>
           <ref name='virConnectSecretEventLifecycleCallback'/>
           <ref name='virConnectStoragePoolEventLifecycleCallback'/>
+          <ref name='virDomainSetLifecycleAction'/>
         </word>
         <word name='lifetime'>
           <ref name='virDomainGetName'/>
@@ -16523,6 +16589,9 @@
         </word>
         <word name='likewise'>
           <ref name='virDomainBlockJobAbort'/>
+        </word>
+        <word name='limitation'>
+          <ref name='virDomainSetLifecycleAction'/>
         </word>
         <word name='limitations'>
           <ref name='virDomainMigrate3'/>
@@ -18028,6 +18097,9 @@
           <ref name='virDomainSaveImageDefineXML'/>
           <ref name='virDomainUndefineFlags'/>
         </word>
+        <word name='on_$type'>
+          <ref name='virDomainSetLifecycleAction'/>
+        </word>
         <word name='on_poweroff'>
           <ref name='virDomainShutdown'/>
           <ref name='virDomainShutdownFlags'/>
@@ -18192,6 +18264,7 @@
           <ref name='virGetVersion'/>
         </word>
         <word name='other'>
+          <ref name='VIR_DOMAIN_JOB_MEMORY_PAGE_SIZE'/>
           <ref name='virConnectClose'/>
           <ref name='virConnectDomainEventIOErrorReasonCallback'/>
           <ref name='virConnectGetAllDomainStats'/>
@@ -18283,6 +18356,7 @@
         <word name='page'>
           <ref name='VIR_DOMAIN_JOB_COMPRESSION_OVERFLOW'/>
           <ref name='VIR_DOMAIN_JOB_MEMORY_CONSTANT'/>
+          <ref name='VIR_DOMAIN_JOB_MEMORY_PAGE_SIZE'/>
           <ref name='VIR_MIGRATE_PARAM_COMPRESSION_XBZRLE_CACHE'/>
           <ref name='VIR_PERF_PARAM_PAGE_FAULTS'/>
           <ref name='VIR_PERF_PARAM_PAGE_FAULTS_MAJ'/>
@@ -18696,9 +18770,11 @@
         <word name='point'>
           <ref name='_virDomainFSInfo'/>
           <ref name='virConnectDomainEventBlockThresholdCallback'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainBlockRebase'/>
           <ref name='virDomainFSTrim'/>
+          <ref name='virDomainInterfaceStats'/>
           <ref name='virDomainMigrateStartPostCopy'/>
           <ref name='virInterfaceChangeBegin'/>
           <ref name='virInterfaceChangeCommit'/>
@@ -18939,6 +19015,7 @@
           <ref name='virTypedParamsGetULLong'/>
         </word>
         <word name='present'>
+          <ref name='VIR_DOMAIN_JOB_MEMORY_PAGE_SIZE'/>
           <ref name='VIR_NODE_MEMORY_SHARED_PAGES_TO_SCAN'/>
           <ref name='virConnectGetType'/>
           <ref name='virDomainBlockCopy'/>
@@ -20052,6 +20129,9 @@
         </word>
         <word name='representative'>
           <ref name='virDomainGetBlockInfo'/>
+        </word>
+        <word name='represented'>
+          <ref name='virDomainSetLifecycleAction'/>
         </word>
         <word name='representing'>
           <ref name='virDomainGetGuestVcpus'/>
@@ -23088,7 +23168,9 @@
           <ref name='virStreamSourceHoleFunc'/>
         </word>
         <word name='view'>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainBlockCopy'/>
+          <ref name='virDomainInterfaceStats'/>
         </word>
         <word name='virBlkioParameter'>
           <ref name='VIR_DOMAIN_BLKIO_FIELD_LENGTH'/>
@@ -23714,6 +23796,12 @@
         <word name='virDomainJobType'>
           <ref name='virDomainGetJobStats'/>
         </word>
+        <word name='virDomainLifecycle'>
+          <ref name='virDomainSetLifecycleAction'/>
+        </word>
+        <word name='virDomainLifecycleAction'>
+          <ref name='virDomainSetLifecycleAction'/>
+        </word>
         <word name='virDomainListAllSnapshots'>
           <ref name='virDomainSnapshotListNames'/>
         </word>
@@ -23802,6 +23890,7 @@
           <ref name='virDomainSetBlkioParameters'/>
           <ref name='virDomainSetBlockIoTune'/>
           <ref name='virDomainSetInterfaceParameters'/>
+          <ref name='virDomainSetLifecycleAction'/>
           <ref name='virDomainSetMemoryParameters'/>
           <ref name='virDomainSetMetadata'/>
           <ref name='virDomainSetNumaParameters'/>

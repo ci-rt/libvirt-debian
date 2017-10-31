@@ -1623,6 +1623,13 @@
     </dl>
 
     <p>
+      <span class="since">Since 3.9.0</span>, the lifecycle events can
+      be configured via the
+      <a href="html/libvirt-libvirt-domain.html#virDomainSetLifecycleAction">
+        <code>virDomainSetLifecycleAction</code></a> API.
+    </p>
+
+    <p>
       The <code>on_lockfailure</code> element (<span class="since">since
       1.0.0</span>) may be used to configure what action should be
       taken when a lock manager loses resource locks. The following
@@ -2249,6 +2256,29 @@
       </dd>
     </dl>
 
+    <p>
+      To help users identifying devices they care about, every
+      device can have direct child <code>alias</code> element
+      which then has <code>name</code> attribute where users can
+      store identifier for the device. The identifier has to have
+      "ua-" prefix and must be unique within the domain. Additionally, the
+      identifier must consist only of the following characters:
+      <code>[a-zA-Z0-9_-]</code>.
+      <span class="since">Since 3.9.0</span>
+    </p>
+
+<pre>
+&lt;devices&gt;
+  &lt;disk type='file'&gt;
+    &lt;alias name='ua-myDisk'/&gt;
+  &lt;/disk&gt;
+  &lt;interface type='network' trustGuestRxFilters='yes'&gt;
+    &lt;alias name='ua-myNIC'/&gt;
+  &lt;/interface&gt;
+  ...
+&lt;/devices&gt;
+</pre>
+
     <h4><a id="elementsDisks">Hard drives, floppy disks, CDROMs</a></h4>
 
     <p>
@@ -2297,11 +2327,11 @@
       &lt;host name="hostname" port="7000"/&gt;
       &lt;snapshot name="snapname"/&gt;
       &lt;config file="/path/to/file"/&gt;
+      &lt;auth username='myuser'&gt;
+        &lt;secret type='ceph' usage='mypassid'/&gt;
+      &lt;/auth&gt;
     &lt;/source&gt;
     &lt;target dev="hdc" bus="ide"/&gt;
-    &lt;auth username='myuser'&gt;
-      &lt;secret type='ceph' usage='mypassid'/&gt;
-    &lt;/auth&gt;
   &lt;/disk&gt;
   &lt;disk type='block' device='cdrom'&gt;
     &lt;driver name='qemu' type='raw'/&gt;
@@ -2370,20 +2400,20 @@
     &lt;driver name='qemu' type='raw'/&gt;
     &lt;source protocol='iscsi' name='iqn.2013-07.com.example:iscsi-nopool/2'&gt;
       &lt;host name='example.com' port='3260'/&gt;
+      &lt;auth username='myuser'&gt;
+        &lt;secret type='iscsi' usage='libvirtiscsi'/&gt;
+      &lt;/auth&gt;
     &lt;/source&gt;
-    &lt;auth username='myuser'&gt;
-      &lt;secret type='iscsi' usage='libvirtiscsi'/&gt;
-    &lt;/auth&gt;
     &lt;target dev='vda' bus='virtio'/&gt;
   &lt;/disk&gt;
   &lt;disk type='network' device='lun'&gt;
     &lt;driver name='qemu' type='raw'/&gt;
     &lt;source protocol='iscsi' name='iqn.2013-07.com.example:iscsi-nopool/1'&gt;
       &lt;host name='example.com' port='3260'/&gt;
+      &lt;auth username='myuser'&gt;
+        &lt;secret type='iscsi' usage='libvirtiscsi'/&gt;
+      &lt;/auth&gt;
     &lt;/source&gt;
-    &lt;auth username='myuser'&gt;
-      &lt;secret type='iscsi' usage='libvirtiscsi'/&gt;
-    &lt;/auth&gt;
     &lt;target dev='sdb' bus='scsi'/&gt;
   &lt;/disk&gt;
   &lt;disk type='volume' device='disk'&gt;
@@ -2397,7 +2427,7 @@
     &lt;target dev='vdc' bus='virtio'/&gt;
   &lt;/disk&gt;
   &lt;disk type='file' device='disk'&gt;
-    &lt;driver name='qemu' type='qcow2'/&gt;
+    &lt;driver name='qemu' type='qcow2' queues='4'/&gt;
     &lt;source file='/var/lib/libvirt/images/domain.qcow'/&gt;
     &lt;backingStore type='file'&gt;
       &lt;format type='qcow2'/&gt;
@@ -2682,6 +2712,36 @@
             provided as a parameter to the client of a networked storage
             protocol. Supported for 'rbd' <span class="since">since 1.2.11
             (QEMU only).</span>
+          </dd>
+          <dt><code>auth</code></dt>
+          <dd><span class="since">Since libvirt 3.9.0</span>, the
+            <code>auth</code> element is supported for a disk
+            <code>type</code> "network" that is using a <code>source</code>
+            element with the <code>protocol</code> attributes "rbd" or "iscsi".
+            If present, the <code>auth</code> element provides the
+            authentication credentials needed to access the source.  It
+            includes a mandatory attribute <code>username</code>, which
+            identifies the username to use during authentication, as well
+            as a sub-element <code>secret</code> with mandatory
+            attribute <code>type</code>, to tie back to
+            a <a href="formatsecret.html">libvirt secret object</a> that
+            holds the actual password or other credentials (the domain XML
+            intentionally does not expose the password, only the reference
+            to the object that does manage the password).
+            Known secret types are "ceph" for Ceph RBD network sources and
+            "iscsi" for CHAP authentication of iSCSI targets.
+            Both will require either a <code>uuid</code> attribute
+            with the UUID of the secret object or a <code>usage</code>
+            attribute matching the key that was specified in the
+            secret object.
+          </dd>
+          <dd><span class="since">Since libvirt 3.9.0</span>, the
+            <code>encryption</code> can be a sub-element of the
+            <code>source</code> element for encrypted storage sources.
+            If present, specifies how the storage source is encrypted
+            See the
+            <a href="formatstorageencryption.html">Storage Encryption</a>
+            page for more information.
           </dd>
         </dl>
 
@@ -3058,6 +3118,10 @@
             <span class='since'>Since 1.2.8 (QEMU 2.1)</span>
           </li>
           <li>
+            The optional <code>queues</code> attribute specifies the number of
+            virt queues for virtio-blk. (<span class="since">Since 3.9.0</span>)
+          </li>
+          <li>
           For virtio disks,
           <a href="#elementsVirtio">Virtio-specific options</a> can also be
           set. (<span class="since">Since 3.5.0</span>)
@@ -3084,8 +3148,11 @@
         <span class="since">Since 0.8.8</span>
       </dd>
       <dt><code>encryption</code></dt>
-      <dd>If present, specifies how the volume is encrypted.  See
-        the <a href="formatstorageencryption.html">Storage Encryption</a> page
+      <dd>Starting with <span class="since">libvirt 3.9.0</span> the
+        <code>encryption</code> element is preferred to be a sub-element
+        of the <code>source</code> element. If present, specifies how the
+        volume is encrypted using "qcow". See the
+        <a href="formatstorageencryption.html">Storage Encryption</a> page
         for more information.
       </dd>
       <dt><code>readonly</code></dt>
@@ -3117,8 +3184,7 @@
       <dt><code>wwn</code></dt>
       <dd>If present, this element specifies the WWN (World Wide Name)
         of a virtual hard disk or CD-ROM drive. It must be composed
-        of 16 hexadecimal digits and must be unique (at least among
-        disks of a single domain)
+        of 16 hexadecimal digits.
         <span class='since'>Since 0.10.1</span>
       </dd>
       <dt><code>vendor</code></dt>
@@ -3152,25 +3218,14 @@
         are available, each defaulting to 0.
       </dd>
       <dt><code>auth</code></dt>
-      <dd>The <code>auth</code> element is supported for a disk
-        <code>type</code> "network" that is using a <code>source</code>
-        element with the <code>protocol</code> attributes "rbd" or "iscsi".
-        If present, the <code>auth</code> element provides the
-        authentication credentials needed to access the source.  It
-        includes a mandatory attribute <code>username</code>, which
-        identifies the username to use during authentication, as well
-        as a sub-element <code>secret</code> with mandatory
-        attribute <code>type</code>, to tie back to
-        a <a href="formatsecret.html">libvirt secret object</a> that
-        holds the actual password or other credentials (the domain XML
-        intentionally does not expose the password, only the reference
-        to the object that does manage the password).
-        Known secret types are "ceph" for Ceph RBD network sources and
-        "iscsi" for CHAP authentication of iSCSI targets.
-        Both will require either a <code>uuid</code> attribute
-        with the UUID of the secret object or a <code>usage</code>
-        attribute matching the key that was specified in the
-        secret object.  <span class="since">libvirt 0.9.7</span>
+      <dd>Starting with <span class="since">libvirt 3.9.0</span> the
+        <code>auth</code> element is preferred to be a sub-element of
+        the <code>source</code> element. The element is still read and
+        managed as a <code>disk</code> sub-element. It is invalid to use
+        <code>auth</code> as both a sub-element of <code>disk</code>
+        and <code>source</code>. The <code>auth</code> element was
+        introduced as a <code>disk</code> sub-element in
+        <span class="since">libvirt 0.9.7.</span>
       </dd>
       <dt><code>geometry</code></dt>
       <dd>The optional <code>geometry</code> element provides the
@@ -5220,7 +5275,7 @@ qemu-kvm -net nic,model=? /dev/null
       <dd>
         The optional <code>queues</code> attribute controls the number
         of queues to be used for either
-        <a href="http://www.linux-kvm.org/page/Multiqueue"> Multiqueue
+        <a href="https://www.linux-kvm.org/page/Multiqueue"> Multiqueue
         virtio-net</a> or <a href="#elementVhostuser">vhost-user</a> network
         interfaces.  Use of multiple packet processing queues requires the
         interface having the <code>&lt;model type='virtio'/&gt;</code>
@@ -6041,9 +6096,9 @@ qemu-kvm -net nic,model=? /dev/null
               TCP port number (with -1 as legacy syntax indicating that it should
               be auto-allocated). The <code>autoport</code> attribute is the new
               preferred syntax for indicating auto-allocation of the TCP port to
-              use. The <code>replaceUser</code> attribute is a boolean deciding
+              use. The <code>multiUser</code> attribute is a boolean deciding
               whether multiple simultaneous connections to the VM are permitted.
-              The <code>multiUser</code> attribute is a boolean deciding whether
+              The <code>replaceUser</code> attribute is a boolean deciding whether
               the existing connection must be dropped and a new connection must
               be established by the VRDP server, when a new client connects in
               single connection mode.

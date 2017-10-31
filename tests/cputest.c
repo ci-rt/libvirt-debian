@@ -61,9 +61,8 @@ struct data {
     virArch arch;
     const char *host;
     const char *name;
-    const char **models;
+    virDomainCapsCPUModelsPtr models;
     const char *modelsName;
-    unsigned int nmodels;
     unsigned int flags;
     int result;
 };
@@ -264,13 +263,13 @@ cpuTestGuestCPU(const void *arg)
     }
 
     if (virCPUUpdate(host->arch, cpu, host) < 0 ||
-        virCPUTranslate(host->arch, cpu, data->models, data->nmodels) < 0) {
+        virCPUTranslate(host->arch, cpu, data->models) < 0) {
         ret = -1;
         goto cleanup;
     }
 
     virBufferAsprintf(&buf, "%s+%s", data->host, data->name);
-    if (data->nmodels)
+    if (data->modelsName)
         virBufferAsprintf(&buf, ",%s", data->modelsName);
     virBufferAddLit(&buf, "-result");
 
@@ -322,7 +321,7 @@ cpuTestBaseline(const void *arg)
     if (!(cpus = cpuTestLoadMultiXML(data->arch, data->name, &ncpus)))
         goto cleanup;
 
-    baseline = cpuBaseline(cpus, ncpus, NULL, 0,
+    baseline = cpuBaseline(cpus, ncpus, NULL,
                            !!(data->flags & VIR_CONNECT_BASELINE_CPU_MIGRATABLE));
 
     if (baseline &&
@@ -461,6 +460,94 @@ cpuTestHasFeature(const void *arg)
 }
 
 
+typedef enum {
+    JSON_NONE,
+    JSON_HOST,
+    JSON_MODELS,
+} cpuTestCPUIDJson;
+
+#if WITH_QEMU && WITH_YAJL
+static virQEMUCapsPtr
+cpuTestMakeQEMUCaps(const struct data *data)
+{
+    virQEMUCapsPtr qemuCaps = NULL;
+    qemuMonitorTestPtr testMon = NULL;
+    qemuMonitorCPUModelInfoPtr model = NULL;
+    char *json = NULL;
+
+    if (virAsprintf(&json, "%s/cputestdata/%s-cpuid-%s.json",
+                    abs_srcdir, virArchToString(data->arch), data->host) < 0)
+        goto error;
+
+    if (!(testMon = qemuMonitorTestNewFromFile(json, driver.xmlopt, true)))
+        goto error;
+
+    if (qemuMonitorGetCPUModelExpansion(qemuMonitorTestGetMonitor(testMon),
+                                        QEMU_MONITOR_CPU_MODEL_EXPANSION_STATIC,
+                                        "host", true, &model) < 0)
+        goto error;
+
+    if (!(qemuCaps = virQEMUCapsNew()))
+        goto error;
+
+    virQEMUCapsSet(qemuCaps, QEMU_CAPS_KVM);
+    if (data->flags == JSON_MODELS)
+        virQEMUCapsSet(qemuCaps, QEMU_CAPS_QUERY_CPU_DEFINITIONS);
+
+    virQEMUCapsSetArch(qemuCaps, data->arch);
+    virQEMUCapsSetCPUModelInfo(qemuCaps, VIR_DOMAIN_VIRT_KVM, model);
+    model = NULL;
+
+    if (virQEMUCapsProbeQMPCPUDefinitions(qemuCaps,
+                                          qemuMonitorTestGetMonitor(testMon),
+                                          false) < 0)
+        goto error;
+
+ cleanup:
+    qemuMonitorCPUModelInfoFree(model);
+    qemuMonitorTestFree(testMon);
+    VIR_FREE(json);
+
+    return qemuCaps;
+
+ error:
+    virObjectUnref(qemuCaps);
+    qemuCaps = NULL;
+    goto cleanup;
+}
+
+
+static virDomainCapsCPUModelsPtr
+cpuTestGetCPUModels(const struct data *data)
+{
+    virDomainCapsCPUModelsPtr models = NULL;
+    virQEMUCapsPtr qemuCaps;
+
+    if (data->flags != JSON_MODELS)
+        return NULL;
+
+    if (!(qemuCaps = cpuTestMakeQEMUCaps(data)))
+        return NULL;
+
+    models = virQEMUCapsGetCPUDefinitions(qemuCaps, VIR_DOMAIN_VIRT_KVM);
+    virObjectRef(models);
+
+    virObjectUnref(qemuCaps);
+
+    return models;
+}
+
+#else /* if WITH_QEMU && WITH_YAJL */
+
+static virDomainCapsCPUModelsPtr
+cpuTestGetCPUModels(const struct data *data ATTRIBUTE_UNUSED)
+{
+    return NULL;
+}
+
+#endif
+
+
 static int
 cpuTestCPUID(bool guest, const void *arg)
 {
@@ -471,6 +558,7 @@ cpuTestCPUID(bool guest, const void *arg)
     char *host = NULL;
     virCPUDefPtr cpu = NULL;
     char *result = NULL;
+    virDomainCapsCPUModelsPtr models = NULL;
 
     if (virAsprintf(&hostFile, "%s/cputestdata/%s-cpuid-%s.xml",
                     abs_srcdir, virArchToString(data->arch), data->host) < 0)
@@ -492,7 +580,10 @@ cpuTestCPUID(bool guest, const void *arg)
         cpu->type = VIR_CPU_TYPE_HOST;
     }
 
-    if (cpuDecode(cpu, hostData, NULL, 0, NULL) < 0)
+    if (guest)
+        models = cpuTestGetCPUModels(data);
+
+    if (cpuDecode(cpu, hostData, models) < 0)
         goto cleanup;
 
     if (virAsprintf(&result, "cpuid-%s-%s",
@@ -508,6 +599,7 @@ cpuTestCPUID(bool guest, const void *arg)
     virCPUDataFree(hostData);
     virCPUDefFree(cpu);
     VIR_FREE(result);
+    virObjectUnref(models);
     return ret;
 }
 
@@ -606,7 +698,7 @@ cpuTestUpdateLiveCompare(virArch arch,
             (cmp > 0 &&
              featExp->policy == VIR_CPU_FEATURE_DISABLE)) {
             VIR_TEST_VERBOSE("Actual CPU has extra feature '%s'\n",
-                             featAct->name);
+                             cmp <= 0 ? featAct->name : featExp->name);
             ret = -1;
         }
     }
@@ -629,6 +721,8 @@ cpuTestUpdateLive(const void *arg)
     virCPUDataPtr disabledData = NULL;
     char *expectedFile = NULL;
     virCPUDefPtr expected = NULL;
+    virDomainCapsCPUModelsPtr hvModels = NULL;
+    virDomainCapsCPUModelsPtr models = NULL;
     int ret = -1;
 
     if (virAsprintf(&cpuFile, "cpuid-%s-guest", data->host) < 0 ||
@@ -647,11 +741,42 @@ cpuTestUpdateLive(const void *arg)
         !(disabledData = virCPUDataParse(disabled)))
         goto cleanup;
 
-    if (virCPUUpdateLive(data->arch, cpu, enabledData, disabledData) < 0)
-        goto cleanup;
-
     if (virAsprintf(&expectedFile, "cpuid-%s-json", data->host) < 0 ||
         !(expected = cpuTestLoadXML(data->arch, expectedFile)))
+        goto cleanup;
+
+    /* In case the host CPU signature does not exactly match any CPU model from
+     * cpu_map.xml, the CPU model we detect from CPUID may differ from the one
+     * we compute by asking QEMU. Since this test expands both CPU models and
+     * compares their features, we can try to translate the 'actual' CPU to
+     * use the CPU model from 'expected'.
+     */
+    if (STRNEQ(cpu->model, expected->model)) {
+        virDomainCapsCPUModelPtr hvModel;
+        char **blockers = NULL;
+        virDomainCapsCPUUsable usable = VIR_DOMCAPS_CPU_USABLE_UNKNOWN;
+
+        if (!(models = virDomainCapsCPUModelsNew(0)))
+            goto cleanup;
+
+        hvModels = cpuTestGetCPUModels(data);
+        hvModel = virDomainCapsCPUModelsGet(hvModels, expected->model);
+
+        if (hvModel) {
+            blockers = hvModel->blockers;
+            usable = hvModel->usable;
+        }
+
+        if (virDomainCapsCPUModelsAdd(models, expected->model, -1,
+                                      usable, blockers) < 0)
+            goto cleanup;
+
+        cpu->fallback = VIR_CPU_FALLBACK_ALLOW;
+        ignore_value(virCPUTranslate(data->arch, cpu, models));
+        cpu->fallback = VIR_CPU_FALLBACK_FORBID;
+    }
+
+    if (virCPUUpdateLive(data->arch, cpu, enabledData, disabledData) < 0)
         goto cleanup;
 
     ret = cpuTestUpdateLiveCompare(data->arch, cpu, expected);
@@ -667,6 +792,8 @@ cpuTestUpdateLive(const void *arg)
     virCPUDataFree(disabledData);
     VIR_FREE(expectedFile);
     virCPUDefFree(expected);
+    virObjectUnref(hvModels);
+    virObjectUnref(models);
     return ret;
 }
 
@@ -676,33 +803,16 @@ static int
 cpuTestJSONCPUID(const void *arg)
 {
     const struct data *data = arg;
-    qemuMonitorCPUModelInfoPtr model = NULL;
     virQEMUCapsPtr qemuCaps = NULL;
     virCPUDefPtr cpu = NULL;
-    qemuMonitorTestPtr testMon = NULL;
-    char *json = NULL;
     char *result = NULL;
     int ret = -1;
 
-    if (virAsprintf(&json, "%s/cputestdata/%s-cpuid-%s.json",
-                    abs_srcdir, virArchToString(data->arch), data->host) < 0 ||
-        virAsprintf(&result, "cpuid-%s-json", data->host) < 0)
+    if (virAsprintf(&result, "cpuid-%s-json", data->host) < 0)
         goto cleanup;
 
-    if (!(testMon = qemuMonitorTestNewFromFile(json, driver.xmlopt, true)))
+    if (!(qemuCaps = cpuTestMakeQEMUCaps(data)))
         goto cleanup;
-
-    if (qemuMonitorGetCPUModelExpansion(qemuMonitorTestGetMonitor(testMon),
-                                        QEMU_MONITOR_CPU_MODEL_EXPANSION_STATIC,
-                                        "host", true, &model) < 0)
-        goto cleanup;
-
-    if (!(qemuCaps = virQEMUCapsNew()))
-        goto cleanup;
-
-    virQEMUCapsSetArch(qemuCaps, data->arch);
-    virQEMUCapsSetCPUModelInfo(qemuCaps, VIR_DOMAIN_VIRT_KVM, model);
-    model = NULL;
 
     if (VIR_ALLOC(cpu) < 0)
         goto cleanup;
@@ -718,26 +828,51 @@ cpuTestJSONCPUID(const void *arg)
     ret = cpuTestCompareXML(data->arch, cpu, result);
 
  cleanup:
-    qemuMonitorCPUModelInfoFree(model);
     virObjectUnref(qemuCaps);
-    qemuMonitorTestFree(testMon);
     virCPUDefFree(cpu);
     VIR_FREE(result);
-    VIR_FREE(json);
     return ret;
 }
 #endif
 
 
-static const char *model486[]   = { "486" };
-static const char *nomodel[]    = { "nomodel" };
-static const char *models[]     = { "qemu64", "core2duo", "Nehalem" };
-static const char *haswell[]    = { "SandyBridge", "Haswell" };
-static const char *ppc_models[] = { "POWER6", "POWER7", "POWER8" };
+static const char *model486_list[]   = { "486", NULL };
+static const char *nomodel_list[]    = { "nomodel", NULL };
+static const char *models_list[]     = { "qemu64", "core2duo", "Nehalem", NULL };
+static const char *haswell_list[]    = { "SandyBridge", "Haswell", NULL };
+static const char *ppc_models_list[] = { "POWER6", "POWER7", "POWER8", NULL };
+
+static virDomainCapsCPUModelsPtr
+cpuTestInitModels(const char **list)
+{
+    virDomainCapsCPUModelsPtr cpus;
+    const char **model;
+
+    if (!(cpus = virDomainCapsCPUModelsNew(0)))
+        return NULL;
+
+    for (model = list; *model; model++) {
+        if (virDomainCapsCPUModelsAdd(cpus, *model, -1,
+                                      VIR_DOMCAPS_CPU_USABLE_UNKNOWN, NULL) < 0)
+            goto error;
+    }
+
+    return cpus;
+
+ error:
+    virObjectUnref(cpus);
+    return NULL;
+}
+
 
 static int
 mymain(void)
 {
+    virDomainCapsCPUModelsPtr model486 = NULL;
+    virDomainCapsCPUModelsPtr nomodel = NULL;
+    virDomainCapsCPUModelsPtr models = NULL;
+    virDomainCapsCPUModelsPtr haswell = NULL;
+    virDomainCapsCPUModelsPtr ppc_models = NULL;
     int ret = 0;
 
 #if WITH_QEMU && WITH_YAJL
@@ -747,13 +882,22 @@ mymain(void)
     virEventRegisterDefaultImpl();
 #endif
 
+    if (!(model486 = cpuTestInitModels(model486_list)) ||
+        !(nomodel = cpuTestInitModels(nomodel_list)) ||
+        !(models = cpuTestInitModels(models_list)) ||
+        !(haswell = cpuTestInitModels(haswell_list)) ||
+        !(ppc_models = cpuTestInitModels(ppc_models_list))) {
+        ret = -1;
+        goto cleanup;
+    }
+
 #define DO_TEST(arch, api, name, host, cpu,                             \
-                models, nmodels, flags, result)                         \
+                models, flags, result)                                  \
     do {                                                                \
         struct data data = {                                            \
             arch, host, cpu, models,                                    \
             models == NULL ? NULL : #models,                            \
-            nmodels, flags, result                                      \
+            flags, result                                               \
         };                                                              \
         char *testLabel;                                                \
         char *tmp;                                                      \
@@ -784,12 +928,12 @@ mymain(void)
 #define DO_TEST_COMPARE(arch, host, cpu, result)                        \
     DO_TEST(arch, cpuTestCompare,                                       \
             host "/" cpu " (" #result ")",                              \
-            host, cpu, NULL, 0, 0, result)
+            host, cpu, NULL, 0, result)
 
 #define DO_TEST_UPDATE_ONLY(arch, host, cpu)                            \
     DO_TEST(arch, cpuTestUpdate,                                        \
             cpu " on " host,                                            \
-            host, cpu, NULL, 0, 0, 0)
+            host, cpu, NULL, 0, 0)
 
 #define DO_TEST_UPDATE(arch, host, cpu, result)                         \
     do {                                                                \
@@ -809,7 +953,7 @@ mymain(void)
             ret = -1;                                                   \
         } else {                                                        \
             DO_TEST(arch, cpuTestBaseline, label, NULL,                 \
-                    "baseline-" name, NULL, 0, flags, result);          \
+                    "baseline-" name, NULL, flags, result);             \
         }                                                               \
         VIR_FREE(label);                                                \
     } while (0)
@@ -817,21 +961,19 @@ mymain(void)
 #define DO_TEST_HASFEATURE(arch, host, feature, result)                 \
     DO_TEST(arch, cpuTestHasFeature,                                    \
             host "/" feature " (" #result ")",                          \
-            host, feature, NULL, 0, 0, result)
+            host, feature, NULL, 0, result)
 
 #define DO_TEST_GUESTCPU(arch, host, cpu, models, result)               \
     DO_TEST(arch, cpuTestGuestCPU,                                      \
             host "/" cpu " (" #models ")",                              \
-            host, cpu, models,                                          \
-            models == NULL ? 0 : sizeof(models) / sizeof(char *),       \
-            0, result)
+            host, cpu, models, 0, result)
 
 #if WITH_QEMU && WITH_YAJL
 # define DO_TEST_CPUID_JSON(arch, host, json)                           \
     do {                                                                \
-        if (json) {                                                     \
+        if (json != JSON_NONE) {                                        \
             DO_TEST(arch, cpuTestJSONCPUID, host, host,                 \
-                    NULL, NULL, 0, 0, 0);                               \
+                    NULL, NULL, json, 0);                               \
         }                                                               \
     } while (0)
 #else
@@ -841,13 +983,13 @@ mymain(void)
 #define DO_TEST_CPUID(arch, host, json)                                 \
     do {                                                                \
         DO_TEST(arch, cpuTestHostCPUID, host, host,                     \
-                NULL, NULL, 0, 0, 0);                                   \
+                NULL, NULL, 0, 0);                                      \
         DO_TEST(arch, cpuTestGuestCPUID, host, host,                    \
-                NULL, NULL, 0, 0, 0);                                   \
+                NULL, NULL, json, 0);                                   \
         DO_TEST_CPUID_JSON(arch, host, json);                           \
-        if (json) {                                                     \
+        if (json != JSON_NONE) {                                        \
             DO_TEST(arch, cpuTestUpdateLive, host, host,                \
-                    NULL, NULL, 0, 0, 0);                               \
+                    NULL, NULL, json, 0);                               \
         }                                                               \
     } while (0)
 
@@ -976,45 +1118,54 @@ mymain(void)
     DO_TEST_GUESTCPU(VIR_ARCH_PPC64, "host", "guest-legacy-incompatible", ppc_models, -1);
     DO_TEST_GUESTCPU(VIR_ARCH_PPC64, "host", "guest-legacy-invalid", ppc_models, -1);
 
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "A10-5800K", true);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Atom-D510", false);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Atom-N450", false);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i5-2500", true);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i5-2540M", true);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i5-4670T", true);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i5-6600", true);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i7-2600", true);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i7-3520M", false);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i7-3740QM", true);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i7-3770", true);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i7-4600U", true);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i7-4510U", true);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i7-5600U", true);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i7-5600U-arat", true);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core2-E6850", true);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core2-Q9500", false);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "EPYC-7601-32-Core", true);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "FX-8150", false);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Opteron-1352", false);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Opteron-2350", true);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Opteron-6234", true);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Opteron-6282", false);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Pentium-P6100", false);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Phenom-B95", true);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Ryzen-7-1800X-Eight-Core", true);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-5110", false);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-E3-1245", true);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-E5-2630", true);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-E5-2650", true);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-E7-4820", true);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-E7-8890", false);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-Gold-6148", true);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-W3520", true);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-X5460", false);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "A10-5800K", JSON_HOST);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Atom-D510", JSON_NONE);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Atom-N450", JSON_NONE);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i5-2500", JSON_HOST);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i5-2540M", JSON_MODELS);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i5-4670T", JSON_HOST);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i5-6600", JSON_HOST);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i7-2600", JSON_HOST);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i7-2600-xsaveopt", JSON_MODELS);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i7-3520M", JSON_NONE);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i7-3740QM", JSON_HOST);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i7-3770", JSON_HOST);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i7-4600U", JSON_HOST);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i7-4510U", JSON_HOST);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i7-5600U", JSON_HOST);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i7-5600U-arat", JSON_HOST);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core2-E6850", JSON_HOST);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core2-Q9500", JSON_NONE);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "EPYC-7601-32-Core", JSON_HOST);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "FX-8150", JSON_NONE);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Opteron-1352", JSON_NONE);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Opteron-2350", JSON_HOST);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Opteron-6234", JSON_HOST);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Opteron-6282", JSON_NONE);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Pentium-P6100", JSON_NONE);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Phenom-B95", JSON_HOST);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Ryzen-7-1800X-Eight-Core", JSON_HOST);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-5110", JSON_NONE);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-E3-1245", JSON_MODELS);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-E5-2630", JSON_HOST);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-E5-2650", JSON_HOST);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-E7-4820", JSON_HOST);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-E7-4830", JSON_MODELS);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-E7-8890", JSON_MODELS);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-Gold-6148", JSON_HOST);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-W3520", JSON_HOST);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-X5460", JSON_NONE);
 
+ cleanup:
 #if WITH_QEMU && WITH_YAJL
     qemuTestDriverFree(&driver);
 #endif
+
+    virObjectUnref(model486);
+    virObjectUnref(nomodel);
+    virObjectUnref(models);
+    virObjectUnref(haswell);
+    virObjectUnref(ppc_models);
 
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

@@ -129,7 +129,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2017-09-28" "libvirt-3.8.0" "Virtualization Support"
+.TH VIRSH 1 "2017-10-30" "libvirt-3.9.0" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -366,7 +366,7 @@ Will print the current directory.
 is automatically run with the \fI\s-1URI\s0\fR parameter requested by the \f(CW\*(C`\-c\*(C'\fR
 option on the command line. The \fI\s-1URI\s0\fR parameter specifies how to
 connect to the hypervisor. The documentation page at
-<http://libvirt.org/uri.html> list the values supported, but the most
+<https://libvirt.org/uri.html> list the values supported, but the most
 common are:
 .RS 4
 .IP "xen:///" 4
@@ -387,7 +387,7 @@ connect to a local linux container
 To find the currently used \s-1URI,\s0 check the \fIuri\fR command documented below.
 .Sp
 For remote access see the documentation page at
-<http://libvirt.org/uri.html> on how to make URIs.
+<https://libvirt.org/uri.html> on how to make URIs.
 The \fI\-\-readonly\fR option allows for read-only connection
 .RE
 .IP "\fBuri\fR" 4
@@ -452,7 +452,7 @@ we are currently connected to. This includes a section on the host
 capabilities in terms of \s-1CPU\s0 and features, and a set of description
 for each kind of guest which can be virtualized. For a more complete
 description see:
-  <http://libvirt.org/formatcaps.html>
+  <https://libvirt.org/formatcaps.html>
 The \s-1XML\s0 also show the \s-1NUMA\s0 topology information if available.
 .IP "\fBdomcapabilities\fR [\fIvirttype\fR] [\fIemulatorbin\fR] [\fIarch\fR] [\fImachine\fR]" 4
 .IX Item "domcapabilities [virttype] [emulatorbin] [arch] [machine]"
@@ -658,7 +658,7 @@ contain either host or guest \s-1CPU\s0 definition. The host \s-1CPU\s0 definiti
 <cpu> element and its contents as printed by \fBcapabilities\fR command. The
 guest \s-1CPU\s0 definition is the <cpu> element and its contents from domain \s-1XML\s0
 definition. For more information on guest \s-1CPU\s0 definition see:
-<http://libvirt.org/formatdomain.html#elementsCPU>. If \fI\-\-error\fR is
+<https://libvirt.org/formatdomain.html#elementsCPU>. If \fI\-\-error\fR is
 specified, the command will return an error when the given \s-1CPU\s0 is
 incompatible with host \s-1CPU\s0 and a message providing more details about the
 incompatibility will be printed out.
@@ -816,15 +816,24 @@ addresses, or limited output just for one interface if \fIinterface\fR is
 specified. Note that \fIinterface\fR can be driver dependent, it can be the name
 within guest \s-1OS\s0 or the name you would see in domain \s-1XML.\s0 Moreover, the whole
 command may require a guest agent to be configured for the queried domain under
-some drivers, notably qemu. If \fI\-\-full\fR is specified, the interface name is
-always displayed when the interface has multiple addresses or alias, otherwise
-it only displays the interface name for the first address, and \*(L"\-\*(R" for the
-others. The \fI\-\-source\fR argument specifies what data source to use for the
+some hypervisors, notably \s-1QEMU.\s0
+.Sp
+If \fI\-\-full\fR is specified, the interface name and \s-1MAC\s0 address is always
+displayed when the interface has multiple \s-1IP\s0 addresses or aliases; otherwise,
+only the interface name and \s-1MAC\s0 address is displayed for the first name and
+\&\s-1MAC\s0 address with \*(L"\-\*(R" for the others using the same name and \s-1MAC\s0 address.
+.Sp
+The \fI\-\-source\fR argument specifies what data source to use for the
 addresses, currently one of 'lease' to read \s-1DHCP\s0 leases, or 'agent' to query
 the guest \s-1OS\s0 via an agent. If unspecified, 'lease' is the default.
 .IP "\fBdomifstat\fR \fIdomain\fR \fIinterface-device\fR" 4
 .IX Item "domifstat domain interface-device"
-Get network interface stats for a running domain.
+Get network interface stats for a running domain. The network
+interface stats are only available for interfaces that have a
+physical source interface. This does not include, for example, a
+\&'user' interface type since it is a virtual \s-1LAN\s0 with \s-1NAT\s0 to the
+outside world. \fIinterface-device\fR can be the interface target by
+name or \s-1MAC\s0 address.
 .IP "\fBdomif-setlink\fR \fIdomain\fR \fIinterface-device\fR \fIstate\fR [\fI\-\-config\fR]" 4
 .IX Item "domif-setlink domain interface-device state [--config]"
 Modify link state of the domain's virtual interface. Possible values for
@@ -851,7 +860,7 @@ inbound or outbound bandwidth. \fIaverage,peak,burst,floor\fR is the same as
 in command \fIattach-interface\fR.  Values for \fIaverage\fR, \fIpeak\fR and \fIfloor\fR
 are expressed in kilobytes per second, while \fIburst\fR is expressed in kilobytes
 in a single burst at \fIpeak\fR speed as described in the Network \s-1XML\s0
-documentation at <http://libvirt.org/formatnetwork.html#elementQoS>.
+documentation at <https://libvirt.org/formatnetwork.html#elementQoS>.
 .Sp
 To clear inbound or outbound settings, use \fI\-\-inbound\fR or \fI\-\-outbound\fR
 respectfully with average value of zero.
@@ -1853,7 +1862,7 @@ order to comply with local firewall policies.
 .RE
 .RS 4
 .Sp
-See <http://libvirt.org/migration.html#uris> for more details on
+See <https://libvirt.org/migration.html#uris> for more details on
 migration URIs.
 .Sp
 Optional \fIgraphicsuri\fR overrides connection parameters used for automatically
@@ -2259,6 +2268,11 @@ inside the container, this is the /proc/meminfo \*(L"MemTotal\*(R" value. When v
 the value from the host, use the \fBvirsh memtune\fR command. In order to view
 the current memory in use and the maximum value allowed to set memory, use
 the \fBvirsh dominfo\fR command.
+.IP "\fBset-lifecycle-action\fR \fIdomain\fR \fItype\fR \fIaction\fR [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]]" 4
+.IX Item "set-lifecycle-action domain type action [[--config] [--live] | [--current]]"
+Set the lifecycle \fIaction\fR for specified lifecycle \fItype\fR. For the list of
+lifecycle types and actions and possible combinations see the documentation at
+<https://libvirt.org/formatdomain.html#elementsEvents>.
 .IP "\fBset-user-password\fR \fIdomain\fR \fIuser\fR \fIpassword\fR [\fI\-\-encrypted\fR]" 4
 .IX Item "set-user-password domain user password [--encrypted]"
 Set the password for the \fIuser\fR account in the guest domain.
@@ -2775,14 +2789,14 @@ is not available the processes will provide an exit code of 1.
 The following commands manipulate devices associated to domains.
 The \fIdomain\fR can be specified as a short integer, a name or a full \s-1UUID.\s0
 To better understand the values allowed as options for the command
-reading the documentation at <http://libvirt.org/formatdomain.html> on the
+reading the documentation at <https://libvirt.org/formatdomain.html> on the
 format of the device sections to get the most accurate set of accepted values.
 .IP "\fBattach-device\fR \fIdomain\fR \fI\s-1FILE\s0\fR [[[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]] | [\fI\-\-persistent\fR]]" 4
 .IX Item "attach-device domain FILE [[[--live] [--config] | [--current]] | [--persistent]]"
 Attach a device to the domain, using a device definition in an \s-1XML\s0
 file using a device definition element such as <disk> or <interface>
 as the top-level element.  See the documentation at
-<http://libvirt.org/formatdomain.html#elementsDevices> to learn about
+<https://libvirt.org/formatdomain.html#elementsDevices> to learn about
 libvirt \s-1XML\s0 format for a device.  If \fI\-\-config\fR is specified the
 command alters the persistent domain configuration with the device
 attach taking effect the next time libvirt starts the domain.
@@ -2916,7 +2930,7 @@ specified.  The other two \fIpeak\fR and \fIburst\fR are optional, so
 are expressed in kilobytes per second, while \fIburst\fR is expressed in
 kilobytes in a single burst at \fIpeak\fR speed as described in the
 Network \s-1XML\s0 documentation at
-<http://libvirt.org/formatnetwork.html#elementQoS>.
+<https://libvirt.org/formatnetwork.html#elementQoS>.
 .Sp
 \&\fB\-\-managed\fR is usable only for \fIhostdev\fR type and tells libvirt
 that the interface should be managed, which means detached and reattached
@@ -3008,7 +3022,7 @@ Update the characteristics of a device associated with \fIdomain\fR,
 based on the device definition in an \s-1XML\s0 \fIfile\fR.  The \fI\-\-force\fR option
 can be used to force device update, e.g., to eject a CD-ROM even if it is
 locked/mounted in the domain. See the documentation at
-<http://libvirt.org/formatdomain.html#elementsDevices> to learn about
+<https://libvirt.org/formatdomain.html#elementsDevices> to learn about
 libvirt \s-1XML\s0 format for a device.
 .Sp
 If \fI\-\-live\fR is specified, affect a running domain.
@@ -3068,7 +3082,7 @@ the host's hard disk controller where the guest's disk images live could
 cause the host system to lock up or reboot).
 .PP
 For more information on node device definition see:
-<http://libvirt.org/formatnode.html>.
+<https://libvirt.org/formatnode.html>.
 .PP
 Passthrough devices cannot be simultaneously used by the host and its
 guest domains, nor by multiple active guests at once.  If the
@@ -3157,7 +3171,7 @@ before the event.
 The following commands manipulate networks. Libvirt has the capability to
 define virtual networks which can then be used by domains and linked to
 actual network devices. For more detailed information about this feature
-see the documentation at <http://libvirt.org/formatnetwork.html> . Many
+see the documentation at <https://libvirt.org/formatnetwork.html> . Many
 of the commands for virtual networks are similar to the ones used for domains,
 but the way to name a virtual network is either by its name or \s-1UUID.\s0
 .IP "\fBnet-autostart\fR \fInetwork\fR [\fI\-\-disable\fR]" 4
@@ -3168,7 +3182,7 @@ The \fI\-\-disable\fR option disable autostarting.
 .IX Item "net-create file"
 Create a transient (temporary) virtual network from an
 \&\s-1XML\s0 \fIfile\fR and instantiate (start) the network.
-See the documentation at <http://libvirt.org/formatnetwork.html>
+See the documentation at <https://libvirt.org/formatnetwork.html>
 to get a description of the \s-1XML\s0 network format used by libvirt.
 .IP "\fBnet-define\fR \fIfile\fR" 4
 .IX Item "net-define file"
@@ -3404,7 +3418,7 @@ capability to manage various storage solutions, including files, raw
 partitions, and domain-specific formats, used to provide the storage
 volumes visible as devices within virtual machines. For more detailed
 information about this feature, see the documentation at
-<http://libvirt.org/formatstorage.html> . Many of the commands for
+<https://libvirt.org/formatstorage.html> . Many of the commands for
 pools are similar to the ones used for domains.
 .IP "\fBfind-storage-pool-sources\fR \fItype\fR [\fIsrcSpec\fR]" 4
 .IX Item "find-storage-pool-sources type [srcSpec]"
@@ -3900,7 +3914,7 @@ The following commands manipulate \*(L"secrets\*(R" (e.g. passwords, passphrases
 encryption keys).  Libvirt can store secrets independently from their use, and
 other objects (e.g. volumes or domains) can refer to the secrets for encryption
 or possibly other uses.  Secrets are identified using a \s-1UUID.\s0  See
-<http://libvirt.org/formatsecret.html> for documentation of the \s-1XML\s0 format
+<https://libvirt.org/formatsecret.html> for documentation of the \s-1XML\s0 format
 used to represent properties of secrets.
 .IP "\fBsecret-define\fR \fIfile\fR" 4
 .IX Item "secret-define file"
@@ -3952,7 +3966,7 @@ disk, memory, and device state of a domain at a point-of-time, and save it
 for future use.  They have many uses, from saving a \*(L"clean\*(R" copy of an \s-1OS\s0
 image to saving a domain's state before a potentially destructive operation.
 Snapshots are identified with a unique name.  See
-<http://libvirt.org/formatsnapshot.html> for documentation of the \s-1XML\s0 format
+<https://libvirt.org/formatsnapshot.html> for documentation of the \s-1XML\s0 format
 used to represent properties of snapshots.
 .IP "\fBsnapshot-create\fR \fIdomain\fR [\fIxmlfile\fR] {[\fI\-\-redefine\fR [\fI\-\-current\fR]] | [\fI\-\-no\-metadata\fR] [\fI\-\-halt\fR] [\fI\-\-disk\-only\fR] [\fI\-\-reuse\-external\fR] [\fI\-\-quiesce\fR] [\fI\-\-atomic\fR] [\fI\-\-live\fR]}" 4
 .IX Item "snapshot-create domain [xmlfile] {[--redefine [--current]] | [--no-metadata] [--halt] [--disk-only] [--reuse-external] [--quiesce] [--atomic] [--live]}"
@@ -4437,13 +4451,13 @@ Messages at level \s-1ERROR\s0
 .RS 4
 .Sp
 For further information about debugging options consult
-<http://libvirt.org/logging.html>
+<https://libvirt.org/logging.html>
 .RE
 .SH "BUGS"
 .IX Header "BUGS"
 Report any bugs discovered to the libvirt community via the mailing
-list <http://libvirt.org/contact.html> or bug tracker
-<http://libvirt.org/bugs.html>.
+list <https://libvirt.org/contact.html> or bug tracker
+<https://libvirt.org/bugs.html>.
 Alternatively report bugs to your software distributor / vendor.
 .SH "AUTHORS"
 .IX Header "AUTHORS"
@@ -4467,4 +4481,4 @@ PURPOSE\s0
 .SH "SEE ALSO"
 .IX Header "SEE ALSO"
 \&\fIvirt\-install\fR\|(1), \fIvirt\-xml\-validate\fR\|(1), \fIvirt\-top\fR\|(1), \fIvirt\-df\fR\|(1),
-<http://www.libvirt.org/>
+<https://libvirt.org/>

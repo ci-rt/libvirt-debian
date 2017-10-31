@@ -265,6 +265,7 @@ mymain(void)
     DO_TEST("hostdev-pci-address");
 
     DO_TEST("mem-scale");
+    DO_TEST("mem-scale-maxmemory");
     DO_TEST("smp");
 
     DO_TEST("hyperv");
@@ -287,6 +288,10 @@ mymain(void)
     DO_TEST("machine-deakeywrap-on-argv");
     DO_TEST("machine-deakeywrap-off-argv");
     DO_TEST("machine-keywrap-none-argv");
+
+    DO_TEST("nomachine-x86_64");
+    DO_TEST("nomachine-aarch64");
+    DO_TEST("nomachine-ppc64");
 
     qemuTestDriverFree(&driver);
 

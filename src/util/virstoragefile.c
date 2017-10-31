@@ -369,7 +369,7 @@ static struct FileTypeInfo const fileTypeInfo[] = {
         qcow2GetFeatures
     },
     [VIR_STORAGE_FILE_QED] = {
-        /* http://wiki.qemu.org/Features/QED */
+        /* https://wiki.qemu.org/Features/QED */
         0, "QED", NULL,
         LV_LITTLE_ENDIAN, -2, 0, {0},
         QED_HDR_IMAGE_SIZE, 8, 1, NULL, qedGetBackingStore, NULL
@@ -1292,7 +1292,7 @@ virStorageFileChainGetBroken(virStorageSourcePtr chain,
     if (!chain)
         return 0;
 
-    for (tmp = chain; tmp; tmp = tmp->backingStore) {
+    for (tmp = chain; virStorageSourceIsBacking(tmp); tmp = tmp->backingStore) {
         /* Break when we hit end of chain; report error if we detected
          * a missing backing file, infinite loop, or other error */
         if (!tmp->backingStore && tmp->backingStoreRaw) {
@@ -1566,6 +1566,34 @@ virStorageFileParseChainIndex(const char *diskTarget,
     return ret;
 }
 
+
+/**
+ * virStorageSourceIsBacking:
+ * @src: storage source
+ *
+ * Returns true if @src is a eligible backing store structure. Useful
+ * for iterators.
+ */
+bool
+virStorageSourceIsBacking(const virStorageSource *src)
+{
+    return src && src->type != VIR_STORAGE_TYPE_NONE;
+}
+
+/**
+ * virStorageSourceHasBacking:
+ * @src: storage source
+ *
+ * Returns true if @src has backing store/chain.
+ */
+bool
+virStorageSourceHasBacking(const virStorageSource *src)
+{
+    return virStorageSourceIsBacking(src) && src->backingStore &&
+           src->backingStore->type != VIR_STORAGE_TYPE_NONE;
+}
+
+
 /* Given a @chain, look for the backing store @name that is a backing file
  * of @startFrom (or any member of @chain if @startFrom is NULL) and return
  * that location within the chain.  @chain must always point to the top of
@@ -1588,40 +1616,30 @@ virStorageFileChainLookup(virStorageSourcePtr chain,
     const char *start = chain->path;
     char *parentDir = NULL;
     bool nameIsFile = virStorageIsFile(name);
-    size_t i = 0;
 
     if (!parent)
         parent = &prev;
     *parent = NULL;
 
     if (startFrom) {
-        while (chain && chain != startFrom->backingStore) {
+        while (virStorageSourceIsBacking(chain) &&
+               chain != startFrom->backingStore)
             chain = chain->backingStore;
-            i++;
-        }
-
-        if (idx && idx < i) {
-            virReportError(VIR_ERR_INVALID_ARG,
-                           _("requested backing store index %u is above '%s' "
-                             "in chain for '%s'"),
-                           idx, NULLSTR(startFrom->path), NULLSTR(start));
-            return NULL;
-        }
 
         *parent = startFrom;
     }
 
-    while (chain) {
+    while (virStorageSourceIsBacking(chain)) {
         if (!name && !idx) {
-            if (!chain->backingStore)
+            if (!virStorageSourceHasBacking(chain))
                 break;
         } else if (idx) {
-            VIR_DEBUG("%zu: %s", i, chain->path);
-            if (idx == i)
+            VIR_DEBUG("%u: %s", chain->id, chain->path);
+            if (idx == chain->id)
                 break;
         } else {
             if (STREQ_NULLABLE(name, chain->relPath) ||
-                STREQ(name, chain->path))
+                STREQ_NULLABLE(name, chain->path))
                 break;
 
             if (nameIsFile && virStorageSourceIsLocalStorage(chain)) {
@@ -1649,10 +1667,9 @@ virStorageFileChainLookup(virStorageSourcePtr chain,
         }
         *parent = chain;
         chain = chain->backingStore;
-        i++;
     }
 
-    if (!chain)
+    if (!virStorageSourceIsBacking(chain))
         goto error;
 
     return chain;
@@ -2030,6 +2047,7 @@ virStorageSourceCopy(const virStorageSource *src,
     if (VIR_ALLOC(ret) < 0)
         return NULL;
 
+    ret->id = src->id;
     ret->type = src->type;
     ret->protocol = src->protocol;
     ret->format = src->format;
@@ -2042,6 +2060,7 @@ virStorageSourceCopy(const virStorageSource *src,
     ret->haveTLS = src->haveTLS;
     ret->tlsFromConfig = src->tlsFromConfig;
     ret->tlsVerify = src->tlsVerify;
+    ret->detected = src->detected;
 
     /* storage driver metadata are not copied */
     ret->drv = NULL;
@@ -2276,6 +2295,7 @@ virStorageSourceClear(virStorageSourcePtr def)
 
     virStorageNetHostDefFree(def->nhosts, def->hosts);
     virStorageAuthDefFree(def->auth);
+    virObjectUnref(def->privateData);
 
     VIR_FREE(def->nodestorage);
     VIR_FREE(def->nodeformat);
@@ -2558,6 +2578,7 @@ virStorageSourceParseRBDColonString(const char *rbdstr,
                            virSecretUsageTypeToString(VIR_SECRET_USAGE_TYPE_CEPH)) < 0)
                 goto error;
             src->auth = authdef;
+            src->authInherited = true;
             authdef = NULL;
 
             /* Cannot formulate a secretType (eg, usage or uuid) given
@@ -3416,6 +3437,8 @@ virStorageSourceNewFromBacking(virStorageSourcePtr parent)
         /* copy parent's labelling and other top level stuff */
         if (virStorageSourceInitChainElement(ret, parent, true) < 0)
             goto error;
+
+        ret->detected = true;
     }
 
     return ret;
@@ -3865,7 +3888,7 @@ virStorageFileGetRelativeBackingPath(virStorageSourcePtr top,
 
     *relpath = NULL;
 
-    for (next = top; next; next = next->backingStore) {
+    for (next = top; virStorageSourceIsBacking(next); next = next->backingStore) {
         if (!next->relPath) {
             ret = 1;
             goto cleanup;
@@ -3984,7 +4007,7 @@ virStorageSourceFindByNodeName(virStorageSourcePtr top,
     if (idx)
         *idx = 0;
 
-    for (tmp = top; tmp; tmp = tmp->backingStore) {
+    for (tmp = top; virStorageSourceIsBacking(tmp); tmp = tmp->backingStore) {
         if ((tmp->nodeformat && STREQ(tmp->nodeformat, nodeName)) ||
             (tmp->nodestorage && STREQ(tmp->nodestorage, nodeName)))
             return tmp;

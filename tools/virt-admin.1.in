@@ -129,7 +129,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRT-ADMIN 1"
-.TH VIRT-ADMIN 1 "2017-01-10" "libvirt-3.0.0" "Virtualization Support"
+.TH VIRT-ADMIN 1 "2017-10-30" "libvirt-3.9.0" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -529,13 +529,13 @@ Messages at level \s-1ERROR\s0 or above
 .RS 4
 .Sp
 For further information about debugging options consult
-<http://libvirt.org/logging.html>
+<https://libvirt.org/logging.html>
 .RE
 .SH "BUGS"
 .IX Header "BUGS"
 Report any bugs discovered to the libvirt community via the mailing
-list <http://libvirt.org/contact.html> or bug tracker
-<http://libvirt.org/bugs.html>.
+list <https://libvirt.org/contact.html> or bug tracker
+<https://libvirt.org/bugs.html>.
 Alternatively report bugs to your software distributor / vendor.
 .SH "AUTHORS"
 .IX Header "AUTHORS"
@@ -557,4 +557,4 @@ PURPOSE\s0
 .SH "SEE ALSO"
 .IX Header "SEE ALSO"
 \&\fIvirsh\fR\|(1), \fIvirt\-xml\-validate\fR\|(1), \fIvirt\-host\-validate\fR\|(1),
-<http://www.libvirt.org/>
+<https://libvirt.org/>

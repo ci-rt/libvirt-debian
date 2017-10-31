@@ -12,13 +12,13 @@
    GNU Lesser General Public License for more details.
 
    You should have received a copy of the GNU Lesser General Public License
-   along with this program; if not, see <http://www.gnu.org/licenses/>.  */
+   along with this program; if not, see <https://www.gnu.org/licenses/>.  */
 
 /* Written by Simon Josefsson.  Partially adapted from GNU MailUtils
  * (mailbox/filter_trans.c, as of 2004-11-28).  Improved by review
  * from Paul Eggert, Bruno Haible, and Stepan Kasal.
  *
- * See also RFC 4648 <http://www.ietf.org/rfc/rfc4648.txt>.
+ * See also RFC 4648 <https://www.ietf.org/rfc/rfc4648.txt>.
  *
  * Be careful with error checking.  Here is how you would typically
  * use these functions:

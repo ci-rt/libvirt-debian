@@ -94,8 +94,10 @@ virDomainCapsCPUModelsDispose(void *obj)
     virDomainCapsCPUModelsPtr cpuModels = obj;
     size_t i;
 
-    for (i = 0; i < cpuModels->nmodels; i++)
+    for (i = 0; i < cpuModels->nmodels; i++) {
         VIR_FREE(cpuModels->models[i].name);
+        virStringListFree(cpuModels->models[i].blockers);
+    }
 
     VIR_FREE(cpuModels->models);
 }
@@ -163,7 +165,8 @@ virDomainCapsCPUModelsCopy(virDomainCapsCPUModelsPtr old)
     for (i = 0; i < old->nmodels; i++) {
         if (virDomainCapsCPUModelsAdd(cpuModels,
                                       old->models[i].name, -1,
-                                      old->models[i].usable) < 0)
+                                      old->models[i].usable,
+                                      old->models[i].blockers) < 0)
             goto error;
     }
 
@@ -195,7 +198,8 @@ virDomainCapsCPUModelsFilter(virDomainCapsCPUModelsPtr old,
 
         if (virDomainCapsCPUModelsAdd(cpuModels,
                                       old->models[i].name, -1,
-                                      old->models[i].usable) < 0)
+                                      old->models[i].usable,
+                                      old->models[i].blockers) < 0)
             goto error;
     }
 
@@ -210,7 +214,8 @@ virDomainCapsCPUModelsFilter(virDomainCapsCPUModelsPtr old,
 int
 virDomainCapsCPUModelsAddSteal(virDomainCapsCPUModelsPtr cpuModels,
                                char **name,
-                               virDomainCapsCPUUsable usable)
+                               virDomainCapsCPUUsable usable,
+                               char ***blockers)
 {
     if (VIR_RESIZE_N(cpuModels->models, cpuModels->nmodels_max,
                      cpuModels->nmodels, 1) < 0)
@@ -218,6 +223,10 @@ virDomainCapsCPUModelsAddSteal(virDomainCapsCPUModelsPtr cpuModels,
 
     cpuModels->models[cpuModels->nmodels].usable = usable;
     VIR_STEAL_PTR(cpuModels->models[cpuModels->nmodels].name, *name);
+
+    if (blockers)
+        VIR_STEAL_PTR(cpuModels->models[cpuModels->nmodels].blockers, *blockers);
+
     cpuModels->nmodels++;
     return 0;
 }
@@ -227,21 +236,46 @@ int
 virDomainCapsCPUModelsAdd(virDomainCapsCPUModelsPtr cpuModels,
                           const char *name,
                           ssize_t nameLen,
-                          virDomainCapsCPUUsable usable)
+                          virDomainCapsCPUUsable usable,
+                          char **blockers)
 {
-    char *copy = NULL;
+    char *nameCopy = NULL;
+    char **blockersCopy = NULL;
 
-    if (VIR_STRNDUP(copy, name, nameLen) < 0)
+    if (VIR_STRNDUP(nameCopy, name, nameLen) < 0)
         goto error;
 
-    if (virDomainCapsCPUModelsAddSteal(cpuModels, &copy, usable) < 0)
+    if (virStringListCopy(&blockersCopy, (const char **)blockers) < 0)
+        goto error;
+
+    if (virDomainCapsCPUModelsAddSteal(cpuModels, &nameCopy,
+                                       usable, &blockersCopy) < 0)
         goto error;
 
     return 0;
 
  error:
-    VIR_FREE(copy);
+    VIR_FREE(nameCopy);
+    virStringListFree(blockersCopy);
     return -1;
+}
+
+
+virDomainCapsCPUModelPtr
+virDomainCapsCPUModelsGet(virDomainCapsCPUModelsPtr cpuModels,
+                          const char *name)
+{
+    size_t i;
+
+    if (!cpuModels)
+        return NULL;
+
+    for (i = 0; i < cpuModels->nmodels; i++) {
+        if (STREQ(cpuModels->models[i].name, name))
+            return cpuModels->models + i;
+    }
+
+    return NULL;
 }
 
 

@@ -282,7 +282,8 @@ int
 qemuMigrationFetchStats(virQEMUDriverPtr driver,
                         virDomainObjPtr vm,
                         qemuDomainAsyncJob asyncJob,
-                        qemuDomainJobInfoPtr jobInfo);
+                        qemuDomainJobInfoPtr jobInfo,
+                        char **error);
 
 int
 qemuMigrationErrorInit(virQEMUDriverPtr driver);
@@ -324,5 +325,9 @@ qemuMigrationFetchMirrorStats(virQEMUDriverPtr driver,
                               virDomainObjPtr vm,
                               qemuDomainAsyncJob asyncJob,
                               qemuDomainJobInfoPtr jobInfo);
+
+bool
+qemuMigrationCapsGet(virDomainObjPtr vm,
+                     qemuMonitorMigrationCaps cap);
 
 #endif /* __QEMU_MIGRATION_H__ */

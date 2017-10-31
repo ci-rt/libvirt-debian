@@ -12,7 +12,7 @@
    GNU Lesser General Public License for more details.
 
    You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
 #ifndef _@GUARD_PREFIX@_SCHED_H
 
@@ -34,7 +34,7 @@
 
 /* Get pid_t.
    This is needed on glibc 2.11 (see
-   glibc bug <http://sourceware.org/bugzilla/show_bug.cgi?id=13198>)
+   glibc bug <https://sourceware.org/bugzilla/show_bug.cgi?id=13198>)
    and Mac OS X 10.5.  */
 #include <sys/types.h>
 

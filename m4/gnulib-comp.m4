@@ -12,7 +12,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this file.  If not, see <http://www.gnu.org/licenses/>.
+# along with this file.  If not, see <https://www.gnu.org/licenses/>.
 #
 # As a special exception to the GNU General Public License,
 # this file may be distributed as part of a program that
@@ -205,6 +205,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module grantpt-tests:
   # Code from module hard-locale:
   # Code from module havelib:
+  # Code from module host-cpu-c-abi:
   # Code from module hostent:
   # Code from module ignore-value:
   # Code from module ignore-value-tests:
@@ -789,6 +790,7 @@ AC_SUBST([LTALLOCA])
         [AC_CONFIG_LINKS([$GNUmakefile:$GNUmakefile], [],
           [GNUmakefile=$GNUmakefile])])
   gl_HARD_LOCALE
+  AC_REQUIRE([gl_HOST_CPU_C_ABI])
   gl_HOSTENT
   gl_FUNC_INET_NTOP
   if test $HAVE_INET_NTOP = 0 || test $REPLACE_INET_NTOP = 1; then
@@ -2083,6 +2085,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/gnulib-common.m4
   m4/grantpt.m4
   m4/hard-locale.m4
+  m4/host-cpu-c-abi.m4
   m4/hostent.m4
   m4/include_next.m4
   m4/inet_ntop.m4

@@ -356,7 +356,7 @@ testStorageChain(const void *args)
     }
 
     elt = meta;
-    while (elt) {
+    while (virStorageSourceIsBacking(elt)) {
         char *expect = NULL;
         char *actual = NULL;
 
@@ -580,6 +580,7 @@ testPathRelativePrepare(void)
     size_t i;
 
     for (i = 0; i < ARRAY_CARDINALITY(backingchain); i++) {
+        backingchain[i].type = VIR_STORAGE_TYPE_FILE;
         if (i < ARRAY_CARDINALITY(backingchain) - 1)
             backingchain[i].backingStore = &backingchain[i + 1];
         else
@@ -1361,6 +1362,9 @@ mymain(void)
     TEST_BACKING_PARSE("rbd:testshare:id=asdf:mon_host=example.com",
                        "<source protocol='rbd' name='testshare'>\n"
                        "  <host name='example.com'/>\n"
+                       "  <auth username='asdf'>\n"
+                       "    <secret type='ceph'/>\n"
+                       "  </auth>\n"
                        "</source>\n");
     TEST_BACKING_PARSE("nbd:example.org:6000:exportname=blah",
                        "<source protocol='nbd' name='blah'>\n"
@@ -1526,6 +1530,9 @@ mymain(void)
                             "}",
                        "<source protocol='rbd' name='testshare'>\n"
                        "  <host name='example.com'/>\n"
+                       "  <auth username='asdf'>\n"
+                       "    <secret type='ceph'/>\n"
+                       "  </auth>\n"
                        "</source>\n");
     TEST_BACKING_PARSE("json:{\"file\":{\"driver\":\"rbd\","
                                        "\"image\":\"test\","

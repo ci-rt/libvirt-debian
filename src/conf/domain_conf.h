@@ -668,6 +668,7 @@ struct _virDomainDiskDef {
     unsigned int iothread; /* unused = 0, > 0 specific thread # */
     int detect_zeroes; /* enum virDomainDiskDetectZeroes */
     char *domain_name; /* backend domain name */
+    unsigned int queues;
     virDomainVirtioOptionsPtr virtio;
 };
 
@@ -1791,26 +1792,6 @@ typedef enum {
 } virDomainCapsFeature;
 
 typedef enum {
-    VIR_DOMAIN_LIFECYCLE_DESTROY,
-    VIR_DOMAIN_LIFECYCLE_RESTART,
-    VIR_DOMAIN_LIFECYCLE_RESTART_RENAME,
-    VIR_DOMAIN_LIFECYCLE_PRESERVE,
-
-    VIR_DOMAIN_LIFECYCLE_LAST
-} virDomainLifecycleAction;
-
-typedef enum {
-    VIR_DOMAIN_LIFECYCLE_CRASH_DESTROY,
-    VIR_DOMAIN_LIFECYCLE_CRASH_RESTART,
-    VIR_DOMAIN_LIFECYCLE_CRASH_RESTART_RENAME,
-    VIR_DOMAIN_LIFECYCLE_CRASH_PRESERVE,
-    VIR_DOMAIN_LIFECYCLE_CRASH_COREDUMP_DESTROY,
-    VIR_DOMAIN_LIFECYCLE_CRASH_COREDUMP_RESTART,
-
-    VIR_DOMAIN_LIFECYCLE_CRASH_LAST
-} virDomainLifecycleCrashAction;
-
-typedef enum {
     VIR_DOMAIN_LOCK_FAILURE_DEFAULT,
     VIR_DOMAIN_LOCK_FAILURE_POWEROFF,
     VIR_DOMAIN_LOCK_FAILURE_RESTART,
@@ -2507,6 +2488,7 @@ typedef enum {
     VIR_DOMAIN_DEF_FEATURE_OFFLINE_VCPUPIN = (1 << 2),
     VIR_DOMAIN_DEF_FEATURE_NAME_SLASH = (1 << 3),
     VIR_DOMAIN_DEF_FEATURE_INDIVIDUAL_VCPUS = (1 << 4),
+    VIR_DOMAIN_DEF_FEATURE_USER_ALIAS = (1 << 5),
 } virDomainDefFeatures;
 
 
@@ -2656,6 +2638,10 @@ int virDomainDefPostParse(virDomainDefPtr def,
                           unsigned int parseFlags,
                           virDomainXMLOptionPtr xmlopt,
                           void *parseOpaque);
+
+int virDomainDeviceValidateAliasForHotplug(virDomainObjPtr vm,
+                                           virDomainDeviceDefPtr dev,
+                                           unsigned int flags);
 
 int virDomainDefValidate(virDomainDefPtr def,
                          virCapsPtr caps,
@@ -3000,6 +2986,7 @@ int virDomainDiskSourceParse(xmlNodePtr node,
 
 int virDomainNetFindIdx(virDomainDefPtr def, virDomainNetDefPtr net);
 virDomainNetDefPtr virDomainNetFind(virDomainDefPtr def, const char *device);
+virDomainNetDefPtr virDomainNetFindByName(virDomainDefPtr def, const char *ifname);
 bool virDomainHasNet(virDomainDefPtr def, virDomainNetDefPtr net);
 int virDomainNetInsert(virDomainDefPtr def, virDomainNetDefPtr net);
 virDomainNetDefPtr virDomainNetRemove(virDomainDefPtr def, size_t i);
@@ -3020,7 +3007,7 @@ int virDomainGraphicsListenAppendSocket(virDomainGraphicsDefPtr def,
                                         const char *socket)
             ATTRIBUTE_NONNULL(1);
 
-virDomainNetType virDomainNetGetActualType(virDomainNetDefPtr iface);
+virDomainNetType virDomainNetGetActualType(const virDomainNetDef *iface);
 const char *virDomainNetGetActualBridgeName(virDomainNetDefPtr iface);
 int virDomainNetGetActualBridgeMACTableManager(virDomainNetDefPtr iface);
 const char *virDomainNetGetActualDirectDev(virDomainNetDefPtr iface);
@@ -3202,6 +3189,9 @@ ssize_t virDomainShmemDefFind(virDomainDefPtr def, virDomainShmemDefPtr shmem)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
 virDomainShmemDefPtr virDomainShmemDefRemove(virDomainDefPtr def, size_t idx)
     ATTRIBUTE_NONNULL(1);
+ssize_t virDomainInputDefFind(const virDomainDef *def,
+                              const virDomainInputDef *input)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
 
 VIR_ENUM_DECL(virDomainTaint)
 VIR_ENUM_DECL(virDomainVirt)
@@ -3210,7 +3200,7 @@ VIR_ENUM_DECL(virDomainFeature)
 VIR_ENUM_DECL(virDomainCapabilitiesPolicy)
 VIR_ENUM_DECL(virDomainCapsFeature)
 VIR_ENUM_DECL(virDomainLifecycle)
-VIR_ENUM_DECL(virDomainLifecycleCrash)
+VIR_ENUM_DECL(virDomainLifecycleAction)
 VIR_ENUM_DECL(virDomainDevice)
 VIR_ENUM_DECL(virDomainDeviceAddress)
 VIR_ENUM_DECL(virDomainDiskDevice)
@@ -3392,4 +3382,43 @@ virDomainGenerateMachineName(const char *drivername,
                              int id,
                              const char *name,
                              bool privileged);
+/**
+ * virDomainNetTypeSharesHostView:
+ * @net: interface
+ *
+ * Some types of interfaces "share" the host view. For instance,
+ * for macvtap interface, every domain RX is the host RX too. And
+ * every domain TX is host TX too. IOW, for some types of
+ * interfaces guest and host are on the same side of RX/TX
+ * barrier. This is important so that we set up QoS correctly and
+ * report proper stats.
+ */
+static inline bool
+virDomainNetTypeSharesHostView(const virDomainNetDef *net)
+{
+    virDomainNetType actualType = virDomainNetGetActualType(net);
+    switch (actualType) {
+    case VIR_DOMAIN_NET_TYPE_DIRECT:
+    case VIR_DOMAIN_NET_TYPE_ETHERNET:
+        return true;
+    case VIR_DOMAIN_NET_TYPE_USER:
+    case VIR_DOMAIN_NET_TYPE_VHOSTUSER:
+    case VIR_DOMAIN_NET_TYPE_SERVER:
+    case VIR_DOMAIN_NET_TYPE_CLIENT:
+    case VIR_DOMAIN_NET_TYPE_MCAST:
+    case VIR_DOMAIN_NET_TYPE_NETWORK:
+    case VIR_DOMAIN_NET_TYPE_BRIDGE:
+    case VIR_DOMAIN_NET_TYPE_INTERNAL:
+    case VIR_DOMAIN_NET_TYPE_HOSTDEV:
+    case VIR_DOMAIN_NET_TYPE_UDP:
+    case VIR_DOMAIN_NET_TYPE_LAST:
+        break;
+    }
+    return false;
+}
+
+bool
+virDomainDefLifecycleActionAllowed(virDomainLifecycle type,
+                                   virDomainLifecycleAction action);
+
 #endif /* __DOMAIN_CONF_H */

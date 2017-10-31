@@ -45,21 +45,14 @@ VIR_ENUM_DECL(qemuVideo)
 
 virCommandPtr qemuBuildCommandLine(virQEMUDriverPtr driver,
                                    virLogManagerPtr logManager,
-                                   virDomainDefPtr def,
-                                   virDomainChrSourceDefPtr monitor_chr,
-                                   bool monitor_json,
-                                   virQEMUCapsPtr qemuCaps,
+                                   virDomainObjPtr vm,
                                    const char *migrateURI,
                                    virDomainSnapshotObjPtr snapshot,
                                    virNetDevVPortProfileOp vmop,
                                    bool standalone,
                                    bool enableFips,
-                                   virBitmapPtr nodeset,
                                    size_t *nnicindexes,
-                                   int **nicindexes,
-                                   const char *domainLibDir,
-                                   bool chardevStdioLogd)
-    ATTRIBUTE_NONNULL(15);
+                                   int **nicindexes);
 
 
 /* Generate the object properties for a secret */
@@ -189,11 +182,6 @@ int qemuCheckDiskConfig(virDomainDiskDefPtr disk);
 bool
 qemuCheckFips(void);
 
-bool qemuCheckCCWS390AddressSupport(const virDomainDef *def,
-                                    virDomainDeviceInfo info,
-                                    virQEMUCapsPtr qemuCaps,
-                                    const char *devicename);
-
 virJSONValuePtr qemuBuildHotpluggableCPUProps(const virDomainVcpuDef *vcpu)
     ATTRIBUTE_NONNULL(1);
 
@@ -205,6 +193,15 @@ char *qemuBuildShmemDevStr(virDomainDefPtr def,
                            virQEMUCapsPtr qemuCaps)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 
+char *qemuBuildWatchdogDevStr(const virDomainDef *def,
+                              virDomainWatchdogDefPtr dev,
+                              virQEMUCapsPtr qemuCaps);
 
+int qemuBuildInputDevStr(char **devstr,
+                         const virDomainDef *def,
+                         virDomainInputDefPtr input,
+                         virQEMUCapsPtr qemuCaps)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
+    ATTRIBUTE_NONNULL(4);
 
 #endif /* __QEMU_COMMAND_H__*/

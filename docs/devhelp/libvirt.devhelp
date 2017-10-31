@@ -97,6 +97,7 @@
     <function name="VIR_DOMAIN_JOB_MEMORY_ITERATION" link="libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_MEMORY_ITERATION"/>
     <function name="VIR_DOMAIN_JOB_MEMORY_NORMAL" link="libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_MEMORY_NORMAL"/>
     <function name="VIR_DOMAIN_JOB_MEMORY_NORMAL_BYTES" link="libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_MEMORY_NORMAL_BYTES"/>
+    <function name="VIR_DOMAIN_JOB_MEMORY_PAGE_SIZE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_MEMORY_PAGE_SIZE"/>
     <function name="VIR_DOMAIN_JOB_MEMORY_PROCESSED" link="libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_MEMORY_PROCESSED"/>
     <function name="VIR_DOMAIN_JOB_MEMORY_REMAINING" link="libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_MEMORY_REMAINING"/>
     <function name="VIR_DOMAIN_JOB_MEMORY_TOTAL" link="libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_MEMORY_TOTAL"/>
@@ -547,6 +548,17 @@
     <function name="VIR_DOMAIN_JOB_STATS_COMPLETED" link="libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_STATS_COMPLETED"/>
     <function name="VIR_DOMAIN_JOB_UNBOUNDED" link="libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_UNBOUNDED"/>
     <function name="VIR_DOMAIN_LAST" link="libvirt-libvirt-domain.html#VIR_DOMAIN_LAST"/>
+    <function name="VIR_DOMAIN_LIFECYCLE_ACTION_COREDUMP_DESTROY" link="libvirt-libvirt-domain.html#VIR_DOMAIN_LIFECYCLE_ACTION_COREDUMP_DESTROY"/>
+    <function name="VIR_DOMAIN_LIFECYCLE_ACTION_COREDUMP_RESTART" link="libvirt-libvirt-domain.html#VIR_DOMAIN_LIFECYCLE_ACTION_COREDUMP_RESTART"/>
+    <function name="VIR_DOMAIN_LIFECYCLE_ACTION_DESTROY" link="libvirt-libvirt-domain.html#VIR_DOMAIN_LIFECYCLE_ACTION_DESTROY"/>
+    <function name="VIR_DOMAIN_LIFECYCLE_ACTION_LAST" link="libvirt-libvirt-domain.html#VIR_DOMAIN_LIFECYCLE_ACTION_LAST"/>
+    <function name="VIR_DOMAIN_LIFECYCLE_ACTION_PRESERVE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_LIFECYCLE_ACTION_PRESERVE"/>
+    <function name="VIR_DOMAIN_LIFECYCLE_ACTION_RESTART" link="libvirt-libvirt-domain.html#VIR_DOMAIN_LIFECYCLE_ACTION_RESTART"/>
+    <function name="VIR_DOMAIN_LIFECYCLE_ACTION_RESTART_RENAME" link="libvirt-libvirt-domain.html#VIR_DOMAIN_LIFECYCLE_ACTION_RESTART_RENAME"/>
+    <function name="VIR_DOMAIN_LIFECYCLE_CRASH" link="libvirt-libvirt-domain.html#VIR_DOMAIN_LIFECYCLE_CRASH"/>
+    <function name="VIR_DOMAIN_LIFECYCLE_LAST" link="libvirt-libvirt-domain.html#VIR_DOMAIN_LIFECYCLE_LAST"/>
+    <function name="VIR_DOMAIN_LIFECYCLE_POWEROFF" link="libvirt-libvirt-domain.html#VIR_DOMAIN_LIFECYCLE_POWEROFF"/>
+    <function name="VIR_DOMAIN_LIFECYCLE_REBOOT" link="libvirt-libvirt-domain.html#VIR_DOMAIN_LIFECYCLE_REBOOT"/>
     <function name="VIR_DOMAIN_MEMORY_PARAM_BOOLEAN" link="libvirt-libvirt-domain.html#VIR_DOMAIN_MEMORY_PARAM_BOOLEAN"/>
     <function name="VIR_DOMAIN_MEMORY_PARAM_DOUBLE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_MEMORY_PARAM_DOUBLE"/>
     <function name="VIR_DOMAIN_MEMORY_PARAM_INT" link="libvirt-libvirt-domain.html#VIR_DOMAIN_MEMORY_PARAM_INT"/>
@@ -1199,6 +1211,8 @@
     <function name="virDomainJobInfoPtr" link="libvirt-libvirt-domain.html#virDomainJobInfoPtr"/>
     <function name="virDomainJobOperation" link="libvirt-libvirt-domain.html#virDomainJobOperation"/>
     <function name="virDomainJobType" link="libvirt-libvirt-domain.html#virDomainJobType"/>
+    <function name="virDomainLifecycle" link="libvirt-libvirt-domain.html#virDomainLifecycle"/>
+    <function name="virDomainLifecycleAction" link="libvirt-libvirt-domain.html#virDomainLifecycleAction"/>
     <function name="virDomainMemoryFlags" link="libvirt-libvirt-domain.html#virDomainMemoryFlags"/>
     <function name="virDomainMemoryModFlags" link="libvirt-libvirt-domain.html#virDomainMemoryModFlags"/>
     <function name="virDomainMemoryStatPtr" link="libvirt-libvirt-domain.html#virDomainMemoryStatPtr"/>
@@ -1605,6 +1619,7 @@
     <function name="virDomainSetBlockThreshold ()" link="libvirt-libvirt-domain.html#virDomainSetBlockThreshold"/>
     <function name="virDomainSetGuestVcpus ()" link="libvirt-libvirt-domain.html#virDomainSetGuestVcpus"/>
     <function name="virDomainSetInterfaceParameters ()" link="libvirt-libvirt-domain.html#virDomainSetInterfaceParameters"/>
+    <function name="virDomainSetLifecycleAction ()" link="libvirt-libvirt-domain.html#virDomainSetLifecycleAction"/>
     <function name="virDomainSetMaxMemory ()" link="libvirt-libvirt-domain.html#virDomainSetMaxMemory"/>
     <function name="virDomainSetMemory ()" link="libvirt-libvirt-domain.html#virDomainSetMemory"/>
     <function name="virDomainSetMemoryFlags ()" link="libvirt-libvirt-domain.html#virDomainSetMemoryFlags"/>
