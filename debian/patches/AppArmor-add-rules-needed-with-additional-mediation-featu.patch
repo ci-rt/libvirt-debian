@@ -1,0 +1,55 @@
+From: intrigeri <intrigeri+libvirt@boum.org>
+Date: Thu, 26 Oct 2017 10:22:00 +0000
+Subject: AppArmor: add rules needed with additional mediation features
+ brought by Linux 4.14.
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+
+U2lnbmVkLW9mZi1ieTogR3VpZG8gR8O8bnRoZXIgPGFneEBzaWd4Y3B1Lm9yZz4K
+---
+ examples/apparmor/libvirt-qemu      | 2 ++
+ examples/apparmor/usr.sbin.libvirtd | 6 ++++++
+ 2 files changed, 8 insertions(+)
+
+diff --git a/examples/apparmor/libvirt-qemu b/examples/apparmor/libvirt-qemu
+index 97dd2d4..eb83924 100644
+--- a/examples/apparmor/libvirt-qemu
++++ b/examples/apparmor/libvirt-qemu
+@@ -16,6 +16,8 @@
+   network inet stream,
+   network inet6 stream,
+ 
++  signal (receive) set=("term") peer=/usr/sbin/libvirtd,
++
+   /dev/net/tun rw,
+   /dev/kvm rw,
+   /dev/ptmx rw,
+diff --git a/examples/apparmor/usr.sbin.libvirtd b/examples/apparmor/usr.sbin.libvirtd
+index 2dc9bb0..fcb0abe 100644
+--- a/examples/apparmor/usr.sbin.libvirtd
++++ b/examples/apparmor/usr.sbin.libvirtd
+@@ -30,10 +30,13 @@
+   # Needed for vfio
+   capability sys_resource,
+ 
++  mount,
++
+   network inet stream,
+   network inet dgram,
+   network inet6 stream,
+   network inet6 dgram,
++  network netlink raw,
+   network packet dgram,
+   network packet raw,
+ 
+@@ -42,6 +45,9 @@
+   ptrace (trace) peer=/usr/sbin/dnsmasq,
+   ptrace (trace) peer=libvirt-*,
+ 
++  signal (send) set=("hup") peer=/usr/sbin/dnsmasq,
++  signal (send) set=("term") peer=libvirt-*,
++
+   # Very lenient profile for libvirtd since we want to first focus on confining
+   # the guests. Guests will have a very restricted profile.
+   / r,
