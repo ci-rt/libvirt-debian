@@ -13,7 +13,7 @@
    GNU Lesser General Public License for more details.
 
    You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
 #ifndef _@GUARD_PREFIX@_FLOAT_H
 
@@ -62,7 +62,7 @@
 
 /* On FreeBSD/x86 6.4, the 'long double' type really has only 53 bits of
    precision in the compiler but 64 bits of precision at runtime.  See
-   <http://lists.gnu.org/archive/html/bug-gnulib/2008-07/msg00063.html>.  */
+   <https://lists.gnu.org/archive/html/bug-gnulib/2008-07/msg00063.html>.  */
 #if defined __i386__ && (defined __FreeBSD__ || defined __DragonFly__)
 /* Number of mantissa units, in base FLT_RADIX.  */
 # undef LDBL_MANT_DIG

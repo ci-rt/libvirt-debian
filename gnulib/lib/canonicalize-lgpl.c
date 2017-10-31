@@ -13,7 +13,7 @@
    GNU Lesser General Public License for more details.
 
    You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
 #ifndef _LIBC
 /* Don't use __attribute__ __nonnull__ in this compilation unit.  Otherwise gcc
@@ -97,7 +97,7 @@ alloc_failed (void)
 {
 #if (defined _WIN32 || defined __WIN32__) && ! defined __CYGWIN__
   /* Avoid errno problem without using the malloc or realloc modules; see:
-     http://lists.gnu.org/archive/html/bug-gnulib/2016-08/msg00025.html  */
+     https://lists.gnu.org/archive/html/bug-gnulib/2016-08/msg00025.html  */
   errno = ENOMEM;
 #endif
 }

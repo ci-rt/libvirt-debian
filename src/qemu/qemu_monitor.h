@@ -641,6 +641,8 @@ typedef enum {
     QEMU_MONITOR_MIGRATION_STATUS_INACTIVE,
     QEMU_MONITOR_MIGRATION_STATUS_SETUP,
     QEMU_MONITOR_MIGRATION_STATUS_ACTIVE,
+    QEMU_MONITOR_MIGRATION_STATUS_PRE_SWITCHOVER,
+    QEMU_MONITOR_MIGRATION_STATUS_DEVICE,
     QEMU_MONITOR_MIGRATION_STATUS_POSTCOPY,
     QEMU_MONITOR_MIGRATION_STATUS_COMPLETED,
     QEMU_MONITOR_MIGRATION_STATUS_ERROR,
@@ -677,6 +679,7 @@ struct _qemuMonitorMigrationStats {
     unsigned long long ram_normal;
     unsigned long long ram_normal_bytes;
     unsigned long long ram_dirty_rate;
+    unsigned long long ram_page_size;
     unsigned long long ram_iteration;
 
     unsigned long long disk_transferred;
@@ -695,7 +698,8 @@ struct _qemuMonitorMigrationStats {
 };
 
 int qemuMonitorGetMigrationStats(qemuMonitorPtr mon,
-                                 qemuMonitorMigrationStatsPtr stats);
+                                 qemuMonitorMigrationStatsPtr stats,
+                                 char **error);
 
 typedef enum {
     QEMU_MONITOR_MIGRATION_CAPS_XBZRLE,
@@ -704,6 +708,7 @@ typedef enum {
     QEMU_MONITOR_MIGRATION_CAPS_EVENTS,
     QEMU_MONITOR_MIGRATION_CAPS_POSTCOPY,
     QEMU_MONITOR_MIGRATION_CAPS_COMPRESS,
+    QEMU_MONITOR_MIGRATION_CAPS_PAUSE_BEFORE_SWITCHOVER,
 
     QEMU_MONITOR_MIGRATION_CAPS_LAST
 } qemuMonitorMigrationCaps;
@@ -712,8 +717,6 @@ VIR_ENUM_DECL(qemuMonitorMigrationCaps);
 
 int qemuMonitorGetMigrationCapabilities(qemuMonitorPtr mon,
                                         char ***capabilities);
-int qemuMonitorGetMigrationCapability(qemuMonitorPtr mon,
-                                      qemuMonitorMigrationCaps capability);
 int qemuMonitorSetMigrationCapability(qemuMonitorPtr mon,
                                       qemuMonitorMigrationCaps capability,
                                       bool state);
@@ -722,7 +725,7 @@ int qemuMonitorGetGICCapabilities(qemuMonitorPtr mon,
                                   virGICCapability **capabilities);
 
 typedef enum {
-  QEMU_MONITOR_MIGRATE_BACKGROUND	= 1 << 0,
+  QEMU_MONITOR_MIGRATE_BACKGROUND       = 1 << 0,
   QEMU_MONITOR_MIGRATE_NON_SHARED_DISK  = 1 << 1, /* migration with non-shared storage with full disk copy */
   QEMU_MONITOR_MIGRATE_NON_SHARED_INC   = 1 << 2, /* migration with non-shared storage with incremental copy */
   QEMU_MONITOR_MIGRATION_FLAGS_LAST
@@ -972,6 +975,7 @@ typedef qemuMonitorCPUDefInfo *qemuMonitorCPUDefInfoPtr;
 struct _qemuMonitorCPUDefInfo {
     virTristateBool usable;
     char *name;
+    char **blockers; /* NULL-terminated string list */
 };
 
 int qemuMonitorGetCPUDefinitions(qemuMonitorPtr mon,
@@ -1118,6 +1122,9 @@ int qemuMonitorMigrateIncoming(qemuMonitorPtr mon,
 
 int qemuMonitorMigrateStartPostCopy(qemuMonitorPtr mon);
 
+int qemuMonitorMigrateContinue(qemuMonitorPtr mon,
+                               qemuMonitorMigrationStatus status);
+
 int qemuMonitorGetRTCTime(qemuMonitorPtr mon,
                           struct tm *tm);
 
@@ -1129,4 +1136,6 @@ int qemuMonitorSetBlockThreshold(qemuMonitorPtr mon,
 
 virJSONValuePtr qemuMonitorQueryNamedBlockNodes(qemuMonitorPtr mon);
 
+int qemuMonitorSetWatchdogAction(qemuMonitorPtr mon,
+                                 const char *action);
 #endif /* QEMU_MONITOR_H */

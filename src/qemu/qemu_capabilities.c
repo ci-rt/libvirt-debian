@@ -442,6 +442,7 @@ VIR_ENUM_IMPL(virQEMUCaps, QEMU_CAPS_LAST,
 
               /* 270 */
               "vxhs",
+              "virtio-blk.num-queues",
     );
 
 
@@ -795,7 +796,7 @@ virQEMUCapsParseX86Models(const char *output,
         }
 
         if (virDomainCapsCPUModelsAdd(cpus, p, len,
-                                      VIR_DOMCAPS_CPU_USABLE_UNKNOWN) < 0)
+                                      VIR_DOMCAPS_CPU_USABLE_UNKNOWN, NULL) < 0)
             goto error;
     } while ((p = next));
 
@@ -853,7 +854,7 @@ virQEMUCapsParsePPCModels(const char *output,
             continue;
 
         if (virDomainCapsCPUModelsAdd(cpus, p, t - p - 1,
-                                      VIR_DOMCAPS_CPU_USABLE_UNKNOWN) < 0)
+                                      VIR_DOMCAPS_CPU_USABLE_UNKNOWN, NULL) < 0)
             goto error;
     } while ((p = next));
 
@@ -1167,18 +1168,8 @@ virQEMUCapsProbeHostCPUForEmulator(virArch hostArch,
                                    virQEMUCapsPtr qemuCaps,
                                    virDomainVirtType type)
 {
-    size_t nmodels;
-    char **models;
-    virCPUDefPtr cpu;
-
-    if (virQEMUCapsGetCPUDefinitions(qemuCaps, type, &models, &nmodels) < 0)
-        return NULL;
-
-    cpu = virCPUGetHost(hostArch, VIR_CPU_TYPE_GUEST, NULL,
-                        (const char **) models, nmodels);
-
-    virStringListFreeCount(models, nmodels);
-    return cpu;
+    return virCPUGetHost(hostArch, VIR_CPU_TYPE_GUEST, NULL,
+                         virQEMUCapsGetCPUDefinitions(qemuCaps, type));
 }
 
 
@@ -1692,6 +1683,7 @@ static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsVirtioBlk[] = {
     { "event_idx", QEMU_CAPS_VIRTIO_BLK_EVENT_IDX },
     { "scsi", QEMU_CAPS_VIRTIO_BLK_SCSI },
     { "logical_block_size", QEMU_CAPS_BLOCKIO },
+    { "num-queues", QEMU_CAPS_VIRTIO_BLK_NUM_QUEUES },
 };
 
 static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsVirtioNet[] = {
@@ -2524,7 +2516,7 @@ virQEMUCapsAddCPUDefinitions(virQEMUCapsPtr qemuCaps,
     }
 
     for (i = 0; i < count; i++) {
-        if (virDomainCapsCPUModelsAdd(cpus, name[i], -1, usable) < 0)
+        if (virDomainCapsCPUModelsAdd(cpus, name[i], -1, usable, NULL) < 0)
             return -1;
     }
 
@@ -2532,45 +2524,14 @@ virQEMUCapsAddCPUDefinitions(virQEMUCapsPtr qemuCaps,
 }
 
 
-int
+virDomainCapsCPUModelsPtr
 virQEMUCapsGetCPUDefinitions(virQEMUCapsPtr qemuCaps,
-                             virDomainVirtType type,
-                             char ***names,
-                             size_t *count)
+                             virDomainVirtType type)
 {
-    size_t i;
-    char **models = NULL;
-    virDomainCapsCPUModelsPtr cpus;
-
-    *count = 0;
-    if (names)
-        *names = NULL;
-
     if (type == VIR_DOMAIN_VIRT_KVM)
-        cpus = qemuCaps->kvmCPUModels;
+        return qemuCaps->kvmCPUModels;
     else
-        cpus = qemuCaps->tcgCPUModels;
-
-    if (!cpus)
-        return 0;
-
-    if (names && VIR_ALLOC_N(models, cpus->nmodels) < 0)
-        return -1;
-
-    for (i = 0; i < cpus->nmodels; i++) {
-        virDomainCapsCPUModelPtr cpu = cpus->models + i;
-        if (models && VIR_STRDUP(models[i], cpu->name) < 0)
-            goto error;
-    }
-
-    if (names)
-        *names = models;
-    *count = cpus->nmodels;
-    return 0;
-
- error:
-    virStringListFreeCount(models, i);
-    return -1;
+        return qemuCaps->tcgCPUModels;
 }
 
 
@@ -2972,7 +2933,7 @@ virQEMUCapsProbeQMPMachineTypes(virQEMUCapsPtr qemuCaps,
 }
 
 
-static int
+int
 virQEMUCapsProbeQMPCPUDefinitions(virQEMUCapsPtr qemuCaps,
                                   qemuMonitorPtr mon,
                                   bool tcg)
@@ -3005,7 +2966,8 @@ virQEMUCapsProbeQMPCPUDefinitions(virQEMUCapsPtr qemuCaps,
         else if (cpus[i]->usable == VIR_TRISTATE_BOOL_NO)
             usable = VIR_DOMCAPS_CPU_USABLE_NO;
 
-        if (virDomainCapsCPUModelsAddSteal(models, &cpus[i]->name, usable) < 0)
+        if (virDomainCapsCPUModelsAddSteal(models, &cpus[i]->name, usable,
+                                           &cpus[i]->blockers) < 0)
             goto cleanup;
     }
 
@@ -3391,8 +3353,7 @@ virQEMUCapsInitCPUModelX86(virQEMUCapsPtr qemuCaps,
     virCPUDataPtr data = NULL;
     unsigned long long sigFamily = 0;
     unsigned long long sigModel = 0;
-    size_t nmodels = 0;
-    char **models = NULL;
+    unsigned long long sigStepping = 0;
     int ret = -1;
     size_t i;
 
@@ -3427,6 +3388,8 @@ virQEMUCapsInitCPUModelX86(virQEMUCapsPtr qemuCaps,
                 sigFamily = prop->value.number;
             else if (STREQ(prop->name, "model"))
                 sigModel = prop->value.number;
+            else if (STREQ(prop->name, "stepping"))
+                sigStepping = prop->value.number;
             break;
 
         case QEMU_MONITOR_CPU_PROPERTY_LAST:
@@ -3434,18 +3397,16 @@ virQEMUCapsInitCPUModelX86(virQEMUCapsPtr qemuCaps,
         }
     }
 
-    if (virCPUx86DataSetSignature(data, sigFamily, sigModel) < 0)
+    if (virCPUx86DataSetSignature(data, sigFamily, sigModel, sigStepping) < 0)
         goto cleanup;
 
-    if (virQEMUCapsGetCPUDefinitions(qemuCaps, type, &models, &nmodels) < 0 ||
-        cpuDecode(cpu, data, (const char **) models, nmodels, NULL) < 0)
+    if (cpuDecode(cpu, data, virQEMUCapsGetCPUDefinitions(qemuCaps, type)) < 0)
         goto cleanup;
 
     ret = 0;
 
  cleanup:
     virCPUDataFree(data);
-    virStringListFreeCount(models, nmodels);
     return ret;
 }
 
@@ -3531,7 +3492,7 @@ virQEMUCapsInitHostCPUModel(virQEMUCapsPtr qemuCaps,
     } else if (type == VIR_DOMAIN_VIRT_KVM &&
                virCPUGetHostIsSupported(qemuCaps->arch)) {
         if (!(fullCPU = virCPUGetHost(qemuCaps->arch, VIR_CPU_TYPE_GUEST,
-                                      NULL, NULL, 0)))
+                                      NULL, NULL)))
             goto error;
 
         for (i = 0; i < cpu->nfeatures; i++) {
@@ -3726,6 +3687,10 @@ virQEMUCapsLoadCPUModels(virQEMUCapsPtr qemuCaps,
     size_t i;
     int n;
     int ret = -1;
+    xmlNodePtr node;
+    xmlNodePtr *blockerNodes = NULL;
+    char **blockers = NULL;
+    int nblockers;
 
     if (type == VIR_DOMAIN_VIRT_KVM)
         n = virXPathNodeSet("./cpu[@type='kvm']", ctxt, &nodes);
@@ -3768,7 +3733,35 @@ virQEMUCapsLoadCPUModels(virQEMUCapsPtr qemuCaps,
             goto cleanup;
         }
 
-        if (virDomainCapsCPUModelsAddSteal(cpus, &str, usable) < 0)
+        node = ctxt->node;
+        ctxt->node = nodes[i];
+        nblockers = virXPathNodeSet("./blocker", ctxt, &blockerNodes);
+        ctxt->node = node;
+
+        if (nblockers < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("failed to parse CPU blockers in QEMU capabilities"));
+            goto cleanup;
+        }
+
+        if (nblockers > 0) {
+            size_t j;
+
+            if (VIR_ALLOC_N(blockers, nblockers + 1) < 0)
+                goto cleanup;
+
+            for (j = 0; j < nblockers; j++) {
+                if (!(blockers[j] = virXMLPropString(blockerNodes[j], "name"))) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                                   _("missing blocker name in QEMU "
+                                     "capabilities cache"));
+                    goto cleanup;
+                }
+            }
+            VIR_FREE(blockerNodes);
+        }
+
+        if (virDomainCapsCPUModelsAddSteal(cpus, &str, usable, &blockers) < 0)
             goto cleanup;
     }
 
@@ -3777,6 +3770,8 @@ virQEMUCapsLoadCPUModels(virQEMUCapsPtr qemuCaps,
  cleanup:
     VIR_FREE(nodes);
     VIR_FREE(str);
+    VIR_FREE(blockerNodes);
+    virStringListFree(blockers);
     return ret;
 }
 
@@ -4134,7 +4129,21 @@ virQEMUCapsFormatCPUModels(virQEMUCapsPtr qemuCaps,
             virBufferAsprintf(buf, " usable='%s'",
                               virDomainCapsCPUUsableTypeToString(cpu->usable));
         }
-        virBufferAddLit(buf, "/>\n");
+
+        if (cpu->blockers) {
+            size_t j;
+
+            virBufferAddLit(buf, ">\n");
+            virBufferAdjustIndent(buf, 2);
+
+            for (j = 0; cpu->blockers[j]; j++)
+                virBufferAsprintf(buf, "<blocker name='%s'/>\n", cpu->blockers[j]);
+
+            virBufferAdjustIndent(buf, -2);
+            virBufferAddLit(buf, "</cpu>\n");
+        } else {
+            virBufferAddLit(buf, "/>\n");
+        }
     }
 }
 

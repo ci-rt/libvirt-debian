@@ -682,7 +682,7 @@ struct remote_domain_block_stats_flags_ret {
 
 struct remote_domain_interface_stats_args {
     remote_nonnull_domain dom;
-    remote_nonnull_string path;
+    remote_nonnull_string device;
 };
 
 struct remote_domain_interface_stats_ret { /* insert@2 */
@@ -3433,6 +3433,12 @@ struct remote_domain_set_block_threshold_args {
     unsigned int flags;
 };
 
+struct remote_domain_set_lifecycle_action_args {
+    remote_nonnull_domain dom;
+    unsigned int type;
+    unsigned int action;
+    unsigned int flags;
+};
 
 /*----- Protocol. -----*/
 
@@ -6108,5 +6114,11 @@ enum remote_procedure {
      * @acl: domain:write
      * @acl: domain:hibernate
      */
-    REMOTE_PROC_DOMAIN_MANAGED_SAVE_DEFINE_XML = 389
+    REMOTE_PROC_DOMAIN_MANAGED_SAVE_DEFINE_XML = 389,
+
+    /**
+     * @generate: both
+     * @acl: domain:write
+     */
+    REMOTE_PROC_DOMAIN_SET_LIFECYCLE_ACTION = 390
 };

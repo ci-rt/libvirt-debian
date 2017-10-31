@@ -2167,7 +2167,7 @@ static int lxcContainerSetUserGroup(virCommandPtr cmd,
  * This function is run in the process clone()'d in lxcStartContainer.
  * Perform a number of container setup tasks:
  *     Setup container file system
- *     mount container /proca
+ *     mount container /proc
  * Then exec's the container init
  *
  * Returns 0 on success or -1 in case of error
@@ -2182,6 +2182,8 @@ static int lxcContainerChild(void *data)
     virDomainFSDefPtr root;
     virCommandPtr cmd = NULL;
     int hasReboot;
+    gid_t *groups = NULL;
+    int ngroups;
 
     if (NULL == vmDef) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -2252,8 +2254,8 @@ static int lxcContainerChild(void *data)
 
     if (!virFileExists(vmDef->os.init)) {
         virReportSystemError(errno,
-                    _("cannot find init path '%s' relative to container root"),
-                    vmDef->os.init);
+                             _("cannot find init path '%s' relative to container root"),
+                             vmDef->os.init);
         goto cleanup;
     }
 
@@ -2273,7 +2275,7 @@ static int lxcContainerChild(void *data)
 
     if (lxcContainerSendContinue(argv->handshakefd) < 0) {
         virReportSystemError(errno, "%s",
-                            _("Failed to send continue signal to controller"));
+                             _("Failed to send continue signal to controller"));
         goto cleanup;
     }
 
@@ -2297,6 +2299,13 @@ static int lxcContainerChild(void *data)
         goto cleanup;
     }
 
+    /* TODO is it safe to call it here or should this call be moved in
+     * front of the clone() as otherwise there might be a risk for a
+     * deadlock */
+    if ((ngroups = virGetGroupList(virCommandGetUID(cmd), virCommandGetGID(cmd),
+                                   &groups)) < 0)
+        goto cleanup;
+
     ret = 0;
  cleanup:
     VIR_FREE(ttyPath);
@@ -2307,7 +2316,7 @@ static int lxcContainerChild(void *data)
     if (ret == 0) {
         VIR_DEBUG("Executing init binary");
         /* this function will only return if an error occurred */
-        ret = virCommandExec(cmd);
+        ret = virCommandExec(cmd, groups, ngroups);
     }
 
     if (ret != 0) {
@@ -2317,6 +2326,7 @@ static int lxcContainerChild(void *data)
                 virGetLastErrorMessage());
     }
 
+    VIR_FREE(groups);
     virCommandFree(cmd);
     return ret;
 }

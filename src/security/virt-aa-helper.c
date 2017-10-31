@@ -55,6 +55,7 @@
 #include "virrandom.h"
 #include "virstring.h"
 #include "virgettext.h"
+#include "virhostdev.h"
 
 #include "storage/storage_source.h"
 
@@ -448,7 +449,7 @@ valid_name(const char *name)
 {
     /* just try to filter out any dangerous characters in the name that can be
      * used to subvert the profile */
-    const char *bad = " /[]*";
+    const char *bad = "/[]{}?^,\"*";
 
     if (strlen(name) == 0)
         return -1;
@@ -941,7 +942,7 @@ get_files(vahControl * ctl)
         /* XXX - if we knew the qemu user:group here we could send it in
          *        so that the open could be re-tried as that user:group.
          */
-        if (!disk->src->backingStore) {
+        if (!virStorageSourceHasBacking(disk->src)) {
             bool probe = ctl->allowDiskFormatProbing;
             virStorageFileGetMetadata(disk->src, -1, -1, probe, false);
         }
@@ -1069,6 +1070,9 @@ get_files(vahControl * ctl)
                 if (usb == NULL)
                     continue;
 
+                if (virHostdevFindUSBDevice(dev, true, &usb) < 0)
+                    continue;
+
                 rc = virUSBDeviceFileIterate(usb, file_iterate_hostdev_cb, &buf);
                 virUSBDeviceFree(usb);
                 if (rc != 0)
@@ -1145,15 +1149,15 @@ get_files(vahControl * ctl)
         }
     }
     if (needsvhost)
-        virBufferAddLit(&buf, "  /dev/vhost-net rw,\n");
+        virBufferAddLit(&buf, "  \"/dev/vhost-net\" rw,\n");
 
     if (needsVfio) {
-        virBufferAddLit(&buf, "  /dev/vfio/vfio rw,\n");
-        virBufferAddLit(&buf, "  /dev/vfio/[0-9]* rw,\n");
+        virBufferAddLit(&buf, "  \"/dev/vfio/vfio\" rw,\n");
+        virBufferAddLit(&buf, "  \"/dev/vfio/[0-9]*\" rw,\n");
     }
 
     if (ctl->newfile)
-        if (vah_add_file(&buf, ctl->newfile, "rw") != 0)
+        if (vah_add_file(&buf, ctl->newfile, "rwk") != 0)
             goto cleanup;
 
     if (virBufferError(&buf)) {
@@ -1337,7 +1341,7 @@ main(int argc, char **argv)
             vah_error(ctl, 1, _("profile exists"));
 
         if (ctl->append && ctl->newfile) {
-            if (vah_add_file(&buf, ctl->newfile, "rw") != 0)
+            if (vah_add_file(&buf, ctl->newfile, "rwk") != 0)
                 goto cleanup;
         } else {
             if (ctl->def->virtType == VIR_DOMAIN_VIRT_QEMU ||

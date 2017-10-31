@@ -2847,16 +2847,15 @@ lxcDomainGetBlkioParameters(virDomainPtr dom,
 }
 
 
-#ifdef __linux__
 static int
 lxcDomainInterfaceStats(virDomainPtr dom,
-                        const char *path,
+                        const char *device,
                         virDomainInterfaceStatsPtr stats)
 {
     virDomainObjPtr vm;
-    size_t i;
     int ret = -1;
     virLXCDriverPtr driver = dom->conn->privateData;
+    virDomainNetDefPtr net = NULL;
 
     if (!(vm = lxcDomObjFromDomain(dom)))
         goto cleanup;
@@ -2873,20 +2872,14 @@ lxcDomainInterfaceStats(virDomainPtr dom,
         goto endjob;
     }
 
-    /* Check the path is one of the domain's network interfaces. */
-    for (i = 0; i < vm->def->nnets; i++) {
-        if (vm->def->nets[i]->ifname &&
-            STREQ(vm->def->nets[i]->ifname, path)) {
-            ret = 0;
-            break;
-        }
-    }
+    if (!(net = virDomainNetFind(vm->def, device)))
+        goto endjob;
 
-    if (ret == 0)
-        ret = virNetDevTapInterfaceStats(path, stats);
-    else
-        virReportError(VIR_ERR_INVALID_ARG,
-                       _("Invalid path, '%s' is not a known interface"), path);
+    if (virNetDevTapInterfaceStats(net->ifname, stats,
+                                   !virDomainNetTypeSharesHostView(net)) < 0)
+        goto endjob;
+
+    ret = 0;
 
  endjob:
     virLXCDomainObjEndJob(driver, vm);
@@ -2895,16 +2888,7 @@ lxcDomainInterfaceStats(virDomainPtr dom,
     virDomainObjEndAPI(&vm);
     return ret;
 }
-#else
-static int
-lxcDomainInterfaceStats(virDomainPtr dom,
-                        const char *path ATTRIBUTE_UNUSED,
-                        virDomainInterfaceStatsPtr stats ATTRIBUTE_UNUSED)
-{
-    virReportUnsupportedError();
-    return -1;
-}
-#endif
+
 
 static int lxcDomainGetAutostart(virDomainPtr dom,
                                    int *autostart)
@@ -3994,7 +3978,8 @@ lxcDomainAttachDeviceNetLive(virConnectPtr conn,
     actualBandwidth = virDomainNetGetActualBandwidth(net);
     if (actualBandwidth) {
         if (virNetDevSupportBandwidth(actualType)) {
-            if (virNetDevBandwidthSet(net->ifname, actualBandwidth, false) < 0)
+            if (virNetDevBandwidthSet(net->ifname, actualBandwidth, false,
+                                      !virDomainNetTypeSharesHostView(net)) < 0)
                 goto cleanup;
         } else {
             VIR_WARN("setting bandwidth on interfaces of "

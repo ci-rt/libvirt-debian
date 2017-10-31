@@ -245,6 +245,7 @@ extern int virDomainSetBlockIoTuneEnsureACL(virConnectPtr conn, virDomainDefPtr 
 extern int virDomainSetBlockThresholdEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSetGuestVcpusEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSetInterfaceParametersEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
+extern int virDomainSetLifecycleActionEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSetMaxMemoryEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSetMemoryEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSetMemoryFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);

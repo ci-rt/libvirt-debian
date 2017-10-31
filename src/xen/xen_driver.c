@@ -2109,10 +2109,11 @@ xenUnifiedDomainBlockStats(virDomainPtr dom, const char *path,
 }
 
 static int
-xenUnifiedDomainInterfaceStats(virDomainPtr dom, const char *path,
+xenUnifiedDomainInterfaceStats(virDomainPtr dom, const char *device,
                                virDomainInterfaceStatsPtr stats)
 {
     virDomainDefPtr def = NULL;
+    virDomainNetDefPtr net = NULL;
     int ret = -1;
 
     if (!(def = xenGetDomainDefForDom(dom)))
@@ -2121,7 +2122,10 @@ xenUnifiedDomainInterfaceStats(virDomainPtr dom, const char *path,
     if (virDomainInterfaceStatsEnsureACL(dom->conn, def) < 0)
         goto cleanup;
 
-    ret = xenHypervisorDomainInterfaceStats(def, path, stats);
+    if (!(net = virDomainNetFind(def, device)))
+        goto cleanup;
+
+    ret = xenHypervisorDomainInterfaceStats(def, net->ifname, stats);
 
  cleanup:
     virDomainDefFree(def);

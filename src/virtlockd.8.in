@@ -129,7 +129,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRTLOCKD 8"
-.TH VIRTLOCKD 8 "2017-06-28" "libvirt-3.5.0" "Virtualization Support"
+.TH VIRTLOCKD 8 "2017-10-30" "libvirt-3.9.0" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -238,13 +238,13 @@ To start virtlockd, instructing it to daemonize and create a \s-1PID\s0 file:
 Please report all bugs you discover.  This should be done via either:
 .IP "a) the mailing list" 4
 .IX Item "a) the mailing list"
-<http://libvirt.org/contact.html>
+<https://libvirt.org/contact.html>
 .IP "or," 4
 .IX Item "or,"
 \&\fB\fR
 .IP "b) the bug tracker" 4
 .IX Item "b) the bug tracker"
-<http://libvirt.org/bugs.html>
+<https://libvirt.org/bugs.html>
 .IP "Alternatively, you may report bugs to your software distributor / vendor." 4
 .IX Item "Alternatively, you may report bugs to your software distributor / vendor."
 .SH "AUTHORS"
@@ -262,4 +262,4 @@ is \s-1NO\s0 warranty; not even for \s-1MERCHANTABILITY\s0 or \s-1FITNESS FOR A 
 PURPOSE\s0
 .SH "SEE ALSO"
 .IX Header "SEE ALSO"
-\&\fIlibvirtd\fR\|(8),  <http://www.libvirt.org/>
+\&\fIlibvirtd\fR\|(8),  <https://libvirt.org/>

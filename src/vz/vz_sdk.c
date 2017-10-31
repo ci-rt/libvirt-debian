@@ -1887,9 +1887,9 @@ prlsdkLoadDomain(vzDriverPtr driver,
 
     def->virtType = VIR_DOMAIN_VIRT_VZ;
 
-    def->onReboot = VIR_DOMAIN_LIFECYCLE_RESTART;
-    def->onPoweroff = VIR_DOMAIN_LIFECYCLE_DESTROY;
-    def->onCrash = VIR_DOMAIN_LIFECYCLE_CRASH_DESTROY;
+    def->onReboot = VIR_DOMAIN_LIFECYCLE_ACTION_RESTART;
+    def->onPoweroff = VIR_DOMAIN_LIFECYCLE_ACTION_DESTROY;
+    def->onCrash = VIR_DOMAIN_LIFECYCLE_ACTION_DESTROY;
 
     /* get RAM parameters */
     pret = PrlVmCfg_GetRamSize(sdkdom, &ram);
@@ -2591,9 +2591,9 @@ prlsdkCheckUnsupportedParams(PRL_HANDLE sdkdom, virDomainDefPtr def)
         return -1;
     }
 
-    if (def->onReboot != VIR_DOMAIN_LIFECYCLE_RESTART ||
-        def->onPoweroff != VIR_DOMAIN_LIFECYCLE_DESTROY ||
-        def->onCrash != VIR_DOMAIN_LIFECYCLE_CRASH_DESTROY) {
+    if (def->onReboot != VIR_DOMAIN_LIFECYCLE_ACTION_RESTART ||
+        def->onPoweroff != VIR_DOMAIN_LIFECYCLE_ACTION_DESTROY ||
+        def->onCrash != VIR_DOMAIN_LIFECYCLE_ACTION_DESTROY) {
 
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("on_reboot, on_poweroff and on_crash parameters "
@@ -4484,7 +4484,7 @@ prlsdkFindNetByPath(PRL_HANDLE sdkdom, const char *path)
 }
 
 int
-prlsdkGetNetStats(PRL_HANDLE sdkstats, PRL_HANDLE sdkdom, const char *path,
+prlsdkGetNetStats(PRL_HANDLE sdkstats, PRL_HANDLE sdkdom, const char *device,
                   virDomainInterfaceStatsPtr stats)
 {
     int ret = -1;
@@ -4492,8 +4492,13 @@ prlsdkGetNetStats(PRL_HANDLE sdkstats, PRL_HANDLE sdkdom, const char *path,
     char *name = NULL;
     PRL_RESULT pret;
     PRL_HANDLE net = PRL_INVALID_HANDLE;
+    virMacAddr mac;
 
-    net = prlsdkFindNetByPath(sdkdom, path);
+    if (virMacAddrParse(device, &mac) == 0)
+        net = prlsdkFindNetByMAC(sdkdom, &mac);
+    else
+        net = prlsdkFindNetByPath(sdkdom, device);
+
     if (net == PRL_INVALID_HANDLE)
        goto cleanup;
 

@@ -428,6 +428,7 @@ typedef enum {
 
     /* 270 */
     QEMU_CAPS_VXHS, /* -drive file.driver=vxhs via query-qmp-schema */
+    QEMU_CAPS_VIRTIO_BLK_NUM_QUEUES, /* virtio-blk-*.num-queues */
 
     QEMU_CAPS_LAST /* this must always be the last item */
 } virQEMUCapsFlags;
@@ -469,10 +470,8 @@ int virQEMUCapsAddCPUDefinitions(virQEMUCapsPtr qemuCaps,
                                  const char **name,
                                  size_t count,
                                  virDomainCapsCPUUsable usable);
-int virQEMUCapsGetCPUDefinitions(virQEMUCapsPtr qemuCaps,
-                                 virDomainVirtType type,
-                                 char ***names,
-                                 size_t *count);
+virDomainCapsCPUModelsPtr virQEMUCapsGetCPUDefinitions(virQEMUCapsPtr qemuCaps,
+                                                       virDomainVirtType type);
 
 typedef enum {
     /* Host CPU definition reported in domain capabilities. */

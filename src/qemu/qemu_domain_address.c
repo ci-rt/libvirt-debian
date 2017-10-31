@@ -1419,7 +1419,7 @@ qemuDomainValidateDevicePCISlotsPIIX3(virDomainDefPtr def,
                     cont->info.addr.pci.slot != 1 ||
                     cont->info.addr.pci.function != 2) {
                     virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                   _("PIIX3 USB controller must have PCI address 0:0:1.2"));
+                                   _("PIIX3 USB controller at index 0 must have PCI address 0:0:1.2"));
                     goto cleanup;
                 }
             } else {
@@ -1429,15 +1429,24 @@ qemuDomainValidateDevicePCISlotsPIIX3(virDomainDefPtr def,
                 cont->info.addr.pci.slot = 1;
                 cont->info.addr.pci.function = 2;
             }
+        } else {
+            /* this controller is not skipped in qemuDomainCollectPCIAddress */
+            continue;
         }
+        if (addrs->nbuses &&
+            virDomainPCIAddressReserveAddr(addrs, &cont->info.addr.pci, flags, 0) < 0)
+            goto cleanup;
     }
 
-    /* PIIX3 (ISA bridge, IDE controller, something else unknown, USB controller)
-     * hardcoded slot=1, multifunction device
-     */
+    /* Implicit PIIX3 devices living on slot 1 not handled above */
     if (addrs->nbuses) {
         memset(&tmp_addr, 0, sizeof(tmp_addr));
         tmp_addr.slot = 1;
+        /* ISA Bridge at 00:01.0 */
+        if (virDomainPCIAddressReserveAddr(addrs, &tmp_addr, flags, 0) < 0)
+            goto cleanup;
+        /* Bridge at 00:01.3 */
+        tmp_addr.function = 3;
         if (virDomainPCIAddressReserveAddr(addrs, &tmp_addr, flags, 0) < 0)
             goto cleanup;
     }
@@ -2883,15 +2892,57 @@ qemuDomainReleaseDeviceAddress(virDomainObjPtr vm,
     if (!devstr)
         devstr = info->alias;
 
-    if (virDeviceInfoPCIAddressPresent(info) &&
-        virDomainPCIAddressReleaseAddr(priv->pciaddrs,
-                                       &info->addr.pci) < 0)
-        VIR_WARN("Unable to release PCI address on %s",
-                 NULLSTR(devstr));
+    if (virDeviceInfoPCIAddressPresent(info))
+        virDomainPCIAddressReleaseAddr(priv->pciaddrs, &info->addr.pci);
 
     if (info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_USB &&
         priv->usbaddrs &&
         virDomainUSBAddressRelease(priv->usbaddrs, info) < 0)
         VIR_WARN("Unable to release USB address on %s",
                  NULLSTR(devstr));
+}
+
+
+int
+qemuDomainEnsureVirtioAddress(bool *releaseAddr,
+                              virDomainObjPtr vm,
+                              virDomainDeviceDefPtr dev,
+                              const char *devicename)
+{
+    virDomainDeviceInfoPtr info = virDomainDeviceGetInfo(dev);
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    virDomainCCWAddressSetPtr ccwaddrs = NULL;
+    virQEMUDriverPtr driver = priv->driver;
+    int ret = -1;
+
+    if (!info->type) {
+        if (qemuDomainIsS390CCW(vm->def) &&
+            virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_VIRTIO_CCW))
+            info->type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW;
+        else if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_VIRTIO_S390))
+            info->type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390;
+    } else {
+        if (!qemuDomainCheckCCWS390AddressSupport(vm->def, *info, priv->qemuCaps,
+                                                  devicename))
+            return -1;
+    }
+
+    if (info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW) {
+        if (!(ccwaddrs = qemuDomainCCWAddrSetCreateFromDomain(vm->def)))
+            goto cleanup;
+        if (virDomainCCWAddressAssign(info, ccwaddrs,
+                                      !info->addr.ccw.assigned) < 0)
+            goto cleanup;
+    } else if (!info->type ||
+               info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
+        if (qemuDomainEnsurePCIAddress(vm, dev, driver) < 0)
+            goto cleanup;
+        *releaseAddr = true;
+    }
+
+    ret = 0;
+
+ cleanup:
+    virDomainCCWAddressSetFree(ccwaddrs);
+    return ret;
 }

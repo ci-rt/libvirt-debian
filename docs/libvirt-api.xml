@@ -188,6 +188,7 @@
      <exports symbol='VIR_DOMAIN_JOB_MEMORY_ITERATION' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_MEMORY_NORMAL' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_MEMORY_NORMAL_BYTES' type='macro'/>
+     <exports symbol='VIR_DOMAIN_JOB_MEMORY_PAGE_SIZE' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_MEMORY_PROCESSED' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_MEMORY_REMAINING' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_MEMORY_TOTAL' type='macro'/>
@@ -535,6 +536,17 @@
      <exports symbol='VIR_DOMAIN_JOB_STATS_COMPLETED' type='enum'/>
      <exports symbol='VIR_DOMAIN_JOB_UNBOUNDED' type='enum'/>
      <exports symbol='VIR_DOMAIN_LAST' type='enum'/>
+     <exports symbol='VIR_DOMAIN_LIFECYCLE_ACTION_COREDUMP_DESTROY' type='enum'/>
+     <exports symbol='VIR_DOMAIN_LIFECYCLE_ACTION_COREDUMP_RESTART' type='enum'/>
+     <exports symbol='VIR_DOMAIN_LIFECYCLE_ACTION_DESTROY' type='enum'/>
+     <exports symbol='VIR_DOMAIN_LIFECYCLE_ACTION_LAST' type='enum'/>
+     <exports symbol='VIR_DOMAIN_LIFECYCLE_ACTION_PRESERVE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_LIFECYCLE_ACTION_RESTART' type='enum'/>
+     <exports symbol='VIR_DOMAIN_LIFECYCLE_ACTION_RESTART_RENAME' type='enum'/>
+     <exports symbol='VIR_DOMAIN_LIFECYCLE_CRASH' type='enum'/>
+     <exports symbol='VIR_DOMAIN_LIFECYCLE_LAST' type='enum'/>
+     <exports symbol='VIR_DOMAIN_LIFECYCLE_POWEROFF' type='enum'/>
+     <exports symbol='VIR_DOMAIN_LIFECYCLE_REBOOT' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_PARAM_BOOLEAN' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_PARAM_DOUBLE' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_PARAM_INT' type='enum'/>
@@ -855,6 +867,8 @@
      <exports symbol='virDomainJobInfoPtr' type='typedef'/>
      <exports symbol='virDomainJobOperation' type='typedef'/>
      <exports symbol='virDomainJobType' type='typedef'/>
+     <exports symbol='virDomainLifecycle' type='typedef'/>
+     <exports symbol='virDomainLifecycleAction' type='typedef'/>
      <exports symbol='virDomainMemoryFlags' type='typedef'/>
      <exports symbol='virDomainMemoryModFlags' type='typedef'/>
      <exports symbol='virDomainMemoryStatPtr' type='typedef'/>
@@ -1087,6 +1101,7 @@
      <exports symbol='virDomainSetBlockThreshold' type='function'/>
      <exports symbol='virDomainSetGuestVcpus' type='function'/>
      <exports symbol='virDomainSetInterfaceParameters' type='function'/>
+     <exports symbol='virDomainSetLifecycleAction' type='function'/>
      <exports symbol='virDomainSetMaxMemory' type='function'/>
      <exports symbol='virDomainSetMemory' type='function'/>
      <exports symbol='virDomainSetMemoryFlags' type='function'/>
@@ -2171,6 +2186,9 @@
     <macro name='VIR_DOMAIN_JOB_MEMORY_NORMAL_BYTES' file='libvirt-domain' string='memory_normal_bytes'>
       <info><![CDATA[virDomainGetJobStats field: number of bytes transferred as normal pages, as VIR_TYPED_PARAM_ULLONG.  See VIR_DOMAIN_JOB_MEMORY_NORMAL for more details.]]></info>
     </macro>
+    <macro name='VIR_DOMAIN_JOB_MEMORY_PAGE_SIZE' file='libvirt-domain' string='memory_page_size'>
+      <info><![CDATA[virDomainGetJobStats field: memory page size in bytes, as VIR_TYPED_PARAM_ULLONG. If present, this parameter can be used to convert other page based statistics, such as VIR_DOMAIN_JOB_MEMORY_DIRTY_RATE or VIR_DOMAIN_JOB_COMPRESSION_PAGES to bytes.]]></info>
+    </macro>
     <macro name='VIR_DOMAIN_JOB_MEMORY_PROCESSED' file='libvirt-domain' string='memory_processed'>
       <info><![CDATA[virDomainGetJobStats field: as VIR_DOMAIN_JOB_DATA_PROCESSED but only tracking guest memory progress, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to memProcessed field in virDomainJobInfo.]]></info>
     </macro>
@@ -2962,6 +2980,17 @@ running in post-copy mode'/>
     <enum name='VIR_DOMAIN_LAST' file='libvirt-domain' value='8' type='virDomainState' info='NB: this enum value will increase over time as new events are
  added to the libvirt API. It reflects the last state supported
  by this version of the libvirt API.'/>
+    <enum name='VIR_DOMAIN_LIFECYCLE_ACTION_COREDUMP_DESTROY' file='libvirt-domain' value='4' type='virDomainLifecycleAction'/>
+    <enum name='VIR_DOMAIN_LIFECYCLE_ACTION_COREDUMP_RESTART' file='libvirt-domain' value='5' type='virDomainLifecycleAction'/>
+    <enum name='VIR_DOMAIN_LIFECYCLE_ACTION_DESTROY' file='libvirt-domain' value='0' type='virDomainLifecycleAction'/>
+    <enum name='VIR_DOMAIN_LIFECYCLE_ACTION_LAST' file='libvirt-domain' value='6' type='virDomainLifecycleAction'/>
+    <enum name='VIR_DOMAIN_LIFECYCLE_ACTION_PRESERVE' file='libvirt-domain' value='3' type='virDomainLifecycleAction'/>
+    <enum name='VIR_DOMAIN_LIFECYCLE_ACTION_RESTART' file='libvirt-domain' value='1' type='virDomainLifecycleAction'/>
+    <enum name='VIR_DOMAIN_LIFECYCLE_ACTION_RESTART_RENAME' file='libvirt-domain' value='2' type='virDomainLifecycleAction'/>
+    <enum name='VIR_DOMAIN_LIFECYCLE_CRASH' file='libvirt-domain' value='2' type='virDomainLifecycle'/>
+    <enum name='VIR_DOMAIN_LIFECYCLE_LAST' file='libvirt-domain' value='3' type='virDomainLifecycle'/>
+    <enum name='VIR_DOMAIN_LIFECYCLE_POWEROFF' file='libvirt-domain' value='0' type='virDomainLifecycle'/>
+    <enum name='VIR_DOMAIN_LIFECYCLE_REBOOT' file='libvirt-domain' value='1' type='virDomainLifecycle'/>
     <enum name='VIR_DOMAIN_MEMORY_PARAM_BOOLEAN' file='libvirt-domain' value='VIR_TYPED_PARAM_BOOLEAN' type='virMemoryParameterType'/>
     <enum name='VIR_DOMAIN_MEMORY_PARAM_DOUBLE' file='libvirt-domain' value='VIR_TYPED_PARAM_DOUBLE' type='virMemoryParameterType'/>
     <enum name='VIR_DOMAIN_MEMORY_PARAM_INT' file='libvirt-domain' value='VIR_TYPED_PARAM_INT' type='virMemoryParameterType'/>
@@ -3953,6 +3982,8 @@ and ERROR states)'/>
     <typedef name='virDomainJobInfoPtr' file='libvirt-domain' type='virDomainJobInfo *'/>
     <typedef name='virDomainJobOperation' file='libvirt-domain' type='enum'/>
     <typedef name='virDomainJobType' file='libvirt-domain' type='enum'/>
+    <typedef name='virDomainLifecycle' file='libvirt-domain' type='enum'/>
+    <typedef name='virDomainLifecycleAction' file='libvirt-domain' type='enum'/>
     <typedef name='virDomainMemoryFlags' file='libvirt-domain' type='enum'/>
     <typedef name='virDomainMemoryModFlags' file='libvirt-domain' type='enum'/>
     <typedef name='virDomainMemoryStatPtr' file='libvirt-domain' type='virDomainMemoryStatStruct *'/>
@@ -4809,7 +4840,7 @@ VIR_DOMAIN_STATS_VCPU:
                         as unsigned long long.
 
 VIR_DOMAIN_STATS_INTERFACE:
-    Return network interface statistics.
+    Return network interface statistics (from domain point of view).
     The typed parameter keys are in this format:
 
     "net.count" - number of network interfaces on this domain
@@ -5584,7 +5615,7 @@ the libvirtd daemon to be active, it will automatically be launched
 if not already running. This can be prevented by setting the
 environment variable LIBVIRT_AUTOSTART=0
 
-URIs are documented at http://libvirt.org/uri.html
+URIs are documented at httsp://libvirt.org/uri.html
 
 virConnectClose should be used to release the resources after the connection
 is no longer needed.]]></info>
@@ -5599,7 +5630,7 @@ credentials via the callback
 See virConnectOpen for notes about environment variables which can
 have an effect on opening drivers and freeing the connection resources
 
-URIs are documented at http://libvirt.org/uri.html]]></info>
+URIs are documented at https://libvirt.org/uri.html]]></info>
       <return type='virConnectPtr' info='a pointer to the hypervisor connection or NULL in case of error'/>
       <arg name='name' type='const char *' info='(optional) URI of the hypervisor'/>
       <arg name='auth' type='virConnectAuthPtr' info='Authenticate callback parameters'/>
@@ -5613,7 +5644,7 @@ on the available methods to control the domains.
 See virConnectOpen for notes about environment variables which can
 have an effect on opening drivers and freeing the connection resources
 
-URIs are documented at http://libvirt.org/uri.html]]></info>
+URIs are documented at https://libvirt.org/uri.html]]></info>
       <return type='virConnectPtr' info='a pointer to the hypervisor connection or NULL in case of error'/>
       <arg name='name' type='const char *' info='(optional) URI of the hypervisor'/>
     </function>
@@ -7561,17 +7592,20 @@ is NULL, then this method has no effect.]]></info>
       <info><![CDATA[This function returns network interface stats for interfaces
 attached to the domain.
 
-The path parameter is the name of the network interface.
+The @device parameter is the network interface either by name or MAC
+address.
 
 Domains may have more than one network interface.  To get stats for
 each you should make multiple calls to this function.
 
 Individual fields within the stats structure may be returned
 as -1, which indicates that the hypervisor does not support
-that particular statistic.]]></info>
+that particular statistic.
+
+The returned stats are from domain's point of view.]]></info>
       <return type='int' info='0 in case of success or -1 in case of failure.'/>
       <arg name='dom' type='virDomainPtr' info='pointer to the domain object'/>
-      <arg name='path' type='const char *' info='path to the interface'/>
+      <arg name='device' type='const char *' info='the interface name or MAC address'/>
       <arg name='stats' type='virDomainInterfaceStatsPtr' info='network interface stats (returned)'/>
       <arg name='size' type='size_t' info='size of stats structure'/>
     </function>
@@ -8670,6 +8704,19 @@ This function may require privileged access to the hypervisor.]]></info>
       <arg name='device' type='const char *' info='the interface name or mac address'/>
       <arg name='params' type='virTypedParameterPtr' info='pointer to interface parameter objects'/>
       <arg name='nparams' type='int' info='number of interface parameter (this value can be the same or less than the number of parameters supported)'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainModificationImpact'/>
+    </function>
+    <function name='virDomainSetLifecycleAction' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[Changes the actions of lifecycle events for domain represented as
+<on_$type>$action</on_$type> in the domain XML.
+
+QEMU driver has a limitation that if all lifecycle events are set
+to destroy when the domain is started, it's not possible to change
+any action for running domain.]]></info>
+      <return type='int' info='0 on success, -1 on failure.'/>
+      <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
+      <arg name='type' type='unsigned int' info='the lifecycle type from virDomainLifecycle'/>
+      <arg name='action' type='unsigned int' info='the action type from virDomainLifecycleAction'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainModificationImpact'/>
     </function>
     <function name='virDomainSetMaxMemory' file='libvirt-domain' module='libvirt-domain'>

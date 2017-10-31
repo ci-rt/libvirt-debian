@@ -1571,7 +1571,7 @@ int                     virDomainBlockStatsFlags (virDomainPtr dom,
                                                   int *nparams,
                                                   unsigned int flags);
 int                     virDomainInterfaceStats (virDomainPtr dom,
-                                                 const char *path,
+                                                 const char *device,
                                                  virDomainInterfaceStatsPtr stats,
                                                  size_t size);
 
@@ -3336,6 +3336,17 @@ typedef enum {
 # define VIR_DOMAIN_JOB_MEMORY_DIRTY_RATE        "memory_dirty_rate"
 
 /**
+ * VIR_DOMAIN_JOB_MEMORY_PAGE_SIZE:
+ *
+ * virDomainGetJobStats field: memory page size in bytes, as
+ * VIR_TYPED_PARAM_ULLONG. If present, this parameter can be used to
+ * convert other page based statistics, such as
+ * VIR_DOMAIN_JOB_MEMORY_DIRTY_RATE or VIR_DOMAIN_JOB_COMPRESSION_PAGES
+ * to bytes.
+ */
+# define VIR_DOMAIN_JOB_MEMORY_PAGE_SIZE         "memory_page_size"
+
+/**
  * VIR_DOMAIN_JOB_MEMORY_ITERATION:
  *
  * virDomainGetJobStats field: current iteration over domain's memory
@@ -4716,5 +4727,33 @@ int virDomainSetBlockThreshold(virDomainPtr domain,
                                const char *dev,
                                unsigned long long threshold,
                                unsigned int flags);
+
+typedef enum {
+    VIR_DOMAIN_LIFECYCLE_POWEROFF = 0,
+    VIR_DOMAIN_LIFECYCLE_REBOOT = 1,
+    VIR_DOMAIN_LIFECYCLE_CRASH = 2,
+
+# ifdef VIR_ENUM_SENTINELS
+    VIR_DOMAIN_LIFECYCLE_LAST
+# endif
+} virDomainLifecycle;
+
+typedef enum {
+    VIR_DOMAIN_LIFECYCLE_ACTION_DESTROY = 0,
+    VIR_DOMAIN_LIFECYCLE_ACTION_RESTART = 1,
+    VIR_DOMAIN_LIFECYCLE_ACTION_RESTART_RENAME = 2,
+    VIR_DOMAIN_LIFECYCLE_ACTION_PRESERVE = 3,
+    VIR_DOMAIN_LIFECYCLE_ACTION_COREDUMP_DESTROY = 4,
+    VIR_DOMAIN_LIFECYCLE_ACTION_COREDUMP_RESTART = 5,
+
+# ifdef VIR_ENUM_SENTINELS
+    VIR_DOMAIN_LIFECYCLE_ACTION_LAST
+# endif
+} virDomainLifecycleAction;
+
+int virDomainSetLifecycleAction(virDomainPtr domain,
+                                unsigned int type,
+                                unsigned int action,
+                                unsigned int flags);
 
 #endif /* __VIR_LIBVIRT_DOMAIN_H__ */

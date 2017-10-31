@@ -80,6 +80,9 @@ int qemuDomainAttachHostDevice(virConnectPtr conn,
 int qemuDomainAttachShmemDevice(virQEMUDriverPtr driver,
                                 virDomainObjPtr vm,
                                 virDomainShmemDefPtr shmem);
+int qemuDomainAttachWatchdog(virQEMUDriverPtr driver,
+                             virDomainObjPtr vm,
+                             virDomainWatchdogDefPtr watchdog);
 int qemuDomainFindGraphicsIndex(virDomainDefPtr def,
                                 virDomainGraphicsDefPtr dev);
 int qemuDomainAttachMemory(virQEMUDriverPtr driver,
@@ -119,6 +122,14 @@ int qemuDomainDetachHostDevice(virQEMUDriverPtr driver,
 int qemuDomainDetachShmemDevice(virQEMUDriverPtr driver,
                                 virDomainObjPtr vm,
                                 virDomainShmemDefPtr dev);
+int qemuDomainDetachWatchdog(virQEMUDriverPtr driver,
+                             virDomainObjPtr vm,
+                             virDomainWatchdogDefPtr watchdog);
+
+int qemuDomainAttachInputDevice(virQEMUDriverPtr driver,
+                                virDomainObjPtr vm,
+                                virDomainInputDefPtr input);
+
 int qemuDomainAttachLease(virQEMUDriverPtr driver,
                           virDomainObjPtr vm,
                           virDomainLeaseDefPtr lease);
@@ -172,5 +183,8 @@ int qemuDomainSetVcpuInternal(virQEMUDriverPtr driver,
                               virDomainDefPtr persistentDef,
                               virBitmapPtr vcpus,
                               bool state);
+
+int qemuDomainDetachInputDevice(virDomainObjPtr vm,
+                                virDomainInputDefPtr def);
 
 #endif /* __QEMU_HOTPLUG_H__ */
