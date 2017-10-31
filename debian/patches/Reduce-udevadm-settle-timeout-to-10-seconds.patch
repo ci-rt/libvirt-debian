@@ -10,10 +10,10 @@ Closes: #663931
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/util/virutil.c b/src/util/virutil.c
-index e08f9fa..b8a7312 100644
+index 170e921..d3b055c 100644
 --- a/src/util/virutil.c
 +++ b/src/util/virutil.c
-@@ -1525,7 +1525,7 @@ virSetUIDGIDWithCaps(uid_t uid, gid_t gid, gid_t *groups, int ngroups,
+@@ -1545,7 +1545,7 @@ virSetUIDGIDWithCaps(uid_t uid, gid_t gid, gid_t *groups, int ngroups,
  void virWaitForDevices(void)
  {
  # ifdef UDEVADM
