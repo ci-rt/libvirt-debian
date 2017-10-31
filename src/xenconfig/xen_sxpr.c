@@ -70,11 +70,6 @@ int xenGetDomIdFromSxpr(const struct sexpr *root, int *id)
     return 0;
 }
 
-/*****************************************************************
- ******
- ****** Parsing of S-Expression into virDomainDef objects
- ******
- *****************************************************************/
 
 /**
  * xenParseSxprOS:
@@ -1245,35 +1240,35 @@ xenParseSxpr(const struct sexpr *root,
 
     tmp = sexpr_node(root, "domain/on_poweroff");
     if (tmp != NULL) {
-        if ((def->onPoweroff = virDomainLifecycleTypeFromString(tmp)) < 0) {
+        if ((def->onPoweroff = virDomainLifecycleActionTypeFromString(tmp)) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("unknown lifecycle type %s"), tmp);
             goto error;
         }
     } else {
-        def->onPoweroff = VIR_DOMAIN_LIFECYCLE_DESTROY;
+        def->onPoweroff = VIR_DOMAIN_LIFECYCLE_ACTION_DESTROY;
     }
 
     tmp = sexpr_node(root, "domain/on_reboot");
     if (tmp != NULL) {
-        if ((def->onReboot = virDomainLifecycleTypeFromString(tmp)) < 0) {
+        if ((def->onReboot = virDomainLifecycleActionTypeFromString(tmp)) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("unknown lifecycle type %s"), tmp);
             goto error;
         }
     } else {
-        def->onReboot = VIR_DOMAIN_LIFECYCLE_RESTART;
+        def->onReboot = VIR_DOMAIN_LIFECYCLE_ACTION_RESTART;
     }
 
     tmp = sexpr_node(root, "domain/on_crash");
     if (tmp != NULL) {
-        if ((def->onCrash = virDomainLifecycleCrashTypeFromString(tmp)) < 0) {
+        if ((def->onCrash = virDomainLifecycleActionTypeFromString(tmp)) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("unknown lifecycle type %s"), tmp);
             goto error;
         }
     } else {
-        def->onCrash = VIR_DOMAIN_LIFECYCLE_CRASH_DESTROY;
+        def->onCrash = VIR_DOMAIN_LIFECYCLE_ACTION_DESTROY;
     }
 
     if (hvm) {
@@ -2214,21 +2209,21 @@ xenFormatSxpr(virConnectPtr conn, virDomainDefPtr def)
             virBufferEscapeSexpr(&buf, "(bootloader_args '%s')", def->os.bootloaderArgs);
     }
 
-    if (!(tmp = virDomainLifecycleTypeToString(def->onPoweroff))) {
+    if (!(tmp = virDomainLifecycleActionTypeToString(def->onPoweroff))) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("unexpected lifecycle value %d"), def->onPoweroff);
         goto error;
     }
     virBufferAsprintf(&buf, "(on_poweroff '%s')", tmp);
 
-    if (!(tmp = virDomainLifecycleTypeToString(def->onReboot))) {
+    if (!(tmp = virDomainLifecycleActionTypeToString(def->onReboot))) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("unexpected lifecycle value %d"), def->onReboot);
         goto error;
     }
     virBufferAsprintf(&buf, "(on_reboot '%s')", tmp);
 
-    if (!(tmp = virDomainLifecycleCrashTypeToString(def->onCrash))) {
+    if (!(tmp = virDomainLifecycleActionTypeToString(def->onCrash))) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("unexpected lifecycle value %d"), def->onCrash);
         goto error;

@@ -892,6 +892,8 @@ mymain(void)
             QEMU_CAPS_VIRTIO_CCW, QEMU_CAPS_VIRTIO_S390);
     DO_TEST("disk-order",
             QEMU_CAPS_DRIVE_BOOT, QEMU_CAPS_VIRTIO_BLK_SCSI);
+    DO_TEST("disk-virtio-drive-queues",
+            QEMU_CAPS_VIRTIO_BLK_NUM_QUEUES);
     DO_TEST("disk-drive-boot-disk",
             QEMU_CAPS_DRIVE_BOOT);
     DO_TEST("disk-drive-boot-cdrom",
@@ -930,6 +932,7 @@ mymain(void)
     DO_TEST("disk-drive-network-iscsi-auth", NONE);
     DO_TEST_PARSE_ERROR("disk-drive-network-iscsi-auth-secrettype-invalid", NONE);
     DO_TEST_PARSE_ERROR("disk-drive-network-iscsi-auth-wrong-secrettype", NONE);
+    DO_TEST_PARSE_ERROR("disk-drive-network-source-auth-both", NONE);
     DO_TEST("disk-drive-network-iscsi-lun",
             QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_VIRTIO_SCSI,
             QEMU_CAPS_SCSI_BLOCK);
@@ -938,6 +941,7 @@ mymain(void)
     DO_TEST("disk-drive-network-rbd", NONE);
     DO_TEST("disk-drive-network-sheepdog", NONE);
     DO_TEST("disk-drive-network-rbd-auth", NONE);
+    DO_TEST("disk-drive-network-source-auth", NONE);
 # ifdef HAVE_GNUTLS_CIPHER_ENCRYPT
     DO_TEST("disk-drive-network-rbd-auth-AES",
             QEMU_CAPS_OBJECT_SECRET, QEMU_CAPS_VIRTIO_SCSI);
@@ -1662,10 +1666,12 @@ mymain(void)
     DO_TEST("encrypted-disk-usage", NONE);
 # ifdef HAVE_GNUTLS_CIPHER_ENCRYPT
     DO_TEST("luks-disks", QEMU_CAPS_OBJECT_SECRET);
+    DO_TEST("luks-disks-source", QEMU_CAPS_OBJECT_SECRET);
 # else
     DO_TEST_FAILURE("luks-disks", QEMU_CAPS_OBJECT_SECRET);
 # endif
     DO_TEST_PARSE_ERROR("luks-disk-invalid", NONE);
+    DO_TEST_PARSE_ERROR("luks-disks-source-both", QEMU_CAPS_OBJECT_SECRET);
 
     DO_TEST("memtune", NONE);
     DO_TEST("memtune-unlimited", NONE);
@@ -2257,6 +2263,7 @@ mymain(void)
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
             QEMU_CAPS_DEVICE_QXL);
     DO_TEST_PARSE_ERROR("440fx-wrong-root", NONE);
+    DO_TEST_PARSE_ERROR("440fx-ide-address-conflict", NONE);
 
     DO_TEST_PARSE_ERROR("pcie-root-port-too-many",
             QEMU_CAPS_DEVICE_IOH3420,
@@ -2803,6 +2810,11 @@ mymain(void)
     DO_TEST_PARSE_ERROR("cpu-cache-emulate-l2", QEMU_CAPS_KVM);
     DO_TEST_PARSE_ERROR("cpu-cache-passthrough3", QEMU_CAPS_KVM);
     DO_TEST_PARSE_ERROR("cpu-cache-passthrough-l3", QEMU_CAPS_KVM);
+
+    DO_TEST("user-aliases", QEMU_CAPS_KVM, QEMU_CAPS_DEVICE_CIRRUS_VGA,
+            QEMU_CAPS_OBJECT_MEMORY_FILE, QEMU_CAPS_PIIX_DISABLE_S3,
+            QEMU_CAPS_PIIX_DISABLE_S4, QEMU_CAPS_VNC,
+            QEMU_CAPS_HDA_DUPLEX);
 
     if (getenv("LIBVIRT_SKIP_CLEANUP") == NULL)
         virFileDeleteTree(fakerootdir);

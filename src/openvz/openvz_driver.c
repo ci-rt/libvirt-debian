@@ -1980,12 +1980,12 @@ openvzGetVEStatus(virDomainObjPtr vm, int *status, int *reason)
 
 static int
 openvzDomainInterfaceStats(virDomainPtr dom,
-                           const char *path,
+                           const char *device,
                            virDomainInterfaceStatsPtr stats)
 {
     struct openvz_driver *driver = dom->conn->privateData;
     virDomainObjPtr vm;
-    size_t i;
+    virDomainNetDefPtr net = NULL;
     int ret = -1;
 
     openvzDriverLock(driver);
@@ -2006,20 +2006,14 @@ openvzDomainInterfaceStats(virDomainPtr dom,
         goto cleanup;
     }
 
-    /* Check the path is one of the domain's network interfaces. */
-    for (i = 0; i < vm->def->nnets; i++) {
-        if (vm->def->nets[i]->ifname &&
-            STREQ(vm->def->nets[i]->ifname, path)) {
-            ret = 0;
-            break;
-        }
-    }
+    if (!(net = virDomainNetFind(vm->def, device)))
+        goto cleanup;
 
-    if (ret == 0)
-        ret = virNetDevTapInterfaceStats(path, stats);
-    else
-        virReportError(VIR_ERR_INVALID_ARG,
-                       _("invalid path, '%s' is not a known interface"), path);
+    if (virNetDevTapInterfaceStats(net->ifname, stats,
+                                   !virDomainNetTypeSharesHostView(net)) < 0)
+        goto cleanup;
+
+    ret = 0;
 
  cleanup:
     if (vm)

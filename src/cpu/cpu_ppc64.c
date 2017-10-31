@@ -247,6 +247,12 @@ ppc64ModelFromCPU(const virCPUDef *cpu,
 {
     struct ppc64_model *model;
 
+    if (!cpu->model) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("no CPU model specified"));
+        return NULL;
+    }
+
     if (!(model = ppc64ModelFind(map, cpu->model))) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Unknown CPU model %s"), cpu->model);
@@ -663,9 +669,7 @@ virCPUppc64Compare(virCPUDefPtr host,
 static int
 ppc64DriverDecode(virCPUDefPtr cpu,
                   const virCPUData *data,
-                  const char **models,
-                  unsigned int nmodels,
-                  const char *preferred ATTRIBUTE_UNUSED)
+                  virDomainCapsCPUModelsPtr models)
 {
     int ret = -1;
     struct ppc64_map *map;
@@ -681,7 +685,7 @@ ppc64DriverDecode(virCPUDefPtr cpu,
         goto cleanup;
     }
 
-    if (!virCPUModelIsAllowed(model->name, models, nmodels)) {
+    if (!virCPUModelIsAllowed(model->name, models)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("CPU model %s is not supported by hypervisor"),
                        model->name);
@@ -714,8 +718,7 @@ virCPUppc64DataFree(virCPUDataPtr data)
 
 static int
 virCPUppc64GetHost(virCPUDefPtr cpu,
-                   const char **models,
-                   unsigned int nmodels)
+                   virDomainCapsCPUModelsPtr models)
 {
     virCPUDataPtr cpuData = NULL;
     virCPUppc64Data *data;
@@ -737,7 +740,7 @@ virCPUppc64GetHost(virCPUDefPtr cpu,
 #endif
     data->pvr[0].mask = 0xfffffffful;
 
-    ret = ppc64DriverDecode(cpu, cpuData, models, nmodels, NULL);
+    ret = ppc64DriverDecode(cpu, cpuData, models);
 
  cleanup:
     virCPUppc64DataFree(cpuData);
@@ -766,8 +769,7 @@ virCPUppc64Update(virCPUDefPtr guest,
 static virCPUDefPtr
 ppc64DriverBaseline(virCPUDefPtr *cpus,
                     unsigned int ncpus,
-                    const char **models ATTRIBUTE_UNUSED,
-                    unsigned int nmodels ATTRIBUTE_UNUSED,
+                    virDomainCapsCPUModelsPtr models ATTRIBUTE_UNUSED,
                     bool migratable ATTRIBUTE_UNUSED)
 {
     struct ppc64_map *map;

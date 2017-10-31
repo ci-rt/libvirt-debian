@@ -12,7 +12,7 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program; if not, see <http://www.gnu.org/licenses/>.  */
+   along with this program; if not, see <https://www.gnu.org/licenses/>.  */
 
 /* Written by Bruno Haible <bruno@clisp.org>, 2005.
    Based on GCC's gthr-posix.h, gthr-posix95.h, gthr-solaris.h,
@@ -64,7 +64,7 @@
                                    void (*child_func) (void));
    Note that even on platforms where this is supported, use of fork() and
    threads together is problematic, see
-     <http://lists.gnu.org/archive/html/bug-gnulib/2008-08/msg00062.html>
+     <https://lists.gnu.org/archive/html/bug-gnulib/2008-08/msg00062.html>
  */
 
 

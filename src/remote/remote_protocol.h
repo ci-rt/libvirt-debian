@@ -564,7 +564,7 @@ typedef struct remote_domain_block_stats_flags_ret remote_domain_block_stats_fla
 
 struct remote_domain_interface_stats_args {
         remote_nonnull_domain dom;
-        remote_nonnull_string path;
+        remote_nonnull_string device;
 };
 typedef struct remote_domain_interface_stats_args remote_domain_interface_stats_args;
 
@@ -4153,6 +4153,14 @@ struct remote_domain_set_block_threshold_args {
         u_int flags;
 };
 typedef struct remote_domain_set_block_threshold_args remote_domain_set_block_threshold_args;
+
+struct remote_domain_set_lifecycle_action_args {
+        remote_nonnull_domain dom;
+        u_int type;
+        u_int action;
+        u_int flags;
+};
+typedef struct remote_domain_set_lifecycle_action_args remote_domain_set_lifecycle_action_args;
 #define REMOTE_PROGRAM 0x20008086
 #define REMOTE_PROTOCOL_VERSION 1
 
@@ -4546,6 +4554,7 @@ enum remote_procedure {
         REMOTE_PROC_DOMAIN_MIGRATE_GET_MAX_DOWNTIME = 387,
         REMOTE_PROC_DOMAIN_MANAGED_SAVE_GET_XML_DESC = 388,
         REMOTE_PROC_DOMAIN_MANAGED_SAVE_DEFINE_XML = 389,
+        REMOTE_PROC_DOMAIN_SET_LIFECYCLE_ACTION = 390,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -5163,6 +5172,7 @@ extern  bool_t xdr_remote_connect_secret_event_deregister_any_args (XDR *, remot
 extern  bool_t xdr_remote_secret_event_lifecycle_msg (XDR *, remote_secret_event_lifecycle_msg*);
 extern  bool_t xdr_remote_secret_event_value_changed_msg (XDR *, remote_secret_event_value_changed_msg*);
 extern  bool_t xdr_remote_domain_set_block_threshold_args (XDR *, remote_domain_set_block_threshold_args*);
+extern  bool_t xdr_remote_domain_set_lifecycle_action_args (XDR *, remote_domain_set_lifecycle_action_args*);
 extern  bool_t xdr_remote_procedure (XDR *, remote_procedure*);
 
 #else /* K&R C */
@@ -5777,6 +5787,7 @@ extern bool_t xdr_remote_connect_secret_event_deregister_any_args ();
 extern bool_t xdr_remote_secret_event_lifecycle_msg ();
 extern bool_t xdr_remote_secret_event_value_changed_msg ();
 extern bool_t xdr_remote_domain_set_block_threshold_args ();
+extern bool_t xdr_remote_domain_set_lifecycle_action_args ();
 extern bool_t xdr_remote_procedure ();
 
 #endif /* K&R C */

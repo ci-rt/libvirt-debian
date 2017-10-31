@@ -14,7 +14,7 @@
    GNU Lesser General Public License for more details.
 
    You should have received a copy of the GNU Lesser General Public License
-   along with this program; if not, see <http://www.gnu.org/licenses/>.  */
+   along with this program; if not, see <https://www.gnu.org/licenses/>.  */
 
 /* This file is supposed to be used on platforms that lack <sys/socket.h>,
    on platforms where <sys/socket.h> cannot be included standalone, and on
@@ -169,7 +169,7 @@ struct sockaddr_storage
    code may not run on older Windows releases then.  My Windows 2000
    box was not able to run the code, for example.  The situation is
    slightly confusing because
-   <http://msdn.microsoft.com/en-us/library/ms738520>
+   <https://msdn.microsoft.com/en-us/library/ms738520>
    suggests that getaddrinfo should be available on all Windows
    releases. */
 
@@ -671,7 +671,7 @@ _GL_WARN_ON_USE (shutdown, "shutdown is not always POSIX compliant - "
    The flags are a bitmask, possibly including O_CLOEXEC (defined in <fcntl.h>)
    and O_TEXT, O_BINARY (defined in "binary-io.h").
    See also the Linux man page at
-   <http://www.kernel.org/doc/man-pages/online/pages/man2/accept4.2.html>.  */
+   <https://www.kernel.org/doc/man-pages/online/pages/man2/accept4.2.html>.  */
 # if @HAVE_ACCEPT4@
 #  if !(defined __cplusplus && defined GNULIB_NAMESPACE)
 #   define accept4 rpl_accept4

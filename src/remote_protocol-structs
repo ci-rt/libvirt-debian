@@ -348,7 +348,7 @@ struct remote_domain_block_stats_flags_ret {
 };
 struct remote_domain_interface_stats_args {
         remote_nonnull_domain      dom;
-        remote_nonnull_string      path;
+        remote_nonnull_string      device;
 };
 struct remote_domain_interface_stats_ret {
         int64_t                    rx_bytes;
@@ -2865,6 +2865,12 @@ struct remote_domain_set_block_threshold_args {
         uint64_t                   threshold;
         u_int                      flags;
 };
+struct remote_domain_set_lifecycle_action_args {
+        remote_nonnull_domain      dom;
+        u_int                      type;
+        u_int                      action;
+        u_int                      flags;
+};
 enum remote_procedure {
         REMOTE_PROC_CONNECT_OPEN = 1,
         REMOTE_PROC_CONNECT_CLOSE = 2,
@@ -3255,4 +3261,5 @@ enum remote_procedure {
         REMOTE_PROC_DOMAIN_MIGRATE_GET_MAX_DOWNTIME = 387,
         REMOTE_PROC_DOMAIN_MANAGED_SAVE_GET_XML_DESC = 388,
         REMOTE_PROC_DOMAIN_MANAGED_SAVE_DEFINE_XML = 389,
+        REMOTE_PROC_DOMAIN_SET_LIFECYCLE_ACTION = 390,
 };

@@ -514,7 +514,6 @@ hypervSerializeEprParam(hypervParamPtr p, hypervPrivate *priv,
     /* Get query and create filter based on it */
     if (virBufferCheckError(p->epr.query) < 0) {
         virBufferFreeAndReset(p->epr.query);
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid query"));
         goto cleanup;
     }
     query_string = virBufferContentAndReset(p->epr.query);
@@ -896,7 +895,7 @@ hypervInvokeMethod(hypervPrivate *priv, hypervInvokeParamsListPtr params,
          */
         while (!completed && timeout >= 0) {
             virBufferAddLit(&query, MSVM_CONCRETEJOB_WQL_SELECT);
-            virBufferAsprintf(&query, "where InstanceID = \"%s\"", instanceID);
+            virBufferEscapeSQL(&query, "where InstanceID = \"%s\"", instanceID);
 
             if (hypervGetMsvmConcreteJobList(priv, &query, &job) < 0
                     || job == NULL)

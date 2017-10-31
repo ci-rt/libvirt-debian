@@ -4956,12 +4956,12 @@ libxlDomainIsUpdated(virDomainPtr dom)
 
 static int
 libxlDomainInterfaceStats(virDomainPtr dom,
-                          const char *path,
+                          const char *device,
                           virDomainInterfaceStatsPtr stats)
 {
     libxlDriverPrivatePtr driver = dom->conn->privateData;
     virDomainObjPtr vm;
-    size_t i;
+    virDomainNetDefPtr net = NULL;
     int ret = -1;
 
     if (!(vm = libxlDomObjFromDomain(dom)))
@@ -4979,20 +4979,14 @@ libxlDomainInterfaceStats(virDomainPtr dom,
         goto endjob;
     }
 
-    /* Check the path is one of the domain's network interfaces. */
-    for (i = 0; i < vm->def->nnets; i++) {
-        if (vm->def->nets[i]->ifname &&
-            STREQ(vm->def->nets[i]->ifname, path)) {
-            ret = 0;
-            break;
-        }
-    }
+    if (!(net = virDomainNetFind(vm->def, device)))
+        goto endjob;
 
-    if (ret == 0)
-        ret = virNetDevTapInterfaceStats(path, stats);
-    else
-        virReportError(VIR_ERR_INVALID_ARG,
-                       _("'%s' is not a known interface"), path);
+    if (virNetDevTapInterfaceStats(net->ifname, stats,
+                                   !virDomainNetTypeSharesHostView(net)) < 0)
+        goto endjob;
+
+    ret = 0;
 
  endjob:
     libxlDomainObjEndJob(driver, vm);
@@ -6463,7 +6457,7 @@ libxlConnectBaselineCPU(virConnectPtr conn,
     if (!(cpus = virCPUDefListParse(xmlCPUs, ncpus, VIR_CPU_TYPE_HOST)))
         goto cleanup;
 
-    if (!(cpu = cpuBaseline(cpus, ncpus, NULL, 0,
+    if (!(cpu = cpuBaseline(cpus, ncpus, NULL,
                             !!(flags & VIR_CONNECT_BASELINE_CPU_MIGRATABLE))))
         goto cleanup;
 

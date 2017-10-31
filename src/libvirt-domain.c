@@ -5507,14 +5507,15 @@ virDomainBlockStatsFlags(virDomainPtr dom,
 /**
  * virDomainInterfaceStats:
  * @dom: pointer to the domain object
- * @path: path to the interface
+ * @device: the interface name or MAC address
  * @stats: network interface stats (returned)
  * @size: size of stats structure
  *
  * This function returns network interface stats for interfaces
  * attached to the domain.
  *
- * The path parameter is the name of the network interface.
+ * The @device parameter is the network interface either by name or MAC
+ * address.
  *
  * Domains may have more than one network interface.  To get stats for
  * each you should make multiple calls to this function.
@@ -5523,23 +5524,25 @@ virDomainBlockStatsFlags(virDomainPtr dom,
  * as -1, which indicates that the hypervisor does not support
  * that particular statistic.
  *
+ * The returned stats are from domain's point of view.
+ *
  * Returns: 0 in case of success or -1 in case of failure.
  */
 int
-virDomainInterfaceStats(virDomainPtr dom, const char *path,
+virDomainInterfaceStats(virDomainPtr dom, const char *device,
                         virDomainInterfaceStatsPtr stats, size_t size)
 {
     virConnectPtr conn;
     virDomainInterfaceStatsStruct stats2 = { -1, -1, -1, -1,
                                              -1, -1, -1, -1 };
 
-    VIR_DOMAIN_DEBUG(dom, "path=%s, stats=%p, size=%zi",
-                     path, stats, size);
+    VIR_DOMAIN_DEBUG(dom, "device=%s, stats=%p, size=%zi",
+                     device, stats, size);
 
     virResetLastError();
 
     virCheckDomainReturn(dom, -1);
-    virCheckNonNullArgGoto(path, error);
+    virCheckNonNullArgGoto(device, error);
     virCheckNonNullArgGoto(stats, error);
     if (size > sizeof(stats2)) {
         virReportInvalidArg(size,
@@ -5551,7 +5554,7 @@ virDomainInterfaceStats(virDomainPtr dom, const char *path,
     conn = dom->conn;
 
     if (conn->driver->domainInterfaceStats) {
-        if (conn->driver->domainInterfaceStats(dom, path, &stats2) == -1)
+        if (conn->driver->domainInterfaceStats(dom, device, &stats2) == -1)
             goto error;
 
         memcpy(stats, &stats2, size);
@@ -11301,7 +11304,7 @@ virConnectGetDomainCapabilities(virConnectPtr conn,
  *                         as unsigned long long.
  *
  * VIR_DOMAIN_STATS_INTERFACE:
- *     Return network interface statistics.
+ *     Return network interface statistics (from domain point of view).
  *     The typed parameter keys are in this format:
  *
  *     "net.count" - number of network interfaces on this domain
@@ -12021,6 +12024,66 @@ virDomainSetBlockThreshold(virDomainPtr domain,
         int ret;
         ret = domain->conn->driver->domainSetBlockThreshold(domain, dev,
                                                             threshold, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virReportUnsupportedError();
+
+ error:
+    virDispatchError(domain->conn);
+    return -1;
+}
+
+
+/**
+ * virDomainSetLifecycleAction:
+ * @domain: pointer to domain object
+ * @type: the lifecycle type from virDomainLifecycle
+ * @action: the action type from virDomainLifecycleAction
+ * @flags: bitwise-OR of virDomainModificationImpact
+ *
+ * Changes the actions of lifecycle events for domain represented as
+ * <on_$type>$action</on_$type> in the domain XML.
+ *
+ * QEMU driver has a limitation that if all lifecycle events are set
+ * to destroy when the domain is started, it's not possible to change
+ * any action for running domain.
+ *
+ * Returns 0 on success, -1 on failure.
+ */
+int virDomainSetLifecycleAction(virDomainPtr domain,
+                                unsigned int type,
+                                unsigned int action,
+                                unsigned int flags)
+{
+    VIR_DOMAIN_DEBUG(domain, "type='%u' action='%u' flags='0x%x'",
+                     type, action, flags);
+
+    virResetLastError();
+
+    virCheckDomainReturn(domain, -1);
+    virCheckReadOnlyGoto(domain->conn->flags, error);
+
+    if (type >= VIR_DOMAIN_LIFECYCLE_LAST) {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("invalid lifecycle type '%u'"), type);
+        goto error;
+    }
+
+    if (action >= VIR_DOMAIN_LIFECYCLE_ACTION_LAST) {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("invalid lifecycle action '%u'"), action);
+        goto error;
+    }
+
+    if (domain->conn->driver->domainSetLifecycleAction) {
+        int ret;
+        ret = domain->conn->driver->domainSetLifecycleAction(domain,
+                                                             type,
+                                                             action,
+                                                             flags);
         if (ret < 0)
             goto error;
         return ret;

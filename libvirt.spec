@@ -35,7 +35,7 @@
     %define with_qemu_tcg 0
     %define qemu_kvm_arches x86_64
     %if 0%{?rhel} >= 7
-        %define qemu_kvm_arches x86_64 %{power64} aarch64
+        %define qemu_kvm_arches x86_64 %{power64} aarch64 s390x
     %endif
 %endif
 
@@ -238,8 +238,8 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 3.8.0
-Release: 1%{?dist}%{?extra_release}
+Version: 3.9.0
+Release: 0rc1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -248,7 +248,7 @@ URL: https://libvirt.org/
 %if %(echo %{version} | grep -q "\.0$"; echo $?) == 1
     %define mainturl stable_updates/
 %endif
-Source: https://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.xz
+Source: https://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc1.tar.xz
 
 Requires: libvirt-daemon = %{version}-%{release}
 Requires: libvirt-daemon-config-network = %{version}-%{release}
@@ -1737,7 +1737,7 @@ exit 0
 %files
 
 %files docs
-%doc AUTHORS ChangeLog.gz NEWS README TODO
+%doc AUTHORS ChangeLog.gz NEWS README README.md
 %doc libvirt-docs/*
 
 # API docs

@@ -468,17 +468,6 @@ qemuMonitorJSONMakeCommandRaw(bool wrap, const char *cmdname, ...)
 #define qemuMonitorJSONMakeCommand(cmdname, ...) \
     qemuMonitorJSONMakeCommandRaw(false, cmdname, __VA_ARGS__)
 
-static void
-qemuFreeKeywords(int nkeywords, char **keywords, char **values)
-{
-    size_t i;
-    for (i = 0; i < nkeywords; i++) {
-        VIR_FREE(keywords[i]);
-        VIR_FREE(values[i]);
-    }
-    VIR_FREE(keywords);
-    VIR_FREE(values);
-}
 
 static virJSONValuePtr
 qemuMonitorJSONKeywordStringToJSON(const char *str, const char *firstkeyword)
@@ -513,11 +502,11 @@ qemuMonitorJSONKeywordStringToJSON(const char *str, const char *firstkeyword)
         }
     }
 
-    qemuFreeKeywords(nkeywords, keywords, values);
+    qemuParseKeywordsFree(nkeywords, keywords, values);
     return ret;
 
  error:
-    qemuFreeKeywords(nkeywords, keywords, values);
+    qemuParseKeywordsFree(nkeywords, keywords, values);
     virJSONValueFree(ret);
     return NULL;
 }
@@ -2792,7 +2781,8 @@ qemuMonitorJSONSetMigrationParams(qemuMonitorPtr mon,
 
 static int
 qemuMonitorJSONGetMigrationStatsReply(virJSONValuePtr reply,
-                                      qemuMonitorMigrationStatsPtr stats)
+                                      qemuMonitorMigrationStatsPtr stats,
+                                      char **error)
 {
     virJSONValuePtr ret;
     virJSONValuePtr ram;
@@ -2801,6 +2791,7 @@ qemuMonitorJSONGetMigrationStatsReply(virJSONValuePtr reply,
     const char *statusstr;
     int rc;
     double mbps;
+    const char *tmp;
 
     ret = virJSONValueObjectGetObject(reply, "return");
 
@@ -2839,15 +2830,24 @@ qemuMonitorJSONGetMigrationStatsReply(virJSONValuePtr reply,
     switch ((qemuMonitorMigrationStatus) stats->status) {
     case QEMU_MONITOR_MIGRATION_STATUS_INACTIVE:
     case QEMU_MONITOR_MIGRATION_STATUS_SETUP:
-    case QEMU_MONITOR_MIGRATION_STATUS_ERROR:
     case QEMU_MONITOR_MIGRATION_STATUS_CANCELLED:
     case QEMU_MONITOR_MIGRATION_STATUS_LAST:
+        break;
+
+    case QEMU_MONITOR_MIGRATION_STATUS_ERROR:
+        if (error) {
+            tmp = virJSONValueObjectGetString(ret, "error-desc");
+            if (tmp && VIR_STRDUP(*error, tmp) < 0)
+                return -1;
+        }
         break;
 
     case QEMU_MONITOR_MIGRATION_STATUS_ACTIVE:
     case QEMU_MONITOR_MIGRATION_STATUS_POSTCOPY:
     case QEMU_MONITOR_MIGRATION_STATUS_COMPLETED:
     case QEMU_MONITOR_MIGRATION_STATUS_CANCELLING:
+    case QEMU_MONITOR_MIGRATION_STATUS_PRE_SWITCHOVER:
+    case QEMU_MONITOR_MIGRATION_STATUS_DEVICE:
         ram = virJSONValueObjectGetObject(ret, "ram");
         if (!ram) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -2892,6 +2892,8 @@ qemuMonitorJSONGetMigrationStatsReply(virJSONValuePtr reply,
                                                       &stats->ram_normal_bytes));
         ignore_value(virJSONValueObjectGetNumberUlong(ram, "dirty-pages-rate",
                                                       &stats->ram_dirty_rate));
+        ignore_value(virJSONValueObjectGetNumberUlong(ram, "page-size",
+                                                      &stats->ram_page_size));
         ignore_value(virJSONValueObjectGetNumberUlong(ram, "dirty-sync-count",
                                                       &stats->ram_iteration));
 
@@ -2987,7 +2989,8 @@ qemuMonitorJSONGetMigrationStatsReply(virJSONValuePtr reply,
 
 
 int qemuMonitorJSONGetMigrationStats(qemuMonitorPtr mon,
-                                     qemuMonitorMigrationStatsPtr stats)
+                                     qemuMonitorMigrationStatsPtr stats,
+                                     char **error)
 {
     int ret = -1;
     virJSONValuePtr cmd = qemuMonitorJSONMakeCommand("query-migrate",
@@ -3005,7 +3008,7 @@ int qemuMonitorJSONGetMigrationStats(qemuMonitorPtr mon,
     if (qemuMonitorJSONCheckError(cmd, reply) < 0)
         goto cleanup;
 
-    if (qemuMonitorJSONGetMigrationStatsReply(reply, stats) < 0)
+    if (qemuMonitorJSONGetMigrationStatsReply(reply, stats, error) < 0)
         goto cleanup;
 
     ret = 0;
@@ -5076,6 +5079,8 @@ qemuMonitorJSONGetCPUDefinitions(qemuMonitorPtr mon,
 
         if (virJSONValueObjectHasKey(child, "unavailable-features")) {
             virJSONValuePtr blockers;
+            size_t j;
+            int len;
 
             blockers = virJSONValueObjectGetArray(child,
                                                   "unavailable-features");
@@ -5086,10 +5091,30 @@ qemuMonitorJSONGetCPUDefinitions(qemuMonitorPtr mon,
                 goto cleanup;
             }
 
-            if (virJSONValueArraySize(blockers) > 0)
-                cpu->usable = VIR_TRISTATE_BOOL_NO;
-            else
+            len = virJSONValueArraySize(blockers);
+
+            if (len == 0) {
                 cpu->usable = VIR_TRISTATE_BOOL_YES;
+                continue;
+            }
+
+            cpu->usable = VIR_TRISTATE_BOOL_NO;
+            if (VIR_ALLOC_N(cpu->blockers, len + 1) < 0)
+                goto cleanup;
+
+            for (j = 0; j < len; j++) {
+                virJSONValuePtr blocker = virJSONValueArrayGet(blockers, j);
+
+                if (blocker->type != VIR_JSON_TYPE_STRING) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                                   _("unexpected value in unavailable-features "
+                                     "array"));
+                    goto cleanup;
+                }
+
+                if (VIR_STRDUP(cpu->blockers[j], virJSONValueGetString(blocker)) < 0)
+                    goto cleanup;
+            }
         }
     }
 
@@ -6041,24 +6066,6 @@ qemuMonitorJSONGetMigrationCapabilities(qemuMonitorPtr mon,
     virStringListFree(list);
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
-    return ret;
-}
-
-
-int
-qemuMonitorJSONGetMigrationCapability(qemuMonitorPtr mon,
-                                      qemuMonitorMigrationCaps capability)
-{
-    int ret;
-    char **capsList = NULL;
-    const char *cap = qemuMonitorMigrationCapsTypeToString(capability);
-
-    if (qemuMonitorJSONGetMigrationCapabilities(mon, &capsList) < 0)
-        return -1;
-
-    ret = virStringListHasString((const char **) capsList, cap);
-
-    virStringListFree(capsList);
     return ret;
 }
 
@@ -7369,6 +7376,33 @@ qemuMonitorJSONMigrateStartPostCopy(qemuMonitorPtr mon)
     return ret;
 }
 
+
+int
+qemuMonitorJSONMigrateContinue(qemuMonitorPtr mon,
+                               qemuMonitorMigrationStatus status)
+{
+    const char *statusStr = qemuMonitorMigrationStatusTypeToString(status);
+    int ret = -1;
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("migrate-continue",
+                                           "s:state", statusStr,
+                                           NULL)))
+        return -1;
+
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        goto cleanup;
+
+    ret = qemuMonitorJSONCheckError(cmd, reply);
+
+ cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+
 int
 qemuMonitorJSONGetRTCTime(qemuMonitorPtr mon,
                           struct tm *tm)
@@ -7693,5 +7727,33 @@ qemuMonitorJSONQueryNamedBlockNodes(qemuMonitorPtr mon)
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
 
+    return ret;
+}
+
+
+int
+qemuMonitorJSONSetWatchdogAction(qemuMonitorPtr mon,
+                                 const char *action)
+{
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+    int ret = -1;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("watchdog-set-action",
+                                           "s:action", action,
+                                           NULL)))
+        return -1;
+
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        goto cleanup;
+
+    if (qemuMonitorJSONCheckError(cmd, reply) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
     return ret;
 }

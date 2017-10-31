@@ -172,14 +172,15 @@ VIR_ONCE_GLOBAL_INIT(qemuMonitor)
 VIR_ENUM_IMPL(qemuMonitorMigrationStatus,
               QEMU_MONITOR_MIGRATION_STATUS_LAST,
               "inactive", "setup",
-              "active", "postcopy-active",
+              "active", "pre-switchover",
+              "device", "postcopy-active",
               "completed", "failed",
               "cancelling", "cancelled")
 
 VIR_ENUM_IMPL(qemuMonitorMigrationCaps,
               QEMU_MONITOR_MIGRATION_CAPS_LAST,
               "xbzrle", "auto-converge", "rdma-pin-all", "events",
-              "postcopy-ram", "compress")
+              "postcopy-ram", "compress", "pause-before-switchover")
 
 VIR_ENUM_IMPL(qemuMonitorVMStatus,
               QEMU_MONITOR_VM_STATUS_LAST,
@@ -2632,12 +2633,16 @@ qemuMonitorSetMigrationParams(qemuMonitorPtr mon,
 
 int
 qemuMonitorGetMigrationStats(qemuMonitorPtr mon,
-                             qemuMonitorMigrationStatsPtr stats)
+                             qemuMonitorMigrationStatsPtr stats,
+                             char **error)
 {
     QEMU_CHECK_MONITOR(mon);
 
+    if (error)
+        *error = NULL;
+
     if (mon->json)
-        return qemuMonitorJSONGetMigrationStats(mon, stats);
+        return qemuMonitorJSONGetMigrationStats(mon, stats, error);
     else
         return qemuMonitorTextGetMigrationStats(mon, stats);
 }
@@ -3736,6 +3741,8 @@ qemuMonitorCPUDefInfoFree(qemuMonitorCPUDefInfoPtr cpu)
 {
     if (!cpu)
         return;
+
+    virStringListFree(cpu->blockers);
     VIR_FREE(cpu->name);
     VIR_FREE(cpu);
 }
@@ -3932,31 +3939,13 @@ qemuMonitorGetMigrationCapabilities(qemuMonitorPtr mon,
 }
 
 
-/**
- * Returns 1 if @capability is supported, 0 if it's not, or -1 on error.
- */
-int
-qemuMonitorGetMigrationCapability(qemuMonitorPtr mon,
-                                  qemuMonitorMigrationCaps capability)
-{
-    VIR_DEBUG("capability=%d", capability);
-
-    QEMU_CHECK_MONITOR(mon);
-
-    /* No capability is supported without JSON monitor */
-    if (!mon->json)
-        return 0;
-
-    return qemuMonitorJSONGetMigrationCapability(mon, capability);
-}
-
-
 int
 qemuMonitorSetMigrationCapability(qemuMonitorPtr mon,
                                   qemuMonitorMigrationCaps capability,
                                   bool state)
 {
-    VIR_DEBUG("capability=%d", capability);
+    VIR_DEBUG("capability=%s, state=%d",
+              qemuMonitorMigrationCapsTypeToString(capability), state);
 
     QEMU_CHECK_MONITOR_JSON(mon);
 
@@ -4266,6 +4255,19 @@ qemuMonitorMigrateStartPostCopy(qemuMonitorPtr mon)
     return qemuMonitorJSONMigrateStartPostCopy(mon);
 }
 
+
+int
+qemuMonitorMigrateContinue(qemuMonitorPtr mon,
+                           qemuMonitorMigrationStatus status)
+{
+    VIR_DEBUG("status=%s", qemuMonitorMigrationStatusTypeToString(status));
+
+    QEMU_CHECK_MONITOR_JSON(mon);
+
+    return qemuMonitorJSONMigrateContinue(mon, status);
+}
+
+
 int
 qemuMonitorGetRTCTime(qemuMonitorPtr mon,
                       struct tm *tm)
@@ -4338,4 +4340,16 @@ qemuMonitorEventPanicInfoFree(qemuMonitorEventPanicInfoPtr info)
         return;
 
     VIR_FREE(info);
+}
+
+
+int
+qemuMonitorSetWatchdogAction(qemuMonitorPtr mon,
+                             const char *action)
+{
+    VIR_DEBUG("watchdogAction=%s", action);
+
+    QEMU_CHECK_MONITOR_JSON(mon);
+
+    return qemuMonitorJSONSetWatchdogAction(mon, action);
 }

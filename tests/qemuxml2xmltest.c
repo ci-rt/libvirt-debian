@@ -34,6 +34,7 @@ struct testInfo {
     char *outInactiveName;
 
     virBitmapPtr activeVcpus;
+    bool blockjobs;
 
     virQEMUCapsPtr qemuCaps;
 };
@@ -43,10 +44,21 @@ qemuXML2XMLActivePreFormatCallback(virDomainDefPtr def,
                                    const void *opaque)
 {
     struct testInfo *info = (struct testInfo *) opaque;
+    size_t i;
 
     /* store vCPU bitmap so that the status XML can be created faithfully */
     if (!info->activeVcpus)
         info->activeVcpus = virDomainDefGetOnlineVcpumap(def);
+
+    info->blockjobs = false;
+
+    /* remember whether we have mirror jobs */
+    for (i = 0; i < def->ndisks; i++) {
+        if (def->disks[i]->mirror) {
+            info->blockjobs = true;
+            break;
+        }
+    }
 
     return 0;
 }
@@ -81,23 +93,24 @@ static const char testStatusXMLPrefixHeader[] =
 "  <taint flag='high-privileges'/>\n"
 "  <monitor path='/var/lib/libvirt/qemu/test.monitor' json='1' type='unix'/>\n";
 
-static const char testStatusXMLPrefixFooter[] =
-"  <qemuCaps>\n"
-"    <flag name='vnet-hdr'/>\n"
-"    <flag name='qxl.vgamem_mb'/>\n"
-"    <flag name='qxl-vga.vgamem_mb'/>\n"
-"    <flag name='pc-dimm'/>\n"
-"  </qemuCaps>\n"
-"  <devices>\n"
-"    <device alias='balloon0'/>\n"
-"    <device alias='video0'/>\n"
-"    <device alias='serial0'/>\n"
-"    <device alias='net0'/>\n"
-"    <device alias='usb'/>\n"
-"  </devices>\n"
-"  <numad nodeset='0-2' cpuset='1,3'/>\n"
-"  <libDir path='/tmp'/>\n"
-"  <channelTargetDir path='/tmp/channel'/>\n";
+static const char testStatusXMLPrefixBodyStatic[] =
+"<qemuCaps>\n"
+"  <flag name='vnet-hdr'/>\n"
+"  <flag name='qxl.vgamem_mb'/>\n"
+"  <flag name='qxl-vga.vgamem_mb'/>\n"
+"  <flag name='pc-dimm'/>\n"
+"</qemuCaps>\n"
+"<devices>\n"
+"  <device alias='balloon0'/>\n"
+"  <device alias='video0'/>\n"
+"  <device alias='serial0'/>\n"
+"  <device alias='net0'/>\n"
+"  <device alias='usb'/>\n"
+"</devices>\n"
+"<numad nodeset='0-2' cpuset='1,3'/>\n"
+"<libDir path='/tmp'/>\n"
+"<channelTargetDir path='/tmp/channel'/>\n"
+"<allowReboot value='yes'/>\n";
 
 static const char testStatusXMLSuffix[] =
 "</domstatus>\n";
@@ -124,6 +137,15 @@ testGetStatuXMLPrefixVcpus(virBufferPtr buf,
 }
 
 
+static void
+testGetStatusXMLAddBlockjobs(virBufferPtr buf,
+                             const struct testInfo *data)
+{
+    virBufferAsprintf(buf, "<blockjobs active='%s'/>\n",
+                      virTristateBoolTypeToString(virTristateBoolFromBool(data->blockjobs)));
+}
+
+
 static char *
 testGetStatusXMLPrefix(const struct testInfo *data)
 {
@@ -134,10 +156,30 @@ testGetStatusXMLPrefix(const struct testInfo *data)
 
     testGetStatuXMLPrefixVcpus(&buf, data);
 
+    virBufferAddStr(&buf, testStatusXMLPrefixBodyStatic);
+
+    testGetStatusXMLAddBlockjobs(&buf, data);
+
     virBufferAdjustIndent(&buf, -2);
-    virBufferAdd(&buf, testStatusXMLPrefixFooter, -1);
 
     return virBufferContentAndReset(&buf);
+}
+
+
+static int
+testProcessStatusXML(virDomainObjPtr vm)
+{
+    size_t i;
+
+    /* fix the private 'blockjob' flag for disks */
+    for (i = 0; i < vm->def->ndisks; i++) {
+        virDomainDiskDefPtr disk = vm->def->disks[i];
+        qemuDomainDiskPrivatePtr diskPriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
+
+        diskPriv->blockjob = !!disk->mirror;
+    }
+
+    return 0;
 }
 
 
@@ -198,6 +240,10 @@ testCompareStatusXMLToXMLFiles(const void *opaque)
         VIR_TEST_DEBUG("Failed to parse domain status XML:\n%s", source);
         goto cleanup;
     }
+
+    /* process the definition if necessary */
+    if (testProcessStatusXML(obj) < 0)
+        goto cleanup;
 
     /* format it back */
     if (!(actual = virDomainObjFormat(driver.xmlopt, obj, NULL,
@@ -449,6 +495,7 @@ mymain(void)
     DO_TEST("disk-usb-device", NONE);
     DO_TEST("disk-virtio", NONE);
     DO_TEST("floppy-drive-fat", NONE);
+    DO_TEST("disk-virtio-drive-queues", QEMU_CAPS_VIRTIO_BLK_NUM_QUEUES);
     DO_TEST("disk-drive-boot-disk", NONE);
     DO_TEST("disk-drive-boot-cdrom", NONE);
     DO_TEST("disk-drive-error-policy-stop", NONE);
@@ -473,6 +520,7 @@ mymain(void)
     DO_TEST("disk-drive-network-rbd-auth", NONE);
     DO_TEST("disk-drive-network-rbd-ipv6", NONE);
     DO_TEST("disk-drive-network-rbd-ceph-env", NONE);
+    DO_TEST("disk-drive-network-source-auth", NONE);
     DO_TEST("disk-drive-network-sheepdog", NONE);
     DO_TEST("disk-drive-network-vxhs", NONE);
     DO_TEST("disk-drive-network-tlsx509-vxhs", NONE);
@@ -577,6 +625,7 @@ mymain(void)
     DO_TEST("encrypted-disk", NONE);
     DO_TEST("encrypted-disk-usage", NONE);
     DO_TEST("luks-disks", NONE);
+    DO_TEST("luks-disks-source", NONE);
     DO_TEST("memtune", NONE);
     DO_TEST("memtune-unlimited", NONE);
     DO_TEST("blkiotune", NONE);
@@ -1221,6 +1270,8 @@ mymain(void)
     DO_TEST("pseries-cpu-compat-power9", NONE);
     DO_TEST("pseries-cpu-compat", NONE);
     DO_TEST("pseries-cpu-exact", NONE);
+
+    DO_TEST("user-aliases", NONE);
 
     if (getenv("LIBVIRT_SKIP_CLEANUP") == NULL)
         virFileDeleteTree(fakerootdir);

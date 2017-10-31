@@ -1,3 +1,11 @@
+libvirt (3.9.0~rc1-1~1.gbp7fd502) UNRELEASED; urgency=medium
+
+  ** SNAPSHOT build @7fd5022c4bf7c31f3641fe8c878ec82e8c32fcb8 **
+
+  * [23e28a0] New upstream version 3.9.0~rc1
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 31 Oct 2017 12:07:30 +0100
+
 libvirt (3.8.0-3) unstable; urgency=medium
 
   * [e0e0a42] virt-host-validate: require fuse for LXC if compiled in.

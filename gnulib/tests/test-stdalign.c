@@ -12,7 +12,7 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
 /* Written by Paul Eggert, inspired by Bruno Haible's test-alignof.c.  */
 
@@ -86,7 +86,7 @@ main ()
   return 77;
 #elif defined __HP_cc && __ia64
   /* Avoid a test failure due to HP-UX Itanium cc bug; see:
-     http://lists.gnu.org/archive/html/bug-gnulib/2017-03/msg00078.html  */
+     https://lists.gnu.org/archive/html/bug-gnulib/2017-03/msg00078.html  */
   fputs ("Skipping test: known HP-UX Itanium cc compiler bug\n", stderr);
   return 77;
 #else

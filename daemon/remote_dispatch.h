@@ -6628,7 +6628,7 @@ static int remoteDispatchDomainInterfaceStats(
     if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
         goto cleanup;
 
-    if (virDomainInterfaceStats(dom, args->path, &tmp, sizeof(tmp)) < 0)
+    if (virDomainInterfaceStats(dom, args->device, &tmp, sizeof(tmp)) < 0)
         goto cleanup;
 
     ret->rx_bytes = tmp.rx_bytes;
@@ -10169,6 +10169,62 @@ cleanup:
         virNetMessageSaveError(rerr);
     virObjectUnref(dom);
     virTypedParamsFree(params, nparams);
+    return rv;
+}
+
+
+
+static int remoteDispatchDomainSetLifecycleAction(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_set_lifecycle_action_args *args);
+static int remoteDispatchDomainSetLifecycleActionHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchDomainSetLifecycleAction");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchDomainSetLifecycleAction(server, client, msg, rerr, args);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchDomainSetLifecycleAction(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_set_lifecycle_action_args *args)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if (virDomainSetLifecycleAction(dom, args->type, args->action, args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(dom);
     return rv;
 }
 
@@ -21253,6 +21309,15 @@ virNetServerProgramProc remoteProcs[] = {
    remoteDispatchDomainManagedSaveDefineXMLHelper,
    sizeof(remote_domain_managed_save_define_xml_args),
    (xdrproc_t)xdr_remote_domain_managed_save_define_xml_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method DomainSetLifecycleAction => 390 */
+   remoteDispatchDomainSetLifecycleActionHelper,
+   sizeof(remote_domain_set_lifecycle_action_args),
+   (xdrproc_t)xdr_remote_domain_set_lifecycle_action_args,
    0,
    (xdrproc_t)xdr_void,
    true,

@@ -104,11 +104,8 @@ hypervInitConnection(virConnectPtr conn, hypervPrivate *priv,
         /* fall back to V1 namespace (for Hyper-V 2008) */
         priv->wmiVersion = HYPERV_WMI_VERSION_V1;
 
-        if (hypervEnumAndPull(priv, &wqlQuery, &computerSystem) < 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("%s is not a Hyper-V server"), conn->uri->server);
+        if (hypervEnumAndPull(priv, &wqlQuery, &computerSystem) < 0)
             goto cleanup;
-        }
     }
 
     ret = 0;
@@ -304,12 +301,12 @@ hypervNodeGetInfo(virConnectPtr conn, virNodeInfoPtr info)
     }
 
     /* Get Win32_Processor list */
-    virBufferAsprintf(&query,
-                      "associators of "
-                      "{Win32_ComputerSystem.Name=\"%s\"} "
-                      "where AssocClass = Win32_ComputerSystemProcessor "
-                      "ResultClass = Win32_Processor",
-                      computerSystem->data.common->Name);
+    virBufferEscapeSQL(&query,
+                       "associators of "
+                       "{Win32_ComputerSystem.Name=\"%s\"} "
+                       "where AssocClass = Win32_ComputerSystemProcessor "
+                       "ResultClass = Win32_Processor",
+                       computerSystem->data.common->Name);
 
     if (hypervGetWin32ProcessorList(priv, &query, &processorList) < 0)
         goto cleanup;
@@ -496,7 +493,7 @@ hypervDomainLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
     virBufferAddLit(&query, MSVM_COMPUTERSYSTEM_WQL_SELECT);
     virBufferAddLit(&query, "where ");
     virBufferAddLit(&query, MSVM_COMPUTERSYSTEM_WQL_VIRTUAL);
-    virBufferAsprintf(&query, "and Name = \"%s\"", uuid_string);
+    virBufferEscapeSQL(&query, "and Name = \"%s\"", uuid_string);
 
     if (hypervGetMsvmComputerSystemList(priv, &query, &computerSystem) < 0)
         goto cleanup;
@@ -528,7 +525,7 @@ hypervDomainLookupByName(virConnectPtr conn, const char *name)
     virBufferAddLit(&query, MSVM_COMPUTERSYSTEM_WQL_SELECT);
     virBufferAddLit(&query, "where ");
     virBufferAddLit(&query, MSVM_COMPUTERSYSTEM_WQL_VIRTUAL);
-    virBufferAsprintf(&query, "and ElementName = \"%s\"", name);
+    virBufferEscapeSQL(&query, "and ElementName = \"%s\"", name);
 
     if (hypervGetMsvmComputerSystemList(priv, &query, &computerSystem) < 0)
         goto cleanup;
@@ -676,13 +673,13 @@ hypervDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info)
         goto cleanup;
 
     /* Get Msvm_VirtualSystemSettingData */
-    virBufferAsprintf(&query,
-                      "associators of "
-                      "{Msvm_ComputerSystem.CreationClassName=\"Msvm_ComputerSystem\","
-                      "Name=\"%s\"} "
-                      "where AssocClass = Msvm_SettingsDefineState "
-                      "ResultClass = Msvm_VirtualSystemSettingData",
-                      uuid_string);
+    virBufferEscapeSQL(&query,
+                       "associators of "
+                       "{Msvm_ComputerSystem.CreationClassName=\"Msvm_ComputerSystem\","
+                       "Name=\"%s\"} "
+                       "where AssocClass = Msvm_SettingsDefineState "
+                       "ResultClass = Msvm_VirtualSystemSettingData",
+                       uuid_string);
 
     if (hypervGetMsvmVirtualSystemSettingDataList(priv, &query,
                                                   &virtualSystemSettingData) < 0) {
@@ -698,12 +695,12 @@ hypervDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info)
     }
 
     /* Get Msvm_ProcessorSettingData */
-    virBufferAsprintf(&query,
-                      "associators of "
-                      "{Msvm_VirtualSystemSettingData.InstanceID=\"%s\"} "
-                      "where AssocClass = Msvm_VirtualSystemSettingDataComponent "
-                      "ResultClass = Msvm_ProcessorSettingData",
-                      virtualSystemSettingData->data.common->InstanceID);
+    virBufferEscapeSQL(&query,
+                       "associators of "
+                       "{Msvm_VirtualSystemSettingData.InstanceID=\"%s\"} "
+                       "where AssocClass = Msvm_VirtualSystemSettingDataComponent "
+                       "ResultClass = Msvm_ProcessorSettingData",
+                       virtualSystemSettingData->data.common->InstanceID);
 
     if (hypervGetMsvmProcessorSettingDataList(priv, &query,
                                               &processorSettingData) < 0) {
@@ -719,12 +716,12 @@ hypervDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info)
     }
 
     /* Get Msvm_MemorySettingData */
-    virBufferAsprintf(&query,
-                      "associators of "
-                      "{Msvm_VirtualSystemSettingData.InstanceID=\"%s\"} "
-                      "where AssocClass = Msvm_VirtualSystemSettingDataComponent "
-                      "ResultClass = Msvm_MemorySettingData",
-                      virtualSystemSettingData->data.common->InstanceID);
+    virBufferEscapeSQL(&query,
+                       "associators of "
+                       "{Msvm_VirtualSystemSettingData.InstanceID=\"%s\"} "
+                       "where AssocClass = Msvm_VirtualSystemSettingDataComponent "
+                       "ResultClass = Msvm_MemorySettingData",
+                       virtualSystemSettingData->data.common->InstanceID);
 
     if (hypervGetMsvmMemorySettingDataList(priv, &query,
                                            &memorySettingData) < 0) {
@@ -813,13 +810,13 @@ hypervDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
         goto cleanup;
 
     /* Get Msvm_VirtualSystemSettingData */
-    virBufferAsprintf(&query,
-                      "associators of "
-                      "{Msvm_ComputerSystem.CreationClassName=\"Msvm_ComputerSystem\","
-                      "Name=\"%s\"} "
-                      "where AssocClass = Msvm_SettingsDefineState "
-                      "ResultClass = Msvm_VirtualSystemSettingData",
-                      uuid_string);
+    virBufferEscapeSQL(&query,
+                       "associators of "
+                       "{Msvm_ComputerSystem.CreationClassName=\"Msvm_ComputerSystem\","
+                       "Name=\"%s\"} "
+                       "where AssocClass = Msvm_SettingsDefineState "
+                       "ResultClass = Msvm_VirtualSystemSettingData",
+                       uuid_string);
 
     if (hypervGetMsvmVirtualSystemSettingDataList(priv, &query,
                                                   &virtualSystemSettingData) < 0) {
@@ -835,12 +832,12 @@ hypervDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
     }
 
     /* Get Msvm_ProcessorSettingData */
-    virBufferAsprintf(&query,
-                      "associators of "
-                      "{Msvm_VirtualSystemSettingData.InstanceID=\"%s\"} "
-                      "where AssocClass = Msvm_VirtualSystemSettingDataComponent "
-                      "ResultClass = Msvm_ProcessorSettingData",
-                      virtualSystemSettingData->data.common->InstanceID);
+    virBufferEscapeSQL(&query,
+                       "associators of "
+                       "{Msvm_VirtualSystemSettingData.InstanceID=\"%s\"} "
+                       "where AssocClass = Msvm_VirtualSystemSettingDataComponent "
+                       "ResultClass = Msvm_ProcessorSettingData",
+                       virtualSystemSettingData->data.common->InstanceID);
 
     if (hypervGetMsvmProcessorSettingDataList(priv, &query,
                                               &processorSettingData) < 0) {
@@ -856,12 +853,12 @@ hypervDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
     }
 
     /* Get Msvm_MemorySettingData */
-    virBufferAsprintf(&query,
-                      "associators of "
-                      "{Msvm_VirtualSystemSettingData.InstanceID=\"%s\"} "
-                      "where AssocClass = Msvm_VirtualSystemSettingDataComponent "
-                      "ResultClass = Msvm_MemorySettingData",
-                      virtualSystemSettingData->data.common->InstanceID);
+    virBufferEscapeSQL(&query,
+                       "associators of "
+                       "{Msvm_VirtualSystemSettingData.InstanceID=\"%s\"} "
+                       "where AssocClass = Msvm_VirtualSystemSettingDataComponent "
+                       "ResultClass = Msvm_MemorySettingData",
+                       virtualSystemSettingData->data.common->InstanceID);
 
     if (hypervGetMsvmMemorySettingDataList(priv, &query,
                                            &memorySettingData) < 0) {
@@ -922,8 +919,10 @@ hypervDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
         def->description = virBufferContentAndReset(&buf);
     }
 
-    virDomainDefSetMemoryTotal(def, memorySettingData->data.common->Limit * 1024); /* megabyte to kilobyte */
-    def->mem.cur_balloon = memorySettingData->data.common->VirtualQuantity * 1024; /* megabyte to kilobyte */
+    /* mebibytes to kibibytes */
+    def->mem.max_memory = memorySettingData->data.common->Limit * 1024;
+    def->mem.cur_balloon = memorySettingData->data.common->VirtualQuantity * 1024;
+    virDomainDefSetMemoryTotal(def, memorySettingData->data.common->VirtualQuantity * 1024);
 
     if (virDomainDefSetVcpusMax(def,
                                 processorSettingData->data.common->VirtualQuantity,
@@ -1400,7 +1399,7 @@ hypervDomainSendKey(virDomainPtr domain, unsigned int codeset,
     if (hypervMsvmComputerSystemFromDomain(domain, &computerSystem) < 0)
         goto cleanup;
 
-    virBufferAsprintf(&query,
+    virBufferEscapeSQL(&query,
             "associators of "
             "{Msvm_ComputerSystem.CreationClassName=\"Msvm_ComputerSystem\","
             "Name=\"%s\"} "
@@ -1537,7 +1536,7 @@ hypervDomainSetMemoryFlags(virDomainPtr domain, unsigned long memory,
         }
 
         virBufferAddLit(&eprQuery, MSVM_COMPUTERSYSTEM_WQL_SELECT);
-        virBufferAsprintf(&eprQuery, "where Name = \"%s\"", uuid_string);
+        virBufferEscapeSQL(&eprQuery, "where Name = \"%s\"", uuid_string);
 
         if (hypervAddEprParam(params, "ComputerSystem", priv, &eprQuery,
                     Msvm_ComputerSystem_WmiInfo) < 0)

@@ -257,7 +257,7 @@ qemuBlockDiskClearDetectedNodes(virDomainDiskDefPtr disk)
 {
     virStorageSourcePtr next = disk->src;
 
-    while (next) {
+    while (virStorageSourceIsBacking(next)) {
         VIR_FREE(next->nodeformat);
         VIR_FREE(next->nodestorage);
 
@@ -287,7 +287,7 @@ qemuBlockDiskDetectNodes(virDomainDiskDefPtr disk,
         goto cleanup;
     }
 
-    while (src && entry) {
+    while (virStorageSourceIsBacking(src) && entry) {
         if (src->nodeformat || src->nodestorage) {
             if (STRNEQ_NULLABLE(src->nodeformat, entry->nodeformat) ||
                 STRNEQ_NULLABLE(src->nodestorage, entry->nodestorage))
@@ -572,12 +572,17 @@ qemuBlockStorageSourceGetBackendProps(virStorageSourcePtr src)
 {
     int actualType = virStorageSourceGetActualType(src);
     virJSONValuePtr fileprops = NULL;
-    virJSONValuePtr ret = NULL;
 
     switch ((virStorageType) actualType) {
     case VIR_STORAGE_TYPE_BLOCK:
     case VIR_STORAGE_TYPE_FILE:
     case VIR_STORAGE_TYPE_DIR:
+        if (virJSONValueObjectCreate(&fileprops,
+                                     "s:driver", "file",
+                                     "s:filename", src->path, NULL) < 0)
+            return NULL;
+        break;
+
     case VIR_STORAGE_TYPE_VOLUME:
     case VIR_STORAGE_TYPE_NONE:
     case VIR_STORAGE_TYPE_LAST:
@@ -587,12 +592,12 @@ qemuBlockStorageSourceGetBackendProps(virStorageSourcePtr src)
         switch ((virStorageNetProtocol) src->protocol) {
         case VIR_STORAGE_NET_PROTOCOL_GLUSTER:
             if (!(fileprops = qemuBlockStorageSourceGetGlusterProps(src)))
-                goto cleanup;
+                return NULL;
             break;
 
         case VIR_STORAGE_NET_PROTOCOL_VXHS:
             if (!(fileprops = qemuBlockStorageSourceGetVxHSProps(src)))
-                goto cleanup;
+                return NULL;
             break;
 
         case VIR_STORAGE_NET_PROTOCOL_NBD:
@@ -612,12 +617,5 @@ qemuBlockStorageSourceGetBackendProps(virStorageSourcePtr src)
         break;
     }
 
-    if (virJSONValueObjectCreate(&ret, "a:file", fileprops, NULL) < 0)
-        goto cleanup;
-
-    fileprops = NULL;
-
- cleanup:
-    virJSONValueFree(fileprops);
-    return ret;
+    return fileprops;
 }

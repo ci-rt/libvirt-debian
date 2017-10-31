@@ -2845,7 +2845,7 @@ done:
 }
 
 static int
-remoteDomainInterfaceStats(virDomainPtr dom, const char *path, virDomainInterfaceStatsPtr result)
+remoteDomainInterfaceStats(virDomainPtr dom, const char *device, virDomainInterfaceStatsPtr result)
 {
     int rv = -1;
     struct private_data *priv = dom->conn->privateData;
@@ -2855,7 +2855,7 @@ remoteDomainInterfaceStats(virDomainPtr dom, const char *path, virDomainInterfac
     remoteDriverLock(priv);
 
     make_nonnull_domain(&args.dom, dom);
-    args.path = (char *)path;
+    args.device = (char *)device;
 
     memset(&ret, 0, sizeof(ret));
 
@@ -4347,6 +4347,33 @@ remoteDomainSetInterfaceParameters(virDomainPtr dom, const char *device, virType
 done:
     virTypedParamsRemoteFree((virTypedParameterRemotePtr) args.params.params_val,
                              args.params.params_len);
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainSetLifecycleAction(virDomainPtr dom, unsigned int type, unsigned int action, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_set_lifecycle_action_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.type = type;
+    args.action = action;
+    args.flags = flags;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_SET_LIFECYCLE_ACTION,
+             (xdrproc_t)xdr_remote_domain_set_lifecycle_action_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
     remoteDriverUnlock(priv);
     return rv;
 }
