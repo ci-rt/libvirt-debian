@@ -12,7 +12,7 @@ Works around #817236
  1 file changed, 7 insertions(+), 2 deletions(-)
 
 diff --git a/gnulib/tests/test-openpty.c b/gnulib/tests/test-openpty.c
-index 2858d50..603c5f2 100644
+index 2cf795f..bb749bc 100644
 --- a/gnulib/tests/test-openpty.c
 +++ b/gnulib/tests/test-openpty.c
 @@ -25,6 +25,7 @@

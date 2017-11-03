@@ -1,3 +1,18 @@
+libvirt (3.9.0~rc1-1) experimental; urgency=medium
+
+  * Upload to experimental
+  * [23e28a0] New upstream version 3.9.0~rc1
+  * [b19f9f8] Bump symbol versions
+  * [83a3ff3] Drop patches applied upstream
+    apparmor-add-dnsmasq-ptrace-rule-to-libvirtd-profile.patch
+    virt-host-validate-require-fuse-for-LXC-if-compiled-in.patch
+    qemu-ensure-TLS-clients-always-verify-the-server-certific.patch
+  * [e834771] AppArmor: add rules needed with additional mediation features
+    brought by Linux 4.14. Thanks: intrigeri
+    (Closes: #879772)
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 31 Oct 2017 12:13:29 +0100
+
 libvirt (3.8.0-3) unstable; urgency=medium
 
   * [e0e0a42] virt-host-validate: require fuse for LXC if compiled in.
