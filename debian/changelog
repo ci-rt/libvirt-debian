@@ -1,3 +1,11 @@
+libvirt (3.9.0-1~1.gbp6cd35d) UNRELEASED; urgency=medium
+
+  ** SNAPSHOT build @6cd35d2a3eee13beabc40d8476f84e91a0c867f8 **
+
+  * [eef697c] New upstream version 3.9.0
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 03 Nov 2017 23:17:56 +0100
+
 libvirt (3.9.0~rc1-1) experimental; urgency=medium
 
   * Upload to experimental

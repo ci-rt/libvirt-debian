@@ -1,7 +1,7 @@
 libvirt releases
 ================
 
-# v3.9.0 (unreleased)
+# v3.9.0 (2017-11-02)
 
   * New features
 
@@ -9,6 +9,20 @@ libvirt releases
 
     - Allow users to set device aliases
         Users can set aliases to domain devices and thus identify them easily.
+
+    - qemu: Support multiqueue for virtio-blk
+        Multiqueue support for virtio-blk has been available in QEMU ever since
+        2.7.0, and now libvirt guests can enable it.
+
+    - Add virDomainSetLifecycleAction API
+        Provided a new API to allow dynamic guest lifecycle control for guest
+        reactions to poweroff, restart, or crash type events related to the
+        domain XML on_poweroff, on_reboot, and on_crash elements. The virsh
+        set-lifecycle-action command was created to control the actions.
+
+    - qemu: Allow cold(un)plugging and hot(un)plugging input devices
+
+    - net: Implement QoS for vhostuser
 
   * Improvements
 
@@ -18,6 +32,46 @@ libvirt releases
         the passphrase used to encrypt the volume Adding the volume to a domain
         can then either provide the secret or allow the consumer in the guest
         to provide the passphrase in order to decrypt the volume.
+
+    - net: Ignore auto-generated MAC address when detaching an interface
+        If the MAC address has not been specified by the user, libvirt will try
+        and fill in the gaps by generating one; however, for some error paths
+        that led to some confusing error messages, so when an auto-generated
+        MAC address is specified the error message will not include the
+        auto-generated MAC.
+
+    - net: Enable MAC address lookup for virDomainInterfaceStats
+
+    - apparmor: Several improvements
+        Changes include permitting access to data about USB devices and dnsmasq
+        instances, allowing spaces in guest names and many more.
+
+    - cpu: Use CPU information obtained from QEMU when possible
+        Recent QEMU versions can expose information about which CPU models are
+        available and usable on the host; libvirt will now make use of such
+        information whenever possible.
+
+    - hyperv: Various improvements
+        The error reported when clients can't connect to Hyper-V has been made
+        more descriptive, and memory limits for guests are now mapped to more
+        appropriate libvirt equivalents.
+
+    - qemu: Report QEMU error on failed migration
+        Instead of reporting a generic error, ask QEMU for a more detailed and
+        thus hopefully more helpful one.
+
+    - vbox: Implement autoport for RDP
+        libvirt will now obtain the (dynamically allocated) RDP port number
+        from VirtualBox itself, avoiding conflicts between multiple guests
+        wanting to use RDP at the same time.
+
+    - qemu: Allow rotation of small logs
+        On a host where numerous unique instances are executed per day, it's
+        quite possible that, even though each of the single log files are
+        fairly small, collectively the quantity and volume may add tens of
+        thousands of log files to the /var/log/libvirt/qemu/ directory.
+        Removing the constraints that log have to be bigger than 100 KiB before
+        they can be rotated solves the issue.
 
   * Bug fixes
 
@@ -30,6 +84,25 @@ libvirt releases
         Resizing of a local LUKS encrypted volume will now use qemu-img to
         resize the volume. This will require configuring a secret for the LUKS
         encrypted volume.
+
+    - qemu: Reserve PCI addresses for implicit i440fx devices
+        Failing to do so causes the addresses to be considered usable by
+        libvirt, which means they could be assigned to more than one device
+        resulting in the guest failing to start.
+
+    - spec: Restart libvirtd only at the end of the upgrade process
+        Use %posttrans to make sure libvirtd is not restarted before all other
+        components, such as the library itself and storage / hypervisor
+        drivers, have already been upgraded.
+
+  * Security
+
+    - qemu: Ensure TLS clients always verify the server certificate
+        While it's reasonable to turn off client certificate validation, as
+        setting it up can be non-trivial, clients should always verify the
+        server certificate to avoid MITM attacks. However, libvirt was using
+        the same knob to control both checks, leading to CVE-2017-1000256 /
+        LSN-2017-0002.
 
 # v3.8.0 (2017-10-04)
 
