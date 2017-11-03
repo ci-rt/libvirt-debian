@@ -15,7 +15,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt 3.3.0\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2017-10-30 08:35+0100\n"
+"POT-Creation-Date: 2017-11-02 18:02+0100\n"
 "PO-Revision-Date: 2015-03-04 01:18-0500\n"
 "Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
 "Language-Team: Tamil (http://www.transifex.com/projects/p/libvirt/language/"
@@ -1176,7 +1176,7 @@ msgid "pci-root and pcie-root controllers should have index 0"
 msgstr "pci-root மற்றும் pcie-root கன்ட்ரோலர்கள் குறியீடு 0 ஐக் கொண்டிருக்க வேண்டும்"
 
 #: src/bhyve/bhyve_driver.c:97 src/libxl/libxl_driver.c:346
-#: src/lxc/lxc_process.c:1609 src/qemu/qemu_driver.c:283
+#: src/lxc/lxc_process.c:1609 src/qemu/qemu_driver.c:284
 #: src/uml/uml_driver.c:191
 #, c-format
 msgid "Failed to autostart VM '%s': %s"
@@ -1188,7 +1188,7 @@ msgstr "திறப்பாடுகளைப் பெற முடியவ�
 
 #: src/bhyve/bhyve_driver.c:175 src/conf/virdomainobjlist.c:981
 #: src/libxl/libxl_driver.c:321 src/lxc/lxc_driver.c:146
-#: src/qemu/qemu_driver.c:213 src/test/test_driver.c:584 src/vz/vz_driver.c:808
+#: src/qemu/qemu_driver.c:214 src/test/test_driver.c:584 src/vz/vz_driver.c:808
 #: src/vz/vz_utils.c:83 src/vz/vz_utils.c:113
 #, fuzzy, c-format
 msgid "no domain with matching uuid '%s' (%s)"
@@ -1205,7 +1205,7 @@ msgstr "bhyve நிலை இயக்கி செயல்பாட்டி�
 
 #: src/bhyve/bhyve_driver.c:259 src/libxl/libxl_driver.c:934
 #: src/lxc/lxc_driver.c:5113 src/qemu/qemu_command.c:6128
-#: src/qemu/qemu_driver.c:1269 src/vz/vz_driver.c:480 src/xen/xen_driver.c:662
+#: src/qemu/qemu_driver.c:1270 src/vz/vz_driver.c:480 src/xen/xen_driver.c:662
 msgid "Host SMBIOS information is not available"
 msgstr "வழங்கி SMBIOS தகவல் கிடைக்கவில்லை"
 
@@ -1215,12 +1215,12 @@ msgid "Unknown release: %s"
 msgstr "தெரியாத வெளியீடு: %s"
 
 #: src/bhyve/bhyve_driver.c:383 src/libxl/libxl_driver.c:4425
-#: src/qemu/qemu_driver.c:8785 src/uml/uml_driver.c:2449
+#: src/qemu/qemu_driver.c:8786 src/uml/uml_driver.c:2449
 msgid "cannot set autostart for transient domain"
 msgstr "transient செயற்களத்திற்கு தானியக்க துவக்கத்தை அமைக்க முடியவில்லை"
 
 #: src/bhyve/bhyve_driver.c:398 src/libxl/libxl_driver.c:4440
-#: src/qemu/qemu_driver.c:8805 src/storage/storage_driver.c:1333
+#: src/qemu/qemu_driver.c:8806 src/storage/storage_driver.c:1333
 #: src/uml/uml_driver.c:2464
 #, c-format
 msgid "cannot create autostart directory %s"
@@ -1234,7 +1234,7 @@ msgstr "%s லிருந்து %s க்கு symlinkஐ உருவா�
 
 #: src/bhyve/bhyve_driver.c:412 src/libxl/libxl_driver.c:4454
 #: src/lxc/lxc_driver.c:2970 src/network/bridge_driver.c:4034
-#: src/qemu/qemu_driver.c:8821 src/storage/storage_driver.c:1348
+#: src/qemu/qemu_driver.c:8822 src/storage/storage_driver.c:1348
 #: src/uml/uml_driver.c:2478
 #, c-format
 msgid "Failed to delete symlink '%s'"
@@ -1263,9 +1263,9 @@ msgstr ""
 msgid "No domain with matching uuid '%s'"
 msgstr "பொருந்தும் uuid '%s' உடன் செயற்களம் இல்லை"
 
-#: src/bhyve/bhyve_driver.c:838 src/qemu/qemu_driver.c:1602
-#: src/qemu/qemu_driver.c:12210 src/qemu/qemu_driver.c:12716
-#: src/qemu/qemu_driver.c:12764 src/vz/vz_driver.c:636 src/vz/vz_sdk.c:488
+#: src/bhyve/bhyve_driver.c:838 src/qemu/qemu_driver.c:1603
+#: src/qemu/qemu_driver.c:12231 src/qemu/qemu_driver.c:12737
+#: src/qemu/qemu_driver.c:12785 src/vz/vz_driver.c:636 src/vz/vz_sdk.c:488
 #, c-format
 msgid "no domain with matching name '%s'"
 msgstr "செயற்களம் உடன் பொருந்தும் '%s' கான பெயர் இல்லை"
@@ -1307,34 +1307,34 @@ msgstr "செயற்களம் இயங்கவில்லை"
 #: src/lxc/lxc_driver.c:3287 src/lxc/lxc_driver.c:5406
 #: src/openvz/openvz_driver.c:2005 src/openvz/openvz_driver.c:2246
 #: src/qemu/qemu_domain.c:6551 src/qemu/qemu_domain.c:7155
-#: src/qemu/qemu_driver.c:1856 src/qemu/qemu_driver.c:1925
-#: src/qemu/qemu_driver.c:2007 src/qemu/qemu_driver.c:2109
-#: src/qemu/qemu_driver.c:2180 src/qemu/qemu_driver.c:2245
-#: src/qemu/qemu_driver.c:2264 src/qemu/qemu_driver.c:2564
-#: src/qemu/qemu_driver.c:2627 src/qemu/qemu_driver.c:2744
-#: src/qemu/qemu_driver.c:3563 src/qemu/qemu_driver.c:3621
-#: src/qemu/qemu_driver.c:3905 src/qemu/qemu_driver.c:4018
-#: src/qemu/qemu_driver.c:4129 src/qemu/qemu_driver.c:10784
-#: src/qemu/qemu_driver.c:10944 src/qemu/qemu_driver.c:11001
-#: src/qemu/qemu_driver.c:11071 src/qemu/qemu_driver.c:11407
-#: src/qemu/qemu_driver.c:11561 src/qemu/qemu_driver.c:13135
-#: src/qemu/qemu_driver.c:13270 src/qemu/qemu_driver.c:13337
-#: src/qemu/qemu_driver.c:13382 src/qemu/qemu_driver.c:13435
-#: src/qemu/qemu_driver.c:13486 src/qemu/qemu_driver.c:13548
-#: src/qemu/qemu_driver.c:13623 src/qemu/qemu_driver.c:14589
-#: src/qemu/qemu_driver.c:16143 src/qemu/qemu_driver.c:16282
-#: src/qemu/qemu_driver.c:16362 src/qemu/qemu_driver.c:16553
-#: src/qemu/qemu_driver.c:16669 src/qemu/qemu_driver.c:16820
-#: src/qemu/qemu_driver.c:16907 src/qemu/qemu_driver.c:17037
-#: src/qemu/qemu_driver.c:17396 src/qemu/qemu_driver.c:17616
-#: src/qemu/qemu_driver.c:17680 src/qemu/qemu_driver.c:18344
-#: src/qemu/qemu_driver.c:18489 src/qemu/qemu_driver.c:18557
-#: src/qemu/qemu_driver.c:18624 src/qemu/qemu_driver.c:18695
-#: src/qemu/qemu_driver.c:18799 src/qemu/qemu_driver.c:18981
-#: src/qemu/qemu_driver.c:19034 src/qemu/qemu_driver.c:19062
-#: src/qemu/qemu_driver.c:19111 src/qemu/qemu_driver.c:19155
-#: src/qemu/qemu_driver.c:20244 src/qemu/qemu_driver.c:20292
-#: src/qemu/qemu_driver.c:20452 src/qemu/qemu_driver.c:20922
+#: src/qemu/qemu_driver.c:1857 src/qemu/qemu_driver.c:1926
+#: src/qemu/qemu_driver.c:2008 src/qemu/qemu_driver.c:2110
+#: src/qemu/qemu_driver.c:2181 src/qemu/qemu_driver.c:2246
+#: src/qemu/qemu_driver.c:2265 src/qemu/qemu_driver.c:2565
+#: src/qemu/qemu_driver.c:2628 src/qemu/qemu_driver.c:2745
+#: src/qemu/qemu_driver.c:3564 src/qemu/qemu_driver.c:3622
+#: src/qemu/qemu_driver.c:3906 src/qemu/qemu_driver.c:4019
+#: src/qemu/qemu_driver.c:4130 src/qemu/qemu_driver.c:10785
+#: src/qemu/qemu_driver.c:10945 src/qemu/qemu_driver.c:11002
+#: src/qemu/qemu_driver.c:11072 src/qemu/qemu_driver.c:11428
+#: src/qemu/qemu_driver.c:11582 src/qemu/qemu_driver.c:13156
+#: src/qemu/qemu_driver.c:13291 src/qemu/qemu_driver.c:13358
+#: src/qemu/qemu_driver.c:13403 src/qemu/qemu_driver.c:13456
+#: src/qemu/qemu_driver.c:13507 src/qemu/qemu_driver.c:13569
+#: src/qemu/qemu_driver.c:13644 src/qemu/qemu_driver.c:14610
+#: src/qemu/qemu_driver.c:16164 src/qemu/qemu_driver.c:16303
+#: src/qemu/qemu_driver.c:16383 src/qemu/qemu_driver.c:16574
+#: src/qemu/qemu_driver.c:16690 src/qemu/qemu_driver.c:16841
+#: src/qemu/qemu_driver.c:16928 src/qemu/qemu_driver.c:17058
+#: src/qemu/qemu_driver.c:17417 src/qemu/qemu_driver.c:17637
+#: src/qemu/qemu_driver.c:17701 src/qemu/qemu_driver.c:18365
+#: src/qemu/qemu_driver.c:18510 src/qemu/qemu_driver.c:18578
+#: src/qemu/qemu_driver.c:18645 src/qemu/qemu_driver.c:18716
+#: src/qemu/qemu_driver.c:18820 src/qemu/qemu_driver.c:19002
+#: src/qemu/qemu_driver.c:19055 src/qemu/qemu_driver.c:19083
+#: src/qemu/qemu_driver.c:19132 src/qemu/qemu_driver.c:19176
+#: src/qemu/qemu_driver.c:20265 src/qemu/qemu_driver.c:20313
+#: src/qemu/qemu_driver.c:20473 src/qemu/qemu_driver.c:20943
 #: src/qemu/qemu_migration.c:2141 src/qemu/qemu_migration.c:4891
 #: src/test/test_driver.c:1782 src/test/test_driver.c:1915
 #: src/test/test_driver.c:2041 src/test/test_driver.c:2245
@@ -1348,7 +1348,7 @@ msgstr "செயற்களம் இயங்கவில்லை"
 msgid "no console devices available"
 msgstr "பணிமுனைய சாதனங்கள் எதுவும் கிடைக்கவில்லை"
 
-#: src/bhyve/bhyve_driver.c:1270 src/qemu/qemu_driver.c:747
+#: src/bhyve/bhyve_driver.c:1270 src/qemu/qemu_driver.c:748
 msgid "display"
 msgstr "காட்சி"
 
@@ -1359,7 +1359,7 @@ msgid "Failed to mkdir %s"
 msgstr "mkdir %s க்கு தோல்வி"
 
 #: src/bhyve/bhyve_driver.c:1363 src/openvz/openvz_driver.c:1323
-#: src/qemu/qemu_driver.c:1299 src/vz/vz_driver.c:1992
+#: src/qemu/qemu_driver.c:1300 src/vz/vz_driver.c:1992
 #, c-format
 msgid "unknown type '%s'"
 msgstr "தெரியாத வகை '%s'"
@@ -1370,7 +1370,7 @@ msgstr "புரவல CPU செயல்திறன்களைப் பெ
 
 #: src/bhyve/bhyve_driver.c:1606 src/libxl/libxl_driver.c:2635
 #: src/libxl/libxl_driver.c:2681 src/lxc/lxc_driver.c:1067
-#: src/qemu/qemu_driver.c:7068 src/qemu/qemu_driver.c:7113
+#: src/qemu/qemu_driver.c:7069 src/qemu/qemu_driver.c:7114
 #: src/xen/xen_driver.c:1551 src/xen/xen_driver.c:1604
 #: src/xenconfig/xen_common.c:1112 src/xenconfig/xen_common.c:1925
 #, c-format
@@ -1379,13 +1379,13 @@ msgstr "துணைபுரியாத கட்டமை வகை %s"
 
 #: src/bhyve/bhyve_driver.c:1643 src/bhyve/bhyve_driver.c:1650
 #: src/libxl/libxl_driver.c:6366 src/libxl/libxl_driver.c:6373
-#: src/qemu/qemu_driver.c:19219
+#: src/qemu/qemu_driver.c:19240
 #, c-format
 msgid "unknown virttype: %s"
 msgstr ""
 
 #: src/bhyve/bhyve_driver.c:1657 src/libxl/libxl_driver.c:6380
-#: src/qemu/qemu_driver.c:19226
+#: src/qemu/qemu_driver.c:19247
 #, c-format
 msgid "unknown architecture: %s"
 msgstr ""
@@ -8941,7 +8941,7 @@ msgid "Could not find any vport capable device"
 msgstr ""
 
 #: src/conf/virnwfilterobj.c:61 src/conf/virstorageobj.c:50
-#: src/libxl/libxl_driver.c:652 src/qemu/qemu_driver.c:640
+#: src/libxl/libxl_driver.c:652 src/qemu/qemu_driver.c:641
 #: src/remote/remote_driver.c:1293 src/test/test_driver.c:413
 #: src/xen/xen_driver.c:480
 msgid "cannot initialize mutex"
@@ -9882,7 +9882,7 @@ msgstr "ஸ்னாப்ஷாட் '%s' ஏற்கனவே உள்ள�
 msgid "Could not create snapshot: %s"
 msgstr "ஸ்னாப்ஷாட்டை உருவாக்க முடியவில்லை: %s"
 
-#: src/esx/esx_driver.c:4551 src/qemu/qemu_driver.c:15410
+#: src/esx/esx_driver.c:4551 src/qemu/qemu_driver.c:15431
 #: src/test/test_driver.c:6133 src/vbox/vbox_common.c:6268
 #: src/vz/vz_driver.c:2522
 #, c-format
@@ -12249,11 +12249,11 @@ msgstr "டொமைன் படக் கோப்பு '%s' ஐத் தி
 msgid "failed to read libxl header"
 msgstr "libxl தலைப்பை வாசிப்பதில் தோல்வி"
 
-#: src/libxl/libxl_domain.c:667 src/qemu/qemu_driver.c:6426
+#: src/libxl/libxl_domain.c:667 src/qemu/qemu_driver.c:6427
 msgid "image magic is incorrect"
 msgstr "image magic தவறாக உள்ளது"
 
-#: src/libxl/libxl_domain.c:673 src/qemu/qemu_driver.c:6453
+#: src/libxl/libxl_domain.c:673 src/qemu/qemu_driver.c:6454
 #, c-format
 msgid "image version is not supported (%d > %d)"
 msgstr "image version துணைபுரியவில்லை (%d > %d)"
@@ -12276,7 +12276,7 @@ msgstr ""
 msgid "Failed to balloon domain0 memory"
 msgstr ""
 
-#: src/libxl/libxl_domain.c:1207 src/qemu/qemu_driver.c:6989
+#: src/libxl/libxl_domain.c:1207 src/qemu/qemu_driver.c:6990
 #, c-format
 msgid ""
 "cannot restore domain '%s' uuid %s from a file which belongs to domain '%s' "
@@ -12311,7 +12311,7 @@ msgstr ""
 msgid "VNC"
 msgstr "VNC"
 
-#: src/libxl/libxl_driver.c:667 src/qemu/qemu_driver.c:761
+#: src/libxl/libxl_driver.c:667 src/qemu/qemu_driver.c:762
 msgid "migration"
 msgstr "இடப்பெயர்ப்பு"
 
@@ -12388,7 +12388,7 @@ msgstr "தொடர்ந்த அமைவாக்கத்தைப் ப�
 msgid "Failed to set maximum memory for domain '%d' with libxenlight"
 msgstr "டொமைன் '%d' க்கான அதிகபட்ச நினைவகத்தை libxenlight கொண்டு அமைப்பதில் தோல்வி"
 
-#: src/libxl/libxl_driver.c:1572 src/qemu/qemu_driver.c:2416
+#: src/libxl/libxl_driver.c:1572 src/qemu/qemu_driver.c:2417
 #: src/uml/uml_driver.c:1849
 msgid "cannot set memory higher than max memory"
 msgstr "அதிகபட்ச நினைவகத்தை விட அதிக நினைவகம் அமைக்க முடியவில்லை"
@@ -12456,7 +12456,7 @@ msgstr ""
 "கோரை டம்ப் செய்த பிறகு, டொமைன் '%d' ஐ libxenlight கொண்டு மீண்டும் தொடங்குவதில் "
 "தோல்வியடைந்தது"
 
-#: src/libxl/libxl_driver.c:2044 src/qemu/qemu_driver.c:3626
+#: src/libxl/libxl_driver.c:2044 src/qemu/qemu_driver.c:3627
 #: src/test/test_driver.c:5853
 msgid "cannot do managed save for transient domain"
 msgstr "டிரான்ஸியன்ட் டொமைனுக்கு நிர்வகிக்கப்பட்ட சேமிப்பைச் செய்ய முடியாது"
@@ -12521,21 +12521,21 @@ msgstr "டொமைன் '%d' க்கான vcpus ஐ libxenlight கொண�
 msgid "parsing sxpr config failed"
 msgstr "sxpr அமைவாக்கத்தைப் பாகுபடுத்துதல் தோல்வி"
 
-#: src/libxl/libxl_driver.c:2865 src/qemu/qemu_driver.c:7473
+#: src/libxl/libxl_driver.c:2865 src/qemu/qemu_driver.c:7474
 #: src/uml/uml_driver.c:2130 src/vmware/vmware_driver.c:810
 msgid "cannot undefine transient domain"
 msgstr "செயலிலுள்ள செயற்களத்தை குறிப்புநீக்க முடியவில்லை"
 
-#: src/libxl/libxl_driver.c:2877 src/qemu/qemu_driver.c:7498
+#: src/libxl/libxl_driver.c:2877 src/qemu/qemu_driver.c:7499
 msgid "Failed to remove domain managed save image"
 msgstr "டொமைனில் நிர்வகிக்கப்பட்ட சேமித்தல் படத்தை நீக்குவதில் தோல்வி"
 
-#: src/libxl/libxl_driver.c:2882 src/qemu/qemu_driver.c:7504
+#: src/libxl/libxl_driver.c:2882 src/qemu/qemu_driver.c:7505
 #: src/test/test_driver.c:2948 src/vz/vz_sdk.c:4308 tools/virsh-domain.c:3823
 msgid "Refusing to undefine while domain managed save image exists"
 msgstr "டொமைன் நிர்வகிக்கும் சேமி படம் இருக்கையில் வரையறை நீக்க மறுக்கிறது"
 
-#: src/libxl/libxl_driver.c:2938 src/qemu/qemu_driver.c:7818
+#: src/libxl/libxl_driver.c:2938 src/qemu/qemu_driver.c:7819
 #, c-format
 msgid "No device with bus '%s' and target '%s'"
 msgstr "பஸ்வுடன் சாதனம் '%s' இல்லை மற்றும் இலக்கு'%s'"
@@ -12551,7 +12551,7 @@ msgid "libxenlight failed to change media for disk '%s'"
 msgstr "libxenlight ஆனது '%s' வட்டுக்கான மீடியாவை மாற்றுவதில் தோல்வியடைந்தது"
 
 #: src/libxl/libxl_driver.c:2989 src/lxc/lxc_driver.c:3854
-#: src/qemu/qemu_driver.c:7933 src/uml/uml_driver.c:2170
+#: src/qemu/qemu_driver.c:7934 src/uml/uml_driver.c:2170
 #, c-format
 msgid "target %s already exists"
 msgstr "இலக்கு %s ஏற்கனவை இருக்கிறது"
@@ -12662,13 +12662,13 @@ msgstr "சாதன வகை '%s'ஐ இணைக்க முடியவி�
 msgid "target %s already exists."
 msgstr "இலக்கு %s ஏற்கனவே உள்ளது."
 
-#: src/libxl/libxl_driver.c:3483 src/qemu/qemu_driver.c:7986
-#: src/qemu/qemu_driver.c:8006
+#: src/libxl/libxl_driver.c:3483 src/qemu/qemu_driver.c:7987
+#: src/qemu/qemu_driver.c:8007
 msgid "Target already exists"
 msgstr "இலக்கு ஏற்கனவே உள்ளது"
 
 #: src/libxl/libxl_driver.c:3519 src/lxc/lxc_driver.c:3556
-#: src/qemu/qemu_driver.c:7957 src/qemu/qemu_driver.c:8055
+#: src/qemu/qemu_driver.c:7958 src/qemu/qemu_driver.c:8056
 msgid "device is already in the domain configuration"
 msgstr "டொமைன் அமைவாக்கத்தில் சாதனம் ஏற்கனவே உள்ளது"
 
@@ -12726,14 +12726,14 @@ msgid "device type '%s' cannot be detached"
 msgstr "சாதன வகை '%s' ஐ பிரிக்க முடியவில்லை"
 
 #: src/libxl/libxl_driver.c:3893 src/lxc/lxc_driver.c:3624
-#: src/qemu/qemu_driver.c:8124
+#: src/qemu/qemu_driver.c:8125
 #, c-format
 msgid "no target device %s"
 msgstr "இலக்கு சாதனம் %s இல்லை"
 
 #: src/libxl/libxl_driver.c:3904 src/libxl/libxl_driver.c:3924
-#: src/lxc/lxc_driver.c:3645 src/qemu/qemu_driver.c:8143
-#: src/qemu/qemu_driver.c:8167 src/qemu/qemu_hotplug.c:1740
+#: src/lxc/lxc_driver.c:3645 src/qemu/qemu_driver.c:8144
+#: src/qemu/qemu_driver.c:8168 src/qemu/qemu_hotplug.c:1740
 #: src/qemu/qemu_hotplug.c:4934 src/qemu/qemu_hotplug.c:5219
 #: src/qemu/qemu_hotplug.c:5266 src/qemu/qemu_hotplug.c:5309
 msgid "device not present in domain configuration"
@@ -12754,7 +12754,7 @@ msgid "device type '%s' cannot be updated"
 msgstr "சாதன வகை '%s'ஐ புதுப்பிக்க முடியவில்லை"
 
 #: src/libxl/libxl_driver.c:3985 src/openvz/openvz_driver.c:2039
-#: src/qemu/qemu_driver.c:8301
+#: src/qemu/qemu_driver.c:8302
 #, c-format
 msgid "target %s doesn't exist."
 msgstr "இடைமுகம் %s இல்லை."
@@ -12775,7 +12775,7 @@ msgid "start cell %d out of range (0-%d)"
 msgstr "ஆரம்ப செல் %d வரம்புக்கு வெளியே உள்ளது (0-%d)"
 
 #: src/libxl/libxl_driver.c:4447 src/lxc/lxc_driver.c:2963
-#: src/qemu/qemu_driver.c:8812 src/uml/uml_driver.c:2471
+#: src/qemu/qemu_driver.c:8813 src/uml/uml_driver.c:2471
 #, c-format
 msgid "Failed to create symlink '%s to '%s'"
 msgstr "%s லிருந்து %s க்கு symlinkஐ உருவாக்க முடியவில்லை"
@@ -12799,19 +12799,19 @@ msgstr "டொமைன் '%d' க்கான அளவுருக்கள�
 msgid "Failed to set scheduler parameters for domain '%d' with libxenlight"
 msgstr "டொமைன் '%d' க்கான ஷெட்யூலர் அளவுருக்களை libxenlight கொண்டு பெறுவதில் தோல்வி"
 
-#: src/libxl/libxl_driver.c:4729 src/qemu/qemu_driver.c:16311
+#: src/libxl/libxl_driver.c:4729 src/qemu/qemu_driver.c:16332
 #, c-format
 msgid "cannot find character device %s"
 msgstr "எழுத்து சாதனம் %s ஐக் கண்டறிய முடியவில்லை"
 
 #: src/libxl/libxl_driver.c:4736 src/lxc/lxc_driver.c:3237
-#: src/qemu/qemu_driver.c:16318 src/uml/uml_driver.c:2625
+#: src/qemu/qemu_driver.c:16339 src/uml/uml_driver.c:2625
 #: src/xen/xen_driver.c:2537
 #, c-format
 msgid "character device %s is not using a PTY"
 msgstr "எழுத்துக்குறி சாதனம் %s ஒரு PTY ஐப் பயன்படுத்தவில்லை"
 
-#: src/libxl/libxl_driver.c:4749 src/qemu/qemu_driver.c:16331
+#: src/libxl/libxl_driver.c:4749 src/qemu/qemu_driver.c:16352
 msgid "Active console session exists for this domain"
 msgstr "இந்த டொமைனுக்கு செயலில் உள்ள கன்சோல் அமர்வு உள்ளது"
 
@@ -12843,8 +12843,8 @@ msgid "platform unsupported"
 msgstr ""
 
 #: src/libxl/libxl_driver.c:5449 src/lxc/lxc_driver.c:2399
-#: src/lxc/lxc_driver.c:2487 src/qemu/qemu_driver.c:10790
-#: src/qemu/qemu_driver.c:10876 src/test/test_driver.c:3139
+#: src/lxc/lxc_driver.c:2487 src/qemu/qemu_driver.c:10791
+#: src/qemu/qemu_driver.c:10877 src/test/test_driver.c:3139
 #: src/vz/vz_driver.c:1741 src/vz/vz_driver.c:4016
 #, c-format
 msgid "invalid path: %s"
@@ -12860,7 +12860,7 @@ msgstr ""
 msgid "unsupported disk driver %s"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:5723 src/qemu/qemu_driver.c:12858
+#: src/libxl/libxl_driver.c:5723 src/qemu/qemu_driver.c:12879
 #: src/xen/xen_driver.c:2334
 #, c-format
 msgid "device %s is not a PCI device"
@@ -12882,7 +12882,7 @@ msgstr ""
 "இடப்பெயர்ப்பு தோல்வியடைந்தது. இலக்கு வழங்கியில் டொமைன்  எதுவும் '%s' எனும் பெயருடன் "
 "பொருந்தவில்லை"
 
-#: src/libxl/libxl_driver.c:6220 src/qemu/qemu_driver.c:20347
+#: src/libxl/libxl_driver.c:6220 src/qemu/qemu_driver.c:20368
 msgid "Network driver does not support DHCP lease query"
 msgstr ""
 
@@ -14305,11 +14305,11 @@ msgid "Failed to set memory for domain"
 msgstr "செயற்களத்திற்கான நினைவகத்தை அமைக்க முடியவில்லை"
 
 #: src/lxc/lxc_driver.c:846 src/lxc/lxc_driver.c:966
-#: src/qemu/qemu_driver.c:9441 src/qemu/qemu_driver.c:9581
+#: src/qemu/qemu_driver.c:9442 src/qemu/qemu_driver.c:9582
 msgid "cgroup memory controller is not mounted"
 msgstr "cgroup நினைவக கன்ட்ரோலர் மவுன்ட் செய்யப்படவில்லை"
 
-#: src/lxc/lxc_driver.c:876 src/qemu/qemu_driver.c:9471
+#: src/lxc/lxc_driver.c:876 src/qemu/qemu_driver.c:9472
 msgid ""
 "memory hard_limit tunable value must be lower than or equal to "
 "swap_hard_limit"
@@ -14317,8 +14317,8 @@ msgstr ""
 "நினைவக hard_limit ட்யூன் செய்யத்தக்க மதிப்பானது swap_hard_limit க்கு சமமாக அல்லது "
 "குறைவாக இருக்க வேண்டும்"
 
-#: src/lxc/lxc_driver.c:1322 src/qemu/qemu_driver.c:6144
-#: src/qemu/qemu_driver.c:6192
+#: src/lxc/lxc_driver.c:1322 src/qemu/qemu_driver.c:6145
+#: src/qemu/qemu_driver.c:6193
 #, c-format
 msgid "unknown virt type in domain definition '%d'"
 msgstr "தெரியாத virt வகை செயற்கள வரையறை '%d'இல்"
@@ -14328,54 +14328,54 @@ msgstr "தெரியாத virt வகை செயற்கள வரைய�
 msgid "Init pid is not yet available"
 msgstr "இன்னும் init pid கிடைக்கவில்லை"
 
-#: src/lxc/lxc_driver.c:1386 src/qemu/qemu_driver.c:6263
+#: src/lxc/lxc_driver.c:1386 src/qemu/qemu_driver.c:6264
 #, c-format
 msgid "security model string exceeds max %d bytes"
 msgstr "பாதுகாப்பு மாதிரி அதிகபட்ச %d பைட்களை விட மிஞ்சியது"
 
-#: src/lxc/lxc_driver.c:1395 src/qemu/qemu_driver.c:6273
+#: src/lxc/lxc_driver.c:1395 src/qemu/qemu_driver.c:6274
 #, c-format
 msgid "security DOI string exceeds max %d bytes"
 msgstr "பாதுகாப்பு DOI அதிகபட்சத்தை %d பைட்களை விட மிஞ்சியது"
 
-#: src/lxc/lxc_driver.c:1592 src/qemu/qemu_driver.c:446
+#: src/lxc/lxc_driver.c:1592 src/qemu/qemu_driver.c:447
 msgid "Failed to initialize security drivers"
 msgstr "பாதுகாப்பு இயக்கிகளைத் துவக்குவதில் தோல்வி"
 
 #: src/lxc/lxc_driver.c:1858 src/lxc/lxc_driver.c:1986
-#: src/lxc/lxc_driver.c:2123 src/qemu/qemu_driver.c:8875
-#: src/qemu/qemu_driver.c:10252 src/qemu/qemu_driver.c:10660
+#: src/lxc/lxc_driver.c:2123 src/qemu/qemu_driver.c:8876
+#: src/qemu/qemu_driver.c:10253 src/qemu/qemu_driver.c:10661
 msgid "cgroup CPU controller is not mounted"
 msgstr "cgroup CPU கன்ட்ரோலர் மவுன்ட் செய்யப்படவில்லை"
 
-#: src/lxc/lxc_driver.c:2244 src/qemu/qemu_driver.c:8964
+#: src/lxc/lxc_driver.c:2244 src/qemu/qemu_driver.c:8965
 #, fuzzy, c-format
 msgid "unknown parameter '%s'"
 msgstr "தெரியாத அளவுரு %s"
 
-#: src/lxc/lxc_driver.c:2267 src/qemu/qemu_driver.c:8987
+#: src/lxc/lxc_driver.c:2267 src/qemu/qemu_driver.c:8988
 #, fuzzy, c-format
 msgid "unable to parse blkio device '%s' '%s'"
 msgstr "'%s' '%s' blkio சாதனத்தைப் பாகுபடுத்த முடியவில்லை"
 
-#: src/lxc/lxc_driver.c:2273 src/qemu/qemu_driver.c:8993
+#: src/lxc/lxc_driver.c:2273 src/qemu/qemu_driver.c:8994
 #, fuzzy, c-format
 msgid "invalid value '%s' for parameter '%s' of device '%s'"
 msgstr "அளவுரு '%s' க்கு தவறான வகை '%s', எதிர்பார்த்தது '%s'"
 
-#: src/lxc/lxc_driver.c:2314 src/qemu/qemu_driver.c:9036
+#: src/lxc/lxc_driver.c:2314 src/qemu/qemu_driver.c:9037
 #, fuzzy, c-format
 msgid "Unknown parameter %s"
 msgstr "தெரியாத அளவுரு %s"
 
 #: src/lxc/lxc_driver.c:2383 src/lxc/lxc_driver.c:2469
 #: src/lxc/lxc_driver.c:2607 src/lxc/lxc_driver.c:2813
-#: src/qemu/qemu_driver.c:9130 src/qemu/qemu_driver.c:9345
+#: src/qemu/qemu_driver.c:9131 src/qemu/qemu_driver.c:9346
 msgid "blkio cgroup isn't mounted"
 msgstr "blkio cgroup மவுன்ட் செய்யப்படவில்லை"
 
 #: src/lxc/lxc_driver.c:2405 src/lxc/lxc_driver.c:2493
-#: src/qemu/qemu_driver.c:10882 src/qemu/qemu_driver.c:11846
+#: src/qemu/qemu_driver.c:10883 src/qemu/qemu_driver.c:11867
 #: src/qemu/qemu_hotplug.c:267
 #, c-format
 msgid "missing disk device alias name for %s"
@@ -14385,7 +14385,7 @@ msgstr "வட்டு சாதனத்தின் %sக்கான பு�
 msgid "domain stats query failed"
 msgstr "டொமைன் புள்ளிவிவர வினவல் தோல்வியுற்றது"
 
-#: src/lxc/lxc_driver.c:2698 src/qemu/qemu_driver.c:9222
+#: src/lxc/lxc_driver.c:2698 src/qemu/qemu_driver.c:9223
 #, fuzzy, c-format
 msgid "Unknown blkio parameter %s"
 msgstr "தெரியாத blkio அளவுரு %s"
@@ -14403,8 +14403,8 @@ msgstr "%s அடைவிற்கு தானியக்க துவக்�
 msgid "Suspend operation failed"
 msgstr "நிறுத்த செயல்பாடு தோல்வியுற்றது"
 
-#: src/lxc/lxc_driver.c:3157 src/qemu/qemu_driver.c:1936
-#: src/qemu/qemu_driver.c:7314
+#: src/lxc/lxc_driver.c:3157 src/qemu/qemu_driver.c:1937
+#: src/qemu/qemu_driver.c:7315
 msgid "domain is already running"
 msgstr "செயற்களம் ஏற்கனவே இயக்கத்தில் உள்ளது"
 
@@ -14531,7 +14531,7 @@ msgstr "நிகழ்நேர சாதனங்களை மாற்றி�
 msgid "domain is not active"
 msgstr "டொமைன் செயலில் இல்லை"
 
-#: src/lxc/lxc_driver.c:5412 src/qemu/qemu_driver.c:18495
+#: src/lxc/lxc_driver.c:5412 src/qemu/qemu_driver.c:18516
 msgid "cgroup CPUACCT controller is not mounted"
 msgstr "cgroup CPUACCT கன்ட்ரோலர் மவுன்ட் செய்யப்படவில்லை"
 
@@ -15593,8 +15593,8 @@ msgstr "இணைப்புநீக்கு(\"%s\")"
 msgid "open(\"%s\")"
 msgstr "திற(\"%s\")"
 
-#: src/nwfilter/nwfilter_dhcpsnoop.c:1919 src/qemu/qemu_driver.c:3304
-#: src/qemu/qemu_driver.c:4051 src/vbox/vbox_common.c:7237
+#: src/nwfilter/nwfilter_dhcpsnoop.c:1919 src/qemu/qemu_driver.c:3305
+#: src/qemu/qemu_driver.c:4052 src/vbox/vbox_common.c:7237
 #, c-format
 msgid "unable to close %s"
 msgstr "%s ஐ மூட முடியவில்லை"
@@ -16073,7 +16073,7 @@ msgstr "இதிலிருந்து தடையைப் பாகுப�
 msgid "Failed to set %s for %s: value too large"
 msgstr "%s க்கான %s ஐ அமைப்பதில் தோல்வி: மதிப்பு மிகப் பெரியதாக உள்ளது"
 
-#: src/openvz/openvz_driver.c:1999 src/qemu/qemu_driver.c:1577
+#: src/openvz/openvz_driver.c:1999 src/qemu/qemu_driver.c:1578
 #: src/uml/uml_driver.c:1767 src/uml/uml_driver.c:1797
 #: src/uml/uml_driver.c:1834 src/uml/uml_driver.c:2221
 #: src/uml/uml_driver.c:2341 src/uml/uml_driver.c:2588
@@ -16970,8 +16970,8 @@ msgstr ""
 msgid "Unexpected network protocol '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:1136 src/qemu/qemu_driver.c:18017
-#: src/qemu/qemu_driver.c:18202
+#: src/qemu/qemu_command.c:1136 src/qemu/qemu_driver.c:18038
+#: src/qemu/qemu_driver.c:18223
 msgid "block I/O throttling not supported with this QEMU binary"
 msgstr "இந்த QEMU பைனரியில் தொகுப்பு I/O த்ராட்லிங் வசதிக்கு ஆதரவில்லை"
 
@@ -16982,7 +16982,7 @@ msgid ""
 "this QEMU binary"
 msgstr "இந்த QEMU பைனரியில் தொகுப்பு I/O த்ராட்லிங் வசதிக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_command.c:1154 src/qemu/qemu_driver.c:18035
+#: src/qemu/qemu_command.c:1154 src/qemu/qemu_driver.c:18056
 msgid ""
 "the block I/O throttling group parameter is not supported with this QEMU "
 "binary"
@@ -18218,18 +18218,18 @@ msgstr ""
 msgid "panic is supported only with ISA address type"
 msgstr "ISA முகவரி வகையுடன் மட்டுமே பேனிக் ஆதரிக்கப்படும்"
 
-#: src/qemu/qemu_command.c:9859 src/qemu/qemu_driver.c:9427
-#: src/qemu/qemu_driver.c:9560
+#: src/qemu/qemu_command.c:9859 src/qemu/qemu_driver.c:9428
+#: src/qemu/qemu_driver.c:9561
 msgid "Memory tuning is not available in session mode"
 msgstr "அமர்வுப் பயன்முறையில் நினைவக டியூனிங் வசதி இல்லை"
 
-#: src/qemu/qemu_command.c:9865 src/qemu/qemu_driver.c:9117
-#: src/qemu/qemu_driver.c:9324
+#: src/qemu/qemu_command.c:9865 src/qemu/qemu_driver.c:9118
+#: src/qemu/qemu_driver.c:9325
 msgid "Block I/O tuning is not available in session mode"
 msgstr "அமர்வுப் பயன்முறையில் தடுப்பு I/O டியூனிங் வசதி இல்லை"
 
-#: src/qemu/qemu_command.c:9875 src/qemu/qemu_driver.c:8861
-#: src/qemu/qemu_driver.c:10229 src/qemu/qemu_driver.c:10648
+#: src/qemu/qemu_command.c:9875 src/qemu/qemu_driver.c:8862
+#: src/qemu/qemu_driver.c:10230 src/qemu/qemu_driver.c:10649
 msgid "CPU tuning is not available in session mode"
 msgstr "அமர்வுப் பயன்முறையில் CPU டியூனிங் வசதி இல்லை"
 
@@ -18862,7 +18862,7 @@ msgid "unexpected async job %d"
 msgstr "எதிர்பார்க்காத async பணி %d"
 
 #: src/qemu/qemu_domain.c:4567 src/qemu/qemu_domain.c:4634
-#: src/qemu/qemu_driver.c:3241
+#: src/qemu/qemu_driver.c:3242
 msgid "domain is no longer running"
 msgstr "டொமைன் இப்போது இயங்கவில்லை"
 
@@ -19248,195 +19248,195 @@ msgstr ""
 msgid "failed to find an empty memory slot"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:240 src/test/test_driver.c:5918
+#: src/qemu/qemu_driver.c:241 src/test/test_driver.c:5918
 #: src/vz/vz_driver.c:2175
 #, c-format
 msgid "no domain snapshot with matching name '%s'"
 msgstr "'%s' என்ற பெயருடன் பொருந்தும் டொமைன் இல்லை"
 
-#: src/qemu/qemu_driver.c:275
+#: src/qemu/qemu_driver.c:276
 #, c-format
 msgid "Failed to start job on VM '%s': %s"
 msgstr "VM '%s' இல் பணியைத் தொடங்குவதில் தோல்வி: %s"
 
-#: src/qemu/qemu_driver.c:477
+#: src/qemu/qemu_driver.c:478
 #, c-format
 msgid "Failed to allocate memory for snapshot directory for domain %s"
 msgstr "டொமைன் %s க்கான ஸ்னாப்ஷாட் கோப்பகத்திற்கு நினைவகத்தை ஒதுக்குவதில் தோல்வி"
 
-#: src/qemu/qemu_driver.c:499
+#: src/qemu/qemu_driver.c:500
 msgid "Failed to allocate memory for path"
 msgstr "பாதைக்கு நினைவகத்தை ஒதுக்குவதில் தோல்வி"
 
-#: src/qemu/qemu_driver.c:506
+#: src/qemu/qemu_driver.c:507
 #, c-format
 msgid "Failed to read snapshot file %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:518
+#: src/qemu/qemu_driver.c:519
 #, c-format
 msgid "Failed to parse snapshot XML from file '%s'"
 msgstr "'%s' இல் இருந்து ஸ்னாப்ஷாட் XML ஐப் பாகுபடுத்துவதில் தோல்வி"
 
-#: src/qemu/qemu_driver.c:539
+#: src/qemu/qemu_driver.c:540
 #, fuzzy, c-format
 msgid "Failed to fully read directory %s"
 msgstr "%s கோப்பகத்தை முழுதும் வாசிப்பதில் தோல்வியடைந்தது"
 
-#: src/qemu/qemu_driver.c:544
+#: src/qemu/qemu_driver.c:545
 #, c-format
 msgid "Too many snapshots claiming to be current for domain %s"
 msgstr "டொமைன் %s க்கு மிக அதிக ஸ்னாப்ஷாட்டுகள் நடப்பில் உள்ளதாகக் கூறப்படுகிறது"
 
-#: src/qemu/qemu_driver.c:551 src/test/test_driver.c:877
+#: src/qemu/qemu_driver.c:552 src/test/test_driver.c:877
 #, c-format
 msgid "Snapshots have inconsistent relations for domain %s"
 msgstr "டொமைன் %s க்கு ஸ்னாப்ஷாட்டுகள் இசைவில்லா தொடர்புகளைக் கொண்டுள்ளன"
 
-#: src/qemu/qemu_driver.c:676
+#: src/qemu/qemu_driver.c:677
 #, c-format
 msgid "Failed to create state dir %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:681
+#: src/qemu/qemu_driver.c:682
 #, c-format
 msgid "Failed to create lib dir %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:686
+#: src/qemu/qemu_driver.c:687
 #, c-format
 msgid "Failed to create cache dir %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:691 src/qemu/qemu_driver.c:696
+#: src/qemu/qemu_driver.c:692 src/qemu/qemu_driver.c:697
 #, c-format
 msgid "Failed to create save dir %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:701
+#: src/qemu/qemu_driver.c:702
 #, c-format
 msgid "Failed to create dump dir %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:706
+#: src/qemu/qemu_driver.c:707
 #, c-format
 msgid "Failed to create channel target dir %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:711
+#: src/qemu/qemu_driver.c:712
 #, c-format
 msgid "Failed to create nvram dir %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:716
+#: src/qemu/qemu_driver.c:717
 #, fuzzy, c-format
 msgid "Failed to create memory backing dir %s"
 msgstr " %s லிருந்து செயற்களத்தை உருவாக்க முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:734
+#: src/qemu/qemu_driver.c:735
 #, c-format
 msgid "failed to enable mac filter in '%s'"
 msgstr "mac வடிப்பியை '%s' இல் செயல்படுத்த முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:754
+#: src/qemu/qemu_driver.c:755
 msgid "webSocket"
 msgstr "webSocket"
 
-#: src/qemu/qemu_driver.c:784
+#: src/qemu/qemu_driver.c:785
 #, c-format
 msgid "unable to set ownership of '%s' to user %d:%d"
 msgstr "'%s'க்கு உரிமையாளரை அமைக்க முடியவில்லை %d:%d"
 
-#: src/qemu/qemu_driver.c:791 src/qemu/qemu_driver.c:798
-#: src/qemu/qemu_driver.c:805 src/qemu/qemu_driver.c:812
-#: src/qemu/qemu_driver.c:823 src/qemu/qemu_driver.c:832
-#: src/qemu/qemu_driver.c:839 src/qemu/qemu_driver.c:846
+#: src/qemu/qemu_driver.c:792 src/qemu/qemu_driver.c:799
+#: src/qemu/qemu_driver.c:806 src/qemu/qemu_driver.c:813
+#: src/qemu/qemu_driver.c:824 src/qemu/qemu_driver.c:833
+#: src/qemu/qemu_driver.c:840 src/qemu/qemu_driver.c:847
 #, c-format
 msgid "unable to set ownership of '%s' to %d:%d"
 msgstr "உரிமையாளர் '%s'ஐ %d:%d க்கு அமைக்க முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:880
+#: src/qemu/qemu_driver.c:881
 #, c-format
 msgid "unable to create hugepage path %s"
 msgstr "hugepage பாதை %sஐ உருவாக்க முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:1154
+#: src/qemu/qemu_driver.c:1155
 msgid "qemu state driver is not active"
 msgstr "qemu நிலை இயக்கி செயலில் இல்லை"
 
-#: src/qemu/qemu_driver.c:1161
+#: src/qemu/qemu_driver.c:1162
 #, c-format
 msgid "no QEMU URI path given, try %s"
 msgstr "QEMU URI பாதை கொடுக்கப்படவில்லை,  %sஐ முயற்சிக்கவும்"
 
-#: src/qemu/qemu_driver.c:1170
+#: src/qemu/qemu_driver.c:1171
 #, c-format
 msgid "unexpected QEMU URI path '%s', try qemu:///system"
 msgstr "எதிர்பார்க்காத QEMU URI பாதை '%s', qemu:///system முயற்சிக்கவும்"
 
-#: src/qemu/qemu_driver.c:1177
+#: src/qemu/qemu_driver.c:1178
 #, c-format
 msgid "unexpected QEMU URI path '%s', try qemu:///session"
 msgstr "எதிர்பார்க்காத QEMU URI பாதை '%s', qemu:///sessionஐ முயற்சிக்கவும்"
 
-#: src/qemu/qemu_driver.c:1370
+#: src/qemu/qemu_driver.c:1371
 #, c-format
 msgid "Missing separator in sched info '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:1380
+#: src/qemu/qemu_driver.c:1381
 #, c-format
 msgid "Unable to parse sched info value '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:1478 src/qemu/qemu_driver.c:5001
+#: src/qemu/qemu_driver.c:1479 src/qemu/qemu_driver.c:5002
 #: src/qemu/qemu_process.c:4938
 msgid "cpu affinity is not supported"
 msgstr "cpu affinity துணைபுரியவில்லை"
 
-#: src/qemu/qemu_driver.c:1507
+#: src/qemu/qemu_driver.c:1508
 msgid "cannot get vCPU placement & pCPU time"
 msgstr "vCPU இடத்தை & pCPU நேரத்தை பெற முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:1549 src/uml/uml_driver.c:1645
+#: src/qemu/qemu_driver.c:1550 src/uml/uml_driver.c:1645
 #: src/uml/uml_driver.c:1689 src/vbox/vbox_common.c:770
 #: src/vbox/vbox_common.c:2891
 #, c-format
 msgid "no domain with matching id %d"
 msgstr "id %dஉடன் எந்த செயற்களமும் இல்லை"
 
-#: src/qemu/qemu_driver.c:1874 src/qemu/qemu_driver.c:1932
+#: src/qemu/qemu_driver.c:1875 src/qemu/qemu_driver.c:1933
 msgid "domain is pmsuspended"
 msgstr "டொமைன் pmsuspended செய்யப்பட்டுள்ளது"
 
-#: src/qemu/qemu_driver.c:1946 src/qemu/qemu_migration.c:5366
+#: src/qemu/qemu_driver.c:1947 src/qemu/qemu_migration.c:5366
 #: src/qemu/qemu_process.c:575 src/qemu/qemu_process.c:5983
 msgid "resume operation failed"
 msgstr "தொடர்ந்த செயற்பாடு செயலிழக்கப்பட்டது"
 
-#: src/qemu/qemu_driver.c:2131
+#: src/qemu/qemu_driver.c:2132
 msgid "ACPI reboot is not supported with this QEMU binary"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:2137
+#: src/qemu/qemu_driver.c:2138
 msgid "ACPI reboot is not supported without the JSON monitor"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:2371
+#: src/qemu/qemu_driver.c:2372
 msgid "cannot resize the maximum memory on an active domain"
 msgstr "செயலில் உள்ள டொமைனில் உள்ள அதிகபட்ச நினைவகத்தை மறுஅளவு செய்ய முடியாது"
 
-#: src/qemu/qemu_driver.c:2381
+#: src/qemu/qemu_driver.c:2382
 msgid ""
 "initial memory size of a domain with NUMA nodes cannot be modified with this "
 "API"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:2389
+#: src/qemu/qemu_driver.c:2390
 msgid "cannot set initial memory size greater than the maximum memory size"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:2430
+#: src/qemu/qemu_driver.c:2431
 msgid ""
 "Unable to change memory of active domain without the balloon device and "
 "guest OS balloon driver"
@@ -19444,91 +19444,91 @@ msgstr ""
 "பலூன் சாதனமும் விருந்தின OS பலூன் இயக்கியும் இல்லாமல் செயலில் உள்ள டொமைனின் நினைவகத்தை "
 "மாற்ற முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:2499 src/qemu/qemu_driver.c:2523
+#: src/qemu/qemu_driver.c:2500 src/qemu/qemu_driver.c:2524
 msgid "Memory balloon model must be virtio to set the collection period"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:2510
+#: src/qemu/qemu_driver.c:2511
 msgid "unable to set balloon driver collection period"
 msgstr "பலூன் இயக்கி சேகரிப்புக் காலத்தை அமைக்க முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:2605
+#: src/qemu/qemu_driver.c:2606
 #, c-format
 msgid "cannot translate keycode %u of %s codeset to rfb keycode"
 msgstr "%2$s கோட்செட்டின் %1$u கீகோடை rfb கீகோடாக மாற்ற முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:2670
+#: src/qemu/qemu_driver.c:2671
 msgid "Initial memory size too large"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:2676
+#: src/qemu/qemu_driver.c:2677
 msgid "Current memory size too large"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:2683 src/uml/uml_driver.c:1889 src/vz/vz_driver.c:678
+#: src/qemu/qemu_driver.c:2684 src/uml/uml_driver.c:1889 src/vz/vz_driver.c:678
 msgid "cannot read cputime for domain"
 msgstr "செயற்களத்திற்கான cputime வாசிக்க முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:2689
+#: src/qemu/qemu_driver.c:2690
 msgid "cpu count too large"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:2940
+#: src/qemu/qemu_driver.c:2941
 msgid "new xml too large to fit in file"
 msgstr "புதிய xml கோப்பில் பொருந்த முடியாத அளவுக்கு மிகப் பெரிதாக உள்ளது"
 
-#: src/qemu/qemu_driver.c:2956 src/qemu/qemu_driver.c:3003
+#: src/qemu/qemu_driver.c:2957 src/qemu/qemu_driver.c:3004
 #, c-format
 msgid "failed to write header to domain save file '%s'"
 msgstr "டொமைன் சேமித்தல் கோப்பு '%s' இல் தலைப்பை எழுதுவதில் தோல்வி"
 
-#: src/qemu/qemu_driver.c:2963
+#: src/qemu/qemu_driver.c:2964
 #, fuzzy, c-format
 msgid "failed to write domain xml to '%s'"
 msgstr "'%s'க்கு xmlஐ எழுத முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:2971
+#: src/qemu/qemu_driver.c:2972
 #, fuzzy, c-format
 msgid "failed to write cookie to '%s'"
 msgstr "'%s'க்கு xmlஐ எழுத முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:2978
+#: src/qemu/qemu_driver.c:2979
 #, fuzzy, c-format
 msgid "failed to write padding to '%s'"
 msgstr "'%s'க்கு xmlஐ எழுத முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:3020
+#: src/qemu/qemu_driver.c:3021
 #, c-format
 msgid "Invalid compressed save format %d"
 msgstr "தவறான குறுக்க சேமிப்பு வடிவம் %d"
 
-#: src/qemu/qemu_driver.c:3159
+#: src/qemu/qemu_driver.c:3160
 #, c-format
 msgid "Failed to create file '%s': couldn't determine fs type"
 msgstr "கோப்பு '%s' ஐ உருவாக்குவதில் தோல்வி: fs வகையைத் தீர்மானிக்க முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:3161
+#: src/qemu/qemu_driver.c:3162
 #, c-format
 msgid "Failed to open file '%s': couldn't determine fs type"
 msgstr "கோப்பு '%s' ஐத் திறப்பதில் தோல்வி: fs வகையைத் தீர்மானிக்க முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:3191
+#: src/qemu/qemu_driver.c:3192
 #, c-format
 msgid "Error from child process creating '%s'"
 msgstr "சேய் செயற்படுத்தல் உருவாக்க '%s'லிருந்து பிழை"
 
-#: src/qemu/qemu_driver.c:3192
+#: src/qemu/qemu_driver.c:3193
 #, c-format
 msgid "Error from child process opening '%s'"
 msgstr "'%s' ஐத் திறக்கும் சேய் செயலாக்கத்திலிருந்து பிழை"
 
-#: src/qemu/qemu_driver.c:3213 src/qemu/qemu_process.c:3841
+#: src/qemu/qemu_driver.c:3214 src/qemu/qemu_process.c:3841
 #: src/storage/storage_util.c:448
 #, c-format
 msgid "Failed to create file '%s'"
 msgstr "கோப்பு '%s' ஐ உருவாக்குவதில் தோல்வி"
 
-#: src/qemu/qemu_driver.c:3214 src/qemu/qemu_process.c:3832
+#: src/qemu/qemu_driver.c:3215 src/qemu/qemu_process.c:3832
 #: src/storage/storage_backend_fs.c:802
 #: src/storage/storage_backend_gluster.c:731 src/util/virfile.c:1401
 #: src/util/virstoragefile.c:1091
@@ -19536,91 +19536,91 @@ msgstr "கோப்பு '%s' ஐ உருவாக்குவதில் �
 msgid "Failed to open file '%s'"
 msgstr "கோப்பு '%s'ஐ திறக்க முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:3274 src/qemu/qemu_driver.c:3807
-#: src/qemu/qemu_driver.c:6389
+#: src/qemu/qemu_driver.c:3275 src/qemu/qemu_driver.c:3808
+#: src/qemu/qemu_driver.c:6390
 msgid "bypass cache unsupported by this system"
 msgstr "இந்த கணினி பைபாஸ் தேக்ககத்தை ஆதரிக்காது"
 
-#: src/qemu/qemu_driver.c:3359 src/qemu/qemu_driver.c:3372
-#: src/qemu/qemu_driver.c:3923 src/qemu/qemu_driver.c:13860
-#: src/qemu/qemu_driver.c:14766 src/qemu/qemu_driver.c:15757
-#: src/qemu/qemu_driver.c:15824 src/qemu/qemu_hotplug.c:614
+#: src/qemu/qemu_driver.c:3360 src/qemu/qemu_driver.c:3373
+#: src/qemu/qemu_driver.c:3924 src/qemu/qemu_driver.c:13881
+#: src/qemu/qemu_driver.c:14787 src/qemu/qemu_driver.c:15778
+#: src/qemu/qemu_driver.c:15845 src/qemu/qemu_hotplug.c:614
 #: src/qemu/qemu_migration.c:4251 src/qemu/qemu_migration.c:4815
 #: src/qemu/qemu_migration.c:5299 src/qemu/qemu_migration.c:5530
 #: src/qemu/qemu_process.c:554
 msgid "guest unexpectedly quit"
 msgstr "விருந்தினர்கள் எதிர்பாராவிதமாக வெளியேறிவிட்டன"
 
-#: src/qemu/qemu_driver.c:3405
+#: src/qemu/qemu_driver.c:3406
 msgid "failed to get domain xml"
 msgstr "செயற்களம் xml ஐ பெற முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:3510
+#: src/qemu/qemu_driver.c:3511
 #, c-format
 msgid "Invalid %s image format specified in configuration file"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:3520
+#: src/qemu/qemu_driver.c:3521
 #, c-format
 msgid ""
 "Compression program for %s image format in configuration file isn't available"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:3720
+#: src/qemu/qemu_driver.c:3721
 #, c-format
 msgid "Failed to remove managed save file '%s'"
 msgstr "நிர்வகிக்கப்பட்ட சேமித்தல் கோப்பு '%s' ஐ நீக்குவதில் தோல்வி"
 
-#: src/qemu/qemu_driver.c:3743
+#: src/qemu/qemu_driver.c:3744
 msgid "dump-guest-memory is not supported"
 msgstr "dump-guest-memory க்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_driver.c:3761
+#: src/qemu/qemu_driver.c:3762
 #, fuzzy, c-format
 msgid "unsupported dumpformat '%s' for this QEMU binary"
 msgstr "இந்த QEMU பைனரிக்கு ஆதரிக்கப்படாத டம்ப் வடிவமைப்பு '%s'"
 
-#: src/qemu/qemu_driver.c:3825
+#: src/qemu/qemu_driver.c:3826
 #, fuzzy, c-format
 msgid "unknown dumpformat '%d'"
 msgstr "தெரியாத டம்ப் வடிவமைப்பு '%d'"
 
-#: src/qemu/qemu_driver.c:3838
+#: src/qemu/qemu_driver.c:3839
 msgid "kdump-compressed format is only supported with memory-only dump"
 msgstr "memory-only டம்பில் மட்டுமே kdump-compressed வடிவமைப்பு ஆதரிக்கப்படும்"
 
-#: src/qemu/qemu_driver.c:3855
+#: src/qemu/qemu_driver.c:3856
 #, c-format
 msgid "unable to close file %s"
 msgstr "கோப்பு %s ஐ மூட முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:3960
+#: src/qemu/qemu_driver.c:3961
 msgid "resuming after dump failed"
 msgstr "டம்ப் தோல்வியுற்ற பின் தொடர்கிறது"
 
-#: src/qemu/qemu_driver.c:4026
+#: src/qemu/qemu_driver.c:4027
 msgid "currently is supported only taking screenshots of screen ID 0"
 msgstr "ஸ்கிரீன் ஐடி 0 வின் ஸ்கிரீன்சஷாட்டுகள் எடுக்க மட்டுமே தற்போது ஆதரவுள்ளது"
 
-#: src/qemu/qemu_driver.c:4035 src/qemu/qemu_driver.c:11571
+#: src/qemu/qemu_driver.c:4036 src/qemu/qemu_driver.c:11592
 #: src/vbox/vbox_common.c:7187
 #, c-format
 msgid "mkostemp(\"%s\") failed"
 msgstr "mkostemp(\"%s\") தோல்வியடைந்தது"
 
-#: src/qemu/qemu_driver.c:4057 src/vbox/vbox_common.c:7246
+#: src/qemu/qemu_driver.c:4058 src/vbox/vbox_common.c:7246
 msgid "unable to open stream"
 msgstr "ஸ்ட்ரீமைத் திறக்க முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:4137 src/qemu/qemu_driver.c:4175
+#: src/qemu/qemu_driver.c:4138 src/qemu/qemu_driver.c:4176
 msgid "Dump failed"
 msgstr "டம்ப் தோல்வியுற்றது"
 
-#: src/qemu/qemu_driver.c:4145
+#: src/qemu/qemu_driver.c:4146
 msgid "Resuming after dump failed"
 msgstr "டம்ப் தோல்வியுற்ற பின் தொடர்கிறது"
 
-#: src/qemu/qemu_driver.c:4845
+#: src/qemu/qemu_driver.c:4846
 #, fuzzy, c-format
 msgid ""
 "requested vcpu count is greater than the count of enabled vcpus in the "
@@ -19629,487 +19629,492 @@ msgstr ""
 "கோரிய vcpu எண்ணிக்கையானது டொமைனில் உள்ள செயல்படுத்தப்பட்டுள்ள vcpus இன் எண்ணிக்கையை விட "
 "அதிகமாக உள்ளது: %d > %d"
 
-#: src/qemu/qemu_driver.c:4888
+#: src/qemu/qemu_driver.c:4889
 msgid "maximum vcpu count of a live domain can't be modified"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:4894
+#: src/qemu/qemu_driver.c:4895
 msgid "Number of CPUs in <numa> exceeds the desired maximum vcpu count"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:4904
+#: src/qemu/qemu_driver.c:4905
 msgid "CPU topology doesn't match the desired vcpu count"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:5007 tools/virsh-domain.c:6823
+#: src/qemu/qemu_driver.c:5008 tools/virsh-domain.c:6823
 #, c-format
 msgid "vcpu %d is out of range of live cpu count %d"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:5098
+#: src/qemu/qemu_driver.c:5099
 msgid "Virt type 'qemu' does not support vCPU pinning"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:5105 tools/virsh-domain.c:6827
+#: src/qemu/qemu_driver.c:5106 tools/virsh-domain.c:6827
 #, c-format
 msgid "vcpu %d is out of range of persistent cpu count %d"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:5115 src/qemu/qemu_driver.c:5234
+#: src/qemu/qemu_driver.c:5116 src/qemu/qemu_driver.c:5235
 msgid "Empty cpu list for pinning"
 msgstr "பின்னிங் செய்வதற்கான cpu பட்டியல் காலியாக உள்ளது"
 
-#: src/qemu/qemu_driver.c:5246
+#: src/qemu/qemu_driver.c:5247
 msgid "failed to set cpuset.cpus in cgroup for emulator threads"
 msgstr "எமுலேட்டர் இழைகளுக்கான cgroup இல் set cpuset.cpus ஐ அமைப்பதில் தோல்வி"
 
-#: src/qemu/qemu_driver.c:5376
+#: src/qemu/qemu_driver.c:5377
 msgid "cannot retrieve vcpu information for inactive domain"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:5421
+#: src/qemu/qemu_driver.c:5422
 msgid ""
 "vCPU count provided by the guest agent can only be requested for live domains"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:5488
+#: src/qemu/qemu_driver.c:5489
 msgid "cannot list IOThreads for an inactive domain"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:5495 src/qemu/qemu_driver.c:6013
+#: src/qemu/qemu_driver.c:5496 src/qemu/qemu_driver.c:6014
 msgid "IOThreads not supported with this binary"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:5693
+#: src/qemu/qemu_driver.c:5694
 msgid "Empty iothread cpumap list for pinning"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:5703 src/qemu/qemu_process.c:2217
+#: src/qemu/qemu_driver.c:5704 src/qemu/qemu_process.c:2217
 #, c-format
 msgid "iothread %d not found"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:5722
+#: src/qemu/qemu_driver.c:5723
 #, c-format
 msgid "failed to set cpuset.cpus in cgroup for iothread %d"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:5753
+#: src/qemu/qemu_driver.c:5754
 #, c-format
 msgid "iothreadid %d not found"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:5823 src/qemu/qemu_driver.c:5905
+#: src/qemu/qemu_driver.c:5824 src/qemu/qemu_driver.c:5906
 #, c-format
 msgid "got wrong number of IOThread ids from QEMU monitor. got %d, wanted %d"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:5840
+#: src/qemu/qemu_driver.c:5841
 #, c-format
 msgid "cannot find new IOThread '%u' in QEMU monitor."
 msgstr ""
 
-#: src/qemu/qemu_driver.c:5942
+#: src/qemu/qemu_driver.c:5943
 #, c-format
 msgid "an IOThread is already using iothread_id '%u'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:5959
+#: src/qemu/qemu_driver.c:5960
 #, c-format
 msgid "cannot find IOThread '%u' in iothreadids list"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:5967
+#: src/qemu/qemu_driver.c:5968
 #, c-format
 msgid "cannot remove IOThread %u since it is being used by disk '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:5977
+#: src/qemu/qemu_driver.c:5978
 #, c-format
 msgid "cannot remove IOThread '%u' since it is being used by controller"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:6079 src/qemu/qemu_driver.c:6111
+#: src/qemu/qemu_driver.c:6080 src/qemu/qemu_driver.c:6112
 msgid "invalid value of 0 for iothread_id"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:6413 src/qemu/qemu_driver.c:6434
+#: src/qemu/qemu_driver.c:6414 src/qemu/qemu_driver.c:6435
 #, c-format
 msgid "cannot remove corrupt file: %s"
 msgstr "சிதைவுக் கோப்பை அகற்ற முடியவில்லை: %s"
 
-#: src/qemu/qemu_driver.c:6420
+#: src/qemu/qemu_driver.c:6421
 msgid "failed to read qemu header"
 msgstr "qemu தலைப்பை வாசிக்க முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:6430
+#: src/qemu/qemu_driver.c:6431
 msgid "save image is incomplete"
 msgstr "சேமித்தல் படம் முழுமையாக இல்லை"
 
-#: src/qemu/qemu_driver.c:6460
+#: src/qemu/qemu_driver.c:6461
 #, fuzzy, c-format
 msgid "invalid header data length: %d"
 msgstr "தவறான XML நீளம்: %d"
 
-#: src/qemu/qemu_driver.c:6476
+#: src/qemu/qemu_driver.c:6477
 #, fuzzy
 msgid "failed to read domain XML"
 msgstr "XMLஐ வாசிக்க முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:6486
+#: src/qemu/qemu_driver.c:6487
 #, fuzzy
 msgid "failed to read cookie"
 msgstr "சாக்கெட்டை உருவாக்க முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:6586
+#: src/qemu/qemu_driver.c:6587
 #, c-format
 msgid "cannot close file: %s"
 msgstr "கோப்பை மூட முடியவில்லை: %s"
 
-#: src/qemu/qemu_driver.c:6612
+#: src/qemu/qemu_driver.c:6613
 msgid "failed to resume domain"
 msgstr "செயற்களத்தை தொடர முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:6833
+#: src/qemu/qemu_driver.c:6834
 #, c-format
 msgid "cannot seek in '%s'"
 msgstr "'%s' இல் தேடியடைய முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:6841
+#: src/qemu/qemu_driver.c:6842
 #, fuzzy, c-format
 msgid "failed to write header data to '%s'"
 msgstr "'%s' இல் தரவை எழுத முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:6880 src/qemu/qemu_driver.c:6920
+#: src/qemu/qemu_driver.c:6881 src/qemu/qemu_driver.c:6921
 #, fuzzy
 msgid "domain does not have managed save image"
 msgstr "டொமைனில் நிர்வகிக்கப்பட்ட படத்தைச் சேமி என்ற வசதி இல்லை"
 
-#: src/qemu/qemu_driver.c:7233
+#: src/qemu/qemu_driver.c:7234
 #, c-format
 msgid "cannot remove managed save file %s"
 msgstr "நிர்வகிக்கப்பட்ட சேமித்தல் கோப்பு %s ஐ அகற்ற முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:7385 src/qemu/qemu_driver.c:15610
+#: src/qemu/qemu_driver.c:7386 src/qemu/qemu_driver.c:15631
 #: src/qemu/qemu_migration.c:1091
 msgid "domain has active block job"
 msgstr "டொமைனில் செயலிலுள்ள ஒரு தொகுப்புப் பணி உள்ளது"
 
-#: src/qemu/qemu_driver.c:7456
+#: src/qemu/qemu_driver.c:7457
 msgid "cannot both keep and delete nvram"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:7481 src/test/test_driver.c:2961
+#: src/qemu/qemu_driver.c:7482 src/test/test_driver.c:2961
 #, c-format
 msgid "cannot delete inactive domain with %d snapshots"
 msgstr "%d ஸ்னாப்ஷாட் கொண்டுள்ள செயலில் இல்லாத டொமைனை நீக்க முடியாது"
 
-#: src/qemu/qemu_driver.c:7516
+#: src/qemu/qemu_driver.c:7517
 #, fuzzy, c-format
 msgid "failed to remove nvram: %s"
 msgstr "nvram ஐ நீக்க முடியவில்லை: %s"
 
-#: src/qemu/qemu_driver.c:7522
+#: src/qemu/qemu_driver.c:7523
 msgid "cannot delete inactive domain with nvram"
 msgstr "nvram கொண்டுள்ள செயலில் இல்லாத டொமைனை நீக்க முடியாது"
 
-#: src/qemu/qemu_driver.c:7690
+#: src/qemu/qemu_driver.c:7691
 #, fuzzy, c-format
 msgid "live attach of device '%s' is not supported"
 msgstr "சாதனம் '%s' இன் நேரடி இணைப்புக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_driver.c:7724
+#: src/qemu/qemu_driver.c:7725
 #, c-format
 msgid "'%s' controller cannot be hot unplugged."
 msgstr "'%s' கன்ட்ரோலரை அன்பிளக் செய்ய முடியாது."
 
-#: src/qemu/qemu_driver.c:7787
+#: src/qemu/qemu_driver.c:7788
 #, fuzzy, c-format
 msgid "live detach of device '%s' is not supported"
 msgstr "சாதனம் '%s' இன் நேரடி பிரித்தெடுத்தலுக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_driver.c:7832
+#: src/qemu/qemu_driver.c:7833
 msgid "disk source can be changed only in removable drives"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:7903
+#: src/qemu/qemu_driver.c:7904
 #, fuzzy, c-format
 msgid "live update of device '%s' is not supported"
 msgstr "சாதனம் '%s' இன் நேரடி புதுப்பிப்புக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_driver.c:7969
+#: src/qemu/qemu_driver.c:7970
 #, c-format
 msgid "Lease %s in lockspace %s already exists"
 msgstr "லாக்ஸ்பேஸ் %s இல் லீஸ் %s ஏற்கனவே உள்ளது"
 
-#: src/qemu/qemu_driver.c:8019
+#: src/qemu/qemu_driver.c:8020
 msgid "a device with the same address already exists "
 msgstr ""
 
-#: src/qemu/qemu_driver.c:8032
+#: src/qemu/qemu_driver.c:8033
 msgid "no free memory device slot available"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:8066 src/qemu/qemu_hotplug.c:2676
+#: src/qemu/qemu_driver.c:8067 src/qemu/qemu_hotplug.c:2676
 #, fuzzy
 msgid "domain already has a watchdog"
 msgstr "செயற்களம் '%s' ஏற்கனவே uuid %sஉடன் ஃள்ளது"
 
-#: src/qemu/qemu_driver.c:8090
+#: src/qemu/qemu_driver.c:8091
 #, fuzzy, c-format
 msgid "persistent attach of device '%s' is not supported"
 msgstr "சாதனம் '%s' ஐ நிரந்தரமாக இணைக்க ஆதரவில்லை"
 
-#: src/qemu/qemu_driver.c:8155 src/qemu/qemu_hotplug.c:5194
+#: src/qemu/qemu_driver.c:8156 src/qemu/qemu_hotplug.c:5194
 #, c-format
 msgid "Lease %s in lockspace %s does not exist"
 msgstr "லாக்ஸ்பேஸ் %s இல் லீஸ் %s இல்லை"
 
-#: src/qemu/qemu_driver.c:8189
+#: src/qemu/qemu_driver.c:8190
 msgid "no matching filesystem device was found"
 msgstr "பொருந்தும் கோப்புமுறைமை சாதனம் எதுவும் கண்டறியப்படவில்லை"
 
-#: src/qemu/qemu_driver.c:8200
+#: src/qemu/qemu_driver.c:8201
 msgid "no matching RNG device was found"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:8211
+#: src/qemu/qemu_driver.c:8212
 msgid "matching memory device was not found"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:8223
+#: src/qemu/qemu_driver.c:8224
 msgid "no matching redirdev was not found"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:8233
+#: src/qemu/qemu_driver.c:8234
 msgid "matching shmem device was not found"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:8244
+#: src/qemu/qemu_driver.c:8245
 #, fuzzy
 msgid "domain has no watchdog"
 msgstr "டொமைனில் ஸ்னாப்ஷாட்டுகள் இல்லை"
 
-#: src/qemu/qemu_driver.c:8254 src/qemu/qemu_hotplug.c:6010
+#: src/qemu/qemu_driver.c:8255 src/qemu/qemu_hotplug.c:6010
 #, fuzzy
 msgid "matching input device not found"
 msgstr "பொருந்தும் கோப்புமுறைமை சாதனம் எதுவும் கண்டறியப்படவில்லை"
 
-#: src/qemu/qemu_driver.c:8273
+#: src/qemu/qemu_driver.c:8274
 #, fuzzy, c-format
 msgid "persistent detach of device '%s' is not supported"
 msgstr "சாதனம் '%s' ஐ நிரந்தரமாக பிரித்தெடுக்க ஆதரவில்லை"
 
-#: src/qemu/qemu_driver.c:8315
+#: src/qemu/qemu_driver.c:8316
 #, fuzzy, c-format
 msgid "cannot find existing graphics type '%s' device to modify"
 msgstr "மாற்றியமைக்க்க நடப்பு கிராஃபிக்ஸ் சாதனத்தைக் கண்டறிய முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:8360
+#: src/qemu/qemu_driver.c:8361
 #, fuzzy, c-format
 msgid "persistent update of device '%s' is not supported"
 msgstr "சாதனம் '%s' ஐ நிரந்தரமாக புதுப்பிக்க ஆதரவில்லை"
 
-#: src/qemu/qemu_driver.c:9627
+#: src/qemu/qemu_driver.c:9628
 msgid "change of nodeset for running domain requires strict numa mode"
 msgstr "இயங்கும் டொமைனுக்கான கனுத்தொகுப்பை மாற்ற கண்டிப்பான நியூமா பயன்முறை அவசியம்"
 
-#: src/qemu/qemu_driver.c:9721
+#: src/qemu/qemu_driver.c:9722
 #, fuzzy, c-format
 msgid "unsupported numatune mode: '%d'"
 msgstr "ஆதரிக்கப்படாத numatune பயன்முறை: '%d'"
 
-#: src/qemu/qemu_driver.c:9732
+#: src/qemu/qemu_driver.c:9733
 #, c-format
 msgid "Invalid nodeset of 'numatune': %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:9748
+#: src/qemu/qemu_driver.c:9749
 msgid "NUMA tuning is not available in session mode"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:9754
+#: src/qemu/qemu_driver.c:9755
 msgid "cgroup cpuset controller is not mounted"
 msgstr "cgroup cpuset கன்ட்ரோலர் மவுன்ட் செய்யப்படவில்லை"
 
-#: src/qemu/qemu_driver.c:9762
+#: src/qemu/qemu_driver.c:9763
 msgid "can't change numatune mode for running domain"
 msgstr "இயங்கும் டொமைனுக்கு numatune பயன்முறையை மாற்ற முடியாது"
 
-#: src/qemu/qemu_driver.c:10164
+#: src/qemu/qemu_driver.c:10165
 #, c-format
 msgid "value of '%s' is out of range [%lld, %lld]"
 msgstr "'%s' இன் மதிப்பு வரம்புக்கு அப்பால் உள்ளது [%lld, %lld]"
 
-#: src/qemu/qemu_driver.c:10756 src/vz/vz_driver.c:3992
+#: src/qemu/qemu_driver.c:10757 src/vz/vz_driver.c:3992
 msgid "empty path"
 msgstr "காலியான பாதை"
 
-#: src/qemu/qemu_driver.c:10764
+#: src/qemu/qemu_driver.c:10765
 #, c-format
 msgid "size must be less than %llu"
 msgstr "அளவு %llu ஐ விடக் குறைவாகவே இருக்க வேண்டும்"
 
-#: src/qemu/qemu_driver.c:10901
+#: src/qemu/qemu_driver.c:10902
 #, c-format
 msgid "cannot find statistics for device '%s'"
 msgstr "சாதனம் '%s'க்கான புள்ளிவிவரங்களைத் தேட முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:11427
+#: src/qemu/qemu_driver.c:11168
+#, fuzzy, c-format
+msgid "setting bandwidth on interfaces of type '%s' is not implemented yet"
+msgstr "'%d' வகை வரையறையை நகலெடுக்கும் வசதி இன்னும் செயல்படுத்தப்படவில்லை."
+
+#: src/qemu/qemu_driver.c:11448
 msgid "cannot get RSS for domain"
 msgstr "டொமைனுக்கான RSS ஐப் பெற முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:11492
+#: src/qemu/qemu_driver.c:11513
 #, fuzzy, c-format
 msgid "invalid disk or path '%s'"
 msgstr "தவறான பாதை '%s'"
 
-#: src/qemu/qemu_driver.c:11498
+#: src/qemu/qemu_driver.c:11519
 #, fuzzy
 msgid "peeking is supported only for RAW disks"
 msgstr "ISA முகவரி வகையுடன் மட்டுமே பேனிக் ஆதரிக்கப்படும்"
 
-#: src/qemu/qemu_driver.c:11510
+#: src/qemu/qemu_driver.c:11531
 #, c-format
 msgid "'%s' starting from %llu has only %zd bytes available"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:11552
+#: src/qemu/qemu_driver.c:11573
 msgid "flags parameter must be VIR_MEMORY_VIRTUAL or VIR_MEMORY_PHYSICAL"
 msgstr ""
 "கொடிகள் அளவுரு VIR_MEMORY_VIRTUAL அல்லது VIR_MEMORY_PHYSICAL ஆக இருக்க வேண்டும்"
 
-#: src/qemu/qemu_driver.c:11596
+#: src/qemu/qemu_driver.c:11617
 #, c-format
 msgid "failed to read temporary file created with template %s"
 msgstr "template %sஆல் உருவாக்கப்பட்ட தற்காலிக கோப்பினை உருவாக்க முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:11647 src/storage/storage_util.c:1635
+#: src/qemu/qemu_driver.c:11668 src/storage/storage_util.c:1635
 #: src/storage/storage_util.c:1697 src/util/virstoragefile.c:1096
 #: src/util/virstoragefile.c:1231
 #, c-format
 msgid "cannot stat file '%s'"
 msgstr "கோப்பு '%s'நிலையாக இல்லை"
 
-#: src/qemu/qemu_driver.c:11657
+#: src/qemu/qemu_driver.c:11678
 #, fuzzy, c-format
 msgid "failed to stat remote file '%s'"
 msgstr "'%s' எனும் தொலைநிலைக் கோப்பை ஸ்டேட் செய்ய முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:11754 src/storage/storage_backend_fs.c:816
+#: src/qemu/qemu_driver.c:11775 src/storage/storage_backend_fs.c:816
 #: src/storage/storage_util.c:1865 src/util/virstoragefile.c:1112
 #: src/util/virstoragefile.c:1254
 #, c-format
 msgid "cannot read header '%s'"
 msgstr "தலைப்பு'%s'ஐ வாசிக்க இயலவில்லை"
 
-#: src/qemu/qemu_driver.c:11819
+#: src/qemu/qemu_driver.c:11840
 #, c-format
 msgid "invalid path %s not assigned to domain"
 msgstr "டொமைனுக்கு நிர்ணயிக்கப்படாத தவறான பாதை %s"
 
-#: src/qemu/qemu_driver.c:11825
+#: src/qemu/qemu_driver.c:11846
 #, fuzzy, c-format
 msgid "disk '%s' does not currently have a source assigned"
 msgstr "வட்டு '%s' க்கு தற்போது மூலம் ஒதுக்கியமைக்கப்படவில்லை"
 
-#: src/qemu/qemu_driver.c:11862
+#: src/qemu/qemu_driver.c:11883
 #, c-format
 msgid "failed to gather stats for disk '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:12036 src/qemu/qemu_driver.c:12479
-#: src/qemu/qemu_driver.c:12532
+#: src/qemu/qemu_driver.c:12057 src/qemu/qemu_driver.c:12500
+#: src/qemu/qemu_driver.c:12553
 msgid "PrepareTunnel called but no TUNNELLED flag set"
 msgstr "தயாரான Tunnel அழைத்தது ஆனால் TUNNELLED கொடி அமைக்கப்படவில்லை"
 
-#: src/qemu/qemu_driver.c:12042 src/qemu/qemu_driver.c:12101
-#: src/qemu/qemu_driver.c:12151
+#: src/qemu/qemu_driver.c:12063 src/qemu/qemu_driver.c:12122
+#: src/qemu/qemu_driver.c:12172
 #, c-format
 msgid "Cannot use migrate v2 protocol with lock manager %s"
 msgstr "லாக் மேனேஜர் %s உடன் இடப்பெயர்ப்பு v2 நெறிமுறையைப் பயன்படுத்த முடியாது"
 
-#: src/qemu/qemu_driver.c:12091 src/qemu/qemu_driver.c:12340
-#: src/qemu/qemu_driver.c:12429
+#: src/qemu/qemu_driver.c:12112 src/qemu/qemu_driver.c:12361
+#: src/qemu/qemu_driver.c:12450
 msgid "Tunnelled migration requested but invalid RPC method called"
 msgstr "வளைவு இடப்பெயர்வு கோரியது ஆனால் தவறான RPC முறை அழைக்கப்பட்டது"
 
-#: src/qemu/qemu_driver.c:12709 src/qemu/qemu_driver.c:12757
+#: src/qemu/qemu_driver.c:12730 src/qemu/qemu_driver.c:12778
 msgid "missing domain name"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:12909
+#: src/qemu/qemu_driver.c:12930
 msgid ""
 "neither VFIO nor KVM device assignment is currently supported on this system"
 msgstr "இந்தக் கணினியில் இப்போது VFIO சாதனம், KVM சாதனம் இரண்டுமே ஆதரிக்கப்படாது"
 
-#: src/qemu/qemu_driver.c:12918
+#: src/qemu/qemu_driver.c:12939
 msgid "VFIO device assignment is currently not supported on this system"
 msgstr "இந்தக் கணினியில் இப்போது VFIO சாதனம் ஒதுக்கியமைத்தலுக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_driver.c:12926
+#: src/qemu/qemu_driver.c:12947
 msgid "KVM device assignment is currently not supported on this system"
 msgstr "இந்தக் கணினியில் இப்போது KVM சாதனம் ஒதுக்கியமைத்தலுக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_driver.c:12933 src/xen/xen_driver.c:2367
+#: src/qemu/qemu_driver.c:12954 src/xen/xen_driver.c:2367
 #, fuzzy, c-format
 msgid "unknown driver name '%s'"
 msgstr "தெரியாத இயக்கி பெயர் '%s'"
 
-#: src/qemu/qemu_driver.c:13125
+#: src/qemu/qemu_driver.c:13146
 msgid "migration statistics are available only on the source host"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:13278 src/vz/vz_sdk.c:283
+#: src/qemu/qemu_driver.c:13299 src/vz/vz_sdk.c:283
 msgid "no job is active on the domain"
 msgstr "செயற்களத்திற்கு செயல்பாட்டிலுள்ள பணி இல்லை"
 
-#: src/qemu/qemu_driver.c:13284
+#: src/qemu/qemu_driver.c:13305
 msgid "cannot abort incoming migration; use virDomainDestroy instead"
 msgstr ""
 "உள்வரும் இடப்பெயர்ப்புகளைக் கைவிட முடியாது; மாறாக virDomainDestroy ஐப் பயன்படுத்தவும்"
 
-#: src/qemu/qemu_driver.c:13294
+#: src/qemu/qemu_driver.c:13315
 msgid "cannot abort migration in post-copy mode"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:13395
+#: src/qemu/qemu_driver.c:13416
 #, fuzzy
 msgid "Querying migration downtime is not supported by QEMU binary"
 msgstr "QEMU பைனரி சுருக்கப்பட்ட இடப்பெயர்ப்பை ஆதரிக்காது"
 
-#: src/qemu/qemu_driver.c:13443 src/qemu/qemu_driver.c:13494
+#: src/qemu/qemu_driver.c:13464 src/qemu/qemu_driver.c:13515
 msgid "Compressed migration is not supported by QEMU binary"
 msgstr "QEMU பைனரி சுருக்கப்பட்ட இடப்பெயர்ப்பை ஆதரிக்காது"
 
-#: src/qemu/qemu_driver.c:13537 src/qemu/qemu_driver.c:16601
-#: src/qemu/qemu_driver.c:16889 src/qemu/qemu_driver.c:17222
-#: src/qemu/qemu_driver.c:17412 src/qemu/qemu_migration.c:905
+#: src/qemu/qemu_driver.c:13558 src/qemu/qemu_driver.c:16622
+#: src/qemu/qemu_driver.c:16910 src/qemu/qemu_driver.c:17243
+#: src/qemu/qemu_driver.c:17433 src/qemu/qemu_migration.c:905
 #: src/qemu/qemu_monitor.c:2543 tools/virsh-domain.c:2303
 #, c-format
 msgid "bandwidth must be less than %llu"
 msgstr "பட்டையகலம் %llu ஐ விடக் குறைவாக இருக்க வேண்டும்"
 
-#: src/qemu/qemu_driver.c:13631
+#: src/qemu/qemu_driver.c:13652
 msgid "post-copy can only be started while outgoing migration is in progress"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:13638
+#: src/qemu/qemu_driver.c:13659
 msgid ""
 "switching to post-copy requires migration to be started with "
 "VIR_MIGRATE_POSTCOPY flag"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:13768
+#: src/qemu/qemu_driver.c:13789
 #, c-format
 msgid "unknown image format of '%s' and format probing is disabled"
 msgstr "'%s' இன் தெரியாத படிம வடிவம் மற்றும் வடிவ ஆய்வு முடக்கப்பட்டது"
 
-#: src/qemu/qemu_driver.c:13899 src/qemu/qemu_driver.c:14859
+#: src/qemu/qemu_driver.c:13920 src/qemu/qemu_driver.c:14880
 msgid "resuming after snapshot failed"
 msgstr "ஸ்னாப்ஷாட்டுக்குப் பிறகு மீண்டும் தொடங்குதல் தோல்வியுற்றது"
 
-#: src/qemu/qemu_driver.c:13936
+#: src/qemu/qemu_driver.c:13957
 #, c-format
 msgid ""
 "external inactive snapshots are not supported on 'network' disks using '%s' "
@@ -20118,16 +20123,16 @@ msgstr ""
 "'%s' நெறிமுறையைப் பயன்படுத்தும் 'network' வட்டுகளில் வெளிப்புற செயலில் இல்லா "
 "ஸ்னாப்ஷாட்டுகள் ஆதரிக்கப்படாது"
 
-#: src/qemu/qemu_driver.c:13948 src/qemu/qemu_driver.c:14038
+#: src/qemu/qemu_driver.c:13969 src/qemu/qemu_driver.c:14059
 #, fuzzy, c-format
 msgid "external inactive snapshots are not supported on '%s' disks"
 msgstr "'%s' வட்டுகளில் வெளிப்புற செயலில் இல்லா ஸ்னாப்ஷாட்டுகள் ஆதரிக்கப்படாது"
 
-#: src/qemu/qemu_driver.c:13962
+#: src/qemu/qemu_driver.c:13983
 msgid "external active snapshots are not supported on scsi passthrough devices"
 msgstr "scsi பாஸ்த்ரூ சாதனங்களில் வெளிப்புற செயலில் உள்ள ஸ்னாப்ஷாட்டுகள் ஆதரிக்கப்படாது"
 
-#: src/qemu/qemu_driver.c:14000
+#: src/qemu/qemu_driver.c:14021
 #, fuzzy, c-format
 msgid ""
 "external active snapshots are not supported on 'network' disks using '%s' "
@@ -20136,22 +20141,22 @@ msgstr ""
 "'%s' நெறிமுறையைப் பயன்படுத்தும் 'network' வட்டுகளில் வெளிப்புற செயலில் உள்ள "
 "ஸ்னாப்ஷாட்டுகள் ஆதரிக்கப்படாது"
 
-#: src/qemu/qemu_driver.c:14013
+#: src/qemu/qemu_driver.c:14034
 #, fuzzy, c-format
 msgid "external active snapshots are not supported on '%s' disks"
 msgstr "'%s' வட்டுகளில் வெளிப்புற செயலில் உள்ள ஸ்னாப்ஷாட்டுகள் ஆதரிக்கப்படாது"
 
-#: src/qemu/qemu_driver.c:14083
+#: src/qemu/qemu_driver.c:14104
 #, c-format
 msgid "unable to stat for disk %s: %s"
 msgstr "வட்டு %s க்கு ஸ்டேட் செய்ய முடியவில்லை: %s"
 
-#: src/qemu/qemu_driver.c:14088
+#: src/qemu/qemu_driver.c:14109
 #, c-format
 msgid "missing existing file for disk %s: %s"
 msgstr "வட்டு %s க்கு உள்ள கோப்பு விடுபட்டுள்ளது: %s"
 
-#: src/qemu/qemu_driver.c:14094
+#: src/qemu/qemu_driver.c:14115
 #, c-format
 msgid ""
 "external snapshot file for disk %s already exists and is not a block device: "
@@ -20159,7 +20164,7 @@ msgid ""
 msgstr ""
 "வட்டு %s க்கான வெளிப்புற ஸ்னாப்ஷாட் கோப்பு ஏற்கனவே உள்ளது, அது தொகுப்பு சாதனமும் அல்ல: %s"
 
-#: src/qemu/qemu_driver.c:14146
+#: src/qemu/qemu_driver.c:14167
 #, c-format
 msgid ""
 "internal inactive snapshots are not supported on 'network' disks using '%s' "
@@ -20168,16 +20173,16 @@ msgstr ""
 "'%s' நெறிமுறையைப் பயன்படுத்தும் 'network' வட்டுகளில் உள் செயலில் இல்லா ஸ்னாப்ஷாட்டுகள் "
 "ஆதரிக்கப்படாது"
 
-#: src/qemu/qemu_driver.c:14158
+#: src/qemu/qemu_driver.c:14179
 #, fuzzy, c-format
 msgid "internal inactive snapshots are not supported on '%s' disks"
 msgstr "'%s' வட்டுகளில் வெளிப்புற செயலில் உள்ள ஸ்னாப்ஷாட்டுகள் ஆதரிக்கப்படாது"
 
-#: src/qemu/qemu_driver.c:14186
+#: src/qemu/qemu_driver.c:14207
 msgid "reuse is not supported with this QEMU binary"
 msgstr "இந்த QEMU பைனரியில் மீண்டும் பயன்படுத்தும் வசதிக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_driver.c:14204
+#: src/qemu/qemu_driver.c:14225
 #, c-format
 msgid ""
 "active qemu domains require external disk snapshots; disk %s requested "
@@ -20186,25 +20191,25 @@ msgstr ""
 "செயலில் உள்ள qemu டொமைன்களுக்கு வெளிப்புற வட்டு ஸ்னாப்ஷாட்டுகள் தேவை; வட்டு %s ஆனது "
 "உள்புற வட்டு ஸ்னாப்ஷாட்டுகளைக் கோரியது"
 
-#: src/qemu/qemu_driver.c:14217
+#: src/qemu/qemu_driver.c:14238
 #, c-format
 msgid "internal snapshot for disk %s unsupported for storage type %s"
 msgstr "சேமிப்பக வகை %s க்கு வட்டு %s க்கான உட்புற ஸ்னாப்ஷாட்  வசதிக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_driver.c:14232
+#: src/qemu/qemu_driver.c:14253
 #, c-format
 msgid "external snapshot format for disk %s is unsupported: %s"
 msgstr "வட்டு %s க்கான வெளிப்புற ஸ்னாப்ஷாட் வடிவம் ஆதரிக்கப்படாது: %s"
 
-#: src/qemu/qemu_driver.c:14256
+#: src/qemu/qemu_driver.c:14277
 msgid "unexpected code path"
 msgstr "எதிர்பாராத குறியீடு பாதை"
 
-#: src/qemu/qemu_driver.c:14264
+#: src/qemu/qemu_driver.c:14285
 msgid "nothing selected for snapshot"
 msgstr "ஸ்னாப்ஷாட்டுகளுக்கு எதுவும் தேர்ந்தெடுக்கப்படவில்லை"
 
-#: src/qemu/qemu_driver.c:14273
+#: src/qemu/qemu_driver.c:14294
 msgid ""
 "internal snapshots and checkpoints require all disks to be selected for "
 "snapshot"
@@ -20212,197 +20217,197 @@ msgstr ""
 "அக ஸ்னாப்ஷாட்டுகள் மற்றும் செக்பாயின்ட்டுகளுக்கு, ஸ்னாப்ஷாட்டுக்கு அனைத்து வட்டுகளும் "
 "தேர்ந்தெடுக்கப்பட வேண்டும்"
 
-#: src/qemu/qemu_driver.c:14281
+#: src/qemu/qemu_driver.c:14302
 msgid ""
 "disk-only snapshots require at least one disk to be selected for snapshot"
 msgstr ""
 "வட்டு-மட்டும் என்ற வகை ஸ்னாப்ஷாட்டுகளுக்கு குறைந்தது ஒரு வட்டாவது ஸ்னாப்ஷாட்டுக்கு "
 "தேர்ந்தெடுக்க வேண்டியது அவசியம்"
 
-#: src/qemu/qemu_driver.c:14293
+#: src/qemu/qemu_driver.c:14314
 msgid ""
 "mixing internal and external targets for a snapshot is not yet supported"
 msgstr "ஒரு ஸ்னாப்ஷாட்டுக்கான அக மற்றும் புற இலக்குகளை கலப்பதற்கு இப்போது ஆதரவில்லை"
 
-#: src/qemu/qemu_driver.c:14310
+#: src/qemu/qemu_driver.c:14331
 msgid "internal snapshots of a VM with pflash based firmware are not supported"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:14325
+#: src/qemu/qemu_driver.c:14346
 msgid "atomic live snapshot of multiple disks is unsupported"
 msgstr "பல வட்டுகளின் அட்டாமிக் லைவ் ஸ்னாப்ஷாட்டுக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_driver.c:14527
+#: src/qemu/qemu_driver.c:14548
 #, fuzzy, c-format
 msgid "failed to create image file '%s'"
 msgstr "பிம்பக் கோப்பு '%s' ஐ உருவாக்குவதில் தோல்வி"
 
-#: src/qemu/qemu_driver.c:14598
+#: src/qemu/qemu_driver.c:14619
 msgid "live disk snapshot not supported with this QEMU binary"
 msgstr "இந்த QEMU பைனரியில் நேரடி வட்டு ஸ்னாப்ஷாட்டுக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_driver.c:14938 src/qemu/qemu_migration.c:1084
+#: src/qemu/qemu_driver.c:14959 src/qemu/qemu_migration.c:1084
 msgid "domain is marked for auto destroy"
 msgstr "டொமைன் தானியக்க அழிவுக்குக் குறிக்கப்பட்டுள்ளது"
 
-#: src/qemu/qemu_driver.c:14944 src/test/test_driver.c:6318
+#: src/qemu/qemu_driver.c:14965 src/test/test_driver.c:6318
 msgid "cannot halt after transient domain snapshot"
 msgstr "இடைநிலை டொமைன் ஸ்னாப்ஷாட்டுக்குப் பிறகு நிறுத்த முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:14960
+#: src/qemu/qemu_driver.c:14981
 #, c-format
 msgid "invalid snapshot name '%s': name can't contain '/'"
 msgstr "செல்லுபடியாகாத ஸ்னாப்ஷாட் பெயர் '%s': பெயரில் '/' இருக்கக்கூடாது"
 
-#: src/qemu/qemu_driver.c:14968
+#: src/qemu/qemu_driver.c:14989
 #, c-format
 msgid "invalid snapshot name '%s': name can't start with '.'"
 msgstr "செல்லுபடியாகாத ஸ்னாப்ஷாட் பெயர் '%s': பெயர் '.' ஐக் கொண்டு தொடங்கக்கூடாது"
 
-#: src/qemu/qemu_driver.c:14981
+#: src/qemu/qemu_driver.c:15002
 msgid "live snapshot creation is supported only with external checkpoints"
 msgstr "புற செக்பாயின்ட்டுகளில் மட்டுமே நேரடி ஸ்னாப்ஷாட் உருவாக்கத்திற்கு ஆதரவுண்டு"
 
-#: src/qemu/qemu_driver.c:14998
+#: src/qemu/qemu_driver.c:15019
 msgid "qemu doesn't support taking snapshots of PMSUSPENDED guests"
 msgstr "PMSUSPENDED விருந்தினர்களின் ஸ்னாப்ஷாட்டை எடுத்தலை qemu ஆதரிக்காது"
 
-#: src/qemu/qemu_driver.c:15006
+#: src/qemu/qemu_driver.c:15027
 #, fuzzy, c-format
 msgid "Invalid domain state %s"
 msgstr "தவறான டொமைன் நிலை %s"
 
-#: src/qemu/qemu_driver.c:15056
+#: src/qemu/qemu_driver.c:15077
 msgid "internal snapshot of a running VM must include the memory state"
 msgstr ""
 "இயங்கிக் கொண்டிருக்கும் ஒரு VM இன் அக ஸ்னாப்ஷாட்ட்டில் நினைவக நிலையும் இருக்க வேண்டும்"
 
-#: src/qemu/qemu_driver.c:15144
+#: src/qemu/qemu_driver.c:15165
 #, c-format
 msgid "unable to save metadata for snapshot %s"
 msgstr "ஸ்னாப்ஷாட் %s க்கான மீத்தரவைச் சேமிக்க முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:15440 src/test/test_driver.c:6159
+#: src/qemu/qemu_driver.c:15461 src/test/test_driver.c:6159
 #: src/vz/vz_driver.c:2557
 msgid "the domain does not have a current snapshot"
 msgstr "டொமைனில் நடப்பு ஸ்னாப்ஷாட் இல்லை"
 
-#: src/qemu/qemu_driver.c:15627 src/test/test_driver.c:6562
+#: src/qemu/qemu_driver.c:15648 src/test/test_driver.c:6562
 msgid ""
 "transient domain needs to request run or pause to revert to inactive snapshot"
 msgstr ""
 "செயலில் இல்லா ஸ்னாப்ஷாட்டுக்கு மீட்டமைக்க இடைநிலை டொமைன் இயங்கவோ அல்லது இடைநிறுத்தவோ "
 "வேண்டியுள்ளது"
 
-#: src/qemu/qemu_driver.c:15634
+#: src/qemu/qemu_driver.c:15655
 msgid "revert to external snapshot not supported yet"
 msgstr "வெளிப்புற ஸ்னாப்ஷாட்டுக்கு மீட்டமைக்கும் வசதிக்கு இன்னும் ஆதரவு இல்லை"
 
-#: src/qemu/qemu_driver.c:15641 src/test/test_driver.c:6570
+#: src/qemu/qemu_driver.c:15662 src/test/test_driver.c:6570
 #, c-format
 msgid "snapshot '%s' lacks domain '%s' rollback info"
 msgstr "ஸ்னாப்ஷாட் '%s' இல் டொமைன் '%s' திரும்பப்பெறுதல் தகவல் இல்லை"
 
-#: src/qemu/qemu_driver.c:15651
+#: src/qemu/qemu_driver.c:15672
 msgid "must respawn qemu to start inactive snapshot"
 msgstr "செயலில் இல்லா ஸ்னாப்ஷாட்டைத் தொடங்க qemu ஐ மீண்டும் ஸ்பான் செய்ய வேண்டும்"
 
-#: src/qemu/qemu_driver.c:15912
+#: src/qemu/qemu_driver.c:15933
 msgid "qemu doesn't support reversion of snapshot taken in PMSUSPENDED state"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:15920
+#: src/qemu/qemu_driver.c:15941
 #, c-format
 msgid "Invalid target domain state '%s'. Refusing snapshot reversion"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:16051
+#: src/qemu/qemu_driver.c:16072
 #, c-format
 msgid "deletion of %d external disk snapshots not supported yet"
 msgstr "%d வெளிப்புற வட்டு ஸ்னாப்ஷாட்டுகளை நீக்க இன்னும் ஆதரவு இல்லை"
 
-#: src/qemu/qemu_driver.c:16076
+#: src/qemu/qemu_driver.c:16097
 #, c-format
 msgid "failed to set snapshot '%s' as current"
 msgstr "ஸ்னால்ஷாட் '%s' ஐ நடப்பு ஸ்னாப்ஷாட்டாக அமைப்பதில் தோல்வி"
 
-#: src/qemu/qemu_driver.c:16196
+#: src/qemu/qemu_driver.c:16217
 #, c-format
 msgid "No monitor connection for pid %u"
 msgstr "pid %u க்கு மானிட்டர் இணைப்பு இல்லை"
 
-#: src/qemu/qemu_driver.c:16201
+#: src/qemu/qemu_driver.c:16222
 #, c-format
 msgid "Cannot connect to monitor connection of type '%s' for pid %u"
 msgstr "pid %2$u க்கு '%1$s' வகை மானிட்டர் இணைப்புடன் இணைக்க முடியாது"
 
-#: src/qemu/qemu_driver.c:16385
+#: src/qemu/qemu_driver.c:16406
 #, c-format
 msgid "cannot find channel %s"
 msgstr "சேனல் %s ஐக் கண்டறிய முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:16392
+#: src/qemu/qemu_driver.c:16413
 #, c-format
 msgid "channel %s is not using a UNIX socket"
 msgstr "சேனல் %s UNIX சாக்கெட்டைப் பயன்படுத்தவில்லை"
 
-#: src/qemu/qemu_driver.c:16405
+#: src/qemu/qemu_driver.c:16426
 msgid "Active channel stream exists for this domain"
 msgstr "இந்த டொமைனுக்கு செயலில் உள்ள சேனல் ஓடை உள்ளது"
 
-#: src/qemu/qemu_driver.c:16432
+#: src/qemu/qemu_driver.c:16453
 #, c-format
 msgid "pivot of disk '%s' requires an active copy job"
 msgstr "வட்டு '%s' இன் பைவட்டுக்கு செயலில் உள்ள ஒரு நகலெடுப்பு பணி தேவை"
 
-#: src/qemu/qemu_driver.c:16456
+#: src/qemu/qemu_driver.c:16477
 #, c-format
 msgid "disk '%s' not ready for pivot yet"
 msgstr "வட்டு '%s' இன்னும் பைவட்டுக்கு தயாராகவில்லை"
 
-#: src/qemu/qemu_driver.c:16543
+#: src/qemu/qemu_driver.c:16564
 msgid "flag VIR_DOMAIN_BLOCK_REBASE_RELATIVE is valid only with non-null base"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:16579
+#: src/qemu/qemu_driver.c:16600
 msgid "this QEMU binary doesn't support relative block pull/rebase"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:16591 src/qemu/qemu_driver.c:17510
+#: src/qemu/qemu_driver.c:16612 src/qemu/qemu_driver.c:17531
 msgid "can't keep relative backing relationship"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:16685
+#: src/qemu/qemu_driver.c:16706
 #, c-format
 msgid "another job on disk '%s' is still being ended"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:16785
+#: src/qemu/qemu_driver.c:16806
 #, c-format
 msgid "bandwidth %llu cannot be represented in result"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:16829
+#: src/qemu/qemu_driver.c:16850
 #, c-format
 msgid "disk %s not found in the domain"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:16948
+#: src/qemu/qemu_driver.c:16969
 #, fuzzy
 msgid "unable to verify existence of block copy target"
 msgstr "இலக்கு %s ஐ ஸ்டாட் பிணைப்பு செய்ய முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:16955
+#: src/qemu/qemu_driver.c:16976
 #, c-format
 msgid "missing destination file for disk %s: %s"
 msgstr "வட்டு %s க்கான இலக்கு கோப்பு விடுபட்ட்உள்ளது: %s"
 
-#: src/qemu/qemu_driver.c:16962
+#: src/qemu/qemu_driver.c:16983
 #, fuzzy, c-format
 msgid "unable to stat block copy target '%s'"
 msgstr "இலக்கு %s ஐ ஸ்டாட் பிணைப்பு செய்ய முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:16974
+#: src/qemu/qemu_driver.c:16995
 #, c-format
 msgid ""
 "external destination file for disk %s already exists and is not a block "
@@ -20411,303 +20416,303 @@ msgstr ""
 "வட்டு %s க்கான வெளிப்புற இலக்குக் கோப்பு முன்பே உள்ளது, மேலும் அது ஒரு தொகுப்பு "
 "சாதனமல்ல: %s"
 
-#: src/qemu/qemu_driver.c:16982
+#: src/qemu/qemu_driver.c:17003
 #, c-format
 msgid ""
 "blockdev flag requested for disk %s, but file '%s' is not a block device"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17028
+#: src/qemu/qemu_driver.c:17049
 msgid "absolute path must be used as block copy target"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17057
+#: src/qemu/qemu_driver.c:17078
 msgid "block copy is not supported with this QEMU binary"
 msgstr "இந்த QEMU பைனரியில் தொகுப்பு நகலெடுப்பு பணிக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_driver.c:17067
+#: src/qemu/qemu_driver.c:17088
 msgid "domain is not transient"
 msgstr "டொமைன் நிலையற்றதல்ல"
 
-#: src/qemu/qemu_driver.c:17080
+#: src/qemu/qemu_driver.c:17101
 #, c-format
 msgid "shallow copy of disk '%s' into a raw file is not possible"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17090
+#: src/qemu/qemu_driver.c:17111
 msgid "non-file destination not supported yet"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17116
+#: src/qemu/qemu_driver.c:17137
 #, fuzzy
 msgid "failed to create copy target"
 msgstr "சாக்கெட்டை உருவாக்க முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:17164
+#: src/qemu/qemu_driver.c:17185
 #, fuzzy
 msgid "unable to remove just-created copy target"
 msgstr "சாக்கெட்டை ஜோடியை உருவாக்க முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:17234
+#: src/qemu/qemu_driver.c:17255
 msgid "Relative backing during copy not supported yet"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17300
+#: src/qemu/qemu_driver.c:17321
 #, c-format
 msgid "bandwidth must be less than %llu bytes"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17308
+#: src/qemu/qemu_driver.c:17329
 msgid "granularity must be power of 2"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17404
+#: src/qemu/qemu_driver.c:17425
 msgid "online commit not supported with this QEMU binary"
 msgstr "இந்த QEMU பைனரியில் ஆன்லைன் ஒப்படைப்புக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_driver.c:17427
+#: src/qemu/qemu_driver.c:17448
 #, c-format
 msgid "disk %s has no source file to be committed"
 msgstr "வட்டு %s இல் ஒப்படைக்க மூலக் கோப்புகள் எதுவும் இல்லை"
 
-#: src/qemu/qemu_driver.c:17446
+#: src/qemu/qemu_driver.c:17467
 msgid "active commit not supported with this QEMU binary"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17452
+#: src/qemu/qemu_driver.c:17473
 #, c-format
 msgid "commit of '%s' active layer requires active flag"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17458
+#: src/qemu/qemu_driver.c:17479
 #, c-format
 msgid "active commit requested but '%s' is not active"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17465
+#: src/qemu/qemu_driver.c:17486
 #, c-format
 msgid "top '%s' in chain for '%s' has no backing file"
 msgstr "'%s' க்கான சங்கியிலில் உள்ள மேல் '%s' இல் பேக்கிங் கோப்பு இல்லை"
 
-#: src/qemu/qemu_driver.c:17480
+#: src/qemu/qemu_driver.c:17501
 #, c-format
 msgid "base '%s' is not immediately below '%s' in chain for '%s'"
 msgstr "'%s' க்கான சங்கிலியில் '%s' க்கு அடுத்தபடியாக கீழே அடிப்பகுதி '%s' இல்லை"
 
-#: src/qemu/qemu_driver.c:17500
+#: src/qemu/qemu_driver.c:17521
 msgid "this qemu doesn't support relative blockpull"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17624 src/qemu/qemu_driver.c:17688
+#: src/qemu/qemu_driver.c:17645 src/qemu/qemu_driver.c:17709
 #, c-format
 msgid "No graphics backend with index %d"
 msgstr "அட்டவணை %d கொண்ட கிராஃபிக்ஸ் பின்புல முறைமை இல்லை"
 
-#: src/qemu/qemu_driver.c:17636 src/qemu/qemu_driver.c:17700
+#: src/qemu/qemu_driver.c:17657 src/qemu/qemu_driver.c:17721
 #, c-format
 msgid "Can only open VNC or SPICE graphics backends, not %s"
 msgstr ""
 "VNC அல்லது SPICE கிராஃபிக் பின்புல முறைமைகளையே திறக்க முடியும், %s ஐ திறக்க "
 "முடியாது"
 
-#: src/qemu/qemu_driver.c:17920
+#: src/qemu/qemu_driver.c:17941
 #, c-format
 msgid "block I/O throttle limit value must be no more than %llu"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:17978
+#: src/qemu/qemu_driver.c:17999
 msgid "total and read/write of bytes_sec cannot be set at the same time"
 msgstr ""
 "மொத்த மற்றும் படித்தல்/எழுதுதல் bytes_sec ஆகியவற்றை ஒரே நேரத்தில் அமைக்க முடியாது"
 
-#: src/qemu/qemu_driver.c:17986
+#: src/qemu/qemu_driver.c:18007
 msgid "total and read/write of iops_sec cannot be set at the same time"
 msgstr ""
 "மொத்தம் மற்றும் படித்தல்/எழுதுதல் iops_sec ஆகியவற்றை ஒரே நேரத்தில் அமைக்க முடியாது"
 
-#: src/qemu/qemu_driver.c:17994
+#: src/qemu/qemu_driver.c:18015
 #, fuzzy
 msgid "total and read/write of bytes_sec_max cannot be set at the same time"
 msgstr ""
 "மொத்த மற்றும் படித்தல்/எழுதுதல் bytes_sec ஆகியவற்றை ஒரே நேரத்தில் அமைக்க முடியாது"
 
-#: src/qemu/qemu_driver.c:18002
+#: src/qemu/qemu_driver.c:18023
 #, fuzzy
 msgid "total and read/write of iops_sec_max cannot be set at the same time"
 msgstr ""
 "மொத்தம் மற்றும் படித்தல்/எழுதுதல் iops_sec ஆகியவற்றை ஒரே நேரத்தில் அமைக்க முடியாது"
 
-#: src/qemu/qemu_driver.c:18027
+#: src/qemu/qemu_driver.c:18048
 #, fuzzy
 msgid "a block I/O throttling parameter is not supported with this QEMU binary"
 msgstr "இந்த QEMU பைனரியில் தொகுப்பு I/O த்ராட்லிங் வசதிக்கு ஆதரவில்லை"
 
-#: src/qemu/qemu_driver.c:18044
+#: src/qemu/qemu_driver.c:18065
 msgid ""
 "a block I/O throttling length parameter is not supported with this QEMU "
 "binary"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:18065
+#: src/qemu/qemu_driver.c:18086
 #, c-format
 msgid "cannot reset '%s' when '%s' is set"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:18070
+#: src/qemu/qemu_driver.c:18091
 #, c-format
 msgid "value '%s' cannot be set if '%s' is not set"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:18078
+#: src/qemu/qemu_driver.c:18099
 #, c-format
 msgid "value '%s' cannot be smaller than '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:18126
+#: src/qemu/qemu_driver.c:18147
 #, c-format
 msgid "missing persistent configuration for disk '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:18245
+#: src/qemu/qemu_driver.c:18266
 #, c-format
 msgid "disk '%s' was not found in the domain config"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:18531
+#: src/qemu/qemu_driver.c:18552
 msgid "Duration not supported. Use 0 for now"
 msgstr "கால அளவுக்கு ஆதரவில்லை. இப்போதைக்கு 0 ஐப் பயன்படுத்தவும்"
 
-#: src/qemu/qemu_driver.c:18539
+#: src/qemu/qemu_driver.c:18560
 #, c-format
 msgid "Unknown suspend target: %u"
 msgstr "தெரியாத இடைநிறுத்து இலக்கு: %u"
 
-#: src/qemu/qemu_driver.c:18565
+#: src/qemu/qemu_driver.c:18586
 msgid "Unable to suspend domain due to missing system_wakeup monitor command"
 msgstr "system_wakeup மானிட்டர் கட்டளை இல்லாததால் டொமைனை இடைநிறுத்த முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:18575
+#: src/qemu/qemu_driver.c:18596
 msgid "S3 state is disabled for this domain"
 msgstr "இந்த டொமைனுக்கு S3 நிலை முடக்கப்பட்டுள்ளது"
 
-#: src/qemu/qemu_driver.c:18582
+#: src/qemu/qemu_driver.c:18603
 msgid "S4 state is disabled for this domain"
 msgstr "இந்த டொமைனுக்கு S4 நிலை முடக்கப்பட்டுள்ளது"
 
-#: src/qemu/qemu_driver.c:18632
+#: src/qemu/qemu_driver.c:18653
 msgid "Unable to wake up domain due to missing system_wakeup monitor command"
 msgstr "system_wakeup மானிட்டர் கட்டளை இல்லாததால் டொமைனை எழுப்ப முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:18780
+#: src/qemu/qemu_driver.c:18801
 msgid "Specifying mount point is not supported for now"
 msgstr "மவுன்ட் புள்ளியைக் குறிப்பிட தற்போது ஆதரவில்லை"
 
-#: src/qemu/qemu_driver.c:18948 src/test/test_driver.c:5822
+#: src/qemu/qemu_driver.c:18969 src/test/test_driver.c:5822
 #, fuzzy, c-format
 msgid "cannot find architecture %s"
 msgstr "கட்டமைப்பு %s ஐக் கண்டறிய முடியவில்லை"
 
-#: src/qemu/qemu_driver.c:19045
+#: src/qemu/qemu_driver.c:19066
 msgid "cannot set time: qemu doesn't support rtc-reset-reinjection command"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:19140
+#: src/qemu/qemu_driver.c:19161
 msgid "specifying mountpoints is not supported"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:19246
+#: src/qemu/qemu_driver.c:19267
 #, c-format
 msgid "architecture from emulator '%s' doesn't match given architecture '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:19266
+#: src/qemu/qemu_driver.c:19287
 #, c-format
 msgid "the machine '%s' is not supported by emulator '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:19284
+#: src/qemu/qemu_driver.c:19305
 #, c-format
 msgid "KVM is not supported by '%s' on this host"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:20036 src/vz/vz_driver.c:3833
+#: src/qemu/qemu_driver.c:20057 src/vz/vz_driver.c:3833
 #, c-format
 msgid "Stats types bits 0x%x are not supported by this daemon"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:20319
+#: src/qemu/qemu_driver.c:20340
 #, c-format
 msgid "Unknown IP address data source %d"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:20522
+#: src/qemu/qemu_driver.c:20543
 #, c-format
 msgid "cannot remove old domain config file %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:20576
+#: src/qemu/qemu_driver.c:20597
 msgid "cannot rename active domain"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:20582
+#: src/qemu/qemu_driver.c:20603
 msgid "cannot rename a transient domain"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:20588
+#: src/qemu/qemu_driver.c:20609
 msgid "domain with a managed saved state can't be renamed"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:20594
+#: src/qemu/qemu_driver.c:20615
 msgid "domain has to be shutoff before renaming"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:20600
+#: src/qemu/qemu_driver.c:20621
 msgid "cannot rename domain with snapshots"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:20644
+#: src/qemu/qemu_driver.c:20665
 #, c-format
 msgid "vcpu id '%u' reported by guest agent is out of range"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:20751 src/qemu/qemu_driver.c:20838
+#: src/qemu/qemu_driver.c:20772 src/qemu/qemu_driver.c:20859
 msgid "unsupported state value"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:20784
+#: src/qemu/qemu_driver.c:20805
 #, c-format
 msgid "vCPU '%u' is not offlinable"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:20797
+#: src/qemu/qemu_driver.c:20818
 #, c-format
 msgid "guest is missing vCPUs '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:20847
+#: src/qemu/qemu_driver.c:20868
 msgid "no vcpus selected for modification"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:20866
+#: src/qemu/qemu_driver.c:20887
 #, c-format
 msgid "vcpu %zd is not present in persistent config"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:20875
+#: src/qemu/qemu_driver.c:20896
 #, c-format
 msgid "vcpu %zd is not present in live config"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:20928
+#: src/qemu/qemu_driver.c:20949
 msgid "this qemu does not support setting device threshold"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:20941
+#: src/qemu/qemu_driver.c:20962
 #, c-format
 msgid "threshold currently can't be set for block device '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:21025
+#: src/qemu/qemu_driver.c:21046
 msgid ""
 "cannot update lifecycle action because QEMU was started with -no-reboot "
 "option"
