@@ -1,4 +1,4 @@
-libvirt (3.9.0-1) experimental; urgency=medium
+libvirt (3.9.0-1) unstable; urgency=medium
 
   * [eef697c] New upstream version 3.9.0
 
