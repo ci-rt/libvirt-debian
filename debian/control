@@ -78,7 +78,7 @@ Build-Conflicts: dpkg-dev (= 1.15.3)
 Vcs-Git: https://anonscm.debian.org/git/pkg-libvirt/libvirt.git
 Vcs-Browser: https://anonscm.debian.org/cgit/pkg-libvirt/libvirt.git/
 Homepage: http://libvirt.org
-Standards-Version: 4.0.0
+Standards-Version: 4.1.1
 
 Package: libvirt-clients
 Architecture: any
