@@ -1,0 +1,41 @@
+From: Hao Peng <peng.hao2@zte.com.cn>
+Date: Sat, 15 Jul 2017 23:01:25 +0800
+Subject: qemu: shared disks with cache=directsync should be safe for
+ migration
+
+At present shared disks can be migrated with either readonly or cache=none. But
+cache=directsync should be safe for migration, because both cache=directsync and cache=none
+don't use the host page cache, and cache=direct write through qemu block layer cache.
+
+Signed-off-by: Peng Hao <peng.hao2@zte.com.cn>
+Reviewed-by: Wang Yechao <wang.yechao255@zte.com.cn>
+---
+ src/qemu/qemu_migration.c | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/src/qemu/qemu_migration.c b/src/qemu/qemu_migration.c
+index 0f4a6cf..dc69ea3 100644
+--- a/src/qemu/qemu_migration.c
++++ b/src/qemu/qemu_migration.c
+@@ -2375,9 +2375,10 @@ qemuMigrationIsSafe(virDomainDefPtr def,
+         const char *src = virDomainDiskGetSource(disk);
+ 
+         /* Our code elsewhere guarantees shared disks are either readonly (in
+-         * which case cache mode doesn't matter) or used with cache=none */
++         * which case cache mode doesn't matter) or used with cache=none or used with cache=directsync */
+         if (qemuMigrateDisk(disk, nmigrate_disks, migrate_disks) &&
+-            disk->cachemode != VIR_DOMAIN_DISK_CACHE_DISABLE) {
++            disk->cachemode != VIR_DOMAIN_DISK_CACHE_DISABLE &&
++            disk->cachemode != VIR_DOMAIN_DISK_CACHE_DIRECTSYNC) {
+             int rc;
+ 
+             if (virDomainDiskGetType(disk) == VIR_STORAGE_TYPE_FILE) {
+@@ -2396,7 +2397,7 @@ qemuMigrationIsSafe(virDomainDefPtr def,
+ 
+             virReportError(VIR_ERR_MIGRATE_UNSAFE, "%s",
+                            _("Migration may lead to data corruption if disks"
+-                             " use cache != none"));
++                             " use cache != none or cache != directsync"));
+             return false;
+         }
+     }
