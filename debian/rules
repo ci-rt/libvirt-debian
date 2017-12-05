@@ -160,6 +160,8 @@ override_dh_auto_test:
 
 override_dh_install-arch:
 	dh_install
+	mv debian/tmp/usr/lib/libvirt-lx/* debian/tmp/usr/lib/libvirt/
+	sed -i -- 's/libvirt-lx/libvirt/g' debian/tmp/usr/lib/systemd/system/libvirt-guests.service
 
 	# Copy upstream files to debian/ so dh_* can find them
 	cp debian/tmp/usr/lib/libvirt/libvirt-guests.sh \
@@ -170,28 +172,28 @@ override_dh_install-arch:
 	    debian/libvirt-daemon-system.virtlogd.default
 	# Add our backward compat polkit rule
 	cp debian/polkit/60-libvirt.pkla \
-	    debian/libvirt-daemon-system/var/lib/polkit-1/localauthority/10-vendor.d/
+	    debian/libvirt-daemon-system-lx/var/lib/polkit-1/localauthority/10-vendor.d/
 ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
 	# Linux supports more nice things:
-	dh_install -p libvirt-daemon-system usr/lib/systemd/system lib/systemd/
-	dh_install -p libvirt-daemon-system usr/lib/libvirt/virt-aa-helper
-	dh_install -p libvirt-daemon-system etc/apparmor.d
-	dh_apparmor -p libvirt-daemon-system --profile-name=usr.lib.libvirt.virt-aa-helper
-	dh_apparmor -p libvirt-daemon-system --profile-name=usr.sbin.libvirtd
+	dh_install -p libvirt-daemon-system-lx usr/lib/systemd/system lib/systemd/
+	dh_install -p libvirt-daemon-system-lx usr/lib/libvirt/virt-aa-helper
+	dh_install -p libvirt-daemon-system-lx etc/apparmor.d
+	dh_apparmor -p libvirt-daemon-system-lx --profile-name=usr.lib.libvirt.virt-aa-helper
+	dh_apparmor -p libvirt-daemon-system-lx --profile-name=usr.sbin.libvirtd
 	# Not all linux arches have systemtap yet
 	mkdir -p debian/tmp/usr/share/systemtap
-	dh_install -p libvirt-daemon-system usr/share/systemtap
-	dh_install -p libvirt-daemon-system etc/libvirt/lxc.conf
-	dh_install -p libvirt-daemon-system etc/libvirt/qemu-sanlock.conf
-	dh_install -p libvirt-daemon-system etc/libvirt/qemu/networks/
-	dh_install -p libvirt-daemon-system etc/libvirt/nwfilter/
-	dh_install -p libvirt-clients etc/libvirt/virt-login-shell.conf
+	dh_install -p libvirt-daemon-system-lx usr/share/systemtap
+	dh_install -p libvirt-daemon-system-lx etc/libvirt/lxc.conf
+	dh_install -p libvirt-daemon-system-lx etc/libvirt/qemu-sanlock.conf
+	dh_install -p libvirt-daemon-system-lx etc/libvirt/qemu/networks/
+	dh_install -p libvirt-daemon-system-lx etc/libvirt/nwfilter/
+	dh_install -p libvirt-clients-lx etc/libvirt/virt-login-shell.conf
 endif
 ifeq ($(XEN_ENABLED), 1)
-	dh_install -p libvirt-daemon-system etc/libvirt/libxl.conf
-	dh_install -p libvirt-daemon-system etc/libvirt/libxl-lockd.conf
+	dh_install -p libvirt-daemon-system-lx etc/libvirt/libxl.conf
+	dh_install -p libvirt-daemon-system-lx etc/libvirt/libxl-lockd.conf
 endif
-	dh_install -p libnss-libvirt usr/lib/libnss_libvirt.so.2 lib/$(DEB_HOST_MULTIARCH)/
+	dh_install -p libnss-libvirt-lx usr/lib/libnss_libvirt.so.2 lib/$(DEB_HOST_MULTIARCH)/
 
 	for l in $(LOGROTATE); do \
 		cp $(CURDIR)/debian/build/daemon/$$l.logrotate \
@@ -200,18 +202,18 @@ endif
 	done
 
 	# Don't ship any la files
-	rm debian/libvirt-daemon/usr/lib/libvirt/connection-driver/*.la
+	rm debian/libvirt-daemon-lx/usr/lib/libvirt/connection-driver/*.la
 	# Don't ship api files in the daemon package
-	rm -r debian/libvirt-daemon/usr/share/libvirt/api/
+	rm -r debian/libvirt-daemon-lx/usr/share/libvirt/api/
 
 
 override_dh_installinit:
 	dh_systemd_enable
-	dh_installinit -p libvirt-daemon-system --name=virtlogd --no-restart-on-upgrade
-	dh_installinit -p libvirt-daemon-system --name=libvirtd --restart-after-upgrade -- defaults 28 72
-	dh_installinit -p libvirt-daemon-system --name=libvirt-guests --no-restart-on-upgrade -- defaults 29 71
-	dh_systemd_start -p libvirt-daemon-system --restart-after-upgrade libvirtd.service
-	dh_systemd_start -p libvirt-daemon-system --no-restart-on-upgrade $(LIBVIRT_SYSTEM_SERVICES)
+	dh_installinit -p libvirt-daemon-system-lx --name=virtlogd --no-restart-on-upgrade
+	dh_installinit -p libvirt-daemon-system-lx --name=libvirtd --restart-after-upgrade -- defaults 28 72
+	dh_installinit -p libvirt-daemon-system-lx --name=libvirt-guests --no-restart-on-upgrade -- defaults 29 71
+	dh_systemd_start -p libvirt-daemon-system-lx --restart-after-upgrade libvirtd.service
+	dh_systemd_start -p libvirt-daemon-system-lx --no-restart-on-upgrade $(LIBVIRT_SYSTEM_SERVICES)
 
 override_dh_installdocs:
 	dh_installdocs
@@ -224,9 +226,9 @@ override_dh_installdocs:
 
 override_dh_auto_clean:
 	[ ! -f Makefile ] || dh_auto_clean
-	rm -f $(CURDIR)/debian/libvirt-daemon-system.libvirt-guests.init
-	rm -f $(CURDIR)/debian/libvirt-daemon-system.libvirt-guests.default
-	rm -f $(CURDIR)/debian/libvirt-daemon-system.*.logrotate
+	rm -f $(CURDIR)/debian/libvirt-daemon-system-lx.libvirt-guests.init
+	rm -f $(CURDIR)/debian/libvirt-daemon-system-lx.libvirt-guests.default
+	rm -f $(CURDIR)/debian/libvirt-daemon-system-lx.*.logrotate
 	rm -f $(CURDIR)/debian/*.service
 	rm -rf $(DEB_BUILDDIR)
 

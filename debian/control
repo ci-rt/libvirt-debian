@@ -1,4 +1,4 @@
-Source: libvirt
+Source: libvirt-lx
 Section: libs
 Priority: optional
 Maintainer: Debian Libvirt Maintainers <pkg-libvirt-maintainers@lists.alioth.debian.org>
@@ -76,14 +76,16 @@ Vcs-Browser: https://anonscm.debian.org/cgit/pkg-libvirt/libvirt.git/
 Homepage: http://libvirt.org
 Standards-Version: 3.9.8
 
-Package: libvirt-clients
+Package: libvirt-clients-lx
 Architecture: any
 Depends:
  ${misc:Depends},
  ${shlibs:Depends},
- libvirt0 (= ${binary:Version}),
+ libvirt0-lx (= ${binary:Version}),
 Section: admin
-Replaces: libvirt-bin (<< 1.2.6-1~)
+Provides: libvirt-clients
+Breaks: libvirt-clients
+Replaces: libvirt-bin (<< 1.2.6-1~), libvirt-clients
 Conflicts: libvirt-bin (<< 1.2.6-1~)
 Suggests:
  libvirt-daemon,
@@ -95,14 +97,16 @@ Description: Programs for the libvirt library
  .
  This package contains the libvirt shell virsh and other client binaries.
 
-Package: libvirt-daemon
+Package: libvirt-daemon-lx
 Architecture: any
 Depends:
  ${misc:Depends},
  ${shlibs:Depends},
- libvirt0 (= ${binary:Version}),
+ libvirt0-lx (= ${binary:Version}),
 Enhances: qemu, qemu-kvm, xen
 Section: admin
+Provides: libvirt-daemon
+Breaks: libvirt-daemon
 Recommends:
  qemu-kvm | qemu (>= 0.9.1),
  libxml2-utils,
@@ -118,7 +122,7 @@ Description: Virtualization daemon
  .
  This package contains the deaemon libvirtd to manage the hypvervisors.
 
-Package: libvirt-daemon-system
+Package: libvirt-daemon-system-lx
 Architecture: any
 # Needed to clean up old libvirt-bin cruft, can be removed post jessie
 Pre-Depends: init-system-helpers (>= 1.18~)
@@ -128,8 +132,8 @@ Depends:
  adduser,
  gettext-base,
  lsb-base,
- libvirt-clients (= ${binary:Version}),
- libvirt-daemon (= ${binary:Version}),
+ libvirt-clients-lx (= ${binary:Version}),
+ libvirt-daemon-lx (= ${binary:Version}),
  iptables (>= 1.4.10) [linux-any] | firewalld,
  logrotate,
  policykit-1,
@@ -144,8 +148,9 @@ Section: admin
 Suggests: radvd, auditd, systemtap, systemd, apparmor,
  nfs-common, zfsutils, pm-utils
 Breaks: avahi-daemon (<< 0.6.31-3~),
- systemd-sysv (<< 224-1~)
-Replaces: libvirt-bin (<< 1.2.7-4~)
+ systemd-sysv (<< 224-1~), libvirt-daemon-system
+Provides: libvirt-daemon-system
+Replaces: libvirt-bin (<< 1.2.7-4~), libvirt-daemon-system
 Conflicts: libvirt-bin (<< 1.2.6-1~)
 Description: Libvirt daemon configuration files
  Libvirt is a C toolkit to interact with the virtualization capabilities
@@ -156,22 +161,25 @@ Description: Libvirt daemon configuration files
  This package contains the configuration files to run the libvirt daemon as a
  system service.
 
-Package: libvirt0
+Package: libvirt0-lx
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Recommends: lvm2 [linux-any]
-Breaks: selinux-policy-default (<< 2:2.20131214-1~), selinux-policy-mls (<< 2:2.20131214-1~)
+Breaks: selinux-policy-default (<< 2:2.20131214-1~), selinux-policy-mls (<< 2:2.20131214-1~), libvirt0
+Provides: libvirt0 (= ${binary:Version})
 Description: library for interfacing with different virtualization systems
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
  a long term stable C API for different virtualization mechanisms. It currently
  supports QEMU, KVM, XEN, OpenVZ, LXC, and VirtualBox.
 
-Package: libvirt-doc
+Package: libvirt-lx-doc
 Architecture: all
 Section: doc
 Depends: ${misc:Depends}
 Suggests: devhelp
+Provides: libvirt-doc
+Breaks: libvirt-doc
 Description: documentation for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
@@ -180,11 +188,13 @@ Description: documentation for the libvirt library
  .
  This package contains the documentation.
 
-Package: libvirt-dev
+Package: libvirt-lx-dev
 Architecture: any
 Section: libdevel
-Depends: ${misc:Depends}, libvirt0 (= ${binary:Version}), libxen-dev [i386 amd64 armhf arm64]
-Replaces: libvirt-bin (<< 1.2.0~)
+Depends: ${misc:Depends}, libvirt0-lx (= ${binary:Version}), libxen-dev [i386 amd64 armhf arm64]
+Replaces: libvirt-bin (<< 1.2.0~), libvirt-dev
+Provides: libvirt-dev
+Breaks: libvirt-dev
 Recommends: pkg-config
 Description: development files for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities
@@ -195,14 +205,16 @@ Description: development files for the libvirt library
  This package contains the header files and static libraries which are
  needed for developing the applications with libvirt.
 
-Package: libvirt-sanlock
+Package: libvirt-sanlock-lx
 Architecture: linux-any
 Depends:
  ${misc:Depends},
  ${shlibs:Depends},
  augeas-tools,
- libvirt0 (= ${binary:Version}),
+ libvirt0-lx (= ${binary:Version}),
 Priority: extra
+Provides: libvirt-sanlock
+Breaks: libvirt-sanlock
 Description: Sanlock plugin for virtlockd
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
@@ -211,13 +223,15 @@ Description: Sanlock plugin for virtlockd
  .
  This package contains the sanlock plugin for libvirt's locking daemon.
 
-Package: libnss-libvirt
+Package: libnss-libvirt-lx
 Architecture: linux-any
 Depends:
  ${misc:Depends},
  ${shlibs:Depends},
- libvirt0 (= ${binary:Version}),
+ libvirt0-lx (= ${binary:Version}),
 Priority: extra
+Provides: libnss-libvirt
+Breaks: libnss-libvirt
 Description: nss plugin providing IP add ress resolution for virtual machines
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing

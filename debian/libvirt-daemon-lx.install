@@ -1,5 +1,5 @@
 usr/sbin/*
-usr/lib/libvirt/libvirt*
+usr/lib/libvirt*/libvirt* usr/lib/libvirt/
 usr/lib/libvirt/lock-driver/lockd.so
 usr/lib/libvirt/connection-driver
 usr/share/augeas/*
