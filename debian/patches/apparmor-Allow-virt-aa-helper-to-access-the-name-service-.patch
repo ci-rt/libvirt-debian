@@ -1,0 +1,21 @@
+From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Tue, 5 Dec 2017 14:40:40 +0100
+Subject: apparmor: Allow virt-aa-helper to access the name service switch
+
+Closes: #882979
+---
+ examples/apparmor/usr.lib.libvirt.virt-aa-helper | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/examples/apparmor/usr.lib.libvirt.virt-aa-helper b/examples/apparmor/usr.lib.libvirt.virt-aa-helper
+index d6bf012..e205139 100644
+--- a/examples/apparmor/usr.lib.libvirt.virt-aa-helper
++++ b/examples/apparmor/usr.lib.libvirt.virt-aa-helper
+@@ -3,6 +3,7 @@
+ 
+ profile virt-aa-helper /usr/{lib,lib64}/libvirt/virt-aa-helper {
+   #include <abstractions/base>
++  #include <abstractions/nameservice>
+ 
+   # needed for searching directories
+   capability dac_override,
