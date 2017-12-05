@@ -1,13 +1,18 @@
-libvirt (3.10.0-1~1.gbpd1de53) UNRELEASED; urgency=medium
-
-  ** SNAPSHOT build @d1de5398d95d3af5fe22b97bc7d79fc34e7e4ae1 **
+libvirt (3.10.0-1) unstable; urgency=medium
 
   * [0d103b6] Bump standards version
   * [3eca017] Add russian debconf translation.
     Thanks to Lev Lamberov (Closes: #883109)
   * [04da2ca] New upstream version 3.10.0
+  * [f311e52] Drop 
+    AppArmor-add-rules-needed-with-additional-mediation-featu.patch - fixed
+    upstream
+  * [0c7f363] Bump symbol versions
+  * [cbe1699] Use recent debhelper instead of dh-systemd
+  * [c757791] apparmor: Allow virt-aa-helper to access the name service switch.
+    Thanks to Martin Pitt (Closes: #882979)
 
- -- Guido Günther <agx@sigxcpu.org>  Tue, 05 Dec 2017 13:49:52 +0100
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 05 Dec 2017 14:55:51 +0100
 
 libvirt (3.9.0-1) unstable; urgency=medium
 
