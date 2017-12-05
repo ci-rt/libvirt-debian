@@ -1,0 +1,37 @@
+Author: Benedikt Spranger <b.spranger@linutronix.de>
+Date: Thu Apr 20 08:14:11 2017 +0200
+Subject: enhance API check
+
+libvirt performs an API check during test to verify the libvirt driver
+naming convention i.e. hypervisor in lowercase plus function in
+Camelcase starting with a capital letter.
+
+The hypervisor r4d does not pass the test due to the numeral.  Enhance
+the Api test to allow numerals in the hypervisor name.
+
+Signed-off-by: Benedikt Spranger <b.spranger@linutronix.de>
+
+---
+ src/check-driverimpls.pl |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+--- a/src/check-driverimpls.pl
++++ b/src/check-driverimpls.pl
+@@ -40,7 +40,7 @@ while (<>) {
+ 
+             my $suffix = $impl;
+             my $prefix = $impl;
+-            $prefix =~ s/^([a-z]+(?:Unified)?)(.*?)$/$1/;
++            $prefix =~ s/^([a-z][a-z0-9]*(?:Unified)?)(.*?)$/$1/;
+ 
+             if (defined $mainprefix) {
+                 if ($mainprefix ne $prefix) {
+@@ -52,7 +52,7 @@ while (<>) {
+             }
+ 
+             if ($api !~ /^$mainprefix/) {
+-                $suffix =~ s/^[a-z]+(?:Unified)?//;
++                $suffix =~ s/^[a-z][a-z0-9]*(?:Unified)?//;
+                 $suffix =~ s/^([A-Z]+)/lc $1/e;
+             }
+ 

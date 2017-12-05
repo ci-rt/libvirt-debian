@@ -1,0 +1,218 @@
+From 81b7a8ae43abbb334e9c42d081f091045cbce4b1 Mon Sep 17 00:00:00 2001
+From: Benedikt Spranger <b.spranger@linutronix.de>
+Date: Fri, 13 Jan 2017 13:17:51 +0100
+Subject: [PATCH] add console log
+
+The console cmd need a TTY for proper functionality. To be able to log
+console output into a file without interaction add a consolelog cmd.
+The consolelog cmd needs exclusive access to the console and is locked
+against other console and consolelog cmds.
+
+
+Signed-off-by: Benedikt Spranger <b.spranger@linutronix.de>
+---
+ tools/virsh-console.c |  66 +++++++++++++++++++++++++++++++++
+ tools/virsh-console.h |   5 +++
+ tools/virsh-domain.c  | 100 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 171 insertions(+)
+
+--- a/tools/virsh-console.c
++++ b/tools/virsh-console.c
+@@ -404,3 +404,69 @@
+ }
+ 
+ #endif /* !WIN32 */
++
++int
++virshRunConsoleLog(virDomainPtr dom,
++                   const char *log_name,
++                   const char *dev_name,
++                   unsigned int flags)
++{
++    virConsolePtr con = NULL;
++    int fd, ret = -1;
++
++    if (log_name) {
++        fd = open(log_name, O_WRONLY|O_CREAT|O_NOCTTY|O_NONBLOCK, 0600);
++        if (fd < 0) {
++            virReportSystemError(errno,
++                                 _("Failed to create log file %s"),
++                                 log_name);
++            goto cleanup;
++        }
++    } else
++        fd = STDOUT_FILENO;
++
++    if (VIR_ALLOC(con) < 0)
++        goto cleanup;
++
++    con->st = virStreamNew(virDomainGetConnect(dom),
++                           VIR_STREAM_NONBLOCK);
++    if (!con->st)
++        goto cleanup;
++
++    if (virDomainOpenConsole(dom, dev_name, con->st, flags) < 0)
++        goto cleanup;
++
++    if (virCondInit(&con->cond) < 0 || virMutexInit(&con->lock) < 0)
++        goto cleanup;
++
++    virMutexLock(&con->lock);
++
++    con->stdoutWatch = virEventAddHandle(fd,
++                                         0,
++                                         virConsoleEventOnStdout,
++                                         con,
++                                         NULL);
++
++    virStreamEventAddCallback(con->st,
++                              VIR_STREAM_EVENT_READABLE,
++                              virConsoleEventOnStream,
++                              con,
++                              NULL);
++
++    while (!con->quit) {
++        if (virCondWait(&con->cond, &con->lock) < 0) {
++            virMutexUnlock(&con->lock);
++            VIR_ERROR(_("unable to wait on console condition"));
++            goto cleanup;
++        }
++    }
++
++    virMutexUnlock(&con->lock);
++
++    ret = 0;
++
++ cleanup:
++    virConsoleFree(con);
++
++    return ret;
++}
+--- a/tools/virsh-console.h
++++ b/tools/virsh-console.h
+@@ -35,4 +35,9 @@
+ 
+ # endif /* !WIN32 */
+ 
++int virshRunConsoleLog(virDomainPtr dom,
++                       const char *log_name,
++                       const char *dev_name,
++                       unsigned int flags);
++
+ #endif /* __VIR_CONSOLE_H__ */
+--- a/tools/virsh-domain.c
++++ b/tools/virsh-domain.c
+@@ -2994,6 +2994,100 @@
+ }
+ #endif /* WIN32 */
+ 
++/*
++ * "consolelog" command
++ */
++static const vshCmdInfo info_consolelog[] = {
++    {.name = "help",
++     .data = N_("connect to the guest console and log the output")
++    },
++    {.name = "desc",
++     .data = N_("Connect the virtual serial console for the guest and log the output")
++    },
++    {.name = NULL}
++};
++
++static const vshCmdOptDef opts_consolelog[] = {
++    VIRSH_COMMON_OPT_DOMAIN_FULL,
++    {.name = "devname", /* sc_prohibit_devname */
++     .type = VSH_OT_STRING,
++     .help = N_("character device name")
++    },
++    {.name = "logfile",
++     .type = VSH_OT_STRING,
++     .help = N_("console logfile name")
++    },
++    {.name = "force",
++     .type = VSH_OT_BOOL,
++     .help =  N_("force console connection (disconnect already connected sessions)")
++    },
++    {.name = "safe",
++     .type = VSH_OT_BOOL,
++     .help =  N_("only connect if safe console handling is supported")
++    },
++
++    {.name = NULL}
++};
++
++static bool
++cmdRunConsoleLog(vshControl *ctl, virDomainPtr dom,
++                 const char *log_name,
++                 const char *dev_name,
++                 unsigned int flags)
++{
++    bool ret = false;
++    int state;
++
++    if ((state = virshDomainState(ctl, dom, NULL)) < 0) {
++        vshError(ctl, "%s", _("Unable to get domain status"));
++        goto cleanup;
++    }
++
++    if (state == VIR_DOMAIN_SHUTOFF) {
++        vshError(ctl, "%s", _("The domain is not running"));
++        goto cleanup;
++    }
++
++    vshPrintExtra(ctl, _("Connected to domain %s\n"), virDomainGetName(dom));
++    if (virshRunConsoleLog(dom, log_name, dev_name, flags) == 0)
++        ret = true;
++
++ cleanup:
++
++    return ret;
++}
++
++static bool
++cmdConsoleLog(vshControl *ctl, const vshCmd *cmd)
++{
++    virDomainPtr dom;
++    bool ret = false;
++    bool force = vshCommandOptBool(cmd, "force");
++    bool safe = vshCommandOptBool(cmd, "safe");
++    unsigned int flags = 0;
++    const char *name = NULL;
++    const char *logname = NULL;
++
++    if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
++        return false;
++
++    if (vshCommandOptStringReq(ctl, cmd, "devname", &name) < 0) /* sc_prohibit_devname */
++        goto cleanup;
++    if (vshCommandOptStringReq(ctl, cmd, "logfile", &logname) < 0)
++        goto cleanup;
++
++    if (force)
++        flags |= VIR_DOMAIN_CONSOLE_FORCE;
++    if (safe)
++        flags |= VIR_DOMAIN_CONSOLE_SAFE;
++
++    ret = cmdRunConsoleLog(ctl, dom, logname, name, flags);
++
++ cleanup:
++    virDomainFree(dom);
++    return ret;
++}
++
+ /* "domif-setlink" command
+  */
+ static const vshCmdInfo info_domif_setlink[] = {
+@@ -13379,6 +13473,12 @@
+      .flags = 0
+     },
+ #endif
++    {.name = "consolelog",
++     .handler = cmdConsoleLog,
++     .opts = opts_consolelog,
++     .info = info_consolelog,
++     .flags = 0
++    },
+     {.name = "cpu-baseline",
+      .handler = cmdCPUBaseline,
+      .opts = opts_cpu_baseline,

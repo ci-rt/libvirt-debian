@@ -1,0 +1,315 @@
+Subject: Add debug logging mechanism
+From: Anna-Maria Gleixner <anna-maria@linutronix.de>
+Date: Mon, 02 Jan 2017 12:03:14 +0100
+
+The logging mechanism is enabled by defining DEBUG_R4D . This logging
+mechanism should only be enabled, during development, because a file
+with hard coded name is opened/created in /tmp as log file.
+
+Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
+Index: libvirt-debian-origin/src/r4d/r4d_driver.c
+===================================================================
+--- libvirt-debian-origin.orig/src/r4d/r4d_driver.c
++++ libvirt-debian-origin/src/r4d/r4d_driver.c
+@@ -38,12 +38,35 @@
+ #include <sys/socket.h>
+ #include <netinet/in.h>
+ #include <arpa/inet.h>
++#include <stdarg.h>
++#include <sys/types.h>
++#include <signal.h>
+ 
+ #define VIR_FROM_THIS VIR_FROM_R4D
+ #define R4D_DRIVER_VERSION 0x1
+ 
+ VIR_LOG_INIT("r4d.r4d_driver");
+ 
++#ifdef DEBUG_R4D
++static void logger(const char *format, ...)
++{
++    FILE * fd;
++    fd = fopen("/tmp/r4dlibvirt.log", "a");
++    if (!fd) {
++        kill(0, SIGSEGV);
++        return;
++    }
++    fprintf(fd, "%s\n", format);
++    fclose(fd);
++    return;
++}
++#else
++static void logger(const char *format ATTRIBUTE_UNUSED)
++{
++    return;
++}
++#endif
++
+ static void
+ r4dFreeDriver(struct r4d_driver *driver)
+ {
+@@ -65,6 +88,8 @@ r4dConnectOpen(virConnectPtr conn,
+     const char *scheme, *path;
+     int port;
+ 
++    logger (__func__);
++
+     if (conn->uri == NULL) {
+         return VIR_DRV_OPEN_DECLINED;
+     } else {
+@@ -111,6 +136,8 @@ r4dConnectClose(virConnectPtr conn)
+ {
+     struct r4d_driver *driver = conn->privateData;
+ 
++    logger (__func__);
++
+     r4dFreeDriver(driver);
+     conn->privateData = NULL;
+ 
+@@ -121,6 +148,7 @@ r4dConnectClose(virConnectPtr conn)
+ static const char *
+ r4dConnectGetType(virConnectPtr conn ATTRIBUTE_UNUSED)
+ {
++    logger (__func__);
+     return "r4d";
+ }
+ 
+@@ -131,6 +159,7 @@ r4dConnectGetVersion(virConnectPtr conn,
+ {
+     struct r4d_driver *driver = conn->privateData;
+ 
++    logger (__func__);
+ 
+     *version = driver->version;
+     return 0;
+@@ -140,6 +169,7 @@ r4dConnectGetVersion(virConnectPtr conn,
+ static char *
+ r4dConnectGetHostname(virConnectPtr conn ATTRIBUTE_UNUSED)
+ {
++    logger (__func__);
+     return NULL;
+ }
+ 
+@@ -148,6 +178,7 @@ static int
+ r4dNodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED,
+                virNodeInfoPtr nodeinfo ATTRIBUTE_UNUSED)
+ {
++    logger (__func__);
+     return 0;
+ }
+ 
+@@ -155,6 +186,7 @@ r4dNodeGetInfo(virConnectPtr conn ATTRIB
+ static char *
+ r4dConnectGetCapabilities(virConnectPtr conn ATTRIBUTE_UNUSED)
+ {
++    logger (__func__);
+     return NULL;
+ }
+ 
+@@ -164,6 +196,7 @@ r4dConnectListDomains(virConnectPtr conn
+                       int *ids ATTRIBUTE_UNUSED,
+                       int nids ATTRIBUTE_UNUSED)
+ {
++    logger (__func__);
+     return 0;
+ }
+ 
+@@ -171,6 +204,7 @@ r4dConnectListDomains(virConnectPtr conn
+ static int
+ r4dConnectNumOfDomains(virConnectPtr conn ATTRIBUTE_UNUSED)
+ {
++    logger (__func__);
+     return 0;
+ }
+ 
+@@ -188,6 +222,8 @@ r4dConnectListAllDomains(virConnectPtr c
+     struct r4d_systemid **list = NULL, **tmp;
+     int i, ret = -1, count = 0;
+ 
++    logger (__func__);
++
+     virCheckFlags(VIR_CONNECT_LIST_DOMAINS_FILTERS_ALL, -1);
+ 
+     /* check for flags that would produce empty output lists:
+@@ -249,6 +285,8 @@ cleanup:
+     free (list);
+ 
+     doms = *domains;
++    for (i = 0; i < count; i++)
++        logger(doms[i]->name);
+     return ret;
+ }
+ #undef MATCH
+@@ -263,6 +301,8 @@ r4dConnectListDefinedDomains(virConnectP
+     struct r4d_systemid **list = NULL, **tmp;
+     int ret = -1, i;
+ 
++    logger (__func__);
++
+     list = r4d_list_systemids (driver->endpoint, NULL);
+     if (!list) {
+         virReportError(VIR_ERR_NO_DOMAIN,
+@@ -271,6 +311,7 @@ r4dConnectListDefinedDomains(virConnectP
+     }
+ 
+     for (tmp = list, i = 0; *tmp && i < nnames; tmp++, i++) {
++        logger(r4d_systemid_name (*tmp));
+         if (VIR_STRDUP(names[i], r4d_systemid_name (*tmp)) < 0)
+             goto cleanup;
+     }
+@@ -295,6 +336,8 @@ r4dConnectNumOfDefinedDomains(virConnect
+     struct r4d_systemid **list, **tmp;
+     int i = -1;
+ 
++    logger (__func__);
++
+     list = r4d_list_systemids (driver->endpoint, NULL);
+     if (!list) {
+         virReportError(VIR_ERR_NO_DOMAIN,
+@@ -319,6 +362,7 @@ r4dDomainLookupByName(virConnectPtr conn
+     struct r4d_systemid **list;
+     virDomainPtr dom = NULL;
+ 
++    logger (__func__);
+     list = r4d_list_systemids (driver->endpoint, name);
+     if (!list) {
+         virReportError(VIR_ERR_NO_DOMAIN,
+@@ -339,6 +383,8 @@ r4dDomainCreateWithFlags(virDomainPtr do
+     struct r4d_driver *driver = dom->conn->privateData;
+     int ret = -1, status;
+ 
++    logger (__func__);
++
+     virCheckFlags (0, -1);
+ 
+     status = r4d_power_status (driver->endpoint, dom->name);
+@@ -361,6 +407,7 @@ cleanup:
+ static int
+ r4dDomainCreate(virDomainPtr dom)
+ {
++    logger (__func__);
+     return r4dDomainCreateWithFlags(dom, 0);
+ }
+ 
+@@ -372,6 +419,7 @@ r4dDomainDestroyFlags(virDomainPtr dom,
+     struct r4d_driver *driver = dom->conn->privateData;
+     int ret = -1, status;
+ 
++    logger (__func__);
+     virCheckFlags (0, -1);
+ 
+     status = r4d_power_status (driver->endpoint, dom->name);
+@@ -394,6 +442,7 @@ cleanup:
+ static int
+ r4dDomainDestroy(virDomainPtr dom)
+ {
++    logger (__func__);
+     return r4dDomainDestroyFlags(dom, 0);
+ }
+ 
+@@ -402,6 +451,7 @@ static int
+ r4dDomainReboot(virDomainPtr dom ATTRIBUTE_UNUSED,
+                 unsigned int flags ATTRIBUTE_UNUSED)
+ {
++    logger (__func__);
+     return 0;
+ }
+ 
+@@ -410,6 +460,7 @@ static int
+ r4dDomainReset(virDomainPtr dom ATTRIBUTE_UNUSED,
+                unsigned int flags ATTRIBUTE_UNUSED)
+ {
++    logger (__func__);
+     return 0;
+ }
+ 
+@@ -418,6 +469,7 @@ static char *
+ r4dDomainGetHostname(virDomainPtr dom ATTRIBUTE_UNUSED,
+                      unsigned int flags ATTRIBUTE_UNUSED)
+ {
++    logger (__func__);
+     return NULL;
+ }
+ 
+@@ -428,6 +480,8 @@ r4dDomainGetInfo(virDomainPtr dom, virDo
+     struct r4d_driver *driver = dom->conn->privateData;
+     int status = r4d_power_status (driver->endpoint, dom->name);
+ 
++    logger (__func__);
++
+     if (status < 0)
+         info->state = VIR_DOMAIN_NOSTATE;
+     else if (status)
+@@ -447,6 +501,7 @@ r4dDomainGetInfo(virDomainPtr dom, virDo
+ static char *
+ r4dDomainGetOSType(virDomainPtr dom ATTRIBUTE_UNUSED)
+ {
++    logger (__func__);
+     return NULL;
+ }
+ 
+@@ -458,6 +513,8 @@ r4dDomainGetState(virDomainPtr dom, int
+     struct r4d_driver *driver = dom->conn->privateData;
+     int r = 0, status = r4d_power_status (driver->endpoint, dom->name);
+ 
++    logger (__func__);
++
+     if (status < 0) {
+         *state = VIR_DOMAIN_NOSTATE;
+         r = VIR_DOMAIN_NOSTATE_LAST;
+@@ -479,6 +536,7 @@ r4dDomainGetState(virDomainPtr dom, int
+ static int
+ r4dDomainIsActive(virDomainPtr dom ATTRIBUTE_UNUSED)
+ {
++    logger (__func__);
+     return 0;
+ }
+ 
+@@ -486,6 +544,7 @@ r4dDomainIsActive(virDomainPtr dom ATTRI
+ static int
+ r4dConnectIsAlive(virConnectPtr conn ATTRIBUTE_UNUSED)
+ {
++    logger (__func__);
+     return 1;
+ }
+ 
+@@ -493,6 +552,7 @@ r4dConnectIsAlive(virConnectPtr conn ATT
+ static int
+ r4dConnectIsEncrypted(virConnectPtr conn ATTRIBUTE_UNUSED)
+ {
++    logger (__func__);
+     return 0;
+ }
+ 
+@@ -500,6 +560,7 @@ r4dConnectIsEncrypted(virConnectPtr conn
+ static int
+ r4dConnectIsSecure(virConnectPtr conn ATTRIBUTE_UNUSED)
+ {
++    logger (__func__);
+     return 0;
+ }
+ 
+@@ -517,6 +578,8 @@ r4dDomainOpenConsole(virDomainPtr dom,
+     uint32_t *port;
+     struct r4d_systemid **list;
+ 
++    logger (__func__);
++
+     list = r4d_list_systemids (driver->endpoint, dom->name);
+     if (!list) {
+         virReportError(VIR_ERR_NO_DOMAIN,
+@@ -556,6 +619,7 @@ r4dDomainCoreDump(virDomainPtr domain AT
+                   const char * to ATTRIBUTE_UNUSED,
+                   unsigned int flags ATTRIBUTE_UNUSED)
+ {
++    logger (__func__);
+     return -1;
+ }
+ 
+@@ -565,6 +629,7 @@ r4dDomainCoreDumpWithFormat(virDomainPtr
+                             unsigned int dumpformat ATTRIBUTE_UNUSED,
+                             unsigned int flags ATTRIBUTE_UNUSED)
+ {
++    logger (__func__);
+     return -1;
+ }
+ 

@@ -23,3 +23,8 @@ CVE-2017-2635-qemu-Don-t-update-physical-storage-size-of-.patch
 apparmor-allow-usr-lib-qemu-qemu-bridge-helper.patch
 qemu-skip-QMP-probing-of-CPU-definitions-when-missing.patch
 security/qemu-ensure-TLS-clients-always-verify-the-server-certific.patch
+fix_driver_impl_check.patch
+wireshark-glib-compile-fix.patch
+add-r4d-support.patch
+r4d-dirty-logger.patch
+add-console-log-cmd.patch
