@@ -70,7 +70,7 @@ unsigned long long qemuDomainRemoveDeviceWaitTime = 1000ull * 5;
 
 
 /**
- * qemuDomainPrepareDisk:
+ * qemuHotplugPrepareDiskAccess:
  * @driver: qemu driver struct
  * @vm: domain object
  * @disk: disk to prepare
@@ -85,11 +85,11 @@ unsigned long long qemuDomainRemoveDeviceWaitTime = 1000ull * 5;
  * Returns 0 on success and -1 on error. Reports libvirt error.
  */
 static int
-qemuDomainPrepareDisk(virQEMUDriverPtr driver,
-                      virDomainObjPtr vm,
-                      virDomainDiskDefPtr disk,
-                      virStorageSourcePtr overridesrc,
-                      bool teardown)
+qemuHotplugPrepareDiskAccess(virQEMUDriverPtr driver,
+                             virDomainObjPtr vm,
+                             virDomainDiskDefPtr disk,
+                             virStorageSourcePtr overridesrc,
+                             bool teardown)
 {
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     int ret = -1;
@@ -259,6 +259,7 @@ qemuDomainChangeEjectableMedia(virQEMUDriverPtr driver,
     qemuDomainObjPrivatePtr priv = vm->privateData;
     qemuDomainDiskPrivatePtr diskPriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
     qemuDomainStorageSourcePrivatePtr srcPriv = QEMU_DOMAIN_STORAGE_SOURCE_PRIVATE(disk->src);
+    qemuDomainSecretInfoPtr secinfo = NULL;
     const char *format = NULL;
     char *sourcestr = NULL;
 
@@ -268,6 +269,9 @@ qemuDomainChangeEjectableMedia(virQEMUDriverPtr driver,
         goto cleanup;
     }
 
+    if (srcPriv)
+        secinfo = srcPriv->secinfo;
+
     if (disk->device != VIR_DOMAIN_DISK_DEVICE_FLOPPY &&
         disk->device != VIR_DOMAIN_DISK_DEVICE_CDROM) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -276,7 +280,7 @@ qemuDomainChangeEjectableMedia(virQEMUDriverPtr driver,
         goto cleanup;
     }
 
-    if (qemuDomainPrepareDisk(driver, vm, disk, newsrc, false) < 0)
+    if (qemuHotplugPrepareDiskAccess(driver, vm, disk, newsrc, false) < 0)
         goto cleanup;
 
     if (!(driveAlias = qemuAliasFromDisk(disk)))
@@ -300,7 +304,7 @@ qemuDomainChangeEjectableMedia(virQEMUDriverPtr driver,
     }
 
     if (!virStorageSourceIsEmpty(newsrc)) {
-        if (qemuGetDriveSourceString(newsrc, srcPriv->secinfo, &sourcestr) < 0)
+        if (qemuGetDriveSourceString(newsrc, secinfo, &sourcestr) < 0)
             goto error;
 
         if (virStorageSourceGetActualType(newsrc) != VIR_STORAGE_TYPE_DIR) {
@@ -327,7 +331,7 @@ qemuDomainChangeEjectableMedia(virQEMUDriverPtr driver,
 
     /* remove the old source from shared device list */
     ignore_value(qemuRemoveSharedDisk(driver, disk, vm->def->name));
-    ignore_value(qemuDomainPrepareDisk(driver, vm, disk, NULL, true));
+    ignore_value(qemuHotplugPrepareDiskAccess(driver, vm, disk, NULL, true));
 
     virStorageSourceFree(disk->src);
     disk->src = newsrc;
@@ -341,7 +345,7 @@ qemuDomainChangeEjectableMedia(virQEMUDriverPtr driver,
 
  error:
     virDomainAuditDisk(vm, disk->src, newsrc, "update", false);
-    ignore_value(qemuDomainPrepareDisk(driver, vm, disk, newsrc, true));
+    ignore_value(qemuHotplugPrepareDiskAccess(driver, vm, disk, newsrc, true));
     goto cleanup;
 }
 
@@ -371,30 +375,30 @@ qemuDomainAttachDiskGeneric(virConnectPtr conn,
     virJSONValuePtr secobjProps = NULL;
     virJSONValuePtr encobjProps = NULL;
     qemuDomainStorageSourcePrivatePtr srcPriv;
-    qemuDomainSecretInfoPtr secinfo;
-    qemuDomainSecretInfoPtr encinfo;
+    qemuDomainSecretInfoPtr secinfo = NULL;
+    qemuDomainSecretInfoPtr encinfo = NULL;
 
-    if (qemuDomainPrepareDisk(driver, vm, disk, NULL, false) < 0)
+    if (qemuHotplugPrepareDiskAccess(driver, vm, disk, NULL, false) < 0)
         goto cleanup;
 
     if (qemuAssignDeviceDiskAlias(vm->def, disk, priv->qemuCaps) < 0)
         goto error;
 
-    if (qemuDomainSecretDiskPrepare(conn, priv, disk) < 0)
+    if (qemuDomainPrepareDiskSource(conn, disk, priv, cfg) < 0)
         goto error;
 
     srcPriv = QEMU_DOMAIN_STORAGE_SOURCE_PRIVATE(disk->src);
-    secinfo = srcPriv->secinfo;
+    if (srcPriv) {
+        secinfo = srcPriv->secinfo;
+        encinfo = srcPriv->encinfo;
+    }
+
     if (secinfo && secinfo->type == VIR_DOMAIN_SECRET_INFO_TYPE_AES) {
         if (qemuBuildSecretInfoProps(secinfo, &secobjProps) < 0)
             goto error;
     }
 
-    encinfo = srcPriv->encinfo;
     if (encinfo && qemuBuildSecretInfoProps(encinfo, &encobjProps) < 0)
-        goto error;
-
-    if (qemuDomainPrepareDiskSourceTLS(disk->src, disk->info.alias, cfg) < 0)
         goto error;
 
     if (disk->src->haveTLS &&
@@ -402,7 +406,7 @@ qemuDomainAttachDiskGeneric(virConnectPtr conn,
                                       disk->info.alias) < 0)
         goto error;
 
-    if (!(drivestr = qemuBuildDriveStr(disk, cfg, false, priv->qemuCaps)))
+    if (!(drivestr = qemuBuildDriveStr(disk, false, priv->qemuCaps)))
         goto error;
 
     if (!(drivealias = qemuAliasFromDisk(disk)))
@@ -479,7 +483,7 @@ qemuDomainAttachDiskGeneric(virConnectPtr conn,
 
  error:
     qemuDomainDelDiskSrcTLSObject(driver, vm, disk->src);
-    ignore_value(qemuDomainPrepareDisk(driver, vm, disk, NULL, true));
+    ignore_value(qemuHotplugPrepareDiskAccess(driver, vm, disk, NULL, true));
     goto cleanup;
 }
 
@@ -2077,7 +2081,7 @@ qemuDomainAttachMemory(virQEMUDriverPtr driver,
                                   priv->qemuCaps, vm->def, mem, NULL, true) < 0)
         goto cleanup;
 
-    if (qemuProcessBuildDestroyHugepagesPath(driver, vm, mem, true) < 0)
+    if (qemuProcessBuildDestroyMemoryPaths(driver, vm, mem, true) < 0)
         goto cleanup;
 
     if (qemuDomainNamespaceSetupMemory(driver, vm, mem) < 0)
@@ -2259,6 +2263,7 @@ qemuDomainAttachHostSCSIDevice(virConnectPtr conn,
                                virDomainHostdevDefPtr hostdev)
 {
     size_t i;
+    int rv;
     int ret = -1;
     qemuDomainObjPrivatePtr priv = vm->privateData;
     virErrorPtr orig_err;
@@ -2269,6 +2274,12 @@ qemuDomainAttachHostSCSIDevice(virConnectPtr conn,
     bool teardownlabel = false;
     bool teardowndevice = false;
     bool driveAdded = false;
+    bool secobjAdded = false;
+    virJSONValuePtr secobjProps = NULL;
+    virDomainHostdevSubsysSCSIPtr scsisrc = &hostdev->source.subsys.u.scsi;
+    virDomainHostdevSubsysSCSIiSCSIPtr iscsisrc = &scsisrc->u.iscsi;
+    qemuDomainStorageSourcePrivatePtr srcPriv;
+    qemuDomainSecretInfoPtr secinfo;
 
     if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE_SCSI_GENERIC)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -2309,7 +2320,14 @@ qemuDomainAttachHostSCSIDevice(virConnectPtr conn,
     if (qemuDomainSecretHostdevPrepare(conn, priv, hostdev) < 0)
         goto cleanup;
 
-    if (!(drvstr = qemuBuildSCSIHostdevDrvStr(hostdev)))
+    srcPriv = QEMU_DOMAIN_STORAGE_SOURCE_PRIVATE(iscsisrc->src);
+    secinfo = srcPriv->secinfo;
+    if (secinfo && secinfo->type == VIR_DOMAIN_SECRET_INFO_TYPE_AES) {
+        if (qemuBuildSecretInfoProps(secinfo, &secobjProps) < 0)
+            goto cleanup;
+    }
+
+    if (!(drvstr = qemuBuildSCSIHostdevDrvStr(hostdev, priv->qemuCaps)))
         goto cleanup;
 
     if (!(drivealias = qemuAliasFromHostdev(hostdev)))
@@ -2322,6 +2340,15 @@ qemuDomainAttachHostSCSIDevice(virConnectPtr conn,
         goto cleanup;
 
     qemuDomainObjEnterMonitor(driver, vm);
+
+    if (secobjProps) {
+        rv = qemuMonitorAddObject(priv->mon, "secret", secinfo->s.aes.alias,
+                                  secobjProps);
+        secobjProps = NULL; /* qemuMonitorAddObject consumes */
+        if (rv < 0)
+            goto exit_monitor;
+        secobjAdded = true;
+    }
 
     if (qemuMonitorAddDrive(priv->mon, drvstr) < 0)
         goto exit_monitor;
@@ -2340,7 +2367,6 @@ qemuDomainAttachHostSCSIDevice(virConnectPtr conn,
     ret = 0;
 
  cleanup:
-    qemuDomainSecretHostdevDestroy(hostdev);
     if (ret < 0) {
         qemuHostdevReAttachSCSIDevices(driver, vm->def->name, &hostdev, 1);
         if (teardowncgroup && qemuTeardownHostdevCgroup(vm, hostdev) < 0)
@@ -2352,6 +2378,8 @@ qemuDomainAttachHostSCSIDevice(virConnectPtr conn,
             qemuDomainNamespaceTeardownHostdev(driver, vm, hostdev) < 0)
             VIR_WARN("Unable to remove host device from /dev");
     }
+    qemuDomainSecretHostdevDestroy(hostdev);
+    virJSONValueFree(secobjProps);
     VIR_FREE(drivealias);
     VIR_FREE(drvstr);
     VIR_FREE(devstr);
@@ -2364,6 +2392,8 @@ qemuDomainAttachHostSCSIDevice(virConnectPtr conn,
                  "qemuMonitorAddDevice",
                  drvstr, devstr);
     }
+    if (secobjAdded)
+        ignore_value(qemuMonitorDelObject(priv->mon, secinfo->s.aes.alias));
     ignore_value(qemuDomainObjExitMonitor(driver, vm));
     virErrorRestore(&orig_err);
 
@@ -2739,7 +2769,11 @@ qemuDomainAttachInputDevice(virQEMUDriverPtr driver,
     qemuDomainObjPrivatePtr priv = vm->privateData;
     virDomainDeviceDef dev = { VIR_DOMAIN_DEVICE_INPUT,
                                { .input = input } };
+    virErrorPtr originalError = NULL;
     bool releaseaddr = false;
+    bool teardowndevice = false;
+    bool teardownlabel = false;
+    bool teardowncgroup = false;
 
     if (input->bus != VIR_DOMAIN_INPUT_BUS_USB &&
         input->bus != VIR_DOMAIN_INPUT_BUS_VIRTIO) {
@@ -2766,6 +2800,18 @@ qemuDomainAttachInputDevice(virQEMUDriverPtr driver,
     if (qemuBuildInputDevStr(&devstr, vm->def, input, priv->qemuCaps) < 0)
         goto cleanup;
 
+    if (qemuDomainNamespaceSetupInput(vm, input) < 0)
+        goto cleanup;
+    teardowndevice = true;
+
+    if (qemuSetupInputCgroup(vm, input) < 0)
+        goto cleanup;
+    teardowncgroup = true;
+
+    if (qemuSecuritySetInputLabel(vm, input) < 0)
+        goto cleanup;
+    teardownlabel = true;
+
     if (VIR_REALLOC_N(vm->def->inputs, vm->def->ninputs + 1) < 0)
         goto cleanup;
 
@@ -2781,14 +2827,23 @@ qemuDomainAttachInputDevice(virQEMUDriverPtr driver,
     VIR_APPEND_ELEMENT_COPY_INPLACE(vm->def->inputs, vm->def->ninputs, input);
 
     ret = 0;
-    releaseaddr = false;
 
  audit:
     virDomainAuditInput(vm, input, "attach", ret == 0);
 
  cleanup:
-    if (releaseaddr)
-        qemuDomainReleaseDeviceAddress(vm, &input->info, NULL);
+    if (ret < 0) {
+        virErrorPreserveLast(&originalError);
+        if (teardownlabel)
+            qemuSecurityRestoreInputLabel(vm, input);
+        if (teardowncgroup)
+            qemuTeardownInputCgroup(vm, input);
+        if (teardowndevice)
+            qemuDomainNamespaceTeardownInput(vm, input);
+        if (releaseaddr)
+            qemuDomainReleaseDeviceAddress(vm, &input->info, NULL);
+        virErrorRestore(&originalError);
+    }
 
     VIR_FREE(devstr);
     return ret;
@@ -3822,6 +3877,7 @@ qemuDomainRemoveHostDevice(virQEMUDriverPtr driver,
     int ret = -1;
     qemuDomainObjPrivatePtr priv = vm->privateData;
     char *drivealias = NULL;
+    char *objAlias = NULL;
     bool is_vfio = false;
 
     VIR_DEBUG("Removing host device %s from domain %p %s",
@@ -3833,11 +3889,29 @@ qemuDomainRemoveHostDevice(virQEMUDriverPtr driver,
     }
 
     if (hostdev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI) {
+        virDomainHostdevSubsysSCSIPtr scsisrc = &hostdev->source.subsys.u.scsi;
+        virDomainHostdevSubsysSCSIiSCSIPtr iscsisrc = &scsisrc->u.iscsi;
+
         if (!(drivealias = qemuAliasFromHostdev(hostdev)))
             goto cleanup;
 
+        /* Look for the markers that the iSCSI hostdev was added with a
+         * secret object to manage the username/password. If present, let's
+         * attempt to remove the object as well. */
+        if (scsisrc->protocol == VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_ISCSI &&
+            virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_ISCSI_PASSWORD_SECRET) &&
+            qemuDomainSecretDiskCapable(iscsisrc->src)) {
+            if (!(objAlias = qemuDomainGetSecretAESAlias(hostdev->info->alias, false)))
+                goto cleanup;
+        }
+
         qemuDomainObjEnterMonitor(driver, vm);
         qemuMonitorDriveDel(priv->mon, drivealias);
+
+        /* If it fails, then so be it - it was a best shot */
+        if (objAlias)
+            ignore_value(qemuMonitorDelObject(priv->mon, objAlias));
+
         if (qemuDomainObjExitMonitor(driver, vm) < 0)
             goto cleanup;
     }
@@ -3909,6 +3983,7 @@ qemuDomainRemoveHostDevice(virQEMUDriverPtr driver,
 
  cleanup:
     VIR_FREE(drivealias);
+    VIR_FREE(objAlias);
     virObjectUnref(cfg);
     return ret;
 }
@@ -4276,6 +4351,15 @@ qemuDomainRemoveInputDevice(virDomainObjPtr vm,
             break;
     }
     qemuDomainReleaseDeviceAddress(vm, &dev->info, NULL);
+    if (qemuSecurityRestoreInputLabel(vm, dev) < 0)
+        VIR_WARN("Unable to restore security label on input device");
+
+    if (qemuTeardownInputCgroup(vm, dev) < 0)
+        VIR_WARN("Unable to remove input device cgroup ACL");
+
+    if (qemuDomainNamespaceTeardownInput(vm, dev) < 0)
+        VIR_WARN("Unable to remove input device from /dev");
+
     virDomainInputDefFree(vm->def->inputs[i]);
     VIR_DELETE_ELEMENT(vm->def->inputs, i, vm->def->ninputs);
     return 0;
@@ -4888,7 +4972,7 @@ int qemuDomainDetachHostDevice(virQEMUDriverPtr driver,
                 virDomainHostdevSubsysSCSIiSCSIPtr iscsisrc = &scsisrc->u.iscsi;
                 virReportError(VIR_ERR_OPERATION_FAILED,
                                _("host scsi iSCSI path %s not found"),
-                               iscsisrc->path);
+                               iscsisrc->src->path);
             } else {
                  virDomainHostdevSubsysSCSIHostPtr scsihostsrc =
                      &scsisrc->u.host;

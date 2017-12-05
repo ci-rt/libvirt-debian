@@ -1258,6 +1258,12 @@ int main(int argc, char **argv) {
         }
     }
 
+    /* Try to claim the pidfile, exiting if we can't */
+    if ((pid_file_fd = virPidFileAcquirePath(pid_file, false, getpid())) < 0) {
+        ret = VIR_DAEMON_ERR_PIDFILE;
+        goto cleanup;
+    }
+
     /* Ensure the rundir exists (on tmpfs on some systems) */
     if (privileged) {
         if (VIR_STRDUP_QUIET(run_dir, LOCALSTATEDIR "/run/libvirt") < 0) {
@@ -1286,13 +1292,12 @@ int main(int argc, char **argv) {
     }
     umask(old_umask);
 
-    /* Try to claim the pidfile, exiting if we can't */
-    if ((pid_file_fd = virPidFileAcquirePath(pid_file, false, getpid())) < 0) {
-        ret = VIR_DAEMON_ERR_PIDFILE;
+    if (virNetlinkStartup() < 0) {
+        ret = VIR_DAEMON_ERR_INIT;
         goto cleanup;
     }
 
-    if (virNetlinkStartup() < 0) {
+    if (!(dmn = virNetDaemonNew())) {
         ret = VIR_DAEMON_ERR_INIT;
         goto cleanup;
     }
@@ -1314,8 +1319,7 @@ int main(int argc, char **argv) {
         goto cleanup;
     }
 
-    if (!(dmn = virNetDaemonNew()) ||
-        virNetDaemonAddServer(dmn, srv) < 0) {
+    if (virNetDaemonAddServer(dmn, srv) < 0) {
         ret = VIR_DAEMON_ERR_INIT;
         goto cleanup;
     }
@@ -1499,15 +1503,33 @@ int main(int argc, char **argv) {
                 0, "shutdown", NULL, NULL);
 
  cleanup:
-    virNetlinkEventServiceStopAll();
-    virObjectUnref(remoteProgram);
-    virObjectUnref(lxcProgram);
-    virObjectUnref(qemuProgram);
-    virObjectUnref(adminProgram);
+    /* Keep cleanup order in inverse order of startup */
     virNetDaemonClose(dmn);
-    virObjectUnref(srv);
+
+    virNetlinkEventServiceStopAll();
+
+    if (driversInitialized) {
+        /* NB: Possible issue with timing window between driversInitialized
+         * setting if virNetlinkEventServerStart fails */
+        driversInitialized = false;
+        virStateCleanup();
+    }
+
+    virObjectUnref(adminProgram);
     virObjectUnref(srvAdm);
+    virObjectUnref(qemuProgram);
+    virObjectUnref(lxcProgram);
+    virObjectUnref(remoteProgram);
+    virObjectUnref(srv);
+    virObjectUnref(dmn);
+
     virNetlinkShutdown();
+
+    if (pid_file_fd != -1)
+        virPidFileReleasePath(pid_file, pid_file_fd);
+
+    VIR_FREE(run_dir);
+
     if (statuswrite != -1) {
         if (ret != 0) {
             /* Tell parent of daemon what failed */
@@ -1518,25 +1540,15 @@ int main(int argc, char **argv) {
         }
         VIR_FORCE_CLOSE(statuswrite);
     }
-    if (pid_file_fd != -1)
-        virPidFileReleasePath(pid_file, pid_file_fd);
 
     VIR_FREE(sock_file);
     VIR_FREE(sock_file_ro);
     VIR_FREE(sock_file_adm);
+
     VIR_FREE(pid_file);
+
     VIR_FREE(remote_config_file);
-    VIR_FREE(run_dir);
-
     daemonConfigFree(config);
-
-    if (driversInitialized) {
-        driversInitialized = false;
-        virStateCleanup();
-    }
-    /* Now that the hypervisor shutdown inhibition functions that use
-     * 'dmn' as a parameter are done, we can finally unref 'dmn' */
-    virObjectUnref(dmn);
 
     return ret;
 }

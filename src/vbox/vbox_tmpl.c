@@ -65,6 +65,8 @@
 # include "vbox_CAPI_v5_0.h"
 #elif VBOX_API_VERSION == 5001000
 # include "vbox_CAPI_v5_1.h"
+#elif VBOX_API_VERSION == 5002000
+# include "vbox_CAPI_v5_2.h"
 #else
 # error "Unsupport VBOX_API_VERSION"
 #endif
@@ -88,31 +90,31 @@ VIR_LOG_INIT("vbox.vbox_tmpl");
 #define vboxUnsupported() \
     VIR_WARN("No %s in current vbox version %d.", __FUNCTION__, VBOX_API_VERSION);
 
-#define VBOX_UTF16_FREE(arg)                                            \
-    do {                                                                \
-        if (arg) {                                                      \
-            data->pFuncs->pfnUtf16Free(arg);                            \
-            (arg) = NULL;                                               \
-        }                                                               \
+#define VBOX_UTF16_FREE(arg) \
+    do { \
+        if (arg) { \
+            data->pFuncs->pfnUtf16Free(arg); \
+            (arg) = NULL; \
+        } \
     } while (0)
 
-#define VBOX_UTF8_FREE(arg)                                             \
-    do {                                                                \
-        if (arg) {                                                      \
-            data->pFuncs->pfnUtf8Free(arg);                             \
-            (arg) = NULL;                                               \
-        }                                                               \
+#define VBOX_UTF8_FREE(arg) \
+    do { \
+        if (arg) { \
+            data->pFuncs->pfnUtf8Free(arg); \
+            (arg) = NULL; \
+        } \
     } while (0)
 
 #define VBOX_UTF16_TO_UTF8(arg1, arg2)  data->pFuncs->pfnUtf16ToUtf8(arg1, arg2)
 #define VBOX_UTF8_TO_UTF16(arg1, arg2)  data->pFuncs->pfnUtf8ToUtf16(arg1, arg2)
 
-#define VBOX_RELEASE(arg)                                                     \
-    do {                                                                      \
-        if (arg) {                                                            \
-            (arg)->vtbl->nsisupports.Release((nsISupports *)(arg));           \
-            (arg) = NULL;                                                     \
-        }                                                                     \
+#define VBOX_RELEASE(arg) \
+    do { \
+        if (arg) { \
+            (arg)->vtbl->nsisupports.Release((nsISupports *)(arg)); \
+            (arg) = NULL; \
+        } \
     } while (0)
 
 #define VBOX_MEDIUM_RELEASE(arg) VBOX_RELEASE(arg)
@@ -400,6 +402,8 @@ _unregisterMachine(vboxDriverPtr data, vboxIID *iid, IMachine **machine)
 {
     nsresult rc;
     vboxArray media = VBOX_ARRAY_INITIALIZER;
+    size_t i;
+
     rc = data->vboxObj->vtbl->FindMachine(data->vboxObj, iid->value, machine);
     if (NS_FAILED(rc)) {
         virReportError(VIR_ERR_NO_DOMAIN, "%s",
@@ -407,12 +411,24 @@ _unregisterMachine(vboxDriverPtr data, vboxIID *iid, IMachine **machine)
         return rc;
     }
 
-    /* We're not interested in the array returned by the Unregister method,
-     * but in the side effect of unregistering the virtual machine. In order
-     * to call the Unregister method correctly we need to use the vboxArray
-     * wrapper here. */
     rc = vboxArrayGetWithUintArg(&media, *machine, (*machine)->vtbl->Unregister,
-                                 CleanupMode_DetachAllReturnNone);
+                                 CleanupMode_DetachAllReturnHardDisksOnly);
+
+    if (NS_FAILED(rc))
+        goto cleanup;
+
+    /* close each medium attached to VM to remove from media registry */
+    for (i = 0; i < media.count; i++) {
+        IMedium *medium = media.items[i];
+
+        if (!medium)
+            continue;
+
+        /* it's ok to ignore failure here - e.g. it may be used by another VM */
+        ignore_value(medium->vtbl->Close(medium));
+    }
+
+ cleanup:
     vboxArrayUnalloc(&media);
     return rc;
 }
@@ -558,6 +574,11 @@ static void* _handleUSBGetDeviceFilters(IUSBCommon *USBCommon)
     return USBCommon->vtbl->GetDeviceFilters;
 }
 
+static void* _handleMachineGetStorageControllers(IMachine *machine)
+{
+    return machine->vtbl->GetStorageControllers;
+}
+
 static void* _handleMachineGetMediumAttachments(IMachine *machine)
 {
     return machine->vtbl->GetMediumAttachments;
@@ -687,7 +708,9 @@ _virtualboxCreateHardDisk(IVirtualBox *vboxObj, PRUnichar *format,
 #if VBOX_API_VERSION < 5000000
     return vboxObj->vtbl->CreateHardDisk(vboxObj, format, location, medium);
 #elif VBOX_API_VERSION >= 5000000 /*VBOX_API_VERSION >= 5000000*/
-    return vboxObj->vtbl->CreateMedium(vboxObj, format, location, AccessMode_ReadWrite, DeviceType_HardDisk, medium);
+    return vboxObj->vtbl->CreateMedium(vboxObj, format, location,
+                                       AccessMode_ReadWrite,
+                                       DeviceType_HardDisk, medium);
 #endif /*VBOX_API_VERSION >= 5000000*/
 }
 
@@ -698,38 +721,33 @@ _virtualboxRegisterMachine(IVirtualBox *vboxObj, IMachine *machine)
 }
 
 static nsresult
-_virtualboxFindHardDisk(IVirtualBox *vboxObj, PRUnichar *location,
-                        PRUint32 deviceType ATTRIBUTE_UNUSED,
+_virtualboxFindHardDisk(IVirtualBox *vboxObj,
+                        PRUnichar *location,
+                        PRUint32 deviceType,
                         PRUint32 accessMode ATTRIBUTE_UNUSED,
                         IMedium **medium)
 {
 #if VBOX_API_VERSION < 4002000
-    return vboxObj->vtbl->FindMedium(vboxObj, location,
-                                     deviceType, medium);
+    return vboxObj->vtbl->FindMedium(vboxObj, location, deviceType, medium);
 #else /* VBOX_API_VERSION >= 4002000 */
-    return vboxObj->vtbl->OpenMedium(vboxObj, location,
-                                     deviceType, accessMode, PR_FALSE, medium);
+    return vboxObj->vtbl->OpenMedium(vboxObj, location, deviceType, accessMode,
+                                     PR_FALSE, medium);
 #endif /* VBOX_API_VERSION >= 4002000 */
 }
 
 static nsresult
-_virtualboxOpenMedium(IVirtualBox *vboxObj ATTRIBUTE_UNUSED,
-                      PRUnichar *location ATTRIBUTE_UNUSED,
-                      PRUint32 deviceType ATTRIBUTE_UNUSED,
-                      PRUint32 accessMode ATTRIBUTE_UNUSED,
-                      IMedium **medium ATTRIBUTE_UNUSED)
+_virtualboxOpenMedium(IVirtualBox *vboxObj,
+                      PRUnichar *location,
+                      PRUint32 deviceType,
+                      PRUint32 accessMode,
+                      IMedium **medium)
 {
 #if VBOX_API_VERSION == 4000000
-    return vboxObj->vtbl->OpenMedium(vboxObj,
-                                     location,
-                                     deviceType, accessMode,
+    return vboxObj->vtbl->OpenMedium(vboxObj, location, deviceType, accessMode,
                                      medium);
 #elif VBOX_API_VERSION >= 4001000
-    return vboxObj->vtbl->OpenMedium(vboxObj,
-                                     location,
-                                     deviceType, accessMode,
-                                     false,
-                                     medium);
+    return vboxObj->vtbl->OpenMedium(vboxObj, location, deviceType, accessMode,
+                                     false, medium);
 #endif
 }
 
@@ -781,12 +799,12 @@ _machineGetStorageControllerByName(IMachine *machine, PRUnichar *name,
 }
 
 static nsresult
-_machineAttachDevice(IMachine *machine ATTRIBUTE_UNUSED,
-                     PRUnichar *name ATTRIBUTE_UNUSED,
-                     PRInt32 controllerPort ATTRIBUTE_UNUSED,
-                     PRInt32 device ATTRIBUTE_UNUSED,
-                     PRUint32 type ATTRIBUTE_UNUSED,
-                     IMedium * medium ATTRIBUTE_UNUSED)
+_machineAttachDevice(IMachine *machine,
+                     PRUnichar *name,
+                     PRInt32 controllerPort,
+                     PRInt32 device,
+                     PRUint32 type,
+                     IMedium * medium)
 {
     return machine->vtbl->AttachDevice(machine, name, controllerPort,
                                        device, type, medium);
@@ -1977,6 +1995,18 @@ _storageControllerGetBus(IStorageController *storageController, PRUint32 *bus)
 }
 
 static nsresult
+_storageControllerGetControllerType(IStorageController *storageController, PRUint32 *controllerType)
+{
+    return storageController->vtbl->GetControllerType(storageController, controllerType);
+}
+
+static nsresult
+_storageControllerSetControllerType(IStorageController *storageController, PRUint32 controllerType)
+{
+    return storageController->vtbl->SetControllerType(storageController, controllerType);
+}
+
+static nsresult
 _sharedFolderGetHostPath(ISharedFolder *sharedFolder, PRUnichar **hostPath)
 {
     return sharedFolder->vtbl->GetHostPath(sharedFolder, hostPath);
@@ -2325,6 +2355,7 @@ static vboxUniformedArray _UArray = {
     .handleGetMachines = _handleGetMachines,
     .handleGetHardDisks = _handleGetHardDisks,
     .handleUSBGetDeviceFilters = _handleUSBGetDeviceFilters,
+    .handleMachineGetStorageControllers = _handleMachineGetStorageControllers,
     .handleMachineGetMediumAttachments = _handleMachineGetMediumAttachments,
     .handleMachineGetSharedFolders = _handleMachineGetSharedFolders,
     .handleSnapshotGetChildren = _handleSnapshotGetChildren,
@@ -2556,6 +2587,8 @@ static vboxUniformedIMediumAttachment _UIMediumAttachment = {
 
 static vboxUniformedIStorageController _UIStorageController = {
     .GetBus = _storageControllerGetBus,
+    .GetControllerType = _storageControllerGetControllerType,
+    .SetControllerType = _storageControllerSetControllerType,
 };
 
 static vboxUniformedISharedFolder _UISharedFolder = {

@@ -927,110 +927,110 @@ mymain(void)
         goto cleanup;
     }
 
-#define DO_TEST(arch, api, name, host, cpu,                             \
-                models, flags, result)                                  \
-    do {                                                                \
-        struct data data = {                                            \
-            arch, host, cpu, models,                                    \
-            models == NULL ? NULL : #models,                            \
-            flags, result                                               \
-        };                                                              \
-        char *testLabel;                                                \
-        char *tmp;                                                      \
-                                                                        \
-        tmp = virTestLogContentAndReset();                              \
-        VIR_FREE(tmp);                                                  \
-                                                                        \
-        if (virAsprintf(&testLabel, "%s(%s): %s",                       \
-                        #api, virArchToString(arch), name) < 0) {       \
-            ret = -1;                                                   \
-            break;                                                      \
-        }                                                               \
-                                                                        \
-        if (virTestRun(testLabel, api, &data) < 0) {                    \
-            if (virTestGetDebug()) {                                    \
-                char *log;                                              \
-                if ((log = virTestLogContentAndReset()) &&              \
-                     strlen(log) > 0)                                   \
-                    VIR_TEST_DEBUG("\n%s\n", log);                      \
-                VIR_FREE(log);                                          \
-            }                                                           \
-            ret = -1;                                                   \
-        }                                                               \
-                                                                        \
-        VIR_FREE(testLabel);                                            \
+#define DO_TEST(arch, api, name, host, cpu, \
+                models, flags, result) \
+    do { \
+        struct data data = { \
+            arch, host, cpu, models, \
+            models == NULL ? NULL : #models, \
+            flags, result \
+        }; \
+        char *testLabel; \
+        char *tmp; \
+ \
+        tmp = virTestLogContentAndReset(); \
+        VIR_FREE(tmp); \
+ \
+        if (virAsprintf(&testLabel, "%s(%s): %s", \
+                        #api, virArchToString(arch), name) < 0) { \
+            ret = -1; \
+            break; \
+        } \
+ \
+        if (virTestRun(testLabel, api, &data) < 0) { \
+            if (virTestGetDebug()) { \
+                char *log; \
+                if ((log = virTestLogContentAndReset()) && \
+                     strlen(log) > 0) \
+                    VIR_TEST_DEBUG("\n%s\n", log); \
+                VIR_FREE(log); \
+            } \
+            ret = -1; \
+        } \
+ \
+        VIR_FREE(testLabel); \
     } while (0)
 
-#define DO_TEST_COMPARE(arch, host, cpu, result)                        \
-    DO_TEST(arch, cpuTestCompare,                                       \
-            host "/" cpu " (" #result ")",                              \
+#define DO_TEST_COMPARE(arch, host, cpu, result) \
+    DO_TEST(arch, cpuTestCompare, \
+            host "/" cpu " (" #result ")", \
             host, cpu, NULL, 0, result)
 
-#define DO_TEST_UPDATE_ONLY(arch, host, cpu)                            \
-    DO_TEST(arch, cpuTestUpdate,                                        \
-            cpu " on " host,                                            \
+#define DO_TEST_UPDATE_ONLY(arch, host, cpu) \
+    DO_TEST(arch, cpuTestUpdate, \
+            cpu " on " host, \
             host, cpu, NULL, 0, 0)
 
-#define DO_TEST_UPDATE(arch, host, cpu, result)                         \
-    do {                                                                \
-        DO_TEST_UPDATE_ONLY(arch, host, cpu);                           \
-        DO_TEST_COMPARE(arch, host, host "+" cpu, result);              \
+#define DO_TEST_UPDATE(arch, host, cpu, result) \
+    do { \
+        DO_TEST_UPDATE_ONLY(arch, host, cpu); \
+        DO_TEST_COMPARE(arch, host, host "+" cpu, result); \
     } while (0)
 
-#define DO_TEST_BASELINE(arch, name, flags, result)                     \
-    do {                                                                \
-        const char *suffix = "";                                        \
-        char *label;                                                    \
-        if ((flags) & VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES)         \
-            suffix = " (expanded)";                                     \
-        if ((flags) & VIR_CONNECT_BASELINE_CPU_MIGRATABLE)              \
-            suffix = " (migratable)";                                   \
-        if (virAsprintf(&label, "%s%s", name, suffix) < 0) {            \
-            ret = -1;                                                   \
-        } else {                                                        \
-            DO_TEST(arch, cpuTestBaseline, label, NULL,                 \
-                    "baseline-" name, NULL, flags, result);             \
-        }                                                               \
-        VIR_FREE(label);                                                \
+#define DO_TEST_BASELINE(arch, name, flags, result) \
+    do { \
+        const char *suffix = ""; \
+        char *label; \
+        if ((flags) & VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES) \
+            suffix = " (expanded)"; \
+        if ((flags) & VIR_CONNECT_BASELINE_CPU_MIGRATABLE) \
+            suffix = " (migratable)"; \
+        if (virAsprintf(&label, "%s%s", name, suffix) < 0) { \
+            ret = -1; \
+        } else { \
+            DO_TEST(arch, cpuTestBaseline, label, NULL, \
+                    "baseline-" name, NULL, flags, result); \
+        } \
+        VIR_FREE(label); \
     } while (0)
 
-#define DO_TEST_HASFEATURE(arch, host, feature, result)                 \
-    DO_TEST(arch, cpuTestHasFeature,                                    \
-            host "/" feature " (" #result ")",                          \
+#define DO_TEST_HASFEATURE(arch, host, feature, result) \
+    DO_TEST(arch, cpuTestHasFeature, \
+            host "/" feature " (" #result ")", \
             host, feature, NULL, 0, result)
 
-#define DO_TEST_GUESTCPU(arch, host, cpu, models, result)               \
-    DO_TEST(arch, cpuTestGuestCPU,                                      \
-            host "/" cpu " (" #models ")",                              \
+#define DO_TEST_GUESTCPU(arch, host, cpu, models, result) \
+    DO_TEST(arch, cpuTestGuestCPU, \
+            host "/" cpu " (" #models ")", \
             host, cpu, models, 0, result)
 
 #if WITH_QEMU && WITH_YAJL
-# define DO_TEST_JSON(arch, host, json)                                 \
-    do {                                                                \
-        if (json == JSON_MODELS) {                                      \
-            DO_TEST(arch, cpuTestGuestCPUID, host, host,                \
-                    NULL, NULL, 0, 0);                                  \
-        }                                                               \
-        if (json != JSON_NONE) {                                        \
-            DO_TEST(arch, cpuTestJSONCPUID, host, host,                 \
-                    NULL, NULL, json, 0);                               \
-        }                                                               \
+# define DO_TEST_JSON(arch, host, json) \
+    do { \
+        if (json == JSON_MODELS) { \
+            DO_TEST(arch, cpuTestGuestCPUID, host, host, \
+                    NULL, NULL, 0, 0); \
+        } \
+        if (json != JSON_NONE) { \
+            DO_TEST(arch, cpuTestJSONCPUID, host, host, \
+                    NULL, NULL, json, 0); \
+        } \
     } while (0)
 #else
 # define DO_TEST_JSON(arch, host, json)
 #endif
 
-#define DO_TEST_CPUID(arch, host, json)                                 \
-    do {                                                                \
-        DO_TEST(arch, cpuTestHostCPUID, host, host,                     \
-                NULL, NULL, 0, 0);                                      \
-        DO_TEST(arch, cpuTestGuestCPUID, host, host,                    \
-                NULL, NULL, json, 0);                                   \
-        DO_TEST_JSON(arch, host, json);                                 \
-        if (json != JSON_NONE) {                                        \
-            DO_TEST(arch, cpuTestUpdateLive, host, host,                \
-                    NULL, NULL, json, 0);                               \
-        }                                                               \
+#define DO_TEST_CPUID(arch, host, json) \
+    do { \
+        DO_TEST(arch, cpuTestHostCPUID, host, host, \
+                NULL, NULL, 0, 0); \
+        DO_TEST(arch, cpuTestGuestCPUID, host, host, \
+                NULL, NULL, json, 0); \
+        DO_TEST_JSON(arch, host, json); \
+        if (json != JSON_NONE) { \
+            DO_TEST(arch, cpuTestUpdateLive, host, host, \
+                    NULL, NULL, json, 0); \
+        } \
     } while (0)
 
     /* host to host comparison */
@@ -1174,6 +1174,7 @@ mymain(void)
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i7-4510U", JSON_HOST);
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i7-5600U", JSON_HOST);
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i7-5600U-arat", JSON_HOST);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Core-i7-7700", JSON_MODELS);
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Core2-E6850", JSON_HOST);
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Core2-Q9500", JSON_NONE);
     DO_TEST_CPUID(VIR_ARCH_X86_64, "EPYC-7601-32-Core", JSON_HOST);
@@ -1186,12 +1187,13 @@ mymain(void)
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Phenom-B95", JSON_HOST);
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Ryzen-7-1800X-Eight-Core", JSON_HOST);
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-5110", JSON_NONE);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-E3-1245", JSON_MODELS);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-E5-2630", JSON_HOST);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-E5-2650", JSON_HOST);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-E3-1245-v5", JSON_MODELS);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-E5-2630-v3", JSON_HOST);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-E5-2650-v3", JSON_HOST);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-E5-2650-v4", JSON_MODELS);
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-E7-4820", JSON_HOST);
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-E7-4830", JSON_MODELS_REQUIRED);
-    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-E7-8890", JSON_MODELS);
+    DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-E7-8890-v3", JSON_MODELS);
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-Gold-6148", JSON_HOST);
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-W3520", JSON_HOST);
     DO_TEST_CPUID(VIR_ARCH_X86_64, "Xeon-X5460", JSON_NONE);

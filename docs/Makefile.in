@@ -1891,34 +1891,34 @@ top_srcdir = @top_srcdir@
 ws_plugindir = @ws_plugindir@
 DEVHELP_DIR = $(datadir)/gtk-doc/html/libvirt
 apihtml = \
-  html/index.html				\
+  html/index.html \
   $(apihtml_generated)
 
 apihtml_generated = \
-  html/libvirt-libvirt-common.html		\
-  html/libvirt-libvirt-domain.html		\
-  html/libvirt-libvirt-domain-snapshot.html	\
-  html/libvirt-libvirt-event.html		\
-  html/libvirt-libvirt-host.html		\
-  html/libvirt-libvirt-interface.html		\
-  html/libvirt-libvirt-network.html		\
-  html/libvirt-libvirt-nodedev.html		\
-  html/libvirt-libvirt-nwfilter.html		\
-  html/libvirt-libvirt-secret.html		\
-  html/libvirt-libvirt-storage.html		\
-  html/libvirt-libvirt-stream.html		\
+  html/libvirt-libvirt-common.html \
+  html/libvirt-libvirt-domain.html \
+  html/libvirt-libvirt-domain-snapshot.html \
+  html/libvirt-libvirt-event.html \
+  html/libvirt-libvirt-host.html \
+  html/libvirt-libvirt-interface.html \
+  html/libvirt-libvirt-network.html \
+  html/libvirt-libvirt-nodedev.html \
+  html/libvirt-libvirt-nwfilter.html \
+  html/libvirt-libvirt-secret.html \
+  html/libvirt-libvirt-storage.html \
+  html/libvirt-libvirt-stream.html \
   html/libvirt-virterror.html
 
 apipng = \
-  html/left.png	\
-  html/up.png	\
-  html/home.png	\
+  html/left.png \
+  html/up.png \
+  html/home.png \
   html/right.png
 
 devhelphtml = \
-  devhelp/libvirt.devhelp	\
-  devhelp/index.html		\
-  devhelp/general.html		\
+  devhelp/libvirt.devhelp \
+  devhelp/index.html \
+  devhelp/general.html \
   devhelp/libvirt-virterror.html
 
 css = \
@@ -1942,9 +1942,9 @@ fonts = \
   fonts/overpass-regular.woff
 
 devhelppng = \
-  devhelp/home.png	\
-  devhelp/left.png	\
-  devhelp/right.png	\
+  devhelp/home.png \
+  devhelp/left.png \
+  devhelp/right.png \
   devhelp/up.png
 
 devhelpcss = devhelp/style.css

@@ -118,20 +118,20 @@ struct _qemuMonitor {
  * the function if not. The macro also adds a debug statement regarding the
  * monitor.
  */
-#define QEMU_CHECK_MONITOR_FULL(mon, force_json, exit)                         \
-    do {                                                                       \
-        if (!mon) {                                                            \
-            virReportError(VIR_ERR_INVALID_ARG, "%s",                          \
-                           _("monitor must not be NULL"));                     \
-            exit;                                                              \
-        }                                                                      \
-        VIR_DEBUG("mon:%p vm:%p json:%d fd:%d",                                \
-                  mon, mon->vm, mon->json, mon->fd);                           \
-        if (force_json && !mon->json) {                                        \
-            virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",                \
-                           _("JSON monitor is required"));                     \
-            exit;                                                              \
-        }                                                                      \
+#define QEMU_CHECK_MONITOR_FULL(mon, force_json, exit) \
+    do { \
+        if (!mon) { \
+            virReportError(VIR_ERR_INVALID_ARG, "%s", \
+                           _("monitor must not be NULL")); \
+            exit; \
+        } \
+        VIR_DEBUG("mon:%p vm:%p json:%d fd:%d", \
+                  mon, mon->vm, mon->json, mon->fd); \
+        if (force_json && !mon->json) { \
+            virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s", \
+                           _("JSON monitor is required")); \
+            exit; \
+        } \
     } while (0)
 
 /* Check monitor and return NULL on error */
@@ -1289,15 +1289,15 @@ qemuMonitorHMPCommandWithFd(qemuMonitorPtr mon,
 
 
 /* Ensure proper locking around callbacks.  */
-#define QEMU_MONITOR_CALLBACK(mon, ret, callback, ...)          \
-    do {                                                        \
-        virObjectRef(mon);                                      \
-        virObjectUnlock(mon);                                   \
-        if ((mon)->cb && (mon)->cb->callback)                   \
-            (ret) = (mon)->cb->callback(mon, __VA_ARGS__,       \
+#define QEMU_MONITOR_CALLBACK(mon, ret, callback, ...) \
+    do { \
+        virObjectRef(mon); \
+        virObjectUnlock(mon); \
+        if ((mon)->cb && (mon)->cb->callback) \
+            (ret) = (mon)->cb->callback(mon, __VA_ARGS__, \
                                         (mon)->callbackOpaque); \
-        virObjectLock(mon);                                     \
-        virObjectUnref(mon);                                    \
+        virObjectLock(mon); \
+        virObjectUnref(mon); \
     } while (0)
 
 
@@ -2606,26 +2606,20 @@ qemuMonitorSetMigrationParams(qemuMonitorPtr mon,
 {
     VIR_DEBUG("compressLevel=%d:%d compressThreads=%d:%d "
               "decompressThreads=%d:%d cpuThrottleInitial=%d:%d "
-              "cpuThrottleIncrement=%d:%d tlsAlias=%s "
-              "tlsHostname=%s",
+              "cpuThrottleIncrement=%d:%d tlsCreds=%s tlsHostname=%s "
+              "maxBandwidth=%d:%llu downtimeLimit=%d:%llu "
+              "blockIncremental=%d:%d",
               params->compressLevel_set, params->compressLevel,
               params->compressThreads_set, params->compressThreads,
               params->decompressThreads_set, params->decompressThreads,
               params->cpuThrottleInitial_set, params->cpuThrottleInitial,
               params->cpuThrottleIncrement_set, params->cpuThrottleIncrement,
-              NULLSTR(params->migrateTLSAlias),
-              NULLSTR(params->migrateTLSHostname));
+              NULLSTR(params->tlsCreds), NULLSTR(params->tlsHostname),
+              params->maxBandwidth_set, params->maxBandwidth,
+              params->downtimeLimit_set, params->downtimeLimit,
+              params->blockIncremental_set, params->blockIncremental);
 
     QEMU_CHECK_MONITOR_JSON(mon);
-
-    if (!params->compressLevel_set &&
-        !params->compressThreads_set &&
-        !params->decompressThreads_set &&
-        !params->cpuThrottleInitial_set &&
-        !params->cpuThrottleIncrement_set &&
-        !params->migrateTLSAlias &&
-        !params->migrateTLSHostname)
-        return 0;
 
     return qemuMonitorJSONSetMigrationParams(mon, params);
 }

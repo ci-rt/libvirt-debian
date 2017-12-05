@@ -80,7 +80,11 @@ bool virBitmapIsBitSet(virBitmapPtr bitmap, size_t b)
 int virBitmapGetBit(virBitmapPtr bitmap, size_t b, bool *result)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(3) ATTRIBUTE_RETURN_CHECK;
 
-char *virBitmapString(virBitmapPtr bitmap)
+virBitmapPtr
+virBitmapNewString(const char *string)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
+
+char *virBitmapToString(virBitmapPtr bitmap, bool prefix, bool trim)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
 
 char *virBitmapFormat(virBitmapPtr bitmap);
@@ -136,8 +140,8 @@ ssize_t virBitmapNextClearBit(virBitmapPtr bitmap, ssize_t pos)
 size_t virBitmapCountBits(virBitmapPtr bitmap)
     ATTRIBUTE_NONNULL(1);
 
-char *virBitmapDataToString(const void *data,
-                            int len)
+char *virBitmapDataFormat(const void *data,
+                          int len)
     ATTRIBUTE_NONNULL(1);
 bool virBitmapOverlaps(virBitmapPtr b1,
                        virBitmapPtr b2)
@@ -145,5 +149,10 @@ bool virBitmapOverlaps(virBitmapPtr b1,
 
 void virBitmapIntersect(virBitmapPtr a, virBitmapPtr b)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+void virBitmapSubtract(virBitmapPtr a, virBitmapPtr b)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+void virBitmapShrink(virBitmapPtr map, size_t b);
 
 #endif

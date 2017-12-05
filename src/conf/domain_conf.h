@@ -357,10 +357,7 @@ struct _virDomainHostdevSubsysSCSIHost {
 typedef struct _virDomainHostdevSubsysSCSIiSCSI virDomainHostdevSubsysSCSIiSCSI;
 typedef virDomainHostdevSubsysSCSIiSCSI *virDomainHostdevSubsysSCSIiSCSIPtr;
 struct _virDomainHostdevSubsysSCSIiSCSI {
-    char *path;
-    size_t nhosts;
-    virStorageNetHostDefPtr hosts;
-    virStorageAuthDefPtr auth;
+    virStorageSourcePtr src;
 };
 
 typedef struct _virDomainHostdevSubsysSCSI virDomainHostdevSubsysSCSI;
@@ -442,7 +439,6 @@ struct _virDomainHostdevCaps {
 /* basic device for direct passthrough */
 struct _virDomainHostdevDef {
     virDomainDeviceDef parent; /* higher level Def containing this */
-    virObjectPtr privateData;
 
     int mode; /* enum virDomainHostdevMode */
     int startupPolicy; /* enum virDomainStartupPolicy */
@@ -747,6 +743,14 @@ typedef enum {
 
     VIR_DOMAIN_CONTROLLER_MODEL_USB_LAST
 } virDomainControllerModelUSB;
+
+typedef enum {
+    VIR_DOMAIN_CONTROLLER_MODEL_IDE_PIIX3,
+    VIR_DOMAIN_CONTROLLER_MODEL_IDE_PIIX4,
+    VIR_DOMAIN_CONTROLLER_MODEL_IDE_ICH6,
+
+    VIR_DOMAIN_CONTROLLER_MODEL_IDE_LAST
+} virDomainControllerModelIDE;
 
 # define IS_USB2_CONTROLLER(ctrl) \
     (((ctrl)->type == VIR_DOMAIN_CONTROLLER_TYPE_USB) && \
@@ -1073,9 +1077,13 @@ typedef enum {
 } virDomainChrDeviceType;
 
 typedef enum {
-    VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_ISA = 0,
+    VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_NONE = 0,
+    VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_ISA,
     VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_USB,
     VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_PCI,
+    VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_SPAPR_VIO,
+    VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_SYSTEM,
+    VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_SCLP,
 
     VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_LAST
 } virDomainChrSerialTargetType;
@@ -1102,6 +1110,21 @@ typedef enum {
 
     VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_LAST
 } virDomainChrConsoleTargetType;
+
+typedef enum {
+    VIR_DOMAIN_CHR_SERIAL_TARGET_MODEL_NONE = 0,
+    VIR_DOMAIN_CHR_SERIAL_TARGET_MODEL_ISA_SERIAL,
+    VIR_DOMAIN_CHR_SERIAL_TARGET_MODEL_USB_SERIAL,
+    VIR_DOMAIN_CHR_SERIAL_TARGET_MODEL_PCI_SERIAL,
+    VIR_DOMAIN_CHR_SERIAL_TARGET_MODEL_SPAPR_VTY,
+    VIR_DOMAIN_CHR_SERIAL_TARGET_MODEL_PL011,
+    VIR_DOMAIN_CHR_SERIAL_TARGET_MODEL_SCLPCONSOLE,
+    VIR_DOMAIN_CHR_SERIAL_TARGET_MODEL_SCLPLMCONSOLE,
+
+    VIR_DOMAIN_CHR_SERIAL_TARGET_MODEL_LAST
+} virDomainChrSerialTargetModel;
+
+VIR_ENUM_DECL(virDomainChrSerialTargetModel);
 
 typedef enum {
     VIR_DOMAIN_CHR_TYPE_NULL,
@@ -1198,10 +1221,10 @@ struct _virDomainChrSourceDef {
 struct _virDomainChrDef {
     int deviceType; /* enum virDomainChrDeviceType */
 
-    bool targetTypeAttr;
     int targetType; /* enum virDomainChrConsoleTargetType ||
                        enum virDomainChrChannelTargetType ||
                        enum virDomainChrSerialTargetType according to deviceType */
+    int targetModel; /* enum virDomainChrSerialTargetModel */
 
     union {
         int port; /* parallel, serial, console */
@@ -1715,6 +1738,8 @@ typedef enum {
     VIR_DOMAIN_FEATURE_GIC,
     VIR_DOMAIN_FEATURE_SMM,
     VIR_DOMAIN_FEATURE_IOAPIC,
+    VIR_DOMAIN_FEATURE_HPT,
+    VIR_DOMAIN_FEATURE_VMCOREINFO,
 
     VIR_DOMAIN_FEATURE_LAST
 } virDomainFeature;
@@ -1842,6 +1867,16 @@ typedef enum {
 } virDomainIOAPIC;
 
 VIR_ENUM_DECL(virDomainIOAPIC);
+
+typedef enum {
+    VIR_DOMAIN_HPT_RESIZING_ENABLED = 0,
+    VIR_DOMAIN_HPT_RESIZING_DISABLED,
+    VIR_DOMAIN_HPT_RESIZING_REQUIRED,
+
+    VIR_DOMAIN_HPT_RESIZING_LAST
+} virDomainHPTResizing;
+
+VIR_ENUM_DECL(virDomainHPTResizing);
 
 /* Operating system configuration data & machine / arch */
 typedef struct _virDomainOSEnv virDomainOSEnv;
@@ -2315,6 +2350,7 @@ struct _virDomainDef {
     virGICVersion gic_version;
     char *hyperv_vendor_id;
     virDomainIOAPIC ioapic;
+    virDomainHPTResizing hpt_resizing;
 
     /* These options are of type virTristateSwitch: ON = keep, OFF = drop */
     int caps_features[VIR_DOMAIN_CAPS_FEATURE_LAST];
@@ -2436,6 +2472,7 @@ typedef enum {
     VIR_DOMAIN_TAINT_HOOK,             /* Domain (possibly) changed via hook script */
     VIR_DOMAIN_TAINT_CDROM_PASSTHROUGH,/* CDROM passthrough */
     VIR_DOMAIN_TAINT_CUSTOM_DTB,       /* Custom device tree blob was specified */
+    VIR_DOMAIN_TAINT_CUSTOM_GA_COMMAND, /* Custom guest agent command */
 
     VIR_DOMAIN_TAINT_LAST
 } virDomainTaintFlags;
@@ -2602,7 +2639,6 @@ struct _virDomainXMLPrivateDataCallbacks {
     /* note that private data for devices are not copied when using
      * virDomainDefCopy and similar functions */
     virDomainXMLPrivateDataNewFunc    diskNew;
-    virDomainXMLPrivateDataNewFunc    hostdevNew;
     virDomainXMLPrivateDataNewFunc    vcpuNew;
     virDomainXMLPrivateDataNewFunc    chrSourceNew;
     virDomainXMLPrivateDataFormatFunc format;
@@ -2642,6 +2678,8 @@ int virDomainDefPostParse(virDomainDefPtr def,
 int virDomainDeviceValidateAliasForHotplug(virDomainObjPtr vm,
                                            virDomainDeviceDefPtr dev,
                                            unsigned int flags);
+
+bool virDomainDeviceAliasIsUserAlias(const char *aliasStr);
 
 int virDomainDefValidate(virDomainDefPtr def,
                          virCapsPtr caps,
@@ -2684,6 +2722,7 @@ int virDomainObjWaitUntil(virDomainObjPtr vm,
 void virDomainPanicDefFree(virDomainPanicDefPtr panic);
 void virDomainResourceDefFree(virDomainResourceDefPtr resource);
 void virDomainGraphicsDefFree(virDomainGraphicsDefPtr def);
+const char *virDomainInputDefGetPath(virDomainInputDefPtr input);
 void virDomainInputDefFree(virDomainInputDefPtr def);
 virDomainDiskDefPtr virDomainDiskDefNew(virDomainXMLOptionPtr xmlopt);
 void virDomainDiskDefFree(virDomainDiskDefPtr def);
@@ -2727,7 +2766,7 @@ void virDomainNVRAMDefFree(virDomainNVRAMDefPtr def);
 void virDomainWatchdogDefFree(virDomainWatchdogDefPtr def);
 virDomainVideoDefPtr virDomainVideoDefNew(void);
 void virDomainVideoDefFree(virDomainVideoDefPtr def);
-virDomainHostdevDefPtr virDomainHostdevDefNew(virDomainXMLOptionPtr xmlopt);
+virDomainHostdevDefPtr virDomainHostdevDefNew(void);
 void virDomainHostdevDefClear(virDomainHostdevDefPtr def);
 void virDomainHostdevDefFree(virDomainHostdevDefPtr def);
 void virDomainHubDefFree(virDomainHubDefPtr def);
@@ -3219,6 +3258,7 @@ VIR_ENUM_DECL(virDomainControllerModelPCI)
 VIR_ENUM_DECL(virDomainControllerPCIModelName)
 VIR_ENUM_DECL(virDomainControllerModelSCSI)
 VIR_ENUM_DECL(virDomainControllerModelUSB)
+VIR_ENUM_DECL(virDomainControllerModelIDE)
 VIR_ENUM_DECL(virDomainFS)
 VIR_ENUM_DECL(virDomainFSDriver)
 VIR_ENUM_DECL(virDomainFSAccessMode)
@@ -3366,7 +3406,7 @@ int virDomainDefGetVcpuPinInfoHelper(virDomainDefPtr def,
 
 bool virDomainDefHasMemballoon(const virDomainDef *def) ATTRIBUTE_NONNULL(1);
 
-char *virDomainObjGetShortName(const virDomainDef *def) ATTRIBUTE_NONNULL(1);
+char *virDomainDefGetShortName(const virDomainDef *def) ATTRIBUTE_NONNULL(1);
 
 int
 virDomainGetBlkioParametersAssignFromDef(virDomainDefPtr def,
@@ -3382,40 +3422,9 @@ virDomainGenerateMachineName(const char *drivername,
                              int id,
                              const char *name,
                              bool privileged);
-/**
- * virDomainNetTypeSharesHostView:
- * @net: interface
- *
- * Some types of interfaces "share" the host view. For instance,
- * for macvtap interface, every domain RX is the host RX too. And
- * every domain TX is host TX too. IOW, for some types of
- * interfaces guest and host are on the same side of RX/TX
- * barrier. This is important so that we set up QoS correctly and
- * report proper stats.
- */
-static inline bool
-virDomainNetTypeSharesHostView(const virDomainNetDef *net)
-{
-    virDomainNetType actualType = virDomainNetGetActualType(net);
-    switch (actualType) {
-    case VIR_DOMAIN_NET_TYPE_DIRECT:
-    case VIR_DOMAIN_NET_TYPE_ETHERNET:
-        return true;
-    case VIR_DOMAIN_NET_TYPE_USER:
-    case VIR_DOMAIN_NET_TYPE_VHOSTUSER:
-    case VIR_DOMAIN_NET_TYPE_SERVER:
-    case VIR_DOMAIN_NET_TYPE_CLIENT:
-    case VIR_DOMAIN_NET_TYPE_MCAST:
-    case VIR_DOMAIN_NET_TYPE_NETWORK:
-    case VIR_DOMAIN_NET_TYPE_BRIDGE:
-    case VIR_DOMAIN_NET_TYPE_INTERNAL:
-    case VIR_DOMAIN_NET_TYPE_HOSTDEV:
-    case VIR_DOMAIN_NET_TYPE_UDP:
-    case VIR_DOMAIN_NET_TYPE_LAST:
-        break;
-    }
-    return false;
-}
+
+bool
+virDomainNetTypeSharesHostView(const virDomainNetDef *net);
 
 bool
 virDomainDefLifecycleActionAllowed(virDomainLifecycle type,

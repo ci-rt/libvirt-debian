@@ -391,6 +391,80 @@ qemuBlockGetNodeData(virJSONValuePtr data)
 
 
 /**
+ * qemuBlockStorageSourceSupportsConcurrentAccess:
+ * @src: disk storage source
+ *
+ * Returns true if the given storage format supports concurrent access from two
+ * separate processes.
+ */
+bool
+qemuBlockStorageSourceSupportsConcurrentAccess(virStorageSourcePtr src)
+{
+    /* no need to check in backing chain since only RAW storage supports this */
+    return src->format == VIR_STORAGE_FILE_RAW;
+}
+
+
+/**
+ * qemuBlockStorageSourceGetURI:
+ * @src: disk storage source
+ *
+ * Formats a URI from a virStorageSource.
+ */
+virURIPtr
+qemuBlockStorageSourceGetURI(virStorageSourcePtr src)
+{
+    virURIPtr uri = NULL;
+    virURIPtr ret = NULL;
+
+    if (src->nhosts != 1) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("protocol '%s' accepts only one host"),
+                       virStorageNetProtocolTypeToString(src->protocol));
+        goto cleanup;
+    }
+
+    if (VIR_ALLOC(uri) < 0)
+        goto cleanup;
+
+    if (src->hosts->transport == VIR_STORAGE_NET_HOST_TRANS_TCP) {
+        uri->port = src->hosts->port;
+
+        if (VIR_STRDUP(uri->scheme,
+                       virStorageNetProtocolTypeToString(src->protocol)) < 0)
+            goto cleanup;
+    } else {
+        if (virAsprintf(&uri->scheme, "%s+%s",
+                        virStorageNetProtocolTypeToString(src->protocol),
+                        virStorageNetHostTransportTypeToString(src->hosts->transport)) < 0)
+            goto cleanup;
+    }
+
+    if (src->path) {
+        if (src->volume) {
+            if (virAsprintf(&uri->path, "/%s/%s",
+                            src->volume, src->path) < 0)
+                goto cleanup;
+        } else {
+            if (virAsprintf(&uri->path, "%s%s",
+                            src->path[0] == '/' ? "" : "/",
+                            src->path) < 0)
+                goto cleanup;
+        }
+    }
+
+    if (VIR_STRDUP(uri->server, src->hosts->name) < 0)
+        goto cleanup;
+
+    VIR_STEAL_PTR(ret, uri);
+
+ cleanup:
+    virURIFree(uri);
+    return ret;
+}
+
+
+/**
  * qemuBlockStorageSourceBuildJSONSocketAddress
  * @host: the virStorageNetHostDefPtr definition to build
  * @legacy: use 'tcp' instead of 'inet' for compatibility reasons
@@ -501,10 +575,86 @@ qemuBlockStorageSourceBuildHostsJSONSocketAddress(virStorageSourcePtr src,
 }
 
 
+/**
+ * qemuBlockStorageSourceBuildJSONInetSocketAddress
+ * @host: the virStorageNetHostDefPtr definition to build
+ *
+ * Formats @hosts into a json object conforming to the 'InetSocketAddress' type
+ * in qemu.
+ *
+ * Returns a virJSONValuePtr for a single server.
+ */
+static virJSONValuePtr
+qemuBlockStorageSourceBuildJSONInetSocketAddress(virStorageNetHostDefPtr host)
+{
+    virJSONValuePtr ret = NULL;
+    char *port = NULL;
+
+    if (host->transport != VIR_STORAGE_NET_HOST_TRANS_TCP) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("only TCP protocol can be converted to InetSocketAddress"));
+        return NULL;
+    }
+
+    if (virAsprintf(&port, "%u", host->port) < 0)
+        return NULL;
+
+    ignore_value(virJSONValueObjectCreate(&ret,
+                                          "s:host", host->name,
+                                          "s:port", port,
+                                          NULL));
+
+    VIR_FREE(port);
+    return ret;
+}
+
+
+/**
+ * qemuBlockStorageSourceBuildHostsJSONInetSocketAddress:
+ * @src: disk storage source
+ *
+ * Formats src->hosts into a json object conforming to the 'InetSocketAddress'
+ * type in qemu.
+ */
+static virJSONValuePtr
+qemuBlockStorageSourceBuildHostsJSONInetSocketAddress(virStorageSourcePtr src)
+{
+    virJSONValuePtr servers = NULL;
+    virJSONValuePtr server = NULL;
+    virJSONValuePtr ret = NULL;
+    virStorageNetHostDefPtr host;
+    size_t i;
+
+    if (!(servers = virJSONValueNewArray()))
+        goto cleanup;
+
+    for (i = 0; i < src->nhosts; i++) {
+        host = src->hosts + i;
+
+        if (!(server = qemuBlockStorageSourceBuildJSONInetSocketAddress(host)))
+            goto cleanup;
+
+        if (virJSONValueArrayAppend(servers, server) < 0)
+            goto cleanup;
+
+        server = NULL;
+    }
+
+    VIR_STEAL_PTR(ret, servers);
+
+ cleanup:
+    virJSONValueFree(servers);
+    virJSONValueFree(server);
+
+    return ret;
+}
+
+
 static virJSONValuePtr
 qemuBlockStorageSourceGetGlusterProps(virStorageSourcePtr src)
 {
     virJSONValuePtr servers = NULL;
+    virJSONValuePtr props = NULL;
     virJSONValuePtr ret = NULL;
 
     if (!(servers = qemuBlockStorageSourceBuildHostsJSONSocketAddress(src, true)))
@@ -516,12 +666,24 @@ qemuBlockStorageSourceGetGlusterProps(virStorageSourcePtr src)
       *   server :[{type:"tcp", host:"1.2.3.4", port:24007},
       *            {type:"unix", socket:"/tmp/glusterd.socket"}, ...]}
       */
-    if (virJSONValueObjectCreate(&ret,
+    if (virJSONValueObjectCreate(&props,
                                  "s:driver", "gluster",
                                  "s:volume", src->volume,
                                  "s:path", src->path,
                                  "a:server", servers, NULL) < 0)
-          virJSONValueFree(servers);
+        goto cleanup;
+
+    servers = NULL;
+
+    if (src->debug &&
+        virJSONValueObjectAdd(props, "u:debug", src->debugLevel, NULL) < 0)
+        goto cleanup;
+
+    VIR_STEAL_PTR(ret, props);
+
+ cleanup:
+    virJSONValueFree(servers);
+    virJSONValueFree(props);
 
     return ret;
 }
@@ -540,7 +702,7 @@ qemuBlockStorageSourceGetVxHSProps(virStorageSourcePtr src)
         return NULL;
     }
 
-    if (!(server = qemuBlockStorageSourceBuildJSONSocketAddress(src->hosts, true)))
+    if (!(server = qemuBlockStorageSourceBuildJSONInetSocketAddress(&src->hosts[0])))
         return NULL;
 
     /* VxHS disk specification example:
@@ -556,6 +718,264 @@ qemuBlockStorageSourceGetVxHSProps(virStorageSourcePtr src)
                                  "a:server", server, NULL) < 0)
         virJSONValueFree(server);
 
+    return ret;
+}
+
+
+static virJSONValuePtr
+qemuBlockStorageSourceGetCURLProps(virStorageSourcePtr src)
+{
+    qemuDomainStorageSourcePrivatePtr srcPriv = QEMU_DOMAIN_STORAGE_SOURCE_PRIVATE(src);
+    const char *passwordalias = NULL;
+    const char *username = NULL;
+    virJSONValuePtr ret = NULL;
+    virURIPtr uri = NULL;
+    char *uristr = NULL;
+    const char *driver;
+
+    /**
+     * Common options:
+     * url, readahead, timeout, username, password-secret, proxy-username,
+     * proxy-password-secret
+     *
+     * Options for http transport:
+     * cookie, cookie-secret
+     *
+     * Options for secure transport (ftps, https):
+     * sslverify
+     */
+
+    driver = virStorageNetProtocolTypeToString(src->protocol);
+
+    if (!(uri = qemuBlockStorageSourceGetURI(src)))
+        goto cleanup;
+
+    if (!(uristr = virURIFormat(uri)))
+        goto cleanup;
+
+    if (src->auth) {
+        username = src->auth->username;
+        passwordalias = srcPriv->secinfo->s.aes.alias;
+    }
+
+    ignore_value(virJSONValueObjectCreate(&ret,
+                                          "s:driver", driver,
+                                          "s:url", uristr,
+                                          "S:username", username,
+                                          "S:password-secret", passwordalias,
+                                          NULL));
+
+ cleanup:
+    virURIFree(uri);
+    VIR_FREE(uristr);
+
+    return ret;
+}
+
+
+static virJSONValuePtr
+qemuBlockStorageSourceGetISCSIProps(virStorageSourcePtr src)
+{
+    qemuDomainStorageSourcePrivatePtr srcPriv = QEMU_DOMAIN_STORAGE_SOURCE_PRIVATE(src);
+    const char *protocol = virStorageNetProtocolTypeToString(src->protocol);
+    char *target = NULL;
+    char *lunStr = NULL;
+    char *username = NULL;
+    char *objalias = NULL;
+    char *portal = NULL;
+    unsigned int lun = 0;
+    virJSONValuePtr ret = NULL;
+
+    /* { driver:"iscsi",
+     *   transport:"tcp",  ("iser" also possible)
+     *   portal:"example.com",
+     *   target:"iqn.2017-04.com.example:iscsi-disks",
+     *   lun:1,
+     *   user:"username",
+     *   password-secret:"secret-alias",
+     * }
+     */
+
+    if (VIR_STRDUP(target, src->path) < 0)
+        goto cleanup;
+
+    /* Separate the target and lun */
+    if ((lunStr = strchr(target, '/'))) {
+        *(lunStr++) = '\0';
+        if (virStrToLong_ui(lunStr, NULL, 10, &lun) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("cannot parse target for lunStr '%s'"),
+                           target);
+            goto cleanup;
+        }
+    }
+
+    /* combine host and port into portal */
+    if (virSocketAddrNumericFamily(src->hosts[0].name) == AF_INET6) {
+        if (virAsprintf(&portal, "[%s]:%u",
+                        src->hosts[0].name, src->hosts[0].port) < 0)
+            goto cleanup;
+    } else {
+        if (virAsprintf(&portal, "%s:%u",
+                        src->hosts[0].name, src->hosts[0].port) < 0)
+            goto cleanup;
+    }
+
+    if (src->auth) {
+        username = src->auth->username;
+        objalias = srcPriv->secinfo->s.aes.alias;
+    }
+
+    ignore_value(virJSONValueObjectCreate(&ret,
+                                          "s:driver", protocol,
+                                          "s:portal", portal,
+                                          "s:target", target,
+                                          "u:lun", lun,
+                                          "s:transport", "tcp",
+                                          "S:user", username,
+                                          "S:password-secret", objalias,
+                                          NULL));
+        goto cleanup;
+
+ cleanup:
+    VIR_FREE(target);
+    VIR_FREE(portal);
+    return ret;
+}
+
+
+static virJSONValuePtr
+qemuBlockStorageSourceGetNBDProps(virStorageSourcePtr src)
+{
+    virJSONValuePtr serverprops;
+    virJSONValuePtr ret = NULL;
+
+    if (src->nhosts != 1) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("nbd protocol accepts only one host"));
+        return NULL;
+    }
+
+    serverprops = qemuBlockStorageSourceBuildJSONSocketAddress(&src->hosts[0],
+                                                               false);
+    if (!serverprops)
+        return NULL;
+
+    if (virJSONValueObjectCreate(&ret,
+                                 "s:driver", "nbd",
+                                 "a:server", serverprops,
+                                 "S:export", src->path,
+                                 "S:tls-creds", src->tlsAlias,
+                                 NULL) < 0)
+        goto cleanup;
+
+    serverprops = NULL;
+
+ cleanup:
+    virJSONValueFree(serverprops);
+    return ret;
+}
+
+
+static virJSONValuePtr
+qemuBlockStorageSourceGetRBDProps(virStorageSourcePtr src)
+{
+    qemuDomainStorageSourcePrivatePtr srcPriv = QEMU_DOMAIN_STORAGE_SOURCE_PRIVATE(src);
+    virJSONValuePtr servers = NULL;
+    virJSONValuePtr ret = NULL;
+    const char *username = NULL;
+
+    if (src->nhosts > 0 &&
+        !(servers = qemuBlockStorageSourceBuildHostsJSONInetSocketAddress(src)))
+        return NULL;
+
+    if (src->auth)
+        username = srcPriv->secinfo->s.aes.username;
+
+    if (virJSONValueObjectCreate(&ret,
+                                 "s:driver", "rbd",
+                                 "s:pool", src->volume,
+                                 "s:image", src->path,
+                                 "S:snapshot", src->snapshot,
+                                 "S:conf", src->configFile,
+                                 "A:server", servers,
+                                 "S:user", username,
+                                 NULL) < 0)
+        goto cleanup;
+
+    servers = NULL;
+
+ cleanup:
+    virJSONValueFree(servers);
+    return ret;
+}
+
+
+static virJSONValuePtr
+qemuBlockStorageSourceGetSheepdogProps(virStorageSourcePtr src)
+{
+    virJSONValuePtr serverprops;
+    virJSONValuePtr ret = NULL;
+
+    if (src->nhosts != 1) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("sheepdog protocol accepts only one host"));
+        return NULL;
+    }
+
+    serverprops = qemuBlockStorageSourceBuildJSONSocketAddress(&src->hosts[0],
+                                                               false);
+    if (!serverprops)
+        return NULL;
+
+    /* libvirt does not support the 'snap-id' and 'tag' properties */
+    if (virJSONValueObjectCreate(&ret,
+                                 "s:driver", "sheepdog",
+                                 "a:server", serverprops,
+                                 "s:vdi", src->path,
+                                 NULL) < 0)
+        goto cleanup;
+
+    serverprops = NULL;
+
+ cleanup:
+    virJSONValueFree(serverprops);
+    return ret;
+}
+
+
+static virJSONValuePtr
+qemuBlockStorageSourceGetSshProps(virStorageSourcePtr src)
+{
+    virJSONValuePtr serverprops;
+    virJSONValuePtr ret = NULL;
+    const char *username = NULL;
+
+    if (src->nhosts != 1) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("sheepdog protocol accepts only one host"));
+        return NULL;
+    }
+
+    serverprops = qemuBlockStorageSourceBuildJSONInetSocketAddress(&src->hosts[0]);
+    if (!serverprops)
+        return NULL;
+
+    if (src->auth)
+        username = src->auth->username;
+
+    if (virJSONValueObjectCreate(&ret,
+                                 "s:driver", "ssh",
+                                 "s:path", src->path,
+                                 "a:server", serverprops,
+                                 "S:user", username,
+                                 NULL) < 0)
+        goto cleanup;
+
+    serverprops = NULL;
+
+ cleanup:
+    virJSONValueFree(serverprops);
     return ret;
 }
 
@@ -586,7 +1006,7 @@ qemuBlockStorageSourceGetBackendProps(virStorageSourcePtr src)
     case VIR_STORAGE_TYPE_VOLUME:
     case VIR_STORAGE_TYPE_NONE:
     case VIR_STORAGE_TYPE_LAST:
-        break;
+        return NULL;
 
     case VIR_STORAGE_TYPE_NETWORK:
         switch ((virStorageNetProtocol) src->protocol) {
@@ -600,21 +1020,50 @@ qemuBlockStorageSourceGetBackendProps(virStorageSourcePtr src)
                 return NULL;
             break;
 
-        case VIR_STORAGE_NET_PROTOCOL_NBD:
-        case VIR_STORAGE_NET_PROTOCOL_RBD:
-        case VIR_STORAGE_NET_PROTOCOL_SHEEPDOG:
-        case VIR_STORAGE_NET_PROTOCOL_ISCSI:
         case VIR_STORAGE_NET_PROTOCOL_HTTP:
         case VIR_STORAGE_NET_PROTOCOL_HTTPS:
         case VIR_STORAGE_NET_PROTOCOL_FTP:
         case VIR_STORAGE_NET_PROTOCOL_FTPS:
         case VIR_STORAGE_NET_PROTOCOL_TFTP:
+            if (!(fileprops = qemuBlockStorageSourceGetCURLProps(src)))
+                return NULL;
+            break;
+
+        case VIR_STORAGE_NET_PROTOCOL_ISCSI:
+            if (!(fileprops = qemuBlockStorageSourceGetISCSIProps(src)))
+                return NULL;
+            break;
+
+        case VIR_STORAGE_NET_PROTOCOL_NBD:
+            if (!(fileprops = qemuBlockStorageSourceGetNBDProps(src)))
+                return NULL;
+            break;
+
+        case VIR_STORAGE_NET_PROTOCOL_RBD:
+            if (!(fileprops = qemuBlockStorageSourceGetRBDProps(src)))
+                return NULL;
+            break;
+
+        case VIR_STORAGE_NET_PROTOCOL_SHEEPDOG:
+            if (!(fileprops = qemuBlockStorageSourceGetSheepdogProps(src)))
+                return NULL;
+            break;
+
         case VIR_STORAGE_NET_PROTOCOL_SSH:
+            if (!(fileprops = qemuBlockStorageSourceGetSshProps(src)))
+                return NULL;
+            break;
+
         case VIR_STORAGE_NET_PROTOCOL_NONE:
         case VIR_STORAGE_NET_PROTOCOL_LAST:
-            break;
+            return NULL;
         }
         break;
+    }
+
+    if (virJSONValueObjectAdd(fileprops, "S:node-name", src->nodestorage, NULL) < 0) {
+        virJSONValueFree(fileprops);
+        return NULL;
     }
 
     return fileprops;

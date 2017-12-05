@@ -363,4 +363,14 @@ int qemuGetDomainHupageMemPath(const virDomainDef *def,
                                virQEMUDriverConfigPtr cfg,
                                unsigned long long pagesize,
                                char **memPath);
+
+int qemuGetMemoryBackingBasePath(virQEMUDriverConfigPtr cfg,
+                                 char **path);
+int qemuGetMemoryBackingDomainPath(const virDomainDef *def,
+                                   virQEMUDriverConfigPtr cfg,
+                                   char **path);
+int qemuGetMemoryBackingPath(const virDomainDef *def,
+                             virQEMUDriverConfigPtr cfg,
+                             const char *alias,
+                             char **memPath);
 #endif /* __QEMUD_CONF_H */

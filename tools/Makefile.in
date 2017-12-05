@@ -456,8 +456,8 @@ wireshark_src_libvirt_la_OBJECTS =  \
 	$(nodist_wireshark_src_libvirt_la_OBJECTS)
 wireshark_src_libvirt_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
-	$(AM_CFLAGS) $(CFLAGS) $(wireshark_src_libvirt_la_LDFLAGS) \
-	$(LDFLAGS) -o $@
+	$(wireshark_src_libvirt_la_CFLAGS) $(CFLAGS) \
+	$(wireshark_src_libvirt_la_LDFLAGS) $(LDFLAGS) -o $@
 @WITH_WIRESHARK_DISSECTOR_TRUE@am_wireshark_src_libvirt_la_rpath =  \
 @WITH_WIRESHARK_DISSECTOR_TRUE@	-rpath $(ws_plugindir)
 @WITH_LOGIN_SHELL_TRUE@am__EXEEXT_1 = virt-login-shell$(EXEEXT)
@@ -2110,16 +2110,23 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 ws_plugindir = @ws_plugindir@
 INCLUDES = \
-	-I$(top_builddir)/include -I$(top_srcdir)/include	\
-	-I$(top_builddir)/gnulib/lib -I$(top_srcdir)/gnulib/lib	\
-	-I$(top_builddir)/src -I$(top_srcdir)/src		\
-	-I$(top_srcdir)/src/util				\
-	-I$(top_srcdir)						\
+	-I$(top_builddir)/include -I$(top_srcdir)/include \
+	-I$(top_builddir)/gnulib/lib -I$(top_srcdir)/gnulib/lib \
+	-I$(top_builddir)/src -I$(top_srcdir)/src \
+	-I$(top_srcdir)/src/util \
+	-I$(top_srcdir) \
 	$(GETTEXT_CPPFLAGS)
 
+AM_CFLAGS = \
+	$(WARN_CFLAGS) \
+	$(COVERAGE_CFLAGS) \
+	$(PIE_CFLAGS) \
+	$(LIBXML_CFLAGS) \
+	$(NULL)
+
 AM_LDFLAGS = \
-	$(RELRO_LDFLAGS)					\
-	$(NO_INDIRECT_LDFLAGS)					\
+	$(RELRO_LDFLAGS) \
+	$(NO_INDIRECT_LDFLAGS) \
 	$(NULL)
 
 ICON_FILES = \
@@ -2173,23 +2180,21 @@ man1_MANS = virt-pki-validate.1 virt-xml-validate.1 virsh.1 \
 @WITH_SANLOCK_TRUE@man8_MANS = virt-sanlock-cleanup.8
 noinst_LTLIBRARIES = libvirt_shell.la $(am__append_17)
 libvirt_shell_la_CFLAGS = \
-		$(AM_CFLAGS)						\
-		$(PIE_CFLAGS)						\
-		$(READLINE_CFLAGS)					\
-		$(LIBXML_CFLAGS)					\
+		$(AM_CFLAGS) \
+		$(READLINE_CFLAGS) \
 		$(NULL)
 
 libvirt_shell_la_LDFLAGS = \
-		$(AM_LDFLAGS)						\
-		$(PIE_LDFLAGS)						\
-		$(COVERAGE_LDFLAGS)					\
+		$(AM_LDFLAGS) \
+		$(PIE_LDFLAGS) \
+		$(COVERAGE_LDFLAGS) \
 		$(NULL)
 
 libvirt_shell_la_LIBADD = \
-		$(LIBXML_LIBS)						\
-		$(READLINE_LIBS)					\
-		../src/libvirt.la					\
-		../gnulib/lib/libgnu.la				\
+		$(LIBXML_LIBS) \
+		$(READLINE_LIBS) \
+		../src/libvirt.la \
+		../gnulib/lib/libgnu.la \
 		$(NULL)
 
 libvirt_shell_la_SOURCES = vsh.c vsh.h
@@ -2215,15 +2220,12 @@ virt_host_validate_LDFLAGS = \
 		$(NULL)
 
 virt_host_validate_LDADD = \
-		../src/libvirt.la				\
-		../gnulib/lib/libgnu.la				\
+		../src/libvirt.la \
+		../gnulib/lib/libgnu.la \
 		$(NULL)
 
 virt_host_validate_CFLAGS = \
-		$(LIBXML_CFLAGS)				\
-		$(WARN_CFLAGS)					\
-		$(PIE_CFLAGS)					\
-		$(COVERAGE_CFLAGS)				\
+		$(AM_CFLAGS) \
 		$(NULL)
 
 
@@ -2236,85 +2238,77 @@ virt_login_shell_SOURCES = \
 		virt-login-shell.c
 
 virt_login_shell_LDFLAGS = \
-		$(AM_LDFLAGS) 					\
-		$(PIE_LDFLAGS)					\
-		$(COVERAGE_LDFLAGS)				\
+		$(AM_LDFLAGS) \
+		$(PIE_LDFLAGS) \
+		$(COVERAGE_LDFLAGS) \
 		$(NULL)
 
 virt_login_shell_LDADD = \
-		$(STATIC_BINARIES)				\
-		../src/libvirt-setuid-rpc-client.la		\
+		$(STATIC_BINARIES) \
+		../src/libvirt-setuid-rpc-client.la \
 		../gnulib/lib/libgnu.la
 
 virt_login_shell_CFLAGS = \
-		-DLIBVIRT_SETUID_RPC_CLIENT			\
-		$(LIBXML_CFLAGS)				\
-		$(WARN_CFLAGS)					\
-		$(PIE_CFLAGS)					\
-		$(COVERAGE_CFLAGS)
+		-DLIBVIRT_SETUID_RPC_CLIENT \
+		$(AM_CFLAGS) \
+		$(NULL)
 
 virsh_SOURCES = \
-		virsh.c virsh.h					\
-		virsh-console.c virsh-console.h			\
-		virsh-domain.c virsh-domain.h			\
-		virsh-domain-monitor.c virsh-domain-monitor.h	\
-		virsh-host.c virsh-host.h			\
-		virsh-interface.c virsh-interface.h		\
-		virsh-network.c virsh-network.h			\
-		virsh-nodedev.c virsh-nodedev.h			\
-		virsh-nwfilter.c virsh-nwfilter.h		\
-		virsh-pool.c virsh-pool.h			\
-		virsh-secret.c virsh-secret.h			\
-		virsh-snapshot.c virsh-snapshot.h		\
-		virsh-util.c virsh-util.h			\
-		virsh-volume.c virsh-volume.h			\
+		virsh.c virsh.h \
+		virsh-console.c virsh-console.h \
+		virsh-domain.c virsh-domain.h \
+		virsh-domain-monitor.c virsh-domain-monitor.h \
+		virsh-host.c virsh-host.h \
+		virsh-interface.c virsh-interface.h \
+		virsh-network.c virsh-network.h \
+		virsh-nodedev.c virsh-nodedev.h \
+		virsh-nwfilter.c virsh-nwfilter.h \
+		virsh-pool.c virsh-pool.h \
+		virsh-secret.c virsh-secret.h \
+		virsh-snapshot.c virsh-snapshot.h \
+		virsh-util.c virsh-util.h \
+		virsh-volume.c virsh-volume.h \
 		$(NULL)
 
 virsh_LDFLAGS = \
-		$(AM_LDFLAGS) 					\
-		$(PIE_LDFLAGS)					\
-		$(COVERAGE_LDFLAGS)				\
+		$(AM_LDFLAGS) \
+		$(PIE_LDFLAGS) \
+		$(COVERAGE_LDFLAGS) \
 		$(NULL)
 
 virsh_LDADD = $(STATIC_BINARIES) ../src/libvirt-lxc.la \
 	../src/libvirt-qemu.la libvirt_shell.la $(am__append_13)
 virsh_CFLAGS = \
-		$(WARN_CFLAGS)					\
-		$(PIE_CFLAGS)					\
-		$(COVERAGE_CFLAGS)				\
-		$(LIBXML_CFLAGS)				\
+		$(AM_CFLAGS) \
 		$(READLINE_CFLAGS)
 
 virt_admin_SOURCES = \
-		virt-admin.c virt-admin.h			\
+		virt-admin.c virt-admin.h \
 		$(NULL)
 
 virt_admin_LDFLAGS = \
-		$(AM_LDFLAGS)					\
-		$(COVERAGE_LDFLAGS)				\
-		$(STATIC_BINARIES)				\
-		$(PIE_LDFLAGS)					\
+		$(AM_LDFLAGS) \
+		$(COVERAGE_LDFLAGS) \
+		$(STATIC_BINARIES) \
+		$(PIE_LDFLAGS) \
 		$(NULL)
 
 virt_admin_LDADD = \
-		../src/libvirt-admin.la				\
-		libvirt_shell.la				\
-		$(LIBXML_LIBS)					\
+		../src/libvirt-admin.la \
+		libvirt_shell.la \
+		$(LIBXML_LIBS) \
 		$(NULL)
 
 virt_admin_CFLAGS = \
-		$(WARN_CFLAGS)					\
-		$(PIE_CFLAGS)					\
-		$(COVERAGE_CFLAGS)				\
-		$(LIBXML_CFLAGS)				\
+		$(AM_CFLAGS) \
 		$(READLINE_CFLAGS)
 
 BUILT_SOURCES = $(am__append_14) libvirt-guests.sh $(am__append_15)
 POD2MAN = pod2man -c "Virtualization Support" -r "$(PACKAGE)-$(VERSION)"
 SYSTEMD_UNIT_DIR = $(prefix)/lib/systemd/system
 @WITH_WIRESHARK_DISSECTOR_TRUE@ws_plugin_LTLIBRARIES = wireshark/src/libvirt.la
-@WITH_WIRESHARK_DISSECTOR_TRUE@wireshark_src_libvirt_la_CPPFLAGS = \
-@WITH_WIRESHARK_DISSECTOR_TRUE@	-I wireshark/src $(WIRESHARK_DISSECTOR_CFLAGS)
+@WITH_WIRESHARK_DISSECTOR_TRUE@wireshark_src_libvirt_la_CFLAGS = \
+@WITH_WIRESHARK_DISSECTOR_TRUE@	-I wireshark/src $(WIRESHARK_DISSECTOR_CFLAGS) $(XDR_CFLAGS)
 
 @WITH_WIRESHARK_DISSECTOR_TRUE@wireshark_src_libvirt_la_LDFLAGS = -avoid-version -module
 @WITH_WIRESHARK_DISSECTOR_TRUE@nodist_wireshark_src_libvirt_la_SOURCES = wireshark/src/plugin.c
@@ -2343,27 +2337,24 @@ SYSTEMD_UNIT_DIR = $(prefix)/lib/systemd/system
 @WITH_BSD_NSS_FALSE@NSS_SO_VER = 2
 @WITH_BSD_NSS_TRUE@NSS_SO_VER = 1
 LIBVIRT_NSS_SOURCES = \
-	nss/libvirt_nss.c	\
+	nss/libvirt_nss.c \
 	nss/libvirt_nss.h
 
 @WITH_NSS_TRUE@nss_libnss_libvirt_impl_la_SOURCES = \
 @WITH_NSS_TRUE@	$(LIBVIRT_NSS_SOURCES)
 
 @WITH_NSS_TRUE@nss_libnss_libvirt_impl_la_CFLAGS = \
-@WITH_NSS_TRUE@	-DLIBVIRT_NSS		\
-@WITH_NSS_TRUE@	$(AM_CFLAGS)		\
-@WITH_NSS_TRUE@	$(WARN_CFLAGS)		\
-@WITH_NSS_TRUE@	$(PIE_CFLAGS)		\
-@WITH_NSS_TRUE@	$(COVERAGE_CFLAGS)	\
-@WITH_NSS_TRUE@	$(LIBXML_CFLAGS)
+@WITH_NSS_TRUE@	-DLIBVIRT_NSS \
+@WITH_NSS_TRUE@	$(AM_CFLAGS) \
+@WITH_NSS_TRUE@	$(NULL)
 
 @WITH_NSS_TRUE@nss_libnss_libvirt_impl_la_LIBADD = \
-@WITH_NSS_TRUE@	../gnulib/lib/libgnu.la		\
+@WITH_NSS_TRUE@	../gnulib/lib/libgnu.la \
 @WITH_NSS_TRUE@	../src/libvirt-nss.la
 
 @WITH_NSS_TRUE@nss_libnss_libvirt_la_SOURCES = 
 @WITH_NSS_TRUE@nss_libnss_libvirt_la_LDFLAGS = \
-@WITH_NSS_TRUE@	$(VERSION_SCRIPT_FLAGS)$(LIBVIRT_NSS_SYMBOL_FILE)	\
+@WITH_NSS_TRUE@	$(VERSION_SCRIPT_FLAGS)$(LIBVIRT_NSS_SYMBOL_FILE) \
 @WITH_NSS_TRUE@	$(AM_LDFLAGS) \
 @WITH_NSS_TRUE@	-module \
 @WITH_NSS_TRUE@	-export-dynamic \
@@ -2378,21 +2369,18 @@ LIBVIRT_NSS_SOURCES = \
 @WITH_NSS_TRUE@	$(LIBVIRT_NSS_SOURCES)
 
 @WITH_NSS_TRUE@nss_libnss_libvirt_guest_impl_la_CFLAGS = \
-@WITH_NSS_TRUE@	-DLIBVIRT_NSS		\
-@WITH_NSS_TRUE@	-DLIBVIRT_NSS_GUEST	\
-@WITH_NSS_TRUE@	$(AM_CFLAGS)		\
-@WITH_NSS_TRUE@	$(WARN_CFLAGS)		\
-@WITH_NSS_TRUE@	$(PIE_CFLAGS)		\
-@WITH_NSS_TRUE@	$(COVERAGE_CFLAGS)	\
-@WITH_NSS_TRUE@	$(LIBXML_CFLAGS)
+@WITH_NSS_TRUE@	-DLIBVIRT_NSS \
+@WITH_NSS_TRUE@	-DLIBVIRT_NSS_GUEST \
+@WITH_NSS_TRUE@	$(AM_CFLAGS) \
+@WITH_NSS_TRUE@	$(NULL)
 
 @WITH_NSS_TRUE@nss_libnss_libvirt_guest_impl_la_LIBADD = \
-@WITH_NSS_TRUE@	../gnulib/lib/libgnu.la		\
+@WITH_NSS_TRUE@	../gnulib/lib/libgnu.la \
 @WITH_NSS_TRUE@	../src/libvirt-nss.la
 
 @WITH_NSS_TRUE@nss_libnss_libvirt_guest_la_SOURCES = 
 @WITH_NSS_TRUE@nss_libnss_libvirt_guest_la_LDFLAGS = \
-@WITH_NSS_TRUE@	$(VERSION_SCRIPT_FLAGS)$(LIBVIRT_GUEST_NSS_SYMBOL_FILE)	\
+@WITH_NSS_TRUE@	$(VERSION_SCRIPT_FLAGS)$(LIBVIRT_GUEST_NSS_SYMBOL_FILE) \
 @WITH_NSS_TRUE@	$(AM_LDFLAGS) \
 @WITH_NSS_TRUE@	-module \
 @WITH_NSS_TRUE@	-export-dynamic \
@@ -2816,18 +2804,18 @@ nss/nss_libnss_libvirt_impl_la-libvirt_nss.lo: nss/libvirt_nss.c
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nss_libnss_libvirt_impl_la_CFLAGS) $(CFLAGS) -c -o nss/nss_libnss_libvirt_impl_la-libvirt_nss.lo `test -f 'nss/libvirt_nss.c' || echo '$(srcdir)/'`nss/libvirt_nss.c
 
 wireshark/src/wireshark_src_libvirt_la-packet-libvirt.lo: wireshark/src/packet-libvirt.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(wireshark_src_libvirt_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT wireshark/src/wireshark_src_libvirt_la-packet-libvirt.lo -MD -MP -MF wireshark/src/$(DEPDIR)/wireshark_src_libvirt_la-packet-libvirt.Tpo -c -o wireshark/src/wireshark_src_libvirt_la-packet-libvirt.lo `test -f 'wireshark/src/packet-libvirt.c' || echo '$(srcdir)/'`wireshark/src/packet-libvirt.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(wireshark_src_libvirt_la_CFLAGS) $(CFLAGS) -MT wireshark/src/wireshark_src_libvirt_la-packet-libvirt.lo -MD -MP -MF wireshark/src/$(DEPDIR)/wireshark_src_libvirt_la-packet-libvirt.Tpo -c -o wireshark/src/wireshark_src_libvirt_la-packet-libvirt.lo `test -f 'wireshark/src/packet-libvirt.c' || echo '$(srcdir)/'`wireshark/src/packet-libvirt.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wireshark/src/$(DEPDIR)/wireshark_src_libvirt_la-packet-libvirt.Tpo wireshark/src/$(DEPDIR)/wireshark_src_libvirt_la-packet-libvirt.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wireshark/src/packet-libvirt.c' object='wireshark/src/wireshark_src_libvirt_la-packet-libvirt.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(wireshark_src_libvirt_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o wireshark/src/wireshark_src_libvirt_la-packet-libvirt.lo `test -f 'wireshark/src/packet-libvirt.c' || echo '$(srcdir)/'`wireshark/src/packet-libvirt.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(wireshark_src_libvirt_la_CFLAGS) $(CFLAGS) -c -o wireshark/src/wireshark_src_libvirt_la-packet-libvirt.lo `test -f 'wireshark/src/packet-libvirt.c' || echo '$(srcdir)/'`wireshark/src/packet-libvirt.c
 
 wireshark/src/wireshark_src_libvirt_la-plugin.lo: wireshark/src/plugin.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(wireshark_src_libvirt_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT wireshark/src/wireshark_src_libvirt_la-plugin.lo -MD -MP -MF wireshark/src/$(DEPDIR)/wireshark_src_libvirt_la-plugin.Tpo -c -o wireshark/src/wireshark_src_libvirt_la-plugin.lo `test -f 'wireshark/src/plugin.c' || echo '$(srcdir)/'`wireshark/src/plugin.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(wireshark_src_libvirt_la_CFLAGS) $(CFLAGS) -MT wireshark/src/wireshark_src_libvirt_la-plugin.lo -MD -MP -MF wireshark/src/$(DEPDIR)/wireshark_src_libvirt_la-plugin.Tpo -c -o wireshark/src/wireshark_src_libvirt_la-plugin.lo `test -f 'wireshark/src/plugin.c' || echo '$(srcdir)/'`wireshark/src/plugin.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wireshark/src/$(DEPDIR)/wireshark_src_libvirt_la-plugin.Tpo wireshark/src/$(DEPDIR)/wireshark_src_libvirt_la-plugin.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wireshark/src/plugin.c' object='wireshark/src/wireshark_src_libvirt_la-plugin.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(wireshark_src_libvirt_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o wireshark/src/wireshark_src_libvirt_la-plugin.lo `test -f 'wireshark/src/plugin.c' || echo '$(srcdir)/'`wireshark/src/plugin.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(wireshark_src_libvirt_la_CFLAGS) $(CFLAGS) -c -o wireshark/src/wireshark_src_libvirt_la-plugin.lo `test -f 'wireshark/src/plugin.c' || echo '$(srcdir)/'`wireshark/src/plugin.c
 
 virsh-virsh.o: virsh.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -MT virsh-virsh.o -MD -MP -MF $(DEPDIR)/virsh-virsh.Tpo -c -o virsh-virsh.o `test -f 'virsh.c' || echo '$(srcdir)/'`virsh.c
@@ -3571,15 +3559,15 @@ uninstall-initscript:
 @LIBVIRT_INIT_SCRIPT_RED_HAT_FALSE@uninstall-init:
 
 libvirt-guests.sh: libvirt-guests.sh.in $(top_builddir)/config.status
-	$(AM_V_GEN)sed						\
-	    -e 's|[@]PACKAGE[@]|$(PACKAGE)|g'			\
-	    -e 's|[@]bindir[@]|$(bindir)|g'			\
-	    -e 's|[@]localedir[@]|$(localedir)|g'		\
-	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
-	    -e 's|[@]sbindir[@]|$(sbindir)|g'			\
-	    -e 's|[@]sysconfdir[@]|$(sysconfdir)|g'		\
-	    < $< > $@-t &&					\
-	    chmod a+x $@-t &&					\
+	$(AM_V_GEN)sed \
+	    -e 's|[@]PACKAGE[@]|$(PACKAGE)|g' \
+	    -e 's|[@]bindir[@]|$(bindir)|g' \
+	    -e 's|[@]localedir[@]|$(localedir)|g' \
+	    -e 's|[@]localstatedir[@]|$(localstatedir)|g' \
+	    -e 's|[@]sbindir[@]|$(sbindir)|g' \
+	    -e 's|[@]sysconfdir[@]|$(sysconfdir)|g' \
+	    < $< > $@-t && \
+	    chmod a+x $@-t && \
 	    mv $@-t $@
 
 libvirt-guests.init: libvirt-guests.init.in libvirt-guests.sh
@@ -3602,15 +3590,15 @@ libvirt-guests.init: libvirt-guests.init.in libvirt-guests.sh
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_FALSE@uninstall-systemd:
 
 libvirt-guests.service: libvirt-guests.service.in $(top_builddir)/config.status
-	$(AM_V_GEN)sed						\
-	    -e 's|[@]PACKAGE[@]|$(PACKAGE)|g'			\
-	    -e 's|[@]bindir[@]|$(bindir)|g'			\
-	    -e 's|[@]localedir[@]|$(localedir)|g'		\
-	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
-	    -e 's|[@]sbindir[@]|$(sbindir)|g'			\
-	    -e 's|[@]sysconfdir[@]|$(sysconfdir)|g'		\
-	    -e 's|[@]libexecdir[@]|$(libexecdir)|g'		\
-	    < $< > $@-t &&					\
+	$(AM_V_GEN)sed \
+	    -e 's|[@]PACKAGE[@]|$(PACKAGE)|g' \
+	    -e 's|[@]bindir[@]|$(bindir)|g' \
+	    -e 's|[@]localedir[@]|$(localedir)|g' \
+	    -e 's|[@]localstatedir[@]|$(localstatedir)|g' \
+	    -e 's|[@]sbindir[@]|$(sbindir)|g' \
+	    -e 's|[@]sysconfdir[@]|$(sysconfdir)|g' \
+	    -e 's|[@]libexecdir[@]|$(libexecdir)|g' \
+	    < $< > $@-t && \
 	    mv $@-t $@
 
 @WITH_WIRESHARK_DISSECTOR_TRUE@wireshark/src/packet-libvirt.c: wireshark/src/packet-libvirt.h \

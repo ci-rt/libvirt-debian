@@ -631,6 +631,7 @@ qemuStateInitialize(bool privileged,
     uid_t run_uid = -1;
     gid_t run_gid = -1;
     char *hugepagePath = NULL;
+    char *memoryBackingPath = NULL;
     size_t i;
 
     if (VIR_ALLOC(qemu_driver) < 0)
@@ -889,13 +890,29 @@ qemuStateInitialize(bool privileged,
         VIR_FREE(hugepagePath);
     }
 
+    if (qemuGetMemoryBackingBasePath(cfg, &memoryBackingPath) < 0)
+        goto error;
+
+    if (virFileMakePath(memoryBackingPath) < 0) {
+        virReportSystemError(errno,
+                             _("unable to create memory backing path %s"),
+                             memoryBackingPath);
+        goto error;
+    }
+
+    if (privileged &&
+        virFileUpdatePerm(memoryBackingPath,
+                          0, S_IXGRP | S_IXOTH) < 0)
+        goto error;
+    VIR_FREE(memoryBackingPath);
+
     if (!(qemu_driver->closeCallbacks = virCloseCallbacksNew()))
         goto error;
 
     /* Get all the running persistent or transient configs first */
     if (virDomainObjListLoadAllConfigs(qemu_driver->domains,
                                        cfg->stateDir,
-                                       NULL, 1,
+                                       NULL, true,
                                        qemu_driver->caps,
                                        qemu_driver->xmlopt,
                                        NULL, NULL) < 0)
@@ -917,7 +934,7 @@ qemuStateInitialize(bool privileged,
     /* Then inactive persistent configs */
     if (virDomainObjListLoadAllConfigs(qemu_driver->domains,
                                        cfg->configDir,
-                                       cfg->autostartDir, 0,
+                                       cfg->autostartDir, false,
                                        qemu_driver->caps,
                                        qemu_driver->xmlopt,
                                        NULL, NULL) < 0)
@@ -946,6 +963,7 @@ qemuStateInitialize(bool privileged,
     virObjectUnref(conn);
     VIR_FREE(driverConf);
     VIR_FREE(hugepagePath);
+    VIR_FREE(memoryBackingPath);
     qemuStateCleanup();
     return -1;
 }
@@ -998,7 +1016,7 @@ qemuStateReload(void)
     cfg = virQEMUDriverGetConfig(qemu_driver);
     virDomainObjListLoadAllConfigs(qemu_driver->domains,
                                    cfg->configDir,
-                                   cfg->autostartDir, 0,
+                                   cfg->autostartDir, false,
                                    caps, qemu_driver->xmlopt,
                                    qemuNotifyLoadDomain, qemu_driver);
  cleanup:
@@ -4080,7 +4098,7 @@ getAutoDumpPath(virQEMUDriverPtr driver,
                 virDomainObjPtr vm)
 {
     char *dumpfile = NULL;
-    char *domname = virDomainObjGetShortName(vm->def);
+    char *domname = virDomainDefGetShortName(vm->def);
     char timestr[100];
     struct tm time_info;
     time_t curtime = time(NULL);
@@ -7936,7 +7954,7 @@ qemuDomainAttachDeviceConfig(virDomainDefPtr vmdef,
         }
         if (virStorageTranslateDiskSourcePool(conn, disk) < 0)
             return -1;
-        if (qemuCheckDiskConfig(disk) < 0)
+        if (qemuCheckDiskConfig(disk, NULL) < 0)
             return -1;
         if (virDomainDiskInsert(vmdef, disk))
             return -1;
@@ -9443,11 +9461,11 @@ qemuDomainSetMemoryParameters(virDomainPtr dom,
         goto endjob;
     }
 
-#define VIR_GET_LIMIT_PARAMETER(PARAM, VALUE)                                \
-    if ((rc = virTypedParamsGetULLong(params, nparams, PARAM, &VALUE)) < 0)  \
-        goto endjob;                                                         \
-                                                                             \
-    if (rc == 1)                                                             \
+#define VIR_GET_LIMIT_PARAMETER(PARAM, VALUE) \
+    if ((rc = virTypedParamsGetULLong(params, nparams, PARAM, &VALUE)) < 0) \
+        goto endjob; \
+ \
+    if (rc == 1) \
         set_ ## VALUE = true;
 
     VIR_GET_LIMIT_PARAMETER(VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT, swap_hard_limit)
@@ -9475,16 +9493,16 @@ qemuDomainSetMemoryParameters(virDomainPtr dom,
         }
     }
 
-#define VIR_SET_MEM_PARAMETER(FUNC, VALUE)                                      \
-    if (set_ ## VALUE) {                                                        \
-        if (def) {                                                              \
-            if ((rc = FUNC(priv->cgroup, VALUE)) < 0)                           \
-                goto endjob;                                                    \
-            def->mem.VALUE = VALUE;                                             \
-        }                                                                       \
-                                                                                \
-        if (persistentDef)                                                      \
-            persistentDef->mem.VALUE = VALUE;                                   \
+#define VIR_SET_MEM_PARAMETER(FUNC, VALUE) \
+    if (set_ ## VALUE) { \
+        if (def) { \
+            if ((rc = FUNC(priv->cgroup, VALUE)) < 0) \
+                goto endjob; \
+            def->mem.VALUE = VALUE; \
+        } \
+ \
+        if (persistentDef) \
+            persistentDef->mem.VALUE = VALUE; \
     }
 
     /* Soft limit doesn't clash with the others */
@@ -9525,10 +9543,10 @@ qemuDomainSetMemoryParameters(virDomainPtr dom,
 }
 
 
-#define QEMU_ASSIGN_MEM_PARAM(index, name, value)                              \
-    if (index < *nparams &&                                                    \
-        virTypedParameterAssign(&params[index], name, VIR_TYPED_PARAM_ULLONG,   \
-                                value) < 0)                                    \
+#define QEMU_ASSIGN_MEM_PARAM(index, name, value) \
+    if (index < *nparams && \
+        virTypedParameterAssign(&params[index], name, VIR_TYPED_PARAM_ULLONG, \
+                                value) < 0) \
         goto cleanup
 
 static int
@@ -10159,13 +10177,13 @@ qemuSetIOThreadsBWLive(virDomainObjPtr vm, virCgroupPtr cgroup,
 }
 
 
-#define SCHED_RANGE_CHECK(VAR, NAME, MIN, MAX)                              \
-    if (((VAR) > 0 && (VAR) < (MIN)) || (VAR) > (MAX)) {                    \
-        virReportError(VIR_ERR_INVALID_ARG,                                 \
-                       _("value of '%s' is out of range [%lld, %lld]"),     \
-                       NAME, MIN, MAX);                                     \
-        rc = -1;                                                            \
-        goto endjob;                                                        \
+#define SCHED_RANGE_CHECK(VAR, NAME, MIN, MAX) \
+    if (((VAR) > 0 && (VAR) < (MIN)) || (VAR) > (MAX)) { \
+        virReportError(VIR_ERR_INVALID_ARG, \
+                       _("value of '%s' is out of range [%lld, %lld]"), \
+                       NAME, MIN, MAX); \
+        rc = -1; \
+        goto endjob; \
     }
 
 static int
@@ -10689,12 +10707,12 @@ qemuDomainGetSchedulerParametersFlags(virDomainPtr dom,
         }
     }
 
-#define QEMU_SCHED_ASSIGN(param, name, type)                                   \
-    if (*nparams < maxparams &&                                                \
-        virTypedParameterAssign(&(params[(*nparams)++]),                       \
-                                VIR_DOMAIN_SCHEDULER_ ## name,                 \
-                                VIR_TYPED_PARAM_ ## type,                      \
-                                data.param) < 0)                               \
+#define QEMU_SCHED_ASSIGN(param, name, type) \
+    if (*nparams < maxparams && \
+        virTypedParameterAssign(&(params[(*nparams)++]), \
+                                VIR_DOMAIN_SCHEDULER_ ## name, \
+                                VIR_TYPED_PARAM_ ## type, \
+                                data.param) < 0) \
             goto cleanup
 
     QEMU_SCHED_ASSIGN(shares, CPU_SHARES, ULLONG);
@@ -10830,8 +10848,8 @@ qemuDomainBlockStatsGatherTotals(void *payload,
     qemuBlockStatsPtr data = payload;
     qemuBlockStatsPtr total = opaque;
 
-#define QEMU_BLOCK_STAT_TOTAL(NAME)                                            \
-    if (data->NAME > 0)                                                        \
+#define QEMU_BLOCK_STAT_TOTAL(NAME) \
+    if (data->NAME > 0) \
         total->NAME += data->NAME
 
     QEMU_BLOCK_STAT_TOTAL(wr_bytes);
@@ -11016,12 +11034,12 @@ qemuDomainBlockStatsFlags(virDomainPtr dom,
 
     nstats = 0;
 
-#define QEMU_BLOCK_STATS_ASSIGN_PARAM(VAR, NAME)                              \
-    if (nstats < *nparams && (blockstats->VAR) != -1) {                       \
-        if (virTypedParameterAssign(params + nstats, NAME,                    \
+#define QEMU_BLOCK_STATS_ASSIGN_PARAM(VAR, NAME) \
+    if (nstats < *nparams && (blockstats->VAR) != -1) { \
+        if (virTypedParameterAssign(params + nstats, NAME, \
                                     VIR_TYPED_PARAM_LLONG, (blockstats->VAR)) < 0) \
-            goto endjob;                                                      \
-        nstats++;                                                             \
+            goto endjob; \
+        nstats++; \
     }
 
     QEMU_BLOCK_STATS_ASSIGN_PARAM(wr_bytes, VIR_DOMAIN_BLOCK_STATS_WRITE_BYTES);
@@ -11520,7 +11538,7 @@ qemuDomainBlockPeek(virDomainPtr dom,
         goto cleanup;
     }
 
-    if (qemuDomainStorageFileInit(driver, vm, disk->src) < 0)
+    if (qemuDomainStorageFileInit(driver, vm, disk->src, NULL) < 0)
         goto cleanup;
 
     if ((nread = virStorageFileRead(disk->src, offset, size, &tmpbuf)) < 0)
@@ -13928,17 +13946,37 @@ qemuDomainSnapshotCreateActiveInternal(virConnectPtr conn,
 
 
 static int
-qemuDomainSnapshotPrepareDiskExternalBackingInactive(virDomainDiskDefPtr disk)
+qemuDomainSnapshotPrepareDiskShared(virDomainSnapshotDiskDefPtr snapdisk,
+                                    virDomainDiskDefPtr domdisk)
 {
-    int actualType = virStorageSourceGetActualType(disk->src);
-
-    switch ((virStorageType) actualType) {
-    case VIR_STORAGE_TYPE_BLOCK:
-    case VIR_STORAGE_TYPE_FILE:
+    if (!domdisk->src->shared || domdisk->src->readonly)
         return 0;
 
+    if (!qemuBlockStorageSourceSupportsConcurrentAccess(snapdisk->src)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("shared access for disk '%s' requires use of "
+                         "supported storage format"), domdisk->dst);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+static int
+qemuDomainSnapshotPrepareDiskExternalInactive(virDomainSnapshotDiskDefPtr snapdisk,
+                                              virDomainDiskDefPtr domdisk)
+{
+    int domDiskType = virStorageSourceGetActualType(domdisk->src);
+    int snapDiskType = virStorageSourceGetActualType(snapdisk->src);
+
+    switch ((virStorageType) domDiskType) {
+    case VIR_STORAGE_TYPE_BLOCK:
+    case VIR_STORAGE_TYPE_FILE:
+        break;
+
     case VIR_STORAGE_TYPE_NETWORK:
-        switch ((virStorageNetProtocol) disk->src->protocol) {
+        switch ((virStorageNetProtocol) domdisk->src->protocol) {
         case VIR_STORAGE_NET_PROTOCOL_NONE:
         case VIR_STORAGE_NET_PROTOCOL_NBD:
         case VIR_STORAGE_NET_PROTOCOL_RBD:
@@ -13956,7 +13994,7 @@ qemuDomainSnapshotPrepareDiskExternalBackingInactive(virDomainDiskDefPtr disk)
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("external inactive snapshots are not supported on "
                              "'network' disks using '%s' protocol"),
-                           virStorageNetProtocolTypeToString(disk->src->protocol));
+                           virStorageNetProtocolTypeToString(domdisk->src->protocol));
             return -1;
         }
         break;
@@ -13967,42 +14005,55 @@ qemuDomainSnapshotPrepareDiskExternalBackingInactive(virDomainDiskDefPtr disk)
     case VIR_STORAGE_TYPE_LAST:
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("external inactive snapshots are not supported on "
-                         "'%s' disks"), virStorageTypeToString(actualType));
+                         "'%s' disks"), virStorageTypeToString(domDiskType));
         return -1;
     }
+
+    switch ((virStorageType) snapDiskType) {
+    case VIR_STORAGE_TYPE_BLOCK:
+    case VIR_STORAGE_TYPE_FILE:
+        break;
+
+    case VIR_STORAGE_TYPE_NETWORK:
+    case VIR_STORAGE_TYPE_DIR:
+    case VIR_STORAGE_TYPE_VOLUME:
+    case VIR_STORAGE_TYPE_NONE:
+    case VIR_STORAGE_TYPE_LAST:
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("external inactive snapshots are not supported on "
+                         "'%s' disks"), virStorageTypeToString(snapDiskType));
+        return -1;
+    }
+
+    if (qemuDomainSnapshotPrepareDiskShared(snapdisk, domdisk) < 0)
+        return -1;
 
     return 0;
 }
 
 
 static int
-qemuDomainSnapshotPrepareDiskExternalBackingActive(virDomainDiskDefPtr disk)
+qemuDomainSnapshotPrepareDiskExternalActive(virDomainSnapshotDiskDefPtr snapdisk,
+                                            virDomainDiskDefPtr domdisk)
 {
-    if (disk->device == VIR_DOMAIN_DISK_DEVICE_LUN) {
+    int actualType = virStorageSourceGetActualType(snapdisk->src);
+
+    if (domdisk->device == VIR_DOMAIN_DISK_DEVICE_LUN) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("external active snapshots are not supported on scsi "
                          "passthrough devices"));
         return -1;
     }
 
-    return 0;
-}
-
-
-static int
-qemuDomainSnapshotPrepareDiskExternalOverlayActive(virDomainSnapshotDiskDefPtr disk)
-{
-    int actualType = virStorageSourceGetActualType(disk->src);
-
     switch ((virStorageType) actualType) {
     case VIR_STORAGE_TYPE_BLOCK:
     case VIR_STORAGE_TYPE_FILE:
-        return 0;
+        break;
 
     case VIR_STORAGE_TYPE_NETWORK:
-        switch ((virStorageNetProtocol) disk->src->protocol) {
+        switch ((virStorageNetProtocol) snapdisk->src->protocol) {
         case VIR_STORAGE_NET_PROTOCOL_GLUSTER:
-            return 0;
+            break;
 
         case VIR_STORAGE_NET_PROTOCOL_NONE:
         case VIR_STORAGE_NET_PROTOCOL_NBD:
@@ -14020,7 +14071,7 @@ qemuDomainSnapshotPrepareDiskExternalOverlayActive(virDomainSnapshotDiskDefPtr d
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("external active snapshots are not supported on "
                              "'network' disks using '%s' protocol"),
-                           virStorageNetProtocolTypeToString(disk->src->protocol));
+                           virStorageNetProtocolTypeToString(snapdisk->src->protocol));
             return -1;
 
         }
@@ -14036,30 +14087,8 @@ qemuDomainSnapshotPrepareDiskExternalOverlayActive(virDomainSnapshotDiskDefPtr d
         return -1;
     }
 
-    return 0;
-}
-
-
-static int
-qemuDomainSnapshotPrepareDiskExternalOverlayInactive(virDomainSnapshotDiskDefPtr disk)
-{
-    int actualType = virStorageSourceGetActualType(disk->src);
-
-    switch ((virStorageType) actualType) {
-    case VIR_STORAGE_TYPE_BLOCK:
-    case VIR_STORAGE_TYPE_FILE:
-        return 0;
-
-    case VIR_STORAGE_TYPE_NETWORK:
-    case VIR_STORAGE_TYPE_DIR:
-    case VIR_STORAGE_TYPE_VOLUME:
-    case VIR_STORAGE_TYPE_NONE:
-    case VIR_STORAGE_TYPE_LAST:
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("external inactive snapshots are not supported on "
-                         "'%s' disks"), virStorageTypeToString(actualType));
+    if (qemuDomainSnapshotPrepareDiskShared(snapdisk, domdisk) < 0)
         return -1;
-    }
 
     return 0;
 }
@@ -14082,16 +14111,10 @@ qemuDomainSnapshotPrepareDiskExternal(virConnectPtr conn,
         if (virStorageTranslateDiskSourcePool(conn, disk) < 0)
             return -1;
 
-        if (qemuDomainSnapshotPrepareDiskExternalBackingInactive(disk) < 0)
-            return -1;
-
-        if (qemuDomainSnapshotPrepareDiskExternalOverlayInactive(snapdisk) < 0)
+        if (qemuDomainSnapshotPrepareDiskExternalInactive(snapdisk, disk) < 0)
             return -1;
     } else {
-        if (qemuDomainSnapshotPrepareDiskExternalBackingActive(disk) < 0)
-            return -1;
-
-        if (qemuDomainSnapshotPrepareDiskExternalOverlayActive(snapdisk) < 0)
+        if (qemuDomainSnapshotPrepareDiskExternalActive(snapdisk, disk) < 0)
             return -1;
     }
 
@@ -14437,7 +14460,7 @@ qemuDomainSnapshotDiskDataCollect(virQEMUDriverPtr driver,
         if (virStorageSourceInitChainElement(dd->src, dd->disk->src, false) < 0)
             goto error;
 
-        if (qemuDomainStorageFileInit(driver, vm, dd->src) < 0)
+        if (qemuDomainStorageFileInit(driver, vm, dd->src, NULL) < 0)
             goto error;
 
         dd->initialized = true;
@@ -14553,7 +14576,7 @@ qemuDomainSnapshotCreateSingleDiskActive(virQEMUDriverPtr driver,
     }
 
     /* set correct security, cgroup and locking options on the new image */
-    if (qemuDomainDiskChainElementPrepare(driver, vm, dd->src, false) < 0) {
+    if (qemuDomainDiskChainElementPrepare(driver, vm, dd->src, false, true) < 0) {
         qemuDomainDiskChainElementRevoke(driver, vm, dd->src);
         goto cleanup;
     }
@@ -16479,6 +16502,16 @@ qemuDomainBlockPivot(virQEMUDriverPtr driver,
         goto cleanup;
     }
 
+    /* When pivoting to a shareable disk we need to make sure that the disk can
+     * be safely shared, since block copy might have changed the format. */
+    if (disk->src->shared && !disk->src->readonly &&
+        !qemuBlockStorageSourceSupportsConcurrentAccess(disk->mirror)) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("can't pivot a shared disk to a storage volume not "
+                         "supporting sharing"));
+        goto cleanup;
+    }
+
     /* For active commit, the mirror is part of the already labeled
      * chain.  For blockcopy, we previously labeled only the top-level
      * image; but if the user is reusing an external image that
@@ -17112,7 +17145,7 @@ qemuDomainBlockCopyCommon(virDomainObjPtr vm,
         goto endjob;
     }
 
-    if (qemuDomainStorageFileInit(driver, vm, mirror) < 0)
+    if (qemuDomainStorageFileInit(driver, vm, mirror, NULL) < 0)
         goto endjob;
 
     if (qemuDomainBlockCopyValidateMirror(mirror, disk->dst, &reuse) < 0)
@@ -17148,7 +17181,7 @@ qemuDomainBlockCopyCommon(virDomainObjPtr vm,
                                          keepParentLabel) < 0)
         goto endjob;
 
-    if (qemuDomainDiskChainElementPrepare(driver, vm, mirror, false) < 0) {
+    if (qemuDomainDiskChainElementPrepare(driver, vm, mirror, false, true) < 0) {
         qemuDomainDiskChainElementRevoke(driver, vm, mirror);
         goto endjob;
     }
@@ -17541,9 +17574,9 @@ qemuDomainBlockCommit(virDomainPtr dom,
      * operation succeeds, but doing that requires tracking the
      * operation in XML across libvirtd restarts.  */
     clean_access = true;
-    if (qemuDomainDiskChainElementPrepare(driver, vm, baseSource, false) < 0 ||
+    if (qemuDomainDiskChainElementPrepare(driver, vm, baseSource, false, false) < 0 ||
         (top_parent && top_parent != disk->src &&
-         qemuDomainDiskChainElementPrepare(driver, vm, top_parent, false) < 0))
+         qemuDomainDiskChainElementPrepare(driver, vm, top_parent, false, false) < 0))
         goto endjob;
 
     /* Start the commit operation.  Pass the user's original spelling,
@@ -17587,9 +17620,9 @@ qemuDomainBlockCommit(virDomainPtr dom,
     if (ret < 0 && clean_access) {
         virErrorPtr orig_err = virSaveLastError();
         /* Revert access to read-only, if possible.  */
-        qemuDomainDiskChainElementPrepare(driver, vm, baseSource, true);
+        qemuDomainDiskChainElementPrepare(driver, vm, baseSource, true, false);
         if (top_parent && top_parent != disk->src)
-            qemuDomainDiskChainElementPrepare(driver, vm, top_parent, true);
+            qemuDomainDiskChainElementPrepare(driver, vm, top_parent, true, false);
 
         if (orig_err) {
             virSetError(orig_err);
@@ -17772,11 +17805,11 @@ qemuDomainSetBlockIoTuneDefaults(virDomainBlockIoTuneInfoPtr newinfo,
                                  virDomainBlockIoTuneInfoPtr oldinfo,
                                  qemuBlockIoTuneSetFlags set_fields)
 {
-#define SET_IOTUNE_DEFAULTS(BOOL, FIELD)                                       \
-    if (!(set_fields & QEMU_BLOCK_IOTUNE_SET_##BOOL)) {                        \
-        newinfo->total_##FIELD = oldinfo->total_##FIELD;                       \
-        newinfo->read_##FIELD = oldinfo->read_##FIELD;                         \
-        newinfo->write_##FIELD = oldinfo->write_##FIELD;                       \
+#define SET_IOTUNE_DEFAULTS(BOOL, FIELD) \
+    if (!(set_fields & QEMU_BLOCK_IOTUNE_SET_##BOOL)) { \
+        newinfo->total_##FIELD = oldinfo->total_##FIELD; \
+        newinfo->read_##FIELD = oldinfo->read_##FIELD; \
+        newinfo->write_##FIELD = oldinfo->write_##FIELD; \
     }
 
     SET_IOTUNE_DEFAULTS(BYTES, bytes_sec);
@@ -17803,13 +17836,13 @@ qemuDomainSetBlockIoTuneDefaults(virDomainBlockIoTuneInfoPtr newinfo,
      * will cause an error. So, to mimic that, if our oldinfo was set and
      * our newinfo is clearing, then set max_length based on whether we
      * have a value in the family set/defined. */
-#define SET_MAX_LENGTH(BOOL, FIELD)                                            \
-    if (!(set_fields & QEMU_BLOCK_IOTUNE_SET_##BOOL))                          \
-        newinfo->FIELD##_max_length = oldinfo->FIELD##_max_length;             \
-    else if ((set_fields & QEMU_BLOCK_IOTUNE_SET_##BOOL) &&                    \
-             oldinfo->FIELD##_max_length &&                                    \
-             !newinfo->FIELD##_max_length)                                     \
-        newinfo->FIELD##_max_length = (newinfo->FIELD ||                       \
+#define SET_MAX_LENGTH(BOOL, FIELD) \
+    if (!(set_fields & QEMU_BLOCK_IOTUNE_SET_##BOOL)) \
+        newinfo->FIELD##_max_length = oldinfo->FIELD##_max_length; \
+    else if ((set_fields & QEMU_BLOCK_IOTUNE_SET_##BOOL) && \
+             oldinfo->FIELD##_max_length && \
+             !newinfo->FIELD##_max_length) \
+        newinfo->FIELD##_max_length = (newinfo->FIELD || \
                                        newinfo->FIELD##_max) ? 1 : 0;
 
     SET_MAX_LENGTH(BYTES_MAX_LENGTH, total_bytes_sec);
@@ -17921,16 +17954,16 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
                                 VIR_DOMAIN_TUNABLE_BLKDEV_DISK, path) < 0)
         goto endjob;
 
-#define SET_IOTUNE_FIELD(FIELD, BOOL, CONST)                                   \
-    if (STREQ(param->field, VIR_DOMAIN_BLOCK_IOTUNE_##CONST)) {                \
-        info.FIELD = param->value.ul;                                          \
-        set_fields |= QEMU_BLOCK_IOTUNE_SET_##BOOL;                            \
-        if (virTypedParamsAddULLong(&eventParams, &eventNparams,               \
-                                    &eventMaxparams,                           \
-                                    VIR_DOMAIN_TUNABLE_BLKDEV_##CONST,         \
-                                    param->value.ul) < 0)                      \
-            goto endjob;                                                       \
-        continue;                                                              \
+#define SET_IOTUNE_FIELD(FIELD, BOOL, CONST) \
+    if (STREQ(param->field, VIR_DOMAIN_BLOCK_IOTUNE_##CONST)) { \
+        info.FIELD = param->value.ul; \
+        set_fields |= QEMU_BLOCK_IOTUNE_SET_##BOOL; \
+        if (virTypedParamsAddULLong(&eventParams, &eventNparams, \
+                                    &eventMaxparams, \
+                                    VIR_DOMAIN_TUNABLE_BLKDEV_##CONST, \
+                                    param->value.ul) < 0) \
+            goto endjob; \
+        continue; \
     }
 
     for (i = 0; i < nparams; i++) {
@@ -18077,31 +18110,31 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
                                              set_fields) < 0)
             goto endjob;
 
-#define CHECK_MAX(val, _bool)                                           \
-        do {                                                            \
-            if (info.val##_max) {                                       \
-                if (!info.val) {                                        \
-                    if (QEMU_BLOCK_IOTUNE_SET_##_bool) {                \
-                        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,      \
-                                       _("cannot reset '%s' when "      \
-                                         "'%s' is set"),                \
-                                       #val, #val "_max");              \
-                    } else {                                            \
-                        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,      \
+#define CHECK_MAX(val, _bool) \
+        do { \
+            if (info.val##_max) { \
+                if (!info.val) { \
+                    if (QEMU_BLOCK_IOTUNE_SET_##_bool) { \
+                        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, \
+                                       _("cannot reset '%s' when " \
+                                         "'%s' is set"), \
+                                       #val, #val "_max"); \
+                    } else { \
+                        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, \
                                        _("value '%s' cannot be set if " \
-                                         "'%s' is not set"),            \
-                                       #val "_max", #val);              \
-                    }                                                   \
-                    goto endjob;                                        \
-                }                                                       \
-                if (info.val##_max < info.val) {                        \
-                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED,          \
-                                   _("value '%s' cannot be "            \
-                                     "smaller than '%s'"),              \
-                                   #val "_max", #val);                  \
-                    goto endjob;                                        \
-                }                                                       \
-            }                                                           \
+                                         "'%s' is not set"), \
+                                       #val "_max", #val); \
+                    } \
+                    goto endjob; \
+                } \
+                if (info.val##_max < info.val) { \
+                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, \
+                                   _("value '%s' cannot be " \
+                                     "smaller than '%s'"), \
+                                   #val "_max", #val); \
+                    goto endjob; \
+                } \
+            } \
         } while (false)
 
         CHECK_MAX(total_bytes_sec, BYTES);
@@ -18275,12 +18308,12 @@ qemuDomainGetBlockIoTune(virDomainPtr dom,
             goto endjob;
     }
 
-#define BLOCK_IOTUNE_ASSIGN(name, var)                                         \
-    if (*nparams < maxparams &&                                                \
-        virTypedParameterAssign(&params[(*nparams)++],                         \
-                                VIR_DOMAIN_BLOCK_IOTUNE_ ## name,              \
-                                VIR_TYPED_PARAM_ULLONG,                        \
-                                reply.var) < 0)                                \
+#define BLOCK_IOTUNE_ASSIGN(name, var) \
+    if (*nparams < maxparams && \
+        virTypedParameterAssign(&params[(*nparams)++], \
+                                VIR_DOMAIN_BLOCK_IOTUNE_ ## name, \
+                                VIR_TYPED_PARAM_ULLONG, \
+                                reply.var) < 0) \
         goto endjob
 
 
@@ -18719,6 +18752,8 @@ qemuDomainQemuAgentCommand(virDomainPtr domain,
 
     if (!qemuDomainAgentAvailable(vm, true))
         goto endjob;
+
+    qemuDomainObjTaint(driver, vm, VIR_DOMAIN_TAINT_CUSTOM_GA_COMMAND, NULL);
 
     agent = qemuDomainObjEnterAgent(vm);
     ret = qemuAgentArbitraryCommand(agent, cmd, &result, timeout);
@@ -19445,13 +19480,13 @@ qemuDomainGetStatsBalloon(virQEMUDriverPtr driver,
     if (nr_stats < 0)
         return 0;
 
-#define STORE_MEM_RECORD(TAG, NAME)                                             \
-    if (stats[i].tag == VIR_DOMAIN_MEMORY_STAT_ ##TAG)                          \
-        if (virTypedParamsAddULLong(&record->params,                            \
-                                    &record->nparams,                           \
-                                    maxparams,                                  \
-                                    "balloon." NAME,                            \
-                                    stats[i].val) < 0)                          \
+#define STORE_MEM_RECORD(TAG, NAME) \
+    if (stats[i].tag == VIR_DOMAIN_MEMORY_STAT_ ##TAG) \
+        if (virTypedParamsAddULLong(&record->params, \
+                                    &record->nparams, \
+                                    maxparams, \
+                                    "balloon." NAME, \
+                                    stats[i].val) < 0) \
             return -1;
 
     for (i = 0; i < nr_stats; i++) {
@@ -19683,16 +19718,16 @@ qemuDomainGetStatsInterface(virQEMUDriverPtr driver ATTRIBUTE_UNUSED,
 #undef QEMU_ADD_NET_PARAM
 
 #define QEMU_ADD_BLOCK_PARAM_UI(record, maxparams, num, name, value) \
-    do {                                                             \
-        char param_name[VIR_TYPED_PARAM_FIELD_LENGTH];               \
-        snprintf(param_name, VIR_TYPED_PARAM_FIELD_LENGTH,           \
-                 "block.%zu.%s", num, name);                         \
-        if (virTypedParamsAddUInt(&(record)->params,                 \
-                                  &(record)->nparams,                \
-                                  maxparams,                         \
-                                  param_name,                        \
-                                  value) < 0)                        \
-            goto cleanup;                                            \
+    do { \
+        char param_name[VIR_TYPED_PARAM_FIELD_LENGTH]; \
+        snprintf(param_name, VIR_TYPED_PARAM_FIELD_LENGTH, \
+                 "block.%zu.%s", num, name); \
+        if (virTypedParamsAddUInt(&(record)->params, \
+                                  &(record)->nparams, \
+                                  maxparams, \
+                                  param_name, \
+                                  value) < 0) \
+            goto cleanup; \
     } while (0)
 
 /* expects a LL, but typed parameter must be ULL */
@@ -20674,11 +20709,11 @@ qemuDomainGetGuestVcpusParams(virTypedParameterPtr *params,
             ignore_value(virBitmapSetBit(offlinable, info[i].id));
     }
 
-#define ADD_BITMAP(name)                                                       \
-    if (!(tmp = virBitmapFormat(name)))                                        \
-        goto cleanup;                                                          \
-    if (virTypedParamsAddString(&par, &npar, &maxpar, #name, tmp) < 0)         \
-        goto cleanup;                                                          \
+#define ADD_BITMAP(name) \
+    if (!(tmp = virBitmapFormat(name))) \
+        goto cleanup; \
+    if (virTypedParamsAddString(&par, &npar, &maxpar, #name, tmp) < 0) \
+        goto cleanup; \
     VIR_FREE(tmp)
 
     ADD_BITMAP(vcpus);

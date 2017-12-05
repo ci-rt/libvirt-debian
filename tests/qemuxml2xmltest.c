@@ -381,30 +381,30 @@ mymain(void)
     /* TODO: test with format probing disabled too */
     driver.config->allowDiskFormatProbing = true;
 
-# define DO_TEST_FULL(name, when, gic, ...)                                    \
-    do {                                                                       \
-        if (testInfoSet(&info, name, when, gic) < 0) {                         \
-            VIR_TEST_DEBUG("Failed to generate test data for '%s'", name);     \
-            return -1;                                                         \
-        }                                                                      \
-        virQEMUCapsSetList(info.qemuCaps, __VA_ARGS__, QEMU_CAPS_LAST);        \
-                                                                               \
-        if (info.outInactiveName) {                                            \
-            if (virTestRun("QEMU XML-2-XML-inactive " name,                    \
-                            testXML2XMLInactive, &info) < 0)                   \
-                ret = -1;                                                      \
-        }                                                                      \
-                                                                               \
-        if (info.outActiveName) {                                              \
-            if (virTestRun("QEMU XML-2-XML-active " name,                      \
-                            testXML2XMLActive, &info) < 0)                     \
-                ret = -1;                                                      \
-                                                                               \
-            if (virTestRun("QEMU XML-2-XML-status " name,                      \
-                            testCompareStatusXMLToXMLFiles, &info) < 0)        \
-                ret = -1;                                                      \
-        }                                                                      \
-        testInfoFree(&info);                                                   \
+# define DO_TEST_FULL(name, when, gic, ...) \
+    do { \
+        if (testInfoSet(&info, name, when, gic) < 0) { \
+            VIR_TEST_DEBUG("Failed to generate test data for '%s'", name); \
+            return -1; \
+        } \
+        virQEMUCapsSetList(info.qemuCaps, __VA_ARGS__, QEMU_CAPS_LAST); \
+ \
+        if (info.outInactiveName) { \
+            if (virTestRun("QEMU XML-2-XML-inactive " name, \
+                            testXML2XMLInactive, &info) < 0) \
+                ret = -1; \
+        } \
+ \
+        if (info.outActiveName) { \
+            if (virTestRun("QEMU XML-2-XML-active " name, \
+                            testXML2XMLActive, &info) < 0) \
+                ret = -1; \
+ \
+            if (virTestRun("QEMU XML-2-XML-status " name, \
+                            testCompareStatusXMLToXMLFiles, &info) < 0) \
+                ret = -1; \
+        } \
+        testInfoFree(&info); \
     } while (0)
 
 # define NONE QEMU_CAPS_LAST
@@ -712,6 +712,8 @@ mymain(void)
     DO_TEST("disk-drive-discard", NONE);
     DO_TEST("disk-drive-detect-zeroes", NONE);
 
+    DO_TEST("disk-serial", NONE);
+
     DO_TEST("virtio-rng-random", NONE);
     DO_TEST("virtio-rng-egd", NONE);
 
@@ -760,6 +762,59 @@ mymain(void)
             QEMU_CAPS_HOST_PCI_MULTIDOMAIN,
             QEMU_CAPS_VIRTIO_SCSI,
             QEMU_CAPS_DEVICE_VFIO_PCI);
+
+    DO_TEST("pseries-hpt-resizing",
+            QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_MACHINE_OPT,
+            QEMU_CAPS_MACHINE_PSERIES_RESIZE_HPT);
+
+    DO_TEST("pseries-serial-native",
+            QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_DEVICE_SPAPR_VTY);
+    DO_TEST("pseries-serial+console-native",
+            QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_DEVICE_SPAPR_VTY);
+    DO_TEST("pseries-serial-compat",
+            QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_DEVICE_SPAPR_VTY);
+    DO_TEST("pseries-serial-pci",
+            QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_DEVICE_PCI_SERIAL);
+    DO_TEST("pseries-serial-usb",
+            QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_DEVICE_QEMU_XHCI,
+            QEMU_CAPS_DEVICE_USB_SERIAL);
+    DO_TEST("pseries-console-native",
+            QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_DEVICE_SPAPR_VTY);
+    DO_TEST("pseries-console-virtio",
+            QEMU_CAPS_NODEFCONFIG);
+
+    DO_TEST("mach-virt-serial-native",
+            QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("mach-virt-serial+console-native",
+            QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("mach-virt-serial-compat",
+            QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("mach-virt-serial-pci",
+            QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_OBJECT_GPEX,
+            QEMU_CAPS_PCI_MULTIFUNCTION,
+            QEMU_CAPS_DEVICE_PCIE_ROOT_PORT,
+            QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_PCI_SERIAL);
+    DO_TEST("mach-virt-serial-usb",
+            QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_OBJECT_GPEX,
+            QEMU_CAPS_PCI_MULTIFUNCTION,
+            QEMU_CAPS_DEVICE_PCIE_ROOT_PORT,
+            QEMU_CAPS_DEVICE_QEMU_XHCI,
+            QEMU_CAPS_DEVICE_USB_SERIAL);
+    DO_TEST("mach-virt-console-native",
+            QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("mach-virt-console-virtio",
+            QEMU_CAPS_NODEFCONFIG);
 
     DO_TEST("balloon-device-auto", NONE);
     DO_TEST("balloon-device-period", NONE);
@@ -1102,6 +1157,12 @@ mymain(void)
             QEMU_CAPS_VIRTIO_CCW, QEMU_CAPS_VIRTIO_S390);
     DO_TEST("s390-panic-no-address",
             QEMU_CAPS_VIRTIO_CCW, QEMU_CAPS_VIRTIO_S390);
+    DO_TEST("s390-serial",
+            QEMU_CAPS_VIRTIO_CCW, QEMU_CAPS_VIRTIO_S390);
+    DO_TEST("s390-serial-2",
+            QEMU_CAPS_VIRTIO_CCW, QEMU_CAPS_VIRTIO_S390);
+    DO_TEST("s390-serial-console",
+            QEMU_CAPS_VIRTIO_CCW, QEMU_CAPS_VIRTIO_S390);
 
     DO_TEST("pcihole64", NONE);
     DO_TEST("pcihole64-gib", NONE);
@@ -1260,6 +1321,7 @@ mymain(void)
     DO_TEST("cpu-check-default-none2", NONE);
     DO_TEST("cpu-check-default-partial", NONE);
     DO_TEST("cpu-check-default-partial2", NONE);
+    DO_TEST("vmcoreinfo", NONE);
 
     DO_TEST("smartcard-host", NONE);
     DO_TEST("smartcard-host-certificates", NONE);

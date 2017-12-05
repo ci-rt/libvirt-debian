@@ -2061,6 +2061,8 @@ virStorageSourceCopy(const virStorageSource *src,
     ret->tlsFromConfig = src->tlsFromConfig;
     ret->tlsVerify = src->tlsVerify;
     ret->detected = src->detected;
+    ret->debugLevel = src->debugLevel;
+    ret->debug = src->debug;
 
     /* storage driver metadata are not copied */
     ret->drv = NULL;
@@ -2450,7 +2452,7 @@ virStorageSourceParseBackingURI(virStorageSourcePtr src,
 
         src->volume = src->path;
 
-        if (VIR_STRDUP(src->path, tmp) < 0)
+        if (VIR_STRDUP(src->path, tmp + 1) < 0)
             goto cleanup;
 
         tmp[0] = '\0';
@@ -2541,6 +2543,14 @@ virStorageSourceParseRBDColonString(const char *rbdstr,
     /* snapshot name */
     if ((p = strchr(src->path, '@'))) {
         if (VIR_STRDUP(src->snapshot, p + 1) < 0)
+            goto error;
+        *p = '\0';
+    }
+
+    /* pool vs. image name */
+    if ((p = strchr(src->path, '/'))) {
+        VIR_STEAL_PTR(src->volume, src->path);
+        if (VIR_STRDUP(src->path, p + 1) < 0)
             goto error;
         *p = '\0';
     }
@@ -2931,7 +2941,7 @@ virStorageSourceParseBackingJSONGluster(virStorageSourcePtr src,
     src->protocol = VIR_STORAGE_NET_PROTOCOL_GLUSTER;
 
     if (VIR_STRDUP(src->volume, volume) < 0 ||
-        virAsprintf(&src->path, "/%s", path) < 0)
+        VIR_STRDUP(src->path, path) < 0)
         return -1;
 
     nservers = virJSONValueArraySize(server);
@@ -3008,7 +3018,8 @@ virStorageSourceParseBackingJSONiSCSI(virStorageSourcePtr src,
     if (VIR_STRDUP(src->hosts->name, portal) < 0)
         goto cleanup;
 
-    if ((port = strchr(src->hosts->name, ':'))) {
+    if ((port = strrchr(src->hosts->name, ':')) &&
+        !strchr(port, ']')) {
         if (virStringParsePort(port + 1, &src->hosts->port) < 0)
             goto cleanup;
 
@@ -3178,7 +3189,6 @@ virStorageSourceParseBackingJSONRBD(virStorageSourcePtr src,
     const char *conf = virJSONValueObjectGetString(json, "conf");
     const char *snapshot = virJSONValueObjectGetString(json, "snapshot");
     virJSONValuePtr servers = virJSONValueObjectGetArray(json, "server");
-    char *fullname = NULL;
     size_t nservers;
     size_t i;
     int ret = -1;
@@ -3197,16 +3207,11 @@ virStorageSourceParseBackingJSONRBD(virStorageSourcePtr src,
         return -1;
     }
 
-    /* currently we need to store the pool name and image name together, since
-     * the rest of the code is not prepared for it */
-    if (virAsprintf(&fullname, "%s/%s", pool, image) < 0)
-        return -1;
-
-    if (VIR_STRDUP(src->snapshot, snapshot) < 0 ||
+    if (VIR_STRDUP(src->volume, pool) < 0 ||
+        VIR_STRDUP(src->path, image) < 0 ||
+        VIR_STRDUP(src->snapshot, snapshot) < 0 ||
         VIR_STRDUP(src->configFile, conf) < 0)
         goto cleanup;
-
-    VIR_STEAL_PTR(src->path, fullname);
 
     if (servers) {
         nservers = virJSONValueArraySize(servers);
@@ -3225,8 +3230,6 @@ virStorageSourceParseBackingJSONRBD(virStorageSourcePtr src,
 
     ret = 0;
  cleanup:
-    VIR_FREE(fullname);
-
     return ret;
 }
 

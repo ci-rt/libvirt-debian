@@ -92,7 +92,7 @@ bool virTestOOMActive(void)
 
 static int virTestUseTerminalColors(void)
 {
-    return isatty(STDIN_FILENO);
+    return isatty(STDOUT_FILENO);
 }
 
 static unsigned int
@@ -1208,7 +1208,7 @@ virCapsPtr virTestGenericCapsInit(void)
         goto error;
 
 
-    if (virTestGetDebug()) {
+    if (virTestGetDebug() > 1) {
         char *caps_str;
 
         caps_str = virCapabilitiesFormatXML(caps);

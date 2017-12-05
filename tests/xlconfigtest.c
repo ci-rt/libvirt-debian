@@ -225,32 +225,32 @@ mymain(void)
     if (!(xmlopt = libxlCreateXMLConf()))
         return EXIT_FAILURE;
 
-#define DO_TEST_PARSE(name, replace)                                    \
-    do {                                                                \
-        struct testInfo info0 = { name, 0, replace };                   \
-        if (virTestRun("Xen XL-2-XML Parse  " name,                     \
-                       testCompareHelper, &info0) < 0)                  \
-            ret = -1;                                                   \
+#define DO_TEST_PARSE(name, replace) \
+    do { \
+        struct testInfo info0 = { name, 0, replace }; \
+        if (virTestRun("Xen XL-2-XML Parse  " name, \
+                       testCompareHelper, &info0) < 0) \
+            ret = -1; \
     } while (0)
 
-#define DO_TEST_FORMAT(name, replace)                                   \
-    do {                                                                \
-        struct testInfo info1 = { name, 1, replace };                   \
-        if (virTestRun("Xen XL-2-XML Format " name,                     \
-                       testCompareHelper, &info1) < 0)                  \
-            ret = -1;                                                   \
+#define DO_TEST_FORMAT(name, replace) \
+    do { \
+        struct testInfo info1 = { name, 1, replace }; \
+        if (virTestRun("Xen XL-2-XML Format " name, \
+                       testCompareHelper, &info1) < 0) \
+            ret = -1; \
     } while (0)
 
-#define DO_TEST(name)                                                   \
-    do {                                                                \
-        DO_TEST_PARSE(name, false);                                     \
-        DO_TEST_FORMAT(name, false);                                    \
+#define DO_TEST(name) \
+    do { \
+        DO_TEST_PARSE(name, false); \
+        DO_TEST_FORMAT(name, false); \
     } while (0)
 
-#define DO_TEST_REPLACE_VARS(name)                                      \
-    do {                                                                \
-        DO_TEST_PARSE(name, true);                                      \
-        DO_TEST_FORMAT(name, true);                                     \
+#define DO_TEST_REPLACE_VARS(name) \
+    do { \
+        DO_TEST_PARSE(name, true); \
+        DO_TEST_FORMAT(name, true); \
     } while (0)
 
     DO_TEST_REPLACE_VARS("fullvirt-ovmf");
@@ -270,6 +270,12 @@ mymain(void)
     DO_TEST("fullvirt-multi-timer");
     DO_TEST("fullvirt-nestedhvm");
     DO_TEST("fullvirt-nestedhvm-disabled");
+#ifdef LIBXL_HAVE_VNUMA
+    DO_TEST("fullvirt-vnuma");
+    DO_TEST_PARSE("fullvirt-vnuma-autocomplete", false);
+    DO_TEST_PARSE("fullvirt-vnuma-nodistances", false);
+    DO_TEST_PARSE("fullvirt-vnuma-partialdist", false);
+#endif
 
     DO_TEST("paravirt-cmdline");
     DO_TEST_FORMAT("paravirt-cmdline-extra-root", false);

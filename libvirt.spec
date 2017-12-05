@@ -238,7 +238,7 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 3.9.0
+Version: 3.10.0
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
@@ -1300,6 +1300,8 @@ exit 1
 
 # place macros above and build commands below this comment
 
+export SOURCE_DATE_EPOCH=$(stat --printf='%Y' %{_specdir}/%{name}.spec)
+
 %if 0%{?enable_autotools}
  autoreconf -if
 %endif
@@ -1366,18 +1368,20 @@ rm -f po/stamp-po
            %{?enable_werror} \
            --enable-expensive-tests \
            %{arg_init_script}
-make %{?_smp_mflags}
+make %{?_smp_mflags} V=1
 gzip -9 ChangeLog
 
 %install
 rm -fr %{buildroot}
 
+export SOURCE_DATE_EPOCH=$(stat --printf='%Y' %{_specdir}/%{name}.spec)
+
 # Avoid using makeinstall macro as it changes prefixes rather than setting
 # DESTDIR. Newer make_install macro would be better but it's not available
 # on RHEL 5, thus we need to expand it here.
-make %{?_smp_mflags} install DESTDIR=%{?buildroot} SYSTEMD_UNIT_DIR=%{_unitdir}
+make %{?_smp_mflags} install DESTDIR=%{?buildroot} SYSTEMD_UNIT_DIR=%{_unitdir} V=1
 
-make %{?_smp_mflags} -C examples distclean
+make %{?_smp_mflags} -C examples distclean V=1
 
 rm -f $RPM_BUILD_ROOT%{_libdir}/*.la
 rm -f $RPM_BUILD_ROOT%{_libdir}/*.a

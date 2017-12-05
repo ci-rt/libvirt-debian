@@ -658,10 +658,8 @@ qemuParseCommandLineDisk(virDomainXMLOptionPtr xmlopt,
                           0) < 0)
         return NULL;
 
-    if (VIR_ALLOC(def) < 0)
+    if (!(def = virDomainDiskDefNew(xmlopt)))
         goto cleanup;
-    if (VIR_ALLOC(def->src) < 0)
-        goto error;
 
     if (qemuDomainIsPSeries(dom))
         def->bus = VIR_DOMAIN_DISK_BUS_SCSI;
@@ -1156,7 +1154,7 @@ qemuParseCommandLinePCI(const char *val)
     int bus = 0, slot = 0, func = 0;
     const char *start;
     char *end;
-    virDomainHostdevDefPtr def = virDomainHostdevDefNew(NULL);
+    virDomainHostdevDefPtr def = virDomainHostdevDefNew();
 
     if (!def)
         goto error;
@@ -1206,7 +1204,7 @@ qemuParseCommandLinePCI(const char *val)
 static virDomainHostdevDefPtr
 qemuParseCommandLineUSB(const char *val)
 {
-    virDomainHostdevDefPtr def = virDomainHostdevDefNew(NULL);
+    virDomainHostdevDefPtr def = virDomainHostdevDefNew();
     virDomainHostdevSubsysUSBPtr usbsrc;
     int first = 0, second = 0;
     const char *start;
@@ -1912,12 +1910,12 @@ qemuParseCommandLine(virCapsPtr caps,
     if (ARCH_IS_X86(def->os.arch))
         def->features[VIR_DOMAIN_FEATURE_ACPI] = VIR_TRISTATE_SWITCH_ON;
 
-#define WANT_VALUE()                                                   \
-    const char *val = progargv[++i];                                   \
-    if (!val) {                                                        \
-        virReportError(VIR_ERR_INTERNAL_ERROR,                         \
-                       _("missing value for %s argument"), arg);       \
-        goto error;                                                    \
+#define WANT_VALUE() \
+    const char *val = progargv[++i]; \
+    if (!val) { \
+        virReportError(VIR_ERR_INTERNAL_ERROR, \
+                       _("missing value for %s argument"), arg); \
+        goto error; \
     }
 
     /* One initial loop to get list of NICs, so we

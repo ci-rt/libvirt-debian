@@ -16,11 +16,19 @@
   network inet stream,
   network inet6 stream,
 
+  ptrace (readby, tracedby) peer=/usr/sbin/libvirtd,
+
+  signal (receive) peer=/usr/sbin/libvirtd,
+
   /dev/net/tun rw,
   /dev/kvm rw,
   /dev/ptmx rw,
   /dev/kqemu rw,
   @{PROC}/*/status r,
+  # When qemu is signaled to terminate, it will read cmdline of signaling
+  # process for reporting purposes. Allowing read access to a process
+  # cmdline may leak sensitive information embedded in the cmdline.
+  @{PROC}/@{pid}/cmdline r,
   # Per man(5) proc, the kernel enforces that a thread may
   # only modify its comm value or those in its thread group.
   owner @{PROC}/@{pid}/task/@{tid}/comm rw,
@@ -168,6 +176,9 @@
 
   # for rbd
   /etc/ceph/ceph.conf r,
+
+  # for file-posix getting limits since 9103f1ce
+  /sys/devices/**/block/*/queue/max_segments r,
 
   # for ppc device-tree access
   @{PROC}/device-tree/ r,

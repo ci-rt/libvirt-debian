@@ -36,6 +36,7 @@
 #include "c-ctype.h"
 #include "count-one-bits.h"
 #include "virstring.h"
+#include "virutil.h"
 #include "virerror.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
@@ -310,19 +311,28 @@ int virBitmapGetBit(virBitmapPtr bitmap, size_t b, bool *result)
 }
 
 /**
- * virBitmapString:
+ * virBitmapToString:
  * @bitmap: Pointer to bitmap
+ * @prefix: Whether to prepend "0x"
+ * @trim: Whether to output only the minimum required characters
  *
  * Convert @bitmap to printable string.
  *
  * Returns pointer to the string or NULL on error.
  */
-char *virBitmapString(virBitmapPtr bitmap)
+char *
+virBitmapToString(virBitmapPtr bitmap,
+                  bool prefix,
+                  bool trim)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     size_t sz;
+    size_t len;
+    size_t diff;
+    char *ret = NULL;
 
-    virBufferAddLit(&buf, "0x");
+    if (prefix)
+        virBufferAddLit(&buf, "0x");
 
     sz = bitmap->map_len;
 
@@ -333,7 +343,28 @@ char *virBitmapString(virBitmapPtr bitmap)
     }
 
     virBufferCheckError(&buf);
-    return virBufferContentAndReset(&buf);
+    ret = virBufferContentAndReset(&buf);
+    if (!ret)
+        return NULL;
+
+    if (!trim)
+        return ret;
+
+    if (bitmap->max_bit != bitmap->map_len * VIR_BITMAP_BITS_PER_UNIT) {
+        char *tmp = ret;
+
+        if (prefix)
+            tmp += 2;
+
+        len = strlen(tmp);
+        sz = VIR_DIV_UP(bitmap->max_bit, 4);
+        diff = len - sz;
+
+        if (diff)
+            memmove(tmp, tmp + diff, sz + 1);
+    }
+
+    return ret;
 }
 
 /**
@@ -1041,8 +1072,45 @@ virBitmapCountBits(virBitmapPtr bitmap)
     return ret;
 }
 
+
 /**
- * virBitmapDataToString:
+ * virBitmapNewString:
+ * @string: the string to be converted to a bitmap
+ *
+ * Allocate a bitmap from a string of hexadecimal data.
+ *
+ * Returns a pointer to the allocated bitmap or NULL if
+ * memory cannot be allocated.
+ */
+virBitmapPtr
+virBitmapNewString(const char *string)
+{
+    virBitmapPtr bitmap;
+    size_t i = 0;
+    size_t len = strlen(string);
+
+    if (strspn(string, "0123456789abcdefABCDEF") != len) {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("Invalid hexadecimal string '%s'"), string);
+        return NULL;
+    }
+
+    bitmap = virBitmapNew(len * 4);
+    if (!bitmap)
+        return NULL;
+
+    for (i = 0; i < len; i++) {
+        unsigned long nibble = virHexToBin(string[len - i - 1]);
+        nibble <<= VIR_BITMAP_BIT_OFFSET(i * 4);
+        bitmap->map[VIR_BITMAP_UNIT_OFFSET(i * 4)] |= nibble;
+    }
+
+    return bitmap;
+}
+
+
+/**
+ * virBitmapDataFormat:
  * @data: the data
  * @len: length of @data in bytes
  *
@@ -1052,8 +1120,8 @@ virBitmapCountBits(virBitmapPtr bitmap)
  * Returns: a string representation of the data, or NULL on error
  */
 char *
-virBitmapDataToString(const void *data,
-                      int len)
+virBitmapDataFormat(const void *data,
+                    int len)
 {
     virBitmapPtr map = NULL;
     char *ret = NULL;
@@ -1105,4 +1173,49 @@ virBitmapIntersect(virBitmapPtr a,
 
     for (i = 0; i < max; i++)
         a->map[i] &= b->map[i];
+}
+
+
+/**
+ * virBitmapSubtract:
+ * @a: minuend/result
+ * @b: subtrahend
+ *
+ * Performs subtraction of two bitmaps: a = a - b
+ */
+void
+virBitmapSubtract(virBitmapPtr a,
+                  virBitmapPtr b)
+{
+    size_t i;
+    size_t max = a->map_len;
+
+    if (max > b->map_len)
+        max = b->map_len;
+
+    for (i = 0; i < max; i++)
+        a->map[i] &= ~b->map[i];
+}
+
+
+/**
+ * virBitmapShrink:
+ * @map: Pointer to bitmap
+ * @b: last bit position to be excluded from bitmap
+ *
+ * Resizes the bitmap so that no more than @b bits will fit into it.  Nothing
+ * will change if the size is already smaller than @b.
+ *
+ * NB: Does not adjust the map->map_len so that a subsequent virBitmapExpand
+ * doesn't necessarily need to reallocate.
+ */
+void
+virBitmapShrink(virBitmapPtr map,
+                size_t b)
+{
+    if (!map)
+        return;
+
+    if (map->max_bit >= b)
+        map->max_bit = b;
 }

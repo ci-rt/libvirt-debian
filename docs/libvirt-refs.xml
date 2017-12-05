@@ -11487,6 +11487,9 @@
           <ref name='virNodeGetMemoryStats'/>
           <ref name='virStreamSend'/>
         </word>
+        <word name='build'>
+          <ref name='virStorageVolUpload'/>
+        </word>
         <word name='bulk'>
           <ref name='virDomainSetBlockThreshold'/>
         </word>
@@ -18238,6 +18241,7 @@
           <ref name='virDomainShutdownFlags'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virNetworkGetBridgeName'/>
+          <ref name='virStorageVolUpload'/>
           <ref name='virStreamNew'/>
         </word>
         <word name='order:'>
@@ -19786,10 +19790,10 @@
         </word>
         <word name='refresh'>
           <ref name='virStoragePoolRefresh'/>
+          <ref name='virStorageVolUpload'/>
         </word>
         <word name='refreshed'>
           <ref name='virStoragePoolRefresh'/>
-          <ref name='virStorageVolUpload'/>
         </word>
         <word name='refuse'>
           <ref name='virDomainMigrateStartPostCopy'/>

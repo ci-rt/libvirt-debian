@@ -92,24 +92,24 @@ logPrlErrorHelper(PRL_RESULT err, const char *filename,
     VIR_FREE(msg2);
 }
 
-#define logPrlError(code)                          \
-    logPrlErrorHelper(code, __FILE__,              \
+#define logPrlError(code) \
+    logPrlErrorHelper(code, __FILE__, \
                       __FUNCTION__, __LINE__)
 
-#define prlsdkCheckRetGoto(ret, label)             \
-    do {                                           \
-        if (PRL_FAILED(ret)) {                     \
-            logPrlError(ret);                      \
-            goto label;                            \
-        }                                          \
+#define prlsdkCheckRetGoto(ret, label) \
+    do { \
+        if (PRL_FAILED(ret)) { \
+            logPrlError(ret); \
+            goto label; \
+        } \
     } while (0)
 
-#define prlsdkCheckRetExit(ret, code)              \
-    do {                                           \
-        if (PRL_FAILED(ret)) {                     \
-            logPrlError(ret);                      \
-            return code;                           \
-        }                                          \
+#define prlsdkCheckRetExit(ret, code) \
+    do { \
+        if (PRL_FAILED(ret)) { \
+            logPrlError(ret); \
+            return code; \
+        } \
     } while (0)
 
 static void
@@ -197,8 +197,8 @@ getJobResultHelper(PRL_HANDLE job, unsigned int timeout, PRL_HANDLE *result,
     return ret;
 }
 
-#define getJobResult(job, result)                       \
-    getJobResultHelper(job, JOB_INFINIT_WAIT_TIMEOUT,   \
+#define getJobResult(job, result) \
+    getJobResultHelper(job, JOB_INFINIT_WAIT_TIMEOUT, \
                        result, __FILE__, __FUNCTION__, __LINE__)
 
 static PRL_RESULT
@@ -218,8 +218,8 @@ getDomainJobResultHelper(PRL_HANDLE job, virDomainObjPtr dom,
     return pret;
 }
 
-#define getDomainJobResult(job, dom, result)                            \
-    getDomainJobResultHelper(job, dom, JOB_INFINIT_WAIT_TIMEOUT,        \
+#define getDomainJobResult(job, dom, result) \
+    getDomainJobResultHelper(job, dom, JOB_INFINIT_WAIT_TIMEOUT, \
                              result, __FILE__, __FUNCTION__, __LINE__)
 
 static PRL_RESULT
@@ -236,8 +236,8 @@ waitJobHelper(PRL_HANDLE job, unsigned int timeout,
     return ret;
 }
 
-#define waitJob(job)                                        \
-    waitJobHelper(job, JOB_INFINIT_WAIT_TIMEOUT, __FILE__,  \
+#define waitJob(job) \
+    waitJobHelper(job, JOB_INFINIT_WAIT_TIMEOUT, __FILE__, \
                   __FUNCTION__, __LINE__)
 
 static PRL_RESULT
@@ -265,8 +265,8 @@ waitDomainJobHelper(PRL_HANDLE job, virDomainObjPtr dom, unsigned int timeout,
     return ret;
 }
 
-#define waitDomainJob(job, dom)                                         \
-    waitDomainJobHelper(job, dom, JOB_INFINIT_WAIT_TIMEOUT, __FILE__,   \
+#define waitDomainJob(job, dom) \
+    waitDomainJobHelper(job, dom, JOB_INFINIT_WAIT_TIMEOUT, __FILE__, \
                         __FUNCTION__, __LINE__)
 
 typedef PRL_RESULT (*prlsdkParamGetterType)(PRL_HANDLE, char*, PRL_UINT32*);
@@ -1191,7 +1191,6 @@ prlsdkGetSerialInfo(PRL_HANDLE serialPort, virDomainChrDefPtr chr)
     int ret = -1;
 
     chr->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL;
-    chr->targetTypeAttr = false;
     pret = PrlVmDev_GetIndex(serialPort, &serialPortIndex);
     prlsdkCheckRetGoto(pret, cleanup);
     chr->target.port = serialPortIndex;
@@ -2864,7 +2863,7 @@ static int prlsdkCheckSerialUnsupportedParams(virDomainChrDefPtr chr)
         return -1;
     }
 
-    if (chr->targetTypeAttr) {
+    if (chr->targetType != VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_NONE) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Specified character device target type is not "
                          "supported by vz driver."));
@@ -4424,11 +4423,11 @@ prlsdkGetBlockStats(PRL_HANDLE sdkstats,
     }
 
 
-#define PRLSDK_GET_STAT_PARAM(VAL, TYPE, NAME)                          \
-    if (virAsprintf(&name, "devices.%s%d.%s", prefix, idx, NAME) < 0)   \
-        goto cleanup;                                                   \
-    if (prlsdkExtractStatsParam(sdkstats, name, &stats->VAL) < 0)       \
-        goto cleanup;                                                   \
+#define PRLSDK_GET_STAT_PARAM(VAL, TYPE, NAME) \
+    if (virAsprintf(&name, "devices.%s%d.%s", prefix, idx, NAME) < 0) \
+        goto cleanup; \
+    if (prlsdkExtractStatsParam(sdkstats, name, &stats->VAL) < 0) \
+        goto cleanup; \
     VIR_FREE(name);
 
     PARALLELS_BLOCK_STATS_FOREACH(PRLSDK_GET_STAT_PARAM)
@@ -4505,11 +4504,11 @@ prlsdkGetNetStats(PRL_HANDLE sdkstats, PRL_HANDLE sdkdom, const char *device,
     pret = PrlVmDev_GetIndex(net, &net_index);
     prlsdkCheckRetGoto(pret, cleanup);
 
-#define PRLSDK_GET_NET_COUNTER(VAL, NAME)                           \
-    if (virAsprintf(&name, "net.nic%u.%s", net_index, NAME) < 0)    \
-        goto cleanup;                                               \
-    if (prlsdkExtractStatsParam(sdkstats, name, &stats->VAL) < 0)   \
-        goto cleanup;                                               \
+#define PRLSDK_GET_NET_COUNTER(VAL, NAME) \
+    if (virAsprintf(&name, "net.nic%u.%s", net_index, NAME) < 0) \
+        goto cleanup; \
+    if (prlsdkExtractStatsParam(sdkstats, name, &stats->VAL) < 0) \
+        goto cleanup; \
     VIR_FREE(name);
 
     PRLSDK_GET_NET_COUNTER(rx_bytes, "bytes_in")
@@ -4559,15 +4558,15 @@ prlsdkGetMemoryStats(PRL_HANDLE sdkstats,
     long long v = 0, t = 0, u = 0;
     size_t i = 0;
 
-#define PRLSDK_GET_COUNTER(NAME, VALUE)                             \
-    if (prlsdkExtractStatsParam(sdkstats, NAME, &VALUE) < 0)        \
-        goto cleanup;                                               \
+#define PRLSDK_GET_COUNTER(NAME, VALUE) \
+    if (prlsdkExtractStatsParam(sdkstats, NAME, &VALUE) < 0) \
+        goto cleanup; \
 
-#define PRLSDK_MEMORY_STAT_SET(TAG, VALUE)                          \
-    if (i < nr_stats) {                                             \
-        stats[i].tag = (TAG);                                       \
-        stats[i].val = (VALUE);                                     \
-        i++;                                                        \
+#define PRLSDK_MEMORY_STAT_SET(TAG, VALUE) \
+    if (i < nr_stats) { \
+        stats[i].tag = (TAG); \
+        stats[i].val = (VALUE); \
+        i++; \
     }
 
     i = 0;

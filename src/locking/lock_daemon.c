@@ -173,6 +173,8 @@ virLockDaemonNew(virLockDaemonConfigPtr config, bool privileged)
     if (!(lockd->dmn = virNetDaemonNew()) ||
         virNetDaemonAddServer(lockd->dmn, srv) < 0)
         goto error;
+    virObjectUnref(srv);
+    srv = NULL;
 
     if (!(lockd->lockspaces = virHashCreate(VIR_LOCK_DAEMON_NUM_LOCKSPACES,
                                             virLockDaemonLockSpaceDataFree)))
@@ -184,6 +186,7 @@ virLockDaemonNew(virLockDaemonConfigPtr config, bool privileged)
     return lockd;
 
  error:
+    virObjectUnref(srv);
     virLockDaemonFree(lockd);
     return NULL;
 }
@@ -275,6 +278,7 @@ virLockDaemonNewPostExecRestart(virJSONValuePtr object, bool privileged)
                                               virLockDaemonClientFree,
                                               (void*)(intptr_t)(privileged ? 0x1 : 0x0))))
         goto error;
+    virObjectUnref(srv);
 
     return lockd;
 
@@ -1321,9 +1325,10 @@ int main(int argc, char **argv) {
             ret = VIR_LOCK_DAEMON_ERR_NETWORK;
             goto cleanup;
         }
-    } else if (rv == 1) {
-        srv = virNetDaemonGetServer(lockDaemon->dmn, "virtlockd");
+        virObjectUnref(srv);
     }
+
+    srv = virNetDaemonGetServer(lockDaemon->dmn, "virtlockd");
 
     if (timeout != -1) {
         VIR_DEBUG("Registering shutdown timeout %d", timeout);
