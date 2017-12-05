@@ -847,11 +847,11 @@ lxcDomainSetMemoryParameters(virDomainPtr dom,
         goto endjob;
     }
 
-#define VIR_GET_LIMIT_PARAMETER(PARAM, VALUE)                                \
-    if ((rc = virTypedParamsGetULLong(params, nparams, PARAM, &VALUE)) < 0)  \
-        goto endjob;                                                         \
-                                                                             \
-    if (rc == 1)                                                             \
+#define VIR_GET_LIMIT_PARAMETER(PARAM, VALUE) \
+    if ((rc = virTypedParamsGetULLong(params, nparams, PARAM, &VALUE)) < 0) \
+        goto endjob; \
+ \
+    if (rc == 1) \
         set_ ## VALUE = true;
 
     VIR_GET_LIMIT_PARAMETER(VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT, swap_hard_limit)
@@ -879,16 +879,16 @@ lxcDomainSetMemoryParameters(virDomainPtr dom,
         }
     }
 
-#define VIR_SET_MEM_PARAMETER(FUNC, VALUE)                                      \
-    if (set_ ## VALUE) {                                                        \
-        if (def) {                                                              \
-            if ((rc = FUNC(priv->cgroup, VALUE)) < 0)                           \
-                goto endjob;                                                    \
-            def->mem.VALUE = VALUE;                                             \
-        }                                                                       \
-                                                                                \
-        if (persistentDef)                                                      \
-            persistentDef->mem.VALUE = VALUE;                                   \
+#define VIR_SET_MEM_PARAMETER(FUNC, VALUE) \
+    if (set_ ## VALUE) { \
+        if (def) { \
+            if ((rc = FUNC(priv->cgroup, VALUE)) < 0) \
+                goto endjob; \
+            def->mem.VALUE = VALUE; \
+        } \
+ \
+        if (persistentDef) \
+            persistentDef->mem.VALUE = VALUE; \
     }
 
     /* Soft limit doesn't clash with the others */
@@ -1679,7 +1679,7 @@ static int lxcStateInitialize(bool privileged,
     /* Get all the running persistent or transient configs first */
     if (virDomainObjListLoadAllConfigs(lxc_driver->domains,
                                        cfg->stateDir,
-                                       NULL, 1,
+                                       NULL, true,
                                        caps,
                                        lxc_driver->xmlopt,
                                        NULL, NULL) < 0)
@@ -1690,7 +1690,7 @@ static int lxcStateInitialize(bool privileged,
     /* Then inactive persistent configs */
     if (virDomainObjListLoadAllConfigs(lxc_driver->domains,
                                        cfg->configDir,
-                                       cfg->autostartDir, 0,
+                                       cfg->autostartDir, false,
                                        caps,
                                        lxc_driver->xmlopt,
                                        NULL, NULL) < 0)
@@ -1755,7 +1755,7 @@ lxcStateReload(void)
 
     virDomainObjListLoadAllConfigs(lxc_driver->domains,
                                    cfg->configDir,
-                                   cfg->autostartDir, 0,
+                                   cfg->autostartDir, false,
                                    caps,
                                    lxc_driver->xmlopt,
                                    lxcNotifyLoadDomain, lxc_driver);

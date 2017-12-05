@@ -39,7 +39,7 @@ typedef enum {
     VIR_SECURITY_MANAGER_MOUNT_NAMESPACE    = 1 << 5,
 } virSecurityManagerNewFlags;
 
-# define VIR_SECURITY_MANAGER_NEW_MASK  \
+# define VIR_SECURITY_MANAGER_NEW_MASK \
     (VIR_SECURITY_MANAGER_ALLOW_DISK_PROBE  | \
      VIR_SECURITY_MANAGER_DEFAULT_CONFINED  | \
      VIR_SECURITY_MANAGER_REQUIRE_CONFINED  | \
@@ -171,6 +171,14 @@ int virSecurityManagerSetMemoryLabel(virSecurityManagerPtr mgr,
 int virSecurityManagerRestoreMemoryLabel(virSecurityManagerPtr mgr,
                                         virDomainDefPtr vm,
                                         virDomainMemoryDefPtr mem);
+
+int virSecurityManagerSetInputLabel(virSecurityManagerPtr mgr,
+                                    virDomainDefPtr vm,
+                                    virDomainInputDefPtr input);
+int virSecurityManagerRestoreInputLabel(virSecurityManagerPtr mgr,
+                                        virDomainDefPtr vm,
+                                        virDomainInputDefPtr input);
+
 
 int virSecurityManagerDomainSetPathLabel(virSecurityManagerPtr mgr,
                                          virDomainDefPtr vm,

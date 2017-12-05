@@ -40,8 +40,8 @@
 #include "virxml.h"
 #include "virstring.h"
 
-#define VIRSH_COMMON_OPT_DOMAIN_FULL                       \
-    VIRSH_COMMON_OPT_DOMAIN(N_("domain name, id or uuid")) \
+#define VIRSH_COMMON_OPT_DOMAIN_FULL \
+    VIRSH_COMMON_OPT_DOMAIN(N_("domain name, id or uuid"))
 
 VIR_ENUM_DECL(virshDomainIOError)
 VIR_ENUM_IMPL(virshDomainIOError,
@@ -848,12 +848,12 @@ static const struct _domblkstat_sequence domblkstat_output[] = {
     { NULL, NULL, NULL }
 };
 
-#define DOMBLKSTAT_LEGACY_PRINT(ID, VALUE)              \
-    if (VALUE >= 0)                                     \
-        vshPrint(ctl, "%s %-*s %lld\n", device,         \
-                 human ? 31 : 0,                        \
+#define DOMBLKSTAT_LEGACY_PRINT(ID, VALUE) \
+    if (VALUE >= 0) \
+        vshPrint(ctl, "%s %-*s %lld\n", device, \
+                 human ? 31 : 0, \
                  human ? _(domblkstat_output[ID].human) \
-                 : domblkstat_output[ID].legacy,        \
+                 : domblkstat_output[ID].legacy, \
                  VALUE);
 
 static bool
@@ -995,7 +995,7 @@ static const vshCmdOptDef opts_domifstat[] = {
     {.name = "interface",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
-     .help = N_("interface device")
+     .help = N_("interface device specified by name or MAC Address")
     },
     {.name = NULL}
 };
@@ -1775,8 +1775,8 @@ static const vshCmdOptDef opts_list[] = {
     {.name = NULL}
 };
 
-#define FILTER(NAME, FLAG)              \
-    if (vshCommandOptBool(cmd, NAME))   \
+#define FILTER(NAME, FLAG) \
+    if (vshCommandOptBool(cmd, NAME)) \
         flags |= (FLAG)
 static bool
 cmdList(vshControl *ctl, const vshCmd *cmd)

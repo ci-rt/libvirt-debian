@@ -2016,16 +2016,16 @@ INCLUDES = \
 CLEANFILES = $(am__append_1) $(BUILT_SOURCES) $(man8_MANS) *.cov \
 	*.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda
 DAEMON_GENERATED = \
-		remote_dispatch.h	\
-		lxc_dispatch.h		\
-		qemu_dispatch.h		\
-		admin_dispatch.h	\
+		remote_dispatch.h \
+		lxc_dispatch.h \
+		qemu_dispatch.h \
+		admin_dispatch.h \
 		$(NULL)
 
 DAEMON_SOURCES = \
-		libvirtd.c libvirtd.h			\
-		remote.c remote.h			\
-		stream.c stream.h			\
+		libvirtd.c libvirtd.h \
+		remote.c remote.h \
+		stream.c stream.h \
 		$(DAEMON_GENERATED)
 
 LIBVIRTD_CONF_SOURCES = libvirtd-config.c libvirtd-config.h
@@ -2039,32 +2039,32 @@ MANINFILES = \
 
 DISTCLEANFILES = 
 EXTRA_DIST = \
-	remote_dispatch.h				\
-	lxc_dispatch.h					\
-	qemu_dispatch.h					\
-	admin_dispatch.h				\
-	libvirtd.conf					\
-	libvirtd.init.in				\
-	libvirtd.upstart				\
-	libvirtd.policy.in				\
-	libvirt.rules					\
-	libvirtd.sasl					\
-	libvirtd.service.in				\
-	virt-guest-shutdown.target		\
-	libvirtd.sysconf				\
-	libvirtd.sysctl					\
-	libvirtd.aug                                    \
-	libvirtd.logrotate.in                           \
-	libvirtd.qemu.logrotate.in                      \
-	libvirtd.lxc.logrotate.in                       \
-	libvirtd.libxl.logrotate.in                     \
-	libvirtd.uml.logrotate.in                       \
-	test_libvirtd.aug.in                             \
-	THREADS.txt					\
-	$(PODFILES)					\
-	$(MANINFILES)					\
-	$(DAEMON_SOURCES)				\
-	$(LIBVIRTD_CONF_SOURCES)			\
+	remote_dispatch.h \
+	lxc_dispatch.h \
+	qemu_dispatch.h \
+	admin_dispatch.h \
+	libvirtd.conf \
+	libvirtd.init.in \
+	libvirtd.upstart \
+	libvirtd.policy.in \
+	libvirt.rules \
+	libvirtd.sasl \
+	libvirtd.service.in \
+	virt-guest-shutdown.target \
+	libvirtd.sysconf \
+	libvirtd.sysctl \
+	libvirtd.aug \
+	libvirtd.logrotate.in \
+	libvirtd.qemu.logrotate.in \
+	libvirtd.lxc.logrotate.in \
+	libvirtd.libxl.logrotate.in \
+	libvirtd.uml.logrotate.in \
+	test_libvirtd.aug.in \
+	THREADS.txt \
+	$(PODFILES) \
+	$(MANINFILES) \
+	$(DAEMON_SOURCES) \
+	$(LIBVIRTD_CONF_SOURCES) \
 	$(NULL)
 
 BUILT_SOURCES = $(am__append_3) $(am__append_4) $(am__append_5)
@@ -2085,10 +2085,10 @@ ADMIN_PROTOCOL = $(top_srcdir)/src/admin/admin_protocol.x
 @WITH_LIBVIRTD_TRUE@	$(NULL)
 
 @WITH_LIBVIRTD_TRUE@libvirtd_conf_la_LDFLAGS = \
-@WITH_LIBVIRTD_TRUE@	$(RELRO_LDFLAGS)				\
-@WITH_LIBVIRTD_TRUE@	$(PIE_LDFLAGS)					\
-@WITH_LIBVIRTD_TRUE@	$(COVERAGE_LDFLAGS)				\
-@WITH_LIBVIRTD_TRUE@	$(NO_INDIRECT_LDFLAGS)				\
+@WITH_LIBVIRTD_TRUE@	$(RELRO_LDFLAGS) \
+@WITH_LIBVIRTD_TRUE@	$(PIE_LDFLAGS) \
+@WITH_LIBVIRTD_TRUE@	$(COVERAGE_LDFLAGS) \
+@WITH_LIBVIRTD_TRUE@	$(NO_INDIRECT_LDFLAGS) \
 @WITH_LIBVIRTD_TRUE@	$(NULL)
 
 @WITH_LIBVIRTD_TRUE@libvirtd_conf_la_LIBADD = $(LIBXML_LIBS)
@@ -2096,19 +2096,19 @@ ADMIN_PROTOCOL = $(top_srcdir)/src/admin/admin_protocol.x
 @WITH_LIBVIRTD_TRUE@		admin.c admin.h admin_server.c admin_server.h
 
 @WITH_LIBVIRTD_TRUE@libvirtd_admin_la_CFLAGS = \
-@WITH_LIBVIRTD_TRUE@		$(AM_CFLAGS)		\
-@WITH_LIBVIRTD_TRUE@		$(XDR_CFLAGS)		\
-@WITH_LIBVIRTD_TRUE@		$(PIE_CFLAGS)		\
-@WITH_LIBVIRTD_TRUE@		$(WARN_CFLAGS)		\
-@WITH_LIBVIRTD_TRUE@		$(LIBXML_CFLAGS)	\
-@WITH_LIBVIRTD_TRUE@		$(COVERAGE_CFLAGS)	\
+@WITH_LIBVIRTD_TRUE@		$(AM_CFLAGS) \
+@WITH_LIBVIRTD_TRUE@		$(XDR_CFLAGS) \
+@WITH_LIBVIRTD_TRUE@		$(PIE_CFLAGS) \
+@WITH_LIBVIRTD_TRUE@		$(WARN_CFLAGS) \
+@WITH_LIBVIRTD_TRUE@		$(LIBXML_CFLAGS) \
+@WITH_LIBVIRTD_TRUE@		$(COVERAGE_CFLAGS) \
 @WITH_LIBVIRTD_TRUE@		$(NULL)
 
 @WITH_LIBVIRTD_TRUE@libvirtd_admin_la_LDFLAGS = \
-@WITH_LIBVIRTD_TRUE@		$(PIE_LDFLAGS)		\
-@WITH_LIBVIRTD_TRUE@		$(RELRO_LDFLAGS)	\
-@WITH_LIBVIRTD_TRUE@		$(COVERAGE_LDFLAGS)	\
-@WITH_LIBVIRTD_TRUE@		$(NO_INDIRECT_LDFLAGS)  \
+@WITH_LIBVIRTD_TRUE@		$(PIE_LDFLAGS) \
+@WITH_LIBVIRTD_TRUE@		$(RELRO_LDFLAGS) \
+@WITH_LIBVIRTD_TRUE@		$(COVERAGE_LDFLAGS) \
+@WITH_LIBVIRTD_TRUE@		$(NO_INDIRECT_LDFLAGS) \
 @WITH_LIBVIRTD_TRUE@		$(NULL)
 
 @WITH_LIBVIRTD_TRUE@libvirtd_admin_la_LIBADD = \
@@ -2132,10 +2132,10 @@ ADMIN_PROTOCOL = $(top_srcdir)/src/admin/admin_protocol.x
 @WITH_LIBVIRTD_TRUE@	-DQEMUD_PID_FILE="\"$(QEMUD_PID_FILE)\""
 
 @WITH_LIBVIRTD_TRUE@libvirtd_LDFLAGS = \
-@WITH_LIBVIRTD_TRUE@	$(RELRO_LDFLAGS)				\
-@WITH_LIBVIRTD_TRUE@	$(PIE_LDFLAGS)					\
-@WITH_LIBVIRTD_TRUE@	$(COVERAGE_LDFLAGS)				\
-@WITH_LIBVIRTD_TRUE@	$(NO_INDIRECT_LDFLAGS)				\
+@WITH_LIBVIRTD_TRUE@	$(RELRO_LDFLAGS) \
+@WITH_LIBVIRTD_TRUE@	$(PIE_LDFLAGS) \
+@WITH_LIBVIRTD_TRUE@	$(COVERAGE_LDFLAGS) \
+@WITH_LIBVIRTD_TRUE@	$(NO_INDIRECT_LDFLAGS) \
 @WITH_LIBVIRTD_TRUE@	$(NULL)
 
 
@@ -2772,33 +2772,33 @@ admin_dispatch.h: $(top_srcdir)/src/rpc/gendispatch.pl \
 @WITH_LIBVIRTD_TRUE@admin.h: $(DAEMON_GENERATED)
 
 @WITH_LIBVIRTD_TRUE@libvirtd.logrotate: libvirtd.logrotate.in
-@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed						\
-@WITH_LIBVIRTD_TRUE@	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
+@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed \
+@WITH_LIBVIRTD_TRUE@	    -e 's|[@]localstatedir[@]|$(localstatedir)|g' \
 @WITH_LIBVIRTD_TRUE@	    < $< > $@-t && \
 @WITH_LIBVIRTD_TRUE@	mv $@-t $@
 
 @WITH_LIBVIRTD_TRUE@libvirtd.qemu.logrotate: libvirtd.qemu.logrotate.in
-@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed						\
-@WITH_LIBVIRTD_TRUE@	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
+@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed \
+@WITH_LIBVIRTD_TRUE@	    -e 's|[@]localstatedir[@]|$(localstatedir)|g' \
 @WITH_LIBVIRTD_TRUE@	    < $< > $@-t && \
 @WITH_LIBVIRTD_TRUE@	mv $@-t $@
 
 @WITH_LIBVIRTD_TRUE@libvirtd.lxc.logrotate: libvirtd.lxc.logrotate.in
-@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed						\
-@WITH_LIBVIRTD_TRUE@	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
-@WITH_LIBVIRTD_TRUE@	    < $< > $@-t &&					\
+@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed \
+@WITH_LIBVIRTD_TRUE@	    -e 's|[@]localstatedir[@]|$(localstatedir)|g' \
+@WITH_LIBVIRTD_TRUE@	    < $< > $@-t && \
 @WITH_LIBVIRTD_TRUE@	    mv $@-t $@
 
 @WITH_LIBVIRTD_TRUE@libvirtd.libxl.logrotate: libvirtd.libxl.logrotate.in
-@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed						\
-@WITH_LIBVIRTD_TRUE@	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
-@WITH_LIBVIRTD_TRUE@	    < $< > $@-t &&					\
+@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed \
+@WITH_LIBVIRTD_TRUE@	    -e 's|[@]localstatedir[@]|$(localstatedir)|g' \
+@WITH_LIBVIRTD_TRUE@	    < $< > $@-t && \
 @WITH_LIBVIRTD_TRUE@	    mv $@-t $@
 
 @WITH_LIBVIRTD_TRUE@libvirtd.uml.logrotate: libvirtd.uml.logrotate.in
-@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed						\
-@WITH_LIBVIRTD_TRUE@	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
-@WITH_LIBVIRTD_TRUE@	    < $< > $@-t &&					\
+@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed \
+@WITH_LIBVIRTD_TRUE@	    -e 's|[@]localstatedir[@]|$(localstatedir)|g' \
+@WITH_LIBVIRTD_TRUE@	    < $< > $@-t && \
 @WITH_LIBVIRTD_TRUE@	    mv $@-t $@
 
 @WITH_LIBVIRTD_TRUE@install-logrotate: $(LOGROTATE_CONFS)
@@ -2886,20 +2886,20 @@ admin_dispatch.h: $(top_srcdir)/src/rpc/gendispatch.pl \
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_FALSE@@WITH_LIBVIRTD_TRUE@uninstall-init-systemd:
 
 @WITH_LIBVIRTD_TRUE@libvirtd.init: libvirtd.init.in $(top_builddir)/config.status
-@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed						\
-@WITH_LIBVIRTD_TRUE@	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
-@WITH_LIBVIRTD_TRUE@	    -e 's|[@]sbindir[@]|$(sbindir)|g'			\
-@WITH_LIBVIRTD_TRUE@	    -e 's|[@]sysconfdir[@]|$(sysconfdir)|g'		\
-@WITH_LIBVIRTD_TRUE@	    < $< > $@-t &&					\
-@WITH_LIBVIRTD_TRUE@	    chmod a+x $@-t &&					\
+@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed \
+@WITH_LIBVIRTD_TRUE@	    -e 's|[@]localstatedir[@]|$(localstatedir)|g' \
+@WITH_LIBVIRTD_TRUE@	    -e 's|[@]sbindir[@]|$(sbindir)|g' \
+@WITH_LIBVIRTD_TRUE@	    -e 's|[@]sysconfdir[@]|$(sysconfdir)|g' \
+@WITH_LIBVIRTD_TRUE@	    < $< > $@-t && \
+@WITH_LIBVIRTD_TRUE@	    chmod a+x $@-t && \
 @WITH_LIBVIRTD_TRUE@	    mv $@-t $@
 
 @WITH_LIBVIRTD_TRUE@libvirtd.service: libvirtd.service.in $(top_builddir)/config.status
-@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed						\
-@WITH_LIBVIRTD_TRUE@	    -e 's|[@]localstatedir[@]|$(localstatedir)|g'	\
-@WITH_LIBVIRTD_TRUE@	    -e 's|[@]sbindir[@]|$(sbindir)|g'			\
-@WITH_LIBVIRTD_TRUE@	    -e 's|[@]sysconfdir[@]|$(sysconfdir)|g'		\
-@WITH_LIBVIRTD_TRUE@	    < $< > $@-t &&					\
+@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed \
+@WITH_LIBVIRTD_TRUE@	    -e 's|[@]localstatedir[@]|$(localstatedir)|g' \
+@WITH_LIBVIRTD_TRUE@	    -e 's|[@]sbindir[@]|$(sbindir)|g' \
+@WITH_LIBVIRTD_TRUE@	    -e 's|[@]sysconfdir[@]|$(sysconfdir)|g' \
+@WITH_LIBVIRTD_TRUE@	    < $< > $@-t && \
 @WITH_LIBVIRTD_TRUE@	    mv $@-t $@
 
 @WITH_LIBVIRTD_TRUE@check-local: check-augeas

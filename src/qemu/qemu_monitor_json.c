@@ -1718,19 +1718,19 @@ qemuMonitorJSONGetBalloonInfo(qemuMonitorPtr mon,
  * rates and/or whether data has been collected since a previous cycle.
  * It's currently unused.
  */
-#define GET_BALLOON_STATS(OBJECT, FIELD, TAG, DIVISOR)                        \
-    if (virJSONValueObjectHasKey(OBJECT, FIELD) &&                            \
-       (got < nr_stats)) {                                                    \
-        if (virJSONValueObjectGetNumberUlong(OBJECT, FIELD, &mem) < 0) {      \
-            VIR_DEBUG("Failed to get '%s' value", FIELD);                     \
-        } else {                                                              \
-            /* Not being collected? No point in providing bad data */         \
-            if (mem != -1UL) {                                                \
-                stats[got].tag = TAG;                                         \
-                stats[got].val = mem / DIVISOR;                               \
-                got++;                                                        \
-            }                                                                 \
-        }                                                                     \
+#define GET_BALLOON_STATS(OBJECT, FIELD, TAG, DIVISOR) \
+    if (virJSONValueObjectHasKey(OBJECT, FIELD) && \
+       (got < nr_stats)) { \
+        if (virJSONValueObjectGetNumberUlong(OBJECT, FIELD, &mem) < 0) { \
+            VIR_DEBUG("Failed to get '%s' value", FIELD); \
+        } else { \
+            /* Not being collected? No point in providing bad data */ \
+            if (mem != -1UL) { \
+                stats[got].tag = TAG; \
+                stats[got].val = mem / DIVISOR; \
+                got++; \
+            } \
+        } \
     }
 
 
@@ -2006,14 +2006,14 @@ qemuMonitorJSONGetOneBlockStatsInfo(virJSONValuePtr dev,
         goto cleanup;
     }
 
-#define QEMU_MONITOR_BLOCK_STAT_GET(NAME, VAR, MANDATORY)                      \
-    if (MANDATORY || virJSONValueObjectHasKey(stats, NAME)) {                  \
-        nstats++;                                                              \
-        if (virJSONValueObjectGetNumberLong(stats, NAME, &VAR) < 0) {          \
-            virReportError(VIR_ERR_INTERNAL_ERROR,                             \
-                           _("cannot read %s statistic"), NAME);               \
-            goto cleanup;                                                      \
-        }                                                                      \
+#define QEMU_MONITOR_BLOCK_STAT_GET(NAME, VAR, MANDATORY) \
+    if (MANDATORY || virJSONValueObjectHasKey(stats, NAME)) { \
+        nstats++; \
+        if (virJSONValueObjectGetNumberLong(stats, NAME, &VAR) < 0) { \
+            virReportError(VIR_ERR_INTERNAL_ERROR, \
+                           _("cannot read %s statistic"), NAME); \
+            goto cleanup; \
+        } \
     }
     QEMU_MONITOR_BLOCK_STAT_GET("rd_bytes", bstats->rd_bytes, true);
     QEMU_MONITOR_BLOCK_STAT_GET("wr_bytes", bstats->wr_bytes, true);
@@ -2659,7 +2659,6 @@ qemuMonitorJSONGetMigrationParams(qemuMonitorPtr mon,
     virJSONValuePtr result;
     virJSONValuePtr cmd = NULL;
     virJSONValuePtr reply = NULL;
-    const char *tlsStr = NULL;
 
     memset(params, 0, sizeof(*params));
 
@@ -2679,34 +2678,46 @@ qemuMonitorJSONGetMigrationParams(qemuMonitorPtr mon,
 
     result = virJSONValueObjectGet(reply, "return");
 
-#define PARSE(VAR, FIELD)                                                   \
-    do {                                                                    \
-        if (virJSONValueObjectGetNumberInt(result, FIELD,                   \
-                                           &params->VAR) == 0)              \
-            params->VAR ## _set = true;                                     \
+#define PARSE_SET(API, VAR, FIELD) \
+    do { \
+        if (API(result, FIELD, &params->VAR) == 0) \
+            params->VAR ## _set = true; \
     } while (0)
 
-    PARSE(compressLevel, "compress-level");
-    PARSE(compressThreads, "compress-threads");
-    PARSE(decompressThreads, "decompress-threads");
-    PARSE(cpuThrottleInitial, "cpu-throttle-initial");
-    PARSE(cpuThrottleIncrement, "cpu-throttle-increment");
+#define PARSE_INT(VAR, FIELD) \
+    PARSE_SET(virJSONValueObjectGetNumberInt, VAR, FIELD)
 
-#undef PARSE
+#define PARSE_ULONG(VAR, FIELD) \
+    PARSE_SET(virJSONValueObjectGetNumberUlong, VAR, FIELD)
 
-    if (virJSONValueObjectGetNumberUlong(result, "downtime-limit",
-                                         &params->downtimeLimit) == 0)
-        params->downtimeLimit_set = true;
+#define PARSE_BOOL(VAR, FIELD) \
+    PARSE_SET(virJSONValueObjectGetBoolean, VAR, FIELD)
 
-    if ((tlsStr = virJSONValueObjectGetString(result, "tls-creds"))) {
-        if (VIR_STRDUP(params->migrateTLSAlias, tlsStr) < 0)
-            goto cleanup;
-    }
+#define PARSE_STR(VAR, FIELD) \
+    do { \
+        const char *str; \
+        if ((str = virJSONValueObjectGetString(result, FIELD))) { \
+            if (VIR_STRDUP(params->VAR, str) < 0) \
+                goto cleanup; \
+        } \
+    } while (0)
 
-    if ((tlsStr = virJSONValueObjectGetString(result, "tls-hostname"))) {
-        if (VIR_STRDUP(params->migrateTLSHostname, tlsStr) < 0)
-            goto cleanup;
-    }
+    PARSE_INT(compressLevel, "compress-level");
+    PARSE_INT(compressThreads, "compress-threads");
+    PARSE_INT(decompressThreads, "decompress-threads");
+    PARSE_INT(cpuThrottleInitial, "cpu-throttle-initial");
+    PARSE_INT(cpuThrottleIncrement, "cpu-throttle-increment");
+    PARSE_STR(tlsCreds, "tls-creds");
+    PARSE_STR(tlsHostname, "tls-hostname");
+    PARSE_ULONG(maxBandwidth, "max-bandwidth");
+    PARSE_ULONG(downtimeLimit, "downtime-limit");
+    PARSE_BOOL(blockIncremental, "block-incremental");
+
+#undef PARSE_SET
+#undef PARSE_INT
+#undef PARSE_ULONG
+#undef PARSE_BOOL
+#undef PARSE_STR
 
     ret = 0;
  cleanup:
@@ -2734,31 +2745,48 @@ qemuMonitorJSONSetMigrationParams(qemuMonitorPtr mon,
     if (!(args = virJSONValueNewObject()))
         goto cleanup;
 
-#define APPEND(VAR, FIELD)                                                  \
-    do {                                                                    \
-        if (params->VAR ## _set &&                                          \
-            virJSONValueObjectAppendNumberInt(args, FIELD,                  \
-                                              params->VAR) < 0)             \
-            goto cleanup;                                                   \
+#define APPEND(VALID, API, VAR, FIELD) \
+    do { \
+        if (VALID && API(args, FIELD, params->VAR) < 0) \
+            goto cleanup; \
     } while (0)
 
-    APPEND(compressLevel, "compress-level");
-    APPEND(compressThreads, "compress-threads");
-    APPEND(decompressThreads, "decompress-threads");
-    APPEND(cpuThrottleInitial, "cpu-throttle-initial");
-    APPEND(cpuThrottleIncrement, "cpu-throttle-increment");
+#define APPEND_INT(VAR, FIELD) \
+    APPEND(params->VAR ## _set, \
+           virJSONValueObjectAppendNumberInt, VAR, FIELD)
+
+#define APPEND_STR(VAR, FIELD) \
+    APPEND(params->VAR, \
+           virJSONValueObjectAppendString, VAR, FIELD)
+
+#define APPEND_ULONG(VAR, FIELD) \
+    APPEND(params->VAR ## _set, \
+           virJSONValueObjectAppendNumberUlong, VAR, FIELD)
+
+#define APPEND_BOOL(VAR, FIELD) \
+    APPEND(params->VAR ## _set, \
+           virJSONValueObjectAppendBoolean, VAR, FIELD)
+
+    APPEND_INT(compressLevel, "compress-level");
+    APPEND_INT(compressThreads, "compress-threads");
+    APPEND_INT(decompressThreads, "decompress-threads");
+    APPEND_INT(cpuThrottleInitial, "cpu-throttle-initial");
+    APPEND_INT(cpuThrottleIncrement, "cpu-throttle-increment");
+    APPEND_STR(tlsCreds, "tls-creds");
+    APPEND_STR(tlsHostname, "tls-hostname");
+    APPEND_ULONG(maxBandwidth, "max-bandwidth");
+    APPEND_ULONG(downtimeLimit, "downtime-limit");
+    APPEND_BOOL(blockIncremental, "block-incremental");
 
 #undef APPEND
+#undef APPEND_INT
+#undef APPEND_STR
+#undef APPEND_ULONG
 
-    if (params->migrateTLSAlias &&
-        virJSONValueObjectAppendString(args, "tls-creds",
-                                       params->migrateTLSAlias) < 0)
+    if (virJSONValueObjectKeysNumber(args) == 0) {
+        ret = 0;
         goto cleanup;
-
-    if (params->migrateTLSHostname &&
-        virJSONValueObjectAppendString(args, "tls-hostname",
-                                       params->migrateTLSHostname) < 0)
-        goto cleanup;
+    }
 
     if (virJSONValueObjectAppend(cmd, "arguments", args) < 0)
         goto cleanup;
@@ -4598,21 +4626,21 @@ int qemuMonitorJSONOpenGraphics(qemuMonitorPtr mon,
 }
 
 
-#define GET_THROTTLE_STATS_OPTIONAL(FIELD, STORE)                             \
-    if (virJSONValueObjectGetNumberUlong(inserted,                            \
-                                         FIELD,                               \
-                                         &reply->STORE) < 0) {                \
-        reply->STORE = 0;                                                     \
+#define GET_THROTTLE_STATS_OPTIONAL(FIELD, STORE) \
+    if (virJSONValueObjectGetNumberUlong(inserted, \
+                                         FIELD, \
+                                         &reply->STORE) < 0) { \
+        reply->STORE = 0; \
     }
-#define GET_THROTTLE_STATS(FIELD, STORE)                                      \
-    if (virJSONValueObjectGetNumberUlong(inserted,                            \
-                                         FIELD,                               \
-                                         &reply->STORE) < 0) {                \
-        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,                         \
-                       _("block_io_throttle field '%s' missing "              \
-                         "in qemu's output"),                                 \
-                       #STORE);                                               \
-        goto cleanup;                                                         \
+#define GET_THROTTLE_STATS(FIELD, STORE) \
+    if (virJSONValueObjectGetNumberUlong(inserted, \
+                                         FIELD, \
+                                         &reply->STORE) < 0) { \
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, \
+                       _("block_io_throttle field '%s' missing " \
+                         "in qemu's output"), \
+                       #STORE); \
+        goto cleanup; \
     }
 static int
 qemuMonitorJSONBlockIoThrottleInfo(virJSONValuePtr result,
@@ -5831,11 +5859,11 @@ int qemuMonitorJSONGetObjectProperty(qemuMonitorPtr mon,
 }
 
 
-#define MAKE_SET_CMD(STRING, VALUE)                                   \
-    cmd = qemuMonitorJSONMakeCommand("qom-set",                       \
-                                      "s:path", path,                 \
-                                      "s:property", property,         \
-                                      STRING, VALUE,                  \
+#define MAKE_SET_CMD(STRING, VALUE) \
+    cmd = qemuMonitorJSONMakeCommand("qom-set", \
+                                      "s:path", path, \
+                                      "s:property", property, \
+                                      STRING, VALUE, \
                                       NULL)
 int qemuMonitorJSONSetObjectProperty(qemuMonitorPtr mon,
                                      const char *path,

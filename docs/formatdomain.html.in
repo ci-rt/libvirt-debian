@@ -1529,7 +1529,69 @@
     </p>
 
     <p>
-      This guest NUMA specification is currently available only for QEMU/KVM.
+      This guest NUMA specification is currently available only for
+      QEMU/KVM and Xen.
+    </p>
+
+    <p>
+      A NUMA hardware architecture supports the notion of distances
+      between NUMA cells. <span class="since">Since 3.10.0</span> it
+      is possible to define the distance between NUMA cells using the
+      <code>distances</code> element within a NUMA <code>cell</code>
+      description. The <code>sibling</code> sub-element is used to
+      specify the distance value between sibling NUMA cells. For more
+      details, see the chapter explaining the system's SLIT (System
+      Locality Information Table) within the ACPI (Advanced
+      Configuration and Power Interface) specification.
+    </p>
+
+<pre>
+...
+&lt;cpu&gt;
+  ...
+  &lt;numa&gt;
+    &lt;cell id='0' cpus='0,4-7' memory='512000' unit='KiB'&gt;
+      &lt;distances&gt;
+        &lt;sibling id='0' value='10'/&gt;
+        &lt;sibling id='1' value='21'/&gt;
+        &lt;sibling id='2' value='31'/&gt;
+        &lt;sibling id='3' value='41'/&gt;
+      &lt;/distances&gt;
+    &lt;/cell&gt;
+    &lt;cell id='1' cpus='1,8-10,12-15' memory='512000' unit='KiB' memAccess='shared'&gt;
+      &lt;distances&gt;
+        &lt;sibling id='0' value='21'/&gt;
+        &lt;sibling id='1' value='10'/&gt;
+        &lt;sibling id='2' value='21'/&gt;
+        &lt;sibling id='3' value='31'/&gt;
+      &lt;/distances&gt;
+    &lt;/cell&gt;
+    &lt;cell id='2' cpus='2,11' memory='512000' unit='KiB' memAccess='shared'&gt;
+      &lt;distances&gt;
+        &lt;sibling id='0' value='31'/&gt;
+        &lt;sibling id='1' value='21'/&gt;
+        &lt;sibling id='2' value='10'/&gt;
+        &lt;sibling id='3' value='21'/&gt;
+      &lt;/distances&gt;
+    &lt;/cell&gt;
+    &lt;cell id='3' cpus='3' memory='512000' unit='KiB'&gt;
+      &lt;distances&gt;
+        &lt;sibling id='0' value='41'/&gt;
+        &lt;sibling id='1' value='31'/&gt;
+        &lt;sibling id='2' value='21'/&gt;
+        &lt;sibling id='3' value='10'/&gt;
+      &lt;/distances&gt;
+    &lt;/cell&gt;
+  &lt;/numa&gt;
+  ...
+&lt;/cpu&gt;
+...</pre>
+
+    <p>
+      Describing distances between NUMA cells is currently only supported
+      by Xen and QEMU. If no <code>distances</code> are given to describe
+      the SLIT data between different cells, it will default to a scheme
+      using 10 for local and 20 for remote distances.
     </p>
 
     <h3><a id="elementsEvents">Events configuration</a></h3>
@@ -1709,7 +1771,7 @@
   &lt;pvspinlock state='on'/&gt;
   &lt;gic version='2'/&gt;
   &lt;ioapic driver='qemu'/&gt;
-
+  &lt;hpt resizing='required'/&gt;
 &lt;/features&gt;
 ...</pre>
 
@@ -1877,6 +1939,21 @@
           and <code>qemu</code> which puts I/O APIC in userspace
           which is also known as a split I/O APIC mode.
           <span class="since">Since 3.4.0</span> (QEMU/KVM only)
+      </dd>
+      <dt><code>hpt</code></dt>
+      <dd>Configure the HPT (Hash Page Table) of a pSeries guest. Possible
+          values for the <code>resizing</code> attribute are
+          <code>enabled</code>, which causes HPT resizing to be enabled if
+          both the guest and the host support it; <code>disabled</code>, which
+          causes HPT resizing to be disabled regardless of guest and host
+          support; and <code>required</code>, which prevents the guest from
+          starting unless both the guest and the host support HPT resizing. If
+          the attribute is not defined, the hypervisor default will be used.
+          <span class="since">Since 3.10.0</span> (QEMU/KVM only)
+      </dd>
+      <dt><code>vmcoreinfo</code></dt>
+      <dd>Enable QEMU vmcoreinfo device to let the guest kernel save debug
+          details. <span class="since">Since 3.10.0</span> (QEMU only)
       </dd>
     </dl>
 
@@ -3647,6 +3724,10 @@
          <span class="since">Since 1.3.5</span>, USB controllers accept a
          <code>ports</code> attribute to configure how many devices can be
          connected to the controller.</dd>
+        <dt><code>ide</code></dt>
+        <dd><span class="since">Since 3.10.0</span> for the vbox driver, the
+        <code>ide</code> controller has an optional attribute
+        <code>model</code>, which is one of "piix3", "piix4" or "ich6".</dd>
       </dl>
 
     <p>
@@ -6096,7 +6177,10 @@ qemu-kvm -net nic,model=? /dev/null
               TCP port number (with -1 as legacy syntax indicating that it should
               be auto-allocated). The <code>autoport</code> attribute is the new
               preferred syntax for indicating auto-allocation of the TCP port to
-              use. The <code>multiUser</code> attribute is a boolean deciding
+              use. In the VirtualBox driver, the <code>autoport</code> will make
+              the hypervisor pick available port from 3389-3689 range when the VM
+              is started. The chosen port will be reflected in the <code>port</code>
+              attribute. The <code>multiUser</code> attribute is a boolean deciding
               whether multiple simultaneous connections to the VM are permitted.
               The <code>replaceUser</code> attribute is a boolean deciding whether
               the existing connection must be dropped and a new connection must
@@ -6434,6 +6518,7 @@ qemu-kvm -net nic,model=? /dev/null
 <pre>
 ...
 &lt;devices&gt;
+  &lt;!-- Serial port --&gt;
   &lt;serial type='pty'&gt;
     &lt;source path='/dev/pts/3'/&gt;
     &lt;target port='0'/&gt;
@@ -6441,70 +6526,84 @@ qemu-kvm -net nic,model=? /dev/null
 &lt;/devices&gt;
 ...</pre>
 
+<pre>
+...
+&lt;devices&gt;
+  &lt;!-- USB serial port --&gt;
+  &lt;serial type='pty'&gt;
+    &lt;target type='usb-serial' port='0'&gt;
+      &lt;model name='usb-serial'/&gt;
+    &lt;/target&gt;
+    &lt;address type='usb' bus='0' port='1'/&gt;
+  &lt;/serial&gt;
+&lt;/devices&gt;
+...</pre>
+
     <p>
-      <code>target</code> can have a <code>port</code> attribute, which
-      specifies the port number. Ports are numbered starting from 0. There are
-      usually 0, 1 or 2 serial ports. There is also an optional
-      <code>type</code> attribute <span class="since">since 1.0.2</span>
-      which has three choices for its value, one is <code>isa-serial</code>,
-      then <code>usb-serial</code> and last one is <code>pci-serial</code>.
-      If <code>type</code> is missing, <code>isa-serial</code> will be used by
-      default. For <code>usb-serial</code> an optional sub-element
-      <code>&lt;address/&gt;</code> with <code>type='usb'</code> can tie the
-      device to a particular controller, <a href="#elementsAddress">documented above</a>.
-      Similarly, <code>pci-serial</code> can be used to attach the device to
-      the pci bus (<span class="since">since 1.2.16</span>). Again, it has
-      optional sub-element <code>&lt;address/&gt;</code> with
-      <code>type='pci'</code> to select desired location on the PCI bus.
+      The <code>target</code> element can have an optional <code>port</code>
+      attribute, which specifies the port number (starting from 0), and an
+      optional <code>type</code> attribute: valid values are,
+      <span class="since">since 1.0.2</span>, <code>isa-serial</code> (usable
+      with x86 guests), <code>usb-serial</code> (usable whenever USB support
+      is available) and <code>pci-serial</code> (usable whenever PCI support
+      is available); <span class="since">since 3.10.0</span>,
+      <code>spapr-vio-serial</code> (usable with ppc64/pseries guests),
+      <code>system-serial</code> (usable with aarch64/virt guests) and
+      <code>sclp-serial</code> (usable with s390 and s390x guests) are
+      available as well.
+    </p>
+
+    <p>
+      <span class="since">Since 3.10.0</span>, the <code>target</code>
+      element can have an optional <code>model</code> subelement;
+      valid values for its <code>name</code> attribute are:
+      <code>isa-serial</code> (usable with the <code>isa-serial</code> target
+      type); <code>usb-serial</code> (usable with the <code>usb-serial</code>
+      target type); <code>pci-serial</code>
+      (usable with the <code>pci-serial</code> target type);
+      <code>spapr-vty</code> (usable with the <code>spapr-vio-serial</code>
+      target type); <code>pl011</code> (usable with the
+      <code>system-serial</code> target type); <code>sclpconsole</code> and
+      <code>sclplmconsole</code> (usable with the <code>sclp-serial</code>
+      target type).
+    </p>
+
+    <p>
+      If any of the attributes is not specified by the user, libvirt will
+      choose a value suitable for most users.
+    </p>
+
+    <p>
+      Most target types support configuring the guest-visible device
+      address as <a href="#elementsAddress">documented above</a>; more
+      specifically, acceptable address types are <code>isa</code> (for
+      <code>isa-serial</code>), <code>usb</code> (for <code>usb-serial</code>),
+      <code>pci</code> (for <code>pci-serial</code>) and <code>spapr-vio</code>
+      (for <code>spapr-vio-serial</code>). The <code>system-serial</code>
+      and <code>sclp-serial</code> target types don't support specifying an
+      address.
+    </p>
+
+    <p>
+      For the relationship between serial ports and consoles,
+      <a href="#elementCharSerialAndConsole">see below</a>.
     </p>
 
     <h6><a id="elementCharConsole">Console</a></h6>
 
-    <p>
-      The console element is used to represent interactive consoles. Depending
-      on the type of guest in use, the consoles might be paravirtualized devices,
-      or they might be a clone of a serial device, according to the following
-      rules:
-    </p>
-
-    <ul>
-      <li>If no <code>targetType</code> attribute is set, then the default
-        device type is according to the hypervisor's rules. The default
-        type will be added when re-querying the XML fed into libvirt.
-        For fully virtualized guests, the default device type will usually
-        be a serial port.</li>
-      <li>If the <code>targetType</code> attribute is <code>serial</code>,
-        then if no <code>&lt;serial&gt;</code> element exists, the console
-        element will be copied to the serial element. If a <code>&lt;serial&gt;</code>
-        element does already exist, the console element will be ignored.</li>
-      <li>If the <code>targetType</code> attribute is not <code>serial</code>,
-        it will be treated normally.</li>
-      <li>Only the first <code>console</code> element may use a <code>targetType</code>
-        of <code>serial</code>. Secondary consoles must all be paravirtualized.
-      </li>
-      <li>On S390, the <code>console</code> element may use a
-        <code>targetType</code> of <code>sclp</code> or <code>sclplm</code>
-        (line mode). SCLP is the native console type for S390. There's no
-        controller associated to SCLP consoles.
-        <span class="since">Since 1.0.2</span>
-      </li>
-    </ul>
-
-    <p>
-      A virtio console device is exposed in the
-      guest as /dev/hvc[0-7] (for more information, see
-      <a href="http://fedoraproject.org/wiki/Features/VirtioSerial">http://fedoraproject.org/wiki/Features/VirtioSerial</a>)
-      <span class="since">Since 0.8.3</span>
-    </p>
-
 <pre>
 ...
 &lt;devices&gt;
+  &lt;!-- Serial console --&gt;
   &lt;console type='pty'&gt;
-    &lt;source path='/dev/pts/4'/&gt;
-    &lt;target port='0'/&gt;
+    &lt;source path='/dev/pts/2'/&gt;
+   &lt;target type='serial' port='0'/&gt;
   &lt;/console&gt;
+&lt;/devices&gt;
+...</pre>
 
+<pre>
+...
   &lt;!-- KVM virtio console --&gt;
   &lt;console type='pty'&gt;
     &lt;source path='/dev/pts/5'/&gt;
@@ -6513,21 +6612,137 @@ qemu-kvm -net nic,model=? /dev/null
 &lt;/devices&gt;
 ...</pre>
 
+    <p>
+      The <code>console</code> element is used to represent interactive
+      serial consoles. Depending on the type of guest in use and the specifics
+      of the configuration, the <code>console</code> element might represent
+      the same device as an existing <code>serial</code> element or a separate
+      device.
+    </p>
+
+    <p>
+      A <code>target</code> subelement is supported and works the same
+      way as with the <code>serial</code> element
+      (<a href="#elementCharSerial">see above</a> for details).
+      Valid values for the <code>type</code> attribute are:
+      <code>serial</code> (described below);
+      <code>virtio</code> (usable whenever VirtIO support is available);
+      <code>xen</code>, <code>lxc</code>, <code>uml</code> and
+      <code>openvz</code> (available when the corresponding hypervisor is in
+      use). <code>sclp</code> and <code>sclplm</code> (usable for s390 and
+      s390x QEMU guests) are supported for compatibility reasons but should
+      not be used for new guests: use the <code>sclpconsole</code> and
+      <code>sclplmconsole</code> target models, respectively, with the
+      <code>serial</code> element instead.
+    </p>
+
+    <p>
+      Of the target types listed above, <code>serial</code> is special in
+      that it doesn't represents a separate device, but rather the same
+      device as the first <code>serial</code> element. Due to this, there can
+      only be a single <code>console</code> element with target type
+      <code>serial</code> per guest.
+    </p>
+
+    <p>
+      Virtio consoles are usually accessible as <code>/dev/hvc[0-7]</code>
+      from inside the guest; for more information, see
+      <a href="http://fedoraproject.org/wiki/Features/VirtioSerial">http://fedoraproject.org/wiki/Features/VirtioSerial</a>.
+      <span class="since">Since 0.8.3</span>
+    </p>
+
+    <p>
+      For the relationship between serial ports and consoles,
+      <a href="#elementCharSerialAndConsole">see below</a>.
+    </p>
+
+    <h6><a id="elementCharSerialAndConsole">Relationship between serial ports and consoles</a></h6>
+
+    <p>
+      Due to hystorical reasons, the <code>serial</code> and
+      <code>console</code> elements have partially overlapping scopes.
+    </p>
+
+    <p>
+      In general, both elements are used to configure one or more serial
+      consoles to be used for interacting with the guest. The main difference
+      between the two is that <code>serial</code> is used for emulated,
+      usually native, serial consoles, whereas <code>console</code> is used
+      for paravirtualized ones.
+    </p>
+
+    <p>
+      Both emulated and paravirtualized serial consoles have advantages and
+      disadvantages:
+    </p>
+
+    <ul>
+      <li>
+        emulated serial consoles are usually initialized much earlier than
+        paravirtualized ones, so they can be used to control the bootloader
+        and display both firmware and early boot messages;
+      </li>
+      <li>
+        on several platforms, there can only be a single emulated serial
+        console per guest but paravirtualized consoles don't suffer from the
+        same limitation.
+      </li>
+    </ul>
+
+    <p>
+      A configuration such as:
+    </p>
+
 <pre>
 ...
-&lt;devices&gt;
-  &lt;!-- KVM S390 sclp console --&gt;
+&lt;/devices&gt;
   &lt;console type='pty'&gt;
-    &lt;source path='/dev/pts/1'/&gt;
-    &lt;target type='sclp' port='0'/&gt;
+    &lt;target type='serial'/&gt;
+  &lt;/console&gt;
+  &lt;console type='pty'&gt;
+    &lt;target type='virtio'/&gt;
   &lt;/console&gt;
 &lt;/devices&gt;
 ...</pre>
 
     <p>
-      If the console is presented as a serial port, the <code>target</code>
-      element has the same attributes as for a serial port. There is usually
-      only 1 console.
+      will work on any platform and will result in one emulated serial console
+      for early boot logging / interactive / recovery use, and one
+      paravirtualized serial console to be used eg. as a side channel. Most
+      people will be fine with having just the first <code>console</code>
+      element in their configuration.
+    </p>
+
+    <p>
+      Note that, due to the compatibility concerns mentioned earlier, all the
+      following configurations:
+    </p>
+
+<pre>
+...
+&lt;/devices&gt;
+  &lt;serial type='pty'/&gt;
+&lt;/devices&gt;
+...</pre>
+
+<pre>
+...
+&lt;/devices&gt;
+  &lt;console type='pty'/&gt;
+&lt;/devices&gt;
+...</pre>
+
+<pre>
+...
+&lt;/devices&gt;
+  &lt;serial type='pty'/&gt;
+  &lt;console type='pty'/&gt;
+&lt;/devices&gt;
+...</pre>
+
+    <p>
+      will be treated the same and will result in a single emulated serial
+      console being available to the guest.
     </p>
 
     <h6><a id="elementCharChannel">Channel</a></h6>

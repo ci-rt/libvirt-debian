@@ -44,24 +44,30 @@ virStorageFileIsInitialized(const virStorageSource *src)
 }
 
 
+static virStorageFileBackendPtr
+virStorageFileGetBackendForSupportCheck(const virStorageSource *src)
+{
+    int actualType;
+
+    if (!src)
+        return NULL;
+
+    if (src->drv)
+        return src->drv->backend;
+
+    actualType = virStorageSourceGetActualType(src);
+
+    return virStorageFileBackendForTypeInternal(actualType, src->protocol, false);
+}
+
+
 static bool
 virStorageFileSupportsBackingChainTraversal(virStorageSourcePtr src)
 {
-    int actualType;
     virStorageFileBackendPtr backend;
 
-    if (!src)
+    if (!(backend = virStorageFileGetBackendForSupportCheck(src)))
         return false;
-    actualType = virStorageSourceGetActualType(src);
-
-    if (src->drv) {
-        backend = src->drv->backend;
-    } else {
-        if (!(backend = virStorageFileBackendForTypeInternal(actualType,
-                                                             src->protocol,
-                                                             false)))
-            return false;
-    }
 
     return backend->storageFileGetUniqueIdentifier &&
            backend->storageFileRead &&
@@ -80,23 +86,32 @@ virStorageFileSupportsBackingChainTraversal(virStorageSourcePtr src)
 bool
 virStorageFileSupportsSecurityDriver(const virStorageSource *src)
 {
-    int actualType;
     virStorageFileBackendPtr backend;
 
-    if (!src)
+    if (!(backend = virStorageFileGetBackendForSupportCheck(src)))
         return false;
-    actualType = virStorageSourceGetActualType(src);
-
-    if (src->drv) {
-        backend = src->drv->backend;
-    } else {
-        if (!(backend = virStorageFileBackendForTypeInternal(actualType,
-                                                             src->protocol,
-                                                             false)))
-            return false;
-    }
 
     return !!backend->storageFileChown;
+}
+
+
+/**
+ * virStorageFileSupportsAccess:
+ *
+ * @src: a storage file structure
+ *
+ * Check if a storage file supports checking if the storage source is accessible
+ * for the given vm.
+ */
+bool
+virStorageFileSupportsAccess(const virStorageSource *src)
+{
+    virStorageFileBackendPtr backend;
+
+    if (!(backend = virStorageFileGetBackendForSupportCheck(src)))
+        return false;
+
+    return !!backend->storageFileAccess;
 }
 
 
@@ -389,6 +404,38 @@ virStorageFileChown(const virStorageSource *src,
 }
 
 
+/**
+ * virStorageFileReportBrokenChain:
+ *
+ * @errcode: errno when accessing @src
+ * @src: inaccessible file in the backing chain of @parent
+ * @parent: root virStorageSource being checked
+ *
+ * Reports the correct error message if @src is missing in the backing chain
+ * for @parent.
+ */
+void
+virStorageFileReportBrokenChain(int errcode,
+                                virStorageSourcePtr src,
+                                virStorageSourcePtr parent)
+{
+    unsigned int access_user = src->drv->uid;
+    unsigned int access_group = src->drv->gid;
+
+    if (src == parent) {
+        virReportSystemError(errcode,
+                             _("Cannot access storage file '%s' "
+                               "(as uid:%u, gid:%u)"),
+                             src->path, access_user, access_group);
+    } else {
+        virReportSystemError(errcode,
+                             _("Cannot access backing file '%s' "
+                               "of storage file '%s' (as uid:%u, gid:%u)"),
+                             src->path, parent->path, access_user, access_group);
+    }
+}
+
+
 /* Recursive workhorse for virStorageFileGetMetadata.  */
 static int
 virStorageFileGetMetadataRecurse(virStorageSourcePtr src,
@@ -418,20 +465,7 @@ virStorageFileGetMetadataRecurse(virStorageSourcePtr src,
         return -1;
 
     if (virStorageFileAccess(src, F_OK) < 0) {
-        if (src == parent) {
-            virReportSystemError(errno,
-                                 _("Cannot access storage file '%s' "
-                                   "(as uid:%u, gid:%u)"),
-                                 src->path, (unsigned int)uid,
-                                 (unsigned int)gid);
-        } else {
-            virReportSystemError(errno,
-                                 _("Cannot access backing file '%s' "
-                                   "of storage file '%s' (as uid:%u, gid:%u)"),
-                                 src->path, parent->path,
-                                 (unsigned int)uid, (unsigned int)gid);
-        }
-
+        virStorageFileReportBrokenChain(errno, src, parent);
         goto cleanup;
     }
 

@@ -220,7 +220,7 @@ typedef enum {
     QEMU_CAPS_DEVICE_CIRRUS_VGA, /* -device cirrus-vga */
     QEMU_CAPS_DEVICE_VMWARE_SVGA, /* -device vmware-svga */
     QEMU_CAPS_DEVICE_VIDEO_PRIMARY, /* -device safe for primary video device */
-    QEMU_CAPS_SCLP_S390, /* -device sclp* */
+    QEMU_CAPS_DEVICE_SCLPCONSOLE, /* -device sclpconsole */
 
     /* 125 */
     QEMU_CAPS_DEVICE_USB_SERIAL, /* -device usb-serial */
@@ -429,6 +429,19 @@ typedef enum {
     /* 270 */
     QEMU_CAPS_VXHS, /* -drive file.driver=vxhs via query-qmp-schema */
     QEMU_CAPS_VIRTIO_BLK_NUM_QUEUES, /* virtio-blk-*.num-queues */
+    QEMU_CAPS_MACHINE_PSERIES_RESIZE_HPT, /* -machine pseries,resize-hpt */
+    QEMU_CAPS_DEVICE_VMCOREINFO, /* -device vmcoreinfo */
+    QEMU_CAPS_DEVICE_SPAPR_VTY, /* -device spapr-vty */
+
+    /* 275 */
+    QEMU_CAPS_DEVICE_SCLPLMCONSOLE, /* -device sclplmconsole */
+    QEMU_CAPS_NUMA_DIST, /* -numa dist */
+    QEMU_CAPS_DISK_SHARE_RW, /* share-rw=on for concurrent disk access */
+    QEMU_CAPS_ISCSI_PASSWORD_SECRET, /* -drive file.driver=iscsi,...,password-secret= */
+    QEMU_CAPS_DEVICE_ISA_SERIAL, /* -device isa-serial */
+
+    /* 280 */
+    QEMU_CAPS_DEVICE_PL011, /* -device pl011 (not user-instantiable) */
 
     QEMU_CAPS_LAST /* this must always be the last item */
 } virQEMUCapsFlags;
@@ -450,7 +463,7 @@ bool virQEMUCapsGet(virQEMUCapsPtr qemuCaps,
                     virQEMUCapsFlags flag);
 
 bool virQEMUCapsHasPCIMultiBus(virQEMUCapsPtr qemuCaps,
-                               virDomainDefPtr def);
+                               const virDomainDef *def);
 
 bool virQEMUCapsSupportsVmport(virQEMUCapsPtr qemuCaps,
                                const virDomainDef *def);

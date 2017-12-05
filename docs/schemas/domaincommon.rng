@@ -1169,7 +1169,7 @@
       <optional>
         <element name="bootloader">
           <choice>
-            <ref name="absFilePath"/>
+            <text/>
             <empty/>
           </choice>
         </element>
@@ -1975,12 +1975,11 @@
           <ref name="address"/>
         </optional>
         <choice>
-          <!-- fdc/ide/sata/ccid have only the common attributes -->
+          <!-- fdc/sata/ccid have only the common attributes -->
           <group>
             <attribute name="type">
               <choice>
                 <value>fdc</value>
-                <value>ide</value>
                 <value>sata</value>
                 <value>ccid</value>
               </choice>
@@ -2038,6 +2037,21 @@
             <optional>
               <attribute name="ports">
                 <ref name="unsignedInt"/>
+              </attribute>
+            </optional>
+          </group>
+          <!-- ide has an optional attribute "model" -->
+          <group>
+            <attribute name="type">
+              <value>ide</value>
+            </attribute>
+            <optional>
+              <attribute name="model">
+                <choice>
+                  <value>piix3</value>
+                  <value>piix4</value>
+                  <value>ich6</value>
+                </choice>
               </attribute>
             </optional>
           </group>
@@ -2750,6 +2764,7 @@
                 <choice>
                   <value>kvm</value>
                   <value>vfio</value>
+                  <value>xen</value>
                 </choice>
               </attribute>
             </group>
@@ -3571,8 +3586,27 @@
         <value>isa-serial</value>
         <value>usb-serial</value>
         <value>pci-serial</value>
+        <value>spapr-vio-serial</value>
+        <value>system-serial</value>
+        <value>sclp-serial</value>
       </choice>
     </attribute>
+  </define>
+
+  <define name='qemucdevSerialTgtModel'>
+    <element name='model'>
+      <attribute name='name'>
+        <choice>
+          <value>isa-serial</value>
+          <value>usb-serial</value>
+          <value>pci-serial</value>
+          <value>spapr-vty</value>
+          <value>pl011</value>
+          <value>sclpconsole</value>
+          <value>sclplmconsole</value>
+        </choice>
+      </attribute>
+    </element>
   </define>
 
   <define  name="qemucdevTgtDef">
@@ -3588,6 +3622,9 @@
         </choice>
         <optional>
           <attribute name="port"/>
+        </optional>
+        <optional>
+          <ref name="qemucdevSerialTgtModel"/>
         </optional>
       </interleave>
     </element>
@@ -3670,9 +3707,6 @@
         </optional>
         <optional>
           <attribute name="service"/>
-        </optional>
-        <optional>
-          <attribute name="wiremode"/>
         </optional>
         <optional>
           <attribute name="channel"/>
@@ -4722,6 +4756,12 @@
           <optional>
             <ref name="ioapic"/>
           </optional>
+          <optional>
+            <ref name="hpt"/>
+          </optional>
+          <optional>
+            <ref name="vmcoreinfo"/>
+          </optional>
         </interleave>
       </element>
     </optional>
@@ -4906,6 +4946,24 @@
           <value>kvm</value>
         </choice>
       </attribute>
+      <empty/>
+    </element>
+  </define>
+
+  <define name="hpt">
+    <element name="hpt">
+      <attribute name="resizing">
+        <choice>
+          <value>enabled</value>
+          <value>disabled</value>
+          <value>required</value>
+        </choice>
+      </attribute>
+    </element>
+  </define>
+
+  <define name="vmcoreinfo">
+    <element name="vmcoreinfo">
       <empty/>
     </element>
   </define>

@@ -363,12 +363,15 @@ vshCmddefCheckInternals(const vshCmdDef *cmd)
 
         if (i > 63)
             return -1; /* too many options */
-        if (opt->type == VSH_OT_BOOL) {
+
+        switch (opt->type) {
+        case VSH_OT_STRING:
+        case VSH_OT_BOOL:
             if (opt->flags & VSH_OFLAG_REQ)
-                return -1; /* bool options can't be mandatory */
-            continue;
-        }
-        if (opt->type == VSH_OT_ALIAS) {
+                return -1; /* nor bool nor string options can't be mandatory */
+            break;
+
+        case VSH_OT_ALIAS: {
             size_t j;
             char *name = (char *)opt->help; /* cast away const */
             char *p;
@@ -391,10 +394,21 @@ vshCmddefCheckInternals(const vshCmdDef *cmd)
             }
             if (!cmd->opts[j].name)
                 return -1; /* alias option must map to a later option name */
-            continue;
         }
-        if (opt->type == VSH_OT_ARGV && cmd->opts[i + 1].name)
-            return -1; /* argv option must be listed last */
+            break;
+        case VSH_OT_ARGV:
+            if (cmd->opts[i + 1].name)
+                return -1; /* argv option must be listed last */
+            break;
+
+        case VSH_OT_DATA:
+            if (!(opt->flags & VSH_OFLAG_REQ))
+                return -1; /* OT_DATA should always be required. */
+            break;
+
+        case VSH_OT_INT:
+            break;
+        }
     }
     return 0;
 }
@@ -733,23 +747,9 @@ vshCmddefHelp(vshControl *ctl, const char *cmdname)
                          : _("--%s <number>"), opt->name);
                 break;
             case VSH_OT_STRING:
-                /* OT_STRING should never be VSH_OFLAG_REQ */
-                if (opt->flags & VSH_OFLAG_REQ) {
-                    vshError(ctl,
-                             _("internal error: bad options in command: '%s'"),
-                             def->name);
-                    return false;
-                }
                 snprintf(buf, sizeof(buf), _("--%s <string>"), opt->name);
                 break;
             case VSH_OT_DATA:
-                /* OT_DATA should always be VSH_OFLAG_REQ */
-                if (!(opt->flags & VSH_OFLAG_REQ)) {
-                    vshError(ctl,
-                             _("internal error: bad options in command: '%s'"),
-                             def->name);
-                    return false;
-                }
                 snprintf(buf, sizeof(buf), _("[--%s] <string>"),
                          opt->name);
                 break;
@@ -2892,6 +2892,7 @@ vshReadlineInit(vshControl *ctl)
     int ret = -1;
     char *histsize_env = NULL;
     const char *histsize_str = NULL;
+    const char *break_characters = " \t\n\\`@$><=;|&{(";
 
     /* Opaque data for autocomplete callbacks. */
     autoCompleteOpaque = ctl;
@@ -2900,12 +2901,20 @@ vshReadlineInit(vshControl *ctl)
      * Work around ancient readline 4.1 (hello Mac OS X),
      * which declared it as 'char *' instead of 'const char *'.
      */
+# if defined(RL_READLINE_VERSION) && RL_READLINE_VERSION > 0x0402
     rl_readline_name = ctl->name;
+# else
+    rl_readline_name = (char *) ctl->name;
+# endif
 
     /* Tell the completer that we want a crack first. */
     rl_attempted_completion_function = vshReadlineCompletion;
 
-    rl_basic_word_break_characters = " \t\n\\`@$><=;|&{(";
+# if defined(RL_READLINE_VERSION) && RL_READLINE_VERSION > 0x0402
+    rl_basic_word_break_characters = break_characters;
+# else
+    rl_basic_word_break_characters = (char *) break_characters;
+# endif
 
     if (virAsprintf(&histsize_env, "%s_HISTSIZE", ctl->env_prefix) < 0)
         goto cleanup;

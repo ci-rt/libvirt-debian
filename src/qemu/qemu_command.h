@@ -101,7 +101,6 @@ char *qemuDeviceDriveHostAlias(virDomainDiskDefPtr disk);
 
 /* Both legacy & current support */
 char *qemuBuildDriveStr(virDomainDiskDefPtr disk,
-                        virQEMUDriverConfigPtr cfg,
                         bool bootable,
                         virQEMUCapsPtr qemuCaps);
 
@@ -151,7 +150,8 @@ char *qemuBuildUSBHostdevDevStr(const virDomainDef *def,
                                 virDomainHostdevDefPtr dev,
                                 virQEMUCapsPtr qemuCaps);
 
-char *qemuBuildSCSIHostdevDrvStr(virDomainHostdevDefPtr dev);
+char *qemuBuildSCSIHostdevDrvStr(virDomainHostdevDefPtr dev,
+                                 virQEMUCapsPtr qemuCaps);
 
 char *qemuBuildSCSIHostdevDevStr(const virDomainDef *def,
                                  virDomainHostdevDefPtr dev,
@@ -177,7 +177,8 @@ int qemuGetDriveSourceString(virStorageSourcePtr src,
                              qemuDomainSecretInfoPtr secinfo,
                              char **source);
 
-int qemuCheckDiskConfig(virDomainDiskDefPtr disk);
+int qemuCheckDiskConfig(virDomainDiskDefPtr disk,
+                        virQEMUCapsPtr qemuCaps);
 
 bool
 qemuCheckFips(void);

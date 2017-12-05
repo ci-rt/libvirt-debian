@@ -1827,17 +1827,24 @@ qemuConnectMonitor(virQEMUDriverPtr driver, virDomainObjPtr vm, int asyncJob,
  * qemuProcessReadLog: Read log file of a qemu VM
  * @logCtxt: the domain log context
  * @msg: pointer to buffer to store the read messages in
+ * @max: maximum length of the message returned in @msg
  *
  * Reads log of a qemu VM. Skips messages not produced by qemu or irrelevant
- * messages. Returns returns 0 on success or -1 on error
+ * messages. If @max is not zero, @msg will contain at most @max characters
+ * from the end of the log and @msg will start after a new line if possible.
+ *
+ * Returns 0 on success or -1 on error
  */
 static int
-qemuProcessReadLog(qemuDomainLogContextPtr logCtxt, char **msg)
+qemuProcessReadLog(qemuDomainLogContextPtr logCtxt,
+                   char **msg,
+                   size_t max)
 {
     char *buf;
     ssize_t got;
     char *eol;
     char *filter_next;
+    size_t skip;
 
     if ((got = qemuDomainLogContextRead(logCtxt, &buf)) < 0)
         return -1;
@@ -1847,8 +1854,8 @@ qemuProcessReadLog(qemuDomainLogContextPtr logCtxt, char **msg)
     while ((eol = strchr(filter_next, '\n'))) {
         *eol = '\0';
         if (virLogProbablyLogMessage(filter_next) ||
-            STRPREFIX(filter_next, "char device redirected to")) {
-            size_t skip = (eol + 1) - filter_next;
+            strstr(filter_next, "char device redirected to")) {
+            skip = (eol + 1) - filter_next;
             memmove(filter_next, eol + 1, buf + got - eol);
             got -= skip;
         } else {
@@ -1863,6 +1870,19 @@ qemuProcessReadLog(qemuDomainLogContextPtr logCtxt, char **msg)
         buf[got - 1] = '\0';
         got--;
     }
+
+    if (max > 0 && got > max) {
+        skip = got - max;
+
+        if (buf[skip - 1] != '\n' &&
+            (eol = strchr(buf + skip, '\n')) &&
+            !virStringIsEmpty(eol + 1))
+            skip = eol + 1 - buf;
+
+        memmove(buf, buf + skip, got - skip + 1);
+        got -= skip;
+    }
+
     ignore_value(VIR_REALLOC_N_QUIET(buf, got + 1));
     *msg = buf;
     return 0;
@@ -1874,8 +1894,14 @@ qemuProcessReportLogError(qemuDomainLogContextPtr logCtxt,
                           const char *msgprefix)
 {
     char *logmsg = NULL;
+    size_t max;
 
-    if (qemuProcessReadLog(logCtxt, &logmsg) < 0)
+    max = VIR_ERROR_MAX_LENGTH - 1;
+    max -= strlen(msgprefix);
+    /* The length of the formatting string minus two '%s' */
+    max -= strlen(_("%s: %s")) - 4;
+
+    if (qemuProcessReadLog(logCtxt, &logmsg, max) < 0)
         return -1;
 
     virResetLastError();
@@ -3324,60 +3350,115 @@ qemuProcessNeedHugepagesPath(virDomainDefPtr def,
 }
 
 
+static bool
+qemuProcessNeedMemoryBackingPath(virDomainDefPtr def,
+                                 virDomainMemoryDefPtr mem)
+{
+    size_t i;
+    size_t numaNodes;
+
+    if (def->mem.source == VIR_DOMAIN_MEMORY_SOURCE_FILE ||
+        def->mem.access != VIR_DOMAIN_MEMORY_ACCESS_DEFAULT)
+        return true;
+
+    numaNodes = virDomainNumaGetNodeCount(def->numa);
+    for (i = 0; i < numaNodes; i++) {
+        if (virDomainNumaGetNodeMemoryAccessMode(def->numa, i)
+            != VIR_DOMAIN_MEMORY_ACCESS_DEFAULT)
+            return true;
+    }
+
+    if (mem &&
+        mem->model == VIR_DOMAIN_MEMORY_MODEL_DIMM &&
+        (mem->access != VIR_DOMAIN_MEMORY_ACCESS_DEFAULT ||
+         (mem->targetNode >= 0 &&
+          virDomainNumaGetNodeMemoryAccessMode(def->numa, mem->targetNode)
+          != VIR_DOMAIN_MEMORY_ACCESS_DEFAULT)))
+        return true;
+
+    return false;
+}
+
+
+static int
+qemuProcessBuildDestroyMemoryPathsImpl(virQEMUDriverPtr driver,
+                                       virDomainDefPtr def,
+                                       const char *path,
+                                       bool build)
+{
+    if (build) {
+        if (virFileExists(path))
+            return 0;
+
+        if (virFileMakePathWithMode(path, 0700) < 0) {
+            virReportSystemError(errno,
+                                 _("Unable to create %s"),
+                                 path);
+            return -1;
+        }
+
+        if (qemuSecurityDomainSetPathLabel(driver->securityManager,
+                                           def, path) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                            _("Unable to label %s"), path);
+            return -1;
+        }
+    } else {
+        if (virFileDeleteTree(path) < 0)
+            return -1;
+    }
+
+    return 0;
+}
+
+
 int
-qemuProcessBuildDestroyHugepagesPath(virQEMUDriverPtr driver,
-                                     virDomainObjPtr vm,
-                                     virDomainMemoryDefPtr mem,
-                                     bool build)
+qemuProcessBuildDestroyMemoryPaths(virQEMUDriverPtr driver,
+                                   virDomainObjPtr vm,
+                                   virDomainMemoryDefPtr mem,
+                                   bool build)
 {
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
-    char *hugepagePath = NULL;
+    char *path = NULL;
     size_t i;
-    bool shouldBuild = false;
+    bool shouldBuildHP = false;
+    bool shouldBuildMB = false;
     int ret = -1;
 
-    if (build)
-        shouldBuild = qemuProcessNeedHugepagesPath(vm->def, mem);
+    if (build) {
+        shouldBuildHP = qemuProcessNeedHugepagesPath(vm->def, mem);
+        shouldBuildMB = qemuProcessNeedMemoryBackingPath(vm->def, mem);
+    }
 
-    if (!build || shouldBuild) {
+    if (!build || shouldBuildHP) {
         for (i = 0; i < cfg->nhugetlbfs; i++) {
-            VIR_FREE(hugepagePath);
-            hugepagePath = qemuGetDomainHugepagePath(vm->def, &cfg->hugetlbfs[i]);
+            path = qemuGetDomainHugepagePath(vm->def, &cfg->hugetlbfs[i]);
 
-            if (!hugepagePath)
+            if (!path)
                 goto cleanup;
 
-            if (build) {
-                if (virFileExists(hugepagePath)) {
-                    ret = 0;
-                    goto cleanup;
-                }
+            if (qemuProcessBuildDestroyMemoryPathsImpl(driver, vm->def,
+                                                       path, build) < 0)
+                goto cleanup;
 
-                if (virFileMakePathWithMode(hugepagePath, 0700) < 0) {
-                    virReportSystemError(errno,
-                                         _("Unable to create %s"),
-                                         hugepagePath);
-                    goto cleanup;
-                }
-
-                if (qemuSecurityDomainSetPathLabel(driver->securityManager,
-                                                   vm->def, hugepagePath) < 0) {
-                    virReportError(VIR_ERR_INTERNAL_ERROR,
-                                   "%s", _("Unable to set huge path in security driver"));
-                    goto cleanup;
-                }
-            } else {
-                if (rmdir(hugepagePath) < 0 &&
-                    errno != ENOENT)
-                    VIR_WARN("Unable to remove hugepage path: %s (errno=%d)",
-                             hugepagePath, errno);
-            }
+            VIR_FREE(path);
         }
+    }
+
+    if (!build || shouldBuildMB) {
+        if (qemuGetMemoryBackingDomainPath(vm->def, cfg, &path) < 0)
+            goto cleanup;
+
+        if (qemuProcessBuildDestroyMemoryPathsImpl(driver, vm->def,
+                                                   path, build) < 0)
+            goto cleanup;
+
+        VIR_FREE(path);
     }
 
     ret = 0;
  cleanup:
-    VIR_FREE(hugepagePath);
+    VIR_FREE(path);
     virObjectUnref(cfg);
     return ret;
 }
@@ -5288,6 +5369,7 @@ static int
 qemuProcessPrepareDomainStorage(virConnectPtr conn,
                                 virQEMUDriverPtr driver,
                                 virDomainObjPtr vm,
+                                qemuDomainObjPrivatePtr priv,
                                 virQEMUDriverConfigPtr cfg,
                                 unsigned int flags)
 {
@@ -5306,7 +5388,7 @@ qemuProcessPrepareDomainStorage(virConnectPtr conn,
             continue;
         }
 
-        if (qemuDomainPrepareDiskSourceTLS(disk->src, disk->info.alias, cfg) < 0)
+        if (qemuDomainPrepareDiskSource(conn, disk, priv, cfg) < 0)
             return -1;
     }
 
@@ -5412,18 +5494,18 @@ qemuProcessPrepareDomain(virConnectPtr conn,
     if (qemuProcessSetupGraphics(driver, vm, flags) < 0)
         goto cleanup;
 
-    VIR_DEBUG("Setting up storage");
-    if (qemuProcessPrepareDomainStorage(conn, driver, vm, cfg, flags) < 0)
-        goto cleanup;
-
     VIR_DEBUG("Create domain masterKey");
     if (qemuDomainMasterKeyCreate(vm) < 0)
+        goto cleanup;
+
+    VIR_DEBUG("Setting up storage");
+    if (qemuProcessPrepareDomainStorage(conn, driver, vm, priv, cfg, flags) < 0)
         goto cleanup;
 
     VIR_DEBUG("Prepare chardev source backends for TLS");
     qemuDomainPrepareChardevSource(vm->def, cfg);
 
-    VIR_DEBUG("Add secrets to disks, hostdevs, and chardevs");
+    VIR_DEBUG("Add secrets to hostdevs and chardevs");
     if (qemuDomainSecretPrepare(conn, driver, vm) < 0)
         goto cleanup;
 
@@ -5473,18 +5555,8 @@ qemuProcessPrepareHostStorage(virQEMUDriverPtr driver,
     for (i = vm->def->ndisks; i > 0; i--) {
         size_t idx = i - 1;
         virDomainDiskDefPtr disk = vm->def->disks[idx];
-        virStorageFileFormat format = virDomainDiskGetFormat(disk);
 
         if (virStorageSourceIsEmpty(disk->src))
-            continue;
-
-        /* There is no need to check the backing chain for disks
-         * without backing support, the fact that the file exists is
-         * more than enough */
-        if (virStorageSourceIsLocalStorage(disk->src) &&
-            format > VIR_STORAGE_FILE_NONE &&
-            format < VIR_STORAGE_FILE_BACKING &&
-            virFileExists(virDomainDiskGetSource(disk)))
             continue;
 
         if (qemuDomainDetermineDiskChain(driver, vm, disk, true, true) >= 0)
@@ -5550,7 +5622,7 @@ qemuProcessPrepareHost(virQEMUDriverPtr driver,
                                NULL) < 0)
         goto cleanup;
 
-    if (qemuProcessBuildDestroyHugepagesPath(driver, vm, NULL, true) < 0)
+    if (qemuProcessBuildDestroyMemoryPaths(driver, vm, NULL, true) < 0)
         goto cleanup;
 
     /* Ensure no historical cgroup for this VM is lying around bogus
@@ -6254,7 +6326,7 @@ void qemuProcessStop(virQEMUDriverPtr driver,
         goto endjob;
     }
 
-    qemuProcessBuildDestroyHugepagesPath(driver, vm, NULL, false);
+    qemuProcessBuildDestroyMemoryPaths(driver, vm, NULL, false);
 
     vm->def->id = -1;
 
@@ -7112,7 +7184,7 @@ qemuProcessReconnect(void *opaque)
         goto cleanup;
     }
 
-    if (qemuProcessBuildDestroyHugepagesPath(driver, obj, NULL, true) < 0)
+    if (qemuProcessBuildDestroyMemoryPaths(driver, obj, NULL, true) < 0)
         goto error;
 
     if ((qemuDomainAssignAddresses(obj->def, priv->qemuCaps,

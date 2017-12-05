@@ -110,9 +110,7 @@ testCompareXMLToArgvFiles(bool shouldFail,
     virStorageVolDefFree(inputvol);
     virCommandFree(cmd);
     VIR_FREE(actualCmdline);
-    if (obj)
-        virStoragePoolObjUnlock(obj);
-    virStoragePoolObjFree(obj);
+    virStoragePoolObjEndAPI(&obj);
     virObjectUnref(conn);
     return ret;
 }
@@ -187,20 +185,20 @@ mymain(void)
     unsigned int flags = VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA;
 
 #define DO_TEST_FULL(shouldFail, parseflags, pool, vol, inputpool, inputvol, \
-                     cmdline, flags, imgformat)                              \
-    do {                                                                     \
+                     cmdline, flags, imgformat) \
+    do { \
         struct testInfo info = { shouldFail, pool, vol, inputpool, inputvol, \
-                                 cmdline, flags, imgformat, parseflags };    \
-        if (virTestRun("Storage Vol XML-2-argv " cmdline,                    \
-                       testCompareXMLToArgvHelper, &info) < 0)               \
-            ret = -1;                                                        \
-       }                                                                     \
+                                 cmdline, flags, imgformat, parseflags }; \
+        if (virTestRun("Storage Vol XML-2-argv " cmdline, \
+                       testCompareXMLToArgvHelper, &info) < 0) \
+            ret = -1; \
+       } \
     while (0);
 
-#define DO_TEST(pool, ...)                                                 \
+#define DO_TEST(pool, ...) \
     DO_TEST_FULL(false, 0, pool, __VA_ARGS__)
 
-#define DO_TEST_FAIL(pool, ...)                                            \
+#define DO_TEST_FAIL(pool, ...) \
     DO_TEST_FULL(true, 0, pool, __VA_ARGS__)
 
     DO_TEST("pool-dir", "vol-qcow2",

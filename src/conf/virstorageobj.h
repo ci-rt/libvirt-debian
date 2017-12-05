@@ -27,21 +27,6 @@
 typedef struct _virStoragePoolObj virStoragePoolObj;
 typedef virStoragePoolObj *virStoragePoolObjPtr;
 
-struct _virStoragePoolObj {
-    virMutex lock;
-
-    char *configFile;
-    char *autostartLink;
-    bool active;
-    bool autostart;
-    unsigned int asyncjobs;
-
-    virStoragePoolDefPtr def;
-    virStoragePoolDefPtr newDef;
-
-    virStorageVolDefList volumes;
-};
-
 typedef struct _virStoragePoolObjList virStoragePoolObjList;
 typedef virStoragePoolObjList *virStoragePoolObjListPtr;
 struct _virStoragePoolObjList {
@@ -72,6 +57,9 @@ typedef bool
 
 virStoragePoolObjPtr
 virStoragePoolObjNew(void);
+
+void
+virStoragePoolObjEndAPI(virStoragePoolObjPtr *obj);
 
 virStoragePoolDefPtr
 virStoragePoolObjGetDef(virStoragePoolObjPtr obj);
@@ -238,6 +226,24 @@ virStoragePoolObjFree(virStoragePoolObjPtr obj);
 void
 virStoragePoolObjListFree(virStoragePoolObjListPtr pools);
 
+typedef void
+(*virStoragePoolObjListIterator)(virStoragePoolObjPtr obj,
+                                 const void *opaque);
+
+void
+virStoragePoolObjListForEach(virStoragePoolObjListPtr pools,
+                             virStoragePoolObjListIterator iter,
+                             const void *opaque);
+
+typedef bool
+(*virStoragePoolObjListSearcher)(virStoragePoolObjPtr obj,
+                                 const void *opaque);
+
+virStoragePoolObjPtr
+virStoragePoolObjListSearch(virStoragePoolObjListPtr pools,
+                            virStoragePoolObjListSearcher searcher,
+                            const void *opaque);
+
 void
 virStoragePoolObjRemove(virStoragePoolObjListPtr pools,
                         virStoragePoolObjPtr obj);
@@ -251,12 +257,6 @@ int
 virStoragePoolObjSourceFindDuplicate(virConnectPtr conn,
                                      virStoragePoolObjListPtr pools,
                                      virStoragePoolDefPtr def);
-
-void
-virStoragePoolObjLock(virStoragePoolObjPtr obj);
-
-void
-virStoragePoolObjUnlock(virStoragePoolObjPtr obj);
 
 int
 virStoragePoolObjListExport(virConnectPtr conn,
