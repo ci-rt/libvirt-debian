@@ -12,7 +12,7 @@ Closes: #517059
  5 files changed, 6 insertions(+), 6 deletions(-)
 
 diff --git a/src/xen/xen_hypervisor.c b/src/xen/xen_hypervisor.c
-index 7db61fa..6da2337 100644
+index 633ec9e..925013f 100644
 --- a/src/xen/xen_hypervisor.c
 +++ b/src/xen/xen_hypervisor.c
 @@ -2146,7 +2146,7 @@ xenHypervisorBuildCapabilities(virConnectPtr conn, virArch hostarch,

@@ -8,7 +8,7 @@ As of 1.2.16 upstream ships a Polkit rule like Debian does.
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/daemon/Makefile.am b/daemon/Makefile.am
-index 697778e..e071452 100644
+index b0c28d2..bb75255 100644
 --- a/daemon/Makefile.am
 +++ b/daemon/Makefile.am
 @@ -251,14 +251,14 @@ install-data-polkit::
