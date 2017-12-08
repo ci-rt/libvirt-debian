@@ -1,3 +1,10 @@
+libvirt-lx (3.0.0-4+deb9u1+nmu1) unstable; urgency=medium
+
+  * Add r4d support
+  * Rename to libvirt-lx
+
+ -- Martin Kaistra <martin.kaistra@linutronix.de>  Fri, 08 Dec 2017 11:36:13 +0100
+
 libvirt (3.0.0-4+deb9u1) stretch-security; urgency=high
 
   * CVE-2017-1000256: qemu: ensure TLS clients always verify the server
