@@ -39,10 +39,15 @@ case "$1" in
 
 	# Clean up created dirs if existend and emtpy, they contain precious
 	# data otherwise
-	for dir in /var/lib/libvirt/qemu/save     \
-		   /var/lib/libvirt/qemu/snapshot \
-		   /var/lib/libvirt/qemu/dump     \
-		   /var/lib/libvirt/qemu          \
+	for dir in /var/lib/libvirt/qemu/save         \
+		   /var/lib/libvirt/qemu/snapshot         \
+		   /var/lib/libvirt/qemu/dump             \
+		   /var/lib/libvirt/qemu/nvram            \
+		   /var/lib/libvirt/qemu/ram/libvirt/qemu \
+		   /var/lib/libvirt/qemu/ram/libvirt      \
+		   /var/lib/libvirt/qemu/ram              \
+		   /var/lib/libvirt/qemu/channel          \
+		   /var/lib/libvirt/qemu                  \
 		   /var/cache/libvirt/qemu; do
 	    [ ! -d $dir ] || rmdir --ignore-fail-on-non-empty $dir
 	done
