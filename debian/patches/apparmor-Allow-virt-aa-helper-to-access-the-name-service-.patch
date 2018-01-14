@@ -8,7 +8,7 @@ Closes: #882979
  1 file changed, 1 insertion(+)
 
 diff --git a/examples/apparmor/usr.lib.libvirt.virt-aa-helper b/examples/apparmor/usr.lib.libvirt.virt-aa-helper
-index d6bf012..e205139 100644
+index f806e3c..69caa8c 100644
 --- a/examples/apparmor/usr.lib.libvirt.virt-aa-helper
 +++ b/examples/apparmor/usr.lib.libvirt.virt-aa-helper
 @@ -3,6 +3,7 @@
