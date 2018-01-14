@@ -104,11 +104,15 @@ bin_PROGRAMS = virsh$(EXEEXT) virt-admin$(EXEEXT) $(am__EXEEXT_1) \
 @WITH_LXC_FALSE@am__append_10 = $(VIRT_HOST_VALIDATE_LXC)
 @WITH_BHYVE_TRUE@am__append_11 = $(VIRT_HOST_VALIDATE_BHYVE)
 @WITH_BHYVE_FALSE@am__append_12 = $(VIRT_HOST_VALIDATE_BHYVE)
-@WITH_WIN_ICON_TRUE@am__append_13 = virsh_win_icon.$(OBJEXT)
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@am__append_14 = libvirt-guests.init
-@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@am__append_15 = libvirt-guests.service
-@WITH_WIRESHARK_DISSECTOR_TRUE@am__append_16 = wireshark/src/plugin.c
-@WITH_NSS_TRUE@am__append_17 = nss/libnss_libvirt_impl.la \
+@WITH_READLINE_TRUE@am__append_13 = $(VIRSH_COMPLETER)
+@WITH_READLINE_FALSE@am__append_14 = $(VIRSH_COMPLETER) \
+@WITH_READLINE_FALSE@	$(VIRT_ADMIN_COMPLETER)
+@WITH_READLINE_TRUE@am__append_15 = $(VIRT_ADMIN_COMPLETER)
+@WITH_WIN_ICON_TRUE@am__append_16 = virsh_win_icon.$(OBJEXT)
+@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@am__append_17 = libvirt-guests.init
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@am__append_18 = libvirt-guests.service
+@WITH_WIRESHARK_DISSECTOR_TRUE@am__append_19 = wireshark/src/plugin.c
+@WITH_NSS_TRUE@am__append_20 = nss/libnss_libvirt_impl.la \
 @WITH_NSS_TRUE@	nss/libnss_libvirt_guest_impl.la
 subdir = tools
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -250,6 +254,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-apparmor.m4 $(top_srcdir)/m4/virt-arg.m4 \
 	$(top_srcdir)/m4/virt-atomic.m4 $(top_srcdir)/m4/virt-attr.m4 \
 	$(top_srcdir)/m4/virt-audit.m4 $(top_srcdir)/m4/virt-avahi.m4 \
+	$(top_srcdir)/m4/virt-bash-completion.m4 \
 	$(top_srcdir)/m4/virt-blkid.m4 $(top_srcdir)/m4/virt-capng.m4 \
 	$(top_srcdir)/m4/virt-chrdev-lock-files.m4 \
 	$(top_srcdir)/m4/virt-compile-pie.m4 \
@@ -463,6 +468,17 @@ wireshark_src_libvirt_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 @WITH_LOGIN_SHELL_TRUE@am__EXEEXT_1 = virt-login-shell$(EXEEXT)
 @WITH_HOST_VALIDATE_TRUE@am__EXEEXT_2 = virt-host-validate$(EXEEXT)
 PROGRAMS = $(bin_PROGRAMS)
+am__virsh_SOURCES_DIST = virsh.c virsh.h virsh-console.c \
+	virsh-console.h virsh-domain.c virsh-domain.h \
+	virsh-domain-monitor.c virsh-domain-monitor.h virsh-host.c \
+	virsh-host.h virsh-interface.c virsh-interface.h \
+	virsh-network.c virsh-network.h virsh-nodedev.c \
+	virsh-nodedev.h virsh-nwfilter.c virsh-nwfilter.h virsh-pool.c \
+	virsh-pool.h virsh-secret.c virsh-secret.h virsh-snapshot.c \
+	virsh-snapshot.h virsh-util.c virsh-util.h virsh-volume.c \
+	virsh-volume.h virsh-completer.c virsh-completer.h
+am__objects_3 = virsh-virsh-completer.$(OBJEXT)
+@WITH_READLINE_TRUE@am__objects_4 = $(am__objects_3)
 am_virsh_OBJECTS = virsh-virsh.$(OBJEXT) virsh-virsh-console.$(OBJEXT) \
 	virsh-virsh-domain.$(OBJEXT) \
 	virsh-virsh-domain-monitor.$(OBJEXT) \
@@ -470,14 +486,20 @@ am_virsh_OBJECTS = virsh-virsh.$(OBJEXT) virsh-virsh-console.$(OBJEXT) \
 	virsh-virsh-network.$(OBJEXT) virsh-virsh-nodedev.$(OBJEXT) \
 	virsh-virsh-nwfilter.$(OBJEXT) virsh-virsh-pool.$(OBJEXT) \
 	virsh-virsh-secret.$(OBJEXT) virsh-virsh-snapshot.$(OBJEXT) \
-	virsh-virsh-util.$(OBJEXT) virsh-virsh-volume.$(OBJEXT)
+	virsh-virsh-util.$(OBJEXT) virsh-virsh-volume.$(OBJEXT) \
+	$(am__objects_4)
 virsh_OBJECTS = $(am_virsh_OBJECTS)
 virsh_DEPENDENCIES = $(am__DEPENDENCIES_1) ../src/libvirt-lxc.la \
-	../src/libvirt-qemu.la libvirt_shell.la $(am__append_13)
+	../src/libvirt-qemu.la libvirt_shell.la $(am__append_16)
 virsh_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(virsh_CFLAGS) $(CFLAGS) \
 	$(virsh_LDFLAGS) $(LDFLAGS) -o $@
-am_virt_admin_OBJECTS = virt_admin-virt-admin.$(OBJEXT)
+am__virt_admin_SOURCES_DIST = virt-admin.c virt-admin.h \
+	virt-admin-completer.c virt-admin-completer.h
+am__objects_5 = virt_admin-virt-admin-completer.$(OBJEXT)
+@WITH_READLINE_TRUE@am__objects_6 = $(am__objects_5)
+am_virt_admin_OBJECTS = virt_admin-virt-admin.$(OBJEXT) \
+	$(am__objects_6)
 virt_admin_OBJECTS = $(am_virt_admin_OBJECTS)
 virt_admin_DEPENDENCIES = ../src/libvirt-admin.la libvirt_shell.la \
 	$(am__DEPENDENCIES_1)
@@ -489,16 +511,17 @@ am__virt_host_validate_SOURCES_DIST = virt-host-validate.c \
 	virt-host-validate-qemu.c virt-host-validate-qemu.h \
 	virt-host-validate-lxc.c virt-host-validate-lxc.h \
 	virt-host-validate-bhyve.c virt-host-validate-bhyve.h
-am__objects_3 = virt_host_validate-virt-host-validate-qemu.$(OBJEXT)
-@WITH_QEMU_TRUE@am__objects_4 = $(am__objects_3)
-am__objects_5 = virt_host_validate-virt-host-validate-lxc.$(OBJEXT)
-@WITH_LXC_TRUE@am__objects_6 = $(am__objects_5)
-am__objects_7 = virt_host_validate-virt-host-validate-bhyve.$(OBJEXT)
-@WITH_BHYVE_TRUE@am__objects_8 = $(am__objects_7)
+am__objects_7 = virt_host_validate-virt-host-validate-qemu.$(OBJEXT)
+@WITH_QEMU_TRUE@am__objects_8 = $(am__objects_7)
+am__objects_9 = virt_host_validate-virt-host-validate-lxc.$(OBJEXT)
+@WITH_LXC_TRUE@am__objects_10 = $(am__objects_9)
+am__objects_11 =  \
+	virt_host_validate-virt-host-validate-bhyve.$(OBJEXT)
+@WITH_BHYVE_TRUE@am__objects_12 = $(am__objects_11)
 am_virt_host_validate_OBJECTS =  \
 	virt_host_validate-virt-host-validate.$(OBJEXT) \
 	virt_host_validate-virt-host-validate-common.$(OBJEXT) \
-	$(am__objects_4) $(am__objects_6) $(am__objects_8)
+	$(am__objects_8) $(am__objects_10) $(am__objects_12)
 virt_host_validate_OBJECTS = $(am_virt_host_validate_OBJECTS)
 virt_host_validate_DEPENDENCIES = ../src/libvirt.la \
 	../gnulib/lib/libgnu.la
@@ -563,8 +586,9 @@ DIST_SOURCES = $(libvirt_shell_la_SOURCES) \
 	$(nss_libnss_libvirt_guest_la_SOURCES) \
 	$(am__nss_libnss_libvirt_guest_impl_la_SOURCES_DIST) \
 	$(am__nss_libnss_libvirt_impl_la_SOURCES_DIST) \
-	$(am__wireshark_src_libvirt_la_SOURCES_DIST) $(virsh_SOURCES) \
-	$(virt_admin_SOURCES) $(am__virt_host_validate_SOURCES_DIST) \
+	$(am__wireshark_src_libvirt_la_SOURCES_DIST) \
+	$(am__virsh_SOURCES_DIST) $(am__virt_admin_SOURCES_DIST) \
+	$(am__virt_host_validate_SOURCES_DIST) \
 	$(virt_login_shell_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
@@ -626,6 +650,9 @@ AUTOMAKE = @AUTOMAKE@
 AVAHI_CFLAGS = @AVAHI_CFLAGS@
 AVAHI_LIBS = @AVAHI_LIBS@
 AWK = @AWK@
+BASH_COMPLETIONS_DIR = @BASH_COMPLETIONS_DIR@
+BASH_COMPLETION_CFLAGS = @BASH_COMPLETION_CFLAGS@
+BASH_COMPLETION_LIBS = @BASH_COMPLETION_LIBS@
 BHYVE = @BHYVE@
 BHYVECTL = @BHYVECTL@
 BHYVELOAD = @BHYVELOAD@
@@ -1760,6 +1787,7 @@ REPLACE_EXPF = @REPLACE_EXPF@
 REPLACE_EXPM1 = @REPLACE_EXPM1@
 REPLACE_EXPM1F = @REPLACE_EXPM1F@
 REPLACE_FABSL = @REPLACE_FABSL@
+REPLACE_FACCESSAT = @REPLACE_FACCESSAT@
 REPLACE_FCHOWNAT = @REPLACE_FCHOWNAT@
 REPLACE_FCLOSE = @REPLACE_FCLOSE@
 REPLACE_FCNTL = @REPLACE_FCNTL@
@@ -1807,6 +1835,7 @@ REPLACE_HYPOTF = @REPLACE_HYPOTF@
 REPLACE_HYPOTL = @REPLACE_HYPOTL@
 REPLACE_ILOGB = @REPLACE_ILOGB@
 REPLACE_ILOGBF = @REPLACE_ILOGBF@
+REPLACE_ILOGBL = @REPLACE_ILOGBL@
 REPLACE_INET_NTOP = @REPLACE_INET_NTOP@
 REPLACE_INET_PTON = @REPLACE_INET_PTON@
 REPLACE_IOCTL = @REPLACE_IOCTL@
@@ -2159,14 +2188,15 @@ MANINFILES = \
 EXTRA_DIST = $(ICON_FILES) $(conf_DATA) virt-xml-validate.in \
 	virt-pki-validate.in virt-sanlock-cleanup.in \
 	libvirt-guests.sysconf virt-login-shell.conf virsh-edit.c \
-	$(PODFILES) $(MANINFILES) $(NULL) $(am__append_8) \
-	$(am__append_10) $(am__append_12) libvirt-guests.sh.in \
-	libvirt-guests.init.in libvirt-guests.service.in \
-	wireshark/util/genxdrstub.pl wireshark/util/make-dissector-reg \
-	$(LIBVIRT_NSS_SOURCES) $(srcdir)/nss/libvirt_nss.syms \
+	bash-completion/vsh $(PODFILES) $(MANINFILES) $(NULL) \
+	$(am__append_8) $(am__append_10) $(am__append_12) \
+	$(am__append_14) libvirt-guests.sh.in libvirt-guests.init.in \
+	libvirt-guests.service.in wireshark/util/genxdrstub.pl \
+	wireshark/util/make-dissector-reg $(LIBVIRT_NSS_SOURCES) \
+	$(srcdir)/nss/libvirt_nss.syms \
 	$(srcdir)/nss/libvirt_nss_bsd.syms \
 	$(srcdir)/nss/libvirt_guest_nss.syms
-CLEANFILES = $(am__append_16) $(bin_SCRIPTS) *.gcov .libs/*.gcda \
+CLEANFILES = $(am__append_19) $(bin_SCRIPTS) *.gcov .libs/*.gcda \
 	.libs/*.gcno *.gcno *.gcda *.i *.s $(man1_MANS) $(man8_MANS)
 DISTCLEANFILES = $(am__append_1) $(BUILT_SOURCES)
 MAINTAINERCLEANFILES = $(MANINFILES)
@@ -2178,7 +2208,7 @@ man1_MANS = virt-pki-validate.1 virt-xml-validate.1 virsh.1 \
 	virt-admin.1 $(am__append_4) $(am__append_6)
 @WITH_SANLOCK_TRUE@sbin_SCRIPTS = virt-sanlock-cleanup
 @WITH_SANLOCK_TRUE@man8_MANS = virt-sanlock-cleanup.8
-noinst_LTLIBRARIES = libvirt_shell.la $(am__append_17)
+noinst_LTLIBRARIES = libvirt_shell.la $(am__append_20)
 libvirt_shell_la_CFLAGS = \
 		$(AM_CFLAGS) \
 		$(READLINE_CFLAGS) \
@@ -2253,22 +2283,17 @@ virt_login_shell_CFLAGS = \
 		$(AM_CFLAGS) \
 		$(NULL)
 
-virsh_SOURCES = \
-		virsh.c virsh.h \
-		virsh-console.c virsh-console.h \
-		virsh-domain.c virsh-domain.h \
-		virsh-domain-monitor.c virsh-domain-monitor.h \
-		virsh-host.c virsh-host.h \
-		virsh-interface.c virsh-interface.h \
-		virsh-network.c virsh-network.h \
-		virsh-nodedev.c virsh-nodedev.h \
-		virsh-nwfilter.c virsh-nwfilter.h \
-		virsh-pool.c virsh-pool.h \
-		virsh-secret.c virsh-secret.h \
-		virsh-snapshot.c virsh-snapshot.h \
-		virsh-util.c virsh-util.h \
-		virsh-volume.c virsh-volume.h \
-		$(NULL)
+virsh_SOURCES = virsh.c virsh.h virsh-console.c virsh-console.h \
+	virsh-domain.c virsh-domain.h virsh-domain-monitor.c \
+	virsh-domain-monitor.h virsh-host.c virsh-host.h \
+	virsh-interface.c virsh-interface.h virsh-network.c \
+	virsh-network.h virsh-nodedev.c virsh-nodedev.h \
+	virsh-nwfilter.c virsh-nwfilter.h virsh-pool.c virsh-pool.h \
+	virsh-secret.c virsh-secret.h virsh-snapshot.c \
+	virsh-snapshot.h virsh-util.c virsh-util.h virsh-volume.c \
+	virsh-volume.h $(NULL) $(am__append_13)
+VIRSH_COMPLETER = \
+		virsh-completer.c virsh-completer.h
 
 virsh_LDFLAGS = \
 		$(AM_LDFLAGS) \
@@ -2277,14 +2302,15 @@ virsh_LDFLAGS = \
 		$(NULL)
 
 virsh_LDADD = $(STATIC_BINARIES) ../src/libvirt-lxc.la \
-	../src/libvirt-qemu.la libvirt_shell.la $(am__append_13)
+	../src/libvirt-qemu.la libvirt_shell.la $(am__append_16)
 virsh_CFLAGS = \
 		$(AM_CFLAGS) \
 		$(READLINE_CFLAGS)
 
-virt_admin_SOURCES = \
-		virt-admin.c virt-admin.h \
-		$(NULL)
+virt_admin_SOURCES = virt-admin.c virt-admin.h $(NULL) \
+	$(am__append_15)
+VIRT_ADMIN_COMPLETER = \
+		virt-admin-completer.c virt-admin-completer.h
 
 virt_admin_LDFLAGS = \
 		$(AM_LDFLAGS) \
@@ -2303,7 +2329,7 @@ virt_admin_CFLAGS = \
 		$(AM_CFLAGS) \
 		$(READLINE_CFLAGS)
 
-BUILT_SOURCES = $(am__append_14) libvirt-guests.sh $(am__append_15)
+BUILT_SOURCES = $(am__append_17) libvirt-guests.sh $(am__append_18)
 POD2MAN = pod2man -c "Virtualization Support" -r "$(PACKAGE)-$(VERSION)"
 SYSTEMD_UNIT_DIR = $(prefix)/lib/systemd/system
 @WITH_WIRESHARK_DISSECTOR_TRUE@ws_plugin_LTLIBRARIES = wireshark/src/libvirt.la
@@ -2732,6 +2758,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_shell_la-vsh.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-virsh-completer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-virsh-console.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-virsh-domain-monitor.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-virsh-domain.Po@am__quote@
@@ -2746,6 +2773,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-virsh-util.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-virsh-volume.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-virsh.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virt_admin-virt-admin-completer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virt_admin-virt-admin.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virt_host_validate-virt-host-validate-bhyve.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virt_host_validate-virt-host-validate-common.Po@am__quote@
@@ -3013,6 +3041,20 @@ virsh-virsh-volume.obj: virsh-volume.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -c -o virsh-virsh-volume.obj `if test -f 'virsh-volume.c'; then $(CYGPATH_W) 'virsh-volume.c'; else $(CYGPATH_W) '$(srcdir)/virsh-volume.c'; fi`
 
+virsh-virsh-completer.o: virsh-completer.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -MT virsh-virsh-completer.o -MD -MP -MF $(DEPDIR)/virsh-virsh-completer.Tpo -c -o virsh-virsh-completer.o `test -f 'virsh-completer.c' || echo '$(srcdir)/'`virsh-completer.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virsh-virsh-completer.Tpo $(DEPDIR)/virsh-virsh-completer.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='virsh-completer.c' object='virsh-virsh-completer.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -c -o virsh-virsh-completer.o `test -f 'virsh-completer.c' || echo '$(srcdir)/'`virsh-completer.c
+
+virsh-virsh-completer.obj: virsh-completer.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -MT virsh-virsh-completer.obj -MD -MP -MF $(DEPDIR)/virsh-virsh-completer.Tpo -c -o virsh-virsh-completer.obj `if test -f 'virsh-completer.c'; then $(CYGPATH_W) 'virsh-completer.c'; else $(CYGPATH_W) '$(srcdir)/virsh-completer.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virsh-virsh-completer.Tpo $(DEPDIR)/virsh-virsh-completer.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='virsh-completer.c' object='virsh-virsh-completer.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -c -o virsh-virsh-completer.obj `if test -f 'virsh-completer.c'; then $(CYGPATH_W) 'virsh-completer.c'; else $(CYGPATH_W) '$(srcdir)/virsh-completer.c'; fi`
+
 virt_admin-virt-admin.o: virt-admin.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virt_admin_CFLAGS) $(CFLAGS) -MT virt_admin-virt-admin.o -MD -MP -MF $(DEPDIR)/virt_admin-virt-admin.Tpo -c -o virt_admin-virt-admin.o `test -f 'virt-admin.c' || echo '$(srcdir)/'`virt-admin.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virt_admin-virt-admin.Tpo $(DEPDIR)/virt_admin-virt-admin.Po
@@ -3026,6 +3068,20 @@ virt_admin-virt-admin.obj: virt-admin.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='virt-admin.c' object='virt_admin-virt-admin.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virt_admin_CFLAGS) $(CFLAGS) -c -o virt_admin-virt-admin.obj `if test -f 'virt-admin.c'; then $(CYGPATH_W) 'virt-admin.c'; else $(CYGPATH_W) '$(srcdir)/virt-admin.c'; fi`
+
+virt_admin-virt-admin-completer.o: virt-admin-completer.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virt_admin_CFLAGS) $(CFLAGS) -MT virt_admin-virt-admin-completer.o -MD -MP -MF $(DEPDIR)/virt_admin-virt-admin-completer.Tpo -c -o virt_admin-virt-admin-completer.o `test -f 'virt-admin-completer.c' || echo '$(srcdir)/'`virt-admin-completer.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virt_admin-virt-admin-completer.Tpo $(DEPDIR)/virt_admin-virt-admin-completer.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='virt-admin-completer.c' object='virt_admin-virt-admin-completer.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virt_admin_CFLAGS) $(CFLAGS) -c -o virt_admin-virt-admin-completer.o `test -f 'virt-admin-completer.c' || echo '$(srcdir)/'`virt-admin-completer.c
+
+virt_admin-virt-admin-completer.obj: virt-admin-completer.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virt_admin_CFLAGS) $(CFLAGS) -MT virt_admin-virt-admin-completer.obj -MD -MP -MF $(DEPDIR)/virt_admin-virt-admin-completer.Tpo -c -o virt_admin-virt-admin-completer.obj `if test -f 'virt-admin-completer.c'; then $(CYGPATH_W) 'virt-admin-completer.c'; else $(CYGPATH_W) '$(srcdir)/virt-admin-completer.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virt_admin-virt-admin-completer.Tpo $(DEPDIR)/virt_admin-virt-admin-completer.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='virt-admin-completer.c' object='virt_admin-virt-admin-completer.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virt_admin_CFLAGS) $(CFLAGS) -c -o virt_admin-virt-admin-completer.obj `if test -f 'virt-admin-completer.c'; then $(CYGPATH_W) 'virt-admin-completer.c'; else $(CYGPATH_W) '$(srcdir)/virt-admin-completer.c'; fi`
 
 virt_host_validate-virt-host-validate.o: virt-host-validate.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virt_host_validate_CFLAGS) $(CFLAGS) -MT virt_host_validate-virt-host-validate.o -MD -MP -MF $(DEPDIR)/virt_host_validate-virt-host-validate.Tpo -c -o virt_host_validate-virt-host-validate.o `test -f 'virt-host-validate.c' || echo '$(srcdir)/'`virt-host-validate.c
@@ -3532,9 +3588,11 @@ virt-sanlock-cleanup: virt-sanlock-cleanup.in Makefile
 		< $< > $@-t && \
 	mv $@-t $@
 
-install-data-local: install-init install-systemd install-nss
+install-data-local: install-init install-systemd install-nss \
+	install-bash-completion
 
-uninstall-local: uninstall-init uninstall-systemd uninstall-nss
+uninstall-local: uninstall-init uninstall-systemd uninstall-nss \
+	uninstall-bash-completion
 
 install-sysconfig:
 	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/sysconfig
@@ -3600,6 +3658,17 @@ libvirt-guests.service: libvirt-guests.service.in $(top_builddir)/config.status
 	    -e 's|[@]libexecdir[@]|$(libexecdir)|g' \
 	    < $< > $@-t && \
 	    mv $@-t $@
+
+@WITH_BASH_COMPLETION_TRUE@install-bash-completion:
+@WITH_BASH_COMPLETION_TRUE@	$(MKDIR_P) "$(DESTDIR)$(BASH_COMPLETIONS_DIR)"
+@WITH_BASH_COMPLETION_TRUE@	$(INSTALL_SCRIPT) $(srcdir)/bash-completion/vsh \
+@WITH_BASH_COMPLETION_TRUE@		"$(DESTDIR)$(BASH_COMPLETIONS_DIR)/vsh"
+
+@WITH_BASH_COMPLETION_TRUE@uninstall-bash-completion:
+@WITH_BASH_COMPLETION_TRUE@	rm -f $(DESTDIR)$(BASH_COMPLETIONS_DIR)/vsh
+@WITH_BASH_COMPLETION_TRUE@	rmdir $(DESTDIR)$(BASH_COMPLETIONS_DIR) ||:
+@WITH_BASH_COMPLETION_FALSE@install-bash-completion:
+@WITH_BASH_COMPLETION_FALSE@uninstall-bash-completion:
 
 @WITH_WIRESHARK_DISSECTOR_TRUE@wireshark/src/packet-libvirt.c: wireshark/src/packet-libvirt.h \
 @WITH_WIRESHARK_DISSECTOR_TRUE@		wireshark/src/libvirt/protocol.h

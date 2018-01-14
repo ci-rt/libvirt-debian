@@ -442,6 +442,7 @@ typedef enum {
 
     /* 280 */
     QEMU_CAPS_DEVICE_PL011, /* -device pl011 (not user-instantiable) */
+    QEMU_CAPS_MACHINE_PSERIES_MAX_CPU_COMPAT, /* -machine pseries,max-cpu-compat= */
 
     QEMU_CAPS_LAST /* this must always be the last item */
 } virQEMUCapsFlags;
@@ -485,6 +486,7 @@ int virQEMUCapsAddCPUDefinitions(virQEMUCapsPtr qemuCaps,
                                  virDomainCapsCPUUsable usable);
 virDomainCapsCPUModelsPtr virQEMUCapsGetCPUDefinitions(virQEMUCapsPtr qemuCaps,
                                                        virDomainVirtType type);
+virDomainCapsCPUModelsPtr virQEMUCapsFetchCPUDefinitions(qemuMonitorPtr mon);
 
 typedef enum {
     /* Host CPU definition reported in domain capabilities. */
@@ -519,8 +521,10 @@ void virQEMUCapsFilterByMachineType(virQEMUCapsPtr qemuCaps,
                                     const char *machineType);
 
 virFileCachePtr virQEMUCapsCacheNew(const char *libDir,
-                                        const char *cacheDir,
-                                        uid_t uid, gid_t gid);
+                                    const char *cacheDir,
+                                    uid_t uid,
+                                    gid_t gid,
+                                    unsigned int microcodeVersion);
 virQEMUCapsPtr virQEMUCapsCacheLookup(virFileCachePtr cache,
                                       const char *binary);
 virQEMUCapsPtr virQEMUCapsCacheLookupCopy(virFileCachePtr cache,

@@ -259,7 +259,10 @@ int qemuMonitorJSONIOProcess(qemuMonitorPtr mon,
         }
     }
 
+#if DEBUG_IO
     VIR_DEBUG("Total used %d bytes out of %zd available in buffer", used, len);
+#endif
+
     return used;
 }
 
@@ -851,6 +854,7 @@ qemuMonitorJSONHandleBlockJobImpl(qemuMonitorPtr mon,
 {
     const char *device;
     const char *type_str;
+    const char *error = NULL;
     int type = VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN;
     unsigned long long offset, len;
 
@@ -883,6 +887,7 @@ qemuMonitorJSONHandleBlockJobImpl(qemuMonitorPtr mon,
 
     switch ((virConnectDomainEventBlockJobStatus) event) {
     case VIR_DOMAIN_BLOCK_JOB_COMPLETED:
+        error = virJSONValueObjectGetString(data, "error");
         /* Make sure the whole device has been processed */
         if (offset != len)
             event = VIR_DOMAIN_BLOCK_JOB_FAILED;
@@ -897,7 +902,7 @@ qemuMonitorJSONHandleBlockJobImpl(qemuMonitorPtr mon,
     }
 
  out:
-    qemuMonitorEmitBlockJob(mon, device, type, event);
+    qemuMonitorEmitBlockJob(mon, device, type, event, error);
 }
 
 static void
@@ -3165,19 +3170,11 @@ qemuMonitorJSONDump(qemuMonitorPtr mon,
     virJSONValuePtr cmd = NULL;
     virJSONValuePtr reply = NULL;
 
-    if (dumpformat) {
-        cmd = qemuMonitorJSONMakeCommand("dump-guest-memory",
-                                         "b:paging", false,
-                                         "s:protocol", protocol,
-                                         "s:format", dumpformat,
-                                         NULL);
-    } else {
-        cmd = qemuMonitorJSONMakeCommand("dump-guest-memory",
-                                         "b:paging", false,
-                                         "s:protocol", protocol,
-                                         NULL);
-    }
-
+    cmd = qemuMonitorJSONMakeCommand("dump-guest-memory",
+                                     "b:paging", false,
+                                     "s:protocol", protocol,
+                                     "S:format", dumpformat,
+                                     NULL);
     if (!cmd)
         return -1;
 

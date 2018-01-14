@@ -46,6 +46,9 @@ char **virStringListAdd(const char **strings,
 void virStringListRemove(char ***strings,
                          const char *item);
 
+int virStringListMerge(char ***dst,
+                       char ***src);
+
 int virStringListCopy(char ***dst,
                       const char **src);
 
@@ -293,6 +296,7 @@ bool virStringHasChars(const char *str,
                        const char *chars);
 bool virStringHasControlChars(const char *str);
 void virStringStripControlChars(char *str);
+void virStringFilterChars(char *str, const char *valid);
 
 bool virStringIsPrintable(const char *str);
 bool virStringBufferIsPrintable(const uint8_t *buf, size_t buflen);

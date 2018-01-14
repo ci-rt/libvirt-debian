@@ -474,6 +474,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-apparmor.m4 $(top_srcdir)/m4/virt-arg.m4 \
 	$(top_srcdir)/m4/virt-atomic.m4 $(top_srcdir)/m4/virt-attr.m4 \
 	$(top_srcdir)/m4/virt-audit.m4 $(top_srcdir)/m4/virt-avahi.m4 \
+	$(top_srcdir)/m4/virt-bash-completion.m4 \
 	$(top_srcdir)/m4/virt-blkid.m4 $(top_srcdir)/m4/virt-capng.m4 \
 	$(top_srcdir)/m4/virt-chrdev-lock-files.m4 \
 	$(top_srcdir)/m4/virt-compile-pie.m4 \
@@ -750,30 +751,32 @@ libvirt_qemu_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(LDFLAGS) -o $@
 libvirt_setuid_rpc_client_la_LIBADD =
 am__libvirt_setuid_rpc_client_la_SOURCES_DIST = util/viralloc.c \
-	util/viratomic.c util/viratomic.h util/virbitmap.c \
-	util/virbuffer.c util/vircgroup.c util/vircommand.c \
-	util/virconf.c util/virdbus.c util/virerror.c util/virevent.c \
-	util/vireventpoll.c util/virfile.c util/virgettext.c \
-	util/virhash.c util/virhashcode.c util/virhostcpu.c \
-	util/virjson.c util/virlog.c util/virobject.c \
-	util/virpidfile.c util/virprocess.c util/virrandom.c \
-	util/virsocketaddr.c util/virstring.c util/virsystemd.c \
-	util/virtime.c util/virthread.c util/virthreadjob.c \
-	util/virtypedparam.c util/viruri.c util/virutil.c \
-	util/viruuid.c conf/domain_event.c conf/network_event.c \
-	conf/object_event.c conf/storage_event.c \
-	conf/node_device_event.c conf/secret_event.c \
-	rpc/virnetsocket.c rpc/virnetsocket.h rpc/virnetmessage.h \
-	rpc/virnetmessage.c rpc/virkeepalive.c rpc/virkeepalive.h \
-	rpc/virnetclient.c rpc/virnetclientprogram.c \
-	rpc/virnetclientstream.c rpc/virnetprotocol.c \
-	remote/remote_driver.c remote/remote_protocol.c \
-	remote/qemu_protocol.c remote/lxc_protocol.c datatypes.c \
-	libvirt.c libvirt-domain.c libvirt-domain-snapshot.c \
-	libvirt-host.c libvirt-interface.c libvirt-network.c \
-	libvirt-nodedev.c libvirt-nwfilter.c libvirt-secret.c \
-	libvirt-storage.c libvirt-stream.c libvirt-lxc.c
+	util/virarch.c util/viratomic.c util/viratomic.h \
+	util/virbitmap.c util/virbuffer.c util/vircgroup.c \
+	util/vircommand.c util/virconf.c util/virdbus.c \
+	util/virerror.c util/virevent.c util/vireventpoll.c \
+	util/virfile.c util/virgettext.c util/virhash.c \
+	util/virhashcode.c util/virhostcpu.c util/virjson.c \
+	util/virlog.c util/virobject.c util/virpidfile.c \
+	util/virprocess.c util/virrandom.c util/virsocketaddr.c \
+	util/virstring.c util/virsystemd.c util/virtime.c \
+	util/virthread.c util/virthreadjob.c util/virtypedparam.c \
+	util/viruri.c util/virutil.c util/viruuid.c \
+	conf/domain_event.c conf/network_event.c conf/object_event.c \
+	conf/storage_event.c conf/node_device_event.c \
+	conf/secret_event.c rpc/virnetsocket.c rpc/virnetsocket.h \
+	rpc/virnetmessage.h rpc/virnetmessage.c rpc/virkeepalive.c \
+	rpc/virkeepalive.h rpc/virnetclient.c \
+	rpc/virnetclientprogram.c rpc/virnetclientstream.c \
+	rpc/virnetprotocol.c remote/remote_driver.c \
+	remote/remote_protocol.c remote/qemu_protocol.c \
+	remote/lxc_protocol.c datatypes.c libvirt.c libvirt-domain.c \
+	libvirt-domain-snapshot.c libvirt-host.c libvirt-interface.c \
+	libvirt-network.c libvirt-nodedev.c libvirt-nwfilter.c \
+	libvirt-secret.c libvirt-storage.c libvirt-stream.c \
+	libvirt-lxc.c
 @WITH_SETUID_RPC_CLIENT_TRUE@am_libvirt_setuid_rpc_client_la_OBJECTS = util/libvirt_setuid_rpc_client_la-viralloc.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virarch.lo \
 @WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-viratomic.lo \
 @WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virbitmap.lo \
 @WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virbuffer.lo \
@@ -2407,6 +2410,9 @@ AUTOMAKE = @AUTOMAKE@
 AVAHI_CFLAGS = @AVAHI_CFLAGS@
 AVAHI_LIBS = @AVAHI_LIBS@
 AWK = @AWK@
+BASH_COMPLETIONS_DIR = @BASH_COMPLETIONS_DIR@
+BASH_COMPLETION_CFLAGS = @BASH_COMPLETION_CFLAGS@
+BASH_COMPLETION_LIBS = @BASH_COMPLETION_LIBS@
 BHYVE = @BHYVE@
 BHYVECTL = @BHYVECTL@
 BHYVELOAD = @BHYVELOAD@
@@ -3541,6 +3547,7 @@ REPLACE_EXPF = @REPLACE_EXPF@
 REPLACE_EXPM1 = @REPLACE_EXPM1@
 REPLACE_EXPM1F = @REPLACE_EXPM1F@
 REPLACE_FABSL = @REPLACE_FABSL@
+REPLACE_FACCESSAT = @REPLACE_FACCESSAT@
 REPLACE_FCHOWNAT = @REPLACE_FCHOWNAT@
 REPLACE_FCLOSE = @REPLACE_FCLOSE@
 REPLACE_FCNTL = @REPLACE_FCNTL@
@@ -3588,6 +3595,7 @@ REPLACE_HYPOTF = @REPLACE_HYPOTF@
 REPLACE_HYPOTL = @REPLACE_HYPOTL@
 REPLACE_ILOGB = @REPLACE_ILOGB@
 REPLACE_ILOGBF = @REPLACE_ILOGBF@
+REPLACE_ILOGBL = @REPLACE_ILOGBL@
 REPLACE_INET_NTOP = @REPLACE_INET_NTOP@
 REPLACE_INET_PTON = @REPLACE_INET_PTON@
 REPLACE_IOCTL = @REPLACE_IOCTL@
@@ -4120,7 +4128,7 @@ UTIL_SOURCES = util/viralloc.c util/viralloc.h util/virarch.h \
 	util/virvhba.h util/virxdrdefs.h util/virxml.c util/virxml.h \
 	util/virmdev.c util/virmdev.h util/virfilecache.c \
 	util/virfilecache.h $(NULL) $(KEYTABLES)
-KEYCODES = linux osx atset1 atset2 atset3 xt xtkbd usb win32 rfb
+KEYCODES = linux osx atset1 atset2 atset3 xtkbd usb win32 rfb
 KEYNAMES = linux osx win32
 KEYTABLES = \
 	$(KEYCODES:%=util/virkeycodetable_%.h) \
@@ -5440,6 +5448,7 @@ libvirt_lxc_la_CFLAGS = $(AM_CFLAGS)
 libvirt_lxc_la_LIBADD = libvirt.la $(CYGWIN_EXTRA_LIBADD)
 @WITH_SETUID_RPC_CLIENT_TRUE@libvirt_setuid_rpc_client_la_SOURCES = \
 @WITH_SETUID_RPC_CLIENT_TRUE@		util/viralloc.c \
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/virarch.c \
 @WITH_SETUID_RPC_CLIENT_TRUE@		util/viratomic.c \
 @WITH_SETUID_RPC_CLIENT_TRUE@		util/viratomic.h \
 @WITH_SETUID_RPC_CLIENT_TRUE@		util/virbitmap.c \
@@ -6154,6 +6163,8 @@ libvirt-nss.la: $(libvirt_nss_la_OBJECTS) $(libvirt_nss_la_DEPENDENCIES) $(EXTRA
 libvirt-qemu.la: $(libvirt_qemu_la_OBJECTS) $(libvirt_qemu_la_DEPENDENCIES) $(EXTRA_libvirt_qemu_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libvirt_qemu_la_LINK) -rpath $(libdir) $(libvirt_qemu_la_OBJECTS) $(libvirt_qemu_la_LIBADD) $(LIBS)
 util/libvirt_setuid_rpc_client_la-viralloc.lo: util/$(am__dirstamp) \
+	util/$(DEPDIR)/$(am__dirstamp)
+util/libvirt_setuid_rpc_client_la-virarch.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_setuid_rpc_client_la-viratomic.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
@@ -7759,6 +7770,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_nss_la-virtime.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_nss_la-virutil.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_setuid_rpc_client_la-viralloc.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_setuid_rpc_client_la-virarch.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_setuid_rpc_client_la-viratomic.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_setuid_rpc_client_la-virbitmap.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_setuid_rpc_client_la-virbuffer.Plo@am__quote@
@@ -8283,6 +8295,13 @@ util/libvirt_setuid_rpc_client_la-viralloc.lo: util/viralloc.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/viralloc.c' object='util/libvirt_setuid_rpc_client_la-viralloc.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_setuid_rpc_client_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_setuid_rpc_client_la-viralloc.lo `test -f 'util/viralloc.c' || echo '$(srcdir)/'`util/viralloc.c
+
+util/libvirt_setuid_rpc_client_la-virarch.lo: util/virarch.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_setuid_rpc_client_la_CFLAGS) $(CFLAGS) -MT util/libvirt_setuid_rpc_client_la-virarch.lo -MD -MP -MF util/$(DEPDIR)/libvirt_setuid_rpc_client_la-virarch.Tpo -c -o util/libvirt_setuid_rpc_client_la-virarch.lo `test -f 'util/virarch.c' || echo '$(srcdir)/'`util/virarch.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) util/$(DEPDIR)/libvirt_setuid_rpc_client_la-virarch.Tpo util/$(DEPDIR)/libvirt_setuid_rpc_client_la-virarch.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/virarch.c' object='util/libvirt_setuid_rpc_client_la-virarch.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_setuid_rpc_client_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_setuid_rpc_client_la-virarch.lo `test -f 'util/virarch.c' || echo '$(srcdir)/'`util/virarch.c
 
 util/libvirt_setuid_rpc_client_la-viratomic.lo: util/viratomic.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_setuid_rpc_client_la_CFLAGS) $(CFLAGS) -MT util/libvirt_setuid_rpc_client_la-viratomic.lo -MD -MP -MF util/$(DEPDIR)/libvirt_setuid_rpc_client_la-viratomic.Tpo -c -o util/libvirt_setuid_rpc_client_la-viratomic.lo `test -f 'util/viratomic.c' || echo '$(srcdir)/'`util/viratomic.c

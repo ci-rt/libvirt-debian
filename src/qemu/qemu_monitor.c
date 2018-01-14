@@ -435,8 +435,8 @@ qemuMonitorIOProcess(qemuMonitorPtr mon)
 # endif
 #endif
 
-    PROBE(QEMU_MONITOR_IO_PROCESS,
-          "mon=%p buf=%s len=%zu", mon, mon->buffer, mon->bufferOffset);
+    PROBE_QUIET(QEMU_MONITOR_IO_PROCESS, "mon=%p buf=%s len=%zu",
+                mon, mon->buffer, mon->bufferOffset);
 
     if (mon->json)
         len = qemuMonitorJSONIOProcess(mon,
@@ -1515,13 +1515,14 @@ int
 qemuMonitorEmitBlockJob(qemuMonitorPtr mon,
                         const char *diskAlias,
                         int type,
-                        int status)
+                        int status,
+                        const char *error)
 {
     int ret = -1;
     VIR_DEBUG("mon=%p", mon);
 
     QEMU_MONITOR_CALLBACK(mon, ret, domainBlockJob, mon->vm,
-                          diskAlias, type, status);
+                          diskAlias, type, status, error);
     return ret;
 }
 

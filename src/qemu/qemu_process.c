@@ -1000,6 +1000,7 @@ qemuProcessHandleBlockJob(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
                           const char *diskAlias,
                           int type,
                           int status,
+                          const char *error,
                           void *opaque)
 {
     virQEMUDriverPtr driver = opaque;
@@ -1021,6 +1022,8 @@ qemuProcessHandleBlockJob(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
         /* We have a SYNC API waiting for this event, dispatch it back */
         diskPriv->blockJobType = type;
         diskPriv->blockJobStatus = status;
+        VIR_FREE(diskPriv->blockJobError);
+        ignore_value(VIR_STRDUP_QUIET(diskPriv->blockJobError, error));
         virDomainObjBroadcast(vm);
     } else {
         /* there is no waiting SYNC API, dispatch the update to a thread */
@@ -3398,7 +3401,7 @@ qemuProcessBuildDestroyMemoryPathsImpl(virQEMUDriverPtr driver,
         }
 
         if (qemuSecurityDomainSetPathLabel(driver->securityManager,
-                                           def, path) < 0) {
+                                           def, path, true) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                             _("Unable to label %s"), path);
             return -1;
@@ -3850,6 +3853,30 @@ qemuProcessUpdateAndVerifyCPU(virQEMUDriverPtr driver,
 }
 
 
+static virDomainCapsCPUModelsPtr
+qemuProcessFetchCPUDefinitions(virQEMUDriverPtr driver,
+                               virDomainObjPtr vm,
+                               qemuDomainAsyncJob asyncJob)
+{
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    virDomainCapsCPUModelsPtr models = NULL;
+
+    if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
+        goto error;
+
+    models = virQEMUCapsFetchCPUDefinitions(priv->mon);
+
+    if (qemuDomainObjExitMonitor(driver, vm) < 0)
+        goto error;
+
+    return models;
+
+ error:
+    virObjectUnref(models);
+    return NULL;
+}
+
+
 static int
 qemuProcessUpdateCPU(virQEMUDriverPtr driver,
                      virDomainObjPtr vm,
@@ -3857,7 +3884,13 @@ qemuProcessUpdateCPU(virQEMUDriverPtr driver,
 {
     virCPUDataPtr cpu = NULL;
     virCPUDataPtr disabled = NULL;
+    virDomainCapsCPUModelsPtr models = NULL;
     int ret = -1;
+
+    /* The host CPU model comes from host caps rather than QEMU caps so
+     * fallback must be allowed no matter what the user specified in the XML.
+     */
+    vm->def->cpu->fallback = VIR_CPU_FALLBACK_ALLOW;
 
     if (qemuProcessFetchGuestCPU(driver, vm, asyncJob, &cpu, &disabled) < 0)
         goto cleanup;
@@ -3865,11 +3898,16 @@ qemuProcessUpdateCPU(virQEMUDriverPtr driver,
     if (qemuProcessUpdateLiveGuestCPU(vm, cpu, disabled) < 0)
         goto cleanup;
 
+    if (!(models = qemuProcessFetchCPUDefinitions(driver, vm, asyncJob)) ||
+        virCPUTranslate(vm->def->os.arch, vm->def->cpu, models) < 0)
+        goto cleanup;
+
     ret = 0;
 
  cleanup:
     virCPUDataFree(cpu);
     virCPUDataFree(disabled);
+    virObjectUnref(models);
     return ret;
 }
 
@@ -4481,7 +4519,7 @@ qemuProcessMakeDir(virQEMUDriverPtr driver,
     }
 
     if (qemuSecurityDomainSetPathLabel(driver->securityManager,
-                                       vm->def, path) < 0)
+                                       vm->def, path, true) < 0)
         goto cleanup;
 
     ret = 0;

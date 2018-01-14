@@ -35,6 +35,7 @@
 #include "virthread.h"
 #include "virtime.h"
 #include "locking/domain_lock.h"
+#include "viralloc.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -46,6 +47,7 @@ VIR_LOG_INIT("qemu.qemu_blockjob");
  * @driver: qemu driver
  * @vm: domain
  * @disk: domain disk
+ * @error: error (output parameter)
  *
  * Update disk's mirror state in response to a block job event stored in
  * blockJobStatus by qemuProcessHandleBlockJob event handler.
@@ -56,16 +58,24 @@ int
 qemuBlockJobUpdate(virQEMUDriverPtr driver,
                    virDomainObjPtr vm,
                    qemuDomainAsyncJob asyncJob,
-                   virDomainDiskDefPtr disk)
+                   virDomainDiskDefPtr disk,
+                   char **error)
 {
     qemuDomainDiskPrivatePtr diskPriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
     int status = diskPriv->blockJobStatus;
+
+    if (error)
+        *error = NULL;
 
     if (status != -1) {
         qemuBlockJobEventProcess(driver, vm, disk, asyncJob,
                                  diskPriv->blockJobType,
                                  diskPriv->blockJobStatus);
         diskPriv->blockJobStatus = -1;
+        if (error)
+            VIR_STEAL_PTR(*error, diskPriv->blockJobError);
+        else
+            VIR_FREE(diskPriv->blockJobError);
     }
 
     return status;
@@ -165,6 +175,7 @@ qemuBlockJobEventProcess(virQEMUDriverPtr driver,
         disk->mirror = NULL;
         disk->mirrorState = VIR_DOMAIN_DISK_MIRROR_STATE_NONE;
         disk->mirrorJob = VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN;
+        disk->src->id = 0;
         ignore_value(qemuDomainDetermineDiskChain(driver, vm, disk,
                                                   true, true));
         ignore_value(qemuBlockNodeNamesDetect(driver, vm, asyncJob));
@@ -247,6 +258,6 @@ qemuBlockJobSyncEnd(virQEMUDriverPtr driver,
                     virDomainDiskDefPtr disk)
 {
     VIR_DEBUG("disk=%s", disk->dst);
-    qemuBlockJobUpdate(driver, vm, asyncJob, disk);
+    qemuBlockJobUpdate(driver, vm, asyncJob, disk, NULL);
     QEMU_DOMAIN_DISK_PRIVATE(disk)->blockJobSync = false;
 }

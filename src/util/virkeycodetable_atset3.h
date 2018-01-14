@@ -1,6 +1,6 @@
 /*
- * This file is auto-generated from keymaps.csv on 2017-11-13 15:50
- * Database checksum sha256(f45720dc09778503dea402d7b4c742d746b01d4c74155c4633a69f40d938a363)
+ * This file is auto-generated from keymaps.csv on 2018-01-12 15:53
+ * Database checksum sha256(f8aeff0c3430077a350e3d7ba2b335b381bd929ac4b193413730a402ff3f0097)
  * To re-generate, run:
  *   keymap-gen --lang=stdc --varname=virKeyCodeTable_atset3 code-table keymaps.csv atset3
 */
@@ -47,7 +47,7 @@ const unsigned short virKeyCodeTable_atset3[454] = {
   [0x28] = 0x52, /* KEY_APOSTROPHE */
   [0x29] = 0xe, /* KEY_GRAVE */
   [0x2a] = 0x12, /* KEY_LEFTSHIFT */
-  [0x2b] = 0x5d, /* KEY_BACKSLASH */
+  [0x2b] = 0x5c, /* KEY_BACKSLASH */
   [0x2c] = 0x1a, /* KEY_Z */
   [0x2d] = 0x22, /* KEY_X */
   [0x2e] = 0x21, /* KEY_C */
@@ -78,7 +78,7 @@ const unsigned short virKeyCodeTable_atset3[454] = {
   [0x47] = 0x6c, /* KEY_KP7 */
   [0x48] = 0x75, /* KEY_KP8 */
   [0x49] = 0x7d, /* KEY_KP9 */
-  [0x4a] = 0x84, /* KEY_KPMINUS */
+  [0x4a] = 0x4e, /* KEY_KPMINUS */
   [0x4b] = 0x6b, /* KEY_KP4 */
   [0x4c] = 0x73, /* KEY_KP5 */
   [0x4d] = 0x74, /* KEY_KP6 */
@@ -91,12 +91,13 @@ const unsigned short virKeyCodeTable_atset3[454] = {
   [0x56] = 0x13, /* KEY_102ND */
   [0x57] = 0x56, /* KEY_F11 */
   [0x58] = 0x5e, /* KEY_F12 */
+  [0x5b] = 0x87, /* KEY_HIRAGANA */
   [0x5c] = 0x86, /* KEY_HENKAN */
   [0x5d] = 0x87, /* KEY_KATAKANAHIRAGANA */
   [0x5e] = 0x85, /* KEY_MUHENKAN */
   [0x60] = 0x79, /* KEY_KPENTER */
   [0x61] = 0x58, /* KEY_RIGHTCTRL */
-  [0x62] = 0x77, /* KEY_KPSLASH */
+  [0x62] = 0x4a, /* KEY_KPSLASH */
   [0x63] = 0x57, /* KEY_SYSRQ */
   [0x64] = 0x39, /* KEY_RIGHTALT */
   [0x66] = 0x6e, /* KEY_HOME */
@@ -114,6 +115,7 @@ const unsigned short virKeyCodeTable_atset3[454] = {
   [0x72] = 0x9d, /* KEY_VOLUMEDOWN */
   [0x73] = 0x95, /* KEY_VOLUMEUP */
   [0x77] = 0x62, /* KEY_PAUSE */
+  [0x7c] = 0x5d, /* KEY_YEN */
   [0x7d] = 0x8b, /* KEY_LEFTMETA */
   [0x7e] = 0x8c, /* KEY_RIGHTMETA */
   [0x7f] = 0x8d, /* KEY_COMPOSE */
@@ -147,3 +149,4 @@ const unsigned short virKeyCodeTable_atset3[454] = {
   [0xba] = 0x82, /* KEY_F16 */
   [0xbb] = 0x83, /* KEY_F17 */
 };
+const unsigned int virKeyCodeTable_atset3_len = sizeof(virKeyCodeTable_atset3)/sizeof(virKeyCodeTable_atset3[0]);

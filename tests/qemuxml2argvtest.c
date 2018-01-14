@@ -437,9 +437,9 @@ testCompareXMLToArgv(const void *data)
     if (qemuTestCapsCacheInsert(driver.qemuCapsCache, info->qemuCaps) < 0)
         goto cleanup;
 
-    if (virAsprintf(&xml, "%s/qemuxml2argvdata/qemuxml2argv-%s.xml",
+    if (virAsprintf(&xml, "%s/qemuxml2argvdata/%s.xml",
                     abs_srcdir, info->name) < 0 ||
-        virAsprintf(&args, "%s/qemuxml2argvdata/qemuxml2argv-%s.args",
+        virAsprintf(&args, "%s/qemuxml2argvdata/%s.args",
                     abs_srcdir, info->name) < 0)
         goto cleanup;
 
@@ -861,6 +861,9 @@ mymain(void)
     DO_TEST("hugepages-memaccess2", QEMU_CAPS_OBJECT_MEMORY_FILE,
             QEMU_CAPS_OBJECT_MEMORY_RAM, QEMU_CAPS_DEVICE_PC_DIMM,
             QEMU_CAPS_NUMA);
+    DO_TEST_FAILURE("hugepages-memaccess3", QEMU_CAPS_MEM_PATH,
+            QEMU_CAPS_OBJECT_MEMORY_RAM, QEMU_CAPS_OBJECT_MEMORY_FILE,
+            QEMU_CAPS_VIRTIO_SCSI);
     DO_TEST("nosharepages", QEMU_CAPS_MACHINE_OPT, QEMU_CAPS_MEM_MERGE);
     DO_TEST("disk-cdrom", NONE);
     DO_TEST("disk-iscsi", NONE);
@@ -1812,6 +1815,11 @@ mymain(void)
     qemuTestSetHostArch(driver.caps, VIR_ARCH_PPC64);
     DO_TEST("pseries-cpu-compat", QEMU_CAPS_KVM,
             QEMU_CAPS_DEVICE_SPAPR_VTY,
+            QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("pseries-machine-max-cpu-compat",
+            QEMU_CAPS_KVM,
+            QEMU_CAPS_MACHINE_OPT,
+            QEMU_CAPS_MACHINE_PSERIES_MAX_CPU_COMPAT,
             QEMU_CAPS_NODEFCONFIG);
     DO_TEST("pseries-cpu-le", QEMU_CAPS_KVM,
             QEMU_CAPS_DEVICE_SPAPR_VTY,
@@ -2900,6 +2908,9 @@ mymain(void)
             QEMU_CAPS_DEVICE_INTEL_IOMMU);
 
     DO_TEST("cpu-hotplug-startup", QEMU_CAPS_QUERY_HOTPLUGGABLE_CPUS);
+    DO_TEST_PARSE_ERROR("cpu-hotplug-granularity",
+                        QEMU_CAPS_QUERY_HOTPLUGGABLE_CPUS);
+
     DO_TEST("virtio-options", QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_VIRTIO_KEYBOARD,
             QEMU_CAPS_VIRTIO_MOUSE, QEMU_CAPS_VIRTIO_TABLET,
             QEMU_CAPS_VIRTIO_INPUT_HOST,

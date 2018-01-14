@@ -116,15 +116,15 @@ virNetServerNewPostExecRestart;
 virNetServerNextClientID;
 virNetServerPreExecRestart;
 virNetServerProcessClients;
+virNetServerSetClientAuthenticated;
 virNetServerStart;
-virNetServerTrackCompletedAuth;
-virNetServerTrackPendingAuth;
 virNetServerUpdateServices;
 
 
 # rpc/virnetserverclient.h
 virNetServerClientAddFilter;
 virNetServerClientClose;
+virNetServerClientCloseLocked;
 virNetServerClientDelayedClose;
 virNetServerClientGetAuth;
 virNetServerClientGetFD;
@@ -138,11 +138,12 @@ virNetServerClientGetUNIXIdentity;
 virNetServerClientImmediateClose;
 virNetServerClientInit;
 virNetServerClientInitKeepAlive;
-virNetServerClientIsClosed;
+virNetServerClientIsAuthenticated;
+virNetServerClientIsAuthPendingLocked;
+virNetServerClientIsClosedLocked;
 virNetServerClientIsLocal;
 virNetServerClientIsSecure;
 virNetServerClientLocalAddrStringSASL;
-virNetServerClientNeedAuth;
 virNetServerClientNew;
 virNetServerClientNewPostExecRestart;
 virNetServerClientPreExecRestart;
@@ -150,11 +151,13 @@ virNetServerClientRemoteAddrStringSASL;
 virNetServerClientRemoteAddrStringURI;
 virNetServerClientRemoveFilter;
 virNetServerClientSendMessage;
-virNetServerClientSetAuth;
+virNetServerClientSetAuthLocked;
+virNetServerClientSetAuthPendingLocked;
 virNetServerClientSetCloseHook;
 virNetServerClientSetDispatcher;
+virNetServerClientSetReadonly;
 virNetServerClientStartKeepAlive;
-virNetServerClientWantClose;
+virNetServerClientWantCloseLocked;
 
 
 # rpc/virnetservermdns.h

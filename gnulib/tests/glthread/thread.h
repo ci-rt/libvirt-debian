@@ -1,5 +1,5 @@
 /* Creating and controlling threads.
-   Copyright (C) 2005-2017 Free Software Foundation, Inc.
+   Copyright (C) 2005-2018 Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -64,7 +64,7 @@
                                    void (*child_func) (void));
    Note that even on platforms where this is supported, use of fork() and
    threads together is problematic, see
-     <https://lists.gnu.org/archive/html/bug-gnulib/2008-08/msg00062.html>
+     <https://lists.gnu.org/r/bug-gnulib/2008-08/msg00062.html>
  */
 
 

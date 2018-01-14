@@ -3275,7 +3275,7 @@ was denied'/>
     <enum name='VIR_ERR_AGENT_UNRESPONSIVE' file='virterror' value='86' type='virErrorNumber' info='guest agent is unresponsive,
 not running or not usable'/>
     <enum name='VIR_ERR_AGENT_UNSYNCED' file='virterror' value='97' type='virErrorNumber' info='guest agent replies with wrong id
-to guest-sync command'/>
+to guest-sync command (DEPRECATED'/>
     <enum name='VIR_ERR_ARGUMENT_UNSUPPORTED' file='virterror' value='74' type='virErrorNumber' info='valid API use but unsupported by
 the given driver'/>
     <enum name='VIR_ERR_AUTH_CANCELLED' file='virterror' value='79' type='virErrorNumber' info='authentication cancelled'/>

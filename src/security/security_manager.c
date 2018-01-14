@@ -1045,15 +1045,30 @@ virSecurityManagerGetNested(virSecurityManagerPtr mgr)
 }
 
 
+/**
+ * virSecurityManagerDomainSetPathLabel:
+ * @mgr: security manager object
+ * @vm: domain definition object
+ * @path: path to label
+ * @allowSubtree: whether to allow just @path or its subtree too
+ *
+ * This function relabels given @path so that @vm can access it.
+ * If @allowSubtree is set to true the manager will grant access
+ * to @path and its subdirectories at any level (currently
+ * implemented only by AppArmor).
+ *
+ * Returns: 0 on success, -1 on error.
+ */
 int
 virSecurityManagerDomainSetPathLabel(virSecurityManagerPtr mgr,
                                      virDomainDefPtr vm,
-                                     const char *path)
+                                     const char *path,
+                                     bool allowSubtree)
 {
     if (mgr->drv->domainSetPathLabel) {
         int ret;
         virObjectLock(mgr);
-        ret = mgr->drv->domainSetPathLabel(mgr, vm, path);
+        ret = mgr->drv->domainSetPathLabel(mgr, vm, path, allowSubtree);
         virObjectUnlock(mgr);
         return ret;
     }
@@ -1145,6 +1160,46 @@ virSecurityManagerRestoreInputLabel(virSecurityManagerPtr mgr,
         int ret;
         virObjectLock(mgr);
         ret = mgr->drv->domainRestoreSecurityInputLabel(mgr, vm, input);
+        virObjectUnlock(mgr);
+        return ret;
+    }
+
+    virReportUnsupportedError();
+    return -1;
+}
+
+
+int
+virSecurityManagerSetChardevLabel(virSecurityManagerPtr mgr,
+                                  virDomainDefPtr def,
+                                  virDomainChrSourceDefPtr dev_source,
+                                  bool chardevStdioLogd)
+{
+    if (mgr->drv->domainSetSecurityChardevLabel) {
+        int ret;
+        virObjectLock(mgr);
+        ret = mgr->drv->domainSetSecurityChardevLabel(mgr, def, dev_source,
+                                                      chardevStdioLogd);
+        virObjectUnlock(mgr);
+        return ret;
+    }
+
+    virReportUnsupportedError();
+    return -1;
+}
+
+
+int
+virSecurityManagerRestoreChardevLabel(virSecurityManagerPtr mgr,
+                                      virDomainDefPtr def,
+                                      virDomainChrSourceDefPtr dev_source,
+                                      bool chardevStdioLogd)
+{
+    if (mgr->drv->domainRestoreSecurityChardevLabel) {
+        int ret;
+        virObjectLock(mgr);
+        ret = mgr->drv->domainRestoreSecurityChardevLabel(mgr, def, dev_source,
+                                                          chardevStdioLogd);
         virObjectUnlock(mgr);
         return ret;
     }

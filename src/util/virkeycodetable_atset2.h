@@ -1,6 +1,6 @@
 /*
- * This file is auto-generated from keymaps.csv on 2017-11-13 15:50
- * Database checksum sha256(f45720dc09778503dea402d7b4c742d746b01d4c74155c4633a69f40d938a363)
+ * This file is auto-generated from keymaps.csv on 2018-01-12 15:53
+ * Database checksum sha256(f8aeff0c3430077a350e3d7ba2b335b381bd929ac4b193413730a402ff3f0097)
  * To re-generate, run:
  *   keymap-gen --lang=stdc --varname=virKeyCodeTable_atset2 code-table keymaps.csv atset2
 */
@@ -69,7 +69,7 @@ const unsigned short virKeyCodeTable_atset2[454] = {
   [0x3e] = 0xc, /* KEY_F4 */
   [0x3f] = 0x3, /* KEY_F5 */
   [0x40] = 0xb, /* KEY_F6 */
-  [0x41] = 0x103, /* KEY_F7 */
+  [0x41] = 0x83, /* KEY_F7 */
   [0x42] = 0xa, /* KEY_F8 */
   [0x43] = 0x1, /* KEY_F9 */
   [0x44] = 0x9, /* KEY_F10 */
@@ -99,35 +99,54 @@ const unsigned short virKeyCodeTable_atset2[454] = {
   [0x5d] = 0x13, /* KEY_KATAKANAHIRAGANA */
   [0x5e] = 0x67, /* KEY_MUHENKAN */
   [0x5f] = 0x27, /* KEY_KPJPCOMMA */
-  [0x60] = 0x9e, /* KEY_KPENTER */
-  [0x62] = 0xb5, /* KEY_KPSLASH */
-  [0x63] = 0x104, /* KEY_SYSRQ */
-  [0x66] = 0xe0, /* KEY_HOME */
-  [0x67] = 0xec, /* KEY_UP */
-  [0x68] = 0xc9, /* KEY_PAGEUP */
-  [0x69] = 0xcb, /* KEY_LEFT */
-  [0x6a] = 0xcd, /* KEY_RIGHT */
-  [0x6b] = 0xe1, /* KEY_END */
-  [0x6c] = 0xfe, /* KEY_DOWN */
-  [0x6d] = 0xf3, /* KEY_PAGEDOWN */
-  [0x6e] = 0xd2, /* KEY_INSERT */
-  [0x6f] = 0xf4, /* KEY_DELETE */
-  [0x70] = 0xef, /* KEY_MACRO */
-  [0x71] = 0xfb, /* KEY_MUTE */
-  [0x73] = 0xe9, /* KEY_VOLUMEUP */
+  [0x60] = 0xe05a, /* KEY_KPENTER */
+  [0x61] = 0xe014, /* KEY_RIGHTCTRL */
+  [0x62] = 0xe04a, /* KEY_KPSLASH */
+  [0x63] = 0x7f, /* KEY_SYSRQ */
+  [0x64] = 0xe011, /* KEY_RIGHTALT */
+  [0x66] = 0xe06c, /* KEY_HOME */
+  [0x67] = 0xe075, /* KEY_UP */
+  [0x68] = 0xe07d, /* KEY_PAGEUP */
+  [0x69] = 0xe06b, /* KEY_LEFT */
+  [0x6a] = 0xe074, /* KEY_RIGHT */
+  [0x6b] = 0xe069, /* KEY_END */
+  [0x6c] = 0xe072, /* KEY_DOWN */
+  [0x6d] = 0xe07a, /* KEY_PAGEDOWN */
+  [0x6e] = 0xe070, /* KEY_INSERT */
+  [0x6f] = 0xe071, /* KEY_DELETE */
+  [0x70] = 0xe06f, /* KEY_MACRO */
+  [0x71] = 0xe023, /* KEY_MUTE */
+  [0x72] = 0xe021, /* KEY_VOLUMEDOWN */
+  [0x73] = 0xe032, /* KEY_VOLUMEUP */
+  [0x74] = 0xe037, /* KEY_POWER */
   [0x75] = 0xf, /* KEY_KPEQUAL */
-  [0x76] = 0xce, /* KEY_KPPLUSMINUS */
-  [0x77] = 0xc6, /* KEY_PAUSE */
+  [0x76] = 0xe079, /* KEY_KPPLUSMINUS */
+  [0x77] = 0xe077, /* KEY_PAUSE */
   [0x79] = 0x6d, /* KEY_KPCOMMA */
   [0x7c] = 0x6a, /* KEY_YEN */
-  [0x8c] = 0xae, /* KEY_CALC */
-  [0xa3] = 0xf1, /* KEY_NEXTSONG */
-  [0xa4] = 0xad, /* KEY_PLAYPAUSE */
-  [0xa5] = 0xfa, /* KEY_PREVIOUSSONG */
-  [0xa6] = 0xa4, /* KEY_STOPCD */
-  [0xac] = 0xb2, /* KEY_HOMEPAGE */
+  [0x7d] = 0xe01f, /* KEY_LEFTMETA */
+  [0x7e] = 0xe027, /* KEY_RIGHTMETA */
+  [0x7f] = 0xe02f, /* KEY_COMPOSE */
+  [0x80] = 0xe028, /* KEY_STOP */
+  [0x8c] = 0xe02b, /* KEY_CALC */
+  [0x8e] = 0xe03f, /* KEY_SLEEP */
+  [0x8f] = 0xe05e, /* KEY_WAKEUP */
+  [0x9b] = 0xe048, /* KEY_MAIL */
+  [0x9c] = 0xe018, /* KEY_BOOKMARKS */
+  [0x9d] = 0xe040, /* KEY_COMPUTER */
+  [0x9e] = 0xe038, /* KEY_BACK */
+  [0x9f] = 0xe030, /* KEY_FORWARD */
+  [0xa3] = 0xe04d, /* KEY_NEXTSONG */
+  [0xa4] = 0xe034, /* KEY_PLAYPAUSE */
+  [0xa5] = 0xe015, /* KEY_PREVIOUSSONG */
+  [0xa6] = 0xe03b, /* KEY_STOPCD */
+  [0xac] = 0xe03a, /* KEY_HOMEPAGE */
+  [0xad] = 0xe020, /* KEY_REFRESH */
   [0xb7] = 0x2f, /* KEY_F13 */
   [0xb8] = 0x37, /* KEY_F14 */
   [0xb9] = 0x3f, /* KEY_F15 */
-  [0xff] = 0xb6, /* unnamed */
+  [0xd9] = 0xe010, /* KEY_SEARCH */
+  [0xe2] = 0xe050, /* KEY_MEDIA */
+  [0xff] = 0xe012, /* unnamed */
 };
+const unsigned int virKeyCodeTable_atset2_len = sizeof(virKeyCodeTable_atset2)/sizeof(virKeyCodeTable_atset2[0]);

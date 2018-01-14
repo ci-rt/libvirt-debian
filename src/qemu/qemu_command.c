@@ -2662,10 +2662,6 @@ qemuBuildControllerDevStr(const virDomainDef *domainDef,
 
     *devstr = NULL;
 
-    if (!qemuDomainCheckCCWS390AddressSupport(domainDef, def->info, qemuCaps,
-                                              "controller"))
-        return -1;
-
     if (def->type == VIR_DOMAIN_CONTROLLER_TYPE_SCSI) {
         if ((qemuDomainSetSCSIControllerModel(domainDef, qemuCaps, &model)) < 0)
             return -1;
@@ -2695,7 +2691,7 @@ qemuBuildControllerDevStr(const virDomainDef *domainDef,
         }
     }
 
-    switch (def->type) {
+    switch ((virDomainControllerType) def->type) {
     case VIR_DOMAIN_CONTROLLER_TYPE_SCSI:
         switch (model) {
         case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_SCSI:
@@ -3124,23 +3120,8 @@ qemuBuildControllerDevStr(const virDomainDef *domainDef,
         break;
 
     case VIR_DOMAIN_CONTROLLER_TYPE_IDE:
-        /* Since we currently only support the integrated IDE
-         * controller on various boards, if we ever get to here, it's
-         * because some other machinetype had an IDE controller
-         * specified, or one with a single IDE contraller had multiple
-         * ide controllers specified.
-         */
-        if (qemuDomainHasBuiltinIDE(domainDef))
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("Only a single IDE controller is supported "
-                             "for this machine type"));
-        else
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("IDE controllers are unsupported for "
-                             "this QEMU binary or machine type"));
-        goto error;
-
-    default:
+    case VIR_DOMAIN_CONTROLLER_TYPE_FDC:
+    case VIR_DOMAIN_CONTROLLER_TYPE_LAST:
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Unsupported controller type: %s"),
                        virDomainControllerTypeToString(def->type));
@@ -3171,6 +3152,44 @@ qemuBuildControllerDevStr(const virDomainDef *domainDef,
  error:
     virBufferFreeAndReset(&buf);
     return -1;
+}
+
+
+/**
+ * qemuBuildSkipController:
+ * @controller: Controller to check
+ * @def: Domain definition
+ *
+ * Returns true if this controller can be skipped for command line
+ * generation or device validation.
+ */
+static bool
+qemuBuildSkipController(const virDomainControllerDef *controller,
+                        const virDomainDef *def)
+{
+    /* skip pcie-root */
+    if (controller->type == VIR_DOMAIN_CONTROLLER_TYPE_PCI &&
+        controller->model == VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT)
+        return true;
+
+    /* Skip pci-root, except for pSeries guests (which actually
+     * support more than one PCI Host Bridge per guest) */
+    if (!qemuDomainIsPSeries(def) &&
+        controller->type == VIR_DOMAIN_CONTROLLER_TYPE_PCI &&
+        controller->model == VIR_DOMAIN_CONTROLLER_MODEL_PCI_ROOT)
+        return true;
+
+    /* first SATA controller on Q35 machines is implicit */
+    if (controller->type == VIR_DOMAIN_CONTROLLER_TYPE_SATA &&
+        controller->idx == 0 && qemuDomainIsQ35(def))
+        return true;
+
+    /* first IDE controller is implicit on various machines */
+    if (controller->type == VIR_DOMAIN_CONTROLLER_TYPE_IDE &&
+        controller->idx == 0 && qemuDomainHasBuiltinIDE(def))
+        return true;
+
+    return false;
 }
 
 
@@ -3216,36 +3235,15 @@ qemuBuildControllerDevCommandLine(virCommandPtr cmd,
             if (cont->type != contOrder[j])
                 continue;
 
+            if (qemuBuildSkipController(cont, def))
+                continue;
+
             /* skip USB controllers with type none.*/
             if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_USB &&
                 cont->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_NONE) {
                 usbcontroller = -1; /* mark we don't want a controller */
                 continue;
             }
-
-            /* skip pcie-root */
-            if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_PCI &&
-                cont->model == VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT) {
-                continue;
-            }
-
-            /* Skip pci-root, except for pSeries guests (which actually
-             * support more than one PCI Host Bridge per guest) */
-            if (!qemuDomainIsPSeries(def) &&
-                cont->type == VIR_DOMAIN_CONTROLLER_TYPE_PCI &&
-                cont->model == VIR_DOMAIN_CONTROLLER_MODEL_PCI_ROOT) {
-                continue;
-            }
-
-            /* first SATA controller on Q35 machines is implicit */
-            if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_SATA &&
-                cont->idx == 0 && qemuDomainIsQ35(def))
-                    continue;
-
-            /* first IDE controller is implicit on various machines */
-            if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_IDE &&
-                cont->idx == 0 && qemuDomainHasBuiltinIDE(def))
-                    continue;
 
             if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_USB &&
                 cont->model == -1 &&
@@ -6925,8 +6923,11 @@ qemuBuildCpuModelArgStr(virQEMUDriverPtr driver,
     case VIR_CPU_MODE_HOST_MODEL:
         if (ARCH_IS_PPC64(def->os.arch)) {
             virBufferAddLit(buf, "host");
-            if (cpu->model)
+            if (cpu->model &&
+                !(qemuDomainIsPSeries(def) &&
+                  virQEMUCapsGet(qemuCaps, QEMU_CAPS_MACHINE_PSERIES_MAX_CPU_COMPAT))) {
                 virBufferAsprintf(buf, ",compat=%s", cpu->model);
+            }
         } else {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("unexpected host-model CPU for %s architecture"),
@@ -7416,6 +7417,7 @@ qemuBuildMachineCommandLine(virCommandPtr cmd,
     } else {
         virTristateSwitch vmport = def->features[VIR_DOMAIN_FEATURE_VMPORT];
         virTristateSwitch smm = def->features[VIR_DOMAIN_FEATURE_SMM];
+        virCPUDefPtr cpu = def->cpu;
 
         virCommandAddArg(cmd, "-machine");
         virBufferAdd(&buf, def->os.machine, -1);
@@ -7588,6 +7590,13 @@ qemuBuildMachineCommandLine(virCommandPtr cmd,
             }
 
             virBufferAsprintf(&buf, ",resize-hpt=%s", str);
+        }
+
+        if (cpu && cpu->model &&
+            cpu->mode == VIR_CPU_MODE_HOST_MODEL &&
+            qemuDomainIsPSeries(def) &&
+            virQEMUCapsGet(qemuCaps, QEMU_CAPS_MACHINE_PSERIES_MAX_CPU_COMPAT)) {
+            virBufferAsprintf(&buf, ",max-cpu-compat=%s", cpu->model);
         }
 
         if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_BOOTINDEX) &&
@@ -8547,15 +8556,25 @@ qemuBuildInterfaceCommandLine(virQEMUDriverPtr driver,
     }
 
     /* and only TAP devices support nwfilter rules */
-    if (net->filter &&
-        !(actualType == VIR_DOMAIN_NET_TYPE_NETWORK ||
-          actualType == VIR_DOMAIN_NET_TYPE_BRIDGE ||
-          actualType == VIR_DOMAIN_NET_TYPE_ETHERNET)) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("filterref is not supported for "
-                         "network interfaces of type %s"),
-                       virDomainNetTypeToString(actualType));
-        return -1;
+    if (net->filter) {
+        virNetDevVPortProfilePtr vport = virDomainNetGetActualVirtPortProfile(net);
+        if (!(actualType == VIR_DOMAIN_NET_TYPE_NETWORK ||
+              actualType == VIR_DOMAIN_NET_TYPE_BRIDGE ||
+              actualType == VIR_DOMAIN_NET_TYPE_ETHERNET)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("filterref is not supported for "
+                             "network interfaces of type %s"),
+                           virDomainNetTypeToString(actualType));
+            return -1;
+        }
+        if (vport && vport->virtPortType != VIR_NETDEV_VPORT_PROFILE_NONE) {
+            /* currently none of the defined virtualport types support iptables */
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("filterref is not supported for "
+                             "network interfaces with virtualport type %s"),
+                           virNetDevVPortTypeToString(vport->virtPortType));
+            return -1;
+        }
     }
 
     if (net->backend.tap &&

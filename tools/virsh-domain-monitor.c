@@ -40,8 +40,8 @@
 #include "virxml.h"
 #include "virstring.h"
 
-#define VIRSH_COMMON_OPT_DOMAIN_FULL \
-    VIRSH_COMMON_OPT_DOMAIN(N_("domain name, id or uuid"))
+#define VIRSH_COMMON_OPT_DOMAIN_FULL(cflags) \
+    VIRSH_COMMON_OPT_DOMAIN(N_("domain name, id or uuid"), cflags)
 
 VIR_ENUM_DECL(virshDomainIOError)
 VIR_ENUM_IMPL(virshDomainIOError,
@@ -278,7 +278,7 @@ static const vshCmdInfo info_dommemstat[] = {
 };
 
 static const vshCmdOptDef opts_dommemstat[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "period",
      .type = VSH_OT_INT,
      .flags = VSH_OFLAG_REQ_OPT,
@@ -390,7 +390,7 @@ static const vshCmdInfo info_domblkinfo[] = {
 };
 
 static const vshCmdOptDef opts_domblkinfo[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "device",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
@@ -460,7 +460,7 @@ static const vshCmdInfo info_domblklist[] = {
 };
 
 static const vshCmdOptDef opts_domblklist[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "inactive",
      .type = VSH_OT_BOOL,
      .help = N_("get inactive rather than running configuration")
@@ -566,7 +566,7 @@ static const vshCmdInfo info_domiflist[] = {
 };
 
 static const vshCmdOptDef opts_domiflist[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "inactive",
      .type = VSH_OT_BOOL,
      .help = N_("get inactive rather than running configuration")
@@ -655,10 +655,11 @@ static const vshCmdInfo info_domif_getlink[] = {
 };
 
 static const vshCmdOptDef opts_domif_getlink[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "interface",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
+     .completer = virshDomainInterfaceCompleter,
      .help = N_("interface device (MAC Address)")
     },
     {.name = "persistent",
@@ -752,7 +753,7 @@ static const vshCmdInfo info_domcontrol[] = {
 };
 
 static const vshCmdOptDef opts_domcontrol[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = NULL}
 };
 
@@ -805,7 +806,7 @@ static const vshCmdInfo info_domblkstat[] = {
 };
 
 static const vshCmdOptDef opts_domblkstat[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "device",
      .type = VSH_OT_STRING,
      .flags = VSH_OFLAG_EMPTY_OK,
@@ -991,10 +992,11 @@ static const vshCmdInfo info_domifstat[] = {
 };
 
 static const vshCmdOptDef opts_domifstat[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "interface",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
+     .completer = virshDomainInterfaceCompleter,
      .help = N_("interface device specified by name or MAC Address")
     },
     {.name = NULL}
@@ -1064,7 +1066,7 @@ static const vshCmdInfo info_domblkerror[] = {
 };
 
 static const vshCmdOptDef opts_domblkerror[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = NULL}
 };
 
@@ -1125,7 +1127,7 @@ static const vshCmdInfo info_dominfo[] = {
 };
 
 static const vshCmdOptDef opts_dominfo[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = NULL}
 };
 
@@ -1264,7 +1266,7 @@ static const vshCmdInfo info_domstate[] = {
 };
 
 static const vshCmdOptDef opts_domstate[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "reason",
      .type = VSH_OT_BOOL,
      .help = N_("also print reason for the state")
@@ -1316,7 +1318,7 @@ static const vshCmdInfo info_domtime[] = {
 };
 
 static const vshCmdOptDef opts_domtime[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "now",
      .type = VSH_OT_BOOL,
      .help = N_("set to the time of the host running virsh")
@@ -2145,10 +2147,11 @@ static const vshCmdInfo info_domifaddr[] = {
 };
 
 static const vshCmdOptDef opts_domifaddr[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "interface",
      .type = VSH_OT_STRING,
      .flags = VSH_OFLAG_NONE,
+     .completer = virshDomainInterfaceCompleter,
      .help = N_("network interface name")},
     {.name = "full",
      .type = VSH_OT_BOOL,

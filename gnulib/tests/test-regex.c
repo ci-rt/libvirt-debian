@@ -1,5 +1,5 @@
 /* Test regular expressions
-   Copyright 1996-2001, 2003-2017 Free Software Foundation, Inc.
+   Copyright 1996-2001, 2003-2018 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -220,7 +220,7 @@ main (void)
     }
 
   /* Catch a bug reported by Vin Shelton in
-     https://lists.gnu.org/archive/html/bug-coreutils/2007-06/msg00089.html
+     https://lists.gnu.org/r/bug-coreutils/2007-06/msg00089.html
      */
   re_set_syntax (RE_SYNTAX_POSIX_BASIC
                  & ~RE_CONTEXT_INVALID_DUP

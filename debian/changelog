@@ -1,3 +1,11 @@
+libvirt (4.0.0~rc1-1~1.gbp5095f2) UNRELEASED; urgency=medium
+
+  ** SNAPSHOT build @5095f235eed3df12e3551b1ebc913bb6e3712cc6 **
+
+  * [a225d2b] New upstream version 4.0.0~rc1
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 14 Jan 2018 16:18:08 +0100
+
 libvirt (3.10.0-1) unstable; urgency=medium
 
   * [0d103b6] Bump standards version

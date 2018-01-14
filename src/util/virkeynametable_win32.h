@@ -1,6 +1,6 @@
 /*
- * This file is auto-generated from keymaps.csv on 2017-11-13 15:50
- * Database checksum sha256(f45720dc09778503dea402d7b4c742d746b01d4c74155c4633a69f40d938a363)
+ * This file is auto-generated from keymaps.csv on 2018-01-12 15:53
+ * Database checksum sha256(f8aeff0c3430077a350e3d7ba2b335b381bd929ac4b193413730a402ff3f0097)
  * To re-generate, run:
  *   keymap-gen --lang=stdc --varname=virKeyNameTable_win32 name-table keymaps.csv win32
 */
@@ -94,7 +94,7 @@ const char * virKeyNameTable_win32[454] = {
   [0x5a] = "VK_KANA", /* KEY_KATAKANA */
   [0x61] = "VK_RCONTROL", /* KEY_RIGHTCTRL */
   [0x62] = "VK_DIVIDE", /* KEY_KPSLASH */
-  [0x63] = "VK_SNAPSHOT ???", /* KEY_SYSRQ */
+  [0x63] = "VK_SNAPSHOT", /* KEY_SYSRQ */
   [0x64] = "VK_RMENU", /* KEY_RIGHTALT */
   [0x66] = "VK_HOME", /* KEY_HOME */
   [0x67] = "VK_UP", /* KEY_UP */
@@ -152,3 +152,4 @@ const char * virKeyNameTable_win32[454] = {
   [0x14a] = "VK_BROWSER_FAVOURITES", /* KEY_FAVORITES */
   [0x152] = "VK_ZOOM", /* KEY_ZOOM */
 };
+const unsigned int virKeyNameTable_win32_len = sizeof(virKeyNameTable_win32)/sizeof(virKeyNameTable_win32[0]);

@@ -1,7 +1,7 @@
 #!/bin/sh
 # Create a temporary directory, much like mktemp -d does.
 
-# Copyright (C) 2007-2017 Free Software Foundation, Inc.
+# Copyright (C) 2007-2018 Free Software Foundation, Inc.
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -49,7 +49,7 @@ rand_bytes()
     return
   fi
 
-  cmds='date; date +%N; free; who -a; w; ps auxww; ps ef; netstat -n'
+  cmds='date; date +%N; free; who -a; w; ps auxww; ps -ef'
   data=` (eval "$cmds") 2>&1 | gzip `
 
   n_plus_50=`expr $n + 50`

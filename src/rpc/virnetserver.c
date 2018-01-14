@@ -285,8 +285,10 @@ int virNetServerAddClient(virNetServerPtr srv,
         goto error;
     srv->clients[srv->nclients-1] = virObjectRef(client);
 
-    if (virNetServerClientNeedAuth(client))
+    virObjectLock(client);
+    if (virNetServerClientIsAuthPendingLocked(client))
         virNetServerTrackPendingAuthLocked(srv);
+    virObjectUnlock(client);
 
     virNetServerCheckLimits(srv);
 
@@ -735,6 +737,48 @@ int virNetServerSetTLSContext(virNetServerPtr srv,
 #endif
 
 
+/**
+ * virNetServerSetClientAuthCompletedLocked:
+ * @srv: server must be locked by the caller
+ * @client: client must be locked by the caller
+ *
+ * If the client authentication was pending, clear that pending and
+ * update the server tracking.
+ */
+static void
+virNetServerSetClientAuthCompletedLocked(virNetServerPtr srv,
+                                         virNetServerClientPtr client)
+{
+    if (virNetServerClientIsAuthPendingLocked(client)) {
+        virNetServerClientSetAuthPendingLocked(client, false);
+        virNetServerTrackCompletedAuthLocked(srv);
+    }
+}
+
+
+/**
+ * virNetServerSetClientAuthenticated:
+ * @srv: server must be unlocked
+ * @client: client must be unlocked
+ *
+ * Mark @client as authenticated and tracks on @srv that the
+ * authentication of this @client has been completed. Also it checks
+ * the limits of @srv.
+ */
+void
+virNetServerSetClientAuthenticated(virNetServerPtr srv,
+                                   virNetServerClientPtr client)
+{
+    virObjectLock(srv);
+    virObjectLock(client);
+    virNetServerClientSetAuthLocked(client, VIR_NET_SERVER_SERVICE_AUTH_NONE);
+    virNetServerSetClientAuthCompletedLocked(srv, client);
+    virNetServerCheckLimits(srv);
+    virObjectUnlock(client);
+    virObjectUnlock(srv);
+}
+
+
 static void
 virNetServerUpdateServicesLocked(virNetServerPtr srv,
                                  bool enabled)
@@ -774,10 +818,8 @@ void virNetServerDispose(void *obj)
         virObjectUnref(srv->programs[i]);
     VIR_FREE(srv->programs);
 
-    for (i = 0; i < srv->nclients; i++) {
-        virNetServerClientClose(srv->clients[i]);
+    for (i = 0; i < srv->nclients; i++)
         virObjectUnref(srv->clients[i]);
-    }
     VIR_FREE(srv->clients);
 
     VIR_FREE(srv->mdnsGroupName);
@@ -796,6 +838,9 @@ void virNetServerClose(virNetServerPtr srv)
     for (i = 0; i < srv->nservices; i++)
         virNetServerServiceClose(srv->services[i]);
 
+    for (i = 0; i < srv->nclients; i++)
+        virNetServerClientClose(srv->clients[i]);
+
     virObjectUnlock(srv);
 }
 
@@ -811,24 +856,6 @@ virNetServerTrackCompletedAuthLocked(virNetServerPtr srv)
     return --srv->nclients_unauth;
 }
 
-size_t virNetServerTrackPendingAuth(virNetServerPtr srv)
-{
-    size_t ret;
-    virObjectLock(srv);
-    ret = virNetServerTrackPendingAuthLocked(srv);
-    virObjectUnlock(srv);
-    return ret;
-}
-
-size_t virNetServerTrackCompletedAuth(virNetServerPtr srv)
-{
-    size_t ret;
-    virObjectLock(srv);
-    ret = virNetServerTrackCompletedAuthLocked(srv);
-    virNetServerCheckLimits(srv);
-    virObjectUnlock(srv);
-    return ret;
-}
 
 bool
 virNetServerHasClients(virNetServerPtr srv)
@@ -846,6 +873,7 @@ void
 virNetServerProcessClients(virNetServerPtr srv)
 {
     size_t i;
+    virNetServerClientPtr client;
 
     virObjectLock(srv);
 
@@ -854,15 +882,18 @@ virNetServerProcessClients(virNetServerPtr srv)
         /* Coverity 5.3.0 couldn't see that srv->clients is non-NULL
          * if srv->nclients is non-zero.  */
         sa_assert(srv->clients);
-        if (virNetServerClientWantClose(srv->clients[i]))
-            virNetServerClientClose(srv->clients[i]);
-        if (virNetServerClientIsClosed(srv->clients[i])) {
-            virNetServerClientPtr client = srv->clients[i];
 
+        client = srv->clients[i];
+        virObjectLock(client);
+        if (virNetServerClientWantCloseLocked(client))
+            virNetServerClientCloseLocked(client);
+
+        if (virNetServerClientIsClosedLocked(client)) {
             VIR_DELETE_ELEMENT(srv->clients, i, srv->nclients);
 
-            if (virNetServerClientNeedAuth(client))
-                virNetServerTrackCompletedAuthLocked(srv);
+            /* Update server authentication tracking */
+            virNetServerSetClientAuthCompletedLocked(srv, client);
+            virObjectUnlock(client);
 
             virNetServerCheckLimits(srv);
 
@@ -871,6 +902,8 @@ virNetServerProcessClients(virNetServerPtr srv)
             virObjectLock(srv);
 
             goto reprocess;
+        } else {
+            virObjectUnlock(client);
         }
     }
 

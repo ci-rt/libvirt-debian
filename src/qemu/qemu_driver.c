@@ -633,6 +633,8 @@ qemuStateInitialize(bool privileged,
     char *hugepagePath = NULL;
     char *memoryBackingPath = NULL;
     size_t i;
+    virCPUDefPtr hostCPU = NULL;
+    unsigned int microcodeVersion = 0;
 
     if (VIR_ALLOC(qemu_driver) < 0)
         return -1;
@@ -855,10 +857,15 @@ qemuStateInitialize(bool privileged,
         run_gid = cfg->group;
     }
 
+    if ((hostCPU = virCPUProbeHost(virArchFromHost())))
+        microcodeVersion = hostCPU->microcodeVersion;
+    virCPUDefFree(hostCPU);
+
     qemu_driver->qemuCapsCache = virQEMUCapsCacheNew(cfg->libDir,
                                                      cfg->cacheDir,
                                                      run_uid,
-                                                     run_gid);
+                                                     run_gid,
+                                                     microcodeVersion);
     if (!qemu_driver->qemuCapsCache)
         goto error;
 
@@ -3750,9 +3757,13 @@ qemuDomainManagedSaveRemove(virDomainPtr dom, unsigned int flags)
     return ret;
 }
 
-static int qemuDumpToFd(virQEMUDriverPtr driver, virDomainObjPtr vm,
-                        int fd, qemuDomainAsyncJob asyncJob,
-                        const char *dumpformat)
+
+static int
+qemuDumpToFd(virQEMUDriverPtr driver,
+             virDomainObjPtr vm,
+             int fd,
+             qemuDomainAsyncJob asyncJob,
+             const char *dumpformat)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
     int ret = -1;
@@ -3792,6 +3803,7 @@ static int qemuDumpToFd(virQEMUDriverPtr driver, virDomainObjPtr vm,
 
     return ret;
 }
+
 
 static int
 doCoreDump(virQEMUDriverPtr driver,
@@ -7538,7 +7550,7 @@ qemuDomainUndefineFlags(virDomainPtr dom,
             }
         } else if (!(flags & VIR_DOMAIN_UNDEFINE_KEEP_NVRAM)) {
             virReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                           _("cannot delete inactive domain with nvram"));
+                           _("cannot undefine domain with nvram"));
             goto endjob;
         }
     }
@@ -7787,6 +7799,9 @@ qemuDomainDetachDeviceLive(virDomainObjPtr vm,
     case VIR_DOMAIN_DEVICE_INPUT:
         ret = qemuDomainDetachInputDevice(vm, dev->data.input);
         break;
+    case VIR_DOMAIN_DEVICE_REDIRDEV:
+        ret = qemuDomainDetachRedirdevDevice(driver, vm, dev->data.redirdev);
+        break;
 
     case VIR_DOMAIN_DEVICE_FS:
     case VIR_DOMAIN_DEVICE_SOUND:
@@ -7796,7 +7811,6 @@ qemuDomainDetachDeviceLive(virDomainObjPtr vm,
     case VIR_DOMAIN_DEVICE_SMARTCARD:
     case VIR_DOMAIN_DEVICE_MEMBALLOON:
     case VIR_DOMAIN_DEVICE_NVRAM:
-    case VIR_DOMAIN_DEVICE_REDIRDEV:
     case VIR_DOMAIN_DEVICE_NONE:
     case VIR_DOMAIN_DEVICE_TPM:
     case VIR_DOMAIN_DEVICE_PANIC:
@@ -16529,7 +16543,7 @@ qemuDomainBlockPivot(virQEMUDriverPtr driver,
 
         if (disk->mirror->format &&
             disk->mirror->format != VIR_STORAGE_FILE_RAW &&
-            (qemuDomainNamespaceSetupDisk(driver, vm, disk->src) < 0 ||
+            (qemuDomainNamespaceSetupDisk(vm, disk->src) < 0 ||
              qemuSetupDiskCgroup(vm, disk) < 0 ||
              qemuSecuritySetDiskLabel(driver, vm, disk) < 0))
             goto cleanup;
@@ -16782,13 +16796,13 @@ qemuDomainBlockJobAbort(virDomainPtr dom,
      * block jobs from confusing us.  */
     if (!async) {
         qemuDomainDiskPrivatePtr diskPriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
-        qemuBlockJobUpdate(driver, vm, QEMU_ASYNC_JOB_NONE, disk);
+        qemuBlockJobUpdate(driver, vm, QEMU_ASYNC_JOB_NONE, disk, NULL);
         while (diskPriv->blockjob) {
             if (virDomainObjWait(vm) < 0) {
                 ret = -1;
                 goto endjob;
             }
-            qemuBlockJobUpdate(driver, vm, QEMU_ASYNC_JOB_NONE, disk);
+            qemuBlockJobUpdate(driver, vm, QEMU_ASYNC_JOB_NONE, disk, NULL);
         }
     }
 

@@ -112,7 +112,7 @@ qemuHotplugPrepareDiskAccess(virQEMUDriverPtr driver,
                                 vm, disk) < 0)
         goto cleanup;
 
-    if (qemuDomainNamespaceSetupDisk(driver, vm, disk->src) < 0)
+    if (qemuDomainNamespaceSetupDisk(vm, disk->src) < 0)
         goto rollback_lock;
 
     if (qemuSecuritySetDiskLabel(driver, vm, disk) < 0)
@@ -134,7 +134,7 @@ qemuHotplugPrepareDiskAccess(virQEMUDriverPtr driver,
                  virDomainDiskGetSource(disk));
 
  rollback_namespace:
-    if (qemuDomainNamespaceTeardownDisk(driver, vm, disk->src) < 0)
+    if (qemuDomainNamespaceTeardownDisk(vm, disk->src) < 0)
         VIR_WARN("Unable to remove /dev entry for %s",
                  virDomainDiskGetSource(disk));
 
@@ -587,6 +587,7 @@ qemuDomainFindOrCreateSCSIDiskController(virQEMUDriverPtr driver,
 {
     size_t i;
     virDomainControllerDefPtr cont;
+    int model = -1;
 
     for (i = 0; i < vm->def->ncontrollers; i++) {
         cont = vm->def->controllers[i];
@@ -596,6 +597,16 @@ qemuDomainFindOrCreateSCSIDiskController(virQEMUDriverPtr driver,
 
         if (cont->idx == controller)
             return cont;
+
+        /* Because virDomainHostdevAssignAddress called during
+         * virDomainHostdevDefPostParse cannot add a new controller
+         * it will assign a controller index to a controller that doesn't
+         * exist leaving this code to perform the magic of adding the
+         * controller. Because that code would be attempting to add a
+         * SCSI disk to an existing controller, let's save the model
+         * of the "last" SCSI controller we find so that if we end up
+         * creating a controller below it uses the same controller model. */
+        model = cont->model;
     }
 
     /* No SCSI controller present, for backward compatibility we
@@ -604,11 +615,11 @@ qemuDomainFindOrCreateSCSIDiskController(virQEMUDriverPtr driver,
         return NULL;
     cont->type = VIR_DOMAIN_CONTROLLER_TYPE_SCSI;
     cont->idx = controller;
-    cont->model = -1;
+    cont->model = model;
 
-    VIR_INFO("No SCSI controller present, hotplugging one");
-    if (qemuDomainAttachControllerDevice(driver,
-                                         vm, cont) < 0) {
+    VIR_INFO("No SCSI controller present, hotplugging one model=%s",
+             virDomainControllerModelSCSITypeToString(model));
+    if (qemuDomainAttachControllerDevice(driver, vm, cont) < 0) {
         VIR_FREE(cont);
         return NULL;
     }
@@ -1304,7 +1315,7 @@ qemuDomainAttachHostPCIDevice(virQEMUDriverPtr driver,
     }
     vm->def->hostdevs[--(vm->def->nhostdevs)] = NULL;
 
-    if (qemuDomainNamespaceSetupHostdev(driver, vm, hostdev) < 0)
+    if (qemuDomainNamespaceSetupHostdev(vm, hostdev) < 0)
         goto error;
     teardowndevice = true;
 
@@ -1374,7 +1385,7 @@ qemuDomainAttachHostPCIDevice(virQEMUDriverPtr driver,
         qemuSecurityRestoreHostdevLabel(driver, vm, hostdev) < 0)
         VIR_WARN("Unable to restore host device labelling on hotplug fail");
     if (teardowndevice &&
-        qemuDomainNamespaceTeardownHostdev(driver, vm, hostdev) < 0)
+        qemuDomainNamespaceTeardownHostdev(vm, hostdev) < 0)
         VIR_WARN("Unable to remove host device from /dev");
 
     if (releaseaddr)
@@ -1558,6 +1569,54 @@ qemuDomainAddChardevTLSObjects(virConnectPtr conn,
     virJSONValueFree(secProps);
     virObjectUnref(cfg);
 
+    return ret;
+}
+
+
+static int
+qemuDomainDelChardevTLSObjects(virQEMUDriverPtr driver,
+                               virDomainObjPtr vm,
+                               virDomainChrSourceDefPtr dev,
+                               const char *inAlias)
+{
+    int ret = -1;
+    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    char *tlsAlias = NULL;
+    char *secAlias = NULL;
+
+    if (dev->type != VIR_DOMAIN_CHR_TYPE_TCP ||
+        dev->data.tcp.haveTLS != VIR_TRISTATE_BOOL_YES) {
+        ret = 0;
+        goto cleanup;
+    }
+
+    if (!(tlsAlias = qemuAliasTLSObjFromSrcAlias(inAlias)))
+        goto cleanup;
+
+    /* Best shot at this as the secinfo is destroyed after process launch
+     * and this path does not recreate it. Thus, if the config has the
+     * secret UUID and we have a serial TCP chardev, then formulate a
+     * secAlias which we'll attempt to destroy. */
+    if (cfg->chardevTLSx509secretUUID &&
+        !(secAlias = qemuDomainGetSecretAESAlias(inAlias, false)))
+        goto cleanup;
+
+    qemuDomainObjEnterMonitor(driver, vm);
+
+    ignore_value(qemuMonitorDelObject(priv->mon, tlsAlias));
+    if (secAlias)
+        ignore_value(qemuMonitorDelObject(priv->mon, secAlias));
+
+    if (qemuDomainObjExitMonitor(driver, vm) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(tlsAlias);
+    VIR_FREE(secAlias);
+    virObjectUnref(cfg);
     return ret;
 }
 
@@ -1815,6 +1874,7 @@ int qemuDomainAttachChrDevice(virConnectPtr conn,
     bool chardevAttached = false;
     bool teardowncgroup = false;
     bool teardowndevice = false;
+    bool teardownlabel = false;
     char *tlsAlias = NULL;
     char *secAlias = NULL;
     bool need_release = false;
@@ -1831,9 +1891,13 @@ int qemuDomainAttachChrDevice(virConnectPtr conn,
     if (rc == 1)
         need_release = true;
 
-    if (qemuDomainNamespaceSetupChardev(driver, vm, chr) < 0)
+    if (qemuDomainNamespaceSetupChardev(vm, chr) < 0)
         goto cleanup;
     teardowndevice = true;
+
+    if (qemuSecuritySetChardevLabel(driver, vm, chr) < 0)
+        goto cleanup;
+    teardownlabel = true;
 
     if (qemuSetupChardevCgroup(vm, chr) < 0)
         goto cleanup;
@@ -1877,7 +1941,9 @@ int qemuDomainAttachChrDevice(virConnectPtr conn,
             qemuDomainReleaseDeviceAddress(vm, &chr->info, NULL);
         if (teardowncgroup && qemuTeardownChardevCgroup(vm, chr) < 0)
             VIR_WARN("Unable to remove chr device cgroup ACL on hotplug fail");
-        if (teardowndevice && qemuDomainNamespaceTeardownChardev(driver, vm, chr) < 0)
+        if (teardownlabel && qemuSecurityRestoreChardevLabel(driver, vm, chr) < 0)
+            VIR_WARN("Unable to restore security label on char device");
+        if (teardowndevice && qemuDomainNamespaceTeardownChardev(vm, chr) < 0)
             VIR_WARN("Unable to remove chr device from /dev");
     }
     VIR_FREE(tlsAlias);
@@ -1934,7 +2000,7 @@ qemuDomainAttachRNGDevice(virConnectPtr conn,
     if (qemuDomainEnsureVirtioAddress(&releaseaddr, vm, &dev, "rng") < 0)
         return -1;
 
-    if (qemuDomainNamespaceSetupRNG(driver, vm, rng) < 0)
+    if (qemuDomainNamespaceSetupRNG(vm, rng) < 0)
         goto cleanup;
     teardowndevice = true;
 
@@ -1998,7 +2064,7 @@ qemuDomainAttachRNGDevice(virConnectPtr conn,
             qemuDomainReleaseDeviceAddress(vm, &rng->info, NULL);
         if (teardowncgroup && qemuTeardownRNGCgroup(vm, rng) < 0)
             VIR_WARN("Unable to remove RNG device cgroup ACL on hotplug fail");
-        if (teardowndevice && qemuDomainNamespaceTeardownRNG(driver, vm, rng) < 0)
+        if (teardowndevice && qemuDomainNamespaceTeardownRNG(vm, rng) < 0)
             VIR_WARN("Unable to remove chr device from /dev");
     }
 
@@ -2084,7 +2150,7 @@ qemuDomainAttachMemory(virQEMUDriverPtr driver,
     if (qemuProcessBuildDestroyMemoryPaths(driver, vm, mem, true) < 0)
         goto cleanup;
 
-    if (qemuDomainNamespaceSetupMemory(driver, vm, mem) < 0)
+    if (qemuDomainNamespaceSetupMemory(vm, mem) < 0)
         goto cleanup;
     teardowndevice = true;
 
@@ -2142,7 +2208,7 @@ qemuDomainAttachMemory(virQEMUDriverPtr driver,
         if (teardownlabel && qemuSecurityRestoreMemoryLabel(driver, vm, mem) < 0)
             VIR_WARN("Unable to restore security label on memdev");
         if (teardowndevice &&
-            qemuDomainNamespaceTeardownMemory(driver, vm, mem) <  0)
+            qemuDomainNamespaceTeardownMemory(vm, mem) <  0)
             VIR_WARN("Unable to remove memory device from /dev");
     }
 
@@ -2203,7 +2269,7 @@ qemuDomainAttachHostUSBDevice(virQEMUDriverPtr driver,
 
     added = true;
 
-    if (qemuDomainNamespaceSetupHostdev(driver, vm, hostdev) < 0)
+    if (qemuDomainNamespaceSetupHostdev(vm, hostdev) < 0)
         goto cleanup;
     teardowndevice = true;
 
@@ -2244,7 +2310,7 @@ qemuDomainAttachHostUSBDevice(virQEMUDriverPtr driver,
             qemuSecurityRestoreHostdevLabel(driver, vm, hostdev) < 0)
             VIR_WARN("Unable to restore host device labelling on hotplug fail");
         if (teardowndevice &&
-            qemuDomainNamespaceTeardownHostdev(driver, vm, hostdev) < 0)
+            qemuDomainNamespaceTeardownHostdev(vm, hostdev) < 0)
             VIR_WARN("Unable to remove host device from /dev");
         if (added)
             qemuHostdevReAttachUSBDevices(driver, vm->def->name, &hostdev, 1);
@@ -2279,7 +2345,7 @@ qemuDomainAttachHostSCSIDevice(virConnectPtr conn,
     virDomainHostdevSubsysSCSIPtr scsisrc = &hostdev->source.subsys.u.scsi;
     virDomainHostdevSubsysSCSIiSCSIPtr iscsisrc = &scsisrc->u.iscsi;
     qemuDomainStorageSourcePrivatePtr srcPriv;
-    qemuDomainSecretInfoPtr secinfo;
+    qemuDomainSecretInfoPtr secinfo = NULL;
 
     if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE_SCSI_GENERIC)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -2302,7 +2368,7 @@ qemuDomainAttachHostSCSIDevice(virConnectPtr conn,
     if (qemuHostdevPrepareSCSIDevices(driver, vm->def->name, &hostdev, 1) < 0)
         return -1;
 
-    if (qemuDomainNamespaceSetupHostdev(driver, vm, hostdev) < 0)
+    if (qemuDomainNamespaceSetupHostdev(vm, hostdev) < 0)
         goto cleanup;
     teardowndevice = true;
 
@@ -2321,7 +2387,8 @@ qemuDomainAttachHostSCSIDevice(virConnectPtr conn,
         goto cleanup;
 
     srcPriv = QEMU_DOMAIN_STORAGE_SOURCE_PRIVATE(iscsisrc->src);
-    secinfo = srcPriv->secinfo;
+    if (srcPriv)
+        secinfo = srcPriv->secinfo;
     if (secinfo && secinfo->type == VIR_DOMAIN_SECRET_INFO_TYPE_AES) {
         if (qemuBuildSecretInfoProps(secinfo, &secobjProps) < 0)
             goto cleanup;
@@ -2375,7 +2442,7 @@ qemuDomainAttachHostSCSIDevice(virConnectPtr conn,
             qemuSecurityRestoreHostdevLabel(driver, vm, hostdev) < 0)
             VIR_WARN("Unable to restore host device labelling on hotplug fail");
         if (teardowndevice &&
-            qemuDomainNamespaceTeardownHostdev(driver, vm, hostdev) < 0)
+            qemuDomainNamespaceTeardownHostdev(vm, hostdev) < 0)
             VIR_WARN("Unable to remove host device from /dev");
     }
     qemuDomainSecretHostdevDestroy(hostdev);
@@ -2429,7 +2496,7 @@ qemuDomainAttachSCSIVHostDevice(virQEMUDriverPtr driver,
     if (qemuHostdevPrepareSCSIVHostDevices(driver, vm->def->name, &hostdev, 1) < 0)
         return -1;
 
-    if (qemuDomainNamespaceSetupHostdev(driver, vm, hostdev) < 0)
+    if (qemuDomainNamespaceSetupHostdev(vm, hostdev) < 0)
         goto cleanup;
     teardowndevice = true;
 
@@ -2499,7 +2566,7 @@ qemuDomainAttachSCSIVHostDevice(virQEMUDriverPtr driver,
             qemuSecurityRestoreHostdevLabel(driver, vm, hostdev) < 0)
             VIR_WARN("Unable to restore host device labelling on hotplug fail");
         if (teardowndevice &&
-            qemuDomainNamespaceTeardownHostdev(driver, vm, hostdev) < 0)
+            qemuDomainNamespaceTeardownHostdev(vm, hostdev) < 0)
             VIR_WARN("Unable to remove host device from /dev");
         if (releaseaddr)
             qemuDomainReleaseDeviceAddress(vm, hostdev->info, NULL);
@@ -3311,11 +3378,19 @@ qemuDomainChangeNet(virQEMUDriverPtr driver,
     }
 
     if (needBandwidthSet) {
-        if (virNetDevBandwidthSet(newdev->ifname,
-                                  virDomainNetGetActualBandwidth(newdev),
-                                  false,
-                                  !virDomainNetTypeSharesHostView(newdev)) < 0)
-            goto cleanup;
+        virNetDevBandwidthPtr newb = virDomainNetGetActualBandwidth(newdev);
+
+        if (newb) {
+            if (virNetDevBandwidthSet(newdev->ifname, newb, false,
+                                      !virDomainNetTypeSharesHostView(newdev)) < 0)
+                goto cleanup;
+        } else {
+            /*
+             * virNetDevBandwidthSet() doesn't clear any existing
+             * setting unless something new is being set.
+             */
+            virNetDevBandwidthClear(newdev->ifname);
+        }
         needReplaceDevDef = true;
     }
 
@@ -3733,7 +3808,7 @@ qemuDomainRemoveDiskDevice(virQEMUDriverPtr driver,
     if (virDomainLockDiskDetach(driver->lockManager, vm, disk) < 0)
         VIR_WARN("Unable to release lock on %s", src);
 
-    if (qemuDomainNamespaceTeardownDisk(driver, vm, disk->src) < 0)
+    if (qemuDomainNamespaceTeardownDisk(vm, disk->src) < 0)
         VIR_WARN("Unable to remove /dev entry for %s", src);
 
     dev.type = VIR_DOMAIN_DEVICE_DISK;
@@ -3816,7 +3891,7 @@ qemuDomainRemoveMemoryDevice(virQEMUDriverPtr driver,
     if (qemuTeardownMemoryDevicesCgroup(vm, mem) < 0)
         VIR_WARN("Unable to remove memory device cgroup ACL");
 
-    if (qemuDomainNamespaceTeardownMemory(driver, vm, mem) <  0)
+    if (qemuDomainNamespaceTeardownMemory(vm, mem) <  0)
         VIR_WARN("Unable to remove memory device from /dev");
 
     virDomainMemoryDefFree(mem);
@@ -3946,7 +4021,7 @@ qemuDomainRemoveHostDevice(virQEMUDriverPtr driver,
     if (qemuTeardownHostdevCgroup(vm, hostdev) < 0)
         VIR_WARN("Failed to remove host device cgroup ACL");
 
-    if (qemuDomainNamespaceTeardownHostdev(driver, vm, hostdev) < 0)
+    if (qemuDomainNamespaceTeardownHostdev(vm, hostdev) < 0)
         VIR_WARN("Unable to remove host device from /dev");
 
     switch ((virDomainHostdevSubsysType) hostdev->source.subsys.type) {
@@ -4104,10 +4179,7 @@ qemuDomainRemoveChrDevice(virQEMUDriverPtr driver,
                           virDomainChrDefPtr chr)
 {
     virObjectEventPtr event;
-    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     char *charAlias = NULL;
-    char *tlsAlias = NULL;
-    char *secAlias = NULL;
     qemuDomainObjPrivatePtr priv = vm->privateData;
     int ret = -1;
     int rc;
@@ -4118,32 +4190,14 @@ qemuDomainRemoveChrDevice(virQEMUDriverPtr driver,
     if (!(charAlias = qemuAliasChardevFromDevAlias(chr->info.alias)))
         goto cleanup;
 
-    if (chr->source->type == VIR_DOMAIN_CHR_TYPE_TCP &&
-        chr->source->data.tcp.haveTLS == VIR_TRISTATE_BOOL_YES) {
-
-        if (!(tlsAlias = qemuAliasTLSObjFromSrcAlias(charAlias)))
-            goto cleanup;
-
-        /* Best shot at this as the secinfo is destroyed after process launch
-         * and this path does not recreate it. Thus, if the config has the
-         * secret UUID and we have a serial TCP chardev, then formulate a
-         * secAlias which we'll attempt to destroy. */
-        if (cfg->chardevTLSx509secretUUID &&
-            !(secAlias = qemuDomainGetSecretAESAlias(charAlias, false)))
-            goto cleanup;
-    }
-
     qemuDomainObjEnterMonitor(driver, vm);
     rc = qemuMonitorDetachCharDev(priv->mon, charAlias);
 
-    if (rc == 0) {
-        if (tlsAlias)
-            ignore_value(qemuMonitorDelObject(priv->mon, tlsAlias));
-        if (secAlias)
-            ignore_value(qemuMonitorDelObject(priv->mon, secAlias));
-    }
-
     if (qemuDomainObjExitMonitor(driver, vm) < 0)
+        goto cleanup;
+
+    if (rc == 0 &&
+        qemuDomainDelChardevTLSObjects(driver, vm, chr->source, charAlias) < 0)
         goto cleanup;
 
     virDomainAuditChardev(vm, chr, NULL, "detach", rc == 0);
@@ -4154,7 +4208,10 @@ qemuDomainRemoveChrDevice(virQEMUDriverPtr driver,
     if (qemuTeardownChardevCgroup(vm, chr) < 0)
         VIR_WARN("Failed to remove chr device cgroup ACL");
 
-    if (qemuDomainNamespaceTeardownChardev(driver, vm, chr) < 0)
+    if (qemuSecurityRestoreChardevLabel(driver, vm, chr) < 0)
+        VIR_WARN("Unable to restore security label on char device");
+
+    if (qemuDomainNamespaceTeardownChardev(vm, chr) < 0)
         VIR_WARN("Unable to remove chr device from /dev");
 
     event = virDomainEventDeviceRemovedNewFromObj(vm, chr->info.alias);
@@ -4166,9 +4223,6 @@ qemuDomainRemoveChrDevice(virQEMUDriverPtr driver,
 
  cleanup:
     VIR_FREE(charAlias);
-    VIR_FREE(tlsAlias);
-    VIR_FREE(secAlias);
-    virObjectUnref(cfg);
     return ret;
 }
 
@@ -4179,11 +4233,8 @@ qemuDomainRemoveRNGDevice(virQEMUDriverPtr driver,
                           virDomainRNGDefPtr rng)
 {
     virObjectEventPtr event;
-    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     char *charAlias = NULL;
     char *objAlias = NULL;
-    char *tlsAlias = NULL;
-    char *secAlias = NULL;
     qemuDomainObjPrivatePtr priv = vm->privateData;
     ssize_t idx;
     int ret = -1;
@@ -4199,32 +4250,17 @@ qemuDomainRemoveRNGDevice(virQEMUDriverPtr driver,
     if (!(charAlias = qemuAliasChardevFromDevAlias(rng->info.alias)))
         goto cleanup;
 
-    if (rng->backend == VIR_DOMAIN_RNG_BACKEND_EGD) {
-        if (!(tlsAlias = qemuAliasTLSObjFromSrcAlias(charAlias)))
-            goto cleanup;
-
-        /* Best shot at this as the secinfo is destroyed after process launch
-         * and this path does not recreate it. Thus, if the config has the
-         * secret UUID and we have a serial TCP chardev, then formulate a
-         * secAlias which we'll attempt to destroy. */
-        if (cfg->chardevTLSx509secretUUID &&
-            !(secAlias = qemuDomainGetSecretAESAlias(charAlias, false)))
-            goto cleanup;
-    }
-
     qemuDomainObjEnterMonitor(driver, vm);
 
     rc = qemuMonitorDelObject(priv->mon, objAlias);
 
-    if (rc == 0 && rng->backend == VIR_DOMAIN_RNG_BACKEND_EGD) {
-        ignore_value(qemuMonitorDetachCharDev(priv->mon, charAlias));
-        if (tlsAlias)
-            ignore_value(qemuMonitorDelObject(priv->mon, tlsAlias));
-        if (secAlias)
-            ignore_value(qemuMonitorDelObject(priv->mon, secAlias));
-    }
-
     if (qemuDomainObjExitMonitor(driver, vm) < 0)
+        goto cleanup;
+
+    if (rng->backend == VIR_DOMAIN_RNG_BACKEND_EGD &&
+        rc == 0 &&
+        qemuDomainDelChardevTLSObjects(driver, vm, rng->source.chardev,
+                                       charAlias) < 0)
         goto cleanup;
 
     virDomainAuditRNG(vm, rng, NULL, "detach", rc == 0);
@@ -4235,7 +4271,7 @@ qemuDomainRemoveRNGDevice(virQEMUDriverPtr driver,
     if (qemuTeardownRNGCgroup(vm, rng) < 0)
         VIR_WARN("Failed to remove RNG device cgroup ACL");
 
-    if (qemuDomainNamespaceTeardownRNG(driver, vm, rng) < 0)
+    if (qemuDomainNamespaceTeardownRNG(vm, rng) < 0)
         VIR_WARN("Unable to remove RNG device from /dev");
 
     event = virDomainEventDeviceRemovedNewFromObj(vm, rng->info.alias);
@@ -4250,9 +4286,6 @@ qemuDomainRemoveRNGDevice(virQEMUDriverPtr driver,
  cleanup:
     VIR_FREE(charAlias);
     VIR_FREE(objAlias);
-    VIR_FREE(tlsAlias);
-    VIR_FREE(secAlias);
-    virObjectUnref(cfg);
     return ret;
 }
 
@@ -4366,6 +4399,53 @@ qemuDomainRemoveInputDevice(virDomainObjPtr vm,
 }
 
 
+static int
+qemuDomainRemoveRedirdevDevice(virQEMUDriverPtr driver,
+                               virDomainObjPtr vm,
+                               virDomainRedirdevDefPtr dev)
+{
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    virObjectEventPtr event;
+    char *charAlias = NULL;
+    ssize_t idx;
+    int ret = -1;
+
+    VIR_DEBUG("Removing redirdev device %s from domain %p %s",
+              dev->info.alias, vm, vm->def->name);
+
+    if (!(charAlias = qemuAliasChardevFromDevAlias(dev->info.alias)))
+        goto cleanup;
+
+    qemuDomainObjEnterMonitor(driver, vm);
+    /* DeviceDel from Detach may remove chardev,
+     * so we cannot rely on return status to delete TLS chardevs.
+     */
+    ignore_value(qemuMonitorDetachCharDev(priv->mon, charAlias));
+
+    if (qemuDomainObjExitMonitor(driver, vm) < 0)
+        goto cleanup;
+
+    if (qemuDomainDelChardevTLSObjects(driver, vm, dev->source, charAlias) < 0)
+        goto cleanup;
+
+    virDomainAuditRedirdev(vm, dev, "detach", true);
+
+    event = virDomainEventDeviceRemovedNewFromObj(vm, dev->info.alias);
+    qemuDomainEventQueue(driver, event);
+
+    if ((idx = virDomainRedirdevDefFind(vm->def, dev)) >= 0)
+        virDomainRedirdevDefRemove(vm->def, idx);
+    qemuDomainReleaseDeviceAddress(vm, &dev->info, NULL);
+    virDomainRedirdevDefFree(dev);
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(charAlias);
+    return ret;
+}
+
+
 int
 qemuDomainRemoveDevice(virQEMUDriverPtr driver,
                        virDomainObjPtr vm,
@@ -4401,16 +4481,22 @@ qemuDomainRemoveDevice(virQEMUDriverPtr driver,
         ret = qemuDomainRemoveShmemDevice(driver, vm, dev->data.shmem);
         break;
 
+    case VIR_DOMAIN_DEVICE_INPUT:
+        ret = qemuDomainRemoveInputDevice(vm, dev->data.input);
+        break;
+
+    case VIR_DOMAIN_DEVICE_REDIRDEV:
+        ret = qemuDomainRemoveRedirdevDevice(driver, vm, dev->data.redirdev);
+        break;
+
     case VIR_DOMAIN_DEVICE_NONE:
     case VIR_DOMAIN_DEVICE_LEASE:
     case VIR_DOMAIN_DEVICE_FS:
-    case VIR_DOMAIN_DEVICE_INPUT:
     case VIR_DOMAIN_DEVICE_SOUND:
     case VIR_DOMAIN_DEVICE_VIDEO:
     case VIR_DOMAIN_DEVICE_WATCHDOG:
     case VIR_DOMAIN_DEVICE_GRAPHICS:
     case VIR_DOMAIN_DEVICE_HUB:
-    case VIR_DOMAIN_DEVICE_REDIRDEV:
     case VIR_DOMAIN_DEVICE_SMARTCARD:
     case VIR_DOMAIN_DEVICE_MEMBALLOON:
     case VIR_DOMAIN_DEVICE_NVRAM:
@@ -5099,6 +5185,49 @@ qemuDomainDetachWatchdog(virQEMUDriverPtr driver,
     }
     qemuDomainResetDeviceRemoval(vm);
 
+    return ret;
+}
+
+
+int
+qemuDomainDetachRedirdevDevice(virQEMUDriverPtr driver,
+                               virDomainObjPtr vm,
+                               virDomainRedirdevDefPtr dev)
+{
+    int ret = -1;
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    virDomainRedirdevDefPtr tmpRedirdevDef;
+    ssize_t idx;
+
+    if ((idx = virDomainRedirdevDefFind(vm->def, dev)) < 0) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("no matching redirdev was not found"));
+        return -1;
+    }
+
+    tmpRedirdevDef = vm->def->redirdevs[idx];
+
+    if (!tmpRedirdevDef->info.alias) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("alias not set for redirdev device"));
+        return -1;
+    }
+
+    qemuDomainMarkDeviceForRemoval(vm, &tmpRedirdevDef->info);
+
+    qemuDomainObjEnterMonitor(driver, vm);
+    if (qemuMonitorDelDevice(priv->mon, tmpRedirdevDef->info.alias) < 0) {
+        ignore_value(qemuDomainObjExitMonitor(driver, vm));
+        goto cleanup;
+    }
+    if (qemuDomainObjExitMonitor(driver, vm) < 0)
+        goto cleanup;
+
+    if ((ret = qemuDomainWaitForDeviceRemoval(vm)) == 1)
+        ret = qemuDomainRemoveRedirdevDevice(driver, vm, tmpRedirdevDef);
+
+ cleanup:
+    qemuDomainResetDeviceRemoval(vm);
     return ret;
 }
 

@@ -847,7 +847,7 @@ xenParseVif(virConfPtr conf, virDomainDefPtr def, const char *vif_typename)
         while (list) {
             char model[10];
             char type[10];
-            char ip[16];
+            char ip[128];
             char mac[18];
             char bridge[50];
             char vifname[50];
@@ -964,8 +964,21 @@ xenParseVif(virConfPtr conf, virDomainDefPtr def, const char *vif_typename)
                 if (bridge[0] && VIR_STRDUP(net->data.bridge.brname, bridge) < 0)
                     goto cleanup;
             }
-            if (ip[0] && virDomainNetAppendIPAddress(net, ip, AF_INET, 0) < 0)
-                goto cleanup;
+            if (ip[0]) {
+                char **ip_list = virStringSplit(ip, " ", 0);
+                size_t i;
+
+                if (!ip_list)
+                    goto cleanup;
+
+                for (i = 0; ip_list[i]; i++) {
+                    if (virDomainNetAppendIPAddress(net, ip_list[i], 0, 0) < 0) {
+                        virStringListFree(ip_list);
+                        goto cleanup;
+                    }
+                }
+                virStringListFree(ip_list);
+            }
 
             if (script && script[0] &&
                 VIR_STRDUP(net->script, script) < 0)
@@ -1166,6 +1179,27 @@ xenFormatSerial(virConfValuePtr list, virDomainChrDefPtr serial)
     return -1;
 }
 
+char *
+xenMakeIPList(virNetDevIPInfoPtr guestIP)
+{
+    size_t i;
+    char **address_array;
+    char *ret = NULL;
+
+    if (VIR_ALLOC_N(address_array, guestIP->nips + 1) < 0)
+        return NULL;
+
+    for (i = 0; i < guestIP->nips; i++) {
+        address_array[i] = virSocketAddrFormat(&guestIP->ips[i]->address);
+        if (!address_array[i])
+            goto cleanup;
+    }
+    ret = virStringListJoin((const char**)address_array, " ");
+
+ cleanup:
+    virStringListFree(address_array);
+    return ret;
+}
 
 static int
 xenFormatNet(virConnectPtr conn,
@@ -1183,14 +1217,10 @@ xenFormatNet(virConnectPtr conn,
     switch (net->type) {
     case VIR_DOMAIN_NET_TYPE_BRIDGE:
         virBufferAsprintf(&buf, ",bridge=%s", net->data.bridge.brname);
-        if (net->guestIP.nips == 1) {
-            char *ipStr = virSocketAddrFormat(&net->guestIP.ips[0]->address);
+        if (net->guestIP.nips > 0) {
+            char *ipStr = xenMakeIPList(&net->guestIP);
             virBufferAsprintf(&buf, ",ip=%s", ipStr);
             VIR_FREE(ipStr);
-        } else if (net->guestIP.nips > 1) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("Driver does not support setting multiple IP addresses"));
-            goto cleanup;
         }
         virBufferAsprintf(&buf, ",script=%s", DEFAULT_VIF_SCRIPT);
         break;
@@ -1198,14 +1228,10 @@ xenFormatNet(virConnectPtr conn,
     case VIR_DOMAIN_NET_TYPE_ETHERNET:
         if (net->script)
             virBufferAsprintf(&buf, ",script=%s", net->script);
-        if (net->guestIP.nips == 1) {
-            char *ipStr = virSocketAddrFormat(&net->guestIP.ips[0]->address);
+        if (net->guestIP.nips > 0) {
+            char *ipStr = xenMakeIPList(&net->guestIP);
             virBufferAsprintf(&buf, ",ip=%s", ipStr);
             VIR_FREE(ipStr);
-        } else if (net->guestIP.nips > 1) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("Driver does not support setting multiple IP addresses"));
-            goto cleanup;
         }
         break;
 

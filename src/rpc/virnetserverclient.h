@@ -79,8 +79,9 @@ void virNetServerClientRemoveFilter(virNetServerClientPtr client,
                                     int filterID);
 
 int virNetServerClientGetAuth(virNetServerClientPtr client);
-void virNetServerClientSetAuth(virNetServerClientPtr client, int auth);
+void virNetServerClientSetAuthLocked(virNetServerClientPtr client, int auth);
 bool virNetServerClientGetReadonly(virNetServerClientPtr client);
+void virNetServerClientSetReadonly(virNetServerClientPtr client, bool readonly);
 unsigned long long virNetServerClientGetID(virNetServerClientPtr client);
 long long virNetServerClientGetTimestamp(virNetServerClientPtr client);
 
@@ -123,11 +124,12 @@ void virNetServerClientSetDispatcher(virNetServerClientPtr client,
                                      virNetServerClientDispatchFunc func,
                                      void *opaque);
 void virNetServerClientClose(virNetServerClientPtr client);
-bool virNetServerClientIsClosed(virNetServerClientPtr client);
+void virNetServerClientCloseLocked(virNetServerClientPtr client);
+bool virNetServerClientIsClosedLocked(virNetServerClientPtr client);
 
 void virNetServerClientDelayedClose(virNetServerClientPtr client);
 void virNetServerClientImmediateClose(virNetServerClientPtr client);
-bool virNetServerClientWantClose(virNetServerClientPtr client);
+bool virNetServerClientWantCloseLocked(virNetServerClientPtr client);
 
 int virNetServerClientInit(virNetServerClientPtr client);
 
@@ -145,7 +147,9 @@ const char *virNetServerClientRemoteAddrStringURI(virNetServerClientPtr client);
 int virNetServerClientSendMessage(virNetServerClientPtr client,
                                   virNetMessagePtr msg);
 
-bool virNetServerClientNeedAuth(virNetServerClientPtr client);
+bool virNetServerClientIsAuthenticated(virNetServerClientPtr client);
+bool virNetServerClientIsAuthPendingLocked(virNetServerClientPtr client);
+void virNetServerClientSetAuthPendingLocked(virNetServerClientPtr client, bool auth_pending);
 
 int virNetServerClientGetTransport(virNetServerClientPtr client);
 int virNetServerClientGetInfo(virNetServerClientPtr client,
