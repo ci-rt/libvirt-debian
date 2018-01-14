@@ -1,6 +1,6 @@
 /*
- * This file is auto-generated from keymaps.csv on 2017-11-13 15:50
- * Database checksum sha256(f45720dc09778503dea402d7b4c742d746b01d4c74155c4633a69f40d938a363)
+ * This file is auto-generated from keymaps.csv on 2018-01-12 15:53
+ * Database checksum sha256(f8aeff0c3430077a350e3d7ba2b335b381bd929ac4b193413730a402ff3f0097)
  * To re-generate, run:
  *   keymap-gen --lang=stdc --varname=virKeyCodeTable_rfb code-table keymaps.csv rfb
 */
@@ -244,3 +244,4 @@ const unsigned short virKeyCodeTable_rfb[454] = {
   [0xee] = 0xf3, /* KEY_WLAN */
   [0xef] = 0xf4, /* KEY_UWB */
 };
+const unsigned int virKeyCodeTable_rfb_len = sizeof(virKeyCodeTable_rfb)/sizeof(virKeyCodeTable_rfb[0]);

@@ -508,6 +508,117 @@ virHostCPUHasValidSubcoreConfiguration(int threads_per_subcore)
     return ret;
 }
 
+
+/**
+ * virHostCPUParseFrequencyString:
+ * @str: string to be parsed
+ * @prefix: expected prefix
+ * @mhz: output location
+ *
+ * Parse a /proc/cpuinfo line and extract the CPU frequency, if present.
+ *
+ * The expected format of @str looks like
+ *
+ *   cpu MHz : 2100.000
+ *
+ * where @prefix ("cpu MHz" in the example), is architecture-dependent.
+ *
+ * The decimal part of the CPU frequency, as well as all whitespace, is
+ * ignored.
+ *
+ * Returns: 0 when the string has been parsed successfully and the CPU
+ *          frequency has been stored in @mhz, >0 when the string has not
+ *          been parsed but no error has occurred, <0 on failure.
+ */
+static int
+virHostCPUParseFrequencyString(const char *str,
+                               const char *prefix,
+                               unsigned int *mhz)
+{
+    char *p;
+    unsigned int ui;
+
+    /* If the string doesn't start with the expected prefix, then
+     * we're not looking at the right string and we should move on */
+    if (!STRPREFIX(str, prefix))
+        return 1;
+
+    /* Skip the prefix */
+    str += strlen(prefix);
+
+    /* Skip all whitespace */
+    while (c_isspace(*str))
+        str++;
+    if (*str == '\0')
+        goto error;
+
+    /* Skip the colon. If anything but a colon is found, then we're
+     * not looking at the right string and we should move on */
+    if (*str != ':')
+        return 1;
+    str++;
+
+    /* Skip all whitespace */
+    while (c_isspace(*str))
+        str++;
+    if (*str == '\0')
+        goto error;
+
+    /* Parse the frequency. We expect an unsigned value, optionally
+     * followed by a fractional part (which gets discarded) or some
+     * leading whitespace */
+    if (virStrToLong_ui(str, &p, 10, &ui) < 0 ||
+        (*p != '.' && *p != '\0' && !c_isspace(*p))) {
+        goto error;
+    }
+
+    *mhz = ui;
+
+    return 0;
+
+ error:
+    virReportError(VIR_ERR_INTERNAL_ERROR,
+                   _("Missing or invalid CPU frequency in %s"),
+                   CPUINFO_PATH);
+    return -1;
+}
+
+
+static int
+virHostCPUParseFrequency(FILE *cpuinfo,
+                         virArch arch,
+                         unsigned int *mhz)
+{
+    const char *prefix = NULL;
+    char line[1024];
+
+    /* No sensible way to retrieve CPU frequency */
+    if (ARCH_IS_ARM(arch))
+        return 0;
+
+    if (ARCH_IS_X86(arch))
+        prefix = "cpu MHz";
+    else if (ARCH_IS_PPC(arch))
+        prefix = "clock";
+    else if (ARCH_IS_S390(arch))
+        prefix = "cpu MHz dynamic";
+
+    if (!prefix) {
+        VIR_WARN("%s is not supported by the %s parser",
+                 virArchToString(arch),
+                 CPUINFO_PATH);
+        return 1;
+    }
+
+    while (fgets(line, sizeof(line), cpuinfo) != NULL) {
+        if (virHostCPUParseFrequencyString(line, prefix, mhz) < 0)
+            return -1;
+    }
+
+    return 0;
+}
+
+
 int
 virHostCPUGetInfoPopulateLinux(FILE *cpuinfo,
                                virArch arch,
@@ -520,7 +631,6 @@ virHostCPUGetInfoPopulateLinux(FILE *cpuinfo,
 {
     virBitmapPtr present_cpus_map = NULL;
     virBitmapPtr online_cpus_map = NULL;
-    char line[1024];
     DIR *nodedir = NULL;
     struct dirent *nodedirent = NULL;
     int nodecpus, nodecores, nodesockets, nodethreads, offline = 0;
@@ -535,83 +645,9 @@ virHostCPUGetInfoPopulateLinux(FILE *cpuinfo,
     *cpus = *nodes = *sockets = *cores = *threads = 0;
 
     /* Start with parsing CPU clock speed from /proc/cpuinfo */
-    while (fgets(line, sizeof(line), cpuinfo) != NULL) {
-        if (ARCH_IS_X86(arch)) {
-            char *buf = line;
-            if (STRPREFIX(buf, "cpu MHz")) {
-                char *p;
-                unsigned int ui;
-
-                buf += 7;
-                while (*buf && c_isspace(*buf))
-                    buf++;
-
-                if (*buf != ':' || !buf[1]) {
-                    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                   _("parsing cpu MHz from cpuinfo"));
-                    goto cleanup;
-                }
-
-                if (virStrToLong_ui(buf+1, &p, 10, &ui) == 0 &&
-                    /* Accept trailing fractional part.  */
-                    (*p == '\0' || *p == '.' || c_isspace(*p)))
-                    *mhz = ui;
-            }
-        } else if (ARCH_IS_PPC(arch)) {
-            char *buf = line;
-            if (STRPREFIX(buf, "clock")) {
-                char *p;
-                unsigned int ui;
-
-                buf += 5;
-                while (*buf && c_isspace(*buf))
-                    buf++;
-
-                if (*buf != ':' || !buf[1]) {
-                    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                   _("parsing cpu MHz from cpuinfo"));
-                    goto cleanup;
-                }
-
-                if (virStrToLong_ui(buf+1, &p, 10, &ui) == 0 &&
-                    /* Accept trailing fractional part.  */
-                    (*p == '\0' || *p == '.' || c_isspace(*p)))
-                    *mhz = ui;
-                /* No other interesting infos are available in /proc/cpuinfo.
-                 * However, there is a line identifying processor's version,
-                 * identification and machine, but we don't want it to be caught
-                 * and parsed in next iteration, because it is not in expected
-                 * format and thus lead to error. */
-            }
-        } else if (ARCH_IS_ARM(arch)) {
-            char *buf = line;
-            if (STRPREFIX(buf, "BogoMIPS")) {
-                char *p;
-                unsigned int ui;
-
-                buf += 8;
-                while (*buf && c_isspace(*buf))
-                    buf++;
-
-                if (*buf != ':' || !buf[1]) {
-                    virReportError(VIR_ERR_INTERNAL_ERROR,
-                                   "%s", _("parsing cpu MHz from cpuinfo"));
-                    goto cleanup;
-                }
-
-                if (virStrToLong_ui(buf+1, &p, 10, &ui) == 0
-                    /* Accept trailing fractional part.  */
-                    && (*p == '\0' || *p == '.' || c_isspace(*p)))
-                    *mhz = ui;
-            }
-        } else if (ARCH_IS_S390(arch)) {
-            /* s390x has no realistic value for CPU speed,
-             * assign a value of zero to signify this */
-            *mhz = 0;
-        } else {
-            VIR_WARN("Parser for /proc/cpuinfo needs to be adapted for your architecture");
-            break;
-        }
+    if (virHostCPUParseFrequency(cpuinfo, arch, mhz) < 0) {
+        VIR_WARN("Unable to parse CPU frequency information from %s",
+                 CPUINFO_PATH);
     }
 
     /* Get information about what CPUs are present in the host and what
@@ -1206,3 +1242,50 @@ virHostCPUGetKVMMaxVCPUs(void)
     return -1;
 }
 #endif /* HAVE_LINUX_KVM_H */
+
+
+#ifdef __linux__
+
+/*
+ * Returns 0 if the microcode version is unknown or cannot be read for
+ * some reason.
+ */
+unsigned int
+virHostCPUGetMicrocodeVersion(void)
+{
+    char *outbuf = NULL;
+    char *cur;
+    unsigned int version = 0;
+
+    if (virFileReadHeaderQuiet(CPUINFO_PATH, 4096, &outbuf) < 0) {
+        char ebuf[1024];
+        VIR_DEBUG("Failed to read microcode version from %s: %s",
+                  CPUINFO_PATH, virStrerror(errno, ebuf, sizeof(ebuf)));
+        return 0;
+    }
+
+    /* Account for format 'microcode    : XXXX'*/
+    if (!(cur = strstr(outbuf, "microcode")) ||
+        !(cur = strchr(cur, ':')))
+        goto cleanup;
+    cur++;
+
+    /* Linux places the microcode revision in a 32-bit integer, so
+     * ui is fine for us too.  */
+    if (virStrToLong_ui(cur, &cur, 0, &version) < 0)
+        goto cleanup;
+
+ cleanup:
+    VIR_FREE(outbuf);
+    return version;
+}
+
+#else
+
+unsigned int
+virHostCPUGetMicrocodeVersion(void)
+{
+    return 0;
+}
+
+#endif /* __linux__ */

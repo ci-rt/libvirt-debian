@@ -66,7 +66,7 @@
 
 #ifdef WITH_READLINE
 /* For autocompletion */
-void *autoCompleteOpaque;
+vshControl *autoCompleteOpaque;
 #endif
 
 /* NOTE: It would be much nicer to have these two as part of vshControl
@@ -799,8 +799,7 @@ vshCommandFree(vshCmd *cmd)
 
         c = c->next;
 
-        if (tmp->opts)
-            vshCommandOptFree(tmp->opts);
+        vshCommandOptFree(tmp->opts);
         VIR_FREE(tmp);
     }
 }
@@ -816,8 +815,8 @@ vshCommandFree(vshCmd *cmd)
  * to the option if found, 0 with *OPT set to NULL if the name is
  * valid and the option is not required, -1 with *OPT set to NULL if
  * the option is required but not present, and assert if NAME is not
- * valid (which indicates a programming error).  No error messages are
- * issued if a value is returned.
+ * valid (which indicates a programming error) unless cmd->skipChecks
+ * is set. No error messages are issued if a value is returned.
  */
 static int
 vshCommandOpt(const vshCmd *cmd, const char *name, vshCmdOpt **opt,
@@ -829,15 +828,19 @@ vshCommandOpt(const vshCmd *cmd, const char *name, vshCmdOpt **opt,
 
     /* See if option is valid and/or required.  */
     *opt = NULL;
-    while (valid) {
-        assert(valid->name);
-        if (STREQ(name, valid->name))
-            break;
-        valid++;
+
+    if (!cmd->skipChecks) {
+        while (valid && valid->name) {
+            if (STREQ(name, valid->name))
+                break;
+            valid++;
+        }
+
+        assert(valid && (!needData || valid->type != VSH_OT_BOOL));
+
+        if (valid->flags & VSH_OFLAG_REQ)
+            ret = -1;
     }
-    assert(!needData || valid->type != VSH_OT_BOOL);
-    if (valid->flags & VSH_OFLAG_REQ)
-        ret = -1;
 
     /* See if option is present on command line.  */
     while (candidate) {
@@ -1387,27 +1390,33 @@ struct _vshCommandParser {
 };
 
 static bool
-vshCommandParse(vshControl *ctl, vshCommandParser *parser)
+vshCommandParse(vshControl *ctl, vshCommandParser *parser, vshCmd **partial)
 {
     char *tkdata = NULL;
     vshCmd *clast = NULL;
     vshCmdOpt *first = NULL;
+    const vshCmdDef *cmd = NULL;
 
-    if (ctl->cmd) {
+    if (!partial) {
         vshCommandFree(ctl->cmd);
         ctl->cmd = NULL;
     }
 
     while (1) {
         vshCmdOpt *last = NULL;
-        const vshCmdDef *cmd = NULL;
         vshCommandToken tk;
         bool data_only = false;
         uint64_t opts_need_arg = 0;
         uint64_t opts_required = 0;
         uint64_t opts_seen = 0;
 
+        cmd = NULL;
         first = NULL;
+
+        if (partial) {
+            vshCommandFree(*partial);
+            *partial = NULL;
+        }
 
         while (1) {
             const vshCmdOptDef *opt = NULL;
@@ -1425,7 +1434,8 @@ vshCommandParse(vshControl *ctl, vshCommandParser *parser)
             if (cmd == NULL) {
                 /* first token must be command name */
                 if (!(cmd = vshCmddefSearch(tkdata))) {
-                    vshError(ctl, _("unknown command: '%s'"), tkdata);
+                    if (!partial)
+                        vshError(ctl, _("unknown command: '%s'"), tkdata);
                     goto syntaxError;   /* ... or ignore this command only? */
                 }
 
@@ -1437,9 +1447,10 @@ vshCommandParse(vshControl *ctl, vshCommandParser *parser)
                 }
                 if (vshCmddefOptParse(cmd, &opts_need_arg,
                                       &opts_required) < 0) {
-                    vshError(ctl,
-                             _("internal error: bad options in command: '%s'"),
-                             tkdata);
+                    if (!partial)
+                        vshError(ctl,
+                                 _("internal error: bad options in command: '%s'"),
+                                 tkdata);
                     goto syntaxError;
                 }
                 VIR_FREE(tkdata);
@@ -1457,7 +1468,7 @@ vshCommandParse(vshControl *ctl, vshCommandParser *parser)
                 /* Special case 'help' to ignore all spurious options */
                 if (!(opt = vshCmddefGetOption(ctl, cmd, tkdata + 2,
                                                &opts_seen, &opt_index,
-                                               &optstr, true))) {
+                                               &optstr, partial == NULL))) {
                     VIR_FREE(optstr);
                     if (STREQ(cmd->name, "help"))
                         continue;
@@ -1474,11 +1485,24 @@ vshCommandParse(vshControl *ctl, vshCommandParser *parser)
                     if (tk == VSH_TK_ERROR)
                         goto syntaxError;
                     if (tk != VSH_TK_ARG) {
-                        vshError(ctl,
-                                 _("expected syntax: --%s <%s>"),
-                                 opt->name,
-                                 opt->type ==
-                                 VSH_OT_INT ? _("number") : _("string"));
+                        if (partial) {
+                            vshCmdOpt *arg = vshMalloc(ctl, sizeof(vshCmdOpt));
+                            arg->def = opt;
+                            arg->data = tkdata;
+                            tkdata = NULL;
+                            arg->next = NULL;
+                            if (!first)
+                                first = arg;
+                            if (last)
+                                last->next = arg;
+                            last = arg;
+                        } else {
+                            vshError(ctl,
+                                     _("expected syntax: --%s <%s>"),
+                                     opt->name,
+                                     opt->type ==
+                                     VSH_OT_INT ? _("number") : _("string"));
+                        }
                         goto syntaxError;
                     }
                     if (opt->type != VSH_OT_ARGV)
@@ -1486,14 +1510,16 @@ vshCommandParse(vshControl *ctl, vshCommandParser *parser)
                 } else {
                     tkdata = NULL;
                     if (optstr) {
-                        vshError(ctl, _("invalid '=' after option --%s"),
-                                 opt->name);
+                        if (!partial)
+                            vshError(ctl, _("invalid '=' after option --%s"),
+                                     opt->name);
                         VIR_FREE(optstr);
                         goto syntaxError;
                     }
                 }
             } else if (tkdata[0] == '-' && tkdata[1] == '-' &&
                        tkdata[2] == '\0') {
+                VIR_FREE(tkdata);
                 data_only = true;
                 continue;
             } else {
@@ -1502,7 +1528,8 @@ vshCommandParse(vshControl *ctl, vshCommandParser *parser)
                 if (!(opt = vshCmddefGetData(cmd, &opts_need_arg,
                                              &opts_seen)) &&
                      STRNEQ(cmd->name, "help")) {
-                    vshError(ctl, _("unexpected data '%s'"), tkdata);
+                    if (!partial)
+                        vshError(ctl, _("unexpected data '%s'"), tkdata);
                     goto syntaxError;
                 }
             }
@@ -1521,11 +1548,12 @@ vshCommandParse(vshControl *ctl, vshCommandParser *parser)
                     last->next = arg;
                 last = arg;
 
-                vshDebug(ctl, VSH_ERR_INFO, "%s: %s(%s): %s\n",
-                         cmd->name,
-                         opt->name,
-                         opt->type != VSH_OT_BOOL ? _("optdata") : _("bool"),
-                         opt->type != VSH_OT_BOOL ? arg->data : _("(none)"));
+                if (!partial)
+                    vshDebug(ctl, VSH_ERR_INFO, "%s: %s(%s): %s\n",
+                             cmd->name,
+                             opt->name,
+                             opt->type != VSH_OT_BOOL ? _("optdata") : _("bool"),
+                             opt->type != VSH_OT_BOOL ? arg->data : _("(none)"));
             }
         }
 
@@ -1557,17 +1585,24 @@ vshCommandParse(vshControl *ctl, vshCommandParser *parser)
             c->opts = first;
             c->def = cmd;
             c->next = NULL;
+            first = NULL;
 
-            if (vshCommandCheckOpts(ctl, c, opts_required, opts_seen) < 0) {
+            if (!partial &&
+                vshCommandCheckOpts(ctl, c, opts_required, opts_seen) < 0) {
                 VIR_FREE(c);
                 goto syntaxError;
             }
 
-            if (!ctl->cmd)
-                ctl->cmd = c;
-            if (clast)
-                clast->next = c;
-            clast = c;
+            if (partial) {
+                vshCommandFree(*partial);
+                *partial = c;
+            } else {
+                if (!ctl->cmd)
+                    ctl->cmd = c;
+                if (clast)
+                    clast->next = c;
+                clast = c;
+            }
         }
 
         if (tk == VSH_TK_END)
@@ -1577,12 +1612,19 @@ vshCommandParse(vshControl *ctl, vshCommandParser *parser)
     return true;
 
  syntaxError:
-    if (ctl->cmd) {
+    if (partial) {
+        vshCmd *tmp;
+
+        tmp = vshMalloc(ctl, sizeof(*tmp));
+        tmp->opts = first;
+        tmp->def = cmd;
+
+        *partial = tmp;
+    } else {
         vshCommandFree(ctl->cmd);
         ctl->cmd = NULL;
-    }
-    if (first)
         vshCommandOptFree(first);
+    }
     VIR_FREE(tkdata);
     return false;
 }
@@ -1617,7 +1659,7 @@ vshCommandArgvParse(vshControl *ctl, int nargs, char **argv)
     parser.arg_pos = argv;
     parser.arg_end = argv + nargs;
     parser.getNextArg = vshCommandArgvGetArg;
-    return vshCommandParse(ctl, &parser);
+    return vshCommandParse(ctl, &parser, NULL);
 }
 
 /* ----------------------
@@ -1689,7 +1731,7 @@ vshCommandStringGetArg(vshControl *ctl, vshCommandParser *parser, char **res,
 }
 
 bool
-vshCommandStringParse(vshControl *ctl, char *cmdstr)
+vshCommandStringParse(vshControl *ctl, char *cmdstr, vshCmd **partial)
 {
     vshCommandParser parser;
 
@@ -1698,7 +1740,7 @@ vshCommandStringParse(vshControl *ctl, char *cmdstr)
 
     parser.pos = cmdstr;
     parser.getNextArg = vshCommandStringGetArg;
-    return vshCommandParse(ctl, &parser);
+    return vshCommandParse(ctl, &parser, partial);
 }
 
 /**
@@ -2567,25 +2609,25 @@ vshTreePrint(vshControl *ctl, vshTreeLookup lookup, void *opaque,
  * -----------------
  */
 
-/*
- * Generator function for command completion.  STATE lets us
- * know whether to start from scratch; without any state
- * (i.e. STATE == 0), then we start at the top of the list.
+/**
+ * vshReadlineCommandGenerator:
+ * @text: optional command prefix
+ *
+ * Generator function for command completion.
+ *
+ * Returns a string list of commands with @text prefix,
+ * NULL if there's no such command.
  */
-static char *
-vshReadlineCommandGenerator(const char *text, int state)
+static char **
+vshReadlineCommandGenerator(const char *text)
 {
-    static unsigned int grp_list_index, cmd_list_index;
-    static size_t len;
+    size_t grp_list_index = 0, cmd_list_index = 0;
+    size_t len = strlen(text);
     const char *name;
     const vshCmdGrp *grp;
     const vshCmdDef *cmds;
-
-    if (!state) {
-        grp_list_index = 0;
-        cmd_list_index = 0;
-        len = strlen(text);
-    }
+    size_t ret_size = 0;
+    char **ret = NULL;
 
     grp = cmdGroups;
 
@@ -2600,8 +2642,16 @@ vshReadlineCommandGenerator(const char *text, int state)
                 if (cmds[cmd_list_index++].flags & VSH_CMD_FLAG_ALIAS)
                     continue;
 
-                if (STREQLEN(name, text, len))
-                    return vshStrdup(NULL, name);
+                if (STREQLEN(name, text, len)) {
+                    if (VIR_REALLOC_N(ret, ret_size + 2) < 0) {
+                        virStringListFree(ret);
+                        return NULL;
+                    }
+                    ret[ret_size] = vshStrdup(NULL, name);
+                    ret_size++;
+                    /* Terminate the string list properly. */
+                    ret[ret_size] = NULL;
+                }
             }
         } else {
             cmd_list_index = 0;
@@ -2609,23 +2659,17 @@ vshReadlineCommandGenerator(const char *text, int state)
         }
     }
 
-    /* If no names matched, then return NULL. */
-    return NULL;
+    return ret;
 }
 
-static char *
-vshReadlineOptionsGenerator(const char *text, int state, const vshCmdDef *cmd_parsed)
+static char **
+vshReadlineOptionsGenerator(const char *text, const vshCmdDef *cmd)
 {
-    static unsigned int list_index;
-    static size_t len;
-    static const vshCmdDef *cmd;
+    size_t list_index = 0;
+    size_t len = strlen(text);
     const char *name;
-
-    if (!state) {
-        cmd = cmd_parsed;
-        list_index = 0;
-        len = strlen(text);
-    }
+    size_t ret_size = 0;
+    char **ret = NULL;
 
     if (!cmd)
         return NULL;
@@ -2634,7 +2678,7 @@ vshReadlineOptionsGenerator(const char *text, int state, const vshCmdDef *cmd_pa
         return NULL;
 
     while ((name = cmd->opts[list_index].name)) {
-        char *res;
+        size_t name_len;
 
         list_index++;
 
@@ -2647,227 +2691,238 @@ vshReadlineOptionsGenerator(const char *text, int state, const vshCmdDef *cmd_pa
         } else if (STRNEQLEN(text, "--", len)) {
             return NULL;
         }
-        res = vshMalloc(NULL, strlen(name) + 3);
-        snprintf(res, strlen(name) + 3,  "--%s", name);
-        return res;
+
+        if (VIR_REALLOC_N(ret, ret_size + 2) < 0) {
+            virStringListFree(ret);
+            return NULL;
+        }
+
+        name_len = strlen(name);
+        ret[ret_size] = vshMalloc(NULL, name_len + 3);
+        snprintf(ret[ret_size], name_len + 3,  "--%s", name);
+        ret_size++;
+        /* Terminate the string list properly. */
+        ret[ret_size] = NULL;
     }
 
-    /* If no names matched, then return NULL. */
+    return ret;
+}
+
+
+static const vshCmdOptDef *
+vshReadlineCommandFindOpt(const vshCmd *partial,
+                          const char *text)
+{
+    const vshCmd *tmp = partial;
+
+    while (tmp && tmp->next) {
+        if (tmp->def == tmp->next->def &&
+            !tmp->next->opts)
+            break;
+        tmp = tmp->next;
+    }
+
+    if (tmp && tmp->opts) {
+        const vshCmdOpt *opt = tmp->opts;
+
+        while (opt) {
+            if (STREQ_NULLABLE(opt->data, text) ||
+                STREQ_NULLABLE(opt->data, " "))
+                return opt->def;
+
+            opt = opt->next;
+        }
+    }
+
     return NULL;
 }
+
+
+static int
+vshCompleterFilter(char ***list,
+                   const char *text)
+{
+    char **newList = NULL;
+    size_t newList_len = 0;
+    size_t list_len;
+    size_t i;
+
+    if (!list || !*list)
+        return -1;
+
+    list_len = virStringListLength((const char **) *list);
+
+    if (VIR_ALLOC_N(newList, list_len + 1) < 0)
+        return -1;
+
+    for (i = 0; i < list_len; i++) {
+        if (!STRPREFIX((*list)[i], text)) {
+            VIR_FREE((*list)[i]);
+            continue;
+        }
+
+        VIR_STEAL_PTR(newList[newList_len], (*list)[i]);
+        newList_len++;
+    }
+
+    ignore_value(VIR_REALLOC_N_QUIET(newList, newList_len + 1));
+    VIR_FREE(*list);
+    *list = newList;
+    return 0;
+}
+
+
+static int
+vshReadlineOptionsPrune(char ***list,
+                        vshCmd *last)
+{
+    char **newList = NULL;
+    size_t newList_len = 0;
+    size_t list_len;
+    size_t i;
+
+    if (!list || !*list)
+        return -1;
+
+    if (!last->opts)
+        return 0;
+
+    list_len = virStringListLength((const char **) *list);
+
+    if (VIR_ALLOC_N(newList, list_len + 1) < 0)
+        return -1;
+
+    for (i = 0; i < list_len; i++) {
+        const char *list_opt = STRSKIP((*list)[i], "--");
+        bool exist = false;
+        vshCmdOpt *opt =  last->opts;
+
+        /* Should never happen (TM) */
+        if (!list_opt)
+            return -1;
+
+        while (opt) {
+            if (STREQ(opt->def->name, list_opt)) {
+                exist = true;
+                break;
+            }
+
+            opt = opt->next;
+        }
+
+        if (exist) {
+            VIR_FREE((*list)[i]);
+            continue;
+        }
+
+        VIR_STEAL_PTR(newList[newList_len], (*list)[i]);
+        newList_len++;
+    }
+
+    ignore_value(VIR_REALLOC_N_QUIET(newList, newList_len + 1));
+    VIR_FREE(*list);
+    *list = newList;
+    return 0;
+}
+
 
 static char *
 vshReadlineParse(const char *text, int state)
 {
-    static vshCommandParser parser, sanitizer;
-    vshCommandToken tk;
-    static const vshCmdDef *cmd;
+    static vshCmd *partial;
+    static char **list;
+    static size_t list_index;
+    const vshCmdDef *cmd = NULL;
     const vshCmdOptDef *opt = NULL;
-    char *tkdata, *optstr, *const_tkdata, *completed_name;
-    char *res = NULL;
-    static char *ctext, *sanitized_text;
-    static char **completed_list;
-    static unsigned int completed_list_index;
-    static uint64_t const_opts_need_arg, const_opts_required, const_opts_seen;
-    uint64_t opts_seen;
-    size_t opt_index;
-    static bool cmd_exists, opts_filled, opt_exists;
-    static bool non_bool_opt_exists, data_complete;
+    char *ret = NULL;
 
     if (!state) {
-        parser.pos = rl_line_buffer;
-        parser.getNextArg = vshCommandStringGetArg;
+        char *buf = vshStrdup(NULL, rl_line_buffer);
 
-        ctext = vshStrdup(NULL, text);
-        sanitizer.pos = ctext;
-        sanitizer.getNextArg = vshCommandStringGetArg;
+        vshCommandFree(partial);
+        partial = NULL;
+        virStringListFree(list);
+        list = NULL;
+        list_index = 0;
 
-        const_tkdata = NULL;
-        tkdata = NULL;
-        sanitized_text = NULL;
-        optstr = NULL;
+        *(buf + rl_point) = '\0';
 
-        completed_list = NULL;
-        completed_list_index = 0;
+        vshCommandStringParse(NULL, buf, &partial);
 
-        /* Sanitize/de-quote the autocomplete text */
-        tk = sanitizer.getNextArg(NULL, &sanitizer, &sanitized_text, false);
+        VIR_FREE(buf);
 
-        /* No autocomplete if sanitized text is a token error or token end */
-        if (tk == VSH_TK_ERROR)
-            goto error;
-
-        tk = parser.getNextArg(NULL, &parser, &const_tkdata, false);
-
-        if (tk == VSH_TK_ERROR)
-            goto error;
-
-        /* Free-ing purposes */
-        tkdata = const_tkdata;
-        /* Skip leading space */
-        virSkipSpaces((const char**)&tkdata);
-
-        /* Handle ';'s */
-        while (tk == VSH_TK_SUBCMD_END) {
-            tk = parser.getNextArg(NULL, &parser, &const_tkdata, false);
-            tkdata = const_tkdata;
+        if (partial) {
+            cmd = partial->def;
+            partial->skipChecks = true;
         }
 
-        /* Skip trailing space after ;*/
-        virSkipSpaces((const char**)&tkdata);
-
-        cmd_exists = false;
-        opts_filled = false;
-        non_bool_opt_exists = false;
-        data_complete = false;
-
-        const_opts_need_arg = 0;
-        const_opts_required = 0;
-        const_opts_seen = 0;
-
-        opt_index = 0;
-
-        cmd = NULL;
-        opt = NULL;
-
-        /* Parse till text to be auto-completed is reached */
-        while (STRNEQ(tkdata, sanitized_text)) {
-            if (!cmd) {
-                if (!(cmd = vshCmddefSearch(tkdata)))
-                    goto error;
-                if (cmd->flags & VSH_CMD_FLAG_ALIAS)
-                    cmd = vshCmddefSearch(cmd->alias);
-
-                cmd_exists = true;
-                if (vshCmddefOptParse(cmd, &const_opts_need_arg,
-                                      &const_opts_required) < 0)
-                    goto error;
-                opts_seen = const_opts_seen;
-                opts_filled = true;
-            } else if (tkdata[0] == '-' && tkdata[1] == '-' &&
-                       c_isalnum(tkdata[2])) {
-                /* Command retrieved successfully, move to options */
-                optstr = strchr(tkdata + 2, '=');
-                opt_index = 0;
-
-                if (optstr) {
-                    *optstr = '\0';
-                    optstr = vshStrdup(NULL, optstr + 1);
-                }
-
-                if (!(opt = vshCmddefGetOption(NULL, cmd, tkdata + 2,
-                                               &opts_seen, &opt_index,
-                                               &optstr, false))) {
-                    /* Parsing failed wrt autocomplete */
-                    VIR_FREE(optstr);
-                    goto error;
-                }
-
-                opts_seen = const_opts_seen;
-                opt_exists = true;
-                VIR_FREE(const_tkdata);
-                if (opt->type != VSH_OT_BOOL) {
-                    non_bool_opt_exists = true;
-                    /* Opt exists and check for option data */
-                    if (optstr) {
-                        const_tkdata = optstr;
-                        tkdata = const_tkdata;
-                    } else {
-                        VIR_FREE(const_tkdata);
-                        tk = parser.getNextArg(NULL, &parser, &const_tkdata,
-                                               false);
-
-                        if (tk == VSH_TK_ERROR)
-                            goto error;
-
-                        tkdata = const_tkdata;
-                        virSkipSpaces((const char **)&tkdata);
-                    }
-                    if (STREQ(tkdata, sanitized_text)) {
-                        /* auto-complete non-bool option arg */
-                        data_complete = true;
-                        break;
-                    }
-                    non_bool_opt_exists = false;
-                } else {
-                    tkdata = NULL;
-                    /* opt type is BOOL */
-                    if (optstr) {
-                        VIR_FREE(optstr);
-                        goto error;
-                    }
-                }
-            } else if (!opt_exists) {
-                /* No -- option provided and some other token given
-                 * Try to find the default option.
-                 */
-                if (!(opt = vshCmddefGetData(cmd, &const_opts_need_arg,
-                                             &const_opts_seen))
-                    || opt->type == VSH_OT_BOOL)
-                    goto error;
-                opt_exists = true;
-                opts_seen = const_opts_seen;
-            } else {
-                /* In every other case, return NULL */
-                goto error;
-            }
-
-            VIR_FREE(const_tkdata);
-            tk = parser.getNextArg(NULL, &parser, &const_tkdata, false);
-
-            if (tk == VSH_TK_ERROR)
-                goto error;
-
-            while (tk == VSH_TK_SUBCMD_END) {
-                cmd = NULL;
-                cmd_exists = false;
-                opts_filled = false;
-                opt = NULL;
-                non_bool_opt_exists = false;
-                tk = parser.getNextArg(NULL, &parser, &const_tkdata, false);
-            }
-
-            tkdata = const_tkdata;
-
-            virSkipSpaces((const char**)&tkdata);
+        if (cmd && STREQ(cmd->name, text)) {
+            /* Corner case - some commands share prefix (e.g.
+             * dump and dumpxml). If user typed 'dump<TAB><TAB>',
+             * then @text = "dump" and we want to offer command
+             * completion. If they typed 'dump <TAB><TAB>' then
+             * @text = "" (the space after the command) and we
+             * want to offer options completion for dump command.
+             */
+            cmd = NULL;
         }
-        VIR_FREE(const_tkdata);
+
+        opt = vshReadlineCommandFindOpt(partial, text);
     }
 
-    if (!cmd_exists) {
-        res = vshReadlineCommandGenerator(sanitized_text, state);
-    } else if (opts_filled && !non_bool_opt_exists) {
-        res = vshReadlineOptionsGenerator(sanitized_text, state, cmd);
-    } else if (non_bool_opt_exists && data_complete && opt && opt->completer) {
-        if (!completed_list)
-            completed_list = opt->completer(autoCompleteOpaque,
-                                            opt->completer_flags);
-        if (completed_list) {
-            while ((completed_name = completed_list[completed_list_index])) {
-                completed_list_index++;
-                if (!STRPREFIX(completed_name, sanitized_text))
-                    continue;
-                res = vshStrdup(NULL, completed_name);
-                return res;
+    if (!list) {
+        if (!cmd) {
+            list = vshReadlineCommandGenerator(text);
+        } else {
+            if (!opt || (opt->type != VSH_OT_DATA && opt->type != VSH_OT_STRING)) {
+                list = vshReadlineOptionsGenerator(text, cmd);
+
+                if (vshReadlineOptionsPrune(&list, partial) < 0)
+                    goto cleanup;
             }
-            res = NULL;
-            virStringListFree(completed_list);
-            completed_list_index = 0;
+
+            if (opt && opt->completer) {
+                char **completer_list = opt->completer(autoCompleteOpaque,
+                                                       partial,
+                                                       opt->completer_flags);
+
+                /* For string list returned by completer we have to do
+                 * filtering based on @text because completer returns all
+                 * possible strings. */
+
+                if (completer_list &&
+                    (vshCompleterFilter(&completer_list, text) < 0 ||
+                     virStringListMerge(&list, &completer_list) < 0)) {
+                    virStringListFree(completer_list);
+                    goto cleanup;
+                }
+            }
         }
     }
 
-    if (!res) {
-        VIR_FREE(sanitized_text);
-        VIR_FREE(ctext);
+    if (list) {
+        ret = vshStrdup(NULL, list[list_index]);
+        list_index++;
     }
 
-    return res;
+    if (ret &&
+        !rl_completion_quote_character) {
+        virBuffer buf = VIR_BUFFER_INITIALIZER;
+        virBufferEscapeShell(&buf, ret);
+        VIR_FREE(ret);
+        ret = virBufferContentAndReset(&buf);
+    }
 
- error:
-    VIR_FREE(const_tkdata);
-    VIR_FREE(sanitized_text);
-    VIR_FREE(ctext);
-    return NULL;
+ cleanup:
+    if (!ret) {
+        vshCommandFree(partial);
+        partial = NULL;
+        virStringListFree(list);
+        list = NULL;
+        list_index = 0;
+    }
+
+    return ret;
 
 }
 
@@ -2882,6 +2937,16 @@ vshReadlineCompletion(const char *text,
     return matches;
 }
 
+
+static int
+vshReadlineCharIsQuoted(char *line, int idx)
+{
+    return idx > 0 &&
+           line[idx - 1] == '\\' &&
+           !vshReadlineCharIsQuoted(line, idx - 1);
+}
+
+
 # define HISTSIZE_MAX 500000
 
 static int
@@ -2893,6 +2958,7 @@ vshReadlineInit(vshControl *ctl)
     char *histsize_env = NULL;
     const char *histsize_str = NULL;
     const char *break_characters = " \t\n\\`@$><=;|&{(";
+    const char *quote_characters = "\"'";
 
     /* Opaque data for autocomplete callbacks. */
     autoCompleteOpaque = ctl;
@@ -2914,6 +2980,14 @@ vshReadlineInit(vshControl *ctl)
     rl_basic_word_break_characters = break_characters;
 # else
     rl_basic_word_break_characters = (char *) break_characters;
+# endif
+
+# if defined(RL_READLINE_VERSION) && RL_READLINE_VERSION > 0x0402
+    rl_completer_quote_characters = quote_characters;
+    rl_char_is_quoted_p = vshReadlineCharIsQuoted;
+# else
+    rl_completer_quote_characters = (char *) quote_characters;
+    rl_char_is_quoted_p = (Function *) vshReadlineCharIsQuoted;
 # endif
 
     if (virAsprintf(&histsize_env, "%s_HISTSIZE", ctl->env_prefix) < 0)
@@ -3400,4 +3474,84 @@ cmdSelfTest(vshControl *ctl ATTRIBUTE_UNUSED,
     }
 
     return true;
+}
+
+/* ----------------------
+ * Autocompletion command
+ * ---------------------- */
+
+const vshCmdOptDef opts_complete[] = {
+    {.name = "string",
+     .type = VSH_OT_ARGV,
+     .flags = VSH_OFLAG_EMPTY_OK,
+     .help = N_("partial string to autocomplete")
+    },
+    {.name = NULL}
+};
+
+const vshCmdInfo info_complete[] = {
+    {.name = "help",
+     .data = N_("internal command for autocompletion")
+    },
+    {.name = "desc",
+     .data = N_("internal use only")
+    },
+    {.name = NULL}
+};
+
+bool
+cmdComplete(vshControl *ctl, const vshCmd *cmd)
+{
+    bool ret = false;
+#ifdef WITH_READLINE
+    const vshClientHooks *hooks = ctl->hooks;
+    int stdin_fileno = STDIN_FILENO;
+    const char *arg = "";
+    const vshCmdOpt *opt = NULL;
+    char **matches = NULL, **iter;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+
+    if (vshCommandOptStringQuiet(ctl, cmd, "string", &arg) <= 0)
+        goto cleanup;
+
+    /* This command is flagged VSH_CMD_FLAG_NOCONNECT because we
+     * need to prevent auth hooks reading any input. Therefore, we
+     * have to close stdin and then connect ourselves. */
+    VIR_FORCE_CLOSE(stdin_fileno);
+
+    if (!(hooks && hooks->connHandler && hooks->connHandler(ctl)))
+        goto cleanup;
+
+    while ((opt = vshCommandOptArgv(ctl, cmd, opt))) {
+        if (virBufferUse(&buf) != 0)
+            virBufferAddChar(&buf, ' ');
+        virBufferAddStr(&buf, opt->data);
+        arg = opt->data;
+    }
+
+    if (virBufferCheckError(&buf) < 0)
+        goto cleanup;
+
+    vshReadlineInit(ctl);
+
+    if (!(rl_line_buffer = virBufferContentAndReset(&buf)) &&
+        VIR_STRDUP(rl_line_buffer, "") < 0)
+        goto cleanup;
+
+    /* rl_point is current cursor position in rl_line_buffer.
+     * In our case it's at the end of the whole line. */
+    rl_point = strlen(rl_line_buffer);
+
+    if (!(matches = vshReadlineCompletion(arg, 0, 0)))
+        goto cleanup;
+
+    for (iter = matches; *iter; iter++)
+        printf("%s\n", *iter);
+
+    ret = true;
+ cleanup:
+    virBufferFreeAndReset(&buf);
+    virStringListFree(matches);
+#endif /* WITH_READLINE */
+    return ret;
 }

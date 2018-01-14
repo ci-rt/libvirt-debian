@@ -4323,29 +4323,13 @@ virDomainHostdevAssignAddress(virDomainXMLOptionPtr xmlopt,
                               virDomainHostdevDefPtr hostdev)
 {
     int next_unit = 0;
-    unsigned controller = 0;
+    int controller = 0;
     unsigned int max_unit;
-    size_t i;
-    int ret;
 
     if (xmlopt->config.features & VIR_DOMAIN_DEF_FEATURE_WIDE_SCSI)
         max_unit = SCSI_WIDE_BUS_MAX_CONT_UNIT;
     else
         max_unit = SCSI_NARROW_BUS_MAX_CONT_UNIT;
-
-    for (i = 0; i < def->ncontrollers; i++) {
-        if (def->controllers[i]->type != VIR_DOMAIN_CONTROLLER_TYPE_SCSI)
-            continue;
-
-        controller++;
-        ret = virDomainControllerSCSINextUnit(def, max_unit,
-                                              def->controllers[i]->idx);
-        if (ret >= 0) {
-            next_unit = ret;
-            controller = def->controllers[i]->idx;
-            break;
-        }
-    }
 
     /* NB: Do not attempt calling virDomainDefMaybeAddController to
      * automagically add a "new" controller. Doing so will result in
@@ -4353,7 +4337,18 @@ virDomainHostdevAssignAddress(virDomainXMLOptionPtr xmlopt,
      * in the domain def list and thus not hotplugging the controller as
      * well as the hostdev in the event that there are either no SCSI
      * controllers defined or there was no space on an existing one.
+     *
+     * Because we cannot add a controller, then we should not walk the
+     * defined controllers list in order to find empty space. Doing
+     * so fails to return the valid next unit number for the 2nd
+     * hostdev being added to the as yet to be created controller.
      */
+    do {
+        next_unit = virDomainControllerSCSINextUnit(def, max_unit, controller);
+        if (next_unit < 0)
+            controller++;
+    } while (next_unit < 0);
+
 
     hostdev->info->type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE;
     hostdev->info->addr.drive.controller = controller;
@@ -8553,11 +8548,43 @@ virDomainDiskSourceEncryptionParse(xmlNodePtr node,
 }
 
 
+static int
+virDomainDiskSourcePrivateDataParse(xmlXPathContextPtr ctxt,
+                                    virStorageSourcePtr src,
+                                    unsigned int flags,
+                                    virDomainXMLOptionPtr xmlopt)
+{
+    xmlNodePtr saveNode = ctxt->node;
+    xmlNodePtr node;
+    int ret = -1;
+
+    if (!(flags & VIR_DOMAIN_DEF_PARSE_STATUS) ||
+        !xmlopt || !xmlopt->privateData.storageParse)
+        return 0;
+
+    if (!(node = virXPathNode("./privateData", ctxt)))
+        return 0;
+
+    ctxt->node = node;
+
+    if (xmlopt->privateData.storageParse(ctxt, src) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    ctxt->node = saveNode;
+
+    return ret;
+}
+
+
 int
 virDomainDiskSourceParse(xmlNodePtr node,
                          xmlXPathContextPtr ctxt,
                          virStorageSourcePtr src,
-                         unsigned int flags)
+                         unsigned int flags,
+                         virDomainXMLOptionPtr xmlopt)
 {
     int ret = -1;
     xmlNodePtr saveNode = ctxt->node;
@@ -8596,6 +8623,9 @@ virDomainDiskSourceParse(xmlNodePtr node,
     if (virDomainDiskSourceEncryptionParse(node, &src->encryption) < 0)
         goto cleanup;
 
+    if (virDomainDiskSourcePrivateDataParse(ctxt, src, flags, xmlopt) < 0)
+        goto cleanup;
+
     /* People sometimes pass a bogus '' source path when they mean to omit the
      * source element completely (e.g. CDROM without media). This is just a
      * little compatibility check to help those broken apps */
@@ -8613,7 +8643,8 @@ virDomainDiskSourceParse(xmlNodePtr node,
 static int
 virDomainDiskBackingStoreParse(xmlXPathContextPtr ctxt,
                                virStorageSourcePtr src,
-                               unsigned int flags)
+                               unsigned int flags,
+                               virDomainXMLOptionPtr xmlopt)
 {
     virStorageSourcePtr backingStore = NULL;
     xmlNodePtr save_ctxt = ctxt->node;
@@ -8671,8 +8702,8 @@ virDomainDiskBackingStoreParse(xmlXPathContextPtr ctxt,
         goto cleanup;
     }
 
-    if (virDomainDiskSourceParse(source, ctxt, backingStore, flags) < 0 ||
-        virDomainDiskBackingStoreParse(ctxt, backingStore, flags) < 0)
+    if (virDomainDiskSourceParse(source, ctxt, backingStore, flags, xmlopt) < 0 ||
+        virDomainDiskBackingStoreParse(ctxt, backingStore, flags, xmlopt) < 0)
         goto cleanup;
 
     VIR_STEAL_PTR(src->backingStore, backingStore);
@@ -8774,7 +8805,8 @@ static int
 virDomainDiskDefMirrorParse(virDomainDiskDefPtr def,
                             xmlNodePtr cur,
                             xmlXPathContextPtr ctxt,
-                            unsigned int flags)
+                            unsigned int flags,
+                            virDomainXMLOptionPtr xmlopt)
 {
     xmlNodePtr mirrorNode;
     char *mirrorFormat = NULL;
@@ -8812,7 +8844,8 @@ virDomainDiskDefMirrorParse(virDomainDiskDefPtr def,
             goto cleanup;
         }
 
-        if (virDomainDiskSourceParse(mirrorNode, ctxt, def->mirror, flags) < 0)
+        if (virDomainDiskSourceParse(mirrorNode, ctxt, def->mirror,
+                                     flags, xmlopt) < 0)
             goto cleanup;
     } else {
         /* For back-compat reasons, we handle a file name
@@ -9238,7 +9271,7 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
         if (!source && virXMLNodeNameEqual(cur, "source")) {
             sourceNode = cur;
 
-            if (virDomainDiskSourceParse(cur, ctxt, def->src, flags) < 0)
+            if (virDomainDiskSourceParse(cur, ctxt, def->src, flags, xmlopt) < 0)
                 goto error;
 
             /* If we've already found an <auth> as a child of <disk> and
@@ -9319,7 +9352,7 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
         } else if (!def->mirror &&
                    virXMLNodeNameEqual(cur, "mirror") &&
                    !(flags & VIR_DOMAIN_DEF_PARSE_INACTIVE)) {
-            if (virDomainDiskDefMirrorParse(def, cur, ctxt, flags) < 0)
+            if (virDomainDiskDefMirrorParse(def, cur, ctxt, flags, xmlopt) < 0)
                 goto error;
         } else if (!authdef &&
                    virXMLNodeNameEqual(cur, "auth")) {
@@ -9590,7 +9623,7 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
     product = NULL;
 
     if (!(flags & VIR_DOMAIN_DEF_PARSE_DISK_SOURCE)) {
-        if (virDomainDiskBackingStoreParse(ctxt, def->src, flags) < 0)
+        if (virDomainDiskBackingStoreParse(ctxt, def->src, flags, xmlopt) < 0)
             goto error;
     }
 
@@ -17689,12 +17722,23 @@ virDomainDefMaybeAddHostdevSCSIcontroller(virDomainDefPtr def)
     size_t i;
     int maxController = -1;
     virDomainHostdevDefPtr hostdev;
+    int newModel = -1;
 
     for (i = 0; i < def->nhostdevs; i++) {
         hostdev = def->hostdevs[i];
         if (virHostdevIsSCSIDevice(hostdev) &&
             (int)hostdev->info->addr.drive.controller > maxController) {
+            int model = -1;
+
             maxController = hostdev->info->addr.drive.controller;
+            /* We may be creating a new controller because this one is full.
+             * So let's grab the model from it and update the model we're
+             * going to add as long as this one isn't undefined. The premise
+             * being keeping the same controller model for all SCSI hostdevs. */
+            model = virDomainDeviceFindControllerModel(def, hostdev->info,
+                                                       VIR_DOMAIN_CONTROLLER_TYPE_SCSI);
+            if (model != -1)
+                newModel = model;
         }
     }
 
@@ -17702,7 +17746,8 @@ virDomainDefMaybeAddHostdevSCSIcontroller(virDomainDefPtr def)
         return 0;
 
     for (i = 0; i <= maxController; i++) {
-        if (virDomainDefMaybeAddController(def, VIR_DOMAIN_CONTROLLER_TYPE_SCSI, i, -1) < 0)
+        if (virDomainDefMaybeAddController(def, VIR_DOMAIN_CONTROLLER_TYPE_SCSI,
+                                           i, newModel) < 0)
             return -1;
     }
 
@@ -22357,11 +22402,42 @@ virDomainDiskSourceFormatNetwork(virBufferPtr attrBuf,
 
 
 static int
+virDomainDiskSourceFormatPrivateData(virBufferPtr buf,
+                                     virStorageSourcePtr src,
+                                     unsigned int flags,
+                                     virDomainXMLOptionPtr xmlopt)
+{
+    virBuffer childBuf = VIR_BUFFER_INITIALIZER;
+    int ret = -1;
+
+    if (!(flags & VIR_DOMAIN_DEF_FORMAT_STATUS) ||
+        !xmlopt || !xmlopt->privateData.storageFormat)
+        return 0;
+
+    virBufferSetChildIndent(&childBuf, buf);
+
+    if (xmlopt->privateData.storageFormat(src, &childBuf) < 0)
+        goto cleanup;
+
+    if (virXMLFormatElement(buf, "privateData", NULL, &childBuf) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    virBufferFreeAndReset(&childBuf);
+
+    return ret;
+}
+
+
+static int
 virDomainDiskSourceFormatInternal(virBufferPtr buf,
                                   virStorageSourcePtr src,
                                   int policy,
                                   unsigned int flags,
-                                  bool skipSeclabels)
+                                  bool skipSeclabels,
+                                  virDomainXMLOptionPtr xmlopt)
 {
     const char *startupPolicy = NULL;
     virBuffer attrBuf = VIR_BUFFER_INITIALIZER;
@@ -22443,6 +22519,9 @@ virDomainDiskSourceFormatInternal(virBufferPtr buf,
             virStorageEncryptionFormat(&childBuf, src->encryption) < 0)
             return -1;
 
+        if (virDomainDiskSourceFormatPrivateData(&childBuf, src, flags, xmlopt) < 0)
+            return -1;
+
         if (virXMLFormatElement(buf, "source", &attrBuf, &childBuf) < 0)
             goto error;
     }
@@ -22460,15 +22539,18 @@ int
 virDomainDiskSourceFormat(virBufferPtr buf,
                           virStorageSourcePtr src,
                           int policy,
-                          unsigned int flags)
+                          unsigned int flags,
+                          virDomainXMLOptionPtr xmlopt)
 {
-    return virDomainDiskSourceFormatInternal(buf, src, policy, flags, false);
+    return virDomainDiskSourceFormatInternal(buf, src, policy, flags, false, xmlopt);
 }
 
 
 static int
 virDomainDiskBackingStoreFormat(virBufferPtr buf,
-                                virStorageSourcePtr backingStore)
+                                virStorageSourcePtr backingStore,
+                                virDomainXMLOptionPtr xmlopt,
+                                unsigned int flags)
 {
     const char *format;
 
@@ -22497,9 +22579,9 @@ virDomainDiskBackingStoreFormat(virBufferPtr buf,
 
     virBufferAsprintf(buf, "<format type='%s'/>\n", format);
     /* We currently don't output seclabels for backing chain element */
-    if (virDomainDiskSourceFormatInternal(buf, backingStore, 0, 0, true) < 0 ||
-        virDomainDiskBackingStoreFormat(buf,
-                                        backingStore->backingStore) < 0)
+    if (virDomainDiskSourceFormatInternal(buf, backingStore, 0, flags, true, xmlopt) < 0 ||
+        virDomainDiskBackingStoreFormat(buf, backingStore->backingStore,
+                                        xmlopt, flags) < 0)
         return -1;
 
     virBufferAdjustIndent(buf, -2);
@@ -22517,7 +22599,8 @@ virDomainDiskBackingStoreFormat(virBufferPtr buf,
 static int
 virDomainDiskDefFormat(virBufferPtr buf,
                        virDomainDiskDefPtr def,
-                       unsigned int flags)
+                       unsigned int flags,
+                       virDomainXMLOptionPtr xmlopt)
 {
     const char *type = virStorageTypeToString(def->src->type);
     const char *device = virDomainDiskDeviceTypeToString(def->device);
@@ -22630,13 +22713,14 @@ virDomainDiskDefFormat(virBufferPtr buf,
     }
 
     if (virDomainDiskSourceFormat(buf, def->src, def->startupPolicy,
-                                  flags) < 0)
+                                  flags, xmlopt) < 0)
         return -1;
 
     /* Don't format backingStore to inactive XMLs until the code for
      * persistent storage of backing chains is ready. */
     if (!(flags & VIR_DOMAIN_DEF_FORMAT_INACTIVE) &&
-        virDomainDiskBackingStoreFormat(buf, def->src->backingStore) < 0)
+        virDomainDiskBackingStoreFormat(buf, def->src->backingStore,
+                                        xmlopt, flags) < 0)
         return -1;
 
     virBufferEscapeString(buf, "<backenddomain name='%s'/>\n", def->domain_name);
@@ -22673,7 +22757,7 @@ virDomainDiskDefFormat(virBufferPtr buf,
         virBufferAddLit(buf, ">\n");
         virBufferAdjustIndent(buf, 2);
         virBufferEscapeString(buf, "<format type='%s'/>\n", formatStr);
-        if (virDomainDiskSourceFormat(buf, def->mirror, 0, 0) < 0)
+        if (virDomainDiskSourceFormat(buf, def->mirror, 0, 0, xmlopt) < 0)
             return -1;
         virBufferAdjustIndent(buf, -2);
         virBufferAddLit(buf, "</mirror>\n");
@@ -25904,7 +25988,8 @@ int
 virDomainDefFormatInternal(virDomainDefPtr def,
                            virCapsPtr caps,
                            unsigned int flags,
-                           virBufferPtr buf)
+                           virBufferPtr buf,
+                           virDomainXMLOptionPtr xmlopt)
 {
     unsigned char *uuid;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
@@ -25959,10 +26044,10 @@ virDomainDefFormatInternal(virDomainDefPtr def,
          * but no leading indentation before the starting element.
          * Thankfully, libxml maps what looks like globals into
          * thread-local uses, so we are thread-safe.  */
-        xmlIndentTreeOutput = 1;
-        xmlbuf = xmlBufferCreate();
-        if (xmlNodeDump(xmlbuf, def->metadata->doc, def->metadata,
-                        virBufferGetIndent(buf, false) / 2, 1) < 0) {
+            xmlIndentTreeOutput = 1;
+            xmlbuf = xmlBufferCreate();
+            if (xmlNodeDump(xmlbuf, def->metadata->doc, def->metadata,
+                            virBufferGetIndent(buf, false) / 2, 1) < 0) {
             xmlBufferFree(xmlbuf);
             xmlIndentTreeOutput = oldIndentTreeOutput;
             goto error;
@@ -26535,7 +26620,7 @@ virDomainDefFormatInternal(virDomainDefPtr def,
                           def->emulator);
 
     for (n = 0; n < def->ndisks; n++)
-        if (virDomainDiskDefFormat(buf, def->disks[n], flags) < 0)
+        if (virDomainDiskDefFormat(buf, def->disks[n], flags, xmlopt) < 0)
             goto error;
 
     for (n = 0; n < def->ncontrollers; n++)
@@ -26722,7 +26807,7 @@ virDomainDefFormat(virDomainDefPtr def, virCapsPtr caps, unsigned int flags)
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
     virCheckFlags(VIR_DOMAIN_DEF_FORMAT_COMMON_FLAGS, NULL);
-    if (virDomainDefFormatInternal(def, caps, flags, &buf) < 0)
+    if (virDomainDefFormatInternal(def, caps, flags, &buf, NULL) < 0)
         return NULL;
 
     return virBufferContentAndReset(&buf);
@@ -26757,7 +26842,7 @@ virDomainObjFormat(virDomainXMLOptionPtr xmlopt,
         xmlopt->privateData.format(&buf, obj) < 0)
         goto error;
 
-    if (virDomainDefFormatInternal(obj->def, caps, flags, &buf) < 0)
+    if (virDomainDefFormatInternal(obj->def, caps, flags, &buf, xmlopt) < 0)
         goto error;
 
     virBufferAdjustIndent(&buf, -2);
@@ -27711,7 +27796,7 @@ virDomainDeviceDefCopy(virDomainDeviceDefPtr src,
 
     switch ((virDomainDeviceType) src->type) {
     case VIR_DOMAIN_DEVICE_DISK:
-        rc = virDomainDiskDefFormat(&buf, src->data.disk, flags);
+        rc = virDomainDiskDefFormat(&buf, src->data.disk, flags, xmlopt);
         break;
     case VIR_DOMAIN_DEVICE_LEASE:
         rc = virDomainLeaseDefFormat(&buf, src->data.lease);

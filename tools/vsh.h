@@ -123,7 +123,9 @@ typedef struct _vshCmdOpt vshCmdOpt;
 typedef struct _vshCmdOptDef vshCmdOptDef;
 typedef struct _vshControl vshControl;
 
-typedef char **(*vshCompleter)(void *opaque, unsigned int flags);
+typedef char **(*vshCompleter)(vshControl *ctl,
+                               const vshCmd *cmd,
+                               unsigned int flags);
 
 /*
  * vshCmdInfo -- name/value pair for information about command
@@ -188,7 +190,8 @@ struct _vshCmdDef {
 struct _vshCmd {
     const vshCmdDef *def;       /* command definition */
     vshCmdOpt *opts;            /* list of command arguments */
-    vshCmd *next;      /* next command */
+    vshCmd *next;               /* next command */
+    bool skipChecks;            /* skip validity checks when retrieving opts */
 };
 
 /*
@@ -299,7 +302,7 @@ int vshBlockJobOptionBandwidth(vshControl *ctl,
                                unsigned long *bandwidth);
 bool vshCommandOptBool(const vshCmd *cmd, const char *name);
 bool vshCommandRun(vshControl *ctl, const vshCmd *cmd);
-bool vshCommandStringParse(vshControl *ctl, char *cmdstr);
+bool vshCommandStringParse(vshControl *ctl, char *cmdstr, vshCmd **partial);
 
 const vshCmdOpt *vshCommandOptArgv(vshControl *ctl, const vshCmd *cmd,
                                    const vshCmdOpt *opt);
@@ -379,6 +382,8 @@ extern const vshCmdInfo info_echo[];
 extern const vshCmdInfo info_pwd[];
 extern const vshCmdInfo info_quit[];
 extern const vshCmdInfo info_selftest[];
+extern const vshCmdOptDef opts_complete[];
+extern const vshCmdInfo info_complete[];
 
 bool cmdHelp(vshControl *ctl, const vshCmd *cmd);
 bool cmdCd(vshControl *ctl, const vshCmd *cmd);
@@ -386,6 +391,7 @@ bool cmdEcho(vshControl *ctl, const vshCmd *cmd);
 bool cmdPwd(vshControl *ctl, const vshCmd *cmd);
 bool cmdQuit(vshControl *ctl, const vshCmd *cmd);
 bool cmdSelfTest(vshControl *ctl, const vshCmd *cmd);
+bool cmdComplete(vshControl *ctl, const vshCmd *cmd);
 
 # define VSH_CMD_CD \
     { \
@@ -450,6 +456,17 @@ bool cmdSelfTest(vshControl *ctl, const vshCmd *cmd);
         .flags = VSH_CMD_FLAG_NOCONNECT | VSH_CMD_FLAG_ALIAS, \
         .alias = "self-test" \
     }
+
+# define VSH_CMD_COMPLETE \
+    { \
+        .name = "complete", \
+        .handler = cmdComplete, \
+        .opts = opts_complete, \
+        .info = info_complete, \
+        .flags = VSH_CMD_FLAG_NOCONNECT | VSH_CMD_FLAG_ALIAS, \
+        .alias = "complete" \
+    }
+
 
 
 /* readline */

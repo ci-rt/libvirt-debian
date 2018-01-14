@@ -22,6 +22,7 @@ profile virt-aa-helper /usr/{lib,lib64}/libvirt/virt-aa-helper {
   # for hostdev
   /sys/devices/ r,
   /sys/devices/** r,
+  /sys/bus/usb/devices/ r,
   deny /dev/sd* r,
   deny /dev/vd* r,
   deny /dev/dm-* r,
@@ -50,11 +51,16 @@ profile virt-aa-helper /usr/{lib,lib64}/libvirt/virt-aa-helper {
   /var/lib/libvirt/images/ r,
   /var/lib/libvirt/images/** r,
   /{media,mnt,opt,srv}/** r,
+  # For virt-sandbox
+  /{,var/}run/libvirt/**/[sv]d[a-z] r,
 
   /**.img r,
+  /**.raw r,
   /**.qcow{,2} r,
   /**.qed r,
   /**.vmdk r,
   /**.[iI][sS][oO] r,
   /**/disk{,.*} r,
+
+  #include <local/usr.lib.libvirt.virt-aa-helper>
 }

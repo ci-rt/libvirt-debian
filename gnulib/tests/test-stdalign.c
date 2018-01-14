@@ -1,5 +1,5 @@
 /* Test of <stdalign.h>.
-   Copyright 2009-2017 Free Software Foundation, Inc.
+   Copyright 2009-2018 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -86,7 +86,7 @@ main ()
   return 77;
 #elif defined __HP_cc && __ia64
   /* Avoid a test failure due to HP-UX Itanium cc bug; see:
-     https://lists.gnu.org/archive/html/bug-gnulib/2017-03/msg00078.html  */
+     https://lists.gnu.org/r/bug-gnulib/2017-03/msg00078.html  */
   fputs ("Skipping test: known HP-UX Itanium cc compiler bug\n", stderr);
   return 77;
 #else

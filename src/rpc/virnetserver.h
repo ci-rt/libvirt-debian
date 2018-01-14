@@ -65,9 +65,6 @@ int virNetServerAddService(virNetServerPtr srv,
                            virNetServerServicePtr svc,
                            const char *mdnsEntryName);
 
-int virNetServerAddClient(virNetServerPtr srv,
-                          virNetServerClientPtr client);
-
 int virNetServerAddProgram(virNetServerPtr srv,
                            virNetServerProgramPtr prog);
 
@@ -76,13 +73,12 @@ int virNetServerSetTLSContext(virNetServerPtr srv,
                               virNetTLSContextPtr tls);
 # endif
 
-size_t virNetServerTrackPendingAuth(virNetServerPtr srv);
-size_t virNetServerTrackCompletedAuth(virNetServerPtr srv);
 
 int virNetServerAddClient(virNetServerPtr srv,
                           virNetServerClientPtr client);
 bool virNetServerHasClients(virNetServerPtr srv);
 void virNetServerProcessClients(virNetServerPtr srv);
+void virNetServerSetClientAuthenticated(virNetServerPtr srv, virNetServerClientPtr client);
 
 void virNetServerUpdateServices(virNetServerPtr srv, bool enabled);
 

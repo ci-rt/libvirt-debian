@@ -704,7 +704,8 @@ virSecurityStackRestoreInputLabel(virSecurityManagerPtr mgr,
 static int
 virSecurityStackDomainSetPathLabel(virSecurityManagerPtr mgr,
                                    virDomainDefPtr vm,
-                                   const char *path)
+                                   const char *path,
+                                   bool allowSubtree)
 {
     virSecurityStackDataPtr priv = virSecurityManagerGetPrivateData(mgr);
     virSecurityStackItemPtr item = priv->itemsHead;
@@ -712,7 +713,47 @@ virSecurityStackDomainSetPathLabel(virSecurityManagerPtr mgr,
 
     for (; item; item = item->next) {
         if (virSecurityManagerDomainSetPathLabel(item->securityManager,
-                                                 vm, path) < 0)
+                                                 vm, path, allowSubtree) < 0)
+            rc = -1;
+    }
+
+    return rc;
+}
+
+static int
+virSecurityStackDomainSetChardevLabel(virSecurityManagerPtr mgr,
+                                      virDomainDefPtr def,
+                                      virDomainChrSourceDefPtr dev_source,
+                                      bool chardevStdioLogd)
+{
+    virSecurityStackDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    virSecurityStackItemPtr item = priv->itemsHead;
+    int rc = 0;
+
+    for (; item; item = item->next) {
+        if (virSecurityManagerSetChardevLabel(item->securityManager,
+                                              def, dev_source,
+                                              chardevStdioLogd) < 0)
+            rc = -1;
+    }
+
+    return rc;
+}
+
+static int
+virSecurityStackDomainRestoreChardevLabel(virSecurityManagerPtr mgr,
+                                          virDomainDefPtr def,
+                                          virDomainChrSourceDefPtr dev_source,
+                                          bool chardevStdioLogd)
+{
+    virSecurityStackDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    virSecurityStackItemPtr item = priv->itemsHead;
+    int rc = 0;
+
+    for (; item; item = item->next) {
+        if (virSecurityManagerRestoreChardevLabel(item->securityManager,
+                                                  def, dev_source,
+                                                  chardevStdioLogd) < 0)
             rc = -1;
     }
 
@@ -778,4 +819,7 @@ virSecurityDriver virSecurityDriverStack = {
     .getBaseLabel                       = virSecurityStackGetBaseLabel,
 
     .domainSetPathLabel                 = virSecurityStackDomainSetPathLabel,
+
+    .domainSetSecurityChardevLabel      = virSecurityStackDomainSetChardevLabel,
+    .domainRestoreSecurityChardevLabel  = virSecurityStackDomainRestoreChardevLabel,
 };

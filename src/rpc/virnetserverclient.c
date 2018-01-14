@@ -71,6 +71,7 @@ struct _virNetServerClient
     bool delayedClose;
     virNetSocketPtr sock;
     int auth;
+    bool auth_pending;
     bool readonly;
 #if WITH_GNUTLS
     virNetTLSContextPtr tlsCtxt;
@@ -354,10 +355,28 @@ static void virNetServerClientSockTimerFunc(int timer,
 }
 
 
+/**
+ * virNetServerClientAuthMethodImpliesAuthenticated:
+ * @auth: authentication method to check
+ *
+ * Check if the passed authentication method implies that a client is
+ * automatically authenticated.
+ *
+ * Returns true if @auth implies that a client is automatically
+ * authenticated, otherwise false.
+ */
+static bool
+virNetServerClientAuthMethodImpliesAuthenticated(int auth)
+{
+    return auth == VIR_NET_SERVER_SERVICE_AUTH_NONE;
+}
+
+
 static virNetServerClientPtr
 virNetServerClientNewInternal(unsigned long long id,
                               virNetSocketPtr sock,
                               int auth,
+                              bool auth_pending,
 #ifdef WITH_GNUTLS
                               virNetTLSContextPtr tls,
 #endif
@@ -376,6 +395,7 @@ virNetServerClientNewInternal(unsigned long long id,
     client->id = id;
     client->sock = virObjectRef(sock);
     client->auth = auth;
+    client->auth_pending = auth_pending;
     client->readonly = readonly;
 #ifdef WITH_GNUTLS
     client->tlsCtxt = virObjectRef(tls);
@@ -423,6 +443,7 @@ virNetServerClientPtr virNetServerClientNew(unsigned long long id,
 {
     virNetServerClientPtr client;
     time_t now;
+    bool auth_pending = !virNetServerClientAuthMethodImpliesAuthenticated(auth);
 
     VIR_DEBUG("sock=%p auth=%d tls=%p", sock, auth,
 #ifdef WITH_GNUTLS
@@ -437,7 +458,7 @@ virNetServerClientPtr virNetServerClientNew(unsigned long long id,
         return NULL;
     }
 
-    if (!(client = virNetServerClientNewInternal(id, sock, auth,
+    if (!(client = virNetServerClientNewInternal(id, sock, auth, auth_pending,
 #ifdef WITH_GNUTLS
                                                  tls,
 #endif
@@ -469,7 +490,7 @@ virNetServerClientPtr virNetServerClientNewPostExecRestart(virJSONValuePtr objec
     virNetServerClientPtr client = NULL;
     virNetSocketPtr sock;
     int auth;
-    bool readonly;
+    bool readonly, auth_pending;
     unsigned int nrequests_max;
     unsigned long long id;
     long long timestamp;
@@ -479,6 +500,26 @@ virNetServerClientPtr virNetServerClientNewPostExecRestart(virJSONValuePtr objec
                        _("Missing auth field in JSON state document"));
         return NULL;
     }
+
+    if (!virJSONValueObjectHasKey(object, "auth_pending")) {
+        auth_pending = !virNetServerClientAuthMethodImpliesAuthenticated(auth);
+    } else {
+        if (virJSONValueObjectGetBoolean(object, "auth_pending", &auth_pending) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Malformed auth_pending field in JSON state document"));
+            return NULL;
+        }
+
+        /* If the used authentication method implies that the new
+         * client is automatically authenticated, the authentication
+         * cannot be pending */
+        if (auth_pending && virNetServerClientAuthMethodImpliesAuthenticated(auth)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Invalid auth_pending and auth combination in JSON state document"));
+            return NULL;
+        }
+    }
+
     if (virJSONValueObjectGetBoolean(object, "readonly", &readonly) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("Missing readonly field in JSON state document"));
@@ -527,6 +568,7 @@ virNetServerClientPtr virNetServerClientNewPostExecRestart(virJSONValuePtr objec
     if (!(client = virNetServerClientNewInternal(id,
                                                  sock,
                                                  auth,
+                                                 auth_pending,
 #ifdef WITH_GNUTLS
                                                  NULL,
 #endif
@@ -575,6 +617,8 @@ virJSONValuePtr virNetServerClientPreExecRestart(virNetServerClientPtr client)
 
     if (virJSONValueObjectAppendNumberInt(object, "auth", client->auth) < 0)
         goto error;
+    if (virJSONValueObjectAppendBoolean(object, "auth_pending", client->auth_pending) < 0)
+        goto error;
     if (virJSONValueObjectAppendBoolean(object, "readonly", client->readonly) < 0)
         goto error;
     if (virJSONValueObjectAppendNumberUint(object, "nrequests_max", client->nrequests_max) < 0)
@@ -622,12 +666,14 @@ int virNetServerClientGetAuth(virNetServerClientPtr client)
     return auth;
 }
 
-void virNetServerClientSetAuth(virNetServerClientPtr client, int auth)
+
+void
+virNetServerClientSetAuthLocked(virNetServerClientPtr client,
+                                int auth)
 {
-    virObjectLock(client);
     client->auth = auth;
-    virObjectUnlock(client);
 }
+
 
 bool virNetServerClientGetReadonly(virNetServerClientPtr client)
 {
@@ -637,6 +683,17 @@ bool virNetServerClientGetReadonly(virNetServerClientPtr client)
     virObjectUnlock(client);
     return readonly;
 }
+
+
+void
+virNetServerClientSetReadonly(virNetServerClientPtr client,
+                              bool readonly)
+{
+    virObjectLock(client);
+    client->readonly = readonly;
+    virObjectUnlock(client);
+}
+
 
 unsigned long long virNetServerClientGetID(virNetServerClientPtr client)
 {
@@ -959,17 +1016,15 @@ void virNetServerClientDispose(void *obj)
  * Full free of the client is done later in a safe point
  * where it can be guaranteed it is no longer in use
  */
-void virNetServerClientClose(virNetServerClientPtr client)
+void
+virNetServerClientCloseLocked(virNetServerClientPtr client)
 {
     virNetServerClientCloseFunc cf;
     virKeepAlivePtr ka;
 
-    virObjectLock(client);
     VIR_DEBUG("client=%p", client);
-    if (!client->sock) {
-        virObjectUnlock(client);
+    if (!client->sock)
         return;
-    }
 
     if (client->keepalive) {
         virKeepAliveStop(client->keepalive);
@@ -1020,19 +1075,24 @@ void virNetServerClientClose(virNetServerClientPtr client)
         virObjectUnref(client->sock);
         client->sock = NULL;
     }
-
-    virObjectUnlock(client);
 }
 
 
-bool virNetServerClientIsClosed(virNetServerClientPtr client)
+void
+virNetServerClientClose(virNetServerClientPtr client)
 {
-    bool closed;
     virObjectLock(client);
-    closed = client->sock == NULL ? true : false;
+    virNetServerClientCloseLocked(client);
     virObjectUnlock(client);
-    return closed;
 }
+
+
+bool
+virNetServerClientIsClosedLocked(virNetServerClientPtr client)
+{
+    return client->sock == NULL;
+}
+
 
 void virNetServerClientDelayedClose(virNetServerClientPtr client)
 {
@@ -1048,13 +1108,11 @@ void virNetServerClientImmediateClose(virNetServerClientPtr client)
     virObjectUnlock(client);
 }
 
-bool virNetServerClientWantClose(virNetServerClientPtr client)
+
+bool
+virNetServerClientWantCloseLocked(virNetServerClientPtr client)
 {
-    bool wantClose;
-    virObjectLock(client);
-    wantClose = client->wantClose;
-    virObjectUnlock(client);
-    return wantClose;
+    return client->wantClose;
 }
 
 
@@ -1507,14 +1565,31 @@ int virNetServerClientSendMessage(virNetServerClientPtr client,
 }
 
 
-bool virNetServerClientNeedAuth(virNetServerClientPtr client)
+bool
+virNetServerClientIsAuthenticated(virNetServerClientPtr client)
 {
-    bool need = false;
+    bool authenticated;
     virObjectLock(client);
-    if (client->auth)
-        need = true;
+    authenticated = virNetServerClientAuthMethodImpliesAuthenticated(client->auth);
     virObjectUnlock(client);
-    return need;
+    return authenticated;
+}
+
+
+/* The caller must hold the lock for @client */
+void
+virNetServerClientSetAuthPendingLocked(virNetServerClientPtr client,
+                                       bool auth_pending)
+{
+    client->auth_pending = auth_pending;
+}
+
+
+/* The caller must hold the lock for @client */
+bool
+virNetServerClientIsAuthPendingLocked(virNetServerClientPtr client)
+{
+    return client->auth_pending;
 }
 
 

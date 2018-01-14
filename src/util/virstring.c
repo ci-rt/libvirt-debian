@@ -240,6 +240,42 @@ virStringListRemove(char ***strings,
 
 
 /**
+ * virStringListMerge:
+ * @dst: a NULL-terminated array of strings to expand
+ * @src: a NULL-terminated array of strings
+ *
+ * Merges @src into @dst. Upon successful return from this
+ * function, @dst is resized to $(dst + src) elements and @src is
+ * freed.
+ *
+ * Returns 0 on success, -1 otherwise.
+ */
+int
+virStringListMerge(char ***dst,
+                   char ***src)
+{
+    size_t dst_len, src_len, i;
+
+    if (!src || !*src)
+        return 0;
+
+    dst_len = virStringListLength((const char **) *dst);
+    src_len = virStringListLength((const char **) *src);
+
+    if (VIR_REALLOC_N(*dst, dst_len + src_len + 1) < 0)
+        return -1;
+
+    for (i = 0; i <= src_len; i++)
+        (*dst)[i + dst_len] = (*src)[i];
+
+    /* Don't call virStringListFree() as it would free strings in
+     * @src. */
+    VIR_FREE(*src);
+    return 0;
+}
+
+
+/**
  * virStringListCopy:
  * @dst: where to store the copy of @strings
  * @src: a NULL-terminated array of strings
@@ -280,7 +316,7 @@ virStringListCopy(char ***dst,
 
 /**
  * virStringListFree:
- * @str_array: a NULL-terminated array of strings to free
+ * @strings: a NULL-terminated array of strings to free
  *
  * Frees a NULL-terminated array of strings, and the array itself.
  * If called on a NULL value, virStringListFree() simply returns.
@@ -1038,10 +1074,10 @@ int virStringSortRevCompare(const void *a, const void *b)
  * @str: string to search
  * @regexp: POSIX Extended regular expression pattern used for matching
  * @max_matches: maximum number of substrings to return
- * @result: pointer to an array to be filled with NULL terminated list of matches
+ * @matches: pointer to an array to be filled with NULL terminated list of matches
  *
  * Performs a POSIX extended regex search against a string and return all matching substrings.
- * The @result value should be freed with virStringListFree() when no longer
+ * The @matches value should be freed with virStringListFree() when no longer
  * required.
  *
  * @code
@@ -1294,8 +1330,32 @@ virStringStripControlChars(char *str)
 }
 
 /**
+ * virStringFilterChars:
+ * @str: the string to strip
+ * @valid: the valid characters for the string
+ *
+ * Modify the string in-place to remove the characters that aren't
+ * in the list of valid ones.
+ */
+void
+virStringFilterChars(char *str, const char *valid)
+{
+    size_t len, i, j;
+
+    if (!str)
+        return;
+
+    len = strlen(str);
+    for (i = 0, j = 0; i < len; i++) {
+        if (strchr(valid, str[i]))
+            str[j++] = str[i];
+    }
+    str[j] = '\0';
+}
+
+/**
  * virStringToUpper:
- * @str: string to capitalize
+ * @src string to capitalize
  * @dst: where to store the new capitalized string
  *
  * Capitalize the string with replacement of all '-' characters for '_'

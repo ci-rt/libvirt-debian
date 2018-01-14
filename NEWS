@@ -1,6 +1,18 @@
 libvirt releases
 ================
 
+# v4.0.0 (unreleased)
+
+  * New features
+
+  * Improvements
+
+    - Xen: Add support for multiple IP addresses on interface devices
+
+    - qemu: Add support for hot unplugging redirdev device
+
+  * Bug fixes
+
 # v3.10.0 (2017-12-04)
 
   * New features

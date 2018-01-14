@@ -1,6 +1,6 @@
 /*
- * This file is auto-generated from keymaps.csv on 2017-11-13 15:50
- * Database checksum sha256(f45720dc09778503dea402d7b4c742d746b01d4c74155c4633a69f40d938a363)
+ * This file is auto-generated from keymaps.csv on 2018-01-12 15:53
+ * Database checksum sha256(f8aeff0c3430077a350e3d7ba2b335b381bd929ac4b193413730a402ff3f0097)
  * To re-generate, run:
  *   keymap-gen --lang=stdc --varname=virKeyNameTable_osx name-table keymaps.csv osx
 */
@@ -73,6 +73,7 @@ const char * virKeyNameTable_osx[454] = {
   [0x42] = "F8", /* KEY_F8 */
   [0x43] = "F9", /* KEY_F9 */
   [0x44] = "F10", /* KEY_F10 */
+  [0x45] = "ANSI_KeypadClear", /* KEY_NUMLOCK */
   [0x47] = "ANSI_Keypad7", /* KEY_KP7 */
   [0x48] = "ANSI_Keypad8", /* KEY_KP8 */
   [0x49] = "ANSI_Keypad9", /* KEY_KP9 */
@@ -88,7 +89,7 @@ const char * virKeyNameTable_osx[454] = {
   [0x53] = "ANSI_KeypadDecimal", /* KEY_KPDOT */
   [0x57] = "F11", /* KEY_F11 */
   [0x58] = "F12", /* KEY_F12 */
-  [0x5a] = "JIS_Kana????", /* KEY_KATAKANA */
+  [0x5a] = "JIS_Kana", /* KEY_KATAKANA */
   [0x5f] = "JIS_KeypadComma", /* KEY_KPJPCOMMA */
   [0x60] = "ANSI_KeypadEnter", /* KEY_KPENTER */
   [0x61] = "RightControl", /* KEY_RIGHTCTRL */
@@ -107,10 +108,10 @@ const char * virKeyNameTable_osx[454] = {
   [0x72] = "VolumeDown", /* KEY_VOLUMEDOWN */
   [0x73] = "VolumeUp", /* KEY_VOLUMEUP */
   [0x75] = "ANSI_KeypadEquals", /* KEY_KPEQUAL */
-  [0x79] = "ANSI_KeypadClear????", /* KEY_KPCOMMA */
   [0x7c] = "JIS_Yen", /* KEY_YEN */
   [0x7d] = "Command", /* KEY_LEFTMETA */
-  [0x7f] = "Function", /* KEY_COMPOSE */
+  [0x7e] = "RightCommand", /* KEY_RIGHTMETA */
+  [0x8a] = "Help", /* KEY_HELP */
   [0xaa] = "ISO_Section", /* KEY_ISO */
   [0xb7] = "F13", /* KEY_F13 */
   [0xb8] = "F14", /* KEY_F14 */
@@ -120,4 +121,6 @@ const char * virKeyNameTable_osx[454] = {
   [0xbc] = "F18", /* KEY_F18 */
   [0xbd] = "F19", /* KEY_F19 */
   [0xbe] = "F20", /* KEY_F20 */
+  [0x19a] = "Function", /* KEY_FN */
 };
+const unsigned int virKeyNameTable_osx_len = sizeof(virKeyNameTable_osx)/sizeof(virKeyNameTable_osx[0]);

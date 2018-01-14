@@ -81,14 +81,18 @@
   /usr/share/proll/** r,
   /usr/share/vgabios/** r,
   /usr/share/seabios/** r,
+  /usr/share/misc/sgabios.bin r,
   /usr/share/ovmf/** r,
   /usr/share/OVMF/** r,
   /usr/share/AAVMF/** r,
   /usr/share/qemu-efi/** r,
   /usr/share/slof/** r,
 
-  # access PKI infrastructure
-  /etc/pki/libvirt-vnc/** r,
+  # pki for libvirt-vnc and libvirt-spice (LP: #901272, #1690140)
+  /etc/pki/CA/ r,
+  /etc/pki/CA/* r,
+  /etc/pki/libvirt{,-spice,-vnc}/ r,
+  /etc/pki/libvirt{,-spice,-vnc}/** r,
 
   # the various binaries
   /usr/bin/kvm rmix,
@@ -137,7 +141,6 @@
   /usr/bin/qemu-mipsel rmix,
   /usr/bin/qemu-mipsn32 rmix,
   /usr/bin/qemu-mipsn32el rmix,
-  /usr/bin/qemu-nbd rmix,
   /usr/bin/qemu-or32 rmix,
   /usr/bin/qemu-ppc rmix,
   /usr/bin/qemu-ppc64 rmix,
@@ -151,14 +154,9 @@
   /usr/bin/qemu-sparc64 rmix,
   /usr/bin/qemu-unicore32 rmix,
   /usr/bin/qemu-x86_64 rmix,
-  /usr/{lib,lib64}/qemu/block-curl.so mr,
-  /usr/{lib,lib64}/qemu/block-rbd.so mr,
-
-  # for use by libvirt-vnc (LP: #901272)
-  /etc/pki/CA/ r,
-  /etc/pki/CA/* r,
-  /etc/pki/libvirt/ r,
-  /etc/pki/libvirt/** r,
+  # for Debian/Ubuntu qemu-block-extra / RPMs qemu-block-* (LP: #1554761)
+  /usr/{lib,lib64}/qemu/*.so mr,
+  /usr/lib/@{multiarch}/qemu/*.so mr,
 
   # for save and resume
   /{usr/,}bin/dash rmix,
@@ -190,3 +188,7 @@
   /sys/devices/system/node/ r,
   /sys/devices/system/node/node[0-9]*/meminfo r,
   /sys/module/vhost/parameters/max_mem_regions r,
+
+  # silence refusals to open lttng files (see LP: #1432644)
+  deny /dev/shm/lttng-ust-wait-* r,
+  deny /run/shm/lttng-ust-wait-* r,

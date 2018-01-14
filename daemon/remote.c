@@ -1814,6 +1814,11 @@ remoteDispatchConnectOpen(virNetServerPtr server ATTRIBUTE_UNUSED,
     if (priv->conn == NULL)
         goto cleanup;
 
+    /* force update the @readonly attribute which was inherited from the
+     * virNetServerService object - this is important for sockets that are RW
+     * by default, but do accept RO flags, e.g. TCP
+     */
+    virNetServerClientSetReadonly(client, (flags & VIR_CONNECT_RO));
     rv = 0;
 
  cleanup:
@@ -3263,8 +3268,7 @@ remoteDispatchAuthList(virNetServerPtr server,
                             (long long) callerPid, (int) callerUid) < 0)
                 goto cleanup;
             VIR_INFO("Bypass polkit auth for privileged client %s", ident);
-            virNetServerClientSetAuth(client, 0);
-            virNetServerTrackCompletedAuth(server);
+            virNetServerSetClientAuthenticated(server, client);
             auth = VIR_NET_SERVER_SERVICE_AUTH_NONE;
             VIR_FREE(ident);
         }
@@ -3274,7 +3278,7 @@ remoteDispatchAuthList(virNetServerPtr server,
     if (VIR_ALLOC_N(ret->types.types_val, ret->types.types_len) < 0)
         goto cleanup;
 
-    switch (auth) {
+    switch ((virNetServerServiceAuthMethods) auth) {
     case VIR_NET_SERVER_SERVICE_AUTH_NONE:
         ret->types.types_val[0] = REMOTE_AUTH_NONE;
         break;
@@ -3284,8 +3288,6 @@ remoteDispatchAuthList(virNetServerPtr server,
     case VIR_NET_SERVER_SERVICE_AUTH_SASL:
         ret->types.types_val[0] = REMOTE_AUTH_SASL;
         break;
-    default:
-        ret->types.types_val[0] = REMOTE_AUTH_NONE;
     }
 
     rv = 0;
@@ -3409,8 +3411,7 @@ remoteSASLFinish(virNetServerPtr server,
     if (!(clnt_identity = virNetServerClientGetIdentity(client)))
         goto error;
 
-    virNetServerClientSetAuth(client, 0);
-    virNetServerTrackCompletedAuth(server);
+    virNetServerSetClientAuthenticated(server, client);
     virNetServerClientSetSASLSession(client, priv->sasl);
     virIdentitySetSASLUserName(clnt_identity, identity);
 
@@ -3733,8 +3734,7 @@ remoteDispatchAuthPolkit(virNetServerPtr server,
              action, (long long) callerPid, callerUid);
     ret->complete = 1;
 
-    virNetServerClientSetAuth(client, 0);
-    virNetServerTrackCompletedAuth(server);
+    virNetServerSetClientAuthenticated(server, client);
     virMutexUnlock(&priv->lock);
 
     return 0;

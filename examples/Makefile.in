@@ -96,6 +96,10 @@ noinst_PROGRAMS = dominfo/info1$(EXEEXT) \
 	admin/list_clients$(EXEEXT) admin/threadpool_params$(EXEEXT) \
 	admin/client_limits$(EXEEXT) admin/client_info$(EXEEXT) \
 	admin/client_close$(EXEEXT) admin/logging$(EXEEXT)
+@WITH_APPARMOR_PROFILES_TRUE@am__append_1 = install-apparmor-local
+@WITH_APPARMOR_PROFILES_TRUE@am__append_2 = uninstall-apparmor-local
+@WITH_NWFILTER_TRUE@am__append_3 = install-nwfilter-local
+@WITH_NWFILTER_TRUE@am__append_4 = uninstall-nwfilter-local
 subdir = examples
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
@@ -236,6 +240,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-apparmor.m4 $(top_srcdir)/m4/virt-arg.m4 \
 	$(top_srcdir)/m4/virt-atomic.m4 $(top_srcdir)/m4/virt-attr.m4 \
 	$(top_srcdir)/m4/virt-audit.m4 $(top_srcdir)/m4/virt-avahi.m4 \
+	$(top_srcdir)/m4/virt-bash-completion.m4 \
 	$(top_srcdir)/m4/virt-blkid.m4 $(top_srcdir)/m4/virt-capng.m4 \
 	$(top_srcdir)/m4/virt-chrdev-lock-files.m4 \
 	$(top_srcdir)/m4/virt-compile-pie.m4 \
@@ -609,6 +614,9 @@ AUTOMAKE = @AUTOMAKE@
 AVAHI_CFLAGS = @AVAHI_CFLAGS@
 AVAHI_LIBS = @AVAHI_LIBS@
 AWK = @AWK@
+BASH_COMPLETIONS_DIR = @BASH_COMPLETIONS_DIR@
+BASH_COMPLETION_CFLAGS = @BASH_COMPLETION_CFLAGS@
+BASH_COMPLETION_LIBS = @BASH_COMPLETION_LIBS@
 BHYVE = @BHYVE@
 BHYVECTL = @BHYVECTL@
 BHYVELOAD = @BHYVELOAD@
@@ -1743,6 +1751,7 @@ REPLACE_EXPF = @REPLACE_EXPF@
 REPLACE_EXPM1 = @REPLACE_EXPM1@
 REPLACE_EXPM1F = @REPLACE_EXPM1F@
 REPLACE_FABSL = @REPLACE_FABSL@
+REPLACE_FACCESSAT = @REPLACE_FACCESSAT@
 REPLACE_FCHOWNAT = @REPLACE_FCHOWNAT@
 REPLACE_FCLOSE = @REPLACE_FCLOSE@
 REPLACE_FCNTL = @REPLACE_FCNTL@
@@ -1790,6 +1799,7 @@ REPLACE_HYPOTF = @REPLACE_HYPOTF@
 REPLACE_HYPOTL = @REPLACE_HYPOTL@
 REPLACE_ILOGB = @REPLACE_ILOGB@
 REPLACE_ILOGBF = @REPLACE_ILOGBF@
+REPLACE_ILOGBL = @REPLACE_ILOGBL@
 REPLACE_INET_NTOP = @REPLACE_INET_NTOP@
 REPLACE_INET_PTON = @REPLACE_INET_PTON@
 REPLACE_IOCTL = @REPLACE_IOCTL@
@@ -2133,6 +2143,8 @@ admin_client_limits_SOURCES = admin/client_limits.c
 admin_client_info_SOURCES = admin/client_info.c
 admin_client_close_SOURCES = admin/client_close.c
 admin_logging_SOURCES = admin/logging.c
+INSTALL_DATA_LOCAL = $(am__append_1) $(am__append_3)
+UNINSTALL_LOCAL = $(am__append_2) $(am__append_4)
 @WITH_APPARMOR_PROFILES_TRUE@apparmordir = $(sysconfdir)/apparmor.d/
 @WITH_APPARMOR_PROFILES_TRUE@apparmor_DATA = \
 @WITH_APPARMOR_PROFILES_TRUE@	apparmor/usr.lib.libvirt.virt-aa-helper \
@@ -2151,6 +2163,7 @@ admin_logging_SOURCES = admin/logging.c
 @WITH_APPARMOR_PROFILES_TRUE@	apparmor/TEMPLATE.lxc \
 @WITH_APPARMOR_PROFILES_TRUE@	$(NULL)
 
+@WITH_APPARMOR_PROFILES_TRUE@APPARMOR_LOCAL_DIR = "$(DESTDIR)$(apparmordir)/local"
 @WITH_NWFILTER_TRUE@NWFILTER_DIR = "$(DESTDIR)$(sysconfdir)/libvirt/nwfilter"
 all: all-am
 
@@ -2624,8 +2637,6 @@ distclean-generic:
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
-@WITH_NWFILTER_FALSE@uninstall-local:
-@WITH_NWFILTER_FALSE@install-data-local:
 clean: clean-am
 
 clean-am: clean-generic clean-libtool clean-noinstPROGRAMS \
@@ -2719,18 +2730,27 @@ uninstall-am: uninstall-abstractionsDATA uninstall-apparmorDATA \
 
 .PRECIOUS: Makefile
 
+@WITH_APPARMOR_PROFILES_TRUE@install-apparmor-local:
+@WITH_APPARMOR_PROFILES_TRUE@	$(MKDIR_P) "$(APPARMOR_LOCAL_DIR)"
+@WITH_APPARMOR_PROFILES_TRUE@	echo "# Site-specific additions and overrides for \
+@WITH_APPARMOR_PROFILES_TRUE@		'usr.lib.libvirt.virt-aa-helper'" \
+@WITH_APPARMOR_PROFILES_TRUE@		>$(APPARMOR_LOCAL_DIR)/usr.lib.libvirt.virt-aa-helper
 
-@WITH_NWFILTER_TRUE@install-data-local:
+@WITH_NWFILTER_TRUE@install-nwfilter-local:
 @WITH_NWFILTER_TRUE@	$(MKDIR_P) "$(NWFILTER_DIR)"
 @WITH_NWFILTER_TRUE@	for f in $(FILTERS); do \
 @WITH_NWFILTER_TRUE@		$(INSTALL_DATA) $$f "$(NWFILTER_DIR)"; \
 @WITH_NWFILTER_TRUE@	done
 
-@WITH_NWFILTER_TRUE@uninstall-local::
+@WITH_NWFILTER_TRUE@uninstall-nwfilter-local::
 @WITH_NWFILTER_TRUE@	for f in $(FILTERS); do \
 @WITH_NWFILTER_TRUE@		rm -f "$(NWFILTER_DIR)/`basename $$f`"; \
 @WITH_NWFILTER_TRUE@	done
 @WITH_NWFILTER_TRUE@	-test -z "$(shell ls $(NWFILTER_DIR))" || rmdir $(NWFILTER_DIR)
+
+install-data-local: $(INSTALL_DATA_LOCAL)
+
+uninstall-local: $(UNINSTALL_LOCAL)
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

@@ -53,6 +53,9 @@
   network packet dgram,
   network packet raw,
 
+  # for --p2p migrations
+  unix (send, receive) type=stream addr=none peer=(label=unconfined addr=none),
+
   ptrace (trace) peer=unconfined,
   ptrace (trace) peer=/usr/sbin/libvirtd,
   ptrace (trace) peer=/usr/sbin/dnsmasq,
@@ -75,6 +78,10 @@
   /usr/{lib,lib64}/xen-common/bin/xen-toolstack PUx,
   /usr/{lib,lib64}/xen/bin/* Ux,
   /usr/lib/xen-*/bin/libxl-save-helper PUx,
+
+  # Required by nwfilter_ebiptables_driver.c:ebiptablesWriteToTempFile() to
+  # read and run an ebtables script.
+  /var/lib/libvirt/virtd* ixr,
 
   # force the use of virt-aa-helper
   audit deny /{usr/,}sbin/apparmor_parser rwxl,

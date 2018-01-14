@@ -1,6 +1,6 @@
 /*
- * This file is auto-generated from keymaps.csv on 2017-11-13 15:50
- * Database checksum sha256(f45720dc09778503dea402d7b4c742d746b01d4c74155c4633a69f40d938a363)
+ * This file is auto-generated from keymaps.csv on 2018-01-12 15:53
+ * Database checksum sha256(f8aeff0c3430077a350e3d7ba2b335b381bd929ac4b193413730a402ff3f0097)
  * To re-generate, run:
  *   keymap-gen --lang=stdc --varname=virKeyCodeTable_usb code-table keymaps.csv usb
 */
@@ -129,7 +129,6 @@ const unsigned short virKeyCodeTable_usb[454] = {
   [0x7f] = 0x65, /* KEY_COMPOSE */
   [0x80] = 0xf3, /* KEY_STOP */
   [0x81] = 0x79, /* KEY_AGAIN */
-  [0x82] = 0x76, /* KEY_PROPS */
   [0x83] = 0x7a, /* KEY_UNDO */
   [0x84] = 0x77, /* KEY_FRONT */
   [0x85] = 0x7c, /* KEY_COPY */
@@ -138,6 +137,7 @@ const unsigned short virKeyCodeTable_usb[454] = {
   [0x88] = 0xf4, /* KEY_FIND */
   [0x89] = 0x7b, /* KEY_CUT */
   [0x8a] = 0x75, /* KEY_HELP */
+  [0x8b] = 0x76, /* KEY_MENU */
   [0x8c] = 0xfb, /* KEY_CALC */
   [0x8e] = 0xf8, /* KEY_SLEEP */
   [0x96] = 0xf0, /* KEY_WWW */
@@ -168,3 +168,4 @@ const unsigned short virKeyCodeTable_usb[454] = {
   [0xc1] = 0x72, /* KEY_F23 */
   [0xc2] = 0x73, /* KEY_F24 */
 };
+const unsigned int virKeyCodeTable_usb_len = sizeof(virKeyCodeTable_usb)/sizeof(virKeyCodeTable_usb[0]);

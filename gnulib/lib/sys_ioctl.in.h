@@ -1,5 +1,5 @@
 /* Substitute for and wrapper around <sys/ioctl.h>.
-   Copyright (C) 2008-2017 Free Software Foundation, Inc.
+   Copyright (C) 2008-2018 Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as published by
@@ -31,6 +31,7 @@
 
 /* AIX 5.1 and Solaris 10 declare ioctl() in <unistd.h> and in <stropts.h>,
    but not in <sys/ioctl.h>.
+   Haiku declares ioctl() in <unistd.h>, but not in <sys/ioctl.h>.
    But avoid namespace pollution on glibc systems.  */
 #ifndef __GLIBC__
 # include <unistd.h>

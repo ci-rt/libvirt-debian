@@ -1,5 +1,5 @@
-# strtok_r.m4 serial 14
-dnl Copyright (C) 2002-2004, 2006-2007, 2009-2017 Free Software Foundation,
+# strtok_r.m4 serial 15
+dnl Copyright (C) 2002-2004, 2006-2007, 2009-2018 Free Software Foundation,
 dnl Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -42,11 +42,11 @@ AC_DEFUN([gl_FUNC_STRTOK_R],
          [gl_cv_func_strtok_r_works=yes],
          [gl_cv_func_strtok_r_works=no],
          [case "$host_os" in
-                    # Guess no on glibc systems.
-            *-gnu*) gl_cv_func_strtok_r_works="guessing no" ;;
-                    # Guess yes on native Windows.
-            mingw*) gl_cv_func_strtok_r_works="guessing yes" ;;
-            *)      gl_cv_func_strtok_r_works="guessing yes" ;;
+                           # Guess no on glibc systems.
+            *-gnu* | gnu*) gl_cv_func_strtok_r_works="guessing no" ;;
+                           # Guess yes on native Windows.
+            mingw*)        gl_cv_func_strtok_r_works="guessing yes" ;;
+            *)             gl_cv_func_strtok_r_works="guessing yes" ;;
           esac
          ])
       ])

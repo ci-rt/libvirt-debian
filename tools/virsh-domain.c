@@ -65,8 +65,8 @@
 # define SA_SIGINFO 0
 #endif
 
-#define VIRSH_COMMON_OPT_DOMAIN_FULL \
-    VIRSH_COMMON_OPT_DOMAIN(N_("domain name, id or uuid"))
+#define VIRSH_COMMON_OPT_DOMAIN_FULL(cflags) \
+    VIRSH_COMMON_OPT_DOMAIN(N_("domain name, id or uuid"), cflags)
 
 #define VIRSH_COMMON_OPT_DOMAIN_PERSISTENT \
     {.name = "persistent", \
@@ -154,7 +154,7 @@ static const vshCmdInfo info_attach_device[] = {
 };
 
 static const vshCmdOptDef opts_attach_device[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     VIRSH_COMMON_OPT_FILE(N_("XML file")),
     VIRSH_COMMON_OPT_DOMAIN_PERSISTENT,
     VIRSH_COMMON_OPT_DOMAIN_CONFIG,
@@ -236,7 +236,7 @@ static const vshCmdInfo info_attach_disk[] = {
 };
 
 static const vshCmdOptDef opts_attach_disk[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "source",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ | VSH_OFLAG_EMPTY_OK,
@@ -727,7 +727,7 @@ static const vshCmdInfo info_attach_interface[] = {
 };
 
 static const vshCmdOptDef opts_attach_interface[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "type",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
@@ -1037,7 +1037,7 @@ static const vshCmdInfo info_autostart[] = {
 };
 
 static const vshCmdOptDef opts_autostart[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "disable",
      .type = VSH_OT_BOOL,
      .help = N_("disable autostarting")
@@ -1089,7 +1089,7 @@ static const vshCmdInfo info_blkdeviotune[] = {
 };
 
 static const vshCmdOptDef opts_blkdeviotune[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "device",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
@@ -1416,7 +1416,7 @@ static const vshCmdInfo info_blkiotune[] = {
 };
 
 static const vshCmdOptDef opts_blkiotune[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "weight",
      .type = VSH_OT_INT,
      .help = N_("IO Weight")
@@ -1885,7 +1885,7 @@ static const vshCmdInfo info_block_commit[] = {
 };
 
 static const vshCmdOptDef opts_block_commit[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "path",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
@@ -2110,7 +2110,7 @@ static const vshCmdInfo info_block_copy[] = {
 };
 
 static const vshCmdOptDef opts_block_copy[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "path",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
@@ -2426,7 +2426,7 @@ static const vshCmdInfo info_block_job[] = {
 };
 
 static const vshCmdOptDef opts_block_job[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "path",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
@@ -2669,7 +2669,7 @@ static const vshCmdInfo info_block_pull[] = {
 };
 
 static const vshCmdOptDef opts_block_pull[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "path",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
@@ -2815,7 +2815,7 @@ static const vshCmdInfo info_block_resize[] = {
 };
 
 static const vshCmdOptDef opts_block_resize[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "path",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
@@ -2879,7 +2879,7 @@ static const vshCmdInfo info_console[] = {
 };
 
 static const vshCmdOptDef opts_console[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "devname", /* sc_prohibit_devname */
      .type = VSH_OT_STRING,
      .help = N_("character device name")
@@ -2973,10 +2973,11 @@ static const vshCmdInfo info_domif_setlink[] = {
 };
 
 static const vshCmdOptDef opts_domif_setlink[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "interface",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
+     .completer = virshDomainInterfaceCompleter,
      .help = N_("interface device (MAC Address)")
     },
     {.name = "state",
@@ -3143,10 +3144,11 @@ static const vshCmdInfo info_domiftune[] = {
 };
 
 static const vshCmdOptDef opts_domiftune[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "interface",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
+     .completer = virshDomainInterfaceCompleter,
      .help = N_("interface device (MAC Address)")
     },
     {.name = "inbound",
@@ -3340,7 +3342,7 @@ static const vshCmdInfo info_suspend[] = {
 };
 
 static const vshCmdOptDef opts_suspend[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_RUNNING),
     {.name = NULL}
 };
 
@@ -3382,7 +3384,7 @@ static const vshCmdInfo info_dom_pm_suspend[] = {
 };
 
 static const vshCmdOptDef opts_dom_pm_suspend[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_RUNNING),
     {.name = "target",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
@@ -3460,7 +3462,7 @@ static const vshCmdInfo info_dom_pm_wakeup[] = {
 };
 
 static const vshCmdOptDef opts_dom_pm_wakeup[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_OTHER),
     {.name = NULL}
 };
 
@@ -3505,7 +3507,7 @@ static const vshCmdInfo info_undefine[] = {
 };
 
 static const vshCmdOptDef opts_undefine[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_PERSISTENT),
     {.name = "managed-save",
      .type = VSH_OT_BOOL,
      .help = N_("remove domain managed state file")
@@ -3923,7 +3925,8 @@ static const vshCmdInfo info_start[] = {
 };
 
 static const vshCmdOptDef opts_start[] = {
-    VIRSH_COMMON_OPT_DOMAIN(N_("name of the inactive domain")),
+    VIRSH_COMMON_OPT_DOMAIN(N_("name of the inactive domain"),
+                            VIR_CONNECT_LIST_DOMAINS_SHUTOFF),
 #ifndef WIN32
     {.name = "console",
      .type = VSH_OT_BOOL,
@@ -4098,7 +4101,7 @@ static const vshCmdInfo info_save[] = {
 };
 
 static const vshCmdOptDef opts_save[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     VIRSH_COMMON_OPT_FILE(N_("where to save the data")),
     {.name = "bypass-cache",
      .type = VSH_OT_BOOL,
@@ -4544,7 +4547,7 @@ static const vshCmdInfo info_managedsave[] = {
 };
 
 static const vshCmdOptDef opts_managedsave[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "bypass-cache",
      .type = VSH_OT_BOOL,
      .help = N_("avoid file system cache when saving")
@@ -4663,7 +4666,7 @@ static const vshCmdInfo info_managedsaveremove[] = {
 };
 
 static const vshCmdOptDef opts_managedsaveremove[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = NULL}
 };
 
@@ -4718,7 +4721,7 @@ static const vshCmdInfo info_managed_save_edit[] = {
 };
 
 static const vshCmdOptDef opts_managed_save_edit[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "running",
      .type = VSH_OT_BOOL,
      .help = N_("set domain to be running on start")
@@ -4784,7 +4787,7 @@ static const vshCmdInfo info_managed_save_dumpxml[] = {
 };
 
 static const vshCmdOptDef opts_managed_save_dumpxml[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "security-info",
      .type = VSH_OT_BOOL,
      .help = N_("include security sensitive information in XML dump")
@@ -4832,7 +4835,7 @@ static const vshCmdInfo info_managed_save_define[] = {
 };
 
 static const vshCmdOptDef opts_managed_save_define[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "xml",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
@@ -4904,7 +4907,7 @@ static const vshCmdInfo info_schedinfo[] = {
 };
 
 static const vshCmdOptDef opts_schedinfo[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "weight",
      .type = VSH_OT_INT,
      .flags = VSH_OFLAG_REQ_OPT,
@@ -5215,7 +5218,7 @@ static const vshCmdInfo info_dump[] = {
 };
 
 static const vshCmdOptDef opts_dump[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     VIRSH_COMMON_OPT_FILE(N_("where to dump the core")),
     VIRSH_COMMON_OPT_LIVE(N_("perform a live core dump if supported")),
     {.name = "crash",
@@ -5387,7 +5390,7 @@ static const vshCmdInfo info_screenshot[] = {
 };
 
 static const vshCmdOptDef opts_screenshot[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "file",
      .type = VSH_OT_STRING,
      .help = N_("where to store the screenshot")
@@ -5530,7 +5533,7 @@ static const vshCmdInfo info_setLifecycleAction[] = {
 };
 
 static const vshCmdOptDef opts_setLifecycleAction[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "type",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
@@ -5626,7 +5629,7 @@ static const vshCmdInfo info_set_user_password[] = {
 };
 
 static const vshCmdOptDef opts_set_user_password[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "user",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
@@ -5690,7 +5693,7 @@ static const vshCmdInfo info_resume[] = {
 };
 
 static const vshCmdOptDef opts_resume[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_PAUSED),
     {.name = NULL}
 };
 
@@ -5729,7 +5732,7 @@ static const vshCmdInfo info_shutdown[] = {
 };
 
 static const vshCmdOptDef opts_shutdown[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "mode",
      .type = VSH_OT_STRING,
      .help = N_("shutdown mode: acpi|agent|initctl|signal|paravirt")
@@ -5813,7 +5816,7 @@ static const vshCmdInfo info_reboot[] = {
 };
 
 static const vshCmdOptDef opts_reboot[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "mode",
      .type = VSH_OT_STRING,
      .help = N_("shutdown mode: acpi|agent|initctl|signal|paravirt")
@@ -5892,7 +5895,7 @@ static const vshCmdInfo info_reset[] = {
 };
 
 static const vshCmdOptDef opts_reset[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = NULL}
 };
 
@@ -5931,7 +5934,7 @@ static const vshCmdInfo info_domjobinfo[] = {
 };
 
 static const vshCmdOptDef opts_domjobinfo[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "completed",
      .type = VSH_OT_BOOL,
      .help = N_("return statistics of a recently completed job")
@@ -6275,7 +6278,7 @@ static const vshCmdInfo info_domjobabort[] = {
 };
 
 static const vshCmdOptDef opts_domjobabort[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = NULL}
 };
 
@@ -6309,7 +6312,7 @@ static const vshCmdInfo info_vcpucount[] = {
 };
 
 static const vshCmdOptDef opts_vcpucount[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "maximum",
      .type = VSH_OT_BOOL,
      .help = N_("get maximum count of vcpus")
@@ -6506,7 +6509,7 @@ static const vshCmdInfo info_vcpuinfo[] = {
 };
 
 static const vshCmdOptDef opts_vcpuinfo[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "pretty",
      .type = VSH_OT_BOOL,
      .help = N_("return human readable output")
@@ -6755,7 +6758,7 @@ static const vshCmdInfo info_vcpupin[] = {
 };
 
 static const vshCmdOptDef opts_vcpupin[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "vcpu",
      .type = VSH_OT_INT,
      .help = N_("vcpu number")
@@ -6972,7 +6975,7 @@ static const vshCmdInfo info_emulatorpin[] = {
 };
 
 static const vshCmdOptDef opts_emulatorpin[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "cpulist",
      .type = VSH_OT_STRING,
      .flags = VSH_OFLAG_EMPTY_OK,
@@ -7076,7 +7079,7 @@ static const vshCmdInfo info_setvcpus[] = {
 };
 
 static const vshCmdOptDef opts_setvcpus[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "count",
      .type = VSH_OT_INT,
      .flags = VSH_OFLAG_REQ,
@@ -7174,7 +7177,7 @@ static const vshCmdInfo info_guestvcpus[] = {
 };
 
 static const vshCmdOptDef opts_guestvcpus[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "cpulist",
      .type = VSH_OT_STRING,
      .help = N_("list of cpus to enable or disable")
@@ -7259,7 +7262,7 @@ static const vshCmdInfo info_setvcpu[] = {
 };
 
 static const vshCmdOptDef opts_setvcpu[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "vcpulist",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
@@ -7342,7 +7345,7 @@ static const vshCmdInfo info_domblkthreshold[] = {
 };
 
 static const vshCmdOptDef opts_domblkthreshold[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "dev",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
@@ -7398,7 +7401,7 @@ static const vshCmdInfo info_iothreadinfo[] = {
     {.name = NULL}
 };
 static const vshCmdOptDef opts_iothreadinfo[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     VIRSH_COMMON_OPT_DOMAIN_CONFIG,
     VIRSH_COMMON_OPT_DOMAIN_LIVE,
     VIRSH_COMMON_OPT_DOMAIN_CURRENT,
@@ -7474,7 +7477,7 @@ static const vshCmdInfo info_iothreadpin[] = {
 };
 
 static const vshCmdOptDef opts_iothreadpin[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "iothread",
      .type = VSH_OT_INT,
      .flags = VSH_OFLAG_REQ,
@@ -7556,7 +7559,7 @@ static const vshCmdInfo info_iothreadadd[] = {
 };
 
 static const vshCmdOptDef opts_iothreadadd[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "id",
      .type = VSH_OT_INT,
      .flags = VSH_OFLAG_REQ,
@@ -7621,7 +7624,7 @@ static const vshCmdInfo info_iothreaddel[] = {
 };
 
 static const vshCmdOptDef opts_iothreaddel[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "id",
      .type = VSH_OT_INT,
      .flags = VSH_OFLAG_REQ,
@@ -7897,7 +7900,7 @@ static const vshCmdInfo info_cpu_stats[] = {
 };
 
 static const vshCmdOptDef opts_cpu_stats[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "total",
      .type = VSH_OT_BOOL,
      .help = N_("Show total statistics only")
@@ -8236,7 +8239,7 @@ static const vshCmdInfo info_destroy[] = {
 };
 
 static const vshCmdOptDef opts_destroy[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "graceful",
      .type = VSH_OT_BOOL,
      .help = N_("terminate gracefully")
@@ -8289,7 +8292,7 @@ static const vshCmdInfo info_desc[] = {
 };
 
 static const vshCmdOptDef opts_desc[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     VIRSH_COMMON_OPT_LIVE(N_("modify/get running state")),
     VIRSH_COMMON_OPT_CONFIG(N_("modify/get persistent configuration")),
     VIRSH_COMMON_OPT_CURRENT(N_("modify/get current state configuration")),
@@ -8454,7 +8457,7 @@ static const vshCmdInfo info_metadata[] = {
 };
 
 static const vshCmdOptDef opts_metadata[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "uri",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
@@ -8600,7 +8603,7 @@ static const vshCmdInfo info_inject_nmi[] = {
 };
 
 static const vshCmdOptDef opts_inject_nmi[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = NULL}
 };
 
@@ -8634,7 +8637,7 @@ static const vshCmdInfo info_send_key[] = {
 };
 
 static const vshCmdOptDef opts_send_key[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "codeset",
      .type = VSH_OT_STRING,
      .flags = VSH_OFLAG_REQ_OPT,
@@ -8730,7 +8733,7 @@ static const vshCmdInfo info_send_process_signal[] = {
 };
 
 static const vshCmdOptDef opts_send_process_signal[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "pid",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
@@ -8835,7 +8838,7 @@ static const vshCmdInfo info_setmem[] = {
 };
 
 static const vshCmdOptDef opts_setmem[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "kilobytes",
      .type = VSH_OT_ALIAS,
      .help = "size"
@@ -8916,7 +8919,7 @@ static const vshCmdInfo info_setmaxmem[] = {
 };
 
 static const vshCmdOptDef opts_setmaxmem[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "kilobytes",
      .type = VSH_OT_ALIAS,
      .help = "size"
@@ -9004,7 +9007,7 @@ static const vshCmdInfo info_memtune[] = {
 };
 
 static const vshCmdOptDef opts_memtune[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "hard-limit",
      .type = VSH_OT_INT,
      .help = N_("Max memory, as scaled integer (default KiB)")
@@ -9181,7 +9184,7 @@ static const vshCmdInfo info_perf[] = {
 };
 
 static const vshCmdOptDef opts_perf[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "enable",
      .type = VSH_OT_STRING,
      .help = N_("perf events which will be enabled")
@@ -9315,7 +9318,7 @@ static const vshCmdInfo info_numatune[] = {
 };
 
 static const vshCmdOptDef opts_numatune[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "mode",
      .type = VSH_OT_STRING,
      .help = N_("NUMA mode, one of strict, preferred and interleave \n"
@@ -9450,7 +9453,7 @@ static const vshCmdInfo info_qemu_monitor_command[] = {
 };
 
 static const vshCmdOptDef opts_qemu_monitor_command[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "hmp",
      .type = VSH_OT_BOOL,
      .help = N_("command is in human monitor protocol")
@@ -9751,7 +9754,7 @@ static const vshCmdInfo info_qemu_agent_command[] = {
 };
 
 static const vshCmdOptDef opts_qemu_agent_command[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "timeout",
      .type = VSH_OT_INT,
      .flags = VSH_OFLAG_REQ_OPT,
@@ -9873,7 +9876,7 @@ static const vshCmdInfo info_lxc_enter_namespace[] = {
 };
 
 static const vshCmdOptDef opts_lxc_enter_namespace[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "noseclabel",
      .type = VSH_OT_BOOL,
      .help = N_("Do not change process security label")
@@ -10014,7 +10017,7 @@ static const vshCmdInfo info_dumpxml[] = {
 };
 
 static const vshCmdOptDef opts_dumpxml[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "inactive",
      .type = VSH_OT_BOOL,
      .help = N_("show inactive defined XML")
@@ -10223,7 +10226,7 @@ static const vshCmdInfo info_domname[] = {
 };
 
 static const vshCmdOptDef opts_domname[] = {
-    VIRSH_COMMON_OPT_DOMAIN(N_("domain id or uuid")),
+    VIRSH_COMMON_OPT_DOMAIN(N_("domain id or uuid"), 0),
     {.name = NULL}
 };
 
@@ -10255,7 +10258,7 @@ static const vshCmdInfo info_domrename[] = {
 };
 
 static const vshCmdOptDef opts_domrename[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_INACTIVE),
     {.name = "new-name",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
@@ -10302,7 +10305,8 @@ static const vshCmdInfo info_domid[] = {
 };
 
 static const vshCmdOptDef opts_domid[] = {
-    VIRSH_COMMON_OPT_DOMAIN(N_("domain name or uuid")),
+    VIRSH_COMMON_OPT_DOMAIN(N_("domain name or uuid"),
+                            VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = NULL}
 };
 
@@ -10339,7 +10343,7 @@ static const vshCmdInfo info_domuuid[] = {
 };
 
 static const vshCmdOptDef opts_domuuid[] = {
-    VIRSH_COMMON_OPT_DOMAIN(N_("domain id or name")),
+    VIRSH_COMMON_OPT_DOMAIN(N_("domain id or name"), 0),
     {.name = NULL}
 };
 
@@ -10376,7 +10380,7 @@ static const vshCmdInfo info_migrate[] = {
 };
 
 static const vshCmdOptDef opts_migrate[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "desturi",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
@@ -10974,7 +10978,7 @@ static const vshCmdInfo info_migrate_setmaxdowntime[] = {
 };
 
 static const vshCmdOptDef opts_migrate_setmaxdowntime[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "downtime",
      .type = VSH_OT_INT,
      .flags = VSH_OFLAG_REQ,
@@ -11025,7 +11029,7 @@ static const vshCmdInfo info_migrate_getmaxdowntime[] = {
 };
 
 static const vshCmdOptDef opts_migrate_getmaxdowntime[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = NULL}
 };
 
@@ -11066,7 +11070,7 @@ static const vshCmdInfo info_migrate_compcache[] = {
 };
 
 static const vshCmdOptDef opts_migrate_compcache[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "size",
      .type = VSH_OT_INT,
      .flags = VSH_OFLAG_REQ_OPT,
@@ -11123,7 +11127,7 @@ static const vshCmdInfo info_migrate_setspeed[] = {
 };
 
 static const vshCmdOptDef opts_migrate_setspeed[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "bandwidth",
      .type = VSH_OT_INT,
      .flags = VSH_OFLAG_REQ,
@@ -11169,7 +11173,7 @@ static const vshCmdInfo info_migrate_getspeed[] = {
 };
 
 static const vshCmdOptDef opts_migrate_getspeed[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = NULL}
 };
 
@@ -11252,7 +11256,7 @@ static const vshCmdInfo info_domdisplay[] = {
 };
 
 static const vshCmdOptDef opts_domdisplay[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "include-password",
      .type = VSH_OT_BOOL,
      .help = N_("includes the password into the connection URI if available")
@@ -11533,7 +11537,7 @@ static const vshCmdInfo info_vncdisplay[] = {
 };
 
 static const vshCmdOptDef opts_vncdisplay[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = NULL}
 };
 
@@ -11609,7 +11613,7 @@ static const vshCmdInfo info_ttyconsole[] = {
 };
 
 static const vshCmdOptDef opts_ttyconsole[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = NULL}
 };
 
@@ -11651,7 +11655,7 @@ static const vshCmdInfo info_domhostname[] = {
 };
 
 static const vshCmdOptDef opts_domhostname[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = NULL}
 };
 
@@ -11810,7 +11814,7 @@ static const vshCmdInfo info_detach_device[] = {
 };
 
 static const vshCmdOptDef opts_detach_device[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     VIRSH_COMMON_OPT_FILE(N_("XML file")),
     VIRSH_COMMON_OPT_DOMAIN_PERSISTENT,
     VIRSH_COMMON_OPT_DOMAIN_CONFIG,
@@ -11891,7 +11895,7 @@ static const vshCmdInfo info_update_device[] = {
 };
 
 static const vshCmdOptDef opts_update_device[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     VIRSH_COMMON_OPT_FILE(N_("XML file")),
     VIRSH_COMMON_OPT_DOMAIN_PERSISTENT,
     VIRSH_COMMON_OPT_DOMAIN_CONFIG,
@@ -11973,7 +11977,7 @@ static const vshCmdInfo info_detach_interface[] = {
 };
 
 static const vshCmdOptDef opts_detach_interface[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "type",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
@@ -11981,6 +11985,8 @@ static const vshCmdOptDef opts_detach_interface[] = {
     },
     {.name = "mac",
      .type = VSH_OT_STRING,
+     .completer = virshDomainInterfaceCompleter,
+     .completer_flags = VIRSH_DOMAIN_INTERFACE_COMPLETER_MAC,
      .help = N_("MAC address")
     },
     VIRSH_COMMON_OPT_DOMAIN_PERSISTENT,
@@ -12416,7 +12422,7 @@ static const vshCmdInfo info_detach_disk[] = {
 };
 
 static const vshCmdOptDef opts_detach_disk[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "target",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
@@ -12516,7 +12522,7 @@ static const vshCmdInfo info_edit[] = {
 };
 
 static const vshCmdOptDef opts_edit[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "skip-validate",
      .type = VSH_OT_BOOL,
      .help = N_("skip validation of the XML against the schema")
@@ -13475,7 +13481,7 @@ static const vshCmdInfo info_change_media[] = {
 };
 
 static const vshCmdOptDef opts_change_media[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "path",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
@@ -13636,7 +13642,7 @@ static const vshCmdInfo info_domfstrim[] = {
 };
 
 static const vshCmdOptDef opts_domfstrim[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "minimum",
      .type = VSH_OT_INT,
      .help = N_("Just a hint to ignore contiguous "
@@ -13689,7 +13695,7 @@ static const vshCmdInfo info_domfsfreeze[] = {
 };
 
 static const vshCmdOptDef opts_domfsfreeze[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "mountpoint",
      .type = VSH_OT_ARGV,
      .help = N_("mountpoint path to be frozen")
@@ -13742,7 +13748,7 @@ static const vshCmdInfo info_domfsthaw[] = {
 };
 
 static const vshCmdOptDef opts_domfsthaw[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "mountpoint",
      .type = VSH_OT_ARGV,
      .help = N_("mountpoint path to be thawed")
@@ -13795,7 +13801,7 @@ static const vshCmdInfo info_domfsinfo[] = {
 };
 
 static const vshCmdOptDef opts_domfsinfo[] = {
-    VIRSH_COMMON_OPT_DOMAIN_FULL,
+    VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = NULL}
 };
 
