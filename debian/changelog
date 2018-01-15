@@ -1,10 +1,20 @@
-libvirt (4.0.0~rc1-1~1.gbp5095f2) UNRELEASED; urgency=medium
+libvirt (4.0.0~rc1-1) experimental; urgency=medium
 
-  ** SNAPSHOT build @5095f235eed3df12e3551b1ebc913bb6e3712cc6 **
-
+  [ Guido Günther ]
   * [a225d2b] New upstream version 4.0.0~rc1
+    (Closes: #881293, #846534)
+  * [2270343] Rediff patches
 
- -- Guido Günther <agx@sigxcpu.org>  Sun, 14 Jan 2018 16:18:08 +0100
+  [ intrigeri ]
+  * [89b8ab4] Allow libvirt to kill unconfined domains
+
+  [ Christian Ehrhardt ]
+  * [b2ce106] Clear more directories on purge
+    (Closes: #884828)
+  * [0cd10ab] Avoid apt seccomp issues due to libnss-libvirt
+    (LP: #1732030)
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 15 Jan 2018 09:44:37 +0100
 
 libvirt (3.10.0-1) unstable; urgency=medium
 
