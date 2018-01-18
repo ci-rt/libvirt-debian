@@ -1007,6 +1007,10 @@
    don't. */
 #undef HAVE_DECL_PUTC_UNLOCKED
 
+/* Define to 1 if you have the declaration of `rl_completion_quote_character',
+   and to 0 if you don't. */
+#undef HAVE_DECL_RL_COMPLETION_QUOTE_CHARACTER
+
 /* Define to 1 if you have the declaration of `SANLK_INQ_WAIT', and to 0 if
    you don't. */
 #undef HAVE_DECL_SANLK_INQ_WAIT

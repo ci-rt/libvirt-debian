@@ -1,3 +1,13 @@
+libvirt (4.0.0~rc2-1~1.gbp036943) UNRELEASED; urgency=medium
+
+  ** SNAPSHOT build @0369438b0a4adbd7739d47223069dfa0cf737487 **
+
+  * [8dd2f5b] Don't manage /etc/apparmor.d/local as conf files (Closes: #887612)
+  * [0819e5a] apparmor: allow libvirt to send term signal to unconfined
+  * [b1ecc1a] New upstream version 4.0.0~rc2
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 18 Jan 2018 14:34:35 +0100
+
 libvirt (4.0.0~rc1-1) experimental; urgency=medium
 
   [ Guido Günther ]

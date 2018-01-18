@@ -61224,6 +61224,28 @@ fi
     LIBS="$lv_saved_libs $extra_LIBS"
   fi
 
+  ac_fn_c_check_decl "$LINENO" "rl_completion_quote_character" "ac_cv_have_decl_rl_completion_quote_character" "#include <stdio.h>
+                  #include <readline/readline.h>
+"
+if test "x$ac_cv_have_decl_rl_completion_quote_character" = xyes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL_RL_COMPLETION_QUOTE_CHARACTER $ac_have_decl
+_ACEOF
+
+
+  if test "$ac_cv_have_decl_rl_completion_quote_character" = "no" ; then
+    if test "$with_readline" = "yes" ; then
+      as_fn_error $? "readline is missing rl_completion_quote_character" "$LINENO" 5
+    else
+      with_readline=no;
+    fi
+  fi
+
   # The normal library check...
 
 
@@ -65513,6 +65535,28 @@ fi
 	extra_LIBS=$LIBS ;;
     esac
     LIBS="$lv_saved_libs $extra_LIBS"
+  fi
+
+  ac_fn_c_check_decl "$LINENO" "rl_completion_quote_character" "ac_cv_have_decl_rl_completion_quote_character" "#include <stdio.h>
+                  #include <readline/readline.h>
+"
+if test "x$ac_cv_have_decl_rl_completion_quote_character" = xyes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL_RL_COMPLETION_QUOTE_CHARACTER $ac_have_decl
+_ACEOF
+
+
+  if test "$ac_cv_have_decl_rl_completion_quote_character" = "no" ; then
+    if test "$with_readline" = "yes" ; then
+      as_fn_error $? "readline is missing rl_completion_quote_character" "$LINENO" 5
+    else
+      with_readline=no;
+    fi
   fi
 
   # The normal library check...

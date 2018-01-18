@@ -239,7 +239,7 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: 4.0.0
-Release: 0rc1%{?dist}%{?extra_release}
+Release: 0rc2%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -248,7 +248,7 @@ URL: https://libvirt.org/
 %if %(echo %{version} | grep -q "\.0$"; echo $?) == 1
     %define mainturl stable_updates/
 %endif
-Source: https://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc1.tar.xz
+Source: https://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc2.tar.xz
 
 Requires: libvirt-daemon = %{version}-%{release}
 Requires: libvirt-daemon-config-network = %{version}-%{release}
