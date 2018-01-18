@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt 3.10.0\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2018-01-12 15:53+0100\n"
+"POT-Creation-Date: 2018-01-17 10:10+0100\n"
 "PO-Revision-Date: 2015-02-27 04:41-0500\n"
 "Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
 "Language-Team: Greek (http://www.transifex.com/projects/p/fedora/language/"
@@ -11111,7 +11111,7 @@ msgstr ""
 
 #: src/hyperv/hyperv_wmi.c:1239 tools/virsh-domain.c:5434
 #: tools/virsh-domain.c:7884 tools/virsh-pool.c:1552 tools/virsh-snapshot.c:438
-#: tools/vsh.c:1828 tools/vsh.c:3021 tools/vsh.c:3026
+#: tools/vsh.c:1828 tools/vsh.c:2979 tools/vsh.c:2984
 msgid "Out of memory"
 msgstr ""
 
@@ -15134,16 +15134,16 @@ msgstr ""
 msgid "no parent for this device"
 msgstr ""
 
-#: src/node_device/node_device_driver.c:457
+#: src/node_device/node_device_driver.c:472
 msgid "Could not get current time"
 msgstr ""
 
-#: src/node_device/node_device_driver.c:543
+#: src/node_device/node_device_driver.c:558
 #, c-format
 msgid "no node device for '%s' with matching wwnn '%s' and wwpn '%s'"
 msgstr ""
 
-#: src/node_device/node_device_driver.c:586 src/test/test_driver.c:5587
+#: src/node_device/node_device_driver.c:601 src/test/test_driver.c:5587
 #, c-format
 msgid "cannot find parent '%s' definition"
 msgstr ""
@@ -37910,8 +37910,8 @@ msgid "expecting an ide:00.00.00 address."
 msgstr ""
 
 #: tools/virsh-domain.c:678 tools/virsh-domain.c:988 tools/virsh-pool.c:389
-#: tools/virsh-volume.c:341 tools/virsh-volume.c:609 tools/vsh.c:3371
-#: tools/vsh.c:3388
+#: tools/virsh-volume.c:341 tools/virsh-volume.c:609 tools/vsh.c:3329
+#: tools/vsh.c:3346
 msgid "Failed to allocate XML buffer"
 msgstr ""
 
@@ -45863,7 +45863,7 @@ msgstr ""
 msgid "command group '%s' doesn't exist"
 msgstr ""
 
-#: tools/vsh.c:641 tools/vsh.c:3235
+#: tools/vsh.c:641 tools/vsh.c:3193
 #, c-format
 msgid " %s (help keyword '%s'):\n"
 msgstr ""
@@ -46137,145 +46137,145 @@ msgstr ""
 msgid "Failed to complete tree listing"
 msgstr ""
 
-#: tools/vsh.c:2999
+#: tools/vsh.c:2957
 #, c-format
 msgid "Bad $%s value."
 msgstr ""
 
-#: tools/vsh.c:3002
+#: tools/vsh.c:2960
 #, c-format
 msgid "$%s value should be between 0 and %d"
 msgstr ""
 
-#: tools/vsh.c:3016
+#: tools/vsh.c:2974
 msgid "Could not determine home directory"
 msgstr ""
 
-#: tools/vsh.c:3046
+#: tools/vsh.c:3004
 #, c-format
 msgid "Failed to create '%s': %s"
 msgstr ""
 
-#: tools/vsh.c:3118
+#: tools/vsh.c:3076
 #, c-format
 msgid "%s_DEBUG not set with a valid numeric value"
 msgstr ""
 
-#: tools/vsh.c:3151
+#: tools/vsh.c:3109
 msgid "client hooks cannot be NULL"
 msgstr ""
 
-#: tools/vsh.c:3156
+#: tools/vsh.c:3114
 msgid "command groups and command set cannot both be NULL"
 msgstr ""
 
-#: tools/vsh.c:3175
+#: tools/vsh.c:3133
 msgid "command groups and command are both NULL run vshInit before reloading"
 msgstr ""
 
-#: tools/vsh.c:3207
+#: tools/vsh.c:3165
 msgid ""
 "Prints global help, command specific help, or help for a group of related "
 "commands"
 msgstr ""
 
-#: tools/vsh.c:3214
+#: tools/vsh.c:3172
 msgid "print help"
 msgstr ""
 
-#: tools/vsh.c:3217
+#: tools/vsh.c:3175
 msgid ""
 "Prints global help, command specific help, or help for a\n"
 "    group of related commands"
 msgstr ""
 
-#: tools/vsh.c:3232
+#: tools/vsh.c:3190
 msgid ""
 "Grouped commands:\n"
 "\n"
 msgstr ""
 
-#: tools/vsh.c:3256
+#: tools/vsh.c:3214
 #, c-format
 msgid "command or command group '%s' doesn't exist"
 msgstr ""
 
-#: tools/vsh.c:3264
+#: tools/vsh.c:3222
 msgid "directory to switch to (default: home or else root)"
 msgstr ""
 
-#: tools/vsh.c:3271
+#: tools/vsh.c:3229
 msgid "change the current directory"
 msgstr ""
 
-#: tools/vsh.c:3274
+#: tools/vsh.c:3232
 msgid "Change the current directory."
 msgstr ""
 
-#: tools/vsh.c:3288
+#: tools/vsh.c:3246
 msgid "cd: command valid only in interactive mode"
 msgstr ""
 
-#: tools/vsh.c:3298
+#: tools/vsh.c:3256
 #, c-format
 msgid "cd: %s: %s"
 msgstr ""
 
-#: tools/vsh.c:3310
+#: tools/vsh.c:3268
 msgid "escape for shell use"
 msgstr ""
 
-#: tools/vsh.c:3314
+#: tools/vsh.c:3272
 msgid "escape for XML use"
 msgstr ""
 
-#: tools/vsh.c:3326
+#: tools/vsh.c:3284
 msgid "arguments to echo"
 msgstr ""
 
-#: tools/vsh.c:3333
+#: tools/vsh.c:3291
 msgid "echo arguments"
 msgstr ""
 
-#: tools/vsh.c:3336
+#: tools/vsh.c:3294
 msgid "Echo back arguments, possibly with quoting."
 msgstr ""
 
-#: tools/vsh.c:3400
+#: tools/vsh.c:3358
 msgid "print the current directory"
 msgstr ""
 
-#: tools/vsh.c:3403
+#: tools/vsh.c:3361
 msgid "Print the current directory."
 msgstr ""
 
-#: tools/vsh.c:3417
+#: tools/vsh.c:3375
 #, c-format
 msgid "pwd: cannot get current directory: %s"
 msgstr ""
 
-#: tools/vsh.c:3421
+#: tools/vsh.c:3379
 #, c-format
 msgid "%s\n"
 msgstr ""
 
-#: tools/vsh.c:3430
+#: tools/vsh.c:3388
 msgid "quit this interactive terminal"
 msgstr ""
 
-#: tools/vsh.c:3451
+#: tools/vsh.c:3409
 msgid "internal command for testing virt shells"
 msgstr ""
 
-#: tools/vsh.c:3454 tools/vsh.c:3497
+#: tools/vsh.c:3412 tools/vsh.c:3455
 msgid "internal use only"
 msgstr ""
 
-#: tools/vsh.c:3487
+#: tools/vsh.c:3445
 msgid "partial string to autocomplete"
 msgstr ""
 
-#: tools/vsh.c:3494
+#: tools/vsh.c:3452
 msgid "internal command for autocompletion"
 msgstr ""
 

@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt 3.10.0\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2018-01-12 15:53+0100\n"
+"POT-Creation-Date: 2018-01-17 10:10+0100\n"
 "PO-Revision-Date: 2015-02-27 04:59-0500\n"
 "Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
 "Language-Team: Oriya (http://www.transifex.com/projects/p/libvirt/language/"
@@ -11026,7 +11026,7 @@ msgstr "ତନ୍ତ୍ରଟି ଉପଲବ୍ଧ ନାହିଁ"
 
 #: src/hyperv/hyperv_wmi.c:1239 tools/virsh-domain.c:5434
 #: tools/virsh-domain.c:7884 tools/virsh-pool.c:1552 tools/virsh-snapshot.c:438
-#: tools/vsh.c:1828 tools/vsh.c:3021 tools/vsh.c:3026
+#: tools/vsh.c:1828 tools/vsh.c:2979 tools/vsh.c:2984
 msgid "Out of memory"
 msgstr "ସ୍ମୃତିସ୍ଥାନର ଅଭାବ"
 
@@ -15064,16 +15064,16 @@ msgstr "ମେଳଖାଉଥିବା ନାମ '%s' ସହିତ ସମାନ 
 msgid "no parent for this device"
 msgstr "ଏହି ଯନ୍ତ୍ର ପାଇଁ କୌଣସି ମୂଖ୍ୟ ସ୍ତର ନାହିଁ"
 
-#: src/node_device/node_device_driver.c:457
+#: src/node_device/node_device_driver.c:472
 msgid "Could not get current time"
 msgstr "ଏବେର ସମୟ ପାଇଲା ନାହିଁ"
 
-#: src/node_device/node_device_driver.c:543
+#: src/node_device/node_device_driver.c:558
 #, c-format
 msgid "no node device for '%s' with matching wwnn '%s' and wwpn '%s'"
 msgstr ""
 
-#: src/node_device/node_device_driver.c:586 src/test/test_driver.c:5587
+#: src/node_device/node_device_driver.c:601 src/test/test_driver.c:5587
 #, c-format
 msgid "cannot find parent '%s' definition"
 msgstr ""
@@ -37728,8 +37728,8 @@ msgid "expecting an ide:00.00.00 address."
 msgstr "ଗୋଟିଏ  ide:00.00.00 ଠିକଣା ଆଶାକରୁଅଛି।"
 
 #: tools/virsh-domain.c:678 tools/virsh-domain.c:988 tools/virsh-pool.c:389
-#: tools/virsh-volume.c:341 tools/virsh-volume.c:609 tools/vsh.c:3371
-#: tools/vsh.c:3388
+#: tools/virsh-volume.c:341 tools/virsh-volume.c:609 tools/vsh.c:3329
+#: tools/vsh.c:3346
 msgid "Failed to allocate XML buffer"
 msgstr "XML ବଫର ବାଣ୍ଟିବାରେ ବିଫଳ"
 
@@ -45735,7 +45735,7 @@ msgstr "'%s' ନିର୍ଦ୍ଦେଶ --%s ବିକଳ୍ପ ଆବଶ୍ଯ
 msgid "command group '%s' doesn't exist"
 msgstr "'%s' ନିର୍ଦ୍ଦେଶ ଶ୍ରେଣୀ ଅବସ୍ଥିତ ନାହିଁ"
 
-#: tools/vsh.c:641 tools/vsh.c:3235
+#: tools/vsh.c:641 tools/vsh.c:3193
 #, c-format
 msgid " %s (help keyword '%s'):\n"
 msgstr " %s (ସୂଚକ ଶବ୍ଦ '%s' କୁ ସହାୟତା କରନ୍ତୁ):\n"
@@ -46020,59 +46020,59 @@ msgstr "%s: ଅସ୍ତାୟୀ ଫାଇଲ ପଢ଼ିବାରେ ବି�
 msgid "Failed to complete tree listing"
 msgstr "ବୃକ୍ଷ ତାଲିକାଭୁକ୍ତ କରିବାରେ ବିଫଳ"
 
-#: tools/vsh.c:2999
+#: tools/vsh.c:2957
 #, c-format
 msgid "Bad $%s value."
 msgstr ""
 
-#: tools/vsh.c:3002
+#: tools/vsh.c:2960
 #, c-format
 msgid "$%s value should be between 0 and %d"
 msgstr ""
 
-#: tools/vsh.c:3016
+#: tools/vsh.c:2974
 msgid "Could not determine home directory"
 msgstr "ହୋମ ଡିରେକ୍ଟୋରୀକୁ ନିର୍ଦ୍ଧାରଣ କରିପାରିଲା ନାହିଁ"
 
-#: tools/vsh.c:3046
+#: tools/vsh.c:3004
 #, c-format
 msgid "Failed to create '%s': %s"
 msgstr "'%s' କୁ ନିର୍ମାଣ କରିବାରେ ବିଫଳ: %s"
 
-#: tools/vsh.c:3118
+#: tools/vsh.c:3076
 #, c-format
 msgid "%s_DEBUG not set with a valid numeric value"
 msgstr ""
 
-#: tools/vsh.c:3151
+#: tools/vsh.c:3109
 msgid "client hooks cannot be NULL"
 msgstr ""
 
-#: tools/vsh.c:3156
+#: tools/vsh.c:3114
 msgid "command groups and command set cannot both be NULL"
 msgstr ""
 
-#: tools/vsh.c:3175
+#: tools/vsh.c:3133
 msgid "command groups and command are both NULL run vshInit before reloading"
 msgstr ""
 
-#: tools/vsh.c:3207
+#: tools/vsh.c:3165
 msgid ""
 "Prints global help, command specific help, or help for a group of related "
 "commands"
 msgstr ""
 
-#: tools/vsh.c:3214
+#: tools/vsh.c:3172
 msgid "print help"
 msgstr "ସହାୟତା ମୂଦ୍ରଣ କରନ୍ତୁ"
 
-#: tools/vsh.c:3217
+#: tools/vsh.c:3175
 msgid ""
 "Prints global help, command specific help, or help for a\n"
 "    group of related commands"
 msgstr ""
 
-#: tools/vsh.c:3232
+#: tools/vsh.c:3190
 msgid ""
 "Grouped commands:\n"
 "\n"
@@ -46080,87 +46080,87 @@ msgstr ""
 "ସମୂହ ନିର୍ଦ୍ଦେଶ:\n"
 "\n"
 
-#: tools/vsh.c:3256
+#: tools/vsh.c:3214
 #, c-format
 msgid "command or command group '%s' doesn't exist"
 msgstr "ନିର୍ଦ୍ଦେଶ କିମ୍ବା ନିର୍ଦ୍ଦେଶ ଶ୍ରେଣୀ '%s' ଅବସ୍ଥିତ ନାହିଁ"
 
-#: tools/vsh.c:3264
+#: tools/vsh.c:3222
 msgid "directory to switch to (default: home or else root)"
 msgstr "ବଦଳାଇବା ପାଇଁ ଥିବା ଡିରେକ୍ଟୋରୀ (ପୂର୍ବନିର୍ଦ୍ଧାରିତ: home ଅନ୍ୟଥା ମୂଖ୍ୟ ଚାଳକ)"
 
-#: tools/vsh.c:3271
+#: tools/vsh.c:3229
 msgid "change the current directory"
 msgstr "ପ୍ରଚଳିତ ଡ଼ିରେକ୍ଟୋରୀକୁ ପରିବର୍ତ୍ତନ କରିପାରିବେ ନାହିଁ"
 
-#: tools/vsh.c:3274
+#: tools/vsh.c:3232
 msgid "Change the current directory."
 msgstr "ପ୍ରଚଳିତ ଡ଼ିରେକ୍ଟୋରୀକୁ ପରିବର୍ତ୍ତନ କରନ୍ତୁ।"
 
-#: tools/vsh.c:3288
+#: tools/vsh.c:3246
 msgid "cd: command valid only in interactive mode"
 msgstr "cd: ନିର୍ଦ୍ଦେଶ କେବଳ ପାରସ୍ପରିକ କ୍ରିୟାତ୍ମକ ଧାରାରେ ବୈଧ ଅଟେ"
 
-#: tools/vsh.c:3298
+#: tools/vsh.c:3256
 #, c-format
 msgid "cd: %s: %s"
 msgstr "cd: %s: %s"
 
-#: tools/vsh.c:3310
+#: tools/vsh.c:3268
 msgid "escape for shell use"
 msgstr "ସେଲ ବ୍ୟବହାର ପାଇଁ ଏସକେପ"
 
-#: tools/vsh.c:3314
+#: tools/vsh.c:3272
 msgid "escape for XML use"
 msgstr "XML ବ୍ୟବହାର ପାଇଁ ଏସକେପ"
 
-#: tools/vsh.c:3326
+#: tools/vsh.c:3284
 msgid "arguments to echo"
 msgstr "ପ୍ରତିଧ୍ୱନି କରିବା ପାଇଁ ସ୍ୱତନ୍ତ୍ରଚର"
 
-#: tools/vsh.c:3333
+#: tools/vsh.c:3291
 msgid "echo arguments"
 msgstr "ସ୍ୱତନ୍ତ୍ରଚରଗୁଡ଼ିକୁ ପ୍ରତିଧ୍ୱନି କରନ୍ତୁ"
 
-#: tools/vsh.c:3336
+#: tools/vsh.c:3294
 msgid "Echo back arguments, possibly with quoting."
 msgstr ""
 
-#: tools/vsh.c:3400
+#: tools/vsh.c:3358
 msgid "print the current directory"
 msgstr "ପ୍ରଚଳିତ ଡ଼ିରେକ୍ଟୋରୀକୁ ମୁଦ୍ରଣ କରନ୍ତୁ"
 
-#: tools/vsh.c:3403
+#: tools/vsh.c:3361
 msgid "Print the current directory."
 msgstr "ପ୍ରଚଳିତ ଡ଼ିରେକ୍ଟୋରୀକୁ ମୁଦ୍ରଣ କରନ୍ତୁ।"
 
-#: tools/vsh.c:3417
+#: tools/vsh.c:3375
 #, c-format
 msgid "pwd: cannot get current directory: %s"
 msgstr "pwd: ପ୍ରଚଳିତ ଡ଼ିରେକ୍ଟୋରୀକୁ ପାଇବେ ନାହିଁ: %s"
 
-#: tools/vsh.c:3421
+#: tools/vsh.c:3379
 #, c-format
 msgid "%s\n"
 msgstr "%s\n"
 
-#: tools/vsh.c:3430
+#: tools/vsh.c:3388
 msgid "quit this interactive terminal"
 msgstr "ଏହି ପାରସ୍ପରିକ କ୍ରିୟାକ୍ଷମ ଟର୍ମିନାଲକୁ ବନ୍ଦ କରନ୍ତୁ"
 
-#: tools/vsh.c:3451
+#: tools/vsh.c:3409
 msgid "internal command for testing virt shells"
 msgstr ""
 
-#: tools/vsh.c:3454 tools/vsh.c:3497
+#: tools/vsh.c:3412 tools/vsh.c:3455
 msgid "internal use only"
 msgstr ""
 
-#: tools/vsh.c:3487
+#: tools/vsh.c:3445
 msgid "partial string to autocomplete"
 msgstr ""
 
-#: tools/vsh.c:3494
+#: tools/vsh.c:3452
 msgid "internal command for autocompletion"
 msgstr ""
 

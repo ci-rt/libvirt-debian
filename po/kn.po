@@ -16,7 +16,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt 3.10.0\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2018-01-12 15:53+0100\n"
+"POT-Creation-Date: 2018-01-17 10:10+0100\n"
 "PO-Revision-Date: 2015-02-27 07:08-0500\n"
 "Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
 "Language-Team: Kannada (http://www.transifex.com/projects/p/libvirt/language/"
@@ -11209,7 +11209,7 @@ msgstr "ವ್ಯವಸ್ಥೆಯು ಲಭ್ಯವಿಲ್ಲ"
 
 #: src/hyperv/hyperv_wmi.c:1239 tools/virsh-domain.c:5434
 #: tools/virsh-domain.c:7884 tools/virsh-pool.c:1552 tools/virsh-snapshot.c:438
-#: tools/vsh.c:1828 tools/vsh.c:3021 tools/vsh.c:3026
+#: tools/vsh.c:1828 tools/vsh.c:2979 tools/vsh.c:2984
 msgid "Out of memory"
 msgstr "ಸಾಕಷ್ಟು ಮೆಮೊರಿ ಇಲ್ಲ"
 
@@ -15310,16 +15310,16 @@ msgstr "'%s' ಹೆಸರಿಗೆ ಹೊಂದಿಕೆಯಾಗುವ ಯಾ�
 msgid "no parent for this device"
 msgstr "ಈ ಸಾಧನಕ್ಕೆ ಯಾವುದೆ ಮೂಲವಿಲ್ಲ"
 
-#: src/node_device/node_device_driver.c:457
+#: src/node_device/node_device_driver.c:472
 msgid "Could not get current time"
 msgstr "ಪ್ರಸಕ್ತ ಸಮಯವನ್ನು ಪಡೆಯಲಾಗಿಲ್ಲ"
 
-#: src/node_device/node_device_driver.c:543
+#: src/node_device/node_device_driver.c:558
 #, c-format
 msgid "no node device for '%s' with matching wwnn '%s' and wwpn '%s'"
 msgstr ""
 
-#: src/node_device/node_device_driver.c:586 src/test/test_driver.c:5587
+#: src/node_device/node_device_driver.c:601 src/test/test_driver.c:5587
 #, c-format
 msgid "cannot find parent '%s' definition"
 msgstr ""
@@ -38214,8 +38214,8 @@ msgid "expecting an ide:00.00.00 address."
 msgstr "ಒಂದು ide:00.00.00 ವಿಳಾಸವನ್ನು ನಿರೀಕ್ಷಿಸಲಾಗುತ್ತಿದೆ."
 
 #: tools/virsh-domain.c:678 tools/virsh-domain.c:988 tools/virsh-pool.c:389
-#: tools/virsh-volume.c:341 tools/virsh-volume.c:609 tools/vsh.c:3371
-#: tools/vsh.c:3388
+#: tools/virsh-volume.c:341 tools/virsh-volume.c:609 tools/vsh.c:3329
+#: tools/vsh.c:3346
 msgid "Failed to allocate XML buffer"
 msgstr "XML ಬಫರನ್ನು ನಿಯೋಜಿಸುವಲ್ಲಿ ವಿಫಲಗೊಂಡಿದೆ"
 
@@ -46308,7 +46308,7 @@ msgstr "ಆದೇಶ '%s' ಗೆ --%s ಆಯ್ಕೆಯ ಅಗತ್ಯವಿ�
 msgid "command group '%s' doesn't exist"
 msgstr "'%s' ಎಂಬ ಆದೇಶದ ಗುಂಪು ಅಸ್ತಿತ್ವದಲ್ಲಿಲ್ಲ"
 
-#: tools/vsh.c:641 tools/vsh.c:3235
+#: tools/vsh.c:641 tools/vsh.c:3193
 #, c-format
 msgid " %s (help keyword '%s'):\n"
 msgstr " %s (ನೆರವಿನ ಕೀಲಿಪದ '%s'):\n"
@@ -46593,43 +46593,43 @@ msgstr "%s: ತಾತ್ಕಾಲಿಕ ಕಡತಕ್ಕೆ ಬರೆಯುವ
 msgid "Failed to complete tree listing"
 msgstr "ವೃಕ್ಷ ರೂಪದ ಪಟ್ಟಿಯನ್ನು ಪೂರ್ಣಗೊಳಿಸುವಲ್ಲಿ ವಿಫಲಗೊಂಡಿದೆ"
 
-#: tools/vsh.c:2999
+#: tools/vsh.c:2957
 #, c-format
 msgid "Bad $%s value."
 msgstr ""
 
-#: tools/vsh.c:3002
+#: tools/vsh.c:2960
 #, c-format
 msgid "$%s value should be between 0 and %d"
 msgstr ""
 
-#: tools/vsh.c:3016
+#: tools/vsh.c:2974
 msgid "Could not determine home directory"
 msgstr "ನೆಲೆಕೋಶವನ್ನು ನಿರ್ಧರಿಸಲು ಸಾಧ್ಯವಾಗಿಲ್ಲ"
 
-#: tools/vsh.c:3046
+#: tools/vsh.c:3004
 #, c-format
 msgid "Failed to create '%s': %s"
 msgstr "'%s' ಅನ್ನು ರಚಿಸುವಲ್ಲಿ ವಿಫಲಗೊಂಡಿದೆ: %s"
 
-#: tools/vsh.c:3118
+#: tools/vsh.c:3076
 #, c-format
 msgid "%s_DEBUG not set with a valid numeric value"
 msgstr ""
 
-#: tools/vsh.c:3151
+#: tools/vsh.c:3109
 msgid "client hooks cannot be NULL"
 msgstr ""
 
-#: tools/vsh.c:3156
+#: tools/vsh.c:3114
 msgid "command groups and command set cannot both be NULL"
 msgstr ""
 
-#: tools/vsh.c:3175
+#: tools/vsh.c:3133
 msgid "command groups and command are both NULL run vshInit before reloading"
 msgstr ""
 
-#: tools/vsh.c:3207
+#: tools/vsh.c:3165
 msgid ""
 "Prints global help, command specific help, or help for a group of related "
 "commands"
@@ -46637,11 +46637,11 @@ msgstr ""
 "ಸಂಬಂಧಿತ ಆದೇಶಗಳ ಗುಂಪಿಗಾಗಿ ಜಾಗತಿಕ ಸಹಾಯ, ಆಜ್ಞಾ ನಿಶ್ಚಿತ ಸಹಾಯ, ಅಥವ ಸಹಾಯವನ್ನು "
 "ಮುದ್ರಿಸುತ್ತದೆ."
 
-#: tools/vsh.c:3214
+#: tools/vsh.c:3172
 msgid "print help"
 msgstr "ಮುದ್ರಣ ಸಹಾಯ"
 
-#: tools/vsh.c:3217
+#: tools/vsh.c:3175
 msgid ""
 "Prints global help, command specific help, or help for a\n"
 "    group of related commands"
@@ -46649,7 +46649,7 @@ msgstr ""
 "ಸಂಬಂಧಿತ ಆದೇಶಗಳ ಗುಂಪಿಗಾಗಿ ಜಾಗತಿಕ ಸಹಾಯ, ಆಜ್ಞಾ ನಿಶ್ಚಿತ ಸಹಾಯ, \n"
 "    ಅಥವ ಸಹಾಯವನ್ನು ಮುದ್ರಿಸುತ್ತದೆ."
 
-#: tools/vsh.c:3232
+#: tools/vsh.c:3190
 msgid ""
 "Grouped commands:\n"
 "\n"
@@ -46657,87 +46657,87 @@ msgstr ""
 "ಗುಂಪುಗೊಳಿಸಲಾದ ಆದೇಶಗಳು:\n"
 "\n"
 
-#: tools/vsh.c:3256
+#: tools/vsh.c:3214
 #, c-format
 msgid "command or command group '%s' doesn't exist"
 msgstr "'%s' ಎಂಬ ಆದೇಶ ಅಥವ ಆದೇಶಯ ಗುಂಪು ಅಸ್ತಿತ್ವದಲ್ಲಿಲ್ಲ"
 
-#: tools/vsh.c:3264
+#: tools/vsh.c:3222
 msgid "directory to switch to (default: home or else root)"
 msgstr "ಬದಲಾಯಿಸಬೇಕಿರುವ ಕೋಶ (ಪೂರ್ವನಿಯೋಜಿತ: home ಇಲ್ಲದೆ ಇದ್ದರೆ root)"
 
-#: tools/vsh.c:3271
+#: tools/vsh.c:3229
 msgid "change the current directory"
 msgstr "ಪ್ರಸಕ್ತ ಕೋಶವನ್ನು ಬದಲಾಯಿಸಿ"
 
-#: tools/vsh.c:3274
+#: tools/vsh.c:3232
 msgid "Change the current directory."
 msgstr "ಪ್ರಸಕ್ತ ಕೋಶವನ್ನು ಬದಲಾಯಿಸಿ."
 
-#: tools/vsh.c:3288
+#: tools/vsh.c:3246
 msgid "cd: command valid only in interactive mode"
 msgstr "cd: ಆದೇಶಯು ಕೇವಲ ಸಂವಾದಾತ್ಮಕ ಕ್ರಮದಲ್ಲಿ ಮಾತ್ರ ಮಾನ್ಯವಾಗಿರುತ್ತದೆ"
 
-#: tools/vsh.c:3298
+#: tools/vsh.c:3256
 #, c-format
 msgid "cd: %s: %s"
 msgstr "cd: %s: %s"
 
-#: tools/vsh.c:3310
+#: tools/vsh.c:3268
 msgid "escape for shell use"
 msgstr "ಶೆಲ್‌ ಬಳಕೆಗಾಗಿ ಎಸ್ಕೇಪ್"
 
-#: tools/vsh.c:3314
+#: tools/vsh.c:3272
 msgid "escape for XML use"
 msgstr "XML ಬಳಕೆಗಾಗಿ ಎಸ್ಕೇಪ್"
 
-#: tools/vsh.c:3326
+#: tools/vsh.c:3284
 msgid "arguments to echo"
 msgstr "ಪ್ರತಿಧ್ವನಿಸಲು ಆರ್ಗ್ಯುಮೆಂಟುಗಳು"
 
-#: tools/vsh.c:3333
+#: tools/vsh.c:3291
 msgid "echo arguments"
 msgstr "ಪ್ರತಿಧ್ವನಿ ಆರ್ಗುಮೆಂಟ್‌ಗಳು"
 
-#: tools/vsh.c:3336
+#: tools/vsh.c:3294
 msgid "Echo back arguments, possibly with quoting."
 msgstr "ಆರ್ಗ್ಯುಮೆಂಟ್‌ಗಳನ್ನು, ಮರಳಿ ಪ್ರತಿಧ್ವನಿಸು, ಸಾಧ್ಯವಿದ್ದಲ್ಲಿ ಉಲ್ಲೇಖದೊಂದಿಗೆ."
 
-#: tools/vsh.c:3400
+#: tools/vsh.c:3358
 msgid "print the current directory"
 msgstr "ಪ್ರಸಕ್ತ ಕೋಶವನ್ನು ಮುದ್ರಿಸು"
 
-#: tools/vsh.c:3403
+#: tools/vsh.c:3361
 msgid "Print the current directory."
 msgstr "ಪ್ರಸಕ್ತ ಕೋಶವನ್ನು ಮುದ್ರಿಸು."
 
-#: tools/vsh.c:3417
+#: tools/vsh.c:3375
 #, c-format
 msgid "pwd: cannot get current directory: %s"
 msgstr "pwd: ಪ್ರಸಕ್ತ ಕೋಶವನ್ನು ಪಡೆಯಲು ಸಾಧ್ಯವಾಗಿಲ್ಲ: %s"
 
-#: tools/vsh.c:3421
+#: tools/vsh.c:3379
 #, c-format
 msgid "%s\n"
 msgstr "%s\n"
 
-#: tools/vsh.c:3430
+#: tools/vsh.c:3388
 msgid "quit this interactive terminal"
 msgstr "ಈ ಸಂವಾದಾತ್ಮಕ ಟರ್ಮಿನಲ್ಲಿನಿಂದ ನಿರ್ಗಮಿಸು"
 
-#: tools/vsh.c:3451
+#: tools/vsh.c:3409
 msgid "internal command for testing virt shells"
 msgstr ""
 
-#: tools/vsh.c:3454 tools/vsh.c:3497
+#: tools/vsh.c:3412 tools/vsh.c:3455
 msgid "internal use only"
 msgstr ""
 
-#: tools/vsh.c:3487
+#: tools/vsh.c:3445
 msgid "partial string to autocomplete"
 msgstr ""
 
-#: tools/vsh.c:3494
+#: tools/vsh.c:3452
 msgid "internal command for autocompletion"
 msgstr ""
 
