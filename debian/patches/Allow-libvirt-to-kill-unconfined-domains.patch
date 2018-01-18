@@ -1,6 +1,6 @@
 From: intrigeri <intrigeri+libvirt@boum.org>
 Date: Mon, 15 Jan 2018 09:29:47 +0100
-Subject: Allow libvirt to kill unconfined domaiens
+Subject: Allow libvirt to kill unconfined domains
 
 On startup libvirtd runs a number of QEMU processes unconfined such as:
 

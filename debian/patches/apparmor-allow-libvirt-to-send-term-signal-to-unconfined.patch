@@ -1,0 +1,24 @@
+From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Wed, 17 Jan 2018 16:20:37 +0100
+Subject: apparmor: allow libvirt to send term signal to unconfined
+
+Otherwise stopping domains with qemu://session fails like
+
+[164012.338157] audit: type=1400 audit(1516202208.784:99): apparmor="DENIED" operation="signal" profile="/usr/sbin/libvirtd" pid=18835 comm="libvirtd" requested_mask="send" denied_mask="send" signal=term peer="unconfined"
+---
+ examples/apparmor/usr.sbin.libvirtd | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/examples/apparmor/usr.sbin.libvirtd b/examples/apparmor/usr.sbin.libvirtd
+index 4d220c2..72d7987 100644
+--- a/examples/apparmor/usr.sbin.libvirtd
++++ b/examples/apparmor/usr.sbin.libvirtd
+@@ -63,7 +63,7 @@
+ 
+   signal (send) peer=/usr/sbin/dnsmasq,
+   signal (read, send) peer=libvirt-*,
+-  signal (send) set=("kill") peer=unconfined,
++  signal (send) set=("kill", "term") peer=unconfined,
+ 
+   # Very lenient profile for libvirtd since we want to first focus on confining
+   # the guests. Guests will have a very restricted profile.
