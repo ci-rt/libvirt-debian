@@ -270,7 +270,7 @@ Depends:
  ${shlibs:Depends},
  augeas-tools,
  libvirt0 (= ${binary:Version}),
-Priority: extra
+Priority: optional
 Description: Sanlock plugin for virtlockd
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
@@ -285,7 +285,7 @@ Depends:
  ${misc:Depends},
  ${shlibs:Depends},
  libvirt0 (= ${binary:Version}),
-Priority: extra
+Priority: optional
 Description: nss plugin providing IP add ress resolution for virtual machines
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
@@ -300,7 +300,7 @@ Architecture: any
 Depends:
  ${misc:Depends},
  ${shlibs:Depends},
-Priority: extra
+Priority: optional
 Description: Wireshark dissector for the libvirt protocol
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
