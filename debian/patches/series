@@ -24,3 +24,4 @@ apparmor-allow-usr-lib-qemu-qemu-bridge-helper.patch
 qemu-skip-QMP-probing-of-CPU-definitions-when-missing.patch
 security/qemu-ensure-TLS-clients-always-verify-the-server-certific.patch
 qemu-shared-disks-with-cache-directsync-should-be-safe-fo.patch
+qemu-avoid-denial-of-service-reading-from-QEMU-monitor-CV.patch
