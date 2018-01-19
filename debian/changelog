@@ -1,12 +1,15 @@
-libvirt (4.0.0~rc2-1~1.gbp036943) UNRELEASED; urgency=medium
+libvirt (4.0.0~rc2-1) experimental; urgency=medium
 
-  ** SNAPSHOT build @0369438b0a4adbd7739d47223069dfa0cf737487 **
-
-  * [8dd2f5b] Don't manage /etc/apparmor.d/local as conf files (Closes: #887612)
+  * [8dd2f5b] Don't manage /etc/apparmor.d/local as conf files
+    (Closes: #887612)
   * [0819e5a] apparmor: allow libvirt to send term signal to unconfined
   * [b1ecc1a] New upstream version 4.0.0~rc2
+  * [7406ae5] CVE-2018-5748: qemu: avoid denial of service reading from QEMU
+    monitor (Closes: #887700)
+  * [564e232] Bump symbol versions
+  * [0a274c0] d/control: use priority optional instead of extra
 
- -- Guido Günther <agx@sigxcpu.org>  Thu, 18 Jan 2018 14:34:35 +0100
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 19 Jan 2018 12:54:54 +0100
 
 libvirt (4.0.0~rc1-1) experimental; urgency=medium
 
