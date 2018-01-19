@@ -17,6 +17,4 @@ debian/apparmor_profiles_local_include.patch
 Set-defaults-for-zfs-tools.patch
 Pass-GPG_TTY-env-var-to-the-ssh-binary.patch
 apparmor-Allow-virt-aa-helper-to-access-the-name-service-.patch
-Allow-libvirt-to-kill-unconfined-domains.patch
 apparmor-allow-libvirt-to-send-term-signal-to-unconfined.patch
-qemu-avoid-denial-of-service-reading-from-QEMU-monitor-CV.patch
