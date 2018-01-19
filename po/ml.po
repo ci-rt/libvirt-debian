@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt 3.10.0\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2018-01-17 10:10+0100\n"
+"POT-Creation-Date: 2018-01-19 11:40+0100\n"
 "PO-Revision-Date: 2015-02-27 10:04-0500\n"
 "Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
 "Language-Team: Malayalam (http://www.transifex.com/projects/p/libvirt/"
@@ -1388,7 +1388,7 @@ msgid "unknown emulator binary: %s"
 msgstr ""
 
 #: src/bhyve/bhyve_monitor.c:60 src/qemu/qemu_agent.c:612
-#: src/qemu/qemu_monitor.c:664
+#: src/qemu/qemu_monitor.c:679
 #, c-format
 msgid "event from unexpected fd %d!=%d / watch %d!=%d"
 msgstr "പ്രതീക്ഷിക്കാത്ത %d!=%d / watch %d!=%d എന്ന fd യില്‍ നിന്നുള്ള ഇവന്റ് "
@@ -1419,7 +1419,7 @@ msgid "Unable to register process kevent"
 msgstr "മോണിറ്റര്‍ ഇവന്റുകള്‍ രജിസ്ടര്‍ ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
 #: src/bhyve/bhyve_monitor.c:166 src/qemu/qemu_agent.c:790
-#: src/qemu/qemu_monitor.c:853
+#: src/qemu/qemu_monitor.c:868
 msgid "unable to register monitor events"
 msgstr "മോണിറ്റര്‍ ഇവന്റുകള്‍ രജിസ്ടര്‍ ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
@@ -5939,7 +5939,7 @@ msgstr "പിസിഐ വിലാസം ഫോര്‍മാറ്റ് ച
 
 #: src/conf/domain_conf.c:23339 src/conf/domain_conf.c:23380
 #: src/conf/domain_conf.c:25406 src/conf/domain_conf.c:25415
-#: src/libxl/libxl_driver.c:3775 src/qemu/qemu_hotplug.c:5076
+#: src/libxl/libxl_driver.c:3775 src/qemu/qemu_hotplug.c:5077
 #, c-format
 msgid "unexpected hostdev type %d"
 msgstr "അപ്രതീക്ഷിതമായ hostdev രീതി %d"
@@ -12533,7 +12533,7 @@ msgid "hostdev subsys type '%s' not supported"
 msgstr "hostdev subsys രീതി '%s' പിന്തുണയ്ക്കുന്നില്ല"
 
 #: src/libxl/libxl_driver.c:3288 src/lxc/lxc_driver.c:4376
-#: src/qemu/qemu_hotplug.c:4711 src/uml/uml_driver.c:2301
+#: src/qemu/qemu_hotplug.c:4712 src/uml/uml_driver.c:2301
 #, c-format
 msgid "disk %s not found"
 msgstr "ഡിസ്ക് %s ലഭ്യമല്ല"
@@ -12587,12 +12587,12 @@ msgstr "ഡിവൈസ് നിലവില്‍ ഡൊമെയിന്‍ 
 msgid "persistent attach of device is not supported"
 msgstr "ഉപകരണത്തിന്റെ സ്ഥിരമായ ചേര്‍ത്തുവയ്ക്കലിനുള്ള പിന്തുണ ലഭ്യമല്ല"
 
-#: src/libxl/libxl_driver.c:3585 src/qemu/qemu_hotplug.c:5040
+#: src/libxl/libxl_driver.c:3585 src/qemu/qemu_hotplug.c:5041
 #, c-format
 msgid "host pci device %.4x:%.2x:%.2x.%.1x not found"
 msgstr "ഹോസ്റ്റ് pci ഡിവൈസ് %.4x:%.2x:%.2x.%.1x ലഭ്യമല്ല"
 
-#: src/libxl/libxl_driver.c:3593 src/qemu/qemu_hotplug.c:4882
+#: src/libxl/libxl_driver.c:3593 src/qemu/qemu_hotplug.c:4883
 #, c-format
 msgid "cannot hot unplug multifunction PCI device: %.4x:%.2x:%.2x.%.1x"
 msgstr ""
@@ -12606,7 +12606,7 @@ msgid ""
 "%.2x.%.1x"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3655 src/qemu/qemu_hotplug.c:4811
+#: src/libxl/libxl_driver.c:3655 src/qemu/qemu_hotplug.c:4812
 #, fuzzy, c-format
 msgid "controller %s:%d not found"
 msgstr "കണ്ട്രോളര്‍ %s:%d ലഭ്യമല്ല"
@@ -12646,8 +12646,8 @@ msgstr "ലക്ഷ്യ ഡിവൈസ് %s ലഭ്യമല്ല"
 #: src/libxl/libxl_driver.c:3905 src/libxl/libxl_driver.c:3925
 #: src/lxc/lxc_driver.c:3645 src/qemu/qemu_driver.c:8176
 #: src/qemu/qemu_driver.c:8200 src/qemu/qemu_hotplug.c:1803
-#: src/qemu/qemu_hotplug.c:5104 src/qemu/qemu_hotplug.c:5432
-#: src/qemu/qemu_hotplug.c:5479 src/qemu/qemu_hotplug.c:5522
+#: src/qemu/qemu_hotplug.c:5105 src/qemu/qemu_hotplug.c:5433
+#: src/qemu/qemu_hotplug.c:5480 src/qemu/qemu_hotplug.c:5523
 msgid "device not present in domain configuration"
 msgstr "ഡൊമെയിന്‍ ക്രമീകരണത്തില്‍ ഡിവൈസ് ലഭ്യമല്ല"
 
@@ -16213,16 +16213,16 @@ msgstr ""
 "സജീവമാക്കാന്‍ സഹായവിഭാഗവുമായി ബന്ധപ്പെടുക"
 
 #: src/qemu/qemu_agent.c:188 src/qemu/qemu_interface.c:330
-#: src/qemu/qemu_monitor.c:349
+#: src/qemu/qemu_monitor.c:358
 msgid "failed to create socket"
 msgstr "സോക്കറ്റ് ഉണ്ടാക്കുന്നതില്‍ പരാജയം"
 
-#: src/qemu/qemu_agent.c:194 src/qemu/qemu_monitor.c:844
+#: src/qemu/qemu_agent.c:194 src/qemu/qemu_monitor.c:859
 msgid "Unable to put monitor into non-blocking mode"
 msgstr "മോണിറ്ററിനെ നോണ്‍-ബ്ലോക്കിങ് മോഡിലേക്കു് സജ്ജാക്കുവാന്‍ സാധ്യമല്ല"
 
 #: src/qemu/qemu_agent.c:201 src/qemu/qemu_agent.c:269
-#: src/qemu/qemu_monitor.c:839
+#: src/qemu/qemu_monitor.c:854
 msgid "Unable to set monitor close-on-exec flag"
 msgstr "മോണിറ്ററിനുള്ള close-on-exec ഫ്ലാഗ് സജ്ജമാക്കുവാന്‍ സാധ്യമല്ല"
 
@@ -16231,15 +16231,15 @@ msgstr "മോണിറ്ററിനുള്ള close-on-exec ഫ്ലാഗ
 msgid "Agent path %s too big for destination"
 msgstr "ഏജന്റ് പാത്ത് %s ലക്ഷ്യത്തെ അപേക്ഷിച്ച് വളരെ വലുതാണ്"
 
-#: src/qemu/qemu_agent.c:238 src/qemu/qemu_monitor.c:377
+#: src/qemu/qemu_agent.c:238 src/qemu/qemu_monitor.c:386
 msgid "failed to connect to monitor socket"
 msgstr "സോക്കറ്റ് നിരീക്ഷിക്കുന്നതിനായി കണക്ട് ചെയ്യുന്നതില്‍ പരാജയം"
 
-#: src/qemu/qemu_agent.c:245 src/qemu/qemu_monitor.c:384
+#: src/qemu/qemu_agent.c:245 src/qemu/qemu_monitor.c:393
 msgid "monitor socket did not show up"
 msgstr "മോണിറ്റര്‍ സോക്കറ്റ് ലഭ്യമല്ല"
 
-#: src/qemu/qemu_agent.c:263 src/qemu/qemu_monitor.c:403
+#: src/qemu/qemu_agent.c:263 src/qemu/qemu_monitor.c:412
 #, c-format
 msgid "Unable to open monitor path %s"
 msgstr "%s മോണിറ്റര്‍ പാഥ് തുറക്കുവാന്‍ സാധ്യമല്ല"
@@ -16267,11 +16267,11 @@ msgstr "സോക്കറ്റ് കണക്ഷന്റെ സ്ഥിത�
 msgid "Cannot connect to agent socket"
 msgstr "ഏജന്റ് സോക്കറ്റിലേക്കു് കണക്ട് ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_agent.c:518 src/qemu/qemu_monitor.c:557
+#: src/qemu/qemu_agent.c:518 src/qemu/qemu_monitor.c:566
 msgid "Unable to write to monitor"
 msgstr "മോണിറ്ററിലേക്കു് സൂക്ഷിയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_agent.c:556 src/qemu/qemu_monitor.c:596
+#: src/qemu/qemu_agent.c:556 src/qemu/qemu_monitor.c:611
 msgid "Unable to read from monitor"
 msgstr "മോണിറ്ററില്‍ നിന്നും ലഭ്യമാക്കുവാന്‍ സാധ്യമല്ല"
 
@@ -16279,28 +16279,28 @@ msgstr "മോണിറ്ററില്‍ നിന്നും ലഭ്യ�
 msgid "End of file from agent monitor"
 msgstr ""
 
-#: src/qemu/qemu_agent.c:660 src/qemu/qemu_monitor.c:716
+#: src/qemu/qemu_agent.c:660 src/qemu/qemu_monitor.c:731
 msgid "Invalid file descriptor while waiting for monitor"
 msgstr "ര്‍മോണിറ്ററിനു വേണ്ടി കാത്തിരിക്കുമ്പോള്‍ സാധുവല്ലാത്ത ഫയല്‍ ഡിസ്ക്രിപ്റ്റ"
 
-#: src/qemu/qemu_agent.c:666 src/qemu/qemu_monitor.c:722
+#: src/qemu/qemu_agent.c:666 src/qemu/qemu_monitor.c:737
 #, c-format
 msgid "Unhandled event %d for monitor fd %d"
 msgstr "മോണിറ്റര്‍ fd %d ക്ക് ഹാന്റില്‍ ചെയ്യാത്ത ഇവന്റ് %d"
 
-#: src/qemu/qemu_agent.c:680 src/qemu/qemu_monitor.c:750
+#: src/qemu/qemu_agent.c:680 src/qemu/qemu_monitor.c:765
 msgid "Error while processing monitor IO"
 msgstr "മോണിറ്റര്‍ IO പ്രോസസ്സ് ചെയ്യുന്നതില്‍ പിഴവ് "
 
-#: src/qemu/qemu_agent.c:737 src/qemu/qemu_monitor.c:808
+#: src/qemu/qemu_agent.c:737 src/qemu/qemu_monitor.c:823
 msgid "EOF notify callback must be supplied"
 msgstr "EOF നോട്ടിഫൈ കാള്‍ബാക്ക് നല്‍കിയിരിക്കണം "
 
-#: src/qemu/qemu_agent.c:750 src/qemu/qemu_monitor.c:825
+#: src/qemu/qemu_agent.c:750 src/qemu/qemu_monitor.c:840
 msgid "cannot initialize monitor condition"
 msgstr "കണ്ടീഷന്‍ മോണിറ്റര്‍ ആരംഭിക്കുവാന്‍ സാധ്യമായില്ല"
 
-#: src/qemu/qemu_agent.c:769 src/qemu/qemu_monitor.c:926
+#: src/qemu/qemu_agent.c:769 src/qemu/qemu_monitor.c:941
 #, c-format
 msgid "unable to handle monitor type: %s"
 msgstr "മോണിറ്റര്‍ രീതി കൈകാര്യം ചെയ്യുവാന്‍ സാധ്യമല്ല: %s"
@@ -17605,7 +17605,7 @@ msgid "VFIO PCI device assignment is not supported by this version of qemu"
 msgstr "VFIO പിസിഐ ഡിവൈസ് നല്‍കുന്നതു് qemu-ന്റെ ഈ പതിപ്പു് പിന്തുണയ്ക്കുന്നില്ല"
 
 #: src/qemu/qemu_command.c:5576 src/qemu/qemu_command.c:5586
-#: src/qemu/qemu_hotplug.c:2352 src/qemu/qemu_hotplug.c:2492
+#: src/qemu/qemu_hotplug.c:2350 src/qemu/qemu_hotplug.c:2493
 msgid "SCSI passthrough is not supported by this version of qemu"
 msgstr "qemu-ന്റെ ഈ പതിപ്പു് എസ്‌സിഎസ്ഐ പിന്തുണയ്ക്കുന്നില്ല"
 
@@ -19491,7 +19491,7 @@ msgstr "ഈ സിസ്റ്റം ബൈപ്പാസ് കാഷിനെ
 #: src/qemu/qemu_driver.c:14824 src/qemu/qemu_driver.c:15815
 #: src/qemu/qemu_driver.c:15882 src/qemu/qemu_hotplug.c:629
 #: src/qemu/qemu_migration.c:4275 src/qemu/qemu_migration.c:4839
-#: src/qemu/qemu_migration.c:5323 src/qemu/qemu_migration.c:5555
+#: src/qemu/qemu_migration.c:5323 src/qemu/qemu_migration.c:5557
 #: src/qemu/qemu_process.c:554
 msgid "guest unexpectedly quit"
 msgstr "ഗസ്റ്റ് അപ്രതീക്ഷിതമായി നിന്നിരിക്കുന്നു"
@@ -19791,7 +19791,7 @@ msgstr ""
 msgid "no free memory device slot available"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:8099 src/qemu/qemu_hotplug.c:2773
+#: src/qemu/qemu_driver.c:8099 src/qemu/qemu_hotplug.c:2774
 msgid "domain already has a watchdog"
 msgstr ""
 
@@ -19800,7 +19800,7 @@ msgstr ""
 msgid "persistent attach of device '%s' is not supported"
 msgstr "ഡിവൈസ് '%s' സ്ഥിരമായ ചേര്‍ത്തുവയ്ക്കലിനുള്ള പിന്തുണ ലഭ്യമല്ല"
 
-#: src/qemu/qemu_driver.c:8188 src/qemu/qemu_hotplug.c:5407
+#: src/qemu/qemu_driver.c:8188 src/qemu/qemu_hotplug.c:5408
 #, c-format
 msgid "Lease %s in lockspace %s does not exist"
 msgstr "ലീസ് %s, ലോക്ക്സ്പെയിസ് %s-ല്‍ നിലവിവില്ല"
@@ -19817,7 +19817,7 @@ msgstr ""
 msgid "matching memory device was not found"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:8256 src/qemu/qemu_hotplug.c:5204
+#: src/qemu/qemu_driver.c:8256 src/qemu/qemu_hotplug.c:5205
 msgid "no matching redirdev was not found"
 msgstr ""
 
@@ -19829,7 +19829,7 @@ msgstr ""
 msgid "domain has no watchdog"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:8287 src/qemu/qemu_hotplug.c:6223
+#: src/qemu/qemu_driver.c:8287 src/qemu/qemu_hotplug.c:6224
 msgid "matching input device not found"
 msgstr ""
 
@@ -20029,7 +20029,7 @@ msgstr "ക്യൂഇഎംയു ബൈനറി കമ്പ്രസ്സ�
 #: src/qemu/qemu_driver.c:13590 src/qemu/qemu_driver.c:16669
 #: src/qemu/qemu_driver.c:16957 src/qemu/qemu_driver.c:17290
 #: src/qemu/qemu_driver.c:17480 src/qemu/qemu_migration.c:928
-#: src/qemu/qemu_monitor.c:2544 tools/virsh-domain.c:2303
+#: src/qemu/qemu_monitor.c:2559 tools/virsh-domain.c:2303
 #, c-format
 msgid "bandwidth must be less than %llu"
 msgstr "ബാന്‍ഡ്‌വിഡ്ത് %llu-നേക്കാള്‍ കുറവായിരിയ്ക്കണം"
@@ -20724,52 +20724,52 @@ msgstr "സീരിയല്‍ കണ്‍സോള്‍ വേര്‍പ�
 msgid "Unsupported address type for character device"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2592
+#: src/qemu/qemu_hotplug.c:2593
 #, c-format
 msgid "hotplug is not supported for hostdev mode '%s'"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2623
+#: src/qemu/qemu_hotplug.c:2624
 #, c-format
 msgid "hotplug is not supported for hostdev subsys type '%s'"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2658
+#: src/qemu/qemu_hotplug.c:2659
 #, c-format
 msgid "live attach of shmem model '%s' is not supported"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2789
+#: src/qemu/qemu_hotplug.c:2790
 #, c-format
 msgid "hotplug of watchdog of model %s is not supported"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2848
+#: src/qemu/qemu_hotplug.c:2849
 #, c-format
 msgid "input device on bus '%s' cannot be hot plugged."
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2937 src/qemu/qemu_interface.c:525
+#: src/qemu/qemu_hotplug.c:2938 src/qemu/qemu_interface.c:525
 #, fuzzy
 msgid "Missing bridge name"
 msgstr "ടൈമര്‍ നാമം ലഭ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:2946
+#: src/qemu/qemu_hotplug.c:2947
 #, c-format
 msgid "bridge %s doesn't exist"
 msgstr "ബ്രിഡ്ജ് %s നിലവിലില്ല"
 
-#: src/qemu/qemu_hotplug.c:2970
+#: src/qemu/qemu_hotplug.c:2971
 #, c-format
 msgid "unable to recover former state by adding port to bridge %s"
 msgstr "ബ്രിഡ്ജ് %s-ലേക്കു് പോര്‍ട്ട് ചേര്‍ത്തു് മുമ്പുള്ള അവസ്ഥ വീണ്ടെടുക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:2994
+#: src/qemu/qemu_hotplug.c:2995
 #, c-format
 msgid "filters not supported on interfaces of type %s"
 msgstr "%s തരത്തിലുള്ള ഇന്റര്‍ഫെയിസുകളില്‍ ഫില്‍റ്ററുകള്‍ പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/qemu/qemu_hotplug.c:3006
+#: src/qemu/qemu_hotplug.c:3007
 #, c-format
 msgid ""
 "failed to add new filter rules to '%s' - attempting to restore old rules"
@@ -20777,310 +20777,310 @@ msgstr ""
 "'%s'-ലേക്കു് പുതിയ ഫില്‍റ്റര്‍ നിയമങ്ങള്‍ ചേര്‍ക്കുന്നതില്‍ പരാജയപ്പെട്ടു - പഴയ നിയമങ്ങള്‍ "
 "വീണ്ടെടുക്കുന്നതിനു് ശ്രമിയ്ക്കുന്നു"
 
-#: src/qemu/qemu_hotplug.c:3027
+#: src/qemu/qemu_hotplug.c:3028
 msgid "can't change link state: device alias not found"
 msgstr "കണ്ണിയുടെ അവസ്ഥ മാറ്റുവാന്‍ സാധ്യമല്ല: ഡിവൈസിന്റെ വിളിപ്പേരു് ലഭ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3075
+#: src/qemu/qemu_hotplug.c:3076
 msgid "cannot find existing network device to modify"
 msgstr "മാറ്റം വരുത്തുന്നതിനായി നിലവിലുള്ളൊരു നെറ്റ്‌വര്‍ത്ത് ഡിവൈസ് കണ്ടുപിടിയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3083
+#: src/qemu/qemu_hotplug.c:3084
 #, c-format
 msgid "cannot change config of '%s' network type"
 msgstr "'%s' നെറ്റ്‌വര്‍ക്ക് തരത്തിന്റെ ക്രമീകരണം മാറ്റുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3106
+#: src/qemu/qemu_hotplug.c:3107
 #, c-format
 msgid "cannot change network interface mac address from %s to %s"
 msgstr ""
 "%s-ല്‍ നിന്നും %s-ലേക്കുള്ള നെറ്റ്‌വര്‍ക്ക് ഇന്റര്‍ഫെയിസ് മാക് വിലാസത്തില്‍ മാറ്റം വരുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3115
+#: src/qemu/qemu_hotplug.c:3116
 #, c-format
 msgid "cannot modify network device model from %s to %s"
 msgstr "%s-ല്‍ നിന്നും %s-ലേക്കുള്ള നെറ്റ്‌വര്‍ക്ക് ഡിവൈസ് മോഡലില്‍ മാറ്റം വരുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3142
+#: src/qemu/qemu_hotplug.c:3143
 msgid "cannot modify virtio network device driver attributes"
 msgstr "virtio നെറ്റ്‌വര്‍ക്ക് ഡിവൈസ് ഡ്രൈവര്‍ വിശേഷതകളില്‍ മാറ്റം വരുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3156
+#: src/qemu/qemu_hotplug.c:3157
 msgid "cannot modify network device script attribute"
 msgstr "നെറ്റ്‌വര്‍ക്ക് ഡിവൈസ് സ്ക്രിപ്റ്റ് വിശേഷതയില്‍ മാറ്റും വരുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3165
+#: src/qemu/qemu_hotplug.c:3166
 msgid "cannot modify network device tap name"
 msgstr "നെറ്റ്‌വര്‍ക്ക് ഡിവൈസ് റ്റാപ്പ് നാമത്തില്‍ മാറ്റം വരുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3183
+#: src/qemu/qemu_hotplug.c:3184
 msgid "cannot modify network device guest PCI address"
 msgstr "നെറ്റ്‌വര്‍ക്ക് ഡിവൈസ് ഗസ്റ്റ് പിസിഐ വിലാസത്തില്‍ മാറ്റം വരുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3192
+#: src/qemu/qemu_hotplug.c:3193
 msgid "cannot modify network device alias"
 msgstr "നെറ്റ്‌വര്‍ക്ക് ഡിവൈസിന്റെ വിളിപ്പേരു് മാറ്റുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3197
+#: src/qemu/qemu_hotplug.c:3198
 msgid "cannot modify network device rom bar setting"
 msgstr "നെറ്റ്‌വര്‍ക്ക് ഡിവൈസ് rom ബാര്‍ സജ്ജീകരണത്തില്‍ മാറ്റം വരുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3202
+#: src/qemu/qemu_hotplug.c:3203
 msgid "cannot modify network rom file"
 msgstr "നെറ്റ്‌വര്‍ക്ക് rom ഫയലില്‍ മാറ്റം വരുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3207
+#: src/qemu/qemu_hotplug.c:3208
 msgid "cannot modify network device boot index setting"
 msgstr "നെറ്റ്‌വര്‍ക്ക് ഡിവൈസ് ബൂട്ട് സൂചിക സജ്ജീകരണത്തില്‍ മാറ്റം വരുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3223
+#: src/qemu/qemu_hotplug.c:3224
 msgid "cannot modify MTU"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:3240
+#: src/qemu/qemu_hotplug.c:3241
 #, c-format
 msgid "cannot change network interface type to '%s'"
 msgstr "നെറ്റ്‌വര്‍ക്ക് ഇന്റര്‍ഫെയിസ് തരം '%s'-ലേക്കു് മാറ്റുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3293 src/qemu/qemu_hotplug.c:3375
+#: src/qemu/qemu_hotplug.c:3294 src/qemu/qemu_hotplug.c:3376
 #, c-format
 msgid "unable to change config on '%s' network type"
 msgstr "'%s' നെറ്റ്‌വര്‍ക്ക് തരത്തില്‍ ക്രമീകരണത്തില്‍ മാറ്റം വരുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3517
+#: src/qemu/qemu_hotplug.c:3518
 msgid "cannot find existing graphics device to modify"
 msgstr "മാറ്റം വരുത്തുന്നതിനായി നിലവിലുള്ളൊരു ഗ്രാഫിക്സ് ഡിവൈസും ലഭ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3523
+#: src/qemu/qemu_hotplug.c:3524
 #, c-format
 msgid "cannot change the number of listen addresses on '%s' graphics"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:3534
+#: src/qemu/qemu_hotplug.c:3535
 #, c-format
 msgid "cannot change the type of listen address on '%s' graphics"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:3543 src/qemu/qemu_hotplug.c:3553
+#: src/qemu/qemu_hotplug.c:3544 src/qemu/qemu_hotplug.c:3554
 #, c-format
 msgid "cannot change listen address setting on '%s' graphics"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:3563
+#: src/qemu/qemu_hotplug.c:3564
 #, c-format
 msgid "cannot change listen socket setting on '%s' graphics"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:3582
+#: src/qemu/qemu_hotplug.c:3583
 msgid "cannot change port settings on vnc graphics"
 msgstr "വിഎന്‍സി ഗ്രാഫിക്സില്‍ പോര്‍ട്ട് സജ്ജീകരണങ്ങള്‍ മാറ്റുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3587
+#: src/qemu/qemu_hotplug.c:3588
 msgid "cannot change keymap setting on vnc graphics"
 msgstr "വിഎന്‍സി ഗ്രാഫിക്സില്‍ കീമാപ്പ് സജ്ജീകരണങ്ങള്‍ മാറ്റുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3628
+#: src/qemu/qemu_hotplug.c:3629
 msgid "cannot change port settings on spice graphics"
 msgstr "സ്പയിസ് ഗ്രാഫിക്സില്‍ പോര്‍ട്ട് സജ്ജീകരണങ്ങള്‍ മാറ്റുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3634
+#: src/qemu/qemu_hotplug.c:3635
 msgid "cannot change keymap setting on spice graphics"
 msgstr "സ്പയിസ് ഗ്രാഫിക്സില്‍ കീമാപ്പ് സജ്ജീകരണങ്ങള്‍ മാറ്റുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:3676
+#: src/qemu/qemu_hotplug.c:3677
 #, c-format
 msgid "unable to change config on '%s' graphics type"
 msgstr "'%s' ഗ്രാഫിക്സ് തരത്തില്‍ ക്രമീകരണത്തില്‍ മാറ്റം വരുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:4110
+#: src/qemu/qemu_hotplug.c:4111
 msgid "unable to determine original VLAN"
 msgstr "യഥാര്‍ത്ഥ VLAN കണ്ടുപിടിയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:4508
+#: src/qemu/qemu_hotplug.c:4509
 #, fuzzy, c-format
 msgid "don't know how to remove a %s device"
 msgstr "ഒരു %s ഡിവൈസ് എങ്ങനെ നീക്കം ചെയ്യണമെന്നറിയില്ല"
 
-#: src/qemu/qemu_hotplug.c:4585
+#: src/qemu/qemu_hotplug.c:4586
 msgid "unplug of device was rejected by the guest"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:4626 src/qemu/qemu_hotplug.c:4837
-#: src/qemu/qemu_hotplug.c:5257
+#: src/qemu/qemu_hotplug.c:4627 src/qemu/qemu_hotplug.c:4838
+#: src/qemu/qemu_hotplug.c:5258
 #, c-format
 msgid "cannot hot unplug multifunction PCI device: %s"
 msgstr "അനവധി പ്രവര്‍ത്തനങ്ങള്‍ക്കുള്ള പിസിഐ ഡിവൈസ് ഹോട്ട് അണ്‍പ്ലഗ് ചെയ്യുവാന്‍ സാധ്യമല്ല: %s"
 
-#: src/qemu/qemu_hotplug.c:4726 src/uml/uml_driver.c:2366
+#: src/qemu/qemu_hotplug.c:4727 src/uml/uml_driver.c:2366
 msgid "This type of disk cannot be hot unplugged"
 msgstr "ഈ തരത്തിലുള്ള ഡിസ്ക് ഹോട്ട് അണ്‍പ്ലഗ്ഗ് ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:4730
+#: src/qemu/qemu_hotplug.c:4731
 #, c-format
 msgid "disk device type '%s' cannot be detached"
 msgstr "ഡിസ്ക് ഡിവൈസ് തരം '%s' വേര്‍പെടുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:4823
+#: src/qemu/qemu_hotplug.c:4824
 #, c-format
 msgid "device with '%s' address cannot be detached"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:4830
+#: src/qemu/qemu_hotplug.c:4831
 #, c-format
 msgid "device with invalid '%s' address cannot be detached"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:4844
+#: src/qemu/qemu_hotplug.c:4845
 msgid "device cannot be detached: device is busy"
 msgstr "ഡിസ്ക് വേര്‍പെടുത്തുവാന്‍ സാധ്യമല്ല: ഡിവൈസ് തിരക്കിലാണു്"
 
-#: src/qemu/qemu_hotplug.c:4908 src/qemu/qemu_hotplug.c:4932
-#: src/qemu/qemu_hotplug.c:4957
+#: src/qemu/qemu_hotplug.c:4909 src/qemu/qemu_hotplug.c:4933
+#: src/qemu/qemu_hotplug.c:4958
 msgid "device cannot be detached without a device alias"
 msgstr "ഒരു ഡിവൈസ് നാമമില്ലാതെ ഡിവൈസ് വേര്‍പെടുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:4997
+#: src/qemu/qemu_hotplug.c:4998
 #, c-format
 msgid "hot unplug is not supported for hostdev subsys type '%s'"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:5029
+#: src/qemu/qemu_hotplug.c:5030
 #, c-format
 msgid "hot unplug is not supported for hostdev mode '%s'"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:5047
+#: src/qemu/qemu_hotplug.c:5048
 #, c-format
 msgid "host usb device %03d.%03d not found"
 msgstr "ഹോസ്റ്റ് യുഎസ്ബി %03d.%03d ലഭ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:5051
+#: src/qemu/qemu_hotplug.c:5052
 #, c-format
 msgid "host usb device vendor=0x%.4x product=0x%.4x not found"
 msgstr "ഹോസ്റ്റ് യുഎസ്ബി ഡിവൈസ് കച്ചവടക്കാരന്‍=0x%.4x പ്രൊഡക്ട്=0x%.4x ലഭ്യമായില്ല"
 
-#: src/qemu/qemu_hotplug.c:5060
+#: src/qemu/qemu_hotplug.c:5061
 #, c-format
 msgid "host scsi iSCSI path %s not found"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:5066
+#: src/qemu/qemu_hotplug.c:5067
 #, c-format
 msgid "host scsi device %s:%u:%u.%llu not found"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:5117
+#: src/qemu/qemu_hotplug.c:5118
 #, c-format
 msgid "live detach of shmem model '%s' is not supported"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:5161
+#: src/qemu/qemu_hotplug.c:5162
 msgid "watchdog device not present in domain configuration"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:5167
+#: src/qemu/qemu_hotplug.c:5168
 #, c-format
 msgid "hot unplug of watchdog of model %s is not supported"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:5212
+#: src/qemu/qemu_hotplug.c:5213
 #, fuzzy
 msgid "alias not set for redirdev device"
 msgstr "ഈ ഡിവൈസിനു് പേരന്റില്ല"
 
-#: src/qemu/qemu_hotplug.c:5332
+#: src/qemu/qemu_hotplug.c:5333
 msgid "Graphics password only supported for VNC"
 msgstr "ഗ്രാഫിക്സ് രഹസ്യവാക്ക് വിഎന്‍സി മാത്രമേ പിന്തുണയ്ക്കുന്നുള്ളൂ"
 
-#: src/qemu/qemu_hotplug.c:5358
+#: src/qemu/qemu_hotplug.c:5359
 msgid "Expiry of passwords is not supported"
 msgstr "രഹസ്യവാക്കുകളുടെ കാലാവധി പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/qemu/qemu_hotplug.c:5487
+#: src/qemu/qemu_hotplug.c:5488
 msgid "alias not set for RNG device"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:5530
+#: src/qemu/qemu_hotplug.c:5531
 msgid "alias for the memory device was not found"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:5632
+#: src/qemu/qemu_hotplug.c:5633
 #, c-format
 msgid "vcpu '%u' can't be unplugged"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:5653
+#: src/qemu/qemu_hotplug.c:5654
 msgid "vcpu unplug request timed out"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:5795 src/qemu/qemu_hotplug.c:5822
+#: src/qemu/qemu_hotplug.c:5796 src/qemu/qemu_hotplug.c:5823
 msgid "target vm vcpu granularity does not allow the desired vcpu count"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:5833
+#: src/qemu/qemu_hotplug.c:5834
 msgid ""
 "failed to find appropriate hotpluggable vcpus to reach the desired target "
 "vcpu count"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:5971
+#: src/qemu/qemu_hotplug.c:5972
 #, c-format
 msgid ""
 "requested vcpus is greater than max allowable vcpus for the live domain: %u "
 "> %u"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:5979
+#: src/qemu/qemu_hotplug.c:5980
 #, c-format
 msgid ""
 "requested vcpus is greater than max allowable vcpus for the persistent "
 "domain: %u > %u"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:6061
+#: src/qemu/qemu_hotplug.c:6062
 #, c-format
 msgid "vcpu '%zd' is already in requested state"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:6067
+#: src/qemu/qemu_hotplug.c:6068
 #, c-format
 msgid "vcpu '%zd' can't be hotunplugged"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:6083
+#: src/qemu/qemu_hotplug.c:6084
 #, c-format
 msgid ""
 "vcpu '%zd' belongs to a larger hotpluggable entity, but siblings were not "
 "selected"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:6091
+#: src/qemu/qemu_hotplug.c:6092
 #, c-format
 msgid ""
 "vcpu '%zu' was not selected but it belongs to hotpluggable entity '%zd-%zd' "
 "which was partially selected"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:6123
+#: src/qemu/qemu_hotplug.c:6124
 msgid "vCPU '0' can't be modified"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:6142
+#: src/qemu/qemu_hotplug.c:6143
 #, c-format
 msgid ""
 "vcpu '%zd' can't be modified as it is followed by non-hotpluggable online "
 "vcpus"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:6167
+#: src/qemu/qemu_hotplug.c:6168
 msgid "this qemu version does not support specific vCPU hotplug"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:6181
+#: src/qemu/qemu_hotplug.c:6182
 msgid "only one hotpluggable entity can be selected"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:6233
+#: src/qemu/qemu_hotplug.c:6234
 #, c-format
 msgid "input device on bus '%s' cannot be detached"
 msgstr ""
@@ -21413,44 +21413,44 @@ msgstr "non-peer2peer മൈഗ്രേഷനൊപ്പം അപ്രതീ
 msgid "Port profile Associate failed for %s"
 msgstr "%s-നുള്ള പോര്‍ട്ട് പ്രൊഫൈല്‍ അസോസിയേറ്റ് പരാജയപ്പെട്ടു"
 
-#: src/qemu/qemu_migration.c:5562
+#: src/qemu/qemu_migration.c:5564
 msgid "Failed to create pipe for migration"
 msgstr ""
 
-#: src/qemu/qemu_migration.c:5596
+#: src/qemu/qemu_migration.c:5598
 msgid "Unable to set cloexec flag"
 msgstr "cloexec ഫ്ലാഗ് സജ്ജമാക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_migration.c:5776
+#: src/qemu/qemu_migration.c:5778
 #, c-format
 msgid "migration protocol going backwards %s => %s"
 msgstr "മൈഗ്രേഷന്‍ പ്രോട്ടോക്കോള്‍ പുറകോട്ട് %s => %s"
 
-#: src/qemu/qemu_migration.c:5809
+#: src/qemu/qemu_migration.c:5811
 #, c-format
 msgid "domain '%s' is not processing incoming migration"
 msgstr "ഡൊമെയിന്‍ '%s' അകത്തേക്കു് നീക്കുന്നതു് നടപ്പിലാക്കുന്നില്ല"
 
-#: src/qemu/qemu_migration.c:5811
+#: src/qemu/qemu_migration.c:5813
 #, c-format
 msgid "domain '%s' is not being migrated"
 msgstr "ഡൊമെയിന്‍ '%s' നീക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_migration.c:5901
+#: src/qemu/qemu_migration.c:5903
 #, c-format
 msgid "Unsupported compression method '%s'"
 msgstr ""
 
-#: src/qemu/qemu_migration.c:5908
+#: src/qemu/qemu_migration.c:5910
 #, c-format
 msgid "Compression method '%s' is specified twice"
 msgstr ""
 
-#: src/qemu/qemu_migration.c:5943
+#: src/qemu/qemu_migration.c:5945
 msgid "Turn multithread compression on to tune it"
 msgstr ""
 
-#: src/qemu/qemu_migration.c:5950
+#: src/qemu/qemu_migration.c:5952
 msgid "Turn xbzrle compression on to tune it"
 msgstr ""
 
@@ -21599,99 +21599,104 @@ msgstr "മൈഗ്രേഷന്‍ കുക്കിയ്ക്കുള�
 msgid "Source host lock driver %s different from target %s"
 msgstr "സോഴ്സ് ഹോസ്റ്റ് ലോക്ക് ഡ്രൈവര്‍ %s, ലക്ഷ്യം %s-ല്‍ നിന്നും വ്യത്യസ്തം"
 
-#: src/qemu/qemu_monitor.c:125
+#: src/qemu/qemu_monitor.c:134
 msgid "monitor must not be NULL"
 msgstr "മോണിറ്റര്‍ NULL ആയിരിയ്ക്കരുതു്"
 
-#: src/qemu/qemu_monitor.c:132
+#: src/qemu/qemu_monitor.c:141
 msgid "JSON monitor is required"
 msgstr "JSON മോണിറ്റര്‍ ആവശ്യമുണ്ടു്"
 
-#: src/qemu/qemu_monitor.c:357
+#: src/qemu/qemu_monitor.c:366
 #, c-format
 msgid "Monitor path %s too big for destination"
 msgstr "മോണിറ്റര്‍ പാഥ് %s വളരെ വലുതാണു്"
 
-#: src/qemu/qemu_monitor.c:430
+#: src/qemu/qemu_monitor.c:439
 #, c-format
 msgid "Process %d %p %p [[[[%s]]][[[%s]]]"
 msgstr "പ്രക്രിയ %d %p %p [[[[%s]]][[[%s]]]"
 
-#: src/qemu/qemu_monitor.c:531
+#: src/qemu/qemu_monitor.c:540
 msgid "Monitor does not support sending of file descriptors"
 msgstr "ഫയല്‍ വിവരണങ്ങള്‍ അയയ്ക്കുന്നതു് മോണിറ്റര്‍ പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/qemu/qemu_monitor.c:706
+#: src/qemu/qemu_monitor.c:589
+#, c-format
+msgid "No complete monitor response found in %d bytes"
+msgstr ""
+
+#: src/qemu/qemu_monitor.c:721
 msgid "End of file from qemu monitor"
 msgstr ""
 
-#: src/qemu/qemu_monitor.c:737
+#: src/qemu/qemu_monitor.c:752
 msgid "qemu unexpectedly closed the monitor"
 msgstr ""
 
-#: src/qemu/qemu_monitor.c:813
+#: src/qemu/qemu_monitor.c:828
 msgid "Error notify callback must be supplied"
 msgstr "പിശക് അറിയിക്കുന്ന കോള്‍ബാക്ക് നല്‍കിയിരിയ്ക്കണം"
 
-#: src/qemu/qemu_monitor.c:1011
+#: src/qemu/qemu_monitor.c:1026
 msgid "QEMU monitor was closed"
 msgstr ""
 
-#: src/qemu/qemu_monitor.c:1069
+#: src/qemu/qemu_monitor.c:1084
 msgid "Unable to wait on monitor condition"
 msgstr "മോണിറ്റര്‍ കണ്ടീഷനായി കാത്തിരിക്കാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_monitor.c:1141
+#: src/qemu/qemu_monitor.c:1156
 msgid "Cannot determine balloon device path"
 msgstr "balloon ഡിവൈസ് പാഥ് കണ്ടുപിടിയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_monitor.c:1176
+#: src/qemu/qemu_monitor.c:1191
 msgid ""
 "Property 'guest-stats-polling-interval' not found on memory balloon driver."
 msgstr ""
 "മെമ്മറി balloon ഡ്രൈവറില്‍ 'guest-stats-polling-interval' വിശേഷത ലഭ്യമായില്ല."
 
-#: src/qemu/qemu_monitor.c:1210 src/qemu/qemu_monitor.c:1246
+#: src/qemu/qemu_monitor.c:1225 src/qemu/qemu_monitor.c:1261
 #, fuzzy, c-format
 msgid "Failed to find QOM Object path for device '%s'"
 msgstr "ഡിവൈസ് %s വേര്‍പ്പെടുത്തുന്നതില്‍ പരാജയപ്പെട്ടു"
 
-#: src/qemu/qemu_monitor.c:1277
+#: src/qemu/qemu_monitor.c:1292
 msgid "Unable to unescape command"
 msgstr "കമാന്‍ഡ് unescape ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_monitor.c:2191
+#: src/qemu/qemu_monitor.c:2206
 #, c-format
 msgid "unknown block IO status: %s"
 msgstr "അപരിചിതമായ ബ്ലോക്ക് ഐഒ അവസ്ഥ: %s"
 
-#: src/qemu/qemu_monitor.c:2292
+#: src/qemu/qemu_monitor.c:2307
 msgid "text monitor doesn't support block stats for backing chain members"
 msgstr ""
 
-#: src/qemu/qemu_monitor.c:2370
+#: src/qemu/qemu_monitor.c:2385
 #, c-format
 msgid "unsupported protocol type %s"
 msgstr "പിന്തുണയ്ക്കാത്ത സമ്പ്രദായ തരം %s"
 
-#: src/qemu/qemu_monitor.c:2828
+#: src/qemu/qemu_monitor.c:2843
 msgid "fd must be valid"
 msgstr "fd ശരിയായൊരു മൂല്ല്യമായിരിയ്ക്കണം"
 
-#: src/qemu/qemu_monitor.c:2834 src/qemu/qemu_monitor.c:2891
+#: src/qemu/qemu_monitor.c:2849 src/qemu/qemu_monitor.c:2906
 #, c-format
 msgid "qemu is not using a unix socket monitor, cannot send fd %s"
 msgstr "qemu യുണിക്സ് സോക്കറ്റ് മോണിറ്റര്‍ ഉപയോഗിയ്ക്കുന്നില്ല, fd %s അയയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_monitor.c:2885
+#: src/qemu/qemu_monitor.c:2900
 msgid "fd and fdset must be valid"
 msgstr "fd,fdset എന്നിവ സാധുതയുള്ളവയായിരിയ്ക്കണം"
 
-#: src/qemu/qemu_monitor.c:2953
+#: src/qemu/qemu_monitor.c:2968
 msgid "JSON monitor should be using AddNetdev"
 msgstr "JSON മോണിറ്റര്‍ AddNetdev ഉപയോഗിയ്ക്കണം"
 
-#: src/qemu/qemu_monitor.c:2984
+#: src/qemu/qemu_monitor.c:2999
 msgid "JSON monitor should be using RemoveNetdev"
 msgstr "JSON മോണിറ്റര്‍ RemoveNetdev ഉപയോഗിയ്ക്കണം"
 

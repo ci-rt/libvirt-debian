@@ -1,17 +1,39 @@
 libvirt releases
 ================
 
-# v4.0.0 (unreleased)
+# v4.0.0 (2018-01-19)
 
   * New features
 
+    - tools: Provide bash completion support
+        Both virsh and virt-admin now implement basic bash completion support.
+
+    - qemu: Refresh capabilities on host microcode update
+        A microcode update can cause the CPUID bits to change; therefore, the
+        capabilities cache should be rebuilt when such an update is detected on
+        the host.
+
+    - lxc: Set hostname based on container name
+
   * Improvements
+
+    - CPU frequency reporting improvements
+        The CPU frequency will now be reported by virsh nodeinfo and other
+        tools for s390 hosts; at the same time; CPU frequency has been disabled
+        on aarch64 hosts because there's no way to detect it reliably.
+
+    - libxl: Mark domain0 as persistent
 
     - Xen: Add support for multiple IP addresses on interface devices
 
     - qemu: Add support for hot unplugging redirdev device
 
   * Bug fixes
+
+    - qemu: Enforce vCPU hotplug granularity constraints
+        QEMU 2.7 and newer don't allow guests to start unless the initial vCPUs
+        count is a multiple of the vCPU hotplug granularity, so validate it and
+        report an error if needed.
 
 # v3.10.0 (2017-12-04)
 

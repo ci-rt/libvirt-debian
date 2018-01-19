@@ -292,6 +292,9 @@
     <feature name='avx512-4fmaps'>
       <cpuid eax_in='0x07' ecx_in='0x00' edx='0x00000008'/>
     </feature>
+    <feature name='spec-ctrl'>
+      <cpuid eax_in='0x07' ecx_in='0x00' edx='0x04000000'/>
+    </feature>
 
     <!-- Processor Extended State Enumeration sub leaf 1 -->
     <feature name='xsaveopt'>
@@ -418,6 +421,11 @@
     <!-- Advanced Power Management edx features -->
     <feature name='invtsc' migratable='no'>
       <cpuid eax_in='0x80000007' edx='0x00000100'/>
+    </feature>
+
+    <!-- More AMD-specific features -->
+    <feature name='ibpb'>
+      <cpuid eax_in='0x80000008' ebx='0x00001000'/>
     </feature>
 
     <!-- models -->
@@ -867,6 +875,43 @@
       <feature name='tsc'/>
     </model>
 
+    <model name='Nehalem-IBRS'>
+      <signature family='6' model='26'/>
+      <vendor name='Intel'/>
+      <feature name='apic'/>
+      <feature name='clflush'/>
+      <feature name='cmov'/>
+      <feature name='cx16'/>
+      <feature name='cx8'/>
+      <feature name='de'/>
+      <feature name='fpu'/>
+      <feature name='fxsr'/>
+      <feature name='lahf_lm'/>
+      <feature name='lm'/>
+      <feature name='mca'/>
+      <feature name='mce'/>
+      <feature name='mmx'/>
+      <feature name='msr'/>
+      <feature name='mtrr'/>
+      <feature name='nx'/>
+      <feature name='pae'/>
+      <feature name='pat'/>
+      <feature name='pge'/>
+      <feature name='pni'/>
+      <feature name='popcnt'/>
+      <feature name='pse'/>
+      <feature name='pse36'/>
+      <feature name='sep'/>
+      <feature name='spec-ctrl'/>
+      <feature name='sse'/>
+      <feature name='sse2'/>
+      <feature name='sse4.1'/>
+      <feature name='sse4.2'/>
+      <feature name='ssse3'/>
+      <feature name='syscall'/>
+      <feature name='tsc'/>
+    </model>
+
     <model name='Westmere'>
       <signature family='6' model='44'/>
       <vendor name='Intel'/>
@@ -895,6 +940,44 @@
       <feature name='pse'/>
       <feature name='pse36'/>
       <feature name='sep'/>
+      <feature name='sse'/>
+      <feature name='sse2'/>
+      <feature name='sse4.1'/>
+      <feature name='sse4.2'/>
+      <feature name='ssse3'/>
+      <feature name='syscall'/>
+      <feature name='tsc'/>
+    </model>
+
+    <model name='Westmere-IBRS'>
+      <signature family='6' model='44'/>
+      <vendor name='Intel'/>
+      <feature name='aes'/>
+      <feature name='apic'/>
+      <feature name='clflush'/>
+      <feature name='cmov'/>
+      <feature name='cx16'/>
+      <feature name='cx8'/>
+      <feature name='de'/>
+      <feature name='fpu'/>
+      <feature name='fxsr'/>
+      <feature name='lahf_lm'/>
+      <feature name='lm'/>
+      <feature name='mca'/>
+      <feature name='mce'/>
+      <feature name='mmx'/>
+      <feature name='msr'/>
+      <feature name='mtrr'/>
+      <feature name='nx'/>
+      <feature name='pae'/>
+      <feature name='pat'/>
+      <feature name='pge'/>
+      <feature name='pni'/>
+      <feature name='popcnt'/>
+      <feature name='pse'/>
+      <feature name='pse36'/>
+      <feature name='sep'/>
+      <feature name='spec-ctrl'/>
       <feature name='sse'/>
       <feature name='sse2'/>
       <feature name='sse4.1'/>
@@ -947,6 +1030,50 @@
       <feature name='xsave'/>
     </model>
 
+    <model name='SandyBridge-IBRS'>
+      <signature family='6' model='42'/>
+      <vendor name='Intel'/>
+      <feature name='aes'/>
+      <feature name='apic'/>
+      <feature name='avx'/>
+      <feature name='clflush'/>
+      <feature name='cmov'/>
+      <feature name='cx16'/>
+      <feature name='cx8'/>
+      <feature name='de'/>
+      <feature name='fpu'/>
+      <feature name='fxsr'/>
+      <feature name='lahf_lm'/>
+      <feature name='lm'/>
+      <feature name='mca'/>
+      <feature name='mce'/>
+      <feature name='mmx'/>
+      <feature name='msr'/>
+      <feature name='mtrr'/>
+      <feature name='nx'/>
+      <feature name='pae'/>
+      <feature name='pat'/>
+      <feature name='pclmuldq'/>
+      <feature name='pge'/>
+      <feature name='pni'/>
+      <feature name='popcnt'/>
+      <feature name='pse'/>
+      <feature name='pse36'/>
+      <feature name='rdtscp'/>
+      <feature name='sep'/>
+      <feature name='spec-ctrl'/>
+      <feature name='sse'/>
+      <feature name='sse2'/>
+      <feature name='sse4.1'/>
+      <feature name='sse4.2'/>
+      <feature name='ssse3'/>
+      <feature name='syscall'/>
+      <feature name='tsc'/>
+      <feature name='tsc-deadline'/>
+      <feature name='x2apic'/>
+      <feature name='xsave'/>
+    </model>
+
     <model name='IvyBridge'>
       <signature family='6' model='58'/>
       <vendor name='Intel'/>
@@ -983,6 +1110,56 @@
       <feature name='rdtscp'/>
       <feature name='sep'/>
       <feature name='smep'/>
+      <feature name='sse'/>
+      <feature name='sse2'/>
+      <feature name='sse4.1'/>
+      <feature name='sse4.2'/>
+      <feature name='ssse3'/>
+      <feature name='syscall'/>
+      <feature name='tsc'/>
+      <feature name='tsc-deadline'/>
+      <feature name='vme'/>
+      <feature name='x2apic'/>
+      <feature name='xsave'/>
+    </model>
+
+    <model name='IvyBridge-IBRS'>
+      <signature family='6' model='58'/>
+      <vendor name='Intel'/>
+      <feature name='aes'/>
+      <feature name='apic'/>
+      <feature name='avx'/>
+      <feature name='clflush'/>
+      <feature name='cmov'/>
+      <feature name='cx16'/>
+      <feature name='cx8'/>
+      <feature name='de'/>
+      <feature name='erms'/>
+      <feature name='f16c'/>
+      <feature name='fpu'/>
+      <feature name='fsgsbase'/>
+      <feature name='fxsr'/>
+      <feature name='lahf_lm'/>
+      <feature name='lm'/>
+      <feature name='mca'/>
+      <feature name='mce'/>
+      <feature name='mmx'/>
+      <feature name='msr'/>
+      <feature name='mtrr'/>
+      <feature name='nx'/>
+      <feature name='pae'/>
+      <feature name='pat'/>
+      <feature name='pclmuldq'/>
+      <feature name='pge'/>
+      <feature name='pni'/>
+      <feature name='popcnt'/>
+      <feature name='pse'/>
+      <feature name='pse36'/>
+      <feature name='rdrand'/>
+      <feature name='rdtscp'/>
+      <feature name='sep'/>
+      <feature name='smep'/>
+      <feature name='spec-ctrl'/>
       <feature name='sse'/>
       <feature name='sse2'/>
       <feature name='sse4.1'/>
@@ -1049,6 +1226,60 @@
       <feature name='xsave'/>
     </model>
 
+    <model name='Haswell-noTSX-IBRS'>
+      <signature family='6' model='60'/>
+      <vendor name='Intel'/>
+      <feature name='aes'/>
+      <feature name='apic'/>
+      <feature name='avx'/>
+      <feature name='avx2'/>
+      <feature name='bmi1'/>
+      <feature name='bmi2'/>
+      <feature name='clflush'/>
+      <feature name='cmov'/>
+      <feature name='cx16'/>
+      <feature name='cx8'/>
+      <feature name='de'/>
+      <feature name='erms'/>
+      <feature name='fma'/>
+      <feature name='fpu'/>
+      <feature name='fsgsbase'/>
+      <feature name='fxsr'/>
+      <feature name='invpcid'/>
+      <feature name='lahf_lm'/>
+      <feature name='lm'/>
+      <feature name='mca'/>
+      <feature name='mce'/>
+      <feature name='mmx'/>
+      <feature name='movbe'/>
+      <feature name='msr'/>
+      <feature name='mtrr'/>
+      <feature name='nx'/>
+      <feature name='pae'/>
+      <feature name='pat'/>
+      <feature name='pcid'/>
+      <feature name='pclmuldq'/>
+      <feature name='pge'/>
+      <feature name='pni'/>
+      <feature name='popcnt'/>
+      <feature name='pse'/>
+      <feature name='pse36'/>
+      <feature name='rdtscp'/>
+      <feature name='sep'/>
+      <feature name='smep'/>
+      <feature name='spec-ctrl'/>
+      <feature name='sse'/>
+      <feature name='sse2'/>
+      <feature name='sse4.1'/>
+      <feature name='sse4.2'/>
+      <feature name='ssse3'/>
+      <feature name='syscall'/>
+      <feature name='tsc'/>
+      <feature name='tsc-deadline'/>
+      <feature name='x2apic'/>
+      <feature name='xsave'/>
+    </model>
+
     <model name='Haswell'>
       <signature family='6' model='60'/>
       <vendor name='Intel'/>
@@ -1092,6 +1323,62 @@
       <feature name='rtm'/>
       <feature name='sep'/>
       <feature name='smep'/>
+      <feature name='sse'/>
+      <feature name='sse2'/>
+      <feature name='sse4.1'/>
+      <feature name='sse4.2'/>
+      <feature name='ssse3'/>
+      <feature name='syscall'/>
+      <feature name='tsc'/>
+      <feature name='tsc-deadline'/>
+      <feature name='x2apic'/>
+      <feature name='xsave'/>
+    </model>
+
+    <model name='Haswell-IBRS'>
+      <signature family='6' model='60'/>
+      <vendor name='Intel'/>
+      <feature name='aes'/>
+      <feature name='apic'/>
+      <feature name='avx'/>
+      <feature name='avx2'/>
+      <feature name='bmi1'/>
+      <feature name='bmi2'/>
+      <feature name='clflush'/>
+      <feature name='cmov'/>
+      <feature name='cx16'/>
+      <feature name='cx8'/>
+      <feature name='de'/>
+      <feature name='erms'/>
+      <feature name='fma'/>
+      <feature name='fpu'/>
+      <feature name='fsgsbase'/>
+      <feature name='fxsr'/>
+      <feature name='hle'/>
+      <feature name='invpcid'/>
+      <feature name='lahf_lm'/>
+      <feature name='lm'/>
+      <feature name='mca'/>
+      <feature name='mce'/>
+      <feature name='mmx'/>
+      <feature name='movbe'/>
+      <feature name='msr'/>
+      <feature name='mtrr'/>
+      <feature name='nx'/>
+      <feature name='pae'/>
+      <feature name='pat'/>
+      <feature name='pcid'/>
+      <feature name='pclmuldq'/>
+      <feature name='pge'/>
+      <feature name='pni'/>
+      <feature name='popcnt'/>
+      <feature name='pse'/>
+      <feature name='pse36'/>
+      <feature name='rdtscp'/>
+      <feature name='rtm'/>
+      <feature name='sep'/>
+      <feature name='smep'/>
+      <feature name='spec-ctrl'/>
       <feature name='sse'/>
       <feature name='sse2'/>
       <feature name='sse4.1'/>
@@ -1161,6 +1448,64 @@
       <feature name='xsave'/>
     </model>
 
+    <model name='Broadwell-noTSX-IBRS'>
+      <signature family='6' model='61'/>
+      <vendor name='Intel'/>
+      <feature name='3dnowprefetch'/>
+      <feature name='adx'/>
+      <feature name='aes'/>
+      <feature name='apic'/>
+      <feature name='avx'/>
+      <feature name='avx2'/>
+      <feature name='bmi1'/>
+      <feature name='bmi2'/>
+      <feature name='clflush'/>
+      <feature name='cmov'/>
+      <feature name='cx16'/>
+      <feature name='cx8'/>
+      <feature name='de'/>
+      <feature name='erms'/>
+      <feature name='fma'/>
+      <feature name='fpu'/>
+      <feature name='fsgsbase'/>
+      <feature name='fxsr'/>
+      <feature name='invpcid'/>
+      <feature name='lahf_lm'/>
+      <feature name='lm'/>
+      <feature name='mca'/>
+      <feature name='mce'/>
+      <feature name='mmx'/>
+      <feature name='movbe'/>
+      <feature name='msr'/>
+      <feature name='mtrr'/>
+      <feature name='nx'/>
+      <feature name='pae'/>
+      <feature name='pat'/>
+      <feature name='pcid'/>
+      <feature name='pclmuldq'/>
+      <feature name='pge'/>
+      <feature name='pni'/>
+      <feature name='popcnt'/>
+      <feature name='pse'/>
+      <feature name='pse36'/>
+      <feature name='rdseed'/>
+      <feature name='rdtscp'/>
+      <feature name='sep'/>
+      <feature name='smap'/>
+      <feature name='smep'/>
+      <feature name='spec-ctrl'/>
+      <feature name='sse'/>
+      <feature name='sse2'/>
+      <feature name='sse4.1'/>
+      <feature name='sse4.2'/>
+      <feature name='ssse3'/>
+      <feature name='syscall'/>
+      <feature name='tsc'/>
+      <feature name='tsc-deadline'/>
+      <feature name='x2apic'/>
+      <feature name='xsave'/>
+    </model>
+
     <model name='Broadwell'>
       <signature family='6' model='61'/>
       <vendor name='Intel'/>
@@ -1208,6 +1553,66 @@
       <feature name='sep'/>
       <feature name='smap'/>
       <feature name='smep'/>
+      <feature name='sse'/>
+      <feature name='sse2'/>
+      <feature name='sse4.1'/>
+      <feature name='sse4.2'/>
+      <feature name='ssse3'/>
+      <feature name='syscall'/>
+      <feature name='tsc'/>
+      <feature name='tsc-deadline'/>
+      <feature name='x2apic'/>
+      <feature name='xsave'/>
+    </model>
+
+    <model name='Broadwell-IBRS'>
+      <signature family='6' model='61'/>
+      <vendor name='Intel'/>
+      <feature name='3dnowprefetch'/>
+      <feature name='adx'/>
+      <feature name='aes'/>
+      <feature name='apic'/>
+      <feature name='avx'/>
+      <feature name='avx2'/>
+      <feature name='bmi1'/>
+      <feature name='bmi2'/>
+      <feature name='clflush'/>
+      <feature name='cmov'/>
+      <feature name='cx16'/>
+      <feature name='cx8'/>
+      <feature name='de'/>
+      <feature name='erms'/>
+      <feature name='fma'/>
+      <feature name='fpu'/>
+      <feature name='fsgsbase'/>
+      <feature name='fxsr'/>
+      <feature name='hle'/>
+      <feature name='invpcid'/>
+      <feature name='lahf_lm'/>
+      <feature name='lm'/>
+      <feature name='mca'/>
+      <feature name='mce'/>
+      <feature name='mmx'/>
+      <feature name='movbe'/>
+      <feature name='msr'/>
+      <feature name='mtrr'/>
+      <feature name='nx'/>
+      <feature name='pae'/>
+      <feature name='pat'/>
+      <feature name='pcid'/>
+      <feature name='pclmuldq'/>
+      <feature name='pge'/>
+      <feature name='pni'/>
+      <feature name='popcnt'/>
+      <feature name='pse'/>
+      <feature name='pse36'/>
+      <feature name='rdseed'/>
+      <feature name='rdtscp'/>
+      <feature name='rtm'/>
+      <feature name='sep'/>
+      <feature name='smap'/>
+      <feature name='smep'/>
+      <feature name='spec-ctrl'/>
       <feature name='sse'/>
       <feature name='sse2'/>
       <feature name='sse4.1'/>
@@ -1288,6 +1693,75 @@
       <feature name='xsaveopt'/>
     </model>
 
+    <model name='Skylake-Client-IBRS'>
+      <signature family='6' model='94'/>
+      <vendor name='Intel'/>
+      <feature name='3dnowprefetch'/>
+      <feature name='abm'/>
+      <feature name='adx'/>
+      <feature name='aes'/>
+      <feature name='apic'/>
+      <feature name='arat'/>
+      <feature name='avx'/>
+      <feature name='avx2'/>
+      <feature name='bmi1'/>
+      <feature name='bmi2'/>
+      <feature name='clflush'/>
+      <feature name='cmov'/>
+      <feature name='cx16'/>
+      <feature name='cx8'/>
+      <feature name='de'/>
+      <feature name='erms'/>
+      <feature name='f16c'/>
+      <feature name='fma'/>
+      <feature name='fpu'/>
+      <feature name='fsgsbase'/>
+      <feature name='fxsr'/>
+      <feature name='hle'/>
+      <feature name='invpcid'/>
+      <feature name='lahf_lm'/>
+      <feature name='lm'/>
+      <feature name='mca'/>
+      <feature name='mce'/>
+      <feature name='mmx'/>
+      <feature name='movbe'/>
+      <feature name='mpx'/>
+      <feature name='msr'/>
+      <feature name='mtrr'/>
+      <feature name='nx'/>
+      <feature name='pae'/>
+      <feature name='pat'/>
+      <feature name='pcid'/>
+      <feature name='pclmuldq'/>
+      <feature name='pge'/>
+      <feature name='pni'/>
+      <feature name='popcnt'/>
+      <feature name='pse'/>
+      <feature name='pse36'/>
+      <feature name='rdrand'/>
+      <feature name='rdseed'/>
+      <feature name='rdtscp'/>
+      <feature name='rtm'/>
+      <feature name='sep'/>
+      <feature name='smap'/>
+      <feature name='smep'/>
+      <feature name='spec-ctrl'/>
+      <feature name='sse'/>
+      <feature name='sse2'/>
+      <feature name='sse4.1'/>
+      <feature name='sse4.2'/>
+      <feature name='ssse3'/>
+      <feature name='syscall'/>
+      <feature name='tsc'/>
+      <feature name='tsc-deadline'/>
+      <feature name='vme'/>
+      <feature name='x2apic'/>
+      <feature name='xgetbv1'/>
+      <feature name='xsave'/>
+      <feature name='xsavec'/>
+      <feature name='xsaveopt'/>
+    </model>
+
     <model name='Skylake-Server'>
       <signature family='6' model='85'/>
       <vendor name='Intel'/>
@@ -1347,6 +1821,82 @@
       <feature name='sep'/>
       <feature name='smap'/>
       <feature name='smep'/>
+      <feature name='sse'/>
+      <feature name='sse2'/>
+      <feature name='sse4.1'/>
+      <feature name='sse4.2'/>
+      <feature name='ssse3'/>
+      <feature name='syscall'/>
+      <feature name='tsc'/>
+      <feature name='tsc-deadline'/>
+      <feature name='vme'/>
+      <feature name='x2apic'/>
+      <feature name='xgetbv1'/>
+      <feature name='xsave'/>
+      <feature name='xsavec'/>
+      <feature name='xsaveopt'/>
+    </model>
+
+    <model name='Skylake-Server-IBRS'>
+      <signature family='6' model='85'/>
+      <vendor name='Intel'/>
+      <feature name='3dnowprefetch'/>
+      <feature name='abm'/>
+      <feature name='adx'/>
+      <feature name='aes'/>
+      <feature name='apic'/>
+      <feature name='arat'/>
+      <feature name='avx'/>
+      <feature name='avx2'/>
+      <feature name='avx512bw'/>
+      <feature name='avx512cd'/>
+      <feature name='avx512dq'/>
+      <feature name='avx512f'/>
+      <feature name='avx512vl'/>
+      <feature name='bmi1'/>
+      <feature name='bmi2'/>
+      <feature name='clflush'/>
+      <feature name='clwb'/>
+      <feature name='cmov'/>
+      <feature name='cx16'/>
+      <feature name='cx8'/>
+      <feature name='de'/>
+      <feature name='erms'/>
+      <feature name='f16c'/>
+      <feature name='fma'/>
+      <feature name='fpu'/>
+      <feature name='fsgsbase'/>
+      <feature name='fxsr'/>
+      <feature name='hle'/>
+      <feature name='invpcid'/>
+      <feature name='lahf_lm'/>
+      <feature name='lm'/>
+      <feature name='mca'/>
+      <feature name='mce'/>
+      <feature name='mmx'/>
+      <feature name='movbe'/>
+      <feature name='mpx'/>
+      <feature name='msr'/>
+      <feature name='mtrr'/>
+      <feature name='nx'/>
+      <feature name='pae'/>
+      <feature name='pat'/>
+      <feature name='pcid'/>
+      <feature name='pclmuldq'/>
+      <feature name='pdpe1gb'/>
+      <feature name='pge'/>
+      <feature name='pni'/>
+      <feature name='popcnt'/>
+      <feature name='pse'/>
+      <feature name='pse36'/>
+      <feature name='rdrand'/>
+      <feature name='rdseed'/>
+      <feature name='rdtscp'/>
+      <feature name='rtm'/>
+      <feature name='sep'/>
+      <feature name='smap'/>
+      <feature name='smep'/>
+      <feature name='spec-ctrl'/>
       <feature name='sse'/>
       <feature name='sse2'/>
       <feature name='sse4.1'/>
@@ -1656,6 +2206,78 @@
       <feature name='fsgsbase'/>
       <feature name='fxsr'/>
       <feature name='fxsr_opt'/>
+      <feature name='lahf_lm'/>
+      <feature name='lm'/>
+      <feature name='mca'/>
+      <feature name='mce'/>
+      <feature name='misalignsse'/>
+      <feature name='mmx'/>
+      <feature name='mmxext'/>
+      <feature name='monitor'/>
+      <feature name='movbe'/>
+      <feature name='msr'/>
+      <feature name='mtrr'/>
+      <feature name='nx'/>
+      <feature name='osvw'/>
+      <feature name='pae'/>
+      <feature name='pat'/>
+      <feature name='pclmuldq'/>
+      <feature name='pdpe1gb'/>
+      <feature name='pge'/>
+      <feature name='pni'/>
+      <feature name='popcnt'/>
+      <feature name='pse'/>
+      <feature name='pse36'/>
+      <feature name='rdrand'/>
+      <feature name='rdseed'/>
+      <feature name='rdtscp'/>
+      <feature name='sep'/>
+      <feature name='sha-ni'/>
+      <feature name='smap'/>
+      <feature name='smep'/>
+      <feature name='sse'/>
+      <feature name='sse2'/>
+      <feature name='sse4.1'/>
+      <feature name='sse4.2'/>
+      <feature name='sse4a'/>
+      <feature name='ssse3'/>
+      <feature name='svm'/>
+      <feature name='syscall'/>
+      <feature name='tsc'/>
+      <feature name='vme'/>
+      <feature name='xgetbv1'/>
+      <feature name='xsave'/>
+      <feature name='xsavec'/>
+      <feature name='xsaveopt'/>
+    </model>
+
+    <model name='EPYC-IBPB'>
+      <signature family='23' model='1'/>
+      <vendor name='AMD'/>
+      <feature name='3dnowprefetch'/>
+      <feature name='abm'/>
+      <feature name='adx'/>
+      <feature name='aes'/>
+      <feature name='apic'/>
+      <feature name='arat'/>
+      <feature name='avx'/>
+      <feature name='avx2'/>
+      <feature name='bmi1'/>
+      <feature name='bmi2'/>
+      <feature name='clflush'/>
+      <feature name='clflushopt'/>
+      <feature name='cmov'/>
+      <feature name='cr8legacy'/>
+      <feature name='cx16'/>
+      <feature name='cx8'/>
+      <feature name='de'/>
+      <feature name='f16c'/>
+      <feature name='fma'/>
+      <feature name='fpu'/>
+      <feature name='fsgsbase'/>
+      <feature name='fxsr'/>
+      <feature name='fxsr_opt'/>
+      <feature name='ibpb'/>
       <feature name='lahf_lm'/>
       <feature name='lm'/>
       <feature name='mca'/>

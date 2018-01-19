@@ -12,11 +12,39 @@
         <h1>Releases</h1><p>This is the list of official releases for libvirt, along with an
         overview of the changes introduced by each of them.</p><p>For a more fine-grained view, use the
         <a href="https://libvirt.org/git/?p=libvirt.git;a=log">git log</a>.
-        </p><h3><strong>v4.0.0 (unreleased)</strong></h3><ul><li><strong>New features</strong></li><li><strong>Improvements</strong><ul><li>
+        </p><h3><strong>v4.0.0 (2018-01-19)</strong></h3><ul><li><strong>New features</strong><ul><li>
+          tools: Provide bash completion support
+        <br/>
+          Both <code>virsh</code> and <code>virt-admin</code> now implement
+          basic bash completion support.
+        </li><li>
+          qemu: Refresh capabilities on host microcode update
+        <br/>
+          A microcode update can cause the CPUID bits to change; therefore,
+          the capabilities cache should be rebuilt when such an update is
+          detected on the host.
+        </li><li>
+          lxc: Set hostname based on container name
+        </li></ul></li><li><strong>Improvements</strong><ul><li>
+          CPU frequency reporting improvements
+        <br/>
+          The CPU frequency will now be reported by <code>virsh nodeinfo</code>
+          and other tools for s390 hosts; at the same time; CPU frequency has
+          been disabled on aarch64 hosts because there's no way to detect it
+          reliably.
+        </li><li>
+          libxl: Mark domain0 as persistent
+        </li><li>
           Xen: Add support for multiple IP addresses on interface devices
         </li><li>
           qemu: Add support for hot unplugging redirdev device
-        </li></ul></li><li><strong>Bug fixes</strong></li></ul><h3><strong>v3.10.0 (2017-12-04)</strong></h3><ul><li><strong>New features</strong><ul><li>
+        </li></ul></li><li><strong>Bug fixes</strong><ul><li>
+          qemu: Enforce vCPU hotplug granularity constraints
+        <br/>
+          QEMU 2.7 and newer don't allow guests to start unless the initial
+          vCPUs count is a multiple of the vCPU hotplug granularity, so
+          validate it and report an error if needed.
+        </li></ul></li></ul><h3><strong>v3.10.0 (2017-12-04)</strong></h3><ul><li><strong>New features</strong><ul><li>
           conf: Support defining distances between virtual NUMA cells
         <br/>
           A NUMA hardware architecture supports the notion of distances

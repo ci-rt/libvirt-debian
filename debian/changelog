@@ -1,3 +1,11 @@
+libvirt (4.0.0-1~1.gbp8f73ea) UNRELEASED; urgency=medium
+
+  ** SNAPSHOT build @8f73ea6c78e0ce60cb2113f52314f99491b59ada **
+
+  * [5936904] New upstream version 4.0.0
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 19 Jan 2018 18:12:31 +0100
+
 libvirt (4.0.0~rc2-1) experimental; urgency=medium
 
   * [8dd2f5b] Don't manage /etc/apparmor.d/local as conf files
