@@ -1,10 +1,11 @@
-libvirt (4.0.0-1~1.gbp8f73ea) UNRELEASED; urgency=medium
-
-  ** SNAPSHOT build @8f73ea6c78e0ce60cb2113f52314f99491b59ada **
+libvirt (4.0.0-1) unstable; urgency=medium
 
   * [5936904] New upstream version 4.0.0
+  * [bcb7ca3] Drop patches applied upstream.
+      Allow-libvirt-to-kill-unconfined-domains.patch
+      Drop qemu-avoid-denial-of-service-reading-from-QEMU-monitor-CV.patch
 
- -- Guido Günther <agx@sigxcpu.org>  Fri, 19 Jan 2018 18:12:31 +0100
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 20 Jan 2018 16:31:11 +0100
 
 libvirt (4.0.0~rc2-1) experimental; urgency=medium
 
