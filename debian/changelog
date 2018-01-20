@@ -1,3 +1,12 @@
+libvirt (3.0.0-4+deb9u2) stretch; urgency=medium
+
+  * CVE-2018-5748: qemu: avoid denial of service reading from QEMU monitor
+    (Closes: #887700)
+  * qemu: shared disks with cache=directsync should be safe for migration.
+    Thanks to Carsten Burkhardt (Closes: #883208)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 20 Jan 2018 17:51:39 +0100
+
 libvirt (3.0.0-4+deb9u1) stretch-security; urgency=high
 
   * CVE-2017-1000256: qemu: ensure TLS clients always verify the server
