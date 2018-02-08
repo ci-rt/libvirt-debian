@@ -18,3 +18,4 @@ Set-defaults-for-zfs-tools.patch
 Pass-GPG_TTY-env-var-to-the-ssh-binary.patch
 apparmor-Allow-virt-aa-helper-to-access-the-name-service-.patch
 apparmor-allow-libvirt-to-send-term-signal-to-unconfined.patch
+virlog-determine-the-hostname-on-startup-CVE-2018-6764.patch
