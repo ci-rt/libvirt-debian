@@ -1,3 +1,10 @@
+libvirt (4.0.0-2) unstable; urgency=medium
+
+  * [4339f02] CVE-2018-6764: virlog: determine the hostname on startup 
+    Closes: #889839
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 08 Feb 2018 19:29:59 +0100
+
 libvirt (4.0.0-1) unstable; urgency=medium
 
   * [5936904] New upstream version 4.0.0
