@@ -900,6 +900,38 @@
             <ref name="schedparam"/>
           </element>
         </zeroOrMore>
+        <zeroOrMore>
+          <element name="cachetune">
+            <attribute name="vcpus">
+              <ref name='cpuset'/>
+            </attribute>
+            <oneOrMore>
+              <element name="cache">
+                <attribute name="id">
+                  <ref name='unsignedInt'/>
+                </attribute>
+                <attribute name="level">
+                  <ref name='unsignedInt'/>
+                </attribute>
+                <attribute name="type">
+                  <choice>
+                    <value>both</value>
+                    <value>code</value>
+                    <value>data</value>
+                  </choice>
+                </attribute>
+                <attribute name="size">
+                  <ref name='unsignedLong'/>
+                </attribute>
+                <optional>
+                  <attribute name='unit'>
+                    <ref name='unit'/>
+                  </attribute>
+                </optional>
+              </element>
+            </oneOrMore>
+          </element>
+        </zeroOrMore>
       </interleave>
     </element>
   </define>
@@ -2399,6 +2431,18 @@
       </attribute>
     </optional>
   </define>
+  <define name="reconnect">
+    <element name="reconnect">
+      <attribute name="enabled">
+        <ref name="virYesNo"/>
+      </attribute>
+      <optional>
+        <attribute name="timeout">
+          <ref name="unsignedInt"/>
+        </attribute>
+      </optional>
+    </element>
+  </define>
 
   <!--
       An interface description can either be of type bridge in which case
@@ -2460,6 +2504,9 @@
                   <value>client</value>
                 </choice>
               </attribute>
+              <optional>
+                 <ref name="reconnect"/>
+              </optional>
               <empty/>
             </element>
             <ref name="interface-options"/>
@@ -3728,16 +3775,7 @@
           </attribute>
         </optional>
         <optional>
-          <element name="reconnect">
-            <attribute name="enabled">
-              <ref name="virYesNo"/>
-            </attribute>
-            <optional>
-              <attribute name="timeout">
-                <ref name="unsignedInt"/>
-              </attribute>
-            </optional>
-          </element>
+          <ref name="reconnect"/>
         </optional>
         <zeroOrMore>
           <ref name='devSeclabel'/>
@@ -4857,6 +4895,27 @@
             </oneOrMore>
           </element>
         </zeroOrMore>
+        <optional>
+          <element name="chassis">
+            <oneOrMore>
+              <element name="entry">
+                <attribute name="name">
+                  <ref name="sysinfo-chassis-name"/>
+                </attribute>
+                <ref name="sysinfo-value"/>
+              </element>
+            </oneOrMore>
+          </element>
+        </optional>
+        <optional>
+          <element name="oemStrings">
+            <oneOrMore>
+              <element name="entry">
+                <ref name="sysinfo-value"/>
+              </element>
+            </oneOrMore>
+          </element>
+        </optional>
       </interleave>
     </element>
   </define>
@@ -4890,6 +4949,16 @@
       <value>serial</value>
       <value>asset</value>
       <value>location</value>
+    </choice>
+  </define>
+
+  <define name="sysinfo-chassis-name">
+    <choice>
+      <value>manufacturer</value>
+      <value>version</value>
+      <value>serial</value>
+      <value>asset</value>
+      <value>sku</value>
     </choice>
   </define>
 

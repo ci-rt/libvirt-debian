@@ -33,11 +33,13 @@
 #include "virstring.h"
 #include "node_device_conf.h"
 #include "device_conf.h"
+#include "dirname.h"
 #include "virxml.h"
 #include "virbuffer.h"
 #include "viruuid.h"
 #include "virrandom.h"
 #include "virlog.h"
+#include "virfcp.h"
 
 #define VIR_FROM_THIS VIR_FROM_NODEDEV
 
@@ -86,19 +88,6 @@ virNodeDevCapsDefParseString(const char *xpath,
 
     *string = s;
     return 0;
-}
-
-
-void
-virNodeDevCapMdevTypeFree(virNodeDevCapMdevTypePtr type)
-{
-    if (!type)
-        return;
-
-    VIR_FREE(type->id);
-    VIR_FREE(type->name);
-    VIR_FREE(type->device_api);
-    VIR_FREE(type);
 }
 
 
@@ -283,7 +272,7 @@ virNodeDeviceCapPCIDefFormat(virBufferPtr buf,
         virBufferAddLit(buf, "<capability type='mdev_types'>\n");
         virBufferAdjustIndent(buf, 2);
         for (i = 0; i < data->pci_dev.nmdev_types; i++) {
-            virNodeDevCapMdevTypePtr type = data->pci_dev.mdev_types[i];
+            virMediatedDeviceTypePtr type = data->pci_dev.mdev_types[i];
             virBufferEscapeString(buf, "<type id='%s'>\n", type->id);
             virBufferAdjustIndent(buf, 2);
             if (type->name)
@@ -1544,7 +1533,7 @@ virNodeDevPCICapMdevTypesParseXML(xmlXPathContextPtr ctxt,
     xmlNodePtr orignode = NULL;
     xmlNodePtr *nodes = NULL;
     int nmdev_types = -1;
-    virNodeDevCapMdevTypePtr type = NULL;
+    virMediatedDeviceTypePtr type = NULL;
     size_t i;
 
     if ((nmdev_types = virXPathNodeSet("./type", ctxt, &nodes)) < 0)
@@ -1591,7 +1580,7 @@ virNodeDevPCICapMdevTypesParseXML(xmlXPathContextPtr ctxt,
     ret = 0;
  cleanup:
     VIR_FREE(nodes);
-    virNodeDevCapMdevTypeFree(type);
+    virMediatedDeviceTypeFree(type);
     ctxt->node = orignode;
     return ret;
 }
@@ -2174,7 +2163,7 @@ virNodeDevCapsDefFree(virNodeDevCapsDefPtr caps)
         VIR_FREE(data->pci_dev.iommuGroupDevices);
         virPCIEDeviceInfoFree(data->pci_dev.pci_express);
         for (i = 0; i < data->pci_dev.nmdev_types; i++)
-            virNodeDevCapMdevTypeFree(data->pci_dev.mdev_types[i]);
+            virMediatedDeviceTypeFree(data->pci_dev.mdev_types[i]);
         VIR_FREE(data->pci_dev.mdev_types);
         break;
     case VIR_NODE_DEV_CAP_USB_DEV:
@@ -2432,6 +2421,138 @@ virNodeDeviceDeleteVport(virConnectPtr conn,
 
 
 int
+virNodeDeviceUpdateCaps(virNodeDeviceDefPtr def)
+{
+    virNodeDevCapsDefPtr cap = def->caps;
+
+    while (cap) {
+        switch (cap->data.type) {
+        case VIR_NODE_DEV_CAP_SCSI_HOST:
+            virNodeDeviceGetSCSIHostCaps(&cap->data.scsi_host);
+            break;
+        case VIR_NODE_DEV_CAP_SCSI_TARGET:
+            virNodeDeviceGetSCSITargetCaps(def->sysfs_path,
+                                           &cap->data.scsi_target);
+            break;
+        case VIR_NODE_DEV_CAP_NET:
+            if (virNetDevGetLinkInfo(cap->data.net.ifname,
+                                     &cap->data.net.lnk) < 0)
+                return -1;
+            virBitmapFree(cap->data.net.features);
+            if (virNetDevGetFeatures(cap->data.net.ifname,
+                                     &cap->data.net.features) < 0)
+                return -1;
+            break;
+        case VIR_NODE_DEV_CAP_PCI_DEV:
+            if (virNodeDeviceGetPCIDynamicCaps(def->sysfs_path,
+                                               &cap->data.pci_dev) < 0)
+                return -1;
+            break;
+
+            /* all types that (supposedly) don't require any updates
+             * relative to what's in the cache.
+             */
+        case VIR_NODE_DEV_CAP_DRM:
+        case VIR_NODE_DEV_CAP_SYSTEM:
+        case VIR_NODE_DEV_CAP_USB_DEV:
+        case VIR_NODE_DEV_CAP_USB_INTERFACE:
+        case VIR_NODE_DEV_CAP_SCSI:
+        case VIR_NODE_DEV_CAP_STORAGE:
+        case VIR_NODE_DEV_CAP_FC_HOST:
+        case VIR_NODE_DEV_CAP_VPORTS:
+        case VIR_NODE_DEV_CAP_SCSI_GENERIC:
+        case VIR_NODE_DEV_CAP_MDEV_TYPES:
+        case VIR_NODE_DEV_CAP_MDEV:
+        case VIR_NODE_DEV_CAP_CCW_DEV:
+        case VIR_NODE_DEV_CAP_LAST:
+            break;
+        }
+        cap = cap->next;
+    }
+
+    return 0;
+}
+
+
+/**
+ * virNodeDeviceCapsListExport:
+ * @def: node device definition
+ * @list: pointer to an array to store all supported capabilities by a device
+ *
+ * Takes the definition, scans through all the capabilities that the device
+ * supports (including the nested caps) and populates a newly allocated list
+ * with them. Caller is responsible for freeing the list.
+ * If NULL is passed to @list, only the number of caps will be returned.
+ *
+ * Returns the number of capabilities the device supports, -1 on error.
+ */
+int
+virNodeDeviceCapsListExport(virNodeDeviceDefPtr def,
+                            virNodeDevCapType **list)
+{
+    virNodeDevCapsDefPtr caps = NULL;
+    virNodeDevCapType *tmp = NULL;
+    bool want_list = !!list;
+    int ncaps = 0;
+    int ret = -1;
+
+#define MAYBE_ADD_CAP(cap) \
+    do { \
+        if (want_list) \
+            tmp[ncaps] = cap; \
+    } while (0)
+
+    if (virNodeDeviceUpdateCaps(def) < 0)
+        goto cleanup;
+
+    if (want_list && VIR_ALLOC_N(tmp, VIR_NODE_DEV_CAP_LAST - 1) < 0)
+        goto cleanup;
+
+    for (caps = def->caps; caps; caps = caps->next) {
+        unsigned int flags;
+
+        MAYBE_ADD_CAP(caps->data.type);
+        ncaps++;
+
+        /* check nested caps for a given type as well */
+        if (caps->data.type == VIR_NODE_DEV_CAP_SCSI_HOST) {
+            flags = caps->data.scsi_host.flags;
+
+            if (flags & VIR_NODE_DEV_CAP_FLAG_HBA_FC_HOST) {
+                MAYBE_ADD_CAP(VIR_NODE_DEV_CAP_FC_HOST);
+                ncaps++;
+            }
+
+            if (flags  & VIR_NODE_DEV_CAP_FLAG_HBA_VPORT_OPS) {
+                MAYBE_ADD_CAP(VIR_NODE_DEV_CAP_VPORTS);
+                ncaps++;
+            }
+        }
+
+        if (caps->data.type == VIR_NODE_DEV_CAP_PCI_DEV) {
+            flags = caps->data.pci_dev.flags;
+
+            if (flags & VIR_NODE_DEV_CAP_FLAG_PCI_MDEV) {
+                MAYBE_ADD_CAP(VIR_NODE_DEV_CAP_MDEV_TYPES);
+                ncaps++;
+            }
+        }
+    }
+
+#undef MAYBE_ADD_CAP
+
+    if (want_list)
+        VIR_STEAL_PTR(*list, tmp);
+    ret = ncaps;
+ cleanup:
+    VIR_FREE(tmp);
+    return ret;
+}
+
+
+#ifdef __linux__
+
+int
 virNodeDeviceGetSCSIHostCaps(virNodeDevCapSCSIHostPtr scsi_host)
 {
     char *tmp = NULL;
@@ -2511,3 +2632,197 @@ virNodeDeviceGetSCSIHostCaps(virNodeDevCapSCSIHostPtr scsi_host)
     VIR_FREE(tmp);
     return ret;
 }
+
+
+int
+virNodeDeviceGetSCSITargetCaps(const char *sysfsPath,
+                               virNodeDevCapSCSITargetPtr scsi_target)
+{
+    int ret = -1;
+    char *dir = NULL, *rport = NULL;
+
+    VIR_DEBUG("Checking if '%s' is an FC remote port", scsi_target->name);
+
+    /* /sys/devices/[...]/host0/rport-0:0-0/target0:0:0 -> rport-0:0-0 */
+    if (!(dir = mdir_name(sysfsPath)))
+        return -1;
+
+    if (VIR_STRDUP(rport, last_component(dir)) < 0)
+        goto cleanup;
+
+    if (!virFCIsCapableRport(rport))
+        goto cleanup;
+
+    VIR_FREE(scsi_target->rport);
+    VIR_STEAL_PTR(scsi_target->rport, rport);
+
+    if (virFCReadRportValue(scsi_target->rport, "port_name",
+                            &scsi_target->wwpn) < 0) {
+        VIR_WARN("Failed to read port_name for '%s'", scsi_target->rport);
+        goto cleanup;
+    }
+
+    scsi_target->flags |= VIR_NODE_DEV_CAP_FLAG_FC_RPORT;
+    ret = 0;
+
+ cleanup:
+    if (ret < 0) {
+        VIR_FREE(scsi_target->rport);
+        VIR_FREE(scsi_target->wwpn);
+        scsi_target->flags &= ~VIR_NODE_DEV_CAP_FLAG_FC_RPORT;
+    }
+    VIR_FREE(rport);
+    VIR_FREE(dir);
+
+    return ret;
+}
+
+
+static int
+virNodeDeviceGetPCISRIOVCaps(const char *sysfsPath,
+                             virNodeDevCapPCIDevPtr pci_dev)
+{
+    size_t i;
+    int ret;
+
+    /* this could be a refresh, so clear out the old data */
+    for (i = 0; i < pci_dev->num_virtual_functions; i++)
+       VIR_FREE(pci_dev->virtual_functions[i]);
+    VIR_FREE(pci_dev->virtual_functions);
+    pci_dev->num_virtual_functions = 0;
+    pci_dev->max_virtual_functions = 0;
+    pci_dev->flags &= ~VIR_NODE_DEV_CAP_FLAG_PCI_VIRTUAL_FUNCTION;
+    pci_dev->flags &= ~VIR_NODE_DEV_CAP_FLAG_PCI_PHYSICAL_FUNCTION;
+
+    ret = virPCIGetPhysicalFunction(sysfsPath,
+                                    &pci_dev->physical_function);
+    if (ret < 0)
+        goto cleanup;
+
+    if (pci_dev->physical_function)
+        pci_dev->flags |= VIR_NODE_DEV_CAP_FLAG_PCI_PHYSICAL_FUNCTION;
+
+    ret = virPCIGetVirtualFunctions(sysfsPath, &pci_dev->virtual_functions,
+                                    &pci_dev->num_virtual_functions,
+                                    &pci_dev->max_virtual_functions);
+    if (ret < 0)
+        goto cleanup;
+
+    if (pci_dev->num_virtual_functions > 0 ||
+        pci_dev->max_virtual_functions > 0)
+        pci_dev->flags |= VIR_NODE_DEV_CAP_FLAG_PCI_VIRTUAL_FUNCTION;
+
+ cleanup:
+    return ret;
+}
+
+
+static int
+virNodeDeviceGetPCIIOMMUGroupCaps(virNodeDevCapPCIDevPtr pci_dev)
+{
+    size_t i;
+    int tmpGroup, ret = -1;
+    virPCIDeviceAddress addr;
+
+    /* this could be a refresh, so clear out the old data */
+    for (i = 0; i < pci_dev->nIommuGroupDevices; i++)
+       VIR_FREE(pci_dev->iommuGroupDevices[i]);
+    VIR_FREE(pci_dev->iommuGroupDevices);
+    pci_dev->nIommuGroupDevices = 0;
+    pci_dev->iommuGroupNumber = 0;
+
+    addr.domain = pci_dev->domain;
+    addr.bus = pci_dev->bus;
+    addr.slot = pci_dev->slot;
+    addr.function = pci_dev->function;
+    tmpGroup = virPCIDeviceAddressGetIOMMUGroupNum(&addr);
+    if (tmpGroup == -1) {
+        /* error was already reported */
+        goto cleanup;
+    }
+    if (tmpGroup == -2) {
+        /* -2 return means there is no iommu_group data */
+        ret = 0;
+        goto cleanup;
+    }
+    if (tmpGroup >= 0) {
+        if (virPCIDeviceAddressGetIOMMUGroupAddresses(&addr, &pci_dev->iommuGroupDevices,
+                                                      &pci_dev->nIommuGroupDevices) < 0)
+            goto cleanup;
+        pci_dev->iommuGroupNumber = tmpGroup;
+    }
+
+    ret = 0;
+ cleanup:
+    return ret;
+}
+
+
+static int
+virNodeDeviceGetPCIMdevTypesCaps(const char *sysfspath,
+                                 virNodeDevCapPCIDevPtr pci_dev)
+{
+    virMediatedDeviceTypePtr *types = NULL;
+    int rc = 0;
+    size_t i;
+
+    /* this could be a refresh, so clear out the old data */
+    for (i = 0; i < pci_dev->nmdev_types; i++)
+       virMediatedDeviceTypeFree(pci_dev->mdev_types[i]);
+    VIR_FREE(pci_dev->mdev_types);
+    pci_dev->nmdev_types = 0;
+    pci_dev->flags &= ~VIR_NODE_DEV_CAP_FLAG_PCI_MDEV;
+
+    rc = virPCIGetMdevTypes(sysfspath, &types);
+
+    if (rc <= 0)
+        return rc;
+
+    VIR_STEAL_PTR(pci_dev->mdev_types, types);
+    pci_dev->nmdev_types = rc;
+    pci_dev->flags |= VIR_NODE_DEV_CAP_FLAG_PCI_MDEV;
+
+    return 0;
+}
+
+
+/* virNodeDeviceGetPCIDynamicCaps() get info that is stored in sysfs
+ * about devices related to this device, i.e. things that can change
+ * without this device itself changing. These must be refreshed
+ * anytime full XML of the device is requested, because they can
+ * change with no corresponding notification from the kernel/udev.
+ */
+int
+virNodeDeviceGetPCIDynamicCaps(const char *sysfsPath,
+                               virNodeDevCapPCIDevPtr pci_dev)
+{
+    if (virNodeDeviceGetPCISRIOVCaps(sysfsPath, pci_dev) < 0 ||
+        virNodeDeviceGetPCIIOMMUGroupCaps(pci_dev) < 0 ||
+        virNodeDeviceGetPCIMdevTypesCaps(sysfsPath, pci_dev) < 0)
+        return -1;
+    return 0;
+}
+
+#else
+
+int
+virNodeDeviceGetSCSIHostCaps(virNodeDevCapSCSIHostPtr scsi_host ATTRIBUTE_UNUSED)
+{
+    return -1;
+}
+
+int
+virNodeDeviceGetPCIDynamicCaps(const char *sysfsPath ATTRIBUTE_UNUSED,
+                               virNodeDevCapPCIDevPtr pci_dev ATTRIBUTE_UNUSED)
+{
+    return -1;
+}
+
+
+int virNodeDeviceGetSCSITargetCaps(const char *sysfsPath ATTRIBUTE_UNUSED,
+                                   virNodeDevCapSCSITargetPtr scsi_target ATTRIBUTE_UNUSED)
+{
+    return -1;
+}
+
+#endif /* __linux__ */

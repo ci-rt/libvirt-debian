@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [4.0.0], [libvir-list@redhat.com], [], [https://libvirt.org])
+AC_INIT([libvirt], [4.1.0], [libvir-list@redhat.com], [], [https://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -237,6 +237,7 @@ LIBVIRT_COMPILE_WARNINGS
 LIBVIRT_COMPILE_PIE
 LIBVIRT_LINKER_RELRO
 LIBVIRT_LINKER_NO_INDIRECT
+LIBVIRT_LINKER_NO_UNDEFINED
 
 LIBVIRT_ARG_APPARMOR
 LIBVIRT_ARG_ATTR
@@ -915,7 +916,6 @@ AC_CONFIG_FILES([\
         libvirt.spec mingw-libvirt.spec \
         po/Makefile.in \
         include/libvirt/libvirt-common.h \
-        daemon/Makefile \
         examples/Makefile \
         tests/Makefile \
         tools/Makefile])

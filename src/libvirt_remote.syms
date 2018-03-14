@@ -5,6 +5,15 @@
 # Keep this file sorted by header name, then by symbols with each header.
 #
 
+# Generated files
+xdr_*;
+# Hack only required for Win32 to make tests link properly,
+# as the wildcard above doesn't work there. Fortunately
+# Win32 builds don't require the other xdr_* syms exported.
+# since there's no libvirtd built.
+xdr_virNetMessageError;
+
+
 # rpc/virnetclient.h
 virNetClientAddProgram;
 virNetClientAddStream;
@@ -61,7 +70,6 @@ virNetClientStreamSetError;
 
 # rpc/virnetdaemon.h
 virNetDaemonAddServer;
-virNetDaemonAddServerPostExec;
 virNetDaemonAddShutdownInhibition;
 virNetDaemonAddSignalHandler;
 virNetDaemonAutoShutdown;
@@ -69,6 +77,7 @@ virNetDaemonClose;
 virNetDaemonGetServer;
 virNetDaemonGetServers;
 virNetDaemonHasClients;
+virNetDaemonHasServer;
 virNetDaemonIsPrivileged;
 virNetDaemonNew;
 virNetDaemonNewPostExecRestart;
@@ -80,6 +89,7 @@ virNetDaemonUpdateServices;
 
 
 # rpc/virnetmessage.h
+virNetMessageAddFD;
 virNetMessageClear;
 virNetMessageClearPayload;
 virNetMessageDecodeHeader;
@@ -96,7 +106,6 @@ virNetMessageNew;
 virNetMessageQueuePush;
 virNetMessageQueueServe;
 virNetMessageSaveError;
-xdr_virNetMessageError;
 
 
 # rpc/virnetserver.h
@@ -104,12 +113,14 @@ virNetServerAddClient;
 virNetServerAddProgram;
 virNetServerAddService;
 virNetServerClose;
+virNetServerGetClient;
 virNetServerGetClients;
 virNetServerGetCurrentClients;
 virNetServerGetCurrentUnauthClients;
 virNetServerGetMaxClients;
 virNetServerGetMaxUnauthClients;
 virNetServerGetName;
+virNetServerGetThreadPoolParameters;
 virNetServerHasClients;
 virNetServerNew;
 virNetServerNewPostExecRestart;
@@ -117,6 +128,8 @@ virNetServerNextClientID;
 virNetServerPreExecRestart;
 virNetServerProcessClients;
 virNetServerSetClientAuthenticated;
+virNetServerSetClientLimits;
+virNetServerSetThreadPoolParameters;
 virNetServerStart;
 virNetServerUpdateServices;
 
@@ -128,11 +141,13 @@ virNetServerClientCloseLocked;
 virNetServerClientDelayedClose;
 virNetServerClientGetAuth;
 virNetServerClientGetFD;
+virNetServerClientGetID;
 virNetServerClientGetIdentity;
 virNetServerClientGetInfo;
 virNetServerClientGetPrivateData;
 virNetServerClientGetReadonly;
 virNetServerClientGetSELinuxContext;
+virNetServerClientGetTimestamp;
 virNetServerClientGetTransport;
 virNetServerClientGetUNIXIdentity;
 virNetServerClientImmediateClose;

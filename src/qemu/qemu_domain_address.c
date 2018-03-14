@@ -25,7 +25,6 @@
 
 #include "qemu_domain_address.h"
 #include "qemu_domain.h"
-#include "network/bridge_driver.h"
 #include "viralloc.h"
 #include "virerror.h"
 #include "virlog.h"
@@ -40,69 +39,88 @@ VIR_LOG_INIT("qemu.qemu_domain_address");
 #define VIO_ADDR_NVRAM 0x3000ul
 
 
+/**
+ * @def: Domain definition
+ * @cont: Domain controller def
+ * @qemuCaps: qemu capabilities
+ *
+ * If the controller model is already defined, return it immediately;
+ * otherwise, based on the @qemuCaps return a default model value.
+ *
+ * Returns model on success, -1 on failure with error set.
+ */
+int
+qemuDomainGetSCSIControllerModel(const virDomainDef *def,
+                                 const virDomainControllerDef *cont,
+                                 virQEMUCapsPtr qemuCaps)
+{
+    if (cont->model > 0)
+        return cont->model;
+
+    if (qemuDomainIsPSeries(def))
+        return VIR_DOMAIN_CONTROLLER_MODEL_SCSI_IBMVSCSI;
+    else if (ARCH_IS_S390(def->os.arch))
+        return VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_SCSI;
+    else if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_SCSI_LSI))
+        return VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LSILOGIC;
+    else if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_SCSI))
+        return VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_SCSI;
+
+    virReportError(VIR_ERR_INTERNAL_ERROR,
+                   _("Unable to determine model for SCSI controller idx=%d"),
+                   cont->idx);
+    return -1;
+}
+
+
+/**
+ * @def: Domain definition
+ * @cont: Domain controller def
+ * @qemuCaps: qemu capabilities
+ *
+ * Set the controller model based on the existing value and the
+ * capabilities if possible.
+ *
+ * Returns 0 on success, -1 on failure with error set.
+ */
 int
 qemuDomainSetSCSIControllerModel(const virDomainDef *def,
-                                 virQEMUCapsPtr qemuCaps,
-                                 int *model)
+                                 virDomainControllerDefPtr cont,
+                                 virQEMUCapsPtr qemuCaps)
 {
-    if (*model > 0) {
-        switch (*model) {
-        case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LSILOGIC:
-            if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_SCSI_LSI)) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                               _("This QEMU doesn't support "
-                                 "the LSI 53C895A SCSI controller"));
-                return -1;
-            }
-            break;
-        case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_SCSI:
-            if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_SCSI)) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                               _("This QEMU doesn't support "
-                                 "virtio scsi controller"));
-                return -1;
-            }
-            break;
-        case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_IBMVSCSI:
-            /*TODO: need checking work here if necessary */
-            break;
-        case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LSISAS1068:
-            if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_SCSI_MPTSAS1068)) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                               _("This QEMU doesn't support "
-                                 "the LSI SAS1068 (MPT Fusion) controller"));
-                return -1;
-            }
-            break;
-        case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LSISAS1078:
-            if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_SCSI_MEGASAS)) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                               _("This QEMU doesn't support "
-                                 "the LSI SAS1078 (MegaRAID) controller"));
-                return -1;
-            }
-            break;
-        default:
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                           _("Unsupported controller model: %s"),
-                           virDomainControllerModelSCSITypeToString(*model));
-            return -1;
-        }
-    } else {
-        if (qemuDomainIsPSeries(def)) {
-            *model = VIR_DOMAIN_CONTROLLER_MODEL_SCSI_IBMVSCSI;
-        } else if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_SCSI_LSI)) {
-            *model = VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LSILOGIC;
-        } else if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_SCSI)) {
-            *model = VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_SCSI;
-        } else {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("Unable to determine model for scsi controller"));
-            return -1;
-        }
+    int model = qemuDomainGetSCSIControllerModel(def, cont, qemuCaps);
+
+    if (model < 0)
+        return -1;
+
+    cont->model = model;
+    return 0;
+}
+
+
+/**
+ * @def: Domain definition
+ * @info: Domain device info
+ *
+ * Using the device info, find the controller related to the
+ * device by index and use that controller to return the model.
+ *
+ * Returns the model if found, -1 if not with an error message set
+ */
+int
+qemuDomainFindSCSIControllerModel(const virDomainDef *def,
+                                  virDomainDeviceInfoPtr info)
+{
+    virDomainControllerDefPtr cont;
+
+    if (!(cont = virDomainDeviceFindSCSIController(def, info))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("unable to find a SCSI controller for idx=%d"),
+                       info->addr.drive.controller);
+        return -1;
     }
 
-    return 0;
+    return cont->model;
 }
 
 
@@ -204,12 +222,10 @@ qemuDomainAssignSpaprVIOAddress(virDomainDefPtr def,
 
 
 static int
-qemuDomainAssignSpaprVIOAddresses(virDomainDefPtr def,
-                                  virQEMUCapsPtr qemuCaps)
+qemuDomainAssignSpaprVIOAddresses(virDomainDefPtr def)
 {
     size_t i;
     int ret = -1;
-    int model;
 
     /* Default values match QEMU. See spapr_(llan|vscsi|vty).c */
 
@@ -228,13 +244,7 @@ qemuDomainAssignSpaprVIOAddresses(virDomainDefPtr def,
     for (i = 0; i < def->ncontrollers; i++) {
         virDomainControllerDefPtr cont = def->controllers[i];
 
-        model = cont->model;
-        if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_SCSI) {
-            if (qemuDomainSetSCSIControllerModel(def, qemuCaps, &model) < 0)
-                goto cleanup;
-        }
-
-        if (model == VIR_DOMAIN_CONTROLLER_MODEL_SCSI_IBMVSCSI &&
+        if (cont->model == VIR_DOMAIN_CONTROLLER_MODEL_SCSI_IBMVSCSI &&
             cont->type == VIR_DOMAIN_CONTROLLER_TYPE_SCSI) {
             cont->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_SPAPRVIO;
         }
@@ -503,6 +513,15 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
 
         case VIR_DOMAIN_CONTROLLER_TYPE_USB:
             switch ((virDomainControllerModelUSB) cont->model) {
+            case VIR_DOMAIN_CONTROLLER_MODEL_USB_DEFAULT:
+                /* qemuDomainControllerDefPostParse should have
+                 * changed 'model' to an explicit USB model in
+                 * most cases. Since we're still on the default
+                 * though, we must be going to use "-usb", which
+                 * is assumed to be a PCI default
+                 */
+                return pciFlags;
+
             case VIR_DOMAIN_CONTROLLER_MODEL_USB_NEC_XHCI:
             case VIR_DOMAIN_CONTROLLER_MODEL_USB_QEMU_XHCI:
                 return pcieFlags;
@@ -524,12 +543,16 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
             case VIR_DOMAIN_CONTROLLER_MODEL_USB_LAST:
                 return 0;
             }
+            break;
 
         case VIR_DOMAIN_CONTROLLER_TYPE_IDE:
             return pciFlags;
 
         case VIR_DOMAIN_CONTROLLER_TYPE_SCSI:
             switch ((virDomainControllerModelSCSI) cont->model) {
+            case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_DEFAULT:
+                return 0;
+
             case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_SCSI:
                 return virtioFlags;
 
@@ -545,6 +568,7 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
             case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LAST:
                 return 0;
             }
+            break;
 
         case VIR_DOMAIN_CONTROLLER_TYPE_VIRTIO_SERIAL:
             return virtioFlags;
@@ -597,6 +621,7 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
         case VIR_DOMAIN_SOUND_MODEL_LAST:
             return 0;
         }
+        break;
 
     case VIR_DOMAIN_DEVICE_DISK:
         switch ((virDomainDiskBus) dev->data.disk->bus) {
@@ -614,6 +639,7 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
         case VIR_DOMAIN_DISK_BUS_LAST:
             return 0;
         }
+        break;
 
     case VIR_DOMAIN_DEVICE_HOSTDEV: {
         virDomainHostdevDefPtr hostdev = dev->data.hostdev;
@@ -655,6 +681,13 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
          * as all current mdev-capable devices are indeed PCI Express */
         if (hostdev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_MDEV)
             return pcieFlags;
+
+        /* according to pbonzini, from the guest PoV vhost-scsi devices
+         * are the same as virtio-scsi, so they should use virtioFlags
+         * (same as virtio-scsi) to determine Express vs. legacy placement
+         */
+        if (hostdev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI_HOST)
+            return virtioFlags;
 
         if (!(pciDev = virPCIDeviceNew(hostAddr->domain,
                                        hostAddr->bus,
@@ -719,6 +752,7 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
         case VIR_DOMAIN_MEMBALLOON_MODEL_LAST:
             return 0;
         }
+        break;
 
     case VIR_DOMAIN_DEVICE_RNG:
         switch ((virDomainRNGModel) dev->data.rng->model) {
@@ -728,6 +762,7 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
         case VIR_DOMAIN_RNG_MODEL_LAST:
             return 0;
         }
+        break;
 
     case VIR_DOMAIN_DEVICE_WATCHDOG:
         /* only one model connects using PCI */
@@ -740,6 +775,7 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
         case VIR_DOMAIN_WATCHDOG_MODEL_LAST:
             return 0;
         }
+        break;
 
     case VIR_DOMAIN_DEVICE_VIDEO:
         switch ((virDomainVideoType) dev->data.video->type) {
@@ -760,6 +796,7 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
         case VIR_DOMAIN_VIDEO_TYPE_LAST:
             return 0;
         }
+        break;
 
     case VIR_DOMAIN_DEVICE_SHMEM:
         return pciFlags;
@@ -776,6 +813,7 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
         case VIR_DOMAIN_INPUT_BUS_LAST:
             return 0;
         }
+        break;
 
     case VIR_DOMAIN_DEVICE_CHR:
         switch ((virDomainChrSerialTargetType) dev->data.chr->targetType) {
@@ -791,6 +829,7 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
         case VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_LAST:
             return 0;
         }
+        break;
 
         /* These devices don't ever connect with PCI */
     case VIR_DOMAIN_DEVICE_NVRAM:
@@ -1046,7 +1085,7 @@ qemuDomainFillDeviceIsolationGroup(virDomainDefPtr def,
          * to is of type hostdev. All other kinds of network interfaces don't
          * require us to isolate the guest device, so we can skip them */
         if (iface->type != VIR_DOMAIN_NET_TYPE_NETWORK ||
-            networkGetActualType(iface) != VIR_DOMAIN_NET_TYPE_HOSTDEV) {
+            virDomainNetResolveActualType(iface) != VIR_DOMAIN_NET_TYPE_HOSTDEV) {
             goto skip;
         }
 
@@ -1258,7 +1297,8 @@ qemuDomainCollectPCIAddress(virDomainDefPtr def ATTRIBUTE_UNUSED,
              addr->function == 1) ||
             (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_USB && cont->idx == 0 &&
              (cont->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_PIIX3_UHCI ||
-              cont->model == -1) && addr->function == 2)) {
+              cont->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_DEFAULT) &&
+             addr->function == 2)) {
             /* Note the check for nbuses > 0 - if there are no PCI
              * buses, we skip this check. This is a quirk required for
              * some machinetypes such as s390, which pretend to have a
@@ -1418,7 +1458,7 @@ qemuDomainValidateDevicePCISlotsPIIX3(virDomainDefPtr def,
         } else if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_USB &&
                    cont->idx == 0 &&
                    (cont->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_PIIX3_UHCI ||
-                    cont->model == -1)) {
+                    cont->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_DEFAULT)) {
             if (virDeviceInfoPCIAddressPresent(&cont->info)) {
                 if (cont->info.addr.pci.domain != 0 ||
                     cont->info.addr.pci.bus != 0 ||
@@ -2148,6 +2188,7 @@ qemuDomainPCIControllerSetDefaultModelName(virDomainControllerDefPtr cont,
             *modelName = VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_SPAPR_PCI_HOST_BRIDGE;
         break;
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT:
+    case VIR_DOMAIN_CONTROLLER_MODEL_PCI_DEFAULT:
     case VIR_DOMAIN_CONTROLLER_MODEL_PCI_LAST:
         break;
     }
@@ -2535,6 +2576,7 @@ qemuDomainAssignPCIAddresses(virDomainDefPtr def,
             case VIR_DOMAIN_CONTROLLER_MODEL_DMI_TO_PCI_BRIDGE:
             case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_UPSTREAM_PORT:
             case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT:
+            case VIR_DOMAIN_CONTROLLER_MODEL_PCI_DEFAULT:
             case VIR_DOMAIN_CONTROLLER_MODEL_PCI_LAST:
                 break;
             }
@@ -2836,7 +2878,7 @@ qemuDomainAssignAddresses(virDomainDefPtr def,
     if (qemuDomainAssignVirtioSerialAddresses(def) < 0)
         return -1;
 
-    if (qemuDomainAssignSpaprVIOAddresses(def, qemuCaps) < 0)
+    if (qemuDomainAssignSpaprVIOAddresses(def) < 0)
         return -1;
 
     if (qemuDomainAssignS390Addresses(def, qemuCaps) < 0)
@@ -2901,11 +2943,8 @@ qemuDomainReleaseDeviceAddress(virDomainObjPtr vm,
     if (virDeviceInfoPCIAddressPresent(info))
         virDomainPCIAddressReleaseAddr(priv->pciaddrs, &info->addr.pci);
 
-    if (info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_USB &&
-        priv->usbaddrs &&
-        virDomainUSBAddressRelease(priv->usbaddrs, info) < 0)
-        VIR_WARN("Unable to release USB address on %s",
-                 NULLSTR(devstr));
+    if (virDomainUSBAddressRelease(priv->usbaddrs, info) < 0)
+        VIR_WARN("Unable to release USB address on %s", NULLSTR(devstr));
 }
 
 

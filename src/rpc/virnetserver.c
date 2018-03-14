@@ -540,12 +540,12 @@ virNetServerPtr virNetServerNewPostExecRestart(virJSONValuePtr object,
             goto error;
         }
 
-        if (!(client = virNetServerClientNewPostExecRestart(child,
+        if (!(client = virNetServerClientNewPostExecRestart(srv,
+                                                            child,
                                                             clientPrivNewPostExecRestart,
                                                             clientPrivPreExecRestart,
                                                             clientPrivFree,
-                                                            clientPrivOpaque,
-                                                            srv)))
+                                                            clientPrivOpaque)))
             goto error;
 
         if (virNetServerAddClient(srv, client) < 0) {
@@ -804,9 +804,6 @@ void virNetServerDispose(void *obj)
     size_t i;
 
     VIR_FREE(srv->name);
-
-    for (i = 0; i < srv->nservices; i++)
-        virNetServerServiceToggle(srv->services[i], false);
 
     virThreadPoolFree(srv->workers);
 

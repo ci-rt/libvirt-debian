@@ -763,8 +763,7 @@ mymain(void)
             QEMU_CAPS_VIRTIO_SCSI,
             QEMU_CAPS_DEVICE_VFIO_PCI);
 
-    DO_TEST("pseries-hpt-resizing",
-            QEMU_CAPS_NODEFCONFIG,
+    DO_TEST("pseries-features-hpt",
             QEMU_CAPS_MACHINE_OPT,
             QEMU_CAPS_MACHINE_PSERIES_RESIZE_HPT);
 
@@ -1109,6 +1108,13 @@ mymain(void)
     DO_TEST("hostdev-scsi-vhost-scsi-pci",
             QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_DEVICE_VHOST_SCSI,
             QEMU_CAPS_DEVICE_SCSI_GENERIC);
+    DO_TEST("hostdev-scsi-vhost-scsi-pcie",
+            QEMU_CAPS_KVM,
+            QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_DEVICE_VHOST_SCSI,
+            QEMU_CAPS_DEVICE_SCSI_GENERIC,
+            QEMU_CAPS_PCI_MULTIFUNCTION,
+            QEMU_CAPS_DEVICE_PCIE_ROOT_PORT,
+            QEMU_CAPS_VIRTIO_PCI_DISABLE_LEGACY);
     DO_TEST("hostdev-scsi-lsi",
             QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_SCSI_LSI,
             QEMU_CAPS_DEVICE_SCSI_GENERIC);
@@ -1258,9 +1264,9 @@ mymain(void)
     DO_TEST_FULL("aarch64-gic-none-both", WHEN_BOTH, GIC_BOTH, NONE);
     DO_TEST_FULL("aarch64-gic-none-tcg", WHEN_BOTH, GIC_BOTH, NONE);
     DO_TEST_FULL("aarch64-gic-default", WHEN_BOTH, GIC_NONE, NONE);
-    DO_TEST_FULL("aarch64-gic-default", WHEN_BOTH, GIC_V2, NONE);
-    DO_TEST_FULL("aarch64-gic-default", WHEN_BOTH, GIC_V3, NONE);
-    DO_TEST_FULL("aarch64-gic-default", WHEN_BOTH, GIC_BOTH, NONE);
+    DO_TEST_FULL("aarch64-gic-default-v2", WHEN_BOTH, GIC_V2, NONE);
+    DO_TEST_FULL("aarch64-gic-default-v3", WHEN_BOTH, GIC_V3, NONE);
+    DO_TEST_FULL("aarch64-gic-default-both", WHEN_BOTH, GIC_BOTH, NONE);
     DO_TEST_FULL("aarch64-gic-v2", WHEN_BOTH, GIC_NONE, NONE);
     DO_TEST_FULL("aarch64-gic-v2", WHEN_BOTH, GIC_V2, NONE);
     DO_TEST_FULL("aarch64-gic-v2", WHEN_BOTH, GIC_V3, NONE);
@@ -1310,7 +1316,10 @@ mymain(void)
     DO_TEST("intel-iommu-machine",
             QEMU_CAPS_MACHINE_OPT,
             QEMU_CAPS_MACHINE_IOMMU);
-    DO_TEST("intel-iommu-caching-mode", NONE);
+    DO_TEST("intel-iommu-caching-mode",
+            QEMU_CAPS_DEVICE_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_IOH3420);
     DO_TEST("intel-iommu-eim", NONE);
     DO_TEST("intel-iommu-device-iotlb", NONE);
 

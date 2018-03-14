@@ -47,7 +47,6 @@
 #include "virprocess.h"
 #include "qemu_cgroup.h"
 #include "locking/domain_lock.h"
-#include "network/bridge_driver.h"
 #include "virnetdev.h"
 #include "virnetdevbridge.h"
 #include "virnetdevtap.h"
@@ -57,7 +56,6 @@
 #include "virstoragefile.h"
 #include "virstring.h"
 #include "virtime.h"
-#include "storage/storage_driver.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -356,8 +354,7 @@ qemuDomainChangeEjectableMedia(virQEMUDriverPtr driver,
  * Attaches disk to a VM. This function aggregates common code for all bus types.
  * In cases when the VM crashed while adding the disk, -2 is returned. */
 static int
-qemuDomainAttachDiskGeneric(virConnectPtr conn,
-                            virQEMUDriverPtr driver,
+qemuDomainAttachDiskGeneric(virQEMUDriverPtr driver,
                             virDomainObjPtr vm,
                             virDomainDiskDefPtr disk)
 {
@@ -381,10 +378,10 @@ qemuDomainAttachDiskGeneric(virConnectPtr conn,
     if (qemuHotplugPrepareDiskAccess(driver, vm, disk, NULL, false) < 0)
         goto cleanup;
 
-    if (qemuAssignDeviceDiskAlias(vm->def, disk, priv->qemuCaps) < 0)
+    if (qemuAssignDeviceDiskAlias(vm->def, disk) < 0)
         goto error;
 
-    if (qemuDomainPrepareDiskSource(conn, disk, priv, cfg) < 0)
+    if (qemuDomainPrepareDiskSource(disk, priv, cfg) < 0)
         goto error;
 
     srcPriv = QEMU_DOMAIN_STORAGE_SOURCE_PRIVATE(disk->src);
@@ -489,8 +486,7 @@ qemuDomainAttachDiskGeneric(virConnectPtr conn,
 
 
 static int
-qemuDomainAttachVirtioDiskDevice(virConnectPtr conn,
-                                 virQEMUDriverPtr driver,
+qemuDomainAttachVirtioDiskDevice(virQEMUDriverPtr driver,
                                  virDomainObjPtr vm,
                                  virDomainDiskDefPtr disk)
 {
@@ -501,7 +497,7 @@ qemuDomainAttachVirtioDiskDevice(virConnectPtr conn,
     if (qemuDomainEnsureVirtioAddress(&releaseaddr, vm, &dev, disk->dst) < 0)
         return -1;
 
-    if ((rv = qemuDomainAttachDiskGeneric(conn, driver, vm, disk)) < 0) {
+    if ((rv = qemuDomainAttachDiskGeneric(driver, vm, disk)) < 0) {
         if (rv == -1 && releaseaddr)
             qemuDomainReleaseDeviceAddress(vm, &disk->info, disk->dst);
 
@@ -587,6 +583,7 @@ qemuDomainFindOrCreateSCSIDiskController(virQEMUDriverPtr driver,
 {
     size_t i;
     virDomainControllerDefPtr cont;
+    qemuDomainObjPrivatePtr priv = vm->privateData;
     int model = -1;
 
     for (i = 0; i < vm->def->ncontrollers; i++) {
@@ -615,10 +612,13 @@ qemuDomainFindOrCreateSCSIDiskController(virQEMUDriverPtr driver,
         return NULL;
     cont->type = VIR_DOMAIN_CONTROLLER_TYPE_SCSI;
     cont->idx = controller;
-    cont->model = model;
+    if (model == VIR_DOMAIN_CONTROLLER_MODEL_SCSI_DEFAULT)
+        cont->model = qemuDomainGetSCSIControllerModel(vm->def, cont, priv->qemuCaps);
+    else
+        cont->model = model;
 
     VIR_INFO("No SCSI controller present, hotplugging one model=%s",
-             virDomainControllerModelSCSITypeToString(model));
+             virDomainControllerModelSCSITypeToString(cont->model));
     if (qemuDomainAttachControllerDevice(driver, vm, cont) < 0) {
         VIR_FREE(cont);
         return NULL;
@@ -637,8 +637,7 @@ qemuDomainFindOrCreateSCSIDiskController(virQEMUDriverPtr driver,
 
 
 static int
-qemuDomainAttachSCSIDisk(virConnectPtr conn,
-                         virQEMUDriverPtr driver,
+qemuDomainAttachSCSIDisk(virQEMUDriverPtr driver,
                          virDomainObjPtr vm,
                          virDomainDiskDefPtr disk)
 {
@@ -664,7 +663,7 @@ qemuDomainAttachSCSIDisk(virConnectPtr conn,
             return -1;
     }
 
-    if (qemuDomainAttachDiskGeneric(conn, driver, vm, disk) < 0)
+    if (qemuDomainAttachDiskGeneric(driver, vm, disk) < 0)
         return -1;
 
     return 0;
@@ -672,19 +671,16 @@ qemuDomainAttachSCSIDisk(virConnectPtr conn,
 
 
 static int
-qemuDomainAttachUSBMassStorageDevice(virConnectPtr conn,
-                                     virQEMUDriverPtr driver,
+qemuDomainAttachUSBMassStorageDevice(virQEMUDriverPtr driver,
                                      virDomainObjPtr vm,
                                      virDomainDiskDefPtr disk)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
 
-    if (priv->usbaddrs) {
-        if (virDomainUSBAddressEnsure(priv->usbaddrs, &disk->info) < 0)
-            return -1;
-    }
+    if (virDomainUSBAddressEnsure(priv->usbaddrs, &disk->info) < 0)
+        return -1;
 
-    if (qemuDomainAttachDiskGeneric(conn, driver, vm, disk) < 0) {
+    if (qemuDomainAttachDiskGeneric(driver, vm, disk) < 0) {
         virDomainUSBAddressRelease(priv->usbaddrs, &disk->info);
         return -1;
     }
@@ -694,8 +690,7 @@ qemuDomainAttachUSBMassStorageDevice(virConnectPtr conn,
 
 
 int
-qemuDomainAttachDeviceDiskLive(virConnectPtr conn,
-                               virQEMUDriverPtr driver,
+qemuDomainAttachDeviceDiskLive(virQEMUDriverPtr driver,
                                virDomainObjPtr vm,
                                virDomainDeviceDefPtr dev)
 {
@@ -711,7 +706,7 @@ qemuDomainAttachDeviceDiskLive(virConnectPtr conn,
         goto cleanup;
     }
 
-    if (virStorageTranslateDiskSourcePool(conn, disk) < 0)
+    if (virDomainDiskTranslateSourcePool(disk) < 0)
         goto cleanup;
 
     if (qemuAddSharedDevice(driver, dev, vm->def->name) < 0)
@@ -759,15 +754,15 @@ qemuDomainAttachDeviceDiskLive(virConnectPtr conn,
                                _("disk device='lun' is not supported for usb bus"));
                 break;
             }
-            ret = qemuDomainAttachUSBMassStorageDevice(conn, driver, vm, disk);
+            ret = qemuDomainAttachUSBMassStorageDevice(driver, vm, disk);
             break;
 
         case VIR_DOMAIN_DISK_BUS_VIRTIO:
-            ret = qemuDomainAttachVirtioDiskDevice(conn, driver, vm, disk);
+            ret = qemuDomainAttachVirtioDiskDevice(driver, vm, disk);
             break;
 
         case VIR_DOMAIN_DISK_BUS_SCSI:
-            ret = qemuDomainAttachSCSIDisk(conn, driver, vm, disk);
+            ret = qemuDomainAttachSCSIDisk(driver, vm, disk);
             break;
 
         case VIR_DOMAIN_DISK_BUS_IDE:
@@ -851,7 +846,7 @@ qemuDomainAttachNetDevice(virQEMUDriverPtr driver,
      * network's pool of devices, or resolve bridge device name
      * to the one defined in the network definition.
      */
-    if (networkAllocateActualDevice(vm->def, net) < 0)
+    if (virDomainNetAllocateActualDevice(vm->def, net) < 0)
         goto cleanup;
 
     actualType = virDomainNetGetActualType(net);
@@ -952,11 +947,8 @@ qemuDomainAttachNetDevice(virQEMUDriverPtr driver,
          * as a hostdev (the hostdev code will reach over into the
          * netdev-specific code as appropriate), then also added to
          * the nets list (see cleanup:) if successful.
-         *
-         * qemuDomainAttachHostDevice uses a connection to resolve
-         * a SCSI hostdev secret, which is not this case, so pass NULL.
          */
-        ret = qemuDomainAttachHostDevice(NULL, driver, vm,
+        ret = qemuDomainAttachHostDevice(driver, vm,
                                          virDomainNetGetActualHostdev(net));
         goto cleanup;
         break;
@@ -1182,7 +1174,7 @@ qemuDomainAttachNetDevice(virQEMUDriverPtr driver,
 
         virDomainNetRemoveHostdev(vm->def, net);
 
-        networkReleaseActualDevice(vm->def, net);
+        virDomainNetReleaseActualDevice(vm->def, net);
     }
 
     VIR_FREE(nicstr);
@@ -1517,8 +1509,7 @@ qemuDomainGetTLSObjects(virQEMUCapsPtr qemuCaps,
 
 
 static int
-qemuDomainAddChardevTLSObjects(virConnectPtr conn,
-                               virQEMUDriverPtr driver,
+qemuDomainAddChardevTLSObjects(virQEMUDriverPtr driver,
                                virDomainObjPtr vm,
                                virDomainChrSourceDefPtr dev,
                                char *devAlias,
@@ -1543,7 +1534,7 @@ qemuDomainAddChardevTLSObjects(virConnectPtr conn,
         goto cleanup;
     }
 
-    if (qemuDomainSecretChardevPrepare(conn, cfg, priv, devAlias, dev) < 0)
+    if (qemuDomainSecretChardevPrepare(cfg, priv, devAlias, dev) < 0)
         goto cleanup;
 
     if ((chrSourcePriv = QEMU_DOMAIN_CHR_SOURCE_PRIVATE(dev)))
@@ -1621,8 +1612,7 @@ qemuDomainDelChardevTLSObjects(virQEMUDriverPtr driver,
 }
 
 
-int qemuDomainAttachRedirdevDevice(virConnectPtr conn,
-                                   virQEMUDriverPtr driver,
+int qemuDomainAttachRedirdevDevice(virQEMUDriverPtr driver,
                                    virDomainObjPtr vm,
                                    virDomainRedirdevDefPtr redirdev)
 {
@@ -1653,7 +1643,7 @@ int qemuDomainAttachRedirdevDevice(virConnectPtr conn,
     if (VIR_REALLOC_N(def->redirdevs, def->nredirdevs+1) < 0)
         goto cleanup;
 
-    if (qemuDomainAddChardevTLSObjects(conn, driver, vm, redirdev->source,
+    if (qemuDomainAddChardevTLSObjects(driver, vm, redirdev->source,
                                        redirdev->info.alias, charAlias,
                                        &tlsAlias, &secAlias) < 0)
         goto audit;
@@ -1835,8 +1825,7 @@ qemuDomainAttachChrDeviceAssignAddr(virDomainObjPtr vm,
             return -1;
         return 1;
 
-    } else if (priv->usbaddrs &&
-               chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL &&
+    } else if (chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL &&
                chr->targetType == VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_USB) {
         if (virDomainUSBAddressEnsure(priv->usbaddrs, &chr->info) < 0)
             return -1;
@@ -1859,8 +1848,7 @@ qemuDomainAttachChrDeviceAssignAddr(virDomainObjPtr vm,
     return 0;
 }
 
-int qemuDomainAttachChrDevice(virConnectPtr conn,
-                              virQEMUDriverPtr driver,
+int qemuDomainAttachChrDevice(virQEMUDriverPtr driver,
                               virDomainObjPtr vm,
                               virDomainChrDefPtr chr)
 {
@@ -1912,7 +1900,7 @@ int qemuDomainAttachChrDevice(virConnectPtr conn,
     if (qemuDomainChrPreInsert(vmdef, chr) < 0)
         goto cleanup;
 
-    if (qemuDomainAddChardevTLSObjects(conn, driver, vm, dev,
+    if (qemuDomainAddChardevTLSObjects(driver, vm, dev,
                                        chr->info.alias, charAlias,
                                        &tlsAlias, &secAlias) < 0)
         goto audit;
@@ -1967,8 +1955,7 @@ int qemuDomainAttachChrDevice(virConnectPtr conn,
 
 
 int
-qemuDomainAttachRNGDevice(virConnectPtr conn,
-                          virQEMUDriverPtr driver,
+qemuDomainAttachRNGDevice(virQEMUDriverPtr driver,
                           virDomainObjPtr vm,
                           virDomainRNGDefPtr rng)
 {
@@ -2022,7 +2009,7 @@ qemuDomainAttachRNGDevice(virConnectPtr conn,
         goto cleanup;
 
     if (rng->backend == VIR_DOMAIN_RNG_BACKEND_EGD) {
-        if (qemuDomainAddChardevTLSObjects(conn, driver, vm,
+        if (qemuDomainAddChardevTLSObjects(driver, vm,
                                            rng->source.chardev,
                                            rng->info.alias, charAlias,
                                            &tlsAlias, &secAlias) < 0)
@@ -2251,18 +2238,14 @@ qemuDomainAttachHostUSBDevice(virQEMUDriverPtr driver,
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
     char *devstr = NULL;
-    bool releaseaddr = false;
     bool added = false;
     bool teardowncgroup = false;
     bool teardownlabel = false;
     bool teardowndevice = false;
     int ret = -1;
 
-    if (priv->usbaddrs) {
-        if (virDomainUSBAddressEnsure(priv->usbaddrs, hostdev->info) < 0)
-            goto cleanup;
-        releaseaddr = true;
-    }
+    if (virDomainUSBAddressEnsure(priv->usbaddrs, hostdev->info) < 0)
+        return -1;
 
     if (qemuHostdevPrepareUSBDevices(driver, vm->def->name, &hostdev, 1, 0) < 0)
         goto cleanup;
@@ -2314,8 +2297,7 @@ qemuDomainAttachHostUSBDevice(virQEMUDriverPtr driver,
             VIR_WARN("Unable to remove host device from /dev");
         if (added)
             qemuHostdevReAttachUSBDevices(driver, vm->def->name, &hostdev, 1);
-        if (releaseaddr)
-            virDomainUSBAddressRelease(priv->usbaddrs, hostdev->info);
+        virDomainUSBAddressRelease(priv->usbaddrs, hostdev->info);
     }
     VIR_FREE(devstr);
     return ret;
@@ -2323,8 +2305,7 @@ qemuDomainAttachHostUSBDevice(virQEMUDriverPtr driver,
 
 
 static int
-qemuDomainAttachHostSCSIDevice(virConnectPtr conn,
-                               virQEMUDriverPtr driver,
+qemuDomainAttachHostSCSIDevice(virQEMUDriverPtr driver,
                                virDomainObjPtr vm,
                                virDomainHostdevDefPtr hostdev)
 {
@@ -2381,7 +2362,7 @@ qemuDomainAttachHostSCSIDevice(virConnectPtr conn,
     if (qemuAssignDeviceHostdevAlias(vm->def, &hostdev->info->alias, -1) < 0)
         goto cleanup;
 
-    if (qemuDomainSecretHostdevPrepare(conn, priv, hostdev) < 0)
+    if (qemuDomainSecretHostdevPrepare(priv, hostdev) < 0)
         goto cleanup;
 
     if (scsisrc->protocol == VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_ISCSI) {
@@ -2401,7 +2382,7 @@ qemuDomainAttachHostSCSIDevice(virConnectPtr conn,
     if (!(drivealias = qemuAliasFromHostdev(hostdev)))
         goto cleanup;
 
-    if (!(devstr = qemuBuildSCSIHostdevDevStr(vm->def, hostdev, priv->qemuCaps)))
+    if (!(devstr = qemuBuildSCSIHostdevDevStr(vm->def, hostdev)))
         goto cleanup;
 
     if (VIR_REALLOC_N(vm->def->hostdevs, vm->def->nhostdevs + 1) < 0)
@@ -2583,8 +2564,7 @@ qemuDomainAttachSCSIVHostDevice(virQEMUDriverPtr driver,
 
 
 int
-qemuDomainAttachHostDevice(virConnectPtr conn,
-                           virQEMUDriverPtr driver,
+qemuDomainAttachHostDevice(virQEMUDriverPtr driver,
                            virDomainObjPtr vm,
                            virDomainHostdevDefPtr hostdev)
 {
@@ -2609,7 +2589,7 @@ qemuDomainAttachHostDevice(virConnectPtr conn,
         break;
 
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI:
-        if (qemuDomainAttachHostSCSIDevice(conn, driver, vm,
+        if (qemuDomainAttachHostSCSIDevice(driver, vm,
                                            hostdev) < 0)
             goto error;
         break;
@@ -2855,11 +2835,9 @@ qemuDomainAttachInputDevice(virQEMUDriverPtr driver,
         if (qemuDomainEnsureVirtioAddress(&releaseaddr, vm, &dev, "input") < 0)
             return -1;
     } else if (input->bus == VIR_DOMAIN_INPUT_BUS_USB) {
-        if (priv->usbaddrs) {
-            if (virDomainUSBAddressEnsure(priv->usbaddrs, &input->info) < 0)
-                goto cleanup;
-            releaseaddr = true;
-        }
+        if (virDomainUSBAddressEnsure(priv->usbaddrs, &input->info) < 0)
+            goto cleanup;
+        releaseaddr = true;
     }
 
     if (qemuAssignDeviceInputAlias(vm->def, input, -1) < 0)
@@ -2990,10 +2968,23 @@ qemuDomainChangeNetFilter(virDomainObjPtr vm,
     case VIR_DOMAIN_NET_TYPE_BRIDGE:
     case VIR_DOMAIN_NET_TYPE_NETWORK:
         break;
-    default:
+    case VIR_DOMAIN_NET_TYPE_USER:
+    case VIR_DOMAIN_NET_TYPE_VHOSTUSER:
+    case VIR_DOMAIN_NET_TYPE_SERVER:
+    case VIR_DOMAIN_NET_TYPE_CLIENT:
+    case VIR_DOMAIN_NET_TYPE_MCAST:
+    case VIR_DOMAIN_NET_TYPE_INTERNAL:
+    case VIR_DOMAIN_NET_TYPE_DIRECT:
+    case VIR_DOMAIN_NET_TYPE_HOSTDEV:
+    case VIR_DOMAIN_NET_TYPE_UDP:
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("filters not supported on interfaces of type %s"),
                        virDomainNetTypeToString(virDomainNetGetActualType(newdev)));
+        return -1;
+    case VIR_DOMAIN_NET_TYPE_LAST:
+    default:
+        virReportEnumRangeError(virDomainNetType,
+                                virDomainNetGetActualType(newdev));
         return -1;
     }
 
@@ -3070,12 +3061,7 @@ qemuDomainChangeNet(virQEMUDriverPtr driver,
     if ((changeidx = virDomainNetFindIdx(vm->def, newdev)) < 0)
         goto cleanup;
     devslot = &vm->def->nets[changeidx];
-
-    if (!(olddev = *devslot)) {
-        virReportError(VIR_ERR_OPERATION_FAILED, "%s",
-                       _("cannot find existing network device to modify"));
-        goto cleanup;
-    }
+    olddev = *devslot;
 
     oldType = virDomainNetGetActualType(olddev);
     if (oldType == VIR_DOMAIN_NET_TYPE_HOSTDEV) {
@@ -3229,7 +3215,7 @@ qemuDomainChangeNet(virQEMUDriverPtr driver,
      * free it if we fail for any reason
      */
     if (newdev->type == VIR_DOMAIN_NET_TYPE_NETWORK &&
-        networkAllocateActualDevice(vm->def, newdev) < 0) {
+        virDomainNetAllocateActualDevice(vm->def, newdev) < 0) {
         goto cleanup;
     }
 
@@ -3289,12 +3275,16 @@ qemuDomainChangeNet(virQEMUDriverPtr driver,
             /* all handled in common code directly below this switch */
             break;
 
-        default:
+        case VIR_DOMAIN_NET_TYPE_VHOSTUSER:
+        case VIR_DOMAIN_NET_TYPE_HOSTDEV:
             virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
                            _("unable to change config on '%s' network type"),
                            virDomainNetTypeToString(newdev->type));
-            break;
-
+            goto cleanup;
+        case VIR_DOMAIN_NET_TYPE_LAST:
+        default:
+            virReportEnumRangeError(virDomainNetType, newdev->type);
+            goto cleanup;
         }
     } else {
         /* interface type has changed. There are a few special cases
@@ -3437,7 +3427,7 @@ qemuDomainChangeNet(virQEMUDriverPtr driver,
 
         /* this function doesn't work with HOSTDEV networks yet, thus
          * no need to change the pointer in the hostdev structure */
-        networkReleaseActualDevice(vm->def, olddev);
+        virDomainNetReleaseActualDevice(vm->def, olddev);
         virDomainNetDefFree(olddev);
         /* move newdev into the nets list, and NULL it out from the
          * virDomainDeviceDef that we were given so that the caller
@@ -3469,7 +3459,7 @@ qemuDomainChangeNet(virQEMUDriverPtr driver,
      * replace the entire device object.
      */
     if (newdev)
-        networkReleaseActualDevice(vm->def, newdev);
+        virDomainNetReleaseActualDevice(vm->def, newdev);
 
     return ret;
 }
@@ -3514,8 +3504,9 @@ qemuDomainChangeGraphics(virQEMUDriverPtr driver,
     int ret = -1;
 
     if (!olddev) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("cannot find existing graphics device to modify"));
+        virReportError(VIR_ERR_DEVICE_MISSING,
+                       _("cannot find existing graphics device to modify of "
+                         "type '%s'"), type);
         goto cleanup;
     }
 
@@ -3672,9 +3663,15 @@ qemuDomainChangeGraphics(virQEMUDriverPtr driver,
         }
         break;
 
-    default:
+    case VIR_DOMAIN_GRAPHICS_TYPE_SDL:
+    case VIR_DOMAIN_GRAPHICS_TYPE_RDP:
+    case VIR_DOMAIN_GRAPHICS_TYPE_DESKTOP:
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("unable to change config on '%s' graphics type"), type);
+        break;
+    case VIR_DOMAIN_GRAPHICS_TYPE_LAST:
+    default:
+        virReportEnumRangeError(virDomainGraphicsType, dev->type);
         break;
     }
 
@@ -3815,8 +3812,7 @@ qemuDomainRemoveDiskDevice(virQEMUDriverPtr driver,
     dev.type = VIR_DOMAIN_DEVICE_DISK;
     dev.data.disk = disk;
     ignore_value(qemuRemoveSharedDevice(driver, &dev, vm->def->name));
-    if (priv->usbaddrs)
-        virDomainUSBAddressRelease(priv->usbaddrs, &disk->info);
+    virDomainUSBAddressRelease(priv->usbaddrs, &disk->info);
 
     virDomainDiskDefFree(disk);
     return 0;
@@ -3894,6 +3890,9 @@ qemuDomainRemoveMemoryDevice(virQEMUDriverPtr driver,
 
     if (qemuDomainNamespaceTeardownMemory(vm, mem) <  0)
         VIR_WARN("Unable to remove memory device from /dev");
+
+    if (qemuProcessDestroyMemoryBackingPath(driver, vm, mem) < 0)
+        VIR_WARN("Unable to destroy memory backing path");
 
     virDomainMemoryDefFree(mem);
 
@@ -4051,7 +4050,7 @@ qemuDomainRemoveHostDevice(virQEMUDriverPtr driver,
     virDomainHostdevDefFree(hostdev);
 
     if (net) {
-        networkReleaseActualDevice(vm->def, net);
+        virDomainNetReleaseActualDevice(vm->def, net);
         virDomainNetDefFree(net);
     }
 
@@ -4162,7 +4161,7 @@ qemuDomainRemoveNetDevice(virQEMUDriverPtr driver,
 
     qemuDomainNetDeviceVportRemove(net);
 
-    networkReleaseActualDevice(vm->def, net);
+    virDomainNetReleaseActualDevice(vm->def, net);
     virDomainNetDefFree(net);
     ret = 0;
 
@@ -4630,7 +4629,7 @@ qemuDomainDetachVirtioDiskDevice(virQEMUDriverPtr driver,
     }
 
     if (!detach->info.alias) {
-        if (qemuAssignDeviceDiskAlias(vm->def, detach, priv->qemuCaps) < 0)
+        if (qemuAssignDeviceDiskAlias(vm->def, detach) < 0)
             goto cleanup;
     }
 
@@ -4808,7 +4807,7 @@ int qemuDomainDetachControllerDevice(virQEMUDriverPtr driver,
     if ((idx = virDomainControllerFind(vm->def,
                                        dev->data.controller->type,
                                        dev->data.controller->idx)) < 0) {
-        virReportError(VIR_ERR_OPERATION_FAILED,
+        virReportError(VIR_ERR_DEVICE_MISSING,
                        _("controller %s:%d not found"),
                        virDomainControllerTypeToString(dev->data.controller->type),
                        dev->data.controller->idx);
@@ -5037,18 +5036,18 @@ int qemuDomainDetachHostDevice(virQEMUDriverPtr driver,
     if (idx < 0) {
         switch (subsys->type) {
         case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI:
-            virReportError(VIR_ERR_OPERATION_FAILED,
+            virReportError(VIR_ERR_DEVICE_MISSING,
                            _("host pci device %.4x:%.2x:%.2x.%.1x not found"),
                            pcisrc->addr.domain, pcisrc->addr.bus,
                            pcisrc->addr.slot, pcisrc->addr.function);
             break;
         case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB:
             if (usbsrc->bus && usbsrc->device) {
-                virReportError(VIR_ERR_OPERATION_FAILED,
+                virReportError(VIR_ERR_DEVICE_MISSING,
                                _("host usb device %03d.%03d not found"),
                                usbsrc->bus, usbsrc->device);
             } else {
-                virReportError(VIR_ERR_OPERATION_FAILED,
+                virReportError(VIR_ERR_DEVICE_MISSING,
                                _("host usb device vendor=0x%.4x product=0x%.4x not found"),
                                usbsrc->vendor, usbsrc->product);
             }
@@ -5057,13 +5056,13 @@ int qemuDomainDetachHostDevice(virQEMUDriverPtr driver,
             if (scsisrc->protocol ==
                 VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_ISCSI) {
                 virDomainHostdevSubsysSCSIiSCSIPtr iscsisrc = &scsisrc->u.iscsi;
-                virReportError(VIR_ERR_OPERATION_FAILED,
+                virReportError(VIR_ERR_DEVICE_MISSING,
                                _("host scsi iSCSI path %s not found"),
                                iscsisrc->src->path);
             } else {
                  virDomainHostdevSubsysSCSIHostPtr scsihostsrc =
                      &scsisrc->u.host;
-                 virReportError(VIR_ERR_OPERATION_FAILED,
+                 virReportError(VIR_ERR_DEVICE_MISSING,
                                 _("host scsi device %s:%u:%u.%llu not found"),
                                 scsihostsrc->adapter, scsihostsrc->bus,
                                 scsihostsrc->target, scsihostsrc->unit);
@@ -5101,8 +5100,10 @@ qemuDomainDetachShmemDevice(virQEMUDriverPtr driver,
     qemuDomainObjPrivatePtr priv = vm->privateData;
 
     if ((idx = virDomainShmemDefFind(vm->def, dev)) < 0) {
-        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                       _("device not present in domain configuration"));
+        virReportError(VIR_ERR_DEVICE_MISSING,
+                       _("model '%s' shmem device not present "
+                         "in domain configuration"),
+                       virDomainShmemModelTypeToString(dev->model));
         return -1;
     }
 
@@ -5151,15 +5152,22 @@ qemuDomainDetachWatchdog(virQEMUDriverPtr driver,
     virDomainWatchdogDefPtr watchdog = vm->def->watchdog;
     qemuDomainObjPrivatePtr priv = vm->privateData;
 
+    if (!watchdog) {
+        virReportError(VIR_ERR_DEVICE_MISSING, "%s",
+                       _("watchdog device not present in domain configuration"));
+        return -1;
+    }
+
     /* While domains can have up to one watchdog, the one supplied by the user
      * doesn't necessarily match the one domain has. Refuse to detach in such
      * case. */
-    if (!(watchdog &&
-          watchdog->model == dev->model &&
+    if (!(watchdog->model == dev->model &&
           watchdog->action == dev->action &&
           virDomainDeviceInfoAddressIsEqual(&dev->info, &watchdog->info))) {
-        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                       _("watchdog device not present in domain configuration"));
+        virReportError(VIR_ERR_DEVICE_MISSING,
+                       _("model '%s' watchdog device not present "
+                         "in domain configuration"),
+                       virDomainWatchdogModelTypeToString(watchdog->model));
         return -1;
     }
 
@@ -5429,8 +5437,10 @@ int qemuDomainDetachChrDevice(virQEMUDriverPtr driver,
     char *devstr = NULL;
 
     if (!(tmpChr = virDomainChrFind(vmdef, chr))) {
-        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                       _("device not present in domain configuration"));
+        virReportError(VIR_ERR_DEVICE_MISSING,
+                       _("chr type '%s' device not present "
+                         "in domain configuration"),
+                       virDomainChrDeviceTypeToString(chr->deviceType));
         goto cleanup;
     }
 
@@ -5476,8 +5486,10 @@ qemuDomainDetachRNGDevice(virQEMUDriverPtr driver,
     int ret = -1;
 
     if ((idx = virDomainRNGFind(vm->def, rng)) < 0) {
-        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                       _("device not present in domain configuration"));
+        virReportError(VIR_ERR_DEVICE_MISSING,
+                       _("model '%s' RNG device not present "
+                         "in domain configuration"),
+                       virDomainRNGBackendTypeToString(rng->model));
         return -1;
     }
 
@@ -5519,8 +5531,10 @@ qemuDomainDetachMemoryDevice(virQEMUDriverPtr driver,
     qemuDomainMemoryDeviceAlignSize(vm->def, memdef);
 
     if ((idx = virDomainMemoryFindByDef(vm->def, memdef)) < 0) {
-        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                       _("device not present in domain configuration"));
+        virReportError(VIR_ERR_DEVICE_MISSING,
+                       _("model '%s' memory device not present "
+                         "in the domain configuration"),
+                       virDomainMemoryModelTypeToString(memdef->model));
         return -1;
     }
 

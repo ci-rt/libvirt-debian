@@ -40,15 +40,15 @@ virNetDaemonPtr virNetDaemonNew(void);
 int virNetDaemonAddServer(virNetDaemonPtr dmn,
                           virNetServerPtr srv);
 
-virNetServerPtr virNetDaemonAddServerPostExec(virNetDaemonPtr dmn,
-                                              const char *serverName,
-                                              virNetServerClientPrivNew clientPrivNew,
-                                              virNetServerClientPrivNewPostExecRestart clientPrivNewPostExecRestart,
-                                              virNetServerClientPrivPreExecRestart clientPrivPreExecRestart,
-                                              virFreeCallback clientPrivFree,
-                                              void *clientPrivOpaque);
-
-virNetDaemonPtr virNetDaemonNewPostExecRestart(virJSONValuePtr object);
+typedef virNetServerPtr (*virNetDaemonNewServerPostExecRestart)(virNetDaemonPtr dmn,
+                                                                const char *name,
+                                                                virJSONValuePtr object,
+                                                                void *opaque);
+virNetDaemonPtr virNetDaemonNewPostExecRestart(virJSONValuePtr object,
+                                               size_t nDefServerNames,
+                                               const char **defServerNames,
+                                               virNetDaemonNewServerPostExecRestart cb,
+                                               void *opaque);
 
 virJSONValuePtr virNetDaemonPreExecRestart(virNetDaemonPtr dmn);
 
@@ -83,5 +83,7 @@ bool virNetDaemonHasClients(virNetDaemonPtr dmn);
 virNetServerPtr virNetDaemonGetServer(virNetDaemonPtr dmn,
                                       const char *serverName);
 ssize_t virNetDaemonGetServers(virNetDaemonPtr dmn, virNetServerPtr **servers);
+bool virNetDaemonHasServer(virNetDaemonPtr dmn,
+                           const char *serverName);
 
 #endif /* __VIR_NET_DAEMON_H__ */

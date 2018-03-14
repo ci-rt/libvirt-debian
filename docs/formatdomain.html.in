@@ -411,6 +411,17 @@
     &lt;entry name='version'&gt;0B98401 Pro&lt;/entry&gt;
     &lt;entry name='serial'&gt;W1KS427111E&lt;/entry&gt;
   &lt;/baseBoard&gt;
+  &lt;chassis&gt;
+    &lt;entry name='manufacturer'&gt;Dell Inc.&lt;/entry&gt;
+    &lt;entry name='version'&gt;2.12&lt;/entry&gt;
+    &lt;entry name='serial'&gt;65X0XF2&lt;/entry&gt;
+    &lt;entry name='asset'&gt;40000101&lt;/entry&gt;
+    &lt;entry name='sku'&gt;Type3Sku1&lt;/entry&gt;
+  &lt;/chassis&gt;
+  &lt;oemStrings&gt;
+    &lt;entry&gt;myappname:some arbitrary data&lt;/entry&gt;
+    &lt;entry&gt;otherappname:more arbitrary data&lt;/entry&gt;
+  &lt;/oemStrings&gt;
 &lt;/sysinfo&gt;
 ...</pre>
 
@@ -497,6 +508,32 @@
             blocks will be ignored without error.  Other than <code>uuid</code>
             validation and <code>date</code> format checking, all values are
             passed as strings to the hypervisor driver.
+          </dd>
+          <dt><code>chassis</code></dt>
+          <dd>
+            <span class="since">Since 4.1.0,</span> this is block 3 of
+            SMBIOS, with entry names drawn from:
+            <dl>
+                <dt><code>manufacturer</code></dt>
+                <dd>Manufacturer of Chassis</dd>
+                <dt><code>version</code></dt>
+                <dd>Version of the Chassis</dd>
+                <dt><code>serial</code></dt>
+                <dd>Serial number</dd>
+                <dt><code>asset</code></dt>
+                <dd>Asset tag</dd>
+                <dt><code>sku</code></dt>
+                <dd>SKU number</dd>
+            </dl>
+          </dd>
+          <dt><code>oemStrings</code></dt>
+          <dd>
+            This is block 11 of SMBIOS. This element should appear once and
+            can have multiple <code>entry</code> child elements, each providing
+            arbitrary string data. There are no restrictions on what data can
+            be provided in the entries, however, if the data is intended to be
+            consumed by an application in the guest, it is recommended to use
+            the application name as a prefix in the string. (<span class="since">Since 4.1.0</span>)
           </dd>
         </dl>
       </dd>
@@ -689,6 +726,10 @@
     &lt;iothread_quota&gt;-1&lt;/iothread_quota&gt;
     &lt;vcpusched vcpus='0-4,^3' scheduler='fifo' priority='1'/&gt;
     &lt;iothreadsched iothreads='2' scheduler='batch'/&gt;
+    &lt;cachetune vcpus='0-3'&gt;
+      &lt;cache id='0' level='3' type='both' size='3' unit='MiB'/&gt;
+      &lt;cache id='1' level='3' type='both' size='3' unit='MiB'/&gt;
+    &lt;/cachetune&gt;
   &lt;/cputune&gt;
   ...
 &lt;/domain&gt;
@@ -834,6 +875,56 @@
         <span class="since">Since 1.2.13</span>
       </dd>
 
+      <dt><code>cachetune</code><span class="since">Since 4.1.0</span></dt>
+      <dd>
+        Optional <code>cachetune</code> element can control allocations for CPU
+        caches using the resctrl on the host. Whether or not is this supported
+        can be gathered from capabilities where some limitations like minimum
+        size and required granularity are reported as well. The required
+        attribute <code>vcpus</code> specifies to which vCPUs this allocation
+        applies. A vCPU can only be member of one <code>cachetune</code> element
+        allocations. Supported subelements are:
+        <dl>
+          <dt><code>cache</code></dt>
+          <dd>
+            This element controls the allocation of CPU cache and has the
+            following attributes:
+            <dl>
+              <dt><code>level</code></dt>
+              <dd>
+                Host cache level from which to allocate.
+              </dd>
+              <dt><code>id</code></dt>
+              <dd>
+                Host cache id from which to allocate.
+              </dd>
+              <dt><code>type</code></dt>
+              <dd>
+                Type of allocation. Can be <code>code</code> for code
+                (instructions), <code>data</code> for data or <code>both</code>
+                for both code and data (unified). Currently the allocation can
+                be done only with the same type as the host supports, meaning
+                you cannot request <code>both</code> for host with CDP
+                (code/data prioritization) enabled.
+              </dd>
+              <dt><code>size</code></dt>
+              <dd>
+                The size of the region to allocate. The value by default is in
+                bytes, but the <code>unit</code> attribute can be used to scale
+                the value.
+              </dd>
+              <dt><code>unit</code> (optional)</dt>
+              <dd>
+                If specified it is the unit such as KiB, MiB, GiB, or TiB
+                (described in the <code>memory</code> element
+                for <a href="#elementsMemoryAllocation">Memory Allocation</a>)
+                in which <code>size</code> is specified, defaults to bytes.
+              </dd>
+            </dl>
+          </dd>
+        </dl>
+
+      </dd>
     </dl>
 
 
@@ -1454,6 +1545,21 @@
 
         <span class="since">Since 0.8.5</span> the <code>policy</code>
         attribute can be omitted and will default to <code>require</code>.
+
+        <p> Individual CPU feature names are specified as part of the
+        <code>name</code> attribute. For example, to explicitly specify
+        the 'pcid' feature with Intel IvyBridge CPU model:
+        </p>
+
+<pre>
+...
+&lt;cpu match='exact'&gt;
+  &lt;model fallback='forbid'&gt;IvyBridge&lt;/model&gt;
+  &lt;vendor&gt;Intel&lt;/vendor&gt;
+  &lt;feature policy='require' name='pcid'/&gt;
+&lt;/cpu&gt;
+...</pre>
+
       </dd>
 
       <dt><code>cache</code></dt>
@@ -2811,6 +2917,7 @@
             attribute matching the key that was specified in the
             secret object.
           </dd>
+          <dt><code>encryption</code></dt>
           <dd><span class="since">Since libvirt 3.9.0</span>, the
             <code>encryption</code> can be a sub-element of the
             <code>source</code> element for encrypted storage sources.
@@ -5832,7 +5939,9 @@ qemu-kvm -net nic,model=? /dev/null
   &lt;/interface&gt;
   &lt;interface type='vhostuser'&gt;
     &lt;mac address='52:54:00:3b:83:1b'/&gt;
-    &lt;source type='unix' path='/tmp/vhost2.sock' mode='client'/&gt;
+    &lt;source type='unix' path='/tmp/vhost2.sock' mode='client'&gt;
+      &lt;reconnect enabled='yes' timeout='10'/&gt;
+    &lt;/source&gt;
     &lt;model type='virtio'/&gt;
     &lt;driver queues='5'/&gt;
   &lt;/interface&gt;
@@ -5848,6 +5957,13 @@ qemu-kvm -net nic,model=? /dev/null
       are supported.
       vhost-user requires the virtio model type, thus the
       <code>&lt;model&gt;</code> element is mandatory.
+      <span class="since">Since 4.1.0</span> the element has an
+      optional child element <code>reconnect</code> which
+      configures reconnect timeout if the connection is lost. It
+      has two attributes <code>enabled</code> (which accepts
+      <code>yes</code> and <code>no</code>) and
+      <code>timeout</code> which specifies the amount of seconds
+      after which hypervisor tries to reconnect.
     </p>
 
     <h5><a id="elementNwfilter">Traffic filtering with NWFilter</a></h5>

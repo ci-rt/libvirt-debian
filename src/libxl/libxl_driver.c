@@ -59,7 +59,6 @@
 #include "viraccessapicheck.h"
 #include "viratomic.h"
 #include "virhostdev.h"
-#include "network/bridge_driver.h"
 #include "locking/domain_lock.h"
 #include "virnetdevtap.h"
 #include "cpu/cpu.h"
@@ -477,8 +476,8 @@ libxlStateCleanup(void)
     virObjectUnref(libxl_driver->config);
     virObjectUnref(libxl_driver->xmlopt);
     virObjectUnref(libxl_driver->domains);
-    virObjectUnref(libxl_driver->reservedGraphicsPorts);
-    virObjectUnref(libxl_driver->migrationPorts);
+    virPortAllocatorRangeFree(libxl_driver->reservedGraphicsPorts);
+    virPortAllocatorRangeFree(libxl_driver->migrationPorts);
     virLockManagerPluginUnref(libxl_driver->lockManager);
 
     virObjectUnref(libxl_driver->domainEventState);
@@ -657,17 +656,16 @@ libxlStateInitialize(bool privileged,
 
     /* Allocate bitmap for vnc port reservation */
     if (!(libxl_driver->reservedGraphicsPorts =
-          virPortAllocatorNew(_("VNC"),
-                              LIBXL_VNC_PORT_MIN,
-                              LIBXL_VNC_PORT_MAX,
-                              0)))
+          virPortAllocatorRangeNew(_("VNC"),
+                                   LIBXL_VNC_PORT_MIN,
+                                   LIBXL_VNC_PORT_MAX)))
         goto error;
 
     /* Allocate bitmap for migration port reservation */
     if (!(libxl_driver->migrationPorts =
-          virPortAllocatorNew(_("migration"),
-                              LIBXL_MIGRATION_PORT_MIN,
-                              LIBXL_MIGRATION_PORT_MAX, 0)))
+          virPortAllocatorRangeNew(_("migration"),
+                                   LIBXL_MIGRATION_PORT_MIN,
+                                   LIBXL_MIGRATION_PORT_MAX)))
         goto error;
 
     if (!(libxl_driver->domains = virDomainObjListNew()))
@@ -3349,7 +3347,7 @@ libxlDomainAttachNetDevice(libxlDriverPrivatePtr driver,
      * network's pool of devices, or resolve bridge device name
      * to the one defined in the network definition.
      */
-    if (networkAllocateActualDevice(vm->def, net) < 0)
+    if (virDomainNetAllocateActualDevice(vm->def, net) < 0)
         goto cleanup;
 
     actualType = virDomainNetGetActualType(net);
@@ -3399,7 +3397,7 @@ libxlDomainAttachNetDevice(libxlDriverPrivatePtr driver,
         vm->def->nets[vm->def->nnets++] = net;
     } else {
         virDomainNetRemoveHostdev(vm->def, net);
-        networkReleaseActualDevice(vm->def, net);
+        virDomainNetReleaseActualDevice(vm->def, net);
     }
     virObjectUnref(cfg);
     return ret;
@@ -3822,7 +3820,7 @@ libxlDomainDetachNetDevice(libxlDriverPrivatePtr driver,
  cleanup:
     libxl_device_nic_dispose(&nic);
     if (!ret) {
-        networkReleaseActualDevice(vm->def, detach);
+        virDomainNetReleaseActualDevice(vm->def, detach);
         virDomainNetRemove(vm->def, detachidx);
     }
     virObjectUnref(cfg);
@@ -4498,7 +4496,7 @@ libxlDomainGetSchedulerType(virDomainPtr dom, int *nparams)
 
     if (nparams)
         *nparams = 0;
-    switch (sched_id) {
+    switch ((int)sched_id) {
     case LIBXL_SCHEDULER_SEDF:
         name = "sedf";
         break;

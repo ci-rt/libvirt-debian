@@ -802,6 +802,7 @@
     <function name="VIR_ERR_CONF_SYNTAX" link="libvirt-virterror.html#VIR_ERR_CONF_SYNTAX"/>
     <function name="VIR_ERR_CPU_INCOMPATIBLE" link="libvirt-virterror.html#VIR_ERR_CPU_INCOMPATIBLE"/>
     <function name="VIR_ERR_DBUS_SERVICE" link="libvirt-virterror.html#VIR_ERR_DBUS_SERVICE"/>
+    <function name="VIR_ERR_DEVICE_MISSING" link="libvirt-virterror.html#VIR_ERR_DEVICE_MISSING"/>
     <function name="VIR_ERR_DOMAIN_LAST" link="libvirt-virterror.html#VIR_ERR_DOMAIN_LAST"/>
     <function name="VIR_ERR_DOM_EXIST" link="libvirt-virterror.html#VIR_ERR_DOM_EXIST"/>
     <function name="VIR_ERR_DRIVER_FULL" link="libvirt-virterror.html#VIR_ERR_DRIVER_FULL"/>
@@ -1791,6 +1792,7 @@
     <function name="virStoragePoolListAllVolumes ()" link="libvirt-libvirt-storage.html#virStoragePoolListAllVolumes"/>
     <function name="virStoragePoolListVolumes ()" link="libvirt-libvirt-storage.html#virStoragePoolListVolumes"/>
     <function name="virStoragePoolLookupByName ()" link="libvirt-libvirt-storage.html#virStoragePoolLookupByName"/>
+    <function name="virStoragePoolLookupByTargetPath ()" link="libvirt-libvirt-storage.html#virStoragePoolLookupByTargetPath"/>
     <function name="virStoragePoolLookupByUUID ()" link="libvirt-libvirt-storage.html#virStoragePoolLookupByUUID"/>
     <function name="virStoragePoolLookupByUUIDString ()" link="libvirt-libvirt-storage.html#virStoragePoolLookupByUUIDString"/>
     <function name="virStoragePoolLookupByVolume ()" link="libvirt-libvirt-storage.html#virStoragePoolLookupByVolume"/>

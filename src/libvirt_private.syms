@@ -203,6 +203,7 @@ virDomainChrConsoleTargetTypeToString;
 virDomainChrDefForeach;
 virDomainChrDefFree;
 virDomainChrDefNew;
+virDomainChrDeviceTypeToString;
 virDomainChrEquals;
 virDomainChrFind;
 virDomainChrGetDomainPtrs;
@@ -298,7 +299,7 @@ virDomainDeviceAliasIsUserAlias;
 virDomainDeviceDefCopy;
 virDomainDeviceDefFree;
 virDomainDeviceDefParse;
-virDomainDeviceFindControllerModel;
+virDomainDeviceFindSCSIController;
 virDomainDeviceGetInfo;
 virDomainDeviceInfoIterate;
 virDomainDeviceTypeToString;
@@ -344,8 +345,12 @@ virDomainDiskSetDriver;
 virDomainDiskSetFormat;
 virDomainDiskSetSource;
 virDomainDiskSetType;
+virDomainDiskTranslateSourcePool;
+virDomainFeatureTypeFromString;
+virDomainFeatureTypeToString;
 virDomainFSDefFree;
 virDomainFSDefNew;
+virDomainFSDriverTypeToString;
 virDomainFSIndexByName;
 virDomainFSInsert;
 virDomainFSRemove;
@@ -427,10 +432,14 @@ virDomainMemoryDefFree;
 virDomainMemoryFindByDef;
 virDomainMemoryFindInactiveByDef;
 virDomainMemoryInsert;
+virDomainMemoryModelTypeToString;
 virDomainMemoryRemove;
 virDomainMemorySourceTypeFromString;
 virDomainMemorySourceTypeToString;
+virDomainNetAllocateActualDevice;
 virDomainNetAppendIPAddress;
+virDomainNetBandwidthChangeAllowed;
+virDomainNetBandwidthUpdate;
 virDomainNetDefClear;
 virDomainNetDefFormat;
 virDomainNetDefFree;
@@ -449,8 +458,12 @@ virDomainNetGetActualType;
 virDomainNetGetActualVirtPortProfile;
 virDomainNetGetActualVlan;
 virDomainNetInsert;
+virDomainNetNotifyActualDevice;
+virDomainNetReleaseActualDevice;
 virDomainNetRemove;
 virDomainNetRemoveHostdev;
+virDomainNetResolveActualType;
+virDomainNetSetDeviceImpl;
 virDomainNetTypeFromString;
 virDomainNetTypeSharesHostView;
 virDomainNetTypeToString;
@@ -468,6 +481,7 @@ virDomainObjGetOneDefState;
 virDomainObjGetPersistentDef;
 virDomainObjGetState;
 virDomainObjNew;
+virDomainObjParseFile;
 virDomainObjParseNode;
 virDomainObjRemoveTransientDef;
 virDomainObjSetDefTransient;
@@ -695,10 +709,10 @@ virNetDevIPRouteParseXML;
 
 
 # conf/node_device_conf.h
-virNodeDevCapMdevTypeFree;
 virNodeDevCapsDefFree;
 virNodeDevCapTypeFromString;
 virNodeDevCapTypeToString;
+virNodeDeviceCapsListExport;
 virNodeDeviceCreateVport;
 virNodeDeviceDefFormat;
 virNodeDeviceDefFree;
@@ -707,8 +721,11 @@ virNodeDeviceDefParseNode;
 virNodeDeviceDefParseString;
 virNodeDeviceDeleteVport;
 virNodeDeviceGetParentName;
+virNodeDeviceGetPCIDynamicCaps;
 virNodeDeviceGetSCSIHostCaps;
+virNodeDeviceGetSCSITargetCaps;
 virNodeDeviceGetWWNs;
+virNodeDeviceUpdateCaps;
 
 
 # conf/node_device_event.h
@@ -1178,6 +1195,21 @@ virSecretClass;
 virStoragePoolClass;
 virStorageVolClass;
 virStreamClass;
+
+
+# driver.h
+virGetConnectInterface;
+virGetConnectNetwork;
+virGetConnectNodeDev;
+virGetConnectNWFilter;
+virGetConnectSecret;
+virGetConnectStorage;
+virSetConnectInterface;
+virSetConnectNetwork;
+virSetConnectNodeDev;
+virSetConnectNWFilter;
+virSetConnectSecret;
+virSetConnectStorage;
 
 
 # libvirt_internal.h
@@ -2177,6 +2209,8 @@ virMediatedDeviceModelTypeFromString;
 virMediatedDeviceModelTypeToString;
 virMediatedDeviceNew;
 virMediatedDeviceSetUsedBy;
+virMediatedDeviceTypeFree;
+virMediatedDeviceTypeReadAttrs;
 
 
 
@@ -2451,6 +2485,7 @@ virPCIDeviceWaitForCleanup;
 virPCIEDeviceInfoFree;
 virPCIGetDeviceAddressFromSysfsLink;
 virPCIGetHeaderType;
+virPCIGetMdevTypes;
 virPCIGetNetName;
 virPCIGetPhysicalFunction;
 virPCIGetVirtualFunctionIndex;
@@ -2500,7 +2535,8 @@ virPolkitCheckAuth;
 
 # util/virportallocator.h
 virPortAllocatorAcquire;
-virPortAllocatorNew;
+virPortAllocatorRangeFree;
+virPortAllocatorRangeNew;
 virPortAllocatorRelease;
 virPortAllocatorSetUsed;
 
@@ -2552,8 +2588,20 @@ virRandomInt;
 # util/virresctrl.h
 virCacheTypeFromString;
 virCacheTypeToString;
-virResctrlGetCacheControlType;
-virResctrlGetCacheInfo;
+virResctrlAllocAddPID;
+virResctrlAllocCreate;
+virResctrlAllocDeterminePath;
+virResctrlAllocForeachSize;
+virResctrlAllocFormat;
+virResctrlAllocGetID;
+virResctrlAllocGetUnused;
+virResctrlAllocNew;
+virResctrlAllocRemove;
+virResctrlAllocSetID;
+virResctrlAllocSetSize;
+virResctrlGetInfo;
+virResctrlInfoGetCache;
+virResctrlInfoNew;
 
 
 # util/virrotatingfile.h
@@ -2691,24 +2739,39 @@ virStorageAuthDefCopy;
 virStorageAuthDefFormat;
 virStorageAuthDefFree;
 virStorageAuthDefParse;
+virStorageFileAccess;
 virStorageFileCanonicalizePath;
 virStorageFileChainGetBroken;
 virStorageFileChainLookup;
+virStorageFileChown;
+virStorageFileCreate;
+virStorageFileDeinit;
 virStorageFileFeatureTypeFromString;
 virStorageFileFeatureTypeToString;
 virStorageFileFormatTypeFromString;
 virStorageFileFormatTypeToString;
+virStorageFileGetBackingStoreStr;
 virStorageFileGetLVMKey;
+virStorageFileGetMetadata;
 virStorageFileGetMetadataFromBuf;
 virStorageFileGetMetadataFromFD;
 virStorageFileGetMetadataInternal;
 virStorageFileGetRelativeBackingPath;
 virStorageFileGetSCSIKey;
+virStorageFileGetUniqueIdentifier;
+virStorageFileInit;
+virStorageFileInitAs;
 virStorageFileIsClusterFS;
 virStorageFileParseBackingStoreStr;
 virStorageFileParseChainIndex;
 virStorageFileProbeFormat;
+virStorageFileRead;
+virStorageFileReportBrokenChain;
 virStorageFileResize;
+virStorageFileStat;
+virStorageFileSupportsAccess;
+virStorageFileSupportsSecurityDriver;
+virStorageFileUnlink;
 virStorageIsFile;
 virStorageIsRelative;
 virStorageNetHostDefClear;
@@ -2745,6 +2808,10 @@ virStorageSourceUpdateCapacity;
 virStorageSourceUpdatePhysicalSize;
 virStorageTypeFromString;
 virStorageTypeToString;
+
+
+# util/virstoragefilebackend.h
+virStorageFileBackendRegister;
 
 
 # util/virstring.h
@@ -2802,6 +2869,7 @@ virVasprintfInternal;
 # util/virsysinfo.h
 virSysinfoBaseBoardDefClear;
 virSysinfoBIOSDefFree;
+virSysinfoChassisDefFree;
 virSysinfoDefFree;
 virSysinfoFormat;
 virSysinfoRead;
@@ -2962,6 +3030,7 @@ virGetListenFDs;
 virGetSelfLastChanged;
 virGetSystemPageSize;
 virGetSystemPageSizeKB;
+virGetUNIXSocketPath;
 virGetUnprivSGIOSysfsPath;
 virGetUserCacheDirectory;
 virGetUserConfigDirectory;

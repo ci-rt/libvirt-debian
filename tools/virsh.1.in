@@ -129,7 +129,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2017-10-30" "libvirt-3.9.0" "Virtualization Support"
+.TH VIRSH 1 "2018-02-26" "libvirt-4.1.0" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -2979,8 +2979,8 @@ an offline domain, and like \fI\-\-live\fR \fI\-\-config\fR for a running domain
 .Sp
 Note that older versions of virsh used \fI\-\-config\fR as an alias for
 \&\fI\-\-persistent\fR.
-.IP "\fBdetach-disk\fR \fIdomain\fR \fItarget\fR [[[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]] | [\fI\-\-persistent\fR]]" 4
-.IX Item "detach-disk domain target [[[--live] [--config] | [--current]] | [--persistent]]"
+.IP "\fBdetach-disk\fR \fIdomain\fR \fItarget\fR [[[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]] | [\fI\-\-persistent\fR]] [\fI\-\-print\-xml\fR]" 4
+.IX Item "detach-disk domain target [[[--live] [--config] | [--current]] | [--persistent]] [--print-xml]"
 Detach a disk device from a domain. The \fItarget\fR is the device as seen
 from the domain.
 .Sp
@@ -2996,6 +2996,9 @@ an offline domain, and like \fI\-\-live\fR \fI\-\-config\fR for a running domain
 .Sp
 Note that older versions of virsh used \fI\-\-config\fR as an alias for
 \&\fI\-\-persistent\fR.
+.Sp
+If \fB\-\-print\-xml\fR is specified, then the \s-1XML\s0 which would be used to detach the
+disk is printed instead.
 .IP "\fBdetach-interface\fR \fIdomain\fR \fItype\fR [\fI\-\-mac mac\fR] [[[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]] | [\fI\-\-persistent\fR]]" 4
 .IX Item "detach-interface domain type [--mac mac] [[[--live] [--config] | [--current]] | [--persistent]]"
 Detach a network interface from a domain.

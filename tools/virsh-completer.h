@@ -38,4 +38,36 @@ char ** virshDomainInterfaceCompleter(vshControl *ctl,
                                       const vshCmd *cmd,
                                       unsigned int flags);
 
+char ** virshStoragePoolNameCompleter(vshControl *ctl,
+                                      const vshCmd *cmd,
+                                      unsigned int flags);
+
+char ** virshStorageVolNameCompleter(vshControl *ctl,
+                                     const vshCmd *cmd,
+                                     unsigned int flags);
+
+char ** virshInterfaceNameCompleter(vshControl *ctl,
+                                    const vshCmd *cmd,
+                                    unsigned int flags);
+
+char ** virshNetworkNameCompleter(vshControl *ctl,
+                                  const vshCmd *cmd,
+                                  unsigned int flags);
+
+char ** virshNodeDeviceNameCompleter(vshControl *ctl,
+                                     const vshCmd *cmd,
+                                     unsigned int flags);
+
+char ** virshNWFilterNameCompleter(vshControl *ctl,
+                                   const vshCmd *cmd,
+                                   unsigned int flags);
+
+char ** virshSecretUUIDCompleter(vshControl *ctl,
+                                 const vshCmd *cmd,
+                                 unsigned int flags);
+
+char ** virshSnapshotNameCompleter(vshControl *ctl,
+                                   const vshCmd *cmd,
+                                   unsigned int flags);
+
 #endif

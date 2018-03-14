@@ -292,6 +292,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-libssh.m4 \
 	$(top_srcdir)/m4/virt-libxml.m4 \
 	$(top_srcdir)/m4/virt-linker-no-indirect.m4 \
+	$(top_srcdir)/m4/virt-linker-no-undefined.m4 \
 	$(top_srcdir)/m4/virt-linker-relro.m4 \
 	$(top_srcdir)/m4/virt-loader-nvram.m4 \
 	$(top_srcdir)/m4/virt-login-shell.m4 \
@@ -1517,6 +1518,7 @@ NEXT_WCTYPE_H = @NEXT_WCTYPE_H@
 NM = @NM@
 NMEDIT = @NMEDIT@
 NO_INDIRECT_LDFLAGS = @NO_INDIRECT_LDFLAGS@
+NO_UNDEFINED_LDFLAGS = @NO_UNDEFINED_LDFLAGS@
 NUMACTL_CFLAGS = @NUMACTL_CFLAGS@
 NUMACTL_LIBS = @NUMACTL_LIBS@
 NUMAD = @NUMAD@

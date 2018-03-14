@@ -222,8 +222,7 @@ virStorageBackendCopyToFD(virStorageVolDefPtr vol,
 }
 
 static int
-storageBackendCreateBlockFrom(virConnectPtr conn ATTRIBUTE_UNUSED,
-                              virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
+storageBackendCreateBlockFrom(virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
                               virStorageVolDefPtr vol,
                               virStorageVolDefPtr inputvol,
                               unsigned int flags)
@@ -390,8 +389,7 @@ createRawFile(int fd, virStorageVolDefPtr vol,
 }
 
 static int
-storageBackendCreateRaw(virConnectPtr conn ATTRIBUTE_UNUSED,
-                        virStoragePoolObjPtr pool,
+storageBackendCreateRaw(virStoragePoolObjPtr pool,
                         virStorageVolDefPtr vol,
                         virStorageVolDefPtr inputvol,
                         unsigned int flags)
@@ -497,7 +495,7 @@ virStorageGenerateSecretUUID(virConnectPtr conn,
                            _("unable to generate uuid"));
             return -1;
         }
-        tmp = conn->secretDriver->secretLookupByUUID(conn, uuid);
+        tmp = virSecretLookupByUUID(conn, uuid);
         if (tmp == NULL)
             return 0;
 
@@ -511,8 +509,7 @@ virStorageGenerateSecretUUID(virConnectPtr conn,
 }
 
 static int
-virStorageGenerateQcowEncryption(virConnectPtr conn,
-                                 virStorageVolDefPtr vol)
+virStorageGenerateQcowEncryption(virStorageVolDefPtr vol)
 {
     virSecretDefPtr def = NULL;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
@@ -522,15 +519,11 @@ virStorageGenerateQcowEncryption(virConnectPtr conn,
     char *xml;
     unsigned char value[VIR_STORAGE_QCOW_PASSPHRASE_SIZE];
     int ret = -1;
+    virConnectPtr conn = NULL;
 
-    if (conn->secretDriver == NULL ||
-        conn->secretDriver->secretLookupByUUID == NULL ||
-        conn->secretDriver->secretDefineXML == NULL ||
-        conn->secretDriver->secretSetValue == NULL) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("secret storage not supported"));
-        goto cleanup;
-    }
+    conn = virGetConnectSecret();
+    if (!conn)
+        return -1;
 
     enc = vol->target.encryption;
     if (enc->nsecrets != 0) {
@@ -557,7 +550,7 @@ virStorageGenerateQcowEncryption(virConnectPtr conn,
     if (xml == NULL)
         goto cleanup;
 
-    secret = conn->secretDriver->secretDefineXML(conn, xml, 0);
+    secret = virSecretDefineXML(conn, xml, 0);
     if (secret == NULL) {
         VIR_FREE(xml);
         goto cleanup;
@@ -567,7 +560,7 @@ virStorageGenerateQcowEncryption(virConnectPtr conn,
     if (virStorageGenerateQcowPassphrase(value) < 0)
         goto cleanup;
 
-    if (conn->secretDriver->secretSetValue(secret, value, sizeof(value), 0) < 0)
+    if (virSecretSetValue(secret, value, sizeof(value), 0) < 0)
         goto cleanup;
 
     enc_secret->type = VIR_STORAGE_ENCRYPTION_SECRET_TYPE_PASSPHRASE;
@@ -582,11 +575,11 @@ virStorageGenerateQcowEncryption(virConnectPtr conn,
 
  cleanup:
     if (secret != NULL) {
-        if (ret != 0 &&
-            conn->secretDriver->secretUndefine != NULL)
-            conn->secretDriver->secretUndefine(secret);
+        if (ret != 0)
+            virSecretUndefine(secret);
         virObjectUnref(secret);
     }
+    virObjectUnref(conn);
     virBufferFreeAndReset(&buf);
     virSecretDefFree(def);
     VIR_FREE(enc_secret);
@@ -695,8 +688,7 @@ virStorageBackendCreateExecCommand(virStoragePoolObjPtr pool,
 /* Create ploop directory with ploop image and DiskDescriptor.xml
  * if function fails to create image file the directory will be deleted.*/
 static int
-storageBackendCreatePloop(virConnectPtr conn ATTRIBUTE_UNUSED,
-                          virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
+storageBackendCreatePloop(virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
                           virStorageVolDefPtr vol,
                           virStorageVolDefPtr inputvol,
                           unsigned int flags)
@@ -942,7 +934,6 @@ storageBackendCreateQemuImgOpts(virStorageEncryptionInfoDefPtr enc,
 static int
 storageBackendCreateQemuImgCheckEncryption(int format,
                                            const char *type,
-                                           virConnectPtr conn,
                                            virStorageVolDefPtr vol)
 {
     virStorageEncryptionPtr enc = vol->target.encryption;
@@ -962,7 +953,7 @@ storageBackendCreateQemuImgCheckEncryption(int format,
         }
         if (enc->format == VIR_STORAGE_ENCRYPTION_FORMAT_DEFAULT ||
             enc->nsecrets == 0) {
-            if (virStorageGenerateQcowEncryption(conn, vol) < 0)
+            if (virStorageGenerateQcowEncryption(vol) < 0)
                 return -1;
         }
     } else if (format == VIR_STORAGE_FILE_RAW) {
@@ -1178,8 +1169,7 @@ storageBackendResizeQemuImgImageOpts(virCommandPtr cmd,
  * volume definitions and imgformat
  */
 virCommandPtr
-virStorageBackendCreateQemuImgCmdFromVol(virConnectPtr conn,
-                                         virStoragePoolObjPtr pool,
+virStorageBackendCreateQemuImgCmdFromVol(virStoragePoolObjPtr pool,
                                          virStorageVolDefPtr vol,
                                          virStorageVolDefPtr inputvol,
                                          unsigned int flags,
@@ -1264,7 +1254,7 @@ virStorageBackendCreateQemuImgCmdFromVol(virConnectPtr conn,
 
     if (info.encryption &&
         storageBackendCreateQemuImgCheckEncryption(info.format, type,
-                                                   conn, vol) < 0)
+                                                   vol) < 0)
         return NULL;
 
 
@@ -1317,8 +1307,7 @@ virStorageBackendCreateQemuImgCmdFromVol(virConnectPtr conn,
 
 
 static char *
-storageBackendCreateQemuImgSecretPath(virConnectPtr conn,
-                                      virStoragePoolObjPtr pool,
+storageBackendCreateQemuImgSecretPath(virStoragePoolObjPtr pool,
                                       virStorageVolDefPtr vol)
 {
     virStorageEncryptionPtr enc = vol->target.encryption;
@@ -1326,6 +1315,7 @@ storageBackendCreateQemuImgSecretPath(virConnectPtr conn,
     int fd = -1;
     uint8_t *secret = NULL;
     size_t secretlen = 0;
+    virConnectPtr conn = NULL;
 
     if (!enc) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -1333,14 +1323,9 @@ storageBackendCreateQemuImgSecretPath(virConnectPtr conn,
         return NULL;
     }
 
-    if (!conn || !conn->secretDriver ||
-        !conn->secretDriver->secretLookupByUUID ||
-        !conn->secretDriver->secretLookupByUsage ||
-        !conn->secretDriver->secretGetValue) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("unable to look up encryption secret"));
+    conn = virGetConnectSecret();
+    if (!conn)
         return NULL;
-    }
 
     if (!(secretPath = virStoragePoolObjBuildTempFilePath(pool, vol)))
         goto cleanup;
@@ -1374,6 +1359,7 @@ storageBackendCreateQemuImgSecretPath(virConnectPtr conn,
     }
 
  cleanup:
+    virObjectUnref(conn);
     VIR_DISPOSE_N(secret, secretlen);
     VIR_FORCE_CLOSE(fd);
 
@@ -1387,8 +1373,7 @@ storageBackendCreateQemuImgSecretPath(virConnectPtr conn,
 
 
 static int
-storageBackendCreateQemuImg(virConnectPtr conn,
-                            virStoragePoolObjPtr pool,
+storageBackendCreateQemuImg(virStoragePoolObjPtr pool,
                             virStorageVolDefPtr vol,
                             virStorageVolDefPtr inputvol,
                             unsigned int flags)
@@ -1417,11 +1402,11 @@ storageBackendCreateQemuImg(virConnectPtr conn,
         vol->target.encryption &&
         vol->target.encryption->format == VIR_STORAGE_ENCRYPTION_FORMAT_LUKS) {
         if (!(secretPath =
-              storageBackendCreateQemuImgSecretPath(conn, pool, vol)))
+              storageBackendCreateQemuImgSecretPath(pool, vol)))
             goto cleanup;
     }
 
-    cmd = virStorageBackendCreateQemuImgCmdFromVol(conn, pool, vol, inputvol,
+    cmd = virStorageBackendCreateQemuImgCmdFromVol(pool, vol, inputvol,
                                                    flags, create_tool,
                                                    imgformat, secretPath);
     if (!cmd)
@@ -1442,7 +1427,6 @@ storageBackendCreateQemuImg(virConnectPtr conn,
 
 /**
  * virStorageBackendCreateVolUsingQemuImg
- * @conn: Connection pointer
  * @pool: Storage Pool Object
  * @vol: Volume definition
  * @inputvol: Volume to use for creation
@@ -1458,8 +1442,7 @@ storageBackendCreateQemuImg(virConnectPtr conn,
  * Returns: 0 on success, -1 on failure.
  */
 int
-virStorageBackendCreateVolUsingQemuImg(virConnectPtr conn,
-                                       virStoragePoolObjPtr pool,
+virStorageBackendCreateVolUsingQemuImg(virStoragePoolObjPtr pool,
                                        virStorageVolDefPtr vol,
                                        virStorageVolDefPtr inputvol,
                                        unsigned int flags)
@@ -1472,7 +1455,7 @@ virStorageBackendCreateVolUsingQemuImg(virConnectPtr conn,
         changeFormat = true;
     }
 
-    ret = storageBackendCreateQemuImg(conn, pool, vol, inputvol, flags);
+    ret = storageBackendCreateQemuImg(pool, vol, inputvol, flags);
 
     if (changeFormat)
         vol->target.format = VIR_STORAGE_FILE_NONE;
@@ -1918,7 +1901,7 @@ virStorageBackendUpdateVolInfo(virStorageVolDefPtr vol,
                                                  withBlockVolFormat,
                                                  VIR_STORAGE_VOL_OPEN_DEFAULT |
                                                  VIR_STORAGE_VOL_OPEN_NOERROR,
-                                                 readflags)) < 0)
+                                                 readflags)) == -1)
         return ret;
 
     return 0;
@@ -2091,8 +2074,7 @@ virStorageBackendStablePath(virStoragePoolObjPtr pool,
 
 /* Common/Local File System/Directory Volume API's */
 static int
-createFileDir(virConnectPtr conn ATTRIBUTE_UNUSED,
-              virStoragePoolObjPtr pool,
+createFileDir(virStoragePoolObjPtr pool,
               virStorageVolDefPtr vol,
               virStorageVolDefPtr inputvol,
               unsigned int flags)
@@ -2138,8 +2120,7 @@ createFileDir(virConnectPtr conn ATTRIBUTE_UNUSED,
  * function), and can drop the parent pool lock during the (slow) allocation.
  */
 int
-virStorageBackendVolCreateLocal(virConnectPtr conn ATTRIBUTE_UNUSED,
-                                virStoragePoolObjPtr pool,
+virStorageBackendVolCreateLocal(virStoragePoolObjPtr pool,
                                 virStorageVolDefPtr vol)
 {
     virStoragePoolDefPtr def = virStoragePoolObjGetDef(pool);
@@ -2177,8 +2158,7 @@ virStorageBackendVolCreateLocal(virConnectPtr conn ATTRIBUTE_UNUSED,
 
 
 static int
-storageBackendVolBuildLocal(virConnectPtr conn,
-                            virStoragePoolObjPtr pool,
+storageBackendVolBuildLocal(virStoragePoolObjPtr pool,
                             virStorageVolDefPtr vol,
                             virStorageVolDefPtr inputvol,
                             unsigned int flags)
@@ -2207,7 +2187,7 @@ storageBackendVolBuildLocal(virConnectPtr conn,
         create_func = storageBackendCreateQemuImg;
     }
 
-    if (create_func(conn, pool, vol, inputvol, flags) < 0)
+    if (create_func(pool, vol, inputvol, flags) < 0)
         return -1;
     return 0;
 }
@@ -2219,12 +2199,11 @@ storageBackendVolBuildLocal(virConnectPtr conn,
  * special kinds of files
  */
 int
-virStorageBackendVolBuildLocal(virConnectPtr conn,
-                               virStoragePoolObjPtr pool,
+virStorageBackendVolBuildLocal(virStoragePoolObjPtr pool,
                                virStorageVolDefPtr vol,
                                unsigned int flags)
 {
-    return storageBackendVolBuildLocal(conn, pool, vol, NULL, flags);
+    return storageBackendVolBuildLocal(pool, vol, NULL, flags);
 }
 
 
@@ -2232,13 +2211,12 @@ virStorageBackendVolBuildLocal(virConnectPtr conn,
  * Create a storage vol using 'inputvol' as input
  */
 int
-virStorageBackendVolBuildFromLocal(virConnectPtr conn,
-                                   virStoragePoolObjPtr pool,
+virStorageBackendVolBuildFromLocal(virStoragePoolObjPtr pool,
                                    virStorageVolDefPtr vol,
                                    virStorageVolDefPtr inputvol,
                                    unsigned int flags)
 {
-    return storageBackendVolBuildLocal(conn, pool, vol, inputvol, flags);
+    return storageBackendVolBuildLocal(pool, vol, inputvol, flags);
 }
 
 
@@ -2246,8 +2224,7 @@ virStorageBackendVolBuildFromLocal(virConnectPtr conn,
  * Remove a volume - no support for BLOCK and NETWORK yet
  */
 int
-virStorageBackendVolDeleteLocal(virConnectPtr conn ATTRIBUTE_UNUSED,
-                                virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
+virStorageBackendVolDeleteLocal(virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
                                 virStorageVolDefPtr vol,
                                 unsigned int flags)
 {
@@ -2290,7 +2267,6 @@ virStorageBackendVolDeleteLocal(virConnectPtr conn ATTRIBUTE_UNUSED,
 
 
 /* storageBackendLoadDefaultSecrets:
- * @conn: Connection pointer to fetch secret
  * @vol: volume being refreshed
  *
  * If the volume had a secret generated, we need to regenerate the
@@ -2300,14 +2276,18 @@ virStorageBackendVolDeleteLocal(virConnectPtr conn ATTRIBUTE_UNUSED,
  * -1 on failures w/ error message set
  */
 static int
-storageBackendLoadDefaultSecrets(virConnectPtr conn,
-                                 virStorageVolDefPtr vol)
+storageBackendLoadDefaultSecrets(virStorageVolDefPtr vol)
 {
     virSecretPtr sec;
     virStorageEncryptionSecretPtr encsec = NULL;
+    virConnectPtr conn = NULL;
 
     if (!vol->target.encryption || vol->target.encryption->nsecrets != 0)
         return 0;
+
+    conn = virGetConnectSecret();
+    if (!conn)
+        return -1;
 
     /* The encryption secret for qcow2 and luks volumes use the path
      * to the volume, so look for a secret with the path. If not found,
@@ -2316,8 +2296,10 @@ storageBackendLoadDefaultSecrets(virConnectPtr conn,
      * a usage string that although matched with the secret usage string,
      * didn't contain the path to the volume. We won't error in that case,
      * but we also cannot find the secret. */
-    if (!(sec = virSecretLookupByUsage(conn, VIR_SECRET_USAGE_TYPE_VOLUME,
-                                       vol->target.path)))
+    sec = virSecretLookupByUsage(conn, VIR_SECRET_USAGE_TYPE_VOLUME,
+                                 vol->target.path);
+    virObjectUnref(conn);
+    if (!sec)
         return 0;
 
     if (VIR_ALLOC_N(vol->target.encryption->secrets, 1) < 0 ||
@@ -2343,8 +2325,7 @@ storageBackendLoadDefaultSecrets(virConnectPtr conn,
  * Update info about a volume's capacity/allocation
  */
 int
-virStorageBackendVolRefreshLocal(virConnectPtr conn,
-                                 virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
+virStorageBackendVolRefreshLocal(virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
                                  virStorageVolDefPtr vol)
 {
     int ret;
@@ -2356,13 +2337,12 @@ virStorageBackendVolRefreshLocal(virConnectPtr conn,
         return ret;
 
     /* Load any secrets if possible */
-    return storageBackendLoadDefaultSecrets(conn, vol);
+    return storageBackendLoadDefaultSecrets(vol);
 }
 
 
 static int
-storageBackendResizeQemuImg(virConnectPtr conn,
-                            virStoragePoolObjPtr pool,
+storageBackendResizeQemuImg(virStoragePoolObjPtr pool,
                             virStorageVolDefPtr vol,
                             unsigned long long capacity)
 {
@@ -2386,14 +2366,14 @@ storageBackendResizeQemuImg(virConnectPtr conn,
         else
             type = virStorageFileFormatTypeToString(vol->target.format);
 
-        storageBackendLoadDefaultSecrets(conn, vol);
+        storageBackendLoadDefaultSecrets(vol);
 
         if (storageBackendCreateQemuImgCheckEncryption(vol->target.format,
-                                                       type, NULL, vol) < 0)
+                                                       type, vol) < 0)
             goto cleanup;
 
         if (!(secretPath =
-              storageBackendCreateQemuImgSecretPath(conn, pool, vol)))
+              storageBackendCreateQemuImgSecretPath(pool, vol)))
             goto cleanup;
 
         if (virAsprintf(&secretAlias, "%s_luks0", vol->name) < 0)
@@ -2438,8 +2418,7 @@ storageBackendResizeQemuImg(virConnectPtr conn,
  * Resize a volume
  */
 int
-virStorageBackendVolResizeLocal(virConnectPtr conn,
-                                virStoragePoolObjPtr pool,
+virStorageBackendVolResizeLocal(virStoragePoolObjPtr pool,
                                 virStorageVolDefPtr vol,
                                 unsigned long long capacity,
                                 unsigned int flags)
@@ -2459,7 +2438,7 @@ virStorageBackendVolResizeLocal(virConnectPtr conn,
             return -1;
         }
 
-        return storageBackendResizeQemuImg(conn, pool, vol, capacity);
+        return storageBackendResizeQemuImg(pool, vol, capacity);
     } else if (vol->target.format == VIR_STORAGE_FILE_PLOOP) {
         return storagePloopResize(vol, capacity);
     } else {
@@ -2470,7 +2449,7 @@ virStorageBackendVolResizeLocal(virConnectPtr conn,
             return -1;
         }
 
-        return storageBackendResizeQemuImg(conn, pool, vol, capacity);
+        return storageBackendResizeQemuImg(pool, vol, capacity);
     }
 }
 
@@ -2518,8 +2497,7 @@ storageBackendPloopHasSnapshots(char *path)
 
 
 int
-virStorageBackendVolUploadLocal(virConnectPtr conn ATTRIBUTE_UNUSED,
-                                virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
+virStorageBackendVolUploadLocal(virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
                                 virStorageVolDefPtr vol,
                                 virStreamPtr stream,
                                 unsigned long long offset,
@@ -2565,8 +2543,7 @@ virStorageBackendVolUploadLocal(virConnectPtr conn ATTRIBUTE_UNUSED,
 }
 
 int
-virStorageBackendVolDownloadLocal(virConnectPtr conn ATTRIBUTE_UNUSED,
-                                  virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
+virStorageBackendVolDownloadLocal(virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
                                   virStorageVolDefPtr vol,
                                   virStreamPtr stream,
                                   unsigned long long offset,
@@ -2863,8 +2840,7 @@ storageBackendVolWipePloop(virStorageVolDefPtr vol,
 
 
 int
-virStorageBackendVolWipeLocal(virConnectPtr conn ATTRIBUTE_UNUSED,
-                              virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
+virStorageBackendVolWipeLocal(virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
                               virStorageVolDefPtr vol,
                               unsigned int algorithm,
                               unsigned int flags)
@@ -2963,8 +2939,7 @@ virStorageBackendBuildLocal(virStoragePoolObjPtr pool)
  * Returns 0 on success, -1 on error
  */
 int
-virStorageBackendDeleteLocal(virConnectPtr conn ATTRIBUTE_UNUSED,
-                             virStoragePoolObjPtr pool,
+virStorageBackendDeleteLocal(virStoragePoolObjPtr pool,
                              unsigned int flags)
 {
     virStoragePoolDefPtr def = virStoragePoolObjGetDef(pool);
@@ -3705,8 +3680,7 @@ virStorageBackendRefreshVolTargetUpdate(virStorageVolDefPtr vol)
  * within it. This is non-recursive.
  */
 int
-virStorageBackendRefreshLocal(virConnectPtr conn ATTRIBUTE_UNUSED,
-                              virStoragePoolObjPtr pool)
+virStorageBackendRefreshLocal(virStoragePoolObjPtr pool)
 {
     virStoragePoolDefPtr def = virStoragePoolObjGetDef(pool);
     DIR *dir;

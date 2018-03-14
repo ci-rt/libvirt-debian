@@ -362,6 +362,7 @@ extern bool virStoragePoolListAllVolumesCheckACL(virConnectPtr conn, virStorageP
 extern int virStoragePoolListVolumesEnsureACL(virConnectPtr conn, virStoragePoolDefPtr pool);
 extern bool virStoragePoolListVolumesCheckACL(virConnectPtr conn, virStoragePoolDefPtr pool, virStorageVolDefPtr vol);
 extern int virStoragePoolLookupByNameEnsureACL(virConnectPtr conn, virStoragePoolDefPtr pool);
+extern int virStoragePoolLookupByTargetPathEnsureACL(virConnectPtr conn, virStoragePoolDefPtr pool);
 extern int virStoragePoolLookupByUUIDEnsureACL(virConnectPtr conn, virStoragePoolDefPtr pool);
 extern int virStoragePoolLookupByVolumeEnsureACL(virConnectPtr conn, virStoragePoolDefPtr pool);
 extern int virStoragePoolNumOfVolumesEnsureACL(virConnectPtr conn, virStoragePoolDefPtr pool);

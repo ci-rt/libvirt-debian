@@ -31,7 +31,6 @@
 #include "node_device_conf.h"
 #include "node_device_driver.h"
 #include "node_device_hal.h"
-#include "node_device_linux_sysfs.h"
 #include "virerror.h"
 #include "driver.h"
 #include "datatypes.h"
@@ -151,7 +150,7 @@ gather_pci_cap(LibHalContext *ctx, const char *udi,
             ignore_value(virStrToLong_ui(p+1, &p, 16, &d->pci_dev.function));
         }
 
-        if (nodeDeviceSysfsGetPCIRelatedDevCaps(sysfs_path, &d->pci_dev) < 0) {
+        if (virNodeDeviceGetPCIDynamicCaps(sysfs_path, &d->pci_dev) < 0) {
             VIR_FREE(sysfs_path);
             return -1;
         }
@@ -237,7 +236,7 @@ gather_scsi_host_cap(LibHalContext *ctx, const char *udi,
 
     (void)get_int_prop(ctx, udi, "scsi_host.host", (int *)&d->scsi_host.host);
 
-    retval = nodeDeviceSysfsGetSCSIHostCaps(&d->scsi_host);
+    retval = virNodeDeviceGetSCSIHostCaps(&d->scsi_host);
 
     if (retval == -1)
         goto out;
@@ -773,6 +772,22 @@ static virNodeDeviceDriver halNodeDeviceDriver = {
 };
 
 
+static virHypervisorDriver halHypervisorDriver = {
+    .name = "nodedev",
+    .connectOpen = nodeConnectOpen, /* 4.1.0 */
+    .connectClose = nodeConnectClose, /* 4.1.0 */
+    .connectIsEncrypted = nodeConnectIsEncrypted, /* 4.1.0 */
+    .connectIsSecure = nodeConnectIsSecure, /* 4.1.0 */
+    .connectIsAlive = nodeConnectIsAlive, /* 4.1.0 */
+};
+
+
+static virConnectDriver halConnectDriver = {
+    .hypervisorDriver = &halHypervisorDriver,
+    .nodeDeviceDriver = &halNodeDeviceDriver,
+};
+
+
 static virStateDriver halStateDriver = {
     .name = "HAL",
     .stateInitialize = nodeStateInitialize, /* 0.5.0 */
@@ -783,6 +798,8 @@ static virStateDriver halStateDriver = {
 int
 halNodeRegister(void)
 {
+    if (virRegisterConnectDriver(&halConnectDriver, false) < 0)
+        return -1;
     if (virSetSharedNodeDeviceDriver(&halNodeDeviceDriver) < 0)
         return -1;
     return virRegisterStateDriver(&halStateDriver);

@@ -12,7 +12,99 @@
         <h1>Releases</h1><p>This is the list of official releases for libvirt, along with an
         overview of the changes introduced by each of them.</p><p>For a more fine-grained view, use the
         <a href="https://libvirt.org/git/?p=libvirt.git;a=log">git log</a>.
-        </p><h3><strong>v4.0.0 (2018-01-19)</strong></h3><ul><li><strong>New features</strong><ul><li>
+        </p><h3><strong>v4.1.0 (2018-03-05)</strong></h3><ul><li><strong>New features</strong><ul><li>
+          Added support for CAT (Cache allocation Technology)
+        <br/>
+          Domain vCPU threads can now have allocated some parts of host cache
+          using the <code>cachetune</code> element in <code>cputune</code>.
+        </li><li>
+          Allow opening secondary drivers
+        <br/>
+          Up until now it was possible to connect to only hypervisor drivers
+          (e.g. qemu:///system, lxc:///, vbox:///system, and so on). The
+          internal drivers (like network driver, node device driver, etc.) were
+          hidden from users and users could use them only indirectly. Starting
+          with this release new connection URIs are accepted. For instance
+          network:///system, storage:///system and so on.
+        </li><li>
+          virtlogd, virtlockd: Add support for admin protocol
+        <br/>
+          These two daemons now support admin protocol through which some admin
+          info can be gathered or some configuration tweaked on the fly.
+        </li></ul></li><li><strong>Improvements</strong><ul><li>
+          virsh: Enhance bash completion
+        <br/>
+          Implement more bash completions so that basic libvirt
+          objects can be auto-completed (e.g. networks,
+          interfaces, NWFilters, and so on).
+        </li><li>
+          qemu: Use VIR_ERR_DEVICE_MISSING for various hotplug/detach messages
+        </li><li>
+          qemu: Allow showing the dump progress for memory only dump
+        <br/>
+          Alter the QEMU dump-guest-memory command processing to check
+          for and allow asynchronous completion which then allows for
+          the virsh dump --memory-only --verbose command to display percent
+          completion data.
+        </li><li>
+          conf: add support for setting Chassis SMBIOS data fields
+        </li><li>
+          libxl: add support for setting clock offset and adjustment
+        </li><li>
+          Make port allocator global
+        <br/>
+          Up until now each driver had their own port allocator module. This
+          meant that info on port usage was not shared. Starting with this
+          release, the port allocator module is made global and therefore
+          drivers allocate ports from global pool.
+        </li><li>
+          Fixed some compiler warnings that appear with GCC 8
+        </li></ul></li><li><strong>Bug fixes</strong><ul><li>
+          qemu: Check for unsafe migration more thoroughly
+        <br/>
+          If a domain disk is stored on local filesystem (e.g. ext4) but is
+          not being migrated it is very likely that domain is not able to
+          run on destination. Regardless of share/cache mode.
+        </li><li>
+          qemu: Fix updating device with boot order
+        <br/>
+          Starting with 3.7.0 release updating any device with boot order would
+          fail with 'boot order X is already used by another device' while in
+          fact it was the very same device.
+        </li><li>
+          virlog: determine the hostname on startup CVE-2018-6764
+        <br/>
+          At later point it might not be possible or even safe to use
+          getaddrinfo(). It can in turn result in a load of NSS module which
+          can even be loaded from unsage guest filesystem and thus escape the
+          confinment of its container.
+        </li><li>
+          qemu: Rework vCPU statistics fetching
+        <br/>
+          Fetching vCPU statistics was very expensive because it lead to waking
+          up vCPU threads in QEMU and thus it degraded performance. The code
+          was reworked so that fetching statistics does not wake up halted
+          vCPUs.
+        </li><li>
+          qemu: unlink memory backing file on domain shutdown
+        <br/>
+          Depending on the filesystem where domain memory is stored, some files
+          might have been left behind. This is not a problem on hugetlbfs, but
+          it is a problem on regular filesystems like ext4.
+        </li><li>
+          qemu: Fix shutting down domains in parallel
+        <br/>
+          If multiple domains were being shut down in parallel, libvirtd might
+          have deadlocked.
+        </li><li>
+          nodedev: Update PCI mdev capabilities dynamically
+        <br/>
+          PCI devices may have other nested capabilities, like SRIOV and mdev
+          which depend on the device being plugged into the native vendor
+          driver. However, in case such a device is directly assigned to a guest
+          using VFIO driver, the device will naturally lose these capabilities
+          and libvirt needs to reflect that.
+        </li></ul></li></ul><h3><strong>v4.0.0 (2018-01-19)</strong></h3><ul><li><strong>New features</strong><ul><li>
           tools: Provide bash completion support
         <br/>
           Both <code>virsh</code> and <code>virt-admin</code> now implement

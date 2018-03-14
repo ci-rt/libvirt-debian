@@ -27,6 +27,60 @@
 #define VIR_FROM_THIS VIR_FROM_RPC
 
 #if defined(HAVE_SOCKETPAIR) && defined(WITH_YAJL)
+struct testClientPriv {
+    int magic;
+};
+
+
+static void *
+testClientNew(virNetServerClientPtr client ATTRIBUTE_UNUSED,
+              void *opaque ATTRIBUTE_UNUSED)
+{
+    struct testClientPriv *priv;
+
+    if (VIR_ALLOC(priv) < 0)
+        return NULL;
+
+    priv->magic = 1729;
+
+    return priv;
+}
+
+
+static virJSONValuePtr
+testClientPreExec(virNetServerClientPtr client ATTRIBUTE_UNUSED,
+                  void *data)
+{
+    struct testClientPriv *priv = data;
+
+    return virJSONValueNewNumberInt(priv->magic);
+}
+
+
+static void *
+testClientNewPostExec(virNetServerClientPtr client,
+                      virJSONValuePtr object,
+                      void *opaque)
+{
+    int magic;
+
+    if (virJSONValueGetNumberInt(object, &magic) < 0)
+        return NULL;
+
+    if (magic != 1729)
+        return NULL;
+
+    return testClientNew(client, opaque);
+}
+
+
+static void
+testClientFree(void *opaque)
+{
+    VIR_FREE(opaque);
+}
+
+
 static virNetServerPtr
 testCreateServer(const char *server_name, const char *host, int family)
 {
@@ -53,9 +107,9 @@ testCreateServer(const char *server_name, const char *host, int family)
                                 10, 50, 5, 100, 10,
                                 120, 5,
                                 mdns_group,
-                                NULL,
-                                NULL,
-                                NULL,
+                                testClientNew,
+                                testClientPreExec,
+                                testClientFree,
                                 NULL)))
         goto error;
 
@@ -101,7 +155,10 @@ testCreateServer(const char *server_name, const char *host, int family)
 # ifdef WITH_GNUTLS
                                        NULL,
 # endif
-                                       NULL, NULL, NULL, NULL)))
+                                       testClientNew,
+                                       testClientPreExec,
+                                       testClientFree,
+                                       NULL)))
         goto error;
 
     if (!(cln2 = virNetServerClientNew(virNetServerNextClientID(srv),
@@ -112,7 +169,10 @@ testCreateServer(const char *server_name, const char *host, int family)
 # ifdef WITH_GNUTLS
                                        NULL,
 # endif
-                                       NULL, NULL, NULL, NULL)))
+                                       testClientNew,
+                                       testClientPreExec,
+                                       testClientFree,
+                                       NULL)))
         goto error;
 
     if (virNetServerAddClient(srv, cln1) < 0)
@@ -194,12 +254,35 @@ struct testExecRestartData {
     bool pass;
 };
 
+static virNetServerPtr
+testNewServerPostExecRestart(virNetDaemonPtr dmn ATTRIBUTE_UNUSED,
+                             const char *name,
+                             virJSONValuePtr object,
+                             void *opaque)
+{
+    struct testExecRestartData *data = opaque;
+    size_t i;
+    for (i = 0; i < data->nservers; i++) {
+        if (STREQ(data->serverNames[i], name)) {
+            return virNetServerNewPostExecRestart(object,
+                                                  name,
+                                                  testClientNew,
+                                                  testClientNewPostExec,
+                                                  testClientPreExec,
+                                                  testClientFree,
+                                                  NULL);
+        }
+    }
+
+    virReportError(VIR_ERR_INTERNAL_ERROR, "Unexpected server name '%s'", name);
+    return NULL;
+}
+
 static int testExecRestart(const void *opaque)
 {
     size_t i;
     int ret = -1;
     virNetDaemonPtr dmn = NULL;
-    virNetServerPtr srv = NULL;
     const struct testExecRestartData *data = opaque;
     char *infile = NULL, *outfile = NULL;
     char *injsonstr = NULL, *outjsonstr = NULL;
@@ -241,15 +324,20 @@ static int testExecRestart(const void *opaque)
     if (!(injson = virJSONValueFromString(injsonstr)))
         goto cleanup;
 
-    if (!(dmn = virNetDaemonNewPostExecRestart(injson)))
+    if (!(dmn = virNetDaemonNewPostExecRestart(injson,
+                                               data->nservers,
+                                               data->serverNames,
+                                               testNewServerPostExecRestart,
+                                               (void *)data)))
         goto cleanup;
 
     for (i = 0; i < data->nservers; i++) {
-        if (!(srv = virNetDaemonAddServerPostExec(dmn, data->serverNames[i],
-                                                  NULL, NULL, NULL,
-                                                  NULL, NULL)))
+        if (!virNetDaemonHasServer(dmn, data->serverNames[i])) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           "Server %s was not created",
+                           data->serverNames[i]);
             goto cleanup;
-        srv = NULL;
+        }
     }
 
     if (!(outjson = virNetDaemonPreExecRestart(dmn)))

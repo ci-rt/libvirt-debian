@@ -44,22 +44,27 @@
 #include "virstring.h"
 
 #define VIRSH_COMMON_OPT_POOL_FULL \
-    VIRSH_COMMON_OPT_POOL(N_("pool name or uuid"))
+    VIRSH_COMMON_OPT_POOL(N_("pool name or uuid"), \
+                          VIR_CONNECT_LIST_STORAGE_POOLS_ACTIVE)
 
 #define VIRSH_COMMON_OPT_POOL_NAME \
-    VIRSH_COMMON_OPT_POOL(N_("pool name"))
+    VIRSH_COMMON_OPT_POOL(N_("pool name"), \
+                          VIR_CONNECT_LIST_STORAGE_POOLS_ACTIVE)
 
 #define VIRSH_COMMON_OPT_POOL_OPTIONAL \
     {.name = "pool", \
      .type = VSH_OT_STRING, \
-     .help = N_("pool name or uuid") \
+     .help = N_("pool name or uuid"), \
+     .completer = virshStoragePoolNameCompleter, \
+     .completer_flags = VIR_CONNECT_LIST_STORAGE_POOLS_ACTIVE, \
     }
 
 #define VIRSH_COMMON_OPT_VOLUME_VOL \
     {.name = "vol", \
      .type = VSH_OT_DATA, \
      .flags = VSH_OFLAG_REQ, \
-     .help = N_("vol name, key or path") \
+     .help = N_("vol name, key or path"), \
+     .completer = virshStorageVolNameCompleter, \
     }
 
 virStorageVolPtr

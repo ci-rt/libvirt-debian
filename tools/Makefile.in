@@ -292,6 +292,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-libssh.m4 \
 	$(top_srcdir)/m4/virt-libxml.m4 \
 	$(top_srcdir)/m4/virt-linker-no-indirect.m4 \
+	$(top_srcdir)/m4/virt-linker-no-undefined.m4 \
 	$(top_srcdir)/m4/virt-linker-relro.m4 \
 	$(top_srcdir)/m4/virt-loader-nvram.m4 \
 	$(top_srcdir)/m4/virt-login-shell.m4 \
@@ -1683,6 +1684,7 @@ NEXT_WCTYPE_H = @NEXT_WCTYPE_H@
 NM = @NM@
 NMEDIT = @NMEDIT@
 NO_INDIRECT_LDFLAGS = @NO_INDIRECT_LDFLAGS@
+NO_UNDEFINED_LDFLAGS = @NO_UNDEFINED_LDFLAGS@
 NUMACTL_CFLAGS = @NUMACTL_CFLAGS@
 NUMACTL_LIBS = @NUMACTL_LIBS@
 NUMAD = @NUMAD@
@@ -2135,6 +2137,7 @@ AM_CFLAGS = \
 AM_LDFLAGS = \
 	$(RELRO_LDFLAGS) \
 	$(NO_INDIRECT_LDFLAGS) \
+	$(NO_UNDEFINED_LDFLAGS) \
 	$(NULL)
 
 ICON_FILES = \
@@ -3648,9 +3651,15 @@ libvirt-guests.service: libvirt-guests.service.in $(top_builddir)/config.status
 @WITH_BASH_COMPLETION_TRUE@	$(MKDIR_P) "$(DESTDIR)$(BASH_COMPLETIONS_DIR)"
 @WITH_BASH_COMPLETION_TRUE@	$(INSTALL_SCRIPT) $(srcdir)/bash-completion/vsh \
 @WITH_BASH_COMPLETION_TRUE@		"$(DESTDIR)$(BASH_COMPLETIONS_DIR)/vsh"
+@WITH_BASH_COMPLETION_TRUE@	( cd $(DESTDIR)$(BASH_COMPLETIONS_DIR) && \
+@WITH_BASH_COMPLETION_TRUE@		rm -f virsh virt-admin && \
+@WITH_BASH_COMPLETION_TRUE@		$(LN_S) vsh virsh && \
+@WITH_BASH_COMPLETION_TRUE@		$(LN_S) vsh virt-admin )
 
 @WITH_BASH_COMPLETION_TRUE@uninstall-bash-completion:
-@WITH_BASH_COMPLETION_TRUE@	rm -f $(DESTDIR)$(BASH_COMPLETIONS_DIR)/vsh
+@WITH_BASH_COMPLETION_TRUE@	rm -f $(DESTDIR)$(BASH_COMPLETIONS_DIR)/vsh \
+@WITH_BASH_COMPLETION_TRUE@		$(DESTDIR)$(BASH_COMPLETIONS_DIR)/virsh \
+@WITH_BASH_COMPLETION_TRUE@		$(DESTDIR)$(BASH_COMPLETIONS_DIR)/virt-admin
 @WITH_BASH_COMPLETION_TRUE@	rmdir $(DESTDIR)$(BASH_COMPLETIONS_DIR) ||:
 @WITH_BASH_COMPLETION_FALSE@install-bash-completion:
 @WITH_BASH_COMPLETION_FALSE@uninstall-bash-completion:

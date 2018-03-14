@@ -91,6 +91,11 @@ static int testCompareXMLToArgvFiles(const char *xml,
     ret = 0;
 
  out:
+    if (vmdef &&
+        vmdef->ngraphics == 1 &&
+        vmdef->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC)
+        virPortAllocatorRelease(vmdef->graphics[0]->data.vnc.port);
+
     VIR_FREE(actualargv);
     VIR_FREE(actualld);
     VIR_FREE(actualdm);
@@ -145,8 +150,7 @@ mymain(void)
     if ((driver.xmlopt = virBhyveDriverCreateXMLConf(&driver)) == NULL)
         return EXIT_FAILURE;
 
-    if (!(driver.remotePorts = virPortAllocatorNew("display", 5900, 65535,
-                                                   VIR_PORT_ALLOCATOR_SKIP_BIND_CHECK)))
+    if (!(driver.remotePorts = virPortAllocatorRangeNew("display", 5900, 65535)))
         return EXIT_FAILURE;
 
 
@@ -240,7 +244,7 @@ mymain(void)
 
     virObjectUnref(driver.caps);
     virObjectUnref(driver.xmlopt);
-    virObjectUnref(driver.remotePorts);
+    virPortAllocatorRangeFree(driver.remotePorts);
 
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

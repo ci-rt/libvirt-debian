@@ -27,7 +27,6 @@
 #include "viralloc.h"
 #include "virlog.h"
 #include "virstring.h"
-#include "network/bridge_driver.h"
 
 #define QEMU_DRIVE_HOST_PREFIX "drive-"
 
@@ -179,8 +178,7 @@ qemuAssignDeviceControllerAlias(virDomainDefPtr domainDef,
 /* Our custom -drive naming scheme used with id= */
 int
 qemuAssignDeviceDiskAlias(virDomainDefPtr def,
-                          virDomainDiskDefPtr disk,
-                          virQEMUCapsPtr qemuCaps)
+                          virDomainDiskDefPtr disk)
 {
     const char *prefix = virDomainDiskBusTypeToString(disk->bus);
     int controllerModel = -1;
@@ -190,12 +188,9 @@ qemuAssignDeviceDiskAlias(virDomainDefPtr def,
 
     if (disk->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE) {
         if (disk->bus == VIR_DOMAIN_DISK_BUS_SCSI) {
-            controllerModel =
-                virDomainDeviceFindControllerModel(def, &disk->info,
-                                                   VIR_DOMAIN_CONTROLLER_TYPE_SCSI);
-
-            if ((qemuDomainSetSCSIControllerModel(def, qemuCaps,
-                                                  &controllerModel)) < 0)
+            controllerModel = qemuDomainFindSCSIControllerModel(def,
+                                                                &disk->info);
+            if (controllerModel < 0)
                 return -1;
         }
 
@@ -275,7 +270,7 @@ qemuAssignDeviceNetAlias(virDomainDefPtr def,
      * We must use "-1" as the index because the caller doesn't know
      * that we're now looking for a unique hostdevN rather than netN
      */
-    if (networkGetActualType(net) == VIR_DOMAIN_NET_TYPE_HOSTDEV)
+    if (virDomainNetResolveActualType(net) == VIR_DOMAIN_NET_TYPE_HOSTDEV)
         return qemuAssignDeviceHostdevAlias(def, &net->info.alias, -1);
 
     if (idx == -1) {
@@ -541,7 +536,7 @@ qemuAssignDeviceAliases(virDomainDefPtr def, virQEMUCapsPtr qemuCaps)
     size_t i;
 
     for (i = 0; i < def->ndisks; i++) {
-        if (qemuAssignDeviceDiskAlias(def, def->disks[i], qemuCaps) < 0)
+        if (qemuAssignDeviceDiskAlias(def, def->disks[i]) < 0)
             return -1;
     }
     for (i = 0; i < def->nnets; i++) {

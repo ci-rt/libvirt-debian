@@ -629,43 +629,31 @@ vshCmdGrpSearch(const char *grpname)
 }
 
 bool
-vshCmdGrpHelp(vshControl *ctl, const char *grpname)
+vshCmdGrpHelp(vshControl *ctl, const vshCmdGrp *grp)
 {
-    const vshCmdGrp *grp = vshCmdGrpSearch(grpname);
     const vshCmdDef *cmd = NULL;
 
-    if (!grp) {
-        vshError(ctl, _("command group '%s' doesn't exist"), grpname);
-        return false;
-    } else {
-        vshPrint(ctl, _(" %s (help keyword '%s'):\n"), grp->name,
-                 grp->keyword);
+    vshPrint(ctl, _(" %s (help keyword '%s'):\n"), grp->name,
+             grp->keyword);
 
-        for (cmd = grp->commands; cmd->name; cmd++) {
-            if (cmd->flags & VSH_CMD_FLAG_ALIAS)
-                continue;
-            vshPrint(ctl, "    %-30s %s\n", cmd->name,
-                     _(vshCmddefGetInfo(cmd, "help")));
-        }
+    for (cmd = grp->commands; cmd->name; cmd++) {
+        if (cmd->flags & VSH_CMD_FLAG_ALIAS)
+            continue;
+        vshPrint(ctl, "    %-30s %s\n", cmd->name,
+                 _(vshCmddefGetInfo(cmd, "help")));
     }
 
     return true;
 }
 
 bool
-vshCmddefHelp(vshControl *ctl, const char *cmdname)
+vshCmddefHelp(vshControl *ctl, const vshCmdDef *def)
 {
-    const vshCmdDef *def = vshCmddefSearch(cmdname);
     const char *desc = NULL;
     char buf[256];
     uint64_t opts_need_arg;
     uint64_t opts_required;
     bool shortopt = false; /* true if 'arg' works instead of '--opt arg' */
-
-    if (!def) {
-        vshError(ctl, _("command '%s' doesn't exist"), cmdname);
-        return false;
-    }
 
     if (vshCmddefOptParse(def, &opts_need_arg, &opts_required)) {
         vshError(ctl, _("internal error: bad options in command: '%s'"),
@@ -829,18 +817,17 @@ vshCommandOpt(const vshCmd *cmd, const char *name, vshCmdOpt **opt,
     /* See if option is valid and/or required.  */
     *opt = NULL;
 
-    if (!cmd->skipChecks) {
-        while (valid && valid->name) {
-            if (STREQ(name, valid->name))
-                break;
-            valid++;
-        }
+    while (valid && valid->name) {
+        if (STREQ(name, valid->name))
+            break;
+        valid++;
+    }
 
+    if (!cmd->skipChecks)
         assert(valid && (!needData || valid->type != VSH_OT_BOOL));
 
-        if (valid->flags & VSH_OFLAG_REQ)
-            ret = -1;
-    }
+    if (valid && valid->flags & VSH_OFLAG_REQ)
+        ret = -1;
 
     /* See if option is present on command line.  */
     while (candidate) {
@@ -1077,7 +1064,8 @@ vshCommandOptStringReq(vshControl *ctl,
         error = N_("Option argument is empty");
 
     if (error) {
-        vshError(ctl, _("Failed to get option '%s': %s"), name, _(error));
+        if (!cmd->skipChecks)
+            vshError(ctl, _("Failed to get option '%s': %s"), name, _(error));
         return -1;
     }
 
@@ -3181,12 +3169,11 @@ const vshCmdInfo info_help[] = {
 bool
 cmdHelp(vshControl *ctl, const vshCmd *cmd)
 {
+    const vshCmdDef *def = NULL;
+    const vshCmdGrp *grp = NULL;
     const char *name = NULL;
 
     if (vshCommandOptStringQuiet(ctl, cmd, "command", &name) <= 0) {
-        const vshCmdGrp *grp;
-        const vshCmdDef *def;
-
         vshPrint(ctl, "%s", _("Grouped commands:\n\n"));
 
         for (grp = cmdGroups; grp->name; grp++) {
@@ -3206,10 +3193,12 @@ cmdHelp(vshControl *ctl, const vshCmd *cmd)
         return true;
     }
 
-    if (vshCmddefSearch(name)) {
-        return vshCmddefHelp(ctl, name);
-    } else if (vshCmdGrpSearch(name)) {
-        return vshCmdGrpHelp(ctl, name);
+    if ((def = vshCmddefSearch(name))) {
+        if (def->flags & VSH_CMD_FLAG_ALIAS)
+            def = vshCmddefSearch(def->alias);
+        return vshCmddefHelp(ctl, def);
+    } else if ((grp = vshCmdGrpSearch(name))) {
+        return vshCmdGrpHelp(ctl, grp);
     } else {
         vshError(ctl, _("command or command group '%s' doesn't exist"), name);
         return false;

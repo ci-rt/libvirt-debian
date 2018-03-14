@@ -110,6 +110,13 @@ typedef enum {
     QEMU_DOMAIN_JOB_STATUS_CANCELED,
 } qemuDomainJobStatus;
 
+typedef enum {
+    QEMU_DOMAIN_JOB_STATS_TYPE_NONE = 0,
+    QEMU_DOMAIN_JOB_STATS_TYPE_MIGRATION,
+    QEMU_DOMAIN_JOB_STATS_TYPE_SAVEDUMP,
+    QEMU_DOMAIN_JOB_STATS_TYPE_MEMDUMP,
+} qemuDomainJobStatsType;
+
 
 typedef struct _qemuDomainMirrorStats qemuDomainMirrorStats;
 typedef qemuDomainMirrorStats *qemuDomainMirrorStatsPtr;
@@ -138,7 +145,11 @@ struct _qemuDomainJobInfo {
                             destination. */
     bool timeDeltaSet;
     /* Raw values from QEMU */
-    qemuMonitorMigrationStats stats;
+    qemuDomainJobStatsType statsType;
+    union {
+        qemuMonitorMigrationStats mig;
+        qemuMonitorDumpStats dump;
+    } stats;
     qemuDomainMirrorStats mirrorStats;
 };
 
@@ -164,6 +175,8 @@ struct qemuDomainJobObj {
                                          * should wait for it to finish */
     bool spiceMigrated;                 /* spice migration completed */
     bool postcopyEnabled;               /* post-copy migration was enabled */
+    char *error;                        /* job event completion error */
+    bool dumpCompleted;                 /* dump completed */
 };
 
 typedef void (*qemuDomainCleanupCallback)(virQEMUDriverPtr driver,
@@ -386,7 +399,7 @@ struct _qemuDomainVcpuPrivate {
     int enable_id; /* order in which the vcpus were enabled in qemu */
     int qemu_id; /* ID reported by qemu as 'CPU' in query-cpus */
     char *alias;
-    bool halted;
+    virTristateBool halted;
 
     /* information for hotpluggable cpus */
     char *type;
@@ -444,6 +457,8 @@ struct qemuProcessEvent {
     int status;
     void *data;
 };
+
+void qemuProcessEventFree(struct qemuProcessEvent *event);
 
 typedef struct _qemuDomainLogContext qemuDomainLogContext;
 typedef qemuDomainLogContext *qemuDomainLogContextPtr;
@@ -821,37 +836,33 @@ bool qemuDomainDiskHasEncryptionSecret(virStorageSourcePtr src)
     ATTRIBUTE_NONNULL(1);
 
 qemuDomainSecretInfoPtr
-qemuDomainSecretInfoTLSNew(virConnectPtr conn,
-                           qemuDomainObjPrivatePtr priv,
+qemuDomainSecretInfoTLSNew(qemuDomainObjPrivatePtr priv,
                            const char *srcAlias,
                            const char *secretUUID);
 
 void qemuDomainSecretHostdevDestroy(virDomainHostdevDefPtr disk)
     ATTRIBUTE_NONNULL(1);
 
-int qemuDomainSecretHostdevPrepare(virConnectPtr conn,
-                                   qemuDomainObjPrivatePtr priv,
+int qemuDomainSecretHostdevPrepare(qemuDomainObjPrivatePtr priv,
                                    virDomainHostdevDefPtr hostdev)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 void qemuDomainSecretChardevDestroy(virDomainChrSourceDefPtr dev)
     ATTRIBUTE_NONNULL(1);
 
-int qemuDomainSecretChardevPrepare(virConnectPtr conn,
-                                   virQEMUDriverConfigPtr cfg,
+int qemuDomainSecretChardevPrepare(virQEMUDriverConfigPtr cfg,
                                    qemuDomainObjPrivatePtr priv,
                                    const char *chrAlias,
                                    virDomainChrSourceDefPtr dev)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
-    ATTRIBUTE_NONNULL(4) ATTRIBUTE_NONNULL(5);
+    ATTRIBUTE_NONNULL(4);
 
 void qemuDomainSecretDestroy(virDomainObjPtr vm)
     ATTRIBUTE_NONNULL(1);
 
-int qemuDomainSecretPrepare(virConnectPtr conn,
-                            virQEMUDriverPtr driver,
+int qemuDomainSecretPrepare(virQEMUDriverPtr driver,
                             virDomainObjPtr vm)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 int qemuDomainDefValidateDiskLunSource(const virStorageSource *src)
     ATTRIBUTE_NONNULL(1);
@@ -985,8 +996,7 @@ qemuDomainCheckMigrationCapabilities(virQEMUDriverPtr driver,
                                      qemuDomainAsyncJob asyncJob);
 
 int
-qemuDomainPrepareDiskSource(virConnectPtr conn,
-                            virDomainDiskDefPtr disk,
+qemuDomainPrepareDiskSource(virDomainDiskDefPtr disk,
                             qemuDomainObjPrivatePtr priv,
                             virQEMUDriverConfigPtr cfg);
 

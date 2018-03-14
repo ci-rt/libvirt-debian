@@ -466,25 +466,23 @@ virNetServerClientPtr virNetServerClientNew(unsigned long long id,
                                                  now)))
         return NULL;
 
-    if (privNew) {
-        if (!(client->privateData = privNew(client, privOpaque))) {
-            virObjectUnref(client);
-            return NULL;
-        }
-        client->privateDataFreeFunc = privFree;
-        client->privateDataPreExecRestart = privPreExecRestart;
+    if (!(client->privateData = privNew(client, privOpaque))) {
+        virObjectUnref(client);
+        return NULL;
     }
+    client->privateDataFreeFunc = privFree;
+    client->privateDataPreExecRestart = privPreExecRestart;
 
     return client;
 }
 
 
-virNetServerClientPtr virNetServerClientNewPostExecRestart(virJSONValuePtr object,
+virNetServerClientPtr virNetServerClientNewPostExecRestart(virNetServerPtr srv,
+                                                           virJSONValuePtr object,
                                                            virNetServerClientPrivNewPostExecRestart privNew,
                                                            virNetServerClientPrivPreExecRestart privPreExecRestart,
                                                            virFreeCallback privFree,
-                                                           void *privOpaque,
-                                                           void *opaque)
+                                                           void *privOpaque)
 {
     virJSONValuePtr child;
     virNetServerClientPtr client = NULL;
@@ -540,12 +538,12 @@ virNetServerClientPtr virNetServerClientNewPostExecRestart(virJSONValuePtr objec
 
     if (!virJSONValueObjectHasKey(object, "id")) {
         /* no ID found in, a new one must be generated */
-        id = virNetServerNextClientID((virNetServerPtr) opaque);
+        id = virNetServerNextClientID(srv);
     } else {
         if (virJSONValueObjectGetNumberUlong(object, "id", &id) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("Malformed id field in JSON state document"));
-        return NULL;
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Malformed id field in JSON state document"));
+            return NULL;
         }
     }
 
@@ -580,17 +578,17 @@ virNetServerClientPtr virNetServerClientNewPostExecRestart(virJSONValuePtr objec
     }
     virObjectUnref(sock);
 
-    if (privNew) {
-        if (!(child = virJSONValueObjectGet(object, "privateData"))) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("Missing privateData field in JSON state document"));
-            goto error;
-        }
-        if (!(client->privateData = privNew(client, child, privOpaque)))
-            goto error;
-        client->privateDataFreeFunc = privFree;
-        client->privateDataPreExecRestart = privPreExecRestart;
+    if (!(child = virJSONValueObjectGet(object, "privateData"))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Missing privateData field in JSON state document"));
+        goto error;
     }
+
+    if (!(client->privateData = privNew(client, child, privOpaque)))
+        goto error;
+
+    client->privateDataFreeFunc = privFree;
+    client->privateDataPreExecRestart = privPreExecRestart;
 
 
     return client;
@@ -637,14 +635,12 @@ virJSONValuePtr virNetServerClientPreExecRestart(virNetServerClientPtr client)
         goto error;
     }
 
-    if (client->privateData && client->privateDataPreExecRestart) {
-        if (!(child = client->privateDataPreExecRestart(client, client->privateData)))
-            goto error;
+    if (!(child = client->privateDataPreExecRestart(client, client->privateData)))
+        goto error;
 
-        if (virJSONValueObjectAppend(object, "privateData", child) < 0) {
-            virJSONValueFree(child);
-            goto error;
-        }
+    if (virJSONValueObjectAppend(object, "privateData", child) < 0) {
+        virJSONValueFree(child);
+        goto error;
     }
 
     virObjectUnlock(client);
@@ -989,8 +985,7 @@ void virNetServerClientDispose(void *obj)
     PROBE(RPC_SERVER_CLIENT_DISPOSE,
           "client=%p", client);
 
-    if (client->privateData &&
-        client->privateDataFreeFunc)
+    if (client->privateData)
         client->privateDataFreeFunc(client->privateData);
 
     virObjectUnref(client->identity);

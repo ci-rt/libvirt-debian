@@ -36,9 +36,9 @@ typedef enum {
 VIR_ENUM_DECL(virCache);
 
 
-typedef struct _virResctrlInfo virResctrlInfo;
-typedef virResctrlInfo *virResctrlInfoPtr;
-struct _virResctrlInfo {
+typedef struct _virResctrlInfoPerCache virResctrlInfoPerCache;
+typedef virResctrlInfoPerCache *virResctrlInfoPerCachePtr;
+struct _virResctrlInfoPerCache {
     /* Smallest possible increase of the allocation size in bytes */
     unsigned long long granularity;
     /* Minimal allocatable size in bytes (if different from granularity) */
@@ -49,15 +49,73 @@ struct _virResctrlInfo {
     unsigned int max_allocation;
 };
 
+typedef struct _virResctrlInfo virResctrlInfo;
+typedef virResctrlInfo *virResctrlInfoPtr;
+
+virResctrlInfoPtr
+virResctrlInfoNew(void);
 
 int
-virResctrlGetCacheInfo(unsigned int level,
+virResctrlGetInfo(virResctrlInfoPtr resctrl);
+
+int
+virResctrlInfoGetCache(virResctrlInfoPtr resctrl,
+                       unsigned int level,
                        unsigned long long size,
-                       virCacheType scope,
-                       virResctrlInfoPtr **controls,
-                       size_t *ncontrols);
+                       size_t *ncontrols,
+                       virResctrlInfoPerCachePtr **controls);
+
+/* Alloc-related things */
+typedef struct _virResctrlAlloc virResctrlAlloc;
+typedef virResctrlAlloc *virResctrlAllocPtr;
+
+typedef int virResctrlAllocForeachSizeCallback(unsigned int level,
+                                               virCacheType type,
+                                               unsigned int cache,
+                                               unsigned long long size,
+                                               void *opaque);
+
+virResctrlAllocPtr
+virResctrlAllocNew(void);
+
+bool
+virResctrlAllocIsEmpty(virResctrlAllocPtr resctrl);
 
 int
-virResctrlGetCacheControlType(unsigned int level);
+virResctrlAllocSetSize(virResctrlAllocPtr resctrl,
+                       unsigned int level,
+                       virCacheType type,
+                       unsigned int cache,
+                       unsigned long long size);
+
+int
+virResctrlAllocForeachSize(virResctrlAllocPtr resctrl,
+                           virResctrlAllocForeachSizeCallback cb,
+                           void *opaque);
+
+int
+virResctrlAllocSetID(virResctrlAllocPtr alloc,
+                     const char *id);
+const char *
+virResctrlAllocGetID(virResctrlAllocPtr alloc);
+
+char *
+virResctrlAllocFormat(virResctrlAllocPtr alloc);
+
+int
+virResctrlAllocDeterminePath(virResctrlAllocPtr alloc,
+                             const char *machinename);
+
+int
+virResctrlAllocCreate(virResctrlInfoPtr r_info,
+                      virResctrlAllocPtr alloc,
+                      const char *machinename);
+
+int
+virResctrlAllocAddPID(virResctrlAllocPtr alloc,
+                      pid_t pid);
+
+int
+virResctrlAllocRemove(virResctrlAllocPtr alloc);
 
 #endif /*  __VIR_RESCTRL_H__ */

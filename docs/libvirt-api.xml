@@ -1671,6 +1671,7 @@
      <exports symbol='virStoragePoolListAllVolumes' type='function'/>
      <exports symbol='virStoragePoolListVolumes' type='function'/>
      <exports symbol='virStoragePoolLookupByName' type='function'/>
+     <exports symbol='virStoragePoolLookupByTargetPath' type='function'/>
      <exports symbol='virStoragePoolLookupByUUID' type='function'/>
      <exports symbol='virStoragePoolLookupByUUIDString' type='function'/>
      <exports symbol='virStoragePoolLookupByVolume' type='function'/>
@@ -1755,6 +1756,7 @@
      <exports symbol='VIR_ERR_CONF_SYNTAX' type='enum'/>
      <exports symbol='VIR_ERR_CPU_INCOMPATIBLE' type='enum'/>
      <exports symbol='VIR_ERR_DBUS_SERVICE' type='enum'/>
+     <exports symbol='VIR_ERR_DEVICE_MISSING' type='enum'/>
      <exports symbol='VIR_ERR_DOMAIN_LAST' type='enum'/>
      <exports symbol='VIR_ERR_DOM_EXIST' type='enum'/>
      <exports symbol='VIR_ERR_DRIVER_FULL' type='enum'/>
@@ -3292,6 +3294,7 @@ conf file'/>
     <enum name='VIR_ERR_CPU_INCOMPATIBLE' file='virterror' value='91' type='virErrorNumber' info='given CPU is incompatible with host
 CP'/>
     <enum name='VIR_ERR_DBUS_SERVICE' file='virterror' value='89' type='virErrorNumber' info='error from a dbus service'/>
+    <enum name='VIR_ERR_DEVICE_MISSING' file='virterror' value='99' type='virErrorNumber' info='fail to find the desired device'/>
     <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='68' type='virErrorDomain'/>
     <enum name='VIR_ERR_DOM_EXIST' file='virterror' value='28' type='virErrorNumber' info='the domain already exist'/>
     <enum name='VIR_ERR_DRIVER_FULL' file='virterror' value='25' type='virErrorNumber' info='too many drivers registered'/>
@@ -10993,6 +10996,17 @@ storage pool object is no longer needed.]]></info>
       <return type='virStoragePoolPtr' info='a virStoragePoolPtr object, or NULL if no matching pool is found'/>
       <arg name='conn' type='virConnectPtr' info='pointer to hypervisor connection'/>
       <arg name='name' type='const char *' info='name of pool to fetch'/>
+    </function>
+    <function name='virStoragePoolLookupByTargetPath' file='libvirt-storage' module='libvirt-storage'>
+      <info><![CDATA[Fetch a storage pool which maps to a particular target directory.
+If more than one pool maps to the path, it is undefined which
+will be returned first.
+
+virStoragePoolFree should be used to free the resources after the
+storage pool object is no longer needed.]]></info>
+      <return type='virStoragePoolPtr' info='a virStoragePoolPtr object, or NULL if no matching pool is found'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to hypervisor connection'/>
+      <arg name='path' type='const char *' info='path at which the pool is exposed'/>
     </function>
     <function name='virStoragePoolLookupByUUID' file='libvirt-storage' module='libvirt-storage'>
       <info><![CDATA[Fetch a storage pool based on its globally unique id

@@ -395,8 +395,14 @@ static int virLXCControllerGetNICIndexes(virLXCControllerPtr ctrl)
         case VIR_DOMAIN_NET_TYPE_INTERNAL:
         case VIR_DOMAIN_NET_TYPE_DIRECT:
         case VIR_DOMAIN_NET_TYPE_HOSTDEV:
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("Unsupported net type %s"),
+                           virDomainNetTypeToString(ctrl->def->nets[i]->type));
+            goto cleanup;
+        case VIR_DOMAIN_NET_TYPE_LAST:
         default:
-            break;
+            virReportEnumRangeError(virDomainNetType, ctrl->def->nets[i]->type);
+            goto cleanup;
         }
     }
 
@@ -2247,7 +2253,8 @@ virLXCControllerEventSend(virLXCControllerPtr ctrl,
         goto error;
 
     VIR_DEBUG("Queue event %d %zu", procnr, msg->bufferLength);
-    virNetServerClientSendMessage(ctrl->client, msg);
+    if (virNetServerClientSendMessage(ctrl->client, msg) < 0)
+        goto error;
 
     xdr_free(proc, data);
     return;
