@@ -710,6 +710,7 @@
     <reference name='VIR_ERR_CONF_SYNTAX' href='html/libvirt-virterror.html#VIR_ERR_CONF_SYNTAX'/>
     <reference name='VIR_ERR_CPU_INCOMPATIBLE' href='html/libvirt-virterror.html#VIR_ERR_CPU_INCOMPATIBLE'/>
     <reference name='VIR_ERR_DBUS_SERVICE' href='html/libvirt-virterror.html#VIR_ERR_DBUS_SERVICE'/>
+    <reference name='VIR_ERR_DEVICE_MISSING' href='html/libvirt-virterror.html#VIR_ERR_DEVICE_MISSING'/>
     <reference name='VIR_ERR_DOMAIN_LAST' href='html/libvirt-virterror.html#VIR_ERR_DOMAIN_LAST'/>
     <reference name='VIR_ERR_DOM_EXIST' href='html/libvirt-virterror.html#VIR_ERR_DOM_EXIST'/>
     <reference name='VIR_ERR_DRIVER_FULL' href='html/libvirt-virterror.html#VIR_ERR_DRIVER_FULL'/>
@@ -1771,6 +1772,7 @@
     <reference name='virStoragePoolListAllVolumes' href='html/libvirt-libvirt-storage.html#virStoragePoolListAllVolumes'/>
     <reference name='virStoragePoolListVolumes' href='html/libvirt-libvirt-storage.html#virStoragePoolListVolumes'/>
     <reference name='virStoragePoolLookupByName' href='html/libvirt-libvirt-storage.html#virStoragePoolLookupByName'/>
+    <reference name='virStoragePoolLookupByTargetPath' href='html/libvirt-libvirt-storage.html#virStoragePoolLookupByTargetPath'/>
     <reference name='virStoragePoolLookupByUUID' href='html/libvirt-libvirt-storage.html#virStoragePoolLookupByUUID'/>
     <reference name='virStoragePoolLookupByUUIDString' href='html/libvirt-libvirt-storage.html#virStoragePoolLookupByUUIDString'/>
     <reference name='virStoragePoolLookupByVolume' href='html/libvirt-libvirt-storage.html#virStoragePoolLookupByVolume'/>
@@ -2582,6 +2584,7 @@
       <ref name='VIR_ERR_CONF_SYNTAX'/>
       <ref name='VIR_ERR_CPU_INCOMPATIBLE'/>
       <ref name='VIR_ERR_DBUS_SERVICE'/>
+      <ref name='VIR_ERR_DEVICE_MISSING'/>
       <ref name='VIR_ERR_DOMAIN_LAST'/>
       <ref name='VIR_ERR_DOM_EXIST'/>
       <ref name='VIR_ERR_DRIVER_FULL'/>
@@ -3647,6 +3650,7 @@
       <ref name='virStoragePoolListAllVolumes'/>
       <ref name='virStoragePoolListVolumes'/>
       <ref name='virStoragePoolLookupByName'/>
+      <ref name='virStoragePoolLookupByTargetPath'/>
       <ref name='virStoragePoolLookupByUUID'/>
       <ref name='virStoragePoolLookupByUUIDString'/>
       <ref name='virStoragePoolLookupByVolume'/>
@@ -3830,6 +3834,7 @@
       <ref name='virStoragePoolCreateXML'/>
       <ref name='virStoragePoolDefineXML'/>
       <ref name='virStoragePoolLookupByName'/>
+      <ref name='virStoragePoolLookupByTargetPath'/>
       <ref name='virStoragePoolLookupByUUID'/>
       <ref name='virStoragePoolLookupByUUIDString'/>
       <ref name='virStoragePoolLookupByVolume'/>
@@ -4409,6 +4414,7 @@
       <ref name='virStoragePoolCreateXML'/>
       <ref name='virStoragePoolDefineXML'/>
       <ref name='virStoragePoolLookupByName'/>
+      <ref name='virStoragePoolLookupByTargetPath'/>
       <ref name='virStoragePoolLookupByUUID'/>
       <ref name='virStoragePoolLookupByUUIDString'/>
       <ref name='virStorageVolLookupByKey'/>
@@ -6693,6 +6699,7 @@
       <ref name='virStoragePoolListAllVolumes'/>
       <ref name='virStoragePoolListVolumes'/>
       <ref name='virStoragePoolLookupByName'/>
+      <ref name='virStoragePoolLookupByTargetPath'/>
       <ref name='virStoragePoolLookupByUUID'/>
       <ref name='virStoragePoolLookupByUUIDString'/>
       <ref name='virStoragePoolLookupByVolume'/>
@@ -6786,6 +6793,7 @@
       <ref name='VIR_ERR_CONF_SYNTAX'/>
       <ref name='VIR_ERR_CPU_INCOMPATIBLE'/>
       <ref name='VIR_ERR_DBUS_SERVICE'/>
+      <ref name='VIR_ERR_DEVICE_MISSING'/>
       <ref name='VIR_ERR_DOMAIN_LAST'/>
       <ref name='VIR_ERR_DOM_EXIST'/>
       <ref name='VIR_ERR_DRIVER_FULL'/>
@@ -7568,6 +7576,7 @@
           <ref name='virStoragePoolGetXMLDesc'/>
           <ref name='virStoragePoolListVolumes'/>
           <ref name='virStoragePoolLookupByName'/>
+          <ref name='virStoragePoolLookupByTargetPath'/>
           <ref name='virStoragePoolLookupByUUID'/>
           <ref name='virStoragePoolLookupByUUIDString'/>
           <ref name='virStoragePoolLookupByVolume'/>
@@ -13325,6 +13334,9 @@
           <ref name='virEventAddHandleFunc'/>
           <ref name='virStoragePoolListVolumes'/>
         </word>
+        <word name='directory'>
+          <ref name='virStoragePoolLookupByTargetPath'/>
+        </word>
         <word name='directs'>
           <ref name='virStreamSendHole'/>
         </word>
@@ -14241,6 +14253,7 @@
           <ref name='virConnectIsSecure'/>
           <ref name='virDomainCreateWithFiles'/>
           <ref name='virDomainCreateXMLWithFiles'/>
+          <ref name='virStoragePoolLookupByTargetPath'/>
         </word>
         <word name='expression'>
           <ref name='virDomainSetGuestVcpus'/>
@@ -17043,6 +17056,9 @@
           <ref name='virDomainGetFSInfo'/>
           <ref name='virDomainSendProcessSignal'/>
         </word>
+        <word name='maps'>
+          <ref name='virStoragePoolLookupByTargetPath'/>
+        </word>
         <word name='mark'>
           <ref name='virDomainBlockCommit'/>
         </word>
@@ -17083,6 +17099,7 @@
         <word name='matching'>
           <ref name='virConnectClose'/>
           <ref name='virStoragePoolLookupByName'/>
+          <ref name='virStoragePoolLookupByTargetPath'/>
           <ref name='virStoragePoolLookupByUUID'/>
           <ref name='virStoragePoolLookupByUUIDString'/>
           <ref name='virStoragePoolLookupByVolume'/>
@@ -18447,6 +18464,7 @@
           <ref name='virDomainInterfaceStats'/>
           <ref name='virDomainRevertToSnapshot'/>
           <ref name='virDomainSetPerfEvents'/>
+          <ref name='virStoragePoolLookupByTargetPath'/>
           <ref name='virStoragePoolLookupByVolume'/>
         </word>
         <word name='parts'>
@@ -22659,6 +22677,7 @@
           <ref name='virDomainShutdownFlags'/>
           <ref name='virInterfaceCreate'/>
           <ref name='virInterfaceDestroy'/>
+          <ref name='virStoragePoolLookupByTargetPath'/>
         </word>
         <word name='under'>
           <ref name='virDomainGetSecurityLabel'/>
@@ -24452,6 +24471,7 @@
           <ref name='virStoragePoolCreateXML'/>
           <ref name='virStoragePoolDefineXML'/>
           <ref name='virStoragePoolLookupByName'/>
+          <ref name='virStoragePoolLookupByTargetPath'/>
           <ref name='virStoragePoolLookupByUUID'/>
           <ref name='virStoragePoolLookupByUUIDString'/>
           <ref name='virStoragePoolLookupByVolume'/>
@@ -24467,6 +24487,7 @@
           <ref name='virStoragePoolDelete'/>
           <ref name='virStoragePoolDestroy'/>
           <ref name='virStoragePoolLookupByName'/>
+          <ref name='virStoragePoolLookupByTargetPath'/>
           <ref name='virStoragePoolLookupByUUID'/>
           <ref name='virStoragePoolLookupByUUIDString'/>
           <ref name='virStoragePoolLookupByVolume'/>

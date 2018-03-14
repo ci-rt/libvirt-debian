@@ -78,7 +78,6 @@ struct _qemuMonitor {
      * < 0: an error occurred during the registration of @fd */
     int watch;
     int hasSendFD;
-    int willhangup;
 
     virDomainObjPtr vm;
 
@@ -210,6 +209,10 @@ VIR_ENUM_DECL(qemuMonitorBlockIOStatus)
 VIR_ENUM_IMPL(qemuMonitorBlockIOStatus,
               QEMU_MONITOR_BLOCK_IO_STATUS_LAST,
               "ok", "failed", "nospace")
+
+VIR_ENUM_IMPL(qemuMonitorDumpStatus,
+              QEMU_MONITOR_DUMP_STATUS_LAST,
+              "none", "active", "completed", "failed")
 
 char *
 qemuMonitorEscapeArg(const char *in)
@@ -716,10 +719,8 @@ qemuMonitorIO(int watch, int fd, int events, void *opaque)
         if (events & VIR_EVENT_HANDLE_HANGUP) {
             hangup = true;
             if (!error) {
-                if (!mon->willhangup) {
-                    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                   _("End of file from qemu monitor"));
-                }
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("End of file from qemu monitor"));
                 eof = true;
                 events &= ~VIR_EVENT_HANDLE_HANGUP;
             }
@@ -758,7 +759,7 @@ qemuMonitorIO(int watch, int fd, int events, void *opaque)
         if (mon->lastError.code != VIR_ERR_OK) {
             /* Already have an error, so clear any new error */
             virResetLastError();
-        } else if (!mon->willhangup) {
+        } else {
             virErrorPtr err = virGetLastError();
             if (!err)
                 virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -1318,7 +1319,6 @@ qemuMonitorHMPCommandWithFd(qemuMonitorPtr mon,
 
 int
 qemuMonitorGetDiskSecret(qemuMonitorPtr mon,
-                         virConnectPtr conn,
                          const char *path,
                          char **secret,
                          size_t *secretLen)
@@ -1327,7 +1327,7 @@ qemuMonitorGetDiskSecret(qemuMonitorPtr mon,
     *secret = NULL;
     *secretLen = 0;
 
-    QEMU_MONITOR_CALLBACK(mon, ret, diskSecretLookup, conn, mon->vm,
+    QEMU_MONITOR_CALLBACK(mon, ret, diskSecretLookup, mon->vm,
                           path, secret, secretLen);
     return ret;
 }
@@ -1352,7 +1352,6 @@ qemuMonitorEmitShutdown(qemuMonitorPtr mon, virTristateBool guest)
 {
     int ret = -1;
     VIR_DEBUG("mon=%p guest=%u", mon, guest);
-    mon->willhangup = 1;
 
     QEMU_MONITOR_CALLBACK(mon, ret, domainShutdown, mon->vm, guest);
     return ret;
@@ -1671,6 +1670,23 @@ qemuMonitorEmitBlockThreshold(qemuMonitorPtr mon,
 
 
 int
+qemuMonitorEmitDumpCompleted(qemuMonitorPtr mon,
+                             int status,
+                             qemuMonitorDumpStatsPtr stats,
+                             const char *error)
+{
+    int ret = -1;
+
+    VIR_DEBUG("mon=%p", mon);
+
+    QEMU_MONITOR_CALLBACK(mon, ret, domainDumpCompleted, mon->vm,
+                          status, stats, error);
+
+    return ret;
+}
+
+
+int
 qemuMonitorSetCapabilities(qemuMonitorPtr mon)
 {
     QEMU_CHECK_MONITOR(mon);
@@ -1683,15 +1699,14 @@ qemuMonitorSetCapabilities(qemuMonitorPtr mon)
 
 
 int
-qemuMonitorStartCPUs(qemuMonitorPtr mon,
-                     virConnectPtr conn)
+qemuMonitorStartCPUs(qemuMonitorPtr mon)
 {
     QEMU_CHECK_MONITOR(mon);
 
     if (mon->json)
-        return qemuMonitorJSONStartCPUs(mon, conn);
+        return qemuMonitorJSONStartCPUs(mon);
     else
-        return qemuMonitorTextStartCPUs(mon, conn);
+        return qemuMonitorTextStartCPUs(mon);
 }
 
 
@@ -2758,6 +2773,16 @@ qemuMonitorMigrateCancel(qemuMonitorPtr mon)
 }
 
 
+int
+qemuMonitorQueryDump(qemuMonitorPtr mon,
+                     qemuMonitorDumpStatsPtr stats)
+{
+    QEMU_CHECK_MONITOR_JSON(mon);
+
+    return qemuMonitorJSONQueryDump(mon, stats);
+}
+
+
 /**
  * Returns 1 if @capability is supported, 0 if it's not, or -1 on error.
  */
@@ -2778,7 +2803,10 @@ qemuMonitorGetDumpGuestMemoryCapability(qemuMonitorPtr mon,
 
 
 int
-qemuMonitorDumpToFd(qemuMonitorPtr mon, int fd, const char *dumpformat)
+qemuMonitorDumpToFd(qemuMonitorPtr mon,
+                    int fd,
+                    const char *dumpformat,
+                    bool detach)
 {
     int ret;
     VIR_DEBUG("fd=%d dumpformat=%s", fd, dumpformat);
@@ -2788,7 +2816,7 @@ qemuMonitorDumpToFd(qemuMonitorPtr mon, int fd, const char *dumpformat)
     if (qemuMonitorSendFileHandle(mon, "dump", fd) < 0)
         return -1;
 
-    ret = qemuMonitorJSONDump(mon, "fd:dump", dumpformat);
+    ret = qemuMonitorJSONDump(mon, "fd:dump", dumpformat, detach);
 
     if (ret < 0) {
         if (qemuMonitorCloseFileHandle(mon, "dump") < 0)

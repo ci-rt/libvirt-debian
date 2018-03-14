@@ -109,13 +109,7 @@ typedef void (*qemuMonitorEofNotifyCallback)(qemuMonitorPtr mon,
 typedef void (*qemuMonitorErrorNotifyCallback)(qemuMonitorPtr mon,
                                                virDomainObjPtr vm,
                                                void *opaque);
-/* XXX we'd really like to avoid virConnectPtr here
- * It is required so the callback can find the active
- * secret driver. Need to change this to work like the
- * security drivers do, to avoid this
- */
 typedef int (*qemuMonitorDiskSecretLookupCallback)(qemuMonitorPtr mon,
-                                                   virConnectPtr conn,
                                                    virDomainObjPtr vm,
                                                    const char *path,
                                                    char **secret,
@@ -247,6 +241,32 @@ typedef int (*qemuMonitorDomainBlockThresholdCallback)(qemuMonitorPtr mon,
                                                        void *opaque);
 
 
+typedef enum {
+    QEMU_MONITOR_DUMP_STATUS_NONE,
+    QEMU_MONITOR_DUMP_STATUS_ACTIVE,
+    QEMU_MONITOR_DUMP_STATUS_COMPLETED,
+    QEMU_MONITOR_DUMP_STATUS_FAILED,
+
+    QEMU_MONITOR_DUMP_STATUS_LAST,
+} qemuMonitorDumpStatus;
+
+VIR_ENUM_DECL(qemuMonitorDumpStatus)
+
+typedef struct _qemuMonitorDumpStats qemuMonitorDumpStats;
+typedef qemuMonitorDumpStats *qemuMonitorDumpStatsPtr;
+struct _qemuMonitorDumpStats {
+    int status; /* qemuMonitorDumpStatus */
+    unsigned long long completed; /* bytes written */
+    unsigned long long total; /* total bytes to be written */
+};
+
+typedef int (*qemuMonitorDomainDumpCompletedCallback)(qemuMonitorPtr mon,
+                                                      virDomainObjPtr vm,
+                                                      int status,
+                                                      qemuMonitorDumpStatsPtr stats,
+                                                      const char *error,
+                                                      void *opaque);
+
 typedef struct _qemuMonitorCallbacks qemuMonitorCallbacks;
 typedef qemuMonitorCallbacks *qemuMonitorCallbacksPtr;
 struct _qemuMonitorCallbacks {
@@ -279,6 +299,7 @@ struct _qemuMonitorCallbacks {
     qemuMonitorDomainMigrationPassCallback domainMigrationPass;
     qemuMonitorDomainAcpiOstInfoCallback domainAcpiOstInfo;
     qemuMonitorDomainBlockThresholdCallback domainBlockThreshold;
+    qemuMonitorDomainDumpCompletedCallback domainDumpCompleted;
 };
 
 char *qemuMonitorEscapeArg(const char *in);
@@ -336,9 +357,7 @@ int qemuMonitorHMPCommandWithFd(qemuMonitorPtr mon,
 # define qemuMonitorHMPCommand(mon, cmd, reply) \
     qemuMonitorHMPCommandWithFd(mon, cmd, -1, reply)
 
-/* XXX same comment about virConnectPtr as above */
 int qemuMonitorGetDiskSecret(qemuMonitorPtr mon,
-                             virConnectPtr conn,
                              const char *path,
                              char **secret,
                              size_t *secretLen);
@@ -408,8 +427,12 @@ int qemuMonitorEmitBlockThreshold(qemuMonitorPtr mon,
                                   unsigned long long threshold,
                                   unsigned long long excess);
 
-int qemuMonitorStartCPUs(qemuMonitorPtr mon,
-                         virConnectPtr conn);
+int qemuMonitorEmitDumpCompleted(qemuMonitorPtr mon,
+                                 int status,
+                                 qemuMonitorDumpStatsPtr stats,
+                                 const char *error);
+
+int qemuMonitorStartCPUs(qemuMonitorPtr mon);
 int qemuMonitorStopCPUs(qemuMonitorPtr mon);
 
 typedef enum {
@@ -758,9 +781,13 @@ int qemuMonitorMigrateCancel(qemuMonitorPtr mon);
 int qemuMonitorGetDumpGuestMemoryCapability(qemuMonitorPtr mon,
                                             const char *capability);
 
+int qemuMonitorQueryDump(qemuMonitorPtr mon,
+                         qemuMonitorDumpStatsPtr stats);
+
 int qemuMonitorDumpToFd(qemuMonitorPtr mon,
                         int fd,
-                        const char *dumpformat);
+                        const char *dumpformat,
+                        bool detach);
 
 int qemuMonitorGraphicsRelocate(qemuMonitorPtr mon,
                                 int type,

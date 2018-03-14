@@ -274,6 +274,7 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
                       virCapsPtr caps,
                       libxl_domain_config *d_config)
 {
+    virDomainClockDef clock = def->clock;
     libxl_domain_build_info *b_info = &d_config->b_info;
     int hvm = def->os.type == VIR_DOMAIN_OSTYPE_HVM;
     size_t i;
@@ -293,10 +294,38 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
     for (i = 0; i < virDomainDefGetVcpus(def); i++)
         libxl_bitmap_set((&b_info->avail_vcpus), i);
 
-    for (i = 0; i < def->clock.ntimers; i++) {
-        switch ((virDomainTimerNameType) def->clock.timers[i]->name) {
+    switch ((virDomainClockOffsetType) clock.offset) {
+    case VIR_DOMAIN_CLOCK_OFFSET_VARIABLE:
+        if (clock.data.variable.basis == VIR_DOMAIN_CLOCK_BASIS_LOCALTIME)
+            libxl_defbool_set(&b_info->localtime, true);
+        b_info->rtc_timeoffset = clock.data.variable.adjustment;
+        break;
+
+    case VIR_DOMAIN_CLOCK_OFFSET_LOCALTIME:
+        libxl_defbool_set(&b_info->localtime, true);
+        break;
+
+    /* Nothing to do since UTC is the default in libxl */
+    case VIR_DOMAIN_CLOCK_OFFSET_UTC:
+        break;
+
+    case VIR_DOMAIN_CLOCK_OFFSET_TIMEZONE:
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("unsupported clock offset '%s'"),
+                       virDomainClockOffsetTypeToString(clock.offset));
+        return -1;
+
+    case VIR_DOMAIN_CLOCK_OFFSET_LAST:
+    default:
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("unexpected clock offset '%d'"), clock.offset);
+        return -1;
+    }
+
+    for (i = 0; i < clock.ntimers; i++) {
+        switch ((virDomainTimerNameType) clock.timers[i]->name) {
         case VIR_DOMAIN_TIMER_NAME_TSC:
-            switch (def->clock.timers[i]->mode) {
+            switch (clock.timers[i]->mode) {
             case VIR_DOMAIN_TIMER_MODE_NATIVE:
                 b_info->tsc_mode = LIBXL_TSC_MODE_NATIVE;
                 break;
@@ -315,10 +344,10 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
             if (!hvm) {
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                _("unsupported timer type (name) '%s'"),
-                               virDomainTimerNameTypeToString(def->clock.timers[i]->name));
+                               virDomainTimerNameTypeToString(clock.timers[i]->name));
                 return -1;
             }
-            if (def->clock.timers[i]->present == 1)
+            if (clock.timers[i]->present == 1)
                 libxl_defbool_set(&b_info->u.hvm.hpet, 1);
             break;
 
@@ -329,7 +358,7 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
         case VIR_DOMAIN_TIMER_NAME_PIT:
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("unsupported timer type (name) '%s'"),
-                           virDomainTimerNameTypeToString(def->clock.timers[i]->name));
+                           virDomainTimerNameTypeToString(clock.timers[i]->name));
             return -1;
 
         case VIR_DOMAIN_TIMER_NAME_LAST:
@@ -338,6 +367,10 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
     }
 
     b_info->sched_params.weight = 1000;
+    /* Xen requires the memory sizes to be rounded to 1MiB increments */
+    virDomainDefSetMemoryTotal(def,
+                               VIR_ROUND_UP(virDomainDefGetMemoryInitial(def), 1024));
+    def->mem.cur_balloon = VIR_ROUND_UP(def->mem.cur_balloon, 1024);
     b_info->max_memkb = virDomainDefGetMemoryInitial(def);
     b_info->target_memkb = def->mem.cur_balloon;
     if (hvm) {
@@ -1287,7 +1320,7 @@ libxlMakeNicList(virDomainDefPtr def,  libxl_domain_config *d_config)
 }
 
 int
-libxlMakeVfb(virPortAllocatorPtr graphicsports,
+libxlMakeVfb(virPortAllocatorRangePtr graphicsports,
              virDomainGraphicsDefPtr l_vfb,
              libxl_device_vfb *x_vfb)
 {
@@ -1348,7 +1381,7 @@ libxlMakeVfb(virPortAllocatorPtr graphicsports,
 }
 
 static int
-libxlMakeVfbList(virPortAllocatorPtr graphicsports,
+libxlMakeVfbList(virPortAllocatorRangePtr graphicsports,
                  virDomainDefPtr def,
                  libxl_domain_config *d_config)
 {
@@ -1397,7 +1430,7 @@ libxlMakeVfbList(virPortAllocatorPtr graphicsports,
  * populate libxl_domain_config->vfbs.
  */
 static int
-libxlMakeBuildInfoVfb(virPortAllocatorPtr graphicsports,
+libxlMakeBuildInfoVfb(virPortAllocatorRangePtr graphicsports,
                       virDomainDefPtr def,
                       libxl_domain_config *d_config)
 {
@@ -1894,7 +1927,7 @@ libxlMakeUSBController(virDomainControllerDefPtr controller,
     if (controller->type != VIR_DOMAIN_CONTROLLER_TYPE_USB)
         return -1;
 
-    if (controller->model == -1) {
+    if (controller->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_DEFAULT) {
         usbctrl->version = 2;
         usbctrl->type = LIBXL_USBCTRL_TYPE_QUSB;
     } else {
@@ -2284,7 +2317,7 @@ libxlDriverNodeGetInfo(libxlDriverPrivatePtr driver, virNodeInfoPtr info)
 }
 
 int
-libxlBuildDomainConfig(virPortAllocatorPtr graphicsports,
+libxlBuildDomainConfig(virPortAllocatorRangePtr graphicsports,
                        virDomainDefPtr def,
                        const char *channelDir LIBXL_ATTR_UNUSED,
                        libxl_ctx *ctx,

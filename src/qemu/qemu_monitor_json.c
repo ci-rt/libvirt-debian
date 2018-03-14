@@ -90,6 +90,7 @@ static void qemuMonitorJSONHandleMigrationStatus(qemuMonitorPtr mon, virJSONValu
 static void qemuMonitorJSONHandleMigrationPass(qemuMonitorPtr mon, virJSONValuePtr data);
 static void qemuMonitorJSONHandleAcpiOstInfo(qemuMonitorPtr mon, virJSONValuePtr data);
 static void qemuMonitorJSONHandleBlockThreshold(qemuMonitorPtr mon, virJSONValuePtr data);
+static void qemuMonitorJSONHandleDumpCompleted(qemuMonitorPtr mon, virJSONValuePtr data);
 
 typedef struct {
     const char *type;
@@ -106,6 +107,7 @@ static qemuEventHandler eventHandlers[] = {
     { "BLOCK_WRITE_THRESHOLD", qemuMonitorJSONHandleBlockThreshold, },
     { "DEVICE_DELETED", qemuMonitorJSONHandleDeviceDeleted, },
     { "DEVICE_TRAY_MOVED", qemuMonitorJSONHandleTrayChange, },
+    { "DUMP_COMPLETED", qemuMonitorJSONHandleDumpCompleted, },
     { "GUEST_PANICKED", qemuMonitorJSONHandleGuestPanic, },
     { "MIGRATION", qemuMonitorJSONHandleMigrationStatus, },
     { "MIGRATION_PASS", qemuMonitorJSONHandleMigrationPass, },
@@ -889,7 +891,7 @@ qemuMonitorJSONHandleBlockJobImpl(qemuMonitorPtr mon,
     case VIR_DOMAIN_BLOCK_JOB_COMPLETED:
         error = virJSONValueObjectGetString(data, "error");
         /* Make sure the whole device has been processed */
-        if (offset != len)
+        if (offset != len || error)
             event = VIR_DOMAIN_BLOCK_JOB_FAILED;
         break;
     case VIR_DOMAIN_BLOCK_JOB_CANCELED:
@@ -1143,6 +1145,64 @@ qemuMonitorJSONHandleBlockThreshold(qemuMonitorPtr mon, virJSONValuePtr data)
 }
 
 
+static int
+qemuMonitorJSONExtractDumpStats(virJSONValuePtr result,
+                                qemuMonitorDumpStatsPtr ret)
+{
+    const char *statusstr;
+
+    if (!(statusstr = virJSONValueObjectGetString(result, "status"))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("incomplete result, failed to get status"));
+        return -1;
+    }
+
+    ret->status = qemuMonitorDumpStatusTypeFromString(statusstr);
+    if (ret->status < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("incomplete result, unknown status string '%s'"),
+                       statusstr);
+        return -1;
+    }
+
+    if (virJSONValueObjectGetNumberUlong(result, "completed", &ret->completed) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("incomplete result, failed to get completed"));
+        return -1;
+    }
+
+    if (virJSONValueObjectGetNumberUlong(result, "total", &ret->total) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("incomplete result, failed to get total"));
+        return -1;
+    }
+
+    return 0;
+}
+
+
+static void
+qemuMonitorJSONHandleDumpCompleted(qemuMonitorPtr mon,
+                                   virJSONValuePtr data)
+{
+    virJSONValuePtr result;
+    int status;
+    qemuMonitorDumpStats stats = { 0 };
+    const char *error = NULL;
+
+    if (!(result = virJSONValueObjectGetObject(data, "result"))) {
+        VIR_WARN("missing result in dump completed event");
+        return;
+    }
+
+    status = qemuMonitorJSONExtractDumpStats(result, &stats);
+
+    error = virJSONValueObjectGetString(data, "error");
+
+    qemuMonitorEmitDumpCompleted(mon, status, &stats, error);
+}
+
+
 int
 qemuMonitorJSONHumanCommandWithFd(qemuMonitorPtr mon,
                                   const char *cmd_str,
@@ -1214,8 +1274,7 @@ qemuMonitorJSONSetCapabilities(qemuMonitorPtr mon)
 
 
 int
-qemuMonitorJSONStartCPUs(qemuMonitorPtr mon,
-                         virConnectPtr conn ATTRIBUTE_UNUSED)
+qemuMonitorJSONStartCPUs(qemuMonitorPtr mon)
 {
     int ret;
     virJSONValuePtr cmd = qemuMonitorJSONMakeCommand("cont", NULL);
@@ -3105,6 +3164,45 @@ int qemuMonitorJSONMigrateCancel(qemuMonitorPtr mon)
     return ret;
 }
 
+
+/* qemuMonitorJSONQueryDump:
+ * @mon: Monitor pointer
+ * @stats: Monitor dump stats
+ *
+ * Attempt to make a "query-dump" call, check for errors, and get/return
+ * the current from the reply
+ *
+ * Returns: 0 on success, -1 on failure
+ */
+int
+qemuMonitorJSONQueryDump(qemuMonitorPtr mon,
+                         qemuMonitorDumpStatsPtr stats)
+{
+    virJSONValuePtr cmd = qemuMonitorJSONMakeCommand("query-dump", NULL);
+    virJSONValuePtr reply = NULL;
+    virJSONValuePtr result = NULL;
+    int ret = -1;
+
+    if (!cmd)
+        return -1;
+
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        goto cleanup;
+
+    if (qemuMonitorJSONCheckError(cmd, reply) < 0)
+        goto cleanup;
+
+    result = virJSONValueObjectGetObject(reply, "return");
+
+    ret = qemuMonitorJSONExtractDumpStats(result, stats);
+
+ cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+
 int
 qemuMonitorJSONGetDumpGuestMemoryCapability(qemuMonitorPtr mon,
                                             const char *capability)
@@ -3164,7 +3262,8 @@ qemuMonitorJSONGetDumpGuestMemoryCapability(qemuMonitorPtr mon,
 int
 qemuMonitorJSONDump(qemuMonitorPtr mon,
                     const char *protocol,
-                    const char *dumpformat)
+                    const char *dumpformat,
+                    bool detach)
 {
     int ret = -1;
     virJSONValuePtr cmd = NULL;
@@ -3174,6 +3273,7 @@ qemuMonitorJSONDump(qemuMonitorPtr mon,
                                      "b:paging", false,
                                      "s:protocol", protocol,
                                      "S:format", dumpformat,
+                                     "B:detach", detach,
                                      NULL);
     if (!cmd)
         return -1;

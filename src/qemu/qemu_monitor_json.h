@@ -48,8 +48,7 @@ int qemuMonitorJSONHumanCommandWithFd(qemuMonitorPtr mon,
 
 int qemuMonitorJSONSetCapabilities(qemuMonitorPtr mon);
 
-int qemuMonitorJSONStartCPUs(qemuMonitorPtr mon,
-                             virConnectPtr conn);
+int qemuMonitorJSONStartCPUs(qemuMonitorPtr mon);
 int qemuMonitorJSONStopCPUs(qemuMonitorPtr mon);
 int qemuMonitorJSONGetStatus(qemuMonitorPtr mon,
                              bool *running,
@@ -162,12 +161,16 @@ int qemuMonitorJSONGetSpiceMigrationStatus(qemuMonitorPtr mon,
 
 int qemuMonitorJSONMigrateCancel(qemuMonitorPtr mon);
 
+int qemuMonitorJSONQueryDump(qemuMonitorPtr mon,
+                             qemuMonitorDumpStatsPtr stats);
+
 int qemuMonitorJSONGetDumpGuestMemoryCapability(qemuMonitorPtr mon,
                                                 const char *capability);
 
 int qemuMonitorJSONDump(qemuMonitorPtr mon,
                         const char *protocol,
-                        const char *dumpformat);
+                        const char *dumpformat,
+                        bool detach);
 
 int qemuMonitorJSONGraphicsRelocate(qemuMonitorPtr mon,
                                     int type,

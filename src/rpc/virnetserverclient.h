@@ -30,6 +30,9 @@
 # include "virobject.h"
 # include "virjson.h"
 
+typedef struct _virNetServer virNetServer;
+typedef virNetServer *virNetServerPtr;
+
 typedef struct _virNetServerClient virNetServerClient;
 typedef virNetServerClient *virNetServerClientPtr;
 
@@ -41,11 +44,20 @@ typedef int (*virNetServerClientFilterFunc)(virNetServerClientPtr client,
                                             virNetMessagePtr msg,
                                             void *opaque);
 
+/*
+ * @data: value allocated by virNetServerClintPrivNew(PostExecRestart) callback
+ */
 typedef virJSONValuePtr (*virNetServerClientPrivPreExecRestart)(virNetServerClientPtr client,
                                                                 void *data);
+/*
+ * @opaque: value of @privOpaque from virNetServerClientNewPostExecRestart
+ */
 typedef void *(*virNetServerClientPrivNewPostExecRestart)(virNetServerClientPtr client,
                                                           virJSONValuePtr object,
                                                           void *opaque);
+/*
+ * @opaque: value of @privOpaque from virNetServerClientNew
+ */
 typedef void *(*virNetServerClientPrivNew)(virNetServerClientPtr client,
                                            void *opaque);
 
@@ -60,14 +72,21 @@ virNetServerClientPtr virNetServerClientNew(unsigned long long id,
                                             virNetServerClientPrivNew privNew,
                                             virNetServerClientPrivPreExecRestart privPreExecRestart,
                                             virFreeCallback privFree,
-                                            void *privOpaque);
+                                            void *privOpaque)
+# ifdef WITH_GNUTLS
+    ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(7) ATTRIBUTE_NONNULL(9);
+# else
+    ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(6) ATTRIBUTE_NONNULL(8);
+# endif
 
-virNetServerClientPtr virNetServerClientNewPostExecRestart(virJSONValuePtr object,
+virNetServerClientPtr virNetServerClientNewPostExecRestart(virNetServerPtr srv,
+                                                           virJSONValuePtr object,
                                                            virNetServerClientPrivNewPostExecRestart privNew,
                                                            virNetServerClientPrivPreExecRestart privPreExecRestart,
                                                            virFreeCallback privFree,
-                                                           void *privOpaque,
-                                                           void *opaque);
+                                                           void *privOpaque)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
+    ATTRIBUTE_NONNULL(4) ATTRIBUTE_NONNULL(5);
 
 virJSONValuePtr virNetServerClientPreExecRestart(virNetServerClientPtr client);
 

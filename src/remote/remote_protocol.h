@@ -1976,6 +1976,16 @@ struct remote_storage_pool_lookup_by_volume_ret {
 };
 typedef struct remote_storage_pool_lookup_by_volume_ret remote_storage_pool_lookup_by_volume_ret;
 
+struct remote_storage_pool_lookup_by_target_path_args {
+        remote_nonnull_string path;
+};
+typedef struct remote_storage_pool_lookup_by_target_path_args remote_storage_pool_lookup_by_target_path_args;
+
+struct remote_storage_pool_lookup_by_target_path_ret {
+        remote_nonnull_storage_pool pool;
+};
+typedef struct remote_storage_pool_lookup_by_target_path_ret remote_storage_pool_lookup_by_target_path_ret;
+
 struct remote_storage_pool_create_xml_args {
         remote_nonnull_string xml;
         u_int flags;
@@ -4555,6 +4565,7 @@ enum remote_procedure {
         REMOTE_PROC_DOMAIN_MANAGED_SAVE_GET_XML_DESC = 388,
         REMOTE_PROC_DOMAIN_MANAGED_SAVE_DEFINE_XML = 389,
         REMOTE_PROC_DOMAIN_SET_LIFECYCLE_ACTION = 390,
+        REMOTE_PROC_STORAGE_POOL_LOOKUP_BY_TARGET_PATH = 391,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -4851,6 +4862,8 @@ extern  bool_t xdr_remote_storage_pool_lookup_by_name_args (XDR *, remote_storag
 extern  bool_t xdr_remote_storage_pool_lookup_by_name_ret (XDR *, remote_storage_pool_lookup_by_name_ret*);
 extern  bool_t xdr_remote_storage_pool_lookup_by_volume_args (XDR *, remote_storage_pool_lookup_by_volume_args*);
 extern  bool_t xdr_remote_storage_pool_lookup_by_volume_ret (XDR *, remote_storage_pool_lookup_by_volume_ret*);
+extern  bool_t xdr_remote_storage_pool_lookup_by_target_path_args (XDR *, remote_storage_pool_lookup_by_target_path_args*);
+extern  bool_t xdr_remote_storage_pool_lookup_by_target_path_ret (XDR *, remote_storage_pool_lookup_by_target_path_ret*);
 extern  bool_t xdr_remote_storage_pool_create_xml_args (XDR *, remote_storage_pool_create_xml_args*);
 extern  bool_t xdr_remote_storage_pool_create_xml_ret (XDR *, remote_storage_pool_create_xml_ret*);
 extern  bool_t xdr_remote_storage_pool_define_xml_args (XDR *, remote_storage_pool_define_xml_args*);
@@ -5466,6 +5479,8 @@ extern bool_t xdr_remote_storage_pool_lookup_by_name_args ();
 extern bool_t xdr_remote_storage_pool_lookup_by_name_ret ();
 extern bool_t xdr_remote_storage_pool_lookup_by_volume_args ();
 extern bool_t xdr_remote_storage_pool_lookup_by_volume_ret ();
+extern bool_t xdr_remote_storage_pool_lookup_by_target_path_args ();
+extern bool_t xdr_remote_storage_pool_lookup_by_target_path_ret ();
 extern bool_t xdr_remote_storage_pool_create_xml_args ();
 extern bool_t xdr_remote_storage_pool_create_xml_ret ();
 extern bool_t xdr_remote_storage_pool_define_xml_args ();

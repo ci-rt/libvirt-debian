@@ -22,7 +22,6 @@
 # include "internal.h"
 # include "virobject.h"
 # include "virutil.h"
-# include "virpci.h"
 
 typedef enum {
     VIR_MDEV_MODEL_TYPE_VFIO_PCI = 0,
@@ -35,10 +34,17 @@ VIR_ENUM_DECL(virMediatedDeviceModel)
 
 typedef struct _virMediatedDevice virMediatedDevice;
 typedef virMediatedDevice *virMediatedDevicePtr;
-typedef struct _virMediatedDeviceAddress virMediatedDeviceAddress;
-typedef virMediatedDeviceAddress *virMediatedDeviceAddressPtr;
 typedef struct _virMediatedDeviceList virMediatedDeviceList;
 typedef virMediatedDeviceList *virMediatedDeviceListPtr;
+
+typedef struct _virMediatedDeviceType virMediatedDeviceType;
+typedef virMediatedDeviceType *virMediatedDeviceTypePtr;
+struct _virMediatedDeviceType {
+    char *id;
+    char *name;
+    char *device_api;
+    unsigned int available_instances;
+};
 
 typedef int (*virMediatedDeviceCallback)(virMediatedDevicePtr dev,
                                          const char *path, void *opaque);
@@ -120,4 +126,12 @@ virMediatedDeviceListMarkDevices(virMediatedDeviceListPtr dst,
                                  virMediatedDeviceListPtr src,
                                  const char *drvname,
                                  const char *domname);
+
+void
+virMediatedDeviceTypeFree(virMediatedDeviceTypePtr type);
+
+int
+virMediatedDeviceTypeReadAttrs(const char *sysfspath,
+                               virMediatedDeviceTypePtr *type);
+
 #endif /* __VIR_MDEV_H__ */

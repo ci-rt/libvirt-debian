@@ -428,6 +428,9 @@ testCompareXMLToArgv(const void *data)
     conn->secretDriver = &fakeSecretDriver;
     conn->storageDriver = &fakeStorageDriver;
 
+    virSetConnectSecret(conn);
+    virSetConnectStorage(conn);
+
     if (virQEMUCapsGet(info->qemuCaps, QEMU_CAPS_MONITOR_JSON))
         flags |= FLAG_JSON;
 
@@ -444,8 +447,8 @@ testCompareXMLToArgv(const void *data)
         goto cleanup;
 
     if (info->migrateFrom &&
-        !(migrateURI = qemuMigrationIncomingURI(info->migrateFrom,
-                                                info->migrateFd)))
+        !(migrateURI = qemuMigrationDstGetURI(info->migrateFrom,
+                                              info->migrateFd)))
         goto cleanup;
 
     if (!(vm = virDomainObjNew(driver.xmlopt)))
@@ -494,7 +497,7 @@ testCompareXMLToArgv(const void *data)
         }
     }
 
-    if (!(cmd = qemuProcessCreatePretendCmd(conn, &driver, vm, migrateURI,
+    if (!(cmd = qemuProcessCreatePretendCmd(&driver, vm, migrateURI,
                                             (flags & FLAG_FIPS), false,
                                             VIR_QEMU_PROCESS_START_COLD))) {
         if (flags & FLAG_EXPECT_FAILURE)
@@ -535,6 +538,8 @@ testCompareXMLToArgv(const void *data)
     virDomainChrSourceDefClear(&monitor_chr);
     virCommandFree(cmd);
     virObjectUnref(vm);
+    virSetConnectSecret(NULL);
+    virSetConnectStorage(NULL);
     virObjectUnref(conn);
     VIR_FREE(migrateURI);
     VIR_FREE(xml);
@@ -1891,17 +1896,12 @@ mymain(void)
             QEMU_CAPS_VIRTIO_SCSI,
             QEMU_CAPS_DEVICE_VFIO_PCI);
 
-    DO_TEST("pseries-hpt-resizing",
-            QEMU_CAPS_NODEFCONFIG,
+    DO_TEST("pseries-features-hpt",
             QEMU_CAPS_MACHINE_OPT,
             QEMU_CAPS_MACHINE_PSERIES_RESIZE_HPT);
-    DO_TEST_FAILURE("pseries-hpt-resizing",
-                    QEMU_CAPS_NODEFCONFIG,
+    DO_TEST_FAILURE("pseries-features-hpt",
                     QEMU_CAPS_MACHINE_OPT);
-    DO_TEST_PARSE_ERROR("pseries-hpt-resizing-invalid-machine",
-                        QEMU_CAPS_NODEFCONFIG,
-                        QEMU_CAPS_MACHINE_OPT,
-                        QEMU_CAPS_MACHINE_PSERIES_RESIZE_HPT);
+    DO_TEST_PARSE_ERROR("pseries-features-invalid-machine", NONE);
 
     DO_TEST("pseries-serial-native",
             QEMU_CAPS_NODEFCONFIG,
@@ -2473,6 +2473,13 @@ mymain(void)
     DO_TEST("hostdev-scsi-vhost-scsi-pci",
             QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_DEVICE_VHOST_SCSI,
             QEMU_CAPS_DEVICE_SCSI_GENERIC);
+    DO_TEST("hostdev-scsi-vhost-scsi-pcie",
+            QEMU_CAPS_KVM,
+            QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_DEVICE_VHOST_SCSI,
+            QEMU_CAPS_DEVICE_SCSI_GENERIC,
+            QEMU_CAPS_PCI_MULTIFUNCTION,
+            QEMU_CAPS_DEVICE_PCIE_ROOT_PORT,
+            QEMU_CAPS_VIRTIO_PCI_DISABLE_LEGACY);
 
     DO_TEST("mlock-on", QEMU_CAPS_REALTIME_MLOCK);
     DO_TEST_FAILURE("mlock-on", NONE);
@@ -2595,13 +2602,13 @@ mymain(void)
     DO_TEST_GIC("aarch64-gic-default", GIC_NONE,
             QEMU_CAPS_KVM, QEMU_CAPS_MACHINE_OPT,
             QEMU_CAPS_MACH_VIRT_GIC_VERSION);
-    DO_TEST_GIC("aarch64-gic-default", GIC_V2,
+    DO_TEST_GIC("aarch64-gic-default-v2", GIC_V2,
             QEMU_CAPS_KVM, QEMU_CAPS_MACHINE_OPT,
             QEMU_CAPS_MACH_VIRT_GIC_VERSION);
-    DO_TEST_GIC("aarch64-gic-default", GIC_V3,
+    DO_TEST_GIC("aarch64-gic-default-v3", GIC_V3,
             QEMU_CAPS_KVM, QEMU_CAPS_MACHINE_OPT,
             QEMU_CAPS_MACH_VIRT_GIC_VERSION);
-    DO_TEST_GIC("aarch64-gic-default", GIC_BOTH,
+    DO_TEST_GIC("aarch64-gic-default-both", GIC_BOTH,
             QEMU_CAPS_KVM, QEMU_CAPS_MACHINE_OPT,
             QEMU_CAPS_MACH_VIRT_GIC_VERSION);
     DO_TEST_GIC("aarch64-gic-v2", GIC_NONE,
@@ -2649,12 +2656,12 @@ mymain(void)
     DO_TEST_PARSE_ERROR("aarch64-gic-invalid",
             QEMU_CAPS_KVM, QEMU_CAPS_MACHINE_OPT,
             QEMU_CAPS_MACH_VIRT_GIC_VERSION);
-    DO_TEST_FAILURE("aarch64-gic-not-virt",
-            QEMU_CAPS_KVM, QEMU_CAPS_MACHINE_OPT,
-            QEMU_CAPS_MACH_VIRT_GIC_VERSION);
-    DO_TEST_FAILURE("aarch64-gic-not-arm",
-            QEMU_CAPS_KVM, QEMU_CAPS_MACHINE_OPT,
-            QEMU_CAPS_MACH_VIRT_GIC_VERSION);
+    DO_TEST_PARSE_ERROR("aarch64-gic-not-virt",
+                        QEMU_CAPS_KVM, QEMU_CAPS_MACHINE_OPT,
+                        QEMU_CAPS_MACH_VIRT_GIC_VERSION);
+    DO_TEST_PARSE_ERROR("aarch64-gic-not-arm",
+                        QEMU_CAPS_KVM, QEMU_CAPS_MACHINE_OPT,
+                        QEMU_CAPS_MACH_VIRT_GIC_VERSION);
     DO_TEST("aarch64-kvm-32-on-64",
             QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_DEVICE_VIRTIO_MMIO,
             QEMU_CAPS_DEVICE_PL011,

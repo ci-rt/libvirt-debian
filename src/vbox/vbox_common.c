@@ -410,11 +410,16 @@ vboxSetStorageController(virDomainControllerDefPtr controller,
         case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_IBMVSCSI:
         case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_SCSI:
         case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LSISAS1078:
-        case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LAST:
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("The vbox driver does not support %s SCSI "
                              "controller model"),
                            virDomainControllerModelSCSITypeToString(controller->model));
+            goto cleanup;
+        case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_DEFAULT:
+        case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LAST:
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Unexpected SCSI controller model %d"),
+                           controller->model);
             goto cleanup;
         }
     /* libvirt ide model => vbox ide model */
@@ -433,10 +438,10 @@ vboxSetStorageController(virDomainControllerDefPtr controller,
 
             break;
         case VIR_DOMAIN_CONTROLLER_MODEL_IDE_LAST:
+        case VIR_DOMAIN_CONTROLLER_MODEL_IDE_DEFAULT:
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                           _("The vbox driver does not support %s IDE "
-                             "controller model"),
-                             virDomainControllerModelIDETypeToString(controller->model));
+                           _("Unexpected IDE controller model %d"),
+                           controller->model);
             goto cleanup;
         }
     }
@@ -1047,10 +1052,11 @@ static int
 vboxAttachDrives(virDomainDefPtr def, vboxDriverPtr data, IMachine *machine)
 {
     size_t i;
-    int type, ret = 0, model = -1;
+    int type, ret = 0;
     const char *src = NULL;
     nsresult rc = 0;
     virDomainDiskDefPtr disk = NULL;
+    virDomainControllerDefPtr cont;
     PRUnichar *storageCtlName = NULL;
     char *controllerName = NULL;
     IMedium *medium = NULL;
@@ -1126,9 +1132,8 @@ vboxAttachDrives(virDomainDefPtr def, vboxDriverPtr data, IMachine *machine)
         case VIR_DOMAIN_DISK_BUS_SCSI:
             VBOX_UTF8_TO_UTF16(VBOX_CONTROLLER_SCSI_NAME, &storageCtlName);
 
-            model = virDomainDeviceFindControllerModel(def, &disk->info,
-                                                       VIR_DOMAIN_CONTROLLER_TYPE_SCSI);
-            if (model == VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LSISAS1068) {
+            cont = virDomainDeviceFindSCSIController(def, &disk->info);
+            if (cont && cont->model == VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LSISAS1068) {
                 VBOX_UTF16_FREE(storageCtlName);
                 VBOX_UTF8_TO_UTF16(VBOX_CONTROLLER_SAS_NAME, &storageCtlName);
             }
@@ -3862,7 +3867,7 @@ vboxDumpAudio(virDomainDefPtr def, vboxDriverPtr data ATTRIBUTE_UNUSED,
     }
 }
 
-static void
+static int
 vboxDumpSerial(virDomainDefPtr def, vboxDriverPtr data, IMachine *machine, PRUint32 serialPortCount)
 {
     PRUint32 serialPortIncCount = 0;
@@ -3886,9 +3891,15 @@ vboxDumpSerial(virDomainDefPtr def, vboxDriverPtr data, IMachine *machine, PRUin
     }
 
     /* Allocate memory for the serial ports which are enabled */
-    if ((def->nserials > 0) && (VIR_ALLOC_N(def->serials, def->nserials) >= 0)) {
-        for (i = 0; i < def->nserials; i++)
-            ignore_value(VIR_ALLOC(def->serials[i]));
+    if (def->nserials > 0) {
+        if (VIR_ALLOC_N(def->serials, def->nserials) < 0)
+            return -1;
+
+        for (i = 0; i < def->nserials; i++) {
+            def->serials[i] = virDomainChrDefNew(NULL);
+            if (!def->serials[i])
+                return -1;
+        }
     }
 
     /* Now get the details about the serial ports here */
@@ -3936,7 +3947,8 @@ vboxDumpSerial(virDomainDefPtr def, vboxDriverPtr data, IMachine *machine, PRUin
 
                 if (pathUtf16) {
                     VBOX_UTF16_TO_UTF8(pathUtf16, &path);
-                    ignore_value(VIR_STRDUP(def->serials[serialPortIncCount]->source->data.file.path, path));
+                    if (VIR_STRDUP(def->serials[serialPortIncCount]->source->data.file.path, path) < 0)
+                        return -1;
                 }
 
                 serialPortIncCount++;
@@ -3948,9 +3960,10 @@ vboxDumpSerial(virDomainDefPtr def, vboxDriverPtr data, IMachine *machine, PRUin
             VBOX_RELEASE(serialPort);
         }
     }
+    return 0;
 }
 
-static void
+static int
 vboxDumpParallel(virDomainDefPtr def, vboxDriverPtr data, IMachine *machine, PRUint32 parallelPortCount)
 {
     PRUint32 parallelPortIncCount = 0;
@@ -3974,9 +3987,15 @@ vboxDumpParallel(virDomainDefPtr def, vboxDriverPtr data, IMachine *machine, PRU
     }
 
     /* Allocate memory for the parallel ports which are enabled */
-    if ((def->nparallels > 0) && (VIR_ALLOC_N(def->parallels, def->nparallels) >= 0)) {
-        for (i = 0; i < def->nparallels; i++)
-            ignore_value(VIR_ALLOC(def->parallels[i]));
+    if (def->nparallels > 0) {
+        if (VIR_ALLOC_N(def->parallels, def->nparallels) < 0)
+            return -1;
+
+        for (i = 0; i < def->nparallels; i++) {
+            def->parallels[i] = virDomainChrDefNew(NULL);
+            if (!def->parallels[i])
+                return -1;
+        }
     }
 
     /* Now get the details about the parallel ports here */
@@ -4011,7 +4030,8 @@ vboxDumpParallel(virDomainDefPtr def, vboxDriverPtr data, IMachine *machine, PRU
                 gVBoxAPI.UIParallelPort.GetPath(parallelPort, &pathUtf16);
 
                 VBOX_UTF16_TO_UTF8(pathUtf16, &path);
-                ignore_value(VIR_STRDUP(def->parallels[parallelPortIncCount]->source->data.file.path, path));
+                if (VIR_STRDUP(def->parallels[parallelPortIncCount]->source->data.file.path, path) < 0)
+                    return -1;
 
                 parallelPortIncCount++;
 
@@ -4022,6 +4042,7 @@ vboxDumpParallel(virDomainDefPtr def, vboxDriverPtr data, IMachine *machine, PRU
             VBOX_RELEASE(parallelPort);
         }
     }
+    return 0;
 }
 
 static char *vboxDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
@@ -4162,8 +4183,11 @@ static char *vboxDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
     vboxDumpSharedFolders(def, data, machine);
     vboxDumpNetwork(def, data, machine, networkAdapterCount);
     vboxDumpAudio(def, data, machine);
-    vboxDumpSerial(def, data, machine, serialPortCount);
-    vboxDumpParallel(def, data, machine, parallelPortCount);
+
+    if (vboxDumpSerial(def, data, machine, serialPortCount) < 0)
+        goto cleanup;
+    if (vboxDumpParallel(def, data, machine, parallelPortCount) < 0)
+        goto cleanup;
 
     /* dump USB devices/filters if active */
     vboxHostDeviceGetXMLDesc(data, def, machine);

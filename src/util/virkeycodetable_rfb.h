@@ -1,5 +1,5 @@
 /*
- * This file is auto-generated from keymaps.csv on 2018-01-12 15:53
+ * This file is auto-generated from keymaps.csv on 2018-03-05 10:00
  * Database checksum sha256(f8aeff0c3430077a350e3d7ba2b335b381bd929ac4b193413730a402ff3f0097)
  * To re-generate, run:
  *   keymap-gen --lang=stdc --varname=virKeyCodeTable_rfb code-table keymaps.csv rfb

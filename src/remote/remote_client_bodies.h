@@ -7320,6 +7320,34 @@ done:
 }
 
 static virStoragePoolPtr
+remoteStoragePoolLookupByTargetPath(virConnectPtr conn, const char *path)
+{
+    virStoragePoolPtr rv = NULL;
+    struct private_data *priv = conn->privateData;
+    remote_storage_pool_lookup_by_target_path_args args;
+    remote_storage_pool_lookup_by_target_path_ret ret;
+
+    remoteDriverLock(priv);
+
+    args.path = (char *)path;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(conn, priv, 0, REMOTE_PROC_STORAGE_POOL_LOOKUP_BY_TARGET_PATH,
+             (xdrproc_t)xdr_remote_storage_pool_lookup_by_target_path_args, (char *)&args,
+             (xdrproc_t)xdr_remote_storage_pool_lookup_by_target_path_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = get_nonnull_storage_pool(conn, ret.pool);
+    xdr_free((xdrproc_t)xdr_remote_storage_pool_lookup_by_target_path_ret, (char *)&ret);
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static virStoragePoolPtr
 remoteStoragePoolLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
 {
     virStoragePoolPtr rv = NULL;

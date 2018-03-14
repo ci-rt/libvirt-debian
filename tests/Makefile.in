@@ -98,7 +98,7 @@ host_triplet = @host@
 
 @WITH_GNUTLS_TRUE@@WITH_REMOTE_TRUE@am__append_3 = virnettlscontexttest virnettlssessiontest
 @WITH_LINUX_TRUE@am__append_4 = fchosttest scsihosttest \
-@WITH_LINUX_TRUE@	vircaps2xmltest
+@WITH_LINUX_TRUE@	vircaps2xmltest virresctrltest
 @WITH_LINUX_TRUE@am__append_5 = virusbmock.la \
 @WITH_LINUX_TRUE@	virnetdevbandwidthmock.la \
 @WITH_LINUX_TRUE@	virnumamock.la \
@@ -240,7 +240,9 @@ TESTS = $(am__EXEEXT_31) $(am__EXEEXT_37)
 @WITH_SELINUX_FALSE@viridentitytest_DEPENDENCIES =  \
 @WITH_SELINUX_FALSE@	$(am__DEPENDENCIES_2) \
 @WITH_SELINUX_FALSE@	$(am__DEPENDENCIES_7)
-@WITH_LINUX_FALSE@am__append_78 = vircaps2xmltest.c virnumamock.c virfilewrapper.c virfilewrapper.h
+@WITH_LINUX_FALSE@am__append_78 = vircaps2xmltest.c virnumamock.c virfilewrapper.c \
+@WITH_LINUX_FALSE@			  virfilewrapper.h virresctrltest.c
+
 @WITH_NSS_FALSE@am__append_79 = nsstest.c nssmock.c nsslinktest.c
 @WITH_YAJL_TRUE@am__append_80 = virmacmaptest
 @WITH_YAJL_FALSE@am__append_81 = virmacmaptest.c
@@ -432,6 +434,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-libssh.m4 \
 	$(top_srcdir)/m4/virt-libxml.m4 \
 	$(top_srcdir)/m4/virt-linker-no-indirect.m4 \
+	$(top_srcdir)/m4/virt-linker-no-undefined.m4 \
 	$(top_srcdir)/m4/virt-linker-relro.m4 \
 	$(top_srcdir)/m4/virt-loader-nvram.m4 \
 	$(top_srcdir)/m4/virt-login-shell.m4 \
@@ -782,7 +785,8 @@ virusbmock_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 @WITH_GNUTLS_TRUE@@WITH_REMOTE_TRUE@	virnettlssessiontest$(EXEEXT)
 @WITH_LINUX_TRUE@am__EXEEXT_3 = fchosttest$(EXEEXT) \
 @WITH_LINUX_TRUE@	scsihosttest$(EXEEXT) \
-@WITH_LINUX_TRUE@	vircaps2xmltest$(EXEEXT)
+@WITH_LINUX_TRUE@	vircaps2xmltest$(EXEEXT) \
+@WITH_LINUX_TRUE@	virresctrltest$(EXEEXT)
 @WITH_LIBVIRTD_TRUE@am__EXEEXT_4 = fdstreamtest$(EXEEXT)
 @WITH_DBUS_TRUE@am__EXEEXT_5 = virdbustest$(EXEEXT) \
 @WITH_DBUS_TRUE@	virsystemdtest$(EXEEXT)
@@ -1273,8 +1277,8 @@ am__storagebackendsheepdogtest_SOURCES_DIST =  \
 @WITH_STORAGE_SHEEPDOG_TRUE@	testutils.$(OBJEXT)
 storagebackendsheepdogtest_OBJECTS =  \
 	$(am_storagebackendsheepdogtest_OBJECTS)
-@WITH_STORAGE_SHEEPDOG_TRUE@storagebackendsheepdogtest_DEPENDENCIES = ../src/libvirt_driver_storage_impl.la \
-@WITH_STORAGE_SHEEPDOG_TRUE@	../src/libvirt_storage_backend_sheepdog_priv.la \
+@WITH_STORAGE_SHEEPDOG_TRUE@storagebackendsheepdogtest_DEPENDENCIES = ../src/libvirt_storage_backend_sheepdog_priv.la \
+@WITH_STORAGE_SHEEPDOG_TRUE@	../src/libvirt_driver_storage_impl.la \
 @WITH_STORAGE_SHEEPDOG_TRUE@	$(am__DEPENDENCIES_2)
 am_storagepoolxml2xmltest_OBJECTS = storagepoolxml2xmltest.$(OBJEXT) \
 	testutils.$(OBJEXT)
@@ -1507,6 +1511,12 @@ am_virportallocatortest_OBJECTS = virportallocatortest.$(OBJEXT) \
 	testutils.$(OBJEXT)
 virportallocatortest_OBJECTS = $(am_virportallocatortest_OBJECTS)
 virportallocatortest_DEPENDENCIES = $(am__DEPENDENCIES_2)
+am__virresctrltest_SOURCES_DIST = virresctrltest.c testutils.h \
+	testutils.c virfilewrapper.h virfilewrapper.c
+@WITH_LINUX_TRUE@am_virresctrltest_OBJECTS = virresctrltest.$(OBJEXT) \
+@WITH_LINUX_TRUE@	testutils.$(OBJEXT) virfilewrapper.$(OBJEXT)
+virresctrltest_OBJECTS = $(am_virresctrltest_OBJECTS)
+@WITH_LINUX_TRUE@virresctrltest_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_virrotatingfiletest_OBJECTS = virrotatingfiletest.$(OBJEXT) \
 	testutils.$(OBJEXT)
 virrotatingfiletest_OBJECTS = $(am_virrotatingfiletest_OBJECTS)
@@ -1715,16 +1725,16 @@ SOURCES = $(bhyveargv2xmlmock_la_SOURCES) \
 	$(virnettlscontexttest_SOURCES) \
 	$(virnettlssessiontest_SOURCES) $(virpcitest_SOURCES) \
 	$(virpolkittest_SOURCES) $(virportallocatortest_SOURCES) \
-	$(virrotatingfiletest_SOURCES) $(virschematest_SOURCES) \
-	$(virscsitest_SOURCES) $(virshtest_SOURCES) \
-	$(virstoragetest_SOURCES) $(virstorageutiltest_SOURCES) \
-	$(virstringtest_SOURCES) $(virsystemdtest_SOURCES) \
-	$(virtimetest_SOURCES) $(virtypedparamtest_SOURCES) \
-	$(viruritest_SOURCES) $(virusbtest_SOURCES) \
-	$(vmwarevertest_SOURCES) $(vmx2xmltest_SOURCES) \
-	$(xencapstest_SOURCES) $(xlconfigtest_SOURCES) \
-	$(xmconfigtest_SOURCES) $(xml2sexprtest_SOURCES) \
-	$(xml2vmxtest_SOURCES)
+	$(virresctrltest_SOURCES) $(virrotatingfiletest_SOURCES) \
+	$(virschematest_SOURCES) $(virscsitest_SOURCES) \
+	$(virshtest_SOURCES) $(virstoragetest_SOURCES) \
+	$(virstorageutiltest_SOURCES) $(virstringtest_SOURCES) \
+	$(virsystemdtest_SOURCES) $(virtimetest_SOURCES) \
+	$(virtypedparamtest_SOURCES) $(viruritest_SOURCES) \
+	$(virusbtest_SOURCES) $(vmwarevertest_SOURCES) \
+	$(vmx2xmltest_SOURCES) $(xencapstest_SOURCES) \
+	$(xlconfigtest_SOURCES) $(xmconfigtest_SOURCES) \
+	$(xml2sexprtest_SOURCES) $(xml2vmxtest_SOURCES)
 DIST_SOURCES = $(am__bhyveargv2xmlmock_la_SOURCES_DIST) \
 	$(am__bhyvexml2argvmock_la_SOURCES_DIST) \
 	$(domaincapsmock_la_SOURCES) \
@@ -1820,9 +1830,11 @@ DIST_SOURCES = $(am__bhyveargv2xmlmock_la_SOURCES_DIST) \
 	$(am__virnettlscontexttest_SOURCES_DIST) \
 	$(am__virnettlssessiontest_SOURCES_DIST) $(virpcitest_SOURCES) \
 	$(am__virpolkittest_SOURCES_DIST) \
-	$(virportallocatortest_SOURCES) $(virrotatingfiletest_SOURCES) \
-	$(virschematest_SOURCES) $(am__virscsitest_SOURCES_DIST) \
-	$(virshtest_SOURCES) $(virstoragetest_SOURCES) \
+	$(virportallocatortest_SOURCES) \
+	$(am__virresctrltest_SOURCES_DIST) \
+	$(virrotatingfiletest_SOURCES) $(virschematest_SOURCES) \
+	$(am__virscsitest_SOURCES_DIST) $(virshtest_SOURCES) \
+	$(virstoragetest_SOURCES) \
 	$(am__virstorageutiltest_SOURCES_DIST) \
 	$(virstringtest_SOURCES) $(am__virsystemdtest_SOURCES_DIST) \
 	$(virtimetest_SOURCES) $(virtypedparamtest_SOURCES) \
@@ -3155,6 +3167,7 @@ NEXT_WCTYPE_H = @NEXT_WCTYPE_H@
 NM = @NM@
 NMEDIT = @NMEDIT@
 NO_INDIRECT_LDFLAGS = @NO_INDIRECT_LDFLAGS@
+NO_UNDEFINED_LDFLAGS = @NO_UNDEFINED_LDFLAGS@
 NUMACTL_CFLAGS = @NUMACTL_CFLAGS@
 NUMACTL_LIBS = @NUMACTL_LIBS@
 NUMAD = @NUMAD@
@@ -3667,8 +3680,8 @@ EXTRA_DIST = .valgrind.supp bhyvexml2argvdata bhyveargv2xmldata \
 	virnetdaemondata virnetdevtestdata virpcitestdata virscsidata \
 	virsh-uriprecedence virusbtestdata vmwareverdata vmx2xmldata \
 	xencapsdata xlconfigdata xmconfigdata xml2sexprdata \
-	xml2vmxdata virstorageutildata virfilecachedata $(NULL) \
-	$(am__append_40) virt-aa-helper-test $(test_scripts) \
+	xml2vmxdata virstorageutildata virfilecachedata virresctrldata \
+	$(NULL) $(am__append_40) virt-aa-helper-test $(test_scripts) \
 	check-file-access.pl file_access_whitelist.txt \
 	$(am__append_42) $(am__append_44) $(am__append_48) \
 	$(am__append_50) $(am__append_51) openvzutilstest.conf \
@@ -3826,7 +3839,9 @@ QEMUMONITORTESTUTILS_SOURCES = \
 @WITH_QEMU_TRUE@	qemuxml2argvtest.c testutilsqemu.c testutilsqemu.h \
 @WITH_QEMU_TRUE@	testutils.c testutils.h
 
-@WITH_QEMU_TRUE@qemuxml2argvtest_LDADD = libqemutestdriver.la $(LDADDS) $(LIBXML_LIBS)
+@WITH_QEMU_TRUE@qemuxml2argvtest_LDADD = libqemutestdriver.la \
+@WITH_QEMU_TRUE@	$(LDADDS) $(LIBXML_LIBS)
+
 @WITH_QEMU_TRUE@qemuxml2argvmock_la_SOURCES = \
 @WITH_QEMU_TRUE@	qemuxml2argvmock.c
 
@@ -4031,8 +4046,8 @@ networkxml2xmlupdatetest_LDADD = $(LDADDS)
 @WITH_STORAGE_SHEEPDOG_TRUE@	testutils.c testutils.h
 
 @WITH_STORAGE_SHEEPDOG_TRUE@storagebackendsheepdogtest_LDADD = \
-@WITH_STORAGE_SHEEPDOG_TRUE@	../src/libvirt_driver_storage_impl.la \
 @WITH_STORAGE_SHEEPDOG_TRUE@	../src/libvirt_storage_backend_sheepdog_priv.la \
+@WITH_STORAGE_SHEEPDOG_TRUE@	../src/libvirt_driver_storage_impl.la \
 @WITH_STORAGE_SHEEPDOG_TRUE@	$(LDADDS)
 
 nwfilterxml2xmltest_SOURCES = \
@@ -4300,6 +4315,10 @@ virfilecachemock_la_LIBADD = $(MOCKLIBS_LIBS)
 
 @WITH_LINUX_TRUE@virnumamock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
 @WITH_LINUX_TRUE@virnumamock_la_LIBADD = $(MOCKLIBS_LIBS)
+@WITH_LINUX_TRUE@virresctrltest_SOURCES = \
+@WITH_LINUX_TRUE@	virresctrltest.c testutils.h testutils.c virfilewrapper.h virfilewrapper.c
+
+@WITH_LINUX_TRUE@virresctrltest_LDADD = $(LDADDS)
 @WITH_NSS_TRUE@nsstest_SOURCES = \
 @WITH_NSS_TRUE@	nsstest.c testutils.h testutils.c
 
@@ -5123,6 +5142,10 @@ virportallocatortest$(EXEEXT): $(virportallocatortest_OBJECTS) $(virportallocato
 	@rm -f virportallocatortest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(virportallocatortest_OBJECTS) $(virportallocatortest_LDADD) $(LIBS)
 
+virresctrltest$(EXEEXT): $(virresctrltest_OBJECTS) $(virresctrltest_DEPENDENCIES) $(EXTRA_virresctrltest_DEPENDENCIES) 
+	@rm -f virresctrltest$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(virresctrltest_OBJECTS) $(virresctrltest_LDADD) $(LIBS)
+
 virrotatingfiletest$(EXEEXT): $(virrotatingfiletest_OBJECTS) $(virrotatingfiletest_DEPENDENCIES) $(EXTRA_virrotatingfiletest_DEPENDENCIES) 
 	@rm -f virrotatingfiletest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(virrotatingfiletest_OBJECTS) $(virrotatingfiletest_LDADD) $(LIBS)
@@ -5345,6 +5368,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virportallocatormock.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virportallocatortest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virrandommock.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virresctrltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virrotatingfiletest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virschematest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virscsitest.Po@am__quote@
@@ -6168,6 +6192,13 @@ scsihosttest.log: scsihosttest$(EXEEXT)
 vircaps2xmltest.log: vircaps2xmltest$(EXEEXT)
 	@p='vircaps2xmltest$(EXEEXT)'; \
 	b='vircaps2xmltest'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+virresctrltest.log: virresctrltest$(EXEEXT)
+	@p='virresctrltest$(EXEEXT)'; \
+	b='virresctrltest'; \
 	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \

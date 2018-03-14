@@ -671,6 +671,8 @@ networkStateInitialize(bool privileged,
         goto error;
     }
 
+    network_driver->privileged = privileged;
+
     /* configuration/state paths are one of
      * ~/.config/libvirt/... (session/unprivileged)
      * /etc/libvirt/... && /var/(run|lib)/libvirt/... (system/privileged).
@@ -865,6 +867,81 @@ networkStateCleanup(void)
     VIR_FREE(network_driver);
 
     return 0;
+}
+
+
+static virDrvOpenStatus
+networkConnectOpen(virConnectPtr conn,
+                   virConnectAuthPtr auth ATTRIBUTE_UNUSED,
+                   virConfPtr conf ATTRIBUTE_UNUSED,
+                   unsigned int flags)
+{
+    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
+
+    /* Verify uri was specified */
+    if (conn->uri == NULL) {
+        /* Only hypervisor drivers are permitted to auto-open on NULL uri */
+        return VIR_DRV_OPEN_DECLINED;
+    } else {
+        if (STRNEQ_NULLABLE(conn->uri->scheme, "network"))
+            return VIR_DRV_OPEN_DECLINED;
+
+        /* Leave for remote driver */
+        if (conn->uri->server != NULL)
+            return VIR_DRV_OPEN_DECLINED;
+
+        if (network_driver == NULL) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("network state driver is not active"));
+            return VIR_DRV_OPEN_ERROR;
+        }
+
+        if (network_driver->privileged) {
+            if (STRNEQ(conn->uri->path, "/system")) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("unexpected network URI path '%s', try network:///system"),
+                               conn->uri->path);
+                return VIR_DRV_OPEN_ERROR;
+            }
+        } else {
+            if (STRNEQ(conn->uri->path, "/session")) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("unexpected network URI path '%s', try network:///session"),
+                               conn->uri->path);
+                return VIR_DRV_OPEN_ERROR;
+            }
+        }
+    }
+
+    if (virConnectOpenEnsureACL(conn) < 0)
+        return VIR_DRV_OPEN_ERROR;
+
+    return VIR_DRV_OPEN_SUCCESS;
+}
+
+static int networkConnectClose(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+
+
+static int networkConnectIsSecure(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    /* Trivially secure, since always inside the daemon */
+    return 1;
+}
+
+
+static int networkConnectIsEncrypted(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    /* Not encrypted, but remote driver takes care of that */
+    return 0;
+}
+
+
+static int networkConnectIsAlive(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    return 1;
 }
 
 
@@ -4241,51 +4318,6 @@ networkGetDHCPLeases(virNetworkPtr net,
 }
 
 
-static virNetworkDriver networkDriver = {
-    .name = "bridge",
-    .connectNumOfNetworks = networkConnectNumOfNetworks, /* 0.2.0 */
-    .connectListNetworks = networkConnectListNetworks, /* 0.2.0 */
-    .connectNumOfDefinedNetworks = networkConnectNumOfDefinedNetworks, /* 0.2.0 */
-    .connectListDefinedNetworks = networkConnectListDefinedNetworks, /* 0.2.0 */
-    .connectListAllNetworks = networkConnectListAllNetworks, /* 0.10.2 */
-    .connectNetworkEventRegisterAny = networkConnectNetworkEventRegisterAny, /* 1.2.1 */
-    .connectNetworkEventDeregisterAny = networkConnectNetworkEventDeregisterAny, /* 1.2.1 */
-    .networkLookupByUUID = networkLookupByUUID, /* 0.2.0 */
-    .networkLookupByName = networkLookupByName, /* 0.2.0 */
-    .networkCreateXML = networkCreateXML, /* 0.2.0 */
-    .networkDefineXML = networkDefineXML, /* 0.2.0 */
-    .networkUndefine = networkUndefine, /* 0.2.0 */
-    .networkUpdate = networkUpdate, /* 0.10.2 */
-    .networkCreate = networkCreate, /* 0.2.0 */
-    .networkDestroy = networkDestroy, /* 0.2.0 */
-    .networkGetXMLDesc = networkGetXMLDesc, /* 0.2.0 */
-    .networkGetBridgeName = networkGetBridgeName, /* 0.2.0 */
-    .networkGetAutostart = networkGetAutostart, /* 0.2.1 */
-    .networkSetAutostart = networkSetAutostart, /* 0.2.1 */
-    .networkIsActive = networkIsActive, /* 0.7.3 */
-    .networkIsPersistent = networkIsPersistent, /* 0.7.3 */
-    .networkGetDHCPLeases = networkGetDHCPLeases, /* 1.2.6 */
-};
-
-static virStateDriver networkStateDriver = {
-    .name = "bridge",
-    .stateInitialize  = networkStateInitialize,
-    .stateAutoStart  = networkStateAutoStart,
-    .stateCleanup = networkStateCleanup,
-    .stateReload = networkStateReload,
-};
-
-int
-networkRegister(void)
-{
-    if (virSetSharedNetworkDriver(&networkDriver) < 0)
-        return -1;
-    if (virRegisterStateDriver(&networkStateDriver) < 0)
-        return -1;
-    return 0;
-}
-
-
 /* A unified function to log network connections and disconnections */
 
 static void
@@ -4342,7 +4374,7 @@ networkLogAllocation(virNetworkDefPtr netdef,
  *
  * Returns 0 on success, -1 on failure.
  */
-int
+static int
 networkAllocateActualDevice(virDomainDefPtr dom,
                             virDomainNetDefPtr iface)
 {
@@ -4764,7 +4796,7 @@ networkAllocateActualDevice(virDomainDefPtr dom,
  *
  * No return value (but does log any failures)
  */
-void
+static void
 networkNotifyActualDevice(virDomainDefPtr dom,
                           virDomainNetDefPtr iface)
 {
@@ -4981,7 +5013,7 @@ networkNotifyActualDevice(virDomainDefPtr dom,
  *
  * Returns 0 on success, -1 on failure.
  */
-int
+static int
 networkReleaseActualDevice(virDomainDefPtr dom,
                            virDomainNetDefPtr iface)
 {
@@ -5111,178 +5143,6 @@ networkReleaseActualDevice(virDomainDefPtr dom,
 
  error:
     goto cleanup;
-}
-
-
-/*
- * networkGetNetworkAddress:
- * @netname: the name of a network
- * @netaddr: string representation of IP address for that network.
- *
- * Attempt to return an IP address associated with the named
- * network. If a libvirt virtual network, that will be provided in the
- * configuration. For host bridge and direct (macvtap) networks, we
- * must do an ioctl to learn the address.
- *
- * Note: This function returns the first IP address it finds. It might
- * be useful if it was more flexible, but the current use (getting a
- * listen address for qemu's vnc/spice graphics server) can only use a
- * single address anyway.
- *
- * Returns 0 on success, and puts a string (which must be free'd by
- * the caller) into *netaddr. Returns -1 on failure or -2 if
- * completely unsupported.
- */
-int
-networkGetNetworkAddress(const char *netname,
-                         char **netaddr)
-{
-    virNetworkDriverStatePtr driver = networkGetDriver();
-    int ret = -1;
-    virNetworkObjPtr obj;
-    virNetworkDefPtr netdef;
-    virNetworkIPDefPtr ipdef;
-    virSocketAddr addr;
-    virSocketAddrPtr addrptr = NULL;
-    char *dev_name = NULL;
-
-    *netaddr = NULL;
-    obj = virNetworkObjFindByName(driver->networks, netname);
-    if (!obj) {
-        virReportError(VIR_ERR_NO_NETWORK,
-                       _("no network with matching name '%s'"),
-                       netname);
-        goto cleanup;
-    }
-    netdef = virNetworkObjGetDef(obj);
-
-    switch (netdef->forward.type) {
-    case VIR_NETWORK_FORWARD_NONE:
-    case VIR_NETWORK_FORWARD_NAT:
-    case VIR_NETWORK_FORWARD_ROUTE:
-    case VIR_NETWORK_FORWARD_OPEN:
-        ipdef = virNetworkDefGetIPByIndex(netdef, AF_UNSPEC, 0);
-        if (!ipdef) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("network '%s' doesn't have an IP address"),
-                           netdef->name);
-            goto cleanup;
-        }
-        addrptr = &ipdef->address;
-        break;
-
-    case VIR_NETWORK_FORWARD_BRIDGE:
-        if ((dev_name = netdef->bridge))
-            break;
-        /*
-         * fall through if netdef->bridge wasn't set, since that is
-         * macvtap bridge mode network.
-         */
-        ATTRIBUTE_FALLTHROUGH;
-
-    case VIR_NETWORK_FORWARD_PRIVATE:
-    case VIR_NETWORK_FORWARD_VEPA:
-    case VIR_NETWORK_FORWARD_PASSTHROUGH:
-        if ((netdef->forward.nifs > 0) && netdef->forward.ifs)
-            dev_name = netdef->forward.ifs[0].device.dev;
-
-        if (!dev_name) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("network '%s' has no associated interface or bridge"),
-                           netdef->name);
-            goto cleanup;
-        }
-        break;
-    }
-
-    if (dev_name) {
-        if (virNetDevIPAddrGet(dev_name, &addr) < 0)
-            goto cleanup;
-        addrptr = &addr;
-    }
-
-    if (!(addrptr &&
-          (*netaddr = virSocketAddrFormat(addrptr)))) {
-        goto cleanup;
-    }
-
-    ret = 0;
- cleanup:
-    virNetworkObjEndAPI(&obj);
-    return ret;
-}
-
-
-/* networkGetActualType:
- * @dom: domain definition that @iface belongs to
- * @iface: the original NetDef from the domain
- *
- * Looks up the network reference by iface, and returns the actual
- * type of the connection without allocating any resources.
- *
- * Returns 0 on success, -1 on failure.
- */
-int
-networkGetActualType(virDomainNetDefPtr iface)
-{
-    virNetworkDriverStatePtr driver = networkGetDriver();
-    virNetworkObjPtr obj = NULL;
-    virNetworkDefPtr netdef = NULL;
-    int ret = -1;
-
-    if (!driver || iface->type != VIR_DOMAIN_NET_TYPE_NETWORK)
-        return iface->type;
-
-    if (iface->data.network.actual)
-        return iface->data.network.actual->type;
-
-    obj = virNetworkObjFindByName(driver->networks, iface->data.network.name);
-    if (!obj) {
-        virReportError(VIR_ERR_NO_NETWORK,
-                       _("no network with matching name '%s'"),
-                       iface->data.network.name);
-        return -1;
-    }
-    netdef = virNetworkObjGetDef(obj);
-
-    if ((netdef->forward.type == VIR_NETWORK_FORWARD_NONE) ||
-        (netdef->forward.type == VIR_NETWORK_FORWARD_NAT) ||
-        (netdef->forward.type == VIR_NETWORK_FORWARD_ROUTE) ||
-        (netdef->forward.type == VIR_NETWORK_FORWARD_OPEN)) {
-        /* for these forward types, the actual net type really *is*
-         * NETWORK; we just keep the info from the portgroup in
-         * iface->data.network.actual
-         */
-        ret = VIR_DOMAIN_NET_TYPE_NETWORK;
-
-    } else if ((netdef->forward.type == VIR_NETWORK_FORWARD_BRIDGE) &&
-               netdef->bridge) {
-
-        /* <forward type='bridge'/> <bridge name='xxx'/>
-         * is VIR_DOMAIN_NET_TYPE_BRIDGE
-         */
-
-        ret = VIR_DOMAIN_NET_TYPE_BRIDGE;
-
-    } else if (netdef->forward.type == VIR_NETWORK_FORWARD_HOSTDEV) {
-
-        ret = VIR_DOMAIN_NET_TYPE_HOSTDEV;
-
-    } else if ((netdef->forward.type == VIR_NETWORK_FORWARD_BRIDGE) ||
-               (netdef->forward.type == VIR_NETWORK_FORWARD_PRIVATE) ||
-               (netdef->forward.type == VIR_NETWORK_FORWARD_VEPA) ||
-               (netdef->forward.type == VIR_NETWORK_FORWARD_PASSTHROUGH)) {
-
-        /* <forward type='bridge|private|vepa|passthrough'> are all
-         * VIR_DOMAIN_NET_TYPE_DIRECT.
-         */
-
-        ret = VIR_DOMAIN_NET_TYPE_DIRECT;
-
-    }
-
-    virNetworkObjEndAPI(&obj);
-    return ret;
 }
 
 
@@ -5599,7 +5459,7 @@ networkBandwidthGenericChecks(virDomainNetDefPtr iface,
 }
 
 
-bool
+static bool
 networkBandwidthChangeAllowed(virDomainNetDefPtr iface,
                               virNetDevBandwidthPtr newBandwidth)
 {
@@ -5630,7 +5490,7 @@ networkBandwidthChangeAllowed(virDomainNetDefPtr iface,
 }
 
 
-int
+static int
 networkBandwidthUpdate(virDomainNetDefPtr iface,
                        virNetDevBandwidthPtr newBandwidth)
 {
@@ -5715,4 +5575,76 @@ networkBandwidthUpdate(virDomainNetDefPtr iface,
  cleanup:
     virNetworkObjEndAPI(&obj);
     return ret;
+}
+
+
+static virNetworkDriver networkDriver = {
+    .name = "bridge",
+    .connectNumOfNetworks = networkConnectNumOfNetworks, /* 0.2.0 */
+    .connectListNetworks = networkConnectListNetworks, /* 0.2.0 */
+    .connectNumOfDefinedNetworks = networkConnectNumOfDefinedNetworks, /* 0.2.0 */
+    .connectListDefinedNetworks = networkConnectListDefinedNetworks, /* 0.2.0 */
+    .connectListAllNetworks = networkConnectListAllNetworks, /* 0.10.2 */
+    .connectNetworkEventRegisterAny = networkConnectNetworkEventRegisterAny, /* 1.2.1 */
+    .connectNetworkEventDeregisterAny = networkConnectNetworkEventDeregisterAny, /* 1.2.1 */
+    .networkLookupByUUID = networkLookupByUUID, /* 0.2.0 */
+    .networkLookupByName = networkLookupByName, /* 0.2.0 */
+    .networkCreateXML = networkCreateXML, /* 0.2.0 */
+    .networkDefineXML = networkDefineXML, /* 0.2.0 */
+    .networkUndefine = networkUndefine, /* 0.2.0 */
+    .networkUpdate = networkUpdate, /* 0.10.2 */
+    .networkCreate = networkCreate, /* 0.2.0 */
+    .networkDestroy = networkDestroy, /* 0.2.0 */
+    .networkGetXMLDesc = networkGetXMLDesc, /* 0.2.0 */
+    .networkGetBridgeName = networkGetBridgeName, /* 0.2.0 */
+    .networkGetAutostart = networkGetAutostart, /* 0.2.1 */
+    .networkSetAutostart = networkSetAutostart, /* 0.2.1 */
+    .networkIsActive = networkIsActive, /* 0.7.3 */
+    .networkIsPersistent = networkIsPersistent, /* 0.7.3 */
+    .networkGetDHCPLeases = networkGetDHCPLeases, /* 1.2.6 */
+};
+
+
+static virHypervisorDriver networkHypervisorDriver = {
+    .name = "network",
+    .connectOpen = networkConnectOpen, /* 4.1.0 */
+    .connectClose = networkConnectClose, /* 4.1.0 */
+    .connectIsEncrypted = networkConnectIsEncrypted, /* 4.1.0 */
+    .connectIsSecure = networkConnectIsSecure, /* 4.1.0 */
+    .connectIsAlive = networkConnectIsAlive, /* 4.1.0 */
+};
+
+
+static virConnectDriver networkConnectDriver = {
+    .hypervisorDriver = &networkHypervisorDriver,
+    .networkDriver = &networkDriver,
+};
+
+
+static virStateDriver networkStateDriver = {
+    .name = "bridge",
+    .stateInitialize  = networkStateInitialize,
+    .stateAutoStart  = networkStateAutoStart,
+    .stateCleanup = networkStateCleanup,
+    .stateReload = networkStateReload,
+};
+
+int
+networkRegister(void)
+{
+    if (virRegisterConnectDriver(&networkConnectDriver, false) < 0)
+        return -1;
+    if (virSetSharedNetworkDriver(&networkDriver) < 0)
+        return -1;
+    if (virRegisterStateDriver(&networkStateDriver) < 0)
+        return -1;
+
+    virDomainNetSetDeviceImpl(
+        networkAllocateActualDevice,
+        networkNotifyActualDevice,
+        networkReleaseActualDevice,
+        networkBandwidthChangeAllowed,
+        networkBandwidthUpdate);
+
+    return 0;
 }

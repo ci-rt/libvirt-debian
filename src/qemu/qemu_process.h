@@ -30,7 +30,6 @@ int qemuProcessPrepareMonitorChr(virDomainChrSourceDefPtr monConfig,
 
 int qemuProcessStartCPUs(virQEMUDriverPtr driver,
                          virDomainObjPtr vm,
-                         virConnectPtr conn,
                          virDomainRunningReason reason,
                          qemuDomainAsyncJob asyncJob);
 int qemuProcessStopCPUs(virQEMUDriverPtr driver,
@@ -43,8 +42,12 @@ int qemuProcessBuildDestroyMemoryPaths(virQEMUDriverPtr driver,
                                        virDomainMemoryDefPtr mem,
                                        bool build);
 
+int qemuProcessDestroyMemoryBackingPath(virQEMUDriverPtr driver,
+                                        virDomainObjPtr vm,
+                                        virDomainMemoryDefPtr mem);
+
 void qemuProcessAutostartAll(virQEMUDriverPtr driver);
-void qemuProcessReconnectAll(virConnectPtr conn, virQEMUDriverPtr driver);
+void qemuProcessReconnectAll(virQEMUDriverPtr driver);
 
 typedef struct _qemuProcessIncomingDef qemuProcessIncomingDef;
 typedef qemuProcessIncomingDef *qemuProcessIncomingDefPtr;
@@ -89,8 +92,7 @@ int qemuProcessStart(virConnectPtr conn,
                      virNetDevVPortProfileOp vmop,
                      unsigned int flags);
 
-virCommandPtr qemuProcessCreatePretendCmd(virConnectPtr conn,
-                                          virQEMUDriverPtr driver,
+virCommandPtr qemuProcessCreatePretendCmd(virQEMUDriverPtr driver,
                                           virDomainObjPtr vm,
                                           const char *migrateURI,
                                           bool enableFips,
@@ -104,8 +106,7 @@ int qemuProcessInit(virQEMUDriverPtr driver,
                     bool migration,
                     unsigned int flags);
 
-int qemuProcessPrepareDomain(virConnectPtr conn,
-                             virQEMUDriverPtr driver,
+int qemuProcessPrepareDomain(virQEMUDriverPtr driver,
                              virDomainObjPtr vm,
                              unsigned int flags);
 
@@ -122,12 +123,15 @@ int qemuProcessLaunch(virConnectPtr conn,
                       virNetDevVPortProfileOp vmop,
                       unsigned int flags);
 
-int qemuProcessFinishStartup(virConnectPtr conn,
-                             virQEMUDriverPtr driver,
+int qemuProcessFinishStartup(virQEMUDriverPtr driver,
                              virDomainObjPtr vm,
                              qemuDomainAsyncJob asyncJob,
                              bool startCPUs,
                              virDomainPausedReason pausedReason);
+
+int qemuProcessRefreshState(virQEMUDriverPtr driver,
+                            virDomainObjPtr vm,
+                            qemuDomainAsyncJob asyncJob);
 
 typedef enum {
     VIR_QEMU_PROCESS_STOP_MIGRATED      = 1 << 0,

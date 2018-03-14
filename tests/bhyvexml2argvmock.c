@@ -17,7 +17,6 @@ void virMacAddrGenerate(const unsigned char prefix[VIR_MAC_PREFIX_BUFLEN],
     addr->addr[3] = 0;
     addr->addr[4] = 0;
     addr->addr[5] = 0;
-    addr->generated = true;
 }
 
 int virNetDevTapCreateInBridgePort(const char *brname ATTRIBUTE_UNUSED,
@@ -51,6 +50,13 @@ char *virNetDevTapGetRealDeviceName(char *name ATTRIBUTE_UNUSED)
 
 int virNetDevSetOnline(const char *ifname ATTRIBUTE_UNUSED,
                        bool online ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+
+int bind(int sockfd ATTRIBUTE_UNUSED,
+         const struct sockaddr *addr ATTRIBUTE_UNUSED,
+         socklen_t addrlen ATTRIBUTE_UNUSED)
 {
     return 0;
 }

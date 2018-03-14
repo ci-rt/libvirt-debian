@@ -58,7 +58,7 @@ testCompareXMLToDomConfig(const char *xmlfile,
     libxl_domain_config expectconfig;
     xentoollog_logger *log = NULL;
     libxl_ctx *ctx = NULL;
-    virPortAllocatorPtr gports = NULL;
+    virPortAllocatorRangePtr gports = NULL;
     virDomainXMLOptionPtr xmlopt = NULL;
     virDomainDefPtr vmdef = NULL;
     char *actualjson = NULL;
@@ -74,8 +74,7 @@ testCompareXMLToDomConfig(const char *xmlfile,
     if (libxl_ctx_alloc(&ctx, LIBXL_VERSION, 0, log) < 0)
         goto cleanup;
 
-    if (!(gports = virPortAllocatorNew("vnc", 5900, 6000,
-                                       VIR_PORT_ALLOCATOR_SKIP_BIND_CHECK)))
+    if (!(gports = virPortAllocatorRangeNew("vnc", 5900, 6000)))
         goto cleanup;
 
     if (!(xmlopt = libxlCreateXMLConf()))
@@ -112,11 +111,16 @@ testCompareXMLToDomConfig(const char *xmlfile,
     ret = 0;
 
  cleanup:
+    if (vmdef &&
+        vmdef->ngraphics == 1 &&
+        vmdef->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC)
+        virPortAllocatorRelease(vmdef->graphics[0]->data.vnc.port);
+
     VIR_FREE(expectjson);
     VIR_FREE(actualjson);
     VIR_FREE(tempjson);
     virDomainDefFree(vmdef);
-    virObjectUnref(gports);
+    virPortAllocatorRangeFree(gports);
     virObjectUnref(xmlopt);
     libxl_ctx_free(ctx);
     libxl_domain_config_dispose(&actualconfig);
@@ -188,6 +192,7 @@ mymain(void)
 
     DO_TEST("basic-pv");
     DO_TEST("basic-hvm");
+    DO_TEST("variable-clock-hvm");
     DO_TEST("moredevs-hvm");
     DO_TEST("vnuma-hvm");
     DO_TEST("multiple-ip");

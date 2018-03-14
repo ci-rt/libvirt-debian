@@ -467,15 +467,13 @@ qemuBlockStorageSourceGetURI(virStorageSourcePtr src)
 /**
  * qemuBlockStorageSourceBuildJSONSocketAddress
  * @host: the virStorageNetHostDefPtr definition to build
- * @legacy: use 'tcp' instead of 'inet' for compatibility reasons
+ * @legacy: use old field names/values
  *
  * Formats @hosts into a json object conforming to the 'SocketAddress' type
  * in qemu.
  *
- * This function can be used when only 1 src->nhosts is expected in order
- * to build a command without the array indices after "server.". That is
- * to see "server.type", "server.host", and "server.port" instead of
- * "server.#.type", "server.#.host", and "server.#.port".
+ * For compatibility with old approach used in the gluster driver of old qemus
+ * use the old spelling for TCP transport and, the path field of the unix socket.
  *
  * Returns a virJSONValuePtr for a single server.
  */
@@ -486,6 +484,7 @@ qemuBlockStorageSourceBuildJSONSocketAddress(virStorageNetHostDefPtr host,
     virJSONValuePtr server = NULL;
     virJSONValuePtr ret = NULL;
     const char *transport;
+    const char *field;
     char *port = NULL;
 
     switch ((virStorageNetHostTransport) host->transport) {
@@ -507,9 +506,14 @@ qemuBlockStorageSourceBuildJSONSocketAddress(virStorageNetHostDefPtr host,
         break;
 
     case VIR_STORAGE_NET_HOST_TRANS_UNIX:
+        if (legacy)
+            field = "s:socket";
+        else
+            field = "s:path";
+
         if (virJSONValueObjectCreate(&server,
                                      "s:type", "unix",
-                                     "s:socket", host->socket,
+                                     field, host->socket,
                                      NULL) < 0)
             goto cleanup;
         break;

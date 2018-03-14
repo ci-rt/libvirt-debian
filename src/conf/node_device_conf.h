@@ -139,15 +139,6 @@ struct _virNodeDevCapSystem {
     virNodeDevCapSystemFirmware firmware;
 };
 
-typedef struct _virNodeDevCapMdevType virNodeDevCapMdevType;
-typedef virNodeDevCapMdevType *virNodeDevCapMdevTypePtr;
-struct _virNodeDevCapMdevType {
-    char *id;
-    char *name;
-    char *device_api;
-    unsigned int available_instances;
-};
-
 typedef struct _virNodeDevCapMdev virNodeDevCapMdev;
 typedef virNodeDevCapMdev *virNodeDevCapMdevPtr;
 struct _virNodeDevCapMdev {
@@ -178,7 +169,7 @@ struct _virNodeDevCapPCIDev {
     int numa_node;
     virPCIEDeviceInfoPtr pci_express;
     int hdrType; /* enum virPCIHeaderType or -1 */
-    virNodeDevCapMdevTypePtr *mdev_types;
+    virMediatedDeviceTypePtr *mdev_types;
     size_t nmdev_types;
 };
 
@@ -358,9 +349,6 @@ virNodeDeviceDefFree(virNodeDeviceDefPtr def);
 void
 virNodeDevCapsDefFree(virNodeDevCapsDefPtr caps);
 
-void
-virNodeDevCapMdevTypeFree(virNodeDevCapMdevTypePtr type);
-
 # define VIR_CONNECT_LIST_NODE_DEVICES_FILTERS_CAP \
                 (VIR_CONNECT_LIST_NODE_DEVICES_CAP_SYSTEM        | \
                  VIR_CONNECT_LIST_NODE_DEVICES_CAP_PCI_DEV       | \
@@ -392,5 +380,20 @@ virNodeDeviceDeleteVport(virConnectPtr conn,
 
 int
 virNodeDeviceGetSCSIHostCaps(virNodeDevCapSCSIHostPtr scsi_host);
+
+int
+virNodeDeviceGetSCSITargetCaps(const char *sysfsPath,
+                               virNodeDevCapSCSITargetPtr scsi_target);
+
+int
+virNodeDeviceGetPCIDynamicCaps(const char *sysfsPath,
+                               virNodeDevCapPCIDevPtr pci_dev);
+
+int
+virNodeDeviceUpdateCaps(virNodeDeviceDefPtr def);
+
+int
+virNodeDeviceCapsListExport(virNodeDeviceDefPtr def,
+                            virNodeDevCapType **list);
 
 #endif /* __VIR_NODE_DEVICE_CONF_H__ */

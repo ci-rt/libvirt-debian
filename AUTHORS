@@ -10,6 +10,7 @@ The primary maintainers and people with commit access rights:
 Alex Jia <ajia@redhat.com>
 Andrea Bolognani <abologna@redhat.com>
 Cédric Bosdonnat <cbosdonnat@suse.com>
+Christian Ehrhardt <christian.ehrhardt@canonical.com>
 Christophe Fergeau <cfergeau@redhat.com>
 Claudio Bley <claudio.bley@gmail.com>
 Cole Robinson <crobinso@redhat.com>
@@ -60,7 +61,6 @@ Amit Shah <amit.shah@redhat.com>
 Andrew Puch <apuch@redhat.com>
 Anton Protopopov <aspsk2@gmail.com>
 Ben Guthro <ben.guthro@gmail.com>
-Christian Ehrhardt <ehrhardt@linux.vnet.ibm.com>
 Daniel Hokka Zakrisson <daniel@hozac.com>
 Dan Wendlandt <dan@nicira.com>
 David Lively <dlively@virtualiron.com>
@@ -177,13 +177,13 @@ Dan Horák <dan@danny.cz>
 Dan Kenigsberg <danken@redhat.com>
 Dan Smith <danms@us.ibm.com>
 Dan Zheng <dzheng@redhat.com>
-Daniel Berrange <berrange@redhat.com>
 Daniel Berteaud <daniel@firewall-services.com>
 Daniel Gollub <gollub@b1-systems.de>
 Daniel Hansel <daniel.hansel@linux.vnet.ibm.com>
 Daniel J Walsh <dwalsh@redhat.com>
 Daniel Liu <srwx4096@gmail.com>
 Daniel P. Berrange <berrange@redhat.com>
+Daniel P. Berrangé <berrange@redhat.com>
 Daniel Veillard <veillard@redhat.com>
 Dario Faggioli <dario.faggioli@citrix.com>
 Darryl L. Pierce <dpierce@redhat.com>
@@ -338,6 +338,7 @@ Ján Tomko <jtomko@redhat.com>
 KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
 Kai Kang <kai.kang@windriver.com>
 Karel Zak <kzak@redhat.com>
+Kashyap Chamarthy <kchamart@redhat.com>
 Katerina Koukiou <k.koukiou@googlemail.com>
 Kay Schubert <kayegypt@web.de>
 Ken ICHIKAWA <ichikawa.ken@jp.fujitsu.com>
@@ -408,6 +409,7 @@ Michael R. Hines <mrhines@us.ibm.com>
 Michael Santos <michael.santos@gmail.com>
 Michael Wood <esiotrot@gmail.com>
 Michal Dubiel <md@semihalf.com>
+Michal Koutný <mkoutny@suse.com>
 Michal Novotny <minovotn@redhat.com>
 Michal Privoznik <miso.privoznik@gmail.com>
 Michal Privoznik <mprivozn@redhat.com>
@@ -523,6 +525,7 @@ Sergey Fionov <fionov@gmail.com>
 Shahar Klein <shaharklein@yahoo.com>
 Shanzhi Yu <shyu@redhat.com>
 ShaoHe Feng <shaohe.feng@intel.com>
+Shaohe Feng <shaohe.feng@intel.com>
 Sharadha Prabhakar <sharadha.prabhakar@citrix.com>
 Shivangi Dhir <shivangi.dhir.02@gmail.com>
 Shivaprasad G Bhat <sbhat@linux.vnet.ibm.com>
@@ -563,6 +566,7 @@ Thierry Parmentelat <thierry.parmentelat@inria.fr>
 Thomas Treutner <thomas@scripty.at>
 Thomas Woerner <twoerner@redhat.com>
 Thorsten Behrens <tbehrens@suse.com>
+Tiago M. Vieira <tmv@redhat.com>
 Tiziano Mueller <dev-zero@gentoo.org>
 Tom Vijlbrief <tom.vijlbrief@xs4all.nl>
 Tomas Meszaros <exo@tty.sk>
@@ -624,9 +628,11 @@ Zeeshan Ali (Khattak) <zeeshanak@gnome.org>
 Zeng Junliang <zengjunliang@huawei.com>
 Zhang Bo <oscar.zhangbo@huawei.com>
 Zhang Xiaohe <zhangxh@cn.fujitsu.com>
+Zhangzijian <zhang.zijian@h3c.com>
 ZhiPeng Lu <lu.zhipeng@zte.com.cn>
 Zhou Yimin <zhouyimin@huawei.com>
 Zhou yimin <zhouyimin@huawei.com>
+Zhuang Yanying <ann.zhuangyanying@huawei.com>
 caoxinhua <caoxinhua@huawei.com>
 dann frazier <dann.frazier@canonical.com>
 gaohaifeng <gaohaifeng.gao@huawei.com>

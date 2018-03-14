@@ -51,7 +51,6 @@
 #include "snapshot_conf.h"
 #include "storage_conf.h"
 #include "secret_conf.h"
-#include "network/bridge_driver.h"
 #include "virnetdevtap.h"
 #include "virnetdevopenvswitch.h"
 #include "device_conf.h"
@@ -1980,11 +1979,8 @@ qemuBuildDriveDevStr(const virDomainDef *def,
             goto error;
         }
 
-        controllerModel =
-            virDomainDeviceFindControllerModel(def, &disk->info,
-                                               VIR_DOMAIN_CONTROLLER_TYPE_SCSI);
-        if ((qemuDomainSetSCSIControllerModel(def, qemuCaps,
-                                              &controllerModel)) < 0)
+        controllerModel = qemuDomainFindSCSIControllerModel(def, &disk->info);
+        if (controllerModel < 0)
             goto error;
 
         if (disk->device == VIR_DOMAIN_DISK_DEVICE_LUN) {
@@ -2215,6 +2211,58 @@ qemuBuildDriveDevStr(const virDomainDef *def,
 
 
 static int
+qemuBulildFloppyCommandLineOptions(virCommandPtr cmd,
+                                   const virDomainDef *def,
+                                   virDomainDiskDefPtr disk,
+                                   unsigned int bootindex)
+
+{
+    virBuffer fdc_opts = VIR_BUFFER_INITIALIZER;
+    char *fdc_opts_str = NULL;
+    char *optstr;
+
+    if (virAsprintf(&optstr, "drive%c=drive-%s",
+                    disk->info.addr.drive.unit ? 'B' : 'A',
+                    disk->info.alias) < 0)
+        return -1;
+
+    if (!qemuDomainNeedsFDC(def)) {
+        virCommandAddArg(cmd, "-global");
+        virCommandAddArgFormat(cmd, "isa-fdc.%s", optstr);
+    } else {
+        virBufferAsprintf(&fdc_opts, "%s,", optstr);
+    }
+    VIR_FREE(optstr);
+
+    if (bootindex) {
+        if (virAsprintf(&optstr, "bootindex%c=%u",
+                        disk->info.addr.drive.unit
+                        ? 'B' : 'A',
+                        bootindex) < 0)
+            return -1;
+
+        if (!qemuDomainNeedsFDC(def)) {
+            virCommandAddArg(cmd, "-global");
+            virCommandAddArgFormat(cmd, "isa-fdc.%s", optstr);
+        } else {
+            virBufferAsprintf(&fdc_opts, "%s,", optstr);
+        }
+        VIR_FREE(optstr);
+    }
+
+    /* Newer Q35 machine types require an explicit FDC controller */
+    virBufferTrim(&fdc_opts, ",", -1);
+    if ((fdc_opts_str = virBufferContentAndReset(&fdc_opts))) {
+        virCommandAddArg(cmd, "-device");
+        virCommandAddArgFormat(cmd, "isa-fdc,%s", fdc_opts_str);
+        VIR_FREE(fdc_opts_str);
+    }
+
+    return 0;
+}
+
+
+static int
 qemuBuildDiskDriveCommandLine(virCommandPtr cmd,
                               const virDomainDef *def,
                               virQEMUCapsPtr qemuCaps)
@@ -2223,8 +2271,6 @@ qemuBuildDiskDriveCommandLine(virCommandPtr cmd,
     unsigned int bootCD = 0;
     unsigned int bootFloppy = 0;
     unsigned int bootDisk = 0;
-    virBuffer fdc_opts = VIR_BUFFER_INITIALIZER;
-    char *fdc_opts_str = NULL;
 
     if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_DRIVE_BOOT) ||
         virQEMUCapsGet(qemuCaps, QEMU_CAPS_BOOTINDEX)) {
@@ -2303,34 +2349,9 @@ qemuBuildDiskDriveCommandLine(virCommandPtr cmd,
 
         if (qemuDiskBusNeedsDeviceArg(disk->bus)) {
             if (disk->bus == VIR_DOMAIN_DISK_BUS_FDC) {
-                if (virAsprintf(&optstr, "drive%c=drive-%s",
-                                disk->info.addr.drive.unit ? 'B' : 'A',
-                                disk->info.alias) < 0)
+                if (qemuBulildFloppyCommandLineOptions(cmd, def, disk,
+                                                       bootindex) < 0)
                     return -1;
-
-                if (!qemuDomainNeedsFDC(def)) {
-                    virCommandAddArg(cmd, "-global");
-                    virCommandAddArgFormat(cmd, "isa-fdc.%s", optstr);
-                } else {
-                    virBufferAsprintf(&fdc_opts, "%s,", optstr);
-                }
-                VIR_FREE(optstr);
-
-                if (bootindex) {
-                    if (virAsprintf(&optstr, "bootindex%c=%u",
-                                    disk->info.addr.drive.unit
-                                    ? 'B' : 'A',
-                                    bootindex) < 0)
-                        return -1;
-
-                    if (!qemuDomainNeedsFDC(def)) {
-                        virCommandAddArg(cmd, "-global");
-                        virCommandAddArgFormat(cmd, "isa-fdc.%s", optstr);
-                    } else {
-                        virBufferAsprintf(&fdc_opts, "%s,", optstr);
-                    }
-                    VIR_FREE(optstr);
-                }
             } else {
                 virCommandAddArg(cmd, "-device");
 
@@ -2342,14 +2363,6 @@ qemuBuildDiskDriveCommandLine(virCommandPtr cmd,
             }
         }
     }
-    /* Newer Q35 machine types require an explicit FDC controller */
-    virBufferTrim(&fdc_opts, ",", -1);
-    if ((fdc_opts_str = virBufferContentAndReset(&fdc_opts))) {
-        virCommandAddArg(cmd, "-device");
-        virCommandAddArgFormat(cmd, "isa-fdc,%s", fdc_opts_str);
-        VIR_FREE(fdc_opts_str);
-    }
-
     return 0;
 }
 
@@ -2542,7 +2555,7 @@ qemuBuildUSBControllerDevStr(virDomainControllerDefPtr def,
 
     model = def->model;
 
-    if (model == -1) {
+    if (model == VIR_DOMAIN_CONTROLLER_MODEL_USB_DEFAULT) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        "%s", _("no model provided for USB controller"));
         return -1;
@@ -2583,52 +2596,6 @@ qemuBuildUSBControllerDevStr(virDomainControllerDefPtr def,
 }
 
 
-/* qemuCheckSCSIControllerIOThreads:
- * @domainDef: Pointer to domain def
- * @def: Pointer to controller def
- * @qemuCaps: Capabilities
- *
- * If this controller definition has iothreads set, let's make sure the
- * configuration is right before adding to the command line
- *
- * Returns true if either supported or there are no iothreads for controller;
- * otherwise, returns false if configuration is not quite right.
- */
-static bool
-qemuCheckSCSIControllerIOThreads(const virDomainDef *domainDef,
-                                 virDomainControllerDefPtr def)
-{
-    if (!def->iothread)
-        return true;
-
-    if (def->model != VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_SCSI) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("IOThreads only supported for virtio-scsi "
-                         "controllers model is '%s'"),
-                       virDomainControllerModelSCSITypeToString(def->model));
-        return false;
-    }
-
-    if (def->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI &&
-        def->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW) {
-       virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("IOThreads only available for virtio pci and "
-                         "virtio ccw controllers"));
-       return false;
-    }
-
-    /* Can we find the controller iothread in the iothreadid list? */
-    if (!virDomainIOThreadIDFind(domainDef, def->iothread)) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("controller iothread '%u' not defined in iothreadid"),
-                       def->iothread);
-        return false;
-    }
-
-    return true;
-}
-
-
 /**
  * qemuBuildControllerDevStr:
  * @domainDef: domain definition
@@ -2657,67 +2624,33 @@ qemuBuildControllerDevStr(const virDomainDef *domainDef,
                           int *nusbcontroller)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
-    int model = def->model;
-    const char *modelName = NULL;
+    int address_type = def->info.type;
 
     *devstr = NULL;
 
-    if (def->type == VIR_DOMAIN_CONTROLLER_TYPE_SCSI) {
-        if ((qemuDomainSetSCSIControllerModel(domainDef, qemuCaps, &model)) < 0)
-            return -1;
-    }
-
-    if (!(def->type == VIR_DOMAIN_CONTROLLER_TYPE_SCSI &&
-          model == VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_SCSI)) {
-        if (def->queues) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("'queues' is only supported by virtio-scsi controller"));
-            return -1;
-        }
-        if (def->cmd_per_lun) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("'cmd_per_lun' is only supported by virtio-scsi controller"));
-            return -1;
-        }
-        if (def->max_sectors) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("'max_sectors' is only supported by virtio-scsi controller"));
-            return -1;
-        }
-        if (def->ioeventfd) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("'ioeventfd' is only supported by virtio-scsi controller"));
-            return -1;
-        }
-    }
-
     switch ((virDomainControllerType) def->type) {
     case VIR_DOMAIN_CONTROLLER_TYPE_SCSI:
-        switch (model) {
+        switch ((virDomainControllerModelSCSI) def->model) {
         case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_SCSI:
-            if (def->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW) {
+            switch (address_type) {
+            case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW:
                 virBufferAddLit(&buf, "virtio-scsi-ccw");
-                if (def->iothread) {
-                    if (!qemuCheckSCSIControllerIOThreads(domainDef, def))
-                        goto error;
-                    virBufferAsprintf(&buf, ",iothread=iothread%u",
-                                      def->iothread);
-                }
-            } else if (def->info.type ==
-                       VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390) {
+                break;
+            case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390:
                 virBufferAddLit(&buf, "virtio-scsi-s390");
-            } else if (def->info.type ==
-                       VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_MMIO) {
+                break;
+            case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_MMIO:
                 virBufferAddLit(&buf, "virtio-scsi-device");
-            } else {
+                break;
+            default:
                 virBufferAddLit(&buf, "virtio-scsi-pci");
-                if (def->iothread) {
-                    if (!qemuCheckSCSIControllerIOThreads(domainDef, def))
-                        goto error;
-                    virBufferAsprintf(&buf, ",iothread=iothread%u",
-                                      def->iothread);
-                }
             }
+
+            if (def->iothread) {
+                virBufferAsprintf(&buf, ",iothread=iothread%u",
+                                  def->iothread);
+            }
+
             if (qemuBuildVirtioOptionsStr(&buf, def->virtio, qemuCaps) < 0)
                 goto error;
             break;
@@ -2733,27 +2666,38 @@ qemuBuildControllerDevStr(const virDomainDef *domainDef,
         case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LSISAS1078:
             virBufferAddLit(&buf, "megasas");
             break;
-        default:
+        case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_AUTO:
+        case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_BUSLOGIC:
+        case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VMPVSCSI:
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("Unsupported controller model: %s"),
                            virDomainControllerModelSCSITypeToString(def->model));
+            goto error;
+        case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_DEFAULT:
+        case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LAST:
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Unexpected SCSI controller model %d"),
+                           def->model);
+            goto error;
         }
         virBufferAsprintf(&buf, ",id=%s", def->info.alias);
         break;
 
     case VIR_DOMAIN_CONTROLLER_TYPE_VIRTIO_SERIAL:
-        if (def->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
+        switch (address_type) {
+        case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI:
             virBufferAddLit(&buf, "virtio-serial-pci");
-        } else if (def->info.type ==
-                   VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW) {
+            break;
+        case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW:
             virBufferAddLit(&buf, "virtio-serial-ccw");
-        } else if (def->info.type ==
-                   VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390) {
+            break;
+        case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390:
             virBufferAddLit(&buf, "virtio-serial-s390");
-        } else if (def->info.type ==
-                   VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_MMIO) {
+            break;
+        case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_MMIO:
             virBufferAddLit(&buf, "virtio-serial-device");
-        } else {
+            break;
+        default:
             virBufferAddLit(&buf, "virtio-serial");
         }
         virBufferAsprintf(&buf, ",id=%s", def->info.alias);
@@ -2774,12 +2718,6 @@ qemuBuildControllerDevStr(const virDomainDef *domainDef,
         break;
 
     case VIR_DOMAIN_CONTROLLER_TYPE_SATA:
-        if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_ICH9_AHCI)) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("SATA is not supported with this "
-                             "QEMU binary"));
-            goto error;
-        }
         virBufferAsprintf(&buf, "ahci,id=%s", def->info.alias);
         break;
 
@@ -2792,332 +2730,71 @@ qemuBuildControllerDevStr(const virDomainDef *domainDef,
 
         break;
 
-    case VIR_DOMAIN_CONTROLLER_TYPE_PCI:
-        switch ((virDomainControllerModelPCI) def->model) {
-        case VIR_DOMAIN_CONTROLLER_MODEL_PCI_BRIDGE:
-        case VIR_DOMAIN_CONTROLLER_MODEL_DMI_TO_PCI_BRIDGE:
-        case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT_PORT:
-        case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_UPSTREAM_PORT:
-        case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_DOWNSTREAM_PORT:
-        case VIR_DOMAIN_CONTROLLER_MODEL_PCI_EXPANDER_BUS:
-        case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_EXPANDER_BUS:
-            if (def->idx == 0) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                               _("index for pci controllers of model '%s' must be > 0"),
-                               virDomainControllerModelPCITypeToString(def->model));
-                goto error;
-            }
-            break;
-        case VIR_DOMAIN_CONTROLLER_MODEL_PCI_ROOT:
-        case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT:
-        case VIR_DOMAIN_CONTROLLER_MODEL_PCI_LAST:
-            break;
+    case VIR_DOMAIN_CONTROLLER_TYPE_PCI: {
+        const virDomainPCIControllerOpts *pciopts = &def->opts.pciopts;
+        const char *modelName = virDomainControllerPCIModelNameTypeToString(pciopts->modelName);
+
+        /* Skip the implicit PHB for pSeries guests */
+        if (def->model == VIR_DOMAIN_CONTROLLER_MODEL_PCI_ROOT &&
+            pciopts->modelName == VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_SPAPR_PCI_HOST_BRIDGE &&
+            pciopts->targetIndex == 0) {
+            goto done;
         }
+
+        if (!modelName) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Unknown virDomainControllerPCIModelName value: %d"),
+                           pciopts->modelName);
+            return -1;
+        }
+
         switch ((virDomainControllerModelPCI) def->model) {
         case VIR_DOMAIN_CONTROLLER_MODEL_PCI_BRIDGE:
-            if (def->opts.pciopts.modelName
-                == VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_NONE ||
-                def->opts.pciopts.chassisNr == -1) {
-                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                               _("autogenerated pci-bridge options not set"));
-                goto error;
-            }
-
-            modelName = virDomainControllerPCIModelNameTypeToString(def->opts.pciopts.modelName);
-            if (!modelName) {
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("unknown pci-bridge model name value %d"),
-                               def->opts.pciopts.modelName);
-                goto error;
-            }
-            if (def->opts.pciopts.modelName
-                != VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_PCI_BRIDGE) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                               _("PCI controller model name '%s' "
-                                 "is not valid for a pci-bridge"),
-                               modelName);
-                goto error;
-            }
-            if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_PCI_BRIDGE)) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                               _("the pci-bridge controller "
-                                 "is not supported in this QEMU binary"));
-                goto error;
-            }
             virBufferAsprintf(&buf, "%s,chassis_nr=%d,id=%s",
-                              modelName, def->opts.pciopts.chassisNr,
+                              modelName, pciopts->chassisNr,
                               def->info.alias);
             break;
         case VIR_DOMAIN_CONTROLLER_MODEL_PCI_EXPANDER_BUS:
-            if (def->opts.pciopts.modelName
-                == VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_NONE ||
-                def->opts.pciopts.busNr == -1) {
-                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                               _("autogenerated pci-expander-bus options not set"));
-                goto error;
-            }
-
-            modelName = virDomainControllerPCIModelNameTypeToString(def->opts.pciopts.modelName);
-            if (!modelName) {
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("unknown pci-expander-bus model name value %d"),
-                               def->opts.pciopts.modelName);
-                goto error;
-            }
-            if (def->opts.pciopts.modelName
-                != VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_PXB) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                               _("PCI controller model name '%s' "
-                                 "is not valid for a pci-expander-bus"),
-                               modelName);
-                goto error;
-            }
-            if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_PXB)) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                               _("the pxb controller "
-                                 "is not supported in this QEMU binary"));
-                goto error;
-            }
+        case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_EXPANDER_BUS:
             virBufferAsprintf(&buf, "%s,bus_nr=%d,id=%s",
-                              modelName, def->opts.pciopts.busNr,
+                              modelName, pciopts->busNr,
                               def->info.alias);
-            if (def->opts.pciopts.numaNode != -1)
-               virBufferAsprintf(&buf, ",numa_node=%d",
-                                 def->opts.pciopts.numaNode);
+            if (pciopts->numaNode != -1) {
+                virBufferAsprintf(&buf, ",numa_node=%d",
+                                  pciopts->numaNode);
+            }
             break;
         case VIR_DOMAIN_CONTROLLER_MODEL_DMI_TO_PCI_BRIDGE:
-            if (def->opts.pciopts.modelName
-                == VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_NONE) {
-                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                               _("autogenerated dmi-to-pci-bridge options not set"));
-                goto error;
-            }
-
-            modelName = virDomainControllerPCIModelNameTypeToString(def->opts.pciopts.modelName);
-            if (!modelName) {
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("unknown dmi-to-pci-bridge model name value %d"),
-                               def->opts.pciopts.modelName);
-                goto error;
-            }
-            if (def->opts.pciopts.modelName
-                != VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_I82801B11_BRIDGE) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                               _("PCI controller model name '%s' "
-                                 "is not valid for a dmi-to-pci-bridge"),
-                               modelName);
-                goto error;
-            }
-            if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE)) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                               _("the dmi-to-pci-bridge (i82801b11-bridge) "
-                                 "controller is not supported in this QEMU binary"));
-                goto error;
-            }
+        case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_UPSTREAM_PORT:
             virBufferAsprintf(&buf, "%s,id=%s", modelName, def->info.alias);
             break;
         case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT_PORT:
-            if (def->opts.pciopts.modelName
-                == VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_NONE) {
-                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                               _("autogenerated pcie-root-port options not set"));
-                goto error;
-            }
-            modelName = virDomainControllerPCIModelNameTypeToString(def->opts.pciopts.modelName);
-            if (!modelName) {
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("unknown pcie-root-port model name value %d"),
-                               def->opts.pciopts.modelName);
-                goto error;
-            }
-            if ((def->opts.pciopts.modelName !=
-                 VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_IOH3420) &&
-                (def->opts.pciopts.modelName !=
-                 VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_PCIE_ROOT_PORT)) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                               _("PCI controller model name '%s' "
-                                 "is not valid for a pcie-root-port"),
-                               modelName);
-                goto error;
-            }
-            if ((def->opts.pciopts.modelName ==
-                 VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_IOH3420) &&
-                !virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_IOH3420)) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                               _("the pcie-root-port (ioh3420) "
-                                 "controller is not supported in this QEMU binary"));
-                goto error;
-            }
-            if ((def->opts.pciopts.modelName ==
-                 VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_PCIE_ROOT_PORT) &&
-                !virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_PCIE_ROOT_PORT)) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                               _("the pcie-root-port (pcie-root-port) "
-                                 "controller is not supported in this QEMU binary"));
-                goto error;
-            }
-
-            virBufferAsprintf(&buf, "%s,port=0x%x,chassis=%d,id=%s",
-                              modelName, def->opts.pciopts.port,
-                              def->opts.pciopts.chassis, def->info.alias);
-            break;
-        case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_UPSTREAM_PORT:
-            if (def->opts.pciopts.modelName
-                == VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_NONE) {
-                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                               _("autogenerated pcie-switch-upstream-port options not set"));
-                goto error;
-            }
-            modelName = virDomainControllerPCIModelNameTypeToString(def->opts.pciopts.modelName);
-            if (!modelName) {
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("unknown pcie-switch-upstream-port model name value %d"),
-                               def->opts.pciopts.modelName);
-                goto error;
-            }
-            if (def->opts.pciopts.modelName
-                != VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_X3130_UPSTREAM) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                               _("PCI controller model name '%s' "
-                                 "is not valid for a pcie-switch-upstream-port"),
-                               modelName);
-                goto error;
-            }
-            if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_X3130_UPSTREAM)) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                               _("the pcie-switch-upstream-port (x3130-upstream) "
-                                 "controller is not supported in this QEMU binary"));
-                goto error;
-            }
-
-            virBufferAsprintf(&buf, "%s,id=%s", modelName, def->info.alias);
-            break;
         case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_DOWNSTREAM_PORT:
-            if (def->opts.pciopts.modelName
-                == VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_NONE ||
-                def->opts.pciopts.chassis == -1 ||
-                def->opts.pciopts.port == -1) {
-                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                               _("autogenerated pcie-switch-downstream-port "
-                                 "options not set"));
-                goto error;
-            }
-
-            modelName = virDomainControllerPCIModelNameTypeToString(def->opts.pciopts.modelName);
-            if (!modelName) {
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("unknown pcie-switch-downstream-port model name value %d"),
-                               def->opts.pciopts.modelName);
-                goto error;
-            }
-            if (def->opts.pciopts.modelName
-                != VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_XIO3130_DOWNSTREAM) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                               _("PCI controller model name '%s' "
-                                 "is not valid for a pcie-switch-downstream-port"),
-                               modelName);
-                goto error;
-            }
-            if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_XIO3130_DOWNSTREAM)) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                               _("The pcie-switch-downstream-port "
-                                 "(xio3130-downstream) controller "
-                                 "is not supported in this QEMU binary"));
-                goto error;
-            }
             virBufferAsprintf(&buf, "%s,port=0x%x,chassis=%d,id=%s",
-                              modelName, def->opts.pciopts.port,
-                              def->opts.pciopts.chassis, def->info.alias);
-            break;
-        case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_EXPANDER_BUS:
-            if (def->opts.pciopts.modelName
-                == VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_NONE ||
-                def->opts.pciopts.busNr == -1) {
-                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                               _("autogenerated pcie-expander-bus options not set"));
-                goto error;
-            }
-
-            modelName = virDomainControllerPCIModelNameTypeToString(def->opts.pciopts.modelName);
-            if (!modelName) {
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("unknown pcie-expander-bus model name value %d"),
-                               def->opts.pciopts.modelName);
-                goto error;
-            }
-            if (def->opts.pciopts.modelName
-                != VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_PXB_PCIE) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                               _("PCI controller model name '%s' "
-                                 "is not valid for a pcie-expander-bus"),
-                               modelName);
-                goto error;
-            }
-            if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_PXB_PCIE)) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                               _("the pxb-pcie controller "
-                                 "is not supported in this QEMU binary"));
-                goto error;
-            }
-            virBufferAsprintf(&buf, "%s,bus_nr=%d,id=%s",
-                              modelName, def->opts.pciopts.busNr,
-                              def->info.alias);
-            if (def->opts.pciopts.numaNode != -1)
-               virBufferAsprintf(&buf, ",numa_node=%d",
-                                 def->opts.pciopts.numaNode);
+                              modelName, pciopts->port,
+                              pciopts->chassis, def->info.alias);
             break;
         case VIR_DOMAIN_CONTROLLER_MODEL_PCI_ROOT:
-            if (def->opts.pciopts.modelName == VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_NONE ||
-                def->opts.pciopts.targetIndex == -1) {
-                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                               _("autogenerated pci-root options not set"));
-                goto error;
-            }
-
-            /* Skip the implicit one */
-            if (def->opts.pciopts.targetIndex == 0)
-                goto done;
-
-            modelName = virDomainControllerPCIModelNameTypeToString(def->opts.pciopts.modelName);
-            if (!modelName) {
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("unknown pci-root model name value %d"),
-                               def->opts.pciopts.modelName);
-                goto error;
-            }
-            if (def->opts.pciopts.modelName != VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_SPAPR_PCI_HOST_BRIDGE) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                               _("PCI controller model name '%s' is not valid for a pci-root"),
-                               modelName);
-                goto error;
-            }
-            if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE)) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                               _("the spapr-pci-host-bridge controller "
-                                 "is not supported in this QEMU binary"));
-                goto error;
-            }
             virBufferAsprintf(&buf, "%s,index=%d,id=%s",
-                              modelName, def->opts.pciopts.targetIndex,
+                              modelName, pciopts->targetIndex,
                               def->info.alias);
 
-            if (def->opts.pciopts.numaNode != -1) {
-                if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_SPAPR_PCI_HOST_BRIDGE_NUMA_NODE)) {
-                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                                   _("the spapr-pci-host-bridge controller "
-                                     "doesn't support numa_node on this QEMU binary"));
-                    goto error;
-                }
-                virBufferAsprintf(&buf, ",numa_node=%d", def->opts.pciopts.numaNode);
-            }
+            if (pciopts->numaNode != -1)
+                virBufferAsprintf(&buf, ",numa_node=%d", pciopts->numaNode);
             break;
         case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT:
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Unsupported PCI Express root controller"));
+            goto error;
+        case VIR_DOMAIN_CONTROLLER_MODEL_PCI_DEFAULT:
         case VIR_DOMAIN_CONTROLLER_MODEL_PCI_LAST:
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("wrong function called"));
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Unexpected PCI controller model %d"),
+                           def->model);
             goto error;
         }
         break;
+    }
 
     case VIR_DOMAIN_CONTROLLER_TYPE_IDE:
     case VIR_DOMAIN_CONTROLLER_TYPE_FDC:
@@ -3142,10 +2819,10 @@ qemuBuildControllerDevStr(const virDomainDef *domainDef,
     if (qemuBuildDeviceAddressStr(&buf, domainDef, &def->info, qemuCaps) < 0)
         goto error;
 
+ done:
     if (virBufferCheckError(&buf) < 0)
         goto error;
 
- done:
     *devstr = virBufferContentAndReset(&buf);
     return 0;
 
@@ -3246,7 +2923,7 @@ qemuBuildControllerDevCommandLine(virCommandPtr cmd,
             }
 
             if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_USB &&
-                cont->model == -1 &&
+                cont->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_DEFAULT &&
                 !qemuDomainIsQ35(def) &&
                 !qemuDomainIsVirt(def)) {
 
@@ -3730,12 +3407,17 @@ qemuBuildNicDevStr(virDomainDefPtr def,
                 case VIR_DOMAIN_NET_VIRTIO_TX_MODE_TIMER:
                     virBufferAddLit(&buf, "timer");
                     break;
+
+                case VIR_DOMAIN_NET_VIRTIO_TX_MODE_DEFAULT:
+                    break;
+
+                case VIR_DOMAIN_NET_VIRTIO_TX_MODE_LAST:
                 default:
                     /* this should never happen, if it does, we need
                      * to add another case to this switch.
                      */
-                    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                   _("unrecognized virtio-net-pci 'tx' option"));
+                    virReportEnumRangeError(virDomainNetVirtioTxModeType,
+                                            net->driver.virtio.txmode);
                     goto error;
             }
         } else {
@@ -5073,18 +4755,15 @@ qemuBuildSCSIHostdevDrvStr(virDomainHostdevDefPtr dev,
 
 char *
 qemuBuildSCSIHostdevDevStr(const virDomainDef *def,
-                           virDomainHostdevDefPtr dev,
-                           virQEMUCapsPtr qemuCaps)
+                           virDomainHostdevDefPtr dev)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     int model = -1;
     char *driveAlias;
     const char *contAlias;
 
-    model = virDomainDeviceFindControllerModel(def, dev->info,
-                                               VIR_DOMAIN_CONTROLLER_TYPE_SCSI);
-
-    if (qemuDomainSetSCSIControllerModel(def, qemuCaps, &model) < 0)
+    model = qemuDomainFindSCSIControllerModel(def, dev->info);
+    if (model < 0)
         goto error;
 
     if (model == VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LSILOGIC) {
@@ -5566,8 +5245,7 @@ qemuBuildHostdevCommandLine(virCommandPtr cmd,
                 VIR_FREE(drvstr);
 
                 virCommandAddArg(cmd, "-device");
-                if (!(devstr = qemuBuildSCSIHostdevDevStr(def, hostdev,
-                                                          qemuCaps)))
+                if (!(devstr = qemuBuildSCSIHostdevDevStr(def, hostdev)))
                     return -1;
                 virCommandAddArg(cmd, devstr);
                 VIR_FREE(devstr);
@@ -6142,6 +5820,71 @@ qemuBuildSmbiosBaseBoardStr(virSysinfoBaseBoardDefPtr def)
 }
 
 
+static char *
+qemuBuildSmbiosOEMStringsStr(virSysinfoOEMStringsDefPtr def)
+{
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    size_t i;
+
+    if (!def)
+        return NULL;
+
+    virBufferAddLit(&buf, "type=11");
+
+    for (i = 0; i < def->nvalues; i++) {
+        virBufferAddLit(&buf, ",value=");
+        virQEMUBuildBufferEscapeComma(&buf, def->values[i]);
+    }
+
+    return virBufferContentAndReset(&buf);
+}
+
+
+static char *
+qemuBuildSmbiosChassisStr(virSysinfoChassisDefPtr def)
+{
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+
+    if (!def)
+        return NULL;
+
+    virBufferAddLit(&buf, "type=3");
+
+    /* 3:Manufacturer */
+    virBufferAddLit(&buf, ",manufacturer=");
+    virQEMUBuildBufferEscapeComma(&buf, def->manufacturer);
+    /* 3:Version */
+    if (def->version) {
+        virBufferAddLit(&buf, ",version=");
+        virQEMUBuildBufferEscapeComma(&buf, def->version);
+    }
+    /* 3:Serial Number */
+    if (def->serial) {
+        virBufferAddLit(&buf, ",serial=");
+        virQEMUBuildBufferEscapeComma(&buf, def->serial);
+    }
+    /* 3:Asset Tag */
+    if (def->asset) {
+        virBufferAddLit(&buf, ",asset=");
+        virQEMUBuildBufferEscapeComma(&buf, def->asset);
+    }
+    /* 3:Sku */
+    if (def->sku) {
+        virBufferAddLit(&buf, ",sku=");
+        virQEMUBuildBufferEscapeComma(&buf, def->sku);
+    }
+
+    if (virBufferCheckError(&buf) < 0)
+        goto error;
+
+    return virBufferContentAndReset(&buf);
+
+ error:
+    virBufferFreeAndReset(&buf);
+    return NULL;
+}
+
+
 static int
 qemuBuildSmbiosCommandLine(virCommandPtr cmd,
                            virQEMUDriverPtr driver,
@@ -6207,6 +5950,20 @@ qemuBuildSmbiosCommandLine(virCommandPtr cmd,
         for (i = 0; i < source->nbaseBoard; i++) {
             if (!(smbioscmd =
                   qemuBuildSmbiosBaseBoardStr(source->baseBoard + i)))
+                return -1;
+
+            virCommandAddArgList(cmd, "-smbios", smbioscmd, NULL);
+            VIR_FREE(smbioscmd);
+        }
+
+        smbioscmd = qemuBuildSmbiosChassisStr(source->chassis);
+        if (smbioscmd != NULL) {
+            virCommandAddArgList(cmd, "-smbios", smbioscmd, NULL);
+            VIR_FREE(smbioscmd);
+        }
+
+        if (source->oemStrings) {
+            if (!(smbioscmd = qemuBuildSmbiosOEMStringsStr(source->oemStrings)))
                 return -1;
 
             virCommandAddArgList(cmd, "-smbios", smbioscmd, NULL);
@@ -6846,7 +6603,7 @@ qemuBuildGlobalControllerCommandLine(virCommandPtr cmd,
             bool cap = false;
             bool machine = false;
 
-            switch ((virDomainControllerModelPCI) cont->model) {
+            switch (cont->model) {
             case VIR_DOMAIN_CONTROLLER_MODEL_PCI_ROOT:
                 hoststr = "i440FX-pcihost";
                 cap = virQEMUCapsGet(qemuCaps, QEMU_CAPS_I440FX_PCI_HOLE64_SIZE);
@@ -7189,7 +6946,7 @@ qemuBuildCpuCommandLine(virCommandPtr cmd,
     if (cpu_flags && !cpu) {
         const char *default_model;
 
-        switch (def->os.arch) {
+        switch ((int)def->os.arch) {
         case VIR_ARCH_I686:
             default_model = "qemu32";
             break;
@@ -7235,7 +6992,7 @@ qemuBuildObsoleteAccelArg(virCommandPtr cmd,
     bool disableKVM = false;
     bool enableKVM = false;
 
-    switch (def->virtType) {
+    switch ((int)def->virtType) {
     case VIR_DOMAIN_VIRT_QEMU:
         if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_KVM))
             disableKVM = true;
@@ -7492,13 +7249,6 @@ qemuBuildMachineCommandLine(virCommandPtr cmd,
 
         if (def->features[VIR_DOMAIN_FEATURE_GIC] == VIR_TRISTATE_SWITCH_ON) {
             if (def->gic_version != VIR_GIC_VERSION_NONE) {
-                if (!qemuDomainIsVirt(def)) {
-                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                                   _("gic-version option is available "
-                                     "only for ARM virt machine"));
-                    goto cleanup;
-                }
-
                 /* The default GIC version (GICv2) should not be specified on
                  * the QEMU commandline for backwards compatibility reasons */
                 if (def->gic_version != VIR_GIC_VERSION_2) {
@@ -7547,14 +7297,14 @@ qemuBuildMachineCommandLine(virCommandPtr cmd,
             }
         }
 
-        if (def->features[VIR_DOMAIN_FEATURE_IOAPIC] == VIR_TRISTATE_SWITCH_ON) {
+        if (def->features[VIR_DOMAIN_FEATURE_IOAPIC] != VIR_DOMAIN_IOAPIC_NONE) {
             if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_MACHINE_KERNEL_IRQCHIP)) {
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                                _("I/O APIC tuning is not supported by this "
                                  "QEMU binary"));
                 goto cleanup;
             }
-            switch (def->ioapic) {
+            switch ((virDomainIOAPIC) def->features[VIR_DOMAIN_FEATURE_IOAPIC]) {
             case VIR_DOMAIN_IOAPIC_QEMU:
                 if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_MACHINE_KERNEL_IRQCHIP_SPLIT)) {
                     virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -7567,12 +7317,13 @@ qemuBuildMachineCommandLine(virCommandPtr cmd,
             case VIR_DOMAIN_IOAPIC_KVM:
                 virBufferAddLit(&buf, ",kernel_irqchip=on");
                 break;
+            case VIR_DOMAIN_IOAPIC_NONE:
             case VIR_DOMAIN_IOAPIC_LAST:
                 break;
             }
         }
 
-        if (def->features[VIR_DOMAIN_FEATURE_HPT] == VIR_TRISTATE_SWITCH_ON) {
+        if (def->features[VIR_DOMAIN_FEATURE_HPT] != VIR_DOMAIN_HPT_RESIZING_NONE) {
             const char *str;
 
             if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_MACHINE_PSERIES_RESIZE_HPT)) {
@@ -7582,7 +7333,7 @@ qemuBuildMachineCommandLine(virCommandPtr cmd,
                 goto cleanup;
             }
 
-            str = virDomainHPTResizingTypeToString(def->hpt_resizing);
+            str = virDomainHPTResizingTypeToString(def->features[VIR_DOMAIN_FEATURE_HPT]);
             if (!str) {
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                                _("Invalid setting for HPT resizing"));
@@ -8209,8 +7960,13 @@ qemuBuildGraphicsSPICECommandLine(virQEMUDriverConfigPtr cfg,
         case VIR_DOMAIN_GRAPHICS_SPICE_MOUSE_MODE_CLIENT:
             virBufferAddLit(&opt, "agent-mouse=on,");
             break;
-        default:
+        case VIR_DOMAIN_GRAPHICS_SPICE_MOUSE_MODE_DEFAULT:
             break;
+        case VIR_DOMAIN_GRAPHICS_SPICE_MOUSE_MODE_LAST:
+        default:
+            virReportEnumRangeError(virDomainGraphicsSpiceMouseMode,
+                                    graphics->data.spice.mousemode);
+            goto error;
         }
     }
 

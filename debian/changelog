@@ -1,3 +1,11 @@
+libvirt (4.1.0-1~1.gbpfed16c) UNRELEASED; urgency=medium
+
+  ** SNAPSHOT build @fed16c5d356ecd7ea58887610a11ef33d5917b1a **
+
+  * [3cbbfa5] New upstream version 4.1.0
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 14 Mar 2018 10:59:13 +0100
+
 libvirt (4.0.0-2) unstable; urgency=medium
 
   * [4339f02] CVE-2018-6764: virlog: determine the hostname on startup 

@@ -263,14 +263,14 @@ struct _virQEMUDriver {
     /* Immutable pointer. Unsafe APIs. XXX */
     virHashTablePtr sharedDevices;
 
-    /* Immutable pointer, self-locking APIs */
-    virPortAllocatorPtr remotePorts;
+    /* Immutable pointer, immutable object */
+    virPortAllocatorRangePtr remotePorts;
 
-    /* Immutable pointer, self-locking APIs */
-    virPortAllocatorPtr webSocketPorts;
+    /* Immutable pointer, immutable object */
+    virPortAllocatorRangePtr webSocketPorts;
 
-    /* Immutable pointer, self-locking APIs */
-    virPortAllocatorPtr migrationPorts;
+    /* Immutable pointer, immutable object */
+    virPortAllocatorRangePtr migrationPorts;
 
     /* Immutable pointer, lockless APIs*/
     virSysinfoDefPtr hostsysinfo;
@@ -349,8 +349,7 @@ int qemuSetUnprivSGIO(virDomainDeviceDefPtr dev);
 int qemuDriverAllocateID(virQEMUDriverPtr driver);
 virDomainXMLOptionPtr virQEMUDriverCreateXMLConf(virQEMUDriverPtr driver);
 
-int qemuTranslateSnapshotDiskSourcePool(virConnectPtr conn,
-                                        virDomainSnapshotDiskDefPtr def);
+int qemuTranslateSnapshotDiskSourcePool(virDomainSnapshotDiskDefPtr def);
 
 char * qemuGetBaseHugepagePath(virHugeTLBFSPtr hugepage);
 char * qemuGetDomainHugepagePath(const virDomainDef *def,
