@@ -3,15 +3,15 @@ Date: Tue, 26 Jun 2012 09:30:39 +0200
 Subject: Debianize systemd service files
 
 ---
- daemon/libvirtd.service.in      | 4 ++--
+ src/remote/libvirtd.service.in  | 4 ++--
  tools/libvirt-guests.service.in | 2 +-
  2 files changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/daemon/libvirtd.service.in b/daemon/libvirtd.service.in
-index c189f5e..e2d58c2 100644
---- a/daemon/libvirtd.service.in
-+++ b/daemon/libvirtd.service.in
-@@ -19,8 +19,8 @@ Documentation=https://libvirt.org
+diff --git a/src/remote/libvirtd.service.in b/src/remote/libvirtd.service.in
+index 769702e..15db5f4 100644
+--- a/src/remote/libvirtd.service.in
++++ b/src/remote/libvirtd.service.in
+@@ -21,8 +21,8 @@ Documentation=https://libvirt.org
  
  [Service]
  Type=notify

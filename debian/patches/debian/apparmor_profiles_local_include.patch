@@ -20,7 +20,7 @@ index 6869685..f806e3c 100644
    #include <local/usr.lib.libvirt.virt-aa-helper>
  }
 diff --git a/examples/apparmor/usr.sbin.libvirtd b/examples/apparmor/usr.sbin.libvirtd
-index 0ddec3f..4d220c2 100644
+index be4fabf..72d7987 100644
 --- a/examples/apparmor/usr.sbin.libvirtd
 +++ b/examples/apparmor/usr.sbin.libvirtd
 @@ -118,4 +118,7 @@

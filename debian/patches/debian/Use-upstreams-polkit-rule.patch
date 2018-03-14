@@ -4,27 +4,27 @@ Subject: Use upstreams polkit rule
 
 As of 1.2.16 upstream ships a Polkit rule like Debian does.
 ---
- daemon/Makefile.am | 4 ++--
+ src/Makefile.am | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/daemon/Makefile.am b/daemon/Makefile.am
-index b0c28d2..bb75255 100644
---- a/daemon/Makefile.am
-+++ b/daemon/Makefile.am
-@@ -251,14 +251,14 @@ install-data-polkit::
- 	$(INSTALL_DATA) libvirtd.policy $(DESTDIR)$(policydir)/org.libvirt.unix.policy
+diff --git a/src/Makefile.am b/src/Makefile.am
+index c17f474..af604d5 100644
+--- a/src/Makefile.am
++++ b/src/Makefile.am
+@@ -2251,14 +2251,14 @@ install-polkit::
  if ! WITH_POLKIT0
- 	$(MKDIR_P) $(DESTDIR)$(rulesdir)
--	$(INSTALL_DATA) $(srcdir)/$(rulesfile) $(DESTDIR)$(rulesdir)/50-libvirt.rules
-+	$(INSTALL_DATA) $(srcdir)/$(rulesfile) $(DESTDIR)$(rulesdir)/60-libvirt.rules
+ 	$(MKDIR_P) $(DESTDIR)$(datadir)/polkit-1/rules.d
+ 	$(INSTALL_DATA) $(srcdir)/remote/libvirtd.rules \
+-		$(DESTDIR)$(datadir)/polkit-1/rules.d/50-libvirt.rules
++		$(DESTDIR)$(datadir)/polkit-1/rules.d/60-libvirt.rules
  endif ! WITH_POLKIT0
  
- uninstall-data-polkit::
+ uninstall-polkit::
  	rm -f $(DESTDIR)$(policydir)/org.libvirt.unix.policy
  	rmdir $(DESTDIR)$(policydir) || :
  if ! WITH_POLKIT0
--	rm -f $(DESTDIR)$(rulesdir)/50-libvirt.rules
-+	rm -f $(DESTDIR)$(rulesdir)/60-libvirt.rules
- 	rmdir $(DESTDIR)$(rulesdir) || :
+-	rm -f $(DESTDIR)$(datadir)/polkit-1/rules.d/50-libvirt.rules
++	rm -f $(DESTDIR)$(datadir)/polkit-1/rules.d/60-libvirt.rules
+ 	rmdir $(DESTDIR)$(datadir)/polkit-1/rules.d || :
  endif ! WITH_POLKIT0
  

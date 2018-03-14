@@ -9,10 +9,10 @@ to not interfere with existing network configurations
  2 files changed, 2 insertions(+), 4 deletions(-)
 
 diff --git a/src/Makefile.am b/src/Makefile.am
-index 166c9a8..b799870 100644
+index 3bf2da5..c17f474 100644
 --- a/src/Makefile.am
 +++ b/src/Makefile.am
-@@ -3265,8 +3265,7 @@ if WITH_NETWORK
+@@ -2896,8 +2896,7 @@ if WITH_NETWORK
  	      $(DESTDIR)$(confdir)/qemu/networks/default.xml && \
  	    rm $(DESTDIR)$(confdir)/qemu/networks/default.xml.t; }
  	( cd $(DESTDIR)$(confdir)/qemu/networks/autostart && \
@@ -21,12 +21,12 @@ index 166c9a8..b799870 100644
 +	  rm -f default.xml )
  endif WITH_NETWORK
  
- uninstall-local:: uninstall-init uninstall-systemd
+ uninstall-local:: uninstall-init uninstall-systemd uninstall-upstart \
 diff --git a/src/Makefile.in b/src/Makefile.in
-index c70ba53..f95deb8 100644
+index 99ba050..4014d22 100644
 --- a/src/Makefile.in
 +++ b/src/Makefile.in
-@@ -12474,8 +12474,7 @@ install-data-local: install-init install-systemd
+@@ -13122,8 +13122,7 @@ install-data-local: install-init install-systemd install-upstart \
  @WITH_NETWORK_TRUE@	      $(DESTDIR)$(confdir)/qemu/networks/default.xml && \
  @WITH_NETWORK_TRUE@	    rm $(DESTDIR)$(confdir)/qemu/networks/default.xml.t; }
  @WITH_NETWORK_TRUE@	( cd $(DESTDIR)$(confdir)/qemu/networks/autostart && \
@@ -34,5 +34,5 @@ index c70ba53..f95deb8 100644
 -@WITH_NETWORK_TRUE@	  $(LN_S) ../default.xml default.xml )
 +@WITH_NETWORK_TRUE@	  rm -f default.xml )
  
- uninstall-local:: uninstall-init uninstall-systemd
- @WITH_LIBVIRTD_TRUE@	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/lockd/files" ||:
+ uninstall-local:: uninstall-init uninstall-systemd uninstall-upstart \
+ 		uninstall-sysctl uninstall-polkit uninstall-sasl \
