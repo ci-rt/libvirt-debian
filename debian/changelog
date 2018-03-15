@@ -1,10 +1,14 @@
-libvirt (4.1.0-1~1.gbpfed16c) UNRELEASED; urgency=medium
-
-  ** SNAPSHOT build @fed16c5d356ecd7ea58887610a11ef33d5917b1a **
+libvirt (4.1.0-1) unstable; urgency=medium
 
   * [3cbbfa5] New upstream version 4.1.0
+  * [0e596b3] Bump symbol versions
+  * [e886044] Drop patches applied upstream
+    - apparmor-allow-libvirt-to-send-term-signal-to-unconfined.patch
+    - virlog-determine-the-hostname-on-startup-CVE-2018-6764.patch
+  * [097d74c] CVE-2018-1064: qemu: avoid denial of service reading from QEMU
+    guest agent
 
- -- Guido Günther <agx@sigxcpu.org>  Wed, 14 Mar 2018 10:59:13 +0100
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 15 Mar 2018 08:25:29 +0100
 
 libvirt (4.0.0-2) unstable; urgency=medium
 
