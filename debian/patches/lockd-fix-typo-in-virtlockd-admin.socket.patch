@@ -1,0 +1,30 @@
+From: Jim Fehlig <jfehlig@suse.com>
+Date: Wed, 14 Mar 2018 16:42:39 -0600
+Subject: lockd: fix typo in virtlockd-admin.socket
+
+Commit ce7ae55ea1 introduced a typo in virtlockd-admin socket file
+
+/usr/lib/systemd/system/virtlockd-admin.socket:7: Unknown lvalue
+'Server' in section 'Socket'
+
+Change 'Server' to 'Service'.
+
+Signed-off-by: Jim Fehlig <jfehlig@suse.com>
+Reviewed-by: Erik Skultety <eskultet@redhat.com>
+---
+ src/locking/virtlockd-admin.socket.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/locking/virtlockd-admin.socket.in b/src/locking/virtlockd-admin.socket.in
+index 1fa0a3d..2a7500f 100644
+--- a/src/locking/virtlockd-admin.socket.in
++++ b/src/locking/virtlockd-admin.socket.in
+@@ -4,7 +4,7 @@ Before=libvirtd.service
+ 
+ [Socket]
+ ListenStream=@localstatedir@/run/libvirt/virtlockd-admin-sock
+-Server=virtlockd.service
++Service=virtlockd.service
+ 
+ [Install]
+ WantedBy=sockets.target

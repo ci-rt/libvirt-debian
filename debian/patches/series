@@ -18,3 +18,4 @@ Set-defaults-for-zfs-tools.patch
 Pass-GPG_TTY-env-var-to-the-ssh-binary.patch
 apparmor-Allow-virt-aa-helper-to-access-the-name-service-.patch
 security/CVE-2018-1064-qemu-avoid-denial-of-service-reading-from-Q.patch
+lockd-fix-typo-in-virtlockd-admin.socket.patch
