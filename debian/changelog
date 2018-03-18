@@ -1,3 +1,10 @@
+libvirt (4.1.0-2) unstable; urgency=medium
+
+  * [0b6cf2f] lockd: fix typo in virtlockd-admin.socket
+    (Closes: #893330)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 18 Mar 2018 10:51:37 +0100
+
 libvirt (4.1.0-1) unstable; urgency=medium
 
   * [3cbbfa5] New upstream version 4.1.0
