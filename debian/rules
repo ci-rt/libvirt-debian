@@ -138,8 +138,10 @@ DEB_CONFIGURE_EXTRA_ARGS :=      \
 LIBVIRT_SYSTEM_SERVICES = \
 	libvirt-guests.service \
 	virtlogd.socket \
+	virtlogd-admin.socket \
 	virtlogd.service \
 	virtlockd.socket \
+	virtlockd-admin.socket \
 	virtlockd.service \
 	$(NULL)
 
@@ -149,7 +151,7 @@ LOGROTATE = $(basename $(basename $(notdir $(wildcard daemon/libvirtd*.logrotate
 EXAMPLES_DIR = $(CURDIR)/debian/libvirt-doc/usr/share/doc/libvirt-doc/examples/
 
 %:
-	dh $@ --builddirectory=$(DEB_BUILDDIR) --parallel --with autoreconf
+	dh $@ --builddirectory=$(DEB_BUILDDIR) --parallel --with autoreconf --with systemd
 
 override_dh_auto_configure:
 	dh_auto_configure -- $(DEB_CONFIGURE_EXTRA_ARGS)
@@ -218,11 +220,12 @@ endif
 
 
 override_dh_installinit:
-	dh_systemd_enable
 	dh_installinit -p libvirt-daemon-system --name=virtlogd --no-restart-on-upgrade
 	dh_installinit -p libvirt-daemon-system --name=libvirtd --restart-after-upgrade -- defaults 28 72
 	dh_installinit -p libvirt-daemon-system --name=libvirt-guests --no-restart-on-upgrade -- defaults 29 71
-	dh_systemd_start -p libvirt-daemon-system --restart-after-upgrade libvirtd.service
+
+override_dh_systemd_start:
+	dh_systemd_start -p libvirt-daemon-system --restart-after-upgrade libvirtd.service 
 	dh_systemd_start -p libvirt-daemon-system --no-restart-on-upgrade $(LIBVIRT_SYSTEM_SERVICES)
 
 override_dh_installdocs:
