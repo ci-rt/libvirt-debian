@@ -4,29 +4,15 @@ Subject: Don't enable default network on boot
 
 to not interfere with existing network configurations
 ---
- src/Makefile.am | 3 +--
- src/Makefile.in | 3 +--
+ src/Makefile.in             | 3 +--
+ src/network/Makefile.inc.am | 3 +--
  2 files changed, 2 insertions(+), 4 deletions(-)
 
-diff --git a/src/Makefile.am b/src/Makefile.am
-index 3bf2da5..c17f474 100644
---- a/src/Makefile.am
-+++ b/src/Makefile.am
-@@ -2896,8 +2896,7 @@ if WITH_NETWORK
- 	      $(DESTDIR)$(confdir)/qemu/networks/default.xml && \
- 	    rm $(DESTDIR)$(confdir)/qemu/networks/default.xml.t; }
- 	( cd $(DESTDIR)$(confdir)/qemu/networks/autostart && \
--	  rm -f default.xml && \
--	  $(LN_S) ../default.xml default.xml )
-+	  rm -f default.xml )
- endif WITH_NETWORK
- 
- uninstall-local:: uninstall-init uninstall-systemd uninstall-upstart \
 diff --git a/src/Makefile.in b/src/Makefile.in
-index 99ba050..4014d22 100644
+index 771464d..d9d7146 100644
 --- a/src/Makefile.in
 +++ b/src/Makefile.in
-@@ -13122,8 +13122,7 @@ install-data-local: install-init install-systemd install-upstart \
+@@ -13023,8 +13023,7 @@ lxc/lxc_controller_dispatch.h: $(srcdir)/rpc/gendispatch.pl \
  @WITH_NETWORK_TRUE@	      $(DESTDIR)$(confdir)/qemu/networks/default.xml && \
  @WITH_NETWORK_TRUE@	    rm $(DESTDIR)$(confdir)/qemu/networks/default.xml.t; }
  @WITH_NETWORK_TRUE@	( cd $(DESTDIR)$(confdir)/qemu/networks/autostart && \
@@ -34,5 +20,19 @@ index 99ba050..4014d22 100644
 -@WITH_NETWORK_TRUE@	  $(LN_S) ../default.xml default.xml )
 +@WITH_NETWORK_TRUE@	  rm -f default.xml )
  
- uninstall-local:: uninstall-init uninstall-systemd uninstall-upstart \
- 		uninstall-sysctl uninstall-polkit uninstall-sasl \
+ @WITH_NETWORK_TRUE@uninstall-data-network:
+ @WITH_NETWORK_TRUE@	rm -f $(DESTDIR)$(confdir)/qemu/networks/autostart/default.xml
+diff --git a/src/network/Makefile.inc.am b/src/network/Makefile.inc.am
+index 508c8c0..b0df5ec 100644
+--- a/src/network/Makefile.inc.am
++++ b/src/network/Makefile.inc.am
+@@ -85,8 +85,7 @@ install-data-network:
+ 	      $(DESTDIR)$(confdir)/qemu/networks/default.xml && \
+ 	    rm $(DESTDIR)$(confdir)/qemu/networks/default.xml.t; }
+ 	( cd $(DESTDIR)$(confdir)/qemu/networks/autostart && \
+-	  rm -f default.xml && \
+-	  $(LN_S) ../default.xml default.xml )
++	  rm -f default.xml )
+ 
+ uninstall-data-network:
+ 	rm -f $(DESTDIR)$(confdir)/qemu/networks/autostart/default.xml
