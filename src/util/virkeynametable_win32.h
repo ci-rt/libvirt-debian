@@ -1,6 +1,6 @@
 /*
- * This file is auto-generated from keymaps.csv on 2018-03-05 10:00
- * Database checksum sha256(f8aeff0c3430077a350e3d7ba2b335b381bd929ac4b193413730a402ff3f0097)
+ * This file is auto-generated from keymaps.csv
+ * Database checksum sha256(ef8f29f4e4294479e2789aa61e410c4b0464d4f0ad16bcc1526086a4f123bc10)
  * To re-generate, run:
  *   keymap-gen --lang=stdc --varname=virKeyNameTable_win32 name-table keymaps.csv win32
 */

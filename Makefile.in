@@ -312,16 +312,15 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-win-symbols.m4 \
 	$(top_srcdir)/m4/virt-win-windres.m4 \
 	$(top_srcdir)/m4/virt-wireshark.m4 \
-	$(top_srcdir)/m4/virt-xdr.m4 \
-	$(top_srcdir)/m4/virt-xml-catalog.m4 \
-	$(top_srcdir)/m4/virt-yajl.m4 $(top_srcdir)/m4/vsnprintf.m4 \
-	$(top_srcdir)/m4/wait-process.m4 $(top_srcdir)/m4/waitpid.m4 \
-	$(top_srcdir)/m4/warnings.m4 $(top_srcdir)/m4/wchar_h.m4 \
-	$(top_srcdir)/m4/wchar_t.m4 $(top_srcdir)/m4/wcrtomb.m4 \
-	$(top_srcdir)/m4/wctob.m4 $(top_srcdir)/m4/wctomb.m4 \
-	$(top_srcdir)/m4/wctype_h.m4 $(top_srcdir)/m4/wint_t.m4 \
-	$(top_srcdir)/m4/write.m4 $(top_srcdir)/m4/xalloc.m4 \
-	$(top_srcdir)/m4/xsize.m4 $(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/virt-xdr.m4 $(top_srcdir)/m4/virt-yajl.m4 \
+	$(top_srcdir)/m4/vsnprintf.m4 $(top_srcdir)/m4/wait-process.m4 \
+	$(top_srcdir)/m4/waitpid.m4 $(top_srcdir)/m4/warnings.m4 \
+	$(top_srcdir)/m4/wchar_h.m4 $(top_srcdir)/m4/wchar_t.m4 \
+	$(top_srcdir)/m4/wcrtomb.m4 $(top_srcdir)/m4/wctob.m4 \
+	$(top_srcdir)/m4/wctomb.m4 $(top_srcdir)/m4/wctype_h.m4 \
+	$(top_srcdir)/m4/wint_t.m4 $(top_srcdir)/m4/write.m4 \
+	$(top_srcdir)/m4/xalloc.m4 $(top_srcdir)/m4/xsize.m4 \
+	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(top_srcdir)/configure \
@@ -1157,6 +1156,7 @@ HAVE_ISNANF = @HAVE_ISNANF@
 HAVE_ISNANL = @HAVE_ISNANL@
 HAVE_ISWBLANK = @HAVE_ISWBLANK@
 HAVE_ISWCNTRL = @HAVE_ISWCNTRL@
+HAVE_LANGINFO_ALTMON = @HAVE_LANGINFO_ALTMON@
 HAVE_LANGINFO_CODESET = @HAVE_LANGINFO_CODESET@
 HAVE_LANGINFO_ERA = @HAVE_LANGINFO_ERA@
 HAVE_LANGINFO_H = @HAVE_LANGINFO_H@
@@ -1593,9 +1593,6 @@ PKCHECK_PATH = @PKCHECK_PATH@
 PKG_CONFIG = @PKG_CONFIG@
 PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
 PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
-POLKIT_AUTH = @POLKIT_AUTH@
-POLKIT_CFLAGS = @POLKIT_CFLAGS@
-POLKIT_LIBS = @POLKIT_LIBS@
 POSIX_SHELL = @POSIX_SHELL@
 POSUB = @POSUB@
 PRAGMA_COLUMNS = @PRAGMA_COLUMNS@
@@ -1930,7 +1927,6 @@ XGETTEXT = @XGETTEXT@
 XGETTEXT_015 = @XGETTEXT_015@
 XGETTEXT_EXTRA_OPTIONS = @XGETTEXT_EXTRA_OPTIONS@
 XMLLINT = @XMLLINT@
-XML_CATALOG_FILE = @XML_CATALOG_FILE@
 XSLTPROC = @XSLTPROC@
 YAJL_CFLAGS = @YAJL_CFLAGS@
 YAJL_LIBS = @YAJL_LIBS@
@@ -2560,13 +2556,16 @@ NEWS: \
 	    $(srcdir)/docs/news.xml \
 	  >$@-tmp \
 	    || { rm -f $@-tmp; exit 1; }; \
-	  $(srcdir)/docs/reformat-news.py $@-tmp >$@ \
+	  $(PYTHON) $(srcdir)/docs/reformat-news.py $@-tmp >$@ \
 	    || { rm -f $@-tmp; exit 1; }; \
 	  rm -f $@-tmp; \
 	fi
 
 rpm: clean
 	@(unset CDPATH ; $(MAKE) dist && rpmbuild -ta $(distdir).tar.xz)
+
+srpm: clean
+	@(unset CDPATH ; $(MAKE) dist && rpmbuild -ts $(distdir).tar.xz)
 
 check-local: all tests
 

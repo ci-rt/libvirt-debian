@@ -72,9 +72,7 @@ VIR_LOG_INIT("daemon.libvirtd");
 virNetSASLContextPtr saslCtxt = NULL;
 #endif
 virNetServerProgramPtr remoteProgram = NULL;
-virNetServerProgramPtr adminProgram = NULL;
 virNetServerProgramPtr qemuProgram = NULL;
-virNetServerProgramPtr lxcProgram = NULL;
 
 volatile bool driversInitialized = false;
 
@@ -677,30 +675,6 @@ daemonVersion(const char *argv0)
     printf("%s (%s) %s\n", argv0, PACKAGE_NAME, PACKAGE_VERSION);
 }
 
-#ifdef __sun
-static int
-daemonSetupPrivs(void)
-{
-    chown("/var/run/libvirt", SYSTEM_UID, SYSTEM_UID);
-
-    if (__init_daemon_priv(PU_RESETGROUPS | PU_CLEARLIMITSET,
-                           SYSTEM_UID, SYSTEM_UID, PRIV_XVM_CONTROL, NULL)) {
-        VIR_ERROR(_("additional privileges are required"));
-        return -1;
-    }
-
-    if (priv_set(PRIV_OFF, PRIV_ALLSETS, PRIV_FILE_LINK_ANY, PRIV_PROC_INFO,
-                 PRIV_PROC_SESSION, PRIV_PROC_EXEC, PRIV_PROC_FORK, NULL)) {
-        VIR_ERROR(_("failed to set reduced privileges"));
-        return -1;
-    }
-
-    return 0;
-}
-#else
-# define daemonSetupPrivs() 0
-#endif
-
 
 static void daemonShutdownHandler(virNetDaemonPtr dmn,
                                   siginfo_t *sig ATTRIBUTE_UNUSED,
@@ -709,20 +683,32 @@ static void daemonShutdownHandler(virNetDaemonPtr dmn,
     virNetDaemonQuit(dmn);
 }
 
-static void daemonReloadHandler(virNetDaemonPtr dmn ATTRIBUTE_UNUSED,
-                                siginfo_t *sig ATTRIBUTE_UNUSED,
-                                void *opaque ATTRIBUTE_UNUSED)
+static void daemonReloadHandlerThread(void *opague ATTRIBUTE_UNUSED)
 {
-    if (!driversInitialized) {
-        VIR_WARN("Drivers are not initialized, reload ignored");
-        return;
-    }
-
     VIR_INFO("Reloading configuration on SIGHUP");
     virHookCall(VIR_HOOK_DRIVER_DAEMON, "-",
                 VIR_HOOK_DAEMON_OP_RELOAD, SIGHUP, "SIGHUP", NULL, NULL);
     if (virStateReload() < 0)
         VIR_WARN("Error while reloading drivers");
+}
+
+static void daemonReloadHandler(virNetDaemonPtr dmn ATTRIBUTE_UNUSED,
+                                siginfo_t *sig ATTRIBUTE_UNUSED,
+                                void *opaque ATTRIBUTE_UNUSED)
+{
+    virThread thr;
+
+    if (!driversInitialized) {
+        VIR_WARN("Drivers are not initialized, reload ignored");
+        return;
+    }
+
+    if (virThreadCreate(&thr, false, daemonReloadHandlerThread, NULL) < 0) {
+        /*
+         * Not much we can do on error here except log it.
+         */
+        VIR_ERROR(_("Failed to create thread to handle daemon restart"));
+    }
 }
 
 static int daemonSetupSignals(virNetDaemonPtr dmn)
@@ -1062,6 +1048,8 @@ int main(int argc, char **argv) {
     virNetDaemonPtr dmn = NULL;
     virNetServerPtr srv = NULL;
     virNetServerPtr srvAdm = NULL;
+    virNetServerProgramPtr adminProgram = NULL;
+    virNetServerProgramPtr lxcProgram = NULL;
     char *remote_config_file = NULL;
     int statuswrite = -1;
     int ret = 1;
@@ -1321,15 +1309,6 @@ int main(int argc, char **argv) {
 
     if (virNetDaemonAddServer(dmn, srv) < 0) {
         ret = VIR_DAEMON_ERR_INIT;
-        goto cleanup;
-    }
-
-    /* Beyond this point, nothing should rely on using
-     * getuid/geteuid() == 0, for privilege level checks.
-     */
-    VIR_DEBUG("Dropping privileges (if required)");
-    if (daemonSetupPrivs() < 0) {
-        ret = VIR_DAEMON_ERR_PRIVS;
         goto cleanup;
     }
 

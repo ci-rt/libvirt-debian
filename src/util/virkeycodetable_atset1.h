@@ -1,6 +1,6 @@
 /*
- * This file is auto-generated from keymaps.csv on 2018-03-05 10:00
- * Database checksum sha256(f8aeff0c3430077a350e3d7ba2b335b381bd929ac4b193413730a402ff3f0097)
+ * This file is auto-generated from keymaps.csv
+ * Database checksum sha256(ef8f29f4e4294479e2789aa61e410c4b0464d4f0ad16bcc1526086a4f123bc10)
  * To re-generate, run:
  *   keymap-gen --lang=stdc --varname=virKeyCodeTable_atset1 code-table keymaps.csv atset1
 */
@@ -173,7 +173,6 @@ const unsigned short virKeyCodeTable_atset1[454] = {
   [0xa7] = 0xe031, /* KEY_RECORD */
   [0xa8] = 0xe018, /* KEY_REWIND */
   [0xa9] = 0x63, /* KEY_PHONE */
-  [0xaa] = 0x70, /* KEY_ISO */
   [0xab] = 0xe001, /* KEY_CONFIG */
   [0xac] = 0xe032, /* KEY_HOMEPAGE */
   [0xad] = 0xe067, /* KEY_REFRESH */

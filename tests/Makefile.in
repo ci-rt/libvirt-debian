@@ -111,7 +111,7 @@ host_triplet = @host@
 @WITH_DBUS_TRUE@                 $(NULL)
 
 @WITH_DBUS_TRUE@am__append_8 = virdbusmock.la
-@WITH_DBUS_TRUE@@WITH_POLKIT1_TRUE@am__append_9 = virpolkittest
+@WITH_DBUS_TRUE@@WITH_POLKIT_TRUE@am__append_9 = virpolkittest
 @WITH_ATTR_TRUE@@WITH_SECDRIVER_SELINUX_TRUE@am__append_10 = securityselinuxtest \
 @WITH_ATTR_TRUE@@WITH_SECDRIVER_SELINUX_TRUE@                 viridentitytest
 
@@ -190,6 +190,7 @@ TESTS = $(am__EXEEXT_31) $(am__EXEEXT_37)
 @WITH_QEMU_FALSE@am__append_48 = qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c \
 @WITH_QEMU_FALSE@	qemuhelptest.c domainsnapshotxml2xmltest.c \
 @WITH_QEMU_FALSE@	qemumonitortest.c testutilsqemu.c testutilsqemu.h \
+@WITH_QEMU_FALSE@	testutilsqemuschema.c testutilsqemuschema.h \
 @WITH_QEMU_FALSE@	qemumonitorjsontest.c qemuhotplugtest.c \
 @WITH_QEMU_FALSE@	qemuagenttest.c qemucapabilitiestest.c \
 @WITH_QEMU_FALSE@	qemucaps2xmltest.c qemucommandutiltest.c \
@@ -477,16 +478,15 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-win-symbols.m4 \
 	$(top_srcdir)/m4/virt-win-windres.m4 \
 	$(top_srcdir)/m4/virt-wireshark.m4 \
-	$(top_srcdir)/m4/virt-xdr.m4 \
-	$(top_srcdir)/m4/virt-xml-catalog.m4 \
-	$(top_srcdir)/m4/virt-yajl.m4 $(top_srcdir)/m4/vsnprintf.m4 \
-	$(top_srcdir)/m4/wait-process.m4 $(top_srcdir)/m4/waitpid.m4 \
-	$(top_srcdir)/m4/warnings.m4 $(top_srcdir)/m4/wchar_h.m4 \
-	$(top_srcdir)/m4/wchar_t.m4 $(top_srcdir)/m4/wcrtomb.m4 \
-	$(top_srcdir)/m4/wctob.m4 $(top_srcdir)/m4/wctomb.m4 \
-	$(top_srcdir)/m4/wctype_h.m4 $(top_srcdir)/m4/wint_t.m4 \
-	$(top_srcdir)/m4/write.m4 $(top_srcdir)/m4/xalloc.m4 \
-	$(top_srcdir)/m4/xsize.m4 $(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/virt-xdr.m4 $(top_srcdir)/m4/virt-yajl.m4 \
+	$(top_srcdir)/m4/vsnprintf.m4 $(top_srcdir)/m4/wait-process.m4 \
+	$(top_srcdir)/m4/waitpid.m4 $(top_srcdir)/m4/warnings.m4 \
+	$(top_srcdir)/m4/wchar_h.m4 $(top_srcdir)/m4/wchar_t.m4 \
+	$(top_srcdir)/m4/wcrtomb.m4 $(top_srcdir)/m4/wctob.m4 \
+	$(top_srcdir)/m4/wctomb.m4 $(top_srcdir)/m4/wctype_h.m4 \
+	$(top_srcdir)/m4/wint_t.m4 $(top_srcdir)/m4/write.m4 \
+	$(top_srcdir)/m4/xalloc.m4 $(top_srcdir)/m4/xsize.m4 \
+	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
@@ -532,8 +532,9 @@ domaincapsmock_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 @WITH_TESTS_TRUE@am_domaincapsmock_la_rpath =
 libqemumonitortestutils_la_LIBADD =
 am__libqemumonitortestutils_la_SOURCES_DIST = qemumonitortestutils.c \
-	qemumonitortestutils.h
-am__objects_1 = qemumonitortestutils.lo
+	qemumonitortestutils.h testutilsqemuschema.h \
+	testutilsqemuschema.c
+am__objects_1 = qemumonitortestutils.lo testutilsqemuschema.lo
 @WITH_QEMU_TRUE@am_libqemumonitortestutils_la_OBJECTS =  \
 @WITH_QEMU_TRUE@	$(am__objects_1)
 libqemumonitortestutils_la_OBJECTS =  \
@@ -790,8 +791,8 @@ virusbmock_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 @WITH_LIBVIRTD_TRUE@am__EXEEXT_4 = fdstreamtest$(EXEEXT)
 @WITH_DBUS_TRUE@am__EXEEXT_5 = virdbustest$(EXEEXT) \
 @WITH_DBUS_TRUE@	virsystemdtest$(EXEEXT)
-@WITH_DBUS_TRUE@@WITH_POLKIT1_TRUE@am__EXEEXT_6 =  \
-@WITH_DBUS_TRUE@@WITH_POLKIT1_TRUE@	virpolkittest$(EXEEXT)
+@WITH_DBUS_TRUE@@WITH_POLKIT_TRUE@am__EXEEXT_6 =  \
+@WITH_DBUS_TRUE@@WITH_POLKIT_TRUE@	virpolkittest$(EXEEXT)
 @WITH_ATTR_TRUE@@WITH_SECDRIVER_SELINUX_TRUE@am__EXEEXT_7 = securityselinuxtest$(EXEEXT) \
 @WITH_ATTR_TRUE@@WITH_SECDRIVER_SELINUX_TRUE@	viridentitytest$(EXEEXT)
 @WITH_ATTR_TRUE@@WITH_QEMU_TRUE@@WITH_SECDRIVER_SELINUX_TRUE@am__EXEEXT_8 = securityselinuxlabeltest$(EXEEXT)
@@ -2762,6 +2763,7 @@ HAVE_ISNANF = @HAVE_ISNANF@
 HAVE_ISNANL = @HAVE_ISNANL@
 HAVE_ISWBLANK = @HAVE_ISWBLANK@
 HAVE_ISWCNTRL = @HAVE_ISWCNTRL@
+HAVE_LANGINFO_ALTMON = @HAVE_LANGINFO_ALTMON@
 HAVE_LANGINFO_CODESET = @HAVE_LANGINFO_CODESET@
 HAVE_LANGINFO_ERA = @HAVE_LANGINFO_ERA@
 HAVE_LANGINFO_H = @HAVE_LANGINFO_H@
@@ -3198,9 +3200,6 @@ PKCHECK_PATH = @PKCHECK_PATH@
 PKG_CONFIG = @PKG_CONFIG@
 PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
 PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
-POLKIT_AUTH = @POLKIT_AUTH@
-POLKIT_CFLAGS = @POLKIT_CFLAGS@
-POLKIT_LIBS = @POLKIT_LIBS@
 POSIX_SHELL = @POSIX_SHELL@
 POSUB = @POSUB@
 PRAGMA_COLUMNS = @PRAGMA_COLUMNS@
@@ -3535,7 +3534,6 @@ XGETTEXT = @XGETTEXT@
 XGETTEXT_015 = @XGETTEXT_015@
 XGETTEXT_EXTRA_OPTIONS = @XGETTEXT_EXTRA_OPTIONS@
 XMLLINT = @XMLLINT@
-XML_CATALOG_FILE = @XML_CATALOG_FILE@
 XSLTPROC = @XSLTPROC@
 YAJL_CFLAGS = @YAJL_CFLAGS@
 YAJL_LIBS = @YAJL_LIBS@
@@ -3669,20 +3667,20 @@ EXTRA_DIST = .valgrind.supp bhyvexml2argvdata bhyveargv2xmldata \
 	qemucapabilitiesdata qemucaps2xmldata qemuhelpdata \
 	qemuhotplugtestcpus qemuhotplugtestdevices \
 	qemuhotplugtestdomains qemumonitorjsondata qemuxml2argvdata \
-	qemuxml2xmloutdata qemumemlockdata secretxml2xmlin \
-	securityselinuxhelperdata securityselinuxlabeldata \
-	sexpr2xmldata storagepoolschemadata storagepoolxml2xmlin \
-	storagepoolxml2xmlout storagevolschemadata \
-	storagevolxml2argvdata storagevolxml2xmlin \
-	storagevolxml2xmlout sysinfodata test-lib.sh \
-	vboxsnapshotxmldata vircaps2xmldata vircgroupdata virconfdata \
-	virfiledata virjsondata virmacmaptestdata virmock.h \
-	virnetdaemondata virnetdevtestdata virpcitestdata virscsidata \
-	virsh-uriprecedence virusbtestdata vmwareverdata vmx2xmldata \
-	xencapsdata xlconfigdata xmconfigdata xml2sexprdata \
-	xml2vmxdata virstorageutildata virfilecachedata virresctrldata \
-	$(NULL) $(am__append_40) virt-aa-helper-test $(test_scripts) \
-	check-file-access.pl file_access_whitelist.txt \
+	qemuxml2xmloutdata qemustatusxml2xmldata qemuqapischema.json \
+	qemumemlockdata secretxml2xmlin securityselinuxhelperdata \
+	securityselinuxlabeldata sexpr2xmldata storagepoolschemadata \
+	storagepoolxml2xmlin storagepoolxml2xmlout \
+	storagevolschemadata storagevolxml2argvdata \
+	storagevolxml2xmlin storagevolxml2xmlout sysinfodata \
+	test-lib.sh vboxsnapshotxmldata vircaps2xmldata vircgroupdata \
+	virconfdata virfiledata virjsondata virmacmaptestdata \
+	virmock.h virnetdaemondata virnetdevtestdata virpcitestdata \
+	virscsidata virsh-uriprecedence virusbtestdata vmwareverdata \
+	vmx2xmldata xencapsdata xlconfigdata xmconfigdata \
+	xml2sexprdata xml2vmxdata virstorageutildata virfilecachedata \
+	virresctrldata $(NULL) $(am__append_40) virt-aa-helper-test \
+	$(test_scripts) check-file-access.pl file_access_whitelist.txt \
 	$(am__append_42) $(am__append_44) $(am__append_48) \
 	$(am__append_50) $(am__append_51) openvzutilstest.conf \
 	$(am__append_52) $(am__append_53) $(am__append_54) \
@@ -3821,6 +3819,7 @@ sockettest_LDADD = $(LDADDS)
 QEMUMONITORTESTUTILS_SOURCES = \
 	qemumonitortestutils.c \
 	qemumonitortestutils.h \
+	testutilsqemuschema.h testutilsqemuschema.c \
 	$(NULL)
 
 @WITH_QEMU_TRUE@libqemumonitortestutils_la_SOURCES = $(QEMUMONITORTESTUTILS_SOURCES)
@@ -5306,6 +5305,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testutils.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testutilslxc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testutilsqemu.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testutilsqemuschema.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testutilsxen.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/utiltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vboxsnapshotxmltest.Po@am__quote@

@@ -1,10 +1,10 @@
 /*
- * This file is auto-generated from keymaps.csv on 2018-03-05 10:00
- * Database checksum sha256(f8aeff0c3430077a350e3d7ba2b335b381bd929ac4b193413730a402ff3f0097)
+ * This file is auto-generated from keymaps.csv
+ * Database checksum sha256(ef8f29f4e4294479e2789aa61e410c4b0464d4f0ad16bcc1526086a4f123bc10)
  * To re-generate, run:
- *   keymap-gen --lang=stdc --varname=virKeyCodeTable_rfb code-table keymaps.csv rfb
+ *   keymap-gen --lang=stdc --varname=virKeyCodeTable_qnum code-table keymaps.csv qnum
 */
-const unsigned short virKeyCodeTable_rfb[454] = {
+const unsigned short virKeyCodeTable_qnum[454] = {
   [0x1] = 0x1, /* KEY_ESC */
   [0x2] = 0x2, /* KEY_1 */
   [0x3] = 0x3, /* KEY_2 */
@@ -173,7 +173,6 @@ const unsigned short virKeyCodeTable_rfb[454] = {
   [0xa7] = 0xb1, /* KEY_RECORD */
   [0xa8] = 0x98, /* KEY_REWIND */
   [0xa9] = 0x63, /* KEY_PHONE */
-  [0xaa] = 0x70, /* KEY_ISO */
   [0xab] = 0x81, /* KEY_CONFIG */
   [0xac] = 0xb2, /* KEY_HOMEPAGE */
   [0xad] = 0xe7, /* KEY_REFRESH */
@@ -244,4 +243,4 @@ const unsigned short virKeyCodeTable_rfb[454] = {
   [0xee] = 0xf3, /* KEY_WLAN */
   [0xef] = 0xf4, /* KEY_UWB */
 };
-const unsigned int virKeyCodeTable_rfb_len = sizeof(virKeyCodeTable_rfb)/sizeof(virKeyCodeTable_rfb[0]);
+const unsigned int virKeyCodeTable_qnum_len = sizeof(virKeyCodeTable_qnum)/sizeof(virKeyCodeTable_qnum[0]);

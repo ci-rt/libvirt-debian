@@ -576,6 +576,40 @@ qemuMonitorJSONGuestPanicExtractInfoHyperv(virJSONValuePtr data)
     return NULL;
 }
 
+static qemuMonitorEventPanicInfoPtr
+qemuMonitorJSONGuestPanicExtractInfoS390(virJSONValuePtr data)
+{
+    qemuMonitorEventPanicInfoPtr ret;
+    int core;
+    unsigned long long psw_mask, psw_addr;
+    const char *reason = NULL;
+
+    if (VIR_ALLOC(ret) < 0)
+        return NULL;
+
+    ret->type = QEMU_MONITOR_EVENT_PANIC_INFO_TYPE_S390;
+
+    if (virJSONValueObjectGetNumberInt(data, "core", &core) < 0 ||
+        virJSONValueObjectGetNumberUlong(data, "psw-mask", &psw_mask) < 0 ||
+        virJSONValueObjectGetNumberUlong(data, "psw-addr", &psw_addr) < 0 ||
+        !(reason = virJSONValueObjectGetString(data, "reason"))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("malformed s390 panic data"));
+        goto error;
+    }
+
+    ret->data.s390.core = core;
+    ret->data.s390.psw_mask = psw_mask;
+    ret->data.s390.psw_addr = psw_addr;
+
+    if (VIR_STRDUP(ret->data.s390.reason, reason) < 0)
+        goto error;
+
+    return ret;
+
+ error:
+    qemuMonitorEventPanicInfoFree(ret);
+    return NULL;
+}
 
 static qemuMonitorEventPanicInfoPtr
 qemuMonitorJSONGuestPanicExtractInfo(virJSONValuePtr data)
@@ -584,6 +618,8 @@ qemuMonitorJSONGuestPanicExtractInfo(virJSONValuePtr data)
 
     if (STREQ_NULLABLE(type, "hyper-v"))
         return qemuMonitorJSONGuestPanicExtractInfoHyperv(data);
+    else if (STREQ_NULLABLE(type, "s390"))
+        return qemuMonitorJSONGuestPanicExtractInfoS390(data);
 
     virReportError(VIR_ERR_INTERNAL_ERROR,
                    _("unknown panic info type '%s'"), NULLSTR(type));
@@ -7740,35 +7776,12 @@ qemuMonitorJSONGetHotpluggableCPUs(qemuMonitorPtr mon,
 }
 
 
-static int
-qemuMonitorJSONFillQMPSchema(size_t pos ATTRIBUTE_UNUSED,
-                             virJSONValuePtr item,
-                             void *opaque)
-{
-    const char *name;
-    virHashTablePtr schema = opaque;
-
-    if (!(name = virJSONValueObjectGetString(item, "name"))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("malformed QMP schema"));
-        return -1;
-    }
-
-    if (virHashAddEntry(schema, name, item) < 0)
-        return -1;
-
-    return 0;
-}
-
-
-virHashTablePtr
+virJSONValuePtr
 qemuMonitorJSONQueryQMPSchema(qemuMonitorPtr mon)
 {
     virJSONValuePtr cmd;
     virJSONValuePtr reply = NULL;
-    virJSONValuePtr arr;
-    virHashTablePtr schema = NULL;
-    virHashTablePtr ret = NULL;
+    virJSONValuePtr ret = NULL;
 
     if (!(cmd = qemuMonitorJSONMakeCommand("query-qmp-schema", NULL)))
         return NULL;
@@ -7779,21 +7792,13 @@ qemuMonitorJSONQueryQMPSchema(qemuMonitorPtr mon)
     if (qemuMonitorJSONCheckError(cmd, reply) < 0)
         goto cleanup;
 
-    arr = virJSONValueObjectGet(reply, "return");
-
-    if (!(schema = virHashCreate(512, virJSONValueHashFree)))
-        goto cleanup;
-
-    if (virJSONValueArrayForeachSteal(arr, qemuMonitorJSONFillQMPSchema,
-                                      schema) < 0)
-        goto cleanup;
-
-    VIR_STEAL_PTR(ret, schema);
+    if (!(ret = virJSONValueObjectStealArray(reply, "return")))
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("query-qmp-schema reply is not an array"));
 
  cleanup:
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
-    virHashFree(schema);
 
     return ret;
 }

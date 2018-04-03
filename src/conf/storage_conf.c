@@ -527,7 +527,7 @@ virStoragePoolDefParseSource(xmlXPathContextPtr ctxt,
     }
 
     if ((authnode = virXPathNode("./auth", ctxt))) {
-        if (!(authdef = virStorageAuthDefParse(node->doc, authnode)))
+        if (!(authdef = virStorageAuthDefParse(authnode, ctxt)))
             goto cleanup;
 
         if (authdef->authType == VIR_STORAGE_AUTH_TYPE_NONE) {
@@ -1209,8 +1209,7 @@ virStorageVolDefParseXML(virStoragePoolDefPtr pool,
 
     node = virXPathNode("./target/encryption", ctxt);
     if (node != NULL) {
-        ret->target.encryption = virStorageEncryptionParseNode(ctxt->doc,
-                                                               node);
+        ret->target.encryption = virStorageEncryptionParseNode(node, ctxt);
         if (ret->target.encryption == NULL)
             goto error;
     }

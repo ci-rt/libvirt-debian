@@ -1548,10 +1548,6 @@
 /* Define to 1 if you have the 'pipe2' function. */
 #undef HAVE_PIPE2
 
-/* Define to 1 if you have the `polkit_context_is_caller_authorized' function.
-   */
-#undef HAVE_POLKIT_CONTEXT_IS_CALLER_AUTHORIZED
-
 /* Define to 1 if you have the 'poll' function and it works. */
 #undef HAVE_POLL
 
@@ -2406,9 +2402,6 @@
 /* Location or name of the parted program */
 #undef PARTED
 
-/* Location of polkit-auth program */
-#undef POLKIT_AUTH
-
 /* Define if <inttypes.h> exists and defines unusable PRI* macros. */
 #undef PRI_MACROS_BROKEN
 
@@ -2637,6 +2630,11 @@
 #ifndef _XOPEN_SOURCE
 # undef _XOPEN_SOURCE
 #endif
+/* Enable X/Open compliant socket functions that do not require linking
+   with -lxnet on HP-UX 11.11.  */
+#ifndef _HPUX_ALT_XOPEN_SOCKET_API
+# undef _HPUX_ALT_XOPEN_SOCKET_API
+#endif
 /* Enable general extensions on Solaris.  */
 #ifndef __EXTENSIONS__
 # undef __EXTENSIONS__
@@ -2829,12 +2827,6 @@
 
 /* use PolicyKit for UNIX socket access checks */
 #undef WITH_POLKIT
-
-/* use PolicyKit for UNIX socket access checks */
-#undef WITH_POLKIT0
-
-/* use PolicyKit for UNIX socket access checks */
-#undef WITH_POLKIT1
 
 /* whether QEMU driver is enabled */
 #undef WITH_QEMU

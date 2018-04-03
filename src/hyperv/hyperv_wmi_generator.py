@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 #
 # hyperv_wmi_generator.py: generates most of the WMI type mapping code
@@ -19,6 +19,8 @@
 # License along with this library.  If not, see
 # <http://www.gnu.org/licenses/>.
 #
+
+from __future__ import print_function
 
 import sys
 import os
@@ -42,9 +44,9 @@ class WmiClass:
     to.
     """
 
-    def __init__(self, name, versions = []):
+    def __init__(self, name, versions=None):
         self.name = name
-        self.versions = versions
+        self.versions = versions if versions else list()
         self.common = None
 
 
@@ -57,7 +59,7 @@ class WmiClass:
         """
         # sort vesioned classes by version in case input file did not have them
         # in order
-        self.versions = sorted(self.versions, key=lambda cls: cls.version)
+        self.versions = sorted(self.versions, key=lambda cls: cls.version or "")
 
         # if there's more than one verion make sure first one has name suffixed
         # because we'll generate "common" memeber and will be the "base" name
@@ -269,7 +271,7 @@ class WmiClass:
 
         # isolate those that are common for all and keep track of their postions
         pos = 0
-        for key in property_info:
+        for key in sorted(property_info):
             info = property_info[key]
             # exists in all class versions
             if info[1] == num_classes:
@@ -340,21 +342,23 @@ class WmiClassVersion:
 
 
 class Property:
-    typemap = {"boolean"  : "BOOL",
-               "string"   : "STR",
-               "datetime" : "STR",
-               "int8"     : "INT8",
-               "sint8"    : "INT8",
-               "int16"    : "INT16",
-               "sint16"   : "INT16",
-               "int32"    : "INT32",
-               "sint32"   : "INT32",
-               "int64"    : "INT64",
-               "sint64"   : "INT64",
-               "uint8"    : "UINT8",
-               "uint16"   : "UINT16",
-               "uint32"   : "UINT32",
-               "uint64"   : "UINT64"}
+    typemap = {
+        "boolean": "BOOL",
+        "string": "STR",
+        "datetime": "STR",
+        "int8": "INT8",
+        "sint8": "INT8",
+        "int16": "INT16",
+        "sint16": "INT16",
+        "int32": "INT32",
+        "sint32": "INT32",
+        "int64": "INT64",
+        "sint64": "INT64",
+        "uint8": "UINT8",
+        "uint16": "UINT16",
+        "uint32": "UINT32",
+        "uint64": "UINT64"
+    }
 
 
     def __init__(self, type, name, is_array):
@@ -390,16 +394,16 @@ class Property:
 
 def open_and_print(filename):
     if filename.startswith("./"):
-        print "  GEN      " + filename[2:]
+        print("  GEN      " + filename[2:])
     else:
-        print "  GEN      " + filename
+        print("  GEN      " + filename)
 
-    return open(filename, "wb")
+    return open(filename, "wt")
 
 
 
 def report_error(message):
-    print "error: " + message
+    print("error: " + message)
     sys.exit(1)
 
 
@@ -466,7 +470,7 @@ def main():
     number = 0
     block = None
 
-    for line in file(input_filename, "rb").readlines():
+    for line in open(input_filename, "rt").readlines():
         number += 1
 
         if "#" in line:
@@ -499,8 +503,7 @@ def main():
     classes_header.write(notice)
     classes_source.write(notice)
 
-    names = wmi_classes_by_name.keys()
-    names.sort()
+    names = sorted(wmi_classes_by_name.keys())
 
     for name in names:
         cls = wmi_classes_by_name[name]

@@ -132,7 +132,7 @@ VIR_ENUM_IMPL(qemuDeviceVideoSecondary, VIR_DOMAIN_VIDEO_TYPE_LAST,
               "", /* don't support vbox */
               "qxl",
               "", /* don't support parallels */
-              "virtio-gpu-pci",
+              "virtio-gpu",
               "" /* don't support gop */);
 
 VIR_ENUM_DECL(qemuSoundCodec)
@@ -2545,8 +2545,34 @@ qemuControllerModelUSBToCaps(int model)
 }
 
 
+static const char *
+qemuBuildUSBControllerFindMasterAlias(const virDomainDef *domainDef,
+                                      const virDomainControllerDef *def)
+{
+    size_t i;
+
+    for (i = 0; i < domainDef->ncontrollers; i++) {
+        const virDomainControllerDef *tmp = domainDef->controllers[i];
+
+        if (tmp->type != VIR_DOMAIN_CONTROLLER_TYPE_USB)
+            continue;
+
+        if (tmp->idx != def->idx)
+            continue;
+
+        if (tmp->info.mastertype == VIR_DOMAIN_CONTROLLER_MASTER_USB)
+            continue;
+
+        return tmp->info.alias;
+    }
+
+    return NULL;
+}
+
+
 static int
-qemuBuildUSBControllerDevStr(virDomainControllerDefPtr def,
+qemuBuildUSBControllerDevStr(const virDomainDef *domainDef,
+                             virDomainControllerDefPtr def,
                              virQEMUCapsPtr qemuCaps,
                              virBuffer *buf)
 {
@@ -2586,11 +2612,19 @@ qemuBuildUSBControllerDevStr(virDomainControllerDefPtr def,
                           def->opts.usbopts.ports, def->opts.usbopts.ports);
     }
 
-    if (def->info.mastertype == VIR_DOMAIN_CONTROLLER_MASTER_USB)
+    if (def->info.mastertype == VIR_DOMAIN_CONTROLLER_MASTER_USB) {
+        const char *masterbus;
+
+        if (!(masterbus = qemuBuildUSBControllerFindMasterAlias(domainDef, def))) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("masterbus not found"));
+            return -1;
+        }
         virBufferAsprintf(buf, ",masterbus=%s.0,firstport=%d",
-                          def->info.alias, def->info.master.usb.startport);
-    else
+                          masterbus, def->info.master.usb.startport);
+    } else {
         virBufferAsprintf(buf, ",id=%s", def->info.alias);
+    }
 
     return 0;
 }
@@ -2722,7 +2756,7 @@ qemuBuildControllerDevStr(const virDomainDef *domainDef,
         break;
 
     case VIR_DOMAIN_CONTROLLER_TYPE_USB:
-        if (qemuBuildUSBControllerDevStr(def, qemuCaps, &buf) == -1)
+        if (qemuBuildUSBControllerDevStr(domainDef, def, qemuCaps, &buf) == -1)
             goto error;
 
         if (nusbcontroller)
@@ -3921,6 +3955,8 @@ qemuBuildVirtioInputDevStr(const virDomainDef *def,
 
     if (dev->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
         suffix = "-pci";
+    } else if (dev->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW) {
+        suffix = "-ccw";
     } else if (dev->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_MMIO) {
         suffix = "-device";
     } else {
@@ -3932,7 +3968,9 @@ qemuBuildVirtioInputDevStr(const virDomainDef *def,
 
     switch ((virDomainInputType) dev->type) {
     case VIR_DOMAIN_INPUT_TYPE_MOUSE:
-        if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_MOUSE)) {
+        if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_MOUSE) ||
+            (dev->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW &&
+             !virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_VIRTIO_MOUSE_CCW))) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("virtio-mouse is not supported by this QEMU binary"));
             goto error;
@@ -3940,7 +3978,9 @@ qemuBuildVirtioInputDevStr(const virDomainDef *def,
         virBufferAsprintf(&buf, "virtio-mouse%s,id=%s", suffix, dev->info.alias);
         break;
     case VIR_DOMAIN_INPUT_TYPE_TABLET:
-        if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_TABLET)) {
+        if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_TABLET) ||
+            (dev->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW &&
+             !virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_VIRTIO_TABLET_CCW))) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("virtio-tablet is not supported by this QEMU binary"));
             goto error;
@@ -3948,7 +3988,9 @@ qemuBuildVirtioInputDevStr(const virDomainDef *def,
         virBufferAsprintf(&buf, "virtio-tablet%s,id=%s", suffix, dev->info.alias);
         break;
     case VIR_DOMAIN_INPUT_TYPE_KBD:
-        if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_KEYBOARD)) {
+        if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_KEYBOARD) ||
+            (dev->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW &&
+             !virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_VIRTIO_KEYBOARD_CCW))) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("virtio-keyboard is not supported by this QEMU binary"));
             goto error;
@@ -4262,7 +4304,16 @@ qemuBuildDeviceVideoStr(const virDomainDef *def,
         goto error;
     }
 
-    virBufferAsprintf(&buf, "%s,id=%s", model, video->info.alias);
+    if (STREQ(model, "virtio-gpu")) {
+        if (video->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW)
+            virBufferAsprintf(&buf, "%s-ccw", model);
+        else
+            virBufferAsprintf(&buf, "%s-pci", model);
+    } else {
+        virBufferAsprintf(&buf, "%s", model);
+    }
+
+    virBufferAsprintf(&buf, ",id=%s", video->info.alias);
 
     if (video->accel && video->accel->accel3d == VIR_TRISTATE_SWITCH_ON) {
         virBufferAsprintf(&buf, ",virgl=%s",
@@ -8667,6 +8718,32 @@ qemuBuildNetCommandLine(virQEMUDriverPtr driver,
 }
 
 
+static const char *
+qemuBuildSmartcardFindCCIDController(const virDomainDef *def,
+                                     const virDomainSmartcardDef *smartcard)
+{
+    size_t i;
+
+    /* Should never happen. But doesn't hurt to check. */
+    if (smartcard->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCID)
+        return NULL;
+
+    for (i = 0; i < def->ncontrollers; i++) {
+        const virDomainControllerDef *tmp = def->controllers[i];
+
+        if (tmp->type != VIR_DOMAIN_CONTROLLER_TYPE_CCID)
+            continue;
+
+        if (tmp->idx != smartcard->info.addr.ccid.controller)
+            continue;
+
+        return tmp->info.alias;
+    }
+
+    return NULL;
+}
+
+
 static int
 qemuBuildSmartcardCommandLine(virLogManagerPtr logManager,
                               virCommandPtr cmd,
@@ -8680,6 +8757,7 @@ qemuBuildSmartcardCommandLine(virLogManagerPtr logManager,
     char *devstr;
     virBuffer opt = VIR_BUFFER_INITIALIZER;
     const char *database;
+    const char *contAlias = NULL;
 
     if (!def->nsmartcards)
         return 0;
@@ -8777,8 +8855,17 @@ qemuBuildSmartcardCommandLine(virLogManagerPtr logManager,
         virBufferFreeAndReset(&opt);
         return -1;
     }
+
+    if (!(contAlias = qemuBuildSmartcardFindCCIDController(def,
+                                                           smartcard))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to find controller for %s"),
+                       smartcard->info.alias);
+        return -1;
+    }
+
     virCommandAddArg(cmd, "-device");
-    virBufferAsprintf(&opt, ",id=%s,bus=ccid0.0", smartcard->info.alias);
+    virBufferAsprintf(&opt, ",id=%s,bus=%s.0", smartcard->info.alias, contAlias);
     virCommandAddArgBuffer(cmd, &opt);
 
     return 0;

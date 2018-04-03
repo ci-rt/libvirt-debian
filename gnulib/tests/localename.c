@@ -40,7 +40,7 @@
 # if defined __APPLE__ && defined __MACH__
 #  include <xlocale.h>
 # endif
-# if (__GLIBC__ >= 2 && !defined __UCLIBC__) || defined __CYGWIN__
+# if (__GLIBC__ >= 2 && !defined __UCLIBC__) || (defined __linux__ && HAVE_LANGINFO_H) || defined __CYGWIN__
 #  include <langinfo.h>
 # endif
 # if !defined IN_LIBINTL
@@ -2592,7 +2592,7 @@ get_lcid (const char *locale_name)
 #endif
 
 
-#if HAVE_USELOCALE /* glibc, Solaris >= 12 or Mac OS X */
+#if HAVE_USELOCALE /* glibc, Mac OS X, Solaris 11 OpenIndiana, or Solaris 12  */
 
 /* Simple hash set of strings.  We don't want to drag in lots of hash table
    code here.  */
@@ -2703,6 +2703,9 @@ gl_locale_name_thread_unsafe (int category, const char *categoryname)
              nl_langinfo (_NL_LOCALE_NAME (category)).  */
           name = thread_locale->__names[category];
         return name;
+#  elif defined __linux__ && HAVE_LANGINFO_H && defined NL_LOCALE_NAME
+        /* musl libc */
+        return nl_langinfo_l (NL_LOCALE_NAME (category), thread_locale);
 #  elif (defined __FreeBSD__ || defined __DragonFly__) || (defined __APPLE__ && defined __MACH__)
         /* FreeBSD, Mac OS X */
         int mask;
@@ -2731,9 +2734,27 @@ gl_locale_name_thread_unsafe (int category, const char *categoryname)
             return "";
           }
         return querylocale (mask, thread_locale);
-#  elif defined __sun && HAVE_GETLOCALENAME_L
+#  elif defined __sun
+#   if HAVE_GETLOCALENAME_L
         /* Solaris >= 12.  */
         return getlocalename_l (category, thread_locale);
+#   else
+        /* Solaris 11 OpenIndiana.
+           For the internal structure of locale objects, see
+           https://github.com/OpenIndiana/illumos-gate/blob/master/usr/src/lib/libc/port/locale/localeimpl.h  */
+        switch (category)
+          {
+          case LC_CTYPE:
+          case LC_NUMERIC:
+          case LC_TIME:
+          case LC_COLLATE:
+          case LC_MONETARY:
+          case LC_MESSAGES:
+            return ((const char * const *) thread_locale)[category];
+          default: /* We shouldn't get here.  */
+            return "";
+          }
+#   endif
 #  elif defined __CYGWIN__
         /* Cygwin < 2.6 lacks uselocale and thread-local locales altogether.
            Cygwin <= 2.6.1 lacks NL_LOCALE_NAME, requiring peeking inside

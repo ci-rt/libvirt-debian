@@ -70,6 +70,7 @@
 #include "virnetdevopenvswitch.h"
 #include "capabilities.h"
 #include "viralloc.h"
+#include "virarptable.h"
 #include "viruuid.h"
 #include "domain_conf.h"
 #include "domain_audit.h"
@@ -156,6 +157,9 @@ static int qemuOpenFileAs(uid_t fallback_uid, gid_t fallback_gid,
 static int qemuGetDHCPInterfaces(virDomainPtr dom,
                                  virDomainObjPtr vm,
                                  virDomainInterfacePtr **ifaces);
+
+static int qemuARPGetInterfaces(virDomainObjPtr vm,
+                                virDomainInterfacePtr **ifaces);
 
 static virQEMUDriverPtr qemu_driver;
 
@@ -1206,7 +1210,7 @@ qemuConnectSupportsFeature(virConnectPtr conn, int feature)
     if (virConnectSupportsFeatureEnsureACL(conn) < 0)
         return -1;
 
-    switch (feature) {
+    switch ((virDrvFeature) feature) {
     case VIR_DRV_FEATURE_MIGRATION_V2:
     case VIR_DRV_FEATURE_MIGRATION_V3:
     case VIR_DRV_FEATURE_MIGRATION_P2P:
@@ -1217,6 +1221,12 @@ qemuConnectSupportsFeature(virConnectPtr conn, int feature)
     case VIR_DRV_FEATURE_MIGRATION_OFFLINE:
     case VIR_DRV_FEATURE_MIGRATION_PARAMS:
         return 1;
+    case VIR_DRV_FEATURE_MIGRATION_DIRECT:
+    case VIR_DRV_FEATURE_MIGRATION_V1:
+    case VIR_DRV_FEATURE_PROGRAM_KEEPALIVE:
+    case VIR_DRV_FEATURE_REMOTE:
+    case VIR_DRV_FEATURE_REMOTE_CLOSE_CALLBACK:
+    case VIR_DRV_FEATURE_REMOTE_EVENT_CALLBACK:
     default:
         return 0;
     }
@@ -2580,17 +2590,17 @@ static int qemuDomainSendKey(virDomainPtr domain,
 
     virCheckFlags(0, -1);
 
-    /* translate the keycode to RFB for qemu driver */
-    if (codeset != VIR_KEYCODE_SET_RFB) {
+    /* translate the keycode to QNUM for qemu driver */
+    if (codeset != VIR_KEYCODE_SET_QNUM) {
         size_t i;
         int keycode;
 
         for (i = 0; i < nkeycodes; i++) {
-            keycode = virKeycodeValueTranslate(codeset, VIR_KEYCODE_SET_RFB,
+            keycode = virKeycodeValueTranslate(codeset, VIR_KEYCODE_SET_QNUM,
                                                keycodes[i]);
             if (keycode < 0) {
                 virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("cannot translate keycode %u of %s codeset to rfb keycode"),
+                               _("cannot translate keycode %u of %s codeset to qnum keycode"),
                                keycodes[i],
                                virKeycodeSetTypeToString(codeset));
                 return -1;
@@ -7919,7 +7929,7 @@ qemuDomainUpdateDeviceLive(virDomainObjPtr vm,
         break;
 
     case VIR_DOMAIN_DEVICE_GRAPHICS:
-        if ((idx = qemuDomainFindGraphicsIndex(vm->def, dev->data.graphics) >= 0)) {
+        if ((idx = qemuDomainFindGraphicsIndex(vm->def, dev->data.graphics)) >= 0) {
             oldDev.data.graphics = vm->def->graphics[idx];
             if (virDomainDefCompatibleDevice(vm->def, dev, &oldDev) < 0)
                 return -1;
@@ -20348,7 +20358,7 @@ qemuConnectGetAllDomainStats(virConnectPtr conn,
     }
 
     if (VIR_ALLOC_N(tmpstats, nvms + 1) < 0)
-        return -1;
+        goto cleanup;
 
     if (qemuDomainGetStatsNeedMonitor(stats))
         privflags |= QEMU_DOMAIN_STATS_HAVE_JOB;
@@ -20516,6 +20526,10 @@ qemuDomainInterfaceAddresses(virDomainPtr dom,
 
         break;
 
+    case VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP:
+        ret = qemuARPGetInterfaces(vm, ifaces);
+        break;
+
     default:
         virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED,
                        _("Unknown IP address data source %d"),
@@ -20622,6 +20636,70 @@ qemuGetDHCPInterfaces(virDomainPtr dom,
     VIR_FREE(ifaces_ret);
 
     goto cleanup;
+}
+
+
+static int
+qemuARPGetInterfaces(virDomainObjPtr vm,
+                     virDomainInterfacePtr **ifaces)
+{
+    size_t i, j;
+    size_t ifaces_count = 0;
+    int ret = -1;
+    char macaddr[VIR_MAC_STRING_BUFLEN];
+    virDomainInterfacePtr *ifaces_ret = NULL;
+    virDomainInterfacePtr iface = NULL;
+    virArpTablePtr table;
+
+    table = virArpTableGet();
+    if (!table)
+        goto cleanup;
+
+    for (i = 0; i < vm->def->nnets; i++) {
+        if (vm->def->nets[i]->type != VIR_DOMAIN_NET_TYPE_NETWORK)
+            continue;
+
+        virMacAddrFormat(&(vm->def->nets[i]->mac), macaddr);
+        for (j = 0; j < table->n; j++) {
+            virArpTableEntry entry = table->t[j];
+
+            if (STREQ(entry.mac, macaddr)) {
+                if (VIR_ALLOC(iface) < 0)
+                    goto cleanup;
+
+                if (VIR_STRDUP(iface->name, vm->def->nets[i]->ifname) < 0)
+                    goto cleanup;
+
+                if (VIR_STRDUP(iface->hwaddr, macaddr) < 0)
+                    goto cleanup;
+
+                if (VIR_ALLOC(iface->addrs) < 0)
+                    goto cleanup;
+                iface->naddrs = 1;
+
+                if (VIR_STRDUP(iface->addrs->addr, entry.ipaddr) < 0)
+                    goto cleanup;
+
+                if (VIR_APPEND_ELEMENT(ifaces_ret, ifaces_count, iface) < 0)
+                    goto cleanup;
+            }
+        }
+    }
+
+    VIR_STEAL_PTR(*ifaces, ifaces_ret);
+    ret = ifaces_count;
+
+ cleanup:
+    virArpTableFree(table);
+    virDomainInterfaceFree(iface);
+
+    if (ifaces_ret) {
+        for (i = 0; i < ifaces_count; i++)
+            virDomainInterfaceFree(ifaces_ret[i]);
+    }
+    VIR_FREE(ifaces_ret);
+
+    return ret;
 }
 
 

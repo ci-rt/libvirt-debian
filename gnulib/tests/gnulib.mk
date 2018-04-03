@@ -670,7 +670,7 @@ EXTRA_DIST += test-getprogname.c
 
 GNULIB_TESTS += test-getsockname
 check_PROGRAMS += test-getsockname
-test_getsockname_LDADD = $(LDADD) @LIBSOCKET@
+test_getsockname_LDADD = $(LDADD) @LIBSOCKET@ $(INET_PTON_LIB)
 EXTRA_DIST += test-getsockname.c signature.h macros.h
 
 ## end   gnulib module getsockname-tests

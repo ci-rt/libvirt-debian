@@ -1,3 +1,15 @@
+libvirt (4.2.0-1~1.gbp91aebf) UNRELEASED; urgency=medium
+
+  ** SNAPSHOT build @91aebf3f9c4a6bd399fd46031712e83a38daa085 **
+
+  [ Laurent Bigonville ]
+  * [8d62a8c] Start admin sockets on installation (Closes: #893484)
+
+  [ Guido Günther ]
+  * [417534b] New upstream version 4.2.0
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 03 Apr 2018 13:24:38 +0200
+
 libvirt (4.1.0-2) unstable; urgency=medium
 
   * [0b6cf2f] lockd: fix typo in virtlockd-admin.socket

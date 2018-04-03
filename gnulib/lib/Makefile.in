@@ -335,16 +335,15 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-win-symbols.m4 \
 	$(top_srcdir)/m4/virt-win-windres.m4 \
 	$(top_srcdir)/m4/virt-wireshark.m4 \
-	$(top_srcdir)/m4/virt-xdr.m4 \
-	$(top_srcdir)/m4/virt-xml-catalog.m4 \
-	$(top_srcdir)/m4/virt-yajl.m4 $(top_srcdir)/m4/vsnprintf.m4 \
-	$(top_srcdir)/m4/wait-process.m4 $(top_srcdir)/m4/waitpid.m4 \
-	$(top_srcdir)/m4/warnings.m4 $(top_srcdir)/m4/wchar_h.m4 \
-	$(top_srcdir)/m4/wchar_t.m4 $(top_srcdir)/m4/wcrtomb.m4 \
-	$(top_srcdir)/m4/wctob.m4 $(top_srcdir)/m4/wctomb.m4 \
-	$(top_srcdir)/m4/wctype_h.m4 $(top_srcdir)/m4/wint_t.m4 \
-	$(top_srcdir)/m4/write.m4 $(top_srcdir)/m4/xalloc.m4 \
-	$(top_srcdir)/m4/xsize.m4 $(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/virt-xdr.m4 $(top_srcdir)/m4/virt-yajl.m4 \
+	$(top_srcdir)/m4/vsnprintf.m4 $(top_srcdir)/m4/wait-process.m4 \
+	$(top_srcdir)/m4/waitpid.m4 $(top_srcdir)/m4/warnings.m4 \
+	$(top_srcdir)/m4/wchar_h.m4 $(top_srcdir)/m4/wchar_t.m4 \
+	$(top_srcdir)/m4/wcrtomb.m4 $(top_srcdir)/m4/wctob.m4 \
+	$(top_srcdir)/m4/wctomb.m4 $(top_srcdir)/m4/wctype_h.m4 \
+	$(top_srcdir)/m4/wint_t.m4 $(top_srcdir)/m4/write.m4 \
+	$(top_srcdir)/m4/xalloc.m4 $(top_srcdir)/m4/xsize.m4 \
+	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
@@ -1113,6 +1112,7 @@ HAVE_ISNANF = @HAVE_ISNANF@
 HAVE_ISNANL = @HAVE_ISNANL@
 HAVE_ISWBLANK = @HAVE_ISWBLANK@
 HAVE_ISWCNTRL = @HAVE_ISWCNTRL@
+HAVE_LANGINFO_ALTMON = @HAVE_LANGINFO_ALTMON@
 HAVE_LANGINFO_CODESET = @HAVE_LANGINFO_CODESET@
 HAVE_LANGINFO_ERA = @HAVE_LANGINFO_ERA@
 HAVE_LANGINFO_H = @HAVE_LANGINFO_H@
@@ -1549,9 +1549,6 @@ PKCHECK_PATH = @PKCHECK_PATH@
 PKG_CONFIG = @PKG_CONFIG@
 PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
 PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
-POLKIT_AUTH = @POLKIT_AUTH@
-POLKIT_CFLAGS = @POLKIT_CFLAGS@
-POLKIT_LIBS = @POLKIT_LIBS@
 POSIX_SHELL = @POSIX_SHELL@
 POSUB = @POSUB@
 PRAGMA_COLUMNS = @PRAGMA_COLUMNS@
@@ -1886,7 +1883,6 @@ XGETTEXT = @XGETTEXT@
 XGETTEXT_015 = @XGETTEXT_015@
 XGETTEXT_EXTRA_OPTIONS = @XGETTEXT_EXTRA_OPTIONS@
 XMLLINT = @XMLLINT@
-XML_CATALOG_FILE = @XML_CATALOG_FILE@
 XSLTPROC = @XSLTPROC@
 YAJL_CFLAGS = @YAJL_CFLAGS@
 YAJL_LIBS = @YAJL_LIBS@
@@ -2002,28 +1998,27 @@ EXTRA_DIST = accept.c w32sock.h alloca.c alloca.in.h allocator.h \
 	langinfo.in.h limits.in.h listen.c w32sock.h config.charset \
 	ref-add.sin ref-del.sin locale.in.h localeconv.c \
 	localtime-buffer.c localtime-buffer.h lseek.c lstat.c \
-	$(top_srcdir)/maint.mk malloc.c malloca.h malloca.valgrind \
-	mbrtowc.c mbsinit.c mbsrtowcs-impl.h mbsrtowcs-state.c \
-	mbsrtowcs.c mbtowc-impl.h mbtowc.c memchr.c memchr.valgrind \
-	mgetgroups.h mkdtemp.c mkostemp.c mkostemps.c \
-	$(top_srcdir)/build-aux/mktempd mktime-internal.h mktime.c \
-	mktime-internal.h mktime.c msvc-inval.c msvc-inval.h \
-	msvc-nothrow.c msvc-nothrow.h net_if.in.h netdb.in.h \
-	netinet_in.in.h nl_langinfo.c nonblocking.h stdio-read.c \
-	stdio-write.c open.c openpty.c passfd.h pathmax.h perror.c \
-	physmem.h pipe.c poll.c poll.in.h posix_openpt.c pthread.c \
-	pthread.in.h pthread_sigmask.c pty.in.h raise.c random_r.c \
-	rawmemchr.c rawmemchr.valgrind readlink.c realloc.c recv.c \
-	w32sock.h regcomp.c regex.c regex.h regex_internal.c \
-	regex_internal.h regexec.c sched.in.h secure_getenv.c select.c \
-	send.c w32sock.h setenv.c setsockopt.c w32sock.h sig-handler.h \
-	sigaction.c signal.in.h stdio-write.c sigprocmask.c sleep.c \
-	_Noreturn.h arg-nonnull.h c++defs.h unused-parameter.h \
-	warn-on-use.h snprintf.c socket.c w32sock.h w32sock.h \
-	stat-w32.c stat-w32.h stat.c stat-time.h stdalign.in.h \
-	stdarg.in.h stdbool.in.h stddef.in.h stdint.in.h stdio.in.h \
-	stdlib.in.h stpcpy.c strcasecmp.c strncasecmp.c strchrnul.c \
-	strchrnul.valgrind strdup.c streq.h strerror.c \
+	$(top_srcdir)/maint.mk malloc.c malloca.h mbrtowc.c mbsinit.c \
+	mbsrtowcs-impl.h mbsrtowcs-state.c mbsrtowcs.c mbtowc-impl.h \
+	mbtowc.c memchr.c memchr.valgrind mgetgroups.h mkdtemp.c \
+	mkostemp.c mkostemps.c $(top_srcdir)/build-aux/mktempd \
+	mktime-internal.h mktime.c mktime-internal.h mktime.c \
+	msvc-inval.c msvc-inval.h msvc-nothrow.c msvc-nothrow.h \
+	net_if.in.h netdb.in.h netinet_in.in.h nl_langinfo.c \
+	nonblocking.h stdio-read.c stdio-write.c open.c openpty.c \
+	passfd.h pathmax.h perror.c physmem.h pipe.c poll.c poll.in.h \
+	posix_openpt.c pthread.c pthread.in.h pthread_sigmask.c \
+	pty.in.h raise.c random_r.c rawmemchr.c rawmemchr.valgrind \
+	readlink.c realloc.c recv.c w32sock.h regcomp.c regex.c \
+	regex.h regex_internal.c regex_internal.h regexec.c sched.in.h \
+	secure_getenv.c select.c send.c w32sock.h setenv.c \
+	setsockopt.c w32sock.h sig-handler.h sigaction.c signal.in.h \
+	stdio-write.c sigprocmask.c sleep.c _Noreturn.h arg-nonnull.h \
+	c++defs.h unused-parameter.h warn-on-use.h snprintf.c socket.c \
+	w32sock.h w32sock.h stat-w32.c stat-w32.h stat.c stat-time.h \
+	stdalign.in.h stdarg.in.h stdbool.in.h stddef.in.h stdint.in.h \
+	stdio.in.h stdlib.in.h stpcpy.c strcasecmp.c strncasecmp.c \
+	strchrnul.c strchrnul.valgrind strdup.c streq.h strerror.c \
 	strerror-override.c strerror-override.h strerror_r.c \
 	string.in.h strings.in.h strndup.c strnlen.c strptime.c \
 	strsep.c strtok_r.c sys_ioctl.in.h sys_select.in.h \
@@ -2834,6 +2829,7 @@ langinfo.h: langinfo.in.h $(top_builddir)/config.status $(CXXDEFS_H) $(WARN_ON_U
 	      -e 's/@''GNULIB_NL_LANGINFO''@/$(GNULIB_NL_LANGINFO)/g' \
 	      -e 's|@''HAVE_LANGINFO_CODESET''@|$(HAVE_LANGINFO_CODESET)|g' \
 	      -e 's|@''HAVE_LANGINFO_T_FMT_AMPM''@|$(HAVE_LANGINFO_T_FMT_AMPM)|g' \
+	      -e 's|@''HAVE_LANGINFO_ALTMON''@|$(HAVE_LANGINFO_ALTMON)|g' \
 	      -e 's|@''HAVE_LANGINFO_ERA''@|$(HAVE_LANGINFO_ERA)|g' \
 	      -e 's|@''HAVE_LANGINFO_YESEXPR''@|$(HAVE_LANGINFO_YESEXPR)|g' \
 	      -e 's|@''HAVE_NL_LANGINFO''@|$(HAVE_NL_LANGINFO)|g' \
@@ -3099,8 +3095,8 @@ signal.h: signal.in.h $(top_builddir)/config.status $(CXXDEFS_H) $(ARG_NONNULL_H
 	      -e 's|@''PRAGMA_SYSTEM_HEADER''@|@PRAGMA_SYSTEM_HEADER@|g' \
 	      -e 's|@''PRAGMA_COLUMNS''@|@PRAGMA_COLUMNS@|g' \
 	      -e 's|@''NEXT_SIGNAL_H''@|$(NEXT_SIGNAL_H)|g' \
-	      -e 's|@''GNULIB_PTHREAD_SIGMASK''@|$(GNULIB_PTHREAD_SIGMASK)|g' \
-	      -e 's|@''GNULIB_RAISE''@|$(GNULIB_RAISE)|g' \
+	      -e 's/@''GNULIB_PTHREAD_SIGMASK''@/$(GNULIB_PTHREAD_SIGMASK)/g' \
+	      -e 's/@''GNULIB_RAISE''@/$(GNULIB_RAISE)/g' \
 	      -e 's/@''GNULIB_SIGNAL_H_SIGPIPE''@/$(GNULIB_SIGNAL_H_SIGPIPE)/g' \
 	      -e 's/@''GNULIB_SIGPROCMASK''@/$(GNULIB_SIGPROCMASK)/g' \
 	      -e 's/@''GNULIB_SIGACTION''@/$(GNULIB_SIGACTION)/g' \
@@ -3543,7 +3539,7 @@ strings.h: strings.in.h $(top_builddir)/config.status $(CXXDEFS_H) $(WARN_ON_USE
 	      -e 's|@''PRAGMA_SYSTEM_HEADER''@|@PRAGMA_SYSTEM_HEADER@|g' \
 	      -e 's|@''PRAGMA_COLUMNS''@|@PRAGMA_COLUMNS@|g' \
 	      -e 's|@''NEXT_STRINGS_H''@|$(NEXT_STRINGS_H)|g' \
-	      -e 's|@''GNULIB_FFS''@|$(GNULIB_FFS)|g' \
+	      -e 's/@''GNULIB_FFS''@/$(GNULIB_FFS)/g' \
 	      -e 's|@''HAVE_FFS''@|$(HAVE_FFS)|g' \
 	      -e 's|@''HAVE_STRCASECMP''@|$(HAVE_STRCASECMP)|g' \
 	      -e 's|@''HAVE_DECL_STRNCASECMP''@|$(HAVE_DECL_STRNCASECMP)|g' \

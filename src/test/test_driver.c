@@ -125,7 +125,7 @@ struct _testDriver {
 typedef struct _testDriver testDriver;
 typedef testDriver *testDriverPtr;
 
-static testDriverPtr defaultConn;
+static testDriverPtr defaultPrivconn;
 static int defaultConnections;
 static virMutex defaultLock = VIR_MUTEX_INITIALIZER;
 
@@ -1281,7 +1281,7 @@ testOpenFromFile(virConnectPtr conn, const char *file)
     xmlFreeDoc(doc);
     testDriverUnlock(privconn);
 
-    return 0;
+    return VIR_DRV_OPEN_SUCCESS;
 
  error:
     xmlXPathFreeContext(ctxt);
@@ -1297,6 +1297,7 @@ testOpenFromFile(virConnectPtr conn, const char *file)
 static int
 testOpenDefault(virConnectPtr conn)
 {
+    int ret = VIR_DRV_OPEN_ERROR;
     testDriverPtr privconn = NULL;
     xmlDocPtr doc = NULL;
     xmlXPathContextPtr ctxt = NULL;
@@ -1304,7 +1305,7 @@ testOpenDefault(virConnectPtr conn)
 
     virMutexLock(&defaultLock);
     if (defaultConnections++) {
-        conn->privateData = defaultConn;
+        conn->privateData = defaultPrivconn;
         virMutexUnlock(&defaultLock);
         return VIR_DRV_OPEN_SUCCESS;
     }
@@ -1344,22 +1345,19 @@ testOpenDefault(virConnectPtr conn)
     if (testOpenParse(privconn, NULL, ctxt) < 0)
         goto error;
 
-    defaultConn = privconn;
-
+    defaultPrivconn = privconn;
+    ret = VIR_DRV_OPEN_SUCCESS;
+ cleanup:
+    virMutexUnlock(&defaultLock);
     xmlXPathFreeContext(ctxt);
     xmlFreeDoc(doc);
-    virMutexUnlock(&defaultLock);
-
-    return VIR_DRV_OPEN_SUCCESS;
+    return ret;
 
  error:
     testDriverFree(privconn);
-    xmlXPathFreeContext(ctxt);
-    xmlFreeDoc(doc);
     conn->privateData = NULL;
     defaultConnections--;
-    virMutexUnlock(&defaultLock);
-    return VIR_DRV_OPEN_ERROR;
+    goto cleanup;
 }
 
 static int
@@ -1371,8 +1369,11 @@ testConnectAuthenticate(virConnectPtr conn,
     ssize_t i;
     char *username = NULL, *password = NULL;
 
-    if (privconn->numAuths == 0)
+    testDriverLock(privconn);
+    if (privconn->numAuths == 0) {
+        testDriverUnlock(privconn);
         return 0;
+    }
 
     /* Authentication is required because the test XML contains a
      * non-empty <auth/> section.  First we must ask for a username.
@@ -1412,15 +1413,42 @@ testConnectAuthenticate(virConnectPtr conn,
 
     ret = 0;
  cleanup:
+    testDriverUnlock(privconn);
     VIR_FREE(username);
     VIR_FREE(password);
     return ret;
 }
 
-static virDrvOpenStatus testConnectOpen(virConnectPtr conn,
-                                        virConnectAuthPtr auth,
-                                        virConfPtr conf ATTRIBUTE_UNUSED,
-                                        unsigned int flags)
+
+static void
+testDriverCloseInternal(testDriverPtr driver)
+{
+    bool dflt = false;
+
+    if (driver == defaultPrivconn) {
+        dflt = true;
+        virMutexLock(&defaultLock);
+        if (--defaultConnections) {
+            virMutexUnlock(&defaultLock);
+            return;
+        }
+    }
+
+    testDriverLock(driver);
+    testDriverFree(driver);
+
+    if (dflt) {
+        defaultPrivconn = NULL;
+        virMutexUnlock(&defaultLock);
+    }
+}
+
+
+static virDrvOpenStatus
+testConnectOpen(virConnectPtr conn,
+                virConnectAuthPtr auth,
+                virConfPtr conf ATTRIBUTE_UNUSED,
+                unsigned int flags)
 {
     int ret;
 
@@ -1455,37 +1483,24 @@ static virDrvOpenStatus testConnectOpen(virConnectPtr conn,
         return ret;
 
     /* Fake authentication. */
-    if (testConnectAuthenticate(conn, auth) < 0)
+    if (testConnectAuthenticate(conn, auth) < 0) {
+        testDriverCloseInternal(conn->privateData);
+        conn->privateData = NULL;
         return VIR_DRV_OPEN_ERROR;
+    }
 
     return VIR_DRV_OPEN_SUCCESS;
 }
 
-static int testConnectClose(virConnectPtr conn)
+
+static int
+testConnectClose(virConnectPtr conn)
 {
-    testDriverPtr privconn = conn->privateData;
-    bool dflt = false;
-
-    if (privconn == defaultConn) {
-        dflt = true;
-        virMutexLock(&defaultLock);
-        if (--defaultConnections) {
-            virMutexUnlock(&defaultLock);
-            return 0;
-        }
-    }
-
-    testDriverLock(privconn);
-    testDriverFree(privconn);
-
-    if (dflt) {
-        defaultConn = NULL;
-        virMutexUnlock(&defaultLock);
-    }
-
+    testDriverCloseInternal(conn->privateData);
     conn->privateData = NULL;
     return 0;
 }
+
 
 static int testConnectGetVersion(virConnectPtr conn ATTRIBUTE_UNUSED,
                                  unsigned long *hvVer)
@@ -1767,12 +1782,15 @@ static int testConnectListDomains(virConnectPtr conn,
                                         NULL, NULL);
 }
 
-static int testDomainDestroy(virDomainPtr domain)
+static int testDomainDestroyFlags(virDomainPtr domain,
+                                  unsigned int flags)
 {
     testDriverPtr privconn = domain->conn->privateData;
     virDomainObjPtr privdom;
     virObjectEventPtr event = NULL;
     int ret = -1;
+
+    virCheckFlags(VIR_DOMAIN_DESTROY_GRACEFUL, -1);
 
     if (!(privdom = testDomObjFromDomain(domain)))
         goto cleanup;
@@ -1796,6 +1814,11 @@ static int testDomainDestroy(virDomainPtr domain)
     virDomainObjEndAPI(&privdom);
     testObjectEventQueue(privconn, event);
     return ret;
+}
+
+static int testDomainDestroy(virDomainPtr domain)
+{
+    return testDomainDestroyFlags(domain, 0);
 }
 
 static int testDomainResume(virDomainPtr domain)
@@ -6857,6 +6880,7 @@ static virHypervisorDriver testHypervisorDriver = {
     .domainShutdownFlags = testDomainShutdownFlags, /* 0.9.10 */
     .domainReboot = testDomainReboot, /* 0.1.1 */
     .domainDestroy = testDomainDestroy, /* 0.1.1 */
+    .domainDestroyFlags = testDomainDestroyFlags, /* 4.2.0 */
     .domainGetOSType = testDomainGetOSType, /* 0.1.9 */
     .domainGetMaxMemory = testDomainGetMaxMemory, /* 0.1.4 */
     .domainSetMaxMemory = testDomainSetMaxMemory, /* 0.1.1 */

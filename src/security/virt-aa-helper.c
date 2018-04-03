@@ -41,6 +41,7 @@
 #include "viralloc.h"
 #include "vircommand.h"
 #include "virlog.h"
+#include "dirname.h"
 #include "driver.h"
 
 #include "security_driver.h"
@@ -752,6 +753,9 @@ vah_add_path(virBufferPtr buf, const char *path, const char *perms, bool recursi
     bool explicit_deny_rule = true;
     char *sub = NULL;
     char *perms_new = NULL;
+    char *pathdir = NULL;
+    char *pathtmp = NULL;
+    char *pathreal = NULL;
 
     if (path == NULL)
         return rc;
@@ -766,14 +770,36 @@ vah_add_path(virBufferPtr buf, const char *path, const char *perms, bool recursi
         return 0;
     }
 
-    if (virFileExists(path)) {
-        if ((tmp = realpath(path, NULL)) == NULL) {
-            vah_error(NULL, 0, path);
-            vah_error(NULL, 0, _("could not find realpath for disk"));
-            return rc;
+    /* files might be created by qemu later on and not exist right now.
+     * But realpath needs a valid path to work on, therefore:
+     * 1. walk the path to find longest valid path
+     * 2. get the realpath of that valid path
+     * 3. re-combine the realpath with the remaining suffix
+     * Note: A totally non existent path is used as-is
+     */
+     if (VIR_STRDUP_QUIET(pathdir, path) < 0)
+         goto cleanup;
+     while (!virFileExists(pathdir)) {
+         if ((pathtmp = mdir_name(pathdir)) == NULL)
+             goto cleanup;
+         VIR_FREE(pathdir);
+         VIR_STEAL_PTR(pathdir, pathtmp);
+     }
+
+    if (strlen(pathdir) == 1) {
+        /* nothing of the path does exist yet */
+        if (VIR_STRDUP_QUIET(tmp, path) < 0)
+            goto cleanup;
+    } else {
+        if (VIR_STRDUP_QUIET(pathtmp, path+strlen(pathdir)) < 0)
+            goto cleanup;
+        if ((pathreal = realpath(pathdir, NULL)) == NULL) {
+            vah_error(NULL, 0, pathdir);
+            vah_error(NULL, 0, _("could not find realpath"));
+            goto cleanup;
         }
-    } else if (VIR_STRDUP_QUIET(tmp, path) < 0) {
-        return rc;
+        if (virAsprintfQuiet(&tmp, "%s%s", pathreal, pathtmp) < 0)
+            goto cleanup;
     }
 
     if (VIR_STRDUP_QUIET(perms_new, perms) < 0)
@@ -814,6 +840,9 @@ vah_add_path(virBufferPtr buf, const char *path, const char *perms, bool recursi
     }
 
  cleanup:
+    VIR_FREE(pathdir);
+    VIR_FREE(pathtmp);
+    VIR_FREE(pathreal);
     VIR_FREE(perms_new);
     VIR_FREE(tmp);
 
@@ -1128,6 +1157,14 @@ get_files(vahControl * ctl)
         }
     }
 
+    for (i = 0; i < ctl->def->ninputs; i++) {
+        if (ctl->def->inputs[i] &&
+                ctl->def->inputs[i]->type == VIR_DOMAIN_INPUT_TYPE_PASSTHROUGH) {
+            if (vah_add_file(&buf, ctl->def->inputs[i]->source.evdev, "rw") != 0)
+                goto cleanup;
+        }
+    }
+
     for (i = 0; i < ctl->def->nnets; i++) {
         if (ctl->def->nets[i] &&
                 ctl->def->nets[i]->type == VIR_DOMAIN_NET_TYPE_VHOSTUSER &&
@@ -1136,6 +1173,14 @@ get_files(vahControl * ctl)
 
             if (vah_add_file_chardev(&buf, vhu->data.nix.path, "rw",
                        vhu->type) != 0)
+                goto cleanup;
+        }
+    }
+
+    for (i = 0; i < ctl->def->nmems; i++) {
+        if (ctl->def->mems[i] &&
+                ctl->def->mems[i]->model == VIR_DOMAIN_MEMORY_MODEL_NVDIMM) {
+            if (vah_add_file(&buf, ctl->def->mems[i]->nvdimmPath, "rw") != 0)
                 goto cleanup;
         }
     }

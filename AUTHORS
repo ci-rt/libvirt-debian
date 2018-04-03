@@ -31,6 +31,7 @@ Martin Kletzander <mkletzan@redhat.com>
 Matthias Bolte <matthias.bolte@googlemail.com>
 Maxim Nestratov <mnestratov@virtuozzo.com>
 Michal Prívozník <mprivozn@redhat.com>
+Nikolay Shirokovskiy <nshirokovskiy@virtuozzo.com>
 Pavel Hrdina <phrdina@redhat.com>
 Peter Krempa <pkrempa@redhat.com>
 Richard W.M. Jones <rjones@redhat.com>
@@ -268,6 +269,7 @@ Guannan Ren <gren@redhat.com>
 Gui Jianfeng <guijianfeng@cn.fujitsu.com>
 Guido Günther <agx@sigxcpu.org>
 Han Cheng <hanc.fnst@cn.fujitsu.com>
+Han Han <hhan@redhat.com>
 Hao Liu <hliu@redhat.com>
 Hao Peng <peng.hao2@zte.com.cn>
 Harry Wei <harryxiyou@gmail.com>
@@ -295,6 +297,7 @@ James Cowgill <james410@cowgill.org.uk>
 James Shubin <james@shubin.ca>
 Jamie Strandboge <jamie@canonical.com>
 Jan Kiszka <jan.kiszka@siemens.com>
+Jan Palus <atler@pld-linux.org>
 Jaroslav Safka <jaroslavx.safka@intel.com>
 Jaroslav Suchanek <jsuchane@redhat.com>
 Jason Andryuk <andryuk@aero.org>
@@ -340,6 +343,7 @@ Kai Kang <kai.kang@windriver.com>
 Karel Zak <kzak@redhat.com>
 Kashyap Chamarthy <kchamart@redhat.com>
 Katerina Koukiou <k.koukiou@googlemail.com>
+Katerina Koukiou <kkoukiou@redhat.com>
 Kay Schubert <kayegypt@web.de>
 Ken ICHIKAWA <ichikawa.ken@jp.fujitsu.com>
 Kenneth Nagin <NAGIN@il.ibm.com>
@@ -477,13 +481,16 @@ Pieter Hollants <pieter@hollants.com>
 Pino Toscano <ptoscano@redhat.com>
 Pradipta Kr. Banerjee <bpradip@in.ibm.com>
 Pradipta Kr. Banerjee <pradipta.banerjee@gmail.com>
+Prafull <talep158@gmail.com>
 Pranavkumar Sawargaonkar <pranavkumar@linaro.org>
 Prasanna Kumar Kalever <prasanna.kalever@redhat.com>
 Prerna Saxena <prerna@linux.vnet.ibm.com>
 Pritesh Kothari <pritesh.kothari@sun.com>
 Qiao Nuohan <qiaonuohan@cn.fujitsu.com>
 Qiaowei Ren <qiaowei.ren@intel.com>
+Radostin Stoyanov <rstoyanov1@gmail.com>
 Radu Caragea <dmns_serp@yahoo.com>
+Rainer Müller <raimue@codingfarm.de>
 Ramon Medeiros <ramonn@linux.vnet.ibm.com>
 Reinier Schoof <reinier@transip.nl>
 Richa Marwaha <rmarwah@linux.vnet.ibm.com>
@@ -523,6 +530,7 @@ Serge Hallyn <serge.hallyn@ubuntu.com>
 Sergey Bronnikov <sergeyb@openvz.org>
 Sergey Fionov <fionov@gmail.com>
 Shahar Klein <shaharklein@yahoo.com>
+Shalini Chellathurai Saroja <shalini@linux.vnet.ibm.com>
 Shanzhi Yu <shyu@redhat.com>
 ShaoHe Feng <shaohe.feng@intel.com>
 Shaohe Feng <shaohe.feng@intel.com>

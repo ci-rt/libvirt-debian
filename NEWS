@@ -1,6 +1,42 @@
 libvirt releases
 ================
 
+# v4.2.0 (2018-04-01)
+
+  * New features
+
+    - Support building with Python 3
+        Python is required to build libvirt, and up until now only Python 2
+        could be used as an interpreter. All scripts used during build have now
+        been made compatible with Python 3, which means both major releases of
+        the language are fully supported.
+
+    - qemu: Provide ccw address support for graphics and input devices
+        Support the virtio-gpu-ccw device as a video device and
+        virtio-{keyboard, mouse, tablet}-ccw devices as input devices on S390.
+
+  * Improvements
+
+    - qemu: Add logging of guest crash information on S390
+        On S390, when the guest crashes and QEMU exposes the guest crash
+        information, log the relevant data to the domain log file.
+
+    - qemu: use arp table of host to get the IP address of guests
+        Find IP address of a VM by arp table on hosts. If someone customizing
+        IP address inside VM, it will be helpful.
+
+    - Xen: Remove hard-coded scheduler weight
+        The libxl driver was accidentally hard-coding the per-domain scheduler
+        weight to 1000, silently ignoring any user-provided <shares> in
+        <cputune>. The driver now honors <shares>, and defers setting a default
+        value to Xen. Note that the Xen default is 256, so any domains started
+        after this improvement will have one fourth the shares of previously
+        started domains. If all domains must have equal CPU shares,
+        administrators must manually set the weight of previously started
+        domains to 256, or restart them.
+
+  * Bug fixes
+
 # v4.1.0 (2018-03-05)
 
   * New features

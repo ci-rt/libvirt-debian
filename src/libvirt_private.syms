@@ -276,6 +276,7 @@ virDomainDefGetVcpusTopology;
 virDomainDefHasDeviceAddress;
 virDomainDefHasMemballoon;
 virDomainDefHasMemoryHotplug;
+virDomainDefHasUSB;
 virDomainDefHasVcpusOffline;
 virDomainDefLifecycleActionAllowed;
 virDomainDefMaybeAddController;
@@ -541,6 +542,7 @@ virDomainStateReasonFromString;
 virDomainStateReasonToString;
 virDomainStateTypeFromString;
 virDomainStateTypeToString;
+virDomainStorageSourceFormat;
 virDomainTaintTypeFromString;
 virDomainTaintTypeToString;
 virDomainTimerModeTypeFromString;
@@ -1364,6 +1366,11 @@ virArchGetWordSize;
 virArchToString;
 
 
+# util/virarptable.h
+virArpTableFree;
+virArpTableGet;
+
+
 # util/viraudit.h
 virAuditClose;
 virAuditEncode;
@@ -2034,6 +2041,7 @@ virJSONValueGetNumberLong;
 virJSONValueGetNumberUint;
 virJSONValueGetNumberUlong;
 virJSONValueGetString;
+virJSONValueGetType;
 virJSONValueHashFree;
 virJSONValueIsArray;
 virJSONValueIsNull;
@@ -2385,6 +2393,7 @@ virNetlinkEventServiceStart;
 virNetlinkEventServiceStop;
 virNetlinkEventServiceStopAll;
 virNetlinkGetErrorCode;
+virNetlinkGetNeighbor;
 virNetlinkShutdown;
 virNetlinkStartup;
 

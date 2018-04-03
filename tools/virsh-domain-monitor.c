@@ -2160,7 +2160,7 @@ static const vshCmdOptDef opts_domifaddr[] = {
     {.name = "source",
      .type = VSH_OT_STRING,
      .flags = VSH_OFLAG_NONE,
-     .help = N_("address source: 'lease' or 'agent'")},
+     .help = N_("address source: 'lease', 'agent', or 'arp'")},
     {.name = NULL}
 };
 
@@ -2190,6 +2190,8 @@ cmdDomIfAddr(vshControl *ctl, const vshCmd *cmd)
             source = VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE;
         } else if (STREQ(sourcestr, "agent")) {
             source = VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT;
+        } else if (STREQ(sourcestr, "arp")) {
+            source = VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP;
         } else {
             vshError(ctl, _("Unknown data source '%s'"), sourcestr);
             goto cleanup;

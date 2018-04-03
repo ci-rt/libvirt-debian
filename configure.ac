@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [4.1.0], [libvir-list@redhat.com], [], [https://libvirt.org])
+AC_INIT([libvirt], [4.2.0], [libvir-list@redhat.com], [], [https://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -459,7 +459,6 @@ dnl
 LIBVIRT_ARG_DEBUG
 LIBVIRT_ARG_DTRACE
 LIBVIRT_ARG_NUMAD
-LIBVIRT_ARG_XML_CATALOG
 LIBVIRT_ARG_INIT_SCRIPT
 LIBVIRT_ARG_CHRDEV_LOCK_FILES
 LIBVIRT_ARG_DEFAULT_EDITOR
@@ -473,7 +472,6 @@ LIBVIRT_ARG_SYSCTL_CONFIG
 LIBVIRT_CHECK_DEBUG
 LIBVIRT_CHECK_DTRACE
 LIBVIRT_CHECK_NUMAD
-LIBVIRT_CHECK_XML_CATALOG
 LIBVIRT_CHECK_INIT_SCRIPT
 LIBVIRT_CHECK_CHRDEV_LOCK_FILES
 LIBVIRT_CHECK_DEFAULT_EDITOR
@@ -645,9 +643,9 @@ if test "$with_linux" = "yes"; then
 fi
 
 dnl Allow perl/python overrides
-AC_PATH_PROGS([PYTHON], [python2 python])
+AC_PATH_PROGS([PYTHON], [python3 python2 python])
 if test -z "$PYTHON"; then
-         AC_MSG_ERROR(['python' or 'python2' binary is required to build libvirt])
+    AC_MSG_ERROR(['python3', 'python2' or 'python' binary is required to build libvirt])
 fi
 AC_PATH_PROG([PERL], [perl])
 if test -z "$PERL"; then
@@ -1032,7 +1030,6 @@ AC_MSG_NOTICE([       Use -Werror: $enable_werror])
 AC_MSG_NOTICE([     Warning Flags: $WARN_CFLAGS])
 LIBVIRT_RESULT_DTRACE
 LIBVIRT_RESULT_NUMAD
-LIBVIRT_RESULT_XML_CATALOG
 LIBVIRT_RESULT_INIT_SCRIPT
 LIBVIRT_RESULT_CHRDEV_LOCK_FILES
 LIBVIRT_RESULT_DEFAULT_EDITOR
