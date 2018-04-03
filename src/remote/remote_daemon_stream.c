@@ -213,7 +213,7 @@ daemonStreamEvent(virStreamPtr st, int events, void *opaque)
         msg->cb = daemonStreamMessageFinished;
         msg->opaque = stream;
         stream->refs++;
-        if (virNetServerProgramSendStreamData(remoteProgram,
+        if (virNetServerProgramSendStreamData(stream->prog,
                                               client,
                                               msg,
                                               stream->procedure,
@@ -253,7 +253,7 @@ daemonStreamEvent(virStreamPtr st, int events, void *opaque)
         if (!msg) {
             ret = -1;
         } else {
-            ret = virNetServerProgramSendStreamError(remoteProgram,
+            ret = virNetServerProgramSendStreamError(stream->prog,
                                                      client,
                                                      msg,
                                                      &rerr,
@@ -549,8 +549,9 @@ daemonStreamHandleWriteData(virNetServerClientPtr client,
     } else if (ret == -2) {
         /* Blocking, so indicate we have more todo later */
         return 1;
-    } else {
+    } else if (ret < 0) {
         virNetMessageError rerr;
+        virErrorPtr err = virSaveLastError();
 
         memset(&rerr, 0, sizeof(rerr));
 
@@ -558,6 +559,11 @@ daemonStreamHandleWriteData(virNetServerClientPtr client,
         stream->closed = true;
         virStreamEventRemoveCallback(stream->st);
         virStreamAbort(stream->st);
+
+        if (err) {
+            virSetError(err);
+            virFreeError(err);
+        }
 
         return virNetServerProgramSendReplyError(stream->prog,
                                                  client,
@@ -644,7 +650,7 @@ daemonStreamHandleAbort(virNetServerClientPtr client,
     if (raise_error) {
         virNetMessageError rerr;
         memset(&rerr, 0, sizeof(rerr));
-        return virNetServerProgramSendReplyError(remoteProgram,
+        return virNetServerProgramSendReplyError(stream->prog,
                                                  client,
                                                  msg,
                                                  &rerr,
@@ -839,7 +845,7 @@ daemonStreamHandleRead(virNetServerClientPtr client,
         VIR_DEBUG("rv=%d inData=%d length=%lld", rv, inData, length);
 
         if (rv < 0) {
-            if (virNetServerProgramSendStreamError(remoteProgram,
+            if (virNetServerProgramSendStreamError(stream->prog,
                                                    client,
                                                    msg,
                                                    &rerr,
@@ -856,7 +862,7 @@ daemonStreamHandleRead(virNetServerClientPtr client,
                 msg->cb = daemonStreamMessageFinished;
                 msg->opaque = stream;
                 stream->refs++;
-                if (virNetServerProgramSendStreamHole(remoteProgram,
+                if (virNetServerProgramSendStreamHole(stream->prog,
                                                       client,
                                                       msg,
                                                       stream->procedure,
@@ -887,7 +893,7 @@ daemonStreamHandleRead(virNetServerClientPtr client,
         /* Should never get this, since we're only called when we know
          * we're readable, but hey things change... */
     } else if (rv < 0) {
-        if (virNetServerProgramSendStreamError(remoteProgram,
+        if (virNetServerProgramSendStreamError(stream->prog,
                                                client,
                                                msg,
                                                &rerr,
@@ -906,7 +912,7 @@ daemonStreamHandleRead(virNetServerClientPtr client,
         msg->cb = daemonStreamMessageFinished;
         msg->opaque = stream;
         stream->refs++;
-        if (virNetServerProgramSendStreamData(remoteProgram,
+        if (virNetServerProgramSendStreamData(stream->prog,
                                               client,
                                               msg,
                                               stream->procedure,

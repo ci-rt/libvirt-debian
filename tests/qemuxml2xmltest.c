@@ -39,29 +39,6 @@ struct testInfo {
     virQEMUCapsPtr qemuCaps;
 };
 
-static int
-qemuXML2XMLActivePreFormatCallback(virDomainDefPtr def,
-                                   const void *opaque)
-{
-    struct testInfo *info = (struct testInfo *) opaque;
-    size_t i;
-
-    /* store vCPU bitmap so that the status XML can be created faithfully */
-    if (!info->activeVcpus)
-        info->activeVcpus = virDomainDefGetOnlineVcpumap(def);
-
-    info->blockjobs = false;
-
-    /* remember whether we have mirror jobs */
-    for (i = 0; i < def->ndisks; i++) {
-        if (def->disks[i]->mirror) {
-            info->blockjobs = true;
-            break;
-        }
-    }
-
-    return 0;
-}
 
 static int
 testXML2XMLActive(const void *opaque)
@@ -70,8 +47,7 @@ testXML2XMLActive(const void *opaque)
 
     return testCompareDomXML2XMLFiles(driver.caps, driver.xmlopt,
                                       info->inName, info->outActiveName, true,
-                                      qemuXML2XMLActivePreFormatCallback,
-                                      opaque, 0,
+                                      0,
                                       TEST_COMPARE_DOM_XML2XML_RESULT_SUCCESS);
 }
 
@@ -83,103 +59,8 @@ testXML2XMLInactive(const void *opaque)
 
     return testCompareDomXML2XMLFiles(driver.caps, driver.xmlopt, info->inName,
                                       info->outInactiveName, false,
-                                      NULL, opaque, 0,
+                                      0,
                                       TEST_COMPARE_DOM_XML2XML_RESULT_SUCCESS);
-}
-
-
-static const char testStatusXMLPrefixHeader[] =
-"<domstatus state='running' reason='booted' pid='3803518'>\n"
-"  <taint flag='high-privileges'/>\n"
-"  <monitor path='/var/lib/libvirt/qemu/test.monitor' json='1' type='unix'/>\n";
-
-static const char testStatusXMLPrefixBodyStatic[] =
-"<qemuCaps>\n"
-"  <flag name='vnet-hdr'/>\n"
-"  <flag name='qxl.vgamem_mb'/>\n"
-"  <flag name='qxl-vga.vgamem_mb'/>\n"
-"  <flag name='pc-dimm'/>\n"
-"</qemuCaps>\n"
-"<devices>\n"
-"  <device alias='balloon0'/>\n"
-"  <device alias='video0'/>\n"
-"  <device alias='serial0'/>\n"
-"  <device alias='net0'/>\n"
-"  <device alias='usb'/>\n"
-"</devices>\n"
-"<numad nodeset='0-2' cpuset='1,3'/>\n"
-"<libDir path='/tmp'/>\n"
-"<channelTargetDir path='/tmp/channel'/>\n"
-"<allowReboot value='yes'/>\n";
-
-static const char testStatusXMLSuffix[] =
-"</domstatus>\n";
-
-
-static void
-testGetStatuXMLPrefixVcpus(virBufferPtr buf,
-                           const struct testInfo *data)
-{
-    ssize_t vcpuid = -1;
-
-    virBufferAddLit(buf, "<vcpus>\n");
-    virBufferAdjustIndent(buf, 2);
-
-    /* Make sure we can format the fake vcpu list. The test will fail regardles. */
-    if (data->activeVcpus) {
-        while ((vcpuid = virBitmapNextSetBit(data->activeVcpus, vcpuid)) >= 0)
-            virBufferAsprintf(buf, "<vcpu id='%zd' pid='%zd'/>\n",
-                              vcpuid, vcpuid + 3803519);
-    }
-
-    virBufferAdjustIndent(buf, -2);
-    virBufferAddLit(buf, "</vcpus>\n");
-}
-
-
-static void
-testGetStatusXMLAddBlockjobs(virBufferPtr buf,
-                             const struct testInfo *data)
-{
-    virBufferAsprintf(buf, "<blockjobs active='%s'/>\n",
-                      virTristateBoolTypeToString(virTristateBoolFromBool(data->blockjobs)));
-}
-
-
-static char *
-testGetStatusXMLPrefix(const struct testInfo *data)
-{
-    virBuffer buf = VIR_BUFFER_INITIALIZER;
-
-    virBufferAdd(&buf, testStatusXMLPrefixHeader, -1);
-    virBufferAdjustIndent(&buf, 2);
-
-    testGetStatuXMLPrefixVcpus(&buf, data);
-
-    virBufferAddStr(&buf, testStatusXMLPrefixBodyStatic);
-
-    testGetStatusXMLAddBlockjobs(&buf, data);
-
-    virBufferAdjustIndent(&buf, -2);
-
-    return virBufferContentAndReset(&buf);
-}
-
-
-static int
-testProcessStatusXML(virDomainObjPtr vm)
-{
-    size_t i;
-
-    /* fix the private 'blockjob' flag for disks */
-    for (i = 0; i < vm->def->ndisks; i++) {
-        virDomainDiskDefPtr disk = vm->def->disks[i];
-        qemuDomainDiskPrivatePtr diskPriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
-
-        diskPriv->blockjob = !!disk->mirror;
-    }
-
-    return 0;
 }
 
 
@@ -187,98 +68,42 @@ static int
 testCompareStatusXMLToXMLFiles(const void *opaque)
 {
     const struct testInfo *data = opaque;
-    virBuffer buf = VIR_BUFFER_INITIALIZER;
-    xmlDocPtr xml = NULL;
     virDomainObjPtr obj = NULL;
-    char *expect = NULL;
     char *actual = NULL;
-    char *source = NULL;
-    char *header = NULL;
-    char *inFile = NULL, *outActiveFile = NULL;
     int ret = -1;
-    int keepBlanksDefault = xmlKeepBlanksDefault(0);
 
-    if (virTestLoadFile(data->inName, &inFile) < 0)
-        goto cleanup;
-    if (virTestLoadFile(data->outActiveName, &outActiveFile) < 0)
-        goto cleanup;
-
-    if (!(header = testGetStatusXMLPrefix(data)))
-        goto cleanup;
-
-    /* construct faked source status XML */
-    virBufferAdd(&buf, header, -1);
-    virBufferAdjustIndent(&buf, 2);
-    virBufferAddStr(&buf, inFile);
-    virBufferAdjustIndent(&buf, -2);
-    virBufferAdd(&buf, testStatusXMLSuffix, -1);
-
-    if (!(source = virBufferContentAndReset(&buf))) {
-        VIR_TEST_DEBUG("Failed to create the source XML");
-        goto cleanup;
-    }
-
-    /* construct the expect string */
-    virBufferAdd(&buf, header, -1);
-    virBufferAdjustIndent(&buf, 2);
-    virBufferAddStr(&buf, outActiveFile);
-    virBufferAdjustIndent(&buf, -2);
-    virBufferAdd(&buf, testStatusXMLSuffix, -1);
-
-    if (!(expect = virBufferContentAndReset(&buf))) {
-        VIR_TEST_DEBUG("Failed to create the expect XML");
-        goto cleanup;
-    }
-
-    /* parse the fake source status XML */
-    if (!(xml = virXMLParseString(source, "(domain_status_test_XML)")) ||
-        !(obj = virDomainObjParseNode(xml, xmlDocGetRootElement(xml),
-                                      driver.caps, driver.xmlopt,
+    if (!(obj = virDomainObjParseFile(data->inName, driver.caps, driver.xmlopt,
                                       VIR_DOMAIN_DEF_PARSE_STATUS |
                                       VIR_DOMAIN_DEF_PARSE_ACTUAL_NET |
-                                      VIR_DOMAIN_DEF_PARSE_PCI_ORIG_STATES))) {
-        VIR_TEST_DEBUG("Failed to parse domain status XML:\n%s", source);
-        goto cleanup;
-    }
-
-    /* process the definition if necessary */
-    if (testProcessStatusXML(obj) < 0)
+                                      VIR_DOMAIN_DEF_PARSE_PCI_ORIG_STATES |
+                                      VIR_DOMAIN_DEF_PARSE_SKIP_OSTYPE_CHECKS |
+                                      VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE |
+                                      VIR_DOMAIN_DEF_PARSE_ALLOW_POST_PARSE_FAIL)))
         goto cleanup;
 
-    /* format it back */
     if (!(actual = virDomainObjFormat(driver.xmlopt, obj, NULL,
-                                      VIR_DOMAIN_DEF_FORMAT_SECURE))) {
-        VIR_TEST_DEBUG("Failed to format domain status XML");
-        goto cleanup;
-    }
+                                      VIR_DOMAIN_DEF_FORMAT_SECURE |
+                                      VIR_DOMAIN_DEF_FORMAT_STATUS |
+                                      VIR_DOMAIN_DEF_FORMAT_ACTUAL_NET |
+                                      VIR_DOMAIN_DEF_FORMAT_PCI_ORIG_STATES |
+                                      VIR_DOMAIN_DEF_FORMAT_CLOCK_ADJUST)))
 
-    if (STRNEQ(actual, expect)) {
-        /* For status test we don't want to regenerate output to not
-         * add the status data.*/
-        virTestDifferenceFullNoRegenerate(stderr,
-                                          expect, data->outActiveName,
-                                          actual, data->inName);
         goto cleanup;
-    }
+
+    if (virTestCompareToFile(actual, data->outActiveName) < 0)
+        goto cleanup;
 
     ret = 0;
 
  cleanup:
-    xmlKeepBlanksDefault(keepBlanksDefault);
-    xmlFreeDoc(xml);
     virObjectUnref(obj);
-    VIR_FREE(expect);
     VIR_FREE(actual);
-    VIR_FREE(source);
-    VIR_FREE(inFile);
-    VIR_FREE(header);
-    VIR_FREE(outActiveFile);
     return ret;
 }
 
 
 static void
-testInfoFree(struct testInfo *info)
+testInfoClear(struct testInfo *info)
 {
     VIR_FREE(info->inName);
     VIR_FREE(info->outActiveName);
@@ -292,10 +117,8 @@ testInfoFree(struct testInfo *info)
 
 
 static int
-testInfoSet(struct testInfo *info,
-            const char *name,
-            int when,
-            int gic)
+testInfoSetCommon(struct testInfo *info,
+                  int gic)
 {
     if (!(info->qemuCaps = virQEMUCapsNew()))
         goto error;
@@ -305,6 +128,23 @@ testInfoSet(struct testInfo *info,
 
     if (qemuTestCapsCacheInsert(driver.qemuCapsCache, info->qemuCaps) < 0)
         goto error;
+
+    return 0;
+
+ error:
+    testInfoClear(info);
+    return -1;
+}
+
+
+static int
+testInfoSet(struct testInfo *info,
+            const char *name,
+            int when,
+            int gic)
+{
+    if (testInfoSetCommon(info, gic) < 0)
+        return -1;
 
     if (virAsprintf(&info->inName, "%s/qemuxml2argvdata/%s.xml",
                     abs_srcdir, name) < 0)
@@ -345,9 +185,32 @@ testInfoSet(struct testInfo *info,
     return 0;
 
  error:
-    testInfoFree(info);
+    testInfoClear(info);
     return -1;
 }
+
+
+static const char *statusPath = abs_srcdir "/qemustatusxml2xmldata/";
+
+static int
+testInfoSetStatus(struct testInfo *info,
+                  const char *name,
+                  int gic)
+{
+    if (testInfoSetCommon(info, gic) < 0)
+        return -1;
+
+    if (virAsprintf(&info->inName, "%s%s-in.xml", statusPath, name) < 0 ||
+        virAsprintf(&info->outActiveName, "%s%s-out.xml", statusPath, name) < 0)
+        goto error;
+
+    return 0;
+
+ error:
+    testInfoClear(info);
+    return -1;
+}
+
 
 # define FAKEROOTDIRTEMPLATE abs_builddir "/fakerootdir-XXXXXX"
 
@@ -378,9 +241,6 @@ mymain(void)
 
     cfg = virQEMUDriverGetConfig(&driver);
 
-    /* TODO: test with format probing disabled too */
-    driver.config->allowDiskFormatProbing = true;
-
 # define DO_TEST_FULL(name, when, gic, ...) \
     do { \
         if (testInfoSet(&info, name, when, gic) < 0) { \
@@ -399,12 +259,8 @@ mymain(void)
             if (virTestRun("QEMU XML-2-XML-active " name, \
                             testXML2XMLActive, &info) < 0) \
                 ret = -1; \
- \
-            if (virTestRun("QEMU XML-2-XML-status " name, \
-                            testCompareStatusXMLToXMLFiles, &info) < 0) \
-                ret = -1; \
         } \
-        testInfoFree(&info); \
+        testInfoClear(&info); \
     } while (0)
 
 # define NONE QEMU_CAPS_LAST
@@ -674,8 +530,10 @@ mymain(void)
             QEMU_CAPS_PIIX3_USB_UHCI,
             QEMU_CAPS_NEC_USB_XHCI);
     DO_TEST("ppc64-usb-controller",
+            QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE,
             QEMU_CAPS_PCI_OHCI);
     DO_TEST("ppc64-usb-controller-legacy",
+            QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE,
             QEMU_CAPS_PIIX3_USB_UHCI);
     DO_TEST("usb-port-missing", NONE);
     DO_TEST("usb-redir", NONE);
@@ -717,9 +575,12 @@ mymain(void)
     DO_TEST("virtio-rng-random", NONE);
     DO_TEST("virtio-rng-egd", NONE);
 
-    DO_TEST("pseries-nvram", NONE);
-    DO_TEST("pseries-panic-missing", NONE);
-    DO_TEST("pseries-panic-no-address", NONE);
+    DO_TEST("pseries-nvram",
+            QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE);
+    DO_TEST("pseries-panic-missing",
+            QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE);
+    DO_TEST("pseries-panic-no-address",
+            QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE);
 
     DO_TEST("pseries-phb-simple",
             QEMU_CAPS_NODEFCONFIG,
@@ -763,30 +624,38 @@ mymain(void)
             QEMU_CAPS_VIRTIO_SCSI,
             QEMU_CAPS_DEVICE_VFIO_PCI);
 
-    DO_TEST("pseries-features-hpt",
+    DO_TEST("pseries-features",
+            QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE,
             QEMU_CAPS_MACHINE_OPT,
             QEMU_CAPS_MACHINE_PSERIES_RESIZE_HPT);
 
     DO_TEST("pseries-serial-native",
             QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE,
             QEMU_CAPS_DEVICE_SPAPR_VTY);
     DO_TEST("pseries-serial+console-native",
             QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE,
             QEMU_CAPS_DEVICE_SPAPR_VTY);
     DO_TEST("pseries-serial-compat",
             QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE,
             QEMU_CAPS_DEVICE_SPAPR_VTY);
     DO_TEST("pseries-serial-pci",
             QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE,
             QEMU_CAPS_DEVICE_PCI_SERIAL);
     DO_TEST("pseries-serial-usb",
             QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE,
             QEMU_CAPS_DEVICE_QEMU_XHCI,
             QEMU_CAPS_DEVICE_USB_SERIAL);
     DO_TEST("pseries-console-native",
             QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE,
             QEMU_CAPS_DEVICE_SPAPR_VTY);
     DO_TEST("pseries-console-virtio",
+            QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE,
             QEMU_CAPS_NODEFCONFIG);
 
     DO_TEST("mach-virt-serial-native",
@@ -1182,7 +1051,8 @@ mymain(void)
 
     DO_TEST("panic", NONE);
     DO_TEST("panic-isa", NONE);
-    DO_TEST("panic-pseries", NONE);
+    DO_TEST("panic-pseries",
+            QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE);
     DO_TEST("panic-double", NONE);
     DO_TEST("panic-no-address", NONE);
 
@@ -1310,6 +1180,20 @@ mymain(void)
     DO_TEST("video-qxl-heads", NONE);
     DO_TEST("video-qxl-noheads", NONE);
     DO_TEST("video-virtio-gpu-secondary", NONE);
+    DO_TEST("video-virtio-gpu-ccw",
+            QEMU_CAPS_VIRTIO_CCW,
+            QEMU_CAPS_DEVICE_VIRTIO_GPU,
+            QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
+            QEMU_CAPS_VIRTIO_GPU_MAX_OUTPUTS,
+            QEMU_CAPS_VNC,
+            QEMU_CAPS_DEVICE_VIRTIO_GPU_CCW);
+    DO_TEST("video-virtio-gpu-ccw-auto",
+            QEMU_CAPS_VIRTIO_CCW,
+            QEMU_CAPS_DEVICE_VIRTIO_GPU,
+            QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
+            QEMU_CAPS_VIRTIO_GPU_MAX_OUTPUTS,
+            QEMU_CAPS_VNC,
+            QEMU_CAPS_DEVICE_VIRTIO_GPU_CCW);
 
     DO_TEST("intel-iommu",
             QEMU_CAPS_DEVICE_INTEL_IOMMU);
@@ -1338,11 +1222,48 @@ mymain(void)
     DO_TEST("smartcard-passthrough-spicevmc", NONE);
     DO_TEST("smartcard-controller", NONE);
 
-    DO_TEST("pseries-cpu-compat-power9", NONE);
-    DO_TEST("pseries-cpu-compat", NONE);
-    DO_TEST("pseries-cpu-exact", NONE);
+    DO_TEST("pseries-cpu-compat-power9",
+            QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE);
+    DO_TEST("pseries-cpu-compat",
+            QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE);
+    DO_TEST("pseries-cpu-exact",
+            QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE);
 
     DO_TEST("user-aliases", NONE);
+    DO_TEST("input-virtio-ccw",
+            QEMU_CAPS_VIRTIO_CCW,
+            QEMU_CAPS_VIRTIO_KEYBOARD,
+            QEMU_CAPS_VIRTIO_MOUSE,
+            QEMU_CAPS_VIRTIO_TABLET,
+            QEMU_CAPS_DEVICE_VIRTIO_KEYBOARD_CCW,
+            QEMU_CAPS_DEVICE_VIRTIO_MOUSE_CCW,
+            QEMU_CAPS_DEVICE_VIRTIO_TABLET_CCW);
+
+    /* Test disks with format probing enabled for legacy reasons.
+     * New tests should not go in this section. */
+    driver.config->allowDiskFormatProbing = true;
+    DO_TEST("disk-many-format-probing", NONE);
+    driver.config->allowDiskFormatProbing = false;
+
+# define DO_TEST_STATUS(name) \
+    do { \
+        if (testInfoSetStatus(&info, name, GIC_NONE) < 0) { \
+            VIR_TEST_DEBUG("Failed to generate status test data for '%s'", name); \
+            return -1; \
+        } \
+\
+        if (virTestRun("QEMU status XML-2-XML " name, \
+                       testCompareStatusXMLToXMLFiles, &info) < 0) \
+            ret = -1; \
+\
+        testInfoClear(&info); \
+    } while (0)
+
+
+    DO_TEST_STATUS("blockjob-mirror");
+    DO_TEST_STATUS("vcpus-multi");
+    DO_TEST_STATUS("modern");
+    DO_TEST_STATUS("migration-out-nbd");
 
     if (getenv("LIBVIRT_SKIP_CLEANUP") == NULL)
         virFileDeleteTree(fakerootdir);

@@ -129,7 +129,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2018-02-26" "libvirt-4.1.0" "Virtualization Support"
+.TH VIRSH 1 "2018-03-27" "libvirt-4.2.0" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -809,8 +809,8 @@ version of libvirtd.
   wr_total_times    \- total time write operations took (ns)
   flush_total_times \- total time flush operations took (ns)
     <\-\- other fields provided by hypervisor \-\->
-.IP "\fBdomifaddr\fR \fIdomain\fR [\fIinterface\fR] [\fI\-\-full\fR] [\fI\-\-source lease|agent\fR]" 4
-.IX Item "domifaddr domain [interface] [--full] [--source lease|agent]"
+.IP "\fBdomifaddr\fR \fIdomain\fR [\fIinterface\fR] [\fI\-\-full\fR] [\fI\-\-source lease|agent|arp\fR]" 4
+.IX Item "domifaddr domain [interface] [--full] [--source lease|agent|arp]"
 Get a list of interfaces of a running domain along with their \s-1IP\s0 and \s-1MAC\s0
 addresses, or limited output just for one interface if \fIinterface\fR is
 specified. Note that \fIinterface\fR can be driver dependent, it can be the name
@@ -824,8 +824,9 @@ only the interface name and \s-1MAC\s0 address is displayed for the first name a
 \&\s-1MAC\s0 address with \*(L"\-\*(R" for the others using the same name and \s-1MAC\s0 address.
 .Sp
 The \fI\-\-source\fR argument specifies what data source to use for the
-addresses, currently one of 'lease' to read \s-1DHCP\s0 leases, or 'agent' to query
-the guest \s-1OS\s0 via an agent. If unspecified, 'lease' is the default.
+addresses, currently 'lease' to read \s-1DHCP\s0 leases, 'agent' to query
+the guest \s-1OS\s0 via an agent, or 'arp' to get \s-1IP\s0 from host's arp tables.
+If unspecified, 'lease' is the default.
 .IP "\fBdomifstat\fR \fIdomain\fR \fIinterface-device\fR" 4
 .IX Item "domifstat domain interface-device"
 Get network interface stats for a running domain. The network
@@ -2185,14 +2186,14 @@ The numeric values are those defined by the \s-1USB HID\s0 specification
 for keyboard input. No symbolic names are provided
 .Sp
 See \fIvirkeycode\-usb\fR\|(7)
-.IP "\fBrfb\fR" 4
-.IX Item "rfb"
-The numeric values are those defined by the \s-1RFB\s0 extension for sending
+.IP "\fBqnum\fR" 4
+.IX Item "qnum"
+The numeric values are those defined by the \s-1QNUM\s0 extension for sending
 raw keycodes. These are a variant on the \s-1XT\s0 codeset, but extended
 keycodes have the low bit of the second byte set, instead of the high
 bit of the first byte. No symbolic names are provided.
 .Sp
-See \fIvirkeycode\-rfb\fR\|(7)
+See \fIvirkeycode\-qnum\fR\|(7)
 .RE
 .RS 4
 .Sp
@@ -3511,8 +3512,8 @@ Create and start a pool object from the \s-1XML\s0 \fIfile\fR.
 follow-up command to build the pool. The \fI\-\-overwrite\fR and
 \&\fI\-\-no\-overwrite\fR flags follow the same rules as \fBpool-build\fR. If
 just \fI\-\-build\fR is provided, then \fBpool-build\fR is called with no flags.
-.IP "\fBpool-create-as\fR \fIname\fR \fItype\fR [\fI\-\-source\-host hostname\fR] [\fI\-\-source\-path path\fR] [\fI\-\-source\-dev path\fR] [\fI\-\-source\-name name\fR] [\fI\-\-target path\fR] [\fI\-\-source\-format format\fR] [\fI\-\-auth\-type authtype\fR \fI\-\-auth\-username username\fR [\fI\-\-secret\-usage usage\fR | \fI\-\-secret\-uuid uuid\fR]] [[\fI\-\-adapter\-name name\fR] | [\fI\-\-adapter\-wwnn\fR \fI\-\-adapter\-wwpn\fR] [\fI\-\-adapter\-parent parent\fR]] [\fI\-\-build\fR] [[\fI\-\-overwrite\fR] | [\fI\-\-no\-overwrite\fR]] [\fI\-\-print\-xml\fR]" 4
-.IX Item "pool-create-as name type [--source-host hostname] [--source-path path] [--source-dev path] [--source-name name] [--target path] [--source-format format] [--auth-type authtype --auth-username username [--secret-usage usage | --secret-uuid uuid]] [[--adapter-name name] | [--adapter-wwnn --adapter-wwpn] [--adapter-parent parent]] [--build] [[--overwrite] | [--no-overwrite]] [--print-xml]"
+.IP "\fBpool-create-as\fR \fIname\fR \fItype\fR [\fI\-\-source\-host hostname\fR] [\fI\-\-source\-path path\fR] [\fI\-\-source\-dev path\fR] [\fI\-\-source\-name name\fR] [\fI\-\-target path\fR] [\fI\-\-source\-format format\fR] [\fI\-\-auth\-type authtype\fR \fI\-\-auth\-username username\fR [\fI\-\-secret\-usage usage\fR | \fI\-\-secret\-uuid uuid\fR]] [[\fI\-\-adapter\-name name\fR] | [\fI\-\-adapter\-wwnn\fR wwnn \fI\-\-adapter\-wwpn\fR wwpn] [\fI\-\-adapter\-parent parent\fR]] [\fI\-\-build\fR] [[\fI\-\-overwrite\fR] | [\fI\-\-no\-overwrite\fR]] [\fI\-\-print\-xml\fR]" 4
+.IX Item "pool-create-as name type [--source-host hostname] [--source-path path] [--source-dev path] [--source-name name] [--target path] [--source-format format] [--auth-type authtype --auth-username username [--secret-usage usage | --secret-uuid uuid]] [[--adapter-name name] | [--adapter-wwnn wwnn --adapter-wwpn wwpn] [--adapter-parent parent]] [--build] [[--overwrite] | [--no-overwrite]] [--print-xml]"
 Create and start a pool object \fIname\fR from the raw parameters.  If
 \&\fI\-\-print\-xml\fR is specified, then print the \s-1XML\s0 of the pool object
 without creating the pool.  Otherwise, the pool has the specified
@@ -3551,10 +3552,17 @@ be provided, but not both.
 [\fI\-\-adapter\-name name\fR] defines the scsi_hostN adapter name to be used for
 the scsi_host adapter type pool.
 .Sp
-[\fI\-\-adapter\-wwnn\fR \fI\-\-adapter\-wwpn\fR [\fI\-\-adapter\-parent parent\fR]] defines
-the wwnn and wwpn to be used for the fc_host adapter type pool. The parent
-optionally provides the name of the scsi_hostN node device to be used for
-the vHBA.
+[\fI\-\-adapter\-wwnn wwnn\fR \fI\-\-adapter\-wwpn wwpn\fR [\fI\-\-adapter\-parent parent\fR |
+\&\fI\-\-adapter\-parent\-wwnn parent_wwnn\fR \fIadapter-parent-wwpn parent_wwpn\fR |
+\&\fI\-\-adapter\-parent\-fabric\-wwn parent_fabric_wwn\fR]]
+defines the wwnn and wwpn to be used for the fc_host adapter type pool.
+Optionally provide the parent scsi_hostN node device to be used for the
+vHBA either by parent name, parent_wwnn and parent_wwpn, or parent_fabric_wwn.
+The parent name could change between reboots if the hardware environment
+changes, so providing the parent_wwnn and parent_wwpn ensure usage of the
+same physical \s-1HBA\s0 even if the scsi_hostN node device changes. Usage of the
+parent_fabric_wwn allows a bit more flexibility to choose an \s-1HBA\s0 on the
+same storage fabric in order to define the pool.
 .Sp
 [\fI\-\-build\fR] [[\fI\-\-overwrite\fR] | [\fI\-\-no\-overwrite\fR]] perform a
 \&\fBpool-build\fR after creation in order to remove the need for a
@@ -3695,10 +3703,13 @@ before the event.
 .IP "\fBvol-create\fR \fIpool-or-uuid\fR \fI\s-1FILE\s0\fR [\fI\-\-prealloc\-metadata\fR]" 4
 .IX Item "vol-create pool-or-uuid FILE [--prealloc-metadata]"
 Create a volume from an \s-1XML\s0 <file>.
+.Sp
 \&\fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage pool to create the volume in.
+.Sp
 \&\fI\s-1FILE\s0\fR is the \s-1XML\s0 <file> with the volume definition. An easy way to create the
 \&\s-1XML\s0 <file> is to use the \fBvol-dumpxml\fR command to obtain the definition of a
 pre-existing volume.
+.Sp
 [\fI\-\-prealloc\-metadata\fR] preallocate metadata (for qcow2 images which don't
 support full allocation). This option creates a sparse image file with metadata,
 resulting in higher performance compared to images with no preallocation and
@@ -3711,18 +3722,24 @@ only slightly higher initial disk space usage.
 \& vi newvolume.xml (or make changes with your other text editor)
 \& virsh vol\-create differentstoragepool newvolume.xml
 .Ve
-.IP "\fBvol-create-from\fR \fIpool-or-uuid\fR \fI\s-1FILE\s0\fR [\fI\-\-inputpool\fR \fIpool-or-uuid\fR] \fIvol-name-or-key-or-path\fR [\fI\-\-prealloc\-metadata\fR] [\fI\-\-reflink\fR]" 4
-.IX Item "vol-create-from pool-or-uuid FILE [--inputpool pool-or-uuid] vol-name-or-key-or-path [--prealloc-metadata] [--reflink]"
+.IP "\fBvol-create-from\fR \fIpool-or-uuid\fR \fI\s-1FILE\s0\fR \fIvol-name-or-key-or-path\fR [\fI\-\-inputpool\fR \fIpool-or-uuid\fR]  [\fI\-\-prealloc\-metadata\fR] [\fI\-\-reflink\fR]" 4
+.IX Item "vol-create-from pool-or-uuid FILE vol-name-or-key-or-path [--inputpool pool-or-uuid] [--prealloc-metadata] [--reflink]"
 Create a volume, using another volume as input.
+.Sp
 \&\fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage pool to create the volume in.
+.Sp
 \&\fI\s-1FILE\s0\fR is the \s-1XML\s0 <file> with the volume definition.
+.Sp
+\&\fIvol-name-or-key-or-path\fR is the name or key or path of the source volume.
+.Sp
 \&\fI\-\-inputpool\fR \fIpool-or-uuid\fR is the name or uuid of the storage pool the
 source volume is in.
-\&\fIvol-name-or-key-or-path\fR is the name or key or path of the source volume.
+.Sp
 [\fI\-\-prealloc\-metadata\fR] preallocate metadata (for qcow2 images which don't
 support full allocation). This option creates a sparse image file with metadata,
 resulting in higher performance compared to images with no preallocation and
 only slightly higher initial disk space usage.
+.Sp
 When \fI\-\-reflink\fR is specified, perform a \s-1COW\s0 lightweight copy,
 where the data blocks are copied only when modified.
 If this is not possible, the copy fails.
@@ -3731,93 +3748,140 @@ If this is not possible, the copy fails.
 Create a volume from a set of arguments unless \fI\-\-print\-xml\fR is specified, in
 which case just the \s-1XML\s0 of the volume object is printed out without any actual
 object creation.
+.Sp
 \&\fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage pool to create the volume
 in.
+.Sp
 \&\fIname\fR is the name of the new volume. For a disk pool, this must match the
 partition name as determined from the pool's source device path and the next
 available partition. For example, a source device path of /dev/sdb and there
 are no partitions on the disk, then the name must be sdb1 with the next
 name being sdb2 and so on.
+.Sp
 \&\fIcapacity\fR is the size of the volume to be created, as a scaled integer
 (see \fB\s-1NOTES\s0\fR above), defaulting to bytes if there is no suffix.
+.Sp
 \&\fI\-\-allocation\fR \fIsize\fR is the initial size to be allocated in the volume,
 also as a scaled integer defaulting to bytes.
+.Sp
 \&\fI\-\-format\fR \fIstring\fR is used in file based storage pools to specify the volume
 file format to use; raw, bochs, qcow, qcow2, vmdk, qed. Use extended for disk
 storage pools in order to create an extended partition (other values are
 validity checked but not preserved when libvirtd is restarted or the pool
 is refreshed).
+.Sp
 \&\fI\-\-backing\-vol\fR \fIvol-name-or-key-or-path\fR is the source backing
 volume to be used if taking a snapshot of an existing volume.
+.Sp
 \&\fI\-\-backing\-vol\-format\fR \fIstring\fR is the format of the snapshot backing volume;
 raw, bochs, qcow, qcow2, qed, vmdk, host_device. These are, however, meant for
 file based storage pools.
+.Sp
 [\fI\-\-prealloc\-metadata\fR] preallocate metadata (for qcow2 images which don't
 support full allocation). This option creates a sparse image file with metadata,
 resulting in higher performance compared to images with no preallocation and
 only slightly higher initial disk space usage.
-.IP "\fBvol-clone\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] \fIvol-name-or-key-or-path\fR \fIname\fR [\fI\-\-prealloc\-metadata\fR] [\fI\-\-reflink\fR]" 4
-.IX Item "vol-clone [--pool pool-or-uuid] vol-name-or-key-or-path name [--prealloc-metadata] [--reflink]"
+.IP "\fBvol-clone\fR \fIvol-name-or-key-or-path\fR \fIname\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] [\fI\-\-prealloc\-metadata\fR] [\fI\-\-reflink\fR]" 4
+.IX Item "vol-clone vol-name-or-key-or-path name [--pool pool-or-uuid] [--prealloc-metadata] [--reflink]"
 Clone an existing volume within the parent pool.  Less powerful,
 but easier to type, version of \fBvol-create-from\fR.
-\&\fI\-\-pool\fR \fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage pool
-that contains the source volume, and will contain the new volume.
+.Sp
 \&\fIvol-name-or-key-or-path\fR is the name or key or path of the source volume.
+.Sp
 \&\fIname\fR is the name of the new volume.
+.Sp
+\&\fI\-\-pool\fR \fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage pool
+that contains the source volume and will contain the new volume.
+If the source volume name is provided instead of the key or path, then
+providing the pool is necessary to find the volume to be cloned; otherwise,
+the first volume found by the key or path will be used.
+.Sp
 [\fI\-\-prealloc\-metadata\fR] preallocate metadata (for qcow2 images which don't
 support full allocation). This option creates a sparse image file with metadata,
 resulting in higher performance compared to images with no preallocation and
 only slightly higher initial disk space usage.
+.Sp
 When \fI\-\-reflink\fR is specified, perform a \s-1COW\s0 lightweight copy,
 where the data blocks are copied only when modified.
 If this is not possible, the copy fails.
-.IP "\fBvol-delete\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] \fIvol-name-or-key-or-path\fR [\fI\-\-delete\-snapshots\fR]" 4
-.IX Item "vol-delete [--pool pool-or-uuid] vol-name-or-key-or-path [--delete-snapshots]"
+.IP "\fBvol-delete\fR \fIvol-name-or-key-or-path\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] [\fI\-\-delete\-snapshots\fR]" 4
+.IX Item "vol-delete vol-name-or-key-or-path [--pool pool-or-uuid] [--delete-snapshots]"
 Delete a given volume.
-\&\fI\-\-pool\fR \fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage pool the volume
-is in.
-\&\fIvol-name-or-key-or-path\fR is the name or key or path of the volume to delete.
+.Sp
+\&\fIvol-name-or-key-or-path\fR is the volume name or key or path of the volume
+to delete.
+.Sp
+[\fI\-\-pool\fR \fIpool-or-uuid\fR] is the name or \s-1UUID\s0 of the storage pool the volume
+is in. If the volume name is provided instead of the key or path, then
+providing the pool is necessary to find the volume to be deleted; otherwise,
+the first volume found by the key or path will be used.
 .Sp
 The \fI\-\-delete\-snapshots\fR flag specifies that any snapshots associated with
 the storage volume should be deleted as well. Not all storage drivers
 support this option, presently only rbd.
-.IP "\fBvol-upload\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] [\fI\-\-offset\fR \fIbytes\fR] [\fI\-\-length\fR \fIbytes\fR] [\fI\-\-sparse\fR] \fIvol-name-or-key-or-path\fR \fIlocal-file\fR" 4
-.IX Item "vol-upload [--pool pool-or-uuid] [--offset bytes] [--length bytes] [--sparse] vol-name-or-key-or-path local-file"
+.IP "\fBvol-upload\fR \fIvol-name-or-key-or-path\fR \fIlocal-file\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] [\fI\-\-offset\fR \fIbytes\fR] [\fI\-\-length\fR \fIbytes\fR] [\fI\-\-sparse\fR]" 4
+.IX Item "vol-upload vol-name-or-key-or-path local-file [--pool pool-or-uuid] [--offset bytes] [--length bytes] [--sparse]"
 Upload the contents of \fIlocal-file\fR to a storage volume.
-\&\fI\-\-pool\fR \fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage pool the volume
-is in.
+.Sp
 \&\fIvol-name-or-key-or-path\fR is the name or key or path of the volume where the
-file will be uploaded.
-If \fI\-\-sparse\fR is specified, this command will preserve volume sparseness.
+\&\fIlocal-file\fR will be uploaded.
+.Sp
+\&\fI\-\-pool\fR \fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage pool the volume
+is in. If the volume name is provided instead of the key or path, then
+providing the pool is necessary to find the volume to be uploaded into;
+otherwise, the first volume found by the key or path will be used.
+.Sp
 \&\fI\-\-offset\fR is the position in the storage volume at which to start writing
-the data. The value must be 0 or larger. \fI\-\-length\fR is an upper bound
-of the amount of data to be uploaded. A negative value is interpreted
-as an unsigned long long value to essentially include everything from
-the offset to the end of the volume.
-An error will occur if the \fIlocal-file\fR is greater than the specified length.
+the data. The value must be 0 or larger.
+.Sp
+\&\fI\-\-length\fR is an upper bound of the amount of data to be uploaded.
+A negative value is interpreted as an unsigned long long value to
+essentially include everything from the offset to the end of the volume.
+.Sp
+If \fI\-\-sparse\fR is specified, this command will preserve volume sparseness.
+.Sp
+An error will occur if the \fIlocal-file\fR is greater than the specified
+\&\fIlength\fR.
+.Sp
 See the description for the libvirt virStorageVolUpload \s-1API\s0 for details
 regarding possible target volume and pool changes as a result of the
 pool refresh when the upload is attempted.
-.IP "\fBvol-download\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] [\fI\-\-offset\fR \fIbytes\fR] [\fI\-\-length\fR \fIbytes\fR] [\fI\-\-sparse\fR] \fIvol-name-or-key-or-path\fR \fIlocal-file\fR" 4
-.IX Item "vol-download [--pool pool-or-uuid] [--offset bytes] [--length bytes] [--sparse] vol-name-or-key-or-path local-file"
+.IP "\fBvol-download\fR \fIvol-name-or-key-or-path\fR \fIlocal-file\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] [\fI\-\-offset\fR \fIbytes\fR] [\fI\-\-length\fR \fIbytes\fR] [\fI\-\-sparse\fR]" 4
+.IX Item "vol-download vol-name-or-key-or-path local-file [--pool pool-or-uuid] [--offset bytes] [--length bytes] [--sparse]"
 Download the contents of a storage volume to \fIlocal-file\fR.
+.Sp
+\&\fIvol-name-or-key-or-path\fR is the name or key or path of the volume to
+download into \fIlocal-file\fR.
+.Sp
 \&\fI\-\-pool\fR \fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage pool the volume
-is in.
-\&\fIvol-name-or-key-or-path\fR is the name or key or path of the volume to download.
-If \fI\-\-sparse\fR is specified, this command will preserve volume sparseness.
+is in. If the volume name is provided instead of the key or path, then
+providing the pool is necessary to find the volume to be uploaded into;
+otherwise, the first volume found by the key or path will be used.
+.Sp
 \&\fI\-\-offset\fR is the position in the storage volume at which to start reading
-the data. The value must be 0 or larger. \fI\-\-length\fR is an upper bound of
-the amount of data to be downloaded. A negative value is interpreted as
-an unsigned long long value to essentially include everything from the
-offset to the end of the volume.
-.IP "\fBvol-wipe\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] [\fI\-\-algorithm\fR \fIalgorithm\fR] \fIvol-name-or-key-or-path\fR" 4
-.IX Item "vol-wipe [--pool pool-or-uuid] [--algorithm algorithm] vol-name-or-key-or-path"
+the data. The value must be 0 or larger.
+.Sp
+\&\fI\-\-length\fR is an upper bound of the amount of data to be downloaded.
+A negative value is interpreted as an unsigned long long value to
+essentially include everything from the offset to the end of the volume.
+.Sp
+If \fI\-\-sparse\fR is specified, this command will preserve volume sparseness.
+.IP "\fBvol-wipe\fR \fIvol-name-or-key-or-path\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] [\fI\-\-algorithm\fR \fIalgorithm\fR]" 4
+.IX Item "vol-wipe vol-name-or-key-or-path [--pool pool-or-uuid] [--algorithm algorithm]"
 Wipe a volume, ensure data previously on the volume is not accessible to
-future reads. \fI\-\-pool\fR \fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage
-pool the volume is in.
+future reads.
+.Sp
 \&\fIvol-name-or-key-or-path\fR is the name or key or path of the volume to wipe.
 It is possible to choose different wiping algorithms instead of re-writing
-volume with zeroes. This can be done via \fI\-\-algorithm\fR switch.
+volume with zeroes.
+.Sp
+\&\fI\-\-pool\fR \fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage pool the
+volume is in. If the volume name is provided instead of the key or path,
+then providing the pool is necessary to find the volume to be wiped;
+otherwise, the first volume found by the key or path will be used.
+.Sp
+Use the \fI\-\-algorithm\fR switch choosing from the list of the following
+algorithms in order to define which algorithm to use for the wipe.
 .Sp
 \&\fBSupported algorithms\fR
   zero       \- 1\-pass all zeroes
@@ -3852,65 +3916,106 @@ zeroes making it appear to be completely full. As an alternative, the
 it expects the storage driver to be able to discard all bytes in a
 volume. It is up to the storage driver to handle how the discarding
 occurs. Not all storage drivers or volume types can support 'trim'.
-.IP "\fBvol-dumpxml\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] \fIvol-name-or-key-or-path\fR" 4
-.IX Item "vol-dumpxml [--pool pool-or-uuid] vol-name-or-key-or-path"
+.IP "\fBvol-dumpxml\fR \fIvol-name-or-key-or-path\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR]" 4
+.IX Item "vol-dumpxml vol-name-or-key-or-path [--pool pool-or-uuid]"
 Output the volume information as an \s-1XML\s0 dump to stdout.
+.Sp
+\&\fIvol-name-or-key-or-path\fR is the name or key or path of the volume
+to output the \s-1XML.\s0
+.Sp
 \&\fI\-\-pool\fR \fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage pool the volume
-is in. \fIvol-name-or-key-or-path\fR is the name or key or path of the volume
-to output the \s-1XML\s0 of.
-.IP "\fBvol-info\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] \fIvol-name-or-key-or-path\fR [\fI\-\-bytes\fR] [\fI\-\-physical\fR]" 4
-.IX Item "vol-info [--pool pool-or-uuid] vol-name-or-key-or-path [--bytes] [--physical]"
+is in. If the volume name is provided instead of the key or path, then
+providing the pool is necessary to find the volume to be uploaded into;
+otherwise, the first volume found by the key or path will be used.
+.IP "\fBvol-info\fR \fIvol-name-or-key-or-path\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] [\fI\-\-bytes\fR] [\fI\-\-physical\fR]" 4
+.IX Item "vol-info vol-name-or-key-or-path [--pool pool-or-uuid] [--bytes] [--physical]"
 Returns basic information about the given storage volume.
+.Sp
+\&\fIvol-name-or-key-or-path\fR is the name or key or path of the volume
+to return information for.
+.Sp
 \&\fI\-\-pool\fR \fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage pool the volume
-is in. \fIvol-name-or-key-or-path\fR is the name or key or path of the volume
-to return information for. If \fI\-\-bytes\fR is specified the sizes are not
-converted to human friendly units. If \fI\-\-physical\fR is specified, then the host
-physical size is returned and displayed instead of the allocation value. The
-physical value for some file types, such as qcow2 may have a different (larger)
-physical value than is shown for allocation. Additionally sparse files will
+is in. If the volume name is provided instead of the key or path, then
+providing the pool is necessary to find the volume to be uploaded into;
+otherwise, the first volume found by the key or path will be used.
+.Sp
+If \fI\-\-bytes\fR is specified the sizes are not converted to human friendly
+units.
+.Sp
+If \fI\-\-physical\fR is specified, then the host physical size is returned
+and displayed instead of the allocation value. The physical value for
+some file types, such as qcow2 may have a different (larger) physical
+value than is shown for allocation. Additionally sparse files will
 have different physical and allocation values.
 .IP "\fBvol-list\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] [\fI\-\-details\fR]" 4
 .IX Item "vol-list [--pool pool-or-uuid] [--details]"
 Return the list of volumes in the given storage pool.
+.Sp
 \&\fI\-\-pool\fR \fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage pool.
+.Sp
 The \fI\-\-details\fR option instructs virsh to additionally display volume
 type and capacity related information where available.
-.IP "\fBvol-pool\fR [\fI\-\-uuid\fR] \fIvol-key-or-path\fR" 4
-.IX Item "vol-pool [--uuid] vol-key-or-path"
+.IP "\fBvol-pool\fR \fIvol-key-or-path\fR [\fI\-\-uuid\fR]" 4
+.IX Item "vol-pool vol-key-or-path [--uuid]"
 Return the pool name or \s-1UUID\s0 for a given volume. By default, the pool name is
-returned. If the \fI\-\-uuid\fR option is given, the pool \s-1UUID\s0 is returned instead.
+returned.
+.Sp
 \&\fIvol-key-or-path\fR is the key or path of the volume to return the pool
-information for.
-.IP "\fBvol-path\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] \fIvol-name-or-key\fR" 4
-.IX Item "vol-path [--pool pool-or-uuid] vol-name-or-key"
+information.
+.Sp
+If the \fI\-\-uuid\fR option is given, the pool \s-1UUID\s0 is returned instead.
+.IP "\fBvol-path\fR \fIvol-name-or-key\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR]" 4
+.IX Item "vol-path vol-name-or-key [--pool pool-or-uuid]"
 Return the path for a given volume.
+.Sp
+\&\fIvol-name-or-key\fR is the name or key of the volume to return the path.
+.Sp
 \&\fI\-\-pool\fR \fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage pool the volume
-is in.
-\&\fIvol-name-or-key\fR is the name or key of the volume to return the path for.
+is in. If the volume name is provided instead of the key, then providing
+the pool is necessary to find the volume to be uploaded into; otherwise,
+the first volume found by the key will be used.
 .IP "\fBvol-name\fR \fIvol-key-or-path\fR" 4
 .IX Item "vol-name vol-key-or-path"
 Return the name for a given volume.
-\&\fIvol-key-or-path\fR is the key or path of the volume to return the name for.
-.IP "\fBvol-key\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] \fIvol-name-or-path\fR" 4
-.IX Item "vol-key [--pool pool-or-uuid] vol-name-or-path"
+.Sp
+\&\fIvol-key-or-path\fR is the key or path of the volume to return the name.
+.IP "\fBvol-key\fR \fIvol-name-or-path\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR]" 4
+.IX Item "vol-key vol-name-or-path [--pool pool-or-uuid]"
 Return the volume key for a given volume.
+.Sp
+\&\fIvol-name-or-path\fR is the name or path of the volume to return the
+volume key.
+.Sp
 \&\fI\-\-pool\fR \fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage pool the volume
-is in. \fIvol-name-or-path\fR is the name or path of the volume to return the
-volume key for.
+is in. If the volume name is provided instead of the path, then providing
+the pool is necessary to find the volume to be uploaded into; otherwise,
+the first volume found by the path will be used.
 .IP "\fBvol-resize\fR \fIvol-name-or-path\fR \fIcapacity\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] [\fI\-\-allocate\fR] [\fI\-\-delta\fR] [\fI\-\-shrink\fR]" 4
 .IX Item "vol-resize vol-name-or-path capacity [--pool pool-or-uuid] [--allocate] [--delta] [--shrink]"
 Resize the capacity of the given volume, in bytes.
+.Sp
+\&\fIvol-name-or-key-or-path\fR is the name or key or path of the volume
+to resize.
+.Sp
+\&\fIcapacity\fR is a scaled integer (see \fB\s-1NOTES\s0\fR above) for the volume,
+which defaults to bytes if there is no suffix.
+.Sp
 \&\fI\-\-pool\fR \fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage pool the volume
-is in. \fIvol-name-or-key-or-path\fR is the name or key or path of the volume
-to resize.  The new capacity might be sparse unless \fI\-\-allocate\fR is
-specified.  Normally, \fIcapacity\fR is the new size, but if \fI\-\-delta\fR
-is present, then it is added to the existing size.  Attempts to shrink
-the volume will fail unless \fI\-\-shrink\fR is present; \fIcapacity\fR cannot
-be negative unless \fI\-\-shrink\fR is provided, but a negative sign is not
-necessary. \fIcapacity\fR is a scaled integer (see \fB\s-1NOTES\s0\fR above), which
-defaults to bytes if there is no suffix.  This command is only safe
-for storage volumes not in use by an active guest; see also
-\&\fBblockresize\fR for live resizing.
+is in. If the volume name is provided instead of the key or path, then
+providing the pool is necessary to find the volume to be uploaded into;
+otherwise, the first volume found by the key or path will be used.
+.Sp
+The new \fIcapacity\fR might be sparse unless \fI\-\-allocate\fR is specified.
+.Sp
+Normally, \fIcapacity\fR is the new size, but if \fI\-\-delta\fR
+is present, then it is added to the existing size.
+.Sp
+Attempts to shrink the volume will fail unless \fI\-\-shrink\fR is present.
+The \fIcapacity\fR cannot be negative unless \fI\-\-shrink\fR is provided, but
+a negative sign is not necessary.
+.Sp
+This command is only safe for storage volumes not in use by an active
+guest; see also \fBblockresize\fR for live resizing.
 .SH "SECRET COMMANDS"
 .IX Header "SECRET COMMANDS"
 The following commands manipulate \*(L"secrets\*(R" (e.g. passwords, passphrases and

@@ -255,6 +255,7 @@
      <exports symbol='VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD' type='macro'/>
      <exports symbol='VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA' type='macro'/>
      <exports symbol='VIR_GET_CPUMAP' type='macro'/>
+     <exports symbol='VIR_KEYCODE_SET_RFB' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_AUTO_CONVERGE_INCREMENT' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_AUTO_CONVERGE_INITIAL' type='macro'/>
      <exports symbol='VIR_MIGRATE_PARAM_BANDWIDTH' type='macro'/>
@@ -515,6 +516,7 @@
      <exports symbol='VIR_DOMAIN_EVENT_WATCHDOG_RESET' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_WATCHDOG_SHUTDOWN' type='enum'/>
      <exports symbol='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP' type='enum'/>
      <exports symbol='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE' type='enum'/>
      <exports symbol='VIR_DOMAIN_JOB_BOUNDED' type='enum'/>
@@ -756,7 +758,7 @@
      <exports symbol='VIR_KEYCODE_SET_LAST' type='enum'/>
      <exports symbol='VIR_KEYCODE_SET_LINUX' type='enum'/>
      <exports symbol='VIR_KEYCODE_SET_OSX' type='enum'/>
-     <exports symbol='VIR_KEYCODE_SET_RFB' type='enum'/>
+     <exports symbol='VIR_KEYCODE_SET_QNUM' type='enum'/>
      <exports symbol='VIR_KEYCODE_SET_USB' type='enum'/>
      <exports symbol='VIR_KEYCODE_SET_WIN32' type='enum'/>
      <exports symbol='VIR_KEYCODE_SET_XT' type='enum'/>
@@ -2392,6 +2394,9 @@
       <arg name='maplen' info='the length (in bytes) of one cpumap'/>
       <arg name='vcpu' info='the virtual CPU number'/>
     </macro>
+    <macro name='VIR_KEYCODE_SET_RFB' file='libvirt-domain'>
+      <info><![CDATA[Compatibility alias for VIR_KEYCODE_SET_QNUM, which replaced it since 4.2.0.]]></info>
+    </macro>
     <macro name='VIR_MIGRATE_PARAM_AUTO_CONVERGE_INCREMENT' file='libvirt-domain' string='auto_converge.increment'>
       <info><![CDATA[virDomainMigrate* params field: the increment added to VIR_MIGRATE_PARAM_AUTO_CONVERGE_INITIAL whenever the hypervisor decides the current rate is not enough to ensure convergence of the migration. As VIR_TYPED_PARAM_INT.]]></info>
     </macro>
@@ -2958,7 +2963,8 @@ running in post-copy mode'/>
     <enum name='VIR_DOMAIN_EVENT_WATCHDOG_RESET' file='libvirt-domain' value='2' type='virDomainEventWatchdogAction' info='Guest CPUs are reset'/>
     <enum name='VIR_DOMAIN_EVENT_WATCHDOG_SHUTDOWN' file='libvirt-domain' value='4' type='virDomainEventWatchdogAction' info='Guest is requested to gracefully shutdown'/>
     <enum name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT' file='libvirt-domain' value='1' type='virDomainInterfaceAddressesSource' info='Query qemu guest agent'/>
-    <enum name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LAST' file='libvirt-domain' value='2' type='virDomainInterfaceAddressesSource'/>
+    <enum name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP' file='libvirt-domain' value='2' type='virDomainInterfaceAddressesSource' info='Query ARP tables'/>
+    <enum name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LAST' file='libvirt-domain' value='3' type='virDomainInterfaceAddressesSource'/>
     <enum name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE' file='libvirt-domain' value='0' type='virDomainInterfaceAddressesSource' info='Parse DHCP lease file'/>
     <enum name='VIR_DOMAIN_JOB_BOUNDED' file='libvirt-domain' value='1' type='virDomainJobType' info='Job with a finite completion time'/>
     <enum name='VIR_DOMAIN_JOB_CANCELLED' file='libvirt-domain' value='5' type='virDomainJobType' info='Job was aborted, but isn&apos;t cleaned up'/>
@@ -3474,7 +3480,7 @@ Retained for ABI/API compat only'/>
  by this version of the libvirt API.'/>
     <enum name='VIR_KEYCODE_SET_LINUX' file='libvirt-domain' value='0' type='virKeycodeSet'/>
     <enum name='VIR_KEYCODE_SET_OSX' file='libvirt-domain' value='5' type='virKeycodeSet'/>
-    <enum name='VIR_KEYCODE_SET_RFB' file='libvirt-domain' value='9' type='virKeycodeSet'/>
+    <enum name='VIR_KEYCODE_SET_QNUM' file='libvirt-domain' value='9' type='virKeycodeSet'/>
     <enum name='VIR_KEYCODE_SET_USB' file='libvirt-domain' value='7' type='virKeycodeSet'/>
     <enum name='VIR_KEYCODE_SET_WIN32' file='libvirt-domain' value='8' type='virKeycodeSet'/>
     <enum name='VIR_KEYCODE_SET_XT' file='libvirt-domain' value='1' type='virKeycodeSet'/>
@@ -5266,7 +5272,7 @@ capability type, flags include:
       <return type='int' info='the number of node devices found or -1 and sets @devices to NULL in case of error.  On success, the array stored into @devices is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier.  The caller is responsible for calling virNodeDeviceFree() on each array element, then calling free() on @devices.'/>
       <arg name='conn' type='virConnectPtr' info='Pointer to the hypervisor connection.'/>
       <arg name='devices' type='virNodeDevicePtr **' info='Pointer to a variable to store the array containing the node device objects or NULL if the list is not required (just returns number of node devices).'/>
-      <arg name='flags' type='unsigned int' info='bitwise-OR of virConnectListAllNodeDevices.'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virConnectListAllNodeDeviceFlags.'/>
     </function>
     <function name='virConnectListAllSecrets' file='libvirt-secret' module='libvirt-secret'>
       <info><![CDATA[Collect the list of secrets, and allocate an array to store those
@@ -5290,7 +5296,7 @@ VIR_CONNECT_LIST_SECRETS_NO_PRIVATE selects non-private secrets.]]></info>
       <return type='int' info='the number of secrets found or -1 and sets @secrets to NULL in case of error.  On success, the array stored into @secrets is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier.  The caller is responsible for calling virSecretFree() on each array element, then calling free() on @secrets.'/>
       <arg name='conn' type='virConnectPtr' info='Pointer to the hypervisor connection.'/>
       <arg name='secrets' type='virSecretPtr **' info='Pointer to a variable to store the array containing the secret objects or NULL if the list is not required (just returns the number of secrets).'/>
-      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virConnectListAllSecretsFlags.'/>
     </function>
     <function name='virConnectListAllStoragePools' file='libvirt-storage' module='libvirt-storage'>
       <info><![CDATA[Collect the list of storage pools, and allocate an array to store those
@@ -7543,6 +7549,12 @@ guest agent is needed for successful return from this API. Moreover, if
 guest agent is used then the interface name is the one seen by guest OS.
 To match such interface with the one from @dom XML use MAC address or IP
 range.
+
+If @source is VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP, the host
+ARP table will be check to obtain the interface addresses. As
+the arp cache refreshes in time, the returned ip address may
+be unreachable. Depending on the route table config of the
+guest, the returned mac address may be duplicated.
 
 @ifaces->name and @ifaces->hwaddr are never NULL.
 

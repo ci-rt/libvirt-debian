@@ -287,8 +287,8 @@ qemuDomainPrimeVirtioDeviceAddresses(virDomainDefPtr def,
 {
     /*
        declare address-less virtio devices to be of address type 'type'
-       disks, networks, consoles, controllers, memballoon and rng in this
-       order
+       disks, networks, videos, consoles, controllers, memballoon and rng
+       in this order
        if type is ccw filesystem devices are declared to be of address type ccw
     */
     size_t i;
@@ -308,8 +308,16 @@ qemuDomainPrimeVirtioDeviceAddresses(virDomainDefPtr def,
         }
     }
 
+    for (i = 0; i < def->nvideos; i++) {
+        virDomainVideoDefPtr video = def->videos[i];
+
+        if (video->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE &&
+            video->type == VIR_DOMAIN_VIDEO_TYPE_VIRTIO)
+            video->info.type = type;
+    }
+
     for (i = 0; i < def->ninputs; i++) {
-        if (def->inputs[i]->bus == VIR_DOMAIN_DISK_BUS_VIRTIO &&
+        if (def->inputs[i]->bus == VIR_DOMAIN_INPUT_BUS_VIRTIO &&
             def->inputs[i]->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
             def->inputs[i]->info.type = type;
     }
@@ -1815,7 +1823,7 @@ qemuDomainValidateDevicePCISlotsChipsets(virDomainDefPtr def,
  *  - Video (slot 2)
  *
  *  - These integrated devices were already added by
- *    qemuValidateDevicePCISlotsChipsets invoked right before this function
+ *    qemuDomainValidateDevicePCISlotsChipsets invoked right before this function
  *
  * Incrementally assign slots from 3 onwards:
  *
@@ -2700,6 +2708,13 @@ qemuDomainUSBAddressAddHubs(virDomainDefPtr def)
                                               qemuDomainAssignUSBPortsCounter,
                                               &data,
                                               false));
+
+    if (data.count > 0 && !virDomainDefHasUSB(def)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("USB is disabled for this domain, but USB devices "
+                         "are present in the domain XML"));
+        return -1;
+    }
 
     if (data.count > available_ports)
         hubs_needed = VIR_DIV_UP(data.count - available_ports + 1,

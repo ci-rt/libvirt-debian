@@ -1793,11 +1793,25 @@ lxcConnectSupportsFeature(virConnectPtr conn, int feature)
     if (virConnectSupportsFeatureEnsureACL(conn) < 0)
         return -1;
 
-    switch (feature) {
-        case VIR_DRV_FEATURE_TYPED_PARAM_STRING:
-            return 1;
-        default:
-            return 0;
+    switch ((virDrvFeature) feature) {
+    case VIR_DRV_FEATURE_TYPED_PARAM_STRING:
+        return 1;
+    case VIR_DRV_FEATURE_FD_PASSING:
+    case VIR_DRV_FEATURE_MIGRATE_CHANGE_PROTECTION:
+    case VIR_DRV_FEATURE_MIGRATION_DIRECT:
+    case VIR_DRV_FEATURE_MIGRATION_OFFLINE:
+    case VIR_DRV_FEATURE_MIGRATION_P2P:
+    case VIR_DRV_FEATURE_MIGRATION_PARAMS:
+    case VIR_DRV_FEATURE_MIGRATION_V1:
+    case VIR_DRV_FEATURE_MIGRATION_V2:
+    case VIR_DRV_FEATURE_MIGRATION_V3:
+    case VIR_DRV_FEATURE_PROGRAM_KEEPALIVE:
+    case VIR_DRV_FEATURE_REMOTE:
+    case VIR_DRV_FEATURE_REMOTE_CLOSE_CALLBACK:
+    case VIR_DRV_FEATURE_REMOTE_EVENT_CALLBACK:
+    case VIR_DRV_FEATURE_XML_MIGRATABLE:
+    default:
+        return 0;
     }
 }
 
@@ -3901,8 +3915,8 @@ lxcDomainAttachDeviceDiskLive(virLXCDriverPtr driver,
                                 major(sb.st_rdev),
                                 minor(sb.st_rdev),
                                 perms) < 0)
-            VIR_WARN("cannot deny device %s for domain %s",
-                     src, vm->def->name);
+            VIR_WARN("cannot deny device %s for domain %s: %s",
+                     src, vm->def->name, virGetLastErrorMessage());
         goto cleanup;
     }
 
@@ -3997,8 +4011,8 @@ lxcDomainAttachDeviceNetLive(virConnectPtr conn,
                 goto cleanup;
         } else {
             VIR_WARN("setting bandwidth on interfaces of "
-                     "type '%s' is not implemented yet",
-                     virDomainNetTypeToString(actualType));
+                     "type '%s' is not implemented yet: %s",
+                     virDomainNetTypeToString(actualType), virGetLastErrorMessage());
         }
     }
 
@@ -4102,8 +4116,8 @@ lxcDomainAttachDeviceHostdevSubsysUSBLive(virLXCDriverPtr driver,
         if (virUSBDeviceFileIterate(usb,
                                     virLXCTeardownHostUSBDeviceCgroup,
                                     priv->cgroup) < 0)
-            VIR_WARN("cannot deny device %s for domain %s",
-                     src, vm->def->name);
+            VIR_WARN("cannot deny device %s for domain %s: %s",
+                     src, vm->def->name, virGetLastErrorMessage());
         goto cleanup;
     }
 
@@ -4176,8 +4190,8 @@ lxcDomainAttachDeviceHostdevStorageLive(virLXCDriverPtr driver,
                                 major(sb.st_rdev),
                                 minor(sb.st_rdev),
                                 VIR_CGROUP_DEVICE_RWM) < 0)
-            VIR_WARN("cannot deny device %s for domain %s",
-                     def->source.caps.u.storage.block, vm->def->name);
+            VIR_WARN("cannot deny device %s for domain %s: %s",
+                     def->source.caps.u.storage.block, vm->def->name, virGetLastErrorMessage());
         goto cleanup;
     }
 
@@ -4248,8 +4262,8 @@ lxcDomainAttachDeviceHostdevMiscLive(virLXCDriverPtr driver,
                                 major(sb.st_rdev),
                                 minor(sb.st_rdev),
                                 VIR_CGROUP_DEVICE_RWM) < 0)
-            VIR_WARN("cannot deny device %s for domain %s",
-                     def->source.caps.u.storage.block, vm->def->name);
+            VIR_WARN("cannot deny device %s for domain %s: %s",
+                     def->source.caps.u.storage.block, vm->def->name, virGetLastErrorMessage());
         goto cleanup;
     }
 
@@ -4420,8 +4434,8 @@ lxcDomainDetachDeviceDiskLive(virDomainObjPtr vm,
 
     if (virCgroupDenyDevicePath(priv->cgroup, src,
                                 VIR_CGROUP_DEVICE_RWM, false) != 0)
-        VIR_WARN("cannot deny device %s for domain %s",
-                 src, vm->def->name);
+        VIR_WARN("cannot deny device %s for domain %s: %s",
+                 src, vm->def->name, virGetLastErrorMessage());
 
     virDomainDiskRemove(vm->def, idx);
     virDomainDiskDefFree(def);
@@ -4553,8 +4567,8 @@ lxcDomainDetachDeviceHostdevUSBLive(virLXCDriverPtr driver,
     if (virUSBDeviceFileIterate(usb,
                                 virLXCTeardownHostUSBDeviceCgroup,
                                 priv->cgroup) < 0)
-        VIR_WARN("cannot deny device %s for domain %s",
-                 dst, vm->def->name);
+        VIR_WARN("cannot deny device %s for domain %s: %s",
+                 dst, vm->def->name, virGetLastErrorMessage());
 
     virObjectLock(hostdev_mgr->activeUSBHostdevs);
     virUSBDeviceListDel(hostdev_mgr->activeUSBHostdevs, usb);
@@ -4609,8 +4623,8 @@ lxcDomainDetachDeviceHostdevStorageLive(virDomainObjPtr vm,
 
     if (virCgroupDenyDevicePath(priv->cgroup, def->source.caps.u.storage.block,
                                 VIR_CGROUP_DEVICE_RWM, false) != 0)
-        VIR_WARN("cannot deny device %s for domain %s",
-                 def->source.caps.u.storage.block, vm->def->name);
+        VIR_WARN("cannot deny device %s for domain %s: %s",
+                 def->source.caps.u.storage.block, vm->def->name, virGetLastErrorMessage());
 
     virDomainHostdevRemove(vm->def, idx);
     virDomainHostdevDefFree(def);
@@ -4659,8 +4673,8 @@ lxcDomainDetachDeviceHostdevMiscLive(virDomainObjPtr vm,
 
     if (virCgroupDenyDevicePath(priv->cgroup, def->source.caps.u.misc.chardev,
                                 VIR_CGROUP_DEVICE_RWM, false) != 0)
-        VIR_WARN("cannot deny device %s for domain %s",
-                 def->source.caps.u.misc.chardev, vm->def->name);
+        VIR_WARN("cannot deny device %s for domain %s: %s",
+                 def->source.caps.u.misc.chardev, vm->def->name, virGetLastErrorMessage());
 
     virDomainHostdevRemove(vm->def, idx);
     virDomainHostdevDefFree(def);

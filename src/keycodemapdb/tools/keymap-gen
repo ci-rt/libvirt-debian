@@ -13,7 +13,12 @@
 from __future__ import print_function
 
 import csv
-import argparse
+try:
+    import argparse
+except:
+    import os, sys
+    sys.path.append(os.path.join(os.path.dirname(__file__), "../thirdparty"))
+    import argparse
 import hashlib
 import time
 import sys
@@ -70,8 +75,8 @@ class Database:
     # Xorg + Cygwin: xwinxt + an offset
     MAP_XORGXWIN = "xorgxwin"
 
-    # XT over RFB: xtkbd + special re-encoding of high bit
-    MAP_RFB = "rfb"
+    # QEMU key numbers: xtkbd + special re-encoding of high bit
+    MAP_QNUM = "qnum"
 
     # HTML codes
     MAP_HTML = "html"
@@ -113,7 +118,7 @@ class Database:
         MAP_XORGKBD,
         MAP_XORGXQUARTZ,
         MAP_XORGXWIN,
-        MAP_RFB,
+        MAP_QNUM,
     )
 
     CODE_COLUMNS = {
@@ -282,17 +287,23 @@ class Database:
             self.mapto[self.MAP_XORGXWIN][linux] = xorgxwin
             self.mapfrom[self.MAP_XORGXWIN][xorgxwin] = linux
 
-        # RFB keycodes are XT scan codes with a slightly
+        # QNUM keycodes are XT scan codes with a slightly
         # different encoding of 0xe0 scan codes
         if linux in self.mapto[self.MAP_ATSET1]:
             at1 = self.mapto[self.MAP_ATSET1][linux]
             if at1 > 0x7f:
                 assert((at1 & ~0x7f) == 0xe000)
-                rfb = 0x80 | (at1 & 0x7f)
+                qnum = 0x80 | (at1 & 0x7f)
             else:
-                rfb = at1
-            self.mapto[self.MAP_RFB][linux] = rfb
-            self.mapfrom[self.MAP_RFB][rfb] = linux
+                qnum = at1
+            self.mapto[self.MAP_QNUM][linux] = qnum
+            self.mapfrom[self.MAP_QNUM][qnum] = linux
+
+            # Hack for compatibility with previous mistakes in handling
+            # Print/SysRq. The preferred qnum for Print/SysRq is 0x54,
+            # but QEMU previously allowed 0xb7 too
+            if qnum == 0x54:
+                self.mapfrom[self.MAP_QNUM][0xb7] = self.mapfrom[self.MAP_QNUM][0x54]
 
         if linux in self.mapname[self.MAP_QCODE]:
             qcodeenum = self.mapname[self.MAP_QCODE][linux]
@@ -306,9 +317,8 @@ class LanguageGenerator(object):
         raise NotImplementedError()
 
     def generate_header(self, database, args):
-        today = time.strftime("%Y-%m-%d %H:%M")
         self._boilerplate([
-            "This file is auto-generated from keymaps.csv on %s" % today,
+            "This file is auto-generated from keymaps.csv",
             "Database checksum sha256(%s)" % database.mapchecksum,
             "To re-generate, run:",
             "  %s" % args,
@@ -345,19 +355,19 @@ class LanguageSrcGenerator(LanguageGenerator):
 
         if frommapname in database.ENUM_COLUMNS:
             fromtype = self.TYPE_ENUM
-        elif type(tolinux.keys()[0]) == str:
+        elif type(list(tolinux.keys())[0]) == str:
             fromtype = self.TYPE_STRING
         else:
             fromtype = self.TYPE_INT
 
         if tomapname in database.ENUM_COLUMNS:
             totype = self.TYPE_ENUM
-        elif type(fromlinux.values()[0]) == str:
+        elif type(list(fromlinux.values())[0]) == str:
             totype = self.TYPE_STRING
         else:
             totype = self.TYPE_INT
 
-        keys = tolinux.keys()
+        keys = list(tolinux.keys())
         keys.sort()
         if fromtype == self.TYPE_INT:
             keys = range(keys[-1] + 1)
@@ -391,7 +401,7 @@ class LanguageSrcGenerator(LanguageGenerator):
             raise Exception("Unknown map %s, expected one of %s" % (
                             mapname, ", ".join(database.mapto.keys())))
 
-        keys = database.mapto[Database.MAP_LINUX].keys()
+        keys = list(database.mapto[Database.MAP_LINUX].keys())
         keys.sort()
         names = [database.mapname[Database.MAP_LINUX].get(key, "unnamed") for key in keys]
 
@@ -400,7 +410,7 @@ class LanguageSrcGenerator(LanguageGenerator):
 
         if mapname in database.ENUM_COLUMNS:
             totype = self.TYPE_ENUM
-        elif type(database.mapto[mapname].values()[0]) == str:
+        elif type(list(database.mapto[mapname].values())[0]) == str:
             totype = self.TYPE_STRING
         else:
             totype = self.TYPE_INT
@@ -429,7 +439,7 @@ class LanguageSrcGenerator(LanguageGenerator):
         if varname is None:
             varname = "name_map_%s_to_%s" % (frommapname, tomapname)
 
-        keys = tolinux.keys()
+        keys = list(tolinux.keys())
         keys.sort()
         if type(keys[0]) == int:
             keys = range(keys[-1] + 1)
@@ -459,7 +469,7 @@ class LanguageSrcGenerator(LanguageGenerator):
             raise Exception("Unknown map %s, expected one of %s" % (
                             mapname, ", ".join(database.mapname.keys())))
 
-        keys = database.mapto[Database.MAP_LINUX].keys()
+        keys = list(database.mapto[Database.MAP_LINUX].keys())
         keys.sort()
         names = [database.mapname[Database.MAP_LINUX].get(key, "unnamed") for key in keys]
 
@@ -503,7 +513,7 @@ class LanguageDocGenerator(LanguageGenerator):
             raise Exception("Unknown map %s, expected one of %s" % (
                             mapname, ", ".join(database.mapname.keys())))
 
-        keys = database.mapto[Database.MAP_LINUX].keys()
+        keys = list(database.mapto[Database.MAP_LINUX].keys())
         keys.sort()
         names = [database.mapname[Database.MAP_LINUX].get(key, "unnamed") for key in keys]
 
@@ -526,7 +536,7 @@ class LanguageDocGenerator(LanguageGenerator):
                             mapname, ", ".join(database.mapfrom.keys())))
 
         tolinux = database.mapfrom[mapname]
-        keys = tolinux.keys()
+        keys = list(tolinux.keys())
         keys.sort()
         if mapname in database.mapname:
             names = database.mapname[mapname]
@@ -548,9 +558,10 @@ class LanguageDocGenerator(LanguageGenerator):
 
 class CLanguageGenerator(LanguageSrcGenerator):
 
-    def __init__(self, inttypename, strtypename):
+    def __init__(self, inttypename, strtypename, lentypename):
         self.inttypename = inttypename
         self.strtypename = strtypename
+        self.lentypename = lentypename
 
     def _boilerplate(self, lines):
         print("/*")
@@ -586,8 +597,8 @@ class CLanguageGenerator(LanguageSrcGenerator):
 
     def _array_end(self, fromtype, totype):
         print("};")
-        print("const unsigned int %s_len = sizeof(%s)/sizeof(%s[0]);" %
-              (self._varname, self._varname, self._varname))
+        print("const %s %s_len = sizeof(%s)/sizeof(%s[0]);" %
+              (self.lentypename, self._varname, self._varname, self._varname))
 
     def _array_entry(self, index, value, comment, fromtype, totype):
         if value is None:
@@ -611,6 +622,68 @@ class CLanguageGenerator(LanguageSrcGenerator):
         else:
             print(("  {" + indexfmt + ", " + valuefmt + "}, /* %s */") % (index, value, comment))
 
+class StdCLanguageGenerator(CLanguageGenerator):
+
+    def __init__(self):
+        super(StdCLanguageGenerator, self).__init__("unsigned short", "char *", "unsigned int")
+
+class GLib2LanguageGenerator(CLanguageGenerator):
+
+    def __init__(self):
+        super(GLib2LanguageGenerator, self).__init__("guint16", "gchar *", "guint")
+
+class CHeaderLanguageGenerator(LanguageSrcGenerator):
+
+    def __init__(self, inttypename, strtypename, lentypename):
+        self.inttypename = inttypename
+        self.strtypename = strtypename
+        self.lentypename = lentypename
+
+    def _boilerplate(self, lines):
+        print("/*")
+        for line in lines:
+            print(" * %s" % line)
+        print("*/")
+
+    def _array_start(self, varname, length, defvalue, fromtype, totype):
+        self._varname = varname
+        if fromtype == self.TYPE_STRING:
+            self._length = 0
+        else:
+            self._length = length
+
+    def _array_end(self, fromtype, totype):
+        totypename = self.strtypename if totype == self.TYPE_STRING else self.inttypename
+        if fromtype == self.TYPE_STRING:
+            vartypename = "struct _%s" % self._varname
+            print("%s {" % vartypename)
+            print("  const %s from;" % self.strtypename)
+            print("  const %s to;" % totypename)
+            print("};")
+        else:
+            vartypename = totypename
+        if type(self._length) == str:
+            print("extern const %s %s[%s];" % (vartypename, self._varname, self._length))
+        else:
+            print("extern const %s %s[%d];" % (vartypename, self._varname, self._length))
+        print("extern const %s %s_len;" % (self.lentypename, self._varname))
+
+    def _array_entry(self, index, value, comment, fromtype, totype):
+        if value is None:
+            return
+        if fromtype == self.TYPE_STRING:
+            self._length += 1
+
+class StdCHeaderLanguageGenerator(CHeaderLanguageGenerator):
+
+    def __init__(self):
+        super(StdCHeaderLanguageGenerator, self).__init__("unsigned short", "char *", "unsigned int")
+
+class GLib2HeaderLanguageGenerator(CHeaderLanguageGenerator):
+
+    def __init__(self):
+        super(GLib2HeaderLanguageGenerator, self).__init__("guint16", "gchar *", "guint")
+
 class CppLanguageGenerator(CLanguageGenerator):
 
     def _array_start(self, varname, length, defvalue, fromtype, totype):
@@ -619,10 +692,12 @@ class CppLanguageGenerator(CLanguageGenerator):
         totypename = "const " + self.strtypename if totype == self.TYPE_STRING else self.inttypename
         if fromtype == self.TYPE_INT:
             print("#include <vector>")
+            print("extern const std::vector<%s> %s;" % (totypename, varname));
             print("const std::vector<%s> %s = {" % (totypename, varname))
         else:
             print("#include <map>")
             print("#include <string>")
+            print("extern const std::map<const std::string, %s> %s;" % (totypename, varname))
             print("const std::map<const std::string, %s> %s = {" % (totypename, varname))
 
     def _array_end(self, fromtype, totype):
@@ -642,20 +717,36 @@ class CppLanguageGenerator(CLanguageGenerator):
         else:
             print("  \"%s\", /* %s */" % (value, comment))
 
-class StdCLanguageGenerator(CLanguageGenerator):
-
-    def __init__(self):
-        super(StdCLanguageGenerator, self).__init__("unsigned short", "char *")
-
 class StdCppLanguageGenerator(CppLanguageGenerator):
 
     def __init__(self):
-        super(StdCppLanguageGenerator, self).__init__("unsigned short", "char *")
+        super(StdCppLanguageGenerator, self).__init__("unsigned short", "char *", "unsigned int")
 
-class GLib2LanguageGenerator(CLanguageGenerator):
+class CppHeaderLanguageGenerator(CHeaderLanguageGenerator):
+
+    def _array_start(self, varname, length, defvalue, fromtype, totype):
+        if fromtype == self.TYPE_ENUM:
+            raise NotImplementedError("Enums not supported as source in C++ generator")
+        totypename = "const " + self.strtypename if totype == self.TYPE_STRING else self.inttypename
+        if fromtype == self.TYPE_INT:
+            print("#include <vector>")
+            print("extern const std::vector<%s> %s;" % (totypename, varname));
+        else:
+            print("#include <map>")
+            print("#include <string>")
+            print("extern const std::map<const std::string, %s> %s;" % (totypename, varname))
+
+    def _array_end(self, fromtype, totype):
+        pass
+
+    # designated initializers not available in C++
+    def _array_entry(self, index, value, comment, fromtype, totype):
+        pass
+
+class StdCppHeaderLanguageGenerator(CppHeaderLanguageGenerator):
 
     def __init__(self):
-        super(GLib2LanguageGenerator, self).__init__("guint16", "gchar *")
+        super(StdCppHeaderLanguageGenerator, self).__init__("unsigned short", "char *", "unsigned int")
 
 class PythonLanguageGenerator(LanguageSrcGenerator):
 
@@ -815,8 +906,11 @@ class PodLanguageGenerator(LanguageDocGenerator):
 
 SRC_GENERATORS = {
     "stdc": StdCLanguageGenerator(),
+    "stdc-header": StdCHeaderLanguageGenerator(),
     "stdc++": StdCppLanguageGenerator(),
+    "stdc++-header": StdCppHeaderLanguageGenerator(),
     "glib2": GLib2LanguageGenerator(),
+    "glib2-header": GLib2HeaderLanguageGenerator(),
     "python2": PythonLanguageGenerator(),
     "python3": PythonLanguageGenerator(),
     "perl": PerlLanguageGenerator(),

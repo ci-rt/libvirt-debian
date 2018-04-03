@@ -202,6 +202,13 @@
     %define with_bash_completion  0%{!?_without_bash_completion:1}
 %endif
 
+# Use Python 3 when possible, Python 2 otherwise
+%if 0%{?fedora} || 0%{?rhel} > 7
+    %define python python3
+%else
+    %define python python2
+%endif
+
 
 %if %{with_qemu} || %{with_lxc} || %{with_uml}
 # numad is used to manage the CPU and memory placement dynamically,
@@ -246,7 +253,7 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 4.1.0
+Version: 4.2.0
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
@@ -298,13 +305,14 @@ BuildRequires: gettext-devel
 BuildRequires: libtool
 BuildRequires: /usr/bin/pod2man
 %endif
+BuildRequires: gcc
 BuildRequires: git
 %if 0%{?fedora} >= 27 || 0%{?rhel} > 7
 BuildRequires: perl-interpreter
 %else
 BuildRequires: perl
 %endif
-BuildRequires: python
+BuildRequires: %{python}
 %if %{with_systemd}
 BuildRequires: systemd-units
 %endif
@@ -357,11 +365,9 @@ BuildRequires: ebtables
 BuildRequires: module-init-tools
 BuildRequires: cyrus-sasl-devel
 %if 0%{?fedora} || 0%{?rhel} >= 7
-# F22 polkit-devel doesn't pull in polkit anymore, which we need for pkcheck
 BuildRequires: polkit >= 0.112
-BuildRequires: polkit-devel >= 0.112
 %else
-BuildRequires: polkit-devel >= 0.93
+BuildRequires: polkit >= 0.93
 %endif
 # For mount/umount in FS driver
 BuildRequires: util-linux
@@ -1513,9 +1519,9 @@ exit 0
 
 %if %{with_systemd}
     %if %{with_systemd_macros}
-        %systemd_post virtlockd.socket virtlockd-admin.socket \
-            virtlogd.socket virtlogd-admin.socket \
-            libvirtd.service
+        %systemd_post virtlockd.socket virtlockd-admin.socket
+        %systemd_post virtlogd.socket virtlogd-admin.socket
+        %systemd_post libvirtd.service
     %else
 if [ $1 -eq 1 ] ; then
     # Initial installation
@@ -1550,9 +1556,9 @@ touch %{_localstatedir}/lib/rpm-state/libvirt/restart || :
 %preun daemon
 %if %{with_systemd}
     %if %{with_systemd_macros}
-        %systemd_preun libvirtd.service \
-            virtlogd.socket virtlogd-admin.socket virtlogd.service \
-            virtlockd.socket virtlockd-admin.socket virtlockd.service
+        %systemd_preun libvirtd.service
+        %systemd_preun virtlogd.socket virtlogd-admin.socket virtlogd.service
+        %systemd_preun virtlockd.socket virtlockd-admin.socket virtlockd.service
     %else
 if [ $1 -eq 0 ] ; then
     # Package removal, not upgrade

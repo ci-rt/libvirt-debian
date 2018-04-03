@@ -1310,7 +1310,7 @@ remoteConnectOpen(virConnectPtr conn,
     int ret, rflags = 0;
     const char *autostart = virGetEnvBlockSUID("LIBVIRT_AUTOSTART");
 
-    if (inside_daemon && (!conn->uri || (conn->uri && !conn->uri->server)))
+    if (inside_daemon && (!conn->uri || !conn->uri->server))
         return VIR_DRV_OPEN_DECLINED;
 
     if (!(priv = remoteAllocPrivateData()))
@@ -1344,13 +1344,10 @@ remoteConnectOpen(virConnectPtr conn,
 
     /*
      * If URI is NULL, then do a UNIX connection possibly auto-spawning
-     * unprivileged server and probe remote server for URI. On Solaris,
-     * this isn't supported, but we may be privileged enough to connect
-     * to the UNIX socket anyway.
+     * unprivileged server and probe remote server for URI.
      */
     if (!conn->uri) {
         VIR_DEBUG("Auto-probe remote URI");
-#ifndef __sun
         if (geteuid() > 0) {
             VIR_DEBUG("Auto-spawn user daemon instance");
             rflags |= VIR_DRV_OPEN_REMOTE_USER;
@@ -1359,7 +1356,6 @@ remoteConnectOpen(virConnectPtr conn,
                  STRNEQ(autostart, "0")))
                 rflags |= VIR_DRV_OPEN_REMOTE_AUTOSTART;
         }
-#endif
     }
 
     ret = doRemoteOpen(conn, priv, auth, conf, rflags);
@@ -4289,64 +4285,6 @@ remoteAuthSASL(virConnectPtr conn, struct private_data *priv,
 #endif /* WITH_SASL */
 
 
-#if WITH_POLKIT0
-/* Perform the PolicyKit0 authentication process */
-static int
-remoteAuthPolkit0(virConnectPtr conn, struct private_data *priv,
-                 virConnectAuthPtr auth)
-{
-    remote_auth_polkit_ret ret;
-    size_t i;
-    int allowcb = 0;
-    virConnectCredential cred = {
-        VIR_CRED_EXTERNAL,
-        conn->flags & VIR_CONNECT_RO ? "org.libvirt.unix.monitor" : "org.libvirt.unix.manage",
-        "PolicyKit",
-        NULL,
-        NULL,
-        0,
-    };
-    VIR_DEBUG("Client initialize PolicyKit-0 authentication");
-
-    /* We only make it here if auth already failed
-     * Ask client to obtain it and check again. */
-    if (auth && auth->cb) {
-        /* Check if the necessary credential type for PolicyKit is supported */
-        for (i = 0; i < auth->ncredtype; i++) {
-            if (auth->credtype[i] == VIR_CRED_EXTERNAL)
-                allowcb = 1;
-        }
-
-        if (allowcb) {
-            VIR_DEBUG("Client run callback for PolicyKit authentication");
-            /* Run the authentication callback */
-            if ((*(auth->cb))(&cred, 1, auth->cbdata) < 0) {
-                virReportError(VIR_ERR_AUTH_FAILED, "%s",
-                               _("Failed to collect auth credentials"));
-                return -1;
-            }
-        } else {
-            VIR_DEBUG("Client auth callback does not support PolicyKit");
-            return -1;
-        }
-    } else {
-        VIR_DEBUG("No auth callback provided");
-        return -1;
-    }
-
-    memset(&ret, 0, sizeof(ret));
-    if (call(conn, priv, 0, REMOTE_PROC_AUTH_POLKIT,
-             (xdrproc_t) xdr_void, (char *)NULL,
-             (xdrproc_t) xdr_remote_auth_polkit_ret, (char *) &ret) != 0) {
-        return -1; /* virError already set by call */
-    }
-
- out:
-    VIR_DEBUG("PolicyKit-0 authentication complete");
-    return 0;
-}
-#endif /* WITH_POLKIT0 */
-
 static int
 remoteAuthPolkit(virConnectPtr conn, struct private_data *priv,
                  virConnectAuthPtr auth ATTRIBUTE_UNUSED)
@@ -4360,11 +4298,6 @@ remoteAuthPolkit(virConnectPtr conn, struct private_data *priv,
              (xdrproc_t) xdr_remote_auth_polkit_ret, (char *) &ret) != 0) {
         return -1; /* virError already set by call */
     }
-
-#if WITH_POLKIT0
-    if (remoteAuthPolkit0(conn, priv, auth) < 0)
-        return -1;
-#endif /* WITH_POLKIT0 */
 
     VIR_DEBUG("PolicyKit authentication complete");
     return 0;

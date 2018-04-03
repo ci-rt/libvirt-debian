@@ -1809,24 +1809,26 @@ virStorageAuthDefCopy(const virStorageAuthDef *src)
 }
 
 
-static virStorageAuthDefPtr
-virStorageAuthDefParseXML(xmlXPathContextPtr ctxt)
+virStorageAuthDefPtr
+virStorageAuthDefParse(xmlNodePtr node,
+                       xmlXPathContextPtr ctxt)
 {
+    xmlNodePtr saveNode = ctxt->node;
     virStorageAuthDefPtr authdef = NULL;
+    virStorageAuthDefPtr ret = NULL;
     xmlNodePtr secretnode = NULL;
-    char *username = NULL;
     char *authtype = NULL;
 
-    if (VIR_ALLOC(authdef) < 0)
-        return NULL;
+    ctxt->node = node;
 
-    if (!(username = virXPathString("string(./@username)", ctxt))) {
+    if (VIR_ALLOC(authdef) < 0)
+        goto cleanup;
+
+    if (!(authdef->username = virXPathString("string(./@username)", ctxt))) {
         virReportError(VIR_ERR_XML_ERROR, "%s",
                        _("missing username for auth"));
-        goto error;
+        goto cleanup;
     }
-    authdef->username = username;
-    username = NULL;
 
     authdef->authType = VIR_STORAGE_AUTH_TYPE_NONE;
     authtype = virXPathString("string(./@type)", ctxt);
@@ -1837,15 +1839,14 @@ virStorageAuthDefParseXML(xmlXPathContextPtr ctxt)
         if ((authdef->authType = virStorageAuthTypeFromString(authtype)) < 0) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("unknown auth type '%s'"), authtype);
-            goto error;
+            goto cleanup;
         }
-        VIR_FREE(authtype);
     }
 
     if (!(secretnode = virXPathNode("./secret ", ctxt))) {
         virReportError(VIR_ERR_XML_ERROR, "%s",
                        _("Missing <secret> element in auth"));
-        goto error;
+        goto cleanup;
     }
 
     /* Used by the domain disk xml parsing in order to ensure the
@@ -1858,36 +1859,16 @@ virStorageAuthDefParseXML(xmlXPathContextPtr ctxt)
     authdef->secrettype = virXMLPropString(secretnode, "type");
 
     if (virSecretLookupParseSecret(secretnode, &authdef->seclookupdef) < 0)
-        goto error;
-
-    return authdef;
-
- error:
-    VIR_FREE(authtype);
-    VIR_FREE(username);
-    virStorageAuthDefFree(authdef);
-    return NULL;
-}
-
-
-virStorageAuthDefPtr
-virStorageAuthDefParse(xmlDocPtr xml, xmlNodePtr root)
-{
-    xmlXPathContextPtr ctxt = NULL;
-    virStorageAuthDefPtr authdef = NULL;
-
-    ctxt = xmlXPathNewContext(xml);
-    if (ctxt == NULL) {
-        virReportOOMError();
         goto cleanup;
-    }
 
-    ctxt->node = root;
-    authdef = virStorageAuthDefParseXML(ctxt);
+    VIR_STEAL_PTR(ret, authdef);
 
  cleanup:
-    xmlXPathFreeContext(ctxt);
-    return authdef;
+    VIR_FREE(authtype);
+    virStorageAuthDefFree(authdef);
+    ctxt->node = saveNode;
+
+    return ret;
 }
 
 

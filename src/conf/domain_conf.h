@@ -700,7 +700,7 @@ typedef enum {
 } virDomainControllerModelPCI;
 
 typedef enum {
-    VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_NONE,
+    VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_NONE = 0,
     VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_PCI_BRIDGE,
     VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_I82801B11_BRIDGE,
     VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_IOH3420,
@@ -2700,6 +2700,7 @@ int virDomainDefPostParse(virDomainDefPtr def,
                           unsigned int parseFlags,
                           virDomainXMLOptionPtr xmlopt,
                           void *parseOpaque);
+bool virDomainDefHasUSB(const virDomainDef *def);
 
 int virDomainDeviceValidateAliasForHotplug(virDomainObjPtr vm,
                                            virDomainDeviceDefPtr dev,
@@ -3425,6 +3426,13 @@ bool virDomainDefNeedsPlacementAdvice(virDomainDefPtr def)
 int virDomainDiskDefCheckDuplicateInfo(const virDomainDiskDef *a,
                                        const virDomainDiskDef *b)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+int virDomainStorageSourceFormat(virBufferPtr attrBuf,
+                                 virBufferPtr childBuf,
+                                 virStorageSourcePtr src,
+                                 unsigned int flags,
+                                 bool skipSeclabels)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 
 int virDomainDefGetVcpuPinInfoHelper(virDomainDefPtr def,
                                      int maplen,

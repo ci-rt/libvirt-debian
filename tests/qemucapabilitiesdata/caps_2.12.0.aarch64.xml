@@ -20,8 +20,6 @@
   <flag name='boot-index'/>
   <flag name='hda-duplex'/>
   <flag name='drive-aio'/>
-  <flag name='ccid-emulated'/>
-  <flag name='ccid-passthru'/>
   <flag name='chardev-spicevmc'/>
   <flag name='virtio-tx-alg'/>
   <flag name='pci-multifunction'/>
@@ -147,8 +145,6 @@
   <flag name='chardev-logfile'/>
   <flag name='debug-threads'/>
   <flag name='secret'/>
-  <flag name='pxb'/>
-  <flag name='pxb-pcie'/>
   <flag name='device-tray-moved-event'/>
   <flag name='nec-usb-xhci-ports'/>
   <flag name='virtio-scsi-pci.iothread'/>
@@ -158,27 +154,43 @@
   <flag name='display'/>
   <flag name='smm'/>
   <flag name='virtio-pci-disable-legacy'/>
+  <flag name='query-hotpluggable-cpus'/>
+  <flag name='virtio-net.rx_queue_size'/>
   <flag name='drive-iotune-max-length'/>
   <flag name='ivshmem-plain'/>
   <flag name='ivshmem-doorbell'/>
   <flag name='query-qmp-schema'/>
+  <flag name='gluster.debug_level'/>
   <flag name='vhost-scsi'/>
   <flag name='drive-iotune-group'/>
+  <flag name='virtio-net.host_mtu'/>
+  <flag name='pcie-root-port'/>
   <flag name='query-cpu-definitions'/>
   <flag name='block-write-threshold'/>
   <flag name='query-named-block-nodes'/>
+  <flag name='qemu-xhci'/>
   <flag name='kernel-irqchip'/>
   <flag name='kernel-irqchip.split'/>
+  <flag name='virtio.iommu_platform'/>
+  <flag name='virtio.ats'/>
+  <flag name='loadparm'/>
   <flag name='vnc-multi-servers'/>
+  <flag name='virtio-net.tx_queue_size'/>
   <flag name='chardev-reconnect'/>
   <flag name='virtio-gpu.max_outputs'/>
+  <flag name='vxhs'/>
+  <flag name='virtio-blk.num-queues'/>
+  <flag name='vmcoreinfo'/>
+  <flag name='numa.dist'/>
+  <flag name='disk-share-rw'/>
+  <flag name='iscsi.password-secret'/>
   <flag name='isa-serial'/>
   <flag name='pl011'/>
   <flag name='dump-completed'/>
-  <version>2006000</version>
+  <version>2011090</version>
   <kvmVersion>0</kvmVersion>
-  <microcodeVersion>228838</microcodeVersion>
-  <package></package>
+  <microcodeVersion>342346</microcodeVersion>
+  <package>v2.12.0-rc0</package>
   <arch>aarch64</arch>
   <cpu type='kvm' name='pxa262'/>
   <cpu type='kvm' name='pxa270-a0'/>
@@ -188,23 +200,26 @@
   <cpu type='kvm' name='arm1136-r2'/>
   <cpu type='kvm' name='pxa261'/>
   <cpu type='kvm' name='pxa255'/>
+  <cpu type='kvm' name='cortex-m33'/>
   <cpu type='kvm' name='arm926'/>
   <cpu type='kvm' name='arm11mpcore'/>
   <cpu type='kvm' name='pxa250'/>
   <cpu type='kvm' name='ti925t'/>
   <cpu type='kvm' name='cortex-a57'/>
   <cpu type='kvm' name='sa1110'/>
+  <cpu type='kvm' name='host'/>
   <cpu type='kvm' name='arm1176'/>
   <cpu type='kvm' name='cortex-a53'/>
-  <cpu type='kvm' name='host'/>
   <cpu type='kvm' name='sa1100'/>
   <cpu type='kvm' name='pxa270-c5'/>
   <cpu type='kvm' name='cortex-a9'/>
   <cpu type='kvm' name='cortex-a8'/>
+  <cpu type='kvm' name='cortex-a7'/>
   <cpu type='kvm' name='pxa270-c0'/>
   <cpu type='kvm' name='arm1026'/>
   <cpu type='kvm' name='pxa270-b1'/>
   <cpu type='kvm' name='cortex-m3'/>
+  <cpu type='kvm' name='max'/>
   <cpu type='kvm' name='cortex-m4'/>
   <cpu type='kvm' name='pxa270-b0'/>
   <cpu type='kvm' name='arm946'/>
@@ -219,22 +234,26 @@
   <cpu type='tcg' name='arm1136-r2'/>
   <cpu type='tcg' name='pxa261'/>
   <cpu type='tcg' name='pxa255'/>
+  <cpu type='tcg' name='cortex-m33'/>
   <cpu type='tcg' name='arm926'/>
   <cpu type='tcg' name='arm11mpcore'/>
   <cpu type='tcg' name='pxa250'/>
   <cpu type='tcg' name='ti925t'/>
   <cpu type='tcg' name='cortex-a57'/>
   <cpu type='tcg' name='sa1110'/>
+  <cpu type='tcg' name='host'/>
   <cpu type='tcg' name='arm1176'/>
   <cpu type='tcg' name='cortex-a53'/>
   <cpu type='tcg' name='sa1100'/>
   <cpu type='tcg' name='pxa270-c5'/>
   <cpu type='tcg' name='cortex-a9'/>
   <cpu type='tcg' name='cortex-a8'/>
+  <cpu type='tcg' name='cortex-a7'/>
   <cpu type='tcg' name='pxa270-c0'/>
   <cpu type='tcg' name='arm1026'/>
   <cpu type='tcg' name='pxa270-b1'/>
   <cpu type='tcg' name='cortex-m3'/>
+  <cpu type='tcg' name='max'/>
   <cpu type='tcg' name='cortex-m4'/>
   <cpu type='tcg' name='pxa270-b0'/>
   <cpu type='tcg' name='arm946'/>
@@ -243,45 +262,61 @@
   <cpu type='tcg' name='pxa270'/>
   <machine name='integratorcp' maxCpus='1'/>
   <machine name='nuri' maxCpus='2'/>
+  <machine name='mps2-an511' maxCpus='1'/>
   <machine name='verdex' maxCpus='1'/>
+  <machine name='mps2-an505' maxCpus='1'/>
+  <machine name='ast2500-evb' maxCpus='1'/>
   <machine name='smdkc210' maxCpus='2'/>
   <machine name='collie' maxCpus='1'/>
   <machine name='imx25-pdk' maxCpus='1'/>
   <machine name='spitz' maxCpus='1'/>
   <machine name='realview-pbx-a9' maxCpus='4'/>
   <machine name='realview-eb' maxCpus='1'/>
-  <machine name='versatilepb' maxCpus='1'/>
   <machine name='realview-pb-a8' maxCpus='1'/>
+  <machine name='versatilepb' maxCpus='1'/>
+  <machine name='emcraft-sf2' maxCpus='1'/>
+  <machine name='virt-2.9' maxCpus='255'/>
   <machine name='musicpal' maxCpus='1'/>
   <machine name='z2' maxCpus='1'/>
   <machine name='akita' maxCpus='1'/>
+  <machine name='virt-2.7' maxCpus='255'/>
   <machine name='kzm' maxCpus='1'/>
+  <machine name='virt-2.8' maxCpus='255'/>
   <machine name='realview-eb-mpcore' maxCpus='4'/>
+  <machine name='mcimx7d-sabre' maxCpus='2'/>
   <machine name='sx1' maxCpus='1'/>
   <machine name='sx1-v1' maxCpus='1'/>
-  <machine name='virt-2.6' alias='virt' maxCpus='255'/>
+  <machine name='virt-2.6' maxCpus='255'/>
   <machine name='cubieboard' maxCpus='1'/>
   <machine name='highbank' maxCpus='4'/>
   <machine name='raspi2' maxCpus='4'/>
+  <machine name='raspi3' maxCpus='4'/>
   <machine name='netduino2' maxCpus='1'/>
   <machine name='terrier' maxCpus='1'/>
   <machine name='n810' maxCpus='1'/>
   <machine name='mainstone' maxCpus='1'/>
   <machine name='palmetto-bmc' maxCpus='1'/>
+  <machine name='sabrelite' maxCpus='4'/>
   <machine name='midway' maxCpus='4'/>
+  <machine name='romulus-bmc' maxCpus='1'/>
   <machine name='cheetah' maxCpus='1'/>
   <machine name='tosa' maxCpus='1'/>
   <machine name='borzoi' maxCpus='1'/>
   <machine name='versatileab' maxCpus='1'/>
   <machine name='lm3s6965evb' maxCpus='1'/>
   <machine name='n800' maxCpus='1'/>
+  <machine name='virt-2.10' maxCpus='255'/>
+  <machine name='virt-2.11' maxCpus='255'/>
   <machine name='connex' maxCpus='1'/>
+  <machine name='virt-2.12' alias='virt' maxCpus='255'/>
   <machine name='xilinx-zynq-a9' maxCpus='1'/>
-  <machine name='xlnx-ep108' maxCpus='1'/>
+  <machine name='xlnx-ep108' maxCpus='6'/>
+  <machine name='mps2-an385' maxCpus='1'/>
   <machine name='vexpress-a9' maxCpus='4'/>
   <machine name='vexpress-a15' maxCpus='4'/>
+  <machine name='xlnx-zcu102' maxCpus='6'/>
   <machine name='canon-a1100' maxCpus='1'/>
   <machine name='lm3s811evb' maxCpus='1'/>
-  <gic version='3' kernel='yes' emulated='no'/>
+  <gic version='3' kernel='yes' emulated='yes'/>
   <gic version='2' kernel='no' emulated='yes'/>
 </qemuCaps>

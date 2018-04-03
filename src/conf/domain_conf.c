@@ -5027,6 +5027,9 @@ virDomainDefPostParseCheckFailure(virDomainDefPtr def,
                                   unsigned int parseFlags,
                                   int ret)
 {
+    if (ret != 0)
+        def->postParseFailed = true;
+
     if (ret <= 0)
         return ret;
 
@@ -5034,7 +5037,6 @@ virDomainDefPostParseCheckFailure(virDomainDefPtr def,
         return -1;
 
     virResetLastError();
-    def->postParseFailed = true;
     return 0;
 }
 
@@ -5223,7 +5225,7 @@ virDomainDiskDefValidate(const virDomainDiskDef *disk)
     return 0;
 }
 
-static bool
+bool
 virDomainDefHasUSB(const virDomainDef *def)
 {
     size_t i;
@@ -5571,7 +5573,7 @@ virDomainDeviceDefValidateAliasesIterator(virDomainDefPtr def,
     struct virDomainDefValidateAliasesData *data = opaque;
     const char *alias = info->alias;
 
-    if (!alias)
+    if (!virDomainDeviceAliasIsUserAlias(alias))
         return 0;
 
     /* Some crazy backcompat for consoles. */
@@ -5581,6 +5583,13 @@ virDomainDeviceDefValidateAliasesIterator(virDomainDefPtr def,
         dev->type == VIR_DOMAIN_DEVICE_CHR &&
         virDomainChrEquals(def->serials[0], dev->data.chr))
         return 0;
+
+    if (dev->type == VIR_DOMAIN_DEVICE_HOSTDEV &&
+        dev->data.hostdev->parent.type == VIR_DOMAIN_DEVICE_NET) {
+        /* This hostdev is a copy of some previous interface.
+         * Aliases are duplicated. */
+        return 0;
+    }
 
     if (virHashLookup(data->aliases, alias)) {
         virReportError(VIR_ERR_XML_ERROR,
@@ -5677,11 +5686,11 @@ virDomainDeviceValidateAliasForHotplug(virDomainObjPtr vm,
         return -1;
 
     if (persDef &&
-        virDomainDeviceValidateAliasImpl(vm->def, dev) < 0)
+        virDomainDeviceValidateAliasImpl(persDef, dev) < 0)
         return -1;
 
     if (liveDef &&
-        virDomainDeviceValidateAliasImpl(vm->newDef, dev) < 0)
+        virDomainDeviceValidateAliasImpl(liveDef, dev) < 0)
         return -1;
 
     return 0;
@@ -6693,7 +6702,7 @@ virDomainDeviceAddressParseXML(xmlNodePtr address,
 bool
 virDomainDeviceAliasIsUserAlias(const char *aliasStr)
 {
-    return STRPREFIX(aliasStr, USER_ALIAS_PREFIX);
+    return aliasStr && STRPREFIX(aliasStr, USER_ALIAS_PREFIX);
 }
 
 
@@ -7216,7 +7225,8 @@ virDomainHostdevSubsysSCSIHostDefParseXML(xmlNodePtr sourcenode,
 
 static int
 virDomainHostdevSubsysSCSIiSCSIDefParseXML(xmlNodePtr sourcenode,
-                                           virDomainHostdevSubsysSCSIPtr def)
+                                           virDomainHostdevSubsysSCSIPtr def,
+                                           xmlXPathContextPtr ctxt)
 {
     int ret = -1;
     int auth_secret_usage = -1;
@@ -7257,7 +7267,7 @@ virDomainHostdevSubsysSCSIiSCSIDefParseXML(xmlNodePtr sourcenode,
     while (cur != NULL) {
         if (cur->type == XML_ELEMENT_NODE &&
             virXMLNodeNameEqual(cur, "auth")) {
-            if (!(authdef = virStorageAuthDefParse(sourcenode->doc, cur)))
+            if (!(authdef = virStorageAuthDefParse(cur, ctxt)))
                 goto cleanup;
             if ((auth_secret_usage =
                  virSecretUsageTypeFromString(authdef->secrettype)) < 0) {
@@ -7286,7 +7296,8 @@ virDomainHostdevSubsysSCSIiSCSIDefParseXML(xmlNodePtr sourcenode,
 
 static int
 virDomainHostdevSubsysSCSIDefParseXML(xmlNodePtr sourcenode,
-                                      virDomainHostdevSubsysSCSIPtr scsisrc)
+                                      virDomainHostdevSubsysSCSIPtr scsisrc,
+                                      xmlXPathContextPtr ctxt)
 {
     char *protocol = NULL;
     int ret = -1;
@@ -7303,7 +7314,7 @@ virDomainHostdevSubsysSCSIDefParseXML(xmlNodePtr sourcenode,
     }
 
     if (scsisrc->protocol == VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_ISCSI)
-        ret = virDomainHostdevSubsysSCSIiSCSIDefParseXML(sourcenode, scsisrc);
+        ret = virDomainHostdevSubsysSCSIiSCSIDefParseXML(sourcenode, scsisrc, ctxt);
     else
         ret = virDomainHostdevSubsysSCSIHostDefParseXML(sourcenode, scsisrc);
 
@@ -7548,7 +7559,7 @@ virDomainHostdevDefParseXMLSubsys(xmlNodePtr node,
         break;
 
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI:
-        if (virDomainHostdevSubsysSCSIDefParseXML(sourcenode, scsisrc) < 0)
+        if (virDomainHostdevSubsysSCSIDefParseXML(sourcenode, scsisrc, ctxt) < 0)
             goto error;
         break;
 
@@ -8210,8 +8221,7 @@ virSecurityLabelDefsParseXML(virDomainDefPtr def,
 static int
 virSecurityDeviceLabelDefParseXML(virSecurityDeviceLabelDefPtr **seclabels_rtn,
                                   size_t *nseclabels_rtn,
-                                  virSecurityLabelDefPtr *vmSeclabels,
-                                  int nvmSeclabels, xmlXPathContextPtr ctxt,
+                                  xmlXPathContextPtr ctxt,
                                   unsigned int flags)
 {
     virSecurityDeviceLabelDefPtr *seclabels = NULL;
@@ -8219,7 +8229,6 @@ virSecurityDeviceLabelDefParseXML(virSecurityDeviceLabelDefPtr **seclabels_rtn,
     int n;
     size_t i, j;
     xmlNodePtr *list = NULL;
-    virSecurityLabelDefPtr vmDef = NULL;
     char *model, *relabel, *label, *labelskip;
 
     if ((n = virXPathNodeSet("./seclabel", ctxt, &list)) < 0)
@@ -8239,14 +8248,6 @@ virSecurityDeviceLabelDefParseXML(virSecurityDeviceLabelDefPtr **seclabels_rtn,
         /* get model associated to this override */
         model = virXMLPropString(list[i], "model");
         if (model) {
-            /* find the security label that it's being overridden */
-            for (j = 0; j < nvmSeclabels; j++) {
-                if (STREQ(vmSeclabels[j]->model, model)) {
-                    vmDef = vmSeclabels[j];
-                    break;
-                }
-            }
-
             /* check for duplicate seclabels */
             for (j = 0; j < i; j++) {
                 if (STREQ_NULLABLE(model, seclabels[j]->model)) {
@@ -8256,14 +8257,6 @@ virSecurityDeviceLabelDefParseXML(virSecurityDeviceLabelDefPtr **seclabels_rtn,
                 }
             }
             seclabels[i]->model = model;
-        }
-
-        /* Can't use overrides if top-level doesn't allow relabeling.  */
-        if (vmDef && !vmDef->relabel) {
-            virReportError(VIR_ERR_XML_ERROR, "%s",
-                           _("label overrides require relabeling to be "
-                             "enabled at the domain level"));
-            goto error;
         }
 
         relabel = virXMLPropString(list[i], "relabel");
@@ -8317,6 +8310,37 @@ virSecurityDeviceLabelDefParseXML(virSecurityDeviceLabelDefPtr **seclabels_rtn,
     VIR_FREE(seclabels);
     VIR_FREE(list);
     return -1;
+}
+
+
+static int
+virSecurityDeviceLabelDefValidateXML(virSecurityDeviceLabelDefPtr *seclabels,
+                                     size_t nseclabels,
+                                     virSecurityLabelDefPtr *vmSeclabels,
+                                     size_t nvmSeclabels)
+{
+    virSecurityDeviceLabelDefPtr seclabel;
+    size_t i;
+    size_t j;
+
+    for (i = 0; i < nseclabels; i++) {
+        seclabel = seclabels[i];
+
+        /* find the security label that it's being overridden */
+        for (j = 0; j < nvmSeclabels; j++) {
+            if (STRNEQ_NULLABLE(vmSeclabels[j]->model, seclabel->model))
+                continue;
+
+            if (!vmSeclabels[j]->relabel) {
+                virReportError(VIR_ERR_XML_ERROR, "%s",
+                               _("label overrides require relabeling to be "
+                                 "enabled at the domain level"));
+                return -1;
+            }
+        }
+    }
+
+    return 0;
 }
 
 
@@ -8537,69 +8561,25 @@ virDomainDiskSourceNetworkParse(xmlNodePtr node,
 
 
 static int
-virDomainDiskSourceAuthParse(xmlNodePtr node,
-                             virStorageAuthDefPtr *authdefsrc)
-{
-    xmlNodePtr child;
-    virStorageAuthDefPtr authdef;
-
-    for (child = node->children; child; child = child->next) {
-        if (child->type == XML_ELEMENT_NODE &&
-            virXMLNodeNameEqual(child, "auth")) {
-
-            if (!(authdef = virStorageAuthDefParse(node->doc, child)))
-                return -1;
-
-            *authdefsrc = authdef;
-            return 0;
-        }
-    }
-
-    return 0;
-}
-
-
-static int
-virDomainDiskSourceEncryptionParse(xmlNodePtr node,
-                                   virStorageEncryptionPtr *encryptionsrc)
-{
-    xmlNodePtr child;
-    virStorageEncryptionPtr encryption = NULL;
-
-    for (child = node->children; child; child = child->next) {
-        if (child->type == XML_ELEMENT_NODE &&
-            virXMLNodeNameEqual(child, "encryption")) {
-
-            if (!(encryption = virStorageEncryptionParseNode(node->doc, child)))
-                return -1;
-
-            *encryptionsrc = encryption;
-            return 0;
-        }
-    }
-
-    return 0;
-}
-
-
-static int
-virDomainDiskSourcePrivateDataParse(xmlXPathContextPtr ctxt,
+virDomainDiskSourcePrivateDataParse(xmlNodePtr node,
+                                    xmlXPathContextPtr ctxt,
                                     virStorageSourcePtr src,
                                     unsigned int flags,
                                     virDomainXMLOptionPtr xmlopt)
 {
     xmlNodePtr saveNode = ctxt->node;
-    xmlNodePtr node;
     int ret = -1;
 
     if (!(flags & VIR_DOMAIN_DEF_PARSE_STATUS) ||
         !xmlopt || !xmlopt->privateData.storageParse)
         return 0;
 
-    if (!(node = virXPathNode("./privateData", ctxt)))
-        return 0;
-
     ctxt->node = node;
+
+    if (!(ctxt->node = virXPathNode("./privateData", ctxt))) {
+        ret = 0;
+        goto cleanup;
+    }
 
     if (xmlopt->privateData.storageParse(ctxt, src) < 0)
         goto cleanup;
@@ -8613,15 +8593,15 @@ virDomainDiskSourcePrivateDataParse(xmlXPathContextPtr ctxt,
 }
 
 
-int
-virDomainDiskSourceParse(xmlNodePtr node,
-                         xmlXPathContextPtr ctxt,
-                         virStorageSourcePtr src,
-                         unsigned int flags,
-                         virDomainXMLOptionPtr xmlopt)
+static int
+virDomainStorageSourceParse(xmlNodePtr node,
+                            xmlXPathContextPtr ctxt,
+                            virStorageSourcePtr src,
+                            unsigned int flags)
 {
     int ret = -1;
     xmlNodePtr saveNode = ctxt->node;
+    xmlNodePtr tmp;
 
     ctxt->node = node;
 
@@ -8651,13 +8631,16 @@ virDomainDiskSourceParse(xmlNodePtr node,
         goto cleanup;
     }
 
-    if (virDomainDiskSourceAuthParse(node, &src->auth) < 0)
+    if ((tmp = virXPathNode("./auth", ctxt)) &&
+        !(src->auth = virStorageAuthDefParse(tmp, ctxt)))
         goto cleanup;
 
-    if (virDomainDiskSourceEncryptionParse(node, &src->encryption) < 0)
+    if ((tmp = virXPathNode("./encryption", ctxt)) &&
+        !(src->encryption = virStorageEncryptionParseNode(tmp, ctxt)))
         goto cleanup;
 
-    if (virDomainDiskSourcePrivateDataParse(ctxt, src, flags, xmlopt) < 0)
+    if (virSecurityDeviceLabelDefParseXML(&src->seclabels, &src->nseclabels,
+                                          ctxt, flags) < 0)
         goto cleanup;
 
     /* People sometimes pass a bogus '' source path when they mean to omit the
@@ -8671,6 +8654,23 @@ virDomainDiskSourceParse(xmlNodePtr node,
  cleanup:
     ctxt->node = saveNode;
     return ret;
+}
+
+
+int
+virDomainDiskSourceParse(xmlNodePtr node,
+                         xmlXPathContextPtr ctxt,
+                         virStorageSourcePtr src,
+                         unsigned int flags,
+                         virDomainXMLOptionPtr xmlopt)
+{
+    if (virDomainStorageSourceParse(node, ctxt, src, flags) < 0)
+        return -1;
+
+    if (virDomainDiskSourcePrivateDataParse(node, ctxt, src, flags, xmlopt) < 0)
+        return -1;
+
+    return 0;
 }
 
 
@@ -9011,8 +9011,13 @@ virDomainDiskSourceDefParseAuthValidate(const virStorageSource *src)
 
 
 static int
-virDomainDiskDefParseValidate(const virDomainDiskDef *def)
+virDomainDiskDefParseValidate(const virDomainDiskDef *def,
+                              virSecurityLabelDefPtr *vmSeclabels,
+                              size_t nvmSeclabels)
+
 {
+    virStorageSourcePtr next;
+
     if (def->bus != VIR_DOMAIN_DISK_BUS_VIRTIO) {
         if (def->event_idx != VIR_TRISTATE_SWITCH_ABSENT) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -9083,20 +9088,28 @@ virDomainDiskDefParseValidate(const virDomainDiskDef *def)
         }
     }
 
-    if (virDomainDiskSourceDefParseAuthValidate(def->src) < 0)
-        return -1;
-
-    if (def->src->encryption) {
-        virStorageEncryptionPtr encryption = def->src->encryption;
-
-        if (encryption->format == VIR_STORAGE_ENCRYPTION_FORMAT_LUKS &&
-            encryption->encinfo.cipher_name) {
-
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("supplying <cipher> for domain disk definition "
-                             "is unnecessary"));
+    for (next = def->src; next; next = next->backingStore) {
+        if (virDomainDiskSourceDefParseAuthValidate(next) < 0)
             return -1;
+
+        if (next->encryption) {
+            virStorageEncryptionPtr encryption = next->encryption;
+
+            if (encryption->format == VIR_STORAGE_ENCRYPTION_FORMAT_LUKS &&
+                encryption->encinfo.cipher_name) {
+
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("supplying <cipher> for domain disk definition "
+                                 "is unnecessary"));
+                return -1;
+            }
         }
+
+        if (virSecurityDeviceLabelDefValidateXML(next->seclabels,
+                                                 next->nseclabels,
+                                                 vmSeclabels,
+                                                 nvmSeclabels) < 0)
+            return -1;
     }
 
     return 0;
@@ -9244,7 +9257,6 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
                          unsigned int flags)
 {
     virDomainDiskDefPtr def;
-    xmlNodePtr sourceNode = NULL;
     xmlNodePtr cur;
     xmlNodePtr save_ctxt = ctxt->node;
     char *tmp = NULL;
@@ -9303,8 +9315,6 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
             continue;
 
         if (!source && virXMLNodeNameEqual(cur, "source")) {
-            sourceNode = cur;
-
             if (virDomainDiskSourceParse(cur, ctxt, def->src, flags, xmlopt) < 0)
                 goto error;
 
@@ -9399,7 +9409,7 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
                 goto error;
             }
 
-            if (!(authdef = virStorageAuthDefParse(node->doc, cur)))
+            if (!(authdef = virStorageAuthDefParse(cur, ctxt)))
                 goto error;
         } else if (virXMLNodeNameEqual(cur, "iotune")) {
             if (virDomainDiskDefIotuneParse(def, ctxt) < 0)
@@ -9425,7 +9435,7 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
                 goto error;
             }
 
-            if (!(encryption = virStorageEncryptionParseNode(node->doc, cur)))
+            if (!(encryption = virStorageEncryptionParseNode(cur, ctxt)))
                 goto error;
         } else if (!serial &&
                    virXMLNodeNameEqual(cur, "serial")) {
@@ -9480,20 +9490,6 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
         virReportError(VIR_ERR_NO_SOURCE,
                        target ? "%s" : NULL, target);
         goto error;
-    }
-
-    /* If source is present, check for an optional seclabel override.  */
-    if (sourceNode) {
-        xmlNodePtr saved_node = ctxt->node;
-        ctxt->node = sourceNode;
-        if (virSecurityDeviceLabelDefParseXML(&def->src->seclabels,
-                                              &def->src->nseclabels,
-                                              vmSeclabels,
-                                              nvmSeclabels,
-                                              ctxt,
-                                              flags) < 0)
-            goto error;
-        ctxt->node = saved_node;
     }
 
     if (!target && !(flags & VIR_DOMAIN_DEF_PARSE_DISK_SOURCE)) {
@@ -9661,7 +9657,7 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
             goto error;
     }
 
-    if (virDomainDiskDefParseValidate(def) < 0)
+    if (virDomainDiskDefParseValidate(def, vmSeclabels, nvmSeclabels) < 0)
         goto error;
 
  cleanup:
@@ -12168,10 +12164,12 @@ virDomainChrSourceDefParseXML(virDomainChrSourceDefPtr def,
                 ctxt->node = cur;
                 if (virSecurityDeviceLabelDefParseXML(&def->seclabels,
                                                       &def->nseclabels,
-                                                      vmSeclabels,
-                                                      nvmSeclabels,
                                                       ctxt,
-                                                      flags) < 0) {
+                                                      flags) < 0 ||
+                    virSecurityDeviceLabelDefValidateXML(def->seclabels,
+                                                         def->nseclabels,
+                                                         vmSeclabels,
+                                                         nvmSeclabels) < 0) {
                     ctxt->node = saved_node;
                     goto error;
                 }
@@ -14736,7 +14734,7 @@ virDomainVideoDefaultType(const virDomainDef *def)
         if (def->os.type == VIR_DOMAIN_OSTYPE_XEN ||
             def->os.type == VIR_DOMAIN_OSTYPE_LINUX)
             return VIR_DOMAIN_VIDEO_TYPE_XEN;
-        else if ARCH_IS_PPC64(def->os.arch)
+        else if (ARCH_IS_PPC64(def->os.arch))
             return VIR_DOMAIN_VIDEO_TYPE_VGA;
         else
             return VIR_DOMAIN_VIDEO_TYPE_CIRRUS;
@@ -22743,33 +22741,16 @@ virDomainDiskBlockIoDefFormat(virBufferPtr buf,
 }
 
 
-/* virDomainSourceDefFormatSeclabel:
- *
- * This function automatically closes the <source> element and formats any
- * possible seclabels.
- */
-static void
-virDomainDiskSourceDefFormatSeclabel(virBufferPtr buf,
-                                     size_t nseclabels,
-                                     virSecurityDeviceLabelDefPtr *seclabels,
-                                     unsigned int flags,
-                                     bool skipSeclables)
-{
-    size_t n;
-
-    if (nseclabels && !skipSeclables) {
-        for (n = 0; n < nseclabels; n++)
-            virSecurityDeviceLabelDefFormat(buf, seclabels[n], flags);
-    }
-}
-
 static void
 virDomainSourceDefFormatSeclabel(virBufferPtr buf,
                                  size_t nseclabels,
                                  virSecurityDeviceLabelDefPtr *seclabels,
                                  unsigned int flags)
 {
-    virDomainDiskSourceDefFormatSeclabel(buf, nseclabels, seclabels, flags, false);
+    size_t n;
+
+    for (n = 0; n < nseclabels; n++)
+        virSecurityDeviceLabelDefFormat(buf, seclabels[n], flags);
 }
 
 
@@ -22854,6 +22835,74 @@ virDomainDiskSourceFormatPrivateData(virBufferPtr buf,
 }
 
 
+int
+virDomainStorageSourceFormat(virBufferPtr attrBuf,
+                             virBufferPtr childBuf,
+                             virStorageSourcePtr src,
+                             unsigned int flags,
+                             bool skipSeclabels)
+{
+    switch ((virStorageType)src->type) {
+    case VIR_STORAGE_TYPE_FILE:
+        virBufferEscapeString(attrBuf, " file='%s'", src->path);
+        break;
+
+    case VIR_STORAGE_TYPE_BLOCK:
+        virBufferEscapeString(attrBuf, " dev='%s'", src->path);
+        break;
+
+    case VIR_STORAGE_TYPE_DIR:
+        virBufferEscapeString(attrBuf, " dir='%s'", src->path);
+        break;
+
+    case VIR_STORAGE_TYPE_NETWORK:
+        if (virDomainDiskSourceFormatNetwork(attrBuf, childBuf,
+                                             src, flags) < 0)
+            return -1;
+        break;
+
+    case VIR_STORAGE_TYPE_VOLUME:
+        if (src->srcpool) {
+            virBufferEscapeString(attrBuf, " pool='%s'", src->srcpool->pool);
+            virBufferEscapeString(attrBuf, " volume='%s'",
+                                  src->srcpool->volume);
+            if (src->srcpool->mode)
+                virBufferAsprintf(attrBuf, " mode='%s'",
+                                  virStorageSourcePoolModeTypeToString(src->srcpool->mode));
+        }
+
+        break;
+
+    case VIR_STORAGE_TYPE_NONE:
+    case VIR_STORAGE_TYPE_LAST:
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("unexpected disk type %d"), src->type);
+        return -1;
+    }
+
+    if (!skipSeclabels && src->type != VIR_STORAGE_TYPE_NETWORK)
+        virDomainSourceDefFormatSeclabel(childBuf, src->nseclabels,
+                                         src->seclabels, flags);
+
+    /* Storage Source formatting will not carry through the blunder
+     * that disk source formatting had at one time to format the
+     * <auth> for a volume source type. The <auth> information is
+     * kept in the storage pool and would be overwritten anyway.
+     * So avoid formatting it for volumes. */
+    if (src->auth && src->authInherited &&
+        src->type != VIR_STORAGE_TYPE_VOLUME)
+        virStorageAuthDefFormat(childBuf, src->auth);
+
+    /* If we found encryption as a child of <source>, then format it
+     * as we found it. */
+    if (src->encryption && src->encryptionInherited &&
+        virStorageEncryptionFormat(childBuf, src->encryption) < 0)
+        return -1;
+
+    return 0;
+}
+
+
 static int
 virDomainDiskSourceFormatInternal(virBufferPtr buf,
                                   virStorageSourcePtr src,
@@ -22862,97 +22911,32 @@ virDomainDiskSourceFormatInternal(virBufferPtr buf,
                                   bool skipSeclabels,
                                   virDomainXMLOptionPtr xmlopt)
 {
-    const char *startupPolicy = NULL;
     virBuffer attrBuf = VIR_BUFFER_INITIALIZER;
     virBuffer childBuf = VIR_BUFFER_INITIALIZER;
+    int ret = -1;
 
     virBufferSetChildIndent(&childBuf, buf);
 
-    if (policy)
-        startupPolicy = virDomainStartupPolicyTypeToString(policy);
+    if (virDomainStorageSourceFormat(&attrBuf, &childBuf, src, flags,
+                                     skipSeclabels) < 0)
+        goto cleanup;
 
-    if (src->path || src->nhosts > 0 || src->srcpool || startupPolicy) {
-        switch ((virStorageType)src->type) {
-        case VIR_STORAGE_TYPE_FILE:
-            virBufferEscapeString(&attrBuf, " file='%s'", src->path);
-            virBufferEscapeString(&attrBuf, " startupPolicy='%s'", startupPolicy);
+    if (policy && src->type != VIR_STORAGE_TYPE_NETWORK)
+        virBufferEscapeString(&attrBuf, " startupPolicy='%s'",
+                              virDomainStartupPolicyTypeToString(policy));
 
-            virDomainDiskSourceDefFormatSeclabel(&childBuf, src->nseclabels,
-                                                 src->seclabels, flags,
-                                                 skipSeclabels);
-            break;
+    if (virDomainDiskSourceFormatPrivateData(&childBuf, src, flags, xmlopt) < 0)
+        goto cleanup;
 
-        case VIR_STORAGE_TYPE_BLOCK:
-            virBufferEscapeString(&attrBuf, " dev='%s'", src->path);
-            virBufferEscapeString(&attrBuf, " startupPolicy='%s'", startupPolicy);
+    if (virXMLFormatElement(buf, "source", &attrBuf, &childBuf) < 0)
+        goto cleanup;
 
-            virDomainDiskSourceDefFormatSeclabel(&childBuf, src->nseclabels,
-                                                 src->seclabels, flags,
-                                                 skipSeclabels);
-            break;
+    ret = 0;
 
-        case VIR_STORAGE_TYPE_DIR:
-            virBufferEscapeString(&attrBuf, " dir='%s'", src->path);
-            virBufferEscapeString(&attrBuf, " startupPolicy='%s'", startupPolicy);
-            break;
-
-        case VIR_STORAGE_TYPE_NETWORK:
-            if (virDomainDiskSourceFormatNetwork(&attrBuf, &childBuf,
-                                                 src, flags) < 0)
-                goto error;
-            break;
-
-        case VIR_STORAGE_TYPE_VOLUME:
-            if (src->srcpool) {
-                virBufferEscapeString(&attrBuf, " pool='%s'", src->srcpool->pool);
-                virBufferEscapeString(&attrBuf, " volume='%s'",
-                                      src->srcpool->volume);
-                if (src->srcpool->mode)
-                    virBufferAsprintf(&attrBuf, " mode='%s'",
-                                      virStorageSourcePoolModeTypeToString(src->srcpool->mode));
-            }
-            virBufferEscapeString(&attrBuf, " startupPolicy='%s'", startupPolicy);
-
-            virDomainDiskSourceDefFormatSeclabel(&childBuf, src->nseclabels,
-                                                 src->seclabels, flags,
-                                                 skipSeclabels);
-            break;
-
-        case VIR_STORAGE_TYPE_NONE:
-        case VIR_STORAGE_TYPE_LAST:
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("unexpected disk type %d"), src->type);
-            goto error;
-        }
-
-        /* Storage Source formatting will not carry through the blunder
-         * that disk source formatting had at one time to format the
-         * <auth> for a volume source type. The <auth> information is
-         * kept in the storage pool and would be overwritten anyway.
-         * So avoid formatting it for volumes. */
-        if (src->auth && src->authInherited &&
-            src->type != VIR_STORAGE_TYPE_VOLUME)
-            virStorageAuthDefFormat(&childBuf, src->auth);
-
-        /* If we found encryption as a child of <source>, then format it
-         * as we found it. */
-        if (src->encryption && src->encryptionInherited &&
-            virStorageEncryptionFormat(&childBuf, src->encryption) < 0)
-            goto error;
-
-        if (virDomainDiskSourceFormatPrivateData(&childBuf, src, flags, xmlopt) < 0)
-            goto error;
-
-        if (virXMLFormatElement(buf, "source", &attrBuf, &childBuf) < 0)
-            goto error;
-    }
-
-    return 0;
-
- error:
+ cleanup:
     virBufferFreeAndReset(&attrBuf);
     virBufferFreeAndReset(&childBuf);
-    return -1;
+    return ret;
 }
 
 
@@ -28995,11 +28979,13 @@ int
 virDomainNetAllocateActualDevice(virDomainDefPtr dom,
                                  virDomainNetDefPtr iface)
 {
-    if (!netAllocate) {
-        virReportError(VIR_ERR_NO_SUPPORT, "%s",
-                       _("Network device allocation not available"));
-        return -1;
-    }
+    /* Just silently ignore if network driver isn't present. If something
+     * has tried to use a NIC with type=network, other code will already
+     * cause an error. This ensures type=bridge doesn't break when
+     * network driver is compiled out.
+     */
+    if (!netAllocate)
+        return 0;
 
     return netAllocate(dom, iface);
 }
@@ -29008,11 +28994,8 @@ void
 virDomainNetNotifyActualDevice(virDomainDefPtr dom,
                                virDomainNetDefPtr iface)
 {
-    if (!netNotify) {
-        virReportError(VIR_ERR_NO_SUPPORT, "%s",
-                       _("Network device notification not available"));
+    if (!netNotify)
         return;
-    }
 
     netNotify(dom, iface);
 }
@@ -29022,11 +29005,8 @@ int
 virDomainNetReleaseActualDevice(virDomainDefPtr dom,
                                 virDomainNetDefPtr iface)
 {
-    if (!netRelease) {
-        virReportError(VIR_ERR_NO_SUPPORT, "%s",
-                       _("Network device release not available"));
-        return -1;
-    }
+    if (!netRelease)
+        return 0;
 
     return netRelease(dom, iface);
 }
@@ -29035,11 +29015,8 @@ bool
 virDomainNetBandwidthChangeAllowed(virDomainNetDefPtr iface,
                                    virNetDevBandwidthPtr newBandwidth)
 {
-    if (!netBandwidthChangeAllowed) {
-        virReportError(VIR_ERR_NO_SUPPORT, "%s",
-                       _("Network device bandwidth change query not available"));
-        return -1;
-    }
+    if (!netBandwidthChangeAllowed)
+        return 0;
 
     return netBandwidthChangeAllowed(iface, newBandwidth);
 }
@@ -29048,11 +29025,8 @@ int
 virDomainNetBandwidthUpdate(virDomainNetDefPtr iface,
                             virNetDevBandwidthPtr newBandwidth)
 {
-    if (!netBandwidthUpdate) {
-        virReportError(VIR_ERR_NO_SUPPORT, "%s",
-                       _("Network device bandwidth update not available"));
-        return -1;
-    }
+    if (!netBandwidthUpdate)
+        return 0;
 
     return netBandwidthUpdate(iface, newBandwidth);
 }

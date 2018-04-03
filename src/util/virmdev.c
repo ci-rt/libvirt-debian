@@ -150,12 +150,21 @@ virMediatedDeviceNew(const char *uuidstr, virMediatedDeviceModelType model)
 {
     virMediatedDevicePtr ret = NULL;
     virMediatedDevicePtr dev = NULL;
+    char *sysfspath = NULL;
+
+    if (!(sysfspath = virMediatedDeviceGetSysfsPath(uuidstr)))
+        goto cleanup;
+
+    if (!virFileExists(sysfspath)) {
+        virReportError(VIR_ERR_DEVICE_MISSING,
+                       _("mediated device '%s' not found"), uuidstr);
+        goto cleanup;
+    }
 
     if (VIR_ALLOC(dev) < 0)
-        return NULL;
-
-    if (!(dev->path = virMediatedDeviceGetSysfsPath(uuidstr)))
         goto cleanup;
+
+    VIR_STEAL_PTR(dev->path, sysfspath);
 
     /* Check whether the user-provided model corresponds with the actually
      * supported mediated device's API.
@@ -167,6 +176,7 @@ virMediatedDeviceNew(const char *uuidstr, virMediatedDeviceModelType model)
     VIR_STEAL_PTR(ret, dev);
 
  cleanup:
+    VIR_FREE(sysfspath);
     virMediatedDeviceFree(dev);
     return ret;
 }
@@ -505,10 +515,13 @@ virMediatedDeviceTypeReadAttrs(const char *sysfspath,
     int ret = -1;
     virMediatedDeviceTypePtr tmp = NULL;
 
-#define MDEV_GET_SYSFS_ATTR(attr, dst, cb) \
+#define MDEV_GET_SYSFS_ATTR(attr, dst, cb, optional) \
     do { \
-        if (cb(dst, "%s/%s", sysfspath, attr) < 0) \
-            goto cleanup; \
+        int rc; \
+        if ((rc = cb(dst, "%s/%s", sysfspath, attr)) < 0) { \
+            if (rc != -2 || !optional) \
+                goto cleanup; \
+        } \
     } while (0)
 
     if (VIR_ALLOC(tmp) < 0)
@@ -517,10 +530,12 @@ virMediatedDeviceTypeReadAttrs(const char *sysfspath,
     if (VIR_STRDUP(tmp->id, last_component(sysfspath)) < 0)
         goto cleanup;
 
-    MDEV_GET_SYSFS_ATTR("name", &tmp->name, virFileReadValueString);
-    MDEV_GET_SYSFS_ATTR("device_api", &tmp->device_api, virFileReadValueString);
+    /* @name sysfs attribute is optional, so getting ENOENT is fine */
+    MDEV_GET_SYSFS_ATTR("name", &tmp->name, virFileReadValueString, true);
+    MDEV_GET_SYSFS_ATTR("device_api", &tmp->device_api,
+                        virFileReadValueString, false);
     MDEV_GET_SYSFS_ATTR("available_instances", &tmp->available_instances,
-                        virFileReadValueUint);
+                        virFileReadValueUint, false);
 
 #undef MDEV_GET_SYSFS_ATTR
 

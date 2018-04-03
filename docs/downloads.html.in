@@ -221,6 +221,21 @@
           </td>
         </tr>
         <tr>
+          <td>D-Bus</td>
+          <td>
+            <a href="ftp://libvirt.org/libvirt/dbus/">ftp</a>
+            <a href="https://libvirt.org/sources/dbus/">https</a>
+          </td>
+          <td>
+            <a href="https://libvirt.org/git/?p=libvirt-dbus.git;a=summary">libvirt</a>
+          </td>
+          <td>
+            <a href="https://gitlab.com/libvirt/libvirt-dbus">gitlab</a>
+            <a href="https://github.com/libvirt/libvirt-dbus">github</a>
+          </td>
+          <td></td>
+        </tr>
+        <tr>
           <td>Console Proxy</td>
           <td>
             <a href="ftp://libvirt.org/libvirt/consoleproxy/">ftp</a>
@@ -514,6 +529,15 @@
       All modules maintained by the libvirt project have their primary
       source available in the <a href="https://libvirt.org/git/">project GIT server</a>.
       Each module can be cloned anonymously using:
+    </p>
+
+    <pre>
+git clone https://libvirt.org/git/[module name].git</pre>
+
+    <p>
+      The <code>git://</code> protocol is also available if desired, but
+      <code>https://</code> is encouraged, since it is more reliable when
+      faced with strict firewalls.
     </p>
 
     <pre>

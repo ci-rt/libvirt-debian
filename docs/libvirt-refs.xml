@@ -348,6 +348,7 @@
     <reference name='VIR_DOMAIN_EVENT_WATCHDOG_RESET' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_WATCHDOG_RESET'/>
     <reference name='VIR_DOMAIN_EVENT_WATCHDOG_SHUTDOWN' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_WATCHDOG_SHUTDOWN'/>
     <reference name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT'/>
+    <reference name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP'/>
     <reference name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LAST' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LAST'/>
     <reference name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE'/>
     <reference name='VIR_DOMAIN_JOB_AUTO_CONVERGE_THROTTLE' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_AUTO_CONVERGE_THROTTLE'/>
@@ -877,6 +878,7 @@
     <reference name='VIR_KEYCODE_SET_LAST' href='html/libvirt-libvirt-domain.html#VIR_KEYCODE_SET_LAST'/>
     <reference name='VIR_KEYCODE_SET_LINUX' href='html/libvirt-libvirt-domain.html#VIR_KEYCODE_SET_LINUX'/>
     <reference name='VIR_KEYCODE_SET_OSX' href='html/libvirt-libvirt-domain.html#VIR_KEYCODE_SET_OSX'/>
+    <reference name='VIR_KEYCODE_SET_QNUM' href='html/libvirt-libvirt-domain.html#VIR_KEYCODE_SET_QNUM'/>
     <reference name='VIR_KEYCODE_SET_RFB' href='html/libvirt-libvirt-domain.html#VIR_KEYCODE_SET_RFB'/>
     <reference name='VIR_KEYCODE_SET_USB' href='html/libvirt-libvirt-domain.html#VIR_KEYCODE_SET_USB'/>
     <reference name='VIR_KEYCODE_SET_WIN32' href='html/libvirt-libvirt-domain.html#VIR_KEYCODE_SET_WIN32'/>
@@ -2222,6 +2224,7 @@
       <ref name='VIR_DOMAIN_EVENT_WATCHDOG_RESET'/>
       <ref name='VIR_DOMAIN_EVENT_WATCHDOG_SHUTDOWN'/>
       <ref name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT'/>
+      <ref name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP'/>
       <ref name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LAST'/>
       <ref name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE'/>
       <ref name='VIR_DOMAIN_JOB_AUTO_CONVERGE_THROTTLE'/>
@@ -2751,6 +2754,7 @@
       <ref name='VIR_KEYCODE_SET_LAST'/>
       <ref name='VIR_KEYCODE_SET_LINUX'/>
       <ref name='VIR_KEYCODE_SET_OSX'/>
+      <ref name='VIR_KEYCODE_SET_QNUM'/>
       <ref name='VIR_KEYCODE_SET_RFB'/>
       <ref name='VIR_KEYCODE_SET_USB'/>
       <ref name='VIR_KEYCODE_SET_WIN32'/>
@@ -5451,6 +5455,7 @@
       <ref name='VIR_DOMAIN_EVENT_WATCHDOG_RESET'/>
       <ref name='VIR_DOMAIN_EVENT_WATCHDOG_SHUTDOWN'/>
       <ref name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT'/>
+      <ref name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP'/>
       <ref name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LAST'/>
       <ref name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE'/>
       <ref name='VIR_DOMAIN_JOB_AUTO_CONVERGE_THROTTLE'/>
@@ -5780,6 +5785,7 @@
       <ref name='VIR_KEYCODE_SET_LAST'/>
       <ref name='VIR_KEYCODE_SET_LINUX'/>
       <ref name='VIR_KEYCODE_SET_OSX'/>
+      <ref name='VIR_KEYCODE_SET_QNUM'/>
       <ref name='VIR_KEYCODE_SET_RFB'/>
       <ref name='VIR_KEYCODE_SET_USB'/>
       <ref name='VIR_KEYCODE_SET_WIN32'/>
@@ -6986,6 +6992,9 @@
         <word name='API:'>
           <ref name='virNodeGetFreePages'/>
         </word>
+        <word name='ARP'>
+          <ref name='virDomainInterfaceAddresses'/>
+        </word>
         <word name='ARRAY_CARDINALITY'>
           <ref name='virNodeGetFreePages'/>
         </word>
@@ -7267,6 +7276,9 @@
         <word name='Compares'>
           <ref name='virConnectCompareCPU'/>
         </word>
+        <word name='Compatibility'>
+          <ref name='VIR_KEYCODE_SET_RFB'/>
+        </word>
         <word name='Computes'>
           <ref name='virConnectBaselineCPU'/>
         </word>
@@ -7316,6 +7328,8 @@
           <ref name='virStoragePoolBuild'/>
         </word>
       </letter>
+    </chunk>
+    <chunk name='chunk1'>
       <letter name='D'>
         <word name='D-State'>
           <ref name='virNodeDeviceReset'/>
@@ -7370,6 +7384,7 @@
         </word>
         <word name='Depending'>
           <ref name='virDomainBlockResize'/>
+          <ref name='virDomainInterfaceAddresses'/>
           <ref name='virDomainRename'/>
           <ref name='virDomainSetTime'/>
           <ref name='virNodeDeviceDetachFlags'/>
@@ -7478,8 +7493,6 @@
           <ref name='virDomainSetVcpusFlags'/>
         </word>
       </letter>
-    </chunk>
-    <chunk name='chunk1'>
       <letter name='E'>
         <word name='ENOMEM'>
           <ref name='virSaveLastError'/>
@@ -7650,6 +7663,8 @@
           <ref name='virEventRunDefaultImpl'/>
         </word>
       </letter>
+    </chunk>
+    <chunk name='chunk2'>
       <letter name='G'>
         <word name='Gets'>
           <ref name='virDomainMigrateGetCompressionCache'/>
@@ -7875,8 +7890,6 @@
           <ref name='virNodeDeviceLookupSCSIHostByWWN'/>
         </word>
       </letter>
-    </chunk>
-    <chunk name='chunk2'>
       <letter name='M'>
         <word name='MAC'>
           <ref name='_virNetworkDHCPLease'/>
@@ -8073,6 +8086,8 @@
           <ref name='virDomainSetBlockIoTune'/>
         </word>
       </letter>
+    </chunk>
+    <chunk name='chunk3'>
       <letter name='O'>
         <word name='OSes'>
           <ref name='virDomainSetGuestVcpus'/>
@@ -8291,8 +8306,6 @@
           <ref name='virStorageVolGetConnect'/>
         </word>
       </letter>
-    </chunk>
-    <chunk name='chunk3'>
       <letter name='Q'>
         <word name='QEMU'>
           <ref name='VIR_MIGRATE_PARAM_DISKS_PORT'/>
@@ -8472,6 +8485,8 @@
           <ref name='virEventRunDefaultImpl'/>
         </word>
       </letter>
+    </chunk>
+    <chunk name='chunk4'>
       <letter name='S'>
         <word name='SCSI'>
           <ref name='virNodeDeviceLookupSCSIHostByWWN'/>
@@ -8700,8 +8715,6 @@
           <ref name='virDomainSuspend'/>
         </word>
       </letter>
-    </chunk>
-    <chunk name='chunk4'>
       <letter name='T'>
         <word name='TCP'>
           <ref name='_virDomainEventGraphicsAddress'/>
@@ -8787,6 +8800,8 @@
           <ref name='virDomainGetCPUStats'/>
         </word>
       </letter>
+    </chunk>
+    <chunk name='chunk5'>
       <letter name='U'>
         <word name='UNIX'>
           <ref name='_virDomainEventGraphicsAddress'/>
@@ -9383,6 +9398,9 @@
         <word name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT'>
           <ref name='virDomainInterfaceAddresses'/>
         </word>
+        <word name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP'>
+          <ref name='virDomainInterfaceAddresses'/>
+        </word>
         <word name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE'>
           <ref name='virDomainInterfaceAddresses'/>
         </word>
@@ -9808,6 +9826,9 @@
         <word name='VIR_INTERFACE_XML_INACTIVE'>
           <ref name='virInterfaceGetXMLDesc'/>
         </word>
+        <word name='VIR_KEYCODE_SET_QNUM'>
+          <ref name='VIR_KEYCODE_SET_RFB'/>
+        </word>
         <word name='VIR_MEMORY_VIRTUAL'>
           <ref name='virDomainMemoryPeek'/>
         </word>
@@ -10069,7 +10090,7 @@
         </word>
       </letter>
     </chunk>
-    <chunk name='chunk5'>
+    <chunk name='chunk6'>
       <letter name='W'>
         <word name='WWNN'>
           <ref name='virNodeDeviceLookupSCSIHostByWWN'/>
@@ -10476,6 +10497,7 @@
           <ref name='virStorageVolWipePattern'/>
         </word>
         <word name='alias'>
+          <ref name='VIR_KEYCODE_SET_RFB'/>
           <ref name='virConnectDomainEventDeviceAddedCallback'/>
           <ref name='virConnectDomainEventDeviceRemovalFailedCallback'/>
           <ref name='virConnectDomainEventDeviceRemovedCallback'/>
@@ -10850,6 +10872,9 @@
         <word name='arises'>
           <ref name='virDomainRevertToSnapshot'/>
         </word>
+        <word name='arp'>
+          <ref name='virDomainInterfaceAddresses'/>
+        </word>
         <word name='arra'>
           <ref name='_virDomainEventGraphicsSubject'/>
         </word>
@@ -11078,7 +11103,7 @@
         </word>
       </letter>
     </chunk>
-    <chunk name='chunk6'>
+    <chunk name='chunk7'>
       <letter name='b'>
         <word name='back'>
           <ref name='virConnSetErrorFunc'/>
@@ -11574,7 +11599,7 @@
         </word>
       </letter>
     </chunk>
-    <chunk name='chunk7'>
+    <chunk name='chunk8'>
       <letter name='c'>
         <word name='cache_misses'>
           <ref name='VIR_PERF_PARAM_CACHE_MISSES'/>
@@ -11903,6 +11928,7 @@
           <ref name='_virNodeInfo'/>
           <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainGetBlockInfo'/>
+          <ref name='virDomainInterfaceAddresses'/>
           <ref name='virDomainReboot'/>
           <ref name='virDomainShutdown'/>
           <ref name='virDomainShutdownFlags'/>
@@ -12250,6 +12276,7 @@
           <ref name='virConnectDomainXMLToNative'/>
           <ref name='virConnectListAllNetworks'/>
           <ref name='virConnectListAllStoragePools'/>
+          <ref name='virDomainInterfaceAddresses'/>
           <ref name='virDomainManagedSaveDefineXML'/>
           <ref name='virDomainMigrate2'/>
           <ref name='virDomainMigrateToURI2'/>
@@ -12854,7 +12881,7 @@
         </word>
       </letter>
     </chunk>
-    <chunk name='chunk8'>
+    <chunk name='chunk9'>
       <letter name='d'>
         <word name='daemon'>
           <ref name='virConnectGetAllDomainStats'/>
@@ -13602,6 +13629,7 @@
         <word name='duplicated'>
           <ref name='virConnCopyLastError'/>
           <ref name='virConnGetLastError'/>
+          <ref name='virDomainInterfaceAddresses'/>
         </word>
         <word name='duplicates'>
           <ref name='virGetVersion'/>
@@ -13637,7 +13665,7 @@
         </word>
       </letter>
     </chunk>
-    <chunk name='chunk9'>
+    <chunk name='chunk10'>
       <letter name='e'>
         <word name='earlier'>
           <ref name='virDomainPMSuspendForDuration'/>
@@ -14288,7 +14316,7 @@
         </word>
       </letter>
     </chunk>
-    <chunk name='chunk10'>
+    <chunk name='chunk11'>
       <letter name='f'>
         <word name='fact'>
           <ref name='virDomainDetachDeviceFlags'/>
@@ -14797,7 +14825,7 @@
         </word>
       </letter>
     </chunk>
-    <chunk name='chunk11'>
+    <chunk name='chunk12'>
       <letter name='g'>
         <word name='gap'>
           <ref name='virDomainSetTime'/>
@@ -15358,7 +15386,7 @@
         </word>
       </letter>
     </chunk>
-    <chunk name='chunk12'>
+    <chunk name='chunk13'>
       <letter name='i'>
         <word name='i++'>
           <ref name='virConnectListAllDomains'/>
@@ -16167,7 +16195,7 @@
         </word>
       </letter>
     </chunk>
-    <chunk name='chunk13'>
+    <chunk name='chunk14'>
       <letter name='j'>
         <word name='j++'>
           <ref name='virDomainInterfaceAddresses'/>
@@ -16857,10 +16885,11 @@
         </word>
       </letter>
     </chunk>
-    <chunk name='chunk14'>
+    <chunk name='chunk15'>
       <letter name='m'>
         <word name='mac'>
           <ref name='virDomainGetInterfaceParameters'/>
+          <ref name='virDomainInterfaceAddresses'/>
           <ref name='virDomainSetInterfaceParameters'/>
           <ref name='virNetworkGetDHCPLeases'/>
         </word>
@@ -17570,7 +17599,7 @@
         </word>
       </letter>
     </chunk>
-    <chunk name='chunk15'>
+    <chunk name='chunk16'>
       <letter name='n'>
         <word name='naddrs'>
           <ref name='virDomainInterfaceAddresses'/>
@@ -17981,7 +18010,7 @@
         </word>
       </letter>
     </chunk>
-    <chunk name='chunk16'>
+    <chunk name='chunk17'>
       <letter name='o'>
         <word name='obliterate'>
           <ref name='virStoragePoolDelete'/>
@@ -18369,7 +18398,7 @@
         </word>
       </letter>
     </chunk>
-    <chunk name='chunk17'>
+    <chunk name='chunk18'>
       <letter name='p'>
         <word name='packets'>
           <ref name='virConnectGetAllDomainStats'/>
@@ -19383,7 +19412,7 @@
         </word>
       </letter>
     </chunk>
-    <chunk name='chunk18'>
+    <chunk name='chunk19'>
       <letter name='q'>
         <word name='qcow2'>
           <ref name='virDomainGetBlockInfo'/>
@@ -19813,6 +19842,9 @@
         <word name='refreshed'>
           <ref name='virStoragePoolRefresh'/>
         </word>
+        <word name='refreshes'>
+          <ref name='virDomainInterfaceAddresses'/>
+        </word>
         <word name='refuse'>
           <ref name='virDomainMigrateStartPostCopy'/>
         </word>
@@ -20098,6 +20130,9 @@
           <ref name='VIR_NODE_MEMORY_SHARED_PAGES_UNSHARED'/>
           <ref name='virDomainMigrateGetCompressionCache'/>
           <ref name='virDomainMigrateSetCompressionCache'/>
+        </word>
+        <word name='replaced'>
+          <ref name='VIR_KEYCODE_SET_RFB'/>
         </word>
         <word name='replaces'>
           <ref name='virSecretDefineXML'/>
@@ -20551,6 +20586,9 @@
           <ref name='virDomainGetBlockJobInfo'/>
           <ref name='virStorageVolResize'/>
         </word>
+        <word name='route'>
+          <ref name='virDomainInterfaceAddresses'/>
+        </word>
         <word name='routine'>
           <ref name='virDefaultErrorFunc'/>
         </word>
@@ -20584,7 +20622,7 @@
         </word>
       </letter>
     </chunk>
-    <chunk name='chunk19'>
+    <chunk name='chunk20'>
       <letter name='s'>
         <word name='safe'>
           <ref name='virConnectRegisterCloseCallback'/>
@@ -21920,8 +21958,11 @@
         </word>
       </letter>
     </chunk>
-    <chunk name='chunk20'>
+    <chunk name='chunk21'>
       <letter name='t'>
+        <word name='table'>
+          <ref name='virDomainInterfaceAddresses'/>
+        </word>
         <word name='tail'>
           <ref name='virDomainGetCPUStats'/>
         </word>
@@ -22608,7 +22649,7 @@
         </word>
       </letter>
     </chunk>
-    <chunk name='chunk21'>
+    <chunk name='chunk22'>
       <letter name='u'>
         <word name='uint'>
           <ref name='VIR_DOMAIN_BANDWIDTH_IN_AVERAGE'/>
@@ -22804,6 +22845,9 @@
         </word>
         <word name='unprivileged'>
           <ref name='virConnectOpen'/>
+        </word>
+        <word name='unreachable'>
+          <ref name='virDomainInterfaceAddresses'/>
         </word>
         <word name='unregister'>
           <ref name='virConnectDomainEventRegisterAny'/>
@@ -23008,7 +23052,7 @@
         </word>
       </letter>
     </chunk>
-    <chunk name='chunk22'>
+    <chunk name='chunk23'>
       <letter name='v'>
         <word name='vCPU'>
           <ref name='virDomainGetGuestVcpus'/>
@@ -23338,9 +23382,14 @@
         <word name='virConnectListAllNetworksFlags'>
           <ref name='virConnectListAllNetworks'/>
         </word>
-        <word name='virConnectListAllNodeDevices'>
+        <word name='virConnectListAllNodeDeviceFlags'>
           <ref name='virConnectListAllNodeDevices'/>
+        </word>
+        <word name='virConnectListAllNodeDevices'>
           <ref name='virNodeListDevices'/>
+        </word>
+        <word name='virConnectListAllSecretsFlags'>
+          <ref name='virConnectListAllSecrets'/>
         </word>
         <word name='virConnectListAllStoragePools'>
           <ref name='virConnectListDefinedStoragePools'/>
@@ -24738,7 +24787,7 @@
         </word>
       </letter>
     </chunk>
-    <chunk name='chunk23'>
+    <chunk name='chunk24'>
       <letter name='w'>
         <word name='wait'>
           <ref name='VIR_NODE_CPU_STATS_IOWAIT'/>
@@ -25077,30 +25126,31 @@
       </letter>
     </chunk>
     <chunks>
-      <chunk name='chunk0' start='A' end='D'/>
-      <chunk name='chunk1' start='E' end='L'/>
-      <chunk name='chunk2' start='M' end='P'/>
-      <chunk name='chunk3' start='Q' end='S'/>
-      <chunk name='chunk4' start='T' end='V'/>
-      <chunk name='chunk5' start='W' end='a'/>
-      <chunk name='chunk6' start='b' end='b'/>
-      <chunk name='chunk7' start='c' end='c'/>
-      <chunk name='chunk8' start='d' end='d'/>
-      <chunk name='chunk9' start='e' end='e'/>
-      <chunk name='chunk10' start='f' end='f'/>
-      <chunk name='chunk11' start='g' end='h'/>
-      <chunk name='chunk12' start='i' end='i'/>
-      <chunk name='chunk13' start='j' end='l'/>
-      <chunk name='chunk14' start='m' end='m'/>
-      <chunk name='chunk15' start='n' end='n'/>
-      <chunk name='chunk16' start='o' end='o'/>
-      <chunk name='chunk17' start='p' end='p'/>
-      <chunk name='chunk18' start='q' end='r'/>
-      <chunk name='chunk19' start='s' end='s'/>
-      <chunk name='chunk20' start='t' end='t'/>
-      <chunk name='chunk21' start='u' end='u'/>
-      <chunk name='chunk22' start='v' end='v'/>
-      <chunk name='chunk23' start='w' end='z'/>
+      <chunk name='chunk0' start='A' end='C'/>
+      <chunk name='chunk1' start='D' end='F'/>
+      <chunk name='chunk2' start='G' end='N'/>
+      <chunk name='chunk3' start='O' end='R'/>
+      <chunk name='chunk4' start='S' end='T'/>
+      <chunk name='chunk5' start='U' end='V'/>
+      <chunk name='chunk6' start='W' end='a'/>
+      <chunk name='chunk7' start='b' end='b'/>
+      <chunk name='chunk8' start='c' end='c'/>
+      <chunk name='chunk9' start='d' end='d'/>
+      <chunk name='chunk10' start='e' end='e'/>
+      <chunk name='chunk11' start='f' end='f'/>
+      <chunk name='chunk12' start='g' end='h'/>
+      <chunk name='chunk13' start='i' end='i'/>
+      <chunk name='chunk14' start='j' end='l'/>
+      <chunk name='chunk15' start='m' end='m'/>
+      <chunk name='chunk16' start='n' end='n'/>
+      <chunk name='chunk17' start='o' end='o'/>
+      <chunk name='chunk18' start='p' end='p'/>
+      <chunk name='chunk19' start='q' end='r'/>
+      <chunk name='chunk20' start='s' end='s'/>
+      <chunk name='chunk21' start='t' end='t'/>
+      <chunk name='chunk22' start='u' end='u'/>
+      <chunk name='chunk23' start='v' end='v'/>
+      <chunk name='chunk24' start='w' end='z'/>
     </chunks>
   </index>
 </apirefs>

@@ -164,6 +164,7 @@
     <function name="VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD"/>
     <function name="VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA" link="libvirt-libvirt-domain.html#VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA"/>
     <function name="VIR_GET_CPUMAP" link="libvirt-libvirt-domain.html#VIR_GET_CPUMAP"/>
+    <function name="VIR_KEYCODE_SET_RFB" link="libvirt-libvirt-domain.html#VIR_KEYCODE_SET_RFB"/>
     <function name="VIR_MIGRATE_PARAM_AUTO_CONVERGE_INCREMENT" link="libvirt-libvirt-domain.html#VIR_MIGRATE_PARAM_AUTO_CONVERGE_INCREMENT"/>
     <function name="VIR_MIGRATE_PARAM_AUTO_CONVERGE_INITIAL" link="libvirt-libvirt-domain.html#VIR_MIGRATE_PARAM_AUTO_CONVERGE_INITIAL"/>
     <function name="VIR_MIGRATE_PARAM_BANDWIDTH" link="libvirt-libvirt-domain.html#VIR_MIGRATE_PARAM_BANDWIDTH"/>
@@ -527,6 +528,7 @@
     <function name="VIR_DOMAIN_EVENT_WATCHDOG_RESET" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_WATCHDOG_RESET"/>
     <function name="VIR_DOMAIN_EVENT_WATCHDOG_SHUTDOWN" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_WATCHDOG_SHUTDOWN"/>
     <function name="VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT" link="libvirt-libvirt-domain.html#VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT"/>
+    <function name="VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP" link="libvirt-libvirt-domain.html#VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP"/>
     <function name="VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LAST" link="libvirt-libvirt-domain.html#VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LAST"/>
     <function name="VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE"/>
     <function name="VIR_DOMAIN_JOB_BOUNDED" link="libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_BOUNDED"/>
@@ -968,7 +970,7 @@
     <function name="VIR_KEYCODE_SET_LAST" link="libvirt-libvirt-domain.html#VIR_KEYCODE_SET_LAST"/>
     <function name="VIR_KEYCODE_SET_LINUX" link="libvirt-libvirt-domain.html#VIR_KEYCODE_SET_LINUX"/>
     <function name="VIR_KEYCODE_SET_OSX" link="libvirt-libvirt-domain.html#VIR_KEYCODE_SET_OSX"/>
-    <function name="VIR_KEYCODE_SET_RFB" link="libvirt-libvirt-domain.html#VIR_KEYCODE_SET_RFB"/>
+    <function name="VIR_KEYCODE_SET_QNUM" link="libvirt-libvirt-domain.html#VIR_KEYCODE_SET_QNUM"/>
     <function name="VIR_KEYCODE_SET_USB" link="libvirt-libvirt-domain.html#VIR_KEYCODE_SET_USB"/>
     <function name="VIR_KEYCODE_SET_WIN32" link="libvirt-libvirt-domain.html#VIR_KEYCODE_SET_WIN32"/>
     <function name="VIR_KEYCODE_SET_XT" link="libvirt-libvirt-domain.html#VIR_KEYCODE_SET_XT"/>

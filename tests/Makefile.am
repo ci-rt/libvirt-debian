@@ -128,6 +128,8 @@ EXTRA_DIST = \
 	qemumonitorjsondata \
 	qemuxml2argvdata \
 	qemuxml2xmloutdata \
+	qemustatusxml2xmldata \
+	qemuqapischema.json \
 	qemumemlockdata \
 	secretxml2xmlin \
 	securityselinuxhelperdata \
@@ -250,9 +252,9 @@ test_programs += virdbustest \
                  virsystemdtest \
                  $(NULL)
 test_libraries += virdbusmock.la
-if WITH_POLKIT1
+if WITH_POLKIT
 test_programs += virpolkittest
-endif WITH_POLKIT1
+endif WITH_POLKIT
 endif WITH_DBUS
 
 if WITH_SECDRIVER_SELINUX
@@ -553,6 +555,7 @@ endif ! WITH_LIBXL
 QEMUMONITORTESTUTILS_SOURCES = \
 	qemumonitortestutils.c \
 	qemumonitortestutils.h \
+	testutilsqemuschema.h testutilsqemuschema.c \
 	$(NULL)
 
 if WITH_QEMU
@@ -692,6 +695,7 @@ else ! WITH_QEMU
 EXTRA_DIST += qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c \
 	qemuhelptest.c domainsnapshotxml2xmltest.c \
 	qemumonitortest.c testutilsqemu.c testutilsqemu.h \
+	testutilsqemuschema.c testutilsqemuschema.h \
 	qemumonitorjsontest.c qemuhotplugtest.c \
 	qemuagenttest.c qemucapabilitiestest.c \
 	qemucaps2xmltest.c qemucommandutiltest.c \
