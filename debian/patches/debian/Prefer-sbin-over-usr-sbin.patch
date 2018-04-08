@@ -1,0 +1,25 @@
+From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Sun, 8 Apr 2018 11:02:52 +0200
+Subject: Prefer /sbin over /usr/sbin
+
+If libvirt is built in a chroot with merged /usr it will otherwise
+break on non /usr merged systems.
+
+Closes: #895145
+---
+ configure.ac | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/configure.ac b/configure.ac
+index 115eb60..df1ad85 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -110,7 +110,7 @@ then
+ fi
+ 
+ dnl Where we look for daemons and admin binaries during configure
+-LIBVIRT_SBIN_PATH="$PATH:/sbin:/usr/sbin:/usr/local/sbin"
++LIBVIRT_SBIN_PATH="/sbin:$PATH:/usr/sbin:/usr/local/sbin"
+ 
+ dnl Checks for C compiler.
+ AC_PROG_CC

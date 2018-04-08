@@ -17,3 +17,4 @@ debian/apparmor_profiles_local_include.patch
 Set-defaults-for-zfs-tools.patch
 Pass-GPG_TTY-env-var-to-the-ssh-binary.patch
 apparmor-Allow-virt-aa-helper-to-access-the-name-service-.patch
+debian/Prefer-sbin-over-usr-sbin.patch
