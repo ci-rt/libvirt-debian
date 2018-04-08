@@ -1,3 +1,11 @@
+libvirt (4.2.0-2) unstable; urgency=medium
+
+  * [c859ce5] Prefer /sbin over /usr/sbin.
+    If libvirt is built in a chroot with merged /usr it will otherwise break
+    on non /usr merged systems. (Closes: #895145)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 08 Apr 2018 11:05:14 +0200
+
 libvirt (4.2.0-1) unstable; urgency=medium
 
   [ Laurent Bigonville ]
