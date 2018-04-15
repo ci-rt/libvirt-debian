@@ -147,7 +147,7 @@ LIBVIRT_SYSTEM_SERVICES = \
 
 
 DEB_BUILDDIR := $(CURDIR)/debian/build
-LOGROTATE = $(basename $(basename $(notdir $(wildcard daemon/libvirtd*.logrotate.in))))
+LOGROTATE = $(basename $(basename $(notdir $(wildcard src/remote/libvirtd*.logrotate.in))))
 EXAMPLES_DIR = $(CURDIR)/debian/libvirt-doc/usr/share/doc/libvirt-doc/examples/
 
 %:
@@ -204,8 +204,8 @@ ifeq ($(XEN_ENABLED), 1)
 	dh_install -p libvirt-daemon-system etc/libvirt/libxl-lockd.conf
 endif
 
-	for l in $(LOGROTATE); do \
-		cp $(CURDIR)/debian/build/daemon/$$l.logrotate \
+	set -e; for l in $(LOGROTATE); do \
+		cp $(CURDIR)/debian/tmp/etc/logrotate.d/$$l \
 	        debian/libvirt-daemon-system.$$l.logrotate; \
 		dh_installlogrotate --name=$$l;     \
 	done
