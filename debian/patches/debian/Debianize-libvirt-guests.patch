@@ -9,7 +9,7 @@ Origin: vendor
  2 files changed, 30 insertions(+), 19 deletions(-)
 
 diff --git a/tools/libvirt-guests.sh.in b/tools/libvirt-guests.sh.in
-index fcada31..f486070 100644
+index 4bc6e86..9ec4064 100644
 --- a/tools/libvirt-guests.sh.in
 +++ b/tools/libvirt-guests.sh.in
 @@ -1,5 +1,17 @@
@@ -81,7 +81,7 @@ index fcada31..f486070 100644
  
  RETVAL=0
  
-@@ -550,8 +562,7 @@ gueststatus() {
+@@ -552,8 +564,7 @@ gueststatus() {
  
  # rh_status
  # Display current status: whether saved state exists, and whether start
@@ -92,7 +92,7 @@ index fcada31..f486070 100644
      if [ -f "$LISTFILE" ]; then
          gettext "stopped, with saved guests"; echo
 diff --git a/tools/libvirt-guests.sysconf b/tools/libvirt-guests.sysconf
-index 08204ca..55127fb 100644
+index 669b046..1c4b450 100644
 --- a/tools/libvirt-guests.sysconf
 +++ b/tools/libvirt-guests.sysconf
 @@ -8,7 +8,7 @@

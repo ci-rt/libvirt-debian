@@ -8,8 +8,6 @@ openpty-Skip-test-if-no-pty-is-available.patch
 Disable-gnulib-s-test-nonplocking-pipe.sh.patch
 Skip-vircgrouptest.patch
 debian/Don-t-enable-default-network-on-boot.patch
-debian/fix-Debian-specific-path-to-hvm-loader.patch
-Allow-xen-toolstack-to-find-it-s-binaries.patch
 test-posix_openpt-don-t-fail-on-EACCESS.patch
 Reduce-udevadm-settle-timeout-to-10-seconds.patch
 debian/Use-upstreams-polkit-rule.patch
