@@ -138,7 +138,7 @@ lxcDomObjFromDomain(virDomainPtr domain)
     virLXCDriverPtr driver = domain->conn->privateData;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
 
-    vm = virDomainObjListFindByUUIDRef(driver->domains, domain->uuid);
+    vm = virDomainObjListFindByUUID(driver->domains, domain->uuid);
     if (!vm) {
         virUUIDFormat(domain->uuid, uuidstr);
         virReportError(VIR_ERR_NO_DOMAIN,
@@ -152,6 +152,16 @@ lxcDomObjFromDomain(virDomainPtr domain)
 
 /* Functions */
 
+static int
+lxcConnectURIProbe(char **uri)
+{
+    if (lxc_driver == NULL)
+        return 0;
+
+    return VIR_STRDUP(*uri, "lxc:///system");
+}
+
+
 static virDrvOpenStatus lxcConnectOpen(virConnectPtr conn,
                                        virConnectAuthPtr auth ATTRIBUTE_UNUSED,
                                        virConfPtr conf ATTRIBUTE_UNUSED,
@@ -159,37 +169,20 @@ static virDrvOpenStatus lxcConnectOpen(virConnectPtr conn,
 {
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
-    /* Verify uri was specified */
-    if (conn->uri == NULL) {
-        if (lxc_driver == NULL)
-            return VIR_DRV_OPEN_DECLINED;
+    /* If path isn't '/' then they typoed, tell them correct path */
+    if (STRNEQ(conn->uri->path, "/") &&
+        STRNEQ(conn->uri->path, "/system")) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unexpected LXC URI path '%s', try lxc:///system"),
+                       conn->uri->path);
+        return VIR_DRV_OPEN_ERROR;
+    }
 
-        if (!(conn->uri = virURIParse("lxc:///")))
-            return VIR_DRV_OPEN_ERROR;
-    } else {
-        if (conn->uri->scheme == NULL ||
-            STRNEQ(conn->uri->scheme, "lxc"))
-            return VIR_DRV_OPEN_DECLINED;
-
-        /* Leave for remote driver */
-        if (conn->uri->server != NULL)
-            return VIR_DRV_OPEN_DECLINED;
-
-        /* If path isn't '/' then they typoed, tell them correct path */
-        if (conn->uri->path != NULL &&
-            STRNEQ(conn->uri->path, "/")) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Unexpected LXC URI path '%s', try lxc:///"),
-                           conn->uri->path);
-            return VIR_DRV_OPEN_ERROR;
-        }
-
-        /* URI was good, but driver isn't active */
-        if (lxc_driver == NULL) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           "%s", _("lxc state driver is not active"));
-            return VIR_DRV_OPEN_ERROR;
-        }
+    /* URI was good, but driver isn't active */
+    if (lxc_driver == NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("lxc state driver is not active"));
+        return VIR_DRV_OPEN_ERROR;
     }
 
     if (virConnectOpenEnsureACL(conn) < 0)
@@ -269,8 +262,7 @@ static virDomainPtr lxcDomainLookupByID(virConnectPtr conn,
     dom = virGetDomain(conn, vm->def->name, vm->def->uuid, vm->def->id);
 
  cleanup:
-    if (vm)
-        virObjectUnlock(vm);
+    virDomainObjEndAPI(&vm);
     return dom;
 }
 
@@ -281,7 +273,7 @@ static virDomainPtr lxcDomainLookupByUUID(virConnectPtr conn,
     virDomainObjPtr vm;
     virDomainPtr dom = NULL;
 
-    vm = virDomainObjListFindByUUIDRef(driver->domains, uuid);
+    vm = virDomainObjListFindByUUID(driver->domains, uuid);
 
     if (!vm) {
         char uuidstr[VIR_UUID_STRING_BUFLEN];
@@ -493,6 +485,7 @@ lxcDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags)
     if (virDomainSaveConfig(cfg->configDir, driver->caps,
                             vm->newDef ? vm->newDef : vm->def) < 0) {
         virDomainObjListRemove(driver->domains, vm);
+        virObjectLock(vm);
         goto cleanup;
     }
 
@@ -557,6 +550,7 @@ static int lxcDomainUndefineFlags(virDomainPtr dom,
         vm->persistent = 0;
     } else {
         virDomainObjListRemove(driver->domains, vm);
+        virObjectLock(vm);
     }
 
     ret = 0;
@@ -1245,7 +1239,7 @@ lxcDomainCreateXMLWithFiles(virConnectPtr conn,
     if (virLXCDomainObjBeginJob(driver, vm, LXC_JOB_MODIFY) < 0) {
         if (!vm->persistent) {
             virDomainObjListRemove(driver->domains, vm);
-            vm = NULL;
+            virObjectLock(vm);
         }
         goto cleanup;
     }
@@ -1258,7 +1252,7 @@ lxcDomainCreateXMLWithFiles(virConnectPtr conn,
         virLXCDomainObjEndJob(driver, vm);
         if (!vm->persistent) {
             virDomainObjListRemove(driver->domains, vm);
-            vm = NULL;
+            virObjectLock(vm);
         }
         goto cleanup;
     }
@@ -1529,8 +1523,10 @@ lxcDomainDestroyFlags(virDomainPtr dom,
 
  endjob:
     virLXCDomainObjEndJob(driver, vm);
-    if (!vm->persistent)
+    if (!vm->persistent) {
         virDomainObjListRemove(driver->domains, vm);
+        virObjectLock(vm);
+    }
 
  cleanup:
     virDomainObjEndAPI(&vm);
@@ -5532,6 +5528,7 @@ lxcDomainHasManagedSaveImage(virDomainPtr dom, unsigned int flags)
 /* Function Tables */
 static virHypervisorDriver lxcHypervisorDriver = {
     .name = LXC_DRIVER_NAME,
+    .connectURIProbe = lxcConnectURIProbe,
     .connectOpen = lxcConnectOpen, /* 0.4.2 */
     .connectClose = lxcConnectClose, /* 0.4.2 */
     .connectSupportsFeature = lxcConnectSupportsFeature, /* 1.2.2 */
@@ -5625,6 +5622,8 @@ static virHypervisorDriver lxcHypervisorDriver = {
 };
 
 static virConnectDriver lxcConnectDriver = {
+    .localOnly = true,
+    .uriSchemes = (const char *[]){ "lxc", NULL },
     .hypervisorDriver = &lxcHypervisorDriver,
 };
 

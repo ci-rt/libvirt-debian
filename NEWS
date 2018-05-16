@@ -1,6 +1,43 @@
 libvirt releases
 ================
 
+# v4.3.0 (2018-05-02)
+
+  * New features
+
+    - qemu: Add support for the pcie-to-pci-bridge controller
+        Pure PCIe guests such as x86_64/q35 and aarch64/virt will now add this
+        controller when traditional PCI devices are in use.
+
+    - Xen: Support setting CPU features for host-passthrough model
+        The CPU model presented to Xen HVM domains is equivalent to libvirt's
+        host-passthrough model, although individual features can be enabled and
+        disabled via the cpuid setting. The libvirt libxl driver now supports
+        enabling and disabling individual features of the host-passthrough CPU
+        model.
+
+  * Removed features
+
+    - Xen: Drop the legacy xend-based driver
+        The xm/xend toolstack was deprecated in Xen 4.2 and removed from the
+        Xen sources in the 4.5 development cycle. The libvirt driver based on
+        xend is now removed from the libvirt sources.
+
+  * Improvements
+
+    - qemu: Support hot plug and hot unplug of mediated devices
+        Libvirt now allows mediated devices to be hot plugged and hot unplugged
+        from a guest rather than reporting an error that this isn't supported.
+        In fact, kernel has been supporting this since 4.10.
+
+  * Bug fixes
+
+    - Improve handling of device mapper targets
+        When starting a domain with a disk backed by a device mapper volume
+        libvirt also needs to allow the storage backing the device mapper in
+        CGroups. In the past kernel did not care, but starting from 4.16
+        CGroups are consulted on each access to the device mapper target.
+
 # v4.2.0 (2018-04-01)
 
   * New features
@@ -36,6 +73,13 @@ libvirt releases
         domains to 256, or restart them.
 
   * Bug fixes
+
+    - qemu: TLS migration now enforces use of TLS for the NBD connection
+        When the VIR_MIGRATE_TLS flag was used with the migration API libvirt
+        did not ensure that the NBD connection was using TLS as well. The code
+        now rejects such migration as the TLS transport for NBD is not ready
+        yet, but prevents a false sense of security that TLS would be used. The
+        support TLS for NBD will be added soon.
 
 # v4.1.0 (2018-03-05)
 

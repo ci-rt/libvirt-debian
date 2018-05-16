@@ -165,10 +165,7 @@ static void qemuMonitorDispose(void *obj);
 
 static int qemuMonitorOnceInit(void)
 {
-    if (!(qemuMonitorClass = virClassNew(virClassForObjectLockable(),
-                                         "qemuMonitor",
-                                         sizeof(qemuMonitor),
-                                         qemuMonitorDispose)))
+    if (!VIR_CLASS_NEW(qemuMonitor, virClassForObjectLockable()))
         return -1;
 
     return 0;
@@ -184,11 +181,6 @@ VIR_ENUM_IMPL(qemuMonitorMigrationStatus,
               "device", "postcopy-active",
               "completed", "failed",
               "cancelling", "cancelled")
-
-VIR_ENUM_IMPL(qemuMonitorMigrationCaps,
-              QEMU_MONITOR_MIGRATION_CAPS_LAST,
-              "xbzrle", "auto-converge", "rdma-pin-all", "events",
-              "postcopy-ram", "compress", "pause-before-switchover")
 
 VIR_ENUM_IMPL(qemuMonitorVMStatus,
               QEMU_MONITOR_VM_STATUS_LAST,
@@ -1852,15 +1844,16 @@ qemuMonitorGetCPUInfoLegacy(struct qemuMonitorQueryCpusEntry *cpuentries,
  *
  * This function stitches together data retrieved via query-hotpluggable-cpus
  * which returns entities on the hotpluggable level (which may describe more
- * than one guest logical vcpu) with the output of query-cpus, having an entry
- * per enabled guest logical vcpu.
+ * than one guest logical vcpu) with the output of query-cpus (or
+ * query-cpus-fast), having an entry per enabled guest logical vcpu.
  *
  * query-hotpluggable-cpus conveys following information:
  * - topology information and number of logical vcpus this entry creates
  * - device type name of the entry that needs to be used when hotplugging
- * - qom path in qemu which can be used to map the entry against query-cpus
+ * - qom path in qemu which can be used to map the entry against
+ *   query-cpus[-fast]
  *
- * query-cpus conveys following information:
+ * query-cpus[-fast] conveys following information:
  * - thread id of a given guest logical vcpu
  * - order in which the vcpus were inserted
  * - qom path to allow mapping the two together
@@ -1895,7 +1888,7 @@ qemuMonitorGetCPUInfoHotplug(struct qemuMonitorQueryHotpluggableCpusEntry *hotpl
     for (i = 0; i < nhotplugvcpus; i++)
         totalvcpus += hotplugvcpus[i].vcpus;
 
-    /* trim '/thread...' suffix from the data returned by query-cpus */
+    /* trim '/thread...' suffix from the data returned by query-cpus[-fast] */
     for (i = 0; i < ncpuentries; i++) {
         if (cpuentries[i].qom_path &&
             (tmp = strstr(cpuentries[i].qom_path, "/thread")))
@@ -1908,7 +1901,7 @@ qemuMonitorGetCPUInfoHotplug(struct qemuMonitorQueryHotpluggableCpusEntry *hotpl
     }
 
     /* Note the order in which the hotpluggable entities are inserted by
-     * matching them to the query-cpus entries */
+     * matching them to the query-cpus[-fast] entries */
     for (i = 0; i < ncpuentries; i++) {
         for (j = 0; j < nhotplugvcpus; j++) {
             if (!cpuentries[i].qom_path ||
@@ -1963,7 +1956,7 @@ qemuMonitorGetCPUInfoHotplug(struct qemuMonitorQueryHotpluggableCpusEntry *hotpl
         }
 
         if (anyvcpu == maxvcpus) {
-            VIR_DEBUG("too many query-cpus entries for a given "
+            VIR_DEBUG("too many query-cpus[-fast] entries for a given "
                       "query-hotpluggable-cpus entry");
             return -1;
         }
@@ -1991,6 +1984,7 @@ qemuMonitorGetCPUInfoHotplug(struct qemuMonitorQueryHotpluggableCpusEntry *hotpl
  * @vcpus: pointer filled by array of qemuMonitorCPUInfo structures
  * @maxvcpus: total possible number of vcpus
  * @hotplug: query data relevant for hotplug support
+ * @fast: use QMP query-cpus-fast if supported
  *
  * Detects VCPU information. If qemu doesn't support or fails reporting
  * information this function will return success as other parts of libvirt
@@ -2003,7 +1997,8 @@ int
 qemuMonitorGetCPUInfo(qemuMonitorPtr mon,
                       qemuMonitorCPUInfoPtr *vcpus,
                       size_t maxvcpus,
-                      bool hotplug)
+                      bool hotplug,
+                      bool fast)
 {
     struct qemuMonitorQueryHotpluggableCpusEntry *hotplugcpus = NULL;
     size_t nhotplugcpus = 0;
@@ -2029,7 +2024,8 @@ qemuMonitorGetCPUInfo(qemuMonitorPtr mon,
         goto cleanup;
 
     if (mon->json)
-        rc = qemuMonitorJSONQueryCPUs(mon, &cpuentries, &ncpuentries, hotplug);
+        rc = qemuMonitorJSONQueryCPUs(mon, &cpuentries, &ncpuentries, hotplug,
+                                      fast);
     else
         rc = qemuMonitorTextQueryCPUs(mon, &cpuentries, &ncpuentries);
 
@@ -2067,11 +2063,12 @@ qemuMonitorGetCPUInfo(qemuMonitorPtr mon,
  * qemuMonitorGetCpuHalted:
  *
  * Returns a bitmap of vcpu id's that are halted. The id's correspond to the
- * 'CPU' field as reported by query-cpus'.
+ * 'CPU' field as reported by query-cpus[-fast]'.
  */
 virBitmapPtr
 qemuMonitorGetCpuHalted(qemuMonitorPtr mon,
-                        size_t maxvcpus)
+                        size_t maxvcpus,
+                        bool fast)
 {
     struct qemuMonitorQueryCpusEntry *cpuentries = NULL;
     size_t ncpuentries = 0;
@@ -2082,7 +2079,8 @@ qemuMonitorGetCpuHalted(qemuMonitorPtr mon,
     QEMU_CHECK_MONITOR_NULL(mon);
 
     if (mon->json)
-        rc = qemuMonitorJSONQueryCPUs(mon, &cpuentries, &ncpuentries, false);
+        rc = qemuMonitorJSONQueryCPUs(mon, &cpuentries, &ncpuentries, false,
+                                      fast);
     else
         rc = qemuMonitorTextQueryCPUs(mon, &cpuentries, &ncpuentries);
 
@@ -2622,37 +2620,48 @@ qemuMonitorSetMigrationCacheSize(qemuMonitorPtr mon,
 }
 
 
+/**
+ * qemuMonitorGetMigrationParams:
+ * @mon: Pointer to the monitor object.
+ * @params: Where to store migration parameters.
+ *
+ * If QEMU does not support querying migration parameters, the function will
+ * set @params to NULL and return 0 (success). The caller is responsible for
+ * freeing @params.
+ *
+ * Returns 0 on success, -1 on error.
+ */
 int
 qemuMonitorGetMigrationParams(qemuMonitorPtr mon,
-                              qemuMonitorMigrationParamsPtr params)
+                              virJSONValuePtr *params)
 {
     QEMU_CHECK_MONITOR_JSON(mon);
 
     return qemuMonitorJSONGetMigrationParams(mon, params);
 }
 
+
+/**
+ * qemuMonitorSetMigrationParams:
+ * @mon: Pointer to the monitor object.
+ * @params: Migration parameters.
+ *
+ * The @params object is consumed and should not be referenced by the caller
+ * after this function returns.
+ *
+ * Returns 0 on success, -1 on error.
+ */
 int
 qemuMonitorSetMigrationParams(qemuMonitorPtr mon,
-                              qemuMonitorMigrationParamsPtr params)
+                              virJSONValuePtr params)
 {
-    VIR_DEBUG("compressLevel=%d:%d compressThreads=%d:%d "
-              "decompressThreads=%d:%d cpuThrottleInitial=%d:%d "
-              "cpuThrottleIncrement=%d:%d tlsCreds=%s tlsHostname=%s "
-              "maxBandwidth=%d:%llu downtimeLimit=%d:%llu "
-              "blockIncremental=%d:%d",
-              params->compressLevel_set, params->compressLevel,
-              params->compressThreads_set, params->compressThreads,
-              params->decompressThreads_set, params->decompressThreads,
-              params->cpuThrottleInitial_set, params->cpuThrottleInitial,
-              params->cpuThrottleIncrement_set, params->cpuThrottleIncrement,
-              NULLSTR(params->tlsCreds), NULLSTR(params->tlsHostname),
-              params->maxBandwidth_set, params->maxBandwidth,
-              params->downtimeLimit_set, params->downtimeLimit,
-              params->blockIncremental_set, params->blockIncremental);
-
-    QEMU_CHECK_MONITOR_JSON(mon);
+    QEMU_CHECK_MONITOR_JSON_GOTO(mon, error);
 
     return qemuMonitorJSONSetMigrationParams(mon, params);
+
+ error:
+    virJSONValueFree(params);
+    return -1;
 }
 
 
@@ -2726,37 +2735,6 @@ qemuMonitorMigrateToHost(qemuMonitorPtr mon,
         ret = qemuMonitorTextMigrate(mon, flags, uri);
 
     VIR_FREE(uri);
-    return ret;
-}
-
-
-int
-qemuMonitorMigrateToCommand(qemuMonitorPtr mon,
-                            unsigned int flags,
-                            const char * const *argv)
-{
-    char *argstr;
-    char *dest = NULL;
-    int ret = -1;
-    VIR_DEBUG("argv=%p flags=0x%x", argv, flags);
-
-    QEMU_CHECK_MONITOR(mon);
-
-    argstr = virArgvToString(argv);
-    if (!argstr)
-        goto cleanup;
-
-    if (virAsprintf(&dest, "exec:%s", argstr) < 0)
-        goto cleanup;
-
-    if (mon->json)
-        ret = qemuMonitorJSONMigrate(mon, flags, dest);
-    else
-        ret = qemuMonitorTextMigrate(mon, flags, dest);
-
- cleanup:
-    VIR_FREE(argstr);
-    VIR_FREE(dest);
     return ret;
 }
 
@@ -3386,9 +3364,9 @@ qemuMonitorDriveMirror(qemuMonitorPtr mon,
 
 /* Use the transaction QMP command to run atomic snapshot commands.  */
 int
-qemuMonitorTransaction(qemuMonitorPtr mon, virJSONValuePtr actions)
+qemuMonitorTransaction(qemuMonitorPtr mon, virJSONValuePtr *actions)
 {
-    VIR_DEBUG("actions=%p", actions);
+    VIR_DEBUG("actions=%p", *actions);
 
     QEMU_CHECK_MONITOR_JSON(mon);
 
@@ -3942,15 +3920,15 @@ qemuMonitorGetObjectTypes(qemuMonitorPtr mon,
 
 
 int
-qemuMonitorGetObjectProps(qemuMonitorPtr mon,
-                          const char *type,
+qemuMonitorGetDeviceProps(qemuMonitorPtr mon,
+                          const char *device,
                           char ***props)
 {
-    VIR_DEBUG("type=%s props=%p", type, props);
+    VIR_DEBUG("device=%s props=%p", device, props);
 
     QEMU_CHECK_MONITOR_JSON(mon);
 
-    return qemuMonitorJSONGetObjectProps(mon, type, props);
+    return qemuMonitorJSONGetDeviceProps(mon, device, props);
 }
 
 
@@ -3977,17 +3955,27 @@ qemuMonitorGetMigrationCapabilities(qemuMonitorPtr mon,
 }
 
 
+/**
+ * qemuMonitorSetMigrationCapabilities:
+ * @mon: Pointer to the monitor object.
+ * @caps: Migration capabilities.
+ *
+ * The @caps object is consumed and should not be referenced by the caller
+ * after this function returns.
+ *
+ * Returns 0 on success, -1 on error.
+ */
 int
-qemuMonitorSetMigrationCapability(qemuMonitorPtr mon,
-                                  qemuMonitorMigrationCaps capability,
-                                  bool state)
+qemuMonitorSetMigrationCapabilities(qemuMonitorPtr mon,
+                                    virJSONValuePtr caps)
 {
-    VIR_DEBUG("capability=%s, state=%d",
-              qemuMonitorMigrationCapsTypeToString(capability), state);
+    QEMU_CHECK_MONITOR_JSON_GOTO(mon, error);
 
-    QEMU_CHECK_MONITOR_JSON(mon);
+    return qemuMonitorJSONSetMigrationCapabilities(mon, caps);
 
-    return qemuMonitorJSONSetMigrationCapability(mon, capability, state);
+ error:
+    virJSONValueFree(caps);
+    return -1;
 }
 
 
@@ -4011,13 +3999,14 @@ qemuMonitorGetGICCapabilities(qemuMonitorPtr mon,
 int
 qemuMonitorNBDServerStart(qemuMonitorPtr mon,
                           const char *host,
-                          unsigned int port)
+                          unsigned int port,
+                          const char *tls_alias)
 {
-    VIR_DEBUG("host=%s port=%u", host, port);
+    VIR_DEBUG("host=%s port=%u tls_alias=%s", host, port, NULLSTR(tls_alias));
 
     QEMU_CHECK_MONITOR_JSON(mon);
 
-    return qemuMonitorJSONNBDServerStart(mon, host, port);
+    return qemuMonitorJSONNBDServerStart(mon, host, port, tls_alias);
 }
 
 

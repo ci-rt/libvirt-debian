@@ -400,7 +400,12 @@ virCapsPtr testQemuCapsInit(void)
 
     qemuTestSetHostCPU(caps, NULL);
 
-    caps->host.nnumaCell_max = 4;
+    /*
+     * Build a NUMA topology with cell_id (NUMA node id
+     * being 3(0 + 3),4(1 + 3), 5 and 6
+     */
+    if (virTestCapsBuildNUMATopology(caps, 3) < 0)
+        goto cleanup;
 
     if (testQemuAddI686Guest(caps) < 0)
         goto cleanup;
@@ -486,16 +491,13 @@ qemuTestSetHostCPU(virCapsPtr caps,
 
 
 virQEMUCapsPtr
-qemuTestParseCapabilities(virCapsPtr caps,
-                          const char *capsFile)
+qemuTestParseCapabilitiesArch(virArch arch,
+                              const char *capsFile)
 {
     virQEMUCapsPtr qemuCaps = NULL;
 
-    if (!caps)
-        return NULL;
-
     if (!(qemuCaps = virQEMUCapsNew()) ||
-        virQEMUCapsLoadCache(caps->host.arch, qemuCaps, capsFile) < 0)
+        virQEMUCapsLoadCache(arch, qemuCaps, capsFile) < 0)
         goto error;
 
     return qemuCaps;
@@ -504,6 +506,18 @@ qemuTestParseCapabilities(virCapsPtr caps,
     virObjectUnref(qemuCaps);
     return NULL;
 }
+
+
+virQEMUCapsPtr
+qemuTestParseCapabilities(virCapsPtr caps,
+                          const char *capsFile)
+{
+    if (!caps)
+        return NULL;
+
+    return qemuTestParseCapabilitiesArch(caps->host.arch, capsFile);
+}
+
 
 void qemuTestDriverFree(virQEMUDriver *driver)
 {
@@ -665,3 +679,66 @@ testQemuCapsSetGIC(virQEMUCapsPtr qemuCaps,
 }
 
 #endif
+
+
+char *
+testQemuGetLatestCapsForArch(const char *dirname,
+                             const char *arch,
+                             const char *suffix)
+{
+    struct dirent *ent;
+    DIR *dir = NULL;
+    int rc;
+    char *fullsuffix = NULL;
+    char *tmp = NULL;
+    unsigned long maxver = 0;
+    unsigned long ver;
+    const char *maxname = NULL;
+    char *ret = NULL;
+
+    if (virAsprintf(&fullsuffix, "%s.%s", arch, suffix) < 0)
+        goto cleanup;
+
+    if (virDirOpen(&dir, dirname) < 0)
+        goto cleanup;
+
+    while ((rc = virDirRead(dir, &ent, dirname)) > 0) {
+        VIR_FREE(tmp);
+
+        if ((rc = VIR_STRDUP(tmp, STRSKIP(ent->d_name, "caps_"))) < 0)
+            goto cleanup;
+
+        if (rc == 0)
+            continue;
+
+        if (virFileStripSuffix(tmp, fullsuffix) != 1)
+            continue;
+
+        if (virParseVersionString(tmp, &ver, false) < 0) {
+            VIR_TEST_DEBUG("skipping caps file '%s'\n", ent->d_name);
+            continue;
+        }
+
+        if (ver > maxver) {
+            maxname = ent->d_name;
+            maxver = ver;
+        }
+    }
+
+    if (rc < 0)
+        goto cleanup;
+
+    if (!maxname) {
+        VIR_TEST_VERBOSE("failed to find capabilities for '%s' in '%s'\n",
+                         arch, dirname);
+        goto cleanup;
+    }
+
+    ignore_value(virAsprintf(&ret, "%s/%s", dirname, maxname));
+
+ cleanup:
+    VIR_FREE(tmp);
+    VIR_FREE(fullsuffix);
+    virDirClose(&dir);
+    return ret;
+}

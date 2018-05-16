@@ -33,6 +33,69 @@
      -->
 
 <libvirt>
+  <release version="v4.3.0" date="2018-05-02">
+    <section title="New features">
+      <change>
+        <summary>
+          qemu: Add support for the pcie-to-pci-bridge controller
+        </summary>
+        <description>
+          Pure PCIe guests such as x86_64/q35 and aarch64/virt will now
+          add this controller when traditional PCI devices are in use.
+        </description>
+      </change>
+      <change>
+        <summary>
+          Xen: Support setting CPU features for host-passthrough model
+        </summary>
+        <description>
+          The CPU model presented to Xen HVM domains is equivalent to libvirt's
+          host-passthrough model, although individual features can be enabled
+          and disabled via the cpuid setting. The libvirt libxl driver now
+          supports enabling and disabling individual features of the
+          host-passthrough CPU model.
+        </description>
+      </change>
+    </section>
+    <section title="Removed features">
+      <change>
+        <summary>
+          Xen: Drop the legacy xend-based driver
+        </summary>
+        <description>
+          The xm/xend toolstack was deprecated in Xen 4.2 and removed
+          from the Xen sources in the 4.5 development cycle. The libvirt
+          driver based on xend is now removed from the libvirt sources.
+        </description>
+      </change>
+    </section>
+    <section title="Improvements">
+      <change>
+        <summary>
+          qemu: Support hot plug and hot unplug of mediated devices
+        </summary>
+        <description>
+          Libvirt now allows mediated devices to be hot plugged and hot
+          unplugged from a guest rather than reporting an error that this isn't
+          supported. In fact, kernel has been supporting this since 4.10.
+        </description>
+      </change>
+    </section>
+    <section title="Bug fixes">
+      <change>
+        <summary>
+          Improve handling of device mapper targets
+        </summary>
+        <description>
+          When starting a domain with a disk backed by a device
+          mapper volume libvirt also needs to allow the storage
+          backing the device mapper in CGroups. In the past
+          kernel did not care, but starting from 4.16 CGroups are
+          consulted on each access to the device mapper target.
+        </description>
+      </change>
+    </section>
+  </release>
   <release version="v4.2.0" date="2018-04-01">
     <section title="New features">
       <change>
@@ -94,6 +157,18 @@
       </change>
     </section>
     <section title="Bug fixes">
+      <change>
+        <summary>
+          qemu: TLS migration now enforces use of TLS for the NBD connection
+        </summary>
+        <description>
+          When the VIR_MIGRATE_TLS flag was used with the migration API libvirt
+          did not ensure that the NBD connection was using TLS as well. The code
+          now rejects such migration as the TLS transport for NBD is not ready
+          yet, but prevents a false sense of security that TLS would be used.
+          The support TLS for NBD will be added soon.
+        </description>
+      </change>
     </section>
   </release>
   <release version="v4.1.0" date="2018-03-05">

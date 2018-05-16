@@ -1338,6 +1338,7 @@ qemuDomainCollectPCIAddress(virDomainDefPtr def ATTRIBUTE_UNUSED,
 
 static virDomainPCIAddressSetPtr
 qemuDomainPCIAddressSetCreate(virDomainDefPtr def,
+                              virQEMUCapsPtr qemuCaps,
                               unsigned int nbuses,
                               bool dryRun)
 {
@@ -1353,7 +1354,10 @@ qemuDomainPCIAddressSetCreate(virDomainDefPtr def,
 
     /* pSeries domains support multiple pci-root controllers */
     if (qemuDomainIsPSeries(def))
-        addrs->multipleRootsSupported = true;
+        addrs->areMultipleRootsSupported = true;
+
+    if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_PCIE_PCI_BRIDGE))
+        addrs->isPCIeToPCIBridgeSupported = true;
 
     for (i = 0; i < def->ncontrollers; i++) {
         virDomainControllerDefPtr cont = def->controllers[i];
@@ -2171,6 +2175,9 @@ qemuDomainPCIControllerSetDefaultModelName(virDomainControllerDefPtr cont,
     case VIR_DOMAIN_CONTROLLER_MODEL_DMI_TO_PCI_BRIDGE:
         *modelName = VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_I82801B11_BRIDGE;
         break;
+    case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_TO_PCI_BRIDGE:
+        *modelName = VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_PCIE_PCI_BRIDGE;
+        break;
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT_PORT:
         /* Use generic PCIe Root Ports if available, falling back to
          * ioh3420 otherwise */
@@ -2358,7 +2365,7 @@ qemuDomainAssignPCIAddresses(virDomainDefPtr def,
 
     if (nbuses > 0) {
         /* 1st pass to figure out how many PCI bridges we need */
-        if (!(addrs = qemuDomainPCIAddressSetCreate(def, nbuses, true)))
+        if (!(addrs = qemuDomainPCIAddressSetCreate(def, qemuCaps, nbuses, true)))
             goto cleanup;
 
         if (qemuDomainValidateDevicePCISlotsChipsets(def, qemuCaps,
@@ -2488,7 +2495,7 @@ qemuDomainAssignPCIAddresses(virDomainDefPtr def,
         addrs = NULL;
     }
 
-    if (!(addrs = qemuDomainPCIAddressSetCreate(def, nbuses, false)))
+    if (!(addrs = qemuDomainPCIAddressSetCreate(def, qemuCaps, nbuses, false)))
         goto cleanup;
 
     if (qemuDomainSupportsPCI(def, qemuCaps)) {
@@ -2582,6 +2589,7 @@ qemuDomainAssignPCIAddresses(virDomainDefPtr def,
                 }
                 break;
             case VIR_DOMAIN_CONTROLLER_MODEL_DMI_TO_PCI_BRIDGE:
+            case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_TO_PCI_BRIDGE:
             case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_UPSTREAM_PORT:
             case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT:
             case VIR_DOMAIN_CONTROLLER_MODEL_PCI_DEFAULT:

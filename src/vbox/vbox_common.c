@@ -118,10 +118,7 @@ vboxDriverDispose(void *obj)
 static int
 vboxDriverOnceInit(void)
 {
-    if (!(vboxDriverClass = virClassNew(virClassForObjectLockable(),
-                                        "vboxDriver",
-                                        sizeof(vboxDriver),
-                                        vboxDriverDispose)))
+    if (!VIR_CLASS_NEW(vboxDriver, virClassForObjectLockable()))
         return -1;
 
     return 0;
@@ -499,6 +496,13 @@ vboxAttachStorageControllers(virDomainDefPtr def,
 }
 
 
+static int
+vboxConnectURIProbe(char **uri)
+{
+    return VIR_STRDUP(*uri, geteuid() ? "vbox:///session" : "vbox:///system");
+}
+
+
 static virDrvOpenStatus
 vboxConnectOpen(virConnectPtr conn,
                 virConnectAuthPtr auth ATTRIBUTE_UNUSED,
@@ -509,24 +513,6 @@ vboxConnectOpen(virConnectPtr conn,
     uid_t uid = geteuid();
 
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
-
-    if (conn->uri == NULL &&
-        !(conn->uri = virURIParse(uid ? "vbox:///session" : "vbox:///system")))
-        return VIR_DRV_OPEN_ERROR;
-
-    if (conn->uri->scheme == NULL ||
-        STRNEQ(conn->uri->scheme, "vbox"))
-        return VIR_DRV_OPEN_DECLINED;
-
-    /* Leave for remote driver */
-    if (conn->uri->server != NULL)
-        return VIR_DRV_OPEN_DECLINED;
-
-    if (conn->uri->path == NULL || STREQ(conn->uri->path, "")) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("no VirtualBox driver path specified (try vbox:///session)"));
-        return VIR_DRV_OPEN_ERROR;
-    }
 
     if (uid != 0) {
         if (STRNEQ(conn->uri->path, "/session")) {
@@ -7978,8 +7964,9 @@ vboxDomainSendKey(virDomainPtr dom,
  * Function Tables
  */
 
-virHypervisorDriver vboxCommonDriver = {
+static virHypervisorDriver vboxCommonDriver = {
     .name = "VBOX",
+    .connectURIProbe = vboxConnectURIProbe,
     .connectOpen = vboxConnectOpen, /* 0.6.3 */
     .connectClose = vboxConnectClose, /* 0.6.3 */
     .connectGetVersion = vboxConnectGetVersion, /* 0.6.3 */

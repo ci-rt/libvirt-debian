@@ -1286,6 +1286,36 @@ virVMXGatherSCSIControllers(virVMXContext *ctx, virDomainDefPtr def,
     return result;
 }
 
+struct virVMXConfigScanResults {
+    int networks_max_index;
+};
+
+static int
+virVMXConfigScanResultsCollector(const char* name,
+                                 virConfValuePtr value ATTRIBUTE_UNUSED,
+                                 void *opaque)
+{
+    struct virVMXConfigScanResults *results = opaque;
+
+    if (STRCASEPREFIX(name, "ethernet")) {
+        unsigned int idx;
+        char *p;
+
+        if (virStrToLong_uip(name + 8, &p, 10, &idx) < 0 ||
+            *p != '.') {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("failed to parse the index of the VMX key '%s'"),
+                           name);
+            return -1;
+        }
+
+        if ((int) idx > results->networks_max_index)
+            results->networks_max_index = (int) idx;
+    }
+
+    return 0;
+}
+
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -1322,6 +1352,9 @@ virVMXParseConfig(virVMXContext *ctx,
     bool hgfs_disabled = true;
     long long sharedFolder_maxNum = 0;
     int cpumasklen;
+    struct virVMXConfigScanResults results = { -1 };
+    long long coresPerSocket = 0;
+    virCPUDefPtr cpu = NULL;
 
     if (ctx->parseFileName == NULL) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -1356,6 +1389,9 @@ virVMXParseConfig(virVMXContext *ctx,
         if (conf == NULL)
             goto cleanup;
     }
+
+    if (virConfWalk(conf, virVMXConfigScanResultsCollector, &results) < 0)
+        goto cleanup;
 
     /* Allocate domain def */
     if (!(def = virDomainDefNew()))
@@ -1481,6 +1517,31 @@ virVMXParseConfig(virVMXContext *ctx,
 
     if (virDomainDefSetVcpus(def, numvcpus) < 0)
         goto cleanup;
+
+    /* vmx:cpuid.coresPerSocket -> def:cpu */
+    if (virVMXGetConfigLong(conf, "cpuid.coresPerSocket", &coresPerSocket, 1,
+                            true) < 0)
+        goto cleanup;
+
+    if (coresPerSocket > 1) {
+        if (VIR_ALLOC(cpu) < 0)
+            goto cleanup;
+
+        cpu->type = VIR_CPU_TYPE_GUEST;
+        cpu->mode = VIR_CPU_MODE_CUSTOM;
+
+        cpu->sockets = numvcpus / coresPerSocket;
+        if (cpu->sockets <= 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("VMX entry 'cpuid.coresPerSocket' smaller than "
+                             "'numvcpus'"));
+            goto cleanup;
+        }
+        cpu->cores = coresPerSocket;
+        cpu->threads = 1;
+
+        VIR_STEAL_PTR(def->cpu, cpu);
+    }
 
     /* vmx:sched.cpu.affinity -> def:cpumask */
     /* NOTE: maps to VirtualMachine:config.cpuAffinity.affinitySet */
@@ -1751,19 +1812,16 @@ virVMXParseConfig(virVMXContext *ctx,
     }
 
     /* def:nets */
-    if (VIR_ALLOC_N(def->nets, 4) < 0)
-        goto cleanup;
-
-    def->nnets = 0;
-
-    for (controller = 0; controller < 4; ++controller) {
-        if (virVMXParseEthernet(conf, controller,
-                                &def->nets[def->nnets]) < 0) {
+    for (controller = 0; controller <= results.networks_max_index; ++controller) {
+        virDomainNetDefPtr net = NULL;
+        if (virVMXParseEthernet(conf, controller, &net) < 0)
             goto cleanup;
-        }
 
-        if (def->nets[def->nnets] != NULL)
-            ++def->nnets;
+        if (!net)
+            continue;
+
+        if (VIR_APPEND_ELEMENT(def->nets, def->nnets, net) < 0)
+            goto cleanup;
     }
 
     /* def:inputs */
@@ -1850,6 +1908,7 @@ virVMXParseConfig(virVMXContext *ctx,
     VIR_FREE(sched_cpu_affinity);
     VIR_FREE(sched_cpu_shares);
     VIR_FREE(guestOS);
+    virCPUDefFree(cpu);
 
     return def;
 }
@@ -2439,11 +2498,6 @@ int virVMXParseFileSystem(virConfPtr conf, int number, virDomainFSDefPtr *def)
         return -1;
     }
 
-    if (!(*def = virDomainFSDefNew()))
-        return -1;
-
-    (*def)->type = VIR_DOMAIN_FS_TYPE_MOUNT;
-
     snprintf(prefix, sizeof(prefix), "sharedFolder%d", number);
 
     VMX_BUILD_NAME(present);
@@ -2454,14 +2508,19 @@ int virVMXParseFileSystem(virConfPtr conf, int number, virDomainFSDefPtr *def)
 
     /* vmx:present */
     if (virVMXGetConfigBoolean(conf, present_name, &present, false, true) < 0)
-        goto cleanup;
+        return -1;
 
     /* vmx:enabled */
     if (virVMXGetConfigBoolean(conf, enabled_name, &enabled, false, true) < 0)
-        goto cleanup;
+        return -1;
 
     if (!(present && enabled))
-        goto ignore;
+        return 0;
+
+    if (!(*def = virDomainFSDefNew()))
+        return -1;
+
+    (*def)->type = VIR_DOMAIN_FS_TYPE_MOUNT;
 
     /* vmx:hostPath */
     if (virVMXGetConfigString(conf, hostPath_name, &hostPath, false) < 0)
@@ -2497,14 +2556,6 @@ int virVMXParseFileSystem(virConfPtr conf, int number, virDomainFSDefPtr *def)
     VIR_FREE(guestName);
 
     return result;
-
- ignore:
-    virDomainFSDefFree(*def);
-    *def = NULL;
-
-    result = 0;
-
-    goto cleanup;
 }
 
 
@@ -2550,16 +2601,6 @@ virVMXParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
         return -1;
     }
 
-    if (controller < 0 || controller > 3) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Ethernet controller index %d out of [0..3] range"),
-                       controller);
-        return -1;
-    }
-
-    if (VIR_ALLOC(*def) < 0)
-        return -1;
-
     snprintf(prefix, sizeof(prefix), "ethernet%d", controller);
 
     VMX_BUILD_NAME(present);
@@ -2575,17 +2616,20 @@ virVMXParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
 
     /* vmx:present */
     if (virVMXGetConfigBoolean(conf, present_name, &present, false, true) < 0)
-        goto cleanup;
+        return -1;
 
     /* vmx:startConnected */
     if (virVMXGetConfigBoolean(conf, startConnected_name, &startConnected,
                                true, true) < 0) {
-        goto cleanup;
+        return -1;
     }
 
     /* FIXME: Need to distiguish between active and inactive domains here */
     if (! present/* && ! startConnected*/)
-        goto ignore;
+        return 0;
+
+    if (VIR_ALLOC(*def) < 0)
+        return -1;
 
     /* vmx:connectionType -> def:type */
     if (virVMXGetConfigString(conf, connectionType_name, &connectionType,
@@ -2726,14 +2770,6 @@ virVMXParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
     VIR_FREE(vnet);
 
     return result;
-
- ignore:
-    virDomainNetDefFree(*def);
-    *def = NULL;
-
-    result = 0;
-
-    goto cleanup;
 }
 
 
@@ -2773,11 +2809,6 @@ virVMXParseSerial(virVMXContext *ctx, virConfPtr conf, int port,
         return -1;
     }
 
-    if (!(*def = virDomainChrDefNew(NULL)))
-        return -1;
-
-    (*def)->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL;
-
     snprintf(prefix, sizeof(prefix), "serial%d", port);
 
     VMX_BUILD_NAME(present);
@@ -2788,17 +2819,22 @@ virVMXParseSerial(virVMXContext *ctx, virConfPtr conf, int port,
 
     /* vmx:present */
     if (virVMXGetConfigBoolean(conf, present_name, &present, false, true) < 0)
-        goto cleanup;
+        return -1;
 
     /* vmx:startConnected */
     if (virVMXGetConfigBoolean(conf, startConnected_name, &startConnected,
                                true, true) < 0) {
-        goto cleanup;
+        return -1;
     }
 
     /* FIXME: Need to distiguish between active and inactive domains here */
     if (! present/* && ! startConnected*/)
-        goto ignore;
+        return 0;
+
+    if (!(*def = virDomainChrDefNew(NULL)))
+        return -1;
+
+    (*def)->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL;
 
     /* vmx:fileType -> def:type */
     if (virVMXGetConfigString(conf, fileType_name, &fileType, true) < 0)
@@ -2919,14 +2955,6 @@ virVMXParseSerial(virVMXContext *ctx, virConfPtr conf, int port,
     virURIFree(parsedUri);
 
     return result;
-
- ignore:
-    virDomainChrDefFree(*def);
-    *def = NULL;
-
-    result = 0;
-
-    goto cleanup;
 }
 
 
@@ -2961,11 +2989,6 @@ virVMXParseParallel(virVMXContext *ctx, virConfPtr conf, int port,
         return -1;
     }
 
-    if (!(*def = virDomainChrDefNew(NULL)))
-        return -1;
-
-    (*def)->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_PARALLEL;
-
     snprintf(prefix, sizeof(prefix), "parallel%d", port);
 
     VMX_BUILD_NAME(present);
@@ -2975,17 +2998,22 @@ virVMXParseParallel(virVMXContext *ctx, virConfPtr conf, int port,
 
     /* vmx:present */
     if (virVMXGetConfigBoolean(conf, present_name, &present, false, true) < 0)
-        goto cleanup;
+        return -1;
 
     /* vmx:startConnected */
     if (virVMXGetConfigBoolean(conf, startConnected_name, &startConnected,
                                true, true) < 0) {
-        goto cleanup;
+        return -1;
     }
 
     /* FIXME: Need to distiguish between active and inactive domains here */
     if (! present/* && ! startConnected*/)
-        goto ignore;
+        return 0;
+
+    if (!(*def = virDomainChrDefNew(NULL)))
+        return -1;
+
+    (*def)->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_PARALLEL;
 
     /* vmx:fileType -> def:type */
     if (virVMXGetConfigString(conf, fileType_name, &fileType, false) < 0)
@@ -3029,14 +3057,6 @@ virVMXParseParallel(virVMXContext *ctx, virConfPtr conf, int port,
     VIR_FREE(fileName);
 
     return result;
-
- ignore:
-    virDomainChrDefFree(*def);
-    *def = NULL;
-
-    result = 0;
-
-    goto cleanup;
 }
 
 
@@ -3225,6 +3245,35 @@ virVMXFormatConfig(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virDomainDe
     }
 
     virBufferAsprintf(&buffer, "numvcpus = \"%d\"\n", maxvcpus);
+
+    if (def->cpu) {
+        unsigned int calculated_vcpus;
+
+        if (def->cpu->mode != VIR_CPU_MODE_CUSTOM) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Expecting domain XML CPU mode 'custom' but "
+                             "found '%s'"),
+                           virCPUModeTypeToString(def->cpu->mode));
+            goto cleanup;
+        }
+
+        if (def->cpu->threads != 1) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Only 1 thread per core is supported"));
+            goto cleanup;
+        }
+
+        calculated_vcpus = def->cpu->sockets * def->cpu->cores;
+        if (calculated_vcpus != maxvcpus) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Expecting domain XML CPU sockets per core as %d "
+                             "but found %d"),
+                           maxvcpus, calculated_vcpus);
+            goto cleanup;
+        }
+
+        virBufferAsprintf(&buffer, "cpuid.coresPerSocket = \"%d\"\n", def->cpu->cores);
+    }
 
     /* def:cpumask -> vmx:sched.cpu.affinity */
     if (def->cpumask && virBitmapSize(def->cpumask) > 0) {

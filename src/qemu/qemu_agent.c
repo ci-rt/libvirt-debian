@@ -138,10 +138,7 @@ static void qemuAgentDispose(void *obj);
 
 static int qemuAgentOnceInit(void)
 {
-    if (!(qemuAgentClass = virClassNew(virClassForObjectLockable(),
-                                       "qemuAgent",
-                                       sizeof(qemuAgent),
-                                       qemuAgentDispose)))
+    if (!VIR_CLASS_NEW(qemuAgent, virClassForObjectLockable()))
         return -1;
 
     return 0;
@@ -336,7 +333,7 @@ qemuAgentIOProcessLine(qemuAgentPtr mon,
         goto cleanup;
     }
 
-    if (obj->type != VIR_JSON_TYPE_OBJECT) {
+    if (virJSONValueGetType(obj) != VIR_JSON_TYPE_OBJECT) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Parsed JSON reply '%s' isn't an object"), line);
         goto cleanup;
@@ -1336,14 +1333,13 @@ int qemuAgentFSFreeze(qemuAgentPtr mon, const char **mountpoints,
             return -1;
 
         cmd = qemuAgentMakeCommand("guest-fsfreeze-freeze-list",
-                                   "a:mountpoints", arg, NULL);
+                                   "a:mountpoints", &arg, NULL);
     } else {
         cmd = qemuAgentMakeCommand("guest-fsfreeze-freeze", NULL);
     }
 
     if (!cmd)
         goto cleanup;
-    arg = NULL;
 
     if (qemuAgentCommand(mon, cmd, &reply, true,
                          VIR_DOMAIN_QEMU_AGENT_COMMAND_BLOCK) < 0)
@@ -1503,15 +1499,9 @@ qemuAgentGetVCPUs(qemuAgentPtr mon,
                          VIR_DOMAIN_QEMU_AGENT_COMMAND_BLOCK) < 0)
         goto cleanup;
 
-    if (!(data = virJSONValueObjectGet(reply, "return"))) {
+    if (!(data = virJSONValueObjectGetArray(reply, "return"))) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("guest-get-vcpus reply was missing return data"));
-        goto cleanup;
-    }
-
-    if (data->type != VIR_JSON_TYPE_ARRAY) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("guest-get-vcpus return information was not an array"));
         goto cleanup;
     }
 
@@ -1611,11 +1601,9 @@ qemuAgentSetVCPUsCommand(qemuAgentPtr mon,
     }
 
     if (!(cmd = qemuAgentMakeCommand("guest-set-vcpus",
-                                     "a:vcpus", cpus,
+                                     "a:vcpus", &cpus,
                                      NULL)))
         goto cleanup;
-
-    cpus = NULL;
 
     if (qemuAgentCommand(mon, cmd, &reply, true,
                          VIR_DOMAIN_QEMU_AGENT_COMMAND_BLOCK) < 0)
@@ -1881,7 +1869,7 @@ qemuAgentGetFSInfo(qemuAgentPtr mon, virDomainFSInfoPtr **info,
         goto cleanup;
     }
 
-    if (data->type != VIR_JSON_TYPE_ARRAY) {
+    if (virJSONValueGetType(data) != VIR_JSON_TYPE_ARRAY) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("guest-get-fsinfo return information was not "
                          "an array"));
@@ -1940,7 +1928,7 @@ qemuAgentGetFSInfo(qemuAgentPtr mon, virDomainFSInfoPtr **info,
             goto cleanup;
         }
 
-        if (entry->type != VIR_JSON_TYPE_ARRAY) {
+        if (virJSONValueGetType(entry) != VIR_JSON_TYPE_ARRAY) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("guest-get-fsinfo 'disk' data was not an array"));
             goto cleanup;

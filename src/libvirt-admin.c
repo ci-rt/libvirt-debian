@@ -64,13 +64,12 @@ virAdmGlobalInit(void)
 
     virLogSetFromEnv();
 
+#ifdef HAVE_LIBINTL_H
     if (!bindtextdomain(PACKAGE, LOCALEDIR))
         goto error;
+#endif /* HAVE_LIBINTL_H */
 
-    if (!(remoteAdminPrivClass = virClassNew(virClassForObjectLockable(),
-                                             "remoteAdminPriv",
-                                             sizeof(remoteAdminPriv),
-                                             remoteAdminPrivDispose)))
+    if (!VIR_CLASS_NEW(remoteAdminPriv, virClassForObjectLockable()))
         goto error;
 
     return;
@@ -340,7 +339,7 @@ int
 virAdmConnectRef(virAdmConnectPtr conn)
 {
     VIR_DEBUG("conn=%p refs=%d", conn,
-              conn ? conn->object.parent.u.s.refs : 0);
+              conn ? conn->parent.parent.u.s.refs : 0);
 
     virResetLastError();
     virCheckAdmConnectReturn(conn, -1);

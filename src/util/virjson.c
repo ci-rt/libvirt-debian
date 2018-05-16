@@ -51,6 +51,45 @@
 
 VIR_LOG_INIT("util.json");
 
+typedef struct _virJSONObject virJSONObject;
+typedef virJSONObject *virJSONObjectPtr;
+
+typedef struct _virJSONObjectPair virJSONObjectPair;
+typedef virJSONObjectPair *virJSONObjectPairPtr;
+
+typedef struct _virJSONArray virJSONArray;
+typedef virJSONArray *virJSONArrayPtr;
+
+
+struct _virJSONObjectPair {
+    char *key;
+    virJSONValuePtr value;
+};
+
+struct _virJSONObject {
+    size_t npairs;
+    virJSONObjectPairPtr pairs;
+};
+
+struct _virJSONArray {
+    size_t nvalues;
+    virJSONValuePtr *values;
+};
+
+struct _virJSONValue {
+    int type; /* enum virJSONType */
+    bool protect; /* prevents deletion when embedded in another object */
+
+    union {
+        virJSONObject object;
+        virJSONArray array;
+        char *string;
+        char *number; /* int/float/etc format is context defined so we can't parse it here :-( */
+        int boolean;
+    } data;
+};
+
+
 typedef struct _virJSONParserState virJSONParserState;
 typedef virJSONParserState *virJSONParserStatePtr;
 struct _virJSONParserState {
@@ -109,8 +148,11 @@ virJSONValueGetType(const virJSONValue *value)
  * d: double precision floating point number
  * n: json null value
  *
+ * The following two cases take a pointer to a pointer to a virJSONValuePtr. The
+ * pointer is cleared when the virJSONValuePtr is stolen into the object.
  * a: json object, must be non-NULL
  * A: json object, omitted if NULL
+ *
  * m: a bitmap represented as a JSON array, must be non-NULL
  * M: a bitmap represented as a JSON array, omitted if NULL
  *
@@ -241,9 +283,9 @@ virJSONValueObjectAddVArgs(virJSONValuePtr obj,
 
         case 'A':
         case 'a': {
-            virJSONValuePtr val = va_arg(args, virJSONValuePtr);
+            virJSONValuePtr *val = va_arg(args, virJSONValuePtr *);
 
-            if (!val) {
+            if (!(*val)) {
                 if (type == 'A')
                     continue;
 
@@ -253,7 +295,8 @@ virJSONValueObjectAddVArgs(virJSONValuePtr obj,
                 goto cleanup;
             }
 
-            rc = virJSONValueObjectAppend(obj, key, val);
+            if ((rc = virJSONValueObjectAppend(obj, key, *val)) == 0)
+                *val = NULL;
         }   break;
 
         case 'M':
@@ -1039,6 +1082,16 @@ virJSONValueGetString(virJSONValuePtr string)
 }
 
 
+const char *
+virJSONValueGetNumberString(virJSONValuePtr number)
+{
+    if (number->type != VIR_JSON_TYPE_NUMBER)
+        return NULL;
+
+    return number->data.number;
+}
+
+
 int
 virJSONValueGetNumberInt(virJSONValuePtr number,
                          int *value)
@@ -1344,6 +1397,14 @@ virJSONValuePtr
 virJSONValueObjectStealArray(virJSONValuePtr object, const char *key)
 {
     return virJSONValueObjectStealByType(object, key, VIR_JSON_TYPE_ARRAY);
+}
+
+
+virJSONValuePtr
+virJSONValueObjectStealObject(virJSONValuePtr object,
+                              const char *key)
+{
+    return virJSONValueObjectStealByType(object, key, VIR_JSON_TYPE_OBJECT);
 }
 
 

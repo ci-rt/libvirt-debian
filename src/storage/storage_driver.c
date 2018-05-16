@@ -218,13 +218,9 @@ storageDriverAutostartCallback(virStoragePoolObjPtr obj,
 static void
 storageDriverAutostart(void)
 {
-    virConnectPtr conn = NULL;
-
     virStoragePoolObjListForEach(driver->pools,
                                  storageDriverAutostartCallback,
                                  NULL);
-
-    virObjectUnref(conn);
 }
 
 /**
@@ -388,38 +384,25 @@ storageConnectOpen(virConnectPtr conn,
 {
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
-    /* Verify uri was specified */
-    if (conn->uri == NULL) {
-        /* Only hypervisor drivers are permitted to auto-open on NULL uri */
-        return VIR_DRV_OPEN_DECLINED;
-    } else {
-        if (STRNEQ_NULLABLE(conn->uri->scheme, "storage"))
-            return VIR_DRV_OPEN_DECLINED;
+    if (driver == NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("storage state driver is not active"));
+        return VIR_DRV_OPEN_ERROR;
+    }
 
-        /* Leave for remote driver */
-        if (conn->uri->server != NULL)
-            return VIR_DRV_OPEN_DECLINED;
-
-        if (driver == NULL) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("storage state driver is not active"));
+    if (driver->privileged) {
+        if (STRNEQ(conn->uri->path, "/system")) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("unexpected storage URI path '%s', try storage:///system"),
+                           conn->uri->path);
             return VIR_DRV_OPEN_ERROR;
         }
-
-        if (driver->privileged) {
-            if (STRNEQ(conn->uri->path, "/system")) {
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("unexpected storage URI path '%s', try storage:///system"),
-                               conn->uri->path);
-                return VIR_DRV_OPEN_ERROR;
-            }
-        } else {
-            if (STRNEQ(conn->uri->path, "/session")) {
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("unexpected storage URI path '%s', try storage:///session"),
-                               conn->uri->path);
-                return VIR_DRV_OPEN_ERROR;
-            }
+    } else {
+        if (STRNEQ(conn->uri->path, "/session")) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("unexpected storage URI path '%s', try storage:///session"),
+                           conn->uri->path);
+            return VIR_DRV_OPEN_ERROR;
         }
     }
 
@@ -1520,7 +1503,6 @@ storageVolLookupByName(virStoragePoolPtr pool,
 
 
 struct storageVolLookupData {
-    virConnectPtr conn;
     const char *key;
     char *cleanpath;
     const char *path;
@@ -1547,7 +1529,7 @@ storageVolLookupByKey(virConnectPtr conn,
     virStoragePoolObjPtr obj;
     virStoragePoolDefPtr def;
     struct storageVolLookupData data = {
-        .conn = conn, .key = key, .voldef = NULL };
+        .key = key, .voldef = NULL };
     virStorageVolPtr vol = NULL;
 
     if ((obj = virStoragePoolObjListSearch(driver->pools,
@@ -1627,7 +1609,7 @@ storageVolLookupByPath(virConnectPtr conn,
     virStoragePoolObjPtr obj;
     virStoragePoolDefPtr def;
     struct storageVolLookupData data = {
-        .conn = conn, .path = path, .voldef = NULL };
+        .path = path, .voldef = NULL };
     virStorageVolPtr vol = NULL;
 
     if (!(data.cleanpath = virFileSanitizePath(path)))
@@ -2860,6 +2842,8 @@ static virHypervisorDriver storageHypervisorDriver = {
 };
 
 static virConnectDriver storageConnectDriver = {
+    .localOnly = true,
+    .uriSchemes = (const char *[]){ "storage", NULL },
     .hypervisorDriver = &storageHypervisorDriver,
     .storageDriver = &storageDriver,
 };

@@ -24,6 +24,7 @@
 
 # include "qemu_conf.h"
 # include "qemu_domain.h"
+# include "qemu_migration_params.h"
 
 /*
  * General function naming conventions:
@@ -34,13 +35,9 @@
  *
  * Exceptions:
  *
- *  - qemuMigrationParamsXXX - runs on source or dest host
  *  - qemuMigrationOptionXXX - runs on source or dest host
  *  - qemuMigrationJobXXX - runs on source or dest host
  */
-
-typedef struct _qemuMigrationCompression qemuMigrationCompression;
-typedef qemuMigrationCompression *qemuMigrationCompressionPtr;
 
 /* All supported qemu migration flags.  */
 # define QEMU_MIGRATION_FLAGS \
@@ -101,52 +98,6 @@ typedef enum {
 } qemuMigrationJobPhase;
 VIR_ENUM_DECL(qemuMigrationJobPhase)
 
-typedef enum {
-    QEMU_MIGRATION_COMPRESS_XBZRLE = 0,
-    QEMU_MIGRATION_COMPRESS_MT,
-
-    QEMU_MIGRATION_COMPRESS_LAST
-} qemuMigrationCompressMethod;
-VIR_ENUM_DECL(qemuMigrationCompressMethod)
-
-struct _qemuMigrationCompression {
-    unsigned long long methods;
-
-    bool level_set;
-    int level;
-
-    bool threads_set;
-    int threads;
-
-    bool dthreads_set;
-    int dthreads;
-
-    bool xbzrle_cache_set;
-    unsigned long long xbzrle_cache;
-};
-
-qemuMigrationCompressionPtr
-qemuMigrationAnyCompressionParse(virTypedParameterPtr params,
-                                 int nparams,
-                                 unsigned long flags);
-int
-qemuMigrationAnyCompressionDump(qemuMigrationCompressionPtr compression,
-                                virTypedParameterPtr *params,
-                                int *nparams,
-                                int *maxparams,
-                                unsigned long *flags);
-
-void
-qemuMigrationParamsClear(qemuMonitorMigrationParamsPtr migParams);
-
-void
-qemuMigrationParamsFree(qemuMonitorMigrationParamsPtr *migParams);
-
-qemuMonitorMigrationParamsPtr
-qemuMigrationParams(virTypedParameterPtr params,
-                    int nparams,
-                    unsigned long flags);
-
 int
 qemuMigrationSrcSetOffline(virQEMUDriverPtr driver,
                            virDomainObjPtr vm);
@@ -178,6 +129,7 @@ qemuMigrationDstPrepareTunnel(virQEMUDriverPtr driver,
                               virStreamPtr st,
                               virDomainDefPtr *def,
                               const char *origname,
+                              qemuMigrationParamsPtr migParams,
                               unsigned long flags);
 
 int
@@ -195,7 +147,7 @@ qemuMigrationDstPrepareDirect(virQEMUDriverPtr driver,
                               size_t nmigrate_disks,
                               const char **migrate_disks,
                               int nbdPort,
-                              qemuMigrationCompressionPtr compression,
+                              qemuMigrationParamsPtr migParams,
                               unsigned long flags);
 
 int
@@ -211,8 +163,7 @@ qemuMigrationSrcPerform(virQEMUDriverPtr driver,
                         size_t nmigrate_disks,
                         const char **migrate_disks,
                         int nbdPort,
-                        qemuMigrationCompressionPtr compression,
-                        qemuMonitorMigrationParamsPtr migParams,
+                        qemuMigrationParamsPtr migParams,
                         const char *cookiein,
                         int cookieinlen,
                         char **cookieout,
@@ -297,19 +248,10 @@ void
 qemuMigrationAnyPostcopyFailed(virQEMUDriverPtr driver,
                             virDomainObjPtr vm);
 
-void
-qemuMigrationParamsReset(virQEMUDriverPtr driver,
-                         virDomainObjPtr vm,
-                         qemuDomainAsyncJob job);
-
 int
 qemuMigrationSrcFetchMirrorStats(virQEMUDriverPtr driver,
                                  virDomainObjPtr vm,
                                  qemuDomainAsyncJob asyncJob,
                                  qemuDomainJobInfoPtr jobInfo);
-
-bool
-qemuMigrationAnyCapsGet(virDomainObjPtr vm,
-                        qemuMonitorMigrationCaps cap);
 
 #endif /* __QEMU_MIGRATION_H__ */

@@ -124,10 +124,7 @@ static void virNetSocketDispose(void *obj);
 
 static int virNetSocketOnceInit(void)
 {
-    if (!(virNetSocketClass = virClassNew(virClassForObjectLockable(),
-                                          "virNetSocket",
-                                          sizeof(virNetSocket),
-                                          virNetSocketDispose)))
+    if (!VIR_CLASS_NEW(virNetSocket, virClassForObjectLockable()))
         return -1;
 
     return 0;
@@ -333,7 +330,7 @@ int virNetSocketNewListenTCP(const char *nodename,
      * startup in most cases.
      */
     if (nodename &&
-        !(virSocketAddrParse(&tmp_addr, nodename, AF_UNSPEC) > 0 &&
+        !(virSocketAddrParseAny(&tmp_addr, nodename, AF_UNSPEC, false) > 0 &&
           virSocketAddrIsWildcard(&tmp_addr)))
         hints.ai_flags |= AI_ADDRCONFIG;
 

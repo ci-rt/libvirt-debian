@@ -644,6 +644,8 @@ struct _virDomainDiskDef {
 
     virDomainBlockIoTuneInfo blkdeviotune;
 
+    char *driverName;
+
     char *serial;
     char *wwn;
     char *vendor;
@@ -690,6 +692,7 @@ typedef enum {
     VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT,
     VIR_DOMAIN_CONTROLLER_MODEL_PCI_BRIDGE,
     VIR_DOMAIN_CONTROLLER_MODEL_DMI_TO_PCI_BRIDGE,
+    VIR_DOMAIN_CONTROLLER_MODEL_PCIE_TO_PCI_BRIDGE,
     VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT_PORT,
     VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_UPSTREAM_PORT,
     VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_DOWNSTREAM_PORT,
@@ -710,6 +713,7 @@ typedef enum {
     VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_PXB_PCIE,
     VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_PCIE_ROOT_PORT,
     VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_SPAPR_PCI_HOST_BRIDGE,
+    VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_PCIE_PCI_BRIDGE,
 
     VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_LAST
 } virDomainControllerPCIModelName;
@@ -1178,6 +1182,7 @@ typedef virDomainChrSourceReconnectDef *virDomainChrSourceReconnectDefPtr;
 
 /* The host side information for a character device.  */
 struct _virDomainChrSourceDef {
+    virObject parent;
     int type; /* virDomainChrType */
     virObjectPtr privateData;
     union {
@@ -2719,6 +2724,8 @@ virDomainObjIsActive(virDomainObjPtr dom)
     return dom->def->id != -1;
 }
 
+int virDomainObjCheckActive(virDomainObjPtr dom);
+
 int virDomainDefSetVcpusMax(virDomainDefPtr def,
                             unsigned int vcpus,
                             virDomainXMLOptionPtr xmlopt);
@@ -2760,7 +2767,7 @@ const char *virDomainDiskGetSource(virDomainDiskDef const *def);
 int virDomainDiskSetSource(virDomainDiskDefPtr def, const char *src)
     ATTRIBUTE_RETURN_CHECK;
 void virDomainDiskEmptySource(virDomainDiskDefPtr def);
-const char *virDomainDiskGetDriver(virDomainDiskDefPtr def);
+const char *virDomainDiskGetDriver(const virDomainDiskDef *def);
 int virDomainDiskSetDriver(virDomainDiskDefPtr def, const char *name)
     ATTRIBUTE_RETURN_CHECK;
 int virDomainDiskGetFormat(virDomainDiskDefPtr def);
@@ -2824,6 +2831,9 @@ bool virDomainDefHasDeviceAddress(virDomainDefPtr def,
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
 
 void virDomainDefFree(virDomainDefPtr vm);
+
+virDomainChrSourceDefPtr
+virDomainChrSourceDefNew(virDomainXMLOptionPtr xmlopt);
 
 virDomainChrDefPtr virDomainChrDefNew(virDomainXMLOptionPtr xmlopt);
 
@@ -2935,10 +2945,10 @@ virDomainDeviceDefPtr virDomainDeviceDefParse(const char *xmlStr,
                                               virCapsPtr caps,
                                               virDomainXMLOptionPtr xmlopt,
                                               unsigned int flags);
-virStorageSourcePtr virDomainDiskDefSourceParse(const char *xmlStr,
-                                                const virDomainDef *def,
-                                                virDomainXMLOptionPtr xmlopt,
-                                                unsigned int flags);
+virDomainDiskDefPtr virDomainDiskDefParse(const char *xmlStr,
+                                          const virDomainDef *def,
+                                          virDomainXMLOptionPtr xmlopt,
+                                          unsigned int flags);
 virDomainDefPtr virDomainDefParseString(const char *xmlStr,
                                         virCapsPtr caps,
                                         virDomainXMLOptionPtr xmlopt,
@@ -3528,5 +3538,8 @@ virDomainNetResolveActualType(virDomainNetDefPtr iface)
 
 int virDomainDiskTranslateSourcePool(virDomainDiskDefPtr def);
 
+int
+virDomainDiskGetDetectZeroesMode(virDomainDiskDiscard discard,
+                                 virDomainDiskDetectZeroes detect_zeroes);
 
 #endif /* __DOMAIN_CONF_H */

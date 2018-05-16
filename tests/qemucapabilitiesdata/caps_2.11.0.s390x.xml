@@ -4,51 +4,23 @@
   <selfvers>0</selfvers>
   <usedQMP/>
   <flag name='kvm'/>
-  <flag name='mem-path'/>
-  <flag name='drive-serial'/>
-  <flag name='monitor-json'/>
-  <flag name='sdl'/>
-  <flag name='netdev'/>
-  <flag name='rtc'/>
-  <flag name='vhost-net'/>
-  <flag name='nodefconfig'/>
-  <flag name='boot-menu'/>
-  <flag name='fsdev'/>
-  <flag name='name-process'/>
-  <flag name='smbios-type'/>
-  <flag name='vga-none'/>
   <flag name='boot-index'/>
-  <flag name='drive-aio'/>
-  <flag name='chardev-spicevmc'/>
   <flag name='virtio-tx-alg'/>
-  <flag name='pci-multifunction'/>
   <flag name='virtio-blk-pci.ioeventfd'/>
   <flag name='virtio-blk-pci.event_idx'/>
   <flag name='virtio-net-pci.event_idx'/>
-  <flag name='cache-directsync'/>
-  <flag name='no-shutdown'/>
-  <flag name='cache-unsafe'/>
-  <flag name='fsdev-readonly'/>
   <flag name='virtio-blk-pci.scsi'/>
-  <flag name='drive-copy-on-read'/>
-  <flag name='fsdev-writeout'/>
-  <flag name='drive-iotune'/>
-  <flag name='system_wakeup'/>
   <flag name='scsi-disk.channel'/>
   <flag name='scsi-block'/>
   <flag name='transaction'/>
   <flag name='block-job-async'/>
   <flag name='scsi-cd'/>
-  <flag name='no-user-config'/>
   <flag name='dump-guest-memory'/>
   <flag name='balloon-event'/>
-  <flag name='bridge'/>
   <flag name='virtio-scsi-pci'/>
   <flag name='blockio'/>
   <flag name='scsi-disk.wwn'/>
-  <flag name='seccomp-sandbox'/>
   <flag name='reboot-timeout'/>
-  <flag name='dump-guest-core'/>
   <flag name='seamless-migration'/>
   <flag name='block-commit'/>
   <flag name='vnc'/>
@@ -62,10 +34,6 @@
   <flag name='rng-random'/>
   <flag name='rng-egd'/>
   <flag name='virtio-ccw'/>
-  <flag name='dtb'/>
-  <flag name='ipv6-migration'/>
-  <flag name='machine-opt'/>
-  <flag name='machine-usb-opt'/>
   <flag name='pci-bridge'/>
   <flag name='vfio-pci'/>
   <flag name='vfio-pci.bootindex'/>
@@ -75,12 +43,10 @@
   <flag name='vnc-websocket'/>
   <flag name='drive-discard'/>
   <flag name='mlock'/>
-  <flag name='vnc-share-policy'/>
   <flag name='device-del-event'/>
   <flag name='virtio-mmio'/>
   <flag name='boot-strict'/>
   <flag name='spiceport'/>
-  <flag name='host-pci-multidomain'/>
   <flag name='msg-timestamp'/>
   <flag name='active-commit'/>
   <flag name='change-backing-file'/>
@@ -115,7 +81,6 @@
   <flag name='name-guest'/>
   <flag name='drive-detect-zeroes'/>
   <flag name='tls-creds-x509'/>
-  <flag name='display'/>
   <flag name='smm'/>
   <flag name='virtio-pci-disable-legacy'/>
   <flag name='query-hotpluggable-cpus'/>
@@ -150,6 +115,10 @@
   <flag name='virtio-keyboard-ccw'/>
   <flag name='virtio-mouse-ccw'/>
   <flag name='virtio-tablet-ccw'/>
+  <flag name='qcow2-luks'/>
+  <flag name='seccomp-blacklist'/>
+  <flag name='disk-write-cache'/>
+  <flag name='nbd-tls'/>
   <version>2011000</version>
   <kvmVersion>0</kvmVersion>
   <microcodeVersion>342058</microcodeVersion>

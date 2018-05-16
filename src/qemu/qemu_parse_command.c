@@ -783,7 +783,7 @@ qemuParseCommandLineDisk(virDomainXMLOptionPtr xmlopt,
                 def->device = VIR_DOMAIN_DISK_DEVICE_FLOPPY;
             }
         } else if (STREQ(keywords[i], "format")) {
-            if (VIR_STRDUP(def->src->driverName, "qemu") < 0)
+            if (virDomainDiskSetDriver(def, "qemu") < 0)
                 goto error;
             def->src->format = virStorageFileFormatTypeFromString(values[i]);
         } else if (STREQ(keywords[i], "cache")) {
@@ -2484,7 +2484,7 @@ qemuParseCommandLine(virCapsPtr caps,
             if (monConfig) {
                 virDomainChrSourceDefPtr chr;
 
-                if (VIR_ALLOC(chr) < 0)
+                if (!(chr = virDomainChrSourceDefNew(NULL)))
                     goto error;
 
                 if (qemuParseCommandLineChr(chr, val) < 0) {

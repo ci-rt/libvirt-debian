@@ -7,15 +7,18 @@ QEMU_AUDIO_DRV=none \
 /usr/bin/qemu-system-x86_64 \
 -name guest \
 -S \
--M q35 \
+-machine q35,accel=tcg,usb=off,dump-guest-core=off \
 -m 2048 \
 -smp 2,sockets=2,cores=1,threads=1 \
 -uuid 11dbdcdd-4c3b-482b-8903-9bdb8c0a2774 \
--nographic \
+-display none \
+-no-user-config \
 -nodefaults \
 -chardev socket,id=charmonitor,path=/tmp/lib/domain--1-guest/monitor.sock,\
 server,nowait \
--mon chardev=charmonitor,id=monitor,mode=readline \
+-mon chardev=charmonitor,id=monitor,mode=control \
+-rtc base=utc \
+-no-shutdown \
 -no-acpi \
 -boot c \
 -device ioh3420,port=0x10,chassis=1,id=pci.1,bus=pcie.0,multifunction=on,\

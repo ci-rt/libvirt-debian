@@ -45,7 +45,7 @@ VIR_LOG_INIT("util.filecache")
 
 
 struct _virFileCache {
-    virObjectLockable object;
+    virObjectLockable parent;
 
     virHashTablePtr table;
 
@@ -86,10 +86,7 @@ virFileCacheDispose(void *obj)
 static int
 virFileCacheOnceInit(void)
 {
-    if (!(virFileCacheClass = virClassNew(virClassForObjectLockable(),
-                                          "virFileCache",
-                                          sizeof(virFileCache),
-                                          virFileCacheDispose)))
+    if (!VIR_CLASS_NEW(virFileCache, virClassForObjectLockable()))
         return -1;
 
     return 0;

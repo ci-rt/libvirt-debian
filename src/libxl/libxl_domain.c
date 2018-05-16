@@ -58,10 +58,7 @@ libxlDomainObjPrivateDispose(void *obj);
 static int
 libxlDomainObjPrivateOnceInit(void)
 {
-    if (!(libxlDomainObjPrivateClass = virClassNew(virClassForObjectLockable(),
-                                                   "libxlDomainObjPrivate",
-                                                   sizeof(libxlDomainObjPrivate),
-                                                   libxlDomainObjPrivateDispose)))
+    if (!VIR_CLASS_NEW(libxlDomainObjPrivate, virClassForObjectLockable()))
         return -1;
 
     return 0;
@@ -413,6 +410,16 @@ libxlDomainDefPostParse(virDomainDefPtr def,
             def->features[VIR_DOMAIN_FEATURE_ACPI] = VIR_TRISTATE_SWITCH_ON;
     }
 
+    /* add implicit balloon device */
+    if (def->memballoon == NULL) {
+        virDomainMemballoonDefPtr memballoon;
+        if (VIR_ALLOC(memballoon) < 0)
+            return -1;
+
+        memballoon->model = VIR_DOMAIN_MEMBALLOON_MODEL_XEN;
+        def->memballoon = memballoon;
+    }
+
     return 0;
 }
 
@@ -443,7 +450,7 @@ libxlDomainShutdownThread(void *opaque)
 
     cfg = libxlDriverConfigGet(driver);
 
-    vm = virDomainObjListFindByIDRef(driver->domains, ev->domid);
+    vm = virDomainObjListFindByID(driver->domains, ev->domid);
     if (!vm) {
         VIR_INFO("Received event for unknown domain ID %d", ev->domid);
         goto cleanup;
@@ -1251,7 +1258,7 @@ libxlDomainStart(libxlDriverPrivatePtr driver,
         goto cleanup_dom;
 
     if (libxlBuildDomainConfig(driver->reservedGraphicsPorts, vm->def,
-                               cfg->channelDir, cfg->ctx, cfg->caps, &d_config) < 0)
+                               cfg, &d_config) < 0)
         goto cleanup_dom;
 
     if (cfg->autoballoon && libxlDomainFreeMem(cfg->ctx, &d_config) < 0)

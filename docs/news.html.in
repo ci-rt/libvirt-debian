@@ -12,7 +12,40 @@
         <h1>Releases</h1><p>This is the list of official releases for libvirt, along with an
         overview of the changes introduced by each of them.</p><p>For a more fine-grained view, use the
         <a href="https://libvirt.org/git/?p=libvirt.git;a=log">git log</a>.
-        </p><h3><strong>v4.2.0 (2018-04-01)</strong></h3><ul><li><strong>New features</strong><ul><li>
+        </p><h3><strong>v4.3.0 (2018-05-02)</strong></h3><ul><li><strong>New features</strong><ul><li>
+          qemu: Add support for the pcie-to-pci-bridge controller
+        <br/>
+          Pure PCIe guests such as x86_64/q35 and aarch64/virt will now
+          add this controller when traditional PCI devices are in use.
+        </li><li>
+          Xen: Support setting CPU features for host-passthrough model
+        <br/>
+          The CPU model presented to Xen HVM domains is equivalent to libvirt's
+          host-passthrough model, although individual features can be enabled
+          and disabled via the cpuid setting. The libvirt libxl driver now
+          supports enabling and disabling individual features of the
+          host-passthrough CPU model.
+        </li></ul></li><li><strong>Removed features</strong><ul><li>
+          Xen: Drop the legacy xend-based driver
+        <br/>
+          The xm/xend toolstack was deprecated in Xen 4.2 and removed
+          from the Xen sources in the 4.5 development cycle. The libvirt
+          driver based on xend is now removed from the libvirt sources.
+        </li></ul></li><li><strong>Improvements</strong><ul><li>
+          qemu: Support hot plug and hot unplug of mediated devices
+        <br/>
+          Libvirt now allows mediated devices to be hot plugged and hot
+          unplugged from a guest rather than reporting an error that this isn't
+          supported. In fact, kernel has been supporting this since 4.10.
+        </li></ul></li><li><strong>Bug fixes</strong><ul><li>
+          Improve handling of device mapper targets
+        <br/>
+          When starting a domain with a disk backed by a device
+          mapper volume libvirt also needs to allow the storage
+          backing the device mapper in CGroups. In the past
+          kernel did not care, but starting from 4.16 CGroups are
+          consulted on each access to the device mapper target.
+        </li></ul></li></ul><h3><strong>v4.2.0 (2018-04-01)</strong></h3><ul><li><strong>New features</strong><ul><li>
           Support building with Python 3
         <br/>
           Python is required to build libvirt, and up until now only Python 2
@@ -47,7 +80,15 @@
           shares of previously started domains. If all domains must have
           equal CPU shares, administrators must manually set the weight of
           previously started domains to 256, or restart them.
-        </li></ul></li><li><strong>Bug fixes</strong></li></ul><h3><strong>v4.1.0 (2018-03-05)</strong></h3><ul><li><strong>New features</strong><ul><li>
+        </li></ul></li><li><strong>Bug fixes</strong><ul><li>
+          qemu: TLS migration now enforces use of TLS for the NBD connection
+        <br/>
+          When the VIR_MIGRATE_TLS flag was used with the migration API libvirt
+          did not ensure that the NBD connection was using TLS as well. The code
+          now rejects such migration as the TLS transport for NBD is not ready
+          yet, but prevents a false sense of security that TLS would be used.
+          The support TLS for NBD will be added soon.
+        </li></ul></li></ul><h3><strong>v4.1.0 (2018-03-05)</strong></h3><ul><li><strong>New features</strong><ul><li>
           Added support for CAT (Cache allocation Technology)
         <br/>
           Domain vCPU threads can now have allocated some parts of host cache

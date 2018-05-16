@@ -7,7 +7,7 @@ QEMU_AUDIO_DRV=none \
 /usr/bin/qemu-system-ppc64 \
 -name QEMUGuest1 \
 -S \
--M pseries \
+-machine pseries,accel=tcg,usb=off,dump-guest-core=off \
 -m 2048 \
 -smp 8,sockets=2,cores=1,threads=4 \
 -object memory-backend-ram,id=ram-node0,size=1073741824,host-nodes=1,\
@@ -17,11 +17,14 @@ policy=bind \
 policy=bind \
 -numa node,nodeid=1,cpus=4-7,memdev=ram-node1 \
 -uuid 87eedafe-eedc-4336-8130-ed9fe5dc90c8 \
--nographic \
+-display none \
+-no-user-config \
 -nodefaults \
 -chardev socket,id=charmonitor,path=/tmp/lib/domain--1-QEMUGuest1/monitor.sock,\
 server,nowait \
--mon chardev=charmonitor,id=monitor,mode=readline \
+-mon chardev=charmonitor,id=monitor,mode=control \
+-rtc base=utc \
+-no-shutdown \
 -boot c \
 -device spapr-pci-host-bridge,index=1,id=pci.1,numa_node=1 \
 -device spapr-pci-host-bridge,index=2,id=pci.2 \

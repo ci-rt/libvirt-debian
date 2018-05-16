@@ -60,7 +60,8 @@ int qemuMonitorJSONSystemReset(qemuMonitorPtr mon);
 int qemuMonitorJSONQueryCPUs(qemuMonitorPtr mon,
                              struct qemuMonitorQueryCpusEntry **entries,
                              size_t *nentries,
-                             bool force);
+                             bool force,
+                             bool fast);
 int qemuMonitorJSONGetVirtType(qemuMonitorPtr mon,
                                virDomainVirtType *virtType);
 int qemuMonitorJSONUpdateVideoMemorySize(qemuMonitorPtr mon,
@@ -135,9 +136,9 @@ int qemuMonitorJSONSetMigrationCacheSize(qemuMonitorPtr mon,
                                          unsigned long long cacheSize);
 
 int qemuMonitorJSONGetMigrationParams(qemuMonitorPtr mon,
-                                      qemuMonitorMigrationParamsPtr params);
+                                      virJSONValuePtr *params);
 int qemuMonitorJSONSetMigrationParams(qemuMonitorPtr mon,
-                                      qemuMonitorMigrationParamsPtr params);
+                                      virJSONValuePtr params);
 
 int qemuMonitorJSONGetMigrationStats(qemuMonitorPtr mon,
                                      qemuMonitorMigrationStatsPtr stats,
@@ -145,9 +146,8 @@ int qemuMonitorJSONGetMigrationStats(qemuMonitorPtr mon,
 
 int qemuMonitorJSONGetMigrationCapabilities(qemuMonitorPtr mon,
                                             char ***capabilities);
-int qemuMonitorJSONSetMigrationCapability(qemuMonitorPtr mon,
-                                          qemuMonitorMigrationCaps capability,
-                                          bool state);
+int qemuMonitorJSONSetMigrationCapabilities(qemuMonitorPtr mon,
+                                            virJSONValuePtr caps);
 
 int qemuMonitorJSONGetGICCapabilities(qemuMonitorPtr mon,
                                       virGICCapability **capabilities);
@@ -253,7 +253,7 @@ int qemuMonitorJSONDiskSnapshot(qemuMonitorPtr mon,
                                 bool reuse)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(3)
     ATTRIBUTE_NONNULL(4) ATTRIBUTE_NONNULL(5);
-int qemuMonitorJSONTransaction(qemuMonitorPtr mon, virJSONValuePtr actions)
+int qemuMonitorJSONTransaction(qemuMonitorPtr mon, virJSONValuePtr *actions)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 int qemuMonitorJSONDriveMirror(qemuMonitorPtr mon,
                                const char *device,
@@ -441,15 +441,16 @@ int qemuMonitorJSONSetObjectProperty(qemuMonitorPtr mon,
                                      qemuMonitorJSONObjectPropertyPtr prop)
     ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(4);
 
-int qemuMonitorJSONGetObjectProps(qemuMonitorPtr mon,
-                                  const char *type,
+int qemuMonitorJSONGetDeviceProps(qemuMonitorPtr mon,
+                                  const char *device,
                                   char ***props)
     ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 char *qemuMonitorJSONGetTargetArch(qemuMonitorPtr mon);
 
 int qemuMonitorJSONNBDServerStart(qemuMonitorPtr mon,
                                   const char *host,
-                                  unsigned int port);
+                                  unsigned int port,
+                                  const char *tls_alias);
 int qemuMonitorJSONNBDServerAdd(qemuMonitorPtr mon,
                                 const char *deviceID,
                                 bool writable);

@@ -218,6 +218,7 @@ virDomainChrSourceDefClear;
 virDomainChrSourceDefCopy;
 virDomainChrSourceDefFree;
 virDomainChrSourceDefGetPath;
+virDomainChrSourceDefNew;
 virDomainChrSpicevmcTypeFromString;
 virDomainChrSpicevmcTypeToString;
 virDomainChrTcpProtocolTypeFromString;
@@ -315,7 +316,7 @@ virDomainDiskDefCheckDuplicateInfo;
 virDomainDiskDefForeachPath;
 virDomainDiskDefFree;
 virDomainDiskDefNew;
-virDomainDiskDefSourceParse;
+virDomainDiskDefParse;
 virDomainDiskDetectZeroesTypeFromString;
 virDomainDiskDetectZeroesTypeToString;
 virDomainDiskDeviceTypeToString;
@@ -326,6 +327,7 @@ virDomainDiskErrorPolicyTypeToString;
 virDomainDiskFindByBusAndDst;
 virDomainDiskGeometryTransTypeFromString;
 virDomainDiskGeometryTransTypeToString;
+virDomainDiskGetDetectZeroesMode;
 virDomainDiskGetDriver;
 virDomainDiskGetFormat;
 virDomainDiskGetSource;
@@ -472,6 +474,7 @@ virDomainNostateReasonTypeFromString;
 virDomainNostateReasonTypeToString;
 virDomainObjAssignDef;
 virDomainObjBroadcast;
+virDomainObjCheckActive;
 virDomainObjCopyPersistentDef;
 virDomainObjEndAPI;
 virDomainObjFormat;
@@ -949,10 +952,8 @@ virDomainObjListCollect;
 virDomainObjListConvert;
 virDomainObjListExport;
 virDomainObjListFindByID;
-virDomainObjListFindByIDRef;
 virDomainObjListFindByName;
 virDomainObjListFindByUUID;
-virDomainObjListFindByUUIDRef;
 virDomainObjListForEach;
 virDomainObjListGetActiveIDs;
 virDomainObjListGetInactiveNames;
@@ -1669,6 +1670,10 @@ virDBusMessageUnref;
 virDBusSetSharedBus;
 
 
+# util/virdevmapper.h
+virDevMapperGetTargets;
+
+
 # util/virdnsmasq.h
 dnsmasqAddDhcpHost;
 dnsmasqAddHost;
@@ -2038,6 +2043,7 @@ virJSONValueGetBoolean;
 virJSONValueGetNumberDouble;
 virJSONValueGetNumberInt;
 virJSONValueGetNumberLong;
+virJSONValueGetNumberString;
 virJSONValueGetNumberUint;
 virJSONValueGetNumberUlong;
 virJSONValueGetString;
@@ -2091,6 +2097,7 @@ virJSONValueObjectIsNull;
 virJSONValueObjectKeysNumber;
 virJSONValueObjectRemoveKey;
 virJSONValueObjectStealArray;
+virJSONValueObjectStealObject;
 virJSONValueToString;
 
 
@@ -2725,6 +2732,7 @@ virSocketAddrMask;
 virSocketAddrMaskByPrefix;
 virSocketAddrNumericFamily;
 virSocketAddrParse;
+virSocketAddrParseAny;
 virSocketAddrParseIPv4;
 virSocketAddrParseIPv6;
 virSocketAddrPrefixToNetmask;

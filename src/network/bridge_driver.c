@@ -649,7 +649,7 @@ networkMigrateStateFiles(virNetworkDriverStatePtr driver)
 /**
  * networkStateInitialize:
  *
- * Initialization function for the QEmu daemon
+ * Initialization function for the QEMU daemon
  */
 static int
 networkStateInitialize(bool privileged,
@@ -814,7 +814,7 @@ networkStateAutoStart(void)
 /**
  * networkStateReload:
  *
- * Function to restart the QEmu daemon, it will recheck the configuration
+ * Function to restart the QEMU daemon, it will recheck the configuration
  * files and update its state and the networking
  */
 static int
@@ -840,7 +840,7 @@ networkStateReload(void)
 /**
  * networkStateCleanup:
  *
- * Shutdown the QEmu daemon, it will stop all active domains and networks
+ * Shutdown the QEMU daemon, it will stop all active domains and networks
  */
 static int
 networkStateCleanup(void)
@@ -878,38 +878,25 @@ networkConnectOpen(virConnectPtr conn,
 {
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
-    /* Verify uri was specified */
-    if (conn->uri == NULL) {
-        /* Only hypervisor drivers are permitted to auto-open on NULL uri */
-        return VIR_DRV_OPEN_DECLINED;
-    } else {
-        if (STRNEQ_NULLABLE(conn->uri->scheme, "network"))
-            return VIR_DRV_OPEN_DECLINED;
+    if (network_driver == NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("network state driver is not active"));
+        return VIR_DRV_OPEN_ERROR;
+    }
 
-        /* Leave for remote driver */
-        if (conn->uri->server != NULL)
-            return VIR_DRV_OPEN_DECLINED;
-
-        if (network_driver == NULL) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("network state driver is not active"));
+    if (network_driver->privileged) {
+        if (STRNEQ(conn->uri->path, "/system")) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("unexpected network URI path '%s', try network:///system"),
+                           conn->uri->path);
             return VIR_DRV_OPEN_ERROR;
         }
-
-        if (network_driver->privileged) {
-            if (STRNEQ(conn->uri->path, "/system")) {
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("unexpected network URI path '%s', try network:///system"),
-                               conn->uri->path);
-                return VIR_DRV_OPEN_ERROR;
-            }
-        } else {
-            if (STRNEQ(conn->uri->path, "/session")) {
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("unexpected network URI path '%s', try network:///session"),
-                               conn->uri->path);
-                return VIR_DRV_OPEN_ERROR;
-            }
+    } else {
+        if (STRNEQ(conn->uri->path, "/session")) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("unexpected network URI path '%s', try network:///session"),
+                           conn->uri->path);
+            return VIR_DRV_OPEN_ERROR;
         }
     }
 
@@ -5616,6 +5603,8 @@ static virHypervisorDriver networkHypervisorDriver = {
 
 
 static virConnectDriver networkConnectDriver = {
+    .localOnly = true,
+    .uriSchemes = (const char *[]){ "network", NULL },
     .hypervisorDriver = &networkHypervisorDriver,
     .networkDriver = &networkDriver,
 };

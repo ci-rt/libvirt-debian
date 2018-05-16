@@ -7,17 +7,20 @@ QEMU_AUDIO_DRV=none \
 /usr/bin/qemu-system-x86_64 \
 -name test \
 -S \
--M pc-0.13 \
+-machine pc-0.13,accel=tcg,usb=off,dump-guest-core=off \
 -m 1024 \
 -smp 1,sockets=1,cores=1,threads=1 \
 -uuid 468404ad-d49c-40f2-9e14-02294f9c1be3 \
--nographic \
+-display none \
+-no-user-config \
 -nodefaults \
 -chardev socket,id=charmonitor,path=/tmp/lib/domain--1-test/monitor.sock,\
 server,nowait \
--mon chardev=charmonitor,id=monitor,mode=readline \
+-mon chardev=charmonitor,id=monitor,mode=control \
+-rtc base=utc \
+-no-shutdown \
 -no-acpi \
--boot dc \
+-boot order=dc,menu=on \
 -device virtio-serial-pci,id=virtio-serial0,bus=pci.0,addr=0x6 \
 -usb \
 -drive file=/var/lib/libvirt/images/f14.img,format=qcow2,if=none,\
@@ -27,7 +30,7 @@ id=virtio-disk0 \
 -drive file=/var/lib/libvirt/Fedora-14-x86_64-Live-KDE.iso,format=raw,if=none,\
 id=drive-ide0-1-0,media=cdrom,readonly=on \
 -device ide-drive,bus=ide.1,unit=0,drive=drive-ide0-1-0,id=ide0-1-0 \
--device virtio-net-pci,tx=bh,vlan=0,id=net0,mac=52:54:00:e5:48:58,bus=pci.0,\
-addr=0x3 \
--net user,vlan=0,name=hostnet0 \
+-netdev user,id=hostnet0 \
+-device virtio-net-pci,tx=bh,netdev=hostnet0,id=net0,mac=52:54:00:e5:48:58,\
+bus=pci.0,addr=0x3 \
 -device virtio-balloon-pci,id=balloon0,bus=pci.0,addr=0x5

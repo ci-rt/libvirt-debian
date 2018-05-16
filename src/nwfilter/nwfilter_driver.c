@@ -166,7 +166,7 @@ nwfilterDriverInstallDBusMatches(DBusConnection *sysbus ATTRIBUTE_UNUSED)
 /**
  * nwfilterStateInitialize:
  *
- * Initialization function for the QEmu daemon
+ * Initialization function for the QEMU daemon
  */
 static int
 nwfilterStateInitialize(bool privileged,
@@ -371,30 +371,17 @@ nwfilterConnectOpen(virConnectPtr conn,
 {
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
-    /* Verify uri was specified */
-    if (conn->uri == NULL) {
-        /* Only hypervisor drivers are permitted to auto-open on NULL uri */
-        return VIR_DRV_OPEN_DECLINED;
-    } else {
-        if (STRNEQ_NULLABLE(conn->uri->scheme, "nwfilter"))
-            return VIR_DRV_OPEN_DECLINED;
+    if (driver == NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("nwfilter state driver is not active"));
+        return VIR_DRV_OPEN_ERROR;
+    }
 
-        /* Leave for remote driver */
-        if (conn->uri->server != NULL)
-            return VIR_DRV_OPEN_DECLINED;
-
-        if (driver == NULL) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("nwfilter state driver is not active"));
-            return VIR_DRV_OPEN_ERROR;
-        }
-
-        if (STRNEQ(conn->uri->path, "/system")) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("unexpected nwfilter URI path '%s', try nwfilter:///system"),
-                           conn->uri->path);
-            return VIR_DRV_OPEN_ERROR;
-        }
+    if (STRNEQ(conn->uri->path, "/system")) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("unexpected nwfilter URI path '%s', try nwfilter:///system"),
+                       conn->uri->path);
+        return VIR_DRV_OPEN_ERROR;
     }
 
     if (virConnectOpenEnsureACL(conn) < 0)
@@ -712,6 +699,8 @@ static virHypervisorDriver nwfilterHypervisorDriver = {
 
 
 static virConnectDriver nwfilterConnectDriver = {
+    .localOnly = true,
+    .uriSchemes = (const char *[]){ "nwfilter", NULL },
     .hypervisorDriver = &nwfilterHypervisorDriver,
     .nwfilterDriver = &nwfilterDriver,
 };

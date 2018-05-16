@@ -7,16 +7,19 @@ QEMU_AUDIO_DRV=none \
 /usr/bin/qemu-system-x86_64 \
 -name TPM-VM \
 -S \
--M pc-0.12 \
+-machine pc-0.12,accel=tcg,usb=off,dump-guest-core=off \
 -m 2048 \
 -smp 1,sockets=1,cores=1,threads=1 \
 -uuid 11d7cd22-da89-3094-6212-079a48a309a1 \
--nographic \
+-display none \
+-no-user-config \
 -nodefaults \
 -chardev socket,id=charmonitor,path=/tmp/lib/domain--1-TPM-VM/monitor.sock,\
 server,nowait \
--mon chardev=charmonitor,id=monitor,mode=readline \
--boot c \
+-mon chardev=charmonitor,id=monitor,mode=control \
+-rtc base=utc \
+-no-shutdown \
+-boot order=c,menu=on \
 -usb \
 -tpmdev passthrough,id=tpm-tpm0,path=/dev/tpm0,\
 cancel-path=/sys/class/misc/tpm0/device/cancel \

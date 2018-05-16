@@ -34,6 +34,7 @@
 # include "qemu_agent.h"
 # include "qemu_conf.h"
 # include "qemu_capabilities.h"
+# include "qemu_migration_params.h"
 # include "virmdev.h"
 # include "virchrdev.h"
 # include "virobject.h"
@@ -153,7 +154,9 @@ struct _qemuDomainJobInfo {
     qemuDomainMirrorStats mirrorStats;
 };
 
-struct qemuDomainJobObj {
+typedef struct _qemuDomainJobObj qemuDomainJobObj;
+typedef qemuDomainJobObj *qemuDomainJobObjPtr;
+struct _qemuDomainJobObj {
     virCond cond;                       /* Use to coordinate jobs */
     qemuDomainJob active;               /* Currently running job */
     unsigned long long owner;           /* Thread id which set current job */
@@ -167,16 +170,17 @@ struct qemuDomainJobObj {
     unsigned long long asyncStarted;    /* When the current async job started */
     int phase;                          /* Job phase (mainly for migrations) */
     unsigned long long mask;            /* Jobs allowed during async job */
-    bool dump_memory_only;              /* use dump-guest-memory to do dump */
     qemuDomainJobInfoPtr current;       /* async job progress data */
     qemuDomainJobInfoPtr completed;     /* statistics data of a recently completed job */
     bool abortJob;                      /* abort of the job requested */
     bool spiceMigration;                /* we asked for spice migration and we
                                          * should wait for it to finish */
     bool spiceMigrated;                 /* spice migration completed */
-    bool postcopyEnabled;               /* post-copy migration was enabled */
     char *error;                        /* job event completion error */
     bool dumpCompleted;                 /* dump completed */
+
+    qemuMigrationParamsPtr migParams;
+    unsigned long apiFlags; /* flags passed to the API which started the async job */
 };
 
 typedef void (*qemuDomainCleanupCallback)(virQEMUDriverPtr driver,
@@ -251,7 +255,7 @@ typedef qemuDomainObjPrivate *qemuDomainObjPrivatePtr;
 struct _qemuDomainObjPrivate {
     virQEMUDriverPtr driver;
 
-    struct qemuDomainJobObj job;
+    qemuDomainJobObj job;
 
     virBitmapPtr namespaces;
 
@@ -324,10 +328,6 @@ struct _qemuDomainObjPrivate {
     /* for migrations using TLS with a secret (not to be saved in our */
     /* private XML). */
     qemuDomainSecretInfoPtr migSecinfo;
-
-    /* Used when fetching/storing the current 'tls-creds' migration setting */
-    /* (not to be saved in our private XML). */
-    char *migTLSAlias;
 
     /* CPU def used to start the domain when it differs from the one actually
      * provided by QEMU. */
@@ -492,7 +492,8 @@ int qemuDomainObjBeginJob(virQEMUDriverPtr driver,
 int qemuDomainObjBeginAsyncJob(virQEMUDriverPtr driver,
                                virDomainObjPtr obj,
                                qemuDomainAsyncJob asyncJob,
-                               virDomainJobOperation operation)
+                               virDomainJobOperation operation,
+                               unsigned long apiFlags)
     ATTRIBUTE_RETURN_CHECK;
 int qemuDomainObjBeginNestedJob(virQEMUDriverPtr driver,
                                 virDomainObjPtr obj,
@@ -510,7 +511,7 @@ void qemuDomainObjSetJobPhase(virQEMUDriverPtr driver,
 void qemuDomainObjSetAsyncJobMask(virDomainObjPtr obj,
                                   unsigned long long allowedJobs);
 void qemuDomainObjRestoreJob(virDomainObjPtr obj,
-                             struct qemuDomainJobObj *job);
+                             qemuDomainJobObjPtr job);
 void qemuDomainObjDiscardAsyncJob(virQEMUDriverPtr driver,
                                   virDomainObjPtr obj);
 void qemuDomainObjReleaseAsyncJob(virDomainObjPtr obj);
@@ -799,13 +800,7 @@ int qemuDomainRefreshVcpuHalted(virQEMUDriverPtr driver,
 bool qemuDomainSupportsNicdev(virDomainDefPtr def,
                               virDomainNetDefPtr net);
 
-bool qemuDomainSupportsNetdev(virDomainDefPtr def,
-                              virQEMUCapsPtr qemuCaps,
-                              virDomainNetDefPtr net);
-
 bool qemuDomainNetSupportsMTU(virDomainNetType type);
-
-int qemuDomainNetVLAN(virDomainNetDefPtr def);
 
 int qemuDomainSetPrivatePaths(virQEMUDriverPtr driver,
                               virDomainObjPtr vm);
@@ -988,13 +983,21 @@ bool qemuDomainCheckCCWS390AddressSupport(const virDomainDef *def,
                                     const char *devicename);
 
 int
-qemuDomainCheckMigrationCapabilities(virQEMUDriverPtr driver,
-                                     virDomainObjPtr vm,
-                                     qemuDomainAsyncJob asyncJob);
+qemuDomainPrepareDiskSourceChain(virDomainDiskDefPtr disk,
+                                 virStorageSourcePtr src,
+                                 virQEMUDriverConfigPtr cfg,
+                                 virQEMUCapsPtr qemuCaps)
+    ATTRIBUTE_RETURN_CHECK;
 
 int
 qemuDomainPrepareDiskSource(virDomainDiskDefPtr disk,
                             qemuDomainObjPrivatePtr priv,
                             virQEMUDriverConfigPtr cfg);
+
+int
+qemuDomainDiskCachemodeFlags(int cachemode,
+                             bool *writeback,
+                             bool *direct,
+                             bool *noflush);
 
 #endif /* __QEMU_DOMAIN_H__ */

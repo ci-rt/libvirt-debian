@@ -321,6 +321,11 @@ sc_prohibit_internal_functions:
 	halt='use VIR_ macros instead of internal functions' \
 	  $(_sc_search_regexp)
 
+sc_prohibit_raw_virclassnew:
+	@prohibit='virClassNew *\(' \
+	halt='use VIR_CLASS_NEW instead of virClassNew' \
+	  $(_sc_search_regexp)
+
 # Avoid raw malloc and free, except in documentation comments.
 sc_prohibit_raw_allocation:
 	@prohibit='^.[^*].*\<((m|c|re)alloc|free) *\([^)]' \
@@ -1093,7 +1098,7 @@ _autogen_error:
 
 ifneq ($(_gl-Makefile),)
 syntax-check: spacing-check test-wrap-argv \
-	prohibit-duplicate-header mock-noinline
+	prohibit-duplicate-header mock-noinline group-qemu-caps
 endif
 
 # Don't include duplicate header in the source (either *.c or *.h)
@@ -1113,6 +1118,9 @@ mock-noinline:
 test-wrap-argv:
 	$(AM_V_GEN)files=`$(VC_LIST) | grep -E '\.(ldargs|args)'`; \
 	$(PERL) $(top_srcdir)/tests/test-wrap-argv.pl --check $$files
+
+group-qemu-caps:
+	$(PERL) $(top_srcdir)/tests/group-qemu-caps.pl --check $(top_srcdir)/
 
 # sc_po_check can fail if generated files are not built first
 sc_po_check: \
@@ -1177,7 +1185,7 @@ exclude_file_name_regexp--sc_prohibit_close = \
   (\.p[yl]$$|\.spec\.in$$|^docs/|^(src/util/virfile\.c|src/libvirt-stream\.c|tests/vir.+mock\.c|tests/commandhelper\.c)$$)
 
 exclude_file_name_regexp--sc_prohibit_empty_lines_at_EOF = \
-  (^tests/(qemuhelp|virhostcpu|virpcitest)data/|docs/js/.*\.js|docs/fonts/.*\.woff|\.diff|tests/virconfdata/no-newline\.conf$$)
+  (^tests/(virhostcpu|virpcitest)data/|docs/js/.*\.js|docs/fonts/.*\.woff|\.diff|tests/virconfdata/no-newline\.conf$$)
 
 _src2=src/(util/vircommand|libvirt|lxc/lxc_controller|locking/lock_daemon|logging/log_daemon|remote/remote_daemon)
 exclude_file_name_regexp--sc_prohibit_fork_wrappers = \
@@ -1187,6 +1195,9 @@ exclude_file_name_regexp--sc_prohibit_gethostname = ^src/util/vir(util|log)\.c$$
 
 exclude_file_name_regexp--sc_prohibit_internal_functions = \
   ^src/(util/(viralloc|virutil|virfile)\.[hc]|esx/esx_vi\.c)$$
+
+exclude_file_name_regexp--sc_prohibit_raw_virclassnew = \
+  ^src/util/virobject\.[hc]$$
 
 exclude_file_name_regexp--sc_prohibit_newline_at_end_of_diagnostic = \
   ^src/rpc/gendispatch\.pl$$
@@ -1225,7 +1236,7 @@ exclude_file_name_regexp--sc_require_config_h_first = \
 	^(examples/|tools/virsh-edit\.c$$)
 
 exclude_file_name_regexp--sc_trailing_blank = \
-  /qemuhelpdata/|/sysinfodata/.*\.data|/virhostcpudata/.*\.cpuinfo|^gnulib/local/.*/.*diff$$
+  /sysinfodata/.*\.data|/virhostcpudata/.*\.cpuinfo|^gnulib/local/.*/.*diff$$
 
 exclude_file_name_regexp--sc_unmarked_diagnostics = \
   ^(docs/apibuild.py|tests/virt-aa-helper-test|docs/js/.*\.js)$$

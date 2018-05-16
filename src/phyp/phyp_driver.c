@@ -1141,12 +1141,6 @@ phypConnectOpen(virConnectPtr conn,
 
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
-    if (!conn || !conn->uri)
-        return VIR_DRV_OPEN_DECLINED;
-
-    if (conn->uri->scheme == NULL || STRNEQ(conn->uri->scheme, "phyp"))
-        return VIR_DRV_OPEN_DECLINED;
-
     if (conn->uri->server == NULL) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        "%s", _("Missing server name in phyp:// URI"));
@@ -1161,7 +1155,7 @@ phypConnectOpen(virConnectPtr conn,
     if (VIR_ALLOC(uuid_table) < 0)
         goto failure;
 
-    if (conn->uri->path) {
+    if (conn->uri->path[0] != '\0') {
         /* need to shift one byte in order to remove the first "/" of URI component */
         if (VIR_STRDUP(managed_system,
                        conn->uri->path + (conn->uri->path[0] == '/')) < 0)
@@ -3766,6 +3760,7 @@ static virInterfaceDriver phypInterfaceDriver = {
 };
 
 static virConnectDriver phypConnectDriver = {
+    .uriSchemes = (const char *[]){ "phyp", NULL },
     .hypervisorDriver = &phypHypervisorDriver,
     .interfaceDriver = &phypInterfaceDriver,
     .storageDriver = &phypStorageDriver,

@@ -34,7 +34,7 @@
 #define VIR_FROM_THIS VIR_FROM_RPC
 
 struct _virNetServerService {
-    virObject object;
+    virObject parent;
 
     size_t nsocks;
     virNetSocketPtr *socks;
@@ -57,10 +57,7 @@ static void virNetServerServiceDispose(void *obj);
 
 static int virNetServerServiceOnceInit(void)
 {
-    if (!(virNetServerServiceClass = virClassNew(virClassForObject(),
-                                                 "virNetServerService",
-                                                 sizeof(virNetServerService),
-                                                 virNetServerServiceDispose)))
+    if (!VIR_CLASS_NEW(virNetServerService, virClassForObject()))
         return -1;
 
     return 0;

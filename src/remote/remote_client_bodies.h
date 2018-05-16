@@ -6169,8 +6169,8 @@ remoteNodeDeviceGetParent(virNodeDevicePtr dev)
         goto done;
     }
 
-    rv = ret.parent ? *ret.parent : NULL;
-    VIR_FREE(ret.parent);
+    rv = ret.parentName ? *ret.parentName : NULL;
+    VIR_FREE(ret.parentName);
 
 done:
     remoteDriverUnlock(priv);
