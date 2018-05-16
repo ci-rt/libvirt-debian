@@ -1,10 +1,12 @@
-libvirt (4.3.0-1~1.gbpfa0589) UNRELEASED; urgency=medium
-
-  ** SNAPSHOT build @fa0589b20bdf3fb2f50fe6ed693394aadb817e39 **
+libvirt (4.3.0-1) unstable; urgency=medium
 
   * [8730a15] New upstream version 4.3.0
+  * [1272efc] Drop patches due to upstream code removal.
+     Allow-xen-toolstack-to-find-it-s-binaries.patch
+     debian/fix-Debian-specific-path-to-hvm-loader.patch
+  * [20eb594] Bump symbol versions
 
- -- Guido Günther <agx@sigxcpu.org>  Wed, 16 May 2018 10:30:10 +0200
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 16 May 2018 12:09:53 +0200
 
 libvirt (4.2.0-3) unstable; urgency=medium
 
