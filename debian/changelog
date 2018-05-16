@@ -1,3 +1,9 @@
+libvirt (4.2.0-3) unstable; urgency=medium
+
+  * [78872cc] Ship logrotate snippets again (Closes: #895709)
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 16 May 2018 07:54:29 +0200
+
 libvirt (4.2.0-2) unstable; urgency=medium
 
   * [c859ce5] Prefer /sbin over /usr/sbin.
