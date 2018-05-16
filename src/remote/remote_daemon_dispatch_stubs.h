@@ -572,14 +572,14 @@ static int remoteDispatchConnectFindStoragePoolSources(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
     srcSpec = args->srcSpec ? *args->srcSpec : NULL;
 
-    if ((xml = virConnectFindStoragePoolSources(priv->conn, args->type, srcSpec, args->flags)) == NULL)
+    if ((xml = virConnectFindStoragePoolSources(priv->storageConn, args->type, srcSpec, args->flags)) == NULL)
         goto cleanup;
 
     ret->xml = xml;
@@ -1320,13 +1320,13 @@ static int remoteDispatchConnectListAllInterfaces(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->interfaceConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
     if ((nresults = 
-            virConnectListAllInterfaces(priv->conn,
+            virConnectListAllInterfaces(priv->interfaceConn,
                                         args->need_results ? &result : NULL,
                                         args->flags)) < 0)
         goto cleanup;
@@ -1404,13 +1404,13 @@ static int remoteDispatchConnectListAllNetworks(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->networkConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
     if ((nresults = 
-            virConnectListAllNetworks(priv->conn,
+            virConnectListAllNetworks(priv->networkConn,
                                       args->need_results ? &result : NULL,
                                       args->flags)) < 0)
         goto cleanup;
@@ -1488,13 +1488,13 @@ static int remoteDispatchConnectListAllNodeDevices(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->nodedevConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
     if ((nresults = 
-            virConnectListAllNodeDevices(priv->conn,
+            virConnectListAllNodeDevices(priv->nodedevConn,
                                          args->need_results ? &result : NULL,
                                          args->flags)) < 0)
         goto cleanup;
@@ -1572,13 +1572,13 @@ static int remoteDispatchConnectListAllNWFilters(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->nwfilterConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
     if ((nresults = 
-            virConnectListAllNWFilters(priv->conn,
+            virConnectListAllNWFilters(priv->nwfilterConn,
                                        args->need_results ? &result : NULL,
                                        args->flags)) < 0)
         goto cleanup;
@@ -1656,13 +1656,13 @@ static int remoteDispatchConnectListAllSecrets(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->secretConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
     if ((nresults = 
-            virConnectListAllSecrets(priv->conn,
+            virConnectListAllSecrets(priv->secretConn,
                                      args->need_results ? &result : NULL,
                                      args->flags)) < 0)
         goto cleanup;
@@ -1740,13 +1740,13 @@ static int remoteDispatchConnectListAllStoragePools(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
     if ((nresults = 
-            virConnectListAllStoragePools(priv->conn,
+            virConnectListAllStoragePools(priv->storageConn,
                                           args->need_results ? &result : NULL,
                                           args->flags)) < 0)
         goto cleanup;
@@ -1889,7 +1889,7 @@ static int remoteDispatchConnectListDefinedInterfaces(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->interfaceConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
@@ -1904,7 +1904,7 @@ static int remoteDispatchConnectListDefinedInterfaces(
     if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0)
         goto cleanup;
 
-    if ((len = virConnectListDefinedInterfaces(priv->conn, ret->names.names_val, args->maxnames)) < 0)
+    if ((len = virConnectListDefinedInterfaces(priv->interfaceConn, ret->names.names_val, args->maxnames)) < 0)
         goto cleanup;
 
     ret->names.names_len = len;
@@ -1956,7 +1956,7 @@ static int remoteDispatchConnectListDefinedNetworks(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->networkConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
@@ -1971,7 +1971,7 @@ static int remoteDispatchConnectListDefinedNetworks(
     if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0)
         goto cleanup;
 
-    if ((len = virConnectListDefinedNetworks(priv->conn, ret->names.names_val, args->maxnames)) < 0)
+    if ((len = virConnectListDefinedNetworks(priv->networkConn, ret->names.names_val, args->maxnames)) < 0)
         goto cleanup;
 
     ret->names.names_len = len;
@@ -2023,7 +2023,7 @@ static int remoteDispatchConnectListDefinedStoragePools(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
@@ -2038,7 +2038,7 @@ static int remoteDispatchConnectListDefinedStoragePools(
     if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0)
         goto cleanup;
 
-    if ((len = virConnectListDefinedStoragePools(priv->conn, ret->names.names_val, args->maxnames)) < 0)
+    if ((len = virConnectListDefinedStoragePools(priv->storageConn, ret->names.names_val, args->maxnames)) < 0)
         goto cleanup;
 
     ret->names.names_len = len;
@@ -2157,7 +2157,7 @@ static int remoteDispatchConnectListInterfaces(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->interfaceConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
@@ -2172,7 +2172,7 @@ static int remoteDispatchConnectListInterfaces(
     if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0)
         goto cleanup;
 
-    if ((len = virConnectListInterfaces(priv->conn, ret->names.names_val, args->maxnames)) < 0)
+    if ((len = virConnectListInterfaces(priv->interfaceConn, ret->names.names_val, args->maxnames)) < 0)
         goto cleanup;
 
     ret->names.names_len = len;
@@ -2224,7 +2224,7 @@ static int remoteDispatchConnectListNetworks(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->networkConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
@@ -2239,7 +2239,7 @@ static int remoteDispatchConnectListNetworks(
     if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0)
         goto cleanup;
 
-    if ((len = virConnectListNetworks(priv->conn, ret->names.names_val, args->maxnames)) < 0)
+    if ((len = virConnectListNetworks(priv->networkConn, ret->names.names_val, args->maxnames)) < 0)
         goto cleanup;
 
     ret->names.names_len = len;
@@ -2291,7 +2291,7 @@ static int remoteDispatchConnectListNWFilters(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->nwfilterConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
@@ -2306,7 +2306,7 @@ static int remoteDispatchConnectListNWFilters(
     if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0)
         goto cleanup;
 
-    if ((len = virConnectListNWFilters(priv->conn, ret->names.names_val, args->maxnames)) < 0)
+    if ((len = virConnectListNWFilters(priv->nwfilterConn, ret->names.names_val, args->maxnames)) < 0)
         goto cleanup;
 
     ret->names.names_len = len;
@@ -2358,7 +2358,7 @@ static int remoteDispatchConnectListSecrets(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->secretConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
@@ -2373,7 +2373,7 @@ static int remoteDispatchConnectListSecrets(
     if (VIR_ALLOC_N(ret->uuids.uuids_val, args->maxuuids) < 0)
         goto cleanup;
 
-    if ((len = virConnectListSecrets(priv->conn, ret->uuids.uuids_val, args->maxuuids)) < 0)
+    if ((len = virConnectListSecrets(priv->secretConn, ret->uuids.uuids_val, args->maxuuids)) < 0)
         goto cleanup;
 
     ret->uuids.uuids_len = len;
@@ -2425,7 +2425,7 @@ static int remoteDispatchConnectListStoragePools(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
@@ -2440,7 +2440,7 @@ static int remoteDispatchConnectListStoragePools(
     if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0)
         goto cleanup;
 
-    if ((len = virConnectListStoragePools(priv->conn, ret->names.names_val, args->maxnames)) < 0)
+    if ((len = virConnectListStoragePools(priv->storageConn, ret->names.names_val, args->maxnames)) < 0)
         goto cleanup;
 
     ret->names.names_len = len;
@@ -2649,12 +2649,12 @@ static int remoteDispatchConnectNumOfDefinedInterfaces(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->interfaceConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((num = virConnectNumOfDefinedInterfaces(priv->conn)) < 0)
+    if ((num = virConnectNumOfDefinedInterfaces(priv->interfaceConn)) < 0)
         goto cleanup;
 
     ret->num = num;
@@ -2702,12 +2702,12 @@ static int remoteDispatchConnectNumOfDefinedNetworks(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->networkConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((num = virConnectNumOfDefinedNetworks(priv->conn)) < 0)
+    if ((num = virConnectNumOfDefinedNetworks(priv->networkConn)) < 0)
         goto cleanup;
 
     ret->num = num;
@@ -2755,12 +2755,12 @@ static int remoteDispatchConnectNumOfDefinedStoragePools(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((num = virConnectNumOfDefinedStoragePools(priv->conn)) < 0)
+    if ((num = virConnectNumOfDefinedStoragePools(priv->storageConn)) < 0)
         goto cleanup;
 
     ret->num = num;
@@ -2861,12 +2861,12 @@ static int remoteDispatchConnectNumOfInterfaces(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->interfaceConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((num = virConnectNumOfInterfaces(priv->conn)) < 0)
+    if ((num = virConnectNumOfInterfaces(priv->interfaceConn)) < 0)
         goto cleanup;
 
     ret->num = num;
@@ -2914,12 +2914,12 @@ static int remoteDispatchConnectNumOfNetworks(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->networkConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((num = virConnectNumOfNetworks(priv->conn)) < 0)
+    if ((num = virConnectNumOfNetworks(priv->networkConn)) < 0)
         goto cleanup;
 
     ret->num = num;
@@ -2967,12 +2967,12 @@ static int remoteDispatchConnectNumOfNWFilters(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->nwfilterConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((num = virConnectNumOfNWFilters(priv->conn)) < 0)
+    if ((num = virConnectNumOfNWFilters(priv->nwfilterConn)) < 0)
         goto cleanup;
 
     ret->num = num;
@@ -3020,12 +3020,12 @@ static int remoteDispatchConnectNumOfSecrets(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->secretConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((num = virConnectNumOfSecrets(priv->conn)) < 0)
+    if ((num = virConnectNumOfSecrets(priv->secretConn)) < 0)
         goto cleanup;
 
     ret->num = num;
@@ -3073,12 +3073,12 @@ static int remoteDispatchConnectNumOfStoragePools(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((num = virConnectNumOfStoragePools(priv->conn)) < 0)
+    if ((num = virConnectNumOfStoragePools(priv->storageConn)) < 0)
         goto cleanup;
 
     ret->num = num;
@@ -12383,12 +12383,12 @@ static int remoteDispatchInterfaceChangeBegin(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->interfaceConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (virInterfaceChangeBegin(priv->conn, args->flags) < 0)
+    if (virInterfaceChangeBegin(priv->interfaceConn, args->flags) < 0)
         goto cleanup;
 
     rv = 0;
@@ -12434,12 +12434,12 @@ static int remoteDispatchInterfaceChangeCommit(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->interfaceConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (virInterfaceChangeCommit(priv->conn, args->flags) < 0)
+    if (virInterfaceChangeCommit(priv->interfaceConn, args->flags) < 0)
         goto cleanup;
 
     rv = 0;
@@ -12485,12 +12485,12 @@ static int remoteDispatchInterfaceChangeRollback(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->interfaceConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (virInterfaceChangeRollback(priv->conn, args->flags) < 0)
+    if (virInterfaceChangeRollback(priv->interfaceConn, args->flags) < 0)
         goto cleanup;
 
     rv = 0;
@@ -12537,12 +12537,12 @@ static int remoteDispatchInterfaceCreate(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->interfaceConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(iface = get_nonnull_interface(priv->conn, args->iface)))
+    if (!(iface = get_nonnull_interface(priv->interfaceConn, args->iface)))
         goto cleanup;
 
     if (virInterfaceCreate(iface, args->flags) < 0)
@@ -12595,12 +12595,12 @@ static int remoteDispatchInterfaceDefineXML(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->interfaceConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((iface = virInterfaceDefineXML(priv->conn, args->xml, args->flags)) == NULL)
+    if ((iface = virInterfaceDefineXML(priv->interfaceConn, args->xml, args->flags)) == NULL)
         goto cleanup;
 
     make_nonnull_interface(&ret->iface, iface);
@@ -12649,12 +12649,12 @@ static int remoteDispatchInterfaceDestroy(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->interfaceConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(iface = get_nonnull_interface(priv->conn, args->iface)))
+    if (!(iface = get_nonnull_interface(priv->interfaceConn, args->iface)))
         goto cleanup;
 
     if (virInterfaceDestroy(iface, args->flags) < 0)
@@ -12708,12 +12708,12 @@ static int remoteDispatchInterfaceGetXMLDesc(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->interfaceConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(iface = get_nonnull_interface(priv->conn, args->iface)))
+    if (!(iface = get_nonnull_interface(priv->interfaceConn, args->iface)))
         goto cleanup;
 
     if ((xml = virInterfaceGetXMLDesc(iface, args->flags)) == NULL)
@@ -12768,12 +12768,12 @@ static int remoteDispatchInterfaceIsActive(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->interfaceConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(iface = get_nonnull_interface(priv->conn, args->iface)))
+    if (!(iface = get_nonnull_interface(priv->interfaceConn, args->iface)))
         goto cleanup;
 
     if ((active = virInterfaceIsActive(iface)) < 0)
@@ -12827,12 +12827,12 @@ static int remoteDispatchInterfaceLookupByMACString(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->interfaceConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((iface = virInterfaceLookupByMACString(priv->conn, args->mac)) == NULL)
+    if ((iface = virInterfaceLookupByMACString(priv->interfaceConn, args->mac)) == NULL)
         goto cleanup;
 
     make_nonnull_interface(&ret->iface, iface);
@@ -12883,12 +12883,12 @@ static int remoteDispatchInterfaceLookupByName(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->interfaceConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((iface = virInterfaceLookupByName(priv->conn, args->name)) == NULL)
+    if ((iface = virInterfaceLookupByName(priv->interfaceConn, args->name)) == NULL)
         goto cleanup;
 
     make_nonnull_interface(&ret->iface, iface);
@@ -12937,12 +12937,12 @@ static int remoteDispatchInterfaceUndefine(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->interfaceConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(iface = get_nonnull_interface(priv->conn, args->iface)))
+    if (!(iface = get_nonnull_interface(priv->interfaceConn, args->iface)))
         goto cleanup;
 
     if (virInterfaceUndefine(iface) < 0)
@@ -12993,12 +12993,12 @@ static int remoteDispatchNetworkCreate(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->networkConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(net = get_nonnull_network(priv->conn, args->net)))
+    if (!(net = get_nonnull_network(priv->networkConn, args->net)))
         goto cleanup;
 
     if (virNetworkCreate(net) < 0)
@@ -13051,12 +13051,12 @@ static int remoteDispatchNetworkCreateXML(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->networkConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((net = virNetworkCreateXML(priv->conn, args->xml)) == NULL)
+    if ((net = virNetworkCreateXML(priv->networkConn, args->xml)) == NULL)
         goto cleanup;
 
     make_nonnull_network(&ret->net, net);
@@ -13107,12 +13107,12 @@ static int remoteDispatchNetworkDefineXML(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->networkConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((net = virNetworkDefineXML(priv->conn, args->xml)) == NULL)
+    if ((net = virNetworkDefineXML(priv->networkConn, args->xml)) == NULL)
         goto cleanup;
 
     make_nonnull_network(&ret->net, net);
@@ -13161,12 +13161,12 @@ static int remoteDispatchNetworkDestroy(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->networkConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(net = get_nonnull_network(priv->conn, args->net)))
+    if (!(net = get_nonnull_network(priv->networkConn, args->net)))
         goto cleanup;
 
     if (virNetworkDestroy(net) < 0)
@@ -13220,12 +13220,12 @@ static int remoteDispatchNetworkGetAutostart(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->networkConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(net = get_nonnull_network(priv->conn, args->net)))
+    if (!(net = get_nonnull_network(priv->networkConn, args->net)))
         goto cleanup;
 
     if (virNetworkGetAutostart(net, &autostart) < 0)
@@ -13280,12 +13280,12 @@ static int remoteDispatchNetworkGetBridgeName(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->networkConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(net = get_nonnull_network(priv->conn, args->net)))
+    if (!(net = get_nonnull_network(priv->networkConn, args->net)))
         goto cleanup;
 
     if ((name = virNetworkGetBridgeName(net)) == NULL)
@@ -13367,12 +13367,12 @@ static int remoteDispatchNetworkGetXMLDesc(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->networkConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(net = get_nonnull_network(priv->conn, args->net)))
+    if (!(net = get_nonnull_network(priv->networkConn, args->net)))
         goto cleanup;
 
     if ((xml = virNetworkGetXMLDesc(net, args->flags)) == NULL)
@@ -13427,12 +13427,12 @@ static int remoteDispatchNetworkIsActive(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->networkConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(net = get_nonnull_network(priv->conn, args->net)))
+    if (!(net = get_nonnull_network(priv->networkConn, args->net)))
         goto cleanup;
 
     if ((active = virNetworkIsActive(net)) < 0)
@@ -13487,12 +13487,12 @@ static int remoteDispatchNetworkIsPersistent(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->networkConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(net = get_nonnull_network(priv->conn, args->net)))
+    if (!(net = get_nonnull_network(priv->networkConn, args->net)))
         goto cleanup;
 
     if ((persistent = virNetworkIsPersistent(net)) < 0)
@@ -13546,12 +13546,12 @@ static int remoteDispatchNetworkLookupByName(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->networkConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((net = virNetworkLookupByName(priv->conn, args->name)) == NULL)
+    if ((net = virNetworkLookupByName(priv->networkConn, args->name)) == NULL)
         goto cleanup;
 
     make_nonnull_network(&ret->net, net);
@@ -13602,12 +13602,12 @@ static int remoteDispatchNetworkLookupByUUID(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->networkConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((net = virNetworkLookupByUUID(priv->conn, (unsigned char *) args->uuid)) == NULL)
+    if ((net = virNetworkLookupByUUID(priv->networkConn, (unsigned char *) args->uuid)) == NULL)
         goto cleanup;
 
     make_nonnull_network(&ret->net, net);
@@ -13656,12 +13656,12 @@ static int remoteDispatchNetworkSetAutostart(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->networkConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(net = get_nonnull_network(priv->conn, args->net)))
+    if (!(net = get_nonnull_network(priv->networkConn, args->net)))
         goto cleanup;
 
     if (virNetworkSetAutostart(net, args->autostart) < 0)
@@ -13712,12 +13712,12 @@ static int remoteDispatchNetworkUndefine(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->networkConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(net = get_nonnull_network(priv->conn, args->net)))
+    if (!(net = get_nonnull_network(priv->networkConn, args->net)))
         goto cleanup;
 
     if (virNetworkUndefine(net) < 0)
@@ -13768,12 +13768,12 @@ static int remoteDispatchNetworkUpdate(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->networkConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(net = get_nonnull_network(priv->conn, args->net)))
+    if (!(net = get_nonnull_network(priv->networkConn, args->net)))
         goto cleanup;
 
     if (virNetworkUpdate(net, args->command, args->section, args->parentIndex, args->xml, args->flags) < 0)
@@ -13853,12 +13853,12 @@ static int remoteDispatchNodeDeviceCreateXML(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->nodedevConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((dev = virNodeDeviceCreateXML(priv->conn, args->xml_desc, args->flags)) == NULL)
+    if ((dev = virNodeDeviceCreateXML(priv->nodedevConn, args->xml_desc, args->flags)) == NULL)
         goto cleanup;
 
     make_nonnull_node_device(&ret->dev, dev);
@@ -13907,12 +13907,12 @@ static int remoteDispatchNodeDeviceDestroy(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->nodedevConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(dev = virNodeDeviceLookupByName(priv->conn, args->name)))
+    if (!(dev = virNodeDeviceLookupByName(priv->nodedevConn, args->name)))
         goto cleanup;
 
     if (virNodeDeviceDestroy(dev) < 0)
@@ -13964,12 +13964,12 @@ static int remoteDispatchNodeDeviceDetachFlags(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->nodedevConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(dev = virNodeDeviceLookupByName(priv->conn, args->name)))
+    if (!(dev = virNodeDeviceLookupByName(priv->nodedevConn, args->name)))
         goto cleanup;
 
     driverName = args->driverName ? *args->driverName : NULL;
@@ -14022,12 +14022,12 @@ static int remoteDispatchNodeDeviceDettach(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->nodedevConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(dev = virNodeDeviceLookupByName(priv->conn, args->name)))
+    if (!(dev = virNodeDeviceLookupByName(priv->nodedevConn, args->name)))
         goto cleanup;
 
     if (virNodeDeviceDettach(dev) < 0)
@@ -14108,12 +14108,12 @@ static int remoteDispatchNodeDeviceGetXMLDesc(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->nodedevConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(dev = virNodeDeviceLookupByName(priv->conn, args->name)))
+    if (!(dev = virNodeDeviceLookupByName(priv->nodedevConn, args->name)))
         goto cleanup;
 
     if ((xml = virNodeDeviceGetXMLDesc(dev, args->flags)) == NULL)
@@ -14168,7 +14168,7 @@ static int remoteDispatchNodeDeviceListCaps(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->nodedevConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
@@ -14179,7 +14179,7 @@ static int remoteDispatchNodeDeviceListCaps(
         goto cleanup;
     }
 
-    if (!(dev = virNodeDeviceLookupByName(priv->conn, args->name)))
+    if (!(dev = virNodeDeviceLookupByName(priv->nodedevConn, args->name)))
         goto cleanup;
 
     /* Allocate return buffer. */
@@ -14239,12 +14239,12 @@ static int remoteDispatchNodeDeviceLookupByName(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->nodedevConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((dev = virNodeDeviceLookupByName(priv->conn, args->name)) == NULL)
+    if ((dev = virNodeDeviceLookupByName(priv->nodedevConn, args->name)) == NULL)
         goto cleanup;
 
     make_nonnull_node_device(&ret->dev, dev);
@@ -14295,12 +14295,12 @@ static int remoteDispatchNodeDeviceLookupSCSIHostByWWN(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->nodedevConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((dev = virNodeDeviceLookupSCSIHostByWWN(priv->conn, args->wwnn, args->wwpn, args->flags)) == NULL)
+    if ((dev = virNodeDeviceLookupSCSIHostByWWN(priv->nodedevConn, args->wwnn, args->wwpn, args->flags)) == NULL)
         goto cleanup;
 
     make_nonnull_node_device(&ret->dev, dev);
@@ -14352,12 +14352,12 @@ static int remoteDispatchNodeDeviceNumOfCaps(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->nodedevConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(dev = virNodeDeviceLookupByName(priv->conn, args->name)))
+    if (!(dev = virNodeDeviceLookupByName(priv->nodedevConn, args->name)))
         goto cleanup;
 
     if ((num = virNodeDeviceNumOfCaps(dev)) < 0)
@@ -14409,12 +14409,12 @@ static int remoteDispatchNodeDeviceReAttach(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->nodedevConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(dev = virNodeDeviceLookupByName(priv->conn, args->name)))
+    if (!(dev = virNodeDeviceLookupByName(priv->nodedevConn, args->name)))
         goto cleanup;
 
     if (virNodeDeviceReAttach(dev) < 0)
@@ -14465,12 +14465,12 @@ static int remoteDispatchNodeDeviceReset(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->nodedevConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(dev = virNodeDeviceLookupByName(priv->conn, args->name)))
+    if (!(dev = virNodeDeviceLookupByName(priv->nodedevConn, args->name)))
         goto cleanup;
 
     if (virNodeDeviceReset(dev) < 0)
@@ -14865,7 +14865,7 @@ static int remoteDispatchNodeListDevices(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->nodedevConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
@@ -14882,7 +14882,7 @@ static int remoteDispatchNodeListDevices(
     if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0)
         goto cleanup;
 
-    if ((len = virNodeListDevices(priv->conn, cap, ret->names.names_val, args->maxnames, args->flags)) < 0)
+    if ((len = virNodeListDevices(priv->nodedevConn, cap, ret->names.names_val, args->maxnames, args->flags)) < 0)
         goto cleanup;
 
     ret->names.names_len = len;
@@ -14935,14 +14935,14 @@ static int remoteDispatchNodeNumOfDevices(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->nodedevConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
     cap = args->cap ? *args->cap : NULL;
 
-    if ((num = virNodeNumOfDevices(priv->conn, cap, args->flags)) < 0)
+    if ((num = virNodeNumOfDevices(priv->nodedevConn, cap, args->flags)) < 0)
         goto cleanup;
 
     ret->num = num;
@@ -15104,12 +15104,12 @@ static int remoteDispatchNWFilterDefineXML(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->nwfilterConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((nwfilter = virNWFilterDefineXML(priv->conn, args->xml)) == NULL)
+    if ((nwfilter = virNWFilterDefineXML(priv->nwfilterConn, args->xml)) == NULL)
         goto cleanup;
 
     make_nonnull_nwfilter(&ret->nwfilter, nwfilter);
@@ -15161,12 +15161,12 @@ static int remoteDispatchNWFilterGetXMLDesc(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->nwfilterConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(nwfilter = get_nonnull_nwfilter(priv->conn, args->nwfilter)))
+    if (!(nwfilter = get_nonnull_nwfilter(priv->nwfilterConn, args->nwfilter)))
         goto cleanup;
 
     if ((xml = virNWFilterGetXMLDesc(nwfilter, args->flags)) == NULL)
@@ -15220,12 +15220,12 @@ static int remoteDispatchNWFilterLookupByName(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->nwfilterConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((nwfilter = virNWFilterLookupByName(priv->conn, args->name)) == NULL)
+    if ((nwfilter = virNWFilterLookupByName(priv->nwfilterConn, args->name)) == NULL)
         goto cleanup;
 
     make_nonnull_nwfilter(&ret->nwfilter, nwfilter);
@@ -15276,12 +15276,12 @@ static int remoteDispatchNWFilterLookupByUUID(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->nwfilterConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((nwfilter = virNWFilterLookupByUUID(priv->conn, (unsigned char *) args->uuid)) == NULL)
+    if ((nwfilter = virNWFilterLookupByUUID(priv->nwfilterConn, (unsigned char *) args->uuid)) == NULL)
         goto cleanup;
 
     make_nonnull_nwfilter(&ret->nwfilter, nwfilter);
@@ -15330,12 +15330,12 @@ static int remoteDispatchNWFilterUndefine(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->nwfilterConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(nwfilter = get_nonnull_nwfilter(priv->conn, args->nwfilter)))
+    if (!(nwfilter = get_nonnull_nwfilter(priv->nwfilterConn, args->nwfilter)))
         goto cleanup;
 
     if (virNWFilterUndefine(nwfilter) < 0)
@@ -15388,12 +15388,12 @@ static int remoteDispatchSecretDefineXML(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->secretConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((secret = virSecretDefineXML(priv->conn, args->xml, args->flags)) == NULL)
+    if ((secret = virSecretDefineXML(priv->secretConn, args->xml, args->flags)) == NULL)
         goto cleanup;
 
     make_nonnull_secret(&ret->secret, secret);
@@ -15472,12 +15472,12 @@ static int remoteDispatchSecretGetXMLDesc(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->secretConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(secret = get_nonnull_secret(priv->conn, args->secret)))
+    if (!(secret = get_nonnull_secret(priv->secretConn, args->secret)))
         goto cleanup;
 
     if ((xml = virSecretGetXMLDesc(secret, args->flags)) == NULL)
@@ -15531,12 +15531,12 @@ static int remoteDispatchSecretLookupByUsage(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->secretConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((secret = virSecretLookupByUsage(priv->conn, args->usageType, args->usageID)) == NULL)
+    if ((secret = virSecretLookupByUsage(priv->secretConn, args->usageType, args->usageID)) == NULL)
         goto cleanup;
 
     make_nonnull_secret(&ret->secret, secret);
@@ -15587,12 +15587,12 @@ static int remoteDispatchSecretLookupByUUID(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->secretConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((secret = virSecretLookupByUUID(priv->conn, (unsigned char *) args->uuid)) == NULL)
+    if ((secret = virSecretLookupByUUID(priv->secretConn, (unsigned char *) args->uuid)) == NULL)
         goto cleanup;
 
     make_nonnull_secret(&ret->secret, secret);
@@ -15641,12 +15641,12 @@ static int remoteDispatchSecretSetValue(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->secretConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(secret = get_nonnull_secret(priv->conn, args->secret)))
+    if (!(secret = get_nonnull_secret(priv->secretConn, args->secret)))
         goto cleanup;
 
     if (virSecretSetValue(secret, (const unsigned char *) args->value.value_val, args->value.value_len, args->flags) < 0)
@@ -15697,12 +15697,12 @@ static int remoteDispatchSecretUndefine(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->secretConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(secret = get_nonnull_secret(priv->conn, args->secret)))
+    if (!(secret = get_nonnull_secret(priv->secretConn, args->secret)))
         goto cleanup;
 
     if (virSecretUndefine(secret) < 0)
@@ -15753,12 +15753,12 @@ static int remoteDispatchStoragePoolBuild(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(pool = get_nonnull_storage_pool(priv->conn, args->pool)))
+    if (!(pool = get_nonnull_storage_pool(priv->storageConn, args->pool)))
         goto cleanup;
 
     if (virStoragePoolBuild(pool, args->flags) < 0)
@@ -15809,12 +15809,12 @@ static int remoteDispatchStoragePoolCreate(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(pool = get_nonnull_storage_pool(priv->conn, args->pool)))
+    if (!(pool = get_nonnull_storage_pool(priv->storageConn, args->pool)))
         goto cleanup;
 
     if (virStoragePoolCreate(pool, args->flags) < 0)
@@ -15867,12 +15867,12 @@ static int remoteDispatchStoragePoolCreateXML(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((pool = virStoragePoolCreateXML(priv->conn, args->xml, args->flags)) == NULL)
+    if ((pool = virStoragePoolCreateXML(priv->storageConn, args->xml, args->flags)) == NULL)
         goto cleanup;
 
     make_nonnull_storage_pool(&ret->pool, pool);
@@ -15923,12 +15923,12 @@ static int remoteDispatchStoragePoolDefineXML(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((pool = virStoragePoolDefineXML(priv->conn, args->xml, args->flags)) == NULL)
+    if ((pool = virStoragePoolDefineXML(priv->storageConn, args->xml, args->flags)) == NULL)
         goto cleanup;
 
     make_nonnull_storage_pool(&ret->pool, pool);
@@ -15977,12 +15977,12 @@ static int remoteDispatchStoragePoolDelete(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(pool = get_nonnull_storage_pool(priv->conn, args->pool)))
+    if (!(pool = get_nonnull_storage_pool(priv->storageConn, args->pool)))
         goto cleanup;
 
     if (virStoragePoolDelete(pool, args->flags) < 0)
@@ -16033,12 +16033,12 @@ static int remoteDispatchStoragePoolDestroy(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(pool = get_nonnull_storage_pool(priv->conn, args->pool)))
+    if (!(pool = get_nonnull_storage_pool(priv->storageConn, args->pool)))
         goto cleanup;
 
     if (virStoragePoolDestroy(pool) < 0)
@@ -16092,12 +16092,12 @@ static int remoteDispatchStoragePoolGetAutostart(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(pool = get_nonnull_storage_pool(priv->conn, args->pool)))
+    if (!(pool = get_nonnull_storage_pool(priv->storageConn, args->pool)))
         goto cleanup;
 
     if (virStoragePoolGetAutostart(pool, &autostart) < 0)
@@ -16152,12 +16152,12 @@ static int remoteDispatchStoragePoolGetInfo(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(pool = get_nonnull_storage_pool(priv->conn, args->pool)))
+    if (!(pool = get_nonnull_storage_pool(priv->storageConn, args->pool)))
         goto cleanup;
 
     if (virStoragePoolGetInfo(pool, &tmp) < 0)
@@ -16215,12 +16215,12 @@ static int remoteDispatchStoragePoolGetXMLDesc(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(pool = get_nonnull_storage_pool(priv->conn, args->pool)))
+    if (!(pool = get_nonnull_storage_pool(priv->storageConn, args->pool)))
         goto cleanup;
 
     if ((xml = virStoragePoolGetXMLDesc(pool, args->flags)) == NULL)
@@ -16275,12 +16275,12 @@ static int remoteDispatchStoragePoolIsActive(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(pool = get_nonnull_storage_pool(priv->conn, args->pool)))
+    if (!(pool = get_nonnull_storage_pool(priv->storageConn, args->pool)))
         goto cleanup;
 
     if ((active = virStoragePoolIsActive(pool)) < 0)
@@ -16335,12 +16335,12 @@ static int remoteDispatchStoragePoolIsPersistent(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(pool = get_nonnull_storage_pool(priv->conn, args->pool)))
+    if (!(pool = get_nonnull_storage_pool(priv->storageConn, args->pool)))
         goto cleanup;
 
     if ((persistent = virStoragePoolIsPersistent(pool)) < 0)
@@ -16397,12 +16397,12 @@ static int remoteDispatchStoragePoolListAllVolumes(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(pool = get_nonnull_storage_pool(priv->conn, args->pool)))
+    if (!(pool = get_nonnull_storage_pool(priv->storageConn, args->pool)))
         goto cleanup;
 
     if ((nresults = 
@@ -16484,7 +16484,7 @@ static int remoteDispatchStoragePoolListVolumes(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
@@ -16495,7 +16495,7 @@ static int remoteDispatchStoragePoolListVolumes(
         goto cleanup;
     }
 
-    if (!(pool = get_nonnull_storage_pool(priv->conn, args->pool)))
+    if (!(pool = get_nonnull_storage_pool(priv->storageConn, args->pool)))
         goto cleanup;
 
     /* Allocate return buffer. */
@@ -16555,12 +16555,12 @@ static int remoteDispatchStoragePoolLookupByName(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((pool = virStoragePoolLookupByName(priv->conn, args->name)) == NULL)
+    if ((pool = virStoragePoolLookupByName(priv->storageConn, args->name)) == NULL)
         goto cleanup;
 
     make_nonnull_storage_pool(&ret->pool, pool);
@@ -16611,12 +16611,12 @@ static int remoteDispatchStoragePoolLookupByTargetPath(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((pool = virStoragePoolLookupByTargetPath(priv->conn, args->path)) == NULL)
+    if ((pool = virStoragePoolLookupByTargetPath(priv->storageConn, args->path)) == NULL)
         goto cleanup;
 
     make_nonnull_storage_pool(&ret->pool, pool);
@@ -16667,12 +16667,12 @@ static int remoteDispatchStoragePoolLookupByUUID(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((pool = virStoragePoolLookupByUUID(priv->conn, (unsigned char *) args->uuid)) == NULL)
+    if ((pool = virStoragePoolLookupByUUID(priv->storageConn, (unsigned char *) args->uuid)) == NULL)
         goto cleanup;
 
     make_nonnull_storage_pool(&ret->pool, pool);
@@ -16724,12 +16724,12 @@ static int remoteDispatchStoragePoolLookupByVolume(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(vol = get_nonnull_storage_vol(priv->conn, args->vol)))
+    if (!(vol = get_nonnull_storage_vol(priv->storageConn, args->vol)))
         goto cleanup;
 
     if ((pool = virStoragePoolLookupByVolume(vol)) == NULL)
@@ -16785,12 +16785,12 @@ static int remoteDispatchStoragePoolNumOfVolumes(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(pool = get_nonnull_storage_pool(priv->conn, args->pool)))
+    if (!(pool = get_nonnull_storage_pool(priv->storageConn, args->pool)))
         goto cleanup;
 
     if ((num = virStoragePoolNumOfVolumes(pool)) < 0)
@@ -16842,12 +16842,12 @@ static int remoteDispatchStoragePoolRefresh(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(pool = get_nonnull_storage_pool(priv->conn, args->pool)))
+    if (!(pool = get_nonnull_storage_pool(priv->storageConn, args->pool)))
         goto cleanup;
 
     if (virStoragePoolRefresh(pool, args->flags) < 0)
@@ -16898,12 +16898,12 @@ static int remoteDispatchStoragePoolSetAutostart(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(pool = get_nonnull_storage_pool(priv->conn, args->pool)))
+    if (!(pool = get_nonnull_storage_pool(priv->storageConn, args->pool)))
         goto cleanup;
 
     if (virStoragePoolSetAutostart(pool, args->autostart) < 0)
@@ -16954,12 +16954,12 @@ static int remoteDispatchStoragePoolUndefine(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(pool = get_nonnull_storage_pool(priv->conn, args->pool)))
+    if (!(pool = get_nonnull_storage_pool(priv->storageConn, args->pool)))
         goto cleanup;
 
     if (virStoragePoolUndefine(pool) < 0)
@@ -17013,12 +17013,12 @@ static int remoteDispatchStorageVolCreateXML(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(pool = get_nonnull_storage_pool(priv->conn, args->pool)))
+    if (!(pool = get_nonnull_storage_pool(priv->storageConn, args->pool)))
         goto cleanup;
 
     if ((vol = virStorageVolCreateXML(pool, args->xml, args->flags)) == NULL)
@@ -17075,15 +17075,15 @@ static int remoteDispatchStorageVolCreateXMLFrom(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(pool = get_nonnull_storage_pool(priv->conn, args->pool)))
+    if (!(pool = get_nonnull_storage_pool(priv->storageConn, args->pool)))
         goto cleanup;
 
-    if (!(clonevol = get_nonnull_storage_vol(priv->conn, args->clonevol)))
+    if (!(clonevol = get_nonnull_storage_vol(priv->storageConn, args->clonevol)))
         goto cleanup;
 
     if ((vol = virStorageVolCreateXMLFrom(pool, args->xml, clonevol, args->flags)) == NULL)
@@ -17137,12 +17137,12 @@ static int remoteDispatchStorageVolDelete(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(vol = get_nonnull_storage_vol(priv->conn, args->vol)))
+    if (!(vol = get_nonnull_storage_vol(priv->storageConn, args->vol)))
         goto cleanup;
 
     if (virStorageVolDelete(vol, args->flags) < 0)
@@ -17196,15 +17196,15 @@ static int remoteDispatchStorageVolDownload(
     daemonClientStreamPtr stream = NULL;
     const bool sparse = args->flags & VIR_STORAGE_VOL_DOWNLOAD_SPARSE_STREAM;
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(vol = get_nonnull_storage_vol(priv->conn, args->vol)))
+    if (!(vol = get_nonnull_storage_vol(priv->storageConn, args->vol)))
         goto cleanup;
 
-    if (!(st = virStreamNew(priv->conn, VIR_STREAM_NONBLOCK)))
+    if (!(st = virStreamNew(priv->storageConn, VIR_STREAM_NONBLOCK)))
         goto cleanup;
 
     if (!(stream = daemonCreateClientStream(client, st, remoteProgram, &msg->header, sparse)))
@@ -17271,12 +17271,12 @@ static int remoteDispatchStorageVolGetInfo(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(vol = get_nonnull_storage_vol(priv->conn, args->vol)))
+    if (!(vol = get_nonnull_storage_vol(priv->storageConn, args->vol)))
         goto cleanup;
 
     if (virStorageVolGetInfo(vol, &tmp) < 0)
@@ -17360,12 +17360,12 @@ static int remoteDispatchStorageVolGetPath(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(vol = get_nonnull_storage_vol(priv->conn, args->vol)))
+    if (!(vol = get_nonnull_storage_vol(priv->storageConn, args->vol)))
         goto cleanup;
 
     if ((name = virStorageVolGetPath(vol)) == NULL)
@@ -17420,12 +17420,12 @@ static int remoteDispatchStorageVolGetXMLDesc(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(vol = get_nonnull_storage_vol(priv->conn, args->vol)))
+    if (!(vol = get_nonnull_storage_vol(priv->storageConn, args->vol)))
         goto cleanup;
 
     if ((xml = virStorageVolGetXMLDesc(vol, args->flags)) == NULL)
@@ -17479,12 +17479,12 @@ static int remoteDispatchStorageVolLookupByKey(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((vol = virStorageVolLookupByKey(priv->conn, args->key)) == NULL)
+    if ((vol = virStorageVolLookupByKey(priv->storageConn, args->key)) == NULL)
         goto cleanup;
 
     make_nonnull_storage_vol(&ret->vol, vol);
@@ -17536,12 +17536,12 @@ static int remoteDispatchStorageVolLookupByName(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(pool = get_nonnull_storage_pool(priv->conn, args->pool)))
+    if (!(pool = get_nonnull_storage_pool(priv->storageConn, args->pool)))
         goto cleanup;
 
     if ((vol = virStorageVolLookupByName(pool, args->name)) == NULL)
@@ -17596,12 +17596,12 @@ static int remoteDispatchStorageVolLookupByPath(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if ((vol = virStorageVolLookupByPath(priv->conn, args->path)) == NULL)
+    if ((vol = virStorageVolLookupByPath(priv->storageConn, args->path)) == NULL)
         goto cleanup;
 
     make_nonnull_storage_vol(&ret->vol, vol);
@@ -17650,12 +17650,12 @@ static int remoteDispatchStorageVolResize(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(vol = get_nonnull_storage_vol(priv->conn, args->vol)))
+    if (!(vol = get_nonnull_storage_vol(priv->storageConn, args->vol)))
         goto cleanup;
 
     if (virStorageVolResize(vol, args->capacity, args->flags) < 0)
@@ -17709,15 +17709,15 @@ static int remoteDispatchStorageVolUpload(
     daemonClientStreamPtr stream = NULL;
     const bool sparse = args->flags & VIR_STORAGE_VOL_UPLOAD_SPARSE_STREAM;
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(vol = get_nonnull_storage_vol(priv->conn, args->vol)))
+    if (!(vol = get_nonnull_storage_vol(priv->storageConn, args->vol)))
         goto cleanup;
 
-    if (!(st = virStreamNew(priv->conn, VIR_STREAM_NONBLOCK)))
+    if (!(st = virStreamNew(priv->storageConn, VIR_STREAM_NONBLOCK)))
         goto cleanup;
 
     if (!(stream = daemonCreateClientStream(client, st, remoteProgram, &msg->header, sparse)))
@@ -17781,12 +17781,12 @@ static int remoteDispatchStorageVolWipe(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(vol = get_nonnull_storage_vol(priv->conn, args->vol)))
+    if (!(vol = get_nonnull_storage_vol(priv->storageConn, args->vol)))
         goto cleanup;
 
     if (virStorageVolWipe(vol, args->flags) < 0)
@@ -17837,12 +17837,12 @@ static int remoteDispatchStorageVolWipePattern(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
-    if (!priv->conn) {
+    if (!priv->storageConn) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
-    if (!(vol = get_nonnull_storage_vol(priv->conn, args->vol)))
+    if (!(vol = get_nonnull_storage_vol(priv->storageConn, args->vol)))
         goto cleanup;
 
     if (virStorageVolWipePattern(vol, args->algorithm, args->flags) < 0)

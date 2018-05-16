@@ -175,10 +175,6 @@
 /* whether debugging is enabled */
 #undef ENABLE_DEBUG
 
-/* Define to 1 if translation of program messages to the user's native
-   language is requested. */
-#undef ENABLE_NLS
-
 /* Define this to 1 if F_DUPFD behavior does not match POSIX */
 #undef FCNTL_DUPFD_BUGGY
 
@@ -776,10 +772,6 @@
 /* Define to 1 if you have the `dbus_watch_get_unix_fd' function. */
 #undef HAVE_DBUS_WATCH_GET_UNIX_FD
 
-/* Define if the GNU dcgettext() function is already present or preinstalled.
-   */
-#undef HAVE_DCGETTEXT
-
 /* Define to 1 if you have the declaration of `alarm', and to 0 if you don't.
    */
 #undef HAVE_DECL_ALARM
@@ -1221,9 +1213,6 @@
 /* Define to 1 if you have the `getsysinfo' function. */
 #undef HAVE_GETSYSINFO
 
-/* Define if the GNU gettext() function is already present or preinstalled. */
-#undef HAVE_GETTEXT
-
 /* Define to 1 if you have the 'gettimeofday' function. */
 #undef HAVE_GETTIMEOFDAY
 
@@ -1244,9 +1233,6 @@
 
 /* Define to 1 if you have the <grp.h> header file. */
 #undef HAVE_GRP_H
-
-/* Define if you have the iconv() function and it works. */
-#undef HAVE_ICONV
 
 /* Define to 1 if you have the <ifaddrs.h> header file. */
 #undef HAVE_IFADDRS_H
@@ -2154,24 +2140,6 @@
 /* Define to 1 if you have the `xdr_u_int64_t' function. */
 #undef HAVE_XDR_U_INT64_T
 
-/* Define to 1 if you have the <xenstore.h> header file. */
-#undef HAVE_XENSTORE_H
-
-/* Define to 1 if you have the <xen/dom0_ops.h> header file. */
-#undef HAVE_XEN_DOM0_OPS_H
-
-/* Define to 1 if you have the <xen/linux/privcmd.h> header file. */
-#undef HAVE_XEN_LINUX_PRIVCMD_H
-
-/* Define to 1 if you have the <xen/sys/privcmd.h> header file. */
-#undef HAVE_XEN_SYS_PRIVCMD_H
-
-/* Define to 1 if you have the <xen/version.h> header file. */
-#undef HAVE_XEN_VERSION_H
-
-/* Define to 1 if you have the <xen/xen.h> header file. */
-#undef HAVE_XEN_XEN_H
-
 /* Define to 1 if you have the <xlocale.h> header file. */
 #undef HAVE_XLOCALE_H
 
@@ -2927,14 +2895,8 @@
 /* whether wireshark >= 1.11.3 is available */
 #undef WITH_WIRESHARK_DISSECTOR
 
-/* whether Xen driver is enabled */
-#undef WITH_XEN
-
 /* whether libxenserver is available */
 #undef WITH_XENAPI
-
-/* whether Xen inotify sub-driver is enabled */
-#undef WITH_XEN_INOTIFY
 
 /* whether libyajl is available */
 #undef WITH_YAJL

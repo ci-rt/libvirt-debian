@@ -1078,38 +1078,6 @@ else
 fi
 ])
 
-# Copyright (C) 2003-2014 Free Software Foundation, Inc.
-#
-# This file is free software; the Free Software Foundation
-# gives unlimited permission to copy and/or distribute it,
-# with or without modifications, as long as this notice is preserved.
-
-# AM_PROG_MKDIR_P
-# ---------------
-# Check for 'mkdir -p'.
-AC_DEFUN([AM_PROG_MKDIR_P],
-[AC_PREREQ([2.60])dnl
-AC_REQUIRE([AC_PROG_MKDIR_P])dnl
-dnl FIXME we are no longer going to remove this! adjust warning
-dnl FIXME message accordingly.
-AC_DIAGNOSE([obsolete],
-[$0: this macro is deprecated, and will soon be removed.
-You should use the Autoconf-provided 'AC][_PROG_MKDIR_P' macro instead,
-and use '$(MKDIR_P)' instead of '$(mkdir_p)'in your Makefile.am files.])
-dnl Automake 1.8 to 1.9.6 used to define mkdir_p.  We now use MKDIR_P,
-dnl while keeping a definition of mkdir_p for backward compatibility.
-dnl @MKDIR_P@ is magic: AC_OUTPUT adjusts its value for each Makefile.
-dnl However we cannot define mkdir_p as $(MKDIR_P) for the sake of
-dnl Makefile.ins that do not define MKDIR_P, so we do our own
-dnl adjustment using top_builddir (which is defined more often than
-dnl MKDIR_P).
-AC_SUBST([mkdir_p], ["$MKDIR_P"])dnl
-case $mkdir_p in
-  [[\\/$]]* | ?:[[\\/]]*) ;;
-  */*) mkdir_p="\$(top_builddir)/$mkdir_p" ;;
-esac
-])
-
 # Helper functions for option handling.                     -*- Autoconf -*-
 
 # Copyright (C) 2001-2014 Free Software Foundation, Inc.
@@ -1595,7 +1563,6 @@ m4_include([m4/getopt.m4])
 m4_include([m4/getpagesize.m4])
 m4_include([m4/getpass.m4])
 m4_include([m4/getprogname.m4])
-m4_include([m4/gettext.m4])
 m4_include([m4/gettimeofday.m4])
 m4_include([m4/getugroups.m4])
 m4_include([m4/gl-openssl.m4])
@@ -1606,7 +1573,6 @@ m4_include([m4/grantpt.m4])
 m4_include([m4/hard-locale.m4])
 m4_include([m4/host-cpu-c-abi.m4])
 m4_include([m4/hostent.m4])
-m4_include([m4/iconv.m4])
 m4_include([m4/include_next.m4])
 m4_include([m4/inet_ntop.m4])
 m4_include([m4/inet_pton.m4])
@@ -1673,7 +1639,6 @@ m4_include([m4/net_if_h.m4])
 m4_include([m4/netdb_h.m4])
 m4_include([m4/netinet_in_h.m4])
 m4_include([m4/nl_langinfo.m4])
-m4_include([m4/nls.m4])
 m4_include([m4/nocrash.m4])
 m4_include([m4/nonblocking.m4])
 m4_include([m4/off_t.m4])
@@ -1693,7 +1658,6 @@ m4_include([m4/posix-shell.m4])
 m4_include([m4/posix_openpt.m4])
 m4_include([m4/posix_spawn.m4])
 m4_include([m4/printf.m4])
-m4_include([m4/progtest.m4])
 m4_include([m4/pthread.m4])
 m4_include([m4/pthread_rwlock_rdlock.m4])
 m4_include([m4/pthread_sigmask.m4])
@@ -1817,7 +1781,6 @@ m4_include([m4/virt-driver-uml.m4])
 m4_include([m4/virt-driver-vbox.m4])
 m4_include([m4/virt-driver-vmware.m4])
 m4_include([m4/virt-driver-vz.m4])
-m4_include([m4/virt-driver-xen.m4])
 m4_include([m4/virt-driver-xenapi.m4])
 m4_include([m4/virt-dtrace.m4])
 m4_include([m4/virt-external-programs.m4])
@@ -1840,6 +1803,7 @@ m4_include([m4/virt-loader-nvram.m4])
 m4_include([m4/virt-login-shell.m4])
 m4_include([m4/virt-macvtap.m4])
 m4_include([m4/virt-netcf.m4])
+m4_include([m4/virt-nls.m4])
 m4_include([m4/virt-nss.m4])
 m4_include([m4/virt-numactl.m4])
 m4_include([m4/virt-numad.m4])

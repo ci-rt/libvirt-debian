@@ -33,6 +33,7 @@
 
 VIR_LOG_INIT("driver");
 
+#define VIR_FROM_THIS VIR_FROM_NONE
 
 /* XXX re-implement this for other OS, or use libtools helper lib ? */
 #define DEFAULT_DRIVER_DIR LIBDIR "/libvirt/connection-driver"
@@ -45,18 +46,21 @@ static void *
 virDriverLoadModuleFile(const char *file)
 {
     void *handle = NULL;
+    int flags = RTLD_NOW | RTLD_GLOBAL;
+
+# ifdef RTLD_NODELETE
+    flags |= RTLD_NODELETE;
+# endif
 
     VIR_DEBUG("Load module file '%s'", file);
 
-    if (access(file, R_OK) < 0) {
-        VIR_INFO("Module %s not accessible", file);
-        return NULL;
-    }
-
     virUpdateSelfLastChanged(file);
 
-    if (!(handle = dlopen(file, RTLD_NOW | RTLD_GLOBAL)))
-        VIR_ERROR(_("failed to load module %s %s"), file, dlerror());
+    if (!(handle = dlopen(file, flags))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to load module '%s': %s"), file, dlerror());
+        return NULL;
+    }
 
     return handle;
 }
@@ -64,14 +68,19 @@ virDriverLoadModuleFile(const char *file)
 
 static void *
 virDriverLoadModuleFunc(void *handle,
+                        const char *file,
                         const char *funcname)
 {
     void *regsym;
 
     VIR_DEBUG("Lookup function '%s'", funcname);
 
-    if (!(regsym = dlsym(handle, funcname)))
-        VIR_ERROR(_("Missing module registration symbol %s"), funcname);
+    if (!(regsym = dlsym(handle, funcname))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to find symbol '%s' in module '%s': %s"),
+                       funcname, file, dlerror());
+        return NULL;
+    }
 
     return regsym;
 }
@@ -81,12 +90,11 @@ virDriverLoadModuleFunc(void *handle,
  * virDriverLoadModuleFull:
  * @path: filename of module to load
  * @regfunc: name of the function that registers the module
- * @handle: Returns handle of the loaded library if not NULL
  *
  * Loads a loadable module named @path and calls the
- * registration function @regfunc. If @handle is not NULL the handle is returned
- * in the variable. Otherwise the handle is leaked so that the module stays
- * loaded forever.
+ * registration function @regfunc. The module will never
+ * be unloaded because unloading is not safe in a multi-threaded
+ * application.
  *
  * The module is automatically looked up in the appropriate place (git or
  * installed directory).
@@ -96,30 +104,42 @@ virDriverLoadModuleFunc(void *handle,
 int
 virDriverLoadModuleFull(const char *path,
                         const char *regfunc,
-                        void **handle)
+                        bool required)
 {
     void *rethandle = NULL;
     int (*regsym)(void);
     int ret = -1;
 
-    if (!(rethandle = virDriverLoadModuleFile(path))) {
-        ret = 1;
-        goto cleanup;
+    if (!virFileExists(path)) {
+        if (required) {
+            virReportSystemError(errno,
+                                 _("Failed to find module '%s'"), path);
+            return -1;
+        } else {
+            VIR_INFO("Module '%s' does not exist", path);
+            return 1;
+        }
     }
 
-    if (!(regsym = virDriverLoadModuleFunc(rethandle, regfunc)))
+    if (!(rethandle = virDriverLoadModuleFile(path)))
+        goto cleanup;
+
+    if (!(regsym = virDriverLoadModuleFunc(rethandle, path, regfunc)))
         goto cleanup;
 
     if ((*regsym)() < 0) {
-        VIR_ERROR(_("Failed module registration %s"), regfunc);
+        /* regsym() should report an error itself, but lets
+         * just make sure */
+        virErrorPtr err = virGetLastError();
+        if (err == NULL) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Failed to execute symbol '%s' in module '%s'"),
+                           regfunc, path);
+        }
         goto cleanup;
     }
 
-    if (handle)
-        VIR_STEAL_PTR(*handle, rethandle);
-    else
-        rethandle = NULL;
-
+    rethandle = NULL;
     ret = 0;
 
  cleanup:
@@ -132,19 +152,28 @@ virDriverLoadModuleFull(const char *path,
 int
 virDriverLoadModuleFull(const char *path ATTRIBUTE_UNUSED,
                         const char *regfunc ATTRIBUTE_UNUSED,
-                        void **handle)
+                        bool required)
 {
     VIR_DEBUG("dlopen not available on this platform");
-    if (handle)
-        *handle = NULL;
-    return -1;
+    if (required) {
+        virReportSystemError(ENOSYS,
+                             _("Failed to find module '%s': %s"), path);
+        return -1;
+    } else {
+        /* Since we have no dlopen(), but definition we have no
+         * loadable modules on disk, so we can resaonably
+         * return '1' instead of an error.
+         */
+        return 1;
+    }
 }
 #endif /* ! HAVE_DLFCN_H */
 
 
 int
 virDriverLoadModule(const char *name,
-                    const char *regfunc)
+                    const char *regfunc,
+                    bool required)
 {
     char *modfile = NULL;
     int ret;
@@ -157,9 +186,9 @@ virDriverLoadModule(const char *name,
                                             abs_topbuilddir "/src/.libs",
                                             DEFAULT_DRIVER_DIR,
                                             "LIBVIRT_DRIVER_DIR")))
-        return 1;
+        return -1;
 
-    ret = virDriverLoadModuleFull(modfile, regfunc, NULL);
+    ret = virDriverLoadModuleFull(modfile, regfunc, required);
 
     VIR_FREE(modfile);
 

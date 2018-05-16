@@ -28,7 +28,7 @@
 
 
 struct _testFileCacheObj {
-    virObject object;
+    virObject parent;
     char *data;
 };
 typedef struct _testFileCacheObj testFileCacheObj;
@@ -49,10 +49,7 @@ testFileCacheObjDispose(void *opaque)
 static int
 testFileCacheObjOnceInit(void)
 {
-    if (!(testFileCacheObjClass = virClassNew(virClassForObject(),
-                                              "testFileCacheObj",
-                                              sizeof(testFileCacheObj),
-                                              testFileCacheObjDispose)))
+    if (!VIR_CLASS_NEW(testFileCacheObj, virClassForObject()))
         return -1;
 
     return 0;

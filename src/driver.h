@@ -79,6 +79,14 @@ typedef struct _virConnectDriver virConnectDriver;
 typedef virConnectDriver *virConnectDriverPtr;
 
 struct _virConnectDriver {
+    /* Wether driver permits a server in the URI */
+    bool localOnly;
+    /*
+     * NULL terminated list of supported URI schemes.
+     *  - Single element { NULL } list indicates no supported schemes
+     *  - NULL list indicates wildcard supportnig all schemes
+     */
+    const char **uriSchemes;
     virHypervisorDriverPtr hypervisorDriver;
     virInterfaceDriverPtr interfaceDriver;
     virNetworkDriverPtr networkDriver;
@@ -100,10 +108,11 @@ int virSetSharedSecretDriver(virSecretDriverPtr driver) ATTRIBUTE_RETURN_CHECK;
 int virSetSharedStorageDriver(virStorageDriverPtr driver) ATTRIBUTE_RETURN_CHECK;
 
 int virDriverLoadModule(const char *name,
-                        const char *regfunc);
-int virDriverLoadModuleFull(const char *name,
+                        const char *regfunc,
+                        bool required);
+int virDriverLoadModuleFull(const char *path,
                             const char *regfunc,
-                            void **handle);
+                            bool required);
 
 virConnectPtr virGetConnectInterface(void);
 virConnectPtr virGetConnectNetwork(void);

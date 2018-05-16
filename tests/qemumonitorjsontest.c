@@ -32,6 +32,8 @@
 #include "virstring.h"
 #include "cpu/cpu.h"
 #include "qemu/qemu_monitor.h"
+#include "qemu/qemu_migration_params.h"
+#include "qemu/qemu_migration_paramspriv.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -1348,7 +1350,7 @@ GEN_TEST_FUNC(qemuMonitorJSONBlockCommit, "vdb", "/foo/bar1", "/foo/bar2", NULL,
 GEN_TEST_FUNC(qemuMonitorJSONDrivePivot, "vdb")
 GEN_TEST_FUNC(qemuMonitorJSONScreendump, "/foo/bar")
 GEN_TEST_FUNC(qemuMonitorJSONOpenGraphics, "spice", "spicefd", false)
-GEN_TEST_FUNC(qemuMonitorJSONNBDServerStart, "localhost", 12345)
+GEN_TEST_FUNC(qemuMonitorJSONNBDServerStart, "localhost", 12345, "test-alias")
 GEN_TEST_FUNC(qemuMonitorJSONNBDServerAdd, "vda", true)
 GEN_TEST_FUNC(qemuMonitorJSONDetachCharDev, "serial1")
 
@@ -1365,20 +1367,59 @@ testQemuMonitorJSONqemuMonitorJSONQueryCPUsEqual(struct qemuMonitorQueryCpusEntr
 
 
 static int
+testQEMUMonitorJSONqemuMonitorJSONQueryCPUsHelper(qemuMonitorTestPtr test,
+                                                  struct qemuMonitorQueryCpusEntry *expect,
+                                                  bool fast,
+                                                  size_t num)
+{
+    struct qemuMonitorQueryCpusEntry *cpudata = NULL;
+    size_t ncpudata = 0;
+    size_t i;
+    int ret = -1;
+
+    if (qemuMonitorJSONQueryCPUs(qemuMonitorTestGetMonitor(test),
+                                 &cpudata, &ncpudata, true, fast) < 0)
+        goto cleanup;
+
+    if (ncpudata != num) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "Expecting ncpupids = %zu but got %zu", num, ncpudata);
+        goto cleanup;
+    }
+
+    for (i = 0; i < ncpudata; i++) {
+        if (!testQemuMonitorJSONqemuMonitorJSONQueryCPUsEqual(cpudata + i,
+                                                              expect + i)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           "vcpu entry %zu does not match expected data", i);
+            goto cleanup;
+        }
+    }
+
+    ret = 0;
+
+ cleanup:
+    qemuMonitorQueryCpusFree(cpudata, ncpudata);
+    return ret;
+}
+
+
+static int
 testQemuMonitorJSONqemuMonitorJSONQueryCPUs(const void *data)
 {
     virDomainXMLOptionPtr xmlopt = (virDomainXMLOptionPtr)data;
     qemuMonitorTestPtr test = qemuMonitorTestNewSimple(true, xmlopt);
     int ret = -1;
-    struct qemuMonitorQueryCpusEntry *cpudata = NULL;
-    struct qemuMonitorQueryCpusEntry expect[] = {
-        {0, 17622, (char *) "/machine/unattached/device[0]", true},
-        {1, 17624, (char *) "/machine/unattached/device[1]", true},
-        {2, 17626, (char *) "/machine/unattached/device[2]", true},
-        {3, 17628, NULL, true},
+    struct qemuMonitorQueryCpusEntry expect_slow[] = {
+            {0, 17622, (char *) "/machine/unattached/device[0]", true},
+            {1, 17624, (char *) "/machine/unattached/device[1]", true},
+            {2, 17626, (char *) "/machine/unattached/device[2]", true},
+            {3, 17628, NULL, true},
     };
-    size_t ncpudata = 0;
-    size_t i;
+    struct qemuMonitorQueryCpusEntry expect_fast[] = {
+            {0, 17629, (char *) "/machine/unattached/device[0]", false},
+            {1, 17630, (char *) "/machine/unattached/device[1]", false},
+    };
 
     if (!test)
         return -1;
@@ -1422,29 +1463,37 @@ testQemuMonitorJSONqemuMonitorJSONQueryCPUs(const void *data)
                                "}") < 0)
         goto cleanup;
 
-    if (qemuMonitorJSONQueryCPUs(qemuMonitorTestGetMonitor(test),
-                                 &cpudata, &ncpudata, true) < 0)
+    if (qemuMonitorTestAddItem(test, "query-cpus-fast",
+                               "{"
+                               "    \"return\": ["
+                               "        {"
+                               "            \"cpu-index\": 0,"
+                               "            \"qom-path\": \"/machine/unattached/device[0]\","
+                               "            \"thread-id\": 17629"
+                               "        },"
+                               "        {"
+                               "            \"cpu-index\": 1,"
+                               "            \"qom-path\": \"/machine/unattached/device[1]\","
+                               "            \"thread-id\": 17630"
+                               "        }"
+                               "    ],"
+                               "    \"id\": \"libvirt-8\""
+                               "}") < 0)
         goto cleanup;
 
-    if (ncpudata != 4) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "Expecting ncpupids = 4 but got %zu", ncpudata);
+    /* query-cpus */
+    if (testQEMUMonitorJSONqemuMonitorJSONQueryCPUsHelper(test, expect_slow,
+                                                          false, 4))
         goto cleanup;
-    }
 
-    for (i = 0; i < ncpudata; i++) {
-        if (!testQemuMonitorJSONqemuMonitorJSONQueryCPUsEqual(cpudata + i,
-                                                              expect + i)) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           "vcpu entry %zu does not match expected data", i);
-            goto cleanup;
-        }
-    }
+    /* query-cpus-fast */
+    if (testQEMUMonitorJSONqemuMonitorJSONQueryCPUsHelper(test, expect_fast,
+                                                          true, 2))
+        goto cleanup;
 
     ret = 0;
 
  cleanup:
-    qemuMonitorQueryCpusFree(cpudata, ncpudata);
     qemuMonitorTestFree(test);
     return ret;
 }
@@ -1784,102 +1833,6 @@ testQemuMonitorJSONqemuMonitorJSONGetBlockStatsInfo(const void *data)
  cleanup:
     qemuMonitorTestFree(test);
     virHashFree(blockstats);
-    return ret;
-}
-
-static int
-testQemuMonitorJSONqemuMonitorJSONGetMigrationParams(const void *data)
-{
-    virDomainXMLOptionPtr xmlopt = (virDomainXMLOptionPtr)data;
-    qemuMonitorTestPtr test = qemuMonitorTestNewSimple(true, xmlopt);
-    qemuMonitorMigrationParams params;
-    int ret = -1;
-
-    if (!test)
-        return -1;
-
-    if (qemuMonitorTestAddItem(test, "query-migrate-parameters",
-                               "{"
-                               "    \"return\": {"
-                               "        \"decompress-threads\": 2,"
-                               "        \"cpu-throttle-increment\": 10,"
-                               "        \"compress-threads\": 8,"
-                               "        \"compress-level\": 1,"
-                               "        \"cpu-throttle-initial\": 20,"
-                               "        \"tls-creds\": \"tls0\","
-                               "        \"tls-hostname\": \"\","
-                               "        \"max-bandwidth\": 1234567890,"
-                               "        \"downtime-limit\": 500,"
-                               "        \"block-incremental\": true"
-                               "    }"
-                               "}") < 0) {
-        goto cleanup;
-    }
-
-    if (qemuMonitorJSONGetMigrationParams(qemuMonitorTestGetMonitor(test),
-                                          &params) < 0)
-        goto cleanup;
-
-#define CHECK_NUM(VAR, FIELD, VALUE, FMT) \
-    do { \
-        if (!params.VAR ## _set) { \
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s is not set", FIELD); \
-            goto cleanup; \
-        } \
-        if (params.VAR != VALUE) { \
-            virReportError(VIR_ERR_INTERNAL_ERROR, \
-                           "Invalid %s: " FMT ", expected " FMT, \
-                           FIELD, params.VAR, VALUE); \
-            goto cleanup; \
-        } \
-    } while (0)
-
-#define CHECK_INT(VAR, FIELD, VALUE) \
-    CHECK_NUM(VAR, FIELD, VALUE, "%d")
-
-#define CHECK_ULONG(VAR, FIELD, VALUE) \
-    CHECK_NUM(VAR, FIELD, VALUE, "%llu")
-
-#define CHECK_BOOL(VAR, FIELD, VALUE) \
-    CHECK_NUM(VAR, FIELD, VALUE, "%d")
-
-#define CHECK_STR(VAR, FIELD, VALUE) \
-    do { \
-        if (!params.VAR) { \
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s is not set", FIELD); \
-            goto cleanup; \
-        } \
-        if (STRNEQ(params.VAR, VALUE)) { \
-            virReportError(VIR_ERR_INTERNAL_ERROR, \
-                           "Invalid %s:'%s', expected '%s'", \
-                           FIELD, params.VAR, VALUE); \
-            goto cleanup; \
-        } \
-    } while (0)
-
-    CHECK_INT(compressLevel, "compress-level", 1);
-    CHECK_INT(compressThreads, "compress-threads", 8);
-    CHECK_INT(decompressThreads, "decompress-threads", 2);
-    CHECK_INT(cpuThrottleInitial, "cpu-throttle-initial", 20);
-    CHECK_INT(cpuThrottleIncrement, "cpu-throttle-increment", 10);
-    CHECK_STR(tlsCreds, "tls-creds", "tls0");
-    CHECK_STR(tlsHostname, "tls-hostname", "");
-    CHECK_ULONG(maxBandwidth, "max-bandwidth", 1234567890ULL);
-    CHECK_ULONG(downtimeLimit, "downtime-limit", 500ULL);
-    CHECK_BOOL(blockIncremental, "block-incremental", true);
-
-#undef CHECK_NUM
-#undef CHECK_INT
-#undef CHECK_ULONG
-#undef CHECK_BOOL
-#undef CHECK_STR
-
-    ret = 0;
-
- cleanup:
-    VIR_FREE(params.tlsCreds);
-    VIR_FREE(params.tlsHostname);
-    qemuMonitorTestFree(test);
     return ret;
 }
 
@@ -2229,13 +2182,15 @@ testQemuMonitorJSONqemuMonitorJSONGetTargetArch(const void *data)
 }
 
 static int
-testQemuMonitorJSONqemuMonitorJSONGetMigrationCapability(const void *data)
+testQemuMonitorJSONqemuMonitorJSONGetMigrationCapabilities(const void *data)
 {
     virDomainXMLOptionPtr xmlopt = (virDomainXMLOptionPtr)data;
     qemuMonitorTestPtr test = qemuMonitorTestNewSimple(true, xmlopt);
     int ret = -1;
     const char *cap;
     char **caps = NULL;
+    virBitmapPtr bitmap = NULL;
+    virJSONValuePtr json = NULL;
     const char *reply =
         "{"
         "    \"return\": ["
@@ -2259,22 +2214,30 @@ testQemuMonitorJSONqemuMonitorJSONGetMigrationCapability(const void *data)
                                             &caps) < 0)
         goto cleanup;
 
-    cap = qemuMonitorMigrationCapsTypeToString(QEMU_MONITOR_MIGRATION_CAPS_XBZRLE);
+    cap = qemuMigrationCapabilityTypeToString(QEMU_MIGRATION_CAP_XBZRLE);
     if (!virStringListHasString((const char **) caps, cap)) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        "Expected capability %s is missing", cap);
         goto cleanup;
     }
 
-    if (qemuMonitorJSONSetMigrationCapability(qemuMonitorTestGetMonitor(test),
-                                              QEMU_MONITOR_MIGRATION_CAPS_XBZRLE,
-                                              true) < 0)
+    bitmap = virBitmapNew(QEMU_MIGRATION_CAP_LAST);
+    if (!bitmap)
         goto cleanup;
 
-    ret = 0;
+    ignore_value(virBitmapSetBit(bitmap, QEMU_MIGRATION_CAP_XBZRLE));
+    if (!(json = qemuMigrationCapsToJSON(bitmap, bitmap)))
+        goto cleanup;
+
+    ret = qemuMonitorJSONSetMigrationCapabilities(qemuMonitorTestGetMonitor(test),
+                                                  json);
+    json = NULL;
+
  cleanup:
+    virJSONValueFree(json);
     qemuMonitorTestFree(test);
     virStringListFree(caps);
+    virBitmapFree(bitmap);
     return ret;
 }
 
@@ -2615,6 +2578,7 @@ struct testCPUInfoData {
     const char *name;
     size_t maxvcpus;
     virDomainXMLOptionPtr xmlopt;
+    bool fast;
 };
 
 
@@ -2669,6 +2633,9 @@ testQemuMonitorCPUInfoFormat(qemuMonitorCPUInfoPtr vcpus,
             virBufferAddLit(&buf, "\n");
         }
 
+        if (vcpu->halted)
+            virBufferAddLit(&buf, "halted\n");
+
         virBufferAdjustIndent(&buf, -4);
     }
 
@@ -2681,12 +2648,14 @@ testQemuMonitorCPUInfo(const void *opaque)
 {
     const struct testCPUInfoData *data = opaque;
     qemuMonitorTestPtr test = qemuMonitorTestNewSimple(true, data->xmlopt);
+    virDomainObjPtr vm = NULL;
     char *queryCpusFile = NULL;
     char *queryHotpluggableFile = NULL;
     char *dataFile = NULL;
     char *queryCpusStr = NULL;
     char *queryHotpluggableStr = NULL;
     char *actual = NULL;
+    const char *queryCpusFunction;
     qemuMonitorCPUInfoPtr vcpus = NULL;
     int rc;
     int ret = -1;
@@ -2715,11 +2684,20 @@ testQemuMonitorCPUInfo(const void *opaque)
                                queryHotpluggableStr) < 0)
         goto cleanup;
 
-    if (qemuMonitorTestAddItem(test, "query-cpus", queryCpusStr) < 0)
+    if (data->fast)
+        queryCpusFunction = "query-cpus-fast";
+    else
+        queryCpusFunction = "query-cpus";
+
+    if (qemuMonitorTestAddItem(test, queryCpusFunction, queryCpusStr) < 0)
         goto cleanup;
 
+    vm = qemuMonitorTestGetDomainObj(test);
+    if (!vm)
+        return -1;
+
     rc = qemuMonitorGetCPUInfo(qemuMonitorTestGetMonitor(test),
-                               &vcpus, data->maxvcpus, true);
+                               &vcpus, data->maxvcpus, true, data->fast);
 
     if (rc < 0)
         goto cleanup;
@@ -2930,7 +2908,15 @@ mymain(void)
 
 #define DO_TEST_CPU_INFO(name, maxvcpus) \
     do { \
-        struct testCPUInfoData data = {name, maxvcpus, driver.xmlopt}; \
+        struct testCPUInfoData data = {name, maxvcpus, driver.xmlopt, false}; \
+        if (virTestRun("GetCPUInfo(" name ")", testQemuMonitorCPUInfo, \
+                       &data) < 0) \
+            ret = -1; \
+    } while (0)
+
+#define DO_TEST_CPU_INFO_FAST(name, maxvcpus) \
+    do { \
+        struct testCPUInfoData data = {name, maxvcpus, driver.xmlopt, true}; \
         if (virTestRun("GetCPUInfo(" name ")", testQemuMonitorCPUInfo, \
                        &data) < 0) \
             ret = -1; \
@@ -2994,12 +2980,11 @@ mymain(void)
     DO_TEST(qemuMonitorJSONGetBlockInfo);
     DO_TEST(qemuMonitorJSONGetBlockStatsInfo);
     DO_TEST(qemuMonitorJSONGetMigrationCacheSize);
-    DO_TEST(qemuMonitorJSONGetMigrationParams);
     DO_TEST(qemuMonitorJSONGetMigrationStats);
     DO_TEST(qemuMonitorJSONGetChardevInfo);
     DO_TEST(qemuMonitorJSONSetBlockIoThrottle);
     DO_TEST(qemuMonitorJSONGetTargetArch);
-    DO_TEST(qemuMonitorJSONGetMigrationCapability);
+    DO_TEST(qemuMonitorJSONGetMigrationCapabilities);
     DO_TEST(qemuMonitorJSONQueryCPUs);
     DO_TEST(qemuMonitorJSONGetVirtType);
     DO_TEST(qemuMonitorJSONSendKey);
@@ -3014,12 +2999,15 @@ mymain(void)
     DO_TEST_CPU_INFO("x86-basic-pluggable", 8);
     DO_TEST_CPU_INFO("x86-full", 11);
     DO_TEST_CPU_INFO("x86-node-full", 8);
+    DO_TEST_CPU_INFO_FAST("x86-full-fast", 11);
 
     DO_TEST_CPU_INFO("ppc64-basic", 24);
     DO_TEST_CPU_INFO("ppc64-hotplug-1", 24);
     DO_TEST_CPU_INFO("ppc64-hotplug-2", 24);
     DO_TEST_CPU_INFO("ppc64-hotplug-4", 24);
     DO_TEST_CPU_INFO("ppc64-no-threads", 16);
+
+    DO_TEST_CPU_INFO_FAST("s390-fast", 2);
 
 #define DO_TEST_BLOCK_NODE_DETECT(testname) \
     do { \

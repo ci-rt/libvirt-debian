@@ -53,15 +53,10 @@ static void virCloseCallbacksDispose(void *obj);
 
 static int virCloseCallbacksOnceInit(void)
 {
-    virCloseCallbacksClass = virClassNew(virClassForObjectLockable(),
-                                         "virCloseCallbacks",
-                                         sizeof(virCloseCallbacks),
-                                         virCloseCallbacksDispose);
-
-    if (!virCloseCallbacksClass)
+    if (!VIR_CLASS_NEW(virCloseCallbacks, virClassForObjectLockable()))
         return -1;
-    else
-        return 0;
+
+    return 0;
 }
 
 VIR_ONCE_GLOBAL_INIT(virCloseCallbacks)
@@ -347,8 +342,8 @@ virCloseCallbacksRun(virCloseCallbacksPtr closeCallbacks,
         virDomainObjPtr vm;
 
         /* Grab a ref and lock to the vm */
-        if (!(vm = virDomainObjListFindByUUIDRef(domains,
-                                                 list->entries[i].uuid))) {
+        if (!(vm = virDomainObjListFindByUUID(domains,
+                                              list->entries[i].uuid))) {
             char uuidstr[VIR_UUID_STRING_BUFLEN];
             virUUIDFormat(list->entries[i].uuid, uuidstr);
             VIR_DEBUG("No domain object with UUID %s", uuidstr);
@@ -359,10 +354,9 @@ virCloseCallbacksRun(virCloseCallbacksPtr closeCallbacks,
          * we're about to call the callback function and we have another
          * ref anyway (so it cannot be deleted).
          *
-         * Call the callback function, ignoring the return since it might be
-         * NULL. Once we're done with the object, then end the API usage. */
+         * Call the callback function and end the API usage. */
         virObjectUnref(vm);
-        ignore_value(list->entries[i].callback(vm, conn, opaque));
+        list->entries[i].callback(vm, conn, opaque);
         virDomainObjEndAPI(&vm);
     }
     VIR_FREE(list->entries);

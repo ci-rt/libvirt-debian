@@ -74,10 +74,7 @@ static int
 virDataTypesOnceInit(void)
 {
 #define DECLARE_CLASS_COMMON(basename, parent) \
-    if (!(basename ## Class = virClassNew(parent, \
-                                          #basename, \
-                                          sizeof(basename), \
-                                          basename ## Dispose))) \
+    if (!(VIR_CLASS_NEW(basename, parent))) \
         return -1;
 #define DECLARE_CLASS(basename) \
     DECLARE_CLASS_COMMON(basename, virClassForObject())
@@ -653,7 +650,7 @@ virNodeDeviceDispose(void *obj)
     VIR_DEBUG("release dev %p %s", dev, dev->name);
 
     VIR_FREE(dev->name);
-    VIR_FREE(dev->parent);
+    VIR_FREE(dev->parentName);
 
     virObjectUnref(dev->conn);
 }

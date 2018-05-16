@@ -74,6 +74,12 @@ struct daemonClientPrivate {
      * called, it will be set back to NULL if that succeeds.
      */
     virConnectPtr conn;
+    virConnectPtr interfaceConn;
+    virConnectPtr networkConn;
+    virConnectPtr nodedevConn;
+    virConnectPtr nwfilterConn;
+    virConnectPtr secretConn;
+    virConnectPtr storageConn;
 
     daemonClientStreamPtr streams;
 };

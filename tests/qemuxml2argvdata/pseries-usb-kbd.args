@@ -7,16 +7,18 @@ QEMU_AUDIO_DRV=none \
 /usr/bin/qemu-system-ppc64 \
 -name QEMUGuest1 \
 -S \
--M pseries \
+-machine pseries,accel=tcg,usb=off,dump-guest-core=off \
 -m 512 \
 -smp 1,sockets=1,cores=1,threads=1 \
 -uuid 1ccfd97d-5eb4-478a-bbe6-88d254c16db7 \
--nographic \
--nodefconfig \
+-display none \
+-no-user-config \
 -nodefaults \
 -chardev socket,id=charmonitor,path=/tmp/lib/domain--1-QEMUGuest1/monitor.sock,\
 server,nowait \
--mon chardev=charmonitor,id=monitor,mode=readline \
+-mon chardev=charmonitor,id=monitor,mode=control \
+-rtc base=utc \
+-no-shutdown \
 -boot c \
 -device pci-ohci,id=usb,bus=pci.0,addr=0x1 \
 -chardev pty,id=charserial0 \

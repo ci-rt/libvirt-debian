@@ -578,7 +578,7 @@ testDomObjFromDomain(virDomainPtr domain)
     testDriverPtr driver = domain->conn->privateData;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
 
-    vm = virDomainObjListFindByUUIDRef(driver->domains, domain->uuid);
+    vm = virDomainObjListFindByUUID(driver->domains, domain->uuid);
     if (!vm) {
         virUUIDFormat(domain->uuid, uuidstr);
         virReportError(VIR_ERR_NO_DOMAIN,
@@ -1454,20 +1454,8 @@ testConnectOpen(virConnectPtr conn,
 
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
-    if (!conn->uri)
-        return VIR_DRV_OPEN_DECLINED;
-
-    if (!conn->uri->scheme || STRNEQ(conn->uri->scheme, "test"))
-        return VIR_DRV_OPEN_DECLINED;
-
-    /* Remote driver should handle these. */
-    if (conn->uri->server)
-        return VIR_DRV_OPEN_DECLINED;
-
-    /* From this point on, the connection is for us. */
-    if (!conn->uri->path
-        || conn->uri->path[0] == '\0'
-        || (conn->uri->path[0] == '/' && conn->uri->path[1] == '\0')) {
+    if (conn->uri->path[0] == '\0' ||
+        (conn->uri->path[0] == '/' && conn->uri->path[1] == '\0')) {
         virReportError(VIR_ERR_INVALID_ARG,
                        "%s", _("testOpen: supply a path or use test:///default"));
         return VIR_DRV_OPEN_ERROR;
@@ -1722,14 +1710,12 @@ static virDomainPtr testDomainLookupByID(virConnectPtr conn,
 
     if (!(dom = virDomainObjListFindByID(privconn->domains, id))) {
         virReportError(VIR_ERR_NO_DOMAIN, NULL);
-        goto cleanup;
+        return NULL;
     }
 
     ret = virGetDomain(conn, dom->def->name, dom->def->uuid, dom->def->id);
 
- cleanup:
-    if (dom)
-        virObjectUnlock(dom);
+    virDomainObjEndAPI(&dom);
     return ret;
 }
 
@@ -1742,14 +1728,12 @@ static virDomainPtr testDomainLookupByUUID(virConnectPtr conn,
 
     if (!(dom = virDomainObjListFindByUUID(privconn->domains, uuid))) {
         virReportError(VIR_ERR_NO_DOMAIN, NULL);
-        goto cleanup;
+        return NULL;
     }
 
     ret = virGetDomain(conn, dom->def->name, dom->def->uuid, dom->def->id);
 
- cleanup:
-    if (dom)
-        virObjectUnlock(dom);
+    virDomainObjEndAPI(&dom);
     return ret;
 }
 
@@ -1795,19 +1779,18 @@ static int testDomainDestroyFlags(virDomainPtr domain,
     if (!(privdom = testDomObjFromDomain(domain)))
         goto cleanup;
 
-    if (!virDomainObjIsActive(privdom)) {
-        virReportError(VIR_ERR_OPERATION_INVALID,
-                       "%s", _("domain is not running"));
+    if (virDomainObjCheckActive(privdom) < 0)
         goto cleanup;
-    }
 
     testDomainShutdownState(domain, privdom, VIR_DOMAIN_SHUTOFF_DESTROYED);
     event = virDomainEventLifecycleNewFromObj(privdom,
                                      VIR_DOMAIN_EVENT_STOPPED,
                                      VIR_DOMAIN_EVENT_STOPPED_DESTROYED);
 
-    if (!privdom->persistent)
+    if (!privdom->persistent) {
         virDomainObjListRemove(privconn->domains, privdom);
+        virObjectLock(privdom);
+    }
 
     ret = 0;
  cleanup:
@@ -1905,8 +1888,10 @@ static int testDomainShutdownFlags(virDomainPtr domain,
                                      VIR_DOMAIN_EVENT_STOPPED,
                                      VIR_DOMAIN_EVENT_STOPPED_SHUTDOWN);
 
-    if (!privdom->persistent)
+    if (!privdom->persistent) {
         virDomainObjListRemove(privconn->domains, privdom);
+        virObjectLock(privdom);
+    }
 
     ret = 0;
  cleanup:
@@ -1933,11 +1918,8 @@ static int testDomainReboot(virDomainPtr domain,
     if (!(privdom = testDomObjFromDomain(domain)))
         goto cleanup;
 
-    if (!virDomainObjIsActive(privdom)) {
-        virReportError(VIR_ERR_OPERATION_INVALID,
-                       "%s", _("domain is not running"));
+    if (virDomainObjCheckActive(privdom) < 0)
         goto cleanup;
-    }
 
     virDomainObjSetState(privdom, VIR_DOMAIN_SHUTDOWN,
                          VIR_DOMAIN_SHUTDOWN_USER);
@@ -1975,8 +1957,10 @@ static int testDomainReboot(virDomainPtr domain,
                                          VIR_DOMAIN_EVENT_STOPPED,
                                          VIR_DOMAIN_EVENT_STOPPED_SHUTDOWN);
 
-        if (!privdom->persistent)
+        if (!privdom->persistent) {
             virDomainObjListRemove(privconn->domains, privdom);
+            virObjectLock(privdom);
+        }
     }
 
     ret = 0;
@@ -2059,11 +2043,8 @@ testDomainSaveFlags(virDomainPtr domain, const char *path,
     if (!(privdom = testDomObjFromDomain(domain)))
         goto cleanup;
 
-    if (!virDomainObjIsActive(privdom)) {
-        virReportError(VIR_ERR_OPERATION_INVALID,
-                       "%s", _("domain is not running"));
+    if (virDomainObjCheckActive(privdom) < 0)
         goto cleanup;
-    }
 
     xml = virDomainDefFormat(privdom->def, privconn->caps,
                              VIR_DOMAIN_DEF_FORMAT_SECURE);
@@ -2114,8 +2095,10 @@ testDomainSaveFlags(virDomainPtr domain, const char *path,
                                      VIR_DOMAIN_EVENT_STOPPED,
                                      VIR_DOMAIN_EVENT_STOPPED_SAVED);
 
-    if (!privdom->persistent)
+    if (!privdom->persistent) {
         virDomainObjListRemove(privconn->domains, privdom);
+        virObjectLock(privdom);
+    }
 
     ret = 0;
  cleanup:
@@ -2263,11 +2246,8 @@ static int testDomainCoreDumpWithFormat(virDomainPtr domain,
     if (!(privdom = testDomObjFromDomain(domain)))
         goto cleanup;
 
-    if (!virDomainObjIsActive(privdom)) {
-        virReportError(VIR_ERR_OPERATION_INVALID,
-                       "%s", _("domain is not running"));
+    if (virDomainObjCheckActive(privdom) < 0)
         goto cleanup;
-    }
 
     if ((fd = open(to, O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR)) < 0) {
         virReportSystemError(errno,
@@ -2300,8 +2280,10 @@ static int testDomainCoreDumpWithFormat(virDomainPtr domain,
         event = virDomainEventLifecycleNewFromObj(privdom,
                                          VIR_DOMAIN_EVENT_STOPPED,
                                          VIR_DOMAIN_EVENT_STOPPED_CRASHED);
-        if (!privdom->persistent)
+        if (!privdom->persistent) {
             virDomainObjListRemove(privconn->domains, privdom);
+            virObjectLock(privdom);
+        }
     }
 
     ret = 0;
@@ -3080,10 +3062,12 @@ static int testDomainUndefineFlags(virDomainPtr domain,
                                      VIR_DOMAIN_EVENT_UNDEFINED_REMOVED);
     privdom->hasManagedSave = false;
 
-    if (virDomainObjIsActive(privdom))
+    if (virDomainObjIsActive(privdom)) {
         privdom->persistent = 0;
-    else
+    } else {
         virDomainObjListRemove(privconn->domains, privdom);
+        virObjectLock(privdom);
+    }
 
     ret = 0;
 
@@ -3235,11 +3219,8 @@ static int testDomainBlockStats(virDomainPtr domain,
     if (!(privdom = testDomObjFromDomain(domain)))
         return ret;
 
-    if (!virDomainObjIsActive(privdom)) {
-        virReportError(VIR_ERR_OPERATION_INVALID,
-                       "%s", _("domain is not running"));
+    if (virDomainObjCheckActive(privdom) < 0)
         goto error;
-    }
 
     if (virDomainDiskIndexByName(privdom->def, path, false) < 0) {
         virReportError(VIR_ERR_INVALID_ARG,
@@ -3282,11 +3263,8 @@ testDomainInterfaceStats(virDomainPtr domain,
     if (!(privdom = testDomObjFromDomain(domain)))
         return -1;
 
-    if (!virDomainObjIsActive(privdom)) {
-        virReportError(VIR_ERR_OPERATION_INVALID,
-                       "%s", _("domain is not running"));
+    if (virDomainObjCheckActive(privdom) < 0)
         goto error;
-    }
 
     if (!(net = virDomainNetFind(privdom->def, device)))
         goto error;
@@ -5018,7 +4996,6 @@ testStorageVolLookupByName(virStoragePoolPtr pool,
 
 
 struct storageVolLookupData {
-    virConnectPtr conn;
     const char *key;
     const char *path;
     virStorageVolDefPtr voldef;
@@ -5045,7 +5022,7 @@ testStorageVolLookupByKey(virConnectPtr conn,
     virStoragePoolObjPtr obj;
     virStoragePoolDefPtr def;
     struct storageVolLookupData data = {
-        .conn = conn, .key = key, .voldef = NULL };
+        .key = key, .voldef = NULL };
     virStorageVolPtr vol = NULL;
 
     testDriverLock(privconn);
@@ -5089,7 +5066,7 @@ testStorageVolLookupByPath(virConnectPtr conn,
     virStoragePoolObjPtr obj;
     virStoragePoolDefPtr def;
     struct storageVolLookupData data = {
-        .conn = conn, .path = path, .voldef = NULL };
+        .path = path, .voldef = NULL };
     virStorageVolPtr vol = NULL;
 
     testDriverLock(privconn);
@@ -5421,7 +5398,7 @@ testNodeDeviceLookupByName(virConnectPtr conn, const char *name)
     def = virNodeDeviceObjGetDef(obj);
 
     if ((ret = virGetNodeDevice(conn, name))) {
-        if (VIR_STRDUP(ret->parent, def->parent) < 0) {
+        if (VIR_STRDUP(ret->parentName, def->parent) < 0) {
             virObjectUnref(ret);
             ret = NULL;
         }
@@ -5646,8 +5623,8 @@ testNodeDeviceCreateXML(virConnectPtr conn,
     if (!(dev = virGetNodeDevice(conn, objdef->name)))
         goto cleanup;
 
-    VIR_FREE(dev->parent);
-    if (VIR_STRDUP(dev->parent, def->parent) < 0)
+    VIR_FREE(dev->parentName);
+    if (VIR_STRDUP(dev->parentName, def->parent) < 0)
         goto cleanup;
 
     ret = dev;
@@ -5967,11 +5944,8 @@ testDomainManagedSave(virDomainPtr dom, unsigned int flags)
     if (!(vm = testDomObjFromDomain(dom)))
         return -1;
 
-    if (!virDomainObjIsActive(vm)) {
-        virReportError(VIR_ERR_OPERATION_INVALID,
-                       "%s", _("domain is not running"));
+    if (virDomainObjCheckActive(vm) < 0)
         goto cleanup;
-    }
 
     if (!vm->persistent) {
         virReportError(VIR_ERR_OPERATION_INVALID, "%s",
@@ -7058,6 +7032,8 @@ static virNodeDeviceDriver testNodeDeviceDriver = {
 };
 
 static virConnectDriver testConnectDriver = {
+    .localOnly = true,
+    .uriSchemes = (const char *[]){ "test", NULL },
     .hypervisorDriver = &testHypervisorDriver,
     .interfaceDriver = &testInterfaceDriver,
     .networkDriver = &testNetworkDriver,

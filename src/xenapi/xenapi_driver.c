@@ -146,11 +146,6 @@ xenapiConnectOpen(virConnectPtr conn, virConnectAuthPtr auth,
 
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
-    if (conn->uri == NULL || conn->uri->scheme == NULL ||
-        STRCASENEQ(conn->uri->scheme, "XenAPI")) {
-        return VIR_DRV_OPEN_DECLINED;
-    }
-
     if (conn->uri->server == NULL) {
         xenapiSessionErrorHandler(conn, VIR_ERR_INVALID_ARG,
                                   _("Server name not in URI"));
@@ -2075,6 +2070,7 @@ static virHypervisorDriver xenapiHypervisorDriver = {
 
 
 static virConnectDriver xenapiConnectDriver = {
+    .uriSchemes = (const char *[]){ "xenapi", NULL },
     .hypervisorDriver = &xenapiHypervisorDriver,
 };
 

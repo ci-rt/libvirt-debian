@@ -40,7 +40,7 @@
 VIR_LOG_INIT("rpc.netclientprogram");
 
 struct _virNetClientProgram {
-    virObject object;
+    virObject parent;
 
     unsigned program;
     unsigned version;
@@ -54,10 +54,7 @@ static void virNetClientProgramDispose(void *obj);
 
 static int virNetClientProgramOnceInit(void)
 {
-    if (!(virNetClientProgramClass = virClassNew(virClassForObject(),
-                                                 "virNetClientProgram",
-                                                 sizeof(virNetClientProgram),
-                                                 virNetClientProgramDispose)))
+    if (!VIR_CLASS_NEW(virNetClientProgram, virClassForObject()))
         return -1;
 
     return 0;

@@ -7,17 +7,20 @@ QEMU_AUDIO_DRV=none \
 /usr/bin/qemu-system-x86_64 \
 -name test \
 -S \
--M pc-0.13 \
+-machine pc-0.13,accel=tcg,usb=off,dump-guest-core=off \
 -m 1024 \
 -smp 1,sockets=1,cores=1,threads=1 \
 -uuid 3fa02811-7832-34bd-004d-1ff56a9286ff \
--nographic \
+-display none \
+-no-user-config \
 -nodefaults \
 -chardev socket,id=charmonitor,path=/tmp/lib/domain--1-test/monitor.sock,\
 server,nowait \
--mon chardev=charmonitor,id=monitor,mode=readline \
+-mon chardev=charmonitor,id=monitor,mode=control \
+-rtc base=utc \
+-no-shutdown \
 -no-acpi \
--boot dc \
+-boot order=dc,menu=on \
 -usb \
 -drive file=/var/lib/libvirt/images/f14.img,format=qcow2,if=none,\
 id=drive-virtio-disk0 \

@@ -51,7 +51,11 @@ AM_LDFLAGS =	$(DRIVER_MODULES_LDFLAGS) \
 		$(CYGWIN_EXTRA_LDFLAGS) \
 		$(MINGW_EXTRA_LDFLAGS) \
 		$(NULL)
-AM_LDFLAGS_MOD = -module -avoid-version $(AM_LDFLAGS)
+AM_LDFLAGS_MOD = \
+	-module \
+	-avoid-version \
+	$(LIBVIRT_NODELETE) \
+	$(AM_LDFLAGS)
 AM_LDFLAGS_MOD_NOUNDEF = $(AM_LDFLAGS_MOD) $(NO_UNDEFINED_LDFLAGS)
 
 POD2MAN = pod2man -c "Virtualization Support" -r "$(PACKAGE)-$(VERSION)"
@@ -115,7 +119,6 @@ include qemu/Makefile.inc.am
 include bhyve/Makefile.inc.am
 include xenconfig/Makefile.inc.am
 include libxl/Makefile.inc.am
-include xen/Makefile.inc.am
 include xenapi/Makefile.inc.am
 include vz/Makefile.inc.am
 include lxc/Makefile.inc.am
@@ -530,7 +533,9 @@ libvirt_admin_la_SOURCES = \
 libvirt_admin_la_LDFLAGS = \
 		$(VERSION_SCRIPT_FLAGS)$(LIBVIRT_ADMIN_SYMBOL_FILE) \
 		-version-info $(LIBVIRT_VERSION_INFO) \
-		$(AM_LDFLAGS)
+		$(LIBVIRT_NODELETE) \
+		$(AM_LDFLAGS) \
+		$(NULL)
 
 libvirt_admin_la_LIBADD = \
 		libvirt.la \
@@ -645,6 +650,7 @@ libvirt_qemu_la_SOURCES = libvirt-qemu.c
 libvirt_qemu_la_LDFLAGS = \
 		$(VERSION_SCRIPT_FLAGS)$(LIBVIRT_QEMU_SYMBOL_FILE) \
 		-version-info $(LIBVIRT_VERSION_INFO) \
+		$(LIBVIRT_NODELETE) \
 		$(AM_LDFLAGS) \
 		$(NULL)
 libvirt_qemu_la_CFLAGS = $(AM_CFLAGS)
@@ -654,6 +660,7 @@ libvirt_lxc_la_SOURCES = libvirt-lxc.c
 libvirt_lxc_la_LDFLAGS = \
 		$(VERSION_SCRIPT_FLAGS)$(LIBVIRT_LXC_SYMBOL_FILE) \
 		-version-info $(LIBVIRT_VERSION_INFO) \
+		$(LIBVIRT_NODELETE) \
 		$(AM_LDFLAGS) \
 		$(NULL)
 libvirt_lxc_la_CFLAGS = $(AM_CFLAGS)

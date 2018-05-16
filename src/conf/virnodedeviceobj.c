@@ -58,16 +58,10 @@ static bool virNodeDeviceObjHasCap(const virNodeDeviceObj *obj, int type);
 static int
 virNodeDeviceObjOnceInit(void)
 {
-    if (!(virNodeDeviceObjClass = virClassNew(virClassForObjectLockable(),
-                                              "virNodeDeviceObj",
-                                              sizeof(virNodeDeviceObj),
-                                              virNodeDeviceObjDispose)))
+    if (!VIR_CLASS_NEW(virNodeDeviceObj, virClassForObjectLockable()))
         return -1;
 
-    if (!(virNodeDeviceObjListClass = virClassNew(virClassForObjectRWLockable(),
-                                                  "virNodeDeviceObjList",
-                                                  sizeof(virNodeDeviceObjList),
-                                                  virNodeDeviceObjListDispose)))
+    if (!VIR_CLASS_NEW(virNodeDeviceObjList, virClassForObjectRWLockable()))
         return -1;
 
     return 0;
@@ -870,7 +864,7 @@ virNodeDeviceObjListExportCallback(void *payload,
         virNodeDeviceMatch(obj, data->flags)) {
         if (data->devices) {
             if (!(device = virGetNodeDevice(data->conn, def->name)) ||
-                VIR_STRDUP(device->parent, def->parent) < 0) {
+                VIR_STRDUP(device->parentName, def->parent) < 0) {
                 virObjectUnref(device);
                 data->error = true;
                 goto cleanup;

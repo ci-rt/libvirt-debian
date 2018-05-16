@@ -542,8 +542,11 @@ void qemuMonitorCPUInfoFree(qemuMonitorCPUInfoPtr list,
 int qemuMonitorGetCPUInfo(qemuMonitorPtr mon,
                           qemuMonitorCPUInfoPtr *vcpus,
                           size_t maxvcpus,
-                          bool hotplug);
-virBitmapPtr qemuMonitorGetCpuHalted(qemuMonitorPtr mon, size_t maxvcpus);
+                          bool hotplug,
+                          bool fast);
+virBitmapPtr qemuMonitorGetCpuHalted(qemuMonitorPtr mon,
+                                     size_t maxvcpus,
+                                     bool fast);
 
 int qemuMonitorGetVirtType(qemuMonitorPtr mon,
                            virDomainVirtType *virtType);
@@ -642,43 +645,10 @@ int qemuMonitorGetMigrationCacheSize(qemuMonitorPtr mon,
 int qemuMonitorSetMigrationCacheSize(qemuMonitorPtr mon,
                                      unsigned long long cacheSize);
 
-typedef struct _qemuMonitorMigrationParams qemuMonitorMigrationParams;
-typedef qemuMonitorMigrationParams *qemuMonitorMigrationParamsPtr;
-struct _qemuMonitorMigrationParams {
-    bool compressLevel_set;
-    int compressLevel;
-
-    bool compressThreads_set;
-    int compressThreads;
-
-    bool decompressThreads_set;
-    int decompressThreads;
-
-    bool cpuThrottleInitial_set;
-    int cpuThrottleInitial;
-
-    bool cpuThrottleIncrement_set;
-    int cpuThrottleIncrement;
-
-    /* Value is either NULL, "", or some string. NULL indicates no support;
-     * whereas, some string value indicates we can support setting/clearing */
-    char *tlsCreds;
-    char *tlsHostname;
-
-    bool maxBandwidth_set;
-    unsigned long long maxBandwidth;
-
-    bool downtimeLimit_set;
-    unsigned long long downtimeLimit;
-
-    bool blockIncremental_set;
-    bool blockIncremental;
-};
-
 int qemuMonitorGetMigrationParams(qemuMonitorPtr mon,
-                                  qemuMonitorMigrationParamsPtr params);
+                                  virJSONValuePtr *params);
 int qemuMonitorSetMigrationParams(qemuMonitorPtr mon,
-                                  qemuMonitorMigrationParamsPtr params);
+                                  virJSONValuePtr params);
 
 typedef enum {
     QEMU_MONITOR_MIGRATION_STATUS_INACTIVE,
@@ -744,25 +714,10 @@ int qemuMonitorGetMigrationStats(qemuMonitorPtr mon,
                                  qemuMonitorMigrationStatsPtr stats,
                                  char **error);
 
-typedef enum {
-    QEMU_MONITOR_MIGRATION_CAPS_XBZRLE,
-    QEMU_MONITOR_MIGRATION_CAPS_AUTO_CONVERGE,
-    QEMU_MONITOR_MIGRATION_CAPS_RDMA_PIN_ALL,
-    QEMU_MONITOR_MIGRATION_CAPS_EVENTS,
-    QEMU_MONITOR_MIGRATION_CAPS_POSTCOPY,
-    QEMU_MONITOR_MIGRATION_CAPS_COMPRESS,
-    QEMU_MONITOR_MIGRATION_CAPS_PAUSE_BEFORE_SWITCHOVER,
-
-    QEMU_MONITOR_MIGRATION_CAPS_LAST
-} qemuMonitorMigrationCaps;
-
-VIR_ENUM_DECL(qemuMonitorMigrationCaps);
-
 int qemuMonitorGetMigrationCapabilities(qemuMonitorPtr mon,
                                         char ***capabilities);
-int qemuMonitorSetMigrationCapability(qemuMonitorPtr mon,
-                                      qemuMonitorMigrationCaps capability,
-                                      bool state);
+int qemuMonitorSetMigrationCapabilities(qemuMonitorPtr mon,
+                                        virJSONValuePtr caps);
 
 int qemuMonitorGetGICCapabilities(qemuMonitorPtr mon,
                                   virGICCapability **capabilities);
@@ -783,10 +738,6 @@ int qemuMonitorMigrateToHost(qemuMonitorPtr mon,
                              const char *protocol,
                              const char *hostname,
                              int port);
-
-int qemuMonitorMigrateToCommand(qemuMonitorPtr mon,
-                                unsigned int flags,
-                                const char * const *argv);
 
 int qemuMonitorMigrateCancel(qemuMonitorPtr mon);
 
@@ -898,7 +849,7 @@ int qemuMonitorDiskSnapshot(qemuMonitorPtr mon,
                             const char *file,
                             const char *format,
                             bool reuse);
-int qemuMonitorTransaction(qemuMonitorPtr mon, virJSONValuePtr actions)
+int qemuMonitorTransaction(qemuMonitorPtr mon, virJSONValuePtr *actions)
     ATTRIBUTE_NONNULL(2);
 int qemuMonitorDriveMirror(qemuMonitorPtr mon,
                            const char *device,
@@ -1094,14 +1045,15 @@ int qemuMonitorGetKVMState(qemuMonitorPtr mon,
 
 int qemuMonitorGetObjectTypes(qemuMonitorPtr mon,
                               char ***types);
-int qemuMonitorGetObjectProps(qemuMonitorPtr mon,
-                              const char *type,
+int qemuMonitorGetDeviceProps(qemuMonitorPtr mon,
+                              const char *device,
                               char ***props);
 char *qemuMonitorGetTargetArch(qemuMonitorPtr mon);
 
 int qemuMonitorNBDServerStart(qemuMonitorPtr mon,
                               const char *host,
-                              unsigned int port);
+                              unsigned int port,
+                              const char *tls_alias);
 int qemuMonitorNBDServerAdd(qemuMonitorPtr mon,
                             const char *deviceID,
                             bool writable);

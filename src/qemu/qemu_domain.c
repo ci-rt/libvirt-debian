@@ -32,6 +32,7 @@
 #include "qemu_parse_command.h"
 #include "qemu_capabilities.h"
 #include "qemu_migration.h"
+#include "qemu_migration_params.h"
 #include "qemu_security.h"
 #include "viralloc.h"
 #include "virlog.h"
@@ -130,16 +131,10 @@ static void qemuDomainSaveCookieDispose(void *obj);
 static int
 qemuDomainOnceInit(void)
 {
-    if (!(qemuDomainLogContextClass = virClassNew(virClassForObject(),
-                                                 "qemuDomainLogContext",
-                                                 sizeof(qemuDomainLogContext),
-                                                 qemuDomainLogContextDispose)))
+    if (!VIR_CLASS_NEW(qemuDomainLogContext, virClassForObject()))
         return -1;
 
-    if (!(qemuDomainSaveCookieClass = virClassNew(virClassForObject(),
-                                                  "qemuDomainSaveCookie",
-                                                  sizeof(qemuDomainSaveCookie),
-                                                  qemuDomainSaveCookieDispose)))
+    if (!VIR_CLASS_NEW(qemuDomainSaveCookie, virClassForObject()))
         return -1;
 
     return 0;
@@ -309,7 +304,7 @@ qemuDomainObjInitJob(qemuDomainObjPrivatePtr priv)
 static void
 qemuDomainObjResetJob(qemuDomainObjPrivatePtr priv)
 {
-    struct qemuDomainJobObj *job = &priv->job;
+    qemuDomainJobObjPtr job = &priv->job;
 
     job->active = QEMU_JOB_NONE;
     job->owner = 0;
@@ -320,7 +315,7 @@ qemuDomainObjResetJob(qemuDomainObjPrivatePtr priv)
 static void
 qemuDomainObjResetAsyncJob(qemuDomainObjPrivatePtr priv)
 {
-    struct qemuDomainJobObj *job = &priv->job;
+    qemuDomainJobObjPtr job = &priv->job;
 
     job->asyncJob = QEMU_ASYNC_JOB_NONE;
     job->asyncOwner = 0;
@@ -328,19 +323,20 @@ qemuDomainObjResetAsyncJob(qemuDomainObjPrivatePtr priv)
     job->asyncStarted = 0;
     job->phase = 0;
     job->mask = QEMU_JOB_DEFAULT_MASK;
-    job->dump_memory_only = false;
     job->abortJob = false;
     job->spiceMigration = false;
     job->spiceMigrated = false;
-    job->postcopyEnabled = false;
     job->dumpCompleted = false;
     VIR_FREE(job->error);
     VIR_FREE(job->current);
+    qemuMigrationParamsFree(job->migParams);
+    job->migParams = NULL;
+    job->apiFlags = 0;
 }
 
 void
 qemuDomainObjRestoreJob(virDomainObjPtr obj,
-                        struct qemuDomainJobObj *job)
+                        qemuDomainJobObjPtr job)
 {
     qemuDomainObjPrivatePtr priv = obj->privateData;
 
@@ -350,6 +346,8 @@ qemuDomainObjRestoreJob(virDomainObjPtr obj,
     job->asyncJob = priv->job.asyncJob;
     job->asyncOwner = priv->job.asyncOwner;
     job->phase = priv->job.phase;
+    VIR_STEAL_PTR(job->migParams, priv->job.migParams);
+    job->apiFlags = priv->job.apiFlags;
 
     qemuDomainObjResetJob(priv);
     qemuDomainObjResetAsyncJob(priv);
@@ -988,14 +986,10 @@ static void qemuDomainDiskPrivateDispose(void *obj);
 static int
 qemuDomainDiskPrivateOnceInit(void)
 {
-    qemuDomainDiskPrivateClass = virClassNew(virClassForObject(),
-                                             "qemuDomainDiskPrivate",
-                                             sizeof(qemuDomainDiskPrivate),
-                                             qemuDomainDiskPrivateDispose);
-    if (!qemuDomainDiskPrivateClass)
+    if (!VIR_CLASS_NEW(qemuDomainDiskPrivate, virClassForObject()))
         return -1;
-    else
-        return 0;
+
+    return 0;
 }
 
 VIR_ONCE_GLOBAL_INIT(qemuDomainDiskPrivate)
@@ -1028,14 +1022,10 @@ static void qemuDomainStorageSourcePrivateDispose(void *obj);
 static int
 qemuDomainStorageSourcePrivateOnceInit(void)
 {
-    qemuDomainStorageSourcePrivateClass = virClassNew(virClassForObject(),
-                                                      "qemuDomainStorageSourcePrivate",
-                                                      sizeof(qemuDomainStorageSourcePrivate),
-                                                      qemuDomainStorageSourcePrivateDispose);
-    if (!qemuDomainStorageSourcePrivateClass)
+    if (!VIR_CLASS_NEW(qemuDomainStorageSourcePrivate, virClassForObject()))
         return -1;
-    else
-        return 0;
+
+    return 0;
 }
 
 VIR_ONCE_GLOBAL_INIT(qemuDomainStorageSourcePrivate)
@@ -1071,14 +1061,10 @@ static void qemuDomainVcpuPrivateDispose(void *obj);
 static int
 qemuDomainVcpuPrivateOnceInit(void)
 {
-    qemuDomainVcpuPrivateClass = virClassNew(virClassForObject(),
-                                             "qemuDomainVcpuPrivate",
-                                             sizeof(qemuDomainVcpuPrivate),
-                                             qemuDomainVcpuPrivateDispose);
-    if (!qemuDomainVcpuPrivateClass)
+    if (!VIR_CLASS_NEW(qemuDomainVcpuPrivate, virClassForObject()))
         return -1;
-    else
-        return 0;
+
+    return 0;
 }
 
 VIR_ONCE_GLOBAL_INIT(qemuDomainVcpuPrivate)
@@ -1115,15 +1101,10 @@ static void qemuDomainChrSourcePrivateDispose(void *obj);
 static int
 qemuDomainChrSourcePrivateOnceInit(void)
 {
-    qemuDomainChrSourcePrivateClass =
-        virClassNew(virClassForObject(),
-                    "qemuDomainChrSourcePrivate",
-                    sizeof(qemuDomainChrSourcePrivate),
-                    qemuDomainChrSourcePrivateDispose);
-    if (!qemuDomainChrSourcePrivateClass)
+    if (!VIR_CLASS_NEW(qemuDomainChrSourcePrivate, virClassForObject()))
         return -1;
-    else
-        return 0;
+
+    return 0;
 }
 
 VIR_ONCE_GLOBAL_INIT(qemuDomainChrSourcePrivate)
@@ -1902,8 +1883,6 @@ qemuDomainObjPrivateDataClear(qemuDomainObjPrivatePtr priv)
     virDomainUSBAddressSetFree(priv->usbaddrs);
     priv->usbaddrs = NULL;
 
-    /* clean up migration data */
-    VIR_FREE(priv->migTLSAlias);
     virCPUDefFree(priv->origCPU);
     priv->origCPU = NULL;
 
@@ -1916,6 +1895,9 @@ qemuDomainObjPrivateDataClear(qemuDomainObjPrivatePtr priv)
 
     virBitmapFree(priv->migrationCaps);
     priv->migrationCaps = NULL;
+
+    qemuDomainObjResetJob(priv);
+    qemuDomainObjResetAsyncJob(priv);
 }
 
 
@@ -2085,6 +2067,9 @@ qemuDomainObjPrivateXMLFormatJob(virBufferPtr buf,
                                                           priv->job.phase));
     }
 
+    if (priv->job.asyncJob != QEMU_ASYNC_JOB_NONE)
+        virBufferAsprintf(&attrBuf, " flags='0x%lx'", priv->job.apiFlags);
+
     if (priv->job.asyncJob == QEMU_ASYNC_JOB_MIGRATION_OUT) {
         size_t i;
         virDomainDiskDefPtr disk;
@@ -2097,6 +2082,9 @@ qemuDomainObjPrivateXMLFormatJob(virBufferPtr buf,
                               disk->dst, diskPriv->migrating ? "yes" : "no");
         }
     }
+
+    if (priv->job.migParams)
+        qemuMigrationParamsFormat(&childBuf, priv->job.migParams);
 
     return virXMLFormatElement(buf, "job", &attrBuf, &childBuf);
 }
@@ -2248,6 +2236,8 @@ qemuDomainObjPrivateXMLParseAutomaticPlacement(xmlXPathContextPtr ctxt,
     virCapsPtr caps = NULL;
     char *nodeset;
     char *cpuset;
+    int nodesetSize = 0;
+    size_t i;
     int ret = -1;
 
     nodeset = virXPathString("string(./numad/@nodeset)", ctxt);
@@ -2259,8 +2249,14 @@ qemuDomainObjPrivateXMLParseAutomaticPlacement(xmlXPathContextPtr ctxt,
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
+    /* Figure out how big the nodeset bitmap needs to be.
+     * This is necessary because NUMA node IDs are not guaranteed to
+     * start from 0 or be densely allocated */
+    for (i = 0; i < caps->host.nnumaCell; i++)
+        nodesetSize = MAX(nodesetSize, caps->host.numaCell[i]->num + 1);
+
     if (nodeset &&
-        virBitmapParse(nodeset, &priv->autoNodeset, caps->host.nnumaCell_max) < 0)
+        virBitmapParse(nodeset, &priv->autoNodeset, nodesetSize) < 0)
         goto cleanup;
 
     if (cpuset) {
@@ -2377,6 +2373,11 @@ qemuDomainObjPrivateXMLParseJob(virDomainObjPtr vm,
         }
     }
 
+    if (virXPathULongHex("string(@flags)", ctxt, &priv->job.apiFlags) == -2) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid job flags"));
+        goto cleanup;
+    }
+
     if ((n = virXPathNodeSet("./disk[@migrating='yes']", ctxt, &nodes)) < 0)
         goto cleanup;
 
@@ -2396,6 +2397,9 @@ qemuDomainObjPrivateXMLParseJob(virDomainObjPtr vm,
         }
     }
     VIR_FREE(nodes);
+
+    if (qemuMigrationParamsParse(ctxt, &priv->job.migParams) < 0)
+        goto cleanup;
 
     ret = 0;
 
@@ -2422,7 +2426,7 @@ qemuDomainObjPrivateXMLParse(xmlXPathContextPtr ctxt,
     xmlNodePtr node = NULL;
     virQEMUCapsPtr qemuCaps = NULL;
 
-    if (VIR_ALLOC(priv->monConfig) < 0)
+    if (!(priv->monConfig = virDomainChrSourceDefNew(NULL)))
         goto error;
 
     if (!(monitorpath =
@@ -4109,8 +4113,49 @@ qemuDomainDeviceDefValidateVideo(const virDomainVideoDef *video)
 
 
 static int
-qemuDomainDeviceDefValidateDisk(const virDomainDiskDef *disk)
+qemuDomainValidateStorageSource(virStorageSourcePtr src,
+                                virQEMUCapsPtr qemuCaps)
 {
+    if (src->format == VIR_STORAGE_FILE_COW) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                      _("'cow' storage format is not supported"));
+        return -1;
+    }
+
+    if (src->format == VIR_STORAGE_FILE_DIR) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("'directory' storage format is not directly supported by QEMU, "
+                         "use 'dir' disk type instead"));
+        return -1;
+    }
+
+    if (src->format == VIR_STORAGE_FILE_ISO) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("storage format 'iso' is not directly supported by QEMU, "
+                         "use 'raw' instead"));
+        return -1;
+    }
+
+    if (src->format == VIR_STORAGE_FILE_QCOW2 &&
+        src->encryption &&
+        src->encryption->format == VIR_STORAGE_ENCRYPTION_FORMAT_LUKS &&
+        !virQEMUCapsGet(qemuCaps, QEMU_CAPS_QCOW2_LUKS)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("LUKS encrypted QCOW2 images are not suppored by this QEMU"));
+        return -1;
+    }
+
+    return 0;
+}
+
+
+static int
+qemuDomainDeviceDefValidateDisk(const virDomainDiskDef *disk,
+                                virQEMUCapsPtr qemuCaps)
+{
+    const char *driverName = virDomainDiskGetDriver(disk);
+    virStorageSourcePtr n;
+
     if (disk->src->shared && !disk->src->readonly) {
         if (disk->src->format <= VIR_STORAGE_FILE_AUTO) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
@@ -4125,6 +4170,18 @@ qemuDomainDeviceDefValidateDisk(const virDomainDiskDef *disk)
                              "supported storage format"), disk->dst);
             return -1;
         }
+    }
+
+    if (driverName && STRNEQ(driverName, "qemu")) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("unsupported driver name '%s' for disk '%s'"),
+                       driverName, disk->dst);
+        return -1;
+    }
+
+    for (n = disk->src; virStorageSourceIsBacking(n); n = n->backingStore) {
+        if (qemuDomainValidateStorageSource(n, qemuCaps) < 0)
+            return -1;
     }
 
     return 0;
@@ -4173,7 +4230,7 @@ qemuDomainDeviceDefValidateControllerAttributes(const virDomainControllerDef *co
  *
  * Using the @qemuCaps, let's ensure the provided @model can be supported
  *
- * Returns true if acceptible, false otherwise with error message set.
+ * Returns true if acceptable, false otherwise with error message set.
  */
 static bool
 qemuDomainCheckSCSIControllerModel(virQEMUCapsPtr qemuCaps,
@@ -4355,6 +4412,8 @@ virDomainControllerPCIModelNameToQEMUCaps(int modelName)
         return QEMU_CAPS_DEVICE_PCIE_ROOT_PORT;
     case VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_SPAPR_PCI_HOST_BRIDGE:
         return QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE;
+    case VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_PCIE_PCI_BRIDGE:
+        return QEMU_CAPS_DEVICE_PCIE_PCI_BRIDGE;
     case VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_NONE:
         return 0;
     case VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_LAST:
@@ -4412,6 +4471,7 @@ qemuDomainDeviceDefValidateControllerPCI(const virDomainControllerDef *cont,
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_DOWNSTREAM_PORT:
     case VIR_DOMAIN_CONTROLLER_MODEL_PCI_EXPANDER_BUS:
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_EXPANDER_BUS:
+    case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_TO_PCI_BRIDGE:
         /* modelName should have been set automatically */
         if (pciopts->modelName == VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_NONE) {
             virReportControllerMissingOption(cont, model, modelName, "modelName");
@@ -4516,6 +4576,13 @@ qemuDomainDeviceDefValidateControllerPCI(const virDomainControllerDef *cont,
         }
         break;
 
+    case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_TO_PCI_BRIDGE:
+        if (pciopts->modelName != VIR_DOMAIN_CONTROLLER_PCI_MODEL_NAME_PCIE_PCI_BRIDGE) {
+            virReportControllerInvalidValue(cont, model, modelName, "modelName");
+            return -1;
+        }
+        break;
+
     case VIR_DOMAIN_CONTROLLER_MODEL_PCI_DEFAULT:
     case VIR_DOMAIN_CONTROLLER_MODEL_PCI_LAST:
     default:
@@ -4532,6 +4599,7 @@ qemuDomainDeviceDefValidateControllerPCI(const virDomainControllerDef *cont,
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_DOWNSTREAM_PORT:
     case VIR_DOMAIN_CONTROLLER_MODEL_PCI_EXPANDER_BUS:
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_EXPANDER_BUS:
+    case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_TO_PCI_BRIDGE:
         if (cont->idx == 0) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("Index for '%s' controllers must be > 0"),
@@ -4593,6 +4661,7 @@ qemuDomainDeviceDefValidateControllerPCI(const virDomainControllerDef *cont,
     case VIR_DOMAIN_CONTROLLER_MODEL_PCI_EXPANDER_BUS:
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_EXPANDER_BUS:
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT:
+    case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_TO_PCI_BRIDGE:
         if (pciopts->targetIndex != -1) {
             virReportControllerInvalidOption(cont, model, modelName, "targetIndex");
             return -1;
@@ -4626,6 +4695,7 @@ qemuDomainDeviceDefValidateControllerPCI(const virDomainControllerDef *cont,
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_DOWNSTREAM_PORT:
     case VIR_DOMAIN_CONTROLLER_MODEL_PCI_EXPANDER_BUS:
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_EXPANDER_BUS:
+    case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_TO_PCI_BRIDGE:
         if (pciopts->pcihole64 ||
             pciopts->pcihole64size != 0) {
             virReportControllerInvalidOption(cont, model, modelName, "pcihole64");
@@ -4657,6 +4727,7 @@ qemuDomainDeviceDefValidateControllerPCI(const virDomainControllerDef *cont,
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_UPSTREAM_PORT:
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_DOWNSTREAM_PORT:
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT:
+    case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_TO_PCI_BRIDGE:
         if (pciopts->busNr != -1) {
             virReportControllerInvalidOption(cont, model, modelName, "busNr");
             return -1;
@@ -4701,6 +4772,7 @@ qemuDomainDeviceDefValidateControllerPCI(const virDomainControllerDef *cont,
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_UPSTREAM_PORT:
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_DOWNSTREAM_PORT:
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT:
+    case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_TO_PCI_BRIDGE:
         if (pciopts->numaNode != -1) {
             virReportControllerInvalidOption(cont, model, modelName, "numaNode");
             return -1;
@@ -4731,6 +4803,7 @@ qemuDomainDeviceDefValidateControllerPCI(const virDomainControllerDef *cont,
     case VIR_DOMAIN_CONTROLLER_MODEL_PCI_EXPANDER_BUS:
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_EXPANDER_BUS:
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT:
+    case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_TO_PCI_BRIDGE:
         if (pciopts->chassisNr != -1) {
             virReportControllerInvalidOption(cont, model, modelName, "chassisNr");
             return -1;
@@ -4765,6 +4838,7 @@ qemuDomainDeviceDefValidateControllerPCI(const virDomainControllerDef *cont,
     case VIR_DOMAIN_CONTROLLER_MODEL_PCI_EXPANDER_BUS:
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_EXPANDER_BUS:
     case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT:
+    case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_TO_PCI_BRIDGE:
         if (pciopts->chassis != -1) {
             virReportControllerInvalidOption(cont, model, modelName, "chassis");
             return -1;
@@ -4954,7 +5028,7 @@ qemuDomainDeviceDefValidate(const virDomainDeviceDef *dev,
         break;
 
     case VIR_DOMAIN_DEVICE_DISK:
-        ret = qemuDomainDeviceDefValidateDisk(dev->data.disk);
+        ret = qemuDomainDeviceDefValidateDisk(dev->data.disk, qemuCaps);
         break;
 
     case VIR_DOMAIN_DEVICE_CONTROLLER:
@@ -5735,7 +5809,8 @@ qemuDomainObjBeginJobInternal(virQEMUDriverPtr driver,
         asyncDuration = now - priv->job.asyncStarted;
 
     VIR_WARN("Cannot start job (%s, %s) for domain %s; "
-             "current job is (%s, %s) owned by (%llu %s, %llu %s) "
+             "current job is (%s, %s) "
+             "owned by (%llu %s, %llu %s (flags=0x%lx)) "
              "for (%llus, %llus)",
              qemuDomainJobTypeToString(job),
              qemuDomainAsyncJobTypeToString(asyncJob),
@@ -5744,6 +5819,7 @@ qemuDomainObjBeginJobInternal(virQEMUDriverPtr driver,
              qemuDomainAsyncJobTypeToString(priv->job.asyncJob),
              priv->job.owner, NULLSTR(priv->job.ownerAPI),
              priv->job.asyncOwner, NULLSTR(priv->job.asyncOwnerAPI),
+             priv->job.apiFlags,
              duration / 1000, asyncDuration / 1000);
 
     if (nested || qemuDomainNestedJobAllowed(priv, job))
@@ -5807,7 +5883,8 @@ int qemuDomainObjBeginJob(virQEMUDriverPtr driver,
 int qemuDomainObjBeginAsyncJob(virQEMUDriverPtr driver,
                                virDomainObjPtr obj,
                                qemuDomainAsyncJob asyncJob,
-                               virDomainJobOperation operation)
+                               virDomainJobOperation operation,
+                               unsigned long apiFlags)
 {
     qemuDomainObjPrivatePtr priv;
 
@@ -5817,6 +5894,7 @@ int qemuDomainObjBeginAsyncJob(virQEMUDriverPtr driver,
 
     priv = obj->privateData;
     priv->job.current->operation = operation;
+    priv->job.apiFlags = apiFlags;
     return 0;
 }
 
@@ -7399,6 +7477,7 @@ qemuDomainDetermineDiskChain(virQEMUDriverPtr driver,
 {
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     virStorageSourcePtr src = disk->src;
+    qemuDomainObjPrivatePtr priv = vm->privateData;
     int ret = -1;
     uid_t uid;
     gid_t gid;
@@ -7465,6 +7544,10 @@ qemuDomainDetermineDiskChain(virQEMUDriverPtr driver,
                                   uid, gid,
                                   cfg->allowDiskFormatProbing,
                                   report_broken) < 0)
+        goto cleanup;
+
+    /* fill in data for the rest of the chain */
+    if (qemuDomainPrepareDiskSourceChain(disk, src, cfg, priv->qemuCaps) < 0)
         goto cleanup;
 
     ret = 0;
@@ -8948,15 +9031,19 @@ qemuDomainRefreshVcpuInfo(virQEMUDriverPtr driver,
     size_t maxvcpus = virDomainDefGetVcpusMax(vm->def);
     size_t i;
     bool hotplug;
+    bool fast;
     int rc;
     int ret = -1;
 
     hotplug = qemuDomainSupportsNewVcpuHotplug(vm);
+    fast = virQEMUCapsGet(QEMU_DOMAIN_PRIVATE(vm)->qemuCaps,
+                          QEMU_CAPS_QUERY_CPUS_FAST);
 
     if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
         return -1;
 
-    rc = qemuMonitorGetCPUInfo(qemuDomainGetMonitor(vm), &info, maxvcpus, hotplug);
+    rc = qemuMonitorGetCPUInfo(qemuDomainGetMonitor(vm), &info, maxvcpus,
+                               hotplug, fast);
 
     if (qemuDomainObjExitMonitor(driver, vm) < 0)
         goto cleanup;
@@ -8975,7 +9062,7 @@ qemuDomainRefreshVcpuInfo(virQEMUDriverPtr driver,
          * thread, but it runs every vCPU in that same thread. So it
          * is impossible to setup different affinity per thread.
          *
-         * What's more the 'query-cpus' command returns bizarre
+         * What's more the 'query-cpus[-fast]' command returns bizarre
          * data for the threads. It gives the TCG thread for the
          * vCPU 0, but for vCPUs 1-> N, it actually replies with
          * the main process thread ID.
@@ -9063,21 +9150,29 @@ qemuDomainRefreshVcpuHalted(virQEMUDriverPtr driver,
     virBitmapPtr haltedmap = NULL;
     size_t i;
     int ret = -1;
+    bool fast;
 
     /* Not supported currently for TCG, see qemuDomainRefreshVcpuInfo */
     if (vm->def->virtType == VIR_DOMAIN_VIRT_QEMU)
         return 0;
 
     /* The halted state is interresting only on s390(x). On other platforms
-     * the data would be stale at the time when it would be used. */
-    if (!ARCH_IS_S390(vm->def->os.arch))
+     * the data would be stale at the time when it would be used.
+     * Calling qemuMonitorGetCpuHalted() can adversely affect the running
+     * VM's performance unless QEMU supports query-cpus-fast.
+     */
+    if (!ARCH_IS_S390(vm->def->os.arch) ||
+        !virQEMUCapsGet(QEMU_DOMAIN_PRIVATE(vm)->qemuCaps,
+                        QEMU_CAPS_QUERY_CPUS_FAST))
         return 0;
 
     if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
         return -1;
 
-    haltedmap = qemuMonitorGetCpuHalted(qemuDomainGetMonitor(vm), maxvcpus);
-
+    fast = virQEMUCapsGet(QEMU_DOMAIN_PRIVATE(vm)->qemuCaps,
+                          QEMU_CAPS_QUERY_CPUS_FAST);
+    haltedmap = qemuMonitorGetCpuHalted(qemuDomainGetMonitor(vm), maxvcpus,
+                                        fast);
     if (qemuDomainObjExitMonitor(driver, vm) < 0 || !haltedmap)
         goto cleanup;
 
@@ -9110,16 +9205,6 @@ qemuDomainSupportsNicdev(virDomainDefPtr def,
 }
 
 bool
-qemuDomainSupportsNetdev(virDomainDefPtr def,
-                         virQEMUCapsPtr qemuCaps,
-                         virDomainNetDefPtr net)
-{
-    if (!qemuDomainSupportsNicdev(def, net))
-        return false;
-    return virQEMUCapsGet(qemuCaps, QEMU_CAPS_NETDEV);
-}
-
-bool
 qemuDomainNetSupportsMTU(virDomainNetType type)
 {
     switch (type) {
@@ -9140,12 +9225,6 @@ qemuDomainNetSupportsMTU(virDomainNetType type)
         break;
     }
     return false;
-}
-
-int
-qemuDomainNetVLAN(virDomainNetDefPtr def)
-{
-    return qemuDomainDeviceAliasIndex(&def->info, "net");
 }
 
 
@@ -11129,7 +11208,7 @@ qemuDomainNamespaceSetupDisk(virDomainObjPtr vm,
                              virStorageSourcePtr src)
 {
     virStorageSourcePtr next;
-    char **paths = NULL;
+    const char **paths = NULL;
     size_t npaths = 0;
     int ret = -1;
 
@@ -11147,8 +11226,8 @@ qemuDomainNamespaceSetupDisk(virDomainObjPtr vm,
             goto cleanup;
     }
 
-    if (qemuDomainNamespaceMknodPaths(vm, (const char **)paths, npaths) < 0)
-        return -1;
+    if (qemuDomainNamespaceMknodPaths(vm, paths, npaths) < 0)
+        goto cleanup;
 
     ret = 0;
  cleanup:
@@ -11731,75 +11810,50 @@ qemuDomainCheckCCWS390AddressSupport(const virDomainDef *def,
 }
 
 
+/**
+ * qemuDomainPrepareDiskSourceChain:
+ *
+ * @disk: Disk config object
+ * @src: source to start from
+ * @cfg: qemu driver config object
+ *
+ * Prepares various aspects of the disk source and it's backing chain. This
+ * function should be also called for detected backing chains. If @src is NULL
+ * the root source is used.
+ */
 int
-qemuDomainCheckMigrationCapabilities(virQEMUDriverPtr driver,
-                                     virDomainObjPtr vm,
-                                     qemuDomainAsyncJob asyncJob)
+qemuDomainPrepareDiskSourceChain(virDomainDiskDefPtr disk,
+                                 virStorageSourcePtr src,
+                                 virQEMUDriverConfigPtr cfg,
+                                 virQEMUCapsPtr qemuCaps)
 {
-    qemuDomainObjPrivatePtr priv = vm->privateData;
-    char **caps = NULL;
-    char **capStr;
-    int ret = -1;
-    int rc;
+    virStorageSourcePtr n;
 
-    if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
-        return -1;
+    if (!src)
+        src = disk->src;
 
-    rc = qemuMonitorGetMigrationCapabilities(priv->mon, &caps);
-
-    if (qemuDomainObjExitMonitor(driver, vm) < 0 || rc < 0)
-        goto cleanup;
-
-    if (!caps) {
-        ret = 0;
-        goto cleanup;
-    }
-
-    priv->migrationCaps = virBitmapNew(QEMU_MONITOR_MIGRATION_CAPS_LAST);
-    if (!priv->migrationCaps)
-        goto cleanup;
-
-    for (capStr = caps; *capStr; capStr++) {
-        int cap = qemuMonitorMigrationCapsTypeFromString(*capStr);
-
-        if (cap < 0) {
-            VIR_DEBUG("Unknown migration capability: '%s'", *capStr);
-        } else {
-            ignore_value(virBitmapSetBit(priv->migrationCaps, cap));
-            VIR_DEBUG("Found migration capability: '%s'", *capStr);
+    for (n = src; virStorageSourceIsBacking(n); n = n->backingStore) {
+        if (n->type == VIR_STORAGE_TYPE_NETWORK &&
+            n->protocol == VIR_STORAGE_NET_PROTOCOL_GLUSTER &&
+            virQEMUCapsGet(qemuCaps, QEMU_CAPS_GLUSTER_DEBUG_LEVEL)) {
+            n->debug = true;
+            n->debugLevel = cfg->glusterDebugLevel;
         }
+
+        if (qemuDomainValidateStorageSource(n, qemuCaps) < 0)
+            return -1;
     }
 
-    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_MIGRATION_EVENT)) {
-        if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
-            goto cleanup;
+    return 0;
+}
 
-        rc = qemuMonitorSetMigrationCapability(priv->mon,
-                                               QEMU_MONITOR_MIGRATION_CAPS_EVENTS,
-                                               true);
 
-        if (qemuDomainObjExitMonitor(driver, vm) < 0)
-            goto cleanup;
-
-        if (rc < 0) {
-            virResetLastError();
-            VIR_DEBUG("Cannot enable migration events; clearing capability");
-            virQEMUCapsClear(priv->qemuCaps, QEMU_CAPS_MIGRATION_EVENT);
-        }
-    }
-
-    /* Migration events capability must always be enabled, clearing it from
-     * migration capabilities bitmap makes sure it won't be touched anywhere
-     * else.
-     */
-    ignore_value(virBitmapClearBit(priv->migrationCaps,
-                                   QEMU_MONITOR_MIGRATION_CAPS_EVENTS));
-
-    ret = 0;
-
- cleanup:
-    virStringListFree(caps);
-    return ret;
+static void
+qemuDomainPrepareDiskCachemode(virDomainDiskDefPtr disk)
+{
+    if (disk->cachemode == VIR_DOMAIN_DISK_CACHE_DEFAULT &&
+        disk->src->shared && !disk->src->readonly)
+        disk->cachemode = VIR_DOMAIN_DISK_CACHE_DISABLE;
 }
 
 
@@ -11808,17 +11862,90 @@ qemuDomainPrepareDiskSource(virDomainDiskDefPtr disk,
                             qemuDomainObjPrivatePtr priv,
                             virQEMUDriverConfigPtr cfg)
 {
+    qemuDomainPrepareDiskCachemode(disk);
+
     if (qemuDomainPrepareDiskSourceTLS(disk->src, cfg) < 0)
         return -1;
 
     if (qemuDomainSecretDiskPrepare(priv, disk) < 0)
         return -1;
 
-    if (disk->src->type == VIR_STORAGE_TYPE_NETWORK &&
-        disk->src->protocol == VIR_STORAGE_NET_PROTOCOL_GLUSTER &&
-        virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_GLUSTER_DEBUG_LEVEL)) {
-        disk->src->debug = true;
-        disk->src->debugLevel = cfg->glusterDebugLevel;
+    if (qemuDomainPrepareDiskSourceChain(disk, NULL, cfg, priv->qemuCaps) < 0)
+        return -1;
+
+    return 0;
+}
+
+
+/**
+ * qemuDomainDiskCachemodeFlags:
+ *
+ * Converts disk cachemode to the cache mode options for qemu. Returns -1 for
+ * invalid @cachemode values and fills the flags and returns 0 on success.
+ * Flags may be NULL.
+ */
+int
+qemuDomainDiskCachemodeFlags(int cachemode,
+                             bool *writeback,
+                             bool *direct,
+                             bool *noflush)
+{
+    bool dummy;
+
+    if (!writeback)
+        writeback = &dummy;
+
+    if (!direct)
+        direct = &dummy;
+
+    if (!noflush)
+        noflush = &dummy;
+
+    /* Mapping of cache modes to the attributes according to qemu-options.hx
+     *              │ cache.writeback   cache.direct   cache.no-flush
+     * ─────────────┼─────────────────────────────────────────────────
+     * writeback    │ true              false          false
+     * none         │ true              true           false
+     * writethrough │ false             false          false
+     * directsync   │ false             true           false
+     * unsafe       │ true              false          true
+     */
+    switch ((virDomainDiskCache) cachemode) {
+    case VIR_DOMAIN_DISK_CACHE_DISABLE: /* 'none' */
+        *writeback = true;
+        *direct = true;
+        *noflush = false;
+        break;
+
+    case VIR_DOMAIN_DISK_CACHE_WRITETHRU:
+        *writeback = false;
+        *direct = false;
+        *noflush = false;
+        break;
+
+    case VIR_DOMAIN_DISK_CACHE_WRITEBACK:
+        *writeback = true;
+        *direct = false;
+        *noflush = false;
+        break;
+
+    case VIR_DOMAIN_DISK_CACHE_DIRECTSYNC:
+        *writeback = false;
+        *direct = true;
+        *noflush = false;
+        break;
+
+    case VIR_DOMAIN_DISK_CACHE_UNSAFE:
+        *writeback = true;
+        *direct = false;
+        *noflush = true;
+        break;
+
+    case VIR_DOMAIN_DISK_CACHE_DEFAULT:
+    case VIR_DOMAIN_DISK_CACHE_LAST:
+    default:
+        virReportEnumRangeError(virDomainDiskCache, cachemode);
+        return -1;
     }
 
     return 0;

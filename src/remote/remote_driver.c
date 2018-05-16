@@ -24,7 +24,6 @@
 #include <config.h>
 
 #include <unistd.h>
-#include <assert.h>
 
 #include "virnetclient.h"
 #include "virnetclientprogram.h"
@@ -162,7 +161,26 @@ static void make_nonnull_domain_snapshot(remote_nonnull_domain_snapshot *snapsho
 /*----------------------------------------------------------------------*/
 
 /* Helper functions for remoteOpen. */
-static char *get_transport_from_scheme(char *scheme);
+static int remoteSplitURIScheme(virURIPtr uri,
+                                char **driver,
+                                char **transport)
+{
+    char *p = strchr(uri->scheme, '+');
+
+    *driver = *transport = NULL;
+
+    if (VIR_STRNDUP(*driver, uri->scheme, p ? p - uri->scheme : -1) < 0)
+        return -1;
+
+    if (p &&
+        VIR_STRDUP(*transport, p + 1) < 0) {
+        VIR_FREE(*driver);
+        return -1;
+    }
+
+    return 0;
+}
+
 
 static int
 remoteStateInitialize(bool privileged ATTRIBUTE_UNUSED,
@@ -692,6 +710,41 @@ remoteConnectSupportsFeatureUnlocked(virConnectPtr conn,
         var->ignore = 1; \
         continue; \
     }
+
+
+#ifndef WIN32
+static char *remoteGetUNIXSocketNonRoot(void)
+{
+    char *sockname = NULL;
+    char *userdir = virGetUserRuntimeDirectory();
+
+    if (!userdir)
+        return NULL;
+
+    if (virAsprintf(&sockname, "%s/" LIBVIRTD_USER_UNIX_SOCKET, userdir) < 0) {
+        VIR_FREE(userdir);
+        return NULL;
+    }
+    VIR_FREE(userdir);
+
+    VIR_DEBUG("Chosen UNIX sockname %s", sockname);
+    return sockname;
+}
+#endif /* WIN32 */
+
+static char *remoteGetUNIXSocketRoot(unsigned int flags)
+{
+    char *sockname = NULL;
+
+    if (VIR_STRDUP(sockname,
+                   flags & VIR_DRV_OPEN_REMOTE_RO ?
+                   LIBVIRTD_PRIV_UNIX_SOCKET_RO : LIBVIRTD_PRIV_UNIX_SOCKET) < 0)
+        return NULL;
+
+    VIR_DEBUG("Chosen UNIX sockname %s", sockname);
+    return sockname;
+}
+
 /*
  * URIs that this driver needs to handle:
  *
@@ -715,11 +768,12 @@ remoteConnectSupportsFeatureUnlocked(virConnectPtr conn,
 static int
 doRemoteOpen(virConnectPtr conn,
              struct private_data *priv,
+             const char *driver_str,
+             const char *transport_str,
              virConnectAuthPtr auth ATTRIBUTE_UNUSED,
              virConfPtr conf,
              unsigned int flags)
 {
-    char *transport_str = NULL;
     enum {
         trans_tls,
         trans_unix,
@@ -738,51 +792,39 @@ doRemoteOpen(virConnectPtr conn,
      * URIs we don't care about */
 
     if (conn->uri) {
-        if (!conn->uri->scheme) {
-            /* This is the ///var/lib/xen/xend-socket local path style */
-            if (!conn->uri->path)
-                return VIR_DRV_OPEN_DECLINED;
-            if (conn->uri->path[0] != '/')
-                return VIR_DRV_OPEN_DECLINED;
-
-            transport = trans_unix;
+        if (!transport_str) {
+            if (conn->uri->server)
+                transport = trans_tls;
+            else
+                transport = trans_unix;
         } else {
-            transport_str = get_transport_from_scheme(conn->uri->scheme);
-
-            if (!transport_str) {
-                if (conn->uri->server)
-                    transport = trans_tls;
-                else
-                    transport = trans_unix;
-            } else {
-                if (STRCASEEQ(transport_str, "tls")) {
-                    transport = trans_tls;
-                } else if (STRCASEEQ(transport_str, "unix")) {
-                    if (conn->uri->server) {
-                        virReportError(VIR_ERR_INVALID_ARG,
-                                       _("using unix socket and remote "
-                                         "server '%s' is not supported."),
-                                       conn->uri->server);
-                        return VIR_DRV_OPEN_ERROR;
-                    } else {
-                        transport = trans_unix;
-                    }
-                } else if (STRCASEEQ(transport_str, "ssh")) {
-                    transport = trans_ssh;
-                } else if (STRCASEEQ(transport_str, "libssh2")) {
-                    transport = trans_libssh2;
-                } else if (STRCASEEQ(transport_str, "ext")) {
-                    transport = trans_ext;
-                } else if (STRCASEEQ(transport_str, "tcp")) {
-                    transport = trans_tcp;
-                } else if (STRCASEEQ(transport_str, "libssh")) {
-                    transport = trans_libssh;
-                } else {
-                    virReportError(VIR_ERR_INVALID_ARG, "%s",
-                                   _("remote_open: transport in URL not recognised "
-                                     "(should be tls|unix|ssh|ext|tcp|libssh2)"));
+            if (STRCASEEQ(transport_str, "tls")) {
+                transport = trans_tls;
+            } else if (STRCASEEQ(transport_str, "unix")) {
+                if (conn->uri->server) {
+                    virReportError(VIR_ERR_INVALID_ARG,
+                                   _("using unix socket and remote "
+                                     "server '%s' is not supported."),
+                                   conn->uri->server);
                     return VIR_DRV_OPEN_ERROR;
+                } else {
+                    transport = trans_unix;
                 }
+            } else if (STRCASEEQ(transport_str, "ssh")) {
+                transport = trans_ssh;
+            } else if (STRCASEEQ(transport_str, "libssh2")) {
+                transport = trans_libssh2;
+            } else if (STRCASEEQ(transport_str, "ext")) {
+                transport = trans_ext;
+            } else if (STRCASEEQ(transport_str, "tcp")) {
+                transport = trans_tcp;
+            } else if (STRCASEEQ(transport_str, "libssh")) {
+                transport = trans_libssh;
+            } else {
+                virReportError(VIR_ERR_INVALID_ARG, "%s",
+                               _("remote_open: transport in URL not recognised "
+                                 "(should be tls|unix|ssh|ext|tcp|libssh2)"));
+                return VIR_DRV_OPEN_ERROR;
             }
         }
     } else {
@@ -883,25 +925,15 @@ doRemoteOpen(virConnectPtr conn,
                     goto failed;
             } else {
                 virURI tmpuri = {
-                    .scheme = conn->uri->scheme,
+                    .scheme = (char *)driver_str,
                     .query = virURIFormatParams(conn->uri),
                     .path = conn->uri->path,
                     .fragment = conn->uri->fragment,
                 };
 
-                /* Evil, blank out transport scheme temporarily */
-                if (transport_str) {
-                    assert(transport_str[-1] == '+');
-                    transport_str[-1] = '\0';
-                }
-
                 name = virURIFormat(&tmpuri);
 
                 VIR_FREE(tmpuri.query);
-
-                /* Restore transport scheme */
-                if (transport_str)
-                    transport_str[-1] = '+';
 
                 if (!name)
                     goto failed;
@@ -938,6 +970,7 @@ doRemoteOpen(virConnectPtr conn,
         if (!priv->tls)
             goto failed;
         priv->is_secure = 1;
+        ATTRIBUTE_FALLTHROUGH;
 #else
         (void)tls_priority;
         (void)sanity;
@@ -947,7 +980,6 @@ doRemoteOpen(virConnectPtr conn,
         goto failed;
 #endif
 
-        ATTRIBUTE_FALLTHROUGH;
     case trans_tcp:
         priv->client = virNetClientNewTCP(priv->hostname, port, AF_UNSPEC);
         if (!priv->client)
@@ -974,9 +1006,7 @@ doRemoteOpen(virConnectPtr conn,
                 goto failed;
             }
 
-            if (VIR_STRDUP(sockname,
-                           flags & VIR_DRV_OPEN_REMOTE_RO ?
-                           LIBVIRTD_PRIV_UNIX_SOCKET_RO : LIBVIRTD_PRIV_UNIX_SOCKET) < 0)
+            if (!(sockname = remoteGetUNIXSocketRoot(flags)))
                 goto failed;
         }
 
@@ -1011,9 +1041,7 @@ doRemoteOpen(virConnectPtr conn,
                 goto failed;
             }
 
-            if (VIR_STRDUP(sockname,
-                           flags & VIR_DRV_OPEN_REMOTE_RO ?
-                           LIBVIRTD_PRIV_UNIX_SOCKET_RO : LIBVIRTD_PRIV_UNIX_SOCKET) < 0)
+            if (!(sockname = remoteGetUNIXSocketRoot(flags)))
                 goto failed;
         }
 
@@ -1040,30 +1068,18 @@ doRemoteOpen(virConnectPtr conn,
 #ifndef WIN32
     case trans_unix:
         if (!sockname) {
-            if (flags & VIR_DRV_OPEN_REMOTE_USER) {
-                char *userdir = virGetUserRuntimeDirectory();
-
-                if (!userdir)
-                    goto failed;
-
-                if (virAsprintf(&sockname, "%s/" LIBVIRTD_USER_UNIX_SOCKET, userdir) < 0) {
-                    VIR_FREE(userdir);
-                    goto failed;
-                }
-                VIR_FREE(userdir);
-            } else {
-                if (VIR_STRDUP(sockname,
-                               flags & VIR_DRV_OPEN_REMOTE_RO ?
-                               LIBVIRTD_PRIV_UNIX_SOCKET_RO : LIBVIRTD_PRIV_UNIX_SOCKET) < 0)
-                    goto failed;
-            }
-            VIR_DEBUG("Proceeding with sockname %s", sockname);
+            if (flags & VIR_DRV_OPEN_REMOTE_USER)
+                sockname = remoteGetUNIXSocketNonRoot();
+            else
+                sockname = remoteGetUNIXSocketRoot(flags);
+            if (!sockname)
+                goto failed;
         }
 
         if ((flags & VIR_DRV_OPEN_REMOTE_AUTOSTART) &&
             !(daemonPath = virFileFindResourceFull("libvirtd",
                                                    NULL, NULL,
-                                                   abs_topbuilddir "/daemon",
+                                                   abs_topbuilddir "/src",
                                                    SBINDIR,
                                                    "LIBVIRTD_PATH")))
             goto failed;
@@ -1090,9 +1106,7 @@ doRemoteOpen(virConnectPtr conn,
                 goto failed;
             }
 
-            if (VIR_STRDUP(sockname,
-                           flags & VIR_DRV_OPEN_REMOTE_RO ?
-                           LIBVIRTD_PRIV_UNIX_SOCKET_RO : LIBVIRTD_PRIV_UNIX_SOCKET) < 0)
+            if (!(sockname = remoteGetUNIXSocketRoot(flags)))
                 goto failed;
         }
 
@@ -1307,14 +1321,23 @@ remoteConnectOpen(virConnectPtr conn,
                   unsigned int flags)
 {
     struct private_data *priv;
-    int ret, rflags = 0;
+    int ret = VIR_DRV_OPEN_ERROR;
+    int rflags = 0;
     const char *autostart = virGetEnvBlockSUID("LIBVIRT_AUTOSTART");
+    char *driver = NULL;
+    char *transport = NULL;
 
-    if (inside_daemon && (!conn->uri || !conn->uri->server))
-        return VIR_DRV_OPEN_DECLINED;
+    if (conn->uri &&
+        remoteSplitURIScheme(conn->uri, &driver, &transport) < 0)
+        goto cleanup;
+
+    if (inside_daemon && (!conn->uri || !conn->uri->server)) {
+        ret = VIR_DRV_OPEN_DECLINED;
+        goto cleanup;
+    }
 
     if (!(priv = remoteAllocPrivateData()))
-        return VIR_DRV_OPEN_ERROR;
+        goto cleanup;
 
     if (flags & VIR_CONNECT_RO)
         rflags |= VIR_DRV_OPEN_REMOTE_RO;
@@ -1329,8 +1352,7 @@ remoteConnectOpen(virConnectPtr conn,
         !conn->uri->server &&
         conn->uri->path &&
         conn->uri->scheme &&
-        ((strchr(conn->uri->scheme, '+') == 0)||
-         (strstr(conn->uri->scheme, "+unix") != NULL)) &&
+        (transport == NULL || STREQ(transport, "unix")) &&
         (STREQ(conn->uri->path, "/session") ||
          STRPREFIX(conn->uri->scheme, "test+")) &&
         geteuid() > 0) {
@@ -1358,7 +1380,7 @@ remoteConnectOpen(virConnectPtr conn,
         }
     }
 
-    ret = doRemoteOpen(conn, priv, auth, conf, rflags);
+    ret = doRemoteOpen(conn, priv, driver, transport, auth, conf, rflags);
     if (ret != VIR_DRV_OPEN_SUCCESS) {
         conn->privateData = NULL;
         remoteDriverUnlock(priv);
@@ -1367,17 +1389,13 @@ remoteConnectOpen(virConnectPtr conn,
         conn->privateData = priv;
         remoteDriverUnlock(priv);
     }
+
+ cleanup:
+    VIR_FREE(driver);
+    VIR_FREE(transport);
     return ret;
 }
 
-
-/* In a string "driver+transport" return a pointer to "transport". */
-static char *
-get_transport_from_scheme(char *scheme)
-{
-    char *p = strchr(scheme, '+');
-    return p ? p + 1 : NULL;
-}
 
 /*----------------------------------------------------------------------*/
 

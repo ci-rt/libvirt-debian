@@ -363,8 +363,10 @@ virGlobalInit(void)
         goto error;
 #endif
 
+#ifdef HAVE_LIBINTL_H
     if (!bindtextdomain(PACKAGE, LOCALEDIR))
         goto error;
+#endif /* HAVE_LIBINTL_H */
 
     /*
      * Note we must avoid everything except 'remote' driver
@@ -905,7 +907,7 @@ virConnectGetDefaultURI(virConfPtr conf,
 static int
 virConnectCheckURIMissingSlash(const char *uristr, virURIPtr uri)
 {
-    if (!uri->scheme || !uri->path || !uri->server)
+    if (!uri->path || !uri->server)
         return 0;
 
     /* To avoid false positives, only check drivers that mandate
@@ -954,15 +956,15 @@ virConnectOpenInternal(const char *name,
         goto failed;
     }
 
-    /* Convert xen -> xen:/// for back compat */
+    /* Convert xen -> xen:///system for back compat */
     if (name && STRCASEEQ(name, "xen"))
-        name = "xen:///";
+        name = "xen:///system";
 
-    /* Convert xen:// -> xen:/// because xmlParseURI cannot parse the
+    /* Convert xen:// -> xen:///system because xmlParseURI cannot parse the
      * former.  This allows URIs such as xen://localhost to work.
      */
     if (name && STREQ(name, "xen://"))
-        name = "xen:///";
+        name = "xen:///system";
 
     /*
      * If no URI is passed, then check for an environment string if not
@@ -975,6 +977,19 @@ virConnectOpenInternal(const char *name,
     } else {
         if (virConnectGetDefaultURI(conf, &uristr) < 0)
             goto failed;
+
+        if (uristr == NULL) {
+            VIR_DEBUG("Trying to probe for default URI");
+            for (i = 0; i < virConnectDriverTabCount && uristr == NULL; i++) {
+                if (virConnectDriverTab[i]->hypervisorDriver->connectURIProbe) {
+                    if (virConnectDriverTab[i]->hypervisorDriver->connectURIProbe(&uristr) < 0)
+                        goto failed;
+                    VIR_DEBUG("%s driver URI probe returned '%s'",
+                              virConnectDriverTab[i]->hypervisorDriver->name,
+                              uristr ? uristr : "");
+                }
+            }
+        }
     }
 
     if (uristr) {
@@ -994,6 +1009,12 @@ virConnectOpenInternal(const char *name,
             goto failed;
         }
 
+        /* Avoid need for drivers to worry about NULLs, as
+         * no one needs to distinguish "" vs NULL */
+        if (ret->uri->path == NULL &&
+            VIR_STRDUP(ret->uri->path, "") < 0)
+            goto failed;
+
         VIR_DEBUG("Split \"%s\" to URI components:\n"
                   "  scheme %s\n"
                   "  server %s\n"
@@ -1003,7 +1024,14 @@ virConnectOpenInternal(const char *name,
                   uristr,
                   NULLSTR(ret->uri->scheme), NULLSTR(ret->uri->server),
                   NULLSTR(ret->uri->user), ret->uri->port,
-                  NULLSTR(ret->uri->path));
+                  ret->uri->path);
+
+        if (ret->uri->scheme == NULL) {
+            virReportError(VIR_ERR_NO_CONNECT,
+                           _("URI '%s' does not include a driver name"),
+                           name);
+            goto failed;
+        }
 
         if (virConnectCheckURIMissingSlash(uristr,
                                            ret->uri) < 0) {
@@ -1025,7 +1053,7 @@ virConnectOpenInternal(const char *name,
          * not being able to connect to libvirtd or not being able to find
          * certificates. */
         if (STREQ(virConnectDriverTab[i]->hypervisorDriver->name, "remote") &&
-            ret->uri != NULL && ret->uri->scheme != NULL &&
+            ret->uri != NULL &&
             (
 #ifndef WITH_PHYP
              STRCASEEQ(ret->uri->scheme, "phyp") ||
@@ -1054,6 +1082,35 @@ virConnectOpenInternal(const char *name,
 
         VIR_DEBUG("trying driver %zu (%s) ...",
                   i, virConnectDriverTab[i]->hypervisorDriver->name);
+
+        if (virConnectDriverTab[i]->localOnly && ret->uri && ret->uri->server) {
+            VIR_DEBUG("Server present, skipping local only driver");
+            continue;
+        }
+
+        /* Filter drivers based on declared URI schemes */
+        if (virConnectDriverTab[i]->uriSchemes) {
+            bool matchScheme = false;
+            size_t s;
+            if (!ret->uri) {
+                VIR_DEBUG("No URI, skipping driver with URI whitelist");
+                continue;
+            }
+            VIR_DEBUG("Checking for supported URI schemes");
+            for (s = 0; virConnectDriverTab[i]->uriSchemes[s] != NULL; s++) {
+                if (STREQ(ret->uri->scheme, virConnectDriverTab[i]->uriSchemes[s])) {
+                    VIR_DEBUG("Matched URI scheme '%s'", ret->uri->scheme);
+                    matchScheme = true;
+                    break;
+                }
+            }
+            if (!matchScheme) {
+                VIR_DEBUG("No matching URI scheme");
+                continue;
+            }
+        } else {
+            VIR_DEBUG("Matching any URI scheme for '%s'", ret->uri ? ret->uri->scheme : "");
+        }
 
         ret->driver = virConnectDriverTab[i]->hypervisorDriver;
         ret->interfaceDriver = virConnectDriverTab[i]->interfaceDriver;

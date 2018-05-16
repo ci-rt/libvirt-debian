@@ -1958,7 +1958,7 @@ prlsdkLoadDomain(vzDriverPtr driver,
             goto error;
 
         virObjectLock(driver);
-        if (!(olddom = virDomainObjListFindByUUIDRef(driver->domains, def->uuid)))
+        if (!(olddom = virDomainObjListFindByUUID(driver->domains, def->uuid)))
             dom = virDomainObjListAdd(driver->domains, def, driver->xmlopt, 0, NULL);
         virObjectUnlock(driver);
 
@@ -2166,7 +2166,7 @@ prlsdkHandleVmStateEvent(vzDriverPtr driver,
 
  cleanup:
     PrlHandle_Free(eventParam);
-    virObjectUnlock(dom);
+    virDomainObjEndAPI(&dom);
     return;
 }
 
@@ -2177,7 +2177,7 @@ prlsdkHandleVmConfigEvent(vzDriverPtr driver,
     virDomainObjPtr dom = NULL;
     bool job = false;
 
-    dom = virDomainObjListFindByUUIDRef(driver->domains, uuid);
+    dom = virDomainObjListFindByUUID(driver->domains, uuid);
     if (dom == NULL)
         return;
 
@@ -2207,7 +2207,7 @@ prlsdkHandleVmAddedEvent(vzDriverPtr driver,
 {
     virDomainObjPtr dom = NULL;
 
-    if (!(dom = virDomainObjListFindByUUIDRef(driver->domains, uuid)) &&
+    if (!(dom = virDomainObjListFindByUUID(driver->domains, uuid)) &&
         !(dom = prlsdkAddDomainByUUID(driver, uuid)))
         goto cleanup;
 
@@ -2235,6 +2235,8 @@ prlsdkHandleVmRemovedEvent(vzDriverPtr driver,
                     VIR_DOMAIN_EVENT_UNDEFINED_REMOVED);
 
     virDomainObjListRemove(driver->domains, dom);
+    virObjectLock(dom);
+    virDomainObjEndAPI(&dom);
     return;
 }
 
@@ -2255,7 +2257,7 @@ prlsdkHandlePerfEvent(vzDriverPtr driver,
     PrlHandle_Free(privdom->stats);
     privdom->stats = event;
 
-    virObjectUnlock(dom);
+    virDomainObjEndAPI(&dom);
 }
 
 static void
@@ -2283,7 +2285,7 @@ prlsdkHandleMigrationProgress(vzDriverPtr driver,
 
  cleanup:
     PrlHandle_Free(param);
-    virObjectUnlock(dom);
+    virDomainObjEndAPI(&dom);
 }
 
 static PRL_RESULT

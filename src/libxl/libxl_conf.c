@@ -50,6 +50,7 @@
 #include "secret_util.h"
 #include "cpu/cpu.h"
 #include "xen_common.h"
+#include "xen_xl.h"
 
 
 #define VIR_FROM_THIS VIR_FROM_LIBXL
@@ -62,10 +63,7 @@ static void libxlDriverConfigDispose(void *obj);
 
 static int libxlConfigOnceInit(void)
 {
-    if (!(libxlDriverConfigClass = virClassNew(virClassForObject(),
-                                               "libxlDriverConfig",
-                                               sizeof(libxlDriverConfig),
-                                               libxlDriverConfigDispose)))
+    if (!VIR_CLASS_NEW(libxlDriverConfig, virClassForObject()))
         return -1;
 
     return 0;
@@ -80,7 +78,8 @@ libxlDriverConfigDispose(void *obj)
 
     virObjectUnref(cfg->caps);
     libxl_ctx_free(cfg->ctx);
-    libxlLoggerFree(cfg->logger);
+    if (cfg->logger)
+        libxlLoggerFree(cfg->logger);
 
     VIR_FREE(cfg->configDir);
     VIR_FREE(cfg->autostartDir);
@@ -270,11 +269,12 @@ libxlMakeChrdevStr(virDomainChrDefPtr def, char **buf)
 
 static int
 libxlMakeDomBuildInfo(virDomainDefPtr def,
-                      libxl_ctx *ctx,
+                      libxlDriverConfigPtr cfg,
                       virCapsPtr caps,
                       libxl_domain_config *d_config)
 {
     virDomainClockDef clock = def->clock;
+    libxl_ctx *ctx = cfg->ctx;
     libxl_domain_build_info *b_info = &d_config->b_info;
     int hvm = def->os.type == VIR_DOMAIN_OSTYPE_HVM;
     size_t i;
@@ -392,11 +392,14 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
             def->cpu && def->cpu->mode == (VIR_CPU_MODE_HOST_PASSTHROUGH)) {
             bool hasHwVirt = false;
             bool svm = false, vmx = false;
+            char xlCPU[32];
 
+            /* enable nested HVM only if global nested_hvm option enable it and
+             * host support it*/
             if (ARCH_IS_X86(def->os.arch)) {
                 vmx = virCPUCheckFeature(caps->host.arch, caps->host.cpu, "vmx");
                 svm = virCPUCheckFeature(caps->host.arch, caps->host.cpu, "svm");
-                hasHwVirt = vmx | svm;
+                hasHwVirt = cfg->nested_hvm && (vmx | svm);
             }
 
             if (def->cpu->nfeatures) {
@@ -407,12 +410,45 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
                         case VIR_CPU_FEATURE_DISABLE:
                         case VIR_CPU_FEATURE_FORBID:
                             if ((vmx && STREQ(def->cpu->features[i].name, "vmx")) ||
-                                (svm && STREQ(def->cpu->features[i].name, "svm")))
+                                (svm && STREQ(def->cpu->features[i].name, "svm"))) {
                                 hasHwVirt = false;
+                                continue;
+                            }
+
+                            snprintf(xlCPU,
+                                    sizeof(xlCPU),
+                                    "%s=0",
+                                    xenTranslateCPUFeature(
+                                        def->cpu->features[i].name,
+                                        false));
+                            if (libxl_cpuid_parse_config(&b_info->cpuid, xlCPU)) {
+                                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                        _("unsupported cpu feature '%s'"),
+                                        def->cpu->features[i].name);
+                                return -1;
+                            }
                             break;
 
                         case VIR_CPU_FEATURE_FORCE:
                         case VIR_CPU_FEATURE_REQUIRE:
+                            if ((vmx && STREQ(def->cpu->features[i].name, "vmx")) ||
+                                (svm && STREQ(def->cpu->features[i].name, "svm"))) {
+                                hasHwVirt = true;
+                                continue;
+                            }
+
+                            snprintf(xlCPU,
+                                    sizeof(xlCPU),
+                                    "%s=1",
+                                    xenTranslateCPUFeature(
+                                        def->cpu->features[i].name, false));
+                            if (libxl_cpuid_parse_config(&b_info->cpuid, xlCPU)) {
+                                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                        _("unsupported cpu feature '%s'"),
+                                        def->cpu->features[i].name);
+                                return -1;
+                            }
+                            break;
                         case VIR_CPU_FEATURE_OPTIONAL:
                         case VIR_CPU_FEATURE_LAST:
                             break;
@@ -420,6 +456,12 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
                 }
             }
             libxl_defbool_set(&b_info->u.hvm.nested_hvm, hasHwVirt);
+        }
+
+        if (def->cpu && def->cpu->mode == VIR_CPU_MODE_CUSTOM) {
+            VIR_WARN("Ignoring CPU with mode=custom, update your config to "
+                     "mode=host-passthrough to avoid risk of changed guest "
+                     "semantics when mode=custom is supported in the future");
         }
 
         if (def->nsounds > 0) {
@@ -624,6 +666,30 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
         }
         if (VIR_STRDUP(b_info->u.pv.ramdisk, def->os.initrd) < 0)
             return -1;
+    }
+
+    /* only the 'xen' balloon device model is supported */
+    if (def->memballoon) {
+        int model = def->memballoon->model;
+
+        switch ((virDomainMemballoonModel)model) {
+        case VIR_DOMAIN_MEMBALLOON_MODEL_XEN:
+            break;
+        case VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO:
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("unsupported balloon device model '%s'"),
+                           virDomainMemballoonModelTypeToString(model));
+            return -1;
+        case VIR_DOMAIN_MEMBALLOON_MODEL_NONE:
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           "%s",
+                           _("balloon device cannot be disabled"));
+            return -1;
+        case VIR_DOMAIN_MEMBALLOON_MODEL_LAST:
+        default:
+            virReportEnumRangeError(virDomainMemballoonModel, model);
+            return -1;
+        }
     }
 
     return 0;
@@ -1726,6 +1792,9 @@ int libxlDriverConfigLoadFile(libxlDriverConfigPtr cfg,
     if (virConfGetValueUInt(conf, "keepalive_count", &cfg->keepAliveCount) < 0)
         goto cleanup;
 
+    if (virConfGetValueBool(conf, "nested_hvm", &cfg->nested_hvm) < 0)
+        goto cleanup;
+
     ret = 0;
 
  cleanup:
@@ -2321,17 +2390,17 @@ libxlDriverNodeGetInfo(libxlDriverPrivatePtr driver, virNodeInfoPtr info)
 int
 libxlBuildDomainConfig(virPortAllocatorRangePtr graphicsports,
                        virDomainDefPtr def,
-                       const char *channelDir LIBXL_ATTR_UNUSED,
-                       libxl_ctx *ctx,
-                       virCapsPtr caps,
+                       libxlDriverConfigPtr cfg,
                        libxl_domain_config *d_config)
 {
+    virCapsPtr caps = cfg->caps;
+    libxl_ctx *ctx = cfg->ctx;
     libxl_domain_config_init(d_config);
 
     if (libxlMakeDomCreateInfo(ctx, def, &d_config->c_info) < 0)
         return -1;
 
-    if (libxlMakeDomBuildInfo(def, ctx, caps, d_config) < 0)
+    if (libxlMakeDomBuildInfo(def, cfg, caps, d_config) < 0)
         return -1;
 
 #ifdef LIBXL_HAVE_VNUMA
@@ -2363,7 +2432,7 @@ libxlBuildDomainConfig(virPortAllocatorRangePtr graphicsports,
 #endif
 
 #ifdef LIBXL_HAVE_DEVICE_CHANNEL
-    if (libxlMakeChannelList(channelDir, def, d_config) < 0)
+    if (libxlMakeChannelList(cfg->channelDir, def, d_config) < 0)
         return -1;
 #endif
 

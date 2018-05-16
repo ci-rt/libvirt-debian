@@ -41,7 +41,7 @@ static int testDriverModule(const void *args)
     const struct testDriverModuleData *data = args;
 
     /* coverity[leaked_storage] */
-    if (virDriverLoadModule(data->module, data->regfunc) != 0)
+    if (virDriverLoadModule(data->module, data->regfunc, true) != 0)
         return -1;
 
     return 0;
@@ -81,9 +81,6 @@ mymain(void)
 #endif
 #ifdef WITH_NWFILTER
     TEST("nwfilter");
-#endif
-#ifdef WITH_XEN
-    TEST("xen");
 #endif
 #ifdef WITH_LIBXL
     TEST("libxl");

@@ -58,14 +58,11 @@ VIR_ENUM_IMPL(virCapsHostPMTarget, VIR_NODE_SUSPEND_TARGET_LAST,
               "suspend_mem", "suspend_disk", "suspend_hybrid");
 
 static virClassPtr virCapsClass;
-static void virCapabilitiesDispose(void *obj);
+static void virCapsDispose(void *obj);
 
 static int virCapabilitiesOnceInit(void)
 {
-    if (!(virCapsClass = virClassNew(virClassForObject(),
-                                     "virCaps",
-                                     sizeof(virCaps),
-                                     virCapabilitiesDispose)))
+    if (!VIR_CLASS_NEW(virCaps, virClassForObject()))
         return -1;
 
     return 0;
@@ -215,7 +212,7 @@ virCapabilitiesClearSecModel(virCapsHostSecModelPtr secmodel)
 }
 
 static void
-virCapabilitiesDispose(void *object)
+virCapsDispose(void *object)
 {
     virCapsPtr caps = object;
     size_t i;
@@ -819,7 +816,7 @@ virCapabilitiesFormatNUMATopology(virBufferPtr buf,
                               cells[i]->mem);
 
         for (j = 0; j < cells[i]->npageinfo; j++) {
-            virBufferAsprintf(buf, "<pages unit='KiB' size='%u'>%zu</pages>\n",
+            virBufferAsprintf(buf, "<pages unit='KiB' size='%u'>%llu</pages>\n",
                               cells[i]->pageinfo[j].size,
                               cells[i]->pageinfo[j].avail);
         }
@@ -1354,7 +1351,8 @@ virCapabilitiesGetNUMAPagesInfo(int node,
                                 int *npageinfo)
 {
     int ret = -1;
-    unsigned int *pages_size = NULL, *pages_avail = NULL;
+    unsigned int *pages_size = NULL;
+    unsigned long long *pages_avail = NULL;
     size_t npages, i;
 
     if (virNumaGetPages(node, &pages_size, &pages_avail, NULL, &npages) < 0)

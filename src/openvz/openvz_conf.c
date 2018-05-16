@@ -626,7 +626,6 @@ int openvzLoadDomains(struct openvz_driver *driver)
     virCommandFree(cmd);
     VIR_FREE(temp);
     VIR_FREE(outbuf);
-    virObjectUnref(dom);
     virDomainDefFree(def);
     return -1;
 }
@@ -1020,7 +1019,7 @@ openvzSetUUID(int vpsid)
 {
     unsigned char uuid[VIR_UUID_BUFLEN];
 
-    if (virUUIDGenerate(uuid)) {
+    if (virUUIDGenerate(uuid) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("Failed to generate UUID"));
         return -1;

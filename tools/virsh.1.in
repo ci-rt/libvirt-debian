@@ -129,7 +129,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2018-03-27" "libvirt-4.2.0" "Virtualization Support"
+.TH VIRSH 1 "2018-04-26" "libvirt-4.3.0" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -369,8 +369,8 @@ connect to the hypervisor. The documentation page at
 <https://libvirt.org/uri.html> list the values supported, but the most
 common are:
 .RS 4
-.IP "xen:///" 4
-.IX Item "xen:///"
+.IP "xen:///system" 4
+.IX Item "xen:///system"
 this is used to connect to the local Xen hypervisor
 .IP "qemu:///system" 4
 .IX Item "qemu:///system"
@@ -378,8 +378,8 @@ connect locally as root to the daemon supervising \s-1QEMU\s0 and \s-1KVM\s0 dom
 .IP "qemu:///session" 4
 .IX Item "qemu:///session"
 connect locally as a normal user to his own set of \s-1QEMU\s0 and \s-1KVM\s0 domains
-.IP "lxc:///" 4
-.IX Item "lxc:///"
+.IP "lxc:///system" 4
+.IX Item "lxc:///system"
 connect to a local linux container
 .RE
 .RS 4

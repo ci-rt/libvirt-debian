@@ -335,6 +335,7 @@ VIR_ENUM_IMPL(virDomainControllerModelPCI, VIR_DOMAIN_CONTROLLER_MODEL_PCI_LAST,
               "pcie-root",
               "pci-bridge",
               "dmi-to-pci-bridge",
+              "pcie-to-pci-bridge",
               "pcie-root-port",
               "pcie-switch-upstream-port",
               "pcie-switch-downstream-port",
@@ -353,6 +354,7 @@ VIR_ENUM_IMPL(virDomainControllerPCIModelName,
               "pxb-pcie",
               "pcie-root-port",
               "spapr-pci-host-bridge",
+              "pcie-pci-bridge",
 );
 
 VIR_ENUM_IMPL(virDomainControllerModelSCSI, VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LAST,
@@ -932,20 +934,14 @@ VIR_ENUM_IMPL(virDomainShmemModel, VIR_DOMAIN_SHMEM_MODEL_LAST,
 static virClassPtr virDomainObjClass;
 static virClassPtr virDomainXMLOptionClass;
 static void virDomainObjDispose(void *obj);
-static void virDomainXMLOptionClassDispose(void *obj);
+static void virDomainXMLOptionDispose(void *obj);
 
 static int virDomainObjOnceInit(void)
 {
-    if (!(virDomainObjClass = virClassNew(virClassForObjectLockable(),
-                                          "virDomainObj",
-                                          sizeof(virDomainObj),
-                                          virDomainObjDispose)))
+    if (!VIR_CLASS_NEW(virDomainObj, virClassForObjectLockable()))
         return -1;
 
-    if (!(virDomainXMLOptionClass = virClassNew(virClassForObject(),
-                                                "virDomainXMLOption",
-                                                sizeof(virDomainXMLOption),
-                                                virDomainXMLOptionClassDispose)))
+    if (!VIR_CLASS_NEW(virDomainXMLOption, virClassForObject()))
         return -1;
 
     return 0;
@@ -955,7 +951,7 @@ VIR_ONCE_GLOBAL_INIT(virDomainObj)
 
 
 static void
-virDomainXMLOptionClassDispose(void *obj)
+virDomainXMLOptionDispose(void *obj)
 {
     virDomainXMLOptionPtr xmlopt = obj;
 
@@ -1788,6 +1784,7 @@ virDomainDiskDefFree(virDomainDiskDefPtr def)
     VIR_FREE(def->dst);
     virStorageSourceFree(def->mirror);
     VIR_FREE(def->wwn);
+    VIR_FREE(def->driverName);
     VIR_FREE(def->vendor);
     VIR_FREE(def->product);
     VIR_FREE(def->domain_name);
@@ -1850,9 +1847,9 @@ virDomainDiskEmptySource(virDomainDiskDefPtr def)
 
 
 const char *
-virDomainDiskGetDriver(virDomainDiskDefPtr def)
+virDomainDiskGetDriver(const virDomainDiskDef *def)
 {
-    return def->src->driverName;
+    return def->driverName;
 }
 
 
@@ -1860,11 +1857,11 @@ int
 virDomainDiskSetDriver(virDomainDiskDefPtr def, const char *name)
 {
     int ret;
-    char *tmp = def->src->driverName;
+    char *tmp = def->driverName;
 
-    ret = VIR_STRDUP(def->src->driverName, name);
+    ret = VIR_STRDUP(def->driverName, name);
     if (ret < 0)
-        def->src->driverName = tmp;
+        def->driverName = tmp;
     else
         VIR_FREE(tmp);
     return ret;
@@ -2258,8 +2255,10 @@ virDomainChrSourceDefCopy(virDomainChrSourceDefPtr dest,
     return 0;
 }
 
-void virDomainChrSourceDefFree(virDomainChrSourceDefPtr def)
+static void
+virDomainChrSourceDefDispose(void *obj)
 {
+    virDomainChrSourceDefPtr def = obj;
     size_t i;
 
     if (!def)
@@ -2273,10 +2272,15 @@ void virDomainChrSourceDefFree(virDomainChrSourceDefPtr def)
             virSecurityDeviceLabelDefFree(def->seclabels[i]);
         VIR_FREE(def->seclabels);
     }
-
-
-    VIR_FREE(def);
 }
+
+
+void
+virDomainChrSourceDefFree(virDomainChrSourceDefPtr def)
+{
+    virObjectUnref(def);
+}
+
 
 /* virDomainChrSourceDefIsEqual:
  * @src: Source
@@ -3222,7 +3226,7 @@ void virDomainObjAssignDef(virDomainObjPtr domain,
  *
  * Finish working with a domain object in an API.  This function
  * clears whatever was left of a domain that was gathered using
- * virDomainObjListFindByUUIDRef(). Currently that means only unlocking and
+ * virDomainObjListFindByUUID(). Currently that means only unlocking and
  * decrementing the reference counter of that domain.  And in order to
  * make sure the caller does not access the domain, the pointer is
  * cleared.
@@ -5994,6 +5998,17 @@ virDomainDefValidate(virDomainDefPtr def,
     return 0;
 }
 
+int
+virDomainObjCheckActive(virDomainObjPtr dom)
+{
+    if (!virDomainObjIsActive(dom)) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("domain is not running"));
+        return -1;
+    }
+    return 0;
+}
+
 
 /**
  * virDomainDeviceLoadparmIsValid
@@ -6080,9 +6095,17 @@ virDomainDeviceInfoFormat(virBufferPtr buf,
     }
 
     if ((flags & VIR_DOMAIN_DEF_FORMAT_ALLOW_ROM) &&
-        (info->rombar != VIR_TRISTATE_SWITCH_ABSENT || info->romfile)) {
+        (info->romenabled != VIR_TRISTATE_BOOL_ABSENT ||
+         info->rombar != VIR_TRISTATE_SWITCH_ABSENT ||
+         info->romfile)) {
 
         virBufferAddLit(buf, "<rom");
+        if (info->romenabled != VIR_TRISTATE_BOOL_ABSENT) {
+            const char *romenabled = virTristateBoolTypeToString(info->romenabled);
+
+            if (romenabled)
+                virBufferAsprintf(buf, " enabled='%s'", romenabled);
+        }
         if (info->rombar != VIR_TRISTATE_SWITCH_ABSENT) {
             const char *rombar = virTristateSwitchTypeToString(info->rombar);
 
@@ -6723,6 +6746,7 @@ virDomainDeviceInfoParseXML(virDomainXMLOptionPtr xmlopt ATTRIBUTE_UNUSED,
     xmlNodePtr boot = NULL;
     xmlNodePtr rom = NULL;
     char *type = NULL;
+    char *romenabled = NULL;
     char *rombar = NULL;
     char *aliasStr = NULL;
     int ret = -1;
@@ -6776,6 +6800,12 @@ virDomainDeviceInfoParseXML(virDomainXMLOptionPtr xmlopt ATTRIBUTE_UNUSED,
     }
 
     if (rom) {
+        if ((romenabled = virXMLPropString(rom, "enabled")) &&
+            ((info->romenabled = virTristateBoolTypeFromString(romenabled)) <= 0)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("unknown rom enabled value '%s'"), romenabled);
+            goto cleanup;
+        }
         if ((rombar = virXMLPropString(rom, "bar")) &&
             ((info->rombar = virTristateSwitchTypeFromString(rombar)) <= 0)) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
@@ -6783,6 +6813,13 @@ virDomainDeviceInfoParseXML(virDomainXMLOptionPtr xmlopt ATTRIBUTE_UNUSED,
             goto cleanup;
         }
         info->romfile = virXMLPropString(rom, "file");
+
+        if (info->romenabled == VIR_TRISTATE_BOOL_NO &&
+            (info->rombar != VIR_TRISTATE_SWITCH_ABSENT || info->romfile)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("ROM tuning is not supported when ROM is disabled"));
+            goto cleanup;
+        }
     }
 
     if (address &&
@@ -6796,6 +6833,7 @@ virDomainDeviceInfoParseXML(virDomainXMLOptionPtr xmlopt ATTRIBUTE_UNUSED,
         virDomainDeviceInfoClear(info);
     VIR_FREE(type);
     VIR_FREE(rombar);
+    VIR_FREE(romenabled);
     VIR_FREE(aliasStr);
     return ret;
 }
@@ -9123,7 +9161,7 @@ virDomainDiskDefDriverParseXML(virDomainDiskDefPtr def,
     char *tmp = NULL;
     int ret = -1;
 
-    def->src->driverName = virXMLPropString(cur, "name");
+    def->driverName = virXMLPropString(cur, "name");
 
     if ((tmp = virXMLPropString(cur, "cache")) &&
         (def->cachemode = virDomainDiskCacheTypeFromString(tmp)) < 0) {
@@ -9386,7 +9424,7 @@ virDomainDiskDefParseXML(virDomainXMLOptionPtr xmlopt,
                                physical_block_size);
                 goto error;
             }
-        } else if (!def->src->driverName &&
+        } else if (!virDomainDiskGetDriver(def) &&
                    virXMLNodeNameEqual(cur, "driver")) {
             if (virDomainVirtioOptionsParseXML(cur, &def->virtio) < 0)
                 goto error;
@@ -10188,6 +10226,7 @@ virDomainControllerDefParseXML(virDomainXMLOptionPtr xmlopt,
         }
         case VIR_DOMAIN_CONTROLLER_MODEL_PCI_BRIDGE:
         case VIR_DOMAIN_CONTROLLER_MODEL_DMI_TO_PCI_BRIDGE:
+        case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_TO_PCI_BRIDGE:
         case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT_PORT:
         case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_UPSTREAM_PORT:
         case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_DOWNSTREAM_PORT:
@@ -11135,7 +11174,7 @@ virDomainNetDefParseXML(virDomainXMLOptionPtr xmlopt,
             goto error;
         }
 
-        if (VIR_ALLOC(def->data.vhostuser) < 0)
+        if (!(def->data.vhostuser = virDomainChrSourceDefNew(xmlopt)))
             goto error;
 
         def->data.vhostuser->type = VIR_DOMAIN_CHR_TYPE_UNIX;
@@ -12208,17 +12247,35 @@ virDomainChrSourceDefParseXML(virDomainChrSourceDefPtr def,
 }
 
 
-static virDomainChrSourceDefPtr
+static virClassPtr virDomainChrSourceDefClass;
+
+static int
+virDomainChrSourceDefOnceInit(void)
+{
+    if (!VIR_CLASS_NEW(virDomainChrSourceDef, virClassForObject()))
+        return -1;
+
+    return 0;
+}
+
+VIR_ONCE_GLOBAL_INIT(virDomainChrSourceDef);
+
+virDomainChrSourceDefPtr
 virDomainChrSourceDefNew(virDomainXMLOptionPtr xmlopt)
 {
     virDomainChrSourceDefPtr def = NULL;
 
-    if (VIR_ALLOC(def) < 0)
+    if (virDomainChrSourceDefInitialize() < 0)
+        return NULL;
+
+    if (!(def = virObjectNew(virDomainChrSourceDefClass)))
         return NULL;
 
     if (xmlopt && xmlopt->privateData.chrSourceNew &&
-        !(def->privateData = xmlopt->privateData.chrSourceNew()))
-        VIR_FREE(def);
+        !(def->privateData = xmlopt->privateData.chrSourceNew())) {
+        virObjectUnref(def);
+        def = NULL;
+    }
 
     return def;
 }
@@ -15864,44 +15921,40 @@ virDomainDeviceDefParse(const char *xmlStr,
 }
 
 
-virStorageSourcePtr
-virDomainDiskDefSourceParse(const char *xmlStr,
-                            const virDomainDef *def,
-                            virDomainXMLOptionPtr xmlopt,
-                            unsigned int flags)
+virDomainDiskDefPtr
+virDomainDiskDefParse(const char *xmlStr,
+                      const virDomainDef *def,
+                      virDomainXMLOptionPtr xmlopt,
+                      unsigned int flags)
 {
     xmlDocPtr xml;
-    xmlNodePtr node;
     xmlXPathContextPtr ctxt = NULL;
     virDomainDiskDefPtr disk = NULL;
-    virStorageSourcePtr ret = NULL;
+    virSecurityLabelDefPtr *seclabels = NULL;
+    size_t nseclabels = 0;
 
     if (!(xml = virXMLParseStringCtxt(xmlStr, _("(disk_definition)"), &ctxt)))
         goto cleanup;
-    node = ctxt->node;
 
-    if (!virXMLNodeNameEqual(node, "disk")) {
+    if (!virXMLNodeNameEqual(ctxt->node, "disk")) {
         virReportError(VIR_ERR_XML_ERROR,
                        _("expecting root element of 'disk', not '%s'"),
-                       node->name);
+                       ctxt->node->name);
         goto cleanup;
     }
 
-    flags |= VIR_DOMAIN_DEF_PARSE_DISK_SOURCE;
-    if (!(disk = virDomainDiskDefParseXML(xmlopt, node, ctxt,
-                                          NULL, def->seclabels,
-                                          def->nseclabels,
-                                          flags)))
-        goto cleanup;
+    if (def) {
+        seclabels = def->seclabels;
+        nseclabels = def->nseclabels;
+    }
 
-    ret = disk->src;
-    disk->src = NULL;
+    disk = virDomainDiskDefParseXML(xmlopt, ctxt->node, ctxt,
+                                    NULL, seclabels, nseclabels, flags);
 
  cleanup:
-    virDomainDiskDefFree(disk);
     xmlFreeDoc(xml);
     xmlXPathFreeContext(ctxt);
-    return ret;
+    return disk;
 }
 
 
@@ -18748,7 +18801,7 @@ virDomainDefParseXML(xmlDocPtr xml,
      * also serve as the uuid. */
     tmp = virXPathString("string(./uuid[1])", ctxt);
     if (!tmp) {
-        if (virUUIDGenerate(def->uuid)) {
+        if (virUUIDGenerate(def->uuid) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            "%s", _("Failed to generate UUID"));
             goto error;
@@ -20790,8 +20843,7 @@ virDomainDiskDefCheckABIStability(virDomainDiskDefPtr src,
 
     }
 
-    if (src->src->readonly != dst->src->readonly ||
-        src->src->shared != dst->src->shared) {
+    if (src->src->readonly != dst->src->readonly) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Target disk access mode does not match source"));
         return false;
@@ -23072,7 +23124,7 @@ virDomainDiskDefFormat(virBufferPtr buf,
     virBufferAddLit(buf, ">\n");
     virBufferAdjustIndent(buf, 2);
 
-    virBufferEscapeString(&driverBuf, " name='%s'", def->src->driverName);
+    virBufferEscapeString(&driverBuf, " name='%s'", virDomainDiskGetDriver(def));
     if (def->src->format > 0)
         virBufferAsprintf(&driverBuf, " type='%s'",
                           virStorageFileFormatTypeToString(def->src->format));
@@ -29365,4 +29417,26 @@ virDomainDiskTranslateSourcePool(virDomainDiskDefPtr def)
     VIR_FREE(poolxml);
     virStoragePoolDefFree(pooldef);
     return ret;
+}
+
+
+/**
+ * virDomainDiskGetDetectZeroesMode:
+ * @discard: disk/image sector discard setting
+ * @detect_zeroes: disk/image zero sector detection mode
+ *
+ * As a convenience syntax, if discards are ignored and zero detection is set
+ * to 'unmap', then simply behave like zero detection is set to 'on'.  But
+ * don't change it in the XML for easier adjustments.  This behaviour is
+ * documented.
+ */
+int
+virDomainDiskGetDetectZeroesMode(virDomainDiskDiscard discard,
+                                 virDomainDiskDetectZeroes detect_zeroes)
+{
+    if (discard != VIR_DOMAIN_DISK_DISCARD_UNMAP &&
+        detect_zeroes == VIR_DOMAIN_DISK_DETECT_ZEROES_UNMAP)
+        return VIR_DOMAIN_DISK_DETECT_ZEROES_ON;
+
+    return detect_zeroes;
 }

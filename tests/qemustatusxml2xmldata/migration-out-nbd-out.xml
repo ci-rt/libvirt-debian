@@ -230,7 +230,7 @@
     <flag name='isa-serial'/>
     <flag name='dump-completed'/>
   </qemuCaps>
-  <job type='none' async='migration out' phase='perform3'>
+  <job type='none' async='migration out' phase='perform3' flags='0x0'>
     <disk dev='vdb' migrating='yes'/>
     <disk dev='hda' migrating='no'/>
   </job>

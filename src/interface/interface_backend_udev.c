@@ -1203,38 +1203,25 @@ udevConnectOpen(virConnectPtr conn,
 {
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
-    /* Verify uri was specified */
-    if (conn->uri == NULL) {
-        /* Only hypervisor drivers are permitted to auto-open on NULL uri */
-        return VIR_DRV_OPEN_DECLINED;
-    } else {
-        if (STRNEQ_NULLABLE(conn->uri->scheme, "interface"))
-            return VIR_DRV_OPEN_DECLINED;
+    if (driver == NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("interface state driver is not active"));
+        return VIR_DRV_OPEN_ERROR;
+    }
 
-        /* Leave for remote driver */
-        if (conn->uri->server != NULL)
-            return VIR_DRV_OPEN_DECLINED;
-
-        if (driver == NULL) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("interface state driver is not active"));
+    if (driver->privileged) {
+        if (STRNEQ(conn->uri->path, "/system")) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("unexpected interface URI path '%s', try interface:///system"),
+                           conn->uri->path);
             return VIR_DRV_OPEN_ERROR;
         }
-
-        if (driver->privileged) {
-            if (STRNEQ(conn->uri->path, "/system")) {
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("unexpected interface URI path '%s', try interface:///system"),
-                               conn->uri->path);
-                return VIR_DRV_OPEN_ERROR;
-            }
-        } else {
-            if (STRNEQ(conn->uri->path, "/session")) {
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("unexpected interface URI path '%s', try interface:///session"),
-                               conn->uri->path);
-                return VIR_DRV_OPEN_ERROR;
-            }
+    } else {
+        if (STRNEQ(conn->uri->path, "/session")) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("unexpected interface URI path '%s', try interface:///session"),
+                           conn->uri->path);
+            return VIR_DRV_OPEN_ERROR;
         }
     }
 
@@ -1295,6 +1282,8 @@ static virHypervisorDriver udevHypervisorDriver = {
 
 
 static virConnectDriver udevConnectDriver = {
+    .localOnly = true,
+    .uriSchemes = (const char *[]){ "interface", NULL },
     .hypervisorDriver = &udevHypervisorDriver,
     .interfaceDriver = &udevIfaceDriver,
 };

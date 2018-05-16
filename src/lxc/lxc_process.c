@@ -59,7 +59,7 @@ VIR_LOG_INIT("lxc.lxc_process");
 
 #define START_POSTFIX ": starting up\n"
 
-static virDomainObjPtr
+static void
 lxcProcessAutoDestroy(virDomainObjPtr dom,
                       virConnectPtr conn,
                       void *opaque)
@@ -79,15 +79,11 @@ lxcProcessAutoDestroy(virDomainObjPtr dom,
                                      VIR_DOMAIN_EVENT_STOPPED_DESTROYED);
     priv->doneStopEvent = true;
 
-    if (!dom->persistent) {
+    if (!dom->persistent)
         virDomainObjListRemove(driver->domains, dom);
-        dom = NULL;
-    }
 
     if (event)
         virObjectEventStateQueue(driver->domainEventState, event);
-
-    return dom;
 }
 
 /*
@@ -109,7 +105,7 @@ virLXCProcessReboot(virLXCDriverPtr driver,
         virObjectRef(conn);
         autodestroy = true;
     } else {
-        conn = virConnectOpen("lxc:///");
+        conn = virConnectOpen("lxc:///system");
         /* Ignoring NULL conn which is mostly harmless here */
     }
 
@@ -420,8 +416,7 @@ static int virLXCProcessSetupNamespaceName(virConnectPtr conn, int ns_type, cons
 
  cleanup:
     VIR_FREE(path);
-    virObjectUnlock(vm);
-    virObjectUnref(vm);
+    virDomainObjEndAPI(&vm);
     return fd;
 }
 
@@ -1630,7 +1625,7 @@ virLXCProcessAutostartAll(virLXCDriverPtr driver)
      * to lookup the bridge associated with a virtual
      * network
      */
-    virConnectPtr conn = virConnectOpen("lxc:///");
+    virConnectPtr conn = virConnectOpen("lxc:///system");
     /* Ignoring NULL conn which is mostly harmless here */
 
     struct virLXCProcessAutostartData data = { driver, conn };

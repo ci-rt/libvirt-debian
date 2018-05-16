@@ -56,10 +56,7 @@ struct _virDomainObjList {
 
 static int virDomainObjListOnceInit(void)
 {
-    if (!(virDomainObjListClass = virClassNew(virClassForObjectRWLockable(),
-                                              "virDomainObjList",
-                                              sizeof(virDomainObjList),
-                                              virDomainObjListDispose)))
+    if (!VIR_CLASS_NEW(virDomainObjList, virClassForObjectRWLockable()))
         return -1;
 
     return 0;
@@ -112,73 +109,26 @@ static int virDomainObjListSearchID(const void *payload,
     return want;
 }
 
-static virDomainObjPtr
-virDomainObjListFindByIDInternal(virDomainObjListPtr doms,
-                                 int id,
-                                 bool ref)
-{
-    virDomainObjPtr obj;
-    virObjectRWLockRead(doms);
-    obj = virHashSearch(doms->objs, virDomainObjListSearchID, &id, NULL);
-    if (ref) {
-        virObjectRef(obj);
-        virObjectRWUnlock(doms);
-    }
-    if (obj) {
-        virObjectLock(obj);
-        if (obj->removing) {
-            virObjectUnlock(obj);
-            if (ref)
-                virObjectUnref(obj);
-            obj = NULL;
-        }
-    }
-    if (!ref)
-        virObjectRWUnlock(doms);
-    return obj;
-}
 
 virDomainObjPtr
 virDomainObjListFindByID(virDomainObjListPtr doms,
                          int id)
 {
-    return virDomainObjListFindByIDInternal(doms, id, false);
-}
-
-virDomainObjPtr
-virDomainObjListFindByIDRef(virDomainObjListPtr doms,
-                            int id)
-{
-    return virDomainObjListFindByIDInternal(doms, id, true);
-}
-
-static virDomainObjPtr
-virDomainObjListFindByUUIDInternal(virDomainObjListPtr doms,
-                                   const unsigned char *uuid,
-                                   bool ref)
-{
-    char uuidstr[VIR_UUID_STRING_BUFLEN];
     virDomainObjPtr obj;
 
     virObjectRWLockRead(doms);
-    virUUIDFormat(uuid, uuidstr);
-
-    obj = virHashLookup(doms->objs, uuidstr);
-    if (ref) {
-        virObjectRef(obj);
-        virObjectRWUnlock(doms);
-    }
+    obj = virHashSearch(doms->objs, virDomainObjListSearchID, &id, NULL);
+    virObjectRef(obj);
+    virObjectRWUnlock(doms);
     if (obj) {
         virObjectLock(obj);
         if (obj->removing) {
             virObjectUnlock(obj);
-            if (ref)
-                virObjectUnref(obj);
+            virObjectUnref(obj);
             obj = NULL;
         }
     }
-    if (!ref)
-        virObjectRWUnlock(doms);
+
     return obj;
 }
 
@@ -187,15 +137,24 @@ virDomainObjPtr
 virDomainObjListFindByUUID(virDomainObjListPtr doms,
                            const unsigned char *uuid)
 {
-    return virDomainObjListFindByUUIDInternal(doms, uuid, false);
-}
+    char uuidstr[VIR_UUID_STRING_BUFLEN];
+    virDomainObjPtr obj;
 
+    virObjectRWLockRead(doms);
+    virUUIDFormat(uuid, uuidstr);
 
-virDomainObjPtr
-virDomainObjListFindByUUIDRef(virDomainObjListPtr doms,
-                              const unsigned char *uuid)
-{
-    return virDomainObjListFindByUUIDInternal(doms, uuid, true);
+    obj = virHashLookup(doms->objs, uuidstr);
+    virObjectRef(obj);
+    virObjectRWUnlock(doms);
+    if (obj) {
+        virObjectLock(obj);
+        if (obj->removing) {
+            virObjectUnlock(obj);
+            virObjectUnref(obj);
+            obj = NULL;
+        }
+    }
+    return obj;
 }
 
 
@@ -217,6 +176,42 @@ virDomainObjPtr virDomainObjListFindByName(virDomainObjListPtr doms,
         }
     }
     return obj;
+}
+
+
+/**
+ * @doms: Domain object list pointer
+ * @vm: Domain object to be added
+ *
+ * Upon entry @vm should have at least 1 ref and be locked.
+ *
+ * Add the @vm into the @doms->objs and @doms->objsName hash
+ * tables.
+ *
+ * Returns 0 on success with 2 references and locked
+ *        -1 on failure with 1 reference and locked
+ */
+static int
+virDomainObjListAddObjLocked(virDomainObjListPtr doms,
+                             virDomainObjPtr vm)
+{
+    char uuidstr[VIR_UUID_STRING_BUFLEN];
+
+    virUUIDFormat(vm->def->uuid, uuidstr);
+    if (virHashAddEntry(doms->objs, uuidstr, vm) < 0)
+        return -1;
+
+    if (virHashAddEntry(doms->objsName, vm->def->name, vm) < 0) {
+        virObjectRef(vm);
+        virHashRemoveEntry(doms->objs, uuidstr);
+        return -1;
+    }
+
+    /* Since domain is in two hash tables, increment the
+     * reference counter */
+    virObjectRef(vm);
+
+    return 0;
 }
 
 
@@ -294,20 +289,10 @@ virDomainObjListAddLocked(virDomainObjListPtr doms,
             goto cleanup;
         vm->def = def;
 
-        virUUIDFormat(def->uuid, uuidstr);
-        if (virHashAddEntry(doms->objs, uuidstr, vm) < 0) {
-            virObjectUnref(vm);
+        if (virDomainObjListAddObjLocked(doms, vm) < 0) {
+            virDomainObjEndAPI(&vm);
             return NULL;
         }
-
-        if (virHashAddEntry(doms->objsName, def->name, vm) < 0) {
-            virHashRemoveEntry(doms->objs, uuidstr);
-            return NULL;
-        }
-
-        /* Since domain is in two hash tables, increment the
-         * reference counter */
-        virObjectRef(vm);
     }
  cleanup:
     return vm;
@@ -530,17 +515,8 @@ virDomainObjListLoadStatus(virDomainObjListPtr doms,
         goto error;
     }
 
-    if (virHashAddEntry(doms->objs, uuidstr, obj) < 0)
+    if (virDomainObjListAddObjLocked(doms, obj) < 0)
         goto error;
-
-    if (virHashAddEntry(doms->objsName, obj->def->name, obj) < 0) {
-        virHashRemoveEntry(doms->objs, uuidstr);
-        goto error;
-    }
-
-    /* Since domain is in two hash tables, increment the
-     * reference counter */
-    virObjectRef(obj);
 
     if (notify)
         (*notify)(obj, 1, opaque);
@@ -549,7 +525,7 @@ virDomainObjListLoadStatus(virDomainObjListPtr doms,
     return obj;
 
  error:
-    virObjectUnref(obj);
+    virDomainObjEndAPI(&obj);
     VIR_FREE(statusFile);
     return NULL;
 }

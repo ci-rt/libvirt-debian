@@ -2299,7 +2299,7 @@ struct remote_node_device_get_parent_args {
 typedef struct remote_node_device_get_parent_args remote_node_device_get_parent_args;
 
 struct remote_node_device_get_parent_ret {
-        remote_string parent;
+        remote_string parentName;
 };
 typedef struct remote_node_device_get_parent_ret remote_node_device_get_parent_ret;
 

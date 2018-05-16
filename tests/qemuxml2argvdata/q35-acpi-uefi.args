@@ -7,7 +7,7 @@ QEMU_AUDIO_DRV=none \
 /usr/bin/qemu-system-x86_64 \
 -name guest \
 -S \
--M q35 \
+-machine q35,accel=tcg,usb=off,dump-guest-core=off \
 -cpu Haswell \
 -drive file=/usr/share/OVMF/OVMF_CODE.fd,if=pflash,format=raw,unit=0,\
 readonly=on \
@@ -16,9 +16,12 @@ unit=1 \
 -m 1024 \
 -smp 1,sockets=1,cores=1,threads=1 \
 -uuid 496d7ea8-9739-544b-4ebd-ef08be936e8b \
--nographic \
+-display none \
+-no-user-config \
 -nodefaults \
 -chardev socket,id=charmonitor,path=/tmp/lib/domain--1-guest/monitor.sock,\
 server,nowait \
--mon chardev=charmonitor,id=monitor,mode=readline \
+-mon chardev=charmonitor,id=monitor,mode=control \
+-rtc base=utc \
+-no-shutdown \
 -boot c
