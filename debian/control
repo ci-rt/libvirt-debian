@@ -238,7 +238,8 @@ Package: libvirt0
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Recommends: lvm2 [linux-any]
-Breaks: selinux-policy-default (<< 2:2.20131214-1~), selinux-policy-mls (<< 2:2.20131214-1~)
+Breaks: selinux-policy-default (<< 2:2.20131214-1~), selinux-policy-mls (<< 2:2.20131214-1~), libvirt-daemon (<< 4.10.0-2~)
+Replaces: libvirt-daemon (<< 4.10.0-2~)
 Description: library for interfacing with different virtualization systems
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing

@@ -4,7 +4,6 @@ usr/lib/libvirt/lock-driver/lockd.so
 usr/lib/libvirt/connection-driver
 usr/share/augeas/*
 usr/share/bash-completion/*
-usr/share/libvirt/*
 usr/share/man/man8/*
 usr/lib/libvirt/storage-backend/libvirt_storage_backend_disk.so
 usr/lib/libvirt/storage-backend/libvirt_storage_backend_fs.so

@@ -2,3 +2,6 @@ usr/lib/libvirt.so.*
 usr/lib/libvirt-admin.so.*
 usr/lib/libvirt-lxc.so.*
 usr/lib/libvirt-qemu.so.*
+usr/share/libvirt/cpu_map.xml
+usr/share/libvirt/schemas/*
+usr/share/libvirt/test-screenshot.png
