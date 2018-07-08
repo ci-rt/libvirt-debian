@@ -106,6 +106,7 @@
     <function name="VIR_DOMAIN_JOB_TIME_ELAPSED" link="libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_TIME_ELAPSED"/>
     <function name="VIR_DOMAIN_JOB_TIME_ELAPSED_NET" link="libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_TIME_ELAPSED_NET"/>
     <function name="VIR_DOMAIN_JOB_TIME_REMAINING" link="libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_TIME_REMAINING"/>
+    <function name="VIR_DOMAIN_LAUNCH_SECURITY_SEV_MEASUREMENT" link="libvirt-libvirt-domain.html#VIR_DOMAIN_LAUNCH_SECURITY_SEV_MEASUREMENT"/>
     <function name="VIR_DOMAIN_MEMORY_FIELD_LENGTH" link="libvirt-libvirt-domain.html#VIR_DOMAIN_MEMORY_FIELD_LENGTH"/>
     <function name="VIR_DOMAIN_MEMORY_HARD_LIMIT" link="libvirt-libvirt-domain.html#VIR_DOMAIN_MEMORY_HARD_LIMIT"/>
     <function name="VIR_DOMAIN_MEMORY_MIN_GUARANTEE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_MEMORY_MIN_GUARANTEE"/>
@@ -204,6 +205,10 @@
     <function name="VIR_NODE_MEMORY_STATS_FIELD_LENGTH" link="libvirt-libvirt-host.html#VIR_NODE_MEMORY_STATS_FIELD_LENGTH"/>
     <function name="VIR_NODE_MEMORY_STATS_FREE" link="libvirt-libvirt-host.html#VIR_NODE_MEMORY_STATS_FREE"/>
     <function name="VIR_NODE_MEMORY_STATS_TOTAL" link="libvirt-libvirt-host.html#VIR_NODE_MEMORY_STATS_TOTAL"/>
+    <function name="VIR_NODE_SEV_CBITPOS" link="libvirt-libvirt-host.html#VIR_NODE_SEV_CBITPOS"/>
+    <function name="VIR_NODE_SEV_CERT_CHAIN" link="libvirt-libvirt-host.html#VIR_NODE_SEV_CERT_CHAIN"/>
+    <function name="VIR_NODE_SEV_PDH" link="libvirt-libvirt-host.html#VIR_NODE_SEV_PDH"/>
+    <function name="VIR_NODE_SEV_REDUCED_PHYS_BITS" link="libvirt-libvirt-host.html#VIR_NODE_SEV_REDUCED_PHYS_BITS"/>
     <function name="VIR_PERF_PARAM_ALIGNMENT_FAULTS" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_ALIGNMENT_FAULTS"/>
     <function name="VIR_PERF_PARAM_BRANCH_INSTRUCTIONS" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_BRANCH_INSTRUCTIONS"/>
     <function name="VIR_PERF_PARAM_BRANCH_MISSES" link="libvirt-libvirt-domain.html#VIR_PERF_PARAM_BRANCH_MISSES"/>
@@ -258,6 +263,7 @@
     <function name="VIR_CONNECT_GET_ALL_DOMAINS_STATS_BACKING" link="libvirt-libvirt-domain.html#VIR_CONNECT_GET_ALL_DOMAINS_STATS_BACKING"/>
     <function name="VIR_CONNECT_GET_ALL_DOMAINS_STATS_ENFORCE_STATS" link="libvirt-libvirt-domain.html#VIR_CONNECT_GET_ALL_DOMAINS_STATS_ENFORCE_STATS"/>
     <function name="VIR_CONNECT_GET_ALL_DOMAINS_STATS_INACTIVE" link="libvirt-libvirt-domain.html#VIR_CONNECT_GET_ALL_DOMAINS_STATS_INACTIVE"/>
+    <function name="VIR_CONNECT_GET_ALL_DOMAINS_STATS_NOWAIT" link="libvirt-libvirt-domain.html#VIR_CONNECT_GET_ALL_DOMAINS_STATS_NOWAIT"/>
     <function name="VIR_CONNECT_GET_ALL_DOMAINS_STATS_OTHER" link="libvirt-libvirt-domain.html#VIR_CONNECT_GET_ALL_DOMAINS_STATS_OTHER"/>
     <function name="VIR_CONNECT_GET_ALL_DOMAINS_STATS_PAUSED" link="libvirt-libvirt-domain.html#VIR_CONNECT_GET_ALL_DOMAINS_STATS_PAUSED"/>
     <function name="VIR_CONNECT_GET_ALL_DOMAINS_STATS_PERSISTENT" link="libvirt-libvirt-domain.html#VIR_CONNECT_GET_ALL_DOMAINS_STATS_PERSISTENT"/>
@@ -823,6 +829,7 @@
     <function name="VIR_ERR_INVALID_NETWORK" link="libvirt-virterror.html#VIR_ERR_INVALID_NETWORK"/>
     <function name="VIR_ERR_INVALID_NODE_DEVICE" link="libvirt-virterror.html#VIR_ERR_INVALID_NODE_DEVICE"/>
     <function name="VIR_ERR_INVALID_NWFILTER" link="libvirt-virterror.html#VIR_ERR_INVALID_NWFILTER"/>
+    <function name="VIR_ERR_INVALID_NWFILTER_BINDING" link="libvirt-virterror.html#VIR_ERR_INVALID_NWFILTER_BINDING"/>
     <function name="VIR_ERR_INVALID_SECRET" link="libvirt-virterror.html#VIR_ERR_INVALID_SECRET"/>
     <function name="VIR_ERR_INVALID_STORAGE_POOL" link="libvirt-virterror.html#VIR_ERR_INVALID_STORAGE_POOL"/>
     <function name="VIR_ERR_INVALID_STORAGE_VOL" link="libvirt-virterror.html#VIR_ERR_INVALID_STORAGE_VOL"/>
@@ -847,6 +854,7 @@
     <function name="VIR_ERR_NO_NETWORK" link="libvirt-virterror.html#VIR_ERR_NO_NETWORK"/>
     <function name="VIR_ERR_NO_NODE_DEVICE" link="libvirt-virterror.html#VIR_ERR_NO_NODE_DEVICE"/>
     <function name="VIR_ERR_NO_NWFILTER" link="libvirt-virterror.html#VIR_ERR_NO_NWFILTER"/>
+    <function name="VIR_ERR_NO_NWFILTER_BINDING" link="libvirt-virterror.html#VIR_ERR_NO_NWFILTER_BINDING"/>
     <function name="VIR_ERR_NO_OS" link="libvirt-virterror.html#VIR_ERR_NO_OS"/>
     <function name="VIR_ERR_NO_ROOT" link="libvirt-virterror.html#VIR_ERR_NO_ROOT"/>
     <function name="VIR_ERR_NO_SECRET" link="libvirt-virterror.html#VIR_ERR_NO_SECRET"/>
@@ -1261,6 +1269,7 @@
     <function name="virKeycodeSet" link="libvirt-libvirt-domain.html#virKeycodeSet"/>
     <function name="virMemoryParameterPtr" link="libvirt-libvirt-domain.html#virMemoryParameterPtr"/>
     <function name="virMemoryParameterType" link="libvirt-libvirt-domain.html#virMemoryParameterType"/>
+    <function name="virNWFilterBindingPtr" link="libvirt-libvirt-nwfilter.html#virNWFilterBindingPtr"/>
     <function name="virNWFilterPtr" link="libvirt-libvirt-nwfilter.html#virNWFilterPtr"/>
     <function name="virNetworkDHCPLeasePtr" link="libvirt-libvirt-network.html#virNetworkDHCPLeasePtr"/>
     <function name="virNetworkEventID" link="libvirt-libvirt-network.html#virNetworkEventID"/>
@@ -1343,6 +1352,7 @@
     <function name="virInterface" link="libvirt-libvirt-interface.html#virInterface"/>
     <function name="virMemoryParameter" link="libvirt-libvirt-domain.html#virMemoryParameter"/>
     <function name="virNWFilter" link="libvirt-libvirt-nwfilter.html#virNWFilter"/>
+    <function name="virNWFilterBinding" link="libvirt-libvirt-nwfilter.html#virNWFilterBinding"/>
     <function name="virNetwork" link="libvirt-libvirt-network.html#virNetwork"/>
     <function name="virNetworkDHCPLease" link="libvirt-libvirt-network.html#virNetworkDHCPLease"/>
     <function name="virNodeCPUStats" link="libvirt-libvirt-host.html#virNodeCPUStats"/>
@@ -1415,8 +1425,10 @@
     <function name="virConnResetLastError ()" link="libvirt-virterror.html#virConnResetLastError"/>
     <function name="virConnSetErrorFunc ()" link="libvirt-virterror.html#virConnSetErrorFunc"/>
     <function name="virConnectBaselineCPU ()" link="libvirt-libvirt-host.html#virConnectBaselineCPU"/>
+    <function name="virConnectBaselineHypervisorCPU ()" link="libvirt-libvirt-host.html#virConnectBaselineHypervisorCPU"/>
     <function name="virConnectClose ()" link="libvirt-libvirt-host.html#virConnectClose"/>
     <function name="virConnectCompareCPU ()" link="libvirt-libvirt-host.html#virConnectCompareCPU"/>
+    <function name="virConnectCompareHypervisorCPU ()" link="libvirt-libvirt-host.html#virConnectCompareHypervisorCPU"/>
     <function name="virConnectDomainEventDeregister ()" link="libvirt-libvirt-domain.html#virConnectDomainEventDeregister"/>
     <function name="virConnectDomainEventDeregisterAny ()" link="libvirt-libvirt-domain.html#virConnectDomainEventDeregisterAny"/>
     <function name="virConnectDomainEventRegister ()" link="libvirt-libvirt-domain.html#virConnectDomainEventRegister"/>
@@ -1440,6 +1452,7 @@
     <function name="virConnectIsSecure ()" link="libvirt-libvirt-host.html#virConnectIsSecure"/>
     <function name="virConnectListAllDomains ()" link="libvirt-libvirt-domain.html#virConnectListAllDomains"/>
     <function name="virConnectListAllInterfaces ()" link="libvirt-libvirt-interface.html#virConnectListAllInterfaces"/>
+    <function name="virConnectListAllNWFilterBindings ()" link="libvirt-libvirt-nwfilter.html#virConnectListAllNWFilterBindings"/>
     <function name="virConnectListAllNWFilters ()" link="libvirt-libvirt-nwfilter.html#virConnectListAllNWFilters"/>
     <function name="virConnectListAllNetworks ()" link="libvirt-libvirt-network.html#virConnectListAllNetworks"/>
     <function name="virConnectListAllNodeDevices ()" link="libvirt-libvirt-nodedev.html#virConnectListAllNodeDevices"/>
@@ -1510,6 +1523,7 @@
     <function name="virDomainDestroy ()" link="libvirt-libvirt-domain.html#virDomainDestroy"/>
     <function name="virDomainDestroyFlags ()" link="libvirt-libvirt-domain.html#virDomainDestroyFlags"/>
     <function name="virDomainDetachDevice ()" link="libvirt-libvirt-domain.html#virDomainDetachDevice"/>
+    <function name="virDomainDetachDeviceAlias ()" link="libvirt-libvirt-domain.html#virDomainDetachDeviceAlias"/>
     <function name="virDomainDetachDeviceFlags ()" link="libvirt-libvirt-domain.html#virDomainDetachDeviceFlags"/>
     <function name="virDomainFSFreeze ()" link="libvirt-libvirt-domain.html#virDomainFSFreeze"/>
     <function name="virDomainFSInfoFree ()" link="libvirt-libvirt-domain.html#virDomainFSInfoFree"/>
@@ -1535,6 +1549,7 @@
     <function name="virDomainGetInterfaceParameters ()" link="libvirt-libvirt-domain.html#virDomainGetInterfaceParameters"/>
     <function name="virDomainGetJobInfo ()" link="libvirt-libvirt-domain.html#virDomainGetJobInfo"/>
     <function name="virDomainGetJobStats ()" link="libvirt-libvirt-domain.html#virDomainGetJobStats"/>
+    <function name="virDomainGetLaunchSecurityInfo ()" link="libvirt-libvirt-domain.html#virDomainGetLaunchSecurityInfo"/>
     <function name="virDomainGetMaxMemory ()" link="libvirt-libvirt-domain.html#virDomainGetMaxMemory"/>
     <function name="virDomainGetMaxVcpus ()" link="libvirt-libvirt-domain.html#virDomainGetMaxVcpus"/>
     <function name="virDomainGetMemoryParameters ()" link="libvirt-libvirt-domain.html#virDomainGetMemoryParameters"/>
@@ -1674,6 +1689,8 @@
     <function name="virEventUpdateTimeout ()" link="libvirt-libvirt-event.html#virEventUpdateTimeout"/>
     <function name="virFreeError ()" link="libvirt-virterror.html#virFreeError"/>
     <function name="virGetLastError ()" link="libvirt-virterror.html#virGetLastError"/>
+    <function name="virGetLastErrorCode ()" link="libvirt-virterror.html#virGetLastErrorCode"/>
+    <function name="virGetLastErrorDomain ()" link="libvirt-virterror.html#virGetLastErrorDomain"/>
     <function name="virGetLastErrorMessage ()" link="libvirt-virterror.html#virGetLastErrorMessage"/>
     <function name="virGetVersion ()" link="libvirt-libvirt-host.html#virGetVersion"/>
     <function name="virInitialize ()" link="libvirt-libvirt-host.html#virInitialize"/>
@@ -1693,6 +1710,14 @@
     <function name="virInterfaceLookupByName ()" link="libvirt-libvirt-interface.html#virInterfaceLookupByName"/>
     <function name="virInterfaceRef ()" link="libvirt-libvirt-interface.html#virInterfaceRef"/>
     <function name="virInterfaceUndefine ()" link="libvirt-libvirt-interface.html#virInterfaceUndefine"/>
+    <function name="virNWFilterBindingCreateXML ()" link="libvirt-libvirt-nwfilter.html#virNWFilterBindingCreateXML"/>
+    <function name="virNWFilterBindingDelete ()" link="libvirt-libvirt-nwfilter.html#virNWFilterBindingDelete"/>
+    <function name="virNWFilterBindingFree ()" link="libvirt-libvirt-nwfilter.html#virNWFilterBindingFree"/>
+    <function name="virNWFilterBindingGetFilterName ()" link="libvirt-libvirt-nwfilter.html#virNWFilterBindingGetFilterName"/>
+    <function name="virNWFilterBindingGetPortDev ()" link="libvirt-libvirt-nwfilter.html#virNWFilterBindingGetPortDev"/>
+    <function name="virNWFilterBindingGetXMLDesc ()" link="libvirt-libvirt-nwfilter.html#virNWFilterBindingGetXMLDesc"/>
+    <function name="virNWFilterBindingLookupByPortDev ()" link="libvirt-libvirt-nwfilter.html#virNWFilterBindingLookupByPortDev"/>
+    <function name="virNWFilterBindingRef ()" link="libvirt-libvirt-nwfilter.html#virNWFilterBindingRef"/>
     <function name="virNWFilterDefineXML ()" link="libvirt-libvirt-nwfilter.html#virNWFilterDefineXML"/>
     <function name="virNWFilterFree ()" link="libvirt-libvirt-nwfilter.html#virNWFilterFree"/>
     <function name="virNWFilterGetName ()" link="libvirt-libvirt-nwfilter.html#virNWFilterGetName"/>
@@ -1751,6 +1776,7 @@
     <function name="virNodeGetInfo ()" link="libvirt-libvirt-host.html#virNodeGetInfo"/>
     <function name="virNodeGetMemoryParameters ()" link="libvirt-libvirt-host.html#virNodeGetMemoryParameters"/>
     <function name="virNodeGetMemoryStats ()" link="libvirt-libvirt-host.html#virNodeGetMemoryStats"/>
+    <function name="virNodeGetSEVInfo ()" link="libvirt-libvirt-host.html#virNodeGetSEVInfo"/>
     <function name="virNodeGetSecurityModel ()" link="libvirt-libvirt-host.html#virNodeGetSecurityModel"/>
     <function name="virNodeListDevices ()" link="libvirt-libvirt-nodedev.html#virNodeListDevices"/>
     <function name="virNodeNumOfDevices ()" link="libvirt-libvirt-nodedev.html#virNodeNumOfDevices"/>

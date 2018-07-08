@@ -84,6 +84,7 @@ VIR_ENUM_IMPL(qemuMigrationCapability, QEMU_MIGRATION_CAP_LAST,
               "postcopy-ram",
               "compress",
               "pause-before-switchover",
+              "late-block-activate",
 );
 
 
@@ -129,6 +130,9 @@ struct _qemuMigrationParamsTPMapItem {
 static const qemuMigrationParamsAlwaysOnItem qemuMigrationParamsAlwaysOn[] = {
     {QEMU_MIGRATION_CAP_PAUSE_BEFORE_SWITCHOVER,
      QEMU_MIGRATION_SOURCE},
+
+    {QEMU_MIGRATION_CAP_LATE_BLOCK_ACTIVATE,
+     QEMU_MIGRATION_DESTINATION},
 };
 
 /* Translation from virDomainMigrateFlags to qemuMigrationCapability. */
@@ -809,7 +813,6 @@ qemuMigrationParamsSetString(qemuMigrationParamsPtr migParams,
  * @tlsListen: server or client
  * @asyncJob: Migration job to join
  * @tlsAlias: alias to be generated for TLS object
- * @secAlias: alias to be generated for a secinfo object
  * @hostname: hostname of the migration destination
  * @migParams: migration parameters to set
  *
@@ -825,7 +828,6 @@ qemuMigrationParamsEnableTLS(virQEMUDriverPtr driver,
                              bool tlsListen,
                              int asyncJob,
                              char **tlsAlias,
-                             char **secAlias,
                              const char *hostname,
                              qemuMigrationParamsPtr migParams)
 {
@@ -833,6 +835,7 @@ qemuMigrationParamsEnableTLS(virQEMUDriverPtr driver,
     virJSONValuePtr tlsProps = NULL;
     virJSONValuePtr secProps = NULL;
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+    const char *secAlias = NULL;
     int ret = -1;
 
     if (!cfg->migrateTLSx509certdir) {
@@ -849,27 +852,30 @@ qemuMigrationParamsEnableTLS(virQEMUDriverPtr driver,
     }
 
     /* If there's a secret, then grab/store it now using the connection */
-    if (cfg->migrateTLSx509secretUUID &&
-        !(priv->migSecinfo =
-          qemuDomainSecretInfoTLSNew(priv, QEMU_MIGRATION_TLS_ALIAS_BASE,
-                                     cfg->migrateTLSx509secretUUID)))
+    if (cfg->migrateTLSx509secretUUID) {
+        if (!(priv->migSecinfo =
+              qemuDomainSecretInfoTLSNew(priv, QEMU_MIGRATION_TLS_ALIAS_BASE,
+                                         cfg->migrateTLSx509secretUUID)))
+            goto error;
+        secAlias = priv->migSecinfo->s.aes.alias;
+    }
+
+    if (!(*tlsAlias = qemuAliasTLSObjFromSrcAlias(QEMU_MIGRATION_TLS_ALIAS_BASE)))
         goto error;
 
     if (qemuDomainGetTLSObjects(priv->qemuCaps, priv->migSecinfo,
                                 cfg->migrateTLSx509certdir, tlsListen,
                                 cfg->migrateTLSx509verify,
-                                QEMU_MIGRATION_TLS_ALIAS_BASE,
-                                &tlsProps, tlsAlias, &secProps, secAlias) < 0)
+                                *tlsAlias, &tlsProps, &secProps) < 0)
         goto error;
 
     /* Ensure the domain doesn't already have the TLS objects defined...
      * This should prevent any issues just in case some cleanup wasn't
      * properly completed (both src and dst use the same alias) or
      * some other error path between now and perform . */
-    qemuDomainDelTLSObjects(driver, vm, asyncJob, *secAlias, *tlsAlias);
+    qemuDomainDelTLSObjects(driver, vm, asyncJob, secAlias, *tlsAlias);
 
-    if (qemuDomainAddTLSObjects(driver, vm, asyncJob, *secAlias, &secProps,
-                                *tlsAlias, &tlsProps) < 0)
+    if (qemuDomainAddTLSObjects(driver, vm, asyncJob, &secProps, &tlsProps) < 0)
         goto error;
 
     if (qemuMigrationParamsSetString(migParams,
@@ -1343,6 +1349,7 @@ qemuMigrationCapsCheck(virQEMUDriverPtr driver,
     ret = 0;
 
  cleanup:
+    virBitmapFree(migEvent);
     virJSONValueFree(json);
     virStringListFree(caps);
     return ret;

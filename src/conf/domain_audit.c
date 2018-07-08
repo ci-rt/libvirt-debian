@@ -361,6 +361,7 @@ virDomainAuditHostdev(virDomainObjPtr vm, virDomainHostdevDefPtr hostdev,
     virDomainHostdevSubsysPCIPtr pcisrc = &hostdev->source.subsys.u.pci;
     virDomainHostdevSubsysSCSIPtr scsisrc = &hostdev->source.subsys.u.scsi;
     virDomainHostdevSubsysSCSIVHostPtr hostsrc = &hostdev->source.subsys.u.scsi_host;
+    virDomainHostdevSubsysMediatedDevPtr mdevsrc = &hostdev->source.subsys.u.mdev;
 
     virUUIDFormat(vm->def->uuid, uuidstr);
     if (!(vmname = virAuditEncode("vm", vm->def->name))) {
@@ -373,9 +374,9 @@ virDomainAuditHostdev(virDomainObjPtr vm, virDomainHostdevDefPtr hostdev,
         virt = "?";
     }
 
-    switch (hostdev->mode) {
+    switch ((virDomainHostdevMode) hostdev->mode) {
     case VIR_DOMAIN_HOSTDEV_MODE_SUBSYS:
-        switch (hostdev->source.subsys.type) {
+        switch ((virDomainHostdevSubsysType) hostdev->source.subsys.type) {
         case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI:
             if (virAsprintfQuiet(&address, "%.4x:%.2x:%.2x.%.1x",
                                  pcisrc->addr.domain,
@@ -419,6 +420,13 @@ virDomainAuditHostdev(virDomainObjPtr vm, virDomainHostdevDefPtr hostdev,
                 goto cleanup;
             }
             break;
+        case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_MDEV:
+            if (VIR_STRDUP_QUIET(address, mdevsrc->uuidstr) < 0) {
+                VIR_WARN("OOM while enconding audit message");
+                goto cleanup;
+            }
+            break;
+        case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_LAST:
         default:
             VIR_WARN("Unexpected hostdev type while encoding audit message: %d",
                      hostdev->source.subsys.type);
@@ -470,6 +478,7 @@ virDomainAuditHostdev(virDomainObjPtr vm, virDomainHostdevDefPtr hostdev,
         }
         break;
 
+    case VIR_DOMAIN_HOSTDEV_MODE_LAST:
     default:
         VIR_WARN("Unexpected hostdev mode while encoding audit message: %d",
                  hostdev->mode);
@@ -546,12 +555,13 @@ virDomainAuditRedirdev(virDomainObjPtr vm, virDomainRedirdevDefPtr redirdev,
 
 /**
  * virDomainAuditTPM:
- * @vm: domain making a change in pass-through host device
+ * @vm: domain making a change in pass-through host device or emulator
  * @tpm: TPM device being attached or removed
  * @reason: one of "start", "attach", or "detach"
- * @success: true if the device passthrough operation succeeded
+ * @success: true if the device operation succeeded
  *
- * Log an audit message about an attempted device passthrough change.
+ * Log an audit message about an attempted device passthrough or emulator
+ * change.
  */
 static void
 virDomainAuditTPM(virDomainObjPtr vm, virDomainTPMDefPtr tpm,
@@ -583,7 +593,18 @@ virDomainAuditTPM(virDomainObjPtr vm, virDomainTPMDefPtr tpm,
         }
 
         VIR_AUDIT(VIR_AUDIT_RECORD_RESOURCE, success,
-                  "virt=%s resrc=dev reason=%s %s uuid=%s %s",
+                  "virt=%s resrc=tpm reason=%s %s uuid=%s %s",
+                  virt, reason, vmname, uuidstr, device);
+        break;
+    case VIR_DOMAIN_TPM_TYPE_EMULATOR:
+        path = tpm->data.emulator.source.data.nix.path;
+        if (!(device = virAuditEncode("device", VIR_AUDIT_STR(path)))) {
+            VIR_WARN("OOM while encoding audit message");
+            goto cleanup;
+        }
+
+        VIR_AUDIT(VIR_AUDIT_RECORD_RESOURCE, success,
+                  "virt=%s resrc=tpm-emulator reason=%s %s uuid=%s %s",
                   virt, reason, vmname, uuidstr, device);
         break;
     case VIR_DOMAIN_TPM_TYPE_LAST:

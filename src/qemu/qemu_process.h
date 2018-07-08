@@ -24,6 +24,7 @@
 
 # include "qemu_conf.h"
 # include "qemu_domain.h"
+# include "virstoragefile.h"
 
 int qemuProcessPrepareMonitorChr(virDomainChrSourceDefPtr monConfig,
                                  const char *domainDir);
@@ -79,6 +80,7 @@ typedef enum {
     VIR_QEMU_PROCESS_START_AUTODESTROY  = 1 << 2,
     VIR_QEMU_PROCESS_START_PRETEND      = 1 << 3,
     VIR_QEMU_PROCESS_START_NEW          = 1 << 4, /* internal, new VM is starting */
+    VIR_QEMU_PROCESS_START_GEN_VMID     = 1 << 5, /* Generate a new VMID */
 } qemuProcessStartFlags;
 
 int qemuProcessStart(virConnectPtr conn,
@@ -110,6 +112,8 @@ int qemuProcessInit(virQEMUDriverPtr driver,
 int qemuProcessPrepareDomain(virQEMUDriverPtr driver,
                              virDomainObjPtr vm,
                              unsigned int flags);
+
+int qemuProcessOpenVhostVsock(virDomainVsockDefPtr vsock);
 
 int qemuProcessPrepareHost(virQEMUDriverPtr driver,
                            virDomainObjPtr vm,
@@ -203,5 +207,9 @@ int qemuProcessRefreshBalloonState(virQEMUDriverPtr driver,
 int qemuProcessRefreshDisks(virQEMUDriverPtr driver,
                             virDomainObjPtr vm,
                             qemuDomainAsyncJob asyncJob);
+
+int qemuProcessStartManagedPRDaemon(virDomainObjPtr vm);
+
+void qemuProcessKillManagedPRDaemon(virDomainObjPtr vm);
 
 #endif /* __QEMU_PROCESS_H__ */

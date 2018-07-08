@@ -70,12 +70,14 @@ int qemuAssignDeviceInputAlias(virDomainDefPtr def,
                                virDomainInputDefPtr input,
                                int idx);
 
+int qemuAssignDeviceVsockAlias(virDomainVsockDefPtr vsock);
+
 int qemuAssignDeviceAliases(virDomainDefPtr def, virQEMUCapsPtr qemuCaps);
 
 int qemuDomainDeviceAliasIndex(const virDomainDeviceInfo *info,
                                const char *prefix);
 
-char *qemuAliasFromDisk(const virDomainDiskDef *disk);
+char *qemuAliasDiskDriveFromDisk(const virDomainDiskDef *disk);
 
 const char *qemuAliasDiskDriveSkipPrefix(const char *dev_name);
 
@@ -91,5 +93,9 @@ char *qemuAliasTLSObjFromSrcAlias(const char *srcAlias)
 
 char *qemuAliasChardevFromDevAlias(const char *devAlias)
     ATTRIBUTE_NONNULL(1);
+
+const char *qemuDomainGetManagedPRAlias(void);
+
+char *qemuDomainGetUnmanagedPRAlias(const char *parentalias);
 
 #endif /* __QEMU_ALIAS_H__*/

@@ -23,6 +23,9 @@
 
 # include "internal.h"
 
+# define VIR_CRYPTO_HASH_SIZE_MD5 16
+# define VIR_CRYPTO_HASH_SIZE_SHA256 32
+
 typedef enum {
     VIR_CRYPTO_HASH_MD5, /* Don't use this except for historic compat */
     VIR_CRYPTO_HASH_SHA256,
@@ -37,6 +40,13 @@ typedef enum {
 
     VIR_CRYPTO_CIPHER_LAST
 } virCryptoCipher;
+
+ssize_t
+virCryptoHashBuf(virCryptoHash hash,
+                 const char *input,
+                 unsigned char *output)
+    ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
+    ATTRIBUTE_RETURN_CHECK;
 
 int
 virCryptoHashString(virCryptoHash hash,
@@ -54,7 +64,5 @@ int virCryptoEncryptData(virCryptoCipher algorithm,
                          uint8_t **ciphertext, size_t *ciphertextlen)
     ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(6)
     ATTRIBUTE_NONNULL(8) ATTRIBUTE_NONNULL(9) ATTRIBUTE_RETURN_CHECK;
-
-uint8_t *virCryptoGenerateRandom(size_t nbytes) ATTRIBUTE_NOINLINE;
 
 #endif /* __VIR_CRYPTO_H__ */

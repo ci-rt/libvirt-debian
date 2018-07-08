@@ -104,6 +104,8 @@ void virFileWrapperFdFree(virFileWrapperFdPtr dfd);
 int virFileLock(int fd, bool shared, off_t start, off_t len, bool waitForLock);
 int virFileUnlock(int fd, off_t start, off_t len);
 
+int virFileFlock(int fd, bool lock, bool shared);
+
 typedef int (*virFileRewriteFunc)(int fd, const void *opaque);
 int virFileRewrite(const char *path,
                    mode_t mode,
@@ -194,6 +196,7 @@ off_t virFileLength(const char *path, int fd) ATTRIBUTE_NONNULL(1);
 bool virFileIsDir (const char *file) ATTRIBUTE_NONNULL(1);
 bool virFileExists(const char *file) ATTRIBUTE_NONNULL(1) ATTRIBUTE_NOINLINE;
 bool virFileIsExecutable(const char *file) ATTRIBUTE_NONNULL(1);
+bool virFileIsRegular(const char *file) ATTRIBUTE_NONNULL(1);
 
 enum {
     VIR_FILE_SHFS_NFS = (1 << 0),
@@ -207,6 +210,8 @@ enum {
 int virFileIsSharedFSType(const char *path, int fstypes) ATTRIBUTE_NONNULL(1);
 int virFileIsSharedFS(const char *path) ATTRIBUTE_NONNULL(1);
 int virFileIsMountPoint(const char *file) ATTRIBUTE_NONNULL(1);
+int virFileIsCDROM(const char *path)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
 
 int virFileGetMountSubtree(const char *mtabpath,
                            const char *prefix,
@@ -218,6 +223,7 @@ int virFileGetMountReverseSubtree(const char *mtabpath,
                                   size_t *nmountsret) ATTRIBUTE_RETURN_CHECK;
 
 char *virFileSanitizePath(const char *path);
+char *virFileCanonicalizePath(const char *path) ATTRIBUTE_NOINLINE;
 
 enum {
     VIR_FILE_OPEN_NONE        = 0,
@@ -234,6 +240,9 @@ int virFileOpenAs(const char *path, int openflags, mode_t mode,
                   unsigned int flags)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
 int virFileRemove(const char *path, uid_t uid, gid_t gid);
+
+int virFileChownFiles(const char *name, uid_t uid, gid_t gid)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
 
 enum {
     VIR_DIR_CREATE_NONE        = 0,

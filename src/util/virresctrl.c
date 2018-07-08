@@ -24,8 +24,6 @@
 #include <fcntl.h>
 
 #include "virresctrlpriv.h"
-#include "c-ctype.h"
-#include "count-one-bits.h"
 #include "viralloc.h"
 #include "virfile.h"
 #include "virlog.h"
@@ -37,25 +35,35 @@
 VIR_LOG_INIT("util.virresctrl")
 
 
-/* Common definitions */
-#define SYSFS_RESCTRL_PATH "/sys/fs/resctrl"
-
 /* Resctrl is short for Resource Control.  It might be implemented for various
  * resources, but at the time of this writing this is only supported for cache
  * allocation technology (aka CAT).  Hence the reson for leaving 'Cache' out of
  * all the structure and function names for now (can be added later if needed.
  */
 
-/* Our naming for cache types and scopes */
+
+/* Common definitions */
+#define SYSFS_RESCTRL_PATH "/sys/fs/resctrl"
+
+
+/* Following are three different enum implementations for the same enum.  Each
+ * one of them helps translating to/from strings for different interfaces.  The
+ * delimiter must be VIR_CACHE_TYPE_LAST for all of them in order to stay
+ * consistent in between all of them. */
+
+/* Cache name mapping for Linux kernel naming. */
+VIR_ENUM_IMPL(virCacheKernel, VIR_CACHE_TYPE_LAST,
+              "Unified",
+              "Instruction",
+              "Data")
+
+/* Cache name mapping for our XML naming. */
 VIR_ENUM_IMPL(virCache, VIR_CACHE_TYPE_LAST,
               "both",
               "code",
               "data")
 
-/*
- * This is the same enum, but for the resctrl naming
- * of the type (L<level><type>)
- */
+/* Cache name mapping for resctrl interface naming. */
 VIR_ENUM_DECL(virResctrl)
 VIR_ENUM_IMPL(virResctrl, VIR_CACHE_TYPE_LAST,
               "",
@@ -63,12 +71,30 @@ VIR_ENUM_IMPL(virResctrl, VIR_CACHE_TYPE_LAST,
               "DATA")
 
 
-/* Info-related definitions and InfoClass-related functions */
+/* All private typedefs so that they exist for all later definitions.  This way
+ * structs can be included in one or another without reorganizing the code every
+ * time. */
 typedef struct _virResctrlInfoPerType virResctrlInfoPerType;
 typedef virResctrlInfoPerType *virResctrlInfoPerTypePtr;
+
+typedef struct _virResctrlInfoPerLevel virResctrlInfoPerLevel;
+typedef virResctrlInfoPerLevel *virResctrlInfoPerLevelPtr;
+
+typedef struct _virResctrlAllocPerType virResctrlAllocPerType;
+typedef virResctrlAllocPerType *virResctrlAllocPerTypePtr;
+
+typedef struct _virResctrlAllocPerLevel virResctrlAllocPerLevel;
+typedef virResctrlAllocPerLevel *virResctrlAllocPerLevelPtr;
+
+
+/* Class definitions and initializations */
+static virClassPtr virResctrlInfoClass;
+static virClassPtr virResctrlAllocClass;
+
+
+/* virResctrlInfo */
 struct _virResctrlInfoPerType {
     /* Kernel-provided information */
-    char *cbm_mask;
     unsigned int min_cbm_bits;
 
     /* Our computed information from the above */
@@ -86,8 +112,6 @@ struct _virResctrlInfoPerType {
     virResctrlInfoPerCache control;
 };
 
-typedef struct _virResctrlInfoPerLevel virResctrlInfoPerLevel;
-typedef virResctrlInfoPerLevel *virResctrlInfoPerLevelPtr;
 struct _virResctrlInfoPerLevel {
     virResctrlInfoPerTypePtr *types;
 };
@@ -99,7 +123,6 @@ struct _virResctrlInfo {
     size_t nlevels;
 };
 
-static virClassPtr virResctrlInfoClass;
 
 static void
 virResctrlInfoDispose(void *obj)
@@ -116,11 +139,8 @@ virResctrlInfoDispose(void *obj)
             continue;
 
         if (level->types) {
-            for (j = 0; j < VIR_CACHE_TYPE_LAST; j++) {
-                if (level->types[j])
-                    VIR_FREE(level->types[j]->cbm_mask);
+            for (j = 0; j < VIR_CACHE_TYPE_LAST; j++)
                 VIR_FREE(level->types[j]);
-            }
         }
         VIR_FREE(level->types);
         VIR_FREE(level);
@@ -130,30 +150,7 @@ virResctrlInfoDispose(void *obj)
 }
 
 
-static int
-virResctrlInfoOnceInit(void)
-{
-    if (!VIR_CLASS_NEW(virResctrlInfo, virClassForObject()))
-        return -1;
-
-    return 0;
-}
-
-
-VIR_ONCE_GLOBAL_INIT(virResctrlInfo)
-
-
-virResctrlInfoPtr
-virResctrlInfoNew(void)
-{
-    if (virResctrlInfoInitialize() < 0)
-        return NULL;
-
-    return virObjectNew(virResctrlInfoClass);
-}
-
-
-/* Alloc-related definitions and AllocClass-related functions */
+/* virResctrlAlloc */
 
 /*
  * virResctrlAlloc represents one allocation (in XML under cputune/cachetune and
@@ -186,8 +183,6 @@ virResctrlInfoNew(void)
  * virBitmaps named `masks` indexed the same way as `sizes`.  The upper bounds
  * of the sparse arrays are stored in nmasks or nsizes, respectively.
  */
-typedef struct _virResctrlAllocPerType virResctrlAllocPerType;
-typedef virResctrlAllocPerType *virResctrlAllocPerTypePtr;
 struct _virResctrlAllocPerType {
     /* There could be bool saying whether this is set or not, but since everything
      * in virResctrlAlloc (and most of libvirt) goes with pointer arrays we would
@@ -201,8 +196,6 @@ struct _virResctrlAllocPerType {
     size_t nmasks;
 };
 
-typedef struct _virResctrlAllocPerLevel virResctrlAllocPerLevel;
-typedef virResctrlAllocPerLevel *virResctrlAllocPerLevelPtr;
 struct _virResctrlAllocPerLevel {
     virResctrlAllocPerTypePtr *types; /* Indexed with enum virCacheType */
     /* There is no `ntypes` member variable as it is always allocated for
@@ -222,7 +215,6 @@ struct _virResctrlAlloc {
     char *path;
 };
 
-static virClassPtr virResctrlAllocClass;
 
 static void
 virResctrlAllocDispose(void *obj)
@@ -231,10 +223,10 @@ virResctrlAllocDispose(void *obj)
     size_t j = 0;
     size_t k = 0;
 
-    virResctrlAllocPtr resctrl = obj;
+    virResctrlAllocPtr alloc = obj;
 
-    for (i = 0; i < resctrl->nlevels; i++) {
-        virResctrlAllocPerLevelPtr level = resctrl->levels[i];
+    for (i = 0; i < alloc->nlevels; i++) {
+        virResctrlAllocPerLevelPtr level = alloc->levels[i];
 
         if (!level)
             continue;
@@ -259,39 +251,31 @@ virResctrlAllocDispose(void *obj)
         VIR_FREE(level);
     }
 
-    VIR_FREE(resctrl->id);
-    VIR_FREE(resctrl->path);
-    VIR_FREE(resctrl->levels);
+    VIR_FREE(alloc->id);
+    VIR_FREE(alloc->path);
+    VIR_FREE(alloc->levels);
 }
 
 
+/* Global initialization for classes */
 static int
-virResctrlAllocOnceInit(void)
+virResctrlOnceInit(void)
 {
+    if (!VIR_CLASS_NEW(virResctrlInfo, virClassForObject()))
+        return -1;
+
     if (!VIR_CLASS_NEW(virResctrlAlloc, virClassForObject()))
         return -1;
 
     return 0;
 }
 
-
-VIR_ONCE_GLOBAL_INIT(virResctrlAlloc)
-
-
-virResctrlAllocPtr
-virResctrlAllocNew(void)
-{
-    if (virResctrlAllocInitialize() < 0)
-        return NULL;
-
-    return virObjectNew(virResctrlAllocClass);
-}
+VIR_ONCE_GLOBAL_INIT(virResctrl)
 
 
 /* Common functions */
-#ifdef __linux__
 static int
-virResctrlLockInternal(int op)
+virResctrlLockWrite(void)
 {
     int fd = open(SYSFS_RESCTRL_PATH, O_DIRECTORY | O_CLOEXEC);
 
@@ -300,7 +284,7 @@ virResctrlLockInternal(int op)
         return -1;
     }
 
-    if (flock(fd, op) < 0) {
+    if (virFileFlock(fd, true, true) < 0) {
         virReportSystemError(errno, "%s", _("Cannot lock resctrl"));
         VIR_FORCE_CLOSE(fd);
         return -1;
@@ -310,79 +294,30 @@ virResctrlLockInternal(int op)
 }
 
 
-static inline int
-virResctrlLockWrite(void)
-{
-    return virResctrlLockInternal(LOCK_EX);
-}
-
-#else
-
-static inline int
-virResctrlLockWrite(void)
-{
-    virReportSystemError(ENOSYS, "%s",
-                         _("resctrl not supported on this platform"));
-    return -1;
-}
-
-#endif
-
-
-
-
 static int
 virResctrlUnlock(int fd)
 {
     if (fd == -1)
         return 0;
 
-#ifdef __linux__
     /* The lock gets unlocked by closing the fd, which we need to do anyway in
      * order to clean up properly */
     if (VIR_CLOSE(fd) < 0) {
         virReportSystemError(errno, "%s", _("Cannot close resctrl"));
 
         /* Trying to save the already broken */
-        if (flock(fd, LOCK_UN) < 0)
+        if (virFileFlock(fd, false, false) < 0)
             virReportSystemError(errno, "%s", _("Cannot unlock resctrl"));
+
         return -1;
     }
-#endif /* ! __linux__ */
 
     return 0;
 }
 
 
-/* Info-related functions */
-static bool
-virResctrlInfoIsEmpty(virResctrlInfoPtr resctrl)
-{
-    size_t i = 0;
-    size_t j = 0;
-
-    if (!resctrl)
-        return true;
-
-    for (i = 0; i < resctrl->nlevels; i++) {
-        virResctrlInfoPerLevelPtr i_level = resctrl->levels[i];
-
-        if (!i_level)
-            continue;
-
-        for (j = 0; j < VIR_CACHE_TYPE_LAST; j++) {
-            if (i_level->types[j])
-                return false;
-        }
-    }
-
-    return true;
-}
-
-
-#ifdef __linux__
-
-int
+/* virResctrlInfo-related definitions */
+static int
 virResctrlGetInfo(virResctrlInfoPtr resctrl)
 {
     DIR *dirp = NULL;
@@ -393,6 +328,7 @@ virResctrlGetInfo(virResctrlInfoPtr resctrl)
     int type = 0;
     struct dirent *ent = NULL;
     unsigned int level = 0;
+    virBitmapPtr tmp_map = NULL;
     virResctrlInfoPerLevelPtr i_level = NULL;
     virResctrlInfoPerTypePtr i_type = NULL;
 
@@ -437,7 +373,7 @@ virResctrlGetInfo(virResctrlInfoPtr resctrl)
             goto cleanup;
         }
 
-        rv = virFileReadValueString(&i_type->cbm_mask,
+        rv = virFileReadValueString(&tmp_str,
                                     SYSFS_RESCTRL_PATH
                                     "/info/%s/cbm_mask",
                                     ent->d_name);
@@ -452,7 +388,19 @@ virResctrlGetInfo(virResctrlInfoPtr resctrl)
         if (rv < 0)
             goto cleanup;
 
-        virStringTrimOptionalNewline(i_type->cbm_mask);
+        virStringTrimOptionalNewline(tmp_str);
+
+        tmp_map = virBitmapNewString(tmp_str);
+        VIR_FREE(tmp_str);
+        if (!tmp_map) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Cannot parse cbm_mask from resctrl cache info"));
+            goto cleanup;
+        }
+
+        i_type->bits = virBitmapCountBits(tmp_map);
+        virBitmapFree(tmp_map);
+        tmp_map = NULL;
 
         rv = virFileReadValueUint(&i_type->min_cbm_bits,
                                   SYSFS_RESCTRL_PATH "/info/%s/min_cbm_bits",
@@ -490,39 +438,61 @@ virResctrlGetInfo(virResctrlInfoPtr resctrl)
             goto cleanup;
         }
 
-        for (tmp_str = i_type->cbm_mask; *tmp_str != '\0'; tmp_str++) {
-            if (!c_isxdigit(*tmp_str)) {
-                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                               _("Cannot parse cbm_mask from resctrl cache info"));
-                goto cleanup;
-            }
-
-            i_type->bits += count_one_bits(virHexToBin(*tmp_str));
-        }
-
         VIR_STEAL_PTR(i_level->types[type], i_type);
     }
 
     ret = 0;
  cleanup:
     VIR_DIR_CLOSE(dirp);
-    if (i_type)
-        VIR_FREE(i_type->cbm_mask);
     VIR_FREE(i_type);
     return ret;
 }
 
-#else /* ! __linux__ */
 
-int
-virResctrlGetInfo(virResctrlInfoPtr resctrl ATTRIBUTE_UNUSED)
+virResctrlInfoPtr
+virResctrlInfoNew(void)
 {
-    virReportSystemError(ENOSYS, "%s",
-                         _("Cache tune not supported on this platform"));
-    return -1;
+    virResctrlInfoPtr ret = NULL;
+
+    if (virResctrlInitialize() < 0)
+        return NULL;
+
+    ret = virObjectNew(virResctrlInfoClass);
+    if (!ret)
+        return NULL;
+
+    if (virResctrlGetInfo(ret) < 0) {
+        virObjectUnref(ret);
+        return NULL;
+    }
+
+    return ret;
 }
 
-#endif /* ! __linux__ */
+
+static bool
+virResctrlInfoIsEmpty(virResctrlInfoPtr resctrl)
+{
+    size_t i = 0;
+    size_t j = 0;
+
+    if (!resctrl)
+        return true;
+
+    for (i = 0; i < resctrl->nlevels; i++) {
+        virResctrlInfoPerLevelPtr i_level = resctrl->levels[i];
+
+        if (!i_level)
+            continue;
+
+        for (j = 0; j < VIR_CACHE_TYPE_LAST; j++) {
+            if (i_level->types[j])
+                return false;
+        }
+    }
+
+    return true;
+}
 
 
 int
@@ -589,19 +559,29 @@ virResctrlInfoGetCache(virResctrlInfoPtr resctrl,
 }
 
 
-/* Alloc-related functions */
+/* virResctrlAlloc-related definitions */
+virResctrlAllocPtr
+virResctrlAllocNew(void)
+{
+    if (virResctrlInitialize() < 0)
+        return NULL;
+
+    return virObjectNew(virResctrlAllocClass);
+}
+
+
 bool
-virResctrlAllocIsEmpty(virResctrlAllocPtr resctrl)
+virResctrlAllocIsEmpty(virResctrlAllocPtr alloc)
 {
     size_t i = 0;
     size_t j = 0;
     size_t k = 0;
 
-    if (!resctrl)
+    if (!alloc)
         return true;
 
-    for (i = 0; i < resctrl->nlevels; i++) {
-        virResctrlAllocPerLevelPtr a_level = resctrl->levels[i];
+    for (i = 0; i < alloc->nlevels; i++) {
+        virResctrlAllocPerLevelPtr a_level = alloc->levels[i];
 
         if (!a_level)
             continue;
@@ -629,30 +609,30 @@ virResctrlAllocIsEmpty(virResctrlAllocPtr resctrl)
 
 
 static virResctrlAllocPerTypePtr
-virResctrlAllocGetType(virResctrlAllocPtr resctrl,
+virResctrlAllocGetType(virResctrlAllocPtr alloc,
                        unsigned int level,
                        virCacheType type)
 {
     virResctrlAllocPerLevelPtr a_level = NULL;
 
-    if (resctrl->nlevels <= level &&
-        VIR_EXPAND_N(resctrl->levels, resctrl->nlevels, level - resctrl->nlevels + 1) < 0)
+    if (alloc->nlevels <= level &&
+        VIR_EXPAND_N(alloc->levels, alloc->nlevels, level - alloc->nlevels + 1) < 0)
         return NULL;
 
-    if (!resctrl->levels[level]) {
+    if (!alloc->levels[level]) {
         virResctrlAllocPerTypePtr *types = NULL;
 
         if (VIR_ALLOC_N(types, VIR_CACHE_TYPE_LAST) < 0)
             return NULL;
 
-        if (VIR_ALLOC(resctrl->levels[level]) < 0) {
+        if (VIR_ALLOC(alloc->levels[level]) < 0) {
             VIR_FREE(types);
             return NULL;
         }
-        resctrl->levels[level]->types = types;
+        alloc->levels[level]->types = types;
     }
 
-    a_level = resctrl->levels[level];
+    a_level = alloc->levels[level];
 
     if (!a_level->types[type] && VIR_ALLOC(a_level->types[type]) < 0)
         return NULL;
@@ -662,13 +642,13 @@ virResctrlAllocGetType(virResctrlAllocPtr resctrl,
 
 
 static int
-virResctrlAllocUpdateMask(virResctrlAllocPtr resctrl,
+virResctrlAllocUpdateMask(virResctrlAllocPtr alloc,
                           unsigned int level,
                           virCacheType type,
                           unsigned int cache,
                           virBitmapPtr mask)
 {
-    virResctrlAllocPerTypePtr a_type = virResctrlAllocGetType(resctrl, level, type);
+    virResctrlAllocPerTypePtr a_type = virResctrlAllocGetType(alloc, level, type);
 
     if (!a_type)
         return -1;
@@ -690,13 +670,13 @@ virResctrlAllocUpdateMask(virResctrlAllocPtr resctrl,
 
 
 static int
-virResctrlAllocUpdateSize(virResctrlAllocPtr resctrl,
+virResctrlAllocUpdateSize(virResctrlAllocPtr alloc,
                           unsigned int level,
                           virCacheType type,
                           unsigned int cache,
                           unsigned long long size)
 {
-    virResctrlAllocPerTypePtr a_type = virResctrlAllocGetType(resctrl, level, type);
+    virResctrlAllocPerTypePtr a_type = virResctrlAllocGetType(alloc, level, type);
 
     if (!a_type)
         return -1;
@@ -774,13 +754,13 @@ virResctrlAllocCheckCollision(virResctrlAllocPtr alloc,
 
 
 int
-virResctrlAllocSetSize(virResctrlAllocPtr resctrl,
+virResctrlAllocSetSize(virResctrlAllocPtr alloc,
                        unsigned int level,
                        virCacheType type,
                        unsigned int cache,
                        unsigned long long size)
 {
-    if (virResctrlAllocCheckCollision(resctrl, level, type, cache)) {
+    if (virResctrlAllocCheckCollision(alloc, level, type, cache)) {
         virReportError(VIR_ERR_XML_ERROR,
                        _("Colliding cache allocations for cache "
                          "level '%u' id '%u', type '%s'"),
@@ -788,12 +768,12 @@ virResctrlAllocSetSize(virResctrlAllocPtr resctrl,
         return -1;
     }
 
-    return virResctrlAllocUpdateSize(resctrl, level, type, cache, size);
+    return virResctrlAllocUpdateSize(alloc, level, type, cache, size);
 }
 
 
 int
-virResctrlAllocForeachSize(virResctrlAllocPtr resctrl,
+virResctrlAllocForeachSize(virResctrlAllocPtr alloc,
                            virResctrlAllocForeachSizeCallback cb,
                            void *opaque)
 {
@@ -802,11 +782,11 @@ virResctrlAllocForeachSize(virResctrlAllocPtr resctrl,
     unsigned int type = 0;
     unsigned int cache = 0;
 
-    if (!resctrl)
+    if (!alloc)
         return 0;
 
-    for (level = 0; level < resctrl->nlevels; level++) {
-        virResctrlAllocPerLevelPtr a_level = resctrl->levels[level];
+    for (level = 0; level < alloc->nlevels; level++) {
+        virResctrlAllocPerLevelPtr a_level = alloc->levels[level];
 
         if (!a_level)
             continue;
@@ -856,18 +836,18 @@ virResctrlAllocGetID(virResctrlAllocPtr alloc)
 
 
 char *
-virResctrlAllocFormat(virResctrlAllocPtr resctrl)
+virResctrlAllocFormat(virResctrlAllocPtr alloc)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     unsigned int level = 0;
     unsigned int type = 0;
     unsigned int cache = 0;
 
-    if (!resctrl)
+    if (!alloc)
         return NULL;
 
-    for (level = 0; level < resctrl->nlevels; level++) {
-        virResctrlAllocPerLevelPtr a_level = resctrl->levels[level];
+    for (level = 0; level < alloc->nlevels; level++) {
+        virResctrlAllocPerLevelPtr a_level = alloc->levels[level];
 
         if (!a_level)
             continue;
@@ -941,7 +921,7 @@ virResctrlAllocParseProcessCache(virResctrlInfoPtr resctrl,
         !resctrl->levels[level]->types[type]) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Missing or inconsistent resctrl info for "
-                         "level '%ud' type '%s'"),
+                         "level '%u' type '%s'"),
                        level, virCacheTypeToString(type));
         goto cleanup;
     }
@@ -1088,8 +1068,6 @@ virResctrlAllocGetDefault(virResctrlInfoPtr resctrl)
     return ret;
 }
 
-
-#ifdef __linux__
 
 static void
 virResctrlAllocSubtractPerType(virResctrlAllocPerTypePtr dst,
@@ -1245,18 +1223,6 @@ virResctrlAllocGetUnused(virResctrlInfoPtr resctrl)
     ret = NULL;
     goto cleanup;
 }
-
-#else /* ! __linux__ */
-
-virResctrlAllocPtr
-virResctrlAllocGetUnused(virResctrlInfoPtr resctrl ATTRIBUTE_UNUSED)
-{
-    virReportSystemError(ENOSYS, "%s",
-                         _("Cache tune not supported on this platform"));
-    return NULL;
-}
-
-#endif /* ! __linux__ */
 
 
 /*

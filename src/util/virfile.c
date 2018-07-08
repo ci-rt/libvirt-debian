@@ -51,17 +51,18 @@
 #if HAVE_SYS_ACL_H
 # include <sys/acl.h>
 #endif
+#include <sys/file.h>
 
 #ifdef __linux__
 # if HAVE_LINUX_MAGIC_H
 #  include <linux/magic.h>
 # endif
 # include <sys/statfs.h>
-#endif
-
-#if defined(__linux__) && HAVE_DECL_LO_FLAGS_AUTOCLEAR
-# include <linux/loop.h>
+# if HAVE_DECL_LO_FLAGS_AUTOCLEAR
+#  include <linux/loop.h>
+# endif
 # include <sys/ioctl.h>
+# include <linux/cdrom.h>
 #endif
 
 #include "configmake.h"
@@ -362,6 +363,7 @@ virFileWrapperFdFree(virFileWrapperFdPtr wfd)
 
 
 #ifndef WIN32
+
 /**
  * virFileLock:
  * @fd: file descriptor to acquire the lock on
@@ -430,7 +432,32 @@ int virFileUnlock(int fd, off_t start, off_t len)
 
     return 0;
 }
+
+
+/**
+ * virFileFlock:
+ * @fd: file descriptor to call flock on
+ * @lock: true for lock, false for unlock
+ * @shared: true if shared, false for exclusive, ignored if `@lock == false`
+ *
+ * This is just a simple wrapper around flock(2) that errors out on unsupported
+ * platforms.
+ *
+ * The lock will be released when @fd is closed or this function is called with
+ * `@lock == false`.
+ *
+ * Returns 0 on success, -1 otherwise (with errno set)
+ */
+int virFileFlock(int fd, bool lock, bool shared)
+{
+    if (lock)
+        return flock(fd, shared ? LOCK_SH : LOCK_EX);
+
+    return flock(fd, LOCK_UN);
+}
+
 #else
+
 int virFileLock(int fd ATTRIBUTE_UNUSED,
                 bool shared ATTRIBUTE_UNUSED,
                 off_t start ATTRIBUTE_UNUSED,
@@ -439,13 +466,26 @@ int virFileLock(int fd ATTRIBUTE_UNUSED,
 {
     return -ENOSYS;
 }
+
+
 int virFileUnlock(int fd ATTRIBUTE_UNUSED,
                   off_t start ATTRIBUTE_UNUSED,
                   off_t len ATTRIBUTE_UNUSED)
 {
     return -ENOSYS;
 }
+
+
+int virFileFlock(int fd ATTRIBUTE_UNUSED,
+                 bool lock ATTRIBUTE_UNUSED,
+                 bool shared ATTRIBUTE_UNUSED)
+{
+    errno = ENOSYS;
+    return -1;
+}
+
 #endif
+
 
 int
 virFileRewrite(const char *path,
@@ -1597,7 +1637,7 @@ virFileResolveLinkHelper(const char *linkpath,
             return VIR_STRDUP_QUIET(*resultpath, linkpath) < 0 ? -1 : 0;
     }
 
-    *resultpath = canonicalize_file_name(linkpath);
+    *resultpath = virFileCanonicalizePath(linkpath);
 
     return *resultpath == NULL ? -1 : 0;
 }
@@ -1851,6 +1891,15 @@ virFileIsDir(const char *path)
     return (stat(path, &s) == 0) && S_ISDIR(s.st_mode);
 }
 
+
+bool
+virFileIsRegular(const char *path)
+{
+    struct stat s;
+    return (stat(path, &s) == 0) && S_ISREG(s.st_mode);
+}
+
+
 /**
  * virFileExists: Check for presence of file
  * @path: Path of file to check
@@ -1937,6 +1986,59 @@ int virFileIsMountPoint(const char *file)
     VIR_FREE(parent);
     return ret;
 }
+
+
+#if defined(__linux__)
+/**
+ * virFileIsCDROM:
+ * @path: File to check
+ *
+ * Returns 1 if @path is a cdrom device 0 if it is not a cdrom and -1 on
+ * error. 'errno' of the failure is preserved and no libvirt errors are
+ * reported.
+ */
+int
+virFileIsCDROM(const char *path)
+{
+    struct stat st;
+    int fd;
+    int ret = -1;
+
+    if ((fd = open(path, O_RDONLY | O_NONBLOCK)) < 0)
+        goto cleanup;
+
+    if (fstat(fd, &st) < 0)
+        goto cleanup;
+
+    if (!S_ISBLK(st.st_mode)) {
+        ret = 0;
+        goto cleanup;
+    }
+
+    /* Attempt to detect via a CDROM specific ioctl */
+    if (ioctl(fd, CDROM_DRIVE_STATUS, CDSL_CURRENT) >= 0)
+        ret = 1;
+    else
+        ret = 0;
+
+ cleanup:
+    VIR_FORCE_CLOSE(fd);
+    return ret;
+}
+
+#else
+
+int
+virFileIsCDROM(const char *path)
+{
+    if (STRPREFIX(path, "/dev/cd") ||
+        STRPREFIX(path, "/dev/acd"))
+        return 1;
+
+    return 0;
+}
+
+#endif /* defined(__linux__) */
 
 
 #if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
@@ -2064,7 +2166,6 @@ virFileAccessibleAs(const char *path, int mode,
 {
     pid_t pid = 0;
     int status, ret = 0;
-    int forkRet = 0;
     gid_t *groups;
     int ngroups;
 
@@ -2097,15 +2198,6 @@ virFileAccessibleAs(const char *path, int mode,
         }
 
         return 0;
-    }
-
-    /* child.
-     * Return positive value here. Parent
-     * will change it to negative one. */
-
-    if (forkRet < 0) {
-        ret = errno;
-        goto childerror;
     }
 
     if (virSetUIDGID(uid, gid, groups, ngroups) < 0) {
@@ -2937,6 +3029,61 @@ void virDirClose(DIR **dirp)
     *dirp = NULL;
 }
 
+
+/*
+ * virFileChownFiles:
+ * @name: name of the directory
+ * @uid: uid
+ * @gid: gid
+ *
+ * Change ownership of all regular files in a directory.
+ *
+ * Returns -1 on error, with error already reported, 0 on success.
+ */
+int virFileChownFiles(const char *name,
+                      uid_t uid,
+                      gid_t gid)
+{
+    struct dirent *ent;
+    int ret = -1;
+    int direrr;
+    DIR *dir;
+    char *path = NULL;
+
+    if (virDirOpen(&dir, name) < 0)
+        return -1;
+
+    while ((direrr = virDirRead(dir, &ent, name)) > 0) {
+        VIR_FREE(path);
+        if (virAsprintf(&path, "%s/%s", name, ent->d_name) < 0)
+            goto cleanup;
+
+        if (!virFileIsRegular(path))
+            continue;
+
+        if (chown(path, uid, gid) < 0) {
+            virReportSystemError(errno,
+                                 _("cannot chown '%s' to (%u, %u)"),
+                                 ent->d_name, (unsigned int) uid,
+                                 (unsigned int) gid);
+            goto cleanup;
+        }
+    }
+
+    if (direrr < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(path);
+
+    virDirClose(&dir);
+
+    return ret;
+}
+
+
 static int
 virFileMakePathHelper(char *path, mode_t mode)
 {
@@ -3297,6 +3444,19 @@ virFileSanitizePath(const char *path)
     cleanpath[idx] = '\0';
 
     return cleanpath;
+}
+
+/**
+ * virFileCanonicalizePath:
+ *
+ * Returns the canonical representation of @path.
+ *
+ * The returned string must be freed after use.
+ */
+char *
+virFileCanonicalizePath(const char *path)
+{
+    return canonicalize_file_name(path); /* exempt from syntax-check */
 }
 
 /**
@@ -3665,7 +3825,7 @@ virFileMoveMount(const char *src,
 {
     const unsigned long mount_flags = MS_MOVE;
 
-    if (mount(src, dst, NULL, mount_flags, NULL) < 0) {
+    if (mount(src, dst, "none", mount_flags, NULL) < 0) {
         virReportSystemError(errno,
                              _("Unable to move %s mount to %s"),
                              src, dst);

@@ -957,9 +957,7 @@ static int virLXCControllerSetupServer(virLXCControllerPtr ctrl)
                                            0700,
                                            0,
                                            0,
-#if WITH_GNUTLS
                                            NULL,
-#endif
                                            false,
                                            0,
                                            5)))
@@ -1028,7 +1026,7 @@ static void virLXCControllerSignalChildIO(virNetDaemonPtr dmn,
     int status;
 
     ret = waitpid(-1, &status, WNOHANG);
-    VIR_DEBUG("Got sig child %d vs %lld", ret, (long long) ctrl->initpid);
+    VIR_DEBUG("Got sig child %d vs %lld", ret, (long long)ctrl->initpid);
     if (ret == ctrl->initpid) {
         virNetDaemonQuit(dmn);
         virMutexLock(&lock);
@@ -1297,7 +1295,6 @@ static void virLXCControllerConsoleIO(int watch, int fd, int events, void *opaqu
  */
 static int virLXCControllerMain(virLXCControllerPtr ctrl)
 {
-    virErrorPtr err;
     int rc = -1;
     size_t i;
 
@@ -1349,8 +1346,7 @@ static int virLXCControllerMain(virLXCControllerPtr ctrl)
 
     virNetDaemonRun(ctrl->daemon);
 
-    err = virGetLastError();
-    if (!err || err->code == VIR_ERR_OK)
+    if (virGetLastErrorCode() == VIR_ERR_OK)
         rc = wantReboot ? 1 : 0;
 
  cleanup:
@@ -2307,7 +2303,7 @@ virLXCControllerEventSendInit(virLXCControllerPtr ctrl,
 {
     virLXCMonitorInitEventMsg msg;
 
-    VIR_DEBUG("Init pid %lld", (long long) initpid);
+    VIR_DEBUG("Init pid %lld", (long long)initpid);
     memset(&msg, 0, sizeof(msg));
     msg.initpid = initpid;
 

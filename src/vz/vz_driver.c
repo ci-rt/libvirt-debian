@@ -934,7 +934,7 @@ vzConnectBaselineCPU(virConnectPtr conn,
     if (!(cpus = virCPUDefListParse(xmlCPUs, ncpus, VIR_CPU_TYPE_HOST)))
         goto cleanup;
 
-    if (!(cpu = cpuBaseline(cpus, ncpus, NULL, false)))
+    if (!(cpu = virCPUBaseline(VIR_ARCH_NONE, cpus, ncpus, NULL, NULL, false)))
         goto cleanup;
 
     if ((flags & VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES) &&
@@ -3161,7 +3161,6 @@ vzDomainMigratePerformStep(virDomainObjPtr dom,
         goto cleanup;
 
     virDomainObjListRemove(driver->domains, dom);
-    virObjectLock(dom);
 
     ret = 0;
 

@@ -81,7 +81,8 @@ LDADDS = \
 	../src/libvirt.la
 
 MOCKLIBS_LIBS = \
-	$(GNULIB_LIBS)
+	$(GNULIB_LIBS) \
+	../src/libvirt.la
 
 EXTRA_DIST = \
 	.valgrind.supp \
@@ -119,6 +120,7 @@ EXTRA_DIST = \
 	oomtrace.pl \
 	qemuagentdata \
 	qemuargv2xmldata \
+	qemublocktestdata \
 	qemucapabilitiesdata \
 	qemucaps2xmldata \
 	qemuhotplugtestcpus \
@@ -155,6 +157,7 @@ EXTRA_DIST = \
 	virmock.h \
 	virnetdaemondata \
 	virnetdevtestdata \
+	virnwfilterbindingxml2xmldata \
 	virpcitestdata \
 	virscsidata \
 	virsh-uriprecedence \
@@ -225,10 +228,9 @@ test_programs += \
 	virnetsockettest \
 	virnetdaemontest \
 	virnetserverclienttest \
+	virnettlscontexttest \
+	virnettlssessiontest \
 	$(NULL)
-if WITH_GNUTLS
-test_programs += virnettlscontexttest virnettlssessiontest
-endif WITH_GNUTLS
 endif WITH_REMOTE
 
 if WITH_LINUX
@@ -280,7 +282,7 @@ endif WITH_LIBXL
 if WITH_QEMU
 test_programs += qemuxml2argvtest qemuxml2xmltest \
 	qemuargv2xmltest domainsnapshotxml2xmltest \
-	qemumonitortest qemumonitorjsontest qemuhotplugtest \
+	qemumonitorjsontest qemuhotplugtest \
 	qemuagenttest qemucapabilitiestest qemucaps2xmltest \
 	qemumemlocktest \
 	qemucommandutiltest \
@@ -351,6 +353,7 @@ test_programs += storagebackendsheepdogtest
 endif WITH_STORAGE_SHEEPDOG
 
 test_programs += nwfilterxml2xmltest
+test_programs += virnwfilterbindingxml2xmltest
 
 if WITH_NWFILTER
 test_programs += nwfilterebiptablestest
@@ -487,7 +490,7 @@ VALGRIND = valgrind --quiet --leak-check=full --trace-children=yes \
 	--trace-children-skip="*/tools/virsh","*/tests/commandhelper" \
 	--suppressions=$(srcdir)/.valgrind.supp
 valgrind:
-	$(MAKE) check VG="libtool --mode=execute $(VALGRIND)"
+	$(MAKE) check VG="$(LIBTOOL) --mode=execute $(VALGRIND)"
 
 sockettest_SOURCES = \
 	sockettest.c \
@@ -588,13 +591,6 @@ qemuargv2xmltest_SOURCES = \
 	testutils.c testutils.h
 qemuargv2xmltest_LDADD = $(qemu_LDADDS) $(LDADDS)
 
-qemumonitortest_SOURCES = \
-	qemumonitortest.c \
-	testutils.c testutils.h \
-	testutilsqemu.c testutilsqemu.h
-qemumonitortest_LDADD = libqemumonitortestutils.la \
-	$(qemu_LDADDS) $(LDADDS)
-
 qemumonitorjsontest_SOURCES = \
 	qemumonitorjsontest.c \
 	testutils.c testutils.h \
@@ -655,12 +651,16 @@ qemuhotplugtest_SOURCES = \
 qemuhotplugtest_LDADD = libqemumonitortestutils.la $(qemu_LDADDS) $(LDADDS)
 
 qemublocktest_SOURCES = \
-	qemublocktest.c testutils.h testutils.c
-qemublocktest_LDADD = $(LDADDS) \
+	qemublocktest.c \
+	testutils.h testutils.c \
+	testutilsqemu.h testutilsqemu.c \
+	$(NULL)
+qemublocktest_LDADD = \
+	libqemumonitortestutils.la \
 	../src/libvirt_conf.la \
 	../src/libvirt_util.la \
 	$(qemu_LDADDS) \
-	../gnulib/lib/libgnu.la \
+	$(LDADDS) \
 	$(NULL)
 
 domainsnapshotxml2xmltest_SOURCES = \
@@ -685,7 +685,7 @@ qemumigparamstest_LDADD = libqemumonitortestutils.la \
 else ! WITH_QEMU
 EXTRA_DIST += qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c \
 	domainsnapshotxml2xmltest.c \
-	qemumonitortest.c testutilsqemu.c testutilsqemu.h \
+	testutilsqemu.c testutilsqemu.h \
 	testutilsqemuschema.c testutilsqemuschema.h \
 	qemumonitorjsontest.c qemuhotplugtest.c \
 	qemuagenttest.c qemucapabilitiestest.c \
@@ -849,6 +849,11 @@ nwfilterxml2xmltest_SOURCES = \
 	nwfilterxml2xmltest.c \
 	testutils.c testutils.h
 nwfilterxml2xmltest_LDADD = $(LDADDS)
+
+virnwfilterbindingxml2xmltest_SOURCES = \
+	virnwfilterbindingxml2xmltest.c \
+	testutils.c testutils.h
+virnwfilterbindingxml2xmltest_LDADD = $(LDADDS)
 
 if WITH_NWFILTER
 nwfilterebiptablestest_SOURCES = \
@@ -1028,7 +1033,6 @@ virnetserverclientmock_la_SOURCES = \
 virnetserverclientmock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
 virnetserverclientmock_la_LIBADD = $(MOCKLIBS_LIBS)
 
-if WITH_GNUTLS
 virnettlscontexttest_SOURCES = \
 	virnettlscontexttest.c \
 	virnettlshelpers.h virnettlshelpers.c \
@@ -1047,12 +1051,6 @@ virnettlssessiontest_LDADD += -ltasn1
 else ! HAVE_LIBTASN1
 EXTRA_DIST += pkix_asn1_tab.c
 endif ! HAVE_LIBTASN1
-else ! WITH_GNUTLS
-EXTRA_DIST += \
-	virnettlscontexttest.c virnettlssessiontest.c \
-	virnettlshelpers.h virnettlshelpers.c \
-	testutils.h testutils.c pkix_asn1_tab.c
-endif ! WITH_GNUTLS
 
 virtimetest_SOURCES = \
 	virtimetest.c testutils.h testutils.c

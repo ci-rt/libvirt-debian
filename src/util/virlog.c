@@ -40,6 +40,7 @@
 #if HAVE_SYS_UN_H
 # include <sys/un.h>
 #endif
+#include <fnmatch.h>
 
 #include "virerror.h"
 #include "virlog.h"
@@ -87,7 +88,7 @@ VIR_ENUM_IMPL(virLogDestination, VIR_LOG_TO_OUTPUT_LAST,
 struct _virLogFilter {
     char *match;
     virLogPriority priority;
-    unsigned int flags;
+    unsigned int flags; /* bitwise OR of virLogFilterFlags */
 };
 
 static int virLogFiltersSerial = 1;
@@ -508,7 +509,7 @@ virLogSourceUpdate(virLogSourcePtr source)
         size_t i;
 
         for (i = 0; i < virLogNbFilters; i++) {
-            if (strstr(source->name, virLogFilters[i]->match)) {
+            if (fnmatch(virLogFilters[i]->match, source->name, 0) == 0) {
                 priority = virLogFilters[i]->priority;
                 flags = virLogFilters[i]->flags;
                 break;
@@ -1408,6 +1409,7 @@ virLogFilterNew(const char *match,
 {
     virLogFilterPtr ret = NULL;
     char *mdup = NULL;
+    size_t mlen = strlen(match);
 
     virCheckFlags(VIR_LOG_STACK_TRACE, NULL);
 
@@ -1417,8 +1419,15 @@ virLogFilterNew(const char *match,
         return NULL;
     }
 
-    if (VIR_STRDUP_QUIET(mdup, match) < 0)
+    /* We must treat 'foo' as equiv to '*foo*' for fnmatch
+     * todo substring matches, so add 2 extra bytes
+     */
+    if (VIR_ALLOC_N_QUIET(mdup, mlen + 3) < 0)
         return NULL;
+
+    mdup[0] = '*';
+    memcpy(mdup + 1, match, mlen);
+    mdup[mlen + 1] = '*';
 
     if (VIR_ALLOC_QUIET(ret) < 0) {
         VIR_FREE(mdup);

@@ -442,6 +442,11 @@ typedef int
                                  unsigned int flags);
 
 typedef int
+(*virDrvDomainDetachDeviceAlias)(virDomainPtr domain,
+                                 const char *alias,
+                                 unsigned int flags);
+
+typedef int
 (*virDrvDomainGetAutostart)(virDomainPtr domain,
                             int *autostart);
 
@@ -673,11 +678,29 @@ typedef int
                            const char *cpu,
                            unsigned int flags);
 
+typedef int
+(*virDrvConnectCompareHypervisorCPU)(virConnectPtr conn,
+                                     const char *emulator,
+                                     const char *arch,
+                                     const char *machine,
+                                     const char *virttype,
+                                     const char *xmlCPU,
+                                     unsigned int flags);
+
 typedef char *
 (*virDrvConnectBaselineCPU)(virConnectPtr conn,
                             const char **xmlCPUs,
                             unsigned int ncpus,
                             unsigned int flags);
+typedef char *
+(*virDrvConnectBaselineHypervisorCPU)(virConnectPtr conn,
+                                      const char *emulator,
+                                      const char *arch,
+                                      const char *machine,
+                                      const char *virttype,
+                                      const char **xmlCPUs,
+                                      unsigned int ncpus,
+                                      unsigned int flags);
 
 typedef int
 (*virDrvConnectGetCPUModelNames)(virConnectPtr conn,
@@ -1286,6 +1309,18 @@ typedef int
                                   unsigned int action,
                                   unsigned int flags);
 
+typedef int
+(*virDrvNodeGetSEVInfo)(virConnectPtr conn,
+                        virTypedParameterPtr *params,
+                        int *nparams,
+                        unsigned int flags);
+
+typedef int
+(*virDrvDomainGetLaunchSecurityInfo)(virDomainPtr domain,
+                                        virTypedParameterPtr *params,
+                                        int *nparams,
+                                        unsigned int flags);
+
 
 typedef struct _virHypervisorDriver virHypervisorDriver;
 typedef virHypervisorDriver *virHypervisorDriverPtr;
@@ -1392,6 +1427,7 @@ struct _virHypervisorDriver {
     virDrvDomainDetachDevice domainDetachDevice;
     virDrvDomainDetachDeviceFlags domainDetachDeviceFlags;
     virDrvDomainUpdateDeviceFlags domainUpdateDeviceFlags;
+    virDrvDomainDetachDeviceAlias domainDetachDeviceAlias;
     virDrvDomainGetAutostart domainGetAutostart;
     virDrvDomainSetAutostart domainSetAutostart;
     virDrvDomainGetSchedulerType domainGetSchedulerType;
@@ -1532,6 +1568,10 @@ struct _virHypervisorDriver {
     virDrvDomainSetVcpu domainSetVcpu;
     virDrvDomainSetBlockThreshold domainSetBlockThreshold;
     virDrvDomainSetLifecycleAction domainSetLifecycleAction;
+    virDrvConnectCompareHypervisorCPU connectCompareHypervisorCPU;
+    virDrvConnectBaselineHypervisorCPU connectBaselineHypervisorCPU;
+    virDrvNodeGetSEVInfo nodeGetSEVInfo;
+    virDrvDomainGetLaunchSecurityInfo domainGetLaunchSecurityInfo;
 };
 
 

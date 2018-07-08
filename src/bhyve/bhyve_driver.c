@@ -550,7 +550,6 @@ bhyveDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flag
     if (virDomainSaveConfig(BHYVE_CONFIG_DIR, caps,
                             vm->newDef ? vm->newDef : vm->def) < 0) {
         virDomainObjListRemove(privconn->domains, vm);
-        vm = NULL;
         goto cleanup;
     }
 
@@ -566,10 +565,8 @@ bhyveDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flag
     virObjectUnref(caps);
     virDomainDefFree(def);
     virDomainDefFree(oldDef);
-    if (vm)
-        virObjectUnlock(vm);
-    if (event)
-        virObjectEventStateQueue(privconn->domainEventState, event);
+    virDomainObjEndAPI(&vm);
+    virObjectEventStateQueue(privconn->domainEventState, event);
 
     return dom;
 }
@@ -609,19 +606,16 @@ bhyveDomainUndefine(virDomainPtr domain)
                                               VIR_DOMAIN_EVENT_UNDEFINED,
                                               VIR_DOMAIN_EVENT_UNDEFINED_REMOVED);
 
-    if (virDomainObjIsActive(vm)) {
+    if (virDomainObjIsActive(vm))
         vm->persistent = 0;
-    } else {
+    else
         virDomainObjListRemove(privconn->domains, vm);
-        virObjectLock(vm);
-    }
 
     ret = 0;
 
  cleanup:
     virDomainObjEndAPI(&vm);
-    if (event)
-        virObjectEventStateQueue(privconn->domainEventState, event);
+    virObjectEventStateQueue(privconn->domainEventState, event);
     return ret;
 }
 
@@ -900,8 +894,7 @@ bhyveDomainCreateWithFlags(virDomainPtr dom,
 
  cleanup:
     virDomainObjEndAPI(&vm);
-    if (event)
-        virObjectEventStateQueue(privconn->domainEventState, event);
+    virObjectEventStateQueue(privconn->domainEventState, event);
     return ret;
 }
 
@@ -958,10 +951,8 @@ bhyveDomainCreateXML(virConnectPtr conn,
                              VIR_DOMAIN_RUNNING_BOOTED,
                              start_flags) < 0) {
         /* If domain is not persistent, remove its data */
-        if (!vm->persistent) {
+        if (!vm->persistent)
             virDomainObjListRemove(privconn->domains, vm);
-            vm = NULL;
-        }
         goto cleanup;
     }
 
@@ -974,10 +965,8 @@ bhyveDomainCreateXML(virConnectPtr conn,
  cleanup:
     virObjectUnref(caps);
     virDomainDefFree(def);
-    if (vm)
-        virObjectUnlock(vm);
-    if (event)
-        virObjectEventStateQueue(privconn->domainEventState, event);
+    virDomainObjEndAPI(&vm);
+    virObjectEventStateQueue(privconn->domainEventState, event);
 
     return dom;
 }
@@ -996,26 +985,20 @@ bhyveDomainDestroy(virDomainPtr dom)
     if (virDomainDestroyEnsureACL(dom->conn, vm->def) < 0)
         goto cleanup;
 
-    if (!virDomainObjIsActive(vm)) {
-        virReportError(VIR_ERR_OPERATION_INVALID,
-                       "%s", _("Domain is not running"));
+    if (virDomainObjCheckActive(vm) < 0)
         goto cleanup;
-    }
 
     ret = virBhyveProcessStop(privconn, vm, VIR_DOMAIN_SHUTOFF_DESTROYED);
     event = virDomainEventLifecycleNewFromObj(vm,
                                               VIR_DOMAIN_EVENT_STOPPED,
                                               VIR_DOMAIN_EVENT_STOPPED_DESTROYED);
 
-    if (!vm->persistent) {
+    if (!vm->persistent)
         virDomainObjListRemove(privconn->domains, vm);
-        virObjectLock(vm);
-    }
 
  cleanup:
     virDomainObjEndAPI(&vm);
-    if (event)
-        virObjectEventStateQueue(privconn->domainEventState, event);
+    virObjectEventStateQueue(privconn->domainEventState, event);
     return ret;
 }
 
@@ -1031,11 +1014,8 @@ bhyveDomainShutdown(virDomainPtr dom)
     if (virDomainShutdownEnsureACL(dom->conn, vm->def) < 0)
         goto cleanup;
 
-    if (!virDomainObjIsActive(vm)) {
-        virReportError(VIR_ERR_OPERATION_INVALID,
-                       "%s", _("Domain is not running"));
+    if (virDomainObjCheckActive(vm) < 0)
         goto cleanup;
-    }
 
     ret = virBhyveProcessShutdown(vm);
 
@@ -1062,11 +1042,8 @@ bhyveDomainOpenConsole(virDomainPtr dom,
     if (virDomainOpenConsoleEnsureACL(dom->conn, vm->def) < 0)
         goto cleanup;
 
-    if (!virDomainObjIsActive(vm)) {
-        virReportError(VIR_ERR_OPERATION_INVALID,
-                       "%s", _("domain is not running"));
+    if (virDomainObjCheckActive(vm) < 0)
         goto cleanup;
-    }
 
     if (!vm->def->nserials) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -1416,8 +1393,8 @@ bhyveConnectBaselineCPU(virConnectPtr conn,
     if (!(cpus = virCPUDefListParse(xmlCPUs, ncpus, VIR_CPU_TYPE_HOST)))
         goto cleanup;
 
-    if (!(cpu = cpuBaseline(cpus, ncpus, NULL,
-                            !!(flags & VIR_CONNECT_BASELINE_CPU_MIGRATABLE))))
+    if (!(cpu = virCPUBaseline(VIR_ARCH_NONE, cpus, ncpus, NULL, NULL,
+                               !!(flags & VIR_CONNECT_BASELINE_CPU_MIGRATABLE))))
         goto cleanup;
 
     if ((flags & VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES) &&

@@ -4,6 +4,7 @@
   <machine>pc-i440fx-2.8</machine>
   <arch>x86_64</arch>
   <vcpu max='255'/>
+  <iothreads supported='yes'/>
   <os supported='yes'>
     <loader supported='yes'>
       <value>/usr/share/AAVMF/AAVMF_CODE.fd</value>
@@ -114,5 +115,8 @@
   </devices>
   <features>
     <gic supported='no'/>
+    <vmcoreinfo supported='no'/>
+    <genid supported='no'/>
+    <sev supported='no'/>
   </features>
 </domainCapabilities>

@@ -5,7 +5,6 @@
   <usedQMP/>
   <flag name='kvm'/>
   <flag name='no-hpet'/>
-  <flag name='no-kvm-pit'/>
   <flag name='pci-configfd'/>
   <flag name='spice'/>
   <flag name='boot-index'/>
@@ -47,6 +46,7 @@
   <flag name='usb-redir.filter'/>
   <flag name='ide-drive.wwn'/>
   <flag name='scsi-disk.wwn'/>
+  <flag name='seccomp-sandbox'/>
   <flag name='reboot-timeout'/>
   <flag name='seamless-migration'/>
   <flag name='block-commit'/>
@@ -192,9 +192,15 @@
   <flag name='dump-completed'/>
   <flag name='disk-write-cache'/>
   <flag name='nbd-tls'/>
+  <flag name='sdl-gl'/>
+  <flag name='hda-output'/>
+  <flag name='blockdev-del'/>
+  <flag name='vmgenid'/>
+  <flag name='vhost-vsock'/>
+  <flag name='mch'/>
   <version>2009000</version>
   <kvmVersion>0</kvmVersion>
-  <microcodeVersion>320947</microcodeVersion>
+  <microcodeVersion>343984</microcodeVersion>
   <package> (v2.9.0)</package>
   <arch>x86_64</arch>
   <hostCPU type='kvm' model='base' migratability='yes'>

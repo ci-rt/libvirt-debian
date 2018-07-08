@@ -837,7 +837,7 @@ typedef enum {
  * the destination host has multiple interfaces and a specific interface is
  * required to transmit migration data.
  *
- * This filed may not be used when VIR_MIGRATE_TUNNELLED flag is set.
+ * This field may not be used when VIR_MIGRATE_TUNNELLED flag is set.
  */
 # define VIR_MIGRATE_PARAM_URI               "migrate_uri"
 
@@ -2022,6 +2022,9 @@ int virDomainDetachDeviceFlags(virDomainPtr domain,
 int virDomainUpdateDeviceFlags(virDomainPtr domain,
                                const char *xml, unsigned int flags);
 
+int virDomainDetachDeviceAlias(virDomainPtr domain,
+                               const char *alias, unsigned int flags);
+
 typedef struct _virDomainStatsRecord virDomainStatsRecord;
 typedef virDomainStatsRecord *virDomainStatsRecordPtr;
 struct _virDomainStatsRecord {
@@ -2052,6 +2055,8 @@ typedef enum {
     VIR_CONNECT_GET_ALL_DOMAINS_STATS_SHUTOFF = VIR_CONNECT_LIST_DOMAINS_SHUTOFF,
     VIR_CONNECT_GET_ALL_DOMAINS_STATS_OTHER = VIR_CONNECT_LIST_DOMAINS_OTHER,
 
+    VIR_CONNECT_GET_ALL_DOMAINS_STATS_NOWAIT = 1 << 29, /* report statistics that can be obtained
+                                                           immediately without any blocking */
     VIR_CONNECT_GET_ALL_DOMAINS_STATS_BACKING = 1 << 30, /* include backing chain for block stats */
     VIR_CONNECT_GET_ALL_DOMAINS_STATS_ENFORCE_STATS = 1U << 31, /* enforce requested stats */
 } virConnectGetAllDomainStatsFlags;
@@ -4763,5 +4768,22 @@ int virDomainSetLifecycleAction(virDomainPtr domain,
                                 unsigned int type,
                                 unsigned int action,
                                 unsigned int flags);
+
+/**
+ * Launch Security API
+ */
+
+/**
+ * VIR_DOMAIN_LAUNCH_SECURITY_SEV_MEASUREMENT:
+ *
+ * Macro represents the launch measurement of the SEV guest,
+ * as VIR_TYPED_PARAM_STRING.
+ */
+# define VIR_DOMAIN_LAUNCH_SECURITY_SEV_MEASUREMENT "sev-measurement"
+
+int virDomainGetLaunchSecurityInfo(virDomainPtr domain,
+                                   virTypedParameterPtr *params,
+                                   int *nparams,
+                                   unsigned int flags);
 
 #endif /* __VIR_LIBVIRT_DOMAIN_H__ */

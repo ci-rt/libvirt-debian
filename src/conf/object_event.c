@@ -744,6 +744,9 @@ virObjectEventStateQueueRemote(virObjectEventStatePtr state,
                                virObjectEventPtr event,
                                int remoteID)
 {
+    if (!event)
+        return;
+
     if (state->timer < 0) {
         virObjectUnref(event);
         return;

@@ -28,6 +28,7 @@
 # include "domain_conf.h"
 # include "vircommand.h"
 # include "capabilities.h"
+# include "qemu_block.h"
 # include "qemu_conf.h"
 # include "qemu_domain.h"
 # include "qemu_domain_address.h"
@@ -45,6 +46,7 @@ VIR_ENUM_DECL(qemuVideo)
 
 virCommandPtr qemuBuildCommandLine(virQEMUDriverPtr driver,
                                    virLogManagerPtr logManager,
+                                   virSecurityManagerPtr secManager,
                                    virDomainObjPtr vm,
                                    const char *migrateURI,
                                    virDomainSnapshotObjPtr snapshot,
@@ -54,6 +56,9 @@ virCommandPtr qemuBuildCommandLine(virQEMUDriverPtr driver,
                                    size_t *nnicindexes,
                                    int **nicindexes);
 
+/* Generate the object properties for pr-manager */
+virJSONValuePtr qemuBuildPRManagerInfoProps(virStorageSourcePtr src);
+virJSONValuePtr qemuBuildPRManagedManagerInfoProps(qemuDomainObjPrivatePtr priv);
 
 /* Generate the object properties for a secret */
 int qemuBuildSecretInfoProps(qemuDomainSecretInfoPtr secinfo,
@@ -63,9 +68,14 @@ int qemuBuildSecretInfoProps(qemuDomainSecretInfoPtr secinfo,
 int qemuBuildTLSx509BackendProps(const char *tlspath,
                                  bool isListen,
                                  bool verifypeer,
+                                 const char *alias,
                                  const char *secalias,
                                  virQEMUCapsPtr qemuCaps,
                                  virJSONValuePtr *propsret);
+
+/* Open a UNIX socket for chardev FD passing */
+int
+qemuOpenChrChardevUNIXSocket(const virDomainChrSourceDef *dev);
 
 /* Generate '-device' string for chardev device */
 int
@@ -74,35 +84,30 @@ qemuBuildChrDeviceStr(char **deviceStr,
                       virDomainChrDefPtr chr,
                       virQEMUCapsPtr qemuCaps);
 
-/* With vlan == -1, use netdev syntax, else old hostnet */
 char *qemuBuildHostNetStr(virDomainNetDefPtr net,
                           virQEMUDriverPtr driver,
-                          char type_sep,
-                          int vlan,
                           char **tapfd,
                           size_t tapfdSize,
                           char **vhostfd,
                           size_t vhostfdSize);
 
-/* Legacy, pre device support */
-char *qemuBuildNicStr(virDomainNetDefPtr net,
-                      const char *prefix,
-                      int vlan);
-
 /* Current, best practice */
 char *qemuBuildNicDevStr(virDomainDefPtr def,
                          virDomainNetDefPtr net,
-                         int vlan,
                          unsigned int bootindex,
                          size_t vhostfdSize,
                          virQEMUCapsPtr qemuCaps);
 
 char *qemuDeviceDriveHostAlias(virDomainDiskDefPtr disk);
 
-/* Both legacy & current support */
-char *qemuBuildDriveStr(virDomainDiskDefPtr disk,
-                        bool bootable,
-                        virQEMUCapsPtr qemuCaps);
+qemuBlockStorageSourceAttachDataPtr
+qemuBuildStorageSourceAttachPrepareDrive(virDomainDiskDefPtr disk,
+                                         virQEMUCapsPtr qemuCaps,
+                                         bool driveBoot);
+int
+qemuBuildStorageSourceAttachPrepareCommon(virStorageSourcePtr src,
+                                          qemuBlockStorageSourceAttachDataPtr data,
+                                          virQEMUCapsPtr qemuCaps);
 
 /* Current, best practice */
 char *qemuBuildDriveDevStr(const virDomainDef *def,
@@ -117,14 +122,14 @@ int qemuBuildControllerDevStr(const virDomainDef *domainDef,
                               char **devstr,
                               int *nusbcontroller);
 
-int qemuBuildMemoryBackendStr(virJSONValuePtr *backendProps,
-                              const char **backendType,
-                              virQEMUDriverConfigPtr cfg,
-                              virQEMUCapsPtr qemuCaps,
-                              virDomainDefPtr def,
-                              virDomainMemoryDefPtr mem,
-                              virBitmapPtr autoNodeset,
-                              bool force);
+int qemuBuildMemoryBackendProps(virJSONValuePtr *backendProps,
+                                const char *alias,
+                                virQEMUDriverConfigPtr cfg,
+                                virQEMUCapsPtr qemuCaps,
+                                virDomainDefPtr def,
+                                virDomainMemoryDefPtr mem,
+                                virBitmapPtr autoNodeset,
+                                bool force);
 
 char *qemuBuildMemoryDeviceStr(virDomainMemoryDefPtr mem);
 
@@ -140,7 +145,6 @@ char *qemuBuildRNGDevStr(const virDomainDef *def,
                          virQEMUCapsPtr qemuCaps);
 int qemuBuildRNGBackendProps(virDomainRNGDefPtr rng,
                              virQEMUCapsPtr qemuCaps,
-                             const char **type,
                              virJSONValuePtr *props);
 
 int qemuOpenPCIConfig(virDomainHostdevDefPtr dev);
@@ -201,6 +205,14 @@ int qemuBuildInputDevStr(char **devstr,
                          const virDomainDef *def,
                          virDomainInputDefPtr input,
                          virQEMUCapsPtr qemuCaps)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
+    ATTRIBUTE_NONNULL(4);
+
+char *
+qemuBuildVsockDevStr(virDomainDefPtr def,
+                     virDomainVsockDefPtr vsock,
+                     virQEMUCapsPtr qemuCaps,
+                     const char *fdprefix)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
     ATTRIBUTE_NONNULL(4);
 

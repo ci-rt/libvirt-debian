@@ -2,6 +2,7 @@
   <path>/usr/sbin/bhyve</path>
   <domain>bhyve</domain>
   <arch>x86_64</arch>
+  <iothreads supported='no'/>
   <os supported='yes'>
     <loader supported='yes'>
       <value>/foo/bar</value>
@@ -36,5 +37,8 @@
   </devices>
   <features>
     <gic supported='no'/>
+    <vmcoreinfo supported='no'/>
+    <genid supported='no'/>
+    <sev supported='no'/>
   </features>
 </domainCapabilities>

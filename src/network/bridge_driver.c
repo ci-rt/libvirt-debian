@@ -3348,7 +3348,7 @@ networkValidate(virNetworkDriverStatePtr driver,
         virNetworkForwardIfDefPtr iface = &def->forward.ifs[i];
         char *sysfs_path = NULL;
 
-        switch ((virNetworkForwardHostdevDeviceType) iface->type) {
+        switch ((virNetworkForwardHostdevDeviceType)iface->type) {
         case VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_NETDEV:
             usesInterface = true;
 
@@ -3579,8 +3579,7 @@ networkCreateXML(virConnectPtr conn,
 
  cleanup:
     virNetworkDefFree(newDef);
-    if (event)
-        virObjectEventStateQueue(driver->networkEventState, event);
+    virObjectEventStateQueue(driver->networkEventState, event);
     virNetworkObjEndAPI(&obj);
     return net;
 }
@@ -3633,8 +3632,7 @@ networkDefineXML(virConnectPtr conn,
     net = virGetNetwork(conn, def->name, def->uuid);
 
  cleanup:
-    if (event)
-        virObjectEventStateQueue(driver->networkEventState, event);
+    virObjectEventStateQueue(driver->networkEventState, event);
     if (freeDef)
         virNetworkDefFree(def);
     virNetworkObjEndAPI(&obj);
@@ -3694,8 +3692,7 @@ networkUndefine(virNetworkPtr net)
     ret = 0;
 
  cleanup:
-    if (event)
-        virObjectEventStateQueue(driver->networkEventState, event);
+    virObjectEventStateQueue(driver->networkEventState, event);
     virNetworkObjEndAPI(&obj);
     return ret;
 }
@@ -3905,8 +3902,7 @@ networkCreate(virNetworkPtr net)
                                         0);
 
  cleanup:
-    if (event)
-        virObjectEventStateQueue(driver->networkEventState, event);
+    virObjectEventStateQueue(driver->networkEventState, event);
     virNetworkObjEndAPI(&obj);
     return ret;
 }
@@ -3952,8 +3948,7 @@ networkDestroy(virNetworkPtr net)
     }
 
  cleanup:
-    if (event)
-        virObjectEventStateQueue(driver->networkEventState, event);
+    virObjectEventStateQueue(driver->networkEventState, event);
     virNetworkObjEndAPI(&obj);
     return ret;
 }
@@ -4124,7 +4119,7 @@ networkGetDHCPLeases(virNetworkPtr net,
     size_t i, j;
     size_t nleases = 0;
     int rv = -1;
-    ssize_t size = 0;
+    size_t size = 0;
     int custom_lease_file_len = 0;
     bool need_results = !!leases;
     long long currtime = 0;
@@ -4179,14 +4174,15 @@ networkGetDHCPLeases(virNetworkPtr net,
             goto error;
         }
 
-        if ((size = virJSONValueArraySize(leases_array)) < 0) {
+        if (!virJSONValueIsArray(leases_array)) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("couldn't fetch array of leases"));
+                           _("Malformed lease_entries array"));
             goto error;
         }
+        size = virJSONValueArraySize(leases_array);
     }
 
-    currtime = (long long) time(NULL);
+    currtime = (long long)time(NULL);
 
     for (i = 0; i < size; i++) {
         if (!(lease_tmp = virJSONValueArrayGet(leases_array, i))) {

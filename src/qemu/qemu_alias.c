@@ -92,7 +92,7 @@ qemuAssignDeviceChrAlias(virDomainDefPtr def,
     if (chr->info.alias)
         return 0;
 
-    switch ((virDomainChrDeviceType) chr->deviceType) {
+    switch ((virDomainChrDeviceType)chr->deviceType) {
     case VIR_DOMAIN_CHR_DEVICE_TYPE_PARALLEL:
         prefix = "parallel";
         break;
@@ -534,6 +534,18 @@ qemuAssignDeviceInputAlias(virDomainDefPtr def,
 
 
 int
+qemuAssignDeviceVsockAlias(virDomainVsockDefPtr vsock)
+{
+    if (vsock->info.alias)
+        return 0;
+    if (VIR_STRDUP(vsock->info.alias, "vsock0") < 0)
+        return -1;
+
+    return 0;
+}
+
+
+int
 qemuAssignDeviceAliases(virDomainDefPtr def, virQEMUCapsPtr qemuCaps)
 {
     size_t i;
@@ -629,12 +641,16 @@ qemuAssignDeviceAliases(virDomainDefPtr def, virQEMUCapsPtr qemuCaps)
         if (qemuAssignDeviceMemoryAlias(NULL, def->mems[i], false) < 0)
             return -1;
     }
+    if (def->vsock) {
+        if (qemuAssignDeviceVsockAlias(def->vsock) < 0)
+            return -1;
+    }
 
     return 0;
 }
 
 
-/* qemuAliasFromDisk
+/* qemuAliasDiskDriveFromDisk
  * @disk: Pointer to a disk definition
  *
  * Generate and return an alias for the device disk '-drive'
@@ -642,7 +658,7 @@ qemuAssignDeviceAliases(virDomainDefPtr def, virQEMUCapsPtr qemuCaps)
  * Returns NULL with error or a string containing the alias
  */
 char *
-qemuAliasFromDisk(const virDomainDiskDef *disk)
+qemuAliasDiskDriveFromDisk(const virDomainDiskDef *disk)
 {
     char *ret;
 
@@ -770,6 +786,24 @@ qemuAliasChardevFromDevAlias(const char *devAlias)
     char *ret;
 
     ignore_value(virAsprintf(&ret, "char%s", devAlias));
+
+    return ret;
+}
+
+
+const char *
+qemuDomainGetManagedPRAlias(void)
+{
+    return "pr-helper0";
+}
+
+
+char *
+qemuDomainGetUnmanagedPRAlias(const char *parentalias)
+{
+    char *ret;
+
+    ignore_value(virAsprintf(&ret, "pr-helper-%s", parentalias));
 
     return ret;
 }

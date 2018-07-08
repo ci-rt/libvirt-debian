@@ -248,7 +248,6 @@ virLockDaemonNewPostExecRestart(virJSONValuePtr object, bool privileged)
     virJSONValuePtr child;
     virJSONValuePtr lockspaces;
     size_t i;
-    ssize_t n;
     const char *serverNames[] = { "virtlockd" };
 
     if (VIR_ALLOC(lockd) < 0)
@@ -281,13 +280,13 @@ virLockDaemonNewPostExecRestart(virJSONValuePtr object, bool privileged)
         goto error;
     }
 
-    if ((n = virJSONValueArraySize(lockspaces)) < 0) {
+    if (!virJSONValueIsArray(lockspaces)) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("Malformed lockspaces data from JSON file"));
+                       _("Malformed lockspaces array"));
         goto error;
     }
 
-    for (i = 0; i < n; i++) {
+    for (i = 0; i < virJSONValueArraySize(lockspaces); i++) {
         virLockSpacePtr lockspace;
 
         child = virJSONValueArrayGet(lockspaces, i);
@@ -620,9 +619,7 @@ virLockDaemonSetupNetworkingSystemD(virNetServerPtr lockSrv, virNetServerPtr adm
         /* Systemd passes FDs, starting immediately after stderr,
          * so the first FD we'll get is '3'. */
         if (!(svc = virNetServerServiceNewFD(3 + i, 0,
-#if WITH_GNUTLS
                                              NULL,
-#endif
                                              false, 0, 1)))
             return -1;
 
@@ -643,9 +640,7 @@ virLockDaemonSetupNetworkingNative(virNetServerPtr srv, const char *sock_path)
     VIR_DEBUG("Setting up networking natively");
 
     if (!(svc = virNetServerServiceNewUNIX(sock_path, 0700, 0, 0,
-#if WITH_GNUTLS
                                            NULL,
-#endif
                                            false, 0, 1)))
         return -1;
 

@@ -20,6 +20,7 @@
   <flag name='virtio-scsi-pci'/>
   <flag name='blockio'/>
   <flag name='scsi-disk.wwn'/>
+  <flag name='seccomp-sandbox'/>
   <flag name='reboot-timeout'/>
   <flag name='seamless-migration'/>
   <flag name='block-commit'/>
@@ -104,9 +105,11 @@
   <flag name='dump-completed'/>
   <flag name='disk-write-cache'/>
   <flag name='nbd-tls'/>
+  <flag name='virtual-css-bridge'/>
+  <flag name='sdl-gl'/>
   <version>2007000</version>
   <kvmVersion>0</kvmVersion>
-  <microcodeVersion>216732</microcodeVersion>
+  <microcodeVersion>220792</microcodeVersion>
   <package></package>
   <arch>s390x</arch>
   <cpu type='kvm' name='host'/>

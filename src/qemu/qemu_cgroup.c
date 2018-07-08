@@ -26,6 +26,7 @@
 #include "qemu_cgroup.h"
 #include "qemu_domain.h"
 #include "qemu_process.h"
+#include "qemu_extdevice.h"
 #include "vircgroup.h"
 #include "virlog.h"
 #include "viralloc.h"
@@ -47,7 +48,7 @@ const char *const defaultDeviceACL[] = {
     "/dev/null", "/dev/full", "/dev/zero",
     "/dev/random", "/dev/urandom",
     "/dev/ptmx", "/dev/kvm", "/dev/kqemu",
-    "/dev/rtc", "/dev/hpet",
+    "/dev/rtc", "/dev/hpet", "/dev/sev",
     NULL,
 };
 #define DEVICE_PTY_MAJOR 136
@@ -114,6 +115,8 @@ qemuSetupImagePathCgroup(virDomainObjPtr vm,
 }
 
 
+#define DEVICE_MAPPER_CONTROL_PATH "/dev/mapper/control"
+
 static int
 qemuSetupImageCgroupInternal(virDomainObjPtr vm,
                              virStorageSourcePtr src,
@@ -124,6 +127,10 @@ qemuSetupImageCgroupInternal(virDomainObjPtr vm,
                   NULLSTR(src->path), virStorageTypeToString(src->type));
         return 0;
     }
+
+    if (virStoragePRDefIsManaged(src->pr) &&
+        qemuSetupImagePathCgroup(vm, DEVICE_MAPPER_CONTROL_PATH, false) < 0)
+        return -1;
 
     return qemuSetupImagePathCgroup(vm, src->path, src->readonly || forceReadonly);
 }
@@ -142,9 +149,8 @@ qemuTeardownImageCgroup(virDomainObjPtr vm,
                         virStorageSourcePtr src)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
-    int perms = VIR_CGROUP_DEVICE_READ |
-                VIR_CGROUP_DEVICE_WRITE |
-                VIR_CGROUP_DEVICE_MKNOD;
+    int perms = VIR_CGROUP_DEVICE_RWM;
+    size_t i;
     int ret;
 
     if (!virCgroupHasController(priv->cgroup,
@@ -156,6 +162,28 @@ qemuTeardownImageCgroup(virDomainObjPtr vm,
                   NULLSTR(src->path), virStorageTypeToString(src->type));
         return 0;
     }
+
+    for (i = 0; i < vm->def->ndisks; i++) {
+        virStorageSourcePtr diskSrc = vm->def->disks[i]->src;
+
+        if (src == diskSrc)
+            continue;
+
+        if (virStoragePRDefIsManaged(diskSrc->pr))
+            break;
+    }
+
+    if (i == vm->def->ndisks) {
+        VIR_DEBUG("Disabling device mapper control");
+        ret = virCgroupDenyDevicePath(priv->cgroup,
+                                      DEVICE_MAPPER_CONTROL_PATH, perms, true);
+        virDomainAuditCgroupPath(vm, priv->cgroup, "deny",
+                                 DEVICE_MAPPER_CONTROL_PATH,
+                                 virCgroupGetDevicePermsString(perms), ret);
+        if (ret < 0)
+            return ret;
+    }
+
 
     VIR_DEBUG("Deny path %s", src->path);
 
@@ -278,6 +306,7 @@ qemuSetupTPMCgroup(virDomainObjPtr vm)
     case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
         ret = qemuSetupChrSourceCgroup(vm, &dev->data.passthrough.source);
         break;
+    case VIR_DOMAIN_TPM_TYPE_EMULATOR:
     case VIR_DOMAIN_TPM_TYPE_LAST:
         break;
     }
@@ -867,7 +896,7 @@ qemuSetupCpuCgroup(virDomainObjPtr vm)
             event = virDomainEventTunableNewFromObj(vm, eventParams, eventNparams);
         }
 
-        qemuDomainEventQueue(priv->driver, event);
+        virObjectEventStateQueue(priv->driver->domainEventState, event);
     }
 
     return 0;
@@ -1140,6 +1169,40 @@ qemuSetupCgroupCpusetCpus(virCgroupPtr cgroup,
     ret = 0;
  cleanup:
     VIR_FREE(new_cpus);
+    return ret;
+}
+
+
+int
+qemuSetupCgroupForExtDevices(virDomainObjPtr vm,
+                             virQEMUDriverPtr driver)
+{
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    virCgroupPtr cgroup_temp = NULL;
+    int ret = -1;
+
+    if (!qemuExtDevicesHasDevice(vm->def) ||
+        priv->cgroup == NULL)
+        return 0; /* Not supported, so claim success */
+
+    /*
+     * If CPU cgroup controller is not initialized here, then we need
+     * neither period nor quota settings.  And if CPUSET controller is
+     * not initialized either, then there's nothing to do anyway.
+     */
+    if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPU) &&
+        !virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPUSET))
+        return 0;
+
+    if (virCgroupNewThread(priv->cgroup, VIR_CGROUP_THREAD_EMULATOR, 0,
+                           false, &cgroup_temp) < 0)
+        goto cleanup;
+
+    ret = qemuExtDevicesSetupCgroup(driver, vm->def, cgroup_temp);
+
+ cleanup:
+    virCgroupFree(&cgroup_temp);
+
     return ret;
 }
 

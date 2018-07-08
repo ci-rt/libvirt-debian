@@ -272,6 +272,41 @@ virGetLastError(void)
 
 
 /**
+ * virGetLastErrorCode:
+ *
+ * Get the most recent error code (enum virErrorNumber).
+ *
+ * Returns the most recent error code, or VIR_ERR_OK if none is set.
+ */
+int
+virGetLastErrorCode(void)
+{
+    virErrorPtr err = virLastErrorObject();
+    if (!err)
+        return VIR_ERR_OK;
+    return err->code;
+}
+
+
+/**
+ * virGetLastErrorDomain:
+ *
+ * Get the most recent error domain (enum virErrorDomain).
+ *
+ * Returns a numerical value of the most recent error's origin, or VIR_FROM_NONE
+ * if none is set.
+ */
+int
+virGetLastErrorDomain(void)
+{
+    virErrorPtr err = virLastErrorObject();
+    if (!err)
+        return VIR_FROM_NONE;
+    return err->domain;
+}
+
+
+/**
  * virGetLastErrorMessage:
  *
  * Get the most recent error message
@@ -1458,6 +1493,18 @@ virErrorMsg(virErrorNumber error, const char *info)
                 errmsg = _("device not found");
             else
                 errmsg = _("device not found: %s");
+            break;
+        case VIR_ERR_INVALID_NWFILTER_BINDING:
+            if (info == NULL)
+                errmsg = _("Invalid network filter binding");
+            else
+                errmsg = _("Invalid network filter binding: %s");
+            break;
+        case VIR_ERR_NO_NWFILTER_BINDING:
+            if (info == NULL)
+                errmsg = _("Network filter binding not found");
+            else
+                errmsg = _("Network filter binding not found: %s");
             break;
     }
     return errmsg;

@@ -24,13 +24,15 @@
 #include "qemumonitortestutils.h"
 #define __QEMU_CAPSPRIV_H_ALLOW__
 #include "qemu/qemu_capspriv.h"
+#define __QEMU_MONITOR_PRIV_H_ALLOW__
+#include "qemu/qemu_monitor_priv.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
 typedef struct _testQemuData testQemuData;
 typedef testQemuData *testQemuDataPtr;
 struct _testQemuData {
-    virDomainXMLOptionPtr xmlopt;
+    virQEMUDriver driver;
     const char *archName;
     const char *base;
 };
@@ -40,7 +42,7 @@ static int
 testQemuCaps(const void *opaque)
 {
     int ret = -1;
-    const testQemuData *data = opaque;
+    testQemuData *data = (void *) opaque;
     char *repliesFile = NULL;
     char *capsFile = NULL;
     qemuMonitorTestPtr mon = NULL;
@@ -53,7 +55,7 @@ testQemuCaps(const void *opaque)
                     abs_srcdir, data->base, data->archName) < 0)
         goto cleanup;
 
-    if (!(mon = qemuMonitorTestNewFromFile(repliesFile, data->xmlopt, false)))
+    if (!(mon = qemuMonitorTestNewFromFileFull(repliesFile, &data->driver, NULL)))
         goto cleanup;
 
     if (!(capsActual = virQEMUCapsNew()) ||
@@ -62,6 +64,7 @@ testQemuCaps(const void *opaque)
         goto cleanup;
 
     if (virQEMUCapsGet(capsActual, QEMU_CAPS_KVM)) {
+        qemuMonitorResetCommandID(qemuMonitorTestGetMonitor(mon));
         if (virQEMUCapsInitQMPMonitorTCG(capsActual,
                                          qemuMonitorTestGetMonitor(mon)) < 0)
             goto cleanup;
@@ -136,21 +139,18 @@ static int
 mymain(void)
 {
     int ret = 0;
-    virQEMUDriver driver;
     testQemuData data;
 
 #if !WITH_YAJL
-    fputs("libvirt not compiled with yajl, skipping this test\n", stderr);
+    fputs("libvirt not compiled with JSON support, skipping this test\n", stderr);
     return EXIT_AM_SKIP;
 #endif
 
     if (virThreadInitialize() < 0 ||
-        qemuTestDriverInit(&driver) < 0)
+        qemuTestDriverInit(&data.driver) < 0)
         return EXIT_FAILURE;
 
     virEventRegisterDefaultImpl();
-
-    data.xmlopt = driver.xmlopt;
 
 #define DO_TEST(arch, name) \
     do { \
@@ -182,6 +182,7 @@ mymain(void)
     DO_TEST("ppc64", "caps_2.9.0");
     DO_TEST("ppc64", "caps_2.10.0");
     DO_TEST("ppc64", "caps_2.12.0");
+    DO_TEST("ppc64", "caps_3.0.0");
     DO_TEST("s390x", "caps_2.7.0");
     DO_TEST("s390x", "caps_2.8.0");
     DO_TEST("s390x", "caps_2.9.0");
@@ -197,7 +198,7 @@ mymain(void)
      * "tests/qemucapsfixreplies foo.replies" to fix the replies ids.
      */
 
-    qemuTestDriverFree(&driver);
+    qemuTestDriverFree(&data.driver);
 
     return (ret == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

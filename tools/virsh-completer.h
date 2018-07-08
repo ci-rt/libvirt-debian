@@ -38,6 +38,10 @@ char ** virshDomainInterfaceCompleter(vshControl *ctl,
                                       const vshCmd *cmd,
                                       unsigned int flags);
 
+char ** virshDomainDiskTargetCompleter(vshControl *ctl,
+                                       const vshCmd *cmd,
+                                       unsigned int flags);
+
 char ** virshStoragePoolNameCompleter(vshControl *ctl,
                                       const vshCmd *cmd,
                                       unsigned int flags);
@@ -62,6 +66,10 @@ char ** virshNWFilterNameCompleter(vshControl *ctl,
                                    const vshCmd *cmd,
                                    unsigned int flags);
 
+char ** virshNWFilterBindingNameCompleter(vshControl *ctl,
+                                          const vshCmd *cmd,
+                                          unsigned int flags);
+
 char ** virshSecretUUIDCompleter(vshControl *ctl,
                                  const vshCmd *cmd,
                                  unsigned int flags);
@@ -70,4 +78,27 @@ char ** virshSnapshotNameCompleter(vshControl *ctl,
                                    const vshCmd *cmd,
                                    unsigned int flags);
 
+char ** virshAllocpagesPagesizeCompleter(vshControl *ctl,
+                                         const vshCmd *cmd,
+                                         unsigned int flags);
+
+char ** virshSecretEventNameCompleter(vshControl *ctl,
+                                      const vshCmd *cmd,
+                                      unsigned int flags);
+
+char ** virshDomainEventNameCompleter(vshControl *ctl,
+                                      const vshCmd *cmd,
+                                      unsigned int flags);
+
+char ** virshPoolEventNameCompleter(vshControl *ctl,
+                                    const vshCmd *cmd,
+                                    unsigned int flags);
+
+char ** virshNodedevEventNameCompleter(vshControl *ctl,
+                                       const vshCmd *cmd,
+                                       unsigned int flags);
+
+char ** virshCellnoCompleter(vshControl *ctl,
+                             const vshCmd *cmd,
+                             unsigned int flags);
 #endif

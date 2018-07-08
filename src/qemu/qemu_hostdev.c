@@ -23,7 +23,6 @@
 
 #include <config.h>
 
-#include <dirent.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <errno.h>
@@ -124,33 +123,15 @@ qemuHostdevUpdateActiveDomainDevices(virQEMUDriverPtr driver,
 bool
 qemuHostdevHostSupportsPassthroughVFIO(void)
 {
-    DIR *iommuDir = NULL;
-    struct dirent *iommuGroup = NULL;
-    bool ret = false;
-    int direrr;
-
-    /* condition 1 - /sys/kernel/iommu_groups/ contains entries */
-    if (virDirOpenQuiet(&iommuDir, "/sys/kernel/iommu_groups/") < 0)
-        goto cleanup;
-
-    while ((direrr = virDirRead(iommuDir, &iommuGroup, NULL)) > 0) {
-        /* assume we found a group */
-        break;
-    }
-
-    if (direrr < 0 || !iommuGroup)
-        goto cleanup;
-    /* okay, iommu is on and recognizes groups */
+    /* condition 1 - host has IOMMU */
+    if (!virHostHasIOMMU())
+        return false;
 
     /* condition 2 - /dev/vfio/vfio exists */
     if (!virFileExists("/dev/vfio/vfio"))
-        goto cleanup;
+        return false;
 
-    ret = true;
-
- cleanup:
-    VIR_DIR_CLOSE(iommuDir);
-    return ret;
+    return true;
 }
 
 
@@ -205,7 +186,7 @@ qemuHostdevPreparePCIDevicesCheckSupport(virDomainHostdevDefPtr *hostdevs,
         if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI)
             continue;
 
-        switch ((virDomainHostdevSubsysPCIBackendType) *backend) {
+        switch ((virDomainHostdevSubsysPCIBackendType)*backend) {
         case VIR_DOMAIN_HOSTDEV_PCI_BACKEND_DEFAULT:
             if (supportsPassthroughVFIO &&
                 virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_VFIO_PCI)) {
@@ -339,8 +320,7 @@ qemuHostdevPrepareMediatedDevices(virQEMUDriverPtr driver,
     supportsVFIO = virFileExists("/dev/vfio/vfio");
 
     for (i = 0; i < nhostdevs; i++) {
-        if (hostdevs[i]->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
-            hostdevs[i]->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_MDEV) {
+        if (virHostdevIsMdevDevice(hostdevs[i])) {
             if (!supportsVFIO) {
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                                _("Mediated host device assignment requires "

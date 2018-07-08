@@ -1252,6 +1252,7 @@ qemuMonitorTestNew(bool json,
     if (!(test->mon = qemuMonitorOpen(test->vm,
                                       &src,
                                       json,
+                                      true,
                                       0,
                                       &qemuMonitorTestCallbacks,
                                       driver)))
@@ -1416,39 +1417,39 @@ qemuMonitorTestNewFromFileFull(const char *fileName,
     tmp = jsonstr;
     command = tmp;
     while ((tmp = strchr(tmp, '\n'))) {
-        bool eof = !tmp[1];
         line++;
 
+        /* eof */
+        if (!tmp[1])
+            break;
+
+        /* concatenate block which was broken up for readability */
         if (*(tmp + 1) != '\n') {
             *tmp = ' ';
             tmp++;
-        } else {
-            /* Cut off a single reply. */
-            *(tmp + 1) = '\0';
-
-            if (response) {
-                if (qemuMonitorTestFullAddItem(ret, fileName, command,
-                                               response, commandln) < 0)
-                    goto error;
-                command = NULL;
-                response = NULL;
-            }
-
-            if (!eof) {
-                /* Move the @tmp and @singleReply. */
-                tmp += 2;
-
-                if (!command) {
-                    commandln = line;
-                    command = tmp;
-                } else {
-                    response = tmp;
-                }
-            }
+            continue;
         }
 
-        if (eof)
-            break;
+        /* Cut off a single reply. */
+        *(tmp + 1) = '\0';
+
+        if (response) {
+            if (qemuMonitorTestFullAddItem(ret, fileName, command,
+                                           response, commandln) < 0)
+                goto error;
+            command = NULL;
+            response = NULL;
+        }
+
+        /* Move the @tmp and @singleReply. */
+        tmp += 2;
+
+        if (!command) {
+            commandln = line;
+            command = tmp;
+        } else {
+            response = tmp;
+        }
     }
 
     if (command) {

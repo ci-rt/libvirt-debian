@@ -20,10 +20,10 @@
 
 #include <config.h>
 
+#include "testutils.h"
+
 #include "vircrypto.h"
 #include "virrandom.h"
-
-#include "testutils.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -87,8 +87,8 @@ testCryptoEncrypt(const void *opaque)
         VIR_ALLOC_N(iv, ivlen) < 0)
         goto cleanup;
 
-    if (virRandomBytes(enckey, enckeylen) ||
-        virRandomBytes(iv, ivlen)) {
+    if (virRandomBytes(enckey, enckeylen) < 0 ||
+        virRandomBytes(iv, ivlen) < 0) {
         fprintf(stderr, "Failed to generate random bytes\n");
         goto cleanup;
     }

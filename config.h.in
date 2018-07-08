@@ -552,9 +552,6 @@
 /* Define to 1 when the gnulib module raise should be tested. */
 #undef GNULIB_TEST_RAISE
 
-/* Define to 1 when the gnulib module random_r should be tested. */
-#undef GNULIB_TEST_RANDOM_R
-
 /* Define to 1 when the gnulib module rawmemchr should be tested. */
 #undef GNULIB_TEST_RAWMEMCHR
 
@@ -1059,6 +1056,10 @@
    don't. */
 #undef HAVE_DECL_UNSETENV
 
+/* Define to 1 if you have the declaration of `VHOST_VSOCK_SET_GUEST_CID', and
+   to 0 if you don't. */
+#undef HAVE_DECL_VHOST_VSOCK_SET_GUEST_CID
+
 /* Define to 1 if you have the declaration of `vsnprintf', and to 0 if you
    don't. */
 #undef HAVE_DECL_VSNPRINTF
@@ -1218,15 +1219,6 @@
 
 /* Define to 1 if you have the 'getuid' function. */
 #undef HAVE_GETUID
-
-/* Define to 1 if you have the `gnutls_cipher_encrypt' function. */
-#undef HAVE_GNUTLS_CIPHER_ENCRYPT
-
-/* Define to 1 if you have the <gnutls/crypto.h> header file. */
-#undef HAVE_GNUTLS_CRYPTO_H
-
-/* Define to 1 if you have the `gnutls_rnd' function. */
-#undef HAVE_GNUTLS_RND
 
 /* Define to 1 if you have the `grantpt' function. */
 #undef HAVE_GRANTPT
@@ -1516,12 +1508,6 @@
 /* Define to 1 if the system has the 'openpty' function. */
 #undef HAVE_OPENPTY
 
-/* Define to 1 if libcrypto is used for MD5. */
-#undef HAVE_OPENSSL_MD5
-
-/* Define to 1 if libcrypto is used for SHA256. */
-#undef HAVE_OPENSSL_SHA256
-
 /* Define to 1 if you have the <OS.h> header file. */
 #undef HAVE_OS_H
 
@@ -1612,12 +1598,6 @@
 
 /* Define to 1 if you have the `raise' function. */
 #undef HAVE_RAISE
-
-/* Define to 1 if you have the <random.h> header file. */
-#undef HAVE_RANDOM_H
-
-/* Define to 1 if you have the `random_r' function. */
-#undef HAVE_RANDOM_R
 
 /* Define to 1 if you have the `rawmemchr' function. */
 #undef HAVE_RAWMEMCHR
@@ -1855,9 +1835,6 @@
 
 /* Define to 1 if `msg_accrights' is a member of `struct msghdr'. */
 #undef HAVE_STRUCT_MSGHDR_MSG_ACCRIGHTS
-
-/* Define to 1 if the system has the type `struct random_data'. */
-#undef HAVE_STRUCT_RANDOM_DATA
 
 /* Define to 1 if `sa_sigaction' is a member of `struct sigaction'. */
 #undef HAVE_STRUCT_SIGACTION_SA_SIGACTION
@@ -2409,6 +2386,9 @@
 /* QEMU group account */
 #undef QEMU_GROUP
 
+/* QEMU PR helper */
+#undef QEMU_PR_HELPER
+
 /* QEMU user account */
 #undef QEMU_USER
 
@@ -2721,11 +2701,8 @@
 /* whether glusterfs-api >= 3.4.1 is available */
 #undef WITH_GLUSTERFS
 
-/* whether gnutls >= 2.2.0 is available */
+/* whether gnutls >= 3.2.0 is available */
 #undef WITH_GNUTLS
-
-/* set to 1 if it is known or assumed that GNUTLS uses gcrypt */
-#undef WITH_GNUTLS_GCRYPT
 
 /* whether hal >= 0.5.0 is available */
 #undef WITH_HAL
@@ -3222,6 +3199,10 @@
 
 /* type to use in place of socklen_t if not defined */
 #undef socklen_t
+
+/* ssh_get_publickey is deprecated and replaced by ssh_get_server_publickey.
+   */
+#undef ssh_get_server_publickey
 
 /* Define as a signed type of the same size as size_t. */
 #undef ssize_t

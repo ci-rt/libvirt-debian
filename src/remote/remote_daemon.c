@@ -283,6 +283,7 @@ static int daemonErrorLogFilter(virErrorPtr err, int priority)
     case VIR_ERR_NO_NODE_DEVICE:
     case VIR_ERR_NO_INTERFACE:
     case VIR_ERR_NO_NWFILTER:
+    case VIR_ERR_NO_NWFILTER_BINDING:
     case VIR_ERR_NO_SECRET:
     case VIR_ERR_NO_DOMAIN_SNAPSHOT:
     case VIR_ERR_OPERATION_INVALID:
@@ -375,9 +376,7 @@ daemonSetupNetworking(virNetServerPtr srv,
     virNetServerServicePtr svcAdm = NULL;
     virNetServerServicePtr svcRO = NULL;
     virNetServerServicePtr svcTCP = NULL;
-#if WITH_GNUTLS
     virNetServerServicePtr svcTLS = NULL;
-#endif
     gid_t unix_sock_gid = 0;
     int unix_sock_ro_mask = 0;
     int unix_sock_rw_mask = 0;
@@ -416,9 +415,7 @@ daemonSetupNetworking(virNetServerPtr srv,
                                                unix_sock_rw_mask,
                                                unix_sock_gid,
                                                config->auth_unix_rw,
-#if WITH_GNUTLS
                                                NULL,
-#endif
                                                false,
                                                config->max_queued_clients,
                                                config->max_client_requests,
@@ -429,9 +426,7 @@ daemonSetupNetworking(virNetServerPtr srv,
                                                      unix_sock_ro_mask,
                                                      unix_sock_gid,
                                                      config->auth_unix_ro,
-#if WITH_GNUTLS
                                                      NULL,
-#endif
                                                      true,
                                                      config->max_queued_clients,
                                                      config->max_client_requests,
@@ -455,9 +450,7 @@ daemonSetupNetworking(virNetServerPtr srv,
                                                   unix_sock_adm_mask,
                                                   unix_sock_gid,
                                                   REMOTE_AUTH_NONE,
-#if WITH_GNUTLS
                                                   NULL,
-#endif
                                                   false,
                                                   config->admin_max_queued_clients,
                                                   config->admin_max_client_requests)))
@@ -475,9 +468,7 @@ daemonSetupNetworking(virNetServerPtr srv,
                                                      config->tcp_port,
                                                      AF_UNSPEC,
                                                      config->auth_tcp,
-#if WITH_GNUTLS
                                                      NULL,
-#endif
                                                      false,
                                                      config->max_queued_clients,
                                                      config->max_client_requests)))
@@ -488,7 +479,6 @@ daemonSetupNetworking(virNetServerPtr srv,
                 goto cleanup;
         }
 
-#if WITH_GNUTLS
         if (config->listen_tls) {
             virNetTLSContextPtr ctxt = NULL;
 
@@ -552,22 +542,12 @@ daemonSetupNetworking(virNetServerPtr srv,
 
             virObjectUnref(ctxt);
         }
-#else
-        (void)privileged;
-        if (config->listen_tls) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("This libvirtd build does not support TLS"));
-            goto cleanup;
-        }
-#endif
     }
 
 #if WITH_SASL
     if (config->auth_unix_rw == REMOTE_AUTH_SASL ||
         (sock_path_ro && config->auth_unix_ro == REMOTE_AUTH_SASL) ||
-# if WITH_GNUTLS
         (ipsock && config->listen_tls && config->auth_tls == REMOTE_AUTH_SASL) ||
-# endif
         (ipsock && config->listen_tcp && config->auth_tcp == REMOTE_AUTH_SASL)) {
         saslCtxt = virNetSASLContextNewServer(
             (const char *const*)config->sasl_allowed_username_list);
@@ -579,9 +559,7 @@ daemonSetupNetworking(virNetServerPtr srv,
     ret = 0;
 
  cleanup:
-#if WITH_GNUTLS
     virObjectUnref(svcTLS);
-#endif
     virObjectUnref(svcTCP);
     virObjectUnref(svcRO);
     virObjectUnref(svcAdm);

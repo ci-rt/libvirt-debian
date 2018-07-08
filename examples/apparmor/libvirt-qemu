@@ -158,6 +158,11 @@
   /usr/{lib,lib64}/qemu/*.so mr,
   /usr/lib/@{multiarch}/qemu/*.so mr,
 
+  # swtpm
+  /{usr/,}bin/swtpm rmix,
+  /usr/{lib,lib64}/libswtpm_libtpms.so mr,
+  /usr/lib/@{multiarch}/libswtpm_libtpms.so mr,
+
   # for save and resume
   /{usr/,}bin/dash rmix,
   /{usr/,}bin/dd rmix,
@@ -192,6 +197,9 @@
   # silence refusals to open lttng files (see LP: #1432644)
   deny /dev/shm/lttng-ust-wait-* r,
   deny /run/shm/lttng-ust-wait-* r,
+
+  # for vfio hotplug on systems without static vfio (LP: #1775777)
+  /dev/vfio/vfio rw,
 
   # required for sasl GSSAPI plugin
   /etc/gss/mech.d/ r,

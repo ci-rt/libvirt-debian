@@ -241,28 +241,38 @@ virQEMUBuildCommandLineJSON(virJSONValuePtr value,
 }
 
 
-char *
-virQEMUBuildObjectCommandlineFromJSON(const char *type,
-                                      const char *alias,
-                                      virJSONValuePtr props)
+static int
+virQEMUBuildObjectCommandlineFromJSONInternal(virBufferPtr buf,
+                                              const char *type,
+                                              const char *alias,
+                                              virJSONValuePtr props)
 {
-    virBuffer buf = VIR_BUFFER_INITIALIZER;
-    char *ret = NULL;
+    if (!type || !alias) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("missing 'type' or 'alias' field of QOM 'object'"));
+        return -1;
+    }
 
-    virBufferAsprintf(&buf, "%s,id=%s,", type, alias);
+    virBufferAsprintf(buf, "%s,id=%s,", type, alias);
 
-    if (virQEMUBuildCommandLineJSON(props, &buf,
+    if (props &&
+        virQEMUBuildCommandLineJSON(props, buf,
                                     virQEMUBuildCommandLineJSONArrayBitmap) < 0)
-        goto cleanup;
+        return -1;
 
-    if (virBufferCheckError(&buf) < 0)
-        goto cleanup;
+    return 0;
+}
 
-    ret = virBufferContentAndReset(&buf);
 
- cleanup:
-    virBufferFreeAndReset(&buf);
-    return ret;
+int
+virQEMUBuildObjectCommandlineFromJSON(virBufferPtr buf,
+                                      virJSONValuePtr objprops)
+{
+    const char *type = virJSONValueObjectGetString(objprops, "qom-type");
+    const char *alias = virJSONValueObjectGetString(objprops, "id");
+    virJSONValuePtr props = virJSONValueObjectGetObject(objprops, "props");
+
+    return virQEMUBuildObjectCommandlineFromJSONInternal(buf, type, alias, props);
 }
 
 
@@ -303,9 +313,9 @@ virQEMUBuildBufferEscapeComma(virBufferPtr buf, const char *str)
 
 
 /**
- * virQEMUBuildLuksOpts:
+ * virQEMUBuildQemuImgKeySecretOpts:
  * @buf: buffer to build the string into
- * @enc: pointer to encryption info
+ * @encinfo: pointer to encryption info
  * @alias: alias to use
  *
  * Generate the string for id=$alias and any encryption options for
@@ -323,38 +333,38 @@ virQEMUBuildBufferEscapeComma(virBufferPtr buf, const char *str)
  *
  */
 void
-virQEMUBuildLuksOpts(virBufferPtr buf,
-                     virStorageEncryptionInfoDefPtr enc,
-                     const char *alias)
+virQEMUBuildQemuImgKeySecretOpts(virBufferPtr buf,
+                                 virStorageEncryptionInfoDefPtr encinfo,
+                                 const char *alias)
 {
     virBufferAsprintf(buf, "key-secret=%s,", alias);
 
-    if (!enc->cipher_name)
+    if (!encinfo->cipher_name)
         return;
 
     virBufferAddLit(buf, "cipher-alg=");
-    virQEMUBuildBufferEscapeComma(buf, enc->cipher_name);
-    virBufferAsprintf(buf, "-%u,", enc->cipher_size);
-    if (enc->cipher_mode) {
+    virQEMUBuildBufferEscapeComma(buf, encinfo->cipher_name);
+    virBufferAsprintf(buf, "-%u,", encinfo->cipher_size);
+    if (encinfo->cipher_mode) {
         virBufferAddLit(buf, "cipher-mode=");
-        virQEMUBuildBufferEscapeComma(buf, enc->cipher_mode);
+        virQEMUBuildBufferEscapeComma(buf, encinfo->cipher_mode);
         virBufferAddLit(buf, ",");
     }
-    if (enc->cipher_hash) {
+    if (encinfo->cipher_hash) {
         virBufferAddLit(buf, "hash-alg=");
-        virQEMUBuildBufferEscapeComma(buf, enc->cipher_hash);
+        virQEMUBuildBufferEscapeComma(buf, encinfo->cipher_hash);
         virBufferAddLit(buf, ",");
     }
-    if (!enc->ivgen_name)
+    if (!encinfo->ivgen_name)
         return;
 
     virBufferAddLit(buf, "ivgen-alg=");
-    virQEMUBuildBufferEscapeComma(buf, enc->ivgen_name);
+    virQEMUBuildBufferEscapeComma(buf, encinfo->ivgen_name);
     virBufferAddLit(buf, ",");
 
-    if (enc->ivgen_hash) {
+    if (encinfo->ivgen_hash) {
         virBufferAddLit(buf, "ivgen-hash-alg=");
-        virQEMUBuildBufferEscapeComma(buf, enc->ivgen_hash);
+        virQEMUBuildBufferEscapeComma(buf, encinfo->ivgen_hash);
         virBufferAddLit(buf, ",");
     }
 }

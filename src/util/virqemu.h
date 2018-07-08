@@ -43,16 +43,15 @@ int virQEMUBuildCommandLineJSON(virJSONValuePtr value,
                                 virBufferPtr buf,
                                 virQEMUBuildCommandLineJSONArrayFormatFunc array);
 
-char *virQEMUBuildObjectCommandlineFromJSON(const char *type,
-                                            const char *alias,
-                                            virJSONValuePtr props);
+int virQEMUBuildObjectCommandlineFromJSON(virBufferPtr buf,
+                                          virJSONValuePtr objprops);
 
 char *virQEMUBuildDriveCommandlineFromJSON(virJSONValuePtr src);
 
 void virQEMUBuildBufferEscapeComma(virBufferPtr buf, const char *str);
-void virQEMUBuildLuksOpts(virBufferPtr buf,
-                          virStorageEncryptionInfoDefPtr enc,
-                          const char *alias)
+void virQEMUBuildQemuImgKeySecretOpts(virBufferPtr buf,
+                                      virStorageEncryptionInfoDefPtr enc,
+                                      const char *alias)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 
 #endif /* __VIR_QEMU_H_ */

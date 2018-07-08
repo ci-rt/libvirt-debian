@@ -785,4 +785,28 @@ LIBVIRT_4.1.0 {
         virStoragePoolLookupByTargetPath;
 } LIBVIRT_3.9.0;
 
+LIBVIRT_4.4.0 {
+    global:
+        virDomainDetachDeviceAlias;
+        virConnectCompareHypervisorCPU;
+        virConnectBaselineHypervisorCPU;
+} LIBVIRT_4.1.0;
+
+LIBVIRT_4.5.0 {
+    global:
+        virGetLastErrorCode;
+        virGetLastErrorDomain;
+        virNodeGetSEVInfo;
+        virDomainGetLaunchSecurityInfo;
+        virNWFilterBindingLookupByPortDev;
+        virConnectListAllNWFilterBindings;
+        virNWFilterBindingCreateXML;
+        virNWFilterBindingGetXMLDesc;
+        virNWFilterBindingDelete;
+        virNWFilterBindingRef;
+        virNWFilterBindingFree;
+        virNWFilterBindingGetPortDev;
+        virNWFilterBindingGetFilterName;
+} LIBVIRT_4.4.0;
+
 # .... define new API here using predicted next version number ....

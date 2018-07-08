@@ -90,6 +90,7 @@ static virStoragePoolPtr get_nonnull_storage_pool(virConnectPtr conn, remote_non
 static virStorageVolPtr get_nonnull_storage_vol(virConnectPtr conn, remote_nonnull_storage_vol vol);
 static virSecretPtr get_nonnull_secret(virConnectPtr conn, remote_nonnull_secret secret);
 static virNWFilterPtr get_nonnull_nwfilter(virConnectPtr conn, remote_nonnull_nwfilter nwfilter);
+static virNWFilterBindingPtr get_nonnull_nwfilter_binding(virConnectPtr conn, remote_nonnull_nwfilter_binding binding);
 static virDomainSnapshotPtr get_nonnull_domain_snapshot(virDomainPtr dom, remote_nonnull_domain_snapshot snapshot);
 static virNodeDevicePtr get_nonnull_node_device(virConnectPtr conn, remote_nonnull_node_device dev);
 static void make_nonnull_domain(remote_nonnull_domain *dom_dst, virDomainPtr dom_src);
@@ -100,6 +101,7 @@ static void make_nonnull_storage_vol(remote_nonnull_storage_vol *vol_dst, virSto
 static void make_nonnull_node_device(remote_nonnull_node_device *dev_dst, virNodeDevicePtr dev_src);
 static void make_nonnull_secret(remote_nonnull_secret *secret_dst, virSecretPtr secret_src);
 static void make_nonnull_nwfilter(remote_nonnull_nwfilter *net_dst, virNWFilterPtr nwfilter_src);
+static void make_nonnull_nwfilter_binding(remote_nonnull_nwfilter_binding *binding_dst, virNWFilterBindingPtr binding_src);
 static void make_nonnull_domain_snapshot(remote_nonnull_domain_snapshot *snapshot_dst, virDomainSnapshotPtr snapshot_src);
 
 static int
@@ -3110,6 +3112,53 @@ remoteDispatchNodeGetMemoryStats(virNetServerPtr server ATTRIBUTE_UNUSED,
 }
 
 static int
+remoteDispatchDomainGetLaunchSecurityInfo(virNetServerPtr server ATTRIBUTE_UNUSED,
+                                          virNetServerClientPtr client ATTRIBUTE_UNUSED,
+                                          virNetMessagePtr msg ATTRIBUTE_UNUSED,
+                                          virNetMessageErrorPtr rerr,
+                                          remote_domain_get_launch_security_info_args *args,
+                                          remote_domain_get_launch_security_info_ret *ret)
+{
+    virDomainPtr dom = NULL;
+    virTypedParameterPtr params = NULL;
+    int nparams = 0;
+    int rv = -1;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if (virDomainGetLaunchSecurityInfo(dom, &params, &nparams, args->flags) < 0)
+        goto cleanup;
+
+    if (nparams > REMOTE_DOMAIN_LAUNCH_SECURITY_INFO_PARAMS_MAX) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("nparams too large"));
+        goto cleanup;
+    }
+
+    if (virTypedParamsSerialize(params, nparams,
+                                (virTypedParameterRemotePtr *) &ret->params.params_val,
+                                &ret->params.params_len,
+                                args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+ cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virTypedParamsFree(params, nparams);
+    virObjectUnref(dom);
+    return rv;
+}
+
+static int
 remoteDispatchDomainGetPerfEvents(virNetServerPtr server ATTRIBUTE_UNUSED,
                                   virNetServerClientPtr client ATTRIBUTE_UNUSED,
                                   virNetMessagePtr msg ATTRIBUTE_UNUSED,
@@ -3353,7 +3402,6 @@ remoteDispatchAuthSaslInit(virNetServerPtr server ATTRIBUTE_UNUSED,
     if (!sasl)
         goto authfail;
 
-# if WITH_GNUTLS
     /* Inform SASL that we've got an external SSF layer from TLS */
     if (virNetServerClientHasTLSSession(client)) {
         int ssf;
@@ -3367,7 +3415,6 @@ remoteDispatchAuthSaslInit(virNetServerPtr server ATTRIBUTE_UNUSED,
         if (virNetSASLSessionExtKeySize(sasl, ssf) < 0)
             goto authfail;
     }
-# endif
 
     if (virNetServerClientIsSecure(client))
         /* If we've got TLS or UNIX domain sock, we don't care about SSF */
@@ -4998,6 +5045,50 @@ remoteDispatchDomainGetDiskErrors(virNetServerPtr server ATTRIBUTE_UNUSED,
             VIR_FREE(errors[i].disk);
     }
     VIR_FREE(errors);
+    return rv;
+}
+
+
+static int
+remoteDispatchNodeGetSevInfo(virNetServerPtr server ATTRIBUTE_UNUSED,
+                             virNetServerClientPtr client ATTRIBUTE_UNUSED,
+                             virNetMessagePtr msg ATTRIBUTE_UNUSED,
+                             virNetMessageErrorPtr rerr,
+                             remote_node_get_sev_info_args *args,
+                             remote_node_get_sev_info_ret *ret)
+{
+    virTypedParameterPtr params = NULL;
+    int nparams = 0;
+    int rv = -1;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (virNodeGetSEVInfo(priv->conn, &params, &nparams, args->flags) < 0)
+        goto cleanup;
+
+    if (nparams > REMOTE_NODE_SEV_INFO_MAX) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("nparams too large"));
+        goto cleanup;
+    }
+
+
+    if (virTypedParamsSerialize(params, nparams,
+                                (virTypedParameterRemotePtr *) &ret->params.params_val,
+                                &ret->params.params_len,
+                                args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+ cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virTypedParamsFree(params, nparams);
     return rv;
 }
 
@@ -6998,6 +7089,12 @@ get_nonnull_nwfilter(virConnectPtr conn, remote_nonnull_nwfilter nwfilter)
     return virGetNWFilter(conn, nwfilter.name, BAD_CAST nwfilter.uuid);
 }
 
+static virNWFilterBindingPtr
+get_nonnull_nwfilter_binding(virConnectPtr conn, remote_nonnull_nwfilter_binding binding)
+{
+    return virGetNWFilterBinding(conn, binding.portdev, binding.filtername);
+}
+
 static virDomainSnapshotPtr
 get_nonnull_domain_snapshot(virDomainPtr dom, remote_nonnull_domain_snapshot snapshot)
 {
@@ -7068,6 +7165,13 @@ make_nonnull_nwfilter(remote_nonnull_nwfilter *nwfilter_dst, virNWFilterPtr nwfi
 {
     ignore_value(VIR_STRDUP_QUIET(nwfilter_dst->name, nwfilter_src->name));
     memcpy(nwfilter_dst->uuid, nwfilter_src->uuid, VIR_UUID_BUFLEN);
+}
+
+static void
+make_nonnull_nwfilter_binding(remote_nonnull_nwfilter_binding *binding_dst, virNWFilterBindingPtr binding_src)
+{
+    ignore_value(VIR_STRDUP_QUIET(binding_dst->portdev, binding_src->portdev));
+    ignore_value(VIR_STRDUP_QUIET(binding_dst->filtername, binding_src->filtername));
 }
 
 static void

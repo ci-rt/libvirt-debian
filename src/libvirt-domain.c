@@ -8350,6 +8350,59 @@ virDomainUpdateDeviceFlags(virDomainPtr domain,
 
 
 /**
+ * virDomainDetachDeviceAlias:
+ * @domain: pointer to a domain object
+ * @alias: device alias
+ * @flags: bitwise-OR of virDomainDeviceModifyFlags
+ *
+ * Detach a virtual device from a domain, using the alias to
+ * specify the device. The value of @flags should be either
+ * VIR_DOMAIN_AFFECT_CURRENT, or a bitwise-or of values from
+ * VIR_DOMAIN_AFFECT_LIVE and VIR_DOMAIN_AFFECT_CURRENT, although
+ * hypervisors vary in which flags are supported.
+ *
+ * In contrast to virDomainDetachDeviceFlags() this API is
+ * asynchronous - it returns immediately after sending the detach
+ * request to the hypervisor. It's caller's responsibility to
+ * wait for VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED event to signal
+ * actual device removal.
+ *
+ * Returns 0 in case of success, -1 in case of failure.
+ */
+int
+virDomainDetachDeviceAlias(virDomainPtr domain,
+                           const char *alias,
+                           unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(domain, "alias=%s, flags=0x%x", alias, flags);
+
+    virResetLastError();
+
+    virCheckDomainReturn(domain, -1);
+    conn = domain->conn;
+
+    virCheckNonNullArgGoto(alias, error);
+    virCheckReadOnlyGoto(conn->flags, error);
+
+    if (conn->driver->domainDetachDeviceAlias) {
+        int ret;
+        ret = conn->driver->domainDetachDeviceAlias(domain, alias, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virReportUnsupportedError();
+
+ error:
+    virDispatchError(domain->conn);
+    return -1;
+}
+
+
+/**
  * virConnectDomainEventRegister:
  * @conn: pointer to the connection
  * @cb: callback to the function handling domain events
@@ -11449,6 +11502,12 @@ virConnectGetDomainCapabilities(virConnectPtr conn,
  * fields for offline domains if the statistics are meaningful only for a
  * running domain.
  *
+ * Passing VIR_CONNECT_GET_ALL_DOMAINS_STATS_NOWAIT in
+ * @flags means when libvirt is unable to fetch stats for any of
+ * the domains (for whatever reason) only a subset of statistics
+ * is returned for the domain.  That subset being statistics that
+ * don't involve querying the underlying hypervisor.
+ *
  * Similarly to virConnectListAllDomains, @flags can contain various flags to
  * filter the list of domains to provide stats for.
  *
@@ -11532,6 +11591,12 @@ virConnectGetAllDomainStats(virConnectPtr conn,
  * available; as an extreme example, a supported group may produce zero
  * fields for offline domains if the statistics are meaningful only for a
  * running domain.
+ *
+ * Passing VIR_CONNECT_GET_ALL_DOMAINS_STATS_NOWAIT in
+ * @flags means when libvirt is unable to fetch stats for any of
+ * the domains (for whatever reason) only a subset of statistics
+ * is returned for the domain.  That subset being statistics that
+ * don't involve querying the underlying hypervisor.
  *
  * Note that any of the domain list filtering flags in @flags may be rejected
  * by this function.
@@ -11726,6 +11791,10 @@ virDomainFSInfoFree(virDomainFSInfoPtr info)
  * the arp cache refreshes in time, the returned ip address may
  * be unreachable. Depending on the route table config of the
  * guest, the returned mac address may be duplicated.
+ *
+ * Note that for some @source values some pieces of returned @ifaces
+ * might be unset (e.g. VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP does not
+ * set IP address prefix as ARP table does not have any notion of that).
  *
  * @ifaces->name and @ifaces->hwaddr are never NULL.
  *
@@ -12095,6 +12164,54 @@ int virDomainSetLifecycleAction(virDomainPtr domain,
         return ret;
     }
 
+    virReportUnsupportedError();
+
+ error:
+    virDispatchError(domain->conn);
+    return -1;
+}
+
+/**
+ * virDomainGetLaunchSecurityInfo:
+ * @domain: a domain object
+ * @params: where to store security info
+ * @nparams: number of items in @params
+ * @flags: currently used, set to 0.
+ *
+ * Get the launch security info. In case of the SEV guest, this will
+ * return the launch measurement.
+ *
+ * Returns -1 in case of failure, 0 in case of success.
+ */
+int virDomainGetLaunchSecurityInfo(virDomainPtr domain,
+                                   virTypedParameterPtr *params,
+                                   int *nparams,
+                                   unsigned int flags)
+{
+    virConnectPtr conn = domain->conn;
+
+    VIR_DOMAIN_DEBUG(domain, "params=%p, nparams=%p flags=0x%x",
+                     params, nparams, flags);
+
+    virResetLastError();
+
+    virCheckDomainReturn(domain, -1);
+    virCheckNonNullArgGoto(params, error);
+    virCheckNonNullArgGoto(nparams, error);
+    virCheckReadOnlyGoto(conn->flags, error);
+
+    if (VIR_DRV_SUPPORTS_FEATURE(domain->conn->driver, domain->conn,
+                                 VIR_DRV_FEATURE_TYPED_PARAM_STRING))
+        flags |= VIR_TYPED_PARAM_STRING_OKAY;
+
+    if (conn->driver->domainGetLaunchSecurityInfo) {
+        int ret;
+        ret = conn->driver->domainGetLaunchSecurityInfo(domain, params,
+                                                        nparams, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
     virReportUnsupportedError();
 
  error:

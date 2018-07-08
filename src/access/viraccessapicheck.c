@@ -30,6 +30,26 @@ int virConnectBaselineCPUEnsureACL(virConnectPtr conn)
 }
 
 /* Returns: -1 on error/denied, 0 on allowed */
+int virConnectBaselineHypervisorCPUEnsureACL(virConnectPtr conn)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckConnect(mgr, conn->driver->name, VIR_ACCESS_PERM_CONNECT_WRITE)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
 int virConnectCompareCPUEnsureACL(virConnectPtr conn)
 {
     virAccessManagerPtr mgr;
@@ -40,6 +60,26 @@ int virConnectCompareCPUEnsureACL(virConnectPtr conn)
     }
 
     if ((rv = virAccessManagerCheckConnect(mgr, conn->driver->name, VIR_ACCESS_PERM_CONNECT_READ)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
+int virConnectCompareHypervisorCPUEnsureACL(virConnectPtr conn)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckConnect(mgr, conn->driver->name, VIR_ACCESS_PERM_CONNECT_WRITE)) <= 0) {
         virObjectUnref(mgr);
         if (rv == 0)
             virReportError(VIR_ERR_ACCESS_DENIED, NULL);
@@ -681,6 +721,46 @@ bool virConnectListAllNodeDevicesCheckACL(virConnectPtr conn, virNodeDeviceDefPt
     }
 
     if ((rv = virAccessManagerCheckNodeDevice(mgr, conn->driver->name, device, VIR_ACCESS_PERM_NODE_DEVICE_GETATTR)) <= 0) {
+        virObjectUnref(mgr);
+        virResetLastError();
+        return false;
+    }
+    virObjectUnref(mgr);
+    return true;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
+int virConnectListAllNWFilterBindingsEnsureACL(virConnectPtr conn)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckConnect(mgr, conn->driver->name, VIR_ACCESS_PERM_CONNECT_SEARCH_NWFILTER_BINDINGS)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: false on error/denied, true on allowed */
+bool virConnectListAllNWFilterBindingsCheckACL(virConnectPtr conn, virNWFilterBindingDefPtr binding)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        virResetLastError();
+        return false;
+    }
+
+    if ((rv = virAccessManagerCheckNWFilterBinding(mgr, conn->driver->name, binding, VIR_ACCESS_PERM_NWFILTER_BINDING_GETATTR)) <= 0) {
         virObjectUnref(mgr);
         virResetLastError();
         return false;
@@ -2536,6 +2616,40 @@ int virDomainDetachDeviceEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
 }
 
 /* Returns: -1 on error/denied, 0 on allowed */
+int virDomainDetachDeviceAliasEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_WRITE)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    if (((flags & (VIR_DOMAIN_AFFECT_CONFIG|VIR_DOMAIN_AFFECT_LIVE)) == 0) &&
+        (rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_SAVE)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    if (((flags & (VIR_DOMAIN_AFFECT_CONFIG)) == (VIR_DOMAIN_AFFECT_CONFIG)) &&
+        (rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_SAVE)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
 int virDomainDetachDeviceFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags)
 {
     virAccessManagerPtr mgr;
@@ -2951,6 +3065,26 @@ int virDomainGetJobInfoEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
 
 /* Returns: -1 on error/denied, 0 on allowed */
 int virDomainGetJobStatsEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_READ)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
+int virDomainGetLaunchSecurityInfoEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
 {
     virAccessManagerPtr mgr;
     int rv;
@@ -6882,6 +7016,26 @@ int virNodeGetSecurityModelEnsureACL(virConnectPtr conn)
 }
 
 /* Returns: -1 on error/denied, 0 on allowed */
+int virNodeGetSevInfoEnsureACL(virConnectPtr conn)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckConnect(mgr, conn->driver->name, VIR_ACCESS_PERM_CONNECT_READ)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
 int virNodeListDevicesEnsureACL(virConnectPtr conn)
 {
     virAccessManagerPtr mgr;
@@ -6992,6 +7146,86 @@ int virNodeSuspendForDurationEnsureACL(virConnectPtr conn)
     }
 
     if ((rv = virAccessManagerCheckConnect(mgr, conn->driver->name, VIR_ACCESS_PERM_CONNECT_PM_CONTROL)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
+int virNWFilterBindingCreateXMLEnsureACL(virConnectPtr conn, virNWFilterBindingDefPtr binding)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckNWFilterBinding(mgr, conn->driver->name, binding, VIR_ACCESS_PERM_NWFILTER_BINDING_CREATE)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
+int virNWFilterBindingDeleteEnsureACL(virConnectPtr conn, virNWFilterBindingDefPtr binding)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckNWFilterBinding(mgr, conn->driver->name, binding, VIR_ACCESS_PERM_NWFILTER_BINDING_DELETE)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
+int virNWFilterBindingGetXMLDescEnsureACL(virConnectPtr conn, virNWFilterBindingDefPtr binding)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckNWFilterBinding(mgr, conn->driver->name, binding, VIR_ACCESS_PERM_NWFILTER_BINDING_READ)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
+int virNWFilterBindingLookupByPortDevEnsureACL(virConnectPtr conn, virNWFilterBindingDefPtr binding)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckNWFilterBinding(mgr, conn->driver->name, binding, VIR_ACCESS_PERM_NWFILTER_BINDING_GETATTR)) <= 0) {
         virObjectUnref(mgr);
         if (rv == 0)
             virReportError(VIR_ERR_ACCESS_DENIED, NULL);

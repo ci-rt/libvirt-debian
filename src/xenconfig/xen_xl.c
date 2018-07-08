@@ -17,7 +17,6 @@
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
- * Author: Kiarie Kahurani <davidkiarie4@gmail.com>
  * Author: Jim Fehlig <jfehlig@suse.com>
  */
 
@@ -1601,7 +1600,7 @@ xenFormatXLDiskSrc(virStorageSourcePtr src, char **srcstr)
     if (virStorageSourceIsEmpty(src))
         return 0;
 
-    switch ((virStorageType) actualType) {
+    switch ((virStorageType)actualType) {
     case VIR_STORAGE_TYPE_BLOCK:
     case VIR_STORAGE_TYPE_FILE:
     case VIR_STORAGE_TYPE_DIR:

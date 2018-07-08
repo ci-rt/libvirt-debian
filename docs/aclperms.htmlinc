@@ -48,6 +48,10 @@
       <td>List node devices</td>
     </tr>
     <tr>
+      <td><a name="perm_connect_search_nwfilter_bindings">search-nwfilter-bindings</a></td>
+      <td>List network filter bindings</td>
+    </tr>
+    <tr>
       <td><a name="perm_connect_search_nwfilters">search-nwfilters</a></td>
       <td>List network filters</td>
     </tr>
@@ -318,6 +322,22 @@
     </tr>
   </thead>
   <tbody>
+    <tr>
+      <td><a name="perm_nwfilter_binding_create">binding-create</a></td>
+      <td>Create network filter binding</td>
+    </tr>
+    <tr>
+      <td><a name="perm_nwfilter_binding_delete">binding-delete</a></td>
+      <td>Delete network filter binding</td>
+    </tr>
+    <tr>
+      <td><a name="perm_nwfilter_binding_getattr">binding-getattr</a></td>
+      <td>Access network filter</td>
+    </tr>
+    <tr>
+      <td><a name="perm_nwfilter_binding_read">binding-read</a></td>
+      <td>Read network filter binding</td>
+    </tr>
     <tr>
       <td><a name="perm_nwfilter_delete">delete</a></td>
       <td>Delete network filter</td>

@@ -34,6 +34,7 @@ typedef enum {
 } virCacheType;
 
 VIR_ENUM_DECL(virCache);
+VIR_ENUM_DECL(virCacheKernel);
 
 
 typedef struct _virResctrlInfoPerCache virResctrlInfoPerCache;
@@ -56,9 +57,6 @@ virResctrlInfoPtr
 virResctrlInfoNew(void);
 
 int
-virResctrlGetInfo(virResctrlInfoPtr resctrl);
-
-int
 virResctrlInfoGetCache(virResctrlInfoPtr resctrl,
                        unsigned int level,
                        unsigned long long size,
@@ -79,17 +77,17 @@ virResctrlAllocPtr
 virResctrlAllocNew(void);
 
 bool
-virResctrlAllocIsEmpty(virResctrlAllocPtr resctrl);
+virResctrlAllocIsEmpty(virResctrlAllocPtr alloc);
 
 int
-virResctrlAllocSetSize(virResctrlAllocPtr resctrl,
+virResctrlAllocSetSize(virResctrlAllocPtr alloc,
                        unsigned int level,
                        virCacheType type,
                        unsigned int cache,
                        unsigned long long size);
 
 int
-virResctrlAllocForeachSize(virResctrlAllocPtr resctrl,
+virResctrlAllocForeachSize(virResctrlAllocPtr alloc,
                            virResctrlAllocForeachSizeCallback cb,
                            void *opaque);
 

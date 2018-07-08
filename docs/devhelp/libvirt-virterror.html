@@ -52,6 +52,8 @@ void	<a href="#virDefaultErrorFunc">virDefaultErrorFunc</a>		(<a href="libvirt-v
 typedef void <a href="#virErrorFunc">virErrorFunc</a>			(void * userData, <br/>					 <a href="libvirt-virterror.html#virErrorPtr">virErrorPtr</a> error);
 void	<a href="#virFreeError">virFreeError</a>			(<a href="libvirt-virterror.html#virErrorPtr">virErrorPtr</a> err);
 <a href="libvirt-virterror.html#virErrorPtr">virErrorPtr</a>	<a href="#virGetLastError">virGetLastError</a>		(void);
+int	<a href="#virGetLastErrorCode">virGetLastErrorCode</a>		(void);
+int	<a href="#virGetLastErrorDomain">virGetLastErrorDomain</a>		(void);
 const char *	<a href="#virGetLastErrorMessage">virGetLastErrorMessage</a>	(void);
 void	<a href="#virResetError">virResetError</a>			(<a href="libvirt-virterror.html#virErrorPtr">virErrorPtr</a> err);
 void	<a href="#virResetLastError">virResetLastError</a>		(void);
@@ -265,6 +267,8 @@ void	<a href="#virSetErrorFunc">virSetErrorFunc</a>			(void * userData, <br/>			
     <a name="VIR_ERR_AGENT_UNSYNCED">VIR_ERR_AGENT_UNSYNCED</a> = 97 /* guest agent replies with wrong id to guest-sync command (DEPRECATED */
     <a name="VIR_ERR_LIBSSH">VIR_ERR_LIBSSH</a> = 98 /* error in libssh transport driver */
     <a name="VIR_ERR_DEVICE_MISSING">VIR_ERR_DEVICE_MISSING</a> = 99 /* fail to find the desired device */
+    <a name="VIR_ERR_INVALID_NWFILTER_BINDING">VIR_ERR_INVALID_NWFILTER_BINDING</a> = 100 /* invalid nwfilter binding */
+    <a name="VIR_ERR_NO_NWFILTER_BINDING">VIR_ERR_NO_NWFILTER_BINDING</a> = 101 /* no nwfilter binding */
 };
 </pre><p/>
 </div>
@@ -351,6 +355,14 @@ One will need to free the result with virResetError()</p>
 The error object is kept in thread local storage, so separate
 threads can safely access this concurrently.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the last error or NULL if none occurred.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virGetLastErrorCode"/>virGetLastErrorCode ()</h3><pre class="programlisting">int	virGetLastErrorCode		(void)<br/>
+</pre><p>Get the most recent error code (enum virErrorNumber).</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the most recent error code, or <a href="libvirt-virterror.html#VIR_ERR_OK">VIR_ERR_OK</a> if none is set.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virGetLastErrorDomain"/>virGetLastErrorDomain ()</h3><pre class="programlisting">int	virGetLastErrorDomain		(void)<br/>
+</pre><p>Get the most recent error domain (enum virErrorDomain).</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a numerical value of the most recent error's origin, or <a href="libvirt-virterror.html#VIR_FROM_NONE">VIR_FROM_NONE</a> if none is set.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virGetLastErrorMessage"/>virGetLastErrorMessage ()</h3><pre class="programlisting">const char *	virGetLastErrorMessage	(void)<br/>
 </pre><p>Get the most recent error message</p>

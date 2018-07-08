@@ -29,7 +29,6 @@
 #include <unistd.h>
 
 #include "internal.h"
-#include "md5.h"
 #include "viralloc.h"
 #include "virfile.h"
 #include "virlog.h"
@@ -41,6 +40,7 @@
 #include "esx_vi.h"
 #include "esx_vi_methods.h"
 #include "esx_util.h"
+#include "vircrypto.h"
 #include "virstring.h"
 
 #define VIR_FROM_THIS VIR_FROM_ESX
@@ -51,7 +51,7 @@ VIR_LOG_INIT("esx.esx_storage_backend_vmfs");
  * The UUID of a storage pool is the MD5 sum of its mount path. Therefore,
  * verify that UUID and MD5 sum match in size, because we rely on that.
  */
-verify(MD5_DIGEST_SIZE == VIR_UUID_BUFLEN);
+verify(VIR_CRYPTO_HASH_SIZE_MD5 == VIR_UUID_BUFLEN);
 
 
 
@@ -204,8 +204,8 @@ esxStoragePoolLookupByName(virConnectPtr conn,
     esxPrivate *priv = conn->privateData;
     esxVI_ObjectContent *datastore = NULL;
     esxVI_DatastoreHostMount *hostMount = NULL;
-    /* MD5_DIGEST_SIZE = VIR_UUID_BUFLEN = 16 */
-    unsigned char md5[MD5_DIGEST_SIZE];
+    /* VIR_CRYPTO_HASH_SIZE_MD5 = VIR_UUID_BUFLEN = 16 */
+    unsigned char md5[VIR_CRYPTO_HASH_SIZE_MD5];
     virStoragePoolPtr pool = NULL;
 
     if (esxVI_LookupDatastoreByName(priv->primary, name, NULL, &datastore,
@@ -236,8 +236,8 @@ esxStoragePoolLookupByName(virConnectPtr conn,
         goto cleanup;
     }
 
-    md5_buffer(hostMount->mountInfo->path,
-               strlen(hostMount->mountInfo->path), md5);
+    if (virCryptoHashBuf(VIR_CRYPTO_HASH_MD5, hostMount->mountInfo->path, md5) < 0)
+        goto cleanup;
 
     pool = virGetStoragePool(conn, name, md5, &esxStorageBackendVMFS, NULL);
 
@@ -259,8 +259,8 @@ esxStoragePoolLookupByUUID(virConnectPtr conn,
     esxVI_ObjectContent *datastoreList = NULL;
     esxVI_ObjectContent *datastore = NULL;
     esxVI_DatastoreHostMount *hostMount = NULL;
-    /* MD5_DIGEST_SIZE = VIR_UUID_BUFLEN = 16 */
-    unsigned char md5[MD5_DIGEST_SIZE];
+    /* VIR_CRYPTO_HASH_SIZE_MD5 = VIR_UUID_BUFLEN = 16 */
+    unsigned char md5[VIR_CRYPTO_HASH_SIZE_MD5];
     char *name = NULL;
     virStoragePoolPtr pool = NULL;
 
@@ -289,8 +289,8 @@ esxStoragePoolLookupByUUID(virConnectPtr conn,
             goto cleanup;
         }
 
-        md5_buffer(hostMount->mountInfo->path,
-                   strlen(hostMount->mountInfo->path), md5);
+        if (virCryptoHashBuf(VIR_CRYPTO_HASH_MD5, hostMount->mountInfo->path, md5) < 0)
+            goto cleanup;
 
         if (memcmp(uuid, md5, VIR_UUID_BUFLEN) == 0)
             break;

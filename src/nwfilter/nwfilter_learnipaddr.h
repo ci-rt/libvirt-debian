@@ -28,6 +28,7 @@
 
 # include "conf/nwfilter_params.h"
 # include "nwfilter_tech_driver.h"
+# include "virnwfilterbindingdef.h"
 # include <net/if.h>
 
 enum howDetect {
@@ -35,34 +36,13 @@ enum howDetect {
   DETECT_STATIC = 2,
 };
 
-typedef struct _virNWFilterIPAddrLearnReq virNWFilterIPAddrLearnReq;
-typedef virNWFilterIPAddrLearnReq *virNWFilterIPAddrLearnReqPtr;
-struct _virNWFilterIPAddrLearnReq {
-    virNWFilterTechDriverPtr techdriver;
-    char ifname[IF_NAMESIZE];
-    int ifindex;
-    char linkdev[IF_NAMESIZE];
-    virMacAddr macaddr;
-    char *filtername;
-    virNWFilterHashTablePtr filterparams;
-    virNWFilterDriverStatePtr driver;
-    enum howDetect howDetect;
-
-    int status;
-    volatile bool terminate;
-};
-
 int virNWFilterLearnIPAddress(virNWFilterTechDriverPtr techdriver,
-                              const char *ifname,
+                              virNWFilterBindingDefPtr binding,
                               int ifindex,
-                              const char *linkdev,
-                              const virMacAddr *macaddr,
-                              const char *filtername,
-                              virNWFilterHashTablePtr filterparams,
                               virNWFilterDriverStatePtr driver,
-                              enum howDetect howDetect);
+                              int howDetect);
 
-virNWFilterIPAddrLearnReqPtr virNWFilterLookupLearnReq(int ifindex);
+bool virNWFilterHasLearnReq(int ifindex);
 int virNWFilterTerminateLearnReq(const char *ifname);
 
 int virNWFilterLockIface(const char *ifname) ATTRIBUTE_RETURN_CHECK;

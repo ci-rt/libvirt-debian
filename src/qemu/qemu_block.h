@@ -58,9 +58,63 @@ bool
 qemuBlockStorageSourceSupportsConcurrentAccess(virStorageSourcePtr src);
 
 virJSONValuePtr
-qemuBlockStorageSourceGetBackendProps(virStorageSourcePtr src);
+qemuBlockStorageSourceGetBackendProps(virStorageSourcePtr src,
+                                      bool legacy);
 
 virURIPtr
 qemuBlockStorageSourceGetURI(virStorageSourcePtr src);
+
+virJSONValuePtr
+qemuBlockStorageSourceGetBlockdevProps(virStorageSourcePtr src);
+
+
+typedef struct qemuBlockStorageSourceAttachData qemuBlockStorageSourceAttachData;
+typedef qemuBlockStorageSourceAttachData *qemuBlockStorageSourceAttachDataPtr;
+struct qemuBlockStorageSourceAttachData {
+    virJSONValuePtr prmgrProps;
+    char *prmgrAlias;
+
+    virJSONValuePtr storageProps;
+    const char *storageNodeName;
+    bool storageAttached;
+
+    virJSONValuePtr formatProps;
+    const char *formatNodeName;
+    bool formatAttached;
+
+    char *driveCmd;
+    char *driveAlias;
+    bool driveAdded;
+
+    virJSONValuePtr authsecretProps;
+    char *authsecretAlias;
+
+    virJSONValuePtr encryptsecretProps;
+    char *encryptsecretAlias;
+
+    virJSONValuePtr tlsProps;
+    char *tlsAlias;
+};
+
+
+void
+qemuBlockStorageSourceAttachDataFree(qemuBlockStorageSourceAttachDataPtr data);
+
+qemuBlockStorageSourceAttachDataPtr
+qemuBlockStorageSourceAttachPrepareBlockdev(virStorageSourcePtr src);
+
+int
+qemuBlockStorageSourceAttachApply(qemuMonitorPtr mon,
+                                  qemuBlockStorageSourceAttachDataPtr data);
+
+void
+qemuBlockStorageSourceAttachRollback(qemuMonitorPtr mon,
+                                     qemuBlockStorageSourceAttachDataPtr data);
+
+int
+qemuBlockStorageSourceDetachOneBlockdev(virQEMUDriverPtr driver,
+                                        virDomainObjPtr vm,
+                                        qemuDomainAsyncJob asyncJob,
+                                        virStorageSourcePtr src);
 
 #endif /* __QEMU_BLOCK_H__ */

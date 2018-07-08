@@ -95,8 +95,7 @@ testCleanupImages(void)
 static virStorageSourcePtr
 testStorageFileGetMetadata(const char *path,
                            int format,
-                           uid_t uid, gid_t gid,
-                           bool allow_probe)
+                           uid_t uid, gid_t gid)
 {
     struct stat st;
     virStorageSourcePtr ret = NULL;
@@ -118,7 +117,7 @@ testStorageFileGetMetadata(const char *path,
     if (VIR_STRDUP(ret->path, path) < 0)
         goto error;
 
-    if (virStorageFileGetMetadata(ret, uid, gid, allow_probe, false) < 0)
+    if (virStorageFileGetMetadata(ret, uid, gid, false) < 0)
         goto error;
 
     return ret;
@@ -171,7 +170,7 @@ testPrepImages(void)
         fprintf(stderr, "unable to create directory %s\n", datadir "/dir");
         goto cleanup;
     }
-    if (!(canondir = canonicalize_file_name(absdir))) {
+    if (!(canondir = virFileCanonicalizePath(absdir))) {
         virReportOOMError();
         goto cleanup;
     }
@@ -186,7 +185,7 @@ testPrepImages(void)
         fprintf(stderr, "unable to create raw file\n");
         goto cleanup;
     }
-    if (!(canonraw = canonicalize_file_name(absraw))) {
+    if (!(canonraw = virFileCanonicalizePath(absraw))) {
         virReportOOMError();
         goto cleanup;
     }
@@ -206,7 +205,7 @@ testPrepImages(void)
                                "-F", "raw", "-b", "raw", "qcow2", NULL);
     if (virCommandRun(cmd, NULL) < 0)
         goto skip;
-    if (!(canonqcow2 = canonicalize_file_name(absqcow2))) {
+    if (!(canonqcow2 = virFileCanonicalizePath(absqcow2))) {
         virReportOOMError();
         goto cleanup;
     }
@@ -220,7 +219,7 @@ testPrepImages(void)
     virCommandAddArg(cmd, "wrap");
     if (virCommandRun(cmd, NULL) < 0)
         goto skip;
-    if (!(canonwrap = canonicalize_file_name(abswrap))) {
+    if (!(canonwrap = virFileCanonicalizePath(abswrap))) {
         virReportOOMError();
         goto cleanup;
     }
@@ -233,7 +232,7 @@ testPrepImages(void)
     virCommandAddArg(cmd, "qed");
     if (virCommandRun(cmd, NULL) < 0)
         goto skip;
-    if (!(canonqed = canonicalize_file_name(absqed))) {
+    if (!(canonqed = virFileCanonicalizePath(absqed))) {
         virReportOOMError();
         goto cleanup;
     }
@@ -320,8 +319,7 @@ testStorageChain(const void *args)
     size_t i = 0;
     char *broken = NULL;
 
-    meta = testStorageFileGetMetadata(data->start, data->format, -1, -1,
-                                      (data->flags & ALLOW_PROBE) != 0);
+    meta = testStorageFileGetMetadata(data->start, data->format, -1, -1);
     if (!meta) {
         if (data->flags & EXP_FAIL) {
             virResetLastError();
@@ -333,7 +331,7 @@ testStorageChain(const void *args)
         goto cleanup;
     }
     if (data->flags & EXP_WARN) {
-        if (!virGetLastError()) {
+        if (virGetLastErrorCode() == VIR_ERR_OK) {
             fprintf(stderr, "call should have warned\n");
             goto cleanup;
         }
@@ -343,7 +341,7 @@ testStorageChain(const void *args)
             goto cleanup;
         }
     } else {
-        if (virGetLastError()) {
+        if (virGetLastErrorCode()) {
             fprintf(stderr, "call should not have warned\n");
             goto cleanup;
         }
@@ -449,13 +447,13 @@ testStorageLookup(const void *args)
                                        idx, NULL);
 
     if (!data->expResult) {
-        if (!virGetLastError()) {
+        if (virGetLastErrorCode() == VIR_ERR_OK) {
             fprintf(stderr, "call should have failed\n");
             ret = -1;
         }
         virResetLastError();
     } else {
-        if (virGetLastError()) {
+        if (virGetLastErrorCode()) {
             fprintf(stderr, "call should not have warned\n");
             ret = -1;
         }
@@ -754,11 +752,8 @@ mymain(void)
 #define VIR_FLATTEN_2(...) __VA_ARGS__
 #define VIR_FLATTEN_1(_1) VIR_FLATTEN_2 _1
 
-#define TEST_CHAIN(path, format, chain1, flags1, chain2, flags2) \
-    do { \
-        TEST_ONE_CHAIN(path, format, flags1, VIR_FLATTEN_1(chain1)); \
-        TEST_ONE_CHAIN(path, format, flags2, VIR_FLATTEN_1(chain2)); \
-    } while (0)
+#define TEST_CHAIN(path, format, chain, flags) \
+    TEST_ONE_CHAIN(path, format, flags, VIR_FLATTEN_1(chain));
 
     /* The actual tests, in several groups. */
     virTestCounterReset("Storage backing chain ");
@@ -772,12 +767,8 @@ mymain(void)
         .type = VIR_STORAGE_TYPE_FILE,
         .format = VIR_STORAGE_FILE_RAW,
     };
-    TEST_CHAIN(absraw, VIR_STORAGE_FILE_RAW,
-               (&raw), EXP_PASS,
-               (&raw), ALLOW_PROBE | EXP_PASS);
-    TEST_CHAIN(absraw, VIR_STORAGE_FILE_AUTO,
-               (&raw), EXP_PASS,
-               (&raw), ALLOW_PROBE | EXP_PASS);
+    TEST_CHAIN(absraw, VIR_STORAGE_FILE_RAW, (&raw), EXP_PASS);
+    TEST_CHAIN(absraw, VIR_STORAGE_FILE_AUTO, (&raw), EXP_PASS);
 
     /* Qcow2 file with relative raw backing, format provided */
     raw.pathRel = "raw";
@@ -793,12 +784,8 @@ mymain(void)
         .type = VIR_STORAGE_TYPE_FILE,
         .format = VIR_STORAGE_FILE_RAW,
     };
-    TEST_CHAIN(absqcow2, VIR_STORAGE_FILE_QCOW2,
-               (&qcow2, &raw), EXP_PASS,
-               (&qcow2, &raw), ALLOW_PROBE | EXP_PASS);
-    TEST_CHAIN(absqcow2, VIR_STORAGE_FILE_AUTO,
-               (&qcow2_as_raw), EXP_PASS,
-               (&qcow2, &raw), ALLOW_PROBE | EXP_PASS);
+    TEST_CHAIN(absqcow2, VIR_STORAGE_FILE_QCOW2, (&qcow2, &raw), EXP_PASS);
+    TEST_CHAIN(absqcow2, VIR_STORAGE_FILE_AUTO, (&qcow2_as_raw), EXP_PASS);
 
     /* Rewrite qcow2 file to use absolute backing name */
     virCommandFree(cmd);
@@ -810,12 +797,8 @@ mymain(void)
     raw.pathRel = NULL;
 
     /* Qcow2 file with raw as absolute backing, backing format provided */
-    TEST_CHAIN(absqcow2, VIR_STORAGE_FILE_QCOW2,
-               (&qcow2, &raw), EXP_PASS,
-               (&qcow2, &raw), ALLOW_PROBE | EXP_PASS);
-    TEST_CHAIN(absqcow2, VIR_STORAGE_FILE_AUTO,
-               (&qcow2_as_raw), EXP_PASS,
-               (&qcow2, &raw), ALLOW_PROBE | EXP_PASS);
+    TEST_CHAIN(absqcow2, VIR_STORAGE_FILE_QCOW2, (&qcow2, &raw), EXP_PASS);
+    TEST_CHAIN(absqcow2, VIR_STORAGE_FILE_AUTO, (&qcow2_as_raw), EXP_PASS);
 
     /* Wrapped file access */
     testFileData wrap = {
@@ -825,9 +808,7 @@ mymain(void)
         .type = VIR_STORAGE_TYPE_FILE,
         .format = VIR_STORAGE_FILE_QCOW2,
     };
-    TEST_CHAIN(abswrap, VIR_STORAGE_FILE_QCOW2,
-               (&wrap, &qcow2, &raw), EXP_PASS,
-               (&wrap, &qcow2, &raw), ALLOW_PROBE | EXP_PASS);
+    TEST_CHAIN(abswrap, VIR_STORAGE_FILE_QCOW2, (&wrap, &qcow2, &raw), EXP_PASS);
 
     /* Rewrite qcow2 and wrap file to omit backing file type */
     virCommandFree(cmd);
@@ -851,8 +832,7 @@ mymain(void)
         .format = VIR_STORAGE_FILE_QCOW2,
     };
     TEST_CHAIN(abswrap, VIR_STORAGE_FILE_QCOW2,
-               (&wrap_as_raw, &qcow2_as_raw), EXP_PASS,
-               (&wrap, &qcow2, &raw), ALLOW_PROBE | EXP_PASS);
+               (&wrap_as_raw, &qcow2_as_raw), EXP_PASS);
 
     /* Rewrite qcow2 to a missing backing file, with backing type */
     virCommandFree(cmd);
@@ -864,9 +844,7 @@ mymain(void)
     qcow2.expBackingStoreRaw = datadir "/bogus";
 
     /* Qcow2 file with missing backing file but specified type */
-    TEST_CHAIN(absqcow2, VIR_STORAGE_FILE_QCOW2,
-               (&qcow2), EXP_WARN,
-               (&qcow2), ALLOW_PROBE | EXP_WARN);
+    TEST_CHAIN(absqcow2, VIR_STORAGE_FILE_QCOW2, (&qcow2), EXP_WARN);
 
     /* Rewrite qcow2 to a missing backing file, without backing type */
     virCommandFree(cmd);
@@ -876,9 +854,7 @@ mymain(void)
         ret = -1;
 
     /* Qcow2 file with missing backing file and no specified type */
-    TEST_CHAIN(absqcow2, VIR_STORAGE_FILE_QCOW2,
-               (&qcow2), EXP_WARN,
-               (&qcow2), ALLOW_PROBE | EXP_WARN);
+    TEST_CHAIN(absqcow2, VIR_STORAGE_FILE_QCOW2, (&qcow2), EXP_WARN);
 
     /* Rewrite qcow2 to use an nbd: protocol as backend */
     virCommandFree(cmd);
@@ -897,9 +873,7 @@ mymain(void)
         .protocol = VIR_STORAGE_NET_PROTOCOL_NBD,
         .hostname = "example.org",
     };
-    TEST_CHAIN(absqcow2, VIR_STORAGE_FILE_QCOW2,
-               (&qcow2, &nbd), EXP_PASS,
-               (&qcow2, &nbd), ALLOW_PROBE | EXP_PASS);
+    TEST_CHAIN(absqcow2, VIR_STORAGE_FILE_QCOW2, (&qcow2, &nbd), EXP_PASS);
 
     /* Rewrite qcow2 to use an nbd: protocol as backend */
     virCommandFree(cmd);
@@ -918,9 +892,7 @@ mymain(void)
         .protocol = VIR_STORAGE_NET_PROTOCOL_NBD,
         .hostname = "example.org",
     };
-    TEST_CHAIN(absqcow2, VIR_STORAGE_FILE_QCOW2,
-               (&qcow2, &nbd2), EXP_PASS,
-               (&qcow2, &nbd2), ALLOW_PROBE | EXP_PASS);
+    TEST_CHAIN(absqcow2, VIR_STORAGE_FILE_QCOW2, (&qcow2, &nbd2), EXP_PASS);
 
     /* Rewrite qcow2 to use an nbd: protocol without path as backend */
     virCommandFree(cmd);
@@ -932,9 +904,7 @@ mymain(void)
     qcow2.expBackingStoreRaw = "nbd://example.org";
 
     nbd2.path = NULL;
-    TEST_CHAIN(absqcow2, VIR_STORAGE_FILE_QCOW2,
-               (&qcow2, &nbd2), EXP_PASS,
-               (&qcow2, &nbd2), ALLOW_PROBE | EXP_PASS);
+    TEST_CHAIN(absqcow2, VIR_STORAGE_FILE_QCOW2, (&qcow2, &nbd2), EXP_PASS);
 
     /* qed file */
     testFileData qed = {
@@ -949,9 +919,8 @@ mymain(void)
         .type = VIR_STORAGE_TYPE_FILE,
         .format = VIR_STORAGE_FILE_RAW,
     };
-    TEST_CHAIN(absqed, VIR_STORAGE_FILE_AUTO,
-               (&qed_as_raw), EXP_PASS,
-               (&qed, &raw), ALLOW_PROBE | EXP_PASS);
+    TEST_CHAIN(absqed, VIR_STORAGE_FILE_QED, (&qed, &raw), EXP_PASS);
+    TEST_CHAIN(absqed, VIR_STORAGE_FILE_AUTO, (&qed_as_raw), EXP_PASS);
 
     /* directory */
     testFileData dir = {
@@ -964,15 +933,9 @@ mymain(void)
         .type = VIR_STORAGE_TYPE_DIR,
         .format = VIR_STORAGE_FILE_RAW,
     };
-    TEST_CHAIN(absdir, VIR_STORAGE_FILE_RAW,
-               (&dir_as_raw), EXP_PASS,
-               (&dir_as_raw), ALLOW_PROBE | EXP_PASS);
-    TEST_CHAIN(absdir, VIR_STORAGE_FILE_NONE,
-               (&dir), EXP_PASS,
-               (&dir), ALLOW_PROBE | EXP_PASS);
-    TEST_CHAIN(absdir, VIR_STORAGE_FILE_DIR,
-               (&dir), EXP_PASS,
-               (&dir), ALLOW_PROBE | EXP_PASS);
+    TEST_CHAIN(absdir, VIR_STORAGE_FILE_RAW, (&dir_as_raw), EXP_PASS);
+    TEST_CHAIN(absdir, VIR_STORAGE_FILE_NONE, (&dir), EXP_PASS);
+    TEST_CHAIN(absdir, VIR_STORAGE_FILE_DIR, (&dir), EXP_PASS);
 
 #ifdef HAVE_SYMLINK
     /* Rewrite qcow2 and wrap file to use backing names relative to a
@@ -1010,8 +973,7 @@ mymain(void)
     raw.path = datadir "/sub/../sub/../raw";
     raw.pathRel = "../raw";
     TEST_CHAIN(abslink2, VIR_STORAGE_FILE_QCOW2,
-               (&link2, &link1, &raw), EXP_PASS,
-               (&link2, &link1, &raw), ALLOW_PROBE | EXP_PASS);
+               (&link2, &link1, &raw), EXP_PASS);
 #endif
 
     /* Rewrite qcow2 to be a self-referential loop */
@@ -1023,9 +985,7 @@ mymain(void)
     qcow2.expBackingStoreRaw = "qcow2";
 
     /* Behavior of an infinite loop chain */
-    TEST_CHAIN(absqcow2, VIR_STORAGE_FILE_QCOW2,
-               (&qcow2), EXP_WARN,
-               (&qcow2), ALLOW_PROBE | EXP_WARN);
+    TEST_CHAIN(absqcow2, VIR_STORAGE_FILE_QCOW2, (&qcow2), EXP_WARN);
 
     /* Rewrite wrap and qcow2 to be mutually-referential loop */
     virCommandFree(cmd);
@@ -1042,9 +1002,7 @@ mymain(void)
     qcow2.expBackingStoreRaw = "wrap";
 
     /* Behavior of an infinite loop chain */
-    TEST_CHAIN(abswrap, VIR_STORAGE_FILE_QCOW2,
-               (&wrap, &qcow2), EXP_WARN,
-               (&wrap, &qcow2), ALLOW_PROBE | EXP_WARN);
+    TEST_CHAIN(abswrap, VIR_STORAGE_FILE_QCOW2, (&wrap, &qcow2), EXP_WARN);
 
     /* Rewrite qcow2 to use an rbd: protocol as backend */
     virCommandFree(cmd);
@@ -1062,9 +1020,7 @@ mymain(void)
         .format = VIR_STORAGE_FILE_RAW,
         .protocol = VIR_STORAGE_NET_PROTOCOL_RBD,
     };
-    TEST_CHAIN(absqcow2, VIR_STORAGE_FILE_QCOW2,
-               (&qcow2, &rbd1), EXP_PASS,
-               (&qcow2, &rbd1), ALLOW_PROBE | EXP_PASS);
+    TEST_CHAIN(absqcow2, VIR_STORAGE_FILE_QCOW2, (&qcow2, &rbd1), EXP_PASS);
 
     /* Rewrite qcow2 to use an rbd: protocol as backend */
     virCommandFree(cmd);
@@ -1084,9 +1040,7 @@ mymain(void)
         .secret = "asdf",
         .hostname = "example.com",
     };
-    TEST_CHAIN(absqcow2, VIR_STORAGE_FILE_QCOW2,
-               (&qcow2, &rbd2), EXP_PASS,
-               (&qcow2, &rbd2), ALLOW_PROBE | EXP_PASS);
+    TEST_CHAIN(absqcow2, VIR_STORAGE_FILE_QCOW2, (&qcow2, &rbd2), EXP_PASS);
 
 
     /* Rewrite wrap and qcow2 back to 3-deep chain, absolute backing */
@@ -1098,7 +1052,7 @@ mymain(void)
 
     /* Test behavior of chain lookups, absolute backing from relative start */
     chain = testStorageFileGetMetadata("wrap", VIR_STORAGE_FILE_QCOW2,
-                                       -1, -1, false);
+                                       -1, -1);
     if (!chain) {
         ret = -1;
         goto cleanup;
@@ -1163,8 +1117,7 @@ mymain(void)
 
     /* Test behavior of chain lookups, relative backing from absolute start */
     virStorageSourceFree(chain);
-    chain = testStorageFileGetMetadata(abswrap, VIR_STORAGE_FILE_QCOW2,
-                                       -1, -1, false);
+    chain = testStorageFileGetMetadata(abswrap, VIR_STORAGE_FILE_QCOW2, -1, -1);
     if (!chain) {
         ret = -1;
         goto cleanup;
@@ -1211,7 +1164,7 @@ mymain(void)
     /* Test behavior of chain lookups, relative backing */
     virStorageSourceFree(chain);
     chain = testStorageFileGetMetadata("sub/link2", VIR_STORAGE_FILE_QCOW2,
-                                       -1, -1, false);
+                                       -1, -1);
     if (!chain) {
         ret = -1;
         goto cleanup;

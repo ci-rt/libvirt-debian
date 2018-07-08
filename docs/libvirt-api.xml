@@ -197,6 +197,7 @@
      <exports symbol='VIR_DOMAIN_JOB_TIME_ELAPSED' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_TIME_ELAPSED_NET' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_TIME_REMAINING' type='macro'/>
+     <exports symbol='VIR_DOMAIN_LAUNCH_SECURITY_SEV_MEASUREMENT' type='macro'/>
      <exports symbol='VIR_DOMAIN_MEMORY_FIELD_LENGTH' type='macro'/>
      <exports symbol='VIR_DOMAIN_MEMORY_HARD_LIMIT' type='macro'/>
      <exports symbol='VIR_DOMAIN_MEMORY_MIN_GUARANTEE' type='macro'/>
@@ -310,6 +311,7 @@
      <exports symbol='VIR_CONNECT_GET_ALL_DOMAINS_STATS_BACKING' type='enum'/>
      <exports symbol='VIR_CONNECT_GET_ALL_DOMAINS_STATS_ENFORCE_STATS' type='enum'/>
      <exports symbol='VIR_CONNECT_GET_ALL_DOMAINS_STATS_INACTIVE' type='enum'/>
+     <exports symbol='VIR_CONNECT_GET_ALL_DOMAINS_STATS_NOWAIT' type='enum'/>
      <exports symbol='VIR_CONNECT_GET_ALL_DOMAINS_STATS_OTHER' type='enum'/>
      <exports symbol='VIR_CONNECT_GET_ALL_DOMAINS_STATS_PAUSED' type='enum'/>
      <exports symbol='VIR_CONNECT_GET_ALL_DOMAINS_STATS_PERSISTENT' type='enum'/>
@@ -994,6 +996,7 @@
      <exports symbol='virDomainDestroy' type='function'/>
      <exports symbol='virDomainDestroyFlags' type='function'/>
      <exports symbol='virDomainDetachDevice' type='function'/>
+     <exports symbol='virDomainDetachDeviceAlias' type='function'/>
      <exports symbol='virDomainDetachDeviceFlags' type='function'/>
      <exports symbol='virDomainFSFreeze' type='function'/>
      <exports symbol='virDomainFSInfoFree' type='function'/>
@@ -1019,6 +1022,7 @@
      <exports symbol='virDomainGetInterfaceParameters' type='function'/>
      <exports symbol='virDomainGetJobInfo' type='function'/>
      <exports symbol='virDomainGetJobStats' type='function'/>
+     <exports symbol='virDomainGetLaunchSecurityInfo' type='function'/>
      <exports symbol='virDomainGetMaxMemory' type='function'/>
      <exports symbol='virDomainGetMaxVcpus' type='function'/>
      <exports symbol='virDomainGetMemoryParameters' type='function'/>
@@ -1179,6 +1183,10 @@
      <exports symbol='VIR_NODE_MEMORY_STATS_FIELD_LENGTH' type='macro'/>
      <exports symbol='VIR_NODE_MEMORY_STATS_FREE' type='macro'/>
      <exports symbol='VIR_NODE_MEMORY_STATS_TOTAL' type='macro'/>
+     <exports symbol='VIR_NODE_SEV_CBITPOS' type='macro'/>
+     <exports symbol='VIR_NODE_SEV_CERT_CHAIN' type='macro'/>
+     <exports symbol='VIR_NODE_SEV_PDH' type='macro'/>
+     <exports symbol='VIR_NODE_SEV_REDUCED_PHYS_BITS' type='macro'/>
      <exports symbol='VIR_SECURITY_DOI_BUFLEN' type='macro'/>
      <exports symbol='VIR_SECURITY_LABEL_BUFLEN' type='macro'/>
      <exports symbol='VIR_SECURITY_MODEL_BUFLEN' type='macro'/>
@@ -1249,9 +1257,11 @@
      <exports symbol='virConnectAuthPtrDefault' type='variable'/>
      <exports symbol='virConnectAuthCallbackPtr' type='function'/>
      <exports symbol='virConnectBaselineCPU' type='function'/>
+     <exports symbol='virConnectBaselineHypervisorCPU' type='function'/>
      <exports symbol='virConnectClose' type='function'/>
      <exports symbol='virConnectCloseFunc' type='function'/>
      <exports symbol='virConnectCompareCPU' type='function'/>
+     <exports symbol='virConnectCompareHypervisorCPU' type='function'/>
      <exports symbol='virConnectGetCPUModelNames' type='function'/>
      <exports symbol='virConnectGetCapabilities' type='function'/>
      <exports symbol='virConnectGetHostname' type='function'/>
@@ -1282,6 +1292,7 @@
      <exports symbol='virNodeGetInfo' type='function'/>
      <exports symbol='virNodeGetMemoryParameters' type='function'/>
      <exports symbol='virNodeGetMemoryStats' type='function'/>
+     <exports symbol='virNodeGetSEVInfo' type='function'/>
      <exports symbol='virNodeGetSecurityModel' type='function'/>
      <exports symbol='virNodeSetMemoryParameters' type='function'/>
      <exports symbol='virNodeSuspendForDuration' type='function'/>
@@ -1470,10 +1481,21 @@
      <description>Provides APIs for the management of nwfilters</description>
      <author>Daniel Veillard &lt;veillard@redhat.com&gt;  Copyright (C) 2006-2014 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </author>
      <exports symbol='virNWFilter' type='typedef'/>
+     <exports symbol='virNWFilterBinding' type='typedef'/>
+     <exports symbol='virNWFilterBindingPtr' type='typedef'/>
      <exports symbol='virNWFilterPtr' type='typedef'/>
+     <exports symbol='virConnectListAllNWFilterBindings' type='function'/>
      <exports symbol='virConnectListAllNWFilters' type='function'/>
      <exports symbol='virConnectListNWFilters' type='function'/>
      <exports symbol='virConnectNumOfNWFilters' type='function'/>
+     <exports symbol='virNWFilterBindingCreateXML' type='function'/>
+     <exports symbol='virNWFilterBindingDelete' type='function'/>
+     <exports symbol='virNWFilterBindingFree' type='function'/>
+     <exports symbol='virNWFilterBindingGetFilterName' type='function'/>
+     <exports symbol='virNWFilterBindingGetPortDev' type='function'/>
+     <exports symbol='virNWFilterBindingGetXMLDesc' type='function'/>
+     <exports symbol='virNWFilterBindingLookupByPortDev' type='function'/>
+     <exports symbol='virNWFilterBindingRef' type='function'/>
      <exports symbol='virNWFilterDefineXML' type='function'/>
      <exports symbol='virNWFilterFree' type='function'/>
      <exports symbol='virNWFilterGetName' type='function'/>
@@ -1777,6 +1799,7 @@
      <exports symbol='VIR_ERR_INVALID_NETWORK' type='enum'/>
      <exports symbol='VIR_ERR_INVALID_NODE_DEVICE' type='enum'/>
      <exports symbol='VIR_ERR_INVALID_NWFILTER' type='enum'/>
+     <exports symbol='VIR_ERR_INVALID_NWFILTER_BINDING' type='enum'/>
      <exports symbol='VIR_ERR_INVALID_SECRET' type='enum'/>
      <exports symbol='VIR_ERR_INVALID_STORAGE_POOL' type='enum'/>
      <exports symbol='VIR_ERR_INVALID_STORAGE_VOL' type='enum'/>
@@ -1801,6 +1824,7 @@
      <exports symbol='VIR_ERR_NO_NETWORK' type='enum'/>
      <exports symbol='VIR_ERR_NO_NODE_DEVICE' type='enum'/>
      <exports symbol='VIR_ERR_NO_NWFILTER' type='enum'/>
+     <exports symbol='VIR_ERR_NO_NWFILTER_BINDING' type='enum'/>
      <exports symbol='VIR_ERR_NO_OS' type='enum'/>
      <exports symbol='VIR_ERR_NO_ROOT' type='enum'/>
      <exports symbol='VIR_ERR_NO_SECRET' type='enum'/>
@@ -1931,6 +1955,8 @@
      <exports symbol='virErrorFunc' type='function'/>
      <exports symbol='virFreeError' type='function'/>
      <exports symbol='virGetLastError' type='function'/>
+     <exports symbol='virGetLastErrorCode' type='function'/>
+     <exports symbol='virGetLastErrorDomain' type='function'/>
      <exports symbol='virGetLastErrorMessage' type='function'/>
      <exports symbol='virResetError' type='function'/>
      <exports symbol='virResetLastError' type='function'/>
@@ -2217,6 +2243,9 @@
     <macro name='VIR_DOMAIN_JOB_TIME_REMAINING' file='libvirt-domain' string='time_remaining'>
       <info><![CDATA[virDomainGetJobStats field: remaining time (ms) for VIR_DOMAIN_JOB_BOUNDED jobs, as VIR_TYPED_PARAM_ULLONG.  This field corresponds to timeRemaining field in virDomainJobInfo.]]></info>
     </macro>
+    <macro name='VIR_DOMAIN_LAUNCH_SECURITY_SEV_MEASUREMENT' file='libvirt-domain' string='sev-measurement'>
+      <info><![CDATA[Macro represents the launch measurement of the SEV guest, as VIR_TYPED_PARAM_STRING.]]></info>
+    </macro>
     <macro name='VIR_DOMAIN_MEMORY_FIELD_LENGTH' file='libvirt-domain'>
       <info><![CDATA[Macro providing the field length of virMemoryParameter.  Provided for backwards compatibility; VIR_TYPED_PARAM_FIELD_LENGTH is the preferred value since 0.9.2.]]></info>
     </macro>
@@ -2443,7 +2472,7 @@
       <info><![CDATA[virDomainMigrate* params field: the new persistent configuration to be used for the domain on the destination host as VIR_TYPED_PARAM_STRING. This field cannot be used to rename the domain during migration (use VIR_MIGRATE_PARAM_DEST_NAME field for that purpose). Domain name in the destination XML must match the original domain name.  Omitting this parameter keeps the original domain persistent configuration. Using this field with hypervisors that do not support changing domain configuration during migration will result in a failure.]]></info>
     </macro>
     <macro name='VIR_MIGRATE_PARAM_URI' file='libvirt-domain' string='migrate_uri'>
-      <info><![CDATA[virDomainMigrate* params field: URI to use for initiating domain migration as VIR_TYPED_PARAM_STRING. It takes a hypervisor specific format. The uri_transports element of the hypervisor capabilities XML includes details of the supported URI schemes. When omitted libvirt will auto-generate suitable default URI. It is typically only necessary to specify this URI if the destination host has multiple interfaces and a specific interface is required to transmit migration data.  This filed may not be used when VIR_MIGRATE_TUNNELLED flag is set.]]></info>
+      <info><![CDATA[virDomainMigrate* params field: URI to use for initiating domain migration as VIR_TYPED_PARAM_STRING. It takes a hypervisor specific format. The uri_transports element of the hypervisor capabilities XML includes details of the supported URI schemes. When omitted libvirt will auto-generate suitable default URI. It is typically only necessary to specify this URI if the destination host has multiple interfaces and a specific interface is required to transmit migration data.  This field may not be used when VIR_MIGRATE_TUNNELLED flag is set.]]></info>
     </macro>
     <macro name='VIR_NETWORK_EVENT_CALLBACK' file='libvirt-network'>
       <info><![CDATA[Used to cast the event specific callback into the generic one for use for virConnectNetworkEventRegisterAny()]]></info>
@@ -2514,6 +2543,18 @@
     </macro>
     <macro name='VIR_NODE_MEMORY_STATS_TOTAL' file='libvirt-host' string='total'>
       <info><![CDATA[Macro for the total memory of specified cell: it represents the maximum memory.]]></info>
+    </macro>
+    <macro name='VIR_NODE_SEV_CBITPOS' file='libvirt-host' string='cbitpos'>
+      <info><![CDATA[Macro represents the CBit Position used by hypervisor when SEV is enabled.]]></info>
+    </macro>
+    <macro name='VIR_NODE_SEV_CERT_CHAIN' file='libvirt-host' string='cert-chain'>
+      <info><![CDATA[Macro represents the platform certificate chain that includes the platform endorsement key (PEK), owner certificate authority (OCD) and chip endorsement key (CEK), as VIR_TYPED_PARAMS_STRING.]]></info>
+    </macro>
+    <macro name='VIR_NODE_SEV_PDH' file='libvirt-host' string='pdh'>
+      <info><![CDATA[Macro represents the Platform Diffie-Hellman key, as VIR_TYPED_PARAMS_STRING.]]></info>
+    </macro>
+    <macro name='VIR_NODE_SEV_REDUCED_PHYS_BITS' file='libvirt-host' string='reduced-phys-bits'>
+      <info><![CDATA[Macro represents the number of bits we lose in physical address space when SEV is enabled in the guest.]]></info>
     </macro>
     <macro name='VIR_PERF_PARAM_ALIGNMENT_FAULTS' file='libvirt-domain' string='alignment_faults'>
       <info><![CDATA[Macro for typed parameter name that represents alignment_faults perf event which can be used to measure the count of alignment faults by applications running on the platform. It corresponds to the "perf.alignment_faults" field in the *Stats APIs.]]></info>
@@ -2641,6 +2682,8 @@ CPUs as failure'/>
     <enum name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_BACKING' file='libvirt-domain' value='1073741824' type='virConnectGetAllDomainStatsFlags' info='include backing chain for block stats'/>
     <enum name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_ENFORCE_STATS' file='libvirt-domain' value='2147483648' type='virConnectGetAllDomainStatsFlags' info='enforce requested stats'/>
     <enum name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_INACTIVE' file='libvirt-domain' value='VIR_CONNECT_LIST_DOMAINS_INACTIVE' type='virConnectGetAllDomainStatsFlags'/>
+    <enum name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_NOWAIT' file='libvirt-domain' value='536870912' type='virConnectGetAllDomainStatsFlags' info='report statistics that can be obtained
+immediately without any blocking'/>
     <enum name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_OTHER' file='libvirt-domain' value='VIR_CONNECT_LIST_DOMAINS_OTHER' type='virConnectGetAllDomainStatsFlags'/>
     <enum name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_PAUSED' file='libvirt-domain' value='VIR_CONNECT_LIST_DOMAINS_PAUSED' type='virConnectGetAllDomainStatsFlags'/>
     <enum name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_PERSISTENT' file='libvirt-domain' value='VIR_CONNECT_LIST_DOMAINS_PERSISTENT' type='virConnectGetAllDomainStatsFlags'/>
@@ -3319,6 +3362,7 @@ CP'/>
     <enum name='VIR_ERR_INVALID_NETWORK' file='virterror' value='36' type='virErrorNumber' info='invalid network object'/>
     <enum name='VIR_ERR_INVALID_NODE_DEVICE' file='virterror' value='52' type='virErrorNumber' info='invalid node device object'/>
     <enum name='VIR_ERR_INVALID_NWFILTER' file='virterror' value='61' type='virErrorNumber' info='invalid nwfilter object'/>
+    <enum name='VIR_ERR_INVALID_NWFILTER_BINDING' file='virterror' value='100' type='virErrorNumber' info='invalid nwfilter binding'/>
     <enum name='VIR_ERR_INVALID_SECRET' file='virterror' value='65' type='virErrorNumber' info='invalid secret'/>
     <enum name='VIR_ERR_INVALID_STORAGE_POOL' file='virterror' value='46' type='virErrorNumber' info='invalid storage pool object'/>
     <enum name='VIR_ERR_INVALID_STORAGE_VOL' file='virterror' value='47' type='virErrorNumber' info='invalid storage vol object'/>
@@ -3346,6 +3390,7 @@ disappeared'/>
     <enum name='VIR_ERR_NO_NETWORK' file='virterror' value='43' type='virErrorNumber' info='network not found'/>
     <enum name='VIR_ERR_NO_NODE_DEVICE' file='virterror' value='53' type='virErrorNumber' info='node device not found'/>
     <enum name='VIR_ERR_NO_NWFILTER' file='virterror' value='62' type='virErrorNumber' info='nw filter pool not found'/>
+    <enum name='VIR_ERR_NO_NWFILTER_BINDING' file='virterror' value='101' type='virErrorNumber' info='no nwfilter binding'/>
     <enum name='VIR_ERR_NO_OS' file='virterror' value='22' type='virErrorNumber' info='missing domain OS information'/>
     <enum name='VIR_ERR_NO_ROOT' file='virterror' value='18' type='virErrorNumber' info='missing root device information'/>
     <enum name='VIR_ERR_NO_SECRET' file='virterror' value='66' type='virErrorNumber' info='secret not found'/>
@@ -4027,7 +4072,7 @@ and ERROR states)'/>
     <typedef name='virDomainSnapshotDeleteFlags' file='libvirt-domain-snapshot' type='enum'/>
     <typedef name='virDomainSnapshotListFlags' file='libvirt-domain-snapshot' type='enum'/>
     <typedef name='virDomainSnapshotPtr' file='libvirt-domain-snapshot' type='virDomainSnapshot *'>
-      <info><![CDATA[a virDomainSnapshotPtr is pointer to a virDomainSnapshot private structure, and is the type used to reference a domain snapshot in the API.]]></info>
+      <info><![CDATA[A virDomainSnapshotPtr is pointer to a virDomainSnapshot private structure, and is the type used to reference a domain snapshot in the API.]]></info>
     </typedef>
     <typedef name='virDomainSnapshotRevertFlags' file='libvirt-domain-snapshot' type='enum'/>
     <typedef name='virDomainState' file='libvirt-domain' type='enum'/>
@@ -4090,6 +4135,10 @@ see note above'/>
     </typedef>
     <typedef name='virMemoryParameterType' file='libvirt-domain' type='enum'/>
     <struct name='virNWFilter' file='libvirt-nwfilter' type='struct _virNWFilter'/>
+    <struct name='virNWFilterBinding' file='libvirt-nwfilter' type='struct _virNWFilterBinding'/>
+    <typedef name='virNWFilterBindingPtr' file='libvirt-nwfilter' type='virNWFilterBinding *'>
+      <info><![CDATA[a virNWFilterBindingPtr is pointer to a virNWFilterBinding private structure, this is the type used to reference a network filter port binding in the API.]]></info>
+    </typedef>
     <typedef name='virNWFilterPtr' file='libvirt-nwfilter' type='virNWFilter *'>
       <info><![CDATA[a virNWFilterPtr is pointer to a virNWFilter private structure, this is the type used to reference a network filter in the API.]]></info>
     </typedef>
@@ -4340,6 +4389,9 @@ If an interaction cannot be filled, fill in NULL and 0.]]></info>
       <info><![CDATA[Computes the most feature-rich CPU which is compatible with all given
 host CPUs.
 
+See virConnectBaselineHypervisorCPU() to get a CPU which can be provided
+by the hypervisor.
+
 If @flags includes VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES then libvirt
 will explicitly list all CPU features that are part of the host CPU,
 without this flag features that are part of the CPU model will not be
@@ -4350,6 +4402,34 @@ CPU will not include features that block migration.]]></info>
       <return type='char *' info='XML description of the computed CPU (caller frees) or NULL on error.'/>
       <arg name='conn' type='virConnectPtr' info='virConnect connection'/>
       <arg name='xmlCPUs' type='const char **' info='array of XML descriptions of host CPUs'/>
+      <arg name='ncpus' type='unsigned int' info='number of CPUs in xmlCPUs'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virConnectBaselineCPUFlags'/>
+    </function>
+    <function name='virConnectBaselineHypervisorCPU' file='libvirt-host' module='libvirt-host'>
+      <info><![CDATA[Computes the most feature-rich CPU which is compatible with all given CPUs
+and can be provided by the specified hypervisor. For best results the
+host-model CPUs as advertised by virConnectGetDomainCapabilities() should be
+passed in @xmlCPUs. Any of @emulator, @arch, @machine, and @virttype
+parameters may be NULL; libvirt will choose sensible defaults tailored to
+the host and its current configuration.
+
+This is different from virConnectBaselineCPU() which doesn't consider any
+hypervisor abilities when computing the best CPU.
+
+If @flags includes VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES then libvirt
+will explicitly list all CPU features that are part of the computed CPU,
+without this flag features that are part of the CPU model will not be
+listed.
+
+If @flags includes VIR_CONNECT_BASELINE_CPU_MIGRATABLE, the resulting
+CPU will not include features that block migration.]]></info>
+      <return type='char *' info='XML description of the computed CPU (caller frees) or NULL on error.'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
+      <arg name='emulator' type='const char *' info='path to the emulator binary'/>
+      <arg name='arch' type='const char *' info='CPU architecture'/>
+      <arg name='machine' type='const char *' info='machine type'/>
+      <arg name='virttype' type='const char *' info='virtualization type'/>
+      <arg name='xmlCPUs' type='const char **' info='array of XML descriptions of CPUs'/>
       <arg name='ncpus' type='unsigned int' info='number of CPUs in xmlCPUs'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virConnectBaselineCPUFlags'/>
     </function>
@@ -4378,10 +4458,32 @@ is closed.]]></info>
       <arg name='opaque' type='void *' info='opaque user data'/>
     </functype>
     <function name='virConnectCompareCPU' file='libvirt-host' module='libvirt-host'>
-      <info><![CDATA[Compares the given CPU description with the host CPU]]></info>
+      <info><![CDATA[Compares the given CPU description with the host CPU.
+
+See virConnectCompareHypervisorCPU() if you want to consider hypervisor
+abilities and compare the CPU to the CPU which a hypervisor is able to
+provide on the host.]]></info>
       <return type='int' info='comparison result according to enum virCPUCompareResult. If VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE is used and @xmlDesc CPU is incompatible with host CPU, this function will return VIR_CPU_COMPARE_ERROR (instead of VIR_CPU_COMPARE_INCOMPATIBLE) and the error will use the VIR_ERR_CPU_INCOMPATIBLE code with a message providing more details about the incompatibility.'/>
       <arg name='conn' type='virConnectPtr' info='virConnect connection'/>
       <arg name='xmlDesc' type='const char *' info='XML describing the CPU to compare with host CPU'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virConnectCompareCPUFlags'/>
+    </function>
+    <function name='virConnectCompareHypervisorCPU' file='libvirt-host' module='libvirt-host'>
+      <info><![CDATA[Compares the given CPU description with the CPU the specified hypervisor is
+able to provide on the host. Any of @emulator, @arch, @machine, and
+@virttype parameters may be NULL; libvirt will choose sensible defaults
+tailored to the host and its current configuration.
+
+This is different from virConnectCompareCPU() which compares the CPU
+definition with the host CPU without considering any specific hypervisor and
+its abilities.]]></info>
+      <return type='int' info='comparison result according to enum virCPUCompareResult. If VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE is used and @xmlCPU is incompatible with the CPU the specified hypervisor is able to provide on the host, this function will return VIR_CPU_COMPARE_ERROR (instead of VIR_CPU_COMPARE_INCOMPATIBLE) and the error will use the VIR_ERR_CPU_INCOMPATIBLE code with a message providing more details about the incompatibility.'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
+      <arg name='emulator' type='const char *' info='path to the emulator binary'/>
+      <arg name='arch' type='const char *' info='CPU architecture'/>
+      <arg name='machine' type='const char *' info='machine type'/>
+      <arg name='virttype' type='const char *' info='virtualization type'/>
+      <arg name='xmlCPU' type='const char *' info='XML describing the CPU to be compared'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virConnectCompareCPUFlags'/>
     </function>
     <functype name='virConnectDomainEventAgentLifecycleCallback' file='libvirt-domain' module='libvirt-domain'>
@@ -4994,6 +5096,12 @@ available; as an extreme example, a supported group may produce zero
 fields for offline domains if the statistics are meaningful only for a
 running domain.
 
+Passing VIR_CONNECT_GET_ALL_DOMAINS_STATS_NOWAIT in
+@flags means when libvirt is unable to fetch stats for any of
+the domains (for whatever reason) only a subset of statistics
+is returned for the domain.  That subset being statistics that
+don't involve querying the underlying hypervisor.
+
 Similarly to virConnectListAllDomains, @flags can contain various flags to
 filter the list of domains to provide stats for.
 
@@ -5016,7 +5124,13 @@ VIR_CONNECT_GET_ALL_DOMAINS_STATS_OTHER for all other states.]]></info>
       <arg name='flags' type='unsigned int' info='extra flags; binary-OR of virConnectGetAllDomainStatsFlags'/>
     </function>
     <function name='virConnectGetCPUModelNames' file='libvirt-host' module='libvirt-host'>
-      <info><![CDATA[Get the list of supported CPU models for a specific architecture.]]></info>
+      <info><![CDATA[Get the list of CPU models supported by libvirt for a specific architecture.
+
+The returned list limits CPU models usable with libvirt (empty list means
+there's no limit imposed by libvirt) and it does not reflect capabilities of
+any particular hypervisor. See the XML returned by
+virConnectGetDomainCapabilities() for a list of CPU models supported by
+libvirt for domains created on a specific hypervisor.]]></info>
       <return type='int' info='-1 on error, number of elements in @models on success (0 means libvirt accepts any CPU model).'/>
       <arg name='conn' type='virConnectPtr' info='virConnect connection'/>
       <arg name='arch' type='const char *' info='Architecture'/>
@@ -5206,6 +5320,14 @@ VIR_CONNECT_LIST_INTERFACES_INACTIVE (down) to filter the interfaces by state.]]
       <arg name='conn' type='virConnectPtr' info='Pointer to the hypervisor connection.'/>
       <arg name='ifaces' type='virInterfacePtr **' info='Pointer to a variable to store the array containing the interface objects or NULL if the list is not required (just returns number of interfaces).'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virConnectListAllInterfacesFlags.'/>
+    </function>
+    <function name='virConnectListAllNWFilterBindings' file='libvirt-nwfilter' module='libvirt-nwfilter'>
+      <info><![CDATA[Collect the list of network filters, and allocate an array to store those
+objects.]]></info>
+      <return type='int' info='the number of network filters found or -1 and sets @filters to  NULL in case of error.  On success, the array stored into @filters is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier.  The caller is responsible for calling virNWFilterFree() on each array element, then calling free() on @filters.'/>
+      <arg name='conn' type='virConnectPtr' info='Pointer to the hypervisor connection.'/>
+      <arg name='bindings' type='virNWFilterBindingPtr **' info='Pointer to a variable to store the array containing the network filter objects or NULL if the list is not required (just returns number of network filters).'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virConnectListAllNWFilters' file='libvirt-nwfilter' module='libvirt-nwfilter'>
       <info><![CDATA[Collect the list of network filters, and allocate an array to store those
@@ -5624,7 +5746,7 @@ the libvirtd daemon to be active, it will automatically be launched
 if not already running. This can be prevented by setting the
 environment variable LIBVIRT_AUTOSTART=0
 
-URIs are documented at httsp://libvirt.org/uri.html
+URIs are documented at https://libvirt.org/uri.html
 
 virConnectClose should be used to release the resources after the connection
 is no longer needed.]]></info>
@@ -6752,6 +6874,23 @@ See virDomainDetachDeviceFlags() for more details.]]></info>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='xml' type='const char *' info='pointer to XML description of one device'/>
     </function>
+    <function name='virDomainDetachDeviceAlias' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[Detach a virtual device from a domain, using the alias to
+specify the device. The value of @flags should be either
+VIR_DOMAIN_AFFECT_CURRENT, or a bitwise-or of values from
+VIR_DOMAIN_AFFECT_LIVE and VIR_DOMAIN_AFFECT_CURRENT, although
+hypervisors vary in which flags are supported.
+
+In contrast to virDomainDetachDeviceFlags() this API is
+asynchronous - it returns immediately after sending the detach
+request to the hypervisor. It's caller's responsibility to
+wait for VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED event to signal
+actual device removal.]]></info>
+      <return type='int' info='0 in case of success, -1 in case of failure.'/>
+      <arg name='domain' type='virDomainPtr' info='pointer to a domain object'/>
+      <arg name='alias' type='const char *' info='device alias'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainDeviceModifyFlags'/>
+    </function>
     <function name='virDomainDetachDeviceFlags' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Detach a virtual device from a domain, using the flags parameter
 to control how the device is detached.  VIR_DOMAIN_AFFECT_CURRENT
@@ -7233,6 +7372,15 @@ source host in case of a migration job).]]></info>
       <arg name='nparams' type='int *' info='number of items in @params'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainGetJobStatsFlags'/>
     </function>
+    <function name='virDomainGetLaunchSecurityInfo' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[Get the launch security info. In case of the SEV guest, this will
+return the launch measurement.]]></info>
+      <return type='int' info='-1 in case of failure, 0 in case of success.'/>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='params' type='virTypedParameterPtr *' info='where to store security info'/>
+      <arg name='nparams' type='int *' info='number of items in @params'/>
+      <arg name='flags' type='unsigned int' info='currently used, set to 0.'/>
+    </function>
     <function name='virDomainGetMaxMemory' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Retrieve the maximum amount of physical memory allocated to a
 domain. If domain is NULL, then this get the amount of memory reserved
@@ -7556,6 +7704,10 @@ the arp cache refreshes in time, the returned ip address may
 be unreachable. Depending on the route table config of the
 guest, the returned mac address may be duplicated.
 
+Note that for some @source values some pieces of returned @ifaces
+might be unset (e.g. VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP does not
+set IP address prefix as ARP table does not have any notion of that).
+
 @ifaces->name and @ifaces->hwaddr are never NULL.
 
 The caller *must* free @ifaces when no longer needed. Usual use case
@@ -7706,6 +7858,12 @@ may omit individual fields within a known group if the information is not
 available; as an extreme example, a supported group may produce zero
 fields for offline domains if the statistics are meaningful only for a
 running domain.
+
+Passing VIR_CONNECT_GET_ALL_DOMAINS_STATS_NOWAIT in
+@flags means when libvirt is unable to fetch stats for any of
+the domains (for whatever reason) only a subset of statistics
+is returned for the domain.  That subset being statistics that
+don't involve querying the underlying hypervisor.
 
 Note that any of the domain list filtering flags in @flags may be rejected
 by this function.]]></info>
@@ -9763,6 +9921,14 @@ The error object is kept in thread local storage, so separate
 threads can safely access this concurrently.]]></info>
       <return type='virErrorPtr' info='a pointer to the last error or NULL if none occurred.'/>
     </function>
+    <function name='virGetLastErrorCode' file='virterror' module='virerror'>
+      <info><![CDATA[Get the most recent error code (enum virErrorNumber).]]></info>
+      <return type='int' info='the most recent error code, or VIR_ERR_OK if none is set.'/>
+    </function>
+    <function name='virGetLastErrorDomain' file='virterror' module='virerror'>
+      <info><![CDATA[Get the most recent error domain (enum virErrorDomain).]]></info>
+      <return type='int' info='a numerical value of the most recent error&apos;s origin, or VIR_FROM_NONE if none is set.'/>
+    </function>
     <function name='virGetLastErrorMessage' file='virterror' module='virerror'>
       <info><![CDATA[Get the most recent error message]]></info>
       <return type='const char *' info='the most recent error message string in this thread, or a generic message if none is set'/>
@@ -9973,6 +10139,70 @@ virInterfaceChangeRollback(), or will be automatically restored
 during the next reboot of the system running libvirtd.]]></info>
       <return type='int' info='0 in case of success, -1 in case of error'/>
       <arg name='iface' type='virInterfacePtr' info='pointer to a defined interface'/>
+    </function>
+    <function name='virNWFilterBindingCreateXML' file='libvirt-nwfilter' module='libvirt-nwfilter'>
+      <info><![CDATA[Define a new network filter, based on an XML description
+similar to the one returned by virNWFilterGetXMLDesc()
+
+virNWFilterFree should be used to free the resources after the
+binding object is no longer needed.]]></info>
+      <return type='virNWFilterBindingPtr' info='a new binding object or NULL in case of failure'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
+      <arg name='xml' type='const char *' info='an XML description of the binding'/>
+      <arg name='flags' type='unsigned int' info='currently unused, pass 0'/>
+    </function>
+    <function name='virNWFilterBindingDelete' file='libvirt-nwfilter' module='libvirt-nwfilter'>
+      <info><![CDATA[Delete the binding object. This does not free the
+associated virNWFilterBindingPtr object.]]></info>
+      <return type='int' info='0 in case of success and -1 in case of failure.'/>
+      <arg name='binding' type='virNWFilterBindingPtr' info='a binding object'/>
+    </function>
+    <function name='virNWFilterBindingFree' file='libvirt-nwfilter' module='libvirt-nwfilter'>
+      <info><![CDATA[Free the binding object. The running instance is kept alive.
+The data structure is freed and should not be used thereafter.]]></info>
+      <return type='int' info='0 in case of success and -1 in case of failure.'/>
+      <arg name='binding' type='virNWFilterBindingPtr' info='a binding object'/>
+    </function>
+    <function name='virNWFilterBindingGetFilterName' file='libvirt-nwfilter' module='libvirt-nwfilter'>
+      <info><![CDATA[Get the filter name for the network filter binding]]></info>
+      <return type='const char *' info='a pointer to the name or NULL, the string need not be deallocated its lifetime will be the same as the binding object.'/>
+      <arg name='binding' type='virNWFilterBindingPtr' info='a binding object'/>
+    </function>
+    <function name='virNWFilterBindingGetPortDev' file='libvirt-nwfilter' module='libvirt-nwfilter'>
+      <info><![CDATA[Get the port dev name for the network filter binding]]></info>
+      <return type='const char *' info='a pointer to the name or NULL, the string need not be deallocated its lifetime will be the same as the binding object.'/>
+      <arg name='binding' type='virNWFilterBindingPtr' info='a binding object'/>
+    </function>
+    <function name='virNWFilterBindingGetXMLDesc' file='libvirt-nwfilter' module='libvirt-nwfilter'>
+      <info><![CDATA[Provide an XML description of the network filter. The description may be
+reused later to redefine the network filter with virNWFilterCreateXML().]]></info>
+      <return type='char *' info='a 0 terminated UTF-8 encoded XML instance, or NULL in case of error. the caller must free() the returned value.'/>
+      <arg name='binding' type='virNWFilterBindingPtr' info='a binding object'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
+    <function name='virNWFilterBindingLookupByPortDev' file='libvirt-nwfilter' module='libvirt-nwfilter'>
+      <info><![CDATA[Try to lookup a network filter binding on the given hypervisor based
+on network port device name.
+
+virNWFilterBindingFree should be used to free the resources after the
+binding object is no longer needed.]]></info>
+      <return type='virNWFilterBindingPtr' info='a new binding object or NULL in case of failure.  If the network filter cannot be found, then VIR_ERR_NO_NWFILTER_BINDING error is raised.'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
+      <arg name='portdev' type='const char *' info='name for the network port device'/>
+    </function>
+    <function name='virNWFilterBindingRef' file='libvirt-nwfilter' module='libvirt-nwfilter'>
+      <info><![CDATA[Increment the reference count on the binding. For each
+additional call to this method, there shall be a corresponding
+call to virNWFilterFree to release the reference count, once
+the caller no longer needs the reference to this object.
+
+This method is typically useful for applications where multiple
+threads are using a connection, and it is required that the
+connection remain open until all threads have finished using
+it. ie, each new thread using an binding would increment
+the reference count.]]></info>
+      <return type='int' info='0 in case of success, -1 in case of failure.'/>
+      <arg name='binding' type='virNWFilterBindingPtr' info='the binding to hold a reference on'/>
     </function>
     <function name='virNWFilterDefineXML' file='libvirt-nwfilter' module='libvirt-nwfilter'>
       <info><![CDATA[Define a new network filter, based on an XML description
@@ -10645,6 +10875,16 @@ VIR_NODE_MEMORY_STATS_CACHED:
       <arg name='cellNum' type='int' info='number of node cell. (VIR_NODE_MEMORY_STATS_ALL_CELLS means total cell statistics)'/>
       <arg name='params' type='virNodeMemoryStatsPtr' info='pointer to node memory stats objects'/>
       <arg name='nparams' type='int *' info='number of node memory stats (this value should be same or less than the number of stats supported)'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
+    <function name='virNodeGetSEVInfo' file='libvirt-host' module='libvirt-host'>
+      <info><![CDATA[If hypervisor supports AMD's SEV feature, then @params will contain various
+platform specific information like PDH and certificate chain. Caller is
+responsible for freeing @params.]]></info>
+      <return type='int' info='0 in case of success, and -1 in case of failure.'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
+      <arg name='params' type='virTypedParameterPtr *' info='where to store  SEV information'/>
+      <arg name='nparams' type='int *' info='pointer to number of SEV parameters returned in @params'/>
       <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virNodeGetSecurityModel' file='libvirt-host' module='libvirt-host'>

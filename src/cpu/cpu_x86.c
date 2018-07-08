@@ -2464,10 +2464,11 @@ virCPUx86GetHost(virCPUDefPtr cpu,
 
 
 static virCPUDefPtr
-x86Baseline(virCPUDefPtr *cpus,
-            unsigned int ncpus,
-            virDomainCapsCPUModelsPtr models,
-            bool migratable)
+virCPUx86Baseline(virCPUDefPtr *cpus,
+                  unsigned int ncpus,
+                  virDomainCapsCPUModelsPtr models,
+                  const char **features,
+                  bool migratable)
 {
     virCPUx86MapPtr map = NULL;
     virCPUx86ModelPtr base_model = NULL;
@@ -2478,17 +2479,17 @@ x86Baseline(virCPUDefPtr *cpus,
     bool outputVendor = true;
     const char *modelName;
     bool matchingNames = true;
+    virCPUDataPtr featData = NULL;
 
     if (!(map = virCPUx86GetMap()))
         goto error;
 
-    if (!(base_model = x86ModelFromCPU(cpus[0], map, VIR_CPU_FEATURE_REQUIRE)))
+    if (!(base_model = x86ModelFromCPU(cpus[0], map, -1)))
         goto error;
 
     if (VIR_ALLOC(cpu) < 0)
         goto error;
 
-    cpu->arch = cpus[0]->arch;
     cpu->type = VIR_CPU_TYPE_GUEST;
     cpu->match = VIR_CPU_MATCH_EXACT;
 
@@ -2513,7 +2514,7 @@ x86Baseline(virCPUDefPtr *cpus,
             }
         }
 
-        if (!(model = x86ModelFromCPU(cpus[i], map, VIR_CPU_FEATURE_REQUIRE)))
+        if (!(model = x86ModelFromCPU(cpus[i], map, -1)))
             goto error;
 
         if (cpus[i]->vendor && model->vendor &&
@@ -2551,6 +2552,21 @@ x86Baseline(virCPUDefPtr *cpus,
         model = NULL;
     }
 
+    if (features) {
+        virCPUx86FeaturePtr feat;
+
+        if (!(featData = virCPUDataNew(archs[0])))
+            goto cleanup;
+
+        for (i = 0; features[i]; i++) {
+            if ((feat = x86FeatureFind(map, features[i])) &&
+                x86DataAdd(&featData->data.x86, &feat->data) < 0)
+                goto cleanup;
+        }
+
+        x86DataIntersect(&base_model->data, &featData->data.x86);
+    }
+
     if (x86DataIsEmpty(&base_model->data)) {
         virReportError(VIR_ERR_OPERATION_FAILED,
                        "%s", _("CPUs are incompatible"));
@@ -2570,10 +2586,9 @@ x86Baseline(virCPUDefPtr *cpus,
     if (!outputVendor)
         VIR_FREE(cpu->vendor);
 
-    cpu->arch = VIR_ARCH_NONE;
-
  cleanup:
     x86ModelFree(base_model);
+    virCPUx86DataFree(featData);
 
     return cpu;
 
@@ -3050,7 +3065,7 @@ struct cpuArchDriver cpuDriverX86 = {
 #if defined(__i386__) || defined(__x86_64__)
     .getHost    = virCPUx86GetHost,
 #endif
-    .baseline   = x86Baseline,
+    .baseline   = virCPUx86Baseline,
     .update     = virCPUx86Update,
     .updateLive = virCPUx86UpdateLive,
     .checkFeature = virCPUx86CheckFeature,
