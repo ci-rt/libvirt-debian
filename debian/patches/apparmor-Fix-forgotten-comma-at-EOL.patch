@@ -1,0 +1,25 @@
+From: Michal Privoznik <mprivozn@redhat.com>
+Date: Wed, 4 Jul 2018 07:49:35 +0200
+Subject: apparmor: Fix forgotten comma at EOL
+
+The commit of 1fff379ff6e778 forgot comma at the end of the line
+rendering the file invalid in syntax.
+
+Signed-off-by: Michal Privoznik <mprivozn@redhat.com>
+---
+ examples/apparmor/usr.lib.libvirt.virt-aa-helper | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/examples/apparmor/usr.lib.libvirt.virt-aa-helper b/examples/apparmor/usr.lib.libvirt.virt-aa-helper
+index 8aa9dd2..665094a 100644
+--- a/examples/apparmor/usr.lib.libvirt.virt-aa-helper
++++ b/examples/apparmor/usr.lib.libvirt.virt-aa-helper
+@@ -51,7 +51,7 @@ profile virt-aa-helper /usr/{lib,lib64}/libvirt/virt-aa-helper {
+   @{HOME}/** r,
+   /var/lib/libvirt/images/ r,
+   /var/lib/libvirt/images/** r,
+-  /var/lib/nova/instances/_base/* r
++  /var/lib/nova/instances/_base/* r,
+   /{media,mnt,opt,srv}/** r,
+   # For virt-sandbox
+   /{,var/}run/libvirt/**/[sv]d[a-z] r,
