@@ -213,8 +213,16 @@ Recommends:
  iproute2,
  parted,
 Section: admin
-Suggests: radvd, auditd, systemtap, systemd, apparmor,
- nfs-common, zfsutils, pm-utils
+Suggests:
+ apparmor,
+ auditd,
+ nfs-common,
+ open-iscsi [linux-any],
+ pm-utils,
+ radvd,
+ systemd,
+ systemtap,
+ zfsutils,
 Breaks: avahi-daemon (<< 0.6.31-3~),
  systemd-sysv (<< 224-1~)
 Description: Libvirt daemon configuration files
