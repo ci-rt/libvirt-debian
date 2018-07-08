@@ -57,6 +57,7 @@ Build-Depends:
  glusterfs-common (>= 3.4.0),
 # for --with-wireshark-dissector
  libwireshark-dev (>= 1.11.3),
+ libwiretap-dev,
 # for lxc fuse support
  libfuse-dev [linux-any],
 # for libssh2 connection URIs
