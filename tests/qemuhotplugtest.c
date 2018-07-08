@@ -74,7 +74,7 @@ qemuHotplugCreateObjects(virDomainXMLOptionPtr xmlopt,
 
     virQEMUCapsSet(priv->qemuCaps, QEMU_CAPS_VIRTIO_SCSI);
     virQEMUCapsSet(priv->qemuCaps, QEMU_CAPS_DEVICE_USB_STORAGE);
-    virQEMUCapsSet(priv->qemuCaps, QEMU_CAPS_VIRTIO_CCW);
+    virQEMUCapsSet(priv->qemuCaps, QEMU_CAPS_CCW);
     virQEMUCapsSet(priv->qemuCaps, QEMU_CAPS_DEVICE_IVSHMEM_PLAIN);
     virQEMUCapsSet(priv->qemuCaps, QEMU_CAPS_DEVICE_IVSHMEM_DOORBELL);
     virQEMUCapsSet(priv->qemuCaps, QEMU_CAPS_SCSI_DISK_WWN);
@@ -142,22 +142,23 @@ testQemuHotplugAttach(virDomainObjPtr vm,
 
 static int
 testQemuHotplugDetach(virDomainObjPtr vm,
-                      virDomainDeviceDefPtr dev)
+                      virDomainDeviceDefPtr dev,
+                      bool async)
 {
     int ret = -1;
 
     switch (dev->type) {
     case VIR_DOMAIN_DEVICE_DISK:
-        ret = qemuDomainDetachDeviceDiskLive(&driver, vm, dev);
+        ret = qemuDomainDetachDeviceDiskLive(&driver, vm, dev, async);
         break;
     case VIR_DOMAIN_DEVICE_CHR:
-        ret = qemuDomainDetachChrDevice(&driver, vm, dev->data.chr);
+        ret = qemuDomainDetachChrDevice(&driver, vm, dev->data.chr, async);
         break;
     case VIR_DOMAIN_DEVICE_SHMEM:
-        ret = qemuDomainDetachShmemDevice(&driver, vm, dev->data.shmem);
+        ret = qemuDomainDetachShmemDevice(&driver, vm, dev->data.shmem, async);
         break;
     case VIR_DOMAIN_DEVICE_WATCHDOG:
-        ret = qemuDomainDetachWatchdog(&driver, vm, dev->data.watchdog);
+        ret = qemuDomainDetachWatchdog(&driver, vm, dev->data.watchdog, async);
         break;
     default:
         VIR_TEST_VERBOSE("device type '%s' cannot be detached\n",
@@ -322,7 +323,7 @@ testQemuHotplug(const void *data)
         break;
 
     case DETACH:
-        ret = testQemuHotplugDetach(vm, dev);
+        ret = testQemuHotplugDetach(vm, dev, false);
         if (ret == 0 || fail)
             ret = testQemuHotplugCheckResult(vm, domain_xml,
                                              domain_filename, fail);
@@ -589,7 +590,7 @@ mymain(void)
     struct testQemuHotplugCpuParams cpudata;
 
 #if !WITH_YAJL
-    fputs("libvirt not compiled with yajl, skipping this test\n", stderr);
+    fputs("libvirt not compiled with JSON support, skipping this test\n", stderr);
     return EXIT_AM_SKIP;
 #endif
 

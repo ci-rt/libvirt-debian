@@ -139,7 +139,8 @@ VIR_ENUM_DECL(qemuSoundCodec)
 
 VIR_ENUM_IMPL(qemuSoundCodec, VIR_DOMAIN_SOUND_CODEC_TYPE_LAST,
               "hda-duplex",
-              "hda-micro");
+              "hda-micro",
+              "hda-output");
 
 VIR_ENUM_DECL(qemuControllerModelUSB)
 
@@ -176,19 +177,6 @@ VIR_ENUM_IMPL(qemuNumaPolicy, VIR_DOMAIN_NUMATUNE_MEM_LAST,
 
 
 /**
- * qemuBuildHasMasterKey:
- * @qemuCaps: QEMU binary capabilities
- *
- * Return true if this binary supports the secret -object, false otherwise.
- */
-static bool
-qemuBuildHasMasterKey(virQEMUCapsPtr qemuCaps)
-{
-    return virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_SECRET);
-}
-
-
-/**
  * qemuBuildMasterKeyCommandLine:
  * @cmd: the command to modify
  * @qemuCaps qemu capabilities object
@@ -211,7 +199,7 @@ qemuBuildMasterKeyCommandLine(virCommandPtr cmd,
      * means the domain won't be able to use a secret master key and is
      * not a failure.
      */
-    if (!qemuBuildHasMasterKey(priv->qemuCaps)) {
+    if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_OBJECT_SECRET)) {
         VIR_INFO("secret object is not supported by this QEMU binary");
         return 0;
     }
@@ -523,18 +511,14 @@ qemuBuildSecretInfoProps(qemuDomainSecretInfoPtr secinfo,
     if (!(keyid = qemuDomainGetMasterKeyAlias()))
         return -1;
 
-    if (virJSONValueObjectCreate(propsret,
-                                 "s:data", secinfo->s.aes.ciphertext,
-                                 "s:keyid", keyid,
-                                 "s:iv", secinfo->s.aes.iv,
-                                 "s:format", "base64", NULL) < 0)
-        goto cleanup;
+    ret = qemuMonitorCreateObjectProps(propsret,
+                                       "secret", secinfo->s.aes.alias,
+                                       "s:data", secinfo->s.aes.ciphertext,
+                                       "s:keyid", keyid,
+                                       "s:iv", secinfo->s.aes.iv,
+                                       "s:format", "base64", NULL);
 
-    ret = 0;
-
- cleanup:
     VIR_FREE(keyid);
-
     return ret;
 }
 
@@ -555,25 +539,24 @@ static int
 qemuBuildObjectSecretCommandLine(virCommandPtr cmd,
                                  qemuDomainSecretInfoPtr secinfo)
 {
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
     int ret = -1;
     virJSONValuePtr props = NULL;
-    char *tmp = NULL;
 
     if (qemuBuildSecretInfoProps(secinfo, &props) < 0)
         return -1;
 
-    if (!(tmp = virQEMUBuildObjectCommandlineFromJSON("secret",
-                                                      secinfo->s.aes.alias,
-                                                      props)))
+    if (virQEMUBuildObjectCommandlineFromJSON(&buf, props) < 0)
         goto cleanup;
 
-    virCommandAddArgList(cmd, "-object", tmp, NULL);
-    ret = 0;
+    virCommandAddArg(cmd, "-object");
+    virCommandAddArgBuffer(cmd, &buf);
+
+    ret  = 0;
 
  cleanup:
+    virBufferFreeAndReset(&buf);
     virJSONValueFree(props);
-    VIR_FREE(tmp);
-
     return ret;
 }
 
@@ -696,6 +679,7 @@ qemuBuildRBDSecinfoURI(virBufferPtr buf,
  * @tlspath: path to the TLS credentials
  * @listen: boolen listen for client or server setting
  * @verifypeer: boolean to enable peer verification (form of authorization)
+ * @alias: alias for the TLS credentials object
  * @secalias: if one exists, the alias of the security object for passwordid
  * @qemuCaps: capabilities
  * @propsret: json properties to return
@@ -708,42 +692,26 @@ int
 qemuBuildTLSx509BackendProps(const char *tlspath,
                              bool isListen,
                              bool verifypeer,
+                             const char *alias,
                              const char *secalias,
                              virQEMUCapsPtr qemuCaps,
                              virJSONValuePtr *propsret)
 {
-    virBuffer buf = VIR_BUFFER_INITIALIZER;
-    char *path = NULL;
-    int ret = -1;
-
     if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_TLS_CREDS_X509)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("tls-creds-x509 not supported in this QEMU binary"));
         return -1;
     }
 
-    virQEMUBuildBufferEscapeComma(&buf, tlspath);
-    if (virBufferCheckError(&buf) < 0)
-        goto cleanup;
-    path = virBufferContentAndReset(&buf);
+    if (qemuMonitorCreateObjectProps(propsret, "tls-creds-x509", alias,
+                                     "s:dir", tlspath,
+                                     "s:endpoint", (isListen ? "server": "client"),
+                                     "b:verify-peer", (isListen ? verifypeer : true),
+                                     "S:passwordid", secalias,
+                                     NULL) < 0)
+        return -1;
 
-    if (virJSONValueObjectCreate(propsret,
-                                 "s:dir", path,
-                                 "s:endpoint", (isListen ? "server": "client"),
-                                 "b:verify-peer", (isListen ? verifypeer : true),
-                                 NULL) < 0)
-        goto cleanup;
-
-    if (secalias &&
-        virJSONValueObjectAdd(*propsret, "s:passwordid", secalias, NULL) < 0)
-        goto cleanup;
-
-    ret = 0;
-
- cleanup:
-    virBufferFreeAndReset(&buf);
-    VIR_FREE(path);
-    return ret;
+    return 0;
 }
 
 
@@ -752,8 +720,9 @@ qemuBuildTLSx509BackendProps(const char *tlspath,
  * @tlspath: path to the TLS credentials
  * @listen: boolen listen for client or server setting
  * @verifypeer: boolean to enable peer verification (form of authorization)
- * @addpasswordid: boolean to handle adding passwordid to object
- * @inalias: Alias for the parent to generate object alias
+ * @certEncSecretAlias: alias of a 'secret' object for decrypting TLS private key
+ *                      (optional)
+ * @alias: TLS object alias
  * @qemuCaps: capabilities
  *
  * Create the command line for a TLS object
@@ -765,70 +734,30 @@ qemuBuildTLSx509CommandLine(virCommandPtr cmd,
                             const char *tlspath,
                             bool isListen,
                             bool verifypeer,
-                            bool addpasswordid,
-                            const char *inalias,
+                            const char *certEncSecretAlias,
+                            const char *alias,
                             virQEMUCapsPtr qemuCaps)
 {
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
     int ret = -1;
-    char *objalias = NULL;
     virJSONValuePtr props = NULL;
-    char *tmp = NULL;
-    char *secalias = NULL;
 
-    if (addpasswordid &&
-        !(secalias = qemuDomainGetSecretAESAlias(inalias, false)))
-        return -1;
-
-    if (qemuBuildTLSx509BackendProps(tlspath, isListen, verifypeer, secalias,
-                                     qemuCaps, &props) < 0)
+    if (qemuBuildTLSx509BackendProps(tlspath, isListen, verifypeer, alias,
+                                     certEncSecretAlias, qemuCaps, &props) < 0)
         goto cleanup;
 
-    if (!(objalias = qemuAliasTLSObjFromSrcAlias(inalias)))
+    if (virQEMUBuildObjectCommandlineFromJSON(&buf, props) < 0)
         goto cleanup;
 
-    if (!(tmp = virQEMUBuildObjectCommandlineFromJSON("tls-creds-x509",
-                                                      objalias, props)))
-        goto cleanup;
-
-    virCommandAddArgList(cmd, "-object", tmp, NULL);
+    virCommandAddArg(cmd, "-object");
+    virCommandAddArgBuffer(cmd, &buf);
 
     ret = 0;
 
  cleanup:
+    virBufferFreeAndReset(&buf);
     virJSONValueFree(props);
-    VIR_FREE(objalias);
-    VIR_FREE(tmp);
-    VIR_FREE(secalias);
     return ret;
-}
-
-
-/* qemuBuildDiskSrcTLSx509CommandLine:
- *
- * Add TLS object if the disk src uses a secure communication channel
- *
- * Returns 0 on success, -1 w/ error on some sort of failure.
- */
-static int
-qemuBuildDiskSrcTLSx509CommandLine(virCommandPtr cmd,
-                                   virStorageSourcePtr src,
-                                   const char *srcalias,
-                                   virQEMUCapsPtr qemuCaps)
-{
-
-
-    /* other protocols may be added later */
-    if (src->protocol == VIR_STORAGE_NET_PROTOCOL_VXHS &&
-        src->haveTLS == VIR_TRISTATE_BOOL_YES) {
-        if (!(src->tlsAlias = qemuAliasTLSObjFromSrcAlias(srcalias)))
-            return -1;
-
-        return qemuBuildTLSx509CommandLine(cmd, src->tlsCertdir,
-                                           false, src->tlsVerify,
-                                           false, srcalias, qemuCaps);
-    }
-
-    return 0;
 }
 
 
@@ -1035,7 +964,7 @@ qemuGetDriveSourceString(virStorageSourcePtr src,
     if (virStorageSourceIsEmpty(src))
         return 1;
 
-    switch ((virStorageType) actualType) {
+    switch ((virStorageType)actualType) {
     case VIR_STORAGE_TYPE_BLOCK:
     case VIR_STORAGE_TYPE_FILE:
     case VIR_STORAGE_TYPE_DIR:
@@ -1441,6 +1370,11 @@ qemuDiskSourceNeedsProps(virStorageSourcePtr src,
         virQEMUCapsGet(qemuCaps, QEMU_CAPS_ISCSI_PASSWORD_SECRET))
         return true;
 
+    if (actualType == VIR_STORAGE_TYPE_NETWORK &&
+        src->protocol == VIR_STORAGE_NET_PROTOCOL_NBD &&
+        src->haveTLS == VIR_TRISTATE_BOOL_YES)
+        return true;
+
     return false;
 }
 
@@ -1458,7 +1392,7 @@ qemuDiskSourceGetProps(virStorageSourcePtr src)
     virJSONValuePtr props;
     virJSONValuePtr ret;
 
-    if (!(props = qemuBlockStorageSourceGetBackendProps(src)))
+    if (!(props = qemuBlockStorageSourceGetBackendProps(src, true)))
         return NULL;
 
     if (virJSONValueObjectCreate(&ret, "a:file", &props, NULL) < 0) {
@@ -1467,6 +1401,28 @@ qemuDiskSourceGetProps(virStorageSourcePtr src)
     }
 
     return ret;
+}
+
+
+static int
+qemuBuildDriveSourcePR(virBufferPtr buf,
+                       virDomainDiskDefPtr disk)
+{
+    char *alias = NULL;
+    const char *defaultAlias = NULL;
+
+    if (!disk->src->pr)
+        return 0;
+
+    if (virStoragePRDefIsManaged(disk->src->pr))
+        defaultAlias = qemuDomainGetManagedPRAlias();
+    else if (!(alias = qemuDomainGetUnmanagedPRAlias(disk->info.alias)))
+        return -1;
+
+
+    virBufferAsprintf(buf, ",file.pr-manager=%s", alias ? alias : defaultAlias);
+    VIR_FREE(alias);
+    return 0;
 }
 
 
@@ -1520,20 +1476,6 @@ qemuBuildDriveSourceStr(virDomainDiskDefPtr disk,
 
         /* for now the DIR based storage is handled by the magic FAT format */
         if (actualType == VIR_STORAGE_TYPE_DIR) {
-            if (disk->src->format > 0 &&
-                disk->src->format != VIR_STORAGE_FILE_FAT) {
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("unsupported disk driver type for '%s'"),
-                               virStorageFileFormatTypeToString(disk->src->format));
-                goto cleanup;
-            }
-
-            if (!disk->src->readonly) {
-                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                               _("cannot create virtual FAT disks in read-write mode"));
-                goto cleanup;
-            }
-
             virBufferAddLit(buf, "fat:");
 
             if (disk->device == VIR_DOMAIN_DISK_DEVICE_FLOPPY)
@@ -1547,6 +1489,9 @@ qemuBuildDriveSourceStr(virDomainDiskDefPtr disk,
 
         if (disk->src->debug)
             virBufferAsprintf(buf, ",file.debug=%d", disk->src->debugLevel);
+
+        if (qemuBuildDriveSourcePR(buf, disk) < 0)
+            goto cleanup;
     } else {
         if (!(source = virQEMUBuildDriveCommandlineFromJSON(srcprops)))
             goto cleanup;
@@ -1609,8 +1554,8 @@ qemuBuildDiskThrottling(virDomainDiskDefPtr disk,
 
     IOTUNE_ADD(size_iops_sec, "iops-size");
     if (disk->blkdeviotune.group_name) {
-        virBufferEscapeString(buf, ",throttling.group=%s",
-                              disk->blkdeviotune.group_name);
+        virBufferAddLit(buf, ",throttling.group=");
+        virQEMUBuildBufferEscapeComma(buf, disk->blkdeviotune.group_name);
     }
 
     IOTUNE_ADD(total_bytes_sec_max_length, "bps-total-max-length");
@@ -1681,7 +1626,7 @@ qemuBuildDiskFrontendAttributes(virDomainDiskDefPtr disk,
 }
 
 
-char *
+static char *
 qemuBuildDriveStr(virDomainDiskDefPtr disk,
                   bool bootable,
                   virQEMUCapsPtr qemuCaps)
@@ -1694,7 +1639,7 @@ qemuBuildDriveStr(virDomainDiskDefPtr disk,
         goto error;
 
     if (qemuDiskBusNeedsDeviceArg(disk->bus)) {
-        char *drivealias = qemuAliasFromDisk(disk);
+        char *drivealias = qemuAliasDiskDriveFromDisk(disk);
         if (!drivealias)
             goto error;
 
@@ -1840,6 +1785,11 @@ qemuBuildDriveDevCacheStr(virDomainDiskDefPtr disk,
     bool wb;
 
     if (disk->cachemode == VIR_DOMAIN_DISK_CACHE_DEFAULT)
+        return 0;
+
+    /* VIR_DOMAIN_DISK_DEVICE_LUN translates into 'scsi-block'
+     * where any caching setting makes no sense. */
+    if (disk->device == VIR_DOMAIN_DISK_DEVICE_LUN)
         return 0;
 
     if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_DISK_WRITE_CACHE))
@@ -2124,7 +2074,7 @@ qemuBuildDriveDevStr(const virDomainDef *def,
         virQEMUCapsGet(qemuCaps, QEMU_CAPS_DISK_SHARE_RW))
         virBufferAddLit(&opt, ",share-rw=on");
 
-    if (!(drivealias = qemuAliasFromDisk(disk)))
+    if (!(drivealias = qemuAliasDiskDriveFromDisk(disk)))
         goto error;
     virBufferAsprintf(&opt, ",drive=%s,id=%s", drivealias, disk->info.alias);
     VIR_FREE(drivealias);
@@ -2239,9 +2189,90 @@ qemuBulildFloppyCommandLineOptions(virCommandPtr cmd,
 
 
 static int
-qemuBuildDiskDriveCommandLine(virCommandPtr cmd,
-                              const virDomainDef *def,
-                              virQEMUCapsPtr qemuCaps)
+qemuBuildObjectCommandline(virCommandPtr cmd,
+                           virJSONValuePtr objProps)
+{
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+
+    if (!objProps)
+        return 0;
+
+    if (virQEMUBuildObjectCommandlineFromJSON(&buf, objProps) < 0) {
+        virBufferFreeAndReset(&buf);
+        return -1;
+    }
+
+    virCommandAddArg(cmd, "-object");
+    virCommandAddArgBuffer(cmd, &buf);
+
+    return 0;
+}
+
+
+static int
+qemuBuildBlockStorageSourceAttachDataCommandline(virCommandPtr cmd,
+                                                 qemuBlockStorageSourceAttachDataPtr data)
+{
+    if (qemuBuildObjectCommandline(cmd, data->prmgrProps) < 0 ||
+        qemuBuildObjectCommandline(cmd, data->authsecretProps) < 0 ||
+        qemuBuildObjectCommandline(cmd, data->encryptsecretProps) < 0 ||
+        qemuBuildObjectCommandline(cmd, data->tlsProps) < 0)
+        return -1;
+
+    if (data->driveCmd)
+        virCommandAddArgList(cmd, "-drive", data->driveCmd, NULL);
+
+    return 0;
+}
+
+
+static int
+qemuBuildDiskCommandLine(virCommandPtr cmd,
+                         const virDomainDef *def,
+                         virDomainDiskDefPtr disk,
+                         virQEMUCapsPtr qemuCaps,
+                         unsigned int bootindex,
+                         bool driveBoot)
+{
+    qemuBlockStorageSourceAttachDataPtr data = NULL;
+    char *optstr;
+
+    if (!(data = qemuBuildStorageSourceAttachPrepareDrive(disk, qemuCaps,
+                                                          driveBoot)))
+        return -1;
+
+    if (qemuBuildStorageSourceAttachPrepareCommon(disk->src, data, qemuCaps) < 0 ||
+        qemuBuildBlockStorageSourceAttachDataCommandline(cmd, data) < 0) {
+        qemuBlockStorageSourceAttachDataFree(data);
+        return -1;
+    }
+
+    qemuBlockStorageSourceAttachDataFree(data);
+
+    if (qemuDiskBusNeedsDeviceArg(disk->bus)) {
+        if (disk->bus == VIR_DOMAIN_DISK_BUS_FDC) {
+            if (qemuBulildFloppyCommandLineOptions(cmd, def, disk,
+                                                   bootindex) < 0)
+                return -1;
+        } else {
+            virCommandAddArg(cmd, "-device");
+
+            if (!(optstr = qemuBuildDriveDevStr(def, disk, bootindex,
+                                                qemuCaps)))
+                return -1;
+            virCommandAddArg(cmd, optstr);
+            VIR_FREE(optstr);
+        }
+    }
+
+    return 0;
+}
+
+
+static int
+qemuBuildDisksCommandLine(virCommandPtr cmd,
+                          const virDomainDef *def,
+                          virQEMUCapsPtr qemuCaps)
 {
     size_t i;
     unsigned int bootCD = 0;
@@ -2268,18 +2299,9 @@ qemuBuildDiskDriveCommandLine(virCommandPtr cmd,
     }
 
     for (i = 0; i < def->ndisks; i++) {
-        char *optstr;
+        virDomainDiskDefPtr disk = def->disks[i];
         unsigned int bootindex = 0;
         bool driveBoot = false;
-        virDomainDiskDefPtr disk = def->disks[i];
-        qemuDomainStorageSourcePrivatePtr srcPriv = QEMU_DOMAIN_STORAGE_SOURCE_PRIVATE(disk->src);
-        qemuDomainSecretInfoPtr secinfo = NULL;
-        qemuDomainSecretInfoPtr encinfo = NULL;
-
-        if (srcPriv) {
-            secinfo = srcPriv->secinfo;
-            encinfo = srcPriv->encinfo;
-        }
 
         if (disk->info.bootIndex) {
             bootindex = disk->info.bootIndex;
@@ -2305,40 +2327,11 @@ qemuBuildDiskDriveCommandLine(virCommandPtr cmd,
             }
         }
 
-        if (qemuBuildDiskSecinfoCommandLine(cmd, secinfo) < 0)
+        if (qemuBuildDiskCommandLine(cmd, def, disk, qemuCaps,
+                                     bootindex, driveBoot) < 0)
             return -1;
-
-        if (qemuBuildDiskSecinfoCommandLine(cmd, encinfo) < 0)
-            return -1;
-
-        if (qemuBuildDiskSrcTLSx509CommandLine(cmd, disk->src, disk->info.alias,
-                                               qemuCaps) < 0)
-            return -1;
-
-        virCommandAddArg(cmd, "-drive");
-
-        if (!(optstr = qemuBuildDriveStr(disk, driveBoot, qemuCaps)))
-            return -1;
-
-        virCommandAddArg(cmd, optstr);
-        VIR_FREE(optstr);
-
-        if (qemuDiskBusNeedsDeviceArg(disk->bus)) {
-            if (disk->bus == VIR_DOMAIN_DISK_BUS_FDC) {
-                if (qemuBulildFloppyCommandLineOptions(cmd, def, disk,
-                                                       bootindex) < 0)
-                    return -1;
-            } else {
-                virCommandAddArg(cmd, "-device");
-
-                if (!(optstr = qemuBuildDriveDevStr(def, disk, bootindex,
-                                                    qemuCaps)))
-                    return -1;
-                virCommandAddArg(cmd, optstr);
-                VIR_FREE(optstr);
-            }
-        }
     }
+
     return 0;
 }
 
@@ -2618,7 +2611,7 @@ qemuBuildControllerDevStr(const virDomainDef *domainDef,
 
     *devstr = NULL;
 
-    switch ((virDomainControllerType) def->type) {
+    switch ((virDomainControllerType)def->type) {
     case VIR_DOMAIN_CONTROLLER_TYPE_SCSI:
         switch ((virDomainControllerModelSCSI) def->model) {
         case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_SCSI:
@@ -2970,9 +2963,9 @@ qemuBuildControllerDevCommandLine(virCommandPtr cmd,
 
 
 /**
- * qemuBuildMemoryBackendStr:
+ * qemuBuildMemoryBackendProps:
  * @backendProps: [out] constructed object
- * @backendType: [out] type of the backennd used
+ * @alias: alias of the device
  * @cfg: qemu driver config object
  * @qemuCaps: qemu capabilities object
  * @def: domain definition object
@@ -2996,15 +2989,16 @@ qemuBuildControllerDevCommandLine(virCommandPtr cmd,
  *         -1 on error.
  */
 int
-qemuBuildMemoryBackendStr(virJSONValuePtr *backendProps,
-                          const char **backendType,
-                          virQEMUDriverConfigPtr cfg,
-                          virQEMUCapsPtr qemuCaps,
-                          virDomainDefPtr def,
-                          virDomainMemoryDefPtr mem,
-                          virBitmapPtr autoNodeset,
-                          bool force)
+qemuBuildMemoryBackendProps(virJSONValuePtr *backendProps,
+                            const char *alias,
+                            virQEMUDriverConfigPtr cfg,
+                            virQEMUCapsPtr qemuCaps,
+                            virDomainDefPtr def,
+                            virDomainMemoryDefPtr mem,
+                            virBitmapPtr autoNodeset,
+                            bool force)
 {
+    const char *backendType = "memory-backend-file";
     virDomainNumatuneMemMode mode;
     const long system_page_size = virGetSystemPageSizeKB();
     virDomainMemoryAccess memAccess = mem->access;
@@ -3018,6 +3012,7 @@ qemuBuildMemoryBackendStr(virJSONValuePtr *backendProps,
     unsigned long long pagesize = mem->pagesize;
     bool needHugepage = !!pagesize;
     bool useHugepage = !!pagesize;
+    int discard = mem->discard;
 
     /* The difference between @needHugepage and @useHugepage is that the latter
      * is true whenever huge page is defined for the current memory cell.
@@ -3026,10 +3021,8 @@ qemuBuildMemoryBackendStr(virJSONValuePtr *backendProps,
      * @useHugepage. */
 
     *backendProps = NULL;
-    *backendType = NULL;
 
-    if (memAccess == VIR_DOMAIN_MEMORY_ACCESS_DEFAULT &&
-        mem->targetNode >= 0) {
+    if (mem->targetNode >= 0) {
         /* memory devices could provide a invalid guest node */
         if (mem->targetNode >= virDomainNumaGetNodeCount(def->numa)) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
@@ -3039,11 +3032,18 @@ qemuBuildMemoryBackendStr(virJSONValuePtr *backendProps,
             return -1;
         }
 
-        memAccess = virDomainNumaGetNodeMemoryAccessMode(def->numa, mem->targetNode);
+        if (memAccess == VIR_DOMAIN_MEMORY_ACCESS_DEFAULT)
+            memAccess = virDomainNumaGetNodeMemoryAccessMode(def->numa, mem->targetNode);
+
+        if (discard == VIR_TRISTATE_BOOL_ABSENT)
+            discard = virDomainNumaGetNodeDiscard(def->numa, mem->targetNode);
     }
 
     if (memAccess == VIR_DOMAIN_MEMORY_ACCESS_DEFAULT)
         memAccess = def->mem.access;
+
+    if (discard == VIR_TRISTATE_BOOL_ABSENT)
+        discard = def->mem.discard;
 
     if (virDomainNumatuneGetMode(def->numa, mem->targetNode, &mode) < 0 &&
         virDomainNumatuneGetMode(def->numa, -1, &mode) < 0)
@@ -3109,7 +3109,6 @@ qemuBuildMemoryBackendStr(virJSONValuePtr *backendProps,
 
     if (useHugepage || mem->nvdimmPath || memAccess ||
         def->mem.source == VIR_DOMAIN_MEMORY_SOURCE_FILE) {
-        *backendType = "memory-backend-file";
 
         if (useHugepage) {
             if (qemuGetDomainHupageMemPath(def, cfg, pagesize, &memPath) < 0)
@@ -3132,6 +3131,20 @@ qemuBuildMemoryBackendStr(virJSONValuePtr *backendProps,
                                   NULL) < 0)
             goto cleanup;
 
+        if (!mem->nvdimmPath &&
+            discard == VIR_TRISTATE_BOOL_YES) {
+            if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_FILE_DISCARD)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("this QEMU doesn't support memory discard"));
+                goto cleanup;
+            }
+
+            if (virJSONValueObjectAdd(props,
+                                      "B:discard-data", true,
+                                      NULL) < 0)
+                goto cleanup;
+        }
+
         switch (memAccess) {
         case VIR_DOMAIN_MEMORY_ACCESS_SHARED:
             if (virJSONValueObjectAdd(props, "b:share", true, NULL) < 0)
@@ -3148,7 +3161,7 @@ qemuBuildMemoryBackendStr(virJSONValuePtr *backendProps,
             break;
         }
     } else {
-        *backendType = "memory-backend-ram";
+        backendType = "memory-backend-ram";
     }
 
     if (virJSONValueObjectAdd(props, "U:size", mem->size * 1024, NULL) < 0)
@@ -3182,13 +3195,13 @@ qemuBuildMemoryBackendStr(virJSONValuePtr *backendProps,
         ret = 1;
     } else {
         /* otherwise check the required capability */
-        if (STREQ(*backendType, "memory-backend-file") &&
+        if (STREQ(backendType, "memory-backend-file") &&
             !virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_FILE)) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("this qemu doesn't support the "
                              "memory-backend-file object"));
             goto cleanup;
-        } else if (STREQ(*backendType, "memory-backend-ram") &&
+        } else if (STREQ(backendType, "memory-backend-ram") &&
                    !virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_RAM)) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("this qemu doesn't support the "
@@ -3199,8 +3212,9 @@ qemuBuildMemoryBackendStr(virJSONValuePtr *backendProps,
         ret = 0;
     }
 
-    *backendProps = props;
-    props = NULL;
+    if (!(*backendProps = qemuMonitorCreateObjectPropsWrap(backendType, alias,
+                                                           &props)))
+        ret = -1;
 
  cleanup:
     virJSONValueFree(props);
@@ -3214,11 +3228,10 @@ qemuBuildMemoryCellBackendStr(virDomainDefPtr def,
                               virQEMUDriverConfigPtr cfg,
                               size_t cell,
                               qemuDomainObjPrivatePtr priv,
-                              char **backendStr)
+                              virBufferPtr buf)
 {
     virJSONValuePtr props = NULL;
     char *alias = NULL;
-    const char *backendType;
     int ret = -1;
     int rc;
     virDomainMemoryDef mem = { 0 };
@@ -3228,18 +3241,15 @@ qemuBuildMemoryCellBackendStr(virDomainDefPtr def,
     if (virAsprintf(&alias, "ram-node%zu", cell) < 0)
         goto cleanup;
 
-    *backendStr = NULL;
     mem.size = memsize;
     mem.targetNode = cell;
     mem.info.alias = alias;
 
-    if ((rc = qemuBuildMemoryBackendStr(&props, &backendType, cfg, priv->qemuCaps,
-                                        def, &mem, priv->autoNodeset, false)) < 0)
+    if ((rc = qemuBuildMemoryBackendProps(&props, alias, cfg, priv->qemuCaps,
+                                          def, &mem, priv->autoNodeset, false)) < 0)
         goto cleanup;
 
-    if (!(*backendStr = virQEMUBuildObjectCommandlineFromJSON(backendType,
-                                                              alias,
-                                                              props)))
+    if (virQEMUBuildObjectCommandlineFromJSON(buf, props) < 0)
         goto cleanup;
 
     ret = rc;
@@ -3252,31 +3262,34 @@ qemuBuildMemoryCellBackendStr(virDomainDefPtr def,
 }
 
 
-static char *
-qemuBuildMemoryDimmBackendStr(virDomainMemoryDefPtr mem,
+static int
+qemuBuildMemoryDimmBackendStr(virBufferPtr buf,
+                              virDomainMemoryDefPtr mem,
                               virDomainDefPtr def,
                               virQEMUDriverConfigPtr cfg,
                               qemuDomainObjPrivatePtr priv)
 {
     virJSONValuePtr props = NULL;
     char *alias = NULL;
-    const char *backendType;
-    char *ret = NULL;
+    int ret = -1;
 
     if (!mem->info.alias) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("memory device alias is not assigned"));
-        return NULL;
+        return -1;
     }
 
     if (virAsprintf(&alias, "mem%s", mem->info.alias) < 0)
         goto cleanup;
 
-    if (qemuBuildMemoryBackendStr(&props, &backendType, cfg, priv->qemuCaps,
-                                  def, mem, priv->autoNodeset, true) < 0)
+    if (qemuBuildMemoryBackendProps(&props, alias, cfg, priv->qemuCaps,
+                                    def, mem, priv->autoNodeset, true) < 0)
         goto cleanup;
 
-    ret = virQEMUBuildObjectCommandlineFromJSON(backendType, alias, props);
+    if (virQEMUBuildObjectCommandlineFromJSON(buf, props) < 0)
+        goto cleanup;
+
+    ret = 0;
 
  cleanup:
     VIR_FREE(alias);
@@ -3339,19 +3352,16 @@ qemuBuildMemoryDeviceStr(virDomainMemoryDefPtr mem)
 }
 
 
-char *
-qemuBuildNicStr(virDomainNetDefPtr net,
-                const char *prefix,
-                int vlan)
+static char *
+qemuBuildLegacyNicStr(virDomainNetDefPtr net)
 {
     char *str;
     char macaddr[VIR_MAC_STRING_BUFLEN];
 
     ignore_value(virAsprintf(&str,
-                             "%smacaddr=%s,vlan=%d%s%s%s%s",
-                             prefix ? prefix : "",
+                             "nic,macaddr=%s,netdev=host%s%s%s%s%s",
                              virMacAddrFormat(&net->mac, macaddr),
-                             vlan,
+                             net->info.alias,
                              (net->model ? ",model=" : ""),
                              (net->model ? net->model : ""),
                              (net->info.alias ? ",name=" : ""),
@@ -3363,7 +3373,6 @@ qemuBuildNicStr(virDomainNetDefPtr net,
 char *
 qemuBuildNicDevStr(virDomainDefPtr def,
                    virDomainNetDefPtr net,
-                   int vlan,
                    unsigned int bootindex,
                    size_t vhostfdSize,
                    virQEMUCapsPtr qemuCaps)
@@ -3512,10 +3521,7 @@ qemuBuildNicDevStr(virDomainDefPtr def,
         virBufferAsprintf(&buf, ",host_mtu=%u", net->mtu);
     }
 
-    if (vlan == -1)
-        virBufferAsprintf(&buf, ",netdev=host%s", net->info.alias);
-    else
-        virBufferAsprintf(&buf, ",vlan=%d", vlan);
+    virBufferAsprintf(&buf, ",netdev=host%s", net->info.alias);
     virBufferAsprintf(&buf, ",id=%s", net->info.alias);
     virBufferAsprintf(&buf, ",mac=%s",
                       virMacAddrFormat(&net->mac, macaddr));
@@ -3544,8 +3550,6 @@ qemuBuildNicDevStr(virDomainDefPtr def,
 char *
 qemuBuildHostNetStr(virDomainNetDefPtr net,
                     virQEMUDriverPtr driver,
-                    char type_sep,
-                    int vlan,
                     char **tapfd,
                     size_t tapfdSize,
                     char **vhostfd,
@@ -3576,7 +3580,7 @@ qemuBuildHostNetStr(virDomainNetDefPtr net,
     case VIR_DOMAIN_NET_TYPE_NETWORK:
     case VIR_DOMAIN_NET_TYPE_DIRECT:
     case VIR_DOMAIN_NET_TYPE_ETHERNET:
-        virBufferAsprintf(&buf, "tap%c", type_sep);
+        virBufferAddLit(&buf, "tap,");
         /* for one tapfd 'fd=' shall be used,
          * for more than one 'fds=' is the right choice */
         if (tapfdSize == 1) {
@@ -3594,30 +3598,26 @@ qemuBuildHostNetStr(virDomainNetDefPtr net,
         break;
 
     case VIR_DOMAIN_NET_TYPE_CLIENT:
-        virBufferAsprintf(&buf, "socket%cconnect=%s:%d,",
-                          type_sep,
+        virBufferAsprintf(&buf, "socket,connect=%s:%d,",
                           net->data.socket.address,
                           net->data.socket.port);
         break;
 
     case VIR_DOMAIN_NET_TYPE_SERVER:
-        virBufferAsprintf(&buf, "socket%clisten=%s:%d,",
-                          type_sep,
+        virBufferAsprintf(&buf, "socket,listen=%s:%d,",
                           net->data.socket.address ? net->data.socket.address
                           : "",
                           net->data.socket.port);
         break;
 
     case VIR_DOMAIN_NET_TYPE_MCAST:
-        virBufferAsprintf(&buf, "socket%cmcast=%s:%d,",
-                          type_sep,
+        virBufferAsprintf(&buf, "socket,mcast=%s:%d,",
                           net->data.socket.address,
                           net->data.socket.port);
         break;
 
     case VIR_DOMAIN_NET_TYPE_UDP:
-        virBufferAsprintf(&buf, "socket%cudp=%s:%d,localaddr=%s:%d,",
-                          type_sep,
+        virBufferAsprintf(&buf, "socket,udp=%s:%d,localaddr=%s:%d,",
                           net->data.socket.address,
                           net->data.socket.port,
                           net->data.socket.localaddr,
@@ -3625,7 +3625,7 @@ qemuBuildHostNetStr(virDomainNetDefPtr net,
         break;
 
     case VIR_DOMAIN_NET_TYPE_USER:
-        virBufferAsprintf(&buf, "user%c", type_sep);
+        virBufferAddLit(&buf, "user,");
         for (i = 0; i < net->guestIP.nips; i++) {
             const virNetDevIPAddr *ip = net->guestIP.ips[i];
             const char *prefix = "";
@@ -3647,12 +3647,11 @@ qemuBuildHostNetStr(virDomainNetDefPtr net,
         break;
 
     case VIR_DOMAIN_NET_TYPE_INTERNAL:
-        virBufferAsprintf(&buf, "user%c", type_sep);
+        virBufferAddLit(&buf, "user,");
         break;
 
     case VIR_DOMAIN_NET_TYPE_VHOSTUSER:
-        virBufferAsprintf(&buf, "vhost-user%cchardev=char%s,",
-                          type_sep,
+        virBufferAsprintf(&buf, "vhost-user,chardev=char%s,",
                           net->info.alias);
         if (net->driver.virtio.queues > 1)
             virBufferAsprintf(&buf, "queues=%u,",
@@ -3665,13 +3664,7 @@ qemuBuildHostNetStr(virDomainNetDefPtr net,
         break;
     }
 
-    if (vlan >= 0) {
-        virBufferAsprintf(&buf, "vlan=%d,", vlan);
-        if (net->info.alias)
-            virBufferAsprintf(&buf, "name=host%s,", net->info.alias);
-    } else {
-        virBufferAsprintf(&buf, "id=host%s,", net->info.alias);
-    }
+    virBufferAsprintf(&buf, "id=host%s,", net->info.alias);
 
     if (is_tap) {
         if (vhostfdSize) {
@@ -3923,7 +3916,7 @@ qemuBuildVirtioInputDevStr(const virDomainDef *def,
         goto error;
     }
 
-    switch ((virDomainInputType) dev->type) {
+    switch ((virDomainInputType)dev->type) {
     case VIR_DOMAIN_INPUT_TYPE_MOUSE:
         if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_MOUSE) ||
             (dev->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW &&
@@ -4140,6 +4133,8 @@ qemuSoundCodecTypeToCaps(int type)
         return QEMU_CAPS_HDA_DUPLEX;
     case VIR_DOMAIN_SOUND_CODEC_TYPE_MICRO:
         return QEMU_CAPS_HDA_MICRO;
+    case VIR_DOMAIN_SOUND_CODEC_TYPE_OUTPUT:
+        return QEMU_CAPS_HDA_OUTPUT;
     default:
         return -1;
     }
@@ -4489,7 +4484,7 @@ qemuBuildPCIHostdevDevStr(const virDomainDef *def,
     int backend = pcisrc->backend;
 
     /* caller has to assign proper passthrough backend type */
-    switch ((virDomainHostdevSubsysPCIBackendType) backend) {
+    switch ((virDomainHostdevSubsysPCIBackendType)backend) {
     case VIR_DOMAIN_HOSTDEV_PCI_BACKEND_KVM:
         virBufferAddLit(&buf, "pci-assign");
         if (configfd && *configfd)
@@ -4648,7 +4643,8 @@ static char *
 qemuBuildSCSIiSCSIHostdevDrvStr(virDomainHostdevDefPtr dev,
                                 virQEMUCapsPtr qemuCaps)
 {
-    char *source = NULL;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+
     char *netsource = NULL;
     virJSONValuePtr srcprops = NULL;
     virDomainHostdevSubsysSCSIPtr scsisrc = &dev->source.subsys.u.scsi;
@@ -4661,21 +4657,27 @@ qemuBuildSCSIiSCSIHostdevDrvStr(virDomainHostdevDefPtr dev,
             goto cleanup;
         if (!(netsource = virQEMUBuildDriveCommandlineFromJSON(srcprops)))
             goto cleanup;
-        if (virAsprintf(&source, "%s,if=none,format=raw", netsource) < 0)
-            goto cleanup;
+        virBufferAsprintf(&buf, "%s,if=none,format=raw", netsource);
     } else {
         /* Rather than pull what we think we want - use the network disk code */
         if (!(netsource = qemuBuildNetworkDriveStr(iscsisrc->src, srcPriv ?
                                                    srcPriv->secinfo : NULL)))
             goto cleanup;
-        if (virAsprintf(&source, "file=%s,if=none,format=raw", netsource) < 0)
-            goto cleanup;
+        virBufferAddLit(&buf, "file=");
+        virQEMUBuildBufferEscapeComma(&buf, netsource);
+        virBufferAddLit(&buf, ",if=none,format=raw");
     }
+
+    if (virBufferCheckError(&buf) < 0)
+        goto cleanup;
+
+    return virBufferContentAndReset(&buf);
 
  cleanup:
     VIR_FREE(netsource);
     virJSONValueFree(srcprops);
-    return source;
+    virBufferFreeAndReset(&buf);
+    return NULL;
 }
 
 char *
@@ -4858,7 +4860,8 @@ qemuBuildChrChardevFileStr(virLogManagerPtr logManager,
         virBufferAsprintf(buf, ",%s=%s,%s=on", filearg, fdpath, appendarg);
         VIR_FREE(fdpath);
     } else {
-        virBufferAsprintf(buf, ",%s=%s", filearg, fileval);
+        virBufferAsprintf(buf, ",%s=", filearg);
+        virQEMUBuildBufferEscapeComma(buf, fileval);
         if (appendval != VIR_TRISTATE_SWITCH_ABSENT) {
             virBufferAsprintf(buf, ",%s=%s", appendarg,
                               virTristateSwitchTypeToString(appendval));
@@ -4881,10 +4884,61 @@ qemuBuildChrChardevReconnectStr(virBufferPtr buf,
 }
 
 
+int
+qemuOpenChrChardevUNIXSocket(const virDomainChrSourceDef *dev)
+{
+    struct sockaddr_un addr;
+    socklen_t addrlen = sizeof(addr);
+    int fd;
+
+    if ((fd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Unable to create UNIX socket"));
+        goto error;
+    }
+
+    memset(&addr, 0, sizeof(addr));
+    addr.sun_family = AF_UNIX;
+    if (virStrcpyStatic(addr.sun_path, dev->data.nix.path) == NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("UNIX socket path '%s' too long"),
+                       dev->data.nix.path);
+        goto error;
+    }
+
+    if (unlink(dev->data.nix.path) < 0 && errno != ENOENT) {
+        virReportSystemError(errno,
+                             _("Unable to unlink %s"),
+                             dev->data.nix.path);
+        goto error;
+    }
+
+    if (bind(fd, (struct sockaddr *)&addr, addrlen) < 0) {
+        virReportSystemError(errno,
+                             _("Unable to bind to UNIX socket path '%s'"),
+                             dev->data.nix.path);
+        goto error;
+    }
+
+    if (listen(fd, 1) < 0) {
+        virReportSystemError(errno,
+                             _("Unable to listen to UNIX socket path '%s'"),
+                             dev->data.nix.path);
+        goto error;
+    }
+
+    return fd;
+
+ error:
+    VIR_FORCE_CLOSE(fd);
+    return -1;
+}
+
 /* This function outputs a -chardev command line option which describes only the
  * host side of the character device */
 static char *
 qemuBuildChrChardevStr(virLogManagerPtr logManager,
+                       virSecurityManagerPtr secManager,
                        virCommandPtr cmd,
                        virQEMUDriverConfigPtr cfg,
                        const virDomainDef *def,
@@ -4916,9 +4970,10 @@ qemuBuildChrChardevStr(virLogManagerPtr logManager,
         break;
 
     case VIR_DOMAIN_CHR_TYPE_DEV:
-        virBufferAsprintf(&buf, "%s,id=%s,path=%s",
+        virBufferAsprintf(&buf, "%s,id=%s,path=",
                           STRPREFIX(alias, "parallel") ? "parport" : "tty",
-                          charAlias, dev->data.file.path);
+                          charAlias);
+        virQEMUBuildBufferEscapeComma(&buf, dev->data.file.path);
         break;
 
     case VIR_DOMAIN_CHR_TYPE_FILE:
@@ -4938,8 +4993,8 @@ qemuBuildChrChardevStr(virLogManagerPtr logManager,
         break;
 
     case VIR_DOMAIN_CHR_TYPE_PIPE:
-        virBufferAsprintf(&buf, "pipe,id=%s,path=%s", charAlias,
-                          dev->data.file.path);
+        virBufferAsprintf(&buf, "pipe,id=%s,path=", charAlias);
+        virQEMUBuildBufferEscapeComma(&buf, dev->data.file.path);
         break;
 
     case VIR_DOMAIN_CHR_TYPE_STDIO:
@@ -4985,33 +5040,56 @@ qemuBuildChrChardevStr(virLogManagerPtr logManager,
             qemuDomainChrSourcePrivatePtr chrSourcePriv =
                 QEMU_DOMAIN_CHR_SOURCE_PRIVATE(dev);
             char *objalias = NULL;
+            const char *tlsCertEncSecAlias = NULL;
 
             /* Add the secret object first if necessary. The
              * secinfo is added only to a TCP serial device during
              * qemuDomainSecretChardevPrepare. Subsequently called
              * functions can just check the config fields */
-            if (chrSourcePriv && chrSourcePriv->secinfo &&
-                qemuBuildObjectSecretCommandLine(cmd,
-                                                 chrSourcePriv->secinfo) < 0)
+            if (chrSourcePriv && chrSourcePriv->secinfo) {
+                if (qemuBuildObjectSecretCommandLine(cmd,
+                                                     chrSourcePriv->secinfo) < 0)
+                    goto cleanup;
+
+                tlsCertEncSecAlias = chrSourcePriv->secinfo->s.aes.alias;
+            }
+
+            if (!(objalias = qemuAliasTLSObjFromSrcAlias(charAlias)))
                 goto cleanup;
 
             if (qemuBuildTLSx509CommandLine(cmd, cfg->chardevTLSx509certdir,
                                             dev->data.tcp.listen,
                                             cfg->chardevTLSx509verify,
-                                            !!cfg->chardevTLSx509secretUUID,
-                                            charAlias, qemuCaps) < 0)
+                                            tlsCertEncSecAlias,
+                                            objalias, qemuCaps) < 0) {
+                VIR_FREE(objalias);
                 goto cleanup;
+            }
 
-            if (!(objalias = qemuAliasTLSObjFromSrcAlias(charAlias)))
-                goto cleanup;
             virBufferAsprintf(&buf, ",tls-creds=%s", objalias);
             VIR_FREE(objalias);
         }
         break;
 
     case VIR_DOMAIN_CHR_TYPE_UNIX:
-        virBufferAsprintf(&buf, "socket,id=%s,path=", charAlias);
-        virQEMUBuildBufferEscapeComma(&buf, dev->data.nix.path);
+        if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_CHARDEV_FD_PASS)) {
+            if (qemuSecuritySetSocketLabel(secManager, (virDomainDefPtr)def) < 0)
+                goto cleanup;
+            int fd = qemuOpenChrChardevUNIXSocket(dev);
+            if (qemuSecurityClearSocketLabel(secManager, (virDomainDefPtr)def) < 0) {
+                VIR_FORCE_CLOSE(fd);
+                goto cleanup;
+            }
+            if (fd < 0)
+                goto cleanup;
+
+            virBufferAsprintf(&buf, "socket,id=%s,fd=%d", charAlias, fd);
+
+            virCommandPassFD(cmd, fd, VIR_COMMAND_PASS_FD_CLOSE_PARENT);
+        } else {
+            virBufferAsprintf(&buf, "socket,id=%s,path=", charAlias);
+            virQEMUBuildBufferEscapeComma(&buf, dev->data.nix.path);
+        }
         if (dev->data.nix.listen)
             virBufferAdd(&buf, nowait ? ",server,nowait" : ",server", -1);
 
@@ -5071,11 +5149,17 @@ qemuBuildHostdevMediatedDevStr(const virDomainDef *def,
     virDomainHostdevSubsysMediatedDevPtr mdevsrc = &dev->source.subsys.u.mdev;
     char *ret = NULL;
     char *mdevPath = NULL;
+    const char *dev_str = NULL;
 
     if (!(mdevPath = virMediatedDeviceGetSysfsPath(mdevsrc->uuidstr)))
         goto cleanup;
 
-    virBufferAddLit(&buf, "vfio-pci");
+    dev_str = virMediatedDeviceModelTypeToString(mdevsrc->model);
+
+    if (!dev_str)
+        goto cleanup;
+
+    virBufferAdd(&buf, dev_str, -1);
     virBufferAsprintf(&buf, ",id=%s,sysfsdev=%s", dev->info->alias, mdevPath);
 
     if (qemuBuildDeviceAddressStr(&buf, def, dev->info, qemuCaps) < 0)
@@ -5294,14 +5378,29 @@ qemuBuildHostdevCommandLine(virCommandPtr cmd,
         }
 
         /* MDEV */
-        if (hostdev->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
-            subsys->type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_MDEV) {
-
-            if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_VFIO_PCI)) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                               _("VFIO PCI device assignment is not "
-                                 "supported by this version of qemu"));
+        if (virHostdevIsMdevDevice(hostdev)) {
+            switch ((virMediatedDeviceModelType) subsys->u.mdev.model) {
+            case VIR_MDEV_MODEL_TYPE_VFIO_PCI:
+                if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_VFIO_PCI)) {
+                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                   _("VFIO PCI device assignment is not "
+                                     "supported by this version of QEMU"));
+                    return -1;
+                }
+                break;
+            case VIR_MDEV_MODEL_TYPE_VFIO_CCW:
+                if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_VFIO_CCW)) {
+                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                   _("VFIO CCW device assignment is not "
+                                     "supported by this version of QEMU"));
+                    return -1;
+                }
+                break;
+            case VIR_MDEV_MODEL_TYPE_LAST:
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("unexpected vfio type '%d'"), subsys->u.mdev.model);
                 return -1;
+                break;
             }
 
             virCommandAddArg(cmd, "-device");
@@ -5319,6 +5418,7 @@ qemuBuildHostdevCommandLine(virCommandPtr cmd,
 
 static int
 qemuBuildMonitorCommandLine(virLogManagerPtr logManager,
+                            virSecurityManagerPtr secManager,
                             virCommandPtr cmd,
                             virQEMUDriverConfigPtr cfg,
                             virDomainDefPtr def,
@@ -5329,7 +5429,8 @@ qemuBuildMonitorCommandLine(virLogManagerPtr logManager,
     if (!priv->monConfig)
         return 0;
 
-    if (!(chrdev = qemuBuildChrChardevStr(logManager, cmd, cfg, def,
+    if (!(chrdev = qemuBuildChrChardevStr(logManager, secManager,
+                                          cmd, cfg, def,
                                           priv->monConfig, "monitor",
                                           priv->qemuCaps, true,
                                           priv->chardevStdioLogd)))
@@ -5448,6 +5549,7 @@ qemuBuildSclpDevStr(virDomainChrDefPtr dev)
 
 static int
 qemuBuildRNGBackendChrdevStr(virLogManagerPtr logManager,
+                             virSecurityManagerPtr secManager,
                              virCommandPtr cmd,
                              virQEMUDriverConfigPtr cfg,
                              const virDomainDef *def,
@@ -5465,7 +5567,8 @@ qemuBuildRNGBackendChrdevStr(virLogManagerPtr logManager,
         return 0;
 
     case VIR_DOMAIN_RNG_BACKEND_EGD:
-        if (!(*chr = qemuBuildChrChardevStr(logManager, cmd, cfg, def,
+        if (!(*chr = qemuBuildChrChardevStr(logManager, secManager,
+                                            cmd, cfg, def,
                                             rng->source.chardev,
                                             rng->info.alias, qemuCaps, true,
                                             chardevStdioLogd)))
@@ -5479,11 +5582,14 @@ qemuBuildRNGBackendChrdevStr(virLogManagerPtr logManager,
 int
 qemuBuildRNGBackendProps(virDomainRNGDefPtr rng,
                          virQEMUCapsPtr qemuCaps,
-                         const char **type,
                          virJSONValuePtr *props)
 {
+    char *objAlias = NULL;
     char *charBackendAlias = NULL;
     int ret = -1;
+
+    if (virAsprintf(&objAlias, "obj%s", rng->info.alias) < 0)
+        goto cleanup;
 
     switch ((virDomainRNGBackend) rng->backend) {
     case VIR_DOMAIN_RNG_BACKEND_RANDOM:
@@ -5494,11 +5600,11 @@ qemuBuildRNGBackendProps(virDomainRNGDefPtr rng,
             goto cleanup;
         }
 
-        *type = "rng-random";
-
-        if (virJSONValueObjectCreate(props, "s:filename", rng->source.file,
-                                     NULL) < 0)
+        if (qemuMonitorCreateObjectProps(props, "rng-random", objAlias,
+                                         "s:filename", rng->source.file,
+                                         NULL) < 0)
             goto cleanup;
+
         break;
 
     case VIR_DOMAIN_RNG_BACKEND_EGD:
@@ -5509,13 +5615,12 @@ qemuBuildRNGBackendProps(virDomainRNGDefPtr rng,
             goto cleanup;
         }
 
-        *type = "rng-egd";
-
         if (!(charBackendAlias = qemuAliasChardevFromDevAlias(rng->info.alias)))
             goto cleanup;
 
-        if (virJSONValueObjectCreate(props, "s:chardev", charBackendAlias,
-                                     NULL) < 0)
+        if (qemuMonitorCreateObjectProps(props, "rng-egd", objAlias,
+                                         "s:chardev", charBackendAlias,
+                                         NULL) < 0)
             goto cleanup;
 
         break;
@@ -5529,31 +5634,8 @@ qemuBuildRNGBackendProps(virDomainRNGDefPtr rng,
     ret = 0;
 
  cleanup:
+    VIR_FREE(objAlias);
     VIR_FREE(charBackendAlias);
-    return ret;
-}
-
-
-static char *
-qemuBuildRNGBackendStr(virDomainRNGDefPtr rng,
-                       virQEMUCapsPtr qemuCaps)
-{
-    const char *type = NULL;
-    char *alias = NULL;
-    virJSONValuePtr props = NULL;
-    char *ret = NULL;
-
-    if (virAsprintf(&alias, "obj%s", rng->info.alias) < 0)
-        goto cleanup;
-
-    if (qemuBuildRNGBackendProps(rng, qemuCaps, &type, &props) < 0)
-        goto cleanup;
-
-    ret = virQEMUBuildObjectCommandlineFromJSON(type, alias, props);
-
- cleanup:
-    VIR_FREE(alias);
-    virJSONValueFree(props);
     return ret;
 }
 
@@ -5616,6 +5698,7 @@ qemuBuildRNGDevStr(const virDomainDef *def,
 
 static int
 qemuBuildRNGCommandLine(virLogManagerPtr logManager,
+                        virSecurityManagerPtr secManager,
                         virCommandPtr cmd,
                         virQEMUDriverConfigPtr cfg,
                         const virDomainDef *def,
@@ -5625,8 +5708,11 @@ qemuBuildRNGCommandLine(virLogManagerPtr logManager,
     size_t i;
 
     for (i = 0; i < def->nrngs; i++) {
+        virJSONValuePtr props;
+        virBuffer buf = VIR_BUFFER_INITIALIZER;
         virDomainRNGDefPtr rng = def->rngs[i];
         char *tmp;
+        int rc;
 
         if (!rng->info.alias) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -5635,7 +5721,7 @@ qemuBuildRNGCommandLine(virLogManagerPtr logManager,
         }
 
         /* possibly add character device for backend */
-        if (qemuBuildRNGBackendChrdevStr(logManager, cmd, cfg, def,
+        if (qemuBuildRNGBackendChrdevStr(logManager, secManager, cmd, cfg, def,
                                          rng, qemuCaps, &tmp,
                                          chardevStdioLogd) < 0)
             return -1;
@@ -5645,12 +5731,17 @@ qemuBuildRNGCommandLine(virLogManagerPtr logManager,
             VIR_FREE(tmp);
         }
 
-        /* add the RNG source backend */
-        if (!(tmp = qemuBuildRNGBackendStr(rng, qemuCaps)))
+        if (qemuBuildRNGBackendProps(rng, qemuCaps, &props) < 0)
             return -1;
 
-        virCommandAddArgList(cmd, "-object", tmp, NULL);
-        VIR_FREE(tmp);
+        rc = virQEMUBuildObjectCommandlineFromJSON(&buf, props);
+        virJSONValueFree(props);
+
+        if (rc < 0)
+            return -1;
+
+        virCommandAddArg(cmd, "-object");
+        virCommandAddArgBuffer(cmd, &buf);
 
         /* add the device */
         if (!(tmp = qemuBuildRNGDevStr(def, rng, qemuCaps)))
@@ -5950,6 +6041,34 @@ qemuBuildSmbiosCommandLine(virCommandPtr cmd,
 
 
 static int
+qemuBuildVMGenIDCommandLine(virCommandPtr cmd,
+                            const virDomainDef *def,
+                            virQEMUCapsPtr qemuCaps)
+{
+    virBuffer opts = VIR_BUFFER_INITIALIZER;
+    char guid[VIR_UUID_STRING_BUFLEN];
+
+    if (!def->genidRequested)
+        return 0;
+
+    if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_VMGENID)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                      _("this QEMU does not support the 'genid' capability"));
+        return -1;
+    }
+
+    virUUIDFormat(def->genid, guid);
+    virBufferAsprintf(&opts, "vmgenid,guid=%s,id=vmgenid0", guid);
+
+    virCommandAddArg(cmd, "-device");
+    virCommandAddArgBuffer(cmd, &opts);
+
+    virBufferFreeAndReset(&opts);
+    return 0;
+}
+
+
+static int
 qemuBuildSgaCommandLine(virCommandPtr cmd,
                         const virDomainDef *def,
                         virQEMUCapsPtr qemuCaps)
@@ -6116,7 +6235,7 @@ qemuBuildClockCommandLine(virCommandPtr cmd,
     }
 
     for (i = 0; i < def->clock.ntimers; i++) {
-        switch ((virDomainTimerNameType) def->clock.timers[i]->name) {
+        switch ((virDomainTimerNameType)def->clock.timers[i]->name) {
         case VIR_DOMAIN_TIMER_NAME_PLATFORM:
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("unsupported timer type (name) '%s'"),
@@ -6139,22 +6258,16 @@ qemuBuildClockCommandLine(virCommandPtr cmd,
             case -1:
             case VIR_DOMAIN_TIMER_TICKPOLICY_DELAY:
                 /* delay is the default if we don't have kernel
-                   (-no-kvm-pit), otherwise, the default is catchup. */
+                   (kvm-pit), otherwise, the default is catchup. */
                 if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_KVM_PIT_TICK_POLICY))
                     virCommandAddArgList(cmd, "-global",
                                          "kvm-pit.lost_tick_policy=delay", NULL);
-                else if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_NO_KVM_PIT))
-                    virCommandAddArg(cmd, "-no-kvm-pit-reinjection");
                 break;
             case VIR_DOMAIN_TIMER_TICKPOLICY_CATCHUP:
-                if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_NO_KVM_PIT) ||
-                    virQEMUCapsGet(qemuCaps, QEMU_CAPS_KVM_PIT_TICK_POLICY)) {
+                if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_KVM_PIT_TICK_POLICY)) {
                     /* do nothing - this is default for kvm-pit */
-                } else if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_TDF)) {
-                    /* -tdf switches to 'catchup' with userspace pit. */
-                    virCommandAddArg(cmd, "-tdf");
                 } else {
-                    /* can't catchup if we have neither pit mode */
+                    /* can't catchup if we don't have kvm-pit */
                     virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                    _("unsupported pit tickpolicy '%s'"),
                                    virDomainTimerTickpolicyTypeToString(def->clock.timers[i]->tickpolicy));
@@ -6165,8 +6278,6 @@ qemuBuildClockCommandLine(virCommandPtr cmd,
                 if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_KVM_PIT_TICK_POLICY))
                     virCommandAddArgList(cmd, "-global",
                                          "kvm-pit.lost_tick_policy=discard", NULL);
-                else if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_NO_KVM_PIT))
-                    virCommandAddArg(cmd, "-no-kvm-pit-reinjection");
                 break;
             case VIR_DOMAIN_TIMER_TICKPOLICY_MERGE:
                 /* no way to support this mode for pit in qemu */
@@ -6660,7 +6771,6 @@ qemuBuildCpuCommandLine(virCommandPtr cmd,
 {
     virArch hostarch = virArchFromHost();
     char *cpu = NULL, *cpu_flags = NULL;
-    bool hasHwVirt = false;
     int ret = -1;
     virBuffer cpu_buf = VIR_BUFFER_INITIALIZER;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
@@ -6670,26 +6780,6 @@ qemuBuildCpuCommandLine(virCommandPtr cmd,
         (def->cpu->mode != VIR_CPU_MODE_CUSTOM || def->cpu->model)) {
         if (qemuBuildCpuModelArgStr(driver, def, &cpu_buf, qemuCaps) < 0)
             goto cleanup;
-
-        /* Only 'svm' requires --enable-nesting. The nested 'vmx' patches now
-         * simply hook off the CPU features. */
-        if (ARCH_IS_X86(def->os.arch) &&
-            def->virtType == VIR_DOMAIN_VIRT_KVM) {
-            virCPUDefPtr cpuDef = NULL;
-
-            if (def->cpu->mode == VIR_CPU_MODE_CUSTOM)
-                cpuDef = def->cpu;
-            else if (def->cpu->mode == VIR_CPU_MODE_HOST_PASSTHROUGH)
-                cpuDef = virQEMUCapsGetHostModel(qemuCaps, def->virtType,
-                                                 VIR_QEMU_CAPS_HOST_CPU_REPORTED);
-
-            if (cpuDef) {
-                int svm = virCPUCheckFeature(def->os.arch, cpuDef, "svm");
-                if (svm < 0)
-                    goto cleanup;
-                hasHwVirt = svm > 0;
-            }
-        }
     } else {
         /*
          * Need to force a 32-bit guest CPU type if
@@ -6878,9 +6968,6 @@ qemuBuildCpuCommandLine(virCommandPtr cmd,
     if (cpu) {
         virCommandAddArg(cmd, "-cpu");
         virCommandAddArgFormat(cmd, "%s%s", cpu, cpu_flags ? cpu_flags : "");
-
-        if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_NESTING) && hasHwVirt)
-            virCommandAddArg(cmd, "-enable-nesting");
     }
 
     ret = 0;
@@ -6893,50 +6980,6 @@ qemuBuildCpuCommandLine(virCommandPtr cmd,
     return ret;
 }
 
-
-static int
-qemuBuildObsoleteAccelArg(virCommandPtr cmd,
-                          const virDomainDef *def,
-                          virQEMUCapsPtr qemuCaps)
-{
-    bool disableKVM = false;
-    bool enableKVM = false;
-
-    switch ((int)def->virtType) {
-    case VIR_DOMAIN_VIRT_QEMU:
-        if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_KVM))
-            disableKVM = true;
-        break;
-
-    case VIR_DOMAIN_VIRT_KQEMU:
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("the QEMU binary does not support kqemu"));
-        break;
-
-    case VIR_DOMAIN_VIRT_KVM:
-        if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_ENABLE_KVM)) {
-            enableKVM = true;
-        } else if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_KVM)) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("the QEMU binary does not support kvm"));
-            return -1;
-        }
-        break;
-
-    default:
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("the QEMU binary does not support %s"),
-                       virDomainVirtTypeToString(def->virtType));
-        return -1;
-    }
-
-    if (disableKVM)
-        virCommandAddArg(cmd, "-no-kvm");
-    if (enableKVM)
-        virCommandAddArg(cmd, "-enable-kvm");
-
-    return 0;
-}
 
 static bool
 qemuAppendKeyWrapMachineParm(virBuffer *buf, virQEMUCapsPtr qemuCaps,
@@ -7036,7 +7079,6 @@ qemuBuildMachineCommandLine(virCommandPtr cmd,
     virTristateSwitch smm = def->features[VIR_DOMAIN_FEATURE_SMM];
     virCPUDefPtr cpu = def->cpu;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
-    bool obsoleteAccel = false;
     size_t i;
     int ret = -1;
 
@@ -7050,12 +7092,39 @@ qemuBuildMachineCommandLine(virCommandPtr cmd,
     virCommandAddArg(cmd, "-machine");
     virBufferAdd(&buf, def->os.machine, -1);
 
-    if (def->virtType == VIR_DOMAIN_VIRT_QEMU)
+    switch (def->virtType) {
+    case VIR_DOMAIN_VIRT_QEMU:
         virBufferAddLit(&buf, ",accel=tcg");
-    else if (def->virtType == VIR_DOMAIN_VIRT_KVM)
+        break;
+
+    case VIR_DOMAIN_VIRT_KVM:
         virBufferAddLit(&buf, ",accel=kvm");
-    else
-        obsoleteAccel = true;
+        break;
+
+    case VIR_DOMAIN_VIRT_KQEMU:
+    case VIR_DOMAIN_VIRT_XEN:
+    case VIR_DOMAIN_VIRT_LXC:
+    case VIR_DOMAIN_VIRT_UML:
+    case VIR_DOMAIN_VIRT_OPENVZ:
+    case VIR_DOMAIN_VIRT_TEST:
+    case VIR_DOMAIN_VIRT_VMWARE:
+    case VIR_DOMAIN_VIRT_HYPERV:
+    case VIR_DOMAIN_VIRT_VBOX:
+    case VIR_DOMAIN_VIRT_PHYP:
+    case VIR_DOMAIN_VIRT_PARALLELS:
+    case VIR_DOMAIN_VIRT_BHYVE:
+    case VIR_DOMAIN_VIRT_VZ:
+    case VIR_DOMAIN_VIRT_NONE:
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("the QEMU binary does not support %s"),
+                       virDomainVirtTypeToString(def->virtType));
+        return -1;
+
+    case VIR_DOMAIN_VIRT_LAST:
+    default:
+        virReportEnumRangeError(virDomainVirtType, def->virtType);
+        return -1;
+    }
 
     /* To avoid the collision of creating USB controllers when calling
      * machine->init in QEMU, it needs to set usb=off
@@ -7074,16 +7143,8 @@ qemuBuildMachineCommandLine(virCommandPtr cmd,
                           virTristateSwitchTypeToString(vmport));
     }
 
-    if (smm) {
-        if (!virQEMUCapsSupportsSMM(qemuCaps, def)) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("smm is not available with this QEMU binary"));
-            goto cleanup;
-        }
-
-        virBufferAsprintf(&buf, ",smm=%s",
-                          virTristateSwitchTypeToString(smm));
-    }
+    if (smm)
+        virBufferAsprintf(&buf, ",smm=%s", virTristateSwitchTypeToString(smm));
 
     if (def->mem.dump_core) {
         virBufferAsprintf(&buf, ",dump-guest-core=%s",
@@ -7202,24 +7263,39 @@ qemuBuildMachineCommandLine(virCommandPtr cmd,
         }
     }
 
-    if (def->features[VIR_DOMAIN_FEATURE_HPT] != VIR_DOMAIN_HPT_RESIZING_NONE) {
-        const char *str;
+    if (def->features[VIR_DOMAIN_FEATURE_HPT] == VIR_TRISTATE_SWITCH_ON) {
 
-        if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_MACHINE_PSERIES_RESIZE_HPT)) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("HTP resizing is not supported by this "
-                             "QEMU binary"));
-            goto cleanup;
+        if (def->hpt_resizing != VIR_DOMAIN_HPT_RESIZING_NONE) {
+            const char *str;
+
+            if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_MACHINE_PSERIES_RESIZE_HPT)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("HTP resizing is not supported by this "
+                                 "QEMU binary"));
+                goto cleanup;
+            }
+
+            str = virDomainHPTResizingTypeToString(def->hpt_resizing);
+            if (!str) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("Invalid setting for HPT resizing"));
+                goto cleanup;
+            }
+
+            virBufferAsprintf(&buf, ",resize-hpt=%s", str);
         }
 
-        str = virDomainHPTResizingTypeToString(def->features[VIR_DOMAIN_FEATURE_HPT]);
-        if (!str) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("Invalid setting for HPT resizing"));
-            goto cleanup;
-        }
+        if (def->hpt_maxpagesize > 0) {
+            if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_MACHINE_PSERIES_CAP_HPT_MAX_PAGE_SIZE)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("Configuring the page size for HPT guests "
+                                 "is not supported by this QEMU binary"));
+                goto cleanup;
+            }
 
-        virBufferAsprintf(&buf, ",resize-hpt=%s", str);
+            virBufferAsprintf(&buf, ",cap-hpt-max-page-size=%lluk",
+                              def->hpt_maxpagesize);
+        }
     }
 
     if (cpu && cpu->model &&
@@ -7233,17 +7309,32 @@ qemuBuildMachineCommandLine(virCommandPtr cmd,
         virQEMUCapsGet(qemuCaps, QEMU_CAPS_LOADPARM))
         qemuAppendLoadparmMachineParm(&buf, def);
 
-    virCommandAddArgBuffer(cmd, &buf);
+    if (def->sev)
+        virBufferAddLit(&buf, ",memory-encryption=sev0");
 
-    if (obsoleteAccel &&
-        qemuBuildObsoleteAccelArg(cmd, def, qemuCaps) < 0)
-        goto cleanup;
+    virCommandAddArgBuffer(cmd, &buf);
 
     ret = 0;
  cleanup:
     virBufferFreeAndReset(&buf);
     return ret;
 }
+
+
+static void
+qemuBuildTSEGCommandLine(virCommandPtr cmd,
+                         const virDomainDef *def)
+{
+    if (!def->tseg_specified)
+        return;
+
+    virCommandAddArg(cmd, "-global");
+
+    /* PostParse callback guarantees that the size is divisible by 1 MiB */
+    virCommandAddArgFormat(cmd, "mch.extended-tseg-mbytes=%llu",
+                           def->tseg_size >> 20);
+}
+
 
 static int
 qemuBuildSmpCommandLine(virCommandPtr cmd,
@@ -7306,6 +7397,16 @@ qemuBuildMemPathStr(virQEMUDriverConfigPtr cfg,
      */
     if (!def->mem.nhugepages)
         return 0;
+
+    if (def->mem.hugepages[0].nodemask) {
+        ssize_t next_bit = virBitmapNextSetBit(def->mem.hugepages[0].nodemask, -1);
+        if (next_bit >= 0) {
+            virReportError(VIR_ERR_XML_DETAIL,
+                           _("hugepages: node %zd not found"),
+                           next_bit);
+            return -1;
+        }
+    }
 
     /* There is one special case: if user specified "huge"
      * pages of regular system pages size.
@@ -7410,7 +7511,7 @@ qemuBuildNumaArgStr(virQEMUDriverConfigPtr cfg,
     virQEMUCapsPtr qemuCaps = priv->qemuCaps;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     char *cpumask = NULL, *tmpmask = NULL, *next = NULL;
-    char **nodeBackends = NULL;
+    virBufferPtr nodeBackends = NULL;
     bool needBackend = false;
     int rc;
     int ret = -1;
@@ -7471,6 +7572,7 @@ qemuBuildNumaArgStr(virQEMUDriverConfigPtr cfg,
     for (i = 0; i < ncells; i++) {
         if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_RAM) ||
             virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_FILE)) {
+
             if ((rc = qemuBuildMemoryCellBackendStr(def, cfg, i, priv,
                                                     &nodeBackends[i])) < 0)
                 goto cleanup;
@@ -7504,8 +7606,10 @@ qemuBuildNumaArgStr(virQEMUDriverConfigPtr cfg,
             goto cleanup;
         }
 
-        if (needBackend)
-            virCommandAddArgList(cmd, "-object", nodeBackends[i], NULL);
+        if (needBackend) {
+            virCommandAddArg(cmd, "-object");
+            virCommandAddArgBuffer(cmd, &nodeBackends[i]);
+        }
 
         virCommandAddArg(cmd, "-numa");
         virBufferAsprintf(&buf, "node,nodeid=%zu", i);
@@ -7568,7 +7672,7 @@ qemuBuildNumaArgStr(virQEMUDriverConfigPtr cfg,
 
     if (nodeBackends) {
         for (i = 0; i < ncells; i++)
-            VIR_FREE(nodeBackends[i]);
+            virBufferFreeAndReset(&nodeBackends[i]);
 
         VIR_FREE(nodeBackends);
     }
@@ -7589,25 +7693,72 @@ qemuBuildMemoryDeviceCommandLine(virCommandPtr cmd,
     /* memory hotplug requires NUMA to be enabled - we already checked
      * that memory devices are present only when NUMA is */
     for (i = 0; i < def->nmems; i++) {
-        char *backStr;
+        virBuffer buf = VIR_BUFFER_INITIALIZER;
         char *dimmStr;
 
-        if (!(backStr = qemuBuildMemoryDimmBackendStr(def->mems[i], def,
-                                                      cfg, priv)))
+        if (qemuBuildMemoryDimmBackendStr(&buf, def->mems[i], def, cfg, priv) < 0)
             return -1;
 
-        if (!(dimmStr = qemuBuildMemoryDeviceStr(def->mems[i]))) {
-            VIR_FREE(backStr);
+        virCommandAddArg(cmd, "-object");
+        virCommandAddArgBuffer(cmd, &buf);
+
+        if (!(dimmStr = qemuBuildMemoryDeviceStr(def->mems[i])))
             return -1;
-        }
 
-        virCommandAddArgList(cmd, "-object", backStr, "-device", dimmStr, NULL);
+        virCommandAddArgList(cmd, "-device", dimmStr, NULL);
 
-        VIR_FREE(backStr);
         VIR_FREE(dimmStr);
     }
 
     return 0;
+}
+
+
+static int
+qemuBuildGraphicsSDLCommandLine(virQEMUDriverConfigPtr cfg ATTRIBUTE_UNUSED,
+                                virCommandPtr cmd,
+                                virQEMUCapsPtr qemuCaps ATTRIBUTE_UNUSED,
+                                virDomainGraphicsDefPtr graphics)
+{
+    int ret = -1;
+    virBuffer opt = VIR_BUFFER_INITIALIZER;
+    const char *optContent;
+
+    if (graphics->data.sdl.xauth)
+        virCommandAddEnvPair(cmd, "XAUTHORITY", graphics->data.sdl.xauth);
+    if (graphics->data.sdl.display)
+        virCommandAddEnvPair(cmd, "DISPLAY", graphics->data.sdl.display);
+    if (graphics->data.sdl.fullscreen)
+        virCommandAddArg(cmd, "-full-screen");
+
+    /* If using SDL for video, then we should just let it
+     * use QEMU's host audio drivers, possibly SDL too
+     * User can set these two before starting libvirtd
+     */
+    virCommandAddEnvPassBlockSUID(cmd, "QEMU_AUDIO_DRV", NULL);
+    virCommandAddEnvPassBlockSUID(cmd, "SDL_AUDIODRIVER", NULL);
+
+    virCommandAddArg(cmd, "-sdl");
+
+    if (graphics->data.sdl.gl == VIR_TRISTATE_BOOL_YES) {
+        if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_SDL_GL)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("This QEMU doesn't support SDL OpenGL"));
+            goto cleanup;
+        }
+
+        virBufferAsprintf(&opt, "gl=%s",
+                          virTristateSwitchTypeToString(graphics->data.sdl.gl));
+    }
+
+    optContent = virBufferCurrentContent(&opt);
+    if (optContent && STRNEQ(optContent, ""))
+        virCommandAddArgBuffer(cmd, &opt);
+
+    ret = 0;
+ cleanup:
+    virBufferFreeAndReset(&opt);
+    return ret;
 }
 
 
@@ -7843,8 +7994,11 @@ qemuBuildGraphicsSPICECommandLine(virQEMUDriverConfigPtr cfg,
         !cfg->spicePassword)
         virBufferAddLit(&opt, "disable-ticketing,");
 
-    if (hasSecure)
-        virBufferAsprintf(&opt, "x509-dir=%s,", cfg->spiceTLSx509certdir);
+    if (hasSecure) {
+        virBufferAddLit(&opt, "x509-dir=");
+        virQEMUBuildBufferEscapeComma(&opt, cfg->spiceTLSx509certdir);
+        virBufferAddLit(&opt, ",");
+    }
 
     switch (graphics->data.spice.defaultMode) {
     case VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_SECURE:
@@ -7951,7 +8105,9 @@ qemuBuildGraphicsSPICECommandLine(virQEMUDriverConfigPtr cfg,
                 goto error;
             }
 
-            virBufferAsprintf(&opt, "rendernode=%s,", graphics->data.spice.rendernode);
+            virBufferAddLit(&opt, "rendernode=");
+            virQEMUBuildBufferEscapeComma(&opt, graphics->data.spice.rendernode);
+            virBufferAddLit(&opt, ",");
         }
     }
 
@@ -7990,26 +8146,7 @@ qemuBuildGraphicsCommandLine(virQEMUDriverConfigPtr cfg,
 {
     switch (graphics->type) {
     case VIR_DOMAIN_GRAPHICS_TYPE_SDL:
-        if (graphics->data.sdl.xauth)
-            virCommandAddEnvPair(cmd, "XAUTHORITY", graphics->data.sdl.xauth);
-        if (graphics->data.sdl.display)
-            virCommandAddEnvPair(cmd, "DISPLAY", graphics->data.sdl.display);
-        if (graphics->data.sdl.fullscreen)
-            virCommandAddArg(cmd, "-full-screen");
-
-        /* If using SDL for video, then we should just let it
-         * use QEMU's host audio drivers, possibly SDL too
-         * User can set these two before starting libvirtd
-         */
-        virCommandAddEnvPassBlockSUID(cmd, "QEMU_AUDIO_DRV", NULL);
-        virCommandAddEnvPassBlockSUID(cmd, "SDL_AUDIODRIVER", NULL);
-
-        /* New QEMU has this flag to let us explicitly ask for
-         * SDL graphics. This is better than relying on the
-         * default, since the default changes :-( */
-        virCommandAddArg(cmd, "-sdl");
-
-        break;
+        return qemuBuildGraphicsSDLCommandLine(cfg, cmd, qemuCaps, graphics);
 
     case VIR_DOMAIN_GRAPHICS_TYPE_VNC:
         return qemuBuildGraphicsVNCCommandLine(cfg, cmd, qemuCaps, graphics);
@@ -8032,6 +8169,7 @@ qemuBuildGraphicsCommandLine(virQEMUDriverConfigPtr cfg,
 static int
 qemuBuildVhostuserCommandLine(virQEMUDriverPtr driver,
                               virLogManagerPtr logManager,
+                              virSecurityManagerPtr secManager,
                               virCommandPtr cmd,
                               virDomainDefPtr def,
                               virDomainNetDefPtr net,
@@ -8044,20 +8182,22 @@ qemuBuildVhostuserCommandLine(virQEMUDriverPtr driver,
     char *netdev = NULL;
     unsigned int queues = net->driver.virtio.queues;
     char *nic = NULL;
+    int ret = -1;
 
     if (!qemuDomainSupportsNicdev(def, net)) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        "%s", _("Nicdev support unavailable"));
-        goto error;
+        goto cleanup;
     }
 
-    switch ((virDomainChrType) net->data.vhostuser->type) {
+    switch ((virDomainChrType)net->data.vhostuser->type) {
     case VIR_DOMAIN_CHR_TYPE_UNIX:
-        if (!(chardev = qemuBuildChrChardevStr(logManager, cmd, cfg, def,
+        if (!(chardev = qemuBuildChrChardevStr(logManager, secManager,
+                                               cmd, cfg, def,
                                                net->data.vhostuser,
                                                net->info.alias, qemuCaps, false,
                                                chardevStdioLogd)))
-            goto error;
+            goto cleanup;
         break;
 
     case VIR_DOMAIN_CHR_TYPE_NULL:
@@ -8076,7 +8216,7 @@ qemuBuildVhostuserCommandLine(virQEMUDriverPtr driver,
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("vhost-user type '%s' not supported"),
                        virDomainChrTypeToString(net->data.vhostuser->type));
-        goto error;
+        goto cleanup;
     }
 
     if (queues > 1 &&
@@ -8084,56 +8224,48 @@ qemuBuildVhostuserCommandLine(virQEMUDriverPtr driver,
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("multi-queue is not supported for vhost-user "
                          "with this QEMU binary"));
-        goto error;
+        goto cleanup;
     }
 
     if (!(netdev = qemuBuildHostNetStr(net, driver,
-                                       ',', -1,
                                        NULL, 0, NULL, 0)))
-        goto error;
+        goto cleanup;
 
     if (virNetDevOpenvswitchGetVhostuserIfname(net->data.vhostuser->data.nix.path,
                                                &net->ifname) < 0)
-        goto error;
+        goto cleanup;
 
     virCommandAddArg(cmd, "-chardev");
     virCommandAddArg(cmd, chardev);
-    VIR_FREE(chardev);
 
     virCommandAddArg(cmd, "-netdev");
     virCommandAddArg(cmd, netdev);
-    VIR_FREE(netdev);
 
-    if (!(nic = qemuBuildNicDevStr(def, net, -1, bootindex,
+    if (!(nic = qemuBuildNicDevStr(def, net, bootindex,
                                    queues, qemuCaps))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("Error generating NIC -device string"));
-        goto error;
+        goto cleanup;
     }
 
     virCommandAddArgList(cmd, "-device", nic, NULL);
-    VIR_FREE(nic);
-    virObjectUnref(cfg);
 
-    return 0;
-
- error:
+    ret = 0;
+ cleanup:
     virObjectUnref(cfg);
     VIR_FREE(netdev);
     VIR_FREE(chardev);
     VIR_FREE(nic);
 
-    return -1;
+    return ret;
 }
 
 static int
 qemuBuildInterfaceCommandLine(virQEMUDriverPtr driver,
                               virLogManagerPtr logManager,
+                              virSecurityManagerPtr secManager,
                               virCommandPtr cmd,
                               virDomainDefPtr def,
                               virDomainNetDefPtr net,
                               virQEMUCapsPtr qemuCaps,
-                              int vlan,
                               unsigned int bootindex,
                               virNetDevVPortProfileOp vmop,
                               bool standalone,
@@ -8261,7 +8393,7 @@ qemuBuildInterfaceCommandLine(virQEMUDriverPtr driver,
         break;
 
     case VIR_DOMAIN_NET_TYPE_VHOSTUSER:
-        ret = qemuBuildVhostuserCommandLine(driver, logManager, cmd, def,
+        ret = qemuBuildVhostuserCommandLine(driver, logManager, secManager, cmd, def,
                                             net, qemuCaps, bootindex,
                                             chardevStdioLogd);
         goto cleanup;
@@ -8379,37 +8511,27 @@ qemuBuildInterfaceCommandLine(virQEMUDriverPtr driver,
             goto cleanup;
     }
 
+    if (!(host = qemuBuildHostNetStr(net, driver,
+                                     tapfdName, tapfdSize,
+                                     vhostfdName, vhostfdSize)))
+        goto cleanup;
+    virCommandAddArgList(cmd, "-netdev", host, NULL);
+
     /* Possible combinations:
      *
-     *  1. Old way:   -net nic,model=e1000,vlan=1 -net tap,vlan=1
-     *  2. New way:   -netdev type=tap,id=netdev1 -device e1000,id=netdev1
-     *
-     * NB: The backend and frontend are reversed above
+     *   Old way: -netdev type=tap,id=netdev1 \
+     *              -net nic,model=e1000,netdev=netdev1
+     *   New way: -netdev type=tap,id=netdev1 -device e1000,id=netdev1
      */
-
     if (qemuDomainSupportsNicdev(def, net)) {
-        if (!(host = qemuBuildHostNetStr(net, driver,
-                                         ',', vlan,
-                                         tapfdName, tapfdSize,
-                                         vhostfdName, vhostfdSize)))
-            goto cleanup;
-        virCommandAddArgList(cmd, "-netdev", host, NULL);
-
-        if (!(nic = qemuBuildNicDevStr(def, net, vlan, bootindex,
+        if (!(nic = qemuBuildNicDevStr(def, net, bootindex,
                                        vhostfdSize, qemuCaps)))
             goto cleanup;
         virCommandAddArgList(cmd, "-device", nic, NULL);
     } else {
-        if (!(nic = qemuBuildNicStr(net, "nic,", vlan)))
+        if (!(nic = qemuBuildLegacyNicStr(net)))
             goto cleanup;
         virCommandAddArgList(cmd, "-net", nic, NULL);
-
-        if (!(host = qemuBuildHostNetStr(net, driver,
-                                         ',', vlan,
-                                         tapfdName, tapfdSize,
-                                         vhostfdName, vhostfdSize)))
-            goto cleanup;
-        virCommandAddArgList(cmd, "-net", host, NULL);
     }
 
     ret = 0;
@@ -8449,6 +8571,7 @@ qemuBuildInterfaceCommandLine(virQEMUDriverPtr driver,
 static int
 qemuBuildNetCommandLine(virQEMUDriverPtr driver,
                         virLogManagerPtr logManager,
+                        virSecurityManagerPtr secManager,
                         virCommandPtr cmd,
                         virDomainDefPtr def,
                         virQEMUCapsPtr qemuCaps,
@@ -8480,16 +8603,9 @@ qemuBuildNetCommandLine(virQEMUDriverPtr driver,
 
         for (i = 0; i < def->nnets; i++) {
             virDomainNetDefPtr net = def->nets[i];
-            int vlan;
 
-            /* VLANs are not used with -netdev and -device, so don't record them */
-            if (qemuDomainSupportsNicdev(def, net))
-                vlan = -1;
-            else
-                vlan = i;
-
-            if (qemuBuildInterfaceCommandLine(driver, logManager, cmd, def, net,
-                                              qemuCaps, vlan, bootNet, vmop,
+            if (qemuBuildInterfaceCommandLine(driver, logManager, secManager, cmd, def, net,
+                                              qemuCaps, bootNet, vmop,
                                               standalone, nnicindexes,
                                               nicindexes,
                                               chardevStdioLogd) < 0)
@@ -8551,6 +8667,7 @@ qemuBuildSmartcardFindCCIDController(const virDomainDef *def,
 
 static int
 qemuBuildSmartcardCommandLine(virLogManagerPtr logManager,
+                              virSecurityManagerPtr secManager,
                               virCommandPtr cmd,
                               virQEMUDriverConfigPtr cfg,
                               const virDomainDef *def,
@@ -8604,29 +8721,16 @@ qemuBuildSmartcardCommandLine(virLogManagerPtr logManager,
 
         virBufferAddLit(&opt, "ccid-card-emulated,backend=certificates");
         for (i = 0; i < VIR_DOMAIN_SMARTCARD_NUM_CERTIFICATES; i++) {
-            if (strchr(smartcard->data.cert.file[i], ',')) {
-                virBufferFreeAndReset(&opt);
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                               _("invalid certificate name: %s"),
-                               smartcard->data.cert.file[i]);
-                return -1;
-            }
-            virBufferAsprintf(&opt, ",cert%zu=%s", i + 1,
-                              smartcard->data.cert.file[i]);
+            virBufferAsprintf(&opt, ",cert%zu=", i + 1);
+            virQEMUBuildBufferEscapeComma(&opt, smartcard->data.cert.file[i]);
         }
         if (smartcard->data.cert.database) {
-            if (strchr(smartcard->data.cert.database, ',')) {
-                virBufferFreeAndReset(&opt);
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                               _("invalid database name: %s"),
-                               smartcard->data.cert.database);
-                return -1;
-            }
             database = smartcard->data.cert.database;
         } else {
             database = VIR_DOMAIN_SMARTCARD_DEFAULT_DATABASE;
         }
-        virBufferAsprintf(&opt, ",db=%s", database);
+        virBufferAddLit(&opt, ",db=");
+        virQEMUBuildBufferEscapeComma(&opt, database);
         break;
 
     case VIR_DOMAIN_SMARTCARD_TYPE_PASSTHROUGH:
@@ -8637,7 +8741,8 @@ qemuBuildSmartcardCommandLine(virLogManagerPtr logManager,
             return -1;
         }
 
-        if (!(devstr = qemuBuildChrChardevStr(logManager, cmd, cfg, def,
+        if (!(devstr = qemuBuildChrChardevStr(logManager, secManager,
+                                              cmd, cfg, def,
                                               smartcard->data.passthru,
                                               smartcard->info.alias,
                                               qemuCaps, true,
@@ -8772,49 +8877,32 @@ qemuBuildShmemDevStr(virDomainDefPtr def,
 virJSONValuePtr
 qemuBuildShmemBackendMemProps(virDomainShmemDefPtr shmem)
 {
+    char *mem_alias = NULL;
     char *mem_path = NULL;
     virJSONValuePtr ret = NULL;
 
     if (virAsprintf(&mem_path, "/dev/shm/%s", shmem->name) < 0)
         return NULL;
 
-    virJSONValueObjectCreate(&ret,
-                             "s:mem-path", mem_path,
-                             "U:size", shmem->size,
-                             "b:share", true,
-                             NULL);
-
-    VIR_FREE(mem_path);
-    return ret;
-}
-
-
-static char *
-qemuBuildShmemBackendMemStr(virDomainShmemDefPtr shmem)
-{
-    char *ret = NULL;
-    char *alias = NULL;
-    virJSONValuePtr props = qemuBuildShmemBackendMemProps(shmem);
-
-    if (!props)
-        return NULL;
-
-    if (virAsprintf(&alias, "shmmem-%s", shmem->info.alias) < 0)
+    if (virAsprintf(&mem_alias, "shmmem-%s", shmem->info.alias) < 0)
         goto cleanup;
 
-    ret = virQEMUBuildObjectCommandlineFromJSON("memory-backend-file",
-                                                alias,
-                                                props);
- cleanup:
-    VIR_FREE(alias);
-    virJSONValueFree(props);
+    qemuMonitorCreateObjectProps(&ret, "memory-backend-file", mem_alias,
+                                 "s:mem-path", mem_path,
+                                 "U:size", shmem->size,
+                                 "b:share", true,
+                                 NULL);
 
+ cleanup:
+    VIR_FREE(mem_alias);
+    VIR_FREE(mem_path);
     return ret;
 }
 
 
 static int
 qemuBuildShmemCommandLine(virLogManagerPtr logManager,
+                          virSecurityManagerPtr secManager,
                           virCommandPtr cmd,
                           virQEMUDriverConfigPtr cfg,
                           virDomainDefPtr def,
@@ -8822,7 +8910,10 @@ qemuBuildShmemCommandLine(virLogManagerPtr logManager,
                           virQEMUCapsPtr qemuCaps,
                           bool chardevStdioLogd)
 {
+    virJSONValuePtr memProps = NULL;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
     char *devstr = NULL;
+    int rc;
 
     if (shmem->size) {
         /*
@@ -8856,11 +8947,17 @@ qemuBuildShmemCommandLine(virLogManagerPtr logManager,
         break;
 
     case VIR_DOMAIN_SHMEM_MODEL_IVSHMEM_PLAIN:
-        if (!(devstr = qemuBuildShmemBackendMemStr(shmem)))
+        if (!(memProps = qemuBuildShmemBackendMemProps(shmem)))
             return -1;
 
-        virCommandAddArgList(cmd, "-object", devstr, NULL);
-        VIR_FREE(devstr);
+        rc = virQEMUBuildObjectCommandlineFromJSON(&buf, memProps);
+        virJSONValueFree(memProps);
+
+        if (rc < 0)
+            return -1;
+
+        virCommandAddArg(cmd, "-object");
+        virCommandAddArgBuffer(cmd, &buf);
 
         ATTRIBUTE_FALLTHROUGH;
     case VIR_DOMAIN_SHMEM_MODEL_IVSHMEM_DOORBELL:
@@ -8877,7 +8974,8 @@ qemuBuildShmemCommandLine(virLogManagerPtr logManager,
     VIR_FREE(devstr);
 
     if (shmem->server.enabled) {
-        devstr = qemuBuildChrChardevStr(logManager, cmd, cfg, def,
+        devstr = qemuBuildChrChardevStr(logManager, secManager,
+                                        cmd, cfg, def,
                                         &shmem->server.chr,
                                         shmem->info.alias, qemuCaps, true,
                                         chardevStdioLogd);
@@ -8964,6 +9062,7 @@ qemuChrIsPlatformDevice(const virDomainDef *def,
 
 static int
 qemuBuildSerialCommandLine(virLogManagerPtr logManager,
+                           virSecurityManagerPtr secManager,
                            virCommandPtr cmd,
                            virQEMUDriverConfigPtr cfg,
                            const virDomainDef *def,
@@ -8987,7 +9086,8 @@ qemuBuildSerialCommandLine(virLogManagerPtr logManager,
         if (serial->source->type == VIR_DOMAIN_CHR_TYPE_SPICEPORT && !havespice)
             continue;
 
-        if (!(devstr = qemuBuildChrChardevStr(logManager, cmd, cfg, def,
+        if (!(devstr = qemuBuildChrChardevStr(logManager, secManager,
+                                              cmd, cfg, def,
                                               serial->source,
                                               serial->info.alias,
                                               qemuCaps, true,
@@ -9024,6 +9124,7 @@ qemuBuildSerialCommandLine(virLogManagerPtr logManager,
 
 static int
 qemuBuildParallelsCommandLine(virLogManagerPtr logManager,
+                              virSecurityManagerPtr secManager,
                               virCommandPtr cmd,
                               virQEMUDriverConfigPtr cfg,
                               const virDomainDef *def,
@@ -9036,7 +9137,8 @@ qemuBuildParallelsCommandLine(virLogManagerPtr logManager,
         virDomainChrDefPtr parallel = def->parallels[i];
         char *devstr;
 
-        if (!(devstr = qemuBuildChrChardevStr(logManager, cmd, cfg, def,
+        if (!(devstr = qemuBuildChrChardevStr(logManager, secManager,
+                                              cmd, cfg, def,
                                               parallel->source,
                                               parallel->info.alias,
                                               qemuCaps, true,
@@ -9057,6 +9159,7 @@ qemuBuildParallelsCommandLine(virLogManagerPtr logManager,
 
 static int
 qemuBuildChannelsCommandLine(virLogManagerPtr logManager,
+                             virSecurityManagerPtr secManager,
                              virCommandPtr cmd,
                              virQEMUDriverConfigPtr cfg,
                              const virDomainDef *def,
@@ -9071,7 +9174,8 @@ qemuBuildChannelsCommandLine(virLogManagerPtr logManager,
 
         switch (channel->targetType) {
         case VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_GUESTFWD:
-            if (!(devstr = qemuBuildChrChardevStr(logManager, cmd, cfg, def,
+            if (!(devstr = qemuBuildChrChardevStr(logManager, secManager,
+                                                  cmd, cfg, def,
                                                   channel->source,
                                                   channel->info.alias,
                                                   qemuCaps, true,
@@ -9088,7 +9192,8 @@ qemuBuildChannelsCommandLine(virLogManagerPtr logManager,
             break;
 
         case VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_VIRTIO:
-            if (!(devstr = qemuBuildChrChardevStr(logManager, cmd, cfg, def,
+            if (!(devstr = qemuBuildChrChardevStr(logManager, secManager,
+                                                  cmd, cfg, def,
                                                   channel->source,
                                                   channel->info.alias,
                                                   qemuCaps, true,
@@ -9110,6 +9215,7 @@ qemuBuildChannelsCommandLine(virLogManagerPtr logManager,
 
 static int
 qemuBuildConsoleCommandLine(virLogManagerPtr logManager,
+                            virSecurityManagerPtr secManager,
                             virCommandPtr cmd,
                             virQEMUDriverConfigPtr cfg,
                             const virDomainDef *def,
@@ -9131,7 +9237,8 @@ qemuBuildConsoleCommandLine(virLogManagerPtr logManager,
                 return -1;
             }
 
-            if (!(devstr = qemuBuildChrChardevStr(logManager, cmd, cfg, def,
+            if (!(devstr = qemuBuildChrChardevStr(logManager, secManager,
+                                                  cmd, cfg, def,
                                                   console->source,
                                                   console->info.alias,
                                                   qemuCaps, true,
@@ -9152,7 +9259,8 @@ qemuBuildConsoleCommandLine(virLogManagerPtr logManager,
                 return -1;
             }
 
-            if (!(devstr = qemuBuildChrChardevStr(logManager, cmd, cfg, def,
+            if (!(devstr = qemuBuildChrChardevStr(logManager, secManager,
+                                                  cmd, cfg, def,
                                                   console->source,
                                                   console->info.alias,
                                                   qemuCaps, true,
@@ -9167,7 +9275,8 @@ qemuBuildConsoleCommandLine(virLogManagerPtr logManager,
             break;
 
         case VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_VIRTIO:
-            if (!(devstr = qemuBuildChrChardevStr(logManager, cmd, cfg, def,
+            if (!(devstr = qemuBuildChrChardevStr(logManager, secManager,
+                                                  cmd, cfg, def,
                                                   console->source,
                                                   console->info.alias,
                                                   qemuCaps, true,
@@ -9286,6 +9395,7 @@ qemuBuildRedirdevDevStr(const virDomainDef *def,
 
 static int
 qemuBuildRedirdevCommandLine(virLogManagerPtr logManager,
+                             virSecurityManagerPtr secManager,
                              virCommandPtr cmd,
                              virQEMUDriverConfigPtr cfg,
                              const virDomainDef *def,
@@ -9298,7 +9408,8 @@ qemuBuildRedirdevCommandLine(virLogManagerPtr logManager,
         virDomainRedirdevDefPtr redirdev = def->redirdevs[i];
         char *devstr;
 
-        if (!(devstr = qemuBuildChrChardevStr(logManager, cmd, cfg, def,
+        if (!(devstr = qemuBuildChrChardevStr(logManager, secManager,
+                                              cmd, cfg, def,
                                               redirdev->source,
                                               redirdev->info.alias,
                                               qemuCaps, true,
@@ -9387,8 +9498,22 @@ qemuBuildTPMDevStr(const virDomainDef *def,
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     const virDomainTPMDef *tpm = def->tpm;
     const char *model = virDomainTPMModelTypeToString(tpm->model);
+    virQEMUCapsFlags flag;
 
-    if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_TPM_TIS)) {
+    switch (tpm->model) {
+    case VIR_DOMAIN_TPM_MODEL_TIS:
+        flag = QEMU_CAPS_DEVICE_TPM_TIS;
+        break;
+    case VIR_DOMAIN_TPM_MODEL_CRB:
+        flag = QEMU_CAPS_DEVICE_TPM_CRB;
+        break;
+    case VIR_DOMAIN_TPM_MODEL_LAST:
+    default:
+        virReportEnumRangeError(virDomainTPMModel, tpm->model);
+        goto error;
+    }
+
+    if (!virQEMUCapsGet(qemuCaps, flag)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("The QEMU executable %s does not support TPM "
                        "model %s"),
@@ -9415,16 +9540,26 @@ qemuBuildTPMBackendStr(const virDomainDef *def,
                        virCommandPtr cmd,
                        virQEMUCapsPtr qemuCaps,
                        int *tpmfd,
-                       int *cancelfd)
+                       int *cancelfd,
+                       char **chardev)
 {
     const virDomainTPMDef *tpm = def->tpm;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
-    const char *type = virDomainTPMBackendTypeToString(tpm->type);
+    const char *type = NULL;
     char *cancel_path = NULL, *devset = NULL;
     const char *tpmdev;
 
     *tpmfd = -1;
     *cancelfd = -1;
+
+    switch (tpm->type) {
+    case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
+    case VIR_DOMAIN_TPM_TYPE_EMULATOR:
+        type = virDomainTPMBackendTypeToString(tpm->type);
+        break;
+    case VIR_DOMAIN_TPM_TYPE_LAST:
+        goto error;
+    }
 
     virBufferAsprintf(&buf, "%s,id=tpm-%s", type, tpm->info.alias);
 
@@ -9476,6 +9611,17 @@ qemuBuildTPMBackendStr(const virDomainDef *def,
         VIR_FREE(cancel_path);
 
         break;
+    case VIR_DOMAIN_TPM_TYPE_EMULATOR:
+        if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_TPM_EMULATOR))
+            goto no_support;
+
+        virBufferAddLit(&buf, ",chardev=chrtpm");
+
+        if (virAsprintf(chardev, "socket,id=chrtpm,path=%s",
+                        tpm->data.emulator.source.data.nix.path) < 0)
+            goto error;
+
+        break;
     case VIR_DOMAIN_TPM_TYPE_LAST:
         goto error;
     }
@@ -9506,6 +9652,7 @@ qemuBuildTPMCommandLine(virCommandPtr cmd,
                         virQEMUCapsPtr qemuCaps)
 {
     char *optstr;
+    char *chardev = NULL;
     int tpmfd = -1;
     int cancelfd = -1;
     char *fdset;
@@ -9514,11 +9661,17 @@ qemuBuildTPMCommandLine(virCommandPtr cmd,
         return 0;
 
     if (!(optstr = qemuBuildTPMBackendStr(def, cmd, qemuCaps,
-                                          &tpmfd, &cancelfd)))
+                                          &tpmfd, &cancelfd,
+                                          &chardev)))
         return -1;
 
     virCommandAddArgList(cmd, "-tpmdev", optstr, NULL);
     VIR_FREE(optstr);
+
+    if (chardev) {
+        virCommandAddArgList(cmd, "-chardev", chardev, NULL);
+        VIR_FREE(chardev);
+    }
 
     if (tpmfd >= 0) {
         fdset = qemuVirCommandGetFDSet(cmd, tpmfd);
@@ -9547,6 +9700,46 @@ qemuBuildTPMCommandLine(virCommandPtr cmd,
     return 0;
 }
 
+static int
+qemuBuildSEVCommandLine(virDomainObjPtr vm, virCommandPtr cmd,
+                        virDomainSEVDefPtr sev)
+{
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    char *path = NULL;
+    int ret = -1;
+
+    if (!sev)
+        return 0;
+
+    VIR_DEBUG("policy=0x%x cbitpos=%d reduced_phys_bits=%d",
+              sev->policy, sev->cbitpos, sev->reduced_phys_bits);
+
+    virBufferAsprintf(&buf, "sev-guest,id=sev0,cbitpos=%d", sev->cbitpos);
+    virBufferAsprintf(&buf, ",reduced-phys-bits=%d", sev->reduced_phys_bits);
+    virBufferAsprintf(&buf, ",policy=0x%x", sev->policy);
+
+    if (sev->dh_cert) {
+        if (virAsprintf(&path, "%s/dh_cert.base64", priv->libDir) < 0)
+            goto cleanup;
+        virBufferAsprintf(&buf, ",dh-cert-file=%s", path);
+        VIR_FREE(path);
+    }
+
+    if (sev->session) {
+        if (virAsprintf(&path, "%s/session.base64", priv->libDir) < 0)
+            goto cleanup;
+        virBufferAsprintf(&buf, ",session-file=%s", path);
+        VIR_FREE(path);
+    }
+
+    virCommandAddArg(cmd, "-object");
+    virCommandAddArgBuffer(cmd, &buf);
+    ret = 0;
+ cleanup:
+    virBufferFreeAndReset(&buf);
+    return ret;
+}
 
 static int
 qemuBuildVMCoreInfoCommandLine(virCommandPtr cmd,
@@ -9673,6 +9866,86 @@ qemuBuildPanicCommandLine(virCommandPtr cmd,
 }
 
 
+static virJSONValuePtr
+qemuBuildPRManagerInfoPropsInternal(const char *alias,
+                                    const char *path)
+{
+    virJSONValuePtr ret = NULL;
+
+    if (qemuMonitorCreateObjectProps(&ret,
+                                     "pr-manager-helper", alias,
+                                     "s:path", path, NULL) < 0)
+        return NULL;
+
+    return ret;
+}
+
+
+/**
+ * qemuBuildPRManagedManagerInfoProps:
+ *
+ * Build the JSON properties for the pr-manager object corresponding to the PR
+ * daemon managed by libvirt.
+ */
+virJSONValuePtr
+qemuBuildPRManagedManagerInfoProps(qemuDomainObjPrivatePtr priv)
+{
+    char *path = NULL;
+    virJSONValuePtr ret = NULL;
+
+    if (!(path = qemuDomainGetManagedPRSocketPath(priv)))
+        return NULL;
+
+    ret = qemuBuildPRManagerInfoPropsInternal(qemuDomainGetManagedPRAlias(),
+                                              path);
+
+    VIR_FREE(path);
+    return ret;
+}
+
+
+/**
+ * qemuBuildPRManagerInfoProps:
+ * @src: storage source
+ *
+ * Build the JSON properties for the pr-manager object.
+ */
+virJSONValuePtr
+qemuBuildPRManagerInfoProps(virStorageSourcePtr src)
+{
+    return qemuBuildPRManagerInfoPropsInternal(src->pr->mgralias, src->pr->path);
+}
+
+
+static int
+qemuBuildManagedPRCommandLine(virCommandPtr cmd,
+                              const virDomainDef *def,
+                              qemuDomainObjPrivatePtr priv)
+{
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    virJSONValuePtr props = NULL;
+    int ret = -1;
+
+    if (!virDomainDefHasManagedPR(def))
+        return 0;
+
+    if (!(props = qemuBuildPRManagedManagerInfoProps(priv)))
+        return -1;
+
+    if (virQEMUBuildObjectCommandlineFromJSON(&buf, props) < 0)
+        goto cleanup;
+
+    virCommandAddArg(cmd, "-object");
+    virCommandAddArgBuffer(cmd, &buf);
+
+    ret = 0;
+ cleanup:
+    virBufferFreeAndReset(&buf);
+    virJSONValueFree(props);
+    return ret;
+}
+
+
 /**
  * qemuBuildCommandLineValidate:
  *
@@ -9764,7 +10037,8 @@ qemuBuildSeccompSandboxCommandLine(virCommandPtr cmd,
                                    virQEMUCapsPtr qemuCaps ATTRIBUTE_UNUSED)
 {
     if (cfg->seccompSandbox == 0) {
-        virCommandAddArgList(cmd, "-sandbox", "off", NULL);
+        if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_SECCOMP_SANDBOX))
+            virCommandAddArgList(cmd, "-sandbox", "off", NULL);
         return 0;
     }
 
@@ -9786,6 +10060,59 @@ qemuBuildSeccompSandboxCommandLine(virCommandPtr cmd,
 }
 
 
+char *
+qemuBuildVsockDevStr(virDomainDefPtr def,
+                     virDomainVsockDefPtr vsock,
+                     virQEMUCapsPtr qemuCaps,
+                     const char *fdprefix)
+{
+    qemuDomainVsockPrivatePtr priv = (qemuDomainVsockPrivatePtr)vsock->privateData;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    const char *device = "vhost-vsock-pci";
+    char *ret = NULL;
+
+    virBufferAsprintf(&buf, "%s", device);
+    virBufferAsprintf(&buf, ",id=%s", vsock->info.alias);
+    virBufferAsprintf(&buf, ",guest-cid=%u", vsock->guest_cid);
+    virBufferAsprintf(&buf, ",vhostfd=%s%u", fdprefix, priv->vhostfd);
+    if (qemuBuildDeviceAddressStr(&buf, def, &vsock->info, qemuCaps) < 0)
+        goto cleanup;
+
+    if (virBufferCheckError(&buf) < 0)
+        goto cleanup;
+
+    ret = virBufferContentAndReset(&buf);
+
+ cleanup:
+    virBufferFreeAndReset(&buf);
+    return ret;
+}
+
+
+static int
+qemuBuildVsockCommandLine(virCommandPtr cmd,
+                          virDomainDefPtr def,
+                          virDomainVsockDefPtr vsock,
+                          virQEMUCapsPtr qemuCaps)
+{
+    qemuDomainVsockPrivatePtr priv = (qemuDomainVsockPrivatePtr)vsock->privateData;
+    char *devstr = NULL;
+    int ret = -1;
+
+    if (!(devstr = qemuBuildVsockDevStr(def, vsock, qemuCaps, "")))
+        goto cleanup;
+
+    virCommandPassFD(cmd, priv->vhostfd, VIR_COMMAND_PASS_FD_CLOSE_PARENT);
+    priv->vhostfd = -1;
+    virCommandAddArgList(cmd, "-device", devstr, NULL);
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(devstr);
+    return ret;
+}
+
+
 /*
  * Constructs a argv suitable for launching qemu with config defined
  * for a given virtual machine.
@@ -9793,6 +10120,7 @@ qemuBuildSeccompSandboxCommandLine(virCommandPtr cmd,
 virCommandPtr
 qemuBuildCommandLine(virQEMUDriverPtr driver,
                      virLogManagerPtr logManager,
+                     virSecurityManagerPtr secManager,
                      virDomainObjPtr vm,
                      const char *migrateURI,
                      virDomainSnapshotObjPtr snapshot,
@@ -9841,11 +10169,16 @@ qemuBuildCommandLine(virQEMUDriverPtr driver,
     if (qemuBuildMasterKeyCommandLine(cmd, priv) < 0)
         goto error;
 
+    if (qemuBuildManagedPRCommandLine(cmd, def, priv) < 0)
+        goto error;
+
     if (enableFips)
         virCommandAddArg(cmd, "-enable-fips");
 
     if (qemuBuildMachineCommandLine(cmd, cfg, def, qemuCaps) < 0)
         goto error;
+
+    qemuBuildTSEGCommandLine(cmd, def);
 
     if (qemuBuildCpuCommandLine(cmd, driver, def, qemuCaps) < 0)
         goto error;
@@ -9877,6 +10210,9 @@ qemuBuildCommandLine(virQEMUDriverPtr driver,
     if (qemuBuildSmbiosCommandLine(cmd, driver, def) < 0)
         goto error;
 
+    if (qemuBuildVMGenIDCommandLine(cmd, def, qemuCaps) < 0)
+        goto error;
+
     /*
      * NB, -nographic *MUST* come before any serial, or monitor
      * or parallel port flags due to QEMU craziness, where it
@@ -9901,7 +10237,7 @@ qemuBuildCommandLine(virQEMUDriverPtr driver,
     if (qemuBuildSgaCommandLine(cmd, def, qemuCaps) < 0)
         goto error;
 
-    if (qemuBuildMonitorCommandLine(logManager, cmd, cfg, def, priv) < 0)
+    if (qemuBuildMonitorCommandLine(logManager, secManager, cmd, cfg, def, priv) < 0)
         goto error;
 
     if (qemuBuildClockCommandLine(cmd, def, qemuCaps) < 0)
@@ -9925,35 +10261,35 @@ qemuBuildCommandLine(virQEMUDriverPtr driver,
     if (qemuBuildHubCommandLine(cmd, def, qemuCaps) < 0)
         goto error;
 
-    if (qemuBuildDiskDriveCommandLine(cmd, def, qemuCaps) < 0)
+    if (qemuBuildDisksCommandLine(cmd, def, qemuCaps) < 0)
         goto error;
 
     if (qemuBuildFSDevCommandLine(cmd, def, qemuCaps) < 0)
         goto error;
 
-    if (qemuBuildNetCommandLine(driver, logManager, cmd, def,
+    if (qemuBuildNetCommandLine(driver, logManager, secManager, cmd, def,
                                 qemuCaps, vmop, standalone,
                                 nnicindexes, nicindexes, &bootHostdevNet,
                                 chardevStdioLogd) < 0)
         goto error;
 
-    if (qemuBuildSmartcardCommandLine(logManager, cmd, cfg, def, qemuCaps,
+    if (qemuBuildSmartcardCommandLine(logManager, secManager, cmd, cfg, def, qemuCaps,
                                       chardevStdioLogd) < 0)
         goto error;
 
-    if (qemuBuildSerialCommandLine(logManager, cmd, cfg, def, qemuCaps,
+    if (qemuBuildSerialCommandLine(logManager, secManager, cmd, cfg, def, qemuCaps,
                                    chardevStdioLogd) < 0)
         goto error;
 
-    if (qemuBuildParallelsCommandLine(logManager, cmd, cfg, def, qemuCaps,
+    if (qemuBuildParallelsCommandLine(logManager, secManager, cmd, cfg, def, qemuCaps,
                                       chardevStdioLogd) < 0)
         goto error;
 
-    if (qemuBuildChannelsCommandLine(logManager, cmd, cfg, def, qemuCaps,
+    if (qemuBuildChannelsCommandLine(logManager, secManager, cmd, cfg, def, qemuCaps,
                                      chardevStdioLogd) < 0)
         goto error;
 
-    if (qemuBuildConsoleCommandLine(logManager, cmd, cfg, def, qemuCaps,
+    if (qemuBuildConsoleCommandLine(logManager, secManager, cmd, cfg, def, qemuCaps,
                                     chardevStdioLogd) < 0)
         goto error;
 
@@ -9978,7 +10314,7 @@ qemuBuildCommandLine(virQEMUDriverPtr driver,
     if (qemuBuildWatchdogCommandLine(cmd, def, qemuCaps) < 0)
         goto error;
 
-    if (qemuBuildRedirdevCommandLine(logManager, cmd, cfg, def, qemuCaps,
+    if (qemuBuildRedirdevCommandLine(logManager, secManager, cmd, cfg, def, qemuCaps,
                                      chardevStdioLogd) < 0)
         goto error;
 
@@ -9991,7 +10327,7 @@ qemuBuildCommandLine(virQEMUDriverPtr driver,
     if (qemuBuildMemballoonCommandLine(cmd, def, qemuCaps) < 0)
         goto error;
 
-    if (qemuBuildRNGCommandLine(logManager, cmd, cfg, def, qemuCaps,
+    if (qemuBuildRNGCommandLine(logManager, secManager, cmd, cfg, def, qemuCaps,
                                 chardevStdioLogd) < 0)
         goto error;
 
@@ -9999,6 +10335,9 @@ qemuBuildCommandLine(virQEMUDriverPtr driver,
         goto error;
 
     if (qemuBuildVMCoreInfoCommandLine(cmd, def, qemuCaps) < 0)
+        goto error;
+
+    if (qemuBuildSEVCommandLine(vm, cmd, def->sev) < 0)
         goto error;
 
     if (snapshot)
@@ -10023,11 +10362,15 @@ qemuBuildCommandLine(virQEMUDriverPtr driver,
         goto error;
 
     for (i = 0; i < def->nshmems; i++) {
-        if (qemuBuildShmemCommandLine(logManager, cmd, cfg,
+        if (qemuBuildShmemCommandLine(logManager, secManager, cmd, cfg,
                                       def, def->shmems[i], qemuCaps,
                                       chardevStdioLogd))
             goto error;
     }
+
+    if (def->vsock &&
+        qemuBuildVsockCommandLine(cmd, def, def->vsock, qemuCaps) < 0)
+        goto error;
 
     /* In some situations, eg. VFIO passthrough, QEMU might need to lock a
      * significant amount of memory, so we need to set the limit accordingly */
@@ -10126,7 +10469,7 @@ qemuBuildChannelChrDeviceStr(char **deviceStr,
     char *addr = NULL;
     int port;
 
-    switch ((virDomainChrChannelTargetType) chr->targetType) {
+    switch ((virDomainChrChannelTargetType)chr->targetType) {
     case VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_GUESTFWD:
 
         addr = virSocketAddrFormat(chr->target.addr);
@@ -10164,7 +10507,7 @@ qemuBuildConsoleChrDeviceStr(char **deviceStr,
 {
     int ret = -1;
 
-    switch ((virDomainChrConsoleTargetType) chr->targetType) {
+    switch ((virDomainChrConsoleTargetType)chr->targetType) {
     case VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SCLP:
     case VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SCLPLM:
         if (!(*deviceStr = qemuBuildSclpDevStr(chr)))
@@ -10204,7 +10547,7 @@ qemuBuildChrDeviceStr(char **deviceStr,
 {
     int ret = -1;
 
-    switch ((virDomainChrDeviceType) chr->deviceType) {
+    switch ((virDomainChrDeviceType)chr->deviceType) {
     case VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL:
         ret = qemuBuildSerialChrDeviceStr(deviceStr, vmdef, chr, qemuCaps);
         break;
@@ -10260,4 +10603,74 @@ qemuBuildHotpluggableCPUProps(const virDomainVcpuDef *vcpu)
  error:
     virJSONValueFree(ret);
     return NULL;
+}
+
+
+/**
+ * qemuBuildStorageSourceAttachPrepareDrive:
+ * @disk: disk object to prepare
+ * @qemuCaps: qemu capabilities object
+ * @driveBoot: bootable flag for disks which don't have -device part
+ *
+ * Prepare qemuBlockStorageSourceAttachDataPtr for use with the old approach
+ * using -drive/drive_add. See qemuBlockStorageSourceAttachPrepareBlockdev.
+ */
+qemuBlockStorageSourceAttachDataPtr
+qemuBuildStorageSourceAttachPrepareDrive(virDomainDiskDefPtr disk,
+                                         virQEMUCapsPtr qemuCaps,
+                                         bool driveBoot)
+{
+    qemuBlockStorageSourceAttachDataPtr data = NULL;
+
+    if (VIR_ALLOC(data) < 0)
+        return NULL;
+
+    if (!(data->driveCmd = qemuBuildDriveStr(disk, driveBoot, qemuCaps)) ||
+        !(data->driveAlias = qemuAliasDiskDriveFromDisk(disk))) {
+        qemuBlockStorageSourceAttachDataFree(data);
+        return NULL;
+    }
+
+    return data;
+}
+
+
+/**
+ * qemuBuildStorageSourceAttachPrepareCommon:
+ * @src: storage source
+ * @data: already initialized data for disk source addition
+ * @qemuCaps: qemu capabilities object
+ *
+ * Prepare data for configuration associated with the disk source such as
+ * secrets/TLS/pr objects etc ...
+ */
+int
+qemuBuildStorageSourceAttachPrepareCommon(virStorageSourcePtr src,
+                                          qemuBlockStorageSourceAttachDataPtr data,
+                                          virQEMUCapsPtr qemuCaps)
+{
+    qemuDomainStorageSourcePrivatePtr srcpriv = QEMU_DOMAIN_STORAGE_SOURCE_PRIVATE(src);
+
+    if (src->pr &&
+        !virStoragePRDefIsManaged(src->pr) &&
+        !(data->prmgrProps = qemuBuildPRManagerInfoProps(src)))
+        return -1;
+
+    if (srcpriv) {
+        if (srcpriv->secinfo &&
+            srcpriv->secinfo->type == VIR_DOMAIN_SECRET_INFO_TYPE_AES &&
+            qemuBuildSecretInfoProps(srcpriv->secinfo, &data->authsecretProps) < 0)
+            return -1;
+
+        if (srcpriv->encinfo &&
+            qemuBuildSecretInfoProps(srcpriv->encinfo, &data->encryptsecretProps) < 0)
+            return -1;
+    }
+
+    if (src->haveTLS == VIR_TRISTATE_BOOL_YES &&
+        qemuBuildTLSx509BackendProps(src->tlsCertdir, false, true, src->tlsAlias,
+                                     NULL, qemuCaps, &data->tlsProps) < 0)
+        return -1;
+
+    return 0;
 }

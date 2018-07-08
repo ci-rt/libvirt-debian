@@ -1,3 +1,11 @@
+libvirt (4.5.0-1~1.gbpb2413d) UNRELEASED; urgency=medium
+
+  ** SNAPSHOT build @b2413d9c196f0452da82323dccf4ed61f896f0fd **
+
+  * [c2b3afc] New upstream version 4.5.0
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 08 Jul 2018 12:36:28 +0200
+
 libvirt (4.3.0-1) unstable; urgency=medium
 
   * [8730a15] New upstream version 4.3.0

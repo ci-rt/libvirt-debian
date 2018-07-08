@@ -34,6 +34,7 @@
   <flag name='blockio'/>
   <flag name='ide-drive.wwn'/>
   <flag name='scsi-disk.wwn'/>
+  <flag name='seccomp-sandbox'/>
   <flag name='reboot-timeout'/>
   <flag name='seamless-migration'/>
   <flag name='block-commit'/>
@@ -145,9 +146,13 @@
   <flag name='dump-completed'/>
   <flag name='disk-write-cache'/>
   <flag name='nbd-tls'/>
+  <flag name='sdl-gl'/>
+  <flag name='hda-output'/>
+  <flag name='blockdev-del'/>
+  <flag name='vhost-vsock'/>
   <version>2009000</version>
   <kvmVersion>0</kvmVersion>
-  <microcodeVersion>346538</microcodeVersion>
+  <microcodeVersion>350708</microcodeVersion>
   <package> (v2.9.0)</package>
   <arch>ppc64</arch>
   <cpu type='kvm' name='default'/>

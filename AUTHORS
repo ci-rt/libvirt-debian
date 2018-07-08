@@ -117,6 +117,7 @@ Antoine Millet <antoine.millet@tdf.fr>
 Anton Khramov <anton@endocode.com>
 Antoni S. Puimedon <asegurap@redhat.com>
 Antoni Segura Puimedon <toni@midokura.com>
+Anya Harter <aharter@redhat.com>
 Aron Griffis <aron.griffis@hp.com>
 Asad Saeed <asad.saeed@acidseed.com>
 Ashish Mittal <Ashish.Mittal@veritas.com>
@@ -132,6 +133,7 @@ Ben Gray <ben.r.gray@gmail.com>
 Benjamin Cama <benoar@dolka.fr>
 Bharata B Rao <bharata@linux.vnet.ibm.com>
 Bing Bu Cao <mars@linux.vnet.ibm.com>
+Bjoern Walk <bwalk@linux.ibm.com>
 Bjoern Walk <bwalk@linux.vnet.ibm.com>
 Bob Liu <bob.liu@oracle.com>
 Bogdan Purcareata <bogdan.purcareata@freescale.com>
@@ -184,6 +186,7 @@ Daniel Gollub <gollub@b1-systems.de>
 Daniel Hansel <daniel.hansel@linux.vnet.ibm.com>
 Daniel J Walsh <dwalsh@redhat.com>
 Daniel Liu <srwx4096@gmail.com>
+Daniel Nicoletti <dantti12@gmail.com>
 Daniel P. Berrange <berrange@redhat.com>
 Daniel P. Berrangé <berrange@redhat.com>
 Daniel Veillard <veillard@redhat.com>
@@ -193,6 +196,7 @@ Dave Allan <dallan@redhat.com>
 David Allan <dallan@redhat.com>
 David Dai <zdai@linux.vnet.ibm.com>
 David Jorm <dfj@redhat.com>
+David Kiarie <davidkiarie4@gmail.com>
 David L Stevens <dlstevens@us.ibm.com>
 David L. Leskovec <dlesko@linux.vnet.ibm.com>
 David Mansfield <dmansfield@gmail.com>
@@ -238,11 +242,13 @@ Erik Skultety <eskultet@redhat.com>
 Ersek Laszlo <lacos@caesar.elte.hu>
 Eugen Feller <eugen.feller@inria.fr>
 Fabian Freyer <fabian.freyer@physik.tu-berlin.de>
+Fabiano Fidêncio <fabiano@fidencio.org>
 Fabiano Fidêncio <fidencio@redhat.com>
 Farhan Ali <alifm@linux.vnet.ibm.com>
 Federico Simoncelli <fsimonce@redhat.com>
 Felix Geyer <debfx@fobos.de>
 Felix Geyer <fgeyer@debian.org>
+Filip Alac <filipalac@gmail.com>
 Florian Vichot <florian.vichot@diateam.net>
 Francesc Guasch <frankie@etsetb.upc.edu>
 Francesco Romani <fromani@redhat.com>
@@ -289,6 +295,7 @@ Huanle Han <hanxueluo@gmail.com>
 Ian Campbell <Ian.Campbell@citrix.com>
 Ian Campbell <ian.campbell@citrix.com>
 Ian Main <imain@redhat.com>
+Igor Gnatenko <ignatenkobrain@fedoraproject.org>
 Ilja Livenson <ilja.livenson@gmail.com>
 Ishmanpreet Kaur Khera <khera.ishman@gmail.com>
 Ivan Baldo <ibaldo@adinet.com.uy>
@@ -377,7 +384,9 @@ Luyao Huang <lhuang@redhat.com>
 Lénaïc Huard <lenaic@lhuard.fr.eu.org>
 MATSUDA Daiki <matsudadik@intellilink.co.jp>
 MORITA Kazutaka <morita.kazutaka@lab.ntt.co.jp>
+Maciej Wolny <maciej.wolny@codethink.co.uk>
 Manuel VIVES <manuel.vives@diateam.net>
+Marc Hartmayer <mhartmay@linux.ibm.com>
 Marc Hartmayer <mhartmay@linux.vnet.ibm.com>
 Marc-André Lureau <marcandre.lureau@redhat.com>
 Marcelo Cerri <mhcerri@linux.vnet.ibm.com>
@@ -483,6 +492,7 @@ Pino Toscano <ptoscano@redhat.com>
 Pradipta Kr. Banerjee <bpradip@in.ibm.com>
 Pradipta Kr. Banerjee <pradipta.banerjee@gmail.com>
 Prafull <talep158@gmail.com>
+Prafullkumar Tale <talep158@gmail.com>
 Pranavkumar Sawargaonkar <pranavkumar@linaro.org>
 Prasanna Kumar Kalever <prasanna.kalever@redhat.com>
 Prerna Saxena <prerna@linux.vnet.ibm.com>
@@ -501,6 +511,7 @@ Richard W.M. Jones <rjones@redhat.com>
 Richard Weinberger <richard@nod.at>
 Rick Harris <rconradharris@gmail.com>
 Riku Voipio <riku.voipio@linaro.org>
+Roland Schulz <schullzroll@gmail.com>
 Rolf Eike Beer <eike@sf-mail.de>
 Roman Bogorodskiy <bogorodskiy@gmail.com>
 Roman Mohr <rmohr@redhat.com>
@@ -602,6 +613,7 @@ Wangrui (K) <moon.wangrui@huawei.com>
 Wei Huang <wei@redhat.com>
 Wei Jiangang <weijg.fnst@cn.fujitsu.com>
 Wei Liu <wei.liu2@citrix.com>
+Weilun Zhu <zhuweilun@huawei.com>
 Weiwei Li <nuonuoli@tencent.com>
 Wen Congyang <wency@cn.fujitsu.com>
 Wido den Hollander <wido@widodh.nl>
@@ -614,6 +626,7 @@ Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 Wout Mertens <Wout.Mertens@gmail.com>
 Wout Mertens <wout.mertens@gmail.com>
 Xian Han Yu <xhyubj@linux.vnet.ibm.com>
+Xiao Feng Ren <renxiaof@linux.vnet.ibm.com>
 Xing Lin <xinglin@cs.utah.edu>
 Xu He Jie <xuhj@linux.vnet.ibm.com>
 Xuesong Zhang <xuzhang@redhat.com>
@@ -655,8 +668,10 @@ james robson <jrobson@websense.com>
 lawrancejing <lawrancejing@gmail.com>
 liguang <lig.fnst@cn.fujitsu.com>
 ning.bo <ning.bo9@zte.com.cn>
+ramyelkest <ramyelkest@gmail.com>
 ryan woodsmall <rwoodsmall@gmail.com>
 sannyshao <jishao@redhat.com>
+w00251574 <wangjie88@huawei.com>
 weiwei li <weiweili821@gmail.com>
 xinhua.Cao <caoxinhua@huawei.com>
 xuzhang <xuzhang@redhat.com>

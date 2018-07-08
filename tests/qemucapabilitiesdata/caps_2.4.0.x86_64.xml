@@ -5,7 +5,6 @@
   <usedQMP/>
   <flag name='kvm'/>
   <flag name='no-hpet'/>
-  <flag name='no-kvm-pit'/>
   <flag name='pci-configfd'/>
   <flag name='spice'/>
   <flag name='boot-index'/>
@@ -47,6 +46,7 @@
   <flag name='usb-redir.filter'/>
   <flag name='ide-drive.wwn'/>
   <flag name='scsi-disk.wwn'/>
+  <flag name='seccomp-sandbox'/>
   <flag name='reboot-timeout'/>
   <flag name='seamless-migration'/>
   <flag name='block-commit'/>
@@ -154,9 +154,12 @@
   <flag name='chardev-reconnect'/>
   <flag name='virtio-gpu.max_outputs'/>
   <flag name='isa-serial'/>
+  <flag name='sdl-gl'/>
+  <flag name='hda-output'/>
+  <flag name='mch'/>
   <version>2004000</version>
   <kvmVersion>0</kvmVersion>
-  <microcodeVersion>75406</microcodeVersion>
+  <microcodeVersion>80332</microcodeVersion>
   <package></package>
   <arch>x86_64</arch>
   <cpu type='kvm' name='Opteron_G5'/>

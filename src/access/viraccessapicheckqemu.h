@@ -9,6 +9,7 @@
 #include "nwfilter_conf.h"
 #include "node_device_conf.h"
 #include "interface_conf.h"
+#include "virnwfilterbindingdef.h"
 
 extern int virConnectDomainQemuMonitorEventDeregisterEnsureACL(virConnectPtr conn);
 extern int virConnectDomainQemuMonitorEventRegisterEnsureACL(virConnectPtr conn);

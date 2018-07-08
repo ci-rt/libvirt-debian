@@ -43,9 +43,7 @@ void qemuDomainDelTLSObjects(virQEMUDriverPtr driver,
 int qemuDomainAddTLSObjects(virQEMUDriverPtr driver,
                             virDomainObjPtr vm,
                             qemuDomainAsyncJob asyncJob,
-                            const char *secAlias,
                             virJSONValuePtr *secProps,
-                            const char *tlsAlias,
                             virJSONValuePtr *tlsProps);
 
 int qemuDomainGetTLSObjects(virQEMUCapsPtr qemuCaps,
@@ -53,11 +51,9 @@ int qemuDomainGetTLSObjects(virQEMUCapsPtr qemuCaps,
                             const char *tlsCertdir,
                             bool tlsListen,
                             bool tlsVerify,
-                            const char *srcAlias,
+                            const char *alias,
                             virJSONValuePtr *tlsProps,
-                            char **tlsAlias,
-                            virJSONValuePtr *secProps,
-                            char **secAlias);
+                            virJSONValuePtr *secProps);
 
 int qemuDomainAttachControllerDevice(virQEMUDriverPtr driver,
                                      virDomainObjPtr vm,
@@ -87,7 +83,8 @@ int qemuDomainAttachMemory(virQEMUDriverPtr driver,
                            virDomainMemoryDefPtr mem);
 int qemuDomainDetachMemoryDevice(virQEMUDriverPtr driver,
                                  virDomainObjPtr vm,
-                                 virDomainMemoryDefPtr memdef);
+                                 virDomainMemoryDefPtr memdef,
+                                 bool async);
 int qemuDomainChangeGraphics(virQEMUDriverPtr driver,
                              virDomainObjPtr vm,
                              virDomainGraphicsDefPtr dev);
@@ -106,30 +103,41 @@ int qemuDomainChangeNetLinkState(virQEMUDriverPtr driver,
                                  int linkstate);
 int qemuDomainDetachDeviceDiskLive(virQEMUDriverPtr driver,
                                    virDomainObjPtr vm,
-                                   virDomainDeviceDefPtr dev);
+                                   virDomainDeviceDefPtr dev,
+                                   bool async);
 int qemuDomainDetachControllerDevice(virQEMUDriverPtr driver,
                                      virDomainObjPtr vm,
-                                     virDomainDeviceDefPtr dev);
+                                     virDomainDeviceDefPtr dev,
+                                     bool async);
 int qemuDomainDetachNetDevice(virQEMUDriverPtr driver,
                               virDomainObjPtr vm,
-                              virDomainDeviceDefPtr dev);
+                              virDomainDeviceDefPtr dev,
+                              bool async);
 int qemuDomainDetachHostDevice(virQEMUDriverPtr driver,
                                virDomainObjPtr vm,
-                               virDomainDeviceDefPtr dev);
+                               virDomainDeviceDefPtr dev,
+                               bool async);
 int qemuDomainDetachShmemDevice(virQEMUDriverPtr driver,
                                 virDomainObjPtr vm,
-                                virDomainShmemDefPtr dev);
+                                virDomainShmemDefPtr dev,
+                                bool async);
 int qemuDomainDetachWatchdog(virQEMUDriverPtr driver,
                              virDomainObjPtr vm,
-                             virDomainWatchdogDefPtr watchdog);
+                             virDomainWatchdogDefPtr watchdog,
+                             bool async);
 
 int qemuDomainDetachRedirdevDevice(virQEMUDriverPtr driver,
                                    virDomainObjPtr vm,
-                                   virDomainRedirdevDefPtr dev);
+                                   virDomainRedirdevDefPtr dev,
+                                   bool async);
 
 int qemuDomainAttachInputDevice(virQEMUDriverPtr driver,
                                 virDomainObjPtr vm,
                                 virDomainInputDefPtr input);
+
+int qemuDomainAttachVsockDevice(virQEMUDriverPtr driver,
+                                virDomainObjPtr vm,
+                                virDomainVsockDefPtr vsock);
 
 int qemuDomainAttachLease(virQEMUDriverPtr driver,
                           virDomainObjPtr vm,
@@ -142,13 +150,15 @@ int qemuDomainAttachChrDevice(virQEMUDriverPtr driver,
                               virDomainChrDefPtr chr);
 int qemuDomainDetachChrDevice(virQEMUDriverPtr driver,
                               virDomainObjPtr vm,
-                              virDomainChrDefPtr chr);
+                              virDomainChrDefPtr chr,
+                              bool async);
 int qemuDomainAttachRNGDevice(virQEMUDriverPtr driver,
                               virDomainObjPtr vm,
                               virDomainRNGDefPtr rng);
 int qemuDomainDetachRNGDevice(virQEMUDriverPtr driver,
                               virDomainObjPtr vm,
-                              virDomainRNGDefPtr rng);
+                              virDomainRNGDefPtr rng,
+                              bool async);
 
 void qemuDomainRemoveVcpuAlias(virQEMUDriverPtr driver,
                                virDomainObjPtr vm,
@@ -184,6 +194,10 @@ int qemuDomainSetVcpuInternal(virQEMUDriverPtr driver,
                               bool state);
 
 int qemuDomainDetachInputDevice(virDomainObjPtr vm,
-                                virDomainInputDefPtr def);
+                                virDomainInputDefPtr def,
+                                bool async);
 
+int qemuDomainDetachVsockDevice(virDomainObjPtr vm,
+                                virDomainVsockDefPtr dev,
+                                bool async);
 #endif /* __QEMU_HOTPLUG_H__ */

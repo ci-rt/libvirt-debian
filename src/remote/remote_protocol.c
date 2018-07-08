@@ -73,6 +73,17 @@ xdr_remote_nonnull_nwfilter (XDR *xdrs, remote_nonnull_nwfilter *objp)
 }
 
 bool_t
+xdr_remote_nonnull_nwfilter_binding (XDR *xdrs, remote_nonnull_nwfilter_binding *objp)
+{
+
+         if (!xdr_remote_nonnull_string (xdrs, &objp->portdev))
+                 return FALSE;
+         if (!xdr_remote_nonnull_string (xdrs, &objp->filtername))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_nonnull_interface (XDR *xdrs, remote_nonnull_interface *objp)
 {
 
@@ -163,6 +174,15 @@ xdr_remote_nwfilter (XDR *xdrs, remote_nwfilter *objp)
 {
 
          if (!xdr_pointer (xdrs, (char **)objp, sizeof (remote_nonnull_nwfilter), (xdrproc_t) xdr_remote_nonnull_nwfilter))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_nwfilter_binding (XDR *xdrs, remote_nwfilter_binding *objp)
+{
+
+         if (!xdr_pointer (xdrs, (char **)objp, sizeof (remote_nonnull_nwfilter_binding), (xdrproc_t) xdr_remote_nonnull_nwfilter_binding))
                  return FALSE;
         return TRUE;
 }
@@ -2116,8 +2136,8 @@ xdr_remote_domain_get_vcpus_args (XDR *xdrs, remote_domain_get_vcpus_args *objp)
 bool_t
 xdr_remote_domain_get_vcpus_ret (XDR *xdrs, remote_domain_get_vcpus_ret *objp)
 {
-        char **objp_cpp0 = (char **) (void *) &objp->info.info_val;
         char **objp_cpp1 = (char **) (void *) &objp->cpumaps.cpumaps_val;
+        char **objp_cpp0 = (char **) (void *) &objp->info.info_val;
 
          if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->info.info_len, REMOTE_VCPUINFO_MAX,
                 sizeof (remote_vcpu_info), (xdrproc_t) xdr_remote_vcpu_info))
@@ -2270,8 +2290,8 @@ xdr_remote_domain_get_security_label_list_ret (XDR *xdrs, remote_domain_get_secu
 bool_t
 xdr_remote_node_get_security_model_ret (XDR *xdrs, remote_node_get_security_model_ret *objp)
 {
-        char **objp_cpp1 = (char **) (void *) &objp->doi.doi_val;
         char **objp_cpp0 = (char **) (void *) &objp->model.model_val;
+        char **objp_cpp1 = (char **) (void *) &objp->doi.doi_val;
 
          if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->model.model_len, REMOTE_SECURITY_MODEL_MAX,
                 sizeof (char), (xdrproc_t) xdr_char))
@@ -2337,6 +2357,19 @@ xdr_remote_domain_update_device_flags_args (XDR *xdrs, remote_domain_update_devi
          if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
                  return FALSE;
          if (!xdr_remote_nonnull_string (xdrs, &objp->xml))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_detach_device_alias_args (XDR *xdrs, remote_domain_detach_device_alias_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_remote_nonnull_string (xdrs, &objp->alias))
                  return FALSE;
          if (!xdr_u_int (xdrs, &objp->flags))
                  return FALSE;
@@ -6312,8 +6345,8 @@ xdr_remote_domain_migrate_begin3_params_ret (XDR *xdrs, remote_domain_migrate_be
 bool_t
 xdr_remote_domain_migrate_prepare3_params_args (XDR *xdrs, remote_domain_migrate_prepare3_params_args *objp)
 {
-        char **objp_cpp1 = (char **) (void *) &objp->cookie_in.cookie_in_val;
         char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
+        char **objp_cpp1 = (char **) (void *) &objp->cookie_in.cookie_in_val;
 
          if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->params.params_len, REMOTE_DOMAIN_MIGRATE_PARAM_LIST_MAX,
                 sizeof (remote_typed_param), (xdrproc_t) xdr_remote_typed_param))
@@ -6366,8 +6399,8 @@ xdr_remote_domain_migrate_prepare_tunnel3_params_ret (XDR *xdrs, remote_domain_m
 bool_t
 xdr_remote_domain_migrate_perform3_params_args (XDR *xdrs, remote_domain_migrate_perform3_params_args *objp)
 {
-        char **objp_cpp1 = (char **) (void *) &objp->cookie_in.cookie_in_val;
         char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
+        char **objp_cpp1 = (char **) (void *) &objp->cookie_in.cookie_in_val;
 
          if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
                  return FALSE;
@@ -6396,8 +6429,8 @@ xdr_remote_domain_migrate_perform3_params_ret (XDR *xdrs, remote_domain_migrate_
 bool_t
 xdr_remote_domain_migrate_finish3_params_args (XDR *xdrs, remote_domain_migrate_finish3_params_args *objp)
 {
-        char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
         char **objp_cpp1 = (char **) (void *) &objp->cookie_in.cookie_in_val;
+        char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
 
          if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->params.params_len, REMOTE_DOMAIN_MIGRATE_PARAM_LIST_MAX,
                 sizeof (remote_typed_param), (xdrproc_t) xdr_remote_typed_param))
@@ -7261,6 +7294,201 @@ xdr_remote_domain_set_lifecycle_action_args (XDR *xdrs, remote_domain_set_lifecy
          if (!xdr_u_int (xdrs, &objp->action))
                  return FALSE;
          if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_connect_compare_hypervisor_cpu_args (XDR *xdrs, remote_connect_compare_hypervisor_cpu_args *objp)
+{
+
+         if (!xdr_remote_string (xdrs, &objp->emulator))
+                 return FALSE;
+         if (!xdr_remote_string (xdrs, &objp->arch))
+                 return FALSE;
+         if (!xdr_remote_string (xdrs, &objp->machine))
+                 return FALSE;
+         if (!xdr_remote_string (xdrs, &objp->virttype))
+                 return FALSE;
+         if (!xdr_remote_nonnull_string (xdrs, &objp->xmlCPU))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_connect_compare_hypervisor_cpu_ret (XDR *xdrs, remote_connect_compare_hypervisor_cpu_ret *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->result))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_connect_baseline_hypervisor_cpu_args (XDR *xdrs, remote_connect_baseline_hypervisor_cpu_args *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->xmlCPUs.xmlCPUs_val;
+
+         if (!xdr_remote_string (xdrs, &objp->emulator))
+                 return FALSE;
+         if (!xdr_remote_string (xdrs, &objp->arch))
+                 return FALSE;
+         if (!xdr_remote_string (xdrs, &objp->machine))
+                 return FALSE;
+         if (!xdr_remote_string (xdrs, &objp->virttype))
+                 return FALSE;
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->xmlCPUs.xmlCPUs_len, REMOTE_CPU_BASELINE_MAX,
+                sizeof (remote_nonnull_string), (xdrproc_t) xdr_remote_nonnull_string))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_connect_baseline_hypervisor_cpu_ret (XDR *xdrs, remote_connect_baseline_hypervisor_cpu_ret *objp)
+{
+
+         if (!xdr_remote_nonnull_string (xdrs, &objp->cpu))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_node_get_sev_info_args (XDR *xdrs, remote_node_get_sev_info_args *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->nparams))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_node_get_sev_info_ret (XDR *xdrs, remote_node_get_sev_info_ret *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->params.params_len, REMOTE_NODE_SEV_INFO_MAX,
+                sizeof (remote_typed_param), (xdrproc_t) xdr_remote_typed_param))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->nparams))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_get_launch_security_info_args (XDR *xdrs, remote_domain_get_launch_security_info_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_get_launch_security_info_ret (XDR *xdrs, remote_domain_get_launch_security_info_ret *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->params.params_len, REMOTE_DOMAIN_LAUNCH_SECURITY_INFO_PARAMS_MAX,
+                sizeof (remote_typed_param), (xdrproc_t) xdr_remote_typed_param))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_nwfilter_binding_lookup_by_port_dev_args (XDR *xdrs, remote_nwfilter_binding_lookup_by_port_dev_args *objp)
+{
+
+         if (!xdr_remote_nonnull_string (xdrs, &objp->name))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_nwfilter_binding_lookup_by_port_dev_ret (XDR *xdrs, remote_nwfilter_binding_lookup_by_port_dev_ret *objp)
+{
+
+         if (!xdr_remote_nonnull_nwfilter_binding (xdrs, &objp->nwfilter))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_nwfilter_binding_create_xml_args (XDR *xdrs, remote_nwfilter_binding_create_xml_args *objp)
+{
+
+         if (!xdr_remote_nonnull_string (xdrs, &objp->xml))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_nwfilter_binding_create_xml_ret (XDR *xdrs, remote_nwfilter_binding_create_xml_ret *objp)
+{
+
+         if (!xdr_remote_nonnull_nwfilter_binding (xdrs, &objp->nwfilter))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_nwfilter_binding_delete_args (XDR *xdrs, remote_nwfilter_binding_delete_args *objp)
+{
+
+         if (!xdr_remote_nonnull_nwfilter_binding (xdrs, &objp->nwfilter))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_nwfilter_binding_get_xml_desc_args (XDR *xdrs, remote_nwfilter_binding_get_xml_desc_args *objp)
+{
+
+         if (!xdr_remote_nonnull_nwfilter_binding (xdrs, &objp->nwfilter))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_nwfilter_binding_get_xml_desc_ret (XDR *xdrs, remote_nwfilter_binding_get_xml_desc_ret *objp)
+{
+
+         if (!xdr_remote_nonnull_string (xdrs, &objp->xml))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_connect_list_all_nwfilter_bindings_args (XDR *xdrs, remote_connect_list_all_nwfilter_bindings_args *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->need_results))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_connect_list_all_nwfilter_bindings_ret (XDR *xdrs, remote_connect_list_all_nwfilter_bindings_ret *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->bindings.bindings_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->bindings.bindings_len, REMOTE_NWFILTER_BINDING_LIST_MAX,
+                sizeof (remote_nonnull_nwfilter_binding), (xdrproc_t) xdr_remote_nonnull_nwfilter_binding))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->ret))
                  return FALSE;
         return TRUE;
 }

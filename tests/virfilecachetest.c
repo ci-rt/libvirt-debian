@@ -20,6 +20,7 @@
 #include <config.h>
 
 #include "testutils.h"
+
 #include "virfile.h"
 #include "virfilecache.h"
 

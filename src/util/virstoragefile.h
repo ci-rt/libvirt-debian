@@ -216,6 +216,16 @@ struct _virStorageAuthDef {
     virSecretLookupTypeDef seclookupdef;
 };
 
+typedef struct _virStoragePRDef virStoragePRDef;
+typedef virStoragePRDef *virStoragePRDefPtr;
+struct _virStoragePRDef {
+    int managed; /* enum virTristateBool */
+    char *path;
+
+    /* manager object alias */
+    char *mgralias;
+};
+
 typedef struct _virStorageDriverData virStorageDriverData;
 typedef virStorageDriverData *virStorageDriverDataPtr;
 
@@ -243,6 +253,7 @@ struct _virStorageSource {
     bool authInherited;
     virStorageEncryptionPtr encryption;
     bool encryptionInherited;
+    virStoragePRDefPtr pr;
 
     virObjectPtr privateData;
 
@@ -299,12 +310,24 @@ struct _virStorageSource {
      * certificate directory with listen and verify bools. */
     char *tlsAlias;
     char *tlsCertdir;
-    bool tlsVerify;
 
     bool detected; /* true if this entry was not provided by the user */
 
     unsigned int debugLevel;
     bool debug;
+
+    /* Libvirt currently stores the following properities in virDomainDiskDef.
+     * These instances are currently just copies from the parent definition and
+     * are not mapped back to the XML */
+    int iomode; /* enum virDomainDiskIo */
+    int cachemode; /* enum virDomainDiskCache */
+    int discard; /* enum virDomainDiskDiscard */
+    int detect_zeroes; /* enum virDomainDiskDetectZeroes */
+
+    bool floppyimg; /* set to true if the storage source is going to be used
+                       as a source for floppy drive */
+
+    bool hostcdrom; /* backing device is a cdrom */
 };
 
 
@@ -368,6 +391,17 @@ virStorageAuthDefPtr virStorageAuthDefCopy(const virStorageAuthDef *src);
 virStorageAuthDefPtr virStorageAuthDefParse(xmlNodePtr node,
                                             xmlXPathContextPtr ctxt);
 void virStorageAuthDefFormat(virBufferPtr buf, virStorageAuthDefPtr authdef);
+
+void virStoragePRDefFree(virStoragePRDefPtr prd);
+virStoragePRDefPtr virStoragePRDefParseXML(xmlXPathContextPtr ctxt);
+void virStoragePRDefFormat(virBufferPtr buf,
+                           virStoragePRDefPtr prd);
+bool virStoragePRDefIsEqual(virStoragePRDefPtr a,
+                            virStoragePRDefPtr b);
+bool virStoragePRDefIsManaged(virStoragePRDefPtr prd);
+
+bool
+virStorageSourceChainHasManagedPR(virStorageSourcePtr src);
 
 virSecurityDeviceLabelDefPtr
 virStorageSourceGetSecurityLabelDef(virStorageSourcePtr src,
@@ -465,17 +499,17 @@ const char *virStorageFileGetUniqueIdentifier(virStorageSourcePtr src);
 int virStorageFileAccess(virStorageSourcePtr src, int mode);
 int virStorageFileChown(const virStorageSource *src, uid_t uid, gid_t gid);
 
-bool virStorageFileSupportsSecurityDriver(const virStorageSource *src);
-bool virStorageFileSupportsAccess(const virStorageSource *src);
+int virStorageFileSupportsSecurityDriver(const virStorageSource *src);
+int virStorageFileSupportsAccess(const virStorageSource *src);
 
 int virStorageFileGetMetadata(virStorageSourcePtr src,
                               uid_t uid, gid_t gid,
-                              bool allow_probe,
                               bool report_broken)
     ATTRIBUTE_NONNULL(1);
 
-char *virStorageFileGetBackingStoreStr(virStorageSourcePtr src)
-    ATTRIBUTE_NONNULL(1);
+int virStorageFileGetBackingStoreStr(virStorageSourcePtr src,
+                                     char **backing)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 void virStorageFileReportBrokenChain(int errcode,
                                      virStorageSourcePtr src,

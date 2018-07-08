@@ -1892,6 +1892,153 @@ virStorageAuthDefFormat(virBufferPtr buf,
 }
 
 
+void
+virStoragePRDefFree(virStoragePRDefPtr prd)
+{
+    if (!prd)
+        return;
+
+    VIR_FREE(prd->path);
+    VIR_FREE(prd->mgralias);
+    VIR_FREE(prd);
+}
+
+
+virStoragePRDefPtr
+virStoragePRDefParseXML(xmlXPathContextPtr ctxt)
+{
+    virStoragePRDefPtr prd;
+    virStoragePRDefPtr ret = NULL;
+    char *managed = NULL;
+    char *type = NULL;
+    char *path = NULL;
+    char *mode = NULL;
+
+    if (VIR_ALLOC(prd) < 0)
+        return NULL;
+
+    if (!(managed = virXPathString("string(./@managed)", ctxt))) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("missing @managed attribute for <reservations/>"));
+        goto cleanup;
+    }
+
+    if ((prd->managed = virTristateBoolTypeFromString(managed)) <= 0) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("invalid value for 'managed': %s"), managed);
+        goto cleanup;
+    }
+
+    type = virXPathString("string(./source[1]/@type)", ctxt);
+    path = virXPathString("string(./source[1]/@path)", ctxt);
+    mode = virXPathString("string(./source[1]/@mode)", ctxt);
+
+    if (prd->managed == VIR_TRISTATE_BOOL_NO || type || path || mode) {
+        if (!type) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("missing connection type for <reservations/>"));
+            goto cleanup;
+        }
+
+        if (!path) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("missing path for <reservations/>"));
+            goto cleanup;
+        }
+
+        if (!mode) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("missing connection mode for <reservations/>"));
+            goto cleanup;
+        }
+    }
+
+    if (type && STRNEQ(type, "unix")) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("unsupported connection type for <reservations/>: %s"),
+                       type);
+        goto cleanup;
+    }
+
+    if (mode && STRNEQ(mode, "client")) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("unsupported connection mode for <reservations/>: %s"),
+                       mode);
+        goto cleanup;
+    }
+
+    VIR_STEAL_PTR(prd->path, path);
+    VIR_STEAL_PTR(ret, prd);
+
+ cleanup:
+    VIR_FREE(mode);
+    VIR_FREE(path);
+    VIR_FREE(type);
+    VIR_FREE(managed);
+    virStoragePRDefFree(prd);
+    return ret;
+}
+
+
+void
+virStoragePRDefFormat(virBufferPtr buf,
+                      virStoragePRDefPtr prd)
+{
+    virBufferAsprintf(buf, "<reservations managed='%s'",
+                      virTristateBoolTypeToString(prd->managed));
+    if (prd->path) {
+        virBufferAddLit(buf, ">\n");
+        virBufferAdjustIndent(buf, 2);
+        virBufferAddLit(buf, "<source type='unix'");
+        virBufferEscapeString(buf, " path='%s'", prd->path);
+        virBufferAddLit(buf, " mode='client'/>\n");
+        virBufferAdjustIndent(buf, -2);
+        virBufferAddLit(buf, "</reservations>\n");
+    } else {
+        virBufferAddLit(buf, "/>\n");
+    }
+}
+
+
+bool
+virStoragePRDefIsEqual(virStoragePRDefPtr a,
+                       virStoragePRDefPtr b)
+{
+    if (!a && !b)
+        return true;
+
+    if (!a || !b)
+        return false;
+
+    if (a->managed != b->managed ||
+        STRNEQ_NULLABLE(a->path, b->path))
+        return false;
+
+    return true;
+}
+
+
+bool
+virStoragePRDefIsManaged(virStoragePRDefPtr prd)
+{
+    return prd && prd->managed == VIR_TRISTATE_BOOL_YES;
+}
+
+
+bool
+virStorageSourceChainHasManagedPR(virStorageSourcePtr src)
+{
+    virStorageSourcePtr n;
+
+    for (n = src; virStorageSourceIsBacking(n); n = n->backingStore) {
+        if (virStoragePRDefIsManaged(src->pr))
+            return true;
+    }
+
+    return false;
+}
+
+
 virSecurityDeviceLabelDefPtr
 virStorageSourceGetSecurityLabelDef(virStorageSourcePtr src,
                                     const char *model)
@@ -2038,10 +2185,13 @@ virStorageSourceCopy(const virStorageSource *src,
     ret->shared = src->shared;
     ret->haveTLS = src->haveTLS;
     ret->tlsFromConfig = src->tlsFromConfig;
-    ret->tlsVerify = src->tlsVerify;
     ret->detected = src->detected;
     ret->debugLevel = src->debugLevel;
     ret->debug = src->debug;
+    ret->iomode = src->iomode;
+    ret->cachemode = src->cachemode;
+    ret->discard = src->discard;
+    ret->detect_zeroes = src->detect_zeroes;
 
     /* storage driver metadata are not copied */
     ret->drv = NULL;
@@ -2264,6 +2414,7 @@ virStorageSourceClear(virStorageSourcePtr def)
     virBitmapFree(def->features);
     VIR_FREE(def->compat);
     virStorageEncryptionFree(def->encryption);
+    virStoragePRDefFree(def->pr);
     virStorageSourceSeclabelsClear(def);
     virStoragePermsFree(def->perms);
     VIR_FREE(def->timestamps);
@@ -2924,8 +3075,7 @@ virStorageSourceParseBackingJSONGluster(virStorageSourcePtr src,
         return -1;
 
     nservers = virJSONValueArraySize(server);
-
-    if (nservers < 1) {
+    if (nservers == 0) {
         virReportError(VIR_ERR_INVALID_ARG, "%s",
                        _("at least 1 server is necessary in "
                          "JSON backing definition for gluster volume"));
@@ -3425,6 +3575,7 @@ virStorageSourceNewFromBacking(virStorageSourcePtr parent)
         if (virStorageSourceInitChainElement(ret, parent, true) < 0)
             goto error;
 
+        ret->readonly = true;
         ret->detected = true;
     }
 
@@ -4098,34 +4249,48 @@ virStorageFileIsInitialized(const virStorageSource *src)
 }
 
 
-static virStorageFileBackendPtr
-virStorageFileGetBackendForSupportCheck(const virStorageSource *src)
+static int
+virStorageFileGetBackendForSupportCheck(const virStorageSource *src,
+                                        virStorageFileBackendPtr *backend)
 {
     int actualType;
 
-    if (!src)
-        return NULL;
 
-    if (src->drv)
-        return src->drv->backend;
+    if (!src) {
+        *backend = NULL;
+        return 0;
+    }
+
+    if (src->drv) {
+        *backend = src->drv->backend;
+        return 0;
+    }
 
     actualType = virStorageSourceGetActualType(src);
 
-    return virStorageFileBackendForTypeInternal(actualType, src->protocol, false);
+    if (virStorageFileBackendForType(actualType, src->protocol, false, backend) < 0)
+        return -1;
+
+    return 0;
 }
 
 
-static bool
+static int
 virStorageFileSupportsBackingChainTraversal(virStorageSourcePtr src)
 {
     virStorageFileBackendPtr backend;
+    int rv;
 
-    if (!(backend = virStorageFileGetBackendForSupportCheck(src)))
-        return false;
+    rv = virStorageFileGetBackendForSupportCheck(src, &backend);
+    if (rv < 0)
+        return -1;
+
+    if (!backend)
+        return 0;
 
     return backend->storageFileGetUniqueIdentifier &&
            backend->storageFileRead &&
-           backend->storageFileAccess;
+           backend->storageFileAccess ? 1 : 0;
 }
 
 
@@ -4137,15 +4302,19 @@ virStorageFileSupportsBackingChainTraversal(virStorageSourcePtr src)
  * Check if a storage file supports operations needed by the security
  * driver to perform labelling
  */
-bool
+int
 virStorageFileSupportsSecurityDriver(const virStorageSource *src)
 {
     virStorageFileBackendPtr backend;
+    int rv;
 
-    if (!(backend = virStorageFileGetBackendForSupportCheck(src)))
-        return false;
+    rv = virStorageFileGetBackendForSupportCheck(src, &backend);
+    if (rv < 0)
+        return -1;
+    if (backend == NULL)
+        return 0;
 
-    return !!backend->storageFileChown;
+    return backend->storageFileChown ? 1 : 0;
 }
 
 
@@ -4157,15 +4326,19 @@ virStorageFileSupportsSecurityDriver(const virStorageSource *src)
  * Check if a storage file supports checking if the storage source is accessible
  * for the given vm.
  */
-bool
+int
 virStorageFileSupportsAccess(const virStorageSource *src)
 {
     virStorageFileBackendPtr backend;
+    int ret;
 
-    if (!(backend = virStorageFileGetBackendForSupportCheck(src)))
-        return false;
+    ret = virStorageFileGetBackendForSupportCheck(src, &backend);
+    if (ret < 0)
+        return -1;
+    if (backend == NULL)
+        return 0;
 
-    return !!backend->storageFileAccess;
+    return backend->storageFileAccess ? 1 : 0;
 }
 
 
@@ -4214,8 +4387,10 @@ virStorageFileInitAs(virStorageSourcePtr src,
     else
         src->drv->gid = gid;
 
-    if (!(src->drv->backend = virStorageFileBackendForType(actualType,
-                                                           src->protocol)))
+    if (virStorageFileBackendForType(actualType,
+                                     src->protocol,
+                                     true,
+                                     &src->drv->backend) < 0)
         goto error;
 
     if (src->drv->backend->backendInit &&
@@ -4357,14 +4532,8 @@ virStorageFileRead(virStorageSourcePtr src,
         return -1;
     }
 
-    if (!src->drv->backend->storageFileRead) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("storage file reading is not supported for "
-                         "storage type %s (protocol: %s)"),
-                       virStorageTypeToString(src->type),
-                       virStorageNetProtocolTypeToString(src->protocol));
+    if (!src->drv->backend->storageFileRead)
         return -2;
-    }
 
     ret = src->drv->backend->storageFileRead(src, offset, len, buf);
 
@@ -4509,7 +4678,6 @@ static int
 virStorageFileGetMetadataRecurse(virStorageSourcePtr src,
                                  virStorageSourcePtr parent,
                                  uid_t uid, gid_t gid,
-                                 bool allow_probe,
                                  bool report_broken,
                                  virHashTablePtr cycle,
                                  unsigned int depth)
@@ -4520,14 +4688,16 @@ virStorageFileGetMetadataRecurse(virStorageSourcePtr src,
     ssize_t headerLen;
     virStorageSourcePtr backingStore = NULL;
     int backingFormat;
+    int rv;
 
-    VIR_DEBUG("path=%s format=%d uid=%u gid=%u probe=%d",
+    VIR_DEBUG("path=%s format=%d uid=%u gid=%u",
               src->path, src->format,
-              (unsigned int)uid, (unsigned int)gid, allow_probe);
+              (unsigned int)uid, (unsigned int)gid);
 
     /* exit if we can't load information about the current image */
-    if (!virStorageFileSupportsBackingChainTraversal(src))
-        return 0;
+    rv = virStorageFileSupportsBackingChainTraversal(src);
+    if (rv <= 0)
+        return rv;
 
     if (virStorageFileInitAs(src, uid, gid) < 0)
         return -1;
@@ -4551,8 +4721,15 @@ virStorageFileGetMetadataRecurse(virStorageSourcePtr src,
         goto cleanup;
 
     if ((headerLen = virStorageFileRead(src, 0, VIR_STORAGE_MAX_HEADER,
-                                        &buf)) < 0)
+                                        &buf)) < 0) {
+        if (headerLen == -2)
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("storage file reading is not supported for "
+                             "storage type %s (protocol: %s)"),
+                           virStorageTypeToString(src->type),
+                           virStorageNetProtocolTypeToString(src->protocol));
         goto cleanup;
+    }
 
     if (virStorageFileGetMetadataInternal(src, buf, headerLen,
                                           &backingFormat) < 0)
@@ -4562,7 +4739,7 @@ virStorageFileGetMetadataRecurse(virStorageSourcePtr src,
         if (!(backingStore = virStorageSourceNewFromBacking(src)))
             goto cleanup;
 
-        if (backingFormat == VIR_STORAGE_FILE_AUTO && !allow_probe)
+        if (backingFormat == VIR_STORAGE_FILE_AUTO)
             backingStore->format = VIR_STORAGE_FILE_RAW;
         else if (backingFormat == VIR_STORAGE_FILE_AUTO_SAFE)
             backingStore->format = VIR_STORAGE_FILE_AUTO;
@@ -4571,7 +4748,7 @@ virStorageFileGetMetadataRecurse(virStorageSourcePtr src,
 
         if ((ret = virStorageFileGetMetadataRecurse(backingStore, parent,
                                                     uid, gid,
-                                                    allow_probe, report_broken,
+                                                    report_broken,
                                                     cycle, depth + 1)) < 0) {
             if (report_broken)
                 goto cleanup;
@@ -4624,12 +4801,11 @@ virStorageFileGetMetadataRecurse(virStorageSourcePtr src,
 int
 virStorageFileGetMetadata(virStorageSourcePtr src,
                           uid_t uid, gid_t gid,
-                          bool allow_probe,
                           bool report_broken)
 {
-    VIR_DEBUG("path=%s format=%d uid=%u gid=%u probe=%d, report_broken=%d",
+    VIR_DEBUG("path=%s format=%d uid=%u gid=%u report_broken=%d",
               src->path, src->format, (unsigned int)uid, (unsigned int)gid,
-              allow_probe, report_broken);
+              report_broken);
 
     virHashTablePtr cycle = NULL;
     virStorageType actualType = virStorageSourceGetActualType(src);
@@ -4641,14 +4817,12 @@ virStorageFileGetMetadata(virStorageSourcePtr src,
     if (src->format <= VIR_STORAGE_FILE_NONE) {
         if (actualType == VIR_STORAGE_TYPE_DIR)
             src->format = VIR_STORAGE_FILE_DIR;
-        else if (allow_probe)
-            src->format = VIR_STORAGE_FILE_AUTO;
         else
             src->format = VIR_STORAGE_FILE_RAW;
     }
 
     ret = virStorageFileGetMetadataRecurse(src, src, uid, gid,
-                                           allow_probe, report_broken, cycle, 1);
+                                           report_broken, cycle, 1);
 
     virHashFree(cycle);
     return ret;
@@ -4664,24 +4838,36 @@ virStorageFileGetMetadata(virStorageSourcePtr src,
  * In case when the string can't be retrieved or does not exist NULL is
  * returned.
  */
-char *
-virStorageFileGetBackingStoreStr(virStorageSourcePtr src)
+int
+virStorageFileGetBackingStoreStr(virStorageSourcePtr src,
+                                 char **backing)
 {
     virStorageSourcePtr tmp = NULL;
     char *buf = NULL;
     ssize_t headerLen;
-    char *ret = NULL;
+    int ret = -1;
+    int rv;
+
+    *backing = NULL;
 
     /* exit if we can't load information about the current image */
     if (!virStorageFileSupportsBackingChainTraversal(src))
-        return NULL;
+        return 0;
 
-    if (virStorageFileAccess(src, F_OK) < 0)
-        return NULL;
+    rv = virStorageFileAccess(src, F_OK);
+    if (rv == -2)
+        return 0;
+    if (rv < 0) {
+        virStorageFileReportBrokenChain(errno, src, src);
+        return -1;
+    }
 
     if ((headerLen = virStorageFileRead(src, 0, VIR_STORAGE_MAX_HEADER,
-                                        &buf)) < 0)
-        return NULL;
+                                        &buf)) < 0) {
+        if (headerLen == -2)
+            return 0;
+        return -1;
+    }
 
     if (!(tmp = virStorageSourceCopy(src, false)))
         goto cleanup;
@@ -4689,7 +4875,9 @@ virStorageFileGetBackingStoreStr(virStorageSourcePtr src)
     if (virStorageFileGetMetadataInternal(tmp, buf, headerLen, NULL) < 0)
         goto cleanup;
 
-    VIR_STEAL_PTR(ret, tmp->backingStoreRaw);
+    VIR_STEAL_PTR(*backing, tmp->backingStoreRaw);
+
+    ret = 0;
 
  cleanup:
     VIR_FREE(buf);

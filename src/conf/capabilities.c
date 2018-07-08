@@ -1025,6 +1025,9 @@ virCapabilitiesFormatXML(virCapsPtr caps)
         virBufferAddLit(&buf, "<power_management/>\n");
     }
 
+    virBufferAsprintf(&buf, "<iommu support='%s'/>\n",
+                      caps->host.iommu  ? "yes" : "no");
+
     if (caps->host.offlineMigrate) {
         virBufferAddLit(&buf, "<migration_features>\n");
         virBufferAdjustIndent(&buf, 2);
@@ -1541,12 +1544,6 @@ virCapabilitiesInitPages(virCapsPtr caps)
     return ret;
 }
 
-/* Cache name mapping for Linux kernel naming */
-VIR_ENUM_DECL(virCacheKernel);
-VIR_ENUM_IMPL(virCacheKernel, VIR_CACHE_TYPE_LAST,
-              "Unified",
-              "Instruction",
-              "Data")
 
 bool
 virCapsHostCacheBankEquals(virCapsHostCacheBankPtr a,
@@ -1601,7 +1598,7 @@ virCapabilitiesInitResctrl(virCapsPtr caps)
     if (!caps->host.resctrl)
         return -1;
 
-    return virResctrlGetInfo(caps->host.resctrl);
+    return 0;
 }
 
 
@@ -1742,4 +1739,11 @@ virCapabilitiesInitCaches(virCapsPtr caps)
     virCapsHostCacheBankFree(bank);
     virBitmapFree(cpus);
     return ret;
+}
+
+
+void
+virCapabilitiesHostInitIOMMU(virCapsPtr caps)
+{
+    caps->host.iommu = virHostHasIOMMU();
 }

@@ -232,6 +232,7 @@
     <flag name='iscsi.password-secret'/>
     <flag name='isa-serial'/>
     <flag name='dump-completed'/>
+    <flag name='hda-output'/>
   </qemuCaps>
   <devices>
     <device alias='rng0'/>
@@ -308,8 +309,21 @@
         <backingStore type='file' index='1'>
           <format type='qcow2'/>
           <source file='/var/lib/libvirt/images/base.qcow2'>
+            <reservations managed='yes'>
+              <source type='unix' path='/somepath/ux.sck' mode='client'/>
+            </reservations>
             <privateData>
+              <nodenames>
+                <nodename type='storage' name='test-storage'/>
+                <nodename type='format' name='test-format'/>
+              </nodenames>
+              <reservations mgralias='test-alias'/>
               <relPath>base.qcow2</relPath>
+              <objects>
+                <secret type='auth' alias='test-auth-alias'/>
+                <secret type='encryption' alias='test-encryption-alias'/>
+                <TLSx509 alias='transport-alias'/>
+              </objects>
             </privateData>
           </source>
           <backingStore/>

@@ -4,6 +4,7 @@
   <machine>pseries-2.12</machine>
   <arch>ppc64</arch>
   <vcpu max='1024'/>
+  <iothreads supported='yes'/>
   <os supported='yes'>
     <loader supported='yes'>
       <value>/usr/share/AAVMF/AAVMF_CODE.fd</value>
@@ -77,5 +78,8 @@
   </devices>
   <features>
     <gic supported='no'/>
+    <vmcoreinfo supported='no'/>
+    <genid supported='no'/>
+    <sev supported='no'/>
   </features>
 </domainCapabilities>

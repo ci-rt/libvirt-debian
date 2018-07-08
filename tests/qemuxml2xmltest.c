@@ -276,6 +276,8 @@ mymain(void)
     setenv("PATH", "/bin", 1);
 
     DO_TEST("minimal", NONE);
+    DO_TEST("genid", NONE);
+    DO_TEST("genid-auto", NONE);
     DO_TEST("machine-core-on", NONE);
     DO_TEST("machine-core-off", NONE);
     DO_TEST("machine-loadparm-multiple-disks-nets-s390", NONE);
@@ -379,7 +381,7 @@ mymain(void)
     DO_TEST("disk-drive-network-source-auth", NONE);
     DO_TEST("disk-drive-network-sheepdog", NONE);
     DO_TEST("disk-drive-network-vxhs", NONE);
-    DO_TEST("disk-drive-network-tlsx509-vxhs", NONE);
+    DO_TEST("disk-drive-network-tlsx509", NONE);
     DO_TEST("disk-scsi-device",
             QEMU_CAPS_SCSI_LSI);
     DO_TEST("disk-scsi-vscsi", NONE);
@@ -387,6 +389,8 @@ mymain(void)
             QEMU_CAPS_VIRTIO_SCSI);
     DO_TEST("disk-virtio-scsi-num_queues",
             QEMU_CAPS_VIRTIO_SCSI);
+    DO_TEST("disk-virtio-scsi-reservations",
+            QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_PR_MANAGER_HELPER);
     DO_TEST("disk-virtio-scsi-cmd_per_lun",
             QEMU_CAPS_VIRTIO_SCSI);
     DO_TEST("disk-virtio-scsi-max_sectors",
@@ -478,8 +482,8 @@ mymain(void)
     DO_TEST("pci-rom-disabled-invalid", NONE);
     DO_TEST("pci-serial-dev-chardev", NONE);
 
-    DO_TEST("encrypted-disk", NONE);
-    DO_TEST("encrypted-disk-usage", NONE);
+    DO_TEST("encrypted-disk", QEMU_CAPS_QCOW2_LUKS);
+    DO_TEST("encrypted-disk-usage", QEMU_CAPS_QCOW2_LUKS);
     DO_TEST("luks-disks", NONE);
     DO_TEST("luks-disks-source", NONE);
     DO_TEST("memtune", NONE);
@@ -502,11 +506,11 @@ mymain(void)
     DO_TEST("cputune-iothreads", NONE);
     DO_TEST("iothreads-disk", NONE);
     DO_TEST("iothreads-disk-virtio-ccw",
-            QEMU_CAPS_VIRTIO_CCW, QEMU_CAPS_VIRTIO_S390);
+            QEMU_CAPS_CCW, QEMU_CAPS_VIRTIO_S390);
     DO_TEST("iothreads-virtio-scsi-pci",
             QEMU_CAPS_VIRTIO_SCSI);
     DO_TEST("iothreads-virtio-scsi-ccw",
-            QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_VIRTIO_CCW,
+            QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_CCW,
             QEMU_CAPS_VIRTIO_S390);
     DO_TEST("lease", NONE);
     DO_TEST("event_idx", NONE);
@@ -615,6 +619,7 @@ mymain(void)
 
     DO_TEST("pseries-features",
             QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE,
+            QEMU_CAPS_MACHINE_PSERIES_CAP_HPT_MAX_PAGE_SIZE,
             QEMU_CAPS_MACHINE_PSERIES_RESIZE_HPT);
 
     DO_TEST("pseries-serial-native",
@@ -672,6 +677,8 @@ mymain(void)
     DO_TEST("usb-ich9-ehci-addr", NONE);
     DO_TEST("disk-copy_on_read", NONE);
     DO_TEST("tpm-passthrough", NONE);
+    DO_TEST("tpm-passthrough-crb", NONE);
+    DO_TEST("tpm-emulator", NONE);
 
     DO_TEST("metadata", NONE);
     DO_TEST("metadata-duplicate", NONE);
@@ -823,7 +830,6 @@ mymain(void)
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY);
     DO_TEST("q35-virt-manager-basic",
             QEMU_CAPS_KVM,
-            QEMU_CAPS_NO_KVM_PIT,
             QEMU_CAPS_ICH9_DISABLE_S3,
             QEMU_CAPS_ICH9_DISABLE_S4,
             QEMU_CAPS_VIRTIO_PCI_DISABLE_LEGACY,
@@ -910,7 +916,7 @@ mymain(void)
 
     DO_TEST("hostdev-scsi-vhost-scsi-ccw",
             QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_DEVICE_VHOST_SCSI,
-            QEMU_CAPS_DEVICE_SCSI_GENERIC, QEMU_CAPS_VIRTIO_CCW);
+            QEMU_CAPS_DEVICE_SCSI_GENERIC, QEMU_CAPS_CCW);
     DO_TEST("hostdev-scsi-vhost-scsi-pci",
             QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_DEVICE_VHOST_SCSI,
             QEMU_CAPS_DEVICE_SCSI_GENERIC);
@@ -960,20 +966,25 @@ mymain(void)
             QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_SCSI_LSI,
             QEMU_CAPS_DEVICE_SCSI_GENERIC);
 
+    DO_TEST("hostdev-subsys-mdev-vfio-ccw",
+            QEMU_CAPS_CCW,
+            QEMU_CAPS_CCW_CSSID_UNRESTRICTED,
+            QEMU_CAPS_DEVICE_VFIO_CCW);
+
     DO_TEST("s390-defaultconsole",
-            QEMU_CAPS_VIRTIO_CCW, QEMU_CAPS_VIRTIO_S390);
+            QEMU_CAPS_CCW, QEMU_CAPS_VIRTIO_S390);
     DO_TEST("s390-panic",
-            QEMU_CAPS_VIRTIO_CCW, QEMU_CAPS_VIRTIO_S390);
+            QEMU_CAPS_CCW, QEMU_CAPS_VIRTIO_S390);
     DO_TEST("s390-panic-missing",
-            QEMU_CAPS_VIRTIO_CCW, QEMU_CAPS_VIRTIO_S390);
+            QEMU_CAPS_CCW, QEMU_CAPS_VIRTIO_S390);
     DO_TEST("s390-panic-no-address",
-            QEMU_CAPS_VIRTIO_CCW, QEMU_CAPS_VIRTIO_S390);
+            QEMU_CAPS_CCW, QEMU_CAPS_VIRTIO_S390);
     DO_TEST("s390-serial",
-            QEMU_CAPS_VIRTIO_CCW, QEMU_CAPS_VIRTIO_S390);
+            QEMU_CAPS_CCW, QEMU_CAPS_VIRTIO_S390);
     DO_TEST("s390-serial-2",
-            QEMU_CAPS_VIRTIO_CCW, QEMU_CAPS_VIRTIO_S390);
+            QEMU_CAPS_CCW, QEMU_CAPS_VIRTIO_S390);
     DO_TEST("s390-serial-console",
-            QEMU_CAPS_VIRTIO_CCW, QEMU_CAPS_VIRTIO_S390);
+            QEMU_CAPS_CCW, QEMU_CAPS_VIRTIO_S390);
 
     DO_TEST("pcihole64", NONE);
     DO_TEST("pcihole64-gib", NONE);
@@ -1096,6 +1107,7 @@ mymain(void)
     DO_TEST("video-virtio-gpu-device", NONE);
     DO_TEST("video-virtio-gpu-virgl", NONE);
     DO_TEST("video-virtio-gpu-spice-gl", NONE);
+    DO_TEST("video-virtio-gpu-sdl-gl", NONE);
     DO_TEST("virtio-input", NONE);
     DO_TEST("virtio-input-passthrough", NONE);
 
@@ -1116,14 +1128,14 @@ mymain(void)
     DO_TEST("video-qxl-noheads", NONE);
     DO_TEST("video-virtio-gpu-secondary", NONE);
     DO_TEST("video-virtio-gpu-ccw",
-            QEMU_CAPS_VIRTIO_CCW,
+            QEMU_CAPS_CCW,
             QEMU_CAPS_DEVICE_VIRTIO_GPU,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
             QEMU_CAPS_VIRTIO_GPU_MAX_OUTPUTS,
             QEMU_CAPS_VNC,
             QEMU_CAPS_DEVICE_VIRTIO_GPU_CCW);
     DO_TEST("video-virtio-gpu-ccw-auto",
-            QEMU_CAPS_VIRTIO_CCW,
+            QEMU_CAPS_CCW,
             QEMU_CAPS_DEVICE_VIRTIO_GPU,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
             QEMU_CAPS_VIRTIO_GPU_MAX_OUTPUTS,
@@ -1152,6 +1164,7 @@ mymain(void)
 
     DO_TEST("smartcard-host", NONE);
     DO_TEST("smartcard-host-certificates", NONE);
+    DO_TEST("smartcard-host-certificates-database", NONE);
     DO_TEST("smartcard-passthrough-tcp", NONE);
     DO_TEST("smartcard-passthrough-spicevmc", NONE);
     DO_TEST("smartcard-controller", NONE);
@@ -1163,9 +1176,9 @@ mymain(void)
     DO_TEST("pseries-cpu-exact",
             QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE);
 
-    DO_TEST("user-aliases", NONE);
+    DO_TEST("user-aliases", QEMU_CAPS_QCOW2_LUKS);
     DO_TEST("input-virtio-ccw",
-            QEMU_CAPS_VIRTIO_CCW,
+            QEMU_CAPS_CCW,
             QEMU_CAPS_VIRTIO_KEYBOARD,
             QEMU_CAPS_VIRTIO_MOUSE,
             QEMU_CAPS_VIRTIO_TABLET,
@@ -1173,11 +1186,14 @@ mymain(void)
             QEMU_CAPS_DEVICE_VIRTIO_MOUSE_CCW,
             QEMU_CAPS_DEVICE_VIRTIO_TABLET_CCW);
 
-    /* Test disks with format probing enabled for legacy reasons.
-     * New tests should not go in this section. */
-    driver.config->allowDiskFormatProbing = true;
-    DO_TEST("disk-many-format-probing", NONE);
-    driver.config->allowDiskFormatProbing = false;
+    DO_TEST("tseg-explicit-size",
+            QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_IOH3420,
+            QEMU_CAPS_ICH9_AHCI,
+            QEMU_CAPS_MACHINE_SMM_OPT,
+            QEMU_CAPS_VIRTIO_SCSI,
+            QEMU_CAPS_MCH_EXTENDED_TSEG_MBYTES);
 
 # define DO_TEST_STATUS(name) \
     do { \
@@ -1200,6 +1216,11 @@ mymain(void)
     DO_TEST_STATUS("migration-out-nbd");
     DO_TEST_STATUS("migration-in-params");
     DO_TEST_STATUS("migration-out-params");
+    DO_TEST_STATUS("migration-out-nbd-tls");
+    DO_TEST_STATUS("disk-secinfo-upgrade");
+
+    DO_TEST("vhost-vsock", QEMU_CAPS_DEVICE_VHOST_VSOCK);
+    DO_TEST("vhost-vsock-auto", QEMU_CAPS_DEVICE_VHOST_VSOCK);
 
     if (getenv("LIBVIRT_SKIP_CLEANUP") == NULL)
         virFileDeleteTree(fakerootdir);
@@ -1211,7 +1232,8 @@ mymain(void)
 }
 
 VIR_TEST_MAIN_PRELOAD(mymain,
-                      abs_builddir "/.libs/virpcimock.so")
+                      abs_builddir "/.libs/virpcimock.so",
+                      abs_builddir "/.libs/virrandommock.so")
 
 #else
 

@@ -40,9 +40,6 @@
 #include "virxml.h"
 #include "virstring.h"
 
-#define VIRSH_COMMON_OPT_DOMAIN_FULL(cflags) \
-    VIRSH_COMMON_OPT_DOMAIN(N_("domain name, id or uuid"), cflags)
-
 VIR_ENUM_DECL(virshDomainIOError)
 VIR_ENUM_IMPL(virshDomainIOError,
               VIR_DOMAIN_DISK_ERROR_LAST,
@@ -63,7 +60,6 @@ virshGetDomainDescription(vshControl *ctl, virDomainPtr dom, bool title,
                           unsigned int flags)
 {
     char *desc = NULL;
-    virErrorPtr err = NULL;
     xmlDocPtr doc = NULL;
     xmlXPathContextPtr ctxt = NULL;
     int type;
@@ -76,15 +72,15 @@ virshGetDomainDescription(vshControl *ctl, virDomainPtr dom, bool title,
     if ((desc = virDomainGetMetadata(dom, type, NULL, flags))) {
         return desc;
     } else {
-        err = virGetLastError();
+        int errCode = virGetLastErrorCode();
 
-        if (err && err->code == VIR_ERR_NO_DOMAIN_METADATA) {
+        if (errCode == VIR_ERR_NO_DOMAIN_METADATA) {
             desc = vshStrdup(ctl, "");
             vshResetLibvirtError();
             return desc;
         }
 
-        if (err && err->code != VIR_ERR_NO_SUPPORT)
+        if (errCode != VIR_ERR_NO_SUPPORT)
             return desc;
     }
 
@@ -392,16 +388,76 @@ static const vshCmdInfo info_domblkinfo[] = {
 static const vshCmdOptDef opts_domblkinfo[] = {
     VIRSH_COMMON_OPT_DOMAIN_FULL(0),
     {.name = "device",
-     .type = VSH_OT_DATA,
-     .flags = VSH_OFLAG_REQ,
+     .type = VSH_OT_STRING,
+     .completer = virshDomainDiskTargetCompleter,
      .help = N_("block device")
     },
     {.name = "human",
      .type = VSH_OT_BOOL,
      .help = N_("Human readable output")
     },
+    {.name = "all",
+     .type = VSH_OT_BOOL,
+     .help = N_("display all block devices info")
+    },
     {.name = NULL}
 };
+
+static void
+cmdDomblkinfoPrint(vshControl *ctl,
+                   const virDomainBlockInfo *info,
+                   const char *device,
+                   bool human, bool title)
+{
+    char *cap = NULL;
+    char *alloc = NULL;
+    char *phy = NULL;
+
+    if (title) {
+        vshPrintExtra(ctl, "%-10s %-15s %-15s %-15s\n", _("Target"),
+                      _("Capacity"), _("Allocation"), _("Physical"));
+        vshPrintExtra(ctl, "-----------------------------"
+                      "------------------------\n");
+        return;
+    }
+
+    if (info->capacity == 0 && info->allocation == 0 && info->physical == 0) {
+        cap = vshStrdup(ctl, "-");
+        alloc = vshStrdup(ctl, "-");
+        phy = vshStrdup(ctl, "-");
+    } else if (!human) {
+        if (virAsprintf(&cap, "%llu", info->capacity) < 0 ||
+            virAsprintf(&alloc, "%llu", info->allocation) < 0 ||
+            virAsprintf(&phy, "%llu", info->physical) < 0)
+            goto cleanup;
+    } else {
+        double val_cap, val_alloc, val_phy;
+        const char *unit_cap, *unit_alloc, *unit_phy;
+
+        val_cap = vshPrettyCapacity(info->capacity, &unit_cap);
+        val_alloc = vshPrettyCapacity(info->allocation, &unit_alloc);
+        val_phy = vshPrettyCapacity(info->physical, &unit_phy);
+
+        if (virAsprintf(&cap, "%.3lf %s", val_cap, unit_cap) < 0 ||
+            virAsprintf(&alloc, "%.3lf %s", val_alloc, unit_alloc) < 0 ||
+            virAsprintf(&phy, "%.3lf %s", val_phy, unit_phy) < 0)
+            goto cleanup;
+    }
+
+    if (device) {
+        vshPrint(ctl, "%-10s %-15s %-15s %-15s\n", device, cap, alloc, phy);
+    } else {
+        vshPrint(ctl, "%-15s %s\n", _("Capacity:"), cap);
+        vshPrint(ctl, "%-15s %s\n", _("Allocation:"), alloc);
+        vshPrint(ctl, "%-15s %s\n", _("Physical:"), phy);
+    }
+
+ cleanup:
+    VIR_FREE(cap);
+    VIR_FREE(alloc);
+    VIR_FREE(phy);
+}
+
 
 static bool
 cmdDomblkinfo(vshControl *ctl, const vshCmd *cmd)
@@ -410,39 +466,83 @@ cmdDomblkinfo(vshControl *ctl, const vshCmd *cmd)
     virDomainPtr dom;
     bool ret = false;
     bool human = false;
+    bool all = false;
     const char *device = NULL;
+    xmlDocPtr xmldoc = NULL;
+    xmlXPathContextPtr ctxt = NULL;
+    int ndisks;
+    size_t i;
+    xmlNodePtr *disks = NULL;
+    char *target = NULL;
+    char *protocol = NULL;
 
     if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
-    if (vshCommandOptStringReq(ctl, cmd, "device", &device) < 0)
+    all = vshCommandOptBool(cmd, "all");
+    if (!all && vshCommandOptStringQuiet(ctl, cmd, "device", &device) <= 0) {
+        vshError(ctl, "command 'domblkinfo' requires <device> option");
         goto cleanup;
-
-    if (virDomainGetBlockInfo(dom, device, &info, 0) < 0)
-        goto cleanup;
+    }
 
     human = vshCommandOptBool(cmd, "human");
 
-    if (!human) {
-        vshPrint(ctl, "%-15s %llu\n", _("Capacity:"), info.capacity);
-        vshPrint(ctl, "%-15s %llu\n", _("Allocation:"), info.allocation);
-        vshPrint(ctl, "%-15s %llu\n", _("Physical:"), info.physical);
-    } else {
-        double val;
-        const char *unit;
+    if (all) {
+        bool active = virDomainIsActive(dom) == 1;
+        int rc;
 
-        val = vshPrettyCapacity(info.capacity, &unit);
-        vshPrint(ctl, "%-15s %-.3lf %s\n", _("Capacity:"), val, unit);
-        val = vshPrettyCapacity(info.allocation, &unit);
-        vshPrint(ctl, "%-15s %-.3lf %s\n", _("Allocation:"), val, unit);
-        val = vshPrettyCapacity(info.physical, &unit);
-        vshPrint(ctl, "%-15s %-.3lf %s\n", _("Physical:"), val, unit);
+        if (virshDomainGetXML(ctl, cmd, 0, &xmldoc, &ctxt) < 0)
+            goto cleanup;
+
+        ndisks = virXPathNodeSet("./devices/disk", ctxt, &disks);
+        if (ndisks < 0)
+            goto cleanup;
+
+        /* print the title */
+        cmdDomblkinfoPrint(ctl, NULL, NULL, false, true);
+
+        for (i = 0; i < ndisks; i++) {
+            ctxt->node = disks[i];
+            protocol = virXPathString("string(./source/@protocol)", ctxt);
+            target = virXPathString("string(./target/@dev)", ctxt);
+
+            rc = virDomainGetBlockInfo(dom, target, &info, 0);
+
+            if (rc < 0) {
+                /* If protocol is present that's an indication of a networked
+                 * storage device which cannot provide statistics, so generate
+                 * 0 based data and get the next disk. */
+                if (protocol && !active &&
+                    virGetLastErrorCode() == VIR_ERR_INTERNAL_ERROR &&
+                    virGetLastErrorDomain() == VIR_FROM_STORAGE) {
+                    memset(&info, 0, sizeof(info));
+                    vshResetLibvirtError();
+                } else {
+                    goto cleanup;
+                }
+            }
+
+            cmdDomblkinfoPrint(ctl, &info, target, human, false);
+
+            VIR_FREE(target);
+            VIR_FREE(protocol);
+        }
+    } else {
+        if (virDomainGetBlockInfo(dom, device, &info, 0) < 0)
+            goto cleanup;
+
+        cmdDomblkinfoPrint(ctl, &info, NULL, human, false);
     }
 
     ret = true;
 
  cleanup:
     virshDomainFree(dom);
+    VIR_FREE(target);
+    VIR_FREE(protocol);
+    VIR_FREE(disks);
+    xmlXPathFreeContext(ctxt);
+    xmlFreeDoc(xmldoc);
     return ret;
 }
 
@@ -810,6 +910,7 @@ static const vshCmdOptDef opts_domblkstat[] = {
     {.name = "device",
      .type = VSH_OT_STRING,
      .flags = VSH_OFLAG_EMPTY_OK,
+     .completer = virshDomainDiskTargetCompleter,
      .help = N_("block device")
     },
     {.name = "human",
@@ -1994,11 +2095,11 @@ static const vshCmdOptDef opts_domstats[] = {
      .type = VSH_OT_BOOL,
      .help = N_("add backing chain information to block stats"),
     },
-    {.name = "domain",
-     .type = VSH_OT_ARGV,
-     .flags = VSH_OFLAG_NONE,
-     .help = N_("list of domains to get stats for"),
+    {.name = "nowait",
+     .type = VSH_OT_BOOL,
+     .help = N_("report only stats that are accessible instantly"),
     },
+    VIRSH_COMMON_OPT_DOMAIN_OT_ARGV(N_("list of domains to get stats for"), 0),
     {.name = NULL}
 };
 
@@ -2092,6 +2193,9 @@ cmdDomstats(vshControl *ctl, const vshCmd *cmd)
 
     if (vshCommandOptBool(cmd, "backing"))
         flags |= VIR_CONNECT_GET_ALL_DOMAINS_STATS_BACKING;
+
+    if (vshCommandOptBool(cmd, "nowait"))
+        flags |= VIR_CONNECT_GET_ALL_DOMAINS_STATS_NOWAIT;
 
     if (vshCommandOptBool(cmd, "domain")) {
         if (VIR_ALLOC_N(domlist, 1) < 0)

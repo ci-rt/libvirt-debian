@@ -57,6 +57,11 @@ virQEMUCapsSetArch(virQEMUCapsPtr qemuCaps,
                    virArch arch);
 
 void
+virQEMUCapsFreeHostCPUModel(virQEMUCapsPtr qemuCaps,
+                            virArch hostArch,
+                            virDomainVirtType type);
+
+void
 virQEMUCapsInitHostCPUModel(virQEMUCapsPtr qemuCaps,
                             virArch hostArch,
                             virDomainVirtType type);
@@ -85,6 +90,10 @@ virQEMUCapsSetGICCapabilities(virQEMUCapsPtr qemuCaps,
                               virGICCapability *capabilities,
                               size_t ncapabilities);
 
+void
+virQEMUCapsSetSEVCapabilities(virQEMUCapsPtr qemuCaps,
+                              virSEVCapability *capabilities);
+
 int
 virQEMUCapsProbeQMPCPUDefinitions(virQEMUCapsPtr qemuCaps,
                                   qemuMonitorPtr mon,
@@ -93,4 +102,7 @@ virQEMUCapsProbeQMPCPUDefinitions(virQEMUCapsPtr qemuCaps,
 void
 virQEMUCapsSetMicrocodeVersion(virQEMUCapsPtr qemuCaps,
                                unsigned int microcodeVersion);
+
+void
+virQEMUCapsStripMachineAliases(virQEMUCapsPtr qemuCaps);
 #endif

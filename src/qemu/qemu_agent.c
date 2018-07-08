@@ -106,7 +106,6 @@ struct _qemuAgent {
     int fd;
     int watch;
 
-    bool connectPending;
     bool running;
 
     virDomainObjPtr vm;
@@ -180,14 +179,11 @@ static void qemuAgentDispose(void *obj)
 }
 
 static int
-qemuAgentOpenUnix(const char *monitor, pid_t cpid, bool *inProgress)
+qemuAgentOpenUnix(const char *monitor)
 {
     struct sockaddr_un addr;
     int monfd;
-    virTimeBackOffVar timeout;
     int ret = -1;
-
-    *inProgress = false;
 
     if ((monfd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
         virReportSystemError(errno,
@@ -217,38 +213,10 @@ qemuAgentOpenUnix(const char *monitor, pid_t cpid, bool *inProgress)
         goto error;
     }
 
-    if (virTimeBackOffStart(&timeout, 1, 3*1000 /* ms */) < 0)
-        goto error;
-    while (virTimeBackOffWait(&timeout)) {
-        ret = connect(monfd, (struct sockaddr *) &addr, sizeof(addr));
-
-        if (ret == 0)
-            break;
-
-        if ((errno == ENOENT || errno == ECONNREFUSED) &&
-            virProcessKill(cpid, 0) == 0) {
-            /* ENOENT       : Socket may not have shown up yet
-             * ECONNREFUSED : Leftover socket hasn't been removed yet */
-            continue;
-        }
-
-        if ((errno == EINPROGRESS) ||
-            (errno == EAGAIN)) {
-            VIR_DEBUG("Connection attempt continuing in background");
-            *inProgress = true;
-            ret = 0;
-            break;
-        }
-
+    ret = connect(monfd, (struct sockaddr *)&addr, sizeof(addr));
+    if (ret < 0) {
         virReportSystemError(errno, "%s",
                              _("failed to connect to monitor socket"));
-        goto error;
-
-    }
-
-    if (ret != 0) {
-        virReportSystemError(errno, "%s",
-                             _("monitor socket did not show up"));
         goto error;
     }
 
@@ -470,35 +438,6 @@ qemuAgentIOProcess(qemuAgentPtr mon)
 }
 
 
-static int
-qemuAgentIOConnect(qemuAgentPtr mon)
-{
-    int optval;
-    socklen_t optlen;
-
-    VIR_DEBUG("Checking on background connection status");
-
-    mon->connectPending = false;
-
-    optlen = sizeof(optval);
-
-    if (getsockopt(mon->fd, SOL_SOCKET, SO_ERROR,
-                   &optval, &optlen) < 0) {
-        virReportSystemError(errno, "%s",
-                             _("Cannot check socket connection status"));
-        return -1;
-    }
-
-    if (optval != 0) {
-        virReportSystemError(optval, "%s",
-                             _("Cannot connect to agent socket"));
-        return -1;
-    }
-
-    VIR_DEBUG("Agent is now connected");
-    return 0;
-}
-
 /*
  * Called when the monitor is able to write data
  * Call this function while holding the monitor lock.
@@ -630,13 +569,8 @@ qemuAgentIO(int watch, int fd, int events, void *opaque)
         error = true;
     } else {
         if (events & VIR_EVENT_HANDLE_WRITABLE) {
-            if (mon->connectPending) {
-                if (qemuAgentIOConnect(mon) < 0)
-                    error = true;
-            } else {
-                if (qemuAgentIOWrite(mon) < 0)
-                    error = true;
-            }
+            if (qemuAgentIOWrite(mon) < 0)
+                error = true;
             events &= ~VIR_EVENT_HANDLE_WRITABLE;
         }
 
@@ -686,8 +620,7 @@ qemuAgentIO(int watch, int fd, int events, void *opaque)
             /* Already have an error, so clear any new error */
             virResetLastError();
         } else {
-            virErrorPtr err = virGetLastError();
-            if (!err)
+            if (virGetLastErrorCode() == VIR_ERR_OK)
                 virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                _("Error while processing monitor IO"));
             virCopyLastError(&mon->lastError);
@@ -768,8 +701,7 @@ qemuAgentOpen(virDomainObjPtr vm,
 
     switch (config->type) {
     case VIR_DOMAIN_CHR_TYPE_UNIX:
-        mon->fd = qemuAgentOpenUnix(config->data.nix.path, vm->pid,
-                                    &mon->connectPending);
+        mon->fd = qemuAgentOpenUnix(config->data.nix.path);
         break;
 
     case VIR_DOMAIN_CHR_TYPE_PTY:
@@ -790,10 +722,7 @@ qemuAgentOpen(virDomainObjPtr vm,
     if ((mon->watch = virEventAddHandle(mon->fd,
                                         VIR_EVENT_HANDLE_HANGUP |
                                         VIR_EVENT_HANDLE_ERROR |
-                                        VIR_EVENT_HANDLE_READABLE |
-                                        (mon->connectPending ?
-                                         VIR_EVENT_HANDLE_WRITABLE :
-                                         0),
+                                        VIR_EVENT_HANDLE_READABLE,
                                         qemuAgentIO,
                                         mon,
                                         virObjectFreeCallback)) < 0) {
@@ -1490,7 +1419,7 @@ qemuAgentGetVCPUs(qemuAgentPtr mon,
     virJSONValuePtr cmd;
     virJSONValuePtr reply = NULL;
     virJSONValuePtr data = NULL;
-    ssize_t ndata;
+    size_t ndata;
 
     if (!(cmd = qemuAgentMakeCommand("guest-get-vcpus", NULL)))
         return -1;
@@ -1502,6 +1431,12 @@ qemuAgentGetVCPUs(qemuAgentPtr mon,
     if (!(data = virJSONValueObjectGetArray(reply, "return"))) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("guest-get-vcpus reply was missing return data"));
+        goto cleanup;
+    }
+
+    if (!virJSONValueIsArray(data)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Malformed guest-get-vcpus data array"));
         goto cleanup;
     }
 
@@ -1847,7 +1782,7 @@ qemuAgentGetFSInfo(qemuAgentPtr mon, virDomainFSInfoPtr **info,
 {
     size_t i, j, k;
     int ret = -1;
-    ssize_t ndata = 0, ndisk;
+    size_t ndata = 0, ndisk;
     char **alias;
     virJSONValuePtr cmd;
     virJSONValuePtr reply = NULL;
@@ -1869,15 +1804,14 @@ qemuAgentGetFSInfo(qemuAgentPtr mon, virDomainFSInfoPtr **info,
         goto cleanup;
     }
 
-    if (virJSONValueGetType(data) != VIR_JSON_TYPE_ARRAY) {
+    if (!virJSONValueIsArray(data)) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("guest-get-fsinfo return information was not "
-                         "an array"));
+                       _("Malformed guest-get-fsinfo data array"));
         goto cleanup;
     }
 
     ndata = virJSONValueArraySize(data);
-    if (!ndata) {
+    if (ndata == 0) {
         ret = 0;
         *info = NULL;
         goto cleanup;
@@ -1928,14 +1862,14 @@ qemuAgentGetFSInfo(qemuAgentPtr mon, virDomainFSInfoPtr **info,
             goto cleanup;
         }
 
-        if (virJSONValueGetType(entry) != VIR_JSON_TYPE_ARRAY) {
+        if (!virJSONValueIsArray(entry)) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("guest-get-fsinfo 'disk' data was not an array"));
+                           _("Malformed guest-get-fsinfo 'disk' data array"));
             goto cleanup;
         }
 
         ndisk = virJSONValueArraySize(entry);
-        if (!ndisk)
+        if (ndisk == 0)
             continue;
         if (VIR_ALLOC_N(info_ret[i]->devAlias, ndisk) < 0)
             goto cleanup;
@@ -2035,7 +1969,6 @@ qemuAgentGetInterfaces(qemuAgentPtr mon,
 {
     int ret = -1;
     size_t i, j;
-    ssize_t size = -1;
     virJSONValuePtr cmd = NULL;
     virJSONValuePtr reply = NULL;
     virJSONValuePtr ret_array = NULL;
@@ -2065,17 +1998,16 @@ qemuAgentGetInterfaces(qemuAgentPtr mon,
         goto cleanup;
     }
 
-    if ((size = virJSONValueArraySize(ret_array)) < 0) {
+    if (!virJSONValueIsArray(ret_array)) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("qemu agent didn't return an array of interfaces"));
         goto cleanup;
     }
 
-    for (i = 0; i < size; i++) {
+    for (i = 0; i < virJSONValueArraySize(ret_array); i++) {
         virJSONValuePtr tmp_iface = virJSONValueArrayGet(ret_array, i);
         virJSONValuePtr ip_addr_arr = NULL;
         const char *hwaddr, *ifname_s, *name = NULL;
-        ssize_t ip_addr_arr_size;
         virDomainInterfacePtr iface = NULL;
 
         /* Shouldn't happen but doesn't hurt to check neither */
@@ -2131,14 +2063,16 @@ qemuAgentGetInterfaces(qemuAgentPtr mon,
         if (!ip_addr_arr)
             continue;
 
-        if ((ip_addr_arr_size = virJSONValueArraySize(ip_addr_arr)) < 0)
-            /* Mmm, empty 'ip-address'? */
+        if (!virJSONValueIsArray(ip_addr_arr)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Malformed ip-addresses array"));
             goto error;
+        }
 
         /* If current iface already exists, continue with the count */
         addrs_count = iface->naddrs;
 
-        for (j = 0; j < ip_addr_arr_size; j++) {
+        for (j = 0; j < virJSONValueArraySize(ip_addr_arr); j++) {
             const char *type, *addr;
             virJSONValuePtr ip_addr_obj = virJSONValueArrayGet(ip_addr_arr, j);
             virDomainIPAddressPtr ip_addr;
@@ -2225,7 +2159,7 @@ qemuAgentSetUserPassword(qemuAgentPtr mon,
     virJSONValuePtr reply = NULL;
     char *password64 = NULL;
 
-    if (!(password64 = virStringEncodeBase64((unsigned char *) password,
+    if (!(password64 = virStringEncodeBase64((unsigned char *)password,
                                              strlen(password))))
         goto cleanup;
 

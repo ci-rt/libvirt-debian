@@ -73,6 +73,34 @@ in.
 </tr>
 <tr>
 <td>
+<a href="html/libvirt-libvirt-host.html#virConnectBaselineHypervisorCPU">virConnectBaselineHypervisorCPU</a>
+</td>
+<td>4.4.0</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>4.4.0</td>
+<td>4.4.0</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>
 <a href="html/libvirt-libvirt-host.html#virConnectClose">virConnectClose</a>
 </td>
 <td>0.0.3</td>
@@ -117,6 +145,34 @@ in.
 <td></td>
 <td>0.7.5</td>
 <td>0.7.5</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>
+<a href="html/libvirt-libvirt-host.html#virConnectCompareHypervisorCPU">virConnectCompareHypervisorCPU</a>
+</td>
+<td>4.4.0</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>4.4.0</td>
+<td>4.4.0</td>
 <td></td>
 <td></td>
 <td></td>
@@ -408,6 +464,32 @@ in.
 <td></td>
 </tr>
 <tr>
+<th>API</th>
+<th>Version</th>
+  <th>bhyve</th>
+  <th>bridge</th>
+  <th>esx</th>
+  <th>hal</th>
+  <th>hyperv</th>
+  <th>interface</th>
+  <th>libxl</th>
+  <th>lxc</th>
+  <th>nwfilter</th>
+  <th>openvz</th>
+  <th>phyp</th>
+  <th>qemu</th>
+  <th>remote</th>
+  <th>secret</th>
+  <th>storage</th>
+  <th>test</th>
+  <th>udev</th>
+  <th>uml</th>
+  <th>vbox</th>
+  <th>vmware</th>
+  <th>vz</th>
+  <th>xenapi</th>
+</tr>
+<tr>
 <td>
 <a href="html/libvirt-libvirt-host.html#virConnectGetCapabilities">virConnectGetCapabilities</a>
 </td>
@@ -462,32 +544,6 @@ in.
 <td></td>
 <td></td>
 <td></td>
-</tr>
-<tr>
-<th>API</th>
-<th>Version</th>
-  <th>bhyve</th>
-  <th>bridge</th>
-  <th>esx</th>
-  <th>hal</th>
-  <th>hyperv</th>
-  <th>interface</th>
-  <th>libxl</th>
-  <th>lxc</th>
-  <th>nwfilter</th>
-  <th>openvz</th>
-  <th>phyp</th>
-  <th>qemu</th>
-  <th>remote</th>
-  <th>secret</th>
-  <th>storage</th>
-  <th>test</th>
-  <th>udev</th>
-  <th>uml</th>
-  <th>vbox</th>
-  <th>vmware</th>
-  <th>vz</th>
-  <th>xenapi</th>
 </tr>
 <tr>
 <td>
@@ -854,6 +910,32 @@ in.
 <td>0.8.0</td>
 </tr>
 <tr>
+<th>API</th>
+<th>Version</th>
+  <th>bhyve</th>
+  <th>bridge</th>
+  <th>esx</th>
+  <th>hal</th>
+  <th>hyperv</th>
+  <th>interface</th>
+  <th>libxl</th>
+  <th>lxc</th>
+  <th>nwfilter</th>
+  <th>openvz</th>
+  <th>phyp</th>
+  <th>qemu</th>
+  <th>remote</th>
+  <th>secret</th>
+  <th>storage</th>
+  <th>test</th>
+  <th>udev</th>
+  <th>uml</th>
+  <th>vbox</th>
+  <th>vmware</th>
+  <th>vz</th>
+  <th>xenapi</th>
+</tr>
+<tr>
 <td>
 <a href="html/libvirt-libvirt-domain.html#virConnectNumOfDomains">virConnectNumOfDomains</a>
 </td>
@@ -908,32 +990,6 @@ in.
 <td>0.8.7</td>
 <td>0.10.0</td>
 <td>0.8.0</td>
-</tr>
-<tr>
-<th>API</th>
-<th>Version</th>
-  <th>bhyve</th>
-  <th>bridge</th>
-  <th>esx</th>
-  <th>hal</th>
-  <th>hyperv</th>
-  <th>interface</th>
-  <th>libxl</th>
-  <th>lxc</th>
-  <th>nwfilter</th>
-  <th>openvz</th>
-  <th>phyp</th>
-  <th>qemu</th>
-  <th>remote</th>
-  <th>secret</th>
-  <th>storage</th>
-  <th>test</th>
-  <th>udev</th>
-  <th>uml</th>
-  <th>vbox</th>
-  <th>vmware</th>
-  <th>vz</th>
-  <th>xenapi</th>
 </tr>
 <tr>
 <td>
@@ -1299,6 +1355,32 @@ virConnectSupportsFeature</td>
 <td></td>
 </tr>
 <tr>
+<th>API</th>
+<th>Version</th>
+  <th>bhyve</th>
+  <th>bridge</th>
+  <th>esx</th>
+  <th>hal</th>
+  <th>hyperv</th>
+  <th>interface</th>
+  <th>libxl</th>
+  <th>lxc</th>
+  <th>nwfilter</th>
+  <th>openvz</th>
+  <th>phyp</th>
+  <th>qemu</th>
+  <th>remote</th>
+  <th>secret</th>
+  <th>storage</th>
+  <th>test</th>
+  <th>udev</th>
+  <th>uml</th>
+  <th>vbox</th>
+  <th>vmware</th>
+  <th>vz</th>
+  <th>xenapi</th>
+</tr>
+<tr>
 <td>
 <a href="html/libvirt-libvirt-domain.html#virDomainBlockJobSetSpeed">virDomainBlockJobSetSpeed</a>
 </td>
@@ -1353,32 +1435,6 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
-</tr>
-<tr>
-<th>API</th>
-<th>Version</th>
-  <th>bhyve</th>
-  <th>bridge</th>
-  <th>esx</th>
-  <th>hal</th>
-  <th>hyperv</th>
-  <th>interface</th>
-  <th>libxl</th>
-  <th>lxc</th>
-  <th>nwfilter</th>
-  <th>openvz</th>
-  <th>phyp</th>
-  <th>qemu</th>
-  <th>remote</th>
-  <th>secret</th>
-  <th>storage</th>
-  <th>test</th>
-  <th>udev</th>
-  <th>uml</th>
-  <th>vbox</th>
-  <th>vmware</th>
-  <th>vz</th>
-  <th>xenapi</th>
 </tr>
 <tr>
 <td>
@@ -1745,6 +1801,32 @@ virConnectSupportsFeature</td>
 <td></td>
 </tr>
 <tr>
+<th>API</th>
+<th>Version</th>
+  <th>bhyve</th>
+  <th>bridge</th>
+  <th>esx</th>
+  <th>hal</th>
+  <th>hyperv</th>
+  <th>interface</th>
+  <th>libxl</th>
+  <th>lxc</th>
+  <th>nwfilter</th>
+  <th>openvz</th>
+  <th>phyp</th>
+  <th>qemu</th>
+  <th>remote</th>
+  <th>secret</th>
+  <th>storage</th>
+  <th>test</th>
+  <th>udev</th>
+  <th>uml</th>
+  <th>vbox</th>
+  <th>vmware</th>
+  <th>vz</th>
+  <th>xenapi</th>
+</tr>
+<tr>
 <td>
 <a href="html/libvirt-libvirt-domain.html#virDomainDefineXML">virDomainDefineXML</a>
 </td>
@@ -1799,32 +1881,6 @@ virConnectSupportsFeature</td>
 <td>1.2.12</td>
 <td>1.2.12</td>
 <td>1.2.12</td>
-</tr>
-<tr>
-<th>API</th>
-<th>Version</th>
-  <th>bhyve</th>
-  <th>bridge</th>
-  <th>esx</th>
-  <th>hal</th>
-  <th>hyperv</th>
-  <th>interface</th>
-  <th>libxl</th>
-  <th>lxc</th>
-  <th>nwfilter</th>
-  <th>openvz</th>
-  <th>phyp</th>
-  <th>qemu</th>
-  <th>remote</th>
-  <th>secret</th>
-  <th>storage</th>
-  <th>test</th>
-  <th>udev</th>
-  <th>uml</th>
-  <th>vbox</th>
-  <th>vmware</th>
-  <th>vz</th>
-  <th>xenapi</th>
 </tr>
 <tr>
 <td>
@@ -1936,6 +1992,34 @@ virConnectSupportsFeature</td>
 <td>0.6.3</td>
 <td></td>
 <td>1.2.15</td>
+<td></td>
+</tr>
+<tr>
+<td>
+<a href="html/libvirt-libvirt-domain.html#virDomainDetachDeviceAlias">virDomainDetachDeviceAlias</a>
+</td>
+<td>4.4.0</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>4.4.0</td>
+<td>4.4.0</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -2163,6 +2247,32 @@ virConnectSupportsFeature</td>
 <td></td>
 </tr>
 <tr>
+<th>API</th>
+<th>Version</th>
+  <th>bhyve</th>
+  <th>bridge</th>
+  <th>esx</th>
+  <th>hal</th>
+  <th>hyperv</th>
+  <th>interface</th>
+  <th>libxl</th>
+  <th>lxc</th>
+  <th>nwfilter</th>
+  <th>openvz</th>
+  <th>phyp</th>
+  <th>qemu</th>
+  <th>remote</th>
+  <th>secret</th>
+  <th>storage</th>
+  <th>test</th>
+  <th>udev</th>
+  <th>uml</th>
+  <th>vbox</th>
+  <th>vmware</th>
+  <th>vz</th>
+  <th>xenapi</th>
+</tr>
+<tr>
 <td>
 <a href="html/libvirt-libvirt-domain.html#virDomainGetBlockJobInfo">virDomainGetBlockJobInfo</a>
 </td>
@@ -2245,32 +2355,6 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
-</tr>
-<tr>
-<th>API</th>
-<th>Version</th>
-  <th>bhyve</th>
-  <th>bridge</th>
-  <th>esx</th>
-  <th>hal</th>
-  <th>hyperv</th>
-  <th>interface</th>
-  <th>libxl</th>
-  <th>lxc</th>
-  <th>nwfilter</th>
-  <th>openvz</th>
-  <th>phyp</th>
-  <th>qemu</th>
-  <th>remote</th>
-  <th>secret</th>
-  <th>storage</th>
-  <th>test</th>
-  <th>udev</th>
-  <th>uml</th>
-  <th>vbox</th>
-  <th>vmware</th>
-  <th>vz</th>
-  <th>xenapi</th>
 </tr>
 <tr>
 <td>
@@ -2554,6 +2638,34 @@ virConnectSupportsFeature</td>
 </tr>
 <tr>
 <td>
+<a href="html/libvirt-libvirt-domain.html#virDomainGetLaunchSecurityInfo">virDomainGetLaunchSecurityInfo</a>
+</td>
+<td>4.5.0</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>4.5.0</td>
+<td>4.5.0</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>
 <a href="html/libvirt-libvirt-domain.html#virDomainGetMaxMemory">virDomainGetMaxMemory</a>
 </td>
 <td>0.0.3</td>
@@ -2579,6 +2691,32 @@ virConnectSupportsFeature</td>
 <td></td>
 <td>1.2.15</td>
 <td>0.8.0</td>
+</tr>
+<tr>
+<th>API</th>
+<th>Version</th>
+  <th>bhyve</th>
+  <th>bridge</th>
+  <th>esx</th>
+  <th>hal</th>
+  <th>hyperv</th>
+  <th>interface</th>
+  <th>libxl</th>
+  <th>lxc</th>
+  <th>nwfilter</th>
+  <th>openvz</th>
+  <th>phyp</th>
+  <th>qemu</th>
+  <th>remote</th>
+  <th>secret</th>
+  <th>storage</th>
+  <th>test</th>
+  <th>udev</th>
+  <th>uml</th>
+  <th>vbox</th>
+  <th>vmware</th>
+  <th>vz</th>
+  <th>xenapi</th>
 </tr>
 <tr>
 <td>
@@ -2691,32 +2829,6 @@ virConnectSupportsFeature</td>
 <td></td>
 <td></td>
 <td></td>
-</tr>
-<tr>
-<th>API</th>
-<th>Version</th>
-  <th>bhyve</th>
-  <th>bridge</th>
-  <th>esx</th>
-  <th>hal</th>
-  <th>hyperv</th>
-  <th>interface</th>
-  <th>libxl</th>
-  <th>lxc</th>
-  <th>nwfilter</th>
-  <th>openvz</th>
-  <th>phyp</th>
-  <th>qemu</th>
-  <th>remote</th>
-  <th>secret</th>
-  <th>storage</th>
-  <th>test</th>
-  <th>udev</th>
-  <th>uml</th>
-  <th>vbox</th>
-  <th>vmware</th>
-  <th>vz</th>
-  <th>xenapi</th>
 </tr>
 <tr>
 <td>
@@ -3027,6 +3139,32 @@ virConnectSupportsFeature</td>
 <td>0.8.0</td>
 </tr>
 <tr>
+<th>API</th>
+<th>Version</th>
+  <th>bhyve</th>
+  <th>bridge</th>
+  <th>esx</th>
+  <th>hal</th>
+  <th>hyperv</th>
+  <th>interface</th>
+  <th>libxl</th>
+  <th>lxc</th>
+  <th>nwfilter</th>
+  <th>openvz</th>
+  <th>phyp</th>
+  <th>qemu</th>
+  <th>remote</th>
+  <th>secret</th>
+  <th>storage</th>
+  <th>test</th>
+  <th>udev</th>
+  <th>uml</th>
+  <th>vbox</th>
+  <th>vmware</th>
+  <th>vz</th>
+  <th>xenapi</th>
+</tr>
+<tr>
 <td>
 <a href="html/libvirt-libvirt-domain.html#virDomainGetVcpusFlags">virDomainGetVcpusFlags</a>
 </td>
@@ -3137,32 +3275,6 @@ virConnectSupportsFeature</td>
 <td>1.2.13</td>
 <td>1.2.13</td>
 <td>1.2.13</td>
-</tr>
-<tr>
-<th>API</th>
-<th>Version</th>
-  <th>bhyve</th>
-  <th>bridge</th>
-  <th>esx</th>
-  <th>hal</th>
-  <th>hyperv</th>
-  <th>interface</th>
-  <th>libxl</th>
-  <th>lxc</th>
-  <th>nwfilter</th>
-  <th>openvz</th>
-  <th>phyp</th>
-  <th>qemu</th>
-  <th>remote</th>
-  <th>secret</th>
-  <th>storage</th>
-  <th>test</th>
-  <th>udev</th>
-  <th>uml</th>
-  <th>vbox</th>
-  <th>vmware</th>
-  <th>vz</th>
-  <th>xenapi</th>
 </tr>
 <tr>
 <td>
@@ -3473,6 +3585,32 @@ virConnectSupportsFeature</td>
 <td></td>
 </tr>
 <tr>
+<th>API</th>
+<th>Version</th>
+  <th>bhyve</th>
+  <th>bridge</th>
+  <th>esx</th>
+  <th>hal</th>
+  <th>hyperv</th>
+  <th>interface</th>
+  <th>libxl</th>
+  <th>lxc</th>
+  <th>nwfilter</th>
+  <th>openvz</th>
+  <th>phyp</th>
+  <th>qemu</th>
+  <th>remote</th>
+  <th>secret</th>
+  <th>storage</th>
+  <th>test</th>
+  <th>udev</th>
+  <th>uml</th>
+  <th>vbox</th>
+  <th>vmware</th>
+  <th>vz</th>
+  <th>xenapi</th>
+</tr>
+<tr>
 <td>
 <a href="html/libvirt-libvirt-domain.html#virDomainManagedSave">virDomainManagedSave</a>
 </td>
@@ -3583,32 +3721,6 @@ virConnectSupportsFeature</td>
 <td></td>
 <td>1.2.14</td>
 <td></td>
-</tr>
-<tr>
-<th>API</th>
-<th>Version</th>
-  <th>bhyve</th>
-  <th>bridge</th>
-  <th>esx</th>
-  <th>hal</th>
-  <th>hyperv</th>
-  <th>interface</th>
-  <th>libxl</th>
-  <th>lxc</th>
-  <th>nwfilter</th>
-  <th>openvz</th>
-  <th>phyp</th>
-  <th>qemu</th>
-  <th>remote</th>
-  <th>secret</th>
-  <th>storage</th>
-  <th>test</th>
-  <th>udev</th>
-  <th>uml</th>
-  <th>vbox</th>
-  <th>vmware</th>
-  <th>vz</th>
-  <th>xenapi</th>
 </tr>
 <tr>
 <td>
@@ -3911,6 +4023,32 @@ virDomainMigrateFinish3Params</td>
 <td></td>
 </tr>
 <tr>
+<th>API</th>
+<th>Version</th>
+  <th>bhyve</th>
+  <th>bridge</th>
+  <th>esx</th>
+  <th>hal</th>
+  <th>hyperv</th>
+  <th>interface</th>
+  <th>libxl</th>
+  <th>lxc</th>
+  <th>nwfilter</th>
+  <th>openvz</th>
+  <th>phyp</th>
+  <th>qemu</th>
+  <th>remote</th>
+  <th>secret</th>
+  <th>storage</th>
+  <th>test</th>
+  <th>udev</th>
+  <th>uml</th>
+  <th>vbox</th>
+  <th>vmware</th>
+  <th>vz</th>
+  <th>xenapi</th>
+</tr>
+<tr>
 <td>
 <a href="html/libvirt-libvirt-domain.html#virDomainMigrateGetCompressionCache">virDomainMigrateGetCompressionCache</a>
 </td>
@@ -4020,32 +4158,6 @@ virDomainMigratePerform</td>
 <td></td>
 <td></td>
 <td></td>
-</tr>
-<tr>
-<th>API</th>
-<th>Version</th>
-  <th>bhyve</th>
-  <th>bridge</th>
-  <th>esx</th>
-  <th>hal</th>
-  <th>hyperv</th>
-  <th>interface</th>
-  <th>libxl</th>
-  <th>lxc</th>
-  <th>nwfilter</th>
-  <th>openvz</th>
-  <th>phyp</th>
-  <th>qemu</th>
-  <th>remote</th>
-  <th>secret</th>
-  <th>storage</th>
-  <th>test</th>
-  <th>udev</th>
-  <th>uml</th>
-  <th>vbox</th>
-  <th>vmware</th>
-  <th>vz</th>
-  <th>xenapi</th>
 </tr>
 <tr>
 <td>
@@ -4347,6 +4459,32 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 </tr>
 <tr>
+<th>API</th>
+<th>Version</th>
+  <th>bhyve</th>
+  <th>bridge</th>
+  <th>esx</th>
+  <th>hal</th>
+  <th>hyperv</th>
+  <th>interface</th>
+  <th>libxl</th>
+  <th>lxc</th>
+  <th>nwfilter</th>
+  <th>openvz</th>
+  <th>phyp</th>
+  <th>qemu</th>
+  <th>remote</th>
+  <th>secret</th>
+  <th>storage</th>
+  <th>test</th>
+  <th>udev</th>
+  <th>uml</th>
+  <th>vbox</th>
+  <th>vmware</th>
+  <th>vz</th>
+  <th>xenapi</th>
+</tr>
+<tr>
 <td>
 <a href="html/libvirt-libvirt-domain.html#virDomainMigrateSetMaxSpeed">virDomainMigrateSetMaxSpeed</a>
 </td>
@@ -4457,32 +4595,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-</tr>
-<tr>
-<th>API</th>
-<th>Version</th>
-  <th>bhyve</th>
-  <th>bridge</th>
-  <th>esx</th>
-  <th>hal</th>
-  <th>hyperv</th>
-  <th>interface</th>
-  <th>libxl</th>
-  <th>lxc</th>
-  <th>nwfilter</th>
-  <th>openvz</th>
-  <th>phyp</th>
-  <th>qemu</th>
-  <th>remote</th>
-  <th>secret</th>
-  <th>storage</th>
-  <th>test</th>
-  <th>udev</th>
-  <th>uml</th>
-  <th>vbox</th>
-  <th>vmware</th>
-  <th>vz</th>
-  <th>xenapi</th>
 </tr>
 <tr>
 <td>
@@ -4793,6 +4905,32 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 </tr>
 <tr>
+<th>API</th>
+<th>Version</th>
+  <th>bhyve</th>
+  <th>bridge</th>
+  <th>esx</th>
+  <th>hal</th>
+  <th>hyperv</th>
+  <th>interface</th>
+  <th>libxl</th>
+  <th>lxc</th>
+  <th>nwfilter</th>
+  <th>openvz</th>
+  <th>phyp</th>
+  <th>qemu</th>
+  <th>remote</th>
+  <th>secret</th>
+  <th>storage</th>
+  <th>test</th>
+  <th>udev</th>
+  <th>uml</th>
+  <th>vbox</th>
+  <th>vmware</th>
+  <th>vz</th>
+  <th>xenapi</th>
+</tr>
+<tr>
 <td>
 <a href="html/libvirt-libvirt-domain.html#virDomainReboot">virDomainReboot</a>
 </td>
@@ -4903,32 +5041,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-</tr>
-<tr>
-<th>API</th>
-<th>Version</th>
-  <th>bhyve</th>
-  <th>bridge</th>
-  <th>esx</th>
-  <th>hal</th>
-  <th>hyperv</th>
-  <th>interface</th>
-  <th>libxl</th>
-  <th>lxc</th>
-  <th>nwfilter</th>
-  <th>openvz</th>
-  <th>phyp</th>
-  <th>qemu</th>
-  <th>remote</th>
-  <th>secret</th>
-  <th>storage</th>
-  <th>test</th>
-  <th>udev</th>
-  <th>uml</th>
-  <th>vbox</th>
-  <th>vmware</th>
-  <th>vz</th>
-  <th>xenapi</th>
 </tr>
 <tr>
 <td>
@@ -5239,6 +5351,32 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.8.0</td>
 </tr>
 <tr>
+<th>API</th>
+<th>Version</th>
+  <th>bhyve</th>
+  <th>bridge</th>
+  <th>esx</th>
+  <th>hal</th>
+  <th>hyperv</th>
+  <th>interface</th>
+  <th>libxl</th>
+  <th>lxc</th>
+  <th>nwfilter</th>
+  <th>openvz</th>
+  <th>phyp</th>
+  <th>qemu</th>
+  <th>remote</th>
+  <th>secret</th>
+  <th>storage</th>
+  <th>test</th>
+  <th>udev</th>
+  <th>uml</th>
+  <th>vbox</th>
+  <th>vmware</th>
+  <th>vz</th>
+  <th>xenapi</th>
+</tr>
+<tr>
 <td>
 <a href="html/libvirt-libvirt-domain.html#virDomainSetBlkioParameters">virDomainSetBlkioParameters</a>
 </td>
@@ -5349,32 +5487,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-</tr>
-<tr>
-<th>API</th>
-<th>Version</th>
-  <th>bhyve</th>
-  <th>bridge</th>
-  <th>esx</th>
-  <th>hal</th>
-  <th>hyperv</th>
-  <th>interface</th>
-  <th>libxl</th>
-  <th>lxc</th>
-  <th>nwfilter</th>
-  <th>openvz</th>
-  <th>phyp</th>
-  <th>qemu</th>
-  <th>remote</th>
-  <th>secret</th>
-  <th>storage</th>
-  <th>test</th>
-  <th>udev</th>
-  <th>uml</th>
-  <th>vbox</th>
-  <th>vmware</th>
-  <th>vz</th>
-  <th>xenapi</th>
 </tr>
 <tr>
 <td>
@@ -5685,6 +5797,32 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 </tr>
 <tr>
+<th>API</th>
+<th>Version</th>
+  <th>bhyve</th>
+  <th>bridge</th>
+  <th>esx</th>
+  <th>hal</th>
+  <th>hyperv</th>
+  <th>interface</th>
+  <th>libxl</th>
+  <th>lxc</th>
+  <th>nwfilter</th>
+  <th>openvz</th>
+  <th>phyp</th>
+  <th>qemu</th>
+  <th>remote</th>
+  <th>secret</th>
+  <th>storage</th>
+  <th>test</th>
+  <th>udev</th>
+  <th>uml</th>
+  <th>vbox</th>
+  <th>vmware</th>
+  <th>vz</th>
+  <th>xenapi</th>
+</tr>
+<tr>
 <td>
 <a href="html/libvirt-libvirt-domain.html#virDomainSetSchedulerParametersFlags">virDomainSetSchedulerParametersFlags</a>
 </td>
@@ -5795,32 +5933,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-</tr>
-<tr>
-<th>API</th>
-<th>Version</th>
-  <th>bhyve</th>
-  <th>bridge</th>
-  <th>esx</th>
-  <th>hal</th>
-  <th>hyperv</th>
-  <th>interface</th>
-  <th>libxl</th>
-  <th>lxc</th>
-  <th>nwfilter</th>
-  <th>openvz</th>
-  <th>phyp</th>
-  <th>qemu</th>
-  <th>remote</th>
-  <th>secret</th>
-  <th>storage</th>
-  <th>test</th>
-  <th>udev</th>
-  <th>uml</th>
-  <th>vbox</th>
-  <th>vmware</th>
-  <th>vz</th>
-  <th>xenapi</th>
 </tr>
 <tr>
 <td>
@@ -6131,6 +6243,32 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 </tr>
 <tr>
+<th>API</th>
+<th>Version</th>
+  <th>bhyve</th>
+  <th>bridge</th>
+  <th>esx</th>
+  <th>hal</th>
+  <th>hyperv</th>
+  <th>interface</th>
+  <th>libxl</th>
+  <th>lxc</th>
+  <th>nwfilter</th>
+  <th>openvz</th>
+  <th>phyp</th>
+  <th>qemu</th>
+  <th>remote</th>
+  <th>secret</th>
+  <th>storage</th>
+  <th>test</th>
+  <th>udev</th>
+  <th>uml</th>
+  <th>vbox</th>
+  <th>vmware</th>
+  <th>vz</th>
+  <th>xenapi</th>
+</tr>
+<tr>
 <td>
 <a href="html/libvirt-libvirt-domain-snapshot.html#virDomainSnapshotListAllChildren">virDomainSnapshotListAllChildren</a>
 </td>
@@ -6241,32 +6379,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td>1.3.5</td>
 <td></td>
-</tr>
-<tr>
-<th>API</th>
-<th>Version</th>
-  <th>bhyve</th>
-  <th>bridge</th>
-  <th>esx</th>
-  <th>hal</th>
-  <th>hyperv</th>
-  <th>interface</th>
-  <th>libxl</th>
-  <th>lxc</th>
-  <th>nwfilter</th>
-  <th>openvz</th>
-  <th>phyp</th>
-  <th>qemu</th>
-  <th>remote</th>
-  <th>secret</th>
-  <th>storage</th>
-  <th>test</th>
-  <th>udev</th>
-  <th>uml</th>
-  <th>vbox</th>
-  <th>vmware</th>
-  <th>vz</th>
-  <th>xenapi</th>
 </tr>
 <tr>
 <td>
@@ -6577,6 +6689,32 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 </tr>
 <tr>
+<th>API</th>
+<th>Version</th>
+  <th>bhyve</th>
+  <th>bridge</th>
+  <th>esx</th>
+  <th>hal</th>
+  <th>hyperv</th>
+  <th>interface</th>
+  <th>libxl</th>
+  <th>lxc</th>
+  <th>nwfilter</th>
+  <th>openvz</th>
+  <th>phyp</th>
+  <th>qemu</th>
+  <th>remote</th>
+  <th>secret</th>
+  <th>storage</th>
+  <th>test</th>
+  <th>udev</th>
+  <th>uml</th>
+  <th>vbox</th>
+  <th>vmware</th>
+  <th>vz</th>
+  <th>xenapi</th>
+</tr>
+<tr>
 <td>
 <a href="html/libvirt-libvirt-host.html#virNodeGetCPUMap">virNodeGetCPUMap</a>
 </td>
@@ -6689,32 +6827,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.8.0</td>
 </tr>
 <tr>
-<th>API</th>
-<th>Version</th>
-  <th>bhyve</th>
-  <th>bridge</th>
-  <th>esx</th>
-  <th>hal</th>
-  <th>hyperv</th>
-  <th>interface</th>
-  <th>libxl</th>
-  <th>lxc</th>
-  <th>nwfilter</th>
-  <th>openvz</th>
-  <th>phyp</th>
-  <th>qemu</th>
-  <th>remote</th>
-  <th>secret</th>
-  <th>storage</th>
-  <th>test</th>
-  <th>udev</th>
-  <th>uml</th>
-  <th>vbox</th>
-  <th>vmware</th>
-  <th>vz</th>
-  <th>xenapi</th>
-</tr>
-<tr>
 <td>
 <a href="html/libvirt-libvirt-host.html#virNodeGetFreePages">virNodeGetFreePages</a>
 </td>
@@ -6824,6 +6936,34 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td>1.2.21</td>
+<td></td>
+</tr>
+<tr>
+<td>
+<a href="html/libvirt-libvirt-host.html#virNodeGetSEVInfo">virNodeGetSEVInfo</a>
+</td>
+<td>4.5.0</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>4.5.0</td>
+<td>4.5.0</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
 <td></td>
 </tr>
 <tr>
@@ -7126,6 +7266,14 @@ virDomainMigratePrepareTunnel3Params</td>
 <tbody>
 <tr>
 <td>
+<a href="html/libvirt-libvirt-nwfilter.html#virConnectListAllNWFilterBindings">virConnectListAllNWFilterBindings</a>
+</td>
+<td>4.5.0</td>
+<td>4.5.0</td>
+<td>4.5.0</td>
+</tr>
+<tr>
+<td>
 <a href="html/libvirt-libvirt-nwfilter.html#virConnectListAllNWFilters">virConnectListAllNWFilters</a>
 </td>
 <td>0.10.2</td>
@@ -7147,6 +7295,38 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.8.0</td>
 <td>0.8.0</td>
 <td>0.8.0</td>
+</tr>
+<tr>
+<td>
+<a href="html/libvirt-libvirt-nwfilter.html#virNWFilterBindingCreateXML">virNWFilterBindingCreateXML</a>
+</td>
+<td>4.5.0</td>
+<td>4.5.0</td>
+<td>4.5.0</td>
+</tr>
+<tr>
+<td>
+<a href="html/libvirt-libvirt-nwfilter.html#virNWFilterBindingDelete">virNWFilterBindingDelete</a>
+</td>
+<td>4.5.0</td>
+<td>4.5.0</td>
+<td>4.5.0</td>
+</tr>
+<tr>
+<td>
+<a href="html/libvirt-libvirt-nwfilter.html#virNWFilterBindingGetXMLDesc">virNWFilterBindingGetXMLDesc</a>
+</td>
+<td>4.5.0</td>
+<td>4.5.0</td>
+<td>4.5.0</td>
+</tr>
+<tr>
+<td>
+<a href="html/libvirt-libvirt-nwfilter.html#virNWFilterBindingLookupByPortDev">virNWFilterBindingLookupByPortDev</a>
+</td>
+<td>4.5.0</td>
+<td>4.5.0</td>
+<td>4.5.0</td>
 </tr>
 <tr>
 <td>

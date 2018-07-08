@@ -36,7 +36,7 @@
 #define VIR_FROM_THIS VIR_FROM_NWFILTER
 
 static virMutex ipAddressMapLock = VIR_MUTEX_INITIALIZER;
-static virNWFilterHashTablePtr ipAddressMap;
+static virHashTablePtr ipAddressMap;
 
 
 /* Add an IP address to the list of IP addresses an interface is
@@ -61,13 +61,13 @@ virNWFilterIPAddrMapAddIPAddr(const char *ifname, char *addr)
 
     virMutexLock(&ipAddressMapLock);
 
-    val = virHashLookup(ipAddressMap->hashTable, ifname);
+    val = virHashLookup(ipAddressMap, ifname);
     if (!val) {
         val = virNWFilterVarValueCreateSimple(addrCopy);
         if (!val)
             goto cleanup;
         addrCopy = NULL;
-        ret = virNWFilterHashTablePut(ipAddressMap, ifname, val);
+        ret = virHashUpdateEntry(ipAddressMap, ifname, val);
         if (ret < 0)
             virNWFilterVarValueFree(val);
         goto cleanup;
@@ -109,7 +109,7 @@ virNWFilterIPAddrMapDelIPAddr(const char *ifname, const char *ipaddr)
     virMutexLock(&ipAddressMapLock);
 
     if (ipaddr != NULL) {
-        val = virHashLookup(ipAddressMap->hashTable, ifname);
+        val = virHashLookup(ipAddressMap, ifname);
         if (val) {
             if (virNWFilterVarValueGetCardinality(val) == 1 &&
                 STREQ(ipaddr,
@@ -121,8 +121,7 @@ virNWFilterIPAddrMapDelIPAddr(const char *ifname, const char *ipaddr)
     } else {
  remove_entry:
         /* remove whole entry */
-        val = virNWFilterHashTableRemoveEntry(ipAddressMap, ifname);
-        virNWFilterVarValueFree(val);
+        virHashRemoveEntry(ipAddressMap, ifname);
         ret = 0;
     }
 
@@ -144,7 +143,7 @@ virNWFilterIPAddrMapGetIPAddr(const char *ifname)
 
     virMutexLock(&ipAddressMapLock);
 
-    res = virHashLookup(ipAddressMap->hashTable, ifname);
+    res = virHashLookup(ipAddressMap, ifname);
 
     virMutexUnlock(&ipAddressMapLock);
 
@@ -164,6 +163,6 @@ virNWFilterIPAddrMapInit(void)
 void
 virNWFilterIPAddrMapShutdown(void)
 {
-    virNWFilterHashTableFree(ipAddressMap);
+    virHashFree(ipAddressMap);
     ipAddressMap = NULL;
 }

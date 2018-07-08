@@ -9,9 +9,12 @@
 #include "nwfilter_conf.h"
 #include "node_device_conf.h"
 #include "interface_conf.h"
+#include "virnwfilterbindingdef.h"
 
 extern int virConnectBaselineCPUEnsureACL(virConnectPtr conn);
+extern int virConnectBaselineHypervisorCPUEnsureACL(virConnectPtr conn);
 extern int virConnectCompareCPUEnsureACL(virConnectPtr conn);
+extern int virConnectCompareHypervisorCPUEnsureACL(virConnectPtr conn);
 extern int virConnectDomainEventCallbackDeregisterAnyEnsureACL(virConnectPtr conn);
 extern int virConnectDomainEventCallbackRegisterAnyEnsureACL(virConnectPtr conn);
 extern bool virConnectDomainEventCallbackRegisterAnyCheckACL(virConnectPtr conn, virDomainDefPtr domain);
@@ -44,6 +47,8 @@ extern int virConnectListAllNetworksEnsureACL(virConnectPtr conn);
 extern bool virConnectListAllNetworksCheckACL(virConnectPtr conn, virNetworkDefPtr network);
 extern int virConnectListAllNodeDevicesEnsureACL(virConnectPtr conn);
 extern bool virConnectListAllNodeDevicesCheckACL(virConnectPtr conn, virNodeDeviceDefPtr device);
+extern int virConnectListAllNWFilterBindingsEnsureACL(virConnectPtr conn);
+extern bool virConnectListAllNWFilterBindingsCheckACL(virConnectPtr conn, virNWFilterBindingDefPtr binding);
 extern int virConnectListAllNWFiltersEnsureACL(virConnectPtr conn);
 extern bool virConnectListAllNWFiltersCheckACL(virConnectPtr conn, virNWFilterDefPtr nwfilter);
 extern int virConnectListAllSecretsEnsureACL(virConnectPtr conn);
@@ -133,6 +138,7 @@ extern int virDomainDelIOThreadEnsureACL(virConnectPtr conn, virDomainDefPtr dom
 extern int virDomainDestroyEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainDestroyFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainDetachDeviceEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainDetachDeviceAliasEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainDetachDeviceFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
 extern int virDomainFSFreezeEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainFSThawEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
@@ -154,6 +160,7 @@ extern int virDomainGetInterfaceParametersEnsureACL(virConnectPtr conn, virDomai
 extern int virDomainGetIOThreadInfoEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetJobInfoEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetJobStatsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainGetLaunchSecurityInfoEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetMaxMemoryEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetMaxVcpusEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainGetMemoryParametersEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
@@ -328,12 +335,17 @@ extern int virNodeGetInfoEnsureACL(virConnectPtr conn);
 extern int virNodeGetMemoryParametersEnsureACL(virConnectPtr conn);
 extern int virNodeGetMemoryStatsEnsureACL(virConnectPtr conn);
 extern int virNodeGetSecurityModelEnsureACL(virConnectPtr conn);
+extern int virNodeGetSevInfoEnsureACL(virConnectPtr conn);
 extern int virNodeListDevicesEnsureACL(virConnectPtr conn);
 extern bool virNodeListDevicesCheckACL(virConnectPtr conn, virNodeDeviceDefPtr device);
 extern int virNodeNumOfDevicesEnsureACL(virConnectPtr conn);
 extern bool virNodeNumOfDevicesCheckACL(virConnectPtr conn, virNodeDeviceDefPtr device);
 extern int virNodeSetMemoryParametersEnsureACL(virConnectPtr conn);
 extern int virNodeSuspendForDurationEnsureACL(virConnectPtr conn);
+extern int virNWFilterBindingCreateXMLEnsureACL(virConnectPtr conn, virNWFilterBindingDefPtr binding);
+extern int virNWFilterBindingDeleteEnsureACL(virConnectPtr conn, virNWFilterBindingDefPtr binding);
+extern int virNWFilterBindingGetXMLDescEnsureACL(virConnectPtr conn, virNWFilterBindingDefPtr binding);
+extern int virNWFilterBindingLookupByPortDevEnsureACL(virConnectPtr conn, virNWFilterBindingDefPtr binding);
 extern int virNWFilterDefineXMLEnsureACL(virConnectPtr conn, virNWFilterDefPtr nwfilter);
 extern int virNWFilterGetXMLDescEnsureACL(virConnectPtr conn, virNWFilterDefPtr nwfilter);
 extern int virNWFilterLookupByNameEnsureACL(virConnectPtr conn, virNWFilterDefPtr nwfilter);

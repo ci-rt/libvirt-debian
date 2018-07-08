@@ -82,8 +82,7 @@ lxcProcessAutoDestroy(virDomainObjPtr dom,
     if (!dom->persistent)
         virDomainObjListRemove(driver->domains, dom);
 
-    if (event)
-        virObjectEventStateQueue(driver->domainEventState, event);
+    virObjectEventStateQueue(driver->domainEventState, event);
 }
 
 /*
@@ -304,7 +303,7 @@ virLXCProcessSetupInterfaceTap(virDomainDefPtr vm,
     }
 
     if (net->filter &&
-        virDomainConfNWFilterInstantiate(vm->uuid, net) < 0)
+        virDomainConfNWFilterInstantiate(vm->name, vm->uuid, net, false) < 0)
         goto cleanup;
 
     ret = containerVeth;
@@ -671,10 +670,8 @@ static void virLXCProcessMonitorEOFNotify(virLXCMonitorPtr mon,
         } else {
             VIR_DEBUG("Stop event has already been sent");
         }
-        if (!vm->persistent) {
+        if (!vm->persistent)
             virDomainObjListRemove(driver->domains, vm);
-            vm = NULL;
-        }
     } else {
         int ret = virLXCProcessReboot(driver, vm);
         virDomainAuditStop(vm, "reboot");
@@ -685,17 +682,16 @@ static void virLXCProcessMonitorEOFNotify(virLXCMonitorPtr mon,
             event = virDomainEventLifecycleNewFromObj(vm,
                                              VIR_DOMAIN_EVENT_STOPPED,
                                              priv->stopReason);
-            if (!vm->persistent) {
+            if (!vm->persistent)
                 virDomainObjListRemove(driver->domains, vm);
-                vm = NULL;
-            }
         }
     }
 
-    if (vm)
-        virObjectUnlock(vm);
-    if (event)
-        virObjectEventStateQueue(driver->domainEventState, event);
+    /* NB: virLXCProcessConnectMonitor will perform the virObjectRef(vm)
+     * before adding monitorCallbacks. Since we are now done with the @vm
+     * we can Unref/Unlock */
+    virDomainObjEndAPI(&vm);
+    virObjectEventStateQueue(driver->domainEventState, event);
 }
 
 static void virLXCProcessMonitorExitNotify(virLXCMonitorPtr mon ATTRIBUTE_UNUSED,
@@ -737,7 +733,7 @@ virLXCProcessGetNsInode(pid_t pid,
     int ret = -1;
 
     if (virAsprintf(&path, "/proc/%lld/ns/%s",
-                    (long long) pid, nsname) < 0)
+                    (long long)pid, nsname) < 0)
         goto cleanup;
 
     if (stat(path, &sb) < 0) {
@@ -773,7 +769,7 @@ static void virLXCProcessMonitorInitNotify(virLXCMonitorPtr mon ATTRIBUTE_UNUSED
 
     if (virLXCProcessGetNsInode(initpid, "pid", &inode) < 0) {
         VIR_WARN("Cannot obtain pid NS inode for %lld: %s",
-                 (long long) initpid,
+                 (long long)initpid,
                  virGetLastErrorMessage());
         virResetLastError();
     }
@@ -803,7 +799,8 @@ static virLXCMonitorPtr virLXCProcessConnectMonitor(virLXCDriverPtr driver,
         goto cleanup;
 
     /* Hold an extra reference because we can't allow 'vm' to be
-     * deleted while the monitor is active */
+     * deleted while the monitor is active. This will be unreffed
+     * during EOFNotify processing. */
     virObjectRef(vm);
 
     monitor = virLXCMonitorNew(vm, cfg->stateDir, &monitorCallbacks);
@@ -1608,8 +1605,7 @@ virLXCProcessAutostartDomain(virDomainObjPtr vm,
                 virDomainEventLifecycleNewFromObj(vm,
                                          VIR_DOMAIN_EVENT_STARTED,
                                          VIR_DOMAIN_EVENT_STARTED_BOOTED);
-            if (event)
-                virObjectEventStateQueue(data->driver->domainEventState, event);
+            virObjectEventStateQueue(data->driver->domainEventState, event);
         }
     }
     virObjectUnlock(vm);

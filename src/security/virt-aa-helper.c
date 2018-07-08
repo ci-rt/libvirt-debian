@@ -63,7 +63,6 @@
 static char *progname;
 
 typedef struct {
-    bool allowDiskFormatProbing;
     char uuid[PROFILE_NAME_SIZE];       /* UUID of vm */
     bool dryrun;                /* dry run */
     char cmd;                   /* 'c'   create
@@ -115,7 +114,6 @@ vah_usage(void)
             "    -r | --replace                 reload profile\n"
             "    -R | --remove                  unload profile\n"
             "    -h | --help                    this help\n"
-            "    -p | --probing [0|1]           allow disk format probing\n"
             "    -u | --uuid <uuid>             uuid (profile name)\n"
             "\n"), progname);
 
@@ -975,10 +973,8 @@ get_files(vahControl * ctl)
         /* XXX - if we knew the qemu user:group here we could send it in
          *        so that the open could be re-tried as that user:group.
          */
-        if (!virStorageSourceHasBacking(disk->src)) {
-            bool probe = ctl->allowDiskFormatProbing;
-            virStorageFileGetMetadata(disk->src, -1, -1, probe, false);
-        }
+        if (!virStorageSourceHasBacking(disk->src))
+            virStorageFileGetMetadata(disk->src, -1, -1, false);
 
         /* XXX passing ignoreOpenFailure = true to get back to the behavior
          * from before using virDomainDiskDefForeachPath. actually we should
@@ -1185,6 +1181,51 @@ get_files(vahControl * ctl)
         }
     }
 
+    if (ctl->def->tpm) {
+        char *shortName = NULL;
+        const char *tpmpath = NULL;
+
+        switch (ctl->def->tpm->type) {
+        case VIR_DOMAIN_TPM_TYPE_EMULATOR:
+            shortName = virDomainDefGetShortName(ctl->def);
+
+            switch (ctl->def->tpm->version) {
+            case VIR_DOMAIN_TPM_VERSION_1_2:
+                tpmpath = "tpm1.2";
+                break;
+            case VIR_DOMAIN_TPM_VERSION_2_0:
+                tpmpath = "tpm2";
+                break;
+            case VIR_DOMAIN_TPM_VERSION_DEFAULT:
+            case VIR_DOMAIN_TPM_VERSION_LAST:
+                break;
+            }
+
+            /* Unix socket for QEMU and swtpm to use */
+            virBufferAsprintf(&buf,
+                "  \"/run/libvirt/qemu/swtpm/%s-swtpm.sock\" rw,\n",
+                shortName);
+            /* Paths for swtpm to use: give it access to its state
+             * directory, log, and PID files.
+             */
+            virBufferAsprintf(&buf,
+                "  \"%s/lib/libvirt/swtpm/%s/%s/**\" rw,\n",
+                LOCALSTATEDIR, uuidstr, tpmpath);
+            virBufferAsprintf(&buf,
+                "  \"%s/log/swtpm/libvirt/qemu/%s-swtpm.log\" a,\n",
+                LOCALSTATEDIR, ctl->def->name);
+            virBufferAsprintf(&buf,
+                "  \"/run/libvirt/qemu/swtpm/%s-swtpm.pid\" rw,\n",
+                shortName);
+
+            VIR_FREE(shortName);
+            break;
+        case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
+        case VIR_DOMAIN_TPM_TYPE_LAST:
+            break;
+        }
+    }
+
     if (ctl->def->virtType == VIR_DOMAIN_VIRT_KVM) {
         for (i = 0; i < ctl->def->nnets; i++) {
             virDomainNetDefPtr net = ctl->def->nets[i];
@@ -1228,7 +1269,6 @@ vahParseArgv(vahControl * ctl, int argc, char **argv)
 {
     int arg, idx = 0;
     struct option opt[] = {
-        {"probing", 1, 0, 'p' },
         {"add", 0, 0, 'a'},
         {"create", 0, 0, 'c'},
         {"dryrun", 0, 0, 'd'},
@@ -1276,15 +1316,9 @@ vahParseArgv(vahControl * ctl, int argc, char **argv)
             case 'u':
                 if (strlen(optarg) > PROFILE_NAME_SIZE - 1)
                     vah_error(ctl, 1, _("invalid UUID"));
-                if (virStrcpy((char *) ctl->uuid, optarg,
+                if (virStrcpy((char *)ctl->uuid, optarg,
                     PROFILE_NAME_SIZE) == NULL)
                     vah_error(ctl, 1, _("error copying UUID"));
-                break;
-            case 'p':
-                if (STREQ(optarg, "1"))
-                    ctl->allowDiskFormatProbing = true;
-                else
-                    ctl->allowDiskFormatProbing = false;
                 break;
             default:
                 vah_error(ctl, 1, _("unsupported option"));

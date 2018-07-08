@@ -152,6 +152,9 @@ int qemuMonitorJSONSetMigrationCapabilities(qemuMonitorPtr mon,
 int qemuMonitorJSONGetGICCapabilities(qemuMonitorPtr mon,
                                       virGICCapability **capabilities);
 
+int qemuMonitorJSONGetSEVCapabilities(qemuMonitorPtr mon,
+                                      virSEVCapability **capabilities);
+
 int qemuMonitorJSONMigrate(qemuMonitorPtr mon,
                            unsigned int flags,
                            const char *uri);
@@ -230,20 +233,10 @@ int qemuMonitorJSONDelDevice(qemuMonitorPtr mon,
                              const char *devalias);
 
 int qemuMonitorJSONAddObject(qemuMonitorPtr mon,
-                             const char *type,
-                             const char *objalias,
                              virJSONValuePtr props);
 
 int qemuMonitorJSONDelObject(qemuMonitorPtr mon,
                              const char *objalias);
-
-int qemuMonitorJSONSetDrivePassphrase(qemuMonitorPtr mon,
-                                      const char *alias,
-                                      const char *passphrase);
-
-int qemuMonitorJSONCreateSnapshot(qemuMonitorPtr mon, const char *name);
-int qemuMonitorJSONLoadSnapshot(qemuMonitorPtr mon, const char *name);
-int qemuMonitorJSONDeleteSnapshot(qemuMonitorPtr mon, const char *name);
 
 int qemuMonitorJSONDiskSnapshot(qemuMonitorPtr mon,
                                 virJSONValuePtr actions,
@@ -264,6 +257,15 @@ int qemuMonitorJSONDriveMirror(qemuMonitorPtr mon,
                                unsigned long long buf_size,
                                unsigned int flags)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+int qemuMonitorJSONBlockdevMirror(qemuMonitorPtr mon,
+                                  const char *jobname,
+                                  const char *device,
+                                  const char *target,
+                                  unsigned long long speed,
+                                  unsigned int granularity,
+                                  unsigned long long buf_size,
+                                  unsigned int flags)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(4);
 int qemuMonitorJSONDrivePivot(qemuMonitorPtr mon,
                               const char *device)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
@@ -296,6 +298,8 @@ int qemuMonitorJSONSendKey(qemuMonitorPtr mon,
                            unsigned int nkeycodes);
 
 int qemuMonitorJSONScreendump(qemuMonitorPtr mon,
+                              const char *device,
+                              unsigned int head,
                               const char *file);
 
 int qemuMonitorJSONBlockStream(qemuMonitorPtr mon,
@@ -338,6 +342,8 @@ int qemuMonitorJSONGetBlockIoThrottle(qemuMonitorPtr mon,
                                       virDomainBlockIoTuneInfoPtr reply);
 
 int qemuMonitorJSONSystemWakeup(qemuMonitorPtr mon);
+
+char *qemuMonitorJSONGetSEVMeasurement(qemuMonitorPtr mon);
 
 int qemuMonitorJSONGetVersion(qemuMonitorPtr mon,
                               int *major,
@@ -445,6 +451,10 @@ int qemuMonitorJSONGetDeviceProps(qemuMonitorPtr mon,
                                   const char *device,
                                   char ***props)
     ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+int qemuMonitorJSONGetObjectProps(qemuMonitorPtr mon,
+                                  const char *object,
+                                  char ***props)
+    ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 char *qemuMonitorJSONGetTargetArch(qemuMonitorPtr mon);
 
 int qemuMonitorJSONNBDServerStart(qemuMonitorPtr mon,
@@ -531,4 +541,13 @@ virJSONValuePtr qemuMonitorJSONQueryNamedBlockNodes(qemuMonitorPtr mon)
 int qemuMonitorJSONSetWatchdogAction(qemuMonitorPtr mon,
                                      const char *action)
     ATTRIBUTE_NONNULL(1);
+
+int qemuMonitorJSONBlockdevAdd(qemuMonitorPtr mon,
+                               virJSONValuePtr props)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+int qemuMonitorJSONBlockdevDel(qemuMonitorPtr mon,
+                               const char *nodename)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
 #endif /* QEMU_MONITOR_JSON_H */

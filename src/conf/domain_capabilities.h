@@ -137,6 +137,15 @@ struct _virDomainCapsCPU {
     virDomainCapsCPUModelsPtr custom;
 };
 
+typedef struct _virSEVCapability virSEVCapability;
+typedef virSEVCapability *virSEVCapabilityPtr;
+struct _virSEVCapability {
+    char *pdh;
+    char *cert_chain;
+    unsigned int cbitpos;
+    unsigned int reduced_phys_bits;
+};
+
 struct _virDomainCaps {
     virObjectLockable parent;
 
@@ -147,6 +156,7 @@ struct _virDomainCaps {
 
     /* Some machine specific info */
     int maxvcpus;
+    bool iothreads;  /* Whether I/O threads are supported or not. */
 
     virDomainCapsOS os;
     virDomainCapsCPU cpu;
@@ -157,6 +167,9 @@ struct _virDomainCaps {
     /* add new domain devices here */
 
     virDomainCapsFeatureGIC gic;
+    bool vmcoreinfo;
+    bool genid;
+    virSEVCapabilityPtr sev;
     /* add new domain features here */
 };
 
@@ -199,4 +212,7 @@ int virDomainCapsEnumSet(virDomainCapsEnumPtr capsEnum,
 void virDomainCapsEnumClear(virDomainCapsEnumPtr capsEnum);
 
 char * virDomainCapsFormat(virDomainCapsPtr const caps);
+
+void
+virSEVCapabilitiesFree(virSEVCapability *capabilities);
 #endif /* __DOMAIN_CAPABILITIES_H__ */

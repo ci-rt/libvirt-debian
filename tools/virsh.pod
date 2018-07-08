@@ -574,22 +574,29 @@ I<--all> which executes the modification on all NUMA cells.
 =item B<cpu-baseline> I<FILE> [I<--features>] [I<--migratable>]
 
 Compute baseline CPU which will be supported by all host CPUs given in <file>.
-The list of host CPUs is built by extracting all <cpu> elements from the
-<file>. Thus, the <file> can contain either a set of <cpu> elements separated
-by new lines or even a set of complete <capabilities> elements printed by
-B<capabilities> command.  If I<--features> is specified then the
-resulting XML description will explicitly include all features that make
-up the CPU, without this option features that are part of the CPU model
+(See B<hypervisor-cpu-baseline> command to get a CPU which can be provided by a
+specific hypervisor.) The list of host CPUs is built by extracting all <cpu>
+elements from the <file>. Thus, the <file> can contain either a set of <cpu>
+elements separated by new lines or even a set of complete <capabilities>
+elements printed by B<capabilities> command.  If I<--features> is specified,
+then the resulting XML description will explicitly include all features that
+make up the CPU, without this option features that are part of the CPU model
 will not be listed in the XML description.   If I<--migratable> is specified,
 features that block migration will not be included in the resulting CPU.
 
 =item B<cpu-compare> I<FILE> [I<--error>]
 
-Compare CPU definition from XML <file> with host CPU. The XML <file> may
+Compare CPU definition from XML <file> with host CPU. (See
+B<hypervisor-cpu-compare> command for comparing the CPU definition with the CPU
+which a specific hypervisor is able to provide on the host.) The XML <file> may
 contain either host or guest CPU definition. The host CPU definition is the
 <cpu> element and its contents as printed by B<capabilities> command. The
 guest CPU definition is the <cpu> element and its contents from domain XML
-definition. For more information on guest CPU definition see:
+definition or the CPU definition created from the host CPU model found in
+domain capabilities XML (printed by B<domcapabilities> command). In
+addition to the <cpu> element itself, this command accepts
+full domain XML, capabilities XML, or domain capabilities XML containing
+the CPU definition. For more information on guest CPU definition see:
 L<https://libvirt.org/formatdomain.html#elementsCPU>. If I<--error> is
 specified, the command will return an error when the given CPU is
 incompatible with host CPU and a message providing more details about the
@@ -597,7 +604,14 @@ incompatibility will be printed out.
 
 =item B<cpu-models> I<arch>
 
-Print the list of CPU models known for the specified architecture.
+Print the list of CPU models known by libvirt for the specified architecture.
+Whether a specific hypervisor is able to create a domain which uses any of
+the printed CPU models is a separate question which can be answered by
+looking at the domain capabilities XML returned by B<domcapabilities> command.
+Moreover, for some architectures libvirt does not know any CPU models and
+the usable CPU models are only limited by the hypervisor. This command will
+print that all CPU models are accepted for these architectures and the actual
+list of supported CPU models can be checked in the domain capabilities XML.
 
 =item B<echo> [I<--shell>] [I<--xml>] [I<arg>...]
 
@@ -605,6 +619,65 @@ Echo back each I<arg>, separated by space.  If I<--shell> is
 specified, then the output will be single-quoted where needed, so that
 it is suitable for reuse in a shell context.  If I<--xml> is
 specified, then the output will be escaped for use in XML.
+
+=item B<hypervisor-cpu-compare> I<FILE> [I<virttype>] [I<emulator>] [I<arch>]
+[I<machine>] [I<--error>]
+
+Compare CPU definition from XML <file> with the CPU the hypervisor is able to
+provide on the host. (This is different from B<cpu-compare> which compares the
+CPU definition with the host CPU without considering any specific hypervisor
+and its abilities.)
+
+The XML I<FILE> may contain either a host or guest CPU definition. The host CPU
+definition is the <cpu> element and its contents as printed by the
+B<capabilities> command. The guest CPU definition is the <cpu> element and its
+contents from the domain XML definition or the CPU definition created from the
+host CPU model found in the domain capabilities XML (printed by the
+B<domcapabilities> command). In addition to the <cpu> element itself, this
+command accepts full domain XML, capabilities XML, or domain capabilities XML
+containing the CPU definition. For more information on guest CPU definition
+see: L<https://libvirt.org/formatdomain.html#elementsCPU>.
+
+The I<virttype> option specifies the virtualization type (usable in the 'type'
+attribute of the <domain> top level element from the domain XML). I<emulator>
+specifies the path to the emulator, I<arch> specifies the CPU architecture, and
+I<machine> specifies the machine type. If I<--error> is specified, the command
+will return an error when the given CPU is incompatible with the host CPU and a
+message providing more details about the incompatibility will be printed out.
+
+=item B<hypervisor-cpu-baseline> I<FILE> [I<virttype>] [I<emulator>] [I<arch>]
+[I<machine>] [I<--features>] [I<--migratable>]
+
+Compute a baseline CPU which will be compatible with all CPUs defined in an XML
+I<file> and with the CPU the hypervisor is able to provide on the host. (This
+is different from B<cpu-baseline> which does not consider any hypervisor
+abilities when computing the baseline CPU.)
+
+The XML I<FILE> may contain either host or guest CPU definitions describing the
+host CPU model. The host CPU definition is the <cpu> element and its contents
+as printed by B<capabilities> command. The guest CPU definition may be created
+from the host CPU model found in domain capabilities XML (printed by
+B<domcapabilities> command). In addition to the <cpu> elements, this command
+accepts full capabilities XMLs, or domain capabilities XMLs containing the CPU
+definitions. For best results, use only the CPU definitions from domain
+capabilities.
+
+When I<FILE> contains only a single CPU definition, the command will print the
+same CPU with restrictions imposed by the capabilities of the hypervisor.
+Specifically, running th B<virsh hypervisor-cpu-baseline> command with no
+additional options on the result of B<virsh domcapabilities> will transform the
+host CPU model from domain capabilities XML to a form directly usable in domain
+XML.
+
+The I<virttype> option specifies the virtualization type (usable in the 'type'
+attribute of the <domain> top level element from the domain XML). I<emulator>
+specifies the path to the emulator, I<arch> specifies the CPU architecture, and
+I<machine> specifies the machine type. If I<--features> is specified, then the
+resulting XML description will explicitly include all features that make up the
+CPU, without this option features that are part of the CPU model will not be
+listed in the XML description. If I<--migratable> is specified, features that
+block migration will not be included in the resulting CPU.
+
 
 =back
 
@@ -876,13 +949,16 @@ B<domstate> command says that a domain was paused due to I/O error.
 The B<domblkerror> command lists all block devices in error state and
 the error seen on each of them.
 
-=item B<domblkinfo> I<domain> I<block-device> [I<--human>]
+=item B<domblkinfo> I<domain> [I<block-device> I<--all>] [I<--human>]
 
 Get block device size info for a domain.  A I<block-device> corresponds
 to a unique target name (<target dev='name'/>) or source file (<source
 file='name'/>) for one of the disk devices attached to I<domain> (see
 also B<domblklist> for listing these names). If I<--human> is set, the
 output will have a human readable output.
+If I<--all> is set, the output will be a table showing all block devices
+size info associated with I<domain>.
+The I<--all> option takes precedence of the others.
 
 =item B<domblklist> I<domain> [I<--inactive>] [I<--details>]
 
@@ -895,11 +971,11 @@ that require a block device name (such as I<domblkinfo> or
 I<snapshot-create> for disk snapshots) will accept either target
 or unique source names printed by this command.
 
-=item B<domstats> [I<--raw>] [I<--enforce>] [I<--backing>] [I<--state>]
-[I<--cpu-total>] [I<--balloon>] [I<--vcpu>] [I<--interface>] [I<--block>]
-[I<--perf>] [[I<--list-active>] [I<--list-inactive>] [I<--list-persistent>]
-[I<--list-transient>] [I<--list-running>] [I<--list-paused>]
-[I<--list-shutoff>] [I<--list-other>]] | [I<domain> ...]
+=item B<domstats> [I<--raw>] [I<--enforce>] [I<--backing>] [I<--nowait>]
+[I<--state>] [I<--cpu-total>] [I<--balloon>] [I<--vcpu>] [I<--interface>]
+[I<--block>] [I<--perf>] [[I<--list-active>] [I<--list-inactive>]
+[I<--list-persistent>] [I<--list-transient>] [I<--list-running>]
+[I<--list-paused>] [I<--list-shutoff>] [I<--list-other>]] | [I<domain> ...]
 
 Get statistics for multiple or all domains. Without any argument this
 command prints all available statistics for all domains.
@@ -1049,6 +1125,12 @@ Selecting a specific statistics groups doesn't guarantee that the
 daemon supports the selected group of stats. Flag I<--enforce>
 forces the command to fail if the daemon doesn't support the
 selected group.
+
+When collecting stats libvirtd may wait for some time if there's
+already another job running on given domain for it to finish.
+This may cause unnecessary delay in delivering stats. Using
+I<--nowait> suppresses this behaviour. On the other hand
+some statistics might be missing for such domain.
 
 =item B<domiflist> I<domain> [I<--inactive>]
 
@@ -2335,9 +2417,11 @@ the B<virsh dominfo> command.
 =item B<set-lifecycle-action> I<domain> I<type> I<action>
 [[I<--config>] [I<--live>] | [I<--current>]]
 
-Set the lifecycle I<action> for specified lifecycle I<type>. For the list of
-lifecycle types and actions and possible combinations see the documentation at
-L<https://libvirt.org/formatdomain.html#elementsEvents>.
+Set the lifecycle I<action> for specified lifecycle I<type>.
+The valid types are "poweroff", "reboot" and "crash", and for each of
+them valid I<action> is one of "destroy", "restart", "rename-restart",
+"preserve".  For I<type> "crash", additional actions "coredump-destroy"
+and "coredump-restart" are supported.
 
 =item B<set-user-password> I<domain> I<user> I<password> [I<--encrypted>]
 
@@ -3111,6 +3195,17 @@ an offline domain, and like I<--live> I<--config> for a running domain.
 
 Note that older versions of virsh used I<--config> as an alias for
 I<--persistent>.
+
+=item B<detach-device-alias> I<domain> I<alias>
+[[[I<--live>] [I<--config>] | [I<--current>]] | [I<--persistent>]]
+
+Detach a device with given I<alias> from the I<domain>.
+
+If I<--live> is specified, affect a running domain.
+If I<--config> is specified, affect the next startup of a persistent domain.
+If I<--current> is specified, affect the current domain state.
+Both I<--live> and I<--config> flags may be given, but I<--current> is
+exclusive.
 
 =item B<detach-disk> I<domain> I<target>
 [[[I<--live>] [I<--config>] | [I<--current>]] | [I<--persistent>]]
@@ -4711,6 +4806,41 @@ mentioned in I<nwfilter-define>.
 
 The editor used can be supplied by the C<$VISUAL> or C<$EDITOR> environment
 variables, and defaults to C<vi>.
+
+=back
+
+=head1 NWFILTER BINDING COMMANDS
+
+The following commands manipulate network filter bindings. Network filter
+bindings track the association between a network port and a network
+filter. Generally the bindings are managed automatically by the hypervisor
+drivers when adding/removing NICs on a guest.
+
+If an admin is creating/deleting TAP devices for non-guest usage,
+however, the network filter binding commands provide a way to make use
+of the network filters directly.
+
+=over 4
+
+=item B<nwfilter-binding-create> I<xmlfile>
+
+Associate a network port with a network filter. The network filter backend
+will immediately attempt to instantiate the filter rules on the port.
+
+=item B<nwfilter-binding-undefine> I<port-name>
+
+Disassociate a network port from a network filter. The network filter
+backend will immediately tear down the filter rules that exist on the
+port.
+
+=item B<nwfilter-binding-list>
+
+List all of the network ports which have filters associated with them.
+
+=item B<nwfilter-binding-dumpxml> I<port-name>
+
+Output the network filter binding XML for the network device called
+C<port-name>.
 
 =back
 

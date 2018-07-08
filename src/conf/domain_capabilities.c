@@ -67,6 +67,18 @@ virDomainCapsStringValuesFree(virDomainCapsStringValuesPtr values)
 }
 
 
+void
+virSEVCapabilitiesFree(virSEVCapability *cap)
+{
+    if (!cap)
+        return;
+
+    VIR_FREE(cap->pdh);
+    VIR_FREE(cap->cert_chain);
+    VIR_FREE(cap);
+}
+
+
 static void
 virDomainCapsDispose(void *obj)
 {
@@ -76,6 +88,7 @@ virDomainCapsDispose(void *obj)
     VIR_FREE(caps->machine);
     virObjectUnref(caps->cpu.custom);
     virCPUDefFree(caps->cpu.hostModel);
+    virSEVCapabilitiesFree(caps->sev);
 
     virDomainCapsStringValuesFree(&caps->os.loader.values);
 }
@@ -542,6 +555,26 @@ virDomainCapsFeatureGICFormat(virBufferPtr buf,
     FORMAT_EPILOGUE(gic);
 }
 
+static void
+virDomainCapsFeatureSEVFormat(virBufferPtr buf,
+                              virSEVCapabilityPtr const sev)
+{
+
+    if (!sev) {
+        virBufferAddLit(buf, "<sev supported='no'/>\n");
+    } else {
+        virBufferAddLit(buf, "<sev supported='yes'>\n");
+        virBufferAdjustIndent(buf, 2);
+        virBufferAsprintf(buf, "<cbitpos>%d</cbitpos>\n", sev->cbitpos);
+        virBufferAsprintf(buf, "<reducedPhysBits>%d</reducedPhysBits>\n",
+                          sev->reduced_phys_bits);
+        virBufferAdjustIndent(buf, -2);
+        virBufferAddLit(buf, "</sev>\n");
+    }
+
+    return;
+}
+
 
 char *
 virDomainCapsFormat(virDomainCapsPtr const caps)
@@ -562,6 +595,9 @@ virDomainCapsFormat(virDomainCapsPtr const caps)
     if (caps->maxvcpus)
         virBufferAsprintf(&buf, "<vcpu max='%d'/>\n", caps->maxvcpus);
 
+    virBufferAsprintf(&buf, "<iothreads supported='%s'/>\n",
+                      caps->iothreads ? "yes" : "no");
+
     virDomainCapsOSFormat(&buf, &caps->os);
     virDomainCapsCPUFormat(&buf, &caps->cpu);
 
@@ -580,6 +616,12 @@ virDomainCapsFormat(virDomainCapsPtr const caps)
     virBufferAdjustIndent(&buf, 2);
 
     virDomainCapsFeatureGICFormat(&buf, &caps->gic);
+    virBufferAsprintf(&buf, "<vmcoreinfo supported='%s'/>\n",
+                      caps->vmcoreinfo ? "yes" : "no");
+
+    virBufferAsprintf(&buf, "<genid supported='%s'/>\n",
+                      caps->genid ? "yes" : "no");
+    virDomainCapsFeatureSEVFormat(&buf, caps->sev);
 
     virBufferAdjustIndent(&buf, -2);
     virBufferAddLit(&buf, "</features>\n");

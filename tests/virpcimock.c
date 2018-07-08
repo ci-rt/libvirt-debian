@@ -20,7 +20,7 @@
 
 #include <config.h>
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__FreeBSD__)
 # include "virmock.h"
 # include <stdio.h>
 # include <stdlib.h>
@@ -39,10 +39,10 @@ static int (*real_lstat)(const char *path, struct stat *sb);
 static int (*real___lxstat)(int ver, const char *path, struct stat *sb);
 static int (*real_stat)(const char *path, struct stat *sb);
 static int (*real___xstat)(int ver, const char *path, struct stat *sb);
-static char *(*real_canonicalize_file_name)(const char *path);
 static int (*real_open)(const char *path, int flags, ...);
 static int (*real_close)(int fd);
 static DIR * (*real_opendir)(const char *name);
+static char *(*real_virFileCanonicalizePath)(const char *path);
 
 /* Don't make static, since it causes problems with clang
  * when passed as an arg to virAsprintf()
@@ -341,6 +341,7 @@ pci_device_new_from_stub(const struct pciDevice *data)
     char *configSrc;
     char tmp[256];
     struct stat sb;
+    bool configSrcExists = false;
 
     if (VIR_STRDUP_QUIET(id, data->id) < 0)
         ABORT_OOM();
@@ -368,10 +369,18 @@ pci_device_new_from_stub(const struct pciDevice *data)
     if (virFileMakePath(devpath) < 0)
         ABORT("Unable to create: %s", devpath);
 
+    if (real_stat && real_stat(configSrc, &sb) == 0)
+        configSrcExists = true;
+
+# ifdef HAVE___XSTAT
+    if (!configSrcExists &&
+        real___xstat && real___xstat(_STAT_VER, configSrc, &sb) == 0)
+        configSrcExists = true;
+# endif
+
     /* If there is a config file for the device within virpcitestdata dir,
      * symlink it. Otherwise create a dummy config file. */
-    if ((real_stat && real_stat(configSrc, &sb) == 0) ||
-        (real___xstat && real___xstat(_STAT_VER, configSrc, &sb) == 0)) {
+    if (configSrcExists) {
         /* On success, copy @configSrc into the destination (a copy,
          * rather than a symlink, is required since we write into the
          * file, and parallel VPATH builds must not stomp on the
@@ -810,10 +819,10 @@ init_syms(void)
     VIR_MOCK_REAL_INIT(access);
     VIR_MOCK_REAL_INIT_ALT(lstat, __lxstat);
     VIR_MOCK_REAL_INIT_ALT(stat, __xstat);
-    VIR_MOCK_REAL_INIT(canonicalize_file_name);
     VIR_MOCK_REAL_INIT(open);
     VIR_MOCK_REAL_INIT(close);
     VIR_MOCK_REAL_INIT(opendir);
+    VIR_MOCK_REAL_INIT(virFileCanonicalizePath);
 }
 
 static void
@@ -891,6 +900,7 @@ access(const char *path, int mode)
     return ret;
 }
 
+# ifdef HAVE___LXSTAT
 int
 __lxstat(int ver, const char *path, struct stat *sb)
 {
@@ -909,6 +919,7 @@ __lxstat(int ver, const char *path, struct stat *sb)
     }
     return ret;
 }
+# endif /* HAVE___LXSTAT */
 
 int
 lstat(const char *path, struct stat *sb)
@@ -929,6 +940,7 @@ lstat(const char *path, struct stat *sb)
     return ret;
 }
 
+# ifdef HAVE___XSTAT
 int
 __xstat(int ver, const char *path, struct stat *sb)
 {
@@ -947,6 +959,7 @@ __xstat(int ver, const char *path, struct stat *sb)
     }
     return ret;
 }
+# endif /* HAVE___XSTAT */
 
 int
 stat(const char *path, struct stat *sb)
@@ -967,25 +980,6 @@ stat(const char *path, struct stat *sb)
     return ret;
 }
 
-char *
-canonicalize_file_name(const char *path)
-{
-    char *ret;
-
-    init_syms();
-
-    if (STRPREFIX(path, SYSFS_PCI_PREFIX)) {
-        char *newpath;
-        if (getrealpath(&newpath, path) < 0)
-            return NULL;
-        ret = real_canonicalize_file_name(newpath);
-        VIR_FREE(newpath);
-    } else {
-        ret = real_canonicalize_file_name(path);
-    }
-    return ret;
-}
-
 int
 open(const char *path, int flags, ...)
 {
@@ -1002,7 +996,7 @@ open(const char *path, int flags, ...)
         va_list ap;
         mode_t mode;
         va_start(ap, flags);
-        mode = va_arg(ap, mode_t);
+        mode = (mode_t) va_arg(ap, int);
         va_end(ap);
         ret = real_open(newpath ? newpath : path, flags, mode);
     } else {
@@ -1046,6 +1040,28 @@ close(int fd)
         return -1;
     return real_close(fd);
 }
+
+char *
+virFileCanonicalizePath(const char *path)
+{
+    char *ret;
+
+    init_syms();
+
+    if (STRPREFIX(path, SYSFS_PCI_PREFIX)) {
+        char *newpath;
+
+        if (getrealpath(&newpath, path) < 0)
+            return NULL;
+
+        ret = real_virFileCanonicalizePath(newpath);
+        VIR_FREE(newpath);
+    } else {
+        ret = real_virFileCanonicalizePath(path);
+    }
+
+    return ret;
+}
 #else
-/* Nothing to override on non-__linux__ platforms */
+/* Nothing to override on this platform */
 #endif

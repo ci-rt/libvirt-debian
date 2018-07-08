@@ -121,12 +121,6 @@ typedef void (*qemuMonitorEofNotifyCallback)(qemuMonitorPtr mon,
 typedef void (*qemuMonitorErrorNotifyCallback)(qemuMonitorPtr mon,
                                                virDomainObjPtr vm,
                                                void *opaque);
-typedef int (*qemuMonitorDiskSecretLookupCallback)(qemuMonitorPtr mon,
-                                                   virDomainObjPtr vm,
-                                                   const char *path,
-                                                   char **secret,
-                                                   size_t *secretLen,
-                                                   void *opaque);
 typedef int (*qemuMonitorDomainEventCallback)(qemuMonitorPtr mon,
                                               virDomainObjPtr vm,
                                               const char *event,
@@ -285,7 +279,6 @@ struct _qemuMonitorCallbacks {
     qemuMonitorDestroyCallback destroy;
     qemuMonitorEofNotifyCallback eofNotify;
     qemuMonitorErrorNotifyCallback errorNotify;
-    qemuMonitorDiskSecretLookupCallback diskSecretLookup;
     qemuMonitorDomainEventCallback domainEvent;
     qemuMonitorDomainShutdownCallback domainShutdown;
     qemuMonitorDomainResetCallback domainReset;
@@ -320,10 +313,11 @@ char *qemuMonitorUnescapeArg(const char *in);
 qemuMonitorPtr qemuMonitorOpen(virDomainObjPtr vm,
                                virDomainChrSourceDefPtr config,
                                bool json,
+                               bool retry,
                                unsigned long long timeout,
                                qemuMonitorCallbacksPtr cb,
                                void *opaque)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(5);
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(6);
 qemuMonitorPtr qemuMonitorOpenFD(virDomainObjPtr vm,
                                  int sockfd,
                                  bool json,
@@ -368,11 +362,6 @@ int qemuMonitorHMPCommandWithFd(qemuMonitorPtr mon,
                                 char **reply);
 # define qemuMonitorHMPCommand(mon, cmd, reply) \
     qemuMonitorHMPCommandWithFd(mon, cmd, -1, reply)
-
-int qemuMonitorGetDiskSecret(qemuMonitorPtr mon,
-                             const char *path,
-                             char **secret,
-                             size_t *secretLen);
 
 int qemuMonitorEmitEvent(qemuMonitorPtr mon, const char *event,
                          long long seconds, unsigned int micros,
@@ -722,6 +711,9 @@ int qemuMonitorSetMigrationCapabilities(qemuMonitorPtr mon,
 int qemuMonitorGetGICCapabilities(qemuMonitorPtr mon,
                                   virGICCapability **capabilities);
 
+int qemuMonitorGetSEVCapabilities(qemuMonitorPtr mon,
+                                  virSEVCapability **capabilities);
+
 typedef enum {
   QEMU_MONITOR_MIGRATE_BACKGROUND       = 1 << 0,
   QEMU_MONITOR_MIGRATE_NON_SHARED_DISK  = 1 << 1, /* migration with non-shared storage with full disk copy */
@@ -771,18 +763,6 @@ int qemuMonitorCloseFileHandle(qemuMonitorPtr mon,
                                const char *fdname);
 int qemuMonitorRemoveFd(qemuMonitorPtr mon, int fdset, int fd);
 
-/* XXX do we really want to hardcode 'netstr' as the
- * sendable item here
- */
-int qemuMonitorAddHostNetwork(qemuMonitorPtr mon,
-                              const char *netstr,
-                              int *tapfd, char **tapfdName, int tapfdSize,
-                              int *vhostfd, char **vhostfdName, int vhostfdSize);
-
-int qemuMonitorRemoveHostNetwork(qemuMonitorPtr mon,
-                                 int vlan,
-                                 const char *netname);
-
 int qemuMonitorAddNetdev(qemuMonitorPtr mon,
                          const char *netdevstr,
                          int *tapfd, char **tapfdName, int tapfdSize,
@@ -821,10 +801,18 @@ int qemuMonitorAddDeviceWithFd(qemuMonitorPtr mon,
 int qemuMonitorDelDevice(qemuMonitorPtr mon,
                          const char *devalias);
 
+virJSONValuePtr qemuMonitorCreateObjectPropsWrap(const char *type,
+                                                 const char *alias,
+                                                 virJSONValuePtr *props);
+
+int qemuMonitorCreateObjectProps(virJSONValuePtr *propsret,
+                                 const char *type,
+                                 const char *alias,
+                                 ...);
+
 int qemuMonitorAddObject(qemuMonitorPtr mon,
-                         const char *type,
-                         const char *objalias,
-                         virJSONValuePtr props);
+                         virJSONValuePtr *props,
+                         char **alias);
 
 int qemuMonitorDelObject(qemuMonitorPtr mon,
                          const char *objalias);
@@ -834,10 +822,6 @@ int qemuMonitorAddDrive(qemuMonitorPtr mon,
 
 int qemuMonitorDriveDel(qemuMonitorPtr mon,
                         const char *drivestr);
-
-int qemuMonitorSetDrivePassphrase(qemuMonitorPtr mon,
-                                  const char *alias,
-                                  const char *passphrase);
 
 int qemuMonitorCreateSnapshot(qemuMonitorPtr mon, const char *name);
 int qemuMonitorLoadSnapshot(qemuMonitorPtr mon, const char *name);
@@ -860,6 +844,15 @@ int qemuMonitorDriveMirror(qemuMonitorPtr mon,
                            unsigned long long buf_size,
                            unsigned int flags)
     ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+int qemuMonitorBlockdevMirror(qemuMonitorPtr mon,
+                              const char *jobname,
+                              const char *device,
+                              const char *target,
+                              unsigned long long bandwidth,
+                              unsigned int granularity,
+                              unsigned long long buf_size,
+                              unsigned int flags)
+    ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(4);
 int qemuMonitorDrivePivot(qemuMonitorPtr mon,
                           const char *device)
     ATTRIBUTE_NONNULL(2);
@@ -886,6 +879,8 @@ int qemuMonitorArbitraryCommand(qemuMonitorPtr mon,
 int qemuMonitorInjectNMI(qemuMonitorPtr mon);
 
 int qemuMonitorScreendump(qemuMonitorPtr mon,
+                          const char *device,
+                          unsigned int head,
                           const char *file);
 
 int qemuMonitorSendKey(qemuMonitorPtr mon,
@@ -1048,6 +1043,9 @@ int qemuMonitorGetObjectTypes(qemuMonitorPtr mon,
 int qemuMonitorGetDeviceProps(qemuMonitorPtr mon,
                               const char *device,
                               char ***props);
+int qemuMonitorGetObjectProps(qemuMonitorPtr mon,
+                              const char *object,
+                              char ***props);
 char *qemuMonitorGetTargetArch(qemuMonitorPtr mon);
 
 int qemuMonitorNBDServerStart(qemuMonitorPtr mon,
@@ -1137,4 +1135,14 @@ virJSONValuePtr qemuMonitorQueryNamedBlockNodes(qemuMonitorPtr mon);
 
 int qemuMonitorSetWatchdogAction(qemuMonitorPtr mon,
                                  const char *action);
+
+int qemuMonitorBlockdevAdd(qemuMonitorPtr mon,
+                           virJSONValuePtr props);
+
+int qemuMonitorBlockdevDel(qemuMonitorPtr mon,
+                           const char *nodename);
+
+char *
+qemuMonitorGetSEVMeasurement(qemuMonitorPtr mon);
+
 #endif /* QEMU_MONITOR_H */

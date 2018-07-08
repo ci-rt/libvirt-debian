@@ -266,7 +266,7 @@ vshSaveLibvirtHelperError(void)
     if (last_error)
         return;
 
-    if (!virGetLastError())
+    if (virGetLastErrorCode() == VIR_ERR_OK)
         return;
 
     vshSaveLibvirtError();
@@ -2685,7 +2685,7 @@ vshReadlineOptionsGenerator(const char *text,
         }
 
         while (opt) {
-            if (STREQ(opt->def->name, name)) {
+            if (STREQ(opt->def->name, name) && opt->def->type != VSH_OT_ARGV) {
                 exists = true;
                 break;
             }
@@ -2824,7 +2824,9 @@ vshReadlineParse(const char *text, int state)
         if (!cmd) {
             list = vshReadlineCommandGenerator(text);
         } else {
-            if (!opt || (opt->type != VSH_OT_DATA && opt->type != VSH_OT_STRING))
+            if (!opt || (opt->type != VSH_OT_DATA &&
+                         opt->type != VSH_OT_STRING &&
+                         opt->type != VSH_OT_ARGV))
                 list = vshReadlineOptionsGenerator(text, cmd, partial);
 
             if (opt && opt->completer) {
@@ -3493,8 +3495,11 @@ cmdComplete(vshControl *ctl, const vshCmd *cmd)
     if (!(matches = vshReadlineCompletion(arg, 0, 0)))
         goto cleanup;
 
-    for (iter = matches; *iter; iter++)
+    for (iter = matches; *iter; iter++) {
+        if (iter == matches && matches[1])
+            continue;
         printf("%s\n", *iter);
+    }
 
     ret = true;
  cleanup:

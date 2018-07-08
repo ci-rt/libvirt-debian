@@ -163,6 +163,15 @@ nwfilterDriverInstallDBusMatches(DBusConnection *sysbus ATTRIBUTE_UNUSED)
 
 #endif /* HAVE_FIREWALLD */
 
+static int
+virNWFilterTriggerRebuildImpl(void *opaque)
+{
+    virNWFilterDriverStatePtr nwdriver = opaque;
+
+    return virNWFilterBuildAll(nwdriver, true);
+}
+
+
 /**
  * nwfilterStateInitialize:
  *
@@ -173,7 +182,6 @@ nwfilterStateInitialize(bool privileged,
                         virStateInhibitCallback callback ATTRIBUTE_UNUSED,
                         void *opaque ATTRIBUTE_UNUSED)
 {
-    char *base = NULL;
     DBusConnection *sysbus = NULL;
 
     if (virDBusHasSystemBus() &&
@@ -186,10 +194,11 @@ nwfilterStateInitialize(bool privileged,
     if (virMutexInit(&driver->lock) < 0)
         goto err_free_driverstate;
 
-    /* remember that we are going to use firewalld */
-    driver->watchingFirewallD = (sysbus != NULL);
     driver->privileged = privileged;
     if (!(driver->nwfilters = virNWFilterObjListNew()))
+        goto error;
+
+    if (!(driver->bindings = virNWFilterBindingObjListNew()))
         goto error;
 
     if (!privileged)
@@ -207,7 +216,7 @@ nwfilterStateInitialize(bool privileged,
     if (virNWFilterTechDriversInit(privileged) < 0)
         goto err_dhcpsnoop_shutdown;
 
-    if (virNWFilterConfLayerInit(virNWFilterDomainFWUpdateCB,
+    if (virNWFilterConfLayerInit(virNWFilterTriggerRebuildImpl,
                                  driver) < 0)
         goto err_techdrivers_shutdown;
 
@@ -231,14 +240,8 @@ nwfilterStateInitialize(bool privileged,
         goto error;
     }
 
-    if (VIR_STRDUP(base, SYSCONFDIR "/libvirt") < 0)
+    if (VIR_STRDUP(driver->configDir, SYSCONFDIR "/libvirt/nwfilter") < 0)
         goto error;
-
-    if (virAsprintf(&driver->configDir,
-                    "%s/nwfilter", base) == -1)
-        goto error;
-
-    VIR_FREE(base);
 
     if (virFileMakePathWithMode(driver->configDir, S_IRWXU) < 0) {
         virReportSystemError(errno, _("cannot create config directory '%s'"),
@@ -246,7 +249,19 @@ nwfilterStateInitialize(bool privileged,
         goto error;
     }
 
+    if (VIR_STRDUP(driver->bindingDir, LOCALSTATEDIR "/run/libvirt/nwfilter-binding") < 0)
+        goto error;
+
+    if (virFileMakePathWithMode(driver->bindingDir, S_IRWXU) < 0) {
+        virReportSystemError(errno, _("cannot create config directory '%s'"),
+                             driver->bindingDir);
+        goto error;
+    }
+
     if (virNWFilterObjListLoadAllConfigs(driver->nwfilters, driver->configDir) < 0)
+        goto error;
+
+    if (virNWFilterBindingObjListLoadAllConfigs(driver->bindings, driver->bindingDir) < 0)
         goto error;
 
     nwfilterDriverUnlock();
@@ -254,7 +269,6 @@ nwfilterStateInitialize(bool privileged,
     return 0;
 
  error:
-    VIR_FREE(base);
     nwfilterDriverUnlock();
     nwfilterStateCleanup();
 
@@ -297,35 +311,18 @@ nwfilterStateReload(void)
 
     nwfilterDriverLock();
     virNWFilterWriteLockFilterUpdates();
-    virNWFilterCallbackDriversLock();
 
     virNWFilterObjListLoadAllConfigs(driver->nwfilters, driver->configDir);
 
-    virNWFilterCallbackDriversUnlock();
     virNWFilterUnlockFilterUpdates();
-    nwfilterDriverUnlock();
 
-    virNWFilterInstFiltersOnAllVMs();
+    virNWFilterBuildAll(driver, false);
+
+    nwfilterDriverUnlock();
 
     return 0;
 }
 
-
-/**
- * virNWFilterIsWatchingFirewallD:
- *
- * Checks if the nwfilter has the DBus watches for FirewallD installed.
- *
- * Returns true if it is watching firewalld, false otherwise
- */
-bool
-virNWFilterDriverIsWatchingFirewallD(void)
-{
-    if (!driver)
-        return false;
-
-    return driver->watchingFirewallD;
-}
 
 /**
  * nwfilterStateCleanup:
@@ -350,8 +347,11 @@ nwfilterStateCleanup(void)
         nwfilterDriverRemoveDBusMatches();
 
         VIR_FREE(driver->configDir);
+        VIR_FREE(driver->bindingDir);
         nwfilterDriverUnlock();
     }
+
+    virObjectUnref(driver->bindings);
 
     /* free inactive nwfilters */
     virNWFilterObjListFree(driver->nwfilters);
@@ -555,7 +555,6 @@ nwfilterDefineXML(virConnectPtr conn,
 
     nwfilterDriverLock();
     virNWFilterWriteLockFilterUpdates();
-    virNWFilterCallbackDriversLock();
 
     if (!(def = virNWFilterDefParseString(xml)))
         goto cleanup;
@@ -580,7 +579,6 @@ nwfilterDefineXML(virConnectPtr conn,
     if (obj)
         virNWFilterObjUnlock(obj);
 
-    virNWFilterCallbackDriversUnlock();
     virNWFilterUnlockFilterUpdates();
     nwfilterDriverUnlock();
     return nwfilter;
@@ -596,7 +594,6 @@ nwfilterUndefine(virNWFilterPtr nwfilter)
 
     nwfilterDriverLock();
     virNWFilterWriteLockFilterUpdates();
-    virNWFilterCallbackDriversLock();
 
     if (!(obj = nwfilterObjFromNWFilter(nwfilter->uuid)))
         goto cleanup;
@@ -623,7 +620,6 @@ nwfilterUndefine(virNWFilterPtr nwfilter)
     if (obj)
         virNWFilterObjUnlock(obj);
 
-    virNWFilterCallbackDriversUnlock();
     virNWFilterUnlockFilterUpdates();
     nwfilterDriverUnlock();
     return ret;
@@ -659,19 +655,169 @@ nwfilterGetXMLDesc(virNWFilterPtr nwfilter,
 }
 
 
-static int
-nwfilterInstantiateFilter(const unsigned char *vmuuid,
-                          virDomainNetDefPtr net)
+static virNWFilterBindingPtr
+nwfilterBindingLookupByPortDev(virConnectPtr conn,
+                               const char *portdev)
 {
-    return virNWFilterInstantiateFilter(driver, vmuuid, net);
+    virNWFilterBindingPtr ret = NULL;
+    virNWFilterBindingObjPtr obj;
+    virNWFilterBindingDefPtr def;
+
+    obj = virNWFilterBindingObjListFindByPortDev(driver->bindings,
+                                                 portdev);
+    if (!obj) {
+        virReportError(VIR_ERR_NO_NWFILTER_BINDING,
+                       _("no nwfilter binding for port dev '%s'"), portdev);
+        goto cleanup;
+    }
+
+    def = virNWFilterBindingObjGetDef(obj);
+    if (virNWFilterBindingLookupByPortDevEnsureACL(conn, def) < 0)
+        goto cleanup;
+
+    ret = virGetNWFilterBinding(conn, def->portdevname, def->filter);
+
+ cleanup:
+    virNWFilterBindingObjEndAPI(&obj);
+    return ret;
 }
 
 
-static void
-nwfilterTeardownFilter(virDomainNetDefPtr net)
+static int
+nwfilterConnectListAllNWFilterBindings(virConnectPtr conn,
+                                       virNWFilterBindingPtr **bindings,
+                                       unsigned int flags)
 {
-    if ((net->ifname) && (net->filter))
-        virNWFilterTeardownFilter(net);
+    int ret;
+
+    virCheckFlags(0, -1);
+
+    if (virConnectListAllNWFilterBindingsEnsureACL(conn) < 0)
+        return -1;
+
+    ret = virNWFilterBindingObjListExport(driver->bindings,
+                                          conn,
+                                          bindings,
+                                          virConnectListAllNWFilterBindingsCheckACL);
+
+    return ret;
+}
+
+
+static char *
+nwfilterBindingGetXMLDesc(virNWFilterBindingPtr binding,
+                          unsigned int flags)
+{
+    virNWFilterBindingObjPtr obj;
+    virNWFilterBindingDefPtr def;
+    char *ret = NULL;
+
+    virCheckFlags(0, NULL);
+
+    obj = virNWFilterBindingObjListFindByPortDev(driver->bindings,
+                                                 binding->portdev);
+    if (!obj) {
+        virReportError(VIR_ERR_NO_NWFILTER_BINDING,
+                       _("no nwfilter binding for port dev '%s'"), binding->portdev);
+        goto cleanup;
+    }
+
+    def = virNWFilterBindingObjGetDef(obj);
+    if (virNWFilterBindingGetXMLDescEnsureACL(binding->conn, def) < 0)
+        goto cleanup;
+
+    ret = virNWFilterBindingDefFormat(def);
+
+ cleanup:
+    virNWFilterBindingObjEndAPI(&obj);
+    return ret;
+}
+
+
+static virNWFilterBindingPtr
+nwfilterBindingCreateXML(virConnectPtr conn,
+                         const char *xml,
+                         unsigned int flags)
+{
+    virNWFilterBindingDefPtr def;
+    virNWFilterBindingObjPtr obj = NULL;
+    virNWFilterBindingPtr ret = NULL;
+
+    virCheckFlags(0, NULL);
+
+    def = virNWFilterBindingDefParseString(xml);
+    if (!def)
+        return NULL;
+
+    if (virNWFilterBindingCreateXMLEnsureACL(conn, def) < 0)
+        goto cleanup;
+
+    obj = virNWFilterBindingObjListFindByPortDev(driver->bindings, def->portdevname);
+    if (obj) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Filter already present for NIC %s"), def->portdevname);
+        goto cleanup;
+    }
+
+    obj = virNWFilterBindingObjListAdd(driver->bindings,
+                                       def);
+    if (!obj)
+        goto cleanup;
+
+    if (!(ret = virGetNWFilterBinding(conn, def->portdevname, def->filter)))
+        goto cleanup;
+
+    if (virNWFilterInstantiateFilter(driver, def) < 0) {
+        virNWFilterBindingObjListRemove(driver->bindings, obj);
+        virObjectUnref(ret);
+        ret = NULL;
+        goto cleanup;
+    }
+    virNWFilterBindingObjSave(obj, driver->bindingDir);
+
+ cleanup:
+    if (!obj)
+        virNWFilterBindingDefFree(def);
+    virNWFilterBindingObjEndAPI(&obj);
+
+    return ret;
+}
+
+
+/*
+ * Note that this is primarily intended for usage by the hypervisor
+ * drivers. it is exposed to the admin, however, and nothing stops
+ * an admin from deleting filter bindings created by the hypervisor
+ * drivers. IOW, it is the admin's responsibility not to shoot
+ * themself in the foot
+ */
+static int
+nwfilterBindingDelete(virNWFilterBindingPtr binding)
+{
+    virNWFilterBindingObjPtr obj;
+    virNWFilterBindingDefPtr def;
+    int ret = -1;
+
+    obj = virNWFilterBindingObjListFindByPortDev(driver->bindings, binding->portdev);
+    if (!obj) {
+        virReportError(VIR_ERR_NO_NWFILTER_BINDING,
+                       _("no nwfilter binding for port dev '%s'"), binding->portdev);
+        return -1;
+    }
+
+    def = virNWFilterBindingObjGetDef(obj);
+    if (virNWFilterBindingDeleteEnsureACL(binding->conn, def) < 0)
+        goto cleanup;
+
+    virNWFilterTeardownFilter(def);
+    virNWFilterBindingObjDelete(obj, driver->bindingDir);
+    virNWFilterBindingObjListRemove(driver->bindings, obj);
+
+    ret = 0;
+
+ cleanup:
+    virNWFilterBindingObjEndAPI(&obj);
+    return ret;
 }
 
 
@@ -685,6 +831,11 @@ static virNWFilterDriver nwfilterDriver = {
     .nwfilterDefineXML = nwfilterDefineXML, /* 0.8.0 */
     .nwfilterUndefine = nwfilterUndefine, /* 0.8.0 */
     .nwfilterGetXMLDesc = nwfilterGetXMLDesc, /* 0.8.0 */
+    .nwfilterBindingLookupByPortDev = nwfilterBindingLookupByPortDev, /* 4.5.0 */
+    .connectListAllNWFilterBindings = nwfilterConnectListAllNWFilterBindings, /* 4.5.0 */
+    .nwfilterBindingGetXMLDesc = nwfilterBindingGetXMLDesc, /* 4.5.0 */
+    .nwfilterBindingCreateXML = nwfilterBindingCreateXML, /* 4.5.0 */
+    .nwfilterBindingDelete = nwfilterBindingDelete, /* 4.5.0 */
 };
 
 
@@ -713,13 +864,6 @@ static virStateDriver stateDriver = {
     .stateReload = nwfilterStateReload,
 };
 
-
-static virDomainConfNWFilterDriver domainNWFilterDriver = {
-    .instantiateFilter = nwfilterInstantiateFilter,
-    .teardownFilter = nwfilterTeardownFilter,
-};
-
-
 int nwfilterRegister(void)
 {
     if (virRegisterConnectDriver(&nwfilterConnectDriver, false) < 0)
@@ -728,6 +872,5 @@ int nwfilterRegister(void)
         return -1;
     if (virRegisterStateDriver(&stateDriver) < 0)
         return -1;
-    virDomainConfNWFilterRegister(&domainNWFilterDriver);
     return 0;
 }

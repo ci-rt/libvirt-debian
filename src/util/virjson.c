@@ -78,7 +78,6 @@ struct _virJSONArray {
 
 struct _virJSONValue {
     int type; /* enum virJSONType */
-    bool protect; /* prevents deletion when embedded in another object */
 
     union {
         virJSONObject object;
@@ -395,7 +394,7 @@ void
 virJSONValueFree(virJSONValuePtr value)
 {
     size_t i;
-    if (!value || value->protect)
+    if (!value)
         return;
 
     switch ((virJSONType) value->type) {
@@ -971,12 +970,9 @@ virJSONValueIsArray(virJSONValuePtr array)
 }
 
 
-ssize_t
+size_t
 virJSONValueArraySize(const virJSONValue *array)
 {
-    if (array->type != VIR_JSON_TYPE_ARRAY)
-        return -1;
-
     return array->data.array.nvalues;
 }
 

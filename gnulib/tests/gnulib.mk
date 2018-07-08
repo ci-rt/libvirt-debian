@@ -229,15 +229,6 @@ EXTRA_DIST += test-count-one-bits.c macros.h
 
 ## end   gnulib module count-one-bits-tests
 
-## begin gnulib module crypto/md5-tests
-
-GNULIB_TESTS += test-md5
-check_PROGRAMS += test-md5
-test_md5_LDADD = $(LDADD) @LIB_CRYPTO@
-EXTRA_DIST += test-md5.c
-
-## end   gnulib module crypto/md5-tests
-
 ## begin gnulib module ctype
 
 BUILT_SOURCES += ctype.h
@@ -1712,14 +1703,6 @@ check_PROGRAMS += test-raise
 EXTRA_DIST += test-raise.c signature.h macros.h
 
 ## end   gnulib module raise-tests
-
-## begin gnulib module random_r-tests
-
-GNULIB_TESTS += test-random_r
-check_PROGRAMS += test-random_r
-EXTRA_DIST += test-random_r.c signature.h macros.h
-
-## end   gnulib module random_r-tests
 
 ## begin gnulib module rawmemchr-tests
 

@@ -4,6 +4,7 @@
   <machine>virt-2.6</machine>
   <arch>aarch64</arch>
   <vcpu max='255'/>
+  <iothreads supported='yes'/>
   <os supported='yes'>
     <loader supported='yes'>
       <value>/usr/share/AAVMF/AAVMF_CODE.fd</value>
@@ -112,5 +113,8 @@
         <value>2</value>
       </enum>
     </gic>
+    <vmcoreinfo supported='no'/>
+    <genid supported='no'/>
+    <sev supported='no'/>
   </features>
 </domainCapabilities>

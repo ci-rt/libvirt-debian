@@ -954,7 +954,11 @@ virConnectIsSecure(virConnectPtr conn)
  * @xmlDesc: XML describing the CPU to compare with host CPU
  * @flags: bitwise-OR of virConnectCompareCPUFlags
  *
- * Compares the given CPU description with the host CPU
+ * Compares the given CPU description with the host CPU.
+ *
+ * See virConnectCompareHypervisorCPU() if you want to consider hypervisor
+ * abilities and compare the CPU to the CPU which a hypervisor is able to
+ * provide on the host.
  *
  * Returns comparison result according to enum virCPUCompareResult. If
  * VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE is used and @xmlDesc CPU is
@@ -993,6 +997,72 @@ virConnectCompareCPU(virConnectPtr conn,
 
 
 /**
+ * virConnectCompareHypervisorCPU:
+ * @conn: pointer to the hypervisor connection
+ * @emulator: path to the emulator binary
+ * @arch: CPU architecture
+ * @machine: machine type
+ * @virttype: virtualization type
+ * @xmlCPU: XML describing the CPU to be compared
+ * @flags: bitwise-OR of virConnectCompareCPUFlags
+ *
+ * Compares the given CPU description with the CPU the specified hypervisor is
+ * able to provide on the host. Any of @emulator, @arch, @machine, and
+ * @virttype parameters may be NULL; libvirt will choose sensible defaults
+ * tailored to the host and its current configuration.
+ *
+ * This is different from virConnectCompareCPU() which compares the CPU
+ * definition with the host CPU without considering any specific hypervisor and
+ * its abilities.
+ *
+ * Returns comparison result according to enum virCPUCompareResult. If
+ * VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE is used and @xmlCPU is
+ * incompatible with the CPU the specified hypervisor is able to provide on the
+ * host, this function will return VIR_CPU_COMPARE_ERROR (instead of
+ * VIR_CPU_COMPARE_INCOMPATIBLE) and the error will use the
+ * VIR_ERR_CPU_INCOMPATIBLE code with a message providing more details about
+ * the incompatibility.
+ */
+int
+virConnectCompareHypervisorCPU(virConnectPtr conn,
+                               const char *emulator,
+                               const char *arch,
+                               const char *machine,
+                               const char *virttype,
+                               const char *xmlCPU,
+                               unsigned int flags)
+{
+    VIR_DEBUG("conn=%p, emulator=%s, arch=%s, machine=%s, "
+              "virttype=%s, xmlCPU=%s, flags=0x%x",
+              conn, NULLSTR(emulator), NULLSTR(arch), NULLSTR(machine),
+              NULLSTR(virttype), NULLSTR(xmlCPU), flags);
+
+    virResetLastError();
+
+    virCheckConnectReturn(conn, VIR_CPU_COMPARE_ERROR);
+    virCheckNonNullArgGoto(xmlCPU, error);
+
+    if (conn->driver->connectCompareHypervisorCPU) {
+        int ret;
+
+        ret = conn->driver->connectCompareHypervisorCPU(conn, emulator, arch,
+                                                        machine, virttype,
+                                                        xmlCPU, flags);
+        if (ret == VIR_CPU_COMPARE_ERROR)
+            goto error;
+
+        return ret;
+    }
+
+    virReportUnsupportedError();
+
+ error:
+    virDispatchError(conn);
+    return VIR_CPU_COMPARE_ERROR;
+}
+
+
+/**
  * virConnectGetCPUModelNames:
  *
  * @conn: virConnect connection
@@ -1003,7 +1073,13 @@ virConnectCompareCPU(virConnectPtr conn,
  *          NULL if only the list length is needed.
  * @flags: extra flags; not used yet, so callers should always pass 0.
  *
- * Get the list of supported CPU models for a specific architecture.
+ * Get the list of CPU models supported by libvirt for a specific architecture.
+ *
+ * The returned list limits CPU models usable with libvirt (empty list means
+ * there's no limit imposed by libvirt) and it does not reflect capabilities of
+ * any particular hypervisor. See the XML returned by
+ * virConnectGetDomainCapabilities() for a list of CPU models supported by
+ * libvirt for domains created on a specific hypervisor.
  *
  * Returns -1 on error, number of elements in @models on success (0 means
  * libvirt accepts any CPU model).
@@ -1051,6 +1127,9 @@ virConnectGetCPUModelNames(virConnectPtr conn, const char *arch, char ***models,
  * Computes the most feature-rich CPU which is compatible with all given
  * host CPUs.
  *
+ * See virConnectBaselineHypervisorCPU() to get a CPU which can be provided
+ * by the hypervisor.
+ *
  * If @flags includes VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES then libvirt
  * will explicitly list all CPU features that are part of the host CPU,
  * without this flag features that are part of the CPU model will not be
@@ -1087,6 +1166,84 @@ virConnectBaselineCPU(virConnectPtr conn,
         cpu = conn->driver->connectBaselineCPU(conn, xmlCPUs, ncpus, flags);
         if (!cpu)
             goto error;
+        return cpu;
+    }
+
+    virReportUnsupportedError();
+
+ error:
+    virDispatchError(conn);
+    return NULL;
+}
+
+
+/**
+ * virConnectBaselineHypervisorCPU:
+ *
+ * @conn: pointer to the hypervisor connection
+ * @emulator: path to the emulator binary
+ * @arch: CPU architecture
+ * @machine: machine type
+ * @virttype: virtualization type
+ * @xmlCPUs: array of XML descriptions of CPUs
+ * @ncpus: number of CPUs in xmlCPUs
+ * @flags: bitwise-OR of virConnectBaselineCPUFlags
+ *
+ * Computes the most feature-rich CPU which is compatible with all given CPUs
+ * and can be provided by the specified hypervisor. For best results the
+ * host-model CPUs as advertised by virConnectGetDomainCapabilities() should be
+ * passed in @xmlCPUs. Any of @emulator, @arch, @machine, and @virttype
+ * parameters may be NULL; libvirt will choose sensible defaults tailored to
+ * the host and its current configuration.
+ *
+ * This is different from virConnectBaselineCPU() which doesn't consider any
+ * hypervisor abilities when computing the best CPU.
+ *
+ * If @flags includes VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES then libvirt
+ * will explicitly list all CPU features that are part of the computed CPU,
+ * without this flag features that are part of the CPU model will not be
+ * listed.
+ *
+ * If @flags includes VIR_CONNECT_BASELINE_CPU_MIGRATABLE, the resulting
+ * CPU will not include features that block migration.
+ *
+ * Returns XML description of the computed CPU (caller frees) or NULL on error.
+ */
+char *
+virConnectBaselineHypervisorCPU(virConnectPtr conn,
+                                const char *emulator,
+                                const char *arch,
+                                const char *machine,
+                                const char *virttype,
+                                const char **xmlCPUs,
+                                unsigned int ncpus,
+                                unsigned int flags)
+{
+    size_t i;
+
+    VIR_DEBUG("conn=%p, emulator=%s, arch=%s, machine=%s, "
+              "virttype=%s, xmlCPUs=%p, ncpus=%u, flags=0x%x",
+              conn, NULLSTR(emulator), NULLSTR(arch), NULLSTR(machine),
+              NULLSTR(virttype), xmlCPUs, ncpus, flags);
+    if (xmlCPUs) {
+        for (i = 0; i < ncpus; i++)
+            VIR_DEBUG("xmlCPUs[%zu]=%s", i, NULLSTR(xmlCPUs[i]));
+    }
+
+    virResetLastError();
+
+    virCheckConnectReturn(conn, NULL);
+    virCheckNonNullArgGoto(xmlCPUs, error);
+
+    if (conn->driver->connectBaselineHypervisorCPU) {
+        char *cpu;
+
+        cpu = conn->driver->connectBaselineHypervisorCPU(conn, emulator, arch,
+                                                         machine, virttype,
+                                                         xmlCPUs, ncpus, flags);
+        if (!cpu)
+            goto error;
+
         return cpu;
     }
 
@@ -1478,6 +1635,55 @@ virNodeAllocPages(virConnectPtr conn,
     }
 
     virReportUnsupportedError();
+ error:
+    virDispatchError(conn);
+    return -1;
+}
+
+
+/*
+ * virNodeGetSEVInfo:
+ * @conn: pointer to the hypervisor connection
+ * @params: where to store  SEV information
+ * @nparams: pointer to number of SEV parameters returned in @params
+ * @flags: extra flags; not used yet, so callers should always pass 0
+ *
+ * If hypervisor supports AMD's SEV feature, then @params will contain various
+ * platform specific information like PDH and certificate chain. Caller is
+ * responsible for freeing @params.
+ *
+ * Returns 0 in case of success, and -1 in case of failure.
+ */
+int
+virNodeGetSEVInfo(virConnectPtr conn,
+                  virTypedParameterPtr *params,
+                  int *nparams,
+                  unsigned int flags)
+{
+    VIR_DEBUG("conn=%p, params=%p, nparams=%p, flags=0x%x",
+              conn, params, nparams, flags);
+
+    virResetLastError();
+
+    virCheckConnectReturn(conn, -1);
+    virCheckNonNullArgGoto(nparams, error);
+    virCheckNonNegativeArgGoto(*nparams, error);
+    virCheckReadOnlyGoto(conn->flags, error);
+
+    if (VIR_DRV_SUPPORTS_FEATURE(conn->driver, conn,
+                                 VIR_DRV_FEATURE_TYPED_PARAM_STRING))
+        flags |= VIR_TYPED_PARAM_STRING_OKAY;
+
+    if (conn->driver->nodeGetSEVInfo) {
+        int ret;
+        ret = conn->driver->nodeGetSEVInfo(conn, params, nparams, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virReportUnsupportedError();
+
  error:
     virDispatchError(conn);
     return -1;

@@ -1112,7 +1112,7 @@ virSecuritySELinuxGetProcessLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
         return -1;
     }
 
-    if (strlen((char *) ctx) >= VIR_SECURITY_LABEL_BUFLEN) {
+    if (strlen((char *)ctx) >= VIR_SECURITY_LABEL_BUFLEN) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("security label exceeds "
                          "maximum length: %d"),
@@ -1121,7 +1121,7 @@ virSecuritySELinuxGetProcessLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
         return -1;
     }
 
-    strcpy(sec->label, (char *) ctx);
+    strcpy(sec->label, (char *)ctx);
     freecon(ctx);
 
     VIR_DEBUG("label=%s", sec->label);
@@ -1155,7 +1155,7 @@ virSecuritySELinuxSetFileconHelper(const char *path, const char *tcon,
 
     VIR_INFO("Setting SELinux context on '%s' to '%s'", path, tcon);
 
-    if (setfilecon_raw(path, (VIR_SELINUX_CTX_CONST char *) tcon) < 0) {
+    if (setfilecon_raw(path, (VIR_SELINUX_CTX_CONST char *)tcon) < 0) {
         int setfilecon_errno = errno;
 
         if (getfilecon_raw(path, &econ) >= 0) {
@@ -1336,7 +1336,7 @@ virSecuritySELinuxSetInputLabel(virSecurityManagerPtr mgr,
     if (seclabel == NULL)
         return 0;
 
-    switch ((virDomainInputType) input->type) {
+    switch ((virDomainInputType)input->type) {
     case VIR_DOMAIN_INPUT_TYPE_PASSTHROUGH:
         if (virSecuritySELinuxSetFilecon(mgr, input->source.evdev,
                                          seclabel->imagelabel) < 0)
@@ -1366,7 +1366,7 @@ virSecuritySELinuxRestoreInputLabel(virSecurityManagerPtr mgr,
     if (seclabel == NULL)
         return 0;
 
-    switch ((virDomainInputType) input->type) {
+    switch ((virDomainInputType)input->type) {
     case VIR_DOMAIN_INPUT_TYPE_PASSTHROUGH:
         rc = virSecuritySELinuxRestoreFileLabel(mgr, input->source.evdev);
         break;
@@ -1472,6 +1472,12 @@ virSecuritySELinuxSetTPMFileLabel(virSecurityManagerPtr mgr,
             return -1;
         }
         break;
+    case VIR_DOMAIN_TPM_TYPE_EMULATOR:
+        tpmdev = tpm->data.emulator.source.data.nix.path;
+        rc = virSecuritySELinuxSetFilecon(mgr, tpmdev, seclabel->imagelabel);
+        if (rc < 0)
+            return -1;
+        break;
     case VIR_DOMAIN_TPM_TYPE_LAST:
         break;
     }
@@ -1505,6 +1511,8 @@ virSecuritySELinuxRestoreTPMFileLabelInt(virSecurityManagerPtr mgr,
             VIR_FREE(cancel_path);
         }
         break;
+    case VIR_DOMAIN_TPM_TYPE_EMULATOR:
+        /* swtpm will have removed the Unix socket upon termination */
     case VIR_DOMAIN_TPM_TYPE_LAST:
         break;
     }
@@ -1772,7 +1780,7 @@ virSecuritySELinuxSetHostdevSubsysLabel(virSecurityManagerPtr mgr,
         scsisrc->protocol == VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_ISCSI)
         return 0;
 
-    switch ((virDomainHostdevSubsysType) dev->source.subsys.type) {
+    switch ((virDomainHostdevSubsysType)dev->source.subsys.type) {
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB: {
         virUSBDevicePtr usb;
 
@@ -2014,7 +2022,7 @@ virSecuritySELinuxRestoreHostdevSubsysLabel(virSecurityManagerPtr mgr,
         scsisrc->protocol == VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_ISCSI)
         return 0;
 
-    switch ((virDomainHostdevSubsysType) dev->source.subsys.type) {
+    switch ((virDomainHostdevSubsysType)dev->source.subsys.type) {
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB: {
         virUSBDevicePtr usb;
 
@@ -3040,6 +3048,167 @@ virSecuritySELinuxDomainSetPathLabel(virSecurityManagerPtr mgr,
     return virSecuritySELinuxSetFilecon(mgr, path, seclabel->imagelabel);
 }
 
+
+/*
+ * virSecuritySELinuxSetFileLabels:
+ *
+ * @mgr: the virSecurityManager
+ * @path: path to a directory or a file
+ * @seclabel: the security label
+ *
+ * Set the file labels on the given path; if the path is a directory
+ * we label all files found there, including the directory itself,
+ * otherwise we just label the file.
+ */
+static int
+virSecuritySELinuxSetFileLabels(virSecurityManagerPtr mgr,
+                                const char *path,
+                                virSecurityLabelDefPtr seclabel)
+{
+    int ret = 0;
+    struct dirent *ent;
+    char *filename = NULL;
+    DIR *dir;
+
+    if ((ret = virSecuritySELinuxSetFilecon(mgr, path, seclabel->imagelabel)))
+        return ret;
+
+    if (!virFileIsDir(path))
+        return 0;
+
+    if (virDirOpen(&dir, path) < 0)
+        return -1;
+
+    while ((ret = virDirRead(dir, &ent, path)) > 0) {
+        if (ent->d_type != DT_REG)
+            continue;
+
+        if (virAsprintf(&filename, "%s/%s", path, ent->d_name) < 0) {
+            ret = -1;
+            break;
+        }
+        ret = virSecuritySELinuxSetFilecon(mgr, filename,
+                                           seclabel->imagelabel);
+        VIR_FREE(filename);
+        if (ret < 0)
+            break;
+    }
+    if (ret < 0)
+        virReportSystemError(errno, _("Unable to label files under %s"),
+                             path);
+
+    virDirClose(&dir);
+
+    return ret;
+}
+
+
+/*
+ * virSecuritySELinuxRestoreFileLabels:
+ *
+ * @mgr: the virSecurityManager
+ * @path: path to a directory or a file
+ *
+ * Restore the file labels on the given path; if the path is a directory
+ * we restore all file labels found there, including the label of the
+ * directory itself, otherwise we just restore the label on the file.
+ */
+static int
+virSecuritySELinuxRestoreFileLabels(virSecurityManagerPtr mgr,
+                                    const char *path)
+{
+    int ret = 0;
+    struct dirent *ent;
+    char *filename = NULL;
+    DIR *dir;
+
+    if ((ret = virSecuritySELinuxRestoreFileLabel(mgr, path)))
+        return ret;
+
+    if (!virFileIsDir(path))
+        return 0;
+
+    if (virDirOpen(&dir, path) < 0)
+        return -1;
+
+    while ((ret = virDirRead(dir, &ent, path)) > 0) {
+        if (ent->d_type != DT_REG)
+            continue;
+
+        if (virAsprintf(&filename, "%s/%s", path, ent->d_name) < 0) {
+            ret = -1;
+            break;
+        }
+        ret = virSecuritySELinuxRestoreFileLabel(mgr, filename);
+        VIR_FREE(filename);
+        if (ret < 0)
+            break;
+    }
+    if (ret < 0)
+        virReportSystemError(errno, _("Unable to restore file labels under %s"),
+                             path);
+
+    virDirClose(&dir);
+
+    return ret;
+}
+
+
+static int
+virSecuritySELinuxSetTPMLabels(virSecurityManagerPtr mgr,
+                               virDomainDefPtr def)
+{
+    int ret = 0;
+    virSecurityLabelDefPtr seclabel;
+
+    seclabel = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
+    if (seclabel == NULL)
+        return 0;
+
+    switch (def->tpm->type) {
+    case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
+        break;
+    case VIR_DOMAIN_TPM_TYPE_EMULATOR:
+        ret = virSecuritySELinuxSetFileLabels(
+            mgr, def->tpm->data.emulator.storagepath,
+            seclabel);
+        if (ret == 0 && def->tpm->data.emulator.logfile)
+            ret = virSecuritySELinuxSetFileLabels(
+                mgr, def->tpm->data.emulator.logfile,
+                seclabel);
+        break;
+    case VIR_DOMAIN_TPM_TYPE_LAST:
+        break;
+    }
+
+    return ret;
+}
+
+
+static int
+virSecuritySELinuxRestoreTPMLabels(virSecurityManagerPtr mgr,
+                                   virDomainDefPtr def)
+{
+    int ret = 0;
+
+    switch (def->tpm->type) {
+    case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
+        break;
+    case VIR_DOMAIN_TPM_TYPE_EMULATOR:
+        ret = virSecuritySELinuxRestoreFileLabels(
+            mgr, def->tpm->data.emulator.storagepath);
+        if (ret == 0 && def->tpm->data.emulator.logfile)
+            ret = virSecuritySELinuxRestoreFileLabels(
+                mgr, def->tpm->data.emulator.logfile);
+        break;
+    case VIR_DOMAIN_TPM_TYPE_LAST:
+        break;
+    }
+
+    return ret;
+}
+
+
 virSecurityDriver virSecurityDriverSELinux = {
     .privateDataLen                     = sizeof(virSecuritySELinuxData),
     .name                               = SECURITY_SELINUX_NAME,
@@ -3099,4 +3268,7 @@ virSecurityDriver virSecurityDriverSELinux = {
 
     .domainSetSecurityChardevLabel      = virSecuritySELinuxSetChardevLabel,
     .domainRestoreSecurityChardevLabel  = virSecuritySELinuxRestoreChardevLabel,
+
+    .domainSetSecurityTPMLabels         = virSecuritySELinuxSetTPMLabels,
+    .domainRestoreSecurityTPMLabels     = virSecuritySELinuxRestoreTPMLabels,
 };

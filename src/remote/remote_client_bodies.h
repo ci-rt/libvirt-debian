@@ -38,6 +38,46 @@ done:
     return rv;
 }
 
+static char *
+remoteConnectBaselineHypervisorCPU(virConnectPtr conn, const char *emulator, const char *arch, const char *machine, const char *virttype, const char **xmlCPUs, unsigned int xmlCPUslen, unsigned int flags)
+{
+    char *rv = NULL;
+    struct private_data *priv = conn->privateData;
+    remote_connect_baseline_hypervisor_cpu_args args;
+    remote_connect_baseline_hypervisor_cpu_ret ret;
+
+    remoteDriverLock(priv);
+
+    if (xmlCPUslen > REMOTE_CPU_BASELINE_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("%s length greater than maximum: %d > %d"),
+                       "xmlCPUs", (int)xmlCPUslen, REMOTE_CPU_BASELINE_MAX);
+        goto done;
+    }
+
+    args.emulator = emulator ? (char **)&emulator : NULL;
+    args.arch = arch ? (char **)&arch : NULL;
+    args.machine = machine ? (char **)&machine : NULL;
+    args.virttype = virttype ? (char **)&virttype : NULL;
+    args.xmlCPUs.xmlCPUs_val = (char **)xmlCPUs;
+    args.xmlCPUs.xmlCPUs_len = xmlCPUslen;
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(conn, priv, 0, REMOTE_PROC_CONNECT_BASELINE_HYPERVISOR_CPU,
+             (xdrproc_t)xdr_remote_connect_baseline_hypervisor_cpu_args, (char *)&args,
+             (xdrproc_t)xdr_remote_connect_baseline_hypervisor_cpu_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = ret.cpu;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
 static int
 remoteConnectCompareCPU(virConnectPtr conn, const char *xml, unsigned int flags)
 {
@@ -56,6 +96,38 @@ remoteConnectCompareCPU(virConnectPtr conn, const char *xml, unsigned int flags)
     if (call(conn, priv, 0, REMOTE_PROC_CONNECT_COMPARE_CPU,
              (xdrproc_t)xdr_remote_connect_compare_cpu_args, (char *)&args,
              (xdrproc_t)xdr_remote_connect_compare_cpu_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = ret.result;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteConnectCompareHypervisorCPU(virConnectPtr conn, const char *emulator, const char *arch, const char *machine, const char *virttype, const char *xmlCPU, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = conn->privateData;
+    remote_connect_compare_hypervisor_cpu_args args;
+    remote_connect_compare_hypervisor_cpu_ret ret;
+
+    remoteDriverLock(priv);
+
+    args.emulator = emulator ? (char **)&emulator : NULL;
+    args.arch = arch ? (char **)&arch : NULL;
+    args.machine = machine ? (char **)&machine : NULL;
+    args.virttype = virttype ? (char **)&virttype : NULL;
+    args.xmlCPU = (char *)xmlCPU;
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(conn, priv, 0, REMOTE_PROC_CONNECT_COMPARE_HYPERVISOR_CPU,
+             (xdrproc_t)xdr_remote_connect_compare_hypervisor_cpu_args, (char *)&args,
+             (xdrproc_t)xdr_remote_connect_compare_hypervisor_cpu_ret, (char *)&ret) == -1) {
         goto done;
     }
 
@@ -541,6 +613,66 @@ cleanup:
     }
 
     xdr_free((xdrproc_t)xdr_remote_connect_list_all_node_devices_ret, (char *)&ret);
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteConnectListAllNWFilterBindings(virConnectPtr conn, virNWFilterBindingPtr **result, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = conn->privateData;
+    remote_connect_list_all_nwfilter_bindings_args args;
+    remote_connect_list_all_nwfilter_bindings_ret ret;
+    virNWFilterBindingPtr *tmp_results = NULL;
+    size_t i;
+
+    remoteDriverLock(priv);
+
+    args.flags = flags;
+    args.need_results = !!result;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(conn, priv, 0, REMOTE_PROC_CONNECT_LIST_ALL_NWFILTER_BINDINGS,
+             (xdrproc_t)xdr_remote_connect_list_all_nwfilter_bindings_args, (char *)&args,
+             (xdrproc_t)xdr_remote_connect_list_all_nwfilter_bindings_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    if (ret.bindings.bindings_len > REMOTE_NWFILTER_BINDING_LIST_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote nwfilter_bindings: %d > %d,"
+                         "in parameter 'bindings' for 'virConnectListAllNWFilterBindings'"),
+                       ret.bindings.bindings_len, REMOTE_NWFILTER_BINDING_LIST_MAX);
+        goto cleanup;
+    }
+
+    if (result) {
+        if (VIR_ALLOC_N(tmp_results, ret.bindings.bindings_len + 1) < 0)
+            goto cleanup;
+
+        for (i = 0; i < ret.bindings.bindings_len; i++) {
+            tmp_results[i] = get_nonnull_nwfilter_binding(conn, ret.bindings.bindings_val[i]);
+            if (!tmp_results[i])
+                goto cleanup;
+        }
+        *result = tmp_results;
+        tmp_results = NULL;
+    }
+
+    rv = ret.ret;
+
+cleanup:
+    if (tmp_results) {
+        for (i = 0; i < ret.bindings.bindings_len; i++)
+            virObjectUnref(tmp_results[i]);
+        VIR_FREE(tmp_results);
+    }
+
+    xdr_free((xdrproc_t)xdr_remote_connect_list_all_nwfilter_bindings_ret, (char *)&ret);
 
 done:
     remoteDriverUnlock(priv);
@@ -2146,6 +2278,32 @@ remoteDomainDetachDevice(virDomainPtr dom, const char *xml)
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_DETACH_DEVICE,
              (xdrproc_t)xdr_remote_domain_detach_device_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainDetachDeviceAlias(virDomainPtr dom, const char *alias, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_detach_device_alias_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.alias = (char *)alias;
+    args.flags = flags;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_DETACH_DEVICE_ALIAS,
+             (xdrproc_t)xdr_remote_domain_detach_device_alias_args, (char *)&args,
              (xdrproc_t)xdr_void, (char *)NULL) == -1) {
         goto done;
     }
@@ -6555,6 +6713,115 @@ remoteNodeSuspendForDuration(virConnectPtr conn, unsigned int target, unsigned l
     }
 
     rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static virNWFilterBindingPtr
+remoteNWFilterBindingCreateXML(virConnectPtr conn, const char *xml, unsigned int flags)
+{
+    virNWFilterBindingPtr rv = NULL;
+    struct private_data *priv = conn->privateData;
+    remote_nwfilter_binding_create_xml_args args;
+    remote_nwfilter_binding_create_xml_ret ret;
+
+    remoteDriverLock(priv);
+
+    args.xml = (char *)xml;
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(conn, priv, 0, REMOTE_PROC_NWFILTER_BINDING_CREATE_XML,
+             (xdrproc_t)xdr_remote_nwfilter_binding_create_xml_args, (char *)&args,
+             (xdrproc_t)xdr_remote_nwfilter_binding_create_xml_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = get_nonnull_nwfilter_binding(conn, ret.nwfilter);
+    xdr_free((xdrproc_t)xdr_remote_nwfilter_binding_create_xml_ret, (char *)&ret);
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteNWFilterBindingDelete(virNWFilterBindingPtr nwfilter)
+{
+    int rv = -1;
+    struct private_data *priv = nwfilter->conn->privateData;
+    remote_nwfilter_binding_delete_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_nwfilter_binding(&args.nwfilter, nwfilter);
+
+    if (call(nwfilter->conn, priv, 0, REMOTE_PROC_NWFILTER_BINDING_DELETE,
+             (xdrproc_t)xdr_remote_nwfilter_binding_delete_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static char *
+remoteNWFilterBindingGetXMLDesc(virNWFilterBindingPtr nwfilter, unsigned int flags)
+{
+    char *rv = NULL;
+    struct private_data *priv = nwfilter->conn->privateData;
+    remote_nwfilter_binding_get_xml_desc_args args;
+    remote_nwfilter_binding_get_xml_desc_ret ret;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_nwfilter_binding(&args.nwfilter, nwfilter);
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(nwfilter->conn, priv, 0, REMOTE_PROC_NWFILTER_BINDING_GET_XML_DESC,
+             (xdrproc_t)xdr_remote_nwfilter_binding_get_xml_desc_args, (char *)&args,
+             (xdrproc_t)xdr_remote_nwfilter_binding_get_xml_desc_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = ret.xml;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static virNWFilterBindingPtr
+remoteNWFilterBindingLookupByPortDev(virConnectPtr conn, const char *name)
+{
+    virNWFilterBindingPtr rv = NULL;
+    struct private_data *priv = conn->privateData;
+    remote_nwfilter_binding_lookup_by_port_dev_args args;
+    remote_nwfilter_binding_lookup_by_port_dev_ret ret;
+
+    remoteDriverLock(priv);
+
+    args.name = (char *)name;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(conn, priv, 0, REMOTE_PROC_NWFILTER_BINDING_LOOKUP_BY_PORT_DEV,
+             (xdrproc_t)xdr_remote_nwfilter_binding_lookup_by_port_dev_args, (char *)&args,
+             (xdrproc_t)xdr_remote_nwfilter_binding_lookup_by_port_dev_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = get_nonnull_nwfilter_binding(conn, ret.nwfilter);
+    xdr_free((xdrproc_t)xdr_remote_nwfilter_binding_lookup_by_port_dev_ret, (char *)&ret);
 
 done:
     remoteDriverUnlock(priv);

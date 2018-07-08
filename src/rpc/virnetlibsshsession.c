@@ -214,7 +214,7 @@ virLibsshServerKeyAsString(virNetLibsshSessionPtr sess)
     size_t keyhashlen;
     char *str;
 
-    if (ssh_get_publickey(sess->session, &key) != SSH_OK) {
+    if (ssh_get_server_publickey(sess->session, &key) != SSH_OK) {
         virReportError(VIR_ERR_LIBSSH, "%s",
                        _("failed to get the key of the current "
                          "session"));
@@ -499,9 +499,7 @@ virNetLibsshImportPrivkey(virNetLibsshSessionPtr sess,
         err = SSH_AUTH_ERROR;
         goto error;
     } else if (ret == SSH_ERROR) {
-        virErrorPtr vir_err = virGetLastError();
-
-        if (!vir_err || !vir_err->code) {
+        if (virGetLastErrorCode() == VIR_ERR_OK) {
             virReportError(VIR_ERR_AUTH_FAILED,
                            _("error while opening private key '%s', wrong "
                              "passphrase?"),

@@ -94,9 +94,6 @@ AC_DEFUN([gl_EARLY],
   # Code from module count-leading-zeros-tests:
   # Code from module count-one-bits:
   # Code from module count-one-bits-tests:
-  # Code from module crypto/md5:
-  # Code from module crypto/md5-tests:
-  # Code from module crypto/sha256:
   # Code from module ctype:
   # Code from module ctype-tests:
   # Code from module dirname-lgpl:
@@ -346,8 +343,6 @@ AC_DEFUN([gl_EARLY],
   # Code from module putenv:
   # Code from module raise:
   # Code from module raise-tests:
-  # Code from module random_r:
-  # Code from module random_r-tests:
   # Code from module rawmemchr:
   # Code from module rawmemchr-tests:
   # Code from module read:
@@ -598,8 +593,6 @@ AC_SUBST([LTALLOCA])
   gl_SYS_SOCKET_MODULE_INDICATOR([connect])
   gl_COUNT_LEADING_ZEROS
   gl_COUNT_ONE_BITS
-  gl_MD5
-  gl_SHA256
   gl_DIRNAME_LGPL
   gl_DOUBLE_SLASH_ROOT
   gl_FUNC_DUP2
@@ -1005,12 +998,6 @@ AC_SUBST([LTALLOCA])
     gl_PREREQ_RAISE
   fi
   gl_SIGNAL_MODULE_INDICATOR([raise])
-  gl_FUNC_RANDOM_R
-  if test $HAVE_RANDOM_R = 0 || test $REPLACE_RANDOM_R = 1; then
-    AC_LIBOBJ([random_r])
-    gl_PREREQ_RANDOM_R
-  fi
-  gl_STDLIB_MODULE_INDICATOR([random_r])
   gl_FUNC_RAWMEMCHR
   if test $HAVE_RAWMEMCHR = 0; then
     AC_LIBOBJ([rawmemchr])
@@ -1823,7 +1810,6 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/gettimeofday.c
   lib/getugroups.c
   lib/getugroups.h
-  lib/gl_openssl.h
   lib/glthread/lock.c
   lib/glthread/lock.h
   lib/glthread/threadlib.c
@@ -1857,8 +1843,6 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/mbsrtowcs.c
   lib/mbtowc-impl.h
   lib/mbtowc.c
-  lib/md5.c
-  lib/md5.h
   lib/memchr.c
   lib/memchr.valgrind
   lib/mgetgroups.c
@@ -1900,7 +1884,6 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/pthread_sigmask.c
   lib/pty.in.h
   lib/raise.c
-  lib/random_r.c
   lib/rawmemchr.c
   lib/rawmemchr.valgrind
   lib/readlink.c
@@ -1920,8 +1903,6 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/send.c
   lib/setenv.c
   lib/setsockopt.c
-  lib/sha256.c
-  lib/sha256.h
   lib/sig-handler.c
   lib/sig-handler.h
   lib/sigaction.c
@@ -2079,7 +2060,6 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/getprogname.m4
   m4/gettimeofday.m4
   m4/getugroups.m4
-  m4/gl-openssl.m4
   m4/glibc21.m4
   m4/gnulib-common.m4
   m4/grantpt.m4
@@ -2131,7 +2111,6 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/mbsrtowcs.m4
   m4/mbstate_t.m4
   m4/mbtowc.m4
-  m4/md5.m4
   m4/memchr.m4
   m4/mgetgroups.m4
   m4/mkdtemp.m4
@@ -2175,7 +2154,6 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/pty_h.m4
   m4/putenv.m4
   m4/raise.m4
-  m4/random_r.m4
   m4/rawmemchr.m4
   m4/read.m4
   m4/readlink.m4
@@ -2187,7 +2165,6 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/servent.m4
   m4/setenv.m4
   m4/setlocale.m4
-  m4/sha256.m4
   m4/sig_atomic_t.m4
   m4/sigaction.m4
   m4/signal_h.m4
@@ -2417,7 +2394,6 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-mbsrtowcs2.sh
   tests/test-mbsrtowcs3.sh
   tests/test-mbsrtowcs4.sh
-  tests/test-md5.c
   tests/test-memchr.c
   tests/test-nanosleep.c
   tests/test-net_if.c
@@ -2462,7 +2438,6 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-ptsname.c
   tests/test-ptsname_r.c
   tests/test-raise.c
-  tests/test-random_r.c
   tests/test-rawmemchr.c
   tests/test-read.c
   tests/test-readlink.c

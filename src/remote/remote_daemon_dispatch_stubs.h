@@ -188,6 +188,70 @@ cleanup:
 
 
 
+static int remoteDispatchConnectBaselineHypervisorCPU(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_baseline_hypervisor_cpu_args *args,
+    remote_connect_baseline_hypervisor_cpu_ret *ret);
+static int remoteDispatchConnectBaselineHypervisorCPUHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchConnectBaselineHypervisorCPU");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchConnectBaselineHypervisorCPU(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchConnectBaselineHypervisorCPU(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_baseline_hypervisor_cpu_args *args,
+    remote_connect_baseline_hypervisor_cpu_ret *ret)
+{
+    int rv = -1;
+    char *emulator;
+    char *arch;
+    char *machine;
+    char *virttype;
+    char *cpu;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    emulator = args->emulator ? *args->emulator : NULL;
+    arch = args->arch ? *args->arch : NULL;
+    machine = args->machine ? *args->machine : NULL;
+    virttype = args->virttype ? *args->virttype : NULL;
+
+    if ((cpu = virConnectBaselineHypervisorCPU(priv->conn, emulator, arch, machine, virttype, (const char **) args->xmlCPUs.xmlCPUs_val, args->xmlCPUs.xmlCPUs_len, args->flags)) == NULL)
+        goto cleanup;
+
+    ret->cpu = cpu;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
 static int remoteDispatchConnectClose(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -255,6 +319,70 @@ static int remoteDispatchConnectCompareCPU(
     }
 
     if ((result = virConnectCompareCPU(priv->conn, args->xml, args->flags)) < 0)
+        goto cleanup;
+
+    ret->result = result;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectCompareHypervisorCPU(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_compare_hypervisor_cpu_args *args,
+    remote_connect_compare_hypervisor_cpu_ret *ret);
+static int remoteDispatchConnectCompareHypervisorCPUHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchConnectCompareHypervisorCPU");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchConnectCompareHypervisorCPU(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchConnectCompareHypervisorCPU(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_compare_hypervisor_cpu_args *args,
+    remote_connect_compare_hypervisor_cpu_ret *ret)
+{
+    int rv = -1;
+    char *emulator;
+    char *arch;
+    char *machine;
+    char *virttype;
+    int result;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    emulator = args->emulator ? *args->emulator : NULL;
+    arch = args->arch ? *args->arch : NULL;
+    machine = args->machine ? *args->machine : NULL;
+    virttype = args->virttype ? *args->virttype : NULL;
+
+    if ((result = virConnectCompareHypervisorCPU(priv->conn, emulator, arch, machine, virttype, args->xmlCPU, args->flags)) < 0)
         goto cleanup;
 
     ret->result = result;
@@ -1516,6 +1644,90 @@ static int remoteDispatchConnectListAllNodeDevices(
     } else {
         ret->devices.devices_len = 0;
         ret->devices.devices_val = NULL;
+    }
+
+    ret->ret = nresults;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (result) {
+        for (i = 0; i < nresults; i++)
+            virObjectUnref(result[i]);
+    }
+    VIR_FREE(result);
+    return rv;
+}
+
+
+
+static int remoteDispatchConnectListAllNWFilterBindings(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_list_all_nwfilter_bindings_args *args,
+    remote_connect_list_all_nwfilter_bindings_ret *ret);
+static int remoteDispatchConnectListAllNWFilterBindingsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchConnectListAllNWFilterBindings");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchConnectListAllNWFilterBindings(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchConnectListAllNWFilterBindings(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_connect_list_all_nwfilter_bindings_args *args,
+    remote_connect_list_all_nwfilter_bindings_ret *ret)
+{
+    int rv = -1;
+    ssize_t i;
+    virNWFilterBindingPtr *result = NULL;
+    int nresults = 0;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->nwfilterConn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if ((nresults = 
+            virConnectListAllNWFilterBindings(priv->nwfilterConn,
+                                              args->need_results ? &result : NULL,
+                                              args->flags)) < 0)
+        goto cleanup;
+
+    if (nresults > REMOTE_NWFILTER_BINDING_LIST_MAX) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Too many nwfilter_bindings '%d' for limit '%d'"),
+                       nresults, REMOTE_NWFILTER_BINDING_LIST_MAX);
+        goto cleanup;
+    }
+
+    if (result && nresults) {
+        if (VIR_ALLOC_N(ret->bindings.bindings_val, nresults) < 0)
+            goto cleanup;
+
+        ret->bindings.bindings_len = nresults;
+        for (i = 0; i < nresults; i++)
+            make_nonnull_nwfilter_binding(ret->bindings.bindings_val + i, result[i]);
+    } else {
+        ret->bindings.bindings_len = 0;
+        ret->bindings.bindings_val = NULL;
     }
 
     ret->ret = nresults;
@@ -4738,6 +4950,62 @@ cleanup:
 
 
 
+static int remoteDispatchDomainDetachDeviceAlias(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_detach_device_alias_args *args);
+static int remoteDispatchDomainDetachDeviceAliasHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchDomainDetachDeviceAlias");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchDomainDetachDeviceAlias(server, client, msg, rerr, args);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchDomainDetachDeviceAlias(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_detach_device_alias_args *args)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if (virDomainDetachDeviceAlias(dom, args->alias, args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(dom);
+    return rv;
+}
+
+
+
 static int remoteDispatchDomainDetachDeviceFlags(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -5690,6 +5958,33 @@ static int remoteDispatchDomainGetJobStatsHelper(
   return rv;
 }
 /* remoteDispatchDomainGetJobStats body has to be implemented manually */
+
+
+
+static int remoteDispatchDomainGetLaunchSecurityInfo(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_get_launch_security_info_args *args,
+    remote_domain_get_launch_security_info_ret *ret);
+static int remoteDispatchDomainGetLaunchSecurityInfoHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchDomainGetLaunchSecurityInfo");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchDomainGetLaunchSecurityInfo(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+/* remoteDispatchDomainGetLaunchSecurityInfo body has to be implemented manually */
 
 
 
@@ -14828,6 +15123,33 @@ static int remoteDispatchNodeGetSecurityModelHelper(
 
 
 
+static int remoteDispatchNodeGetSevInfo(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_node_get_sev_info_args *args,
+    remote_node_get_sev_info_ret *ret);
+static int remoteDispatchNodeGetSevInfoHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchNodeGetSevInfo");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchNodeGetSevInfo(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+/* remoteDispatchNodeGetSevInfo body has to be implemented manually */
+
+
+
 static int remoteDispatchNodeListDevices(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -15063,6 +15385,234 @@ static int remoteDispatchNodeSuspendForDuration(
 cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
+static int remoteDispatchNWFilterBindingCreateXML(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_nwfilter_binding_create_xml_args *args,
+    remote_nwfilter_binding_create_xml_ret *ret);
+static int remoteDispatchNWFilterBindingCreateXMLHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchNWFilterBindingCreateXML");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchNWFilterBindingCreateXML(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchNWFilterBindingCreateXML(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_nwfilter_binding_create_xml_args *args,
+    remote_nwfilter_binding_create_xml_ret *ret)
+{
+    int rv = -1;
+    virNWFilterBindingPtr nwfilter = NULL;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->nwfilterConn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if ((nwfilter = virNWFilterBindingCreateXML(priv->nwfilterConn, args->xml, args->flags)) == NULL)
+        goto cleanup;
+
+    make_nonnull_nwfilter_binding(&ret->nwfilter, nwfilter);
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(nwfilter);
+    return rv;
+}
+
+
+
+static int remoteDispatchNWFilterBindingDelete(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_nwfilter_binding_delete_args *args);
+static int remoteDispatchNWFilterBindingDeleteHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchNWFilterBindingDelete");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchNWFilterBindingDelete(server, client, msg, rerr, args);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchNWFilterBindingDelete(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_nwfilter_binding_delete_args *args)
+{
+    int rv = -1;
+    virNWFilterBindingPtr nwfilter = NULL;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->nwfilterConn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(nwfilter = get_nonnull_nwfilter_binding(priv->nwfilterConn, args->nwfilter)))
+        goto cleanup;
+
+    if (virNWFilterBindingDelete(nwfilter) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(nwfilter);
+    return rv;
+}
+
+
+
+static int remoteDispatchNWFilterBindingGetXMLDesc(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_nwfilter_binding_get_xml_desc_args *args,
+    remote_nwfilter_binding_get_xml_desc_ret *ret);
+static int remoteDispatchNWFilterBindingGetXMLDescHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchNWFilterBindingGetXMLDesc");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchNWFilterBindingGetXMLDesc(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchNWFilterBindingGetXMLDesc(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_nwfilter_binding_get_xml_desc_args *args,
+    remote_nwfilter_binding_get_xml_desc_ret *ret)
+{
+    int rv = -1;
+    virNWFilterBindingPtr nwfilter = NULL;
+    char *xml;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->nwfilterConn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(nwfilter = get_nonnull_nwfilter_binding(priv->nwfilterConn, args->nwfilter)))
+        goto cleanup;
+
+    if ((xml = virNWFilterBindingGetXMLDesc(nwfilter, args->flags)) == NULL)
+        goto cleanup;
+
+    ret->xml = xml;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(nwfilter);
+    return rv;
+}
+
+
+
+static int remoteDispatchNWFilterBindingLookupByPortDev(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_nwfilter_binding_lookup_by_port_dev_args *args,
+    remote_nwfilter_binding_lookup_by_port_dev_ret *ret);
+static int remoteDispatchNWFilterBindingLookupByPortDevHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchNWFilterBindingLookupByPortDev");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchNWFilterBindingLookupByPortDev(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchNWFilterBindingLookupByPortDev(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_nwfilter_binding_lookup_by_port_dev_args *args,
+    remote_nwfilter_binding_lookup_by_port_dev_ret *ret)
+{
+    int rv = -1;
+    virNWFilterBindingPtr nwfilter = NULL;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->nwfilterConn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if ((nwfilter = virNWFilterBindingLookupByPortDev(priv->nwfilterConn, args->name)) == NULL)
+        goto cleanup;
+
+    make_nonnull_nwfilter_binding(&ret->nwfilter, nwfilter);
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(nwfilter);
     return rv;
 }
 
@@ -21385,6 +21935,96 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_pool_lookup_by_target_path_args,
    sizeof(remote_storage_pool_lookup_by_target_path_ret),
    (xdrproc_t)xdr_remote_storage_pool_lookup_by_target_path_ret,
+   true,
+   1
+},
+{ /* Method DomainDetachDeviceAlias => 392 */
+   remoteDispatchDomainDetachDeviceAliasHelper,
+   sizeof(remote_domain_detach_device_alias_args),
+   (xdrproc_t)xdr_remote_domain_detach_device_alias_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method ConnectCompareHypervisorCPU => 393 */
+   remoteDispatchConnectCompareHypervisorCPUHelper,
+   sizeof(remote_connect_compare_hypervisor_cpu_args),
+   (xdrproc_t)xdr_remote_connect_compare_hypervisor_cpu_args,
+   sizeof(remote_connect_compare_hypervisor_cpu_ret),
+   (xdrproc_t)xdr_remote_connect_compare_hypervisor_cpu_ret,
+   true,
+   0
+},
+{ /* Method ConnectBaselineHypervisorCPU => 394 */
+   remoteDispatchConnectBaselineHypervisorCPUHelper,
+   sizeof(remote_connect_baseline_hypervisor_cpu_args),
+   (xdrproc_t)xdr_remote_connect_baseline_hypervisor_cpu_args,
+   sizeof(remote_connect_baseline_hypervisor_cpu_ret),
+   (xdrproc_t)xdr_remote_connect_baseline_hypervisor_cpu_ret,
+   true,
+   0
+},
+{ /* Method NodeGetSevInfo => 395 */
+   remoteDispatchNodeGetSevInfoHelper,
+   sizeof(remote_node_get_sev_info_args),
+   (xdrproc_t)xdr_remote_node_get_sev_info_args,
+   sizeof(remote_node_get_sev_info_ret),
+   (xdrproc_t)xdr_remote_node_get_sev_info_ret,
+   true,
+   0
+},
+{ /* Method DomainGetLaunchSecurityInfo => 396 */
+   remoteDispatchDomainGetLaunchSecurityInfoHelper,
+   sizeof(remote_domain_get_launch_security_info_args),
+   (xdrproc_t)xdr_remote_domain_get_launch_security_info_args,
+   sizeof(remote_domain_get_launch_security_info_ret),
+   (xdrproc_t)xdr_remote_domain_get_launch_security_info_ret,
+   true,
+   0
+},
+{ /* Method NWFilterBindingLookupByPortDev => 397 */
+   remoteDispatchNWFilterBindingLookupByPortDevHelper,
+   sizeof(remote_nwfilter_binding_lookup_by_port_dev_args),
+   (xdrproc_t)xdr_remote_nwfilter_binding_lookup_by_port_dev_args,
+   sizeof(remote_nwfilter_binding_lookup_by_port_dev_ret),
+   (xdrproc_t)xdr_remote_nwfilter_binding_lookup_by_port_dev_ret,
+   true,
+   1
+},
+{ /* Method NWFilterBindingGetXMLDesc => 398 */
+   remoteDispatchNWFilterBindingGetXMLDescHelper,
+   sizeof(remote_nwfilter_binding_get_xml_desc_args),
+   (xdrproc_t)xdr_remote_nwfilter_binding_get_xml_desc_args,
+   sizeof(remote_nwfilter_binding_get_xml_desc_ret),
+   (xdrproc_t)xdr_remote_nwfilter_binding_get_xml_desc_ret,
+   true,
+   1
+},
+{ /* Method NWFilterBindingCreateXML => 399 */
+   remoteDispatchNWFilterBindingCreateXMLHelper,
+   sizeof(remote_nwfilter_binding_create_xml_args),
+   (xdrproc_t)xdr_remote_nwfilter_binding_create_xml_args,
+   sizeof(remote_nwfilter_binding_create_xml_ret),
+   (xdrproc_t)xdr_remote_nwfilter_binding_create_xml_ret,
+   true,
+   1
+},
+{ /* Method NWFilterBindingDelete => 400 */
+   remoteDispatchNWFilterBindingDeleteHelper,
+   sizeof(remote_nwfilter_binding_delete_args),
+   (xdrproc_t)xdr_remote_nwfilter_binding_delete_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   1
+},
+{ /* Method ConnectListAllNWFilterBindings => 401 */
+   remoteDispatchConnectListAllNWFilterBindingsHelper,
+   sizeof(remote_connect_list_all_nwfilter_bindings_args),
+   (xdrproc_t)xdr_remote_connect_list_all_nwfilter_bindings_args,
+   sizeof(remote_connect_list_all_nwfilter_bindings_ret),
+   (xdrproc_t)xdr_remote_connect_list_all_nwfilter_bindings_ret,
    true,
    1
 },

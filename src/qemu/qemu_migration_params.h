@@ -37,6 +37,7 @@ typedef enum {
     QEMU_MIGRATION_CAP_POSTCOPY,
     QEMU_MIGRATION_CAP_COMPRESS,
     QEMU_MIGRATION_CAP_PAUSE_BEFORE_SWITCHOVER,
+    QEMU_MIGRATION_CAP_LATE_BLOCK_ACTIVATE,
 
     QEMU_MIGRATION_CAP_LAST
 } qemuMigrationCapability;
@@ -98,7 +99,6 @@ qemuMigrationParamsEnableTLS(virQEMUDriverPtr driver,
                              bool tlsListen,
                              int asyncJob,
                              char **tlsAlias,
-                             char **secAlias,
                              const char *hostname,
                              qemuMigrationParamsPtr migParams);
 

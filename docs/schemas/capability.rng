@@ -40,6 +40,9 @@
         <ref name='power_management'/>
       </optional>
       <optional>
+        <ref name='iommu_support'/>
+      </optional>
+      <optional>
         <ref name='migration'/>
       </optional>
       <optional>
@@ -102,6 +105,13 @@
         <text/>
       </element>
     </optional>
+    <optional>
+      <element name='microcode'>
+        <attribute name='version'>
+          <ref name='positiveInteger'/>
+        </attribute>
+      </element>
+    </optional>
     <element name='topology'>
       <attribute name='sockets'>
         <ref name='positiveInteger'/>
@@ -122,7 +132,7 @@
       </element>
     </zeroOrMore>
     <zeroOrMore>
-      <ref name='pagesElem'/>
+      <ref name='pagesHost'/>
     </zeroOrMore>
   </define>
 
@@ -148,6 +158,16 @@
     </element>
   </define>
 
+  <define name='iommu_support'>
+    <element name='iommu'>
+      <optional>
+        <attribute name='support'>
+          <ref name='virYesNo'/>
+        </attribute>
+      </optional>
+    </element>
+  </define>
+
   <define name='migration'>
     <element name='migration_features'>
       <optional>
@@ -160,9 +180,10 @@
           <oneOrMore>
             <element name='uri_transport'>
               <choice>
-                <value>esx</value>
+                <value>vpxmigr</value>
                 <value>tcp</value>
-                <value>xenmigr</value>
+                <value>rdma</value>
+                <value>vzmigr</value>
               </choice>
             </element>
           </oneOrMore>
@@ -195,7 +216,7 @@
       </optional>
 
       <zeroOrMore>
-        <ref name='pagesElem'/>
+        <ref name='pagesNuma'/>
       </zeroOrMore>
 
       <optional>
@@ -476,17 +497,25 @@
     </data>
   </define>
 
-  <define name='pagesElem'>
+  <define name='pagesHost'>
     <element name='pages'>
-      <optional>
-        <attribute name='unit'>
-          <ref name='unit'/>
-        </attribute>
-      </optional>
-      <attribute name='size'>
-        <ref name='unsignedInt'/>
-      </attribute>
+      <ref name='pagesElem'/>
+    </element>
+  </define>
+  <define name='pagesNuma'>
+    <element name='pages'>
+      <ref name='pagesElem'/>
       <ref name='unsignedInt'/>
     </element>
+  </define>
+  <define name='pagesElem'>
+    <optional>
+      <attribute name='unit'>
+        <ref name='unit'/>
+      </attribute>
+    </optional>
+    <attribute name='size'>
+      <ref name='unsignedInt'/>
+    </attribute>
   </define>
 </grammar>

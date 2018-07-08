@@ -37,8 +37,10 @@
 #include "virtpm.h"
 #include "virutil.h"
 #include "qemu/qemu_interface.h"
+#include "qemu/qemu_command.h"
 #include <time.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -55,25 +57,45 @@ time_t time(time_t *t)
     return ret;
 }
 
+bool
+virNumaIsAvailable(void)
+{
+    return true;
+}
+
 int
 virNumaGetMaxNode(void)
 {
-   const int maxnodesNum = 7;
-
-   return maxnodesNum;
+   return 7;
 }
 
-#if WITH_NUMACTL && HAVE_NUMA_BITMASK_ISBITSET
-/*
- * In case libvirt is compiled with full NUMA support, we need to mock
- * this function in order to fake what numa nodes are available.
- */
+/* We shouldn't need to mock virNumaNodeIsAvailable() and *definitely* not
+ * virNumaNodesetIsAvailable(), but it seems to be the only way to get
+ * mocking to work with Clang on FreeBSD, so keep these duplicates around
+ * until we figure out a cleaner solution */
 bool
 virNumaNodeIsAvailable(int node)
 {
     return node >= 0 && node <= virNumaGetMaxNode();
 }
-#endif /* WITH_NUMACTL && HAVE_NUMA_BITMASK_ISBITSET */
+
+bool
+virNumaNodesetIsAvailable(virBitmapPtr nodeset)
+{
+    ssize_t bit = -1;
+
+    if (!nodeset)
+        return true;
+
+    while ((bit = virBitmapNextSetBit(nodeset, bit)) >= 0) {
+        if (virNumaNodeIsAvailable(bit))
+            continue;
+
+        return false;
+    }
+
+    return true;
+}
 
 char *
 virTPMCreateCancelPath(const char *devpath)
@@ -170,19 +192,6 @@ virCommandPassFD(virCommandPtr cmd ATTRIBUTE_UNUSED,
     /* nada */
 }
 
-uint8_t *
-virCryptoGenerateRandom(size_t nbytes)
-{
-    uint8_t *buf;
-
-    if (VIR_ALLOC_N(buf, nbytes) < 0)
-        return NULL;
-
-    ignore_value(virRandomBytes(buf, nbytes));
-
-    return buf;
-}
-
 int
 virNetDevOpenvswitchGetVhostuserIfname(const char *path ATTRIBUTE_UNUSED,
                                        char **ifname)
@@ -206,4 +215,21 @@ qemuInterfaceOpenVhostNet(virDomainDefPtr def ATTRIBUTE_UNUSED,
     for (i = 0; i < *vhostfdSize; i++)
         vhostfd[i] = STDERR_FILENO + 42 + i;
     return 0;
+}
+
+
+int
+qemuOpenChrChardevUNIXSocket(const virDomainChrSourceDef *dev ATTRIBUTE_UNUSED)
+
+{
+    /* We need to return an FD number for a UNIX listener socket,
+     * which will be given to QEMU via a CLI arg. We need a fixed
+     * number to get stable tests. This is obviously not a real
+     * FD number, so when virCommand closes the FD in the parent
+     * it will get EINVAL, but that's (hopefully) not going to
+     * be a problem....
+     */
+    if (fcntl(1729, F_GETFD) != -1)
+        abort();
+    return 1729;
 }

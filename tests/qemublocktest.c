@@ -19,10 +19,15 @@
 #include <stdlib.h>
 
 #include "testutils.h"
+#include "testutilsqemu.h"
+#include "testutilsqemuschema.h"
 #include "virstoragefile.h"
 #include "virstring.h"
 #include "virlog.h"
 #include "qemu/qemu_block.h"
+#include "qemu/qemu_qapi.h"
+
+#include "qemu/qemu_command.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -62,7 +67,7 @@ testBackingXMLjsonXML(const void *args)
         goto cleanup;
     }
 
-    if (!(backendprops = qemuBlockStorageSourceGetBackendProps(xmlsrc))) {
+    if (!(backendprops = qemuBlockStorageSourceGetBackendProps(xmlsrc, true))) {
         fprintf(stderr, "failed to format disk source json\n");
         goto cleanup;
     }
@@ -113,19 +118,249 @@ testBackingXMLjsonXML(const void *args)
 }
 
 
+struct testQemuDiskXMLToJSONData {
+    virQEMUDriverPtr driver;
+    virHashTablePtr schema;
+    virJSONValuePtr schemaroot;
+    const char *name;
+    bool fail;
+
+    virJSONValuePtr *props;
+    size_t nprops;
+
+    virQEMUCapsPtr qemuCaps;
+};
+
+
+static void
+testQemuDiskXMLToPropsClear(struct testQemuDiskXMLToJSONData *data)
+{
+    size_t i;
+
+    for (i = 0; i < data->nprops; i++)
+        virJSONValueFree(data->props[i]);
+
+    data->nprops = 0;
+    VIR_FREE(data->props);
+}
+
+
+static int
+testQemuDiskXMLToJSONFakeSecrets(virStorageSourcePtr src)
+{
+    qemuDomainStorageSourcePrivatePtr srcpriv;
+
+    if (!src->privateData &&
+        !(src->privateData = qemuDomainStorageSourcePrivateNew()))
+        return -1;
+
+    srcpriv = QEMU_DOMAIN_STORAGE_SOURCE_PRIVATE(src);
+
+    if (src->auth) {
+        if (VIR_ALLOC(srcpriv->secinfo) < 0)
+            return -1;
+
+        srcpriv->secinfo->type = VIR_DOMAIN_SECRET_INFO_TYPE_AES;
+        if (VIR_STRDUP(srcpriv->secinfo->s.aes.username, src->auth->username) < 0)
+            return -1;
+
+        if (virAsprintf(&srcpriv->secinfo->s.aes.alias, "%s-secalias",
+                        NULLSTR(src->nodestorage)) < 0)
+            return -1;
+    }
+
+    if (src->encryption) {
+        if (VIR_ALLOC(srcpriv->encinfo) < 0)
+            return -1;
+
+        srcpriv->encinfo->type = VIR_DOMAIN_SECRET_INFO_TYPE_AES;
+        if (virAsprintf(&srcpriv->encinfo->s.aes.alias, "%s-encalias",
+                        NULLSTR(src->nodeformat)) < 0)
+            return -1;
+    }
+
+    return 0;
+}
+
+
+static const char *testQemuDiskXMLToJSONPath = abs_srcdir "/qemublocktestdata/xml2json/";
+
+static int
+testQemuDiskXMLToProps(const void *opaque)
+{
+    struct testQemuDiskXMLToJSONData *data = (void *) opaque;
+    virDomainDiskDefPtr disk = NULL;
+    virStorageSourcePtr n;
+    virJSONValuePtr formatProps = NULL;
+    virJSONValuePtr storageProps = NULL;
+    char *xmlpath = NULL;
+    char *xmlstr = NULL;
+    int ret = -1;
+
+    if (virAsprintf(&xmlpath, "%s%s.xml",
+                    testQemuDiskXMLToJSONPath, data->name) < 0)
+        goto cleanup;
+
+    if (virTestLoadFile(xmlpath, &xmlstr) < 0)
+        goto cleanup;
+
+    /* qemu stores node names in the status XML portion */
+    if (!(disk = virDomainDiskDefParse(xmlstr, NULL, data->driver->xmlopt,
+                                       VIR_DOMAIN_DEF_PARSE_STATUS)))
+        goto cleanup;
+
+    if (qemuCheckDiskConfig(disk, data->qemuCaps) < 0 ||
+        qemuDomainDeviceDefValidateDisk(disk, data->qemuCaps) < 0) {
+        VIR_TEST_VERBOSE("invalid configuration for disk\n");
+        goto cleanup;
+    }
+
+    for (n = disk->src; virStorageSourceIsBacking(n); n = n->backingStore) {
+        if (testQemuDiskXMLToJSONFakeSecrets(n) < 0)
+            goto cleanup;
+
+        if (qemuDomainValidateStorageSource(n, data->qemuCaps) < 0)
+            goto cleanup;
+
+        if (qemuDomainPrepareDiskSourceData(disk, n, NULL, data->qemuCaps) < 0)
+            goto cleanup;
+
+        if (!(formatProps = qemuBlockStorageSourceGetBlockdevProps(n)) ||
+            !(storageProps = qemuBlockStorageSourceGetBackendProps(n, false))) {
+            if (!data->fail) {
+                VIR_TEST_VERBOSE("failed to generate qemu blockdev props\n");
+                goto cleanup;
+            }
+        } else if (data->fail) {
+            VIR_TEST_VERBOSE("qemu blockdev props should have failed\n");
+            goto cleanup;
+        }
+
+        if (VIR_APPEND_ELEMENT(data->props, data->nprops, formatProps) < 0 ||
+            VIR_APPEND_ELEMENT(data->props, data->nprops, storageProps) < 0)
+            goto cleanup;
+    }
+
+    ret = 0;
+
+ cleanup:
+    virJSONValueFree(formatProps);
+    virJSONValueFree(storageProps);
+    virDomainDiskDefFree(disk);
+    VIR_FREE(xmlpath);
+    VIR_FREE(xmlstr);
+    return ret;
+}
+
+
+static int
+testQemuDiskXMLToPropsValidateSchema(const void *opaque)
+{
+    struct testQemuDiskXMLToJSONData *data = (void *) opaque;
+    virBuffer debug = VIR_BUFFER_INITIALIZER;
+    char *propsstr = NULL;
+    char *debugmsg = NULL;
+    int ret = 0;
+    size_t i;
+
+    if (data->fail)
+        return EXIT_AM_SKIP;
+
+    for (i = 0; i < data->nprops; i++) {
+        if (testQEMUSchemaValidate(data->props[i], data->schemaroot,
+                                   data->schema, &debug) < 0) {
+            debugmsg = virBufferContentAndReset(&debug);
+            propsstr = virJSONValueToString(data->props[i], true);
+            VIR_TEST_VERBOSE("json does not conform to QAPI schema");
+            VIR_TEST_DEBUG("json:\n%s\ndoes not match schema. Debug output:\n %s",
+                           propsstr, NULLSTR(debugmsg));
+            VIR_FREE(debugmsg);
+            VIR_FREE(propsstr);
+            ret = -1;
+        }
+
+        virBufferFreeAndReset(&debug);
+    }
+    return ret;
+}
+
+
+static int
+testQemuDiskXMLToPropsValidateFile(const void *opaque)
+{
+    struct testQemuDiskXMLToJSONData *data = (void *) opaque;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    char *jsonpath = NULL;
+    char *actual = NULL;
+    int ret = -1;
+    size_t i;
+
+    if (data->fail)
+        return EXIT_AM_SKIP;
+
+    if (virAsprintf(&jsonpath, "%s%s.json",
+                    testQemuDiskXMLToJSONPath, data->name) < 0)
+        goto cleanup;
+
+    for (i = 0; i < data->nprops; i++) {
+        char *jsonstr;
+
+        if (!(jsonstr = virJSONValueToString(data->props[i], true)))
+            goto cleanup;
+
+        virBufferAdd(&buf, jsonstr, -1);
+        VIR_FREE(jsonstr);
+    }
+
+    if (virBufferCheckError(&buf) < 0)
+        goto cleanup;
+
+    actual = virBufferContentAndReset(&buf);
+
+    ret = virTestCompareToFile(actual, jsonpath);
+
+ cleanup:
+    VIR_FREE(jsonpath);
+    VIR_FREE(actual);
+    return ret;
+}
+
+
 static int
 mymain(void)
 {
     int ret = 0;
-    struct testBackingXMLjsonXMLdata data;
+    virQEMUDriver driver;
+    struct testBackingXMLjsonXMLdata xmljsonxmldata;
+    struct testQemuDiskXMLToJSONData diskxmljsondata;
+    char *capslatest_x86_64 = NULL;
+    virQEMUCapsPtr caps_x86_64 = NULL;
+
+    if (qemuTestDriverInit(&driver) < 0)
+        return EXIT_FAILURE;
+
+    diskxmljsondata.driver = &driver;
+
+    if (!(capslatest_x86_64 = testQemuGetLatestCapsForArch(abs_srcdir "/qemucapabilitiesdata",
+                                                           "x86_64", "xml")))
+        return EXIT_FAILURE;
+
+    VIR_TEST_VERBOSE("\nlatest caps x86_64: %s\n", capslatest_x86_64);
+
+    if (!(caps_x86_64 = qemuTestParseCapabilitiesArch(virArchFromString("x86_64"),
+                                                      capslatest_x86_64)))
+        return EXIT_FAILURE;
+
+    diskxmljsondata.qemuCaps = caps_x86_64;
 
     virTestCounterReset("qemu storage source xml->json->xml ");
 
 #define TEST_JSON_FORMAT(tpe, xmlstr) \
     do { \
-        data.type = tpe; \
-        data.xml = xmlstr; \
-        if (virTestRun(virTestCounterNext(), testBackingXMLjsonXML, &data) < 0) \
+        xmljsonxmldata.type = tpe; \
+        xmljsonxmldata.xml = xmlstr; \
+        if (virTestRun(virTestCounterNext(), testBackingXMLjsonXML, \
+                       &xmljsonxmldata) < 0) \
             ret = -1; \
     } while (0)
 
@@ -181,6 +416,86 @@ mymain(void)
     TEST_JSON_FORMAT_NET("<source protocol='vxhs' name='c6718f6b-0401-441d-a8c3-1f0064d75ee0'>\n"
                          "  <host name='example.com' port='9999'/>\n"
                          "</source>\n");
+
+#define TEST_DISK_TO_JSON_FULL(nme, fl) \
+    do { \
+        diskxmljsondata.name = nme; \
+        diskxmljsondata.props = NULL; \
+        diskxmljsondata.nprops = 0; \
+        diskxmljsondata.fail = fl; \
+        if (virTestRun("disk xml to props " nme, testQemuDiskXMLToProps, \
+                       &diskxmljsondata) < 0) \
+            ret = -1; \
+        if (virTestRun("disk xml to props validate schema " nme, \
+                       testQemuDiskXMLToPropsValidateSchema, &diskxmljsondata) < 0) \
+            ret = -1; \
+        if (virTestRun("disk xml to props validate file " nme, \
+                       testQemuDiskXMLToPropsValidateFile,  &diskxmljsondata) < 0) \
+            ret = -1; \
+        testQemuDiskXMLToPropsClear(&diskxmljsondata); \
+    } while (0)
+
+#define TEST_DISK_TO_JSON(nme) TEST_DISK_TO_JSON_FULL(nme, false)
+
+    if (!(diskxmljsondata.schema = testQEMUSchemaLoad())) {
+        ret = -1;
+        goto cleanup;
+    }
+
+    if (virQEMUQAPISchemaPathGet("blockdev-add/arg-type",
+                                 diskxmljsondata.schema,
+                                 &diskxmljsondata.schemaroot) < 0 ||
+        !diskxmljsondata.schemaroot) {
+        VIR_TEST_VERBOSE("failed to find schema entry for blockdev-add\n");
+        ret = -1;
+        goto cleanup;
+    }
+
+    TEST_DISK_TO_JSON_FULL("nodename-long-format", true);
+    TEST_DISK_TO_JSON_FULL("nodename-long-protocol", true);
+
+    TEST_DISK_TO_JSON("file-raw-noopts");
+    TEST_DISK_TO_JSON("file-bochs-noopts");
+    TEST_DISK_TO_JSON("file-cloop-noopts");
+    TEST_DISK_TO_JSON("file-dmg-noopts");
+    TEST_DISK_TO_JSON("file-ploop-noopts");
+    TEST_DISK_TO_JSON("file-vdi-noopts");
+    TEST_DISK_TO_JSON("file-vhd-noopts");
+    TEST_DISK_TO_JSON("file-vpc-noopts");
+
+    TEST_DISK_TO_JSON("file-backing_basic-noopts");
+    TEST_DISK_TO_JSON("dir-fat-readonly");
+    TEST_DISK_TO_JSON("dir-fat-floppy");
+    TEST_DISK_TO_JSON("file-raw-aio_native");
+    TEST_DISK_TO_JSON("file-backing_basic-aio_threads");
+    TEST_DISK_TO_JSON("file-raw-luks");
+    TEST_DISK_TO_JSON("file-qcow2-backing-chain-noopts");
+    TEST_DISK_TO_JSON("file-qcow2-backing-chain-unterminated");
+    TEST_DISK_TO_JSON("file-qcow2-backing-chain-encryption");
+    TEST_DISK_TO_JSON("network-qcow2-backing-chain-encryption_auth");
+
+    TEST_DISK_TO_JSON("file-backing_basic-unmap");
+    TEST_DISK_TO_JSON("file-backing_basic-unmap-detect");
+    TEST_DISK_TO_JSON("file-backing_basic-unmap-ignore");
+    TEST_DISK_TO_JSON("file-backing_basic-detect");
+
+    TEST_DISK_TO_JSON("file-backing_basic-cache-none");
+    TEST_DISK_TO_JSON("file-backing_basic-cache-writethrough");
+    TEST_DISK_TO_JSON("file-backing_basic-cache-writeback");
+    TEST_DISK_TO_JSON("file-backing_basic-cache-directsync");
+    TEST_DISK_TO_JSON("file-backing_basic-cache-unsafe");
+    TEST_DISK_TO_JSON("network-qcow2-backing-chain-cache-unsafe");
+    TEST_DISK_TO_JSON("dir-fat-cache");
+    TEST_DISK_TO_JSON("network-nbd-tls");
+
+    TEST_DISK_TO_JSON("block-raw-noopts");
+    TEST_DISK_TO_JSON("block-raw-reservations");
+
+ cleanup:
+    virHashFree(diskxmljsondata.schema);
+    qemuTestDriverFree(&driver);
+    VIR_FREE(capslatest_x86_64);
+    virObjectUnref(caps_x86_64);
 
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

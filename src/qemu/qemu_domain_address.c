@@ -282,6 +282,23 @@ qemuDomainAssignSpaprVIOAddresses(virDomainDefPtr def)
 
 
 static void
+qemuDomainPrimeVfioDeviceAddresses(virDomainDefPtr def,
+                                   virDomainDeviceAddressType type)
+{
+    size_t i;
+
+    for (i = 0; i < def->nhostdevs; i++) {
+        virDomainHostdevSubsysPtr subsys = &def->hostdevs[i]->source.subsys;
+
+        if (virHostdevIsMdevDevice(def->hostdevs[i]) &&
+            subsys->u.mdev.model == VIR_MDEV_MODEL_TYPE_VFIO_CCW &&
+            def->hostdevs[i]->info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
+            def->hostdevs[i]->info->type = type;
+    }
+}
+
+
+static void
 qemuDomainPrimeVirtioDeviceAddresses(virDomainDefPtr def,
                                      virDomainDeviceAddressType type)
 {
@@ -396,7 +413,10 @@ qemuDomainAssignS390Addresses(virDomainDefPtr def,
     virDomainCCWAddressSetPtr addrs = NULL;
 
     if (qemuDomainIsS390CCW(def) &&
-        virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_CCW)) {
+        virQEMUCapsGet(qemuCaps, QEMU_CAPS_CCW)) {
+        if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_VFIO_CCW))
+            qemuDomainPrimeVfioDeviceAddresses(
+                def, VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW);
         qemuDomainPrimeVirtioDeviceAddresses(
             def, VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW);
 
@@ -427,7 +447,7 @@ qemuDomainHasVirtioMMIODevicesCallback(virDomainDefPtr def ATTRIBUTE_UNUSED,
     if (info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_MMIO) {
         /* We can stop iterating as soon as we find the first
          * virtio-mmio device */
-        *((bool *) opaque) = true;
+        *((bool *)opaque) = true;
         return -1;
     }
 
@@ -508,11 +528,11 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
     virDomainPCIConnectFlags pciFlags = (VIR_PCI_CONNECT_TYPE_PCI_DEVICE |
                                          VIR_PCI_CONNECT_HOTPLUGGABLE);
 
-    switch ((virDomainDeviceType) dev->type) {
+    switch ((virDomainDeviceType)dev->type) {
     case VIR_DOMAIN_DEVICE_CONTROLLER: {
         virDomainControllerDefPtr cont = dev->data.controller;
 
-        switch ((virDomainControllerType) cont->type) {
+        switch ((virDomainControllerType)cont->type) {
         case VIR_DOMAIN_CONTROLLER_TYPE_PCI:
             return virDomainPCIControllerModelToConnectType(cont->model);
 
@@ -655,10 +675,10 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
         virPCIDevicePtr pciDev;
         virPCIDeviceAddressPtr hostAddr = &hostdev->source.subsys.u.pci.addr;
 
-        if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS ||
-            (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI &&
-             hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_MDEV &&
-             hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI_HOST)) {
+        if (!virHostdevIsMdevDevice(hostdev) &&
+            (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS ||
+             (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI &&
+              hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI_HOST))) {
             return 0;
         }
 
@@ -786,7 +806,7 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
         break;
 
     case VIR_DOMAIN_DEVICE_VIDEO:
-        switch ((virDomainVideoType) dev->data.video->type) {
+        switch ((virDomainVideoType)dev->data.video->type) {
         case VIR_DOMAIN_VIDEO_TYPE_VIRTIO:
             return virtioFlags;
 
@@ -824,7 +844,7 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
         break;
 
     case VIR_DOMAIN_DEVICE_CHR:
-        switch ((virDomainChrSerialTargetType) dev->data.chr->targetType) {
+        switch ((virDomainChrSerialTargetType)dev->data.chr->targetType) {
         case VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_PCI:
             return pciFlags;
 
@@ -838,6 +858,9 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
             return 0;
         }
         break;
+
+    case VIR_DOMAIN_DEVICE_VSOCK:
+        return virtioFlags;
 
         /* These devices don't ever connect with PCI */
     case VIR_DOMAIN_DEVICE_NVRAM:
@@ -2132,6 +2155,14 @@ qemuDomainAssignDevicePCISlots(virDomainDefPtr def,
         /* Nada - none are PCI based (yet) */
     }
 
+    if (def->vsock &&
+        virDeviceInfoPCIAddressWanted(&def->vsock->info)) {
+
+        if (qemuDomainPCIAddressReserveNextAddr(addrs,
+                                                &def->vsock->info) < 0)
+            goto error;
+    }
+
     return 0;
 
  error:
@@ -2346,7 +2377,7 @@ qemuDomainAssignPCIAddresses(virDomainDefPtr def,
         virDomainControllerDefPtr cont = def->controllers[i];
 
         if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_PCI) {
-            if ((int) cont->idx > max_idx)
+            if ((int)cont->idx > max_idx)
                 max_idx = cont->idx;
         }
     }
@@ -2985,7 +3016,7 @@ qemuDomainEnsureVirtioAddress(bool *releaseAddr,
 
     if (!info->type) {
         if (qemuDomainIsS390CCW(vm->def) &&
-            virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_VIRTIO_CCW))
+            virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_CCW))
             info->type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW;
         else if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_VIRTIO_S390))
             info->type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390;

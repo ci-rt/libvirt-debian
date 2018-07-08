@@ -9,5 +9,6 @@
 #include "nwfilter_conf.h"
 #include "node_device_conf.h"
 #include "interface_conf.h"
+#include "virnwfilterbindingdef.h"
 
 extern int virDomainLxcOpenNamespaceEnsureACL(virConnectPtr conn, virDomainDefPtr domain);

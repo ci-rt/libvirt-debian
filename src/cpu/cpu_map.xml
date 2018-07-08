@@ -298,6 +298,9 @@
     <feature name='spec-ctrl'>
       <cpuid eax_in='0x07' ecx_in='0x00' edx='0x04000000'/>
     </feature>
+    <feature name='ssbd'>
+      <cpuid eax_in='0x07' ecx_in='0x00' edx='0x80000000'/>
+    </feature>
 
     <!-- Processor Extended State Enumeration sub leaf 1 -->
     <feature name='xsaveopt'>
@@ -429,6 +432,9 @@
     <!-- More AMD-specific features -->
     <feature name='ibpb'>
       <cpuid eax_in='0x80000008' ebx='0x00001000'/>
+    </feature>
+    <feature name='virt-ssbd'>
+      <cpuid eax_in='0x80000008' ebx='0x02000000'/>
     </feature>
 
     <!-- models -->
