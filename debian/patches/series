@@ -3,7 +3,6 @@ debian/Debianize-libvirt-guests.patch
 debian/Debianize-systemd-service-files.patch
 debian/Debianize-virtlockd.patch
 debian/Debianize-virtlogd.patch
-patch-qemuMonitorTextGetMigrationStatus-to-intercept.patch
 openpty-Skip-test-if-no-pty-is-available.patch
 Disable-gnulib-s-test-nonplocking-pipe.sh.patch
 Skip-vircgrouptest.patch
