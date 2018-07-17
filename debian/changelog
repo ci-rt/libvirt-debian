@@ -1,10 +1,18 @@
-libvirt (4.5.0-1~1.gbpb2413d) UNRELEASED; urgency=medium
-
-  ** SNAPSHOT build @b2413d9c196f0452da82323dccf4ed61f896f0fd **
+libvirt (4.5.0-1) unstable; urgency=medium
 
   * [c2b3afc] New upstream version 4.5.0
+  * [50aa257] Drop patch-qemuMonitorTextGetMigrationStatus-to-intercept.patch
+    not needed with QEMU since at least stretch.
+  * [7698a4e] Build-dep on libwiretap-dev for the wireshark dissector
+  * [2390909] examples: adjust to libvirtd code move
+  * [64e5530] Bump symbol versions
+  * [a89e652] l-d-s: suggest open-iscsi (Closes: #903262)
+  * [882c646] Install bash completion (Closes: #902450)
+  * [8d79673] apparmor: Fix forgotten comma at EOL
+  * [0a9cb25] Install storage-file drivers
+  * [84269a2] Warn about uninstalled files
 
- -- Guido Günther <agx@sigxcpu.org>  Sun, 08 Jul 2018 12:36:28 +0200
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 17 Jul 2018 09:36:26 +0200
 
 libvirt (4.3.0-1) unstable; urgency=medium
 
