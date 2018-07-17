@@ -12,3 +12,4 @@ usr/lib/libvirt/storage-backend/libvirt_storage_backend_iscsi.so
 usr/lib/libvirt/storage-backend/libvirt_storage_backend_logical.so
 usr/lib/libvirt/storage-backend/libvirt_storage_backend_mpath.so
 usr/lib/libvirt/storage-backend/libvirt_storage_backend_scsi.so
+usr/lib/libvirt/storage-file/libvirt_storage_file_fs.so
