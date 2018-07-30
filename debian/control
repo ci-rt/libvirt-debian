@@ -296,7 +296,7 @@ Depends:
  ${shlibs:Depends},
  libvirt0 (= ${binary:Version}),
 Priority: optional
-Description: nss plugin providing IP add ress resolution for virtual machines
+Description: nss plugin providing IP address resolution for virtual machines
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
  a long term stable C API for different virtualization mechanisms. It currently
