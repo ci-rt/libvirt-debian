@@ -1297,7 +1297,7 @@ testQemuMonitorJSON ## funcName(const void *opaque) \
 { \
     const testQemuMonitorJSONSimpleFuncData *data = opaque; \
     virDomainXMLOptionPtr xmlopt = data->xmlopt; \
-    qemuMonitorTestPtr test = qemuMonitorTestNewSimple(true, xmlopt); \
+    qemuMonitorTestPtr test = qemuMonitorTestNewSchema(xmlopt, data->schema); \
     const char *reply = data->reply; \
     int ret = -1; \
  \
@@ -1674,7 +1674,7 @@ testQemuMonitorJSONqemuMonitorJSONGetBlockInfo(const void *data)
 }
 
 static int
-testQemuMonitorJSONqemuMonitorJSONGetBlockStatsInfo(const void *data)
+testQemuMonitorJSONqemuMonitorJSONGetAllBlockStatsInfo(const void *data)
 {
     virDomainXMLOptionPtr xmlopt = (virDomainXMLOptionPtr)data;
     qemuMonitorTestPtr test = qemuMonitorTestNewSimple(true, xmlopt);
@@ -1772,11 +1772,10 @@ testQemuMonitorJSONqemuMonitorJSONGetBlockStatsInfo(const void *data)
     if (!test)
         return -1;
 
-    /* fill in seven times - we are gonna ask seven times later on */
-    if (qemuMonitorTestAddItem(test, "query-blockstats", reply) < 0 ||
-        qemuMonitorTestAddItem(test, "query-blockstats", reply) < 0 ||
-        qemuMonitorTestAddItem(test, "query-blockstats", reply) < 0 ||
-        qemuMonitorTestAddItem(test, "query-blockstats", reply) < 0)
+    if (!(blockstats = virHashCreate(10, virHashValueFree)))
+        goto cleanup;
+
+    if (qemuMonitorTestAddItem(test, "query-blockstats", reply) < 0)
         goto cleanup;
 
 #define CHECK0FULL(var, value, varformat, valformat) \
@@ -1809,13 +1808,13 @@ testQemuMonitorJSONqemuMonitorJSONGetBlockStatsInfo(const void *data)
     CHECK0FULL(wr_highest_offset, WR_HIGHEST_OFFSET, "%llu", "%llu") \
     CHECK0FULL(wr_highest_offset_valid, WR_HIGHEST_OFFSET_VALID, "%d", "%d")
 
-    if (qemuMonitorGetAllBlockStatsInfo(qemuMonitorTestGetMonitor(test),
-                                        &blockstats, false) < 0)
+    if (qemuMonitorJSONGetAllBlockStatsInfo(qemuMonitorTestGetMonitor(test),
+                                            blockstats, false) < 0)
         goto cleanup;
 
     if (!blockstats) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       "qemuMonitorJSONGetBlockStatsInfo didn't return stats");
+                       "qemuMonitorJSONGetAllBlockStatsInfo didn't return stats");
         goto cleanup;
     }
 
@@ -2839,7 +2838,7 @@ testQAPISchema(const void *opaque)
         ret = 0;
     }
 
-    if (virTestGetDebug() ||
+    if (virTestGetDebug() >= 3 ||
         (ret < 0 && virTestGetVerbose())) {
         char *debugstr = virBufferContentAndReset(&debug);
         fprintf(stderr, "\n%s\n", debugstr);
@@ -2861,9 +2860,15 @@ mymain(void)
     virQEMUDriver driver;
     testQemuMonitorJSONSimpleFuncData simpleFunc;
     struct testQAPISchemaData qapiData;
-    char *metaschema = NULL;
+    virJSONValuePtr metaschema = NULL;
+    char *metaschemastr = NULL;
 
-#if !WITH_YAJL
+#if !WITH_STABLE_ORDERING_JANSSON
+    fputs("libvirt not compiled with recent enough Jansson, skipping this test\n", stderr);
+    return EXIT_AM_SKIP;
+#endif
+
+#if !WITH_JANSSON
     fputs("libvirt not compiled with JSON support, skipping this test\n", stderr);
     return EXIT_AM_SKIP;
 #endif
@@ -2879,7 +2884,6 @@ mymain(void)
         ret = -1;
         goto cleanup;
     }
-    simpleFunc.schema = qapiData.schema;
 
 #define DO_TEST(name) \
     if (virTestRun(# name, testQemuMonitorJSON ## name, driver.xmlopt) < 0) \
@@ -2887,12 +2891,15 @@ mymain(void)
 
 #define DO_TEST_SIMPLE(CMD, FNC, ...) \
     simpleFunc = (testQemuMonitorJSONSimpleFuncData) {.cmd = CMD, .func = FNC, \
-                                       .xmlopt = driver.xmlopt, __VA_ARGS__ }; \
+                                       .xmlopt = driver.xmlopt, \
+                                       .schema = qapiData.schema, \
+                                       __VA_ARGS__ }; \
     if (virTestRun(# FNC, testQemuMonitorJSONSimpleFunc, &simpleFunc) < 0) \
         ret = -1
 
 #define DO_TEST_GEN(name, ...) \
     simpleFunc = (testQemuMonitorJSONSimpleFuncData) {.xmlopt = driver.xmlopt, \
+                                                      .schema = qapiData.schema \
                                                      __VA_ARGS__ }; \
     if (virTestRun(# name, testQemuMonitorJSON ## name, &simpleFunc) < 0) \
         ret = -1
@@ -2976,7 +2983,7 @@ mymain(void)
     DO_TEST_GEN(qemuMonitorJSONDetachCharDev);
     DO_TEST(qemuMonitorJSONGetBalloonInfo);
     DO_TEST(qemuMonitorJSONGetBlockInfo);
-    DO_TEST(qemuMonitorJSONGetBlockStatsInfo);
+    DO_TEST(qemuMonitorJSONGetAllBlockStatsInfo);
     DO_TEST(qemuMonitorJSONGetMigrationCacheSize);
     DO_TEST(qemuMonitorJSONGetMigrationStats);
     DO_TEST(qemuMonitorJSONGetChardevInfo);
@@ -3063,20 +3070,22 @@ mymain(void)
     DO_TEST_QAPI_SCHEMA("alternate 2", "blockdev-add/arg-type", false,
                         "{\"driver\":\"qcow2\",\"file\": 1234}");
 
-    if (!(metaschema = virTestLoadFilePath("qemuqapischema.json", NULL))) {
-        VIR_TEST_VERBOSE("failed to load qapi schema\n");
+    if (!(metaschema = testQEMUSchemaGetLatest()) ||
+        !(metaschemastr = virJSONValueToString(metaschema, false))) {
+        VIR_TEST_VERBOSE("failed to load latest qapi schema\n");
         ret = -1;
         goto cleanup;
     }
 
     DO_TEST_QAPI_SCHEMA("schema-meta", "query-qmp-schema/ret-type", true,
-                        metaschema);
+                        metaschemastr);
 
 
 #undef DO_TEST_QAPI_SCHEMA
 
  cleanup:
-    VIR_FREE(metaschema);
+    VIR_FREE(metaschemastr);
+    virJSONValueFree(metaschema);
     virHashFree(qapiData.schema);
     qemuTestDriverFree(&driver);
     return (ret == 0) ? EXIT_SUCCESS : EXIT_FAILURE;

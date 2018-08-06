@@ -36,6 +36,7 @@
 # undef WITH_DEVMAPPER
 # undef WITH_DTRACE_PROBES
 # undef WITH_GNUTLS
+# undef WITH_JANSSON
 # undef WITH_LIBSSH
 # undef WITH_MACVTAP
 # undef WITH_NUMACTL
@@ -43,8 +44,6 @@
 # undef WITH_SSH2
 # undef WITH_SYSTEMD_DAEMON
 # undef WITH_VIRTUALPORT
-# undef WITH_YAJL
-# undef WITH_YAJL2
 #endif
 
 /*

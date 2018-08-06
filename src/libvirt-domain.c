@@ -5732,6 +5732,9 @@ virDomainGetInterfaceParameters(virDomainPtr domain,
  *     Current balloon value (in kb).
  * VIR_DOMAIN_MEMORY_STAT_LAST_UPDATE
  *     Timestamp of the last statistic
+ * VIR_DOMAIN_MEMORY_STAT_DISK_CACHES
+ *     Memory that can be reclaimed without additional I/O, typically disk
+ *     caches (in kb).
  *
  * Returns: The number of stats provided or -1 in case of failure.
  */
@@ -8365,7 +8368,9 @@ virDomainUpdateDeviceFlags(virDomainPtr domain,
  * asynchronous - it returns immediately after sending the detach
  * request to the hypervisor. It's caller's responsibility to
  * wait for VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED event to signal
- * actual device removal.
+ * actual device removal or for
+ * VIR_DOMAIN_EVENT_ID_DEVICE_REMOVAL_FAILED to signal rejected
+ * device removal.
  *
  * Returns 0 in case of success, -1 in case of failure.
  */

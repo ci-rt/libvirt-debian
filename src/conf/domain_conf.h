@@ -382,6 +382,7 @@ typedef struct _virDomainHostdevSubsysMediatedDev virDomainHostdevSubsysMediated
 typedef virDomainHostdevSubsysMediatedDev *virDomainHostdevSubsysMediatedDevPtr;
 struct _virDomainHostdevSubsysMediatedDev {
     int model;                          /* enum virMediatedDeviceModelType */
+    int display; /* virTristateSwitch */
     char uuidstr[VIR_UUID_STRING_BUFLEN];   /* mediated device's uuid string */
 };
 
@@ -1423,6 +1424,7 @@ typedef enum {
     VIR_DOMAIN_VIDEO_TYPE_PARALLELS, /* pseudo device for VNC in containers */
     VIR_DOMAIN_VIDEO_TYPE_VIRTIO,
     VIR_DOMAIN_VIDEO_TYPE_GOP,
+    VIR_DOMAIN_VIDEO_TYPE_NONE,
 
     VIR_DOMAIN_VIDEO_TYPE_LAST
 } virDomainVideoType;
@@ -1453,7 +1455,7 @@ struct _virDomainVideoDriverDef {
 };
 
 struct _virDomainVideoDef {
-    int type;
+    int type;   /* enum virDomainVideoType */
     unsigned int ram;  /* kibibytes (multiples of 1024) */
     unsigned int vram; /* kibibytes (multiples of 1024) */
     unsigned int vram64; /* kibibytes (multiples of 1024) */
@@ -1473,6 +1475,7 @@ typedef enum {
     VIR_DOMAIN_GRAPHICS_TYPE_RDP,
     VIR_DOMAIN_GRAPHICS_TYPE_DESKTOP,
     VIR_DOMAIN_GRAPHICS_TYPE_SPICE,
+    VIR_DOMAIN_GRAPHICS_TYPE_EGL_HEADLESS,
 
     VIR_DOMAIN_GRAPHICS_TYPE_LAST
 } virDomainGraphicsType;
@@ -1771,6 +1774,7 @@ typedef enum {
     VIR_DOMAIN_FEATURE_IOAPIC,
     VIR_DOMAIN_FEATURE_HPT,
     VIR_DOMAIN_FEATURE_VMCOREINFO,
+    VIR_DOMAIN_FEATURE_HTM,
 
     VIR_DOMAIN_FEATURE_LAST
 } virDomainFeature;
@@ -2382,7 +2386,7 @@ struct _virDomainVirtioOptions {
 typedef struct _virDomainDef virDomainDef;
 typedef virDomainDef *virDomainDefPtr;
 struct _virDomainDef {
-    virDomainVirtType virtType;
+    int virtType; /* enum virDomainVirtType */
     int id;
     unsigned char uuid[VIR_UUID_BUFLEN];
 
@@ -2883,6 +2887,7 @@ void virDomainNVRAMDefFree(virDomainNVRAMDefPtr def);
 void virDomainWatchdogDefFree(virDomainWatchdogDefPtr def);
 virDomainVideoDefPtr virDomainVideoDefNew(void);
 void virDomainVideoDefFree(virDomainVideoDefPtr def);
+void virDomainVideoDefClear(virDomainVideoDefPtr def);
 virDomainHostdevDefPtr virDomainHostdevDefNew(void);
 void virDomainHostdevDefClear(virDomainHostdevDefPtr def);
 void virDomainHostdevDefFree(virDomainHostdevDefPtr def);
@@ -2976,24 +2981,21 @@ typedef enum {
     VIR_DOMAIN_DEF_PARSE_DISK_SOURCE     = 1 << 6,
     /* perform RNG schema validation on the passed XML document */
     VIR_DOMAIN_DEF_PARSE_VALIDATE_SCHEMA = 1 << 7,
-    /* don't validate os.type and arch against capabilities. Prevents
-     * VMs from disappearing when qemu is removed and libvirtd is restarted */
-    VIR_DOMAIN_DEF_PARSE_SKIP_OSTYPE_CHECKS = 1 << 8,
     /* allow updates in post parse callback that would break ABI otherwise */
-    VIR_DOMAIN_DEF_PARSE_ABI_UPDATE = 1 << 9,
+    VIR_DOMAIN_DEF_PARSE_ABI_UPDATE = 1 << 8,
     /* skip definition validation checks meant to be executed on define time only */
-    VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE = 1 << 10,
+    VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE = 1 << 9,
     /* skip parsing of security labels */
-    VIR_DOMAIN_DEF_PARSE_SKIP_SECLABEL        = 1 << 11,
+    VIR_DOMAIN_DEF_PARSE_SKIP_SECLABEL        = 1 << 10,
     /* Allows updates in post parse callback for incoming persistent migration
      * that would break ABI otherwise.  This should be used only if it's safe
      * to do such change. */
-    VIR_DOMAIN_DEF_PARSE_ABI_UPDATE_MIGRATION = 1 << 12,
+    VIR_DOMAIN_DEF_PARSE_ABI_UPDATE_MIGRATION = 1 << 11,
     /* Allows to ignore certain failures in the post parse callbacks, which
      * may happen due to missing packages and can be fixed by re-running the
      * post parse callbacks before starting. Failure of the post parse callback
      * is recorded as def->postParseFail */
-    VIR_DOMAIN_DEF_PARSE_ALLOW_POST_PARSE_FAIL = 1 << 13,
+    VIR_DOMAIN_DEF_PARSE_ALLOW_POST_PARSE_FAIL = 1 << 12,
 } virDomainDefParseFlags;
 
 typedef enum {
@@ -3638,5 +3640,8 @@ virDomainDiskGetDetectZeroesMode(virDomainDiskDiscard discard,
 
 bool
 virDomainDefHasManagedPR(const virDomainDef *def);
+
+bool
+virDomainGraphicsDefHasOpenGL(const virDomainDef *def);
 
 #endif /* __DOMAIN_CONF_H */

@@ -395,7 +395,8 @@ void virStorageAuthDefFormat(virBufferPtr buf, virStorageAuthDefPtr authdef);
 void virStoragePRDefFree(virStoragePRDefPtr prd);
 virStoragePRDefPtr virStoragePRDefParseXML(xmlXPathContextPtr ctxt);
 void virStoragePRDefFormat(virBufferPtr buf,
-                           virStoragePRDefPtr prd);
+                           virStoragePRDefPtr prd,
+                           bool migratable);
 bool virStoragePRDefIsEqual(virStoragePRDefPtr a,
                             virStoragePRDefPtr b);
 bool virStoragePRDefIsManaged(virStoragePRDefPtr prd);
@@ -435,6 +436,9 @@ virStorageSourcePtr virStorageSourceNewFromBacking(virStorageSourcePtr parent);
 virStorageSourcePtr virStorageSourceCopy(const virStorageSource *src,
                                          bool backingChain)
     ATTRIBUTE_NONNULL(1);
+bool virStorageSourceIsSameLocation(virStorageSourcePtr a,
+                                    virStorageSourcePtr b)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 int virStorageSourceParseRBDColonString(const char *rbdstr,
                                         virStorageSourcePtr src)

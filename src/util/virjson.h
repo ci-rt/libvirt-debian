@@ -26,6 +26,7 @@
 
 # include "internal.h"
 # include "virbitmap.h"
+# include "viralloc.h"
 
 # include <stdarg.h>
 
@@ -58,7 +59,6 @@ int virJSONValueObjectAddVArgs(virJSONValuePtr obj, va_list args)
 
 
 virJSONValuePtr virJSONValueNewString(const char *data);
-virJSONValuePtr virJSONValueNewStringLen(const char *data, size_t length);
 virJSONValuePtr virJSONValueNewNumberInt(int data);
 virJSONValuePtr virJSONValueNewNumberUint(unsigned int data);
 virJSONValuePtr virJSONValueNewNumberLong(long long data);
@@ -155,5 +155,7 @@ virJSONValuePtr virJSONValueCopy(const virJSONValue *in);
 char *virJSONStringReformat(const char *jsonstr, bool pretty);
 
 virJSONValuePtr virJSONValueObjectDeflatten(virJSONValuePtr json);
+
+VIR_DEFINE_AUTOPTR_FUNC(virJSONValue, virJSONValueFree)
 
 #endif /* __VIR_JSON_H_ */

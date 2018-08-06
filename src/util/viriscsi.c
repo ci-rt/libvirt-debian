@@ -40,6 +40,14 @@
 VIR_LOG_INIT("util.iscsi");
 
 
+static int
+virISCSIScanTargetsInternal(const char *portal,
+                            const char *ifacename,
+                            bool persist,
+                            size_t *ntargetsret,
+                            char ***targetsret);
+
+
 struct virISCSISessionData {
     char *session;
     const char *devpath;
@@ -108,7 +116,6 @@ virISCSIGetSession(const char *devpath,
 
 
 
-#define LINE_SIZE 4096
 #define IQN_FOUND 1
 #define IQN_MISSING 0
 #define IQN_ERROR -1
@@ -117,87 +124,90 @@ static int
 virStorageBackendIQNFound(const char *initiatoriqn,
                           char **ifacename)
 {
-    int ret = IQN_MISSING, fd = -1;
-    char ebuf[64];
-    FILE *fp = NULL;
-    char *line = NULL, *newline = NULL, *iqn = NULL, *token = NULL;
+    int ret = IQN_ERROR;
+    char *outbuf = NULL;
+    char *line = NULL;
+    char *iface = NULL;
+    char *iqn = NULL;
     virCommandPtr cmd = virCommandNewArgList(ISCSIADM,
                                              "--mode", "iface", NULL);
 
-    if (VIR_ALLOC_N(line, LINE_SIZE) != 0) {
-        ret = IQN_ERROR;
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Could not allocate memory for output of '%s'"),
-                       ISCSIADM);
-        goto out;
-    }
+    *ifacename = NULL;
 
-    memset(line, 0, LINE_SIZE);
+    virCommandSetOutputBuffer(cmd, &outbuf);
+    if (virCommandRun(cmd, NULL) < 0)
+        goto cleanup;
 
-    virCommandSetOutputFD(cmd, &fd);
-    if (virCommandRunAsync(cmd, NULL) < 0) {
-        ret = IQN_ERROR;
-        goto out;
-    }
+    /* Example of data we are dealing with:
+     * default tcp,<empty>,<empty>,<empty>,<empty>
+     * iser iser,<empty>,<empty>,<empty>,<empty>
+     * libvirt-iface-253db048 tcp,<empty>,<empty>,<empty>,iqn.2017-03.com.user:client
+     */
 
-    if ((fp = VIR_FDOPEN(fd, "r")) == NULL) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Failed to open stream for file descriptor "
-                         "when reading output from '%s': '%s'"),
-                       ISCSIADM, virStrerror(errno, ebuf, sizeof(ebuf)));
-        ret = IQN_ERROR;
-        goto out;
-    }
+    line = outbuf;
+    while (line && *line) {
+        char *current = line;
+        char *newline;
+        char *next;
+        size_t i;
 
-    while (fgets(line, LINE_SIZE, fp) != NULL) {
-        newline = strrchr(line, '\n');
-        if (newline == NULL) {
-            ret = IQN_ERROR;
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Unexpected line > %d characters "
-                             "when parsing output of '%s'"),
-                           LINE_SIZE, ISCSIADM);
-            goto out;
-        }
+        if (!(newline = strchr(line, '\n')))
+            break;
+
         *newline = '\0';
 
-        iqn = strrchr(line, ',');
-        if (iqn == NULL)
-            continue;
-        iqn++;
+        VIR_FREE(iface);
+        VIR_FREE(iqn);
+
+        /* Find the first space, copy everything up to that point into
+         * iface and move past it to continue processing */
+        if (!(next = strchr(current, ' ')))
+            goto error;
+
+        if (VIR_STRNDUP(iface, current, (next - current)) < 0)
+            goto cleanup;
+
+        current = next + 1;
+
+        /* There are five comma separated fields after iface and we only
+         * care about the last one, so we need to skip four commas and
+         * copy whatever's left into iqn */
+        for (i = 0; i < 4; i++) {
+            if (!(next = strchr(current, ',')))
+                goto error;
+            current = next + 1;
+        }
+
+        if (VIR_STRDUP(iqn, current) < 0)
+            goto cleanup;
 
         if (STREQ(iqn, initiatoriqn)) {
-            token = strchr(line, ' ');
-            if (!token) {
-                ret = IQN_ERROR;
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("Missing space when parsing output "
-                                 "of '%s'"), ISCSIADM);
-                goto out;
-            }
-            if (VIR_STRNDUP(*ifacename, line, token - line) < 0) {
-                ret = IQN_ERROR;
-                goto out;
-            }
+            VIR_STEAL_PTR(*ifacename, iface);
+
             VIR_DEBUG("Found interface '%s' with IQN '%s'", *ifacename, iqn);
-            ret = IQN_FOUND;
             break;
         }
+
+        line = newline + 1;
     }
 
-    if (virCommandWait(cmd, NULL) < 0)
-        ret = IQN_ERROR;
+    ret = *ifacename ? IQN_FOUND : IQN_MISSING;
 
- out:
+ cleanup:
     if (ret == IQN_MISSING)
         VIR_DEBUG("Could not find interface with IQN '%s'", iqn);
 
-    VIR_FREE(line);
-    VIR_FORCE_FCLOSE(fp);
-    VIR_FORCE_CLOSE(fd);
+    VIR_FREE(iqn);
+    VIR_FREE(iface);
+    VIR_FREE(outbuf);
     virCommandFree(cmd);
-
     return ret;
+
+ error:
+    virReportError(VIR_ERR_INTERNAL_ERROR,
+                   _("malformed output of %s: %s"),
+                   ISCSIADM, line);
+    goto cleanup;
 }
 
 
@@ -211,7 +221,7 @@ virStorageBackendCreateIfaceIQN(const char *initiatoriqn,
 
     if (virAsprintf(&temp_ifacename,
                     "libvirt-iface-%08llx",
-                    (unsigned long long)virRandomBits(30)) < 0)
+                    (unsigned long long)virRandomBits(32)) < 0)
         return -1;
 
     VIR_DEBUG("Attempting to create interface '%s' with IQN '%s'",
@@ -306,9 +316,12 @@ virISCSIConnection(const char *portal,
              * iscsiadm doesn't let you send commands to the Interface IQN,
              * unless you've first issued a 'sendtargets' command to the
              * portal. Without the sendtargets all that is received is a
-             * "iscsiadm: No records found"
+             * "iscsiadm: No records found". However, we must ensure that
+             * the command is issued over interface name we invented above
+             * and that targets are made persistent.
              */
-            if (virISCSIScanTargets(portal, NULL, NULL) < 0)
+            if (virISCSIScanTargetsInternal(portal, ifacename,
+                                            true, NULL, NULL) < 0)
                 goto cleanup;
 
             break;
@@ -391,10 +404,12 @@ virISCSIGetTargets(char **const groups,
 }
 
 
-int
-virISCSIScanTargets(const char *portal,
-                    size_t *ntargetsret,
-                    char ***targetsret)
+static int
+virISCSIScanTargetsInternal(const char *portal,
+                            const char *ifacename,
+                            bool persist,
+                            size_t *ntargetsret,
+                            char ***targetsret)
 {
     /**
      *
@@ -417,8 +432,19 @@ virISCSIScanTargets(const char *portal,
                                              "--mode", "discovery",
                                              "--type", "sendtargets",
                                              "--portal", portal,
-                                             "--op", "nonpersistent",
                                              NULL);
+
+    if (!persist) {
+        virCommandAddArgList(cmd,
+                             "--op", "nonpersistent",
+                             NULL);
+    }
+
+    if (ifacename) {
+        virCommandAddArgList(cmd,
+                             "--interface", ifacename,
+                             NULL);
+    }
 
     memset(&list, 0, sizeof(list));
 
@@ -444,6 +470,64 @@ virISCSIScanTargets(const char *portal,
     virCommandFree(cmd);
     return ret;
 }
+
+
+/**
+ * virISCSIScanTargets:
+ * @portal: iSCSI portal
+ * @initiatoriqn: Initiator IQN
+ * @persists: whether scanned targets should be saved
+ * @ntargets: number of items in @targetsret array
+ * @targets: array of targets
+ *
+ * For given @portal issue sendtargets command. Optionally,
+ * @initiatoriqn can be set to override default configuration.
+ * The targets are stored into @targets array and the size of
+ * the array is stored into @ntargets.
+ *
+ * If @persist is true, then targets returned by iSCSI portal are
+ * made persistent on the host (their config is saved).
+ *
+ * Returns: 0 on success,
+ *         -1 otherwise (with error reported)
+ */
+int
+virISCSIScanTargets(const char *portal,
+                    const char *initiatoriqn,
+                    bool persist,
+                    size_t *ntargets,
+                    char ***targets)
+{
+    char *ifacename = NULL;
+    int ret = -1;
+
+    if (ntargets)
+        *ntargets = 0;
+    if (targets)
+        *targets = NULL;
+
+    if (initiatoriqn) {
+        switch ((virStorageBackendIQNFound(initiatoriqn, &ifacename))) {
+        case IQN_FOUND:
+            break;
+
+        case IQN_MISSING:
+            virReportError(VIR_ERR_OPERATION_FAILED,
+                           _("no iSCSI interface defined for IQN %s"),
+                           initiatoriqn);
+            ATTRIBUTE_FALLTHROUGH;
+        case IQN_ERROR:
+        default:
+            return -1;
+        }
+    }
+
+    ret = virISCSIScanTargetsInternal(portal, ifacename,
+                                      persist, ntargets, targets);
+    VIR_FREE(ifacename);
+    return ret;
+}
+
 
 /*
  * virISCSINodeNew:

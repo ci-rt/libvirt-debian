@@ -514,8 +514,7 @@ static int virLXCProcessSetupNamespaces(virConnectPtr conn,
  * virLXCProcessSetupInterfaces:
  * @conn: pointer to connection
  * @def: pointer to virtual machine structure
- * @nveths: number of interfaces
- * @veths: interface names
+ * @veths: string list of interface names
  *
  * Sets up the container interfaces by creating the veth device pairs and
  * attaching the parent end to the appropriate bridge.  The container end
@@ -525,7 +524,6 @@ static int virLXCProcessSetupNamespaces(virConnectPtr conn,
  */
 static int virLXCProcessSetupInterfaces(virConnectPtr conn,
                                         virDomainDefPtr def,
-                                        size_t *nveths,
                                         char ***veths)
 {
     int ret = -1;
@@ -533,6 +531,9 @@ static int virLXCProcessSetupInterfaces(virConnectPtr conn,
     size_t niface = 0;
     virDomainNetDefPtr net;
     virDomainNetType type;
+
+    if (VIR_ALLOC_N(*veths, def->nnets + 1) < 0)
+        return -1;
 
     for (i = 0; i < def->nnets; i++) {
         char *veth = NULL;
@@ -544,12 +545,9 @@ static int virLXCProcessSetupInterfaces(virConnectPtr conn,
         net = def->nets[i];
 
         if (virLXCProcessValidateInterface(net) < 0)
-            return -1;
-
-        if (virDomainNetAllocateActualDevice(def, net) < 0)
             goto cleanup;
 
-        if (VIR_EXPAND_N(*veths, *nveths, 1) < 0)
+        if (virDomainNetAllocateActualDevice(def, net) < 0)
             goto cleanup;
 
         type = virDomainNetGetActualType(net);
@@ -604,7 +602,7 @@ static int virLXCProcessSetupInterfaces(virConnectPtr conn,
             }
         }
 
-        (*veths)[(*nveths)-1] = veth;
+        (*veths)[i] = veth;
 
         if (VIR_STRDUP(def->nets[i]->ifname_guest_actual, veth) < 0)
             goto cleanup;
@@ -612,7 +610,7 @@ static int virLXCProcessSetupInterfaces(virConnectPtr conn,
         /* Make sure all net definitions will have a name in the container */
         if (!net->ifname_guest) {
             if (virAsprintf(&net->ifname_guest, "eth%zu", niface) < 0)
-                return -1;
+                goto cleanup;
             niface++;
         }
     }
@@ -902,7 +900,6 @@ int virLXCProcessStop(virLXCDriverPtr driver,
 static virCommandPtr
 virLXCProcessBuildControllerCmd(virLXCDriverPtr driver,
                                 virDomainObjPtr vm,
-                                int nveths,
                                 char **veths,
                                 int *ttyFDs,
                                 size_t nttyFDs,
@@ -931,7 +928,7 @@ virLXCProcessBuildControllerCmd(virLXCDriverPtr driver,
         filterstr = virLogGetFilters();
         if (!filterstr) {
             virReportOOMError();
-            goto cleanup;
+            goto error;
         }
 
         virCommandAddEnvPair(cmd, "LIBVIRT_LOG_FILTERS", filterstr);
@@ -943,7 +940,7 @@ virLXCProcessBuildControllerCmd(virLXCDriverPtr driver,
             outputstr = virLogGetOutputs();
             if (!outputstr) {
                 virReportOOMError();
-                goto cleanup;
+                goto error;
             }
 
             virCommandAddEnvPair(cmd, "LIBVIRT_LOG_OUTPUTS", outputstr);
@@ -973,7 +970,7 @@ virLXCProcessBuildControllerCmd(virLXCDriverPtr driver,
             char *tmp = NULL;
             if (virAsprintf(&tmp, "--share-%s",
                             nsInfoLocal[i]) < 0)
-                goto cleanup;
+                goto error;
             virCommandAddArg(cmd, tmp);
             virCommandAddArgFormat(cmd, "%d", nsInheritFDs[i]);
             virCommandPassFD(cmd, nsInheritFDs[i], 0);
@@ -987,7 +984,7 @@ virLXCProcessBuildControllerCmd(virLXCDriverPtr driver,
     virCommandAddArg(cmd, "--handshake");
     virCommandAddArgFormat(cmd, "%d", handshakefd);
 
-    for (i = 0; i < nveths; i++)
+    for (i = 0; veths && veths[i]; i++)
         virCommandAddArgList(cmd, "--veth", veths[i], NULL);
 
     virCommandPassFD(cmd, handshakefd, 0);
@@ -999,11 +996,13 @@ virLXCProcessBuildControllerCmd(virLXCDriverPtr driver,
      * write the live domain status XML with the PID */
     virCommandRequireHandshake(cmd);
 
-    return cmd;
  cleanup:
-    virCommandFree(cmd);
     virObjectUnref(cfg);
-    return NULL;
+    return cmd;
+ error:
+    virCommandFree(cmd);
+    cmd = NULL;
+    goto cleanup;
 }
 
 
@@ -1182,8 +1181,7 @@ int virLXCProcessStart(virConnectPtr conn,
     size_t i;
     char *logfile = NULL;
     int logfd = -1;
-    size_t nveths = 0;
-    char **veths = NULL;
+    VIR_AUTOPTR(virString) veths = NULL;
     int handshakefds[2] = { -1, -1 };
     off_t pos = -1;
     char ebuf[1024];
@@ -1353,7 +1351,7 @@ int virLXCProcessStart(virConnectPtr conn,
     }
 
     VIR_DEBUG("Setting up Interfaces");
-    if (virLXCProcessSetupInterfaces(conn, vm->def, &nveths, &veths) < 0)
+    if (virLXCProcessSetupInterfaces(conn, vm->def, &veths) < 0)
         goto cleanup;
 
     VIR_DEBUG("Setting up namespaces if any");
@@ -1377,7 +1375,7 @@ int virLXCProcessStart(virConnectPtr conn,
 
     if (!(cmd = virLXCProcessBuildControllerCmd(driver,
                                                 vm,
-                                                nveths, veths,
+                                                veths,
                                                 ttyFDs, nttyFDs,
                                                 nsInheritFDs,
                                                 files, nfiles,
@@ -1557,8 +1555,6 @@ int virLXCProcessStart(virConnectPtr conn,
         virLXCProcessStop(driver, vm, VIR_DOMAIN_SHUTOFF_FAILED);
     }
     virCommandFree(cmd);
-    for (i = 0; i < nveths; i++)
-        VIR_FREE(veths[i]);
     for (i = 0; i < nttyFDs; i++)
         VIR_FORCE_CLOSE(ttyFDs[i]);
     VIR_FREE(ttyFDs);

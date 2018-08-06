@@ -268,6 +268,10 @@ testQemuHotplug(const void *data)
 
     if (test->vm) {
         vm = test->vm;
+        if (!vm->def) {
+            VIR_TEST_VERBOSE("test skipped due to failure of dependent test\n");
+            goto cleanup;
+        }
     } else {
         if (qemuHotplugCreateObjects(driver.xmlopt, &vm, domain_xml,
                                      test->deviceDeletedEvent) < 0)
@@ -589,7 +593,12 @@ mymain(void)
     struct qemuHotplugTestData data = {0};
     struct testQemuHotplugCpuParams cpudata;
 
-#if !WITH_YAJL
+#if !WITH_STABLE_ORDERING_JANSSON
+    fputs("libvirt not compiled with recent enough Jansson, skipping this test\n", stderr);
+    return EXIT_AM_SKIP;
+#endif
+
+#if !WITH_JANSSON
     fputs("libvirt not compiled with JSON support, skipping this test\n", stderr);
     return EXIT_AM_SKIP;
 #endif

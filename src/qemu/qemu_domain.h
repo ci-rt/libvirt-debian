@@ -477,6 +477,7 @@ typedef enum {
     QEMU_PROCESS_EVENT_SERIAL_CHANGED,
     QEMU_PROCESS_EVENT_BLOCK_JOB,
     QEMU_PROCESS_EVENT_MONITOR_EOF,
+    QEMU_PROCESS_EVENT_PR_DISCONNECT,
 
     QEMU_PROCESS_EVENT_LAST
 } qemuProcessEventType;
@@ -717,11 +718,7 @@ int qemuDomainCheckDiskPresence(virQEMUDriverPtr driver,
 int qemuDomainDetermineDiskChain(virQEMUDriverPtr driver,
                                  virDomainObjPtr vm,
                                  virDomainDiskDefPtr disk,
-                                 bool force_probe,
                                  bool report_broken);
-
-bool qemuDomainDiskSourceDiffers(virDomainDiskDefPtr disk,
-                                 virDomainDiskDefPtr origDisk);
 
 bool qemuDomainDiskChangeSupported(virDomainDiskDefPtr disk,
                                    virDomainDiskDefPtr orig_disk);
@@ -731,6 +728,12 @@ int qemuDomainStorageFileInit(virQEMUDriverPtr driver,
                               virStorageSourcePtr src,
                               virStorageSourcePtr parent);
 char *qemuDomainStorageAlias(const char *device, int depth);
+
+int qemuDomainDiskGetBackendAlias(virDomainDiskDefPtr disk,
+                                  virQEMUCapsPtr qemuCaps,
+                                  char **backendAlias)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2)
+    ATTRIBUTE_NONNULL(3) ATTRIBUTE_RETURN_CHECK;
 
 void qemuDomainDiskChainElementRevoke(virQEMUDriverPtr driver,
                                       virDomainObjPtr vm,

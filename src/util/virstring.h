@@ -25,6 +25,9 @@
 # include <stdarg.h>
 
 # include "internal.h"
+# include "viralloc.h"
+
+typedef char *virString;
 
 char **virStringSplitCount(const char *string,
                            const char *delim,
@@ -41,8 +44,8 @@ char *virStringListJoin(const char **strings,
                         const char *delim)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
-char **virStringListAdd(const char **strings,
-                        const char *item);
+int virStringListAdd(char ***strings,
+                     const char *item);
 void virStringListRemove(char ***strings,
                          const char *item);
 
@@ -61,8 +64,6 @@ bool virStringListHasString(const char **strings,
 char *virStringListGetFirstWithPrefix(char **strings,
                                       const char *prefix)
     ATTRIBUTE_NONNULL(2);
-
-char *virArgvToString(const char *const *argv);
 
 int virStrToLong_i(char const *s,
                    char **end_ptr,
@@ -126,9 +127,9 @@ void virSkipSpacesBackwards(const char *str, char **endp)
 
 bool virStringIsEmpty(const char *str);
 
-char *virStrncpy(char *dest, const char *src, size_t n, size_t destbytes)
+int virStrncpy(char *dest, const char *src, size_t n, size_t destbytes)
     ATTRIBUTE_RETURN_CHECK;
-char *virStrcpy(char *dest, const char *src, size_t destbytes)
+int virStrcpy(char *dest, const char *src, size_t destbytes)
     ATTRIBUTE_RETURN_CHECK;
 # define virStrcpyStatic(dest, src) virStrcpy((dest), (src), sizeof(dest))
 
@@ -308,5 +309,7 @@ void virStringTrimOptionalNewline(char *str);
 int virStringParsePort(const char *str,
                        unsigned int *port)
     ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
+
+VIR_DEFINE_AUTOPTR_FUNC(virString, virStringListFree)
 
 #endif /* __VIR_STRING_H__ */

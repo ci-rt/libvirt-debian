@@ -19,8 +19,10 @@
 #include <config.h>
 
 #include "qemu_block.h"
+#include "qemu_command.h"
 #include "qemu_domain.h"
 #include "qemu_alias.h"
+#include "qemu_monitor_json.h"
 
 #include "viralloc.h"
 #include "virstring.h"
@@ -356,7 +358,7 @@ qemuBlockNodeNamesDetect(virQEMUDriverPtr driver,
         return -1;
 
     data = qemuMonitorQueryNamedBlockNodes(qemuDomainGetMonitor(vm));
-    blockstats = qemuMonitorQueryBlockstats(qemuDomainGetMonitor(vm));
+    blockstats = qemuMonitorQueryBlockstats(qemuDomainGetMonitor(vm), false);
 
     if (qemuDomainObjExitMonitor(driver, vm) < 0 || !data || !blockstats)
         goto cleanup;
@@ -906,13 +908,33 @@ qemuBlockStorageSourceGetRBDProps(virStorageSourcePtr src)
     virJSONValuePtr servers = NULL;
     virJSONValuePtr ret = NULL;
     const char *username = NULL;
+    virJSONValuePtr authmodes = NULL;
+    virJSONValuePtr mode = NULL;
+    const char *keysecret = NULL;
 
     if (src->nhosts > 0 &&
         !(servers = qemuBlockStorageSourceBuildHostsJSONInetSocketAddress(src)))
         return NULL;
 
-    if (src->auth)
+    if (src->auth) {
         username = srcPriv->secinfo->s.aes.username;
+        keysecret = srcPriv->secinfo->s.aes.alias;
+        /* the auth modes are modelled after our old command line generator */
+        if (!(authmodes = virJSONValueNewArray()))
+            goto cleanup;
+
+        if (!(mode = virJSONValueNewString("cephx")) ||
+            virJSONValueArrayAppend(authmodes, mode) < 0)
+            goto cleanup;
+
+        mode = NULL;
+
+        if (!(mode = virJSONValueNewString("none")) ||
+            virJSONValueArrayAppend(authmodes, mode) < 0)
+            goto cleanup;
+
+        mode = NULL;
+    }
 
     if (virJSONValueObjectCreate(&ret,
                                  "s:driver", "rbd",
@@ -922,10 +944,14 @@ qemuBlockStorageSourceGetRBDProps(virStorageSourcePtr src)
                                  "S:conf", src->configFile,
                                  "A:server", &servers,
                                  "S:user", username,
+                                 "A:auth-client-required", &authmodes,
+                                 "S:key-secret", keysecret,
                                  NULL) < 0)
         goto cleanup;
 
  cleanup:
+    virJSONValueFree(authmodes);
+    virJSONValueFree(mode);
     virJSONValueFree(servers);
     return ret;
 }
@@ -1681,5 +1707,39 @@ qemuBlockStorageSourceDetachOneBlockdev(virQEMUDriverPtr driver,
     if (qemuDomainObjExitMonitor(driver, vm) < 0)
         return -1;
 
+    return ret;
+}
+
+
+int
+qemuBlockSnapshotAddLegacy(virJSONValuePtr actions,
+                           virDomainDiskDefPtr disk,
+                           virStorageSourcePtr newsrc,
+                           bool reuse)
+{
+    const char *format = virStorageFileFormatTypeToString(newsrc->format);
+    char *device = NULL;
+    char *source = NULL;
+    int ret = -1;
+
+    if (!(device = qemuAliasDiskDriveFromDisk(disk)))
+        goto cleanup;
+
+    if (qemuGetDriveSourceString(newsrc, NULL, &source) < 0)
+        goto cleanup;
+
+    if (qemuMonitorJSONTransactionAdd(actions, "blockdev-snapshot-sync",
+                                      "s:device", device,
+                                      "s:snapshot-file", source,
+                                      "s:format", format,
+                                      "S:mode", reuse ? "existing" : NULL,
+                                      NULL) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(device);
+    VIR_FREE(source);
     return ret;
 }

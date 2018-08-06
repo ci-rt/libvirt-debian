@@ -205,7 +205,7 @@ static char *lxcConnectGetCapabilities(virConnectPtr conn) {
     if (virConnectGetCapabilitiesEnsureACL(conn) < 0)
         return NULL;
 
-    if (!(caps = virLXCDriverGetCapabilities(driver, false)))
+    if (!(caps = virLXCDriverGetCapabilities(driver, true)))
         return NULL;
 
     xml = virCapabilitiesFormatXML(caps);
@@ -1334,8 +1334,8 @@ static int lxcNodeGetSecurityModel(virConnectPtr conn,
         || caps->host.secModels[0].model == NULL)
         goto cleanup;
 
-    if (!virStrcpy(secmodel->model, caps->host.secModels[0].model,
-                   VIR_SECURITY_MODEL_BUFLEN)) {
+    if (virStrcpy(secmodel->model, caps->host.secModels[0].model,
+                  VIR_SECURITY_MODEL_BUFLEN) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("security model string exceeds max %d bytes"),
                        VIR_SECURITY_MODEL_BUFLEN - 1);
@@ -1343,8 +1343,8 @@ static int lxcNodeGetSecurityModel(virConnectPtr conn,
         goto cleanup;
     }
 
-    if (!virStrcpy(secmodel->doi, caps->host.secModels[0].doi,
-                   VIR_SECURITY_DOI_BUFLEN)) {
+    if (virStrcpy(secmodel->doi, caps->host.secModels[0].doi,
+                  VIR_SECURITY_DOI_BUFLEN) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("security DOI string exceeds max %d bytes"),
                        VIR_SECURITY_DOI_BUFLEN-1);
@@ -1550,18 +1550,7 @@ static int lxcStateInitialize(bool privileged,
                               void *opaque ATTRIBUTE_UNUSED)
 {
     virCapsPtr caps = NULL;
-    const char *ld;
     virLXCDriverConfigPtr cfg = NULL;
-
-    /* Valgrind gets very annoyed when we clone containers, so
-     * disable LXC when under valgrind
-     * XXX remove this when valgrind is fixed
-     */
-    ld = virGetEnvBlockSUID("LD_PRELOAD");
-    if (ld && strstr(ld, "vgpreload")) {
-        VIR_INFO("Running under valgrind, disabling driver");
-        return 0;
-    }
 
     /* Check that the user is root, silently disable if not */
     if (!privileged) {
@@ -4827,13 +4816,12 @@ static int lxcDomainUpdateDeviceFlags(virDomainPtr dom,
     virCapsPtr caps = NULL;
     virDomainObjPtr vm = NULL;
     virDomainDefPtr vmdef = NULL;
-    virDomainDeviceDefPtr dev = NULL, dev_copy = NULL;
+    virDomainDeviceDefPtr dev = NULL;
     int ret = -1;
     virLXCDriverConfigPtr cfg = virLXCDriverGetConfig(driver);
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
-                  VIR_DOMAIN_AFFECT_CONFIG |
-                  VIR_DOMAIN_DEVICE_MODIFY_FORCE, -1);
+                  VIR_DOMAIN_AFFECT_CONFIG, -1);
 
     if (!(vm = lxcDomObjFromDomain(dom)))
         goto cleanup;
@@ -4847,61 +4835,40 @@ static int lxcDomainUpdateDeviceFlags(virDomainPtr dom,
     if (virDomainObjUpdateModificationImpact(vm, &flags) < 0)
         goto endjob;
 
-    if (!(caps = virLXCDriverGetCapabilities(driver, false)))
-        goto endjob;
-
-    dev = dev_copy = virDomainDeviceDefParse(xml, vm->def,
-                                             caps, driver->xmlopt,
-                                             VIR_DOMAIN_DEF_PARSE_INACTIVE);
-    if (dev == NULL)
-        goto endjob;
-
-    if (flags & VIR_DOMAIN_AFFECT_CONFIG &&
-        flags & VIR_DOMAIN_AFFECT_LIVE) {
-        /* If we are affecting both CONFIG and LIVE
-         * create a deep copy of device as adding
-         * to CONFIG takes one instance.
-         */
-        dev_copy = virDomainDeviceDefCopy(dev, vm->def,
-                                          caps, driver->xmlopt);
-        if (!dev_copy)
-            goto endjob;
-    }
-
-    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
-        /* Make a copy for updated domain. */
-        vmdef = virDomainObjCopyPersistentDef(vm, caps, driver->xmlopt);
-        if (!vmdef)
-            goto endjob;
-
-        /* virDomainDefCompatibleDevice call is delayed until we know the
-         * device we're going to update. */
-        if ((ret = lxcDomainUpdateDeviceConfig(vmdef, dev)) < 0)
-            goto endjob;
-    }
-
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
                        _("Unable to modify live devices"));
-
         goto endjob;
     }
 
-    /* Finally, if no error until here, we can save config. */
-    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
-        ret = virDomainSaveConfig(cfg->configDir, driver->caps, vmdef);
-        if (!ret) {
-            virDomainObjAssignDef(vm, vmdef, false, NULL);
-            vmdef = NULL;
-        }
-    }
+    if (!(caps = virLXCDriverGetCapabilities(driver, false)))
+        goto endjob;
+
+    if (!(dev = virDomainDeviceDefParse(xml, vm->def, caps, driver->xmlopt,
+                                        VIR_DOMAIN_DEF_PARSE_INACTIVE)))
+        goto endjob;
+
+    /* Make a copy for updated domain. */
+    if (!(vmdef = virDomainObjCopyPersistentDef(vm, caps, driver->xmlopt)))
+        goto endjob;
+
+    /* virDomainDefCompatibleDevice call is delayed until we know the
+     * device we're going to update. */
+    if (lxcDomainUpdateDeviceConfig(vmdef, dev) < 0)
+        goto endjob;
+
+    if (virDomainSaveConfig(cfg->configDir, driver->caps, vmdef) < 0)
+        goto endjob;
+
+    virDomainObjAssignDef(vm, vmdef, false, NULL);
+    vmdef = NULL;
+    ret = 0;
+
  endjob:
     virLXCDomainObjEndJob(driver, vm);
 
  cleanup:
     virDomainDefFree(vmdef);
-    if (dev != dev_copy)
-        virDomainDeviceDefFree(dev_copy);
     virDomainDeviceDefFree(dev);
     virDomainObjEndAPI(&vm);
     virObjectUnref(caps);

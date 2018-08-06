@@ -690,7 +690,7 @@ static char *testBuildFilename(const char *relativeTo,
         int totalLen = baseLen + strlen(filename) + 1;
         if (VIR_ALLOC_N(absFile, totalLen) < 0)
             return NULL;
-        if (virStrncpy(absFile, relativeTo, baseLen, totalLen) == NULL) {
+        if (virStrncpy(absFile, relativeTo, baseLen, totalLen) < 0) {
             VIR_FREE(absFile);
             return NULL;
         }
@@ -804,7 +804,7 @@ testParseNodeInfo(virNodeInfoPtr nodeInfo, xmlXPathContextPtr ctxt)
 
     str = virXPathString("string(/node/cpu/model[1])", ctxt);
     if (str != NULL) {
-        if (virStrcpyStatic(nodeInfo->model, str) == NULL) {
+        if (virStrcpyStatic(nodeInfo->model, str) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Model %s too big for destination"), str);
             VIR_FREE(str);
@@ -1165,6 +1165,7 @@ testParseNodedevs(testDriverPtr privconn,
             goto error;
         }
 
+        virNodeDeviceObjSetSkipUpdateCaps(obj, true);
         virNodeDeviceObjEndAPI(&obj);
     }
 
@@ -3828,6 +3829,20 @@ testConnectListDefinedInterfaces(virConnectPtr conn,
 }
 
 
+static int
+testConnectListAllInterfaces(virConnectPtr conn,
+                             virInterfacePtr **ifaces,
+                             unsigned int flags)
+{
+    testDriverPtr privconn = conn->privateData;
+
+    virCheckFlags(VIR_CONNECT_LIST_INTERFACES_FILTERS_ACTIVE, -1);
+
+    return virInterfaceObjListExport(conn, privconn->ifaces, ifaces,
+                                     NULL, flags);
+}
+
+
 static virInterfacePtr
 testInterfaceLookupByName(virConnectPtr conn,
                           const char *name)
@@ -5366,6 +5381,18 @@ testNodeListDevices(virConnectPtr conn,
                                         cap, names, maxnames);
 }
 
+static int
+testConnectListAllNodeDevices(virConnectPtr conn,
+                              virNodeDevicePtr **devices,
+                              unsigned int flags)
+{
+    testDriverPtr driver = conn->privateData;
+
+    virCheckFlags(VIR_CONNECT_LIST_NODE_DEVICES_FILTERS_CAP, -1);
+
+    return virNodeDeviceObjListExport(conn, driver->devs, devices,
+                                      NULL, flags);
+}
 
 static virNodeDevicePtr
 testNodeDeviceLookupByName(virConnectPtr conn, const char *name)
@@ -5549,6 +5576,7 @@ testNodeDeviceMockCreateVport(testDriverPtr driver,
 
     if (!(obj = virNodeDeviceObjListAssignDef(driver->devs, def)))
         goto cleanup;
+    virNodeDeviceObjSetSkipUpdateCaps(obj, true);
     def = NULL;
     objdef = virNodeDeviceObjGetDef(obj);
 
@@ -6944,6 +6972,7 @@ static virInterfaceDriver testInterfaceDriver = {
     .connectListInterfaces = testConnectListInterfaces, /* 0.7.0 */
     .connectNumOfDefinedInterfaces = testConnectNumOfDefinedInterfaces, /* 0.7.0 */
     .connectListDefinedInterfaces = testConnectListDefinedInterfaces, /* 0.7.0 */
+    .connectListAllInterfaces = testConnectListAllInterfaces, /* 4.6.0 */
     .interfaceLookupByName = testInterfaceLookupByName, /* 0.7.0 */
     .interfaceLookupByMACString = testInterfaceLookupByMACString, /* 0.7.0 */
     .interfaceGetXMLDesc = testInterfaceGetXMLDesc, /* 0.7.0 */
@@ -7000,6 +7029,7 @@ static virStorageDriver testStorageDriver = {
 };
 
 static virNodeDeviceDriver testNodeDeviceDriver = {
+    .connectListAllNodeDevices = testConnectListAllNodeDevices, /* 4.1.0 */
     .connectNodeDeviceEventRegisterAny = testConnectNodeDeviceEventRegisterAny, /* 2.2.0 */
     .connectNodeDeviceEventDeregisterAny = testConnectNodeDeviceEventDeregisterAny, /* 2.2.0 */
     .nodeNumOfDevices = testNodeNumOfDevices, /* 0.7.2 */

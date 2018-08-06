@@ -1,3 +1,13 @@
+libvirt (4.6.0-1~1.gbp2c5bc7) UNRELEASED; urgency=medium
+
+  ** SNAPSHOT build @2c5bc728cf38e4c3ac2644f72bbc57d4dec64675 **
+
+  * [afd5e39] d/control: Fix typo in libnss-libvirt's short description.
+    Thanks to Salvatore Bonaccorso (Closes: #904738)
+  * [f2f7871] New upstream version 4.6.0
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 06 Aug 2018 19:54:58 +0200
+
 libvirt (4.5.0-1) unstable; urgency=medium
 
   * [c2b3afc] New upstream version 4.5.0

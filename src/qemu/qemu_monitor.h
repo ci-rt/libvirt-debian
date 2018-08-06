@@ -273,6 +273,12 @@ typedef int (*qemuMonitorDomainDumpCompletedCallback)(qemuMonitorPtr mon,
                                                       const char *error,
                                                       void *opaque);
 
+typedef int (*qemuMonitorDomainPRManagerStatusChangedCallback)(qemuMonitorPtr mon,
+                                                               virDomainObjPtr vm,
+                                                               const char *prManager,
+                                                               bool connected,
+                                                               void *opaque);
+
 typedef struct _qemuMonitorCallbacks qemuMonitorCallbacks;
 typedef qemuMonitorCallbacks *qemuMonitorCallbacksPtr;
 struct _qemuMonitorCallbacks {
@@ -305,6 +311,7 @@ struct _qemuMonitorCallbacks {
     qemuMonitorDomainAcpiOstInfoCallback domainAcpiOstInfo;
     qemuMonitorDomainBlockThresholdCallback domainBlockThreshold;
     qemuMonitorDomainDumpCompletedCallback domainDumpCompleted;
+    qemuMonitorDomainPRManagerStatusChangedCallback domainPRManagerStatusChanged;
 };
 
 char *qemuMonitorEscapeArg(const char *in);
@@ -433,6 +440,10 @@ int qemuMonitorEmitDumpCompleted(qemuMonitorPtr mon,
                                  qemuMonitorDumpStatsPtr stats,
                                  const char *error);
 
+int qemuMonitorEmitPRManagerStatusChanged(qemuMonitorPtr mon,
+                                          const char *prManager,
+                                          bool connected);
+
 int qemuMonitorStartCPUs(qemuMonitorPtr mon);
 int qemuMonitorStopCPUs(qemuMonitorPtr mon);
 
@@ -552,7 +563,8 @@ int qemuMonitorSetMemoryStatsPeriod(qemuMonitorPtr mon,
 int qemuMonitorBlockIOStatusToError(const char *status);
 virHashTablePtr qemuMonitorGetBlockInfo(qemuMonitorPtr mon);
 
-virJSONValuePtr qemuMonitorQueryBlockstats(qemuMonitorPtr mon);
+virJSONValuePtr qemuMonitorQueryBlockstats(qemuMonitorPtr mon,
+                                           bool nodenames);
 
 typedef struct _qemuBlockStats qemuBlockStats;
 typedef qemuBlockStats *qemuBlockStatsPtr;
@@ -812,7 +824,8 @@ int qemuMonitorCreateObjectProps(virJSONValuePtr *propsret,
 
 int qemuMonitorAddObject(qemuMonitorPtr mon,
                          virJSONValuePtr *props,
-                         char **alias);
+                         char **alias)
+    ATTRIBUTE_NONNULL(2);
 
 int qemuMonitorDelObject(qemuMonitorPtr mon,
                          const char *objalias);
@@ -827,12 +840,6 @@ int qemuMonitorCreateSnapshot(qemuMonitorPtr mon, const char *name);
 int qemuMonitorLoadSnapshot(qemuMonitorPtr mon, const char *name);
 int qemuMonitorDeleteSnapshot(qemuMonitorPtr mon, const char *name);
 
-int qemuMonitorDiskSnapshot(qemuMonitorPtr mon,
-                            virJSONValuePtr actions,
-                            const char *device,
-                            const char *file,
-                            const char *format,
-                            bool reuse);
 int qemuMonitorTransaction(qemuMonitorPtr mon, virJSONValuePtr *actions)
     ATTRIBUTE_NONNULL(2);
 int qemuMonitorDriveMirror(qemuMonitorPtr mon,
@@ -1144,5 +1151,14 @@ int qemuMonitorBlockdevDel(qemuMonitorPtr mon,
 
 char *
 qemuMonitorGetSEVMeasurement(qemuMonitorPtr mon);
+
+typedef struct _qemuMonitorPRManagerInfo qemuMonitorPRManagerInfo;
+typedef qemuMonitorPRManagerInfo *qemuMonitorPRManagerInfoPtr;
+struct _qemuMonitorPRManagerInfo {
+    bool connected;
+};
+
+int qemuMonitorGetPRManagerInfo(qemuMonitorPtr mon,
+                                virHashTablePtr *retinfo);
 
 #endif /* QEMU_MONITOR_H */

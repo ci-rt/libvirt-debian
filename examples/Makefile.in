@@ -144,7 +144,6 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/getugroups.m4 $(top_srcdir)/m4/glibc21.m4 \
 	$(top_srcdir)/m4/gnulib-common.m4 \
 	$(top_srcdir)/m4/gnulib-comp.m4 $(top_srcdir)/m4/grantpt.m4 \
-	$(top_srcdir)/m4/hard-locale.m4 \
 	$(top_srcdir)/m4/host-cpu-c-abi.m4 $(top_srcdir)/m4/hostent.m4 \
 	$(top_srcdir)/m4/include_next.m4 $(top_srcdir)/m4/inet_ntop.m4 \
 	$(top_srcdir)/m4/inet_pton.m4 $(top_srcdir)/m4/intlmacosx.m4 \
@@ -275,7 +274,8 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-gnutls.m4 $(top_srcdir)/m4/virt-hal.m4 \
 	$(top_srcdir)/m4/virt-host-validate.m4 \
 	$(top_srcdir)/m4/virt-init-script.m4 \
-	$(top_srcdir)/m4/virt-lib.m4 $(top_srcdir)/m4/virt-libnl.m4 \
+	$(top_srcdir)/m4/virt-jansson.m4 $(top_srcdir)/m4/virt-lib.m4 \
+	$(top_srcdir)/m4/virt-libnl.m4 \
 	$(top_srcdir)/m4/virt-libpcap.m4 \
 	$(top_srcdir)/m4/virt-libssh.m4 \
 	$(top_srcdir)/m4/virt-libxml.m4 \
@@ -1193,6 +1193,7 @@ HAVE_DECL_STRTOUMAX = @HAVE_DECL_STRTOUMAX@
 HAVE_DECL_TANL = @HAVE_DECL_TANL@
 HAVE_DECL_TCGETSID = @HAVE_DECL_TCGETSID@
 HAVE_DECL_TRUNC = @HAVE_DECL_TRUNC@
+HAVE_DECL_TRUNCATE = @HAVE_DECL_TRUNCATE@
 HAVE_DECL_TRUNCF = @HAVE_DECL_TRUNCF@
 HAVE_DECL_TRUNCL = @HAVE_DECL_TRUNCL@
 HAVE_DECL_TTYNAME_R = @HAVE_DECL_TTYNAME_R@
@@ -1250,6 +1251,7 @@ HAVE_HYPOTL = @HAVE_HYPOTL@
 HAVE_ILOGB = @HAVE_ILOGB@
 HAVE_ILOGBF = @HAVE_ILOGBF@
 HAVE_ILOGBL = @HAVE_ILOGBL@
+HAVE_IMAXDIV_T = @HAVE_IMAXDIV_T@
 HAVE_INTTYPES_H = @HAVE_INTTYPES_H@
 HAVE_ISBLANK = @HAVE_ISBLANK@
 HAVE_ISNAND = @HAVE_ISNAND@
@@ -1410,7 +1412,6 @@ HAVE_TANL = @HAVE_TANL@
 HAVE_TERMIOS_H = @HAVE_TERMIOS_H@
 HAVE_TIMEGM = @HAVE_TIMEGM@
 HAVE_TIMEZONE_T = @HAVE_TIMEZONE_T@
-HAVE_TRUNCATE = @HAVE_TRUNCATE@
 HAVE_TYPE_VOLATILE_SIG_ATOMIC_T = @HAVE_TYPE_VOLATILE_SIG_ATOMIC_T@
 HAVE_TZSET = @HAVE_TZSET@
 HAVE_UNAME = @HAVE_UNAME@
@@ -1487,6 +1488,8 @@ IP6TABLES_PATH = @IP6TABLES_PATH@
 IPTABLES_PATH = @IPTABLES_PATH@
 IP_PATH = @IP_PATH@
 ISCSIADM = @ISCSIADM@
+JANSSON_CFLAGS = @JANSSON_CFLAGS@
+JANSSON_LIBS = @JANSSON_LIBS@
 LD = @LD@
 LDEXP_LIBM = @LDEXP_LIBM@
 LDFLAGS = @LDFLAGS@
@@ -1703,7 +1706,6 @@ PVCREATE = @PVCREATE@
 PVREMOVE = @PVREMOVE@
 PVS = @PVS@
 PYTHON = @PYTHON@
-QEMU = @QEMU@
 QEMU_BRIDGE_HELPER = @QEMU_BRIDGE_HELPER@
 QEMU_PR_HELPER = @QEMU_PR_HELPER@
 RADVD = @RADVD@
@@ -1967,6 +1969,8 @@ SIG_ATOMIC_T_SUFFIX = @SIG_ATOMIC_T_SUFFIX@
 SIZE_T_SUFFIX = @SIZE_T_SUFFIX@
 SSH2_CFLAGS = @SSH2_CFLAGS@
 SSH2_LIBS = @SSH2_LIBS@
+STABLE_ORDERING_JANSSON_CFLAGS = @STABLE_ORDERING_JANSSON_CFLAGS@
+STABLE_ORDERING_JANSSON_LIBS = @STABLE_ORDERING_JANSSON_LIBS@
 STATIC_BINARIES = @STATIC_BINARIES@
 STDALIGN_H = @STDALIGN_H@
 STDARG_H = @STDARG_H@
@@ -2019,8 +2023,6 @@ XENAPI_LIBS = @XENAPI_LIBS@
 XGETTEXT = @XGETTEXT@
 XMLLINT = @XMLLINT@
 XSLTPROC = @XSLTPROC@
-YAJL_CFLAGS = @YAJL_CFLAGS@
-YAJL_LIBS = @YAJL_LIBS@
 ZFS = @ZFS@
 ZPOOL = @ZPOOL@
 abs_aux_dir = @abs_aux_dir@

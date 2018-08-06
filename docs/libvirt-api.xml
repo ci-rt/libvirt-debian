@@ -559,6 +559,7 @@
      <exports symbol='VIR_DOMAIN_MEMORY_PARAM_ULLONG' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_AVAILABLE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_MEMORY_STAT_DISK_CACHES' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_LAST_UPDATE' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT' type='enum'/>
@@ -3053,6 +3054,9 @@ running in post-copy mode'/>
  may be less than the amount of memory assigned to the domain if a
  balloon driver is in use or if the guest OS does not initialize all
  assigned pages.  This value is expressed in kB.'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_DISK_CACHES' file='libvirt-domain' value='10' type='virDomainMemoryStatTags' info='The amount of memory, that can be quickly reclaimed without
+ additional I/O (in kB). Typically these pages are used for caching files
+ from disk.'/>
     <enum name='VIR_DOMAIN_MEMORY_STAT_LAST' file='libvirt-domain' value='VIR_DOMAIN_MEMORY_STAT_NR' type='virDomainMemoryStatTags'/>
     <enum name='VIR_DOMAIN_MEMORY_STAT_LAST_UPDATE' file='libvirt-domain' value='9' type='virDomainMemoryStatTags' info='Timestamp of the last update of statistics, in seconds.'/>
     <enum name='VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT' file='libvirt-domain' value='2' type='virDomainMemoryStatTags' info='Page faults occur when a process makes a valid access to virtual memory
@@ -3060,7 +3064,7 @@ running in post-copy mode'/>
  required, it is considered a major fault.  If not, it is a minor fault.
  These are expressed as the number of faults that have occurred.'/>
     <enum name='VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT' file='libvirt-domain' value='3' type='virDomainMemoryStatTags'/>
-    <enum name='VIR_DOMAIN_MEMORY_STAT_NR' file='libvirt-domain' value='10' type='virDomainMemoryStatTags' info='The number of statistics supported by this version of the interface.
+    <enum name='VIR_DOMAIN_MEMORY_STAT_NR' file='libvirt-domain' value='11' type='virDomainMemoryStatTags' info='The number of statistics supported by this version of the interface.
  To add new statistics, add them to the enum and increase this value.'/>
     <enum name='VIR_DOMAIN_MEMORY_STAT_RSS' file='libvirt-domain' value='7' type='virDomainMemoryStatTags' info='Resident Set Size of the process running the domain. This value
  is in kB'/>
@@ -5980,7 +5984,7 @@ The error object is kept in thread local storage, so separate
 threads can safely access this concurrently.
 
 One will need to free the result with virResetError()]]></info>
-      <return type='int' info='0 if no error was found and the error code otherwise and -1 in case of parameter error.'/>
+      <return type='int' info='error code or -1 in case of parameter error.'/>
       <arg name='to' type='virErrorPtr' info='target to receive the copy'/>
     </function>
     <function name='virDefaultErrorFunc' file='virterror' module='virerror'>
@@ -6885,7 +6889,9 @@ In contrast to virDomainDetachDeviceFlags() this API is
 asynchronous - it returns immediately after sending the detach
 request to the hypervisor. It's caller's responsibility to
 wait for VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED event to signal
-actual device removal.]]></info>
+actual device removal or for
+VIR_DOMAIN_EVENT_ID_DEVICE_REMOVAL_FAILED to signal rejected
+device removal.]]></info>
       <return type='int' info='0 in case of success, -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to a domain object'/>
       <arg name='alias' type='const char *' info='device alias'/>
@@ -8033,7 +8039,10 @@ VIR_DOMAIN_MEMORY_STAT_USABLE:
 VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON:
     Current balloon value (in kb).
 VIR_DOMAIN_MEMORY_STAT_LAST_UPDATE
-    Timestamp of the last statistic]]></info>
+    Timestamp of the last statistic
+VIR_DOMAIN_MEMORY_STAT_DISK_CACHES
+    Memory that can be reclaimed without additional I/O, typically disk
+    caches (in kb).]]></info>
       <return type='int' info='The number of stats provided or -1 in case of failure.'/>
       <arg name='dom' type='virDomainPtr' info='pointer to the domain object'/>
       <arg name='stats' type='virDomainMemoryStatPtr' info='nr_stats-sized array of stat structures (returned)'/>

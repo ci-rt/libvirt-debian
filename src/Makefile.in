@@ -124,8 +124,8 @@ sbin_PROGRAMS = $(am__EXEEXT_7)
 @WITH_DTRACE_PROBES_TRUE@@WITH_LIBVIRTD_TRUE@am__append_28 = libvirt_probes.lo
 @WITH_LIBVIRTD_TRUE@@WITH_SANLOCK_TRUE@am__append_29 = sanlock.la
 @WITH_LIBVIRTD_TRUE@@WITH_SANLOCK_TRUE@am__append_30 = locking/libvirt_sanlock.aug
-@WITH_LIBVIRTD_TRUE@@WITH_SANLOCK_TRUE@am__append_31 = test_libvirt_sanlock.aug
-@WITH_LIBVIRTD_TRUE@@WITH_SANLOCK_TRUE@am__append_32 = test_libvirt_sanlock.aug
+@WITH_LIBVIRTD_TRUE@@WITH_QEMU_TRUE@@WITH_SANLOCK_TRUE@am__append_31 = test_libvirt_sanlock.aug
+@WITH_LIBVIRTD_TRUE@@WITH_QEMU_TRUE@@WITH_SANLOCK_TRUE@am__append_32 = test_libvirt_sanlock.aug
 @WITH_LIBVIRTD_TRUE@@WITH_QEMU_TRUE@@WITH_SANLOCK_TRUE@am__append_33 = locking/qemu-sanlock.conf
 @WITH_LIBVIRTD_TRUE@@WITH_QEMU_TRUE@@WITH_SANLOCK_TRUE@am__append_34 = locking/qemu-sanlock.conf
 @WITH_LIBVIRTD_TRUE@@WITH_QEMU_TRUE@@WITH_SANLOCK_TRUE@am__append_35 = locking/qemu-sanlock.conf
@@ -403,7 +403,6 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/getugroups.m4 $(top_srcdir)/m4/glibc21.m4 \
 	$(top_srcdir)/m4/gnulib-common.m4 \
 	$(top_srcdir)/m4/gnulib-comp.m4 $(top_srcdir)/m4/grantpt.m4 \
-	$(top_srcdir)/m4/hard-locale.m4 \
 	$(top_srcdir)/m4/host-cpu-c-abi.m4 $(top_srcdir)/m4/hostent.m4 \
 	$(top_srcdir)/m4/include_next.m4 $(top_srcdir)/m4/inet_ntop.m4 \
 	$(top_srcdir)/m4/inet_pton.m4 $(top_srcdir)/m4/intlmacosx.m4 \
@@ -534,7 +533,8 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-gnutls.m4 $(top_srcdir)/m4/virt-hal.m4 \
 	$(top_srcdir)/m4/virt-host-validate.m4 \
 	$(top_srcdir)/m4/virt-init-script.m4 \
-	$(top_srcdir)/m4/virt-lib.m4 $(top_srcdir)/m4/virt-libnl.m4 \
+	$(top_srcdir)/m4/virt-jansson.m4 $(top_srcdir)/m4/virt-lib.m4 \
+	$(top_srcdir)/m4/virt-libnl.m4 \
 	$(top_srcdir)/m4/virt-libpcap.m4 \
 	$(top_srcdir)/m4/virt-libssh.m4 \
 	$(top_srcdir)/m4/virt-libxml.m4 \
@@ -642,7 +642,7 @@ libvirt_admin_la_DEPENDENCIES = libvirt.la $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) $(am__append_193)
+	$(am__DEPENDENCIES_1) $(am__append_193)
 am__dirstamp = $(am__leading_dot)dirstamp
 am__objects_1 = admin/libvirt_admin_la-admin_protocol.lo
 am__objects_2 = libvirt_admin_la-datatypes.lo
@@ -717,14 +717,15 @@ libvirt_net_rpc_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(libvirt_net_rpc_la_CFLAGS) $(CFLAGS) \
 	$(libvirt_net_rpc_la_LDFLAGS) $(LDFLAGS) -o $@
-@WITH_NSS_TRUE@libvirt_nss_la_DEPENDENCIES = $(am__DEPENDENCIES_1)
+libvirt_nss_la_LIBADD =
 am__libvirt_nss_la_SOURCES_DIST = util/viralloc.c util/viralloc.h \
 	util/viratomic.c util/viratomic.h util/virbitmap.c \
 	util/virbitmap.h util/virbuffer.c util/virbuffer.h \
 	util/vircommand.c util/vircommand.h util/virerror.c \
 	util/virerror.h util/virfile.c util/virfile.h util/virhash.c \
 	util/virhash.h util/virhashcode.c util/virhashcode.h \
-	util/virjson.c util/virjson.h util/virkmod.c util/virkmod.h \
+	util/virjson.c util/virjson.h util/virjsoncompat.c \
+	util/virjsoncompat.h util/virkmod.c util/virkmod.h \
 	util/virlease.c util/virlease.h util/virlog.c util/virlog.h \
 	util/virmacmap.c util/virmacmap.h util/virobject.c \
 	util/virobject.h util/virpidfile.c util/virpidfile.h \
@@ -744,6 +745,7 @@ am__libvirt_nss_la_SOURCES_DIST = util/viralloc.c util/viralloc.h \
 @WITH_NSS_TRUE@	util/libvirt_nss_la-virhash.lo \
 @WITH_NSS_TRUE@	util/libvirt_nss_la-virhashcode.lo \
 @WITH_NSS_TRUE@	util/libvirt_nss_la-virjson.lo \
+@WITH_NSS_TRUE@	util/libvirt_nss_la-virjsoncompat.lo \
 @WITH_NSS_TRUE@	util/libvirt_nss_la-virkmod.lo \
 @WITH_NSS_TRUE@	util/libvirt_nss_la-virlease.lo \
 @WITH_NSS_TRUE@	util/libvirt_nss_la-virlog.lo \
@@ -779,24 +781,24 @@ am__libvirt_setuid_rpc_client_la_SOURCES_DIST = util/viralloc.c \
 	util/virerror.c util/virevent.c util/vireventpoll.c \
 	util/virfile.c util/virgettext.c util/virhash.c \
 	util/virhashcode.c util/virhostcpu.c util/virjson.c \
-	util/virlog.c util/virobject.c util/virpidfile.c \
-	util/virprocess.c util/virrandom.c util/virsocketaddr.c \
-	util/virstring.c util/virsystemd.c util/virtime.c \
-	util/virthread.c util/virthreadjob.c util/virtypedparam.c \
-	util/viruri.c util/virutil.c util/viruuid.c \
-	conf/domain_event.c conf/network_event.c conf/object_event.c \
-	conf/storage_event.c conf/node_device_event.c \
-	conf/secret_event.c rpc/virnetsocket.c rpc/virnetsocket.h \
-	rpc/virnetmessage.h rpc/virnetmessage.c rpc/virkeepalive.c \
-	rpc/virkeepalive.h rpc/virnetclient.c \
-	rpc/virnetclientprogram.c rpc/virnetclientstream.c \
-	rpc/virnetprotocol.c remote/remote_driver.c \
-	remote/remote_protocol.c remote/qemu_protocol.c \
-	remote/lxc_protocol.c datatypes.c libvirt.c libvirt-domain.c \
-	libvirt-domain-snapshot.c libvirt-host.c libvirt-interface.c \
-	libvirt-network.c libvirt-nodedev.c libvirt-nwfilter.c \
-	libvirt-secret.c libvirt-storage.c libvirt-stream.c \
-	libvirt-lxc.c
+	util/virjsoncompat.c util/virlog.c util/virobject.c \
+	util/virpidfile.c util/virprocess.c util/virrandom.c \
+	util/virsocketaddr.c util/virstring.c util/virsystemd.c \
+	util/virtime.c util/virthread.c util/virthreadjob.c \
+	util/virtypedparam.c util/viruri.c util/virutil.c \
+	util/viruuid.c conf/domain_event.c conf/network_event.c \
+	conf/object_event.c conf/storage_event.c \
+	conf/node_device_event.c conf/secret_event.c \
+	rpc/virnetsocket.c rpc/virnetsocket.h rpc/virnetmessage.h \
+	rpc/virnetmessage.c rpc/virkeepalive.c rpc/virkeepalive.h \
+	rpc/virnetclient.c rpc/virnetclientprogram.c \
+	rpc/virnetclientstream.c rpc/virnetprotocol.c \
+	remote/remote_driver.c remote/remote_protocol.c \
+	remote/qemu_protocol.c remote/lxc_protocol.c datatypes.c \
+	libvirt.c libvirt-domain.c libvirt-domain-snapshot.c \
+	libvirt-host.c libvirt-interface.c libvirt-network.c \
+	libvirt-nodedev.c libvirt-nwfilter.c libvirt-secret.c \
+	libvirt-storage.c libvirt-stream.c libvirt-lxc.c
 @WITH_SETUID_RPC_CLIENT_TRUE@am_libvirt_setuid_rpc_client_la_OBJECTS = util/libvirt_setuid_rpc_client_la-viralloc.lo \
 @WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virarch.lo \
 @WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-viratomic.lo \
@@ -815,6 +817,7 @@ am__libvirt_setuid_rpc_client_la_SOURCES_DIST = util/viralloc.c \
 @WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virhashcode.lo \
 @WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virhostcpu.lo \
 @WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virjson.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virjsoncompat.lo \
 @WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virlog.lo \
 @WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virobject.lo \
 @WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virpidfile.lo \
@@ -1914,13 +1917,12 @@ libvirt_storage_file_gluster_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 @WITH_STORAGE_GLUSTER_TRUE@	-rpath $(storagefiledir)
 am__DEPENDENCIES_12 = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 libvirt_util_la_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_12) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_12) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_8) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1)
+	$(am__DEPENDENCIES_8) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 am__objects_88 = $(am__objects_44) $(am__objects_44)
 am__objects_89 = util/libvirt_util_la-viralloc.lo \
 	util/libvirt_util_la-virarch.lo \
@@ -1961,6 +1963,7 @@ am__objects_89 = util/libvirt_util_la-viralloc.lo \
 	util/libvirt_util_la-viriptables.lo \
 	util/libvirt_util_la-viriscsi.lo \
 	util/libvirt_util_la-virjson.lo \
+	util/libvirt_util_la-virjsoncompat.lo \
 	util/libvirt_util_la-virkeycode.lo \
 	util/libvirt_util_la-virkeyfile.lo \
 	util/libvirt_util_la-virlease.lo \
@@ -3106,6 +3109,7 @@ HAVE_DECL_STRTOUMAX = @HAVE_DECL_STRTOUMAX@
 HAVE_DECL_TANL = @HAVE_DECL_TANL@
 HAVE_DECL_TCGETSID = @HAVE_DECL_TCGETSID@
 HAVE_DECL_TRUNC = @HAVE_DECL_TRUNC@
+HAVE_DECL_TRUNCATE = @HAVE_DECL_TRUNCATE@
 HAVE_DECL_TRUNCF = @HAVE_DECL_TRUNCF@
 HAVE_DECL_TRUNCL = @HAVE_DECL_TRUNCL@
 HAVE_DECL_TTYNAME_R = @HAVE_DECL_TTYNAME_R@
@@ -3163,6 +3167,7 @@ HAVE_HYPOTL = @HAVE_HYPOTL@
 HAVE_ILOGB = @HAVE_ILOGB@
 HAVE_ILOGBF = @HAVE_ILOGBF@
 HAVE_ILOGBL = @HAVE_ILOGBL@
+HAVE_IMAXDIV_T = @HAVE_IMAXDIV_T@
 HAVE_INTTYPES_H = @HAVE_INTTYPES_H@
 HAVE_ISBLANK = @HAVE_ISBLANK@
 HAVE_ISNAND = @HAVE_ISNAND@
@@ -3323,7 +3328,6 @@ HAVE_TANL = @HAVE_TANL@
 HAVE_TERMIOS_H = @HAVE_TERMIOS_H@
 HAVE_TIMEGM = @HAVE_TIMEGM@
 HAVE_TIMEZONE_T = @HAVE_TIMEZONE_T@
-HAVE_TRUNCATE = @HAVE_TRUNCATE@
 HAVE_TYPE_VOLATILE_SIG_ATOMIC_T = @HAVE_TYPE_VOLATILE_SIG_ATOMIC_T@
 HAVE_TZSET = @HAVE_TZSET@
 HAVE_UNAME = @HAVE_UNAME@
@@ -3400,6 +3404,8 @@ IP6TABLES_PATH = @IP6TABLES_PATH@
 IPTABLES_PATH = @IPTABLES_PATH@
 IP_PATH = @IP_PATH@
 ISCSIADM = @ISCSIADM@
+JANSSON_CFLAGS = @JANSSON_CFLAGS@
+JANSSON_LIBS = @JANSSON_LIBS@
 LD = @LD@
 LDEXP_LIBM = @LDEXP_LIBM@
 LDFLAGS = @LDFLAGS@
@@ -3616,7 +3622,6 @@ PVCREATE = @PVCREATE@
 PVREMOVE = @PVREMOVE@
 PVS = @PVS@
 PYTHON = @PYTHON@
-QEMU = @QEMU@
 QEMU_BRIDGE_HELPER = @QEMU_BRIDGE_HELPER@
 QEMU_PR_HELPER = @QEMU_PR_HELPER@
 RADVD = @RADVD@
@@ -3880,6 +3885,8 @@ SIG_ATOMIC_T_SUFFIX = @SIG_ATOMIC_T_SUFFIX@
 SIZE_T_SUFFIX = @SIZE_T_SUFFIX@
 SSH2_CFLAGS = @SSH2_CFLAGS@
 SSH2_LIBS = @SSH2_LIBS@
+STABLE_ORDERING_JANSSON_CFLAGS = @STABLE_ORDERING_JANSSON_CFLAGS@
+STABLE_ORDERING_JANSSON_LIBS = @STABLE_ORDERING_JANSSON_LIBS@
 STATIC_BINARIES = @STATIC_BINARIES@
 STDALIGN_H = @STDALIGN_H@
 STDARG_H = @STDARG_H@
@@ -3932,8 +3939,6 @@ XENAPI_LIBS = @XENAPI_LIBS@
 XGETTEXT = @XGETTEXT@
 XMLLINT = @XMLLINT@
 XSLTPROC = @XSLTPROC@
-YAJL_CFLAGS = @YAJL_CFLAGS@
-YAJL_LIBS = @YAJL_LIBS@
 ZFS = @ZFS@
 ZPOOL = @ZPOOL@
 abs_aux_dir = @abs_aux_dir@
@@ -4322,20 +4327,20 @@ UTIL_SOURCES = util/viralloc.c util/viralloc.h util/virarch.c \
 	util/viridentity.c util/viridentity.h util/virinitctl.c \
 	util/virinitctl.h util/viriptables.c util/viriptables.h \
 	util/viriscsi.c util/viriscsi.h util/virjson.c util/virjson.h \
-	util/virkeycode.c util/virkeycode.h util/virkeyfile.c \
-	util/virkeyfile.h util/virlease.c util/virlease.h \
-	util/virlockspace.c util/virlockspace.h util/virlog.c \
-	util/virlog.h util/virmacaddr.c util/virmacaddr.h \
-	util/virmacmap.c util/virmacmap.h util/virmodule.c \
-	util/virmodule.h util/virnetdev.c util/virnetdev.h \
-	util/virnetdevbandwidth.c util/virnetdevbandwidth.h \
-	util/virnetdevbridge.c util/virnetdevbridge.h \
-	util/virnetdevip.c util/virnetdevip.h util/virnetdevmacvlan.c \
-	util/virnetdevmacvlan.h util/virnetdevmidonet.c \
-	util/virnetdevmidonet.h util/virnetdevopenvswitch.c \
-	util/virnetdevopenvswitch.h util/virnetdevtap.c \
-	util/virnetdevtap.h util/virnetdevveth.c util/virnetdevveth.h \
-	util/virnetdevvlan.c util/virnetdevvlan.h \
+	util/virjsoncompat.c util/virjsoncompat.h util/virkeycode.c \
+	util/virkeycode.h util/virkeyfile.c util/virkeyfile.h \
+	util/virlease.c util/virlease.h util/virlockspace.c \
+	util/virlockspace.h util/virlog.c util/virlog.h \
+	util/virmacaddr.c util/virmacaddr.h util/virmacmap.c \
+	util/virmacmap.h util/virmodule.c util/virmodule.h \
+	util/virnetdev.c util/virnetdev.h util/virnetdevbandwidth.c \
+	util/virnetdevbandwidth.h util/virnetdevbridge.c \
+	util/virnetdevbridge.h util/virnetdevip.c util/virnetdevip.h \
+	util/virnetdevmacvlan.c util/virnetdevmacvlan.h \
+	util/virnetdevmidonet.c util/virnetdevmidonet.h \
+	util/virnetdevopenvswitch.c util/virnetdevopenvswitch.h \
+	util/virnetdevtap.c util/virnetdevtap.h util/virnetdevveth.c \
+	util/virnetdevveth.h util/virnetdevvlan.c util/virnetdevvlan.h \
 	util/virnetdevvportprofile.c util/virnetdevvportprofile.h \
 	util/virnetlink.c util/virnetlink.h util/virnodesuspend.c \
 	util/virnodesuspend.h util/virkmod.c util/virkmod.h \
@@ -4388,7 +4393,7 @@ libvirt_util_la_SOURCES = \
 
 libvirt_util_la_CFLAGS = \
 	$(CAPNG_CFLAGS) \
-	$(YAJL_CFLAGS) \
+	$(JANSSON_CFLAGS) \
 	$(LIBNL_CFLAGS) \
 	$(AM_CFLAGS) \
 	$(AUDIT_CFLAGS) \
@@ -4402,7 +4407,6 @@ libvirt_util_la_CFLAGS = \
 
 libvirt_util_la_LIBADD = \
 	$(CAPNG_LIBS) \
-	$(YAJL_LIBS) \
 	$(LIBNL_LIBS) \
 	$(THREAD_LIBS) \
 	$(AUDIT_LIBS) \
@@ -6207,13 +6211,12 @@ libvirt_admin_la_LDFLAGS = \
 		$(NULL)
 
 libvirt_admin_la_LIBADD = libvirt.la $(CYGWIN_EXTRA_LIBADD) \
-	$(CAPNG_LIBS) $(YAJL_LIBS) $(DEVMAPPER_LIBS) $(LIBXML_LIBS) \
-	$(SSH2_LIBS) $(SASL_LIBS) $(GNUTLS_LIBS) $(LIBSSH_LIBS) \
-	$(am__append_193)
+	$(CAPNG_LIBS) $(DEVMAPPER_LIBS) $(LIBXML_LIBS) $(SSH2_LIBS) \
+	$(SASL_LIBS) $(GNUTLS_LIBS) $(LIBSSH_LIBS) $(am__append_193)
 libvirt_admin_la_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/remote \
 	-I$(srcdir)/rpc -I$(srcdir)/admin $(XDR_CFLAGS) \
-	$(CAPNG_CFLAGS) $(YAJL_CFLAGS) $(SSH2_CFLAGS) $(SASL_CFLAGS) \
-	$(GNUTLS_CFLAGS) $(LIBSSH_CFLAGS)
+	$(CAPNG_CFLAGS) $(JANSSON_CFLAGS) $(SSH2_CFLAGS) \
+	$(SASL_CFLAGS) $(GNUTLS_CFLAGS) $(LIBSSH_CFLAGS)
 ADMIN_SYM_FILES = $(srcdir)/libvirt_admin_private.syms
 
 # Empty source list - it merely links a bunch of convenience libs together
@@ -6278,6 +6281,7 @@ libvirt_lxc_la_LIBADD = libvirt.la $(CYGWIN_EXTRA_LIBADD)
 @WITH_SETUID_RPC_CLIENT_TRUE@		util/virhashcode.c \
 @WITH_SETUID_RPC_CLIENT_TRUE@		util/virhostcpu.c \
 @WITH_SETUID_RPC_CLIENT_TRUE@		util/virjson.c \
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/virjsoncompat.c \
 @WITH_SETUID_RPC_CLIENT_TRUE@		util/virlog.c \
 @WITH_SETUID_RPC_CLIENT_TRUE@		util/virobject.c \
 @WITH_SETUID_RPC_CLIENT_TRUE@		util/virpidfile.c \
@@ -6381,6 +6385,8 @@ LOGROTATE_FILES := $(LOGROTATE_FILES_IN:remote/%.in=%)
 @WITH_NSS_TRUE@		util/virhashcode.h \
 @WITH_NSS_TRUE@		util/virjson.c \
 @WITH_NSS_TRUE@		util/virjson.h \
+@WITH_NSS_TRUE@		util/virjsoncompat.c \
+@WITH_NSS_TRUE@		util/virjsoncompat.h \
 @WITH_NSS_TRUE@		util/virkmod.c \
 @WITH_NSS_TRUE@		util/virkmod.h \
 @WITH_NSS_TRUE@		util/virlease.c \
@@ -6414,15 +6420,11 @@ LOGROTATE_FILES := $(LOGROTATE_FILES_IN:remote/%.in=%)
 @WITH_NSS_TRUE@libvirt_nss_la_CFLAGS = \
 @WITH_NSS_TRUE@		-DLIBVIRT_NSS \
 @WITH_NSS_TRUE@		$(AM_CFLAGS) \
-@WITH_NSS_TRUE@		$(YAJL_CFLAGS) \
+@WITH_NSS_TRUE@		$(JANSSON_CFLAGS) \
 @WITH_NSS_TRUE@		$(NULL)
 
 @WITH_NSS_TRUE@libvirt_nss_la_LDFLAGS = \
 @WITH_NSS_TRUE@		$(AM_LDFLAGS) \
-@WITH_NSS_TRUE@		$(NULL)
-
-@WITH_NSS_TRUE@libvirt_nss_la_LIBADD = \
-@WITH_NSS_TRUE@		$(YAJL_LIBS) \
 @WITH_NSS_TRUE@		$(NULL)
 
 all: $(BUILT_SOURCES)
@@ -6743,6 +6745,8 @@ util/libvirt_nss_la-virhashcode.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_nss_la-virjson.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
+util/libvirt_nss_la-virjsoncompat.lo: util/$(am__dirstamp) \
+	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_nss_la-virkmod.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_nss_la-virlease.lo: util/$(am__dirstamp) \
@@ -6813,6 +6817,8 @@ util/libvirt_setuid_rpc_client_la-virhostcpu.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_setuid_rpc_client_la-virjson.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
+util/libvirt_setuid_rpc_client_la-virjsoncompat.lo:  \
+	util/$(am__dirstamp) util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_setuid_rpc_client_la-virlog.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_setuid_rpc_client_la-virobject.lo: util/$(am__dirstamp) \
@@ -7688,6 +7694,8 @@ util/libvirt_util_la-viriscsi.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_util_la-virjson.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
+util/libvirt_util_la-virjsoncompat.lo: util/$(am__dirstamp) \
+	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_util_la-virkeycode.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_util_la-virkeyfile.lo: util/$(am__dirstamp) \
@@ -8403,6 +8411,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_nss_la-virhash.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_nss_la-virhashcode.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_nss_la-virjson.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_nss_la-virjsoncompat.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_nss_la-virkmod.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_nss_la-virlease.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_nss_la-virlog.Plo@am__quote@
@@ -8435,6 +8444,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_setuid_rpc_client_la-virhashcode.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_setuid_rpc_client_la-virhostcpu.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_setuid_rpc_client_la-virjson.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_setuid_rpc_client_la-virjsoncompat.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_setuid_rpc_client_la-virlog.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_setuid_rpc_client_la-virobject.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_setuid_rpc_client_la-virpidfile.Plo@am__quote@
@@ -8490,6 +8500,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-viriptables.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-viriscsi.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virjson.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virjsoncompat.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virkeycode.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virkeyfile.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virkmod.Plo@am__quote@
@@ -8830,6 +8841,13 @@ util/libvirt_nss_la-virjson.lo: util/virjson.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_nss_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_nss_la-virjson.lo `test -f 'util/virjson.c' || echo '$(srcdir)/'`util/virjson.c
 
+util/libvirt_nss_la-virjsoncompat.lo: util/virjsoncompat.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_nss_la_CFLAGS) $(CFLAGS) -MT util/libvirt_nss_la-virjsoncompat.lo -MD -MP -MF util/$(DEPDIR)/libvirt_nss_la-virjsoncompat.Tpo -c -o util/libvirt_nss_la-virjsoncompat.lo `test -f 'util/virjsoncompat.c' || echo '$(srcdir)/'`util/virjsoncompat.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) util/$(DEPDIR)/libvirt_nss_la-virjsoncompat.Tpo util/$(DEPDIR)/libvirt_nss_la-virjsoncompat.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/virjsoncompat.c' object='util/libvirt_nss_la-virjsoncompat.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_nss_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_nss_la-virjsoncompat.lo `test -f 'util/virjsoncompat.c' || echo '$(srcdir)/'`util/virjsoncompat.c
+
 util/libvirt_nss_la-virkmod.lo: util/virkmod.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_nss_la_CFLAGS) $(CFLAGS) -MT util/libvirt_nss_la-virkmod.lo -MD -MP -MF util/$(DEPDIR)/libvirt_nss_la-virkmod.Tpo -c -o util/libvirt_nss_la-virkmod.lo `test -f 'util/virkmod.c' || echo '$(srcdir)/'`util/virkmod.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) util/$(DEPDIR)/libvirt_nss_la-virkmod.Tpo util/$(DEPDIR)/libvirt_nss_la-virkmod.Plo
@@ -9060,6 +9078,13 @@ util/libvirt_setuid_rpc_client_la-virjson.lo: util/virjson.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/virjson.c' object='util/libvirt_setuid_rpc_client_la-virjson.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_setuid_rpc_client_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_setuid_rpc_client_la-virjson.lo `test -f 'util/virjson.c' || echo '$(srcdir)/'`util/virjson.c
+
+util/libvirt_setuid_rpc_client_la-virjsoncompat.lo: util/virjsoncompat.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_setuid_rpc_client_la_CFLAGS) $(CFLAGS) -MT util/libvirt_setuid_rpc_client_la-virjsoncompat.lo -MD -MP -MF util/$(DEPDIR)/libvirt_setuid_rpc_client_la-virjsoncompat.Tpo -c -o util/libvirt_setuid_rpc_client_la-virjsoncompat.lo `test -f 'util/virjsoncompat.c' || echo '$(srcdir)/'`util/virjsoncompat.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) util/$(DEPDIR)/libvirt_setuid_rpc_client_la-virjsoncompat.Tpo util/$(DEPDIR)/libvirt_setuid_rpc_client_la-virjsoncompat.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/virjsoncompat.c' object='util/libvirt_setuid_rpc_client_la-virjsoncompat.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_setuid_rpc_client_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_setuid_rpc_client_la-virjsoncompat.lo `test -f 'util/virjsoncompat.c' || echo '$(srcdir)/'`util/virjsoncompat.c
 
 util/libvirt_setuid_rpc_client_la-virlog.lo: util/virlog.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_setuid_rpc_client_la_CFLAGS) $(CFLAGS) -MT util/libvirt_setuid_rpc_client_la-virlog.lo -MD -MP -MF util/$(DEPDIR)/libvirt_setuid_rpc_client_la-virlog.Tpo -c -o util/libvirt_setuid_rpc_client_la-virlog.lo `test -f 'util/virlog.c' || echo '$(srcdir)/'`util/virlog.c
@@ -11161,6 +11186,13 @@ util/libvirt_util_la-virjson.lo: util/virjson.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_util_la-virjson.lo `test -f 'util/virjson.c' || echo '$(srcdir)/'`util/virjson.c
 
+util/libvirt_util_la-virjsoncompat.lo: util/virjsoncompat.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT util/libvirt_util_la-virjsoncompat.lo -MD -MP -MF util/$(DEPDIR)/libvirt_util_la-virjsoncompat.Tpo -c -o util/libvirt_util_la-virjsoncompat.lo `test -f 'util/virjsoncompat.c' || echo '$(srcdir)/'`util/virjsoncompat.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) util/$(DEPDIR)/libvirt_util_la-virjsoncompat.Tpo util/$(DEPDIR)/libvirt_util_la-virjsoncompat.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/virjsoncompat.c' object='util/libvirt_util_la-virjsoncompat.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_util_la-virjsoncompat.lo `test -f 'util/virjsoncompat.c' || echo '$(srcdir)/'`util/virjsoncompat.c
+
 util/libvirt_util_la-virkeycode.lo: util/virkeycode.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT util/libvirt_util_la-virkeycode.lo -MD -MP -MF util/$(DEPDIR)/libvirt_util_la-virkeycode.Tpo -c -o util/libvirt_util_la-virkeycode.lo `test -f 'util/virkeycode.c' || echo '$(srcdir)/'`util/virkeycode.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) util/$(DEPDIR)/libvirt_util_la-virkeycode.Tpo util/$(DEPDIR)/libvirt_util_la-virkeycode.Plo
@@ -12832,14 +12864,15 @@ virtlogd-admin.socket: logging/virtlogd-admin.socket.in \
 @WITH_LIBVIRTD_TRUE@	rmdir "$(DESTDIR)$(localstatedir)/run/libvirt/lockd" ||:
 @WITH_LIBVIRTD_TRUE@@WITH_SANLOCK_TRUE@	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/sanlock" ||:
 
-@WITH_LIBVIRTD_TRUE@@WITH_SANLOCK_TRUE@test_libvirt_sanlock.aug: locking/test_libvirt_sanlock.aug.in \
-@WITH_LIBVIRTD_TRUE@@WITH_SANLOCK_TRUE@		locking/qemu-sanlock.conf $(AUG_GENTEST)
-@WITH_LIBVIRTD_TRUE@@WITH_SANLOCK_TRUE@	$(AM_V_GEN)$(AUG_GENTEST) locking/qemu-sanlock.conf $< $@
+@WITH_LIBVIRTD_TRUE@@WITH_QEMU_TRUE@@WITH_SANLOCK_TRUE@test_libvirt_sanlock.aug: locking/test_libvirt_sanlock.aug.in \
+@WITH_LIBVIRTD_TRUE@@WITH_QEMU_TRUE@@WITH_SANLOCK_TRUE@		locking/qemu-sanlock.conf $(AUG_GENTEST)
+@WITH_LIBVIRTD_TRUE@@WITH_QEMU_TRUE@@WITH_SANLOCK_TRUE@	$(AM_V_GEN)$(AUG_GENTEST) locking/qemu-sanlock.conf $< $@
 
-@WITH_LIBVIRTD_TRUE@@WITH_SANLOCK_TRUE@check-augeas-sanlock: test_libvirt_sanlock.aug
-@WITH_LIBVIRTD_TRUE@@WITH_SANLOCK_TRUE@	$(AM_V_GEN)if test -x '$(AUGPARSE)'; then \
-@WITH_LIBVIRTD_TRUE@@WITH_SANLOCK_TRUE@	    '$(AUGPARSE)' -I $(srcdir)/locking test_libvirt_sanlock.aug; \
-@WITH_LIBVIRTD_TRUE@@WITH_SANLOCK_TRUE@	fi
+@WITH_LIBVIRTD_TRUE@@WITH_QEMU_TRUE@@WITH_SANLOCK_TRUE@check-augeas-sanlock: test_libvirt_sanlock.aug
+@WITH_LIBVIRTD_TRUE@@WITH_QEMU_TRUE@@WITH_SANLOCK_TRUE@	$(AM_V_GEN)if test -x '$(AUGPARSE)'; then \
+@WITH_LIBVIRTD_TRUE@@WITH_QEMU_TRUE@@WITH_SANLOCK_TRUE@	    '$(AUGPARSE)' -I $(srcdir)/locking test_libvirt_sanlock.aug; \
+@WITH_LIBVIRTD_TRUE@@WITH_QEMU_TRUE@@WITH_SANLOCK_TRUE@	fi
+@WITH_LIBVIRTD_TRUE@@WITH_QEMU_FALSE@@WITH_SANLOCK_TRUE@check-augeas-sanlock:
 @WITH_LIBVIRTD_TRUE@@WITH_SANLOCK_FALSE@check-augeas-sanlock:
 
 @WITH_LIBVIRTD_TRUE@@WITH_QEMU_TRUE@test_libvirt_lockd.aug: locking/test_libvirt_lockd.aug.in \

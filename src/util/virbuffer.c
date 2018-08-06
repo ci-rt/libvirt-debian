@@ -31,10 +31,10 @@
 #define __VIR_BUFFER_C__
 
 #include "virbuffer.h"
-#include "viralloc.h"
 #include "virerror.h"
 #include "virstring.h"
 
+#define VIR_FROM_THIS VIR_FROM_NONE
 
 /* If adding more fields, ensure to edit buf.h to match
    the number of fields */
@@ -456,7 +456,8 @@ void
 virBufferEscapeString(virBufferPtr buf, const char *format, const char *str)
 {
     int len;
-    char *escaped, *out;
+    VIR_AUTOFREE(char *) escaped = NULL;
+    char *out;
     const char *cur;
     const char forbidden_characters[] = {
         0x01,   0x02,   0x03,   0x04,   0x05,   0x06,   0x07,   0x08,
@@ -533,7 +534,6 @@ virBufferEscapeString(virBufferPtr buf, const char *format, const char *str)
     *out = 0;
 
     virBufferAsprintf(buf, format, escaped);
-    VIR_FREE(escaped);
 }
 
 /**
@@ -612,7 +612,8 @@ virBufferEscape(virBufferPtr buf, char escape, const char *toescape,
                 const char *format, const char *str)
 {
     int len;
-    char *escaped, *out;
+    VIR_AUTOFREE(char *) escaped = NULL;
+    char *out;
     const char *cur;
 
     if ((format == NULL) || (buf == NULL) || (str == NULL))
@@ -644,14 +645,28 @@ virBufferEscape(virBufferPtr buf, char escape, const char *toescape,
     *out = 0;
 
     virBufferAsprintf(buf, format, escaped);
-    VIR_FREE(escaped);
 }
 
+
+typedef struct _virBufferEscapePair virBufferEscapePair;
+typedef virBufferEscapePair *virBufferEscapePairPtr;
 
 struct _virBufferEscapePair {
     char escape;
     char *toescape;
 };
+
+static void
+virBufferEscapePairFree(virBufferEscapePairPtr pair)
+{
+    if (!pair)
+        return;
+
+    VIR_FREE(pair->toescape);
+    VIR_FREE(pair);
+}
+
+VIR_DEFINE_AUTOPTR_FUNC(virBufferEscapePair, virBufferEscapePairFree)
 
 
 /**
@@ -675,11 +690,11 @@ virBufferEscapeN(virBufferPtr buf,
 {
     int len;
     size_t i;
-    char *escaped = NULL;
+    VIR_AUTOFREE(char *) escaped = NULL;
     char *out;
     const char *cur;
-    struct _virBufferEscapePair escapeItem;
-    struct _virBufferEscapePair *escapeList = NULL;
+    virBufferEscapePair escapeItem;
+    VIR_AUTOPTR(virBufferEscapePair) escapeList = NULL;
     size_t nescapeList = 0;
     va_list ap;
 
@@ -694,7 +709,7 @@ virBufferEscapeN(virBufferPtr buf,
     va_start(ap, str);
 
     while ((escapeItem.escape = va_arg(ap, int))) {
-        if (!(escapeItem.toescape = va_arg(ap, char *))) {
+        if (VIR_STRDUP(escapeItem.toescape, va_arg(ap, char *)) < 0) {
             virBufferSetError(buf, errno);
             goto cleanup;
         }
@@ -737,8 +752,6 @@ virBufferEscapeN(virBufferPtr buf,
 
  cleanup:
     va_end(ap);
-    VIR_FREE(escapeList);
-    VIR_FREE(escaped);
 }
 
 
@@ -803,7 +816,8 @@ void
 virBufferEscapeShell(virBufferPtr buf, const char *str)
 {
     int len;
-    char *escaped, *out;
+    VIR_AUTOFREE(char *) escaped = NULL;
+    char *out;
     const char *cur;
 
     if ((buf == NULL) || (str == NULL))
@@ -847,7 +861,6 @@ virBufferEscapeShell(virBufferPtr buf, const char *str)
     *out = 0;
 
     virBufferAdd(buf, escaped, -1);
-    VIR_FREE(escaped);
 }
 
 /**

@@ -27,7 +27,6 @@
 
 #include <stdarg.h>
 
-#include "viralloc.h"
 #include "virfirewallpriv.h"
 #include "virerror.h"
 #include "virutil.h"
@@ -120,14 +119,13 @@ virFirewallCheckUpdateLock(bool *lockflag,
                            const char *const*args)
 {
     int status; /* Ignore failed commands without logging them */
-    virCommandPtr cmd = virCommandNewArgs(args);
+    VIR_AUTOPTR(virCommand) cmd = virCommandNewArgs(args);
     if (virCommandRun(cmd, &status) < 0 || status) {
         VIR_INFO("locking not supported by %s", args[0]);
     } else {
         VIR_INFO("using locking for %s", args[0]);
         *lockflag = true;
     }
-    virCommandFree(cmd);
 }
 
 static void
@@ -512,7 +510,7 @@ void virFirewallRuleAddArgFormat(virFirewallPtr firewall,
                                  virFirewallRulePtr rule,
                                  const char *fmt, ...)
 {
-    char *arg;
+    VIR_AUTOFREE(char *) arg = NULL;
     va_list list;
 
     VIR_FIREWALL_RULE_RETURN_IF_ERROR(firewall, rule);
@@ -526,13 +524,11 @@ void virFirewallRuleAddArgFormat(virFirewallPtr firewall,
 
     va_end(list);
 
-    VIR_FREE(arg);
     return;
 
  no_memory:
     firewall->err = ENOMEM;
     va_end(list);
-    VIR_FREE(arg);
 }
 
 
@@ -676,16 +672,15 @@ virFirewallApplyRuleDirect(virFirewallRulePtr rule,
 {
     size_t i;
     const char *bin = virFirewallLayerCommandTypeToString(rule->layer);
-    virCommandPtr cmd = NULL;
+    VIR_AUTOPTR(virCommand) cmd = NULL;
     int status;
-    int ret = -1;
-    char *error = NULL;
+    VIR_AUTOFREE(char *) error = NULL;
 
     if (!bin) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Unknown firewall layer %d"),
                        rule->layer);
-        goto cleanup;
+        return -1;
     }
 
     cmd = virCommandNewArgList(bin, NULL);
@@ -697,27 +692,22 @@ virFirewallApplyRuleDirect(virFirewallRulePtr rule,
     virCommandSetErrorBuffer(cmd, &error);
 
     if (virCommandRun(cmd, &status) < 0)
-        goto cleanup;
+        return -1;
 
     if (status != 0) {
         if (ignoreErrors) {
             VIR_DEBUG("Ignoring error running command");
         } else {
-            char *args = virCommandToString(cmd);
+            VIR_AUTOFREE(char *) args = virCommandToString(cmd);
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Failed to apply firewall rules %s: %s"),
                            NULLSTR(args), NULLSTR(error));
-            VIR_FREE(args);
             VIR_FREE(*output);
-            goto cleanup;
+            return -1;
         }
     }
 
-    ret = 0;
- cleanup:
-    VIR_FREE(error);
-    virCommandFree(cmd);
-    return ret;
+    return 0;
 }
 
 
@@ -808,12 +798,10 @@ virFirewallApplyRule(virFirewallPtr firewall,
                      virFirewallRulePtr rule,
                      bool ignoreErrors)
 {
-    char *output = NULL;
-    char **lines = NULL;
-    int ret = -1;
-    char *str = virFirewallRuleToString(rule);
+    VIR_AUTOFREE(char *) output = NULL;
+    VIR_AUTOFREE(char *) str = virFirewallRuleToString(rule);
+    VIR_AUTOPTR(virString) lines = NULL;
     VIR_INFO("Applying rule '%s'", NULLSTR(str));
-    VIR_FREE(str);
 
     if (rule->ignoreErrors)
         ignoreErrors = rule->ignoreErrors;
@@ -837,29 +825,25 @@ virFirewallApplyRule(virFirewallPtr firewall,
 
     if (rule->queryCB && output) {
         if (!(lines = virStringSplit(output, "\n", -1)))
-            goto cleanup;
+            return -1;
 
         VIR_DEBUG("Invoking query %p with '%s'", rule->queryCB, output);
         if (rule->queryCB(firewall, (const char *const *)lines, rule->queryOpaque) < 0)
-            goto cleanup;
+            return -1;
 
         if (firewall->err == ENOMEM) {
             virReportOOMError();
-            goto cleanup;
+            return -1;
         }
         if (firewall->err) {
             virReportSystemError(firewall->err, "%s",
                                  _("Unable to create rule"));
-            goto cleanup;
+            return -1;
         }
 
     }
 
-    ret = 0;
- cleanup:
-    virStringListFree(lines);
-    VIR_FREE(output);
-    return ret;
+    return 0;
 }
 
 static int
@@ -933,7 +917,7 @@ virFirewallApply(virFirewallPtr firewall)
         if (virFirewallApplyGroup(firewall, i) < 0) {
             VIR_DEBUG("Rolling back groups up to %zu for %p", i, firewall);
             size_t first = i;
-            virErrorPtr saved_error = virSaveLastError();
+            VIR_AUTOPTR(virError) saved_error = virSaveLastError();
 
             /*
              * Look at any inheritance markers to figure out
@@ -954,7 +938,6 @@ virFirewallApply(virFirewallPtr firewall)
             }
 
             virSetError(saved_error);
-            virFreeError(saved_error);
             VIR_DEBUG("Done rolling back groups for %p", firewall);
             goto cleanup;
         }

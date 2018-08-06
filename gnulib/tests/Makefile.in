@@ -112,7 +112,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 XFAIL_TESTS =
-noinst_PROGRAMS =
+noinst_PROGRAMS = test-localcharset$(EXEEXT)
 check_PROGRAMS = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-areadlink$(EXEEXT) test-arpa_inet$(EXEEXT) \
 	test-base64$(EXEEXT) test-binary-io$(EXEEXT) \
@@ -259,7 +259,6 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/getugroups.m4 $(top_srcdir)/m4/glibc21.m4 \
 	$(top_srcdir)/m4/gnulib-common.m4 \
 	$(top_srcdir)/m4/gnulib-comp.m4 $(top_srcdir)/m4/grantpt.m4 \
-	$(top_srcdir)/m4/hard-locale.m4 \
 	$(top_srcdir)/m4/host-cpu-c-abi.m4 $(top_srcdir)/m4/hostent.m4 \
 	$(top_srcdir)/m4/include_next.m4 $(top_srcdir)/m4/inet_ntop.m4 \
 	$(top_srcdir)/m4/inet_pton.m4 $(top_srcdir)/m4/intlmacosx.m4 \
@@ -390,7 +389,8 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-gnutls.m4 $(top_srcdir)/m4/virt-hal.m4 \
 	$(top_srcdir)/m4/virt-host-validate.m4 \
 	$(top_srcdir)/m4/virt-init-script.m4 \
-	$(top_srcdir)/m4/virt-lib.m4 $(top_srcdir)/m4/virt-libnl.m4 \
+	$(top_srcdir)/m4/virt-jansson.m4 $(top_srcdir)/m4/virt-lib.m4 \
+	$(top_srcdir)/m4/virt-libnl.m4 \
 	$(top_srcdir)/m4/virt-libpcap.m4 \
 	$(top_srcdir)/m4/virt-libssh.m4 \
 	$(top_srcdir)/m4/virt-libxml.m4 \
@@ -873,6 +873,11 @@ test_limits_h_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
 test_listen_SOURCES = test-listen.c
 test_listen_OBJECTS = test-listen.$(OBJEXT)
 test_listen_DEPENDENCIES = $(am__DEPENDENCIES_2)
+test_localcharset_SOURCES = test-localcharset.c
+test_localcharset_OBJECTS = test-localcharset.$(OBJEXT)
+test_localcharset_LDADD = $(LDADD)
+test_localcharset_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_locale_SOURCES = test-locale.c
 test_locale_OBJECTS = test-locale.$(OBJEXT)
 test_locale_LDADD = $(LDADD)
@@ -1452,17 +1457,18 @@ SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-inttypes.c test-ioctl.c test-isatty.c test-isblank.c \
 	test-isnand-nolibm.c test-isnanf-nolibm.c test-isnanl-nolibm.c \
 	test-langinfo.c $(test_ldexp_SOURCES) test-limits-h.c \
-	test-listen.c test-locale.c test-localeconv.c \
-	test-localename.c test-lseek.c test-lstat.c test-malloca.c \
-	test-math.c test-mbrtowc.c test-mbrtowc-w32.c test-mbsinit.c \
-	test-mbsrtowcs.c test-memchr.c test-nanosleep.c test-net_if.c \
-	test-netdb.c test-netinet_in.c test-nl_langinfo.c \
-	test-nonblocking.c test-nonblocking-pipe-child.c \
-	test-nonblocking-pipe-main.c test-nonblocking-socket-child.c \
-	test-nonblocking-socket-main.c test-open.c test-openpty.c \
-	test-passfd.c test-pathmax.c test-perror.c test-perror2.c \
-	test-pipe.c test-pipe2.c test-poll.c test-poll-h.c \
-	test-posix_openpt.c test-posix_spawn1.c test-posix_spawn2.c \
+	test-listen.c test-localcharset.c test-locale.c \
+	test-localeconv.c test-localename.c test-lseek.c test-lstat.c \
+	test-malloca.c test-math.c test-mbrtowc.c test-mbrtowc-w32.c \
+	test-mbsinit.c test-mbsrtowcs.c test-memchr.c test-nanosleep.c \
+	test-net_if.c test-netdb.c test-netinet_in.c \
+	test-nl_langinfo.c test-nonblocking.c \
+	test-nonblocking-pipe-child.c test-nonblocking-pipe-main.c \
+	test-nonblocking-socket-child.c test-nonblocking-socket-main.c \
+	test-open.c test-openpty.c test-passfd.c test-pathmax.c \
+	test-perror.c test-perror2.c test-pipe.c test-pipe2.c \
+	test-poll.c test-poll-h.c test-posix_openpt.c \
+	test-posix_spawn1.c test-posix_spawn2.c \
 	test-posix_spawn_file_actions_addclose.c \
 	test-posix_spawn_file_actions_adddup2.c \
 	test-posix_spawn_file_actions_addopen.c \
@@ -1513,17 +1519,18 @@ DIST_SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-inttypes.c test-ioctl.c test-isatty.c test-isblank.c \
 	test-isnand-nolibm.c test-isnanf-nolibm.c test-isnanl-nolibm.c \
 	test-langinfo.c $(test_ldexp_SOURCES) test-limits-h.c \
-	test-listen.c test-locale.c test-localeconv.c \
-	test-localename.c test-lseek.c test-lstat.c test-malloca.c \
-	test-math.c test-mbrtowc.c test-mbrtowc-w32.c test-mbsinit.c \
-	test-mbsrtowcs.c test-memchr.c test-nanosleep.c test-net_if.c \
-	test-netdb.c test-netinet_in.c test-nl_langinfo.c \
-	test-nonblocking.c test-nonblocking-pipe-child.c \
-	test-nonblocking-pipe-main.c test-nonblocking-socket-child.c \
-	test-nonblocking-socket-main.c test-open.c test-openpty.c \
-	test-passfd.c test-pathmax.c test-perror.c test-perror2.c \
-	test-pipe.c test-pipe2.c test-poll.c test-poll-h.c \
-	test-posix_openpt.c test-posix_spawn1.c test-posix_spawn2.c \
+	test-listen.c test-localcharset.c test-locale.c \
+	test-localeconv.c test-localename.c test-lseek.c test-lstat.c \
+	test-malloca.c test-math.c test-mbrtowc.c test-mbrtowc-w32.c \
+	test-mbsinit.c test-mbsrtowcs.c test-memchr.c test-nanosleep.c \
+	test-net_if.c test-netdb.c test-netinet_in.c \
+	test-nl_langinfo.c test-nonblocking.c \
+	test-nonblocking-pipe-child.c test-nonblocking-pipe-main.c \
+	test-nonblocking-socket-child.c test-nonblocking-socket-main.c \
+	test-open.c test-openpty.c test-passfd.c test-pathmax.c \
+	test-perror.c test-perror2.c test-pipe.c test-pipe2.c \
+	test-poll.c test-poll-h.c test-posix_openpt.c \
+	test-posix_spawn1.c test-posix_spawn2.c \
 	test-posix_spawn_file_actions_addclose.c \
 	test-posix_spawn_file_actions_adddup2.c \
 	test-posix_spawn_file_actions_addopen.c \
@@ -2523,6 +2530,7 @@ HAVE_DECL_STRTOUMAX = @HAVE_DECL_STRTOUMAX@
 HAVE_DECL_TANL = @HAVE_DECL_TANL@
 HAVE_DECL_TCGETSID = @HAVE_DECL_TCGETSID@
 HAVE_DECL_TRUNC = @HAVE_DECL_TRUNC@
+HAVE_DECL_TRUNCATE = @HAVE_DECL_TRUNCATE@
 HAVE_DECL_TRUNCF = @HAVE_DECL_TRUNCF@
 HAVE_DECL_TRUNCL = @HAVE_DECL_TRUNCL@
 HAVE_DECL_TTYNAME_R = @HAVE_DECL_TTYNAME_R@
@@ -2580,6 +2588,7 @@ HAVE_HYPOTL = @HAVE_HYPOTL@
 HAVE_ILOGB = @HAVE_ILOGB@
 HAVE_ILOGBF = @HAVE_ILOGBF@
 HAVE_ILOGBL = @HAVE_ILOGBL@
+HAVE_IMAXDIV_T = @HAVE_IMAXDIV_T@
 HAVE_INTTYPES_H = @HAVE_INTTYPES_H@
 HAVE_ISBLANK = @HAVE_ISBLANK@
 HAVE_ISNAND = @HAVE_ISNAND@
@@ -2740,7 +2749,6 @@ HAVE_TANL = @HAVE_TANL@
 HAVE_TERMIOS_H = @HAVE_TERMIOS_H@
 HAVE_TIMEGM = @HAVE_TIMEGM@
 HAVE_TIMEZONE_T = @HAVE_TIMEZONE_T@
-HAVE_TRUNCATE = @HAVE_TRUNCATE@
 HAVE_TYPE_VOLATILE_SIG_ATOMIC_T = @HAVE_TYPE_VOLATILE_SIG_ATOMIC_T@
 HAVE_TZSET = @HAVE_TZSET@
 HAVE_UNAME = @HAVE_UNAME@
@@ -2817,6 +2825,8 @@ IP6TABLES_PATH = @IP6TABLES_PATH@
 IPTABLES_PATH = @IPTABLES_PATH@
 IP_PATH = @IP_PATH@
 ISCSIADM = @ISCSIADM@
+JANSSON_CFLAGS = @JANSSON_CFLAGS@
+JANSSON_LIBS = @JANSSON_LIBS@
 LD = @LD@
 LDEXP_LIBM = @LDEXP_LIBM@
 LDFLAGS = @LDFLAGS@
@@ -3033,7 +3043,6 @@ PVCREATE = @PVCREATE@
 PVREMOVE = @PVREMOVE@
 PVS = @PVS@
 PYTHON = @PYTHON@
-QEMU = @QEMU@
 QEMU_BRIDGE_HELPER = @QEMU_BRIDGE_HELPER@
 QEMU_PR_HELPER = @QEMU_PR_HELPER@
 RADVD = @RADVD@
@@ -3297,6 +3306,8 @@ SIG_ATOMIC_T_SUFFIX = @SIG_ATOMIC_T_SUFFIX@
 SIZE_T_SUFFIX = @SIZE_T_SUFFIX@
 SSH2_CFLAGS = @SSH2_CFLAGS@
 SSH2_LIBS = @SSH2_LIBS@
+STABLE_ORDERING_JANSSON_CFLAGS = @STABLE_ORDERING_JANSSON_CFLAGS@
+STABLE_ORDERING_JANSSON_LIBS = @STABLE_ORDERING_JANSSON_LIBS@
 STATIC_BINARIES = @STATIC_BINARIES@
 STDALIGN_H = @STDALIGN_H@
 STDARG_H = @STDARG_H@
@@ -3349,8 +3360,6 @@ XENAPI_LIBS = @XENAPI_LIBS@
 XGETTEXT = @XGETTEXT@
 XMLLINT = @XMLLINT@
 XSLTPROC = @XSLTPROC@
-YAJL_CFLAGS = @YAJL_CFLAGS@
-YAJL_LIBS = @YAJL_LIBS@
 ZFS = @ZFS@
 ZPOOL = @ZPOOL@
 abs_aux_dir = @abs_aux_dir@
@@ -3551,13 +3560,13 @@ EXTRA_DIST = test-accept.c signature.h macros.h test-alloca-opt.c \
 	nan.h macros.h test-langinfo.c test-ldexp.c test-ldexp.h \
 	minus-zero.h infinity.h nan.h signature.h macros.h randomd.c \
 	test-limits-h.c test-listen.c signature.h macros.h \
-	test-locale.c test-localeconv.c signature.h macros.h \
-	localename.h test-localename.c macros.h test-lseek.c \
-	test-lseek.sh signature.h macros.h test-lstat.h test-lstat.c \
-	signature.h macros.h test-malloca.c math.in.h test-math.c \
-	macros.h test-mbrtowc1.sh test-mbrtowc2.sh test-mbrtowc3.sh \
-	test-mbrtowc4.sh test-mbrtowc5.sh test-mbrtowc.c \
-	test-mbrtowc-w32-1.sh test-mbrtowc-w32-2.sh \
+	test-localcharset.c test-locale.c test-localeconv.c \
+	signature.h macros.h localename.h test-localename.c macros.h \
+	test-lseek.c test-lseek.sh signature.h macros.h test-lstat.h \
+	test-lstat.c signature.h macros.h test-malloca.c math.in.h \
+	test-math.c macros.h test-mbrtowc1.sh test-mbrtowc2.sh \
+	test-mbrtowc3.sh test-mbrtowc4.sh test-mbrtowc5.sh \
+	test-mbrtowc.c test-mbrtowc-w32-1.sh test-mbrtowc-w32-2.sh \
 	test-mbrtowc-w32-3.sh test-mbrtowc-w32-4.sh \
 	test-mbrtowc-w32-5.sh test-mbrtowc-w32.c signature.h macros.h \
 	test-mbsinit.sh test-mbsinit.c signature.h macros.h \
@@ -4163,6 +4172,10 @@ test-listen$(EXEEXT): $(test_listen_OBJECTS) $(test_listen_DEPENDENCIES) $(EXTRA
 	@rm -f test-listen$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_listen_OBJECTS) $(test_listen_LDADD) $(LIBS)
 
+test-localcharset$(EXEEXT): $(test_localcharset_OBJECTS) $(test_localcharset_DEPENDENCIES) $(EXTRA_test_localcharset_DEPENDENCIES) 
+	@rm -f test-localcharset$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_localcharset_OBJECTS) $(test_localcharset_LDADD) $(LIBS)
+
 test-locale$(EXEEXT): $(test_locale_OBJECTS) $(test_locale_DEPENDENCIES) $(EXTRA_test_locale_DEPENDENCIES) 
 	@rm -f test-locale$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_locale_OBJECTS) $(test_locale_LDADD) $(LIBS)
@@ -4738,6 +4751,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-ldexp.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-limits-h.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-listen.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-localcharset.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-locale.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-localeconv.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-localename.Po@am__quote@
@@ -6894,6 +6908,7 @@ inttypes.h: inttypes.in.h $(top_builddir)/config.status $(CXXDEFS_H) $(WARN_ON_U
 	      -e 's/@''HAVE_DECL_IMAXDIV''@/$(HAVE_DECL_IMAXDIV)/g' \
 	      -e 's/@''HAVE_DECL_STRTOIMAX''@/$(HAVE_DECL_STRTOIMAX)/g' \
 	      -e 's/@''HAVE_DECL_STRTOUMAX''@/$(HAVE_DECL_STRTOUMAX)/g' \
+	      -e 's/@''HAVE_IMAXDIV_T''@/$(HAVE_IMAXDIV_T)/g' \
 	      -e 's/@''REPLACE_STRTOIMAX''@/$(REPLACE_STRTOIMAX)/g' \
 	      -e 's/@''REPLACE_STRTOUMAX''@/$(REPLACE_STRTOUMAX)/g' \
 	      -e 's/@''INT32_MAX_LT_INTMAX_MAX''@/$(INT32_MAX_LT_INTMAX_MAX)/g' \

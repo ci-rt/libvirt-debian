@@ -1441,6 +1441,7 @@ libxlMakeVfb(virPortAllocatorRangePtr graphicsports,
         case VIR_DOMAIN_GRAPHICS_TYPE_RDP:
         case VIR_DOMAIN_GRAPHICS_TYPE_DESKTOP:
         case VIR_DOMAIN_GRAPHICS_TYPE_SPICE:
+        case VIR_DOMAIN_GRAPHICS_TYPE_EGL_HEADLESS:
         case VIR_DOMAIN_GRAPHICS_TYPE_LAST:
             break;
     }
@@ -2364,7 +2365,7 @@ libxlDriverNodeGetInfo(libxlDriverPrivatePtr driver, virNodeInfoPtr info)
         goto cleanup;
     }
 
-    if (virStrcpyStatic(info->model, virArchToString(hostarch)) == NULL) {
+    if (virStrcpyStatic(info->model, virArchToString(hostarch)) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("machine type %s too big for destination"),
                        virArchToString(hostarch));
