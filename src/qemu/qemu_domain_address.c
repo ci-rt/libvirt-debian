@@ -376,28 +376,6 @@ qemuDomainPrimeVirtioDeviceAddresses(virDomainDefPtr def,
     }
 }
 
-virDomainCCWAddressSetPtr
-qemuDomainCCWAddrSetCreateFromDomain(virDomainDefPtr def)
-{
-    virDomainCCWAddressSetPtr addrs = NULL;
-
-    if (!(addrs = virDomainCCWAddressSetCreate()))
-        goto error;
-
-    if (virDomainDeviceInfoIterate(def, virDomainCCWAddressValidate,
-                                   addrs) < 0)
-        goto error;
-
-    if (virDomainDeviceInfoIterate(def, virDomainCCWAddressAllocate,
-                                   addrs) < 0)
-        goto error;
-
-    return addrs;
-
- error:
-    virDomainCCWAddressSetFree(addrs);
-    return NULL;
-}
 
 /*
  * Three steps populating CCW devnos
@@ -420,7 +398,7 @@ qemuDomainAssignS390Addresses(virDomainDefPtr def,
         qemuDomainPrimeVirtioDeviceAddresses(
             def, VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW);
 
-        if (!(addrs = qemuDomainCCWAddrSetCreateFromDomain(def)))
+        if (!(addrs = virDomainCCWAddressSetCreateFromDomain(def)))
             goto cleanup;
 
     } else if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_S390)) {
@@ -821,6 +799,7 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
 
         case VIR_DOMAIN_VIDEO_TYPE_DEFAULT:
         case VIR_DOMAIN_VIDEO_TYPE_GOP:
+        case VIR_DOMAIN_VIDEO_TYPE_NONE:
         case VIR_DOMAIN_VIDEO_TYPE_LAST:
             return 0;
         }
@@ -1532,7 +1511,8 @@ qemuDomainValidateDevicePCISlotsPIIX3(virDomainDefPtr def,
             goto cleanup;
     }
 
-    if (def->nvideos > 0) {
+    if (def->nvideos > 0 &&
+        def->videos[0]->type != VIR_DOMAIN_VIDEO_TYPE_NONE) {
         /* Because the PIIX3 integrated IDE/USB controllers are
          * already at slot 1, when qemu looks for the first free slot
          * to place the VGA controller (which is always the first
@@ -1540,6 +1520,7 @@ qemuDomainValidateDevicePCISlotsPIIX3(virDomainDefPtr def,
          * at slot 2.
          */
         virDomainVideoDefPtr primaryVideo = def->videos[0];
+
         if (virDeviceInfoPCIAddressWanted(&primaryVideo->info)) {
             memset(&tmp_addr, 0, sizeof(tmp_addr));
             tmp_addr.slot = 2;
@@ -1720,10 +1701,11 @@ qemuDomainValidateDevicePCISlotsQ35(virDomainDefPtr def,
            goto cleanup;
     }
 
-    if (def->nvideos > 0) {
+    if (def->nvideos > 0 &&
+        def->videos[0]->type != VIR_DOMAIN_VIDEO_TYPE_NONE) {
         /* NB: unlike the pc machinetypes, on q35 machinetypes the
          * integrated devices are at slot 0x1f, so when qemu looks for
-         * the first free lot for the first VGA, it will always be at
+         * the first free slot for the first VGA, it will always be at
          * slot 1 (which was used up by the integrated PIIX3 devices
          * on pc machinetypes).
          */
@@ -2103,15 +2085,11 @@ qemuDomainAssignDevicePCISlots(virDomainDefPtr def,
             goto error;
     }
 
-    /* Assign a PCI slot to the primary video card if there is not an
-     * assigned address. */
-    if (def->nvideos > 0 &&
-        virDeviceInfoPCIAddressWanted(&def->videos[0]->info)) {
-        if (qemuDomainPCIAddressReserveNextAddr(addrs, &def->videos[0]->info) < 0)
-            goto error;
-    }
+    /* Video devices */
+    for (i = 0; i < def->nvideos; i++) {
+        if (def->videos[i]->type == VIR_DOMAIN_VIDEO_TYPE_NONE)
+            continue;
 
-    for (i = 1; i < def->nvideos; i++) {
         if (!virDeviceInfoPCIAddressWanted(&def->videos[i]->info))
             continue;
 
@@ -3027,7 +3005,7 @@ qemuDomainEnsureVirtioAddress(bool *releaseAddr,
     }
 
     if (info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW) {
-        if (!(ccwaddrs = qemuDomainCCWAddrSetCreateFromDomain(vm->def)))
+        if (!(ccwaddrs = virDomainCCWAddressSetCreateFromDomain(vm->def)))
             goto cleanup;
         if (virDomainCCWAddressAssign(info, ccwaddrs,
                                       !info->addr.ccw.assigned) < 0)

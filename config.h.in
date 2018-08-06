@@ -58,6 +58,39 @@
 #ifndef __powerpc64_elfv2__
 #undef __powerpc64_elfv2__
 #endif
+#ifndef __riscv32__
+#undef __riscv32__
+#endif
+#ifndef __riscv64__
+#undef __riscv64__
+#endif
+#ifndef __riscv32_ilp32__
+#undef __riscv32_ilp32__
+#endif
+#ifndef __riscv32_ilp32f__
+#undef __riscv32_ilp32f__
+#endif
+#ifndef __riscv32_ilp32d__
+#undef __riscv32_ilp32d__
+#endif
+#ifndef __riscv64_ilp32__
+#undef __riscv64_ilp32__
+#endif
+#ifndef __riscv64_ilp32f__
+#undef __riscv64_ilp32f__
+#endif
+#ifndef __riscv64_ilp32d__
+#undef __riscv64_ilp32d__
+#endif
+#ifndef __riscv64_lp64__
+#undef __riscv64_lp64__
+#endif
+#ifndef __riscv64_lp64f__
+#undef __riscv64_lp64f__
+#endif
+#ifndef __riscv64_lp64d__
+#undef __riscv64_lp64d__
+#endif
 #ifndef __s390__
 #undef __s390__
 #endif
@@ -1072,6 +1105,10 @@
    */
 #undef HAVE_DECL_WCTOB
 
+/* Define to 1 if you have the declaration of `_fseeki64', and to 0 if you
+   don't. */
+#undef HAVE_DECL__FSEEKI64
+
 /* Define to 1 if you have the declaration of `_putenv', and to 0 if you
    don't. */
 #undef HAVE_DECL__PUTENV
@@ -1114,9 +1151,6 @@
 
 /* Define to 1 if you have the <features.h> header file. */
 #undef HAVE_FEATURES_H
-
-/* Define to 1 if you have the 'ffs' function. */
-#undef HAVE_FFS
 
 /* Define to 1 if you have the 'ffsl' function. */
 #undef HAVE_FFSL
@@ -1193,9 +1227,6 @@
 /* Define to 1 if you have the `getopt_long_only' function. */
 #undef HAVE_GETOPT_LONG_ONLY
 
-/* Define to 1 if you have the `getpagesize' function. */
-#undef HAVE_GETPAGESIZE
-
 /* Define to 1 if you have the `getpass' function. */
 #undef HAVE_GETPASS
 
@@ -1219,9 +1250,6 @@
 
 /* Define to 1 if you have the 'getuid' function. */
 #undef HAVE_GETUID
-
-/* Define to 1 if you have the `grantpt' function. */
-#undef HAVE_GRANTPT
 
 /* Define to 1 if you have the <grp.h> header file. */
 #undef HAVE_GRP_H
@@ -1364,9 +1392,6 @@
 
 /* Define to 1 if you have the `libxl_domain_config_from_json' function. */
 #undef HAVE_LIBXL_DOMAIN_CONFIG_FROM_JSON
-
-/* Define to 1 if you have the `yajl' library (-lyajl). */
-#undef HAVE_LIBYAJL
 
 /* Define to 1 if you have the <limits.h> header file. */
 #undef HAVE_LIMITS_H
@@ -1983,10 +2008,10 @@
 /* Define to 1 if you have the `table' function. */
 #undef HAVE_TABLE
 
-/* Define to 1 if you have the 'tcgetattr' function. */
+/* Define to 1 if the system has the 'tcgetattr' function. */
 #undef HAVE_TCGETATTR
 
-/* Define to 1 if you have the 'tcsetattr' function. */
+/* Define to 1 if the system has the 'tcsetattr' function. */
 #undef HAVE_TCSETATTR
 
 /* Define to 1 if you have the <termios.h> header file. */
@@ -2116,6 +2141,9 @@
 
 /* Define to 1 if you have the `xdr_u_int64_t' function. */
 #undef HAVE_XDR_U_INT64_T
+
+/* Define to 1 if you have the <xfs/xfs.h> header file. */
+#undef HAVE_XFS_XFS_H
 
 /* Define to 1 if you have the <xlocale.h> header file. */
 #undef HAVE_XLOCALE_H
@@ -2716,6 +2744,9 @@
 /* whether the interface driver is enabled */
 #undef WITH_INTERFACE
 
+/* whether jansson >= 2.5 is available */
+#undef WITH_JANSSON
+
 /* whether libparted >= $PARTED_REQUIRED is available */
 #undef WITH_LIBPARTED
 
@@ -2806,6 +2837,9 @@
 /* whether libssh2 >= 1.3 is available */
 #undef WITH_SSH2
 
+/* whether jansson >= 2.8 is available */
+#undef WITH_STABLE_ORDERING_JANSSON
+
 /* Define to 1 if at least one storage backend is in use */
 #undef WITH_STORAGE
 
@@ -2874,12 +2908,6 @@
 
 /* whether libxenserver is available */
 #undef WITH_XENAPI
-
-/* whether libyajl is available */
-#undef WITH_YAJL
-
-/* whether libyajl is available */
-#undef WITH_YAJL2
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */
@@ -3244,6 +3272,13 @@
 # define _GL_ATTRIBUTE_CONST __attribute__ ((__const__))
 #else
 # define _GL_ATTRIBUTE_CONST /* empty */
+#endif
+
+/* The __malloc__ attribute was added in gcc 3.  */
+#if 3 <= __GNUC__
+# define _GL_ATTRIBUTE_MALLOC __attribute__ ((__malloc__))
+#else
+# define _GL_ATTRIBUTE_MALLOC /* empty */
 #endif
 
 

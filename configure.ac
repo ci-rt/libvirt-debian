@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [4.5.0], [libvir-list@redhat.com], [], [https://libvirt.org])
+AC_INIT([libvirt], [4.6.0], [libvir-list@redhat.com], [], [https://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -250,6 +250,7 @@ LIBVIRT_ARG_FIREWALLD
 LIBVIRT_ARG_FUSE
 LIBVIRT_ARG_GLUSTER
 LIBVIRT_ARG_HAL
+LIBVIRT_ARG_JANSSON
 LIBVIRT_ARG_LIBPCAP
 LIBVIRT_ARG_LIBSSH
 LIBVIRT_ARG_LIBXML
@@ -290,6 +291,7 @@ LIBVIRT_CHECK_FUSE
 LIBVIRT_CHECK_GLUSTER
 LIBVIRT_CHECK_GNUTLS
 LIBVIRT_CHECK_HAL
+LIBVIRT_CHECK_JANSSON
 LIBVIRT_CHECK_LIBNL
 LIBVIRT_CHECK_LIBPARTED
 LIBVIRT_CHECK_LIBPCAP
@@ -623,6 +625,13 @@ dnl check for kernel headers required by btrfs ioctl
 dnl
 if test "$with_linux" = "yes"; then
     AC_CHECK_HEADERS([linux/btrfs.h])
+fi
+
+dnl
+dnl check for xfs dev headers required by xfs ioctl
+dnl
+if test "$with_linux" = "yes"; then
+    AC_CHECK_HEADERS([xfs/xfs.h])
 fi
 
 dnl
@@ -963,6 +972,7 @@ LIBVIRT_RESULT_FUSE
 LIBVIRT_RESULT_GLUSTER
 LIBVIRT_RESULT_GNUTLS
 LIBVIRT_RESULT_HAL
+LIBVIRT_RESULT_JANSSON
 LIBVIRT_RESULT_LIBNL
 LIBVIRT_RESULT_LIBPCAP
 LIBVIRT_RESULT_LIBSSH

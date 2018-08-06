@@ -353,7 +353,7 @@ qemuMonitorOpenUnix(const char *monitor,
 
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
-    if (virStrcpyStatic(addr.sun_path, monitor) == NULL) {
+    if (virStrcpyStatic(addr.sun_path, monitor) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Monitor path %s too big for destination"), monitor);
         goto error;
@@ -1670,6 +1670,21 @@ qemuMonitorEmitDumpCompleted(qemuMonitorPtr mon,
 
 
 int
+qemuMonitorEmitPRManagerStatusChanged(qemuMonitorPtr mon,
+                                      const char *prManager,
+                                      bool connected)
+{
+    int ret = -1;
+    VIR_DEBUG("mon=%p, prManager='%s', connected=%d", mon, prManager, connected);
+
+    QEMU_MONITOR_CALLBACK(mon, ret, domainPRManagerStatusChanged,
+                          mon->vm, prManager, connected);
+
+    return ret;
+}
+
+
+int
 qemuMonitorSetCapabilities(qemuMonitorPtr mon)
 {
     QEMU_CHECK_MONITOR(mon);
@@ -2228,15 +2243,19 @@ qemuMonitorGetBlockInfo(qemuMonitorPtr mon)
 /**
  * qemuMonitorQueryBlockstats:
  * @mon: monitor object
+ * @nodenames: include backing chain nodes with explicitly specified name
  *
  * Returns data from a call to 'query-blockstats'.
  */
 virJSONValuePtr
-qemuMonitorQueryBlockstats(qemuMonitorPtr mon)
+qemuMonitorQueryBlockstats(qemuMonitorPtr mon,
+                           bool nodenames)
 {
     QEMU_CHECK_MONITOR_NULL(mon);
 
-    return qemuMonitorJSONQueryBlockstats(mon);
+    VIR_DEBUG("nodenames: %d", nodenames);
+
+    return qemuMonitorJSONQueryBlockstats(mon, nodenames);
 }
 
 
@@ -3073,8 +3092,9 @@ qemuMonitorCreateObjectProps(virJSONValuePtr *propsret,
 /**
  * qemuMonitorAddObject:
  * @mon: Pointer to monitor object
- * @props: Optional arguments for the given type. The object is consumed and
- *         the pointer is cleared.
+ * @props: Pointer to a JSON object holding configuration of the object to add.
+ *         The object must be non-null and contain at least the "qom-type" and
+ *         "id" field. The object is consumed and the pointer is cleared.
  * @alias: If not NULL, returns the alias of the added object if it was added
  *         successfully to qemu. Caller should free the returned pointer.
  *
@@ -3085,18 +3105,28 @@ qemuMonitorAddObject(qemuMonitorPtr mon,
                      virJSONValuePtr *props,
                      char **alias)
 {
-    const char *type = virJSONValueObjectGetString(*props, "qom-type");
-    const char *id = virJSONValueObjectGetString(*props, "id");
+    const char *type = NULL;
+    const char *id = NULL;
     char *tmp = NULL;
     int ret = -1;
+
+    if (!*props) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("object props can't be NULL"));
+        goto cleanup;
+    }
+
+    type = virJSONValueObjectGetString(*props, "qom-type");
+    id = virJSONValueObjectGetString(*props, "id");
 
     VIR_DEBUG("type=%s id=%s", NULLSTR(type), NULLSTR(id));
 
     QEMU_CHECK_MONITOR_GOTO(mon, cleanup);
 
-    if (!id) {
+    if (!id || !type) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("missing alias for qemu object '%s'"), NULLSTR(type));
+                       _("missing alias or qom-type for qemu object '%s'"),
+                       NULLSTR(type));
         goto cleanup;
     }
 
@@ -3174,23 +3204,6 @@ qemuMonitorDeleteSnapshot(qemuMonitorPtr mon, const char *name)
 
     /* there won't ever be a direct QMP replacement for this function */
     return qemuMonitorTextDeleteSnapshot(mon, name);
-}
-
-
-/* Use the snapshot_blkdev command to convert the existing file for
- * device into a read-only backing file of a new qcow2 image located
- * at file.  */
-int
-qemuMonitorDiskSnapshot(qemuMonitorPtr mon, virJSONValuePtr actions,
-                        const char *device, const char *file,
-                        const char *format, bool reuse)
-{
-    VIR_DEBUG("actions=%p, device=%s, file=%s, format=%s, reuse=%d",
-              actions, device, file, format, reuse);
-
-    QEMU_CHECK_MONITOR(mon);
-
-    return qemuMonitorJSONDiskSnapshot(mon, actions, device, file, format, reuse);
 }
 
 
@@ -4319,4 +4332,29 @@ qemuMonitorGetSEVMeasurement(qemuMonitorPtr mon)
     QEMU_CHECK_MONITOR_NULL(mon);
 
     return qemuMonitorJSONGetSEVMeasurement(mon);
+}
+
+
+int
+qemuMonitorGetPRManagerInfo(qemuMonitorPtr mon,
+                            virHashTablePtr *retinfo)
+{
+    int ret = -1;
+    virHashTablePtr info = NULL;
+
+    *retinfo = NULL;
+
+    QEMU_CHECK_MONITOR(mon);
+
+    if (!(info = virHashCreate(10, virHashValueFree)))
+        goto cleanup;
+
+    if (qemuMonitorJSONGetPRManagerInfo(mon, info) < 0)
+        goto cleanup;
+
+    VIR_STEAL_PTR(*retinfo, info);
+    ret = 0;
+ cleanup:
+    virHashFree(info);
+    return ret;
 }

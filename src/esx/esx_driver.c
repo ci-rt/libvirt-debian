@@ -626,10 +626,7 @@ esxConnectToHost(esxPrivate *priv,
         ? esxVI_ProductLine_ESX
         : esxVI_ProductLine_GSX;
 
-    if (!vCenterIPAddress || *vCenterIPAddress) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
-        return -1;
-    }
+    ESX_VI_CHECK_ARG_LIST(vCenterIPAddress);
 
     if (esxUtil_ResolveHostname(conn->uri->server, ipAddress, NI_MAXHOST) < 0)
         return -1;
@@ -857,13 +854,6 @@ esxConnectOpen(virConnectPtr conn, virConnectAuthPtr auth,
                  conn->uri->path, conn->uri->scheme);
     }
 
-    /* Require server part */
-    if (!conn->uri->server) {
-        virReportError(VIR_ERR_INVALID_ARG, "%s",
-                       _("URI is missing the server part"));
-        return VIR_DRV_OPEN_ERROR;
-    }
-
     /* Require auth */
     if (!auth || !auth->cb) {
         virReportError(VIR_ERR_INVALID_ARG, "%s",
@@ -924,8 +914,8 @@ esxConnectOpen(virConnectPtr conn, virConnectAuthPtr auth,
                     goto cleanup;
                 }
 
-                if (!virStrcpyStatic(vCenterIPAddress,
-                                     potentialVCenterIPAddress)) {
+                if (virStrcpyStatic(vCenterIPAddress,
+                                    potentialVCenterIPAddress) < 0) {
                     virReportError(VIR_ERR_INTERNAL_ERROR,
                                    _("vCenter IP address %s too big for destination"),
                                    potentialVCenterIPAddress);
@@ -1327,9 +1317,7 @@ esxNodeGetInfo(virConnectPtr conn, virNodeInfoPtr nodeinfo)
                 ++ptr;
             }
 
-            if (!virStrncpy(nodeinfo->model, dynamicProperty->val->string,
-                            sizeof(nodeinfo->model) - 1,
-                            sizeof(nodeinfo->model))) {
+            if (virStrcpyStatic(nodeinfo->model, dynamicProperty->val->string) < 0) {
                 virReportError(VIR_ERR_INTERNAL_ERROR,
                                _("CPU Model %s too long for destination"),
                                dynamicProperty->val->string);
@@ -1577,12 +1565,7 @@ esxDomainLookupByName(virConnectPtr conn, const char *name)
                                            "config.uuid\0") < 0 ||
         esxVI_LookupVirtualMachineByName(priv->primary, name, propertyNameList,
                                          &virtualMachine,
-                                         esxVI_Occurrence_OptionalItem) < 0) {
-        goto cleanup;
-    }
-
-    if (!virtualMachine) {
-        virReportError(VIR_ERR_NO_DOMAIN, _("No domain with name '%s'"), name);
+                                         esxVI_Occurrence_RequiredItem) < 0) {
         goto cleanup;
     }
 
@@ -2488,10 +2471,7 @@ esxDomainSetVcpusFlags(virDomainPtr domain, unsigned int nvcpus,
     esxVI_TaskInfoState taskInfoState;
     char *taskInfoErrorMessage = NULL;
 
-    if (flags != VIR_DOMAIN_AFFECT_LIVE) {
-        virReportError(VIR_ERR_INVALID_ARG, _("unsupported flags: (0x%x)"), flags);
-        return -1;
-    }
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE, -1);
 
     if (nvcpus < 1) {
         virReportError(VIR_ERR_INVALID_ARG, "%s",
@@ -2570,10 +2550,8 @@ esxDomainGetVcpusFlags(virDomainPtr domain, unsigned int flags)
     esxVI_ObjectContent *hostSystem = NULL;
     esxVI_DynamicProperty *dynamicProperty = NULL;
 
-    if (flags != (VIR_DOMAIN_AFFECT_LIVE | VIR_DOMAIN_VCPU_MAXIMUM)) {
-        virReportError(VIR_ERR_INVALID_ARG, _("unsupported flags: (0x%x)"), flags);
-        return -1;
-    }
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_VCPU_MAXIMUM, -1);
 
     if (priv->maxVcpus > 0)
         return priv->maxVcpus;
@@ -3408,7 +3386,10 @@ esxDomainSetAutostart(virDomainPtr domain, int autostart)
     if (esxVI_AutoStartPowerInfo_Alloc(&newPowerInfo) < 0 ||
         esxVI_Int_Alloc(&newPowerInfo->startOrder) < 0 ||
         esxVI_Int_Alloc(&newPowerInfo->startDelay) < 0 ||
-        esxVI_Int_Alloc(&newPowerInfo->stopDelay) < 0) {
+        esxVI_Int_Alloc(&newPowerInfo->stopDelay) < 0 ||
+        esxVI_AutoStartPowerInfo_AppendToList(&spec->powerInfo,
+                                              newPowerInfo) < 0) {
+        esxVI_AutoStartPowerInfo_Free(&newPowerInfo);
         goto cleanup;
     }
 
@@ -3419,13 +3400,6 @@ esxDomainSetAutostart(virDomainPtr domain, int autostart)
     newPowerInfo->startAction = autostart ? (char *)"powerOn" : (char *)"none";
     newPowerInfo->stopDelay->value = -1; /* use system default */
     newPowerInfo->stopAction = (char *)"none";
-
-    if (esxVI_AutoStartPowerInfo_AppendToList(&spec->powerInfo,
-                                              newPowerInfo) < 0) {
-        goto cleanup;
-    }
-
-    newPowerInfo = NULL;
 
     if (esxVI_ReconfigureAutostart
           (priv->primary,
@@ -3447,8 +3421,6 @@ esxDomainSetAutostart(virDomainPtr domain, int autostart)
     esxVI_HostAutoStartManagerConfig_Free(&spec);
     esxVI_AutoStartDefaults_Free(&defaults);
     esxVI_AutoStartPowerInfo_Free(&powerInfoList);
-
-    esxVI_AutoStartPowerInfo_Free(&newPowerInfo);
 
     return result;
 }
@@ -4000,11 +3972,7 @@ esxConnectIsEncrypted(virConnectPtr conn)
 {
     esxPrivate *priv = conn->privateData;
 
-    if (STRCASEEQ(priv->parsedUri->transport, "https")) {
-        return 1;
-    } else {
-        return 0;
-    }
+    return STRCASEEQ(priv->parsedUri->transport, "https");
 }
 
 
@@ -4014,11 +3982,7 @@ esxConnectIsSecure(virConnectPtr conn)
 {
     esxPrivate *priv = conn->privateData;
 
-    if (STRCASEEQ(priv->parsedUri->transport, "https")) {
-        return 1;
-    } else {
-        return 0;
-    }
+    return STRCASEEQ(priv->parsedUri->transport, "https");
 }
 
 
@@ -5234,6 +5198,7 @@ static virHypervisorDriver esxHypervisorDriver = {
 
 
 static virConnectDriver esxConnectDriver = {
+    .remoteOnly = true,
     .uriSchemes = (const char *[]){ "vpx", "esx", "gsx", NULL },
     .hypervisorDriver = &esxHypervisorDriver,
     .interfaceDriver = &esxInterfaceDriver,

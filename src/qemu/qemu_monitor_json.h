@@ -32,6 +32,10 @@
 # include "cpu/cpu.h"
 # include "util/virgic.h"
 
+int qemuMonitorJSONTransactionAdd(virJSONValuePtr actions,
+                                  const char *cmdname,
+                                  ...);
+
 int qemuMonitorJSONIOProcessLine(qemuMonitorPtr mon,
                                  const char *line,
                                  qemuMonitorMessagePtr msg);
@@ -82,7 +86,8 @@ int qemuMonitorJSONSetMemoryStatsPeriod(qemuMonitorPtr mon,
 int qemuMonitorJSONGetBlockInfo(qemuMonitorPtr mon,
                                 virHashTablePtr table);
 
-virJSONValuePtr qemuMonitorJSONQueryBlockstats(qemuMonitorPtr mon);
+virJSONValuePtr qemuMonitorJSONQueryBlockstats(qemuMonitorPtr mon,
+                                               bool nodenames);
 int qemuMonitorJSONGetAllBlockStatsInfo(qemuMonitorPtr mon,
                                         virHashTablePtr hash,
                                         bool backingChain);
@@ -238,14 +243,6 @@ int qemuMonitorJSONAddObject(qemuMonitorPtr mon,
 int qemuMonitorJSONDelObject(qemuMonitorPtr mon,
                              const char *objalias);
 
-int qemuMonitorJSONDiskSnapshot(qemuMonitorPtr mon,
-                                virJSONValuePtr actions,
-                                const char *device,
-                                const char *file,
-                                const char *format,
-                                bool reuse)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(3)
-    ATTRIBUTE_NONNULL(4) ATTRIBUTE_NONNULL(5);
 int qemuMonitorJSONTransaction(qemuMonitorPtr mon, virJSONValuePtr *actions)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 int qemuMonitorJSONDriveMirror(qemuMonitorPtr mon,
@@ -548,6 +545,10 @@ int qemuMonitorJSONBlockdevAdd(qemuMonitorPtr mon,
 
 int qemuMonitorJSONBlockdevDel(qemuMonitorPtr mon,
                                const char *nodename)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+int qemuMonitorJSONGetPRManagerInfo(qemuMonitorPtr mon,
+                                    virHashTablePtr info)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 #endif /* QEMU_MONITOR_JSON_H */

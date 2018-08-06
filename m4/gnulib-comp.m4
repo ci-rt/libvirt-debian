@@ -239,6 +239,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module listen:
   # Code from module listen-tests:
   # Code from module localcharset:
+  # Code from module localcharset-tests:
   # Code from module locale:
   # Code from module locale-tests:
   # Code from module localeconv:
@@ -782,7 +783,6 @@ AC_SUBST([LTALLOCA])
           m4_defn([m4_PACKAGE_VERSION])), [1], [],
         [AC_CONFIG_LINKS([$GNUmakefile:$GNUmakefile], [],
           [GNUmakefile=$GNUmakefile])])
-  gl_HARD_LOCALE
   AC_REQUIRE([gl_HOST_CPU_C_ABI])
   gl_HOSTENT
   gl_FUNC_INET_NTOP
@@ -818,7 +818,8 @@ AC_SUBST([LTALLOCA])
   fi
   gl_SYS_SOCKET_MODULE_INDICATOR([listen])
   gl_LOCALCHARSET
-  LOCALCHARSET_TESTS_ENVIRONMENT="CHARSETALIASDIR=\"\$(abs_top_builddir)/$gl_source_base\""
+  dnl For backward compatibility. Some packages still use this.
+  LOCALCHARSET_TESTS_ENVIRONMENT=
   AC_SUBST([LOCALCHARSET_TESTS_ENVIRONMENT])
   gl_LOCALE_H
   gl_FUNC_LOCALECONV
@@ -1744,7 +1745,6 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/cloexec.c
   lib/cloexec.h
   lib/close.c
-  lib/config.charset
   lib/connect.c
   lib/count-leading-zeros.c
   lib/count-leading-zeros.h
@@ -1889,8 +1889,6 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/readlink.c
   lib/realloc.c
   lib/recv.c
-  lib/ref-add.sin
-  lib/ref-del.sin
   lib/regcomp.c
   lib/regex.c
   lib/regex.h
@@ -2063,7 +2061,6 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/glibc21.m4
   m4/gnulib-common.m4
   m4/grantpt.m4
-  m4/hard-locale.m4
   m4/host-cpu-c-abi.m4
   m4/hostent.m4
   m4/include_next.m4
@@ -2366,6 +2363,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-ldexp.h
   tests/test-limits-h.c
   tests/test-listen.c
+  tests/test-localcharset.c
   tests/test-locale.c
   tests/test-localeconv.c
   tests/test-localename.c

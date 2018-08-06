@@ -152,6 +152,7 @@ VIR_ENUM_IMPL(virDomainFeature, VIR_DOMAIN_FEATURE_LAST,
               "ioapic",
               "hpt",
               "vmcoreinfo",
+              "htm",
 );
 
 VIR_ENUM_IMPL(virDomainCapabilitiesPolicy, VIR_DOMAIN_CAPABILITIES_POLICY_LAST,
@@ -589,7 +590,8 @@ VIR_ENUM_IMPL(virDomainVideo, VIR_DOMAIN_VIDEO_TYPE_LAST,
               "qxl",
               "parallels",
               "virtio",
-              "gop")
+              "gop",
+              "none")
 
 VIR_ENUM_IMPL(virDomainVideoVGAConf, VIR_DOMAIN_VIDEO_VGACONF_LAST,
               "io",
@@ -614,7 +616,8 @@ VIR_ENUM_IMPL(virDomainGraphics, VIR_DOMAIN_GRAPHICS_TYPE_LAST,
               "vnc",
               "rdp",
               "desktop",
-              "spice")
+              "spice",
+              "egl-headless")
 
 VIR_ENUM_IMPL(virDomainGraphicsListen, VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_LAST,
               "none",
@@ -1425,6 +1428,7 @@ void virDomainGraphicsDefFree(virDomainGraphicsDefPtr def)
         virDomainGraphicsAuthDefClear(&def->data.spice.auth);
         break;
 
+    case VIR_DOMAIN_GRAPHICS_TYPE_EGL_HEADLESS:
     case VIR_DOMAIN_GRAPHICS_TYPE_LAST:
         break;
     }
@@ -2537,7 +2541,8 @@ virDomainVideoDefNew(void)
 }
 
 
-void virDomainVideoDefFree(virDomainVideoDefPtr def)
+void
+virDomainVideoDefClear(virDomainVideoDefPtr def)
 {
     if (!def)
         return;
@@ -2547,6 +2552,17 @@ void virDomainVideoDefFree(virDomainVideoDefPtr def)
     VIR_FREE(def->accel);
     VIR_FREE(def->virtio);
     VIR_FREE(def->driver);
+
+    memset(def, 0, sizeof(*def));
+}
+
+
+void virDomainVideoDefFree(virDomainVideoDefPtr def)
+{
+    if (!def)
+        return;
+
+    virDomainVideoDefClear(def);
     VIR_FREE(def);
 }
 
@@ -4523,20 +4539,10 @@ virDomainHostdevDefPostParse(virDomainHostdevDefPtr dev,
         if (dev->info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
             return 0;
 
-        if (model == VIR_MDEV_MODEL_TYPE_VFIO_PCI &&
-            dev->info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
-            virReportError(VIR_ERR_XML_ERROR,
-                           _("Unsupported address type '%s' with mediated "
-                             "device model '%s'"),
-                           virDomainDeviceAddressTypeToString(dev->info->type),
-                           virMediatedDeviceModelTypeToString(model));
-            return -1;
-        }
-
         if ((model == VIR_MDEV_MODEL_TYPE_VFIO_PCI &&
-            dev->info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) ||
+             dev->info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) ||
             (model == VIR_MDEV_MODEL_TYPE_VFIO_CCW &&
-            dev->info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW)) {
+             dev->info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW)) {
             virReportError(VIR_ERR_XML_ERROR,
                            _("Unsupported address type '%s' with mediated "
                              "device model '%s'"),
@@ -5085,6 +5091,42 @@ virDomainDefBootOrderPostParse(virDomainDefPtr def)
 
 
 static int
+virDomainDefPostParseVideo(virDomainDefPtr def,
+                           void *opaque)
+{
+    if (def->nvideos == 0)
+        return 0;
+
+    if (def->videos[0]->type == VIR_DOMAIN_VIDEO_TYPE_NONE) {
+        /* we don't want to format any values we automatically fill in for
+         * videos into the XML, so clear them
+         */
+        virDomainVideoDefClear(def->videos[0]);
+        def->videos[0]->type = VIR_DOMAIN_VIDEO_TYPE_NONE;
+    } else {
+        virDomainDeviceDef device = {
+            .type = VIR_DOMAIN_DEVICE_VIDEO,
+            .data.video = def->videos[0],
+        };
+
+        /* Mark the first video as primary. If the user specified
+         * primary="yes", the parser already inserted the device at
+         * def->videos[0]
+         */
+        def->videos[0]->primary = true;
+
+        /* videos[0] might have been added in AddImplicitDevices, after we've
+         * done the per-device post-parse */
+        if (virDomainDefPostParseDeviceIterator(def, &device,
+                                                NULL, opaque) < 0)
+            return -1;
+    }
+
+    return 0;
+}
+
+
+static int
 virDomainDefPostParseCommon(virDomainDefPtr def,
                             struct virDomainDefPostParseDeviceIteratorData *data)
 {
@@ -5120,21 +5162,8 @@ virDomainDefPostParseCommon(virDomainDefPtr def,
     if (virDomainDefAddImplicitDevices(def) < 0)
         return -1;
 
-    if (def->nvideos != 0) {
-        virDomainDeviceDef device = {
-            .type = VIR_DOMAIN_DEVICE_VIDEO,
-            .data.video = def->videos[0],
-        };
-
-        /* Mark the first video as primary. If the user specified primary="yes",
-         * the parser already inserted the device at def->videos[0] */
-        def->videos[0]->primary = true;
-
-        /* videos[0] might have been added in AddImplicitDevices, after we've
-         * done the per-device post-parse */
-        if (virDomainDefPostParseDeviceIterator(def, &device, NULL, data) < 0)
-            return -1;
-    }
+    if (virDomainDefPostParseVideo(def, data) < 0)
+        return -1;
 
     if (def->nserials != 0) {
         virDomainDeviceDef device = {
@@ -5640,13 +5669,30 @@ virDomainHostdevDefValidate(const virDomainHostdevDef *hostdev)
 
 
 static int
-virDomainVideoDefValidate(const virDomainVideoDef *video)
+virDomainVideoDefValidate(const virDomainVideoDef *video,
+                          const virDomainDef *def)
 {
+    size_t i;
+
     if (video->type == VIR_DOMAIN_VIDEO_TYPE_DEFAULT) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("missing video model and cannot determine default"));
         return -1;
     }
+
+    /* it doesn't make sense to pair video device type 'none' with any other
+     * types, there can be only a single video device in such case
+     */
+    for (i = 0; i < def->nvideos; i++) {
+        if (def->videos[i]->type == VIR_DOMAIN_VIDEO_TYPE_NONE &&
+            def->nvideos > 1) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("a 'none' video type must be the only video device "
+                             "defined for the domain"));
+            return -1;
+        }
+    }
+
     return 0;
 }
 
@@ -5672,6 +5718,29 @@ virDomainVsockDefValidate(const virDomainVsockDef *vsock)
         virReportError(VIR_ERR_XML_ERROR, "%s",
                        _("guest CIDs must be >= 3"));
         return -1;
+    }
+
+    return 0;
+}
+
+static int
+virDomainInputDefValidate(const virDomainInputDef *input)
+{
+    switch ((virDomainInputType) input->type) {
+        case VIR_DOMAIN_INPUT_TYPE_MOUSE:
+        case VIR_DOMAIN_INPUT_TYPE_TABLET:
+        case VIR_DOMAIN_INPUT_TYPE_KBD:
+        case VIR_DOMAIN_INPUT_TYPE_LAST:
+            if (input->source.evdev) {
+                 virReportError(VIR_ERR_XML_ERROR, "%s",
+                                _("setting source evdev path only supported for "
+                                  "passthrough input devices"));
+                 return -1;
+            }
+            break;
+
+        case VIR_DOMAIN_INPUT_TYPE_PASSTHROUGH:
+            break;
     }
 
     return 0;
@@ -5708,7 +5777,7 @@ virDomainDeviceDefValidateInternal(const virDomainDeviceDef *dev,
         return virDomainHostdevDefValidate(dev->data.hostdev);
 
     case VIR_DOMAIN_DEVICE_VIDEO:
-        return virDomainVideoDefValidate(dev->data.video);
+        return virDomainVideoDefValidate(dev->data.video, def);
 
     case VIR_DOMAIN_DEVICE_MEMORY:
         return virDomainMemoryDefValidate(dev->data.memory);
@@ -5716,9 +5785,11 @@ virDomainDeviceDefValidateInternal(const virDomainDeviceDef *dev,
     case VIR_DOMAIN_DEVICE_VSOCK:
         return virDomainVsockDefValidate(dev->data.vsock);
 
+    case VIR_DOMAIN_DEVICE_INPUT:
+        return virDomainInputDefValidate(dev->data.input);
+
     case VIR_DOMAIN_DEVICE_LEASE:
     case VIR_DOMAIN_DEVICE_FS:
-    case VIR_DOMAIN_DEVICE_INPUT:
     case VIR_DOMAIN_DEVICE_SOUND:
     case VIR_DOMAIN_DEVICE_WATCHDOG:
     case VIR_DOMAIN_DEVICE_GRAPHICS:
@@ -7626,6 +7697,7 @@ virDomainHostdevDefParseXMLSubsys(xmlNodePtr node,
     char *rawio = NULL;
     char *backendStr = NULL;
     char *model = NULL;
+    char *display = NULL;
     int backend;
     int ret = -1;
     virDomainHostdevSubsysPCIPtr pcisrc = &def->source.subsys.u.pci;
@@ -7645,6 +7717,7 @@ virDomainHostdevDefParseXMLSubsys(xmlNodePtr node,
     sgio = virXMLPropString(node, "sgio");
     rawio = virXMLPropString(node, "rawio");
     model = virXMLPropString(node, "model");
+    display = virXMLPropString(node, "display");
 
     /* @type is passed in from the caller rather than read from the
      * xml document, because it is specified in different places for
@@ -7660,18 +7733,18 @@ virDomainHostdevDefParseXMLSubsys(xmlNodePtr node,
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("unknown host device source address type '%s'"),
                            type);
-            goto error;
+            goto cleanup;
         }
     } else {
         virReportError(VIR_ERR_XML_ERROR,
                        "%s", _("missing source address type"));
-        goto error;
+        goto cleanup;
     }
 
     if (!(sourcenode = virXPathNode("./source", ctxt))) {
         virReportError(VIR_ERR_XML_ERROR, "%s",
                        _("Missing <source> element in hostdev device"));
-        goto error;
+        goto cleanup;
     }
 
     if (def->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB &&
@@ -7679,20 +7752,20 @@ virDomainHostdevDefParseXMLSubsys(xmlNodePtr node,
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Setting startupPolicy is only allowed for USB"
                          " devices"));
-        goto error;
+        goto cleanup;
     }
 
     if (sgio) {
         if (def->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI) {
             virReportError(VIR_ERR_XML_ERROR, "%s",
                            _("sgio is only supported for scsi host device"));
-            goto error;
+            goto cleanup;
         }
 
         if ((scsisrc->sgio = virDomainDeviceSGIOTypeFromString(sgio)) <= 0) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("unknown sgio mode '%s'"), sgio);
-            goto error;
+            goto cleanup;
         }
     }
 
@@ -7700,14 +7773,14 @@ virDomainHostdevDefParseXMLSubsys(xmlNodePtr node,
         if (def->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI) {
             virReportError(VIR_ERR_XML_ERROR, "%s",
                            _("rawio is only supported for scsi host device"));
-            goto error;
+            goto cleanup;
         }
 
         if ((scsisrc->rawio = virTristateBoolTypeFromString(rawio)) <= 0) {
             virReportError(VIR_ERR_XML_ERROR,
                            _("unknown hostdev rawio setting '%s'"),
                            rawio);
-            goto error;
+            goto cleanup;
         }
     }
 
@@ -7716,28 +7789,37 @@ virDomainHostdevDefParseXMLSubsys(xmlNodePtr node,
             virReportError(VIR_ERR_XML_ERROR, "%s",
                            _("'model' attribute in <hostdev> is only supported "
                              "when type='mdev'"));
-            goto error;
+            goto cleanup;
         }
     } else {
         if (!model) {
             virReportError(VIR_ERR_XML_ERROR, "%s",
                            _("Missing 'model' attribute in mediated device's "
                              "<hostdev> element"));
-            goto error;
+            goto cleanup;
         }
 
         if ((mdevsrc->model = virMediatedDeviceModelTypeFromString(model)) < 0) {
             virReportError(VIR_ERR_XML_ERROR,
                            _("unknown hostdev model '%s'"),
                            model);
-            goto error;
+            goto cleanup;
+        }
+
+        if (display &&
+            (mdevsrc->display = virTristateSwitchTypeFromString(display)) <= 0) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("unknown value '%s' for <hostdev> attribute "
+                             "'display'"),
+                           display);
+            goto cleanup;
         }
     }
 
     switch (def->source.subsys.type) {
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI:
         if (virDomainHostdevSubsysPCIDefParseXML(sourcenode, def, flags) < 0)
-            goto error;
+            goto cleanup;
 
         backend = VIR_DOMAIN_HOSTDEV_PCI_BACKEND_DEFAULT;
         if ((backendStr = virXPathString("string(./driver/@name)", ctxt)) &&
@@ -7746,7 +7828,7 @@ virDomainHostdevDefParseXMLSubsys(xmlNodePtr node,
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("Unknown PCI device <driver name='%s'/> "
                              "has been specified"), backendStr);
-            goto error;
+            goto cleanup;
         }
         pcisrc->backend = backend;
 
@@ -7754,37 +7836,38 @@ virDomainHostdevDefParseXMLSubsys(xmlNodePtr node,
 
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB:
         if (virDomainHostdevSubsysUSBDefParseXML(sourcenode, def) < 0)
-            goto error;
+            goto cleanup;
         break;
 
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI:
         if (virDomainHostdevSubsysSCSIDefParseXML(sourcenode, scsisrc, ctxt) < 0)
-            goto error;
+            goto cleanup;
         break;
 
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI_HOST:
         if (virDomainHostdevSubsysSCSIVHostDefParseXML(sourcenode, def) < 0)
-            goto error;
+            goto cleanup;
         break;
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_MDEV:
         if (virDomainHostdevSubsysMediatedDevDefParseXML(def, ctxt) < 0)
-            goto error;
+            goto cleanup;
         break;
 
     default:
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("address type='%s' not supported in hostdev interfaces"),
                        virDomainHostdevSubsysTypeToString(def->source.subsys.type));
-        goto error;
+        goto cleanup;
     }
 
     ret = 0;
- error:
+ cleanup:
     VIR_FREE(managed);
     VIR_FREE(sgio);
     VIR_FREE(rawio);
     VIR_FREE(backendStr);
     VIR_FREE(model);
+    VIR_FREE(display);
     return ret;
 }
 
@@ -13578,13 +13661,13 @@ virDomainGraphicsDefParseXMLVNC(virDomainGraphicsDefPtr def,
     int ret = -1;
 
     if (virDomainGraphicsListensParseXML(def, node, ctxt, flags) < 0)
-        goto error;
+        goto cleanup;
 
     if (port) {
         if (virStrToLong_i(port, NULL, 10, &def->data.vnc.port) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("cannot parse vnc port %s"), port);
-            goto error;
+            goto cleanup;
         }
         /* Legacy compat syntax, used -1 for auto-port */
         if (def->data.vnc.port == -1) {
@@ -13613,7 +13696,7 @@ virDomainGraphicsDefParseXMLVNC(virDomainGraphicsDefPtr def,
                            &def->data.vnc.websocket) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("cannot parse vnc WebSocket port %s"), websocket);
-            goto error;
+            goto cleanup;
         }
     }
 
@@ -13625,7 +13708,7 @@ virDomainGraphicsDefParseXMLVNC(virDomainGraphicsDefPtr def,
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("unknown vnc display sharing policy '%s'"),
                            sharePolicy);
-            goto error;
+            goto cleanup;
         } else {
             def->data.vnc.sharePolicy = policy;
         }
@@ -13635,10 +13718,10 @@ virDomainGraphicsDefParseXMLVNC(virDomainGraphicsDefPtr def,
 
     if (virDomainGraphicsAuthDefParseXML(node, &def->data.vnc.auth,
                                          def->type) < 0)
-        goto error;
+        goto cleanup;
 
     ret = 0;
- error:
+ cleanup:
     VIR_FREE(port);
     VIR_FREE(autoport);
     VIR_FREE(websocket);
@@ -14144,6 +14227,7 @@ virDomainGraphicsDefParseXML(xmlNodePtr node,
         if (virDomainGraphicsDefParseXMLSpice(def, node, ctxt, flags) < 0)
             goto error;
         break;
+    case VIR_DOMAIN_GRAPHICS_TYPE_EGL_HEADLESS:
     case VIR_DOMAIN_GRAPHICS_TYPE_LAST:
         break;
     }
@@ -15005,6 +15089,7 @@ virDomainVideoDefaultRAM(const virDomainDef *def,
     case VIR_DOMAIN_VIDEO_TYPE_PARALLELS:
     case VIR_DOMAIN_VIDEO_TYPE_VIRTIO:
     case VIR_DOMAIN_VIDEO_TYPE_GOP:
+    case VIR_DOMAIN_VIDEO_TYPE_NONE:
     case VIR_DOMAIN_VIDEO_TYPE_LAST:
     default:
         return 0;
@@ -15015,7 +15100,7 @@ virDomainVideoDefaultRAM(const virDomainDef *def,
 int
 virDomainVideoDefaultType(const virDomainDef *def)
 {
-    switch (def->virtType) {
+    switch ((virDomainVirtType)def->virtType) {
     case VIR_DOMAIN_VIRT_TEST:
     case VIR_DOMAIN_VIRT_XEN:
         if (def->os.type == VIR_DOMAIN_OSTYPE_XEN ||
@@ -19054,6 +19139,95 @@ virDomainCachetuneDefParse(virDomainDefPtr def,
 }
 
 
+static int
+virDomainDefParseCaps(virDomainDefPtr def,
+                      xmlXPathContextPtr ctxt,
+                      virCapsPtr caps,
+                      unsigned int flags)
+{
+    int ret = -1;
+    char *virttype = NULL;
+    char *arch = NULL;
+    char *ostype = NULL;
+    virCapsDomainDataPtr capsdata = NULL;
+
+    virttype = virXPathString("string(./@type)", ctxt);
+    ostype = virXPathString("string(./os/type[1])", ctxt);
+    arch = virXPathString("string(./os/type[1]/@arch)", ctxt);
+
+    def->os.bootloader = virXPathString("string(./bootloader)", ctxt);
+    def->os.bootloaderArgs = virXPathString("string(./bootloader_args)", ctxt);
+    def->os.machine = virXPathString("string(./os/type[1]/@machine)", ctxt);
+    def->emulator = virXPathString("string(./devices/emulator[1])", ctxt);
+
+    if (!virttype) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("missing domain type attribute"));
+        goto cleanup;
+    }
+    if ((def->virtType = virDomainVirtTypeFromString(virttype)) < 0) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("invalid domain type %s"), virttype);
+        goto cleanup;
+    }
+
+    if (!ostype) {
+        if (def->os.bootloader) {
+            def->os.type = VIR_DOMAIN_OSTYPE_XEN;
+        } else {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("an os <type> must be specified"));
+            goto cleanup;
+        }
+    } else {
+        if ((def->os.type = virDomainOSTypeFromString(ostype)) < 0) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("unknown OS type '%s'"), ostype);
+            goto cleanup;
+        }
+    }
+
+    /*
+     * HACK: For xen driver we previously used bogus 'linux' as the
+     * os type for paravirt, whereas capabilities declare it to
+     * be 'xen'. So we accept the former and convert
+     */
+    if (def->os.type == VIR_DOMAIN_OSTYPE_LINUX &&
+        def->virtType == VIR_DOMAIN_VIRT_XEN) {
+        def->os.type = VIR_DOMAIN_OSTYPE_XEN;
+    }
+
+    if (arch && !(def->os.arch = virArchFromString(arch))) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Unknown architecture %s"), arch);
+        goto cleanup;
+    }
+
+    if (!(capsdata = virCapabilitiesDomainDataLookup(caps, def->os.type,
+                                                     def->os.arch,
+                                                     def->virtType,
+                                                     NULL, NULL))) {
+        if (!(flags & VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE))
+            goto cleanup;
+        virResetLastError();
+    } else {
+        if (!def->os.arch)
+            def->os.arch = capsdata->arch;
+        if ((!def->os.machine &&
+             VIR_STRDUP(def->os.machine, capsdata->machinetype) < 0))
+            goto cleanup;
+    }
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(virttype);
+    VIR_FREE(ostype);
+    VIR_FREE(arch);
+    VIR_FREE(capsdata);
+    return ret;
+}
+
+
 static virDomainDefPtr
 virDomainDefParseXML(xmlDocPtr xml,
                      xmlNodePtr root,
@@ -19065,7 +19239,7 @@ virDomainDefParseXML(xmlDocPtr xml,
     xmlNodePtr *nodes = NULL, node = NULL;
     char *tmp = NULL;
     size_t i, j;
-    int n, virtType, gic_version;
+    int n, gic_version;
     long id = -1;
     virDomainDefPtr def;
     bool uuid_generated = false;
@@ -19095,89 +19269,8 @@ virDomainDefParseXML(xmlDocPtr xml,
             id = -1;
     def->id = (int)id;
 
-    /* Find out what type of virtualization to use */
-    if (!(tmp = virXMLPropString(ctxt->node, "type"))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("missing domain type attribute"));
+    if (virDomainDefParseCaps(def, ctxt, caps, flags) < 0)
         goto error;
-    }
-
-    if ((virtType = virDomainVirtTypeFromString(tmp)) < 0) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("invalid domain type %s"), tmp);
-        goto error;
-    }
-    def->virtType = virtType;
-    VIR_FREE(tmp);
-
-    def->os.bootloader = virXPathString("string(./bootloader)", ctxt);
-    def->os.bootloaderArgs = virXPathString("string(./bootloader_args)", ctxt);
-
-    tmp = virXPathString("string(./os/type[1])", ctxt);
-    if (!tmp) {
-        if (def->os.bootloader) {
-            def->os.type = VIR_DOMAIN_OSTYPE_XEN;
-        } else {
-            virReportError(VIR_ERR_XML_ERROR, "%s",
-                           _("an os <type> must be specified"));
-            goto error;
-        }
-    } else {
-        if ((def->os.type = virDomainOSTypeFromString(tmp)) < 0) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                           _("unknown OS type '%s'"), tmp);
-            goto error;
-        }
-        VIR_FREE(tmp);
-    }
-
-    /*
-     * HACK: For xen driver we previously used bogus 'linux' as the
-     * os type for paravirt, whereas capabilities declare it to
-     * be 'xen'. So we accept the former and convert
-     */
-    if (def->os.type == VIR_DOMAIN_OSTYPE_LINUX &&
-        def->virtType == VIR_DOMAIN_VIRT_XEN) {
-        def->os.type = VIR_DOMAIN_OSTYPE_XEN;
-    }
-
-    tmp = virXPathString("string(./os/type[1]/@arch)", ctxt);
-    if (tmp && !(def->os.arch = virArchFromString(tmp))) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Unknown architecture %s"),
-                       tmp);
-        goto error;
-    }
-    VIR_FREE(tmp);
-
-    def->os.machine = virXPathString("string(./os/type[1]/@machine)", ctxt);
-    def->emulator = virXPathString("string(./devices/emulator[1])", ctxt);
-
-    if ((!def->os.arch || !def->os.machine) &&
-        !(flags & VIR_DOMAIN_DEF_PARSE_SKIP_OSTYPE_CHECKS)) {
-        /* If the logic here seems fairly arbitrary, that's because it is :)
-         * This is duplicating how the code worked before
-         * CapabilitiesDomainDataLookup was added. We can simplify this,
-         * but it would take a bit of work because the test suite fails
-         * in numerous minor ways. */
-        bool use_virttype = ((def->os.arch == VIR_ARCH_NONE) ||
-            !def->os.machine);
-        virCapsDomainDataPtr capsdata = NULL;
-
-        if (!(capsdata = virCapabilitiesDomainDataLookup(caps, def->os.type,
-                def->os.arch, use_virttype ? def->virtType : VIR_DOMAIN_VIRT_NONE,
-                NULL, NULL)))
-            goto error;
-
-        if (!def->os.arch)
-            def->os.arch = capsdata->arch;
-        if ((!def->os.machine &&
-             VIR_STRDUP(def->os.machine, capsdata->machinetype) < 0)) {
-            VIR_FREE(capsdata);
-            goto error;
-        }
-        VIR_FREE(capsdata);
-    }
 
     /* Extract domain name */
     if (!(def->name = virXPathString("string(./name[1])", ctxt))) {
@@ -19825,6 +19918,22 @@ virDomainDefParseXML(xmlDocPtr xml,
                 def->hpt_maxpagesize > 0) {
                 def->features[val] = VIR_TRISTATE_SWITCH_ON;
             }
+            break;
+
+        case VIR_DOMAIN_FEATURE_HTM:
+            if (!(tmp = virXMLPropString(nodes[i], "state"))) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("missing state attribute '%s' of feature '%s'"),
+                               tmp, virDomainFeatureTypeToString(val));
+                goto error;
+            }
+            if ((def->features[val] = virTristateSwitchTypeFromString(tmp)) < 0) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("unknown state attribute '%s' of feature '%s'"),
+                               tmp, virDomainFeatureTypeToString(val));
+                goto error;
+            }
+            VIR_FREE(tmp);
             break;
 
         /* coverity[dead_error_begin] */
@@ -21961,6 +22070,7 @@ virDomainDefFeaturesCheckABIStability(virDomainDefPtr src,
         case VIR_DOMAIN_FEATURE_VMPORT:
         case VIR_DOMAIN_FEATURE_SMM:
         case VIR_DOMAIN_FEATURE_VMCOREINFO:
+        case VIR_DOMAIN_FEATURE_HTM:
             if (src->features[i] != dst->features[i]) {
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                _("State of feature '%s' differs: "
@@ -23530,7 +23640,8 @@ virDomainStorageSourceFormat(virBufferPtr attrBuf,
         return -1;
 
     if (src->pr)
-        virStoragePRDefFormat(childBuf, src->pr);
+        virStoragePRDefFormat(childBuf, src->pr,
+                              flags & VIR_DOMAIN_DEF_FORMAT_MIGRATABLE);
 
     return 0;
 }
@@ -26358,6 +26469,7 @@ virDomainGraphicsDefFormat(virBufferPtr buf,
         virDomainGraphicsAuthDefFormatAttr(buf, &def->data.spice.auth, flags);
         break;
 
+    case VIR_DOMAIN_GRAPHICS_TYPE_EGL_HEADLESS:
     case VIR_DOMAIN_GRAPHICS_TYPE_LAST:
         break;
     }
@@ -26518,9 +26630,14 @@ virDomainHostdevDefFormat(virBufferPtr buf,
                               virTristateBoolTypeToString(scsisrc->rawio));
         }
 
-        if (def->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_MDEV)
+        if (def->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_MDEV) {
             virBufferAsprintf(buf, " model='%s'",
                               virMediatedDeviceModelTypeToString(mdevsrc->model));
+            if (mdevsrc->display != VIR_TRISTATE_SWITCH_ABSENT)
+                virBufferAsprintf(buf, " display='%s'",
+                                  virTristateSwitchTypeToString(mdevsrc->display));
+        }
+
     }
     virBufferAddLit(buf, ">\n");
     virBufferAdjustIndent(buf, 2);
@@ -27626,6 +27743,7 @@ virDomainDefFormatInternal(virDomainDefPtr def,
             case VIR_DOMAIN_FEATURE_PMU:
             case VIR_DOMAIN_FEATURE_PVSPINLOCK:
             case VIR_DOMAIN_FEATURE_VMPORT:
+            case VIR_DOMAIN_FEATURE_HTM:
                 switch ((virTristateSwitch) def->features[i]) {
                 case VIR_TRISTATE_SWITCH_LAST:
                 case VIR_TRISTATE_SWITCH_ABSENT:
@@ -28689,8 +28807,7 @@ virDomainDefCopy(virDomainDefPtr src,
     virDomainDefPtr ret;
     unsigned int format_flags = VIR_DOMAIN_DEF_FORMAT_SECURE;
     unsigned int parse_flags = VIR_DOMAIN_DEF_PARSE_INACTIVE |
-                               VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE |
-                               VIR_DOMAIN_DEF_PARSE_SKIP_OSTYPE_CHECKS;
+                               VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE;
 
     if (migratable)
         format_flags |= VIR_DOMAIN_DEF_FORMAT_INACTIVE | VIR_DOMAIN_DEF_FORMAT_MIGRATABLE;
@@ -29890,40 +30007,49 @@ virDomainNetResolveActualType(virDomainNetDefPtr iface)
     if (!(def = virNetworkDefParseString(xml)))
         goto cleanup;
 
-    if ((def->forward.type == VIR_NETWORK_FORWARD_NONE) ||
-        (def->forward.type == VIR_NETWORK_FORWARD_NAT) ||
-        (def->forward.type == VIR_NETWORK_FORWARD_ROUTE) ||
-        (def->forward.type == VIR_NETWORK_FORWARD_OPEN)) {
+    switch ((virNetworkForwardType) def->forward.type) {
+    case VIR_NETWORK_FORWARD_NONE:
+    case VIR_NETWORK_FORWARD_NAT:
+    case VIR_NETWORK_FORWARD_ROUTE:
+    case VIR_NETWORK_FORWARD_OPEN:
         /* for these forward types, the actual net type really *is*
          * NETWORK; we just keep the info from the portgroup in
          * iface->data.network.actual
          */
         ret = VIR_DOMAIN_NET_TYPE_NETWORK;
+        break;
 
-    } else if ((def->forward.type == VIR_NETWORK_FORWARD_BRIDGE) &&
-               def->bridge) {
-
-        /* <forward type='bridge'/> <bridge name='xxx'/>
-         * is VIR_DOMAIN_NET_TYPE_BRIDGE
-         */
-
-        ret = VIR_DOMAIN_NET_TYPE_BRIDGE;
-
-    } else if (def->forward.type == VIR_NETWORK_FORWARD_HOSTDEV) {
-
+    case VIR_NETWORK_FORWARD_HOSTDEV:
         ret = VIR_DOMAIN_NET_TYPE_HOSTDEV;
+        break;
 
-    } else if ((def->forward.type == VIR_NETWORK_FORWARD_BRIDGE) ||
-               (def->forward.type == VIR_NETWORK_FORWARD_PRIVATE) ||
-               (def->forward.type == VIR_NETWORK_FORWARD_VEPA) ||
-               (def->forward.type == VIR_NETWORK_FORWARD_PASSTHROUGH)) {
+    case VIR_NETWORK_FORWARD_BRIDGE:
+        if (def->bridge) {
+            /* <forward type='bridge'/> <bridge name='xxx'/>
+             * is VIR_DOMAIN_NET_TYPE_BRIDGE
+             */
+            ret = VIR_DOMAIN_NET_TYPE_BRIDGE;
+            break;
+        }
 
+        /* intentionally fall through to the direct case for
+         * VIR_NETWORK_FORWARD_BRIDGE with no bridge device defined
+         */
+        ATTRIBUTE_FALLTHROUGH;
+
+    case VIR_NETWORK_FORWARD_PRIVATE:
+    case VIR_NETWORK_FORWARD_VEPA:
+    case VIR_NETWORK_FORWARD_PASSTHROUGH:
         /* <forward type='bridge|private|vepa|passthrough'> are all
          * VIR_DOMAIN_NET_TYPE_DIRECT.
          */
-
         ret = VIR_DOMAIN_NET_TYPE_DIRECT;
+        break;
 
+    case VIR_NETWORK_FORWARD_LAST:
+    default:
+        virReportEnumRangeError(virNetworkForwardType, def->forward.type);
+        goto cleanup;
     }
 
  cleanup:
@@ -30229,6 +30355,49 @@ virDomainDefHasManagedPR(const virDomainDef *def)
     for (i = 0; i < def->ndisks; i++) {
         if (virStorageSourceChainHasManagedPR(def->disks[i]->src))
             return true;
+    }
+
+    return false;
+}
+
+
+/**
+ * virDomainGraphicsDefHasOpenGL:
+ * @def: domain definition
+ *
+ * Returns true if a domain config contains at least one <graphics> element
+ * with OpenGL support enabled, false otherwise.
+ */
+bool
+virDomainGraphicsDefHasOpenGL(const virDomainDef *def)
+{
+    size_t i;
+
+    for (i = 0; i < def->ngraphics; i++) {
+        virDomainGraphicsDefPtr graphics = def->graphics[i];
+
+        /* we only care about OpenGL support for a given type here */
+        switch (graphics->type) {
+        case VIR_DOMAIN_GRAPHICS_TYPE_VNC:
+        case VIR_DOMAIN_GRAPHICS_TYPE_RDP:
+        case VIR_DOMAIN_GRAPHICS_TYPE_DESKTOP:
+            continue;
+        case VIR_DOMAIN_GRAPHICS_TYPE_SDL:
+            if (graphics->data.sdl.gl == VIR_TRISTATE_BOOL_YES)
+                return true;
+
+            continue;
+        case VIR_DOMAIN_GRAPHICS_TYPE_SPICE:
+            if (graphics->data.spice.gl == VIR_TRISTATE_BOOL_YES)
+                return true;
+
+            continue;
+        case VIR_DOMAIN_GRAPHICS_TYPE_EGL_HEADLESS:
+            return true;
+
+        case VIR_DOMAIN_GRAPHICS_TYPE_LAST:
+            break;
+        }
     }
 
     return false;

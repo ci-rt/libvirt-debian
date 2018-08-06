@@ -80,7 +80,7 @@ check-access:
 cov: clean-cov
 	$(MKDIR_P) $(top_builddir)/coverage
 	$(LCOV) -c -o $(top_builddir)/coverage/libvirt.info.tmp \
-	  -d $(top_builddir)/src  -d $(top_builddir)/daemon \
+	  -d $(top_builddir)/src \
 	  -d $(top_builddir)/tests
 	$(LCOV) -r $(top_builddir)/coverage/libvirt.info.tmp \
 	  -o $(top_builddir)/coverage/libvirt.info
@@ -109,9 +109,17 @@ gen-ChangeLog:
 
 .PHONY: gen-AUTHORS
 gen-AUTHORS:
-	$(AM_V_GEN)if test -d $(srcdir)/.git; then \
-	    out="`cd $(srcdir) && git log --pretty=format:'%aN <%aE>' | sort -u`" && \
-	    perl -p -e "s/#authorslist#// and print '$$out'" \
-	      < $(srcdir)/AUTHORS.in > $(distdir)/AUTHORS-tmp && \
-	    mv -f $(distdir)/AUTHORS-tmp $(distdir)/AUTHORS ; \
+	$(AM_V_GEN)\
+	if test -d $(srcdir)/.git; then \
+	  ( \
+	    cd $(srcdir) && \
+	    git log --pretty=format:'%aN <%aE>' | sort -u \
+	  ) > all.list && \
+	  sort -u $(srcdir)/AUTHORS.in > maint.list && \
+	  comm -23 all.list maint.list > contrib.list && \
+	  contrib="`cat contrib.list`" && \
+	  perl -p -e "s/#contributorslist#// and print '$$contrib'" \
+	    < $(srcdir)/AUTHORS.in > $(distdir)/AUTHORS-tmp && \
+	  mv -f $(distdir)/AUTHORS-tmp $(distdir)/AUTHORS && \
+	  rm -f all.list maint.list contrib.list; \
 	fi

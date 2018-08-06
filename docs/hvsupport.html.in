@@ -7075,7 +7075,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>1.0.0</td>
 <td></td>
 <td>0.10.2</td>
-<td></td>
+<td>4.6.0</td>
 </tr>
 <tr>
 <td>
@@ -7633,7 +7633,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.10.2</td>
 <td>0.10.2</td>
 <td>0.10.2</td>
-<td></td>
+<td>4.1.0</td>
 <td>0.10.2</td>
 </tr>
 <tr>

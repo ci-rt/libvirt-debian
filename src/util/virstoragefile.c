@@ -1982,11 +1982,13 @@ virStoragePRDefParseXML(xmlXPathContextPtr ctxt)
 
 void
 virStoragePRDefFormat(virBufferPtr buf,
-                      virStoragePRDefPtr prd)
+                      virStoragePRDefPtr prd,
+                      bool migratable)
 {
     virBufferAsprintf(buf, "<reservations managed='%s'",
                       virTristateBoolTypeToString(prd->managed));
-    if (prd->path) {
+    if (prd->path &&
+        (prd->managed == VIR_TRISTATE_BOOL_NO || !migratable)) {
         virBufferAddLit(buf, ">\n");
         virBufferAdjustIndent(buf, 2);
         virBufferAddLit(buf, "<source type='unix'");
@@ -2036,6 +2038,29 @@ virStorageSourceChainHasManagedPR(virStorageSourcePtr src)
     }
 
     return false;
+}
+
+
+static virStoragePRDefPtr
+virStoragePRDefCopy(virStoragePRDefPtr src)
+{
+    virStoragePRDefPtr copy = NULL;
+    virStoragePRDefPtr ret = NULL;
+
+    if (VIR_ALLOC(copy) < 0)
+        return NULL;
+
+    copy->managed = src->managed;
+
+    if (VIR_STRDUP(copy->path, src->path) < 0 ||
+        VIR_STRDUP(copy->mgralias, src->mgralias) < 0)
+        goto cleanup;
+
+    VIR_STEAL_PTR(ret, copy);
+
+ cleanup:
+    virStoragePRDefFree(copy);
+    return ret;
 }
 
 
@@ -2243,6 +2268,10 @@ virStorageSourceCopy(const virStorageSource *src,
         !(ret->auth = virStorageAuthDefCopy(src->auth)))
         goto error;
 
+    if (src->pr &&
+        !(ret->pr = virStoragePRDefCopy(src->pr)))
+        goto error;
+
     if (backingChain && src->backingStore) {
         if (!(ret->backingStore = virStorageSourceCopy(src->backingStore,
                                                        true)))
@@ -2254,6 +2283,49 @@ virStorageSourceCopy(const virStorageSource *src,
  error:
     virStorageSourceFree(ret);
     return NULL;
+}
+
+
+/**
+ * virStorageSourceIsSameLocation:
+ *
+ * Returns true if the sources @a and @b point to the same storage location.
+ * This does not compare any other configuration option
+ */
+bool
+virStorageSourceIsSameLocation(virStorageSourcePtr a,
+                               virStorageSourcePtr b)
+{
+    size_t i;
+
+    /* there are multiple possibilities to define an empty source */
+    if (virStorageSourceIsEmpty(a) &&
+        virStorageSourceIsEmpty(b))
+        return true;
+
+    if (virStorageSourceGetActualType(a) != virStorageSourceGetActualType(b))
+        return false;
+
+    if (STRNEQ_NULLABLE(a->path, b->path) ||
+        STRNEQ_NULLABLE(a->volume, b->volume) ||
+        STRNEQ_NULLABLE(a->snapshot, b->snapshot))
+        return false;
+
+    if (a->type == VIR_STORAGE_TYPE_NETWORK) {
+        if (a->protocol != b->protocol ||
+            a->nhosts != b->nhosts)
+            return false;
+
+        for (i = 0; i < a->nhosts; i++) {
+            if (a->hosts[i].transport != b->hosts[i].transport ||
+                a->hosts[i].port != b->hosts[i].port ||
+                STRNEQ_NULLABLE(a->hosts[i].name, b->hosts[i].name) ||
+                STRNEQ_NULLABLE(a->hosts[i].socket, b->hosts[i].socket))
+                return false;
+        }
+    }
+
+    return true;
 }
 
 

@@ -3366,6 +3366,9 @@
             </attribute>
           </optional>
         </group>
+        <attribute name="type">
+          <value>egl-headless</value>
+        </attribute>
       </choice>
     </element>
   </define>
@@ -3451,6 +3454,7 @@
                 <value>vbox</value>
                 <value>virtio</value>
                 <value>gop</value>
+                <value>none</value>
               </choice>
             </attribute>
             <group>
@@ -4234,6 +4238,9 @@
         <optional>
           <ref name="address"/>
         </optional>
+        <optional>
+          <ref name="alias"/>
+        </optional>
       </interleave>
     </element>
   </define>
@@ -4573,6 +4580,11 @@
         <value>vfio-ccw</value>
       </choice>
     </attribute>
+    <optional>
+      <attribute name="display">
+        <ref name="virOnOff"/>
+      </attribute>
+    </optional>
     <element name="source">
       <ref name="mdevaddress"/>
     </element>
@@ -4906,6 +4918,11 @@
           </optional>
           <optional>
             <ref name="vmcoreinfo"/>
+          </optional>
+          <optional>
+            <element name="htm">
+              <ref name="featurestate"/>
+            </element>
           </optional>
         </interleave>
       </element>

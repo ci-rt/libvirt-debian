@@ -220,10 +220,7 @@ esxBandwidthToShapingPolicy(virNetDevBandwidthPtr bandwidth,
 {
     int result = -1;
 
-    if (!shapingPolicy || *shapingPolicy) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
-        return -1;
-    }
+    ESX_VI_CHECK_ARG_LIST(shapingPolicy);
 
     if (!bandwidth->in || !bandwidth->out ||
         bandwidth->in->average != bandwidth->out->average ||
@@ -329,11 +326,26 @@ esxNetworkDefineXML(virConnectPtr conn, const char *xml)
     }
 
     /* FIXME: Add support for NAT */
-    if (def->forward.type != VIR_NETWORK_FORWARD_NONE &&
-        def->forward.type != VIR_NETWORK_FORWARD_BRIDGE) {
+    switch ((virNetworkForwardType) def->forward.type) {
+    case VIR_NETWORK_FORWARD_NONE:
+    case VIR_NETWORK_FORWARD_BRIDGE:
+        break;
+
+    case VIR_NETWORK_FORWARD_NAT:
+    case VIR_NETWORK_FORWARD_ROUTE:
+    case VIR_NETWORK_FORWARD_OPEN:
+    case VIR_NETWORK_FORWARD_PRIVATE:
+    case VIR_NETWORK_FORWARD_VEPA:
+    case VIR_NETWORK_FORWARD_PASSTHROUGH:
+    case VIR_NETWORK_FORWARD_HOSTDEV:
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Unsupported forward mode '%s'"),
                        virNetworkForwardTypeToString(def->forward.type));
+        goto cleanup;
+
+    case VIR_NETWORK_FORWARD_LAST:
+    default:
+        virReportEnumRangeError(virNetworkForwardType, def->forward.type);
         goto cleanup;
     }
 
@@ -589,10 +601,7 @@ static int
 esxShapingPolicyToBandwidth(esxVI_HostNetworkTrafficShapingPolicy *shapingPolicy,
                             virNetDevBandwidthPtr *bandwidth)
 {
-    if (!bandwidth || *bandwidth) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
-        return -1;
-    }
+    ESX_VI_CHECK_ARG_LIST(bandwidth);
 
     if (!shapingPolicy || shapingPolicy->enabled != esxVI_Boolean_True)
         return 0;

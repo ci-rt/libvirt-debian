@@ -186,17 +186,14 @@ virHostdevManagerNew(void)
             goto error;
         }
     } else {
-        char *rundir = NULL;
+        VIR_AUTOFREE(char *) rundir = NULL;
         mode_t old_umask;
 
         if (!(rundir = virGetUserRuntimeDirectory()))
             goto error;
 
-        if (virAsprintf(&hostdevMgr->stateDir, "%s/hostdevmgr", rundir) < 0) {
-            VIR_FREE(rundir);
+        if (virAsprintf(&hostdevMgr->stateDir, "%s/hostdevmgr", rundir) < 0)
             goto error;
-        }
-        VIR_FREE(rundir);
 
         old_umask = umask(077);
 
@@ -289,17 +286,12 @@ virHostdevPCISysfsPath(virDomainHostdevDefPtr hostdev,
 static int
 virHostdevIsVirtualFunction(virDomainHostdevDefPtr hostdev)
 {
-    char *sysfs_path = NULL;
-    int ret = -1;
+    VIR_AUTOFREE(char *) sysfs_path = NULL;
 
     if (virHostdevPCISysfsPath(hostdev, &sysfs_path) < 0)
-        return ret;
+        return -1;
 
-    ret = virPCIIsVirtualFunction(sysfs_path);
-
-    VIR_FREE(sysfs_path);
-
-    return ret;
+    return virPCIIsVirtualFunction(sysfs_path);
 }
 
 
@@ -309,17 +301,15 @@ virHostdevNetDevice(virDomainHostdevDefPtr hostdev,
                     char **linkdev,
                     int *vf)
 {
-    int ret = -1;
-    char *sysfs_path = NULL;
+    VIR_AUTOFREE(char *) sysfs_path = NULL;
 
     if (virHostdevPCISysfsPath(hostdev, &sysfs_path) < 0)
-        return ret;
+        return -1;
 
     if (virPCIIsVirtualFunction(sysfs_path) == 1) {
         if (virPCIGetVirtualFunctionInfo(sysfs_path, pfNetDevIdx,
-                                         linkdev, vf) < 0) {
-            goto cleanup;
-        }
+                                         linkdev, vf) < 0)
+            return -1;
     } else {
         /* In practice this should never happen, since we currently
          * only support assigning SRIOV VFs via <interface
@@ -327,24 +317,19 @@ virHostdevNetDevice(virDomainHostdevDefPtr hostdev,
          * end up calling this function.
          */
         if (virPCIGetNetName(sysfs_path, 0, NULL, linkdev) < 0)
-            goto cleanup;
+            return -1;
 
         if (!linkdev) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("The device at %s has no network device name"),
                              sysfs_path);
-            goto cleanup;
+            return -1;
         }
 
         *vf = -1;
     }
 
-    ret = 0;
-
- cleanup:
-    VIR_FREE(sysfs_path);
-
-    return ret;
+    return 0;
 }
 
 
@@ -443,8 +428,7 @@ static int
 virHostdevSaveNetConfig(virDomainHostdevDefPtr hostdev,
                         const char *stateDir)
 {
-    int ret = -1;
-    char *linkdev = NULL;
+    VIR_AUTOFREE(char *) linkdev = NULL;
     int vf = -1;
 
     if (!virHostdevIsPCINetDevice(hostdev) ||
@@ -455,19 +439,16 @@ virHostdevSaveNetConfig(virDomainHostdevDefPtr hostdev,
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Interface type hostdev is currently supported on"
                          " SR-IOV Virtual Functions only"));
-        goto cleanup;
+        return -1;
     }
 
     if (virHostdevNetDevice(hostdev, -1, &linkdev, &vf) < 0)
-        goto cleanup;
+        return -1;
 
     if (virNetDevSaveNetConfig(linkdev, vf, stateDir, true) < 0)
-        goto cleanup;
+        return -1;
 
-    ret = 0;
- cleanup:
-    VIR_FREE(linkdev);
-    return ret;
+    return 0;
 }
 
 
@@ -486,10 +467,9 @@ static int
 virHostdevSetNetConfig(virDomainHostdevDefPtr hostdev,
                        const unsigned char *uuid)
 {
-    char *linkdev = NULL;
+    VIR_AUTOFREE(char *) linkdev = NULL;
     virNetDevVlanPtr vlan;
     virNetDevVPortProfilePtr virtPort;
-    int ret = -1;
     int vf = -1;
     bool port_profile_associate = true;
 
@@ -497,7 +477,7 @@ virHostdevSetNetConfig(virDomainHostdevDefPtr hostdev,
         return 0;
 
     if (virHostdevNetDevice(hostdev, -1, &linkdev, &vf) < 0)
-        goto cleanup;
+        return -1;
 
     vlan = virDomainNetGetActualVlan(hostdev->parent.data.net);
     virtPort = virDomainNetGetActualVirtPortProfile(hostdev->parent.data.net);
@@ -507,24 +487,19 @@ virHostdevSetNetConfig(virDomainHostdevDefPtr hostdev,
                            _("direct setting of the vlan tag is not allowed "
                              "for hostdev devices using %s mode"),
                            virNetDevVPortTypeToString(virtPort->virtPortType));
-            goto cleanup;
+            return -1;
         }
         if (virHostdevNetConfigVirtPortProfile(linkdev, vf, virtPort,
                                                &hostdev->parent.data.net->mac,
-                                               uuid, port_profile_associate) < 0) {
-            goto cleanup;
-        }
+                                               uuid, port_profile_associate) < 0)
+            return -1;
     } else {
         if (virNetDevSetNetConfig(linkdev, vf, &hostdev->parent.data.net->mac,
-                                  vlan, NULL, true) < 0) {
-            goto cleanup;
-        }
+                                  vlan, NULL, true) < 0)
+            return -1;
     }
 
-    ret = 0;
- cleanup:
-    VIR_FREE(linkdev);
-    return ret;
+    return 0;
 }
 
 
@@ -540,14 +515,13 @@ virHostdevRestoreNetConfig(virDomainHostdevDefPtr hostdev,
                            const char *stateDir,
                            const char *oldStateDir)
 {
-    char *linkdev = NULL;
+    VIR_AUTOFREE(char *) linkdev = NULL;
+    VIR_AUTOFREE(virMacAddrPtr) MAC = NULL;
+    VIR_AUTOFREE(virMacAddrPtr) adminMAC = NULL;
+    VIR_AUTOPTR(virNetDevVlan) vlan = NULL;
     virNetDevVPortProfilePtr virtPort;
-    int ret = -1;
     int vf = -1;
     bool port_profile_associate = false;
-    virMacAddrPtr MAC = NULL;
-    virMacAddrPtr adminMAC = NULL;
-    virNetDevVlanPtr vlan = NULL;
 
 
     /* This is only needed for PCI devices that have been defined
@@ -560,16 +534,16 @@ virHostdevRestoreNetConfig(virDomainHostdevDefPtr hostdev,
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Interface type hostdev is currently supported on"
                          " SR-IOV Virtual Functions only"));
-        return ret;
+        return -1;
     }
 
     if (virHostdevNetDevice(hostdev, 0, &linkdev, &vf) < 0)
-        return ret;
+        return -1;
 
     virtPort = virDomainNetGetActualVirtPortProfile(
                                  hostdev->parent.data.net);
     if (virtPort) {
-        ret = virHostdevNetConfigVirtPortProfile(linkdev, vf, virtPort,
+        return virHostdevNetConfigVirtPortProfile(linkdev, vf, virtPort,
                                                  &hostdev->parent.data.net->mac,
                                                  NULL,
                                                  port_profile_associate);
@@ -599,7 +573,7 @@ virHostdevRestoreNetConfig(virDomainHostdevDefPtr hostdev,
         /* 1) standard location */
         if (virNetDevReadNetConfig(linkdev, vf, stateDir,
                                    &adminMAC, &vlan, &MAC) < 0) {
-            goto cleanup;
+            return -1;
         }
 
         /* 2) "old" (pre-1.2.3 circa 2014) location - whenever we get
@@ -610,7 +584,7 @@ virHostdevRestoreNetConfig(virDomainHostdevDefPtr hostdev,
         if (!(adminMAC || vlan || MAC) && oldStateDir &&
             virNetDevReadNetConfig(linkdev, vf, oldStateDir,
                                    &adminMAC, &vlan, &MAC) < 0) {
-            goto cleanup;
+            return -1;
         }
 
         /* 3) try using the PF's "port 2" netdev as the name of the
@@ -622,7 +596,7 @@ virHostdevRestoreNetConfig(virDomainHostdevDefPtr hostdev,
             if (virHostdevNetDevice(hostdev, 1, &linkdev, &vf) < 0 ||
                 virNetDevReadNetConfig(linkdev, vf, stateDir,
                                        &adminMAC, &vlan, &MAC) < 0) {
-                goto cleanup;
+                return -1;
             }
         }
 
@@ -652,16 +626,8 @@ virHostdevRestoreNetConfig(virDomainHostdevDefPtr hostdev,
 
         ignore_value(virNetDevSetNetConfig(linkdev, vf,
                                            adminMAC, vlan, MAC, true));
-        ret = 0;
+        return 0;
     }
-
- cleanup:
-    VIR_FREE(linkdev);
-    VIR_FREE(MAC);
-    VIR_FREE(adminMAC);
-    virNetDevVlanFree(vlan);
-
-    return ret;
 }
 
 int
@@ -763,8 +729,8 @@ virHostdevPreparePCIDevices(virHostdevManagerPtr mgr,
                                    mgr->inactivePCIHostdevs) < 0)
                 goto reattachdevs;
         } else {
-            char *driverPath;
-            char *driverName;
+            VIR_AUTOFREE(char *) driverPath = NULL;
+            VIR_AUTOFREE(char *) driverName = NULL;
             int stub;
 
             /* Unmanaged devices should already have been marked as
@@ -789,9 +755,6 @@ virHostdevPreparePCIDevices(virHostdevManagerPtr mgr,
                 goto reattachdevs;
 
             stub = virPCIStubDriverTypeFromString(driverName);
-
-            VIR_FREE(driverPath);
-            VIR_FREE(driverName);
 
             if (stub > VIR_PCI_STUB_DRIVER_NONE &&
                 stub < VIR_PCI_STUB_DRIVER_LAST) {
@@ -1148,7 +1111,6 @@ virHostdevUpdateActivePCIDevices(virHostdevManagerPtr mgr,
                                  const char *dom_name)
 {
     virDomainHostdevDefPtr hostdev = NULL;
-    virPCIDevicePtr actual = NULL;
     size_t i;
     int ret = -1;
 
@@ -1159,6 +1121,7 @@ virHostdevUpdateActivePCIDevices(virHostdevManagerPtr mgr,
     virObjectLock(mgr->inactivePCIHostdevs);
 
     for (i = 0; i < nhostdevs; i++) {
+        VIR_AUTOPTR(virPCIDevice) actual = NULL;
         virDomainHostdevSubsysPCIPtr pcisrc;
         hostdev = hostdevs[i];
         pcisrc = &hostdev->source.subsys.u.pci;
@@ -1196,7 +1159,6 @@ virHostdevUpdateActivePCIDevices(virHostdevManagerPtr mgr,
 
     ret = 0;
  cleanup:
-    virPCIDeviceFree(actual);
     virObjectUnlock(mgr->activePCIHostdevs);
     virObjectUnlock(mgr->inactivePCIHostdevs);
     return ret;
@@ -1236,7 +1198,7 @@ virHostdevUpdateActiveUSBDevices(virHostdevManagerPtr mgr,
 
         virUSBDeviceSetUsedBy(usb, drv_name, dom_name);
 
-        if (virUSBDeviceListAdd(mgr->activeUSBHostdevs, usb) < 0) {
+        if (virUSBDeviceListAdd(mgr->activeUSBHostdevs, &usb) < 0) {
             virUSBDeviceFree(usb);
             goto cleanup;
         }
@@ -1257,31 +1219,27 @@ virHostdevUpdateActiveSCSIHostDevices(virHostdevManagerPtr mgr,
     virDomainHostdevSubsysSCSIHostPtr scsihostsrc = &scsisrc->u.host;
     virSCSIDevicePtr scsi = NULL;
     virSCSIDevicePtr tmp = NULL;
-    int ret = -1;
 
     if (!(scsi = virSCSIDeviceNew(NULL,
                                   scsihostsrc->adapter, scsihostsrc->bus,
                                   scsihostsrc->target, scsihostsrc->unit,
                                   hostdev->readonly, hostdev->shareable)))
-        goto cleanup;
+        return -1;
 
     if ((tmp = virSCSIDeviceListFind(mgr->activeSCSIHostdevs, scsi))) {
         if (virSCSIDeviceSetUsedBy(tmp, drv_name, dom_name) < 0) {
             virSCSIDeviceFree(scsi);
-            goto cleanup;
+            return -1;
         }
         virSCSIDeviceFree(scsi);
     } else {
         if (virSCSIDeviceSetUsedBy(scsi, drv_name, dom_name) < 0 ||
             virSCSIDeviceListAdd(mgr->activeSCSIHostdevs, scsi) < 0) {
             virSCSIDeviceFree(scsi);
-            goto cleanup;
+            return -1;
         }
     }
-    ret = 0;
-
- cleanup:
-    return ret;
+    return 0;
 }
 
 int
@@ -1332,7 +1290,7 @@ virHostdevUpdateActiveMediatedDevices(virHostdevManagerPtr mgr,
 {
     int ret = -1;
     size_t i;
-    virMediatedDevicePtr mdev = NULL;
+    VIR_AUTOPTR(virMediatedDevice) mdev = NULL;
 
     if (nhostdevs == 0)
         return 0;
@@ -1358,7 +1316,6 @@ virHostdevUpdateActiveMediatedDevices(virHostdevManagerPtr mgr,
 
     ret = 0;
  cleanup:
-    virMediatedDeviceFree(mdev);
     virObjectUnlock(mgr->activeMediatedHostdevs);
     return ret;
 }
@@ -1406,7 +1363,7 @@ virHostdevMarkUSBDevices(virHostdevManagerPtr mgr,
          * from the virUSBDeviceList that passed in on success,
          * perform rollback on failure.
          */
-        if (virUSBDeviceListAdd(mgr->activeUSBHostdevs, usb) < 0)
+        if (virUSBDeviceListAdd(mgr->activeUSBHostdevs, &usb) < 0)
             goto error;
     }
 
@@ -1555,7 +1512,7 @@ virHostdevPrepareUSBDevices(virHostdevManagerPtr mgr,
         if (virHostdevFindUSBDevice(hostdev, required, &usb) < 0)
             goto cleanup;
 
-        if (usb && virUSBDeviceListAdd(list, usb) < 0) {
+        if (usb && virUSBDeviceListAdd(list, &usb) < 0) {
             virUSBDeviceFree(usb);
             goto cleanup;
         }
@@ -1591,29 +1548,25 @@ virHostdevPrepareSCSIHostDevices(virDomainHostdevDefPtr hostdev,
 {
     virDomainHostdevSubsysSCSIHostPtr scsihostsrc = &scsisrc->u.host;
     virSCSIDevicePtr scsi;
-    int ret = -1;
 
     if (hostdev->managed) {
         virReportError(VIR_ERR_XML_ERROR, "%s",
                        _("SCSI host device doesn't support managed mode"));
-        goto cleanup;
+        return -1;
     }
 
     if (!(scsi = virSCSIDeviceNew(NULL,
                                   scsihostsrc->adapter, scsihostsrc->bus,
                                   scsihostsrc->target, scsihostsrc->unit,
                                   hostdev->readonly, hostdev->shareable)))
-        goto cleanup;
+        return -1;
 
     if (virSCSIDeviceListAdd(list, scsi) < 0) {
         virSCSIDeviceFree(scsi);
-        goto cleanup;
+        return -1;
     }
 
-    ret = 0;
-
- cleanup:
-    return ret;
+    return 0;
 }
 
 int
@@ -1890,7 +1843,8 @@ virHostdevReAttachUSBDevices(virHostdevManagerPtr mgr,
     for (i = 0; i < nhostdevs; i++) {
         virDomainHostdevDefPtr hostdev = hostdevs[i];
         virDomainHostdevSubsysUSBPtr usbsrc = &hostdev->source.subsys.u.usb;
-        virUSBDevicePtr usb, tmp;
+        VIR_AUTOPTR(virUSBDevice) usb = NULL;
+        virUSBDevicePtr tmp;
         const char *usedby_drvname;
         const char *usedby_domname;
 
@@ -1914,7 +1868,6 @@ virHostdevReAttachUSBDevices(virHostdevManagerPtr mgr,
          * the list which were taken by @name */
 
         tmp = virUSBDeviceListFind(mgr->activeUSBHostdevs, usb);
-        virUSBDeviceFree(usb);
 
         if (!tmp) {
             VIR_WARN("Unable to find device %03d.%03d "
@@ -1942,7 +1895,7 @@ virHostdevReAttachSCSIHostDevices(virHostdevManagerPtr mgr,
                                   const char *dom_name)
 {
     virDomainHostdevSubsysSCSIHostPtr scsihostsrc = &scsisrc->u.host;
-    virSCSIDevicePtr scsi;
+    VIR_AUTOPTR(virSCSIDevice) scsi = NULL;
     virSCSIDevicePtr tmp;
 
     if (!(scsi = virSCSIDeviceNew(NULL,
@@ -1963,7 +1916,6 @@ virHostdevReAttachSCSIHostDevices(virHostdevManagerPtr mgr,
                  "in list of active SCSI devices",
                  scsihostsrc->adapter, scsihostsrc->bus,
                  scsihostsrc->target, scsihostsrc->unit);
-        virSCSIDeviceFree(scsi);
         return;
     }
 
@@ -1973,7 +1925,6 @@ virHostdevReAttachSCSIHostDevices(virHostdevManagerPtr mgr,
 
     virSCSIDeviceListDel(mgr->activeSCSIHostdevs, tmp,
                          drv_name, dom_name);
-    virSCSIDeviceFree(scsi);
 }
 
 void
@@ -2013,14 +1964,14 @@ virHostdevReAttachSCSIVHostDevices(virHostdevManagerPtr mgr,
                                    int nhostdevs)
 {
     size_t i;
-    virSCSIVHostDevicePtr host, tmp;
-
 
     if (!nhostdevs)
         return;
 
     virObjectLock(mgr->activeSCSIVHostHostdevs);
     for (i = 0; i < nhostdevs; i++) {
+        VIR_AUTOPTR(virSCSIVHostDevice) host = NULL;
+        virSCSIVHostDevicePtr tmp;
         virDomainHostdevDefPtr hostdev = hostdevs[i];
         virDomainHostdevSubsysSCSIVHostPtr hostsrc = &hostdev->source.subsys.u.scsi_host;
         const char *usedby_drvname;
@@ -2048,7 +1999,6 @@ virHostdevReAttachSCSIVHostDevices(virHostdevManagerPtr mgr,
             VIR_WARN("Unable to find device %s "
                      "in list of active SCSI_host devices",
                      hostsrc->wwpn);
-            virSCSIVHostDeviceFree(host);
             virObjectUnlock(mgr->activeSCSIVHostHostdevs);
             return;
         }
@@ -2062,8 +2012,6 @@ virHostdevReAttachSCSIVHostDevices(virHostdevManagerPtr mgr,
 
             virSCSIVHostDeviceListDel(mgr->activeSCSIVHostHostdevs, tmp);
         }
-
-        virSCSIVHostDeviceFree(host);
     }
     virObjectUnlock(mgr->activeSCSIVHostHostdevs);
 }
@@ -2091,7 +2039,8 @@ virHostdevReAttachMediatedDevices(virHostdevManagerPtr mgr,
 
     virObjectLock(mgr->activeMediatedHostdevs);
     for (i = 0; i < nhostdevs; i++) {
-        virMediatedDevicePtr mdev, tmp;
+        VIR_AUTOPTR(virMediatedDevice) mdev = NULL;
+        virMediatedDevicePtr tmp;
         virDomainHostdevSubsysMediatedDevPtr mdevsrc;
         virDomainHostdevDefPtr hostdev = hostdevs[i];
 
@@ -2107,7 +2056,6 @@ virHostdevReAttachMediatedDevices(virHostdevManagerPtr mgr,
         /* Remove from the list only mdevs assigned to @drv_name/@dom_name */
 
         tmp = virMediatedDeviceListFind(mgr->activeMediatedHostdevs, mdev);
-        virMediatedDeviceFree(mdev);
 
         /* skip inactive devices */
         if (!tmp)

@@ -175,32 +175,23 @@ char *virStringListJoin(const char **strings,
  * @strings: a NULL-terminated array of strings
  * @item: string to add
  *
- * Creates new strings list with all strings duplicated and @item
- * at the end of the list. Callers is responsible for freeing
- * both @strings and returned list.
+ * Appends @item into string list @strings. If *@strings is not
+ * allocated yet new string list is created.
+ *
+ * Returns: 0 on success,
+ *         -1 otherwise
  */
-char **
-virStringListAdd(const char **strings,
+int
+virStringListAdd(char ***strings,
                  const char *item)
 {
-    char **ret = NULL;
-    size_t i = virStringListLength(strings);
+    size_t i = virStringListLength((const char **) *strings);
 
-    if (VIR_ALLOC_N(ret, i + 2) < 0)
-        goto error;
+    if (VIR_EXPAND_N(*strings, i, 2) < 0 ||
+        VIR_STRDUP((*strings)[i - 2], item) < 0)
+        return -1;
 
-    for (i = 0; strings && strings[i]; i++) {
-        if (VIR_STRDUP(ret[i], strings[i]) < 0)
-            goto error;
-    }
-
-    if (VIR_STRDUP(ret[i], item) < 0)
-        goto error;
-
-    return ret;
- error:
-    virStringListFree(ret);
-    return NULL;
+    return 0;
 }
 
 
@@ -769,46 +760,66 @@ virAsprintfInternal(bool report,
 }
 
 /**
- * virStrncpy
+ * virStrncpy:
  *
- * A safe version of strncpy.  The last parameter is the number of bytes
- * available in the destination string, *not* the number of bytes you want
- * to copy.  If the destination is not large enough to hold all n of the
- * src string bytes plus a \0, NULL is returned and no data is copied.
- * If the destination is large enough to hold the n bytes plus \0, then the
- * string is copied and a pointer to the destination string is returned.
+ * @dest: destination buffer
+ * @src: source buffer
+ * @n: number of bytes to copy
+ * @destbytes: number of bytes the destination can accomodate
+ *
+ * Copies the first @n bytes of @src to @dest.
+ *
+ * @src must be NULL-terminated; if successful, @dest is guaranteed to
+ * be NULL-terminated as well.
+ *
+ * @n must be a reasonable value, that is, it must not exceed either
+ * the length of @src or the size of @dest. For the latter constraint,
+ * the fact that @dest needs to accomodate a NULL byte in addition to
+ * the bytes copied from @src must be taken into account.
+ *
+ * If you want to copy *all* of @src to @dest, use virStrcpy() or
+ * virStrcpyStatic() instead.
+ *
+ * Returns: 0 on success, <0 on failure.
  */
-char *
+int
 virStrncpy(char *dest, const char *src, size_t n, size_t destbytes)
 {
-    char *ret;
+    size_t src_len = strlen(src);
 
-    if (n > (destbytes - 1))
-        return NULL;
+    /* As a special case, -1 means "copy the entire string".
+     *
+     * This is to avoid calling strlen() twice, once in the virStrcpy()
+     * wrapper and once here for bound checking purposes. */
+    if (n == -1)
+        n = src_len;
 
-    ret = strncpy(dest, src, n);
-    /* strncpy NULL terminates iff the last character is \0.  Therefore
-     * force the last byte to be \0
-     */
+    if (n <= 0 || n > src_len || n > (destbytes - 1))
+        return -1;
+
+    memcpy(dest, src, n);
     dest[n] = '\0';
 
-    return ret;
+    return 0;
 }
 
 /**
- * virStrcpy
+ * virStrcpy:
  *
- * A safe version of strcpy.  The last parameter is the number of bytes
- * available in the destination string, *not* the number of bytes you want
- * to copy.  If the destination is not large enough to hold all n of the
- * src string bytes plus a \0, NULL is returned and no data is copied.
- * If the destination is large enough to hold the source plus \0, then the
- * string is copied and a pointer to the destination string is returned.
+ * @dest: destination buffer
+ * @src: source buffer
+ * @destbytes: number of bytes the destination can accomodate
+ *
+ * Copies @src to @dest.
+ *
+ * See virStrncpy() for more information.
+ *
+ * Returns: 0 on success, <0 on failure.
  */
-char *
+int
 virStrcpy(char *dest, const char *src, size_t destbytes)
 {
-    return virStrncpy(dest, src, strlen(src), destbytes);
+    return virStrncpy(dest, src, -1, destbytes);
 }
 
 /**
@@ -915,33 +926,6 @@ virStringIsEmpty(const char *str)
 
     virSkipSpaces(&str);
     return str[0] == '\0';
-}
-
-char *
-virArgvToString(const char *const *argv)
-{
-    int len;
-    size_t i;
-    char *ret, *p;
-
-    for (len = 1, i = 0; argv[i]; i++)
-        len += strlen(argv[i]) + 1;
-
-    if (VIR_ALLOC_N(ret, len) < 0)
-        return NULL;
-    p = ret;
-
-    for (i = 0; argv[i]; i++) {
-        if (i != 0)
-            *(p++) = ' ';
-
-        strcpy(p, argv[i]);
-        p += strlen(argv[i]);
-    }
-
-    *p = '\0';
-
-    return ret;
 }
 
 /**

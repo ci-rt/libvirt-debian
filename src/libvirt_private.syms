@@ -104,12 +104,9 @@ virPCIDeviceAddressParseXML;
 
 
 # conf/domain_addr.h
-virDomainCCWAddressAllocate;
 virDomainCCWAddressAssign;
-virDomainCCWAddressReleaseAddr;
-virDomainCCWAddressSetCreate;
+virDomainCCWAddressSetCreateFromDomain;
 virDomainCCWAddressSetFree;
-virDomainCCWAddressValidate;
 virDomainPCIAddressAsString;
 virDomainPCIAddressBusIsFullyReserved;
 virDomainPCIAddressBusSetModel;
@@ -126,7 +123,6 @@ virDomainPCIControllerModelToConnectType;
 virDomainUSBAddressAssign;
 virDomainUSBAddressCountAllPorts;
 virDomainUSBAddressEnsure;
-virDomainUSBAddressPortFormat;
 virDomainUSBAddressPortFormatBuf;
 virDomainUSBAddressPortIsValid;
 virDomainUSBAddressPresent;
@@ -136,14 +132,9 @@ virDomainUSBAddressSetAddControllers;
 virDomainUSBAddressSetAddHub;
 virDomainUSBAddressSetCreate;
 virDomainUSBAddressSetFree;
-virDomainVirtioSerialAddrAssign;
 virDomainVirtioSerialAddrAutoAssign;
 virDomainVirtioSerialAddrAutoAssignFromCache;
 virDomainVirtioSerialAddrIsComplete;
-virDomainVirtioSerialAddrRelease;
-virDomainVirtioSerialAddrReserve;
-virDomainVirtioSerialAddrSetAddControllers;
-virDomainVirtioSerialAddrSetCreate;
 virDomainVirtioSerialAddrSetCreateFromDomain;
 virDomainVirtioSerialAddrSetFree;
 
@@ -368,6 +359,7 @@ virDomainGetFilesystemForTarget;
 virDomainGraphicsAuthConnectedTypeFromString;
 virDomainGraphicsAuthConnectedTypeToString;
 virDomainGraphicsDefFree;
+virDomainGraphicsDefHasOpenGL;
 virDomainGraphicsGetListen;
 virDomainGraphicsListenAppendAddress;
 virDomainGraphicsListenAppendSocket;
@@ -567,6 +559,7 @@ virDomainTPMModelTypeToString;
 virDomainUSBDeviceDefForeach;
 virDomainVideoDefaultRAM;
 virDomainVideoDefaultType;
+virDomainVideoDefClear;
 virDomainVideoDefFree;
 virDomainVideoDefNew;
 virDomainVideoTypeFromString;
@@ -969,6 +962,7 @@ virInterfaceObjGetDef;
 virInterfaceObjIsActive;
 virInterfaceObjListAssignDef;
 virInterfaceObjListClone;
+virInterfaceObjListExport;
 virInterfaceObjListFindByMACString;
 virInterfaceObjListFindByName;
 virInterfaceObjListGetNames;
@@ -2104,7 +2098,6 @@ virJSONValueNewNumberUint;
 virJSONValueNewNumberUlong;
 virJSONValueNewObject;
 virJSONValueNewString;
-virJSONValueNewStringLen;
 virJSONValueObjectAdd;
 virJSONValueObjectAddVArgs;
 virJSONValueObjectAppend;
@@ -2140,6 +2133,10 @@ virJSONValueObjectRemoveKey;
 virJSONValueObjectStealArray;
 virJSONValueObjectStealObject;
 virJSONValueToString;
+
+
+# util/virjsoncompat.h
+virJSONInitialize;
 
 
 # util/virkeycode.h
@@ -2376,6 +2373,7 @@ virNetDevMacVLanCreate;
 virNetDevMacVLanCreateWithVPortProfile;
 virNetDevMacVLanDelete;
 virNetDevMacVLanDeleteWithVPortProfile;
+virNetDevMacVLanModeTypeFromString;
 virNetDevMacVLanReleaseName;
 virNetDevMacVLanReserveName;
 virNetDevMacVLanRestartWithVPortProfile;
@@ -2391,6 +2389,7 @@ virNetDevMidonetUnbindPort;
 virNetDevOpenvswitchAddPort;
 virNetDevOpenvswitchGetMigrateData;
 virNetDevOpenvswitchGetVhostuserIfname;
+virNetDevOpenvswitchInterfaceGetMaster;
 virNetDevOpenvswitchInterfaceStats;
 virNetDevOpenvswitchRemovePort;
 virNetDevOpenvswitchSetMigrateData;
@@ -2862,6 +2861,7 @@ virStorageSourceIsBlockLocal;
 virStorageSourceIsEmpty;
 virStorageSourceIsLocalStorage;
 virStorageSourceIsRelative;
+virStorageSourceIsSameLocation;
 virStorageSourceNetworkAssignDefaultPorts;
 virStorageSourceNewFromBacking;
 virStorageSourceNewFromBackingAbsolute;
@@ -2883,7 +2883,6 @@ virStorageFileBackendRegister;
 
 
 # util/virstring.h
-virArgvToString;
 virAsprintfInternal;
 virSkipSpaces;
 virSkipSpacesAndBackslash;

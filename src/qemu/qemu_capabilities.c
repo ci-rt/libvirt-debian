@@ -501,6 +501,12 @@ VIR_ENUM_IMPL(virQEMUCaps, QEMU_CAPS_LAST,
               /* 310 */
               "sev-guest",
               "machine.pseries.cap-hpt-max-page-size",
+              "machine.pseries.cap-htm",
+              "usb-storage.werror",
+              "egl-headless",
+
+              /* 315 */
+              "vfio-pci.display",
     );
 
 
@@ -1194,6 +1200,7 @@ static struct virQEMUCapsStringFlags virQEMUCapsDevicePropsPCIAssign[] = {
 
 static struct virQEMUCapsStringFlags virQEMUCapsDevicePropsVfioPCI[] = {
     { "bootindex", QEMU_CAPS_VFIO_PCI_BOOTINDEX },
+    { "display", QEMU_CAPS_VFIO_PCI_DISPLAY },
 };
 
 static struct virQEMUCapsStringFlags virQEMUCapsDevicePropsSCSIDisk[] = {
@@ -1239,6 +1246,7 @@ static struct virQEMUCapsStringFlags virQEMUCapsDevicePropsUSBStorage[] = {
     { "removable", QEMU_CAPS_USB_STORAGE_REMOVABLE },
     { "share-rw", QEMU_CAPS_DISK_SHARE_RW },
     { "write-cache", QEMU_CAPS_DISK_WRITE_CACHE },
+    { "werror", QEMU_CAPS_USB_STORAGE_WERROR },
 };
 
 static struct virQEMUCapsStringFlags virQEMUCapsDevicePropsKVMPit[] = {
@@ -1431,6 +1439,7 @@ static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsMemoryBackendFile[] =
 
 static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsSPAPRMachine[] = {
     { "cap-hpt-max-page-size", QEMU_CAPS_MACHINE_PSERIES_CAP_HPT_MAX_PAGE_SIZE },
+    { "cap-htm", QEMU_CAPS_MACHINE_PSERIES_CAP_HTM },
 };
 
 static virQEMUCapsObjectTypeProps virQEMUCapsObjectProps[] = {
@@ -4025,6 +4034,11 @@ virQEMUCapsInitQMPMonitor(virQEMUCapsPtr qemuCaps,
         ARCH_IS_PPC64(qemuCaps->arch)) {
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_MACHINE_PSERIES_RESIZE_HPT);
     }
+
+    /* '-display egl-headless' cmdline option is supported since QEMU 2.10, but
+     * there's no way to probe it */
+    if (qemuCaps->version >= 2010000)
+        virQEMUCapsSet(qemuCaps, QEMU_CAPS_EGL_HEADLESS);
 
     /* no way to query for -numa dist */
     if (qemuCaps->version >= 2010000)

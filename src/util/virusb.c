@@ -35,7 +35,6 @@
 
 #include "virusb.h"
 #include "virlog.h"
-#include "viralloc.h"
 #include "virutil.h"
 #include "virerror.h"
 #include "virfile.h"
@@ -91,29 +90,25 @@ VIR_ONCE_GLOBAL_INIT(virUSB)
 static int virUSBSysReadFile(const char *f_name, const char *d_name,
                              int base, unsigned int *value)
 {
-    int ret = -1, tmp;
-    char *buf = NULL;
-    char *filename = NULL;
+    int tmp;
+    VIR_AUTOFREE(char *) buf = NULL;
+    VIR_AUTOFREE(char *) filename = NULL;
     char *ignore = NULL;
 
     tmp = virAsprintf(&filename, USB_SYSFS "/devices/%s/%s", d_name, f_name);
     if (tmp < 0)
-        goto cleanup;
+        return -1;
 
     if (virFileReadAll(filename, 1024, &buf) < 0)
-        goto cleanup;
+        return -1;
 
     if (virStrToLong_ui(buf, &ignore, base, value) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Could not parse usb file %s"), filename);
-        goto cleanup;
+        return -1;
     }
 
-    ret = 0;
- cleanup:
-    VIR_FREE(filename);
-    VIR_FREE(buf);
-    return ret;
+    return 0;
 }
 
 static virUSBDeviceListPtr
@@ -128,8 +123,9 @@ virUSBDeviceSearch(unsigned int vendor,
     bool found = false;
     char *ignore = NULL;
     struct dirent *de;
-    virUSBDeviceListPtr list = NULL, ret = NULL;
-    virUSBDevicePtr usb;
+    virUSBDeviceListPtr list = NULL;
+    virUSBDeviceListPtr ret = NULL;
+    VIR_AUTOPTR(virUSBDevice) usb = NULL;
     int direrr;
 
     if (!(list = virUSBDeviceListNew()))
@@ -178,13 +174,12 @@ virUSBDeviceSearch(unsigned int vendor,
         }
 
         usb = virUSBDeviceNew(found_bus, found_devno, vroot);
+
         if (!usb)
             goto cleanup;
 
-        if (virUSBDeviceListAdd(list, usb) < 0) {
-            virUSBDeviceFree(usb);
+        if (virUSBDeviceListAdd(list, &usb) < 0)
             goto cleanup;
-        }
 
         if (found)
             break;
@@ -463,15 +458,15 @@ virUSBDeviceListDispose(void *obj)
 
 int
 virUSBDeviceListAdd(virUSBDeviceListPtr list,
-                    virUSBDevicePtr dev)
+                    virUSBDevicePtr *dev)
 {
-    if (virUSBDeviceListFind(list, dev)) {
+    if (virUSBDeviceListFind(list, *dev)) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Device %s is already in use"),
-                       dev->name);
+                       (*dev)->name);
         return -1;
     }
-    return VIR_APPEND_ELEMENT(list->devs, list->count, dev);
+    return VIR_APPEND_ELEMENT(list->devs, list->count, *dev);
 }
 
 virUSBDevicePtr
@@ -513,8 +508,7 @@ void
 virUSBDeviceListDel(virUSBDeviceListPtr list,
                     virUSBDevicePtr dev)
 {
-    virUSBDevicePtr ret = virUSBDeviceListSteal(list, dev);
-    virUSBDeviceFree(ret);
+    virUSBDeviceFree(virUSBDeviceListSteal(list, dev));
 }
 
 virUSBDevicePtr

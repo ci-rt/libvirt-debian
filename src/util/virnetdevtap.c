@@ -270,7 +270,7 @@ int virNetDevTapCreate(char **ifname,
             ifr.ifr_flags |= IFF_VNET_HDR;
 # endif
 
-        if (virStrcpyStatic(ifr.ifr_name, *ifname) == NULL) {
+        if (virStrcpyStatic(ifr.ifr_name, *ifname) < 0) {
             virReportSystemError(ERANGE,
                                  _("Network interface name '%s' is too long"),
                                  *ifname);
@@ -336,7 +336,7 @@ int virNetDevTapDelete(const char *ifname,
     memset(&try, 0, sizeof(struct ifreq));
     try.ifr_flags = IFF_TAP|IFF_NO_PI;
 
-    if (virStrcpyStatic(try.ifr_name, ifname) == NULL) {
+    if (virStrcpyStatic(try.ifr_name, ifname) < 0) {
         virReportSystemError(ERANGE,
                              _("Network interface name '%s' is too long"),
                              ifname);
@@ -691,6 +691,12 @@ virNetDevTapInterfaceStats(const char *ifname,
     FILE *fp;
     char line[256], *colon;
 
+    if (!ifname) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Interface name not provided"));
+        return -1;
+    }
+
     fp = fopen("/proc/net/dev", "r");
     if (!fp) {
         virReportSystemError(errno, "%s",
@@ -767,6 +773,12 @@ virNetDevTapInterfaceStats(const char *ifname,
     struct ifaddrs *ifap, *ifa;
     struct if_data *ifd;
     int ret = -1;
+
+    if (!ifname) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Interface name not provided"));
+        return -1;
+    }
 
     if (getifaddrs(&ifap) < 0) {
         virReportSystemError(errno, "%s",

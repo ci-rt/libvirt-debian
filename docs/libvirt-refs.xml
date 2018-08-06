@@ -426,6 +426,7 @@
     <reference name='VIR_DOMAIN_MEMORY_SOFT_LIMIT' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_MEMORY_SOFT_LIMIT'/>
     <reference name='VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON'/>
     <reference name='VIR_DOMAIN_MEMORY_STAT_AVAILABLE' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_MEMORY_STAT_AVAILABLE'/>
+    <reference name='VIR_DOMAIN_MEMORY_STAT_DISK_CACHES' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_MEMORY_STAT_DISK_CACHES'/>
     <reference name='VIR_DOMAIN_MEMORY_STAT_LAST' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_MEMORY_STAT_LAST'/>
     <reference name='VIR_DOMAIN_MEMORY_STAT_LAST_UPDATE' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_MEMORY_STAT_LAST_UPDATE'/>
     <reference name='VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT'/>
@@ -2328,6 +2329,7 @@
       <ref name='VIR_DOMAIN_MEMORY_SOFT_LIMIT'/>
       <ref name='VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON'/>
       <ref name='VIR_DOMAIN_MEMORY_STAT_AVAILABLE'/>
+      <ref name='VIR_DOMAIN_MEMORY_STAT_DISK_CACHES'/>
       <ref name='VIR_DOMAIN_MEMORY_STAT_LAST'/>
       <ref name='VIR_DOMAIN_MEMORY_STAT_LAST_UPDATE'/>
       <ref name='VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT'/>
@@ -5621,6 +5623,7 @@
       <ref name='VIR_DOMAIN_MEMORY_SOFT_LIMIT'/>
       <ref name='VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON'/>
       <ref name='VIR_DOMAIN_MEMORY_STAT_AVAILABLE'/>
+      <ref name='VIR_DOMAIN_MEMORY_STAT_DISK_CACHES'/>
       <ref name='VIR_DOMAIN_MEMORY_STAT_LAST'/>
       <ref name='VIR_DOMAIN_MEMORY_STAT_LAST_UPDATE'/>
       <ref name='VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT'/>
@@ -9512,6 +9515,7 @@
         </word>
         <word name='VIR_DOMAIN_EVENT_ID_DEVICE_REMOVAL_FAILED'>
           <ref name='virConnectDomainEventDeviceRemovalFailedCallback'/>
+          <ref name='virDomainDetachDeviceAlias'/>
         </word>
         <word name='VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED'>
           <ref name='virConnectDomainEventDeviceRemovedCallback'/>
@@ -9635,6 +9639,9 @@
           <ref name='virDomainMemoryStats'/>
         </word>
         <word name='VIR_DOMAIN_MEMORY_STAT_AVAILABLE:'>
+          <ref name='virDomainMemoryStats'/>
+        </word>
+        <word name='VIR_DOMAIN_MEMORY_STAT_DISK_CACHES'>
           <ref name='virDomainMemoryStats'/>
         </word>
         <word name='VIR_DOMAIN_MEMORY_STAT_LAST_UPDATE'>
@@ -10553,6 +10560,7 @@
           <ref name='virConnectRef'/>
           <ref name='virDomainBlockCopy'/>
           <ref name='virDomainListAllSnapshots'/>
+          <ref name='virDomainMemoryStats'/>
           <ref name='virDomainRef'/>
           <ref name='virDomainRevertToSnapshot'/>
           <ref name='virDomainSnapshotListAllChildren'/>
@@ -11849,6 +11857,9 @@
           <ref name='VIR_NODE_MEMORY_STATS_CACHED'/>
           <ref name='VIR_NODE_MEMORY_STATS_FREE'/>
           <ref name='virNodeGetMemoryStats'/>
+        </word>
+        <word name='caches'>
+          <ref name='virDomainMemoryStats'/>
         </word>
         <word name='calculate'>
           <ref name='VIR_NODEINFO_MAXCPUS'/>
@@ -20067,6 +20078,9 @@
         <word name='recheck'>
           <ref name='virDomainDetachDeviceFlags'/>
         </word>
+        <word name='reclaimed'>
+          <ref name='virDomainMemoryStats'/>
+        </word>
         <word name='recognized'>
           <ref name='VIR_MIGRATE_PARAM_GRAPHICS_URI'/>
           <ref name='virConnectGetAllDomainStats'/>
@@ -20207,6 +20221,7 @@
           <ref name='virDomainBlockJobSetSpeed'/>
           <ref name='virDomainBlockPull'/>
           <ref name='virDomainBlockRebase'/>
+          <ref name='virDomainDetachDeviceAlias'/>
           <ref name='virDomainGetXMLDesc'/>
           <ref name='virDomainListGetStats'/>
           <ref name='virDomainManagedSaveGetXMLDesc'/>
@@ -22986,6 +23001,7 @@
           <ref name='VIR_MIGRATE_PARAM_URI'/>
           <ref name='virConnectRef'/>
           <ref name='virDomainGetCPUStats'/>
+          <ref name='virDomainMemoryStats'/>
           <ref name='virDomainRef'/>
           <ref name='virDomainSnapshotRef'/>
           <ref name='virInterfaceRef'/>

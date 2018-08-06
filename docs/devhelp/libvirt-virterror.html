@@ -339,7 +339,7 @@ The error object is kept in thread local storage, so separate
 threads can safely access this concurrently.
 
 One will need to free the result with virResetError()</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>to</tt></i>:</span></td><td>target to receive the copy</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if no error was found and the error code otherwise and -1 in case of parameter error.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>to</tt></i>:</span></td><td>target to receive the copy</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>error code or -1 in case of parameter error.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDefaultErrorFunc"/>virDefaultErrorFunc ()</h3><pre class="programlisting">void	virDefaultErrorFunc		(<a href="libvirt-virterror.html#virErrorPtr">virErrorPtr</a> err)<br/>
 </pre><p>Default routine reporting an error to stderr.</p>

@@ -44,7 +44,6 @@
 
 #define __VIR_COMMAND_PRIV_H_ALLOW__
 #include "vircommandpriv.h"
-#include "viralloc.h"
 #include "virerror.h"
 #include "virutil.h"
 #include "virlog.h"
@@ -508,11 +507,11 @@ virExec(virCommandPtr cmd)
     int childout = -1;
     int childerr = -1;
     int tmpfd;
-    char *binarystr = NULL;
+    VIR_AUTOFREE(char *) binarystr = NULL;
     const char *binary = NULL;
     int ret;
     struct sigaction waxon, waxoff;
-    gid_t *groups = NULL;
+    VIR_AUTOFREE(gid_t *) groups = NULL;
     int ngroups;
 
     if (cmd->args[0][0] != '/') {
@@ -604,9 +603,6 @@ virExec(virCommandPtr cmd)
         }
 
         cmd->pid = pid;
-
-        VIR_FREE(groups);
-        VIR_FREE(binarystr);
 
         return 0;
     }
@@ -797,9 +793,6 @@ virExec(virCommandPtr cmd)
     /* This is cleanup of parent process only - child
        should never jump here on error */
 
-    VIR_FREE(binarystr);
-    VIR_FREE(groups);
-
     /* NB we don't virReportError() on any failures here
        because the code which jumped here already raised
        an error condition which we must not overwrite */
@@ -829,12 +822,9 @@ virExec(virCommandPtr cmd)
 int
 virRun(const char *const*argv, int *status)
 {
-    int ret;
-    virCommandPtr cmd = virCommandNewArgs(argv);
+    VIR_AUTOPTR(virCommand) cmd = virCommandNewArgs(argv);
 
-    ret = virCommandRun(cmd, status);
-    virCommandFree(cmd);
-    return ret;
+    return virCommandRun(cmd, status);
 }
 
 #else /* WIN32 */
@@ -2387,7 +2377,7 @@ int
 virCommandRunAsync(virCommandPtr cmd, pid_t *pid)
 {
     int ret = -1;
-    char *str = NULL;
+    VIR_AUTOFREE(char *) str = NULL;
     size_t i;
     bool synchronous = false;
     int infd[2] = {-1, -1};
@@ -2512,7 +2502,6 @@ virCommandRunAsync(virCommandPtr cmd, pid_t *pid)
         VIR_FORCE_CLOSE(cmd->infd);
         VIR_FORCE_CLOSE(cmd->inpipe);
     }
-    VIR_FREE(str);
     return ret;
 }
 
@@ -2553,6 +2542,8 @@ virCommandWait(virCommandPtr cmd, int *exitstatus)
                   dryRunStatus);
         if (exitstatus)
             *exitstatus = dryRunStatus;
+        else if (dryRunStatus)
+            return -1;
         return 0;
     }
 
@@ -2589,8 +2580,8 @@ virCommandWait(virCommandPtr cmd, int *exitstatus)
         if (exitstatus && (cmd->rawStatus || WIFEXITED(status))) {
             *exitstatus = cmd->rawStatus ? status : WEXITSTATUS(status);
         } else if (status) {
-            char *str = virCommandToString(cmd);
-            char *st = virProcessTranslateStatus(status);
+            VIR_AUTOFREE(char *) str = virCommandToString(cmd);
+            VIR_AUTOFREE(char *) st = virProcessTranslateStatus(status);
             bool haveErrMsg = cmd->errbuf && *cmd->errbuf && (*cmd->errbuf)[0];
 
             virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -2598,8 +2589,6 @@ virCommandWait(virCommandPtr cmd, int *exitstatus)
                            str ? str : cmd->args[0], NULLSTR(st),
                            haveErrMsg ? ": " : "",
                            haveErrMsg ? *cmd->errbuf : "");
-            VIR_FREE(str);
-            VIR_FREE(st);
             return -1;
         }
     }
@@ -2719,7 +2708,7 @@ int virCommandHandshakeWait(virCommandPtr cmd)
         return -1;
     }
     if (c != '1') {
-        char *msg;
+        VIR_AUTOFREE(char *) msg = NULL;
         ssize_t len;
         if (VIR_ALLOC_N(msg, 1024) < 0) {
             VIR_FORCE_CLOSE(cmd->handshakeWait[0]);
@@ -2732,7 +2721,6 @@ int virCommandHandshakeWait(virCommandPtr cmd)
 
         if ((len = saferead(cmd->handshakeWait[0], msg, 1024)) < 0) {
             VIR_FORCE_CLOSE(cmd->handshakeWait[0]);
-            VIR_FREE(msg);
             virReportSystemError(errno, "%s",
                                  _("No error message from child failure"));
             return -1;
@@ -2740,7 +2728,6 @@ int virCommandHandshakeWait(virCommandPtr cmd)
         VIR_FORCE_CLOSE(cmd->handshakeWait[0]);
         msg[len-1] = '\0';
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", msg);
-        VIR_FREE(msg);
         return -1;
     }
     VIR_FORCE_CLOSE(cmd->handshakeWait[0]);
@@ -2854,8 +2841,8 @@ virCommandFree(virCommandPtr cmd)
  * This requests asynchronous string IO on @cmd. It is useful in
  * combination with virCommandRunAsync():
  *
- *      virCommandPtr cmd = virCommandNew*(...);
- *      char *buf = NULL;
+ *      VIR_AUTOPTR(virCommand) cmd = virCommandNew*(...);
+ *      VIR_AUTOFREE(char *) buf = NULL;
  *
  *      ...
  *
@@ -2863,21 +2850,18 @@ virCommandFree(virCommandPtr cmd)
  *      virCommandDoAsyncIO(cmd);
  *
  *      if (virCommandRunAsync(cmd, NULL) < 0)
- *          goto cleanup;
+ *          return;
  *
  *      ...
  *
  *      if (virCommandWait(cmd, NULL) < 0)
- *          goto cleanup;
+ *          return;
  *
  *      // @buf now contains @cmd's stdout
  *      VIR_DEBUG("STDOUT: %s", NULLSTR(buf));
  *
  *      ...
  *
- *  cleanup:
- *      VIR_FREE(buf);
- *      virCommandFree(cmd);
  *
  * The libvirt's event loop is used for handling stdios of @cmd.
  * Since current implementation uses strlen to determine length
@@ -2970,12 +2954,12 @@ virCommandRunRegex(virCommandPtr cmd,
 {
     int err;
     regex_t *reg;
-    regmatch_t *vars = NULL;
+    VIR_AUTOFREE(regmatch_t *) vars = NULL;
     size_t i, j, k;
     int totgroups = 0, ngroup = 0, maxvars = 0;
     char **groups;
-    char *outbuf = NULL;
-    char **lines = NULL;
+    VIR_AUTOFREE(char *) outbuf = NULL;
+    VIR_AUTOPTR(virString) lines = NULL;
     int ret = -1;
 
     /* Compile all regular expressions */
@@ -3054,14 +3038,11 @@ virCommandRunRegex(virCommandPtr cmd,
 
     ret = 0;
  cleanup:
-    virStringListFree(lines);
-    VIR_FREE(outbuf);
     if (groups) {
         for (j = 0; j < totgroups; j++)
             VIR_FREE(groups[j]);
         VIR_FREE(groups);
     }
-    VIR_FREE(vars);
 
     for (i = 0; i < nregex; i++)
         regfree(&reg[i]);

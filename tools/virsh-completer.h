@@ -94,9 +94,17 @@ char ** virshPoolEventNameCompleter(vshControl *ctl,
                                     const vshCmd *cmd,
                                     unsigned int flags);
 
+char ** virshDomainInterfaceStateCompleter(vshControl *ctl,
+                                           const vshCmd *cmd,
+                                           unsigned int flags);
+
 char ** virshNodedevEventNameCompleter(vshControl *ctl,
                                        const vshCmd *cmd,
                                        unsigned int flags);
+
+char ** virshDomainDeviceAliasCompleter(vshControl *ctl,
+                                        const vshCmd *cmd,
+                                        unsigned int flags);
 
 char ** virshCellnoCompleter(vshControl *ctl,
                              const vshCmd *cmd,

@@ -924,6 +924,8 @@ B<Explanation of fields>:
   usable            - The amount of memory which can be reclaimed by balloon
 without causing host swapping (in KiB)
   last-update       - Timestamp of the last update of statistics (in seconds)
+  disk_caches       - The amount of memory that can be reclaimed without
+additional I/O, typically disk caches (in KiB)
 
 For QEMU/KVM with a memory balloon, setting the optional I<--period> to a
 value larger than 0 in seconds will allow the balloon driver to return
@@ -1030,6 +1032,9 @@ I<--balloon> returns:
                     balloon without causing host swapping (in KiB)
  "balloon.last-update" - timestamp of the last update of statistics
                          (in seconds)
+ "balloon.disk_caches " - the amount of memory that can be reclaimed
+                          without additional I/O, typically disk
+                          caches (in KiB)
 
 I<--vcpu> returns:
 
@@ -3027,7 +3032,7 @@ expected.
 =item B<attach-disk> I<domain> I<source> I<target> [[[I<--live>] [I<--config>]
 | [I<--current>]] | [I<--persistent>]] [I<--targetbus bus>] [I<--driver
 driver>] [I<--subdriver subdriver>] [I<--iothread iothread>]
-[I<--cache cache>] [I<--io io>] [I<--type type>]
+[I<--cache cache>] [I<--io io>] [I<--type type>] [I<--alias alias>]
 [I<--mode mode>] [I<--sourcetype sourcetype>] [I<--serial serial>] [I<--wwn
 wwn>] [I<--rawio>] [I<--address address>] [I<--multifunction>] [I<--print-xml>]
 
@@ -3050,6 +3055,7 @@ disk formats.  I<type> can indicate I<lun>, I<cdrom> or I<floppy> as
 alternative to the disk default, although this use only replaces the media
 within the existing virtual cdrom or floppy device; consider using
 B<update-device> for this usage instead.
+I<alias> can set user supplied alias.
 I<mode> can specify the two specific mode I<readonly> or I<shareable>.
 I<sourcetype> can indicate the type of source (block|file)
 I<cache> can be one of "default", "none", "writethrough", "writeback",
@@ -3059,9 +3065,10 @@ I<iothread> is the number within the range of domain IOThreads to which
 this disk may be attached (QEMU only).
 I<serial> is the serial of disk device. I<wwn> is the wwn of disk device.
 I<rawio> indicates the disk needs rawio capability.
-I<address> is the address of disk device in the form of pci:domain.bus.slot.function,
-scsi:controller.bus.unit, ide:controller.bus.unit or ccw:cssid.ssid.devno.
-Virtio-ccw devices must have their cssid set to 0xfe.
+I<address> is the address of disk device in the form of
+pci:domain.bus.slot.function, scsi:controller.bus.unit,
+ide:controller.bus.unit, usb:bus.port, sata:controller.bus.unit or
+ccw:cssid.ssid.devno. Virtio-ccw devices must have their cssid set to 0xfe.
 I<multifunction> indicates specified pci address is a multifunction pci device
 address.
 
@@ -3083,7 +3090,7 @@ Likewise, I<--shareable> is an alias for I<--mode shareable>.
 [[[I<--live>] [I<--config>] | [I<--current>]] | [I<--persistent>]]
 [I<--target target>] [I<--mac mac>] [I<--script script>] [I<--model model>]
 [I<--inbound average,peak,burst,floor>] [I<--outbound average,peak,burst>]
-[I<--managed>] [I<--print-xml>]
+[I<--alias alias>] [I<--managed>] [I<--print-xml>]
 
 Attach a new network interface to the domain.
 
@@ -3136,6 +3143,8 @@ I<bridge> type and only for Xen domains.
 
 B<--model> specifies the network device model to be presented to the
 domain.
+
+B<alias> can set user supplied alias.
 
 B<--inbound> and B<--outbound> control the bandwidth of the
 interface.  At least one from the I<average>, I<floor> pair must be
@@ -3197,7 +3206,7 @@ Note that older versions of virsh used I<--config> as an alias for
 I<--persistent>.
 
 =item B<detach-device-alias> I<domain> I<alias>
-[[[I<--live>] [I<--config>] | [I<--current>]] | [I<--persistent>]]
+[[[I<--live>] [I<--config>] | [I<--current>]]]]
 
 Detach a device with given I<alias> from the I<domain>.
 
@@ -4827,7 +4836,7 @@ of the network filters directly.
 Associate a network port with a network filter. The network filter backend
 will immediately attempt to instantiate the filter rules on the port.
 
-=item B<nwfilter-binding-undefine> I<port-name>
+=item B<nwfilter-binding-delete> I<port-name>
 
 Disassociate a network port from a network filter. The network filter
 backend will immediately tear down the filter rules that exist on the

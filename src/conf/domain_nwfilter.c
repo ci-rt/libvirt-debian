@@ -90,7 +90,7 @@ virDomainConfNWFilterInstantiate(const char *vmname,
     virConnectPtr conn = virGetConnectNWFilter();
     virNWFilterBindingDefPtr def = NULL;
     virNWFilterBindingPtr binding = NULL;
-    char *xml;
+    char *xml = NULL;
     int ret = -1;
 
     VIR_DEBUG("vmname=%s portdev=%s filter=%s ignoreExists=%d",
@@ -132,6 +132,9 @@ virDomainConfNWFilterTeardownImpl(virConnectPtr conn,
                                   virDomainNetDefPtr net)
 {
     virNWFilterBindingPtr binding;
+
+    if (!net->ifname)
+        return;
 
     binding = virNWFilterBindingLookupByPortDev(conn, net->ifname);
     if (!binding)

@@ -310,8 +310,8 @@ int virNetSocketNewListenTCP(const char *nodename,
     struct addrinfo hints;
     int fd = -1;
     size_t i;
-    bool addrInUse = false;
-    bool familyNotSupported = false;
+    int socketErrno = 0;
+    int bindErrno = 0;
     virSocketAddr tmp_addr;
 
     *retsocks = NULL;
@@ -351,7 +351,7 @@ int virNetSocketNewListenTCP(const char *nodename,
         if ((fd = socket(runp->ai_family, runp->ai_socktype,
                          runp->ai_protocol)) < 0) {
             if (errno == EAFNOSUPPORT) {
-                familyNotSupported = true;
+                socketErrno = errno;
                 runp = runp->ai_next;
                 continue;
             }
@@ -382,11 +382,11 @@ int virNetSocketNewListenTCP(const char *nodename,
 #endif
 
         if (bind(fd, runp->ai_addr, runp->ai_addrlen) < 0) {
-            if (errno != EADDRINUSE) {
+            if (errno != EADDRINUSE && errno != EADDRNOTAVAIL) {
                 virReportSystemError(errno, "%s", _("Unable to bind to port"));
                 goto error;
             }
-            addrInUse = true;
+            bindErrno = errno;
             VIR_FORCE_CLOSE(fd);
             runp = runp->ai_next;
             continue;
@@ -409,14 +409,13 @@ int virNetSocketNewListenTCP(const char *nodename,
         fd = -1;
     }
 
-    if (nsocks == 0 && familyNotSupported) {
-        virReportSystemError(EAFNOSUPPORT, "%s", _("Unable to bind to port"));
-        goto error;
-    }
-
-    if (nsocks == 0 &&
-        addrInUse) {
-        virReportSystemError(EADDRINUSE, "%s", _("Unable to bind to port"));
+    if (nsocks == 0) {
+        if (bindErrno)
+            virReportSystemError(bindErrno, "%s", _("Unable to bind to port"));
+        else if (socketErrno)
+            virReportSystemError(socketErrno, "%s", _("Unable to create socket"));
+        else
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("No addresses to bind to"));
         goto error;
     }
 
@@ -459,7 +458,7 @@ int virNetSocketNewListenUNIX(const char *path,
     }
 
     addr.data.un.sun_family = AF_UNIX;
-    if (virStrcpyStatic(addr.data.un.sun_path, path) == NULL) {
+    if (virStrcpyStatic(addr.data.un.sun_path, path) < 0) {
         virReportSystemError(ENAMETOOLONG,
                              _("Path %s too long for unix socket"), path);
         goto error;
@@ -690,7 +689,7 @@ int virNetSocketNewConnectUNIX(const char *path,
     }
 
     remoteAddr.data.un.sun_family = AF_UNIX;
-    if (virStrcpyStatic(remoteAddr.data.un.sun_path, path) == NULL) {
+    if (virStrcpyStatic(remoteAddr.data.un.sun_path, path) < 0) {
         virReportSystemError(ENOMEM, _("Path %s too long for unix socket"), path);
         goto cleanup;
     }

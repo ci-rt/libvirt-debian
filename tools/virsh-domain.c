@@ -290,6 +290,10 @@ static const vshCmdOptDef opts_attach_disk[] = {
      .type = VSH_OT_STRING,
      .help = N_("wwn of disk device")
     },
+    {.name = "alias",
+     .type = VSH_OT_STRING,
+     .help = N_("custom alias name of disk device")
+    },
     {.name = "rawio",
      .type = VSH_OT_BOOL,
      .help = N_("needs rawio capability")
@@ -319,6 +323,8 @@ enum {
     DISK_ADDR_TYPE_SCSI,
     DISK_ADDR_TYPE_IDE,
     DISK_ADDR_TYPE_CCW,
+    DISK_ADDR_TYPE_USB,
+    DISK_ADDR_TYPE_SATA,
 };
 
 struct PCIAddress {
@@ -346,6 +352,17 @@ struct CCWAddress {
     unsigned int devno;
 };
 
+struct USBAddress {
+    unsigned int bus;
+    unsigned int port;
+};
+
+struct SATAAddress {
+    unsigned int controller;
+    unsigned int bus;
+    unsigned long long unit;
+};
+
 struct DiskAddress {
     int type;
     union {
@@ -353,6 +370,8 @@ struct DiskAddress {
         struct SCSIAddress scsi;
         struct IDEAddress ide;
         struct CCWAddress ccw;
+        struct USBAddress usb;
+        struct SATAAddress sata;
     } addr;
 };
 
@@ -460,10 +479,58 @@ static int str2CCWAddress(const char *str, struct CCWAddress *ccwAddr)
     return 0;
 }
 
+static int str2USBAddress(const char *str, struct USBAddress *usbAddr)
+{
+    char *bus, *port;
+
+    if (!usbAddr)
+        return -1;
+    if (!str)
+        return -1;
+
+    bus = (char *)str;
+
+    if (virStrToLong_uip(bus, &port, 10, &usbAddr->bus) != 0)
+        return -1;
+
+    port++;
+    if (virStrToLong_uip(port, NULL, 10, &usbAddr->port) != 0)
+        return -1;
+
+    return 0;
+}
+
+static int str2SATAAddress(const char *str, struct SATAAddress *sataAddr)
+{
+    char *controller, *bus, *unit;
+
+    if (!sataAddr)
+        return -1;
+    if (!str)
+        return -1;
+
+    controller = (char *)str;
+
+    if (virStrToLong_uip(controller, &bus, 10, &sataAddr->controller) != 0)
+        return -1;
+
+    bus++;
+    if (virStrToLong_uip(bus, &unit, 10, &sataAddr->bus) != 0)
+        return -1;
+
+    unit++;
+    if (virStrToLong_ullp(unit, NULL, 10, &sataAddr->unit) != 0)
+        return -1;
+
+    return 0;
+}
+
 /* pci address pci:0000.00.0x0a.0 (domain:bus:slot:function)
  * ide disk address: ide:00.00.0 (controller:bus:unit)
  * scsi disk address: scsi:00.00.0 (controller:bus:unit)
  * ccw disk address: ccw:0xfe.0.0000 (cssid:ssid:devno)
+ * usb disk address: usb:00.00 (bus:port)
+ * sata disk address: sata:00.00.0 (controller:bus:unit)
  */
 
 static int str2DiskAddress(const char *str, struct DiskAddress *diskAddr)
@@ -492,6 +559,12 @@ static int str2DiskAddress(const char *str, struct DiskAddress *diskAddr)
     } else if (STREQLEN(type, "ccw", addr - type)) {
         diskAddr->type = DISK_ADDR_TYPE_CCW;
         return str2CCWAddress(addr + 1, &diskAddr->addr.ccw);
+    } else if (STREQLEN(type, "usb", addr - type)) {
+        diskAddr->type = DISK_ADDR_TYPE_USB;
+        return str2USBAddress(addr + 1, &diskAddr->addr.usb);
+    } else if (STREQLEN(type, "sata", addr - type)) {
+        diskAddr->type = DISK_ADDR_TYPE_SATA;
+        return str2SATAAddress(addr + 1, &diskAddr->addr.sata);
     }
 
     return -1;
@@ -505,7 +578,7 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
                 *subdriver = NULL, *type = NULL, *mode = NULL,
                 *iothread = NULL, *cache = NULL, *io = NULL,
                 *serial = NULL, *straddr = NULL, *wwn = NULL,
-                *targetbus = NULL;
+                *targetbus = NULL, *alias = NULL;
     struct DiskAddress diskAddr;
     bool isFile = false, functionReturn = false;
     int ret;
@@ -542,6 +615,7 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
         vshCommandOptStringReq(ctl, cmd, "wwn", &wwn) < 0 ||
         vshCommandOptStringReq(ctl, cmd, "address", &straddr) < 0 ||
         vshCommandOptStringReq(ctl, cmd, "targetbus", &targetbus) < 0 ||
+        vshCommandOptStringReq(ctl, cmd, "alias", &alias) < 0 ||
         vshCommandOptStringReq(ctl, cmd, "sourcetype", &stype) < 0)
         goto cleanup;
 
@@ -611,6 +685,9 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
     if (serial)
         virBufferAsprintf(&buf, "<serial>%s</serial>\n", serial);
 
+    if (alias)
+        virBufferAsprintf(&buf, "<alias name='%s'/>", alias);
+
     if (wwn)
         virBufferAsprintf(&buf, "<wwn>%s</wwn>\n", wwn);
 
@@ -648,8 +725,19 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
                                   " bus='%u' unit='%llu' />\n",
                                   diskAddr.addr.scsi.controller, diskAddr.addr.scsi.bus,
                                   diskAddr.addr.scsi.unit);
+            } else if (diskAddr.type == DISK_ADDR_TYPE_USB) {
+                virBufferAsprintf(&buf,
+                                  "<address type='usb' bus='%u' port='%u' />\n",
+                                  diskAddr.addr.usb.bus, diskAddr.addr.usb.port);
+            } else if (diskAddr.type == DISK_ADDR_TYPE_SATA) {
+                virBufferAsprintf(&buf,
+                                  "<address type='drive' controller='%u'"
+                                  " bus='%u' unit='%llu' />\n",
+                                  diskAddr.addr.sata.controller, diskAddr.addr.sata.bus,
+                                  diskAddr.addr.sata.unit);
             } else {
-                vshError(ctl, "%s", _("expecting a scsi:00.00.00 address."));
+                vshError(ctl, "%s",
+                _("expecting a scsi:00.00.00 or usb:00.00 or sata:00.00.00 address."));
                 goto cleanup;
             }
         } else if (STRPREFIX((const char *)target, "hd")) {
@@ -749,6 +837,10 @@ static const vshCmdOptDef opts_attach_interface[] = {
      .type = VSH_OT_STRING,
      .help = N_("model type")
     },
+    {.name = "alias",
+     .type = VSH_OT_STRING,
+     .help = N_("custom alias name of interface device")
+    },
     {.name = "inbound",
      .type = VSH_OT_STRING,
      .help = N_("control domain's incoming traffics")
@@ -822,7 +914,7 @@ cmdAttachInterface(vshControl *ctl, const vshCmd *cmd)
     virDomainPtr dom = NULL;
     const char *mac = NULL, *target = NULL, *script = NULL,
                *type = NULL, *source = NULL, *model = NULL,
-               *inboundStr = NULL, *outboundStr = NULL;
+               *inboundStr = NULL, *outboundStr = NULL, *alias = NULL;
     virNetDevBandwidthRate inbound, outbound;
     virDomainNetType typ;
     int ret;
@@ -852,6 +944,7 @@ cmdAttachInterface(vshControl *ctl, const vshCmd *cmd)
         vshCommandOptStringReq(ctl, cmd, "mac", &mac) < 0 ||
         vshCommandOptStringReq(ctl, cmd, "script", &script) < 0 ||
         vshCommandOptStringReq(ctl, cmd, "model", &model) < 0 ||
+        vshCommandOptStringReq(ctl, cmd, "alias", &alias) < 0 ||
         vshCommandOptStringReq(ctl, cmd, "inbound", &inboundStr) < 0 ||
         vshCommandOptStringReq(ctl, cmd, "outbound", &outboundStr) < 0)
         goto cleanup;
@@ -948,6 +1041,9 @@ cmdAttachInterface(vshControl *ctl, const vshCmd *cmd)
         virBufferAsprintf(&buf, "<script path='%s'/>\n", script);
     if (model != NULL)
         virBufferAsprintf(&buf, "<model type='%s'/>\n", model);
+
+    if (alias != NULL)
+        virBufferAsprintf(&buf, "<alias name='%s'/>\n", alias);
 
     if (inboundStr || outboundStr) {
         virBufferAddLit(&buf, "<bandwidth>\n");
@@ -2984,6 +3080,7 @@ static const vshCmdOptDef opts_domif_setlink[] = {
     {.name = "state",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
+     .completer = virshDomainInterfaceStateCompleter,
      .help = N_("new state of the device")
     },
     {.name = "persistent",
@@ -11684,6 +11781,7 @@ static const vshCmdOptDef opts_detach_device_alias[] = {
     {.name = "alias",
      .type = VSH_OT_DATA,
      .flags = VSH_OFLAG_REQ,
+     .completer = virshDomainDeviceAliasCompleter,
      .help = N_("device alias")
     },
     VIRSH_COMMON_OPT_DOMAIN_CONFIG,
