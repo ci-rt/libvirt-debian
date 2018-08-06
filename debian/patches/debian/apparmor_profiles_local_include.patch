@@ -9,7 +9,7 @@ Include local apparmor profile
  2 files changed, 4 insertions(+)
 
 diff --git a/examples/apparmor/usr.lib.libvirt.virt-aa-helper b/examples/apparmor/usr.lib.libvirt.virt-aa-helper
-index e32402a..d57c5bb 100644
+index de94368..60c1d50 100644
 --- a/examples/apparmor/usr.lib.libvirt.virt-aa-helper
 +++ b/examples/apparmor/usr.lib.libvirt.virt-aa-helper
 @@ -63,5 +63,6 @@ profile virt-aa-helper /usr/{lib,lib64}/libvirt/virt-aa-helper {
