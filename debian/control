@@ -237,7 +237,8 @@ Description: Libvirt daemon configuration files
 
 Package: libvirt0
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends},
+  libjansson4,
 Recommends: lvm2 [linux-any]
 Breaks: selinux-policy-default (<< 2:2.20131214-1~), selinux-policy-mls (<< 2:2.20131214-1~)
 Description: library for interfacing with different virtualization systems
