@@ -67,7 +67,6 @@ Build-Depends:
  qemu-system-common,
 # For "make check"
  augeas-tools,
- dwarves,
  libxml2-utils,
  dnsmasq-base,
  openssh-client,
