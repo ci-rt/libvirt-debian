@@ -31,3 +31,12 @@ index 29f9936..a66452b 100644
 +  # Site-specific additions and overrides. See local/README for details.
 +  #include <local/usr.sbin.libvirtd>
  }
+--- a/examples/apparmor/libvirt-qemu
++++ b/examples/apparmor/libvirt-qemu
+@@ -226,3 +226,6 @@
+   # required for sasl GSSAPI plugin
+   /etc/gss/mech.d/ r,
+   /etc/gss/mech.d/* r,
++
++  # Site-specific additions and overrides. See local/README for details.
++  #include <local/abstractions/libvirt-qemu>
