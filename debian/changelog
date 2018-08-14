@@ -1,3 +1,27 @@
+libvirt (4.6.0-2) unstable; urgency=medium
+
+  * [c33faee] Drop dwarves dependency.
+    Unmaintained and only used in the test suite. (Closes: #905700)
+  * [43da5ad] Don't use jansson for JSON encoding.
+    It has borken integer parsing. This adds new patches:
+        Revert-m4-Introduce-STABLE_ORDERING_JANSSON.patch
+        Revert-Remove-virJSONValueNewStringLen.patch
+        Revert-build-undef-WITH_JANSSON-for-SETUID_RPC_CLIENT.patch
+        Revert-tests-qemucapsprobe-Fix-output-after-switching-to-.patch
+        Revert-build-require-Jansson-if-QEMU-driver-is-enabled.patch
+        Revert-util-jsoncompat-Stub-out-virJSONInitialize-when-co.patch
+        Revert-Switch-from-yajl-to-Jansson.patch
+        Revert-remote-daemon-Make-sure-that-JSON-symbols-are-prop.patch
+        Revert-build-remove-references-to-WITH_YAJL-for-SETUID_RP.patch
+        Revert-build-add-with-jansson.patch
+        Revert-Remove-functions-using-yajl.patch
+        Revert-build-switch-with-qemu-default-from-yes-to-check.patch
+        Revert-tests-also-skip-qemuagenttest-with-old-jansson.patch
+        Revert-util-avoid-symbol-clash-between-json-libraries.patch
+    (Closes: #906116)
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 14 Aug 2018 15:09:14 +0200
+
 libvirt (4.6.0-1) unstable; urgency=medium
 
   * [afd5e39] d/control: Fix typo in libnss-libvirt's short description.
