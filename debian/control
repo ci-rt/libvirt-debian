@@ -31,8 +31,8 @@ Build-Depends:
  libpolkit-gobject-1-dev,
  libcap-ng-dev [linux-any],
  libnl-3-dev [linux-any],
- libjansson-dev,
  libnl-route-3-dev [linux-any],
+ libyajl-dev,
  libpcap0.8-dev,
  libnuma-dev [amd64 arm64 i386 ia64 mips mipsel powerpc ppc64 ppc64el],
  numad [amd64 arm64 i386 ia64 mips mipsel powerpc ppc64 ppc64el],
@@ -236,8 +236,7 @@ Description: Libvirt daemon configuration files
 
 Package: libvirt0
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends},
-  libjansson4,
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Recommends: lvm2 [linux-any]
 Breaks: selinux-policy-default (<< 2:2.20131214-1~), selinux-policy-mls (<< 2:2.20131214-1~)
 Description: library for interfacing with different virtualization systems

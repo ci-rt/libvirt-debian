@@ -98,6 +98,7 @@ DEB_CONFIGURE_EXTRA_ARGS :=      \
 	$(WITH_OPENVZ)		 \
 	--with-avahi             \
 	--with-sasl              \
+	--with-yajl              \
 	--with-ssh2		 \
 	--with-polkit		 \
 	$(WITH_UDEV)		 \
