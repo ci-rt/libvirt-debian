@@ -1284,8 +1284,8 @@ virNetworkObjUpdate(virNetworkObjPtr obj,
 
 #define MATCH(FLAG) (flags & (FLAG))
 static bool
-virNetworkMatch(virNetworkObjPtr obj,
-                unsigned int flags)
+virNetworkObjMatch(virNetworkObjPtr obj,
+                   unsigned int flags)
 {
     /* filter by active state */
     if (MATCH(VIR_CONNECT_LIST_NETWORKS_FILTERS_ACTIVE) &&
@@ -1316,7 +1316,9 @@ virNetworkMatch(virNetworkObjPtr obj,
 #undef MATCH
 
 
-struct virNetworkObjListData {
+typedef struct _virNetworkObjListExportData virNetworkObjListExportData;
+typedef virNetworkObjListExportData *virNetworkObjListExportDataPtr;
+struct _virNetworkObjListExportData {
     virConnectPtr conn;
     virNetworkPtr *nets;
     virNetworkObjListFilter filter;
@@ -1326,11 +1328,11 @@ struct virNetworkObjListData {
 };
 
 static int
-virNetworkObjListPopulate(void *payload,
-                          const void *name ATTRIBUTE_UNUSED,
-                          void *opaque)
+virNetworkObjListExportCallback(void *payload,
+                                const void *name ATTRIBUTE_UNUSED,
+                                void *opaque)
 {
-    struct virNetworkObjListData *data = opaque;
+    virNetworkObjListExportDataPtr data = opaque;
     virNetworkObjPtr obj = payload;
     virNetworkPtr net = NULL;
 
@@ -1343,7 +1345,7 @@ virNetworkObjListPopulate(void *payload,
         !data->filter(data->conn, obj->def))
         goto cleanup;
 
-    if (!virNetworkMatch(obj, data->flags))
+    if (!virNetworkObjMatch(obj, data->flags))
         goto cleanup;
 
     if (!data->nets) {
@@ -1372,7 +1374,7 @@ virNetworkObjListExport(virConnectPtr conn,
                         unsigned int flags)
 {
     int ret = -1;
-    struct virNetworkObjListData data = {
+    virNetworkObjListExportData data = {
         .conn = conn, .nets = NULL, .filter = filter, .flags = flags,
         .nnets = 0, .error = false };
 
@@ -1380,7 +1382,7 @@ virNetworkObjListExport(virConnectPtr conn,
     if (nets && VIR_ALLOC_N(data.nets, virHashSize(netobjs->objs) + 1) < 0)
         goto cleanup;
 
-    virHashForEach(netobjs->objs, virNetworkObjListPopulate, &data);
+    virHashForEach(netobjs->objs, virNetworkObjListExportCallback, &data);
 
     if (data.error)
         goto cleanup;
@@ -1559,7 +1561,7 @@ virNetworkObjListPruneHelper(const void *payload,
     int want = 0;
 
     virObjectLock(obj);
-    want = virNetworkMatch(obj, data->flags);
+    want = virNetworkObjMatch(obj, data->flags);
     virObjectUnlock(obj);
     return want;
 }

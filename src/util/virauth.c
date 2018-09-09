@@ -153,6 +153,12 @@ virAuthGetUsernamePath(const char *path,
     if (ret != NULL)
         return ret;
 
+    if (!auth) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("Missing authentication credentials"));
+        return NULL;
+    }
+
     memset(&cred, 0, sizeof(virConnectCredential));
 
     if (defaultUsername != NULL) {
@@ -169,6 +175,12 @@ virAuthGetUsernamePath(const char *path,
         if (auth->credtype[ncred] != VIR_CRED_AUTHNAME)
             continue;
 
+        if (!auth->cb) {
+            virReportError(VIR_ERR_INVALID_ARG, "%s",
+                           _("Missing authentication callback"));
+            return NULL;
+        }
+
         cred.type = VIR_CRED_AUTHNAME;
         cred.prompt = prompt;
         cred.challenge = hostname;
@@ -176,13 +188,18 @@ virAuthGetUsernamePath(const char *path,
         cred.result = NULL;
         cred.resultlen = 0;
 
-        if ((*(auth->cb))(&cred, 1, auth->cbdata) < 0)
+        if ((*(auth->cb))(&cred, 1, auth->cbdata) < 0) {
+            virReportError(VIR_ERR_AUTH_FAILED, "%s",
+                           _("Username request failed"));
             VIR_FREE(cred.result);
+        }
 
-        break;
+        return cred.result;
     }
 
-    return cred.result;
+    virReportError(VIR_ERR_AUTH_FAILED, "%s",
+                   _("Missing VIR_CRED_AUTHNAME credential type"));
+    return NULL;
 }
 
 
@@ -199,7 +216,7 @@ virAuthGetUsername(virConnectPtr conn,
         return NULL;
 
     return virAuthGetUsernamePath(path, auth, servicename,
-                                 defaultUsername, hostname);
+                                  defaultUsername, hostname);
 }
 
 
@@ -220,6 +237,12 @@ virAuthGetPasswordPath(const char *path,
     if (ret != NULL)
         return ret;
 
+    if (!auth) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("Missing authentication credentials"));
+        return NULL;
+    }
+
     memset(&cred, 0, sizeof(virConnectCredential));
 
     if (virAsprintf(&prompt, _("Enter %s's password for %s"), username,
@@ -233,6 +256,12 @@ virAuthGetPasswordPath(const char *path,
             continue;
         }
 
+        if (!auth->cb) {
+            virReportError(VIR_ERR_INVALID_ARG, "%s",
+                           _("Missing authentication callback"));
+            return NULL;
+        }
+
         cred.type = auth->credtype[ncred];
         cred.prompt = prompt;
         cred.challenge = hostname;
@@ -240,13 +269,19 @@ virAuthGetPasswordPath(const char *path,
         cred.result = NULL;
         cred.resultlen = 0;
 
-        if ((*(auth->cb))(&cred, 1, auth->cbdata) < 0)
+        if ((*(auth->cb))(&cred, 1, auth->cbdata) < 0) {
+            virReportError(VIR_ERR_AUTH_FAILED, "%s",
+                           _("Password request failed"));
             VIR_FREE(cred.result);
+        }
 
-        break;
+        return cred.result;
     }
 
-    return cred.result;
+    virReportError(VIR_ERR_AUTH_FAILED, "%s",
+                   _("Missing VIR_CRED_PASSPHRASE or VIR_CRED_NOECHOPROMPT "
+                     "credential type"));
+    return NULL;
 }
 
 

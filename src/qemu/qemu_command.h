@@ -103,8 +103,7 @@ bool qemuDiskBusNeedsDriveArg(int bus);
 
 qemuBlockStorageSourceAttachDataPtr
 qemuBuildStorageSourceAttachPrepareDrive(virDomainDiskDefPtr disk,
-                                         virQEMUCapsPtr qemuCaps,
-                                         bool driveBoot);
+                                         virQEMUCapsPtr qemuCaps);
 int
 qemuBuildStorageSourceAttachPrepareCommon(virStorageSourcePtr src,
                                           qemuBlockStorageSourceAttachDataPtr data,
@@ -181,6 +180,9 @@ int qemuGetDriveSourceString(virStorageSourcePtr src,
                              qemuDomainSecretInfoPtr secinfo,
                              char **source);
 
+bool
+qemuDiskConfigBlkdeviotuneEnabled(virDomainDiskDefPtr disk);
+
 int qemuCheckDiskConfig(virDomainDiskDefPtr disk,
                         virQEMUCapsPtr qemuCaps);
 
@@ -214,6 +216,15 @@ qemuBuildVsockDevStr(virDomainDefPtr def,
                      virDomainVsockDefPtr vsock,
                      virQEMUCapsPtr qemuCaps,
                      const char *fdprefix)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
+    ATTRIBUTE_NONNULL(4);
+
+/* this function is exported so that tests can mock the FDs */
+int
+qemuBuildTPMOpenBackendFDs(const char *tpmdev,
+                           const char *cancel_path,
+                           int *tpmfd,
+                           int *cancelfd)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
     ATTRIBUTE_NONNULL(4);
 

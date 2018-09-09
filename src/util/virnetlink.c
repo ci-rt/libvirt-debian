@@ -38,7 +38,6 @@
 #include "virnetlink.h"
 #include "virnetdev.h"
 #include "virlog.h"
-#include "viralloc.h"
 #include "virthread.h"
 #include "virmacaddr.h"
 #include "virerror.h"
@@ -71,6 +70,8 @@ typedef struct nl_handle virNetlinkHandle;
 #  define virNetlinkFree nl_socket_free
 typedef struct nl_sock virNetlinkHandle;
 # endif
+
+VIR_DEFINE_AUTOPTR_FUNC(virNetlinkHandle, virNetlinkFree)
 
 typedef struct _virNetlinkEventSrvPrivate virNetlinkEventSrvPrivate;
 typedef virNetlinkEventSrvPrivate *virNetlinkEventSrvPrivatePtr;
@@ -296,43 +297,36 @@ int virNetlinkCommand(struct nl_msg *nl_msg,
                       uint32_t src_pid, uint32_t dst_pid,
                       unsigned int protocol, unsigned int groups)
 {
-    int ret = -1;
     struct sockaddr_nl nladdr = {
             .nl_family = AF_NETLINK,
             .nl_pid    = dst_pid,
             .nl_groups = 0,
     };
     struct pollfd fds[1];
-    virNetlinkHandle *nlhandle = NULL;
+    VIR_AUTOFREE(struct nlmsghdr *) temp_resp = NULL;
+    VIR_AUTOPTR(virNetlinkHandle) nlhandle = NULL;
     int len = 0;
 
     memset(fds, 0, sizeof(fds));
 
     if (!(nlhandle = virNetlinkSendRequest(nl_msg, src_pid, nladdr,
                                            protocol, groups)))
-        goto cleanup;
+        return -1;
 
-    len = nl_recv(nlhandle, &nladdr, (unsigned char **)resp, NULL);
+    len = nl_recv(nlhandle, &nladdr, (unsigned char **)&temp_resp, NULL);
     if (len == 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("nl_recv failed - returned 0 bytes"));
-        goto cleanup;
+        return -1;
     }
     if (len < 0) {
         virReportSystemError(errno, "%s", _("nl_recv failed"));
-        goto cleanup;
+        return -1;
     }
 
-    ret = 0;
+    VIR_STEAL_PTR(*resp, temp_resp);
     *respbuflen = len;
- cleanup:
-    if (ret < 0) {
-        *resp = NULL;
-        *respbuflen = 0;
-    }
-
-    virNetlinkFree(nlhandle);
-    return ret;
+    return 0;
 }
 
 int
@@ -342,10 +336,8 @@ virNetlinkDumpCommand(struct nl_msg *nl_msg,
                       unsigned int protocol, unsigned int groups,
                       void *opaque)
 {
-    int ret = -1;
     bool end = false;
     int len = 0;
-    struct nlmsghdr *resp = NULL;
     struct nlmsghdr *msg = NULL;
 
     struct sockaddr_nl nladdr = {
@@ -353,13 +345,15 @@ virNetlinkDumpCommand(struct nl_msg *nl_msg,
             .nl_pid    = dst_pid,
             .nl_groups = 0,
     };
-    virNetlinkHandle *nlhandle = NULL;
+    VIR_AUTOPTR(virNetlinkHandle) nlhandle = NULL;
 
     if (!(nlhandle = virNetlinkSendRequest(nl_msg, src_pid, nladdr,
                                            protocol, groups)))
-        goto cleanup;
+        return -1;
 
     while (!end) {
+        VIR_AUTOFREE(struct nlmsghdr *) resp = NULL;
+
         len = nl_recv(nlhandle, &nladdr, (unsigned char **)&resp, NULL);
         VIR_WARNINGS_NO_CAST_ALIGN
         for (msg = resp; NLMSG_OK(msg, len); msg = NLMSG_NEXT(msg, len)) {
@@ -368,20 +362,14 @@ virNetlinkDumpCommand(struct nl_msg *nl_msg,
                 end = true;
 
             if (virNetlinkGetErrorCode(msg, len) < 0)
-                goto cleanup;
+                return -1;
 
             if (callback(msg, opaque) < 0)
-                goto cleanup;
+                return -1;
         }
-        VIR_FREE(resp);
     }
 
-    ret = 0;
-
- cleanup:
-    VIR_FREE(resp);
-    virNetlinkFree(nlhandle);
-    return ret;
+    return 0;
 }
 
 /**
@@ -409,14 +397,14 @@ virNetlinkDumpLink(const char *ifname, int ifindex,
                    uint32_t src_pid, uint32_t dst_pid)
 {
     int rc = -1;
-    struct nlmsghdr *resp = NULL;
     struct nlmsgerr *err;
     struct ifinfomsg ifinfo = {
         .ifi_family = AF_UNSPEC,
         .ifi_index  = ifindex
     };
     unsigned int recvbuflen;
-    struct nl_msg *nl_msg;
+    VIR_AUTOPTR(virNetlinkMsg) nl_msg = NULL;
+    VIR_AUTOFREE(struct nlmsghdr *) resp = NULL;
 
     if (ifname && ifindex <= 0 && virNetDevGetIndex(ifname, &ifindex) < 0)
         return -1;
@@ -454,7 +442,7 @@ virNetlinkDumpLink(const char *ifname, int ifindex,
 
     if (virNetlinkCommand(nl_msg, &resp, &recvbuflen,
                           src_pid, dst_pid, NETLINK_ROUTE, 0) < 0)
-        goto cleanup;
+        return -1;
 
     if (recvbuflen < NLMSG_LENGTH(0) || resp == NULL)
         goto malformed_resp;
@@ -469,7 +457,7 @@ virNetlinkDumpLink(const char *ifname, int ifindex,
             virReportSystemError(-err->error,
                                  _("error dumping %s (%d) interface"),
                                  ifname, ifindex);
-            goto cleanup;
+            return -1;
         }
         break;
 
@@ -484,23 +472,19 @@ virNetlinkDumpLink(const char *ifname, int ifindex,
     default:
         goto malformed_resp;
     }
-    rc = 0;
- cleanup:
-    nlmsg_free(nl_msg);
-    if (rc < 0)
-       VIR_FREE(resp);
-    *nlData = resp;
-    return rc;
+
+    VIR_STEAL_PTR(*nlData, resp);
+    return 0;
 
  malformed_resp:
     virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                    _("malformed netlink response message"));
-    goto cleanup;
+    return rc;
 
  buffer_too_small:
     virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                    _("allocated netlink buffer is too small"));
-    goto cleanup;
+    return rc;
 }
 
 
@@ -522,12 +506,11 @@ virNetlinkDumpLink(const char *ifname, int ifindex,
 int
 virNetlinkDelLink(const char *ifname, virNetlinkDelLinkFallback fallback)
 {
-    int rc = -1;
-    struct nlmsghdr *resp = NULL;
     struct nlmsgerr *err;
     struct ifinfomsg ifinfo = { .ifi_family = AF_UNSPEC };
     unsigned int recvbuflen;
-    struct nl_msg *nl_msg;
+    VIR_AUTOPTR(virNetlinkMsg) nl_msg = NULL;
+    VIR_AUTOFREE(struct nlmsghdr *) resp = NULL;
 
     nl_msg = nlmsg_alloc_simple(RTM_DELLINK,
                                 NLM_F_REQUEST | NLM_F_CREATE | NLM_F_EXCL);
@@ -544,7 +527,7 @@ virNetlinkDelLink(const char *ifname, virNetlinkDelLinkFallback fallback)
 
     if (virNetlinkCommand(nl_msg, &resp, &recvbuflen, 0, 0,
                           NETLINK_ROUTE, 0) < 0) {
-        goto cleanup;
+        return -1;
     }
 
     if (recvbuflen < NLMSG_LENGTH(0) || resp == NULL)
@@ -556,15 +539,14 @@ virNetlinkDelLink(const char *ifname, virNetlinkDelLinkFallback fallback)
         if (resp->nlmsg_len < NLMSG_LENGTH(sizeof(*err)))
             goto malformed_resp;
 
-        if (-err->error == EOPNOTSUPP && fallback) {
-            rc = fallback(ifname);
-            goto cleanup;
-        }
+        if (-err->error == EOPNOTSUPP && fallback)
+            return fallback(ifname);
+
         if (err->error) {
             virReportSystemError(-err->error,
                                  _("error destroying network device %s"),
                                  ifname);
-            goto cleanup;
+            return -1;
         }
         break;
 
@@ -575,21 +557,17 @@ virNetlinkDelLink(const char *ifname, virNetlinkDelLinkFallback fallback)
         goto malformed_resp;
     }
 
-    rc = 0;
- cleanup:
-    nlmsg_free(nl_msg);
-    VIR_FREE(resp);
-    return rc;
+    return 0;
 
  malformed_resp:
     virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                    _("malformed netlink response message"));
-    goto cleanup;
+    return -1;
 
  buffer_too_small:
     virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                    _("allocated netlink buffer is too small"));
-    goto cleanup;
+    return -1;
 }
 
 /**
@@ -610,14 +588,13 @@ virNetlinkDelLink(const char *ifname, virNetlinkDelLinkFallback fallback)
 int
 virNetlinkGetNeighbor(void **nlData, uint32_t src_pid, uint32_t dst_pid)
 {
-    int rc = -1;
-    struct nlmsghdr *resp = NULL;
     struct nlmsgerr *err;
     struct ndmsg ndinfo = {
         .ndm_family = AF_UNSPEC,
     };
     unsigned int recvbuflen;
-    struct nl_msg *nl_msg;
+    VIR_AUTOPTR(virNetlinkMsg) nl_msg = NULL;
+    VIR_AUTOFREE(struct nlmsghdr *) resp = NULL;
 
     nl_msg = nlmsg_alloc_simple(RTM_GETNEIGH, NLM_F_DUMP | NLM_F_REQUEST);
     if (!nl_msg) {
@@ -631,7 +608,7 @@ virNetlinkGetNeighbor(void **nlData, uint32_t src_pid, uint32_t dst_pid)
 
     if (virNetlinkCommand(nl_msg, &resp, &recvbuflen,
                           src_pid, dst_pid, NETLINK_ROUTE, 0) < 0)
-        goto cleanup;
+        return -1;
 
     if (recvbuflen < NLMSG_LENGTH(0) || resp == NULL)
         goto malformed_resp;
@@ -645,7 +622,7 @@ virNetlinkGetNeighbor(void **nlData, uint32_t src_pid, uint32_t dst_pid)
         if (err->error) {
             virReportSystemError(-err->error,
                                  "%s", _("error dumping"));
-            goto cleanup;
+            return -1;
         }
         break;
 
@@ -655,24 +632,19 @@ virNetlinkGetNeighbor(void **nlData, uint32_t src_pid, uint32_t dst_pid)
     default:
         goto malformed_resp;
     }
-    rc = recvbuflen;
 
- cleanup:
-    nlmsg_free(nl_msg);
-    if (rc < 0)
-       VIR_FREE(resp);
-    *nlData = resp;
-    return rc;
+    VIR_STEAL_PTR(*nlData, resp);
+    return recvbuflen;
 
  malformed_resp:
     virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                    _("malformed netlink response message"));
-    goto cleanup;
+    return -1;
 
  buffer_too_small:
     virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                    _("allocated netlink buffer is too small"));
-    goto cleanup;
+    return -1;
 }
 
 int
@@ -767,12 +739,12 @@ virNetlinkEventCallback(int watch,
                         void *opaque)
 {
     virNetlinkEventSrvPrivatePtr srv = opaque;
-    struct nlmsghdr *msg;
     struct sockaddr_nl peer;
     struct ucred *creds = NULL;
     size_t i;
     int length;
     bool handled = false;
+    VIR_AUTOFREE(struct nlmsghdr *) msg = NULL;
 
     length = nl_recv(srv->netlinknh, &peer,
                      (unsigned char **)&msg, &creds);
@@ -802,7 +774,7 @@ virNetlinkEventCallback(int watch,
 
     if (!handled)
         VIR_DEBUG("event not handled.");
-    VIR_FREE(msg);
+
     virNetlinkEventServerUnlock(srv);
 }
 

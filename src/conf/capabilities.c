@@ -198,6 +198,16 @@ virCapabilitiesFreeNUMAInfo(virCapsPtr caps)
 }
 
 static void
+virCapsHostMemBWNodeFree(virCapsHostMemBWNodePtr ptr)
+{
+    if (!ptr)
+        return;
+
+    virBitmapFree(ptr->cpus);
+    VIR_FREE(ptr);
+}
+
+static void
 virCapabilitiesClearSecModel(virCapsHostSecModelPtr secmodel)
 {
     size_t i;
@@ -238,6 +248,10 @@ virCapsDispose(void *object)
     for (i = 0; i < caps->host.ncaches; i++)
         virCapsHostCacheBankFree(caps->host.caches[i]);
     VIR_FREE(caps->host.caches);
+
+    for (i = 0; i < caps->host.nnodes; i++)
+        virCapsHostMemBWNodeFree(caps->host.nodes[i]);
+    VIR_FREE(caps->host.nodes);
 
     VIR_FREE(caps->host.netprefix);
     VIR_FREE(caps->host.pagesSize);
@@ -604,46 +618,6 @@ virCapabilitiesHostSecModelAddBaseLabel(virCapsHostSecModelPtr secmodel,
     return -1;
 }
 
-static bool
-virCapsDomainDataCompare(virCapsGuestPtr guest,
-                         virCapsGuestDomainPtr domain,
-                         virCapsGuestMachinePtr machine,
-                         int ostype,
-                         virArch arch,
-                         virDomainVirtType domaintype,
-                         const char *emulator,
-                         const char *machinetype)
-{
-    const char *check_emulator = NULL;
-
-    if (ostype != -1 && guest->ostype != ostype)
-        return false;
-    if ((arch != VIR_ARCH_NONE) && (guest->arch.id != arch))
-        return false;
-
-    if (domaintype != VIR_DOMAIN_VIRT_NONE &&
-        (!domain || domain->type != domaintype))
-        return false;
-
-    if (emulator) {
-        if (domain)
-            check_emulator = domain->info.emulator;
-        if (!check_emulator)
-            check_emulator = guest->arch.defaultInfo.emulator;
-        if (STRNEQ_NULLABLE(check_emulator, emulator))
-            return false;
-    }
-
-    if (machinetype) {
-        if (!machine)
-            return false;
-        if (STRNEQ(machine->name, machinetype) &&
-            (STRNEQ_NULLABLE(machine->canonical, machinetype)))
-            return false;
-    }
-
-    return true;
-}
 
 static virCapsDomainDataPtr
 virCapabilitiesDomainDataLookupInternal(virCapsPtr caps,
@@ -659,13 +633,45 @@ virCapabilitiesDomainDataLookupInternal(virCapsPtr caps,
     virCapsDomainDataPtr ret = NULL;
     size_t i, j, k;
 
+    VIR_DEBUG("Lookup ostype=%d arch=%d domaintype=%d emulator=%s machine=%s",
+              ostype, arch, domaintype, NULLSTR(emulator), NULLSTR(machinetype));
     for (i = 0; i < caps->nguests; i++) {
         virCapsGuestPtr guest = caps->guests[i];
+
+        if (ostype != -1 && guest->ostype != ostype) {
+            VIR_DEBUG("Skip os type want=%d vs got=%d", ostype, guest->ostype);
+            continue;
+        }
+        VIR_DEBUG("Match os type %d", ostype);
+
+        if ((arch != VIR_ARCH_NONE) && (guest->arch.id != arch)) {
+            VIR_DEBUG("Skip arch want=%d vs got=%d", arch, guest->arch.id);
+            continue;
+        }
+        VIR_DEBUG("Match arch %d", arch);
 
         for (j = 0; j < guest->arch.ndomains; j++) {
             virCapsGuestDomainPtr domain = guest->arch.domains[j];
             virCapsGuestMachinePtr *machinelist;
             int nmachines;
+            const char *check_emulator = NULL;
+
+            if (domaintype != VIR_DOMAIN_VIRT_NONE &&
+                (domain->type != domaintype)) {
+                VIR_DEBUG("Skip domain type want=%d vs got=%d", domaintype, domain->type);
+                continue;
+            }
+            VIR_DEBUG("Match domain type %d", domaintype);
+
+            check_emulator = domain->info.emulator;
+            if (!check_emulator)
+                check_emulator = guest->arch.defaultInfo.emulator;
+            if (emulator && STRNEQ_NULLABLE(check_emulator, emulator)) {
+                VIR_DEBUG("Skip emulator got=%s vs want=%s",
+                          emulator, NULLSTR(check_emulator));
+                continue;
+            }
+            VIR_DEBUG("Match emulator %s", NULLSTR(emulator));
 
             if (domain->info.nmachines) {
                 nmachines = domain->info.nmachines;
@@ -677,32 +683,29 @@ virCapabilitiesDomainDataLookupInternal(virCapsPtr caps,
 
             for (k = 0; k < nmachines; k++) {
                 virCapsGuestMachinePtr machine = machinelist[k];
-                if (!virCapsDomainDataCompare(guest, domain, machine,
-                                              ostype, arch, domaintype,
-                                              emulator, machinetype))
+
+                if (machinetype &&
+                    STRNEQ(machine->name, machinetype) &&
+                    STRNEQ_NULLABLE(machine->canonical, machinetype)) {
+                    VIR_DEBUG("Skip machine type want=%s vs got=%s got=%s",
+                              machinetype, machine->name, NULLSTR(machine->canonical));
                     continue;
+                }
+                VIR_DEBUG("Match machine type machine %s\n", NULLSTR(machinetype));
 
                 foundmachine = machine;
                 break;
             }
 
-            if (!foundmachine) {
-                if (!virCapsDomainDataCompare(guest, domain, NULL,
-                                              ostype, arch, domaintype,
-                                              emulator, machinetype))
-                    continue;
-            }
+            if (!foundmachine && nmachines)
+                continue;
 
             founddomain = domain;
             break;
         }
 
-        if (!founddomain) {
-            if (!virCapsDomainDataCompare(guest, NULL, NULL,
-                                          ostype, arch, domaintype,
-                                          emulator, machinetype))
-                continue;
-        }
+        if (!founddomain)
+            continue;
 
         foundguest = guest;
         break;
@@ -957,6 +960,58 @@ virCapabilitiesFormatCaches(virBufferPtr buf,
     return 0;
 }
 
+static int
+virCapabilitiesFormatMemoryBandwidth(virBufferPtr buf,
+                                     size_t nnodes,
+                                     virCapsHostMemBWNodePtr *nodes)
+{
+    size_t i = 0;
+    virBuffer controlBuf = VIR_BUFFER_INITIALIZER;
+
+    if (!nnodes)
+        return 0;
+
+    virBufferAddLit(buf, "<memory_bandwidth>\n");
+    virBufferAdjustIndent(buf, 2);
+
+    for (i = 0; i < nnodes; i++) {
+        virCapsHostMemBWNodePtr node = nodes[i];
+        virResctrlInfoMemBWPerNodePtr control = &node->control;
+        char *cpus_str = virBitmapFormat(node->cpus);
+
+        if (!cpus_str)
+            return -1;
+
+        virBufferAsprintf(buf,
+                          "<node id='%u' cpus='%s'",
+                          node->id, cpus_str);
+        VIR_FREE(cpus_str);
+
+        virBufferSetChildIndent(&controlBuf, buf);
+        virBufferAsprintf(&controlBuf,
+                          "<control granularity='%u' min ='%u' "
+                          "maxAllocs='%u'/>\n",
+                          control->granularity, control->min,
+                          control->max_allocation);
+
+        if (virBufferCheckError(&controlBuf) < 0)
+            return -1;
+
+        if (virBufferUse(&controlBuf)) {
+            virBufferAddLit(buf, ">\n");
+            virBufferAddBuffer(buf, &controlBuf);
+            virBufferAddLit(buf, "</node>\n");
+        } else {
+            virBufferAddLit(buf, "/>\n");
+        }
+    }
+
+    virBufferAdjustIndent(buf, -2);
+    virBufferAddLit(buf, "</memory_bandwidth>\n");
+
+    return 0;
+}
+
 /**
  * virCapabilitiesFormatXML:
  * @caps: capabilities to format
@@ -1058,6 +1113,10 @@ virCapabilitiesFormatXML(virCapsPtr caps)
 
     if (virCapabilitiesFormatCaches(&buf, caps->host.ncaches,
                                     caps->host.caches) < 0)
+        goto error;
+
+    if (virCapabilitiesFormatMemoryBandwidth(&buf, caps->host.nnodes,
+                                             caps->host.nodes) < 0)
         goto error;
 
     for (i = 0; i < caps->host.nsecModels; i++) {
@@ -1602,6 +1661,40 @@ virCapabilitiesInitResctrl(virCapsPtr caps)
 }
 
 
+static int
+virCapabilitiesInitResctrlMemory(virCapsPtr caps)
+{
+    virCapsHostMemBWNodePtr node = NULL;
+    size_t i = 0;
+    int ret = -1;
+
+    for (i = 0; i < caps->host.ncaches; i++) {
+        virCapsHostCacheBankPtr bank = caps->host.caches[i];
+        if (VIR_ALLOC(node) < 0)
+            goto cleanup;
+
+        if (virResctrlInfoGetMemoryBandwidth(caps->host.resctrl,
+                                             bank->level, &node->control) > 0) {
+            node->id = bank->id;
+            if (!(node->cpus = virBitmapNewCopy(bank->cpus)))
+                goto cleanup;
+
+            if (VIR_APPEND_ELEMENT(caps->host.nodes,
+                                   caps->host.nnodes, node) < 0) {
+                goto cleanup;
+            }
+        }
+        virCapsHostMemBWNodeFree(node);
+        node = NULL;
+    }
+
+    ret = 0;
+ cleanup:
+    virCapsHostMemBWNodeFree(node);
+    return ret;
+}
+
+
 int
 virCapabilitiesInitCaches(virCapsPtr caps)
 {
@@ -1730,6 +1823,9 @@ virCapabilitiesInitCaches(virCapsPtr caps)
      * 'index1' and 'index3' but no 'index2'). */
     qsort(caps->host.caches, caps->host.ncaches,
           sizeof(*caps->host.caches), virCapsHostCacheBankSorter);
+
+    if (virCapabilitiesInitResctrlMemory(caps) < 0)
+        goto cleanup;
 
     ret = 0;
  cleanup:

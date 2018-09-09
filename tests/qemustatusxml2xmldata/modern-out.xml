@@ -233,6 +233,7 @@
     <flag name='isa-serial'/>
     <flag name='dump-completed'/>
     <flag name='hda-output'/>
+    <flag name='blockdev'/>
   </qemuCaps>
   <devices>
     <device alias='rng0'/>
@@ -258,6 +259,7 @@
   <channelTargetDir path='/var/lib/libvirt/qemu/channel/target/domain-1-upstream'/>
   <chardevStdioLogd/>
   <allowReboot value='yes'/>
+  <nodename index='123'/>
   <blockjobs active='no'/>
   <domain type='kvm' id='1'>
     <name>upstream</name>
@@ -331,6 +333,12 @@
         <target dev='vdb' bus='virtio'/>
         <alias name='virtio-disk1'/>
         <address type='pci' domain='0x0000' bus='0x00' slot='0x0b' function='0x0'/>
+        <privateData>
+          <qom name='virtio-disk1/virtio-backend'/>
+          <nodenames>
+            <nodename type='copyOnRead' name='cor-node'/>
+          </nodenames>
+        </privateData>
       </disk>
       <disk type='file' device='cdrom'>
         <driver name='qemu' type='raw'/>

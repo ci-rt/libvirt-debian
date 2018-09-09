@@ -358,7 +358,7 @@ qemuBlockNodeNamesDetect(virQEMUDriverPtr driver,
         return -1;
 
     data = qemuMonitorQueryNamedBlockNodes(qemuDomainGetMonitor(vm));
-    blockstats = qemuMonitorQueryBlockstats(qemuDomainGetMonitor(vm), false);
+    blockstats = qemuMonitorQueryBlockstats(qemuDomainGetMonitor(vm));
 
     if (qemuDomainObjExitMonitor(driver, vm) < 0 || !data || !blockstats)
         goto cleanup;
@@ -819,6 +819,7 @@ qemuBlockStorageSourceGetISCSIProps(virStorageSourcePtr src)
      *   lun:1,
      *   user:"username",
      *   password-secret:"secret-alias",
+     *   initiator-name:"iqn.2017-04.com.example:client"
      * }
      */
 
@@ -860,6 +861,7 @@ qemuBlockStorageSourceGetISCSIProps(virStorageSourcePtr src)
                                           "s:transport", "tcp",
                                           "S:user", username,
                                           "S:password-secret", objalias,
+                                          "S:initiator-name", src->initiator.iqn,
                                           NULL));
         goto cleanup;
 
@@ -1741,5 +1743,27 @@ qemuBlockSnapshotAddLegacy(virJSONValuePtr actions,
  cleanup:
     VIR_FREE(device);
     VIR_FREE(source);
+    return ret;
+}
+
+
+/**
+ * qemuBlockStorageGetCopyOnReadProps:
+ * @disk: disk with copy-on-read enabled
+ *
+ * Creates blockdev properties for a disk copy-on-read layer.
+ */
+virJSONValuePtr
+qemuBlockStorageGetCopyOnReadProps(virDomainDiskDefPtr disk)
+{
+    qemuDomainDiskPrivatePtr priv = QEMU_DOMAIN_DISK_PRIVATE(disk);
+    virJSONValuePtr ret = NULL;
+
+    ignore_value(virJSONValueObjectCreate(&ret,
+                                          "s:driver", "copy-on-read",
+                                          "s:node-name", priv->nodeCopyOnRead,
+                                          "s:file", disk->src->nodeformat,
+                                          NULL));
+
     return ret;
 }

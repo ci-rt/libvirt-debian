@@ -1,3 +1,11 @@
+libvirt (4.7.0-1~1.gbp1979da) UNRELEASED; urgency=medium
+
+  ** SNAPSHOT build @1979da2b21aebf183727b257fdacd7b0bcf7ea22 **
+
+  * [8ff38ac] New upstream version 4.7.0
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 09 Sep 2018 20:25:41 +0200
+
 libvirt (4.6.0-2) unstable; urgency=medium
 
   * [c33faee] Drop dwarves dependency.

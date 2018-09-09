@@ -93,12 +93,15 @@ virCPUModeTypeToString;
 
 
 # conf/device_conf.h
+virDeviceInfoPCIAddressIsPresent;
+virDeviceInfoPCIAddressIsWanted;
 virDomainDeviceInfoAddressIsEqual;
 virDomainDeviceInfoCopy;
 virInterfaceLinkFormat;
 virInterfaceLinkParseXML;
 virPCIDeviceAddressEqual;
 virPCIDeviceAddressFormat;
+virPCIDeviceAddressIsEmpty;
 virPCIDeviceAddressIsValid;
 virPCIDeviceAddressParseXML;
 
@@ -1496,7 +1499,6 @@ virBufferVasprintf;
 # util/vircgroup.h
 virCgroupAddMachineTask;
 virCgroupAddTask;
-virCgroupAddTaskController;
 virCgroupAllowAllDevices;
 virCgroupAllowDevice;
 virCgroupAllowDevicePath;
@@ -1533,13 +1535,13 @@ virCgroupGetDomainTotalCpuStats;
 virCgroupGetFreezerState;
 virCgroupGetMemoryHardLimit;
 virCgroupGetMemorySoftLimit;
+virCgroupGetMemoryStat;
 virCgroupGetMemoryUsage;
 virCgroupGetMemSwapHardLimit;
 virCgroupGetMemSwapUsage;
 virCgroupGetPercpuStats;
 virCgroupHasController;
 virCgroupHasEmptyTasks;
-virCgroupKill;
 virCgroupKillPainfully;
 virCgroupKillRecursive;
 virCgroupNewDetect;
@@ -1552,7 +1554,6 @@ virCgroupNewSelf;
 virCgroupNewThread;
 virCgroupPathOfController;
 virCgroupRemove;
-virCgroupRemoveRecursively;
 virCgroupSetBlkioDeviceReadBps;
 virCgroupSetBlkioDeviceReadIops;
 virCgroupSetBlkioDeviceWeight;
@@ -2098,6 +2099,7 @@ virJSONValueNewNumberUint;
 virJSONValueNewNumberUlong;
 virJSONValueNewObject;
 virJSONValueNewString;
+virJSONValueNewStringLen;
 virJSONValueObjectAdd;
 virJSONValueObjectAddVArgs;
 virJSONValueObjectAppend;
@@ -2133,10 +2135,6 @@ virJSONValueObjectRemoveKey;
 virJSONValueObjectStealArray;
 virJSONValueObjectStealObject;
 virJSONValueToString;
-
-
-# util/virjsoncompat.h
-virJSONInitialize;
 
 
 # util/virkeycode.h
@@ -2610,6 +2608,7 @@ virProcessGetPids;
 virProcessGetStartTime;
 virProcessKill;
 virProcessKillPainfully;
+virProcessKillPainfullyDelay;
 virProcessNamespaceAvailable;
 virProcessRunInMountNamespace;
 virProcessSchedPolicyTypeFromString;
@@ -2652,14 +2651,16 @@ virCacheTypeToString;
 virResctrlAllocAddPID;
 virResctrlAllocCreate;
 virResctrlAllocDeterminePath;
-virResctrlAllocForeachSize;
+virResctrlAllocForeachCache;
+virResctrlAllocForeachMemory;
 virResctrlAllocFormat;
 virResctrlAllocGetID;
 virResctrlAllocGetUnused;
 virResctrlAllocNew;
 virResctrlAllocRemove;
+virResctrlAllocSetCacheSize;
 virResctrlAllocSetID;
-virResctrlAllocSetSize;
+virResctrlAllocSetMemoryBandwidth;
 virResctrlInfoGetCache;
 virResctrlInfoNew;
 
@@ -2856,6 +2857,10 @@ virStorageSourceGetActualType;
 virStorageSourceGetSecurityLabelDef;
 virStorageSourceHasBacking;
 virStorageSourceInitChainElement;
+virStorageSourceInitiatorClear;
+virStorageSourceInitiatorCopy;
+virStorageSourceInitiatorFormatXML;
+virStorageSourceInitiatorParseXML;
 virStorageSourceIsBacking;
 virStorageSourceIsBlockLocal;
 virStorageSourceIsEmpty;

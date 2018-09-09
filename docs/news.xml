@@ -33,6 +33,93 @@
      -->
 
 <libvirt>
+  <release version="v4.7.0" date="2018-09-03">
+    <section title="New features">
+      <change>
+        <summary>
+          storage: add storage pool iscsi-direct
+        </summary>
+        <description>
+          Introduce a new storage pool backend that uses libiscsi instead of
+          iscsiadm. It support basic pool operations: checkPool and refreshPool.
+        </description>
+      </change>
+      <change>
+        <summary>
+          Add support for MBA (Memory Bandwidth Allocation technology)
+        </summary>
+        <description>
+          Domain vCPU threads can now have allocated some parts of host memory
+          bandwidth by using the <code>memorytune</code> element in <code>cputune</code>.
+        </description>
+      </change>
+      <change>
+        <summary>
+          qemu: Add support for RISC-V guests
+        </summary>
+        <description>
+          riscv32 and riscv64 guest architectures are now supported.
+        </description>
+      </change>
+    </section>
+    <section title="Improvements">
+      <change>
+        <summary>
+          qemu: Add ccw support for vhost-vsock
+        </summary>
+        <description>
+          Support the vhost-vsock-ccw device on S390.
+        </description>
+      </change>
+      <change>
+        <summary>
+          qemu: Make default machine type independent of QEMU
+        </summary>
+        <description>
+          We can't control whether or not QEMU will change its default
+          machine type in the future, or whether downstream distributions
+          will decide to compile out some machine types, so our only option
+          to provide a predictable behavior is taking care of the default
+          ourselves; management applications and users are encouraged to
+          explicitly pick a machine type when creating new guests.
+        </description>
+      </change>
+      <change>
+        <summary>
+          apparmor: Various improvements
+        </summary>
+        <description>
+          Rules have been added to deal with a number of scenarios that
+          didn't work correctly.
+        </description>
+      </change>
+    </section>
+    <section title="Bug fixes">
+      <change>
+        <summary>
+          esx: Truncate CPU model name
+        </summary>
+        <description>
+          Some CPU model names are too long to be stored into the
+          corresponding property, and should be explicitly truncated
+          to avoid unexpected behavior in users of the
+          <code>virNodeGetInfo()</code> API such as
+          <code>virsh nodeinfo</code>.
+        </description>
+      </change>
+      <change>
+        <summary>
+          utils: Remove arbitrary limit on socket_id/core_id
+        </summary>
+        <description>
+          Both values were assumed to be smaller than 4096, but in fact
+          they are entirely hardware-dependent and there have been reports
+          of machines presenting much bigger values, preventing libvirt from
+          working correctly; all such limits have now been removed.
+        </description>
+      </change>
+    </section>
+  </release>
   <release version="v4.6.0" date="2018-08-06">
     <section title="New features">
       <change>

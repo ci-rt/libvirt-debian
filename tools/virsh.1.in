@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2018-07-28" "libvirt-4.6.0" "Virtualization Support"
+.TH VIRSH 1 "2018-08-28" "libvirt-4.7.0" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -3613,8 +3613,8 @@ Create and start a pool object from the \s-1XML\s0 \fIfile\fR.
 follow-up command to build the pool. The \fI\-\-overwrite\fR and
 \&\fI\-\-no\-overwrite\fR flags follow the same rules as \fBpool-build\fR. If
 just \fI\-\-build\fR is provided, then \fBpool-build\fR is called with no flags.
-.IP "\fBpool-create-as\fR \fIname\fR \fItype\fR [\fI\-\-source\-host hostname\fR] [\fI\-\-source\-path path\fR] [\fI\-\-source\-dev path\fR] [\fI\-\-source\-name name\fR] [\fI\-\-target path\fR] [\fI\-\-source\-format format\fR] [\fI\-\-auth\-type authtype\fR \fI\-\-auth\-username username\fR [\fI\-\-secret\-usage usage\fR | \fI\-\-secret\-uuid uuid\fR]] [[\fI\-\-adapter\-name name\fR] | [\fI\-\-adapter\-wwnn\fR wwnn \fI\-\-adapter\-wwpn\fR wwpn] [\fI\-\-adapter\-parent parent\fR]] [\fI\-\-build\fR] [[\fI\-\-overwrite\fR] | [\fI\-\-no\-overwrite\fR]] [\fI\-\-print\-xml\fR]" 4
-.IX Item "pool-create-as name type [--source-host hostname] [--source-path path] [--source-dev path] [--source-name name] [--target path] [--source-format format] [--auth-type authtype --auth-username username [--secret-usage usage | --secret-uuid uuid]] [[--adapter-name name] | [--adapter-wwnn wwnn --adapter-wwpn wwpn] [--adapter-parent parent]] [--build] [[--overwrite] | [--no-overwrite]] [--print-xml]"
+.IP "\fBpool-create-as\fR \fIname\fR \fItype\fR [\fI\-\-source\-host hostname\fR] [\fI\-\-source\-path path\fR] [\fI\-\-source\-dev path\fR] [\fI\-\-source\-name name\fR] [\fI\-\-target path\fR] [\fI\-\-source\-format format\fR] [\fI\-\-auth\-type authtype\fR \fI\-\-auth\-username username\fR [\fI\-\-secret\-usage usage\fR | \fI\-\-secret\-uuid uuid\fR]] [[\fI\-\-adapter\-name name\fR] | [\fI\-\-adapter\-wwnn\fR wwnn \fI\-\-adapter\-wwpn\fR wwpn] [\fI\-\-adapter\-parent parent\fR | \fI\-\-adapter\-parent\-wwnn parent_wwnn\fR \fIadapter-parent-wwpn parent_wwpn\fR | \fI\-\-adapter\-parent\-fabric\-wwn parent_fabric_wwn\fR]] [\fI\-\-build\fR] [[\fI\-\-overwrite\fR] | [\fI\-\-no\-overwrite\fR]] [\fI\-\-print\-xml\fR]" 4
+.IX Item "pool-create-as name type [--source-host hostname] [--source-path path] [--source-dev path] [--source-name name] [--target path] [--source-format format] [--auth-type authtype --auth-username username [--secret-usage usage | --secret-uuid uuid]] [[--adapter-name name] | [--adapter-wwnn wwnn --adapter-wwpn wwpn] [--adapter-parent parent | --adapter-parent-wwnn parent_wwnn adapter-parent-wwpn parent_wwpn | --adapter-parent-fabric-wwn parent_fabric_wwn]] [--build] [[--overwrite] | [--no-overwrite]] [--print-xml]"
 Create and start a pool object \fIname\fR from the raw parameters.  If
 \&\fI\-\-print\-xml\fR is specified, then print the \s-1XML\s0 of the pool object
 without creating the pool.  Otherwise, the pool has the specified
@@ -4505,12 +4505,22 @@ of the network filters directly.
 .IP "\fBnwfilter-binding-create\fR \fIxmlfile\fR" 4
 .IX Item "nwfilter-binding-create xmlfile"
 Associate a network port with a network filter. The network filter backend
-will immediately attempt to instantiate the filter rules on the port.
+will immediately attempt to instantiate the filter rules on the port. This
+command may be used to associate a filter with a currently running guest
+that does not have a filter defined for a specific network port. Since the
+bindings are generally automatically managed by the hypervisor, using this
+command to define a filter for a network port and then starting the guest
+afterwards may prevent the guest from starting if it attempts to use the
+network port and finds a filter already defined.
 .IP "\fBnwfilter-binding-delete\fR \fIport-name\fR" 4
 .IX Item "nwfilter-binding-delete port-name"
 Disassociate a network port from a network filter. The network filter
 backend will immediately tear down the filter rules that exist on the
-port.
+port. This command may be used to remove the network port binding for
+a filter currently in use for the guest while the guest is running
+without needing to restart the guest. Restoring the network port binding
+filter for the running guest would be accomplished by using
+\&\fInwfilter-binding-create\fR.
 .IP "\fBnwfilter-binding-list\fR" 4
 .IX Item "nwfilter-binding-list"
 List all of the network ports which have filters associated with them.

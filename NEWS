@@ -1,6 +1,51 @@
 libvirt releases
 ================
 
+# v4.7.0 (2018-09-03)
+
+  * New features
+
+    - storage: add storage pool iscsi-direct
+        Introduce a new storage pool backend that uses libiscsi instead of
+        iscsiadm. It support basic pool operations: checkPool and refreshPool.
+
+    - Add support for MBA (Memory Bandwidth Allocation technology)
+        Domain vCPU threads can now have allocated some parts of host memory
+        bandwidth by using the memorytune element in cputune.
+
+    - qemu: Add support for RISC-V guests
+        riscv32 and riscv64 guest architectures are now supported.
+
+  * Improvements
+
+    - qemu: Add ccw support for vhost-vsock
+        Support the vhost-vsock-ccw device on S390.
+
+    - qemu: Make default machine type independent of QEMU
+        We can't control whether or not QEMU will change its default machine
+        type in the future, or whether downstream distributions will decide to
+        compile out some machine types, so our only option to provide a
+        predictable behavior is taking care of the default ourselves;
+        management applications and users are encouraged to explicitly pick a
+        machine type when creating new guests.
+
+    - apparmor: Various improvements
+        Rules have been added to deal with a number of scenarios that didn't
+        work correctly.
+
+  * Bug fixes
+
+    - esx: Truncate CPU model name
+        Some CPU model names are too long to be stored into the corresponding
+        property, and should be explicitly truncated to avoid unexpected
+        behavior in users of the virNodeGetInfo() API such as virsh nodeinfo.
+
+    - utils: Remove arbitrary limit on socket_id/core_id
+        Both values were assumed to be smaller than 4096, but in fact they are
+        entirely hardware-dependent and there have been reports of machines
+        presenting much bigger values, preventing libvirt from working
+        correctly; all such limits have now been removed.
+
 # v4.6.0 (2018-08-06)
 
   * New features

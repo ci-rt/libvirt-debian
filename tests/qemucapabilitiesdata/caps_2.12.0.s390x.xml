@@ -4,7 +4,6 @@
   <selfvers>0</selfvers>
   <usedQMP/>
   <flag name='kvm'/>
-  <flag name='boot-index'/>
   <flag name='virtio-tx-alg'/>
   <flag name='virtio-blk-pci.ioeventfd'/>
   <flag name='virtio-blk-pci.event_idx'/>
@@ -29,7 +28,6 @@
   <flag name='blockdev-snapshot-sync'/>
   <flag name='device-video-primary'/>
   <flag name='s390-sclp'/>
-  <flag name='add-fd'/>
   <flag name='nbd-server'/>
   <flag name='virtio-rng'/>
   <flag name='rng-random'/>
@@ -137,7 +135,7 @@
   <flag name='vfio-pci.display'/>
   <version>2012000</version>
   <kvmVersion>0</kvmVersion>
-  <microcodeVersion>375999</microcodeVersion>
+  <microcodeVersion>375593</microcodeVersion>
   <package></package>
   <arch>s390x</arch>
   <hostCPU type='kvm' model='z14-base' migratability='no'>
@@ -2476,7 +2474,7 @@
     <blocker name='kmac-dea'/>
     <blocker name='hfpm'/>
   </cpu>
-  <machine name='s390-ccw-virtio-2.12' alias='s390-ccw-virtio' hotplugCpus='yes' maxCpus='248'/>
+  <machine name='s390-ccw-virtio-2.12' alias='s390-ccw-virtio' hotplugCpus='yes' maxCpus='248' default='yes'/>
   <machine name='s390-ccw-virtio-2.7' hotplugCpus='yes' maxCpus='248'/>
   <machine name='s390-ccw-virtio-2.6' hotplugCpus='yes' maxCpus='248'/>
   <machine name='s390-ccw-virtio-2.11' hotplugCpus='yes' maxCpus='248'/>

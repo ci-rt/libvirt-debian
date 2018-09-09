@@ -6,7 +6,6 @@
   <flag name='kvm'/>
   <flag name='no-hpet'/>
   <flag name='spice'/>
-  <flag name='boot-index'/>
   <flag name='hda-duplex'/>
   <flag name='ccid-emulated'/>
   <flag name='ccid-passthru'/>
@@ -60,7 +59,6 @@
   <flag name='device-video-primary'/>
   <flag name='usb-serial'/>
   <flag name='usb-net'/>
-  <flag name='add-fd'/>
   <flag name='nbd-server'/>
   <flag name='virtio-rng'/>
   <flag name='rng-random'/>
@@ -212,14 +210,13 @@
   <flag name='tpm-emulator'/>
   <flag name='mch'/>
   <flag name='mch.extended-tseg-mbytes'/>
-  <flag name='sev-guest'/>
   <flag name='usb-storage.werror'/>
   <flag name='egl-headless'/>
   <flag name='vfio-pci.display'/>
-  <version>2012090</version>
+  <version>3000000</version>
   <kvmVersion>0</kvmVersion>
-  <microcodeVersion>438109</microcodeVersion>
-  <package>v3.0.0-rc0-31-g633e824037</package>
+  <microcodeVersion>427391</microcodeVersion>
+  <package>v3.0.0</package>
   <arch>x86_64</arch>
   <hostCPU type='kvm' model='base' migratability='yes'>
     <property name='phys-bits' type='number' value='0'/>
@@ -328,6 +325,7 @@
     <property name='syscall' type='boolean' value='true' migratable='yes'/>
     <property name='level' type='number' value='13'/>
     <property name='avx512dq' type='boolean' value='false'/>
+    <property name='x-migrate-smi-count' type='boolean' value='true' migratable='yes'/>
     <property name='svm' type='boolean' value='false'/>
     <property name='full-cpuid-auto-level' type='boolean' value='true' migratable='yes'/>
     <property name='hv-reset' type='boolean' value='false'/>
@@ -581,6 +579,7 @@
     <property name='syscall' type='boolean' value='true' migratable='yes'/>
     <property name='level' type='number' value='13'/>
     <property name='avx512dq' type='boolean' value='false'/>
+    <property name='x-migrate-smi-count' type='boolean' value='true' migratable='yes'/>
     <property name='svm' type='boolean' value='true' migratable='yes'/>
     <property name='full-cpuid-auto-level' type='boolean' value='true' migratable='yes'/>
     <property name='hv-reset' type='boolean' value='false'/>
@@ -1157,7 +1156,7 @@
     <blocker name='3dnowprefetch'/>
   </cpu>
   <cpu type='tcg' name='486' usable='yes'/>
-  <machine name='pc-i440fx-3.0' alias='pc' hotplugCpus='yes' maxCpus='255'/>
+  <machine name='pc-i440fx-3.0' alias='pc' hotplugCpus='yes' maxCpus='255' default='yes'/>
   <machine name='isapc' hotplugCpus='yes' maxCpus='1'/>
   <machine name='pc-1.1' hotplugCpus='yes' maxCpus='255'/>
   <machine name='pc-1.2' hotplugCpus='yes' maxCpus='255'/>

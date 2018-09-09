@@ -7,7 +7,6 @@
   <flag name='no-hpet'/>
   <flag name='pci-configfd'/>
   <flag name='spice'/>
-  <flag name='boot-index'/>
   <flag name='hda-duplex'/>
   <flag name='pci-bootindex'/>
   <flag name='ccid-emulated'/>
@@ -62,7 +61,6 @@
   <flag name='device-video-primary'/>
   <flag name='usb-serial'/>
   <flag name='usb-net'/>
-  <flag name='add-fd'/>
   <flag name='nbd-server'/>
   <flag name='virtio-rng'/>
   <flag name='rng-random'/>
@@ -133,7 +131,7 @@
   <flag name='mch'/>
   <version>2001001</version>
   <kvmVersion>0</kvmVersion>
-  <microcodeVersion>63558</microcodeVersion>
+  <microcodeVersion>63365</microcodeVersion>
   <package></package>
   <arch>x86_64</arch>
   <cpu type='kvm' name='Opteron_G5'/>
@@ -186,7 +184,7 @@
   <cpu type='tcg' name='core2duo'/>
   <cpu type='tcg' name='phenom'/>
   <cpu type='tcg' name='qemu64'/>
-  <machine name='pc-i440fx-2.1' alias='pc' maxCpus='255'/>
+  <machine name='pc-i440fx-2.1' alias='pc' maxCpus='255' default='yes'/>
   <machine name='pc-1.3' maxCpus='255'/>
   <machine name='pc-0.12' maxCpus='255'/>
   <machine name='pc-q35-1.6' maxCpus='255'/>

@@ -656,7 +656,7 @@ qemuStateInitialize(bool privileged,
         goto error;
     }
     if (virFileMakePath(cfg->snapshotDir) < 0) {
-        virReportSystemError(errno, _("Failed to create save dir %s"),
+        virReportSystemError(errno, _("Failed to create snapshot dir %s"),
                              cfg->snapshotDir);
         goto error;
     }
@@ -2092,7 +2092,7 @@ qemuDomainReboot(virDomainPtr dom, unsigned int flags)
      */
     if ((!useAgent) ||
         (ret < 0 && (acpiRequested || !flags))) {
-#if !WITH_JANSSON
+#if !WITH_YAJL
         virReportError(VIR_ERR_OPERATION_INVALID, "%s",
                        _("ACPI reboot is not supported without the JSON monitor"));
         goto endjob;
@@ -4727,7 +4727,7 @@ processBlockJobEvent(virQEMUDriverPtr driver,
         goto endjob;
     }
 
-    if ((disk = qemuProcessFindDomainDiskByAlias(vm, diskAlias)))
+    if ((disk = qemuProcessFindDomainDiskByAliasOrQOM(vm, diskAlias, NULL)))
         qemuBlockJobEventProcess(driver, vm, disk, QEMU_ASYNC_JOB_NONE, type, status);
 
  endjob:
@@ -7103,7 +7103,8 @@ static char *qemuConnectDomainXMLFromNative(virConnectPtr conn,
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
-    def = qemuParseCommandLineString(caps, driver->xmlopt, config,
+    def = qemuParseCommandLineString(driver->qemuCapsCache,
+                                     caps, driver->xmlopt, config,
                                      NULL, NULL, NULL);
     if (!def)
         goto cleanup;
@@ -7599,7 +7600,7 @@ qemuDomainAttachDeviceLive(virDomainObjPtr vm,
     switch ((virDomainDeviceType)dev->type) {
     case VIR_DOMAIN_DEVICE_DISK:
         qemuDomainObjCheckDiskTaint(driver, vm, dev->data.disk, NULL);
-        ret = qemuDomainAttachDeviceDiskLive(driver, vm, dev);
+        ret = qemuDomainAttachDeviceDiskLive(driver, vm, dev, false);
         if (!ret) {
             alias = dev->data.disk->info.alias;
             dev->data.disk = NULL;
@@ -7850,12 +7851,6 @@ qemuDomainChangeDiskLive(virDomainObjPtr vm,
     virDomainDeviceDef oldDev = { .type = dev->type };
     int ret = -1;
 
-    if (virDomainDiskTranslateSourcePool(disk) < 0)
-        goto cleanup;
-
-    if (qemuDomainDetermineDiskChain(driver, vm, disk, true) < 0)
-        goto cleanup;
-
     if (!(orig_disk = virDomainDiskFindByBusAndDst(vm->def,
                                                    disk->bus, disk->dst))) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -7884,18 +7879,8 @@ qemuDomainChangeDiskLive(virDomainObjPtr vm,
             goto cleanup;
         }
 
-        /* Add the new disk src into shared disk hash table */
-        if (qemuAddSharedDevice(driver, dev, vm->def->name) < 0)
+        if (qemuDomainAttachDeviceDiskLive(driver, vm, dev, force) < 0)
             goto cleanup;
-
-        if (qemuDomainChangeEjectableMedia(driver, vm, orig_disk,
-                                           dev->data.disk->src, force) < 0) {
-            ignore_value(qemuRemoveSharedDisk(driver, dev->data.disk,
-                                              vm->def->name));
-            goto cleanup;
-        }
-
-        dev->data.disk->src = NULL;
     }
 
     orig_disk->startupPolicy = dev->data.disk->startupPolicy;
@@ -10959,15 +10944,10 @@ qemuDomainBlockResize(virDomainPtr dom,
     qemuDomainObjPrivatePtr priv;
     int ret = -1;
     char *device = NULL;
+    const char *nodename = NULL;
     virDomainDiskDefPtr disk = NULL;
 
     virCheckFlags(VIR_DOMAIN_BLOCK_RESIZE_BYTES, -1);
-
-    if (path[0] == '\0') {
-        virReportError(VIR_ERR_INVALID_ARG,
-                       "%s", _("empty path"));
-        return -1;
-    }
 
     /* We prefer operating on bytes.  */
     if ((flags & VIR_DOMAIN_BLOCK_RESIZE_BYTES) == 0) {
@@ -10996,7 +10976,7 @@ qemuDomainBlockResize(virDomainPtr dom,
 
     if (!(disk = virDomainDiskByName(vm->def, path, false))) {
         virReportError(VIR_ERR_INVALID_ARG,
-                       _("invalid path: %s"), path);
+                       _("disk '%s' was not found in the domain config"), path);
         goto endjob;
     }
 
@@ -11007,11 +10987,22 @@ qemuDomainBlockResize(virDomainPtr dom,
         disk->src->format == VIR_STORAGE_FILE_QED)
         size = VIR_ROUND_UP(size, 512);
 
-    if (!(device = qemuAliasDiskDriveFromDisk(disk)))
-        goto endjob;
+    if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_BLOCKDEV)) {
+        if (virStorageSourceIsEmpty(disk->src) || disk->src->readonly) {
+            virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
+                           _("can't resize empty or readonly disk '%s'"),
+                           disk->dst);
+            goto endjob;
+        }
+
+        nodename = disk->src->nodeformat;
+    } else {
+        if (!(device = qemuAliasDiskDriveFromDisk(disk)))
+            goto endjob;
+    }
 
     qemuDomainObjEnterMonitor(driver, vm);
-    if (qemuMonitorBlockResize(priv->mon, device, size) < 0) {
+    if (qemuMonitorBlockResize(priv->mon, device, nodename, size) < 0) {
         ignore_value(qemuDomainObjExitMonitor(driver, vm));
         goto endjob;
     }
@@ -11031,13 +11022,9 @@ qemuDomainBlockResize(virDomainPtr dom,
 
 
 static int
-qemuDomainBlockStatsGatherTotals(void *payload,
-                                 const void *name ATTRIBUTE_UNUSED,
-                                 void *opaque)
+qemuDomainBlockStatsGatherTotals(qemuBlockStatsPtr data,
+                                 qemuBlockStatsPtr total)
 {
-    qemuBlockStatsPtr data = payload;
-    qemuBlockStatsPtr total = opaque;
-
 #define QEMU_BLOCK_STAT_TOTAL(NAME) \
     if (data->NAME > 0) \
         total->NAME += data->NAME
@@ -11075,11 +11062,14 @@ qemuDomainBlocksStatsGather(virQEMUDriverPtr driver,
                             qemuBlockStatsPtr *retstats)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
-    virDomainDiskDefPtr disk;
+    bool blockdev = virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_BLOCKDEV);
+    virDomainDiskDefPtr disk = NULL;
     virHashTablePtr blockstats = NULL;
     qemuBlockStatsPtr stats;
+    size_t i;
     int nstats;
-    char *diskAlias = NULL;
+    int rc = 0;
+    const char *entryname = NULL;
     int ret = -1;
 
     if (*path) {
@@ -11088,45 +11078,81 @@ qemuDomainBlocksStatsGather(virQEMUDriverPtr driver,
             goto cleanup;
         }
 
-        if (!disk->info.alias) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("missing disk device alias name for %s"), disk->dst);
-            goto cleanup;
-        }
+        if (blockdev) {
+            entryname = QEMU_DOMAIN_DISK_PRIVATE(disk)->qomName;
+        } else {
+            if (!disk->info.alias) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("missing disk device alias name for %s"), disk->dst);
+                goto cleanup;
+            }
 
-        if (VIR_STRDUP(diskAlias, disk->info.alias) < 0)
-            goto cleanup;
+            entryname = disk->info.alias;
+        }
     }
 
     qemuDomainObjEnterMonitor(driver, vm);
     nstats = qemuMonitorGetAllBlockStatsInfo(priv->mon, &blockstats, false);
 
-    if (capacity && nstats >= 0 &&
-        qemuMonitorBlockStatsUpdateCapacity(priv->mon, blockstats, false) < 0)
-        nstats = -1;
+    if (capacity && nstats >= 0) {
+        if (blockdev)
+            rc = qemuMonitorBlockStatsUpdateCapacityBlockdev(priv->mon, blockstats);
+        else
+            rc = qemuMonitorBlockStatsUpdateCapacity(priv->mon, blockstats, false);
+    }
 
-    if (qemuDomainObjExitMonitor(driver, vm) < 0 || nstats < 0)
+    if (qemuDomainObjExitMonitor(driver, vm) < 0 || nstats < 0 || rc < 0)
         goto cleanup;
 
     if (VIR_ALLOC(*retstats) < 0)
         goto cleanup;
 
-    if (diskAlias) {
-        if (!(stats = virHashLookup(blockstats, diskAlias))) {
+    if (entryname) {
+        if (!(stats = virHashLookup(blockstats, entryname))) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("cannot find statistics for device '%s'"), diskAlias);
+                           _("cannot find statistics for device '%s'"), entryname);
             goto cleanup;
+        }
+
+        if (blockdev) {
+            /* capacity are reported only per node-name so we need to transfer them */
+            qemuBlockStatsPtr capstats;
+
+            if (disk && disk->src &&
+                (capstats = virHashLookup(blockstats, disk->src->nodeformat))) {
+                (*retstats)->capacity = capstats->capacity;
+                (*retstats)->physical = capstats->physical;
+                (*retstats)->wr_highest_offset = capstats->wr_highest_offset;
+                (*retstats)->wr_highest_offset_valid = capstats->wr_highest_offset_valid;
+                (*retstats)->write_threshold = capstats->write_threshold;
+            }
         }
 
         **retstats = *stats;
     } else {
-        virHashForEach(blockstats, qemuDomainBlockStatsGatherTotals, *retstats);
+        for (i = 0; i < vm->def->ndisks; i++) {
+            disk = vm->def->disks[i];
+            entryname = disk->info.alias;
+
+            if (blockdev)
+                entryname = QEMU_DOMAIN_DISK_PRIVATE(disk)->qomName;
+
+            if (!entryname)
+                continue;
+
+            if (!(stats = virHashLookup(blockstats, entryname))) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("cannot find statistics for device '%s'"), entryname);
+                goto cleanup;
+            }
+
+            qemuDomainBlockStatsGatherTotals(stats, *retstats);
+        }
     }
 
     ret = nstats;
 
  cleanup:
-    VIR_FREE(diskAlias);
     virHashFree(blockstats);
     return ret;
 }
@@ -16581,7 +16607,8 @@ static virDomainPtr qemuDomainQemuAttach(virConnectPtr conn,
     if (!(caps = virQEMUDriverGetCapabilities(driver, false)))
         goto cleanup;
 
-    if (!(def = qemuParseCommandLinePid(caps, driver->xmlopt, pid,
+    if (!(def = qemuParseCommandLinePid(driver->qemuCapsCache,
+                                        caps, driver->xmlopt, pid,
                                         &pidfile, &monConfig, &monJSON)))
         goto cleanup;
 
@@ -18222,7 +18249,8 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
     virDomainDefPtr def = NULL;
     virDomainDefPtr persistentDef = NULL;
     virDomainBlockIoTuneInfo info;
-    char *device = NULL;
+    char *drivealias = NULL;
+    const char *qdevid = NULL;
     int ret = -1;
     size_t i;
     virDomainDiskDefPtr conf_disk = NULL;
@@ -18447,8 +18475,12 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
         if (!(disk = qemuDomainDiskByName(def, path)))
             goto endjob;
 
-        if (!(device = qemuAliasDiskDriveFromDisk(disk)))
-            goto endjob;
+        if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_BLOCKDEV)) {
+            qdevid = QEMU_DOMAIN_DISK_PRIVATE(disk)->qomName;
+        } else {
+            if (!(drivealias = qemuAliasDiskDriveFromDisk(disk)))
+                goto endjob;
+        }
 
         if (qemuDomainSetBlockIoTuneDefaults(&info, &disk->blkdeviotune,
                                              set_fields) < 0)
@@ -18494,7 +18526,7 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
           * via the JSON error code from the block_set_io_throttle call */
 
         qemuDomainObjEnterMonitor(driver, vm);
-        ret = qemuMonitorSetBlockIoThrottle(priv->mon, device,
+        ret = qemuMonitorSetBlockIoThrottle(priv->mon, drivealias, qdevid,
                                             &info, supportMaxOptions,
                                             set_fields & QEMU_BLOCK_IOTUNE_SET_GROUP_NAME,
                                             supportMaxLengthOptions);
@@ -18544,7 +18576,7 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
 
  cleanup:
     VIR_FREE(info.group_name);
-    VIR_FREE(device);
+    VIR_FREE(drivealias);
     virDomainObjEndAPI(&vm);
     if (eventNparams)
         virTypedParamsFree(eventParams, eventNparams);
@@ -18566,7 +18598,8 @@ qemuDomainGetBlockIoTune(virDomainPtr dom,
     virDomainDefPtr def = NULL;
     virDomainDefPtr persistentDef = NULL;
     virDomainBlockIoTuneInfo reply = {0};
-    char *device = NULL;
+    char *drivealias = NULL;
+    const char *qdevid = NULL;
     int ret = -1;
     int maxparams;
 
@@ -18620,10 +18653,14 @@ qemuDomainGetBlockIoTune(virDomainPtr dom,
         if (!(disk = qemuDomainDiskByName(def, path)))
             goto endjob;
 
-        if (!(device = qemuAliasDiskDriveFromDisk(disk)))
-            goto endjob;
+        if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_BLOCKDEV)) {
+            qdevid = QEMU_DOMAIN_DISK_PRIVATE(disk)->qomName;
+        } else {
+            if (!(drivealias = qemuAliasDiskDriveFromDisk(disk)))
+                goto endjob;
+        }
         qemuDomainObjEnterMonitor(driver, vm);
-        ret = qemuMonitorGetBlockIoThrottle(priv->mon, device, &reply);
+        ret = qemuMonitorGetBlockIoThrottle(priv->mon, drivealias, qdevid, &reply);
         if (qemuDomainObjExitMonitor(driver, vm) < 0)
             goto endjob;
         if (ret < 0)
@@ -18698,7 +18735,7 @@ qemuDomainGetBlockIoTune(virDomainPtr dom,
 
  cleanup:
     VIR_FREE(reply.group_name);
-    VIR_FREE(device);
+    VIR_FREE(drivealias);
     virDomainObjEndAPI(&vm);
     return ret;
 }
@@ -18713,6 +18750,7 @@ qemuDomainGetDiskErrors(virDomainPtr dom,
     virDomainObjPtr vm = NULL;
     qemuDomainObjPrivatePtr priv;
     virHashTablePtr table = NULL;
+    bool blockdev = false;
     int ret = -1;
     size_t i;
     int n = 0;
@@ -18723,6 +18761,7 @@ qemuDomainGetDiskErrors(virDomainPtr dom,
         goto cleanup;
 
     priv = vm->privateData;
+    blockdev = virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_BLOCKDEV);
 
     if (virDomainGetDiskErrorsEnsureACL(dom->conn, vm->def) < 0)
         goto cleanup;
@@ -18748,8 +18787,13 @@ qemuDomainGetDiskErrors(virDomainPtr dom,
     for (i = n = 0; i < vm->def->ndisks; i++) {
         struct qemuDomainDiskInfo *info;
         virDomainDiskDefPtr disk = vm->def->disks[i];
+        qemuDomainDiskPrivatePtr diskPriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
+        const char *entryname = disk->info.alias;
 
-        if ((info = virHashLookup(table, disk->info.alias)) &&
+        if (blockdev)
+            entryname = diskPriv->qomName;
+
+        if ((info = virHashLookup(table, entryname)) &&
             info->io_status != VIR_DOMAIN_DISK_ERROR_NONE) {
             if (n == nerrors)
                 break;
@@ -20018,29 +20062,39 @@ qemuDomainGetStatsOneBlockFallback(virQEMUDriverPtr driver,
 }
 
 
-static int
-qemuDomainGetStatsOneBlockNode(virDomainStatsRecordPtr record,
-                               int *maxparams,
-                               virStorageSourcePtr src,
-                               size_t block_idx,
-                               virHashTablePtr nodedata)
+/**
+ * qemuDomainGetStatsOneBlockRefreshNamed:
+ * @src: disk source structure
+ * @alias: disk alias
+ * @stats: hash table containing stats for all disks
+ * @nodedata: reply containing 'query-named-block-nodes' data
+ *
+ * Refresh disk block stats data (qemuBlockStatsPtr) which are present only
+ * in the reply of 'query-named-block-nodes' in cases when the data was gathered
+ * by using query-block originally.
+ */
+static void
+qemuDomainGetStatsOneBlockRefreshNamed(virStorageSourcePtr src,
+                                       const char *alias,
+                                       virHashTablePtr stats,
+                                       virHashTablePtr nodedata)
 {
+    qemuBlockStatsPtr entry;
+
     virJSONValuePtr data;
     unsigned long long tmp;
-    int ret = -1;
 
-    if (src->nodestorage &&
-        (data = virHashLookup(nodedata, src->nodestorage))) {
-        if (virJSONValueObjectGetNumberUlong(data, "write_threshold", &tmp) == 0 &&
-            tmp > 0)
-            QEMU_ADD_BLOCK_PARAM_ULL(record, maxparams, block_idx,
-                                     "threshold", tmp);
-    }
+    if (!nodedata || !src->nodestorage)
+        return;
 
-    ret = 0;
+    if (!(entry = virHashLookup(stats, alias)))
+        return;
 
- cleanup:
-    return ret;
+    if (!(data = virHashLookup(nodedata, src->nodestorage)))
+        return;
+
+    if (virJSONValueObjectGetNumberUlong(data, "write_threshold", &tmp) == 0)
+        entry->write_threshold = tmp;
 }
 
 
@@ -20050,28 +20104,13 @@ qemuDomainGetStatsOneBlock(virQEMUDriverPtr driver,
                            virDomainObjPtr dom,
                            virDomainStatsRecordPtr record,
                            int *maxparams,
-                           virDomainDiskDefPtr disk,
+                           const char *entryname,
                            virStorageSourcePtr src,
                            size_t block_idx,
-                           unsigned int backing_idx,
-                           virHashTablePtr stats,
-                           virHashTablePtr nodedata)
+                           virHashTablePtr stats)
 {
     qemuBlockStats *entry;
     int ret = -1;
-    char *alias = NULL;
-
-    if (disk->info.alias)
-        alias = qemuDomainStorageAlias(disk->info.alias, backing_idx);
-
-    QEMU_ADD_NAME_PARAM(record, maxparams, "block", "name", block_idx,
-                        disk->dst);
-    if (virStorageSourceIsLocalStorage(src) && src->path)
-        QEMU_ADD_NAME_PARAM(record, maxparams, "block", "path",
-                            block_idx, src->path);
-    if (backing_idx)
-        QEMU_ADD_BLOCK_PARAM_UI(record, maxparams, block_idx, "backingIndex",
-                                backing_idx);
 
     /* the VM is offline so we have to go and load the stast from the disk by
      * ourselves */
@@ -20084,27 +20123,10 @@ qemuDomainGetStatsOneBlock(virQEMUDriverPtr driver,
     /* In case where qemu didn't provide the stats we stop here rather than
      * trying to refresh the stats from the disk. Inability to provide stats is
      * usually caused by blocked storage so this would make libvirtd hang */
-    if (!stats || !alias || !(entry = virHashLookup(stats, alias))) {
+    if (!stats || !entryname || !(entry = virHashLookup(stats, entryname))) {
         ret = 0;
         goto cleanup;
     }
-
-    QEMU_ADD_BLOCK_PARAM_LL(record, maxparams, block_idx,
-                            "rd.reqs", entry->rd_req);
-    QEMU_ADD_BLOCK_PARAM_LL(record, maxparams, block_idx,
-                            "rd.bytes", entry->rd_bytes);
-    QEMU_ADD_BLOCK_PARAM_LL(record, maxparams, block_idx,
-                            "rd.times", entry->rd_total_times);
-    QEMU_ADD_BLOCK_PARAM_LL(record, maxparams, block_idx,
-                            "wr.reqs", entry->wr_req);
-    QEMU_ADD_BLOCK_PARAM_LL(record, maxparams, block_idx,
-                            "wr.bytes", entry->wr_bytes);
-    QEMU_ADD_BLOCK_PARAM_LL(record, maxparams, block_idx,
-                            "wr.times", entry->wr_total_times);
-    QEMU_ADD_BLOCK_PARAM_LL(record, maxparams, block_idx,
-                            "fl.reqs", entry->flush_req);
-    QEMU_ADD_BLOCK_PARAM_LL(record, maxparams, block_idx,
-                            "fl.times", entry->flush_total_times);
 
     QEMU_ADD_BLOCK_PARAM_ULL(record, maxparams, block_idx,
                              "allocation", entry->wr_highest_offset);
@@ -20124,11 +20146,162 @@ qemuDomainGetStatsOneBlock(virQEMUDriverPtr driver,
         }
     }
 
-    if (qemuDomainGetStatsOneBlockNode(record, maxparams, src, block_idx,
-                                       nodedata) < 0)
+    ret = 0;
+ cleanup:
+    return ret;
+}
+
+
+static int
+qemuDomainGetStatsBlockExportBackendStorage(const char *entryname,
+                                            virHashTablePtr stats,
+                                            size_t recordnr,
+                                            virDomainStatsRecordPtr records,
+                                            int *nrecords)
+{
+    qemuBlockStats *entry;
+    int ret = -1;
+
+    if (!stats || !entryname || !(entry = virHashLookup(stats, entryname))) {
+        ret = 0;
         goto cleanup;
+    }
+
+    if (entry->write_threshold)
+        QEMU_ADD_BLOCK_PARAM_ULL(records, nrecords, recordnr, "threshold",
+                                 entry->write_threshold);
 
     ret = 0;
+ cleanup:
+    return ret;
+}
+
+
+static int
+qemuDomainGetStatsBlockExportFrontend(const char *frontendname,
+                                      virHashTablePtr stats,
+                                      size_t recordnr,
+                                      virDomainStatsRecordPtr records,
+                                      int *nrecords)
+{
+    qemuBlockStats *entry;
+    int ret = -1;
+
+    /* In case where qemu didn't provide the stats we stop here rather than
+     * trying to refresh the stats from the disk. Inability to provide stats is
+     * usually caused by blocked storage so this would make libvirtd hang */
+    if (!stats || !frontendname || !(entry = virHashLookup(stats, frontendname))) {
+        ret = 0;
+        goto cleanup;
+    }
+
+    QEMU_ADD_BLOCK_PARAM_LL(records, nrecords, recordnr, "rd.reqs", entry->rd_req);
+    QEMU_ADD_BLOCK_PARAM_LL(records, nrecords, recordnr, "rd.bytes", entry->rd_bytes);
+    QEMU_ADD_BLOCK_PARAM_LL(records, nrecords, recordnr, "rd.times", entry->rd_total_times);
+    QEMU_ADD_BLOCK_PARAM_LL(records, nrecords, recordnr, "wr.reqs", entry->wr_req);
+    QEMU_ADD_BLOCK_PARAM_LL(records, nrecords, recordnr, "wr.bytes", entry->wr_bytes);
+    QEMU_ADD_BLOCK_PARAM_LL(records, nrecords, recordnr, "wr.times", entry->wr_total_times);
+    QEMU_ADD_BLOCK_PARAM_LL(records, nrecords, recordnr, "fl.reqs", entry->flush_req);
+    QEMU_ADD_BLOCK_PARAM_LL(records, nrecords, recordnr, "fl.times", entry->flush_total_times);
+
+    ret = 0;
+ cleanup:
+    return ret;
+}
+
+
+static int
+qemuDomainGetStatsBlockExportHeader(virDomainDiskDefPtr disk,
+                                    virStorageSourcePtr src,
+                                    size_t recordnr,
+                                    virDomainStatsRecordPtr records,
+                                    int *nrecords)
+{
+    int ret = -1;
+
+    QEMU_ADD_NAME_PARAM(records, nrecords, "block", "name", recordnr, disk->dst);
+
+    if (virStorageSourceIsLocalStorage(src) && src->path)
+        QEMU_ADD_NAME_PARAM(records, nrecords, "block", "path", recordnr, src->path);
+    if (src->id)
+        QEMU_ADD_BLOCK_PARAM_UI(records, nrecords, recordnr, "backingIndex",
+                                src->id);
+
+    ret = 0;
+ cleanup:
+    return ret;
+}
+
+
+static int
+qemuDomainGetStatsBlockExportDisk(virDomainDiskDefPtr disk,
+                                  virHashTablePtr stats,
+                                  virHashTablePtr nodestats,
+                                  virDomainStatsRecordPtr records,
+                                  int *nrecords,
+                                  size_t *recordnr,
+                                  bool visitBacking,
+                                  virQEMUDriverPtr driver,
+                                  virQEMUDriverConfigPtr cfg,
+                                  virDomainObjPtr dom,
+                                  bool blockdev)
+
+{
+    char *alias = NULL;
+    virStorageSourcePtr n;
+    const char *frontendalias;
+    const char *backendalias;
+    const char *backendstoragealias;
+    int ret = -1;
+
+    for (n = disk->src; virStorageSourceIsBacking(n); n = n->backingStore) {
+        if (blockdev) {
+            frontendalias = QEMU_DOMAIN_DISK_PRIVATE(disk)->qomName;
+            backendalias = n->nodeformat;
+            backendstoragealias = n->nodestorage;
+        } else {
+            /* alias may be NULL if the VM is not running */
+            if (disk->info.alias &&
+                !(alias = qemuDomainStorageAlias(disk->info.alias, n->id)))
+                goto cleanup;
+
+            qemuDomainGetStatsOneBlockRefreshNamed(n, alias, stats, nodestats);
+
+            frontendalias = alias;
+            backendalias = alias;
+            backendstoragealias = alias;
+        }
+
+        if (qemuDomainGetStatsBlockExportHeader(disk, n, *recordnr,
+                                                records, nrecords) < 0)
+            goto cleanup;
+
+        /* The following stats make sense only for the frontend device */
+        if (n == disk->src) {
+            if (qemuDomainGetStatsBlockExportFrontend(frontendalias, stats, *recordnr,
+                                                      records, nrecords) < 0)
+                goto cleanup;
+        }
+
+        if (qemuDomainGetStatsOneBlock(driver, cfg, dom, records, nrecords,
+                                       backendalias, n, *recordnr,
+                                       stats) < 0)
+            goto cleanup;
+
+        if (qemuDomainGetStatsBlockExportBackendStorage(backendstoragealias,
+                                                        stats, *recordnr,
+                                                        records, nrecords) < 0)
+            goto cleanup;
+
+        VIR_FREE(alias);
+        (*recordnr)++;
+
+        if (!visitBacking)
+            break;
+    }
+
+    ret = 0;
+
  cleanup:
     VIR_FREE(alias);
     return ret;
@@ -20150,19 +20323,25 @@ qemuDomainGetStatsBlock(virQEMUDriverPtr driver,
     virJSONValuePtr nodedata = NULL;
     qemuDomainObjPrivatePtr priv = dom->privateData;
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
+    bool blockdev = virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_BLOCKDEV);
     bool fetchnodedata = virQEMUCapsGet(priv->qemuCaps,
-                                        QEMU_CAPS_QUERY_NAMED_BLOCK_NODES);
+                                        QEMU_CAPS_QUERY_NAMED_BLOCK_NODES) && !blockdev;
     int count_index = -1;
     size_t visited = 0;
     bool visitBacking = !!(privflags & QEMU_DOMAIN_STATS_BACKING);
 
     if (HAVE_JOB(privflags) && virDomainObjIsActive(dom)) {
         qemuDomainObjEnterMonitor(driver, dom);
-        rc = qemuMonitorGetAllBlockStatsInfo(priv->mon, &stats,
-                                             visitBacking);
-        if (rc >= 0)
-            ignore_value(qemuMonitorBlockStatsUpdateCapacity(priv->mon, stats,
-                                                             visitBacking));
+
+        rc = qemuMonitorGetAllBlockStatsInfo(priv->mon, &stats, visitBacking);
+
+        if (rc >= 0) {
+            if (blockdev)
+                rc = qemuMonitorBlockStatsUpdateCapacityBlockdev(priv->mon, stats);
+            else
+                ignore_value(qemuMonitorBlockStatsUpdateCapacity(priv->mon, stats,
+                                                                 visitBacking));
+        }
 
         if (fetchnodedata)
             nodedata = qemuMonitorQueryNamedBlockNodes(priv->mon);
@@ -20186,20 +20365,11 @@ qemuDomainGetStatsBlock(virQEMUDriverPtr driver,
     QEMU_ADD_COUNT_PARAM(record, maxparams, "block", 0);
 
     for (i = 0; i < dom->def->ndisks; i++) {
-        virDomainDiskDefPtr disk = dom->def->disks[i];
-        virStorageSourcePtr src = disk->src;
-        unsigned int backing_idx = 0;
-
-        while (virStorageSourceIsBacking(src) &&
-               (backing_idx == 0 || visitBacking)) {
-            if (qemuDomainGetStatsOneBlock(driver, cfg, dom, record, maxparams,
-                                           disk, src, visited, backing_idx,
-                                           stats, nodestats) < 0)
-                goto cleanup;
-            visited++;
-            backing_idx++;
-            src = src->backingStore;
-        }
+        if (qemuDomainGetStatsBlockExportDisk(dom->def->disks[i], stats, nodestats,
+                                              record, maxparams, &visited,
+                                              visitBacking, driver, cfg, dom,
+                                              blockdev) < 0)
+            goto cleanup;
     }
 
     record->params[count_index].value.ui = visited;

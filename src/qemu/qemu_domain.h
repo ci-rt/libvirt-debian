@@ -363,6 +363,9 @@ struct _qemuDomainObjPrivate {
 
     /* true if qemu-pr-helper process is running for the domain */
     bool prDaemonRunning;
+
+    /* counter for generating node names for qemu disks */
+    unsigned long long nodenameindex;
 };
 
 # define QEMU_DOMAIN_PRIVATE(vm) \
@@ -393,6 +396,9 @@ struct _qemuDomainDiskPrivate {
     /* information about the device */
     bool tray; /* device has tray */
     bool removable; /* device media can be removed/changed */
+
+    char *qomName; /* QOM path of the disk (also refers to the block backend) */
+    char *nodeCopyOnRead; /* nodename of the disk-wide copy-on-read blockdev layer */
 };
 
 # define QEMU_DOMAIN_STORAGE_SOURCE_PRIVATE(src) \
@@ -438,7 +444,6 @@ struct _qemuDomainVcpuPrivate {
 
 struct qemuDomainDiskInfo {
     bool removable;
-    bool locked;
     bool tray;
     bool tray_open;
     bool empty;
@@ -809,7 +814,8 @@ bool qemuDomainHasPCIRoot(const virDomainDef *def);
 bool qemuDomainHasPCIeRoot(const virDomainDef *def);
 bool qemuDomainNeedsFDC(const virDomainDef *def);
 bool qemuDomainIsS390CCW(const virDomainDef *def);
-bool qemuDomainIsVirt(const virDomainDef *def);
+bool qemuDomainIsARMVirt(const virDomainDef *def);
+bool qemuDomainIsRISCVVirt(const virDomainDef *def);
 bool qemuDomainIsPSeries(const virDomainDef *def);
 bool qemuDomainHasBuiltinIDE(const virDomainDef *def);
 
@@ -817,8 +823,10 @@ bool qemuDomainMachineIsQ35(const char *machine);
 bool qemuDomainMachineIsI440FX(const char *machine);
 bool qemuDomainMachineNeedsFDC(const char *machine);
 bool qemuDomainMachineIsS390CCW(const char *machine);
-bool qemuDomainMachineIsVirt(const char *machine,
-                             const virArch arch);
+bool qemuDomainMachineIsARMVirt(const char *machine,
+                                const virArch arch);
+bool qemuDomainMachineIsRISCVVirt(const char *machine,
+                                  const virArch arch);
 bool qemuDomainMachineIsPSeries(const char *machine,
                                 const virArch arch);
 bool qemuDomainMachineHasBuiltinIDE(const char *machine);
@@ -1063,5 +1071,8 @@ qemuDomainDiskCachemodeFlags(int cachemode,
                              bool *noflush);
 
 char * qemuDomainGetManagedPRSocketPath(qemuDomainObjPrivatePtr priv);
+
+unsigned int qemuDomainStorageIdNew(qemuDomainObjPrivatePtr priv);
+void qemuDomainStorageIdReset(qemuDomainObjPrivatePtr priv);
 
 #endif /* __QEMU_DOMAIN_H__ */

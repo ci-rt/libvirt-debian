@@ -960,7 +960,9 @@ virStoragePoolObjVolumeGetNames(virStoragePoolObjPtr obj,
 }
 
 
-struct _virStorageVolObjExportData {
+typedef struct _virStoragePoolObjVolumeListExportData virStoragePoolObjVolumeListExportData;
+typedef virStoragePoolObjVolumeListExportData *virStoragePoolObjVolumeListExportDataPtr;
+struct _virStoragePoolObjVolumeListExportData {
     virConnectPtr conn;
     virStoragePoolVolumeACLFilter filter;
     virStoragePoolDefPtr pooldef;
@@ -970,12 +972,12 @@ struct _virStorageVolObjExportData {
 };
 
 static int
-virStoragePoolObjVolumeListExportCb(void *payload,
-                                    const void *name ATTRIBUTE_UNUSED,
-                                    void *opaque)
+virStoragePoolObjVolumeListExportCallback(void *payload,
+                                          const void *name ATTRIBUTE_UNUSED,
+                                          void *opaque)
 {
     virStorageVolObjPtr volobj = payload;
-    struct _virStorageVolObjExportData *data = opaque;
+    virStoragePoolObjVolumeListExportDataPtr data = opaque;
     virStorageVolPtr vol = NULL;
 
     if (data->error)
@@ -1012,7 +1014,7 @@ virStoragePoolObjVolumeListExport(virConnectPtr conn,
                                   virStoragePoolVolumeACLFilter filter)
 {
     virStorageVolObjListPtr volumes = obj->volumes;
-    struct _virStorageVolObjExportData data = {
+    virStoragePoolObjVolumeListExportData data = {
         .conn = conn, .filter = filter, .pooldef = obj->def, .error = false,
         .nvols = 0, .vols = NULL };
 
@@ -1029,7 +1031,7 @@ virStoragePoolObjVolumeListExport(virConnectPtr conn,
         return -1;
     }
 
-    virHashForEach(volumes->objsName, virStoragePoolObjVolumeListExportCb, &data);
+    virHashForEach(volumes->objsName, virStoragePoolObjVolumeListExportCallback, &data);
     virObjectRWUnlock(volumes);
 
     if (data.error)
@@ -1838,11 +1840,13 @@ virStoragePoolObjSourceFindDuplicateCb(const void *payload,
         break;
 
     case VIR_STORAGE_POOL_ISCSI:
+    case VIR_STORAGE_POOL_ISCSI_DIRECT:
     case VIR_STORAGE_POOL_FS:
     case VIR_STORAGE_POOL_LOGICAL:
     case VIR_STORAGE_POOL_DISK:
     case VIR_STORAGE_POOL_ZFS:
         if ((data->def->type == VIR_STORAGE_POOL_ISCSI ||
+             data->def->type == VIR_STORAGE_POOL_ISCSI_DIRECT ||
              data->def->type == VIR_STORAGE_POOL_FS ||
              data->def->type == VIR_STORAGE_POOL_LOGICAL ||
              data->def->type == VIR_STORAGE_POOL_DISK ||
@@ -1906,8 +1910,8 @@ virStoragePoolObjSourceFindDuplicate(virConnectPtr conn,
 
 #define MATCH(FLAG) (flags & (FLAG))
 static bool
-virStoragePoolMatch(virStoragePoolObjPtr obj,
-                    unsigned int flags)
+virStoragePoolObjMatch(virStoragePoolObjPtr obj,
+                       unsigned int flags)
 {
     /* filter by active state */
     if (MATCH(VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_ACTIVE) &&
@@ -1969,7 +1973,9 @@ virStoragePoolMatch(virStoragePoolObjPtr obj,
 #undef MATCH
 
 
-struct _virStoragePoolExportData {
+typedef struct _virStoragePoolObjListExportData virStoragePoolObjListExportData;
+typedef virStoragePoolObjListExportData *virStoragePoolObjListExportDataPtr;
+struct _virStoragePoolObjListExportData {
     virConnectPtr conn;
     virStoragePoolObjListACLFilter filter;
     bool checkActive;
@@ -1983,12 +1989,12 @@ struct _virStoragePoolExportData {
 
 
 static int
-virStoragePoolObjListExportCb(void *payload,
-                              const void *name ATTRIBUTE_UNUSED,
-                              void *opaque)
+virStoragePoolObjListExportCallback(void *payload,
+                                    const void *name ATTRIBUTE_UNUSED,
+                                    void *opaque)
 {
     virStoragePoolObjPtr obj = payload;
-    struct _virStoragePoolExportData *data = opaque;
+    virStoragePoolObjListExportDataPtr data = opaque;
     virStoragePoolPtr pool = NULL;
 
     if (data->error)
@@ -1999,7 +2005,7 @@ virStoragePoolObjListExportCb(void *payload,
     if (data->filter && !data->filter(data->conn, obj->def))
         goto cleanup;
 
-    if (!virStoragePoolMatch(obj, data->flags))
+    if (!virStoragePoolObjMatch(obj, data->flags))
         goto cleanup;
 
     if (data->pools) {
@@ -2026,7 +2032,7 @@ virStoragePoolObjListExport(virConnectPtr conn,
                             virStoragePoolObjListFilter filter,
                             unsigned int flags)
 {
-    struct _virStoragePoolExportData data = {
+    virStoragePoolObjListExportData data = {
         .conn = conn, .filter = filter, .flags = flags, .error = false,
         .nPools = 0, .pools = NULL };
 
@@ -2035,7 +2041,7 @@ virStoragePoolObjListExport(virConnectPtr conn,
     if (pools && VIR_ALLOC_N(data.pools, virHashSize(poolobjs->objs) + 1) < 0)
         goto error;
 
-    virHashForEach(poolobjs->objs, virStoragePoolObjListExportCb, &data);
+    virHashForEach(poolobjs->objs, virStoragePoolObjListExportCallback, &data);
     virObjectRWUnlock(poolobjs);
 
     if (data.error)

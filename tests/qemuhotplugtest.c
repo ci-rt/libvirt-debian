@@ -120,7 +120,7 @@ testQemuHotplugAttach(virDomainObjPtr vm,
         /* conn in only used for storage pool and secrets lookup so as long
          * as we don't use any of them, passing NULL should be safe
          */
-        ret = qemuDomainAttachDeviceDiskLive(&driver, vm, dev);
+        ret = qemuDomainAttachDeviceDiskLive(&driver, vm, dev, false);
         break;
     case VIR_DOMAIN_DEVICE_CHR:
         ret = qemuDomainAttachChrDevice(&driver, vm, dev->data.chr);
@@ -593,12 +593,7 @@ mymain(void)
     struct qemuHotplugTestData data = {0};
     struct testQemuHotplugCpuParams cpudata;
 
-#if !WITH_STABLE_ORDERING_JANSSON
-    fputs("libvirt not compiled with recent enough Jansson, skipping this test\n", stderr);
-    return EXIT_AM_SKIP;
-#endif
-
-#if !WITH_JANSSON
+#if !WITH_YAJL
     fputs("libvirt not compiled with JSON support, skipping this test\n", stderr);
     return EXIT_AM_SKIP;
 #endif

@@ -144,7 +144,8 @@
 #  verify \
 #  vsnprintf \
 #  waitpid \
-#  warnings
+#  warnings \
+#  wcwidth
 
 
 MOSTLYCLEANFILES += core *.stackdump
@@ -3248,6 +3249,48 @@ EXTRA_DIST += unistd.in.h
 
 ## end   gnulib module unistd
 
+## begin gnulib module unitypes
+
+BUILT_SOURCES += $(LIBUNISTRING_UNITYPES_H)
+
+unitypes.h: unitypes.in.h
+	$(AM_V_GEN)rm -f $@-t $@ && \
+	{ echo '/* DO NOT EDIT! GENERATED AUTOMATICALLY! */'; \
+	  cat $(srcdir)/unitypes.in.h; \
+	} > $@-t && \
+	mv -f $@-t $@
+MOSTLYCLEANFILES += unitypes.h unitypes.h-t
+
+EXTRA_DIST += unitypes.in.h
+
+## end   gnulib module unitypes
+
+## begin gnulib module uniwidth/base
+
+BUILT_SOURCES += $(LIBUNISTRING_UNIWIDTH_H)
+
+uniwidth.h: uniwidth.in.h
+	$(AM_V_GEN)rm -f $@-t $@ && \
+	{ echo '/* DO NOT EDIT! GENERATED AUTOMATICALLY! */'; \
+	  cat $(srcdir)/uniwidth.in.h; \
+	} > $@-t && \
+	mv -f $@-t $@
+MOSTLYCLEANFILES += uniwidth.h uniwidth.h-t
+
+EXTRA_DIST += localcharset.h uniwidth.in.h
+
+## end   gnulib module uniwidth/base
+
+## begin gnulib module uniwidth/width
+
+if LIBUNISTRING_COMPILE_UNIWIDTH_WIDTH
+libgnu_la_SOURCES += uniwidth/width.c
+endif
+
+EXTRA_DIST += uniwidth/cjk.h
+
+## end   gnulib module uniwidth/width
+
 ## begin gnulib module unsetenv
 
 
@@ -3499,6 +3542,15 @@ MOSTLYCLEANFILES += wctype.h wctype.h-t
 EXTRA_DIST += wctype.in.h
 
 ## end   gnulib module wctype-h
+
+## begin gnulib module wcwidth
+
+
+EXTRA_DIST += wcwidth.c
+
+EXTRA_libgnu_la_SOURCES += wcwidth.c
+
+## end   gnulib module wcwidth
 
 ## begin gnulib module xalloc-oversized
 

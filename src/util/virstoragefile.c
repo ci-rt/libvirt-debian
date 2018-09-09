@@ -2272,6 +2272,9 @@ virStorageSourceCopy(const virStorageSource *src,
         !(ret->pr = virStoragePRDefCopy(src->pr)))
         goto error;
 
+    if (virStorageSourceInitiatorCopy(&ret->initiator, &src->initiator))
+        goto error;
+
     if (backingChain && src->backingStore) {
         if (!(ret->backingStore = virStorageSourceCopy(src->backingStore,
                                                        true)))
@@ -2502,6 +2505,8 @@ virStorageSourceClear(virStorageSourcePtr def)
 
     VIR_FREE(def->tlsAlias);
     VIR_FREE(def->tlsCertdir);
+
+    virStorageSourceInitiatorClear(&def->initiator);
 
     memset(def, 0, sizeof(*def));
 }
@@ -4312,6 +4317,40 @@ virStorageSourcePrivateDataFormatRelPath(virStorageSourcePtr src,
         virBufferEscapeString(buf, "<relPath>%s</relPath>\n", src->relPath);
 
     return 0;
+}
+
+void
+virStorageSourceInitiatorParseXML(xmlXPathContextPtr ctxt,
+                                  virStorageSourceInitiatorDefPtr initiator)
+{
+    initiator->iqn = virXPathString("string(./initiator/iqn/@name)", ctxt);
+}
+
+void
+virStorageSourceInitiatorFormatXML(virStorageSourceInitiatorDefPtr initiator,
+                                   virBufferPtr buf)
+{
+    if (!initiator->iqn)
+        return;
+
+    virBufferAddLit(buf, "<initiator>\n");
+    virBufferAdjustIndent(buf, 2);
+    virBufferEscapeString(buf, "<iqn name='%s'/>\n", initiator->iqn);
+    virBufferAdjustIndent(buf, -2);
+    virBufferAddLit(buf, "</initiator>\n");
+}
+
+int
+virStorageSourceInitiatorCopy(virStorageSourceInitiatorDefPtr dest,
+                              const virStorageSourceInitiatorDef *src)
+{
+    return VIR_STRDUP(dest->iqn, src->iqn);
+}
+
+void
+virStorageSourceInitiatorClear(virStorageSourceInitiatorDefPtr initiator)
+{
+    VIR_FREE(initiator->iqn);
 }
 
 static bool

@@ -149,7 +149,7 @@ host_triplet = @host@
 @WITH_BHYVE_TRUE@am__append_22 = bhyvexml2argvtest bhyvexml2xmltest bhyveargv2xmltest
 @WITH_BHYVE_TRUE@am__append_23 = bhyvexml2argvmock.la bhyveargv2xmlmock.la
 @WITH_CIL_TRUE@am__append_24 = objectlocking
-@WITH_JANSSON_TRUE@am__append_25 = virjsontest
+@WITH_YAJL_TRUE@am__append_25 = virjsontest
 @WITH_NETWORK_TRUE@am__append_26 = \
 @WITH_NETWORK_TRUE@		networkxml2conftest \
 @WITH_NETWORK_TRUE@		networkxml2firewalltest \
@@ -239,8 +239,8 @@ TESTS = $(am__EXEEXT_29) $(am__EXEEXT_35)
 @WITH_LINUX_FALSE@			  virfilewrapper.h virresctrltest.c
 
 @WITH_NSS_FALSE@am__append_74 = nsstest.c nssmock.c nsslinktest.c
-@WITH_JANSSON_TRUE@am__append_75 = virmacmaptest
-@WITH_JANSSON_FALSE@am__append_76 = virmacmaptest.c
+@WITH_YAJL_TRUE@am__append_75 = virmacmaptest
+@WITH_YAJL_FALSE@am__append_76 = virmacmaptest.c
 @WITH_DBUS_FALSE@am__append_77 = virdbustest.c virdbusmock.c virsystemdtest.c
 @WITH_ATTR_TRUE@@WITH_SECDRIVER_SELINUX_TRUE@@WITH_TESTS_TRUE@am__append_78 = libsecurityselinuxhelper.la
 @WITH_ATTR_TRUE@@WITH_SECDRIVER_SELINUX_TRUE@@WITH_TESTS_FALSE@am__append_79 = libsecurityselinuxhelper.la
@@ -303,6 +303,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/lcmessage.m4 $(top_srcdir)/m4/ldexp.m4 \
 	$(top_srcdir)/m4/lib-ld.m4 $(top_srcdir)/m4/lib-link.m4 \
 	$(top_srcdir)/m4/lib-prefix.m4 $(top_srcdir)/m4/libtool.m4 \
+	$(top_srcdir)/m4/libunistring-base.m4 \
 	$(top_srcdir)/m4/limits-h.m4 $(top_srcdir)/m4/localcharset.m4 \
 	$(top_srcdir)/m4/locale-fr.m4 $(top_srcdir)/m4/locale-ja.m4 \
 	$(top_srcdir)/m4/locale-tr.m4 $(top_srcdir)/m4/locale-zh.m4 \
@@ -421,7 +422,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-gnutls.m4 $(top_srcdir)/m4/virt-hal.m4 \
 	$(top_srcdir)/m4/virt-host-validate.m4 \
 	$(top_srcdir)/m4/virt-init-script.m4 \
-	$(top_srcdir)/m4/virt-jansson.m4 $(top_srcdir)/m4/virt-lib.m4 \
+	$(top_srcdir)/m4/virt-lib.m4 $(top_srcdir)/m4/virt-libiscsi.m4 \
 	$(top_srcdir)/m4/virt-libnl.m4 \
 	$(top_srcdir)/m4/virt-libpcap.m4 \
 	$(top_srcdir)/m4/virt-libssh.m4 \
@@ -452,6 +453,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-storage-disk.m4 \
 	$(top_srcdir)/m4/virt-storage-fs.m4 \
 	$(top_srcdir)/m4/virt-storage-gluster.m4 \
+	$(top_srcdir)/m4/virt-storage-iscsi-direct.m4 \
 	$(top_srcdir)/m4/virt-storage-iscsi.m4 \
 	$(top_srcdir)/m4/virt-storage-lvm.m4 \
 	$(top_srcdir)/m4/virt-storage-mpath.m4 \
@@ -476,9 +478,9 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/wchar_h.m4 $(top_srcdir)/m4/wchar_t.m4 \
 	$(top_srcdir)/m4/wcrtomb.m4 $(top_srcdir)/m4/wctob.m4 \
 	$(top_srcdir)/m4/wctomb.m4 $(top_srcdir)/m4/wctype_h.m4 \
-	$(top_srcdir)/m4/wint_t.m4 $(top_srcdir)/m4/write.m4 \
-	$(top_srcdir)/m4/xalloc.m4 $(top_srcdir)/m4/xsize.m4 \
-	$(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/wcwidth.m4 $(top_srcdir)/m4/wint_t.m4 \
+	$(top_srcdir)/m4/write.m4 $(top_srcdir)/m4/xalloc.m4 \
+	$(top_srcdir)/m4/xsize.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
@@ -818,7 +820,7 @@ virusbmock_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 @WITH_BHYVE_TRUE@	bhyvexml2xmltest$(EXEEXT) \
 @WITH_BHYVE_TRUE@	bhyveargv2xmltest$(EXEEXT)
 @WITH_CIL_TRUE@am__EXEEXT_17 = objectlocking$(EXEEXT)
-@WITH_JANSSON_TRUE@am__EXEEXT_18 = virjsontest$(EXEEXT)
+@WITH_YAJL_TRUE@am__EXEEXT_18 = virjsontest$(EXEEXT)
 @WITH_NETWORK_TRUE@am__EXEEXT_19 = networkxml2conftest$(EXEEXT) \
 @WITH_NETWORK_TRUE@	networkxml2firewalltest$(EXEEXT)
 @WITH_STORAGE_SHEEPDOG_TRUE@am__EXEEXT_20 = storagebackendsheepdogtest$(EXEEXT)
@@ -833,7 +835,7 @@ virusbmock_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 @WITH_LINUX_TRUE@	virnetdevbandwidthtest$(EXEEXT)
 @WITH_LIBVIRTD_TRUE@am__EXEEXT_27 = eventtest$(EXEEXT) \
 @WITH_LIBVIRTD_TRUE@	virdrivermoduletest$(EXEEXT)
-@WITH_JANSSON_TRUE@am__EXEEXT_28 = virmacmaptest$(EXEEXT)
+@WITH_YAJL_TRUE@am__EXEEXT_28 = virmacmaptest$(EXEEXT)
 am__EXEEXT_29 = virshtest$(EXEEXT) sockettest$(EXEEXT) \
 	virhostcputest$(EXEEXT) virbuftest$(EXEEXT) \
 	commandtest$(EXEEXT) seclabeltest$(EXEEXT) \
@@ -853,15 +855,15 @@ am__EXEEXT_29 = virshtest$(EXEEXT) sockettest$(EXEEXT) \
 	virkmodtest$(EXEEXT) vircapstest$(EXEEXT) \
 	domaincapstest$(EXEEXT) domainconftest$(EXEEXT) \
 	virhostdevtest$(EXEEXT) virnetdevtest$(EXEEXT) \
-	virtypedparamtest$(EXEEXT) $(am__EXEEXT_1) $(am__EXEEXT_2) \
-	$(am__EXEEXT_3) $(am__EXEEXT_4) $(am__EXEEXT_5) \
-	$(am__EXEEXT_6) $(am__EXEEXT_7) $(am__EXEEXT_8) \
-	$(am__EXEEXT_9) $(am__EXEEXT_10) $(am__EXEEXT_11) \
-	$(am__EXEEXT_12) $(am__EXEEXT_13) $(am__EXEEXT_14) \
-	$(am__EXEEXT_15) $(am__EXEEXT_16) $(am__EXEEXT_17) \
-	$(am__EXEEXT_18) networkxml2xmltest$(EXEEXT) \
-	networkxml2xmlupdatetest$(EXEEXT) $(am__EXEEXT_19) \
-	$(am__EXEEXT_20) nwfilterxml2xmltest$(EXEEXT) \
+	virtypedparamtest$(EXEEXT) vshtabletest$(EXEEXT) \
+	$(am__EXEEXT_1) $(am__EXEEXT_2) $(am__EXEEXT_3) \
+	$(am__EXEEXT_4) $(am__EXEEXT_5) $(am__EXEEXT_6) \
+	$(am__EXEEXT_7) $(am__EXEEXT_8) $(am__EXEEXT_9) \
+	$(am__EXEEXT_10) $(am__EXEEXT_11) $(am__EXEEXT_12) \
+	$(am__EXEEXT_13) $(am__EXEEXT_14) $(am__EXEEXT_15) \
+	$(am__EXEEXT_16) $(am__EXEEXT_17) $(am__EXEEXT_18) \
+	networkxml2xmltest$(EXEEXT) networkxml2xmlupdatetest$(EXEEXT) \
+	$(am__EXEEXT_19) $(am__EXEEXT_20) nwfilterxml2xmltest$(EXEEXT) \
 	virnwfilterbindingxml2xmltest$(EXEEXT) $(am__EXEEXT_21) \
 	$(am__EXEEXT_22) $(am__EXEEXT_23) $(am__EXEEXT_24) \
 	$(am__EXEEXT_25) storagevolxml2xmltest$(EXEEXT) \
@@ -1417,10 +1419,10 @@ virlogtest_OBJECTS = $(am_virlogtest_OBJECTS)
 virlogtest_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am__virmacmaptest_SOURCES_DIST = virmacmaptest.c testutils.h \
 	testutils.c
-@WITH_JANSSON_TRUE@am_virmacmaptest_OBJECTS = virmacmaptest.$(OBJEXT) \
-@WITH_JANSSON_TRUE@	testutils.$(OBJEXT)
+@WITH_YAJL_TRUE@am_virmacmaptest_OBJECTS = virmacmaptest.$(OBJEXT) \
+@WITH_YAJL_TRUE@	testutils.$(OBJEXT)
 virmacmaptest_OBJECTS = $(am_virmacmaptest_OBJECTS)
-@WITH_JANSSON_TRUE@virmacmaptest_DEPENDENCIES = $(am__DEPENDENCIES_2)
+@WITH_YAJL_TRUE@virmacmaptest_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_virnetdaemontest_OBJECTS = virnetdaemontest.$(OBJEXT) \
 	testutils.$(OBJEXT)
 virnetdaemontest_OBJECTS = $(am_virnetdaemontest_OBJECTS)
@@ -1572,6 +1574,10 @@ am__vmx2xmltest_SOURCES_DIST = vmx2xmltest.c testutils.c testutils.h
 @WITH_VMX_TRUE@	testutils.$(OBJEXT)
 vmx2xmltest_OBJECTS = $(am_vmx2xmltest_OBJECTS)
 @WITH_VMX_TRUE@vmx2xmltest_DEPENDENCIES = $(am__DEPENDENCIES_2)
+am_vshtabletest_OBJECTS = vshtabletest.$(OBJEXT) testutils.$(OBJEXT)
+vshtabletest_OBJECTS = $(am_vshtabletest_OBJECTS)
+vshtabletest_DEPENDENCIES = $(am__DEPENDENCIES_2) \
+	../tools/libvirt_shell.la
 am__xlconfigtest_SOURCES_DIST = xlconfigtest.c testutilsxen.c \
 	testutilsxen.h testutils.c testutils.h
 @WITH_LIBXL_TRUE@am_xlconfigtest_OBJECTS = xlconfigtest.$(OBJEXT) \
@@ -1710,9 +1716,9 @@ SOURCES = $(bhyveargv2xmlmock_la_SOURCES) \
 	$(virsystemdtest_SOURCES) $(virtimetest_SOURCES) \
 	$(virtypedparamtest_SOURCES) $(viruritest_SOURCES) \
 	$(virusbtest_SOURCES) $(vmwarevertest_SOURCES) \
-	$(vmx2xmltest_SOURCES) $(xlconfigtest_SOURCES) \
-	$(xmconfigtest_SOURCES) $(xml2sexprtest_SOURCES) \
-	$(xml2vmxtest_SOURCES)
+	$(vmx2xmltest_SOURCES) $(vshtabletest_SOURCES) \
+	$(xlconfigtest_SOURCES) $(xmconfigtest_SOURCES) \
+	$(xml2sexprtest_SOURCES) $(xml2vmxtest_SOURCES)
 DIST_SOURCES = $(am__bhyveargv2xmlmock_la_SOURCES_DIST) \
 	$(am__bhyvexml2argvmock_la_SOURCES_DIST) \
 	$(domaincapsmock_la_SOURCES) \
@@ -1818,7 +1824,7 @@ DIST_SOURCES = $(am__bhyveargv2xmlmock_la_SOURCES_DIST) \
 	$(virtimetest_SOURCES) $(virtypedparamtest_SOURCES) \
 	$(viruritest_SOURCES) $(am__virusbtest_SOURCES_DIST) \
 	$(am__vmwarevertest_SOURCES_DIST) \
-	$(am__vmx2xmltest_SOURCES_DIST) \
+	$(am__vmx2xmltest_SOURCES_DIST) $(vshtabletest_SOURCES) \
 	$(am__xlconfigtest_SOURCES_DIST) \
 	$(am__xmconfigtest_SOURCES_DIST) \
 	$(am__xml2sexprtest_SOURCES_DIST) \
@@ -2966,12 +2972,12 @@ IP6TABLES_PATH = @IP6TABLES_PATH@
 IPTABLES_PATH = @IPTABLES_PATH@
 IP_PATH = @IP_PATH@
 ISCSIADM = @ISCSIADM@
-JANSSON_CFLAGS = @JANSSON_CFLAGS@
-JANSSON_LIBS = @JANSSON_LIBS@
 LD = @LD@
 LDEXP_LIBM = @LDEXP_LIBM@
 LDFLAGS = @LDFLAGS@
 LIBINTL = @LIBINTL@
+LIBISCSI_CFLAGS = @LIBISCSI_CFLAGS@
+LIBISCSI_LIBS = @LIBISCSI_LIBS@
 LIBMULTITHREAD = @LIBMULTITHREAD@
 LIBNL_CFLAGS = @LIBNL_CFLAGS@
 LIBNL_LIBS = @LIBNL_LIBS@
@@ -2992,6 +2998,8 @@ LIBSSH_LIBS = @LIBSSH_LIBS@
 LIBTESTS_LIBDEPS = @LIBTESTS_LIBDEPS@
 LIBTHREAD = @LIBTHREAD@
 LIBTOOL = @LIBTOOL@
+LIBUNISTRING_UNITYPES_H = @LIBUNISTRING_UNITYPES_H@
+LIBUNISTRING_UNIWIDTH_H = @LIBUNISTRING_UNIWIDTH_H@
 LIBVIRT_ADMIN_SYMBOL_FILE = @LIBVIRT_ADMIN_SYMBOL_FILE@
 LIBVIRT_LXC_SYMBOL_FILE = @LIBVIRT_LXC_SYMBOL_FILE@
 LIBVIRT_MAJOR_VERSION = @LIBVIRT_MAJOR_VERSION@
@@ -3184,6 +3192,7 @@ PVCREATE = @PVCREATE@
 PVREMOVE = @PVREMOVE@
 PVS = @PVS@
 PYTHON = @PYTHON@
+QEMU = @QEMU@
 QEMU_BRIDGE_HELPER = @QEMU_BRIDGE_HELPER@
 QEMU_PR_HELPER = @QEMU_PR_HELPER@
 RADVD = @RADVD@
@@ -3447,8 +3456,6 @@ SIG_ATOMIC_T_SUFFIX = @SIG_ATOMIC_T_SUFFIX@
 SIZE_T_SUFFIX = @SIZE_T_SUFFIX@
 SSH2_CFLAGS = @SSH2_CFLAGS@
 SSH2_LIBS = @SSH2_LIBS@
-STABLE_ORDERING_JANSSON_CFLAGS = @STABLE_ORDERING_JANSSON_CFLAGS@
-STABLE_ORDERING_JANSSON_LIBS = @STABLE_ORDERING_JANSSON_LIBS@
 STATIC_BINARIES = @STATIC_BINARIES@
 STDALIGN_H = @STDALIGN_H@
 STDARG_H = @STDARG_H@
@@ -3501,6 +3508,8 @@ XENAPI_LIBS = @XENAPI_LIBS@
 XGETTEXT = @XGETTEXT@
 XMLLINT = @XMLLINT@
 XSLTPROC = @XSLTPROC@
+YAJL_CFLAGS = @YAJL_CFLAGS@
+YAJL_LIBS = @YAJL_LIBS@
 ZFS = @ZFS@
 ZPOOL = @ZPOOL@
 abs_aux_dir = @abs_aux_dir@
@@ -3586,7 +3595,7 @@ AM_CFLAGS = \
 	$(SASL_CFLAGS) \
 	$(SELINUX_CFLAGS) \
 	$(APPARMOR_CFLAGS) \
-	$(JANSSON_CFLAGS) \
+	$(YAJL_CFLAGS) \
 	$(COVERAGE_CFLAGS) \
 	$(XDR_CFLAGS) \
 	$(WARN_CFLAGS)
@@ -3666,15 +3675,15 @@ test_programs = virshtest sockettest virhostcputest virbuftest \
 	virlockspacetest virlogtest virrotatingfiletest virschematest \
 	virstringtest virportallocatortest sysinfotest virkmodtest \
 	vircapstest domaincapstest domainconftest virhostdevtest \
-	virnetdevtest virtypedparamtest $(NULL) $(am__append_2) \
-	$(am__append_3) $(am__append_5) $(am__append_6) \
-	$(am__append_8) $(am__append_9) $(am__append_10) \
-	$(am__append_11) $(am__append_13) $(am__append_16) \
-	$(am__append_17) $(am__append_18) $(am__append_19) \
-	$(am__append_20) $(am__append_21) $(am__append_22) \
-	$(am__append_24) $(am__append_25) networkxml2xmltest \
-	networkxml2xmlupdatetest $(NULL) $(am__append_26) \
-	$(am__append_27) nwfilterxml2xmltest \
+	virnetdevtest virtypedparamtest vshtabletest $(NULL) \
+	$(am__append_2) $(am__append_3) $(am__append_5) \
+	$(am__append_6) $(am__append_8) $(am__append_9) \
+	$(am__append_10) $(am__append_11) $(am__append_13) \
+	$(am__append_16) $(am__append_17) $(am__append_18) \
+	$(am__append_19) $(am__append_20) $(am__append_21) \
+	$(am__append_22) $(am__append_24) $(am__append_25) \
+	networkxml2xmltest networkxml2xmlupdatetest $(NULL) \
+	$(am__append_26) $(am__append_27) nwfilterxml2xmltest \
 	virnwfilterbindingxml2xmltest $(am__append_28) \
 	$(am__append_29) $(am__append_30) $(am__append_31) \
 	$(am__append_33) storagevolxml2xmltest storagepoolxml2xmltest \
@@ -4094,6 +4103,14 @@ metadatatest_SOURCES = \
 	testutils.c testutils.h
 
 metadatatest_LDADD = $(LDADDS) $(LIBXML_LIBS)
+vshtabletest_SOURCES = \
+	vshtabletest.c \
+	testutils.c testutils.h
+
+vshtabletest_LDADD = \
+	$(LDADDS) \
+	../tools/libvirt_shell.la
+
 virshtest_SOURCES = \
 	virshtest.c \
 	testutils.c testutils.h
@@ -4331,10 +4348,10 @@ virdeterministichashmock_la_SOURCES = \
 
 virdeterministichashmock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
 virdeterministichashmock_la_LIBADD = $(MOCKLIBS_LIBS)
-@WITH_JANSSON_TRUE@virmacmaptest_SOURCES = \
-@WITH_JANSSON_TRUE@	virmacmaptest.c testutils.h testutils.c
+@WITH_YAJL_TRUE@virmacmaptest_SOURCES = \
+@WITH_YAJL_TRUE@	virmacmaptest.c testutils.h testutils.c
 
-@WITH_JANSSON_TRUE@virmacmaptest_LDADD = $(LDADDS)
+@WITH_YAJL_TRUE@virmacmaptest_LDADD = $(LDADDS)
 virnetdevtest_SOURCES = \
 	virnetdevtest.c testutils.h testutils.c
 
@@ -5166,6 +5183,10 @@ vmx2xmltest$(EXEEXT): $(vmx2xmltest_OBJECTS) $(vmx2xmltest_DEPENDENCIES) $(EXTRA
 	@rm -f vmx2xmltest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(vmx2xmltest_OBJECTS) $(vmx2xmltest_LDADD) $(LIBS)
 
+vshtabletest$(EXEEXT): $(vshtabletest_OBJECTS) $(vshtabletest_DEPENDENCIES) $(EXTRA_vshtabletest_DEPENDENCIES) 
+	@rm -f vshtabletest$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(vshtabletest_OBJECTS) $(vshtabletest_LDADD) $(LIBS)
+
 xlconfigtest$(EXEEXT): $(xlconfigtest_OBJECTS) $(xlconfigtest_DEPENDENCIES) $(EXTRA_xlconfigtest_DEPENDENCIES) 
 	@rm -f xlconfigtest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(xlconfigtest_OBJECTS) $(xlconfigtest_LDADD) $(LIBS)
@@ -5347,6 +5368,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virusbtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vmwarevertest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vmx2xmltest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vshtabletest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xlconfigtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xmconfigtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xml2sexprtest.Po@am__quote@
@@ -6096,6 +6118,13 @@ virnetdevtest.log: virnetdevtest$(EXEEXT)
 virtypedparamtest.log: virtypedparamtest$(EXEEXT)
 	@p='virtypedparamtest$(EXEEXT)'; \
 	b='virtypedparamtest'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+vshtabletest.log: vshtabletest$(EXEEXT)
+	@p='vshtabletest$(EXEEXT)'; \
+	b='vshtabletest'; \
 	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \

@@ -288,10 +288,6 @@ mymain(void)
     DO_TEST("boot-floppy-q35",
             QEMU_CAPS_DEVICE_IOH3420,
             QEMU_CAPS_ICH9_AHCI);
-    DO_TEST("bootindex-floppy-q35",
-            QEMU_CAPS_DEVICE_IOH3420,
-            QEMU_CAPS_ICH9_AHCI,
-            QEMU_CAPS_BOOTINDEX);
     DO_TEST("boot-multi", NONE);
     DO_TEST("boot-menu-enable-with-timeout", NONE);
     DO_TEST("boot-menu-disable", NONE);
@@ -329,17 +325,21 @@ mymain(void)
     DO_TEST("pmu-feature", NONE);
     DO_TEST("pmu-feature-off", NONE);
 
-    DO_TEST("hugepages", NONE);
-    DO_TEST("hugepages-pages", NONE);
-    DO_TEST("hugepages-pages2", NONE);
-    DO_TEST("hugepages-pages3", NONE);
-    DO_TEST("hugepages-pages4", NONE);
-    DO_TEST("hugepages-pages5", NONE);
-    DO_TEST("hugepages-pages6", NONE);
-    DO_TEST("hugepages-pages7", NONE);
+    DO_TEST("pages-discard", NONE);
+    DO_TEST("pages-discard-hugepages", NONE);
+    DO_TEST("pages-dimm-discard", NONE);
+    DO_TEST("hugepages-default", NONE);
+    DO_TEST("hugepages-default-2M", NONE);
+    DO_TEST("hugepages-default-system-size", NONE);
+    DO_TEST("hugepages-nodeset", NONE);
+    DO_TEST("hugepages-numa-default-2M", NONE);
+    DO_TEST("hugepages-numa-default-dimm", NONE);
+    DO_TEST("hugepages-numa-nodeset", NONE);
+    DO_TEST("hugepages-numa-nodeset-part", NONE);
     DO_TEST("hugepages-shared", NONE);
     DO_TEST("hugepages-memaccess", NONE);
     DO_TEST("hugepages-memaccess2", NONE);
+    DO_TEST("hugepages-nvdimm", NONE);
     DO_TEST("nosharepages", NONE);
     DO_TEST("restore-v2", NONE);
     DO_TEST("migrate", NONE);
@@ -990,6 +990,8 @@ mymain(void)
     DO_TEST("panic-no-address", NONE);
 
     DO_TEST("disk-backing-chains", NONE);
+    DO_TEST("disk-backing-chains-index", NONE);
+    DO_TEST("disk-backing-chains-noindex", NONE);
 
     DO_TEST("chardev-label", NONE);
 
@@ -1036,7 +1038,7 @@ mymain(void)
             QEMU_CAPS_OBJECT_GPEX,
             QEMU_CAPS_DEVICE_PCI_BRIDGE, QEMU_CAPS_DEVICE_IOH3420,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
-            QEMU_CAPS_DEVICE_VIRTIO_GPU, QEMU_CAPS_BOOTINDEX);
+            QEMU_CAPS_DEVICE_VIRTIO_GPU);
     DO_TEST("aarch64-pci-serial",
             QEMU_CAPS_DEVICE_PCI_SERIAL,
             QEMU_CAPS_CHARDEV_LOGFILE,
@@ -1208,6 +1210,13 @@ mymain(void)
 
     DO_TEST("vhost-vsock", QEMU_CAPS_DEVICE_VHOST_VSOCK);
     DO_TEST("vhost-vsock-auto", QEMU_CAPS_DEVICE_VHOST_VSOCK);
+    DO_TEST("vhost-vsock-ccw", QEMU_CAPS_DEVICE_VHOST_VSOCK,
+            QEMU_CAPS_CCW);
+    DO_TEST("vhost-vsock-ccw-auto", QEMU_CAPS_DEVICE_VHOST_VSOCK,
+            QEMU_CAPS_CCW);
+
+    DO_TEST("riscv64-virt",
+            QEMU_CAPS_DEVICE_VIRTIO_MMIO);
 
     if (getenv("LIBVIRT_SKIP_CLEANUP") == NULL)
         virFileDeleteTree(fakerootdir);

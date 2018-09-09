@@ -6,7 +6,6 @@
   <flag name='kvm'/>
   <flag name='no-hpet'/>
   <flag name='spice'/>
-  <flag name='boot-index'/>
   <flag name='hda-duplex'/>
   <flag name='ccid-emulated'/>
   <flag name='ccid-passthru'/>
@@ -60,7 +59,6 @@
   <flag name='device-video-primary'/>
   <flag name='usb-serial'/>
   <flag name='usb-net'/>
-  <flag name='add-fd'/>
   <flag name='nbd-server'/>
   <flag name='virtio-rng'/>
   <flag name='rng-random'/>
@@ -210,7 +208,7 @@
   <flag name='egl-headless'/>
   <version>2011000</version>
   <kvmVersion>0</kvmVersion>
-  <microcodeVersion>371455</microcodeVersion>
+  <microcodeVersion>371049</microcodeVersion>
   <package> (v2.11.0)</package>
   <arch>x86_64</arch>
   <hostCPU type='kvm' model='base' migratability='yes'>
@@ -924,7 +922,7 @@
     <blocker name='3dnowprefetch'/>
   </cpu>
   <cpu type='tcg' name='486' usable='yes'/>
-  <machine name='pc-i440fx-2.11' alias='pc' hotplugCpus='yes' maxCpus='255'/>
+  <machine name='pc-i440fx-2.11' alias='pc' hotplugCpus='yes' maxCpus='255' default='yes'/>
   <machine name='pc-0.12' hotplugCpus='yes' maxCpus='255'/>
   <machine name='pc-i440fx-2.4' hotplugCpus='yes' maxCpus='255'/>
   <machine name='pc-1.3' hotplugCpus='yes' maxCpus='255'/>

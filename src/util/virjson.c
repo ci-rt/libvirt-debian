@@ -29,6 +29,22 @@
 #include "virstring.h"
 #include "virutil.h"
 
+#if WITH_YAJL
+# include <yajl/yajl_gen.h>
+# include <yajl/yajl_parse.h>
+
+# ifdef WITH_YAJL2
+#  define yajl_size_t size_t
+#  define VIR_YAJL_STATUS_OK(status) ((status) == yajl_status_ok)
+# else
+#  define yajl_size_t unsigned int
+#  define yajl_complete_parse yajl_parse_complete
+#  define VIR_YAJL_STATUS_OK(status) \
+    ((status) == yajl_status_ok || (status) == yajl_status_insufficient_data)
+# endif
+
+#endif
+
 /* XXX fixme */
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -72,6 +88,23 @@ struct _virJSONValue {
 };
 
 
+typedef struct _virJSONParserState virJSONParserState;
+typedef virJSONParserState *virJSONParserStatePtr;
+struct _virJSONParserState {
+    virJSONValuePtr value;
+    char *key;
+};
+
+typedef struct _virJSONParser virJSONParser;
+typedef virJSONParser *virJSONParserPtr;
+struct _virJSONParser {
+    virJSONValuePtr head;
+    virJSONParserStatePtr state;
+    size_t nstate;
+    int wrap;
+};
+
+
 virJSONType
 virJSONValueGetType(const virJSONValue *value)
 {
@@ -109,6 +142,8 @@ virJSONValueGetType(const virJSONValue *value)
  *
  * b: boolean value
  * B: boolean value, omitted if false
+ * T: boolean value specified by a virTristate(Bool|Switch) value, omitted on
+ * the _ABSENT value
  *
  * d: double precision floating point number
  * n: json null value
@@ -232,12 +267,23 @@ virJSONValueObjectAddVArgs(virJSONValuePtr obj,
             rc = virJSONValueObjectAppendNumberDouble(obj, key, val);
         }   break;
 
+        case 'T':
         case 'B':
         case 'b': {
             int val = va_arg(args, int);
 
             if (!val && type == 'B')
                 continue;
+
+            if (type == 'T') {
+                if (val == VIR_TRISTATE_BOOL_ABSENT)
+                    continue;
+
+                if (val == VIR_TRISTATE_BOOL_NO)
+                    val = 0;
+                else
+                    val = 1;
+            }
 
             rc = virJSONValueObjectAppendBoolean(obj, key, val);
         }   break;
@@ -412,6 +458,28 @@ virJSONValueNewString(const char *data)
 
     val->type = VIR_JSON_TYPE_STRING;
     if (VIR_STRDUP(val->data.string, data) < 0) {
+        VIR_FREE(val);
+        return NULL;
+    }
+
+    return val;
+}
+
+
+virJSONValuePtr
+virJSONValueNewStringLen(const char *data,
+                         size_t length)
+{
+    virJSONValuePtr val;
+
+    if (!data)
+        return virJSONValueNewNull();
+
+    if (VIR_ALLOC(val) < 0)
+        return NULL;
+
+    val->type = VIR_JSON_TYPE_STRING;
+    if (VIR_STRNDUP(val->data.string, data, length) < 0) {
         VIR_FREE(val);
         return NULL;
     }
@@ -1436,193 +1504,446 @@ virJSONValueCopy(const virJSONValue *in)
 }
 
 
-#if WITH_JANSSON
-
-# include "virjsoncompat.h"
-
-static virJSONValuePtr
-virJSONValueFromJansson(json_t *json)
+#if WITH_YAJL
+static int
+virJSONParserInsertValue(virJSONParserPtr parser,
+                         virJSONValuePtr value)
 {
-    virJSONValuePtr ret = NULL;
-    const char *key;
-    json_t *cur;
-    size_t i;
-
-    switch (json_typeof(json)) {
-    case JSON_OBJECT:
-        ret = virJSONValueNewObject();
-        if (!ret)
-            goto error;
-
-        json_object_foreach(json, key, cur) {
-            virJSONValuePtr val = virJSONValueFromJansson(cur);
-            if (!val)
-                goto error;
-
-            if (virJSONValueObjectAppend(ret, key, val) < 0) {
-                virJSONValueFree(val);
-                goto error;
-            }
+    if (!parser->head) {
+        parser->head = value;
+    } else {
+        virJSONParserStatePtr state;
+        if (!parser->nstate) {
+            VIR_DEBUG("got a value to insert without a container");
+            return -1;
         }
 
-        break;
+        state = &parser->state[parser->nstate-1];
 
-    case JSON_ARRAY:
-        ret = virJSONValueNewArray();
-        if (!ret)
-            goto error;
-
-        json_array_foreach(json, i, cur) {
-            virJSONValuePtr val = virJSONValueFromJansson(cur);
-            if (!val)
-                goto error;
-
-            if (virJSONValueArrayAppend(ret, val) < 0) {
-                virJSONValueFree(val);
-                goto error;
+        switch (state->value->type) {
+        case VIR_JSON_TYPE_OBJECT: {
+            if (!state->key) {
+                VIR_DEBUG("missing key when inserting object value");
+                return -1;
             }
+
+            if (virJSONValueObjectAppend(state->value,
+                                         state->key,
+                                         value) < 0)
+                return -1;
+
+            VIR_FREE(state->key);
+        }   break;
+
+        case VIR_JSON_TYPE_ARRAY: {
+            if (state->key) {
+                VIR_DEBUG("unexpected key when inserting array value");
+                return -1;
+            }
+
+            if (virJSONValueArrayAppend(state->value,
+                                        value) < 0)
+                return -1;
+        }   break;
+
+        default:
+            VIR_DEBUG("unexpected value type, not a container");
+            return -1;
         }
-        break;
-
-    case JSON_STRING:
-        ret = virJSONValueNewString(json_string_value(json));
-        break;
-
-    case JSON_INTEGER:
-        ret = virJSONValueNewNumberLong(json_integer_value(json));
-        break;
-
-    case JSON_REAL:
-        ret = virJSONValueNewNumberDouble(json_real_value(json));
-        break;
-
-    case JSON_TRUE:
-        ret = virJSONValueNewBoolean(true);
-        break;
-
-    case JSON_FALSE:
-        ret = virJSONValueNewBoolean(false);
-        break;
-
-    case JSON_NULL:
-        ret = virJSONValueNewNull();
-        break;
     }
 
-    return ret;
-
- error:
-    virJSONValueFree(ret);
-    return NULL;
+    return 0;
 }
 
+
+static int
+virJSONParserHandleNull(void *ctx)
+{
+    virJSONParserPtr parser = ctx;
+    virJSONValuePtr value = virJSONValueNewNull();
+
+    VIR_DEBUG("parser=%p", parser);
+
+    if (!value)
+        return 0;
+
+    if (virJSONParserInsertValue(parser, value) < 0) {
+        virJSONValueFree(value);
+        return 0;
+    }
+
+    return 1;
+}
+
+
+static int
+virJSONParserHandleBoolean(void *ctx,
+                           int boolean_)
+{
+    virJSONParserPtr parser = ctx;
+    virJSONValuePtr value = virJSONValueNewBoolean(boolean_);
+
+    VIR_DEBUG("parser=%p boolean=%d", parser, boolean_);
+
+    if (!value)
+        return 0;
+
+    if (virJSONParserInsertValue(parser, value) < 0) {
+        virJSONValueFree(value);
+        return 0;
+    }
+
+    return 1;
+}
+
+
+static int
+virJSONParserHandleNumber(void *ctx,
+                          const char *s,
+                          yajl_size_t l)
+{
+    virJSONParserPtr parser = ctx;
+    char *str;
+    virJSONValuePtr value;
+
+    if (VIR_STRNDUP(str, s, l) < 0)
+        return -1;
+    value = virJSONValueNewNumber(str);
+    VIR_FREE(str);
+
+    VIR_DEBUG("parser=%p str=%s", parser, str);
+
+    if (!value)
+        return 0;
+
+    if (virJSONParserInsertValue(parser, value) < 0) {
+        virJSONValueFree(value);
+        return 0;
+    }
+
+    return 1;
+}
+
+
+static int
+virJSONParserHandleString(void *ctx,
+                          const unsigned char *stringVal,
+                          yajl_size_t stringLen)
+{
+    virJSONParserPtr parser = ctx;
+    virJSONValuePtr value = virJSONValueNewStringLen((const char *)stringVal,
+                                                     stringLen);
+
+    VIR_DEBUG("parser=%p str=%p", parser, (const char *)stringVal);
+
+    if (!value)
+        return 0;
+
+    if (virJSONParserInsertValue(parser, value) < 0) {
+        virJSONValueFree(value);
+        return 0;
+    }
+
+    return 1;
+}
+
+
+static int
+virJSONParserHandleMapKey(void *ctx,
+                          const unsigned char *stringVal,
+                          yajl_size_t stringLen)
+{
+    virJSONParserPtr parser = ctx;
+    virJSONParserStatePtr state;
+
+    VIR_DEBUG("parser=%p key=%p", parser, (const char *)stringVal);
+
+    if (!parser->nstate)
+        return 0;
+
+    state = &parser->state[parser->nstate-1];
+    if (state->key)
+        return 0;
+    if (VIR_STRNDUP(state->key, (const char *)stringVal, stringLen) < 0)
+        return 0;
+    return 1;
+}
+
+
+static int
+virJSONParserHandleStartMap(void *ctx)
+{
+    virJSONParserPtr parser = ctx;
+    virJSONValuePtr value = virJSONValueNewObject();
+
+    VIR_DEBUG("parser=%p", parser);
+
+    if (!value)
+        return 0;
+
+    if (virJSONParserInsertValue(parser, value) < 0) {
+        virJSONValueFree(value);
+        return 0;
+    }
+
+    if (VIR_REALLOC_N(parser->state,
+                      parser->nstate + 1) < 0) {
+        return 0;
+    }
+
+    parser->state[parser->nstate].value = value;
+    parser->state[parser->nstate].key = NULL;
+    parser->nstate++;
+
+    return 1;
+}
+
+
+static int
+virJSONParserHandleEndMap(void *ctx)
+{
+    virJSONParserPtr parser = ctx;
+    virJSONParserStatePtr state;
+
+    VIR_DEBUG("parser=%p", parser);
+
+    if (!parser->nstate)
+        return 0;
+
+    state = &(parser->state[parser->nstate-1]);
+    if (state->key) {
+        VIR_FREE(state->key);
+        return 0;
+    }
+
+    VIR_DELETE_ELEMENT(parser->state, parser->nstate - 1, parser->nstate);
+
+    return 1;
+}
+
+
+static int
+virJSONParserHandleStartArray(void *ctx)
+{
+    virJSONParserPtr parser = ctx;
+    virJSONValuePtr value = virJSONValueNewArray();
+
+    VIR_DEBUG("parser=%p", parser);
+
+    if (!value)
+        return 0;
+
+    if (virJSONParserInsertValue(parser, value) < 0) {
+        virJSONValueFree(value);
+        return 0;
+    }
+
+    if (VIR_REALLOC_N(parser->state,
+                      parser->nstate + 1) < 0)
+        return 0;
+
+    parser->state[parser->nstate].value = value;
+    parser->state[parser->nstate].key = NULL;
+    parser->nstate++;
+
+    return 1;
+}
+
+
+static int
+virJSONParserHandleEndArray(void *ctx)
+{
+    virJSONParserPtr parser = ctx;
+    virJSONParserStatePtr state;
+
+    VIR_DEBUG("parser=%p", parser);
+
+    if (!(parser->nstate - parser->wrap))
+        return 0;
+
+    state = &(parser->state[parser->nstate-1]);
+    if (state->key) {
+        VIR_FREE(state->key);
+        return 0;
+    }
+
+    VIR_DELETE_ELEMENT(parser->state, parser->nstate - 1, parser->nstate);
+
+    return 1;
+}
+
+
+static const yajl_callbacks parserCallbacks = {
+    virJSONParserHandleNull,
+    virJSONParserHandleBoolean,
+    NULL,
+    NULL,
+    virJSONParserHandleNumber,
+    virJSONParserHandleString,
+    virJSONParserHandleStartMap,
+    virJSONParserHandleMapKey,
+    virJSONParserHandleEndMap,
+    virJSONParserHandleStartArray,
+    virJSONParserHandleEndArray
+};
+
+
+/* XXX add an incremental streaming parser - yajl trivially supports it */
 virJSONValuePtr
 virJSONValueFromString(const char *jsonstring)
 {
+    yajl_handle hand;
+    virJSONParser parser = { NULL, NULL, 0, 0 };
     virJSONValuePtr ret = NULL;
-    json_t *json;
-    json_error_t error;
-    size_t flags = JSON_REJECT_DUPLICATES |
-                   JSON_DECODE_ANY;
+    int rc;
+    size_t len = strlen(jsonstring);
+# ifndef WITH_YAJL2
+    yajl_parser_config cfg = { 0, 1 }; /* Match yajl 2 default behavior */
+    VIR_AUTOPTR(virJSONValue) tmp = NULL;
+# endif
 
-    if (virJSONInitialize() < 0)
-        return NULL;
+    VIR_DEBUG("string=%s", jsonstring);
 
-    if (!(json = json_loads(jsonstring, flags, &error))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("failed to parse JSON %d:%d: %s"),
-                       error.line, error.column, error.text);
-        return NULL;
+# ifdef WITH_YAJL2
+    hand = yajl_alloc(&parserCallbacks, NULL, &parser);
+# else
+    hand = yajl_alloc(&parserCallbacks, &cfg, NULL, &parser);
+# endif
+    if (!hand) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Unable to create JSON parser"));
+        goto cleanup;
     }
 
-    ret = virJSONValueFromJansson(json);
-    json_decref(json);
+    /* Yajl 2 is nice enough to default to rejecting trailing garbage.
+     * Yajl 1.0.12 has yajl_get_bytes_consumed to make that detection
+     * simpler.  But we're stuck with yajl 1.0.7 on RHEL 6, which
+     * happily quits parsing at the end of a valid JSON construct,
+     * with no visibility into how much more input remains.  Wrapping
+     * things in an array forces yajl to confess the truth.  */
+# ifdef WITH_YAJL2
+    rc = yajl_parse(hand, (const unsigned char *)jsonstring, len);
+# else
+    rc = yajl_parse(hand, (const unsigned char *)"[", 1);
+    parser.wrap = 1;
+    if (VIR_YAJL_STATUS_OK(rc))
+        rc = yajl_parse(hand, (const unsigned char *)jsonstring, len);
+    parser.wrap = 0;
+    if (VIR_YAJL_STATUS_OK(rc))
+        rc = yajl_parse(hand, (const unsigned char *)"]", 1);
+# endif
+    if (!VIR_YAJL_STATUS_OK(rc) ||
+        yajl_complete_parse(hand) != yajl_status_ok) {
+        unsigned char *errstr = yajl_get_error(hand, 1,
+                                               (const unsigned char*)jsonstring,
+                                               strlen(jsonstring));
+
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("cannot parse json %s: %s"),
+                       jsonstring, (const char*) errstr);
+        yajl_free_error(hand, errstr);
+        virJSONValueFree(parser.head);
+        goto cleanup;
+    }
+
+    if (parser.nstate != 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("cannot parse json %s: unterminated string/map/array"),
+                       jsonstring);
+        virJSONValueFree(parser.head);
+    } else {
+        ret = parser.head;
+# ifndef WITH_YAJL2
+        /* Undo the array wrapping above */
+        tmp = ret;
+        ret = NULL;
+        if (virJSONValueArraySize(tmp) > 1)
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("cannot parse json %s: too many items present"),
+                           jsonstring);
+        else
+            ret = virJSONValueArraySteal(tmp, 0);
+# endif
+    }
+
+ cleanup:
+    yajl_free(hand);
+
+    if (parser.nstate) {
+        size_t i;
+        for (i = 0; i < parser.nstate; i++)
+            VIR_FREE(parser.state[i].key);
+        VIR_FREE(parser.state);
+    }
+
+    VIR_DEBUG("result=%p", ret);
+
     return ret;
 }
 
 
-static json_t *
-virJSONValueToJansson(virJSONValuePtr object)
+static int
+virJSONValueToStringOne(virJSONValuePtr object,
+                        yajl_gen g)
 {
-    json_t *ret = NULL;
     size_t i;
 
-    switch ((virJSONType)object->type) {
+    VIR_DEBUG("object=%p type=%d gen=%p", object, object->type, g);
+
+    switch (object->type) {
     case VIR_JSON_TYPE_OBJECT:
-        ret = json_object();
-        if (!ret)
-            goto no_memory;
+        if (yajl_gen_map_open(g) != yajl_gen_status_ok)
+            return -1;
         for (i = 0; i < object->data.object.npairs; i++) {
-            virJSONObjectPairPtr cur = object->data.object.pairs + i;
-            json_t *val = virJSONValueToJansson(cur->value);
-
-            if (!val)
-                goto error;
-            if (json_object_set_new(ret, cur->key, val) < 0) {
-                json_decref(val);
-                goto no_memory;
-            }
+            if (yajl_gen_string(g,
+                                (unsigned char *)object->data.object.pairs[i].key,
+                                strlen(object->data.object.pairs[i].key))
+                                != yajl_gen_status_ok)
+                return -1;
+            if (virJSONValueToStringOne(object->data.object.pairs[i].value, g) < 0)
+                return -1;
         }
+        if (yajl_gen_map_close(g) != yajl_gen_status_ok)
+            return -1;
         break;
-
     case VIR_JSON_TYPE_ARRAY:
-        ret = json_array();
-        if (!ret)
-            goto no_memory;
+        if (yajl_gen_array_open(g) != yajl_gen_status_ok)
+            return -1;
         for (i = 0; i < object->data.array.nvalues; i++) {
-            virJSONValuePtr cur = object->data.array.values[i];
-            json_t *val = virJSONValueToJansson(cur);
-
-            if (!val)
-                goto error;
-            if (json_array_append_new(ret, val) < 0) {
-                json_decref(val);
-                goto no_memory;
-            }
+            if (virJSONValueToStringOne(object->data.array.values[i], g) < 0)
+                return -1;
         }
+        if (yajl_gen_array_close(g) != yajl_gen_status_ok)
+            return -1;
         break;
 
     case VIR_JSON_TYPE_STRING:
-        ret = json_string(object->data.string);
+        if (yajl_gen_string(g, (unsigned char *)object->data.string,
+                            strlen(object->data.string)) != yajl_gen_status_ok)
+            return -1;
         break;
 
-    case VIR_JSON_TYPE_NUMBER: {
-        long long ll_val;
-        double d_val;
-        if (virStrToLong_ll(object->data.number, NULL, 10, &ll_val) < 0) {
-            if (virStrToDouble(object->data.number, NULL, &d_val) < 0) {
-                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                               _("JSON value is not a number"));
-                return NULL;
-            }
-            ret = json_real(d_val);
-        } else {
-            ret = json_integer(ll_val);
-        }
-    }
+    case VIR_JSON_TYPE_NUMBER:
+        if (yajl_gen_number(g, object->data.number,
+                            strlen(object->data.number)) != yajl_gen_status_ok)
+            return -1;
         break;
 
     case VIR_JSON_TYPE_BOOLEAN:
-        ret = json_boolean(object->data.boolean);
+        if (yajl_gen_bool(g, object->data.boolean) != yajl_gen_status_ok)
+            return -1;
         break;
 
     case VIR_JSON_TYPE_NULL:
-        ret = json_null();
+        if (yajl_gen_null(g) != yajl_gen_status_ok)
+            return -1;
         break;
 
     default:
-        virReportEnumRangeError(virJSONType, object->type);
-        goto error;
+        return -1;
     }
-    if (!ret)
-        goto no_memory;
-    return ret;
 
- no_memory:
-    virReportOOMError();
- error:
-    json_decref(ret);
-    return NULL;
+    return 0;
 }
 
 
@@ -1630,27 +1951,50 @@ char *
 virJSONValueToString(virJSONValuePtr object,
                      bool pretty)
 {
-    size_t flags = JSON_ENCODE_ANY;
-    json_t *json;
-    char *str = NULL;
+    yajl_gen g;
+    const unsigned char *str;
+    char *ret = NULL;
+    yajl_size_t len;
+# ifndef WITH_YAJL2
+    yajl_gen_config conf = { pretty ? 1 : 0, pretty ? "  " : " "};
+# endif
 
-    if (virJSONInitialize() < 0)
-        return NULL;
+    VIR_DEBUG("object=%p", object);
 
-    if (pretty)
-        flags |= JSON_INDENT(2);
-    else
-        flags |= JSON_COMPACT;
+# ifdef WITH_YAJL2
+    g = yajl_gen_alloc(NULL);
+    if (g) {
+        yajl_gen_config(g, yajl_gen_beautify, pretty ? 1 : 0);
+        yajl_gen_config(g, yajl_gen_indent_string, pretty ? "  " : " ");
+        yajl_gen_config(g, yajl_gen_validate_utf8, 1);
+    }
+# else
+    g = yajl_gen_alloc(&conf, NULL);
+# endif
+    if (!g) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Unable to create JSON formatter"));
+        goto cleanup;
+    }
 
-    json = virJSONValueToJansson(object);
-    if (!json)
-        return NULL;
-
-    str = json_dumps(json, flags);
-    if (!str)
+    if (virJSONValueToStringOne(object, g) < 0) {
         virReportOOMError();
-    json_decref(json);
-    return str;
+        goto cleanup;
+    }
+
+    if (yajl_gen_get_buf(g, &str, &len) != yajl_gen_status_ok) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    ignore_value(VIR_STRDUP(ret, (const char *)str));
+
+ cleanup:
+    yajl_gen_free(g);
+
+    VIR_DEBUG("result=%s", NULLSTR(ret));
+
+    return ret;
 }
 
 

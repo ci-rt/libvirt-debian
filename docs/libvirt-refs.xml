@@ -7417,6 +7417,7 @@
         <word name='Configure'>
           <ref name='virDomainSetAutostart'/>
           <ref name='virNetworkSetAutostart'/>
+          <ref name='virStoragePoolSetAutostart'/>
         </word>
         <word name='Connections'>
           <ref name='virConnectClose'/>
@@ -8608,6 +8609,9 @@
         <word name='Restarting'>
           <ref name='virDomainBlockJobAbort'/>
         </word>
+        <word name='Restoring'>
+          <ref name='virNWFilterBindingDelete'/>
+        </word>
         <word name='Result'>
           <ref name='_virConnectCredential'/>
         </word>
@@ -8736,7 +8740,6 @@
           <ref name='virDomainSetMetadata'/>
           <ref name='virDomainSetUserPassword'/>
           <ref name='virSecretSetValue'/>
-          <ref name='virStoragePoolSetAutostart'/>
         </word>
         <word name='Setting'>
           <ref name='virEventAddTimeout'/>
@@ -8762,6 +8765,7 @@
           <ref name='virDomainGetDiskErrors'/>
           <ref name='virDomainRevertToSnapshot'/>
           <ref name='virInitialize'/>
+          <ref name='virNWFilterBindingCreateXML'/>
           <ref name='virStorageVolCreateXML'/>
           <ref name='virStorageVolCreateXMLFrom'/>
         </word>
@@ -10460,6 +10464,9 @@
           <ref name='virDomainGetDiskErrors'/>
           <ref name='virDomainGetState'/>
         </word>
+        <word name='accomplished'>
+          <ref name='virNWFilterBindingDelete'/>
+        </word>
         <word name='according'>
           <ref name='virConnectCompareCPU'/>
           <ref name='virConnectCompareHypervisorCPU'/>
@@ -10672,6 +10679,7 @@
         </word>
         <word name='afterwards'>
           <ref name='virDomainGetBlockInfo'/>
+          <ref name='virNWFilterBindingCreateXML'/>
         </word>
         <word name='again'>
           <ref name='virDomainBlockPeek'/>
@@ -10887,6 +10895,7 @@
           <ref name='virDomainOpenConsole'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virInterfaceChangeBegin'/>
+          <ref name='virNWFilterBindingCreateXML'/>
           <ref name='virNetworkDestroy'/>
           <ref name='virNodeSuspendForDuration'/>
           <ref name='virStreamEventUpdateCallback'/>
@@ -11135,6 +11144,7 @@
         <word name='associate'>
           <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
+          <ref name='virNWFilterBindingCreateXML'/>
         </word>
         <word name='assume'>
           <ref name='virDomainBlockJobAbort'/>
@@ -11204,6 +11214,7 @@
           <ref name='virDomainCreateWithFlags'/>
           <ref name='virDomainCreateXML'/>
           <ref name='virDomainCreateXMLWithFiles'/>
+          <ref name='virNWFilterBindingCreateXML'/>
         </word>
         <word name='attributable'>
           <ref name='virDomainGetCPUStats'/>
@@ -11281,18 +11292,19 @@
           <ref name='virInitialize'/>
           <ref name='virInterfaceDefineXML'/>
           <ref name='virInterfaceUndefine'/>
+          <ref name='virNWFilterBindingCreateXML'/>
           <ref name='virNetworkGetAutostart'/>
           <ref name='virNetworkSetAutostart'/>
           <ref name='virNetworkUpdate'/>
           <ref name='virSecretDefineXML'/>
           <ref name='virStoragePoolGetAutostart'/>
+          <ref name='virStoragePoolSetAutostart'/>
         </word>
         <word name='autostart'>
           <ref name='virConnectListAllDomains'/>
           <ref name='virConnectListAllNetworks'/>
           <ref name='virConnectListAllStoragePools'/>
           <ref name='virStoragePoolGetAutostart'/>
-          <ref name='virStoragePoolSetAutostart'/>
         </word>
         <word name='available'>
           <ref name='_virError'/>
@@ -11569,6 +11581,9 @@
           <ref name='virNodeDeviceDettach'/>
           <ref name='virNodeDeviceReAttach'/>
         </word>
+        <word name='bindings'>
+          <ref name='virNWFilterBindingCreateXML'/>
+        </word>
         <word name='bit'>
           <ref name='VIR_CPU_USED'/>
           <ref name='VIR_UNUSE_CPU'/>
@@ -11689,6 +11704,7 @@
           <ref name='virDomainSetAutostart'/>
           <ref name='virNetworkGetAutostart'/>
           <ref name='virNetworkSetAutostart'/>
+          <ref name='virStoragePoolSetAutostart'/>
         </word>
         <word name='bottom'>
           <ref name='virDomainBlockCommit'/>
@@ -13259,6 +13275,7 @@
           <ref name='virDomainCreateXMLWithFiles'/>
           <ref name='virDomainSnapshotListChildrenNames'/>
           <ref name='virDomainSnapshotListNames'/>
+          <ref name='virNWFilterBindingCreateXML'/>
         </word>
         <word name='defining'>
           <ref name='virConnectGetCapabilities'/>
@@ -14870,6 +14887,9 @@
           <ref name='virTypedParamsGetUInt'/>
           <ref name='virTypedParamsGetULLong'/>
         </word>
+        <word name='finds'>
+          <ref name='virNWFilterBindingCreateXML'/>
+        </word>
         <word name='finished'>
           <ref name='virConnectRef'/>
           <ref name='virDomainBlockCommit'/>
@@ -15158,6 +15178,7 @@
           <ref name='virDomainRevertToSnapshot'/>
           <ref name='virDomainSetVcpusFlags'/>
           <ref name='virEventRunDefaultImpl'/>
+          <ref name='virNWFilterBindingCreateXML'/>
         </word>
         <word name='generate'>
           <ref name='virStreamSparseRecvAll'/>
@@ -17258,6 +17279,7 @@
           <ref name='virNetworkSetAutostart'/>
           <ref name='virNodeDeviceCreateXML'/>
           <ref name='virNodeSuspendForDuration'/>
+          <ref name='virStoragePoolSetAutostart'/>
         </word>
         <word name='macro'>
           <ref name='VIR_COPY_CPUMAP'/>
@@ -17359,6 +17381,7 @@
           <ref name='virDomainManagedSaveRemove'/>
           <ref name='virDomainUndefine'/>
           <ref name='virDomainUndefineFlags'/>
+          <ref name='virNWFilterBindingCreateXML'/>
         </word>
         <word name='management'>
           <ref name='virDomainBlockCopy'/>
@@ -18091,6 +18114,9 @@
           <ref name='virStreamSendAll'/>
           <ref name='virStreamSparseRecvAll'/>
           <ref name='virStreamSparseSendAll'/>
+        </word>
+        <word name='needing'>
+          <ref name='virNWFilterBindingDelete'/>
         </word>
         <word name='needless'>
           <ref name='virStreamSendHole'/>
@@ -19242,6 +19268,8 @@
           <ref name='VIR_MIGRATE_PARAM_DISKS_PORT'/>
           <ref name='_virDomainEventGraphicsAddress'/>
           <ref name='virDomainOpenConsole'/>
+          <ref name='virNWFilterBindingCreateXML'/>
+          <ref name='virNWFilterBindingDelete'/>
           <ref name='virNWFilterBindingGetPortDev'/>
           <ref name='virNWFilterBindingLookupByPortDev'/>
         </word>
@@ -19453,6 +19481,7 @@
           <ref name='virDomainSnapshotListNames'/>
           <ref name='virDomainSnapshotNum'/>
           <ref name='virDomainSnapshotNumChildren'/>
+          <ref name='virNWFilterBindingCreateXML'/>
         </word>
         <word name='prevented'>
           <ref name='virConnectOpen'/>
@@ -20405,6 +20434,7 @@
           <ref name='virEventRemoveTimeoutFunc'/>
           <ref name='virInterfaceDestroy'/>
           <ref name='virInterfaceUndefine'/>
+          <ref name='virNWFilterBindingDelete'/>
         </word>
         <word name='removed'>
           <ref name='virConnectDomainEventDeviceRemovedCallback'/>
@@ -20701,6 +20731,7 @@
           <ref name='virDomainHasManagedSaveImage'/>
           <ref name='virDomainManagedSave'/>
           <ref name='virDomainReboot'/>
+          <ref name='virNWFilterBindingDelete'/>
         </word>
         <word name='restarted'>
           <ref name='virDomainBlockJobAbort'/>
@@ -21347,7 +21378,6 @@
           <ref name='virInterfaceGetXMLDesc'/>
           <ref name='virNodeGetCPUStats'/>
           <ref name='virNodeGetMemoryStats'/>
-          <ref name='virStoragePoolSetAutostart'/>
         </word>
         <word name='settings'>
           <ref name='virDomainPMSuspendForDuration'/>
@@ -21899,6 +21929,7 @@
           <ref name='virDomainOpenGraphics'/>
           <ref name='virDomainOpenGraphicsFD'/>
           <ref name='virDomainRevertToSnapshot'/>
+          <ref name='virNWFilterBindingCreateXML'/>
           <ref name='virNodeGetCellsFreeMemory'/>
         </word>
         <word name='starts'>
@@ -24713,6 +24744,9 @@
         <word name='virMemoryParameter'>
           <ref name='VIR_DOMAIN_MEMORY_FIELD_LENGTH'/>
           <ref name='VIR_DOMAIN_MEMORY_PARAM_UNLIMITED'/>
+        </word>
+        <word name='virNWFilterBindingCreateXML'>
+          <ref name='virNWFilterBindingDelete'/>
         </word>
         <word name='virNWFilterBindingFree'>
           <ref name='virNWFilterBindingLookupByPortDev'/>

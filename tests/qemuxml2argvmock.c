@@ -184,12 +184,26 @@ virNetDevRunEthernetScript(const char *ifname ATTRIBUTE_UNUSED,
     return 0;
 }
 
+static void (*real_virCommandPassFD)(virCommandPtr cmd, int fd, unsigned int flags);
+
+static const int testCommandPassSafeFDs[] = { 1730, 1731 };
+
 void
-virCommandPassFD(virCommandPtr cmd ATTRIBUTE_UNUSED,
-                 int fd ATTRIBUTE_UNUSED,
-                 unsigned int flags ATTRIBUTE_UNUSED)
+virCommandPassFD(virCommandPtr cmd,
+                 int fd,
+                 unsigned int flags)
 {
-    /* nada */
+    size_t i;
+
+    for (i = 0; i < ARRAY_CARDINALITY(testCommandPassSafeFDs); i++) {
+        if (testCommandPassSafeFDs[i] == fd) {
+            if (!real_virCommandPassFD)
+                VIR_MOCK_REAL_INIT(virCommandPassFD);
+
+            real_virCommandPassFD(cmd, fd, flags);
+            return;
+        }
+    }
 }
 
 int
@@ -232,4 +246,20 @@ qemuOpenChrChardevUNIXSocket(const virDomainChrSourceDef *dev ATTRIBUTE_UNUSED)
     if (fcntl(1729, F_GETFD) != -1)
         abort();
     return 1729;
+}
+
+
+int
+qemuBuildTPMOpenBackendFDs(const char *tpmdev ATTRIBUTE_UNUSED,
+                           const char *cancel_path ATTRIBUTE_UNUSED,
+                           int *tpmfd,
+                           int *cancelfd)
+{
+    if (fcntl(1730, F_GETFD) != -1 ||
+        fcntl(1731, F_GETFD) != -1)
+        abort();
+
+    *tpmfd = 1730;
+    *cancelfd = 1731;
+    return 0;
 }

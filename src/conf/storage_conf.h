@@ -85,6 +85,7 @@ typedef enum {
     VIR_STORAGE_POOL_LOGICAL,  /* Logical volume groups / volumes */
     VIR_STORAGE_POOL_DISK,     /* Disk partitions */
     VIR_STORAGE_POOL_ISCSI,    /* iSCSI targets */
+    VIR_STORAGE_POOL_ISCSI_DIRECT, /* iSCSI targets using libiscsi */
     VIR_STORAGE_POOL_SCSI,     /* SCSI HBA */
     VIR_STORAGE_POOL_MPATH,    /* Multipath devices */
     VIR_STORAGE_POOL_RBD,      /* RADOS Block Device */
@@ -139,11 +140,6 @@ struct _virStoragePoolSourceDeviceExtent {
     int type; /* virStorageFreeType */
 };
 
-typedef struct _virStoragePoolSourceInitiatorAttr virStoragePoolSourceInitiatorAttr;
-struct _virStoragePoolSourceInitiatorAttr {
-    char *iqn; /* Initiator IQN */
-};
-
 /*
  * Pools can be backed by one or more devices, and some
  * allow us to track free space on underlying devices.
@@ -188,7 +184,7 @@ struct _virStoragePoolSource {
     char *name;
 
     /* Initiator IQN */
-    virStoragePoolSourceInitiatorAttr initiator;
+    virStorageSourceInitiatorDef initiator;
 
     /* Authentication information */
     virStorageAuthDefPtr auth;

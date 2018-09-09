@@ -158,7 +158,8 @@
 #  verify \
 #  vsnprintf \
 #  waitpid \
-#  warnings
+#  warnings \
+#  wcwidth
 
 VPATH = @srcdir@
 am__is_gnu_make = { \
@@ -233,6 +234,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
+@LIBUNISTRING_COMPILE_UNIWIDTH_WIDTH_TRUE@am__append_1 = uniwidth/width.c
 subdir = gnulib/lib
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
@@ -289,6 +291,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/lcmessage.m4 $(top_srcdir)/m4/ldexp.m4 \
 	$(top_srcdir)/m4/lib-ld.m4 $(top_srcdir)/m4/lib-link.m4 \
 	$(top_srcdir)/m4/lib-prefix.m4 $(top_srcdir)/m4/libtool.m4 \
+	$(top_srcdir)/m4/libunistring-base.m4 \
 	$(top_srcdir)/m4/limits-h.m4 $(top_srcdir)/m4/localcharset.m4 \
 	$(top_srcdir)/m4/locale-fr.m4 $(top_srcdir)/m4/locale-ja.m4 \
 	$(top_srcdir)/m4/locale-tr.m4 $(top_srcdir)/m4/locale-zh.m4 \
@@ -407,7 +410,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-gnutls.m4 $(top_srcdir)/m4/virt-hal.m4 \
 	$(top_srcdir)/m4/virt-host-validate.m4 \
 	$(top_srcdir)/m4/virt-init-script.m4 \
-	$(top_srcdir)/m4/virt-jansson.m4 $(top_srcdir)/m4/virt-lib.m4 \
+	$(top_srcdir)/m4/virt-lib.m4 $(top_srcdir)/m4/virt-libiscsi.m4 \
 	$(top_srcdir)/m4/virt-libnl.m4 \
 	$(top_srcdir)/m4/virt-libpcap.m4 \
 	$(top_srcdir)/m4/virt-libssh.m4 \
@@ -438,6 +441,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-storage-disk.m4 \
 	$(top_srcdir)/m4/virt-storage-fs.m4 \
 	$(top_srcdir)/m4/virt-storage-gluster.m4 \
+	$(top_srcdir)/m4/virt-storage-iscsi-direct.m4 \
 	$(top_srcdir)/m4/virt-storage-iscsi.m4 \
 	$(top_srcdir)/m4/virt-storage-lvm.m4 \
 	$(top_srcdir)/m4/virt-storage-mpath.m4 \
@@ -462,9 +466,9 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/wchar_h.m4 $(top_srcdir)/m4/wchar_t.m4 \
 	$(top_srcdir)/m4/wcrtomb.m4 $(top_srcdir)/m4/wctob.m4 \
 	$(top_srcdir)/m4/wctomb.m4 $(top_srcdir)/m4/wctype_h.m4 \
-	$(top_srcdir)/m4/wint_t.m4 $(top_srcdir)/m4/write.m4 \
-	$(top_srcdir)/m4/xalloc.m4 $(top_srcdir)/m4/xsize.m4 \
-	$(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/wcwidth.m4 $(top_srcdir)/m4/wint_t.m4 \
+	$(top_srcdir)/m4/write.m4 $(top_srcdir)/m4/xalloc.m4 \
+	$(top_srcdir)/m4/xsize.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
@@ -474,7 +478,21 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 LTLIBRARIES = $(noinst_LTLIBRARIES)
 am__DEPENDENCIES_1 =
+am__libgnu_la_SOURCES_DIST = allocator.c areadlink.c base64.h base64.c \
+	binary-io.h binary-io.c bitrotate.h bitrotate.c c-ctype.h \
+	c-ctype.c c-strcase.h c-strcasecmp.c c-strncasecmp.c \
+	c-strcasestr.h c-strcasestr.c careadlinkat.c cloexec.c \
+	count-leading-zeros.c count-one-bits.c dirname-lgpl.c \
+	basename-lgpl.c stripslash.c fd-hook.c freading.c gettext.h \
+	getugroups.c hard-locale.c localcharset.c glthread/lock.h \
+	glthread/lock.c malloca.c mgetgroups.c nonblocking.c passfd.c \
+	physmem.c pipe2.c sig-handler.c size_max.h sockets.h sockets.c \
+	stat-time.c strnlen1.h strnlen1.c sys_socket.c tempname.c \
+	glthread/threadlib.c unistd.c uniwidth/width.c wctype-h.c \
+	xsize.h xsize.c
 am__dirstamp = $(am__leading_dot)dirstamp
+@LIBUNISTRING_COMPILE_UNIWIDTH_WIDTH_TRUE@am__objects_1 =  \
+@LIBUNISTRING_COMPILE_UNIWIDTH_WIDTH_TRUE@	uniwidth/width.lo
 am_libgnu_la_OBJECTS = allocator.lo areadlink.lo base64.lo \
 	binary-io.lo bitrotate.lo c-ctype.lo c-strcasecmp.lo \
 	c-strncasecmp.lo c-strcasestr.lo careadlinkat.lo cloexec.lo \
@@ -484,7 +502,7 @@ am_libgnu_la_OBJECTS = allocator.lo areadlink.lo base64.lo \
 	malloca.lo mgetgroups.lo nonblocking.lo passfd.lo physmem.lo \
 	pipe2.lo sig-handler.lo sockets.lo stat-time.lo strnlen1.lo \
 	sys_socket.lo tempname.lo glthread/threadlib.lo unistd.lo \
-	wctype-h.lo xsize.lo
+	$(am__objects_1) wctype-h.lo xsize.lo
 libgnu_la_OBJECTS = $(am_libgnu_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -528,7 +546,8 @@ am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = $(libgnu_la_SOURCES) $(EXTRA_libgnu_la_SOURCES)
-DIST_SOURCES = $(libgnu_la_SOURCES) $(EXTRA_libgnu_la_SOURCES)
+DIST_SOURCES = $(am__libgnu_la_SOURCES_DIST) \
+	$(EXTRA_libgnu_la_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -1460,12 +1479,12 @@ IP6TABLES_PATH = @IP6TABLES_PATH@
 IPTABLES_PATH = @IPTABLES_PATH@
 IP_PATH = @IP_PATH@
 ISCSIADM = @ISCSIADM@
-JANSSON_CFLAGS = @JANSSON_CFLAGS@
-JANSSON_LIBS = @JANSSON_LIBS@
 LD = @LD@
 LDEXP_LIBM = @LDEXP_LIBM@
 LDFLAGS = @LDFLAGS@
 LIBINTL = @LIBINTL@
+LIBISCSI_CFLAGS = @LIBISCSI_CFLAGS@
+LIBISCSI_LIBS = @LIBISCSI_LIBS@
 LIBMULTITHREAD = @LIBMULTITHREAD@
 LIBNL_CFLAGS = @LIBNL_CFLAGS@
 LIBNL_LIBS = @LIBNL_LIBS@
@@ -1486,6 +1505,8 @@ LIBSSH_LIBS = @LIBSSH_LIBS@
 LIBTESTS_LIBDEPS = @LIBTESTS_LIBDEPS@
 LIBTHREAD = @LIBTHREAD@
 LIBTOOL = @LIBTOOL@
+LIBUNISTRING_UNITYPES_H = @LIBUNISTRING_UNITYPES_H@
+LIBUNISTRING_UNIWIDTH_H = @LIBUNISTRING_UNIWIDTH_H@
 LIBVIRT_ADMIN_SYMBOL_FILE = @LIBVIRT_ADMIN_SYMBOL_FILE@
 LIBVIRT_LXC_SYMBOL_FILE = @LIBVIRT_LXC_SYMBOL_FILE@
 LIBVIRT_MAJOR_VERSION = @LIBVIRT_MAJOR_VERSION@
@@ -1678,6 +1699,7 @@ PVCREATE = @PVCREATE@
 PVREMOVE = @PVREMOVE@
 PVS = @PVS@
 PYTHON = @PYTHON@
+QEMU = @QEMU@
 QEMU_BRIDGE_HELPER = @QEMU_BRIDGE_HELPER@
 QEMU_PR_HELPER = @QEMU_PR_HELPER@
 RADVD = @RADVD@
@@ -1941,8 +1963,6 @@ SIG_ATOMIC_T_SUFFIX = @SIG_ATOMIC_T_SUFFIX@
 SIZE_T_SUFFIX = @SIZE_T_SUFFIX@
 SSH2_CFLAGS = @SSH2_CFLAGS@
 SSH2_LIBS = @SSH2_LIBS@
-STABLE_ORDERING_JANSSON_CFLAGS = @STABLE_ORDERING_JANSSON_CFLAGS@
-STABLE_ORDERING_JANSSON_LIBS = @STABLE_ORDERING_JANSSON_LIBS@
 STATIC_BINARIES = @STATIC_BINARIES@
 STDALIGN_H = @STDALIGN_H@
 STDARG_H = @STDARG_H@
@@ -1995,6 +2015,8 @@ XENAPI_LIBS = @XENAPI_LIBS@
 XGETTEXT = @XGETTEXT@
 XMLLINT = @XMLLINT@
 XSLTPROC = @XSLTPROC@
+YAJL_CFLAGS = @YAJL_CFLAGS@
+YAJL_LIBS = @YAJL_LIBS@
 ZFS = @ZFS@
 ZPOOL = @ZPOOL@
 abs_aux_dir = @abs_aux_dir@
@@ -2068,7 +2090,8 @@ BUILT_SOURCES = $(ALLOCA_H) arpa/inet.h $(BYTESWAP_H) configmake.h \
 	$(STDDEF_H) $(STDINT_H) stdio.h stdlib.h string.h strings.h \
 	sys/ioctl.h sys/select.h sys/socket.h sys/stat.h sys/time.h \
 	sys/types.h sys/uio.h sys/utsname.h sys/wait.h termios.h \
-	time.h unistd.h wchar.h wctype.h
+	time.h unistd.h $(LIBUNISTRING_UNITYPES_H) \
+	$(LIBUNISTRING_UNIWIDTH_H) wchar.h wctype.h
 CLEANFILES = configmake.h configmake.h-t
 
 #script: script.in
@@ -2133,12 +2156,13 @@ EXTRA_DIST = accept.c w32sock.h alloca.c alloca.in.h allocator.h \
 	sys_wait.in.h tempname.h termios.in.h \
 	$(top_srcdir)/build-aux/config.rpath time.in.h time_r.c \
 	mktime-internal.h timegm.c ttyname_r.c uname.c unistd.in.h \
+	unitypes.in.h localcharset.h uniwidth.in.h uniwidth/cjk.h \
 	unsetenv.c $(top_srcdir)/build-aux/useless-if-before-free \
 	usleep.c asnprintf.c float+.h printf-args.c printf-args.h \
 	printf-parse.c printf-parse.h vasnprintf.c vasnprintf.h \
 	asprintf.c vasprintf.c $(top_srcdir)/build-aux/vc-list-files \
 	verify.h vsnprintf.c waitpid.c wchar.in.h wcrtomb.c \
-	wctype.in.h xalloc-oversized.h
+	wctype.in.h wcwidth.c xalloc-oversized.h
 MOSTLYCLEANDIRS = arpa net netinet sys sys sys sys sys sys sys
 MOSTLYCLEANFILES = core *.stackdump alloca.h alloca.h-t arpa/inet.h \
 	arpa/inet.h-t byteswap.h byteswap.h-t errno.h errno.h-t \
@@ -2156,7 +2180,8 @@ MOSTLYCLEANFILES = core *.stackdump alloca.h alloca.h-t arpa/inet.h \
 	sys/stat.h-t sys/time.h sys/time.h-t sys/types.h sys/types.h-t \
 	sys/uio.h sys/uio.h-t sys/utsname.h sys/utsname.h-t sys/wait.h \
 	sys/wait.h-t termios.h termios.h-t time.h time.h-t unistd.h \
-	unistd.h-t wchar.h wchar.h-t wctype.h wctype.h-t
+	unistd.h-t unitypes.h unitypes.h-t uniwidth.h uniwidth.h-t \
+	wchar.h wchar.h-t wctype.h wctype.h-t
 SUFFIXES = 
 # No GNU Make output.
 noinst_LTLIBRARIES = libgnu.la
@@ -2170,7 +2195,8 @@ libgnu_la_SOURCES = allocator.c areadlink.c base64.h base64.c \
 	glthread/lock.c malloca.c mgetgroups.c nonblocking.c passfd.c \
 	physmem.c pipe2.c sig-handler.c size_max.h sockets.h sockets.c \
 	stat-time.c strnlen1.h strnlen1.c sys_socket.c tempname.c \
-	glthread/threadlib.c unistd.c wctype-h.c xsize.h xsize.c
+	glthread/threadlib.c unistd.c $(am__append_1) wctype-h.c \
+	xsize.h xsize.c
 libgnu_la_LIBADD = $(gl_LTLIBOBJS) @LTALLOCA@
 libgnu_la_DEPENDENCIES = $(gl_LTLIBOBJS) @LTALLOCA@
 EXTRA_libgnu_la_SOURCES = accept.c alloca.c bind.c btowc.c calloc.c \
@@ -2197,7 +2223,7 @@ EXTRA_libgnu_la_SOURCES = accept.c alloca.c bind.c btowc.c calloc.c \
 	strptime.c strsep.c strtok_r.c time_r.c timegm.c ttyname_r.c \
 	uname.c unsetenv.c usleep.c asnprintf.c printf-args.c \
 	printf-parse.c vasnprintf.c asprintf.c vasprintf.c vsnprintf.c \
-	waitpid.c wcrtomb.c
+	waitpid.c wcrtomb.c wcwidth.c
 libgnu_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(GETADDRINFO_LIB) \
 	$(GETHOSTNAME_LIB) $(HOSTENT_LIB) $(INET_NTOP_LIB) \
 	$(INET_PTON_LIB) $(LDEXP_LIBM) $(LIBSOCKET) \
@@ -2292,6 +2318,14 @@ glthread/lock.lo: glthread/$(am__dirstamp) \
 	glthread/$(DEPDIR)/$(am__dirstamp)
 glthread/threadlib.lo: glthread/$(am__dirstamp) \
 	glthread/$(DEPDIR)/$(am__dirstamp)
+uniwidth/$(am__dirstamp):
+	@$(MKDIR_P) uniwidth
+	@: > uniwidth/$(am__dirstamp)
+uniwidth/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) uniwidth/$(DEPDIR)
+	@: > uniwidth/$(DEPDIR)/$(am__dirstamp)
+uniwidth/width.lo: uniwidth/$(am__dirstamp) \
+	uniwidth/$(DEPDIR)/$(am__dirstamp)
 
 libgnu.la: $(libgnu_la_OBJECTS) $(libgnu_la_DEPENDENCIES) $(EXTRA_libgnu_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libgnu_la_LINK)  $(libgnu_la_OBJECTS) $(libgnu_la_LIBADD) $(LIBS)
@@ -2300,6 +2334,8 @@ mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 	-rm -f glthread/*.$(OBJEXT)
 	-rm -f glthread/*.lo
+	-rm -f uniwidth/*.$(OBJEXT)
+	-rm -f uniwidth/*.lo
 
 distclean-compile:
 	-rm -f *.tab.c
@@ -2464,9 +2500,11 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/waitpid.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wcrtomb.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wctype-h.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wcwidth.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xsize.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@glthread/$(DEPDIR)/lock.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@glthread/$(DEPDIR)/threadlib.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@uniwidth/$(DEPDIR)/width.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -2498,6 +2536,7 @@ mostlyclean-libtool:
 clean-libtool:
 	-rm -rf .libs _libs
 	-rm -rf glthread/.libs glthread/_libs
+	-rm -rf uniwidth/.libs uniwidth/_libs
 
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique
@@ -2617,6 +2656,8 @@ distclean-generic:
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
 	-rm -f glthread/$(DEPDIR)/$(am__dirstamp)
 	-rm -f glthread/$(am__dirstamp)
+	-rm -f uniwidth/$(DEPDIR)/$(am__dirstamp)
+	-rm -f uniwidth/$(am__dirstamp)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
@@ -2628,7 +2669,7 @@ clean-am: clean-generic clean-libtool clean-noinstLTLIBRARIES \
 	mostlyclean-am
 
 distclean: distclean-am
-	-rm -rf ./$(DEPDIR) glthread/$(DEPDIR)
+	-rm -rf ./$(DEPDIR) glthread/$(DEPDIR) uniwidth/$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-local distclean-tags
@@ -2674,7 +2715,7 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-	-rm -rf ./$(DEPDIR) glthread/$(DEPDIR)
+	-rm -rf ./$(DEPDIR) glthread/$(DEPDIR) uniwidth/$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
@@ -4039,6 +4080,20 @@ unistd.h: unistd.in.h $(top_builddir)/config.status $(CXXDEFS_H) $(ARG_NONNULL_H
 	      -e '/definition of _GL_WARN_ON_USE/r $(WARN_ON_USE_H)'; \
 	} > $@-t && \
 	mv $@-t $@
+
+unitypes.h: unitypes.in.h
+	$(AM_V_GEN)rm -f $@-t $@ && \
+	{ echo '/* DO NOT EDIT! GENERATED AUTOMATICALLY! */'; \
+	  cat $(srcdir)/unitypes.in.h; \
+	} > $@-t && \
+	mv -f $@-t $@
+
+uniwidth.h: uniwidth.in.h
+	$(AM_V_GEN)rm -f $@-t $@ && \
+	{ echo '/* DO NOT EDIT! GENERATED AUTOMATICALLY! */'; \
+	  cat $(srcdir)/uniwidth.in.h; \
+	} > $@-t && \
+	mv -f $@-t $@
 
 # We need the following in order to create <wchar.h> when the system
 # version does not work standalone.
