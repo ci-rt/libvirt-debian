@@ -1,10 +1,12 @@
-libvirt (4.7.0-1~1.gbp1979da) UNRELEASED; urgency=medium
-
-  ** SNAPSHOT build @1979da2b21aebf183727b257fdacd7b0bcf7ea22 **
+libvirt (4.7.0-1) unstable; urgency=medium
 
   * [8ff38ac] New upstream version 4.7.0
+    (Closes: #908341)
+  * [afdd147] Bump symbol versions
+  * [41fa8f5] Rediff patches.
+    Drop all jansson related patches. Fixed ustream.
 
- -- Guido Günther <agx@sigxcpu.org>  Sun, 09 Sep 2018 20:25:41 +0200
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 09 Sep 2018 21:42:33 +0200
 
 libvirt (4.6.0-2) unstable; urgency=medium
 
