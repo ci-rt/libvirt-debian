@@ -15,17 +15,3 @@ Set-defaults-for-zfs-tools.patch
 Pass-GPG_TTY-env-var-to-the-ssh-binary.patch
 apparmor-Allow-virt-aa-helper-to-access-the-name-service-.patch
 debian/Prefer-sbin-over-usr-sbin.patch
-Revert-remote-daemon-Make-sure-that-JSON-symbols-are-prop.patch
-Revert-util-jsoncompat-Stub-out-virJSONInitialize-when-co.patch
-Revert-tests-qemucapsprobe-Fix-output-after-switching-to-.patch
-Revert-util-avoid-symbol-clash-between-json-libraries.patch
-Revert-tests-also-skip-qemuagenttest-with-old-jansson.patch
-Revert-m4-Introduce-STABLE_ORDERING_JANSSON.patch
-Revert-build-require-Jansson-if-QEMU-driver-is-enabled.patch
-Revert-build-switch-with-qemu-default-from-yes-to-check.patch
-Revert-Remove-virJSONValueNewStringLen.patch
-Revert-build-remove-references-to-WITH_YAJL-for-SETUID_RP.patch
-Revert-Remove-functions-using-yajl.patch
-Revert-Switch-from-yajl-to-Jansson.patch
-Revert-build-undef-WITH_JANSSON-for-SETUID_RPC_CLIENT.patch
-Revert-build-add-with-jansson.patch

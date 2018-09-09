@@ -20,10 +20,10 @@ index de94368..60c1d50 100644
    #include <local/usr.lib.libvirt.virt-aa-helper>
  }
 diff --git a/examples/apparmor/usr.sbin.libvirtd b/examples/apparmor/usr.sbin.libvirtd
-index 3102cab..3a6c7d6 100644
+index f0ffc53..c7c52c6 100644
 --- a/examples/apparmor/usr.sbin.libvirtd
 +++ b/examples/apparmor/usr.sbin.libvirtd
-@@ -126,4 +126,7 @@
+@@ -128,4 +128,7 @@
  
     /usr/{lib,lib64,lib/qemu,libexec}/qemu-bridge-helper rmix,
    }

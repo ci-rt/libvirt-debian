@@ -11,7 +11,7 @@ Closes: #895145
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/configure.ac b/configure.ac
-index c6287f6..71666ba 100644
+index da940e3..a676b86 100644
 --- a/configure.ac
 +++ b/configure.ac
 @@ -110,7 +110,7 @@ then
