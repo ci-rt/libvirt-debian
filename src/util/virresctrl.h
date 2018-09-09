@@ -50,6 +50,17 @@ struct _virResctrlInfoPerCache {
     unsigned int max_allocation;
 };
 
+typedef struct _virResctrlInfoMemBWPerNode virResctrlInfoMemBWPerNode;
+typedef virResctrlInfoMemBWPerNode *virResctrlInfoMemBWPerNodePtr;
+struct _virResctrlInfoMemBWPerNode {
+    /* Smallest possible increase of the allocation bandwidth in percentage */
+    unsigned int granularity;
+    /* Minimal allocatable bandwidth in percentage */
+    unsigned int min;
+    /* Maximum number of simultaneous allocations */
+    unsigned int max_allocation;
+};
+
 typedef struct _virResctrlInfo virResctrlInfo;
 typedef virResctrlInfo *virResctrlInfoPtr;
 
@@ -63,15 +74,23 @@ virResctrlInfoGetCache(virResctrlInfoPtr resctrl,
                        size_t *ncontrols,
                        virResctrlInfoPerCachePtr **controls);
 
+int
+virResctrlInfoGetMemoryBandwidth(virResctrlInfoPtr resctrl,
+                                 unsigned int level,
+                                 virResctrlInfoMemBWPerNodePtr control);
 /* Alloc-related things */
 typedef struct _virResctrlAlloc virResctrlAlloc;
 typedef virResctrlAlloc *virResctrlAllocPtr;
 
-typedef int virResctrlAllocForeachSizeCallback(unsigned int level,
-                                               virCacheType type,
-                                               unsigned int cache,
-                                               unsigned long long size,
-                                               void *opaque);
+typedef int virResctrlAllocForeachCacheCallback(unsigned int level,
+                                                virCacheType type,
+                                                unsigned int cache,
+                                                unsigned long long size,
+                                                void *opaque);
+
+typedef int virResctrlAllocForeachMemoryCallback(unsigned int id,
+                                                 unsigned int size,
+                                                 void *opaque);
 
 virResctrlAllocPtr
 virResctrlAllocNew(void);
@@ -80,16 +99,26 @@ bool
 virResctrlAllocIsEmpty(virResctrlAllocPtr alloc);
 
 int
-virResctrlAllocSetSize(virResctrlAllocPtr alloc,
-                       unsigned int level,
-                       virCacheType type,
-                       unsigned int cache,
-                       unsigned long long size);
+virResctrlAllocSetCacheSize(virResctrlAllocPtr alloc,
+                            unsigned int level,
+                            virCacheType type,
+                            unsigned int cache,
+                            unsigned long long size);
 
 int
-virResctrlAllocForeachSize(virResctrlAllocPtr alloc,
-                           virResctrlAllocForeachSizeCallback cb,
-                           void *opaque);
+virResctrlAllocForeachCache(virResctrlAllocPtr alloc,
+                            virResctrlAllocForeachCacheCallback cb,
+                            void *opaque);
+
+int
+virResctrlAllocSetMemoryBandwidth(virResctrlAllocPtr alloc,
+                                  unsigned int id,
+                                  unsigned int memory_bandwidth);
+
+int
+virResctrlAllocForeachMemory(virResctrlAllocPtr resctrl,
+                             virResctrlAllocForeachMemoryCallback cb,
+                             void *opaque);
 
 int
 virResctrlAllocSetID(virResctrlAllocPtr alloc,

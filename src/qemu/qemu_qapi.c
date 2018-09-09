@@ -25,9 +25,58 @@
 #include "virerror.h"
 #include "virlog.h"
 
+#include "c-ctype.h"
+
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
 VIR_LOG_INIT("qemu.qemu_qapi");
+
+
+/**
+ * virQEMUQAPISchemaObjectGet:
+ * @field: name of the object containing the requested type
+ * @name: name of the requested type
+ * @namefield: name of the object property holding @name
+ * @elem: QAPI schema entry JSON object
+ *
+ * Helper that selects the type of a QMP schema object member or it's variant
+ * member. Returns the QMP entry on success or NULL on error.
+ */
+static virJSONValuePtr
+virQEMUQAPISchemaObjectGet(const char *field,
+                           const char *name,
+                           const char *namefield,
+                           virJSONValuePtr elem)
+{
+    virJSONValuePtr arr;
+    virJSONValuePtr cur;
+    const char *curname;
+    size_t i;
+
+    if (!(arr = virJSONValueObjectGetArray(elem, field)))
+        return NULL;
+
+    for (i = 0; i < virJSONValueArraySize(arr); i++) {
+        if (!(cur = virJSONValueArrayGet(arr, i)) ||
+            !(curname = virJSONValueObjectGetString(cur, namefield)))
+            continue;
+
+        if (STREQ(name, curname))
+            return cur;
+    }
+
+    return NULL;
+}
+
+
+static const char *
+virQEMUQAPISchemaTypeFromObject(virJSONValuePtr obj)
+{
+    if (!obj)
+        return NULL;
+
+    return virJSONValueObjectGetString(obj, "type");
+}
 
 
 /**
@@ -35,6 +84,7 @@ VIR_LOG_INIT("qemu.qemu_qapi");
  * @field: name of the object containing the requested type
  * @name: name of the requested type
  * @namefield: name of the object property holding @name
+ * @elem: QAPI schema entry JSON object
  *
  * Helper that selects the type of a QMP schema object member or it's variant
  * member. Returns the type string on success or NULL on error.
@@ -45,26 +95,9 @@ virQEMUQAPISchemaObjectGetType(const char *field,
                                const char *namefield,
                                virJSONValuePtr elem)
 {
-    virJSONValuePtr arr;
-    virJSONValuePtr cur;
-    const char *curname;
-    const char *type;
-    size_t i;
+    virJSONValuePtr obj = virQEMUQAPISchemaObjectGet(field, name, namefield, elem);
 
-    if (!(arr = virJSONValueObjectGetArray(elem, field)))
-        return NULL;
-
-    for (i = 0; i < virJSONValueArraySize(arr); i++) {
-        if (!(cur = virJSONValueArrayGet(arr, i)) ||
-            !(curname = virJSONValueObjectGetString(cur, namefield)) ||
-            !(type = virJSONValueObjectGetString(cur, "type")))
-            continue;
-
-        if (STREQ(name, curname))
-            return type;
-    }
-
-    return NULL;
+    return virQEMUQAPISchemaTypeFromObject(obj);
 }
 
 
@@ -74,7 +107,10 @@ virQEMUQAPISchemaTraverse(const char *baseName,
                           virHashTablePtr schema)
 {
     virJSONValuePtr base;
+    virJSONValuePtr obj;
     const char *metatype;
+    const char *querystr;
+    char modifier;
 
     while (1) {
         if (!(base = virHashLookup(schema, baseName)))
@@ -93,14 +129,26 @@ virQEMUQAPISchemaTraverse(const char *baseName,
 
             continue;
         } else if (STREQ(metatype, "object")) {
-            if (**query == '+')
+            querystr = *query;
+            modifier = **query;
+
+            if (!c_isalpha(modifier))
+                querystr++;
+
+            if (modifier == '+') {
                 baseName = virQEMUQAPISchemaObjectGetType("variants",
-                                                          *query + 1,
+                                                          querystr,
                                                           "case", base);
-            else
-                baseName = virQEMUQAPISchemaObjectGetType("members",
-                                                          *query,
-                                                          "name", base);
+            } else {
+                obj = virQEMUQAPISchemaObjectGet("members", querystr,
+                                                 "name", base);
+
+                if (modifier == '*' &&
+                    !virJSONValueObjectHasKey(obj, "default"))
+                    return NULL;
+
+                baseName = virQEMUQAPISchemaTypeFromObject(obj);
+            }
 
             if (!baseName)
                 return NULL;
@@ -136,8 +184,13 @@ virQEMUQAPISchemaTraverse(const char *baseName,
  * attribute: selects whether arguments or return type should be introspected
  *            ("arg-type" or "ret-type" for commands, "arg-type" for events)
  * subattribute: specifies member name of object types
+ * *subattribute: same as above but must be optional (has a property named
+ *                'default' field in the schema)
  * +variant_discriminator: In the case of unionized objects, select a
  *                         specific case to introspect.
+ *
+ * If the name of any (sub)attribute starts with non-alphabetical symbols it
+ * needs to be prefixed by a single space.
  *
  * Array types are automatically flattened to the singular type. Alternate
  * types are currently not supported.

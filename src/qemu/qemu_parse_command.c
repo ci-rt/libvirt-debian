@@ -1536,6 +1536,9 @@ qemuParseCommandLineCPU(virDomainDefPtr dom,
             case VIR_DOMAIN_HYPERV_SYNIC:
             case VIR_DOMAIN_HYPERV_STIMER:
             case VIR_DOMAIN_HYPERV_RESET:
+            case VIR_DOMAIN_HYPERV_FREQUENCIES:
+            case VIR_DOMAIN_HYPERV_REENLIGHTENMENT:
+            case VIR_DOMAIN_HYPERV_TLBFLUSH:
                 if (value) {
                     virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                    _("HyperV feature '%s' should not "
@@ -1826,7 +1829,8 @@ qemuParseCommandLineBootDevs(virDomainDefPtr def, const char *str)
  * as is practical. This is not an exact science....
  */
 static virDomainDefPtr
-qemuParseCommandLine(virCapsPtr caps,
+qemuParseCommandLine(virFileCachePtr capsCache,
+                     virCapsPtr caps,
                      virDomainXMLOptionPtr xmlopt,
                      char **progenv,
                      char **progargv,
@@ -1834,7 +1838,7 @@ qemuParseCommandLine(virCapsPtr caps,
                      virDomainChrSourceDefPtr *monConfig,
                      bool *monJSON)
 {
-    virDomainDefPtr def;
+    virDomainDefPtr def = NULL;
     size_t i;
     bool nographics = false;
     bool fullscreen = false;
@@ -1848,6 +1852,7 @@ qemuParseCommandLine(virCapsPtr caps,
     virDomainDiskDefPtr disk = NULL;
     const char *ceph_args = qemuFindEnv(progenv, "CEPH_ARGS");
     bool have_sdl = false;
+    virQEMUCapsPtr qemuCaps = NULL;
 
     if (pidfile)
         *pidfile = NULL;
@@ -1861,6 +1866,9 @@ qemuParseCommandLine(virCapsPtr caps,
                        "%s", _("no emulator path found"));
         return NULL;
     }
+
+    if (!(qemuCaps = virQEMUCapsCacheLookup(capsCache, progargv[0])))
+        goto error;
 
     if (!(def = virDomainDefNew()))
         goto error;
@@ -2014,17 +2022,18 @@ qemuParseCommandLine(virCapsPtr caps,
     /* If no machine type has been found among the arguments, then figure
      * out a reasonable value by using capabilities */
     if (!def->os.machine) {
-        virCapsDomainDataPtr capsdata;
+        const char *mach = virQEMUCapsGetDefaultMachine(qemuCaps);
 
-        if (!(capsdata = virCapabilitiesDomainDataLookup(caps, def->os.type,
-                def->os.arch, def->virtType, NULL, NULL)))
-            goto error;
-
-        if (VIR_STRDUP(def->os.machine, capsdata->machinetype) < 0) {
-            VIR_FREE(capsdata);
+        if (!mach) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("Binary '%s' does not have a default machine type "
+                             "and no '-machine' arg is present"),
+                           progargv[0]);
             goto error;
         }
-        VIR_FREE(capsdata);
+
+        if (VIR_STRDUP(def->os.machine, mach) < 0)
+            goto error;
     }
 
     /* Now the real processing loop */
@@ -2715,6 +2724,7 @@ qemuParseCommandLine(virCapsPtr caps,
     else
         qemuDomainCmdlineDefFree(cmd);
 
+    virObjectUnref(qemuCaps);
     return def;
 
  error:
@@ -2729,11 +2739,13 @@ qemuParseCommandLine(virCapsPtr caps,
     }
     if (pidfile)
         VIR_FREE(*pidfile);
+    virObjectUnref(qemuCaps);
     return NULL;
 }
 
 
-virDomainDefPtr qemuParseCommandLineString(virCapsPtr caps,
+virDomainDefPtr qemuParseCommandLineString(virFileCachePtr capsCache,
+                                           virCapsPtr caps,
                                            virDomainXMLOptionPtr xmlopt,
                                            const char *args,
                                            char **pidfile,
@@ -2747,7 +2759,7 @@ virDomainDefPtr qemuParseCommandLineString(virCapsPtr caps,
     if (qemuStringToArgvEnv(args, &progenv, &progargv) < 0)
         goto cleanup;
 
-    def = qemuParseCommandLine(caps, xmlopt, progenv, progargv,
+    def = qemuParseCommandLine(capsCache, caps, xmlopt, progenv, progargv,
                                pidfile, monConfig, monJSON);
 
  cleanup:
@@ -2805,7 +2817,8 @@ static int qemuParseProcFileStrings(int pid_value,
     return ret;
 }
 
-virDomainDefPtr qemuParseCommandLinePid(virCapsPtr caps,
+virDomainDefPtr qemuParseCommandLinePid(virFileCachePtr capsCache,
+                                        virCapsPtr caps,
                                         virDomainXMLOptionPtr xmlopt,
                                         pid_t pid,
                                         char **pidfile,
@@ -2825,7 +2838,7 @@ virDomainDefPtr qemuParseCommandLinePid(virCapsPtr caps,
         qemuParseProcFileStrings(pid, "environ", &progenv) < 0)
         goto cleanup;
 
-    if (!(def = qemuParseCommandLine(caps, xmlopt, progenv, progargv,
+    if (!(def = qemuParseCommandLine(capsCache, caps, xmlopt, progenv, progargv,
                                      pidfile, monConfig, monJSON)))
         goto cleanup;
 

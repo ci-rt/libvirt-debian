@@ -262,6 +262,33 @@ static virStorageDriver fakeStorageDriver = {
     .storagePoolIsActive = fakeStoragePoolIsActive,
 };
 
+
+/* virNetDevOpenvswitchGetVhostuserIfname mocks a portdev name - handle that */
+static virNWFilterBindingPtr
+fakeNWFilterBindingLookupByPortDev(virConnectPtr conn,
+                                   const char *portdev)
+{
+    if (STREQ(portdev, "vhost-user0"))
+        return virGetNWFilterBinding(conn, "fake_vnet0", "fakeFilterName");
+
+    virReportError(VIR_ERR_NO_NWFILTER_BINDING,
+                   "no nwfilter binding for port dev '%s'", portdev);
+    return NULL;
+}
+
+
+static int
+fakeNWFilterBindingDelete(virNWFilterBindingPtr binding ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+
+
+static virNWFilterDriver fakeNWFilterDriver = {
+    .nwfilterBindingLookupByPortDev = fakeNWFilterBindingLookupByPortDev,
+    .nwfilterBindingDelete = fakeNWFilterBindingDelete,
+};
+
 typedef enum {
     FLAG_EXPECT_FAILURE     = 1 << 0,
     FLAG_EXPECT_PARSE_ERROR = 1 << 1,
@@ -470,7 +497,12 @@ testCompareXMLToArgv(const void *data)
 
     conn->secretDriver = &fakeSecretDriver;
     conn->storageDriver = &fakeStorageDriver;
+    conn->nwfilterDriver = &fakeNWFilterDriver;
 
+    virSetConnectInterface(conn);
+    virSetConnectNetwork(conn);
+    virSetConnectNWFilter(conn);
+    virSetConnectNodeDev(conn);
     virSetConnectSecret(conn);
     virSetConnectStorage(conn);
 
@@ -621,10 +653,11 @@ testCompareXMLToArgv(const void *data)
 static int
 mymain(void)
 {
-    int ret = 0;
+    int ret = 0, i;
     char *fakerootdir;
     bool skipLegacyCPUs = false;
-    char *capslatest_x86_64 = NULL;
+    const char *archs[] = { "x86_64", "s390x" };
+    virHashTablePtr capslatest = NULL;
 
     if (VIR_STRDUP_QUIET(fakerootdir, FAKEROOTDIRTEMPLATE) < 0) {
         fprintf(stderr, "Out of memory\n");
@@ -693,12 +726,23 @@ mymain(void)
     if (VIR_STRDUP_QUIET(driver.config->memoryBackingDir, "/var/lib/libvirt/qemu/ram") < 0)
         return EXIT_FAILURE;
 
-    if (!(capslatest_x86_64 = testQemuGetLatestCapsForArch(abs_srcdir "/qemucapabilitiesdata",
-                                                           "x86_64", "xml")))
+    capslatest = virHashCreate(4, virHashValueFree);
+    if (!capslatest)
         return EXIT_FAILURE;
 
-    VIR_TEST_VERBOSE("\nlatest caps x86_64: %s\n", capslatest_x86_64);
+    VIR_TEST_VERBOSE("\n");
 
+    for (i = 0; i < ARRAY_CARDINALITY(archs); ++i) {
+        char *cap = testQemuGetLatestCapsForArch(abs_srcdir "/qemucapabilitiesdata",
+                                                 archs[i], "xml");
+
+        if (!cap || virHashAddEntry(capslatest, archs[i], cap) < 0)
+            return EXIT_FAILURE;
+
+        VIR_TEST_VERBOSE("latest caps for %s: %s\n", archs[i], cap);
+    }
+
+    VIR_TEST_VERBOSE("\n");
 
 /**
  * The following set of macros allows testing of XML -> argv conversion with a
@@ -746,9 +790,12 @@ mymain(void)
 # define DO_TEST_CAPS_VER(name, ver) \
     DO_TEST_CAPS_ARCH_VER(name, "x86_64", ver)
 
+# define DO_TEST_CAPS_ARCH_LATEST(name, arch) \
+    DO_TEST_CAPS_INTERNAL(name, arch "-latest", NULL, 0, 0, arch, \
+                          virHashLookup(capslatest, arch), true)
+
 # define DO_TEST_CAPS_LATEST(name) \
-    DO_TEST_CAPS_INTERNAL(name, "x86_64-latest", NULL, 0, 0, "x86_64", \
-                          capslatest_x86_64, true)
+    DO_TEST_CAPS_ARCH_LATEST(name, "x86_64")
 
 /**
  * The following test macros should be used only in cases when the tests require
@@ -849,38 +896,22 @@ mymain(void)
     DO_TEST("boot-floppy-q35",
             QEMU_CAPS_DEVICE_IOH3420,
             QEMU_CAPS_ICH9_AHCI);
-    DO_TEST("bootindex-floppy-q35",
-            QEMU_CAPS_DEVICE_IOH3420,
-            QEMU_CAPS_ICH9_AHCI,
-            QEMU_CAPS_BOOTINDEX);
     DO_TEST("boot-multi", NONE);
     DO_TEST("boot-menu-enable", NONE);
-    DO_TEST("boot-menu-enable-bootindex",
-            QEMU_CAPS_BOOTINDEX);
     DO_TEST("boot-menu-enable-with-timeout",
             QEMU_CAPS_SPLASH_TIMEOUT);
     DO_TEST_FAILURE("boot-menu-enable-with-timeout", NONE);
     DO_TEST_PARSE_ERROR("boot-menu-enable-with-timeout-invalid", NONE);
     DO_TEST("boot-menu-disable", NONE);
     DO_TEST("boot-menu-disable-drive", NONE);
-    DO_TEST("boot-menu-disable-drive-bootindex",
-            QEMU_CAPS_BOOTINDEX);
     DO_TEST_PARSE_ERROR("boot-dev+order",
-            QEMU_CAPS_BOOTINDEX,
             QEMU_CAPS_VIRTIO_BLK_SCSI);
     DO_TEST("boot-order",
-            QEMU_CAPS_BOOTINDEX,
             QEMU_CAPS_VIRTIO_BLK_SCSI);
     DO_TEST("boot-complex",
-            QEMU_CAPS_DRIVE_BOOT,
-            QEMU_CAPS_VIRTIO_BLK_SCSI);
-    DO_TEST("boot-complex-bootindex",
-            QEMU_CAPS_DRIVE_BOOT,
-            QEMU_CAPS_BOOTINDEX,
             QEMU_CAPS_VIRTIO_BLK_SCSI);
     DO_TEST("boot-strict",
-            QEMU_CAPS_DRIVE_BOOT,
-            QEMU_CAPS_BOOTINDEX, QEMU_CAPS_BOOT_STRICT,
+            QEMU_CAPS_BOOT_STRICT,
             QEMU_CAPS_VIRTIO_BLK_SCSI);
 
     DO_TEST("reboot-timeout-disabled", QEMU_CAPS_REBOOT_TIMEOUT);
@@ -945,126 +976,153 @@ mymain(void)
     DO_TEST("pmu-feature", NONE);
     DO_TEST("pmu-feature-off", NONE);
 
-    DO_TEST("hugepages", NONE);
-    DO_TEST("hugepages-numa",
-            QEMU_CAPS_PIIX_DISABLE_S3, QEMU_CAPS_PIIX_DISABLE_S4,
-            QEMU_CAPS_VIRTIO_SCSI,
-            QEMU_CAPS_ICH9_USB_EHCI1,
-            QEMU_CAPS_SPICE,
-            QEMU_CAPS_DEVICE_QXL,
-            QEMU_CAPS_HDA_DUPLEX, QEMU_CAPS_USB_REDIR,
-            QEMU_CAPS_DEVICE_PC_DIMM,
-            QEMU_CAPS_OBJECT_MEMORY_FILE);
-    DO_TEST("hugepages-pages",
+    DO_TEST("pages-discard",
+            QEMU_CAPS_OBJECT_MEMORY_FILE,
+            QEMU_CAPS_OBJECT_MEMORY_FILE_DISCARD);
+    DO_TEST("pages-discard-hugepages",
             QEMU_CAPS_OBJECT_MEMORY_RAM,
             QEMU_CAPS_OBJECT_MEMORY_FILE,
             QEMU_CAPS_OBJECT_MEMORY_FILE_DISCARD);
-    DO_TEST("hugepages-pages2", QEMU_CAPS_OBJECT_MEMORY_RAM,
-            QEMU_CAPS_OBJECT_MEMORY_FILE);
-    DO_TEST("hugepages-pages3", QEMU_CAPS_OBJECT_MEMORY_RAM,
+    DO_TEST("pages-dimm-discard",
+            QEMU_CAPS_DEVICE_PC_DIMM,
             QEMU_CAPS_OBJECT_MEMORY_FILE,
             QEMU_CAPS_OBJECT_MEMORY_FILE_DISCARD);
+    DO_TEST("hugepages-default", NONE);
+    DO_TEST("hugepages-default-2M", NONE);
+    DO_TEST("hugepages-default-system-size", NONE);
+    DO_TEST_PARSE_ERROR("hugepages-default-1G-nodeset-2M", NONE);
+    DO_TEST("hugepages-nodeset", NONE);
+    DO_TEST_PARSE_ERROR("hugepages-nodeset-nonexist",
+                        QEMU_CAPS_DEVICE_PC_DIMM,
+                        QEMU_CAPS_OBJECT_MEMORY_FILE,
+                        QEMU_CAPS_OBJECT_MEMORY_FILE_DISCARD);
+    DO_TEST("hugepages-numa-default",
+            QEMU_CAPS_OBJECT_MEMORY_FILE);
+    DO_TEST("hugepages-numa-default-2M",
+            QEMU_CAPS_OBJECT_MEMORY_RAM,
+            QEMU_CAPS_OBJECT_MEMORY_FILE);
+    DO_TEST("hugepages-numa-default-dimm",
+            QEMU_CAPS_DEVICE_PC_DIMM,
+            QEMU_CAPS_OBJECT_MEMORY_FILE);
+    DO_TEST("hugepages-numa-nodeset",
+            QEMU_CAPS_OBJECT_MEMORY_RAM,
+            QEMU_CAPS_OBJECT_MEMORY_FILE);
+    DO_TEST("hugepages-numa-nodeset-part",
+            QEMU_CAPS_OBJECT_MEMORY_RAM,
+            QEMU_CAPS_OBJECT_MEMORY_FILE);
+    DO_TEST_PARSE_ERROR("hugepages-numa-nodeset-nonexist",
+                        QEMU_CAPS_OBJECT_MEMORY_RAM,
+                        QEMU_CAPS_OBJECT_MEMORY_FILE);
     DO_TEST("hugepages-shared",
             QEMU_CAPS_OBJECT_MEMORY_RAM,
             QEMU_CAPS_OBJECT_MEMORY_FILE);
     DO_TEST_PARSE_ERROR("hugepages-memaccess-invalid", NONE);
-    DO_TEST_FAILURE("hugepages-pages4",
-            QEMU_CAPS_OBJECT_MEMORY_RAM, QEMU_CAPS_OBJECT_MEMORY_FILE);
-    DO_TEST("hugepages-pages5", NONE);
-    DO_TEST("hugepages-pages6", NONE);
-    DO_TEST("hugepages-pages7",
-            QEMU_CAPS_DEVICE_PC_DIMM, QEMU_CAPS_OBJECT_MEMORY_FILE,
-            QEMU_CAPS_OBJECT_MEMORY_FILE_DISCARD);
-    DO_TEST_FAILURE("hugepages-pages8",
-                    QEMU_CAPS_DEVICE_PC_DIMM, QEMU_CAPS_OBJECT_MEMORY_FILE,
-                    QEMU_CAPS_OBJECT_MEMORY_FILE_DISCARD);
     DO_TEST("hugepages-memaccess", QEMU_CAPS_OBJECT_MEMORY_FILE,
             QEMU_CAPS_OBJECT_MEMORY_RAM, QEMU_CAPS_DEVICE_PC_DIMM,
             QEMU_CAPS_NUMA);
     DO_TEST("hugepages-memaccess2", QEMU_CAPS_OBJECT_MEMORY_FILE,
             QEMU_CAPS_OBJECT_MEMORY_RAM, QEMU_CAPS_DEVICE_PC_DIMM,
             QEMU_CAPS_NUMA);
-    DO_TEST_FAILURE("hugepages-memaccess3",
-            QEMU_CAPS_OBJECT_MEMORY_RAM, QEMU_CAPS_OBJECT_MEMORY_FILE,
-            QEMU_CAPS_VIRTIO_SCSI);
+    DO_TEST_PARSE_ERROR("hugepages-memaccess3",
+                        QEMU_CAPS_OBJECT_MEMORY_RAM,
+                        QEMU_CAPS_OBJECT_MEMORY_FILE);
+    DO_TEST_CAPS_LATEST("hugepages-nvdimm");
     DO_TEST("nosharepages", QEMU_CAPS_MEM_MERGE);
     DO_TEST("disk-cdrom", NONE);
+    DO_TEST_CAPS_VER("disk-cdrom", "2.12.0");
     DO_TEST_CAPS_LATEST("disk-cdrom");
     DO_TEST("disk-iscsi", NONE);
     DO_TEST("disk-cdrom-network", QEMU_CAPS_KVM);
+    DO_TEST_CAPS_VER("disk-cdrom-network", "2.12.0");
     DO_TEST_CAPS_LATEST("disk-cdrom-network");
     DO_TEST("disk-cdrom-tray",
             QEMU_CAPS_VIRTIO_TX_ALG);
+    DO_TEST_CAPS_VER("disk-cdrom-tray", "2.12.0");
     DO_TEST_CAPS_LATEST("disk-cdrom-tray");
     DO_TEST("disk-floppy", NONE);
+    DO_TEST_CAPS_VER("disk-floppy", "2.12.0");
     DO_TEST_CAPS_LATEST("disk-floppy");
+    DO_TEST_CAPS_VER("disk-floppy-q35-2_9", "2.12.0");
+    DO_TEST_CAPS_LATEST("disk-floppy-q35-2_9");
+    DO_TEST_CAPS_VER("disk-floppy-q35-2_11", "2.12.0");
+    DO_TEST_CAPS_LATEST("disk-floppy-q35-2_11");
     DO_TEST_FAILURE("disk-floppy-pseries",
                     QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE);
     DO_TEST("disk-floppy-tray", NONE);
     DO_TEST("disk-virtio-s390",
             QEMU_CAPS_VIRTIO_S390);
-    DO_TEST("disk-virtio", QEMU_CAPS_DRIVE_BOOT);
+    DO_TEST("disk-virtio", NONE);
     DO_TEST("disk-virtio-ccw",
             QEMU_CAPS_CCW, QEMU_CAPS_VIRTIO_S390);
     DO_TEST("disk-virtio-ccw-many",
             QEMU_CAPS_CCW, QEMU_CAPS_VIRTIO_S390);
     DO_TEST("disk-virtio-scsi-ccw", QEMU_CAPS_VIRTIO_SCSI,
             QEMU_CAPS_CCW, QEMU_CAPS_VIRTIO_S390);
-    DO_TEST("disk-order",
-            QEMU_CAPS_DRIVE_BOOT, QEMU_CAPS_VIRTIO_BLK_SCSI);
+    DO_TEST("disk-order", QEMU_CAPS_VIRTIO_BLK_SCSI);
     DO_TEST("disk-virtio-queues",
             QEMU_CAPS_VIRTIO_BLK_NUM_QUEUES);
-    DO_TEST("disk-boot-disk",
-            QEMU_CAPS_DRIVE_BOOT);
-    DO_TEST("disk-boot-cdrom",
-            QEMU_CAPS_DRIVE_BOOT);
-    DO_TEST("floppy-drive-fat",
-            QEMU_CAPS_DRIVE_BOOT);
+    DO_TEST("disk-boot-disk", NONE);
+    DO_TEST("disk-boot-cdrom", NONE);
+    DO_TEST("floppy-drive-fat", NONE);
+    DO_TEST_CAPS_VER("floppy-drive-fat", "2.12.0");
     DO_TEST_CAPS_LATEST("floppy-drive-fat");
     DO_TEST("disk-readonly-disk", NONE);
+    DO_TEST_CAPS_VER("disk-readonly-disk", "2.12.0");
     DO_TEST_CAPS_LATEST("disk-readonly-disk");
-    DO_TEST("disk-fmt-qcow",
-            QEMU_CAPS_DRIVE_BOOT);
-    DO_TEST_PARSE_ERROR("disk-fmt-cow", QEMU_CAPS_DRIVE_BOOT);
-    DO_TEST_PARSE_ERROR("disk-fmt-dir", QEMU_CAPS_DRIVE_BOOT);
-    DO_TEST_PARSE_ERROR("disk-fmt-iso", QEMU_CAPS_DRIVE_BOOT);
+    DO_TEST("disk-fmt-qcow", NONE);
+    DO_TEST_PARSE_ERROR("disk-fmt-cow", NONE);
+    DO_TEST_PARSE_ERROR("disk-fmt-dir", NONE);
+    DO_TEST_PARSE_ERROR("disk-fmt-iso", NONE);
     DO_TEST("disk-shared", NONE);
+    DO_TEST_CAPS_VER("disk-shared", "2.12.0");
     DO_TEST_CAPS_LATEST("disk-shared");
     DO_TEST_PARSE_ERROR("disk-shared-qcow", NONE);
     DO_TEST("disk-shared-locking",
             QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_DISK_SHARE_RW);
     DO_TEST("disk-error-policy", NONE);
+    DO_TEST_CAPS_VER("disk-error-policy", "2.12.0");
     DO_TEST_CAPS_LATEST("disk-error-policy");
     DO_TEST("disk-cache", QEMU_CAPS_SCSI_LSI, QEMU_CAPS_DEVICE_USB_STORAGE);
     DO_TEST_CAPS_VER("disk-cache", "2.6.0");
     DO_TEST_CAPS_VER("disk-cache", "2.7.0");
+    DO_TEST_CAPS_VER("disk-cache", "2.12.0");
     DO_TEST_CAPS_LATEST("disk-cache");
     DO_TEST("disk-network-nbd", NONE);
+    DO_TEST_CAPS_VER("disk-network-nbd", "2.12.0");
     DO_TEST_CAPS_LATEST("disk-network-nbd");
     DO_TEST("disk-network-iscsi", QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_SCSI_BLOCK);
+    DO_TEST("disk-network-iscsi-modern",
+            QEMU_CAPS_VIRTIO_SCSI,
+            QEMU_CAPS_SCSI_BLOCK,
+            QEMU_CAPS_ISCSI_PASSWORD_SECRET);
+    DO_TEST_CAPS_VER("disk-network-iscsi", "2.12.0");
     DO_TEST_CAPS_LATEST("disk-network-iscsi");
     DO_TEST_PARSE_ERROR("disk-network-iscsi-auth-secrettype-invalid", NONE);
     DO_TEST_PARSE_ERROR("disk-network-iscsi-auth-wrong-secrettype", NONE);
     DO_TEST_PARSE_ERROR("disk-network-source-auth-both", NONE);
     DO_TEST("disk-network-gluster",
             QEMU_CAPS_GLUSTER_DEBUG_LEVEL);
+    DO_TEST_CAPS_VER("disk-network-gluster", "2.12.0");
     DO_TEST_CAPS_LATEST("disk-network-gluster");
     DO_TEST_CAPS_VER("disk-network-rbd", "2.5.0");
+    DO_TEST_CAPS_VER("disk-network-rbd", "2.12.0");
     DO_TEST_CAPS_LATEST("disk-network-rbd");
     DO_TEST_FAILURE("disk-network-rbd-no-colon", NONE);
     DO_TEST("disk-network-sheepdog", NONE);
+    DO_TEST_CAPS_VER("disk-network-sheepdog", "2.12.0");
     DO_TEST_CAPS_LATEST("disk-network-sheepdog");
     DO_TEST("disk-network-source-auth", NONE);
+    DO_TEST_CAPS_VER("disk-network-source-auth", "2.12.0");
     DO_TEST_CAPS_LATEST("disk-network-source-auth");
     DO_TEST("disk-network-vxhs", QEMU_CAPS_VXHS);
     driver.config->vxhsTLS = 1;
     DO_TEST("disk-network-tlsx509", QEMU_CAPS_VXHS,
             QEMU_CAPS_OBJECT_TLS_CREDS_X509, QEMU_CAPS_NBD_TLS);
+    DO_TEST_CAPS_VER("disk-network-tlsx509", "2.12.0");
     DO_TEST_CAPS_LATEST("disk-network-tlsx509");
     driver.config->vxhsTLS = 0;
     VIR_FREE(driver.config->vxhsTLSx509certdir);
-    DO_TEST("disk-no-boot",
-            QEMU_CAPS_BOOTINDEX);
+    DO_TEST("disk-no-boot", NONE);
     DO_TEST_PARSE_ERROR("disk-device-lun-type-invalid",
                         QEMU_CAPS_VIRTIO_SCSI);
     DO_TEST_FAILURE("disk-usb-nosupport", NONE);
@@ -1109,6 +1167,7 @@ mymain(void)
     DO_TEST("disk-sata-device",
             QEMU_CAPS_ICH9_AHCI);
     DO_TEST("disk-aio", NONE);
+    DO_TEST_CAPS_VER("disk-aio", "2.12.0");
     DO_TEST_CAPS_LATEST("disk-aio");
     DO_TEST("disk-source-pool", NONE);
     DO_TEST("disk-source-pool-mode", NONE);
@@ -1119,12 +1178,14 @@ mymain(void)
     DO_TEST("disk-copy_on_read",
             QEMU_CAPS_VIRTIO_TX_ALG,
             QEMU_CAPS_VIRTIO_BLK_SCSI);
+    DO_TEST_CAPS_VER("disk-copy_on_read", "2.12.0");
     DO_TEST_CAPS_LATEST("disk-copy_on_read");
     DO_TEST("disk-discard",
             QEMU_CAPS_DRIVE_DISCARD);
     DO_TEST("disk-detect-zeroes",
             QEMU_CAPS_DRIVE_DISCARD,
             QEMU_CAPS_DRIVE_DETECT_ZEROES);
+    DO_TEST_CAPS_VER("disk-detect-zeroes", "2.12.0");
     DO_TEST_CAPS_LATEST("disk-detect-zeroes");
     DO_TEST("disk-snapshot", NONE);
     DO_TEST_PARSE_ERROR("disk-same-targets",
@@ -1157,6 +1218,10 @@ mymain(void)
                         QEMU_CAPS_ICH9_AHCI);
     DO_TEST_PARSE_ERROR("disk-scsi-incompatible-address",
                         QEMU_CAPS_VIRTIO_SCSI);
+    DO_TEST_CAPS_VER("disk-backing-chains-index", "2.12.0");
+    DO_TEST_CAPS_LATEST("disk-backing-chains-index");
+    DO_TEST_CAPS_VER("disk-backing-chains-noindex", "2.12.0");
+    DO_TEST_CAPS_LATEST("disk-backing-chains-noindex");
 
     DO_TEST("graphics-egl-headless",
             QEMU_CAPS_EGL_HEADLESS,
@@ -1395,10 +1460,8 @@ mymain(void)
     DO_TEST("console-virtio-many",
             QEMU_CAPS_DEVICE_ISA_SERIAL);
     DO_TEST("console-virtio-s390",
-            QEMU_CAPS_BOOTINDEX,
             QEMU_CAPS_VIRTIO_S390);
     DO_TEST("console-virtio-ccw",
-            QEMU_CAPS_BOOTINDEX,
             QEMU_CAPS_CCW,
             QEMU_CAPS_VIRTIO_S390);
     DO_TEST("console-sclp",
@@ -1478,7 +1541,6 @@ mymain(void)
             QEMU_CAPS_ICH9_USB_EHCI1,
             QEMU_CAPS_USB_REDIR,
             QEMU_CAPS_SPICE,
-            QEMU_CAPS_BOOTINDEX,
             QEMU_CAPS_USB_REDIR_BOOTINDEX);
     DO_TEST("usb-redir-filter",
             QEMU_CAPS_USB_HUB,
@@ -1543,8 +1605,7 @@ mymain(void)
     DO_TEST("watchdog-device", NONE);
     DO_TEST("watchdog-dump", NONE);
     DO_TEST("watchdog-injectnmi", NONE);
-    DO_TEST("watchdog-diag288",
-            QEMU_CAPS_BOOTINDEX, QEMU_CAPS_VIRTIO_S390);
+    DO_TEST("watchdog-diag288", QEMU_CAPS_VIRTIO_S390);
     DO_TEST("balloon-device", NONE);
     DO_TEST("balloon-device-deflate",
             QEMU_CAPS_VIRTIO_BALLOON_AUTODEFLATE);
@@ -1570,7 +1631,6 @@ mymain(void)
     DO_TEST("hostdev-usb-address", NONE);
     DO_TEST("hostdev-usb-address-device", NONE);
     DO_TEST("hostdev-usb-address-device-boot",
-            QEMU_CAPS_BOOTINDEX,
             QEMU_CAPS_USB_HOST_BOOTINDEX);
     DO_TEST("hostdev-pci-address", NONE);
     DO_TEST("hostdev-pci-address-device", NONE);
@@ -1947,12 +2007,14 @@ mymain(void)
             QEMU_CAPS_DEVICE_QXL,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
             QEMU_CAPS_QXL_VGAMEM);
+    DO_TEST_CAPS_LATEST("video-qxl-device-vram64");
     DO_TEST("video-qxl-sec-device",
             QEMU_CAPS_DEVICE_QXL, QEMU_CAPS_DEVICE_VIDEO_PRIMARY);
     DO_TEST("video-qxl-sec-device-vgamem",
             QEMU_CAPS_DEVICE_QXL,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
             QEMU_CAPS_QXL_VGAMEM);
+    DO_TEST_CAPS_LATEST("video-qxl-sec-device-vram64");
     DO_TEST("video-qxl-heads",
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
             QEMU_CAPS_DEVICE_QXL,
@@ -2012,19 +2074,16 @@ mymain(void)
             QEMU_CAPS_DEVICE_VIRTIO_RNG,
             QEMU_CAPS_OBJECT_RNG_EGD);
     DO_TEST("virtio-rng-ccw",
-            QEMU_CAPS_BOOTINDEX,
             QEMU_CAPS_CCW,
             QEMU_CAPS_VIRTIO_S390,
             QEMU_CAPS_DEVICE_VIRTIO_RNG,
             QEMU_CAPS_OBJECT_RNG_RANDOM);
 
     DO_TEST("s390-allow-bogus-usb-none",
-            QEMU_CAPS_BOOTINDEX,
             QEMU_CAPS_VIRTIO_S390,
             QEMU_CAPS_DEVICE_VIRTIO_RNG,
             QEMU_CAPS_OBJECT_RNG_RANDOM);
     DO_TEST("s390-allow-bogus-usb-controller",
-            QEMU_CAPS_BOOTINDEX,
             QEMU_CAPS_VIRTIO_S390,
             QEMU_CAPS_DEVICE_VIRTIO_RNG,
             QEMU_CAPS_OBJECT_RNG_RANDOM);
@@ -2472,7 +2531,7 @@ mymain(void)
             QEMU_CAPS_OBJECT_GPEX,
             QEMU_CAPS_DEVICE_PCI_BRIDGE, QEMU_CAPS_DEVICE_IOH3420,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
-            QEMU_CAPS_DEVICE_VIRTIO_GPU, QEMU_CAPS_BOOTINDEX);
+            QEMU_CAPS_DEVICE_VIRTIO_GPU);
     DO_TEST("aarch64-video-default",
             QEMU_CAPS_OBJECT_GPEX,
             QEMU_CAPS_DEVICE_PCI_BRIDGE, QEMU_CAPS_DEVICE_IOH3420,
@@ -2724,21 +2783,21 @@ mymain(void)
 
     DO_TEST("machine-loadparm-s390",
             QEMU_CAPS_CCW, QEMU_CAPS_VIRTIO_S390,
-            QEMU_CAPS_BOOTINDEX, QEMU_CAPS_LOADPARM);
+            QEMU_CAPS_LOADPARM);
     DO_TEST("machine-loadparm-net-s390",
             QEMU_CAPS_CCW, QEMU_CAPS_VIRTIO_S390,
-            QEMU_CAPS_BOOTINDEX, QEMU_CAPS_LOADPARM);
+            QEMU_CAPS_LOADPARM);
     DO_TEST("machine-loadparm-multiple-disks-nets-s390",
             QEMU_CAPS_CCW,
-            QEMU_CAPS_VIRTIO_S390, QEMU_CAPS_BOOTINDEX,
+            QEMU_CAPS_VIRTIO_S390,
             QEMU_CAPS_LOADPARM);
     DO_TEST_PARSE_ERROR("machine-loadparm-s390-char-invalid",
                         QEMU_CAPS_CCW,
-                        QEMU_CAPS_VIRTIO_S390, QEMU_CAPS_BOOTINDEX,
+                        QEMU_CAPS_VIRTIO_S390,
                         QEMU_CAPS_LOADPARM);
     DO_TEST_PARSE_ERROR("machine-loadparm-s390-len-invalid",
                         QEMU_CAPS_CCW,
-                        QEMU_CAPS_VIRTIO_S390, QEMU_CAPS_BOOTINDEX,
+                        QEMU_CAPS_VIRTIO_S390,
                         QEMU_CAPS_LOADPARM);
 
     DO_TEST("qemu-ns-domain-ns0", NONE);
@@ -2893,6 +2952,7 @@ mymain(void)
             QEMU_CAPS_PIIX_DISABLE_S3, QEMU_CAPS_PIIX_DISABLE_S4,
             QEMU_CAPS_ICH9_USB_EHCI1);
 
+    DO_TEST_CAPS_VER("disk-virtio-scsi-reservations", "2.12.0");
     DO_TEST_CAPS_LATEST("disk-virtio-scsi-reservations");
 
     DO_TEST_CAPS_LATEST("tseg-explicit-size");
@@ -2937,10 +2997,13 @@ mymain(void)
 
     DO_TEST_CAPS_LATEST("vhost-vsock");
     DO_TEST_CAPS_LATEST("vhost-vsock-auto");
+    DO_TEST_CAPS_ARCH_LATEST("vhost-vsock-ccw", "s390x");
+    DO_TEST_CAPS_ARCH_LATEST("vhost-vsock-ccw-auto", "s390x");
 
-    DO_TEST("launch-security-sev",
-            QEMU_CAPS_KVM,
-            QEMU_CAPS_SEV_GUEST);
+    DO_TEST_CAPS_VER("launch-security-sev", "2.12.0");
+
+    DO_TEST("riscv64-virt",
+            QEMU_CAPS_DEVICE_VIRTIO_MMIO);
 
     if (getenv("LIBVIRT_SKIP_CLEANUP") == NULL)
         virFileDeleteTree(fakerootdir);
@@ -2948,7 +3011,7 @@ mymain(void)
     VIR_FREE(driver.config->nbdTLSx509certdir);
     qemuTestDriverFree(&driver);
     VIR_FREE(fakerootdir);
-    VIR_FREE(capslatest_x86_64);
+    virHashFree(capslatest);
 
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

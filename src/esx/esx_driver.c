@@ -635,20 +635,14 @@ esxConnectToHost(esxPrivate *priv,
         if (VIR_STRDUP(username, conn->uri->user) < 0)
             goto cleanup;
     } else {
-        username = virAuthGetUsername(conn, auth, "esx", "root", conn->uri->server);
-
-        if (!username) {
-            virReportError(VIR_ERR_AUTH_FAILED, "%s", _("Username request failed"));
+        if (!(username = virAuthGetUsername(conn, auth, "esx", "root",
+                                            conn->uri->server)))
             goto cleanup;
-        }
     }
 
-    password = virAuthGetPassword(conn, auth, "esx", username, conn->uri->server);
-
-    if (!password) {
-        virReportError(VIR_ERR_AUTH_FAILED, "%s", _("Password request failed"));
+    if (!(password = virAuthGetPassword(conn, auth, "esx", username,
+                                        conn->uri->server)))
         goto cleanup;
-    }
 
     if (virAsprintf(&url, "%s://%s:%d/sdk", priv->parsedUri->transport,
                     conn->uri->server, conn->uri->port) < 0)
@@ -733,20 +727,13 @@ esxConnectToVCenter(esxPrivate *priv,
         if (VIR_STRDUP(username, conn->uri->user) < 0)
             goto cleanup;
     } else {
-        username = virAuthGetUsername(conn, auth, "esx", "administrator", hostname);
-
-        if (!username) {
-            virReportError(VIR_ERR_AUTH_FAILED, "%s", _("Username request failed"));
+        if (!(username = virAuthGetUsername(conn, auth, "esx", "administrator",
+                                            hostname)))
             goto cleanup;
-        }
     }
 
-    password = virAuthGetPassword(conn, auth, "esx", username, hostname);
-
-    if (!password) {
-        virReportError(VIR_ERR_AUTH_FAILED, "%s", _("Password request failed"));
+    if (!(password = virAuthGetPassword(conn, auth, "esx", username, hostname)))
         goto cleanup;
-    }
 
     if (virAsprintf(&url, "%s://%s:%d/sdk", priv->parsedUri->transport,
                     hostname, conn->uri->port) < 0)
@@ -852,13 +839,6 @@ esxConnectOpen(virConnectPtr conn, virConnectAuthPtr auth,
         STRNEQ(conn->uri->path, "/")) {
         VIR_WARN("Ignoring unexpected path '%s' for non-vpx scheme '%s'",
                  conn->uri->path, conn->uri->scheme);
-    }
-
-    /* Require auth */
-    if (!auth || !auth->cb) {
-        virReportError(VIR_ERR_INVALID_ARG, "%s",
-                       _("Missing or invalid auth pointer"));
-        return VIR_DRV_OPEN_ERROR;
     }
 
     /* Allocate per-connection private data */
@@ -1317,6 +1297,8 @@ esxNodeGetInfo(virConnectPtr conn, virNodeInfoPtr nodeinfo)
                 ++ptr;
             }
 
+            /* Make sure the string fits in mode */
+            dynamicProperty->val->string[sizeof(nodeinfo->model) - 1] = '\0';
             if (virStrcpyStatic(nodeinfo->model, dynamicProperty->val->string) < 0) {
                 virReportError(VIR_ERR_INTERNAL_ERROR,
                                _("CPU Model %s too long for destination"),

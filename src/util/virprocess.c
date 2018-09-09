@@ -158,7 +158,7 @@ virProcessAbort(pid_t pid)
     int saved_errno;
     int ret;
     int status;
-    char *tmp = NULL;
+    VIR_AUTOFREE(char *) tmp = NULL;
 
     if (pid <= 0)
         return;
@@ -199,7 +199,6 @@ virProcessAbort(pid_t pid)
     VIR_DEBUG("failed to reap child %lld, abandoning it", (long long) pid);
 
  cleanup:
-    VIR_FREE(tmp);
     errno = saved_errno;
 }
 #else
@@ -238,6 +237,7 @@ virProcessWait(pid_t pid, int *exitstatus, bool raw)
 {
     int ret;
     int status;
+    VIR_AUTOFREE(char *) st = NULL;
 
     if (pid <= 0) {
         if (pid != -1)
@@ -270,13 +270,10 @@ virProcessWait(pid_t pid, int *exitstatus, bool raw)
     return 0;
 
  error:
-    {
-        char *st = virProcessTranslateStatus(status);
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Child process (%lld) unexpected %s"),
-                       (long long) pid, NULLSTR(st));
-        VIR_FREE(st);
-    }
+    st = virProcessTranslateStatus(status);
+    virReportError(VIR_ERR_INTERNAL_ERROR,
+                   _("Child process (%lld) unexpected %s"),
+                   (long long) pid, NULLSTR(st));
     return -1;
 }
 
@@ -344,25 +341,34 @@ int virProcessKill(pid_t pid, int sig)
  * Returns 0 if it was killed gracefully, 1 if it
  * was killed forcibly, -1 if it is still alive,
  * or another error occurred.
+ *
+ * Callers can proide an extra delay in seconds to
+ * wait longer than the default.
  */
 int
-virProcessKillPainfully(pid_t pid, bool force)
+virProcessKillPainfullyDelay(pid_t pid, bool force, unsigned int extradelay)
 {
     size_t i;
     int ret = -1;
+    /* This is in 1/5th seconds since polling is on a 0.2s interval */
+    unsigned int polldelay = (force ? 200 : 75) + (extradelay*5);
     const char *signame = "TERM";
 
-    VIR_DEBUG("vpid=%lld force=%d", (long long)pid, force);
+    VIR_DEBUG("vpid=%lld force=%d extradelay=%u",
+              (long long)pid, force, extradelay);
 
     /* This loop sends SIGTERM, then waits a few iterations (10 seconds)
      * to see if it dies. If the process still hasn't exited, and
      * @force is requested, a SIGKILL will be sent, and this will
-     * wait up to 5 seconds more for the process to exit before
+     * wait up to 30 seconds more for the process to exit before
      * returning.
+     *
+     * An extra delay can be passed by the caller for cases that are
+     * expected to clean up slower than usual.
      *
      * Note that setting @force could result in dataloss for the process.
      */
-    for (i = 0; i < 75; i++) {
+    for (i = 0; i < polldelay; i++) {
         int signum;
         if (i == 0) {
             signum = SIGTERM; /* kindly suggest it should exit */
@@ -404,6 +410,11 @@ virProcessKillPainfully(pid_t pid, bool force)
     return ret;
 }
 
+
+int virProcessKillPainfully(pid_t pid, bool force)
+{
+    return virProcessKillPainfullyDelay(pid, force, 0);
+}
 
 #if HAVE_SCHED_GETAFFINITY
 
@@ -603,10 +614,10 @@ virProcessGetAffinity(pid_t pid ATTRIBUTE_UNUSED)
 int virProcessGetPids(pid_t pid, size_t *npids, pid_t **pids)
 {
     int ret = -1;
-    char *taskPath = NULL;
     DIR *dir = NULL;
     int value;
     struct dirent *ent;
+    VIR_AUTOFREE(char *) taskPath = NULL;
 
     *npids = 0;
     *pids = NULL;
@@ -636,7 +647,6 @@ int virProcessGetPids(pid_t pid, size_t *npids, pid_t **pids)
 
  cleanup:
     VIR_DIR_CLOSE(dir);
-    VIR_FREE(taskPath);
     if (ret < 0)
         VIR_FREE(*pids);
     return ret;
@@ -648,7 +658,6 @@ int virProcessGetNamespaces(pid_t pid,
                             int **fdlist)
 {
     int ret = -1;
-    char *nsfile = NULL;
     size_t i = 0;
     const char *ns[] = { "user", "ipc", "uts", "net", "pid", "mnt" };
 
@@ -657,6 +666,7 @@ int virProcessGetNamespaces(pid_t pid,
 
     for (i = 0; i < ARRAY_CARDINALITY(ns); i++) {
         int fd;
+        VIR_AUTOFREE(char *) nsfile = NULL;
 
         if (virAsprintf(&nsfile, "/proc/%llu/ns/%s",
                         (long long) pid,
@@ -671,14 +681,11 @@ int virProcessGetNamespaces(pid_t pid,
 
             (*fdlist)[(*nfdlist)-1] = fd;
         }
-
-        VIR_FREE(nsfile);
     }
 
     ret = 0;
 
  cleanup:
-    VIR_FREE(nsfile);
     if (ret < 0) {
         for (i = 0; i < *nfdlist; i++)
             VIR_FORCE_CLOSE((*fdlist)[i]);
@@ -977,18 +984,17 @@ virProcessSetMaxCoreSize(pid_t pid ATTRIBUTE_UNUSED,
 int virProcessGetStartTime(pid_t pid,
                            unsigned long long *timestamp)
 {
-    char *filename = NULL;
-    char *buf = NULL;
     char *tmp;
-    int ret = -1;
     int len;
-    char **tokens = NULL;
+    VIR_AUTOFREE(char *) filename = NULL;
+    VIR_AUTOFREE(char *) buf = NULL;
+    VIR_AUTOPTR(virString) tokens = NULL;
 
     if (virAsprintf(&filename, "/proc/%llu/stat", (long long) pid) < 0)
         return -1;
 
     if ((len = virFileReadAll(filename, 1024, &buf)) < 0)
-        goto cleanup;
+        return -1;
 
     /* start time is the token at index 19 after the '(process name)' entry - since only this
      * field can contain the ')' character, search backwards for this to avoid malicious
@@ -999,14 +1005,14 @@ int virProcessGetStartTime(pid_t pid,
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Cannot find start time in %s"),
                        filename);
-        goto cleanup;
+        return -1;
     }
     tmp += 2; /* skip ') ' */
     if ((tmp - buf) >= len) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Cannot find start time in %s"),
                        filename);
-        goto cleanup;
+        return -1;
     }
 
     tokens = virStringSplit(tmp, " ", 0);
@@ -1015,7 +1021,7 @@ int virProcessGetStartTime(pid_t pid,
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Cannot find start time in %s"),
                        filename);
-        goto cleanup;
+        return -1;
     }
 
     if (virStrToLong_ull(tokens[19],
@@ -1025,16 +1031,10 @@ int virProcessGetStartTime(pid_t pid,
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Cannot parse start time %s in %s"),
                        tokens[19], filename);
-        goto cleanup;
+        return -1;
     }
 
-    ret = 0;
-
- cleanup:
-    virStringListFree(tokens);
-    VIR_FREE(filename);
-    VIR_FREE(buf);
-    return ret;
+    return 0;
 }
 #elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
 int virProcessGetStartTime(pid_t pid,
@@ -1080,9 +1080,9 @@ static int virProcessNamespaceHelper(int errfd,
                                      virProcessNamespaceCallback cb,
                                      void *opaque)
 {
-    char *path;
     int fd = -1;
     int ret = -1;
+    VIR_AUTOFREE(char *) path = NULL;
 
     if (virAsprintf(&path, "/proc/%lld/ns/mnt", (long long) pid) < 0)
         goto cleanup;
@@ -1109,7 +1109,6 @@ static int virProcessNamespaceHelper(int errfd,
             ignore_value(safewrite(errfd, err->message, len));
         }
     }
-    VIR_FREE(path);
     VIR_FORCE_CLOSE(fd);
     return ret;
 }
@@ -1145,8 +1144,8 @@ virProcessRunInMountNamespace(pid_t pid,
         VIR_FORCE_CLOSE(errfd[1]);
         _exit(ret < 0 ? EXIT_CANCELED : ret);
     } else {
-        char *buf = NULL;
         int status;
+        VIR_AUTOFREE(char *) buf = NULL;
 
         VIR_FORCE_CLOSE(errfd[1]);
         ignore_value(virFileReadHeaderFD(errfd[0], 1024, &buf));
@@ -1159,7 +1158,6 @@ virProcessRunInMountNamespace(pid_t pid,
                                NULLSTR(buf));
             }
         }
-        VIR_FREE(buf);
     }
 
  cleanup:
@@ -1226,8 +1224,8 @@ virProcessNamespaceAvailable(unsigned int ns)
     int flags = 0;
     int cpid;
     char *childStack;
-    char *stack;
     int stacksize = getpagesize() * 4;
+    VIR_AUTOFREE(char *)stack = NULL;
 
     if (ns & VIR_PROCESS_NAMESPACE_MNT)
         flags |= CLONE_NEWNS;
@@ -1251,7 +1249,7 @@ virProcessNamespaceAvailable(unsigned int ns)
     childStack = stack + stacksize;
 
     cpid = clone(virProcessDummyChild, childStack, flags, NULL);
-    VIR_FREE(stack);
+
     if (cpid < 0) {
         char ebuf[1024] ATTRIBUTE_UNUSED;
         VIR_DEBUG("clone call returned %s, container support is not enabled",

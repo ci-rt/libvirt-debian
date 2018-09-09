@@ -957,19 +957,9 @@ openSSHSession(virConnectPtr conn, virConnectAuthPtr auth,
         if (VIR_STRDUP(username, conn->uri->user) < 0)
             goto err;
     } else {
-        if (auth == NULL || auth->cb == NULL) {
-            virReportError(VIR_ERR_AUTH_FAILED,
-                           "%s", _("No authentication callback provided."));
+        if (!(username = virAuthGetUsername(conn, auth, "ssh", NULL,
+                                            conn->uri->server)))
             goto err;
-        }
-
-        username = virAuthGetUsername(conn, auth, "ssh", NULL, conn->uri->server);
-
-        if (username == NULL) {
-            virReportError(VIR_ERR_AUTH_FAILED, "%s",
-                           _("Username request failed"));
-            goto err;
-        }
     }
 
     memset(&hints, 0, sizeof(hints));
@@ -1039,19 +1029,10 @@ openSSHSession(virConnectPtr conn, virConnectAuthPtr auth,
     if (rc == LIBSSH2_ERROR_SOCKET_NONE
         || rc == LIBSSH2_ERROR_PUBLICKEY_UNRECOGNIZED
         || rc == LIBSSH2_ERROR_PUBLICKEY_UNVERIFIED) {
-        if (auth == NULL || auth->cb == NULL) {
-            virReportError(VIR_ERR_AUTH_FAILED,
-                           "%s", _("No authentication callback provided."));
-            goto disconnect;
-        }
 
-        password = virAuthGetPassword(conn, auth, "ssh", username, conn->uri->server);
-
-        if (password == NULL) {
-            virReportError(VIR_ERR_AUTH_FAILED, "%s",
-                           _("Password request failed"));
+        if (!(password = virAuthGetPassword(conn, auth, "ssh", username,
+                                            conn->uri->server)))
             goto disconnect;
-        }
 
         while ((rc =
                 libssh2_userauth_password(session, username,

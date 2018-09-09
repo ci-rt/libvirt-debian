@@ -350,27 +350,47 @@ qemuProcessHandleMonitorError(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
 }
 
 
+/**
+ * qemuProcessFindDomainDiskByAliasOrQOM:
+ * @vm: domain object to search for the disk
+ * @alias: -drive or -device alias of the disk
+ * @qomid: QOM tree device name
+ *
+ * Looks up a disk in the domain definition of @vm which either matches the
+ * -drive or -device alias used for the backend and frontend respectively or the
+ * QOM name. If @alias is empty it's treated as NULL as it's a mandatory field
+ * in some cases.
+ *
+ * Returns a disk from @vm or NULL if it could not be found.
+ */
 virDomainDiskDefPtr
-qemuProcessFindDomainDiskByAlias(virDomainObjPtr vm,
-                                 const char *alias)
+qemuProcessFindDomainDiskByAliasOrQOM(virDomainObjPtr vm,
+                                      const char *alias,
+                                      const char *qomid)
 {
     size_t i;
 
-    alias = qemuAliasDiskDriveSkipPrefix(alias);
+    if (alias && *alias == '\0')
+        alias = NULL;
+
+    if (alias)
+        alias = qemuAliasDiskDriveSkipPrefix(alias);
 
     for (i = 0; i < vm->def->ndisks; i++) {
-        virDomainDiskDefPtr disk;
+        virDomainDiskDefPtr disk = vm->def->disks[i];
+        qemuDomainDiskPrivatePtr diskPriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
 
-        disk = vm->def->disks[i];
-        if (disk->info.alias != NULL && STREQ(disk->info.alias, alias))
+        if ((disk->info.alias && STREQ_NULLABLE(disk->info.alias, alias)) ||
+            (diskPriv->qomName && STREQ_NULLABLE(diskPriv->qomName, qomid)))
             return disk;
     }
 
     virReportError(VIR_ERR_INTERNAL_ERROR,
-                   _("no disk found with alias %s"),
-                   alias);
+                   _("no disk found with alias '%s' or id '%s'"),
+                   NULLSTR(alias), NULLSTR(qomid));
     return NULL;
 }
+
 
 static int
 qemuProcessHandleReset(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
@@ -835,6 +855,7 @@ static int
 qemuProcessHandleIOError(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
                          virDomainObjPtr vm,
                          const char *diskAlias,
+                         const char *nodename,
                          int action,
                          const char *reason,
                          void *opaque)
@@ -849,7 +870,16 @@ qemuProcessHandleIOError(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
 
     virObjectLock(vm);
-    disk = qemuProcessFindDomainDiskByAlias(vm, diskAlias);
+
+    if (*diskAlias == '\0')
+        diskAlias = NULL;
+
+    if (diskAlias)
+        disk = qemuProcessFindDomainDiskByAliasOrQOM(vm, diskAlias, NULL);
+    else if (nodename)
+        disk = qemuDomainDiskLookupByNodename(vm->def, nodename, NULL, NULL);
+    else
+        disk = NULL;
 
     if (disk) {
         srcPath = virDomainDiskGetSource(disk);
@@ -912,7 +942,7 @@ qemuProcessHandleBlockJob(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
     VIR_DEBUG("Block job for device %s (domain: %p,%s) type %d status %d",
               diskAlias, vm, vm->def->name, type, status);
 
-    if (!(disk = qemuProcessFindDomainDiskByAlias(vm, diskAlias)))
+    if (!(disk = qemuProcessFindDomainDiskByAliasOrQOM(vm, diskAlias, NULL)))
         goto error;
     diskPriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
 
@@ -1041,6 +1071,7 @@ static int
 qemuProcessHandleTrayChange(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
                             virDomainObjPtr vm,
                             const char *devAlias,
+                            const char *devid,
                             int reason,
                             void *opaque)
 {
@@ -1050,12 +1081,10 @@ qemuProcessHandleTrayChange(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
 
     virObjectLock(vm);
-    disk = qemuProcessFindDomainDiskByAlias(vm, devAlias);
+    disk = qemuProcessFindDomainDiskByAliasOrQOM(vm, devAlias, devid);
 
     if (disk) {
-        event = virDomainEventTrayChangeNewFromObj(vm,
-                                                   devAlias,
-                                                   reason);
+        event = virDomainEventTrayChangeNewFromObj(vm, disk->info.alias, reason);
         /* Update disk tray status */
         if (reason == VIR_DOMAIN_EVENT_TRAY_CHANGE_OPEN)
             disk->tray_status = VIR_DOMAIN_DISK_TRAY_OPEN;
@@ -2314,6 +2343,7 @@ qemuProcessDetectIOThreadPIDs(virQEMUDriverPtr driver,
 /*
  * To be run between fork/exec of QEMU only
  */
+#if defined(HAVE_SCHED_GETAFFINITY) || defined(HAVE_BSD_CPU_AFFINITY)
 static int
 qemuProcessInitCpuAffinity(virDomainObjPtr vm)
 {
@@ -2384,6 +2414,13 @@ qemuProcessInitCpuAffinity(virDomainObjPtr vm)
     virBitmapFree(hostcpumap);
     return ret;
 }
+#else /* !defined(HAVE_SCHED_GETAFFINITY) && !defined(HAVE_BSD_CPU_AFFINITY) */
+static int
+qemuProcessInitCpuAffinity(virDomainObjPtr vm ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+#endif /* !defined(HAVE_SCHED_GETAFFINITY) && !defined(HAVE_BSD_CPU_AFFINITY) */
 
 /* set link states to down on interfaces at qemu start */
 static int
@@ -2559,7 +2596,7 @@ qemuProcessResctrlCreate(virQEMUDriverPtr driver,
     virCapsPtr caps = NULL;
     qemuDomainObjPrivatePtr priv = vm->privateData;
 
-    if (!vm->def->ncachetunes)
+    if (!vm->def->nresctrls)
         return 0;
 
     /* Force capability refresh since resctrl info can change
@@ -2568,9 +2605,9 @@ qemuProcessResctrlCreate(virQEMUDriverPtr driver,
     if (!caps)
         return -1;
 
-    for (i = 0; i < vm->def->ncachetunes; i++) {
+    for (i = 0; i < vm->def->nresctrls; i++) {
         if (virResctrlAllocCreate(caps->host.resctrl,
-                                  vm->def->cachetunes[i]->alloc,
+                                  vm->def->resctrls[i]->alloc,
                                   priv->machineName) < 0)
             goto cleanup;
     }
@@ -3912,6 +3949,9 @@ qemuProcessVerifyHypervFeatures(virDomainDefPtr def,
         case VIR_DOMAIN_HYPERV_SYNIC:
         case VIR_DOMAIN_HYPERV_STIMER:
         case VIR_DOMAIN_HYPERV_RESET:
+        case VIR_DOMAIN_HYPERV_FREQUENCIES:
+        case VIR_DOMAIN_HYPERV_REENLIGHTENMENT:
+        case VIR_DOMAIN_HYPERV_TLBFLUSH:
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("host doesn't support hyperv '%s' feature"),
                            virDomainHypervTypeToString(i));
@@ -5388,8 +5428,8 @@ qemuProcessSetupVcpu(virDomainObjPtr vm,
                             &vcpu->sched) < 0)
         return -1;
 
-    for (i = 0; i < vm->def->ncachetunes; i++) {
-        virDomainCachetuneDefPtr ct = vm->def->cachetunes[i];
+    for (i = 0; i < vm->def->nresctrls; i++) {
+        virDomainResctrlDefPtr ct = vm->def->resctrls[i];
 
         if (virBitmapIsBitSet(ct->vcpus, vcpuid)) {
             if (virResctrlAllocAddPID(ct->alloc, vcpupid) < 0)
@@ -5884,6 +5924,15 @@ qemuProcessPrepareDomain(virQEMUDriverPtr driver,
 
     qemuProcessPrepareAllowReboot(vm);
 
+    /* clear the 'blockdev' capability for VMs which have disks that need
+     * -drive or which have floppies where we can't reliably get the QOM path */
+    for (i = 0; i < vm->def->ndisks; i++) {
+        if (qemuDiskBusNeedsDriveArg(vm->def->disks[i]->bus)) {
+            virQEMUCapsClear(priv->qemuCaps, QEMU_CAPS_BLOCKDEV);
+            break;
+        }
+    }
+
     /*
      * Normally PCI addresses are assigned in the virDomainCreate
      * or virDomainDefine methods. We might still need to assign
@@ -6017,8 +6066,10 @@ qemuProcessPrepareHostStorage(virQEMUDriverPtr driver,
                               virDomainObjPtr vm,
                               unsigned int flags)
 {
+    qemuDomainObjPrivatePtr priv = vm->privateData;
     size_t i;
     bool cold_boot = flags & VIR_QEMU_PROCESS_START_COLD;
+    bool blockdev = virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_BLOCKDEV);
 
     for (i = vm->def->ndisks; i > 0; i--) {
         size_t idx = i - 1;
@@ -6027,7 +6078,9 @@ qemuProcessPrepareHostStorage(virQEMUDriverPtr driver,
         if (virStorageSourceIsEmpty(disk->src))
             continue;
 
-        virStorageSourceBackingStoreClear(disk->src);
+        /* backing chain needs to be redetected if we aren't using blockdev */
+        if (!blockdev)
+            virStorageSourceBackingStoreClear(disk->src);
 
         if (qemuDomainDetermineDiskChain(driver, vm, disk, true) >= 0)
             continue;
@@ -6216,6 +6269,52 @@ qemuProcessGenID(virDomainObjPtr vm,
     }
 
     return 0;
+}
+
+
+/**
+ * qemuProcessSetupDiskThrottlingBlockdev:
+ *
+ * Sets up disk trottling for -blockdev via block_set_io_throttle monitor
+ * command. This hack should be replaced by proper use of the 'throttle'
+ * blockdev driver in qemu once it will support changing of the throttle group.
+ */
+static int
+qemuProcessSetupDiskThrottlingBlockdev(virQEMUDriverPtr driver,
+                                       virDomainObjPtr vm,
+                                       qemuDomainAsyncJob asyncJob)
+{
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    size_t i;
+    int ret = -1;
+
+    if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_BLOCKDEV))
+        return 0;
+
+    VIR_DEBUG("Setting up disk throttling for -blockdev via block_set_io_throttle");
+
+    if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
+        return -1;
+
+    for (i = 0; i < vm->def->ndisks; i++) {
+        virDomainDiskDefPtr disk = vm->def->disks[i];
+        qemuDomainDiskPrivatePtr diskPriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
+
+        if (!qemuDiskConfigBlkdeviotuneEnabled(disk))
+            continue;
+
+        if (qemuMonitorSetBlockIoThrottle(qemuDomainGetMonitor(vm), NULL,
+                                          diskPriv->qomName, &disk->blkdeviotune,
+                                          true, true, true) < 0)
+            goto cleanup;
+    }
+
+    ret = 0;
+
+ cleanup:
+    if (qemuDomainObjExitMonitor(driver, vm) < 0)
+        ret = -1;
+    return ret;
 }
 
 
@@ -6537,6 +6636,9 @@ qemuProcessLaunch(virConnectPtr conn,
     if (qemuProcessSetupBalloon(driver, vm, asyncJob) < 0)
         goto cleanup;
 
+    if (qemuProcessSetupDiskThrottlingBlockdev(driver, vm, asyncJob) < 0)
+        goto cleanup;
+
     /* Since CPUs were not started yet, the balloon could not return the memory
      * to the host and thus cur_balloon needs to be updated so that GetXMLdesc
      * and friends return the correct size in case they can't grab the job */
@@ -6814,8 +6916,11 @@ qemuProcessKill(virDomainObjPtr vm, unsigned int flags)
         return 0;
     }
 
-    ret = virProcessKillPainfully(vm->pid,
-                                  !!(flags & VIR_QEMU_PROCESS_KILL_FORCE));
+    /* Request an extra delay of two seconds per current nhostdevs
+     * to be safe against stalls by the kernel freeing up the resources */
+    ret = virProcessKillPainfullyDelay(vm->pid,
+                                       !!(flags & VIR_QEMU_PROCESS_KILL_FORCE),
+                                       vm->def->nhostdevs * 2);
 
     return ret;
 }
@@ -7091,8 +7196,8 @@ void qemuProcessStop(virQEMUDriverPtr driver,
     /* Remove resctrl allocation after cgroups are cleaned up which makes it
      * kind of safer (although removing the allocation should work even with
      * pids in tasks file */
-    for (i = 0; i < vm->def->ncachetunes; i++)
-        virResctrlAllocRemove(vm->def->cachetunes[i]->alloc);
+    for (i = 0; i < vm->def->nresctrls; i++)
+        virResctrlAllocRemove(vm->def->resctrls[i]->alloc);
 
     qemuProcessRemoveDomainStatus(driver, vm);
 
@@ -7142,6 +7247,9 @@ void qemuProcessStop(virQEMUDriverPtr driver,
 
     /* clear all private data entries which are no longer needed */
     qemuDomainObjPrivateDataClear(priv);
+
+    /* reset node name allocator */
+    qemuDomainStorageIdReset(priv);
 
     /* The "release" hook cleans up additional resources */
     if (virHookPresent(VIR_HOOK_DRIVER_QEMU)) {
@@ -7494,6 +7602,7 @@ qemuProcessRefreshDisks(virQEMUDriverPtr driver,
                         qemuDomainAsyncJob asyncJob)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
+    bool blockdev = virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_BLOCKDEV);
     virHashTablePtr table = NULL;
     int ret = -1;
     size_t i;
@@ -7511,8 +7620,12 @@ qemuProcessRefreshDisks(virQEMUDriverPtr driver,
         virDomainDiskDefPtr disk = vm->def->disks[i];
         qemuDomainDiskPrivatePtr diskpriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
         struct qemuDomainDiskInfo *info;
+        const char *entryname = disk->info.alias;
 
-        if (!(info = virHashLookup(table, disk->info.alias)))
+        if (blockdev)
+            entryname = diskpriv->qomName;
+
+        if (!(info = virHashLookup(table, entryname)))
             continue;
 
         if (info->removable) {
@@ -7703,7 +7816,8 @@ qemuProcessReconnect(void *opaque)
             goto error;
 
         /* backing chains need to be refreshed only if they could change */
-        if (priv->reconnectBlockjobs != VIR_TRISTATE_BOOL_NO) {
+        if (priv->reconnectBlockjobs != VIR_TRISTATE_BOOL_NO &&
+            !virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_BLOCKDEV)) {
             /* This should be the only place that calls
              * qemuDomainDetermineDiskChain with @report_broken == false
              * to guarantee best-effort domain reconnect */
@@ -7792,7 +7906,8 @@ qemuProcessReconnect(void *opaque)
     if (qemuProcessRefreshDisks(driver, obj, QEMU_ASYNC_JOB_NONE) < 0)
         goto error;
 
-    if (qemuBlockNodeNamesDetect(driver, obj, QEMU_ASYNC_JOB_NONE) < 0)
+    if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_BLOCKDEV) &&
+        qemuBlockNodeNamesDetect(driver, obj, QEMU_ASYNC_JOB_NONE) < 0)
         goto error;
 
     if (qemuRefreshVirtioChannelState(driver, obj, QEMU_ASYNC_JOB_NONE) < 0)
@@ -7818,8 +7933,8 @@ qemuProcessReconnect(void *opaque)
     if (qemuConnectAgent(driver, obj) < 0)
         goto error;
 
-    for (i = 0; i < obj->def->ncachetunes; i++) {
-        if (virResctrlAllocDeterminePath(obj->def->cachetunes[i]->alloc,
+    for (i = 0; i < obj->def->nresctrls; i++) {
+        if (virResctrlAllocDeterminePath(obj->def->resctrls[i]->alloc,
                                          priv->machineName) < 0)
             goto error;
     }

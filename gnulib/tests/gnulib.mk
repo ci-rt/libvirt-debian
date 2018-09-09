@@ -2306,6 +2306,18 @@ EXTRA_DIST += test-unistd.c
 
 ## end   gnulib module unistd-tests
 
+## begin gnulib module uniwidth/width-tests
+
+GNULIB_TESTS += test-uc_width uniwidth/test-uc_width2.sh
+check_PROGRAMS += test-uc_width test-uc_width2
+test_uc_width_SOURCES = uniwidth/test-uc_width.c
+test_uc_width_LDADD = $(LDADD) $(LIBUNISTRING)
+test_uc_width2_SOURCES = uniwidth/test-uc_width2.c
+test_uc_width2_LDADD = $(LDADD) $(LIBUNISTRING)
+EXTRA_DIST += uniwidth/test-uc_width.c uniwidth/test-uc_width2.c uniwidth/test-uc_width2.sh macros.h
+
+## end   gnulib module uniwidth/width-tests
+
 ## begin gnulib module unlockpt
 
 
@@ -2448,6 +2460,15 @@ check_PROGRAMS += test-wctype-h
 EXTRA_DIST += test-wctype-h.c macros.h
 
 ## end   gnulib module wctype-h-tests
+
+## begin gnulib module wcwidth-tests
+
+GNULIB_TESTS += test-wcwidth
+check_PROGRAMS += test-wcwidth
+test_wcwidth_LDADD = $(LDADD) $(LIBUNISTRING)
+EXTRA_DIST += test-wcwidth.c signature.h macros.h
+
+## end   gnulib module wcwidth-tests
 
 ## begin gnulib module write
 

@@ -100,6 +100,7 @@ man7_MANS =
 include util/Makefile.inc.am
 include conf/Makefile.inc.am
 include cpu/Makefile.inc.am
+include cpu_map/Makefile.inc.am
 include security/Makefile.inc.am
 include access/Makefile.inc.am
 include logging/Makefile.inc.am
@@ -364,12 +365,6 @@ check-local: check-protocol check-symfile check-symsorting \
 .PHONY: check-protocol $(PROTOCOL_STRUCTS:structs=struct)
 
 
-
-
-pkgdata_DATA =	cpu/cpu_map.xml
-
-EXTRA_DIST +=	$(pkgdata_DATA)
-
 #########################
 #
 # Build up list of libvirt.la source files based on configure conditions
@@ -544,7 +539,7 @@ libvirt_admin_la_CFLAGS = \
 libvirt_admin_la_CFLAGS += \
 		$(XDR_CFLAGS) \
 		$(CAPNG_CFLAGS) \
-		$(JANSSON_CFLAGS) \
+		$(YAJL_CFLAGS) \
 		$(SSH2_CFLAGS) \
 		$(SASL_CFLAGS) \
 		$(GNUTLS_CFLAGS) \
@@ -552,6 +547,7 @@ libvirt_admin_la_CFLAGS += \
 
 libvirt_admin_la_LIBADD += \
 		$(CAPNG_LIBS) \
+		$(YAJL_LIBS) \
 		$(DEVMAPPER_LIBS) \
 		$(LIBXML_LIBS) \
 		$(SSH2_LIBS) \
@@ -689,7 +685,6 @@ libvirt_setuid_rpc_client_la_SOURCES = \
 		util/virhashcode.c \
 		util/virhostcpu.c \
 		util/virjson.c \
-		util/virjsoncompat.c \
 		util/virlog.c \
 		util/virobject.c \
 		util/virpidfile.c \
@@ -961,8 +956,6 @@ libvirt_nss_la_SOURCES = \
 		util/virhashcode.h \
 		util/virjson.c \
 		util/virjson.h \
-		util/virjsoncompat.c \
-		util/virjsoncompat.h \
 		util/virkmod.c \
 		util/virkmod.h \
 		util/virlease.c \
@@ -996,10 +989,14 @@ libvirt_nss_la_SOURCES = \
 libvirt_nss_la_CFLAGS = \
 		-DLIBVIRT_NSS \
 		$(AM_CFLAGS) \
-		$(JANSSON_CFLAGS) \
+		$(YAJL_CFLAGS) \
 		$(NULL)
 libvirt_nss_la_LDFLAGS = \
 		$(AM_LDFLAGS) \
+		$(NULL)
+
+libvirt_nss_la_LIBADD = \
+		$(YAJL_LIBS) \
 		$(NULL)
 endif WITH_NSS
 

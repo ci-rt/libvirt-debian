@@ -141,12 +141,7 @@ mymain(void)
     int ret = 0;
     testQemuData data;
 
-#if !WITH_STABLE_ORDERING_JANSSON
-    fputs("libvirt not compiled with recent enough Jansson, skipping this test\n", stderr);
-    return EXIT_AM_SKIP;
-#endif
-
-#if !WITH_JANSSON
+#if !WITH_YAJL
     fputs("libvirt not compiled with JSON support, skipping this test\n", stderr);
     return EXIT_AM_SKIP;
 #endif
@@ -196,6 +191,8 @@ mymain(void)
     DO_TEST("s390x", "caps_2.10.0");
     DO_TEST("s390x", "caps_2.11.0");
     DO_TEST("s390x", "caps_2.12.0");
+    DO_TEST("riscv32", "caps_3.0.0");
+    DO_TEST("riscv64", "caps_3.0.0");
 
     /*
      * Run "tests/qemucapsprobe /path/to/qemu/binary >foo.replies"

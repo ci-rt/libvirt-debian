@@ -1133,6 +1133,7 @@ typedef enum {
     VIR_DOMAIN_CHR_SERIAL_TARGET_MODEL_PL011,
     VIR_DOMAIN_CHR_SERIAL_TARGET_MODEL_SCLPCONSOLE,
     VIR_DOMAIN_CHR_SERIAL_TARGET_MODEL_SCLPLMCONSOLE,
+    VIR_DOMAIN_CHR_SERIAL_TARGET_MODEL_16550A,
 
     VIR_DOMAIN_CHR_SERIAL_TARGET_MODEL_LAST
 } virDomainChrSerialTargetModel;
@@ -1791,6 +1792,9 @@ typedef enum {
     VIR_DOMAIN_HYPERV_STIMER,
     VIR_DOMAIN_HYPERV_RESET,
     VIR_DOMAIN_HYPERV_VENDOR_ID,
+    VIR_DOMAIN_HYPERV_FREQUENCIES,
+    VIR_DOMAIN_HYPERV_REENLIGHTENMENT,
+    VIR_DOMAIN_HYPERV_TLBFLUSH,
 
     VIR_DOMAIN_HYPERV_LAST
 } virDomainHyperv;
@@ -2232,10 +2236,10 @@ struct _virDomainCputune {
 };
 
 
-typedef struct _virDomainCachetuneDef virDomainCachetuneDef;
-typedef virDomainCachetuneDef *virDomainCachetuneDefPtr;
+typedef struct _virDomainResctrlDef virDomainResctrlDef;
+typedef virDomainResctrlDef *virDomainResctrlDefPtr;
 
-struct _virDomainCachetuneDef {
+struct _virDomainResctrlDef {
     virBitmapPtr vcpus;
     virResctrlAllocPtr alloc;
 };
@@ -2413,8 +2417,8 @@ struct _virDomainDef {
 
     virDomainCputune cputune;
 
-    virDomainCachetuneDefPtr *cachetunes;
-    size_t ncachetunes;
+    virDomainResctrlDefPtr *resctrls;
+    size_t nresctrls;
 
     virDomainNumaPtr numa;
     virDomainResourceDefPtr resource;
@@ -2735,6 +2739,11 @@ typedef int (*virDomainXMLPrivateDataParseFunc)(xmlXPathContextPtr,
 
 typedef void *(*virDomainXMLPrivateDataGetParseOpaqueFunc)(virDomainObjPtr vm);
 
+typedef int (*virDomainXMLPrivateDataDiskParseFunc)(xmlXPathContextPtr ctxt,
+                                                    virDomainDiskDefPtr disk);
+typedef int (*virDomainXMLPrivateDataDiskFormatFunc)(virDomainDiskDefPtr disk,
+                                                     virBufferPtr buf);
+
 typedef int (*virDomainXMLPrivateDataStorageSourceParseFunc)(xmlXPathContextPtr ctxt,
                                                              virStorageSourcePtr src);
 typedef int (*virDomainXMLPrivateDataStorageSourceFormatFunc)(virStorageSourcePtr src,
@@ -2749,6 +2758,8 @@ struct _virDomainXMLPrivateDataCallbacks {
     /* note that private data for devices are not copied when using
      * virDomainDefCopy and similar functions */
     virDomainXMLPrivateDataNewFunc    diskNew;
+    virDomainXMLPrivateDataDiskParseFunc diskParse;
+    virDomainXMLPrivateDataDiskFormatFunc diskFormat;
     virDomainXMLPrivateDataNewFunc    vcpuNew;
     virDomainXMLPrivateDataNewFunc    chrSourceNew;
     virDomainXMLPrivateDataNewFunc    vsockNew;

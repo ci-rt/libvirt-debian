@@ -308,7 +308,6 @@ virNetDevMacVLanCreate(const char *ifname,
                        int *retry)
 {
     int rc = -1;
-    struct nlmsghdr *resp = NULL;
     struct nlmsgerr *err;
     struct ifinfomsg ifinfo = { .ifi_family = AF_UNSPEC };
     int ifindex;
@@ -316,6 +315,7 @@ virNetDevMacVLanCreate(const char *ifname,
     struct nl_msg *nl_msg;
     struct nlattr *linkinfo, *info_data;
     char macstr[VIR_MAC_STRING_BUFLEN];
+    VIR_AUTOFREE(struct nlmsghdr *) resp = NULL;
 
     if (virNetDevGetIndex(srcdev, &ifindex) < 0)
         return -1;
@@ -403,7 +403,6 @@ virNetDevMacVLanCreate(const char *ifname,
     rc = 0;
  cleanup:
     nlmsg_free(nl_msg);
-    VIR_FREE(resp);
     return rc;
 
  malformed_resp:
@@ -452,8 +451,8 @@ virNetDevMacVLanTapOpen(const char *ifname,
 {
     int ret = -1;
     int ifindex;
-    char *tapname = NULL;
     size_t i = 0;
+    VIR_AUTOFREE(char *) tapname = NULL;
 
     if (virNetDevGetIndex(ifname, &ifindex) < 0)
         return -1;
@@ -487,7 +486,6 @@ virNetDevMacVLanTapOpen(const char *ifname,
         while (i--)
             VIR_FORCE_CLOSE(tapfd[i]);
     }
-    VIR_FREE(tapname);
     return ret;
 }
 
@@ -1183,9 +1181,9 @@ int virNetDevMacVLanDeleteWithVPortProfile(const char *ifname,
     }
 
     if (mode == VIR_NETDEV_MACVLAN_MODE_PASSTHRU) {
-        virMacAddrPtr MAC = NULL;
-        virMacAddrPtr adminMAC = NULL;
-        virNetDevVlanPtr vlan = NULL;
+        VIR_AUTOPTR(virMacAddr) MAC = NULL;
+        VIR_AUTOPTR(virMacAddr) adminMAC = NULL;
+        VIR_AUTOPTR(virNetDevVlan) vlan = NULL;
 
         if ((virNetDevReadNetConfig(linkdev, -1, stateDir,
                                     &adminMAC, &vlan, &MAC) == 0) &&
@@ -1193,9 +1191,6 @@ int virNetDevMacVLanDeleteWithVPortProfile(const char *ifname,
 
             ignore_value(virNetDevSetNetConfig(linkdev, -1,
                                                adminMAC, vlan, MAC, !!vlan));
-            VIR_FREE(MAC);
-            VIR_FREE(adminMAC);
-            virNetDevVlanFree(vlan);
         }
     }
 

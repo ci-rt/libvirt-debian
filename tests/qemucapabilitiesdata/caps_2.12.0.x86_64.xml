@@ -6,7 +6,6 @@
   <flag name='kvm'/>
   <flag name='no-hpet'/>
   <flag name='spice'/>
-  <flag name='boot-index'/>
   <flag name='hda-duplex'/>
   <flag name='ccid-emulated'/>
   <flag name='ccid-passthru'/>
@@ -60,7 +59,6 @@
   <flag name='device-video-primary'/>
   <flag name='usb-serial'/>
   <flag name='usb-net'/>
-  <flag name='add-fd'/>
   <flag name='nbd-server'/>
   <flag name='virtio-rng'/>
   <flag name='rng-random'/>
@@ -215,7 +213,7 @@
   <flag name='vfio-pci.display'/>
   <version>2011090</version>
   <kvmVersion>0</kvmVersion>
-  <microcodeVersion>416196</microcodeVersion>
+  <microcodeVersion>415790</microcodeVersion>
   <package>v2.12.0-rc0</package>
   <arch>x86_64</arch>
   <hostCPU type='kvm' model='base' migratability='yes'>
@@ -1217,7 +1215,7 @@
     <blocker name='3dnowprefetch'/>
   </cpu>
   <cpu type='tcg' name='486' usable='yes'/>
-  <machine name='pc-i440fx-2.12' alias='pc' hotplugCpus='yes' maxCpus='255'/>
+  <machine name='pc-i440fx-2.12' alias='pc' hotplugCpus='yes' maxCpus='255' default='yes'/>
   <machine name='isapc' hotplugCpus='yes' maxCpus='1'/>
   <machine name='pc-1.1' hotplugCpus='yes' maxCpus='255'/>
   <machine name='pc-1.2' hotplugCpus='yes' maxCpus='255'/>
@@ -1254,4 +1252,10 @@
   <machine name='pc-0.11' hotplugCpus='yes' maxCpus='255'/>
   <machine name='pc-0.12' hotplugCpus='yes' maxCpus='255'/>
   <machine name='pc-0.10' hotplugCpus='yes' maxCpus='255'/>
+  <sev>
+    <cbitpos>47</cbitpos>
+    <reducedPhysBits>1</reducedPhysBits>
+    <pdh>AQAAAAAOAAAAQAAAAAOAAAAQAAAAAOAAAAQAAAAAOAAAAQAAAAAOAAAAQAAAAAOAAA</pdh>
+    <certChain>AQAAAAAOAAAAQAAAAAOAAAAQAAAAAOAAAAQAAAAAOAAAAQAAAAAOAAA</certChain>
+  </sev>
 </qemuCaps>

@@ -4,7 +4,6 @@
   <selfvers>0</selfvers>
   <usedQMP/>
   <flag name='kvm'/>
-  <flag name='boot-index'/>
   <flag name='hda-duplex'/>
   <flag name='virtio-tx-alg'/>
   <flag name='virtio-blk-pci.ioeventfd'/>
@@ -46,7 +45,6 @@
   <flag name='device-video-primary'/>
   <flag name='usb-serial'/>
   <flag name='usb-net'/>
-  <flag name='add-fd'/>
   <flag name='nbd-server'/>
   <flag name='virtio-rng'/>
   <flag name='rng-random'/>
@@ -161,7 +159,7 @@
   <flag name='egl-headless'/>
   <version>2010000</version>
   <kvmVersion>0</kvmVersion>
-  <microcodeVersion>386992</microcodeVersion>
+  <microcodeVersion>386586</microcodeVersion>
   <package> (v2.10.0)</package>
   <arch>ppc64</arch>
   <cpu type='kvm' name='default'/>
@@ -1031,7 +1029,7 @@
   <cpu type='tcg' name='MPC8544E_v11'/>
   <cpu type='tcg' name='405GPb'/>
   <cpu type='tcg' name='MPC8541E_v11'/>
-  <machine name='pseries-2.10' alias='pseries' hotplugCpus='yes' maxCpus='1024'/>
+  <machine name='pseries-2.10' alias='pseries' hotplugCpus='yes' maxCpus='1024' default='yes'/>
   <machine name='ref405ep' maxCpus='1'/>
   <machine name='virtex-ml507' maxCpus='1'/>
   <machine name='powernv' maxCpus='2048'/>

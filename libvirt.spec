@@ -71,6 +71,13 @@
     %define with_storage_zfs      0
 %endif
 
+# We need a recent enough libiscsi (>= 1.18.0)
+%if 0%{?fedora} >= 28 || 0%{?rhel} > 7
+    %define with_storage_iscsi_direct 0%{!?_without_storage_iscsi_direct:1}
+%else
+    %define with_storage_iscsi_direct 0
+%endif
+
 # A few optional bits off by default, we enable later
 %define with_fuse          0%{!?_without_fuse:0}
 %define with_sanlock       0%{!?_without_sanlock:0}
@@ -216,7 +223,7 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 4.6.0
+Version: 4.7.0
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 URL: https://libvirt.org/
@@ -292,7 +299,7 @@ BuildRequires: libblkid-devel >= 2.17
 BuildRequires: augeas
 BuildRequires: systemd-devel >= 185
 BuildRequires: libpciaccess-devel >= 0.10.9
-BuildRequires: jansson-devel
+BuildRequires: yajl-devel
 %if %{with_sanlock}
 BuildRequires: sanlock-devel >= 2.4
 %endif
@@ -317,8 +324,12 @@ BuildRequires: /usr/bin/qemu-img
 %endif
 # For LVM drivers
 BuildRequires: lvm2
-# For ISCSI driver
+# For pool type=iscsi
 BuildRequires: iscsi-initiator-utils
+%if %{with_storage_iscsi_direct}
+# For pool type=iscsi-direct
+BuildRequires: libiscsi-devel
+%endif
 # For disk driver
 BuildRequires: parted-devel
 # For Multipath support
@@ -591,6 +602,19 @@ The storage driver backend adding implementation of the storage APIs for iscsi
 volumes using the host iscsi stack.
 
 
+%if %{with_storage_iscsi_direct}
+%package daemon-driver-storage-iscsi-direct
+Summary: Storage driver plugin for iscsi-direct
+Requires: libvirt-daemon-driver-storage-core = %{version}-%{release}
+Requires: libvirt-libs = %{version}-%{release}
+Requires: libiscsi
+
+%description daemon-driver-storage-iscsi-direct
+The storage driver backend adding implementation of the storage APIs for iscsi
+volumes using libiscsi direct connection.
+%endif
+
+
 %package daemon-driver-storage-mpath
 Summary: Storage driver plugin for multipath volumes
 Requires: libvirt-daemon-driver-storage-core = %{version}-%{release}
@@ -668,6 +692,9 @@ Requires: libvirt-daemon-driver-storage-logical = %{version}-%{release}
 Requires: libvirt-daemon-driver-storage-scsi = %{version}-%{release}
 Requires: libvirt-daemon-driver-storage-iscsi = %{version}-%{release}
 Requires: libvirt-daemon-driver-storage-mpath = %{version}-%{release}
+%if %{with_storage_iscsi_direct}
+Requires: libvirt-daemon-driver-storage-iscsi-direct = %{version}-%{release}
+%endif
 %if %{with_storage_gluster}
 Requires: libvirt-daemon-driver-storage-gluster = %{version}-%{release}
 %endif
@@ -898,8 +925,6 @@ Requires: ncurses
 Requires: gettext
 # Needed by virt-pki-validate script.
 Requires: gnutls-utils
-# We dlopen(libjansson.so.4), so need an explicit dep
-Requires: jansson
 %if %{with_bash_completion}
 Requires: %{name}-bash-completion = %{version}-%{release}
 %endif
@@ -993,43 +1018,7 @@ Libvirt plugin for NSS for translating domain names into IP addresses.
 
 %prep
 
-%setup -q
-
-# Patches have to be stored in a temporary file because RPM has
-# a limit on the length of the result of any macro expansion;
-# if the string is longer, it's silently cropped
-%{lua:
-    tmp = os.tmpname();
-    f = io.open(tmp, "w+");
-    count = 0;
-    for i, p in ipairs(patches) do
-        f:write(p.."\n");
-        count = count + 1;
-    end;
-    f:close();
-    print("PATCHCOUNT="..count.."\n")
-    print("PATCHLIST="..tmp.."\n")
-}
-
-git init -q
-git config user.name rpm-build
-git config user.email rpm-build
-git config gc.auto 0
-git add .
-git commit -q -a --author 'rpm-build <rpm-build>' \
-           -m '%{name}-%{version} base'
-
-COUNT=$(grep '\.patch$' $PATCHLIST | wc -l)
-if [ $COUNT -ne $PATCHCOUNT ]; then
-    echo "Found $COUNT patches in $PATCHLIST, expected $PATCHCOUNT"
-    exit 1
-fi
-if [ $COUNT -gt 0 ]; then
-    xargs git am <$PATCHLIST || exit 1
-fi
-echo "Applied $COUNT patches"
-rm -f $PATCHLIST
-rm -rf .git
+%autosetup -S git_am
 
 %build
 %if ! %{supported_platform}
@@ -1159,6 +1148,12 @@ exit 1
     %define arg_wireshark --without-wireshark-dissector
 %endif
 
+%if %{with_storage_iscsi_direct}
+    %define arg_storage_iscsi_direct --with-storage-iscsi-direct
+%else
+    %define arg_storage_iscsi_direct --without-storage-iscsi-direct
+%endif
+
 %define when  %(date +"%%F-%%T")
 %define where %(hostname)
 %define who   %{?packager}%{!?packager:Unknown}
@@ -1168,14 +1163,23 @@ exit 1
 %define arg_selinux_mount --with-selinux-mount="/sys/fs/selinux"
 
 %if 0%{?fedora}
-    # Nightly firmware repo x86/OVMF
+    # Nightly edk2.git-ovmf-x64
     LOADERS="/usr/share/edk2.git/ovmf-x64/OVMF_CODE-pure-efi.fd:/usr/share/edk2.git/ovmf-x64/OVMF_VARS-pure-efi.fd"
-    # Nightly firmware repo aarch64/AAVMF
+    # Nightly edk2.git-ovmf-ia32
+    LOADERS="$LOADERS:/usr/share/edk2.git/ovmf-ia32/OVMF_CODE-pure-efi.fd:/usr/share/edk2.git/ovmf-ia32/OVMF_VARS-pure-efi.fd"
+    # Nightly edk2.git-aarch64
     LOADERS="$LOADERS:/usr/share/edk2.git/aarch64/QEMU_EFI-pflash.raw:/usr/share/edk2.git/aarch64/vars-template-pflash.raw"
-    # Fedora official x86/OVMF
+    # Nightly edk2.git-arm
+    LOADERS="$LOADERS:/usr/share/edk2.git/arm/QEMU_EFI-pflash.raw:/usr/share/edk2.git/arm/vars-template-pflash.raw"
+
+    # Fedora edk2-ovmf
     LOADERS="$LOADERS:/usr/share/edk2/ovmf/OVMF_CODE.fd:/usr/share/edk2/ovmf/OVMF_VARS.fd"
-    # Fedora official aarch64/AAVMF
+    # Fedora edk2-ovmf-ia32
+    LOADERS="$LOADERS:/usr/share/edk2/ovmf-ia32/OVMF_CODE.fd:/usr/share/edk2/ovmf-ia32/OVMF_VARS.fd"
+    # Fedora edk2-aarch64
     LOADERS="$LOADERS:/usr/share/edk2/aarch64/QEMU_EFI-pflash.raw:/usr/share/edk2/aarch64/vars-template-pflash.raw"
+    # Fedora edk2-arm
+    LOADERS="$LOADERS:/usr/share/edk2/arm/QEMU_EFI-pflash.raw:/usr/share/edk2/arm/vars-template-pflash.raw"
     %define arg_loader_nvram --with-loader-nvram="$LOADERS"
 %endif
 
@@ -1210,6 +1214,7 @@ rm -f po/stamp-po
            --with-storage-fs \
            --with-storage-lvm \
            --with-storage-iscsi \
+           %{?arg_storage_iscsi_direct} \
            --with-storage-scsi \
            --with-storage-disk \
            --with-storage-mpath \
@@ -1228,7 +1233,7 @@ rm -f po/stamp-po
            --without-apparmor \
            --without-hal \
            --with-udev \
-           --with-jansson \
+           --with-yajl \
            %{?arg_sanlock} \
            --with-libpcap \
            --with-macvtap \
@@ -1257,10 +1262,7 @@ rm -fr %{buildroot}
 
 export SOURCE_DATE_EPOCH=$(stat --printf='%Y' %{_specdir}/%{name}.spec)
 
-# Avoid using makeinstall macro as it changes prefixes rather than setting
-# DESTDIR. Newer make_install macro would be better but it's not available
-# on RHEL 5, thus we need to expand it here.
-make %{?_smp_mflags} install DESTDIR=%{?buildroot} SYSTEMD_UNIT_DIR=%{_unitdir} V=1
+%make_install %{?_smp_mflags} SYSTEMD_UNIT_DIR=%{_unitdir} V=1
 
 make %{?_smp_mflags} -C examples distclean V=1
 
@@ -1678,6 +1680,11 @@ exit 0
 %files daemon-driver-storage-iscsi
 %{_libdir}/%{name}/storage-backend/libvirt_storage_backend_iscsi.so
 
+%if %{with_storage_iscsi_direct}
+%files daemon-driver-storage-iscsi-direct
+%{_libdir}/%{name}/storage-backend/libvirt_storage_backend_iscsi-direct.so
+%endif
+
 %files daemon-driver-storage-mpath
 %{_libdir}/%{name}/storage-backend/libvirt_storage_backend_mpath.so
 
@@ -1856,7 +1863,7 @@ exit 0
 %{_datadir}/libvirt/schemas/storagepool.rng
 %{_datadir}/libvirt/schemas/storagevol.rng
 
-%{_datadir}/libvirt/cpu_map.xml
+%{_datadir}/libvirt/cpu_map/*.xml
 
 %{_datadir}/libvirt/test-screenshot.png
 

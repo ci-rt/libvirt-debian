@@ -56,7 +56,7 @@ virQEMUBuildCommandLineJSONArrayBitmap(const char *key,
 {
     ssize_t pos = -1;
     ssize_t end;
-    virBitmapPtr bitmap = NULL;
+    VIR_AUTOPTR(virBitmap) bitmap = NULL;
 
     if (virJSONValueGetArrayAsBitmap(array, &bitmap) < 0)
         return -1;
@@ -73,8 +73,6 @@ virQEMUBuildCommandLineJSONArrayBitmap(const char *key,
         }
     }
 
-    virBitmapFree(bitmap);
-
     return 0;
 }
 
@@ -85,29 +83,22 @@ virQEMUBuildCommandLineJSONArrayNumbered(const char *key,
                                          virBufferPtr buf)
 {
     virJSONValuePtr member;
-    char *prefix = NULL;
     size_t i;
-    int ret = 0;
 
     for (i = 0; i < virJSONValueArraySize(array); i++) {
         member = virJSONValueArrayGet((virJSONValuePtr) array, i);
+        VIR_AUTOFREE(char *) prefix = NULL;
 
         if (virAsprintf(&prefix, "%s.%zu", key, i) < 0)
-            goto cleanup;
+            return 0;
 
         if (virQEMUBuildCommandLineJSONRecurse(prefix, member, buf,
                                                virQEMUBuildCommandLineJSONArrayNumbered,
                                                true) < 0)
-            goto cleanup;
-
-        VIR_FREE(prefix);
+            return 0;
     }
 
-    ret = 0;
-
- cleanup:
-    VIR_FREE(prefix);
-    return ret;
+    return 0;
 }
 
 
@@ -118,23 +109,19 @@ virQEMUBuildCommandLineJSONIterate(const char *key,
                                    void *opaque)
 {
     struct virQEMUCommandLineJSONIteratorData *data = opaque;
-    char *tmpkey = NULL;
-    int ret = -1;
 
     if (data->prefix) {
+        VIR_AUTOFREE(char *) tmpkey = NULL;
+
         if (virAsprintf(&tmpkey, "%s.%s", data->prefix, key) < 0)
             return -1;
 
-        ret = virQEMUBuildCommandLineJSONRecurse(tmpkey, value, data->buf,
+        return virQEMUBuildCommandLineJSONRecurse(tmpkey, value, data->buf,
                                                  data->arrayFunc, false);
-
-        VIR_FREE(tmpkey);
     } else {
-        ret = virQEMUBuildCommandLineJSONRecurse(key, value, data->buf,
+        return virQEMUBuildCommandLineJSONRecurse(key, value, data->buf,
                                                  data->arrayFunc, false);
     }
-
-    return ret;
 }
 
 
@@ -248,8 +235,9 @@ virQEMUBuildObjectCommandlineFromJSONInternal(virBufferPtr buf,
                                               virJSONValuePtr props)
 {
     if (!type || !alias) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("missing 'type' or 'alias' field of QOM 'object'"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("missing 'type'(%s) or 'alias'(%s) field of QOM 'object'"),
+                       NULLSTR(type), NULLSTR(alias));
         return -1;
     }
 

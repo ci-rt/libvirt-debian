@@ -52,7 +52,7 @@ typedef enum { /* virQEMUCapsFlags grouping marker for syntax-check */
     X_QEMU_CAPS_VNC_COLON, /* VNC takes or address + display */
     X_QEMU_CAPS_NO_REBOOT, /* Is the -no-reboot flag available */
     X_QEMU_CAPS_DRIVE, /* Is the new -drive arg available */
-    QEMU_CAPS_DRIVE_BOOT, /* Does -drive support boot=on */
+    X_QEMU_CAPS_DRIVE_BOOT, /* Does -drive support boot=on */
 
     /* 5 */
     X_QEMU_CAPS_NAME, /* Is the -name flag available */
@@ -115,7 +115,7 @@ typedef enum { /* virQEMUCapsFlags grouping marker for syntax-check */
     QEMU_CAPS_SPICE, /* Is -spice avail */
     X_QEMU_CAPS_VGA_NONE, /* The 'none' arg for '-vga' */
     X_QEMU_CAPS_MIGRATE_QEMU_FD, /* -incoming fd:n */
-    QEMU_CAPS_BOOTINDEX, /* -device bootindex property */
+    X_QEMU_CAPS_BOOTINDEX, /* -device bootindex property */
 
     /* 50 */
     QEMU_CAPS_HDA_DUPLEX, /* -device hda-duplex */
@@ -225,7 +225,7 @@ typedef enum { /* virQEMUCapsFlags grouping marker for syntax-check */
     /* 125 */
     QEMU_CAPS_DEVICE_USB_SERIAL, /* -device usb-serial */
     QEMU_CAPS_DEVICE_USB_NET, /* -device usb-net */
-    QEMU_CAPS_ADD_FD, /* -add-fd */
+    X_QEMU_CAPS_ADD_FD, /* -add-fd */
     QEMU_CAPS_NBD_SERVER, /* nbd-server-start QMP command */
     QEMU_CAPS_DEVICE_VIRTIO_RNG, /* virtio-rng device */
 
@@ -491,6 +491,7 @@ typedef enum { /* virQEMUCapsFlags grouping marker for syntax-check */
 
     /* 315 */
     QEMU_CAPS_VFIO_PCI_DISPLAY, /* -device vfio-pci.display */
+    QEMU_CAPS_BLOCKDEV, /* -blockdev and blockdev-add are supported */
 
     QEMU_CAPS_LAST /* this must always be the last item */
 } virQEMUCapsFlags;
@@ -558,6 +559,7 @@ bool virQEMUCapsIsCPUModeSupported(virQEMUCapsPtr qemuCaps,
                                    virCPUMode mode);
 const char *virQEMUCapsGetCanonicalMachine(virQEMUCapsPtr qemuCaps,
                                            const char *name);
+const char *virQEMUCapsGetDefaultMachine(virQEMUCapsPtr qemuCaps);
 int virQEMUCapsGetMachineMaxCpus(virQEMUCapsPtr qemuCaps,
                                  const char *name);
 bool virQEMUCapsGetMachineHotplugCpus(virQEMUCapsPtr qemuCaps,
@@ -605,7 +607,7 @@ bool virQEMUCapsSupportsGICVersion(virQEMUCapsPtr qemuCaps,
 bool virQEMUCapsIsMachineSupported(virQEMUCapsPtr qemuCaps,
                                    const char *canonical_machine);
 
-const char *virQEMUCapsGetDefaultMachine(virQEMUCapsPtr qemuCaps);
+const char *virQEMUCapsGetPreferredMachine(virQEMUCapsPtr qemuCaps);
 
 int virQEMUCapsInitGuestFromBinary(virCapsPtr caps,
                                    const char *binary,

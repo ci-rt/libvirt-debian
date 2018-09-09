@@ -2294,12 +2294,12 @@ storageBackendResizeQemuImg(virStoragePoolObjPtr pool,
      * a multiple of 512 */
     capacity = VIR_ROUND_UP(capacity, 512);
 
-    cmd = virCommandNew(img_tool);
+    cmd = virCommandNewArgList(img_tool, "resize", NULL);
+    if (capacity < vol->target.capacity)
+        virCommandAddArg(cmd, "--shrink");
     if (!vol->target.encryption) {
-        virCommandAddArgList(cmd, "resize", vol->target.path, NULL);
+        virCommandAddArg(cmd, vol->target.path);
     } else {
-        virCommandAddArg(cmd, "resize");
-
         if (storageBackendCreateQemuImgSecretObject(cmd, secretPath,
                                                     secretAlias) < 0)
             goto cleanup;
@@ -2343,8 +2343,8 @@ virStorageBackendVolResizeLocal(virStoragePoolObjPtr pool,
     } else if (vol->target.format == VIR_STORAGE_FILE_RAW && vol->target.encryption) {
         if (pre_allocate) {
             virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
-                           _("preallocate is only supported for raw "
-                             "type volume"));
+                           _("preallocate is only supported for an "
+                             "unencrypted raw volume"));
             return -1;
         }
 
@@ -3609,8 +3609,8 @@ virStorageBackendRefreshLocal(virStoragePoolObjPtr pool)
         int err;
 
         if (virStringHasControlChars(ent->d_name)) {
-            VIR_WARN("Ignoring file with control characters under '%s'",
-                     def->target.path);
+            VIR_WARN("Ignoring file '%s' with control characters under '%s'",
+                     ent->d_name, def->target.path);
             continue;
         }
 

@@ -198,13 +198,15 @@ check_PROGRAMS = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-termios$(EXEEXT) test-thread_self$(EXEEXT) \
 	test-thread_create$(EXEEXT) test-time$(EXEEXT) \
 	test-ttyname_r$(EXEEXT) test-uname$(EXEEXT) \
-	test-unistd$(EXEEXT) test-unlockpt$(EXEEXT) \
+	test-unistd$(EXEEXT) test-uc_width$(EXEEXT) \
+	test-uc_width2$(EXEEXT) test-unlockpt$(EXEEXT) \
 	test-unsetenv$(EXEEXT) test-usleep$(EXEEXT) \
 	test-vasnprintf$(EXEEXT) test-vasprintf$(EXEEXT) \
 	test-verify$(EXEEXT) test-vsnprintf$(EXEEXT) \
 	test-wchar$(EXEEXT) test-wcrtomb$(EXEEXT) \
 	test-wcrtomb-w32$(EXEEXT) test-wctype-h$(EXEEXT) \
-	test-write$(EXEEXT) test-xalloc-die$(EXEEXT)
+	test-wcwidth$(EXEEXT) test-write$(EXEEXT) \
+	test-xalloc-die$(EXEEXT)
 EXTRA_PROGRAMS = test-verify-try$(EXEEXT)
 @POSIX_SPAWN_PORTED_TRUE@am__append_1 = test-posix_spawn1 test-posix_spawn2
 @POSIX_SPAWN_PORTED_TRUE@am__append_2 = test-posix_spawn1 test-posix_spawn2
@@ -271,6 +273,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/lcmessage.m4 $(top_srcdir)/m4/ldexp.m4 \
 	$(top_srcdir)/m4/lib-ld.m4 $(top_srcdir)/m4/lib-link.m4 \
 	$(top_srcdir)/m4/lib-prefix.m4 $(top_srcdir)/m4/libtool.m4 \
+	$(top_srcdir)/m4/libunistring-base.m4 \
 	$(top_srcdir)/m4/limits-h.m4 $(top_srcdir)/m4/localcharset.m4 \
 	$(top_srcdir)/m4/locale-fr.m4 $(top_srcdir)/m4/locale-ja.m4 \
 	$(top_srcdir)/m4/locale-tr.m4 $(top_srcdir)/m4/locale-zh.m4 \
@@ -389,7 +392,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-gnutls.m4 $(top_srcdir)/m4/virt-hal.m4 \
 	$(top_srcdir)/m4/virt-host-validate.m4 \
 	$(top_srcdir)/m4/virt-init-script.m4 \
-	$(top_srcdir)/m4/virt-jansson.m4 $(top_srcdir)/m4/virt-lib.m4 \
+	$(top_srcdir)/m4/virt-lib.m4 $(top_srcdir)/m4/virt-libiscsi.m4 \
 	$(top_srcdir)/m4/virt-libnl.m4 \
 	$(top_srcdir)/m4/virt-libpcap.m4 \
 	$(top_srcdir)/m4/virt-libssh.m4 \
@@ -420,6 +423,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-storage-disk.m4 \
 	$(top_srcdir)/m4/virt-storage-fs.m4 \
 	$(top_srcdir)/m4/virt-storage-gluster.m4 \
+	$(top_srcdir)/m4/virt-storage-iscsi-direct.m4 \
 	$(top_srcdir)/m4/virt-storage-iscsi.m4 \
 	$(top_srcdir)/m4/virt-storage-lvm.m4 \
 	$(top_srcdir)/m4/virt-storage-mpath.m4 \
@@ -444,9 +448,9 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/wchar_h.m4 $(top_srcdir)/m4/wchar_t.m4 \
 	$(top_srcdir)/m4/wcrtomb.m4 $(top_srcdir)/m4/wctob.m4 \
 	$(top_srcdir)/m4/wctomb.m4 $(top_srcdir)/m4/wctype_h.m4 \
-	$(top_srcdir)/m4/wint_t.m4 $(top_srcdir)/m4/write.m4 \
-	$(top_srcdir)/m4/xalloc.m4 $(top_srcdir)/m4/xsize.m4 \
-	$(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/wcwidth.m4 $(top_srcdir)/m4/wint_t.m4 \
+	$(top_srcdir)/m4/write.m4 $(top_srcdir)/m4/xalloc.m4 \
+	$(top_srcdir)/m4/xsize.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(noinst_HEADERS) \
@@ -1322,6 +1326,12 @@ test_ttyname_r_OBJECTS = test-ttyname_r.$(OBJEXT)
 test_ttyname_r_LDADD = $(LDADD)
 test_ttyname_r_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
 	libtests.a $(am__DEPENDENCIES_1)
+am_test_uc_width_OBJECTS = uniwidth/test-uc_width.$(OBJEXT)
+test_uc_width_OBJECTS = $(am_test_uc_width_OBJECTS)
+test_uc_width_DEPENDENCIES = $(am__DEPENDENCIES_2)
+am_test_uc_width2_OBJECTS = uniwidth/test-uc_width2.$(OBJEXT)
+test_uc_width2_OBJECTS = $(am_test_uc_width2_OBJECTS)
+test_uc_width2_DEPENDENCIES = $(am__DEPENDENCIES_2)
 test_uname_SOURCES = test-uname.c
 test_uname_OBJECTS = test-uname.$(OBJEXT)
 test_uname_DEPENDENCIES = $(am__DEPENDENCIES_2)
@@ -1390,6 +1400,9 @@ test_wctype_h_OBJECTS = test-wctype-h.$(OBJEXT)
 test_wctype_h_LDADD = $(LDADD)
 test_wctype_h_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
 	libtests.a $(am__DEPENDENCIES_1)
+test_wcwidth_SOURCES = test-wcwidth.c
+test_wcwidth_OBJECTS = test-wcwidth.$(OBJEXT)
+test_wcwidth_DEPENDENCIES = $(am__DEPENDENCIES_2)
 test_write_SOURCES = test-write.c
 test_write_OBJECTS = test-write.$(OBJEXT)
 test_write_LDADD = $(LDADD)
@@ -1488,11 +1501,12 @@ SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-sys_time.c test-sys_types.c test-sys_uio.c \
 	test-sys_utsname.c test-sys_wait.c test-termios.c \
 	test-thread_create.c test-thread_self.c test-time.c \
-	test-ttyname_r.c test-uname.c test-unistd.c test-unlockpt.c \
-	test-unsetenv.c test-usleep.c test-vasnprintf.c \
-	test-vasprintf.c test-verify.c test-verify-try.c \
-	test-vsnprintf.c test-wchar.c test-wcrtomb.c \
-	test-wcrtomb-w32.c test-wctype-h.c test-write.c \
+	test-ttyname_r.c $(test_uc_width_SOURCES) \
+	$(test_uc_width2_SOURCES) test-uname.c test-unistd.c \
+	test-unlockpt.c test-unsetenv.c test-usleep.c \
+	test-vasnprintf.c test-vasprintf.c test-verify.c \
+	test-verify-try.c test-vsnprintf.c test-wchar.c test-wcrtomb.c \
+	test-wcrtomb-w32.c test-wctype-h.c test-wcwidth.c test-write.c \
 	test-xalloc-die.c
 DIST_SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-accept.c test-alloca-opt.c test-areadlink.c \
@@ -1550,11 +1564,12 @@ DIST_SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-sys_time.c test-sys_types.c test-sys_uio.c \
 	test-sys_utsname.c test-sys_wait.c test-termios.c \
 	test-thread_create.c test-thread_self.c test-time.c \
-	test-ttyname_r.c test-uname.c test-unistd.c test-unlockpt.c \
-	test-unsetenv.c test-usleep.c test-vasnprintf.c \
-	test-vasprintf.c test-verify.c test-verify-try.c \
-	test-vsnprintf.c test-wchar.c test-wcrtomb.c \
-	test-wcrtomb-w32.c test-wctype-h.c test-write.c \
+	test-ttyname_r.c $(test_uc_width_SOURCES) \
+	$(test_uc_width2_SOURCES) test-uname.c test-unistd.c \
+	test-unlockpt.c test-unsetenv.c test-usleep.c \
+	test-vasnprintf.c test-vasprintf.c test-verify.c \
+	test-verify-try.c test-vsnprintf.c test-wchar.c test-wcrtomb.c \
+	test-wcrtomb-w32.c test-wctype-h.c test-wcwidth.c test-write.c \
 	test-xalloc-die.c
 RECURSIVE_TARGETS = all-recursive check-recursive cscopelist-recursive \
 	ctags-recursive dvi-recursive html-recursive info-recursive \
@@ -1862,7 +1877,8 @@ am__EXEEXT_2 = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-sys_wait$(EXEEXT) test-termios$(EXEEXT) test-init.sh \
 	test-thread_self$(EXEEXT) test-thread_create$(EXEEXT) \
 	test-time$(EXEEXT) test-ttyname_r$(EXEEXT) test-uname$(EXEEXT) \
-	test-unistd$(EXEEXT) test-unlockpt$(EXEEXT) \
+	test-unistd$(EXEEXT) test-uc_width$(EXEEXT) \
+	uniwidth/test-uc_width2.sh test-unlockpt$(EXEEXT) \
 	test-unsetenv$(EXEEXT) test-usleep$(EXEEXT) \
 	test-vasnprintf$(EXEEXT) test-vasprintf$(EXEEXT) \
 	test-vc-list-files-git.sh test-vc-list-files-cvs.sh \
@@ -1870,7 +1886,8 @@ am__EXEEXT_2 = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-wchar$(EXEEXT) test-wcrtomb.sh test-wcrtomb-w32-1.sh \
 	test-wcrtomb-w32-2.sh test-wcrtomb-w32-3.sh \
 	test-wcrtomb-w32-4.sh test-wcrtomb-w32-5.sh \
-	test-wctype-h$(EXEEXT) test-write$(EXEEXT) test-xalloc-die.sh
+	test-wctype-h$(EXEEXT) test-wcwidth$(EXEEXT) \
+	test-write$(EXEEXT) test-xalloc-die.sh
 TEST_SUITE_LOG = test-suite.log
 TEST_EXTENSIONS = @EXEEXT@ .test
 LOG_DRIVER = $(SHELL) $(top_srcdir)/build-aux/test-driver
@@ -2825,12 +2842,12 @@ IP6TABLES_PATH = @IP6TABLES_PATH@
 IPTABLES_PATH = @IPTABLES_PATH@
 IP_PATH = @IP_PATH@
 ISCSIADM = @ISCSIADM@
-JANSSON_CFLAGS = @JANSSON_CFLAGS@
-JANSSON_LIBS = @JANSSON_LIBS@
 LD = @LD@
 LDEXP_LIBM = @LDEXP_LIBM@
 LDFLAGS = @LDFLAGS@
 LIBINTL = @LIBINTL@
+LIBISCSI_CFLAGS = @LIBISCSI_CFLAGS@
+LIBISCSI_LIBS = @LIBISCSI_LIBS@
 LIBMULTITHREAD = @LIBMULTITHREAD@
 LIBNL_CFLAGS = @LIBNL_CFLAGS@
 LIBNL_LIBS = @LIBNL_LIBS@
@@ -2851,6 +2868,8 @@ LIBSSH_LIBS = @LIBSSH_LIBS@
 LIBTESTS_LIBDEPS = @LIBTESTS_LIBDEPS@
 LIBTHREAD = @LIBTHREAD@
 LIBTOOL = @LIBTOOL@
+LIBUNISTRING_UNITYPES_H = @LIBUNISTRING_UNITYPES_H@
+LIBUNISTRING_UNIWIDTH_H = @LIBUNISTRING_UNIWIDTH_H@
 LIBVIRT_ADMIN_SYMBOL_FILE = @LIBVIRT_ADMIN_SYMBOL_FILE@
 LIBVIRT_LXC_SYMBOL_FILE = @LIBVIRT_LXC_SYMBOL_FILE@
 LIBVIRT_MAJOR_VERSION = @LIBVIRT_MAJOR_VERSION@
@@ -3043,6 +3062,7 @@ PVCREATE = @PVCREATE@
 PVREMOVE = @PVREMOVE@
 PVS = @PVS@
 PYTHON = @PYTHON@
+QEMU = @QEMU@
 QEMU_BRIDGE_HELPER = @QEMU_BRIDGE_HELPER@
 QEMU_PR_HELPER = @QEMU_PR_HELPER@
 RADVD = @RADVD@
@@ -3306,8 +3326,6 @@ SIG_ATOMIC_T_SUFFIX = @SIG_ATOMIC_T_SUFFIX@
 SIZE_T_SUFFIX = @SIZE_T_SUFFIX@
 SSH2_CFLAGS = @SSH2_CFLAGS@
 SSH2_LIBS = @SSH2_LIBS@
-STABLE_ORDERING_JANSSON_CFLAGS = @STABLE_ORDERING_JANSSON_CFLAGS@
-STABLE_ORDERING_JANSSON_LIBS = @STABLE_ORDERING_JANSSON_LIBS@
 STATIC_BINARIES = @STATIC_BINARIES@
 STDALIGN_H = @STDALIGN_H@
 STDARG_H = @STDARG_H@
@@ -3360,6 +3378,8 @@ XENAPI_LIBS = @XENAPI_LIBS@
 XGETTEXT = @XGETTEXT@
 XMLLINT = @XMLLINT@
 XSLTPROC = @XSLTPROC@
+YAJL_CFLAGS = @YAJL_CFLAGS@
+YAJL_LIBS = @YAJL_LIBS@
 ZFS = @ZFS@
 ZPOOL = @ZPOOL@
 abs_aux_dir = @abs_aux_dir@
@@ -3477,13 +3497,14 @@ GNULIB_TESTS = test-accept test-alloca-opt test-areadlink \
 	test-sys_socket test-sys_stat test-sys_time test-sys_types \
 	test-sys_uio test-sys_utsname test-sys_wait test-termios \
 	test-init.sh test-thread_self test-thread_create test-time \
-	test-ttyname_r test-uname test-unistd test-unlockpt \
-	test-unsetenv test-usleep test-vasnprintf test-vasprintf \
+	test-ttyname_r test-uname test-unistd test-uc_width \
+	uniwidth/test-uc_width2.sh test-unlockpt test-unsetenv \
+	test-usleep test-vasnprintf test-vasprintf \
 	test-vc-list-files-git.sh test-vc-list-files-cvs.sh \
 	test-verify test-verify.sh test-vsnprintf test-wchar \
 	test-wcrtomb.sh test-wcrtomb-w32-1.sh test-wcrtomb-w32-2.sh \
 	test-wcrtomb-w32-3.sh test-wcrtomb-w32-4.sh \
-	test-wcrtomb-w32-5.sh test-wctype-h test-write \
+	test-wcrtomb-w32-5.sh test-wctype-h test-wcwidth test-write \
 	test-xalloc-die.sh
 TESTS_ENVIRONMENT = EXEEXT='@EXEEXT@' srcdir='$(srcdir)' \
 	LOCALE_FR='@LOCALE_FR@' LOCALE_FR_UTF8='@LOCALE_FR_UTF8@' \
@@ -3635,19 +3656,22 @@ EXTRA_DIST = test-accept.c signature.h macros.h test-alloca-opt.c \
 	test-sys_wait.c test-sys_wait.h test-termios.c init.sh \
 	test-init.sh test-thread_self.c test-thread_create.c macros.h \
 	test-time.c test-ttyname_r.c signature.h macros.h test-uname.c \
-	signature.h macros.h test-unistd.c unlockpt.c test-unlockpt.c \
-	signature.h macros.h test-unsetenv.c signature.h macros.h \
-	test-usleep.c signature.h macros.h test-vasnprintf.c macros.h \
-	test-vasprintf.c signature.h macros.h \
-	test-vc-list-files-git.sh test-vc-list-files-cvs.sh \
-	test-verify.c test-verify-try.c test-verify.sh \
-	test-vsnprintf.c signature.h macros.h test-wchar.c \
-	test-wcrtomb.sh test-wcrtomb.c test-wcrtomb-w32-1.sh \
-	test-wcrtomb-w32-2.sh test-wcrtomb-w32-3.sh \
-	test-wcrtomb-w32-4.sh test-wcrtomb-w32-5.sh test-wcrtomb-w32.c \
-	signature.h macros.h wctob.c wctomb-impl.h wctomb.c \
-	test-wctype-h.c macros.h write.c test-write.c signature.h \
-	macros.h xalloc.h test-xalloc-die.c test-xalloc-die.sh
+	signature.h macros.h test-unistd.c uniwidth/test-uc_width.c \
+	uniwidth/test-uc_width2.c uniwidth/test-uc_width2.sh macros.h \
+	unlockpt.c test-unlockpt.c signature.h macros.h \
+	test-unsetenv.c signature.h macros.h test-usleep.c signature.h \
+	macros.h test-vasnprintf.c macros.h test-vasprintf.c \
+	signature.h macros.h test-vc-list-files-git.sh \
+	test-vc-list-files-cvs.sh test-verify.c test-verify-try.c \
+	test-verify.sh test-vsnprintf.c signature.h macros.h \
+	test-wchar.c test-wcrtomb.sh test-wcrtomb.c \
+	test-wcrtomb-w32-1.sh test-wcrtomb-w32-2.sh \
+	test-wcrtomb-w32-3.sh test-wcrtomb-w32-4.sh \
+	test-wcrtomb-w32-5.sh test-wcrtomb-w32.c signature.h macros.h \
+	wctob.c wctomb-impl.h wctomb.c test-wctype-h.c macros.h \
+	test-wcwidth.c signature.h macros.h write.c test-write.c \
+	signature.h macros.h xalloc.h test-xalloc-die.c \
+	test-xalloc-die.sh
 BUILT_SOURCES = ctype.h inttypes.h math.h $(am__append_3) spawn.h
 SUFFIXES = 
 
@@ -3755,6 +3779,11 @@ test_stat_time_LDADD = $(LDADD) $(LIB_NANOSLEEP)
 test_thread_self_LDADD = $(LDADD) @LIBTHREAD@
 test_thread_create_LDADD = $(LDADD) @LIBMULTITHREAD@
 test_uname_LDADD = $(LDADD) @GETHOSTNAME_LIB@
+test_uc_width_SOURCES = uniwidth/test-uc_width.c
+test_uc_width_LDADD = $(LDADD) $(LIBUNISTRING)
+test_uc_width2_SOURCES = uniwidth/test-uc_width2.c
+test_uc_width2_LDADD = $(LDADD) $(LIBUNISTRING)
+test_wcwidth_LDADD = $(LDADD) $(LIBUNISTRING)
 test_xalloc_die_LDADD = $(LDADD) @LIBINTL@
 INCLUDES = $(GETTEXT_CPPFLAGS)
 GNULIB_TESTS0 = 
@@ -4555,6 +4584,24 @@ test-time$(EXEEXT): $(test_time_OBJECTS) $(test_time_DEPENDENCIES) $(EXTRA_test_
 test-ttyname_r$(EXEEXT): $(test_ttyname_r_OBJECTS) $(test_ttyname_r_DEPENDENCIES) $(EXTRA_test_ttyname_r_DEPENDENCIES) 
 	@rm -f test-ttyname_r$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_ttyname_r_OBJECTS) $(test_ttyname_r_LDADD) $(LIBS)
+uniwidth/$(am__dirstamp):
+	@$(MKDIR_P) uniwidth
+	@: > uniwidth/$(am__dirstamp)
+uniwidth/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) uniwidth/$(DEPDIR)
+	@: > uniwidth/$(DEPDIR)/$(am__dirstamp)
+uniwidth/test-uc_width.$(OBJEXT): uniwidth/$(am__dirstamp) \
+	uniwidth/$(DEPDIR)/$(am__dirstamp)
+
+test-uc_width$(EXEEXT): $(test_uc_width_OBJECTS) $(test_uc_width_DEPENDENCIES) $(EXTRA_test_uc_width_DEPENDENCIES) 
+	@rm -f test-uc_width$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_uc_width_OBJECTS) $(test_uc_width_LDADD) $(LIBS)
+uniwidth/test-uc_width2.$(OBJEXT): uniwidth/$(am__dirstamp) \
+	uniwidth/$(DEPDIR)/$(am__dirstamp)
+
+test-uc_width2$(EXEEXT): $(test_uc_width2_OBJECTS) $(test_uc_width2_DEPENDENCIES) $(EXTRA_test_uc_width2_DEPENDENCIES) 
+	@rm -f test-uc_width2$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_uc_width2_OBJECTS) $(test_uc_width2_LDADD) $(LIBS)
 
 test-uname$(EXEEXT): $(test_uname_OBJECTS) $(test_uname_DEPENDENCIES) $(EXTRA_test_uname_DEPENDENCIES) 
 	@rm -f test-uname$(EXEEXT)
@@ -4612,6 +4659,10 @@ test-wctype-h$(EXEEXT): $(test_wctype_h_OBJECTS) $(test_wctype_h_DEPENDENCIES) $
 	@rm -f test-wctype-h$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_wctype_h_OBJECTS) $(test_wctype_h_LDADD) $(LIBS)
 
+test-wcwidth$(EXEEXT): $(test_wcwidth_OBJECTS) $(test_wcwidth_DEPENDENCIES) $(EXTRA_test_wcwidth_DEPENDENCIES) 
+	@rm -f test-wcwidth$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_wcwidth_OBJECTS) $(test_wcwidth_LDADD) $(LIBS)
+
 test-write$(EXEEXT): $(test_write_OBJECTS) $(test_write_DEPENDENCIES) $(EXTRA_test_write_DEPENDENCIES) 
 	@rm -f test-write$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_write_OBJECTS) $(test_write_LDADD) $(LIBS)
@@ -4623,6 +4674,7 @@ test-xalloc-die$(EXEEXT): $(test_xalloc_die_OBJECTS) $(test_xalloc_die_DEPENDENC
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 	-rm -f glthread/*.$(OBJEXT)
+	-rm -f uniwidth/*.$(OBJEXT)
 
 distclean-compile:
 	-rm -f *.tab.c
@@ -4861,6 +4913,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-wcrtomb-w32.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-wcrtomb.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-wctype-h.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-wcwidth.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-write.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-xalloc-die.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/unlockpt.Po@am__quote@
@@ -4871,6 +4924,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xalloc-die.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xmalloc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@glthread/$(DEPDIR)/thread.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@uniwidth/$(DEPDIR)/test-uc_width.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@uniwidth/$(DEPDIR)/test-uc_width2.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -6514,6 +6569,20 @@ test-unistd.log: test-unistd$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
+test-uc_width.log: test-uc_width$(EXEEXT)
+	@p='test-uc_width$(EXEEXT)'; \
+	b='test-uc_width'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+uniwidth/test-uc_width2.sh.log: uniwidth/test-uc_width2.sh
+	@p='uniwidth/test-uc_width2.sh'; \
+	b='uniwidth/test-uc_width2.sh'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
 test-unlockpt.log: test-unlockpt$(EXEEXT)
 	@p='test-unlockpt$(EXEEXT)'; \
 	b='test-unlockpt'; \
@@ -6636,6 +6705,13 @@ test-wcrtomb-w32-5.sh.log: test-wcrtomb-w32-5.sh
 test-wctype-h.log: test-wctype-h$(EXEEXT)
 	@p='test-wctype-h$(EXEEXT)'; \
 	b='test-wctype-h'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+test-wcwidth.log: test-wcwidth$(EXEEXT)
+	@p='test-wcwidth$(EXEEXT)'; \
+	b='test-wcwidth'; \
 	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
@@ -6766,6 +6842,8 @@ distclean-generic:
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
 	-rm -f glthread/$(DEPDIR)/$(am__dirstamp)
 	-rm -f glthread/$(am__dirstamp)
+	-rm -f uniwidth/$(DEPDIR)/$(am__dirstamp)
+	-rm -f uniwidth/$(am__dirstamp)
 	-test -z "$(DISTCLEANFILES)" || rm -f $(DISTCLEANFILES)
 
 maintainer-clean-generic:
@@ -6780,7 +6858,7 @@ clean-am: clean-checkLIBRARIES clean-checkPROGRAMS clean-generic \
 	clean-noinstPROGRAMS mostlyclean-am
 
 distclean: distclean-recursive
-	-rm -rf ./$(DEPDIR) glthread/$(DEPDIR)
+	-rm -rf ./$(DEPDIR) glthread/$(DEPDIR) uniwidth/$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -6826,7 +6904,7 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-recursive
-	-rm -rf ./$(DEPDIR) glthread/$(DEPDIR)
+	-rm -rf ./$(DEPDIR) glthread/$(DEPDIR) uniwidth/$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

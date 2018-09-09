@@ -1421,6 +1421,7 @@ qemuMonitorEmitWatchdog(qemuMonitorPtr mon, int action)
 int
 qemuMonitorEmitIOError(qemuMonitorPtr mon,
                        const char *diskAlias,
+                       const char *nodename,
                        int action,
                        const char *reason)
 {
@@ -1428,7 +1429,7 @@ qemuMonitorEmitIOError(qemuMonitorPtr mon,
     VIR_DEBUG("mon=%p", mon);
 
     QEMU_MONITOR_CALLBACK(mon, ret, domainIOError, mon->vm,
-                          diskAlias, action, reason);
+                          diskAlias, nodename, action, reason);
     return ret;
 }
 
@@ -1460,13 +1461,14 @@ qemuMonitorEmitGraphics(qemuMonitorPtr mon,
 int
 qemuMonitorEmitTrayChange(qemuMonitorPtr mon,
                           const char *devAlias,
+                          const char *devid,
                           int reason)
 {
     int ret = -1;
     VIR_DEBUG("mon=%p", mon);
 
     QEMU_MONITOR_CALLBACK(mon, ret, domainTrayChange, mon->vm,
-                          devAlias, reason);
+                          devAlias, devid, reason);
 
     return ret;
 }
@@ -2243,19 +2245,15 @@ qemuMonitorGetBlockInfo(qemuMonitorPtr mon)
 /**
  * qemuMonitorQueryBlockstats:
  * @mon: monitor object
- * @nodenames: include backing chain nodes with explicitly specified name
  *
  * Returns data from a call to 'query-blockstats'.
  */
 virJSONValuePtr
-qemuMonitorQueryBlockstats(qemuMonitorPtr mon,
-                           bool nodenames)
+qemuMonitorQueryBlockstats(qemuMonitorPtr mon)
 {
     QEMU_CHECK_MONITOR_NULL(mon);
 
-    VIR_DEBUG("nodenames: %d", nodenames);
-
-    return qemuMonitorJSONQueryBlockstats(mon, nodenames);
+    return qemuMonitorJSONQueryBlockstats(mon);
 }
 
 
@@ -2314,15 +2312,34 @@ qemuMonitorBlockStatsUpdateCapacity(qemuMonitorPtr mon,
 
 
 int
-qemuMonitorBlockResize(qemuMonitorPtr mon,
-                       const char *device,
-                       unsigned long long size)
+qemuMonitorBlockStatsUpdateCapacityBlockdev(qemuMonitorPtr mon,
+                                            virHashTablePtr stats)
 {
-    VIR_DEBUG("device=%s size=%llu", device, size);
+    VIR_DEBUG("stats=%p", stats);
 
     QEMU_CHECK_MONITOR(mon);
 
-    return qemuMonitorJSONBlockResize(mon, device, size);
+    return qemuMonitorJSONBlockStatsUpdateCapacityBlockdev(mon, stats);
+}
+
+int
+qemuMonitorBlockResize(qemuMonitorPtr mon,
+                       const char *device,
+                       const char *nodename,
+                       unsigned long long size)
+{
+    VIR_DEBUG("device=%s nodename=%s size=%llu",
+              NULLSTR(device), NULLSTR(nodename), size);
+
+    QEMU_CHECK_MONITOR(mon);
+
+    if ((!device && !nodename) || (device && nodename)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("exactly one of 'device' and 'nodename' need to be specified"));
+        return -1;
+    }
+
+    return qemuMonitorJSONBlockResize(mon, device, nodename, size);
 }
 
 
@@ -3285,7 +3302,7 @@ qemuMonitorSupportsActiveCommit(qemuMonitorPtr mon)
     if (!mon || !mon->json)
         return false;
 
-    return qemuMonitorJSONBlockCommit(mon, "bogus", NULL, NULL, NULL, 0) == -2;
+    return qemuMonitorJSONSupportsActiveCommit(mon);
 }
 
 
@@ -3306,13 +3323,13 @@ qemuMonitorDiskNameLookup(qemuMonitorPtr mon,
 /* Use the block-job-complete monitor command to pivot a block copy job.  */
 int
 qemuMonitorDrivePivot(qemuMonitorPtr mon,
-                      const char *device)
+                      const char *jobname)
 {
-    VIR_DEBUG("device=%s", device);
+    VIR_DEBUG("jobname=%s", jobname);
 
     QEMU_CHECK_MONITOR(mon);
 
-    return qemuMonitorJSONDrivePivot(mon, device);
+    return qemuMonitorJSONDrivePivot(mon, jobname);
 }
 
 
@@ -3386,26 +3403,26 @@ qemuMonitorBlockStream(qemuMonitorPtr mon,
 
 int
 qemuMonitorBlockJobCancel(qemuMonitorPtr mon,
-                          const char *device)
+                          const char *jobname)
 {
-    VIR_DEBUG("device=%s", device);
+    VIR_DEBUG("jobname=%s", jobname);
 
     QEMU_CHECK_MONITOR(mon);
 
-    return qemuMonitorJSONBlockJobCancel(mon, device);
+    return qemuMonitorJSONBlockJobCancel(mon, jobname);
 }
 
 
 int
 qemuMonitorBlockJobSetSpeed(qemuMonitorPtr mon,
-                            const char *device,
+                            const char *jobname,
                             unsigned long long bandwidth)
 {
-    VIR_DEBUG("device=%s, bandwidth=%lluB", device, bandwidth);
+    VIR_DEBUG("jobname=%s, bandwidth=%lluB", jobname, bandwidth);
 
     QEMU_CHECK_MONITOR(mon);
 
-    return qemuMonitorJSONBlockJobSetSpeed(mon, device, bandwidth);
+    return qemuMonitorJSONBlockJobSetSpeed(mon, jobname, bandwidth);
 }
 
 
@@ -3448,17 +3465,19 @@ qemuMonitorGetBlockJobInfo(qemuMonitorPtr mon,
 
 int
 qemuMonitorSetBlockIoThrottle(qemuMonitorPtr mon,
-                              const char *device,
+                              const char *drivealias,
+                              const char *qomid,
                               virDomainBlockIoTuneInfoPtr info,
                               bool supportMaxOptions,
                               bool supportGroupNameOption,
                               bool supportMaxLengthOptions)
 {
-    VIR_DEBUG("device=%p, info=%p", device, info);
+    VIR_DEBUG("drivealias=%s, qomid=%s, info=%p",
+              NULLSTR(drivealias), NULLSTR(qomid), info);
 
     QEMU_CHECK_MONITOR(mon);
 
-    return qemuMonitorJSONSetBlockIoThrottle(mon, device, info,
+    return qemuMonitorJSONSetBlockIoThrottle(mon, drivealias, qomid, info,
                                              supportMaxOptions,
                                              supportGroupNameOption,
                                              supportMaxLengthOptions);
@@ -3467,14 +3486,16 @@ qemuMonitorSetBlockIoThrottle(qemuMonitorPtr mon,
 
 int
 qemuMonitorGetBlockIoThrottle(qemuMonitorPtr mon,
-                              const char *device,
+                              const char *drivealias,
+                              const char *qdevid,
                               virDomainBlockIoTuneInfoPtr reply)
 {
-    VIR_DEBUG("device=%p, reply=%p", device, reply);
+    VIR_DEBUG("drivealias=%s, qdevid=%s, reply=%p",
+              NULLSTR(drivealias), NULLSTR(qdevid), reply);
 
     QEMU_CHECK_MONITOR(mon);
 
-    return qemuMonitorJSONGetBlockIoThrottle(mon, device, reply);
+    return qemuMonitorJSONGetBlockIoThrottle(mon, drivealias, qdevid, reply);
 }
 
 
@@ -4325,6 +4346,56 @@ qemuMonitorBlockdevDel(qemuMonitorPtr mon,
 
     return qemuMonitorJSONBlockdevDel(mon, nodename);
 }
+
+int
+qemuMonitorBlockdevTrayOpen(qemuMonitorPtr mon,
+                            const char *id,
+                            bool force)
+{
+    VIR_DEBUG("id=%s force=%d", id, force);
+
+    QEMU_CHECK_MONITOR(mon);
+
+    return qemuMonitorJSONBlockdevTrayOpen(mon, id, force);
+}
+
+
+int
+qemuMonitorBlockdevTrayClose(qemuMonitorPtr mon,
+                             const char *id)
+{
+    VIR_DEBUG("id=%s", id);
+
+    QEMU_CHECK_MONITOR(mon);
+
+    return qemuMonitorJSONBlockdevTrayClose(mon, id);
+}
+
+
+int
+qemuMonitorBlockdevMediumRemove(qemuMonitorPtr mon,
+                                const char *id)
+{
+    VIR_DEBUG("id=%s", id);
+
+    QEMU_CHECK_MONITOR(mon);
+
+    return qemuMonitorJSONBlockdevMediumRemove(mon, id);
+}
+
+
+int
+qemuMonitorBlockdevMediumInsert(qemuMonitorPtr mon,
+                                const char *id,
+                                const char *nodename)
+{
+    VIR_DEBUG("id=%s nodename=%s", id, nodename);
+
+    QEMU_CHECK_MONITOR(mon);
+
+    return qemuMonitorJSONBlockdevMediumInsert(mon, id, nodename);
+}
+
 
 char *
 qemuMonitorGetSEVMeasurement(qemuMonitorPtr mon)

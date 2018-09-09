@@ -86,16 +86,19 @@ int qemuMonitorJSONSetMemoryStatsPeriod(qemuMonitorPtr mon,
 int qemuMonitorJSONGetBlockInfo(qemuMonitorPtr mon,
                                 virHashTablePtr table);
 
-virJSONValuePtr qemuMonitorJSONQueryBlockstats(qemuMonitorPtr mon,
-                                               bool nodenames);
+virJSONValuePtr qemuMonitorJSONQueryBlockstats(qemuMonitorPtr mon);
 int qemuMonitorJSONGetAllBlockStatsInfo(qemuMonitorPtr mon,
                                         virHashTablePtr hash,
                                         bool backingChain);
 int qemuMonitorJSONBlockStatsUpdateCapacity(qemuMonitorPtr mon,
                                             virHashTablePtr stats,
                                             bool backingChain);
+int qemuMonitorJSONBlockStatsUpdateCapacityBlockdev(qemuMonitorPtr mon,
+                                                    virHashTablePtr stats);
+
 int qemuMonitorJSONBlockResize(qemuMonitorPtr mon,
-                               const char *devce,
+                               const char *device,
+                               const char *nodename,
                                unsigned long long size);
 
 int qemuMonitorJSONSetVNCPassword(qemuMonitorPtr mon,
@@ -264,8 +267,11 @@ int qemuMonitorJSONBlockdevMirror(qemuMonitorPtr mon,
                                   unsigned int flags)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(4);
 int qemuMonitorJSONDrivePivot(qemuMonitorPtr mon,
-                              const char *device)
+                              const char *jobname)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+bool qemuMonitorJSONSupportsActiveCommit(qemuMonitorPtr mon)
+    ATTRIBUTE_NONNULL(1);
 
 int qemuMonitorJSONBlockCommit(qemuMonitorPtr mon,
                                const char *device,
@@ -307,11 +313,11 @@ int qemuMonitorJSONBlockStream(qemuMonitorPtr mon,
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 int qemuMonitorJSONBlockJobCancel(qemuMonitorPtr mon,
-                                  const char *device)
+                                  const char *jobname)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 int qemuMonitorJSONBlockJobSetSpeed(qemuMonitorPtr mon,
-                                    const char *device,
+                                    const char *jobname,
                                     unsigned long long speed)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
@@ -328,14 +334,16 @@ int qemuMonitorJSONOpenGraphics(qemuMonitorPtr mon,
                                 bool skipauth);
 
 int qemuMonitorJSONSetBlockIoThrottle(qemuMonitorPtr mon,
-                                      const char *device,
+                                      const char *drivealias,
+                                      const char *qomid,
                                       virDomainBlockIoTuneInfoPtr info,
                                       bool supportMaxOptions,
                                       bool supportGroupNameOption,
                                       bool supportMaxLengthOptions);
 
 int qemuMonitorJSONGetBlockIoThrottle(qemuMonitorPtr mon,
-                                      const char *device,
+                                      const char *drivealias,
+                                      const char *qdevid,
                                       virDomainBlockIoTuneInfoPtr reply);
 
 int qemuMonitorJSONSystemWakeup(qemuMonitorPtr mon);
@@ -546,6 +554,24 @@ int qemuMonitorJSONBlockdevAdd(qemuMonitorPtr mon,
 int qemuMonitorJSONBlockdevDel(qemuMonitorPtr mon,
                                const char *nodename)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+int qemuMonitorJSONBlockdevTrayOpen(qemuMonitorPtr mon,
+                                    const char *id,
+                                    bool force)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+int qemuMonitorJSONBlockdevTrayClose(qemuMonitorPtr mon,
+                                     const char *id)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+int qemuMonitorJSONBlockdevMediumRemove(qemuMonitorPtr mon,
+                                        const char *id)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+int qemuMonitorJSONBlockdevMediumInsert(qemuMonitorPtr mon,
+                                        const char *id,
+                                        const char *nodename)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 
 int qemuMonitorJSONGetPRManagerInfo(qemuMonitorPtr mon,
                                     virHashTablePtr info)

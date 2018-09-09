@@ -500,8 +500,8 @@ virSecretObjListNumOfSecrets(virSecretObjListPtr secrets,
 
 #define MATCH(FLAG) (flags & (FLAG))
 static bool
-virSecretObjMatchFlags(virSecretObjPtr obj,
-                       unsigned int flags)
+virSecretObjMatch(virSecretObjPtr obj,
+                  unsigned int flags)
 {
     virSecretDefPtr def = obj->def;
 
@@ -526,7 +526,9 @@ virSecretObjMatchFlags(virSecretObjPtr obj,
 #undef MATCH
 
 
-struct virSecretObjListData {
+typedef struct _virSecretObjListExportData virSecretObjListExportData;
+typedef virSecretObjListExportData *virSecretObjListExportDataPtr;
+struct _virSecretObjListExportData {
     virConnectPtr conn;
     virSecretPtr *secrets;
     virSecretObjListACLFilter filter;
@@ -540,7 +542,7 @@ virSecretObjListExportCallback(void *payload,
                                const void *name ATTRIBUTE_UNUSED,
                                void *opaque)
 {
-    struct virSecretObjListData *data = opaque;
+    virSecretObjListExportDataPtr data = opaque;
     virSecretObjPtr obj = payload;
     virSecretDefPtr def;
     virSecretPtr secret = NULL;
@@ -554,7 +556,7 @@ virSecretObjListExportCallback(void *payload,
     if (data->filter && !data->filter(data->conn, def))
         goto cleanup;
 
-    if (!virSecretObjMatchFlags(obj, data->flags))
+    if (!virSecretObjMatch(obj, data->flags))
         goto cleanup;
 
     if (!data->secrets) {
@@ -584,7 +586,7 @@ virSecretObjListExport(virConnectPtr conn,
                        virSecretObjListACLFilter filter,
                        unsigned int flags)
 {
-    struct virSecretObjListData data = {
+    virSecretObjListExportData data = {
         .conn = conn, .secrets = NULL,
         .filter = filter, .flags = flags,
         .nsecrets = 0, .error = false };

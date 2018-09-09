@@ -260,7 +260,9 @@ virInterfaceObjMatch(virInterfaceObjPtr obj,
 #undef MATCH
 
 
-struct virInterfaceObjListData {
+typedef struct _virInterfaceObjListExportData virInterfaceObjListExportData;
+typedef virInterfaceObjListExportData *virInterfaceObjListExportDataPtr;
+struct _virInterfaceObjListExportData {
     virConnectPtr conn;
     virInterfacePtr *ifaces;
     virInterfaceObjListFilter filter;
@@ -270,11 +272,11 @@ struct virInterfaceObjListData {
 };
 
 static int
-virInterfaceObjListPopulate(void *payload,
-                            const void *name ATTRIBUTE_UNUSED,
-                            void *opaque)
+virInterfaceObjListExportCallback(void *payload,
+                                  const void *name ATTRIBUTE_UNUSED,
+                                  void *opaque)
 {
-    struct virInterfaceObjListData *data = opaque;
+    virInterfaceObjListExportDataPtr data = opaque;
     virInterfaceObjPtr obj = payload;
     virInterfacePtr iface = NULL;
 
@@ -316,7 +318,7 @@ virInterfaceObjListExport(virConnectPtr conn,
                           unsigned int flags)
 {
     int ret = -1;
-    struct virInterfaceObjListData data = {
+    virInterfaceObjListExportData data = {
         .conn = conn, .ifaces = NULL, .filter = filter, .flags = flags,
         .nifaces = 0, .error = false };
 
@@ -325,7 +327,7 @@ virInterfaceObjListExport(virConnectPtr conn,
                               virHashSize(ifaceobjs->objsName) + 1) < 0)
         goto cleanup;
 
-    virHashForEach(ifaceobjs->objsName, virInterfaceObjListPopulate, &data);
+    virHashForEach(ifaceobjs->objsName, virInterfaceObjListExportCallback, &data);
 
     if (data.error)
         goto cleanup;

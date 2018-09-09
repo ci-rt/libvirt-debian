@@ -481,6 +481,10 @@ AC_DEFUN([gl_EARLY],
   # Code from module uname-tests:
   # Code from module unistd:
   # Code from module unistd-tests:
+  # Code from module unitypes:
+  # Code from module uniwidth/base:
+  # Code from module uniwidth/width:
+  # Code from module uniwidth/width-tests:
   # Code from module unlockpt:
   # Code from module unlockpt-tests:
   # Code from module unsetenv:
@@ -509,6 +513,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module wctomb:
   # Code from module wctype-h:
   # Code from module wctype-h-tests:
+  # Code from module wcwidth:
+  # Code from module wcwidth-tests:
   # Code from module write:
   # Code from module write-tests:
   # Code from module xalloc:
@@ -1252,6 +1258,9 @@ AC_SUBST([LTALLOCA])
   fi
   gl_SYS_UTSNAME_MODULE_INDICATOR([uname])
   gl_UNISTD_H
+  gl_LIBUNISTRING_LIBHEADER([0.9.4], [unitypes.h])
+  gl_LIBUNISTRING_LIBHEADER([0.9.4], [uniwidth.h])
+  gl_LIBUNISTRING_MODULE([0.9.8], [uniwidth/width])
   gl_FUNC_UNSETENV
   if test $HAVE_UNSETENV = 0 || test $REPLACE_UNSETENV = 1; then
     AC_LIBOBJ([unsetenv])
@@ -1284,6 +1293,12 @@ AC_SUBST([LTALLOCA])
   fi
   gl_WCHAR_MODULE_INDICATOR([wcrtomb])
   gl_WCTYPE_H
+  gl_FUNC_WCWIDTH
+  if test $HAVE_WCWIDTH = 0 || test $REPLACE_WCWIDTH = 1; then
+    AC_LIBOBJ([wcwidth])
+    gl_PREREQ_WCWIDTH
+  fi
+  gl_WCHAR_MODULE_INDICATOR([wcwidth])
   gl_XSIZE
   # End of code from modules
   m4_ifval(gl_LIBSOURCES_LIST, [
@@ -1969,6 +1984,10 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/uname.c
   lib/unistd.c
   lib/unistd.in.h
+  lib/unitypes.in.h
+  lib/uniwidth.in.h
+  lib/uniwidth/cjk.h
+  lib/uniwidth/width.c
   lib/unsetenv.c
   lib/unused-parameter.h
   lib/usleep.c
@@ -1984,6 +2003,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/wcrtomb.c
   lib/wctype-h.c
   lib/wctype.in.h
+  lib/wcwidth.c
   lib/xalloc-oversized.h
   lib/xsize.c
   lib/xsize.h
@@ -2084,6 +2104,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/lib-ld.m4
   m4/lib-link.m4
   m4/lib-prefix.m4
+  m4/libunistring-base.m4
   m4/limits-h.m4
   m4/localcharset.m4
   m4/locale-fr.m4
@@ -2237,6 +2258,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/wctob.m4
   m4/wctomb.m4
   m4/wctype_h.m4
+  m4/wcwidth.m4
   m4/wint_t.m4
   m4/write.m4
   m4/xalloc.m4
@@ -2521,9 +2543,13 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-wcrtomb.c
   tests/test-wcrtomb.sh
   tests/test-wctype-h.c
+  tests/test-wcwidth.c
   tests/test-write.c
   tests/test-xalloc-die.c
   tests/test-xalloc-die.sh
+  tests/uniwidth/test-uc_width.c
+  tests/uniwidth/test-uc_width2.c
+  tests/uniwidth/test-uc_width2.sh
   tests/zerosize-ptr.h
   tests=lib/_Noreturn.h
   tests=lib/arg-nonnull.h

@@ -580,42 +580,6 @@
       <allow_active>no</allow_active>
     </defaults>
   </action>
-  <action id="org.libvirt.api.nwfilter.binding-create">
-    <description>Create network filter binding</description>
-    <message>Creating network filter binding requires authorization</message>
-    <defaults>
-      <allow_any>no</allow_any>
-      <allow_inactive>no</allow_inactive>
-      <allow_active>no</allow_active>
-    </defaults>
-  </action>
-  <action id="org.libvirt.api.nwfilter.binding-delete">
-    <description>Delete network filter binding</description>
-    <message>Deleting network filter binding requires authorization</message>
-    <defaults>
-      <allow_any>no</allow_any>
-      <allow_inactive>no</allow_inactive>
-      <allow_active>no</allow_active>
-    </defaults>
-  </action>
-  <action id="org.libvirt.api.nwfilter.binding-getattr">
-    <description>Access network filter</description>
-    <message>Accessing network filter requires authorization</message>
-    <defaults>
-      <allow_any>yes</allow_any>
-      <allow_inactive>yes</allow_inactive>
-      <allow_active>yes</allow_active>
-    </defaults>
-  </action>
-  <action id="org.libvirt.api.nwfilter.binding-read">
-    <description>Read network filter binding</description>
-    <message>Reading network filter configuration requires authorization</message>
-    <defaults>
-      <allow_any>yes</allow_any>
-      <allow_inactive>yes</allow_inactive>
-      <allow_active>yes</allow_active>
-    </defaults>
-  </action>
   <action id="org.libvirt.api.nwfilter.delete">
     <description>Delete network filter</description>
     <message>Deleting network filter configuration requires authorization</message>
@@ -659,6 +623,42 @@
       <allow_any>no</allow_any>
       <allow_inactive>no</allow_inactive>
       <allow_active>no</allow_active>
+    </defaults>
+  </action>
+  <action id="org.libvirt.api.nwfilter-binding.create">
+    <description>Create network filter binding</description>
+    <message>Creating network filter binding requires authorization</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>no</allow_active>
+    </defaults>
+  </action>
+  <action id="org.libvirt.api.nwfilter-binding.delete">
+    <description>Delete network filter binding</description>
+    <message>Deleting network filter binding requires authorization</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>no</allow_active>
+    </defaults>
+  </action>
+  <action id="org.libvirt.api.nwfilter-binding.getattr">
+    <description>Access network filter</description>
+    <message>Accessing network filter requires authorization</message>
+    <defaults>
+      <allow_any>yes</allow_any>
+      <allow_inactive>yes</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+  </action>
+  <action id="org.libvirt.api.nwfilter-binding.read">
+    <description>Read network filter binding</description>
+    <message>Reading network filter configuration requires authorization</message>
+    <defaults>
+      <allow_any>yes</allow_any>
+      <allow_inactive>yes</allow_inactive>
+      <allow_active>yes</allow_active>
     </defaults>
   </action>
   <action id="org.libvirt.api.secret.delete">

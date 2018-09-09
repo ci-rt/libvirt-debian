@@ -46,7 +46,7 @@ AM_CFLAGS = \
 	$(SASL_CFLAGS) \
 	$(SELINUX_CFLAGS) \
 	$(APPARMOR_CFLAGS) \
-	$(JANSSON_CFLAGS) \
+	$(YAJL_CFLAGS) \
 	$(COVERAGE_CFLAGS) \
 	$(XDR_CFLAGS) \
 	$(WARN_CFLAGS)
@@ -206,6 +206,7 @@ test_programs = virshtest sockettest \
 	virhostdevtest \
 	virnetdevtest \
 	virtypedparamtest \
+	vshtabletest \
 	$(NULL)
 
 test_libraries = libshunload.la \
@@ -331,9 +332,9 @@ if WITH_CIL
 test_programs += objectlocking
 endif WITH_CIL
 
-if WITH_JANSSON
+if WITH_YAJL
 test_programs += virjsontest
-endif WITH_JANSSON
+endif WITH_YAJL
 
 test_programs += \
 		networkxml2xmltest \
@@ -938,6 +939,13 @@ metadatatest_SOURCES = \
 	testutils.c testutils.h
 metadatatest_LDADD = $(LDADDS) $(LIBXML_LIBS)
 
+vshtabletest_SOURCES = \
+	vshtabletest.c \
+	testutils.c testutils.h
+vshtabletest_LDADD = \
+	$(LDADDS) \
+	../tools/libvirt_shell.la
+
 virshtest_SOURCES = \
 	virshtest.c \
 	testutils.c testutils.h
@@ -1219,15 +1227,15 @@ virdeterministichashmock_la_LIBADD = $(MOCKLIBS_LIBS)
 
 test_libraries += virdeterministichashmock.la
 
-if WITH_JANSSON
+if WITH_YAJL
 virmacmaptest_SOURCES = \
 	virmacmaptest.c testutils.h testutils.c
 virmacmaptest_LDADD = $(LDADDS)
 
 test_programs += virmacmaptest
-else ! WITH_JANSSON
+else ! WITH_YAJL
 EXTRA_DIST +=  virmacmaptest.c
-endif ! WITH_JANSSON
+endif ! WITH_YAJL
 
 virnetdevtest_SOURCES = \
 	virnetdevtest.c testutils.h testutils.c

@@ -166,6 +166,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/lcmessage.m4 $(top_srcdir)/m4/ldexp.m4 \
 	$(top_srcdir)/m4/lib-ld.m4 $(top_srcdir)/m4/lib-link.m4 \
 	$(top_srcdir)/m4/lib-prefix.m4 $(top_srcdir)/m4/libtool.m4 \
+	$(top_srcdir)/m4/libunistring-base.m4 \
 	$(top_srcdir)/m4/limits-h.m4 $(top_srcdir)/m4/localcharset.m4 \
 	$(top_srcdir)/m4/locale-fr.m4 $(top_srcdir)/m4/locale-ja.m4 \
 	$(top_srcdir)/m4/locale-tr.m4 $(top_srcdir)/m4/locale-zh.m4 \
@@ -284,7 +285,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-gnutls.m4 $(top_srcdir)/m4/virt-hal.m4 \
 	$(top_srcdir)/m4/virt-host-validate.m4 \
 	$(top_srcdir)/m4/virt-init-script.m4 \
-	$(top_srcdir)/m4/virt-jansson.m4 $(top_srcdir)/m4/virt-lib.m4 \
+	$(top_srcdir)/m4/virt-lib.m4 $(top_srcdir)/m4/virt-libiscsi.m4 \
 	$(top_srcdir)/m4/virt-libnl.m4 \
 	$(top_srcdir)/m4/virt-libpcap.m4 \
 	$(top_srcdir)/m4/virt-libssh.m4 \
@@ -315,6 +316,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-storage-disk.m4 \
 	$(top_srcdir)/m4/virt-storage-fs.m4 \
 	$(top_srcdir)/m4/virt-storage-gluster.m4 \
+	$(top_srcdir)/m4/virt-storage-iscsi-direct.m4 \
 	$(top_srcdir)/m4/virt-storage-iscsi.m4 \
 	$(top_srcdir)/m4/virt-storage-lvm.m4 \
 	$(top_srcdir)/m4/virt-storage-mpath.m4 \
@@ -339,9 +341,9 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/wchar_h.m4 $(top_srcdir)/m4/wchar_t.m4 \
 	$(top_srcdir)/m4/wcrtomb.m4 $(top_srcdir)/m4/wctob.m4 \
 	$(top_srcdir)/m4/wctomb.m4 $(top_srcdir)/m4/wctype_h.m4 \
-	$(top_srcdir)/m4/wint_t.m4 $(top_srcdir)/m4/write.m4 \
-	$(top_srcdir)/m4/xalloc.m4 $(top_srcdir)/m4/xsize.m4 \
-	$(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/wcwidth.m4 $(top_srcdir)/m4/wint_t.m4 \
+	$(top_srcdir)/m4/write.m4 $(top_srcdir)/m4/xalloc.m4 \
+	$(top_srcdir)/m4/xsize.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
@@ -387,7 +389,8 @@ am__DEPENDENCIES_1 =
 libvirt_shell_la_DEPENDENCIES = ../src/libvirt.la \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	../gnulib/lib/libgnu.la
-am_libvirt_shell_la_OBJECTS = libvirt_shell_la-vsh.lo
+am_libvirt_shell_la_OBJECTS = libvirt_shell_la-vsh.lo \
+	libvirt_shell_la-vsh-table.lo
 libvirt_shell_la_OBJECTS = $(am_libvirt_shell_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -1503,12 +1506,12 @@ IP6TABLES_PATH = @IP6TABLES_PATH@
 IPTABLES_PATH = @IPTABLES_PATH@
 IP_PATH = @IP_PATH@
 ISCSIADM = @ISCSIADM@
-JANSSON_CFLAGS = @JANSSON_CFLAGS@
-JANSSON_LIBS = @JANSSON_LIBS@
 LD = @LD@
 LDEXP_LIBM = @LDEXP_LIBM@
 LDFLAGS = @LDFLAGS@
 LIBINTL = @LIBINTL@
+LIBISCSI_CFLAGS = @LIBISCSI_CFLAGS@
+LIBISCSI_LIBS = @LIBISCSI_LIBS@
 LIBMULTITHREAD = @LIBMULTITHREAD@
 LIBNL_CFLAGS = @LIBNL_CFLAGS@
 LIBNL_LIBS = @LIBNL_LIBS@
@@ -1529,6 +1532,8 @@ LIBSSH_LIBS = @LIBSSH_LIBS@
 LIBTESTS_LIBDEPS = @LIBTESTS_LIBDEPS@
 LIBTHREAD = @LIBTHREAD@
 LIBTOOL = @LIBTOOL@
+LIBUNISTRING_UNITYPES_H = @LIBUNISTRING_UNITYPES_H@
+LIBUNISTRING_UNIWIDTH_H = @LIBUNISTRING_UNIWIDTH_H@
 LIBVIRT_ADMIN_SYMBOL_FILE = @LIBVIRT_ADMIN_SYMBOL_FILE@
 LIBVIRT_LXC_SYMBOL_FILE = @LIBVIRT_LXC_SYMBOL_FILE@
 LIBVIRT_MAJOR_VERSION = @LIBVIRT_MAJOR_VERSION@
@@ -1721,6 +1726,7 @@ PVCREATE = @PVCREATE@
 PVREMOVE = @PVREMOVE@
 PVS = @PVS@
 PYTHON = @PYTHON@
+QEMU = @QEMU@
 QEMU_BRIDGE_HELPER = @QEMU_BRIDGE_HELPER@
 QEMU_PR_HELPER = @QEMU_PR_HELPER@
 RADVD = @RADVD@
@@ -1984,8 +1990,6 @@ SIG_ATOMIC_T_SUFFIX = @SIG_ATOMIC_T_SUFFIX@
 SIZE_T_SUFFIX = @SIZE_T_SUFFIX@
 SSH2_CFLAGS = @SSH2_CFLAGS@
 SSH2_LIBS = @SSH2_LIBS@
-STABLE_ORDERING_JANSSON_CFLAGS = @STABLE_ORDERING_JANSSON_CFLAGS@
-STABLE_ORDERING_JANSSON_LIBS = @STABLE_ORDERING_JANSSON_LIBS@
 STATIC_BINARIES = @STATIC_BINARIES@
 STDALIGN_H = @STDALIGN_H@
 STDARG_H = @STDARG_H@
@@ -2038,6 +2042,8 @@ XENAPI_LIBS = @XENAPI_LIBS@
 XGETTEXT = @XGETTEXT@
 XMLLINT = @XMLLINT@
 XSLTPROC = @XSLTPROC@
+YAJL_CFLAGS = @YAJL_CFLAGS@
+YAJL_LIBS = @YAJL_LIBS@
 ZFS = @ZFS@
 ZPOOL = @ZPOOL@
 abs_aux_dir = @abs_aux_dir@
@@ -2191,7 +2197,10 @@ libvirt_shell_la_LIBADD = \
 		../gnulib/lib/libgnu.la \
 		$(NULL)
 
-libvirt_shell_la_SOURCES = vsh.c vsh.h
+libvirt_shell_la_SOURCES = \
+		vsh.c vsh.h \
+		vsh-table.c vsh-table.h
+
 virt_host_validate_SOURCES = virt-host-validate.c \
 	virt-host-validate-common.c virt-host-validate-common.h \
 	$(am__append_7) $(am__append_9) $(am__append_11)
@@ -2727,6 +2736,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_shell_la-vsh-table.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_shell_la-vsh.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-virsh-completer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-virsh-console.Po@am__quote@
@@ -2786,6 +2796,13 @@ libvirt_shell_la-vsh.lo: vsh.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='vsh.c' object='libvirt_shell_la-vsh.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_shell_la_CFLAGS) $(CFLAGS) -c -o libvirt_shell_la-vsh.lo `test -f 'vsh.c' || echo '$(srcdir)/'`vsh.c
+
+libvirt_shell_la-vsh-table.lo: vsh-table.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_shell_la_CFLAGS) $(CFLAGS) -MT libvirt_shell_la-vsh-table.lo -MD -MP -MF $(DEPDIR)/libvirt_shell_la-vsh-table.Tpo -c -o libvirt_shell_la-vsh-table.lo `test -f 'vsh-table.c' || echo '$(srcdir)/'`vsh-table.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirt_shell_la-vsh-table.Tpo $(DEPDIR)/libvirt_shell_la-vsh-table.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='vsh-table.c' object='libvirt_shell_la-vsh-table.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_shell_la_CFLAGS) $(CFLAGS) -c -o libvirt_shell_la-vsh-table.lo `test -f 'vsh-table.c' || echo '$(srcdir)/'`vsh-table.c
 
 nss/nss_libnss_libvirt_guest_impl_la-libvirt_nss.lo: nss/libvirt_nss.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nss_libnss_libvirt_guest_impl_la_CFLAGS) $(CFLAGS) -MT nss/nss_libnss_libvirt_guest_impl_la-libvirt_nss.lo -MD -MP -MF nss/$(DEPDIR)/nss_libnss_libvirt_guest_impl_la-libvirt_nss.Tpo -c -o nss/nss_libnss_libvirt_guest_impl_la-libvirt_nss.lo `test -f 'nss/libvirt_nss.c' || echo '$(srcdir)/'`nss/libvirt_nss.c
