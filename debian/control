@@ -206,7 +206,6 @@ Depends:
  logrotate,
  policykit-1,
 Recommends:
- bridge-utils,
  dmidecode,
  dnsmasq-base (>= 2.46-1),
  ebtables [linux-any],
