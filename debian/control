@@ -236,6 +236,8 @@ Description: Libvirt daemon configuration files
 
 Package: libvirt0
 Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Recommends: lvm2 [linux-any]
 Breaks: selinux-policy-default (<< 2:2.20131214-1~), selinux-policy-mls (<< 2:2.20131214-1~), libvirt-daemon (<< 4.10.0-2~)
@@ -262,6 +264,7 @@ Description: documentation for the libvirt library
 Package: libvirt-dev
 Architecture: any
 Section: libdevel
+Multi-Arch: same
 Depends: ${misc:Depends}, libvirt0 (= ${binary:Version}), libxen-dev [i386 amd64 armhf arm64]
 Recommends: pkg-config
 Description: development files for the libvirt library
@@ -295,6 +298,8 @@ Depends:
  ${misc:Depends},
  ${shlibs:Depends},
  libvirt0 (= ${binary:Version}),
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
 Priority: optional
 Description: nss plugin providing IP address resolution for virtual machines
  Libvirt is a C toolkit to interact with the virtualization capabilities

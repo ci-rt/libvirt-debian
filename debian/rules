@@ -168,6 +168,15 @@ override_dh_auto_test:
 	fi
 
 override_dh_install-arch:
+	# Multiarch:
+	# don't configure with --libdir, but move the files manually, because
+	# we don't want to change other places in /usr/lib/
+	mkdir -p debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)
+	mv debian/tmp/usr/lib/lib*a \
+	   debian/tmp/usr/lib/lib*.so* \
+	   debian/tmp/usr/lib/pkgconfig \
+	   debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)
+
 	dh_install
 
 	# Copy upstream files to debian/ so dh_* can find them
@@ -197,7 +206,9 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
 	dh_install -p libvirt-daemon-system etc/libvirt/qemu/networks/
 	dh_install -p libvirt-daemon-system etc/libvirt/nwfilter/
 	dh_install -p libvirt-clients etc/libvirt/virt-login-shell.conf
-	dh_install -p libnss-libvirt usr/lib/libnss_libvirt.so.2 lib/$(DEB_HOST_MULTIARCH)/
+	dh_install -p libnss-libvirt \
+                      usr/lib/$(DEB_HOST_MULTIARCH)/libnss_libvirt.so.2 \
+                      lib/$(DEB_HOST_MULTIARCH)/
 endif
 ifeq ($(XEN_ENABLED), 1)
 	dh_install -p libvirt-daemon-system etc/libvirt/libxl.conf
