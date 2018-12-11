@@ -1,7 +1,5 @@
 #include <config.h>
 
-#include <stdio.h>
-#include <string.h>
 #include <unistd.h>
 
 #include "internal.h"
@@ -21,37 +19,37 @@ static virDomainXMLOptionPtr xmlopt;
 static int
 testCompareFiles(const char *xml, const char *sexpr)
 {
-  char *sexprData = NULL;
-  char *gotxml = NULL;
-  int ret = -1;
-  virDomainDefPtr def = NULL;
+    char *sexprData = NULL;
+    char *gotxml = NULL;
+    int ret = -1;
+    virDomainDefPtr def = NULL;
 
-  if (virTestLoadFile(sexpr, &sexprData) < 0)
-      goto fail;
+    if (virTestLoadFile(sexpr, &sexprData) < 0)
+        goto fail;
 
-  if (!(def = xenParseSxprString(sexprData,
-                                 NULL, -1, caps, xmlopt)))
-      goto fail;
+    if (!(def = xenParseSxprString(sexprData,
+                                   NULL, -1, caps, xmlopt)))
+        goto fail;
 
-  if (!virDomainDefCheckABIStability(def, def, xmlopt)) {
-      fprintf(stderr, "ABI stability check failed on %s", xml);
-      goto fail;
-  }
+    if (!virDomainDefCheckABIStability(def, def, xmlopt)) {
+        fprintf(stderr, "ABI stability check failed on %s", xml);
+        goto fail;
+    }
 
-  if (!(gotxml = virDomainDefFormat(def, caps, 0)))
-      goto fail;
+    if (!(gotxml = virDomainDefFormat(def, caps, 0)))
+        goto fail;
 
-  if (virTestCompareToFile(gotxml, xml) < 0)
-      goto fail;
+    if (virTestCompareToFile(gotxml, xml) < 0)
+        goto fail;
 
-  ret = 0;
+    ret = 0;
 
  fail:
-  VIR_FREE(sexprData);
-  VIR_FREE(gotxml);
-  virDomainDefFree(def);
+    VIR_FREE(sexprData);
+    VIR_FREE(gotxml);
+    virDomainDefFree(def);
 
-  return ret;
+    return ret;
 }
 
 struct testInfo {

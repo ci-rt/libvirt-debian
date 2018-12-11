@@ -12,7 +12,133 @@
         <h1>Releases</h1><p>This is the list of official releases for libvirt, along with an
         overview of the changes introduced by each of them.</p><p>For a more fine-grained view, use the
         <a href="https://libvirt.org/git/?p=libvirt.git;a=log">git log</a>.
-        </p><h3><strong>v4.7.0 (2018-09-03)</strong></h3><ul><li><strong>New features</strong><ul><li>
+        </p><h3><strong>v4.10.0 (2018-12-03)</strong></h3><ul><li><strong>New features</strong><ul><li>
+          qemu: Add Hyper-V PV IPI and Enlightened VMCS support
+        <br/>
+          The QEMU driver now has support for Hyper-V PV IPI and Enlightened VMCS
+          for Windows and Hyper-V guests.
+        </li><li>
+          qemu: Added support for PCI devices on S390
+        <br/>
+          PCI addresses can now include the new zpci element which contains
+          uid (user-defined identifier) and fid (PCI function identifier)
+          attributes and makes the corresponding devices usable by S390
+          guests.
+        </li><li>
+          Support changing IOThread polling parameters for a live guest
+        <br/>
+          Introduced virDomainSetIOThreadParams which allows dynamically
+          setting the IOThread polling parameters used by QEMU to manage
+          the thread polling interval and the algorithm for growth or
+          shrink of the polling time. The values only affect a running
+          guest with IOThreads. The guest's IOThread polling values can
+          be viewed via the domain statistics.
+        </li><li>
+          Xen: Add support for PVH
+        <br/>
+          The libxl driver now supports Xen's PVH virtual machine type.
+          PVH machines are enabled with the new "xenpvh" OS type, e.g.
+          <code>&lt;os&gt;&lt;type&gt;xenpvh&lt;/type&gt;&lt;/os&gt;</code>
+        </li><li>
+          qemu: Added support for CMT (Cache Monitoring Technology)
+        <br/>
+          Introduced cache monitoring using the <code>monitor</code>
+          element in <code>cachetune</code> for vCPU threads. Added
+          interfaces to get and display the cache utilization statistics
+          through the command 'virsh domstats' via the
+          virConnectGetAllDomainStats API.
+        </li><li>
+          qemu: Add support for nested HV for pSeries guests
+        <br/>
+          Nested HV support makes it possible to run nested (L2) guests
+          with minimal performance penalty when compared to regular (L1)
+          guests on ppc64 hardware.
+        </li></ul></li><li><strong>Improvements</strong></li><li><strong>Bug fixes</strong><ul><li>
+          Xen: Handle soft reset shutdown event
+        <br/>
+          The pvops Linux kernel uses soft reset to handle the crash
+          machine operation. The libxl driver now supports the soft
+          reset shutdown event, allowing proper crash handling of
+          pvops-based HVM domains.
+        </li></ul></li></ul><h3><strong>v4.9.0 (2018-11-04)</strong></h3><ul><li><strong>New features</strong><ul><li>
+          util: Add cgroup v2 support
+        <br/>
+          cgroup v2 support has been implemented in libvirt, with both
+          "unified" (v2 only) and "hybrid" (v2 + v1) setups being usable;
+          existing "legacy" (v1 only) setups will keep working.
+        </li><li>
+          qemu: Add vfio AP support
+        <br/>
+          The QEMU driver now has support to passthrough adjunct processors
+          into QEMU guests on S390.
+        </li></ul></li><li><strong>Improvements</strong><ul><li>
+          rpc: Make 'genprotocol' output reproducible
+        <br/>
+          This is another step towards making libvirt builds fully
+          reproducible.
+        </li></ul></li><li><strong>Bug fixes</strong><ul><li>
+          security: Fix permissions for UNIX sockets
+        <br/>
+          Since 4.5.0, libvirt is using FD passing to hand sockets over to
+          QEMU, which in theory removes the need for them to be accessible by
+          the user under which the QEMU process is running; however, other
+          processes such as vdsm need to access the sockets as well, which
+          means adjusting permissions is still necessary.
+        </li><li>
+          cpu_map: Add Icelake model definitions
+        <br/>
+          These CPU models will be available in the upcoming 3.1.0 QEMU
+          release.
+        </li><li>
+          util: Properly parse URIs with missing trailing slash
+        <br/>
+          Some storage URIs were not parsed correctly, in which case libvirt
+          ended up emitting XML that it would then refuse to parse back.
+        </li></ul></li></ul><h3><strong>v4.8.0 (2018-10-01)</strong></h3><ul><li><strong>New features</strong><ul><li>
+          Xen: Support PM Suspend and Wakeup
+        <br/>
+          The libxl driver now supports the virDomainPMSuspendForDuration
+          and virDomainPMWakeup APIs.
+        </li></ul></li><li><strong>Removed features</strong><ul><li>
+          Xen: Drop support for Xen 4.4 and 4.5
+        <br/>
+          Xen 4.4 and 4.5 are no longer supported by the Xen community.
+          Drop support for these older versions and require Xen &gt;= 4.6.
+        </li><li>
+          nwfilter: Disallow binding creation in session mode
+        <br/>
+          Ensure that a filter binding creation is not attempted in session
+          mode and generates a proper error message.
+        </li></ul></li><li><strong>Improvements</strong><ul><li>
+          qemu: Retrieve guest hostname through QEMU Guest Agent command
+        <br/>
+          QEMU is now able to retrieve the guest hostname using a new QEMU-GA
+	  command called 'guest-get-host-name'. Virsh users can execute
+          'domhostname' for QEMU driver for domains configured to use the
+          Guest Agent.
+        </li><li>
+          virsh: Implement vsh-table in virsh and virsh-admin
+        <br/>
+          The new API fixes problems with table-alignment, making the tables
+          more readable and deals with unicode.
+        </li></ul></li><li><strong>Bug fixes</strong><ul><li>
+          storage: Allow inputvol to be encrypted
+        <br/>
+          When creating a storage volume based on another volume, the base
+          input volume is allowed to be encrypted.
+        </li><li>
+          virsh: Require explicit --domain for domxml-to-native
+        <br/>
+          The --domain option for domxml-to-native virsh command has always
+          been documented as required, but commit v4.3.0-127-gd86531daf2
+          accidentally made it optional.
+        </li><li>
+          lxc_monitor: Avoid AB / BA lock race
+        <br/>
+          A deadlock situation could occur when autostarting a LXC domain
+          'guest' due to two threads attempting to take opposing locks while
+          holding opposing locks (AB BA problem).
+        </li></ul></li></ul><h3><strong>v4.7.0 (2018-09-03)</strong></h3><ul><li><strong>New features</strong><ul><li>
           storage: add storage pool iscsi-direct
         <br/>
           Introduce a new storage pool backend that uses libiscsi instead of

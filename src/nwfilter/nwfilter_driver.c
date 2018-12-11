@@ -264,6 +264,9 @@ nwfilterStateInitialize(bool privileged,
     if (virNWFilterBindingObjListLoadAllConfigs(driver->bindings, driver->bindingDir) < 0)
         goto error;
 
+    if (virNWFilterBuildAll(driver, false) < 0)
+        goto error;
+
     nwfilterDriverUnlock();
 
     return 0;
@@ -744,6 +747,12 @@ nwfilterBindingCreateXML(virConnectPtr conn,
     virNWFilterBindingPtr ret = NULL;
 
     virCheckFlags(0, NULL);
+
+    if (!driver->privileged) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("Can't define NWFilter bindings in session mode"));
+        return NULL;
+    }
 
     def = virNWFilterBindingDefParseString(xml);
     if (!def)

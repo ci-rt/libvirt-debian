@@ -51,6 +51,8 @@ typedef enum {
     VIR_DOMAIN_DEVICE_ADDRESS_TYPE_LAST
 } virDomainDeviceAddressType;
 
+VIR_ENUM_DECL(virDomainDeviceAddress);
+
 typedef struct _virDomainDeviceDriveAddress virDomainDeviceDriveAddress;
 typedef virDomainDeviceDriveAddress *virDomainDeviceDriveAddressPtr;
 struct _virDomainDeviceDriveAddress {
@@ -164,6 +166,10 @@ struct _virDomainDeviceInfo {
      * assignment, never saved and never reported.
      */
     int pciConnectFlags; /* enum virDomainPCIConnectFlags */
+    /* pciAddrExtFlags is only used internally to calculate PCI
+     * address extension flags during address assignment.
+     */
+    int pciAddrExtFlags; /* enum virDomainPCIAddressExtensionFlags */
     char *loadparm;
 
     /* PCI devices will only be automatically placed on a PCI bus
@@ -186,12 +192,14 @@ bool virDomainDeviceInfoAddressIsEqual(const virDomainDeviceInfo *a,
                                        const virDomainDeviceInfo *b)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
 
-int virPCIDeviceAddressIsValid(virPCIDeviceAddressPtr addr,
-                               bool report);
-bool virPCIDeviceAddressIsEmpty(const virPCIDeviceAddress *addr);
+bool virDomainDeviceAddressIsValid(virDomainDeviceInfoPtr info,
+                                   int type);
 
 bool virDeviceInfoPCIAddressIsWanted(const virDomainDeviceInfo *info);
 bool virDeviceInfoPCIAddressIsPresent(const virDomainDeviceInfo *info);
+
+bool virDeviceInfoPCIAddressExtensionIsWanted(const virDomainDeviceInfo *info);
+bool virDeviceInfoPCIAddressExtensionIsPresent(const virDomainDeviceInfo *info);
 
 int virPCIDeviceAddressParseXML(xmlNodePtr node,
                                 virPCIDeviceAddressPtr addr);
@@ -200,8 +208,24 @@ int virPCIDeviceAddressFormat(virBufferPtr buf,
                               virPCIDeviceAddress addr,
                               bool includeTypeInAddr);
 
-bool virPCIDeviceAddressEqual(virPCIDeviceAddress *addr1,
-                              virPCIDeviceAddress *addr2);
+bool virDomainDeviceCCWAddressIsValid(virDomainDeviceCCWAddressPtr addr);
+int virDomainDeviceCCWAddressParseXML(xmlNodePtr node,
+                                      virDomainDeviceCCWAddressPtr addr);
+
+int virDomainDeviceDriveAddressParseXML(xmlNodePtr node,
+                                        virDomainDeviceDriveAddressPtr addr);
+
+int virDomainDeviceVirtioSerialAddressParseXML(xmlNodePtr node,
+                                               virDomainDeviceVirtioSerialAddressPtr addr);
+
+int virDomainDeviceCcidAddressParseXML(xmlNodePtr node,
+                                       virDomainDeviceCcidAddressPtr addr);
+
+int virDomainDeviceUSBAddressParseXML(xmlNodePtr node,
+                                      virDomainDeviceUSBAddressPtr addr);
+
+int virDomainDeviceSpaprVioAddressParseXML(xmlNodePtr node,
+                                           virDomainDeviceSpaprVioAddressPtr addr);
 
 int virInterfaceLinkParseXML(xmlNodePtr node,
                              virNetDevIfLinkPtr lnk);

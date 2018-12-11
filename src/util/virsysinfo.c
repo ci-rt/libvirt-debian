@@ -27,8 +27,6 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
 
 #include "virerror.h"
 #include "virsysinfo.h"
@@ -1603,7 +1601,7 @@ virSysinfoBaseBoardIsEqual(virSysinfoBaseBoardDefPtr src,
 
 static bool
 virSysinfoChassisIsEqual(virSysinfoChassisDefPtr src,
-                           virSysinfoChassisDefPtr dst)
+                         virSysinfoChassisDefPtr dst)
 {
     bool identical = false;
 

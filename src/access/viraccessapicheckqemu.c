@@ -22,7 +22,8 @@ int virConnectDomainQemuMonitorEventDeregisterEnsureACL(virConnectPtr conn)
     if ((rv = virAccessManagerCheckConnect(mgr, conn->driver->name, VIR_ACCESS_PERM_CONNECT_WRITE)) <= 0) {
         virObjectUnref(mgr);
         if (rv == 0)
-            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+            virReportError(VIR_ERR_ACCESS_DENIED,
+                            _("'%s' denied access"), conn->driver->name);
         return -1;
     }
     virObjectUnref(mgr);
@@ -42,13 +43,15 @@ int virConnectDomainQemuMonitorEventRegisterEnsureACL(virConnectPtr conn)
     if ((rv = virAccessManagerCheckConnect(mgr, conn->driver->name, VIR_ACCESS_PERM_CONNECT_SEARCH_DOMAINS)) <= 0) {
         virObjectUnref(mgr);
         if (rv == 0)
-            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+            virReportError(VIR_ERR_ACCESS_DENIED,
+                            _("'%s' denied access"), conn->driver->name);
         return -1;
     }
     if ((rv = virAccessManagerCheckConnect(mgr, conn->driver->name, VIR_ACCESS_PERM_CONNECT_WRITE)) <= 0) {
         virObjectUnref(mgr);
         if (rv == 0)
-            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+            virReportError(VIR_ERR_ACCESS_DENIED,
+                            _("'%s' denied access"), conn->driver->name);
         return -1;
     }
     virObjectUnref(mgr);
@@ -88,7 +91,8 @@ int virDomainQemuAgentCommandEnsureACL(virConnectPtr conn, virDomainDefPtr domai
     if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_WRITE)) <= 0) {
         virObjectUnref(mgr);
         if (rv == 0)
-            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+            virReportError(VIR_ERR_ACCESS_DENIED,
+                            _("'%s' denied access"), conn->driver->name);
         return -1;
     }
     virObjectUnref(mgr);
@@ -108,13 +112,15 @@ int virDomainQemuAttachEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
     if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_START)) <= 0) {
         virObjectUnref(mgr);
         if (rv == 0)
-            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+            virReportError(VIR_ERR_ACCESS_DENIED,
+                            _("'%s' denied access"), conn->driver->name);
         return -1;
     }
     if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_WRITE)) <= 0) {
         virObjectUnref(mgr);
         if (rv == 0)
-            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+            virReportError(VIR_ERR_ACCESS_DENIED,
+                            _("'%s' denied access"), conn->driver->name);
         return -1;
     }
     virObjectUnref(mgr);
@@ -134,7 +140,8 @@ int virDomainQemuMonitorCommandEnsureACL(virConnectPtr conn, virDomainDefPtr dom
     if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_WRITE)) <= 0) {
         virObjectUnref(mgr);
         if (rv == 0)
-            virReportError(VIR_ERR_ACCESS_DENIED, NULL);
+            virReportError(VIR_ERR_ACCESS_DENIED,
+                            _("'%s' denied access"), conn->driver->name);
         return -1;
     }
     virObjectUnref(mgr);

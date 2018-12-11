@@ -30,6 +30,11 @@
 # define VIR_PCI_ADDRESS_FUNCTION_LAST 7
 
 typedef enum {
+    VIR_PCI_ADDRESS_EXTENSION_NONE = 0, /* no extension */
+    VIR_PCI_ADDRESS_EXTENSION_ZPCI = 1 << 0, /* zPCI support */
+} virPCIDeviceAddressExtensionFlags;
+
+typedef enum {
    VIR_PCI_CONNECT_HOTPLUGGABLE = 1 << 0, /* is hotplug needed/supported */
 
    /* set for devices that can share a single slot in auto-assignment
@@ -111,6 +116,12 @@ typedef struct {
 } virDomainPCIAddressBus;
 typedef virDomainPCIAddressBus *virDomainPCIAddressBusPtr;
 
+typedef struct {
+    virHashTablePtr uids;
+    virHashTablePtr fids;
+} virDomainZPCIAddressIds;
+typedef virDomainZPCIAddressIds *virDomainZPCIAddressIdsPtr;
+
 struct _virDomainPCIAddressSet {
     virDomainPCIAddressBus *buses;
     size_t nbuses;
@@ -120,14 +131,13 @@ struct _virDomainPCIAddressSet {
     bool areMultipleRootsSupported;
     /* If true, the guest can use the pcie-to-pci-bridge controller */
     bool isPCIeToPCIBridgeSupported;
+    virDomainZPCIAddressIdsPtr zpciIds;
 };
 typedef struct _virDomainPCIAddressSet virDomainPCIAddressSet;
 typedef virDomainPCIAddressSet *virDomainPCIAddressSetPtr;
 
-char *virDomainPCIAddressAsString(virPCIDeviceAddressPtr addr)
-      ATTRIBUTE_NONNULL(1);
-
-virDomainPCIAddressSetPtr virDomainPCIAddressSetAlloc(unsigned int nbuses);
+virDomainPCIAddressSetPtr virDomainPCIAddressSetAlloc(unsigned int nbuses,
+                                                      virPCIDeviceAddressExtensionFlags extFlags);
 
 void virDomainPCIAddressSetFree(virDomainPCIAddressSetPtr addrs);
 
@@ -150,6 +160,14 @@ bool virDomainPCIAddressSlotInUse(virDomainPCIAddressSetPtr addrs,
                                   virPCIDeviceAddressPtr addr)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
+int virDomainPCIAddressExtensionReserveAddr(virDomainPCIAddressSetPtr addrs,
+                                            virPCIDeviceAddressPtr addr)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+int virDomainPCIAddressExtensionReserveNextAddr(virDomainPCIAddressSetPtr addrs,
+                                                virPCIDeviceAddressPtr addr)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
 int virDomainPCIAddressReserveAddr(virDomainPCIAddressSetPtr addrs,
                                    virPCIDeviceAddressPtr addr,
                                    virDomainPCIConnectFlags flags,
@@ -169,6 +187,10 @@ int virDomainPCIAddressEnsureAddr(virDomainPCIAddressSetPtr addrs,
 
 void virDomainPCIAddressReleaseAddr(virDomainPCIAddressSetPtr addrs,
                                     virPCIDeviceAddressPtr addr)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+void virDomainPCIAddressExtensionReleaseAddr(virDomainPCIAddressSetPtr addrs,
+                                             virPCIDeviceAddressPtr addr)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 void virDomainPCIAddressSetAllMulti(virDomainDefPtr def)

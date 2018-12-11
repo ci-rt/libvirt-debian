@@ -255,6 +255,7 @@ typedef enum {
     VIR_DOMAIN_OSTYPE_LINUX,
     VIR_DOMAIN_OSTYPE_EXE,
     VIR_DOMAIN_OSTYPE_UML,
+    VIR_DOMAIN_OSTYPE_XENPVH,
 
     VIR_DOMAIN_OSTYPE_LAST
 } virDomainOSType;
@@ -607,6 +608,7 @@ typedef enum {
     VIR_DOMAIN_MEMORY_SOURCE_NONE = 0,  /* No memory source defined */
     VIR_DOMAIN_MEMORY_SOURCE_FILE,      /* Memory source is set as file */
     VIR_DOMAIN_MEMORY_SOURCE_ANONYMOUS, /* Memory source is set as anonymous */
+    VIR_DOMAIN_MEMORY_SOURCE_MEMFD,     /* Memory source is set as memfd */
 
     VIR_DOMAIN_MEMORY_SOURCE_LAST,
 } virDomainMemorySource;
@@ -1776,6 +1778,7 @@ typedef enum {
     VIR_DOMAIN_FEATURE_HPT,
     VIR_DOMAIN_FEATURE_VMCOREINFO,
     VIR_DOMAIN_FEATURE_HTM,
+    VIR_DOMAIN_FEATURE_NESTED_HV,
 
     VIR_DOMAIN_FEATURE_LAST
 } virDomainFeature;
@@ -1795,6 +1798,8 @@ typedef enum {
     VIR_DOMAIN_HYPERV_FREQUENCIES,
     VIR_DOMAIN_HYPERV_REENLIGHTENMENT,
     VIR_DOMAIN_HYPERV_TLBFLUSH,
+    VIR_DOMAIN_HYPERV_IPI,
+    VIR_DOMAIN_HYPERV_EVMCS,
 
     VIR_DOMAIN_HYPERV_LAST
 } virDomainHyperv;
@@ -2236,12 +2241,23 @@ struct _virDomainCputune {
 };
 
 
+typedef struct _virDomainResctrlMonDef virDomainResctrlMonDef;
+typedef virDomainResctrlMonDef *virDomainResctrlMonDefPtr;
+struct _virDomainResctrlMonDef {
+    virBitmapPtr vcpus;
+    virResctrlMonitorType tag;
+    virResctrlMonitorPtr instance;
+};
+
 typedef struct _virDomainResctrlDef virDomainResctrlDef;
 typedef virDomainResctrlDef *virDomainResctrlDefPtr;
 
 struct _virDomainResctrlDef {
     virBitmapPtr vcpus;
     virResctrlAllocPtr alloc;
+
+    virDomainResctrlMonDefPtr *monitors;
+    size_t nmonitors;
 };
 
 
@@ -2889,8 +2905,8 @@ void virDomainNetDefFree(virDomainNetDefPtr def);
 void virDomainSmartcardDefFree(virDomainSmartcardDefPtr def);
 void virDomainChrDefFree(virDomainChrDefPtr def);
 void virDomainChrSourceDefFree(virDomainChrSourceDefPtr def);
-int virDomainChrSourceDefCopy(virDomainChrSourceDefPtr src,
-                              virDomainChrSourceDefPtr dest);
+int virDomainChrSourceDefCopy(virDomainChrSourceDefPtr dest,
+                              virDomainChrSourceDefPtr src);
 void virDomainSoundCodecDefFree(virDomainSoundCodecDefPtr def);
 void virDomainSoundDefFree(virDomainSoundDefPtr def);
 void virDomainMemballoonDefFree(virDomainMemballoonDefPtr def);
@@ -2911,8 +2927,6 @@ virDomainDeviceDefPtr virDomainDeviceDefCopy(virDomainDeviceDefPtr src,
                                              const virDomainDef *def,
                                              virCapsPtr caps,
                                              virDomainXMLOptionPtr xmlopt);
-int virDomainDeviceAddressIsValid(virDomainDeviceInfoPtr info,
-                                  int type);
 virDomainDeviceInfoPtr virDomainDeviceGetInfo(virDomainDeviceDefPtr device);
 void virDomainTPMDefFree(virDomainTPMDefPtr def);
 
@@ -3380,7 +3394,6 @@ VIR_ENUM_DECL(virDomainCapsFeature)
 VIR_ENUM_DECL(virDomainLifecycle)
 VIR_ENUM_DECL(virDomainLifecycleAction)
 VIR_ENUM_DECL(virDomainDevice)
-VIR_ENUM_DECL(virDomainDeviceAddress)
 VIR_ENUM_DECL(virDomainDiskDevice)
 VIR_ENUM_DECL(virDomainDiskGeometryTrans)
 VIR_ENUM_DECL(virDomainDiskBus)

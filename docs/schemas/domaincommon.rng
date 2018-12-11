@@ -340,13 +340,15 @@
         <attribute name="machine">
           <choice>
             <value>xenpv</value>
-            <value>xenner</value>
+            <value>xenfv</value>
+            <value>xenpvh</value>
           </choice>
         </attribute>
       </optional>
       <choice>
         <value>xen</value>
         <value>linux</value>
+        <value>xenpvh</value>
       </choice>
     </element>
   </define>
@@ -655,6 +657,7 @@
                   <choice>
                     <value>file</value>
                     <value>anonymous</value>
+                    <value>memfd</value>
                   </choice>
                 </attribute>
               </element>
@@ -956,7 +959,7 @@
             <attribute name="vcpus">
               <ref name='cpuset'/>
             </attribute>
-            <oneOrMore>
+            <zeroOrMore>
               <element name="cache">
                 <attribute name="id">
                   <ref name='unsignedInt'/>
@@ -980,7 +983,17 @@
                   </attribute>
                 </optional>
               </element>
-            </oneOrMore>
+            </zeroOrMore>
+            <zeroOrMore>
+              <element name="monitor">
+                <attribute name="level">
+                  <ref name='unsignedInt'/>
+                </attribute>
+                <attribute name="vcpus">
+                  <ref name='cpuset'/>
+                </attribute>
+              </element>
+            </zeroOrMore>
           </element>
         </zeroOrMore>
         <zeroOrMore>
@@ -4618,6 +4631,7 @@
       <choice>
         <value>vfio-pci</value>
         <value>vfio-ccw</value>
+        <value>vfio-ap</value>
       </choice>
     </attribute>
     <optional>
@@ -4964,6 +4978,11 @@
               <ref name="featurestate"/>
             </element>
           </optional>
+          <optional>
+            <element name="nested-hv">
+              <ref name="featurestate"/>
+            </element>
+          </optional>
         </interleave>
       </element>
     </optional>
@@ -5220,6 +5239,7 @@
             <value>pci</value>
           </attribute>
           <ref name="pciaddress"/>
+          <ref name="zpciaddress"/>
         </group>
         <group>
           <attribute name="type">
@@ -5765,6 +5785,16 @@
         </optional>
         <optional>
           <element name="tlbflush">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="ipi">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="evmcs">
             <ref name="featurestate"/>
           </element>
         </optional>

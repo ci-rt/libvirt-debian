@@ -25,16 +25,12 @@
   <flag name='rng-random'/>
   <flag name='rng-egd'/>
   <flag name='tpm-passthrough'/>
-  <flag name='scsi-generic'/>
-  <flag name='scsi-generic.bootindex'/>
   <flag name='mem-merge'/>
-  <flag name='vnc-websocket'/>
   <flag name='drive-discard'/>
   <flag name='mlock'/>
   <flag name='device-del-event'/>
   <flag name='virtio-mmio'/>
   <flag name='boot-strict'/>
-  <flag name='spiceport'/>
   <flag name='msg-timestamp'/>
   <flag name='active-commit'/>
   <flag name='change-backing-file'/>
@@ -104,6 +100,9 @@
   <flag name='chardev-fd-pass'/>
   <flag name='tpm-emulator'/>
   <flag name='egl-headless'/>
+  <flag name='memory-backend-memfd'/>
+  <flag name='memory-backend-memfd.hugetlb'/>
+  <flag name='iothread.poll-max-ns'/>
   <version>3000000</version>
   <kvmVersion>0</kvmVersion>
   <microcodeVersion>0</microcodeVersion>

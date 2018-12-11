@@ -1063,7 +1063,7 @@ virStorageBackendRBDBuildVolFrom(virStoragePoolObjPtr pool,
 }
 
 static int
-virStorageBackendRBDRefreshVol(virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
+virStorageBackendRBDRefreshVol(virStoragePoolObjPtr pool,
                                virStorageVolDefPtr vol)
 {
     virStorageBackendRBDStatePtr ptr = NULL;
@@ -1083,7 +1083,7 @@ virStorageBackendRBDRefreshVol(virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
 }
 
 static int
-virStorageBackendRBDResizeVol(virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
+virStorageBackendRBDResizeVol(virStoragePoolObjPtr pool,
                               virStorageVolDefPtr vol,
                               unsigned long long capacity,
                               unsigned int flags)
@@ -1200,7 +1200,7 @@ virStorageBackendRBDVolWipe(virStoragePoolObjPtr pool,
                             unsigned int flags)
 {
     virStorageBackendRBDStatePtr ptr = NULL;
-    virStoragePoolDefPtr def = virStoragePoolObjGetDef(pool);
+    virStoragePoolDefPtr def;
     rbd_image_t image = NULL;
     rbd_image_info_t info;
     uint64_t stripe_count;
@@ -1209,9 +1209,13 @@ virStorageBackendRBDVolWipe(virStoragePoolObjPtr pool,
 
     virCheckFlags(0, -1);
 
+    virObjectLock(pool);
+    def = virStoragePoolObjGetDef(pool);
     VIR_DEBUG("Wiping RBD image %s/%s", def->source.name, vol->name);
+    ptr = virStorageBackendRBDNewState(pool);
+    virObjectUnlock(pool);
 
-    if (!(ptr = virStorageBackendRBDNewState(pool)))
+    if (!ptr)
         goto cleanup;
 
     if ((r = rbd_open(ptr->ioctx, vol->name, &image, NULL)) < 0) {

@@ -1204,9 +1204,6 @@
 /* Define to 1 if you have the 'getgid' function. */
 #undef HAVE_GETGID
 
-/* Define to 1 if you have the 'getgrnam_r' function. */
-#undef HAVE_GETGRNAM_R
-
 /* Define to 1 if you have the 'getgrouplist' function. */
 #undef HAVE_GETGROUPLIST
 
@@ -1316,9 +1313,6 @@
 /* Define to 1 if you have the 'iswctype' function. */
 #undef HAVE_ISWCTYPE
 
-/* Define to 1 if you have the 'kill' function. */
-#undef HAVE_KILL
-
 /* Define if you have <langinfo.h> and nl_langinfo(CODESET). */
 #undef HAVE_LANGINFO_CODESET
 
@@ -1396,9 +1390,6 @@
 
 /* Define to 1 if you have the <libxlutil.h> header file. */
 #undef HAVE_LIBXLUTIL_H
-
-/* Define to 1 if you have the `libxl_domain_config_from_json' function. */
-#undef HAVE_LIBXL_DOMAIN_CONFIG_FROM_JSON
 
 /* Define to 1 if you have the `yajl' library (-lyajl). */
 #undef HAVE_LIBYAJL
@@ -1654,12 +1645,6 @@
 
 /* Define to 1 if you have the 'recvmsg' function. */
 #undef HAVE_RECVMSG
-
-/* Define to 1 if you have the 'regexec' function. */
-#undef HAVE_REGEXEC
-
-/* Define to 1 if you have the <regex.h> header file. */
-#undef HAVE_REGEX_H
 
 /* Define to 1 if you have the `revoke' function. */
 #undef HAVE_REVOKE
@@ -1961,9 +1946,6 @@
 /* Define to 1 if you have the <sys/param.h> header file. */
 #undef HAVE_SYS_PARAM_H
 
-/* Define to 1 if you have the <sys/poll.h> header file. */
-#undef HAVE_SYS_POLL_H
-
 /* Define to 1 if you have the <sys/pstat.h> header file. */
 #undef HAVE_SYS_PSTAT_H
 
@@ -2154,6 +2136,9 @@
 
 /* Define to 1 if you have the `xdr_u_int64_t' function. */
 #undef HAVE_XDR_U_INT64_T
+
+/* Define to 1 if Xen has PVH support. */
+#undef HAVE_XEN_PVH
 
 /* Define to 1 if you have the <xfs/xfs.h> header file. */
 #undef HAVE_XFS_XFS_H

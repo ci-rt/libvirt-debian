@@ -26,7 +26,6 @@
 
 #include <unistd.h>
 #include <fcntl.h>
-#include <stdlib.h>
 #include "viralloc.h"
 #include "virxml.h"
 #include "viruuid.h"
@@ -459,8 +458,7 @@ qcow2GetBackingStoreFormat(int *format,
         case QCOW2_HDR_EXTENSION_BACKING_FORMAT:
             if (buf[offset+len] != '\0')
                 break;
-            *format = virStorageFileFormatTypeFromString(
-                ((const char *)buf)+offset);
+            *format = virStorageFileFormatTypeFromString(buf+offset);
             if (*format <= VIR_STORAGE_FILE_NONE)
                 return -1;
         }
@@ -828,16 +826,14 @@ virStorageFileProbeFormatFromBuf(const char *path,
 
     /* First check file magic */
     for (i = 0; i < VIR_STORAGE_FILE_LAST; i++) {
-        if (virStorageFileMatchesMagic(
-                fileTypeInfo[i].magicOffset,
-                fileTypeInfo[i].magic,
-                buf, buflen)) {
-            if (!virStorageFileMatchesVersion(
-                    fileTypeInfo[i].versionOffset,
-                    fileTypeInfo[i].versionSize,
-                    fileTypeInfo[i].versionNumbers,
-                    fileTypeInfo[i].endian,
-                    buf, buflen)) {
+        if (virStorageFileMatchesMagic(fileTypeInfo[i].magicOffset,
+                                       fileTypeInfo[i].magic,
+                                       buf, buflen)) {
+            if (!virStorageFileMatchesVersion(fileTypeInfo[i].versionOffset,
+                                              fileTypeInfo[i].versionSize,
+                                              fileTypeInfo[i].versionNumbers,
+                                              fileTypeInfo[i].endian,
+                                              buf, buflen)) {
                 possibleFormat = i;
                 continue;
             }
@@ -853,8 +849,7 @@ virStorageFileProbeFormatFromBuf(const char *path,
 
     /* No magic, so check file extension */
     for (i = 0; i < VIR_STORAGE_FILE_LAST; i++) {
-        if (virStorageFileMatchesExtension(
-                fileTypeInfo[i].extension, path)) {
+        if (virStorageFileMatchesExtension(fileTypeInfo[i].extension, path)) {
             format = i;
             goto cleanup;
         }
@@ -1040,8 +1035,8 @@ virStorageFileGetMetadataInternal(virStorageSourcePtr meta,
     VIR_FREE(meta->backingStoreRaw);
     if (fileTypeInfo[meta->format].getBackingStore != NULL) {
         int store = fileTypeInfo[meta->format].getBackingStore(&meta->backingStoreRaw,
-                                                         backingFormat,
-                                                         buf, len);
+                                                               backingFormat,
+                                                               buf, len);
         if (store == BACKING_STORE_INVALID)
             goto done;
 
@@ -1378,12 +1373,11 @@ int virStorageFileGetLVMKey(const char *path,
      *    06UgP5-2rhb-w3Bo-3mdR-WeoL-pytO-SAa2ky
      */
     int status;
-    virCommandPtr cmd = virCommandNewArgList(
-        LVS,
-        "--noheadings", "--unbuffered", "--nosuffix",
-        "--options", "uuid", path,
-        NULL
-        );
+    virCommandPtr cmd = virCommandNewArgList(LVS, "--noheadings",
+                                             "--unbuffered", "--nosuffix",
+                                             "--options", "uuid", path,
+                                             NULL
+                                             );
     int ret = -1;
 
     *key = NULL;
@@ -1438,13 +1432,12 @@ int virStorageFileGetSCSIKey(const char *path,
                              char **key)
 {
     int status;
-    virCommandPtr cmd = virCommandNewArgList(
-        "/lib/udev/scsi_id",
-        "--replace-whitespace",
-        "--whitelisted",
-        "--device", path,
-        NULL
-        );
+    virCommandPtr cmd = virCommandNewArgList("/lib/udev/scsi_id",
+                                             "--replace-whitespace",
+                                             "--whitelisted",
+                                             "--device", path,
+                                             NULL
+                                             );
     int ret = -1;
 
     *key = NULL;
@@ -2583,16 +2576,17 @@ virStorageSourceNewFromBackingRelative(virStorageSourcePtr parent,
 
 static int
 virStorageSourceParseBackingURI(virStorageSourcePtr src,
-                                const char *path)
+                                const char *uristr)
 {
     virURIPtr uri = NULL;
+    const char *path = NULL;
     char **scheme = NULL;
     int ret = -1;
 
-    if (!(uri = virURIParse(path))) {
+    if (!(uri = virURIParse(uristr))) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("failed to parse backing file location '%s'"),
-                       path);
+                       uristr);
         goto cleanup;
     }
 
@@ -2628,10 +2622,23 @@ virStorageSourceParseBackingURI(virStorageSourcePtr src,
 
     /* XXX We currently don't support auth, so don't bother parsing it */
 
-    /* possibly skip the leading slash */
-    if (uri->path &&
-        VIR_STRDUP(src->path,
-                   *uri->path == '/' ? uri->path + 1 : uri->path) < 0)
+    /* uri->path is NULL if the URI does not contain slash after host:
+     * transport://host:port */
+    if (uri->path)
+        path = uri->path;
+    else
+        path = "";
+
+    /* possibly skip the leading slash  */
+    if (path[0] == '/')
+        path++;
+
+    /* NBD allows empty export name (path) */
+    if (src->protocol == VIR_STORAGE_NET_PROTOCOL_NBD &&
+        path[0] == '\0')
+        path = NULL;
+
+    if (VIR_STRDUP(src->path, path) < 0)
         goto cleanup;
 
     if (src->protocol == VIR_STORAGE_NET_PROTOCOL_GLUSTER) {
@@ -3708,9 +3715,9 @@ virStorageSourceUpdatePhysicalSize(virStorageSourcePtr src,
     case VIR_STORAGE_TYPE_NONE:
     case VIR_STORAGE_TYPE_LAST:
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                      _("cannot retrieve physical for path '%s' type '%s'"),
-                      NULLSTR(src->path),
-                      virStorageTypeToString(actual_type));
+                       _("cannot retrieve physical for path '%s' type '%s'"),
+                       NULLSTR(src->path),
+                       virStorageTypeToString(actual_type));
         return -1;
         break;
     }
@@ -4675,7 +4682,7 @@ virStorageFileGetUniqueIdentifier(virStorageSourcePtr src)
     if (!src->drv->backend->storageFileGetUniqueIdentifier) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("unique storage file identifier not implemented for "
-                          "storage type %s (protocol: %s)'"),
+                         "storage type %s (protocol: %s)'"),
                        virStorageTypeToString(src->type),
                        virStorageNetProtocolTypeToString(src->protocol));
         return NULL;
@@ -4753,7 +4760,6 @@ virStorageFileReportBrokenChain(int errcode,
                                 virStorageSourcePtr src,
                                 virStorageSourcePtr parent)
 {
-
     if (src->drv) {
         unsigned int access_user = src->drv->uid;
         unsigned int access_group = src->drv->gid;

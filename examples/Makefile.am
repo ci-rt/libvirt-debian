@@ -94,7 +94,11 @@ install-apparmor-local:
 	$(MKDIR_P) "$(APPARMOR_LOCAL_DIR)"
 	echo "# Site-specific additions and overrides for \
 		'usr.lib.libvirt.virt-aa-helper'" \
-		>$(APPARMOR_LOCAL_DIR)/usr.lib.libvirt.virt-aa-helper
+		>"$(APPARMOR_LOCAL_DIR)/usr.lib.libvirt.virt-aa-helper"
+
+uninstall-apparmor-local:
+	rm -f "$(APPARMOR_LOCAL_DIR)/usr.lib.libvirt.virt-aa-helper"
+	rmdir "$(APPARMOR_LOCAL_DIR)" || :
 
 INSTALL_DATA_LOCAL += install-apparmor-local
 UNINSTALL_LOCAL += uninstall-apparmor-local

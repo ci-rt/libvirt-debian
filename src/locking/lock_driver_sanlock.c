@@ -21,12 +21,8 @@
 
 #include <config.h>
 
-#include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
-#include <string.h>
-#include <stdio.h>
-#include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -829,8 +825,10 @@ static int virLockManagerSanlockAddResource(virLockManagerPtr lock,
         break;
 
     default:
-        /* Ignore other resources, without error */
-        break;
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unknown lock manager object type %d for domain lock object"),
+                       type);
+        return -1;
     }
 
     return 0;

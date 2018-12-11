@@ -4121,7 +4121,6 @@ int
 qemuMonitorGetIOThreads(qemuMonitorPtr mon,
                         qemuMonitorIOThreadInfoPtr **iothreads)
 {
-
     VIR_DEBUG("iothreads=%p", iothreads);
 
     QEMU_CHECK_MONITOR(mon);
@@ -4133,6 +4132,25 @@ qemuMonitorGetIOThreads(qemuMonitorPtr mon,
     }
 
     return qemuMonitorJSONGetIOThreads(mon, iothreads);
+}
+
+
+/**
+ * qemuMonitorSetIOThread:
+ * @mon: Pointer to the monitor
+ * @iothreadInfo: filled IOThread info with data
+ *
+ * Alter the specified IOThread's IOThreadInfo values.
+ */
+int
+qemuMonitorSetIOThread(qemuMonitorPtr mon,
+                       qemuMonitorIOThreadInfoPtr iothreadInfo)
+{
+    VIR_DEBUG("iothread=%p", iothreadInfo);
+
+    QEMU_CHECK_MONITOR(mon);
+
+    return qemuMonitorJSONSetIOThread(mon, iothreadInfo);
 }
 
 

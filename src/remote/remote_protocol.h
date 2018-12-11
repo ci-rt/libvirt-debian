@@ -78,6 +78,7 @@ typedef remote_nonnull_string *remote_string;
 #define REMOTE_DOMAIN_INTERFACE_MAX 2048
 #define REMOTE_DOMAIN_IP_ADDR_MAX 2048
 #define REMOTE_DOMAIN_GUEST_VCPU_PARAMS_MAX 64
+#define REMOTE_DOMAIN_IOTHREAD_PARAMS_MAX 64
 #define REMOTE_NODE_SEV_INFO_MAX 64
 #define REMOTE_DOMAIN_LAUNCH_SECURITY_INFO_PARAMS_MAX 64
 
@@ -1300,6 +1301,17 @@ struct remote_domain_del_iothread_args {
         u_int flags;
 };
 typedef struct remote_domain_del_iothread_args remote_domain_del_iothread_args;
+
+struct remote_domain_set_iothread_params_args {
+        remote_nonnull_domain dom;
+        u_int iothread_id;
+        struct {
+                u_int params_len;
+                remote_typed_param *params_val;
+        } params;
+        u_int flags;
+};
+typedef struct remote_domain_set_iothread_params_args remote_domain_set_iothread_params_args;
 
 struct remote_domain_get_security_label_args {
         remote_nonnull_domain dom;
@@ -4708,6 +4720,7 @@ enum remote_procedure {
         REMOTE_PROC_NWFILTER_BINDING_CREATE_XML = 399,
         REMOTE_PROC_NWFILTER_BINDING_DELETE = 400,
         REMOTE_PROC_CONNECT_LIST_ALL_NWFILTER_BINDINGS = 401,
+        REMOTE_PROC_DOMAIN_SET_IOTHREAD_PARAMS = 402,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -4897,6 +4910,7 @@ extern  bool_t xdr_remote_domain_get_iothread_info_ret (XDR *, remote_domain_get
 extern  bool_t xdr_remote_domain_pin_iothread_args (XDR *, remote_domain_pin_iothread_args*);
 extern  bool_t xdr_remote_domain_add_iothread_args (XDR *, remote_domain_add_iothread_args*);
 extern  bool_t xdr_remote_domain_del_iothread_args (XDR *, remote_domain_del_iothread_args*);
+extern  bool_t xdr_remote_domain_set_iothread_params_args (XDR *, remote_domain_set_iothread_params_args*);
 extern  bool_t xdr_remote_domain_get_security_label_args (XDR *, remote_domain_get_security_label_args*);
 extern  bool_t xdr_remote_domain_get_security_label_ret (XDR *, remote_domain_get_security_label_ret*);
 extern  bool_t xdr_remote_domain_get_security_label_list_args (XDR *, remote_domain_get_security_label_list_args*);
@@ -5534,6 +5548,7 @@ extern bool_t xdr_remote_domain_get_iothread_info_ret ();
 extern bool_t xdr_remote_domain_pin_iothread_args ();
 extern bool_t xdr_remote_domain_add_iothread_args ();
 extern bool_t xdr_remote_domain_del_iothread_args ();
+extern bool_t xdr_remote_domain_set_iothread_params_args ();
 extern bool_t xdr_remote_domain_get_security_label_args ();
 extern bool_t xdr_remote_domain_get_security_label_ret ();
 extern bool_t xdr_remote_domain_get_security_label_list_args ();

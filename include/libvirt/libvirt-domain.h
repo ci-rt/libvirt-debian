@@ -145,6 +145,8 @@ typedef enum {
     VIR_DOMAIN_SHUTOFF_FAILED = 6,      /* domain failed to start */
     VIR_DOMAIN_SHUTOFF_FROM_SNAPSHOT = 7, /* restored from a snapshot which was
                                            * taken while domain was shutoff */
+    VIR_DOMAIN_SHUTOFF_DAEMON = 8,      /* daemon decides to kill domain
+                                           during reconnection processing */
 # ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_SHUTOFF_LAST
 # endif
@@ -1911,6 +1913,50 @@ int                  virDomainDelIOThread(virDomainPtr domain,
                                           unsigned int iothread_id,
                                           unsigned int flags);
 
+/* IOThread set parameters */
+
+/**
+ * VIR_DOMAIN_IOTHREAD_POLL_MAX_NS:
+ *
+ * The maximum polling time that can be used by polling algorithm in ns.
+ * The polling time starts at 0 (zero) and is the time spent by the guest
+ * to process IOThread data before returning the CPU to the host. The
+ * polling time will be dynamically modified over time based on the
+ * poll_grow and poll_shrink parameters provided. A value set too large
+ * will cause more CPU time to be allocated the guest. A value set too
+ * small will not provide enough cycles for the guest to process data.
+ * The polling interval is not available for statistical purposes.
+ */
+# define VIR_DOMAIN_IOTHREAD_POLL_MAX_NS "poll_max_ns"
+
+/**
+ * VIR_DOMAIN_IOTHREAD_POLL_GROW:
+ *
+ * This provides a value for the dynamic polling adjustment algorithm to
+ * use to grow its polling interval up to the poll_max_ns value. A value
+ * of 0 (zero) allows the hypervisor to choose its own value. The algorithm
+ * to use for adjustment is hypervisor specific.
+ */
+# define VIR_DOMAIN_IOTHREAD_POLL_GROW "poll_grow"
+
+/**
+ * VIR_DOMAIN_IOTHREAD_POLL_SHRINK:
+ *
+ * This provides a value for the dynamic polling adjustment algorithm to
+ * use to shrink its polling interval when the polling interval exceeds
+ * the poll_max_ns value. A value of 0 (zero) allows the hypervisor to
+ * choose its own value. The algorithm to use for adjustment is hypervisor
+ * specific.
+ */
+# define VIR_DOMAIN_IOTHREAD_POLL_SHRINK "poll_shrink"
+
+int                  virDomainSetIOThreadParams(virDomainPtr domain,
+                                                unsigned int iothread_id,
+                                                virTypedParameterPtr params,
+                                                int nparams,
+                                                unsigned int flags);
+
+
 /**
  * VIR_USE_CPU:
  * @cpumap: pointer to a bit map of real CPUs (in 8-bit bytes) (IN/OUT)
@@ -2048,6 +2094,7 @@ typedef enum {
     VIR_DOMAIN_STATS_INTERFACE = (1 << 4), /* return domain interfaces info */
     VIR_DOMAIN_STATS_BLOCK = (1 << 5), /* return domain block info */
     VIR_DOMAIN_STATS_PERF = (1 << 6), /* return domain perf event info */
+    VIR_DOMAIN_STATS_IOTHREAD = (1 << 7), /* return iothread poll info */
 } virDomainStatsTypes;
 
 typedef enum {

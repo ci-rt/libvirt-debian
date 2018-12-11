@@ -36,9 +36,9 @@ VIR_LOG_INIT("util.virresctrl")
 
 
 /* Resctrl is short for Resource Control.  It might be implemented for various
- * resources. Currently this supports cache allocation technology (aka CAT) and
- * memory bandwidth allocation (aka MBA). More resources technologies may be
- * added in the future.
+ * resources. Currently this supports cache allocation technology (aka CAT),
+ * memory bandwidth allocation (aka MBA) and cache monitoring technology (aka
+ * CMT). More resources technologies may be added in the future.
  */
 
 
@@ -70,6 +70,12 @@ VIR_ENUM_IMPL(virResctrl, VIR_CACHE_TYPE_LAST,
               "CODE",
               "DATA")
 
+/* Monitor feature name prefix mapping for monitor naming */
+VIR_ENUM_IMPL(virResctrlMonitorPrefix, VIR_RESCTRL_MONITOR_TYPE_LAST,
+              "__unsupported__",
+              "llc_",
+              "mbm_")
+
 
 /* All private typedefs so that they exist for all later definitions.  This way
  * structs can be included in one or another without reorganizing the code every
@@ -82,6 +88,9 @@ typedef virResctrlInfoPerLevel *virResctrlInfoPerLevelPtr;
 
 typedef struct _virResctrlInfoMemBW virResctrlInfoMemBW;
 typedef virResctrlInfoMemBW *virResctrlInfoMemBWPtr;
+
+typedef struct _virResctrlInfoMongrp virResctrlInfoMongrp;
+typedef virResctrlInfoMongrp *virResctrlInfoMongrpPtr;
 
 typedef struct _virResctrlAllocPerType virResctrlAllocPerType;
 typedef virResctrlAllocPerType *virResctrlAllocPerTypePtr;
@@ -96,6 +105,7 @@ typedef virResctrlAllocMemBW *virResctrlAllocMemBWPtr;
 /* Class definitions and initializations */
 static virClassPtr virResctrlInfoClass;
 static virClassPtr virResctrlAllocClass;
+static virClassPtr virResctrlMonitorClass;
 
 
 /* virResctrlInfo */
@@ -139,6 +149,28 @@ struct _virResctrlInfoMemBW {
     unsigned int max_id;
 };
 
+struct _virResctrlInfoMongrp {
+    /* Maximum number of simultaneous monitors */
+    unsigned int max_monitor;
+    /* null-terminal string list for monitor features */
+    char **features;
+    /* Number of monitor features */
+    size_t nfeatures;
+
+    /* Last level cache related information */
+
+    /* This adjustable value affects the final reuse of resources used by
+     * monitor. After the action of removing a monitor, the kernel may not
+     * release all hardware resources that monitor used immediately if the
+     * cache occupancy value associated with 'removed' monitor is above this
+     * threshold. Once the cache occupancy is below this threshold, the
+     * underlying hardware resource will be reclaimed and be put into the
+     * resource pool for next reusing.*/
+    unsigned int cache_reuse_threshold;
+    /* The cache 'level' that has the monitor capability */
+    unsigned int cache_level;
+};
+
 struct _virResctrlInfo {
     virObject parent;
 
@@ -146,6 +178,8 @@ struct _virResctrlInfo {
     size_t nlevels;
 
     virResctrlInfoMemBWPtr membw_info;
+
+    virResctrlInfoMongrpPtr monitor_info;
 };
 
 
@@ -171,20 +205,45 @@ virResctrlInfoDispose(void *obj)
         VIR_FREE(level);
     }
 
+    if (resctrl->monitor_info)
+        virStringListFree(resctrl->monitor_info->features);
+
     VIR_FREE(resctrl->membw_info);
     VIR_FREE(resctrl->levels);
+    VIR_FREE(resctrl->monitor_info);
 }
 
 
-/* virResctrlAlloc */
+void
+virResctrlInfoMonFree(virResctrlInfoMonPtr mon)
+{
+    if (!mon)
+        return;
+
+    virStringListFree(mon->features);
+    VIR_FREE(mon);
+}
+
+
+/* virResctrlAlloc and virResctrlMonitor*/
 
 /*
- * virResctrlAlloc represents one allocation (in XML under cputune/cachetune and
- * consequently a directory under /sys/fs/resctrl).  Since it can have multiple
+ * virResctrlAlloc and virResctrlMonitor are representing a resource control
+ * group (in XML under cputune/cachetune and consequently a directory under
+ * /sys/fs/resctrl). virResctrlAlloc is the data structure for resource
+ * allocation, while the virResctrlMonitor represents the resource monitoring
+ * part.
+ *
+ * virResctrlAlloc represents one allocation. Since it can have multiple
  * parts of multiple caches allocated it is represented as bunch of nested
  * sparse arrays (by sparse I mean array of pointers so that each might be NULL
  * in case there is no allocation for that particular cache allocation (level,
  * cache, ...) or memory allocation for particular node).
+ *
+ * Allocation corresponding to root directory, /sys/fs/sysctrl/, defines the
+ * default resource allocating policy, which is created immediately after
+ * mounting, and owns all the tasks and cpus in the system. Cache or memory
+ * bandwidth resource will be shared for tasks in this allocation.
  *
  * =====Cache allocation technology (CAT)=====
  *
@@ -211,7 +270,7 @@ virResctrlInfoDispose(void *obj)
  * all of them.  While doing that we store the bitmask in a sparse array of
  * virBitmaps named `masks` indexed the same way as `sizes`.  The upper bounds
  * of the sparse arrays are stored in nmasks or nsizes, respectively.
- + *
+ *
  * =====Memory Bandwidth allocation technology (MBA)=====
  *
  * The memory bandwidth allocation support in virResctrlAlloc works in the
@@ -222,6 +281,18 @@ virResctrlInfoDispose(void *obj)
  * a sparse array to represent whether a memory bandwidth allocation happens
  * on corresponding node. The available memory controller number is collected
  * in 'virResctrlInfo'.
+ *
+ * =====Cache monitoring technology (CMT)=====
+ *
+ * Cache monitoring technology is used to perceive how many cache the process
+ * is using actually. virResctrlMonitor represents the resource control
+ * monitoring group, it is supported to monitor resource utilization
+ * information on granularity of vcpu.
+ *
+ * From a hardware perspective, cache monitoring technology (CMT), memory
+ * bandwidth technology (MBM), as well as the CAT and MBA, are all orthogonal
+ * features. The monitor will be created under the scope of default resctrl
+ * group if no specific CAT or MBA entries are provided for the guest."
  */
 struct _virResctrlAllocPerType {
     /* There could be bool saying whether this is set or not, but since everything
@@ -264,6 +335,30 @@ struct _virResctrlAlloc {
     char *id;
     /* libvirt-generated path in /sys/fs/resctrl for this particular
      * allocation */
+    char *path;
+};
+
+/*
+ * virResctrlMonitor is the data structure for resctrl monitor. Resctrl
+ * monitor represents a resctrl monitoring group, which can be used to
+ * monitor the resource utilization information for either cache or
+ * memory bandwidth.
+ */
+struct _virResctrlMonitor {
+    virObject parent;
+
+    /* Each virResctrlMonitor is associated with one specific allocation,
+     * either the root directory allocation under /sys/fs/resctrl or a
+     * specific allocation defined under the root directory.
+     * This pointer points to the allocation this monitor is associated with.
+     */
+    virResctrlAllocPtr alloc;
+    /* The monitor identifier. For a monitor has the same @path name as its
+     * @alloc, the @id will be set to the same value as it is in @alloc->id.
+     */
+    char *id;
+    /* libvirt-generated path in /sys/fs/resctrl for this particular
+     * monitor */
     char *path;
 };
 
@@ -316,6 +411,17 @@ virResctrlAllocDispose(void *obj)
 }
 
 
+static void
+virResctrlMonitorDispose(void *obj)
+{
+    virResctrlMonitorPtr monitor = obj;
+
+    virObjectUnref(monitor->alloc);
+    VIR_FREE(monitor->id);
+    VIR_FREE(monitor->path);
+}
+
+
 /* Global initialization for classes */
 static int
 virResctrlOnceInit(void)
@@ -324,6 +430,9 @@ virResctrlOnceInit(void)
         return -1;
 
     if (!VIR_CLASS_NEW(virResctrlAlloc, virClassForObject()))
+        return -1;
+
+    if (!VIR_CLASS_NEW(virResctrlMonitor, virClassForObject()))
         return -1;
 
     return 0;
@@ -555,6 +664,92 @@ virResctrlGetMemoryBandwidthInfo(virResctrlInfoPtr resctrl)
 }
 
 
+/*
+ * Retrieve monitor capability from the resource control file system.
+ *
+ * The monitor capability is exposed through "SYSFS_RESCTRL_PATH/info/L3_MON"
+ * directory under the resource control file system. The monitor capability is
+ * parsed by reading the interface files and stored in the structure
+ * 'virResctrlInfoMongrp'.
+ *
+ * Not all host supports the resource monitor, leave the pointer
+ * @resctrl->monitor_info empty if not supported.
+ */
+static int
+virResctrlGetMonitorInfo(virResctrlInfoPtr resctrl)
+{
+    int ret = -1;
+    int rv = -1;
+    char *featurestr = NULL;
+    char **features = NULL;
+    size_t nfeatures = 0;
+    virResctrlInfoMongrpPtr info_monitor = NULL;
+
+    if (VIR_ALLOC(info_monitor) < 0)
+        return -1;
+
+    /* For now, monitor only exists in level 3 cache */
+    info_monitor->cache_level = 3;
+
+    rv = virFileReadValueUint(&info_monitor->max_monitor,
+                              SYSFS_RESCTRL_PATH "/info/L3_MON/num_rmids");
+    if (rv == -2) {
+        /* The file doesn't exist, so it's unusable for us, probably resource
+         * monitor unsupported */
+        VIR_INFO("The file '" SYSFS_RESCTRL_PATH "/info/L3_MON/num_rmids' "
+                 "does not exist");
+        ret = 0;
+        goto cleanup;
+    } else if (rv < 0) {
+        /* Other failures are fatal, so just quit */
+        goto cleanup;
+    }
+
+    rv = virFileReadValueUint(&info_monitor->cache_reuse_threshold,
+                              SYSFS_RESCTRL_PATH
+                              "/info/L3_MON/max_threshold_occupancy");
+    if (rv == -2) {
+        /* If CMT is not supported, then 'max_threshold_occupancy' file
+         * will not exist. */
+        VIR_DEBUG("File '" SYSFS_RESCTRL_PATH
+                  "/info/L3_MON/max_threshold_occupancy' does not exist");
+    } else if (rv < 0) {
+        goto cleanup;
+    }
+
+    rv = virFileReadValueString(&featurestr,
+                                SYSFS_RESCTRL_PATH
+                                "/info/L3_MON/mon_features");
+    if (rv == -2)
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Cannot get mon_features from resctrl"));
+    if (rv < 0)
+        goto cleanup;
+
+    if (!*featurestr) {
+        /* If no feature found in "/info/L3_MON/mon_features",
+         * some error happens */
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Get empty feature list from resctrl"));
+        goto cleanup;
+    }
+
+    features = virStringSplitCount(featurestr, "\n", 0, &nfeatures);
+    VIR_DEBUG("Resctrl supported %zd monitoring features", nfeatures);
+
+    info_monitor->nfeatures = nfeatures;
+    VIR_STEAL_PTR(info_monitor->features, features);
+    VIR_STEAL_PTR(resctrl->monitor_info, info_monitor);
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(featurestr);
+    virStringListFree(features);
+    VIR_FREE(info_monitor);
+    return ret;
+}
+
+
 static int
 virResctrlGetInfo(virResctrlInfoPtr resctrl)
 {
@@ -570,6 +765,10 @@ virResctrlGetInfo(virResctrlInfoPtr resctrl)
         goto cleanup;
 
     ret = virResctrlGetCacheInfo(resctrl, dirp);
+    if (ret < 0)
+        goto cleanup;
+
+    ret = virResctrlGetMonitorInfo(resctrl);
     if (ret < 0)
         goto cleanup;
 
@@ -611,6 +810,9 @@ virResctrlInfoIsEmpty(virResctrlInfoPtr resctrl)
         return true;
 
     if (resctrl->membw_info)
+        return false;
+
+    if (resctrl->monitor_info)
         return false;
 
     for (i = 0; i < resctrl->nlevels; i++) {
@@ -702,7 +904,7 @@ virResctrlInfoGetCache(virResctrlInfoPtr resctrl,
                 virReportError(VIR_ERR_INTERNAL_ERROR,
                                _("level %u cache size %llu does not match "
                                  "expected size %llu"),
-                                 level, i_type->size, size);
+                               level, i_type->size, size);
                 goto error;
             }
             i_type->max_cache_id++;
@@ -724,6 +926,99 @@ virResctrlInfoGetCache(virResctrlInfoPtr resctrl,
         VIR_FREE((*controls)[--*ncontrols]);
     VIR_FREE(*controls);
     goto cleanup;
+}
+
+
+/* virResctrlInfoGetMonitorPrefix
+ *
+ * @resctrl: Pointer to virResctrlInfo
+ * @prefix: Monitor prefix name for monitor looking for.
+ * @monitor: Returns the capability information for target monitor if the
+ * monitor with @prefex is supported by host.
+ *
+ * Return monitor capability information for @prefix through @monitor.
+ * If monitor with @prefix is not supported in system, @monitor will be
+ * cleared to NULL.
+ *
+ * Returns 0 if @monitor is created or monitor type with @prefix is not
+ * supported by host, -1 on failure with error message set.
+ */
+int
+virResctrlInfoGetMonitorPrefix(virResctrlInfoPtr resctrl,
+                               const char *prefix,
+                               virResctrlInfoMonPtr *monitor)
+{
+    size_t i = 0;
+    virResctrlInfoMongrpPtr mongrp_info = NULL;
+    virResctrlInfoMonPtr mon = NULL;
+    int ret = -1;
+
+    if (!prefix) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Empty prefix name for resctrl monitor"));
+        return -1;
+    }
+
+    if (virResctrlInfoIsEmpty(resctrl))
+        return 0;
+
+    mongrp_info = resctrl->monitor_info;
+
+    if (!mongrp_info) {
+        VIR_INFO("Monitor is not supported in host");
+        return 0;
+    }
+
+    for (i = 0; i < VIR_RESCTRL_MONITOR_TYPE_LAST; i++) {
+        if (STREQ(prefix, virResctrlMonitorPrefixTypeToString(i))) {
+            if (VIR_ALLOC(mon) < 0)
+                goto cleanup;
+            mon->type = i;
+            break;
+        }
+    }
+
+    if (!mon) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Bad prefix name '%s' for resctrl monitor"),
+                       prefix);
+        return -1;
+    }
+
+    mon->max_monitor = mongrp_info->max_monitor;
+
+    if (mon->type == VIR_RESCTRL_MONITOR_TYPE_CACHE) {
+        mon->cache_reuse_threshold =  mongrp_info->cache_reuse_threshold;
+        mon->cache_level = mongrp_info->cache_level;
+    }
+
+    for (i = 0; i < mongrp_info->nfeatures; i++) {
+        if (STRPREFIX(mongrp_info->features[i], prefix)) {
+            if (virStringListAdd(&mon->features,
+                                 mongrp_info->features[i]) < 0)
+                goto cleanup;
+            mon->nfeatures++;
+        }
+    }
+
+    ret = 0;
+
+    /* In case *monitor is pointed to some monitor, clean it. */
+    virResctrlInfoMonFree(*monitor);
+
+    if (mon->nfeatures == 0) {
+        /* No feature found for current monitor, means host does not support
+         * monitor type with @prefix name.
+         * Telling caller this monitor is supported by hardware specification,
+         * but not supported by this host. */
+        VIR_INFO("No resctrl monitor features using prefix '%s' found", prefix);
+        goto cleanup;
+    }
+
+    VIR_STEAL_PTR(*monitor, mon);
+ cleanup:
+    virResctrlInfoMonFree(mon);
+    return ret;
 }
 
 
@@ -1066,17 +1361,32 @@ virResctrlAllocForeachMemory(virResctrlAllocPtr alloc,
 }
 
 
+static int
+virResctrlSetID(char **resctrlid,
+                const char *id)
+{
+    if (!id) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("New resctrl 'id' cannot be NULL"));
+        return -1;
+    }
+
+    if (*resctrlid) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Attempt to overwrite resctrlid='%s' with id='%s'"),
+                       *resctrlid, id);
+        return -1;
+    }
+
+    return VIR_STRDUP(*resctrlid, id);
+}
+
+
 int
 virResctrlAllocSetID(virResctrlAllocPtr alloc,
                      const char *id)
 {
-    if (!id) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("Resctrl allocation 'id' cannot be NULL"));
-        return -1;
-    }
-
-    return VIR_STRDUP(alloc->id, id);
+    return virResctrlSetID(&alloc->id, id);
 }
 
 
@@ -1430,9 +1740,8 @@ virResctrlAllocGetGroup(virResctrlInfoPtr resctrl,
 {
     char *schemata = NULL;
     int rv = virFileReadValueString(&schemata,
-                                     SYSFS_RESCTRL_PATH
-                                     "/%s/schemata",
-                                     groupname);
+                                    SYSFS_RESCTRL_PATH "/%s/schemata",
+                                    groupname);
 
     *alloc = NULL;
 
@@ -1972,20 +2281,71 @@ virResctrlAllocAssign(virResctrlInfoPtr resctrl,
 }
 
 
+static char *
+virResctrlDeterminePath(const char *parentpath,
+                        const char *prefix,
+                        const char *id)
+{
+    char *path = NULL;
+
+    if (!id) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Resctrl ID must be set before determining resctrl "
+                         "parentpath='%s' prefix='%s'"), parentpath, prefix);
+        return NULL;
+    }
+
+    if (virAsprintf(&path, "%s/%s-%s", parentpath, prefix, id) < 0)
+        return NULL;
+
+    return path;
+}
+
+
 int
 virResctrlAllocDeterminePath(virResctrlAllocPtr alloc,
                              const char *machinename)
 {
-    if (!alloc->id) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("Resctrl Allocation ID must be set before creation"));
+    if (alloc->path) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Resctrl allocation path is already set to '%s'"),
+                       alloc->path);
         return -1;
     }
 
-    if (!alloc->path &&
-        virAsprintf(&alloc->path, "%s/%s-%s",
-                    SYSFS_RESCTRL_PATH, machinename, alloc->id) < 0)
+    /* If the allocation is empty, then the path will be SYSFS_RESCTRL_PATH */
+    if (virResctrlAllocIsEmpty(alloc)) {
+        if (VIR_STRDUP(alloc->path, SYSFS_RESCTRL_PATH) < 0)
+            return -1;
+
+        return 0;
+    }
+
+    alloc->path = virResctrlDeterminePath(SYSFS_RESCTRL_PATH,
+                                          machinename, alloc->id);
+
+    if (!alloc->path)
         return -1;
+
+    return 0;
+}
+
+
+/* This function creates a resctrl directory in resource control file system,
+ * and the directory path is specified by @path. */
+static int
+virResctrlCreateGroupPath(const char *path)
+{
+    /* Directory exists, return */
+    if (virFileExists(path))
+        return 0;
+
+    if (virFileMakePath(path) < 0) {
+        virReportSystemError(errno,
+                             _("Cannot create resctrl directory '%s'"),
+                             path);
+        return -1;
+    }
 
     return 0;
 }
@@ -2015,12 +2375,9 @@ virResctrlAllocCreate(virResctrlInfoPtr resctrl,
     if (virResctrlAllocDeterminePath(alloc, machinename) < 0)
         return -1;
 
-    if (virFileExists(alloc->path)) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Path '%s' for resctrl allocation exists"),
-                       alloc->path);
-        goto cleanup;
-    }
+    /* If using the system/default path for the allocation, then we're done */
+    if (STREQ(alloc->path, SYSFS_RESCTRL_PATH))
+        return 0;
 
     lockfd = virResctrlLockWrite();
     if (lockfd < 0)
@@ -2029,19 +2386,15 @@ virResctrlAllocCreate(virResctrlInfoPtr resctrl,
     if (virResctrlAllocAssign(resctrl, alloc) < 0)
         goto cleanup;
 
+    if (virResctrlCreateGroupPath(alloc->path) < 0)
+        goto cleanup;
+
     alloc_str = virResctrlAllocFormat(alloc);
     if (!alloc_str)
         goto cleanup;
 
     if (virAsprintf(&schemata_path, "%s/schemata", alloc->path) < 0)
         goto cleanup;
-
-    if (virFileMakePath(alloc->path) < 0) {
-        virReportSystemError(errno,
-                             _("Cannot create resctrl directory '%s'"),
-                             alloc->path);
-        goto cleanup;
-    }
 
     VIR_DEBUG("Writing resctrl schemata '%s' into '%s'", alloc_str, schemata_path);
     if (virFileWriteStr(schemata_path, alloc_str, 0) < 0) {
@@ -2061,21 +2414,21 @@ virResctrlAllocCreate(virResctrlInfoPtr resctrl,
 }
 
 
-int
-virResctrlAllocAddPID(virResctrlAllocPtr alloc,
-                      pid_t pid)
+static int
+virResctrlAddPID(const char *path,
+                 pid_t pid)
 {
     char *tasks = NULL;
     char *pidstr = NULL;
     int ret = 0;
 
-    if (!alloc->path) {
+    if (!path) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("Cannot add pid to non-existing resctrl allocation"));
+                       _("Cannot add pid to non-existing resctrl group"));
         return -1;
     }
 
-    if (virAsprintf(&tasks, "%s/tasks", alloc->path) < 0)
+    if (virAsprintf(&tasks, "%s/tasks", path) < 0)
         return -1;
 
     if (virAsprintf(&pidstr, "%lld", (long long int) pid) < 0)
@@ -2097,11 +2450,28 @@ virResctrlAllocAddPID(virResctrlAllocPtr alloc,
 
 
 int
+virResctrlAllocAddPID(virResctrlAllocPtr alloc,
+                      pid_t pid)
+{
+    /* If the allocation is empty, then it is impossible to add a PID to
+     * allocation due to lacking of its 'tasks' file so just return */
+    if (virResctrlAllocIsEmpty(alloc))
+        return 0;
+
+    return virResctrlAddPID(alloc->path, pid);
+}
+
+
+int
 virResctrlAllocRemove(virResctrlAllocPtr alloc)
 {
     int ret = 0;
 
     if (!alloc->path)
+        return 0;
+
+    /* Do not destroy if path is the system/default path for the allocation */
+    if (STREQ(alloc->path, SYSFS_RESCTRL_PATH))
         return 0;
 
     VIR_DEBUG("Removing resctrl allocation %s", alloc->path);
@@ -2111,4 +2481,306 @@ virResctrlAllocRemove(virResctrlAllocPtr alloc)
     }
 
     return ret;
+}
+
+
+/* virResctrlMonitor-related definitions */
+
+virResctrlMonitorPtr
+virResctrlMonitorNew(void)
+{
+    if (virResctrlInitialize() < 0)
+        return NULL;
+
+    return virObjectNew(virResctrlMonitorClass);
+}
+
+
+/*
+ * virResctrlMonitorDeterminePath
+ *
+ * @monitor: Pointer to a resctrl monitor
+ * @machinename: Name string of the VM
+ *
+ * Determines the directory path that the underlying resctrl group will be
+ * created with.
+ *
+ * A monitor represents a directory under resource control file system,
+ * its directory path could be the same path as @monitor->alloc, could be a
+ * path of directory under 'mon_groups' of @monitor->alloc, or a path of
+ * directory under '/sys/fs/resctrl/mon_groups' if @monitor->alloc is NULL.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+int
+virResctrlMonitorDeterminePath(virResctrlMonitorPtr monitor,
+                               const char *machinename)
+{
+    VIR_AUTOFREE(char *) parentpath = NULL;
+
+    if (!monitor) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Invalid resctrl monitor"));
+        return -1;
+    }
+
+    if (!monitor->alloc) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Missing resctrl monitor alloc"));
+        return -1;
+    }
+
+    if (monitor->path) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Resctrl monitor path is already set to '%s'"),
+                       monitor->path);
+        return -1;
+    }
+
+    if (STREQ_NULLABLE(monitor->id, monitor->alloc->id)) {
+        if (VIR_STRDUP(monitor->path, monitor->alloc->path) < 0)
+            return -1;
+        return 0;
+    }
+
+    if (virAsprintf(&parentpath, "%s/mon_groups", monitor->alloc->path) < 0)
+        return -1;
+
+    monitor->path = virResctrlDeterminePath(parentpath, machinename,
+                                            monitor->id);
+    if (!monitor->path)
+        return -1;
+
+    return 0;
+}
+
+
+int
+virResctrlMonitorAddPID(virResctrlMonitorPtr monitor,
+                        pid_t pid)
+{
+    return virResctrlAddPID(monitor->path, pid);
+}
+
+
+int
+virResctrlMonitorCreate(virResctrlMonitorPtr monitor,
+                        const char *machinename)
+{
+    int lockfd = -1;
+    int ret = -1;
+
+    if (!monitor)
+        return 0;
+
+    if (virResctrlMonitorDeterminePath(monitor, machinename) < 0)
+        return -1;
+
+    lockfd = virResctrlLockWrite();
+    if (lockfd < 0)
+        return -1;
+
+    ret = virResctrlCreateGroupPath(monitor->path);
+
+    virResctrlUnlock(lockfd);
+    return ret;
+}
+
+
+int
+virResctrlMonitorSetID(virResctrlMonitorPtr monitor,
+                       const char *id)
+
+{
+    return virResctrlSetID(&monitor->id, id);
+}
+
+
+const char *
+virResctrlMonitorGetID(virResctrlMonitorPtr monitor)
+{
+    return monitor->id;
+}
+
+
+void
+virResctrlMonitorSetAlloc(virResctrlMonitorPtr monitor,
+                          virResctrlAllocPtr alloc)
+{
+    monitor->alloc = virObjectRef(alloc);
+}
+
+
+int
+virResctrlMonitorRemove(virResctrlMonitorPtr monitor)
+{
+    int ret = 0;
+
+    if (!monitor->path)
+        return 0;
+
+    if (STREQ(monitor->path, monitor->alloc->path))
+        return 0;
+
+    VIR_DEBUG("Removing resctrl monitor path=%s", monitor->path);
+    if (rmdir(monitor->path) != 0 && errno != ENOENT) {
+        ret = -errno;
+        VIR_ERROR(_("Unable to remove %s (%d)"), monitor->path, errno);
+    }
+
+    return ret;
+}
+
+
+static int
+virResctrlMonitorStatsSorter(const void *a,
+                             const void *b)
+{
+    return ((virResctrlMonitorStatsPtr)a)->id
+        - ((virResctrlMonitorStatsPtr)b)->id;
+}
+
+
+/*
+ * virResctrlMonitorGetStats
+ *
+ * @monitor: The monitor that the statistic data will be retrieved from.
+ * @resource: The name for resource name. 'llc_occupancy' for cache resource.
+ * "mbm_total_bytes" and "mbm_local_bytes" for memory bandwidth resource.
+ * @stats: Pointer of of virResctrlMonitorStatsPtr array for holding cache or
+ * memory bandwidth usage data.
+ * @nstats: A size_t pointer to hold the returned array length of @stats
+ *
+ * Get cache or memory bandwidth utilization information.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+static int
+virResctrlMonitorGetStats(virResctrlMonitorPtr monitor,
+                          const char *resource,
+                          virResctrlMonitorStatsPtr **stats,
+                          size_t *nstats)
+{
+    int rv = -1;
+    int ret = -1;
+    DIR *dirp = NULL;
+    char *datapath = NULL;
+    char *filepath = NULL;
+    struct dirent *ent = NULL;
+    virResctrlMonitorStatsPtr stat = NULL;
+
+    if (!monitor) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Invalid resctrl monitor"));
+        return -1;
+    }
+
+    if (virAsprintf(&datapath, "%s/mon_data", monitor->path) < 0)
+        return -1;
+
+    if (virDirOpen(&dirp, datapath) < 0)
+        goto cleanup;
+
+    *nstats = 0;
+    while (virDirRead(dirp, &ent, datapath) > 0) {
+        char *node_id = NULL;
+
+        VIR_FREE(filepath);
+
+        /* Looking for directory that contains resource utilization
+         * information file. The directory name is arranged in format
+         * "mon_<node_name>_<node_id>". For example, "mon_L3_00" and
+         * "mon_L3_01" are two target directories for a two nodes system
+         * with resource utilization data file for each node respectively.
+         */
+        if (virAsprintf(&filepath, "%s/%s", datapath, ent->d_name) < 0)
+            goto cleanup;
+
+        if (!virFileIsDir(filepath))
+            continue;
+
+        /* Looking for directory has a prefix 'mon_L' */
+        if (!(node_id = STRSKIP(ent->d_name, "mon_L")))
+            continue;
+
+        /* Looking for directory has another '_' */
+        node_id = strchr(node_id, '_');
+        if (!node_id)
+            continue;
+
+        /* Skip the character '_' */
+        if (!(node_id = STRSKIP(node_id, "_")))
+            continue;
+
+        if (VIR_ALLOC(stat) < 0)
+            goto cleanup;
+
+        /* The node ID number should be here, parsing it. */
+        if (virStrToLong_uip(node_id, NULL, 0, &stat->id) < 0)
+            goto cleanup;
+
+        rv = virFileReadValueUint(&stat->val, "%s/%s/%s", datapath,
+                                  ent->d_name, resource);
+        if (rv == -2) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("File '%s/%s/%s' does not exist."),
+                           datapath, ent->d_name, resource);
+        }
+        if (rv < 0)
+            goto cleanup;
+
+        if (VIR_APPEND_ELEMENT(*stats, *nstats, stat) < 0)
+            goto cleanup;
+    }
+
+    /* Sort in id's ascending order */
+    if (*nstats)
+        qsort(*stats, *nstats, sizeof(*stat), virResctrlMonitorStatsSorter);
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(datapath);
+    VIR_FREE(filepath);
+    VIR_FREE(stat);
+    VIR_DIR_CLOSE(dirp);
+    return ret;
+}
+
+
+void
+virResctrlMonitorFreeStats(virResctrlMonitorStatsPtr *stats,
+                           size_t nstats)
+{
+    size_t i = 0;
+
+    if (!stats)
+        return;
+
+    for (i = 0; i < nstats; i++)
+        VIR_FREE(stats[i]);
+
+    VIR_FREE(stats);
+}
+
+
+/*
+ * virResctrlMonitorGetCacheOccupancy
+ *
+ * @monitor: The monitor that the statistic data will be retrieved from.
+ * @stats: Array of virResctrlMonitorStatsPtr for receiving cache occupancy
+ * data. Caller is responsible to free this array.
+ * @nstats: A size_t pointer to hold the returned array length of @caches
+ *
+ * Get cache or memory bandwidth utilization information.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+
+int
+virResctrlMonitorGetCacheOccupancy(virResctrlMonitorPtr monitor,
+                                   virResctrlMonitorStatsPtr **stats,
+                                   size_t *nstats)
+{
+    return virResctrlMonitorGetStats(monitor, "llc_occupancy",
+                                     stats, nstats);
 }

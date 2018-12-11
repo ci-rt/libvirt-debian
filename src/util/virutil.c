@@ -26,11 +26,8 @@
 
 #include <config.h>
 
-#include <stdlib.h>
-#include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <errno.h>
 #include <poll.h>
 #include <sys/stat.h>
 
@@ -41,7 +38,6 @@
 #endif
 
 #include <sys/types.h>
-#include <string.h>
 #include <termios.h>
 
 #if WITH_DEVMAPPER
@@ -325,7 +321,7 @@ virScaleInteger(unsigned long long *value, const char *suffix,
             base = 1000;
         } else {
             virReportError(VIR_ERR_INVALID_ARG,
-                         _("unknown suffix '%s'"), suffix);
+                           _("unknown suffix '%s'"), suffix);
             return -1;
         }
         scale = 1;
@@ -495,6 +491,10 @@ virFormatIntDecimal(char *buf, size_t buflen, int val)
  *
  * Similar to vshPrettyCapacity, but operates on integers and not doubles
  *
+ * NB: Since using unsigned long long, we are limited to at most a "PiB"
+ *     to make pretty. This is because a PiB is 1152921504606846976 bytes,
+ *     but that value * 1024 > ULLONG_MAX value 18446744073709551615 bytes.
+ *
  * Returns shortened value that can be used with @unit.
  */
 unsigned long long
@@ -528,12 +528,7 @@ virFormatIntPretty(unsigned long long val,
         return val / (limit / 1024);
     }
     limit *= 1024;
-    if (val % limit) {
-        *unit = "PiB";
-        return val / (limit / 1024);
-    }
-    limit *= 1024;
-    *unit = "EiB";
+    *unit = "PiB";
     return val / (limit / 1024);
 }
 
@@ -940,7 +935,7 @@ char *virGetUserConfigDirectory(void)
 
 char *virGetUserCacheDirectory(void)
 {
-     return virGetXDGDirectory("XDG_CACHE_HOME", ".cache");
+    return virGetXDGDirectory("XDG_CACHE_HOME", ".cache");
 }
 
 char *virGetUserRuntimeDirectory(void)
@@ -971,9 +966,11 @@ char *virGetGroupName(gid_t gid)
 
 /* Search in the password database for a user id that matches the user name
  * `name`. Returns 0 on success, -1 on failure or 1 if name cannot be found.
+ *
+ * Warns if @missing_ok is false
  */
 static int
-virGetUserIDByName(const char *name, uid_t *uid)
+virGetUserIDByName(const char *name, uid_t *uid, bool missing_ok)
 {
     char *strbuf = NULL;
     struct passwd pwbuf;
@@ -996,7 +993,7 @@ virGetUserIDByName(const char *name, uid_t *uid)
     }
 
     if (!pw) {
-        if (rc != 0) {
+        if (rc != 0 && !missing_ok) {
             char buf[1024];
             /* log the possible error from getpwnam_r. Unfortunately error
              * reporting from this function is bad and we can't really
@@ -1009,7 +1006,8 @@ virGetUserIDByName(const char *name, uid_t *uid)
         goto cleanup;
     }
 
-    *uid = pw->pw_uid;
+    if (uid)
+        *uid = pw->pw_uid;
     ret = 0;
 
  cleanup:
@@ -1032,7 +1030,7 @@ virGetUserID(const char *user, uid_t *uid)
     if (*user == '+') {
         user++;
     } else {
-        int rc = virGetUserIDByName(user, uid);
+        int rc = virGetUserIDByName(user, uid, false);
         if (rc <= 0)
             return rc;
     }
@@ -1051,9 +1049,11 @@ virGetUserID(const char *user, uid_t *uid)
 
 /* Search in the group database for a group id that matches the group name
  * `name`. Returns 0 on success, -1 on failure or 1 if name cannot be found.
+ *
+ * Warns if @missing_ok is false
  */
 static int
-virGetGroupIDByName(const char *name, gid_t *gid)
+virGetGroupIDByName(const char *name, gid_t *gid, bool missing_ok)
 {
     char *strbuf = NULL;
     struct group grbuf;
@@ -1076,7 +1076,7 @@ virGetGroupIDByName(const char *name, gid_t *gid)
     }
 
     if (!gr) {
-        if (rc != 0) {
+        if (rc != 0 && !missing_ok) {
             char buf[1024];
             /* log the possible error from getgrnam_r. Unfortunately error
              * reporting from this function is bad and we can't really
@@ -1089,7 +1089,8 @@ virGetGroupIDByName(const char *name, gid_t *gid)
         goto cleanup;
     }
 
-    *gid = gr->gr_gid;
+    if (gid)
+        *gid = gr->gr_gid;
     ret = 0;
 
  cleanup:
@@ -1112,7 +1113,7 @@ virGetGroupID(const char *group, gid_t *gid)
     if (*group == '+') {
         group++;
     } else {
-        int rc = virGetGroupIDByName(group, gid);
+        int rc = virGetGroupIDByName(group, gid, false);
         if (rc <= 0)
             return rc;
     }
@@ -1127,6 +1128,24 @@ virGetGroupID(const char *group, gid_t *gid)
     *gid = uint_gid;
 
     return 0;
+}
+
+/* Silently checks if User @name exists.
+ * Returns if the user exists and fallbacks to false on error.
+ */
+bool
+virDoesUserExist(const char *name)
+{
+    return virGetUserIDByName(name, NULL, true) == 0;
+}
+
+/* Silently checks if Group @name exists.
+ * Returns if the group exists and fallbacks to false on error.
+ */
+bool
+virDoesGroupExist(const char *name)
+{
+    return virGetGroupIDByName(name, NULL, true) == 0;
 }
 
 
@@ -1222,6 +1241,18 @@ virGetGroupList(uid_t uid ATTRIBUTE_UNUSED, gid_t gid ATTRIBUTE_UNUSED,
 {
     *list = NULL;
     return 0;
+}
+
+bool
+virDoesUserExist(const char *name ATTRIBUTE_UNUSED)
+{
+    return false;
+}
+
+bool
+virDoesGroupExist(const char *name ATTRIBUTE_UNUSED)
+{
+    return false;
 }
 
 # ifdef WIN32
@@ -1688,7 +1719,6 @@ virGetDeviceID(const char *path ATTRIBUTE_UNUSED,
                int *maj ATTRIBUTE_UNUSED,
                int *min ATTRIBUTE_UNUSED)
 {
-
     return -ENOSYS;
 }
 #endif

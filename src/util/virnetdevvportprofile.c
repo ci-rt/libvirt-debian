@@ -48,9 +48,6 @@ VIR_ENUM_IMPL(virNetDevVPortProfileOp, VIR_NETDEV_VPORT_PROFILE_OP_LAST,
 
 #if WITH_VIRTUALPORT
 
-# include <stdint.h>
-# include <stdio.h>
-# include <errno.h>
 # include <fcntl.h>
 # include <c-ctype.h>
 # include <sys/socket.h>
@@ -451,7 +448,7 @@ int virNetDevVPortProfileMerge3(virNetDevVPortProfilePtr *result,
 
 static struct nla_policy ifla_port_policy[IFLA_PORT_MAX + 1] =
 {
-  [IFLA_PORT_RESPONSE]      = { .type = NLA_U16 },
+    [IFLA_PORT_RESPONSE] = { .type = NLA_U16 },
 };
 
 static uint32_t
@@ -813,8 +810,8 @@ virNetDevVPortProfileOpSetLink(const char *ifname, int ifindex,
 
         if (err->error) {
             virReportSystemError(-err->error,
-                _("error during virtual port configuration of ifindex %d"),
-                ifindex);
+                                 _("error during virtual port configuration of ifindex %d"),
+                                 ifindex);
             goto cleanup;
         }
         break;
@@ -979,9 +976,9 @@ virNetDevVPortProfileOpCommon(const char *ifname, int ifindex,
             /* keep trying... */
         } else {
             virReportSystemError(EINVAL,
-                    _("error %d during port-profile setlink on "
-                      "interface %s (%d)"),
-                    status, ifname, ifindex);
+                                 _("error %d during port-profile setlink on "
+                                   "interface %s (%d)"),
+                                 status, ifname, ifindex);
             rc = -1;
             break;
         }
@@ -1347,13 +1344,13 @@ virNetDevVPortProfileDisassociate(const char *macvtap_ifname,
 
 #else /* ! WITH_VIRTUALPORT */
 int virNetDevVPortProfileAssociate(const char *macvtap_ifname ATTRIBUTE_UNUSED,
-                               const virNetDevVPortProfile *virtPort ATTRIBUTE_UNUSED,
-                               const virMacAddr *macvtap_macaddr ATTRIBUTE_UNUSED,
-                               const char *linkdev ATTRIBUTE_UNUSED,
-                               int vf ATTRIBUTE_UNUSED,
-                               const unsigned char *vmuuid ATTRIBUTE_UNUSED,
-                               virNetDevVPortProfileOp vmOp ATTRIBUTE_UNUSED,
-                               bool setlink_only ATTRIBUTE_UNUSED)
+                                   const virNetDevVPortProfile *virtPort ATTRIBUTE_UNUSED,
+                                   const virMacAddr *macvtap_macaddr ATTRIBUTE_UNUSED,
+                                   const char *linkdev ATTRIBUTE_UNUSED,
+                                   int vf ATTRIBUTE_UNUSED,
+                                   const unsigned char *vmuuid ATTRIBUTE_UNUSED,
+                                   virNetDevVPortProfileOp vmOp ATTRIBUTE_UNUSED,
+                                   bool setlink_only ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS, "%s",
                          _("Virtual port profile association not supported on this platform"));

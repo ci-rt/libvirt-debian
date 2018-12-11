@@ -2136,8 +2136,8 @@ xdr_remote_domain_get_vcpus_args (XDR *xdrs, remote_domain_get_vcpus_args *objp)
 bool_t
 xdr_remote_domain_get_vcpus_ret (XDR *xdrs, remote_domain_get_vcpus_ret *objp)
 {
-        char **objp_cpp1 = (char **) (void *) &objp->cpumaps.cpumaps_val;
         char **objp_cpp0 = (char **) (void *) &objp->info.info_val;
+        char **objp_cpp1 = (char **) (void *) &objp->cpumaps.cpumaps_val;
 
          if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->info.info_len, REMOTE_VCPUINFO_MAX,
                 sizeof (remote_vcpu_info), (xdrproc_t) xdr_remote_vcpu_info))
@@ -2237,6 +2237,23 @@ xdr_remote_domain_del_iothread_args (XDR *xdrs, remote_domain_del_iothread_args 
          if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
                  return FALSE;
          if (!xdr_u_int (xdrs, &objp->iothread_id))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_set_iothread_params_args (XDR *xdrs, remote_domain_set_iothread_params_args *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->iothread_id))
+                 return FALSE;
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->params.params_len, REMOTE_DOMAIN_IOTHREAD_PARAMS_MAX,
+                sizeof (remote_typed_param), (xdrproc_t) xdr_remote_typed_param))
                  return FALSE;
          if (!xdr_u_int (xdrs, &objp->flags))
                  return FALSE;
@@ -6429,8 +6446,8 @@ xdr_remote_domain_migrate_perform3_params_ret (XDR *xdrs, remote_domain_migrate_
 bool_t
 xdr_remote_domain_migrate_finish3_params_args (XDR *xdrs, remote_domain_migrate_finish3_params_args *objp)
 {
-        char **objp_cpp1 = (char **) (void *) &objp->cookie_in.cookie_in_val;
         char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
+        char **objp_cpp1 = (char **) (void *) &objp->cookie_in.cookie_in_val;
 
          if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->params.params_len, REMOTE_DOMAIN_MIGRATE_PARAM_LIST_MAX,
                 sizeof (remote_typed_param), (xdrproc_t) xdr_remote_typed_param))

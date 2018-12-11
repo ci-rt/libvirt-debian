@@ -144,6 +144,7 @@ void virDBusCloseSystemBus(void)
 {
     if (systembus && !sharedBus) {
         dbus_connection_close(systembus);
+        dbus_connection_unref(systembus);
         systembus = NULL;
     }
 }
@@ -196,10 +197,13 @@ static void virDBusWatchCallback(int fdatch ATTRIBUTE_UNUSED,
     if (events & VIR_EVENT_HANDLE_HANGUP)
         dbus_flags |= DBUS_WATCH_HANGUP;
 
-    (void)dbus_watch_handle(watch, dbus_flags);
+    if (dbus_watch_handle(watch, dbus_flags) == FALSE)
+        VIR_DEBUG("dbus_watch_handle() returned FALSE");
 
+    dbus_connection_ref(info->bus);
     while (dbus_connection_dispatch(info->bus) == DBUS_DISPATCH_DATA_REMAINS)
         /* keep dispatching while data remains */;
+    dbus_connection_unref(info->bus);
 }
 
 
@@ -232,7 +236,7 @@ static dbus_bool_t virDBusAddWatch(DBusWatch *watch,
     struct virDBusWatch *info;
 
     if (VIR_ALLOC(info) < 0)
-        return 0;
+        return FALSE;
 
     if (dbus_watch_get_enabled(watch))
         flags = virDBusTranslateWatchFlags(dbus_watch_get_flags(watch));
@@ -249,10 +253,10 @@ static dbus_bool_t virDBusAddWatch(DBusWatch *watch,
                                     watch, NULL);
     if (info->watch < 0) {
         dbus_watch_set_data(watch, NULL, NULL);
-        return 0;
+        return FALSE;
     }
 
-    return 1;
+    return TRUE;
 }
 
 
@@ -1567,7 +1571,7 @@ virDBusCall(DBusConnection *conn,
             ret = 0;
         } else {
             virReportError(VIR_ERR_DBUS_SERVICE, _("%s: %s"), member,
-                localerror.message ? localerror.message : _("unknown error"));
+                           localerror.message ? : _("unknown error"));
         }
         goto cleanup;
     }

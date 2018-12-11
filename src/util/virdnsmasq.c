@@ -23,12 +23,7 @@
 
 #include <config.h>
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <stdarg.h>
-#include <string.h>
-#include <errno.h>
-#include <limits.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
@@ -605,8 +600,9 @@ dnsmasqReload(pid_t pid ATTRIBUTE_UNUSED)
 #ifndef WIN32
     if (kill(pid, SIGHUP) != 0) {
         virReportSystemError(errno,
-            _("Failed to make dnsmasq (PID: %d) reload config files."),
-            pid);
+                             _("Failed to make dnsmasq (PID: %d)"
+                               " reload config files."),
+                             pid);
         return -1;
     }
 #endif /* WIN32 */
@@ -885,6 +881,5 @@ dnsmasqCapsGetVersion(dnsmasqCapsPtr caps)
 bool
 dnsmasqCapsGet(dnsmasqCapsPtr caps, dnsmasqCapsFlags flag)
 {
-
     return caps && virBitmapIsBitSet(caps->flags, flag);
 }

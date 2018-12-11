@@ -28,7 +28,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <string.h>
 
 #include "virerror.h"
 #include "datatypes.h"
@@ -355,8 +354,6 @@ virSocketAddrRangeParseXML(const char *networkName,
                            xmlNodePtr node,
                            virSocketAddrRangePtr range)
 {
-
-
     char *start = NULL, *end = NULL;
     int ret = -1;
 

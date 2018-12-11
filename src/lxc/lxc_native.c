@@ -22,7 +22,6 @@
  */
 
 #include <config.h>
-#include <stdio.h>
 
 #include "internal.h"
 #include "lxc_container.h"
@@ -199,10 +198,15 @@ lxcSetRootfs(virDomainDefPtr def,
              virConfPtr properties)
 {
     int type = VIR_DOMAIN_FS_TYPE_MOUNT;
-    char *value = NULL;
+    VIR_AUTOFREE(char *) value = NULL;
 
-    if (virConfGetValueString(properties, "lxc.rootfs", &value) <= 0)
-        return -1;
+    if (virConfGetValueString(properties, "lxc.rootfs.path", &value) <= 0) {
+        virResetLastError();
+
+        /* Check for pre LXC 3.0 legacy key */
+        if (virConfGetValueString(properties, "lxc.rootfs", &value) <= 0)
+            return -1;
+    }
 
     if (STRPREFIX(value, "/dev/"))
         type = VIR_DOMAIN_FS_TYPE_BLOCK;
@@ -680,13 +684,18 @@ lxcConvertNetworkSettings(virDomainDefPtr def, virConfPtr properties)
 static int
 lxcCreateConsoles(virDomainDefPtr def, virConfPtr properties)
 {
-    char *value = NULL;
+    VIR_AUTOFREE(char *) value = NULL;
     int nbttys = 0;
     virDomainChrDefPtr console;
     size_t i;
 
-    if (virConfGetValueString(properties, "lxc.tty", &value) <= 0)
-        return 0;
+    if (virConfGetValueString(properties, "lxc.tty.max", &value) <= 0) {
+        virResetLastError();
+
+        /* Check for pre LXC 3.0 legacy key */
+        if (virConfGetValueString(properties, "lxc.tty", &value) <= 0)
+            return 0;
+    }
 
     if (virStrToLong_i(value, NULL, 10, &nbttys) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, _("failed to parse int: '%s'"),
@@ -725,13 +734,16 @@ lxcIdmapWalkCallback(const char *name, virConfValuePtr value, void *data)
     char type;
     unsigned long start, target, count;
 
-    if (STRNEQ(name, "lxc.id_map") || !value->str)
-        return 0;
+    /* LXC 3.0 uses "lxc.idmap", while legacy used "lxc.id_map" */
+    if (STRNEQ(name, "lxc.idmap") || !value->str) {
+        if (!value->str || STRNEQ(name, "lxc.id_map"))
+            return 0;
+    }
 
     if (sscanf(value->str, "%c %lu %lu %lu", &type,
                &target, &start, &count) != 4) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, _("invalid lxc.id_map: '%s'"),
-                       value->str);
+        virReportError(VIR_ERR_INTERNAL_ERROR, _("invalid %s: '%s'"),
+                       name, value->str);
         return -1;
     }
 
@@ -757,63 +769,61 @@ lxcIdmapWalkCallback(const char *name, virConfValuePtr value, void *data)
 static int
 lxcSetMemTune(virDomainDefPtr def, virConfPtr properties)
 {
-    char *value = NULL;
+    VIR_AUTOFREE(char *) value = NULL;
     unsigned long long size = 0;
 
     if (virConfGetValueString(properties,
                               "lxc.cgroup.memory.limit_in_bytes",
                               &value) > 0) {
         if (lxcConvertSize(value, &size) < 0)
-            goto error;
+            return -1;
         size = size / 1024;
         virDomainDefSetMemoryTotal(def, size);
         def->mem.hard_limit = virMemoryLimitTruncate(size);
+        VIR_FREE(value);
     }
 
     if (virConfGetValueString(properties,
                               "lxc.cgroup.memory.soft_limit_in_bytes",
                               &value) > 0) {
         if (lxcConvertSize(value, &size) < 0)
-            goto error;
+            return -1;
         def->mem.soft_limit = virMemoryLimitTruncate(size / 1024);
+        VIR_FREE(value);
     }
 
     if (virConfGetValueString(properties,
                               "lxc.cgroup.memory.memsw.limit_in_bytes",
                               &value) > 0) {
         if (lxcConvertSize(value, &size) < 0)
-            goto error;
+            return -1;
         def->mem.swap_hard_limit = virMemoryLimitTruncate(size / 1024);
     }
     return 0;
-
- error:
-    virReportError(VIR_ERR_INTERNAL_ERROR,
-                   _("failed to parse integer: '%s'"), value);
-    return -1;
-
 }
 
 static int
 lxcSetCpuTune(virDomainDefPtr def, virConfPtr properties)
 {
-    char *value = NULL;
+    VIR_AUTOFREE(char *) value = NULL;
 
     if (virConfGetValueString(properties, "lxc.cgroup.cpu.shares",
                               &value) > 0) {
         if (virStrToLong_ull(value, NULL, 10, &def->cputune.shares) < 0)
             goto error;
         def->cputune.sharesSpecified = true;
+        VIR_FREE(value);
     }
 
     if (virConfGetValueString(properties, "lxc.cgroup.cpu.cfs_quota_us",
                               &value) > 0) {
         if (virStrToLong_ll(value, NULL, 10, &def->cputune.quota) < 0)
             goto error;
+        VIR_FREE(value);
     }
 
     if (virConfGetValueString(properties, "lxc.cgroup.cpu.cfs_period_us",
-                               &value) > 0) {
+                              &value) > 0) {
         if (virStrToLong_ull(value, NULL, 10, &def->cputune.period) < 0)
             goto error;
     }
@@ -829,7 +839,7 @@ lxcSetCpuTune(virDomainDefPtr def, virConfPtr properties)
 static int
 lxcSetCpusetTune(virDomainDefPtr def, virConfPtr properties)
 {
-    char *value = NULL;
+    VIR_AUTOFREE(char *) value = NULL;
     virBitmapPtr nodeset = NULL;
 
     if (virConfGetValueString(properties, "lxc.cgroup.cpuset.cpus",
@@ -837,10 +847,11 @@ lxcSetCpusetTune(virDomainDefPtr def, virConfPtr properties)
         if (virBitmapParse(value, &def->cpumask, VIR_DOMAIN_CPUMASK_LEN) < 0)
             return -1;
         def->placement_mode = VIR_DOMAIN_CPU_PLACEMENT_MODE_STATIC;
+        VIR_FREE(value);
     }
 
     if (virConfGetValueString(properties, "lxc.cgroup.cpuset.mems",
-                               &value) > 0) {
+                              &value) > 0) {
         if (virBitmapParse(value, &nodeset, VIR_DOMAIN_CPUMASK_LEN) < 0)
             return -1;
         if (virDomainNumatuneSet(def->numa,
@@ -950,7 +961,7 @@ lxcBlkioDeviceWalkCallback(const char *name, virConfValuePtr value, void *data)
 static int
 lxcSetBlkioTune(virDomainDefPtr def, virConfPtr properties)
 {
-    char *value = NULL;
+    VIR_AUTOFREE(char *) value = NULL;
 
     if (virConfGetValueString(properties, "lxc.cgroup.blkio.weight",
                               &value) > 0) {
@@ -970,7 +981,7 @@ lxcSetBlkioTune(virDomainDefPtr def, virConfPtr properties)
 static void
 lxcSetCapDrop(virDomainDefPtr def, virConfPtr properties)
 {
-    char *value = NULL;
+    VIR_AUTOFREE(char *) value = NULL;
     char **toDrop = NULL;
     const char *capString;
     size_t i;
@@ -997,7 +1008,7 @@ lxcParseConfigString(const char *config,
 {
     virDomainDefPtr vmdef = NULL;
     virConfPtr properties = NULL;
-    char *value = NULL;
+    VIR_AUTOFREE(char *) value = NULL;
 
     if (!(properties = virConfReadString(config, VIR_CONF_FLAG_LXC_FORMAT)))
         return NULL;
@@ -1037,24 +1048,36 @@ lxcParseConfigString(const char *config,
         else if (arch == VIR_ARCH_NONE && STREQ(value, "amd64"))
             arch = VIR_ARCH_X86_64;
         vmdef->os.arch = arch;
+        VIR_FREE(value);
     }
 
     if (VIR_STRDUP(vmdef->os.init, "/sbin/init") < 0)
         goto error;
 
-    if (virConfGetValueString(properties, "lxc.utsname", &value) <= 0 ||
-        VIR_STRDUP(vmdef->name, value) < 0)
+    if (virConfGetValueString(properties, "lxc.uts.name", &value) <= 0) {
+        virResetLastError();
+
+        /* Check for pre LXC 3.0 legacy key */
+        if (virConfGetValueString(properties, "lxc.utsname", &value) <= 0)
+            goto error;
+    }
+
+    if (VIR_STRDUP(vmdef->name, value) < 0)
         goto error;
+
     if (!vmdef->name && (VIR_STRDUP(vmdef->name, "unnamed") < 0))
         goto error;
 
     if (lxcSetRootfs(vmdef, properties) < 0)
         goto error;
 
-    /* Look for fstab: we shouldn't have it */
-    if (virConfGetValue(properties, "lxc.mount")) {
+    /* LXC 3.0 uses "lxc.mount.fstab", while legacy used just "lxc.mount".
+     * In either case, generate the error to use "lxc.mount.entry" instead */
+    if (virConfGetValue(properties, "lxc.mount.fstab") ||
+        virConfGetValue(properties, "lxc.mount")) {
         virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
-                       _("lxc.mount found, use lxc.mount.entry lines instead"));
+                       _("lxc.mount.fstab or lxc.mount found, use "
+                         "lxc.mount.entry lines instead"));
         goto error;
     }
 
@@ -1070,7 +1093,7 @@ lxcParseConfigString(const char *config,
     if (lxcCreateConsoles(vmdef, properties) < 0)
         goto error;
 
-    /* lxc.id_map */
+    /* lxc.idmap or legacy lxc.id_map */
     if (virConfWalk(properties, lxcIdmapWalkCallback, vmdef) < 0)
         goto error;
 

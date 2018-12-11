@@ -39,12 +39,10 @@
   <flag name='block-commit'/>
   <flag name='vnc'/>
   <flag name='drive-mirror'/>
-  <flag name='usb-host.bootindex'/>
   <flag name='blockdev-snapshot-sync'/>
   <flag name='VGA'/>
   <flag name='device-video-primary'/>
   <flag name='usb-serial'/>
-  <flag name='usb-net'/>
   <flag name='nbd-server'/>
   <flag name='virtio-rng'/>
   <flag name='rng-random'/>
@@ -53,11 +51,7 @@
   <flag name='nvram'/>
   <flag name='pci-bridge'/>
   <flag name='vfio-pci'/>
-  <flag name='vfio-pci.bootindex'/>
-  <flag name='scsi-generic'/>
-  <flag name='scsi-generic.bootindex'/>
   <flag name='mem-merge'/>
-  <flag name='vnc-websocket'/>
   <flag name='drive-discard'/>
   <flag name='mlock'/>
   <flag name='device-del-event'/>
@@ -66,7 +60,6 @@
   <flag name='virtio-mmio'/>
   <flag name='ich9-intel-hda'/>
   <flag name='boot-strict'/>
-  <flag name='spiceport'/>
   <flag name='usb-kbd'/>
   <flag name='msg-timestamp'/>
   <flag name='active-commit'/>
@@ -139,7 +132,7 @@
   <flag name='hda-output'/>
   <version>2006000</version>
   <kvmVersion>0</kvmVersion>
-  <microcodeVersion>266778</microcodeVersion>
+  <microcodeVersion>264684</microcodeVersion>
   <package></package>
   <arch>ppc64</arch>
   <cpu type='kvm' name='default'/>

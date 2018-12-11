@@ -76,6 +76,9 @@
     <function name="VIR_DOMAIN_CPU_STATS_USERTIME" link="libvirt-libvirt-domain.html#VIR_DOMAIN_CPU_STATS_USERTIME"/>
     <function name="VIR_DOMAIN_CPU_STATS_VCPUTIME" link="libvirt-libvirt-domain.html#VIR_DOMAIN_CPU_STATS_VCPUTIME"/>
     <function name="VIR_DOMAIN_EVENT_CALLBACK" link="libvirt-libvirt-domain.html#VIR_DOMAIN_EVENT_CALLBACK"/>
+    <function name="VIR_DOMAIN_IOTHREAD_POLL_GROW" link="libvirt-libvirt-domain.html#VIR_DOMAIN_IOTHREAD_POLL_GROW"/>
+    <function name="VIR_DOMAIN_IOTHREAD_POLL_MAX_NS" link="libvirt-libvirt-domain.html#VIR_DOMAIN_IOTHREAD_POLL_MAX_NS"/>
+    <function name="VIR_DOMAIN_IOTHREAD_POLL_SHRINK" link="libvirt-libvirt-domain.html#VIR_DOMAIN_IOTHREAD_POLL_SHRINK"/>
     <function name="VIR_DOMAIN_JOB_AUTO_CONVERGE_THROTTLE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_AUTO_CONVERGE_THROTTLE"/>
     <function name="VIR_DOMAIN_JOB_COMPRESSION_BYTES" link="libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_COMPRESSION_BYTES"/>
     <function name="VIR_DOMAIN_JOB_COMPRESSION_CACHE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_COMPRESSION_CACHE"/>
@@ -731,6 +734,7 @@
     <function name="VIR_DOMAIN_SHUTDOWN_USER" link="libvirt-libvirt-domain.html#VIR_DOMAIN_SHUTDOWN_USER"/>
     <function name="VIR_DOMAIN_SHUTOFF" link="libvirt-libvirt-domain.html#VIR_DOMAIN_SHUTOFF"/>
     <function name="VIR_DOMAIN_SHUTOFF_CRASHED" link="libvirt-libvirt-domain.html#VIR_DOMAIN_SHUTOFF_CRASHED"/>
+    <function name="VIR_DOMAIN_SHUTOFF_DAEMON" link="libvirt-libvirt-domain.html#VIR_DOMAIN_SHUTOFF_DAEMON"/>
     <function name="VIR_DOMAIN_SHUTOFF_DESTROYED" link="libvirt-libvirt-domain.html#VIR_DOMAIN_SHUTOFF_DESTROYED"/>
     <function name="VIR_DOMAIN_SHUTOFF_FAILED" link="libvirt-libvirt-domain.html#VIR_DOMAIN_SHUTOFF_FAILED"/>
     <function name="VIR_DOMAIN_SHUTOFF_FROM_SNAPSHOT" link="libvirt-libvirt-domain.html#VIR_DOMAIN_SHUTOFF_FROM_SNAPSHOT"/>
@@ -774,6 +778,7 @@
     <function name="VIR_DOMAIN_STATS_BLOCK" link="libvirt-libvirt-domain.html#VIR_DOMAIN_STATS_BLOCK"/>
     <function name="VIR_DOMAIN_STATS_CPU_TOTAL" link="libvirt-libvirt-domain.html#VIR_DOMAIN_STATS_CPU_TOTAL"/>
     <function name="VIR_DOMAIN_STATS_INTERFACE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_STATS_INTERFACE"/>
+    <function name="VIR_DOMAIN_STATS_IOTHREAD" link="libvirt-libvirt-domain.html#VIR_DOMAIN_STATS_IOTHREAD"/>
     <function name="VIR_DOMAIN_STATS_PERF" link="libvirt-libvirt-domain.html#VIR_DOMAIN_STATS_PERF"/>
     <function name="VIR_DOMAIN_STATS_STATE" link="libvirt-libvirt-domain.html#VIR_DOMAIN_STATS_STATE"/>
     <function name="VIR_DOMAIN_STATS_VCPU" link="libvirt-libvirt-domain.html#VIR_DOMAIN_STATS_VCPU"/>
@@ -1637,6 +1642,7 @@
     <function name="virDomainSetBlockIoTune ()" link="libvirt-libvirt-domain.html#virDomainSetBlockIoTune"/>
     <function name="virDomainSetBlockThreshold ()" link="libvirt-libvirt-domain.html#virDomainSetBlockThreshold"/>
     <function name="virDomainSetGuestVcpus ()" link="libvirt-libvirt-domain.html#virDomainSetGuestVcpus"/>
+    <function name="virDomainSetIOThreadParams ()" link="libvirt-libvirt-domain.html#virDomainSetIOThreadParams"/>
     <function name="virDomainSetInterfaceParameters ()" link="libvirt-libvirt-domain.html#virDomainSetInterfaceParameters"/>
     <function name="virDomainSetLifecycleAction ()" link="libvirt-libvirt-domain.html#virDomainSetLifecycleAction"/>
     <function name="virDomainSetMaxMemory ()" link="libvirt-libvirt-domain.html#virDomainSetMaxMemory"/>

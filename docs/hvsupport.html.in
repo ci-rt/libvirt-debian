@@ -2484,7 +2484,7 @@ virConnectSupportsFeature</td>
 <td></td>
 <td>0.10.0</td>
 <td></td>
-<td></td>
+<td>4.8.0</td>
 <td>0.10.0</td>
 <td></td>
 <td></td>
@@ -4663,7 +4663,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
+<td>4.8.0</td>
 <td></td>
 <td></td>
 <td></td>
@@ -4691,7 +4691,7 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-<td></td>
+<td>4.8.0</td>
 <td></td>
 <td></td>
 <td></td>
@@ -5490,6 +5490,34 @@ virDomainMigratePrepareTunnel3Params</td>
 </tr>
 <tr>
 <td>
+<a href="html/libvirt-libvirt-domain.html#virDomainSetIOThreadParams">virDomainSetIOThreadParams</a>
+</td>
+<td>4.10.0</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>4.10.0</td>
+<td>4.10.0</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>
 <a href="html/libvirt-libvirt-domain.html#virDomainSetInterfaceParameters">virDomainSetInterfaceParameters</a>
 </td>
 <td>0.9.9</td>
@@ -5769,6 +5797,32 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 </tr>
 <tr>
+<th>API</th>
+<th>Version</th>
+  <th>bhyve</th>
+  <th>bridge</th>
+  <th>esx</th>
+  <th>hal</th>
+  <th>hyperv</th>
+  <th>interface</th>
+  <th>libxl</th>
+  <th>lxc</th>
+  <th>nwfilter</th>
+  <th>openvz</th>
+  <th>phyp</th>
+  <th>qemu</th>
+  <th>remote</th>
+  <th>secret</th>
+  <th>storage</th>
+  <th>test</th>
+  <th>udev</th>
+  <th>uml</th>
+  <th>vbox</th>
+  <th>vmware</th>
+  <th>vz</th>
+  <th>xenapi</th>
+</tr>
+<tr>
 <td>
 <a href="html/libvirt-libvirt-domain.html#virDomainSetSchedulerParameters">virDomainSetSchedulerParameters</a>
 </td>
@@ -5795,32 +5849,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-</tr>
-<tr>
-<th>API</th>
-<th>Version</th>
-  <th>bhyve</th>
-  <th>bridge</th>
-  <th>esx</th>
-  <th>hal</th>
-  <th>hyperv</th>
-  <th>interface</th>
-  <th>libxl</th>
-  <th>lxc</th>
-  <th>nwfilter</th>
-  <th>openvz</th>
-  <th>phyp</th>
-  <th>qemu</th>
-  <th>remote</th>
-  <th>secret</th>
-  <th>storage</th>
-  <th>test</th>
-  <th>udev</th>
-  <th>uml</th>
-  <th>vbox</th>
-  <th>vmware</th>
-  <th>vz</th>
-  <th>xenapi</th>
 </tr>
 <tr>
 <td>
@@ -6215,6 +6243,32 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 </tr>
 <tr>
+<th>API</th>
+<th>Version</th>
+  <th>bhyve</th>
+  <th>bridge</th>
+  <th>esx</th>
+  <th>hal</th>
+  <th>hyperv</th>
+  <th>interface</th>
+  <th>libxl</th>
+  <th>lxc</th>
+  <th>nwfilter</th>
+  <th>openvz</th>
+  <th>phyp</th>
+  <th>qemu</th>
+  <th>remote</th>
+  <th>secret</th>
+  <th>storage</th>
+  <th>test</th>
+  <th>udev</th>
+  <th>uml</th>
+  <th>vbox</th>
+  <th>vmware</th>
+  <th>vz</th>
+  <th>xenapi</th>
+</tr>
+<tr>
 <td>
 <a href="html/libvirt-libvirt-domain-snapshot.html#virDomainSnapshotIsCurrent">virDomainSnapshotIsCurrent</a>
 </td>
@@ -6241,32 +6295,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td>1.3.5</td>
 <td></td>
-</tr>
-<tr>
-<th>API</th>
-<th>Version</th>
-  <th>bhyve</th>
-  <th>bridge</th>
-  <th>esx</th>
-  <th>hal</th>
-  <th>hyperv</th>
-  <th>interface</th>
-  <th>libxl</th>
-  <th>lxc</th>
-  <th>nwfilter</th>
-  <th>openvz</th>
-  <th>phyp</th>
-  <th>qemu</th>
-  <th>remote</th>
-  <th>secret</th>
-  <th>storage</th>
-  <th>test</th>
-  <th>udev</th>
-  <th>uml</th>
-  <th>vbox</th>
-  <th>vmware</th>
-  <th>vz</th>
-  <th>xenapi</th>
 </tr>
 <tr>
 <td>
@@ -6661,6 +6689,32 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 </tr>
 <tr>
+<th>API</th>
+<th>Version</th>
+  <th>bhyve</th>
+  <th>bridge</th>
+  <th>esx</th>
+  <th>hal</th>
+  <th>hyperv</th>
+  <th>interface</th>
+  <th>libxl</th>
+  <th>lxc</th>
+  <th>nwfilter</th>
+  <th>openvz</th>
+  <th>phyp</th>
+  <th>qemu</th>
+  <th>remote</th>
+  <th>secret</th>
+  <th>storage</th>
+  <th>test</th>
+  <th>udev</th>
+  <th>uml</th>
+  <th>vbox</th>
+  <th>vmware</th>
+  <th>vz</th>
+  <th>xenapi</th>
+</tr>
+<tr>
 <td>
 <a href="html/libvirt-libvirt-nodedev.html#virNodeDeviceReset">virNodeDeviceReset</a>
 </td>
@@ -6687,32 +6741,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td></td>
 <td></td>
 <td></td>
-</tr>
-<tr>
-<th>API</th>
-<th>Version</th>
-  <th>bhyve</th>
-  <th>bridge</th>
-  <th>esx</th>
-  <th>hal</th>
-  <th>hyperv</th>
-  <th>interface</th>
-  <th>libxl</th>
-  <th>lxc</th>
-  <th>nwfilter</th>
-  <th>openvz</th>
-  <th>phyp</th>
-  <th>qemu</th>
-  <th>remote</th>
-  <th>secret</th>
-  <th>storage</th>
-  <th>test</th>
-  <th>udev</th>
-  <th>uml</th>
-  <th>vbox</th>
-  <th>vmware</th>
-  <th>vz</th>
-  <th>xenapi</th>
 </tr>
 <tr>
 <td>

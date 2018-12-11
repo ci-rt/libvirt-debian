@@ -29,7 +29,6 @@
 #include <poll.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <string.h>
 #include <sys/time.h>
 
 #include "qemu_agent.h"
@@ -531,6 +530,9 @@ static void qemuAgentUpdateWatch(qemuAgentPtr mon)
         VIR_EVENT_HANDLE_HANGUP |
         VIR_EVENT_HANDLE_ERROR;
 
+    if (!mon->watch)
+        return;
+
     if (mon->lastError.code == VIR_ERR_OK) {
         events |= VIR_EVENT_HANDLE_READABLE;
 
@@ -555,6 +557,12 @@ qemuAgentIO(int watch, int fd, int events, void *opaque)
 #if DEBUG_IO
     VIR_DEBUG("Agent %p I/O on watch %d fd %d events %d", mon, watch, fd, events);
 #endif
+
+    if (mon->fd == -1 || mon->watch == 0) {
+        virObjectUnlock(mon);
+        virObjectUnref(mon);
+        return;
+    }
 
     if (mon->fd != fd || mon->watch != watch) {
         if (events & (VIR_EVENT_HANDLE_HANGUP | VIR_EVENT_HANDLE_ERROR))
@@ -789,8 +797,10 @@ void qemuAgentClose(qemuAgentPtr mon)
     virObjectLock(mon);
 
     if (mon->fd >= 0) {
-        if (mon->watch)
+        if (mon->watch) {
             virEventRemoveHandle(mon->watch);
+            mon->watch = 0;
+        }
         VIR_FORCE_CLOSE(mon->fd);
     }
 
@@ -1544,9 +1554,6 @@ qemuAgentSetVCPUsCommand(qemuAgentPtr mon,
                          VIR_DOMAIN_QEMU_AGENT_COMMAND_BLOCK) < 0)
         goto cleanup;
 
-    if (qemuAgentCheckError(cmd, reply) < 0)
-        goto cleanup;
-
     /* All negative values are invalid. Return of 0 is bogus since we wouldn't
      * call the guest agent so that 0 cpus would be set successfully. Reporting
      * more successfully set vcpus that we've asked for is invalid. */
@@ -1684,6 +1691,50 @@ qemuAgentUpdateCPUInfo(unsigned int nvcpus,
 
 
 int
+qemuAgentGetHostname(qemuAgentPtr mon,
+                     char **hostname)
+{
+    int ret = -1;
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+    virJSONValuePtr data = NULL;
+    const char *result = NULL;
+
+    cmd = qemuAgentMakeCommand("guest-get-host-name",
+                               NULL);
+
+    if (!cmd)
+        return ret;
+
+    if (qemuAgentCommand(mon, cmd, &reply, true,
+                         VIR_DOMAIN_QEMU_AGENT_COMMAND_BLOCK) < 0)
+        goto cleanup;
+
+    if (!(data = virJSONValueObjectGet(reply, "return"))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("malformed return value"));
+        goto cleanup;
+    }
+
+    if (!(result = virJSONValueObjectGetString(data, "host-name"))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("'host-name' missing in guest-get-host-name reply"));
+        goto cleanup;
+    }
+
+    if (VIR_STRDUP(*hostname, result) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+
+int
 qemuAgentGetTime(qemuAgentPtr mon,
                  long long *seconds,
                  unsigned int *nseconds)
@@ -1789,6 +1840,7 @@ qemuAgentGetFSInfo(qemuAgentPtr mon, virDomainFSInfoPtr **info,
     virJSONValuePtr data;
     virDomainFSInfoPtr *info_ret = NULL;
     virPCIDeviceAddress pci_address;
+    const char *result = NULL;
 
     cmd = qemuAgentMakeCommand("guest-get-fsinfo", NULL);
     if (!cmd)
@@ -1834,27 +1886,33 @@ qemuAgentGetFSInfo(qemuAgentPtr mon, virDomainFSInfoPtr **info,
         if (VIR_ALLOC(info_ret[i]) < 0)
             goto cleanup;
 
-        if (VIR_STRDUP(info_ret[i]->mountpoint,
-                       virJSONValueObjectGetString(entry, "mountpoint")) < 0) {
+        if (!(result = virJSONValueObjectGetString(entry, "mountpoint"))) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("'mountpoint' missing in reply of "
                              "guest-get-fsinfo"));
             goto cleanup;
         }
 
-        if (VIR_STRDUP(info_ret[i]->name,
-                       virJSONValueObjectGetString(entry, "name")) < 0) {
+        if (VIR_STRDUP(info_ret[i]->mountpoint, result) < 0)
+            goto cleanup;
+
+        if (!(result = virJSONValueObjectGetString(entry, "name"))) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("'name' missing in reply of guest-get-fsinfo"));
             goto cleanup;
         }
 
-        if (VIR_STRDUP(info_ret[i]->fstype,
-                       virJSONValueObjectGetString(entry, "type")) < 0) {
+        if (VIR_STRDUP(info_ret[i]->name, result) < 0)
+            goto cleanup;
+
+        if (!(result = virJSONValueObjectGetString(entry, "type"))) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("'type' missing in reply of guest-get-fsinfo"));
             goto cleanup;
         }
+
+        if (VIR_STRDUP(info_ret[i]->fstype, result) < 0)
+            goto cleanup;
 
         if (!(entry = virJSONValueObjectGet(entry, "disk"))) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -1987,10 +2045,9 @@ qemuAgentGetInterfaces(qemuAgentPtr mon,
     if (!(cmd = qemuAgentMakeCommand("guest-network-get-interfaces", NULL)))
         goto cleanup;
 
-    if (qemuAgentCommand(mon, cmd, &reply, false, VIR_DOMAIN_QEMU_AGENT_COMMAND_BLOCK) < 0 ||
-        qemuAgentCheckError(cmd, reply) < 0) {
+    if (qemuAgentCommand(mon, cmd, &reply, false,
+                         VIR_DOMAIN_QEMU_AGENT_COMMAND_BLOCK) < 0)
         goto cleanup;
-    }
 
     if (!(ret_array = virJSONValueObjectGet(reply, "return"))) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",

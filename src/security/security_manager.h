@@ -77,7 +77,8 @@ void virSecurityManagerPostFork(virSecurityManagerPtr mgr);
 
 int virSecurityManagerTransactionStart(virSecurityManagerPtr mgr);
 int virSecurityManagerTransactionCommit(virSecurityManagerPtr mgr,
-                                        pid_t pid);
+                                        pid_t pid,
+                                        bool lock);
 void virSecurityManagerTransactionAbort(virSecurityManagerPtr mgr);
 
 void *virSecurityManagerGetPrivateData(virSecurityManagerPtr mgr);
@@ -196,5 +197,17 @@ int virSecurityManagerSetTPMLabels(virSecurityManagerPtr mgr,
 
 int virSecurityManagerRestoreTPMLabels(virSecurityManagerPtr mgr,
                                        virDomainDefPtr vm);
+
+typedef struct _virSecurityManagerMetadataLockState virSecurityManagerMetadataLockState;
+typedef virSecurityManagerMetadataLockState *virSecurityManagerMetadataLockStatePtr;
+
+virSecurityManagerMetadataLockStatePtr
+virSecurityManagerMetadataLock(virSecurityManagerPtr mgr,
+                               const char **paths,
+                               size_t npaths);
+
+void
+virSecurityManagerMetadataUnlock(virSecurityManagerPtr mgr,
+                                 virSecurityManagerMetadataLockStatePtr *state);
 
 #endif /* VIR_SECURITY_MANAGER_H__ */

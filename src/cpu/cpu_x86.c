@@ -23,7 +23,6 @@
 
 #include <config.h>
 
-#include <stdint.h>
 
 #include "virlog.h"
 #include "viralloc.h"
@@ -115,6 +114,10 @@ KVM_FEATURE_DEF(VIR_CPU_x86_KVM_HV_REENLIGHTENMENT,
                 0x40000003, 0x00002000);
 KVM_FEATURE_DEF(VIR_CPU_x86_KVM_HV_TLBFLUSH,
                 0x40000004, 0x00000004);
+KVM_FEATURE_DEF(VIR_CPU_x86_KVM_HV_IPI,
+                0x40000004, 0x00000400);
+KVM_FEATURE_DEF(VIR_CPU_x86_KVM_HV_EVMCS,
+                0x40000004, 0x00004000);
 
 static virCPUx86Feature x86_kvm_features[] =
 {
@@ -138,6 +141,8 @@ static virCPUx86Feature x86_kvm_features[] =
     KVM_FEATURE(VIR_CPU_x86_KVM_HV_FREQUENCIES),
     KVM_FEATURE(VIR_CPU_x86_KVM_HV_REENLIGHTENMENT),
     KVM_FEATURE(VIR_CPU_x86_KVM_HV_TLBFLUSH),
+    KVM_FEATURE(VIR_CPU_x86_KVM_HV_IPI),
+    KVM_FEATURE(VIR_CPU_x86_KVM_HV_EVMCS),
 };
 
 typedef struct _virCPUx86Model virCPUx86Model;
@@ -463,7 +468,6 @@ static bool
 x86DataIsSubset(const virCPUx86Data *data,
                 const virCPUx86Data *subset)
 {
-
     virCPUx86DataIterator iter = virCPUx86DataIteratorInit((virCPUx86Data *)subset);
     const virCPUx86CPUID *cpuid;
     const virCPUx86CPUID *cpuidSubset;

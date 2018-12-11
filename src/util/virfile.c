@@ -41,7 +41,6 @@
 #if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
 # include <mntent.h>
 #endif
-#include <stdlib.h>
 #if HAVE_MMAP
 # include <sys/mman.h>
 #endif
@@ -304,7 +303,7 @@ virFileWrapperFdNew(int *fd ATTRIBUTE_UNUSED,
                     unsigned int fdflags ATTRIBUTE_UNUSED)
 {
     virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                 _("virFileWrapperFd unsupported on this platform"));
+                   _("virFileWrapperFd unsupported on this platform"));
     return NULL;
 }
 #endif
@@ -658,7 +657,7 @@ static int virFileLoopDeviceOpenLoopCtl(char **dev_name, int *fd)
 
     if ((*fd = open(looppath, O_RDWR)) < 0) {
         virReportSystemError(errno,
-                _("Unable to open %s"), looppath);
+                             _("Unable to open %s"), looppath);
         VIR_FREE(looppath);
         return -1;
     }
@@ -1969,29 +1968,22 @@ int
 virFileIsCDROM(const char *path)
 {
     struct stat st;
-    int fd;
-    int ret = -1;
+    VIR_AUTOCLOSE fd = -1;
 
     if ((fd = open(path, O_RDONLY | O_NONBLOCK)) < 0)
-        goto cleanup;
+        return -1;
 
     if (fstat(fd, &st) < 0)
-        goto cleanup;
+        return -1;
 
-    if (!S_ISBLK(st.st_mode)) {
-        ret = 0;
-        goto cleanup;
-    }
+    if (!S_ISBLK(st.st_mode))
+        return 0;
 
     /* Attempt to detect via a CDROM specific ioctl */
     if (ioctl(fd, CDROM_DRIVE_STATUS, CDSL_CURRENT) >= 0)
-        ret = 1;
-    else
-        ret = 0;
+        return 1;
 
- cleanup:
-    VIR_FORCE_CLOSE(fd);
-    return ret;
+    return 0;
 }
 
 #else
@@ -2826,7 +2818,6 @@ virFileAccessibleAs(const char *path,
                     uid_t uid ATTRIBUTE_UNUSED,
                     gid_t gid ATTRIBUTE_UNUSED)
 {
-
     VIR_WARN("Ignoring uid/gid due to WIN32");
 
     return access(path, mode);
@@ -3467,21 +3458,93 @@ int virFilePrintf(FILE *fp, const char *msg, ...)
 # ifndef HUGETLBFS_MAGIC
 #  define HUGETLBFS_MAGIC 0x958458f6
 # endif
+# ifndef FUSE_SUPER_MAGIC
+#  define FUSE_SUPER_MAGIC 0x65735546
+# endif
+
+# define PROC_MOUNTS "/proc/mounts"
+
+static int
+virFileIsSharedFixFUSE(const char *path,
+                       long long *f_type)
+{
+    FILE *f = NULL;
+    struct mntent mb;
+    char mntbuf[1024];
+    char *mntDir = NULL;
+    char *mntType = NULL;
+    char *canonPath = NULL;
+    size_t maxMatching = 0;
+    int ret = -1;
+
+    if (!(canonPath = virFileCanonicalizePath(path))) {
+        virReportSystemError(errno,
+                             _("unable to canonicalize %s"),
+                             path);
+        return -1;
+    }
+
+    VIR_DEBUG("Path canonicalization: %s->%s", path, canonPath);
+
+    if (!(f = setmntent(PROC_MOUNTS, "r"))) {
+        virReportSystemError(errno,
+                             _("Unable to open %s"),
+                             PROC_MOUNTS);
+        goto cleanup;
+    }
+
+    while (getmntent_r(f, &mb, mntbuf, sizeof(mntbuf))) {
+        const char *p;
+        size_t len = strlen(mb.mnt_dir);
+
+        if (!(p = STRSKIP(canonPath, mb.mnt_dir)))
+            continue;
+
+        if (*(p - 1) != '/' && *p != '/' && *p != '\0')
+            continue;
+
+        if (len > maxMatching) {
+            maxMatching = len;
+            VIR_FREE(mntType);
+            VIR_FREE(mntDir);
+            if (VIR_STRDUP(mntDir, mb.mnt_dir) < 0 ||
+                VIR_STRDUP(mntType, mb.mnt_type) < 0)
+                goto cleanup;
+        }
+    }
+
+    if (STREQ_NULLABLE(mntType, "fuse.glusterfs")) {
+        VIR_DEBUG("Found gluster FUSE mountpoint=%s for path=%s. "
+                  "Fixing shared FS type", mntDir, canonPath);
+        *f_type = GFS2_MAGIC;
+    }
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(canonPath);
+    VIR_FREE(mntType);
+    VIR_FREE(mntDir);
+    endmntent(f);
+    return ret;
+}
+
 
 int
 virFileIsSharedFSType(const char *path,
                       int fstypes)
 {
     VIR_AUTOFREE(char *) dirpath = NULL;
-    char *p;
+    char *p = NULL;
     struct statfs sb;
     int statfs_ret;
+    long long f_type = 0;
 
     if (VIR_STRDUP(dirpath, path) < 0)
         return -1;
 
-    do {
+    statfs_ret = statfs(dirpath, &sb);
 
+    while ((statfs_ret < 0) && (p != dirpath)) {
         /* Try less and less of the path until we get to a
          * directory we can stat. Even if we don't have 'x'
          * permission on any directory in the path on the NFS
@@ -3492,7 +3555,7 @@ virFileIsSharedFSType(const char *path,
 
         if ((p = strrchr(dirpath, '/')) == NULL) {
             virReportSystemError(EINVAL,
-                         _("Invalid relative path '%s'"), path);
+                                 _("Invalid relative path '%s'"), path);
             return -1;
         }
 
@@ -3502,8 +3565,7 @@ virFileIsSharedFSType(const char *path,
             *p = '\0';
 
         statfs_ret = statfs(dirpath, &sb);
-
-    } while ((statfs_ret < 0) && (p != dirpath));
+    }
 
     if (statfs_ret < 0) {
         virReportSystemError(errno,
@@ -3512,27 +3574,34 @@ virFileIsSharedFSType(const char *path,
         return -1;
     }
 
+    f_type = sb.f_type;
+
+    if (f_type == FUSE_SUPER_MAGIC) {
+        VIR_DEBUG("Found FUSE mount for path=%s. Trying to fix it", path);
+        virFileIsSharedFixFUSE(path, &f_type);
+    }
+
     VIR_DEBUG("Check if path %s with FS magic %lld is shared",
-              path, (long long int)sb.f_type);
+              path, f_type);
 
     if ((fstypes & VIR_FILE_SHFS_NFS) &&
-        (sb.f_type == NFS_SUPER_MAGIC))
+        (f_type == NFS_SUPER_MAGIC))
         return 1;
 
     if ((fstypes & VIR_FILE_SHFS_GFS2) &&
-        (sb.f_type == GFS2_MAGIC))
+        (f_type == GFS2_MAGIC))
         return 1;
     if ((fstypes & VIR_FILE_SHFS_OCFS) &&
-        (sb.f_type == OCFS2_SUPER_MAGIC))
+        (f_type == OCFS2_SUPER_MAGIC))
         return 1;
     if ((fstypes & VIR_FILE_SHFS_AFS) &&
-        (sb.f_type == AFS_FS_MAGIC))
+        (f_type == AFS_FS_MAGIC))
         return 1;
     if ((fstypes & VIR_FILE_SHFS_SMB) &&
-        (sb.f_type == SMB_SUPER_MAGIC))
+        (f_type == SMB_SUPER_MAGIC))
         return 1;
     if ((fstypes & VIR_FILE_SHFS_CIFS) &&
-        (sb.f_type == CIFS_SUPER_MAGIC))
+        (f_type == CIFS_SUPER_MAGIC))
         return 1;
 
     return 0;
@@ -3602,8 +3671,6 @@ virFileGetDefaultHugepageSize(unsigned long long *size)
 
     return 0;
 }
-
-# define PROC_MOUNTS "/proc/mounts"
 
 int
 virFileFindHugeTLBFS(virHugeTLBFSPtr *ret_fs,
@@ -4016,11 +4083,18 @@ virFileInData(int fd,
     ret = 0;
  cleanup:
     /* At any rate, reposition back to where we started. */
-    if (cur != (off_t) -1 &&
-        lseek(fd, cur, SEEK_SET) == (off_t) -1) {
-        virReportSystemError(errno, "%s",
-                             _("unable to restore position in file"));
-        ret = -1;
+    if (cur != (off_t) -1) {
+        int theerrno = errno;
+
+        if (lseek(fd, cur, SEEK_SET) == (off_t) -1) {
+            virReportSystemError(errno, "%s",
+                                 _("unable to restore position in file"));
+            ret = -1;
+            if (theerrno == 0)
+                theerrno = errno;
+        }
+
+        errno = theerrno;
     }
     return ret;
 }

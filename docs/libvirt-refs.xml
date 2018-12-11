@@ -352,6 +352,9 @@
     <reference name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP'/>
     <reference name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LAST' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LAST'/>
     <reference name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE'/>
+    <reference name='VIR_DOMAIN_IOTHREAD_POLL_GROW' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_IOTHREAD_POLL_GROW'/>
+    <reference name='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_IOTHREAD_POLL_MAX_NS'/>
+    <reference name='VIR_DOMAIN_IOTHREAD_POLL_SHRINK' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_IOTHREAD_POLL_SHRINK'/>
     <reference name='VIR_DOMAIN_JOB_AUTO_CONVERGE_THROTTLE' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_AUTO_CONVERGE_THROTTLE'/>
     <reference name='VIR_DOMAIN_JOB_BOUNDED' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_BOUNDED'/>
     <reference name='VIR_DOMAIN_JOB_CANCELLED' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_CANCELLED'/>
@@ -601,6 +604,7 @@
     <reference name='VIR_DOMAIN_SHUTDOWN_USER' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_SHUTDOWN_USER'/>
     <reference name='VIR_DOMAIN_SHUTOFF' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_SHUTOFF'/>
     <reference name='VIR_DOMAIN_SHUTOFF_CRASHED' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_SHUTOFF_CRASHED'/>
+    <reference name='VIR_DOMAIN_SHUTOFF_DAEMON' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_SHUTOFF_DAEMON'/>
     <reference name='VIR_DOMAIN_SHUTOFF_DESTROYED' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_SHUTOFF_DESTROYED'/>
     <reference name='VIR_DOMAIN_SHUTOFF_FAILED' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_SHUTOFF_FAILED'/>
     <reference name='VIR_DOMAIN_SHUTOFF_FROM_SNAPSHOT' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_SHUTOFF_FROM_SNAPSHOT'/>
@@ -644,6 +648,7 @@
     <reference name='VIR_DOMAIN_STATS_BLOCK' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_STATS_BLOCK'/>
     <reference name='VIR_DOMAIN_STATS_CPU_TOTAL' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_STATS_CPU_TOTAL'/>
     <reference name='VIR_DOMAIN_STATS_INTERFACE' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_STATS_INTERFACE'/>
+    <reference name='VIR_DOMAIN_STATS_IOTHREAD' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_STATS_IOTHREAD'/>
     <reference name='VIR_DOMAIN_STATS_PERF' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_STATS_PERF'/>
     <reference name='VIR_DOMAIN_STATS_STATE' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_STATS_STATE'/>
     <reference name='VIR_DOMAIN_STATS_VCPU' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_STATS_VCPU'/>
@@ -1527,6 +1532,7 @@
     <reference name='virDomainSetBlockIoTune' href='html/libvirt-libvirt-domain.html#virDomainSetBlockIoTune'/>
     <reference name='virDomainSetBlockThreshold' href='html/libvirt-libvirt-domain.html#virDomainSetBlockThreshold'/>
     <reference name='virDomainSetGuestVcpus' href='html/libvirt-libvirt-domain.html#virDomainSetGuestVcpus'/>
+    <reference name='virDomainSetIOThreadParams' href='html/libvirt-libvirt-domain.html#virDomainSetIOThreadParams'/>
     <reference name='virDomainSetInterfaceParameters' href='html/libvirt-libvirt-domain.html#virDomainSetInterfaceParameters'/>
     <reference name='virDomainSetLifecycleAction' href='html/libvirt-libvirt-domain.html#virDomainSetLifecycleAction'/>
     <reference name='virDomainSetMaxMemory' href='html/libvirt-libvirt-domain.html#virDomainSetMaxMemory'/>
@@ -2255,6 +2261,9 @@
       <ref name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP'/>
       <ref name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LAST'/>
       <ref name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE'/>
+      <ref name='VIR_DOMAIN_IOTHREAD_POLL_GROW'/>
+      <ref name='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS'/>
+      <ref name='VIR_DOMAIN_IOTHREAD_POLL_SHRINK'/>
       <ref name='VIR_DOMAIN_JOB_AUTO_CONVERGE_THROTTLE'/>
       <ref name='VIR_DOMAIN_JOB_BOUNDED'/>
       <ref name='VIR_DOMAIN_JOB_CANCELLED'/>
@@ -2504,6 +2513,7 @@
       <ref name='VIR_DOMAIN_SHUTDOWN_USER'/>
       <ref name='VIR_DOMAIN_SHUTOFF'/>
       <ref name='VIR_DOMAIN_SHUTOFF_CRASHED'/>
+      <ref name='VIR_DOMAIN_SHUTOFF_DAEMON'/>
       <ref name='VIR_DOMAIN_SHUTOFF_DESTROYED'/>
       <ref name='VIR_DOMAIN_SHUTOFF_FAILED'/>
       <ref name='VIR_DOMAIN_SHUTOFF_FROM_SNAPSHOT'/>
@@ -2547,6 +2557,7 @@
       <ref name='VIR_DOMAIN_STATS_BLOCK'/>
       <ref name='VIR_DOMAIN_STATS_CPU_TOTAL'/>
       <ref name='VIR_DOMAIN_STATS_INTERFACE'/>
+      <ref name='VIR_DOMAIN_STATS_IOTHREAD'/>
       <ref name='VIR_DOMAIN_STATS_PERF'/>
       <ref name='VIR_DOMAIN_STATS_STATE'/>
       <ref name='VIR_DOMAIN_STATS_VCPU'/>
@@ -3434,6 +3445,7 @@
       <ref name='virDomainSetBlockIoTune'/>
       <ref name='virDomainSetBlockThreshold'/>
       <ref name='virDomainSetGuestVcpus'/>
+      <ref name='virDomainSetIOThreadParams'/>
       <ref name='virDomainSetInterfaceParameters'/>
       <ref name='virDomainSetLifecycleAction'/>
       <ref name='virDomainSetMaxMemory'/>
@@ -4169,6 +4181,7 @@
       <ref name='virDomainSetBlockIoTune'/>
       <ref name='virDomainSetBlockThreshold'/>
       <ref name='virDomainSetGuestVcpus'/>
+      <ref name='virDomainSetIOThreadParams'/>
       <ref name='virDomainSetInterfaceParameters'/>
       <ref name='virDomainSetLifecycleAction'/>
       <ref name='virDomainSetMemoryFlags'/>
@@ -4699,6 +4712,7 @@
       <ref name='virDomainSetBlockIoTune'/>
       <ref name='virDomainSetBlockThreshold'/>
       <ref name='virDomainSetGuestVcpus'/>
+      <ref name='virDomainSetIOThreadParams'/>
       <ref name='virDomainSetInterfaceParameters'/>
       <ref name='virDomainSetLifecycleAction'/>
       <ref name='virDomainSetMaxMemory'/>
@@ -5066,6 +5080,7 @@
       <ref name='virDomainMigrateToURI3'/>
       <ref name='virDomainSetBlkioParameters'/>
       <ref name='virDomainSetBlockIoTune'/>
+      <ref name='virDomainSetIOThreadParams'/>
       <ref name='virDomainSetInterfaceParameters'/>
       <ref name='virDomainSetMemoryParameters'/>
       <ref name='virDomainSetNumaParameters'/>
@@ -5549,6 +5564,9 @@
       <ref name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP'/>
       <ref name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LAST'/>
       <ref name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE'/>
+      <ref name='VIR_DOMAIN_IOTHREAD_POLL_GROW'/>
+      <ref name='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS'/>
+      <ref name='VIR_DOMAIN_IOTHREAD_POLL_SHRINK'/>
       <ref name='VIR_DOMAIN_JOB_AUTO_CONVERGE_THROTTLE'/>
       <ref name='VIR_DOMAIN_JOB_BOUNDED'/>
       <ref name='VIR_DOMAIN_JOB_CANCELLED'/>
@@ -5798,6 +5816,7 @@
       <ref name='VIR_DOMAIN_SHUTDOWN_USER'/>
       <ref name='VIR_DOMAIN_SHUTOFF'/>
       <ref name='VIR_DOMAIN_SHUTOFF_CRASHED'/>
+      <ref name='VIR_DOMAIN_SHUTOFF_DAEMON'/>
       <ref name='VIR_DOMAIN_SHUTOFF_DESTROYED'/>
       <ref name='VIR_DOMAIN_SHUTOFF_FAILED'/>
       <ref name='VIR_DOMAIN_SHUTOFF_FROM_SNAPSHOT'/>
@@ -5815,6 +5834,7 @@
       <ref name='VIR_DOMAIN_STATS_BLOCK'/>
       <ref name='VIR_DOMAIN_STATS_CPU_TOTAL'/>
       <ref name='VIR_DOMAIN_STATS_INTERFACE'/>
+      <ref name='VIR_DOMAIN_STATS_IOTHREAD'/>
       <ref name='VIR_DOMAIN_STATS_PERF'/>
       <ref name='VIR_DOMAIN_STATS_STATE'/>
       <ref name='VIR_DOMAIN_STATS_VCPU'/>
@@ -6246,6 +6266,7 @@
       <ref name='virDomainSetBlockIoTune'/>
       <ref name='virDomainSetBlockThreshold'/>
       <ref name='virDomainSetGuestVcpus'/>
+      <ref name='virDomainSetIOThreadParams'/>
       <ref name='virDomainSetInterfaceParameters'/>
       <ref name='virDomainSetLifecycleAction'/>
       <ref name='virDomainSetMaxMemory'/>
@@ -7624,6 +7645,7 @@
           <ref name='virDomainPinIOThread'/>
           <ref name='virDomainPinVcpu'/>
           <ref name='virDomainPinVcpuFlags'/>
+          <ref name='virDomainSetIOThreadParams'/>
           <ref name='virDomainSetMaxMemory'/>
           <ref name='virDomainSetMemory'/>
           <ref name='virDomainSetMemoryFlags'/>
@@ -7643,6 +7665,7 @@
           <ref name='_virDomainControlInfo'/>
         </word>
         <word name='Each'>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virConnectGetCPUModelNames'/>
           <ref name='virDomainGetDiskErrors'/>
           <ref name='virDomainGetState'/>
@@ -7886,16 +7909,20 @@
           <ref name='virConnectListDomains'/>
         </word>
         <word name='IOThread'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS'/>
           <ref name='VIR_DOMAIN_TUNABLE_CPU_IOTHREADSPIN'/>
           <ref name='_virDomainIOThreadInfo'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainAddIOThread'/>
           <ref name='virDomainDelIOThread'/>
           <ref name='virDomainGetIOThreadInfo'/>
           <ref name='virDomainPinIOThread'/>
+          <ref name='virDomainSetIOThreadParams'/>
         </word>
         <word name='IOThreads'>
           <ref name='VIR_DOMAIN_SCHEDULER_IOTHREAD_PERIOD'/>
           <ref name='VIR_DOMAIN_SCHEDULER_IOTHREAD_QUOTA'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainGetIOThreadInfo'/>
         </word>
         <word name='IPv4'>
@@ -7992,6 +8019,9 @@
           <ref name='virDomainCreateWithFlags'/>
           <ref name='virDomainCreateXML'/>
           <ref name='virDomainCreateXMLWithFiles'/>
+        </word>
+        <word name='Leaving'>
+          <ref name='virDomainUpdateDeviceFlags'/>
         </word>
         <word name='Length'>
           <ref name='_virConnectCredential'/>
@@ -8470,6 +8500,7 @@
         <word name='QEMU'>
           <ref name='VIR_MIGRATE_PARAM_DISKS_PORT'/>
           <ref name='VIR_MIGRATE_PARAM_MIGRATE_DISKS'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virConnectGetType'/>
           <ref name='virDomainFSFreeze'/>
           <ref name='virDomainFSThaw'/>
@@ -8712,6 +8743,7 @@
           <ref name='virDomainPinVcpuFlags'/>
           <ref name='virDomainRestore'/>
           <ref name='virDomainSave'/>
+          <ref name='virDomainSetIOThreadParams'/>
           <ref name='virDomainSnapshotIsCurrent'/>
           <ref name='virDomainUndefine'/>
           <ref name='virNetworkGetDHCPLeases'/>
@@ -8742,6 +8774,8 @@
           <ref name='virSecretSetValue'/>
         </word>
         <word name='Setting'>
+          <ref name='virConnectGetAllDomainStats'/>
+          <ref name='virDomainSetIOThreadParams'/>
           <ref name='virEventAddTimeout'/>
           <ref name='virEventUpdateTimeout'/>
         </word>
@@ -8764,6 +8798,7 @@
           <ref name='virDomainGetBlockJobInfo'/>
           <ref name='virDomainGetDiskErrors'/>
           <ref name='virDomainRevertToSnapshot'/>
+          <ref name='virDomainSetIOThreadParams'/>
           <ref name='virInitialize'/>
           <ref name='virNWFilterBindingCreateXML'/>
           <ref name='virStorageVolCreateXML'/>
@@ -8911,6 +8946,7 @@
           <ref name='virDomainFSThaw'/>
         </word>
         <word name='There'>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainGetEmulatorPinInfo'/>
           <ref name='virDomainMigrate3'/>
           <ref name='virDomainMigrateToURI3'/>
@@ -9362,6 +9398,7 @@
           <ref name='virDomainPinEmulator'/>
           <ref name='virDomainPinIOThread'/>
           <ref name='virDomainPinVcpuFlags'/>
+          <ref name='virDomainSetIOThreadParams'/>
           <ref name='virDomainSetInterfaceParameters'/>
           <ref name='virDomainSetMemoryFlags'/>
           <ref name='virDomainSetMemoryStatsPeriod'/>
@@ -9384,6 +9421,7 @@
           <ref name='virDomainPinEmulator'/>
           <ref name='virDomainPinIOThread'/>
           <ref name='virDomainPinVcpuFlags'/>
+          <ref name='virDomainSetIOThreadParams'/>
           <ref name='virDomainSetInterfaceParameters'/>
           <ref name='virDomainSetMemoryFlags'/>
           <ref name='virDomainSetMemoryStatsPeriod'/>
@@ -9593,6 +9631,9 @@
         </word>
         <word name='VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE'>
           <ref name='virDomainInterfaceAddresses'/>
+        </word>
+        <word name='VIR_DOMAIN_IOTHREAD_'>
+          <ref name='virDomainSetIOThreadParams'/>
         </word>
         <word name='VIR_DOMAIN_JOB_'>
           <ref name='virDomainGetJobStats'/>
@@ -9887,6 +9928,9 @@
           <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='VIR_DOMAIN_STATS_INTERFACE:'>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
+        <word name='VIR_DOMAIN_STATS_IOTHREAD:'>
           <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='VIR_DOMAIN_STATS_PERF:'>
@@ -10439,6 +10483,7 @@
           <ref name='VIR_MIGRATE_PARAM_LISTEN_ADDRESS'/>
           <ref name='virDomainMigrate3'/>
           <ref name='virDomainMigrateToURI3'/>
+          <ref name='virDomainSetIOThreadParams'/>
         </word>
         <word name='accepts'>
           <ref name='virConnectGetCPUModelNames'/>
@@ -10541,8 +10586,10 @@
           <ref name='virDomainDetachDeviceFlags'/>
         </word>
         <word name='add'>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainAddIOThread'/>
           <ref name='virDomainDetachDeviceFlags'/>
+          <ref name='virDomainSetIOThreadParams'/>
           <ref name='virEventRegisterImpl'/>
           <ref name='virNetworkUpdate'/>
           <ref name='virStorageVolResize'/>
@@ -10638,6 +10685,10 @@
           <ref name='virDomainSaveFlags'/>
           <ref name='virDomainSaveImageDefineXML'/>
         </word>
+        <word name='adjustment'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_GROW'/>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_SHRINK'/>
+        </word>
         <word name='advertised'>
           <ref name='virConnectBaselineHypervisorCPU'/>
         </word>
@@ -10646,6 +10697,7 @@
           <ref name='virDomainRename'/>
         </word>
         <word name='affect'>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainSetVcpusFlags'/>
           <ref name='virNodeDeviceReset'/>
           <ref name='virStorageVolResize'/>
@@ -10720,6 +10772,11 @@
           <ref name='virDomainSetVcpusFlags'/>
           <ref name='virDomainShutdownFlags'/>
           <ref name='virDomainSnapshotCreateXML'/>
+        </word>
+        <word name='algorithm'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_GROW'/>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS'/>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_SHRINK'/>
         </word>
         <word name='algorithms'>
           <ref name='virStorageVolWipePattern'/>
@@ -10871,6 +10928,9 @@
           <ref name='VIR_DOMAIN_BLOCK_COPY_BANDWIDTH'/>
         </word>
         <word name='allows'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_GROW'/>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_SHRINK'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainBlockCopy'/>
           <ref name='virDomainBlockPeek'/>
           <ref name='virDomainBlockRebase'/>
@@ -10893,6 +10953,7 @@
           <ref name='virDomainMigrateStartPostCopy'/>
           <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
+          <ref name='virDomainSetIOThreadParams'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virInterfaceChangeBegin'/>
           <ref name='virNWFilterBindingCreateXML'/>
@@ -11307,6 +11368,7 @@
           <ref name='virStoragePoolGetAutostart'/>
         </word>
         <word name='available'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS'/>
           <ref name='_virError'/>
           <ref name='virConnectFindStoragePoolSources'/>
           <ref name='virConnectGetAllDomainStats'/>
@@ -11417,6 +11479,12 @@
         <word name='bandwidth?'>
           <ref name='VIR_DOMAIN_BLOCK_COPY_BANDWIDTH'/>
         </word>
+        <word name='bank'>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
+        <word name='banks'>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
         <word name='base'>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainBlockPull'/>
@@ -11444,6 +11512,7 @@
           <ref name='virStreamEventAddCallback'/>
         </word>
         <word name='before'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS'/>
           <ref name='VIR_DOMAIN_JOB_SETUP_TIME'/>
           <ref name='VIR_NODE_MEMORY_SHARED_PAGES_TO_SCAN'/>
           <ref name='VIR_NODE_MEMORY_SHARED_SLEEP_MILLISECS'/>
@@ -12015,9 +12084,11 @@
         </word>
         <word name='cause'>
           <ref name='VIR_DOMAIN_BLOCK_COPY_BANDWIDTH'/>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS'/>
           <ref name='VIR_MIGRATE_PARAM_DEST_XML'/>
           <ref name='virConnectDomainEventDiskChangeCallback'/>
           <ref name='virConnectDomainEventIOErrorReasonCallback'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainBlockJobSetSpeed'/>
           <ref name='virDomainBlockPull'/>
@@ -12030,6 +12101,7 @@
           <ref name='virDomainGetNumaParameters'/>
           <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
+          <ref name='virDomainSetIOThreadParams'/>
           <ref name='virDomainUndefineFlags'/>
           <ref name='virEventAddTimeout'/>
           <ref name='virEventUpdateTimeout'/>
@@ -12242,10 +12314,13 @@
           <ref name='VIR_NODE_SEV_CERT_CHAIN'/>
         </word>
         <word name='choose'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_GROW'/>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_SHRINK'/>
           <ref name='VIR_MIGRATE_PARAM_BANDWIDTH'/>
           <ref name='VIR_MIGRATE_PARAM_DISKS_PORT'/>
           <ref name='virConnectBaselineHypervisorCPU'/>
           <ref name='virConnectCompareHypervisorCPU'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainBlockCommit'/>
           <ref name='virDomainReboot'/>
           <ref name='virDomainShutdownFlags'/>
@@ -12329,6 +12404,9 @@
         </word>
         <word name='cmt'>
           <ref name='VIR_PERF_PARAM_CMT'/>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
+        <word name='cnt'>
           <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='code'>
@@ -12598,6 +12676,9 @@
           <ref name='virEventRegisterImpl'/>
           <ref name='virNetworkGetAutostart'/>
         </word>
+        <word name='confines'>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
         <word name='confirmation'>
           <ref name='virDomainRevertToSnapshot'/>
           <ref name='virStreamRecv'/>
@@ -12754,6 +12835,7 @@
           <ref name='virDomainSetUserPassword'/>
           <ref name='virDomainSetVcpu'/>
           <ref name='virDomainSnapshotGetXMLDesc'/>
+          <ref name='virDomainUpdateDeviceFlags'/>
           <ref name='virNetworkGetDHCPLeases'/>
           <ref name='virNodeGetMemoryParameters'/>
           <ref name='virNodeGetSEVInfo'/>
@@ -12954,6 +13036,7 @@
           <ref name='virDomainRef'/>
           <ref name='virDomainSendProcessSignal'/>
           <ref name='virDomainSnapshotRef'/>
+          <ref name='virDomainUpdateDeviceFlags'/>
           <ref name='virEventRegisterImpl'/>
           <ref name='virInterfaceRef'/>
           <ref name='virNWFilterBindingRef'/>
@@ -13165,10 +13248,14 @@
           <ref name='virConnectSecretEventGenericCallback'/>
           <ref name='virConnectStoragePoolEventGenericCallback'/>
         </word>
+        <word name='cut'>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
         <word name='cycle'>
           <ref name='virDomainMigrateStartPostCopy'/>
         </word>
         <word name='cycles'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS'/>
           <ref name='VIR_PERF_PARAM_BUS_CYCLES'/>
           <ref name='VIR_PERF_PARAM_CPU_CYCLES'/>
           <ref name='VIR_PERF_PARAM_REF_CPU_CYCLES'/>
@@ -13353,6 +13440,9 @@
           <ref name='virStreamSparseRecvAll'/>
           <ref name='virStreamSparseSendAll'/>
         </word>
+        <word name='denied'>
+          <ref name='virDomainUpdateDeviceFlags'/>
+        </word>
         <word name='denotes'>
           <ref name='virDomainSetGuestVcpus'/>
         </word>
@@ -13513,6 +13603,7 @@
         <word name='detailed'>
           <ref name='virDomainMigrate3'/>
           <ref name='virDomainMigrateToURI3'/>
+          <ref name='virDomainSetIOThreadParams'/>
         </word>
         <word name='details'>
           <ref name='VIR_DOMAIN_JOB_MEMORY_NORMAL_BYTES'/>
@@ -13565,6 +13656,7 @@
           <ref name='virDomainOpenGraphics'/>
           <ref name='virDomainOpenGraphicsFD'/>
           <ref name='virDomainScreenshot'/>
+          <ref name='virDomainSetIOThreadParams'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virStorageVolDownload'/>
           <ref name='virStorageVolUpload'/>
@@ -13583,6 +13675,7 @@
         </word>
         <word name='determining'>
           <ref name='virDomainAddIOThread'/>
+          <ref name='virDomainSetIOThreadParams'/>
           <ref name='virStreamSparseSendAll'/>
         </word>
         <word name='dev'>
@@ -13699,6 +13792,9 @@
           <ref name='virEventAddTimeout'/>
           <ref name='virEventUpdateTimeout'/>
         </word>
+        <word name='disabled'>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
         <word name='disables'>
           <ref name='virDomainSetVcpu'/>
         </word>
@@ -13772,6 +13868,9 @@
           <ref name='virConnectListAllNodeDevices'/>
           <ref name='virConnectListAllSecrets'/>
           <ref name='virConnectListAllStoragePools'/>
+        </word>
+        <word name='divisor'>
+          <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='do_something_with_domain'>
           <ref name='virConnectListAllDomains'/>
@@ -13850,6 +13949,7 @@
           <ref name='virDomainListGetStats'/>
         </word>
         <word name='double'>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virTypedParamsAddDouble'/>
           <ref name='virTypedParamsGetDouble'/>
         </word>
@@ -13969,11 +14069,15 @@
           <ref name='virDomainMigrateToURI'/>
         </word>
         <word name='dynamic'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_GROW'/>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_SHRINK'/>
           <ref name='virNodeGetCPUStats'/>
           <ref name='virNodeGetMemoryStats'/>
         </word>
         <word name='dynamically'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS'/>
           <ref name='virDomainInterfaceAddresses'/>
+          <ref name='virDomainSetIOThreadParams'/>
           <ref name='virStorageVolGetPath'/>
         </word>
       </letter>
@@ -14211,6 +14315,7 @@
           <ref name='virConnectDomainEventIOErrorReasonCallback'/>
         </word>
         <word name='enough'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS'/>
           <ref name='VIR_MIGRATE_PARAM_AUTO_CONVERGE_INCREMENT'/>
           <ref name='virDomainGetDiskErrors'/>
           <ref name='virDomainMigrateStartPostCopy'/>
@@ -14265,6 +14370,7 @@
           <ref name='virDomainSetVcpu'/>
         </word>
         <word name='entries'>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainGetCPUStats'/>
           <ref name='virNodeGetCellsFreeMemory'/>
           <ref name='virNodeGetFreePages'/>
@@ -14337,6 +14443,7 @@
           <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainGetDiskErrors'/>
           <ref name='virDomainScreenshot'/>
+          <ref name='virDomainSetIOThreadParams'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virStorageVolDownload'/>
           <ref name='virStorageVolUpload'/>
@@ -14414,6 +14521,7 @@
           <ref name='virStorageVolResize'/>
         </word>
         <word name='exceeds'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_SHRINK'/>
           <ref name='virStorageVolUpload'/>
         </word>
         <word name='except'>
@@ -14517,6 +14625,7 @@
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrate2'/>
           <ref name='virDomainMigrate3'/>
+          <ref name='virDomainSetIOThreadParams'/>
           <ref name='virDomainSnapshotHasMetadata'/>
           <ref name='virEventUpdateHandle'/>
           <ref name='virEventUpdateTimeout'/>
@@ -14649,6 +14758,9 @@
           <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainMemoryPeek'/>
         </word>
+        <word name='factor'>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
         <word name='failed'>
           <ref name='virConnectDomainEventDeviceRemovalFailedCallback'/>
           <ref name='virSaveLastError'/>
@@ -14743,6 +14855,9 @@
         <word name='fetching'>
           <ref name='virConnectOpenAuth'/>
           <ref name='virStreamSourceFunc'/>
+        </word>
+        <word name='fewer'>
+          <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='fields'>
           <ref name='_virDomainBlockJobInfo'/>
@@ -14888,6 +15003,7 @@
           <ref name='virTypedParamsGetULLong'/>
         </word>
         <word name='finds'>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virNWFilterBindingCreateXML'/>
         </word>
         <word name='finished'>
@@ -14947,6 +15063,9 @@
         <word name='flow'>
           <ref name='VIR_DOMAIN_JOB_DOWNTIME_NET'/>
           <ref name='VIR_DOMAIN_JOB_TIME_ELAPSED_NET'/>
+        </word>
+        <word name='fluctution'>
+          <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='flush'>
           <ref name='VIR_DOMAIN_BLOCK_STATS_FLUSH_REQ'/>
@@ -15093,6 +15212,9 @@
           <ref name='virConnectGetAllDomainStats'/>
           <ref name='virEventUpdateTimeout'/>
         </word>
+        <word name='frequent'>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
         <word name='front'>
           <ref name='virDomainSnapshotCreateXML'/>
         </word>
@@ -15181,6 +15303,7 @@
           <ref name='virNWFilterBindingCreateXML'/>
         </word>
         <word name='generate'>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virStreamSparseRecvAll'/>
         </word>
         <word name='generates'>
@@ -15307,6 +15430,9 @@
           <ref name='virStreamSparseRecvAll'/>
           <ref name='virStreamSparseSendAll'/>
         </word>
+        <word name='gradually'>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
         <word name='granularity'>
           <ref name='VIR_DOMAIN_BLOCK_COPY_GRANULARITY'/>
           <ref name='virDomainBlockCopy'/>
@@ -15349,6 +15475,8 @@
           <ref name='virDomainSnapshotNumChildren'/>
         </word>
         <word name='grow'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_GROW'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainSetBlockThreshold'/>
         </word>
         <word name='growing'>
@@ -15542,7 +15670,11 @@
         <word name='hierarchy'>
           <ref name='virDomainSnapshotCreateXML'/>
         </word>
+        <word name='high'>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
         <word name='higher'>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virStorageVolCreateXML'/>
           <ref name='virStorageVolCreateXMLFrom'/>
         </word>
@@ -15660,6 +15792,7 @@
         </word>
         <word name='however'>
           <ref name='virConnectDomainEventBlockJobCallback'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virConnectListAllDomains'/>
           <ref name='virConnectListAllInterfaces'/>
           <ref name='virConnectListAllNetworks'/>
@@ -15670,9 +15803,6 @@
           <ref name='virDomainAttachDeviceFlags'/>
           <ref name='virDomainBlockCopy'/>
           <ref name='virDomainGetDiskErrors'/>
-        </word>
-        <word name='hsot'>
-          <ref name='virDomainGetJobStats'/>
         </word>
         <word name='html'>
           <ref name='virConnectGetType'/>
@@ -15950,6 +16080,7 @@
           <ref name='virDomainPinIOThread'/>
           <ref name='virDomainPinVcpuFlags'/>
           <ref name='virDomainRevertToSnapshot'/>
+          <ref name='virDomainSetIOThreadParams'/>
           <ref name='virDomainSetMemoryFlags'/>
           <ref name='virDomainSetMemoryStatsPeriod'/>
           <ref name='virDomainSetVcpusFlags'/>
@@ -16086,6 +16217,7 @@
         <word name='indicates'>
           <ref name='VIR_DOMAIN_MEMORY_PARAM_UNLIMITED'/>
           <ref name='_virDomainBlockJobInfo'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainBlockStats'/>
           <ref name='virDomainInterfaceStats'/>
           <ref name='virStreamSinkFunc'/>
@@ -16387,6 +16519,12 @@
           <ref name='VIR_NODE_CPU_STATS_INTR'/>
           <ref name='virNodeSuspendForDuration'/>
         </word>
+        <word name='interval'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_GROW'/>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS'/>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_SHRINK'/>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
         <word name='introduced'>
           <ref name='virDomainGetJobStats'/>
           <ref name='virDomainGetPerfEvents'/>
@@ -16456,6 +16594,12 @@
         <word name='involves'>
           <ref name='virConnectOpen'/>
           <ref name='virDomainSnapshotCreateXML'/>
+        </word>
+        <word name='iothread'>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
+        <word name='iothread_id'>
+          <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='iothreadpin1'>
           <ref name='VIR_DOMAIN_TUNABLE_CPU_IOTHREADSPIN'/>
@@ -16579,6 +16723,7 @@
         <word name='keep'>
           <ref name='virConnectDomainEventRegister'/>
           <ref name='virConnectDomainEventRegisterAny'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virConnectNetworkEventRegisterAny'/>
           <ref name='virConnectNodeDeviceEventRegisterAny'/>
           <ref name='virConnectSecretEventRegisterAny'/>
@@ -16709,6 +16854,8 @@
           <ref name='virDomainRevertToSnapshot'/>
         </word>
         <word name='large'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainBlockPeek'/>
           <ref name='virDomainGetCPUStats'/>
           <ref name='virDomainGetDiskErrors'/>
@@ -16742,6 +16889,7 @@
           <ref name='virConnResetLastError'/>
           <ref name='virConnectClose'/>
           <ref name='virConnectDomainEventMigrationIterationCallback'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virConnectListAllStoragePools'/>
           <ref name='virCopyLastError'/>
           <ref name='virDomainListAllSnapshots'/>
@@ -16863,6 +17011,7 @@
           <ref name='virDomainAddIOThread'/>
           <ref name='virDomainBlockJobAbort'/>
           <ref name='virDomainCreateLinux'/>
+          <ref name='virDomainSetIOThreadParams'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virStreamSourceHoleFunc'/>
         </word>
@@ -17602,6 +17751,9 @@
         <word name='measuring'>
           <ref name='_virDomainJobInfo'/>
         </word>
+        <word name='mechanism'>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
         <word name='media'>
           <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainAttachDevice'/>
@@ -17805,6 +17957,7 @@
           <ref name='virNodeSuspendForDuration'/>
         </word>
         <word name='modified'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS'/>
           <ref name='virDomainGetXMLDesc'/>
           <ref name='virDomainSave'/>
           <ref name='virDomainSaveFlags'/>
@@ -17828,6 +17981,7 @@
           <ref name='virDomainAttachDevice'/>
           <ref name='virDomainAttachDeviceFlags'/>
           <ref name='virDomainDetachDeviceFlags'/>
+          <ref name='virDomainSetIOThreadParams'/>
           <ref name='virEventUpdateHandleFunc'/>
           <ref name='virEventUpdateTimeoutFunc'/>
           <ref name='virInterfaceDefineXML'/>
@@ -17849,6 +18003,7 @@
         <word name='monitor'>
           <ref name='VIR_PERF_PARAM_MBML'/>
           <ref name='VIR_PERF_PARAM_MBMT'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainGetBlockInfo'/>
           <ref name='virDomainScreenshot'/>
           <ref name='virEventAddHandle'/>
@@ -17868,6 +18023,9 @@
         <word name='monitoring'>
           <ref name='virConnectClose'/>
           <ref name='virEventAddHandle'/>
+        </word>
+        <word name='monitors'>
+          <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='most'>
           <ref name='VIR_DOMAIN_JOB_MEMORY_CONSTANT'/>
@@ -17932,6 +18090,9 @@
         <word name='multi-threaded'>
           <ref name='virConnCopyLastError'/>
           <ref name='virConnGetLastError'/>
+        </word>
+        <word name='multiplied'>
+          <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='multithread'>
           <ref name='VIR_MIGRATE_PARAM_COMPRESSION_MT_DTHREADS'/>
@@ -18631,6 +18792,7 @@
           <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_TOTAL_IOPS_SEC_MAX'/>
           <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC'/>
           <ref name='VIR_DOMAIN_TUNABLE_BLKDEV_WRITE_IOPS_SEC_MAX'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainBlockJobAbort'/>
           <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainGetDiskErrors'/>
@@ -18690,37 +18852,11 @@
         <word name='originally'>
           <ref name='virGetVersion'/>
         </word>
-        <word name='other'>
-          <ref name='VIR_DOMAIN_JOB_MEMORY_PAGE_SIZE'/>
-          <ref name='virConnectClose'/>
-          <ref name='virConnectDomainEventIOErrorReasonCallback'/>
-          <ref name='virConnectGetAllDomainStats'/>
-          <ref name='virConnectListAllDomains'/>
-          <ref name='virConnectListAllSecrets'/>
-          <ref name='virConnectRegisterCloseCallback'/>
-          <ref name='virConnectSetKeepAlive'/>
-          <ref name='virDomainBlockCommit'/>
-          <ref name='virDomainCreateWithFiles'/>
-          <ref name='virDomainCreateWithFlags'/>
-          <ref name='virDomainDetachDeviceFlags'/>
-          <ref name='virDomainMigrateStartPostCopy'/>
-          <ref name='virDomainMigrateToURI'/>
-          <ref name='virDomainMigrateToURI2'/>
-          <ref name='virDomainOpenChannel'/>
-          <ref name='virDomainOpenConsole'/>
-          <ref name='virDomainOpenGraphicsFD'/>
-          <ref name='virDomainSendProcessSignal'/>
-          <ref name='virDomainSnapshotCreateXML'/>
-          <ref name='virFreeCallback'/>
-          <ref name='virInitialize'/>
-          <ref name='virNodeDeviceDettach'/>
-          <ref name='virNodeDeviceReset'/>
-          <ref name='virStreamNew'/>
-        </word>
         <word name='out'>
           <ref name='virDomainBlockPeek'/>
           <ref name='virDomainMemoryStats'/>
           <ref name='virDomainSnapshotCreateXML'/>
+          <ref name='virDomainUpdateDeviceFlags'/>
         </word>
         <word name='outbound'>
           <ref name='VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE'/>
@@ -18769,6 +18905,8 @@
           <ref name='virStorageVolWipePattern'/>
         </word>
         <word name='own'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_GROW'/>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_SHRINK'/>
           <ref name='virResetLastError'/>
           <ref name='virTypedParamsAddFromString'/>
           <ref name='virTypedParamsAddString'/>
@@ -18819,6 +18957,9 @@
           <ref name='virDomainOpenConsole'/>
           <ref name='virInitialize'/>
           <ref name='virNodeSetMemoryParameters'/>
+        </word>
+        <word name='param'>
+          <ref name='virDomainSetIOThreadParams'/>
         </word>
         <word name='parameters:'>
           <ref name='virDomainMigrate'/>
@@ -18995,6 +19136,7 @@
           <ref name='VIR_MIGRATE_PARAM_AUTO_CONVERGE_INITIAL'/>
         </word>
         <word name='perform'>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainCoreDumpWithFormat'/>
           <ref name='virDomainRevertToSnapshot'/>
           <ref name='virNetworkUpdate'/>
@@ -19040,6 +19182,7 @@
           <ref name='VIR_DOMAIN_TUNABLE_CPU_IOTHREAD_QUOTA'/>
           <ref name='VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD'/>
           <ref name='VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainMigrateStartPostCopy'/>
           <ref name='virDomainSetMemoryStatsPeriod'/>
         </word>
@@ -19111,6 +19254,9 @@
         </word>
         <word name='picks'>
           <ref name='virDomainSnapshotCreateXML'/>
+        </word>
+        <word name='piece'>
+          <ref name='virDomainUpdateDeviceFlags'/>
         </word>
         <word name='pieces'>
           <ref name='virDomainInterfaceAddresses'/>
@@ -19234,7 +19380,30 @@
           <ref name='virDomainBlockJobAbort'/>
           <ref name='virEventRegisterDefaultImpl'/>
         </word>
+        <word name='poll-grow'>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
+        <word name='poll-max-ns'>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
+        <word name='poll-shrink'>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
+        <word name='poll_grow'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS'/>
+        </word>
+        <word name='poll_max_ns'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_GROW'/>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_SHRINK'/>
+        </word>
+        <word name='poll_shrink'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS'/>
+        </word>
         <word name='polling'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_GROW'/>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS'/>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_SHRINK'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainSetBlockThreshold'/>
         </word>
         <word name='pools'>
@@ -19587,6 +19756,7 @@
           <ref name='virDomainMemoryStats'/>
         </word>
         <word name='process'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS'/>
           <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATORPIN'/>
           <ref name='virDomainCreateWithFiles'/>
           <ref name='virDomainCreateXMLWithFiles'/>
@@ -19695,15 +19865,19 @@
           <ref name='virDomainRevertToSnapshot'/>
         </word>
         <word name='provide'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS'/>
           <ref name='_virDomainBlockJobInfo'/>
           <ref name='virConnectCompareCPU'/>
           <ref name='virConnectCompareHypervisorCPU'/>
           <ref name='virConnectGetAllDomainStats'/>
+          <ref name='virDomainUpdateDeviceFlags'/>
           <ref name='virNodeGetFreeMemory'/>
           <ref name='virStreamSinkFunc'/>
           <ref name='virStreamSinkHoleFunc'/>
         </word>
         <word name='provides'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_GROW'/>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_SHRINK'/>
           <ref name='VIR_UUID_BUFLEN'/>
           <ref name='VIR_UUID_STRING_BUFLEN'/>
           <ref name='virDomainCreateWithFiles'/>
@@ -19775,11 +19949,13 @@
           <ref name='VIR_MIGRATE_PARAM_DEST_XML'/>
           <ref name='VIR_MIGRATE_PARAM_PERSIST_XML'/>
           <ref name='virDomainMemoryStats'/>
+          <ref name='virDomainSetIOThreadParams'/>
           <ref name='virEventAddHandleFunc'/>
           <ref name='virEventAddTimeoutFunc'/>
           <ref name='virNodeAllocPages'/>
         </word>
         <word name='purposes'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS'/>
           <ref name='virDomainGetBlockInfo'/>
           <ref name='virGetVersion'/>
         </word>
@@ -19843,6 +20019,7 @@
           <ref name='virDomainSetMetadata'/>
         </word>
         <word name='quickly'>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainFSTrim'/>
         </word>
         <word name='quit'>
@@ -19903,6 +20080,7 @@
           <ref name='virDomainInterfaceAddresses'/>
           <ref name='virDomainOpenConsole'/>
           <ref name='virDomainSetGuestVcpus'/>
+          <ref name='virDomainSetIOThreadParams'/>
           <ref name='virDomainSetMemoryParameters'/>
         </word>
         <word name='ranges'>
@@ -19947,6 +20125,7 @@
           <ref name='virFreeCallback'/>
         </word>
         <word name='reached'>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainSetBlockThreshold'/>
           <ref name='virStreamAbort'/>
           <ref name='virStreamFree'/>
@@ -20160,6 +20339,7 @@
           <ref name='virConnectGetType'/>
         </word>
         <word name='reduce'>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainBlockCommit'/>
         </word>
         <word name='reduces'>
@@ -20419,9 +20599,11 @@
           <ref name='virDomainSnapshotListNames'/>
           <ref name='virDomainSnapshotNum'/>
           <ref name='virDomainSnapshotNumChildren'/>
+          <ref name='virDomainUpdateDeviceFlags'/>
           <ref name='virInterfaceUndefine'/>
         </word>
         <word name='remove'>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainBlockCopy'/>
           <ref name='virDomainOpenChannel'/>
           <ref name='virDomainOpenConsole'/>
@@ -20572,6 +20754,7 @@
           <ref name='virDomainShutdown'/>
           <ref name='virDomainShutdownFlags'/>
           <ref name='virDomainSnapshotCreateXML'/>
+          <ref name='virDomainUpdateDeviceFlags'/>
         </word>
         <word name='requested'>
           <ref name='virConnectGetAllDomainStats'/>
@@ -20624,6 +20807,7 @@
           <ref name='virDomainGetGuestVcpus'/>
           <ref name='virDomainRevertToSnapshot'/>
           <ref name='virDomainSetGuestVcpus'/>
+          <ref name='virDomainSetIOThreadParams'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virEventAddHandle'/>
           <ref name='virEventAddHandleFunc'/>
@@ -20655,6 +20839,7 @@
         </word>
         <word name='reset'>
           <ref name='virConnSetErrorFunc'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainCoreDump'/>
           <ref name='virDomainCoreDumpWithFormat'/>
           <ref name='virDomainReset'/>
@@ -20885,6 +21070,7 @@
           <ref name='virNetworkGetDHCPLeases'/>
         </word>
         <word name='returning'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS'/>
           <ref name='virDomainBlockJobAbort'/>
           <ref name='virStreamSourceFunc'/>
           <ref name='virTypedParamsGet'/>
@@ -21366,6 +21552,7 @@
           <ref name='virDomainGetVcpuPinInfo'/>
           <ref name='virDomainListAllSnapshots'/>
           <ref name='virDomainReboot'/>
+          <ref name='virDomainSetIOThreadParams'/>
           <ref name='virDomainShutdown'/>
           <ref name='virDomainShutdownFlags'/>
           <ref name='virDomainSnapshotCreateXML'/>
@@ -21466,6 +21653,10 @@
         </word>
         <word name='show'>
           <ref name='_virConnectCredential'/>
+        </word>
+        <word name='shrink'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_SHRINK'/>
+          <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='shut'>
           <ref name='virDomainCoreDump'/>
@@ -21677,6 +21868,7 @@
           <ref name='virDomainSaveFlags'/>
         </word>
         <word name='small'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS'/>
           <ref name='virStreamSinkFunc'/>
           <ref name='virStreamSourceFunc'/>
         </word>
@@ -21849,6 +22041,7 @@
           <ref name='virNodeGetCPUStats'/>
         </word>
         <word name='spent'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS'/>
           <ref name='VIR_DOMAIN_JOB_SETUP_TIME'/>
           <ref name='VIR_NODE_CPU_STATS_KERNEL'/>
           <ref name='VIR_NODE_CPU_STATS_USER'/>
@@ -21864,6 +22057,9 @@
           <ref name='virDomainBlockPeek'/>
           <ref name='virDomainGetCPUStats'/>
           <ref name='virDomainMemoryPeek'/>
+        </word>
+        <word name='spot'>
+          <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='square'>
           <ref name='virDomainBlockCommit'/>
@@ -21933,6 +22129,7 @@
           <ref name='virNodeGetCellsFreeMemory'/>
         </word>
         <word name='starts'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS'/>
           <ref name='VIR_DOMAIN_JOB_MEMORY_ITERATION'/>
           <ref name='virConnectDomainEventMigrationIterationCallback'/>
           <ref name='virDomainBlockCommit'/>
@@ -21972,6 +22169,9 @@
           <ref name='virDomainInterfaceStats'/>
           <ref name='virDomainListGetStats'/>
           <ref name='virDomainMemoryStats'/>
+        </word>
+        <word name='statistical'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS'/>
         </word>
         <word name='stats:'>
           <ref name='virDomainGetCPUStats'/>
@@ -22248,6 +22448,7 @@
           <ref name='virConnectStoragePoolEventRegisterAny'/>
           <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainGetDiskErrors'/>
+          <ref name='virDomainUpdateDeviceFlags'/>
           <ref name='virEventAddHandleFunc'/>
           <ref name='virEventAddTimeoutFunc'/>
           <ref name='virEventRemoveHandleFunc'/>
@@ -22305,6 +22506,9 @@
         </word>
         <word name='swap_hard_limit:'>
           <ref name='VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT'/>
+        </word>
+        <word name='sweet'>
+          <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='switched'>
           <ref name='virDomainMigrateStartPostCopy'/>
@@ -22427,6 +22631,9 @@
         <word name='tells'>
           <ref name='virNodeGetFreePages'/>
         </word>
+        <word name='tempered'>
+          <ref name='virConnectGetAllDomainStats'/>
+        </word>
         <word name='temporarily'>
           <ref name='virConnectClose'/>
         </word>
@@ -22532,6 +22739,7 @@
           <ref name='virDomainSnapshotListNames'/>
           <ref name='virDomainSnapshotNum'/>
           <ref name='virDomainSnapshotNumChildren'/>
+          <ref name='virDomainUpdateDeviceFlags'/>
           <ref name='virEventAddHandleFunc'/>
           <ref name='virNodeSetMemoryParameters'/>
           <ref name='virSecretGetUsageType'/>
@@ -22722,6 +22930,7 @@
           <ref name='virStreamSourceSkipFunc'/>
         </word>
         <word name='timing'>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainGetBlockInfo'/>
         </word>
         <word name='tlsPort'>
@@ -22743,7 +22952,9 @@
           <ref name='virDomainMigrateSetMaxDowntime'/>
         </word>
         <word name='too'>
+          <ref name='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS'/>
           <ref name='VIR_NODE_MEMORY_SHARED_PAGES_VOLATILE'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainGetCPUStats'/>
           <ref name='virDomainMigrateStartPostCopy'/>
           <ref name='virNetworkGetDHCPLeases'/>
@@ -22921,6 +23132,7 @@
         <word name='treated'>
           <ref name='virDomainBlockRebase'/>
           <ref name='virDomainSendProcessSignal'/>
+          <ref name='virDomainUpdateDeviceFlags'/>
         </word>
         <word name='treats'>
           <ref name='virDomainBlockRebase'/>
@@ -22940,6 +23152,9 @@
         </word>
         <word name='trim'>
           <ref name='virDomainFSTrim'/>
+        </word>
+        <word name='triple'>
+          <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='true'>
           <ref name='VIR_CPU_USABLE'/>
@@ -23141,6 +23356,7 @@
           <ref name='virDomainPinIOThread'/>
           <ref name='virDomainPinVcpu'/>
           <ref name='virDomainPinVcpuFlags'/>
+          <ref name='virDomainSetIOThreadParams'/>
           <ref name='virDomainSetVcpus'/>
           <ref name='virDomainSetVcpusFlags'/>
           <ref name='virSecretFree'/>
@@ -23280,6 +23496,7 @@
           <ref name='virNodeGetMemoryParameters'/>
         </word>
         <word name='until'>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virConnectOpen'/>
           <ref name='virConnectRef'/>
           <ref name='virDomainBlockCommit'/>
@@ -23434,6 +23651,9 @@
         <word name='username'>
           <ref name='virDomainSetUserPassword'/>
         </word>
+        <word name='users'>
+          <ref name='virDomainUpdateDeviceFlags'/>
+        </word>
         <word name='uses'>
           <ref name='virDomainBlockPeek'/>
           <ref name='virSecretGetUsageType'/>
@@ -23497,11 +23717,15 @@
           <ref name='virDomainMigrateToURI2'/>
           <ref name='virDomainMigrateToURI3'/>
           <ref name='virDomainSendProcessSignal'/>
+          <ref name='virDomainSetIOThreadParams'/>
           <ref name='virInterfaceGetXMLDesc'/>
           <ref name='virStorageVolResize'/>
         </word>
         <word name='validate'>
           <ref name='virDomainSnapshotCreateXML'/>
+        </word>
+        <word name='validity'>
+          <ref name='virDomainSetIOThreadParams'/>
         </word>
         <word name='variable'>
           <ref name='virConnectGetCPUModelNames'/>
@@ -23560,6 +23784,7 @@
           <ref name='VIR_DOMAIN_TUNABLE_CPU_EMULATOR_QUOTA'/>
           <ref name='VIR_DOMAIN_TUNABLE_CPU_VCPU_PERIOD'/>
           <ref name='VIR_DOMAIN_TUNABLE_CPU_VCPU_QUOTA'/>
+          <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainGetGuestVcpus'/>
           <ref name='virDomainGetVcpuPinInfo'/>
           <ref name='virDomainGetVcpus'/>
@@ -24321,6 +24546,7 @@
           <ref name='virDomainMemoryPeek'/>
         </word>
         <word name='virDomainMemoryModFlags'>
+          <ref name='virDomainSetIOThreadParams'/>
           <ref name='virDomainSetMemoryFlags'/>
           <ref name='virDomainSetMemoryStatsPeriod'/>
         </word>
@@ -24389,6 +24615,7 @@
           <ref name='virDomainPinVcpuFlags'/>
           <ref name='virDomainSetBlkioParameters'/>
           <ref name='virDomainSetBlockIoTune'/>
+          <ref name='virDomainSetIOThreadParams'/>
           <ref name='virDomainSetInterfaceParameters'/>
           <ref name='virDomainSetLifecycleAction'/>
           <ref name='virDomainSetMemoryParameters'/>
@@ -25160,6 +25387,7 @@
           <ref name='virDomainGetMemoryParameters'/>
           <ref name='virDomainGetNumaParameters'/>
           <ref name='virDomainGetSchedulerParametersFlags'/>
+          <ref name='virDomainSetIOThreadParams'/>
         </word>
         <word name='virTypedParameterType'>
           <ref name='_virTypedParameter'/>
@@ -25200,6 +25428,7 @@
           <ref name='virDomainPinIOThread'/>
           <ref name='virDomainPinVcpu'/>
           <ref name='virDomainPinVcpuFlags'/>
+          <ref name='virDomainSetIOThreadParams'/>
           <ref name='virDomainSetVcpus'/>
           <ref name='virDomainSetVcpusFlags'/>
         </word>
@@ -25266,6 +25495,7 @@
         <word name='want'>
           <ref name='virConnectCompareCPU'/>
           <ref name='virDomainMemoryPeek'/>
+          <ref name='virDomainUpdateDeviceFlags'/>
           <ref name='virEventRunDefaultImpl'/>
           <ref name='virNodeGetCPUStats'/>
           <ref name='virNodeGetMemoryStats'/>
@@ -25549,30 +25779,6 @@
         </word>
       </letter>
       <letter name='z'>
-        <word name='zero'>
-          <ref name='VIR_DOMAIN_JOB_MEMORY_CONSTANT'/>
-          <ref name='VIR_DOMAIN_JOB_MEMORY_ITERATION'/>
-          <ref name='virConnectGetAllDomainStats'/>
-          <ref name='virConnectGetType'/>
-          <ref name='virDomainDestroyFlags'/>
-          <ref name='virDomainFSTrim'/>
-          <ref name='virDomainGetVcpus'/>
-          <ref name='virDomainInterfaceAddresses'/>
-          <ref name='virDomainListGetStats'/>
-          <ref name='virDomainPinEmulator'/>
-          <ref name='virDomainPinIOThread'/>
-          <ref name='virDomainPinVcpu'/>
-          <ref name='virDomainPinVcpuFlags'/>
-          <ref name='virDomainReboot'/>
-          <ref name='virDomainSendProcessSignal'/>
-          <ref name='virDomainShutdownFlags'/>
-          <ref name='virEventAddTimeout'/>
-          <ref name='virEventUpdateTimeout'/>
-          <ref name='virStorageVolDownload'/>
-          <ref name='virStorageVolResize'/>
-          <ref name='virStreamFree'/>
-          <ref name='virStreamRecvFlags'/>
-        </word>
         <word name='zeroed'>
           <ref name='virDomainGetCPUStats'/>
         </word>

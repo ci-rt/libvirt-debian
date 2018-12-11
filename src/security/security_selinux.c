@@ -90,9 +90,10 @@ struct _virSecuritySELinuxContextItem {
 typedef struct _virSecuritySELinuxContextList virSecuritySELinuxContextList;
 typedef virSecuritySELinuxContextList *virSecuritySELinuxContextListPtr;
 struct _virSecuritySELinuxContextList {
-    bool privileged;
+    virSecurityManagerPtr manager;
     virSecuritySELinuxContextItemPtr *items;
     size_t nItems;
+    bool lock;
 };
 
 #define SECURITY_SELINUX_VOID_DOI       "0"
@@ -156,6 +157,8 @@ virSecuritySELinuxContextListFree(void *opaque)
     for (i = 0; i < list->nItems; i++)
         virSecuritySELinuxContextItemFree(list->items[i]);
 
+    VIR_FREE(list->items);
+    virObjectUnref(list->manager);
     VIR_FREE(list);
 }
 
@@ -212,8 +215,29 @@ virSecuritySELinuxTransactionRun(pid_t pid ATTRIBUTE_UNUSED,
                                  void *opaque)
 {
     virSecuritySELinuxContextListPtr list = opaque;
+    virSecurityManagerMetadataLockStatePtr state;
+    bool privileged = virSecurityManagerGetPrivileged(list->manager);
+    const char **paths = NULL;
+    size_t npaths = 0;
     size_t i;
+    int rv;
+    int ret = -1;
 
+    if (list->lock) {
+        if (VIR_ALLOC_N(paths, list->nItems) < 0)
+            return -1;
+
+        for (i = 0; i < list->nItems; i++) {
+            const char *p = list->items[i]->path;
+
+            VIR_APPEND_ELEMENT_COPY_INPLACE(paths, npaths, p);
+        }
+
+        if (!(state = virSecurityManagerMetadataLock(list->manager, paths, npaths)))
+            goto cleanup;
+    }
+
+    rv = 0;
     for (i = 0; i < list->nItems; i++) {
         virSecuritySELinuxContextItemPtr item = list->items[i];
 
@@ -221,11 +245,22 @@ virSecuritySELinuxTransactionRun(pid_t pid ATTRIBUTE_UNUSED,
         if (virSecuritySELinuxSetFileconHelper(item->path,
                                                item->tcon,
                                                item->optional,
-                                               list->privileged) < 0)
-            return -1;
+                                               privileged) < 0) {
+            rv = -1;
+            break;
+        }
     }
 
-    return 0;
+    if (list->lock)
+        virSecurityManagerMetadataUnlock(list->manager, &state);
+
+    if (rv < 0)
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(paths);
+    return ret;
 }
 
 
@@ -1010,7 +1045,6 @@ virSecuritySELinuxGetDOI(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED)
 static int
 virSecuritySELinuxTransactionStart(virSecurityManagerPtr mgr)
 {
-    bool privileged = virSecurityManagerGetPrivileged(mgr);
     virSecuritySELinuxContextListPtr list;
 
     list = virThreadLocalGet(&contextList);
@@ -1023,12 +1057,12 @@ virSecuritySELinuxTransactionStart(virSecurityManagerPtr mgr)
     if (VIR_ALLOC(list) < 0)
         return -1;
 
-    list->privileged = privileged;
+    list->manager = virObjectRef(mgr);
 
     if (virThreadLocalSet(&contextList, list) < 0) {
         virReportSystemError(errno, "%s",
                              _("Unable to set thread local variable"));
-        VIR_FREE(list);
+        virSecuritySELinuxContextListFree(list);
         return -1;
     }
 
@@ -1039,26 +1073,39 @@ virSecuritySELinuxTransactionStart(virSecurityManagerPtr mgr)
  * virSecuritySELinuxTransactionCommit:
  * @mgr: security manager
  * @pid: domain's PID
+ * @lock: lock and unlock paths that are relabeled
  *
- * Enters the @pid namespace (usually @pid refers to a domain) and
- * performs all the sefilecon()-s on the list. Note that the
- * transaction is also freed, therefore new one has to be started after
- * successful return from this function. Also it is considered as error
- * if there's no transaction set and this function is called.
+ * If @pis is not -1 then enter the @pid namespace (usually @pid refers
+ * to a domain) and perform all the sefilecon()-s on the list. If @pid
+ * is -1 then the transaction is performed in the namespace of the
+ * caller.
+ *
+ * If @lock is true then all the paths that transaction would
+ * touch are locked before and unlocked after it is done so.
+ *
+ * Note that the transaction is also freed, therefore new one has to be
+ * started after successful return from this function. Also it is
+ * considered as error if there's no transaction set and this function
+ * is called.
  *
  * Returns: 0 on success,
  *         -1 otherwise.
  */
 static int
 virSecuritySELinuxTransactionCommit(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
-                                    pid_t pid)
+                                    pid_t pid,
+                                    bool lock)
 {
     virSecuritySELinuxContextListPtr list;
-    int ret = 0;
+    int rc;
+    int ret = -1;
 
     list = virThreadLocalGet(&contextList);
-    if (!list)
-        return 0;
+    if (!list) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("No transaction is set"));
+        return -1;
+    }
 
     if (virThreadLocalSet(&contextList, NULL) < 0) {
         virReportSystemError(errno, "%s",
@@ -1066,9 +1113,20 @@ virSecuritySELinuxTransactionCommit(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
         goto cleanup;
     }
 
-    if (virProcessRunInMountNamespace(pid,
-                                      virSecuritySELinuxTransactionRun,
-                                      list) < 0)
+    list->lock = lock;
+
+    if (pid == -1) {
+        if (lock)
+            rc = virProcessRunInFork(virSecuritySELinuxTransactionRun, list);
+        else
+            rc = virSecuritySELinuxTransactionRun(pid, list);
+    } else {
+        rc = virProcessRunInMountNamespace(pid,
+                                           virSecuritySELinuxTransactionRun,
+                                           list);
+    }
+
+    if (rc < 0)
         goto cleanup;
 
     ret = 0;
@@ -1139,19 +1197,13 @@ virSecuritySELinuxGetProcessLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
  * return 1 if labelling was not possible.  Otherwise, require a label
  * change, and return 0 for success, -1 for failure.  */
 static int
-virSecuritySELinuxSetFileconHelper(const char *path, const char *tcon,
-                                   bool optional, bool privileged)
+virSecuritySELinuxSetFileconImpl(const char *path, const char *tcon,
+                                 bool optional, bool privileged)
 {
     security_context_t econ;
-    int rc;
 
     /* Be aware that this function might run in a separate process.
      * Therefore, any driver state changes would be thrown away. */
-
-    if ((rc = virSecuritySELinuxTransactionAppend(path, tcon, optional)) < 0)
-        return -1;
-    else if (rc > 0)
-        return 0;
 
     VIR_INFO("Setting SELinux context on '%s' to '%s'", path, tcon);
 
@@ -1205,6 +1257,22 @@ virSecuritySELinuxSetFileconHelper(const char *path, const char *tcon,
     }
     return 0;
 }
+
+
+static int
+virSecuritySELinuxSetFileconHelper(const char *path, const char *tcon,
+                                   bool optional, bool privileged)
+{
+    int rc;
+
+    if ((rc = virSecuritySELinuxTransactionAppend(path, tcon, optional)) < 0)
+        return -1;
+    else if (rc > 0)
+        return 0;
+
+    return virSecuritySELinuxSetFileconImpl(path, tcon, optional, privileged);
+}
+
 
 static int
 virSecuritySELinuxSetFileconOptional(virSecurityManagerPtr mgr,
@@ -1282,11 +1350,13 @@ static int
 virSecuritySELinuxRestoreFileLabel(virSecurityManagerPtr mgr,
                                    const char *path)
 {
+    bool privileged = virSecurityManagerGetPrivileged(mgr);
     struct stat buf;
     security_context_t fcon = NULL;
-    int rc = -1;
     char *newpath = NULL;
     char ebuf[1024];
+    int rc;
+    int ret = -1;
 
     /* Some paths are auto-generated, so let's be safe here and do
      * nothing if nothing is needed.
@@ -1299,13 +1369,13 @@ virSecuritySELinuxRestoreFileLabel(virSecurityManagerPtr mgr,
     if (virFileResolveLink(path, &newpath) < 0) {
         VIR_WARN("cannot resolve symlink %s: %s", path,
                  virStrerror(errno, ebuf, sizeof(ebuf)));
-        goto err;
+        goto cleanup;
     }
 
     if (stat(newpath, &buf) != 0) {
         VIR_WARN("cannot stat %s: %s", newpath,
                  virStrerror(errno, ebuf, sizeof(ebuf)));
-        goto err;
+        goto cleanup;
     }
 
     if (getContext(mgr, newpath, buf.st_mode, &fcon) < 0) {
@@ -1313,15 +1383,23 @@ virSecuritySELinuxRestoreFileLabel(virSecurityManagerPtr mgr,
          * which makes this an expected non error
          */
         VIR_WARN("cannot lookup default selinux label for %s", newpath);
-        rc = 0;
-    } else {
-        rc = virSecuritySELinuxSetFilecon(mgr, newpath, fcon);
+        ret = 0;
+        goto cleanup;
     }
 
- err:
+    if ((rc = virSecuritySELinuxTransactionAppend(path, fcon, false)) < 0)
+        return -1;
+    else if (rc > 0)
+        return 0;
+
+    if (virSecuritySELinuxSetFileconImpl(newpath, fcon, false, privileged) < 0)
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
     freecon(fcon);
     VIR_FREE(newpath);
-    return rc;
+    return ret;
 }
 
 

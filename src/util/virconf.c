@@ -22,8 +22,6 @@
 
 #include <config.h>
 
-#include <string.h>
-#include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -463,7 +461,7 @@ virConfParseValue(virConfParserCtxtPtr ctxt)
         return NULL;
     }
     if ((CUR == '"') || (CUR == '\'') ||
-         (ctxt->conf->flags & VIR_CONF_FLAG_LXC_FORMAT)) {
+        (ctxt->conf->flags & VIR_CONF_FLAG_LXC_FORMAT)) {
         type = VIR_CONF_STRING;
         str = virConfParseString(ctxt);
         if (str == NULL)
@@ -1428,7 +1426,7 @@ int virConfWalk(virConfPtr conf,
     cur = conf->entries;
     while (cur != NULL) {
         if (cur->name && cur->value &&
-                callback(cur->name, cur->value, opaque) < 0)
+            callback(cur->name, cur->value, opaque) < 0)
             return -1;
         cur = cur->next;
     }

@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [4.7.0], [libvir-list@redhat.com], [], [https://libvirt.org])
+AC_INIT([libvirt], [4.10.0], [libvir-list@redhat.com], [], [https://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -322,17 +322,49 @@ AC_CHECK_SIZEOF([long])
 
 dnl Availability of various common functions (non-fatal if missing),
 dnl and various less common threadsafe functions
-AC_CHECK_FUNCS_ONCE([cfmakeraw fallocate geteuid getgid getgrnam_r \
-  getmntent_r getpwuid_r getrlimit getuid if_indextoname kill mmap \
-  newlocale posix_fallocate posix_memalign prlimit regexec \
-  sched_getaffinity setgroups setns setrlimit symlink sysctlbyname \
-  getifaddrs sched_setscheduler unshare])
+AC_CHECK_FUNCS_ONCE([\
+  cfmakeraw \
+  fallocate \
+  geteuid \
+  getgid \
+  getifaddrs \
+  getmntent_r \
+  getpwuid_r \
+  getrlimit \
+  getuid \
+  if_indextoname \
+  mmap \
+  newlocale \
+  posix_fallocate \
+  posix_memalign \
+  prlimit \
+  sched_getaffinity \
+  sched_setscheduler \
+  setgroups \
+  setns \
+  setrlimit \
+  symlink \
+  sysctlbyname \
+  unshare \
+  ])
 
 dnl Availability of various common headers (non-fatal if missing).
-AC_CHECK_HEADERS([pwd.h regex.h sys/un.h \
-  sys/poll.h syslog.h mntent.h net/ethernet.h linux/magic.h \
-  sys/un.h sys/syscall.h sys/sysctl.h netinet/tcp.h ifaddrs.h \
-  libtasn1.h sys/ucred.h sys/mount.h stdarg.h])
+AC_CHECK_HEADERS([\
+  ifaddrs.h \
+  libtasn1.h \
+  linux/magic.h \
+  mntent.h \
+  net/ethernet.h \
+  netinet/tcp.h \
+  pwd.h \
+  stdarg.h \
+  syslog.h \
+  sys/mount.h \
+  sys/syscall.h \
+  sys/sysctl.h \
+  sys/ucred.h \
+  sys/un.h \
+  ])
 dnl Check whether endian provides handy macros.
 AC_CHECK_DECLS([htole64], [], [], [[#include <endian.h>]])
 AC_CHECK_FUNCS([stat stat64 __xstat __xstat64 lstat lstat64 __lxstat __lxstat64])

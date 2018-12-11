@@ -104,6 +104,7 @@ host_triplet = @host@
 @WITH_LINUX_TRUE@	virnetdevbandwidthmock.la \
 @WITH_LINUX_TRUE@	virnumamock.la \
 @WITH_LINUX_TRUE@	virtestmock.la \
+@WITH_LINUX_TRUE@	virfilemock.la \
 @WITH_LINUX_TRUE@	$(NULL)
 
 @WITH_LIBVIRTD_TRUE@am__append_5 = fdstreamtest
@@ -236,7 +237,7 @@ TESTS = $(am__EXEEXT_29) $(am__EXEEXT_35)
 @WITH_SELINUX_FALSE@	$(am__DEPENDENCIES_2) \
 @WITH_SELINUX_FALSE@	$(am__DEPENDENCIES_6)
 @WITH_LINUX_FALSE@am__append_73 = vircaps2xmltest.c virnumamock.c virfilewrapper.c \
-@WITH_LINUX_FALSE@			  virfilewrapper.h virresctrltest.c
+@WITH_LINUX_FALSE@			  virfilewrapper.h virresctrltest.c virfilemock.c
 
 @WITH_NSS_FALSE@am__append_74 = nsstest.c nssmock.c nsslinktest.c
 @WITH_YAJL_TRUE@am__append_75 = virmacmaptest
@@ -654,6 +655,16 @@ virfilecachemock_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(LDFLAGS) -o $@
 @WITH_TESTS_FALSE@am_virfilecachemock_la_rpath =
 @WITH_TESTS_TRUE@am_virfilecachemock_la_rpath =
+@WITH_LINUX_TRUE@virfilemock_la_DEPENDENCIES = $(MOCKLIBS_LIBS)
+am__virfilemock_la_SOURCES_DIST = virfilemock.c
+@WITH_LINUX_TRUE@am_virfilemock_la_OBJECTS = virfilemock.lo
+virfilemock_la_OBJECTS = $(am_virfilemock_la_OBJECTS)
+virfilemock_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(AM_CFLAGS) $(CFLAGS) $(virfilemock_la_LDFLAGS) $(LDFLAGS) -o \
+	$@
+@WITH_LINUX_TRUE@@WITH_TESTS_FALSE@am_virfilemock_la_rpath =
+@WITH_LINUX_TRUE@@WITH_TESTS_TRUE@am_virfilemock_la_rpath =
 virhostcpumock_la_DEPENDENCIES = $(MOCKLIBS_LIBS)
 am_virhostcpumock_la_OBJECTS = virhostcpumock.lo
 virhostcpumock_la_OBJECTS = $(am_virhostcpumock_la_OBJECTS)
@@ -1645,8 +1656,9 @@ SOURCES = $(bhyveargv2xmlmock_la_SOURCES) \
 	$(qemucpumock_la_SOURCES) $(qemuxml2argvmock_la_SOURCES) \
 	$(vircgroupmock_la_SOURCES) $(virdbusmock_la_SOURCES) \
 	$(virdeterministichashmock_la_SOURCES) \
-	$(virfilecachemock_la_SOURCES) $(virhostcpumock_la_SOURCES) \
-	$(virmocklibxl_la_SOURCES) $(virnetdaemonmock_la_SOURCES) \
+	$(virfilecachemock_la_SOURCES) $(virfilemock_la_SOURCES) \
+	$(virhostcpumock_la_SOURCES) $(virmocklibxl_la_SOURCES) \
+	$(virnetdaemonmock_la_SOURCES) \
 	$(virnetdevbandwidthmock_la_SOURCES) \
 	$(virnetdevmock_la_SOURCES) \
 	$(virnetserverclientmock_la_SOURCES) $(virnumamock_la_SOURCES) \
@@ -1732,7 +1744,9 @@ DIST_SOURCES = $(am__bhyveargv2xmlmock_la_SOURCES_DIST) \
 	$(am__qemuxml2argvmock_la_SOURCES_DIST) \
 	$(vircgroupmock_la_SOURCES) $(am__virdbusmock_la_SOURCES_DIST) \
 	$(virdeterministichashmock_la_SOURCES) \
-	$(virfilecachemock_la_SOURCES) $(virhostcpumock_la_SOURCES) \
+	$(virfilecachemock_la_SOURCES) \
+	$(am__virfilemock_la_SOURCES_DIST) \
+	$(virhostcpumock_la_SOURCES) \
 	$(am__virmocklibxl_la_SOURCES_DIST) \
 	$(virnetdaemonmock_la_SOURCES) \
 	$(am__virnetdevbandwidthmock_la_SOURCES_DIST) \
@@ -3638,7 +3652,7 @@ EXTRA_DIST = .valgrind.supp bhyvexml2argvdata bhyveargv2xmldata \
 	networkxml2xmlupdateout nodedevschemadata virhostcpudata \
 	nssdata nwfilterxml2firewalldata nwfilterxml2xmlin \
 	nwfilterxml2xmlout oomtrace.pl qemuagentdata qemuargv2xmldata \
-	qemublocktestdata qemucapabilitiesdata qemucaps2xmldata \
+	qemublocktestdata qemucapabilitiesdata qemucaps2xmloutdata \
 	qemuhotplugtestcpus qemuhotplugtestdevices \
 	qemuhotplugtestdomains qemumigparamsdata qemumonitorjsondata \
 	qemuxml2argvdata qemuxml2startupxmloutdata qemuxml2xmloutdata \
@@ -4300,6 +4314,11 @@ virfilecachemock_la_LIBADD = $(MOCKLIBS_LIBS)
 @WITH_LINUX_TRUE@	virresctrltest.c testutils.h testutils.c virfilewrapper.h virfilewrapper.c
 
 @WITH_LINUX_TRUE@virresctrltest_LDADD = $(LDADDS)
+@WITH_LINUX_TRUE@virfilemock_la_SOURCES = \
+@WITH_LINUX_TRUE@	virfilemock.c
+
+@WITH_LINUX_TRUE@virfilemock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
+@WITH_LINUX_TRUE@virfilemock_la_LIBADD = $(MOCKLIBS_LIBS)
 @WITH_NSS_TRUE@nsstest_SOURCES = \
 @WITH_NSS_TRUE@	nsstest.c testutils.h testutils.c
 
@@ -4656,6 +4675,9 @@ virdeterministichashmock.la: $(virdeterministichashmock_la_OBJECTS) $(virdetermi
 
 virfilecachemock.la: $(virfilecachemock_la_OBJECTS) $(virfilecachemock_la_DEPENDENCIES) $(EXTRA_virfilecachemock_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(virfilecachemock_la_LINK) $(am_virfilecachemock_la_rpath) $(virfilecachemock_la_OBJECTS) $(virfilecachemock_la_LIBADD) $(LIBS)
+
+virfilemock.la: $(virfilemock_la_OBJECTS) $(virfilemock_la_DEPENDENCIES) $(EXTRA_virfilemock_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(virfilemock_la_LINK) $(am_virfilemock_la_rpath) $(virfilemock_la_OBJECTS) $(virfilemock_la_LIBADD) $(LIBS)
 
 virhostcpumock.la: $(virhostcpumock_la_OBJECTS) $(virhostcpumock_la_DEPENDENCIES) $(EXTRA_virhostcpumock_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(virhostcpumock_la_LINK) $(am_virhostcpumock_la_rpath) $(virhostcpumock_la_OBJECTS) $(virhostcpumock_la_LIBADD) $(LIBS)
@@ -5309,6 +5331,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virendiantest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virfilecachemock.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virfilecachetest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virfilemock.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virfiletest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virfilewrapper.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virfirewalltest-testutils.Po@am__quote@
