@@ -167,6 +167,9 @@
      <exports symbol='VIR_DOMAIN_CPU_STATS_USERTIME' type='macro'/>
      <exports symbol='VIR_DOMAIN_CPU_STATS_VCPUTIME' type='macro'/>
      <exports symbol='VIR_DOMAIN_EVENT_CALLBACK' type='macro'/>
+     <exports symbol='VIR_DOMAIN_IOTHREAD_POLL_GROW' type='macro'/>
+     <exports symbol='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS' type='macro'/>
+     <exports symbol='VIR_DOMAIN_IOTHREAD_POLL_SHRINK' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_AUTO_CONVERGE_THROTTLE' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_COMPRESSION_BYTES' type='macro'/>
      <exports symbol='VIR_DOMAIN_JOB_COMPRESSION_CACHE' type='macro'/>
@@ -715,6 +718,7 @@
      <exports symbol='VIR_DOMAIN_SHUTDOWN_USER' type='enum'/>
      <exports symbol='VIR_DOMAIN_SHUTOFF' type='enum'/>
      <exports symbol='VIR_DOMAIN_SHUTOFF_CRASHED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_SHUTOFF_DAEMON' type='enum'/>
      <exports symbol='VIR_DOMAIN_SHUTOFF_DESTROYED' type='enum'/>
      <exports symbol='VIR_DOMAIN_SHUTOFF_FAILED' type='enum'/>
      <exports symbol='VIR_DOMAIN_SHUTOFF_FROM_SNAPSHOT' type='enum'/>
@@ -732,6 +736,7 @@
      <exports symbol='VIR_DOMAIN_STATS_BLOCK' type='enum'/>
      <exports symbol='VIR_DOMAIN_STATS_CPU_TOTAL' type='enum'/>
      <exports symbol='VIR_DOMAIN_STATS_INTERFACE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_STATS_IOTHREAD' type='enum'/>
      <exports symbol='VIR_DOMAIN_STATS_PERF' type='enum'/>
      <exports symbol='VIR_DOMAIN_STATS_STATE' type='enum'/>
      <exports symbol='VIR_DOMAIN_STATS_VCPU' type='enum'/>
@@ -1107,6 +1112,7 @@
      <exports symbol='virDomainSetBlockIoTune' type='function'/>
      <exports symbol='virDomainSetBlockThreshold' type='function'/>
      <exports symbol='virDomainSetGuestVcpus' type='function'/>
+     <exports symbol='virDomainSetIOThreadParams' type='function'/>
      <exports symbol='virDomainSetInterfaceParameters' type='function'/>
      <exports symbol='virDomainSetLifecycleAction' type='function'/>
      <exports symbol='virDomainSetMaxMemory' type='function'/>
@@ -2153,6 +2159,15 @@
     </macro>
     <macro name='VIR_DOMAIN_EVENT_CALLBACK' file='libvirt-domain'>
       <info><![CDATA[Used to cast the event specific callback into the generic one for use for virConnectDomainEventRegisterAny()]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_IOTHREAD_POLL_GROW' file='libvirt-domain' string='poll_grow'>
+      <info><![CDATA[This provides a value for the dynamic polling adjustment algorithm to use to grow its polling interval up to the poll_max_ns value. A value of 0 (zero) allows the hypervisor to choose its own value. The algorithm to use for adjustment is hypervisor specific.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS' file='libvirt-domain' string='poll_max_ns'>
+      <info><![CDATA[The maximum polling time that can be used by polling algorithm in ns. The polling time starts at 0 (zero) and is the time spent by the guest to process IOThread data before returning the CPU to the host. The polling time will be dynamically modified over time based on the poll_grow and poll_shrink parameters provided. A value set too large will cause more CPU time to be allocated the guest. A value set too small will not provide enough cycles for the guest to process data. The polling interval is not available for statistical purposes.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_IOTHREAD_POLL_SHRINK' file='libvirt-domain' string='poll_shrink'>
+      <info><![CDATA[This provides a value for the dynamic polling adjustment algorithm to use to shrink its polling interval when the polling interval exceeds the poll_max_ns value. A value of 0 (zero) allows the hypervisor to choose its own value. The algorithm to use for adjustment is hypervisor specific.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_JOB_AUTO_CONVERGE_THROTTLE' file='libvirt-domain' string='auto_converge_throttle'>
       <info><![CDATA[virDomainGetJobStats field: current percentage guest CPUs are throttled to when auto-convergence decided migration was not converging, as VIR_TYPED_PARAM_INT.]]></info>
@@ -3222,11 +3237,13 @@ wakeup event'/>
     <enum name='VIR_DOMAIN_SHUTDOWN_USER' file='libvirt-domain' value='1' type='virDomainShutdownReason' info='shutting down on user request'/>
     <enum name='VIR_DOMAIN_SHUTOFF' file='libvirt-domain' value='5' type='virDomainState' info='the domain is shut off'/>
     <enum name='VIR_DOMAIN_SHUTOFF_CRASHED' file='libvirt-domain' value='3' type='virDomainShutoffReason' info='domain crashed'/>
+    <enum name='VIR_DOMAIN_SHUTOFF_DAEMON' file='libvirt-domain' value='8' type='virDomainShutoffReason' info='daemon decides to kill domain
+during reconnection processing'/>
     <enum name='VIR_DOMAIN_SHUTOFF_DESTROYED' file='libvirt-domain' value='2' type='virDomainShutoffReason' info='forced poweroff'/>
     <enum name='VIR_DOMAIN_SHUTOFF_FAILED' file='libvirt-domain' value='6' type='virDomainShutoffReason' info='domain failed to start'/>
     <enum name='VIR_DOMAIN_SHUTOFF_FROM_SNAPSHOT' file='libvirt-domain' value='7' type='virDomainShutoffReason' info='restored from a snapshot which was
  taken while domain was shutoff'/>
-    <enum name='VIR_DOMAIN_SHUTOFF_LAST' file='libvirt-domain' value='8' type='virDomainShutoffReason'/>
+    <enum name='VIR_DOMAIN_SHUTOFF_LAST' file='libvirt-domain' value='9' type='virDomainShutoffReason'/>
     <enum name='VIR_DOMAIN_SHUTOFF_MIGRATED' file='libvirt-domain' value='4' type='virDomainShutoffReason' info='migrated to another host'/>
     <enum name='VIR_DOMAIN_SHUTOFF_SAVED' file='libvirt-domain' value='5' type='virDomainShutoffReason' info='saved to a file'/>
     <enum name='VIR_DOMAIN_SHUTOFF_SHUTDOWN' file='libvirt-domain' value='1' type='virDomainShutoffReason' info='normal shutdown'/>
@@ -3298,6 +3315,7 @@ listing a domain'/>
     <enum name='VIR_DOMAIN_STATS_BLOCK' file='libvirt-domain' value='32' type='virDomainStatsTypes' info='return domain block info'/>
     <enum name='VIR_DOMAIN_STATS_CPU_TOTAL' file='libvirt-domain' value='2' type='virDomainStatsTypes' info='return domain CPU info'/>
     <enum name='VIR_DOMAIN_STATS_INTERFACE' file='libvirt-domain' value='16' type='virDomainStatsTypes' info='return domain interfaces info'/>
+    <enum name='VIR_DOMAIN_STATS_IOTHREAD' file='libvirt-domain' value='128' type='virDomainStatsTypes' info='return iothread poll info'/>
     <enum name='VIR_DOMAIN_STATS_PERF' file='libvirt-domain' value='64' type='virDomainStatsTypes' info='return domain perf event info'/>
     <enum name='VIR_DOMAIN_STATS_STATE' file='libvirt-domain' value='1' type='virDomainStatsTypes' info='return domain state'/>
     <enum name='VIR_DOMAIN_STATS_VCPU' file='libvirt-domain' value='8' type='virDomainStatsTypes' info='return domain virtual CPU info'/>
@@ -4930,6 +4948,18 @@ VIR_DOMAIN_STATS_CPU_TOTAL:
     "cpu.user" - user cpu time spent in nanoseconds as unsigned long long.
     "cpu.system" - system cpu time spent in nanoseconds as unsigned long
                    long.
+    "cpu.cache.monitor.count" - the number of cache monitors for this domain
+    "cpu.cache.monitor.<num>.name" - the name of cache monitor <num>
+    "cpu.cache.monitor.<num>.vcpus" - vcpu list of cache monitor <num>
+    "cpu.cache.monitor.<num>.bank.count" - the number of cache banks in
+                                           cache monitor <num>
+    "cpu.cache.monitor.<num>.bank.<index>.id" - host allocated cache id for
+                                                bank <index> in cache
+                                                monitor <num>
+    "cpu.cache.monitor.<num>.bank.<index>.bytes" - the number of bytes of
+                                                   last level cache that the
+                                                   domain is using on cache
+                                                   bank <index>
 
 VIR_DOMAIN_STATS_BALLOON:
     Return memory balloon device information.
@@ -5083,6 +5113,44 @@ VIR_DOMAIN_STATS_PERF:
     "perf.emulation_faults" - The count of emulation faults as unsigned
                               long long. It is produced by the
                               emulation_faults perf event
+
+VIR_DOMAIN_STATS_IOTHREAD:
+    Return IOThread statistics if available. IOThread polling is a
+    timing mechanism that allows the hypervisor to generate a longer
+    period of time in which the guest will perform operations on the
+    CPU being used by the IOThread. The higher the value for poll-max-ns
+    the longer the guest will keep the CPU. This may affect other host
+    threads using the CPU. The poll-grow and poll-shrink values allow
+    the hypervisor to generate a mechanism to add or remove polling time
+    within the confines of 0 and poll-max-ns. For QEMU, the poll-grow is
+    multiplied by the polling interval, while poll-shrink is used as a
+    divisor. When not provided, QEMU may double the polling time until
+    poll-max-ns is reached. When poll-shrink is 0 (zero) QEMU may reset
+    the polling interval to 0 until it finds its "sweet spot". Setting
+    poll-grow too large may cause frequent fluctution of the time; however,
+    this can be tempered by a high poll-shrink to reduce the polling
+    interval. For example, a poll-grow of 3 will triple the polling time
+    which could quickly exceed poll-max-ns; however, a poll-shrink of
+    10 would cut that polling time more gradually.
+
+    The typed parameter keys are in this format:
+
+    "iothread.cnt" - maximum number of IOThreads in the subsequent list
+                     as unsigned int. Each IOThread in the list will
+                     will use it's iothread_id value as the <id>. There
+                     may be fewer <id> entries than the iothread.cnt
+                     value if the polling values are not supported.
+    "iothread.<id>.poll-max-ns" - maximum polling time in ns as an unsigned
+                                  long long. A 0 (zero) means polling is
+                                  disabled.
+    "iothread.<id>.poll-grow" - polling time factor as an unsigned int.
+                                A 0 (zero) indicates to allow the underlying
+                                hypervisor to choose how to grow the
+                                polling time.
+    "iothread.<id>.poll-shrink" - polling time divisor as an unsigned int.
+                                A 0 (zero) indicates to allow the underlying
+                                hypervisor to choose how to shrink the
+                                polling time.
 
 Note that entire stats groups or individual stat fields may be missing from
 the output in case they are not supported by the given hypervisor, are not
@@ -7364,7 +7432,7 @@ When @flags contains VIR_DOMAIN_JOB_STATS_COMPLETED, the function will
 return statistics about a recently completed job. Specifically, this
 flag may be used to query statistics of a completed incoming pre-copy
 migration (statistics for post-copy migration are only available on the
-source hsot). Statistics of a completed job are automatically destroyed
+source host). Statistics of a completed job are automatically destroyed
 once read or when libvirtd is restarted. Note that time information
 returned for completed migrations may be completely irrelevant unless both
 source and destination hosts have synchronized time (i.e., NTP daemon is
@@ -8873,6 +8941,31 @@ low-level features a S3 sleep.]]></info>
       <arg name='state' type='int' info='0 to disable/1 to enable cpus described by @cpumap'/>
       <arg name='flags' type='unsigned int' info='currently unused, callers shall pass 0'/>
     </function>
+    <function name='virDomainSetIOThreadParams' file='libvirt-domain' module='libvirt-domain'>
+      <info><![CDATA[Dynamically set IOThread parameters to the domain. It is left up to
+the underlying virtual hypervisor to determine the valid range for an
+@iothread_id, determining whether the @iothread_id already exists, and
+determining the validity of the provided param values.
+
+See VIR_DOMAIN_IOTHREAD_* for detailed description of accepted IOThread
+parameters.
+
+Since the purpose of this API is to dynamically modify the IOThread
+@flags should only include the VIR_DOMAIN_AFFECT_CURRENT and/or
+VIR_DOMAIN_AFFECT_LIVE virDomainMemoryModFlags. Setting other flags
+may cause errors from the hypervisor.
+
+Note that this call can fail if the underlying virtualization hypervisor
+does not support it or does not support setting the provided values.
+
+This function requires privileged access to the hypervisor.]]></info>
+      <return type='int' info='0 in case of success, -1 in case of failure.'/>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='iothread_id' type='unsigned int' info='the specific IOThread ID value to add'/>
+      <arg name='params' type='virTypedParameterPtr' info='pointer to IOThread parameter objects'/>
+      <arg name='nparams' type='int' info='number of IOThread parameters'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainModificationImpact and virTypedParameterFlags'/>
+    </function>
     <function name='virDomainSetInterfaceParameters' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Change a subset or all parameters of interface; currently this
 includes bandwidth parameters.  The value of @flags should be
@@ -9681,7 +9774,15 @@ persisted device allocation.
 
 This method is used for actions such changing CDROM/Floppy device
 media, altering the graphics configuration such as password,
-reconfiguring the NIC device backend connectivity, etc.]]></info>
+reconfiguring the NIC device backend connectivity, etc.
+
+The supplied XML description of the device should contain all
+the information that is found in the corresponding domain XML.
+Leaving out any piece of information may be treated as a
+request for its removal, which may be denied. For instance,
+when users want to change CDROM media only for live XML, they
+must provide live disk XML as found in the corresponding live
+domain XML with only the disk path changed.]]></info>
       <return type='int' info='0 in case of success, -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='xml' type='const char *' info='pointer to XML description of one device'/>

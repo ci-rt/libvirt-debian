@@ -22,7 +22,6 @@
 
 #include <config.h>
 
-#include <stdint.h>
 #include <libxml/parser.h>
 #include <libxml/xpathInternals.h>
 
@@ -1781,7 +1780,7 @@ ESX_VI__TEMPLATE__LIST__APPEND(Event)
 /* esxVI_Event_CastFromAnyType */
 ESX_VI__TEMPLATE__DYNAMIC_CAST_FROM_ANY_TYPE(Event,
 {
-      case esxVI_Type_Other:
+    case esxVI_Type_Other:
         /* Just accept everything here */
         break;
 })

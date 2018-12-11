@@ -25,13 +25,8 @@
 
 #include <sys/types.h>
 #include <sys/poll.h>
-#include <limits.h>
-#include <string.h>
-#include <stdio.h>
 #include <stdarg.h>
-#include <stdlib.h>
 #include <unistd.h>
-#include <errno.h>
 #include <sys/utsname.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -3237,7 +3232,6 @@ static int
 networkFindUnusedBridgeName(virNetworkObjListPtr nets,
                             virNetworkDefPtr def)
 {
-
     int ret = -1, id = 0;
     char *newname = NULL;
     const char *templ = "virbr%d";

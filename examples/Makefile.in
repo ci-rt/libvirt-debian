@@ -2723,7 +2723,11 @@ uninstall-am: uninstall-abstractionsDATA uninstall-apparmorDATA \
 @WITH_APPARMOR_PROFILES_TRUE@	$(MKDIR_P) "$(APPARMOR_LOCAL_DIR)"
 @WITH_APPARMOR_PROFILES_TRUE@	echo "# Site-specific additions and overrides for \
 @WITH_APPARMOR_PROFILES_TRUE@		'usr.lib.libvirt.virt-aa-helper'" \
-@WITH_APPARMOR_PROFILES_TRUE@		>$(APPARMOR_LOCAL_DIR)/usr.lib.libvirt.virt-aa-helper
+@WITH_APPARMOR_PROFILES_TRUE@		>"$(APPARMOR_LOCAL_DIR)/usr.lib.libvirt.virt-aa-helper"
+
+@WITH_APPARMOR_PROFILES_TRUE@uninstall-apparmor-local:
+@WITH_APPARMOR_PROFILES_TRUE@	rm -f "$(APPARMOR_LOCAL_DIR)/usr.lib.libvirt.virt-aa-helper"
+@WITH_APPARMOR_PROFILES_TRUE@	rmdir "$(APPARMOR_LOCAL_DIR)" || :
 
 @WITH_NWFILTER_TRUE@install-nwfilter-local:
 @WITH_NWFILTER_TRUE@	$(MKDIR_P) "$(NWFILTER_DIR)"

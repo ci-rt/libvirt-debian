@@ -155,6 +155,80 @@ qemuHotplugPrepareDiskAccess(virQEMUDriverPtr driver,
 
 
 static int
+qemuDomainAttachZPCIDevice(qemuMonitorPtr mon,
+                           virDomainDeviceInfoPtr info)
+{
+    char *devstr_zpci = NULL;
+    int ret = -1;
+
+    if (!(devstr_zpci = qemuBuildZPCIDevStr(info)))
+        goto cleanup;
+
+    if (qemuMonitorAddDevice(mon, devstr_zpci) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(devstr_zpci);
+    return ret;
+}
+
+
+static int
+qemuDomainDetachZPCIDevice(qemuMonitorPtr mon,
+                           virDomainDeviceInfoPtr info)
+{
+    char *zpciAlias = NULL;
+    int ret = -1;
+
+    if (virAsprintf(&zpciAlias, "zpci%d", info->addr.pci.zpci.uid) < 0)
+        goto cleanup;
+
+    if (qemuMonitorDelDevice(mon, zpciAlias) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(zpciAlias);
+    return ret;
+}
+
+
+static int
+qemuDomainAttachExtensionDevice(qemuMonitorPtr mon,
+                                virDomainDeviceInfoPtr info)
+{
+    if (info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI ||
+        info->addr.pci.extFlags == VIR_PCI_ADDRESS_EXTENSION_NONE) {
+        return 0;
+    }
+
+    if (info->addr.pci.extFlags & VIR_PCI_ADDRESS_EXTENSION_ZPCI)
+        return qemuDomainAttachZPCIDevice(mon, info);
+
+    return 0;
+}
+
+
+static int
+qemuDomainDetachExtensionDevice(qemuMonitorPtr mon,
+                                virDomainDeviceInfoPtr info)
+{
+    if (info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI ||
+        info->addr.pci.extFlags == VIR_PCI_ADDRESS_EXTENSION_NONE) {
+        return 0;
+    }
+
+    if (info->addr.pci.extFlags & VIR_PCI_ADDRESS_EXTENSION_ZPCI)
+        return qemuDomainDetachZPCIDevice(mon, info);
+
+    return 0;
+}
+
+
+static int
 qemuHotplugWaitForTrayEject(virDomainObjPtr vm,
                             virDomainDiskDefPtr disk)
 {
@@ -210,8 +284,6 @@ qemuDomainChangeMediaLegacy(virQEMUDriverPtr driver,
     char *driveAlias = NULL;
     qemuDomainObjPrivatePtr priv = vm->privateData;
     qemuDomainDiskPrivatePtr diskPriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
-    qemuDomainStorageSourcePrivatePtr srcPriv = QEMU_DOMAIN_STORAGE_SOURCE_PRIVATE(disk->src);
-    qemuDomainSecretInfoPtr secinfo = NULL;
     const char *format = NULL;
     char *sourcestr = NULL;
 
@@ -220,9 +292,6 @@ qemuDomainChangeMediaLegacy(virQEMUDriverPtr driver,
                        _("missing disk device alias name for %s"), disk->dst);
         goto cleanup;
     }
-
-    if (srcPriv)
-        secinfo = srcPriv->secinfo;
 
     if (!(driveAlias = qemuAliasDiskDriveFromDisk(disk)))
         goto cleanup;
@@ -252,17 +321,12 @@ qemuDomainChangeMediaLegacy(virQEMUDriverPtr driver,
     }
 
     if (!virStorageSourceIsEmpty(newsrc)) {
-        if (qemuGetDriveSourceString(newsrc, secinfo, &sourcestr) < 0)
+        if (qemuGetDriveSourceString(newsrc, NULL, &sourcestr) < 0)
             goto cleanup;
 
-        if (virStorageSourceGetActualType(newsrc) != VIR_STORAGE_TYPE_DIR) {
-            if (newsrc->format > 0) {
-                format = virStorageFileFormatTypeToString(newsrc->format);
-            } else {
-                if (disk->src->format > 0)
-                    format = virStorageFileFormatTypeToString(disk->src->format);
-            }
-        }
+        if (virStorageSourceGetActualType(newsrc) != VIR_STORAGE_TYPE_DIR)
+            format = virStorageFileFormatTypeToString(newsrc->format);
+
         qemuDomainObjEnterMonitor(driver, vm);
         rc = qemuMonitorChangeMedia(priv->mon,
                                     driveAlias,
@@ -468,6 +532,7 @@ qemuHotplugRemoveStorageSourcePrepareData(virStorageSourcePtr src,
 
 static qemuHotplugDiskSourceDataPtr
 qemuHotplugDiskSourceRemovePrepare(virDomainDiskDefPtr disk,
+                                   virStorageSourcePtr src,
                                    virQEMUCapsPtr qemuCaps)
 {
     qemuDomainDiskPrivatePtr diskPriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
@@ -484,7 +549,7 @@ qemuHotplugDiskSourceRemovePrepare(virDomainDiskDefPtr disk,
         if (VIR_STRDUP(data->corAlias, diskPriv->nodeCopyOnRead) < 0)
             goto cleanup;
 
-        for (n = disk->src; virStorageSourceIsBacking(n); n = n->backingStore) {
+        for (n = src; virStorageSourceIsBacking(n); n = n->backingStore) {
             if (!(backend = qemuHotplugRemoveStorageSourcePrepareData(n, NULL)))
                 goto cleanup;
 
@@ -495,7 +560,7 @@ qemuHotplugDiskSourceRemovePrepare(virDomainDiskDefPtr disk,
         if (!(drivealias = qemuAliasDiskDriveFromDisk(disk)))
             goto cleanup;
 
-        if (!(backend = qemuHotplugRemoveStorageSourcePrepareData(disk->src,
+        if (!(backend = qemuHotplugRemoveStorageSourcePrepareData(src,
                                                                   drivealias)))
             goto cleanup;
 
@@ -515,6 +580,7 @@ qemuHotplugDiskSourceRemovePrepare(virDomainDiskDefPtr disk,
 /**
  * qemuHotplugDiskSourceAttachPrepare:
  * @disk: disk to generate attachment data for
+ * @src: disk source to prepare attachment
  * @qemuCaps: capabilities of the qemu process
  *
  * Prepares and returns qemuHotplugDiskSourceData structure filled with all data
@@ -522,11 +588,13 @@ qemuHotplugDiskSourceRemovePrepare(virDomainDiskDefPtr disk,
  */
 static qemuHotplugDiskSourceDataPtr
 qemuHotplugDiskSourceAttachPrepare(virDomainDiskDefPtr disk,
+                                   virStorageSourcePtr src,
                                    virQEMUCapsPtr qemuCaps)
 {
     qemuBlockStorageSourceAttachDataPtr backend = NULL;
     qemuHotplugDiskSourceDataPtr data;
     qemuHotplugDiskSourceDataPtr ret = NULL;
+    virStorageSourcePtr savesrc = NULL;
     virStorageSourcePtr n;
 
     if (VIR_ALLOC(data) < 0)
@@ -537,7 +605,7 @@ qemuHotplugDiskSourceAttachPrepare(virDomainDiskDefPtr disk,
             !(data->corProps = qemuBlockStorageGetCopyOnReadProps(disk)))
             goto cleanup;
 
-        for (n = disk->src; virStorageSourceIsBacking(n); n = n->backingStore) {
+        for (n = src; virStorageSourceIsBacking(n); n = n->backingStore) {
             if (!(backend = qemuBlockStorageSourceAttachPrepareBlockdev(n)))
                 goto cleanup;
 
@@ -548,10 +616,15 @@ qemuHotplugDiskSourceAttachPrepare(virDomainDiskDefPtr disk,
                 goto cleanup;
         }
     } else {
+        VIR_STEAL_PTR(savesrc, disk->src);
+        disk->src = src;
+
         if (!(backend = qemuBuildStorageSourceAttachPrepareDrive(disk, qemuCaps)))
             goto cleanup;
 
-        if (qemuBuildStorageSourceAttachPrepareCommon(disk->src, backend, qemuCaps) < 0)
+        VIR_STEAL_PTR(disk->src, savesrc);
+
+        if (qemuBuildStorageSourceAttachPrepareCommon(src, backend, qemuCaps) < 0)
             goto cleanup;
 
         if (VIR_APPEND_ELEMENT(data->backends, data->nbackends, backend) < 0)
@@ -561,6 +634,9 @@ qemuHotplugDiskSourceAttachPrepare(virDomainDiskDefPtr disk,
     VIR_STEAL_PTR(ret, data);
 
  cleanup:
+    if (savesrc)
+        VIR_STEAL_PTR(disk->src, savesrc);
+
     qemuBlockStorageSourceAttachDataFree(backend);
     qemuHotplugDiskSourceDataFree(data);
     return ret;
@@ -623,6 +699,7 @@ qemuHotplugDiskSourceRemove(qemuMonitorPtr mon,
  * @driver: qemu driver structure
  * @vm: domain definition
  * @disk: disk definition to change the source of
+ * @oldsrc: old source definition
  * @newsrc: new disk source to change to
  * @force: force the change of media
  *
@@ -637,6 +714,7 @@ static int
 qemuDomainChangeMediaBlockdev(virQEMUDriverPtr driver,
                               virDomainObjPtr vm,
                               virDomainDiskDefPtr disk,
+                              virStorageSourcePtr oldsrc,
                               virStorageSourcePtr newsrc,
                               bool force)
 {
@@ -644,18 +722,17 @@ qemuDomainChangeMediaBlockdev(virQEMUDriverPtr driver,
     qemuDomainDiskPrivatePtr diskPriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
     qemuHotplugDiskSourceDataPtr newbackend = NULL;
     qemuHotplugDiskSourceDataPtr oldbackend = NULL;
-    virStorageSourcePtr oldsrc = disk->src;
     char *nodename = NULL;
     int rc;
     int ret = -1;
 
-    if (!virStorageSourceIsEmpty(disk->src) &&
-        !(oldbackend = qemuHotplugDiskSourceRemovePrepare(disk, priv->qemuCaps)))
+    if (!virStorageSourceIsEmpty(oldsrc) &&
+        !(oldbackend = qemuHotplugDiskSourceRemovePrepare(disk, oldsrc,
+                                                          priv->qemuCaps)))
         goto cleanup;
 
-    disk->src = newsrc;
-    if (!virStorageSourceIsEmpty(disk->src)) {
-        if (!(newbackend = qemuHotplugDiskSourceAttachPrepare(disk,
+    if (!virStorageSourceIsEmpty(newsrc)) {
+        if (!(newbackend = qemuHotplugDiskSourceAttachPrepare(disk, newsrc,
                                                               priv->qemuCaps)))
             goto cleanup;
 
@@ -701,8 +778,6 @@ qemuDomainChangeMediaBlockdev(virQEMUDriverPtr driver,
     qemuHotplugDiskSourceDataFree(newbackend);
     qemuHotplugDiskSourceDataFree(oldbackend);
     VIR_FREE(nodename);
-    /* caller handles correct exchange of sources */
-    disk->src = oldsrc;
     return ret;
 }
 
@@ -722,16 +797,35 @@ qemuDomainChangeMediaBlockdev(virQEMUDriverPtr driver,
  *
  * Returns 0 on success, -1 on error and reports libvirt error
  */
-static int
+int
 qemuDomainChangeEjectableMedia(virQEMUDriverPtr driver,
                                virDomainObjPtr vm,
                                virDomainDiskDefPtr disk,
                                virStorageSourcePtr newsrc,
                                bool force)
 {
+    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     qemuDomainObjPrivatePtr priv = vm->privateData;
+    virStorageSourcePtr oldsrc = disk->src;
+    bool sharedAdded = false;
     int ret = -1;
     int rc;
+
+    disk->src = newsrc;
+
+    if (virDomainDiskTranslateSourcePool(disk) < 0)
+        goto cleanup;
+
+    if (qemuAddSharedDisk(driver, disk, vm->def->name) < 0)
+        goto cleanup;
+
+    sharedAdded = true;
+
+    if (qemuDomainDetermineDiskChain(driver, vm, disk, true) < 0)
+        goto cleanup;
+
+    if (qemuDomainPrepareDiskSource(disk, priv, cfg) < 0)
+        goto cleanup;
 
     if (qemuHotplugPrepareDiskAccess(driver, vm, disk, newsrc, false) < 0)
         goto cleanup;
@@ -740,29 +834,44 @@ qemuDomainChangeEjectableMedia(virQEMUDriverPtr driver,
         goto cleanup;
 
     if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_BLOCKDEV))
-        rc = qemuDomainChangeMediaBlockdev(driver, vm, disk, newsrc, force);
+        rc = qemuDomainChangeMediaBlockdev(driver, vm, disk, oldsrc, newsrc, force);
     else
         rc = qemuDomainChangeMediaLegacy(driver, vm, disk, newsrc, force);
 
-    virDomainAuditDisk(vm, disk->src, newsrc, "update", rc >= 0);
+    virDomainAuditDisk(vm, oldsrc, newsrc, "update", rc >= 0);
 
-    if (rc < 0) {
-        ignore_value(qemuHotplugPrepareDiskAccess(driver, vm, disk, newsrc, true));
+    if (rc < 0)
         goto cleanup;
-    }
 
     /* remove the old source from shared device list */
+    disk->src = oldsrc;
     ignore_value(qemuRemoveSharedDisk(driver, disk, vm->def->name));
-    ignore_value(qemuHotplugPrepareDiskAccess(driver, vm, disk, NULL, true));
+    ignore_value(qemuHotplugPrepareDiskAccess(driver, vm, disk, oldsrc, true));
 
-    virStorageSourceFree(disk->src);
-    VIR_STEAL_PTR(disk->src, newsrc);
-
-    ignore_value(qemuHotplugRemoveManagedPR(driver, vm, QEMU_ASYNC_JOB_NONE));
+    /* media was changed, so we can remove the old media definition now */
+    virStorageSourceFree(oldsrc);
+    oldsrc = NULL;
+    disk->src = newsrc;
 
     ret = 0;
 
  cleanup:
+    /* undo changes to the new disk */
+    if (ret < 0) {
+        if (sharedAdded)
+            ignore_value(qemuRemoveSharedDisk(driver, disk, vm->def->name));
+
+        ignore_value(qemuHotplugPrepareDiskAccess(driver, vm, disk, newsrc, true));
+    }
+
+    /* remove PR manager object if unneeded */
+    ignore_value(qemuHotplugRemoveManagedPR(driver, vm, QEMU_ASYNC_JOB_NONE));
+
+    /* revert old image do the disk definition */
+    if (oldsrc)
+        disk->src = oldsrc;
+
+    virObjectUnref(cfg);
     return ret;
 }
 
@@ -781,6 +890,7 @@ qemuDomainAttachDiskGeneric(virQEMUDriverPtr driver,
     qemuDomainObjPrivatePtr priv = vm->privateData;
     qemuHotplugDiskSourceDataPtr diskdata = NULL;
     char *devstr = NULL;
+    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
 
     if (qemuHotplugPrepareDiskAccess(driver, vm, disk, NULL, false) < 0)
         goto cleanup;
@@ -788,7 +898,11 @@ qemuDomainAttachDiskGeneric(virQEMUDriverPtr driver,
     if (qemuAssignDeviceDiskAlias(vm->def, disk, priv->qemuCaps) < 0)
         goto error;
 
-    if (!(diskdata = qemuHotplugDiskSourceAttachPrepare(disk, priv->qemuCaps)))
+    if (qemuDomainPrepareDiskSource(disk, priv, cfg) < 0)
+        goto error;
+
+    if (!(diskdata = qemuHotplugDiskSourceAttachPrepare(disk, disk->src,
+                                                        priv->qemuCaps)))
         goto error;
 
     if (!(devstr = qemuBuildDiskDeviceStr(vm->def, disk, 0, priv->qemuCaps)))
@@ -805,8 +919,13 @@ qemuDomainAttachDiskGeneric(virQEMUDriverPtr driver,
     if (qemuHotplugDiskSourceAttach(priv->mon, diskdata) < 0)
         goto exit_monitor;
 
-    if (qemuMonitorAddDevice(priv->mon, devstr) < 0)
+    if (qemuDomainAttachExtensionDevice(priv->mon, &disk->info) < 0)
         goto exit_monitor;
+
+    if (qemuMonitorAddDevice(priv->mon, devstr) < 0) {
+        ignore_value(qemuDomainDetachExtensionDevice(priv->mon, &disk->info));
+        goto exit_monitor;
+    }
 
     if (qemuDomainObjExitMonitor(driver, vm) < 0) {
         ret = -2;
@@ -822,6 +941,7 @@ qemuDomainAttachDiskGeneric(virQEMUDriverPtr driver,
     qemuHotplugDiskSourceDataFree(diskdata);
     qemuDomainSecretDiskDestroy(disk);
     VIR_FREE(devstr);
+    virObjectUnref(cfg);
     return ret;
 
  exit_monitor:
@@ -913,7 +1033,16 @@ int qemuDomainAttachControllerDevice(virQEMUDriverPtr driver,
         goto cleanup;
 
     qemuDomainObjEnterMonitor(driver, vm);
-    ret = qemuMonitorAddDevice(priv->mon, devstr);
+
+    if ((ret = qemuDomainAttachExtensionDevice(priv->mon,
+                                               &controller->info)) < 0) {
+        goto exit_monitor;
+    }
+
+    if ((ret = qemuMonitorAddDevice(priv->mon, devstr)) < 0)
+        ignore_value(qemuDomainDetachExtensionDevice(priv->mon, &controller->info));
+
+ exit_monitor:
     if (qemuDomainObjExitMonitor(driver, vm) < 0) {
         releaseaddr = false;
         ret = -1;
@@ -1044,29 +1173,21 @@ qemuDomainAttachUSBMassStorageDevice(virQEMUDriverPtr driver,
 }
 
 
-/**
- * qemuDomainAttachDeviceDiskLive:
- * @driver: qemu driver struct
- * @vm: domain object
- * @dev: device to attach (expected type is DISK)
- * @forceMediaChange: Forcibly open the drive if changing media
- *
- * Attach a new disk or in case of cdroms/floppies change the media in the drive.
- * This function handles all the necessary steps to attach a new storage source
- * to the VM. If @forceMediaChange is true the drive is opened forcibly.
- */
-int
-qemuDomainAttachDeviceDiskLive(virQEMUDriverPtr driver,
-                               virDomainObjPtr vm,
-                               virDomainDeviceDefPtr dev,
-                               bool forceMediaChange)
+static int
+qemuDomainAttachDeviceDiskLiveInternal(virQEMUDriverPtr driver,
+                                       virDomainObjPtr vm,
+                                       virDomainDeviceDefPtr dev)
 {
     size_t i;
-    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
-    qemuDomainObjPrivatePtr priv = vm->privateData;
     virDomainDiskDefPtr disk = dev->data.disk;
-    virDomainDiskDefPtr orig_disk = NULL;
     int ret = -1;
+
+    if (disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM ||
+        disk->device == VIR_DOMAIN_DISK_DEVICE_FLOPPY) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("cdrom/floppy device hotplug isn't supported"));
+        return -1;
+    }
 
     if (virDomainDiskTranslateSourcePool(disk) < 0)
         goto cleanup;
@@ -1080,81 +1201,83 @@ qemuDomainAttachDeviceDiskLive(virQEMUDriverPtr driver,
     if (qemuDomainDetermineDiskChain(driver, vm, disk, true) < 0)
         goto cleanup;
 
-    if (qemuDomainPrepareDiskSource(disk, priv, cfg) < 0)
-        goto cleanup;
-
-    switch ((virDomainDiskDevice) disk->device)  {
-    case VIR_DOMAIN_DISK_DEVICE_CDROM:
-    case VIR_DOMAIN_DISK_DEVICE_FLOPPY:
-        if (!(orig_disk = virDomainDiskFindByBusAndDst(vm->def,
-                                                       disk->bus, disk->dst))) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("No device with bus '%s' and target '%s'. "
-                             "cdrom and floppy device hotplug isn't supported "
-                             "by libvirt"),
-                           virDomainDiskBusTypeToString(disk->bus),
-                           disk->dst);
+    for (i = 0; i < vm->def->ndisks; i++) {
+        if (virDomainDiskDefCheckDuplicateInfo(vm->def->disks[i], disk) < 0)
             goto cleanup;
+    }
+
+    switch ((virDomainDiskBus) disk->bus) {
+    case VIR_DOMAIN_DISK_BUS_USB:
+        if (disk->device == VIR_DOMAIN_DISK_DEVICE_LUN) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("disk device='lun' is not supported for usb bus"));
+            break;
         }
-
-        if (qemuDomainChangeEjectableMedia(driver, vm, orig_disk,
-                                           disk->src, forceMediaChange) < 0)
-            goto cleanup;
-
-        disk->src = NULL;
-        ret = 0;
+        ret = qemuDomainAttachUSBMassStorageDevice(driver, vm, disk);
         break;
 
-    case VIR_DOMAIN_DISK_DEVICE_DISK:
-    case VIR_DOMAIN_DISK_DEVICE_LUN:
-        for (i = 0; i < vm->def->ndisks; i++) {
-            if (virDomainDiskDefCheckDuplicateInfo(vm->def->disks[i], disk) < 0)
-                goto cleanup;
-        }
-
-        switch ((virDomainDiskBus) disk->bus) {
-        case VIR_DOMAIN_DISK_BUS_USB:
-            if (disk->device == VIR_DOMAIN_DISK_DEVICE_LUN) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                               _("disk device='lun' is not supported for usb bus"));
-                break;
-            }
-            ret = qemuDomainAttachUSBMassStorageDevice(driver, vm, disk);
-            break;
-
-        case VIR_DOMAIN_DISK_BUS_VIRTIO:
-            ret = qemuDomainAttachVirtioDiskDevice(driver, vm, disk);
-            break;
-
-        case VIR_DOMAIN_DISK_BUS_SCSI:
-            ret = qemuDomainAttachSCSIDisk(driver, vm, disk);
-            break;
-
-        case VIR_DOMAIN_DISK_BUS_IDE:
-        case VIR_DOMAIN_DISK_BUS_FDC:
-        case VIR_DOMAIN_DISK_BUS_XEN:
-        case VIR_DOMAIN_DISK_BUS_UML:
-        case VIR_DOMAIN_DISK_BUS_SATA:
-        case VIR_DOMAIN_DISK_BUS_SD:
-            /* Note that SD card hotplug support should be added only once
-             * they support '-device' (don't require -drive only).
-             * See also: qemuDiskBusNeedsDriveArg */
-        case VIR_DOMAIN_DISK_BUS_LAST:
-            virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
-                           _("disk bus '%s' cannot be hotplugged."),
-                           virDomainDiskBusTypeToString(disk->bus));
-        }
+    case VIR_DOMAIN_DISK_BUS_VIRTIO:
+        ret = qemuDomainAttachVirtioDiskDevice(driver, vm, disk);
         break;
 
-    case VIR_DOMAIN_DISK_DEVICE_LAST:
+    case VIR_DOMAIN_DISK_BUS_SCSI:
+        ret = qemuDomainAttachSCSIDisk(driver, vm, disk);
         break;
+
+    case VIR_DOMAIN_DISK_BUS_IDE:
+    case VIR_DOMAIN_DISK_BUS_FDC:
+    case VIR_DOMAIN_DISK_BUS_XEN:
+    case VIR_DOMAIN_DISK_BUS_UML:
+    case VIR_DOMAIN_DISK_BUS_SATA:
+    case VIR_DOMAIN_DISK_BUS_SD:
+        /* Note that SD card hotplug support should be added only once
+         * they support '-device' (don't require -drive only).
+         * See also: qemuDiskBusNeedsDriveArg */
+    case VIR_DOMAIN_DISK_BUS_LAST:
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
+                       _("disk bus '%s' cannot be hotplugged."),
+                       virDomainDiskBusTypeToString(disk->bus));
     }
 
  cleanup:
     if (ret != 0)
         ignore_value(qemuRemoveSharedDevice(driver, dev, vm->def->name));
-    virObjectUnref(cfg);
     return ret;
+}
+
+
+/**
+ * qemuDomainAttachDeviceDiskLive:
+ * @driver: qemu driver struct
+ * @vm: domain object
+ * @dev: device to attach (expected type is DISK)
+ *
+ * Attach a new disk or in case of cdroms/floppies change the media in the drive.
+ * This function handles all the necessary steps to attach a new storage source
+ * to the VM.
+ */
+int
+qemuDomainAttachDeviceDiskLive(virQEMUDriverPtr driver,
+                               virDomainObjPtr vm,
+                               virDomainDeviceDefPtr dev)
+{
+    virDomainDiskDefPtr disk = dev->data.disk;
+    virDomainDiskDefPtr orig_disk = NULL;
+
+    /* this API overloads media change semantics on disk hotplug
+     * for devices supporting media changes */
+    if ((disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM ||
+         disk->device == VIR_DOMAIN_DISK_DEVICE_FLOPPY) &&
+        (orig_disk = virDomainDiskFindByBusAndDst(vm->def, disk->bus, disk->dst))) {
+        if (qemuDomainChangeEjectableMedia(driver, vm, orig_disk,
+                                           disk->src, false) < 0)
+            return -1;
+
+        disk->src = NULL;
+        return 0;
+    }
+
+    return qemuDomainAttachDeviceDiskLiveInternal(driver, vm, dev);
 }
 
 
@@ -1205,7 +1328,6 @@ qemuDomainAttachNetDevice(virQEMUDriverPtr driver,
     bool charDevPlugged = false;
     bool netdevPlugged = false;
     char *netdev_name;
-    virErrorPtr save_error = NULL;
 
     /* preallocate new slot for device */
     if (VIR_REALLOC_N(vm->def->nets, vm->def->nnets + 1) < 0)
@@ -1331,6 +1453,11 @@ qemuDomainAttachNetDevice(virQEMUDriverPtr driver,
 
         if (!(charDevAlias = qemuAliasChardevFromDevAlias(net->info.alias)))
             goto cleanup;
+
+        if (virNetDevOpenvswitchGetVhostuserIfname(net->data.vhostuser->data.nix.path,
+                                                   &net->ifname) < 0)
+            goto cleanup;
+
         break;
 
     case VIR_DOMAIN_NET_TYPE_USER:
@@ -1378,6 +1505,7 @@ qemuDomainAttachNetDevice(virQEMUDriverPtr driver,
     }
 
     if (qemuDomainIsS390CCW(vm->def) &&
+        net->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI &&
         virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_CCW)) {
         net->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW;
         if (!(ccwaddrs = virDomainCCWAddressSetCreateFromDomain(vm->def)))
@@ -1447,7 +1575,15 @@ qemuDomainAttachNetDevice(virQEMUDriverPtr driver,
         goto try_remove;
 
     qemuDomainObjEnterMonitor(driver, vm);
+
+    if (qemuDomainAttachExtensionDevice(priv->mon, &net->info) < 0) {
+        ignore_value(qemuDomainObjExitMonitor(driver, vm));
+        virDomainAuditNet(vm, NULL, net, "attach", false);
+        goto try_remove;
+    }
+
     if (qemuMonitorAddDevice(priv->mon, nicstr) < 0) {
+        ignore_value(qemuDomainDetachExtensionDevice(priv->mon, &net->info));
         ignore_value(qemuDomainObjExitMonitor(driver, vm));
         virDomainAuditNet(vm, NULL, net, "attach", false);
         goto try_remove;
@@ -1487,9 +1623,9 @@ qemuDomainAttachNetDevice(virQEMUDriverPtr driver,
             qemuDomainReleaseDeviceAddress(vm, &net->info, NULL);
 
         if (iface_connected) {
-            virErrorPreserveLast(&save_error);
+            virErrorPreserveLast(&originalError);
             virDomainConfNWFilterTeardown(net);
-            virErrorRestore(&save_error);
+            virErrorRestore(&originalError);
 
             if (virDomainNetGetActualType(net) == VIR_DOMAIN_NET_TYPE_DIRECT) {
                 ignore_value(virNetDevMacVLanDeleteWithVPortProfile(
@@ -1645,8 +1781,7 @@ qemuDomainAttachHostPCIDevice(virQEMUDriverPtr driver,
     if (qemuDomainEnsurePCIAddress(vm, &dev, driver) < 0)
         goto error;
     releaseaddr = true;
-    if (backend != VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO &&
-        virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_PCI_CONFIGFD)) {
+    if (backend != VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
         configfd = qemuOpenPCIConfig(hostdev);
         if (configfd >= 0) {
             if (virAsprintf(&configfd_name, "fd-%s", info->alias) < 0)
@@ -1665,8 +1800,16 @@ qemuDomainAttachHostPCIDevice(virQEMUDriverPtr driver,
         goto error;
 
     qemuDomainObjEnterMonitor(driver, vm);
-    ret = qemuMonitorAddDeviceWithFd(priv->mon, devstr,
-                                     configfd, configfd_name);
+
+    if ((ret = qemuDomainAttachExtensionDevice(priv->mon, hostdev->info)) < 0)
+        goto exit_monitor;
+
+    if ((ret = qemuMonitorAddDeviceWithFd(priv->mon, devstr,
+                                          configfd, configfd_name)) < 0) {
+        ignore_value(qemuDomainDetachExtensionDevice(priv->mon, hostdev->info));
+    }
+
+ exit_monitor:
     if (qemuDomainObjExitMonitor(driver, vm) < 0)
         goto error;
 
@@ -2322,8 +2465,13 @@ qemuDomainAttachRNGDevice(virQEMUDriverPtr driver,
     if (qemuMonitorAddObject(priv->mon, &props, &objAlias) < 0)
         goto exit_monitor;
 
-    if (qemuMonitorAddDevice(priv->mon, devstr) < 0)
+    if (qemuDomainAttachExtensionDevice(priv->mon, &rng->info) < 0)
         goto exit_monitor;
+
+    if (qemuMonitorAddDevice(priv->mon, devstr) < 0) {
+        ignore_value(qemuDomainDetachExtensionDevice(priv->mon, &rng->info));
+        goto exit_monitor;
+    }
 
     if (qemuDomainObjExitMonitor(driver, vm) < 0) {
         releaseaddr = false;
@@ -2616,12 +2764,6 @@ qemuDomainAttachHostSCSIDevice(virQEMUDriverPtr driver,
     virDomainHostdevSubsysSCSIPtr scsisrc = &hostdev->source.subsys.u.scsi;
     qemuDomainSecretInfoPtr secinfo = NULL;
 
-    if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE_SCSI_GENERIC)) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("SCSI passthrough is not supported by this version of qemu"));
-        return -1;
-    }
-
     /* Let's make sure the disk has a controller defined and loaded before
      * trying to add it. The controller used by the disk must exist before a
      * qemu command line string is generated.
@@ -2756,12 +2898,6 @@ qemuDomainAttachSCSIVHostDevice(virQEMUDriverPtr driver,
     bool teardowndevice = false;
     bool releaseaddr = false;
 
-    if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE_SCSI_GENERIC)) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("SCSI passthrough is not supported by this version of qemu"));
-        return -1;
-    }
-
     if (qemuHostdevPrepareSCSIVHostDevices(driver, vm->def->name, &hostdev, 1) < 0)
         return -1;
 
@@ -2816,8 +2952,16 @@ qemuDomainAttachSCSIVHostDevice(virQEMUDriverPtr driver,
 
     qemuDomainObjEnterMonitor(driver, vm);
 
-    ret = qemuMonitorAddDeviceWithFd(priv->mon, devstr, vhostfd, vhostfdName);
+    if ((ret = qemuDomainAttachExtensionDevice(priv->mon, hostdev->info)) < 0)
+        goto exit_monitor;
 
+    if ((ret = qemuMonitorAddDeviceWithFd(priv->mon, devstr, vhostfd,
+                                          vhostfdName)) < 0) {
+        ignore_value(qemuDomainDetachExtensionDevice(priv->mon, hostdev->info));
+        goto exit_monitor;
+    }
+
+ exit_monitor:
     if (qemuDomainObjExitMonitor(driver, vm) < 0 || ret < 0)
         goto audit;
 
@@ -3062,8 +3206,13 @@ qemuDomainAttachShmemDevice(virQEMUDriverPtr driver,
 
     release_backing = true;
 
-    if (qemuMonitorAddDevice(priv->mon, shmstr) < 0)
+    if (qemuDomainAttachExtensionDevice(priv->mon, &shmem->info) < 0)
         goto exit_monitor;
+
+    if (qemuMonitorAddDevice(priv->mon, shmstr) < 0) {
+        ignore_value(qemuDomainDetachExtensionDevice(priv->mon, &shmem->info));
+        goto exit_monitor;
+    }
 
     if (qemuDomainObjExitMonitor(driver, vm) < 0) {
         release_address = false;
@@ -3236,8 +3385,14 @@ qemuDomainAttachInputDevice(virQEMUDriverPtr driver,
         goto cleanup;
 
     qemuDomainObjEnterMonitor(driver, vm);
-    if (qemuMonitorAddDevice(priv->mon, devstr) < 0)
+
+    if (qemuDomainAttachExtensionDevice(priv->mon, &input->info) < 0)
         goto exit_monitor;
+
+    if (qemuMonitorAddDevice(priv->mon, devstr) < 0) {
+        ignore_value(qemuDomainDetachExtensionDevice(priv->mon, &input->info));
+        goto exit_monitor;
+    }
 
     if (qemuDomainObjExitMonitor(driver, vm) < 0) {
         releaseaddr = false;
@@ -3315,8 +3470,14 @@ qemuDomainAttachVsockDevice(virQEMUDriverPtr driver,
         goto cleanup;
 
     qemuDomainObjEnterMonitor(driver, vm);
-    if (qemuMonitorAddDeviceWithFd(priv->mon, devstr, vsockPriv->vhostfd, fdname) < 0)
+
+    if (qemuDomainAttachExtensionDevice(priv->mon, &vsock->info) < 0)
         goto exit_monitor;
+
+    if (qemuMonitorAddDeviceWithFd(priv->mon, devstr, vsockPriv->vhostfd, fdname) < 0) {
+        ignore_value(qemuDomainDetachExtensionDevice(priv->mon, &vsock->info));
+        goto exit_monitor;
+    }
 
     if (qemuDomainObjExitMonitor(driver, vm) < 0) {
         releaseaddr = false;
@@ -4191,7 +4352,8 @@ qemuDomainRemoveDiskDevice(virQEMUDriverPtr driver,
     VIR_DEBUG("Removing disk %s from domain %p %s",
               disk->info.alias, vm, vm->def->name);
 
-    if (!(diskbackend = qemuHotplugDiskSourceRemovePrepare(disk, priv->qemuCaps)))
+    if (!(diskbackend = qemuHotplugDiskSourceRemovePrepare(disk, disk->src,
+                                                           priv->qemuCaps)))
         return -1;
 
     for (i = 0; i < vm->def->ndisks; i++) {
@@ -5301,10 +5463,17 @@ int qemuDomainDetachControllerDevice(virQEMUDriverPtr driver,
         qemuDomainMarkDeviceForRemoval(vm, &detach->info);
 
     qemuDomainObjEnterMonitor(driver, vm);
+    if (detach->type == VIR_DOMAIN_CONTROLLER_TYPE_PCI &&
+        qemuDomainDetachExtensionDevice(priv->mon, &detach->info)) {
+        goto exit_monitor;
+    }
+
     if (qemuMonitorDelDevice(priv->mon, detach->info.alias)) {
         ignore_value(qemuDomainObjExitMonitor(driver, vm));
         goto cleanup;
     }
+
+ exit_monitor:
     if (qemuDomainObjExitMonitor(driver, vm) < 0)
         goto cleanup;
 

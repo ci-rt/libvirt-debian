@@ -25,14 +25,11 @@
 
 #ifndef WIN32
 
-# include <stdio.h>
 # include <sys/types.h>
 # include <sys/stat.h>
 # include <fcntl.h>
 # include <termios.h>
 # include <poll.h>
-# include <string.h>
-# include <errno.h>
 # include <unistd.h>
 # include <signal.h>
 # include <c-ctype.h>

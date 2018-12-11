@@ -25,7 +25,6 @@
 #include <config.h>
 
 #include <unistd.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <time.h>
 
@@ -38,6 +37,7 @@
 #include "node_device_event.h"
 #include "node_device_driver.h"
 #include "node_device_hal.h"
+#include "node_device_util.h"
 #include "virvhba.h"
 #include "viraccessapicheck.h"
 #include "virnetdev.h"

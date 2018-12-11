@@ -27,8 +27,6 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
 
 #include "virerror.h"
 #include "virhook.h"
@@ -251,7 +249,7 @@ virHookCall(int driver,
     if ((virHooksFound == -1) ||
         ((driver == VIR_HOOK_DRIVER_DAEMON) &&
          (op == VIR_HOOK_DAEMON_OP_RELOAD ||
-         op == VIR_HOOK_DAEMON_OP_SHUTDOWN)))
+          op == VIR_HOOK_DAEMON_OP_SHUTDOWN)))
         virHookInitialize();
 
     if ((virHooksFound & (1 << driver)) == 0)

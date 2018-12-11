@@ -10469,6 +10469,72 @@ cleanup:
 
 
 
+static int remoteDispatchDomainSetIOThreadParams(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_set_iothread_params_args *args);
+static int remoteDispatchDomainSetIOThreadParamsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchDomainSetIOThreadParams");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchDomainSetIOThreadParams(server, client, msg, rerr, args);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchDomainSetIOThreadParams(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_set_iothread_params_args *args)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    virTypedParameterPtr params = NULL;
+    int nparams = 0;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if (virTypedParamsDeserialize((virTypedParameterRemotePtr) args->params.params_val,
+                                  args->params.params_len,
+                                  REMOTE_DOMAIN_IOTHREAD_PARAMS_MAX,
+                                  &params,
+                                  &nparams) < 0)
+        goto cleanup;
+
+    if (virDomainSetIOThreadParams(dom, args->iothread_id, params, nparams, args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(dom);
+    virTypedParamsFree(params, nparams);
+    return rv;
+}
+
+
+
 static int remoteDispatchDomainSetLifecycleAction(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -22027,6 +22093,15 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_connect_list_all_nwfilter_bindings_ret,
    true,
    1
+},
+{ /* Method DomainSetIOThreadParams => 402 */
+   remoteDispatchDomainSetIOThreadParamsHelper,
+   sizeof(remote_domain_set_iothread_params_args),
+   (xdrproc_t)xdr_remote_domain_set_iothread_params_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
 },
 };
 size_t remoteNProcs = ARRAY_CARDINALITY(remoteProcs);

@@ -26,17 +26,12 @@
 #include "vsh.h"
 
 #include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <stdarg.h>
 #include <unistd.h>
-#include <errno.h>
 #include <sys/time.h>
 #include "c-ctype.h"
 #include <fcntl.h>
 #include <time.h>
-#include <limits.h>
 #include <sys/stat.h>
 #include <inttypes.h>
 #include <signal.h>
@@ -281,6 +276,7 @@ vshResetLibvirtError(void)
 {
     virFreeError(last_error);
     last_error = NULL;
+    virResetLastError();
 }
 
 /*

@@ -1,8 +1,5 @@
 #include <config.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <time.h>
 
 #include "internal.h"
@@ -12,6 +9,7 @@
 #define VIR_FROM_THIS VIR_FROM_NONE
 
 struct testInfo {
+    const char *name;
     const char *doc;
     const char *expect;
     bool pass;
@@ -77,7 +75,7 @@ testJSONAddRemove(const void *data)
 
     json = virJSONValueFromString(info->doc);
     if (!json) {
-        VIR_TEST_VERBOSE("Fail to parse %s\n", info->doc);
+        VIR_TEST_VERBOSE("Fail to parse %s\n", info->name);
         ret = -1;
         goto cleanup;
     }
@@ -86,7 +84,7 @@ testJSONAddRemove(const void *data)
     case 1:
         if (!info->pass) {
             VIR_TEST_VERBOSE("should not remove from non-object %s\n",
-                             info->doc);
+                             info->name);
             goto cleanup;
         }
         break;
@@ -94,11 +92,11 @@ testJSONAddRemove(const void *data)
         if (!info->pass)
             ret = 0;
         else
-            VIR_TEST_VERBOSE("Fail to recognize non-object %s\n", info->doc);
+            VIR_TEST_VERBOSE("Fail to recognize non-object %s\n", info->name);
         goto cleanup;
     default:
         VIR_TEST_VERBOSE("unexpected result when removing from %s\n",
-                         info->doc);
+                         info->name);
         goto cleanup;
     }
     if (STRNEQ_NULLABLE(virJSONValueGetString(name), "sample")) {
@@ -325,9 +323,9 @@ testJSONDeflatten(const void *data)
     int ret = -1;
 
     if (virAsprintf(&infile, "%s/virjsondata/deflatten-%s-in.json",
-                    abs_srcdir, info->doc) < 0 ||
+                    abs_srcdir, info->name) < 0 ||
         virAsprintf(&outfile, "%s/virjsondata/deflatten-%s-out.json",
-                    abs_srcdir, info->doc) < 0)
+                    abs_srcdir, info->name) < 0)
         goto cleanup;
 
     if (virTestLoadFile(infile, &indata) < 0)
@@ -338,7 +336,7 @@ testJSONDeflatten(const void *data)
 
     if ((deflattened = virJSONValueObjectDeflatten(injson))) {
         if (!info->pass) {
-            VIR_TEST_VERBOSE("%s: deflattening should have failed\n", info->doc);
+            VIR_TEST_VERBOSE("%s: deflattening should have failed\n", info->name);
             goto cleanup;
         }
     } else {
@@ -481,7 +479,7 @@ mymain(void)
 
 #define DO_TEST_FULL(name, cmd, doc, expect, pass) \
     do { \
-        struct testInfo info = { doc, expect, pass }; \
+        struct testInfo info = { name, doc, expect, pass }; \
         if (virTestRun(name, testJSON ## cmd, &info) < 0) \
             ret = -1; \
     } while (0)
@@ -588,6 +586,9 @@ mymain(void)
     DO_TEST_PARSE("float without garbage", "[ 1.024e19 ]", "[1.024e19]");
     DO_TEST_PARSE_FAIL("float with garbage", "[ 0.0314159ee+100 ]");
 
+    DO_TEST_PARSE("unsigned minus one", "[ 18446744073709551615 ]", "[18446744073709551615]");
+    DO_TEST_PARSE("another big number", "[ 9223372036854775808 ]", "[9223372036854775808]");
+
     DO_TEST_PARSE("string", "[ \"The meaning of life\" ]",
                   "[\"The meaning of life\"]");
     DO_TEST_PARSE_FAIL("unterminated string", "[ \"The meaning of lif ]");
@@ -637,7 +638,7 @@ mymain(void)
                  ObjectFormatSteal, NULL, NULL, true);
 
 #define DO_TEST_DEFLATTEN(name, pass) \
-    DO_TEST_FULL(name, Deflatten, name, NULL, pass)
+    DO_TEST_FULL(name, Deflatten, NULL, NULL, pass)
 
     DO_TEST_DEFLATTEN("unflattened", true);
     DO_TEST_DEFLATTEN("basic-file", true);

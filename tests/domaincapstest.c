@@ -20,7 +20,6 @@
  */
 
 #include <config.h>
-#include <stdlib.h>
 
 #include "testutils.h"
 #include "domain_capabilities.h"
@@ -501,6 +500,10 @@ mymain(void)
                  "s390x", VIR_DOMAIN_VIRT_KVM);
 
     DO_TEST_QEMU("2.12.0", "caps_2.12.0",
+                 "/usr/bin/qemu-system-s390x", NULL,
+                 "s390x", VIR_DOMAIN_VIRT_KVM);
+
+    DO_TEST_QEMU("3.0.0", "caps_3.0.0",
                  "/usr/bin/qemu-system-s390x", NULL,
                  "s390x", VIR_DOMAIN_VIRT_KVM);
 

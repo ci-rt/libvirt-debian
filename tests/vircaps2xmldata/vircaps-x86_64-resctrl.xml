@@ -48,6 +48,9 @@
       <bank id='1' level='3' type='both' size='15' unit='MiB' cpus='6-11'>
         <control granularity='768' min='1536' unit='KiB' type='both' maxAllocs='4'/>
       </bank>
+      <monitor level='3' reuseThreshold='270336' maxMonitors='176'>
+        <feature name='llc_occupancy'/>
+      </monitor>
     </cache>
     <memory_bandwidth>
       <node id='0' cpus='0-5'>
@@ -56,6 +59,10 @@
       <node id='1' cpus='6-11'>
         <control granularity='10' min ='10' maxAllocs='4'/>
       </node>
+      <monitor maxMonitors='176'>
+        <feature name='mbm_total_bytes'/>
+        <feature name='mbm_local_bytes'/>
+      </monitor>
     </memory_bandwidth>
   </host>
 

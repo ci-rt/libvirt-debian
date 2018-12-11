@@ -1116,9 +1116,18 @@ typedef qemuMonitorIOThreadInfo *qemuMonitorIOThreadInfoPtr;
 struct _qemuMonitorIOThreadInfo {
     unsigned int iothread_id;
     int thread_id;
+    bool poll_valid;
+    unsigned long long poll_max_ns;
+    unsigned int poll_grow;
+    unsigned int poll_shrink;
+    bool set_poll_max_ns;
+    bool set_poll_grow;
+    bool set_poll_shrink;
 };
 int qemuMonitorGetIOThreads(qemuMonitorPtr mon,
                             qemuMonitorIOThreadInfoPtr **iothreads);
+int qemuMonitorSetIOThread(qemuMonitorPtr mon,
+                           qemuMonitorIOThreadInfoPtr iothreadInfo);
 
 typedef struct _qemuMonitorMemoryDeviceInfo qemuMonitorMemoryDeviceInfo;
 typedef qemuMonitorMemoryDeviceInfo *qemuMonitorMemoryDeviceInfoPtr;

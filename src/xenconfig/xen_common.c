@@ -145,10 +145,13 @@ xenConfigCopyStringInternal(virConfPtr conf,
                             char **value,
                             int allowMissing)
 {
-    virConfValuePtr val;
+    int rc;
 
     *value = NULL;
-    if (!(val = virConfGetValue(conf, name))) {
+    if ((rc = virConfGetValueString(conf, name, value)) < 0)
+        return -1;
+
+    if (rc == 0) {
         if (allowMissing)
             return 0;
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -156,20 +159,7 @@ xenConfigCopyStringInternal(virConfPtr conf,
         return -1;
     }
 
-    if (val->type != VIR_CONF_STRING) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("config value %s was not a string"), name);
-        return -1;
-    }
-    if (!val->str) {
-        if (allowMissing)
-            return 0;
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("config value %s was missing"), name);
-        return -1;
-    }
-
-    return VIR_STRDUP(*value, val->str);
+    return 1;
 }
 
 
@@ -193,7 +183,8 @@ xenConfigCopyStringOpt(virConfPtr conf, const char *name, char **value)
 static int
 xenConfigGetUUID(virConfPtr conf, const char *name, unsigned char *uuid)
 {
-    virConfValuePtr val;
+    VIR_AUTOFREE(char *) string = NULL;
+    int rc;
 
     if (!uuid || !name || !conf) {
         virReportError(VIR_ERR_INVALID_ARG, "%s",
@@ -201,7 +192,11 @@ xenConfigGetUUID(virConfPtr conf, const char *name, unsigned char *uuid)
         return -1;
     }
 
-    if (!(val = virConfGetValue(conf, name))) {
+
+    if ((rc = virConfGetValueString(conf, name, &string)) < 0)
+        return -1;
+
+    if (rc == 0) {
         if (virUUIDGenerate(uuid) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            "%s", _("Failed to generate UUID"));
@@ -211,21 +206,15 @@ xenConfigGetUUID(virConfPtr conf, const char *name, unsigned char *uuid)
         }
     }
 
-    if (val->type != VIR_CONF_STRING) {
-        virReportError(VIR_ERR_CONF_SYNTAX,
-                       _("config value %s not a string"), name);
-        return -1;
-    }
-
-    if (!val->str) {
+    if (!string) {
         virReportError(VIR_ERR_CONF_SYNTAX,
                        _("%s can't be empty"), name);
         return -1;
     }
 
-    if (virUUIDParse(val->str, uuid) < 0) {
+    if (virUUIDParse(string, uuid) < 0) {
         virReportError(VIR_ERR_CONF_SYNTAX,
-                       _("%s not parseable"), val->str);
+                       _("%s not parseable"), string);
         return -1;
     }
 
@@ -239,26 +228,23 @@ xenConfigGetUUID(virConfPtr conf, const char *name, unsigned char *uuid)
 int
 xenConfigGetString(virConfPtr conf,
                    const char *name,
-                   const char **value,
+                   char **value,
                    const char *def)
 {
-    virConfValuePtr val;
+    char *string = NULL;
+    int rc;
 
     *value = NULL;
-    if (!(val = virConfGetValue(conf, name))) {
-        *value = def;
-        return 0;
+    if ((rc = virConfGetValueString(conf, name, &string)) < 0)
+        return -1;
+
+    if (rc == 0 || !string) {
+        if (VIR_STRDUP(*value, def) < 0)
+            return -1;
+    } else {
+        *value = string;
     }
 
-    if (val->type != VIR_CONF_STRING) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("config value %s was malformed"), name);
-        return -1;
-    }
-    if (!val->str)
-        *value = def;
-    else
-        *value = val->str;
     return 0;
 }
 
@@ -356,32 +342,34 @@ xenParseTimeOffset(virConfPtr conf, virDomainDefPtr def)
 static int
 xenParseEventsActions(virConfPtr conf, virDomainDefPtr def)
 {
-    const char *str = NULL;
+    VIR_AUTOFREE(char *) on_poweroff = NULL;
+    VIR_AUTOFREE(char *) on_reboot = NULL;
+    VIR_AUTOFREE(char *) on_crash = NULL;
 
-    if (xenConfigGetString(conf, "on_poweroff", &str, "destroy") < 0)
+    if (xenConfigGetString(conf, "on_poweroff", &on_poweroff, "destroy") < 0)
         return -1;
 
-    if ((def->onPoweroff = virDomainLifecycleActionTypeFromString(str)) < 0) {
+    if ((def->onPoweroff = virDomainLifecycleActionTypeFromString(on_poweroff)) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("unexpected value %s for on_poweroff"), str);
+                       _("unexpected value %s for on_poweroff"), on_poweroff);
         return -1;
     }
 
-    if (xenConfigGetString(conf, "on_reboot", &str, "restart") < 0)
+    if (xenConfigGetString(conf, "on_reboot", &on_reboot, "restart") < 0)
         return -1;
 
-    if ((def->onReboot = virDomainLifecycleActionTypeFromString(str)) < 0) {
+    if ((def->onReboot = virDomainLifecycleActionTypeFromString(on_reboot)) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("unexpected value %s for on_reboot"), str);
+                       _("unexpected value %s for on_reboot"), on_reboot);
         return -1;
     }
 
-    if (xenConfigGetString(conf, "on_crash", &str, "restart") < 0)
+    if (xenConfigGetString(conf, "on_crash", &on_crash, "restart") < 0)
         return -1;
 
-    if ((def->onCrash = virDomainLifecycleActionTypeFromString(str)) < 0) {
+    if ((def->onCrash = virDomainLifecycleActionTypeFromString(on_crash)) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("unexpected value %s for on_crash"), str);
+                       _("unexpected value %s for on_crash"), on_crash);
         return -1;
     }
 
@@ -467,20 +455,40 @@ xenParsePCI(char *entry)
 
 
 static int
+xenHandleConfGetValueStringListErrors(int ret)
+{
+    if (ret < 0) {
+        /* It means virConfGetValueStringList() didn't fail because the
+         * cval->type switch fell through - since we're passing
+         * @compatString == false - assumes failures for memory allocation
+         * and VIR_CONF_LIST traversal failure should cause -1 to be
+         * returned to the caller with the error message set. */
+        if (virGetLastErrorCode() != VIR_ERR_INTERNAL_ERROR)
+            return -1;
+
+        /* If we did fall through the switch, then ignore and clear the
+         * last error. */
+        virResetLastError();
+    }
+    return 0;
+}
+
+
+static int
 xenParsePCIList(virConfPtr conf, virDomainDefPtr def)
 {
-    virConfValuePtr list = virConfGetValue(conf, "pci");
+    VIR_AUTOPTR(virString) pcis = NULL;
+    virString *entries = NULL;
+    int rc;
 
-    if (!list || list->type != VIR_CONF_LIST)
-        return 0;
+    if ((rc = virConfGetValueStringList(conf, "pci", false, &pcis)) <= 0)
+        return xenHandleConfGetValueStringListErrors(rc);
 
-    for (list = list->list; list; list = list->next) {
+    for (entries = pcis; *entries; entries++) {
+        virString entry = *entries;
         virDomainHostdevDefPtr hostdev;
 
-        if ((list->type != VIR_CONF_STRING) || (list->str == NULL))
-            continue;
-
-        if (!(hostdev = xenParsePCI(list->str)))
+        if (!(hostdev = xenParsePCI(entry)))
             return -1;
 
         if (VIR_APPEND_ELEMENT(def->hostdevs, def->nhostdevs, hostdev) < 0) {
@@ -499,7 +507,8 @@ xenParseCPUFeatures(virConfPtr conf,
                     virDomainXMLOptionPtr xmlopt)
 {
     unsigned long count = 0;
-    const char *str = NULL;
+    VIR_AUTOFREE(char *) cpus = NULL;
+    VIR_AUTOFREE(char *) tsc_mode = NULL;
     int val = 0;
     virDomainTimerDefPtr timer;
 
@@ -520,16 +529,16 @@ xenParseCPUFeatures(virConfPtr conf,
             return -1;
     }
 
-    if (xenConfigGetString(conf, "cpus", &str, NULL) < 0)
+    if (xenConfigGetString(conf, "cpus", &cpus, NULL) < 0)
         return -1;
 
-    if (str && (virBitmapParse(str, &def->cpumask, 4096) < 0))
+    if (cpus && (virBitmapParse(cpus, &def->cpumask, 4096) < 0))
         return -1;
 
-    if (xenConfigGetString(conf, "tsc_mode", &str, NULL) < 0)
+    if (xenConfigGetString(conf, "tsc_mode", &tsc_mode, NULL) < 0)
         return -1;
 
-    if (str) {
+    if (tsc_mode) {
         if (VIR_EXPAND_N(def->clock.timers, def->clock.ntimers, 1) < 0 ||
             VIR_ALLOC(timer) < 0)
             return -1;
@@ -539,11 +548,11 @@ xenParseCPUFeatures(virConfPtr conf,
         timer->tickpolicy = -1;
         timer->mode = VIR_DOMAIN_TIMER_MODE_AUTO;
         timer->track = -1;
-        if (STREQ_NULLABLE(str, "always_emulate"))
+        if (STREQ_NULLABLE(tsc_mode, "always_emulate"))
             timer->mode = VIR_DOMAIN_TIMER_MODE_EMULATE;
-        else if (STREQ_NULLABLE(str, "native"))
+        else if (STREQ_NULLABLE(tsc_mode, "native"))
             timer->mode = VIR_DOMAIN_TIMER_MODE_NATIVE;
-        else if (STREQ_NULLABLE(str, "native_paravirt"))
+        else if (STREQ_NULLABLE(tsc_mode, "native_paravirt"))
             timer->mode = VIR_DOMAIN_TIMER_MODE_PARAVIRT;
 
         def->clock.timers[def->clock.ntimers - 1] = timer;
@@ -606,7 +615,6 @@ xenParseVfb(virConfPtr conf, virDomainDefPtr def)
     int val;
     char *listenAddr = NULL;
     int hvm = def->os.type == VIR_DOMAIN_OSTYPE_HVM;
-    virConfValuePtr list;
     virDomainGraphicsDefPtr graphics = NULL;
 
     if (hvm) {
@@ -662,17 +670,17 @@ xenParseVfb(virConfPtr conf, virDomainDefPtr def)
     }
 
     if (!hvm && def->graphics == NULL) { /* New PV guests use this format */
-        list = virConfGetValue(conf, "vfb");
-        if (list && list->type == VIR_CONF_LIST &&
-            list->list && list->list->type == VIR_CONF_STRING &&
-            list->list->str) {
+        VIR_AUTOPTR(virString) vfbs = NULL;
+        int rc;
+
+        if ((rc = virConfGetValueStringList(conf, "vfb", false, &vfbs)) == 1) {
             char vfb[MAX_VFB];
             char *key = vfb;
 
-            if (virStrcpyStatic(vfb, list->list->str) < 0) {
+            if (virStrcpyStatic(vfb, *vfbs) < 0) {
                 virReportError(VIR_ERR_INTERNAL_ERROR,
                                _("VFB %s too big for destination"),
-                               list->list->str);
+                               *vfbs);
                 goto cleanup;
             }
 
@@ -742,6 +750,9 @@ xenParseVfb(virConfPtr conf, virDomainDefPtr def)
             def->graphics[0] = graphics;
             def->ngraphics = 1;
             graphics = NULL;
+        } else {
+            if (xenHandleConfGetValueStringListErrors(rc) < 0)
+                goto cleanup;
         }
     }
 
@@ -757,15 +768,17 @@ xenParseVfb(virConfPtr conf, virDomainDefPtr def)
 static int
 xenParseCharDev(virConfPtr conf, virDomainDefPtr def, const char *nativeFormat)
 {
-    const char *str;
-    virConfValuePtr value = NULL;
+    VIR_AUTOPTR(virString) serials = NULL;
     virDomainChrDefPtr chr = NULL;
 
     if (def->os.type == VIR_DOMAIN_OSTYPE_HVM) {
-        if (xenConfigGetString(conf, "parallel", &str, NULL) < 0)
+        VIR_AUTOFREE(char *) parallel = NULL;
+        int rc;
+
+        if (xenConfigGetString(conf, "parallel", &parallel, NULL) < 0)
             goto cleanup;
-        if (str && STRNEQ(str, "none") &&
-            !(chr = xenParseSxprChar(str, NULL)))
+        if (parallel && STRNEQ(parallel, "none") &&
+            !(chr = xenParseSxprChar(parallel, NULL)))
             goto cleanup;
         if (chr) {
             if (VIR_ALLOC_N(def->parallels, 1) < 0)
@@ -779,8 +792,8 @@ xenParseCharDev(virConfPtr conf, virDomainDefPtr def, const char *nativeFormat)
         }
 
         /* Try to get the list of values to support multiple serial ports */
-        value = virConfGetValue(conf, "serial");
-        if (value && value->type == VIR_CONF_LIST) {
+        if ((rc = virConfGetValueStringList(conf, "serial", false, &serials)) == 1) {
+            virString *entries;
             int portnum = -1;
 
             if (STREQ(nativeFormat, XEN_CONFIG_FORMAT_XM)) {
@@ -789,18 +802,12 @@ xenParseCharDev(virConfPtr conf, virDomainDefPtr def, const char *nativeFormat)
                 goto cleanup;
             }
 
-            value = value->list;
-            while (value) {
-                char *port = NULL;
+            for (entries = serials; *entries; entries++) {
+                virString port = *entries;
 
-                if ((value->type != VIR_CONF_STRING) || (value->str == NULL))
-                    goto cleanup;
-                port = value->str;
                 portnum++;
-                if (STREQ(port, "none")) {
-                    value = value->next;
+                if (STREQ(port, "none"))
                     continue;
-                }
 
                 if (!(chr = xenParseSxprChar(port, NULL)))
                     goto cleanup;
@@ -808,15 +815,18 @@ xenParseCharDev(virConfPtr conf, virDomainDefPtr def, const char *nativeFormat)
                 chr->target.port = portnum;
                 if (VIR_APPEND_ELEMENT(def->serials, def->nserials, chr) < 0)
                     goto cleanup;
-
-                value = value->next;
             }
         } else {
-            /* If domain is not using multiple serial ports we parse data old way */
-            if (xenConfigGetString(conf, "serial", &str, NULL) < 0)
+            VIR_AUTOFREE(char *) serial = NULL;
+
+            if (xenHandleConfGetValueStringListErrors(rc) < 0)
                 goto cleanup;
-            if (str && STRNEQ(str, "none") &&
-                !(chr = xenParseSxprChar(str, NULL)))
+
+            /* If domain is not using multiple serial ports we parse data old way */
+            if (xenConfigGetString(conf, "serial", &serial, NULL) < 0)
+                goto cleanup;
+            if (serial && STRNEQ(serial, "none") &&
+                !(chr = xenParseSxprChar(serial, NULL)))
                 goto cleanup;
             if (chr) {
                 if (VIR_ALLOC_N(def->serials, 1) < 0)
@@ -1060,7 +1070,7 @@ xenParseVifList(virConfPtr conf, virDomainDefPtr def, const char *vif_typename)
 static int
 xenParseEmulatedDevices(virConfPtr conf, virDomainDefPtr def)
 {
-    const char *str;
+    VIR_AUTOFREE(char *) str = NULL;
 
     if (def->os.type == VIR_DOMAIN_OSTYPE_HVM) {
         if (xenConfigGetString(conf, "soundhw", &str, NULL) < 0)
@@ -1079,8 +1089,8 @@ static int
 xenParseGeneralMeta(virConfPtr conf, virDomainDefPtr def, virCapsPtr caps)
 {
     virCapsDomainDataPtr capsdata = NULL;
-    const char *str;
-    int hvm = 0, ret = -1;
+    VIR_AUTOFREE(char *) str = NULL;
+    int ret = -1;
 
     if (xenConfigCopyString(conf, "name", &def->name) < 0)
         goto out;
@@ -1088,11 +1098,26 @@ xenParseGeneralMeta(virConfPtr conf, virDomainDefPtr def, virCapsPtr caps)
     if (xenConfigGetUUID(conf, "uuid", def->uuid) < 0)
         goto out;
 
-    if ((xenConfigGetString(conf, "builder", &str, "linux") == 0) &&
-        STREQ(str, "hvm"))
-        hvm = 1;
+    def->os.type = VIR_DOMAIN_OSTYPE_XEN;
 
-    def->os.type = (hvm ? VIR_DOMAIN_OSTYPE_HVM : VIR_DOMAIN_OSTYPE_XEN);
+    if (xenConfigGetString(conf, "type", &str, NULL) == 0 && str) {
+        if (STREQ(str, "pv")) {
+            def->os.type = VIR_DOMAIN_OSTYPE_XEN;
+        } else if (STREQ(str, "pvh")) {
+            def->os.type = VIR_DOMAIN_OSTYPE_XENPVH;
+        } else if (STREQ(str, "hvm")) {
+            def->os.type = VIR_DOMAIN_OSTYPE_HVM;
+        } else {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("type %s is not supported"), str);
+            return -1;
+        }
+    } else {
+        if ((xenConfigGetString(conf, "builder", &str, "linux") == 0) &&
+            STREQ(str, "hvm")) {
+            def->os.type = VIR_DOMAIN_OSTYPE_HVM;
+        }
+    }
 
     if (!(capsdata = virCapabilitiesDomainDataLookup(caps, def->os.type,
             VIR_ARCH_NONE, def->virtType, NULL, NULL)))
@@ -1346,7 +1371,6 @@ xenFormatNet(virConnectPtr conn,
 static int
 xenFormatPCI(virConfPtr conf, virDomainDefPtr def)
 {
-
     virConfValuePtr pciVal = NULL;
     int hasPCI = 0;
     size_t i;
@@ -1911,11 +1935,11 @@ xenFormatVif(virConfPtr conf,
              virDomainDefPtr def,
              const char *vif_typename)
 {
-   virConfValuePtr netVal = NULL;
-   size_t i;
-   int hvm = def->os.type == VIR_DOMAIN_OSTYPE_HVM;
+    virConfValuePtr netVal = NULL;
+    size_t i;
+    int hvm = def->os.type == VIR_DOMAIN_OSTYPE_HVM;
 
-   if (VIR_ALLOC(netVal) < 0)
+    if (VIR_ALLOC(netVal) < 0)
         goto cleanup;
     netVal->type = VIR_CONF_LIST;
     netVal->list = NULL;
@@ -1923,7 +1947,7 @@ xenFormatVif(virConfPtr conf,
     for (i = 0; i < def->nnets; i++) {
         if (xenFormatNet(conn, netVal, def->nets[i],
                          hvm, vif_typename) < 0)
-           goto cleanup;
+            goto cleanup;
     }
 
     if (netVal->list != NULL) {

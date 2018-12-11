@@ -39,12 +39,10 @@
   <flag name='block-commit'/>
   <flag name='vnc'/>
   <flag name='drive-mirror'/>
-  <flag name='usb-host.bootindex'/>
   <flag name='blockdev-snapshot-sync'/>
   <flag name='VGA'/>
   <flag name='device-video-primary'/>
   <flag name='usb-serial'/>
-  <flag name='usb-net'/>
   <flag name='nbd-server'/>
   <flag name='virtio-rng'/>
   <flag name='rng-random'/>
@@ -53,11 +51,7 @@
   <flag name='nvram'/>
   <flag name='pci-bridge'/>
   <flag name='vfio-pci'/>
-  <flag name='vfio-pci.bootindex'/>
-  <flag name='scsi-generic'/>
-  <flag name='scsi-generic.bootindex'/>
   <flag name='mem-merge'/>
-  <flag name='vnc-websocket'/>
   <flag name='drive-discard'/>
   <flag name='mlock'/>
   <flag name='device-del-event'/>
@@ -65,7 +59,6 @@
   <flag name='usb-storage.removable'/>
   <flag name='ich9-intel-hda'/>
   <flag name='boot-strict'/>
-  <flag name='spiceport'/>
   <flag name='usb-kbd'/>
   <flag name='msg-timestamp'/>
   <flag name='active-commit'/>
@@ -167,9 +160,12 @@
   <flag name='machine.pseries.cap-htm'/>
   <flag name='egl-headless'/>
   <flag name='vfio-pci.display'/>
+  <flag name='memory-backend-memfd'/>
+  <flag name='memory-backend-memfd.hugetlb'/>
+  <flag name='iothread.poll-max-ns'/>
   <version>2012050</version>
   <kvmVersion>0</kvmVersion>
-  <microcodeVersion>446365</microcodeVersion>
+  <microcodeVersion>444946</microcodeVersion>
   <package>v2.12.0-1689-g518d23a</package>
   <arch>ppc64</arch>
   <cpu type='kvm' name='default'/>

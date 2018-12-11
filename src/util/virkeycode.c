@@ -19,7 +19,6 @@
 
 #include <config.h>
 #include "virkeycode.h"
-#include <string.h>
 #include <stddef.h>
 
 #include "virkeycodetable_atset1.h"
@@ -70,17 +69,17 @@ verify(VIR_KEYMAP_ENTRY_MAX == ARRAY_CARDINALITY(virKeyNameTable_osx));
 verify(VIR_KEYMAP_ENTRY_MAX == ARRAY_CARDINALITY(virKeyNameTable_win32));
 
 VIR_ENUM_IMPL(virKeycodeSet, VIR_KEYCODE_SET_LAST,
-    "linux",
-    "xt",
-    "atset1",
-    "atset2",
-    "atset3",
-    "os_x",
-    "xt_kbd",
-    "usb",
-    "win32",
-    "qnum",
-);
+              "linux",
+              "xt",
+              "atset1",
+              "atset2",
+              "atset3",
+              "os_x",
+              "xt_kbd",
+              "usb",
+              "win32",
+              "qnum",
+              );
 
 int virKeycodeValueFromString(virKeycodeSet codeset,
                               const char *keyname)

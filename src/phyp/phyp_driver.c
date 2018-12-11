@@ -26,13 +26,8 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <limits.h>
-#include <string.h>
-#include <stdio.h>
 #include <stdarg.h>
-#include <stdlib.h>
 #include <unistd.h>
-#include <errno.h>
 #include <libssh2.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -3652,7 +3647,6 @@ phypDomainSetVcpus(virDomainPtr dom, unsigned int nvcpus)
 static int
 phypDomainHasManagedSaveImage(virDomainPtr dom, unsigned int flags)
 {
-
     phyp_driverPtr phyp_driver = dom->conn->privateData;
     LIBSSH2_SESSION *session = phyp_driver->session;
     char *managed_system = phyp_driver->managed_system;

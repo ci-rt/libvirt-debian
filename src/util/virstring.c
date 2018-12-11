@@ -21,8 +21,6 @@
 
 #include <config.h>
 
-#include <stdlib.h>
-#include <stdio.h>
 #include <regex.h>
 #include <locale.h>
 

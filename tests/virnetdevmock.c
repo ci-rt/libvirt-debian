@@ -22,8 +22,6 @@
 
 #ifdef __linux__
 # include "internal.h"
-# include <stdlib.h>
-# include <stdio.h>
 # include "virstring.h"
 # include "virnetdev.h"
 
@@ -34,7 +32,6 @@ virNetDevSysfsFile(char **pf_sysfs_device_link,
                    const char *ifname,
                    const char *file)
 {
-
     if (virAsprintfQuiet(pf_sysfs_device_link, "%s/%s/%s",
                          NET_DEV_TEST_DATA_PREFIX, ifname, file) < 0) {
         fprintf(stderr, "Out of memory\n");

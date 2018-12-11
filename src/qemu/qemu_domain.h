@@ -286,7 +286,6 @@ struct _qemuDomainObjPrivate {
     qemuAgentPtr agent;
     bool agentError;
 
-    bool gotShutdown;
     bool beingDestroyed;
     char *pidfile;
 
@@ -366,6 +365,13 @@ struct _qemuDomainObjPrivate {
 
     /* counter for generating node names for qemu disks */
     unsigned long long nodenameindex;
+
+    /* qemuProcessStartCPUs stores the reason for starting vCPUs here for the
+     * RESUME event handler to use it */
+    virDomainRunningReason runningReason;
+
+    /* true if libvirt remembers the original owner for files */
+    bool rememberOwner;
 };
 
 # define QEMU_DOMAIN_PRIVATE(vm) \
@@ -704,6 +710,9 @@ void qemuDomainRemoveInactive(virQEMUDriverPtr driver,
 void qemuDomainRemoveInactiveJob(virQEMUDriverPtr driver,
                                  virDomainObjPtr vm);
 
+void qemuDomainRemoveInactiveJobLocked(virQEMUDriverPtr driver,
+                                       virDomainObjPtr vm);
+
 void qemuDomainSetFakeReboot(virQEMUDriverPtr driver,
                              virDomainObjPtr vm,
                              bool value);
@@ -1030,6 +1039,10 @@ int
 qemuDomainFixupCPUs(virDomainObjPtr vm,
                     virCPUDefPtr *origCPU);
 
+int
+qemuDomainUpdateQEMUCaps(virDomainObjPtr vm,
+                         virFileCachePtr qemuCapsCache);
+
 char *
 qemuDomainGetMachineName(virDomainObjPtr vm);
 
@@ -1074,5 +1087,11 @@ char * qemuDomainGetManagedPRSocketPath(qemuDomainObjPrivatePtr priv);
 
 unsigned int qemuDomainStorageIdNew(qemuDomainObjPrivatePtr priv);
 void qemuDomainStorageIdReset(qemuDomainObjPrivatePtr priv);
+
+virDomainEventResumedDetailType
+qemuDomainRunningReasonToResumeEvent(virDomainRunningReason reason);
+
+bool
+qemuDomainIsUsingNoShutdown(qemuDomainObjPrivatePtr priv);
 
 #endif /* __QEMU_DOMAIN_H__ */

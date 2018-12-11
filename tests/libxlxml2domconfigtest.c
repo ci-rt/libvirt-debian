@@ -23,17 +23,14 @@
 
 #include <config.h>
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
-#include <string.h>
 
 #include <sys/types.h>
 #include <fcntl.h>
 
 #include "testutils.h"
 
-#if defined(WITH_LIBXL) && defined(WITH_YAJL) && defined(HAVE_LIBXL_DOMAIN_CONFIG_FROM_JSON)
+#if defined(WITH_LIBXL) && defined(WITH_YAJL)
 
 # include "internal.h"
 # include "viralloc.h"
@@ -65,13 +62,13 @@ testCompareXMLToDomConfig(const char *xmlfile,
     char *tempjson = NULL;
     char *expectjson = NULL;
 
-    libxl_domain_config_init(&actualconfig);
-    libxl_domain_config_init(&expectconfig);
-
     if (!(cfg = libxlDriverConfigNew()))
-        goto cleanup;
+        return -1;
 
     cfg->caps = caps;
+
+    libxl_domain_config_init(&actualconfig);
+    libxl_domain_config_init(&expectconfig);
 
     if (!(log = (xentoollog_logger *)xtl_createlogger_stdiostream(stderr, XTL_DEBUG, 0)))
         goto cleanup;
@@ -138,8 +135,7 @@ testCompareXMLToDomConfig(const char *xmlfile,
     libxl_domain_config_dispose(&actualconfig);
     libxl_domain_config_dispose(&expectconfig);
     xtl_logger_destroy(log);
-    if (cfg)
-        cfg->caps = NULL;
+    cfg->caps = NULL;
     virObjectUnref(cfg);
     return ret;
 }
@@ -207,12 +203,22 @@ mymain(void)
 
     DO_TEST("basic-pv");
     DO_TEST("basic-hvm");
+# ifdef HAVE_XEN_PVH
+    DO_TEST("basic-pvh");
+# endif
     DO_TEST("cpu-shares-hvm");
     DO_TEST("variable-clock-hvm");
     DO_TEST("moredevs-hvm");
-    DO_TEST("vnuma-hvm");
     DO_TEST("multiple-ip");
+
+# ifdef LIBXL_HAVE_BUILDINFO_NESTED_HVM
+    DO_TEST("vnuma-hvm");
     DO_TEST("fullvirt-cpuid");
+# else
+    DO_TEST("vnuma-hvm-legacy-nest");
+    DO_TEST("fullvirt-cpuid-legacy-nest");
+# endif
+
 
     unlink("libxl-driver.log");
 
@@ -228,4 +234,4 @@ int main(void)
     return EXIT_AM_SKIP;
 }
 
-#endif /* WITH_LIBXL && WITH_YAJL && HAVE_LIBXL_DOMAIN_CONFIG_FROM_JSON */
+#endif /* WITH_LIBXL && WITH_YAJL */

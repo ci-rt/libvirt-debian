@@ -24,7 +24,6 @@
 #ifndef __VIR_CPU_X86_DATA_H__
 # define __VIR_CPU_X86_DATA_H__
 
-# include <stdint.h>
 
 typedef struct _virCPUx86CPUID virCPUx86CPUID;
 struct _virCPUx86CPUID {
@@ -66,6 +65,8 @@ struct _virCPUx86CPUID {
 # define VIR_CPU_x86_KVM_HV_FREQUENCIES "__kvm_hv_frequencies"
 # define VIR_CPU_x86_KVM_HV_REENLIGHTENMENT "__kvm_hv_reenlightenment"
 # define VIR_CPU_x86_KVM_HV_TLBFLUSH  "__kvm_hv_tlbflush"
+# define VIR_CPU_x86_KVM_HV_IPI       "__kvm_hv_ipi"
+# define VIR_CPU_x86_KVM_HV_EVMCS     "__kvm_hv_evmcs"
 
 
 # define VIR_CPU_X86_DATA_INIT { 0 }

@@ -36,6 +36,16 @@ typedef enum {
 VIR_ENUM_DECL(virCache);
 VIR_ENUM_DECL(virCacheKernel);
 
+typedef enum {
+    VIR_RESCTRL_MONITOR_TYPE_UNSUPPORT,
+    VIR_RESCTRL_MONITOR_TYPE_CACHE,
+    VIR_RESCTRL_MONITOR_TYPE_MEMBW,
+
+    VIR_RESCTRL_MONITOR_TYPE_LAST
+} virResctrlMonitorType;
+
+VIR_ENUM_DECL(virResctrlMonitorPrefix);
+
 
 typedef struct _virResctrlInfoPerCache virResctrlInfoPerCache;
 typedef virResctrlInfoPerCache *virResctrlInfoPerCachePtr;
@@ -59,6 +69,29 @@ struct _virResctrlInfoMemBWPerNode {
     unsigned int min;
     /* Maximum number of simultaneous allocations */
     unsigned int max_allocation;
+};
+
+typedef struct _virResctrlInfoMon virResctrlInfoMon;
+typedef virResctrlInfoMon *virResctrlInfoMonPtr;
+struct _virResctrlInfoMon {
+    /* Maximum number of simultaneous monitors */
+    unsigned int max_monitor;
+    /* null-terminal string list for monitor features */
+    char **features;
+    /* Number of monitor features */
+    size_t nfeatures;
+    /* Monitor type */
+    virResctrlMonitorType type;
+    /* This adjustable value affects the final reuse of resources used by
+     * monitor. After the action of removing a monitor, the kernel may not
+     * release all hardware resources that monitor used immediately if the
+     * cache occupancy value associated with 'removed' monitor is above this
+     * threshold. Once the cache occupancy is below this threshold, the
+     * underlying hardware resource will be reclaimed and be put into the
+     * resource pool for next reusing.*/
+    unsigned int cache_reuse_threshold;
+    /* The cache 'level' that has the monitor capability */
+    unsigned int cache_level;
 };
 
 typedef struct _virResctrlInfo virResctrlInfo;
@@ -145,4 +178,61 @@ virResctrlAllocAddPID(virResctrlAllocPtr alloc,
 int
 virResctrlAllocRemove(virResctrlAllocPtr alloc);
 
+void
+virResctrlInfoMonFree(virResctrlInfoMonPtr mon);
+
+int
+virResctrlInfoGetMonitorPrefix(virResctrlInfoPtr resctrl,
+                               const char *prefix,
+                               virResctrlInfoMonPtr *monitor);
+
+/* Monitor-related things */
+
+typedef struct _virResctrlMonitor virResctrlMonitor;
+typedef virResctrlMonitor *virResctrlMonitorPtr;
+
+typedef struct _virResctrlMonitorStats virResctrlMonitorStats;
+typedef virResctrlMonitorStats *virResctrlMonitorStatsPtr;
+struct _virResctrlMonitorStats {
+    unsigned int id;
+    unsigned int val;
+};
+
+virResctrlMonitorPtr
+virResctrlMonitorNew(void);
+
+int
+virResctrlMonitorDeterminePath(virResctrlMonitorPtr monitor,
+                               const char *machinename);
+
+int
+virResctrlMonitorAddPID(virResctrlMonitorPtr monitor,
+                        pid_t pid);
+
+int
+virResctrlMonitorCreate(virResctrlMonitorPtr monitor,
+                        const char *machinename);
+
+int
+virResctrlMonitorSetID(virResctrlMonitorPtr monitor,
+                       const char *id);
+
+const char *
+virResctrlMonitorGetID(virResctrlMonitorPtr monitor);
+
+void
+virResctrlMonitorSetAlloc(virResctrlMonitorPtr monitor,
+                          virResctrlAllocPtr alloc);
+
+int
+virResctrlMonitorRemove(virResctrlMonitorPtr monitor);
+
+int
+virResctrlMonitorGetCacheOccupancy(virResctrlMonitorPtr monitor,
+                                   virResctrlMonitorStatsPtr **stats,
+                                   size_t *nstats);
+
+void
+virResctrlMonitorFreeStats(virResctrlMonitorStatsPtr *stats,
+                           size_t nstats);
 #endif /*  __VIR_RESCTRL_H__ */

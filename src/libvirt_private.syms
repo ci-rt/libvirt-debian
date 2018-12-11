@@ -93,16 +93,24 @@ virCPUModeTypeToString;
 
 
 # conf/device_conf.h
+virDeviceInfoPCIAddressExtensionIsPresent;
+virDeviceInfoPCIAddressExtensionIsWanted;
 virDeviceInfoPCIAddressIsPresent;
 virDeviceInfoPCIAddressIsWanted;
+virDomainDeviceAddressIsValid;
+virDomainDeviceAddressTypeToString;
+virDomainDeviceCcidAddressParseXML;
+virDomainDeviceCCWAddressIsValid;
+virDomainDeviceCCWAddressParseXML;
+virDomainDeviceDriveAddressParseXML;
 virDomainDeviceInfoAddressIsEqual;
 virDomainDeviceInfoCopy;
+virDomainDeviceSpaprVioAddressParseXML;
+virDomainDeviceUSBAddressParseXML;
+virDomainDeviceVirtioSerialAddressParseXML;
 virInterfaceLinkFormat;
 virInterfaceLinkParseXML;
-virPCIDeviceAddressEqual;
 virPCIDeviceAddressFormat;
-virPCIDeviceAddressIsEmpty;
-virPCIDeviceAddressIsValid;
 virPCIDeviceAddressParseXML;
 
 
@@ -110,10 +118,12 @@ virPCIDeviceAddressParseXML;
 virDomainCCWAddressAssign;
 virDomainCCWAddressSetCreateFromDomain;
 virDomainCCWAddressSetFree;
-virDomainPCIAddressAsString;
 virDomainPCIAddressBusIsFullyReserved;
 virDomainPCIAddressBusSetModel;
 virDomainPCIAddressEnsureAddr;
+virDomainPCIAddressExtensionReleaseAddr;
+virDomainPCIAddressExtensionReserveAddr;
+virDomainPCIAddressExtensionReserveNextAddr;
 virDomainPCIAddressReleaseAddr;
 virDomainPCIAddressReserveAddr;
 virDomainPCIAddressReserveNextAddr;
@@ -290,8 +300,6 @@ virDomainDefSetVcpusMax;
 virDomainDefValidate;
 virDomainDefVcpuOrderClear;
 virDomainDeleteConfig;
-virDomainDeviceAddressIsValid;
-virDomainDeviceAddressTypeToString;
 virDomainDeviceAliasIsUserAlias;
 virDomainDeviceDefCopy;
 virDomainDeviceDefFree;
@@ -719,14 +727,11 @@ virNodeDevCapsDefFree;
 virNodeDevCapTypeFromString;
 virNodeDevCapTypeToString;
 virNodeDeviceCapsListExport;
-virNodeDeviceCreateVport;
 virNodeDeviceDefFormat;
 virNodeDeviceDefFree;
 virNodeDeviceDefParseFile;
 virNodeDeviceDefParseNode;
 virNodeDeviceDefParseString;
-virNodeDeviceDeleteVport;
-virNodeDeviceGetParentName;
 virNodeDeviceGetPCIDynamicCaps;
 virNodeDeviceGetSCSIHostCaps;
 virNodeDeviceGetSCSITargetCaps;
@@ -739,6 +744,10 @@ virNodeDeviceEventLifecycleNew;
 virNodeDeviceEventStateRegisterID;
 virNodeDeviceEventUpdateNew;
 
+# conf/node_device_util.h
+virNodeDeviceCreateVport;
+virNodeDeviceDeleteVport;
+virNodeDeviceGetParentName;
 
 # conf/numa_conf.h
 virDomainMemoryAccessTypeFromString;
@@ -1143,7 +1152,6 @@ virStoragePoolObjGetVolumesCount;
 virStoragePoolObjIncrAsyncjobs;
 virStoragePoolObjIsActive;
 virStoragePoolObjIsAutostart;
-virStoragePoolObjIsDuplicate;
 virStoragePoolObjListExport;
 virStoragePoolObjListForEach;
 virStoragePoolObjListNew;
@@ -1161,7 +1169,6 @@ virStoragePoolObjSetActive;
 virStoragePoolObjSetAutostart;
 virStoragePoolObjSetConfigFile;
 virStoragePoolObjSetDef;
-virStoragePoolObjSourceFindDuplicate;
 virStoragePoolObjVolumeGetNames;
 virStoragePoolObjVolumeListExport;
 
@@ -1497,8 +1504,9 @@ virBufferVasprintf;
 
 
 # util/vircgroup.h
-virCgroupAddMachineTask;
-virCgroupAddTask;
+virCgroupAddMachineProcess;
+virCgroupAddProcess;
+virCgroupAddThread;
 virCgroupAllowAllDevices;
 virCgroupAllowDevice;
 virCgroupAllowDevicePath;
@@ -1511,7 +1519,6 @@ virCgroupDelThread;
 virCgroupDenyAllDevices;
 virCgroupDenyDevice;
 virCgroupDenyDevicePath;
-virCgroupDetectMountsFromFile;
 virCgroupFree;
 virCgroupGetBlkioDeviceReadBps;
 virCgroupGetBlkioDeviceReadIops;
@@ -1575,6 +1582,15 @@ virCgroupSetOwner;
 virCgroupSupportsCpuBW;
 virCgroupTerminateMachine;
 
+# util/vircgroupbackend.h
+virCgroupBackendGetAll;
+virCgroupBackendRegister;
+
+# util/vircgroupv1.h
+virCgroupV1Register;
+
+# util/vircgroupv2.h
+virCgroupV2Register;
 
 # util/virclosecallbacks.h
 virCloseCallbacksGet;
@@ -2442,6 +2458,7 @@ virNetlinkEventServiceStop;
 virNetlinkEventServiceStopAll;
 virNetlinkGetErrorCode;
 virNetlinkGetNeighbor;
+virNetlinkNewLink;
 virNetlinkShutdown;
 virNetlinkStartup;
 
@@ -2492,10 +2509,14 @@ virObjectUnref;
 
 
 # util/virpci.h
+virPCIDeviceAddressAsString;
+virPCIDeviceAddressEqual;
 virPCIDeviceAddressGetIOMMUGroupAddresses;
 virPCIDeviceAddressGetIOMMUGroupNum;
 virPCIDeviceAddressGetSysfsFile;
 virPCIDeviceAddressIOMMUGroupIterate;
+virPCIDeviceAddressIsEmpty;
+virPCIDeviceAddressIsValid;
 virPCIDeviceAddressParse;
 virPCIDeviceCopy;
 virPCIDeviceDetach;
@@ -2553,6 +2574,8 @@ virPCIHeaderTypeToString;
 virPCIIsVirtualFunction;
 virPCIStubDriverTypeFromString;
 virPCIStubDriverTypeToString;
+virZPCIDeviceAddressIsEmpty;
+virZPCIDeviceAddressIsValid;
 
 
 # util/virperf.h
@@ -2610,6 +2633,7 @@ virProcessKill;
 virProcessKillPainfully;
 virProcessKillPainfullyDelay;
 virProcessNamespaceAvailable;
+virProcessRunInFork;
 virProcessRunInMountNamespace;
 virProcessSchedPolicyTypeFromString;
 virProcessSchedPolicyTypeToString;
@@ -2662,7 +2686,19 @@ virResctrlAllocSetCacheSize;
 virResctrlAllocSetID;
 virResctrlAllocSetMemoryBandwidth;
 virResctrlInfoGetCache;
+virResctrlInfoGetMonitorPrefix;
+virResctrlInfoMonFree;
 virResctrlInfoNew;
+virResctrlMonitorAddPID;
+virResctrlMonitorCreate;
+virResctrlMonitorDeterminePath;
+virResctrlMonitorFreeStats;
+virResctrlMonitorGetCacheOccupancy;
+virResctrlMonitorGetID;
+virResctrlMonitorNew;
+virResctrlMonitorRemove;
+virResctrlMonitorSetAlloc;
+virResctrlMonitorSetID;
 
 
 # util/virrotatingfile.h
@@ -3084,6 +3120,8 @@ virUSBDeviceSetUsedBy;
 
 
 # util/virutil.h
+virDoesGroupExist;
+virDoesUserExist;
 virDoubleToStr;
 virEnumFromString;
 virEnumToString;

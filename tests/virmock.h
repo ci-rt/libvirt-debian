@@ -25,8 +25,6 @@
 # if HAVE_DLFCN_H
 #  include <dlfcn.h>
 # endif
-# include <stdlib.h>
-# include <stdio.h>
 
 # include "internal.h"
 

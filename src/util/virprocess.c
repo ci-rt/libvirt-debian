@@ -24,8 +24,6 @@
 
 #include <fcntl.h>
 #include <signal.h>
-#include <errno.h>
-#include <stdlib.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #if HAVE_SYS_MOUNT_H
@@ -702,7 +700,7 @@ int virProcessSetNamespaces(size_t nfdlist,
 
     if (nfdlist == 0) {
         virReportInvalidArg(nfdlist, "%s",
-                             _("Expected at least one file descriptor"));
+                            _("Expected at least one file descriptor"));
         return -1;
     }
     for (i = 0; i < nfdlist; i++) {
@@ -1075,16 +1073,22 @@ int virProcessGetStartTime(pid_t pid,
 #endif
 
 
-static int virProcessNamespaceHelper(int errfd,
-                                     pid_t pid,
-                                     virProcessNamespaceCallback cb,
+typedef struct _virProcessNamespaceHelperData virProcessNamespaceHelperData;
+struct _virProcessNamespaceHelperData {
+    pid_t pid;
+    virProcessNamespaceCallback cb;
+    void *opaque;
+};
+
+static int virProcessNamespaceHelper(pid_t pid ATTRIBUTE_UNUSED,
                                      void *opaque)
 {
+    virProcessNamespaceHelperData *data = opaque;
     int fd = -1;
     int ret = -1;
     VIR_AUTOFREE(char *) path = NULL;
 
-    if (virAsprintf(&path, "/proc/%lld/ns/mnt", (long long) pid) < 0)
+    if (virAsprintf(&path, "/proc/%lld/ns/mnt", (long long) data->pid) < 0)
         goto cleanup;
 
     if ((fd = open(path, O_RDONLY)) < 0) {
@@ -1099,16 +1103,9 @@ static int virProcessNamespaceHelper(int errfd,
         goto cleanup;
     }
 
-    ret = cb(pid, opaque);
+    ret = data->cb(data->pid, data->opaque);
 
  cleanup:
-    if (ret < 0) {
-        virErrorPtr err = virGetLastError();
-        if (err) {
-            size_t len = strlen(err->message) + 1;
-            ignore_value(safewrite(errfd, err->message, len));
-        }
-    }
     VIR_FORCE_CLOSE(fd);
     return ret;
 }
@@ -1124,8 +1121,58 @@ virProcessRunInMountNamespace(pid_t pid,
                               virProcessNamespaceCallback cb,
                               void *opaque)
 {
+    virProcessNamespaceHelperData data = {.pid = pid, .cb = cb, .opaque = opaque};
+
+    return virProcessRunInFork(virProcessNamespaceHelper, &data);
+}
+
+
+static int
+virProcessRunInForkHelper(int errfd,
+                          pid_t ppid,
+                          virProcessForkCallback cb,
+                          void *opaque)
+{
+    if (cb(ppid, opaque) < 0) {
+        virErrorPtr err = virGetLastError();
+        if (err) {
+            size_t len = strlen(err->message) + 1;
+            ignore_value(safewrite(errfd, err->message, len));
+        }
+
+        return -1;
+    }
+
+    return 0;
+}
+
+
+/**
+ * virProcessRunInFork:
+ * @cb: callback to run
+ * @opaque: opaque data to @cb
+ *
+ * Do the fork and run @cb in the child. This can be used when
+ * @cb does something thread unsafe, for instance.  All signals
+ * will be reset to have their platform default handlers and
+ * unmasked. @cb must only use async signal safe functions. In
+ * particular no mutexes should be used in @cb, unless steps were
+ * taken before forking to guarantee a predictable state. @cb
+ * must not exec any external binaries, instead
+ * virCommand/virExec should be used for that purpose.
+ *
+ * On return, the returned value is either -1 with error message
+ * reported if something went bad in the parent, if child has
+ * died from a signal or if the child returned EXIT_CANCELED.
+ * Otherwise the returned value is the exit status of the child.
+ */
+int
+virProcessRunInFork(virProcessForkCallback cb,
+                    void *opaque)
+{
     int ret = -1;
     pid_t child = -1;
+    pid_t parent = getpid();
     int errfd[2] = { -1, -1 };
 
     if (pipe2(errfd, O_CLOEXEC) < 0) {
@@ -1139,8 +1186,7 @@ virProcessRunInMountNamespace(pid_t pid,
 
     if (child == 0) {
         VIR_FORCE_CLOSE(errfd[0]);
-        ret = virProcessNamespaceHelper(errfd[1], pid,
-                                        cb, opaque);
+        ret = virProcessRunInForkHelper(errfd[1], parent, cb, opaque);
         VIR_FORCE_CLOSE(errfd[1]);
         _exit(ret < 0 ? EXIT_CANCELED : ret);
     } else {
@@ -1150,12 +1196,12 @@ virProcessRunInMountNamespace(pid_t pid,
         VIR_FORCE_CLOSE(errfd[1]);
         ignore_value(virFileReadHeaderFD(errfd[0], 1024, &buf));
         ret = virProcessWait(child, &status, false);
-        if (!ret) {
+        if (ret == 0) {
             ret = status == EXIT_CANCELED ? -1 : status;
             if (ret) {
                 virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("child reported: %s"),
-                               NULLSTR(buf));
+                               _("child reported (status=%d): %s"),
+                               status, NULLSTR(buf));
             }
         }
     }

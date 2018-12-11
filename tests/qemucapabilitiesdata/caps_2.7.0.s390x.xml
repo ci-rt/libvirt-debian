@@ -35,17 +35,12 @@
   <flag name='virtio-ccw'/>
   <flag name='pci-bridge'/>
   <flag name='vfio-pci'/>
-  <flag name='vfio-pci.bootindex'/>
-  <flag name='scsi-generic'/>
-  <flag name='scsi-generic.bootindex'/>
   <flag name='mem-merge'/>
-  <flag name='vnc-websocket'/>
   <flag name='drive-discard'/>
   <flag name='mlock'/>
   <flag name='device-del-event'/>
   <flag name='virtio-mmio'/>
   <flag name='boot-strict'/>
-  <flag name='spiceport'/>
   <flag name='msg-timestamp'/>
   <flag name='active-commit'/>
   <flag name='change-backing-file'/>
@@ -105,9 +100,10 @@
   <flag name='nbd-tls'/>
   <flag name='virtual-css-bridge'/>
   <flag name='sdl-gl'/>
+  <flag name='zpci'/>
   <version>2007000</version>
   <kvmVersion>0</kvmVersion>
-  <microcodeVersion>220386</microcodeVersion>
+  <microcodeVersion>219140</microcodeVersion>
   <package></package>
   <arch>s390x</arch>
   <cpu type='kvm' name='host'/>

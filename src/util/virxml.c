@@ -22,11 +22,7 @@
 
 #include <config.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <stdarg.h>
-#include <limits.h>
 #include <math.h>               /* for isnan() */
 #include <sys/stat.h>
 
@@ -1256,7 +1252,7 @@ virXMLValidatorInit(const char *schemafile)
         goto error;
 
     if (!(validator->rngParser =
-              xmlRelaxNGNewParserCtxt(validator->schemafile))) {
+          xmlRelaxNGNewParserCtxt(validator->schemafile))) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Unable to create RNG parser for %s"),
                        validator->schemafile);

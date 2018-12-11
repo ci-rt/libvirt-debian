@@ -23,11 +23,8 @@
 
 #include <config.h>
 
-#include <stdlib.h>
-#include <string.h>
 #include <poll.h>
 #include <sys/time.h>
-#include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
 
@@ -545,10 +542,10 @@ static void virEventPollCleanupTimeouts(void)
         }
 
         if ((i+1) < eventLoop.timeoutsCount) {
+            size_t count = eventLoop.timeoutsCount - (i+1);
             memmove(eventLoop.timeouts+i,
                     eventLoop.timeouts+i+1,
-                    sizeof(struct virEventPollTimeout)*(eventLoop.timeoutsCount
-                                                    -(i+1)));
+                    sizeof(struct virEventPollTimeout)*count);
         }
         eventLoop.timeoutsCount--;
     }
@@ -594,10 +591,10 @@ static void virEventPollCleanupHandles(void)
         }
 
         if ((i+1) < eventLoop.handlesCount) {
+            size_t count = eventLoop.handlesCount - (i+1);
             memmove(eventLoop.handles+i,
                     eventLoop.handles+i+1,
-                    sizeof(struct virEventPollHandle)*(eventLoop.handlesCount
-                                                   -(i+1)));
+                    sizeof(struct virEventPollHandle)*count);
         }
         eventLoop.handlesCount--;
     }

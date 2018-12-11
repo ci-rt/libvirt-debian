@@ -673,6 +673,9 @@ libvirt_setuid_rpc_client_la_SOURCES = \
 		util/virbitmap.c \
 		util/virbuffer.c \
 		util/vircgroup.c \
+		util/vircgroupbackend.c \
+		util/vircgroupv1.c \
+		util/vircgroupv2.c \
 		util/vircommand.c \
 		util/virconf.c \
 		util/virdbus.c \

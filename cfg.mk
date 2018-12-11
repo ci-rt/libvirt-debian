@@ -472,6 +472,7 @@ sc_prohibit_canonicalize_file_name:
 # Insist on correct types for [pug]id.
 sc_correct_id_types:
 	@prohibit='\<(int|long) *[pug]id\>' \
+	exclude='exempt from syntax-check' \
 	halt='use pid_t for pid, uid_t for uid, gid_t for gid' \
 	  $(_sc_search_regexp)
 
@@ -1063,7 +1064,7 @@ sc_prohibit_backslash_alignment:
 # Rule to ensure that varibales declared using a cleanup macro are
 # always initialized.
 sc_require_attribute_cleanup_initialization:
-	@prohibit='VIR_AUTO(FREE|PTR)\(.+\) *[^=]+;' \
+	@prohibit='VIR_AUTO((FREE|PTR)\(.+\)|CLOSE) *[^=]+;' \
 	in_vc_files='\.[chx]$$' \
 	halt='variable declared with a cleanup macro must be initialized' \
 	  $(_sc_search_regexp)
@@ -1227,7 +1228,7 @@ exclude_file_name_regexp--sc_prohibit_select = \
 	^cfg\.mk$$
 
 exclude_file_name_regexp--sc_prohibit_canonicalize_file_name = \
-  ^cfg\.mk$$
+  ^(cfg\.mk|tests/virfilemock\.c)$$
 
 exclude_file_name_regexp--sc_prohibit_raw_allocation = \
   ^(docs/hacking\.html\.in|src/util/viralloc\.[ch]|examples/.*|tests/(securityselinuxhelper|(vircgroup|nss)mock|commandhelper)\.c|tools/wireshark/src/packet-libvirt\.c)$$

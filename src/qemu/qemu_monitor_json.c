@@ -28,7 +28,6 @@
 #include <sys/un.h>
 #include <poll.h>
 #include <unistd.h>
-#include <string.h>
 #include <sys/time.h>
 
 #include "qemu_monitor_text.h"
@@ -1554,7 +1553,6 @@ int qemuMonitorJSONSetLink(qemuMonitorPtr mon,
                            const char *name,
                            virDomainNetInterfaceLinkState state)
 {
-
     int ret = -1;
     virJSONValuePtr reply = NULL;
     virJSONValuePtr cmd = qemuMonitorJSONMakeCommand("set_link",
@@ -7443,6 +7441,21 @@ qemuMonitorJSONGetIOThreads(qemuMonitorPtr mon,
                              "'thread-id' data"));
             goto cleanup;
         }
+
+        /* Fetch poll values (since QEMU 2.9 ) if available. QEMU
+         * stores these values as int64_t's; however, the qapi type
+         * is an int. The qapi/misc.json also mis-describes the grow
+         * and shrink values as pure add/remove values. The source
+         * util/aio-posix.c function aio_poll uses them as a factor
+         * or divisor in it's calculation. We will fetch and store
+         * them as defined in our structures. */
+        if (virJSONValueObjectGetNumberUlong(child, "poll-max-ns",
+                                             &info->poll_max_ns) == 0 &&
+            virJSONValueObjectGetNumberUint(child, "poll-grow",
+                                            &info->poll_grow) == 0 &&
+            virJSONValueObjectGetNumberUint(child, "poll-shrink",
+                                            &info->poll_shrink) == 0)
+            info->poll_valid = true;
     }
 
     ret = n;
@@ -7457,6 +7470,41 @@ qemuMonitorJSONGetIOThreads(qemuMonitorPtr mon,
     }
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
+    return ret;
+}
+
+
+int
+qemuMonitorJSONSetIOThread(qemuMonitorPtr mon,
+                           qemuMonitorIOThreadInfoPtr iothreadInfo)
+{
+    int ret = -1;
+    char *path = NULL;
+    qemuMonitorJSONObjectProperty prop;
+
+    if (virAsprintf(&path, "/objects/iothread%u",
+                    iothreadInfo->iothread_id) < 0)
+        goto cleanup;
+
+#define VIR_IOTHREAD_SET_PROP(propName, propVal) \
+    if (iothreadInfo->set_##propVal) { \
+        memset(&prop, 0, sizeof(qemuMonitorJSONObjectProperty)); \
+        prop.type = QEMU_MONITOR_OBJECT_PROPERTY_INT; \
+        prop.val.iv = iothreadInfo->propVal; \
+        if (qemuMonitorJSONSetObjectProperty(mon, path, propName, &prop) < 0) \
+            goto cleanup; \
+    }
+
+    VIR_IOTHREAD_SET_PROP("poll-max-ns", poll_max_ns);
+    VIR_IOTHREAD_SET_PROP("poll-grow", poll_grow);
+    VIR_IOTHREAD_SET_PROP("poll-shrink", poll_shrink);
+
+#undef VIR_IOTHREAD_SET_PROP
+
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(path);
     return ret;
 }
 

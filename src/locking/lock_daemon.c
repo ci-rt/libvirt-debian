@@ -27,7 +27,6 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <getopt.h>
-#include <stdlib.h>
 
 
 #include "lock_daemon.h"
@@ -733,6 +732,7 @@ virLockDaemonClientFree(void *opaque)
     }
 
     virMutexDestroy(&priv->lock);
+    VIR_FREE(priv->ownerName);
     VIR_FREE(priv);
 }
 
@@ -1281,6 +1281,7 @@ int main(int argc, char **argv) {
                   virGetLastErrorMessage(), remote_config_file);
         exit(EXIT_FAILURE);
     }
+    VIR_FREE(remote_config_file);
 
     if (virLockDaemonSetupLogging(config, privileged, verbose, godaemon) < 0) {
         VIR_ERROR(_("Can't initialize logging"));
@@ -1494,6 +1495,7 @@ int main(int argc, char **argv) {
     VIR_FREE(admin_sock_file);
     VIR_FREE(state_file);
     VIR_FREE(run_dir);
+    virLockDaemonConfigFree(config);
     return ret;
 
  no_memory:

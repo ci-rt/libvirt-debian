@@ -38,7 +38,6 @@
 #include <sys/un.h>
 #include <sys/personality.h>
 #include <unistd.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <getopt.h>
@@ -875,12 +874,12 @@ static int virLXCControllerSetupCgroupLimits(virLXCControllerPtr ctrl)
                                             ctrl->nicindexes)))
         goto cleanup;
 
-    if (virCgroupAddMachineTask(ctrl->cgroup, getpid()) < 0)
+    if (virCgroupAddMachineProcess(ctrl->cgroup, getpid()) < 0)
         goto cleanup;
 
     /* Add all qemu-nbd tasks to the cgroup */
     for (i = 0; i < ctrl->nnbdpids; i++) {
-        if (virCgroupAddMachineTask(ctrl->cgroup, ctrl->nbdpids[i]) < 0)
+        if (virCgroupAddMachineProcess(ctrl->cgroup, ctrl->nbdpids[i]) < 0)
             goto cleanup;
     }
 

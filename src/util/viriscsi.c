@@ -23,7 +23,6 @@
 #include <config.h>
 
 #include <regex.h>
-#include <stdio.h>
 
 #include "viriscsi.h"
 
@@ -92,7 +91,7 @@ virISCSIGetSession(const char *devpath,
     VIR_AUTOFREE(char *) error = NULL;
 
     VIR_AUTOPTR(virCommand) cmd = virCommandNewArgList(ISCSIADM, "--mode",
-                                             "session", NULL);
+                                                       "session", NULL);
     virCommandSetErrorBuffer(cmd, &error);
 
     if (virCommandRunRegex(cmd,
@@ -127,7 +126,7 @@ virStorageBackendIQNFound(const char *initiatoriqn,
     VIR_AUTOFREE(char *) iface = NULL;
     VIR_AUTOFREE(char *) iqn = NULL;
     VIR_AUTOPTR(virCommand) cmd = virCommandNewArgList(ISCSIADM,
-                                             "--mode", "iface", NULL);
+                                                       "--mode", "iface", NULL);
 
     *ifacename = NULL;
 
@@ -351,10 +350,10 @@ int
 virISCSIRescanLUNs(const char *session)
 {
     VIR_AUTOPTR(virCommand) cmd = virCommandNewArgList(ISCSIADM,
-                                             "--mode", "session",
-                                             "-r", session,
-                                             "-R",
-                                             NULL);
+                                                       "--mode", "session",
+                                                       "-r", session,
+                                                       "-R",
+                                                       NULL);
     return virCommandRun(cmd, NULL);
 }
 
@@ -406,10 +405,10 @@ virISCSIScanTargetsInternal(const char *portal,
     struct virISCSITargetList list;
     size_t i;
     VIR_AUTOPTR(virCommand) cmd = virCommandNewArgList(ISCSIADM,
-                                             "--mode", "discovery",
-                                             "--type", "sendtargets",
-                                             "--portal", portal,
-                                             NULL);
+                                                       "--mode", "discovery",
+                                                       "--type", "sendtargets",
+                                                       "--portal", portal,
+                                                       NULL);
 
     if (!persist) {
         virCommandAddArgList(cmd,
@@ -496,7 +495,7 @@ virISCSIScanTargets(const char *portal,
     }
 
     return virISCSIScanTargetsInternal(portal, ifacename,
-                                      persist, ntargets, targets);
+                                       persist, ntargets, targets);
 }
 
 

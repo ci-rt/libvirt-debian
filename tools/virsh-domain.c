@@ -59,6 +59,7 @@
 #include "virxml.h"
 #include "virsh-nodedev.h"
 #include "viruri.h"
+#include "vsh-table.h"
 
 /* Gnulib doesn't guarantee SA_SIGINFO support.  */
 #ifndef SA_SIGINFO
@@ -6905,6 +6906,7 @@ virshVcpuPinQuery(vshControl *ctl,
     size_t i;
     int ncpus;
     bool ret = false;
+    vshTablePtr table = NULL;
 
     if ((ncpus = virshCPUCountCollect(ctl, dom, countFlags, true)) < 0) {
         if (ncpus == -1) {
@@ -6913,7 +6915,7 @@ virshVcpuPinQuery(vshControl *ctl,
             else
                 vshError(ctl, "%s", _("cannot get vcpupin for transient domain"));
         }
-        return false;
+        goto cleanup;
     }
 
     if (got_vcpu && vcpu >= ncpus) {
@@ -6927,28 +6929,39 @@ virshVcpuPinQuery(vshControl *ctl,
             vshError(ctl,
                      _("vcpu %d is out of range of persistent cpu count %d"),
                      vcpu, ncpus);
-        return false;
+        goto cleanup;
     }
 
     cpumaplen = VIR_CPU_MAPLEN(maxcpu);
     cpumap = vshMalloc(ctl, ncpus * cpumaplen);
     if ((ncpus = virDomainGetVcpuPinInfo(dom, ncpus, cpumap,
                                          cpumaplen, flags)) >= 0) {
-        vshPrintExtra(ctl, "%s %s\n", _("VCPU:"), _("CPU Affinity"));
-        vshPrintExtra(ctl, "----------------------------------\n");
+        table = vshTableNew(_("VCPU"), _("CPU Affinity"), NULL);
+        if (!table)
+            goto cleanup;
+
         for (i = 0; i < ncpus; i++) {
+            VIR_AUTOFREE(char *) pinInfo = NULL;
+            VIR_AUTOFREE(char *) vcpuStr = NULL;
             if (got_vcpu && i != vcpu)
                 continue;
 
-            vshPrint(ctl, "%4zu: ", i);
-            ret = virshPrintPinInfo(ctl, VIR_GET_CPUMAP(cpumap, cpumaplen, i),
-                                    cpumaplen);
-            vshPrint(ctl, "\n");
-            if (!ret)
-                break;
+            if (!(pinInfo = virBitmapDataFormat(cpumap, cpumaplen)))
+                goto cleanup;
+
+            if (virAsprintf(&vcpuStr, "%zu", i) < 0)
+                goto cleanup;
+
+            if (vshTableRowAppend(table, vcpuStr, pinInfo, NULL) < 0)
+                goto cleanup;
         }
+
+        vshTablePrintToStdout(table, ctl);
     }
 
+    ret = true;
+ cleanup:
+    vshTableFree(table);
     VIR_FREE(cpumap);
     return ret;
 }
@@ -7520,6 +7533,7 @@ cmdIOThreadInfo(vshControl *ctl, const vshCmd *cmd)
     int maxcpu;
     unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
     virshControlPtr priv = ctl->privData;
+    vshTablePtr table = NULL;
 
     VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
     VSH_EXCLUSIVE_OPTIONS_VAR(current, config);
@@ -7545,19 +7559,30 @@ cmdIOThreadInfo(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
     }
 
-    vshPrintExtra(ctl, " %-15s %-15s\n",
-                  _("IOThread ID"), _("CPU Affinity"));
-    vshPrintExtra(ctl, "---------------------------------------------------\n");
-    for (i = 0; i < niothreads; i++) {
+    table = vshTableNew(_("IOThread ID"), _("CPU Affinity"), NULL);
+    if (!table)
+        goto cleanup;
 
-        vshPrint(ctl, " %-15u ", info[i]->iothread_id);
-        ignore_value(virshPrintPinInfo(ctl, info[i]->cpumap, info[i]->cpumaplen));
-        vshPrint(ctl, "\n");
-        virDomainIOThreadInfoFree(info[i]);
+    for (i = 0; i < niothreads; i++) {
+        VIR_AUTOFREE(char *) pinInfo = NULL;
+        VIR_AUTOFREE(char *) iothreadIdStr = NULL;
+
+        if (virAsprintf(&iothreadIdStr, "%u", info[i]->iothread_id) < 0)
+            goto cleanup;
+
+        ignore_value(pinInfo = virBitmapDataFormat(info[i]->cpumap, info[i]->cpumaplen));
+
+        if (vshTableRowAppend(table, iothreadIdStr, pinInfo ? pinInfo : "", NULL) < 0)
+            goto cleanup;
     }
-    VIR_FREE(info);
+
+    vshTablePrintToStdout(table, ctl);
 
  cleanup:
+    for (i = 0; i < niothreads; i++)
+        virDomainIOThreadInfoFree(info[i]);
+    VIR_FREE(info);
+    vshTableFree(table);
     virshDomainFree(dom);
     return niothreads >= 0;
 }
@@ -7708,6 +7733,110 @@ cmdIOThreadAdd(vshControl *ctl, const vshCmd *cmd)
     virshDomainFree(dom);
     return ret;
 }
+
+
+ /*
+ * "iothreadset" command
+ */
+static const vshCmdInfo info_iothreadset[] = {
+    {.name = "help",
+     .data = N_("modifies an existing IOThread of the guest domain")
+    },
+    {.name = "desc",
+     .data = N_("Modifies an existing IOThread of the guest domain.")
+    },
+    {.name = NULL}
+};
+
+static const vshCmdOptDef opts_iothreadset[] = {
+    VIRSH_COMMON_OPT_DOMAIN_FULL(0),
+    {.name = "id",
+     .type = VSH_OT_INT,
+     .flags = VSH_OFLAG_REQ,
+     .help = N_("iothread id of existing IOThread")
+    },
+    {.name = "poll-max-ns",
+     .type = VSH_OT_INT,
+     .help = N_("set the maximum IOThread polling time in ns")
+    },
+    {.name = "poll-grow",
+     .type = VSH_OT_INT,
+     .help = N_("set the value to increase the IOThread polling time")
+    },
+    {.name = "poll-shrink",
+     .type = VSH_OT_INT,
+     .help = N_("set the value for reduction of the IOThread polling time ")
+    },
+    VIRSH_COMMON_OPT_DOMAIN_LIVE,
+    VIRSH_COMMON_OPT_DOMAIN_CURRENT,
+    {.name = NULL}
+};
+
+static bool
+cmdIOThreadSet(vshControl *ctl, const vshCmd *cmd)
+{
+    virDomainPtr dom;
+    int id = 0;
+    bool ret = false;
+    bool live = vshCommandOptBool(cmd, "live");
+    unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
+    virTypedParameterPtr params = NULL;
+    int nparams = 0;
+    int maxparams = 0;
+    unsigned long long poll_max;
+    unsigned int poll_val;
+    int rc;
+
+    if (live)
+        flags |= VIR_DOMAIN_AFFECT_LIVE;
+
+    if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
+        return false;
+
+    if (vshCommandOptInt(ctl, cmd, "id", &id) < 0)
+        goto cleanup;
+    if (id <= 0) {
+        vshError(ctl, _("Invalid IOThread id value: '%d'"), id);
+        goto cleanup;
+    }
+
+    poll_val = 0;
+    if ((rc = vshCommandOptULongLong(ctl, cmd, "poll-max-ns", &poll_max)) < 0)
+        goto cleanup;
+    if (rc > 0 && virTypedParamsAddULLong(&params, &nparams, &maxparams,
+                                          VIR_DOMAIN_IOTHREAD_POLL_MAX_NS,
+                                          poll_max) < 0)
+        goto save_error;
+
+#define VSH_IOTHREAD_SET_UINT_PARAMS(opt, param) \
+    poll_val = 0; \
+    if ((rc = vshCommandOptUInt(ctl, cmd, opt, &poll_val)) < 0) \
+        goto cleanup; \
+    if (rc > 0 && \
+        virTypedParamsAddUInt(&params, &nparams, &maxparams, \
+                              param, poll_val) < 0) \
+        goto save_error;
+
+    VSH_IOTHREAD_SET_UINT_PARAMS("poll-grow", VIR_DOMAIN_IOTHREAD_POLL_GROW)
+    VSH_IOTHREAD_SET_UINT_PARAMS("poll-shrink", VIR_DOMAIN_IOTHREAD_POLL_SHRINK)
+
+#undef VSH_IOTHREAD_SET_UINT_PARAMS
+
+    if (virDomainSetIOThreadParams(dom, id, params, nparams, flags) < 0)
+        goto cleanup;
+
+    ret = true;
+
+ cleanup:
+    virTypedParamsFree(params, nparams);
+    virshDomainFree(dom);
+    return ret;
+
+ save_error:
+    vshSaveLibvirtError();
+    goto cleanup;
+}
+
 
 /*
  * "iothreaddel" command
@@ -9484,7 +9613,7 @@ static const vshCmdInfo info_qemu_monitor_event[] = {
 
 static const vshCmdOptDef opts_qemu_monitor_event[] = {
     VIRSH_COMMON_OPT_DOMAIN_OT_STRING(N_("filter by domain name, id or uuid"),
-                                      0),
+                                      0, 0),
     {.name = "event",
      .type = VSH_OT_STRING,
      .help = N_("filter by event name")
@@ -10037,7 +10166,7 @@ static const vshCmdOptDef opts_domxmltonative[] = {
      .flags = VSH_OFLAG_REQ,
      .help = N_("target config data type format")
     },
-    VIRSH_COMMON_OPT_DOMAIN_OT_STRING_FULL(0),
+    VIRSH_COMMON_OPT_DOMAIN_OT_STRING_FULL(VSH_OFLAG_REQ_OPT, 0),
     {.name = "xml",
      .type = VSH_OT_STRING,
      .help = N_("xml data file to export from")
@@ -13287,7 +13416,7 @@ static const vshCmdInfo info_event[] = {
 
 static const vshCmdOptDef opts_event[] = {
     VIRSH_COMMON_OPT_DOMAIN_OT_STRING(N_("filter by domain name, id or uuid"),
-                                      0),
+                                      0, 0),
     {.name = "event",
      .type = VSH_OT_STRING,
      .completer = virshDomainEventNameCompleter,
@@ -13778,6 +13907,7 @@ cmdDomFSInfo(vshControl *ctl, const vshCmd *cmd)
     int ret = -1;
     size_t i, j;
     virDomainFSInfoPtr *info;
+    vshTablePtr table = NULL;
 
     if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
         return false;
@@ -13793,25 +13923,41 @@ cmdDomFSInfo(vshControl *ctl, const vshCmd *cmd)
     }
 
     if (info) {
-        vshPrintExtra(ctl, "%-36s %-8s %-8s %s\n",
-                      _("Mountpoint"), _("Name"), _("Type"), _("Target"));
-        vshPrintExtra(ctl, "-------------------------------------------------------------------\n");
-        for (i = 0; i < ret; i++) {
-            vshPrint(ctl, "%-36s %-8s %-8s ",
-                     info[i]->mountpoint, info[i]->name, info[i]->fstype);
-            for (j = 0; j < info[i]->ndevAlias; j++) {
-                vshPrint(ctl, "%s", info[i]->devAlias[j]);
-                if (j != info[i]->ndevAlias - 1)
-                    vshPrint(ctl, ",");
-            }
-            vshPrint(ctl, "\n");
+        table = vshTableNew(_("Mountpoint"), _("Name"), _("Type"), _("Target"), NULL);
+        if (!table)
+            goto cleanup;
 
-            virDomainFSInfoFree(info[i]);
+        for (i = 0; i < ret; i++) {
+            virBuffer targetsBuff = VIR_BUFFER_INITIALIZER;
+            VIR_AUTOFREE(char *) targets = NULL;
+
+            for (j = 0; j < info[i]->ndevAlias; j++) {
+                virBufferAdd(&targetsBuff, info[i]->devAlias[j], -1);
+                if (j != info[i]->ndevAlias - 1)
+                    virBufferAddChar(&targetsBuff, ',');
+            }
+
+            targets = virBufferContentAndReset(&targetsBuff);
+
+            if (vshTableRowAppend(table,
+                                  info[i]->mountpoint,
+                                  info[i]->name,
+                                  info[i]->fstype,
+                                  targets,
+                                  NULL) < 0)
+                goto cleanup;
         }
-        VIR_FREE(info);
+
+        vshTablePrintToStdout(table, ctl);
     }
 
  cleanup:
+    if (info) {
+        for (i = 0; i < ret; i++)
+            virDomainFSInfoFree(info[i]);
+        VIR_FREE(info);
+    }
+    vshTableFree(table);
     virshDomainFree(dom);
     return ret >= 0;
 }
@@ -14105,6 +14251,12 @@ const vshCmdDef domManagementCmds[] = {
      .handler = cmdIOThreadAdd,
      .opts = opts_iothreadadd,
      .info = info_iothreadadd,
+     .flags = 0
+    },
+    {.name = "iothreadset",
+     .handler = cmdIOThreadSet,
+     .opts = opts_iothreadset,
+     .info = info_iothreadset,
      .flags = 0
     },
     {.name = "iothreaddel",

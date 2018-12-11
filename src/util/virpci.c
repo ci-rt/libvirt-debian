@@ -29,13 +29,9 @@
 #include <dirent.h>
 #include <fcntl.h>
 #include <inttypes.h>
-#include <limits.h>
-#include <stdio.h>
-#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <stdlib.h>
 
 #include "dirname.h"
 #include "virlog.h"
@@ -60,13 +56,13 @@ VIR_ENUM_IMPL(virPCIStubDriver, VIR_PCI_STUB_DRIVER_LAST,
               "pciback", /* XEN */
               "pci-stub", /* KVM */
               "vfio-pci", /* VFIO */
-);
+              );
 
 VIR_ENUM_IMPL(virPCIHeader, VIR_PCI_HEADER_LAST,
               "endpoint",
               "pci-bridge",
               "cardbus-bridge",
-);
+              );
 
 struct _virPCIDevice {
     virPCIDeviceAddress address;
@@ -1668,20 +1664,82 @@ virPCIDeviceReadID(virPCIDevicePtr dev, const char *id_name)
     return id_str;
 }
 
-int
-virPCIGetAddrString(unsigned int domain,
-                    unsigned int bus,
-                    unsigned int slot,
-                    unsigned int function,
-                    char **pciConfigAddr)
+bool
+virPCIDeviceAddressIsValid(virPCIDeviceAddressPtr addr,
+                           bool report)
 {
-    VIR_AUTOPTR(virPCIDevice) dev = NULL;
+    if (addr->domain > 0xFFFF) {
+        if (report)
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("Invalid PCI address domain='0x%x', "
+                             "must be <= 0xFFFF"),
+                           addr->domain);
+        return false;
+    }
+    if (addr->bus > 0xFF) {
+        if (report)
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("Invalid PCI address bus='0x%x', "
+                             "must be <= 0xFF"),
+                           addr->bus);
+        return false;
+    }
+    if (addr->slot > 0x1F) {
+        if (report)
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("Invalid PCI address slot='0x%x', "
+                             "must be <= 0x1F"),
+                           addr->slot);
+        return false;
+    }
+    if (addr->function > 7) {
+        if (report)
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("Invalid PCI address function=0x%x, "
+                             "must be <= 7"),
+                           addr->function);
+        return false;
+    }
+    if (virPCIDeviceAddressIsEmpty(addr)) {
+        if (report)
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("Invalid PCI address 0000:00:00, at least "
+                             "one of domain, bus, or slot must be > 0"));
+        return false;
+    }
+    return true;
+}
 
-    dev = virPCIDeviceNew(domain, bus, slot, function);
-    if (!dev || VIR_STRDUP(*pciConfigAddr, dev->name) < 0)
-        return -1;
+bool
+virPCIDeviceAddressIsEmpty(const virPCIDeviceAddress *addr)
+{
+    return !(addr->domain || addr->bus || addr->slot);
+}
 
-    return 0;
+bool
+virPCIDeviceAddressEqual(virPCIDeviceAddress *addr1,
+                         virPCIDeviceAddress *addr2)
+{
+    if (addr1->domain == addr2->domain &&
+        addr1->bus == addr2->bus &&
+        addr1->slot == addr2->slot &&
+        addr1->function == addr2->function) {
+        return true;
+    }
+    return false;
+}
+
+char *
+virPCIDeviceAddressAsString(virPCIDeviceAddressPtr addr)
+{
+    char *str;
+
+    ignore_value(virAsprintf(&str, "%.4x:%.2x:%.2x.%.1x",
+                             addr->domain,
+                             addr->bus,
+                             addr->slot,
+                             addr->function));
+    return str;
 }
 
 virPCIDevicePtr
@@ -2501,6 +2559,32 @@ virPCIDeviceAddressParse(char *address,
 
  out:
     return ret;
+}
+
+
+bool
+virZPCIDeviceAddressIsValid(virZPCIDeviceAddressPtr zpci)
+{
+    /* We don't need to check fid because fid covers
+     * all range of uint32 type.
+     */
+    if (zpci->uid > VIR_DOMAIN_DEVICE_ZPCI_MAX_UID ||
+        zpci->uid == 0) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("Invalid PCI address uid='0x%.4x', "
+                         "must be > 0x0000 and <= 0x%.4x"),
+                       zpci->uid,
+                       VIR_DOMAIN_DEVICE_ZPCI_MAX_UID);
+        return false;
+    }
+
+    return true;
+}
+
+bool
+virZPCIDeviceAddressIsEmpty(const virZPCIDeviceAddress *addr)
+{
+    return !(addr->uid || addr->fid);
 }
 
 #ifdef __linux__

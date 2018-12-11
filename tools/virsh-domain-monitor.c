@@ -212,7 +212,8 @@ VIR_ENUM_IMPL(virshDomainShutoffReason,
               N_("migrated"),
               N_("saved"),
               N_("failed"),
-              N_("from snapshot"))
+              N_("from snapshot"),
+              N_("daemon"))
 
 VIR_ENUM_DECL(virshDomainCrashedReason)
 VIR_ENUM_IMPL(virshDomainCrashedReason,
@@ -406,33 +407,23 @@ static const vshCmdOptDef opts_domblkinfo[] = {
     {.name = NULL}
 };
 
-static void
-cmdDomblkinfoPrint(vshControl *ctl,
+static bool
+cmdDomblkinfoGet(vshControl *ctl,
                    const virDomainBlockInfo *info,
-                   const char *device,
-                   bool human, bool title)
+                   char **cap,
+                   char **alloc,
+                   char **phy,
+                   bool human)
 {
-    char *cap = NULL;
-    char *alloc = NULL;
-    char *phy = NULL;
-
-    if (title) {
-        vshPrintExtra(ctl, "%-10s %-15s %-15s %-15s\n", _("Target"),
-                      _("Capacity"), _("Allocation"), _("Physical"));
-        vshPrintExtra(ctl, "-----------------------------"
-                      "------------------------\n");
-        return;
-    }
-
     if (info->capacity == 0 && info->allocation == 0 && info->physical == 0) {
-        cap = vshStrdup(ctl, "-");
-        alloc = vshStrdup(ctl, "-");
-        phy = vshStrdup(ctl, "-");
+        *cap = vshStrdup(ctl, "-");
+        *alloc = vshStrdup(ctl, "-");
+        *phy = vshStrdup(ctl, "-");
     } else if (!human) {
-        if (virAsprintf(&cap, "%llu", info->capacity) < 0 ||
-            virAsprintf(&alloc, "%llu", info->allocation) < 0 ||
-            virAsprintf(&phy, "%llu", info->physical) < 0)
-            goto cleanup;
+        if (virAsprintf(cap, "%llu", info->capacity) < 0 ||
+            virAsprintf(alloc, "%llu", info->allocation) < 0 ||
+            virAsprintf(phy, "%llu", info->physical) < 0)
+            return false;
     } else {
         double val_cap, val_alloc, val_phy;
         const char *unit_cap, *unit_alloc, *unit_phy;
@@ -441,24 +432,13 @@ cmdDomblkinfoPrint(vshControl *ctl,
         val_alloc = vshPrettyCapacity(info->allocation, &unit_alloc);
         val_phy = vshPrettyCapacity(info->physical, &unit_phy);
 
-        if (virAsprintf(&cap, "%.3lf %s", val_cap, unit_cap) < 0 ||
-            virAsprintf(&alloc, "%.3lf %s", val_alloc, unit_alloc) < 0 ||
-            virAsprintf(&phy, "%.3lf %s", val_phy, unit_phy) < 0)
-            goto cleanup;
+        if (virAsprintf(cap, "%.3lf %s", val_cap, unit_cap) < 0 ||
+            virAsprintf(alloc, "%.3lf %s", val_alloc, unit_alloc) < 0 ||
+            virAsprintf(phy, "%.3lf %s", val_phy, unit_phy) < 0)
+            return false;
     }
 
-    if (device) {
-        vshPrint(ctl, "%-10s %-15s %-15s %-15s\n", device, cap, alloc, phy);
-    } else {
-        vshPrint(ctl, "%-15s %s\n", _("Capacity:"), cap);
-        vshPrint(ctl, "%-15s %s\n", _("Allocation:"), alloc);
-        vshPrint(ctl, "%-15s %s\n", _("Physical:"), phy);
-    }
-
- cleanup:
-    VIR_FREE(cap);
-    VIR_FREE(alloc);
-    VIR_FREE(phy);
+    return true;
 }
 
 
@@ -478,6 +458,10 @@ cmdDomblkinfo(vshControl *ctl, const vshCmd *cmd)
     xmlNodePtr *disks = NULL;
     char *target = NULL;
     char *protocol = NULL;
+    char *cap = NULL;
+    char *alloc = NULL;
+    char *phy = NULL;
+    vshTablePtr table = NULL;
 
     if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
         return false;
@@ -501,8 +485,10 @@ cmdDomblkinfo(vshControl *ctl, const vshCmd *cmd)
         if (ndisks < 0)
             goto cleanup;
 
-        /* print the title */
-        cmdDomblkinfoPrint(ctl, NULL, NULL, false, true);
+        /* title */
+        table = vshTableNew(_("Target"), _("Capacity"), _("Allocation"), _("Physical"), NULL);
+        if (!table)
+            goto cleanup;
 
         for (i = 0; i < ndisks; i++) {
             ctxt->node = disks[i];
@@ -525,21 +511,35 @@ cmdDomblkinfo(vshControl *ctl, const vshCmd *cmd)
                 }
             }
 
-            cmdDomblkinfoPrint(ctl, &info, target, human, false);
+            if (!cmdDomblkinfoGet(ctl, &info, &cap, &alloc, &phy, human))
+                goto cleanup;
+            if (vshTableRowAppend(table, target, cap, alloc, phy, NULL) < 0)
+                goto cleanup;
 
             VIR_FREE(target);
             VIR_FREE(protocol);
         }
+
+        vshTablePrintToStdout(table, ctl);
+
     } else {
         if (virDomainGetBlockInfo(dom, device, &info, 0) < 0)
             goto cleanup;
 
-        cmdDomblkinfoPrint(ctl, &info, NULL, human, false);
+        if (!cmdDomblkinfoGet(ctl, &info, &cap, &alloc, &phy, human))
+            goto cleanup;
+        vshPrint(ctl, "%-15s %s\n", _("Capacity:"), cap);
+        vshPrint(ctl, "%-15s %s\n", _("Allocation:"), alloc);
+        vshPrint(ctl, "%-15s %s\n", _("Physical:"), phy);
     }
 
     ret = true;
 
  cleanup:
+    vshTableFree(table);
+    VIR_FREE(cap);
+    VIR_FREE(alloc);
+    VIR_FREE(phy);
     virshDomainFree(dom);
     VIR_FREE(target);
     VIR_FREE(protocol);
@@ -590,6 +590,7 @@ cmdDomblklist(vshControl *ctl, const vshCmd *cmd)
     char *device = NULL;
     char *target = NULL;
     char *source = NULL;
+    vshTablePtr table = NULL;
 
     if (vshCommandOptBool(cmd, "inactive"))
         flags |= VIR_DOMAIN_XML_INACTIVE;
@@ -604,12 +605,12 @@ cmdDomblklist(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
 
     if (details)
-        vshPrintExtra(ctl, "%-10s %-10s %-10s %s\n", _("Type"),
-                      _("Device"), _("Target"), _("Source"));
+        table = vshTableNew(_("Type"), _("Device"), _("Target"), _("Source"), NULL);
     else
-        vshPrintExtra(ctl, "%-10s %s\n", _("Target"), _("Source"));
+        table = vshTableNew(_("Target"), _("Source"), NULL);
 
-    vshPrintExtra(ctl, "------------------------------------------------\n");
+    if (!table)
+        goto cleanup;
 
     for (i = 0; i < ndisks; i++) {
         ctxt->node = disks[i];
@@ -634,10 +635,13 @@ cmdDomblklist(vshControl *ctl, const vshCmd *cmd)
                                 "|./source/@name"
                                 "|./source/@volume)", ctxt);
         if (details) {
-            vshPrint(ctl, "%-10s %-10s %-10s %s\n", type, device,
-                     target, source ? source : "-");
+            if (vshTableRowAppend(table, type, device, target,
+                                  source ? source : "-", NULL) < 0)
+                goto cleanup;
         } else {
-            vshPrint(ctl, "%-10s %s\n", target, source ? source : "-");
+            if (vshTableRowAppend(table, target,
+                                  source ? source : "-", NULL) < 0)
+                goto cleanup;
         }
 
         VIR_FREE(source);
@@ -646,9 +650,12 @@ cmdDomblklist(vshControl *ctl, const vshCmd *cmd)
         VIR_FREE(type);
     }
 
+    vshTablePrintToStdout(table, ctl);
+
     ret = true;
 
  cleanup:
+    vshTableFree(table);
     VIR_FREE(source);
     VIR_FREE(target);
     VIR_FREE(device);
@@ -687,6 +694,7 @@ cmdDomiflist(vshControl *ctl, const vshCmd *cmd)
     int ninterfaces;
     xmlNodePtr *interfaces = NULL;
     size_t i;
+    vshTablePtr table = NULL;
 
     if (vshCommandOptBool(cmd, "inactive"))
         flags |= VIR_DOMAIN_XML_INACTIVE;
@@ -698,16 +706,17 @@ cmdDomiflist(vshControl *ctl, const vshCmd *cmd)
     if (ninterfaces < 0)
         goto cleanup;
 
-    vshPrintExtra(ctl, "%-10s %-10s %-10s %-11s %s\n", _("Interface"),
-                  _("Type"), _("Source"), _("Model"), _("MAC"));
-    vshPrintExtra(ctl, "-------------------------------------------------------\n");
+    table = vshTableNew(_("Interface"), _("Type"),
+                        _("Source"), _("Model"), _("MAC"), NULL);
+    if (!table)
+        goto cleanup;
 
     for (i = 0; i < ninterfaces; i++) {
-        char *type = NULL;
-        char *source = NULL;
-        char *target = NULL;
-        char *model = NULL;
-        char *mac = NULL;
+        VIR_AUTOFREE(char *) type = NULL;
+        VIR_AUTOFREE(char *) source = NULL;
+        VIR_AUTOFREE(char *) target = NULL;
+        VIR_AUTOFREE(char *) model = NULL;
+        VIR_AUTOFREE(char *) mac = NULL;
 
         ctxt->node = interfaces[i];
         type = virXPathString("string(./@type)", ctxt);
@@ -715,29 +724,29 @@ cmdDomiflist(vshControl *ctl, const vshCmd *cmd)
         source = virXPathString("string(./source/@bridge"
                                 "|./source/@dev"
                                 "|./source/@network"
-                                "|./source/@name)", ctxt);
+                                "|./source/@name"
+                                "|./source/@path)", ctxt);
 
         target = virXPathString("string(./target/@dev)", ctxt);
         model = virXPathString("string(./model/@type)", ctxt);
         mac = virXPathString("string(./mac/@address)", ctxt);
 
-        vshPrint(ctl, "%-10s %-10s %-10s %-11s %-10s\n",
-                 target ? target : "-",
-                 type,
-                 source ? source : "-",
-                 model ? model : "-",
-                 mac ? mac : "-");
-
-        VIR_FREE(type);
-        VIR_FREE(source);
-        VIR_FREE(target);
-        VIR_FREE(model);
-        VIR_FREE(mac);
+        if (vshTableRowAppend(table,
+                              target ? target : "-",
+                              type,
+                              source ? source : "-",
+                              model ? model : "-",
+                              mac ? mac : "-",
+                              NULL) < 0)
+            goto cleanup;
     }
+
+    vshTablePrintToStdout(table, ctl);
 
     ret = true;
 
  cleanup:
+    vshTableFree(table);
     VIR_FREE(interfaces);
     xmlFreeDoc(xmldoc);
     xmlXPathFreeContext(ctxt);
@@ -1942,9 +1951,9 @@ cmdList(vshControl *ctl, const vshCmd *cmd)
     /* print table header in legacy mode */
     if (optTable) {
         if (optTitle)
-            table = vshTableNew("Id", "Name", "State", "Title", NULL);
+            table = vshTableNew(_("Id"), _("Name"), _("State"), _("Title"), NULL);
         else
-            table = vshTableNew("Id", "Name", "State", NULL);
+            table = vshTableNew(_("Id"), _("Name"), _("State"), NULL);
 
         if (!table)
             goto cleanup;
@@ -2058,6 +2067,10 @@ static const vshCmdOptDef opts_domstats[] = {
      .type = VSH_OT_BOOL,
      .help = N_("report domain perf event statistics"),
     },
+    {.name = "iothread",
+     .type = VSH_OT_BOOL,
+     .help = N_("report domain IOThread information"),
+    },
     {.name = "list-active",
      .type = VSH_OT_BOOL,
      .help = N_("list only active domains"),
@@ -2170,6 +2183,9 @@ cmdDomstats(vshControl *ctl, const vshCmd *cmd)
 
     if (vshCommandOptBool(cmd, "perf"))
         stats |= VIR_DOMAIN_STATS_PERF;
+
+    if (vshCommandOptBool(cmd, "iothread"))
+        stats |= VIR_DOMAIN_STATS_IOTHREAD;
 
     if (vshCommandOptBool(cmd, "list-active"))
         flags |= VIR_CONNECT_GET_ALL_DOMAINS_STATS_ACTIVE;

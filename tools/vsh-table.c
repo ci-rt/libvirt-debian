@@ -25,7 +25,6 @@
 #include <config.h>
 #include "vsh-table.h"
 
-#include <string.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <wchar.h>
@@ -349,8 +348,10 @@ vshTableRowPrint(vshTableRowPtr row,
     for (i = 0; i < row->ncells; i++) {
         virBufferAsprintf(buf, " %s", row->cells[i]);
 
-        for (j = 0; j < maxwidths[i] - widths[i] + 2; j++)
-            virBufferAddChar(buf, ' ');
+        if (i < (row->ncells - 1)) {
+            for (j = 0; j < maxwidths[i] - widths[i] + 2; j++)
+                virBufferAddChar(buf, ' ');
+        }
     }
     virBufferAddChar(buf, '\n');
 }

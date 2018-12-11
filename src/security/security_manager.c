@@ -21,6 +21,10 @@
  */
 #include <config.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #include "security_driver.h"
 #include "security_stack.h"
 #include "security_dac.h"
@@ -28,6 +32,7 @@
 #include "viralloc.h"
 #include "virobject.h"
 #include "virlog.h"
+#include "virfile.h"
 
 #define VIR_FROM_THIS VIR_FROM_SECURITY
 
@@ -73,8 +78,8 @@ virSecurityManagerNewDriver(virSecurityDriverPtr drv,
                             const char *virtDriver,
                             unsigned int flags)
 {
-    virSecurityManagerPtr mgr;
-    char *privateData;
+    virSecurityManagerPtr mgr = NULL;
+    char *privateData = NULL;
 
     if (virSecurityManagerInitialize() < 0)
         return NULL;
@@ -87,22 +92,22 @@ virSecurityManagerNewDriver(virSecurityDriverPtr drv,
     if (VIR_ALLOC_N(privateData, drv->privateDataLen) < 0)
         return NULL;
 
-    if (!(mgr = virObjectLockableNew(virSecurityManagerClass))) {
-        VIR_FREE(privateData);
-        return NULL;
-    }
+    if (!(mgr = virObjectLockableNew(virSecurityManagerClass)))
+        goto error;
 
     mgr->drv = drv;
     mgr->flags = flags;
     mgr->virtDriver = virtDriver;
-    mgr->privateData = privateData;
+    VIR_STEAL_PTR(mgr->privateData, privateData);
 
-    if (drv->open(mgr) < 0) {
-        virObjectUnref(mgr);
-        return NULL;
-    }
+    if (drv->open(mgr) < 0)
+        goto error;
 
     return mgr;
+ error:
+    VIR_FREE(privateData);
+    virObjectUnref(mgr);
+    return NULL;
 }
 
 
@@ -117,9 +122,13 @@ virSecurityManagerNewStack(virSecurityManagerPtr primary)
     if (!mgr)
         return NULL;
 
-    virSecurityStackAddNested(mgr, primary);
+    if (virSecurityStackAddNested(mgr, primary) < 0)
+        goto error;
 
     return mgr;
+ error:
+    virObjectUnref(mgr);
+    return NULL;
 }
 
 
@@ -262,25 +271,34 @@ virSecurityManagerTransactionStart(virSecurityManagerPtr mgr)
  * virSecurityManagerTransactionCommit:
  * @mgr: security manager
  * @pid: domain's PID
+ * @lock: lock and unlock paths that are relabeled
  *
- * Enters the @pid namespace (usually @pid refers to a domain) and
- * performs all the operations on the transaction list. Note that the
- * transaction is also freed, therefore new one has to be started after
- * successful return from this function. Also it is considered as error
- * if there's no transaction set and this function is called.
+ * If @pid is not -1 then enter the @pid namespace (usually @pid refers
+ * to a domain) and perform all the operations on the transaction list.
+ * If @pid is -1 then the transaction is performed in the namespace of
+ * the caller.
+ *
+ * If @lock is true then all the paths that transaction would
+ * touch are locked before and unlocked after it is done so.
+ *
+ * Note that the transaction is also freed, therefore new one has to be
+ * started after successful return from this function. Also it is
+ * considered as error if there's no transaction set and this function
+ * is called.
  *
  * Returns: 0 on success,
  *         -1 otherwise.
  */
 int
 virSecurityManagerTransactionCommit(virSecurityManagerPtr mgr,
-                                    pid_t pid)
+                                    pid_t pid,
+                                    bool lock)
 {
     int ret = 0;
 
     virObjectLock(mgr);
     if (mgr->drv->transactionCommit)
-        ret = mgr->drv->transactionCommit(mgr, pid);
+        ret = mgr->drv->transactionCommit(mgr, pid, lock);
     virObjectUnlock(mgr);
     return ret;
 }
@@ -1232,4 +1250,156 @@ virSecurityManagerRestoreTPMLabels(virSecurityManagerPtr mgr,
     }
 
     return 0;
+}
+
+
+struct _virSecurityManagerMetadataLockState {
+    size_t nfds;
+    int *fds;
+};
+
+
+static int
+cmpstringp(const void *p1, const void *p2)
+{
+    const char *s1 = *(char * const *) p1;
+    const char *s2 = *(char * const *) p2;
+
+    if (!s1 && !s2)
+        return 0;
+
+    if (!s1 || !s2)
+        return s2 ? -1 : 1;
+
+    /* from man 3 qsort */
+    return strcmp(s1, s2);
+}
+
+#define METADATA_OFFSET 1
+#define METADATA_LEN 1
+
+/**
+ * virSecurityManagerMetadataLock:
+ * @mgr: security manager object
+ * @paths: paths to lock
+ * @npaths: number of items in @paths array
+ *
+ * Lock passed @paths for metadata change. The returned state
+ * should be passed to virSecurityManagerMetadataUnlock.
+ *
+ * NOTE: this function is not thread safe (because of usage of
+ * POSIX locks).
+ *
+ * Returns: state on success,
+ *          NULL on failure.
+ */
+virSecurityManagerMetadataLockStatePtr
+virSecurityManagerMetadataLock(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
+                               const char **paths,
+                               size_t npaths)
+{
+    size_t i = 0;
+    size_t nfds = 0;
+    int *fds = NULL;
+    virSecurityManagerMetadataLockStatePtr ret = NULL;
+
+    if (VIR_ALLOC_N(fds, npaths) < 0)
+        return NULL;
+
+    /* Sort paths to lock in order to avoid deadlocks. */
+    qsort(paths, npaths, sizeof(*paths), cmpstringp);
+
+    for (i = 0; i < npaths; i++) {
+        const char *p = paths[i];
+        struct stat sb;
+        int retries = 10 * 1000;
+        int fd;
+
+        if (!p || stat(p, &sb) < 0)
+            continue;
+
+        if (S_ISDIR(sb.st_mode)) {
+            /* Directories can't be locked */
+            continue;
+        }
+
+        if ((fd = open(p, O_RDWR)) < 0) {
+            if (S_ISSOCK(sb.st_mode)) {
+                /* Sockets can be opened only if there exists the
+                 * other side that listens. */
+                continue;
+            }
+
+            virReportSystemError(errno,
+                                 _("unable to open %s"),
+                                 p);
+            goto cleanup;
+        }
+
+        do {
+            if (virFileLock(fd, false,
+                            METADATA_OFFSET, METADATA_LEN, false) < 0) {
+                if (retries && (errno == EACCES || errno == EAGAIN)) {
+                    /* File is locked. Try again. */
+                    retries--;
+                    usleep(1000);
+                    continue;
+                } else {
+                    virReportSystemError(errno,
+                                         _("unable to lock %s for metadata change"),
+                                         p);
+                    VIR_FORCE_CLOSE(fd);
+                    goto cleanup;
+                }
+            }
+
+            break;
+        } while (1);
+
+        VIR_APPEND_ELEMENT_COPY_INPLACE(fds, nfds, fd);
+    }
+
+    if (VIR_ALLOC(ret) < 0)
+        goto cleanup;
+
+    VIR_STEAL_PTR(ret->fds, fds);
+    ret->nfds = nfds;
+    nfds = 0;
+
+ cleanup:
+    for (i = nfds; i > 0; i--)
+        VIR_FORCE_CLOSE(fds[i - 1]);
+    VIR_FREE(fds);
+    return ret;
+}
+
+
+void
+virSecurityManagerMetadataUnlock(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
+                                 virSecurityManagerMetadataLockStatePtr *state)
+{
+    size_t i;
+
+    if (!state)
+        return;
+
+    for (i = 0; i < (*state)->nfds; i++) {
+        char ebuf[1024];
+        int fd = (*state)->fds[i];
+
+        /* Technically, unlock is not needed because it will
+         * happen on VIR_CLOSE() anyway. But let's play it nice. */
+        if (virFileUnlock(fd, METADATA_OFFSET, METADATA_LEN) < 0) {
+            VIR_WARN("Unable to unlock fd %d: %s",
+                     fd, virStrerror(errno, ebuf, sizeof(ebuf)));
+        }
+
+        if (VIR_CLOSE(fd) < 0) {
+            VIR_WARN("Unable to close fd %d: %s",
+                     fd, virStrerror(errno, ebuf, sizeof(ebuf)));
+        }
+    }
+
+    VIR_FREE((*state)->fds);
+    VIR_FREE(*state);
 }

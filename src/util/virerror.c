@@ -22,9 +22,6 @@
 
 #include <config.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <stdarg.h>
 
 #include "virerror.h"
@@ -139,7 +136,7 @@ VIR_ENUM_IMPL(virErrorDomain, VIR_ERR_DOMAIN_LAST,
               "Perf", /* 65 */
               "Libssh transport layer",
               "Resource control",
-    )
+              )
 
 
 /*

@@ -23,13 +23,9 @@
 
 #include <config.h>
 
-#include <string.h>
-#include <limits.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <stdlib.h>
 #include <unistd.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <sys/wait.h>
 #include <arpa/inet.h>
@@ -197,9 +193,11 @@ virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
         if (virAsprintf(&cfg->swtpmStorageDir, "%s/lib/libvirt/swtpm",
                         LOCALSTATEDIR) < 0)
             goto error;
-        if (virGetUserID("tss", &cfg->swtpm_user) < 0)
+        if (!virDoesUserExist("tss") ||
+            virGetUserID("tss", &cfg->swtpm_user) < 0)
             cfg->swtpm_user = 0; /* fall back to root */
-        if (virGetGroupID("tss", &cfg->swtpm_group) < 0)
+        if (!virDoesGroupExist("tss") ||
+            virGetGroupID("tss", &cfg->swtpm_group) < 0)
             cfg->swtpm_group = 0; /* fall back to root */
     } else {
         char *rundir;
@@ -838,6 +836,7 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
 
     if (virConfGetValueString(conf, "lock_manager", &cfg->lockManagerName) < 0)
         goto cleanup;
+
     if (virConfGetValueString(conf, "stdio_handler", &stdioHandler) < 0)
         goto cleanup;
     if (stdioHandler) {
@@ -1400,7 +1399,7 @@ qemuSharedDeviceEntryInsert(virQEMUDriverPtr driver,
  * records all the domains that use the shared device if the entry
  * already exists, otherwise add a new entry.
  */
-static int
+int
 qemuAddSharedDisk(virQEMUDriverPtr driver,
                   virDomainDiskDefPtr disk,
                   const char *name)

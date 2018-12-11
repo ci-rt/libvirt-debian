@@ -4,7 +4,7 @@
 # that's still supported by the vendor. It may work on other distros
 # or versions, but no effort will be made to ensure that going forward.
 %define min_rhel 7
-%define min_fedora 26
+%define min_fedora 28
 
 %if (0%{?fedora} && 0%{?fedora} >= %{min_fedora}) || (0%{?rhel} && 0%{?rhel} >= %{min_rhel})
     %define supported_platform 1
@@ -72,7 +72,7 @@
 %endif
 
 # We need a recent enough libiscsi (>= 1.18.0)
-%if 0%{?fedora} >= 28 || 0%{?rhel} > 7
+%if 0%{?fedora} || 0%{?rhel} > 7
     %define with_storage_iscsi_direct 0%{!?_without_storage_iscsi_direct:1}
 %else
     %define with_storage_iscsi_direct 0
@@ -100,27 +100,13 @@
     %define with_vbox 0
 %endif
 
-# Numactl is not available on s390[x] and ARM
-%ifarch s390 s390x %{arm}
+# Numactl is not available on many non-x86 archs
+%ifarch s390 s390x %{arm} riscv64
     %define with_numactl 0
 %endif
 
-# libgfapi is built only on x86_64 on rhel
-%ifnarch x86_64
-    %if 0%{?rhel}
-        %define with_storage_gluster 0
-    %endif
-%endif
-
-# librados and librbd are built only on x86_64 on rhel
-%ifnarch x86_64
-    %if 0%{?rhel}
-        %define with_storage_rbd 0
-    %endif
-%endif
-
 # zfs-fuse is not available on some architectures
-%ifarch s390 s390x aarch64
+%ifarch s390 s390x aarch64 riscv64
     %define with_storage_zfs 0
 %endif
 
@@ -194,8 +180,8 @@
 
 %if %{with_qemu} || %{with_lxc} || %{with_uml}
 # numad is used to manage the CPU and memory placement dynamically,
-# it's not available on s390[x] and ARM.
-    %ifnarch s390 s390x %{arm}
+# it's not available on many non-x86 architectures.
+    %ifnarch s390 s390x %{arm} riscv64
         %define with_numad    0%{!?_without_numad:1}
     %endif
 %endif
@@ -214,16 +200,16 @@
     %define enable_werror --disable-werror
 %endif
 
-%if 0%{?fedora}
-    %define tls_priority "@LIBVIRT,SYSTEM"
-%else
+%if 0%{?rhel} == 7
     %define tls_priority "NORMAL"
+%else
+    %define tls_priority "@LIBVIRT,SYSTEM"
 %endif
 
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 4.7.0
+Version: 4.10.0
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 URL: https://libvirt.org/
@@ -272,7 +258,7 @@ BuildRequires: /usr/bin/pod2man
 %endif
 BuildRequires: gcc
 BuildRequires: git
-%if 0%{?fedora} >= 27 || 0%{?rhel} > 7
+%if 0%{?fedora} || 0%{?rhel} > 7
 BuildRequires: perl-interpreter
 %else
 BuildRequires: perl
@@ -400,7 +386,7 @@ BuildRequires: wireshark-devel >= 2.1.0
 BuildRequires: libssh-devel >= 0.7.0
 %endif
 
-%if 0%{?fedora} > 27 || 0%{?rhel} > 7
+%if 0%{?fedora} || 0%{?rhel} > 7
 BuildRequires: rpcgen
 BuildRequires: libtirpc-devel
 %endif

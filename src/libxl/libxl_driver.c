@@ -412,6 +412,17 @@ libxlReconnectDomain(virDomainObjPtr vm,
                                             vm->def, hostdev_flags) < 0)
         goto error;
 
+    if (d_info.shutdown &&
+            d_info.shutdown_reason == LIBXL_SHUTDOWN_REASON_SUSPEND)
+        virDomainObjSetState(vm, VIR_DOMAIN_PMSUSPENDED,
+                             VIR_DOMAIN_PMSUSPENDED_UNKNOWN);
+    else if (d_info.paused)
+        virDomainObjSetState(vm, VIR_DOMAIN_PAUSED,
+                             VIR_DOMAIN_PAUSED_UNKNOWN);
+    else
+        virDomainObjSetState(vm, VIR_DOMAIN_RUNNING,
+                             VIR_DOMAIN_RUNNING_UNKNOWN);
+
     if (virAtomicIntInc(&driver->nactive) == 1 && driver->inhibitCallback)
         driver->inhibitCallback(true, driver->inhibitOpaque);
 
@@ -1403,6 +1414,129 @@ libxlDomainDestroy(virDomainPtr dom)
     return libxlDomainDestroyFlags(dom, 0);
 }
 
+#ifdef LIBXL_HAVE_DOMAIN_SUSPEND_ONLY
+static int
+libxlDomainPMSuspendForDuration(virDomainPtr dom,
+                                unsigned int target,
+                                unsigned long long duration,
+                                unsigned int flags)
+{
+    virDomainObjPtr vm;
+    int ret = -1;
+    libxlDriverPrivatePtr driver = dom->conn->privateData;
+    libxlDriverConfigPtr cfg = libxlDriverConfigGet(driver);
+
+    virCheckFlags(0, -1);
+    if (target != VIR_NODE_SUSPEND_TARGET_MEM) {
+        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED,
+                _("PMSuspend type %d not supported by libxenlight driver"),
+                target);
+        return -1;
+    }
+
+    if (duration != 0) {
+        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                _("Duration not supported. Use 0 for now"));
+        return -1;
+    }
+
+    if (!(vm = libxlDomObjFromDomain(dom)))
+        goto cleanup;
+
+    if (virDomainPMSuspendForDurationEnsureACL(dom->conn, vm->def) < 0)
+        goto cleanup;
+
+    if (libxlDomainObjBeginJob(driver, vm, LIBXL_JOB_MODIFY) < 0)
+        goto cleanup;
+
+    if (!virDomainObjCheckActive(vm))
+        goto endjob;
+
+    /* Unlock virDomainObjPtr to not deadlock with even handler, which will try
+     * to send lifecycle event
+     */
+    virObjectUnlock(vm);
+    ret = libxl_domain_suspend_only(cfg->ctx, vm->def->id, NULL);
+    virObjectLock(vm);
+
+    if (ret < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to suspend domain '%d'"), vm->def->id);
+        goto endjob;
+    }
+
+    ret = 0;
+
+ endjob:
+    libxlDomainObjEndJob(driver, vm);
+
+ cleanup:
+    virDomainObjEndAPI(&vm);
+    return ret;
+}
+#endif
+
+static int
+libxlDomainPMWakeup(virDomainPtr dom, unsigned int flags)
+{
+    libxlDriverPrivatePtr driver = dom->conn->privateData;
+    virDomainObjPtr vm;
+    int ret = -1;
+    virObjectEventPtr event = NULL;
+    libxlDomainObjPrivatePtr priv;
+    libxlDriverConfigPtr cfg = libxlDriverConfigGet(driver);
+
+    virCheckFlags(0, -1);
+
+    if (!(vm = libxlDomObjFromDomain(dom)))
+        goto cleanup;
+
+    if (virDomainPMWakeupEnsureACL(dom->conn, vm->def) < 0)
+        goto cleanup;
+
+    if (libxlDomainObjBeginJob(driver, vm, LIBXL_JOB_MODIFY) < 0)
+        goto cleanup;
+
+    if (virDomainObjGetState(vm, NULL) != VIR_DOMAIN_PMSUSPENDED) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("Domain is not suspended"));
+        goto endjob;
+    }
+
+
+    priv = vm->privateData;
+    if (libxl_domain_resume(cfg->ctx, vm->def->id, 1, NULL) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to resume domain '%d'"), vm->def->id);
+        goto endjob;
+    }
+    virDomainObjSetState(vm, VIR_DOMAIN_RUNNING, VIR_DOMAIN_RUNNING_WAKEUP);
+    /* reenable death event - libxl reports it only once */
+    if (priv->deathW)
+        libxl_evdisable_domain_death(cfg->ctx, priv->deathW);
+    if (libxl_evenable_domain_death(cfg->ctx, vm->def->id, 0, &priv->deathW))
+        goto destroy_dom;
+
+    event = virDomainEventLifecycleNewFromObj(vm, VIR_DOMAIN_EVENT_STARTED,
+                                     VIR_DOMAIN_EVENT_STARTED_WAKEUP);
+
+    ret = 0;
+    goto endjob;
+
+ destroy_dom:
+    libxlDomainDestroyInternal(driver, vm);
+    vm->def->id = -1;
+    virDomainObjSetState(vm, VIR_DOMAIN_SHUTOFF, VIR_DOMAIN_SHUTOFF_FAILED);
+
+ endjob:
+    libxlDomainObjEndJob(driver, vm);
+
+ cleanup:
+    virDomainObjEndAPI(&vm);
+    virObjectEventStateQueue(driver->domainEventState, event);
+    return ret;
+}
+
 static char *
 libxlDomainGetOSType(virDomainPtr dom)
 {
@@ -2341,7 +2475,7 @@ libxlDomainPinVcpuFlags(virDomainPtr dom, unsigned int vcpu,
 
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
         libxl_bitmap map = { .size = maplen, .map = cpumap };
-        if (libxl_set_vcpuaffinity(cfg->ctx, vm->def->id, vcpu, &map) != 0) {
+        if (libxl_set_vcpuaffinity(cfg->ctx, vm->def->id, vcpu, &map, NULL) != 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Failed to pin vcpu '%d' with libxenlight"),
                            vcpu);
@@ -6020,14 +6154,7 @@ libxlDomainMigrateFinish3Params(virConnectPtr dconn,
         return NULL;
     }
 
-    if (libxlDomainObjBeginJob(driver, vm, LIBXL_JOB_MODIFY) < 0) {
-        virDomainObjEndAPI(&vm);
-        return NULL;
-    }
-
     ret = libxlDomainMigrationDstFinish(dconn, vm, flags, cancelled);
-
-    libxlDomainObjEndJob(driver, vm);
 
     virDomainObjEndAPI(&vm);
 
@@ -6271,9 +6398,11 @@ libxlConnectGetDomainCapabilities(virConnectPtr conn,
         emulatorbin = "/usr/bin/qemu-system-x86_64";
 
     if (machine) {
-        if (STRNEQ(machine, "xenpv") && STRNEQ(machine, "xenfv")) {
+        if (STRNEQ(machine, "xenpv") &&
+            STRNEQ(machine, "xenpvh") &&
+            STRNEQ(machine, "xenfv")) {
             virReportError(VIR_ERR_INVALID_ARG, "%s",
-                           _("Xen only supports 'xenpv' and 'xenfv' machines"));
+                           _("Xen only supports 'xenpv', 'xenpvh' and 'xenfv' machines"));
             goto cleanup;
         }
     } else {
@@ -6385,6 +6514,10 @@ static virHypervisorDriver libxlHypervisorDriver = {
     .domainReboot = libxlDomainReboot, /* 0.9.0 */
     .domainDestroy = libxlDomainDestroy, /* 0.9.0 */
     .domainDestroyFlags = libxlDomainDestroyFlags, /* 0.9.4 */
+#ifdef LIBXL_HAVE_DOMAIN_SUSPEND_ONLY
+    .domainPMSuspendForDuration = libxlDomainPMSuspendForDuration, /* 4.8.0 */
+#endif
+    .domainPMWakeup = libxlDomainPMWakeup, /* 4.8.0 */
     .domainGetOSType = libxlDomainGetOSType, /* 0.9.0 */
     .domainGetMaxMemory = libxlDomainGetMaxMemory, /* 0.9.0 */
     .domainSetMaxMemory = libxlDomainSetMaxMemory, /* 0.9.2 */

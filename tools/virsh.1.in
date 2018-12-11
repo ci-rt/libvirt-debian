@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2018-08-28" "libvirt-4.7.0" "Virtualization Support"
+.TH VIRSH 1 "2018-11-27" "libvirt-4.10.0" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -1009,8 +1009,8 @@ disk type and device value will also be printed. Other contexts
 that require a block device name (such as \fIdomblkinfo\fR or
 \&\fIsnapshot-create\fR for disk snapshots) will accept either target
 or unique source names printed by this command.
-.IP "\fBdomstats\fR [\fI\-\-raw\fR] [\fI\-\-enforce\fR] [\fI\-\-backing\fR] [\fI\-\-nowait\fR] [\fI\-\-state\fR] [\fI\-\-cpu\-total\fR] [\fI\-\-balloon\fR] [\fI\-\-vcpu\fR] [\fI\-\-interface\fR] [\fI\-\-block\fR] [\fI\-\-perf\fR] [[\fI\-\-list\-active\fR] [\fI\-\-list\-inactive\fR] [\fI\-\-list\-persistent\fR] [\fI\-\-list\-transient\fR] [\fI\-\-list\-running\fR] [\fI\-\-list\-paused\fR] [\fI\-\-list\-shutoff\fR] [\fI\-\-list\-other\fR]] | [\fIdomain\fR ...]" 4
-.IX Item "domstats [--raw] [--enforce] [--backing] [--nowait] [--state] [--cpu-total] [--balloon] [--vcpu] [--interface] [--block] [--perf] [[--list-active] [--list-inactive] [--list-persistent] [--list-transient] [--list-running] [--list-paused] [--list-shutoff] [--list-other]] | [domain ...]"
+.IP "\fBdomstats\fR [\fI\-\-raw\fR] [\fI\-\-enforce\fR] [\fI\-\-backing\fR] [\fI\-\-nowait\fR] [\fI\-\-state\fR] [\fI\-\-cpu\-total\fR] [\fI\-\-balloon\fR] [\fI\-\-vcpu\fR] [\fI\-\-interface\fR] [\fI\-\-block\fR] [\fI\-\-perf\fR] [\fI\-\-iothread\fR] [[\fI\-\-list\-active\fR] [\fI\-\-list\-inactive\fR] [\fI\-\-list\-persistent\fR] [\fI\-\-list\-transient\fR] [\fI\-\-list\-running\fR] [\fI\-\-list\-paused\fR] [\fI\-\-list\-shutoff\fR] [\fI\-\-list\-other\fR]] | [\fIdomain\fR ...]" 4
+.IX Item "domstats [--raw] [--enforce] [--backing] [--nowait] [--state] [--cpu-total] [--balloon] [--vcpu] [--interface] [--block] [--perf] [--iothread] [[--list-active] [--list-inactive] [--list-persistent] [--list-transient] [--list-running] [--list-paused] [--list-shutoff] [--list-other]] | [domain ...]"
 Get statistics for multiple or all domains. Without any argument this
 command prints all available statistics for all domains.
 .Sp
@@ -1025,7 +1025,7 @@ behavior use the \fI\-\-raw\fR flag.
 The individual statistics groups are selectable via specific flags. By
 default all supported statistics groups are returned. Supported
 statistics groups flags are: \fI\-\-state\fR, \fI\-\-cpu\-total\fR, \fI\-\-balloon\fR,
-\&\fI\-\-vcpu\fR, \fI\-\-interface\fR, \fI\-\-block\fR, \fI\-\-perf\fR.
+\&\fI\-\-vcpu\fR, \fI\-\-interface\fR, \fI\-\-block\fR, \fI\-\-perf\fR, \fI\-\-iothread\fR.
 .Sp
 Note that \- depending on the hypervisor type and version or the domain state
 \&\- not all of the following statistics may be returned.
@@ -1042,10 +1042,24 @@ When selecting the \fI\-\-state\fR group the following fields are returned:
 .Sp
 \&\fI\-\-cpu\-total\fR returns:
 .Sp
-.Vb 3
+.Vb 10
 \& "cpu.time" \- total cpu time spent for this domain in nanoseconds
 \& "cpu.user" \- user cpu time spent in nanoseconds
 \& "cpu.system" \- system cpu time spent in nanoseconds
+\& "cpu.cache.monitor.count" \- the number of cache monitors for this
+\&                             domain
+\& "cpu.cache.monitor.<num>.name" \- the name of cache monitor <num>
+\& "cpu.cache.monitor.<num>.vcpus" \- vcpu list of cache monitor <num>
+\& "cpu.cache.monitor.<num>.bank.count" \- the number of cache banks
+\&                                        in cache monitor <num>
+\& "cpu.cache.monitor.<num>.bank.<index>.id" \- host allocated cache id
+\&                                             for bank <index> in
+\&                                             cache monitor <num>
+\& "cpu.cache.monitor.<num>.bank.<index>.bytes" \- the number of bytes
+\&                                                of last level cache
+\&                                                that the domain is
+\&                                                using on cache bank
+\&                                                <index>
 .Ve
 .Sp
 \&\fI\-\-balloon\fR returns:
@@ -1170,6 +1184,29 @@ Information listed includes:
 \& "block.<num>.threshold" \- threshold (in bytes) for delivering the
 \&                           VIR_DOMAIN_EVENT_ID_BLOCK_THRESHOLD event
 \&                           See domblkthreshold.
+.Ve
+.Sp
+\&\fI\-\-iothread\fR returns information about IOThreads on the running guest
+if supported by the hypervisor.
+.Sp
+The \*(L"poll-max-ns\*(R" for each thread is the maximum nanoseconds to allow
+each polling interval to occur. A polling interval is a period of time
+allowed for a thread to process data before being the guest gives up
+its \s-1CPU\s0 quantum back to the host. A value set too small will not allow
+the IOThread to run long enough on a \s-1CPU\s0 to process data. A value set
+too high will consume too much \s-1CPU\s0 time per IOThread failing to allow
+other threads running on the \s-1CPU\s0 to get time. The polling interval is
+not available for statistical purposes.
+.Sp
+.Vb 8
+\& "iothread.<id>.poll\-max\-ns" \- maximum polling time in nanoseconds used
+\&                               by the <id> IOThread. A value of 0 (zero)
+\&                               indicates polling is disabled.
+\& "iothread.<id>.poll\-grow" \- polling time grow value. A value of 0 (zero)
+\&                             indicates growth is managed by the hypervisor.
+\& "iothread.<id>.poll\-shrink" \- polling time shrink value. A value of
+\&                               0 (zero) indicates shrink is managed by
+\&                               the hypervisor.
 .Ve
 .Sp
 Selecting a specific statistics groups doesn't guarantee that the
@@ -1693,6 +1730,23 @@ running an error is returned.
 If \fI\-\-config\fR is specified, affect the next boot of a persistent guest.
 If \fI\-\-current\fR is specified or \fI\-\-live\fR and \fI\-\-config\fR are not specified,
 affect the current guest state.
+.IP "\fBiothreadset\fR \fIdomain\fR \fIiothread_id\fR [[\fI\-\-poll\-max\-ns\fR \fBns\fR] [\fI\-\-poll\-grow\fR \fBfactor\fR] [\fI\-\-poll\-shrink\fR \fBdivisor\fR]] [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]]" 4
+.IX Item "iothreadset domain iothread_id [[--poll-max-ns ns] [--poll-grow factor] [--poll-shrink divisor]] [[--config] [--live] | [--current]]"
+Modifies an existing iothread of the domain using the specified
+\&\fIiothread_id\fR. The \fI\-\-poll\-max\-ns\fR provides the maximum polling
+interval to be allowed for an IOThread in ns. If a 0 (zero) is provided,
+then polling for the IOThread is disabled.  The \fI\-\-poll\-grow\fR is the
+factor by which the current polling time will be adjusted in order to
+reach the maximum polling time. If a 0 (zero) is provided, then the
+default factor will be used. The \fI\-\-poll\-shrink\fR is the quotient
+by which the current polling time will be reduced in order to get
+below the maximum polling interval. If a 0 (zero) is provided, then
+the default quotient will be used.
+.Sp
+If \fI\-\-live\fR is specified, affect a running guest. If the guest is not
+running an error is returned.
+If \fI\-\-current\fR is specified or \fI\-\-live\fR is not specified, then handle
+as if \fI\-\-live\fR was specified.
 .IP "\fBiothreaddel\fR \fIdomain\fR \fIiothread_id\fR [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]]" 4
 .IX Item "iothreaddel domain iothread_id [[--config] [--live] | [--current]]"
 Delete an IOThread from the domain using the specified \fIiothread_id\fR.

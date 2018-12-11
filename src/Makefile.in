@@ -778,6 +778,7 @@ libvirt_setuid_rpc_client_la_LIBADD =
 am__libvirt_setuid_rpc_client_la_SOURCES_DIST = util/viralloc.c \
 	util/virarch.c util/viratomic.c util/viratomic.h \
 	util/virbitmap.c util/virbuffer.c util/vircgroup.c \
+	util/vircgroupbackend.c util/vircgroupv1.c util/vircgroupv2.c \
 	util/vircommand.c util/virconf.c util/virdbus.c \
 	util/virerror.c util/virevent.c util/vireventpoll.c \
 	util/virfile.c util/virgettext.c util/virhash.c \
@@ -806,6 +807,9 @@ am__libvirt_setuid_rpc_client_la_SOURCES_DIST = util/viralloc.c \
 @WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virbitmap.lo \
 @WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virbuffer.lo \
 @WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-vircgroup.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-vircgroupbackend.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-vircgroupv1.lo \
+@WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-vircgroupv2.lo \
 @WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-vircommand.lo \
 @WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virconf.lo \
 @WITH_SETUID_RPC_CLIENT_TRUE@	util/libvirt_setuid_rpc_client_la-virdbus.lo \
@@ -917,6 +921,7 @@ am__objects_17 = $(am__objects_16) \
 	conf/libvirt_conf_la-virnwfilterbindingobj.lo \
 	conf/libvirt_conf_la-virnwfilterbindingobjlist.lo
 am__objects_18 = conf/libvirt_conf_la-node_device_conf.lo \
+	conf/libvirt_conf_la-node_device_util.lo \
 	conf/libvirt_conf_la-virnodedeviceobj.lo
 am__objects_19 = conf/libvirt_conf_la-storage_adapter_conf.lo \
 	conf/libvirt_conf_la-storage_conf.lo \
@@ -1955,6 +1960,9 @@ am__objects_90 = util/libvirt_util_la-viralloc.lo \
 	util/libvirt_util_la-virbuffer.lo \
 	util/libvirt_util_la-virperf.lo \
 	util/libvirt_util_la-vircgroup.lo \
+	util/libvirt_util_la-vircgroupbackend.lo \
+	util/libvirt_util_la-vircgroupv1.lo \
+	util/libvirt_util_la-vircgroupv2.lo \
 	util/libvirt_util_la-virclosecallbacks.lo \
 	util/libvirt_util_la-vircommand.lo \
 	util/libvirt_util_la-virconf.lo \
@@ -4119,7 +4127,7 @@ EXTRA_DIST = $(conf_DATA) $(srcdir)/keycodemapdb/data/keymaps.csv \
 	$(NWFILTER_DRIVER_SOURCES) $(NODE_DEVICE_DRIVER_SOURCES) \
 	$(NODE_DEVICE_DRIVER_HAL_SOURCES) \
 	$(NODE_DEVICE_DRIVER_UDEV_SOURCES) $(NULL) \
-	$(SECRET_DRIVER_SOURCES) $(SECRET_UTIL_SOURCESQ) $(NULL) \
+	$(SECRET_DRIVER_SOURCES) $(SECRET_UTIL_SOURCES) $(NULL) \
 	$(STORAGE_DRIVER_SOURCES) $(STORAGE_DRIVER_FS_SOURCES) \
 	$(STORAGE_FILE_FS_SOURCES) $(STORAGE_DRIVER_LVM_SOURCES) \
 	$(STORAGE_DRIVER_ISCSI_SOURCES) \
@@ -4331,7 +4339,9 @@ UTIL_SOURCES = util/viralloc.c util/viralloc.h util/virarch.c \
 	util/virauthconfig.c util/virauthconfig.h util/virbitmap.c \
 	util/virbitmap.h util/virbuffer.c util/virbuffer.h \
 	util/virperf.c util/virperf.h util/vircgroup.c \
-	util/vircgroup.h util/vircgrouppriv.h util/virclosecallbacks.c \
+	util/vircgroup.h util/vircgrouppriv.h util/vircgroupbackend.c \
+	util/vircgroupbackend.h util/vircgroupv1.c util/vircgroupv1.h \
+	util/vircgroupv2.c util/vircgroupv2.h util/virclosecallbacks.c \
 	util/virclosecallbacks.h util/vircommand.c util/vircommand.h \
 	util/vircommandpriv.h util/virconf.c util/virconf.h \
 	util/vircrypto.c util/vircrypto.h util/virdbus.c \
@@ -4568,6 +4578,8 @@ SECRET_CONF_SOURCES = \
 NODE_DEVICE_CONF_SOURCES = \
 	conf/node_device_conf.c \
 	conf/node_device_conf.h \
+	conf/node_device_util.c \
+	conf/node_device_util.h \
 	conf/virnodedeviceobj.c \
 	conf/virnodedeviceobj.h \
 	$(NULL)
@@ -4667,6 +4679,8 @@ cpumap_DATA = \
 	cpu_map/x86_Haswell-IBRS.xml \
 	cpu_map/x86_Haswell-noTSX.xml \
 	cpu_map/x86_Haswell-noTSX-IBRS.xml \
+	cpu_map/x86_Icelake-Client.xml \
+	cpu_map/x86_Icelake-Server.xml \
 	cpu_map/x86_IvyBridge.xml \
 	cpu_map/x86_IvyBridge-IBRS.xml \
 	cpu_map/x86_kvm32.xml \
@@ -6375,6 +6389,9 @@ libvirt_lxc_la_LIBADD = libvirt.la $(CYGWIN_EXTRA_LIBADD)
 @WITH_SETUID_RPC_CLIENT_TRUE@		util/virbitmap.c \
 @WITH_SETUID_RPC_CLIENT_TRUE@		util/virbuffer.c \
 @WITH_SETUID_RPC_CLIENT_TRUE@		util/vircgroup.c \
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/vircgroupbackend.c \
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/vircgroupv1.c \
+@WITH_SETUID_RPC_CLIENT_TRUE@		util/vircgroupv2.c \
 @WITH_SETUID_RPC_CLIENT_TRUE@		util/vircommand.c \
 @WITH_SETUID_RPC_CLIENT_TRUE@		util/virconf.c \
 @WITH_SETUID_RPC_CLIENT_TRUE@		util/virdbus.c \
@@ -6898,6 +6915,12 @@ util/libvirt_setuid_rpc_client_la-virbuffer.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_setuid_rpc_client_la-vircgroup.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
+util/libvirt_setuid_rpc_client_la-vircgroupbackend.lo:  \
+	util/$(am__dirstamp) util/$(DEPDIR)/$(am__dirstamp)
+util/libvirt_setuid_rpc_client_la-vircgroupv1.lo:  \
+	util/$(am__dirstamp) util/$(DEPDIR)/$(am__dirstamp)
+util/libvirt_setuid_rpc_client_la-vircgroupv2.lo:  \
+	util/$(am__dirstamp) util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_setuid_rpc_client_la-vircommand.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_setuid_rpc_client_la-virconf.lo: util/$(am__dirstamp) \
@@ -7063,6 +7086,8 @@ conf/libvirt_conf_la-virnwfilterbindingobj.lo: conf/$(am__dirstamp) \
 conf/libvirt_conf_la-virnwfilterbindingobjlist.lo:  \
 	conf/$(am__dirstamp) conf/$(DEPDIR)/$(am__dirstamp)
 conf/libvirt_conf_la-node_device_conf.lo: conf/$(am__dirstamp) \
+	conf/$(DEPDIR)/$(am__dirstamp)
+conf/libvirt_conf_la-node_device_util.lo: conf/$(am__dirstamp) \
 	conf/$(DEPDIR)/$(am__dirstamp)
 conf/libvirt_conf_la-virnodedeviceobj.lo: conf/$(am__dirstamp) \
 	conf/$(DEPDIR)/$(am__dirstamp)
@@ -7744,6 +7769,12 @@ util/libvirt_util_la-virperf.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_util_la-vircgroup.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
+util/libvirt_util_la-vircgroupbackend.lo: util/$(am__dirstamp) \
+	util/$(DEPDIR)/$(am__dirstamp)
+util/libvirt_util_la-vircgroupv1.lo: util/$(am__dirstamp) \
+	util/$(DEPDIR)/$(am__dirstamp)
+util/libvirt_util_la-vircgroupv2.lo: util/$(am__dirstamp) \
+	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_util_la-virclosecallbacks.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_util_la-vircommand.lo: util/$(am__dirstamp) \
@@ -8302,6 +8333,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-networkcommon_conf.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-node_device_conf.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-node_device_event.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-node_device_util.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-numa_conf.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-nwfilter_conf.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@conf/$(DEPDIR)/libvirt_conf_la-nwfilter_ipaddrmap.Plo@am__quote@
@@ -8538,6 +8570,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_setuid_rpc_client_la-virbitmap.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_setuid_rpc_client_la-virbuffer.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_setuid_rpc_client_la-vircgroup.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_setuid_rpc_client_la-vircgroupbackend.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_setuid_rpc_client_la-vircgroupv1.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_setuid_rpc_client_la-vircgroupv2.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_setuid_rpc_client_la-vircommand.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_setuid_rpc_client_la-virconf.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_setuid_rpc_client_la-virdbus.Plo@am__quote@
@@ -8575,6 +8610,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virbitmap.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virbuffer.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-vircgroup.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-vircgroupbackend.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-vircgroupv1.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-vircgroupv2.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virclosecallbacks.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-vircommand.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virconf.Plo@am__quote@
@@ -9091,6 +9129,27 @@ util/libvirt_setuid_rpc_client_la-vircgroup.lo: util/vircgroup.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/vircgroup.c' object='util/libvirt_setuid_rpc_client_la-vircgroup.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_setuid_rpc_client_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_setuid_rpc_client_la-vircgroup.lo `test -f 'util/vircgroup.c' || echo '$(srcdir)/'`util/vircgroup.c
+
+util/libvirt_setuid_rpc_client_la-vircgroupbackend.lo: util/vircgroupbackend.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_setuid_rpc_client_la_CFLAGS) $(CFLAGS) -MT util/libvirt_setuid_rpc_client_la-vircgroupbackend.lo -MD -MP -MF util/$(DEPDIR)/libvirt_setuid_rpc_client_la-vircgroupbackend.Tpo -c -o util/libvirt_setuid_rpc_client_la-vircgroupbackend.lo `test -f 'util/vircgroupbackend.c' || echo '$(srcdir)/'`util/vircgroupbackend.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) util/$(DEPDIR)/libvirt_setuid_rpc_client_la-vircgroupbackend.Tpo util/$(DEPDIR)/libvirt_setuid_rpc_client_la-vircgroupbackend.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/vircgroupbackend.c' object='util/libvirt_setuid_rpc_client_la-vircgroupbackend.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_setuid_rpc_client_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_setuid_rpc_client_la-vircgroupbackend.lo `test -f 'util/vircgroupbackend.c' || echo '$(srcdir)/'`util/vircgroupbackend.c
+
+util/libvirt_setuid_rpc_client_la-vircgroupv1.lo: util/vircgroupv1.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_setuid_rpc_client_la_CFLAGS) $(CFLAGS) -MT util/libvirt_setuid_rpc_client_la-vircgroupv1.lo -MD -MP -MF util/$(DEPDIR)/libvirt_setuid_rpc_client_la-vircgroupv1.Tpo -c -o util/libvirt_setuid_rpc_client_la-vircgroupv1.lo `test -f 'util/vircgroupv1.c' || echo '$(srcdir)/'`util/vircgroupv1.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) util/$(DEPDIR)/libvirt_setuid_rpc_client_la-vircgroupv1.Tpo util/$(DEPDIR)/libvirt_setuid_rpc_client_la-vircgroupv1.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/vircgroupv1.c' object='util/libvirt_setuid_rpc_client_la-vircgroupv1.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_setuid_rpc_client_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_setuid_rpc_client_la-vircgroupv1.lo `test -f 'util/vircgroupv1.c' || echo '$(srcdir)/'`util/vircgroupv1.c
+
+util/libvirt_setuid_rpc_client_la-vircgroupv2.lo: util/vircgroupv2.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_setuid_rpc_client_la_CFLAGS) $(CFLAGS) -MT util/libvirt_setuid_rpc_client_la-vircgroupv2.lo -MD -MP -MF util/$(DEPDIR)/libvirt_setuid_rpc_client_la-vircgroupv2.Tpo -c -o util/libvirt_setuid_rpc_client_la-vircgroupv2.lo `test -f 'util/vircgroupv2.c' || echo '$(srcdir)/'`util/vircgroupv2.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) util/$(DEPDIR)/libvirt_setuid_rpc_client_la-vircgroupv2.Tpo util/$(DEPDIR)/libvirt_setuid_rpc_client_la-vircgroupv2.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/vircgroupv2.c' object='util/libvirt_setuid_rpc_client_la-vircgroupv2.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_setuid_rpc_client_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_setuid_rpc_client_la-vircgroupv2.lo `test -f 'util/vircgroupv2.c' || echo '$(srcdir)/'`util/vircgroupv2.c
 
 util/libvirt_setuid_rpc_client_la-vircommand.lo: util/vircommand.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_setuid_rpc_client_la_CFLAGS) $(CFLAGS) -MT util/libvirt_setuid_rpc_client_la-vircommand.lo -MD -MP -MF util/$(DEPDIR)/libvirt_setuid_rpc_client_la-vircommand.Tpo -c -o util/libvirt_setuid_rpc_client_la-vircommand.lo `test -f 'util/vircommand.c' || echo '$(srcdir)/'`util/vircommand.c
@@ -9700,6 +9759,13 @@ conf/libvirt_conf_la-node_device_conf.lo: conf/node_device_conf.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='conf/node_device_conf.c' object='conf/libvirt_conf_la-node_device_conf.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_conf_la_CFLAGS) $(CFLAGS) -c -o conf/libvirt_conf_la-node_device_conf.lo `test -f 'conf/node_device_conf.c' || echo '$(srcdir)/'`conf/node_device_conf.c
+
+conf/libvirt_conf_la-node_device_util.lo: conf/node_device_util.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_conf_la_CFLAGS) $(CFLAGS) -MT conf/libvirt_conf_la-node_device_util.lo -MD -MP -MF conf/$(DEPDIR)/libvirt_conf_la-node_device_util.Tpo -c -o conf/libvirt_conf_la-node_device_util.lo `test -f 'conf/node_device_util.c' || echo '$(srcdir)/'`conf/node_device_util.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) conf/$(DEPDIR)/libvirt_conf_la-node_device_util.Tpo conf/$(DEPDIR)/libvirt_conf_la-node_device_util.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='conf/node_device_util.c' object='conf/libvirt_conf_la-node_device_util.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_conf_la_CFLAGS) $(CFLAGS) -c -o conf/libvirt_conf_la-node_device_util.lo `test -f 'conf/node_device_util.c' || echo '$(srcdir)/'`conf/node_device_util.c
 
 conf/libvirt_conf_la-virnodedeviceobj.lo: conf/virnodedeviceobj.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_conf_la_CFLAGS) $(CFLAGS) -MT conf/libvirt_conf_la-virnodedeviceobj.lo -MD -MP -MF conf/$(DEPDIR)/libvirt_conf_la-virnodedeviceobj.Tpo -c -o conf/libvirt_conf_la-virnodedeviceobj.lo `test -f 'conf/virnodedeviceobj.c' || echo '$(srcdir)/'`conf/virnodedeviceobj.c
@@ -11079,6 +11145,27 @@ util/libvirt_util_la-vircgroup.lo: util/vircgroup.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/vircgroup.c' object='util/libvirt_util_la-vircgroup.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_util_la-vircgroup.lo `test -f 'util/vircgroup.c' || echo '$(srcdir)/'`util/vircgroup.c
+
+util/libvirt_util_la-vircgroupbackend.lo: util/vircgroupbackend.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT util/libvirt_util_la-vircgroupbackend.lo -MD -MP -MF util/$(DEPDIR)/libvirt_util_la-vircgroupbackend.Tpo -c -o util/libvirt_util_la-vircgroupbackend.lo `test -f 'util/vircgroupbackend.c' || echo '$(srcdir)/'`util/vircgroupbackend.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) util/$(DEPDIR)/libvirt_util_la-vircgroupbackend.Tpo util/$(DEPDIR)/libvirt_util_la-vircgroupbackend.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/vircgroupbackend.c' object='util/libvirt_util_la-vircgroupbackend.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_util_la-vircgroupbackend.lo `test -f 'util/vircgroupbackend.c' || echo '$(srcdir)/'`util/vircgroupbackend.c
+
+util/libvirt_util_la-vircgroupv1.lo: util/vircgroupv1.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT util/libvirt_util_la-vircgroupv1.lo -MD -MP -MF util/$(DEPDIR)/libvirt_util_la-vircgroupv1.Tpo -c -o util/libvirt_util_la-vircgroupv1.lo `test -f 'util/vircgroupv1.c' || echo '$(srcdir)/'`util/vircgroupv1.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) util/$(DEPDIR)/libvirt_util_la-vircgroupv1.Tpo util/$(DEPDIR)/libvirt_util_la-vircgroupv1.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/vircgroupv1.c' object='util/libvirt_util_la-vircgroupv1.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_util_la-vircgroupv1.lo `test -f 'util/vircgroupv1.c' || echo '$(srcdir)/'`util/vircgroupv1.c
+
+util/libvirt_util_la-vircgroupv2.lo: util/vircgroupv2.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT util/libvirt_util_la-vircgroupv2.lo -MD -MP -MF util/$(DEPDIR)/libvirt_util_la-vircgroupv2.Tpo -c -o util/libvirt_util_la-vircgroupv2.lo `test -f 'util/vircgroupv2.c' || echo '$(srcdir)/'`util/vircgroupv2.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) util/$(DEPDIR)/libvirt_util_la-vircgroupv2.Tpo util/$(DEPDIR)/libvirt_util_la-vircgroupv2.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/vircgroupv2.c' object='util/libvirt_util_la-vircgroupv2.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_util_la-vircgroupv2.lo `test -f 'util/vircgroupv2.c' || echo '$(srcdir)/'`util/vircgroupv2.c
 
 util/libvirt_util_la-virclosecallbacks.lo: util/virclosecallbacks.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT util/libvirt_util_la-virclosecallbacks.lo -MD -MP -MF util/$(DEPDIR)/libvirt_util_la-virclosecallbacks.Tpo -c -o util/libvirt_util_la-virclosecallbacks.lo `test -f 'util/virclosecallbacks.c' || echo '$(srcdir)/'`util/virclosecallbacks.c

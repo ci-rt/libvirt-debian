@@ -1,3 +1,17 @@
+libvirt (4.10.0-1~1.gbp16a413) UNRELEASED; urgency=medium
+
+  ** SNAPSHOT build @16a4137554d00d7f65ec7e8531961fe1070a96d2 **
+
+  * [0cde44d] Remove bridge-utils from recommends.
+    We don't use brctl since ages.
+    Thanks to Andreas Henriksson
+  * [3c22e06] Drop debian/remove-RHism.diff.patch.
+    Debian has /usr/bin/service since quiete some time now.
+    Thanks to Andrea Bolognani
+  * [54a5cdb] New upstream version 4.10.0
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 11 Dec 2018 16:27:51 +0100
+
 libvirt (4.7.0-1) unstable; urgency=medium
 
   * [8ff38ac] New upstream version 4.7.0

@@ -1,8 +1,5 @@
 #include <config.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include "internal.h"
 #include "testutils.h"

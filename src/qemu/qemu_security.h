@@ -24,7 +24,6 @@
 #ifndef __QEMU_SECURITY_H__
 # define __QEMU_SECURITY_H__
 
-# include <stdbool.h>
 
 # include "qemu_conf.h"
 # include "domain_conf.h"
@@ -85,7 +84,7 @@ int qemuSecurityRestoreChardevLabel(virQEMUDriverPtr driver,
                                     virDomainChrDefPtr chr);
 
 int qemuSecurityStartTPMEmulator(virQEMUDriverPtr driver,
-                                 virDomainDefPtr def,
+                                 virDomainObjPtr vm,
                                  virCommandPtr cmd,
                                  uid_t uid,
                                  gid_t gid,
@@ -93,14 +92,26 @@ int qemuSecurityStartTPMEmulator(virQEMUDriverPtr driver,
                                  int *cmdret);
 
 void qemuSecurityCleanupTPMEmulator(virQEMUDriverPtr driver,
-                                    virDomainDefPtr def);
+                                    virDomainObjPtr vm);
+
+int qemuSecurityDomainSetPathLabel(virQEMUDriverPtr driver,
+                                   virDomainObjPtr vm,
+                                   const char *path,
+                                   bool allowSubtree);
+
+int qemuSecuritySetSavedStateLabel(virQEMUDriverPtr driver,
+                                   virDomainObjPtr vm,
+                                   const char *savefile);
+
+int qemuSecurityRestoreSavedStateLabel(virQEMUDriverPtr driver,
+                                       virDomainObjPtr vm,
+                                       const char *savefile);
 
 /* Please note that for these APIs there is no wrapper yet. Do NOT blindly add
- * new APIs here. If an API can touch a /dev file add a proper wrapper instead.
+ * new APIs here. If an API can touch a file add a proper wrapper instead.
  */
 # define qemuSecurityCheckAllLabel virSecurityManagerCheckAllLabel
 # define qemuSecurityClearSocketLabel virSecurityManagerClearSocketLabel
-# define qemuSecurityDomainSetPathLabel virSecurityManagerDomainSetPathLabel
 # define qemuSecurityGenLabel virSecurityManagerGenLabel
 # define qemuSecurityGetBaseLabel virSecurityManagerGetBaseLabel
 # define qemuSecurityGetDOI virSecurityManagerGetDOI
@@ -115,11 +126,9 @@ void qemuSecurityCleanupTPMEmulator(virQEMUDriverPtr driver,
 # define qemuSecurityPreFork virSecurityManagerPreFork
 # define qemuSecurityReleaseLabel virSecurityManagerReleaseLabel
 # define qemuSecurityReserveLabel virSecurityManagerReserveLabel
-# define qemuSecurityRestoreSavedStateLabel virSecurityManagerRestoreSavedStateLabel
 # define qemuSecuritySetChildProcessLabel virSecurityManagerSetChildProcessLabel
 # define qemuSecuritySetDaemonSocketLabel virSecurityManagerSetDaemonSocketLabel
 # define qemuSecuritySetImageFDLabel virSecurityManagerSetImageFDLabel
-# define qemuSecuritySetSavedStateLabel virSecurityManagerSetSavedStateLabel
 # define qemuSecuritySetSocketLabel virSecurityManagerSetSocketLabel
 # define qemuSecuritySetTapFDLabel virSecurityManagerSetTapFDLabel
 # define qemuSecurityStackAddNested virSecurityManagerStackAddNested
