@@ -9,7 +9,7 @@ without sysfs mounted.
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/tests/vircgrouptest.c b/tests/vircgrouptest.c
-index be50f3e..88363ba 100644
+index ea352c1..9240460 100644
 --- a/tests/vircgrouptest.c
 +++ b/tests/vircgrouptest.c
 @@ -22,7 +22,7 @@
@@ -19,5 +19,5 @@ index be50f3e..88363ba 100644
 -#ifdef __linux__
 +#if defined HAVE_SYSFS_MOCK
  
- # include <stdlib.h>
  
+ # define __VIR_CGROUP_ALLOW_INCLUDE_PRIV_H__
