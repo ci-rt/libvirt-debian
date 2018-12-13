@@ -86,6 +86,7 @@ Depends:
  ${misc:Depends},
  ${shlibs:Depends},
  libvirt0 (= ${binary:Version}),
+ sensible-utils,
 Section: admin
 Suggests:
  libvirt-daemon,
