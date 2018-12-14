@@ -1,4 +1,4 @@
-libvirt (1.1.4-2~) unstable; urgency=low
+libvirt (1.1.4-2) unstable; urgency=low
 
   If you're using cgroups make sure you're using a different mount per cgroup
   controller (cpu, memory, ...) that is mounted to /sys/fs/cgroup/<controller>.

@@ -1,4 +1,4 @@
-libvirt (2.5.0-2~) unstable; urgency=medium
+libvirt (2.5.0-2) unstable; urgency=medium
 
   libvirt-daemon-system now uses the allocated uid and gid 64055
   for the libvirt-qemu user and group on new installations, when
