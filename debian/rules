@@ -217,6 +217,8 @@ endif
 	rm debian/libvirt-daemon-system/etc/apparmor.d/local/*
 	# Don't ship api files in the daemon package
 	rm -r debian/libvirt-daemon/usr/share/libvirt/api/
+	# executable-not-elf-or-script
+	chmod 644 debian/libvirt-daemon/usr/share/bash-completion/completions/vsh
 
 
 override_dh_installinit:
