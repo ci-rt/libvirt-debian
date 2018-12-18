@@ -1,3 +1,29 @@
+libvirt (4.10.0-2) unstable; urgency=medium
+
+  [ Marcin Juszkiewicz ]
+  * [d143d3c] update Vcs-git tags to point to salsa.debian.org
+  * [96995c1] Fix versions in *.NEWS files
+  * [8e8286d] Don't mark bash completion as executable
+  * [72f8ed3] Use multiarch layout.
+    Based on the on what Ubuntu does (Closes: #813062)
+  * [9b52c21] Use dpkg-buildflags on configure
+    to e.g. get the proper hardening flags.
+
+  [ Andrea Bolognani ]
+  * [684bb89] Move data files from libvirt-daemon to libvirt0.
+    These files are used internally by the library, so they
+    should be shipped along with it rather than with the daemon.
+    This is consistent with the upstream libvirt.spec file.
+    The pattern is partially expanded in the libvirt0.install
+    file to avoid having to remove a specific subset of data
+    files later on as part of debian/rules.
+
+  [ Guido Günther ]
+  * [a6cbf92] cpu_map is now a directory.
+    It used to be a single XML file
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 18 Dec 2018 12:55:10 +0100
+
 libvirt (4.10.0-1) unstable; urgency=medium
 
   * [0cde44d] Remove bridge-utils from recommends.  We don't use brctl since
