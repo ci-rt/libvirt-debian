@@ -49,8 +49,6 @@ Build-Depends:
  xsltproc,
  zfsutils [kfreebsd-amd64 kfreebsd-i386],
  po-debconf,
-# for --with-storage-sheepdog
- sheepdog [linux-any],
 # for --with-storage-rados
  librbd-dev [linux-any],
  librados-dev [linux-any],
@@ -113,7 +111,6 @@ Recommends:
 Suggests:
  libvirt-daemon-driver-storage-gluster,
  libvirt-daemon-driver-storage-rbd,
- libvirt-daemon-driver-storage-sheepdog,
  libvirt-daemon-driver-storage-zfs,
  libvirt-daemon-system,
  numad,
@@ -158,23 +155,6 @@ Description: Virtualization daemon RBD storage driver
  supports QEMU, KVM, XEN, OpenVZ, LXC, and VirtualBox.
  .
  This package contains the libvirtd storage driver for RBD/Rados/Ceph.
-
-Package: libvirt-daemon-driver-storage-sheepdog
-Architecture: linux-any
-Depends:
- ${misc:Depends},
- ${shlibs:Depends},
- libvirt-daemon (= ${binary:Version}),
-Replaces: libvirt-daemon (<< 3.7.0-3~)
-Breaks: libvirt-daemon (<< 3.7.0-3~)
-Section: admin
-Description: Virtualization daemon Sheedog storage driver
- Libvirt is a C toolkit to interact with the virtualization capabilities
- of recent versions of Linux (and other OSes). The library aims at providing
- a long term stable C API for different virtualization mechanisms. It currently
- supports QEMU, KVM, XEN, OpenVZ, LXC, and VirtualBox.
- .
- This package contains the libvirtd storage driver for Sheepdog.
 
 Package: libvirt-daemon-driver-storage-zfs
 Architecture: linux-any
