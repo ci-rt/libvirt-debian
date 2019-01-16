@@ -4,58 +4,45 @@ Subject: Use upstreams polkit rule
 
 As of 1.2.16 upstream ships a Polkit rule like Debian does.
 ---
- src/Makefile.am            | 1 -
  src/Makefile.in            | 4 ++--
  src/remote/Makefile.inc.am | 4 ++--
- 3 files changed, 4 insertions(+), 5 deletions(-)
+ 2 files changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/src/Makefile.am b/src/Makefile.am
-index 33ff280..075a990 100644
---- a/src/Makefile.am
-+++ b/src/Makefile.am
-@@ -810,7 +810,6 @@ else ! WITH_LIBVIRTD
- install-logrotate:
- uninstall-logrotate:
- endif ! WITH_LIBVIRTD
--
- if LIBVIRT_INIT_SCRIPT_RED_HAT
- install-init:: $(SYSVINIT_FILES) install-sysconfig
- 	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/rc.d/init.d
 diff --git a/src/Makefile.in b/src/Makefile.in
-index 42606ef..cdc372b 100644
+index 9bd8ab2..fb6d3c2 100644
 --- a/src/Makefile.in
 +++ b/src/Makefile.in
-@@ -13350,12 +13350,12 @@ lxc/lxc_controller_dispatch.h: $(srcdir)/rpc/gendispatch.pl \
- @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@		$(DESTDIR)$(policydir)/org.libvirt.unix.policy
- @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	$(MKDIR_P) $(DESTDIR)$(datadir)/polkit-1/rules.d
+@@ -13403,12 +13403,12 @@ lxc/lxc_controller_dispatch.h: $(srcdir)/rpc/gendispatch.pl \
+ @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@		$(DESTDIR)$(polkitactionsdir)/org.libvirt.unix.policy
+ @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	$(MKDIR_P) $(DESTDIR)$(polkitrulesdir)
  @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	$(INSTALL_DATA) $(srcdir)/remote/libvirtd.rules \
--@WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@		$(DESTDIR)$(datadir)/polkit-1/rules.d/50-libvirt.rules
-+@WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@		$(DESTDIR)$(datadir)/polkit-1/rules.d/60-libvirt.rules
+-@WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@		$(DESTDIR)$(polkitrulesdir)/50-libvirt.rules
++@WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@		$(DESTDIR)$(polkitrulesdir)/60-libvirt.rules
  
  @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@uninstall-polkit::
- @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	rm -f $(DESTDIR)$(policydir)/org.libvirt.unix.policy
- @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	rmdir $(DESTDIR)$(policydir) || :
--@WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	rm -f $(DESTDIR)$(datadir)/polkit-1/rules.d/50-libvirt.rules
-+@WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	rm -f $(DESTDIR)$(datadir)/polkit-1/rules.d/60-libvirt.rules
- @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	rmdir $(DESTDIR)$(datadir)/polkit-1/rules.d || :
+ @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	rm -f $(DESTDIR)$(polkitactionsdir)/org.libvirt.unix.policy
+ @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	rmdir $(DESTDIR)$(polkitactionsdir) || :
+-@WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	rm -f $(DESTDIR)$(polkitrulesdir)/50-libvirt.rules
++@WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	rm -f $(DESTDIR)$(polkitrulesdir)/60-libvirt.rules
+ @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	rmdir $(DESTDIR)$(polkitrulesdir) || :
  
- @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_FALSE@install-polkit::
+ .PHONY: \
 diff --git a/src/remote/Makefile.inc.am b/src/remote/Makefile.inc.am
-index eb8d6fe..9467eaf 100644
+index 0988435..1e4287b 100644
 --- a/src/remote/Makefile.inc.am
 +++ b/src/remote/Makefile.inc.am
-@@ -218,12 +218,12 @@ install-polkit::
- 		$(DESTDIR)$(policydir)/org.libvirt.unix.policy
- 	$(MKDIR_P) $(DESTDIR)$(datadir)/polkit-1/rules.d
+@@ -219,12 +219,12 @@ install-polkit::
+ 		$(DESTDIR)$(polkitactionsdir)/org.libvirt.unix.policy
+ 	$(MKDIR_P) $(DESTDIR)$(polkitrulesdir)
  	$(INSTALL_DATA) $(srcdir)/remote/libvirtd.rules \
--		$(DESTDIR)$(datadir)/polkit-1/rules.d/50-libvirt.rules
-+		$(DESTDIR)$(datadir)/polkit-1/rules.d/60-libvirt.rules
+-		$(DESTDIR)$(polkitrulesdir)/50-libvirt.rules
++		$(DESTDIR)$(polkitrulesdir)/60-libvirt.rules
  
  uninstall-polkit::
- 	rm -f $(DESTDIR)$(policydir)/org.libvirt.unix.policy
- 	rmdir $(DESTDIR)$(policydir) || :
--	rm -f $(DESTDIR)$(datadir)/polkit-1/rules.d/50-libvirt.rules
-+	rm -f $(DESTDIR)$(datadir)/polkit-1/rules.d/60-libvirt.rules
- 	rmdir $(DESTDIR)$(datadir)/polkit-1/rules.d || :
+ 	rm -f $(DESTDIR)$(polkitactionsdir)/org.libvirt.unix.policy
+ 	rmdir $(DESTDIR)$(polkitactionsdir) || :
+-	rm -f $(DESTDIR)$(polkitrulesdir)/50-libvirt.rules
++	rm -f $(DESTDIR)$(polkitrulesdir)/60-libvirt.rules
+ 	rmdir $(DESTDIR)$(polkitrulesdir) || :
  
- else ! WITH_POLKIT
+ INSTALL_DATA_LOCAL += install-polkit

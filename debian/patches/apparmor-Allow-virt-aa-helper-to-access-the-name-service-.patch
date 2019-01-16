@@ -4,13 +4,13 @@ Subject: apparmor: Allow virt-aa-helper to access the name service switch
 
 Closes: #882979
 ---
- examples/apparmor/usr.lib.libvirt.virt-aa-helper | 1 +
+ src/security/apparmor/usr.lib.libvirt.virt-aa-helper | 1 +
  1 file changed, 1 insertion(+)
 
-diff --git a/examples/apparmor/usr.lib.libvirt.virt-aa-helper b/examples/apparmor/usr.lib.libvirt.virt-aa-helper
+diff --git a/src/security/apparmor/usr.lib.libvirt.virt-aa-helper b/src/security/apparmor/usr.lib.libvirt.virt-aa-helper
 index 60c1d50..665094a 100644
---- a/examples/apparmor/usr.lib.libvirt.virt-aa-helper
-+++ b/examples/apparmor/usr.lib.libvirt.virt-aa-helper
+--- a/src/security/apparmor/usr.lib.libvirt.virt-aa-helper
++++ b/src/security/apparmor/usr.lib.libvirt.virt-aa-helper
 @@ -3,6 +3,7 @@
  
  profile virt-aa-helper /usr/{lib,lib64}/libvirt/virt-aa-helper {

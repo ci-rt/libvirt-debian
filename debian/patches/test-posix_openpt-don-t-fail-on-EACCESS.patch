@@ -10,7 +10,7 @@ Works around #817236
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/gnulib/tests/test-posix_openpt.c b/gnulib/tests/test-posix_openpt.c
-index a2dfb03..2fe4462 100644
+index 32f518c..f55d281 100644
 --- a/gnulib/tests/test-posix_openpt.c
 +++ b/gnulib/tests/test-posix_openpt.c
 @@ -43,7 +43,7 @@ main (void)

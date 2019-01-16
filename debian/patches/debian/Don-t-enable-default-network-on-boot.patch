@@ -9,10 +9,10 @@ to not interfere with existing network configurations
  2 files changed, 2 insertions(+), 4 deletions(-)
 
 diff --git a/src/Makefile.in b/src/Makefile.in
-index 001798e..42606ef 100644
+index 999a91c..9bd8ab2 100644
 --- a/src/Makefile.in
 +++ b/src/Makefile.in
-@@ -13301,8 +13301,7 @@ lxc/lxc_controller_dispatch.h: $(srcdir)/rpc/gendispatch.pl \
+@@ -13358,8 +13358,7 @@ lxc/lxc_controller_dispatch.h: $(srcdir)/rpc/gendispatch.pl \
  @WITH_NETWORK_TRUE@	      $(DESTDIR)$(confdir)/qemu/networks/default.xml && \
  @WITH_NETWORK_TRUE@	    rm $(DESTDIR)$(confdir)/qemu/networks/default.xml.t; }
  @WITH_NETWORK_TRUE@	( cd $(DESTDIR)$(confdir)/qemu/networks/autostart && \

@@ -4,14 +4,14 @@ Subject: apparmor_profiles_local_include
 
 Include local apparmor profile
 ---
- examples/apparmor/usr.lib.libvirt.virt-aa-helper | 1 +
- examples/apparmor/usr.sbin.libvirtd              | 3 +++
+ src/security/apparmor/usr.lib.libvirt.virt-aa-helper | 1 +
+ src/security/apparmor/usr.sbin.libvirtd              | 3 +++
  2 files changed, 4 insertions(+)
 
-diff --git a/examples/apparmor/usr.lib.libvirt.virt-aa-helper b/examples/apparmor/usr.lib.libvirt.virt-aa-helper
+diff --git a/src/security/apparmor/usr.lib.libvirt.virt-aa-helper b/src/security/apparmor/usr.lib.libvirt.virt-aa-helper
 index de94368..60c1d50 100644
---- a/examples/apparmor/usr.lib.libvirt.virt-aa-helper
-+++ b/examples/apparmor/usr.lib.libvirt.virt-aa-helper
+--- a/src/security/apparmor/usr.lib.libvirt.virt-aa-helper
++++ b/src/security/apparmor/usr.lib.libvirt.virt-aa-helper
 @@ -63,5 +63,6 @@ profile virt-aa-helper /usr/{lib,lib64}/libvirt/virt-aa-helper {
    /**.[iI][sS][oO] r,
    /**/disk{,.*} r,
@@ -19,10 +19,10 @@ index de94368..60c1d50 100644
 +  # Site-specific additions and overrides. See local/README for details.
    #include <local/usr.lib.libvirt.virt-aa-helper>
  }
-diff --git a/examples/apparmor/usr.sbin.libvirtd b/examples/apparmor/usr.sbin.libvirtd
+diff --git a/src/security/apparmor/usr.sbin.libvirtd b/src/security/apparmor/usr.sbin.libvirtd
 index f0ffc53..c7c52c6 100644
---- a/examples/apparmor/usr.sbin.libvirtd
-+++ b/examples/apparmor/usr.sbin.libvirtd
+--- a/src/security/apparmor/usr.sbin.libvirtd
++++ b/src/security/apparmor/usr.sbin.libvirtd
 @@ -128,4 +128,7 @@
  
     /usr/{lib,lib64,lib/qemu,libexec}/qemu-bridge-helper rmix,
