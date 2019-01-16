@@ -1,4 +1,4 @@
-libvirt (4.10.0-3) unstable; urgency=medium
+libvirt (5.0.0-1) unstable; urgency=medium
 
   Sheepdog support has been removed since sheepdog is unmaintained
   in Debian. See #918947.
