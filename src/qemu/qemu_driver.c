@@ -17,8 +17,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
 #include <config.h>
@@ -4443,46 +4441,54 @@ static void
 syncNicRxFilterMultiMode(char *ifname, virNetDevRxFilterPtr guestFilter,
                          virNetDevRxFilterPtr hostFilter)
 {
-    if (hostFilter->multicast.mode != guestFilter->multicast.mode) {
+    if (hostFilter->multicast.mode != guestFilter->multicast.mode ||
+        (guestFilter->multicast.overflow &&
+         guestFilter->multicast.mode == VIR_NETDEV_RX_FILTER_MODE_NORMAL)) {
         switch (guestFilter->multicast.mode) {
-            case VIR_NETDEV_RX_FILTER_MODE_ALL:
-                if (virNetDevSetRcvAllMulti(ifname, true)) {
+        case VIR_NETDEV_RX_FILTER_MODE_ALL:
+            if (virNetDevSetRcvAllMulti(ifname, true) < 0) {
+                VIR_WARN("Couldn't set allmulticast flag to 'on' for "
+                         "device %s while responding to "
+                         "NIC_RX_FILTER_CHANGED", ifname);
+            }
+            break;
 
-                    VIR_WARN("Couldn't set allmulticast flag to 'on' for "
-                             "device %s while responding to "
-                             "NIC_RX_FILTER_CHANGED", ifname);
-                }
+        case VIR_NETDEV_RX_FILTER_MODE_NORMAL:
+            if (guestFilter->multicast.overflow &&
+                (hostFilter->multicast.mode == VIR_NETDEV_RX_FILTER_MODE_ALL)) {
                 break;
+            }
 
-            case VIR_NETDEV_RX_FILTER_MODE_NORMAL:
-                if (virNetDevSetRcvMulti(ifname, true)) {
+            if (virNetDevSetRcvMulti(ifname, true) < 0) {
+                VIR_WARN("Couldn't set multicast flag to 'on' for "
+                         "device %s while responding to "
+                         "NIC_RX_FILTER_CHANGED", ifname);
+            }
 
-                    VIR_WARN("Couldn't set multicast flag to 'on' for "
-                             "device %s while responding to "
-                             "NIC_RX_FILTER_CHANGED", ifname);
-                }
+            if (virNetDevSetRcvAllMulti(ifname,
+                                        guestFilter->multicast.overflow) < 0) {
+                VIR_WARN("Couldn't set allmulticast flag to '%s' for "
+                         "device %s while responding to "
+                         "NIC_RX_FILTER_CHANGED",
+                         virTristateSwitchTypeToString(virTristateSwitchFromBool(guestFilter->multicast.overflow)),
+                         ifname);
+            }
+            break;
 
-                if (virNetDevSetRcvAllMulti(ifname, false)) {
-                    VIR_WARN("Couldn't set allmulticast flag to 'off' for "
-                             "device %s while responding to "
-                             "NIC_RX_FILTER_CHANGED", ifname);
-                }
-                break;
+        case VIR_NETDEV_RX_FILTER_MODE_NONE:
+            if (virNetDevSetRcvAllMulti(ifname, false) < 0) {
+                VIR_WARN("Couldn't set allmulticast flag to 'off' for "
+                         "device %s while responding to "
+                         "NIC_RX_FILTER_CHANGED", ifname);
+            }
 
-            case VIR_NETDEV_RX_FILTER_MODE_NONE:
-                if (virNetDevSetRcvAllMulti(ifname, false)) {
-                    VIR_WARN("Couldn't set allmulticast flag to 'off' for "
-                             "device %s while responding to "
-                             "NIC_RX_FILTER_CHANGED", ifname);
-                }
-
-                if (virNetDevSetRcvMulti(ifname, false)) {
-                    VIR_WARN("Couldn't set multicast flag to 'off' for "
-                             "device %s while responding to "
-                             "NIC_RX_FILTER_CHANGED",
-                             ifname);
-                }
-                break;
+            if (virNetDevSetRcvMulti(ifname, false) < 0) {
+                VIR_WARN("Couldn't set multicast flag to 'off' for "
+                         "device %s while responding to "
+                         "NIC_RX_FILTER_CHANGED",
+                         ifname);
+            }
+            break;
         }
     }
 }
@@ -4786,6 +4792,50 @@ processPRDisconnectEvent(virDomainObjPtr vm)
 }
 
 
+static void
+processRdmaGidStatusChangedEvent(virDomainObjPtr vm,
+                                 qemuMonitorRdmaGidStatusPtr info)
+{
+    unsigned int prefix_len;
+    virSocketAddr addr;
+    VIR_AUTOFREE(char *) addrStr = NULL;
+    int rc;
+
+    if (!virDomainObjIsActive(vm))
+        return;
+
+    VIR_DEBUG("netdev=%s, gid_status=%d, subnet_prefix=0x%llx, interface_id=0x%llx",
+              info->netdev, info->gid_status, info->subnet_prefix,
+              info->interface_id);
+
+    if (info->subnet_prefix) {
+        uint32_t ipv6[4] = {0};
+
+        prefix_len = 64;
+        memcpy(&ipv6[0], &info->subnet_prefix, sizeof(info->subnet_prefix));
+        memcpy(&ipv6[2], &info->interface_id, sizeof(info->interface_id));
+        virSocketAddrSetIPv6AddrNetOrder(&addr, ipv6);
+    } else {
+        prefix_len = 24;
+        virSocketAddrSetIPv4AddrNetOrder(&addr, info->interface_id >> 32);
+    }
+
+    if (!(addrStr = virSocketAddrFormat(&addr)))
+        return;
+
+    if (info->gid_status) {
+        VIR_DEBUG("Adding %s to %s", addrStr, info->netdev);
+        rc = virNetDevIPAddrAdd(info->netdev, &addr, NULL, prefix_len);
+    } else {
+        VIR_DEBUG("Removing %s from %s", addrStr, info->netdev);
+        rc = virNetDevIPAddrDel(info->netdev, &addr, prefix_len);
+    }
+
+    if (rc < 0)
+        VIR_WARN("Fail to update address %s to %s", addrStr, info->netdev);
+}
+
+
 static void qemuProcessEventHandler(void *data, void *opaque)
 {
     struct qemuProcessEvent *processEvent = data;
@@ -4825,6 +4875,9 @@ static void qemuProcessEventHandler(void *data, void *opaque)
         break;
     case QEMU_PROCESS_EVENT_PR_DISCONNECT:
         processPRDisconnectEvent(vm);
+        break;
+    case QEMU_PROCESS_EVENT_RDMA_GID_STATUS_CHANGED:
+        processRdmaGidStatusChangedEvent(vm, processEvent->data);
         break;
     case QEMU_PROCESS_EVENT_LAST:
         break;
@@ -5490,15 +5543,8 @@ qemuDomainGetIOThreadsMon(virQEMUDriverPtr driver,
                           virDomainObjPtr vm,
                           qemuMonitorIOThreadInfoPtr **iothreads)
 {
-    qemuDomainObjPrivatePtr priv;
+    qemuDomainObjPrivatePtr priv = vm->privateData;
     int niothreads = 0;
-
-    priv = vm->privateData;
-    if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_OBJECT_IOTHREAD)) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("IOThreads not supported with this binary"));
-        return -1;
-    }
 
     qemuDomainObjEnterMonitor(driver, vm);
     niothreads = qemuMonitorGetIOThreads(priv->mon, iothreads);
@@ -5514,6 +5560,7 @@ qemuDomainGetIOThreadsLive(virQEMUDriverPtr driver,
                            virDomainObjPtr vm,
                            virDomainIOThreadInfoPtr **info)
 {
+    qemuDomainObjPrivatePtr priv;
     qemuMonitorIOThreadInfoPtr *iothreads = NULL;
     virDomainIOThreadInfoPtr *info_ret = NULL;
     int niothreads = 0;
@@ -5526,6 +5573,13 @@ qemuDomainGetIOThreadsLive(virQEMUDriverPtr driver,
     if (!virDomainObjIsActive(vm)) {
         virReportError(VIR_ERR_OPERATION_INVALID, "%s",
                        _("cannot list IOThreads for an inactive domain"));
+        goto endjob;
+    }
+
+    priv = vm->privateData;
+    if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_OBJECT_IOTHREAD)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("IOThreads not supported with this binary"));
         goto endjob;
     }
 
@@ -6074,7 +6128,7 @@ qemuDomainDelIOThreadCheck(virDomainDefPtr def,
  * QEMU keeps track of the polling time elapsed and may grow or shrink the
  * its polling interval based upon its heuristic algorithm. It is possible
  * that calculations determine that it has found a "sweet spot" and no
- * ajustments are made. The polling time value is not available.
+ * adjustments are made. The polling time value is not available.
  *
  * Returns 0 on success, -1 on failure with error set.
  */
@@ -7418,7 +7472,7 @@ static char *qemuConnectDomainXMLToNative(virConnectPtr conn,
                                             VIR_QEMU_PROCESS_START_COLD)))
         goto cleanup;
 
-    ret = virCommandToString(cmd);
+    ret = virCommandToString(cmd, false);
 
  cleanup:
     virCommandFree(cmd);
@@ -14746,6 +14800,13 @@ qemuDomainSnapshotPrepareDiskExternal(virDomainDiskDefPtr disk,
     int ret = -1;
     struct stat st;
 
+    if (disk->src->readonly) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("external snapshot for readonly disk %s "
+                         "is not supported"), disk->dst);
+        return -1;
+    }
+
     if (qemuTranslateSnapshotDiskSourcePool(snapdisk) < 0)
         return -1;
 
@@ -14972,7 +15033,7 @@ qemuDomainSnapshotPrepare(virDomainObjPtr vm,
 
     /* internal snapshots + pflash based loader have the following problems:
      * - if the variable store is raw, the snapshot fails
-     * - alowing a qcow2 image as the varstore would make it eligible to receive
+     * - allowing a qcow2 image as the varstore would make it eligible to receive
      *   the vmstate dump, which would make it huge
      * - offline snapshot would not snapshot the varstore at all
      *
@@ -20706,6 +20767,20 @@ qemuDomainGetStatsBlockExportDisk(virDomainDiskDefPtr disk,
     const char *backendstoragealias;
     int ret = -1;
 
+    /*
+     * This helps to keep logs clean from error messages on getting stats
+     * for optional disk with nonexistent source file. We won't get any
+     * stats for such a disk anyway in below code.
+     */
+    if (!virDomainObjIsActive(dom) &&
+        qemuDomainDiskIsMissingLocalOptional(disk)) {
+        VIR_INFO("optional disk '%s' source file is missing, "
+                 "skip getting stats", disk->dst);
+
+        return qemuDomainGetStatsBlockExportHeader(disk, disk->src, *recordnr,
+                                                   records, nrecords);
+    }
+
     for (n = disk->src; virStorageSourceIsBacking(n); n = n->backingStore) {
         if (blockdev) {
             frontendalias = QEMU_DOMAIN_DISK_PRIVATE(disk)->qomName;
@@ -20874,12 +20949,16 @@ qemuDomainGetStatsIOThread(virQEMUDriverPtr driver,
                            int *maxparams,
                            unsigned int privflags ATTRIBUTE_UNUSED)
 {
+    qemuDomainObjPrivatePtr priv = dom->privateData;
     size_t i;
     qemuMonitorIOThreadInfoPtr *iothreads = NULL;
     int niothreads;
     int ret = -1;
 
     if (!virDomainObjIsActive(dom))
+        return 0;
+
+    if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_OBJECT_IOTHREAD))
         return 0;
 
     if ((niothreads = qemuDomainGetIOThreadsMon(driver, dom, &iothreads)) < 0)
@@ -21092,6 +21171,7 @@ qemuConnectGetAllDomainStats(virConnectPtr conn,
                              unsigned int flags)
 {
     virQEMUDriverPtr driver = conn->privateData;
+    virErrorPtr orig_err = NULL;
     virDomainObjPtr *vms = NULL;
     virDomainObjPtr vm;
     size_t nvms;
@@ -21182,8 +21262,10 @@ qemuConnectGetAllDomainStats(virConnectPtr conn,
     ret = nstats;
 
  cleanup:
+    virErrorPreserveLast(&orig_err);
     virDomainStatsRecordListFree(tmpstats);
     virObjectListFreeCount(vms, nvms);
+    virErrorRestore(&orig_err);
 
     return ret;
 }

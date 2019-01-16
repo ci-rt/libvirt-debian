@@ -18,12 +18,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: David L Stevens <dlstevens@us.ibm.com>
  */
 
-#ifndef __NWFILTER_DHCPSNOOP_H
-# define __NWFILTER_DHCPSNOOP_H
+#ifndef LIBVIRT_NWFILTER_DHCPSNOOP_H
+# define LIBVIRT_NWFILTER_DHCPSNOOP_H
 
 # include "nwfilter_tech_driver.h"
 
@@ -33,4 +31,4 @@ int virNWFilterDHCPSnoopReq(virNWFilterTechDriverPtr techdriver,
                             virNWFilterBindingDefPtr binding,
                             virNWFilterDriverStatePtr driver);
 void virNWFilterDHCPSnoopEnd(const char *ifname);
-#endif /* __NWFILTER_DHCPSNOOP_H */
+#endif /* LIBVIRT_NWFILTER_DHCPSNOOP_H */

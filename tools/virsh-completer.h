@@ -16,13 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- *  Michal Privoznik <mprivozn@redhat.com>
- *
  */
 
-#ifndef VIRSH_COMPLETER
-# define VIRSH_COMPLETER
+#ifndef LIBVIRT_VIRSH_COMPLETER_H
+# define LIBVIRT_VIRSH_COMPLETER_H
 
 # include "vsh.h"
 
@@ -109,4 +106,4 @@ char ** virshDomainDeviceAliasCompleter(vshControl *ctl,
 char ** virshCellnoCompleter(vshControl *ctl,
                              const vshCmd *cmd,
                              unsigned int flags);
-#endif
+#endif /* LIBVIRT_VIRSH_COMPLETER_H */

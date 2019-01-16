@@ -18,8 +18,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
 #include <config.h>
@@ -3703,10 +3701,19 @@ virDomainSkipBackcompatConsole(virDomainDefPtr def,
 }
 
 
+enum {
+    DOMAIN_DEVICE_ITERATE_ALL_CONSOLES = 1 << 0,
+    DOMAIN_DEVICE_ITERATE_GRAPHICS = 1 << 1
+} virDomainDeviceIterateFlags;
+
+/*
+ * Iterates over domain devices calling @cb on each device. The default
+ * behaviour can be altered with virDomainDeviceIterateFlags.
+ */
 static int
 virDomainDeviceInfoIterateInternal(virDomainDefPtr def,
                                    virDomainDeviceInfoCallback cb,
-                                   bool all,
+                                   unsigned int iteratorFlags,
                                    void *opaque)
 {
     size_t i;
@@ -3772,6 +3779,8 @@ virDomainDeviceInfoIterateInternal(virDomainDefPtr def,
             return rc;
     }
     for (i = 0; i < def->nconsoles; i++) {
+        bool all = iteratorFlags & DOMAIN_DEVICE_ITERATE_ALL_CONSOLES;
+
         if (virDomainSkipBackcompatConsole(def, i, all))
             continue;
         device.data.chr = def->consoles[i];
@@ -3860,6 +3869,17 @@ virDomainDeviceInfoIterateInternal(virDomainDefPtr def,
             return rc;
     }
 
+    /* If the flag below is set, make sure @cb can handle @info being NULL, as
+     * graphics don't have any boot info */
+    if (iteratorFlags & DOMAIN_DEVICE_ITERATE_GRAPHICS) {
+        device.type = VIR_DOMAIN_DEVICE_GRAPHICS;
+        for (i = 0; i < def->ngraphics; i++) {
+            device.data.graphics = def->graphics[i];
+            if ((rc = cb(def, &device, NULL, opaque)) != 0)
+                return rc;
+        }
+    }
+
     /* Coverity is not very happy with this - all dead_error_condition */
 #if !STATIC_ANALYSIS
     /* This switch statement is here to trigger compiler warning when adding
@@ -3908,7 +3928,7 @@ virDomainDeviceInfoIterate(virDomainDefPtr def,
                            virDomainDeviceInfoCallback cb,
                            void *opaque)
 {
-    return virDomainDeviceInfoIterateInternal(def, cb, false, opaque);
+    return virDomainDeviceInfoIterateInternal(def, cb, 0, opaque);
 }
 
 
@@ -3918,7 +3938,7 @@ virDomainDefHasDeviceAddress(virDomainDefPtr def,
 {
     if (virDomainDeviceInfoIterateInternal(def,
                                            virDomainDefHasDeviceAddressIterator,
-                                           true,
+                                           DOMAIN_DEVICE_ITERATE_ALL_CONSOLES,
                                            info) < 0)
         return true;
 
@@ -5291,7 +5311,7 @@ virDomainDefPostParse(virDomainDefPtr def,
     /* iterate the devices */
     ret = virDomainDeviceInfoIterateInternal(def,
                                              virDomainDefPostParseDeviceIterator,
-                                             true,
+                                             DOMAIN_DEVICE_ITERATE_ALL_CONSOLES,
                                              &data);
 
     if (virDomainDefPostParseCheckFailure(def, parseFlags, ret) < 0)
@@ -5927,7 +5947,8 @@ virDomainDefValidateAliases(const virDomainDef *def,
 
     if (virDomainDeviceInfoIterateInternal((virDomainDefPtr) def,
                                            virDomainDeviceDefValidateAliasesIterator,
-                                           true, &data) < 0)
+                                           DOMAIN_DEVICE_ITERATE_ALL_CONSOLES,
+                                           &data) < 0)
         goto cleanup;
 
     if (aliases) {
@@ -6337,7 +6358,9 @@ virDomainDefValidate(virDomainDefPtr def,
     /* iterate the devices */
     if (virDomainDeviceInfoIterateInternal(def,
                                            virDomainDefValidateDeviceIterator,
-                                           true, &data) < 0)
+                                           (DOMAIN_DEVICE_ITERATE_ALL_CONSOLES |
+                                            DOMAIN_DEVICE_ITERATE_GRAPHICS),
+                                           &data) < 0)
         return -1;
 
     if (virDomainDefValidateInternal(def) < 0)
@@ -14074,6 +14097,24 @@ virDomainGraphicsDefParseXMLSpice(virDomainGraphicsDefPtr def,
 }
 
 
+static int
+virDomainGraphicsDefParseXMLEGLHeadless(virDomainGraphicsDefPtr def,
+                                        xmlNodePtr node,
+                                        xmlXPathContextPtr ctxt)
+{
+    xmlNodePtr save = ctxt->node;
+    xmlNodePtr glNode;
+
+    ctxt->node = node;
+
+    if ((glNode = virXPathNode("./gl", ctxt)))
+        def->data.egl_headless.rendernode = virXMLPropString(glNode,
+                                                             "rendernode");
+    ctxt->node = save;
+    return 0;
+}
+
+
 /* Parse the XML definition for a graphics device */
 static virDomainGraphicsDefPtr
 virDomainGraphicsDefParseXML(xmlNodePtr node,
@@ -14123,6 +14164,9 @@ virDomainGraphicsDefParseXML(xmlNodePtr node,
             goto error;
         break;
     case VIR_DOMAIN_GRAPHICS_TYPE_EGL_HEADLESS:
+        if (virDomainGraphicsDefParseXMLEGLHeadless(def, node, ctxt) < 0)
+            goto error;
+        break;
     case VIR_DOMAIN_GRAPHICS_TYPE_LAST:
         break;
     }
@@ -15736,6 +15780,14 @@ virDomainMemorySourceDefParseXML(xmlNodePtr node,
                            _("path is required for model 'nvdimm'"));
             goto cleanup;
         }
+
+        if (virDomainParseMemory("./alignsize", "./alignsize/@unit", ctxt,
+                                 &def->alignsize, false, false) < 0)
+            goto cleanup;
+
+        if (virXPathBoolean("boolean(./pmem)", ctxt))
+            def->nvdimmPmem = true;
+
         break;
 
     case VIR_DOMAIN_MEMORY_MODEL_NONE:
@@ -15792,6 +15844,9 @@ virDomainMemoryTargetDefParseXML(xmlNodePtr node,
                            _("label size must be smaller than NVDIMM size"));
             goto cleanup;
         }
+
+        if (virXPathBoolean("boolean(./readonly)", ctxt))
+            def->readonly = true;
     }
 
     ret = 0;
@@ -22691,13 +22746,36 @@ virDomainMemoryDefCheckABIStability(virDomainMemoryDefPtr src,
         return false;
     }
 
-    if (src->model == VIR_DOMAIN_MEMORY_MODEL_NVDIMM &&
-        src->labelsize != dst->labelsize) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Target NVDIMM label size '%llu' doesn't match "
-                         "source NVDIMM label size '%llu'"),
-                       src->labelsize, dst->labelsize);
-        return false;
+    if (src->model == VIR_DOMAIN_MEMORY_MODEL_NVDIMM) {
+        if (src->labelsize != dst->labelsize) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("Target NVDIMM label size '%llu' doesn't match "
+                             "source NVDIMM label size '%llu'"),
+                           src->labelsize, dst->labelsize);
+            return false;
+        }
+
+        if (src->alignsize != dst->alignsize) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("Target NVDIMM alignment '%llu' doesn't match "
+                             "source NVDIMM alignment '%llu'"),
+                           src->alignsize, dst->alignsize);
+            return false;
+        }
+
+        if (src->nvdimmPmem != dst->nvdimmPmem) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Target NVDIMM pmem flag doesn't match "
+                             "source NVDIMM pmem flag"));
+            return false;
+        }
+
+        if (src->readonly != dst->readonly) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Target NVDIMM readonly flag doesn't match "
+                             "source NVDIMM readonly flag"));
+            return false;
+        }
     }
 
     return virDomainDeviceInfoCheckABIStability(&src->info, &dst->info);
@@ -24021,7 +24099,6 @@ virDomainDiskDefFormatIotune(virBufferPtr buf,
                              virDomainDiskDefPtr disk)
 {
     virBuffer childBuf = VIR_BUFFER_INITIALIZER;
-    int ret = -1;
 
     virBufferSetChildIndent(&childBuf, buf);
 
@@ -24056,10 +24133,7 @@ virDomainDiskDefFormatIotune(virBufferPtr buf,
     FORMAT_IOTUNE(read_iops_sec_max_length);
     FORMAT_IOTUNE(write_iops_sec_max_length);
 
-    ret = virXMLFormatElement(buf, "iotune", NULL, &childBuf);
-
-    virBufferFreeAndReset(&childBuf);
-    return ret;
+    return virXMLFormatElement(buf, "iotune", NULL, &childBuf);
 }
 
 #undef FORMAT_IOTUNE
@@ -24070,7 +24144,6 @@ virDomainDiskDefFormatDriver(virBufferPtr buf,
                              virDomainDiskDefPtr disk)
 {
     virBuffer driverBuf = VIR_BUFFER_INITIALIZER;
-    int ret = -1;
 
     virBufferEscapeString(&driverBuf, " name='%s'", virDomainDiskGetDriver(disk));
 
@@ -24122,10 +24195,7 @@ virDomainDiskDefFormatDriver(virBufferPtr buf,
 
     virDomainVirtioOptionsFormat(&driverBuf, disk->virtio);
 
-    ret = virXMLFormatElement(buf, "driver", &driverBuf, NULL);
-
-    virBufferFreeAndReset(&driverBuf);
-    return ret;
+    return virXMLFormatElement(buf, "driver", &driverBuf, NULL);
 }
 
 
@@ -26242,6 +26312,13 @@ virDomainMemorySourceDefFormat(virBufferPtr buf,
 
     case VIR_DOMAIN_MEMORY_MODEL_NVDIMM:
         virBufferEscapeString(buf, "<path>%s</path>\n", def->nvdimmPath);
+
+        if (def->alignsize)
+            virBufferAsprintf(buf, "<alignsize unit='KiB'>%llu</alignsize>\n",
+                              def->alignsize);
+
+        if (def->nvdimmPmem)
+            virBufferAddLit(buf, "<pmem/>\n");
         break;
 
     case VIR_DOMAIN_MEMORY_MODEL_NONE:
@@ -26277,6 +26354,8 @@ virDomainMemoryTargetDefFormat(virBufferPtr buf,
         virBufferAdjustIndent(buf, -2);
         virBufferAddLit(buf, "</label>\n");
     }
+    if (def->readonly)
+        virBufferAddLit(buf, "<readonly/>\n");
 
     virBufferAdjustIndent(buf, -2);
     virBufferAddLit(buf, "</target>\n");
@@ -26852,6 +26931,20 @@ virDomainGraphicsDefFormat(virBufferPtr buf,
         break;
 
     case VIR_DOMAIN_GRAPHICS_TYPE_EGL_HEADLESS:
+        if (!def->data.egl_headless.rendernode)
+            break;
+
+        if (!children) {
+            virBufferAddLit(buf, ">\n");
+            virBufferAdjustIndent(buf, 2);
+            children = true;
+        }
+
+        virBufferAddLit(buf, "<gl");
+        virBufferEscapeString(buf, " rendernode='%s'",
+                              def->data.egl_headless.rendernode);
+        virBufferAddLit(buf, "/>\n");
+        break;
     case VIR_DOMAIN_GRAPHICS_TYPE_LAST:
         break;
     }
@@ -28871,10 +28964,18 @@ virDomainDefCompatibleDevice(virDomainDefPtr def,
     if (dev->type == VIR_DOMAIN_DEVICE_MEMORY) {
         unsigned long long sz = dev->data.memory->size;
 
+        if (!virDomainDefHasMemoryHotplug(def)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("cannot use/hotplug a memory device when domain "
+                             "'maxMemory' is not defined"));
+            return -1;
+        }
+
         if ((virDomainDefGetMemoryTotal(def) + sz) > def->mem.max_memory) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("Attaching memory device with size '%llu' would "
-                             "exceed domain's maxMemory config"), sz);
+                             "exceed domain's maxMemory config size '%llu'"),
+                           sz, def->mem.max_memory);
             return -1;
         }
     }
@@ -29899,7 +30000,8 @@ virDomainDefFindDevice(virDomainDefPtr def,
 
     dev->type = VIR_DOMAIN_DEVICE_NONE;
     virDomainDeviceInfoIterateInternal(def, virDomainDefFindDeviceCallback,
-                                       true, &data);
+                                       DOMAIN_DEVICE_ITERATE_ALL_CONSOLES,
+                                       &data);
 
     if (dev->type == VIR_DOMAIN_DEVICE_NONE) {
         if (reportError) {
@@ -30932,4 +31034,58 @@ virDomainGraphicsDefHasOpenGL(const virDomainDef *def)
     }
 
     return false;
+}
+
+
+bool
+virDomainGraphicsSupportsRenderNode(const virDomainGraphicsDef *graphics)
+{
+    bool ret = false;
+
+    if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_SPICE ||
+        graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_EGL_HEADLESS)
+        ret = true;
+
+    return ret;
+}
+
+
+const char *
+virDomainGraphicsGetRenderNode(const virDomainGraphicsDef *graphics)
+{
+    const char *ret = NULL;
+
+    switch (graphics->type) {
+    case VIR_DOMAIN_GRAPHICS_TYPE_SPICE:
+        ret = graphics->data.spice.rendernode;
+        break;
+    case VIR_DOMAIN_GRAPHICS_TYPE_EGL_HEADLESS:
+        ret = graphics->data.egl_headless.rendernode;
+        break;
+    case VIR_DOMAIN_GRAPHICS_TYPE_SDL:
+    case VIR_DOMAIN_GRAPHICS_TYPE_VNC:
+    case VIR_DOMAIN_GRAPHICS_TYPE_RDP:
+    case VIR_DOMAIN_GRAPHICS_TYPE_DESKTOP:
+    case VIR_DOMAIN_GRAPHICS_TYPE_LAST:
+        break;
+    }
+
+    return ret;
+}
+
+
+bool
+virDomainGraphicsNeedsAutoRenderNode(const virDomainGraphicsDef *graphics)
+{
+    if (!virDomainGraphicsSupportsRenderNode(graphics))
+        return false;
+
+    if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_SPICE &&
+        graphics->data.spice.gl != VIR_TRISTATE_BOOL_YES)
+        return false;
+
+    if (virDomainGraphicsGetRenderNode(graphics))
+        return false;
+
+    return true;
 }

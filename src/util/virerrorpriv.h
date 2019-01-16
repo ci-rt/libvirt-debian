@@ -1,9 +1,4 @@
 /*
- * uml_driver.h: user mode Linux driver
- *
- * Copyright (C) 2006, 2007 Red Hat, Inc.
- * Copyright (C) 2006-2008 Daniel P. Berrange
- *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -17,16 +12,17 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
+#ifndef LIBVIRT_VIRERRORPRIV_H_ALLOW
+# error "virerrorpriv.h may only be included by virerror.c or its test suite"
+#endif /* LIBVIRT_VIRERRORPRIV_H_ALLOW */
 
-#ifndef UML_DRIVER_H
-# define UML_DRIVER_H
+#ifndef LIBVIRT_VIRERRORPRIV_H
+# define LIBVIRT_VIRERRORPRIV_H
 
-# include "internal.h"
+const char *
+virErrorMsg(virErrorNumber error,
+            const char *info);
 
-int umlRegister(void);
-
-#endif /* UML_DRIVER_H */
+#endif /* LIBVIRT_VIRERRORPRIV_H */

@@ -1,9 +1,9 @@
 #define _GNU_SOURCE
-#include<stdio.h>
-#include<stdlib.h>
-#include<time.h>
-#include<string.h>
-#include<libvirt/libvirt-admin.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <string.h>
+#include <libvirt/libvirt-admin.h>
 
 static const char *
 exampleTransportToString(int transport)
@@ -30,9 +30,13 @@ exampleGetTimeStr(time_t then)
 {
     char *ret = NULL;
     struct tm timeinfo;
+    struct tm *timeinfop;
 
-    if (!localtime_r(&then, &timeinfo))
+    /* localtime_r() is smarter, but since mingw lacks it and this
+     * example is single-threaded, we can get away with localtime */
+    if (!(timeinfop = localtime(&then)))
         return NULL;
+    timeinfo = *timeinfop;
 
     if (!(ret = calloc(64, sizeof(char))))
         return NULL;

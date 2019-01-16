@@ -18,11 +18,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *     Jim Fehlig <jfehlig@novell.com>
- *     Markus Groß <gross@univention.de>
- *     Daniel P. Berrange <berrange@redhat.com>
  */
 
 #include <config.h>
@@ -1527,6 +1522,9 @@ libxlDomainPMWakeup(virDomainPtr dom, unsigned int flags)
     libxlDomainDestroyInternal(driver, vm);
     vm->def->id = -1;
     virDomainObjSetState(vm, VIR_DOMAIN_SHUTOFF, VIR_DOMAIN_SHUTOFF_FAILED);
+    event = virDomainEventLifecycleNewFromObj(vm, VIR_DOMAIN_EVENT_STOPPED,
+                                              VIR_DOMAIN_EVENT_STOPPED_FAILED);
+    libxlDomainCleanup(driver, vm);
 
  endjob:
     libxlDomainObjEndJob(driver, vm);
@@ -3651,8 +3649,8 @@ libxlDomainDetachHostPCIDevice(libxlDriverPrivatePtr driver,
 
     if (libxl_device_pci_remove(cfg->ctx, vm->def->id, &pcidev, 0) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("libxenlight failed to detach pci device\
-                          %.4x:%.2x:%.2x.%.1x"),
+                       _("libxenlight failed to detach pci device "
+                         "%.4x:%.2x:%.2x.%.1x"),
                        pcisrc->addr.domain, pcisrc->addr.bus,
                        pcisrc->addr.slot, pcisrc->addr.function);
         goto error;
@@ -3775,8 +3773,8 @@ libxlDomainDetachHostUSBDevice(libxlDriverPrivatePtr driver,
 
     if (libxl_device_usbdev_remove(cfg->ctx, vm->def->id, &usbdev, 0) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("libxenlight failed to detach USB device\
-                          Busnum: %3x, Devnum: %3x"),
+                       _("libxenlight failed to detach USB device "
+                         "Busnum: %3x, Devnum: %3x"),
                        usbsrc->bus, usbsrc->device);
         goto cleanup;
     }

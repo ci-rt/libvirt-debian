@@ -16,17 +16,13 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *    Daniel P. Berrange <berrange@redhat.com>
  */
 
 #include <config.h>
 
-#define __VIR_FIREWALL_PRIV_H_ALLOW__
-
 #include <stdarg.h>
 
+#define LIBVIRT_VIRFIREWALLPRIV_H_ALLOW
 #include "virfirewallpriv.h"
 #include "virerror.h"
 #include "virutil.h"
@@ -698,7 +694,7 @@ virFirewallApplyRuleDirect(virFirewallRulePtr rule,
         if (ignoreErrors) {
             VIR_DEBUG("Ignoring error running command");
         } else {
-            VIR_AUTOFREE(char *) args = virCommandToString(cmd);
+            VIR_AUTOFREE(char *) args = virCommandToString(cmd, false);
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Failed to apply firewall rules %s: %s"),
                            NULLSTR(args), NULLSTR(error));

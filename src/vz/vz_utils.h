@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef PARALLELS_UTILS_H
-# define PARALLELS_UTILS_H
+#ifndef LIBVIRT_VZ_UTILS_H
+# define LIBVIRT_VZ_UTILS_H
 
 # include <Parallels.h>
 
@@ -151,11 +151,11 @@ int vzCheckUnsupportedGraphics(virDomainGraphicsDefPtr gr);
     OP(wr_req, VIR_DOMAIN_BLOCK_STATS_WRITE_REQ, "write_requests") \
     OP(wr_bytes, VIR_DOMAIN_BLOCK_STATS_WRITE_BYTES, "write_total")
 
-#endif
-
 int
 vzDomainObjBeginJob(virDomainObjPtr dom);
 void
 vzDomainObjEndJob(virDomainObjPtr dom);
 int
 vzDomainJobUpdateTime(vzDomainJobObjPtr job);
+
+#endif /* LIBVIRT_VZ_UTILS_H */

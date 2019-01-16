@@ -16,10 +16,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *     Jim Fehlig <jfehlig@suse.com>
- *     Chunyan Liu <cyliu@suse.com>
  */
 
 #include <config.h>
@@ -1029,7 +1025,7 @@ libxlDoMigrateSrcP2P(libxlDriverPrivatePtr driver,
         goto confirm;
 
     /* We don't require the destination to have P2P support
-     * as it looks to be normal migration from the receiver perpective.
+     * as it looks to be normal migration from the receiver perspective.
      */
     destflags = flags & ~(VIR_MIGRATE_PEER2PEER);
 

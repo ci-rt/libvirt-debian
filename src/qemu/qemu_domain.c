@@ -17,8 +17,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
 #include <config.h>
@@ -609,7 +607,10 @@ qemuDomainMigrationJobInfoToParams(qemuDomainJobInfoPtr jobInfo,
                                 stats->ram_dirty_rate) < 0 ||
         virTypedParamsAddULLong(&par, &npar, &maxpar,
                                 VIR_DOMAIN_JOB_MEMORY_ITERATION,
-                                stats->ram_iteration) < 0)
+                                stats->ram_iteration) < 0 ||
+        virTypedParamsAddULLong(&par, &npar, &maxpar,
+                                VIR_DOMAIN_JOB_MEMORY_POSTCOPY_REQS,
+                                stats->ram_postcopy_reqs) < 0)
         goto error;
 
     if (stats->ram_page_size > 0 &&
@@ -1751,7 +1752,7 @@ qemuDomainSecretDestroy(virDomainObjPtr vm)
  * @vm: Domain object
  *
  * For any objects that may require an auth/secret setup, create a
- * qemuDomainSecretInfo and save it in the approriate place within
+ * qemuDomainSecretInfo and save it in the appropriate place within
  * the private structures. This will be used by command line build
  * code in order to pass the secret along to qemu in order to provide
  * the necessary authentication data.
@@ -1943,6 +1944,8 @@ qemuDomainObjPrivateDataClear(qemuDomainObjPrivatePtr priv)
 
     VIR_FREE(priv->libDir);
     VIR_FREE(priv->channelTargetDir);
+
+    priv->memPrealloc = false;
 
     /* remove automatic pinning data */
     virBitmapFree(priv->autoNodeset);
@@ -2234,14 +2237,11 @@ qemuDomainObjPrivateXMLFormatBlockjobs(virBufferPtr buf,
 {
     virBuffer attrBuf = VIR_BUFFER_INITIALIZER;
     bool bj = qemuDomainHasBlockjob(vm, false);
-    int ret;
 
     virBufferAsprintf(&attrBuf, " active='%s'",
                       virTristateBoolTypeToString(virTristateBoolFromBool(bj)));
 
-    ret = virXMLFormatElement(buf, "blockjobs", &attrBuf, NULL);
-    virBufferFreeAndReset(&attrBuf);
-    return ret;
+    return virXMLFormatElement(buf, "blockjobs", &attrBuf, NULL);
 }
 
 
@@ -2492,6 +2492,9 @@ qemuDomainObjPrivateXMLFormat(virBufferPtr buf,
     if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_BLOCKDEV))
         virBufferAsprintf(buf, "<nodename index='%llu'/>\n", priv->nodenameindex);
 
+    if (priv->memPrealloc)
+        virBufferAddLit(buf, "<memPrealloc/>\n");
+
     if (qemuDomainObjPrivateXMLFormatBlockjobs(buf, vm) < 0)
         return -1;
 
@@ -2673,7 +2676,7 @@ qemuDomainObjPrivateXMLParseJobNBDSource(xmlNodePtr node,
 
     if (!(format = virXMLPropString(ctxt->node, "format"))) {
         virReportError(VIR_ERR_XML_ERROR, "%s",
-                       ("missing storage source format"));
+                       _("missing storage source format"));
         goto cleanup;
     }
 
@@ -2996,6 +2999,8 @@ qemuDomainObjPrivateXMLParse(xmlXPathContextPtr ctxt,
         goto error;
     }
 
+    priv->memPrealloc = virXPathBoolean("boolean(./memPrealloc)", ctxt) == 1;
+
     return 0;
 
  error:
@@ -3260,6 +3265,13 @@ qemuDomainDefAddDefaultDevices(virDomainDefPtr def,
             addPCIRoot = true;
         break;
 
+    case VIR_ARCH_ARMV6L:
+        addDefaultUSB = false;
+        addDefaultMemballoon = false;
+        if (STREQ(def->os.machine, "versatilepb"))
+            addPCIRoot = true;
+        break;
+
     case VIR_ARCH_ARMV7L:
     case VIR_ARCH_AARCH64:
         addDefaultUSB = false;
@@ -3305,7 +3317,6 @@ qemuDomainDefAddDefaultDevices(virDomainDefPtr def,
         addPCIRoot = true;
         break;
 
-    case VIR_ARCH_ARMV6L:
     case VIR_ARCH_ARMV7B:
     case VIR_ARCH_CRIS:
     case VIR_ARCH_ITANIUM:
@@ -3974,7 +3985,7 @@ qemuDomainDefValidateMemory(const virDomainDef *def,
     if (mem->source == VIR_DOMAIN_MEMORY_SOURCE_MEMFD &&
         !virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_MEMFD_HUGETLB)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("hugepages is not support with memfd memory source"));
+                       _("hugepages is not supported with memfd memory source"));
         return -1;
     }
 
@@ -4841,7 +4852,7 @@ qemuDomainValidateStorageSource(virStorageSourcePtr src,
         src->encryption->format == VIR_STORAGE_ENCRYPTION_FORMAT_LUKS &&
         !virQEMUCapsGet(qemuCaps, QEMU_CAPS_QCOW2_LUKS)) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("LUKS encrypted QCOW2 images are not suppored by this QEMU"));
+                       _("LUKS encrypted QCOW2 images are not supported by this QEMU"));
         return -1;
     }
 
@@ -5780,9 +5791,7 @@ qemuDomainDeviceDefValidateGraphics(const virDomainGraphicsDef *graphics,
     size_t i;
 
     for (i = 0; i < def->ngraphics; i++) {
-        graphics = def->graphics[i];
-
-        if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_EGL_HEADLESS) {
+        if (def->graphics[i]->type == VIR_DOMAIN_GRAPHICS_TYPE_EGL_HEADLESS) {
             have_egl_headless = true;
             break;
         }
@@ -6024,7 +6033,8 @@ qemuDomainDefaultNetModel(const virDomainDef *def,
     if (ARCH_IS_S390(def->os.arch))
         return "virtio";
 
-    if (def->os.arch == VIR_ARCH_ARMV7L ||
+    if (def->os.arch == VIR_ARCH_ARMV6L ||
+        def->os.arch == VIR_ARCH_ARMV7L ||
         def->os.arch == VIR_ARCH_AARCH64) {
         if (STREQ(def->os.machine, "versatilepb"))
             return "smc91c111";
@@ -9807,7 +9817,8 @@ bool
 qemuDomainMachineIsARMVirt(const char *machine,
                            const virArch arch)
 {
-    if (arch != VIR_ARCH_ARMV7L &&
+    if (arch != VIR_ARCH_ARMV6L &&
+        arch != VIR_ARCH_ARMV7L &&
         arch != VIR_ARCH_AARCH64)
         return false;
 
@@ -10613,7 +10624,8 @@ qemuDomainSupportsNicdev(virDomainDefPtr def,
                          virDomainNetDefPtr net)
 {
     /* non-virtio ARM nics require legacy -net nic */
-    if (((def->os.arch == VIR_ARCH_ARMV7L) ||
+    if (((def->os.arch == VIR_ARCH_ARMV6L) ||
+        (def->os.arch == VIR_ARCH_ARMV7L) ||
         (def->os.arch == VIR_ARCH_AARCH64)) &&
         net->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_MMIO &&
         net->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI)
@@ -11866,11 +11878,9 @@ qemuDomainSetupGraphics(virQEMUDriverConfigPtr cfg ATTRIBUTE_UNUSED,
                         virDomainGraphicsDefPtr gfx,
                         const struct qemuDomainCreateDeviceData *data)
 {
-    const char *rendernode = gfx->data.spice.rendernode;
+    const char *rendernode = virDomainGraphicsGetRenderNode(gfx);
 
-    if (gfx->type != VIR_DOMAIN_GRAPHICS_TYPE_SPICE ||
-        gfx->data.spice.gl != VIR_TRISTATE_BOOL_YES ||
-        !rendernode)
+    if (!rendernode)
         return 0;
 
     return qemuDomainCreateDevice(rendernode, data, false);
@@ -13458,10 +13468,10 @@ qemuDomainPrepareStorageSourceBlockdev(virDomainDiskDefPtr disk,
                                              src->nodeformat) < 0)
         return -1;
 
-    if (qemuDomainPrepareStorageSourcePR(disk->src, priv, src->nodestorage) < 0)
+    if (qemuDomainPrepareStorageSourcePR(src, priv, src->nodestorage) < 0)
         return -1;
 
-    if (qemuDomainPrepareStorageSourceTLS(disk->src, cfg, src->nodestorage,
+    if (qemuDomainPrepareStorageSourceTLS(src, cfg, src->nodestorage,
                                           priv->qemuCaps) < 0)
         return -1;
 
@@ -13595,6 +13605,9 @@ qemuProcessEventFree(struct qemuProcessEvent *event)
     case QEMU_PROCESS_EVENT_GUESTPANIC:
         qemuMonitorEventPanicInfoFree(event->data);
         break;
+    case QEMU_PROCESS_EVENT_RDMA_GID_STATUS_CHANGED:
+        qemuMonitorEventRdmaGidStatusFree(event->data);
+        break;
     case QEMU_PROCESS_EVENT_WATCHDOG:
     case QEMU_PROCESS_EVENT_DEVICE_DELETED:
     case QEMU_PROCESS_EVENT_NIC_RX_FILTER_CHANGED:
@@ -13693,4 +13706,13 @@ bool
 qemuDomainIsUsingNoShutdown(qemuDomainObjPrivatePtr priv)
 {
     return priv->monJSON && priv->allowReboot == VIR_TRISTATE_BOOL_YES;
+}
+
+
+bool
+qemuDomainDiskIsMissingLocalOptional(virDomainDiskDefPtr disk)
+{
+    return disk->startupPolicy == VIR_DOMAIN_STARTUP_POLICY_OPTIONAL &&
+           virStorageSourceIsLocalStorage(disk->src) && disk->src->path &&
+           !virFileExists(disk->src->path);
 }

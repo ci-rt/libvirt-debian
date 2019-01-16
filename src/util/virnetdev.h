@@ -14,14 +14,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *     Mark McLoughlin <markmc@redhat.com>
- *     Daniel P. Berrange <berrange@redhat.com>
  */
 
-#ifndef __VIR_NETDEV_H__
-# define __VIR_NETDEV_H__
+#ifndef LIBVIRT_VIRNETDEV_H
+# define LIBVIRT_VIRNETDEV_H
 
 # include <net/if.h>
 
@@ -317,4 +313,4 @@ int virNetDevRunEthernetScript(const char *ifname, const char *script)
 
 VIR_DEFINE_AUTOPTR_FUNC(virNetDevRxFilter, virNetDevRxFilterFree)
 
-#endif /* __VIR_NETDEV_H__ */
+#endif /* LIBVIRT_VIRNETDEV_H */

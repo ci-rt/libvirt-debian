@@ -17,12 +17,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
-#ifndef __VIR_NET_SERVER_CLIENT_H__
-# define __VIR_NET_SERVER_CLIENT_H__
+#ifndef LIBVIRT_VIRNETSERVERCLIENT_H
+# define LIBVIRT_VIRNETSERVERCLIENT_H
 
 # include "viridentity.h"
 # include "virnetsocket.h"
@@ -172,4 +170,4 @@ int virNetServerClientGetInfo(virNetServerClientPtr client,
 
 void virNetServerClientSetQuietEOF(virNetServerClientPtr client);
 
-#endif /* __VIR_NET_SERVER_CLIENT_H__ */
+#endif /* LIBVIRT_VIRNETSERVERCLIENT_H */

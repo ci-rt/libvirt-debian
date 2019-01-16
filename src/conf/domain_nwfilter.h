@@ -17,11 +17,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Stefan Berger <stefanb@us.ibm.com>
  */
-#ifndef DOMAIN_NWFILTER_H
-# define DOMAIN_NWFILTER_H
+
+#ifndef LIBVIRT_DOMAIN_NWFILTER_H
+# define LIBVIRT_DOMAIN_NWFILTER_H
 
 int virDomainConfNWFilterInstantiate(const char *vmname,
                                      const unsigned char *vmuuid,
@@ -30,4 +29,4 @@ int virDomainConfNWFilterInstantiate(const char *vmname,
 void virDomainConfNWFilterTeardown(virDomainNetDefPtr net);
 void virDomainConfVMNWFilterTeardown(virDomainObjPtr vm);
 
-#endif /* DOMAIN_NWFILTER_H */
+#endif /* LIBVIRT_DOMAIN_NWFILTER_H */

@@ -14,8 +14,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Jan Tomko <jtomko@redhat.com>
  */
 
 #include <config.h>
@@ -29,8 +27,7 @@ main(void)
     return EXIT_AM_SKIP;
 }
 #else
-# define __VIR_COMMAND_PRIV_H_ALLOW__
-
+# define LIBVIRT_VIRCOMMANDPRIV_H_ALLOW
 # include "vircommandpriv.h"
 # include "viriscsi.h"
 

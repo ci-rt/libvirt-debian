@@ -14,14 +14,12 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Michal Privoznik <mprivozn@redhat.com>
  */
 
 #include <config.h>
 
 #include "testutils.h"
-#define __VIR_COMMAND_PRIV_H_ALLOW__
+#define LIBVIRT_VIRCOMMANDPRIV_H_ALLOW
 #include "vircommandpriv.h"
 #include "virnetdevbandwidth.h"
 #include "netdev_bandwidth_conf.c"

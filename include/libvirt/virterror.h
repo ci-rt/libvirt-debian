@@ -19,12 +19,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel Veillard <veillard@redhat.com>
  */
 
-#ifndef __VIR_VIRERR_H__
-# define __VIR_VIRERR_H__
+#ifndef LIBVIRT_VIRTERROR_H
+# define LIBVIRT_VIRTERROR_H
 
 # include <libvirt/libvirt.h>
 
@@ -76,7 +74,7 @@ typedef enum {
     VIR_FROM_NETWORK = 19,      /* Error from network config */
 
     VIR_FROM_DOMAIN = 20,       /* Error from domain config */
-    VIR_FROM_UML = 21,          /* Error at the UML driver */
+    VIR_FROM_UML = 21,          /* Error at the UML driver; unused since 5.0.0 */
     VIR_FROM_NODEDEV = 22,      /* Error from node device monitor */
     VIR_FROM_XEN_INOTIFY = 23,  /* Error from xen inotify layer */
     VIR_FROM_SECURITY = 24,     /* Error from security framework */
@@ -323,6 +321,11 @@ typedef enum {
     VIR_ERR_DEVICE_MISSING = 99,        /* fail to find the desired device */
     VIR_ERR_INVALID_NWFILTER_BINDING = 100,  /* invalid nwfilter binding */
     VIR_ERR_NO_NWFILTER_BINDING = 101,  /* no nwfilter binding */
+
+# ifdef VIR_ENUM_SENTINELS
+    VIR_ERR_NUMBER_LAST
+# endif
+
 } virErrorNumber;
 
 /**
@@ -366,4 +369,4 @@ int                     virConnCopyLastError    (virConnectPtr conn,
 }
 # endif
 
-#endif /* __VIR_VIRERR_H__ */
+#endif /* LIBVIRT_VIRTERROR_H */

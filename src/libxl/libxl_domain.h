@@ -16,13 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *     Jim Fehlig <jfehlig@suse.com>
  */
 
-#ifndef LIBXL_DOMAIN_H
-# define LIBXL_DOMAIN_H
+#ifndef LIBVIRT_LIBXL_DOMAIN_H
+# define LIBVIRT_LIBXL_DOMAIN_H
 
 # include <libxl.h>
 
@@ -65,6 +62,9 @@ struct _libxlDomainObjPrivate {
     /* console */
     virChrdevsPtr devs;
     libxl_evgen_domain_death *deathW;
+    /* Flag to indicate the upcoming LIBXL_EVENT_TYPE_DOMAIN_DEATH is caused
+     * by libvirt and should not be handled separately */
+    bool ignoreDeathEvent;
     virThreadPtr migrationDstReceiveThr;
     unsigned short migrationPort;
     char *lockState;
@@ -156,4 +156,4 @@ libxlDomainDefCheckABIStability(libxlDriverPrivatePtr driver,
                                 virDomainDefPtr src,
                                 virDomainDefPtr dst);
 
-#endif /* LIBXL_DOMAIN_H */
+#endif /* LIBVIRT_LIBXL_DOMAIN_H */

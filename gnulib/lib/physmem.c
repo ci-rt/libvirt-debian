@@ -1,6 +1,6 @@
 /* Calculate the size of physical memory.
 
-   Copyright (C) 2000-2001, 2003, 2005-2006, 2009-2018 Free Software
+   Copyright (C) 2000-2001, 2003, 2005-2006, 2009-2019 Free Software
    Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
@@ -59,8 +59,14 @@
 #endif
 
 #ifdef _WIN32
+
 # define WIN32_LEAN_AND_MEAN
 # include <windows.h>
+
+/* Avoid warnings from gcc -Wcast-function-type.  */
+# define GetProcAddress \
+   (void *) GetProcAddress
+
 /*  MEMORYSTATUSEX is missing from older windows headers, so define
     a local replacement.  */
 typedef struct
@@ -76,6 +82,7 @@ typedef struct
   DWORDLONG ullAvailExtendedVirtual;
 } lMEMORYSTATUSEX;
 typedef WINBOOL (WINAPI *PFN_MS_EX) (lMEMORYSTATUSEX*);
+
 #endif
 
 #define ARRAY_SIZE(a) (sizeof (a) / sizeof ((a)[0]))

@@ -19,12 +19,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Stefan Berger <stefanb@us.ibm.com>
  */
 
-#ifndef __NWFILTER_LEARNIPADDR_H
-# define __NWFILTER_LEARNIPADDR_H
+#ifndef LIBVIRT_NWFILTER_LEARNIPADDR_H
+# define LIBVIRT_NWFILTER_LEARNIPADDR_H
 
 # include "conf/nwfilter_params.h"
 # include "nwfilter_tech_driver.h"
@@ -52,4 +50,4 @@ int virNWFilterLearnInit(void);
 void virNWFilterLearnShutdown(void);
 void virNWFilterLearnThreadsTerminate(bool allowNewThreads);
 
-#endif /* __NWFILTER_LEARNIPADDR_H */
+#endif /* LIBVIRT_NWFILTER_LEARNIPADDR_H */

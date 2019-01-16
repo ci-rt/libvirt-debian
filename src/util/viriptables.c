@@ -16,9 +16,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *     Mark McLoughlin <markmc@redhat.com>
  */
 
 #include <config.h>
@@ -495,6 +492,21 @@ iptablesRemoveForwardAllowIn(virFirewallPtr fw,
     return iptablesForwardAllowIn(fw, netaddr, prefix, iface, physdev, REMOVE);
 }
 
+static void
+iptablesForwardAllowCross(virFirewallPtr fw,
+                          virFirewallLayer layer,
+                          const char *iface,
+                          int action)
+{
+    virFirewallAddRule(fw, layer,
+                       "--table", "filter",
+                       action == ADD ? "--insert" : "--delete", "FORWARD",
+                       "--in-interface", iface,
+                       "--out-interface", iface,
+                       "--jump", "ACCEPT",
+                       NULL);
+}
+
 /**
  * iptablesAddForwardAllowCross:
  * @ctx: pointer to the IP table context
@@ -511,13 +523,7 @@ iptablesAddForwardAllowCross(virFirewallPtr fw,
                              virFirewallLayer layer,
                              const char *iface)
 {
-    virFirewallAddRule(fw, layer,
-                       "--table", "filter",
-                       "--insert", "FORWARD",
-                       "--in-interface", iface,
-                       "--out-interface", iface,
-                       "--jump", "ACCEPT",
-                       NULL);
+    iptablesForwardAllowCross(fw, layer, iface, ADD);
 }
 
 /**
@@ -536,12 +542,20 @@ iptablesRemoveForwardAllowCross(virFirewallPtr fw,
                                 virFirewallLayer layer,
                                 const char *iface)
 {
+    iptablesForwardAllowCross(fw, layer, iface, REMOVE);
+}
+
+static void
+iptablesForwardRejectOut(virFirewallPtr fw,
+                         virFirewallLayer layer,
+                         const char *iface,
+                         int action)
+{
     virFirewallAddRule(fw, layer,
                        "--table", "filter",
-                       "--delete", "FORWARD",
+                       action == ADD ? "--insert" : "delete", "FORWARD",
                        "--in-interface", iface,
-                       "--out-interface", iface,
-                       "--jump", "ACCEPT",
+                       "--jump", "REJECT",
                        NULL);
 }
 
@@ -560,12 +574,7 @@ iptablesAddForwardRejectOut(virFirewallPtr fw,
                             virFirewallLayer layer,
                             const char *iface)
 {
-    virFirewallAddRule(fw, layer,
-                       "--table", "filter",
-                       "--insert", "FORWARD",
-                       "--in-interface", iface,
-                       "--jump", "REJECT",
-                       NULL);
+    iptablesForwardRejectOut(fw, layer, iface, ADD);
 }
 
 /**
@@ -583,14 +592,23 @@ iptablesRemoveForwardRejectOut(virFirewallPtr fw,
                                virFirewallLayer layer,
                                const char *iface)
 {
+    iptablesForwardRejectOut(fw, layer, iface, REMOVE);
+}
+
+
+static void
+iptablesForwardRejectIn(virFirewallPtr fw,
+                        virFirewallLayer layer,
+                        const char *iface,
+                        int action)
+{
     virFirewallAddRule(fw, layer,
                        "--table", "filter",
-                       "--delete", "FORWARD",
-                       "--in-interface", iface,
+                       action == ADD ? "--insert" : "--delete", "FORWARD",
+                       "--out-interface", iface,
                        "--jump", "REJECT",
                        NULL);
 }
-
 
 /**
  * iptablesAddForwardRejectIn:
@@ -607,12 +625,7 @@ iptablesAddForwardRejectIn(virFirewallPtr fw,
                            virFirewallLayer layer,
                            const char *iface)
 {
-    virFirewallAddRule(fw, layer,
-                       "--table", "filter",
-                       "--insert", "FORWARD",
-                       "--out-interface", iface,
-                       "--jump", "REJECT",
-                       NULL);
+    iptablesForwardRejectIn(fw, layer, iface, ADD);
 }
 
 /**
@@ -630,12 +643,7 @@ iptablesRemoveForwardRejectIn(virFirewallPtr fw,
                               virFirewallLayer layer,
                               const char *iface)
 {
-    virFirewallAddRule(fw, layer,
-                       "--table", "filter",
-                       "--delete", "FORWARD",
-                       "--out-interface", iface,
-                       "--jump", "REJECT",
-                       NULL);
+    iptablesForwardRejectIn(fw, layer, iface, REMOVE);
 }
 
 

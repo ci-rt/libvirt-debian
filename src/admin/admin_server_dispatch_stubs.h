@@ -283,7 +283,8 @@ static int adminDispatchConnectListServers(
 
         ret->servers.servers_len = nresults;
         for (i = 0; i < nresults; i++)
-            make_nonnull_server(ret->servers.servers_val + i, result[i]);
+            if (make_nonnull_server(ret->servers.servers_val + i, result[i]) < 0)
+                goto cleanup;
     } else {
         ret->servers.servers_len = 0;
         ret->servers.servers_val = NULL;
@@ -349,7 +350,9 @@ static int adminDispatchConnectLookupServer(
     if ((srv = adminConnectLookupServer(priv->dmn, args->name, args->flags)) == NULL)
         goto cleanup;
 
-    make_nonnull_server(&ret->srv, srv);
+    if (make_nonnull_server(&ret->srv, srv) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -615,8 +618,10 @@ static int adminDispatchServerListClients(
 
         ret->clients.clients_len = nresults;
         for (i = 0; i < nresults; i++) {
-            make_nonnull_client(ret->clients.clients_val + i, result[i]);
-            make_nonnull_server(&ret->clients.clients_val[i].srv, srv);
+            if (make_nonnull_client(ret->clients.clients_val + i, result[i]) < 0)
+                goto cleanup;
+            if (make_nonnull_server(&ret->clients.clients_val[i].srv, srv) < 0)
+                goto cleanup;
         }
     } else {
         ret->clients.clients_len = 0;
@@ -688,8 +693,12 @@ static int adminDispatchServerLookupClient(
     if ((clnt = adminServerLookupClient(srv, args->id, args->flags)) == NULL)
         goto cleanup;
 
-    make_nonnull_client(&ret->clnt, clnt);
-    make_nonnull_server(&ret->clnt.srv, srv);
+    if (make_nonnull_client(&ret->clnt, clnt) < 0)
+        goto cleanup;
+
+    if (make_nonnull_server(&ret->clnt.srv, srv) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:

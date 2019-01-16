@@ -1,5 +1,5 @@
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# Copyright (C) 2002-2018 Free Software Foundation, Inc.
+# Copyright (C) 2002-2019 Free Software Foundation, Inc.
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -137,6 +137,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module float:
   # Code from module float-tests:
   # Code from module fnmatch:
+  # Code from module fnmatch-h:
+  # Code from module fnmatch-h-tests:
   # Code from module fnmatch-tests:
   # Code from module fpieee:
   AC_REQUIRE([gl_FP_IEEE])
@@ -202,7 +204,6 @@ AC_DEFUN([gl_EARLY],
   # Code from module grantpt-tests:
   # Code from module hard-locale:
   # Code from module havelib:
-  # Code from module host-cpu-c-abi:
   # Code from module hostent:
   # Code from module ignore-value:
   # Code from module ignore-value-tests:
@@ -234,6 +235,7 @@ AC_DEFUN([gl_EARLY],
   AC_REQUIRE([AC_SYS_LARGEFILE])
   # Code from module ldexp:
   # Code from module ldexp-tests:
+  # Code from module libc-config:
   # Code from module limits-h:
   # Code from module limits-h-tests:
   # Code from module listen:
@@ -269,6 +271,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module memchr:
   # Code from module memchr-tests:
   # Code from module mgetgroups:
+  # Code from module mkdir:
+  # Code from module mkdir-tests:
   # Code from module mkdtemp:
   # Code from module mkostemp:
   # Code from module mkostemps:
@@ -370,6 +374,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module setlocale-tests:
   # Code from module setsockopt:
   # Code from module setsockopt-tests:
+  # Code from module sh-filename:
   # Code from module sigaction:
   # Code from module sigaction-tests:
   # Code from module signal-h:
@@ -406,9 +411,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module stdalign-tests:
   # Code from module stdarg:
   dnl Some compilers (e.g., AIX 5.3 cc) need to be in c99 mode
-  dnl for the builtin va_copy to work.  With Autoconf 2.60 or later,
-  dnl gl_PROG_CC_C99 arranges for this.  With older Autoconf gl_PROG_CC_C99
-  dnl shouldn't hurt, though installers are on their own to set c99 mode.
+  dnl for the builtin va_copy to work.  gl_PROG_CC_C99 arranges for this.
   gl_PROG_CC_C99
   # Code from module stdbool:
   # Code from module stdbool-tests:
@@ -655,10 +658,12 @@ AC_SUBST([LTALLOCA])
     AC_LIBOBJ([itold])
   fi
   gl_FUNC_FNMATCH_POSIX
-  if test -n "$FNMATCH_H"; then
+  if test $HAVE_FNMATCH = 0 || test $REPLACE_FNMATCH = 1; then
     AC_LIBOBJ([fnmatch])
     gl_PREREQ_FNMATCH
   fi
+  gl_FNMATCH_MODULE_INDICATOR([fnmatch])
+  gl_FNMATCH_H
   gl_FUNC_FPURGE
   if test $HAVE_FPURGE = 0 || test $REPLACE_FPURGE = 1; then
     AC_LIBOBJ([fpurge])
@@ -756,10 +761,11 @@ AC_SUBST([LTALLOCA])
   fi
   AC_SUBST([GNULIB_GL_UNISTD_H_GETOPT])
   gl_FUNC_GETPASS
-  if test $HAVE_GETPASS = 0; then
+  if test $HAVE_GETPASS = 0 || test $REPLACE_GETPASS = 1; then
     AC_LIBOBJ([getpass])
     gl_PREREQ_GETPASS
   fi
+  gl_UNISTD_MODULE_INDICATOR([getpass])
   AC_REQUIRE([gl_HEADER_SYS_SOCKET])
   if test "$ac_cv_header_winsock2_h" = yes; then
     AC_LIBOBJ([getpeername])
@@ -789,7 +795,6 @@ AC_SUBST([LTALLOCA])
           m4_defn([m4_PACKAGE_VERSION])), [1], [],
         [AC_CONFIG_LINKS([$GNUmakefile:$GNUmakefile], [],
           [GNUmakefile=$GNUmakefile])])
-  AC_REQUIRE([gl_HOST_CPU_C_ABI])
   gl_HOSTENT
   gl_FUNC_INET_NTOP
   if test $HAVE_INET_NTOP = 0 || test $REPLACE_INET_NTOP = 1; then
@@ -817,6 +822,7 @@ AC_SUBST([LTALLOCA])
   gl_LANGINFO_H
   AC_REQUIRE([gl_LARGEFILE])
   gl_FUNC_LDEXP
+  gl___INLINE
   gl_LIMITS_H
   AC_REQUIRE([gl_HEADER_SYS_SOCKET])
   if test "$ac_cv_header_winsock2_h" = yes; then
@@ -852,6 +858,7 @@ AC_SUBST([LTALLOCA])
   AC_CONFIG_COMMANDS_PRE([m4_ifdef([AH_HEADER],
     [AC_SUBST([CONFIG_INCLUDE], m4_defn([AH_HEADER]))])])
   AC_REQUIRE([AC_PROG_SED])
+  AC_REQUIRE([AC_PROG_GREP])
   gl_FUNC_MALLOC_POSIX
   if test $REPLACE_MALLOC = 1; then
     AC_LIBOBJ([malloc])
@@ -890,6 +897,10 @@ AC_SUBST([LTALLOCA])
   fi
   gl_STRING_MODULE_INDICATOR([memchr])
   gl_MGETGROUPS
+  gl_FUNC_MKDIR
+  if test $REPLACE_MKDIR = 1; then
+    AC_LIBOBJ([mkdir])
+  fi
   gl_FUNC_MKDTEMP
   if test $HAVE_MKDTEMP = 0; then
     AC_LIBOBJ([mkdtemp])
@@ -1430,6 +1441,7 @@ changequote([, ])dnl
   AC_REQUIRE([gl_LONG_DOUBLE_VS_DOUBLE])
   AC_CHECK_FUNCS_ONCE([newlocale])
   gl_LOCALENAME
+  gl_LOCALE_MODULE_INDICATOR([localename])
   AC_CHECK_FUNCS_ONCE([newlocale])
   gl_MATH_H
   gt_LOCALE_FR
@@ -1467,17 +1479,17 @@ changequote([, ])dnl
   AC_CHECK_FUNCS_ONCE([socketpair])
   AC_CHECK_HEADERS_ONCE([unistd.h sys/wait.h])
   gl_FUNC_POSIX_SPAWN_FILE_ACTIONS_ADDCLOSE
-  if test $HAVE_POSIX_SPAWN = 0 || test $REPLACE_POSIX_SPAWN_FILE_ACTIONS_ADDCLOSE = 1; then
+  if test $HAVE_POSIX_SPAWN = 0 || test $REPLACE_POSIX_SPAWN = 1 || test $REPLACE_POSIX_SPAWN_FILE_ACTIONS_ADDCLOSE = 1; then
     AC_LIBOBJ([spawn_faction_addclose])
   fi
   gl_SPAWN_MODULE_INDICATOR([posix_spawn_file_actions_addclose])
   gl_FUNC_POSIX_SPAWN_FILE_ACTIONS_ADDDUP2
-  if test $HAVE_POSIX_SPAWN = 0 || test $REPLACE_POSIX_SPAWN_FILE_ACTIONS_ADDDUP2 = 1; then
+  if test $HAVE_POSIX_SPAWN = 0 || test $REPLACE_POSIX_SPAWN = 1 || test $REPLACE_POSIX_SPAWN_FILE_ACTIONS_ADDDUP2 = 1; then
     AC_LIBOBJ([spawn_faction_adddup2])
   fi
   gl_SPAWN_MODULE_INDICATOR([posix_spawn_file_actions_adddup2])
   gl_FUNC_POSIX_SPAWN_FILE_ACTIONS_ADDOPEN
-  if test $HAVE_POSIX_SPAWN = 0 || test $REPLACE_POSIX_SPAWN_FILE_ACTIONS_ADDOPEN = 1; then
+  if test $HAVE_POSIX_SPAWN = 0 || test $REPLACE_POSIX_SPAWN = 1 || test $REPLACE_POSIX_SPAWN_FILE_ACTIONS_ADDOPEN = 1; then
     AC_LIBOBJ([spawn_faction_addopen])
   fi
   gl_SPAWN_MODULE_INDICATOR([posix_spawn_file_actions_addopen])
@@ -1567,6 +1579,7 @@ changequote([, ])dnl
   gt_LOCALE_FR_UTF8
   gt_LOCALE_JA
   gt_LOCALE_ZH_CN
+  gl_SH_FILENAME
   gl_SIGNBIT
   if test $REPLACE_SIGNBIT = 1; then
     AC_LIBOBJ([signbitf])
@@ -1756,6 +1769,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/canonicalize-lgpl.c
   lib/careadlinkat.c
   lib/careadlinkat.h
+  lib/cdefs.h
   lib/chown.c
   lib/cloexec.c
   lib/cloexec.h
@@ -1838,6 +1852,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/isatty.c
   lib/itold.c
   lib/langinfo.in.h
+  lib/libc-config.h
   lib/limits.in.h
   lib/listen.c
   lib/localcharset.c
@@ -1862,6 +1877,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/memchr.valgrind
   lib/mgetgroups.c
   lib/mgetgroups.h
+  lib/mkdir.c
   lib/mkdtemp.c
   lib/mkostemp.c
   lib/mkostemps.c
@@ -2008,6 +2024,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/xsize.c
   lib/xsize.h
   m4/00gnulib.m4
+  m4/__inline.m4
   m4/absolute-header.m4
   m4/alloca.m4
   m4/arpa_inet_h.m4
@@ -2054,6 +2071,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/flexmember.m4
   m4/float_h.m4
   m4/fnmatch.m4
+  m4/fnmatch_h.m4
   m4/fpieee.m4
   m4/fpurge.m4
   m4/freading.m4
@@ -2086,6 +2104,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/include_next.m4
   m4/inet_ntop.m4
   m4/inet_pton.m4
+  m4/intl-thread-locale.m4
   m4/intlmacosx.m4
   m4/intmax_t.m4
   m4/inttypes-pri.m4
@@ -2131,6 +2150,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/mbtowc.m4
   m4/memchr.m4
   m4/mgetgroups.m4
+  m4/mkdir.m4
   m4/mkdtemp.m4
   m4/mkostemp.m4
   m4/mkostemps.m4
@@ -2148,7 +2168,6 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/nocrash.m4
   m4/nonblocking.m4
   m4/off_t.m4
-  m4/onceonly.m4
   m4/open-cloexec.m4
   m4/open.m4
   m4/passfd.m4
@@ -2183,6 +2202,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/servent.m4
   m4/setenv.m4
   m4/setlocale.m4
+  m4/sh-filename.m4
   m4/sig_atomic_t.m4
   m4/sigaction.m4
   m4/signal_h.m4
@@ -2318,6 +2338,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-ffsl.c
   tests/test-fgetc.c
   tests/test-float.c
+  tests/test-fnmatch-h.c
   tests/test-fnmatch.c
   tests/test-fpurge.c
   tests/test-fputc.c
@@ -2415,6 +2436,8 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-mbsrtowcs3.sh
   tests/test-mbsrtowcs4.sh
   tests/test-memchr.c
+  tests/test-mkdir.c
+  tests/test-mkdir.h
   tests/test-nanosleep.c
   tests/test-net_if.c
   tests/test-netdb.c
@@ -2582,6 +2605,8 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/isnanf.c
   tests=lib/isnanl-nolibm.h
   tests=lib/isnanl.c
+  tests=lib/localename-table.c
+  tests=lib/localename-table.h
   tests=lib/localename.c
   tests=lib/localename.h
   tests=lib/math.c

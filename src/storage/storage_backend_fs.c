@@ -17,8 +17,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
 #include <config.h>
@@ -246,39 +244,6 @@ virStorageBackendFileSystemIsValid(virStoragePoolObjPtr pool)
 
 
 /**
- * virStorageBackendFileSystemGetPoolSource
- * @pool: storage pool object pointer
- *
- * Allocate/return a string representing the FS storage pool source.
- * It is up to the caller to VIR_FREE the allocated string
- */
-static char *
-virStorageBackendFileSystemGetPoolSource(virStoragePoolObjPtr pool)
-{
-    virStoragePoolDefPtr def = virStoragePoolObjGetDef(pool);
-    char *src = NULL;
-
-    if (def->type == VIR_STORAGE_POOL_NETFS) {
-        if (def->source.format == VIR_STORAGE_POOL_NETFS_CIFS) {
-            if (virAsprintf(&src, "//%s/%s",
-                            def->source.hosts[0].name,
-                            def->source.dir) < 0)
-                return NULL;
-        } else {
-            if (virAsprintf(&src, "%s:%s",
-                            def->source.hosts[0].name,
-                            def->source.dir) < 0)
-                return NULL;
-        }
-    } else {
-        if (VIR_STRDUP(src, def->source.devices[0].path) < 0)
-            return NULL;
-    }
-    return src;
-}
-
-
-/**
  * @pool storage pool to check for status
  *
  * Determine if a storage pool is already mounted
@@ -330,6 +295,7 @@ virStorageBackendFileSystemIsMounted(virStoragePoolObjPtr pool)
     return ret;
 }
 
+
 /**
  * @pool storage pool to mount
  *
@@ -343,15 +309,6 @@ virStorageBackendFileSystemMount(virStoragePoolObjPtr pool)
 {
     virStoragePoolDefPtr def = virStoragePoolObjGetDef(pool);
     char *src = NULL;
-    /* 'mount -t auto' doesn't seem to auto determine nfs (or cifs),
-     *  while plain 'mount' does. We have to craft separate argvs to
-     *  accommodate this */
-    bool netauto = (def->type == VIR_STORAGE_POOL_NETFS &&
-                    def->source.format == VIR_STORAGE_POOL_NETFS_AUTO);
-    bool glusterfs = (def->type == VIR_STORAGE_POOL_NETFS &&
-                      def->source.format == VIR_STORAGE_POOL_NETFS_GLUSTERFS);
-    bool cifsfs = (def->type == VIR_STORAGE_POOL_NETFS &&
-                   def->source.format == VIR_STORAGE_POOL_NETFS_CIFS);
     virCommandPtr cmd = NULL;
     int ret = -1;
     int rc;
@@ -371,39 +328,7 @@ virStorageBackendFileSystemMount(virStoragePoolObjPtr pool)
     if (!(src = virStorageBackendFileSystemGetPoolSource(pool)))
         return -1;
 
-    if (netauto)
-        cmd = virCommandNewArgList(MOUNT,
-                                   src,
-                                   def->target.path,
-                                   NULL);
-    else if (glusterfs)
-        cmd = virCommandNewArgList(MOUNT,
-                                   "-t",
-                                   virStoragePoolFormatFileSystemNetTypeToString(def->source.format),
-                                   src,
-                                   "-o",
-                                   "direct-io-mode=1",
-                                   def->target.path,
-                                   NULL);
-    else if (cifsfs)
-        cmd = virCommandNewArgList(MOUNT,
-                                   "-t",
-                                   virStoragePoolFormatFileSystemNetTypeToString(def->source.format),
-                                   src,
-                                   def->target.path,
-                                   "-o",
-                                   "guest",
-                                   NULL);
-    else
-        cmd = virCommandNewArgList(MOUNT,
-                                   "-t",
-                                   (def->type == VIR_STORAGE_POOL_FS ?
-                                    virStoragePoolFormatFileSystemTypeToString(def->source.format) :
-                                    virStoragePoolFormatFileSystemNetTypeToString(def->source.format)),
-                                   src,
-                                   def->target.path,
-                                   NULL);
-
+    cmd = virStorageBackendFileSystemMountCmd(MOUNT, def, src);
     if (virCommandRun(cmd, NULL) < 0)
         goto cleanup;
 

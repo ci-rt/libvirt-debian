@@ -18,12 +18,13 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __VIR_CGROUP_BACKEND_H__
-# define __VIR_CGROUP_BACKEND_H__
+#ifndef LIBVIRT_VIRCGROUPBACKEND_H
+# define LIBVIRT_VIRCGROUPBACKEND_H
 
 # include "internal.h"
 
 # include "vircgroup.h"
+# include "virhash.h"
 
 # define CGROUP_MAX_VAL 512
 
@@ -127,6 +128,11 @@ typedef int
 typedef int
 (*virCgroupHasEmptyTasksCB)(virCgroupPtr cgroup,
                             int controller);
+
+typedef int
+(*virCgroupKillRecursiveCB)(virCgroupPtr group,
+                            int signum,
+                            virHashTablePtr pids);
 
 typedef int
 (*virCgroupBindMountCB)(virCgroupPtr group,
@@ -370,6 +376,7 @@ struct _virCgroupBackend {
     virCgroupRemoveCB remove;
     virCgroupAddTaskCB addTask;
     virCgroupHasEmptyTasksCB hasEmptyTasks;
+    virCgroupKillRecursiveCB killRecursive;
     virCgroupBindMountCB bindMount;
     virCgroupSetOwnerCB setOwner;
 
@@ -454,4 +461,4 @@ virCgroupBackendForController(virCgroupPtr group,
     } \
     return backend->func(group, ##__VA_ARGS__);
 
-#endif /* __VIR_CGROUP_BACKEND_H__ */
+#endif /* LIBVIRT_VIRCGROUPBACKEND_H */

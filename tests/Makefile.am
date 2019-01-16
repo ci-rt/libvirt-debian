@@ -24,14 +24,14 @@ abs_topsrcdir = $(shell cd $(top_srcdir) && pwd)
 
 SHELL = $(PREFERABLY_POSIX_SHELL)
 
-INCLUDES = \
+AM_CPPFLAGS = \
 	-I$(top_builddir) -I$(top_srcdir) \
 	-I$(top_builddir)/gnulib/lib -I$(top_srcdir)/gnulib/lib \
 	-I$(top_builddir)/include -I$(top_srcdir)/include \
 	-I$(top_builddir)/src -I$(top_srcdir)/src \
 	-I$(top_srcdir)/src/util \
 	-I$(top_srcdir)/src/conf \
-	$(GETTEXT_CPPFLAGS)
+	$(NULL)
 
 WARN_CFLAGS += $(RELAXED_FRAME_LIMIT_CFLAGS)
 
@@ -63,7 +63,7 @@ QEMULIB_LDFLAGS = \
 	-rpath /evil/libtool/hack/to/force/shared/lib/creation \
 	$(MINGW_EXTRA_LDFLAGS)
 
-INCLUDES += \
+AM_CPPFLAGS += \
 	-DTEST_DRIVER_DIR=\"$(top_builddir)/src/.libs\"
 
 PROBES_O =
@@ -140,6 +140,7 @@ EXTRA_DIST = \
 	storagepoolschemadata \
 	storagepoolxml2xmlin \
 	storagepoolxml2xmlout \
+	storagepoolxml2argvdata \
 	storagevolschemadata \
 	storagevolxml2argvdata \
 	storagevolxml2xmlin \
@@ -207,6 +208,7 @@ test_programs = virshtest sockettest \
 	virnetdevtest \
 	virtypedparamtest \
 	vshtabletest \
+	virerrortest \
 	$(NULL)
 
 test_libraries = libshunload.la \
@@ -289,6 +291,7 @@ test_programs += qemuxml2argvtest qemuxml2xmltest \
 	qemucommandutiltest \
 	qemublocktest \
 	qemumigparamstest \
+	qemusecuritytest \
 	$(NULL)
 test_helpers += qemucapsprobe
 test_libraries += libqemumonitortestutils.la \
@@ -363,6 +366,7 @@ endif WITH_NWFILTER
 
 if WITH_STORAGE
 test_programs += storagevolxml2argvtest
+test_programs += storagepoolxml2argvtest
 test_programs += virstorageutiltest
 endif WITH_STORAGE
 
@@ -683,6 +687,13 @@ qemumigparamstest_SOURCES = \
 qemumigparamstest_LDADD = libqemumonitortestutils.la \
 	$(qemu_LDADDS) $(LDADDS)
 
+qemusecuritytest_SOURCES = \
+	qemusecuritytest.c qemusecuritytest.h \
+	qemusecuritymock.c \
+	testutils.h testutils.c \
+	testutilsqemu.h testutilsqemu.c
+qemusecuritytest_LDADD = $(qemu_LDADDS) $(LDADDS)
+
 else ! WITH_QEMU
 EXTRA_DIST += qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c \
 	domainsnapshotxml2xmltest.c \
@@ -694,6 +705,8 @@ EXTRA_DIST += qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c \
 	qemumemlocktest.c qemucpumock.c testutilshostcpus.h \
 	qemublocktest.c \
 	qemumigparamstest.c \
+	qemusecuritytest.c qemusecuritytest.h \
+	qemusecuritymock.c \
 	$(QEMUMONITORTESTUTILS_SOURCES)
 endif ! WITH_QEMU
 
@@ -901,6 +914,16 @@ storagevolxml2argvtest_LDADD = \
 	../src/libvirt_util.la \
 	$(LDADDS)
 
+storagepoolxml2argvtest_SOURCES = \
+    storagepoolxml2argvtest.c \
+    testutils.c testutils.h
+storagepoolxml2argvtest_LDADD = \
+	$(LIBXML_LIBS) \
+	../src/libvirt_driver_storage_impl.la \
+	../src/libvirt_conf.la \
+	../src/libvirt_util.la \
+	$(LDADDS)
+
 else ! WITH_STORAGE
 EXTRA_DIST += storagevolxml2argvtest.c
 EXTRA_DIST += virstorageutiltest.c
@@ -939,6 +962,11 @@ metadatatest_SOURCES = \
 	metadatatest.c \
 	testutils.c testutils.h
 metadatatest_LDADD = $(LDADDS) $(LIBXML_LIBS)
+
+virerrortest_SOURCES = \
+	virerrortest.c \
+	testutils.c testutils.h
+virerrortest_LDADD = $(LDADDS)
 
 vshtabletest_SOURCES = \
 	vshtabletest.c \

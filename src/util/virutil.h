@@ -18,12 +18,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * File created Jul 18, 2007 - Shuveb Hussain <shuveb@binarykarma.com>
  */
 
-#ifndef __VIR_UTIL_H__
-# define __VIR_UTIL_H__
+#ifndef LIBVIRT_VIRUTIL_H
+# define LIBVIRT_VIRUTIL_H
 
 # include "internal.h"
 # include <unistd.h>
@@ -222,6 +220,8 @@ unsigned long long virMemoryMaxValue(bool ulong) ATTRIBUTE_NOINLINE;
 
 bool virHostHasIOMMU(void);
 
+char *virHostGetDRMRenderNode(void) ATTRIBUTE_NOINLINE;
+
 /**
  * VIR_ASSIGN_IS_OVERFLOW:
  * @rvalue: value that is checked (evaluated twice)
@@ -233,4 +233,4 @@ bool virHostHasIOMMU(void);
 # define VIR_ASSIGN_IS_OVERFLOW(lvalue, rvalue) \
     (((lvalue) = (rvalue)) != (rvalue))
 
-#endif /* __VIR_UTIL_H__ */
+#endif /* LIBVIRT_VIRUTIL_H */

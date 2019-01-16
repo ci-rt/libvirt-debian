@@ -16,12 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
-#ifndef __DEVICE_CONF_H__
-# define __DEVICE_CONF_H__
+#ifndef LIBVIRT_DEVICE_CONF_H
+# define LIBVIRT_DEVICE_CONF_H
 
 # include <libxml/parser.h>
 # include <libxml/tree.h>
@@ -233,4 +231,4 @@ int virInterfaceLinkParseXML(xmlNodePtr node,
 int virInterfaceLinkFormat(virBufferPtr buf,
                            const virNetDevIfLink *lnk);
 
-#endif /* __DEVICE_CONF_H__ */
+#endif /* LIBVIRT_DEVICE_CONF_H */

@@ -4,9 +4,6 @@
  *
  * lxc_driver.c: linux container driver functions
  *
- * Authors:
- *  David L. Leskovec <dlesko at linux.vnet.ibm.com>
- *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -143,7 +140,8 @@ static virDrvOpenStatus lxcConnectOpen(virConnectPtr conn,
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
     /* If path isn't '/' then they typoed, tell them correct path */
-    if (STRNEQ(conn->uri->path, "/") &&
+    if (STRNEQ(conn->uri->path, "") &&
+        STRNEQ(conn->uri->path, "/") &&
         STRNEQ(conn->uri->path, "/system")) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Unexpected LXC URI path '%s', try lxc:///system"),

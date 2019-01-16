@@ -16,12 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
-#ifndef __VIR_NWFILTER_BINDING_OBJ_LIST_H__
-# define __VIR_NWFILTER_BINDING_OBJ_LIST_H__
+#ifndef LIBVIRT_VIRNWFILTERBINDINGOBJLIST_H
+# define LIBVIRT_VIRNWFILTERBINDINGOBJLIST_H
 
 # include "virnwfilterbindingobj.h"
 
@@ -66,4 +64,4 @@ virNWFilterBindingObjListExport(virNWFilterBindingObjListPtr bindings,
                                 virNWFilterBindingObjListACLFilter filter);
 
 
-#endif /* __VIR_NWFILTER_BINDING_OBJ_LIST_H__ */
+#endif /* LIBVIRT_VIRNWFILTERBINDINGOBJLIST_H */

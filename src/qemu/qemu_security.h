@@ -16,13 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *     Michal Privoznik <mprivozn@redhat.com>
  */
 
-#ifndef __QEMU_SECURITY_H__
-# define __QEMU_SECURITY_H__
+#ifndef LIBVIRT_QEMU_SECURITY_H
+# define LIBVIRT_QEMU_SECURITY_H
 
 
 # include "qemu_conf.h"
@@ -134,4 +131,4 @@ int qemuSecurityRestoreSavedStateLabel(virQEMUDriverPtr driver,
 # define qemuSecurityStackAddNested virSecurityManagerStackAddNested
 # define qemuSecurityVerify virSecurityManagerVerify
 
-#endif /* __QEMU_SECURITY_H__ */
+#endif /* LIBVIRT_QEMU_SECURITY_H */

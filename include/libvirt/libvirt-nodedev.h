@@ -2,7 +2,6 @@
  * libvirt-nodedev.h
  * Summary: APIs for management of nodedevs
  * Description: Provides APIs for the management of nodedevs
- * Author: Daniel Veillard <veillard@redhat.com>
  *
  * Copyright (C) 2006-2014 Red Hat, Inc.
  *
@@ -21,8 +20,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __VIR_LIBVIRT_NODEDEV_H__
-# define __VIR_LIBVIRT_NODEDEV_H__
+#ifndef LIBVIRT_NODEDEV_H
+# define LIBVIRT_NODEDEV_H
 
 # ifndef __VIR_LIBVIRT_H_INCLUDES__
 #  error "Don't include this file directly, only use libvirt/libvirt.h"
@@ -217,4 +216,4 @@ typedef void (*virConnectNodeDeviceEventLifecycleCallback)(virConnectPtr conn,
                                                            int detail,
                                                            void *opaque);
 
-#endif /* __VIR_LIBVIRT_NODEDEV_H__ */
+#endif /* LIBVIRT_NODEDEV_H */

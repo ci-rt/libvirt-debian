@@ -17,8 +17,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
 #include <config.h>
@@ -339,10 +337,6 @@ static int daemonInitialize(void)
 #endif
 #ifdef WITH_LXC
     if (virDriverLoadModule("lxc", "lxcRegister", false) < 0)
-        return -1;
-#endif
-#ifdef WITH_UML
-    if (virDriverLoadModule("uml", "umlRegister", false) < 0)
         return -1;
 #endif
 #ifdef WITH_VBOX

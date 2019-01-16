@@ -15,13 +15,13 @@
 ## License along with this library.  If not, see
 ## <http://www.gnu.org/licenses/>.
 
-INCLUDES = \
+AM_CPPFLAGS = \
 	-I$(top_builddir)/include -I$(top_srcdir)/include \
 	-I$(top_builddir)/gnulib/lib -I$(top_srcdir)/gnulib/lib \
 	-I$(top_builddir)/src -I$(top_srcdir)/src \
 	-I$(top_srcdir)/src/util \
 	-I$(top_srcdir) \
-	$(GETTEXT_CPPFLAGS)
+	$(NULL)
 
 WARN_CFLAGS += $(STRICT_FRAME_LIMIT_CFLAGS)
 
@@ -75,6 +75,7 @@ EXTRA_DIST = \
 	virt-login-shell.conf \
 	virsh-edit.c \
 	bash-completion/vsh \
+	libvirt_recover_xattrs.sh \
 	$(PODFILES) \
 	$(MANINFILES) \
 	$(NULL)

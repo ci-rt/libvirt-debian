@@ -16,12 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Jim Fehlig <jfehlig@suse.com>
  */
 
-#ifndef __VIR_XEN_COMMON_H__
-# define __VIR_XEN_COMMON_H__
+#ifndef LIBVIRT_XEN_COMMON_H
+# define LIBVIRT_XEN_COMMON_H
 
 # include "internal.h"
 # include "virconf.h"
@@ -71,4 +69,4 @@ char *xenMakeIPList(virNetDevIPInfoPtr guestIP);
 
 int xenDomainDefAddImplicitInputDevice(virDomainDefPtr def);
 
-#endif /* __VIR_XEN_COMMON_H__ */
+#endif /* LIBVIRT_XEN_COMMON_H */

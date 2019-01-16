@@ -17,12 +17,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
-#ifndef __QEMU_PARSE_COMMAND_H__
-# define __QEMU_PARSE_COMMAND_H__
+#ifndef LIBVIRT_QEMU_PARSE_COMMAND_H
+# define LIBVIRT_QEMU_PARSE_COMMAND_H
 
 # include "virfilecache.h"
 
@@ -59,4 +57,4 @@ qemuParseKeywords(const char *str,
                   int *retnkeywords,
                   int allowEmptyValue);
 
-#endif /* __QEMU_PARSE_COMMAND_H__*/
+#endif /* LIBVIRT_QEMU_PARSE_COMMAND_H */

@@ -20,9 +20,8 @@
  *
  */
 
-
-#ifndef __VIR_MEMORY_H_
-# define __VIR_MEMORY_H_
+#ifndef LIBVIRT_VIRALLOC_H
+# define LIBVIRT_VIRALLOC_H
 
 # include "internal.h"
 
@@ -559,7 +558,7 @@ void virDispose(void *ptrptr, size_t count, size_t element_size, size_t *countpt
  * @ptr: pointer holding address to be cleared and freed
  * @count: count of elements in @ptr
  *
- * Clear the memory of the array of elemets pointed to by 'ptr' of 'count'
+ * Clear the memory of the array of elements pointed to by 'ptr' of 'count'
  * elements and free it. Update the pointer/count to NULL/0.
  *
  * This macro is safe to use on arguments with side effects.
@@ -638,4 +637,4 @@ void virAllocTestHook(void (*func)(int, void*), void *data);
 # define VIR_AUTOPTR(type) \
     __attribute__((cleanup(VIR_AUTOPTR_FUNC_NAME(type)))) type *
 
-#endif /* __VIR_MEMORY_H_ */
+#endif /* LIBVIRT_VIRALLOC_H */

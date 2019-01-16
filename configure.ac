@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [4.10.0], [libvir-list@redhat.com], [], [https://libvirt.org])
+AC_INIT([libvirt], [5.0.0], [libvir-list@redhat.com], [], [https://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -225,7 +225,6 @@ if test "$with_libvirtd" = "no" ; then
   with_qemu=no
   with_lxc=no
   with_libxl=no
-  with_uml=no
   with_vbox=no
 fi
 
@@ -445,7 +444,6 @@ LIBVIRT_DRIVER_ARG_VBOX
 LIBVIRT_DRIVER_ARG_LXC
 LIBVIRT_DRIVER_ARG_VZ
 LIBVIRT_DRIVER_ARG_BHYVE
-LIBVIRT_DRIVER_ARG_UML
 LIBVIRT_DRIVER_ARG_ESX
 LIBVIRT_DRIVER_ARG_HYPERV
 LIBVIRT_DRIVER_ARG_TEST
@@ -464,7 +462,6 @@ LIBVIRT_DRIVER_CHECK_VBOX
 LIBVIRT_DRIVER_CHECK_LXC
 LIBVIRT_DRIVER_CHECK_VZ
 LIBVIRT_DRIVER_CHECK_BHYVE
-LIBVIRT_DRIVER_CHECK_UML
 LIBVIRT_DRIVER_CHECK_ESX
 LIBVIRT_DRIVER_CHECK_HYPERV
 LIBVIRT_DRIVER_CHECK_TEST
@@ -947,7 +944,6 @@ AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Drivers])
 AC_MSG_NOTICE([])
 LIBVIRT_DRIVER_RESULT_QEMU
-LIBVIRT_DRIVER_RESULT_UML
 LIBVIRT_DRIVER_RESULT_OPENVZ
 LIBVIRT_DRIVER_RESULT_VMWARE
 LIBVIRT_DRIVER_RESULT_VBOX

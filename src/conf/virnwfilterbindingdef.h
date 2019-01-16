@@ -18,8 +18,9 @@
  * <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef VIR_NWFILTER_BINDING_DEF_H
-# define VIR_NWFILTER_BINDING_DEF_H
+
+#ifndef LIBVIRT_VIRNWFILTERBINDINGDEF_H
+# define LIBVIRT_VIRNWFILTERBINDINGDEF_H
 
 # include "internal.h"
 # include "virmacaddr.h"
@@ -62,4 +63,4 @@ int
 virNWFilterBindingDefFormatBuf(virBufferPtr buf,
                                const virNWFilterBindingDef *def);
 
-#endif /* VIR_NWFILTER_BINDING_DEF_H */
+#endif /* LIBVIRT_VIRNWFILTERBINDINGDEF_H */

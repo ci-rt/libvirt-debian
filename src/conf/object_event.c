@@ -18,8 +18,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Ben Guthro
  */
 
 #include <config.h>
@@ -702,7 +700,7 @@ virObjectEventStateDispatchCallbacks(virObjectEventStatePtr state,
         if (!virObjectEventDispatchMatchCallback(event, cb))
             continue;
 
-        /* Drop the lock whle dispatching, for sake of re-entrancy */
+        /* Drop the lock while dispatching, for sake of re-entrance */
         virObjectUnlock(state);
         event->dispatch(cb->conn, event, cb->cb, cb->opaque);
         virObjectLock(state);

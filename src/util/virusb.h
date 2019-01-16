@@ -16,14 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *     Daniel P. Berrange <berrange@redhat.com>
- *     Michal Privoznik <mprivozn@redhat.com>
  */
 
-#ifndef __VIR_USB_H__
-# define __VIR_USB_H__
+#ifndef LIBVIRT_VIRUSB_H
+# define LIBVIRT_VIRUSB_H
 
 # include "internal.h"
 # include "virobject.h"
@@ -102,4 +98,4 @@ virUSBDevicePtr virUSBDeviceListFind(virUSBDeviceListPtr list,
 
 VIR_DEFINE_AUTOPTR_FUNC(virUSBDevice, virUSBDeviceFree)
 
-#endif /* __VIR_USB_H__ */
+#endif /* LIBVIRT_VIRUSB_H */

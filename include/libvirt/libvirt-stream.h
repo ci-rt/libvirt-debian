@@ -2,7 +2,6 @@
  * libvirt-stream.h
  * Summary: APIs for management of streams
  * Description: Provides APIs for the management of streams
- * Author: Daniel Veillard <veillard@redhat.com>
  *
  * Copyright (C) 2006-2014 Red Hat, Inc.
  *
@@ -21,8 +20,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __VIR_LIBVIRT_STREAM_H__
-# define __VIR_LIBVIRT_STREAM_H__
+#ifndef LIBVIRT_STREAM_H
+# define LIBVIRT_STREAM_H
 
 # ifndef __VIR_LIBVIRT_H_INCLUDES__
 #  error "Don't include this file directly, only use libvirt/libvirt.h"
@@ -267,4 +266,4 @@ int virStreamAbort(virStreamPtr st);
 
 int virStreamFree(virStreamPtr st);
 
-#endif /* __VIR_LIBVIRT_STREAM_H__ */
+#endif /* LIBVIRT_STREAM_H */

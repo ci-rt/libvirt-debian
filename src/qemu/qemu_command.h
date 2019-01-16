@@ -17,12 +17,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
-#ifndef __QEMU_COMMAND_H__
-# define __QEMU_COMMAND_H__
+#ifndef LIBVIRT_QEMU_COMMAND_H
+# define LIBVIRT_QEMU_COMMAND_H
 
 # include "domain_addr.h"
 # include "domain_conf.h"
@@ -125,13 +123,13 @@ int qemuBuildControllerDevStr(const virDomainDef *domainDef,
 int qemuBuildMemoryBackendProps(virJSONValuePtr *backendProps,
                                 const char *alias,
                                 virQEMUDriverConfigPtr cfg,
-                                virQEMUCapsPtr qemuCaps,
+                                qemuDomainObjPrivatePtr priv,
                                 virDomainDefPtr def,
                                 virDomainMemoryDefPtr mem,
-                                virBitmapPtr autoNodeset,
                                 bool force);
 
-char *qemuBuildMemoryDeviceStr(virDomainMemoryDefPtr mem);
+char *qemuBuildMemoryDeviceStr(virDomainMemoryDefPtr mem,
+                               qemuDomainObjPrivatePtr priv);
 
 /* Current, best practice */
 char *qemuBuildPCIHostdevDevStr(const virDomainDef *def,
@@ -230,4 +228,4 @@ qemuBuildTPMOpenBackendFDs(const char *tpmdev,
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
     ATTRIBUTE_NONNULL(4);
 
-#endif /* __QEMU_COMMAND_H__*/
+#endif /* LIBVIRT_QEMU_COMMAND_H */

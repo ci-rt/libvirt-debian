@@ -3,9 +3,6 @@
  *
  * lxc_container.h: Performs container setup tasks
  *
- * Authors:
- *  David L. Leskovec <dlesko at linux.vnet.ibm.com>
- *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -21,8 +18,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LXC_CONTAINER_H
-# define LXC_CONTAINER_H
+#ifndef LIBVIRT_LXC_CONTAINER_H
+# define LIBVIRT_LXC_CONTAINER_H
 
 # include "lxc_conf.h"
 # include "lxc_domain.h"
@@ -68,4 +65,4 @@ int lxcContainerChown(virDomainDefPtr def, const char *path);
 
 bool lxcIsBasicMountLocation(const char *path);
 
-#endif /* LXC_CONTAINER_H */
+#endif /* LIBVIRT_LXC_CONTAINER_H */

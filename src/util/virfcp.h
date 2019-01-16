@@ -16,12 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Bjoern Walk <bwalk@linux.vnet.ibm.com>
  */
 
-#ifndef __VIR_FCP_H__
-# define __VIR_FCP_H__
+#ifndef LIBVIRT_VIRFCP_H
+# define LIBVIRT_VIRFCP_H
 
 bool
 virFCIsCapableRport(const char *rport);
@@ -31,4 +29,4 @@ virFCReadRportValue(const char *rport,
                     const char *entry,
                     char **result);
 
-#endif
+#endif /* LIBVIRT_VIRFCP_H */

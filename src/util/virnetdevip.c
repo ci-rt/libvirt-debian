@@ -14,10 +14,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *     Mark McLoughlin <markmc@redhat.com>
- *     Daniel P. Berrange <berrange@redhat.com>
  */
 
 #include <config.h>
@@ -443,7 +439,7 @@ virNetDevIPWaitDadFinish(virSocketAddrPtr *addrs, size_t count)
     }
 
     memset(&ifa, 0, sizeof(ifa));
-    /* DAD is for IPv6 adresses only. */
+    /* DAD is for IPv6 addresses only. */
     ifa.ifa_family = AF_INET6;
     if (nlmsg_append(nlmsg, &ifa, sizeof(ifa), NLMSG_ALIGNTO) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -509,62 +505,105 @@ struct virNetDevIPCheckIPv6ForwardingData {
     size_t ndevices;
 };
 
+
 static int
-virNetDevIPCheckIPv6ForwardingCallback(const struct nlmsghdr *resp,
+virNetDevIPCheckIPv6ForwardingAddIF(struct virNetDevIPCheckIPv6ForwardingData *data,
+                                    char **ifname)
+{
+    size_t i;
+
+    /* add ifname to the array if it's not already there
+     * (ifname is char** so VIR_APPEND_ELEMENT() will move the
+     * original pointer out of the way and avoid having it freed)
+     */
+    for (i = 0; i < data->ndevices; i++) {
+        if (STREQ(data->devices[i], *ifname))
+            return 0;
+    }
+    return VIR_APPEND_ELEMENT(data->devices, data->ndevices, *ifname);
+}
+
+
+static int
+virNetDevIPCheckIPv6ForwardingCallback(struct nlmsghdr *resp,
                                        void *opaque)
 {
     struct rtmsg *rtmsg = NLMSG_DATA(resp);
-    int accept_ra = -1;
-    struct rtattr *rta;
     struct virNetDevIPCheckIPv6ForwardingData *data = opaque;
-    int len = RTM_PAYLOAD(resp);
-    int oif = -1;
-    size_t i;
-    bool hasDevice;
+    struct rtattr *rta_attr;
+    int accept_ra = -1;
+    int ifindex = -1;
     VIR_AUTOFREE(char *) ifname = NULL;
 
     /* Ignore messages other than route ones */
     if (resp->nlmsg_type != RTM_NEWROUTE)
         return 0;
 
-    /* Extract a device ID attribute */
-    VIR_WARNINGS_NO_CAST_ALIGN
-    for (rta = RTM_RTA(rtmsg); RTA_OK(rta, len); rta = RTA_NEXT(rta, len)) {
-        VIR_WARNINGS_RESET
-        if (rta->rta_type == RTA_OIF) {
-            oif = *(int *)RTA_DATA(rta);
-
-            /* Should never happen: netlink message would be broken */
-            if (ifname) {
-                VIR_AUTOFREE(char *) ifname2 = virNetDevGetName(oif);
-                VIR_WARN("Single route has unexpected 2nd interface "
-                         "- '%s' and '%s'", ifname, ifname2);
-                break;
-            }
-
-            if (!(ifname = virNetDevGetName(oif)))
-                return -1;
-        }
-    }
-
     /* No need to do anything else for non RA routes */
     if (rtmsg->rtm_protocol != RTPROT_RA)
         return 0;
 
-    data->hasRARoutes = true;
+    rta_attr = (struct rtattr *)nlmsg_find_attr(resp, sizeof(struct rtmsg), RTA_OIF);
+    if (rta_attr) {
+        /* This is a single path route, with interface used to reach
+         * nexthop in the RTA_OIF attribute.
+         */
+        ifindex = *(int *)RTA_DATA(rta_attr);
+        ifname = virNetDevGetName(ifindex);
 
-    /* Check the accept_ra value for the interface */
-    accept_ra = virNetDevIPGetAcceptRA(ifname);
-    VIR_DEBUG("Checking route for device %s, accept_ra: %d", ifname, accept_ra);
+        if (!ifname)
+           return -1;
 
-    hasDevice = false;
-    for (i = 0; i < data->ndevices && !hasDevice; i++) {
-        if (STREQ(data->devices[i], ifname))
-            hasDevice = true;
+        accept_ra = virNetDevIPGetAcceptRA(ifname);
+
+        VIR_DEBUG("Checking route for device %s (%d), accept_ra: %d",
+                  ifname, ifindex, accept_ra);
+
+        if (accept_ra != 2 && virNetDevIPCheckIPv6ForwardingAddIF(data, &ifname) < 0)
+            return -1;
+
+        data->hasRARoutes = true;
+        return 0;
     }
-    if (accept_ra != 2 && !hasDevice &&
-        VIR_APPEND_ELEMENT(data->devices, data->ndevices, ifname) < 0)
-        return -1;
+
+    /* if no RTA_OIF was found, see if this is a multipath route (one
+     * which has an array of nexthops, each with its own interface)
+     */
+
+    rta_attr = (struct rtattr *)nlmsg_find_attr(resp, sizeof(struct rtmsg), RTA_MULTIPATH);
+    if (rta_attr) {
+        /* The data of the attribute is an array of rtnexthop */
+        struct rtnexthop *nh = RTA_DATA(rta_attr);
+        size_t len = RTA_PAYLOAD(rta_attr);
+
+        /* validate the attribute array length */
+        len = MIN(len, ((char *)resp + NLMSG_PAYLOAD(resp, 0) - (char *)rta_attr));
+
+        while (len >= sizeof(*nh) && len >= nh->rtnh_len) {
+            /* check accept_ra for the interface of each nexthop */
+
+            ifname = virNetDevGetName(nh->rtnh_ifindex);
+
+            if (!ifname)
+                return -1;
+
+            accept_ra = virNetDevIPGetAcceptRA(ifname);
+
+            VIR_DEBUG("Checking multipath route nexthop device %s (%d), accept_ra: %d",
+                      ifname, nh->rtnh_ifindex, accept_ra);
+
+            if (accept_ra != 2 && virNetDevIPCheckIPv6ForwardingAddIF(data, &ifname) < 0)
+                return -1;
+
+            VIR_FREE(ifname);
+            data->hasRARoutes = true;
+
+            len -= NLMSG_ALIGN(nh->rtnh_len);
+            VIR_WARNINGS_NO_CAST_ALIGN
+            nh = RTNH_NEXT(nh);
+            VIR_WARNINGS_RESET
+        }
+    }
 
     return 0;
 }

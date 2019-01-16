@@ -16,9 +16,6 @@
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
- * Authors:
- *     Stefan Berger <stefanb@us.ibm.com>
- *
  * Notes:
  * netlink: http://lovezutto.googlepages.com/netlink.pdf
  *          iproute2 package
@@ -733,7 +730,7 @@ virNetDevMacVLanVPortProfileCallback(struct nlmsghdr *hdr,
                 VIR_DEBUG("IFLA_PORT_REQUEST = %d", req);
 
                 if (req == PORT_REQUEST_DISASSOCIATE) {
-                    VIR_DEBUG("Set dissaccociated.");
+                    VIR_DEBUG("Set disassociated.");
                     indicate = true;
                 }
             }

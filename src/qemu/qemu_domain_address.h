@@ -17,11 +17,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
-#ifndef __QEMU_DOMAIN_ADDRESS_H__
+#ifndef LIBVIRT_QEMU_DOMAIN_ADDRESS_H
+# define LIBVIRT_QEMU_DOMAIN_ADDRESS_H
 
 # include "domain_addr.h"
 # include "domain_conf.h"
@@ -67,6 +66,4 @@ int qemuDomainEnsureVirtioAddress(bool *releaseAddr,
                                   virDomainDeviceDefPtr dev,
                                   const char *devicename);
 
-# define __QEMU_DOMAIN_ADDRESS_H__
-
-#endif /* __QEMU_DOMAIN_ADDRESS_H__ */
+#endif /* LIBVIRT_QEMU_DOMAIN_ADDRESS_H */

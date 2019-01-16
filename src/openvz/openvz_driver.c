@@ -19,11 +19,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- * Shuveb Hussain <shuveb@binarykarma.com>
- * Anoop Joe Cyriac <anoop@binarykarma.com>
- *
  */
 
 #include <config.h>
@@ -1642,14 +1637,14 @@ openvzDomainGetBarrierLimit(virDomainPtr domain,
     virSkipSpaces(&tmp);
     if (virStrToLong_ull(tmp, &endp, 10, barrier) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Can't parse limit from "VZLIST" output '%s'"), output);
+                       _("Can't parse limit from vzlist output '%s'"), output);
         goto cleanup;
     }
     tmp = endp;
     virSkipSpaces(&tmp);
     if (virStrToLong_ull(tmp, &endp, 10, limit) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Can't parse barrier from "VZLIST" output '%s'"), output);
+                       _("Can't parse barrier from vzlist output '%s'"), output);
         goto cleanup;
     }
 

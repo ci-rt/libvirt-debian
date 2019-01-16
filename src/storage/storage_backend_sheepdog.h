@@ -18,15 +18,11 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Wido den Hollander <wido@widodh.nl>
- *         Frank Spijkerman <frank.spijkerman@avira.com>
- *         Sebastian Wiedenroth <sebastian.wiedenroth@skylime.net>
  */
 
-#ifndef __VIR_STORAGE_BACKEND_SHEEPDOG_H__
-# define __VIR_STORAGE_BACKEND_SHEEPDOG_H__
+#ifndef LIBVIRT_STORAGE_BACKEND_SHEEPDOG_H
+# define LIBVIRT_STORAGE_BACKEND_SHEEPDOG_H
 
 int virStorageBackendSheepdogRegister(void);
 
-#endif /* __VIR_STORAGE_BACKEND_SHEEPDOG_H__ */
+#endif /* LIBVIRT_STORAGE_BACKEND_SHEEPDOG_H */

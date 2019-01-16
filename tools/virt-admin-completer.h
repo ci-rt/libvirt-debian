@@ -16,13 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- *  Michal Privoznik <mprivozn@redhat.com>
- *
  */
 
-#ifndef VIRT_ADMIN_COMPLETER
-# define VIRT_ADMIN_COMPLETER
+#ifndef LIBVIRT_VIRT_ADMIN_COMPLETER_H
+# define LIBVIRT_VIRT_ADMIN_COMPLETER_H
 
 # include "vsh.h"
 
@@ -30,4 +27,4 @@ char **
 vshAdmServerCompleter(vshControl *ctl,
                       const vshCmd *cmd,
                       unsigned int flags);
-#endif
+#endif /* LIBVIRT_VIRT_ADMIN_COMPLETER_H */

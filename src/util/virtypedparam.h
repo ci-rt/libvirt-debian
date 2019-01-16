@@ -19,9 +19,8 @@
  *
  */
 
-
-#ifndef __VIR_TYPED_PARAM_H_
-# define __VIR_TYPED_PARAM_H_
+#ifndef LIBVIRT_VIRTYPEDPARAM_H
+# define LIBVIRT_VIRTYPEDPARAM_H
 
 # include "internal.h"
 # include "virutil.h"
@@ -135,4 +134,4 @@ VIR_ENUM_DECL(virTypedParameter)
         } \
     } while (0)
 
-#endif /* __VIR_TYPED_PARAM_H */
+#endif /* LIBVIRT_VIRTYPEDPARAM_H */

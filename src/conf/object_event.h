@@ -18,16 +18,14 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Ben Guthro
  */
 
-#include "internal.h"
+#ifndef LIBVIRT_OBJECT_EVENT_H
+# define LIBVIRT_OBJECT_EVENT_H
 
-#include "virobject.h"
+# include "internal.h"
 
-#ifndef __OBJECT_EVENT_H__
-# define __OBJECT_EVENT_H__
+# include "virobject.h"
 
 /**
  * Dispatching domain events that come in while
@@ -91,4 +89,4 @@ virObjectEventStateSetRemote(virConnectPtr conn,
                              int remoteID)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
-#endif
+#endif /* LIBVIRT_OBJECT_EVENT_H */

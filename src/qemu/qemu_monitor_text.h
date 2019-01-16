@@ -17,13 +17,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
-
-#ifndef QEMU_MONITOR_TEXT_H
-# define QEMU_MONITOR_TEXT_H
+#ifndef LIBVIRT_QEMU_MONITOR_TEXT_H
+# define LIBVIRT_QEMU_MONITOR_TEXT_H
 
 # include "internal.h"
 
@@ -41,4 +38,4 @@ int qemuMonitorTextCreateSnapshot(qemuMonitorPtr mon, const char *name);
 int qemuMonitorTextLoadSnapshot(qemuMonitorPtr mon, const char *name);
 int qemuMonitorTextDeleteSnapshot(qemuMonitorPtr mon, const char *name);
 
-#endif /* QEMU_MONITOR_TEXT_H */
+#endif /* LIBVIRT_QEMU_MONITOR_TEXT_H */

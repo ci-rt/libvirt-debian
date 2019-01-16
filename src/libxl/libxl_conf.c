@@ -18,10 +18,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *     Jim Fehlig <jfehlig@novell.com>
- *     Markus Groß <gross@univention.de>
  */
 
 #include <config.h>
@@ -51,6 +47,7 @@
 #include "cpu/cpu.h"
 #include "xen_common.h"
 #include "xen_xl.h"
+#include "virnetdevvportprofile.h"
 
 
 #define VIR_FROM_THIS VIR_FROM_LIBXL
@@ -1229,6 +1226,11 @@ libxlMakeNic(virDomainDefPtr def,
     virNetworkPtr network = NULL;
     virConnectPtr conn = NULL;
     virNetDevBandwidthPtr actual_bw;
+    virNetDevVPortProfilePtr port_profile;
+    virNetDevVlanPtr virt_vlan;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    size_t i;
+    const char *script = NULL;
     int ret = -1;
 
     /* TODO: Where is mtu stored?
@@ -1287,14 +1289,50 @@ libxlMakeNic(virDomainDefPtr def,
     if (VIR_STRDUP(x_nic->ifname, l_nic->ifname) < 0)
         goto cleanup;
 
+    port_profile = virDomainNetGetActualVirtPortProfile(l_nic);
+    virt_vlan = virDomainNetGetActualVlan(l_nic);
+    script = l_nic->script;
     switch (actual_type) {
         case VIR_DOMAIN_NET_TYPE_BRIDGE:
+            virBufferAddStr(&buf, virDomainNetGetActualBridgeName(l_nic));
+            /*
+             * A bit of special handling if vif will be connected to an
+             * openvswitch bridge
+             */
+            if (port_profile &&
+                port_profile->virtPortType == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH) {
+                /*
+                 * If a custom script is not specified for openvswitch, use
+                 * Xen's vif-openvswitch script
+                 */
+                if (!script)
+                    script = "vif-openvswitch";
+                /*
+                 * libxl_device_nic->bridge supports an extended format for
+                 * specifying VLAN tags and trunks when using openvswitch
+                 *
+                 * BRIDGE_NAME[.VLAN][:TRUNK:TRUNK]
+                 *
+                 * See Xen's networking wiki for more details
+                 * https://wiki.xenproject.org/wiki/Xen_Networking#Open_vSwitch
+                 */
+                if (virt_vlan && virt_vlan->nTags > 0) {
+                    if (virt_vlan->trunk) {
+                        for (i = 0; i < virt_vlan->nTags; i++)
+                            virBufferAsprintf(&buf, ":%d", virt_vlan->tag[i]);
+                    } else {
+                        virBufferAsprintf(&buf, ".%d", virt_vlan->tag[0]);
+                    }
+                }
+            }
+            if (virBufferCheckError(&buf) < 0)
+                goto cleanup;
             if (VIR_STRDUP(x_nic->bridge,
-                           virDomainNetGetActualBridgeName(l_nic)) < 0)
+                           virBufferCurrentContent(&buf)) < 0)
                 goto cleanup;
             ATTRIBUTE_FALLTHROUGH;
         case VIR_DOMAIN_NET_TYPE_ETHERNET:
-            if (VIR_STRDUP(x_nic->script, l_nic->script) < 0)
+            if (VIR_STRDUP(x_nic->script, script) < 0)
                 goto cleanup;
             if (l_nic->guestIP.nips > 0) {
                 x_nic->ip = xenMakeIPList(&l_nic->guestIP);
@@ -1391,6 +1429,7 @@ libxlMakeNic(virDomainDefPtr def,
     ret = 0;
 
  cleanup:
+    virBufferFreeAndReset(&buf);
     virObjectUnref(network);
     virObjectUnref(conn);
 
@@ -2490,7 +2529,7 @@ libxlBuildDomainConfig(virPortAllocatorRangePtr graphicsports,
 
     /*
      * Now that any potential VFBs are defined, update the build info with
-     * the data of the primary display. Some day libxl might implicitely do
+     * the data of the primary display. Some day libxl might implicitly do
      * so but as it does not right now, better be explicit.
      */
     if (libxlMakeVideo(def, d_config) < 0)

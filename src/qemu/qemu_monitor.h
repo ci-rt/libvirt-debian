@@ -17,13 +17,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
-
-#ifndef QEMU_MONITOR_H
-# define QEMU_MONITOR_H
+#ifndef LIBVIRT_QEMU_MONITOR_H
+# define LIBVIRT_QEMU_MONITOR_H
 
 # include "internal.h"
 
@@ -109,8 +106,20 @@ struct _qemuMonitorEventPanicInfo {
     } data;
 };
 
+
+typedef struct _qemuMonitorRdmaGidStatus qemuMonitorRdmaGidStatus;
+typedef qemuMonitorRdmaGidStatus *qemuMonitorRdmaGidStatusPtr;
+struct _qemuMonitorRdmaGidStatus {
+    char *netdev;
+    bool gid_status;
+    unsigned long long subnet_prefix;
+    unsigned long long interface_id;
+};
+
+
 char *qemuMonitorGuestPanicEventInfoFormatMsg(qemuMonitorEventPanicInfoPtr info);
 void qemuMonitorEventPanicInfoFree(qemuMonitorEventPanicInfoPtr info);
+void qemuMonitorEventRdmaGidStatusFree(qemuMonitorRdmaGidStatusPtr info);
 
 typedef void (*qemuMonitorDestroyCallback)(qemuMonitorPtr mon,
                                            virDomainObjPtr vm,
@@ -281,6 +290,14 @@ typedef int (*qemuMonitorDomainPRManagerStatusChangedCallback)(qemuMonitorPtr mo
                                                                bool connected,
                                                                void *opaque);
 
+typedef int (*qemuMonitorDomainRdmaGidStatusChangedCallback)(qemuMonitorPtr mon,
+                                                             virDomainObjPtr vm,
+                                                             const char *netdev,
+                                                             bool gid_status,
+                                                             unsigned long long subnet_prefix,
+                                                             unsigned long long interface_id,
+                                                             void *opaque);
+
 typedef struct _qemuMonitorCallbacks qemuMonitorCallbacks;
 typedef qemuMonitorCallbacks *qemuMonitorCallbacksPtr;
 struct _qemuMonitorCallbacks {
@@ -314,6 +331,7 @@ struct _qemuMonitorCallbacks {
     qemuMonitorDomainBlockThresholdCallback domainBlockThreshold;
     qemuMonitorDomainDumpCompletedCallback domainDumpCompleted;
     qemuMonitorDomainPRManagerStatusChangedCallback domainPRManagerStatusChanged;
+    qemuMonitorDomainRdmaGidStatusChangedCallback domainRdmaGidStatusChanged;
 };
 
 char *qemuMonitorEscapeArg(const char *in);
@@ -447,6 +465,12 @@ int qemuMonitorEmitDumpCompleted(qemuMonitorPtr mon,
 int qemuMonitorEmitPRManagerStatusChanged(qemuMonitorPtr mon,
                                           const char *prManager,
                                           bool connected);
+
+int qemuMonitorEmitRdmaGidStatusChanged(qemuMonitorPtr mon,
+                                        const char *netdev,
+                                        bool gid_status,
+                                        unsigned long long subnet_prefix,
+                                        unsigned long long interface_id);
 
 int qemuMonitorStartCPUs(qemuMonitorPtr mon);
 int qemuMonitorStopCPUs(qemuMonitorPtr mon);
@@ -706,6 +730,7 @@ struct _qemuMonitorMigrationStats {
     unsigned long long ram_dirty_rate;
     unsigned long long ram_page_size;
     unsigned long long ram_iteration;
+    unsigned long long ram_postcopy_reqs;
 
     unsigned long long disk_transferred;
     unsigned long long disk_remaining;
@@ -1197,4 +1222,4 @@ struct _qemuMonitorPRManagerInfo {
 int qemuMonitorGetPRManagerInfo(qemuMonitorPtr mon,
                                 virHashTablePtr *retinfo);
 
-#endif /* QEMU_MONITOR_H */
+#endif /* LIBVIRT_QEMU_MONITOR_H */

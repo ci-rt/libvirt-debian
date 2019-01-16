@@ -28,9 +28,8 @@
 
 #include "internal.h"
 
-#define __VIR_CGROUP_ALLOW_INCLUDE_PRIV_H__
+#define LIBVIRT_VIRCGROUPPRIV_H_ALLOW
 #include "vircgrouppriv.h"
-#undef __VIR_CGROUP_ALLOW_INCLUDE_PRIV_H__
 
 #include "vircgroup.h"
 #include "vircgroupbackend.h"
@@ -754,6 +753,21 @@ virCgroupV1HasEmptyTasks(virCgroupPtr cgroup,
         ret = 1;
 
     return ret;
+}
+
+
+static int
+virCgroupV1KillRecursive(virCgroupPtr group,
+                         int signum,
+                         virHashTablePtr pids)
+{
+    int controller = virCgroupV1GetAnyController(group);
+
+    if (controller < 0)
+        return -1;
+
+    return virCgroupKillRecursiveInternal(group, signum, pids, controller,
+                                          "tasks", false);
 }
 
 
@@ -2041,6 +2055,7 @@ virCgroupBackend virCgroupV1Backend = {
     .remove = virCgroupV1Remove,
     .addTask = virCgroupV1AddTask,
     .hasEmptyTasks = virCgroupV1HasEmptyTasks,
+    .killRecursive = virCgroupV1KillRecursive,
     .bindMount = virCgroupV1BindMount,
     .setOwner = virCgroupV1SetOwner,
 

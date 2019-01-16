@@ -18,10 +18,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Anthony Liguori <aliguori@us.ibm.com>
- * Author: Daniel Veillard <veillard@redhat.com>
- * Author: Markus Groß <gross@univention.de>
  */
 
 #include <config.h>
@@ -1703,7 +1699,7 @@ xenFormatSxprChr(virDomainChrDefPtr def,
  * @hvm: true or 1 if domain is HVM
  * @isAttach: create expression for device attach (1).
  *
- * Convert the disk device part of the domain config into a S-expresssion in buf.
+ * Convert the disk device part of the domain config into a S-expression in buf.
  *
  * Returns 0 in case of success, -1 in case of error.
  */
@@ -1965,7 +1961,7 @@ xenFormatSxprNet(virConnectPtr conn,
  * @def: the device config
  * @buf: a buffer for the result S-expression
  *
- * Convert a single PCI device part of the domain config into a S-expresssion in buf.
+ * Convert a single PCI device part of the domain config into a S-expression in buf.
  *
  * Returns 0 in case of success, -1 in case of error.
  */
@@ -1987,7 +1983,7 @@ xenFormatSxprPCI(virDomainHostdevDefPtr def,
  * @buf: a buffer for the result S-expression
  * @detach: create expression for device detach (1).
  *
- * Convert a single PCI device part of the domain config into a S-expresssion in buf.
+ * Convert a single PCI device part of the domain config into a S-expression in buf.
  *
  * Returns 0 in case of success, -1 in case of error.
  */
@@ -2019,7 +2015,7 @@ xenFormatSxprOnePCI(virDomainHostdevDefPtr def,
  * @def: the domain config
  * @buf: a buffer for the result S-expression
  *
- * Convert all PCI device parts of the domain config into a S-expresssion in buf.
+ * Convert all PCI device parts of the domain config into a S-expression in buf.
  *
  * Returns 0 in case of success, -1 in case of error.
  */

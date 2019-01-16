@@ -18,8 +18,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Stefan Berger <stefanb@us.ibm.com>
  */
 
 #include <config.h>
@@ -678,7 +676,7 @@ virNWFilterDoInstantiate(virNWFilterTechDriverPtr techdriver,
 
         if (rc == 0 && (virNetDevValidateConfig(binding->portdevname, NULL, ifindex) <= 0)) {
             virResetLastError();
-            /* interface changed/disppeared */
+            /* interface changed/disappeared */
             techdriver->allTeardown(binding->portdevname);
             rc = -1;
         }

@@ -1,6 +1,68 @@
 libvirt releases
 ================
 
+# v5.0.0 (2019-01-15)
+
+  * New features
+
+    - Xen: Add support for openvswitch
+        The libxl driver now supports virtual interfaces that connect to an
+        openvswitch bridge, including interfaces with VLAN tagging and trunking
+        configuration.
+
+    - qemu: Report whether KVM nesting is available
+        Running nested KVM guests requires specific configuration steps to be
+        performed on the host; libvirt will now report in the host capabilities
+        whether KVM nesting support is available.
+
+  * Removed features
+
+    - Drop UML driver
+        The UML driver was unmaintained and not tested for quite some time now.
+        Worse, there is a bug that causes it to deadlock on some very basic
+        operations (e.g. dumping domain XML). These facts make us believe no
+        one uses it.
+
+  * Improvements
+
+    - qemu: Add support for ARMv6l guests
+
+    - Support more NVDIMM configuration options
+        Introduce more configuration options. For the source element, add the
+        'alignsize' and 'pmem' subelements. For the target element, add the
+        'readonly' subelement.
+
+    - cpu: Add support for "stibp" x86_64 feature
+        Add cpu flag stibp (Single Thread Indirect Branch Predictors) to
+        prevent indirect branch predictions from being controlled by the
+        sibling Hyperthread.
+
+    - libxl: Handle external domain destroy
+        Historically, if a domain was destroyed using xl rather than through
+        libvirt APIs, libvirt would not be aware of the fact and keep
+        considering it as running. This is no longer the case.
+
+    - Start selecting the first available DRI device for OpenGL operations
+        If OpenGL support is needed (either with SPICE gl enabled or with
+        egl-headless), libvirt is now able to pick the first available DRI
+        device for the job. At the same time, this improvement is also a bugfix
+        as it prevents permission-related issues with regards to our mount
+        namespaces and the default DRI render node's permissions which would
+        normally prevent QEMU from accessing such a device.
+
+    - qemu: Add support for postcopy-requests migration statistics
+        The virDomainJobInfo can get number page requests received from the
+        destination host during post-copy migration.
+
+  * Bug fixes
+
+    - lxc: Don't forbid interfaces with type=direct
+        Such interfaces are supported by lxc and should be allowed.
+
+    - qemu: Fully clean up RNG devices on detach
+        Some RNG device types, such as those using EGD, might need extra clean
+        up on the host in addition to removing the guest-side device.
+
 # v4.10.0 (2018-12-03)
 
   * New features

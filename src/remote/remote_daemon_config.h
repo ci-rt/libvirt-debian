@@ -17,12 +17,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
-#ifndef __REMOTE_DAEMON_CONFIG_H__
-# define __REMOTE_DAEMON_CONFIG_H__
+#ifndef LIBVIRT_REMOTE_DAEMON_CONFIG_H
+# define LIBVIRT_REMOTE_DAEMON_CONFIG_H
 
 # include "internal.h"
 
@@ -106,4 +104,4 @@ int daemonConfigLoadData(struct daemonConfig *data,
                          const char *filename,
                          const char *filedata);
 
-#endif /* __REMOTE_DAEMON_CONFIG_H__ */
+#endif /* LIBVIRT_REMOTE_DAEMON_CONFIG_H */

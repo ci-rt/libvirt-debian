@@ -1,7 +1,7 @@
 /* Emulation for poll(2)
    Contributed by Paolo Bonzini.
 
-   Copyright 2001-2003, 2006-2018 Free Software Foundation, Inc.
+   Copyright 2001-2003, 2006-2019 Free Software Foundation, Inc.
 
    This file is part of gnulib.
 
@@ -83,6 +83,10 @@
 /* Here we need the select() function from Windows, because we pass bit masks
    of SOCKETs, not bit masks of FDs.  */
 # undef select
+
+/* Avoid warnings from gcc -Wcast-function-type.  */
+# define GetProcAddress \
+   (void *) GetProcAddress
 
 static BOOL IsConsoleHandle (HANDLE h)
 {

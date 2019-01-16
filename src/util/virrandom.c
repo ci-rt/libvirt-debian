@@ -14,9 +14,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *     Daniel P. Berrange <berrange@redhat.com>
  */
 
 #include <config.h>
@@ -50,7 +47,7 @@ VIR_LOG_INIT("util.random");
 
 /**
  * virRandomBits:
- * @nbits: Number of bits of randommess required
+ * @nbits: Number of bits of randomness required
  *
  * Generate an evenly distributed random number between [0,2^nbits), where
  * @nbits must be in the range (0,64].

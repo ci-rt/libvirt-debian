@@ -17,17 +17,14 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *  Dan Smith <danms@us.ibm.com>
  */
 
-#ifndef __VIR_CGROUP_ALLOW_INCLUDE_PRIV_H__
+#ifndef LIBVIRT_VIRCGROUPPRIV_H_ALLOW
 # error "vircgrouppriv.h may only be included by vircgroup.c or its test suite"
-#endif
+#endif /* LIBVIRT_VIRCGROUPPRIV_H_ALLOW */
 
-#ifndef __VIR_CGROUP_PRIV_H__
-# define __VIR_CGROUP_PRIV_H__
+#ifndef LIBVIRT_VIRCGROUPPRIV_H
+# define LIBVIRT_VIRCGROUPPRIV_H
 
 # include "vircgroup.h"
 # include "vircgroupbackend.h"
@@ -123,4 +120,12 @@ int virCgroupNewDomainPartition(virCgroupPtr partition,
 
 int virCgroupRemoveRecursively(char *grppath);
 
-#endif /* __VIR_CGROUP_PRIV_H__ */
+
+int virCgroupKillRecursiveInternal(virCgroupPtr group,
+                                   int signum,
+                                   virHashTablePtr pids,
+                                   int controller,
+                                   const char *taskFile,
+                                   bool dormdir);
+
+#endif /* LIBVIRT_VIRCGROUPPRIV_H */

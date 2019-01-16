@@ -18,10 +18,10 @@
  * POSIX DAC security driver
  */
 
-#include "security_driver.h"
+#ifndef LIBVIRT_SECURITY_DAC_H
+# define LIBVIRT_SECURITY_DAC_H
 
-#ifndef __VIR_SECURITY_DAC
-# define __VIR_SECURITY_DAC
+# include "security_driver.h"
 
 extern virSecurityDriver virSecurityDriverDAC;
 
@@ -38,4 +38,4 @@ void virSecurityDACSetMountNamespace(virSecurityManagerPtr mgr,
 void virSecurityDACSetChownCallback(virSecurityManagerPtr mgr,
                                     virSecurityManagerDACChownCallback chownCallback);
 
-#endif /* __VIR_SECURITY_DAC */
+#endif /* LIBVIRT_SECURITY_DAC_H */

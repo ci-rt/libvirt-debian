@@ -17,8 +17,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
 #include <config.h>
@@ -3201,22 +3199,21 @@ qemuBuildMemoryBackendPropsShare(virJSONValuePtr props,
  * @backendProps: [out] constructed object
  * @alias: alias of the device
  * @cfg: qemu driver config object
- * @qemuCaps: qemu capabilities object
+ * @priv: pointer to domain private object
  * @def: domain definition object
  * @mem: memory definition object
- * @autoNodeset: fallback nodeset in case of automatic NUMA placement
  * @force: forcibly use one of the backends
  *
  * Creates a configuration object that represents memory backend of given guest
- * NUMA node (domain @def and @mem). Use @autoNodeset to fine tune the
+ * NUMA node (domain @def and @mem). Use @priv->autoNodeset to fine tune the
  * placement of the memory on the host NUMA nodes.
  *
  * By default, if no memory-backend-* object is necessary to fulfil the guest
  * configuration value of 1 is returned. This behaviour can be suppressed by
  * setting @force to true in which case 0 would be returned.
  *
- * Then, if one of the three memory-backend-* should be used, the @qemuCaps is
- * consulted to check if qemu does support it.
+ * Then, if one of the three memory-backend-* should be used, the @priv->qemuCaps
+ * is consulted to check if qemu does support it.
  *
  * Returns: 0 on success,
  *          1 on success and if there's no need to use memory-backend-*
@@ -3226,10 +3223,9 @@ int
 qemuBuildMemoryBackendProps(virJSONValuePtr *backendProps,
                             const char *alias,
                             virQEMUDriverConfigPtr cfg,
-                            virQEMUCapsPtr qemuCaps,
+                            qemuDomainObjPrivatePtr priv,
                             virDomainDefPtr def,
                             virDomainMemoryDefPtr mem,
-                            virBitmapPtr autoNodeset,
                             bool force)
 {
     const char *backendType = "memory-backend-file";
@@ -3359,11 +3355,13 @@ qemuBuildMemoryBackendProps(virJSONValuePtr *backendProps,
         if (mem->nvdimmPath) {
             if (VIR_STRDUP(memPath, mem->nvdimmPath) < 0)
                 goto cleanup;
-            prealloc = true;
+            if (!priv->memPrealloc)
+                prealloc = true;
         } else if (useHugepage) {
             if (qemuGetDomainHupageMemPath(def, cfg, pagesize, &memPath) < 0)
                 goto cleanup;
-            prealloc = true;
+            if (!priv->memPrealloc)
+                prealloc = true;
         } else {
             /* We can have both pagesize and mem source. If that's the case,
              * prefer hugepages as those are more specific. */
@@ -3379,7 +3377,7 @@ qemuBuildMemoryBackendProps(virJSONValuePtr *backendProps,
 
         if (!mem->nvdimmPath &&
             discard == VIR_TRISTATE_BOOL_YES) {
-            if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_FILE_DISCARD)) {
+            if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_OBJECT_MEMORY_FILE_DISCARD)) {
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                                _("this QEMU doesn't support memory discard"));
                 goto cleanup;
@@ -3400,10 +3398,32 @@ qemuBuildMemoryBackendProps(virJSONValuePtr *backendProps,
     if (virJSONValueObjectAdd(props, "U:size", mem->size * 1024, NULL) < 0)
         goto cleanup;
 
+    if (mem->alignsize) {
+        if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_OBJECT_MEMORY_FILE_ALIGN)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("nvdimm align property is not available "
+                             "with this QEMU binary"));
+            goto cleanup;
+        }
+        if (virJSONValueObjectAdd(props, "U:align", mem->alignsize * 1024, NULL) < 0)
+            goto cleanup;
+    }
+
+    if (mem->nvdimmPmem) {
+        if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_OBJECT_MEMORY_FILE_PMEM)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("nvdimm pmem property is not available "
+                             "with this QEMU binary"));
+            goto cleanup;
+        }
+        if (virJSONValueObjectAdd(props, "s:pmem", "on", NULL) < 0)
+            goto cleanup;
+    }
+
     if (mem->sourceNodes) {
         nodemask = mem->sourceNodes;
     } else {
-        if (virDomainNumatuneMaybeGetNodeset(def->numa, autoNodeset,
+        if (virDomainNumatuneMaybeGetNodeset(def->numa, priv->autoNodeset,
                                              &nodemask, mem->targetNode) < 0)
             goto cleanup;
     }
@@ -3431,19 +3451,19 @@ qemuBuildMemoryBackendProps(virJSONValuePtr *backendProps,
     } else {
         /* otherwise check the required capability */
         if (STREQ(backendType, "memory-backend-file") &&
-            !virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_FILE)) {
+            !virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_OBJECT_MEMORY_FILE)) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("this qemu doesn't support the "
                              "memory-backend-file object"));
             goto cleanup;
         } else if (STREQ(backendType, "memory-backend-ram") &&
-                   !virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_RAM)) {
+                   !virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_OBJECT_MEMORY_RAM)) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("this qemu doesn't support the "
                              "memory-backend-ram object"));
             goto cleanup;
         } else if (STREQ(backendType, "memory-backend-memory") &&
-                   !virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_MEMORY_MEMFD)) {
+                   !virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_OBJECT_MEMORY_MEMFD)) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("this qemu doesn't support the "
                              "memory-backend-memfd object"));
@@ -3486,8 +3506,8 @@ qemuBuildMemoryCellBackendStr(virDomainDefPtr def,
     mem.targetNode = cell;
     mem.info.alias = alias;
 
-    if ((rc = qemuBuildMemoryBackendProps(&props, alias, cfg, priv->qemuCaps,
-                                          def, &mem, priv->autoNodeset, false)) < 0)
+    if ((rc = qemuBuildMemoryBackendProps(&props, alias, cfg,
+                                          priv, def, &mem, false)) < 0)
         goto cleanup;
 
     if (virQEMUBuildObjectCommandlineFromJSON(buf, props) < 0)
@@ -3523,8 +3543,8 @@ qemuBuildMemoryDimmBackendStr(virBufferPtr buf,
     if (virAsprintf(&alias, "mem%s", mem->info.alias) < 0)
         goto cleanup;
 
-    if (qemuBuildMemoryBackendProps(&props, alias, cfg, priv->qemuCaps,
-                                    def, mem, priv->autoNodeset, true) < 0)
+    if (qemuBuildMemoryBackendProps(&props, alias, cfg,
+                                    priv, def, mem, true) < 0)
         goto cleanup;
 
     if (virQEMUBuildObjectCommandlineFromJSON(buf, props) < 0)
@@ -3541,7 +3561,8 @@ qemuBuildMemoryDimmBackendStr(virBufferPtr buf,
 
 
 char *
-qemuBuildMemoryDeviceStr(virDomainMemoryDefPtr mem)
+qemuBuildMemoryDeviceStr(virDomainMemoryDefPtr mem,
+                         qemuDomainObjPrivatePtr priv)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     const char *device;
@@ -3568,6 +3589,16 @@ qemuBuildMemoryDeviceStr(virDomainMemoryDefPtr mem)
 
         if (mem->labelsize)
             virBufferAsprintf(&buf, "label-size=%llu,", mem->labelsize * 1024);
+
+        if (mem->readonly) {
+            if (!virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE_NVDIMM_UNARMED)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                               _("nvdimm readonly property is not available "
+                                 "with this QEMU binary"));
+                return NULL;
+            }
+            virBufferAddLit(&buf, "unarmed=on,");
+        }
 
         virBufferAsprintf(&buf, "memdev=mem%s,id=%s",
                           mem->info.alias, mem->info.alias);
@@ -5763,9 +5794,11 @@ qemuBuildRNGBackendChrdevStr(virLogManagerPtr logManager,
 {
     unsigned int cdevflags = QEMU_BUILD_CHARDEV_TCP_NOWAIT |
         QEMU_BUILD_CHARDEV_UNIX_FD_PASS;
+
+    *chr = NULL;
+
     if (chardevStdioLogd)
         cdevflags |= QEMU_BUILD_CHARDEV_FILE_LOGD;
-    *chr = NULL;
 
     switch ((virDomainRNGBackend) rng->backend) {
     case VIR_DOMAIN_RNG_BACKEND_RANDOM:
@@ -7576,7 +7609,8 @@ qemuBuildSmpCommandLine(virCommandPtr cmd,
 static int
 qemuBuildMemPathStr(virQEMUDriverConfigPtr cfg,
                     const virDomainDef *def,
-                    virCommandPtr cmd)
+                    virCommandPtr cmd,
+                    qemuDomainObjPrivatePtr priv)
 {
     const long system_page_size = virGetSystemPageSizeKB();
     char *mem_path = NULL;
@@ -7598,8 +7632,10 @@ qemuBuildMemPathStr(virQEMUDriverConfigPtr cfg,
         return 0;
     }
 
-    if (def->mem.allocation != VIR_DOMAIN_MEMORY_ALLOCATION_IMMEDIATE)
+    if (def->mem.allocation != VIR_DOMAIN_MEMORY_ALLOCATION_IMMEDIATE) {
         virCommandAddArgList(cmd, "-mem-prealloc", NULL);
+        priv->memPrealloc = true;
+    }
 
     virCommandAddArgList(cmd, "-mem-path", mem_path, NULL);
     VIR_FREE(mem_path);
@@ -7612,7 +7648,8 @@ static int
 qemuBuildMemCommandLine(virCommandPtr cmd,
                         virQEMUDriverConfigPtr cfg,
                         const virDomainDef *def,
-                        virQEMUCapsPtr qemuCaps)
+                        virQEMUCapsPtr qemuCaps,
+                        qemuDomainObjPrivatePtr priv)
 {
     if (qemuDomainDefValidateMemoryHotplug(def, qemuCaps, NULL) < 0)
         return -1;
@@ -7631,15 +7668,17 @@ qemuBuildMemCommandLine(virCommandPtr cmd,
                               virDomainDefGetMemoryInitial(def) / 1024);
     }
 
-    if (def->mem.allocation == VIR_DOMAIN_MEMORY_ALLOCATION_IMMEDIATE)
+    if (def->mem.allocation == VIR_DOMAIN_MEMORY_ALLOCATION_IMMEDIATE) {
         virCommandAddArgList(cmd, "-mem-prealloc", NULL);
+        priv->memPrealloc = true;
+    }
 
     /*
      * Add '-mem-path' (and '-mem-prealloc') parameter here if
      * the hugepages and no numa node is specified.
      */
     if (!virDomainNumaGetNodeCount(def->numa) &&
-        qemuBuildMemPathStr(cfg, def, cmd) < 0)
+        qemuBuildMemPathStr(cfg, def, cmd, priv) < 0)
         return -1;
 
     if (def->mem.locked && !virQEMUCapsGet(qemuCaps, QEMU_CAPS_REALTIME_MLOCK)) {
@@ -7748,7 +7787,7 @@ qemuBuildNumaArgStr(virQEMUDriverConfigPtr cfg,
     }
 
     if (!needBackend &&
-        qemuBuildMemPathStr(cfg, def, cmd) < 0)
+        qemuBuildMemPathStr(cfg, def, cmd, priv) < 0)
         goto cleanup;
 
     for (i = 0; i < ncells; i++) {
@@ -7860,7 +7899,7 @@ qemuBuildMemoryDeviceCommandLine(virCommandPtr cmd,
         virCommandAddArg(cmd, "-object");
         virCommandAddArgBuffer(cmd, &buf);
 
-        if (!(dimmStr = qemuBuildMemoryDeviceStr(def->mems[i])))
+        if (!(dimmStr = qemuBuildMemoryDeviceStr(def->mems[i], priv)))
             return -1;
 
         virCommandAddArgList(cmd, "-device", dimmStr, NULL);
@@ -8308,6 +8347,43 @@ qemuBuildGraphicsSPICECommandLine(virQEMUDriverConfigPtr cfg,
 
 
 static int
+qemuBuildGraphicsEGLHeadlessCommandLine(virQEMUDriverConfigPtr cfg ATTRIBUTE_UNUSED,
+                                        virCommandPtr cmd,
+                                        virQEMUCapsPtr qemuCaps,
+                                        virDomainGraphicsDefPtr graphics)
+{
+    int ret = -1;
+    virBuffer opt = VIR_BUFFER_INITIALIZER;
+
+    virBufferAddLit(&opt, "egl-headless");
+
+    if (graphics->data.egl_headless.rendernode) {
+        if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_EGL_HEADLESS_RENDERNODE)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("This QEMU doesn't support OpenGL rendernode "
+                             "with egl-headless graphics type"));
+            goto cleanup;
+        }
+
+        virBufferAddLit(&opt, ",rendernode=");
+        virQEMUBuildBufferEscapeComma(&opt,
+                                      graphics->data.egl_headless.rendernode);
+    }
+
+    if (virBufferCheckError(&opt) < 0)
+        goto cleanup;
+
+    virCommandAddArg(cmd, "-display");
+    virCommandAddArgBuffer(cmd, &opt);
+
+    ret = 0;
+ cleanup:
+    virBufferFreeAndReset(&opt);
+    return ret;
+}
+
+
+static int
 qemuBuildGraphicsCommandLine(virQEMUDriverConfigPtr cfg,
                              virCommandPtr cmd,
                              virDomainDefPtr def,
@@ -8338,8 +8414,9 @@ qemuBuildGraphicsCommandLine(virQEMUDriverConfigPtr cfg,
 
             break;
         case VIR_DOMAIN_GRAPHICS_TYPE_EGL_HEADLESS:
-            virCommandAddArg(cmd, "-display");
-            virCommandAddArg(cmd, "egl-headless");
+            if (qemuBuildGraphicsEGLHeadlessCommandLine(cfg, cmd,
+                                                        qemuCaps, graphics) < 0)
+                return -1;
 
             break;
         case VIR_DOMAIN_GRAPHICS_TYPE_RDP:
@@ -9223,7 +9300,9 @@ static bool
 qemuChrIsPlatformDevice(const virDomainDef *def,
                         virDomainChrDefPtr chr)
 {
-    if (def->os.arch == VIR_ARCH_ARMV7L || def->os.arch == VIR_ARCH_AARCH64) {
+    if (def->os.arch == VIR_ARCH_ARMV6L ||
+        def->os.arch == VIR_ARCH_ARMV7L ||
+        def->os.arch == VIR_ARCH_AARCH64) {
 
         /* pl011 (used on mach-virt) is a platform device */
         if (chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL &&
@@ -10401,7 +10480,7 @@ qemuBuildCommandLine(virQEMUDriverPtr driver,
     if (!migrateURI && !snapshot && qemuDomainAlignMemorySizes(def) < 0)
         goto error;
 
-    if (qemuBuildMemCommandLine(cmd, cfg, def, qemuCaps) < 0)
+    if (qemuBuildMemCommandLine(cmd, cfg, def, qemuCaps, priv) < 0)
         goto error;
 
     if (qemuBuildSmpCommandLine(cmd, def) < 0)

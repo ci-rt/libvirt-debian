@@ -17,12 +17,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
-#ifndef __QEMU_DOMAIN_H__
-# define __QEMU_DOMAIN_H__
+#ifndef LIBVIRT_QEMU_DOMAIN_H
+# define LIBVIRT_QEMU_DOMAIN_H
 
 # include "virthread.h"
 # include "vircgroup.h"
@@ -372,6 +370,9 @@ struct _qemuDomainObjPrivate {
 
     /* true if libvirt remembers the original owner for files */
     bool rememberOwner;
+
+    /* true if global -mem-prealloc appears on cmd line */
+    bool memPrealloc;
 };
 
 # define QEMU_DOMAIN_PRIVATE(vm) \
@@ -489,6 +490,7 @@ typedef enum {
     QEMU_PROCESS_EVENT_BLOCK_JOB,
     QEMU_PROCESS_EVENT_MONITOR_EOF,
     QEMU_PROCESS_EVENT_PR_DISCONNECT,
+    QEMU_PROCESS_EVENT_RDMA_GID_STATUS_CHANGED,
 
     QEMU_PROCESS_EVENT_LAST
 } qemuProcessEventType;
@@ -1094,4 +1096,7 @@ qemuDomainRunningReasonToResumeEvent(virDomainRunningReason reason);
 bool
 qemuDomainIsUsingNoShutdown(qemuDomainObjPrivatePtr priv);
 
-#endif /* __QEMU_DOMAIN_H__ */
+bool
+qemuDomainDiskIsMissingLocalOptional(virDomainDiskDefPtr disk);
+
+#endif /* LIBVIRT_QEMU_DOMAIN_H */

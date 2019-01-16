@@ -17,14 +17,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *     Jim Fehlig <jfehlig@novell.com>
- *     Markus Groß <gross@univention.de>
  */
 
-#ifndef LIBXL_CONF_H
-# define LIBXL_CONF_H
+#ifndef LIBVIRT_LIBXL_CONF_H
+# define LIBVIRT_LIBXL_CONF_H
 
 # include <libxl.h>
 
@@ -232,4 +228,4 @@ libxlDriverUnlock(libxlDriverPrivatePtr driver)
     virMutexUnlock(&driver->lock);
 }
 
-#endif /* LIBXL_CONF_H */
+#endif /* LIBVIRT_LIBXL_CONF_H */

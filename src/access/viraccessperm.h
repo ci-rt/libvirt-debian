@@ -18,8 +18,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __VIR_ACCESS_PERM_H__
-# define __VIR_ACCESS_PERM_H__
+#ifndef LIBVIRT_VIRACCESSPERM_H
+# define LIBVIRT_VIRACCESSPERM_H
 
 # include "internal.h"
 # include "virutil.h"
@@ -417,7 +417,7 @@ typedef enum {
 
     /**
      * @desc: Access node device
-     * @message: Accesing node device requires authorization
+     * @message: Accessing node device requires authorization
      * @anonymous: 1
      */
     VIR_ACCESS_PERM_NODE_DEVICE_GETATTR,
@@ -637,7 +637,7 @@ typedef enum {
 
     /**
      * @desc: Access storage volume
-     * @message: Acceessing storage volume requires authorization
+     * @message: Accessing storage volume requires authorization
      * @anonymous: 1
      */
     VIR_ACCESS_PERM_STORAGE_VOL_GETATTR,
@@ -699,4 +699,4 @@ VIR_ENUM_DECL(virAccessPermSecret);
 VIR_ENUM_DECL(virAccessPermStoragePool);
 VIR_ENUM_DECL(virAccessPermStorageVol);
 
-#endif /* __VIR_ACCESS_PERM_H__ */
+#endif /* LIBVIRT_VIRACCESSPERM_H */

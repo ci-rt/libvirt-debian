@@ -16,13 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *     Mark McLoughlin <markmc@redhat.com>
  */
 
-#ifndef __VIR_UUID_H__
-# define __VIR_UUID_H__
+#ifndef LIBVIRT_VIRUUID_H
+# define LIBVIRT_VIRUUID_H
 
 # include "internal.h"
 
@@ -58,4 +55,4 @@ int virUUIDParse(const char *uuidstr,
 const char *virUUIDFormat(const unsigned char *uuid,
                           char *uuidstr) ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
-#endif /* __VIR_UUID_H__ */
+#endif /* LIBVIRT_VIRUUID_H */

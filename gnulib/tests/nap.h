@@ -1,5 +1,5 @@
 /* Assist in file system timestamp tests.
-   Copyright (C) 2009-2018 Free Software Foundation, Inc.
+   Copyright (C) 2009-2019 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -64,8 +64,8 @@ nap_get_stat (struct stat *st, int do_write)
   if (do_write)
     {
       ASSERT (write (nap_fd, "\n", 1) == 1);
-#if defined _WIN32 && ! defined __CYGWIN__
-      /* On native Windows, the modification times are not changed until NAP_FD
+#if defined _WIN32 || defined __CYGWIN__
+      /* On Windows, the modification times are not changed until NAP_FD
          is closed. See
          https://msdn.microsoft.com/en-us/library/windows/desktop/aa365747(v=vs.85).aspx */
       close (nap_fd);

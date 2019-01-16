@@ -1,4 +1,3 @@
-/*---------------------------------------------------------------------------*/
 /*
  * Copyright (C) 2014 Red Hat, Inc.
  * Copyright 2010, diateam (www.diateam.net)
@@ -18,10 +17,9 @@
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  */
-/*---------------------------------------------------------------------------*/
 
-#ifndef VMWARE_CONF_H
-# define VMWARE_CONF_H
+#ifndef LIBVIRT_VMWARE_CONF_H
+# define LIBVIRT_VMWARE_CONF_H
 
 # define NOGUI "nogui"
 
@@ -87,4 +85,4 @@ int vmwareExtractPid(const char * vmxPath);
 
 char *vmwareCopyVMXFileName(const char *datastorePath, void *opaque);
 
-#endif
+#endif /* LIBVIRT_VMWARE_CONF_H */
