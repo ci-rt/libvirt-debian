@@ -4226,3 +4226,127 @@ virStorageBackendZeroPartitionTable(const char *path,
     return storageBackendVolWipeLocalFile(path, VIR_STORAGE_VOL_WIPE_ALG_ZERO,
                                           size, true);
 }
+
+
+/**
+ * virStorageBackendFileSystemGetPoolSource
+ * @pool: storage pool object pointer
+ *
+ * Allocate/return a string representing the FS storage pool source.
+ * It is up to the caller to VIR_FREE the allocated string
+ */
+char *
+virStorageBackendFileSystemGetPoolSource(virStoragePoolObjPtr pool)
+{
+    virStoragePoolDefPtr def = virStoragePoolObjGetDef(pool);
+    char *src = NULL;
+
+    if (def->type == VIR_STORAGE_POOL_NETFS) {
+        if (def->source.format == VIR_STORAGE_POOL_NETFS_CIFS) {
+            if (virAsprintf(&src, "//%s/%s",
+                            def->source.hosts[0].name,
+                            def->source.dir) < 0)
+                return NULL;
+        } else {
+            if (virAsprintf(&src, "%s:%s",
+                            def->source.hosts[0].name,
+                            def->source.dir) < 0)
+                return NULL;
+        }
+    } else {
+        if (VIR_STRDUP(src, def->source.devices[0].path) < 0)
+            return NULL;
+    }
+    return src;
+}
+
+
+static void
+virStorageBackendFileSystemMountNFSArgs(virCommandPtr cmd,
+                                        const char *src,
+                                        virStoragePoolDefPtr def)
+{
+    virCommandAddArgList(cmd, src, def->target.path, NULL);
+}
+
+
+static void
+virStorageBackendFileSystemMountGlusterArgs(virCommandPtr cmd,
+                                            const char *src,
+                                            virStoragePoolDefPtr def)
+{
+    const char *fmt;
+
+    fmt = virStoragePoolFormatFileSystemNetTypeToString(def->source.format);
+    virCommandAddArgList(cmd, "-t", fmt, src, "-o", "direct-io-mode=1",
+                         def->target.path, NULL);
+}
+
+
+static void
+virStorageBackendFileSystemMountCIFSArgs(virCommandPtr cmd,
+                                         const char *src,
+                                         virStoragePoolDefPtr def)
+{
+    const char *fmt;
+
+    fmt = virStoragePoolFormatFileSystemNetTypeToString(def->source.format);
+    virCommandAddArgList(cmd, "-t", fmt, src, def->target.path,
+                         "-o", "guest", NULL);
+}
+
+
+static void
+virStorageBackendFileSystemMountDefaultArgs(virCommandPtr cmd,
+                                            const char *src,
+                                            virStoragePoolDefPtr def)
+{
+    const char *fmt;
+
+    if (def->type == VIR_STORAGE_POOL_FS)
+        fmt = virStoragePoolFormatFileSystemTypeToString(def->source.format);
+    else
+        fmt = virStoragePoolFormatFileSystemNetTypeToString(def->source.format);
+    virCommandAddArgList(cmd, "-t", fmt, src, def->target.path, NULL);
+}
+
+
+virCommandPtr
+virStorageBackendFileSystemMountCmd(const char *cmdstr,
+                                    virStoragePoolDefPtr def,
+                                    const char *src)
+{
+    /* 'mount -t auto' doesn't seem to auto determine nfs (or cifs),
+     *  while plain 'mount' does. We have to craft separate argvs to
+     *  accommodate this */
+    bool netauto = (def->type == VIR_STORAGE_POOL_NETFS &&
+                    def->source.format == VIR_STORAGE_POOL_NETFS_AUTO);
+    bool glusterfs = (def->type == VIR_STORAGE_POOL_NETFS &&
+                      def->source.format == VIR_STORAGE_POOL_NETFS_GLUSTERFS);
+    bool cifsfs = (def->type == VIR_STORAGE_POOL_NETFS &&
+                   def->source.format == VIR_STORAGE_POOL_NETFS_CIFS);
+    virCommandPtr cmd = NULL;
+
+    cmd = virCommandNew(cmdstr);
+    if (netauto)
+        virStorageBackendFileSystemMountNFSArgs(cmd, src, def);
+    else if (glusterfs)
+        virStorageBackendFileSystemMountGlusterArgs(cmd, src, def);
+    else if (cifsfs)
+        virStorageBackendFileSystemMountCIFSArgs(cmd, src, def);
+    else
+        virStorageBackendFileSystemMountDefaultArgs(cmd, src, def);
+    return cmd;
+}
+
+
+virCommandPtr
+virStorageBackendLogicalChangeCmd(const char *cmdstr,
+                                  virStoragePoolDefPtr def,
+                                  bool on)
+{
+    return virCommandNewArgList(cmdstr,
+                                on ? "-aly" : "-aln",
+                                def->source.name,
+                                NULL);
+}

@@ -15,10 +15,6 @@
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
- * Authors:
- *     James Morris <jmorris@namei.org>
- *     Dan Walsh <dwalsh@redhat.com>
- *
  * SELinux security driver.
  */
 #include <config.h>
@@ -33,6 +29,7 @@
 
 #include "security_driver.h"
 #include "security_selinux.h"
+#include "security_util.h"
 #include "virerror.h"
 #include "viralloc.h"
 #include "virlog.h"
@@ -85,6 +82,7 @@ struct _virSecuritySELinuxContextItem {
     char *path;
     char *tcon;
     bool optional;
+    bool restore;
 };
 
 typedef struct _virSecuritySELinuxContextList virSecuritySELinuxContextList;
@@ -123,7 +121,8 @@ static int
 virSecuritySELinuxContextListAppend(virSecuritySELinuxContextListPtr list,
                                     const char *path,
                                     const char *tcon,
-                                    bool optional)
+                                    bool optional,
+                                    bool restore)
 {
     int ret = -1;
     virSecuritySELinuxContextItemPtr item = NULL;
@@ -135,6 +134,7 @@ virSecuritySELinuxContextListAppend(virSecuritySELinuxContextListPtr list,
         goto cleanup;
 
     item->optional = optional;
+    item->restore = restore;
 
     if (VIR_APPEND_ELEMENT(list->items, list->nItems, item) < 0)
         goto cleanup;
@@ -178,7 +178,8 @@ virSecuritySELinuxContextListFree(void *opaque)
 static int
 virSecuritySELinuxTransactionAppend(const char *path,
                                     const char *tcon,
-                                    bool optional)
+                                    bool optional,
+                                    bool restore)
 {
     virSecuritySELinuxContextListPtr list;
 
@@ -186,17 +187,48 @@ virSecuritySELinuxTransactionAppend(const char *path,
     if (!list)
         return 0;
 
-    if (virSecuritySELinuxContextListAppend(list, path, tcon, optional) < 0)
+    if (virSecuritySELinuxContextListAppend(list, path, tcon, optional, restore) < 0)
         return -1;
 
     return 1;
 }
 
 
-static int virSecuritySELinuxSetFileconHelper(const char *path,
+static int
+virSecuritySELinuxRememberLabel(const char *path,
+                                const security_context_t con)
+{
+    return virSecuritySetRememberedLabel(SECURITY_SELINUX_NAME,
+                                         path, con);
+}
+
+
+static int
+virSecuritySELinuxRecallLabel(const char *path,
+                              security_context_t *con)
+{
+    if (virSecurityGetRememberedLabel(SECURITY_SELINUX_NAME,
+                                      path, con) < 0)
+        return -1;
+
+    if (!*con)
+        return 1;
+
+    return 0;
+}
+
+
+static int virSecuritySELinuxSetFileconHelper(virSecurityManagerPtr mgr,
+                                              const char *path,
                                               const char *tcon,
                                               bool optional,
-                                              bool privileged);
+                                              bool remember);
+
+
+static int virSecuritySELinuxRestoreFileLabel(virSecurityManagerPtr mgr,
+                                              const char *path,
+                                              bool recall);
+
 
 /**
  * virSecuritySELinuxTransactionRun:
@@ -216,7 +248,6 @@ virSecuritySELinuxTransactionRun(pid_t pid ATTRIBUTE_UNUSED,
 {
     virSecuritySELinuxContextListPtr list = opaque;
     virSecurityManagerMetadataLockStatePtr state;
-    bool privileged = virSecurityManagerGetPrivileged(list->manager);
     const char **paths = NULL;
     size_t npaths = 0;
     size_t i;
@@ -241,13 +272,31 @@ virSecuritySELinuxTransactionRun(pid_t pid ATTRIBUTE_UNUSED,
     for (i = 0; i < list->nItems; i++) {
         virSecuritySELinuxContextItemPtr item = list->items[i];
 
-        /* TODO Implement rollback */
-        if (virSecuritySELinuxSetFileconHelper(item->path,
-                                               item->tcon,
-                                               item->optional,
-                                               privileged) < 0) {
-            rv = -1;
+        if (!item->restore) {
+            rv = virSecuritySELinuxSetFileconHelper(list->manager,
+                                                    item->path,
+                                                    item->tcon,
+                                                    item->optional,
+                                                    list->lock);
+        } else {
+            rv = virSecuritySELinuxRestoreFileLabel(list->manager,
+                                                    item->path,
+                                                    list->lock);
+        }
+
+        if (rv < 0)
             break;
+    }
+
+    for (; rv < 0 && i > 0; i--) {
+        virSecuritySELinuxContextItemPtr item = list->items[i - 1];
+
+        if (!item->restore) {
+            virSecuritySELinuxRestoreFileLabel(list->manager,
+                                               item->path,
+                                               list->lock);
+        } else {
+            VIR_WARN("Ignoring failed restore attempt on %s", item->path);
         }
     }
 
@@ -1260,17 +1309,74 @@ virSecuritySELinuxSetFileconImpl(const char *path, const char *tcon,
 
 
 static int
-virSecuritySELinuxSetFileconHelper(const char *path, const char *tcon,
-                                   bool optional, bool privileged)
+virSecuritySELinuxSetFileconHelper(virSecurityManagerPtr mgr,
+                                   const char *path,
+                                   const char *tcon,
+                                   bool optional,
+                                   bool remember)
 {
+    bool privileged = virSecurityManagerGetPrivileged(mgr);
+    security_context_t econ = NULL;
+    int refcount;
     int rc;
+    int ret = -1;
 
-    if ((rc = virSecuritySELinuxTransactionAppend(path, tcon, optional)) < 0)
+    if ((rc = virSecuritySELinuxTransactionAppend(path, tcon, optional, false)) < 0)
         return -1;
     else if (rc > 0)
         return 0;
 
-    return virSecuritySELinuxSetFileconImpl(path, tcon, optional, privileged);
+    if (remember) {
+        if (getfilecon_raw(path, &econ) < 0 &&
+            errno != ENOTSUP && errno != ENODATA) {
+            virReportSystemError(errno,
+                                 _("unable to get SELinux context of %s"),
+                                 path);
+            goto cleanup;
+        }
+
+        if (econ) {
+            refcount = virSecuritySELinuxRememberLabel(path, econ);
+            if (refcount < 0) {
+                goto cleanup;
+            } else if (refcount > 1) {
+                /* Refcount is greater than 1 which means that there
+                 * is @refcount domains using the @path. Do not
+                 * change the label (as it would almost certainly
+                 * cause the other domains to lose access to the
+                 * @path). */
+                if (STRNEQ(econ, tcon)) {
+                    virReportError(VIR_ERR_OPERATION_INVALID,
+                                   _("Setting different SELinux label on %s "
+                                     "which is already in use"), path);
+                    goto cleanup;
+                }
+            }
+        }
+    }
+
+    if (virSecuritySELinuxSetFileconImpl(path, tcon, optional, privileged) < 0) {
+        virErrorPtr origerr;
+
+        virErrorPreserveLast(&origerr);
+        /* Try to restore the label. This is done so that XATTRs
+         * are left in the same state as when the control entered
+         * this function. However, if our attempt fails, there's
+         * not much we can do. XATTRs refcounting is fubar'ed and
+         * the only option we have is warn users. */
+        if (virSecuritySELinuxRestoreFileLabel(mgr, path, remember) < 0)
+            VIR_WARN("Unable to restore label on '%s'. "
+                     "XATTRs might have been left in inconsistent state.",
+                     path);
+
+        virErrorRestore(&origerr);
+        goto cleanup;
+    }
+
+    ret = 0;
+ cleanup:
+    freecon(econ);
+    return ret;
 }
 
 
@@ -1278,16 +1384,14 @@ static int
 virSecuritySELinuxSetFileconOptional(virSecurityManagerPtr mgr,
                                      const char *path, const char *tcon)
 {
-    bool privileged = virSecurityManagerGetPrivileged(mgr);
-    return virSecuritySELinuxSetFileconHelper(path, tcon, true, privileged);
+    return virSecuritySELinuxSetFileconHelper(mgr, path, tcon, true, false);
 }
 
 static int
 virSecuritySELinuxSetFilecon(virSecurityManagerPtr mgr,
                              const char *path, const char *tcon)
 {
-    bool privileged = virSecurityManagerGetPrivileged(mgr);
-    return virSecuritySELinuxSetFileconHelper(path, tcon, false, privileged);
+    return virSecuritySELinuxSetFileconHelper(mgr, path, tcon, false, false);
 }
 
 static int
@@ -1348,7 +1452,8 @@ getContext(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
  * errors that the caller(s) are already dealing with */
 static int
 virSecuritySELinuxRestoreFileLabel(virSecurityManagerPtr mgr,
-                                   const char *path)
+                                   const char *path,
+                                   bool recall)
 {
     bool privileged = virSecurityManagerGetPrivileged(mgr);
     struct stat buf;
@@ -1372,25 +1477,36 @@ virSecuritySELinuxRestoreFileLabel(virSecurityManagerPtr mgr,
         goto cleanup;
     }
 
-    if (stat(newpath, &buf) != 0) {
-        VIR_WARN("cannot stat %s: %s", newpath,
-                 virStrerror(errno, ebuf, sizeof(ebuf)));
+    if ((rc = virSecuritySELinuxTransactionAppend(path, NULL, false, true)) < 0) {
         goto cleanup;
-    }
-
-    if (getContext(mgr, newpath, buf.st_mode, &fcon) < 0) {
-        /* Any user created path likely does not have a default label,
-         * which makes this an expected non error
-         */
-        VIR_WARN("cannot lookup default selinux label for %s", newpath);
+    } else if (rc > 0) {
         ret = 0;
         goto cleanup;
     }
 
-    if ((rc = virSecuritySELinuxTransactionAppend(path, fcon, false)) < 0)
-        return -1;
-    else if (rc > 0)
-        return 0;
+    if (recall) {
+        if ((rc = virSecuritySELinuxRecallLabel(newpath, &fcon)) < 0) {
+            goto cleanup;
+        } else if (rc > 0) {
+            ret = 0;
+            goto cleanup;
+        }
+    } else {
+        if (stat(newpath, &buf) != 0) {
+            VIR_WARN("cannot stat %s: %s", newpath,
+                     virStrerror(errno, ebuf, sizeof(ebuf)));
+            goto cleanup;
+        }
+
+        if (getContext(mgr, newpath, buf.st_mode, &fcon) < 0) {
+            /* Any user created path likely does not have a default label,
+             * which makes this an expected non error
+             */
+            VIR_WARN("cannot lookup default selinux label for %s", newpath);
+            ret = 0;
+            goto cleanup;
+        }
+    }
 
     if (virSecuritySELinuxSetFileconImpl(newpath, fcon, false, privileged) < 0)
         goto cleanup;
@@ -1446,7 +1562,7 @@ virSecuritySELinuxRestoreInputLabel(virSecurityManagerPtr mgr,
 
     switch ((virDomainInputType)input->type) {
     case VIR_DOMAIN_INPUT_TYPE_PASSTHROUGH:
-        rc = virSecuritySELinuxRestoreFileLabel(mgr, input->source.evdev);
+        rc = virSecuritySELinuxRestoreFileLabel(mgr, input->source.evdev, false);
         break;
 
     case VIR_DOMAIN_INPUT_TYPE_MOUSE:
@@ -1502,7 +1618,7 @@ virSecuritySELinuxRestoreMemoryLabel(virSecurityManagerPtr mgr,
         if (!seclabel || !seclabel->relabel)
             return 0;
 
-        ret = virSecuritySELinuxRestoreFileLabel(mgr, mem->nvdimmPath);
+        ret = virSecuritySELinuxRestoreFileLabel(mgr, mem->nvdimmPath, false);
         break;
 
     case VIR_DOMAIN_MEMORY_MODEL_DIMM:
@@ -1581,10 +1697,10 @@ virSecuritySELinuxRestoreTPMFileLabelInt(virSecurityManagerPtr mgr,
     switch (tpm->type) {
     case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
         tpmdev = tpm->data.passthrough.source.data.file.path;
-        rc = virSecuritySELinuxRestoreFileLabel(mgr, tpmdev);
+        rc = virSecuritySELinuxRestoreFileLabel(mgr, tpmdev, false);
 
         if ((cancel_path = virTPMCreateCancelPath(tpmdev)) != NULL) {
-            if (virSecuritySELinuxRestoreFileLabel(mgr, cancel_path) < 0)
+            if (virSecuritySELinuxRestoreFileLabel(mgr, cancel_path, false) < 0)
                 rc = -1;
             VIR_FREE(cancel_path);
         }
@@ -1651,7 +1767,7 @@ virSecuritySELinuxRestoreImageLabelInt(virSecurityManagerPtr mgr,
         }
     }
 
-    return virSecuritySELinuxRestoreFileLabel(mgr, src->path);
+    return virSecuritySELinuxRestoreFileLabel(mgr, src->path, false);
 }
 
 
@@ -2039,7 +2155,7 @@ virSecuritySELinuxRestorePCILabel(virPCIDevicePtr dev ATTRIBUTE_UNUSED,
 {
     virSecurityManagerPtr mgr = opaque;
 
-    return virSecuritySELinuxRestoreFileLabel(mgr, file);
+    return virSecuritySELinuxRestoreFileLabel(mgr, file, false);
 }
 
 static int
@@ -2049,7 +2165,7 @@ virSecuritySELinuxRestoreUSBLabel(virUSBDevicePtr dev ATTRIBUTE_UNUSED,
 {
     virSecurityManagerPtr mgr = opaque;
 
-    return virSecuritySELinuxRestoreFileLabel(mgr, file);
+    return virSecuritySELinuxRestoreFileLabel(mgr, file, false);
 }
 
 
@@ -2066,7 +2182,7 @@ virSecuritySELinuxRestoreSCSILabel(virSCSIDevicePtr dev,
     if (virSCSIDeviceGetShareable(dev) || virSCSIDeviceGetReadonly(dev))
         return 0;
 
-    return virSecuritySELinuxRestoreFileLabel(mgr, file);
+    return virSecuritySELinuxRestoreFileLabel(mgr, file, false);
 }
 
 static int
@@ -2076,7 +2192,7 @@ virSecuritySELinuxRestoreHostLabel(virSCSIVHostDevicePtr dev ATTRIBUTE_UNUSED,
 {
     virSecurityManagerPtr mgr = opaque;
 
-    return virSecuritySELinuxRestoreFileLabel(mgr, file);
+    return virSecuritySELinuxRestoreFileLabel(mgr, file, false);
 }
 
 
@@ -2180,7 +2296,7 @@ virSecuritySELinuxRestoreHostdevSubsysLabel(virSecurityManagerPtr mgr,
         if (!(vfiodev = virMediatedDeviceGetIOMMUGroupDev(mdevsrc->uuidstr)))
             goto done;
 
-        ret = virSecuritySELinuxRestoreFileLabel(mgr, vfiodev);
+        ret = virSecuritySELinuxRestoreFileLabel(mgr, vfiodev, false);
 
         VIR_FREE(vfiodev);
         break;
@@ -2214,7 +2330,7 @@ virSecuritySELinuxRestoreHostdevCapsLabel(virSecurityManagerPtr mgr,
             if (VIR_STRDUP(path, dev->source.caps.u.storage.block) < 0)
                 return -1;
         }
-        ret = virSecuritySELinuxRestoreFileLabel(mgr, path);
+        ret = virSecuritySELinuxRestoreFileLabel(mgr, path, false);
         VIR_FREE(path);
         break;
     }
@@ -2228,7 +2344,7 @@ virSecuritySELinuxRestoreHostdevCapsLabel(virSecurityManagerPtr mgr,
             if (VIR_STRDUP(path, dev->source.caps.u.misc.chardev) < 0)
                 return -1;
         }
-        ret = virSecuritySELinuxRestoreFileLabel(mgr, path);
+        ret = virSecuritySELinuxRestoreFileLabel(mgr, path, false);
         VIR_FREE(path);
         break;
     }
@@ -2376,14 +2492,18 @@ virSecuritySELinuxRestoreChardevLabel(virSecurityManagerPtr mgr,
     switch (dev_source->type) {
     case VIR_DOMAIN_CHR_TYPE_DEV:
     case VIR_DOMAIN_CHR_TYPE_FILE:
-        if (virSecuritySELinuxRestoreFileLabel(mgr, dev_source->data.file.path) < 0)
+        if (virSecuritySELinuxRestoreFileLabel(mgr,
+                                               dev_source->data.file.path,
+                                               false) < 0)
             goto done;
         ret = 0;
         break;
 
     case VIR_DOMAIN_CHR_TYPE_UNIX:
         if (!dev_source->data.nix.listen) {
-            if (virSecuritySELinuxRestoreFileLabel(mgr, dev_source->data.file.path) < 0)
+            if (virSecuritySELinuxRestoreFileLabel(mgr,
+                                                   dev_source->data.file.path,
+                                                   false) < 0)
                 goto done;
         }
         ret = 0;
@@ -2394,11 +2514,13 @@ virSecuritySELinuxRestoreChardevLabel(virSecurityManagerPtr mgr,
             (virAsprintf(&in, "%s.in", dev_source->data.file.path) < 0))
             goto done;
         if (virFileExists(in) && virFileExists(out)) {
-            if ((virSecuritySELinuxRestoreFileLabel(mgr, out) < 0) ||
-                (virSecuritySELinuxRestoreFileLabel(mgr, in) < 0)) {
+            if ((virSecuritySELinuxRestoreFileLabel(mgr, out, false) < 0) ||
+                (virSecuritySELinuxRestoreFileLabel(mgr, in, false) < 0)) {
                 goto done;
             }
-        } else if (virSecuritySELinuxRestoreFileLabel(mgr, dev_source->data.file.path) < 0) {
+        } else if (virSecuritySELinuxRestoreFileLabel(mgr,
+                                                      dev_source->data.file.path,
+                                                      false) < 0) {
             goto done;
         }
         ret = 0;
@@ -2450,7 +2572,7 @@ virSecuritySELinuxRestoreSecuritySmartcardCallback(virDomainDefPtr def,
         database = dev->data.cert.database;
         if (!database)
             database = VIR_DOMAIN_SMARTCARD_DEFAULT_DATABASE;
-        return virSecuritySELinuxRestoreFileLabel(mgr, database);
+        return virSecuritySELinuxRestoreFileLabel(mgr, database, false);
 
     case VIR_DOMAIN_SMARTCARD_TYPE_PASSTHROUGH:
         return virSecuritySELinuxRestoreChardevLabel(mgr, def,
@@ -2496,8 +2618,11 @@ virSecuritySELinuxRestoreAllLabel(virSecurityManagerPtr mgr,
     if (!secdef || !secdef->relabel || data->skipAllLabel)
         return 0;
 
-    if (def->tpm) {
-        if (virSecuritySELinuxRestoreTPMFileLabelInt(mgr, def, def->tpm) < 0)
+    for (i = 0; i < def->ndisks; i++) {
+        virDomainDiskDefPtr disk = def->disks[i];
+
+        if (virSecuritySELinuxRestoreImageLabelInt(mgr, def, disk->src,
+                                                   migrated) < 0)
             rc = -1;
     }
 
@@ -2519,11 +2644,8 @@ virSecuritySELinuxRestoreAllLabel(virSecurityManagerPtr mgr,
             return -1;
     }
 
-    for (i = 0; i < def->ndisks; i++) {
-        virDomainDiskDefPtr disk = def->disks[i];
-
-        if (virSecuritySELinuxRestoreImageLabelInt(mgr, def, disk->src,
-                                                   migrated) < 0)
+    if (def->tpm) {
+        if (virSecuritySELinuxRestoreTPMFileLabelInt(mgr, def, def->tpm) < 0)
             rc = -1;
     }
 
@@ -2545,7 +2667,23 @@ virSecuritySELinuxRestoreAllLabel(virSecurityManagerPtr mgr,
         rc = -1;
 
     if (def->os.loader && def->os.loader->nvram &&
-        virSecuritySELinuxRestoreFileLabel(mgr, def->os.loader->nvram) < 0)
+        virSecuritySELinuxRestoreFileLabel(mgr, def->os.loader->nvram, false) < 0)
+        rc = -1;
+
+    if (def->os.kernel &&
+        virSecuritySELinuxRestoreFileLabel(mgr, def->os.kernel, false) < 0)
+        rc = -1;
+
+    if (def->os.initrd &&
+        virSecuritySELinuxRestoreFileLabel(mgr, def->os.initrd, false) < 0)
+        rc = -1;
+
+    if (def->os.dtb &&
+        virSecuritySELinuxRestoreFileLabel(mgr, def->os.dtb, false) < 0)
+        rc = -1;
+
+    if (def->os.slic_table &&
+        virSecuritySELinuxRestoreFileLabel(mgr, def->os.slic_table, false) < 0)
         rc = -1;
 
     return rc;
@@ -2605,7 +2743,7 @@ virSecuritySELinuxRestoreSavedStateLabel(virSecurityManagerPtr mgr,
     if (!secdef || !secdef->relabel)
         return 0;
 
-    return virSecuritySELinuxRestoreFileLabel(mgr, savefile);
+    return virSecuritySELinuxRestoreFileLabel(mgr, savefile, false);
 }
 
 
@@ -3200,7 +3338,7 @@ virSecuritySELinuxRestoreFileLabels(virSecurityManagerPtr mgr,
     char *filename = NULL;
     DIR *dir;
 
-    if ((ret = virSecuritySELinuxRestoreFileLabel(mgr, path)))
+    if ((ret = virSecuritySELinuxRestoreFileLabel(mgr, path, false)))
         return ret;
 
     if (!virFileIsDir(path))
@@ -3217,7 +3355,7 @@ virSecuritySELinuxRestoreFileLabels(virSecurityManagerPtr mgr,
             ret = -1;
             break;
         }
-        ret = virSecuritySELinuxRestoreFileLabel(mgr, filename);
+        ret = virSecuritySELinuxRestoreFileLabel(mgr, filename, false);
         VIR_FREE(filename);
         if (ret < 0)
             break;

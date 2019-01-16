@@ -16,11 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Stefan Berger <stefanb@linux.vnet.ibm.com>
  */
-#ifndef __QEMU_TPM_H__
-# define __QEMU_TPM_H__
+
+#ifndef LIBVIRT_QEMU_TPM_H
+# define LIBVIRT_QEMU_TPM_H
 
 # include "vircommand.h"
 
@@ -53,4 +52,4 @@ int qemuExtTPMSetupCgroup(virQEMUDriverPtr driver,
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
     ATTRIBUTE_RETURN_CHECK;
 
-#endif /* __QEMU_TPM_H__ */
+#endif /* LIBVIRT_QEMU_TPM_H */

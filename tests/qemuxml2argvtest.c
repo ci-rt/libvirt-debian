@@ -24,9 +24,8 @@
 # include "storage/storage_driver.h"
 # include "virmock.h"
 
-# define __QEMU_CAPSPRIV_H_ALLOW__
+# define LIBVIRT_QEMU_CAPSPRIV_H_ALLOW
 # include "qemu/qemu_capspriv.h"
-# undef __QEMU_CAPSPRIV_H_ALLOW__
 
 # include "testutilsqemu.h"
 
@@ -77,7 +76,9 @@ static virSecretPtr
 fakeSecretLookupByUUID(virConnectPtr conn,
                        const unsigned char *uuid)
 {
-    return virGetSecret(conn, uuid, 0, "");
+    /* NB: This mocked value could be "tls" or "volume" depending on
+     * which test is being run, we'll leave at NONE (or 0) */
+    return virGetSecret(conn, uuid, VIR_SECRET_USAGE_TYPE_NONE, "");
 }
 
 static virSecretDriver fakeSecretDriver = {
@@ -619,7 +620,7 @@ testCompareXMLToArgv(const void *data)
         goto cleanup;
     }
 
-    if (!(actualargv = virCommandToString(cmd)))
+    if (!(actualargv = virCommandToString(cmd, false)))
         goto cleanup;
 
     if (virTestCompareToFile(actualargv, args) < 0)
@@ -806,12 +807,21 @@ mymain(void)
 # define DO_TEST_CAPS_VER(name, ver) \
     DO_TEST_CAPS_ARCH_VER(name, "x86_64", ver)
 
-# define DO_TEST_CAPS_ARCH_LATEST(name, arch) \
-    DO_TEST_CAPS_INTERNAL(name, arch "-latest", NULL, 0, 0, arch, \
+# define DO_TEST_CAPS_ARCH_LATEST_FULL(name, arch, flags, parseFlags) \
+    DO_TEST_CAPS_INTERNAL(name, arch "-latest", NULL, flags, parseFlags, arch, \
                           virHashLookup(capslatest, arch), true)
+
+# define DO_TEST_CAPS_ARCH_LATEST(name, arch) \
+    DO_TEST_CAPS_ARCH_LATEST_FULL(name, arch, 0, 0)
 
 # define DO_TEST_CAPS_LATEST(name) \
     DO_TEST_CAPS_ARCH_LATEST(name, "x86_64")
+
+# define DO_TEST_CAPS_LATEST_FAILURE(name) \
+    DO_TEST_CAPS_ARCH_LATEST_FULL(name, "x86_64", FLAG_EXPECT_FAILURE, 0)
+
+# define DO_TEST_CAPS_LATEST_PARSE_ERROR(name) \
+    DO_TEST_CAPS_ARCH_LATEST_FULL(name, "x86_64", FLAG_EXPECT_PARSE_ERROR, 0)
 
 /**
  * The following test macros should be used only in cases when the tests require
@@ -1246,6 +1256,8 @@ mymain(void)
     DO_TEST("graphics-egl-headless",
             QEMU_CAPS_EGL_HEADLESS,
             QEMU_CAPS_DEVICE_CIRRUS_VGA);
+    DO_TEST_CAPS_LATEST("graphics-egl-headless");
+    DO_TEST_CAPS_LATEST("graphics-egl-headless-rendernode");
 
     DO_TEST("graphics-vnc", QEMU_CAPS_VNC, QEMU_CAPS_DEVICE_CIRRUS_VGA);
     DO_TEST("graphics-vnc-socket", QEMU_CAPS_VNC, QEMU_CAPS_DEVICE_CIRRUS_VGA);
@@ -1288,7 +1300,7 @@ mymain(void)
 
     DO_TEST("graphics-sdl",
             QEMU_CAPS_DEVICE_VGA);
-    DO_TEST_FAILURE("graphics-sdl-egl-headless", NONE);
+    DO_TEST_CAPS_LATEST_PARSE_ERROR("graphics-sdl-egl-headless");
     DO_TEST("graphics-sdl-fullscreen",
             QEMU_CAPS_DEVICE_CIRRUS_VGA);
     DO_TEST("graphics-spice",
@@ -1347,10 +1359,8 @@ mymain(void)
             QEMU_CAPS_SPICE,
             QEMU_CAPS_EGL_HEADLESS,
             QEMU_CAPS_DEVICE_QXL);
-    DO_TEST_FAILURE("graphics-spice-invalid-egl-headless",
-                    QEMU_CAPS_SPICE,
-                    QEMU_CAPS_EGL_HEADLESS,
-                    QEMU_CAPS_DEVICE_QXL);
+    DO_TEST_CAPS_LATEST_PARSE_ERROR("graphics-spice-invalid-egl-headless");
+    DO_TEST_CAPS_LATEST("graphics-spice-gl-auto-rendernode");
 
     DO_TEST("input-usbmouse", NONE);
     DO_TEST("input-usbtablet", NONE);
@@ -2745,15 +2755,12 @@ mymain(void)
     DO_TEST("memory-hotplug-ppc64-nonuma", QEMU_CAPS_KVM, QEMU_CAPS_DEVICE_PC_DIMM, QEMU_CAPS_NUMA,
             QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE,
             QEMU_CAPS_OBJECT_MEMORY_RAM, QEMU_CAPS_OBJECT_MEMORY_FILE);
-    DO_TEST("memory-hotplug-nvdimm",
-            QEMU_CAPS_DEVICE_NVDIMM,
-            QEMU_CAPS_NUMA, QEMU_CAPS_OBJECT_MEMORY_RAM, QEMU_CAPS_OBJECT_MEMORY_FILE);
-    DO_TEST("memory-hotplug-nvdimm-access",
-            QEMU_CAPS_DEVICE_NVDIMM,
-            QEMU_CAPS_NUMA, QEMU_CAPS_OBJECT_MEMORY_RAM, QEMU_CAPS_OBJECT_MEMORY_FILE);
-    DO_TEST("memory-hotplug-nvdimm-label",
-            QEMU_CAPS_DEVICE_NVDIMM,
-            QEMU_CAPS_NUMA, QEMU_CAPS_OBJECT_MEMORY_RAM, QEMU_CAPS_OBJECT_MEMORY_FILE);
+    DO_TEST_CAPS_LATEST("memory-hotplug-nvdimm");
+    DO_TEST_CAPS_LATEST("memory-hotplug-nvdimm-access");
+    DO_TEST_CAPS_LATEST("memory-hotplug-nvdimm-label");
+    DO_TEST_CAPS_LATEST("memory-hotplug-nvdimm-align");
+    DO_TEST_CAPS_LATEST("memory-hotplug-nvdimm-pmem");
+    DO_TEST_CAPS_LATEST("memory-hotplug-nvdimm-readonly");
 
     DO_TEST("machine-aeskeywrap-on-caps",
             QEMU_CAPS_AES_KEY_WRAP,

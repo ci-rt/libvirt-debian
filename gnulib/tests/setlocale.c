@@ -1,5 +1,5 @@
 /* Set the current locale.  -*- coding: utf-8 -*-
-   Copyright (C) 2009, 2011-2018 Free Software Foundation, Inc.
+   Copyright (C) 2009, 2011-2019 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -29,10 +29,23 @@
 /* Specification.  */
 #include <locale.h>
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "localename.h"
+
+#if HAVE_CFLOCALECOPYPREFERREDLANGUAGES || HAVE_CFPREFERENCESCOPYAPPVALUE
+# if HAVE_CFLOCALECOPYPREFERREDLANGUAGES
+#  include <CoreFoundation/CFLocale.h>
+# elif HAVE_CFPREFERENCESCOPYAPPVALUE
+#  include <CoreFoundation/CFPreferences.h>
+# endif
+# include <CoreFoundation/CFPropertyList.h>
+# include <CoreFoundation/CFArray.h>
+# include <CoreFoundation/CFString.h>
+extern void gl_locale_name_canonicalize (char *name);
+#endif
 
 #if 1
 
@@ -635,10 +648,8 @@ setlocale_unixlike (int category, const char *locale)
 
   /* The native Windows implementation of setlocale understands the special
      locale name "C", but not "POSIX".  Therefore map "POSIX" to "C".  */
-#if defined _WIN32 && !defined __CYGWIN__
   if (locale != NULL && strcmp (locale, "POSIX") == 0)
     locale = "C";
-#endif
 
   /* First, try setlocale with the original argument unchanged.  */
   result = setlocale (category, locale);
@@ -824,6 +835,7 @@ rpl_setlocale (int category, const char *locale)
           /* Set LC_CTYPE first.  Then the other categories.  */
           static int const categories[] =
             {
+              LC_CTYPE,
               LC_NUMERIC,
               LC_TIME,
               LC_COLLATE,
@@ -850,8 +862,21 @@ rpl_setlocale (int category, const char *locale)
           if (base_name == NULL)
             base_name = gl_locale_name_default ();
 
-          if (setlocale_unixlike (LC_ALL, base_name) == NULL)
-            goto fail;
+          if (setlocale_unixlike (LC_ALL, base_name) != NULL)
+            {
+              /* LC_CTYPE category already set.  */
+              i = 1;
+            }
+          else
+            {
+              /* On Mac OS X, "UTF-8" is a valid locale name for LC_CTYPE but
+                 not for LC_ALL.  Therefore this call may fail.  So, try
+                 another base_name.  */
+              base_name = "C";
+              if (setlocale_unixlike (LC_ALL, base_name) == NULL)
+                goto fail;
+              i = 0;
+            }
 # if defined _WIN32 && ! defined __CYGWIN__
           /* On native Windows, setlocale(LC_ALL,...) may succeed but set the
              LC_CTYPE category to an invalid value ("C") when it does not
@@ -861,7 +886,7 @@ rpl_setlocale (int category, const char *locale)
             goto fail;
 # endif
 
-          for (i = 0; i < sizeof (categories) / sizeof (categories[0]); i++)
+          for (; i < sizeof (categories) / sizeof (categories[0]); i++)
             {
               int cat = categories[i];
               const char *name;
@@ -878,7 +903,85 @@ rpl_setlocale (int category, const char *locale)
 # endif
                  )
                 if (setlocale_single (cat, name) == NULL)
+# if defined __APPLE__ && defined __MACH__
+                  {
+                    /* On Mac OS X 10.13, some locales can be set through
+                       System Preferences > Language & Region, that are not
+                       supported by libc.  The system's setlocale() falls
+                       back to "C" for these locale categories.  We can possibly
+                       do better.  If we can't, print a warning, to limit user
+                       expectations.  */
+                    int warn = 1;
+
+                    if (cat == LC_CTYPE)
+                      warn = (setlocale_single (cat, "UTF-8") == NULL);
+#  if HAVE_CFLOCALECOPYPREFERREDLANGUAGES || HAVE_CFPREFERENCESCOPYAPPVALUE /* MacOS X 10.4 or newer */
+                    else if (cat == LC_MESSAGES)
+                      {
+                        /* Take the primary language preference.  */
+#   if HAVE_CFLOCALECOPYPREFERREDLANGUAGES /* MacOS X 10.5 or newer */
+                        CFArrayRef prefArray = CFLocaleCopyPreferredLanguages ();
+#   elif HAVE_CFPREFERENCESCOPYAPPVALUE /* MacOS X 10.4 or newer */
+                        CFTypeRef preferences =
+                          CFPreferencesCopyAppValue (CFSTR ("AppleLanguages"),
+                                                     kCFPreferencesCurrentApplication);
+                        if (preferences != NULL
+                            && CFGetTypeID (preferences) == CFArrayGetTypeID ())
+                          {
+                            CFArrayRef prefArray = (CFArrayRef)preferences;
+#   endif
+                            int n = CFArrayGetCount (prefArray);
+                            if (n > 0)
+                              {
+                                char buf[256];
+                                CFTypeRef element = CFArrayGetValueAtIndex (prefArray, 0);
+                                if (element != NULL
+                                    && CFGetTypeID (element) == CFStringGetTypeID ()
+                                    && CFStringGetCString ((CFStringRef)element,
+                                                           buf, sizeof (buf),
+                                                           kCFStringEncodingASCII))
+                                  {
+                                    /* Remove the country.
+                                       E.g. "zh-Hans-DE" -> "zh-Hans".  */
+                                    char *last_minus = strrchr (buf, '-');
+                                    if (last_minus != NULL)
+                                      *last_minus = '\0';
+
+                                    /* Convert to Unix locale name.
+                                       E.g. "zh-Hans" -> "zh_CN".  */
+                                    gl_locale_name_canonicalize (buf);
+
+                                    /* Try setlocale with this value.  */
+                                    warn = (setlocale_single (cat, buf) == NULL);
+                                  }
+                              }
+#   if HAVE_CFLOCALECOPYPREFERREDLANGUAGES /* MacOS X 10.5 or newer */
+                        CFRelease (prefArray);
+#   elif HAVE_CFPREFERENCESCOPYAPPVALUE /* MacOS X 10.4 or newer */
+                          }
+#   endif
+                      }
+#  endif
+                    /* No fallback possible for LC_NUMERIC.  The application
+                       should use the locale properties
+                       kCFLocaleDecimalSeparator, kCFLocaleGroupingSeparator.
+                       No fallback possible for LC_TIME.  The application should
+                       use the locale property kCFLocaleCalendarIdentifier.
+                       No fallback possible for LC_COLLATE.  The application
+                       should use the locale properties
+                       kCFLocaleCollationIdentifier, kCFLocaleCollatorIdentifier.
+                       No fallback possible for LC_MONETARY.  The application
+                       should use the locale properties
+                       kCFLocaleCurrencySymbol, kCFLocaleCurrencyCode.  */
+
+                    if (warn)
+                      fprintf (stderr,
+                               "Warning: Failed to set locale category %s to %s.\n",
+                               category_to_name (cat), name);
+                  }
+# else
                   goto fail;
+# endif
             }
 
           /* All steps were successful.  */

@@ -17,8 +17,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
 #include <config.h>
@@ -48,15 +46,11 @@ VIR_LOG_INIT("storage.storage_backend_logical");
 
 static int
 virStorageBackendLogicalSetActive(virStoragePoolObjPtr pool,
-                                  int on)
+                                  bool on)
 {
     int ret;
     virStoragePoolDefPtr def = virStoragePoolObjGetDef(pool);
-    virCommandPtr cmd =
-        virCommandNewArgList(VGCHANGE,
-                             on ? "-aly" : "-aln",
-                             def->source.name,
-                             NULL);
+    virCommandPtr cmd = virStorageBackendLogicalChangeCmd(VGCHANGE, def, on);
 
     ret = virCommandRun(cmd, NULL);
     virCommandFree(cmd);
@@ -731,7 +725,7 @@ virStorageBackendLogicalStartPool(virStoragePoolObjPtr pool)
      * that the pool's source devices match the pvs output.
      */
     if (!virStorageBackendLogicalMatchPoolSource(pool) ||
-        virStorageBackendLogicalSetActive(pool, 1) < 0)
+        virStorageBackendLogicalSetActive(pool, true) < 0)
         return -1;
 
     return 0;
@@ -858,7 +852,7 @@ virStorageBackendLogicalRefreshPool(virStoragePoolObjPtr pool)
 static int
 virStorageBackendLogicalStopPool(virStoragePoolObjPtr pool)
 {
-    if (virStorageBackendLogicalSetActive(pool, 0) < 0)
+    if (virStorageBackendLogicalSetActive(pool, false) < 0)
         return -1;
 
     return 0;

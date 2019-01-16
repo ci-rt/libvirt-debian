@@ -2,7 +2,6 @@
  * libvirt-domain.h
  * Summary: APIs for management of domains
  * Description: Provides APIs for the management of domains
- * Author: Daniel Veillard <veillard@redhat.com>
  *
  * Copyright (C) 2006-2015 Red Hat, Inc.
  *
@@ -21,8 +20,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __VIR_LIBVIRT_DOMAIN_H__
-# define __VIR_LIBVIRT_DOMAIN_H__
+#ifndef LIBVIRT_DOMAIN_H
+# define LIBVIRT_DOMAIN_H
 
 # ifndef __VIR_LIBVIRT_H_INCLUDES__
 #  error "Don't include this file directly, only use libvirt/libvirt.h"
@@ -3424,6 +3423,16 @@ typedef enum {
 # define VIR_DOMAIN_JOB_MEMORY_ITERATION         "memory_iteration"
 
 /**
+ * VIR_DOMAIN_JOB_MEMORY_POSTCOPY_REQS:
+ *
+ * virDomainGetJobStats field: number page requests received from the
+ * destination host during post-copy migration, as VIR_TYPED_PARAM_ULLONG.
+ * This counter is incremented whenever the migrated domain tries to access
+ * a memory page which has not been transferred from the source host yet.
+ */
+# define VIR_DOMAIN_JOB_MEMORY_POSTCOPY_REQS     "memory_postcopy_requests"
+
+/**
  * VIR_DOMAIN_JOB_DISK_TOTAL:
  *
  * virDomainGetJobStats field: as VIR_DOMAIN_JOB_DATA_TOTAL but only
@@ -4840,4 +4849,4 @@ int virDomainGetLaunchSecurityInfo(virDomainPtr domain,
                                    int *nparams,
                                    unsigned int flags);
 
-#endif /* __VIR_LIBVIRT_DOMAIN_H__ */
+#endif /* LIBVIRT_DOMAIN_H */

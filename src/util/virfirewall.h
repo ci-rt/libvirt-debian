@@ -16,13 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *    Daniel P. Berrange <berrange@redhat.com>
  */
 
-#ifndef __VIR_FIREWALL_H__
-# define __VIR_FIREWALL_H__
+#ifndef LIBVIRT_VIRFIREWALL_H
+# define LIBVIRT_VIRFIREWALL_H
 
 # include "internal.h"
 # include "viralloc.h"
@@ -119,4 +116,4 @@ void virFirewallSetLockOverride(bool avoid);
 
 VIR_DEFINE_AUTOPTR_FUNC(virFirewall, virFirewallFree)
 
-#endif /* __VIR_FIREWALL_H__ */
+#endif /* LIBVIRT_VIRFIREWALL_H */

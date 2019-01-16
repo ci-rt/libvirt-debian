@@ -17,8 +17,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Cedric Bosdonnat <cbosdonnat@suse.com>
  */
 
 #include <config.h>
@@ -561,27 +559,26 @@ lxcNetworkWalkCallback(const char *name, virConfValuePtr value, void *data)
     int status;
 
     if (STREQ(name, "lxc.network.type")) {
+        virDomainDefPtr def = parseData->def;
+        size_t networks = parseData->networks;
+        bool privnet = parseData->privnet;
+
         /* Store the previous NIC */
         status = lxcAddNetworkDefinition(parseData);
 
         if (status < 0)
             return -1;
         else if (status > 0)
-            parseData->networks++;
+            networks++;
         else if (parseData->type != NULL && STREQ(parseData->type, "none"))
-            parseData->privnet = false;
+            privnet = false;
 
-        /* Start a new network interface config */
-        parseData->type = NULL;
-        parseData->link = NULL;
-        parseData->mac = NULL;
-        parseData->flag = NULL;
-        parseData->macvlanmode = NULL;
-        parseData->vlanid = NULL;
-        parseData->name = NULL;
+        /* clean NIC to store a new one */
+        memset(parseData, 0, sizeof(*parseData));
 
-        parseData->ips = NULL;
-        parseData->nips = 0;
+        parseData->def = def;
+        parseData->networks = networks;
+        parseData->privnet = privnet;
 
         /* Keep the new value */
         parseData->type = value->str;

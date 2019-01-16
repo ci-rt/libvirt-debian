@@ -35,6 +35,7 @@
 #include <sys/utsname.h>
 
 #include "qemu_process.h"
+#define LIBVIRT_QEMU_PROCESSPRIV_H_ALLOW
 #include "qemu_processpriv.h"
 #include "qemu_alias.h"
 #include "qemu_block.h"
@@ -1714,6 +1715,54 @@ qemuProcessHandlePRManagerStatusChanged(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
 }
 
 
+static int
+qemuProcessHandleRdmaGidStatusChanged(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
+                                      virDomainObjPtr vm,
+                                      const char *netdev,
+                                      bool gid_status,
+                                      unsigned long long subnet_prefix,
+                                      unsigned long long interface_id,
+                                      void *opaque)
+{
+    virQEMUDriverPtr driver = opaque;
+    struct qemuProcessEvent *processEvent = NULL;
+    qemuMonitorRdmaGidStatusPtr info = NULL;
+    int ret = -1;
+
+    virObjectLock(vm);
+
+    VIR_DEBUG("netdev=%s,gid_status=%d,subnet_prefix=0x%llx,interface_id=0x%llx",
+              netdev, gid_status, subnet_prefix, interface_id);
+
+    if (VIR_ALLOC(info) < 0 ||
+        VIR_STRDUP(info->netdev, netdev) < 0)
+        goto cleanup;
+
+    info->gid_status = gid_status;
+    info->subnet_prefix = subnet_prefix;
+    info->interface_id = interface_id;
+
+    if (VIR_ALLOC(processEvent) < 0)
+        goto cleanup;
+
+    processEvent->eventType = QEMU_PROCESS_EVENT_RDMA_GID_STATUS_CHANGED;
+    processEvent->vm = virObjectRef(vm);
+    VIR_STEAL_PTR(processEvent->data, info);
+
+    if (virThreadPoolSendJob(driver->workerPool, 0, processEvent) < 0) {
+        qemuProcessEventFree(processEvent);
+        virObjectUnref(vm);
+        goto cleanup;
+    }
+
+    ret = 0;
+ cleanup:
+    qemuMonitorEventRdmaGidStatusFree(info);
+    virObjectUnlock(vm);
+    return ret;
+}
+
+
 static qemuMonitorCallbacks monitorCallbacks = {
     .eofNotify = qemuProcessHandleMonitorEOF,
     .errorNotify = qemuProcessHandleMonitorError,
@@ -1743,6 +1792,7 @@ static qemuMonitorCallbacks monitorCallbacks = {
     .domainBlockThreshold = qemuProcessHandleBlockThreshold,
     .domainDumpCompleted = qemuProcessHandleDumpCompleted,
     .domainPRManagerStatusChanged = qemuProcessHandlePRManagerStatusChanged,
+    .domainRdmaGidStatusChanged = qemuProcessHandleRdmaGidStatusChanged,
 };
 
 static void
@@ -2487,7 +2537,7 @@ qemuProcessSetLinkStates(virQEMUDriverPtr driver,
 /**
  * qemuProcessSetupPid:
  *
- * This function sets resource properities (affinity, cgroups,
+ * This function sets resource properties (affinity, cgroups,
  * scheduler) for any PID associated with a domain.  It should be used
  * to set up emulator PIDs as well as vCPU and I/O thread pids to
  * ensure they are all handled the same way.
@@ -4352,7 +4402,7 @@ qemuLogOperation(virDomainObjPtr vm,
         goto cleanup;
 
     if (cmd) {
-        char *args = virCommandToString(cmd);
+        char *args = virCommandToString(cmd, true);
         qemuDomainLogContextWrite(logCtxt, "%s\n", args);
         VIR_FREE(args);
     }
@@ -4785,8 +4835,38 @@ qemuProcessGraphicsSetupListen(virQEMUDriverPtr driver,
 
 
 static int
+qemuProcessGraphicsSetupRenderNode(virDomainGraphicsDefPtr graphics,
+                                   virQEMUCapsPtr qemuCaps)
+{
+    char **rendernode = NULL;
+
+    if (!virDomainGraphicsNeedsAutoRenderNode(graphics))
+        return 0;
+
+    /* Don't bother picking a DRM node if QEMU doesn't support it. */
+    if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_SPICE) {
+        if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_SPICE_RENDERNODE))
+            return 0;
+
+        rendernode = &graphics->data.spice.rendernode;
+    } else {
+        if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_EGL_HEADLESS_RENDERNODE))
+            return 0;
+
+        rendernode = &graphics->data.egl_headless.rendernode;
+    }
+
+    if (!(*rendernode = virHostGetDRMRenderNode()))
+        return -1;
+
+    return 0;
+}
+
+
+static int
 qemuProcessSetupGraphics(virQEMUDriverPtr driver,
                          virDomainObjPtr vm,
+                         virQEMUCapsPtr qemuCaps,
                          unsigned int flags)
 {
     virDomainGraphicsDefPtr graphics;
@@ -4796,6 +4876,9 @@ qemuProcessSetupGraphics(virQEMUDriverPtr driver,
 
     for (i = 0; i < vm->def->ngraphics; i++) {
         graphics = vm->def->graphics[i];
+
+        if (qemuProcessGraphicsSetupRenderNode(graphics, qemuCaps) < 0)
+            goto cleanup;
 
         if (qemuProcessGraphicsSetupListen(driver, graphics, vm) < 0)
             goto cleanup;
@@ -5953,7 +6036,7 @@ qemuProcessPrepareDomain(virQEMUDriverPtr driver,
         goto cleanup;
 
     VIR_DEBUG("Setting graphics devices");
-    if (qemuProcessSetupGraphics(driver, vm, flags) < 0)
+    if (qemuProcessSetupGraphics(driver, vm, priv->qemuCaps, flags) < 0)
         goto cleanup;
 
     VIR_DEBUG("Create domain masterKey");
@@ -6007,14 +6090,16 @@ qemuProcessPrepareDomain(virQEMUDriverPtr driver,
 
 
 static int
-qemuProcessSEVCreateFile(const char *configDir,
+qemuProcessSEVCreateFile(virDomainObjPtr vm,
                          const char *name,
                          const char *data)
 {
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    virQEMUDriverPtr driver = priv->driver;
     char *configFile;
     int ret = -1;
 
-    if (!(configFile = virFileBuildPath(configDir, name, ".base64")))
+    if (!(configFile = virFileBuildPath(priv->libDir, name, ".base64")))
         return -1;
 
     if (virFileRewriteStr(configFile, S_IRUSR | S_IWUSR, data) < 0) {
@@ -6022,6 +6107,9 @@ qemuProcessSEVCreateFile(const char *configDir,
                              configFile);
         goto cleanup;
     }
+
+    if (qemuSecurityDomainSetPathLabel(driver, vm, configFile, true) < 0)
+        goto cleanup;
 
     ret = 0;
  cleanup:
@@ -6051,12 +6139,12 @@ qemuProcessPrepareSEVGuestInput(virDomainObjPtr vm)
     }
 
     if (sev->dh_cert) {
-        if (qemuProcessSEVCreateFile(priv->libDir, "dh_cert", sev->dh_cert) < 0)
+        if (qemuProcessSEVCreateFile(vm, "dh_cert", sev->dh_cert) < 0)
             return -1;
     }
 
     if (sev->session) {
-        if (qemuProcessSEVCreateFile(priv->libDir, "session", sev->session) < 0)
+        if (qemuProcessSEVCreateFile(vm, "session", sev->session) < 0)
             return -1;
     }
 
@@ -6085,7 +6173,15 @@ qemuProcessPrepareHostStorage(virQEMUDriverPtr driver,
         if (!blockdev)
             virStorageSourceBackingStoreClear(disk->src);
 
-        if (qemuDomainDetermineDiskChain(driver, vm, disk, true) >= 0)
+        /*
+         * Go to applying startup policy for optional disk with nonexistent
+         * source file immediately as determining chain will surely fail
+         * and we don't want noisy error notice in logs for this case.
+         */
+        if (qemuDomainDiskIsMissingLocalOptional(disk) && cold_boot)
+            VIR_INFO("optional disk '%s' source file is missing, "
+                     "skip checking disk chain", disk->dst);
+        else if (qemuDomainDetermineDiskChain(driver, vm, disk, true) >= 0)
             continue;
 
         if (qemuDomainCheckDiskStartupPolicy(driver, vm, idx, cold_boot) >= 0)

@@ -14,8 +14,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Jiri Denemark <jdenemar@redhat.com>
  */
 
 #include <config.h>
@@ -25,7 +23,7 @@
 #include "virarch.h"
 #include "virthread.h"
 #include "qemu/qemu_capabilities.h"
-#define __QEMU_CAPSPRIV_H_ALLOW__ 1
+#define LIBVIRT_QEMU_CAPSPRIV_H_ALLOW
 #include "qemu/qemu_capspriv.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE

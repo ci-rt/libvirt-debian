@@ -26,9 +26,8 @@
 
 #include "internal.h"
 
-#define __VIR_CGROUP_ALLOW_INCLUDE_PRIV_H__
+#define LIBVIRT_VIRCGROUPPRIV_H_ALLOW
 #include "vircgrouppriv.h"
-#undef __VIR_CGROUP_ALLOW_INCLUDE_PRIV_H__
 
 #include "vircgroup.h"
 #include "vircgroupbackend.h"
@@ -120,6 +119,13 @@ virCgroupV2ValidateMachineGroup(virCgroupPtr group,
 
     if (!(tmp = strrchr(group->unified.placement, '/')))
         return false;
+
+    if (STREQ(tmp, "/emulator")) {
+        *tmp = '\0';
+
+        if (!(tmp = strrchr(group->unified.placement, '/')))
+            return false;
+    }
     tmp++;
 
     if (STRNEQ(tmp, partmachinename) &&
@@ -459,6 +465,21 @@ virCgroupV2HasEmptyTasks(virCgroupPtr cgroup,
         ret = 1;
 
     return ret;
+}
+
+
+static int
+virCgroupV2KillRecursive(virCgroupPtr group,
+                         int signum,
+                         virHashTablePtr pids)
+{
+    int controller = virCgroupV2GetAnyController(group);
+
+    if (controller < 0)
+        return -1;
+
+    return virCgroupKillRecursiveInternal(group, signum, pids, controller,
+                                          "cgroup.threads", false);
 }
 
 
@@ -1558,6 +1579,7 @@ virCgroupBackend virCgroupV2Backend = {
     .remove = virCgroupV2Remove,
     .addTask = virCgroupV2AddTask,
     .hasEmptyTasks = virCgroupV2HasEmptyTasks,
+    .killRecursive = virCgroupV2KillRecursive,
     .bindMount = virCgroupV2BindMount,
     .setOwner = virCgroupV2SetOwner,
 

@@ -14,8 +14,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Ján Tomko <jtomko@redhat.com>
  */
 
 #include <config.h>
@@ -85,6 +83,8 @@ testSchemaDir(const char *schema,
 
     while ((rc = virDirRead(dir, &ent, dir_path)) > 0) {
         if (!virFileHasSuffix(ent->d_name, ".xml"))
+            continue;
+        if (ent->d_name[0] == '.')
             continue;
 
         if (virAsprintf(&xml_path, "%s/%s", dir_path, ent->d_name) < 0)

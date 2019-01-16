@@ -17,13 +17,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
-
-#ifndef QEMU_MONITOR_JSON_H
-# define QEMU_MONITOR_JSON_H
+#ifndef LIBVIRT_QEMU_MONITOR_JSON_H
+# define LIBVIRT_QEMU_MONITOR_JSON_H
 
 # include "internal.h"
 
@@ -581,4 +578,4 @@ int qemuMonitorJSONGetPRManagerInfo(qemuMonitorPtr mon,
                                     virHashTablePtr info)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
-#endif /* QEMU_MONITOR_JSON_H */
+#endif /* LIBVIRT_QEMU_MONITOR_JSON_H */

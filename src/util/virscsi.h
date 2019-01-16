@@ -16,13 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *     Han Cheng <hanc.fnst@cn.fujitsu.com>
  */
 
-#ifndef __VIR_SCSI_H__
-# define __VIR_SCSI_H__
+#ifndef LIBVIRT_VIRSCSI_H
+# define LIBVIRT_VIRSCSI_H
 
 # include "internal.h"
 # include "virobject.h"
@@ -98,4 +95,4 @@ virSCSIDevicePtr virSCSIDeviceListFind(virSCSIDeviceListPtr list,
 
 VIR_DEFINE_AUTOPTR_FUNC(virSCSIDevice, virSCSIDeviceFree)
 
-#endif /* __VIR_SCSI_H__ */
+#endif /* LIBVIRT_VIRSCSI_H */

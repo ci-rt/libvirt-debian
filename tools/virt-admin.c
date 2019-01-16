@@ -16,8 +16,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- * Authors:
- *     Erik Skultety <eskultet@redhat.com>
  */
 
 #include <config.h>
@@ -646,7 +644,7 @@ cmdSrvClientsList(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
     }
 
-    table = vshTableNew(_("Id"), _("Transport"), _("Connected sice"), NULL);
+    table = vshTableNew(_("Id"), _("Transport"), _("Connected since"), NULL);
     if (!table)
         goto cleanup;
 

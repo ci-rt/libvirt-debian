@@ -17,8 +17,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
 #include <config.h>
@@ -468,7 +466,8 @@ static void
 qemuDomainAssignARMVirtioMMIOAddresses(virDomainDefPtr def,
                                        virQEMUCapsPtr qemuCaps)
 {
-    if (def->os.arch != VIR_ARCH_ARMV7L &&
+    if (def->os.arch != VIR_ARCH_ARMV6L &&
+        def->os.arch != VIR_ARCH_ARMV7L &&
         def->os.arch != VIR_ARCH_AARCH64)
         return;
 
@@ -2367,7 +2366,8 @@ static bool
 qemuDomainSupportsPCI(virDomainDefPtr def,
                       virQEMUCapsPtr qemuCaps)
 {
-    if ((def->os.arch != VIR_ARCH_ARMV7L) &&
+    if ((def->os.arch != VIR_ARCH_ARMV6L) &&
+        (def->os.arch != VIR_ARCH_ARMV7L) &&
         (def->os.arch != VIR_ARCH_AARCH64) &&
         !ARCH_IS_RISCV(def->os.arch))
         return true;

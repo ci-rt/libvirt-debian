@@ -17,14 +17,13 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
 
 #include <config.h>
 
 #include "qemu_hotplug.h"
+#define LIBVIRT_QEMU_HOTPLUGPRIV_H_ALLOW
 #include "qemu_hotplugpriv.h"
 #include "qemu_alias.h"
 #include "qemu_capabilities.h"
@@ -2564,11 +2563,11 @@ qemuDomainAttachMemory(virQEMUDriverPtr driver,
     if (virAsprintf(&objalias, "mem%s", mem->info.alias) < 0)
         goto cleanup;
 
-    if (!(devstr = qemuBuildMemoryDeviceStr(mem)))
+    if (!(devstr = qemuBuildMemoryDeviceStr(mem, priv)))
         goto cleanup;
 
     if (qemuBuildMemoryBackendProps(&props, objalias, cfg,
-                                    priv->qemuCaps, vm->def, mem, NULL, true) < 0)
+                                    priv, vm->def, mem, true) < 0)
         goto cleanup;
 
     if (qemuProcessBuildDestroyMemoryPaths(driver, vm, mem, true) < 0)
@@ -4814,7 +4813,7 @@ qemuDomainRemoveRNGDevice(virQEMUDriverPtr driver,
     qemuDomainObjPrivatePtr priv = vm->privateData;
     ssize_t idx;
     int ret = -1;
-    int rc;
+    int rc = 0;
 
     VIR_DEBUG("Removing RNG device %s from domain %p %s",
               rng->info.alias, vm, vm->def->name);
@@ -4828,7 +4827,17 @@ qemuDomainRemoveRNGDevice(virQEMUDriverPtr driver,
 
     qemuDomainObjEnterMonitor(driver, vm);
 
-    rc = qemuMonitorDelObject(priv->mon, objAlias);
+    if (qemuDomainDetachExtensionDevice(priv->mon, &rng->info) < 0)
+        rc = -1;
+
+    if (rc == 0 &&
+        qemuMonitorDelObject(priv->mon, objAlias) < 0)
+        rc = -1;
+
+    if (rng->backend == VIR_DOMAIN_RNG_BACKEND_EGD &&
+        rc == 0 &&
+        qemuMonitorDetachCharDev(priv->mon, charAlias) < 0)
+        rc = -1;
 
     if (qemuDomainObjExitMonitor(driver, vm) < 0)
         goto cleanup;
@@ -4837,7 +4846,7 @@ qemuDomainRemoveRNGDevice(virQEMUDriverPtr driver,
         rc == 0 &&
         qemuDomainDelChardevTLSObjects(driver, vm, rng->source.chardev,
                                        charAlias) < 0)
-        goto cleanup;
+        rc = -1;
 
     virDomainAuditRNG(vm, rng, NULL, "detach", rc == 0);
 
@@ -5956,7 +5965,7 @@ qemuDomainDetachNetDevice(virQEMUDriverPtr driver,
     if (qemuIsMultiFunctionDevice(vm->def, &detach->info)) {
         virReportError(VIR_ERR_OPERATION_FAILED,
                        _("cannot hot unplug multifunction PCI device: %s"),
-                       dev->data.disk->dst);
+                       detach->ifname);
         goto cleanup;
     }
 
@@ -6647,7 +6656,7 @@ qemuDomainSetVcpusConfig(virDomainDefPtr def,
                 continue;
 
             if (vcpu->online) {
-                /* non-hotpluggable vcpus need to be clustered at the beggining,
+                /* non-hotpluggable vcpus need to be clustered at the beginning,
                  * thus we need to force vcpus to be hotpluggable when we find
                  * vcpus that are hotpluggable and online prior to the ones
                  * we are going to add */

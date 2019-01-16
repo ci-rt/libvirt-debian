@@ -16,12 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Karel Zak <kzak@redhat.com>
  */
 
-#ifndef __VIR_TEST_UTILS_H__
-# define __VIR_TEST_UTILS_H__
+#ifndef LIBVIRT_TESTUTILS_H
+# define LIBVIRT_TESTUTILS_H
 
 # include "viralloc.h"
 # include "virfile.h"
@@ -166,4 +164,4 @@ int testCompareDomXML2XMLFiles(virCapsPtr caps,
                                unsigned int parseFlags,
                                testCompareDomXML2XMLResult expectResult);
 
-#endif /* __VIR_TEST_UTILS_H__ */
+#endif /* LIBVIRT_TESTUTILS_H */

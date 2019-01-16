@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *      Viktor Mihajlovski <mihajlov@linux.vnet.ibm.com>
  */
 
 #include <config.h>
@@ -34,7 +31,7 @@
 #include "virfile.h"
 #include "virstring.h"
 
-#define __VIR_SYSINFO_PRIV_H_ALLOW__
+#define LIBVIRT_VIRSYSINFOPRIV_H_ALLOW
 #include "virsysinfopriv.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE

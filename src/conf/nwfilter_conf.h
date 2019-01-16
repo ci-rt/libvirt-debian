@@ -20,11 +20,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Stefan Berger <stefanb@us.ibm.com>
  */
-#ifndef NWFILTER_CONF_H
-# define NWFILTER_CONF_H
+
+#ifndef LIBVIRT_NWFILTER_CONF_H
+# define LIBVIRT_NWFILTER_CONF_H
 
 # include "internal.h"
 
@@ -616,4 +615,4 @@ VIR_ENUM_DECL(virNWFilterChainPolicy);
 VIR_ENUM_DECL(virNWFilterEbtablesTable);
 VIR_ENUM_DECL(virNWFilterChainSuffix);
 
-#endif /* NWFILTER_CONF_H */
+#endif /* LIBVIRT_NWFILTER_CONF_H */

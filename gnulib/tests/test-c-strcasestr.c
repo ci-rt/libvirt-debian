@@ -1,5 +1,5 @@
 /* Test of case-insensitive searching in a string.
-   Copyright (C) 2007-2018 Free Software Foundation, Inc.
+   Copyright (C) 2007-2019 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -235,6 +235,29 @@ main ()
         ASSERT (p);
         ASSERT (p - haystack == i);
       }
+    free (haystack);
+  }
+
+  /* Test long needles.  */
+  {
+    size_t m = 1024;
+    char *haystack = (char *) malloc (2 * m + 1);
+    char *needle = (char *) malloc (m + 1);
+    if (haystack != NULL && needle != NULL)
+      {
+        const char *p;
+        haystack[0] = 'x';
+        memset (haystack + 1, ' ', m - 1);
+        memset (haystack + m, 'x', m);
+        haystack[2 * m] = '\0';
+        memset (needle, 'X', m);
+        needle[m] = '\0';
+        p = c_strcasestr (haystack, needle);
+        ASSERT (p);
+        ASSERT (p - haystack == m);
+      }
+    free (needle);
+    free (haystack);
   }
 
   return 0;

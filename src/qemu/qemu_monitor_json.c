@@ -17,8 +17,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
 #include <config.h>
@@ -91,6 +89,7 @@ static void qemuMonitorJSONHandleAcpiOstInfo(qemuMonitorPtr mon, virJSONValuePtr
 static void qemuMonitorJSONHandleBlockThreshold(qemuMonitorPtr mon, virJSONValuePtr data);
 static void qemuMonitorJSONHandleDumpCompleted(qemuMonitorPtr mon, virJSONValuePtr data);
 static void qemuMonitorJSONHandlePRManagerStatusChanged(qemuMonitorPtr mon, virJSONValuePtr data);
+static void qemuMonitorJSONHandleRdmaGidStatusChanged(qemuMonitorPtr mon, virJSONValuePtr data);
 
 typedef struct {
     const char *type;
@@ -114,6 +113,7 @@ static qemuEventHandler eventHandlers[] = {
     { "NIC_RX_FILTER_CHANGED", qemuMonitorJSONHandleNicRxFilterChanged, },
     { "POWERDOWN", qemuMonitorJSONHandlePowerdown, },
     { "PR_MANAGER_STATUS_CHANGED", qemuMonitorJSONHandlePRManagerStatusChanged, },
+    { "RDMA_GID_STATUS_CHANGED", qemuMonitorJSONHandleRdmaGidStatusChanged, },
     { "RESET", qemuMonitorJSONHandleReset, },
     { "RESUME", qemuMonitorJSONHandleResume, },
     { "RTC_CHANGE", qemuMonitorJSONHandleRTCChange, },
@@ -771,7 +771,7 @@ qemuMonitorJSONHandleIOError(qemuMonitorPtr mon, virJSONValuePtr data)
     int actionID;
 
     /* Throughout here we try our best to carry on upon errors,
-       since it's imporatant to get as much info as possible out
+       since it's important to get as much info as possible out
        to the application */
 
     if ((action = virJSONValueObjectGetString(data, "action")) == NULL) {
@@ -1348,6 +1348,40 @@ static void qemuMonitorJSONHandlePRManagerStatusChanged(qemuMonitorPtr mon,
     }
 
     qemuMonitorEmitPRManagerStatusChanged(mon, name, connected);
+}
+
+
+static void qemuMonitorJSONHandleRdmaGidStatusChanged(qemuMonitorPtr mon,
+                                                      virJSONValuePtr data)
+{
+    const char *netdev;
+    bool gid_status;
+    unsigned long long subnet_prefix, interface_id;
+
+    if (!(netdev = virJSONValueObjectGetString(data, "netdev"))) {
+        VIR_WARN("missing netdev in GID_STATUS_CHANGED event");
+        return;
+    }
+
+    if (virJSONValueObjectGetBoolean(data, "gid-status", &gid_status)) {
+        VIR_WARN("missing gid-status in GID_STATUS_CHANGED event");
+        return;
+    }
+
+    if (virJSONValueObjectGetNumberUlong(data, "subnet-prefix",
+                                         &subnet_prefix)) {
+        VIR_WARN("missing subnet-prefix in GID_STATUS_CHANGED event");
+        return;
+    }
+
+    if (virJSONValueObjectGetNumberUlong(data, "interface-id",
+                                         &interface_id)) {
+        VIR_WARN("missing interface-id in GID_STATUS_CHANGED event");
+        return;
+    }
+
+    qemuMonitorEmitRdmaGidStatusChanged(mon, netdev, gid_status, subnet_prefix,
+                                        interface_id);
 }
 
 
@@ -3296,6 +3330,8 @@ qemuMonitorJSONGetMigrationStatsReply(virJSONValuePtr reply,
                                                       &stats->ram_page_size));
         ignore_value(virJSONValueObjectGetNumberUlong(ram, "dirty-sync-count",
                                                       &stats->ram_iteration));
+        ignore_value(virJSONValueObjectGetNumberUlong(ram, "postcopy-requests",
+                                                      &stats->ram_postcopy_reqs));
 
         disk = virJSONValueObjectGetObject(ret, "disk");
         if (disk) {
@@ -5797,7 +5833,7 @@ qemuMonitorJSONGetCommandLineOptionParameters(qemuMonitorPtr mon,
 
         if (!virJSONValueIsArray(array)) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("Malformed query-cmmand-line-options array"));
+                           _("Malformed query-command-line-options array"));
             goto cleanup;
         }
 
@@ -5831,7 +5867,7 @@ qemuMonitorJSONGetCommandLineOptionParameters(qemuMonitorPtr mon,
 
     if (!virJSONValueIsArray(data)) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("Malformed query-cmmand-line-options parameters array"));
+                       _("Malformed query-command-line-options parameters array"));
         goto cleanup;
     }
     n = virJSONValueArraySize(data);

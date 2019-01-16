@@ -1,5 +1,5 @@
 /* Test regular expressions
-   Copyright 1996-2001, 2003-2018 Free Software Foundation, Inc.
+   Copyright 1996-2001, 2003-2019 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -235,6 +235,17 @@ main (void)
   /* REG_STARTEND was added to glibc on 2004-01-15.
      Reject older versions.  */
   if (! REG_STARTEND)
+    result |= 64;
+
+  /* Matching with the compiled form of this regexp would provoke
+     an assertion failure prior to glibc-2.28:
+       regexec.c:1375: pop_fail_stack: Assertion 'num >= 0' failed
+     With glibc-2.28, compilation fails and reports the invalid
+     back reference.  */
+  re_set_syntax (RE_SYNTAX_POSIX_EGREP);
+  memset (&regex, 0, sizeof regex);
+  s = re_compile_pattern ("0|()0|\\1|0", 10, &regex);
+  if (!s || strcmp (s, "Invalid back reference"))
     result |= 64;
 
 #if 0

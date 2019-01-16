@@ -16,10 +16,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Daniel Veillard <veillard@redhat.com>
- * Karel Zak <kzak@redhat.com>
- * Daniel P. Berrange <berrange@redhat.com>
  */
 
 #include <config.h>
@@ -322,7 +318,7 @@ virshConnectionUsability(vshControl *ctl, virConnectPtr conn)
     }
 
     /* The connection is considered dead only if
-     * virConnectIsAlive() successfuly says so.
+     * virConnectIsAlive() successfully says so.
      */
     vshResetLibvirtError();
 
@@ -517,9 +513,6 @@ virshShowVersion(vshControl *ctl ATTRIBUTE_UNUSED)
 #endif
 #ifdef WITH_LXC
     vshPrint(ctl, " LXC");
-#endif
-#ifdef WITH_UML
-    vshPrint(ctl, " UML");
 #endif
 #ifdef WITH_LIBXL
     vshPrint(ctl, " LibXL");

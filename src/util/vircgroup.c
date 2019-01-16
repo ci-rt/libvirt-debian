@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *  Dan Smith <danms@us.ibm.com>
  */
 #include <config.h>
 
@@ -41,7 +38,7 @@
 # include <unistd.h>
 #endif /* __linux__ */
 
-#define __VIR_CGROUP_ALLOW_INCLUDE_PRIV_H__
+#define LIBVIRT_VIRCGROUPPRIV_H_ALLOW
 #include "vircgrouppriv.h"
 
 #include "virutil.h"
@@ -1899,7 +1896,7 @@ virCgroupDenyAllDevices(virCgroupPtr group)
 /**
  * virCgroupAllowAllDevices:
  *
- * Allows the permissiong for all devices by setting lines similar
+ * Allows the permission for all devices by setting lines similar
  * to these ones (obviously the 'm' permission is an example):
  *
  * 'b *:* m'
@@ -1950,7 +1947,7 @@ virCgroupAllowDevice(virCgroupPtr group, char type, int major, int minor,
  * adds that to the cgroup ACL
  *
  * Returns: 0 on success, 1 if path exists but is not a device or is not
- * accesible, or * -1 on error
+ * accessible, or * -1 on error
  */
 int
 virCgroupAllowDevicePath(virCgroupPtr group,
@@ -2427,33 +2424,15 @@ virCgroupRemove(virCgroupPtr group)
 }
 
 
-static int
-virCgroupPathOfAnyController(virCgroupPtr group,
-                             const char *name,
-                             char **keypath)
-{
-    size_t i;
-    int controller;
-
-    for (i = 0; i < VIR_CGROUP_BACKEND_TYPE_LAST; i++) {
-        if (group->backends[i]) {
-            controller = group->backends[i]->getAnyController(group);
-            if (controller >= 0)
-                return virCgroupPathOfController(group, controller, name, keypath);
-        }
-    }
-
-    virReportSystemError(ENOSYS, "%s",
-                         _("No controllers are mounted"));
-    return -1;
-}
-
-
 /*
  * Returns 1 if some PIDs are killed, 0 if none are killed, or -1 on error
  */
 static int
-virCgroupKillInternal(virCgroupPtr group, int signum, virHashTablePtr pids)
+virCgroupKillInternal(virCgroupPtr group,
+                      int signum,
+                      virHashTablePtr pids,
+                      int controller,
+                      const char *taskFile)
 {
     int ret = -1;
     bool killedAny = false;
@@ -2463,7 +2442,7 @@ virCgroupKillInternal(virCgroupPtr group, int signum, virHashTablePtr pids)
     VIR_DEBUG("group=%p path=%s signum=%d pids=%p",
               group, group->path, signum, pids);
 
-    if (virCgroupPathOfAnyController(group, "tasks", &keypath) < 0)
+    if (virCgroupPathOfController(group, controller, taskFile, &keypath) < 0)
         return -1;
 
     /* PIDs may be forking as we kill them, so loop
@@ -2549,10 +2528,12 @@ virCgroupPidCopy(const void *name)
 }
 
 
-static int
+int
 virCgroupKillRecursiveInternal(virCgroupPtr group,
                                int signum,
                                virHashTablePtr pids,
+                               int controller,
+                               const char *taskFile,
                                bool dormdir)
 {
     int ret = -1;
@@ -2566,11 +2547,13 @@ virCgroupKillRecursiveInternal(virCgroupPtr group,
     VIR_DEBUG("group=%p path=%s signum=%d pids=%p",
               group, group->path, signum, pids);
 
-    if (virCgroupPathOfAnyController(group, "", &keypath) < 0)
+    if (virCgroupPathOfController(group, controller, "", &keypath) < 0)
         return -1;
 
-    if ((rc = virCgroupKillInternal(group, signum, pids)) < 0)
+    if ((rc = virCgroupKillInternal(group, signum, pids,
+                                    controller, taskFile)) < 0) {
         goto cleanup;
+    }
     if (rc == 1)
         killedAny = true;
 
@@ -2594,7 +2577,7 @@ virCgroupKillRecursiveInternal(virCgroupPtr group,
             goto cleanup;
 
         if ((rc = virCgroupKillRecursiveInternal(subgroup, signum, pids,
-                                                 true)) < 0)
+                                                 controller, taskFile, true)) < 0)
             goto cleanup;
         if (rc == 1)
             killedAny = true;
@@ -2620,8 +2603,10 @@ virCgroupKillRecursiveInternal(virCgroupPtr group,
 int
 virCgroupKillRecursive(virCgroupPtr group, int signum)
 {
-    int ret;
-    VIR_DEBUG("group=%p path=%s signum=%d", group, group->path, signum);
+    int ret = 0;
+    int rc;
+    size_t i;
+    virCgroupBackendPtr *backends = virCgroupBackendGetAll();
     virHashTablePtr pids = virHashCreateFull(100,
                                              NULL,
                                              virCgroupPidCode,
@@ -2629,10 +2614,27 @@ virCgroupKillRecursive(virCgroupPtr group, int signum)
                                              virCgroupPidCopy,
                                              NULL);
 
-    ret = virCgroupKillRecursiveInternal(group, signum, pids, false);
+    VIR_DEBUG("group=%p path=%s signum=%d", group, group->path, signum);
 
+    if (!backends) {
+        ret = -1;
+        goto cleanup;
+    }
+
+    for (i = 0; i < VIR_CGROUP_BACKEND_TYPE_LAST; i++) {
+        if (backends[i]) {
+            rc = backends[i]->killRecursive(group, signum, pids);
+            if (rc < 0) {
+                ret = -1;
+                goto cleanup;
+            }
+            if (rc > 0)
+                ret = rc;
+        }
+    }
+
+ cleanup:
     virHashFree(pids);
-
     return ret;
 }
 

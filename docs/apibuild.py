@@ -1003,6 +1003,8 @@ class CParser:
                 # skip hidden macros
                 if name in hidden_macros:
                     return token
+                if name[-2:] == "_H" or name[-8:] == "_H_ALLOW":
+                    return token
 
                 strValue = None
                 if len(lst) == 1 and lst[0][0] == '"' and lst[0][-1] == '"':
@@ -2270,7 +2272,7 @@ class docBuilder:
         output.write("    <file name='%s'>\n" % (module))
         dict = self.headers[file]
         if dict.info is not None:
-            for data in ('Summary', 'Description', 'Author'):
+            for data in ('Summary', 'Description'):
                 try:
                     output.write("     <%s>%s</%s>\n" % (
                                  data.lower(),

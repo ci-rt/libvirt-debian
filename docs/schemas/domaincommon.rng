@@ -204,7 +204,7 @@
         <value>kvm</value>
         <value>xen</value>
         <value>lxc</value>
-        <value>uml</value>
+        <value>uml</value> <!-- NOT USED ANYMORE -->
         <value>openvz</value>
         <value>test</value>
         <value>vmware</value>
@@ -1907,7 +1907,7 @@
             <value>virtio</value>
             <value>xen</value>
             <value>usb</value>
-            <value>uml</value>
+            <value>uml</value> <!-- NOT USED ANYMORE -->
             <value>sata</value>
             <value>sd</value>
           </choice>
@@ -3418,9 +3418,20 @@
             </attribute>
           </optional>
         </group>
-        <attribute name="type">
-          <value>egl-headless</value>
-        </attribute>
+        <group>
+          <attribute name="type">
+            <value>egl-headless</value>
+          </attribute>
+          <optional>
+            <element name="gl">
+              <optional>
+                <attribute name="rendernode">
+                  <ref name="absFilePath"/>
+                </attribute>
+              </optional>
+            </element>
+          </optional>
+        </group>
       </choice>
     </element>
   </define>
@@ -3714,7 +3725,7 @@
       <choice>
         <value>xen</value>
         <value>serial</value>
-        <value>uml</value>
+        <value>uml</value> <!-- NOT USED ANYMORE -->
         <value>virtio</value>
         <value>lxc</value>
         <value>openvz</value>
@@ -5373,9 +5384,21 @@
           </interleave>
         </group>
         <group>
-          <element name="path">
-            <ref name="absFilePath"/>
-          </element>
+          <interleave>
+            <element name="path">
+              <ref name="absFilePath"/>
+            </element>
+            <optional>
+              <element name="alignsize">
+                <ref name="scaledInteger"/>
+              </element>
+            </optional>
+            <optional>
+              <element name="pmem">
+                <empty/>
+              </element>
+            </optional>
+          </interleave>
         </group>
       </choice>
     </element>
@@ -5397,6 +5420,11 @@
             <element name="size">
               <ref name="scaledInteger"/>
             </element>
+          </element>
+        </optional>
+        <optional>
+          <element name="readonly">
+            <empty/>
           </element>
         </optional>
       </interleave>
@@ -5470,6 +5498,8 @@
       <attribute name="iommu">
         <ref name="virOnOff"/>
       </attribute>
+    </optional>
+    <optional>
       <attribute name="ats">
         <ref name="virOnOff"/>
       </attribute>

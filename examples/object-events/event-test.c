@@ -1,12 +1,8 @@
-#include <config.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
 #include <inttypes.h>
-
-#include <verify.h>
 
 #define VIR_ENUM_SENTINELS
 
@@ -16,6 +12,14 @@
 #define ARRAY_CARDINALITY(Array) (sizeof(Array) / sizeof(*(Array)))
 #define STREQ(a, b) (strcmp(a, b) == 0)
 #define NULLSTR(s) ((s) ? (s) : "<null>")
+
+#if (4 < __GNUC__ + (6 <= __GNUC_MINOR__) \
+     && (201112L <= __STDC_VERSION__  || !defined __STRICT_ANSI__) \
+     && !defined __cplusplus)
+# define verify(cond) _Static_assert(cond, "verify (" #cond ")")
+#else
+# define verify(cond)
+#endif
 
 #ifndef ATTRIBUTE_UNUSED
 # define ATTRIBUTE_UNUSED __attribute__((__unused__))
@@ -944,10 +948,11 @@ myDomainEventBlockThresholdCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
                                     unsigned long long excess,
                                     void *opaque ATTRIBUTE_UNUSED)
 {
+    /* Casts to uint64_t to work around mingw not knowing %lld */
     printf("%s EVENT: Domain %s(%d) block threshold callback dev '%s'(%s), "
-           "threshold: '%llu', excess: '%llu'",
+           "threshold: '%" PRIu64 "', excess: '%" PRIu64 "'",
            __func__, virDomainGetName(dom), virDomainGetID(dom),
-           dev, NULLSTR(path), threshold, excess);
+           dev, NULLSTR(path), (uint64_t)threshold, (uint64_t)excess);
     return 0;
 }
 
@@ -1142,12 +1147,7 @@ main(int argc, char **argv)
     virConnectPtr dconn = NULL;
     int callback1ret = -1;
     int callback16ret = -1;
-    struct sigaction action_stop;
     size_t i;
-
-    memset(&action_stop, 0, sizeof(action_stop));
-
-    action_stop.sa_handler = stop;
 
     if (argc > 1 && STREQ(argv[1], "--help")) {
         printf("%s uri\n", argv[0]);
@@ -1179,8 +1179,10 @@ main(int argc, char **argv)
         goto cleanup;
     }
 
-    sigaction(SIGTERM, &action_stop, NULL);
-    sigaction(SIGINT, &action_stop, NULL);
+    /* The ideal program would use sigaction to set this handler, but
+     * this way is portable to mingw. */
+    signal(SIGTERM, stop);
+    signal(SIGINT, stop);
 
     printf("Registering event callbacks\n");
 

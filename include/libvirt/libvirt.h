@@ -19,12 +19,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel Veillard <veillard@redhat.com>
  */
 
-#ifndef __VIR_VIRLIB_H__
-# define __VIR_VIRLIB_H__
+#ifndef LIBVIRT_H
+# define LIBVIRT_H
 
 # include <sys/types.h>
 
@@ -51,4 +49,4 @@ extern "C" {
 }
 # endif
 
-#endif /* __VIR_VIRLIB_H__ */
+#endif /* LIBVIRT_H */

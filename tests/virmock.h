@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef __VIR_MOCK_H__
-# define __VIR_MOCK_H__
+#ifndef LIBVIRT_VIRMOCK_H
+# define LIBVIRT_VIRMOCK_H
 
 # if HAVE_DLFCN_H
 #  include <dlfcn.h>
@@ -83,7 +83,7 @@
  * then lookup the same symbol name but with 'wrap_' prefixed
  * on it, and call that.
  *
- * The actual test suite should provide the implemention of
+ * The actual test suite should provide the implementation of
  * the wrap_XXXX symbol, using the VIR_MOCK_WRAP_NNN_MMM
  * macros.
  */
@@ -300,4 +300,4 @@
         } \
     } while (0)
 
-#endif /* __VIR_MOCK_H__ */
+#endif /* LIBVIRT_VIRMOCK_H */

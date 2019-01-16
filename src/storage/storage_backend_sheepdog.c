@@ -19,16 +19,13 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Wido den Hollander <wido@widodh.nl>
- *         Frank Spijkerman <frank.spijkerman@avira.com>
- *         Sebastian Wiedenroth <sebastian.wiedenroth@skylime.net>
  */
 
 #include <config.h>
 
 #include "virerror.h"
 #include "storage_backend_sheepdog.h"
+#define LIBVIRT_STORAGE_BACKEND_SHEEPDOG_PRIV_H_ALLOW
 #include "storage_backend_sheepdog_priv.h"
 #include "storage_conf.h"
 #include "vircommand.h"

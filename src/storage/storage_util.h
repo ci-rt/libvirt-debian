@@ -16,8 +16,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __VIR_STORAGE_UTIL_H__
-# define __VIR_STORAGE_UTIL_H__
+#ifndef LIBVIRT_STORAGE_UTIL_H
+# define LIBVIRT_STORAGE_UTIL_H
 
 # include <sys/stat.h>
 
@@ -177,4 +177,17 @@ int
 virStorageBackendZeroPartitionTable(const char *path,
                                     unsigned long long size);
 
-#endif /* __VIR_STORAGE_UTIL_H__ */
+char *
+virStorageBackendFileSystemGetPoolSource(virStoragePoolObjPtr pool);
+
+virCommandPtr
+virStorageBackendFileSystemMountCmd(const char *cmdstr,
+                                    virStoragePoolDefPtr def,
+                                    const char *src);
+
+virCommandPtr
+virStorageBackendLogicalChangeCmd(const char *cmdstr,
+                                  virStoragePoolDefPtr def,
+                                  bool on);
+
+#endif /* LIBVIRT_STORAGE_UTIL_H */

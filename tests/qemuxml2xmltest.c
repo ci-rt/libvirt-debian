@@ -74,17 +74,20 @@ testCompareStatusXMLToXMLFiles(const void *opaque)
                                       VIR_DOMAIN_DEF_PARSE_ACTUAL_NET |
                                       VIR_DOMAIN_DEF_PARSE_PCI_ORIG_STATES |
                                       VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE |
-                                      VIR_DOMAIN_DEF_PARSE_ALLOW_POST_PARSE_FAIL)))
+                                      VIR_DOMAIN_DEF_PARSE_ALLOW_POST_PARSE_FAIL))) {
+        VIR_TEST_DEBUG("\nfailed to parse '%s'\n", data->inName);
         goto cleanup;
+    }
 
     if (!(actual = virDomainObjFormat(driver.xmlopt, obj, NULL,
                                       VIR_DOMAIN_DEF_FORMAT_SECURE |
                                       VIR_DOMAIN_DEF_FORMAT_STATUS |
                                       VIR_DOMAIN_DEF_FORMAT_ACTUAL_NET |
                                       VIR_DOMAIN_DEF_FORMAT_PCI_ORIG_STATES |
-                                      VIR_DOMAIN_DEF_FORMAT_CLOCK_ADJUST)))
-
+                                      VIR_DOMAIN_DEF_FORMAT_CLOCK_ADJUST))) {
+        VIR_TEST_DEBUG("\nfailed to format back '%s'\n", data->inName);
         goto cleanup;
+    }
 
     if (virTestCompareToFile(actual, data->outActiveName) < 0)
         goto cleanup;
@@ -399,7 +402,8 @@ mymain(void)
     cfg->vncAutoUnixSocket = false;
     DO_TEST("graphics-vnc-socket", NONE);
     DO_TEST("graphics-vnc-auto-socket", NONE);
-    DO_TEST("graphics-vnc-egl-headless", NONE);
+    DO_TEST("graphics-vnc-egl-headless",
+            QEMU_CAPS_EGL_HEADLESS);
 
     DO_TEST("graphics-sdl", NONE);
     DO_TEST("graphics-sdl-fullscreen", NONE);
@@ -411,7 +415,12 @@ mymain(void)
     cfg->spiceAutoUnixSocket = true;
     DO_TEST("graphics-spice-auto-socket-cfg", NONE);
     cfg->spiceAutoUnixSocket = false;
-    DO_TEST("graphics-spice-egl-headless", NONE);
+    DO_TEST("graphics-spice-egl-headless",
+            QEMU_CAPS_EGL_HEADLESS);
+
+    DO_TEST("graphics-egl-headless-rendernode",
+            QEMU_CAPS_EGL_HEADLESS,
+            QEMU_CAPS_EGL_HEADLESS_RENDERNODE);
 
     DO_TEST("input-usbmouse", NONE);
     DO_TEST("input-usbtablet", NONE);
@@ -1107,6 +1116,9 @@ mymain(void)
     DO_TEST("memory-hotplug-nvdimm", NONE);
     DO_TEST("memory-hotplug-nvdimm-access", NONE);
     DO_TEST("memory-hotplug-nvdimm-label", NONE);
+    DO_TEST("memory-hotplug-nvdimm-align", NONE);
+    DO_TEST("memory-hotplug-nvdimm-pmem", NONE);
+    DO_TEST("memory-hotplug-nvdimm-readonly", NONE);
     DO_TEST("net-udp", NONE);
 
     DO_TEST("video-virtio-gpu-device", NONE);

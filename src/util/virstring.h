@@ -14,13 +14,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *     Daniel P. Berrange <berrange@redhat.com>
  */
 
-#ifndef __VIR_STRING_H__
-# define __VIR_STRING_H__
+#ifndef LIBVIRT_VIRSTRING_H
+# define LIBVIRT_VIRSTRING_H
 
 # include <stdarg.h>
 
@@ -312,4 +309,4 @@ int virStringParsePort(const char *str,
 
 VIR_DEFINE_AUTOPTR_FUNC(virString, virStringListFree)
 
-#endif /* __VIR_STRING_H__ */
+#endif /* LIBVIRT_VIRSTRING_H */

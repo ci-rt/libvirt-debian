@@ -18,16 +18,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- * Shuveb Hussain <shuveb@binarykarma.com>
- * Anoop Joe Cyriac <anoop@binarykarma.com>
- *
  */
 
-
-#ifndef OPENVZ_DRIVER_H
-# define OPENVZ_DRIVER_H
+#ifndef LIBVIRT_OPENVZ_DRIVER_H
+# define LIBVIRT_OPENVZ_DRIVER_H
 
 # include "internal.h"
 
@@ -43,4 +37,4 @@
 
 int openvzRegister(void);
 
-#endif
+#endif /* LIBVIRT_OPENVZ_DRIVER_H */

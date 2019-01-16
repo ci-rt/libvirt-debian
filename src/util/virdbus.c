@@ -21,6 +21,7 @@
 
 #include <config.h>
 
+#define LIBVIRT_VIRDBUSPRIV_H_ALLOW
 #include "virdbuspriv.h"
 #include "viralloc.h"
 #include "virerror.h"

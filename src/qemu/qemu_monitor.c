@@ -17,8 +17,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
 #include <config.h>
@@ -48,7 +46,7 @@
 # include "libvirt_qemu_probes.h"
 #endif
 
-#define __QEMU_MONITOR_PRIV_H_ALLOW__
+#define LIBVIRT_QEMU_MONITOR_PRIV_H_ALLOW
 #include "qemu_monitor_priv.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
@@ -1687,6 +1685,24 @@ qemuMonitorEmitPRManagerStatusChanged(qemuMonitorPtr mon,
 
 
 int
+qemuMonitorEmitRdmaGidStatusChanged(qemuMonitorPtr mon,
+                                    const char *netdev,
+                                    bool gid_status,
+                                    unsigned long long subnet_prefix,
+                                    unsigned long long interface_id)
+{
+    int ret = -1;
+    VIR_DEBUG("netdev=%s, gid_status=%d, subnet_prefix=0x%llx, interface_id=0x%llx",
+              netdev, gid_status, subnet_prefix, interface_id);
+
+    QEMU_MONITOR_CALLBACK(mon, ret, domainRdmaGidStatusChanged, mon->vm,
+                          netdev, gid_status, subnet_prefix, interface_id);
+
+    return ret;
+}
+
+
+int
 qemuMonitorSetCapabilities(qemuMonitorPtr mon)
 {
     QEMU_CHECK_MONITOR(mon);
@@ -2033,7 +2049,7 @@ qemuMonitorGetCPUInfo(qemuMonitorPtr mon,
                                      cpuentries, ncpuentries,
                                      info, maxvcpus) < 0) {
         /* Fallback to the legacy algorithm. Hotplug paths will make sure that
-         * the apropriate data is present */
+         * the appropriate data is present */
         qemuMonitorCPUInfoClear(info, maxvcpus);
         qemuMonitorGetCPUInfoLegacy(cpuentries, ncpuentries, info, maxvcpus);
     }
@@ -4313,6 +4329,17 @@ qemuMonitorEventPanicInfoFree(qemuMonitorEventPanicInfoPtr info)
         break;
     }
 
+    VIR_FREE(info);
+}
+
+
+void
+qemuMonitorEventRdmaGidStatusFree(qemuMonitorRdmaGidStatusPtr info)
+{
+    if (!info)
+        return;
+
+    VIR_FREE(info->netdev);
     VIR_FREE(info);
 }
 

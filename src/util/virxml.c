@@ -16,8 +16,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Daniel Veillard <veillard@redhat.com>
  */
 
 #include <config.h>
@@ -1359,6 +1357,8 @@ virXMLValidatorFree(virXMLValidatorPtr validator)
  * @childBuf are NULL or are empty buffers the element is not
  * formatted.
  *
+ * Both passed buffers are always consumed and freed.
+ *
  * Returns 0 on success, -1 on error.
  */
 int
@@ -1367,15 +1367,16 @@ virXMLFormatElement(virBufferPtr buf,
                     virBufferPtr attrBuf,
                     virBufferPtr childBuf)
 {
+    int ret = -1;
+
     if ((!attrBuf || virBufferUse(attrBuf) == 0) &&
         (!childBuf || virBufferUse(childBuf) == 0)) {
         return 0;
     }
 
     if ((attrBuf && virBufferCheckError(attrBuf) < 0) ||
-        (childBuf && virBufferCheckError(childBuf) < 0)) {
-        return -1;
-    }
+        (childBuf && virBufferCheckError(childBuf) < 0))
+        goto cleanup;
 
     virBufferAsprintf(buf, "<%s", name);
 
@@ -1390,5 +1391,10 @@ virXMLFormatElement(virBufferPtr buf,
         virBufferAddLit(buf, "/>\n");
     }
 
-    return 0;
+    ret = 0;
+
+ cleanup:
+    virBufferFreeAndReset(attrBuf);
+    virBufferFreeAndReset(childBuf);
+    return ret;
 }

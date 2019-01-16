@@ -4,9 +4,6 @@
  *
  * lxc_conf.c: config functions for managing linux containers
  *
- * Authors:
- *  David L. Leskovec <dlesko at linux.vnet.ibm.com>
- *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -69,7 +66,7 @@ virCapsPtr virLXCDriverCapsInit(virLXCDriverPtr driver)
                                    false, false)) == NULL)
         goto error;
 
-    /* Some machines have problematic NUMA toplogy causing
+    /* Some machines have problematic NUMA topology causing
      * unexpected failures. We don't want to break the lxc
      * driver in this scenario, so log errors & carry on
      */

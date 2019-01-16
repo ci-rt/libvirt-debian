@@ -1,5 +1,5 @@
 /* Core of implementation of fstat and stat for native Windows.
-   Copyright (C) 2017-2018 Free Software Foundation, Inc.
+   Copyright (C) 2017-2019 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as published by
@@ -37,6 +37,10 @@
 
 #include "pathmax.h"
 #include "verify.h"
+
+/* Avoid warnings from gcc -Wcast-function-type.  */
+#define GetProcAddress \
+  (void *) GetProcAddress
 
 #if _GL_WINDOWS_STAT_INODES == 2
 /* GetFileInformationByHandleEx was introduced only in Windows Vista.  */

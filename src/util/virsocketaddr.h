@@ -14,15 +14,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *     Daniel Veillard <veillard@redhat.com>
- *     Laine Stump <laine@laine.org>
- *     Daniel P. Berrange <berrange@redhat.com>
  */
 
-#ifndef __VIR_SOCKETADDR_H__
-# define __VIR_SOCKETADDR_H__
+#ifndef LIBVIRT_VIRSOCKETADDR_H
+# define LIBVIRT_VIRSOCKETADDR_H
 
 # include <netinet/in.h>
 # include <sys/socket.h>
@@ -167,4 +162,4 @@ void virSocketAddrFree(virSocketAddrPtr addr);
 
 VIR_DEFINE_AUTOPTR_FUNC(virSocketAddr, virSocketAddrFree)
 
-#endif /* __VIR_SOCKETADDR_H__ */
+#endif /* LIBVIRT_VIRSOCKETADDR_H */

@@ -168,7 +168,9 @@ static int qemuDispatchDomainAttach(
     if ((dom = virDomainQemuAttach(priv->conn, args->pid_value, args->flags)) == NULL)
         goto cleanup;
 
-    make_nonnull_domain(&ret->dom, dom);
+    if (make_nonnull_domain(&ret->dom, dom) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:

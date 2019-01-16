@@ -17,12 +17,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
-#ifndef __VIR_STORAGE_FILE_H__
-# define __VIR_STORAGE_FILE_H__
+#ifndef LIBVIRT_VIRSTORAGEFILE_H
+# define LIBVIRT_VIRSTORAGEFILE_H
 
 # include <sys/stat.h>
 
@@ -324,7 +322,7 @@ struct _virStorageSource {
     unsigned int debugLevel;
     bool debug;
 
-    /* Libvirt currently stores the following properities in virDomainDiskDef.
+    /* Libvirt currently stores the following properties in virDomainDiskDef.
      * These instances are currently just copies from the parent definition and
      * are not mapped back to the XML */
     int iomode; /* enum virDomainDiskIo */
@@ -542,4 +540,4 @@ void virStorageFileReportBrokenChain(int errcode,
                                      virStorageSourcePtr src,
                                      virStorageSourcePtr parent);
 
-#endif /* __VIR_STORAGE_FILE_H__ */
+#endif /* LIBVIRT_VIRSTORAGEFILE_H */

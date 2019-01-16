@@ -19,12 +19,6 @@
 FILTERS = $(wildcard $(srcdir)/xml/nwfilter/*.xml)
 
 EXTRA_DIST = \
-	apparmor/TEMPLATE.qemu \
-	apparmor/TEMPLATE.lxc \
-	apparmor/libvirt-qemu \
-	apparmor/libvirt-lxc \
-	apparmor/usr.lib.libvirt.virt-aa-helper \
-	apparmor/usr.sbin.libvirtd \
 	lxcconvert/virt-lxc-convert \
 	polkit/libvirt-acl.rules \
 	$(wildcard $(srcdir)/systemtap/*.stp) \
@@ -33,10 +27,10 @@ EXTRA_DIST = \
 	$(wildcard $(srcdir)/xml/test/*.xml)
 
 
-INCLUDES = -I$(top_builddir)/include -I$(top_srcdir)/include -I$(top_srcdir) \
-	-I$(top_builddir)/gnulib/lib -I$(top_srcdir)/gnulib/lib
+AM_CPPFLAGS = \
+	-I$(top_builddir)/include -I$(top_srcdir)/include -I$(top_srcdir)
 LDADD = $(STATIC_BINARIES) $(WARN_CFLAGS) $(COVERAGE_LDFLAGS) \
-	$(top_builddir)/src/libvirt.la $(top_builddir)/gnulib/lib/libgnu.la \
+	$(top_builddir)/src/libvirt.la \
 	$(top_builddir)/src/libvirt-admin.la
 
 noinst_PROGRAMS=dominfo/info1 dommigrate/dommigrate domsuspend/suspend \
@@ -69,40 +63,6 @@ admin_logging_SOURCES = admin/logging.c
 
 INSTALL_DATA_LOCAL =
 UNINSTALL_LOCAL =
-
-if WITH_APPARMOR_PROFILES
-apparmordir = $(sysconfdir)/apparmor.d/
-apparmor_DATA = \
-	apparmor/usr.lib.libvirt.virt-aa-helper \
-	apparmor/usr.sbin.libvirtd \
-	$(NULL)
-
-abstractionsdir = $(apparmordir)/abstractions
-abstractions_DATA = \
-	apparmor/libvirt-qemu \
-	apparmor/libvirt-lxc \
-	$(NULL)
-
-templatesdir = $(apparmordir)/libvirt
-templates_DATA = \
-	apparmor/TEMPLATE.qemu \
-	apparmor/TEMPLATE.lxc \
-	$(NULL)
-
-APPARMOR_LOCAL_DIR = "$(DESTDIR)$(apparmordir)/local"
-install-apparmor-local:
-	$(MKDIR_P) "$(APPARMOR_LOCAL_DIR)"
-	echo "# Site-specific additions and overrides for \
-		'usr.lib.libvirt.virt-aa-helper'" \
-		>"$(APPARMOR_LOCAL_DIR)/usr.lib.libvirt.virt-aa-helper"
-
-uninstall-apparmor-local:
-	rm -f "$(APPARMOR_LOCAL_DIR)/usr.lib.libvirt.virt-aa-helper"
-	rmdir "$(APPARMOR_LOCAL_DIR)" || :
-
-INSTALL_DATA_LOCAL += install-apparmor-local
-UNINSTALL_LOCAL += uninstall-apparmor-local
-endif WITH_APPARMOR_PROFILES
 
 if WITH_NWFILTER
 NWFILTER_DIR = "$(DESTDIR)$(sysconfdir)/libvirt/nwfilter"

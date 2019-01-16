@@ -16,13 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *     Chen Hanxiao <chenhanxiao@gmail.com>
  */
 
-#ifndef __VIR_ARPTABLE_H__
-# define __VIR_ARPTABLE_H__
+#ifndef LIBVIRT_VIRARPTABLE_H
+# define LIBVIRT_VIRARPTABLE_H
 
 # include "internal.h"
 
@@ -44,4 +41,4 @@ struct _virArpTable {
 virArpTablePtr virArpTableGet(void);
 void virArpTableFree(virArpTablePtr table);
 
-#endif /* __VIR_ARPTABLE_H__ */
+#endif /* LIBVIRT_VIRARPTABLE_H */

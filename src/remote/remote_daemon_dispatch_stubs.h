@@ -1388,7 +1388,8 @@ static int remoteDispatchConnectListAllDomains(
 
         ret->domains.domains_len = nresults;
         for (i = 0; i < nresults; i++)
-            make_nonnull_domain(ret->domains.domains_val + i, result[i]);
+            if (make_nonnull_domain(ret->domains.domains_val + i, result[i]) < 0)
+                goto cleanup;
     } else {
         ret->domains.domains_len = 0;
         ret->domains.domains_val = NULL;
@@ -1472,7 +1473,8 @@ static int remoteDispatchConnectListAllInterfaces(
 
         ret->ifaces.ifaces_len = nresults;
         for (i = 0; i < nresults; i++)
-            make_nonnull_interface(ret->ifaces.ifaces_val + i, result[i]);
+            if (make_nonnull_interface(ret->ifaces.ifaces_val + i, result[i]) < 0)
+                goto cleanup;
     } else {
         ret->ifaces.ifaces_len = 0;
         ret->ifaces.ifaces_val = NULL;
@@ -1556,7 +1558,8 @@ static int remoteDispatchConnectListAllNetworks(
 
         ret->nets.nets_len = nresults;
         for (i = 0; i < nresults; i++)
-            make_nonnull_network(ret->nets.nets_val + i, result[i]);
+            if (make_nonnull_network(ret->nets.nets_val + i, result[i]) < 0)
+                goto cleanup;
     } else {
         ret->nets.nets_len = 0;
         ret->nets.nets_val = NULL;
@@ -1640,7 +1643,8 @@ static int remoteDispatchConnectListAllNodeDevices(
 
         ret->devices.devices_len = nresults;
         for (i = 0; i < nresults; i++)
-            make_nonnull_node_device(ret->devices.devices_val + i, result[i]);
+            if (make_nonnull_node_device(ret->devices.devices_val + i, result[i]) < 0)
+                goto cleanup;
     } else {
         ret->devices.devices_len = 0;
         ret->devices.devices_val = NULL;
@@ -1724,7 +1728,8 @@ static int remoteDispatchConnectListAllNWFilterBindings(
 
         ret->bindings.bindings_len = nresults;
         for (i = 0; i < nresults; i++)
-            make_nonnull_nwfilter_binding(ret->bindings.bindings_val + i, result[i]);
+            if (make_nonnull_nwfilter_binding(ret->bindings.bindings_val + i, result[i]) < 0)
+                goto cleanup;
     } else {
         ret->bindings.bindings_len = 0;
         ret->bindings.bindings_val = NULL;
@@ -1808,7 +1813,8 @@ static int remoteDispatchConnectListAllNWFilters(
 
         ret->filters.filters_len = nresults;
         for (i = 0; i < nresults; i++)
-            make_nonnull_nwfilter(ret->filters.filters_val + i, result[i]);
+            if (make_nonnull_nwfilter(ret->filters.filters_val + i, result[i]) < 0)
+                goto cleanup;
     } else {
         ret->filters.filters_len = 0;
         ret->filters.filters_val = NULL;
@@ -1892,7 +1898,8 @@ static int remoteDispatchConnectListAllSecrets(
 
         ret->secrets.secrets_len = nresults;
         for (i = 0; i < nresults; i++)
-            make_nonnull_secret(ret->secrets.secrets_val + i, result[i]);
+            if (make_nonnull_secret(ret->secrets.secrets_val + i, result[i]) < 0)
+                goto cleanup;
     } else {
         ret->secrets.secrets_len = 0;
         ret->secrets.secrets_val = NULL;
@@ -1976,7 +1983,8 @@ static int remoteDispatchConnectListAllStoragePools(
 
         ret->pools.pools_len = nresults;
         for (i = 0; i < nresults; i++)
-            make_nonnull_storage_pool(ret->pools.pools_val + i, result[i]);
+            if (make_nonnull_storage_pool(ret->pools.pools_val + i, result[i]) < 0)
+                goto cleanup;
     } else {
         ret->pools.pools_len = 0;
         ret->pools.pools_val = NULL;
@@ -4519,7 +4527,9 @@ static int remoteDispatchDomainCreateWithFlags(
     if (virDomainCreateWithFlags(dom, args->flags) < 0)
         goto cleanup;
 
-    make_nonnull_domain(&ret->dom, dom);
+    if (make_nonnull_domain(&ret->dom, dom) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -4575,7 +4585,9 @@ static int remoteDispatchDomainCreateXML(
     if ((dom = virDomainCreateXML(priv->conn, args->xml_desc, args->flags)) == NULL)
         goto cleanup;
 
-    make_nonnull_domain(&ret->dom, dom);
+    if (make_nonnull_domain(&ret->dom, dom) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -4658,7 +4670,9 @@ static int remoteDispatchDomainDefineXML(
     if ((dom = virDomainDefineXML(priv->conn, args->xml)) == NULL)
         goto cleanup;
 
-    make_nonnull_domain(&ret->dom, dom);
+    if (make_nonnull_domain(&ret->dom, dom) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -4714,7 +4728,9 @@ static int remoteDispatchDomainDefineXMLFlags(
     if ((dom = virDomainDefineXMLFlags(priv->conn, args->xml, args->flags)) == NULL)
         goto cleanup;
 
-    make_nonnull_domain(&ret->dom, dom);
+    if (make_nonnull_domain(&ret->dom, dom) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -7191,7 +7207,8 @@ static int remoteDispatchDomainListAllSnapshots(
 
         ret->snapshots.snapshots_len = nresults;
         for (i = 0; i < nresults; i++)
-            make_nonnull_domain_snapshot(ret->snapshots.snapshots_val + i, result[i]);
+            if (make_nonnull_domain_snapshot(ret->snapshots.snapshots_val + i, result[i]) < 0)
+                goto cleanup;
     } else {
         ret->snapshots.snapshots_len = 0;
         ret->snapshots.snapshots_val = NULL;
@@ -7258,7 +7275,9 @@ static int remoteDispatchDomainLookupByID(
     if ((dom = virDomainLookupByID(priv->conn, args->id)) == NULL)
         goto cleanup;
 
-    make_nonnull_domain(&ret->dom, dom);
+    if (make_nonnull_domain(&ret->dom, dom) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -7314,7 +7333,9 @@ static int remoteDispatchDomainLookupByName(
     if ((dom = virDomainLookupByName(priv->conn, args->name)) == NULL)
         goto cleanup;
 
-    make_nonnull_domain(&ret->dom, dom);
+    if (make_nonnull_domain(&ret->dom, dom) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -7370,7 +7391,9 @@ static int remoteDispatchDomainLookupByUUID(
     if ((dom = virDomainLookupByUUID(priv->conn, (unsigned char *) args->uuid)) == NULL)
         goto cleanup;
 
-    make_nonnull_domain(&ret->dom, dom);
+    if (make_nonnull_domain(&ret->dom, dom) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -7820,7 +7843,9 @@ static int remoteDispatchDomainMigrateFinish(
     if ((ddom = virDomainMigrateFinish(priv->conn, args->dname, args->cookie.cookie_val, args->cookie.cookie_len, args->uri, flags)) == NULL)
         goto cleanup;
 
-    make_nonnull_domain(&ret->ddom, ddom);
+    if (make_nonnull_domain(&ret->ddom, ddom) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -7879,7 +7904,9 @@ static int remoteDispatchDomainMigrateFinish2(
     if ((ddom = virDomainMigrateFinish2(priv->conn, args->dname, args->cookie.cookie_val, args->cookie.cookie_len, args->uri, flags, args->retcode)) == NULL)
         goto cleanup;
 
-    make_nonnull_domain(&ret->ddom, ddom);
+    if (make_nonnull_domain(&ret->ddom, ddom) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -11662,7 +11689,9 @@ static int remoteDispatchDomainSnapshotCreateXML(
     if ((snap = virDomainSnapshotCreateXML(dom, args->xml_desc, args->flags)) == NULL)
         goto cleanup;
 
-    make_nonnull_domain_snapshot(&ret->snap, snap);
+    if (make_nonnull_domain_snapshot(&ret->snap, snap) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -11723,7 +11752,9 @@ static int remoteDispatchDomainSnapshotCurrent(
     if ((snap = virDomainSnapshotCurrent(dom, args->flags)) == NULL)
         goto cleanup;
 
-    make_nonnull_domain_snapshot(&ret->snap, snap);
+    if (make_nonnull_domain_snapshot(&ret->snap, snap) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -11849,7 +11880,9 @@ static int remoteDispatchDomainSnapshotGetParent(
     if ((snap = virDomainSnapshotGetParent(snapshot, args->flags)) == NULL)
         goto cleanup;
 
-    make_nonnull_domain_snapshot(&ret->snap, snap);
+    if (make_nonnull_domain_snapshot(&ret->snap, snap) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -12128,7 +12161,8 @@ static int remoteDispatchDomainSnapshotListAllChildren(
 
         ret->snapshots.snapshots_len = nresults;
         for (i = 0; i < nresults; i++)
-            make_nonnull_domain_snapshot(ret->snapshots.snapshots_val + i, result[i]);
+            if (make_nonnull_domain_snapshot(ret->snapshots.snapshots_val + i, result[i]) < 0)
+                goto cleanup;
     } else {
         ret->snapshots.snapshots_len = 0;
         ret->snapshots.snapshots_val = NULL;
@@ -12349,7 +12383,9 @@ static int remoteDispatchDomainSnapshotLookupByName(
     if ((snap = virDomainSnapshotLookupByName(dom, args->name, args->flags)) == NULL)
         goto cleanup;
 
-    make_nonnull_domain_snapshot(&ret->snap, snap);
+    if (make_nonnull_domain_snapshot(&ret->snap, snap) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -12964,7 +13000,9 @@ static int remoteDispatchInterfaceDefineXML(
     if ((iface = virInterfaceDefineXML(priv->interfaceConn, args->xml, args->flags)) == NULL)
         goto cleanup;
 
-    make_nonnull_interface(&ret->iface, iface);
+    if (make_nonnull_interface(&ret->iface, iface) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -13196,7 +13234,9 @@ static int remoteDispatchInterfaceLookupByMACString(
     if ((iface = virInterfaceLookupByMACString(priv->interfaceConn, args->mac)) == NULL)
         goto cleanup;
 
-    make_nonnull_interface(&ret->iface, iface);
+    if (make_nonnull_interface(&ret->iface, iface) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -13252,7 +13292,9 @@ static int remoteDispatchInterfaceLookupByName(
     if ((iface = virInterfaceLookupByName(priv->interfaceConn, args->name)) == NULL)
         goto cleanup;
 
-    make_nonnull_interface(&ret->iface, iface);
+    if (make_nonnull_interface(&ret->iface, iface) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -13420,7 +13462,9 @@ static int remoteDispatchNetworkCreateXML(
     if ((net = virNetworkCreateXML(priv->networkConn, args->xml)) == NULL)
         goto cleanup;
 
-    make_nonnull_network(&ret->net, net);
+    if (make_nonnull_network(&ret->net, net) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -13476,7 +13520,9 @@ static int remoteDispatchNetworkDefineXML(
     if ((net = virNetworkDefineXML(priv->networkConn, args->xml)) == NULL)
         goto cleanup;
 
-    make_nonnull_network(&ret->net, net);
+    if (make_nonnull_network(&ret->net, net) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -13915,7 +13961,9 @@ static int remoteDispatchNetworkLookupByName(
     if ((net = virNetworkLookupByName(priv->networkConn, args->name)) == NULL)
         goto cleanup;
 
-    make_nonnull_network(&ret->net, net);
+    if (make_nonnull_network(&ret->net, net) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -13971,7 +14019,9 @@ static int remoteDispatchNetworkLookupByUUID(
     if ((net = virNetworkLookupByUUID(priv->networkConn, (unsigned char *) args->uuid)) == NULL)
         goto cleanup;
 
-    make_nonnull_network(&ret->net, net);
+    if (make_nonnull_network(&ret->net, net) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -14222,7 +14272,9 @@ static int remoteDispatchNodeDeviceCreateXML(
     if ((dev = virNodeDeviceCreateXML(priv->nodedevConn, args->xml_desc, args->flags)) == NULL)
         goto cleanup;
 
-    make_nonnull_node_device(&ret->dev, dev);
+    if (make_nonnull_node_device(&ret->dev, dev) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -14608,7 +14660,9 @@ static int remoteDispatchNodeDeviceLookupByName(
     if ((dev = virNodeDeviceLookupByName(priv->nodedevConn, args->name)) == NULL)
         goto cleanup;
 
-    make_nonnull_node_device(&ret->dev, dev);
+    if (make_nonnull_node_device(&ret->dev, dev) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -14664,7 +14718,9 @@ static int remoteDispatchNodeDeviceLookupSCSIHostByWWN(
     if ((dev = virNodeDeviceLookupSCSIHostByWWN(priv->nodedevConn, args->wwnn, args->wwpn, args->flags)) == NULL)
         goto cleanup;
 
-    make_nonnull_node_device(&ret->dev, dev);
+    if (make_nonnull_node_device(&ret->dev, dev) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -15500,7 +15556,9 @@ static int remoteDispatchNWFilterBindingCreateXML(
     if ((nwfilter = virNWFilterBindingCreateXML(priv->nwfilterConn, args->xml, args->flags)) == NULL)
         goto cleanup;
 
-    make_nonnull_nwfilter_binding(&ret->nwfilter, nwfilter);
+    if (make_nonnull_nwfilter_binding(&ret->nwfilter, nwfilter) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -15672,7 +15730,9 @@ static int remoteDispatchNWFilterBindingLookupByPortDev(
     if ((nwfilter = virNWFilterBindingLookupByPortDev(priv->nwfilterConn, args->name)) == NULL)
         goto cleanup;
 
-    make_nonnull_nwfilter_binding(&ret->nwfilter, nwfilter);
+    if (make_nonnull_nwfilter_binding(&ret->nwfilter, nwfilter) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -15728,7 +15788,9 @@ static int remoteDispatchNWFilterDefineXML(
     if ((nwfilter = virNWFilterDefineXML(priv->nwfilterConn, args->xml)) == NULL)
         goto cleanup;
 
-    make_nonnull_nwfilter(&ret->nwfilter, nwfilter);
+    if (make_nonnull_nwfilter(&ret->nwfilter, nwfilter) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -15844,7 +15906,9 @@ static int remoteDispatchNWFilterLookupByName(
     if ((nwfilter = virNWFilterLookupByName(priv->nwfilterConn, args->name)) == NULL)
         goto cleanup;
 
-    make_nonnull_nwfilter(&ret->nwfilter, nwfilter);
+    if (make_nonnull_nwfilter(&ret->nwfilter, nwfilter) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -15900,7 +15964,9 @@ static int remoteDispatchNWFilterLookupByUUID(
     if ((nwfilter = virNWFilterLookupByUUID(priv->nwfilterConn, (unsigned char *) args->uuid)) == NULL)
         goto cleanup;
 
-    make_nonnull_nwfilter(&ret->nwfilter, nwfilter);
+    if (make_nonnull_nwfilter(&ret->nwfilter, nwfilter) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -16012,7 +16078,9 @@ static int remoteDispatchSecretDefineXML(
     if ((secret = virSecretDefineXML(priv->secretConn, args->xml, args->flags)) == NULL)
         goto cleanup;
 
-    make_nonnull_secret(&ret->secret, secret);
+    if (make_nonnull_secret(&ret->secret, secret) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -16155,7 +16223,9 @@ static int remoteDispatchSecretLookupByUsage(
     if ((secret = virSecretLookupByUsage(priv->secretConn, args->usageType, args->usageID)) == NULL)
         goto cleanup;
 
-    make_nonnull_secret(&ret->secret, secret);
+    if (make_nonnull_secret(&ret->secret, secret) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -16211,7 +16281,9 @@ static int remoteDispatchSecretLookupByUUID(
     if ((secret = virSecretLookupByUUID(priv->secretConn, (unsigned char *) args->uuid)) == NULL)
         goto cleanup;
 
-    make_nonnull_secret(&ret->secret, secret);
+    if (make_nonnull_secret(&ret->secret, secret) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -16491,7 +16563,9 @@ static int remoteDispatchStoragePoolCreateXML(
     if ((pool = virStoragePoolCreateXML(priv->storageConn, args->xml, args->flags)) == NULL)
         goto cleanup;
 
-    make_nonnull_storage_pool(&ret->pool, pool);
+    if (make_nonnull_storage_pool(&ret->pool, pool) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -16547,7 +16621,9 @@ static int remoteDispatchStoragePoolDefineXML(
     if ((pool = virStoragePoolDefineXML(priv->storageConn, args->xml, args->flags)) == NULL)
         goto cleanup;
 
-    make_nonnull_storage_pool(&ret->pool, pool);
+    if (make_nonnull_storage_pool(&ret->pool, pool) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -17040,7 +17116,8 @@ static int remoteDispatchStoragePoolListAllVolumes(
 
         ret->vols.vols_len = nresults;
         for (i = 0; i < nresults; i++)
-            make_nonnull_storage_vol(ret->vols.vols_val + i, result[i]);
+            if (make_nonnull_storage_vol(ret->vols.vols_val + i, result[i]) < 0)
+                goto cleanup;
     } else {
         ret->vols.vols_len = 0;
         ret->vols.vols_val = NULL;
@@ -17179,7 +17256,9 @@ static int remoteDispatchStoragePoolLookupByName(
     if ((pool = virStoragePoolLookupByName(priv->storageConn, args->name)) == NULL)
         goto cleanup;
 
-    make_nonnull_storage_pool(&ret->pool, pool);
+    if (make_nonnull_storage_pool(&ret->pool, pool) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -17235,7 +17314,9 @@ static int remoteDispatchStoragePoolLookupByTargetPath(
     if ((pool = virStoragePoolLookupByTargetPath(priv->storageConn, args->path)) == NULL)
         goto cleanup;
 
-    make_nonnull_storage_pool(&ret->pool, pool);
+    if (make_nonnull_storage_pool(&ret->pool, pool) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -17291,7 +17372,9 @@ static int remoteDispatchStoragePoolLookupByUUID(
     if ((pool = virStoragePoolLookupByUUID(priv->storageConn, (unsigned char *) args->uuid)) == NULL)
         goto cleanup;
 
-    make_nonnull_storage_pool(&ret->pool, pool);
+    if (make_nonnull_storage_pool(&ret->pool, pool) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -17351,7 +17434,9 @@ static int remoteDispatchStoragePoolLookupByVolume(
     if ((pool = virStoragePoolLookupByVolume(vol)) == NULL)
         goto cleanup;
 
-    make_nonnull_storage_pool(&ret->pool, pool);
+    if (make_nonnull_storage_pool(&ret->pool, pool) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -17640,7 +17725,9 @@ static int remoteDispatchStorageVolCreateXML(
     if ((vol = virStorageVolCreateXML(pool, args->xml, args->flags)) == NULL)
         goto cleanup;
 
-    make_nonnull_storage_vol(&ret->vol, vol);
+    if (make_nonnull_storage_vol(&ret->vol, vol) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -17705,7 +17792,9 @@ static int remoteDispatchStorageVolCreateXMLFrom(
     if ((vol = virStorageVolCreateXMLFrom(pool, args->xml, clonevol, args->flags)) == NULL)
         goto cleanup;
 
-    make_nonnull_storage_vol(&ret->vol, vol);
+    if (make_nonnull_storage_vol(&ret->vol, vol) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -18103,7 +18192,9 @@ static int remoteDispatchStorageVolLookupByKey(
     if ((vol = virStorageVolLookupByKey(priv->storageConn, args->key)) == NULL)
         goto cleanup;
 
-    make_nonnull_storage_vol(&ret->vol, vol);
+    if (make_nonnull_storage_vol(&ret->vol, vol) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -18163,7 +18254,9 @@ static int remoteDispatchStorageVolLookupByName(
     if ((vol = virStorageVolLookupByName(pool, args->name)) == NULL)
         goto cleanup;
 
-    make_nonnull_storage_vol(&ret->vol, vol);
+    if (make_nonnull_storage_vol(&ret->vol, vol) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -18220,7 +18313,9 @@ static int remoteDispatchStorageVolLookupByPath(
     if ((vol = virStorageVolLookupByPath(priv->storageConn, args->path)) == NULL)
         goto cleanup;
 
-    make_nonnull_storage_vol(&ret->vol, vol);
+    if (make_nonnull_storage_vol(&ret->vol, vol) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:

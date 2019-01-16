@@ -15,13 +15,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *     Stefan Berger <stefanb@us.ibm.com>
  */
 
-#ifndef __UTIL_MACVTAP_H__
-# define __UTIL_MACVTAP_H__
+#ifndef LIBVIRT_VIRNETDEVMACVLAN_H
+# define LIBVIRT_VIRNETDEVMACVLAN_H
 
 # include "internal.h"
 # include "virmacaddr.h"
@@ -114,4 +111,4 @@ int virNetDevMacVLanVPortProfileRegisterCallback(const char *ifname,
                                                  virNetDevVPortProfileOp vmOp)
 ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
 ATTRIBUTE_NONNULL(4) ATTRIBUTE_RETURN_CHECK;
-#endif /* __UTIL_MACVTAP_H__ */
+#endif /* LIBVIRT_VIRNETDEVMACVLAN_H */

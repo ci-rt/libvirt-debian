@@ -16,12 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
-#ifndef VIR_SECURITY_MANAGER_H__
-# define VIR_SECURITY_MANAGER_H__
+#ifndef LIBVIRT_SECURITY_MANAGER_H
+# define LIBVIRT_SECURITY_MANAGER_H
 
 # include "domain_conf.h"
 # include "vircommand.h"
@@ -210,4 +208,4 @@ void
 virSecurityManagerMetadataUnlock(virSecurityManagerPtr mgr,
                                  virSecurityManagerMetadataLockStatePtr *state);
 
-#endif /* VIR_SECURITY_MANAGER_H__ */
+#endif /* LIBVIRT_SECURITY_MANAGER_H */

@@ -382,6 +382,7 @@
     <reference name='VIR_DOMAIN_JOB_MEMORY_NORMAL' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_MEMORY_NORMAL'/>
     <reference name='VIR_DOMAIN_JOB_MEMORY_NORMAL_BYTES' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_MEMORY_NORMAL_BYTES'/>
     <reference name='VIR_DOMAIN_JOB_MEMORY_PAGE_SIZE' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_MEMORY_PAGE_SIZE'/>
+    <reference name='VIR_DOMAIN_JOB_MEMORY_POSTCOPY_REQS' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_MEMORY_POSTCOPY_REQS'/>
     <reference name='VIR_DOMAIN_JOB_MEMORY_PROCESSED' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_MEMORY_PROCESSED'/>
     <reference name='VIR_DOMAIN_JOB_MEMORY_REMAINING' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_MEMORY_REMAINING'/>
     <reference name='VIR_DOMAIN_JOB_MEMORY_TOTAL' href='html/libvirt-libvirt-domain.html#VIR_DOMAIN_JOB_MEMORY_TOTAL'/>
@@ -776,6 +777,7 @@
     <reference name='VIR_ERR_NO_TARGET' href='html/libvirt-virterror.html#VIR_ERR_NO_TARGET'/>
     <reference name='VIR_ERR_NO_XEN' href='html/libvirt-virterror.html#VIR_ERR_NO_XEN'/>
     <reference name='VIR_ERR_NO_XENSTORE' href='html/libvirt-virterror.html#VIR_ERR_NO_XENSTORE'/>
+    <reference name='VIR_ERR_NUMBER_LAST' href='html/libvirt-virterror.html#VIR_ERR_NUMBER_LAST'/>
     <reference name='VIR_ERR_OK' href='html/libvirt-virterror.html#VIR_ERR_OK'/>
     <reference name='VIR_ERR_OPEN_FAILED' href='html/libvirt-virterror.html#VIR_ERR_OPEN_FAILED'/>
     <reference name='VIR_ERR_OPERATION_ABORTED' href='html/libvirt-virterror.html#VIR_ERR_OPERATION_ABORTED'/>
@@ -2291,6 +2293,7 @@
       <ref name='VIR_DOMAIN_JOB_MEMORY_NORMAL'/>
       <ref name='VIR_DOMAIN_JOB_MEMORY_NORMAL_BYTES'/>
       <ref name='VIR_DOMAIN_JOB_MEMORY_PAGE_SIZE'/>
+      <ref name='VIR_DOMAIN_JOB_MEMORY_POSTCOPY_REQS'/>
       <ref name='VIR_DOMAIN_JOB_MEMORY_PROCESSED'/>
       <ref name='VIR_DOMAIN_JOB_MEMORY_REMAINING'/>
       <ref name='VIR_DOMAIN_JOB_MEMORY_TOTAL'/>
@@ -2685,6 +2688,7 @@
       <ref name='VIR_ERR_NO_TARGET'/>
       <ref name='VIR_ERR_NO_XEN'/>
       <ref name='VIR_ERR_NO_XENSTORE'/>
+      <ref name='VIR_ERR_NUMBER_LAST'/>
       <ref name='VIR_ERR_OK'/>
       <ref name='VIR_ERR_OPEN_FAILED'/>
       <ref name='VIR_ERR_OPERATION_ABORTED'/>
@@ -5594,6 +5598,7 @@
       <ref name='VIR_DOMAIN_JOB_MEMORY_NORMAL'/>
       <ref name='VIR_DOMAIN_JOB_MEMORY_NORMAL_BYTES'/>
       <ref name='VIR_DOMAIN_JOB_MEMORY_PAGE_SIZE'/>
+      <ref name='VIR_DOMAIN_JOB_MEMORY_POSTCOPY_REQS'/>
       <ref name='VIR_DOMAIN_JOB_MEMORY_PROCESSED'/>
       <ref name='VIR_DOMAIN_JOB_MEMORY_REMAINING'/>
       <ref name='VIR_DOMAIN_JOB_MEMORY_TOTAL'/>
@@ -6990,6 +6995,7 @@
       <ref name='VIR_ERR_NO_TARGET'/>
       <ref name='VIR_ERR_NO_XEN'/>
       <ref name='VIR_ERR_NO_XENSTORE'/>
+      <ref name='VIR_ERR_NUMBER_LAST'/>
       <ref name='VIR_ERR_OK'/>
       <ref name='VIR_ERR_OPEN_FAILED'/>
       <ref name='VIR_ERR_OPERATION_ABORTED'/>
@@ -8387,6 +8393,7 @@
         </word>
         <word name='Please'>
           <ref name='virConnectDomainEventDiskChangeCallback'/>
+          <ref name='virDomainGetAutostart'/>
           <ref name='virDomainGetTime'/>
           <ref name='virDomainSetTime'/>
           <ref name='virDomainSetUserPassword'/>
@@ -8795,6 +8802,7 @@
         <word name='Since'>
           <ref name='virConnCopyLastError'/>
           <ref name='virConnGetLastError'/>
+          <ref name='virDomainGetAutostart'/>
           <ref name='virDomainGetBlockJobInfo'/>
           <ref name='virDomainGetDiskErrors'/>
           <ref name='virDomainRevertToSnapshot'/>
@@ -9043,6 +9051,7 @@
           <ref name='virConnectOpen'/>
           <ref name='virConnectOpenAuth'/>
           <ref name='virConnectOpenReadOnly'/>
+          <ref name='virDomainGetAutostart'/>
         </word>
         <word name='UTC'>
           <ref name='virConnectDomainEventRTCChangeCallback'/>
@@ -11367,6 +11376,9 @@
           <ref name='virConnectListAllStoragePools'/>
           <ref name='virStoragePoolGetAutostart'/>
         </word>
+        <word name='autostarts'>
+          <ref name='virDomainGetAutostart'/>
+        </word>
         <word name='available'>
           <ref name='VIR_DOMAIN_IOTHREAD_POLL_MAX_NS'/>
           <ref name='_virError'/>
@@ -11564,6 +11576,9 @@
           <ref name='virDomainSnapshotListNames'/>
           <ref name='virDomainSnapshotNum'/>
           <ref name='virDomainSnapshotNumChildren'/>
+        </word>
+        <word name='behaviour'>
+          <ref name='virDomainGetAutostart'/>
         </word>
         <word name='belong'>
           <ref name='virDomainGetMetadata'/>
@@ -12479,6 +12494,9 @@
           <ref name='virDomainSetMemoryStatsPeriod'/>
           <ref name='virDomainSetVcpusFlags'/>
         </word>
+        <word name='comes'>
+          <ref name='virDomainGetAutostart'/>
+        </word>
         <word name='comma'>
           <ref name='virDomainSetGuestVcpus'/>
         </word>
@@ -13082,6 +13100,7 @@
           <ref name='virConnectClose'/>
         </word>
         <word name='counter'>
+          <ref name='VIR_DOMAIN_JOB_MEMORY_POSTCOPY_REQS'/>
           <ref name='virDomainGetConnect'/>
           <ref name='virDomainSnapshotGetConnect'/>
           <ref name='virDomainSnapshotGetDomain'/>
@@ -13275,6 +13294,7 @@
           <ref name='virDomainCreateWithFlags'/>
           <ref name='virDomainCreateXML'/>
           <ref name='virDomainCreateXMLWithFiles'/>
+          <ref name='virDomainGetAutostart'/>
           <ref name='virDomainGetJobStats'/>
           <ref name='virDomainListGetStats'/>
           <ref name='virDomainMigrateToURI3'/>
@@ -14156,12 +14176,10 @@
           <ref name='virDomainGetCPUStats'/>
           <ref name='virDomainGetGuestVcpus'/>
           <ref name='virDomainGetMetadata'/>
+          <ref name='virDomainGetSecurityLabelList'/>
           <ref name='virDomainMemoryStats'/>
           <ref name='virDomainRename'/>
           <ref name='virDomainSetBlockIoTune'/>
-        </word>
-        <word name='elemnets'>
-          <ref name='virDomainGetSecurityLabelList'/>
         </word>
         <word name='else'>
           <ref name='virDomainPMSuspendForDuration'/>
@@ -15064,7 +15082,7 @@
           <ref name='VIR_DOMAIN_JOB_DOWNTIME_NET'/>
           <ref name='VIR_DOMAIN_JOB_TIME_ELAPSED_NET'/>
         </word>
-        <word name='fluctution'>
+        <word name='fluctuation'>
           <ref name='virConnectGetAllDomainStats'/>
         </word>
         <word name='flush'>
@@ -15397,6 +15415,7 @@
         </word>
         <word name='goes'>
           <ref name='VIR_NODE_MEMORY_SHARED_PAGES_TO_SCAN'/>
+          <ref name='virDomainGetAutostart'/>
         </word>
         <word name='going'>
           <ref name='virDomainAttachDevice'/>
@@ -16179,6 +16198,7 @@
           <ref name='virStorageVolRef'/>
         </word>
         <word name='incremented'>
+          <ref name='VIR_DOMAIN_JOB_MEMORY_POSTCOPY_REQS'/>
           <ref name='virTypedParamsAddBoolean'/>
           <ref name='virTypedParamsAddDouble'/>
           <ref name='virTypedParamsAddFromString'/>
@@ -17847,6 +17867,7 @@
           <ref name='virDomainReboot'/>
         </word>
         <word name='migrated'>
+          <ref name='VIR_DOMAIN_JOB_MEMORY_POSTCOPY_REQS'/>
           <ref name='VIR_MIGRATE_PARAM_MIGRATE_DISKS'/>
           <ref name='virDomainGetBlockInfo'/>
           <ref name='virDomainMigrateGetMaxSpeed'/>
@@ -18176,10 +18197,8 @@
           <ref name='VIR_DOMAIN_BLOCK_STATS_READ_TOTAL_TIMES'/>
           <ref name='VIR_DOMAIN_BLOCK_STATS_WRITE_TOTAL_TIMES'/>
         </word>
-        <word name='nanoscond'>
-          <ref name='virDomainGetTime'/>
-        </word>
         <word name='nanosecond'>
+          <ref name='virDomainGetTime'/>
           <ref name='virDomainSetTime'/>
         </word>
         <word name='nanoseconds'>
@@ -18466,6 +18485,7 @@
         </word>
         <word name='note'>
           <ref name='_virError'/>
+          <ref name='virDomainGetAutostart'/>
           <ref name='virDomainGetBlockIoTune'/>
           <ref name='virDomainGetTime'/>
           <ref name='virDomainSetTime'/>
@@ -18611,9 +18631,6 @@
           <ref name='virConnectSecretEventRegisterAny'/>
           <ref name='virConnectStoragePoolEventRegisterAny'/>
         </word>
-        <word name='occurrs'>
-          <ref name='virEventAddHandleFunc'/>
-        </word>
         <word name='occurs'>
           <ref name='virConnectDomainEventAgentLifecycleCallback'/>
           <ref name='virConnectDomainEventBlockThresholdCallback'/>
@@ -18631,6 +18648,7 @@
           <ref name='virConnectDomainEventTunableCallback'/>
           <ref name='virConnectNetworkEventLifecycleCallback'/>
           <ref name='virEventAddHandle'/>
+          <ref name='virEventAddHandleFunc'/>
           <ref name='virEventAddTimeout'/>
           <ref name='virGetVersion'/>
           <ref name='virStreamEventAddCallback'/>
@@ -18640,6 +18658,7 @@
           <ref name='virDomainBlockJobAbort'/>
           <ref name='virDomainCoreDump'/>
           <ref name='virDomainCoreDumpWithFormat'/>
+          <ref name='virDomainGetAutostart'/>
           <ref name='virDomainSnapshotCreateXML'/>
         </word>
         <word name='off_t'>
@@ -18925,6 +18944,7 @@
           <ref name='VIR_DOMAIN_JOB_COMPRESSION_OVERFLOW'/>
           <ref name='VIR_DOMAIN_JOB_MEMORY_CONSTANT'/>
           <ref name='VIR_DOMAIN_JOB_MEMORY_PAGE_SIZE'/>
+          <ref name='VIR_DOMAIN_JOB_MEMORY_POSTCOPY_REQS'/>
           <ref name='VIR_MIGRATE_PARAM_COMPRESSION_XBZRLE_CACHE'/>
           <ref name='VIR_PERF_PARAM_PAGE_FAULTS'/>
           <ref name='VIR_PERF_PARAM_PAGE_FAULTS_MAJ'/>
@@ -19515,6 +19535,7 @@
           <ref name='virConnectListAllDomains'/>
         </word>
         <word name='post-copy'>
+          <ref name='VIR_DOMAIN_JOB_MEMORY_POSTCOPY_REQS'/>
           <ref name='virDomainAbortJob'/>
           <ref name='virDomainGetJobStats'/>
           <ref name='virDomainMigrateStartPostCopy'/>
@@ -20263,6 +20284,7 @@
           <ref name='virStreamSinkHoleFunc'/>
         </word>
         <word name='received'>
+          <ref name='VIR_DOMAIN_JOB_MEMORY_POSTCOPY_REQS'/>
           <ref name='virConnectGetAllDomainStats'/>
           <ref name='virConnectSetKeepAlive'/>
           <ref name='virDomainGetBlockInfo'/>
@@ -20281,6 +20303,7 @@
           <ref name='virGetLastErrorMessage'/>
         </word>
         <word name='recently'>
+          <ref name='virDomainGetAutostart'/>
           <ref name='virDomainGetJobStats'/>
         </word>
         <word name='recheck'>
@@ -20780,6 +20803,7 @@
           <ref name='VIR_DOMAIN_BLOCK_STATS_FLUSH_REQ'/>
           <ref name='VIR_DOMAIN_BLOCK_STATS_READ_REQ'/>
           <ref name='VIR_DOMAIN_BLOCK_STATS_WRITE_REQ'/>
+          <ref name='VIR_DOMAIN_JOB_MEMORY_POSTCOPY_REQS'/>
           <ref name='_virDomainBlockStats'/>
           <ref name='virConnectGetAllDomainStats'/>
           <ref name='virDomainBlockPeek'/>
@@ -20989,6 +21013,7 @@
           <ref name='virConnectGetHostname'/>
           <ref name='virConnectSetKeepAlive'/>
           <ref name='virCopyLastError'/>
+          <ref name='virDomainGetAutostart'/>
           <ref name='virDomainManagedSave'/>
           <ref name='virDomainPMSuspendForDuration'/>
           <ref name='virDomainReboot'/>
@@ -21516,6 +21541,9 @@
           <ref name='virConnectGetType'/>
           <ref name='virDomainMemoryStats'/>
         </word>
+        <word name='session'>
+          <ref name='virDomainGetAutostart'/>
+        </word>
         <word name='sets'>
           <ref name='VIR_USE_CPU'/>
           <ref name='virConnectListAllDomains'/>
@@ -21661,6 +21689,7 @@
         <word name='shut'>
           <ref name='virDomainCoreDump'/>
           <ref name='virDomainCoreDumpWithFormat'/>
+          <ref name='virDomainGetAutostart'/>
         </word>
         <word name='shutdown'>
           <ref name='virDomainDestroy'/>
@@ -23060,6 +23089,7 @@
           <ref name='VIR_DOMAIN_JOB_MEMORY_ITERATION'/>
           <ref name='VIR_DOMAIN_JOB_MEMORY_NORMAL'/>
           <ref name='VIR_DOMAIN_JOB_MEMORY_NORMAL_BYTES'/>
+          <ref name='VIR_DOMAIN_JOB_MEMORY_POSTCOPY_REQS'/>
           <ref name='virDomainMigrateGetCompressionCache'/>
           <ref name='virDomainMigrateSetCompressionCache'/>
           <ref name='virDomainMigrateStartPostCopy'/>
@@ -23142,6 +23172,7 @@
           <ref name='VIR_NODE_MEMORY_SHARED_PAGES_VOLATILE'/>
         </word>
         <word name='tries'>
+          <ref name='VIR_DOMAIN_JOB_MEMORY_POSTCOPY_REQS'/>
           <ref name='virDomainMigrateStartPostCopy'/>
           <ref name='virDomainReboot'/>
           <ref name='virDomainSetTime'/>
@@ -23383,6 +23414,7 @@
         </word>
         <word name='unexpected'>
           <ref name='virDomainDetachDeviceFlags'/>
+          <ref name='virDomainGetAutostart'/>
         </word>
         <word name='unexpectedly'>
           <ref name='virConnectSetKeepAlive'/>
@@ -25589,6 +25621,7 @@
           <ref name='virDomainRevertToSnapshot'/>
         </word>
         <word name='whenever'>
+          <ref name='VIR_DOMAIN_JOB_MEMORY_POSTCOPY_REQS'/>
           <ref name='VIR_MIGRATE_PARAM_AUTO_CONVERGE_INCREMENT'/>
         </word>
         <word name='whichever'>

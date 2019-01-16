@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *     Matthew J. Rosato <mjrosato@linux.vnet.ibm.com>
  */
 
 #include <config.h>
@@ -363,7 +360,7 @@ qemuCreateInBridgePortWithHelper(virQEMUDriverConfigPtr cfg,
         char ebuf[1024];
         char *errstr = NULL;
 
-        if (!(cmdstr = virCommandToString(cmd)))
+        if (!(cmdstr = virCommandToString(cmd, false)))
             goto cleanup;
         virCommandAbort(cmd);
 

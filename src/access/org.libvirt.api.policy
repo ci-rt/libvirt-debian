@@ -537,7 +537,7 @@
   </action>
   <action id="org.libvirt.api.node-device.getattr">
     <description>Access node device</description>
-    <message>Accesing node device requires authorization</message>
+    <message>Accessing node device requires authorization</message>
     <defaults>
       <allow_any>yes</allow_any>
       <allow_inactive>yes</allow_inactive>
@@ -852,7 +852,7 @@
   </action>
   <action id="org.libvirt.api.storage-vol.getattr">
     <description>Access storage volume</description>
-    <message>Acceessing storage volume requires authorization</message>
+    <message>Accessing storage volume requires authorization</message>
     <defaults>
       <allow_any>yes</allow_any>
       <allow_inactive>yes</allow_inactive>

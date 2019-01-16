@@ -14,8 +14,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Michal Privoznik <mprivozn@redhat.com>
  */
 
 #include <config.h>
@@ -221,7 +219,7 @@ int access(const char *path, int mode)
 
 /* Okay, the following ifdef rain forest may look messy at a
  * first glance. But here's the thing: during run time linking of
- * a binary, stat() may not be acutally needing symbol stat. It
+ * a binary, stat() may not be actually needing symbol stat. It
  * might as well not had been stat() in the first place (see the
  * reasoning at the beginning of this file). However, if we would
  * expose stat symbol here, we will poison the well and trick

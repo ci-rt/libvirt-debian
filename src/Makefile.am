@@ -24,8 +24,8 @@ abs_topsrcdir = $(shell cd $(top_srcdir) && pwd)
 
 # No libraries with the exception of LIBXML should be listed
 # here. List them against the individual XXX_la_CFLAGS targets
-# that actually use them. Also keep GETTEXT_CPPFLAGS at the end.
-INCLUDES =	-I../gnulib/lib \
+# that actually use them.
+AM_CPPFLAGS =	-I../gnulib/lib \
 		-I$(top_srcdir)/gnulib/lib \
 		-I$(top_srcdir) \
 		-I../include \
@@ -35,7 +35,7 @@ INCLUDES =	-I../gnulib/lib \
 		-DIN_LIBVIRT \
 		-Dabs_topbuilddir="\"$(abs_topbuilddir)\"" \
 		-Dabs_topsrcdir="\"$(abs_topsrcdir)\"" \
-		$(GETTEXT_CPPFLAGS)
+		$(NULL)
 
 WARN_CFLAGS += $(STRICT_FRAME_LIMIT_CFLAGS)
 
@@ -72,6 +72,8 @@ STATEFUL_DRIVER_SOURCE_FILES =
 noinst_LTLIBRARIES =
 mod_LTLIBRARIES =
 INSTALL_DATA_DIRS =
+INSTALL_DATA_LOCAL =
+UNINSTALL_LOCAL =
 libvirt_la_BUILT_LIBADD =
 SYM_FILES =
 USED_SYM_FILES =
@@ -107,7 +109,6 @@ include logging/Makefile.inc.am
 include locking/Makefile.inc.am
 include admin/Makefile.inc.am
 include rpc/Makefile.inc.am
-include uml/Makefile.inc.am
 include phyp/Makefile.inc.am
 include test/Makefile.inc.am
 include esx/Makefile.inc.am
@@ -806,29 +807,33 @@ install-logrotate: $(LOGROTATE_FILES)
 uninstall-logrotate:
 	rm -f $(LOGROTATE_FILES:%.logrotate=$(DESTDIR)$(sysconfdir)/logrotate.d/%)
 	rmdir $(DESTDIR)$(sysconfdir)/logrotate.d || :
-else ! WITH_LIBVIRTD
-install-logrotate:
-uninstall-logrotate:
-endif ! WITH_LIBVIRTD
 
+INSTALL_DATA_LOCAL += install-logrotate
+UNINSTALL_LOCAL += uninstall-logrotate
+endif WITH_LIBVIRTD
+
+if WITH_LIBVIRTD
 if LIBVIRT_INIT_SCRIPT_RED_HAT
+initdir = $(sysconfdir)/rc.d/init.d
+
 install-init:: $(SYSVINIT_FILES) install-sysconfig
-	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/rc.d/init.d
+	$(MKDIR_P) $(DESTDIR)$(initdir)
 	for f in $(SYSVINIT_FILES:%.init=%) ; \
 	do \
-	  $(INSTALL_SCRIPT) $$f.init $(DESTDIR)$(sysconfdir)/rc.d/init.d/$$f; \
+	  $(INSTALL_SCRIPT) $$f.init $(DESTDIR)$(initdir)/$$f; \
 	done
 
 uninstall-init:: uninstall-sysconfig
-	rm -f $(SYSVINIT_FILES:%.init=$(DESTDIR)$(sysconfdir)/rc.d/init.d/%)
-	rmdir $(DESTDIR)$(sysconfdir)/rc.d/init.d || :
+	rm -f $(SYSVINIT_FILES:%.init=$(DESTDIR)$(initdir)/%)
+	rmdir $(DESTDIR)$(initdir) || :
 
 BUILT_SOURCES += $(SYSVINIT_FILES)
 DISTCLEANFILES += $(SYSVINIT_FILES)
-else ! LIBVIRT_INIT_SCRIPT_RED_HAT
-install-init::
-uninstall-init::
-endif ! LIBVIRT_INIT_SCRIPT_RED_HAT
+
+INSTALL_DATA_LOCAL += install-init
+UNINSTALL_LOCAL += uninstall-init
+endif LIBVIRT_INIT_SCRIPT_RED_HAT
+endif WITH_LIBVIRTD
 
 
 %.8: %.8.in $(top_srcdir)/configure.ac
@@ -867,14 +872,11 @@ install-systemd: $(SYSTEMD_UNIT_FILES) install-sysconfig
 uninstall-systemd: uninstall-sysconfig
 	rm -f $(SYSTEMD_UNIT_FILES:%=$(DESTDIR)$(SYSTEMD_UNIT_DIR)/%)
 	rmdir $(DESTDIR)$(SYSTEMD_UNIT_DIR) || :
-else ! LIBVIRT_INIT_SCRIPT_SYSTEMD
-install-systemd:
-uninstall-systemd:
-endif ! LIBVIRT_INIT_SCRIPT_SYSTEMD
-else ! WITH_LIBVIRTD
-install-systemd:
-uninstall-systemd:
-endif ! WITH_LIBVIRTD
+
+INSTALL_DATA_LOCAL += install-systemd
+UNINSTALL_LOCAL += uninstall-systemd
+endif LIBVIRT_INIT_SCRIPT_SYSTEMD
+endif WITH_LIBVIRTD
 
 
 EXTRA_DIST += $(UPSTART_FILES)
@@ -898,14 +900,11 @@ uninstall-upstart: uninstall-sysconfig
 	  rm -f $(DESTDIR)$(sysconfdir)/event.d/$$tgt ; \
 	done
 	rmdir $(DESTDIR)$(sysconfdir)/event.d || :
-else ! LIBVIRT_INIT_SCRIPT_UPSTART
-install-upstart:
-uninstall-upstart:
-endif ! LIBVIRT_INIT_SCRIPT_UPSTART
-else ! WITH_LIBVIRTD
-install-upstart:
-uninstall-upstart:
-endif ! WITH_LIBVIRTD
+
+INSTALL_DATA_LOCAL += install-upstart
+UNINSTALL_LOCAL += uninstall-upstart
+endif LIBVIRT_INIT_SCRIPT_UPSTART
+endif WITH_LIBVIRTD
 
 
 EXTRA_DIST += dtrace2systemtap.pl
@@ -1004,17 +1003,15 @@ libvirt_nss_la_LIBADD = \
 endif WITH_NSS
 
 
-install-data-local: install-init install-systemd install-upstart \
-		install-sysctl install-polkit install-sasl \
-		install-logrotate $(INSTALL_DATA_DIRS:%=install-data-%)
+install-data-local: $(INSTALL_DATA_LOCAL) \
+		$(INSTALL_DATA_DIRS:%=install-data-%)
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/cache/libvirt"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/images"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/filesystems"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/boot"
 
-uninstall-local:: uninstall-init uninstall-systemd uninstall-upstart \
-		uninstall-sysctl uninstall-polkit uninstall-sasl \
-		uninstall-logrotate $(INSTALL_DATA_DIRS:%=uninstall-data-%)
+uninstall-local:: $(UNINSTALL_LOCAL) \
+		$(INSTALL_DATA_DIRS:%=uninstall-data-%)
 	rmdir "$(DESTDIR)$(localstatedir)/cache/libvirt" ||:
 	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/images" ||:
 	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/filesystems" ||:

@@ -17,8 +17,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Sebastian Wiedenroth <sebastian.wiedenroth@skylime.net>
  */
 
 #include <config.h>
@@ -29,6 +27,7 @@
 
 #include "internal.h"
 #include "testutils.h"
+#define LIBVIRT_STORAGE_BACKEND_SHEEPDOG_PRIV_H_ALLOW
 #include "storage/storage_backend_sheepdog_priv.h"
 #include "virstring.h"
 

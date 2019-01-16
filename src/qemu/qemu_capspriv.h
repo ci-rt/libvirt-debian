@@ -17,16 +17,14 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Pavel Fedin <p.fedin@samsung.com>
  */
 
-#ifndef __QEMU_CAPSPRIV_H_ALLOW__
+#ifndef LIBVIRT_QEMU_CAPSPRIV_H_ALLOW
 # error "qemu_capspriv.h may only be included by qemu_capabilities.c or test suites"
-#endif
+#endif /* LIBVIRT_QEMU_CAPSPRIV_H_ALLOW */
 
-#ifndef __QEMU_CAPSPRIV_H__
-# define __QEMU_CAPSPRIV_H__
+#ifndef LIBVIRT_QEMU_CAPSPRIV_H
+# define LIBVIRT_QEMU_CAPSPRIV_H
 
 virQEMUCapsPtr virQEMUCapsNewCopy(virQEMUCapsPtr qemuCaps);
 
@@ -100,4 +98,5 @@ virQEMUCapsSetMicrocodeVersion(virQEMUCapsPtr qemuCaps,
 
 void
 virQEMUCapsStripMachineAliases(virQEMUCapsPtr qemuCaps);
-#endif
+
+#endif /* LIBVIRT_QEMU_CAPSPRIV_H */

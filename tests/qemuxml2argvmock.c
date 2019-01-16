@@ -14,8 +14,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Michal Privoznik <mprivozn@redhat.com>
  */
 
 #include <config.h>
@@ -182,6 +180,15 @@ virNetDevRunEthernetScript(const char *ifname ATTRIBUTE_UNUSED,
                            const char *script ATTRIBUTE_UNUSED)
 {
     return 0;
+}
+
+char *
+virHostGetDRMRenderNode(void)
+{
+    char *dst = NULL;
+
+    ignore_value(VIR_STRDUP(dst, "/dev/dri/foo"));
+    return dst;
 }
 
 static void (*real_virCommandPassFD)(virCommandPtr cmd, int fd, unsigned int flags);

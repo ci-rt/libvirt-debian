@@ -6693,6 +6693,11 @@ virDomainCreateWithFiles(virDomainPtr domain, unsigned int nfiles,
  * configured to be automatically started when the host
  * machine boots.
  *
+ * Please note that this might result in unexpected behaviour if
+ * used for some session URIs. Since the session daemon is started
+ * with --timeout it comes and goes and as it does so it
+ * autostarts domains which might have been shut off recently.
+ *
  * Returns -1 in case of error, 0 in case of success
  */
 int
@@ -7933,7 +7938,7 @@ virDomainGetSecurityLabel(virDomainPtr domain, virSecurityLabelPtr seclabel)
  * in the @seclabels argument will be initialized to the empty
  * string if the domain is not running under a security model.
  *
- * Returns number of elemnets in @seclabels on success, -1 in case of failure.
+ * Returns number of elements in @seclabels on success, -1 in case of failure.
  */
 int
 virDomainGetSecurityLabelList(virDomainPtr domain,
@@ -11184,7 +11189,7 @@ virDomainFSThaw(virDomainPtr dom,
  * virDomainGetTime:
  * @dom: a domain object
  * @seconds: domain's time in seconds
- * @nseconds: the nanoscond part of @seconds
+ * @nseconds: the nanosecond part of @seconds
  * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Extract information about guest time and store it into
@@ -11594,7 +11599,7 @@ virConnectGetDomainCapabilities(virConnectPtr conn,
  *     divisor. When not provided, QEMU may double the polling time until
  *     poll-max-ns is reached. When poll-shrink is 0 (zero) QEMU may reset
  *     the polling interval to 0 until it finds its "sweet spot". Setting
- *     poll-grow too large may cause frequent fluctution of the time; however,
+ *     poll-grow too large may cause frequent fluctuation of the time; however,
  *     this can be tempered by a high poll-shrink to reduce the polling
  *     interval. For example, a poll-grow of 3 will triple the polling time
  *     which could quickly exceed poll-max-ns; however, a poll-shrink of

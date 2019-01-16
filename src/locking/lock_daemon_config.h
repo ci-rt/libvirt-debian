@@ -17,12 +17,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
-#ifndef __VIR_LOCK_DAEMON_CONFIG_H__
-# define __VIR_LOCK_DAEMON_CONFIG_H__
+#ifndef LIBVIRT_LOCK_DAEMON_CONFIG_H
+# define LIBVIRT_LOCK_DAEMON_CONFIG_H
 
 # include "internal.h"
 
@@ -45,4 +43,4 @@ int virLockDaemonConfigLoadFile(virLockDaemonConfigPtr data,
                                 const char *filename,
                                 bool allow_missing);
 
-#endif /* __LIBVIRTD_CONFIG_H__ */
+#endif /* LIBVIRT_LOCK_DAEMON_CONFIG_H */

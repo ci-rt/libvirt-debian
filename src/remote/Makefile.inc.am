@@ -39,7 +39,6 @@ LOGROTATE_FILES_IN += \
 	remote/libvirtd.qemu.logrotate.in \
 	remote/libvirtd.lxc.logrotate.in \
 	remote/libvirtd.libxl.logrotate.in \
-	remote/libvirtd.uml.logrotate.in \
 	remote/libvirtd.logrotate.in \
 	$(NULL)
 
@@ -124,10 +123,6 @@ conf_DATA += remote/libvirtd.conf
 
 CLEANFILES += test_libvirtd.aug
 
-if WITH_POLKIT
-policydir = $(datadir)/polkit-1/actions
-endif WITH_POLKIT
-
 man8_MANS += libvirtd.8
 
 libvirtd_SOURCES = $(LIBVIRTD_SOURCES)
@@ -198,45 +193,45 @@ check-augeas-remote: test_libvirtd.aug
 if WITH_SYSCTL
 # Use $(prefix)/lib rather than $(libdir), since man sysctl.d insists on
 # /usr/lib/sysctl.d/ even when libdir is /usr/lib64
+sysctldir = $(prefix)/lib/sysctl.d
+
 install-sysctl:
-	$(MKDIR_P) $(DESTDIR)$(prefix)/lib/sysctl.d
+	$(MKDIR_P) $(DESTDIR)$(sysctldir)
 	$(INSTALL_DATA) $(srcdir)/remote/libvirtd.sysctl \
-	  $(DESTDIR)$(prefix)/lib/sysctl.d/60-libvirtd.conf
+	  $(DESTDIR)$(sysctldir)/60-libvirtd.conf
 
 uninstall-sysctl:
-	rm -f $(DESTDIR)$(prefix)/lib/sysctl.d/60-libvirtd.conf
-	rmdir $(DESTDIR)$(prefix)/lib/sysctl.d || :
-else ! WITH_SYSCTL
-install-sysctl:
-uninstall-sysctl:
-endif ! WITH_SYSCTL
+	rm -f $(DESTDIR)$(sysctldir)/60-libvirtd.conf
+	rmdir $(DESTDIR)$(sysctldir) || :
+
+INSTALL_DATA_LOCAL += install-sysctl
+UNINSTALL_LOCAL += uninstall-sysctl
+endif WITH_SYSCTL
 
 if WITH_POLKIT
+polkitdir = $(datadir)/polkit-1
+polkitactionsdir = $(polkitdir)/actions
+polkitrulesdir = $(polkitdir)/rules.d
+
 install-polkit::
-	$(MKDIR_P) $(DESTDIR)$(policydir)
+	$(MKDIR_P) $(DESTDIR)$(polkitactionsdir)
 	$(INSTALL_DATA) $(srcdir)/remote/libvirtd.policy \
-		$(DESTDIR)$(policydir)/org.libvirt.unix.policy
-	$(MKDIR_P) $(DESTDIR)$(datadir)/polkit-1/rules.d
+		$(DESTDIR)$(polkitactionsdir)/org.libvirt.unix.policy
+	$(MKDIR_P) $(DESTDIR)$(polkitrulesdir)
 	$(INSTALL_DATA) $(srcdir)/remote/libvirtd.rules \
-		$(DESTDIR)$(datadir)/polkit-1/rules.d/50-libvirt.rules
+		$(DESTDIR)$(polkitrulesdir)/50-libvirt.rules
 
 uninstall-polkit::
-	rm -f $(DESTDIR)$(policydir)/org.libvirt.unix.policy
-	rmdir $(DESTDIR)$(policydir) || :
-	rm -f $(DESTDIR)$(datadir)/polkit-1/rules.d/50-libvirt.rules
-	rmdir $(DESTDIR)$(datadir)/polkit-1/rules.d || :
+	rm -f $(DESTDIR)$(polkitactionsdir)/org.libvirt.unix.policy
+	rmdir $(DESTDIR)$(polkitactionsdir) || :
+	rm -f $(DESTDIR)$(polkitrulesdir)/50-libvirt.rules
+	rmdir $(DESTDIR)$(polkitrulesdir) || :
 
-else ! WITH_POLKIT
-install-polkit::
-uninstall-polkit::
-endif ! WITH_POLKIT
+INSTALL_DATA_LOCAL += install-polkit
+UNINSTALL_LOCAL += uninstall-polkit
+endif WITH_POLKIT
 
-else ! WITH_LIBVIRTD
-install-polkit::
-uninstall-polkit::
-install-sysctl::
-uninstall-sysctl::
-endif ! WITH_LIBVIRTD
+endif WITH_LIBVIRTD
 
 .PHONY: \
 	install-data-remote \
@@ -247,18 +242,20 @@ endif ! WITH_LIBVIRTD
 # This is needed for clients too, so can't wrap in
 # the WITH_LIBVIRTD conditional
 if WITH_SASL
+sasldir = $(sysconfdir)/sasl2
+
 install-sasl:
-	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/sasl2/
+	$(MKDIR_P) $(DESTDIR)$(sasldir)
 	$(INSTALL_DATA) $(srcdir)/remote/libvirtd.sasl \
-		$(DESTDIR)$(sysconfdir)/sasl2/libvirt.conf
+		$(DESTDIR)$(sasldir)/libvirt.conf
 
 uninstall-sasl:
-	rm -f $(DESTDIR)$(sysconfdir)/sasl2/libvirt.conf
-	rmdir $(DESTDIR)$(sysconfdir)/sasl2/ || :
-else ! WITH_SASL
-install-sasl:
-uninstall-sasl:
-endif ! WITH_SASL
+	rm -f $(DESTDIR)$(sasldir)/libvirt.conf
+	rmdir $(DESTDIR)$(sasldir) || :
+
+INSTALL_DATA_LOCAL += install-sasl
+UNINSTALL_LOCAL += uninstall-sasl
+endif WITH_SASL
 
 libvirtd.init: remote/libvirtd.init.in $(top_builddir)/config.status
 	$(AM_V_GEN)sed \

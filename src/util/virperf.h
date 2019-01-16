@@ -14,13 +14,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *  Ren Qiaowei <qiaowei.ren@intel.com>
  */
 
-#ifndef __VIR_PERF_H__
-# define __VIR_PERF_H__
+#ifndef LIBVIRT_VIRPERF_H
+# define LIBVIRT_VIRPERF_H
 
 # include "virutil.h"
 # include "viralloc.h"
@@ -87,4 +84,4 @@ int virPerfReadEvent(virPerfPtr perf,
 
 VIR_DEFINE_AUTOPTR_FUNC(virPerf, virPerfFree)
 
-#endif /* __VIR_PERF_H__ */
+#endif /* LIBVIRT_VIRPERF_H */

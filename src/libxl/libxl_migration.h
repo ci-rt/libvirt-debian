@@ -16,13 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *     Jim Fehlig <jfehlig@suse.com>
  */
 
-#ifndef LIBXL_MIGRATION_H
-# define LIBXL_MIGRATION_H
+#ifndef LIBVIRT_LIBXL_MIGRATION_H
+# define LIBVIRT_LIBXL_MIGRATION_H
 
 # include "libxl_conf.h"
 
@@ -101,4 +98,4 @@ libxlDomainMigrationSrcConfirm(libxlDriverPrivatePtr driver,
                                unsigned int flags,
                                int cancelled);
 
-#endif /* LIBXL_DRIVER_H */
+#endif /* LIBVIRT_LIBXL_MIGRATION_H */

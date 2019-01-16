@@ -16,16 +16,13 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *     Michal Privoznik <mprivozn@redhat.com>
  */
 
-#ifndef __VIR_DEVMAPPER_H__
-# define __VIR_DEVMAPPER_H__
+#ifndef LIBVIRT_VIRDEVMAPPER_H
+# define LIBVIRT_VIRDEVMAPPER_H
 
 int
 virDevMapperGetTargets(const char *path,
                        char ***devPaths);
 
-#endif /* __VIR_DEVMAPPER_H__ */
+#endif /* LIBVIRT_VIRDEVMAPPER_H */

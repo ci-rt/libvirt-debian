@@ -16,13 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors: Erik Skultety <eskultet@redhat.com>
- *          Martin Kletzander <mkletzan@redhat.com>
  */
 
-#ifndef __ADMIN_SERVER_H__
-# define __ADMIN_SERVER_H__
+#ifndef LIBVIRT_ADMIN_SERVER_H
+# define LIBVIRT_ADMIN_SERVER_H
 
 # include "rpc/virnetdaemon.h"
 # include "rpc/virnetserver.h"
@@ -72,4 +69,4 @@ int adminServerSetClientLimits(virNetServerPtr srv,
                                int nparams,
                                unsigned int flags);
 
-#endif /* __ADMIN_SERVER_H__ */
+#endif /* LIBVIRT_ADMIN_SERVER_H */

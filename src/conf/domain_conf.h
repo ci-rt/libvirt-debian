@@ -18,12 +18,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
-#ifndef __DOMAIN_CONF_H
-# define __DOMAIN_CONF_H
+#ifndef LIBVIRT_DOMAIN_CONF_H
+# define LIBVIRT_DOMAIN_CONF_H
 
 # include <libxml/parser.h>
 # include <libxml/tree.h>
@@ -1659,6 +1657,9 @@ struct _virDomainGraphicsDef {
             virTristateBool gl;
             char *rendernode;
         } spice;
+        struct {
+            char *rendernode;
+        } egl_headless;
     } data;
     /* nListens, listens, and *port are only useful if type is vnc,
      * rdp, or spice. They've been extracted from the union only to
@@ -2146,12 +2147,15 @@ struct _virDomainMemoryDef {
     virBitmapPtr sourceNodes;
     unsigned long long pagesize; /* kibibytes */
     char *nvdimmPath;
+    unsigned long long alignsize; /* kibibytes; valid only for NVDIMM */
+    bool nvdimmPmem; /* valid only for NVDIMM */
 
     /* target */
     int model; /* virDomainMemoryModel */
     int targetNode;
     unsigned long long size; /* kibibytes */
     unsigned long long labelsize; /* kibibytes; valid only for NVDIMM */
+    bool readonly; /* valid only for NVDIMM */
 
     virDomainDeviceInfo info;
 };
@@ -3668,4 +3672,13 @@ virDomainDefHasManagedPR(const virDomainDef *def);
 bool
 virDomainGraphicsDefHasOpenGL(const virDomainDef *def);
 
-#endif /* __DOMAIN_CONF_H */
+bool
+virDomainGraphicsSupportsRenderNode(const virDomainGraphicsDef *graphics);
+
+const char *
+virDomainGraphicsGetRenderNode(const virDomainGraphicsDef *graphics);
+
+bool
+virDomainGraphicsNeedsAutoRenderNode(const virDomainGraphicsDef *graphics);
+
+#endif /* LIBVIRT_DOMAIN_CONF_H */

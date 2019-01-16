@@ -14,9 +14,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *      Michal Privoznik <mprivozn@redhat.com>
  */
 
 #include <config.h>
@@ -412,8 +409,6 @@ mymain(void)
             ret = -1; \
     } while (0)
 
-    DO_TEST("basic", "/bin/emulatorbin", "my-machine-type",
-            "x86_64", VIR_DOMAIN_VIRT_UML, CAPS_NONE);
     DO_TEST("full", "/bin/emulatorbin", "my-machine-type",
             "x86_64", VIR_DOMAIN_VIRT_KVM, CAPS_ALL);
 

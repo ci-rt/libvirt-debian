@@ -17,12 +17,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
-#ifndef __QEMU_CAPABILITIES_H__
-# define __QEMU_CAPABILITIES_H__
+#ifndef LIBVIRT_QEMU_CAPABILITIES_H
+# define LIBVIRT_QEMU_CAPABILITIES_H
 
 # include "virobject.h"
 # include "capabilities.h"
@@ -500,6 +498,12 @@ typedef enum { /* virQEMUCapsFlags grouping marker for syntax-check */
     QEMU_CAPS_OBJECT_MEMORY_MEMFD_HUGETLB, /* -object memory-backend-memfd.hugetlb */
     QEMU_CAPS_IOTHREAD_POLLING, /* -object iothread.poll-max-ns */
     QEMU_CAPS_MACHINE_PSERIES_CAP_NESTED_HV, /* -machine pseries.cap-nested-hv */
+    QEMU_CAPS_EGL_HEADLESS_RENDERNODE, /* -display egl-headless,rendernode= */
+    QEMU_CAPS_OBJECT_MEMORY_FILE_ALIGN, /* -object memory-backend-file,align= */
+
+    /* 325 */
+    QEMU_CAPS_OBJECT_MEMORY_FILE_PMEM, /* -object memory-backend-file,pmem= */
+    QEMU_CAPS_DEVICE_NVDIMM_UNARMED, /* -device nvdimm,unarmed= */
 
     QEMU_CAPS_LAST /* this must always be the last item */
 } virQEMUCapsFlags;
@@ -637,4 +641,4 @@ bool virQEMUCapsCPUFilterFeatures(const char *name,
 virSEVCapabilityPtr
 virQEMUCapsGetSEVCapabilities(virQEMUCapsPtr qemuCaps);
 
-#endif /* __QEMU_CAPABILITIES_H__*/
+#endif /* LIBVIRT_QEMU_CAPABILITIES_H */

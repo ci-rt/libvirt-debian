@@ -17,12 +17,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
-#ifndef __QEMU_CGROUP_H__
-# define __QEMU_CGROUP_H__
+#ifndef LIBVIRT_QEMU_CGROUP_H
+# define LIBVIRT_QEMU_CGROUP_H
 
 # include "virusb.h"
 # include "vircgroup.h"
@@ -85,4 +83,4 @@ int qemuCgroupEmulatorAllNodesAllow(virCgroupPtr cgroup,
 void qemuCgroupEmulatorAllNodesRestore(qemuCgroupEmulatorAllNodesDataPtr data);
 
 extern const char *const defaultDeviceACL[];
-#endif /* __QEMU_CGROUP_H__ */
+#endif /* LIBVIRT_QEMU_CGROUP_H */

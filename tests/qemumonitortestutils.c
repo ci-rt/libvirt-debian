@@ -26,6 +26,7 @@
 #include "qemumonitortestutils.h"
 
 #include "virthread.h"
+#define LIBVIRT_QEMU_PROCESSPRIV_H_ALLOW
 #include "qemu/qemu_processpriv.h"
 #include "qemu/qemu_monitor.h"
 #include "qemu/qemu_agent.h"

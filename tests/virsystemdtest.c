@@ -14,8 +14,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
 #include <config.h>
@@ -26,7 +24,7 @@
 
 # include <dbus/dbus.h>
 
-# define __VIR_SYSTEMD_PRIV_H_ALLOW__ 1
+# define LIBVIRT_VIRSYSTEMDPRIV_H_ALLOW
 # include "virsystemdpriv.h"
 
 # include "virsystemd.h"

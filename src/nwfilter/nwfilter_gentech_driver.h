@@ -18,11 +18,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Stefan Berger <stefanb@us.ibm.com>
  */
-#ifndef __NWFILTER_GENTECH_DRIVER_H
-# define __NWFILTER_GENTECH_DRIVER_H
+
+#ifndef LIBVIRT_NWFILTER_GENTECH_DRIVER_H
+# define LIBVIRT_NWFILTER_GENTECH_DRIVER_H
 
 # include "virnwfilterobj.h"
 # include "virnwfilterbindingdef.h"
@@ -57,4 +56,4 @@ virHashTablePtr virNWFilterCreateVarHashmap(const char *macaddr,
 int virNWFilterBuildAll(virNWFilterDriverStatePtr driver,
                         bool newFilters);
 
-#endif
+#endif /* LIBVIRT_NWFILTER_GENTECH_DRIVER_H */

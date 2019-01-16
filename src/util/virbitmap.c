@@ -17,8 +17,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Jim Fehlig <jfehlig@novell.com>
  */
 
 #include <config.h>
@@ -610,7 +608,7 @@ virBitmapParse(const char *str,
  * This function is the counterpart of virBitmapFormat. This function creates
  * a bitmap, in which bits are set according to the content of @str.
  *
- * The bitmap is expanded to accomodate all the bits.
+ * The bitmap is expanded to accommodate all the bits.
  *
  * @str is a comma separated string of fields N, which means a number of bit
  * to set, and ^N, which means to unset the bit, and N-M for ranges of bits

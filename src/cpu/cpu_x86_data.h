@@ -16,13 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *      Jiri Denemark <jdenemar@redhat.com>
  */
 
-#ifndef __VIR_CPU_X86_DATA_H__
-# define __VIR_CPU_X86_DATA_H__
+#ifndef LIBVIRT_CPU_X86_DATA_H
+# define LIBVIRT_CPU_X86_DATA_H
 
 
 typedef struct _virCPUx86CPUID virCPUx86CPUID;
@@ -77,4 +74,4 @@ struct _virCPUx86Data {
     virCPUx86CPUID *data;
 };
 
-#endif /* __VIR_CPU_X86_DATA_H__ */
+#endif /* LIBVIRT_CPU_X86_DATA_H */

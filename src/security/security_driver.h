@@ -14,13 +14,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *     James Morris <jmorris@namei.org>
- *
  */
-#ifndef __VIR_SECURITY_H__
-# define __VIR_SECURITY_H__
+
+#ifndef LIBVIRT_SECURITY_DRIVER_H
+# define LIBVIRT_SECURITY_DRIVER_H
 
 # include "internal.h"
 # include "domain_conf.h"
@@ -226,4 +223,4 @@ struct _virSecurityDriver {
 virSecurityDriverPtr virSecurityDriverLookup(const char *name,
                                              const char *virtDriver);
 
-#endif /* __VIR_SECURITY_H__ */
+#endif /* LIBVIRT_SECURITY_DRIVER_H */

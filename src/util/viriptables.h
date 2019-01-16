@@ -16,13 +16,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *     Mark McLoughlin <markmc@redhat.com>
  */
 
-#ifndef __VIR_IPTABLES_H__
-# define __VIR_IPTABLES_H__
+#ifndef LIBVIRT_VIRIPTABLES_H
+# define LIBVIRT_VIRIPTABLES_H
 
 # include "virsocketaddr.h"
 # include "virfirewall.h"
@@ -148,4 +145,4 @@ void             iptablesRemoveOutputFixUdpChecksum (virFirewallPtr fw,
                                                      const char *iface,
                                                      int port);
 
-#endif /* __VIR_IPTABLES_H__ */
+#endif /* LIBVIRT_VIRIPTABLES_H */

@@ -17,8 +17,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
 #include <config.h>
@@ -44,7 +42,7 @@
 #include "virstring.h"
 #include "qemu_hostdev.h"
 #include "qemu_domain.h"
-#define __QEMU_CAPSPRIV_H_ALLOW__
+#define LIBVIRT_QEMU_CAPSPRIV_H_ALLOW
 #include "qemu_capspriv.h"
 #include "qemu_qapi.h"
 
@@ -516,6 +514,12 @@ VIR_ENUM_IMPL(virQEMUCaps, QEMU_CAPS_LAST,
               "memory-backend-memfd.hugetlb",
               "iothread.poll-max-ns",
               "machine.pseries.cap-nested-hv",
+              "egl-headless.rendernode",
+              "memory-backend-file.align",
+
+              /* 325 */
+              "memory-backend-file.pmem",
+              "nvdimm.unarmed",
     );
 
 
@@ -558,6 +562,7 @@ struct _virQEMUCaps {
     virObject parent;
 
     bool usedQMP;
+    bool kvmSupportsNesting;
 
     char *binary;
     time_t ctime;
@@ -625,7 +630,7 @@ static const char *virQEMUCapsArchToString(virArch arch)
 {
     if (arch == VIR_ARCH_I686)
         return "i386";
-    else if (arch == VIR_ARCH_ARMV7L)
+    else if (arch == VIR_ARCH_ARMV6L || arch == VIR_ARCH_ARMV7L)
         return "arm";
     else if (arch == VIR_ARCH_OR32)
         return "or32";
@@ -901,7 +906,7 @@ virQEMUCapsInit(virFileCachePtr cache)
                                    true, true)) == NULL)
         goto error;
 
-    /* Some machines have problematic NUMA toplogy causing
+    /* Some machines have problematic NUMA topology causing
      * unexpected failures. We don't want to break the QEMU
      * driver in this scenario, so log errors & carry on
      */
@@ -1238,6 +1243,10 @@ static struct virQEMUCapsStringFlags virQEMUCapsDevicePropsMCH[] = {
     { "extended-tseg-mbytes", QEMU_CAPS_MCH_EXTENDED_TSEG_MBYTES },
 };
 
+static struct virQEMUCapsStringFlags virQEMUCapsDevicePropsNVDIMM[] = {
+    { "unarmed", QEMU_CAPS_DEVICE_NVDIMM_UNARMED },
+};
+
 /* see documentation for virQEMUQAPISchemaPathGet for the query format */
 static struct virQEMUCapsStringFlags virQEMUCapsQMPSchemaQueries[] = {
     { "blockdev-add/arg-type/options/+gluster/debug-level", QEMU_CAPS_GLUSTER_DEBUG_LEVEL},
@@ -1249,6 +1258,7 @@ static struct virQEMUCapsStringFlags virQEMUCapsQMPSchemaQueries[] = {
     { "screendump/arg-type/device", QEMU_CAPS_SCREENDUMP_DEVICE },
     { "block-commit/arg-type/*top",  QEMU_CAPS_ACTIVE_COMMIT },
     { "query-iothreads/ret-type/poll-max-ns", QEMU_CAPS_IOTHREAD_POLLING },
+    { "query-display-options/ret-type/+egl-headless/rendernode", QEMU_CAPS_EGL_HEADLESS_RENDERNODE },
 };
 
 typedef struct _virQEMUCapsObjectTypeProps virQEMUCapsObjectTypeProps;
@@ -1360,10 +1370,15 @@ static virQEMUCapsObjectTypeProps virQEMUCapsDeviceProps[] = {
     { "mch", virQEMUCapsDevicePropsMCH,
       ARRAY_CARDINALITY(virQEMUCapsDevicePropsMCH),
       QEMU_CAPS_DEVICE_MCH },
+    { "nvdimm", virQEMUCapsDevicePropsNVDIMM,
+      ARRAY_CARDINALITY(virQEMUCapsDevicePropsNVDIMM),
+      QEMU_CAPS_DEVICE_NVDIMM },
 };
 
 static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsMemoryBackendFile[] = {
     { "discard-data", QEMU_CAPS_OBJECT_MEMORY_FILE_DISCARD },
+    { "align", QEMU_CAPS_OBJECT_MEMORY_FILE_ALIGN },
+    { "pmem", QEMU_CAPS_OBJECT_MEMORY_FILE_PMEM },
 };
 
 static struct virQEMUCapsStringFlags virQEMUCapsObjectPropsMemoryBackendMemfd[] = {
@@ -1530,6 +1545,7 @@ virQEMUCapsPtr virQEMUCapsNewCopy(virQEMUCapsPtr qemuCaps)
         return NULL;
 
     ret->usedQMP = qemuCaps->usedQMP;
+    ret->kvmSupportsNesting = qemuCaps->kvmSupportsNesting;
 
     if (VIR_STRDUP(ret->binary, qemuCaps->binary) < 0)
         goto error;
@@ -2201,7 +2217,7 @@ static const char *preferredMachines[] =
 {
     NULL, /* VIR_ARCH_NONE (not a real arch :) */
     "clipper", /* VIR_ARCH_ALPHA */
-    NULL, /* VIR_ARCH_ARMV6L (no QEMU impl) */
+    "integratorcp", /* VIR_ARCH_ARMV6L */
     "integratorcp", /* VIR_ARCH_ARMV7L */
     "integratorcp", /* VIR_ARCH_ARMV7B */
 
@@ -3262,6 +3278,10 @@ struct _virQEMUCapsCachePriv {
     virArch hostArch;
     unsigned int microcodeVersion;
     char *kernelVersion;
+
+    /* cache whether /dev/kvm is usable as runUid:runGuid */
+    virTristateBool kvmUsable;
+    time_t kvmCtime;
 };
 typedef struct _virQEMUCapsCachePriv virQEMUCapsCachePriv;
 typedef virQEMUCapsCachePriv *virQEMUCapsCachePrivPtr;
@@ -3589,6 +3609,9 @@ virQEMUCapsLoadCache(virArch hostArch,
     virQEMUCapsInitHostCPUModel(qemuCaps, hostArch, VIR_DOMAIN_VIRT_KVM);
     virQEMUCapsInitHostCPUModel(qemuCaps, hostArch, VIR_DOMAIN_VIRT_QEMU);
 
+    if (virXPathBoolean("boolean(./kvmSupportsNesting)", ctxt) > 0)
+        qemuCaps->kvmSupportsNesting = true;
+
     ret = 0;
  cleanup:
     VIR_FREE(str);
@@ -3808,6 +3831,9 @@ virQEMUCapsFormatCache(virQEMUCapsPtr qemuCaps)
     if (qemuCaps->sevCapabilities)
         virQEMUCapsFormatSEVInfo(qemuCaps, &buf);
 
+    if (qemuCaps->kvmSupportsNesting)
+        virBufferAddLit(&buf, "<kvmSupportsNesting/>\n");
+
     virBufferAdjustIndent(&buf, -2);
     virBufferAddLit(&buf, "</qemuCaps>\n");
 
@@ -3848,6 +3874,89 @@ virQEMUCapsSaveFile(void *data,
 }
 
 
+/* Check the kernel module parameters 'nested' file to determine if enabled
+ *
+ *   Intel: 'kvm_intel' uses 'Y'
+ *   AMD:   'kvm_amd' uses '1'
+ *   PPC64: 'kvm_hv' uses 'Y'
+ *   S390:  'kvm' uses '1'
+ */
+static bool
+virQEMUCapsKVMSupportsNesting(void)
+{
+    static char const * const kmod[] = {"kvm_intel", "kvm_amd",
+                                        "kvm_hv", "kvm"};
+    VIR_AUTOFREE(char *) value = NULL;
+    int rc;
+    size_t i;
+
+    for (i = 0; i < ARRAY_CARDINALITY(kmod); i++) {
+        VIR_FREE(value);
+        rc = virFileReadValueString(&value, "/sys/module/%s/parameters/nested",
+                                    kmod[i]);
+        if (rc == -2)
+            continue;
+        if (rc < 0) {
+            virResetLastError();
+            return false;
+        }
+
+        if (value[0] == 'Y' || value[0] == 'y' || value[0] == '1')
+            return true;
+    }
+
+    return false;
+}
+
+
+/* Determine whether '/dev/kvm' is usable as QEMU user:QEMU group. */
+static bool
+virQEMUCapsKVMUsable(virQEMUCapsCachePrivPtr priv)
+{
+    struct stat sb;
+    static const char *kvm_device = "/dev/kvm";
+    virTristateBool value;
+    virTristateBool cached_value = priv->kvmUsable;
+    time_t kvm_ctime;
+    time_t cached_kvm_ctime = priv->kvmCtime;
+
+    if (stat(kvm_device, &sb) < 0) {
+        if (errno != ENOENT) {
+            virReportSystemError(errno,
+                                 _("Failed to stat %s"), kvm_device);
+        }
+        return false;
+    }
+    kvm_ctime = sb.st_ctime;
+
+    if (kvm_ctime != cached_kvm_ctime) {
+        VIR_DEBUG("%s has changed (%lld vs %lld)", kvm_device,
+                  (long long)kvm_ctime, (long long)cached_kvm_ctime);
+        cached_value = VIR_TRISTATE_BOOL_ABSENT;
+    }
+
+    if (cached_value != VIR_TRISTATE_BOOL_ABSENT)
+        return cached_value == VIR_TRISTATE_BOOL_YES;
+
+    if (virFileAccessibleAs(kvm_device, R_OK | W_OK,
+                            priv->runUid, priv->runGid) == 0) {
+        value = VIR_TRISTATE_BOOL_YES;
+    } else {
+        value = VIR_TRISTATE_BOOL_NO;
+    }
+
+    /* There is a race window between 'stat' and
+     * 'virFileAccessibleAs'. However, since we're only interested in
+     * detecting changes *after* the virFileAccessibleAs check, we can
+     * neglect this here.
+     */
+    priv->kvmCtime = kvm_ctime;
+    priv->kvmUsable = value;
+
+    return value == VIR_TRISTATE_BOOL_YES;
+}
+
+
 static bool
 virQEMUCapsIsValid(void *data,
                    void *privData)
@@ -3856,6 +3965,7 @@ virQEMUCapsIsValid(void *data,
     virQEMUCapsCachePrivPtr priv = privData;
     bool kvmUsable;
     struct stat sb;
+    bool kvmSupportsNesting;
 
     if (!qemuCaps->binary)
         return true;
@@ -3896,8 +4006,7 @@ virQEMUCapsIsValid(void *data,
         return true;
     }
 
-    kvmUsable = virFileAccessibleAs("/dev/kvm", R_OK | W_OK,
-                                    priv->runUid, priv->runGid) == 0;
+    kvmUsable = virQEMUCapsKVMUsable(priv);
 
     if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_KVM) &&
         kvmUsable) {
@@ -3931,6 +4040,14 @@ virQEMUCapsIsValid(void *data,
                       qemuCaps->binary,
                       priv->kernelVersion,
                       qemuCaps->kernelVersion);
+            return false;
+        }
+
+        kvmSupportsNesting = virQEMUCapsKVMSupportsNesting();
+        if (kvmSupportsNesting != qemuCaps->kvmSupportsNesting) {
+            VIR_DEBUG("Outdated capabilities for '%s': kvm kernel nested "
+                      "value changed from %d",
+                     qemuCaps->binary, qemuCaps->kvmSupportsNesting);
             return false;
         }
     }
@@ -4179,6 +4296,7 @@ virQEMUCapsInitQMPMonitor(virQEMUCapsPtr qemuCaps,
 
     /* GIC capabilities, eg. available GIC versions */
     if ((qemuCaps->arch == VIR_ARCH_AARCH64 ||
+         qemuCaps->arch == VIR_ARCH_ARMV6L ||
          qemuCaps->arch == VIR_ARCH_ARMV7L) &&
         virQEMUCapsProbeQMPGICCapabilities(qemuCaps, mon) < 0)
         goto cleanup;
@@ -4576,6 +4694,8 @@ virQEMUCapsNewForBinaryInternal(virArch hostArch,
 
         if (VIR_STRDUP(qemuCaps->kernelVersion, kernelVersion) < 0)
             goto error;
+
+        qemuCaps->kvmSupportsNesting = virQEMUCapsKVMSupportsNesting();
     }
 
  cleanup:
@@ -4708,6 +4828,7 @@ virQEMUCapsCacheNew(const char *libDir,
     priv->runUid = runUid;
     priv->runGid = runGid;
     priv->microcodeVersion = microcodeVersion;
+    priv->kvmUsable = VIR_TRISTATE_BOOL_ABSENT;
 
     if (uname(&uts) == 0 &&
         virAsprintf(&priv->kernelVersion, "%s %s", uts.release, uts.version) < 0)

@@ -17,8 +17,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
 #include <config.h>
@@ -276,6 +274,9 @@ qemuHostdevPrepareSCSIDevices(virQEMUDriverPtr driver,
      */
     for (i = 0; i < nhostdevs; i++) {
         virDomainDeviceDef dev;
+
+        if (!virHostdevIsSCSIDevice(hostdevs[i]))
+            continue;
 
         dev.type = VIR_DOMAIN_DEVICE_HOSTDEV;
         dev.data.hostdev = hostdevs[i];

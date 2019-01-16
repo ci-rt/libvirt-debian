@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2018 Free Software Foundation, Inc.
+ * Copyright (C) 2012-2019 Free Software Foundation, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,11 +28,6 @@
 #define UINT_BIT (sizeof (unsigned int) * CHAR_BIT)
 #define ULONG_BIT (sizeof (unsigned long int) * CHAR_BIT)
 #define ULLONG_BIT (sizeof (unsigned long long int) * CHAR_BIT)
-
-#ifndef ULLONG_MAX
-# define HALF (1ULL << (sizeof (unsigned long long int) * CHAR_BIT - 1))
-# define ULLONG_MAX (HALF - 1 + HALF)
-#endif
 
 int
 main (int argc, char *argv[])
