@@ -1,11 +1,11 @@
-libvirt (5.0.0-1~1.gbp3d91fa) UNRELEASED; urgency=medium
+libvirt (5.0.0-1) unstable; urgency=medium
 
-  ** SNAPSHOT build @3d91fa8f343b3d3ce5efa08fe267c306b52d310b **
-
-  * [1c46a4c] Drop sheepdog support (Closes: #908071)
   * [7346f30] New upstream version 5.0.0
+  * [1c46a4c] Drop sheepdog support (Closes: #908071)
+  * [b88175f] Bump symbol versions
+  * [c13a8da] Rediff patches
 
- -- Guido Günther <agx@sigxcpu.org>  Wed, 16 Jan 2019 09:20:57 +0100
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 16 Jan 2019 10:31:33 +0100
 
 libvirt (4.10.0-2) unstable; urgency=medium
 
