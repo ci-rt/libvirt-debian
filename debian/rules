@@ -5,6 +5,11 @@ DEB_BUILDDATE=$(shell dpkg-parsechangelog -SDate)
 DEB_BUILDUSER=$(shell dpkg-parsechangelog -SMaintainer)
 NULL=
 
+# If the build environment sets -Bsymbolic-functions, which is often used as
+# hardening option, that would break libvirt build time self-testing.
+# Therefore let dpkg-buildflag strip that option if present.
+export DEB_LDFLAGS_MAINT_STRIP = -Wl,-Bsymbolic-functions
+
 ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   ifneq (,$(findstring $(DEB_HOST_ARCH), i386 amd64))
     WITH_VBOX         = --with-vbox
