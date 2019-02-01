@@ -152,6 +152,9 @@ EXAMPLES_DIR = $(CURDIR)/debian/libvirt-doc/usr/share/doc/libvirt-doc/examples/
 	dh $@ --builddirectory=$(DEB_BUILDDIR) --parallel --with autoreconf --with systemd
 
 override_dh_auto_configure:
+	IPTABLES_PATH=/usr/sbin/iptables \
+	IP6TABLES_PATH=/usr/sbin/ip6tables \
+	EBTABLES_PATH=/usr/sbin/ebtables \
 	dh_auto_configure -- $(DEB_CONFIGURE_EXTRA_ARGS) $(shell dpkg-buildflags --export=configure)
 	mkdir -p debian/build/docs/internals
 
