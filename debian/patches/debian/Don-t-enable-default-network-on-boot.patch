@@ -9,21 +9,21 @@ to not interfere with existing network configurations
  2 files changed, 2 insertions(+), 4 deletions(-)
 
 diff --git a/src/Makefile.in b/src/Makefile.in
-index 999a91c..9bd8ab2 100644
+index 25f1b9d..f4e3fa5 100644
 --- a/src/Makefile.in
 +++ b/src/Makefile.in
-@@ -13358,8 +13358,7 @@ lxc/lxc_controller_dispatch.h: $(srcdir)/rpc/gendispatch.pl \
+@@ -13372,8 +13372,7 @@ lxc/lxc_controller_dispatch.h: $(srcdir)/rpc/gendispatch.pl \
  @WITH_NETWORK_TRUE@	      $(DESTDIR)$(confdir)/qemu/networks/default.xml && \
  @WITH_NETWORK_TRUE@	    rm $(DESTDIR)$(confdir)/qemu/networks/default.xml.t; }
  @WITH_NETWORK_TRUE@	( cd $(DESTDIR)$(confdir)/qemu/networks/autostart && \
 -@WITH_NETWORK_TRUE@	  rm -f default.xml && \
 -@WITH_NETWORK_TRUE@	  $(LN_S) ../default.xml default.xml )
 +@WITH_NETWORK_TRUE@	  rm -f default.xml )
- 
- @WITH_NETWORK_TRUE@uninstall-data-network:
- @WITH_NETWORK_TRUE@	rm -f $(DESTDIR)$(confdir)/qemu/networks/autostart/default.xml
+ @WITH_FIREWALLD_ZONE_TRUE@@WITH_NETWORK_TRUE@	$(MKDIR_P) "$(DESTDIR)$(prefix)/lib/firewalld/zones"
+ @WITH_FIREWALLD_ZONE_TRUE@@WITH_NETWORK_TRUE@	$(INSTALL_DATA) $(srcdir)/network/libvirt.zone \
+ @WITH_FIREWALLD_ZONE_TRUE@@WITH_NETWORK_TRUE@	  $(DESTDIR)$(prefix)/lib/firewalld/zones/libvirt.xml
 diff --git a/src/network/Makefile.inc.am b/src/network/Makefile.inc.am
-index 508c8c0..b0df5ec 100644
+index cbaaa7e..cb0228d 100644
 --- a/src/network/Makefile.inc.am
 +++ b/src/network/Makefile.inc.am
 @@ -85,8 +85,7 @@ install-data-network:
@@ -33,6 +33,6 @@ index 508c8c0..b0df5ec 100644
 -	  rm -f default.xml && \
 -	  $(LN_S) ../default.xml default.xml )
 +	  rm -f default.xml )
- 
- uninstall-data-network:
- 	rm -f $(DESTDIR)$(confdir)/qemu/networks/autostart/default.xml
+ if WITH_FIREWALLD_ZONE
+ 	$(MKDIR_P) "$(DESTDIR)$(prefix)/lib/firewalld/zones"
+ 	$(INSTALL_DATA) $(srcdir)/network/libvirt.zone \

@@ -9,17 +9,17 @@ As of 1.2.16 upstream ships a Polkit rule like Debian does.
  2 files changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/src/Makefile.in b/src/Makefile.in
-index 9bd8ab2..fb6d3c2 100644
+index f4e3fa5..99a185e 100644
 --- a/src/Makefile.in
 +++ b/src/Makefile.in
-@@ -13403,12 +13403,12 @@ lxc/lxc_controller_dispatch.h: $(srcdir)/rpc/gendispatch.pl \
+@@ -13421,12 +13421,12 @@ lxc/lxc_controller_dispatch.h: $(srcdir)/rpc/gendispatch.pl \
  @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@		$(DESTDIR)$(polkitactionsdir)/org.libvirt.unix.policy
  @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	$(MKDIR_P) $(DESTDIR)$(polkitrulesdir)
  @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	$(INSTALL_DATA) $(srcdir)/remote/libvirtd.rules \
 -@WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@		$(DESTDIR)$(polkitrulesdir)/50-libvirt.rules
 +@WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@		$(DESTDIR)$(polkitrulesdir)/60-libvirt.rules
  
- @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@uninstall-polkit::
+ @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@uninstall-polkit:
  @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	rm -f $(DESTDIR)$(polkitactionsdir)/org.libvirt.unix.policy
  @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	rmdir $(DESTDIR)$(polkitactionsdir) || :
 -@WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	rm -f $(DESTDIR)$(polkitrulesdir)/50-libvirt.rules
@@ -28,17 +28,17 @@ index 9bd8ab2..fb6d3c2 100644
  
  .PHONY: \
 diff --git a/src/remote/Makefile.inc.am b/src/remote/Makefile.inc.am
-index 0988435..1e4287b 100644
+index 3d0ff29..7835ed8 100644
 --- a/src/remote/Makefile.inc.am
 +++ b/src/remote/Makefile.inc.am
-@@ -219,12 +219,12 @@ install-polkit::
+@@ -219,12 +219,12 @@ install-polkit:
  		$(DESTDIR)$(polkitactionsdir)/org.libvirt.unix.policy
  	$(MKDIR_P) $(DESTDIR)$(polkitrulesdir)
  	$(INSTALL_DATA) $(srcdir)/remote/libvirtd.rules \
 -		$(DESTDIR)$(polkitrulesdir)/50-libvirt.rules
 +		$(DESTDIR)$(polkitrulesdir)/60-libvirt.rules
  
- uninstall-polkit::
+ uninstall-polkit:
  	rm -f $(DESTDIR)$(polkitactionsdir)/org.libvirt.unix.policy
  	rmdir $(DESTDIR)$(polkitactionsdir) || :
 -	rm -f $(DESTDIR)$(polkitrulesdir)/50-libvirt.rules
