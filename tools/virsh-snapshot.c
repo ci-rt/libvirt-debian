@@ -945,7 +945,7 @@ cmdSnapshotInfo(vshControl *ctl, const vshCmd *cmd)
     /* Since we already have the XML, there's no need to call
      * virDomainSnapshotGetParent */
     parent = virXPathString("string(/domainsnapshot/parent/name)", ctxt);
-    vshPrint(ctl, "%-15s %s\n", _("Parent:"), parent ? parent : "-");
+    vshPrint(ctl, "%-15s %s\n", _("Parent:"), NULLSTR_MINUS(parent));
 
     /* Children, Descendants.  After this point, the fallback to
      * compute children is too expensive, so we gracefully quit if the
@@ -1356,8 +1356,7 @@ virshSnapshotListCollect(vshControl *ctl, virDomainPtr dom,
           virshSnapSorter);
     snaplist->nsnaps -= deleted;
 
-    ret = snaplist;
-    snaplist = NULL;
+    VIR_STEAL_PTR(ret, snaplist);
 
  cleanup:
     virshSnapshotListFree(snaplist);
@@ -1422,7 +1421,7 @@ static const vshCmdOptDef opts_snapshot_list[] = {
     },
     {.name = "active",
      .type = VSH_OT_BOOL,
-     .help = N_("filter by snapshots taken while active (system checkpoints)")
+     .help = N_("filter by snapshots taken while active (full system snapshots)")
     },
     {.name = "disk-only",
      .type = VSH_OT_BOOL,
@@ -1609,7 +1608,8 @@ cmdSnapshotList(vshControl *ctl, const vshCmd *cmd)
                  &time_info);
 
         if (parent) {
-            if (vshTableRowAppend(table, snap_name, timestr, state, parent_snap,
+            if (vshTableRowAppend(table, snap_name, timestr, state,
+                                  NULLSTR_EMPTY(parent_snap),
                                   NULL) < 0)
                 goto cleanup;
         } else {

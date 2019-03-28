@@ -70,7 +70,7 @@
 
 VIR_LOG_INIT("qemu.qemu_command");
 
-VIR_ENUM_DECL(virDomainDiskQEMUBus)
+VIR_ENUM_DECL(virDomainDiskQEMUBus);
 VIR_ENUM_IMPL(virDomainDiskQEMUBus, VIR_DOMAIN_DISK_BUS_LAST,
               "ide",
               "floppy",
@@ -80,10 +80,11 @@ VIR_ENUM_IMPL(virDomainDiskQEMUBus, VIR_DOMAIN_DISK_BUS_LAST,
               "usb",
               "uml",
               "sata",
-              "sd")
+              "sd",
+);
 
 
-VIR_ENUM_DECL(qemuDiskCacheV2)
+VIR_ENUM_DECL(qemuDiskCacheV2);
 
 VIR_ENUM_IMPL(qemuDiskCacheV2, VIR_DOMAIN_DISK_CACHE_LAST,
               "default",
@@ -91,7 +92,8 @@ VIR_ENUM_IMPL(qemuDiskCacheV2, VIR_DOMAIN_DISK_CACHE_LAST,
               "writethrough",
               "writeback",
               "directsync",
-              "unsafe");
+              "unsafe",
+);
 
 VIR_ENUM_IMPL(qemuVideo, VIR_DOMAIN_VIDEO_TYPE_LAST,
               "", /* default value, we shouldn't see this */
@@ -104,9 +106,10 @@ VIR_ENUM_IMPL(qemuVideo, VIR_DOMAIN_VIDEO_TYPE_LAST,
               "", /* don't support parallels */
               "", /* no need for virtio */
               "" /* don't support gop */,
-              "" /* 'none' doesn't make sense here */);
+              "" /* 'none' doesn't make sense here */,
+);
 
-VIR_ENUM_DECL(qemuDeviceVideo)
+VIR_ENUM_DECL(qemuDeviceVideo);
 
 VIR_ENUM_IMPL(qemuDeviceVideo, VIR_DOMAIN_VIDEO_TYPE_LAST,
               "", /* default value, we shouldn't see this */
@@ -119,9 +122,10 @@ VIR_ENUM_IMPL(qemuDeviceVideo, VIR_DOMAIN_VIDEO_TYPE_LAST,
               "", /* don't support parallels */
               "virtio-vga",
               "" /* don't support gop */,
-              "" /* 'none' doesn't make sense here */);
+              "" /* 'none' doesn't make sense here */,
+);
 
-VIR_ENUM_DECL(qemuDeviceVideoSecondary)
+VIR_ENUM_DECL(qemuDeviceVideoSecondary);
 
 VIR_ENUM_IMPL(qemuDeviceVideoSecondary, VIR_DOMAIN_VIDEO_TYPE_LAST,
               "", /* default value, we shouldn't see this */
@@ -134,16 +138,18 @@ VIR_ENUM_IMPL(qemuDeviceVideoSecondary, VIR_DOMAIN_VIDEO_TYPE_LAST,
               "", /* don't support parallels */
               "virtio-gpu",
               "" /* don't support gop */,
-              "" /* 'none' doesn't make sense here */);
+              "" /* 'none' doesn't make sense here */,
+);
 
-VIR_ENUM_DECL(qemuSoundCodec)
+VIR_ENUM_DECL(qemuSoundCodec);
 
 VIR_ENUM_IMPL(qemuSoundCodec, VIR_DOMAIN_SOUND_CODEC_TYPE_LAST,
               "hda-duplex",
               "hda-micro",
-              "hda-output");
+              "hda-output",
+);
 
-VIR_ENUM_DECL(qemuControllerModelUSB)
+VIR_ENUM_DECL(qemuControllerModelUSB);
 
 VIR_ENUM_IMPL(qemuControllerModelUSB, VIR_DOMAIN_CONTROLLER_MODEL_USB_LAST,
               "piix3-usb-uhci",
@@ -159,22 +165,25 @@ VIR_ENUM_IMPL(qemuControllerModelUSB, VIR_DOMAIN_CONTROLLER_MODEL_USB_LAST,
               "qusb1",
               "qusb2",
               "qemu-xhci",
-              "none");
+              "none",
+);
 
-VIR_ENUM_DECL(qemuDomainFSDriver)
+VIR_ENUM_DECL(qemuDomainFSDriver);
 VIR_ENUM_IMPL(qemuDomainFSDriver, VIR_DOMAIN_FS_DRIVER_TYPE_LAST,
               "local",
               "local",
               "handle",
               NULL,
               NULL,
-              NULL);
+              NULL,
+);
 
-VIR_ENUM_DECL(qemuNumaPolicy)
+VIR_ENUM_DECL(qemuNumaPolicy);
 VIR_ENUM_IMPL(qemuNumaPolicy, VIR_DOMAIN_NUMATUNE_MEM_LAST,
               "bind",
               "preferred",
-              "interleave");
+              "interleave",
+);
 
 
 /**
@@ -396,14 +405,34 @@ qemuBuildDeviceAddressStr(virBufferPtr buf,
 }
 
 
+/**
+ * qemuBuildVirtioDevStr
+ * @buf: virBufferPtr to append the built string
+ * @baseName: qemu virtio device basename string. Ex: virtio-rng for <rng>
+ * @devtype: virDomainDeviceType of the device. Ex: VIR_DOMAIN_DEVICE_TYPE_RNG
+ * @devdata: *DefPtr of the device definition
+ *
+ * Build the qemu virtio -device name from the passed parameters. Currently
+ * this is mostly about attaching the correct string prefix to @baseName for
+ * the passed @type. So for @baseName "virtio-rng" and devdata->info.type
+ * VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI, generate "virtio-rng-pci"
+ *
+ * Returns: -1 on failure, 0 on success
+ */
 static int
 qemuBuildVirtioDevStr(virBufferPtr buf,
                       const char *baseName,
-                      virDomainDeviceAddressType type)
+                      virDomainDeviceType devtype,
+                      void *devdata)
 {
     const char *implName = NULL;
+    virDomainDeviceDef device = { .type = devtype };
+    virDomainDeviceInfoPtr info;
 
-    switch (type) {
+    virDomainDeviceSetData(&device, devdata);
+    info = virDomainDeviceGetInfo(&device);
+
+    switch ((virDomainDeviceAddressType) info->type) {
     case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI:
         implName = "pci";
         break;
@@ -434,7 +463,7 @@ qemuBuildVirtioDevStr(virBufferPtr buf,
     case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE:
     case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_LAST:
     default:
-        virReportEnumRangeError(virDomainDeviceAddressType, type);
+        virReportEnumRangeError(virDomainDeviceAddressType, info->type);
         return -1;
     }
 
@@ -442,7 +471,6 @@ qemuBuildVirtioDevStr(virBufferPtr buf,
 
     return 0;
 }
-
 
 static int
 qemuBuildVirtioOptionsStr(virBufferPtr buf,
@@ -1729,49 +1757,42 @@ qemuBuildDriveStr(virDomainDiskDefPtr disk,
     if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_USB_STORAGE_WERROR))
         qemuBuildDiskFrontendAttributeErrorPolicy(disk, &opt);
 
-
-    /* While this is a frontend attribute, it only makes sense to be used when
-     * legacy -drive is used. In modern qemu the 'ide-cd' or 'scsi-cd' are used.
-     * virtio and other just ignore the attribute anyways */
-    if (disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM) {
-        if (disk->bus == VIR_DOMAIN_DISK_BUS_SCSI) {
-            if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_SCSI_CD))
-                virBufferAddLit(&opt, ",media=cdrom");
-        } else if (disk->bus == VIR_DOMAIN_DISK_BUS_IDE) {
-            if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_IDE_CD))
-                virBufferAddLit(&opt, ",media=cdrom");
-        } else {
-            virBufferAddLit(&opt, ",media=cdrom");
-        }
-    }
-
     if (disk->src->readonly)
         virBufferAddLit(&opt, ",readonly=on");
 
+    /* qemu rejects some parameters for an empty -drive, so we need to skip
+     * them in that case:
+     * cache: modifies properties of the format driver which is not present
+     * copy_on_read: really only works for floppies
+     * discard: modifies properties of format driver
+     * detect_zeroes: works but really depends on discard so it's useless
+     * iomode: setting it to 'native' requires a specific cache mode
+     */
+    if (!virStorageSourceIsEmpty(disk->src)) {
+        if (disk->cachemode) {
+            virBufferAsprintf(&opt, ",cache=%s",
+                              qemuDiskCacheV2TypeToString(disk->cachemode));
+        }
 
-    if (disk->cachemode) {
-        virBufferAsprintf(&opt, ",cache=%s",
-                          qemuDiskCacheV2TypeToString(disk->cachemode));
-    }
+        if (disk->copy_on_read) {
+            virBufferAsprintf(&opt, ",copy-on-read=%s",
+                              virTristateSwitchTypeToString(disk->copy_on_read));
+        }
 
-    if (disk->copy_on_read) {
-        virBufferAsprintf(&opt, ",copy-on-read=%s",
-                          virTristateSwitchTypeToString(disk->copy_on_read));
-    }
+        if (disk->discard) {
+            virBufferAsprintf(&opt, ",discard=%s",
+                              virDomainDiskDiscardTypeToString(disk->discard));
+        }
 
-    if (disk->discard) {
-        virBufferAsprintf(&opt, ",discard=%s",
-                          virDomainDiskDiscardTypeToString(disk->discard));
-    }
+        if (detect_zeroes) {
+            virBufferAsprintf(&opt, ",detect-zeroes=%s",
+                              virDomainDiskDetectZeroesTypeToString(detect_zeroes));
+        }
 
-    if (detect_zeroes) {
-        virBufferAsprintf(&opt, ",detect-zeroes=%s",
-                          virDomainDiskDetectZeroesTypeToString(detect_zeroes));
-    }
-
-    if (disk->iomode) {
-        virBufferAsprintf(&opt, ",aio=%s",
-                          virDomainDiskIoTypeToString(disk->iomode));
+        if (disk->iomode) {
+            virBufferAsprintf(&opt, ",aio=%s",
+                              virDomainDiskIoTypeToString(disk->iomode));
+        }
     }
 
     qemuBuildDiskThrottling(disk, &opt);
@@ -1869,18 +1890,19 @@ qemuBuildDiskDeviceStr(const virDomainDef *def,
     const char *bus = virDomainDiskQEMUBusTypeToString(disk->bus);
     const char *contAlias;
     char *backendAlias = NULL;
+    VIR_AUTOFREE(char *) scsiVPDDeviceId = NULL;
     int controllerModel;
 
     if (qemuCheckDiskConfig(disk, qemuCaps) < 0)
         goto error;
 
-    if (!qemuDomainCheckCCWS390AddressSupport(def, disk->info, qemuCaps, disk->dst))
+    if (!qemuDomainCheckCCWS390AddressSupport(def, &disk->info, qemuCaps, disk->dst))
         goto error;
 
     if (disk->iothread && !qemuCheckIOThreads(def, disk))
         goto error;
 
-    switch (disk->bus) {
+    switch ((virDomainDiskBus) disk->bus) {
     case VIR_DOMAIN_DISK_BUS_IDE:
         if (disk->info.addr.drive.target != 0) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -1896,14 +1918,10 @@ qemuBuildDiskDeviceStr(const virDomainDef *def,
             goto error;
         }
 
-        if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_IDE_CD)) {
-            if (disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM)
-                virBufferAddLit(&opt, "ide-cd");
-            else
-                virBufferAddLit(&opt, "ide-hd");
-        } else {
-            virBufferAddLit(&opt, "ide-drive");
-        }
+        if (disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM)
+            virBufferAddLit(&opt, "ide-cd");
+        else
+            virBufferAddLit(&opt, "ide-hd");
 
         /* When domain has builtin IDE controller we don't put it onto cmd
          * line. Therefore we can't set its alias. In that case, use the
@@ -1958,13 +1976,24 @@ qemuBuildDiskDeviceStr(const virDomainDef *def,
         if (disk->device == VIR_DOMAIN_DISK_DEVICE_LUN) {
             virBufferAddLit(&opt, "scsi-block");
         } else {
-            if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_SCSI_CD)) {
-                if (disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM)
-                    virBufferAddLit(&opt, "scsi-cd");
-                else
-                    virBufferAddLit(&opt, "scsi-hd");
-            } else {
-                virBufferAddLit(&opt, "scsi-disk");
+            if (disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM)
+                virBufferAddLit(&opt, "scsi-cd");
+            else
+                virBufferAddLit(&opt, "scsi-hd");
+
+            /* qemu historically used the name of -drive as one of the device
+             * ids in the Vital Product Data Device Identification page if
+             * disk serial was not set and the disk serial otherwise.
+             * To avoid a guest-visible regression we need to provide it
+             * ourselves especially for cases when -blockdev will be used */
+            if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_SCSI_DISK_DEVICE_ID)) {
+                if (disk->serial) {
+                    if (VIR_STRDUP(scsiVPDDeviceId, disk->serial) < 0)
+                        goto error;
+                } else {
+                    if (!(scsiVPDDeviceId = qemuAliasDiskDriveFromDisk(disk)))
+                        goto error;
+                }
             }
         }
 
@@ -2008,6 +2037,10 @@ qemuBuildDiskDeviceStr(const virDomainDef *def,
                               disk->info.addr.drive.target,
                               disk->info.addr.drive.unit);
         }
+
+        if (scsiVPDDeviceId)
+            virBufferStrcat(&opt, ",device_id=", scsiVPDDeviceId, NULL);
+
         break;
 
     case VIR_DOMAIN_DISK_BUS_SATA:
@@ -2022,14 +2055,10 @@ qemuBuildDiskDeviceStr(const virDomainDef *def,
             goto error;
         }
 
-        if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_IDE_CD)) {
-            if (disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM)
-                virBufferAddLit(&opt, "ide-cd");
-            else
-                virBufferAddLit(&opt, "ide-hd");
-        } else {
-            virBufferAddLit(&opt, "ide-drive");
-        }
+        if (disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM)
+            virBufferAddLit(&opt, "ide-cd");
+        else
+            virBufferAddLit(&opt, "ide-hd");
 
         /* When domain has builtin SATA controller we don't put it onto cmd
          * line. Therefore we can't set its alias. In that case, use the
@@ -2049,8 +2078,10 @@ qemuBuildDiskDeviceStr(const virDomainDef *def,
         break;
 
     case VIR_DOMAIN_DISK_BUS_VIRTIO:
-        if (qemuBuildVirtioDevStr(&opt, "virtio-blk", disk->info.type) < 0)
+        if (qemuBuildVirtioDevStr(&opt, "virtio-blk",
+                                  VIR_DOMAIN_DEVICE_DISK, disk) < 0) {
             goto error;
+        }
 
         if (disk->iothread)
             virBufferAsprintf(&opt, ",iothread=iothread%u", disk->iothread);
@@ -2112,6 +2143,10 @@ qemuBuildDiskDeviceStr(const virDomainDef *def,
         virBufferAsprintf(&opt, "floppy,unit=%d", disk->info.addr.drive.unit);
         break;
 
+    case VIR_DOMAIN_DISK_BUS_XEN:
+    case VIR_DOMAIN_DISK_BUS_UML:
+    case VIR_DOMAIN_DISK_BUS_SD:
+    case VIR_DOMAIN_DISK_BUS_LAST:
     default:
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("unsupported disk bus '%s' with device setup"), bus);
@@ -2638,8 +2673,10 @@ qemuBuildFSDevStr(const virDomainDef *def,
         goto error;
     }
 
-    if (qemuBuildVirtioDevStr(&opt, "virtio-9p", fs->info.type) < 0)
+    if (qemuBuildVirtioDevStr(&opt, "virtio-9p",
+                              VIR_DOMAIN_DEVICE_FS, fs) < 0) {
         goto error;
+    }
 
     virBufferAsprintf(&opt, ",id=%s", fs->info.alias);
     virBufferAsprintf(&opt, ",fsdev=%s%s",
@@ -2833,8 +2870,7 @@ int
 qemuBuildControllerDevStr(const virDomainDef *domainDef,
                           virDomainControllerDefPtr def,
                           virQEMUCapsPtr qemuCaps,
-                          char **devstr,
-                          int *nusbcontroller)
+                          char **devstr)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
@@ -2844,8 +2880,10 @@ qemuBuildControllerDevStr(const virDomainDef *domainDef,
     case VIR_DOMAIN_CONTROLLER_TYPE_SCSI:
         switch ((virDomainControllerModelSCSI) def->model) {
         case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_SCSI:
-            if (qemuBuildVirtioDevStr(&buf, "virtio-scsi", def->info.type) < 0)
+            if (qemuBuildVirtioDevStr(&buf, "virtio-scsi",
+                                      VIR_DOMAIN_DEVICE_CONTROLLER, def) < 0) {
                 goto error;
+            }
 
             if (def->iothread) {
                 virBufferAsprintf(&buf, ",iothread=iothread%u",
@@ -2885,8 +2923,10 @@ qemuBuildControllerDevStr(const virDomainDef *domainDef,
         break;
 
     case VIR_DOMAIN_CONTROLLER_TYPE_VIRTIO_SERIAL:
-        if (qemuBuildVirtioDevStr(&buf, "virtio-serial", def->info.type) < 0)
+        if (qemuBuildVirtioDevStr(&buf, "virtio-serial",
+                                  VIR_DOMAIN_DEVICE_CONTROLLER, def) < 0) {
             goto error;
+        }
 
         virBufferAsprintf(&buf, ",id=%s", def->info.alias);
         if (def->opts.vioserial.ports != -1) {
@@ -2912,9 +2952,6 @@ qemuBuildControllerDevStr(const virDomainDef *domainDef,
     case VIR_DOMAIN_CONTROLLER_TYPE_USB:
         if (qemuBuildUSBControllerDevStr(domainDef, def, qemuCaps, &buf) == -1)
             goto error;
-
-        if (nusbcontroller)
-            *nusbcontroller += 1;
 
         break;
 
@@ -3021,6 +3058,62 @@ qemuBuildControllerDevStr(const virDomainDef *domainDef,
 }
 
 
+static bool
+qemuBuildDomainForbidLegacyUSBController(const virDomainDef *def)
+{
+    if (qemuDomainIsQ35(def) ||
+        qemuDomainIsARMVirt(def) ||
+        qemuDomainIsRISCVVirt(def))
+        return true;
+
+    return false;
+}
+
+
+static int
+qemuBuildLegacyUSBControllerCommandLine(virCommandPtr cmd,
+                                        const virDomainDef *def)
+{
+    size_t i;
+    size_t nlegacy = 0;
+    size_t nusb = 0;
+
+    for (i = 0; i < def->ncontrollers; i++) {
+        virDomainControllerDefPtr cont = def->controllers[i];
+
+        if (cont->type != VIR_DOMAIN_CONTROLLER_TYPE_USB)
+            continue;
+
+        /* If we have mode='none', there are no other USB controllers */
+        if (cont->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_NONE)
+            return 0;
+
+        if (cont->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_DEFAULT)
+            nlegacy++;
+        else
+            nusb++;
+    }
+
+    if (nlegacy > 1) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Multiple legacy USB controllers are "
+                         "not supported"));
+        return -1;
+    }
+
+    if (nusb == 0 &&
+        !qemuBuildDomainForbidLegacyUSBController(def) &&
+        !ARCH_IS_S390(def->os.arch)) {
+        /* We haven't added any USB controller yet, but we haven't been asked
+         * not to add one either. Add a legacy USB controller, unless we're
+         * creating a kind of guest we want to keep legacy-free */
+        virCommandAddArg(cmd, "-usb");
+    }
+
+    return 0;
+}
+
+
 /**
  * qemuBuildSkipController:
  * @controller: Controller to check
@@ -3060,13 +3153,75 @@ qemuBuildSkipController(const virDomainControllerDef *controller,
 
 
 static int
-qemuBuildControllerDevCommandLine(virCommandPtr cmd,
-                                  const virDomainDef *def,
-                                  virQEMUCapsPtr qemuCaps)
+qemuBuildControllersByTypeCommandLine(virCommandPtr cmd,
+                                      const virDomainDef *def,
+                                      virQEMUCapsPtr qemuCaps,
+                                      virDomainControllerType type)
 {
-    size_t i, j;
-    int usbcontroller = 0;
-    bool usblegacy = false;
+    char *devstr = NULL;
+    int ret = -1;
+    size_t i;
+
+    for (i = 0; i < def->ncontrollers; i++) {
+        virDomainControllerDefPtr cont = def->controllers[i];
+
+        if (cont->type != type)
+            continue;
+
+        if (qemuBuildSkipController(cont, def))
+            continue;
+
+        /* skip USB controllers with type none.*/
+        if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_USB &&
+            cont->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_NONE) {
+            continue;
+        }
+
+        if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_USB &&
+            cont->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_DEFAULT &&
+            !qemuBuildDomainForbidLegacyUSBController(def)) {
+
+            /* An appropriate default USB controller model should already
+             * have been selected in qemuDomainDeviceDefPostParse(); if
+             * we still have no model by now, we have to fall back to the
+             * legacy USB controller.
+             *
+             * Note that we *don't* want to end up with the legacy USB
+             * controller for q35 and virt machines, so we go ahead and
+             * fail in qemuBuildControllerDevStr(); on the other hand,
+             * for s390 machines we want to ignore any USB controller
+             * (see 548ba43028 for the full story), so we skip
+             * qemuBuildControllerDevStr() but we don't ultimately end
+             * up adding the legacy USB controller */
+            continue;
+        }
+
+        VIR_FREE(devstr);
+        if (qemuBuildControllerDevStr(def, cont, qemuCaps, &devstr) < 0)
+            goto cleanup;
+
+        if (devstr) {
+            if (qemuCommandAddExtDevice(cmd, &cont->info) < 0)
+                goto cleanup;
+
+            virCommandAddArg(cmd, "-device");
+            virCommandAddArg(cmd, devstr);
+        }
+    }
+
+    ret = 0;
+ cleanup:
+    VIR_FREE(devstr);
+    return ret;
+}
+
+
+static int
+qemuBuildControllersCommandLine(virCommandPtr cmd,
+                                const virDomainDef *def,
+                                virQEMUCapsPtr qemuCaps)
+{
+    size_t i;
     int contOrder[] = {
         /*
          * List of controller types that we add commandline args for,
@@ -3082,6 +3237,9 @@ qemuBuildControllerDevCommandLine(virCommandPtr cmd,
          * one. Likewise, we don't do anything for the primary IDE
          * controller on an i440fx machine or primary SATA on q35, but
          * we do add those beyond these two exceptions.
+         *
+         * CCID controllers are formatted separately after USB hubs,
+         * because they go on the USB bus.
          */
         VIR_DOMAIN_CONTROLLER_TYPE_PCI,
         VIR_DOMAIN_CONTROLLER_TYPE_USB,
@@ -3089,83 +3247,16 @@ qemuBuildControllerDevCommandLine(virCommandPtr cmd,
         VIR_DOMAIN_CONTROLLER_TYPE_IDE,
         VIR_DOMAIN_CONTROLLER_TYPE_SATA,
         VIR_DOMAIN_CONTROLLER_TYPE_VIRTIO_SERIAL,
-        VIR_DOMAIN_CONTROLLER_TYPE_CCID,
     };
     int ret = -1;
 
-    for (j = 0; j < ARRAY_CARDINALITY(contOrder); j++) {
-        for (i = 0; i < def->ncontrollers; i++) {
-            virDomainControllerDefPtr cont = def->controllers[i];
-            char *devstr;
-
-            if (cont->type != contOrder[j])
-                continue;
-
-            if (qemuBuildSkipController(cont, def))
-                continue;
-
-            /* skip USB controllers with type none.*/
-            if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_USB &&
-                cont->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_NONE) {
-                usbcontroller = -1; /* mark we don't want a controller */
-                continue;
-            }
-
-            if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_USB &&
-                cont->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_DEFAULT &&
-                !qemuDomainIsQ35(def) &&
-                !qemuDomainIsARMVirt(def) &&
-                !qemuDomainIsRISCVVirt(def)) {
-
-                /* An appropriate default USB controller model should already
-                 * have been selected in qemuDomainDeviceDefPostParse(); if
-                 * we still have no model by now, we have to fall back to the
-                 * legacy USB controller.
-                 *
-                 * Note that we *don't* want to end up with the legacy USB
-                 * controller for q35 and virt machines, so we go ahead and
-                 * fail in qemuBuildControllerDevStr(); on the other hand,
-                 * for s390 machines we want to ignore any USB controller
-                 * (see 548ba43028 for the full story), so we skip
-                 * qemuBuildControllerDevStr() but we don't ultimately end
-                 * up adding the legacy USB controller */
-                if (usblegacy) {
-                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                                   _("Multiple legacy USB controllers are "
-                                     "not supported"));
-                    goto cleanup;
-                }
-                usblegacy = true;
-                continue;
-            }
-
-            if (qemuBuildControllerDevStr(def, cont, qemuCaps,
-                                          &devstr, &usbcontroller) < 0)
-                goto cleanup;
-
-            if (devstr) {
-                if (qemuCommandAddExtDevice(cmd, &cont->info) < 0) {
-                    VIR_FREE(devstr);
-                    goto cleanup;
-                }
-
-                virCommandAddArg(cmd, "-device");
-                virCommandAddArg(cmd, devstr);
-                VIR_FREE(devstr);
-            }
-        }
+    for (i = 0; i < ARRAY_CARDINALITY(contOrder); i++) {
+        if (qemuBuildControllersByTypeCommandLine(cmd, def, qemuCaps, contOrder[i]) < 0)
+            goto cleanup;
     }
 
-    if (usbcontroller == 0 &&
-        !qemuDomainIsQ35(def) &&
-        !qemuDomainIsARMVirt(def) &&
-        !qemuDomainIsRISCVVirt(def) &&
-        !ARCH_IS_S390(def->os.arch)) {
-        /* We haven't added any USB controller yet, but we haven't been asked
-         * not to add one either. Add a legacy USB controller, unless we're
-         * creating a kind of guest we want to keep legacy-free */
-        virCommandAddArg(cmd, "-usb");
-    }
+    if (qemuBuildLegacyUSBControllerCommandLine(cmd, def) < 0)
+        goto cleanup;
 
     ret = 0;
 
@@ -3635,9 +3726,9 @@ qemuBuildLegacyNicStr(virDomainNetDefPtr net)
                              virMacAddrFormat(&net->mac, macaddr),
                              net->info.alias,
                              (net->model ? ",model=" : ""),
-                             (net->model ? net->model : ""),
+                             NULLSTR_EMPTY(net->model),
                              (net->info.alias ? ",id=" : ""),
-                             (net->info.alias ? net->info.alias : "")));
+                             NULLSTR_EMPTY(net->info.alias)));
     return str;
 }
 
@@ -3653,9 +3744,11 @@ qemuBuildNicDevStr(virDomainDefPtr def,
     bool usingVirtio = false;
     char macaddr[VIR_MAC_STRING_BUFLEN];
 
-    if (STREQ(net->model, "virtio")) {
-        if (qemuBuildVirtioDevStr(&buf, "virtio-net", net->info.type) < 0)
+    if (virDomainNetIsVirtioModel(net)) {
+        if (qemuBuildVirtioDevStr(&buf, "virtio-net",
+                                  VIR_DOMAIN_DEVICE_NET, net) < 0) {
             goto error;
+        }
 
         usingVirtio = true;
     } else {
@@ -3871,8 +3964,7 @@ qemuBuildHostNetStr(virDomainNetDefPtr net,
 
     case VIR_DOMAIN_NET_TYPE_SERVER:
         virBufferAsprintf(&buf, "socket,listen=%s:%d,",
-                          net->data.socket.address ? net->data.socket.address
-                          : "",
+                          NULLSTR_EMPTY(net->data.socket.address),
                           net->data.socket.port);
         break;
 
@@ -4045,22 +4137,12 @@ qemuBuildMemballoonCommandLine(virCommandPtr cmd,
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
-    if (STRPREFIX(def->os.machine, "s390-virtio") &&
-        virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_S390) && def->memballoon)
-        def->memballoon->model = VIR_DOMAIN_MEMBALLOON_MODEL_NONE;
-
     if (!virDomainDefHasMemballoon(def))
         return 0;
 
-    if (def->memballoon->model != VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Memory balloon device type '%s' is not supported by this version of qemu"),
-                       virDomainMemballoonModelTypeToString(def->memballoon->model));
-        return -1;
-    }
-
     if (qemuBuildVirtioDevStr(&buf, "virtio-balloon",
-                              def->memballoon->info.type) < 0) {
+                              VIR_DOMAIN_DEVICE_MEMBALLOON,
+                              def->memballoon) < 0) {
         goto error;
     }
 
@@ -4069,12 +4151,6 @@ qemuBuildMemballoonCommandLine(virCommandPtr cmd,
         goto error;
 
     if (def->memballoon->autodeflate != VIR_TRISTATE_SWITCH_ABSENT) {
-        if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_BALLOON_AUTODEFLATE)) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("deflate-on-oom is not supported by this QEMU binary"));
-            goto error;
-        }
-
         virBufferAsprintf(&buf, ",deflate-on-oom=%s",
                           virTristateSwitchTypeToString(def->memballoon->autodeflate));
     }
@@ -4164,20 +4240,28 @@ qemuBuildVirtioInputDevStr(const virDomainDef *def,
 
     switch ((virDomainInputType)dev->type) {
     case VIR_DOMAIN_INPUT_TYPE_MOUSE:
-        if (qemuBuildVirtioDevStr(&buf, "virtio-mouse", dev->info.type) < 0)
+        if (qemuBuildVirtioDevStr(&buf, "virtio-mouse",
+                                  VIR_DOMAIN_DEVICE_INPUT, dev) < 0) {
             goto error;
+        }
         break;
     case VIR_DOMAIN_INPUT_TYPE_TABLET:
-        if (qemuBuildVirtioDevStr(&buf, "virtio-tablet", dev->info.type) < 0)
+        if (qemuBuildVirtioDevStr(&buf, "virtio-tablet",
+                                  VIR_DOMAIN_DEVICE_INPUT, dev) < 0) {
             goto error;
+        }
         break;
     case VIR_DOMAIN_INPUT_TYPE_KBD:
-        if (qemuBuildVirtioDevStr(&buf, "virtio-keyboard", dev->info.type) < 0)
+        if (qemuBuildVirtioDevStr(&buf, "virtio-keyboard",
+                                  VIR_DOMAIN_DEVICE_INPUT, dev) < 0) {
             goto error;
+        }
         break;
     case VIR_DOMAIN_INPUT_TYPE_PASSTHROUGH:
-        if (qemuBuildVirtioDevStr(&buf, "virtio-input-host", dev->info.type) < 0)
+        if (qemuBuildVirtioDevStr(&buf, "virtio-input-host",
+                                  VIR_DOMAIN_DEVICE_INPUT, dev) < 0) {
             goto error;
+        }
         break;
     case VIR_DOMAIN_INPUT_TYPE_LAST:
     default:
@@ -4495,8 +4579,10 @@ qemuBuildDeviceVideoStr(const virDomainDef *def,
     }
 
     if (STREQ(model, "virtio-gpu")) {
-        if (qemuBuildVirtioDevStr(&buf, "virtio-gpu", video->info.type) < 0)
+        if (qemuBuildVirtioDevStr(&buf, "virtio-gpu",
+                                  VIR_DOMAIN_DEVICE_VIDEO, video) < 0) {
             goto error;
+        }
     } else {
         virBufferAsprintf(&buf, "%s", model);
     }
@@ -4941,10 +5027,10 @@ qemuBuildSCSIVHostHostdevDevStr(const virDomainDef *def,
         goto cleanup;
     }
 
-    if (ARCH_IS_S390(def->os.arch))
-        virBufferAddLit(&buf, "vhost-scsi-ccw");
-    else
-        virBufferAddLit(&buf, "vhost-scsi-pci");
+    if (qemuBuildVirtioDevStr(&buf, "vhost-scsi",
+                              VIR_DOMAIN_DEVICE_HOSTDEV, dev) < 0) {
+        goto cleanup;
+    }
 
     virBufferAsprintf(&buf, ",wwpn=%s,vhostfd=%s,id=%s",
                       hostsrc->wwpn,
@@ -5887,20 +5973,14 @@ qemuBuildRNGDevStr(const virDomainDef *def,
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
-    if (dev->model != VIR_DOMAIN_RNG_MODEL_VIRTIO ||
-        !virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_VIRTIO_RNG)) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("this qemu doesn't support RNG device type '%s'"),
-                       virDomainRNGModelTypeToString(dev->model));
-        goto error;
-    }
-
-    if (!qemuDomainCheckCCWS390AddressSupport(def, dev->info, qemuCaps,
+    if (!qemuDomainCheckCCWS390AddressSupport(def, &dev->info, qemuCaps,
                                               dev->source.file))
         goto error;
 
-    if (qemuBuildVirtioDevStr(&buf, "virtio-rng", dev->info.type) < 0)
+    if (qemuBuildVirtioDevStr(&buf, "virtio-rng",
+                              VIR_DOMAIN_DEVICE_RNG, dev) < 0) {
         goto error;
+    }
 
     virBufferAsprintf(&buf, ",rng=obj%s,id=%s",
                       dev->info.alias, dev->info.alias);
@@ -7150,7 +7230,7 @@ qemuBuildCpuCommandLine(virCommandPtr cmd,
 
     if (cpu) {
         virCommandAddArg(cmd, "-cpu");
-        virCommandAddArgFormat(cmd, "%s%s", cpu, cpu_flags ? cpu_flags : "");
+        virCommandAddArgFormat(cmd, "%s%s", cpu, NULLSTR_EMPTY(cpu_flags));
     }
 
     ret = 0;
@@ -8035,18 +8115,27 @@ qemuBuildGraphicsVNCCommandLine(virQEMUDriverConfigPtr cfg,
         virBufferAddLit(&opt, ",password");
 
     if (cfg->vncTLS) {
-        if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_TLS_CREDS_X509)) {
-            const char *alias = "vnc-tls-creds0";
+        qemuDomainGraphicsPrivatePtr gfxPriv = QEMU_DOMAIN_GRAPHICS_PRIVATE(graphics);
+        if (gfxPriv->tlsAlias) {
+            const char *secretAlias = NULL;
+
+            if (gfxPriv->secinfo) {
+                if (qemuBuildObjectSecretCommandLine(cmd,
+                                                     gfxPriv->secinfo) < 0)
+                    goto error;
+                secretAlias = gfxPriv->secinfo->s.aes.alias;
+            }
+
             if (qemuBuildTLSx509CommandLine(cmd,
                                             cfg->vncTLSx509certdir,
                                             true,
                                             cfg->vncTLSx509verify,
-                                            NULL,
-                                            alias,
+                                            secretAlias,
+                                            gfxPriv->tlsAlias,
                                             qemuCaps) < 0)
                 goto error;
 
-            virBufferAsprintf(&opt, ",tls-creds=%s", alias);
+            virBufferAsprintf(&opt, ",tls-creds=%s", gfxPriv->tlsAlias);
         } else {
             virBufferAddLit(&opt, ",tls");
             if (cfg->vncTLSx509verify) {
@@ -8318,13 +8407,9 @@ qemuBuildGraphicsSPICECommandLine(virQEMUDriverConfigPtr cfg,
         }
     }
 
-    if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_SEAMLESS_MIGRATION)) {
-        /* If qemu supports seamless migration turn it
-         * unconditionally on. If migration destination
-         * doesn't support it, it fallbacks to previous
-         * migration algorithm silently. */
-        virBufferAddLit(&opt, "seamless-migration=on,");
-    }
+    /* Turn on seamless migration unconditionally. If migration destination
+     * doesn't support it, it fallbacks to previous migration algorithm silently. */
+    virBufferAddLit(&opt, "seamless-migration=on,");
 
     virBufferTrim(&opt, ",", -1);
 
@@ -10362,10 +10447,10 @@ qemuBuildVsockDevStr(virDomainDefPtr def,
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     char *ret = NULL;
 
-    if (vsock->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCW) {
-        virBufferAddLit(&buf, "vhost-vsock-ccw");
-    } else {
-        virBufferAddLit(&buf, "vhost-vsock-pci");
+
+    if (qemuBuildVirtioDevStr(&buf, "vhost-vsock",
+                              VIR_DOMAIN_DEVICE_VSOCK, vsock) < 0) {
+        goto cleanup;
     }
 
     virBufferAsprintf(&buf, ",id=%s", vsock->info.alias);
@@ -10547,10 +10632,14 @@ qemuBuildCommandLine(virQEMUDriverPtr driver,
     if (qemuBuildGlobalControllerCommandLine(cmd, def, qemuCaps) < 0)
         goto error;
 
-    if (qemuBuildControllerDevCommandLine(cmd, def, qemuCaps) < 0)
+    if (qemuBuildControllersCommandLine(cmd, def, qemuCaps) < 0)
         goto error;
 
     if (qemuBuildHubCommandLine(cmd, def, qemuCaps) < 0)
+        goto error;
+
+    if (qemuBuildControllersByTypeCommandLine(cmd, def, qemuCaps,
+                                              VIR_DOMAIN_CONTROLLER_TYPE_CCID) < 0)
         goto error;
 
     if (qemuBuildDisksCommandLine(cmd, def, qemuCaps) < 0)
@@ -10639,8 +10728,7 @@ qemuBuildCommandLine(virQEMUDriverPtr driver,
             virCommandAddArg(cmd, qemucmd->args[i]);
         for (i = 0; i < qemucmd->num_env; i++)
             virCommandAddEnvPair(cmd, qemucmd->env_name[i],
-                                 qemucmd->env_value[i]
-                                 ? qemucmd->env_value[i] : "");
+                                 NULLSTR_EMPTY(qemucmd->env_value[i]));
     }
 
     if (qemuBuildSeccompSandboxCommandLine(cmd, cfg, qemuCaps) < 0)
@@ -10767,7 +10855,7 @@ qemuBuildChannelChrDeviceStr(char **deviceStr,
         port = virSocketAddrGetPort(chr->target.addr);
 
         if (virAsprintf(deviceStr,
-                        "user,guestfwd=tcp:%s:%i-chardev:char%s,id=user-%s",
+                        "user,guestfwd=tcp:%s:%i-chardev:char%s,id=%s",
                         addr, port, chr->info.alias, chr->info.alias) < 0)
             goto cleanup;
         break;

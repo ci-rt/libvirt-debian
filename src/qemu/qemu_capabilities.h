@@ -174,8 +174,8 @@ typedef enum { /* virQEMUCapsFlags grouping marker for syntax-check */
     /* 90 */
     X_QEMU_CAPS_BLOCKJOB_SYNC, /* old block_job_cancel, block_stream */
     QEMU_CAPS_BLOCKJOB_ASYNC, /* new block-job-cancel, block-stream */
-    QEMU_CAPS_SCSI_CD, /* -device scsi-cd */
-    QEMU_CAPS_IDE_CD, /* -device ide-cd */
+    X_QEMU_CAPS_SCSI_CD, /* -device scsi-cd */
+    X_QEMU_CAPS_IDE_CD, /* -device ide-cd */
     X_QEMU_CAPS_NO_USER_CONFIG, /* -no-user-config */
 
     /* 95 */
@@ -183,7 +183,7 @@ typedef enum { /* virQEMUCapsFlags grouping marker for syntax-check */
     QEMU_CAPS_DUMP_GUEST_MEMORY, /* dump-guest-memory command */
     QEMU_CAPS_NEC_USB_XHCI, /* -device nec-usb-xhci */
     QEMU_CAPS_VIRTIO_S390, /* -device virtio-*-s390 */
-    QEMU_CAPS_BALLOON_EVENT, /* Async event for balloon changes */
+    X_QEMU_CAPS_BALLOON_EVENT, /* Async event for balloon changes */
 
     /* 100 */
     X_QEMU_CAPS_NETDEV_BRIDGE, /* bridge helper support */
@@ -202,7 +202,7 @@ typedef enum { /* virQEMUCapsFlags grouping marker for syntax-check */
     /* 110 */
     QEMU_CAPS_REBOOT_TIMEOUT, /* -boot reboot-timeout */
     X_QEMU_CAPS_DUMP_GUEST_CORE, /* dump-guest-core-parameter */
-    QEMU_CAPS_SEAMLESS_MIGRATION, /* seamless-migration for SPICE */
+    X_QEMU_CAPS_SEAMLESS_MIGRATION, /* seamless-migration for SPICE */
     QEMU_CAPS_BLOCK_COMMIT, /* block-commit */
     QEMU_CAPS_VNC, /* Is -vnc available? */
 
@@ -257,7 +257,7 @@ typedef enum { /* virQEMUCapsFlags grouping marker for syntax-check */
 
     /* 150 */
     X_QEMU_CAPS_VNC_SHARE_POLICY, /* set display sharing policy */
-    QEMU_CAPS_DEVICE_DEL_EVENT, /* DEVICE_DELETED event */
+    X_QEMU_CAPS_DEVICE_DEL_EVENT, /* DEVICE_DELETED event */
     QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE, /* -device i82801b11-bridge */
     QEMU_CAPS_I440FX_PCI_HOLE64_SIZE, /* i440FX-pcihost.pci-hole64-size */
     QEMU_CAPS_Q35_PCI_HOLE64_SIZE, /* q35-pcihost.pci-hole64-size */
@@ -356,7 +356,7 @@ typedef enum { /* virQEMUCapsFlags grouping marker for syntax-check */
 
     /* 220 */
     QEMU_CAPS_DEVICE_PXB_PCIE, /* -device pxb-pcie */
-    QEMU_CAPS_DEVICE_TRAY_MOVED, /* DEVICE_TRAY_MOVED event */
+    X_QEMU_CAPS_DEVICE_TRAY_MOVED, /* DEVICE_TRAY_MOVED event */
     QEMU_CAPS_NEC_USB_XHCI_PORTS, /* -device nec-usb-xhci.p3 ports setting */
     QEMU_CAPS_VIRTIO_SCSI_IOTHREAD, /* virtio-scsi-{pci,ccw}.iothread */
     QEMU_CAPS_NAME_GUEST, /* -name guest= */
@@ -504,6 +504,7 @@ typedef enum { /* virQEMUCapsFlags grouping marker for syntax-check */
     /* 325 */
     QEMU_CAPS_OBJECT_MEMORY_FILE_PMEM, /* -object memory-backend-file,pmem= */
     QEMU_CAPS_DEVICE_NVDIMM_UNARMED, /* -device nvdimm,unarmed= */
+    QEMU_CAPS_SCSI_DISK_DEVICE_ID, /* 'device_id' property of scsi disk */
 
     QEMU_CAPS_LAST /* this must always be the last item */
 } virQEMUCapsFlags;

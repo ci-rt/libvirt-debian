@@ -12,7 +12,200 @@
         <h1>Releases</h1><p>This is the list of official releases for libvirt, along with an
         overview of the changes introduced by each of them.</p><p>For a more fine-grained view, use the
         <a href="https://libvirt.org/git/?p=libvirt.git;a=log">git log</a>.
-        </p><h3><strong>v5.0.0 (2019-01-15)</strong></h3><ul><li><strong>New features</strong><ul><li>
+        </p><h3><strong>v5.1.0 (2019-03-04)</strong></h3><ul><li><strong>New features</strong><ul><li>
+          bhyve: Add support for additional command-line arguments
+        <br/>
+          The bhyve driver now supports passing additional command-line
+          arguments to the bhyve process using the new
+          <code>&lt;bhyve:commandline&gt;</code> element in domain
+          configuration.
+        </li><li>
+          network: Support setting a firewalld "zone" for virtual network bridges
+        <br/>
+          All libvirt virtual networks with bridges managed by libvirt
+          (i.e. those with forward mode of "nat", "route", "open", or
+          no forward mode) will now be placed in a special firewalld
+          zone called "libvirt" by default. The zone of any network
+          bridge can be changed using the <code>zone</code> attribute
+          of the network's <code>bridge</code> element.
+        </li><li>
+          bhyve: Support for ignoring unknown MSRs reads and writes
+        <br/>
+          A new &lt;features&gt; element &lt;msrs unknown='ignore'/&gt; was
+          introduced and the bhyve driver supports it to control unknown
+          Model Specific Registers (MSRs) reads and writes.
+        </li><li>
+          qemu: Add support for encrypted VNC TLS keys
+        <br/>
+          Use the password stored in the secret driver under the uuid
+          specified by the <code>vnc_tls_x509_secret_uuid</code> option
+          in qemu.conf.
+        </li><li>
+          Add storage pool namespace options
+        <br/>
+          Allow for adjustment of RBD configuration options via Storage
+          Pool XML Namespace adjustments.
+        </li><li>
+          qemu: Add support for setting post-copy migration bandwidth
+        <br/>
+          Users can now limit the bandwidth of post-copy migration, e.g.
+          via <code>virsh migrate --postcopy-bandwidth</code>.
+        </li></ul></li><li><strong>Improvements</strong><ul><li>
+          Create private chains for virtual network firewall rules
+        <br/>
+          Historically firewall rules for virtual networks were added
+          straight into the base chains. This works but has a number of
+          bugs and design limitations. To address them, libvirt now puts
+          firewall rules into its own chains.
+        </li><li>
+          Detect CEPH and GPFS as shared FS
+        <br/>
+          When starting a migration libvirt performs some sanity checks
+          to make sure domain will be able to run on the destination.
+          One of the requirements is that the disk has to either be
+          migrated too or be accessible from a network filesystem. CEPH
+          and GPFS weren't detected as a network filesystem.
+        </li><li>
+          Advertise network MTU via DHCP when specified
+        <br/>
+          If network MTU is set and the network has DHCP enabled,
+          advertise the MTU in DHCP transaction too so that clients can
+          adjust their link accordingly.
+        </li><li>
+          qemu: Allocate memory at the configured NUMA nodes from start
+        <br/>
+          Libvirt used to just start QEMU, let it allocate memory for
+          the guest, and then use CGroups to move the memory to
+          configured NUMA nodes. This is suboptimal as huge chunks of
+          memory have to be moved. Moreover, this relies on ability to
+          move memory later which is not always true. A change was made
+          to set process affinity correctly from the start so that memory
+          is allocated on the configured nodes from the beginning.
+        </li><li>
+          Support for newer Wireshark
+        <br/>
+          Adapt libvirt to use the more recent release requiring a
+          source build configuration of libvirt
+          <code>--with-wireshark</code> to upgrade to the more recent
+          version.
+        </li><li>
+          Batch mode virsh and virt-admin parsing improvements
+        <br/>
+          When parsing a single-argument command_string in batch mode,
+          virsh and virt-admin now permit newlines in addition to
+          semicolons for splitting commands, and backslash-newline for
+          splitting long lines, to be more like shell parsing.
+        </li></ul></li><li><strong>Bug fixes</strong><ul><li>
+          qemu: Use CAP_DAC_OVERRIDE during QEMU capabilities probing
+        <br/>
+          By default, libvirt runs the QEMU process as <code>qemu:qemu</code>
+          which could cause issues during probing as some features like AMD SEV
+          might be inaccessible to QEMU because of file system permissions.
+          Therefore, <code>CAP_DAC_OVERRIDE</code> is granted to overcome these
+          for the purposes of probing.
+        </li><li>
+          storage: Add default mount options for fs/netfs storage pools
+        <br/>
+          Altered the command line generation for fs/netfs storage pools to
+          add some default options. For Linux based systems, the options
+          added are "nodev, nosuid, noexec". For FreeBSD based systems,
+          the options added are "nosuid, noexec".
+        </li><li>
+          qemu: Allow use of PCI for RISC-V guests
+        <br/>
+          This works with QEMU 4.0.0+ only and is opt-in at the moment, since
+          it requires users to manually assign PCI addresses, but is otherwise
+          fully functional.
+        </li><li>
+          network: Fix virtual networks on systems using firewalld+nftables
+        <br/>
+          Because of the transitional state of firewalld's new support
+          for nftables, not all iptables features required by libvirt
+          are yet available, so libvirt must continue to use iptables
+          for its own packet filtering rules even when the firewalld
+          backend is set to use nftables. However, due to the way
+          iptables support is implemented in kernels using nftables
+          (iptables rules are converted to nftables rules and
+          processed in a separate hook from the native nftables
+          rules), guest networking was broken on hosts with firewalld
+          configured to use nftables as the backend. This has been
+          fixed by putting libvirt-managed bridges in their own
+          firewalld zone, so that guest traffic can be forwarded
+          beyond the host and host services can be exposed to guests
+          on the virtual network without opening up those same
+          services to the rest of the physical network. This means
+          that host access from virtual machines is no longer
+          controlled by the firewalld default zone (usually "public"),
+          but rather by the new firewalld zone called "libvirt"
+          (unless configured otherwise using the new zone
+          attribute of the network bridge element).
+        </li><li>
+          qemu: Fix i6300esb watchdog hotplug on Q35
+        <br/>
+          Ensure that libvirt allocates a PCI address for the device so
+          that QEMU did not default to an address that would not allow
+          for device hotplug.
+        </li><li>
+          lxc: Don't reboot host on virDomainReboot
+        <br/>
+          If the container is really a simple one (init is just bash and
+          the whole root is passed through) then virDomainReboot and
+          virDomainShutdown would reboot or shutdown the host. The
+          solution is to use different method to reboot or shutdown the
+          container in that case (e.g. signal).
+        </li><li>
+          rpc: Various stream fixes
+        <br/>
+          One particular race was fixed, one locking problem and error
+          reporting from streams was made better.
+        </li><li>
+          qemu: Fix guestfwd hotplug/hotunplug
+        <br/>
+          Fixed the generation of the guestfwd hotplug/unplug command
+          sent to QEMU to match the syntax used when creating the
+          initial command line.
+        </li><li>
+          qemu: Forbid CDROMs on virtio bus
+        <br/>
+          Attempting to create an empty virtio-blk drive or attempting
+          to eject it results into an error.  Forbid configurations
+          where users would attempt to use CDROMs in virtio bus.
+        </li><li>
+          qemu: Use 'raw' for 'volume' disks without format
+        <br/>
+          Storage pools might want to specify format of the image when
+          translating the volume thus libvirt can't add any default
+          format when parsing the XML. Add an explicit format when
+          starting the VM and format is not present neither by user
+          specifying it nor by the storage pool translation function.
+        </li><li>
+          qemu: Assume 'raw' default storage format also for network storage
+        <br/>
+          Post parse callback adds the 'raw' type only for local files.
+          Remote files can also have backing store (even local) so we
+          should do this also for network backed storage.
+        </li><li>
+          qemu: Fix block job progress reporting and advocate for READY event
+        <br/>
+          In some cases QEMU can get to 100% and still not reach the
+          synchronised phase. Initiating a pivot in that case will fail.
+          Therefore it is strongly advised to wait for
+          <code>VIR_DOMAIN_BLOCK_JOB_READY</code> event which does not
+          suffer from this problem.
+        </li><li>
+          qemu: Don't format image properties for empty drive
+        <br/>
+          If a <code>-drive</code> has no image, then formatting
+          attributes such as cache, readonly, etc. would cause errors to
+          be reported from QEMU. This was fixed by not supplying the
+          attributes for devices without an image.
+        </li><li>
+          External snapshot metadata redefinition is fixed
+        <br/>
+          Attempting to use VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE to
+          reinstate the metadata describing an external snapshot
+          created earlier for an offline domain no longer fails.
+        </li></ul></li></ul><h3><strong>v5.0.0 (2019-01-15)</strong></h3><ul><li><strong>New features</strong><ul><li>
           Xen: Add support for openvswitch
         <br/>
           The libxl driver now supports virtual interfaces that connect to

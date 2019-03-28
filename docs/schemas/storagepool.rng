@@ -52,6 +52,9 @@
       <ref name='sourcefs'/>
       <ref name='target'/>
     </interleave>
+    <optional>
+      <ref name='fs_mount_opts'/>
+    </optional>
   </define>
 
   <define name='poolnetfs'>
@@ -64,6 +67,9 @@
       <ref name='sourcenetfs'/>
       <ref name='target'/>
     </interleave>
+    <optional>
+      <ref name='fs_mount_opts'/>
+    </optional>
   </define>
 
   <define name='poollogical'>
@@ -150,6 +156,9 @@
       <ref name='sizing'/>
       <ref name='sourcerbd'/>
     </interleave>
+    <optional>
+      <ref name='rbd_config_opts'/>
+    </optional>
   </define>
 
   <define name='poolsheepdog'>
@@ -532,6 +541,13 @@
             <ref name='sourceinfodir'/>
             <ref name='sourcefmtnetfs'/>
             <optional>
+              <element name='protocol'>
+                <attribute name='ver'>
+                  <ref name='unsignedInt'/>
+                </attribute>
+              </element>
+            </optional>
+            <optional>
               <ref name='sourceinfovendor'/>
             </optional>
           </interleave>
@@ -673,6 +689,43 @@
     <data type='string'>
       <param name="pattern">iqn\.[0-9]{4}-(0[1-9]|1[0-2])\.[a-zA-Z0-9\.\-]+(:.+)?</param>
     </data>
+  </define>
+
+  <!--
+       Optional storage pool extensions in their own namespace:
+         "fs" or "netfs"
+    -->
+
+  <define name="fs_mount_opts">
+    <element name="mount_opts" ns="http://libvirt.org/schemas/storagepool/fs/1.0">
+      <zeroOrMore>
+        <element name="option">
+          <attribute name='name'>
+            <text/>
+          </attribute>
+        </element>
+      </zeroOrMore>
+    </element>
+  </define>
+
+  <!--
+       Optional storage pool extensions in their own namespace:
+         RBD
+    -->
+
+  <define name="rbd_config_opts">
+    <element name="config_opts" ns="http://libvirt.org/schemas/storagepool/rbd/1.0">
+      <zeroOrMore>
+        <element name="option">
+          <attribute name='name'>
+            <text/>
+          </attribute>
+          <attribute name='value'>
+            <text/>
+          </attribute>
+        </element>
+      </zeroOrMore>
+    </element>
   </define>
 
 </grammar>

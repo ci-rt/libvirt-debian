@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2018-11-27" "libvirt-4.10.0" "Virtualization Support"
+.TH VIRSH 1 "2019-02-28" "libvirt-5.1.0" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -179,8 +179,9 @@ as a name.
 The \fBvirsh\fR program can be used either to run one \fI\s-1COMMAND\s0\fR by giving the
 command and its arguments on the shell command line, or a \fI\s-1COMMAND_STRING\s0\fR
 which is a single shell argument consisting of multiple \fI\s-1COMMAND\s0\fR actions
-and their arguments joined with whitespace, and separated by semicolons
-between commands.  Within \fI\s-1COMMAND_STRING\s0\fR, virsh understands the
+and their arguments joined with whitespace and separated by semicolons or
+newlines between commands, where unquoted backslash-newline pairs are
+elided.  Within \fI\s-1COMMAND_STRING\s0\fR, virsh understands the
 same single, double, and backslash escapes as the shell, although you must
 add another layer of shell escaping in creating the single shell argument.
 If no command is given in the command line, \fBvirsh\fR will then start a minimal
@@ -1862,8 +1863,8 @@ to the private namespace.
 .Sp
 If neither of \fI\-\-edit\fR and \fIset\fR are specified the \s-1XML\s0 metadata corresponding
 to the \fIuri\fR namespace is displayed instead of being modified.
-.IP "\fBmigrate\fR [\fI\-\-live\fR] [\fI\-\-offline\fR] [\fI\-\-direct\fR] [\fI\-\-p2p\fR [\fI\-\-tunnelled\fR]] [\fI\-\-persistent\fR] [\fI\-\-undefinesource\fR] [\fI\-\-suspend\fR] [\fI\-\-copy\-storage\-all\fR] [\fI\-\-copy\-storage\-inc\fR] [\fI\-\-change\-protection\fR] [\fI\-\-unsafe\fR] [\fI\-\-verbose\fR] [\fI\-\-rdma\-pin\-all\fR] [\fI\-\-abort\-on\-error\fR] [\fI\-\-postcopy\fR] [\fI\-\-postcopy\-after\-precopy\fR] \fIdomain\fR \fIdesturi\fR [\fImigrateuri\fR] [\fIgraphicsuri\fR] [\fIlisten-address\fR] [\fIdname\fR] [\fI\-\-timeout\fR \fBseconds\fR [\fI\-\-timeout\-suspend\fR | \fI\-\-timeout\-postcopy\fR]] [\fI\-\-xml\fR \fBfile\fR] [\fI\-\-migrate\-disks\fR \fBdisk-list\fR] [\fI\-\-disks\-port\fR \fBport\fR] [\fI\-\-compressed\fR] [\fI\-\-comp\-methods\fR \fBmethod-list\fR] [\fI\-\-comp\-mt\-level\fR] [\fI\-\-comp\-mt\-threads\fR] [\fI\-\-comp\-mt\-dthreads\fR] [\fI\-\-comp\-xbzrle\-cache\fR] [\fI\-\-auto\-converge\fR] [\fIauto-converge-initial\fR] [\fIauto-converge-increment\fR] [\fI\-\-persistent\-xml\fR \fBfile\fR] [\fI\-\-tls\fR]" 4
-.IX Item "migrate [--live] [--offline] [--direct] [--p2p [--tunnelled]] [--persistent] [--undefinesource] [--suspend] [--copy-storage-all] [--copy-storage-inc] [--change-protection] [--unsafe] [--verbose] [--rdma-pin-all] [--abort-on-error] [--postcopy] [--postcopy-after-precopy] domain desturi [migrateuri] [graphicsuri] [listen-address] [dname] [--timeout seconds [--timeout-suspend | --timeout-postcopy]] [--xml file] [--migrate-disks disk-list] [--disks-port port] [--compressed] [--comp-methods method-list] [--comp-mt-level] [--comp-mt-threads] [--comp-mt-dthreads] [--comp-xbzrle-cache] [--auto-converge] [auto-converge-initial] [auto-converge-increment] [--persistent-xml file] [--tls]"
+.IP "\fBmigrate\fR [\fI\-\-live\fR] [\fI\-\-offline\fR] [\fI\-\-direct\fR] [\fI\-\-p2p\fR [\fI\-\-tunnelled\fR]] [\fI\-\-persistent\fR] [\fI\-\-undefinesource\fR] [\fI\-\-suspend\fR] [\fI\-\-copy\-storage\-all\fR] [\fI\-\-copy\-storage\-inc\fR] [\fI\-\-change\-protection\fR] [\fI\-\-unsafe\fR] [\fI\-\-verbose\fR] [\fI\-\-rdma\-pin\-all\fR] [\fI\-\-abort\-on\-error\fR] [\fI\-\-postcopy\fR] [\fI\-\-postcopy\-after\-precopy\fR] \fIdomain\fR \fIdesturi\fR [\fImigrateuri\fR] [\fIgraphicsuri\fR] [\fIlisten-address\fR] [\fIdname\fR] [\fI\-\-timeout\fR \fBseconds\fR [\fI\-\-timeout\-suspend\fR | \fI\-\-timeout\-postcopy\fR]] [\fI\-\-xml\fR \fBfile\fR] [\fI\-\-migrate\-disks\fR \fBdisk-list\fR] [\fI\-\-disks\-port\fR \fBport\fR] [\fI\-\-compressed\fR] [\fI\-\-comp\-methods\fR \fBmethod-list\fR] [\fI\-\-comp\-mt\-level\fR] [\fI\-\-comp\-mt\-threads\fR] [\fI\-\-comp\-mt\-dthreads\fR] [\fI\-\-comp\-xbzrle\-cache\fR] [\fI\-\-auto\-converge\fR] [\fIauto-converge-initial\fR] [\fIauto-converge-increment\fR] [\fI\-\-persistent\-xml\fR \fBfile\fR] [\fI\-\-tls\fR] [\fI\-\-postcopy\-bandwidth\fR \fBbandwidth\fR]" 4
+.IX Item "migrate [--live] [--offline] [--direct] [--p2p [--tunnelled]] [--persistent] [--undefinesource] [--suspend] [--copy-storage-all] [--copy-storage-inc] [--change-protection] [--unsafe] [--verbose] [--rdma-pin-all] [--abort-on-error] [--postcopy] [--postcopy-after-precopy] domain desturi [migrateuri] [graphicsuri] [listen-address] [dname] [--timeout seconds [--timeout-suspend | --timeout-postcopy]] [--xml file] [--migrate-disks disk-list] [--disks-port port] [--compressed] [--comp-methods method-list] [--comp-mt-level] [--comp-mt-threads] [--comp-mt-dthreads] [--comp-xbzrle-cache] [--auto-converge] [auto-converge-initial] [auto-converge-increment] [--persistent-xml file] [--tls] [--postcopy-bandwidth bandwidth]"
 Migrate domain to another host.  Add \fI\-\-live\fR for live migration; <\-\-p2p>
 for peer\-2\-peer migration; \fI\-\-direct\fR for direct migration; or \fI\-\-tunnelled\fR
 for tunnelled migration.  \fI\-\-offline\fR migrates domain definition without
@@ -1893,6 +1894,8 @@ Once migration is running, the user may switch to post-copy using the
 \&\fBmigrate-postcopy\fR command sent from another virsh instance or use
 \&\fI\-\-postcopy\-after\-precopy\fR along with \fI\-\-postcopy\fR to let libvirt
 automatically switch to post-copy after the first pass of pre-copy is finished.
+The maximum bandwidth consumed during the post-copy phase may be limited using
+\&\fI\-\-postcopy\-bandwidth\fR.
 .Sp
 \&\fI\-\-auto\-converge\fR forces convergence during live migration. The initial
 guest \s-1CPU\s0 throttling rate can be set with \fIauto-converge-initial\fR. If the
@@ -2056,16 +2059,20 @@ requested size due to rounding done by the hypervisor). The \fIsize\fR option
 is supposed to be used while the domain is being live-migrated as a reaction
 to migration progress and increasing number of compression cache misses
 obtained from domjobinfo.
-.IP "\fBmigrate-setspeed\fR \fIdomain\fR \fIbandwidth\fR" 4
-.IX Item "migrate-setspeed domain bandwidth"
+.IP "\fBmigrate-setspeed\fR \fIdomain\fR \fIbandwidth\fR [\fI\-\-postcopy\fR]" 4
+.IX Item "migrate-setspeed domain bandwidth [--postcopy]"
 Set the maximum migration bandwidth (in MiB/s) for a domain which is being
 migrated to another host. \fIbandwidth\fR is interpreted as an unsigned long
 long value. Specifying a negative value results in an essentially unlimited
 value being provided to the hypervisor. The hypervisor can choose whether to
-reject the value or convert it to the maximum value allowed.
-.IP "\fBmigrate-getspeed\fR \fIdomain\fR" 4
-.IX Item "migrate-getspeed domain"
-Get the maximum migration bandwidth (in MiB/s) for a domain.
+reject the value or convert it to the maximum value allowed. If the
+\&\fI\-\-postcopy\fR option is specified, the command will set the maximum bandwidth
+allowed during a post-copy migration phase.
+.IP "\fBmigrate-getspeed\fR \fIdomain\fR [\fI\-\-postcopy\fR]" 4
+.IX Item "migrate-getspeed domain [--postcopy]"
+Get the maximum migration bandwidth (in MiB/s) for a domain. If the
+\&\fI\-\-postcopy\fR option is specified, the command will get the maximum bandwidth
+allowed during a post-copy migration phase.
 .IP "\fBmigrate-postcopy\fR \fIdomain\fR" 4
 .IX Item "migrate-postcopy domain"
 Switch the current migration from pre-copy to post-copy. This is only
@@ -3667,8 +3674,8 @@ Create and start a pool object from the \s-1XML\s0 \fIfile\fR.
 follow-up command to build the pool. The \fI\-\-overwrite\fR and
 \&\fI\-\-no\-overwrite\fR flags follow the same rules as \fBpool-build\fR. If
 just \fI\-\-build\fR is provided, then \fBpool-build\fR is called with no flags.
-.IP "\fBpool-create-as\fR \fIname\fR \fItype\fR [\fI\-\-source\-host hostname\fR] [\fI\-\-source\-path path\fR] [\fI\-\-source\-dev path\fR] [\fI\-\-source\-name name\fR] [\fI\-\-target path\fR] [\fI\-\-source\-format format\fR] [\fI\-\-auth\-type authtype\fR \fI\-\-auth\-username username\fR [\fI\-\-secret\-usage usage\fR | \fI\-\-secret\-uuid uuid\fR]] [[\fI\-\-adapter\-name name\fR] | [\fI\-\-adapter\-wwnn\fR wwnn \fI\-\-adapter\-wwpn\fR wwpn] [\fI\-\-adapter\-parent parent\fR | \fI\-\-adapter\-parent\-wwnn parent_wwnn\fR \fIadapter-parent-wwpn parent_wwpn\fR | \fI\-\-adapter\-parent\-fabric\-wwn parent_fabric_wwn\fR]] [\fI\-\-build\fR] [[\fI\-\-overwrite\fR] | [\fI\-\-no\-overwrite\fR]] [\fI\-\-print\-xml\fR]" 4
-.IX Item "pool-create-as name type [--source-host hostname] [--source-path path] [--source-dev path] [--source-name name] [--target path] [--source-format format] [--auth-type authtype --auth-username username [--secret-usage usage | --secret-uuid uuid]] [[--adapter-name name] | [--adapter-wwnn wwnn --adapter-wwpn wwpn] [--adapter-parent parent | --adapter-parent-wwnn parent_wwnn adapter-parent-wwpn parent_wwpn | --adapter-parent-fabric-wwn parent_fabric_wwn]] [--build] [[--overwrite] | [--no-overwrite]] [--print-xml]"
+.IP "\fBpool-create-as\fR \fIname\fR \fItype\fR [\fI\-\-source\-host hostname\fR] [\fI\-\-source\-path path\fR] [\fI\-\-source\-dev path\fR] [\fI\-\-source\-name name\fR] [\fI\-\-target path\fR] [\fI\-\-source\-format format\fR] [\fI\-\-auth\-type authtype\fR \fI\-\-auth\-username username\fR [\fI\-\-secret\-usage usage\fR | \fI\-\-secret\-uuid uuid\fR]] [\fI\-\-source\-protocol\-ver ver\fR] [[\fI\-\-adapter\-name name\fR] | [\fI\-\-adapter\-wwnn\fR wwnn \fI\-\-adapter\-wwpn\fR wwpn] [\fI\-\-adapter\-parent parent\fR | \fI\-\-adapter\-parent\-wwnn parent_wwnn\fR \fIadapter-parent-wwpn parent_wwpn\fR | \fI\-\-adapter\-parent\-fabric\-wwn parent_fabric_wwn\fR]] [\fI\-\-build\fR] [[\fI\-\-overwrite\fR] | [\fI\-\-no\-overwrite\fR]] [\fI\-\-print\-xml\fR]" 4
+.IX Item "pool-create-as name type [--source-host hostname] [--source-path path] [--source-dev path] [--source-name name] [--target path] [--source-format format] [--auth-type authtype --auth-username username [--secret-usage usage | --secret-uuid uuid]] [--source-protocol-ver ver] [[--adapter-name name] | [--adapter-wwnn wwnn --adapter-wwpn wwpn] [--adapter-parent parent | --adapter-parent-wwnn parent_wwnn adapter-parent-wwpn parent_wwpn | --adapter-parent-fabric-wwn parent_fabric_wwn]] [--build] [[--overwrite] | [--no-overwrite]] [--print-xml]"
 Create and start a pool object \fIname\fR from the raw parameters.  If
 \&\fI\-\-print\-xml\fR is specified, then print the \s-1XML\s0 of the pool object
 without creating the pool.  Otherwise, the pool has the specified
@@ -3703,6 +3710,10 @@ provides the elements required to generate authentication credentials for
 the storage pool. The \fIauthtype\fR is either chap for iscsi \fItype\fR pools or
 ceph for rbd \fItype\fR pools. Either the secret \fIusage\fR or \fIuuid\fR value may
 be provided, but not both.
+.Sp
+[\fI\-\-source\-protocol\-ver ver\fR] provides the \s-1NFS\s0 protocol version number used
+to contact the server's \s-1NFS\s0 service via nfs mount option 'nfsvers=n'. It is
+expect the \fIver\fR value is an unsigned integer.
 .Sp
 [\fI\-\-adapter\-name name\fR] defines the scsi_hostN adapter name to be used for
 the scsi_host adapter type pool.
@@ -4245,8 +4256,8 @@ If \fI\-\-halt\fR is specified, the domain will be left in an inactive state
 after the snapshot is created.
 .Sp
 If \fI\-\-disk\-only\fR is specified, the snapshot will only include disk
-state rather than the usual system checkpoint with vm state.  Disk
-snapshots are faster than full system checkpoints, but reverting to a
+content rather than the usual full system snapshot with vm state.  Disk
+snapshots are captured faster than full system snapshots, but reverting to a
 disk snapshot may require fsck or journal replays, since it is like
 the disk state at the point when the power cord is abruptly pulled;
 and mixing \fI\-\-halt\fR and \fI\-\-disk\-only\fR loses any data that was not
@@ -4285,10 +4296,10 @@ this.  If this flag is not specified, then some hypervisors may fail
 after partially performing the action, and \fBdumpxml\fR must be used to
 see whether any partial changes occurred.
 .Sp
-If \fI\-\-live\fR is specified, libvirt takes the snapshot (checkpoint) while
+If \fI\-\-live\fR is specified, libvirt takes the snapshot while
 the guest is running. Both disk snapshot and domain memory snapshot are
 taken. This increases the size of the memory image of the external
-checkpoint. This is currently supported only for external checkpoints.
+snapshot. This is currently supported only for full system external snapshots.
 .Sp
 Existence of snapshot metadata will prevent attempts to \fBundefine\fR
 a persistent domain.  However, for transient domains, snapshot
@@ -4304,7 +4315,7 @@ Otherwise, if \fI\-\-halt\fR is specified, the domain will be left in an
 inactive state after the snapshot is created, and if \fI\-\-disk\-only\fR
 is specified, the snapshot will not include vm state.
 .Sp
-The \fI\-\-memspec\fR option can be used to control whether a checkpoint
+The \fI\-\-memspec\fR option can be used to control whether a full system snapshot
 is internal or external.  The \fI\-\-memspec\fR flag is mandatory, followed
 by a \fBmemspec\fR of the form \fB[file=]name[,snapshot=type]\fR, where
 type can be \fBno\fR, \fBinternal\fR, or \fBexternal\fR.  To include a literal
@@ -4312,7 +4323,7 @@ comma in \fBfile=name\fR, escape it with a second comma. \fI\-\-memspec\fR canno
 be used together with \fI\-\-disk\-only\fR.
 .Sp
 The \fI\-\-diskspec\fR option can be used to control how \fI\-\-disk\-only\fR and
-external checkpoints create external files.  This option can occur
+external full system snapshots create external files.  This option can occur
 multiple times, according to the number of <disk> elements in the domain
 xml.  Each <diskspec> is in the
 form \fBdisk[,snapshot=type][,driver=type][,file=name]\fR.  A \fIdiskspec\fR
@@ -4352,7 +4363,7 @@ see whether any partial changes occurred.
 .Sp
 If \fI\-\-live\fR is specified, libvirt takes the snapshot while the guest is
 running. This increases the size of the memory image of the external
-checkpoint. This is currently supported only for external checkpoints.
+snapshot. This is currently supported only for external full system snapshots.
 .IP "\fBsnapshot-current\fR \fIdomain\fR {[\fI\-\-name\fR] | [\fI\-\-security\-info\fR] | [\fIsnapshotname\fR]}" 4
 .IX Item "snapshot-current domain {[--name] | [--security-info] | [snapshotname]}"
 Without \fIsnapshotname\fR, this will output the snapshot \s-1XML\s0 for the domain's

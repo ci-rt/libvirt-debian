@@ -40,7 +40,7 @@
 
 # define QEMU_BLOCK_IOTUNE_MAX 1000000000000000LL
 
-VIR_ENUM_DECL(qemuVideo)
+VIR_ENUM_DECL(qemuVideo);
 
 virCommandPtr qemuBuildCommandLine(virQEMUDriverPtr driver,
                                    virLogManagerPtr logManager,
@@ -117,8 +117,7 @@ char
 int qemuBuildControllerDevStr(const virDomainDef *domainDef,
                               virDomainControllerDefPtr def,
                               virQEMUCapsPtr qemuCaps,
-                              char **devstr,
-                              int *nusbcontroller);
+                              char **devstr);
 
 int qemuBuildMemoryBackendProps(virJSONValuePtr *backendProps,
                                 const char *alias,

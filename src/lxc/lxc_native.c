@@ -35,6 +35,20 @@
 
 VIR_LOG_INIT("lxc.lxc_native");
 
+VIR_ENUM_IMPL(virLXCNetworkConfigEntry, VIR_LXC_NETWORK_CONFIG_LAST,
+              "name",
+              "type",
+              "link",
+              "hwaddr",
+              "flags",
+              "macvlan.mode",
+              "vlan.id",
+              "ipv4",
+              "ipv4.gateway",
+              "ipv6",
+              "ipv6.gateway"
+);
+
 static virDomainFSDefPtr
 lxcCreateFSDef(int type,
                const char *src,
@@ -552,89 +566,149 @@ lxcAddNetworkDefinition(lxcNetworkParseData *data)
     return -1;
 }
 
+
+static int
+lxcNetworkParseDataType(virConfValuePtr value,
+                        lxcNetworkParseData *parseData)
+{
+    virDomainDefPtr def = parseData->def;
+    size_t networks = parseData->networks;
+    bool privnet = parseData->privnet;
+    int status;
+
+    /* Store the previous NIC */
+    status = lxcAddNetworkDefinition(parseData);
+
+    if (status < 0)
+        return -1;
+    else if (status > 0)
+        networks++;
+    else if (parseData->type != NULL && STREQ(parseData->type, "none"))
+        privnet = false;
+
+    /* clean NIC to store a new one */
+    memset(parseData, 0, sizeof(*parseData));
+
+    parseData->def = def;
+    parseData->networks = networks;
+    parseData->privnet = privnet;
+
+    /* Keep the new value */
+    parseData->type = value->str;
+
+    return 0;
+}
+
+
+static int
+lxcNetworkParseDataIPs(const char *name,
+                       virConfValuePtr value,
+                       lxcNetworkParseData *parseData)
+{
+    int family = AF_INET;
+    char **ipparts = NULL;
+    virNetDevIPAddrPtr ip = NULL;
+
+    if (VIR_ALLOC(ip) < 0)
+        return -1;
+
+    if (STREQ(name, "ipv6"))
+        family = AF_INET6;
+
+    ipparts = virStringSplit(value->str, "/", 2);
+    if (virStringListLength((const char * const *)ipparts) != 2 ||
+        virSocketAddrParse(&ip->address, ipparts[0], family) < 0 ||
+        virStrToLong_ui(ipparts[1], NULL, 10, &ip->prefix) < 0) {
+
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("Invalid CIDR address: '%s'"), value->str);
+
+        virStringListFree(ipparts);
+        VIR_FREE(ip);
+        return -1;
+    }
+
+    virStringListFree(ipparts);
+
+    if (VIR_APPEND_ELEMENT(parseData->ips, parseData->nips, ip) < 0) {
+        VIR_FREE(ip);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+static int
+lxcNetworkParseDataSuffix(const char *entry,
+                          virConfValuePtr value,
+                          lxcNetworkParseData *parseData)
+{
+    int elem = virLXCNetworkConfigEntryTypeFromString(entry);
+
+    switch (elem) {
+    case VIR_LXC_NETWORK_CONFIG_TYPE:
+        if (lxcNetworkParseDataType(value, parseData) < 0)
+            return -1;
+        break;
+    case VIR_LXC_NETWORK_CONFIG_LINK:
+        parseData->link = value->str;
+        break;
+    case VIR_LXC_NETWORK_CONFIG_HWADDR:
+        parseData->mac = value->str;
+        break;
+    case VIR_LXC_NETWORK_CONFIG_FLAGS:
+        parseData->flag = value->str;
+        break;
+    case VIR_LXC_NETWORK_CONFIG_MACVLAN_MODE:
+        parseData->macvlanmode = value->str;
+        break;
+    case VIR_LXC_NETWORK_CONFIG_VLAN_ID:
+        parseData->vlanid = value->str;
+        break;
+    case VIR_LXC_NETWORK_CONFIG_NAME:
+        parseData->name = value->str;
+        break;
+    case VIR_LXC_NETWORK_CONFIG_IPV4:
+    case VIR_LXC_NETWORK_CONFIG_IPV6:
+        if (lxcNetworkParseDataIPs(entry, value, parseData) < 0)
+            return -1;
+        break;
+    case VIR_LXC_NETWORK_CONFIG_IPV4_GATEWAY:
+        parseData->gateway_ipv4 = value->str;
+        break;
+    case VIR_LXC_NETWORK_CONFIG_IPV6_GATEWAY:
+        parseData->gateway_ipv6 = value->str;
+        break;
+    default:
+        VIR_WARN("Unhandled network property: %s = %s",
+                 entry,
+                 value->str);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+static int
+lxcNetworkParseDataEntry(const char *name,
+                         virConfValuePtr value,
+                         lxcNetworkParseData *parseData)
+{
+    const char *suffix = STRSKIP(name, "lxc.network.");
+
+    return lxcNetworkParseDataSuffix(suffix, value, parseData);
+}
+
+
 static int
 lxcNetworkWalkCallback(const char *name, virConfValuePtr value, void *data)
 {
     lxcNetworkParseData *parseData = data;
-    int status;
 
-    if (STREQ(name, "lxc.network.type")) {
-        virDomainDefPtr def = parseData->def;
-        size_t networks = parseData->networks;
-        bool privnet = parseData->privnet;
-
-        /* Store the previous NIC */
-        status = lxcAddNetworkDefinition(parseData);
-
-        if (status < 0)
-            return -1;
-        else if (status > 0)
-            networks++;
-        else if (parseData->type != NULL && STREQ(parseData->type, "none"))
-            privnet = false;
-
-        /* clean NIC to store a new one */
-        memset(parseData, 0, sizeof(*parseData));
-
-        parseData->def = def;
-        parseData->networks = networks;
-        parseData->privnet = privnet;
-
-        /* Keep the new value */
-        parseData->type = value->str;
-    }
-    else if (STREQ(name, "lxc.network.link"))
-        parseData->link = value->str;
-    else if (STREQ(name, "lxc.network.hwaddr"))
-        parseData->mac = value->str;
-    else if (STREQ(name, "lxc.network.flags"))
-        parseData->flag = value->str;
-    else if (STREQ(name, "lxc.network.macvlan.mode"))
-        parseData->macvlanmode = value->str;
-    else if (STREQ(name, "lxc.network.vlan.id"))
-        parseData->vlanid = value->str;
-    else if (STREQ(name, "lxc.network.name"))
-        parseData->name = value->str;
-    else if (STREQ(name, "lxc.network.ipv4") ||
-             STREQ(name, "lxc.network.ipv6")) {
-        int family = AF_INET;
-        char **ipparts = NULL;
-        virNetDevIPAddrPtr ip = NULL;
-
-        if (VIR_ALLOC(ip) < 0)
-            return -1;
-
-        if (STREQ(name, "lxc.network.ipv6"))
-            family = AF_INET6;
-
-        ipparts = virStringSplit(value->str, "/", 2);
-        if (virStringListLength((const char * const *)ipparts) != 2 ||
-            virSocketAddrParse(&ip->address, ipparts[0], family) < 0 ||
-            virStrToLong_ui(ipparts[1], NULL, 10, &ip->prefix) < 0) {
-
-            virReportError(VIR_ERR_INVALID_ARG,
-                           _("Invalid CIDR address: '%s'"), value->str);
-
-            virStringListFree(ipparts);
-            VIR_FREE(ip);
-            return -1;
-        }
-
-        virStringListFree(ipparts);
-
-        if (VIR_APPEND_ELEMENT(parseData->ips, parseData->nips, ip) < 0) {
-            VIR_FREE(ip);
-            return -1;
-        }
-    } else if (STREQ(name, "lxc.network.ipv4.gateway")) {
-        parseData->gateway_ipv4 = value->str;
-    } else if (STREQ(name, "lxc.network.ipv6.gateway")) {
-        parseData->gateway_ipv6 = value->str;
-    } else if (STRPREFIX(name, "lxc.network")) {
-        VIR_WARN("Unhandled network property: %s = %s",
-                 name,
-                 value->str);
-    }
+    if (STRPREFIX(name, "lxc.network."))
+        return lxcNetworkParseDataEntry(name, value, parseData);
 
     return 0;
 }

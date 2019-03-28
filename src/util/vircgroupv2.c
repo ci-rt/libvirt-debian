@@ -45,7 +45,8 @@ VIR_LOG_INIT("util.cgroup");
 VIR_ENUM_DECL(virCgroupV2Controller);
 VIR_ENUM_IMPL(virCgroupV2Controller, VIR_CGROUP_CONTROLLER_LAST,
               "cpu", "cpuacct", "cpuset", "memory", "devices",
-              "freezer", "io", "net_cls", "perf_event", "name=systemd");
+              "freezer", "io", "net_cls", "perf_event", "name=systemd",
+);
 
 #ifdef __linux__
 
@@ -337,7 +338,7 @@ virCgroupV2PathOfController(virCgroupPtr group,
     if (virAsprintf(path, "%s%s/%s",
                     group->unified.mountPoint,
                     group->unified.placement,
-                    key ? key : "") < 0)
+                    NULLSTR_EMPTY(key)) < 0)
         return -1;
 
     return 0;

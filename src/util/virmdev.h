@@ -32,7 +32,7 @@ typedef enum {
     VIR_MDEV_MODEL_TYPE_LAST
 } virMediatedDeviceModelType;
 
-VIR_ENUM_DECL(virMediatedDeviceModel)
+VIR_ENUM_DECL(virMediatedDeviceModel);
 
 
 typedef struct _virMediatedDevice virMediatedDevice;
@@ -137,7 +137,7 @@ int
 virMediatedDeviceTypeReadAttrs(const char *sysfspath,
                                virMediatedDeviceTypePtr *type);
 
-VIR_DEFINE_AUTOPTR_FUNC(virMediatedDevice, virMediatedDeviceFree)
-VIR_DEFINE_AUTOPTR_FUNC(virMediatedDeviceType, virMediatedDeviceTypeFree)
+VIR_DEFINE_AUTOPTR_FUNC(virMediatedDevice, virMediatedDeviceFree);
+VIR_DEFINE_AUTOPTR_FUNC(virMediatedDeviceType, virMediatedDeviceTypeFree);
 
 #endif /* LIBVIRT_VIRMDEV_H */

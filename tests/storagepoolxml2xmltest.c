@@ -11,53 +11,41 @@
 #include "testutilsqemu.h"
 #include "virstring.h"
 
+#include "storage/storage_util.h"
+
 #define VIR_FROM_THIS VIR_FROM_NONE
 
 static int
 testCompareXMLToXMLFiles(const char *inxml, const char *outxml)
 {
-    char *actual = NULL;
-    int ret = -1;
-    virStoragePoolDefPtr dev = NULL;
+    VIR_AUTOFREE(char *) actual = NULL;
+    VIR_AUTOPTR(virStoragePoolDef) dev = NULL;
 
     if (!(dev = virStoragePoolDefParseFile(inxml)))
-        goto fail;
+        return -1;
 
     if (!(actual = virStoragePoolDefFormat(dev)))
-        goto fail;
+        return -1;
 
     if (virTestCompareToFile(actual, outxml) < 0)
-        goto fail;
+        return -1;
 
-    ret = 0;
-
- fail:
-    VIR_FREE(actual);
-    virStoragePoolDefFree(dev);
-    return ret;
+    return 0;
 }
 
 static int
 testCompareXMLToXMLHelper(const void *data)
 {
-    int result = -1;
-    char *inxml = NULL;
-    char *outxml = NULL;
+    VIR_AUTOFREE(char *) inxml = NULL;
+    VIR_AUTOFREE(char *) outxml = NULL;
 
     if (virAsprintf(&inxml, "%s/storagepoolxml2xmlin/%s.xml",
                     abs_srcdir, (const char*)data) < 0 ||
         virAsprintf(&outxml, "%s/storagepoolxml2xmlout/%s.xml",
-                    abs_srcdir, (const char*)data) < 0) {
-        goto cleanup;
-    }
+                    abs_srcdir, (const char*)data) < 0)
+        return -1;
 
-    result = testCompareXMLToXMLFiles(inxml, outxml);
-
- cleanup:
-    VIR_FREE(inxml);
-    VIR_FREE(outxml);
-
-    return result;
+    return testCompareXMLToXMLFiles(inxml, outxml);
 }
 
 static int
@@ -69,6 +57,9 @@ mymain(void)
     if (virTestRun("Storage Pool XML-2-XML " name, \
                    testCompareXMLToXMLHelper, (name)) < 0) \
         ret = -1
+
+    if (storageRegisterAll() < 0)
+       return EXIT_FAILURE;
 
     DO_TEST("pool-dir");
     DO_TEST("pool-dir-naming");
@@ -83,8 +74,12 @@ mymain(void)
     DO_TEST("pool-iscsi-auth");
     DO_TEST("pool-netfs");
     DO_TEST("pool-netfs-auto");
+    DO_TEST("pool-netfs-protocol-ver");
     DO_TEST("pool-netfs-gluster");
     DO_TEST("pool-netfs-cifs");
+#ifdef WITH_STORAGE_FS
+    DO_TEST("pool-netfs-ns-mountopts");
+#endif
     DO_TEST("pool-scsi");
     DO_TEST("pool-scsi-type-scsi-host");
     DO_TEST("pool-scsi-type-fc-host");
@@ -99,6 +94,9 @@ mymain(void)
     DO_TEST("pool-zfs");
     DO_TEST("pool-zfs-sourcedev");
     DO_TEST("pool-rbd");
+#ifdef WITH_STORAGE_RBD
+    DO_TEST("pool-rbd-ns-configopts");
+#endif
     DO_TEST("pool-vstorage");
     DO_TEST("pool-iscsi-direct-auth");
     DO_TEST("pool-iscsi-direct");

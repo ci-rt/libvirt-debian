@@ -86,6 +86,12 @@ setmntent(const char *filename, const char *type)
 #ifndef FUSE_SUPER_MAGIC
 # define FUSE_SUPER_MAGIC 0x65735546
 #endif
+#ifndef CEPH_SUPER_MAGIC
+# define CEPH_SUPER_MAGIC 0x00c36400
+#endif
+#ifndef GPFS_SUPER_MAGIC
+# define GPFS_SUPER_MAGIC 0x47504653
+#endif
 
 
 static int
@@ -132,6 +138,10 @@ statfs_mock(const char *mtab,
             ftype = CIFS_SUPER_MAGIC;
         } else if (STRPREFIX(mb.mnt_type, "fuse")) {
             ftype = FUSE_SUPER_MAGIC;
+        } else if (STRPREFIX(mb.mnt_type, "ceph")) {
+            ftype = CEPH_SUPER_MAGIC;
+        } else if (STRPREFIX(mb.mnt_type, "gpfs")) {
+            ftype = GPFS_SUPER_MAGIC;
         } else {
             /* Everything else is EXT4. We don't care really for other paths. */
             ftype = EXT4_SUPER_MAGIC;

@@ -42,16 +42,15 @@ testCompareXMLToArgvFiles(bool shouldFail,
                           unsigned int flags,
                           unsigned long parse_flags)
 {
-    char *actualCmdline = NULL;
     virStorageVolEncryptConvertStep convertStep = VIR_STORAGE_VOL_ENCRYPT_NONE;
     int ret = -1;
-
-    virCommandPtr cmd = NULL;
-
-    virStorageVolDefPtr vol = NULL, inputvol = NULL;
     virStoragePoolDefPtr def = NULL;
-    virStoragePoolDefPtr inputpool = NULL;
     virStoragePoolObjPtr obj = NULL;
+    VIR_AUTOFREE(char *) actualCmdline = NULL;
+    VIR_AUTOPTR(virStorageVolDef) vol = NULL;
+    VIR_AUTOPTR(virStorageVolDef) inputvol = NULL;
+    VIR_AUTOPTR(virStoragePoolDef) inputpool = NULL;
+    VIR_AUTOPTR(virCommand) cmd = NULL;
 
     if (!(def = virStoragePoolDefParseFile(poolxml)))
         goto cleanup;
@@ -89,6 +88,7 @@ testCompareXMLToArgvFiles(bool shouldFail,
         convertStep = VIR_STORAGE_VOL_ENCRYPT_CREATE;
 
     do {
+        virCommandFree(cmd);
         cmd = virStorageBackendCreateQemuImgCmdFromVol(obj, vol,
                                                        inputvol, flags,
                                                        create_tool,
@@ -108,7 +108,7 @@ testCompareXMLToArgvFiles(bool shouldFail,
                 goto cleanup;
         } else {
             char *createCmdline = actualCmdline;
-            char *cvtCmdline;
+            VIR_AUTOFREE(char *) cvtCmdline = NULL;
             int rc;
 
             if (!(cvtCmdline = virCommandToString(cmd, false)))
@@ -118,7 +118,6 @@ testCompareXMLToArgvFiles(bool shouldFail,
                              createCmdline, cvtCmdline);
 
             VIR_FREE(createCmdline);
-            VIR_FREE(cvtCmdline);
             if (rc < 0)
                 goto cleanup;
         }
@@ -138,11 +137,6 @@ testCompareXMLToArgvFiles(bool shouldFail,
     ret = 0;
 
  cleanup:
-    virStoragePoolDefFree(inputpool);
-    virStorageVolDefFree(vol);
-    virStorageVolDefFree(inputvol);
-    virCommandFree(cmd);
-    VIR_FREE(actualCmdline);
     virStoragePoolObjEndAPI(&obj);
     return ret;
 }
@@ -161,45 +155,35 @@ struct testInfo {
 static int
 testCompareXMLToArgvHelper(const void *data)
 {
-    int result = -1;
     const struct testInfo *info = data;
-    char *poolxml = NULL;
-    char *inputpoolxml = NULL;
-    char *volxml = NULL;
-    char *inputvolxml = NULL;
-    char *cmdline = NULL;
+    VIR_AUTOFREE(char *) poolxml = NULL;
+    VIR_AUTOFREE(char *) inputpoolxml = NULL;
+    VIR_AUTOFREE(char *) volxml = NULL;
+    VIR_AUTOFREE(char *) inputvolxml = NULL;
+    VIR_AUTOFREE(char *) cmdline = NULL;
 
     if (info->inputvol &&
         virAsprintf(&inputvolxml, "%s/storagevolxml2xmlin/%s.xml",
                     abs_srcdir, info->inputvol) < 0)
-        goto cleanup;
+        return -1;
     if (info->inputpool &&
         virAsprintf(&inputpoolxml, "%s/storagepoolxml2xmlin/%s.xml",
                     abs_srcdir, info->inputpool) < 0)
-        goto cleanup;
+        return -1;
     if (virAsprintf(&poolxml, "%s/storagepoolxml2xmlin/%s.xml",
                     abs_srcdir, info->pool) < 0 ||
         virAsprintf(&volxml, "%s/storagevolxml2xmlin/%s.xml",
                     abs_srcdir, info->vol) < 0) {
-        goto cleanup;
+        return -1;
     }
     if (virAsprintf(&cmdline, "%s/storagevolxml2argvdata/%s.argv",
                     abs_srcdir, info->cmdline) < 0 && !info->shouldFail)
-        goto cleanup;
+        return -1;
 
-    result = testCompareXMLToArgvFiles(info->shouldFail, poolxml, volxml,
-                                       inputpoolxml, inputvolxml,
-                                       cmdline, info->flags,
-                                       info->parseflags);
-
- cleanup:
-    VIR_FREE(poolxml);
-    VIR_FREE(volxml);
-    VIR_FREE(inputvolxml);
-    VIR_FREE(inputpoolxml);
-    VIR_FREE(cmdline);
-
-    return result;
+    return testCompareXMLToArgvFiles(info->shouldFail, poolxml, volxml,
+                                     inputpoolxml, inputvolxml,
+                                     cmdline, info->flags,
+                                     info->parseflags);
 }
 
 

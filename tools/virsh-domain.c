@@ -97,12 +97,12 @@ virshDomainDefine(virConnectPtr conn, const char *xml, unsigned int flags)
     return dom;
 }
 
-VIR_ENUM_DECL(virshDomainVcpuState)
+VIR_ENUM_DECL(virshDomainVcpuState);
 VIR_ENUM_IMPL(virshDomainVcpuState,
               VIR_VCPU_LAST,
               N_("offline"),
               N_("running"),
-              N_("blocked"))
+              N_("blocked"));
 
 static const char *
 virshDomainVcpuStateToString(int state)
@@ -2554,14 +2554,14 @@ static const vshCmdOptDef opts_blockjob[] = {
     {.name = NULL}
 };
 
-VIR_ENUM_DECL(virshDomainBlockJob)
+VIR_ENUM_DECL(virshDomainBlockJob);
 VIR_ENUM_IMPL(virshDomainBlockJob,
               VIR_DOMAIN_BLOCK_JOB_TYPE_LAST,
               N_("Unknown job"),
               N_("Block Pull"),
               N_("Block Copy"),
               N_("Block Commit"),
-              N_("Active Block Commit"))
+              N_("Active Block Commit"));
 
 static const char *
 virshDomainBlockJobToString(int type)
@@ -5524,7 +5524,7 @@ virshGenFileName(vshControl *ctl, virDomainPtr dom, const char *mime)
     strftime(timestr, sizeof(timestr), "%Y-%m-%d-%H:%M:%S", &time_info);
 
     if (virAsprintf(&ret, "%s-%s%s", virDomainGetName(dom),
-                    timestr, ext ? ext : "") < 0) {
+                    timestr, NULLSTR_EMPTY(ext)) < 0) {
         vshError(ctl, "%s", _("Out of memory"));
         return NULL;
     }
@@ -5647,7 +5647,7 @@ static const vshCmdOptDef opts_setLifecycleAction[] = {
 VIR_ENUM_IMPL(virDomainLifecycle, VIR_DOMAIN_LIFECYCLE_LAST,
               "poweroff",
               "reboot",
-              "crash")
+              "crash");
 
 VIR_ENUM_IMPL(virDomainLifecycleAction, VIR_DOMAIN_LIFECYCLE_ACTION_LAST,
               "destroy",
@@ -5655,7 +5655,7 @@ VIR_ENUM_IMPL(virDomainLifecycleAction, VIR_DOMAIN_LIFECYCLE_ACTION_LAST,
               "rename-restart",
               "preserve",
               "coredump-destroy",
-              "coredump-restart")
+              "coredump-restart");
 
 static bool
 cmdSetLifecycleAction(vshControl *ctl, const vshCmd *cmd)
@@ -6036,7 +6036,7 @@ static const vshCmdOptDef opts_domjobinfo[] = {
     {.name = NULL}
 };
 
-VIR_ENUM_DECL(virshDomainJob)
+VIR_ENUM_DECL(virshDomainJob);
 VIR_ENUM_IMPL(virshDomainJob,
               VIR_DOMAIN_JOB_LAST,
               N_("None"),
@@ -6044,7 +6044,7 @@ VIR_ENUM_IMPL(virshDomainJob,
               N_("Unbounded"),
               N_("Completed"),
               N_("Failed"),
-              N_("Cancelled"))
+              N_("Cancelled"));
 
 static const char *
 virshDomainJobToString(int type)
@@ -6064,7 +6064,7 @@ VIR_ENUM_IMPL(virshDomainJobOperation,
               N_("Outgoing migration"),
               N_("Snapshot"),
               N_("Snapshot revert"),
-              N_("Dump"))
+              N_("Dump"));
 
 static const char *
 virshDomainJobOperationToString(int op)
@@ -7531,13 +7531,13 @@ cmdIOThreadInfo(vshControl *ctl, const vshCmd *cmd)
     bool config = vshCommandOptBool(cmd, "config");
     bool live = vshCommandOptBool(cmd, "live");
     bool current = vshCommandOptBool(cmd, "current");
-    int niothreads = 0;
-    virDomainIOThreadInfoPtr *info;
+    size_t niothreads = 0;
+    virDomainIOThreadInfoPtr *info = NULL;
     size_t i;
-    int maxcpu;
     unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
-    virshControlPtr priv = ctl->privData;
     vshTablePtr table = NULL;
+    bool ret = false;
+    int rc;
 
     VSH_EXCLUSIVE_OPTIONS_VAR(current, live);
     VSH_EXCLUSIVE_OPTIONS_VAR(current, config);
@@ -7550,15 +7550,14 @@ cmdIOThreadInfo(vshControl *ctl, const vshCmd *cmd)
     if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
-    if ((maxcpu = virshNodeGetCPUCount(priv->conn)) < 0)
-        goto cleanup;
-
-    if ((niothreads = virDomainGetIOThreadInfo(dom, &info, flags)) < 0) {
+    if ((rc = virDomainGetIOThreadInfo(dom, &info, flags)) < 0) {
         vshError(ctl, _("Unable to get domain IOThreads information"));
         goto cleanup;
     }
+    niothreads = rc;
 
     if (niothreads == 0) {
+        ret = true;
         vshPrintExtra(ctl, _("No IOThreads found for the domain"));
         goto cleanup;
     }
@@ -7582,13 +7581,15 @@ cmdIOThreadInfo(vshControl *ctl, const vshCmd *cmd)
 
     vshTablePrintToStdout(table, ctl);
 
+    ret = true;
+
  cleanup:
     for (i = 0; i < niothreads; i++)
         virDomainIOThreadInfoFree(info[i]);
     VIR_FREE(info);
     vshTableFree(table);
     virshDomainFree(dom);
-    return niothreads >= 0;
+    return ret;
 }
 
 /*
@@ -8423,8 +8424,7 @@ cmdDesc(vshControl *ctl, const vshCmd *cmd)
             }
 
             VIR_FREE(desc);
-            desc = desc_edited;
-            desc_edited = NULL;
+            VIR_STEAL_PTR(desc, desc_edited);
         }
 
         if (virDomainSetMetadata(dom, type, desc, NULL, NULL, flags) < 0) {
@@ -8770,7 +8770,7 @@ static const vshCmdOptDef opts_send_process_signal[] = {
     {.name = NULL}
 };
 
-VIR_ENUM_DECL(virDomainProcessSignal)
+VIR_ENUM_DECL(virDomainProcessSignal);
 VIR_ENUM_IMPL(virDomainProcessSignal,
               VIR_DOMAIN_PROCESS_SIGNAL_LAST,
                "nop",    "hup",  "int",  "quit",  "ill", /* 0-4 */
@@ -8785,7 +8785,7 @@ VIR_ENUM_IMPL(virDomainProcessSignal,
               "rt13",   "rt14", "rt15",  "rt16", "rt17", /* 45-49 */
               "rt18",   "rt19", "rt20",  "rt21", "rt22", /* 50-54 */
               "rt23",   "rt24", "rt25",  "rt26", "rt27", /* 55-59 */
-              "rt28",   "rt29", "rt30",  "rt31", "rt32") /* 60-64 */
+              "rt28",   "rt29", "rt30",  "rt31", "rt32"); /* 60-64 */
 
 static int getSignalNumber(vshControl *ctl, const char *signame)
 {
@@ -10558,6 +10558,10 @@ static const vshCmdOptDef opts_migrate[] = {
      .type = VSH_OT_BOOL,
      .help = N_("use TLS for migration")
     },
+    {.name = "postcopy-bandwidth",
+     .type = VSH_OT_INT,
+     .help = N_("post-copy migration bandwidth limit in MiB/s")
+    },
     {.name = NULL}
 };
 
@@ -10751,6 +10755,15 @@ doMigrate(void *opaque)
         if (virTypedParamsAddInt(&params, &nparams, &maxparams,
                                  VIR_MIGRATE_PARAM_AUTO_CONVERGE_INCREMENT,
                                  intOpt) < 0)
+            goto save_error;
+    }
+
+    if ((rv = vshCommandOptULongLong(ctl, cmd, "postcopy-bandwidth", &ullOpt)) < 0) {
+        goto out;
+    } else if (rv > 0) {
+        if (virTypedParamsAddULLong(&params, &nparams, &maxparams,
+                                    VIR_MIGRATE_PARAM_BANDWIDTH_POSTCOPY,
+                                    ullOpt) < 0)
             goto save_error;
     }
 
@@ -11151,6 +11164,10 @@ static const vshCmdOptDef opts_migrate_setspeed[] = {
      .flags = VSH_OFLAG_REQ,
      .help = N_("migration bandwidth limit in MiB/s")
     },
+    {.name = "postcopy",
+     .type = VSH_OT_BOOL,
+     .help = N_("set post-copy migration bandwidth")
+    },
     {.name = NULL}
 };
 
@@ -11159,6 +11176,7 @@ cmdMigrateSetMaxSpeed(vshControl *ctl, const vshCmd *cmd)
 {
     virDomainPtr dom = NULL;
     unsigned long bandwidth = 0;
+    unsigned int flags = 0;
     bool ret = false;
 
     if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
@@ -11167,7 +11185,10 @@ cmdMigrateSetMaxSpeed(vshControl *ctl, const vshCmd *cmd)
     if (vshCommandOptULWrap(ctl, cmd, "bandwidth", &bandwidth) < 0)
         goto done;
 
-    if (virDomainMigrateSetMaxSpeed(dom, bandwidth, 0) < 0)
+    if (vshCommandOptBool(cmd, "postcopy"))
+        flags |= VIR_DOMAIN_MIGRATE_MAX_SPEED_POSTCOPY;
+
+    if (virDomainMigrateSetMaxSpeed(dom, bandwidth, flags) < 0)
         goto done;
 
     ret = true;
@@ -11192,6 +11213,10 @@ static const vshCmdInfo info_migrate_getspeed[] = {
 
 static const vshCmdOptDef opts_migrate_getspeed[] = {
     VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
+    {.name = "postcopy",
+     .type = VSH_OT_BOOL,
+     .help = N_("get post-copy migration bandwidth")
+    },
     {.name = NULL}
 };
 
@@ -11200,12 +11225,16 @@ cmdMigrateGetMaxSpeed(vshControl *ctl, const vshCmd *cmd)
 {
     virDomainPtr dom = NULL;
     unsigned long bandwidth;
+    unsigned int flags = 0;
     bool ret = false;
 
     if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
-    if (virDomainMigrateGetMaxSpeed(dom, &bandwidth, 0) < 0)
+    if (vshCommandOptBool(cmd, "postcopy"))
+        flags |= VIR_DOMAIN_MIGRATE_MAX_SPEED_POSTCOPY;
+
+    if (virDomainMigrateGetMaxSpeed(dom, &bandwidth, flags) < 0)
         goto done;
 
     vshPrint(ctl, "%lu\n", bandwidth);
@@ -12684,7 +12713,7 @@ cmdEdit(vshControl *ctl, const vshCmd *cmd)
 /*
  * "event" command
  */
-VIR_ENUM_DECL(virshDomainEvent)
+VIR_ENUM_DECL(virshDomainEvent);
 VIR_ENUM_IMPL(virshDomainEvent,
               VIR_DOMAIN_EVENT_LAST,
               N_("Defined"),
@@ -12695,7 +12724,7 @@ VIR_ENUM_IMPL(virshDomainEvent,
               N_("Stopped"),
               N_("Shutdown"),
               N_("PMSuspended"),
-              N_("Crashed"))
+              N_("Crashed"));
 
 static const char *
 virshDomainEventToString(int event)
@@ -12704,30 +12733,30 @@ virshDomainEventToString(int event)
     return str ? _(str) : _("unknown");
 }
 
-VIR_ENUM_DECL(virshDomainEventDefined)
+VIR_ENUM_DECL(virshDomainEventDefined);
 VIR_ENUM_IMPL(virshDomainEventDefined,
               VIR_DOMAIN_EVENT_DEFINED_LAST,
               N_("Added"),
               N_("Updated"),
               N_("Renamed"),
-              N_("Snapshot"))
+              N_("Snapshot"));
 
-VIR_ENUM_DECL(virshDomainEventUndefined)
+VIR_ENUM_DECL(virshDomainEventUndefined);
 VIR_ENUM_IMPL(virshDomainEventUndefined,
               VIR_DOMAIN_EVENT_UNDEFINED_LAST,
               N_("Removed"),
-              N_("Renamed"))
+              N_("Renamed"));
 
-VIR_ENUM_DECL(virshDomainEventStarted)
+VIR_ENUM_DECL(virshDomainEventStarted);
 VIR_ENUM_IMPL(virshDomainEventStarted,
               VIR_DOMAIN_EVENT_STARTED_LAST,
               N_("Booted"),
               N_("Migrated"),
               N_("Restored"),
               N_("Snapshot"),
-              N_("Event wakeup"))
+              N_("Event wakeup"));
 
-VIR_ENUM_DECL(virshDomainEventSuspended)
+VIR_ENUM_DECL(virshDomainEventSuspended);
 VIR_ENUM_IMPL(virshDomainEventSuspended,
               VIR_DOMAIN_EVENT_SUSPENDED_LAST,
               N_("Paused"),
@@ -12738,17 +12767,17 @@ VIR_ENUM_IMPL(virshDomainEventSuspended,
               N_("Snapshot"),
               N_("API error"),
               N_("Post-copy"),
-              N_("Post-copy Error"))
+              N_("Post-copy Error"));
 
-VIR_ENUM_DECL(virshDomainEventResumed)
+VIR_ENUM_DECL(virshDomainEventResumed);
 VIR_ENUM_IMPL(virshDomainEventResumed,
               VIR_DOMAIN_EVENT_RESUMED_LAST,
               N_("Unpaused"),
               N_("Migrated"),
               N_("Snapshot"),
-              N_("Post-copy"))
+              N_("Post-copy"));
 
-VIR_ENUM_DECL(virshDomainEventStopped)
+VIR_ENUM_DECL(virshDomainEventStopped);
 VIR_ENUM_IMPL(virshDomainEventStopped,
               VIR_DOMAIN_EVENT_STOPPED_LAST,
               N_("Shutdown"),
@@ -12757,25 +12786,25 @@ VIR_ENUM_IMPL(virshDomainEventStopped,
               N_("Migrated"),
               N_("Saved"),
               N_("Failed"),
-              N_("Snapshot"))
+              N_("Snapshot"));
 
-VIR_ENUM_DECL(virshDomainEventShutdown)
+VIR_ENUM_DECL(virshDomainEventShutdown);
 VIR_ENUM_IMPL(virshDomainEventShutdown,
               VIR_DOMAIN_EVENT_SHUTDOWN_LAST,
               N_("Finished"),
               N_("Finished after guest request"),
-              N_("Finished after host request"))
+              N_("Finished after host request"));
 
-VIR_ENUM_DECL(virshDomainEventPMSuspended)
+VIR_ENUM_DECL(virshDomainEventPMSuspended);
 VIR_ENUM_IMPL(virshDomainEventPMSuspended,
               VIR_DOMAIN_EVENT_PMSUSPENDED_LAST,
               N_("Memory"),
-              N_("Disk"))
+              N_("Disk"));
 
-VIR_ENUM_DECL(virshDomainEventCrashed)
+VIR_ENUM_DECL(virshDomainEventCrashed);
 VIR_ENUM_IMPL(virshDomainEventCrashed,
               VIR_DOMAIN_EVENT_CRASHED_LAST,
-              N_("Panicked"))
+              N_("Panicked"));
 
 static const char *
 virshDomainEventDetailToString(int event, int detail)
@@ -12815,7 +12844,7 @@ virshDomainEventDetailToString(int event, int detail)
     return str ? _(str) : _("unknown");
 }
 
-VIR_ENUM_DECL(virshDomainEventWatchdog)
+VIR_ENUM_DECL(virshDomainEventWatchdog);
 VIR_ENUM_IMPL(virshDomainEventWatchdog,
               VIR_DOMAIN_EVENT_WATCHDOG_LAST,
               N_("none"),
@@ -12824,7 +12853,7 @@ VIR_ENUM_IMPL(virshDomainEventWatchdog,
               N_("poweroff"),
               N_("shutdown"),
               N_("debug"),
-              N_("inject-nmi"))
+              N_("inject-nmi"));
 
 static const char *
 virshDomainEventWatchdogToString(int action)
@@ -12833,12 +12862,12 @@ virshDomainEventWatchdogToString(int action)
     return str ? _(str) : _("unknown");
 }
 
-VIR_ENUM_DECL(virshDomainEventIOError)
+VIR_ENUM_DECL(virshDomainEventIOError);
 VIR_ENUM_IMPL(virshDomainEventIOError,
               VIR_DOMAIN_EVENT_IO_ERROR_LAST,
               N_("none"),
               N_("pause"),
-              N_("report"))
+              N_("report"));
 
 static const char *
 virshDomainEventIOErrorToString(int action)
@@ -12847,12 +12876,12 @@ virshDomainEventIOErrorToString(int action)
     return str ? _(str) : _("unknown");
 }
 
-VIR_ENUM_DECL(virshGraphicsPhase)
+VIR_ENUM_DECL(virshGraphicsPhase);
 VIR_ENUM_IMPL(virshGraphicsPhase,
               VIR_DOMAIN_EVENT_GRAPHICS_LAST,
               N_("connect"),
               N_("initialize"),
-              N_("disconnect"))
+              N_("disconnect"));
 
 static const char *
 virshGraphicsPhaseToString(int phase)
@@ -12861,12 +12890,12 @@ virshGraphicsPhaseToString(int phase)
     return str ? _(str) : _("unknown");
 }
 
-VIR_ENUM_DECL(virshGraphicsAddress)
+VIR_ENUM_DECL(virshGraphicsAddress);
 VIR_ENUM_IMPL(virshGraphicsAddress,
               VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_LAST,
               N_("IPv4"),
               N_("IPv6"),
-              N_("unix"))
+              N_("unix"));
 
 static const char *
 virshGraphicsAddressToString(int family)
@@ -12875,13 +12904,13 @@ virshGraphicsAddressToString(int family)
     return str ? _(str) : _("unknown");
 }
 
-VIR_ENUM_DECL(virshDomainBlockJobStatus)
+VIR_ENUM_DECL(virshDomainBlockJobStatus);
 VIR_ENUM_IMPL(virshDomainBlockJobStatus,
               VIR_DOMAIN_BLOCK_JOB_LAST,
               N_("completed"),
               N_("failed"),
               N_("canceled"),
-              N_("ready"))
+              N_("ready"));
 
 static const char *
 virshDomainBlockJobStatusToString(int status)
@@ -12890,11 +12919,11 @@ virshDomainBlockJobStatusToString(int status)
     return str ? _(str) : _("unknown");
 }
 
-VIR_ENUM_DECL(virshDomainEventDiskChange)
+VIR_ENUM_DECL(virshDomainEventDiskChange);
 VIR_ENUM_IMPL(virshDomainEventDiskChange,
               VIR_DOMAIN_EVENT_DISK_CHANGE_LAST,
               N_("changed"),
-              N_("dropped"))
+              N_("dropped"));
 
 static const char *
 virshDomainEventDiskChangeToString(int reason)
@@ -12903,11 +12932,11 @@ virshDomainEventDiskChangeToString(int reason)
     return str ? _(str) : _("unknown");
 }
 
-VIR_ENUM_DECL(virshDomainEventTrayChange)
+VIR_ENUM_DECL(virshDomainEventTrayChange);
 VIR_ENUM_IMPL(virshDomainEventTrayChange,
               VIR_DOMAIN_EVENT_TRAY_CHANGE_LAST,
               N_("opened"),
-              N_("closed"))
+              N_("closed"));
 
 static const char *
 virshDomainEventTrayChangeToString(int reason)
@@ -13227,19 +13256,19 @@ virshEventTunablePrint(virConnectPtr conn ATTRIBUTE_UNUSED,
     virshEventPrint(opaque, &buf);
 }
 
-VIR_ENUM_DECL(virshEventAgentLifecycleState)
+VIR_ENUM_DECL(virshEventAgentLifecycleState);
 VIR_ENUM_IMPL(virshEventAgentLifecycleState,
               VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_LAST,
               N_("unknown"),
               N_("connected"),
-              N_("disconnected"))
+              N_("disconnected"));
 
-VIR_ENUM_DECL(virshEventAgentLifecycleReason)
+VIR_ENUM_DECL(virshEventAgentLifecycleReason);
 VIR_ENUM_IMPL(virshEventAgentLifecycleReason,
               VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_REASON_LAST,
               N_("unknown"),
               N_("domain started"),
-              N_("channel event"))
+              N_("channel event"));
 
 #define UNKNOWNSTR(str) (str ? str : N_("unsupported value"))
 static void
@@ -13313,12 +13342,12 @@ virshEventDeviceRemovalFailedPrint(virConnectPtr conn ATTRIBUTE_UNUSED,
     virshEventPrint(opaque, &buf);
 }
 
-VIR_ENUM_DECL(virshEventMetadataChangeType)
+VIR_ENUM_DECL(virshEventMetadataChangeType);
 VIR_ENUM_IMPL(virshEventMetadataChangeType,
               VIR_DOMAIN_METADATA_LAST,
               N_("description"),
               N_("title"),
-              N_("element"))
+              N_("element"));
 
 static void
 virshEventMetadataChangePrint(virConnectPtr conn ATTRIBUTE_UNUSED,
@@ -13908,21 +13937,26 @@ static bool
 cmdDomFSInfo(vshControl *ctl, const vshCmd *cmd)
 {
     virDomainPtr dom = NULL;
-    int ret = -1;
+    int rc = -1;
     size_t i, j;
-    virDomainFSInfoPtr *info;
+    virDomainFSInfoPtr *info = NULL;
     vshTablePtr table = NULL;
+    size_t ninfos = 0;
+    bool ret = false;
 
     if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
-    ret = virDomainGetFSInfo(dom, &info, 0);
-    if (ret < 0) {
+    rc = virDomainGetFSInfo(dom, &info, 0);
+    if (rc < 0) {
         vshError(ctl, _("Unable to get filesystem information"));
         goto cleanup;
     }
-    if (ret == 0) {
-        vshError(ctl, _("No filesystems are mounted in the domain"));
+    ninfos = rc;
+
+    if (ninfos == 0) {
+        ret = true;
+        vshPrintExtra(ctl, _("No filesystems are mounted in the domain"));
         goto cleanup;
     }
 
@@ -13931,15 +13965,13 @@ cmdDomFSInfo(vshControl *ctl, const vshCmd *cmd)
         if (!table)
             goto cleanup;
 
-        for (i = 0; i < ret; i++) {
+        for (i = 0; i < ninfos; i++) {
             virBuffer targetsBuff = VIR_BUFFER_INITIALIZER;
             VIR_AUTOFREE(char *) targets = NULL;
 
-            for (j = 0; j < info[i]->ndevAlias; j++) {
-                virBufferAdd(&targetsBuff, info[i]->devAlias[j], -1);
-                if (j != info[i]->ndevAlias - 1)
-                    virBufferAddChar(&targetsBuff, ',');
-            }
+            for (j = 0; j < info[i]->ndevAlias; j++)
+                virBufferAsprintf(&targetsBuff, "%s,", info[i]->devAlias[j]);
+            virBufferTrim(&targetsBuff, ",", -1);
 
             targets = virBufferContentAndReset(&targetsBuff);
 
@@ -13947,7 +13979,7 @@ cmdDomFSInfo(vshControl *ctl, const vshCmd *cmd)
                                   info[i]->mountpoint,
                                   info[i]->name,
                                   info[i]->fstype,
-                                  targets,
+                                  targets ? targets : "",
                                   NULL) < 0)
                 goto cleanup;
         }
@@ -13955,15 +13987,17 @@ cmdDomFSInfo(vshControl *ctl, const vshCmd *cmd)
         vshTablePrintToStdout(table, ctl);
     }
 
+    ret = true;
+
  cleanup:
     if (info) {
-        for (i = 0; i < ret; i++)
+        for (i = 0; i < ninfos; i++)
             virDomainFSInfoFree(info[i]);
         VIR_FREE(info);
     }
     vshTableFree(table);
     virshDomainFree(dom);
-    return ret >= 0;
+    return ret;
 }
 
 const vshCmdDef domManagementCmds[] = {

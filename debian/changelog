@@ -1,3 +1,16 @@
+libvirt (5.1.0-1~1.gbp608cdb) UNRELEASED; urgency=medium
+
+  ** SNAPSHOT build @608cdb3281bbe7ded4843aa9a965109a772705b1 **
+
+  [ Laurent Bigonville ]
+  * [76e2cb7] Don't recomend ebtables.
+    It's part of the iptables package now. (Closes: #918472)
+
+  [ Guido Günther ]
+  * [5814c89] New upstream version 5.1.0
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 28 Mar 2019 09:25:51 +0100
+
 libvirt (5.0.0-1) unstable; urgency=medium
 
   * [7346f30] New upstream version 5.0.0

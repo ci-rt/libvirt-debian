@@ -734,9 +734,10 @@ static void qemuMonitorJSONHandleRTCChange(qemuMonitorPtr mon, virJSONValuePtr d
     qemuMonitorEmitRTCChange(mon, offset);
 }
 
-VIR_ENUM_DECL(qemuMonitorWatchdogAction)
+VIR_ENUM_DECL(qemuMonitorWatchdogAction);
 VIR_ENUM_IMPL(qemuMonitorWatchdogAction, VIR_DOMAIN_EVENT_WATCHDOG_LAST,
-              "none", "pause", "reset", "poweroff", "shutdown", "debug", "inject-nmi");
+              "none", "pause", "reset", "poweroff", "shutdown", "debug", "inject-nmi",
+);
 
 static void qemuMonitorJSONHandleWatchdog(qemuMonitorPtr mon, virJSONValuePtr data)
 {
@@ -755,9 +756,10 @@ static void qemuMonitorJSONHandleWatchdog(qemuMonitorPtr mon, virJSONValuePtr da
     qemuMonitorEmitWatchdog(mon, actionID);
 }
 
-VIR_ENUM_DECL(qemuMonitorIOErrorAction)
+VIR_ENUM_DECL(qemuMonitorIOErrorAction);
 VIR_ENUM_IMPL(qemuMonitorIOErrorAction, VIR_DOMAIN_EVENT_IO_ERROR_LAST,
-              "ignore", "stop", "report");
+              "ignore", "stop", "report",
+);
 
 
 static void
@@ -796,10 +798,11 @@ qemuMonitorJSONHandleIOError(qemuMonitorPtr mon, virJSONValuePtr data)
 }
 
 
-VIR_ENUM_DECL(qemuMonitorGraphicsAddressFamily)
+VIR_ENUM_DECL(qemuMonitorGraphicsAddressFamily);
 VIR_ENUM_IMPL(qemuMonitorGraphicsAddressFamily,
               VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_LAST,
-              "ipv4", "ipv6", "unix");
+              "ipv4", "ipv6", "unix",
+);
 
 static void
 qemuMonitorJSONHandleGraphicsVNC(qemuMonitorPtr mon,
@@ -1419,7 +1422,7 @@ qemuMonitorJSONHumanCommandWithFd(qemuMonitorPtr mon,
         const char *data;
 
         data = virJSONValueGetString(obj);
-        if (VIR_STRDUP(*reply_str, data ? data : "") < 0)
+        if (VIR_STRDUP(*reply_str, NULLSTR_EMPTY(data)) < 0)
             goto cleanup;
     }
 
@@ -5497,7 +5500,8 @@ qemuMonitorJSONGetCPUDefinitions(qemuMonitorPtr mon,
 
 VIR_ENUM_IMPL(qemuMonitorCPUProperty,
               QEMU_MONITOR_CPU_PROPERTY_LAST,
-              "boolean", "string", "number")
+              "boolean", "string", "number",
+);
 
 static int
 qemuMonitorJSONParseCPUModelProperty(const char *key,

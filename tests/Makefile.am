@@ -58,7 +58,7 @@ MOCKLIBS_LDFLAGS = -module -avoid-version \
 	-rpath /evil/libtool/hack/to/force/shared/lib/creation \
 	$(MINGW_EXTRA_LDFLAGS)
 
-QEMULIB_LDFLAGS = \
+DRIVERLIB_LDFLAGS = \
 	-avoid-version \
 	-rpath /evil/libtool/hack/to/force/shared/lib/creation \
 	$(MINGW_EXTRA_LDFLAGS)
@@ -129,7 +129,6 @@ EXTRA_DIST = \
 	qemumigparamsdata \
 	qemumonitorjsondata \
 	qemuxml2argvdata \
-	qemuxml2startupxmloutdata \
 	qemuxml2xmloutdata \
 	qemustatusxml2xmldata \
 	qemumemlockdata \
@@ -279,7 +278,7 @@ ssh_LDADD = $(COVERAGE_LDFLAGS)
 if WITH_LIBXL
 test_programs += xlconfigtest xml2sexprtest sexpr2xmltest \
 	xmconfigtest libxlxml2domconfigtest
-test_libraries += virmocklibxl.la
+test_libraries += libxltestdriver.la libxlmock.la
 endif WITH_LIBXL
 
 if WITH_QEMU
@@ -368,6 +367,7 @@ if WITH_STORAGE
 test_programs += storagevolxml2argvtest
 test_programs += storagepoolxml2argvtest
 test_programs += virstorageutiltest
+test_programs += storagepoolxml2xmltest
 endif WITH_STORAGE
 
 if WITH_STORAGE_FS
@@ -384,7 +384,7 @@ test_programs += nsstest nssguesttest
 test_libraries += nssmock.la
 endif WITH_NSS
 
-test_programs += storagevolxml2xmltest storagepoolxml2xmltest
+test_programs += storagevolxml2xmltest
 
 test_programs += nodedevxml2xmltest
 
@@ -509,6 +509,10 @@ libxl_LDADDS += ../src/libvirt_driver_network_impl.la
 endif WITH_NETWORK
 libxl_LDADDS += $(LDADDS)
 
+libxltestdriver_la_SOURCES =
+libxltestdriver_la_LDFLAGS = $(DRIVERLIB_LDFLAGS)
+libxltestdriver_la_LIBADD = $(libxl_LDADDS)
+
 xlconfigtest_SOURCES = \
 	xlconfigtest.c testutilsxen.c testutilsxen.h \
 	testutils.c testutils.h
@@ -534,11 +538,11 @@ libxlxml2domconfigtest_SOURCES = \
 	testutils.c testutils.h
 libxlxml2domconfigtest_LDADD = $(libxl_LDADDS) $(LIBXML_LIBS)
 
-virmocklibxl_la_SOURCES = \
-	virmocklibxl.c
-virmocklibxl_la_CFLAGS = $(LIBXL_CFLAGS) $(LIBXML_CFLAGS)
-virmocklibxl_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
-virmocklibxl_la_LIBADD = $(MOCKLIBS_LIBS)
+libxlmock_la_SOURCES = \
+	libxlmock.c
+libxlmock_la_CFLAGS = $(LIBXL_CFLAGS) $(LIBXML_CFLAGS)
+libxlmock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
+libxlmock_la_LIBADD = $(MOCKLIBS_LIBS)
 
 else ! WITH_LIBXL
 EXTRA_DIST += xlconfigtest.c xml2sexprtest.c sexpr2xmltest.c \
@@ -567,7 +571,7 @@ qemu_LDADDS += ../src/libvirt_qemu_probes.lo
 endif WITH_DTRACE_PROBES
 
 libqemutestdriver_la_SOURCES =
-libqemutestdriver_la_LDFLAGS = $(QEMULIB_LDFLAGS)
+libqemutestdriver_la_LDFLAGS = $(DRIVERLIB_LDFLAGS)
 libqemutestdriver_la_LIBADD = $(qemu_LDADDS)
 
 qemucpumock_la_SOURCES = \
@@ -924,20 +928,24 @@ storagepoolxml2argvtest_LDADD = \
 	../src/libvirt_util.la \
 	$(LDADDS)
 
+storagepoolxml2xmltest_SOURCES = \
+	storagepoolxml2xmltest.c \
+	testutils.c testutils.h
+storagepoolxml2xmltest_LDADD = $(LDADDS) \
+	../src/libvirt_driver_storage_impl.la \
+	$(GNULIB_LIBS)
+
 else ! WITH_STORAGE
 EXTRA_DIST += storagevolxml2argvtest.c
 EXTRA_DIST += virstorageutiltest.c
+EXTRA_DIST += storagepoolxml2argvtest.c
+EXTRA_DIST += storagepoolxml2xmltest.c
 endif ! WITH_STORAGE
 
 storagevolxml2xmltest_SOURCES = \
 	storagevolxml2xmltest.c \
 	testutils.c testutils.h
 storagevolxml2xmltest_LDADD = $(LDADDS)
-
-storagepoolxml2xmltest_SOURCES = \
-	storagepoolxml2xmltest.c \
-	testutils.c testutils.h
-storagepoolxml2xmltest_LDADD = $(LDADDS)
 
 nodedevxml2xmltest_SOURCES = \
 	nodedevxml2xmltest.c \
@@ -1034,7 +1042,7 @@ endif WITH_QEMU
 
 if WITH_LIBXL
 domaincapstest_SOURCES += testutilsxen.c testutilsxen.h
-domaincapstest_LDADD += ../src/libvirt_driver_libxl_impl.la $(GNULIB_LIBS)
+domaincapstest_LDADD += libxltestdriver.la $(GNULIB_LIBS)
 endif WITH_LIBXL
 
 if WITH_BHYVE

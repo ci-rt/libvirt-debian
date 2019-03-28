@@ -41,6 +41,7 @@ VIR_LOG_INIT("storage.storage_backend_fs");
 
 #if WITH_STORAGE_FS
 
+# include <libxml/xpathInternals.h>
 # include <mntent.h>
 
 struct _virNetfsDiscoverState {
@@ -94,8 +95,6 @@ virStorageBackendFileSystemNetFindPoolSourcesFunc(char **const groups,
 static int
 virStorageBackendFileSystemNetFindNFSPoolSources(virNetfsDiscoverState *state)
 {
-    int ret = -1;
-
     /*
      *  # showmount --no-headers -e HOSTNAME
      *  /tmp   *
@@ -111,7 +110,7 @@ virStorageBackendFileSystemNetFindNFSPoolSources(virNetfsDiscoverState *state)
         1
     };
 
-    virCommandPtr cmd = NULL;
+    VIR_AUTOPTR(virCommand) cmd = NULL;
 
     cmd = virCommandNewArgList(SHOWMOUNT,
                                "--no-headers",
@@ -119,16 +118,9 @@ virStorageBackendFileSystemNetFindNFSPoolSources(virNetfsDiscoverState *state)
                                state->host,
                                NULL);
 
-    if (virCommandRunRegex(cmd, 1, regexes, vars,
-                           virStorageBackendFileSystemNetFindPoolSourcesFunc,
-                           state, NULL, NULL) < 0)
-        goto cleanup;
-
-    ret = 0;
-
- cleanup:
-    virCommandFree(cmd);
-    return ret;
+    return virCommandRunRegex(cmd, 1, regexes, vars,
+                              virStorageBackendFileSystemNetFindPoolSourcesFunc,
+                              state, NULL, NULL);
 }
 
 
@@ -144,11 +136,11 @@ virStorageBackendFileSystemNetFindPoolSources(const char *srcSpec,
             .sources = NULL
         }
     };
-    virStoragePoolSourcePtr source = NULL;
     char *ret = NULL;
     size_t i;
     int retNFS = -1;
     int retGluster = 0;
+    VIR_AUTOPTR(virStoragePoolSource) source = NULL;
 
     virCheckFlags(0, NULL);
 
@@ -195,7 +187,6 @@ virStorageBackendFileSystemNetFindPoolSources(const char *srcSpec,
         virStoragePoolSourceClear(&state.list.sources[i]);
     VIR_FREE(state.list.sources);
 
-    virStoragePoolSourceFree(source);
     return ret;
 }
 
@@ -255,11 +246,11 @@ virStorageBackendFileSystemIsMounted(virStoragePoolObjPtr pool)
 {
     int ret = -1;
     virStoragePoolDefPtr def = virStoragePoolObjGetDef(pool);
-    char *src = NULL;
     FILE *mtab;
     struct mntent ent;
     char buf[1024];
     int rc1, rc2;
+    VIR_AUTOFREE(char *) src = NULL;
 
     if ((mtab = fopen(_PATH_MOUNTED, "r")) == NULL) {
         virReportSystemError(errno,
@@ -291,7 +282,6 @@ virStorageBackendFileSystemIsMounted(virStoragePoolObjPtr pool)
 
  cleanup:
     VIR_FORCE_FCLOSE(mtab);
-    VIR_FREE(src);
     return ret;
 }
 
@@ -308,10 +298,9 @@ static int
 virStorageBackendFileSystemMount(virStoragePoolObjPtr pool)
 {
     virStoragePoolDefPtr def = virStoragePoolObjGetDef(pool);
-    char *src = NULL;
-    virCommandPtr cmd = NULL;
-    int ret = -1;
     int rc;
+    VIR_AUTOFREE(char *) src = NULL;
+    VIR_AUTOPTR(virCommand) cmd = NULL;
 
     if (virStorageBackendFileSystemIsValid(pool) < 0)
         return -1;
@@ -329,14 +318,7 @@ virStorageBackendFileSystemMount(virStoragePoolObjPtr pool)
         return -1;
 
     cmd = virStorageBackendFileSystemMountCmd(MOUNT, def, src);
-    if (virCommandRun(cmd, NULL) < 0)
-        goto cleanup;
-
-    ret = 0;
- cleanup:
-    virCommandFree(cmd);
-    VIR_FREE(src);
-    return ret;
+    return virCommandRun(cmd, NULL);
 }
 
 
@@ -376,9 +358,8 @@ static int
 virStorageBackendFileSystemStop(virStoragePoolObjPtr pool)
 {
     virStoragePoolDefPtr def = virStoragePoolObjGetDef(pool);
-    virCommandPtr cmd = NULL;
-    int ret = -1;
     int rc;
+    VIR_AUTOPTR(virCommand) cmd = NULL;
 
     if (virStorageBackendFileSystemIsValid(pool) < 0)
         return -1;
@@ -388,13 +369,7 @@ virStorageBackendFileSystemStop(virStoragePoolObjPtr pool)
         return rc;
 
     cmd = virCommandNewArgList(UMOUNT, def->target.path, NULL);
-    if (virCommandRun(cmd, NULL) < 0)
-        goto cleanup;
-
-    ret = 0;
- cleanup:
-    virCommandFree(cmd);
-    return ret;
+    return virCommandRun(cmd, NULL);
 }
 #endif /* WITH_STORAGE_FS */
 
@@ -432,8 +407,7 @@ static int
 virStorageBackendExecuteMKFS(const char *device,
                              const char *format)
 {
-    int ret = 0;
-    virCommandPtr cmd = NULL;
+    VIR_AUTOPTR(virCommand) cmd = NULL;
 
     cmd = virCommandNewArgList(MKFS, "-t", format, NULL);
 
@@ -456,11 +430,10 @@ virStorageBackendExecuteMKFS(const char *device,
                              _("Failed to make filesystem of "
                                "type '%s' on device '%s'"),
                              format, device);
-        ret = -1;
+        return -1;
     }
 
-    virCommandFree(cmd);
-    return ret;
+    return 0;
 }
 #else /* #ifdef MKFS */
 static int
@@ -559,6 +532,121 @@ virStorageBackendFileSystemBuild(virStoragePoolObjPtr pool,
 }
 
 
+#if WITH_STORAGE_FS
+
+# define STORAGE_POOL_FS_NAMESPACE_HREF "http://libvirt.org/schemas/storagepool/fs/1.0"
+
+/* Backend XML Namespace handling for fs or netfs specific mount options to
+ * be added to the mount -o {options_list} command line that are not otherwise
+ * supplied by supported XML. The XML will use the format, such as:
+ *
+ *     <fs:mount_opts>
+ *       <fs:option name='sync'/>
+ *       <fs:option name='lazytime'/>
+ *     </fs:mount_opts>
+ *
+ * and the <pool type='fs'> or <pool type='netfs'> is required to have a
+ * "xmlns:fs='%s'" attribute using the STORAGE_POOL_FS_NAMESPACE_HREF
+ */
+
+static void
+virStoragePoolDefFSNamespaceFree(void *nsdata)
+{
+    virStoragePoolFSMountOptionsDefPtr cmdopts = nsdata;
+    size_t i;
+
+    if (!cmdopts)
+        return;
+
+    for (i = 0; i < cmdopts->noptions; i++)
+        VIR_FREE(cmdopts->options[i]);
+    VIR_FREE(cmdopts->options);
+
+    VIR_FREE(cmdopts);
+}
+
+
+static int
+virStoragePoolDefFSNamespaceParse(xmlXPathContextPtr ctxt,
+                                  void **data)
+{
+    virStoragePoolFSMountOptionsDefPtr cmdopts = NULL;
+    int nnodes;
+    size_t i;
+    int ret = -1;
+    VIR_AUTOFREE(xmlNodePtr *)nodes = NULL;
+
+    if (xmlXPathRegisterNs(ctxt, BAD_CAST "fs",
+                           BAD_CAST STORAGE_POOL_FS_NAMESPACE_HREF) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to register xml namespace '%s'"),
+                       STORAGE_POOL_FS_NAMESPACE_HREF);
+        return -1;
+    }
+
+    nnodes = virXPathNodeSet("./fs:mount_opts/fs:option", ctxt, &nodes);
+    if (nnodes < 0)
+        return -1;
+
+    if (nnodes == 0)
+        return 0;
+
+    if (VIR_ALLOC(cmdopts) < 0 ||
+        VIR_ALLOC_N(cmdopts->options, nnodes) < 0)
+        goto cleanup;
+
+    for (i = 0; i < nnodes; i++) {
+        if (!(cmdopts->options[cmdopts->noptions] =
+              virXMLPropString(nodes[i], "name"))) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("no fs mount option name specified"));
+            goto cleanup;
+        }
+        cmdopts->noptions++;
+    }
+
+    VIR_STEAL_PTR(*data, cmdopts);
+    ret = 0;
+
+ cleanup:
+    virStoragePoolDefFSNamespaceFree(cmdopts);
+    return ret;
+}
+
+
+static int
+virStoragePoolDefFSNamespaceFormatXML(virBufferPtr buf,
+                                      void *nsdata)
+{
+    size_t i;
+    virStoragePoolFSMountOptionsDefPtr def = nsdata;
+
+    if (!def)
+        return 0;
+
+    virBufferAddLit(buf, "<fs:mount_opts>\n");
+    virBufferAdjustIndent(buf, 2);
+
+    for (i = 0; i < def->noptions; i++)
+        virBufferEscapeString(buf, "<fs:option name='%s'/>\n",
+                              def->options[i]);
+
+    virBufferAdjustIndent(buf, -2);
+    virBufferAddLit(buf, "</fs:mount_opts>\n");
+
+    return 0;
+}
+
+
+static const char *
+virStoragePoolDefFSNamespaceHref(void)
+{
+    return "xmlns:fs='" STORAGE_POOL_FS_NAMESPACE_HREF "'";
+}
+
+#endif /* WITH_STORAGE_FS */
+
+
 virStorageBackend virStorageBackendDirectory = {
     .type = VIR_STORAGE_POOL_DIR,
 
@@ -617,6 +705,13 @@ virStorageBackend virStorageBackendNetFileSystem = {
     .downloadVol = virStorageBackendVolDownloadLocal,
     .wipeVol = virStorageBackendVolWipeLocal,
 };
+
+static virStoragePoolXMLNamespace virStoragePoolFSXMLNamespace = {
+    .parse = virStoragePoolDefFSNamespaceParse,
+    .free = virStoragePoolDefFSNamespaceFree,
+    .format = virStoragePoolDefFSNamespaceFormatXML,
+    .href = virStoragePoolDefFSNamespaceHref,
+};
 #endif /* WITH_STORAGE_FS */
 
 
@@ -630,7 +725,15 @@ virStorageBackendFsRegister(void)
     if (virStorageBackendRegister(&virStorageBackendFileSystem) < 0)
         return -1;
 
+    if (virStorageBackendNamespaceInit(VIR_STORAGE_POOL_FS,
+                                       &virStoragePoolFSXMLNamespace) < 0)
+        return -1;
+
     if (virStorageBackendRegister(&virStorageBackendNetFileSystem) < 0)
+        return -1;
+
+    if (virStorageBackendNamespaceInit(VIR_STORAGE_POOL_NETFS,
+                                       &virStoragePoolFSXMLNamespace) < 0)
         return -1;
 #endif /* WITH_STORAGE_FS */
 

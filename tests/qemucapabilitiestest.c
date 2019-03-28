@@ -26,6 +26,8 @@
 #include "qemu/qemu_capspriv.h"
 #define LIBVIRT_QEMU_MONITOR_PRIV_H_ALLOW
 #include "qemu/qemu_monitor_priv.h"
+#define LIBVIRT_QEMU_PROCESSPRIV_H_ALLOW
+#include "qemu/qemu_processpriv.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -48,6 +50,8 @@ testQemuCaps(const void *opaque)
     qemuMonitorTestPtr mon = NULL;
     virQEMUCapsPtr capsActual = NULL;
     char *actual = NULL;
+    unsigned int fakeMicrocodeVersion = 0;
+    const char *p;
 
     if (virAsprintf(&repliesFile, "%s/qemucapabilitiesdata/%s.%s.replies",
                     abs_srcdir, data->base, data->archName) < 0 ||
@@ -58,6 +62,9 @@ testQemuCaps(const void *opaque)
     if (!(mon = qemuMonitorTestNewFromFileFull(repliesFile, &data->driver, NULL)))
         goto cleanup;
 
+    if (qemuProcessQMPInitMonitor(qemuMonitorTestGetMonitor(mon)) < 0)
+        goto cleanup;
+
     if (!(capsActual = virQEMUCapsNew()) ||
         virQEMUCapsInitQMPMonitor(capsActual,
                                   qemuMonitorTestGetMonitor(mon)) < 0)
@@ -65,14 +72,25 @@ testQemuCaps(const void *opaque)
 
     if (virQEMUCapsGet(capsActual, QEMU_CAPS_KVM)) {
         qemuMonitorResetCommandID(qemuMonitorTestGetMonitor(mon));
+
+        if (qemuProcessQMPInitMonitor(qemuMonitorTestGetMonitor(mon)) < 0)
+            goto cleanup;
+
         if (virQEMUCapsInitQMPMonitorTCG(capsActual,
                                          qemuMonitorTestGetMonitor(mon)) < 0)
             goto cleanup;
 
-        /* Fill microcodeVersion with a "random" value which is the file
-         * length to provide a reproducible number for testing.
-         */
-        virQEMUCapsSetMicrocodeVersion(capsActual, virFileLength(repliesFile, -1));
+        /* calculate fake microcode version based on filename for a reproducible
+         * number for testing which does not change with the contents */
+        for (p = data->archName; *p; p++)
+            fakeMicrocodeVersion += *p;
+
+        fakeMicrocodeVersion *= 100000;
+
+        for (p = data->base; *p; p++)
+            fakeMicrocodeVersion += *p;
+
+        virQEMUCapsSetMicrocodeVersion(capsActual, fakeMicrocodeVersion);
     }
 
     if (!(actual = virQEMUCapsFormatCache(capsActual)))
@@ -179,6 +197,7 @@ mymain(void)
     DO_TEST("x86_64", "caps_2.12.0");
     DO_TEST("x86_64", "caps_3.0.0");
     DO_TEST("x86_64", "caps_3.1.0");
+    DO_TEST("x86_64", "caps_4.0.0");
     DO_TEST("aarch64", "caps_2.6.0");
     DO_TEST("aarch64", "caps_2.10.0");
     DO_TEST("aarch64", "caps_2.12.0");
@@ -196,7 +215,9 @@ mymain(void)
     DO_TEST("s390x", "caps_2.12.0");
     DO_TEST("s390x", "caps_3.0.0");
     DO_TEST("riscv32", "caps_3.0.0");
+    DO_TEST("riscv32", "caps_4.0.0");
     DO_TEST("riscv64", "caps_3.0.0");
+    DO_TEST("riscv64", "caps_4.0.0");
 
     /*
      * Run "tests/qemucapsprobe /path/to/qemu/binary >foo.replies"

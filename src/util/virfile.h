@@ -220,6 +220,8 @@ enum {
     VIR_FILE_SHFS_AFS = (1 << 3),
     VIR_FILE_SHFS_SMB = (1 << 4),
     VIR_FILE_SHFS_CIFS = (1 << 5),
+    VIR_FILE_SHFS_CEPH = (1 << 6),
+    VIR_FILE_SHFS_GPFS = (1 << 7),
 };
 
 int virFileIsSharedFSType(const char *path, int fstypes) ATTRIBUTE_NONNULL(1);
@@ -382,7 +384,7 @@ int virFileInData(int fd,
                   int *inData,
                   long long *length);
 
-VIR_DEFINE_AUTOPTR_FUNC(virFileWrapperFd, virFileWrapperFdFree)
+VIR_DEFINE_AUTOPTR_FUNC(virFileWrapperFd, virFileWrapperFdFree);
 
 int virFileGetXAttr(const char *path,
                     const char *name,

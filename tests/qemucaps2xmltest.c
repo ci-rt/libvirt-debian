@@ -128,8 +128,8 @@ testQemuCapsXML(const void *opaque)
     char *capsXml = NULL;
     virCapsPtr capsProvided = NULL;
 
-    if (virAsprintf(&xmlFile, "%s/qemucaps2xmloutdata/%s.%s.xml",
-                    abs_srcdir, data->base, data->archName) < 0)
+    if (virAsprintf(&xmlFile, "%s/qemucaps2xmloutdata/caps.%s.xml",
+                    abs_srcdir, data->archName) < 0)
         goto cleanup;
 
     if (virAsprintf(&capsFile, "%s/qemucapabilitiesdata/%s.%s.xml",
@@ -198,6 +198,7 @@ mymain(void)
     DO_TEST("x86_64", "caps_2.12.0");
     DO_TEST("x86_64", "caps_3.0.0");
     DO_TEST("x86_64", "caps_3.1.0");
+    DO_TEST("x86_64", "caps_4.0.0");
     DO_TEST("aarch64", "caps_2.6.0");
     DO_TEST("aarch64", "caps_2.10.0");
     DO_TEST("aarch64", "caps_2.12.0");
@@ -215,7 +216,9 @@ mymain(void)
     DO_TEST("s390x", "caps_2.12.0");
     DO_TEST("s390x", "caps_3.0.0");
     DO_TEST("riscv32", "caps_3.0.0");
+    DO_TEST("riscv32", "caps_4.0.0");
     DO_TEST("riscv64", "caps_3.0.0");
+    DO_TEST("riscv64", "caps_4.0.0");
 
     return (ret == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

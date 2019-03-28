@@ -33,7 +33,6 @@
 #include <sys/wait.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
-#include <dirent.h>
 #if HAVE_SYS_SYSCTL_H
 # include <sys/sysctl.h>
 #endif
@@ -163,7 +162,7 @@ static int
 networkShutdownNetworkExternal(virNetworkObjPtr obj);
 
 static void
-networkReloadFirewallRules(virNetworkDriverStatePtr driver);
+networkReloadFirewallRules(virNetworkDriverStatePtr driver, bool startup);
 
 static void
 networkRefreshDaemons(virNetworkDriverStatePtr driver);
@@ -537,7 +536,7 @@ networkAutostartConfig(virNetworkObjPtr obj,
 }
 
 
-#if HAVE_FIREWALLD
+#ifdef WITH_FIREWALLD
 static DBusHandlerResult
 firewalld_dbus_filter_bridge(DBusConnection *connection ATTRIBUTE_UNUSED,
                              DBusMessage *message,
@@ -551,98 +550,12 @@ firewalld_dbus_filter_bridge(DBusConnection *connection ATTRIBUTE_UNUSED,
                                "Reloaded"))
     {
         VIR_DEBUG("Reload in bridge_driver because of firewalld.");
-        networkReloadFirewallRules(driver);
+        networkReloadFirewallRules(driver, false);
     }
 
     return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 }
 #endif
-
-
-static int
-networkMigrateStateFiles(virNetworkDriverStatePtr driver)
-{
-    /* Due to a change in location of network state xml beginning in
-     * libvirt 1.2.4 (from /var/lib/libvirt/network to
-     * /var/run/libvirt/network), we must check for state files in two
-     * locations. Anything found in the old location must be written
-     * to the new location, then erased from the old location. (Note
-     * that we read/write the file rather than calling rename()
-     * because the old and new state directories are likely in
-     * different filesystems).
-     */
-    int ret = -1;
-    const char *oldStateDir = LOCALSTATEDIR "/lib/libvirt/network";
-    DIR *dir;
-    int direrr;
-    struct dirent *entry;
-    char *oldPath = NULL, *newPath = NULL;
-    char *contents = NULL;
-    int rc;
-
-    if ((rc = virDirOpenIfExists(&dir, oldStateDir)) <= 0)
-        return rc;
-
-    if (virFileMakePath(driver->stateDir) < 0) {
-        virReportSystemError(errno, _("cannot create directory %s"),
-                             driver->stateDir);
-        goto cleanup;
-    }
-
-    while ((direrr = virDirRead(dir, &entry, oldStateDir)) > 0) {
-        if (entry->d_type != DT_UNKNOWN &&
-            entry->d_type != DT_REG)
-            continue;
-
-        if (virAsprintf(&oldPath, "%s/%s",
-                        oldStateDir, entry->d_name) < 0)
-            goto cleanup;
-
-        if (entry->d_type == DT_UNKNOWN) {
-            struct stat st;
-
-            if (lstat(oldPath, &st) < 0) {
-                virReportSystemError(errno,
-                                     _("failed to stat network status file '%s'"),
-                                     oldPath);
-                goto cleanup;
-            }
-
-            if (!S_ISREG(st.st_mode)) {
-                VIR_FREE(oldPath);
-                continue;
-            }
-        }
-
-        if (virFileReadAll(oldPath, 1024*1024, &contents) < 0)
-            goto cleanup;
-
-        if (virAsprintf(&newPath, "%s/%s",
-                        driver->stateDir, entry->d_name) < 0)
-            goto cleanup;
-        if (virFileWriteStr(newPath, contents, S_IRUSR | S_IWUSR) < 0) {
-            virReportSystemError(errno,
-                                 _("failed to write network status file '%s'"),
-                                 newPath);
-            goto cleanup;
-        }
-
-        unlink(oldPath);
-        VIR_FREE(oldPath);
-        VIR_FREE(newPath);
-        VIR_FREE(contents);
-    }
-    if (direrr < 0)
-        goto cleanup;
-
-    ret = 0;
- cleanup:
-    VIR_DIR_CLOSE(dir);
-    VIR_FREE(oldPath);
-    VIR_FREE(newPath);
-    VIR_FREE(contents);
-    return ret;
-}
 
 
 /**
@@ -658,7 +571,7 @@ networkStateInitialize(bool privileged,
     int ret = -1;
     char *configdir = NULL;
     char *rundir = NULL;
-#ifdef HAVE_FIREWALLD
+#ifdef WITH_FIREWALLD
     DBusConnection *sysbus = NULL;
 #endif
 
@@ -689,13 +602,6 @@ networkStateInitialize(bool privileged,
                        LOCALSTATEDIR "/lib/libvirt/dnsmasq") < 0 ||
             VIR_STRDUP(network_driver->radvdStateDir,
                        LOCALSTATEDIR "/lib/libvirt/radvd") < 0)
-            goto error;
-
-        /* migration from old to new location is only applicable for
-         * privileged mode - unprivileged mode directories haven't
-         * changed location.
-         */
-        if (networkMigrateStateFiles(network_driver) < 0)
             goto error;
     } else {
         configdir = virGetUserConfigDirectory();
@@ -751,12 +657,12 @@ networkStateInitialize(bool privileged,
     virNetworkObjListPrune(network_driver->networks,
                            VIR_CONNECT_LIST_NETWORKS_INACTIVE |
                            VIR_CONNECT_LIST_NETWORKS_TRANSIENT);
-    networkReloadFirewallRules(network_driver);
+    networkReloadFirewallRules(network_driver, true);
     networkRefreshDaemons(network_driver);
 
     network_driver->networkEventState = virObjectEventStateNew();
 
-#ifdef HAVE_FIREWALLD
+#ifdef WITH_FIREWALLD
     if (!(sysbus = virDBusGetSystemBus())) {
         VIR_WARN("DBus not available, disabling firewalld support "
                  "in bridge_network_driver: %s", virGetLastErrorMessage());
@@ -827,7 +733,7 @@ networkStateReload(void)
     virNetworkObjLoadAllConfigs(network_driver->networks,
                                 network_driver->networkConfigDir,
                                 network_driver->networkAutostartDir);
-    networkReloadFirewallRules(network_driver);
+    networkReloadFirewallRules(network_driver, false);
     networkRefreshDaemons(network_driver);
     virNetworkObjListForEach(network_driver->networks,
                              networkAutostartConfig,
@@ -1414,11 +1320,27 @@ networkDnsmasqConfContents(virNetworkObjPtr obj,
                 !(eaddr = virSocketAddrFormat(&ipdef->ranges[r].end)))
                 goto cleanup;
 
-            virBufferAsprintf(&configbuf, "dhcp-range=%s,%s",
-                              saddr, eaddr);
-            if (VIR_SOCKET_ADDR_IS_FAMILY(&ipdef->address, AF_INET6))
-                virBufferAsprintf(&configbuf, ",%d", prefix);
-            virBufferAddLit(&configbuf, "\n");
+            if (VIR_SOCKET_ADDR_IS_FAMILY(&ipdef->address, AF_INET6)) {
+               virBufferAsprintf(&configbuf, "dhcp-range=%s,%s,%d\n",
+                                 saddr, eaddr, prefix);
+            } else {
+                /* IPv4 - dnsmasq requires a netmask rather than prefix */
+                virSocketAddr netmask;
+                VIR_AUTOFREE(char *) netmaskStr = NULL;
+
+                if (virSocketAddrPrefixToNetmask(prefix, &netmask, AF_INET) < 0) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("Failed to translate bridge '%s' "
+                                     "prefix %d to netmask"),
+                                   def->bridge, prefix);
+                    goto cleanup;
+                }
+
+                if (!(netmaskStr = virSocketAddrFormat(&netmask)))
+                    goto cleanup;
+                virBufferAsprintf(&configbuf, "dhcp-range=%s,%s,%s\n",
+                                  saddr, eaddr, netmaskStr);
+            }
 
             VIR_FREE(saddr);
             VIR_FREE(eaddr);
@@ -1503,6 +1425,10 @@ networkDnsmasqConfContents(virNetworkObjPtr obj,
         virBufferAsprintf(&configbuf, "addn-hosts=%s\n",
                           dctx->addnhostsfile->path);
     }
+
+    /* Configure DHCP to tell clients about the MTU. */
+    if (def->mtu > 0)
+        virBufferAsprintf(&configbuf, "dhcp-option=option:mtu,%d\n", def->mtu);
 
     /* Are we doing RA instead of radvd? */
     if (DNSMASQ_RA_SUPPORT(caps)) {
@@ -2179,12 +2105,15 @@ networkReloadFirewallRulesHelper(virNetworkObjPtr obj,
 
 
 static void
-networkReloadFirewallRules(virNetworkDriverStatePtr driver)
+networkReloadFirewallRules(virNetworkDriverStatePtr driver, bool startup)
 {
     VIR_INFO("Reloading iptables rules");
+    if (networkPreReloadFirewallRules(startup) < 0)
+        return;
     virNetworkObjListForEach(driver->networks,
                              networkReloadFirewallRulesHelper,
                              NULL);
+    networkPostReloadFirewallRules(startup);
 }
 
 

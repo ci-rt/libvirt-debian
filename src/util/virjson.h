@@ -138,6 +138,8 @@ int virJSONValueObjectRemoveKey(virJSONValuePtr object, const char *key,
                                 virJSONValuePtr *value)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
+int virJSONValueArrayAppendString(virJSONValuePtr object, const char *value);
+
 virJSONValuePtr virJSONValueFromString(const char *jsonstring);
 char *virJSONValueToString(virJSONValuePtr object,
                            bool pretty);
@@ -156,6 +158,6 @@ char *virJSONStringReformat(const char *jsonstr, bool pretty);
 
 virJSONValuePtr virJSONValueObjectDeflatten(virJSONValuePtr json);
 
-VIR_DEFINE_AUTOPTR_FUNC(virJSONValue, virJSONValueFree)
+VIR_DEFINE_AUTOPTR_FUNC(virJSONValue, virJSONValueFree);
 
 #endif /* LIBVIRT_VIRJSON_H */

@@ -36,12 +36,13 @@
 #include "virstring.h"
 #include "vsh-table.h"
 
-VIR_ENUM_DECL(virshDomainIOError)
+VIR_ENUM_DECL(virshDomainIOError);
 VIR_ENUM_IMPL(virshDomainIOError,
               VIR_DOMAIN_DISK_ERROR_LAST,
               N_("no error"),
               N_("unspecified error"),
-              N_("no space"))
+              N_("no space"),
+);
 
 static const char *
 virshDomainIOErrorToString(int error)
@@ -99,13 +100,14 @@ virshGetDomainDescription(vshControl *ctl, virDomainPtr dom, bool title,
     return desc;
 }
 
-VIR_ENUM_DECL(virshDomainControlState)
+VIR_ENUM_DECL(virshDomainControlState);
 VIR_ENUM_IMPL(virshDomainControlState,
               VIR_DOMAIN_CONTROL_LAST,
               N_("ok"),
               N_("background job"),
               N_("occupied"),
-              N_("error"))
+              N_("error"),
+);
 
 static const char *
 virshDomainControlStateToString(int state)
@@ -114,13 +116,14 @@ virshDomainControlStateToString(int state)
     return str ? _(str) : _("unknown");
 }
 
-VIR_ENUM_DECL(virshDomainControlErrorReason)
+VIR_ENUM_DECL(virshDomainControlErrorReason);
 VIR_ENUM_IMPL(virshDomainControlErrorReason,
               VIR_DOMAIN_CONTROL_ERROR_REASON_LAST,
               "",
               N_("unknown"),
               N_("monitor failure"),
-              N_("internal (locking) error"))
+              N_("internal (locking) error"),
+);
 
 static const char *
 virshDomainControlErrorReasonToString(int reason)
@@ -129,7 +132,7 @@ virshDomainControlErrorReasonToString(int reason)
     return ret ? _(ret) : _("unknown");
 }
 
-VIR_ENUM_DECL(virshDomainState)
+VIR_ENUM_DECL(virshDomainState);
 VIR_ENUM_IMPL(virshDomainState,
               VIR_DOMAIN_LAST,
               N_("no state"),
@@ -139,7 +142,8 @@ VIR_ENUM_IMPL(virshDomainState,
               N_("in shutdown"),
               N_("shut off"),
               N_("crashed"),
-              N_("pmsuspended"))
+              N_("pmsuspended"),
+);
 
 static const char *
 virshDomainStateToString(int state)
@@ -148,12 +152,13 @@ virshDomainStateToString(int state)
     return str ? _(str) : _("no state");
 }
 
-VIR_ENUM_DECL(virshDomainNostateReason)
+VIR_ENUM_DECL(virshDomainNostateReason);
 VIR_ENUM_IMPL(virshDomainNostateReason,
               VIR_DOMAIN_NOSTATE_LAST,
-              N_("unknown"))
+              N_("unknown"),
+);
 
-VIR_ENUM_DECL(virshDomainRunningReason)
+VIR_ENUM_DECL(virshDomainRunningReason);
 VIR_ENUM_IMPL(virshDomainRunningReason,
               VIR_DOMAIN_RUNNING_LAST,
               N_("unknown"),
@@ -166,14 +171,16 @@ VIR_ENUM_IMPL(virshDomainRunningReason,
               N_("save canceled"),
               N_("event wakeup"),
               N_("crashed"),
-              N_("post-copy"))
+              N_("post-copy"),
+);
 
-VIR_ENUM_DECL(virshDomainBlockedReason)
+VIR_ENUM_DECL(virshDomainBlockedReason);
 VIR_ENUM_IMPL(virshDomainBlockedReason,
               VIR_DOMAIN_BLOCKED_LAST,
-              N_("unknown"))
+              N_("unknown"),
+);
 
-VIR_ENUM_DECL(virshDomainPausedReason)
+VIR_ENUM_DECL(virshDomainPausedReason);
 VIR_ENUM_IMPL(virshDomainPausedReason,
               VIR_DOMAIN_PAUSED_LAST,
               N_("unknown"),
@@ -189,15 +196,17 @@ VIR_ENUM_IMPL(virshDomainPausedReason,
               N_("crashed"),
               N_("starting up"),
               N_("post-copy"),
-              N_("post-copy failed"))
+              N_("post-copy failed"),
+);
 
-VIR_ENUM_DECL(virshDomainShutdownReason)
+VIR_ENUM_DECL(virshDomainShutdownReason);
 VIR_ENUM_IMPL(virshDomainShutdownReason,
               VIR_DOMAIN_SHUTDOWN_LAST,
               N_("unknown"),
-              N_("user"))
+              N_("user"),
+);
 
-VIR_ENUM_DECL(virshDomainShutoffReason)
+VIR_ENUM_DECL(virshDomainShutoffReason);
 VIR_ENUM_IMPL(virshDomainShutoffReason,
               VIR_DOMAIN_SHUTOFF_LAST,
               N_("unknown"),
@@ -208,18 +217,21 @@ VIR_ENUM_IMPL(virshDomainShutoffReason,
               N_("saved"),
               N_("failed"),
               N_("from snapshot"),
-              N_("daemon"))
+              N_("daemon"),
+);
 
-VIR_ENUM_DECL(virshDomainCrashedReason)
+VIR_ENUM_DECL(virshDomainCrashedReason);
 VIR_ENUM_IMPL(virshDomainCrashedReason,
               VIR_DOMAIN_CRASHED_LAST,
               N_("unknown"),
-              N_("panicked"))
+              N_("panicked"),
+);
 
-VIR_ENUM_DECL(virshDomainPMSuspendedReason)
+VIR_ENUM_DECL(virshDomainPMSuspendedReason);
 VIR_ENUM_IMPL(virshDomainPMSuspendedReason,
               VIR_DOMAIN_PMSUSPENDED_LAST,
-              N_("unknown"))
+              N_("unknown"),
+);
 
 static const char *
 virshDomainStateReasonToString(int state, int reason)
@@ -631,11 +643,11 @@ cmdDomblklist(vshControl *ctl, const vshCmd *cmd)
                                 "|./source/@volume)", ctxt);
         if (details) {
             if (vshTableRowAppend(table, type, device, target,
-                                  source ? source : "-", NULL) < 0)
+                                  NULLSTR_MINUS(source), NULL) < 0)
                 goto cleanup;
         } else {
             if (vshTableRowAppend(table, target,
-                                  source ? source : "-", NULL) < 0)
+                                  NULLSTR_MINUS(source), NULL) < 0)
                 goto cleanup;
         }
 
@@ -2377,7 +2389,7 @@ cmdDomIfAddr(vshControl *ctl, const vshCmd *cmd)
             if (full || !j)
                 vshPrint(ctl, " %-10s %-17s    %s\n",
                          iface->name,
-                         iface->hwaddr ? iface->hwaddr : "", ip_addr_str);
+                         NULLSTR_EMPTY(iface->hwaddr), ip_addr_str);
             else
                 vshPrint(ctl, " %-10s %-17s    %s\n",
                          "-", "-", ip_addr_str);

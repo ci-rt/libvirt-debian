@@ -54,12 +54,12 @@ static char *progname;
 static const vshCmdGrp cmdGroups[];
 static const vshClientHooks hooks;
 
-VIR_ENUM_DECL(virClientTransport)
+VIR_ENUM_DECL(virClientTransport);
 VIR_ENUM_IMPL(virClientTransport,
               VIR_CLIENT_TRANS_LAST,
               N_("unix"),
               N_("tcp"),
-              N_("tls"))
+              N_("tls"));
 
 static const char *
 vshAdmClientTransportToString(int transport)
@@ -1047,7 +1047,7 @@ cmdDaemonLogFilters(vshControl *ctl, const vshCmd *cmd)
         }
 
         vshPrintExtra(ctl, " %-15s", _("Logging filters: "));
-        vshPrint(ctl, "%s\n", filters ? filters : "");
+        vshPrint(ctl, "%s\n", NULLSTR_EMPTY(filters));
     }
 
     return true;
@@ -1101,7 +1101,7 @@ cmdDaemonLogOutputs(vshControl *ctl, const vshCmd *cmd)
         }
 
         vshPrintExtra(ctl, " %-15s", _("Logging outputs: "));
-        vshPrint(ctl, "%s\n", outputs ? outputs : "");
+        vshPrint(ctl, "%s\n", NULLSTR_EMPTY(outputs));
     }
 
     return true;

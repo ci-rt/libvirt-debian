@@ -65,7 +65,7 @@ class WmiClass:
         # because we'll generate "common" member and will be the "base" name
         if len(self.versions) > 1:
             first = self.versions[0]
-            if first.version == None:
+            if first.version is None:
                 first.version = "v1"
             first.name = "%s_%s" % (first.name, first.version)
 
@@ -280,7 +280,6 @@ class WmiClass:
 
         # alter each version's property list so that common members are first
         # and in the same order as in the common dictionary
-        total = len(common)
         for cls in self.versions:
             index = 0
             count = len(cls.properties)

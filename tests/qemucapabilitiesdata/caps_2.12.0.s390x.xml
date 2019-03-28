@@ -2,7 +2,6 @@
   <qemuctime>0</qemuctime>
   <selfctime>0</selfctime>
   <selfvers>0</selfvers>
-  <usedQMP/>
   <flag name='kvm'/>
   <flag name='virtio-tx-alg'/>
   <flag name='virtio-blk-pci.ioeventfd'/>
@@ -13,15 +12,12 @@
   <flag name='scsi-block'/>
   <flag name='transaction'/>
   <flag name='block-job-async'/>
-  <flag name='scsi-cd'/>
   <flag name='dump-guest-memory'/>
-  <flag name='balloon-event'/>
   <flag name='virtio-scsi-pci'/>
   <flag name='blockio'/>
   <flag name='scsi-disk.wwn'/>
   <flag name='seccomp-sandbox'/>
   <flag name='reboot-timeout'/>
-  <flag name='seamless-migration'/>
   <flag name='block-commit'/>
   <flag name='vnc'/>
   <flag name='drive-mirror'/>
@@ -38,7 +34,6 @@
   <flag name='mem-merge'/>
   <flag name='drive-discard'/>
   <flag name='mlock'/>
-  <flag name='device-del-event'/>
   <flag name='virtio-mmio'/>
   <flag name='boot-strict'/>
   <flag name='msg-timestamp'/>
@@ -70,7 +65,6 @@
   <flag name='chardev-logfile'/>
   <flag name='debug-threads'/>
   <flag name='secret'/>
-  <flag name='device-tray-moved-event'/>
   <flag name='virtio-scsi-pci.iothread'/>
   <flag name='name-guest'/>
   <flag name='drive-detect-zeroes'/>
@@ -135,7 +129,7 @@
   <flag name='memory-backend-file.align'/>
   <version>2012000</version>
   <kvmVersion>0</kvmVersion>
-  <microcodeVersion>375102</microcodeVersion>
+  <microcodeVersion>39100807</microcodeVersion>
   <package></package>
   <arch>s390x</arch>
   <hostCPU type='kvm' model='z14-base' migratability='no'>

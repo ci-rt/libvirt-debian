@@ -56,6 +56,7 @@ void virFirewallFree(virFirewallPtr firewall);
          virFirewallAddRuleFull(firewall, layer, false, NULL, NULL, __VA_ARGS__)
 
 typedef int (*virFirewallQueryCallback)(virFirewallPtr firewall,
+                                        virFirewallLayer layer,
                                         const char *const *lines,
                                         void *opaque);
 
@@ -114,6 +115,6 @@ int virFirewallApply(virFirewallPtr firewall);
 
 void virFirewallSetLockOverride(bool avoid);
 
-VIR_DEFINE_AUTOPTR_FUNC(virFirewall, virFirewallFree)
+VIR_DEFINE_AUTOPTR_FUNC(virFirewall, virFirewallFree);
 
 #endif /* LIBVIRT_VIRFIREWALL_H */

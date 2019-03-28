@@ -904,11 +904,11 @@ static const vshCmdOptDef opts_network_update[] = {
     {.name = NULL}
 };
 
-VIR_ENUM_DECL(virNetworkUpdateCommand)
+VIR_ENUM_DECL(virNetworkUpdateCommand);
 VIR_ENUM_IMPL(virNetworkUpdateCommand, VIR_NETWORK_UPDATE_COMMAND_LAST,
               "none", "modify", "delete", "add-last", "add-first");
 
-VIR_ENUM_DECL(virNetworkSection)
+VIR_ENUM_DECL(virNetworkSection);
 VIR_ENUM_IMPL(virNetworkSection, VIR_NETWORK_SECTION_LAST,
               "none", "bridge", "domain", "ip", "ip-dhcp-host",
               "ip-dhcp-range", "forward", "forward-interface",
@@ -1136,13 +1136,13 @@ cmdNetworkEdit(vshControl *ctl, const vshCmd *cmd)
 /*
  * "net-event" command
  */
-VIR_ENUM_DECL(virshNetworkEvent)
+VIR_ENUM_DECL(virshNetworkEvent);
 VIR_ENUM_IMPL(virshNetworkEvent,
               VIR_NETWORK_EVENT_LAST,
               N_("Defined"),
               N_("Undefined"),
               N_("Started"),
-              N_("Stopped"))
+              N_("Stopped"));
 
 static const char *
 virshNetworkEventToString(int event)
@@ -1159,10 +1159,10 @@ struct virshNetEventData {
 };
 typedef struct virshNetEventData virshNetEventData;
 
-VIR_ENUM_DECL(virshNetworkEventId)
+VIR_ENUM_DECL(virshNetworkEventId);
 VIR_ENUM_IMPL(virshNetworkEventId,
               VIR_NETWORK_EVENT_ID_LAST,
-              "lifecycle")
+              "lifecycle");
 
 static void
 vshEventLifecyclePrint(virConnectPtr conn ATTRIBUTE_UNUSED,
@@ -1398,11 +1398,11 @@ cmdNetworkDHCPLeases(vshControl *ctl, const vshCmd *cmd)
 
         if (vshTableRowAppend(table,
                               expirytime,
-                              EMPTYSTR(lease->mac),
-                              EMPTYSTR(typestr),
-                              EMPTYSTR(cidr_format),
-                              EMPTYSTR(lease->hostname),
-                              EMPTYSTR(lease->clientid),
+                              NULLSTR_MINUS(lease->mac),
+                              NULLSTR_MINUS(typestr),
+                              NULLSTR_MINUS(cidr_format),
+                              NULLSTR_MINUS(lease->hostname),
+                              NULLSTR_MINUS(lease->clientid),
                               NULL) < 0)
             goto cleanup;
     }

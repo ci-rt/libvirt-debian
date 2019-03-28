@@ -245,7 +245,7 @@ static int
 virISCSIDirectGetVolumeCapacity(struct iscsi_context *iscsi,
                                 int lun,
                                 uint32_t *block_size,
-                                uint32_t *nb_block)
+                                uint64_t *nb_block)
 {
     struct scsi_task *task = NULL;
     struct scsi_inquiry_standard *inq = NULL;
@@ -267,12 +267,12 @@ virISCSIDirectGetVolumeCapacity(struct iscsi_context *iscsi,
     }
 
     if (inq->device_type == SCSI_INQUIRY_PERIPHERAL_DEVICE_TYPE_DIRECT_ACCESS) {
-        struct scsi_readcapacity10 *rc10 = NULL;
+        struct scsi_readcapacity16 *rc16 = NULL;
 
         scsi_free_scsi_task(task);
         task = NULL;
 
-        if (!(task = iscsi_readcapacity10_sync(iscsi, lun, 0, 0)) ||
+        if (!(task = iscsi_readcapacity16_sync(iscsi, lun)) ||
             task->status != SCSI_STATUS_GOOD) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Failed to get capacity of lun: %s"),
@@ -280,15 +280,15 @@ virISCSIDirectGetVolumeCapacity(struct iscsi_context *iscsi,
             goto cleanup;
         }
 
-        if (!(rc10 = scsi_datain_unmarshall(task))) {
+        if (!(rc16 = scsi_datain_unmarshall(task))) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Failed to unmarshall reply: %s"),
                            iscsi_get_error(iscsi));
             goto cleanup;
         }
 
-        *block_size  = rc10->block_size;
-        *nb_block = rc10->lba;
+        *block_size  = rc16->block_length;
+        *nb_block = rc16->returned_lba;
 
     }
 
@@ -305,22 +305,20 @@ virISCSIDirectRefreshVol(virStoragePoolObjPtr pool,
                          char *portal)
 {
     virStoragePoolDefPtr def = virStoragePoolObjGetDef(pool);
-    virStorageVolDefPtr vol = NULL;
     uint32_t block_size;
-    uint32_t nb_block;
-    int ret = -1;
+    uint64_t nb_block;
+    VIR_AUTOPTR(virStorageVolDef) vol = NULL;
 
-    virStoragePoolObjClearVols(pool);
     if (virISCSIDirectTestUnitReady(iscsi, lun) < 0)
-        goto cleanup;
+        return -1;
 
     if (VIR_ALLOC(vol) < 0)
-        goto cleanup;
+        return -1;
 
     vol->type = VIR_STORAGE_VOL_NETWORK;
 
     if (virISCSIDirectGetVolumeCapacity(iscsi, lun, &block_size, &nb_block) < 0)
-        goto cleanup;
+        return -1;
 
     vol->target.capacity = block_size * nb_block;
     vol->target.allocation = block_size * nb_block;
@@ -328,17 +326,13 @@ virISCSIDirectRefreshVol(virStoragePoolObjPtr pool,
     def->allocation += vol->target.allocation;
 
     if (virISCSIDirectSetVolumeAttributes(pool, vol, lun, portal) < 0)
-        goto cleanup;
+        return -1;
 
     if (virStoragePoolObjAddVol(pool, vol) < 0)
-        goto cleanup;
-
+        return -1;
     vol = NULL;
 
-    ret = 0;
- cleanup:
-    virStorageVolDefFree(vol);
-    return ret;
+    return 0;
 }
 
 static int
@@ -346,6 +340,7 @@ virISCSIDirectReportLuns(virStoragePoolObjPtr pool,
                          struct iscsi_context *iscsi,
                          char *portal)
 {
+    virStoragePoolDefPtr def = virStoragePoolObjGetDef(pool);
     struct scsi_task *task = NULL;
     struct scsi_reportluns_list *list = NULL;
     int full_size;
@@ -378,6 +373,9 @@ virISCSIDirectReportLuns(virStoragePoolObjPtr pool,
         goto cleanup;
     }
 
+    def->capacity = 0;
+    def->allocation = 0;
+    virStoragePoolObjClearVols(pool);
     for (i = 0; i < list->num; i++) {
         if (virISCSIDirectRefreshVol(pool, iscsi, list->luns[i], portal) < 0)
             goto cleanup;
@@ -426,15 +424,13 @@ virISCSIDirectUpdateTargets(struct iscsi_context *iscsi,
     }
 
     for (tmp_addr = addr; tmp_addr; tmp_addr = tmp_addr->next) {
-        char *target = NULL;
+        VIR_AUTOFREE(char *) target = NULL;
 
         if (VIR_STRDUP(target, tmp_addr->target_name) < 0)
             goto cleanup;
 
-        if (VIR_APPEND_ELEMENT(tmp_targets, tmp_ntargets, target) < 0) {
-            VIR_FREE(target);
+        if (VIR_APPEND_ELEMENT(tmp_targets, tmp_ntargets, target) < 0)
             goto cleanup;
-        }
     }
 
     VIR_STEAL_PTR(*targets, tmp_targets);
@@ -486,7 +482,6 @@ static char *
 virStorageBackendISCSIDirectFindPoolSources(const char *srcSpec,
                                             unsigned int flags)
 {
-    virStoragePoolSourcePtr source = NULL;
     size_t ntargets = 0;
     char **targets = NULL;
     char *ret = NULL;
@@ -496,7 +491,8 @@ virStorageBackendISCSIDirectFindPoolSources(const char *srcSpec,
         .nsources = 0,
         .sources = NULL
     };
-    char *portal = NULL;
+    VIR_AUTOFREE(char *) portal = NULL;
+    VIR_AUTOPTR(virStoragePoolSource) source = NULL;
 
     virCheckFlags(0, NULL);
 
@@ -556,8 +552,6 @@ virStorageBackendISCSIDirectFindPoolSources(const char *srcSpec,
     for (i = 0; i < ntargets; i++)
         VIR_FREE(targets[i]);
     VIR_FREE(targets);
-    VIR_FREE(portal);
-    virStoragePoolSourceFree(source);
     return ret;
 }
 
@@ -567,7 +561,7 @@ virStorageBackendISCSIDirectSetConnection(virStoragePoolObjPtr pool,
 {
     virStoragePoolDefPtr def = virStoragePoolObjGetDef(pool);
     struct iscsi_context *iscsi = NULL;
-    char *portal = NULL;
+    VIR_AUTOFREE(char *) portal = NULL;
 
     if (!(iscsi = virISCSIDirectCreateContext(def->source.initiator.iqn)))
         goto error;
@@ -584,7 +578,6 @@ virStorageBackendISCSIDirectSetConnection(virStoragePoolObjPtr pool,
         VIR_STEAL_PTR(*portalRet, portal);
 
  cleanup:
-    VIR_FREE(portal);
     return iscsi;
 
  error:
@@ -597,19 +590,14 @@ static int
 virStorageBackendISCSIDirectRefreshPool(virStoragePoolObjPtr pool)
 {
     struct iscsi_context *iscsi = NULL;
-    char *portal = NULL;
     int ret = -1;
-    if (!(iscsi = virStorageBackendISCSIDirectSetConnection(pool, &portal)))
-        goto cleanup;
-    if (virISCSIDirectReportLuns(pool, iscsi, portal) < 0)
-        goto disconect;
+    VIR_AUTOFREE(char *) portal = NULL;
 
-    ret = 0;
- disconect:
+    if (!(iscsi = virStorageBackendISCSIDirectSetConnection(pool, &portal)))
+        return -1;
+    ret = virISCSIDirectReportLuns(pool, iscsi, portal);
     virISCSIDirectDisconnect(iscsi);
     iscsi_destroy_context(iscsi);
- cleanup:
-    VIR_FREE(portal);
     return ret;
 }
 
@@ -639,13 +627,13 @@ static int
 virStorageBackendISCSIDirectVolWipeZero(virStorageVolDefPtr vol,
                                         struct iscsi_context *iscsi)
 {
-    uint32_t lba = 0;
+    uint64_t lba = 0;
     uint32_t block_size;
-    uint32_t nb_block;
+    uint64_t nb_block;
     struct scsi_task *task = NULL;
     int lun = 0;
     int ret = -1;
-    unsigned char *data;
+    VIR_AUTOFREE(unsigned char *) data = NULL;
 
     if (virStorageBackendISCSIDirectGetLun(vol, &lun) < 0)
         return ret;
@@ -659,25 +647,22 @@ virStorageBackendISCSIDirectVolWipeZero(virStorageVolDefPtr vol,
     while (lba < nb_block) {
         if (nb_block - lba > block_size * BLOCK_PER_PACKET) {
 
-            if (!(task = iscsi_write10_sync(iscsi, lun, lba, data,
+            if (!(task = iscsi_write16_sync(iscsi, lun, lba, data,
                                             block_size * BLOCK_PER_PACKET,
                                             block_size, 0, 0, 0, 0, 0)))
-                goto cleanup;
+                return -1;
             scsi_free_scsi_task(task);
             lba += BLOCK_PER_PACKET;
         } else {
-            if (!(task = iscsi_write10_sync(iscsi, lun, lba, data, block_size,
+            if (!(task = iscsi_write16_sync(iscsi, lun, lba, data, block_size,
                                         block_size, 0, 0, 0, 0, 0)))
-                goto cleanup;
+                return -1;
             scsi_free_scsi_task(task);
             lba++;
         }
     }
 
-    ret = 0;
- cleanup:
-    VIR_FREE(data);
-    return ret;
+    return 0;
 }
 
 static int

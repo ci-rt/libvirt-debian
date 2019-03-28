@@ -136,6 +136,10 @@
     {.name = "adapter-parent-fabric-wwn", \
      .type = VSH_OT_STRING, \
      .help = N_("adapter parent scsi_hostN fabric_wwn to be used for underlying vHBA storage") \
+    }, \
+    {.name = "source-protocol-ver", \
+     .type = VSH_OT_STRING, \
+     .help = N_("nfsvers value for NFS pool mount option") \
     }
 
 virStoragePoolPtr
@@ -319,7 +323,7 @@ virshBuildPoolXML(vshControl *ctl,
                *secretUsage = NULL, *adapterName = NULL, *adapterParent = NULL,
                *adapterWwnn = NULL, *adapterWwpn = NULL, *secretUUID = NULL,
                *adapterParentWwnn = NULL, *adapterParentWwpn = NULL,
-               *adapterParentFabricWwn = NULL;
+               *adapterParentFabricWwn = NULL, *protoVer = NULL;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
     VSH_EXCLUSIVE_OPTIONS("secret-usage", "secret-uuid");
@@ -345,7 +349,8 @@ virshBuildPoolXML(vshControl *ctl,
         vshCommandOptStringReq(ctl, cmd, "adapter-parent", &adapterParent) < 0 ||
         vshCommandOptStringReq(ctl, cmd, "adapter-parent-wwnn", &adapterParentWwnn) < 0 ||
         vshCommandOptStringReq(ctl, cmd, "adapter-parent-wwpn", &adapterParentWwpn) < 0 ||
-        vshCommandOptStringReq(ctl, cmd, "adapter-parent-fabric-wwn", &adapterParentFabricWwn) < 0)
+        vshCommandOptStringReq(ctl, cmd, "adapter-parent-fabric-wwn", &adapterParentFabricWwn) < 0 ||
+        vshCommandOptStringReq(ctl, cmd, "source-protocol-ver", &protoVer) < 0)
         goto cleanup;
 
     virBufferAsprintf(&buf, "<pool type='%s'>\n", type);
@@ -393,6 +398,9 @@ virshBuildPoolXML(vshControl *ctl,
             virBufferAsprintf(&buf, "<format type='%s'/>\n", srcFormat);
         if (srcName)
             virBufferAsprintf(&buf, "<name>%s</name>\n", srcName);
+
+        if (protoVer)
+            virBufferAsprintf(&buf, "<protocol ver='%s'/>\n", protoVer);
 
         virBufferAdjustIndent(&buf, -2);
         virBufferAddLit(&buf, "</source>\n");
@@ -1029,14 +1037,14 @@ virshStoragePoolListCollect(vshControl *ctl,
 }
 
 
-VIR_ENUM_DECL(virshStoragePoolState)
+VIR_ENUM_DECL(virshStoragePoolState);
 VIR_ENUM_IMPL(virshStoragePoolState,
               VIR_STORAGE_POOL_STATE_LAST,
               N_("inactive"),
               N_("building"),
               N_("running"),
               N_("degraded"),
-              N_("inaccessible"))
+              N_("inaccessible"));
 
 static const char *
 virshStoragePoolStateToString(int state)
@@ -1880,7 +1888,7 @@ cmdPoolEdit(vshControl *ctl, const vshCmd *cmd)
 /*
  * "pool-event" command
  */
-VIR_ENUM_DECL(virshPoolEvent)
+VIR_ENUM_DECL(virshPoolEvent);
 VIR_ENUM_IMPL(virshPoolEvent,
               VIR_STORAGE_POOL_EVENT_LAST,
               N_("Defined"),
@@ -1888,7 +1896,7 @@ VIR_ENUM_IMPL(virshPoolEvent,
               N_("Started"),
               N_("Stopped"),
               N_("Created"),
-              N_("Deleted"))
+              N_("Deleted"));
 
 static const char *
 virshPoolEventToString(int event)

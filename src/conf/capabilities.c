@@ -45,11 +45,12 @@
 
 #define SYSFS_SYSTEM_PATH "/sys/devices/system"
 
-VIR_LOG_INIT("conf.capabilities")
+VIR_LOG_INIT("conf.capabilities");
 
-VIR_ENUM_DECL(virCapsHostPMTarget)
+VIR_ENUM_DECL(virCapsHostPMTarget);
 VIR_ENUM_IMPL(virCapsHostPMTarget, VIR_NODE_SUSPEND_TARGET_LAST,
-              "suspend_mem", "suspend_disk", "suspend_hybrid");
+              "suspend_mem", "suspend_disk", "suspend_hybrid",
+);
 
 static virClassPtr virCapsClass;
 static void virCapsDispose(void *obj);
@@ -62,7 +63,7 @@ static int virCapabilitiesOnceInit(void)
     return 0;
 }
 
-VIR_ONCE_GLOBAL_INIT(virCapabilities)
+VIR_ONCE_GLOBAL_INIT(virCapabilities);
 
 /**
  * virCapabilitiesNew:
@@ -1056,6 +1057,226 @@ virCapabilitiesFormatMemoryBandwidth(virBufferPtr buf,
     return 0;
 }
 
+
+static int
+virCapabilitiesFormatHostXML(virCapsHostPtr host,
+                             virBufferPtr buf)
+{
+    size_t i, j;
+    char host_uuid[VIR_UUID_STRING_BUFLEN];
+
+    virBufferAddLit(buf, "<host>\n");
+    virBufferAdjustIndent(buf, 2);
+    if (virUUIDIsValid(host->host_uuid)) {
+        virUUIDFormat(host->host_uuid, host_uuid);
+        virBufferAsprintf(buf, "<uuid>%s</uuid>\n", host_uuid);
+    }
+    virBufferAddLit(buf, "<cpu>\n");
+    virBufferAdjustIndent(buf, 2);
+
+    if (host->arch)
+        virBufferAsprintf(buf, "<arch>%s</arch>\n",
+                          virArchToString(host->arch));
+    if (host->nfeatures) {
+        virBufferAddLit(buf, "<features>\n");
+        virBufferAdjustIndent(buf, 2);
+        for (i = 0; i < host->nfeatures; i++) {
+            virBufferAsprintf(buf, "<%s/>\n",
+                              host->features[i]);
+        }
+        virBufferAdjustIndent(buf, -2);
+        virBufferAddLit(buf, "</features>\n");
+    }
+    virCPUDefFormatBuf(buf, host->cpu);
+
+    for (i = 0; i < host->nPagesSize; i++) {
+        virBufferAsprintf(buf, "<pages unit='KiB' size='%u'/>\n",
+                          host->pagesSize[i]);
+    }
+
+    virBufferAdjustIndent(buf, -2);
+    virBufferAddLit(buf, "</cpu>\n");
+
+    /* The PM query was successful. */
+    if (host->powerMgmt) {
+        /* The host supports some PM features. */
+        unsigned int pm = host->powerMgmt;
+        virBufferAddLit(buf, "<power_management>\n");
+        virBufferAdjustIndent(buf, 2);
+        while (pm) {
+            int bit = ffs(pm) - 1;
+            virBufferAsprintf(buf, "<%s/>\n",
+                              virCapsHostPMTargetTypeToString(bit));
+            pm &= ~(1U << bit);
+        }
+        virBufferAdjustIndent(buf, -2);
+        virBufferAddLit(buf, "</power_management>\n");
+    } else {
+        /* The host does not support any PM feature. */
+        virBufferAddLit(buf, "<power_management/>\n");
+    }
+
+    virBufferAsprintf(buf, "<iommu support='%s'/>\n",
+                      host->iommu  ? "yes" : "no");
+
+    if (host->offlineMigrate) {
+        virBufferAddLit(buf, "<migration_features>\n");
+        virBufferAdjustIndent(buf, 2);
+        if (host->liveMigrate)
+            virBufferAddLit(buf, "<live/>\n");
+        if (host->nmigrateTrans) {
+            virBufferAddLit(buf, "<uri_transports>\n");
+            virBufferAdjustIndent(buf, 2);
+            for (i = 0; i < host->nmigrateTrans; i++) {
+                virBufferAsprintf(buf, "<uri_transport>%s</uri_transport>\n",
+                                  host->migrateTrans[i]);
+            }
+            virBufferAdjustIndent(buf, -2);
+            virBufferAddLit(buf, "</uri_transports>\n");
+        }
+        virBufferAdjustIndent(buf, -2);
+        virBufferAddLit(buf, "</migration_features>\n");
+    }
+
+    if (host->netprefix)
+        virBufferAsprintf(buf, "<netprefix>%s</netprefix>\n",
+                          host->netprefix);
+
+    if (host->nnumaCell &&
+        virCapabilitiesFormatNUMATopology(buf, host->nnumaCell,
+                                          host->numaCell) < 0)
+        goto error;
+
+    if (virCapabilitiesFormatCaches(buf, &host->cache) < 0)
+        goto error;
+
+    if (virCapabilitiesFormatMemoryBandwidth(buf, &host->memBW) < 0)
+        goto error;
+
+    for (i = 0; i < host->nsecModels; i++) {
+        virBufferAddLit(buf, "<secmodel>\n");
+        virBufferAdjustIndent(buf, 2);
+        virBufferAsprintf(buf, "<model>%s</model>\n",
+                          host->secModels[i].model);
+        virBufferAsprintf(buf, "<doi>%s</doi>\n",
+                          host->secModels[i].doi);
+        for (j = 0; j < host->secModels[i].nlabels; j++) {
+            virBufferAsprintf(buf, "<baselabel type='%s'>%s</baselabel>\n",
+                              host->secModels[i].labels[j].type,
+                              host->secModels[i].labels[j].label);
+        }
+        virBufferAdjustIndent(buf, -2);
+        virBufferAddLit(buf, "</secmodel>\n");
+    }
+
+    virBufferAdjustIndent(buf, -2);
+    virBufferAddLit(buf, "</host>\n\n");
+
+    return 0;
+
+ error:
+    return -1;
+}
+
+
+static void
+virCapabilitiesFormatGuestXML(virCapsGuestPtr *guests,
+                              size_t nguests,
+                              virBufferPtr buf)
+{
+    size_t i, j, k;
+
+    for (i = 0; i < nguests; i++) {
+        virBufferAddLit(buf, "<guest>\n");
+        virBufferAdjustIndent(buf, 2);
+        virBufferAsprintf(buf, "<os_type>%s</os_type>\n",
+                          virDomainOSTypeToString(guests[i]->ostype));
+        if (guests[i]->arch.id)
+            virBufferAsprintf(buf, "<arch name='%s'>\n",
+                              virArchToString(guests[i]->arch.id));
+        virBufferAdjustIndent(buf, 2);
+        virBufferAsprintf(buf, "<wordsize>%d</wordsize>\n",
+                          guests[i]->arch.wordsize);
+        if (guests[i]->arch.defaultInfo.emulator)
+            virBufferAsprintf(buf, "<emulator>%s</emulator>\n",
+                              guests[i]->arch.defaultInfo.emulator);
+        if (guests[i]->arch.defaultInfo.loader)
+            virBufferAsprintf(buf, "<loader>%s</loader>\n",
+                              guests[i]->arch.defaultInfo.loader);
+
+        for (j = 0; j < guests[i]->arch.defaultInfo.nmachines; j++) {
+            virCapsGuestMachinePtr machine = guests[i]->arch.defaultInfo.machines[j];
+            virBufferAddLit(buf, "<machine");
+            if (machine->canonical)
+                virBufferAsprintf(buf, " canonical='%s'", machine->canonical);
+            if (machine->maxCpus > 0)
+                virBufferAsprintf(buf, " maxCpus='%d'", machine->maxCpus);
+            virBufferAsprintf(buf, ">%s</machine>\n", machine->name);
+        }
+
+        for (j = 0; j < guests[i]->arch.ndomains; j++) {
+            virBufferAsprintf(buf, "<domain type='%s'",
+                virDomainVirtTypeToString(guests[i]->arch.domains[j]->type));
+            if (!guests[i]->arch.domains[j]->info.emulator &&
+                !guests[i]->arch.domains[j]->info.loader &&
+                !guests[i]->arch.domains[j]->info.nmachines) {
+                virBufferAddLit(buf, "/>\n");
+                continue;
+            }
+            virBufferAddLit(buf, ">\n");
+            virBufferAdjustIndent(buf, 2);
+            if (guests[i]->arch.domains[j]->info.emulator)
+                virBufferAsprintf(buf, "<emulator>%s</emulator>\n",
+                                  guests[i]->arch.domains[j]->info.emulator);
+            if (guests[i]->arch.domains[j]->info.loader)
+                virBufferAsprintf(buf, "<loader>%s</loader>\n",
+                                  guests[i]->arch.domains[j]->info.loader);
+
+            for (k = 0; k < guests[i]->arch.domains[j]->info.nmachines; k++) {
+                virCapsGuestMachinePtr machine = guests[i]->arch.domains[j]->info.machines[k];
+                virBufferAddLit(buf, "<machine");
+                if (machine->canonical)
+                    virBufferAsprintf(buf, " canonical='%s'", machine->canonical);
+                if (machine->maxCpus > 0)
+                    virBufferAsprintf(buf, " maxCpus='%d'", machine->maxCpus);
+                virBufferAsprintf(buf, ">%s</machine>\n", machine->name);
+            }
+            virBufferAdjustIndent(buf, -2);
+            virBufferAddLit(buf, "</domain>\n");
+        }
+
+        virBufferAdjustIndent(buf, -2);
+        virBufferAddLit(buf, "</arch>\n");
+
+        if (guests[i]->nfeatures) {
+            virBufferAddLit(buf, "<features>\n");
+            virBufferAdjustIndent(buf, 2);
+
+            for (j = 0; j < guests[i]->nfeatures; j++) {
+                if (STREQ(guests[i]->features[j]->name, "pae") ||
+                    STREQ(guests[i]->features[j]->name, "nonpae") ||
+                    STREQ(guests[i]->features[j]->name, "ia64_be") ||
+                    STREQ(guests[i]->features[j]->name, "cpuselection") ||
+                    STREQ(guests[i]->features[j]->name, "deviceboot")) {
+                    virBufferAsprintf(buf, "<%s/>\n",
+                                      guests[i]->features[j]->name);
+                } else {
+                    virBufferAsprintf(buf, "<%s default='%s' toggle='%s'/>\n",
+                                      guests[i]->features[j]->name,
+                                      guests[i]->features[j]->defaultOn ? "on" : "off",
+                                      guests[i]->features[j]->toggle ? "yes" : "no");
+                }
+            }
+
+            virBufferAdjustIndent(buf, -2);
+            virBufferAddLit(buf, "</features>\n");
+        }
+        virBufferAdjustIndent(buf, -2);
+        virBufferAddLit(buf, "</guest>\n\n");
+    }
+}
+
+
 /**
  * virCapabilitiesFormatXML:
  * @caps: capabilities to format
@@ -1068,207 +1289,15 @@ char *
 virCapabilitiesFormatXML(virCapsPtr caps)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
-    size_t i, j, k;
-    char host_uuid[VIR_UUID_STRING_BUFLEN];
 
     virBufferAddLit(&buf, "<capabilities>\n\n");
     virBufferAdjustIndent(&buf, 2);
-    virBufferAddLit(&buf, "<host>\n");
-    virBufferAdjustIndent(&buf, 2);
-    if (virUUIDIsValid(caps->host.host_uuid)) {
-        virUUIDFormat(caps->host.host_uuid, host_uuid);
-        virBufferAsprintf(&buf, "<uuid>%s</uuid>\n", host_uuid);
-    }
-    virBufferAddLit(&buf, "<cpu>\n");
-    virBufferAdjustIndent(&buf, 2);
 
-    if (caps->host.arch)
-        virBufferAsprintf(&buf, "<arch>%s</arch>\n",
-                          virArchToString(caps->host.arch));
-    if (caps->host.nfeatures) {
-        virBufferAddLit(&buf, "<features>\n");
-        virBufferAdjustIndent(&buf, 2);
-        for (i = 0; i < caps->host.nfeatures; i++) {
-            virBufferAsprintf(&buf, "<%s/>\n",
-                              caps->host.features[i]);
-        }
-        virBufferAdjustIndent(&buf, -2);
-        virBufferAddLit(&buf, "</features>\n");
-    }
-    virCPUDefFormatBuf(&buf, caps->host.cpu);
-
-    for (i = 0; i < caps->host.nPagesSize; i++) {
-        virBufferAsprintf(&buf, "<pages unit='KiB' size='%u'/>\n",
-                          caps->host.pagesSize[i]);
-    }
-
-    virBufferAdjustIndent(&buf, -2);
-    virBufferAddLit(&buf, "</cpu>\n");
-
-    /* The PM query was successful. */
-    if (caps->host.powerMgmt) {
-        /* The host supports some PM features. */
-        unsigned int pm = caps->host.powerMgmt;
-        virBufferAddLit(&buf, "<power_management>\n");
-        virBufferAdjustIndent(&buf, 2);
-        while (pm) {
-            int bit = ffs(pm) - 1;
-            virBufferAsprintf(&buf, "<%s/>\n",
-                              virCapsHostPMTargetTypeToString(bit));
-            pm &= ~(1U << bit);
-        }
-        virBufferAdjustIndent(&buf, -2);
-        virBufferAddLit(&buf, "</power_management>\n");
-    } else {
-        /* The host does not support any PM feature. */
-        virBufferAddLit(&buf, "<power_management/>\n");
-    }
-
-    virBufferAsprintf(&buf, "<iommu support='%s'/>\n",
-                      caps->host.iommu  ? "yes" : "no");
-
-    if (caps->host.offlineMigrate) {
-        virBufferAddLit(&buf, "<migration_features>\n");
-        virBufferAdjustIndent(&buf, 2);
-        if (caps->host.liveMigrate)
-            virBufferAddLit(&buf, "<live/>\n");
-        if (caps->host.nmigrateTrans) {
-            virBufferAddLit(&buf, "<uri_transports>\n");
-            virBufferAdjustIndent(&buf, 2);
-            for (i = 0; i < caps->host.nmigrateTrans; i++) {
-                virBufferAsprintf(&buf, "<uri_transport>%s</uri_transport>\n",
-                                  caps->host.migrateTrans[i]);
-            }
-            virBufferAdjustIndent(&buf, -2);
-            virBufferAddLit(&buf, "</uri_transports>\n");
-        }
-        virBufferAdjustIndent(&buf, -2);
-        virBufferAddLit(&buf, "</migration_features>\n");
-    }
-
-    if (caps->host.netprefix)
-        virBufferAsprintf(&buf, "<netprefix>%s</netprefix>\n",
-                          caps->host.netprefix);
-
-    if (caps->host.nnumaCell &&
-        virCapabilitiesFormatNUMATopology(&buf, caps->host.nnumaCell,
-                                          caps->host.numaCell) < 0)
+    if (virCapabilitiesFormatHostXML(&caps->host, &buf) < 0)
         goto error;
 
-    if (virCapabilitiesFormatCaches(&buf, &caps->host.cache) < 0)
-        goto error;
+    virCapabilitiesFormatGuestXML(caps->guests, caps->nguests, &buf);
 
-    if (virCapabilitiesFormatMemoryBandwidth(&buf, &caps->host.memBW) < 0)
-        goto error;
-
-    for (i = 0; i < caps->host.nsecModels; i++) {
-        virBufferAddLit(&buf, "<secmodel>\n");
-        virBufferAdjustIndent(&buf, 2);
-        virBufferAsprintf(&buf, "<model>%s</model>\n",
-                          caps->host.secModels[i].model);
-        virBufferAsprintf(&buf, "<doi>%s</doi>\n",
-                          caps->host.secModels[i].doi);
-        for (j = 0; j < caps->host.secModels[i].nlabels; j++) {
-            virBufferAsprintf(&buf, "<baselabel type='%s'>%s</baselabel>\n",
-                              caps->host.secModels[i].labels[j].type,
-                              caps->host.secModels[i].labels[j].label);
-        }
-        virBufferAdjustIndent(&buf, -2);
-        virBufferAddLit(&buf, "</secmodel>\n");
-    }
-
-    virBufferAdjustIndent(&buf, -2);
-    virBufferAddLit(&buf, "</host>\n\n");
-
-
-    for (i = 0; i < caps->nguests; i++) {
-        virBufferAddLit(&buf, "<guest>\n");
-        virBufferAdjustIndent(&buf, 2);
-        virBufferAsprintf(&buf, "<os_type>%s</os_type>\n",
-                          virDomainOSTypeToString(caps->guests[i]->ostype));
-        if (caps->guests[i]->arch.id)
-            virBufferAsprintf(&buf, "<arch name='%s'>\n",
-                              virArchToString(caps->guests[i]->arch.id));
-        virBufferAdjustIndent(&buf, 2);
-        virBufferAsprintf(&buf, "<wordsize>%d</wordsize>\n",
-                          caps->guests[i]->arch.wordsize);
-        if (caps->guests[i]->arch.defaultInfo.emulator)
-            virBufferAsprintf(&buf, "<emulator>%s</emulator>\n",
-                              caps->guests[i]->arch.defaultInfo.emulator);
-        if (caps->guests[i]->arch.defaultInfo.loader)
-            virBufferAsprintf(&buf, "<loader>%s</loader>\n",
-                              caps->guests[i]->arch.defaultInfo.loader);
-
-        for (j = 0; j < caps->guests[i]->arch.defaultInfo.nmachines; j++) {
-            virCapsGuestMachinePtr machine = caps->guests[i]->arch.defaultInfo.machines[j];
-            virBufferAddLit(&buf, "<machine");
-            if (machine->canonical)
-                virBufferAsprintf(&buf, " canonical='%s'", machine->canonical);
-            if (machine->maxCpus > 0)
-                virBufferAsprintf(&buf, " maxCpus='%d'", machine->maxCpus);
-            virBufferAsprintf(&buf, ">%s</machine>\n", machine->name);
-        }
-
-        for (j = 0; j < caps->guests[i]->arch.ndomains; j++) {
-            virBufferAsprintf(&buf, "<domain type='%s'",
-                virDomainVirtTypeToString(caps->guests[i]->arch.domains[j]->type));
-            if (!caps->guests[i]->arch.domains[j]->info.emulator &&
-                !caps->guests[i]->arch.domains[j]->info.loader &&
-                !caps->guests[i]->arch.domains[j]->info.nmachines) {
-                virBufferAddLit(&buf, "/>\n");
-                continue;
-            }
-            virBufferAddLit(&buf, ">\n");
-            virBufferAdjustIndent(&buf, 2);
-            if (caps->guests[i]->arch.domains[j]->info.emulator)
-                virBufferAsprintf(&buf, "<emulator>%s</emulator>\n",
-                                  caps->guests[i]->arch.domains[j]->info.emulator);
-            if (caps->guests[i]->arch.domains[j]->info.loader)
-                virBufferAsprintf(&buf, "<loader>%s</loader>\n",
-                                  caps->guests[i]->arch.domains[j]->info.loader);
-
-            for (k = 0; k < caps->guests[i]->arch.domains[j]->info.nmachines; k++) {
-                virCapsGuestMachinePtr machine = caps->guests[i]->arch.domains[j]->info.machines[k];
-                virBufferAddLit(&buf, "<machine");
-                if (machine->canonical)
-                    virBufferAsprintf(&buf, " canonical='%s'", machine->canonical);
-                if (machine->maxCpus > 0)
-                    virBufferAsprintf(&buf, " maxCpus='%d'", machine->maxCpus);
-                virBufferAsprintf(&buf, ">%s</machine>\n", machine->name);
-            }
-            virBufferAdjustIndent(&buf, -2);
-            virBufferAddLit(&buf, "</domain>\n");
-        }
-
-        virBufferAdjustIndent(&buf, -2);
-        virBufferAddLit(&buf, "</arch>\n");
-
-        if (caps->guests[i]->nfeatures) {
-            virBufferAddLit(&buf, "<features>\n");
-            virBufferAdjustIndent(&buf, 2);
-
-            for (j = 0; j < caps->guests[i]->nfeatures; j++) {
-                if (STREQ(caps->guests[i]->features[j]->name, "pae") ||
-                    STREQ(caps->guests[i]->features[j]->name, "nonpae") ||
-                    STREQ(caps->guests[i]->features[j]->name, "ia64_be") ||
-                    STREQ(caps->guests[i]->features[j]->name, "cpuselection") ||
-                    STREQ(caps->guests[i]->features[j]->name, "deviceboot")) {
-                    virBufferAsprintf(&buf, "<%s/>\n",
-                                      caps->guests[i]->features[j]->name);
-                } else {
-                    virBufferAsprintf(&buf, "<%s default='%s' toggle='%s'/>\n",
-                                      caps->guests[i]->features[j]->name,
-                                      caps->guests[i]->features[j]->defaultOn ? "on" : "off",
-                                      caps->guests[i]->features[j]->toggle ? "yes" : "no");
-                }
-            }
-
-            virBufferAdjustIndent(&buf, -2);
-            virBufferAddLit(&buf, "</features>\n");
-        }
-        virBufferAdjustIndent(&buf, -2);
-        virBufferAddLit(&buf, "</guest>\n\n");
-    }
     virBufferAdjustIndent(&buf, -2);
     virBufferAddLit(&buf, "</capabilities>\n");
 

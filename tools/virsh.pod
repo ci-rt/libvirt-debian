@@ -40,8 +40,9 @@ as a name.
 The B<virsh> program can be used either to run one I<COMMAND> by giving the
 command and its arguments on the shell command line, or a I<COMMAND_STRING>
 which is a single shell argument consisting of multiple I<COMMAND> actions
-and their arguments joined with whitespace, and separated by semicolons
-between commands.  Within I<COMMAND_STRING>, virsh understands the
+and their arguments joined with whitespace and separated by semicolons or
+newlines between commands, where unquoted backslash-newline pairs are
+elided.  Within I<COMMAND_STRING>, virsh understands the
 same single, double, and backslash escapes as the shell, although you must
 add another layer of shell escaping in creating the single shell argument.
 If no command is given in the command line, B<virsh> will then start a minimal
@@ -1903,6 +1904,7 @@ I<domain> I<desturi> [I<migrateuri>] [I<graphicsuri>] [I<listen-address>] [I<dna
 [I<--comp-mt-level>] [I<--comp-mt-threads>] [I<--comp-mt-dthreads>]
 [I<--comp-xbzrle-cache>] [I<--auto-converge>] [I<auto-converge-initial>]
 [I<auto-converge-increment>] [I<--persistent-xml> B<file>] [I<--tls>]
+[I<--postcopy-bandwidth> B<bandwidth>]
 
 Migrate domain to another host.  Add I<--live> for live migration; <--p2p>
 for peer-2-peer migration; I<--direct> for direct migration; or I<--tunnelled>
@@ -1933,6 +1935,8 @@ Once migration is running, the user may switch to post-copy using the
 B<migrate-postcopy> command sent from another virsh instance or use
 I<--postcopy-after-precopy> along with I<--postcopy> to let libvirt
 automatically switch to post-copy after the first pass of pre-copy is finished.
+The maximum bandwidth consumed during the post-copy phase may be limited using
+I<--postcopy-bandwidth>.
 
 I<--auto-converge> forces convergence during live migration. The initial
 guest CPU throttling rate can be set with I<auto-converge-initial>. If the
@@ -2098,17 +2102,21 @@ is supposed to be used while the domain is being live-migrated as a reaction
 to migration progress and increasing number of compression cache misses
 obtained from domjobinfo.
 
-=item B<migrate-setspeed> I<domain> I<bandwidth>
+=item B<migrate-setspeed> I<domain> I<bandwidth> [I<--postcopy>]
 
 Set the maximum migration bandwidth (in MiB/s) for a domain which is being
 migrated to another host. I<bandwidth> is interpreted as an unsigned long
 long value. Specifying a negative value results in an essentially unlimited
 value being provided to the hypervisor. The hypervisor can choose whether to
-reject the value or convert it to the maximum value allowed.
+reject the value or convert it to the maximum value allowed. If the
+I<--postcopy> option is specified, the command will set the maximum bandwidth
+allowed during a post-copy migration phase.
 
-=item B<migrate-getspeed> I<domain>
+=item B<migrate-getspeed> I<domain> [I<--postcopy>]
 
-Get the maximum migration bandwidth (in MiB/s) for a domain.
+Get the maximum migration bandwidth (in MiB/s) for a domain. If the
+I<--postcopy> option is specified, the command will get the maximum bandwidth
+allowed during a post-copy migration phase.
 
 =item B<migrate-postcopy> I<domain>
 
@@ -3887,6 +3895,7 @@ just I<--build> is provided, then B<pool-build> is called with no flags.
 [I<--source-name name>] [I<--target path>] [I<--source-format format>]
 [I<--auth-type authtype> I<--auth-username username>
 [I<--secret-usage usage> | I<--secret-uuid uuid>]]
+[I<--source-protocol-ver ver>]
 [[I<--adapter-name name>] | [I<--adapter-wwnn> wwnn I<--adapter-wwpn> wwpn]
 [I<--adapter-parent parent> |
  I<--adapter-parent-wwnn parent_wwnn> I<adapter-parent-wwpn parent_wwpn> |
@@ -3928,6 +3937,10 @@ provides the elements required to generate authentication credentials for
 the storage pool. The I<authtype> is either chap for iscsi I<type> pools or
 ceph for rbd I<type> pools. Either the secret I<usage> or I<uuid> value may
 be provided, but not both.
+
+[I<--source-protocol-ver ver>] provides the NFS protocol version number used
+to contact the server's NFS service via nfs mount option 'nfsvers=n'. It is
+expect the I<ver> value is an unsigned integer.
 
 [I<--adapter-name name>] defines the scsi_hostN adapter name to be used for
 the scsi_host adapter type pool.
@@ -4547,8 +4560,8 @@ If I<--halt> is specified, the domain will be left in an inactive state
 after the snapshot is created.
 
 If I<--disk-only> is specified, the snapshot will only include disk
-state rather than the usual system checkpoint with vm state.  Disk
-snapshots are faster than full system checkpoints, but reverting to a
+content rather than the usual full system snapshot with vm state.  Disk
+snapshots are captured faster than full system snapshots, but reverting to a
 disk snapshot may require fsck or journal replays, since it is like
 the disk state at the point when the power cord is abruptly pulled;
 and mixing I<--halt> and I<--disk-only> loses any data that was not
@@ -4587,10 +4600,10 @@ this.  If this flag is not specified, then some hypervisors may fail
 after partially performing the action, and B<dumpxml> must be used to
 see whether any partial changes occurred.
 
-If I<--live> is specified, libvirt takes the snapshot (checkpoint) while
+If I<--live> is specified, libvirt takes the snapshot while
 the guest is running. Both disk snapshot and domain memory snapshot are
 taken. This increases the size of the memory image of the external
-checkpoint. This is currently supported only for external checkpoints.
+snapshot. This is currently supported only for full system external snapshots.
 
 Existence of snapshot metadata will prevent attempts to B<undefine>
 a persistent domain.  However, for transient domains, snapshot
@@ -4610,7 +4623,7 @@ Otherwise, if I<--halt> is specified, the domain will be left in an
 inactive state after the snapshot is created, and if I<--disk-only>
 is specified, the snapshot will not include vm state.
 
-The I<--memspec> option can be used to control whether a checkpoint
+The I<--memspec> option can be used to control whether a full system snapshot
 is internal or external.  The I<--memspec> flag is mandatory, followed
 by a B<memspec> of the form B<[file=]name[,snapshot=type]>, where
 type can be B<no>, B<internal>, or B<external>.  To include a literal
@@ -4618,7 +4631,7 @@ comma in B<file=name>, escape it with a second comma. I<--memspec> cannot
 be used together with I<--disk-only>.
 
 The I<--diskspec> option can be used to control how I<--disk-only> and
-external checkpoints create external files.  This option can occur
+external full system snapshots create external files.  This option can occur
 multiple times, according to the number of <disk> elements in the domain
 xml.  Each <diskspec> is in the
 form B<disk[,snapshot=type][,driver=type][,file=name]>.  A I<diskspec>
@@ -4658,7 +4671,7 @@ see whether any partial changes occurred.
 
 If I<--live> is specified, libvirt takes the snapshot while the guest is
 running. This increases the size of the memory image of the external
-checkpoint. This is currently supported only for external checkpoints.
+snapshot. This is currently supported only for external full system snapshots.
 
 =item B<snapshot-current> I<domain> {[I<--name>] | [I<--security-info>]
 | [I<snapshotname>]}

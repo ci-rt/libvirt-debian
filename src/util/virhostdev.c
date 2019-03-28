@@ -124,7 +124,7 @@ static int virHostdevManagerOnceInit(void)
     return 0;
 }
 
-VIR_ONCE_GLOBAL_INIT(virHostdevManager)
+VIR_ONCE_GLOBAL_INIT(virHostdevManager);
 
 static void
 virHostdevManagerDispose(void *obj)
@@ -314,7 +314,7 @@ virHostdevNetDevice(virDomainHostdevDefPtr hostdev,
         if (virPCIGetNetName(sysfs_path, 0, NULL, linkdev) < 0)
             return -1;
 
-        if (!linkdev) {
+        if (!(*linkdev)) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("The device at %s has no network device name"),
                            sysfs_path);

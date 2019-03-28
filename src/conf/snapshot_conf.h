@@ -111,7 +111,7 @@ virDomainSnapshotDefPtr virDomainSnapshotDefParseNode(xmlDocPtr xml,
                                                       virDomainXMLOptionPtr xmlopt,
                                                       unsigned int flags);
 void virDomainSnapshotDefFree(virDomainSnapshotDefPtr def);
-char *virDomainSnapshotDefFormat(const char *domain_uuid,
+char *virDomainSnapshotDefFormat(const char *uuidstr,
                                  virDomainSnapshotDefPtr def,
                                  virCapsPtr caps,
                                  virDomainXMLOptionPtr xmlopt,
@@ -186,7 +186,7 @@ int virDomainSnapshotRedefinePrep(virDomainPtr domain,
                                   bool *update_current,
                                   unsigned int flags);
 
-VIR_ENUM_DECL(virDomainSnapshotLocation)
-VIR_ENUM_DECL(virDomainSnapshotState)
+VIR_ENUM_DECL(virDomainSnapshotLocation);
+VIR_ENUM_DECL(virDomainSnapshotState);
 
 #endif /* LIBVIRT_SNAPSHOT_CONF_H */

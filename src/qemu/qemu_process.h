@@ -214,4 +214,33 @@ int qemuProcessStartManagedPRDaemon(virDomainObjPtr vm);
 
 void qemuProcessKillManagedPRDaemon(virDomainObjPtr vm);
 
+typedef struct _qemuProcessQMP qemuProcessQMP;
+typedef qemuProcessQMP *qemuProcessQMPPtr;
+struct _qemuProcessQMP {
+    char *binary;
+    char *libDir;
+    uid_t runUid;
+    gid_t runGid;
+    char *stderr;
+    char *monarg;
+    char *monpath;
+    char *pidfile;
+    char *uniqDir;
+    virCommandPtr cmd;
+    qemuMonitorPtr mon;
+    pid_t pid;
+    virDomainObjPtr vm;
+    bool forceTCG;
+};
+
+qemuProcessQMPPtr qemuProcessQMPNew(const char *binary,
+                                    const char *libDir,
+                                    uid_t runUid,
+                                    gid_t runGid,
+                                    bool forceTCG);
+
+void qemuProcessQMPFree(qemuProcessQMPPtr proc);
+
+int qemuProcessQMPStart(qemuProcessQMPPtr proc);
+
 #endif /* LIBVIRT_QEMU_PROCESS_H */
