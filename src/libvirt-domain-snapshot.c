@@ -105,8 +105,9 @@ virDomainSnapshotGetConnect(virDomainSnapshotPtr snapshot)
  * contained in xmlDesc.
  *
  * If @flags is 0, the domain can be active, in which case the
- * snapshot will be a system checkpoint (both disk state and runtime
- * VM state such as RAM contents), where reverting to the snapshot is
+ * snapshot will be a full system snapshot (capturing both disk state,
+ * and runtime VM state such as RAM contents), where reverting to the
+ * snapshot is
  * the same as resuming from hibernation (TCP connections may have
  * timed out, but everything else picks up where it left off); or
  * the domain can be inactive, in which case the snapshot includes
@@ -149,7 +150,7 @@ virDomainSnapshotGetConnect(virDomainSnapshotPtr snapshot)
  * is not paused while creating the snapshot. This increases the size
  * of the memory dump file, but reduces downtime of the guest while
  * taking the snapshot. Some hypervisors only support this flag during
- * external checkpoints.
+ * external snapshots.
  *
  * If @flags includes VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY, then the
  * snapshot will be limited to the disks described in @xmlDesc, and no
@@ -244,14 +245,13 @@ virDomainSnapshotCreateXML(virDomainPtr domain,
 /**
  * virDomainSnapshotGetXMLDesc:
  * @snapshot: a domain snapshot object
- * @flags: bitwise-OR of subset of virDomainXMLFlags
+ * @flags: bitwise-OR of supported virDomainSnapshotXMLFlags
  *
  * Provide an XML description of the domain snapshot.
  *
  * No security-sensitive data will be included unless @flags contains
- * VIR_DOMAIN_XML_SECURE; this flag is rejected on read-only
- * connections.  For this API, @flags should not contain either
- * VIR_DOMAIN_XML_INACTIVE or VIR_DOMAIN_XML_UPDATE_CPU.
+ * VIR_DOMAIN_SNAPSHOT_XML_SECURE; this flag is rejected on read-only
+ * connections.
  *
  * Returns a 0 terminated UTF-8 encoded XML instance, or NULL in case of error.
  *         the caller must free() the returned value.
@@ -268,7 +268,8 @@ virDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
     virCheckDomainSnapshotReturn(snapshot, NULL);
     conn = snapshot->domain->conn;
 
-    if ((conn->flags & VIR_CONNECT_RO) && (flags & VIR_DOMAIN_XML_SECURE)) {
+    if ((conn->flags & VIR_CONNECT_RO) &&
+        (flags & VIR_DOMAIN_SNAPSHOT_XML_SECURE)) {
         virReportError(VIR_ERR_OPERATION_DENIED, "%s",
                        _("virDomainSnapshotGetXMLDesc with secure flag"));
         goto error;

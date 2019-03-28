@@ -84,7 +84,7 @@ virNetworkObjOnceInit(void)
 }
 
 
-VIR_ONCE_GLOBAL_INIT(virNetworkObj)
+VIR_ONCE_GLOBAL_INIT(virNetworkObj);
 
 virNetworkObjPtr
 virNetworkObjNew(void)
@@ -602,8 +602,7 @@ virNetworkObjAssignDefLocked(virNetworkObjListPtr nets,
         obj->persistent = !(flags & VIR_NETWORK_OBJ_LIST_ADD_LIVE);
     }
 
-    ret = obj;
-    obj = NULL;
+    VIR_STEAL_PTR(ret, obj);
 
  cleanup:
     virNetworkObjEndAPI(&obj);

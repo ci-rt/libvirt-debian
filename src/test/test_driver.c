@@ -133,7 +133,7 @@ static int testDriverOnceInit(void)
 
     return 0;
 }
-VIR_ONCE_GLOBAL_INIT(testDriver)
+VIR_ONCE_GLOBAL_INIT(testDriver);
 
 #define TEST_MODEL "i686"
 #define TEST_EMULATOR "/usr/bin/test-hv"
@@ -200,10 +200,10 @@ testDomainDefNamespaceParse(xmlDocPtr xml ATTRIBUTE_UNUSED,
                             void **data)
 {
     testDomainNamespaceDefPtr nsdata = NULL;
-    xmlNodePtr *nodes = NULL;
     int tmp, n;
     size_t i;
     unsigned int tmpuint;
+    VIR_AUTOFREE(xmlNodePtr *) nodes = NULL;
 
     if (xmlXPathRegisterNs(ctxt, BAD_CAST "test",
                            BAD_CAST TEST_NAMESPACE_HREF) < 0) {
@@ -233,7 +233,6 @@ testDomainDefNamespaceParse(xmlDocPtr xml ATTRIBUTE_UNUSED,
         nsdata->snap_nodes[nsdata->num_snap_nodes] = newnode;
         nsdata->num_snap_nodes++;
     }
-    VIR_FREE(nodes);
 
     tmp = virXPathBoolean("boolean(./test:transient)", ctxt);
     if (tmp == -1) {
@@ -280,7 +279,6 @@ testDomainDefNamespaceParse(xmlDocPtr xml ATTRIBUTE_UNUSED,
     return 0;
 
  error:
-    VIR_FREE(nodes);
     testDomainDefNamespaceFree(nsdata);
     return -1;
 }
@@ -695,11 +693,10 @@ testParseXMLDocFromFile(xmlNodePtr node, const char *file, const char *type)
     xmlNodePtr ret = NULL;
     xmlDocPtr doc = NULL;
     char *absFile = NULL;
-    char *relFile = virXMLPropString(node, "file");
+    VIR_AUTOFREE(char *) relFile = NULL;
 
-    if (relFile != NULL) {
+    if ((relFile = virXMLPropString(node, "file"))) {
         absFile = testBuildFilename(file, relFile);
-        VIR_FREE(relFile);
         if (!absFile) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("resolving %s filename"), type);
@@ -722,16 +719,15 @@ testParseXMLDocFromFile(xmlNodePtr node, const char *file, const char *type)
 
  error:
     xmlFreeDoc(doc);
-    VIR_FREE(absFile);
     return ret;
 }
 
 static int
 testParseNodeInfo(virNodeInfoPtr nodeInfo, xmlXPathContextPtr ctxt)
 {
-    char *str;
     long l;
     int ret;
+    VIR_AUTOFREE(char *) str = NULL;
 
     ret = virXPathLong("string(/node/cpu/nodes[1])", ctxt, &l);
     if (ret == 0) {
@@ -794,10 +790,8 @@ testParseNodeInfo(virNodeInfoPtr nodeInfo, xmlXPathContextPtr ctxt)
         if (virStrcpyStatic(nodeInfo->model, str) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Model %s too big for destination"), str);
-            VIR_FREE(str);
             goto error;
         }
-        VIR_FREE(str);
     }
 
     ret = virXPathLong("string(/node/memory[1])", ctxt, &l);
@@ -877,12 +871,12 @@ testParseDomains(testDriverPtr privconn,
 {
     int num, ret = -1;
     size_t i;
-    xmlNodePtr *nodes = NULL;
     virDomainObjPtr obj = NULL;
+    VIR_AUTOFREE(xmlNodePtr *) nodes = NULL;
 
     num = virXPathNodeSet("/node/domain", ctxt, &nodes);
     if (num < 0)
-        goto error;
+        return -1;
 
     for (i = 0; i < num; i++) {
         virDomainDefPtr def;
@@ -928,7 +922,6 @@ testParseDomains(testDriverPtr privconn,
     ret = 0;
  error:
     virDomainObjEndAPI(&obj);
-    VIR_FREE(nodes);
     return ret;
 }
 
@@ -938,38 +931,35 @@ testParseNetworks(testDriverPtr privconn,
                   const char *file,
                   xmlXPathContextPtr ctxt)
 {
-    int num, ret = -1;
+    int num;
     size_t i;
-    xmlNodePtr *nodes = NULL;
     virNetworkObjPtr obj;
+    VIR_AUTOFREE(xmlNodePtr *) nodes = NULL;
 
     num = virXPathNodeSet("/node/network", ctxt, &nodes);
     if (num < 0)
-        goto error;
+        return -1;
 
     for (i = 0; i < num; i++) {
         virNetworkDefPtr def;
         xmlNodePtr node = testParseXMLDocFromFile(nodes[i], file, "network");
         if (!node)
-            goto error;
+            return -1;
 
         def = virNetworkDefParseNode(ctxt->doc, node);
         if (!def)
-            goto error;
+            return -1;
 
         if (!(obj = virNetworkObjAssignDef(privconn->networks, def, 0))) {
             virNetworkDefFree(def);
-            goto error;
+            return -1;
         }
 
         virNetworkObjSetActive(obj, true);
         virNetworkObjEndAPI(&obj);
     }
 
-    ret = 0;
- error:
-    VIR_FREE(nodes);
-    return ret;
+    return 0;
 }
 
 
@@ -978,39 +968,36 @@ testParseInterfaces(testDriverPtr privconn,
                     const char *file,
                     xmlXPathContextPtr ctxt)
 {
-    int num, ret = -1;
+    int num;
     size_t i;
-    xmlNodePtr *nodes = NULL;
     virInterfaceObjPtr obj;
+    VIR_AUTOFREE(xmlNodePtr *) nodes = NULL;
 
     num = virXPathNodeSet("/node/interface", ctxt, &nodes);
     if (num < 0)
-        goto error;
+        return -1;
 
     for (i = 0; i < num; i++) {
         virInterfaceDefPtr def;
         xmlNodePtr node = testParseXMLDocFromFile(nodes[i], file,
                                                    "interface");
         if (!node)
-            goto error;
+            return -1;
 
         def = virInterfaceDefParseNode(ctxt->doc, node);
         if (!def)
-            goto error;
+            return -1;
 
         if (!(obj = virInterfaceObjListAssignDef(privconn->ifaces, def))) {
             virInterfaceDefFree(def);
-            goto error;
+            return -1;
         }
 
         virInterfaceObjSetActive(obj, true);
         virInterfaceObjEndAPI(&obj);
     }
 
-    ret = 0;
- error:
-    VIR_FREE(nodes);
-    return ret;
+    return 0;
 }
 
 
@@ -1021,52 +1008,47 @@ testOpenVolumesForPool(const char *file,
                        int objidx)
 {
     virStoragePoolDefPtr def = virStoragePoolObjGetDef(obj);
-    char *vol_xpath;
     size_t i;
-    int num, ret = -1;
-    xmlNodePtr *nodes = NULL;
-    virStorageVolDefPtr volDef = NULL;
+    int num;
+    VIR_AUTOFREE(char *) vol_xpath = NULL;
+    VIR_AUTOFREE(xmlNodePtr *) nodes = NULL;
+    VIR_AUTOPTR(virStorageVolDef) volDef = NULL;
 
     /* Find storage volumes */
     if (virAsprintf(&vol_xpath, "/node/pool[%d]/volume", objidx) < 0)
-        goto error;
+        return -1;
 
     num = virXPathNodeSet(vol_xpath, ctxt, &nodes);
-    VIR_FREE(vol_xpath);
     if (num < 0)
-        goto error;
+        return -1;
 
     for (i = 0; i < num; i++) {
         xmlNodePtr node = testParseXMLDocFromFile(nodes[i], file,
                                                    "volume");
         if (!node)
-            goto error;
+            return -1;
 
         if (!(volDef = virStorageVolDefParseNode(def, ctxt->doc, node, 0)))
-            goto error;
+            return -1;
 
         if (!volDef->target.path) {
             if (virAsprintf(&volDef->target.path, "%s/%s",
                             def->target.path, volDef->name) < 0)
-                goto error;
+                return -1;
         }
 
         if (!volDef->key && VIR_STRDUP(volDef->key, volDef->target.path) < 0)
-            goto error;
+            return -1;
 
         if (virStoragePoolObjAddVol(obj, volDef) < 0)
-            goto error;
+            return -1;
 
         def->allocation += volDef->target.allocation;
         def->available = (def->capacity - def->allocation);
         volDef = NULL;
     }
 
-    ret = 0;
- error:
-    virStorageVolDefFree(volDef);
-    VIR_FREE(nodes);
-    return ret;
+    return 0;
 }
 
 
@@ -1075,50 +1057,47 @@ testParseStorage(testDriverPtr privconn,
                  const char *file,
                  xmlXPathContextPtr ctxt)
 {
-    int num, ret = -1;
+    int num;
     size_t i;
-    xmlNodePtr *nodes = NULL;
     virStoragePoolObjPtr obj;
+    VIR_AUTOFREE(xmlNodePtr *) nodes = NULL;
 
     num = virXPathNodeSet("/node/pool", ctxt, &nodes);
     if (num < 0)
-        goto error;
+        return -1;
 
     for (i = 0; i < num; i++) {
         virStoragePoolDefPtr def;
         xmlNodePtr node = testParseXMLDocFromFile(nodes[i], file,
                                                    "pool");
         if (!node)
-            goto error;
+            return -1;
 
         def = virStoragePoolDefParseNode(ctxt->doc, node);
         if (!def)
-            goto error;
+            return -1;
 
         if (!(obj = virStoragePoolObjAssignDef(privconn->pools, def, false))) {
             virStoragePoolDefFree(def);
-            goto error;
+            return -1;
         }
 
         if (testStoragePoolObjSetDefaults(obj) == -1) {
             virStoragePoolObjEndAPI(&obj);
-            goto error;
+            return -1;
         }
         virStoragePoolObjSetActive(obj, true);
 
         /* Find storage volumes */
         if (testOpenVolumesForPool(file, ctxt, obj, i+1) < 0) {
             virStoragePoolObjEndAPI(&obj);
-            goto error;
+            return -1;
         }
 
         virStoragePoolObjEndAPI(&obj);
     }
 
-    ret = 0;
- error:
-    VIR_FREE(nodes);
-    return ret;
+    return 0;
 }
 
 
@@ -1127,79 +1106,70 @@ testParseNodedevs(testDriverPtr privconn,
                   const char *file,
                   xmlXPathContextPtr ctxt)
 {
-    int num, ret = -1;
+    int num;
     size_t i;
-    xmlNodePtr *nodes = NULL;
     virNodeDeviceObjPtr obj;
+    VIR_AUTOFREE(xmlNodePtr *) nodes = NULL;
 
     num = virXPathNodeSet("/node/device", ctxt, &nodes);
     if (num < 0)
-        goto error;
+        return -1;
 
     for (i = 0; i < num; i++) {
         virNodeDeviceDefPtr def;
         xmlNodePtr node = testParseXMLDocFromFile(nodes[i], file,
                                                   "nodedev");
         if (!node)
-            goto error;
+            return -1;
 
         def = virNodeDeviceDefParseNode(ctxt->doc, node, 0, NULL);
         if (!def)
-            goto error;
+            return -1;
 
         if (!(obj = virNodeDeviceObjListAssignDef(privconn->devs, def))) {
             virNodeDeviceDefFree(def);
-            goto error;
+            return -1;
         }
 
         virNodeDeviceObjSetSkipUpdateCaps(obj, true);
         virNodeDeviceObjEndAPI(&obj);
     }
 
-    ret = 0;
- error:
-    VIR_FREE(nodes);
-    return ret;
+    return 0;
 }
 
 static int
 testParseAuthUsers(testDriverPtr privconn,
                    xmlXPathContextPtr ctxt)
 {
-    int num, ret = -1;
+    int num;
     size_t i;
-    xmlNodePtr *nodes = NULL;
+    VIR_AUTOFREE(xmlNodePtr *) nodes = NULL;
 
     num = virXPathNodeSet("/node/auth/user", ctxt, &nodes);
     if (num < 0)
-        goto error;
+        return -1;
 
     privconn->numAuths = num;
     if (num && VIR_ALLOC_N(privconn->auths, num) < 0)
-        goto error;
+        return -1;
 
     for (i = 0; i < num; i++) {
-        char *username, *password;
+        VIR_AUTOFREE(char *) username = NULL;
 
         ctxt->node = nodes[i];
         username = virXPathString("string(.)", ctxt);
         if (!username || STREQ(username, "")) {
             virReportError(VIR_ERR_XML_ERROR, "%s",
                            _("missing username in /node/auth/user field"));
-            VIR_FREE(username);
-            goto error;
+            return -1;
         }
         /* This field is optional. */
-        password = virXMLPropString(nodes[i], "password");
-
-        privconn->auths[i].username = username;
-        privconn->auths[i].password = password;
+        privconn->auths[i].password = virXMLPropString(nodes[i], "password");
+        VIR_STEAL_PTR(privconn->auths[i].username, username);
     }
 
-    ret = 0;
- error:
-    VIR_FREE(nodes);
-    return ret;
+    return 0;
 }
 
 static int
@@ -1349,7 +1319,8 @@ testConnectAuthenticate(virConnectPtr conn,
     testDriverPtr privconn = conn->privateData;
     int ret = -1;
     ssize_t i;
-    char *username = NULL, *password = NULL;
+    VIR_AUTOFREE(char *) username = NULL;
+    VIR_AUTOFREE(char *) password = NULL;
 
     virObjectLock(privconn);
     if (privconn->numAuths == 0) {
@@ -1389,8 +1360,6 @@ testConnectAuthenticate(virConnectPtr conn,
     ret = 0;
  cleanup:
     virObjectUnlock(privconn);
-    VIR_FREE(username);
-    VIR_FREE(password);
     return ret;
 }
 
@@ -1978,12 +1947,12 @@ testDomainSaveFlags(virDomainPtr domain, const char *path,
                     const char *dxml, unsigned int flags)
 {
     testDriverPtr privconn = domain->conn->privateData;
-    char *xml = NULL;
     int fd = -1;
     int len;
     virDomainObjPtr privdom;
     virObjectEventPtr event = NULL;
     int ret = -1;
+    VIR_AUTOFREE(char *) xml = NULL;
 
     virCheckFlags(0, -1);
     if (dxml) {
@@ -2053,8 +2022,6 @@ testDomainSaveFlags(virDomainPtr domain, const char *path,
 
     ret = 0;
  cleanup:
-    VIR_FREE(xml);
-
     /* Don't report failure in close or unlink, because
      * in either case we're already in a failure scenario
      * and have reported an earlier error */
@@ -2081,7 +2048,6 @@ testDomainRestoreFlags(virConnectPtr conn,
                        unsigned int flags)
 {
     testDriverPtr privconn = conn->privateData;
-    char *xml = NULL;
     char magic[15];
     int fd = -1;
     int len;
@@ -2089,6 +2055,7 @@ testDomainRestoreFlags(virConnectPtr conn,
     virDomainObjPtr dom = NULL;
     virObjectEventPtr event = NULL;
     int ret = -1;
+    VIR_AUTOFREE(char *) xml = NULL;
 
     virCheckFlags(0, -1);
     if (dxml) {
@@ -2163,7 +2130,6 @@ testDomainRestoreFlags(virConnectPtr conn,
 
  cleanup:
     virDomainDefFree(def);
-    VIR_FREE(xml);
     VIR_FORCE_CLOSE(fd);
     virDomainObjEndAPI(&dom);
     virObjectEventStateQueue(privconn->eventState, event);
@@ -2579,8 +2545,7 @@ testDomainRenameCallback(virDomainObjPtr privdom,
     virObjectEventPtr event_new = NULL;
     virObjectEventPtr event_old = NULL;
     int ret = -1;
-    char *new_dom_name = NULL;
-    char *old_dom_name = NULL;
+    VIR_AUTOFREE(char *) new_dom_name = NULL;
 
     virCheckFlags(0, -1);
 
@@ -2598,9 +2563,8 @@ testDomainRenameCallback(virDomainObjPtr privdom,
                                                   VIR_DOMAIN_EVENT_UNDEFINED_RENAMED);
 
     /* Switch name in domain definition. */
-    old_dom_name = privdom->def->name;
-    privdom->def->name = new_dom_name;
-    new_dom_name = NULL;
+    VIR_FREE(privdom->def->name);
+    VIR_STEAL_PTR(privdom->def->name, new_dom_name);
 
     event_new = virDomainEventLifecycleNewFromObj(privdom,
                                                   VIR_DOMAIN_EVENT_DEFINED,
@@ -2608,8 +2572,6 @@ testDomainRenameCallback(virDomainObjPtr privdom,
     ret = 0;
 
  cleanup:
-    VIR_FREE(old_dom_name);
-    VIR_FREE(new_dom_name);
     virObjectEventStateQueue(driver->eventState, event_old);
     virObjectEventStateQueue(driver->eventState, event_new);
     return ret;
@@ -2666,7 +2628,7 @@ static char *testDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
     virDomainObjPtr privdom;
     char *ret = NULL;
 
-    /* Flags checked by virDomainDefFormat */
+    virCheckFlags(VIR_DOMAIN_XML_COMMON_FLAGS, NULL);
 
     if (!(privdom = testDomObjFromDomain(domain)))
         return NULL;
@@ -4394,9 +4356,9 @@ testConnectFindStoragePoolSources(virConnectPtr conn ATTRIBUTE_UNUSED,
                                   const char *srcSpec,
                                   unsigned int flags)
 {
-    virStoragePoolSourcePtr source = NULL;
     int pool_type;
     char *ret = NULL;
+    VIR_AUTOPTR(virStoragePoolSource) source = NULL;
 
     virCheckFlags(0, NULL);
 
@@ -4404,40 +4366,38 @@ testConnectFindStoragePoolSources(virConnectPtr conn ATTRIBUTE_UNUSED,
     if (!pool_type) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("unknown storage pool type %s"), type);
-        goto cleanup;
+        return NULL;
     }
 
     if (srcSpec) {
         source = virStoragePoolDefParseSourceString(srcSpec, pool_type);
         if (!source)
-            goto cleanup;
+            return NULL;
     }
 
     switch (pool_type) {
 
     case VIR_STORAGE_POOL_LOGICAL:
         ignore_value(VIR_STRDUP(ret, defaultPoolSourcesLogicalXML));
-        break;
+        return ret;
 
     case VIR_STORAGE_POOL_NETFS:
         if (!source || !source->hosts[0].name) {
             virReportError(VIR_ERR_INVALID_ARG,
                            "%s", _("hostname must be specified for netfs sources"));
-            goto cleanup;
+            return NULL;
         }
 
         ignore_value(virAsprintf(&ret, defaultPoolSourcesNetFSXML,
                                  source->hosts[0].name));
-        break;
+        return ret;
 
     default:
         virReportError(VIR_ERR_NO_SUPPORT,
                        _("pool type '%s' does not support source discovery"), type);
     }
 
- cleanup:
-    virStoragePoolSourceFree(source);
-    return ret;
+    return NULL;
 }
 
 
@@ -4475,11 +4435,11 @@ testStoragePoolCreateXML(virConnectPtr conn,
                          unsigned int flags)
 {
     testDriverPtr privconn = conn->privateData;
-    virStoragePoolDefPtr newDef;
     virStoragePoolObjPtr obj = NULL;
     virStoragePoolDefPtr def;
     virStoragePoolPtr pool = NULL;
     virObjectEventPtr event = NULL;
+    VIR_AUTOPTR(virStoragePoolDef) newDef = NULL;
 
     virCheckFlags(0, NULL);
 
@@ -4528,7 +4488,6 @@ testStoragePoolCreateXML(virConnectPtr conn,
     pool = virGetStoragePool(conn, def->name, def->uuid, NULL, NULL);
 
  cleanup:
-    virStoragePoolDefFree(newDef);
     virObjectEventStateQueue(privconn->eventState, event);
     virStoragePoolObjEndAPI(&obj);
     virObjectUnlock(privconn);
@@ -4542,11 +4501,11 @@ testStoragePoolDefineXML(virConnectPtr conn,
                          unsigned int flags)
 {
     testDriverPtr privconn = conn->privateData;
-    virStoragePoolDefPtr newDef;
     virStoragePoolObjPtr obj = NULL;
     virStoragePoolDefPtr def;
     virStoragePoolPtr pool = NULL;
     virObjectEventPtr event = NULL;
+    VIR_AUTOPTR(virStoragePoolDef) newDef = NULL;
 
     virCheckFlags(0, NULL);
 
@@ -4577,7 +4536,6 @@ testStoragePoolDefineXML(virConnectPtr conn,
     pool = virGetStoragePool(conn, def->name, def->uuid, NULL, NULL);
 
  cleanup:
-    virStoragePoolDefFree(newDef);
     virObjectEventStateQueue(privconn->eventState, event);
     virStoragePoolObjEndAPI(&obj);
     virObjectUnlock(privconn);
@@ -5053,8 +5011,8 @@ testStorageVolCreateXML(virStoragePoolPtr pool,
     testDriverPtr privconn = pool->conn->privateData;
     virStoragePoolObjPtr obj;
     virStoragePoolDefPtr def;
-    virStorageVolDefPtr privvol = NULL;
     virStorageVolPtr ret = NULL;
+    VIR_AUTOPTR(virStorageVolDef) privvol = NULL;
 
     virCheckFlags(0, NULL);
 
@@ -5098,7 +5056,6 @@ testStorageVolCreateXML(virStoragePoolPtr pool,
     privvol = NULL;
 
  cleanup:
-    virStorageVolDefFree(privvol);
     virStoragePoolObjEndAPI(&obj);
     return ret;
 }
@@ -5113,8 +5070,9 @@ testStorageVolCreateXMLFrom(virStoragePoolPtr pool,
     testDriverPtr privconn = pool->conn->privateData;
     virStoragePoolObjPtr obj;
     virStoragePoolDefPtr def;
-    virStorageVolDefPtr privvol = NULL, origvol = NULL;
+    virStorageVolDefPtr origvol = NULL;
     virStorageVolPtr ret = NULL;
+    VIR_AUTOPTR(virStorageVolDef) privvol = NULL;
 
     virCheckFlags(0, NULL);
 
@@ -5166,7 +5124,6 @@ testStorageVolCreateXMLFrom(virStoragePoolPtr pool,
     privvol = NULL;
 
  cleanup:
-    virStorageVolDefFree(privvol);
     virStoragePoolObjEndAPI(&obj);
     return ret;
 }
@@ -5475,12 +5432,12 @@ testNodeDeviceMockCreateVport(testDriverPtr driver,
                               const char *wwnn,
                               const char *wwpn)
 {
-    char *xml = NULL;
     virNodeDeviceDefPtr def = NULL;
     virNodeDevCapsDefPtr caps;
     virNodeDeviceObjPtr obj = NULL, objcopy = NULL;
     virNodeDeviceDefPtr objdef;
     virObjectEventPtr event = NULL;
+    VIR_AUTOFREE(char *) xml = NULL;
 
     /* In the real code, we'd call virVHBAManageVport which would take the
      * wwnn/wwpn from the input XML in order to call the "vport_create"
@@ -5544,7 +5501,6 @@ testNodeDeviceMockCreateVport(testDriverPtr driver,
     virObjectEventStateQueue(driver->eventState, event);
 
  cleanup:
-    VIR_FREE(xml);
     virNodeDeviceDefFree(def);
     return obj;
 }
@@ -5557,10 +5513,11 @@ testNodeDeviceCreateXML(virConnectPtr conn,
 {
     testDriverPtr driver = conn->privateData;
     virNodeDeviceDefPtr def = NULL;
-    char *wwnn = NULL, *wwpn = NULL;
     virNodeDevicePtr dev = NULL, ret = NULL;
     virNodeDeviceObjPtr obj = NULL;
     virNodeDeviceDefPtr objdef;
+    VIR_AUTOFREE(char *) wwnn = NULL;
+    VIR_AUTOFREE(char *) wwpn = NULL;
 
     virCheckFlags(0, NULL);
 
@@ -5595,15 +5552,12 @@ testNodeDeviceCreateXML(virConnectPtr conn,
     if (VIR_STRDUP(dev->parentName, def->parent) < 0)
         goto cleanup;
 
-    ret = dev;
-    dev = NULL;
+    VIR_STEAL_PTR(ret, dev);
 
  cleanup:
     virNodeDeviceObjEndAPI(&obj);
     virNodeDeviceDefFree(def);
     virObjectUnref(dev);
-    VIR_FREE(wwnn);
-    VIR_FREE(wwpn);
     return ret;
 }
 
@@ -5615,8 +5569,9 @@ testNodeDeviceDestroy(virNodeDevicePtr dev)
     virNodeDeviceObjPtr obj = NULL;
     virNodeDeviceObjPtr parentobj = NULL;
     virNodeDeviceDefPtr def;
-    char *wwnn = NULL, *wwpn = NULL;
     virObjectEventPtr event = NULL;
+    VIR_AUTOFREE(char *) wwnn = NULL;
+    VIR_AUTOFREE(char *) wwpn = NULL;
 
     if (!(obj = testNodeDeviceObjFindByName(driver, dev->name)))
         return -1;
@@ -5654,8 +5609,6 @@ testNodeDeviceDestroy(virNodeDevicePtr dev)
  cleanup:
     virNodeDeviceObjEndAPI(&obj);
     virObjectEventStateQueue(driver->eventState, event);
-    VIR_FREE(wwnn);
-    VIR_FREE(wwpn);
     return ret;
 }
 
@@ -6244,7 +6197,7 @@ testDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     testDriverPtr privconn = snapshot->domain->conn->privateData;
 
-    virCheckFlags(VIR_DOMAIN_XML_SECURE, NULL);
+    virCheckFlags(VIR_DOMAIN_SNAPSHOT_XML_SECURE, NULL);
 
     if (!(vm = testDomObjFromSnapshot(snapshot)))
         return NULL;
@@ -6347,7 +6300,6 @@ testDomainSnapshotCreateXML(virDomainPtr domain,
     virDomainSnapshotObjPtr snap = NULL;
     virDomainSnapshotPtr snapshot = NULL;
     virObjectEventPtr event = NULL;
-    char *xml = NULL;
     bool update_current = true;
     bool redefine = flags & VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE;
     unsigned int parse_flags = VIR_DOMAIN_SNAPSHOT_PARSE_DISKS;
@@ -6432,7 +6384,6 @@ testDomainSnapshotCreateXML(virDomainPtr domain,
 
     snapshot = virGetDomainSnapshot(domain, snap->def->name);
  cleanup:
-    VIR_FREE(xml);
     if (vm) {
         if (snapshot) {
             virDomainSnapshotObjPtr other;

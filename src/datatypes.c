@@ -109,7 +109,7 @@ virDataTypesOnceInit(void)
     return 0;
 }
 
-VIR_ONCE_GLOBAL_INIT(virDataTypes)
+VIR_ONCE_GLOBAL_INIT(virDataTypes);
 
 /**
  * virGetConnect:
@@ -686,7 +686,7 @@ virGetSecret(virConnectPtr conn, const unsigned char *uuid,
 
     memcpy(&(ret->uuid[0]), uuid, VIR_UUID_BUFLEN);
     ret->usageType = usageType;
-    if (VIR_STRDUP(ret->usageID, usageID ? usageID : "") < 0)
+    if (VIR_STRDUP(ret->usageID, NULLSTR_EMPTY(usageID)) < 0)
         goto error;
 
     ret->conn = virObjectRef(conn);
@@ -763,6 +763,8 @@ virStreamDispose(void *obj)
     virStreamPtr st = obj;
     VIR_DEBUG("release dev %p", st);
 
+    if (st->ff)
+        st->ff(st->privateData);
     virObjectUnref(st->conn);
 }
 

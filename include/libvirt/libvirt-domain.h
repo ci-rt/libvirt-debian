@@ -904,6 +904,15 @@ typedef enum {
 # define VIR_MIGRATE_PARAM_BANDWIDTH         "bandwidth"
 
 /**
+ * VIR_MIGRATE_PARAM_BANDWIDTH_POSTCOPY:
+ *
+ * virDomainMigrate* params field: the maximum bandwidth (in MiB/s) that will
+ * be used for post-copy phase of a migration as VIR_TYPED_PARAM_ULLONG. If set
+ * to 0 or omitted, post-copy migration speed will not be limited.
+ */
+# define VIR_MIGRATE_PARAM_BANDWIDTH_POSTCOPY "bandwidth.postcopy"
+
+/**
  * VIR_MIGRATE_PARAM_GRAPHICS_URI:
  *
  * virDomainMigrate* params field: URI to use for migrating client's connection
@@ -1062,6 +1071,12 @@ int virDomainMigrateSetCompressionCache(virDomainPtr domain,
                                         unsigned long long cacheSize,
                                         unsigned int flags);
 
+/* Domain migration speed flags. */
+typedef enum {
+    /* Set or get maximum speed of post-copy migration. */
+    VIR_DOMAIN_MIGRATE_MAX_SPEED_POSTCOPY = (1 << 0),
+} virDomainMigrateMaxSpeedFlags;
+
 int virDomainMigrateSetMaxSpeed(virDomainPtr domain,
                                 unsigned long bandwidth,
                                 unsigned int flags);
@@ -1204,6 +1219,7 @@ int                     virDomainRestoreFlags   (virConnectPtr conn,
                                                  const char *dxml,
                                                  unsigned int flags);
 
+/* See below for virDomainSaveImageXMLFlags */
 char *          virDomainSaveImageGetXMLDesc    (virConnectPtr conn,
                                                  const char *file,
                                                  unsigned int flags);
@@ -1555,6 +1571,10 @@ typedef enum {
     VIR_DOMAIN_XML_UPDATE_CPU   = (1 << 2), /* update guest CPU requirements according to host CPU */
     VIR_DOMAIN_XML_MIGRATABLE   = (1 << 3), /* dump XML suitable for migration */
 } virDomainXMLFlags;
+
+typedef enum {
+    VIR_DOMAIN_SAVE_IMAGE_XML_SECURE         = VIR_DOMAIN_XML_SECURE, /* dump security sensitive information too */
+} virDomainSaveImageXMLFlags;
 
 char *                  virDomainGetXMLDesc     (virDomainPtr domain,
                                                  unsigned int flags);
@@ -2375,7 +2395,8 @@ int virDomainSetPerfEvents(virDomainPtr dom,
  * Describes various possible block jobs.
  */
 typedef enum {
-    VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN = 0, /* Placeholder */
+    /* Placeholder */
+    VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN = 0,
 
     /* Block Pull (virDomainBlockPull, or virDomainBlockRebase without
      * flags), job ends on completion */

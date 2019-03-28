@@ -161,7 +161,7 @@ static int vzDriverOnceInit(void)
 
     return 0;
 }
-VIR_ONCE_GLOBAL_INIT(vzDriver)
+VIR_ONCE_GLOBAL_INIT(vzDriver);
 
 vzDriverPtr
 vzGetDriverConnection(void)
@@ -182,12 +182,8 @@ vzDestroyDriverConnection(void)
     vzConnPtr privconn_list;
 
     virMutexLock(&vz_driver_lock);
-    driver = vz_driver;
-    vz_driver = NULL;
-
-    privconn_list = vz_conn_list;
-    vz_conn_list = NULL;
-
+    VIR_STEAL_PTR(driver, vz_driver);
+    VIR_STEAL_PTR(privconn_list, vz_conn_list);
     virMutexUnlock(&vz_driver_lock);
 
     while (privconn_list) {
@@ -728,7 +724,7 @@ vzDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
     virDomainObjPtr dom;
     char *ret = NULL;
 
-    /* Flags checked by virDomainDefFormat */
+    virCheckFlags(VIR_DOMAIN_XML_COMMON_FLAGS, NULL);
 
     if (!(dom = vzDomObjFromDomain(domain)))
         return NULL;
@@ -2277,7 +2273,7 @@ vzDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot, unsigned int flags)
     virDomainSnapshotObjListPtr snapshots = NULL;
     vzConnPtr privconn = snapshot->domain->conn->privateData;
 
-    virCheckFlags(VIR_DOMAIN_XML_SECURE, NULL);
+    virCheckFlags(VIR_DOMAIN_SNAPSHOT_XML_SECURE, NULL);
 
     if (!(dom = vzDomObjFromDomain(snapshot->domain)))
         return NULL;
@@ -3203,9 +3199,8 @@ vzDomainMigratePerformP2P(virDomainObjPtr dom,
                                 VIR_MIGRATE_PARAM_DEST_XML, dom_xml) < 0)
         goto done;
 
-    cookiein = cookieout;
+    VIR_STEAL_PTR(cookiein, cookieout);
     cookieinlen = cookieoutlen;
-    cookieout = NULL;
     cookieoutlen = 0;
     virObjectUnlock(dom);
     ret = dconn->driver->domainMigratePrepare3Params
@@ -3226,9 +3221,8 @@ vzDomainMigratePerformP2P(virDomainObjPtr dom,
     }
 
     VIR_FREE(cookiein);
-    cookiein = cookieout;
+    VIR_STEAL_PTR(cookiein, cookieout);
     cookieinlen = cookieoutlen;
-    cookieout = NULL;
     cookieoutlen = 0;
     if (vzDomainMigratePerformStep(dom, driver, params, nparams, cookiein,
                                    cookieinlen, flags) < 0) {

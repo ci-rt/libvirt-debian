@@ -36,6 +36,7 @@
 #include "rbd/librbd.h"
 #include "secret_util.h"
 #include "storage_util.h"
+#include <libxml/xpathInternals.h>
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
@@ -49,6 +50,137 @@ struct _virStorageBackendRBDState {
 
 typedef struct _virStorageBackendRBDState virStorageBackendRBDState;
 typedef virStorageBackendRBDState *virStorageBackendRBDStatePtr;
+
+typedef struct _virStoragePoolRBDConfigOptionsDef virStoragePoolRBDConfigOptionsDef;
+typedef virStoragePoolRBDConfigOptionsDef *virStoragePoolRBDConfigOptionsDefPtr;
+struct _virStoragePoolRBDConfigOptionsDef {
+    size_t noptions;
+    char **names;
+    char **values;
+};
+
+#define STORAGE_POOL_RBD_NAMESPACE_HREF "http://libvirt.org/schemas/storagepool/rbd/1.0"
+
+static void
+virStoragePoolDefRBDNamespaceFree(void *nsdata)
+{
+    virStoragePoolRBDConfigOptionsDefPtr cmdopts = nsdata;
+    size_t i;
+
+    if (!cmdopts)
+        return;
+
+    for (i = 0; i < cmdopts->noptions; i++) {
+        VIR_FREE(cmdopts->names[i]);
+        VIR_FREE(cmdopts->values[i]);
+    }
+    VIR_FREE(cmdopts->names);
+    VIR_FREE(cmdopts->values);
+
+    VIR_FREE(cmdopts);
+}
+
+
+static int
+virStoragePoolDefRBDNamespaceParse(xmlXPathContextPtr ctxt,
+                                   void **data)
+{
+    virStoragePoolRBDConfigOptionsDefPtr cmdopts = NULL;
+    int nnodes;
+    size_t i;
+    int ret = -1;
+    VIR_AUTOFREE(xmlNodePtr *)nodes = NULL;
+
+    if (xmlXPathRegisterNs(ctxt, BAD_CAST "rbd",
+                           BAD_CAST STORAGE_POOL_RBD_NAMESPACE_HREF) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to register xml namespace '%s'"),
+                       STORAGE_POOL_RBD_NAMESPACE_HREF);
+        return -1;
+    }
+
+    nnodes = virXPathNodeSet("./rbd:config_opts/rbd:option", ctxt, &nodes);
+    if (nnodes < 0)
+        return -1;
+
+    if (nnodes == 0)
+        return 0;
+
+    if (VIR_ALLOC(cmdopts) < 0)
+        goto cleanup;
+
+    if (VIR_ALLOC_N(cmdopts->names, nnodes) < 0 ||
+        VIR_ALLOC_N(cmdopts->values, nnodes) < 0)
+        goto cleanup;
+
+    for (i = 0; i < nnodes; i++) {
+        if (!(cmdopts->names[cmdopts->noptions] =
+              virXMLPropString(nodes[i], "name"))) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("no rbd option name specified"));
+            goto cleanup;
+        }
+        if (*cmdopts->names[cmdopts->noptions] == '\0') {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("empty rbd option name specified"));
+            goto cleanup;
+        }
+        if (!(cmdopts->values[cmdopts->noptions] =
+              virXMLPropString(nodes[i], "value"))) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("no rbd option value specified for name '%s'"),
+                           cmdopts->names[cmdopts->noptions]);
+            goto cleanup;
+        }
+        if (*cmdopts->values[cmdopts->noptions] == '\0') {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("empty rbd option value specified for name '%s'"),
+                           cmdopts->names[cmdopts->noptions]);
+            goto cleanup;
+        }
+        cmdopts->noptions++;
+    }
+
+    VIR_STEAL_PTR(*data, cmdopts);
+    ret = 0;
+
+ cleanup:
+    virStoragePoolDefRBDNamespaceFree(cmdopts);
+    return ret;
+}
+
+
+static int
+virStoragePoolDefRBDNamespaceFormatXML(virBufferPtr buf,
+                                       void *nsdata)
+{
+    size_t i;
+    virStoragePoolRBDConfigOptionsDefPtr def = nsdata;
+
+    if (!def)
+        return 0;
+
+    virBufferAddLit(buf, "<rbd:config_opts>\n");
+    virBufferAdjustIndent(buf, 2);
+
+    for (i = 0; i < def->noptions; i++) {
+        virBufferEscapeString(buf, "<rbd:option name='%s' ", def->names[i]);
+        virBufferEscapeString(buf, "value='%s'/>\n", def->values[i]);
+    }
+
+    virBufferAdjustIndent(buf, -2);
+    virBufferAddLit(buf, "</rbd:config_opts>\n");
+
+    return 0;
+}
+
+
+static const char *
+virStoragePoolDefRBDNamespaceHref(void)
+{
+    return "xmlns:rbd='" STORAGE_POOL_RBD_NAMESPACE_HREF "'";
+}
+
 
 static int
 virStorageBackendRBDRADOSConfSet(rados_t cluster,
@@ -69,22 +201,23 @@ virStorageBackendRBDRADOSConfSet(rados_t cluster,
 
 static int
 virStorageBackendRBDOpenRADOSConn(virStorageBackendRBDStatePtr ptr,
-                                  virStoragePoolSourcePtr source)
+                                  virStoragePoolDefPtr def)
 {
     int ret = -1;
     int r = 0;
+    virStoragePoolSourcePtr source = &def->source;
     virStorageAuthDefPtr authdef = source->auth;
     unsigned char *secret_value = NULL;
     size_t secret_value_size = 0;
     char *rados_key = NULL;
     virBuffer mon_host = VIR_BUFFER_INITIALIZER;
     size_t i;
-    char *mon_buff = NULL;
     const char *client_mount_timeout = "30";
     const char *mon_op_timeout = "30";
     const char *osd_op_timeout = "30";
     const char *rbd_default_format = "2";
     virConnectPtr conn = NULL;
+    VIR_AUTOFREE(char *) mon_buff = NULL;
 
     if (authdef) {
         VIR_DEBUG("Using cephx authorization, username: %s", authdef->username);
@@ -183,6 +316,22 @@ virStorageBackendRBDOpenRADOSConn(virStorageBackendRBDStatePtr ptr,
                                          rbd_default_format) < 0)
         goto cleanup;
 
+    if (def->namespaceData) {
+        virStoragePoolRBDConfigOptionsDefPtr cmdopts = def->namespaceData;
+        char uuidstr[VIR_UUID_STRING_BUFLEN];
+
+        for (i = 0; i < cmdopts->noptions; i++) {
+            if (virStorageBackendRBDRADOSConfSet(ptr->cluster,
+                                                 cmdopts->names[i],
+                                                 cmdopts->values[i]) < 0)
+                goto cleanup;
+        }
+
+        virUUIDFormat(def->uuid, uuidstr);
+        VIR_WARN("Storage Pool name='%s' uuid='%s' is tainted by custom "
+                 "config_opts from XML", def->name, uuidstr);
+    }
+
     ptr->starttime = time(0);
     if ((r = rados_connect(ptr->cluster)) < 0) {
         virReportSystemError(-r, _("failed to connect to the RADOS monitor on: %s"),
@@ -198,7 +347,6 @@ virStorageBackendRBDOpenRADOSConn(virStorageBackendRBDStatePtr ptr,
 
     virObjectUnref(conn);
     virBufferFreeAndReset(&mon_host);
-    VIR_FREE(mon_buff);
     return ret;
 }
 
@@ -256,7 +404,7 @@ virStorageBackendRBDNewState(virStoragePoolObjPtr pool)
     if (VIR_ALLOC(ptr) < 0)
         return NULL;
 
-    if (virStorageBackendRBDOpenRADOSConn(ptr, &def->source) < 0)
+    if (virStorageBackendRBDOpenRADOSConn(ptr, def) < 0)
         goto error;
 
     if (virStorageBackendRBDOpenIoCTX(ptr, pool) < 0)
@@ -424,11 +572,12 @@ virStorageBackendRBDRefreshPool(virStoragePoolObjPtr pool)
     int ret = -1;
     int len = -1;
     int r = 0;
-    char *name, *names = NULL;
+    char *name;
     virStoragePoolDefPtr def = virStoragePoolObjGetDef(pool);
     virStorageBackendRBDStatePtr ptr = NULL;
     struct rados_cluster_stat_t clusterstat;
     struct rados_pool_stat_t poolstat;
+    VIR_AUTOFREE(char *) names = NULL;
 
     if (!(ptr = virStorageBackendRBDNewState(pool)))
         goto cleanup;
@@ -468,7 +617,7 @@ virStorageBackendRBDRefreshPool(virStoragePoolObjPtr pool)
     }
 
     for (name = names; name < names + max_size;) {
-        virStorageVolDefPtr vol;
+        VIR_AUTOPTR(virStorageVolDef) vol = NULL;
 
         if (STREQ(name, ""))
             break;
@@ -476,10 +625,8 @@ virStorageBackendRBDRefreshPool(virStoragePoolObjPtr pool)
         if (VIR_ALLOC(vol) < 0)
             goto cleanup;
 
-        if (VIR_STRDUP(vol->name, name) < 0) {
-            VIR_FREE(vol);
+        if (VIR_STRDUP(vol->name, name) < 0)
             goto cleanup;
-        }
 
         name += strlen(name) + 1;
 
@@ -498,15 +645,14 @@ virStorageBackendRBDRefreshPool(virStoragePoolObjPtr pool)
             if (r == -ENOENT || r == -ETIMEDOUT)
                 continue;
 
-            virStorageVolDefFree(vol);
             goto cleanup;
         }
 
         if (virStoragePoolObjAddVol(pool, vol) < 0) {
-            virStorageVolDefFree(vol);
             virStoragePoolObjClearVols(pool);
             goto cleanup;
         }
+        vol = NULL;
     }
 
     VIR_DEBUG("Found %zu images in RBD pool %s",
@@ -515,7 +661,6 @@ virStorageBackendRBDRefreshPool(virStoragePoolObjPtr pool)
     ret = 0;
 
  cleanup:
-    VIR_FREE(names);
     virStorageBackendRBDFreeState(&ptr);
     return ret;
 }
@@ -530,8 +675,8 @@ virStorageBackendRBDCleanupSnapshots(rados_ioctx_t ioctx,
     int max_snaps = 128;
     int snap_count, protected;
     size_t i;
-    rbd_snap_info_t *snaps = NULL;
     rbd_image_t image = NULL;
+    VIR_AUTOFREE(rbd_snap_info_t *) snaps = NULL;
 
     if ((r = rbd_open(ioctx, vol->name, &image, NULL)) < 0) {
        virReportSystemError(-r, _("failed to open the RBD image '%s'"),
@@ -589,8 +734,6 @@ virStorageBackendRBDCleanupSnapshots(rados_ioctx_t ioctx,
  cleanup:
     if (snaps)
         rbd_snap_list_end(snaps);
-
-    VIR_FREE(snaps);
 
     if (image)
         rbd_close(image);
@@ -802,8 +945,8 @@ virStorageBackendRBDSnapshotFindNoDiff(rbd_image_t image,
     int max_snaps = 128;
     size_t i;
     int diff;
-    rbd_snap_info_t *snaps = NULL;
     rbd_image_info_t info;
+    VIR_AUTOFREE(rbd_snap_info_t *) snaps = NULL;
 
     if ((r = rbd_stat(image, &info, sizeof(info))) < 0) {
         virReportSystemError(-r, _("failed to stat the RBD image %s"),
@@ -875,8 +1018,6 @@ virStorageBackendRBDSnapshotFindNoDiff(rbd_image_t image,
  cleanup:
     if (snaps)
         rbd_snap_list_end(snaps);
-
-    VIR_FREE(snaps);
 
     return ret;
 }
@@ -951,8 +1092,8 @@ virStorageBackendRBDCloneImage(rados_ioctx_t io,
     uint64_t stripe_count;
     uint64_t stripe_unit;
     virBuffer snapname = VIR_BUFFER_INITIALIZER;
-    char *snapname_buff = NULL;
     rbd_image_t image = NULL;
+    VIR_AUTOFREE(char *) snapname_buff = NULL;
 
     if ((r = rbd_open(io, origvol, &image, NULL)) < 0) {
         virReportSystemError(-r, _("failed to open the RBD image %s"),
@@ -1023,7 +1164,6 @@ virStorageBackendRBDCloneImage(rados_ioctx_t io,
 
  cleanup:
     virBufferFreeAndReset(&snapname);
-    VIR_FREE(snapname_buff);
 
     if (image)
         rbd_close(image);
@@ -1124,13 +1264,12 @@ virStorageBackendRBDVolWipeZero(rbd_image_t image,
                                 uint64_t stripe_count)
 {
     int r = -1;
-    int ret = -1;
     unsigned long long offset = 0;
     unsigned long long length;
-    char *writebuf;
+    VIR_AUTOFREE(char *) writebuf = NULL;
 
     if (VIR_ALLOC_N(writebuf, info->obj_size * stripe_count) < 0)
-        goto cleanup;
+        return -1;
 
     while (offset < info->size) {
         length = MIN((info->size - offset), (info->obj_size * stripe_count));
@@ -1139,7 +1278,7 @@ virStorageBackendRBDVolWipeZero(rbd_image_t image,
             virReportSystemError(-r, _("writing %llu bytes failed on "
                                        "RBD image %s at offset %llu"),
                                        length, imgname, offset);
-            goto cleanup;
+            return -1;
         }
 
         VIR_DEBUG("Wrote %llu bytes to RBD image %s at offset %llu",
@@ -1148,12 +1287,7 @@ virStorageBackendRBDVolWipeZero(rbd_image_t image,
         offset += length;
     }
 
-    ret = 0;
-
- cleanup:
-    VIR_FREE(writebuf);
-
-    return ret;
+    return 0;
 }
 
 static int
@@ -1277,6 +1411,7 @@ virStorageBackendRBDVolWipe(virStoragePoolObjPtr pool,
     return ret;
 }
 
+
 virStorageBackend virStorageBackendRBD = {
     .type = VIR_STORAGE_POOL_RBD,
 
@@ -1291,8 +1426,20 @@ virStorageBackend virStorageBackendRBD = {
 };
 
 
+static virStoragePoolXMLNamespace virStoragePoolRBDXMLNamespace = {
+    .parse = virStoragePoolDefRBDNamespaceParse,
+    .free = virStoragePoolDefRBDNamespaceFree,
+    .format = virStoragePoolDefRBDNamespaceFormatXML,
+    .href = virStoragePoolDefRBDNamespaceHref,
+};
+
+
 int
 virStorageBackendRBDRegister(void)
 {
-    return virStorageBackendRegister(&virStorageBackendRBD);
+    if (virStorageBackendRegister(&virStorageBackendRBD) < 0)
+        return -1;
+
+    return virStorageBackendNamespaceInit(VIR_STORAGE_POOL_RBD,
+                                          &virStoragePoolRBDXMLNamespace);
 }

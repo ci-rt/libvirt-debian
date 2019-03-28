@@ -241,9 +241,19 @@
 # define NULLSTR(s) ((s) ? (s) : "<null>")
 
 /*
- * Similar to NULLSTR, but print '-' to make it more user friendly.
+ * Turn a NULL string into an empty string
  */
-# define EMPTYSTR(s) ((s) ? (s) : "-")
+# define NULLSTR_EMPTY(s) ((s) ? (s) : "")
+
+/*
+ * Turn a NULL string into a star
+ */
+# define NULLSTR_STAR(s) ((s) ? (s) : "*")
+
+/*
+ * Turn a NULL string into a minus sign
+ */
+# define NULLSTR_MINUS(s) ((s) ? (s) : "-")
 
 /**
  * SWAP:

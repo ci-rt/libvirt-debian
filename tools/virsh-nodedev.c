@@ -755,11 +755,11 @@ cmdNodeDeviceReset(vshControl *ctl, const vshCmd *cmd)
 /*
  * "nodedev-event" command
  */
-VIR_ENUM_DECL(virshNodeDeviceEvent)
+VIR_ENUM_DECL(virshNodeDeviceEvent);
 VIR_ENUM_IMPL(virshNodeDeviceEvent,
               VIR_NODE_DEVICE_EVENT_LAST,
               N_("Created"),
-              N_("Deleted"))
+              N_("Deleted"));
 
 static const char *
 virshNodeDeviceEventToString(int event)

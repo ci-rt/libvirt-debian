@@ -1659,12 +1659,12 @@ vshCommandStringGetArg(vshControl *ctl, vshCommandParser *parser, char **res,
 
     *res = q;
 
-    while (*p && (*p == ' ' || *p == '\t'))
-        p++;
+    while (*p == ' ' || *p == '\t' || (*p == '\\' && p[1] == '\n'))
+        p += 1 + (*p == '\\');
 
     if (*p == '\0')
         return VSH_TK_END;
-    if (*p == ';') {
+    if (*p == ';' || *p == '\n') {
         parser->pos = ++p;             /* = \0 or begin of next command */
         return VSH_TK_SUBCMD_END;
     }
@@ -1672,7 +1672,7 @@ vshCommandStringGetArg(vshControl *ctl, vshCommandParser *parser, char **res,
     while (*p) {
         /* end of token is blank space or ';' */
         if (!double_quote && !single_quote &&
-            (*p == ' ' || *p == '\t' || *p == ';'))
+            (*p == ' ' || *p == '\t' || *p == ';' || *p == '\n'))
             break;
 
         if (!double_quote && *p == '\'') { /* single quote */
@@ -1681,7 +1681,7 @@ vshCommandStringGetArg(vshControl *ctl, vshCommandParser *parser, char **res,
             continue;
         } else if (!single_quote && *p == '\\') { /* escape */
             /*
-             * The same as the bash, a \ in "" is an escaper,
+             * The same as in shell, a \ in "" is an escaper,
              * but a \ in '' is not an escaper.
              */
             p++;
@@ -1689,6 +1689,10 @@ vshCommandStringGetArg(vshControl *ctl, vshCommandParser *parser, char **res,
                 if (report)
                     vshError(ctl, "%s", _("dangling \\"));
                 return VSH_TK_ERROR;
+            } else if (*p == '\n') {
+                /* Elide backslash-newline entirely */
+                p++;
+                continue;
             }
         } else if (!single_quote && *p == '"') { /* double quote */
             double_quote = !double_quote;

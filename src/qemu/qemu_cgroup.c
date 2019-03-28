@@ -45,8 +45,8 @@ VIR_LOG_INIT("qemu.qemu_cgroup");
 const char *const defaultDeviceACL[] = {
     "/dev/null", "/dev/full", "/dev/zero",
     "/dev/random", "/dev/urandom",
-    "/dev/ptmx", "/dev/kvm", "/dev/kqemu",
-    "/dev/rtc", "/dev/hpet", "/dev/sev",
+    "/dev/ptmx", "/dev/kvm",
+    "/dev/rtc", "/dev/hpet",
     NULL,
 };
 #define DEVICE_PTY_MAJOR 136
@@ -204,13 +204,13 @@ qemuTeardownImageCgroup(virDomainObjPtr vm,
 
 
 int
-qemuSetupDiskCgroup(virDomainObjPtr vm,
-                    virDomainDiskDefPtr disk)
+qemuSetupImageChainCgroup(virDomainObjPtr vm,
+                          virStorageSourcePtr src)
 {
     virStorageSourcePtr next;
     bool forceReadonly = false;
 
-    for (next = disk->src; virStorageSourceIsBacking(next); next = next->backingStore) {
+    for (next = src; virStorageSourceIsBacking(next); next = next->backingStore) {
         if (qemuSetupImageCgroupInternal(vm, next, forceReadonly) < 0)
             return -1;
 
@@ -223,12 +223,12 @@ qemuSetupDiskCgroup(virDomainObjPtr vm,
 
 
 int
-qemuTeardownDiskCgroup(virDomainObjPtr vm,
-                       virDomainDiskDefPtr disk)
+qemuTeardownImageChainCgroup(virDomainObjPtr vm,
+                             virStorageSourcePtr src)
 {
     virStorageSourcePtr next;
 
-    for (next = disk->src; virStorageSourceIsBacking(next); next = next->backingStore) {
+    for (next = src; virStorageSourceIsBacking(next); next = next->backingStore) {
         if (qemuTeardownImageCgroup(vm, next) < 0)
             return -1;
     }
@@ -692,6 +692,22 @@ qemuTeardownChardevCgroup(virDomainObjPtr vm,
 
 
 static int
+qemuSetupSEVCgroup(virDomainObjPtr vm)
+{
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    int ret;
+
+    if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_DEVICES))
+        return 0;
+
+    ret = virCgroupAllowDevicePath(priv->cgroup, "/dev/sev",
+                                   VIR_CGROUP_DEVICE_RW, false);
+    virDomainAuditCgroupPath(vm, priv->cgroup, "allow", "/dev/sev",
+                             "rw", ret);
+    return ret;
+}
+
+static int
 qemuSetupDevicesCgroup(virDomainObjPtr vm)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
@@ -720,7 +736,7 @@ qemuSetupDevicesCgroup(virDomainObjPtr vm)
         goto cleanup;
 
     for (i = 0; i < vm->def->ndisks; i++) {
-        if (qemuSetupDiskCgroup(vm, vm->def->disks[i]) < 0)
+        if (qemuSetupImageChainCgroup(vm, vm->def->disks[i]->src) < 0)
             goto cleanup;
     }
 
@@ -797,6 +813,9 @@ qemuSetupDevicesCgroup(virDomainObjPtr vm)
         if (qemuSetupRNGCgroup(vm, vm->def->rngs[i]) < 0)
             goto cleanup;
     }
+
+    if (vm->def->sev && qemuSetupSEVCgroup(vm) < 0)
+        goto cleanup;
 
     ret = 0;
  cleanup:

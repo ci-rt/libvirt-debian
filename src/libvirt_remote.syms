@@ -38,9 +38,8 @@ virNetClientRegisterKeepAlive;
 virNetClientRemoteAddrStringSASL;
 virNetClientRemoveStream;
 virNetClientSendNonBlock;
-virNetClientSendNoReply;
+virNetClientSendStream;
 virNetClientSendWithReply;
-virNetClientSendWithReplyStream;
 virNetClientSetCloseCallback;
 virNetClientSetTLSSession;
 
@@ -55,6 +54,8 @@ virNetClientProgramNew;
 
 
 # rpc/virnetclientstream.h
+virNetClientStreamCheckSendStatus;
+virNetClientStreamCheckState;
 virNetClientStreamEOF;
 virNetClientStreamEventAddCallback;
 virNetClientStreamEventRemoveCallback;
@@ -62,7 +63,6 @@ virNetClientStreamEventUpdateCallback;
 virNetClientStreamMatches;
 virNetClientStreamNew;
 virNetClientStreamQueuePacket;
-virNetClientStreamRaiseError;
 virNetClientStreamRecvHole;
 virNetClientStreamRecvPacket;
 virNetClientStreamSendHole;

@@ -110,50 +110,47 @@ virStorageBackendSheepdogAddHostArg(virCommandPtr cmd,
 static int
 virStorageBackendSheepdogAddVolume(virStoragePoolObjPtr pool, const char *diskInfo)
 {
-    virStorageVolDefPtr vol = NULL;
+    VIR_AUTOPTR(virStorageVolDef) vol = NULL;
 
     if (diskInfo == NULL) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("Missing disk info when adding volume"));
-        goto error;
+        return -1;
     }
 
     if (VIR_ALLOC(vol) < 0 || VIR_STRDUP(vol->name, diskInfo) < 0)
-        goto error;
+        return -1;
 
     vol->type = VIR_STORAGE_VOL_NETWORK;
 
     if (virStorageBackendSheepdogRefreshVol(pool, vol) < 0)
-        goto error;
+        return -1;
 
     if (virStoragePoolObjAddVol(pool, vol) < 0)
-        goto error;
+        return -1;
+    vol = NULL;
 
     return 0;
-
- error:
-    virStorageVolDefFree(vol);
-    return -1;
 }
 
 static int
 virStorageBackendSheepdogRefreshAllVol(virStoragePoolObjPtr pool)
 {
-    int ret = -1;
-    char *output = NULL;
-    char **lines = NULL;
-    char **cells = NULL;
     size_t i;
+    VIR_AUTOFREE(char *) output = NULL;
+    VIR_AUTOPTR(virString) lines = NULL;
+    VIR_AUTOPTR(virString) cells = NULL;
+    VIR_AUTOPTR(virCommand) cmd = NULL;
 
-    virCommandPtr cmd = virCommandNewArgList(SHEEPDOGCLI, "vdi", "list", "-r", NULL);
+    cmd = virCommandNewArgList(SHEEPDOGCLI, "vdi", "list", "-r", NULL);
     virStorageBackendSheepdogAddHostArg(cmd, pool);
     virCommandSetOutputBuffer(cmd, &output);
     if (virCommandRun(cmd, NULL) < 0)
-        goto cleanup;
+        return -1;
 
     lines = virStringSplit(output, "\n", 0);
     if (lines == NULL)
-        goto cleanup;
+        return -1;
 
     for (i = 0; lines[i]; i++) {
         const char *line = lines[i];
@@ -165,46 +162,34 @@ virStorageBackendSheepdogRefreshAllVol(virStoragePoolObjPtr pool)
         if (cells != NULL &&
             virStringListLength((const char * const *)cells) > 2) {
             if (virStorageBackendSheepdogAddVolume(pool, cells[1]) < 0)
-                goto cleanup;
+                return -1;
         }
 
         virStringListFree(cells);
         cells = NULL;
     }
 
-    ret = 0;
-
- cleanup:
-    virCommandFree(cmd);
-    virStringListFree(lines);
-    virStringListFree(cells);
-    VIR_FREE(output);
-    return ret;
+    return 0;
 }
 
 
 static int
 virStorageBackendSheepdogRefreshPool(virStoragePoolObjPtr pool)
 {
-    int ret = -1;
-    char *output = NULL;
-    virCommandPtr cmd;
+    VIR_AUTOFREE(char *) output = NULL;
+    VIR_AUTOPTR(virCommand) cmd = NULL;
 
     cmd = virCommandNewArgList(SHEEPDOGCLI, "node", "info", "-r", NULL);
     virStorageBackendSheepdogAddHostArg(cmd, pool);
     virCommandSetOutputBuffer(cmd, &output);
     if (virCommandRun(cmd, NULL) < 0)
-        goto cleanup;
+        return -1;
 
     if (virStorageBackendSheepdogParseNodeInfo(virStoragePoolObjGetDef(pool),
                                                output) < 0)
-        goto cleanup;
+        return -1;
 
-    ret = virStorageBackendSheepdogRefreshAllVol(pool);
- cleanup:
-    virCommandFree(cmd);
-    VIR_FREE(output);
-    return ret;
+    return virStorageBackendSheepdogRefreshAllVol(pool);
 }
 
 
@@ -213,14 +198,13 @@ virStorageBackendSheepdogDeleteVol(virStoragePoolObjPtr pool,
                                    virStorageVolDefPtr vol,
                                    unsigned int flags)
 {
+    VIR_AUTOPTR(virCommand) cmd = NULL;
+
     virCheckFlags(0, -1);
 
-    virCommandPtr cmd = virCommandNewArgList(SHEEPDOGCLI, "vdi", "delete", vol->name, NULL);
+    cmd = virCommandNewArgList(SHEEPDOGCLI, "vdi", "delete", vol->name, NULL);
     virStorageBackendSheepdogAddHostArg(cmd, pool);
-    int ret = virCommandRun(cmd, NULL);
-
-    virCommandFree(cmd);
-    return ret;
+    return virCommandRun(cmd, NULL);
 }
 
 
@@ -257,27 +241,20 @@ virStorageBackendSheepdogBuildVol(virStoragePoolObjPtr pool,
                                   virStorageVolDefPtr vol,
                                   unsigned int flags)
 {
-    int ret = -1;
-    virCommandPtr cmd = NULL;
+    VIR_AUTOPTR(virCommand) cmd = NULL;
 
     virCheckFlags(0, -1);
 
     if (!vol->target.capacity) {
         virReportError(VIR_ERR_NO_SUPPORT, "%s",
                        _("volume capacity required for this pool"));
-        goto cleanup;
+        return -1;
     }
 
     cmd = virCommandNewArgList(SHEEPDOGCLI, "vdi", "create", vol->name, NULL);
     virCommandAddArgFormat(cmd, "%llu", vol->target.capacity);
     virStorageBackendSheepdogAddHostArg(cmd, pool);
-    if (virCommandRun(cmd, NULL) < 0)
-        goto cleanup;
-
-    ret = 0;
- cleanup:
-    virCommandFree(cmd);
-    return ret;
+    return virCommandRun(cmd, NULL);
 }
 
 
@@ -346,33 +323,29 @@ static int
 virStorageBackendSheepdogRefreshVol(virStoragePoolObjPtr pool,
                                     virStorageVolDefPtr vol)
 {
-    int ret;
     char *output = NULL;
     virStoragePoolDefPtr def = virStoragePoolObjGetDef(pool);
-    virCommandPtr cmd = virCommandNewArgList(SHEEPDOGCLI, "vdi", "list", vol->name, "-r", NULL);
+    VIR_AUTOPTR(virCommand) cmd = NULL;
 
+    cmd = virCommandNewArgList(SHEEPDOGCLI, "vdi", "list", vol->name, "-r", NULL);
     virStorageBackendSheepdogAddHostArg(cmd, pool);
     virCommandSetOutputBuffer(cmd, &output);
-    ret = virCommandRun(cmd, NULL);
+    if (virCommandRun(cmd, NULL) < 0)
+        return -1;
 
-    if (ret < 0)
-        goto cleanup;
-
-    if ((ret = virStorageBackendSheepdogParseVdiList(vol, output)) < 0)
-        goto cleanup;
+    if (virStorageBackendSheepdogParseVdiList(vol, output) < 0)
+        return -1;
 
     vol->type = VIR_STORAGE_VOL_NETWORK;
 
     VIR_FREE(vol->key);
-    if (virAsprintf(&vol->key, "%s/%s",
-                    def->source.name, vol->name) < 0)
-        goto cleanup;
+    if (virAsprintf(&vol->key, "%s/%s", def->source.name, vol->name) < 0)
+        return -1;
 
     VIR_FREE(vol->target.path);
     ignore_value(VIR_STRDUP(vol->target.path, vol->name));
- cleanup:
-    virCommandFree(cmd);
-    return ret;
+
+    return 0;
 }
 
 
@@ -382,15 +355,14 @@ virStorageBackendSheepdogResizeVol(virStoragePoolObjPtr pool,
                                    unsigned long long capacity,
                                    unsigned int flags)
 {
+    VIR_AUTOPTR(virCommand) cmd = NULL;
+
     virCheckFlags(0, -1);
 
-    virCommandPtr cmd = virCommandNewArgList(SHEEPDOGCLI, "vdi", "resize", vol->name, NULL);
+    cmd = virCommandNewArgList(SHEEPDOGCLI, "vdi", "resize", vol->name, NULL);
     virCommandAddArgFormat(cmd, "%llu", capacity);
     virStorageBackendSheepdogAddHostArg(cmd, pool);
-    int ret = virCommandRun(cmd, NULL);
-
-    virCommandFree(cmd);
-    return ret;
+    return virCommandRun(cmd, NULL);
 }
 
 

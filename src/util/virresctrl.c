@@ -33,7 +33,7 @@
 
 #define VIR_FROM_THIS VIR_FROM_RESCTRL
 
-VIR_LOG_INIT("util.virresctrl")
+VIR_LOG_INIT("util.virresctrl");
 
 
 /* Resctrl is short for Resource Control.  It might be implemented for various
@@ -56,26 +56,30 @@ VIR_LOG_INIT("util.virresctrl")
 VIR_ENUM_IMPL(virCacheKernel, VIR_CACHE_TYPE_LAST,
               "Unified",
               "Instruction",
-              "Data")
+              "Data",
+);
 
 /* Cache name mapping for our XML naming. */
 VIR_ENUM_IMPL(virCache, VIR_CACHE_TYPE_LAST,
               "both",
               "code",
-              "data")
+              "data",
+);
 
 /* Cache name mapping for resctrl interface naming. */
-VIR_ENUM_DECL(virResctrl)
+VIR_ENUM_DECL(virResctrl);
 VIR_ENUM_IMPL(virResctrl, VIR_CACHE_TYPE_LAST,
               "",
               "CODE",
-              "DATA")
+              "DATA",
+);
 
 /* Monitor feature name prefix mapping for monitor naming */
 VIR_ENUM_IMPL(virResctrlMonitorPrefix, VIR_RESCTRL_MONITOR_TYPE_LAST,
               "__unsupported__",
               "llc_",
-              "mbm_")
+              "mbm_",
+);
 
 
 /* All private typedefs so that they exist for all later definitions.  This way
@@ -439,7 +443,7 @@ virResctrlOnceInit(void)
     return 0;
 }
 
-VIR_ONCE_GLOBAL_INIT(virResctrl)
+VIR_ONCE_GLOBAL_INIT(virResctrl);
 
 
 /* Common functions */

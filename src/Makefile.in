@@ -546,6 +546,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-driver-xenapi.m4 \
 	$(top_srcdir)/m4/virt-dtrace.m4 \
 	$(top_srcdir)/m4/virt-external-programs.m4 \
+	$(top_srcdir)/m4/virt-firewalld-zone.m4 \
 	$(top_srcdir)/m4/virt-firewalld.m4 \
 	$(top_srcdir)/m4/virt-fuse.m4 $(top_srcdir)/m4/virt-gluster.m4 \
 	$(top_srcdir)/m4/virt-gnutls.m4 $(top_srcdir)/m4/virt-hal.m4 \
@@ -1973,6 +1974,7 @@ am__objects_89 = util/libvirt_util_la-viralloc.lo \
 	util/libvirt_util_la-virfdstream.lo \
 	util/libvirt_util_la-virfile.lo \
 	util/libvirt_util_la-virfirewall.lo \
+	util/libvirt_util_la-virfirewalld.lo \
 	util/libvirt_util_la-virfirmware.lo \
 	util/libvirt_util_la-virgettext.lo \
 	util/libvirt_util_la-virgic.lo util/libvirt_util_la-virhash.lo \
@@ -4134,7 +4136,8 @@ EXTRA_DIST = $(conf_DATA) $(srcdir)/keycodemapdb/data/keymaps.csv \
 	$(INTERFACE_DRIVER_UDEV_SOURCES) $(NULL) \
 	$(NETWORK_DRIVER_SOURCES) $(NETWORK_DRIVER_PLATFORM_INC) \
 	$(NETWORK_LEASES_HELPER_SOURCES) $(NULL) network/default.xml \
-	$(NWFILTER_DRIVER_SOURCES) $(NODE_DEVICE_DRIVER_SOURCES) \
+	network/libvirt.zone $(NWFILTER_DRIVER_SOURCES) \
+	$(NODE_DEVICE_DRIVER_SOURCES) \
 	$(NODE_DEVICE_DRIVER_HAL_SOURCES) \
 	$(NODE_DEVICE_DRIVER_UDEV_SOURCES) $(NULL) \
 	$(SECRET_DRIVER_SOURCES) $(SECRET_UTIL_SOURCES) $(NULL) \
@@ -4364,7 +4367,8 @@ UTIL_SOURCES = util/viralloc.c util/viralloc.h util/virarch.c \
 	util/vireventpoll.h util/virfcp.c util/virfcp.h \
 	util/virfdstream.c util/virfdstream.h util/virfile.c \
 	util/virfile.h util/virfirewall.c util/virfirewall.h \
-	util/virfirewallpriv.h util/virfirmware.c util/virfirmware.h \
+	util/virfirewallpriv.h util/virfirewalld.c util/virfirewalld.h \
+	util/virfirewalldpriv.h util/virfirmware.c util/virfirmware.h \
 	util/virgettext.c util/virgettext.h util/virgic.c \
 	util/virgic.h util/virhash.c util/virhash.h util/virhashcode.c \
 	util/virhashcode.h util/virhook.c util/virhook.h \
@@ -7811,6 +7815,8 @@ util/libvirt_util_la-virfile.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_util_la-virfirewall.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
+util/libvirt_util_la-virfirewalld.lo: util/$(am__dirstamp) \
+	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_util_la-virfirmware.lo: util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
 util/libvirt_util_la-virgettext.lo: util/$(am__dirstamp) \
@@ -8632,6 +8638,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virfile.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virfilecache.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virfirewall.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virfirewalld.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virfirmware.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virgettext.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/libvirt_util_la-virgic.Plo@am__quote@
@@ -11268,6 +11275,13 @@ util/libvirt_util_la-virfirewall.lo: util/virfirewall.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_util_la-virfirewall.lo `test -f 'util/virfirewall.c' || echo '$(srcdir)/'`util/virfirewall.c
 
+util/libvirt_util_la-virfirewalld.lo: util/virfirewalld.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT util/libvirt_util_la-virfirewalld.lo -MD -MP -MF util/$(DEPDIR)/libvirt_util_la-virfirewalld.Tpo -c -o util/libvirt_util_la-virfirewalld.lo `test -f 'util/virfirewalld.c' || echo '$(srcdir)/'`util/virfirewalld.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) util/$(DEPDIR)/libvirt_util_la-virfirewalld.Tpo util/$(DEPDIR)/libvirt_util_la-virfirewalld.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/virfirewalld.c' object='util/libvirt_util_la-virfirewalld.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o util/libvirt_util_la-virfirewalld.lo `test -f 'util/virfirewalld.c' || echo '$(srcdir)/'`util/virfirewalld.c
+
 util/libvirt_util_la-virfirmware.lo: util/virfirmware.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT util/libvirt_util_la-virfirmware.lo -MD -MP -MF util/$(DEPDIR)/libvirt_util_la-virfirmware.Tpo -c -o util/libvirt_util_la-virfirmware.lo `test -f 'util/virfirmware.c' || echo '$(srcdir)/'`util/virfirmware.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) util/$(DEPDIR)/libvirt_util_la-virfirmware.Tpo util/$(DEPDIR)/libvirt_util_la-virfirmware.Plo
@@ -13360,6 +13374,9 @@ lxc/lxc_controller_dispatch.h: $(srcdir)/rpc/gendispatch.pl \
 @WITH_NETWORK_TRUE@	( cd $(DESTDIR)$(confdir)/qemu/networks/autostart && \
 @WITH_NETWORK_TRUE@	  rm -f default.xml && \
 @WITH_NETWORK_TRUE@	  $(LN_S) ../default.xml default.xml )
+@WITH_FIREWALLD_ZONE_TRUE@@WITH_NETWORK_TRUE@	$(MKDIR_P) "$(DESTDIR)$(prefix)/lib/firewalld/zones"
+@WITH_FIREWALLD_ZONE_TRUE@@WITH_NETWORK_TRUE@	$(INSTALL_DATA) $(srcdir)/network/libvirt.zone \
+@WITH_FIREWALLD_ZONE_TRUE@@WITH_NETWORK_TRUE@	  $(DESTDIR)$(prefix)/lib/firewalld/zones/libvirt.xml
 
 @WITH_NETWORK_TRUE@uninstall-data-network:
 @WITH_NETWORK_TRUE@	rm -f $(DESTDIR)$(confdir)/qemu/networks/autostart/default.xml
@@ -13368,6 +13385,7 @@ lxc/lxc_controller_dispatch.h: $(srcdir)/rpc/gendispatch.pl \
 @WITH_NETWORK_TRUE@	rmdir "$(DESTDIR)$(confdir)/qemu/networks" || :
 @WITH_NETWORK_TRUE@	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/network" ||:
 @WITH_NETWORK_TRUE@	rmdir "$(DESTDIR)$(localstatedir)/run/libvirt/network" ||:
+@WITH_FIREWALLD_ZONE_TRUE@@WITH_NETWORK_TRUE@	rm -f  $(DESTDIR)$(prefix)/lib/firewalld/zones/libvirt.xml
 
 .PHONY: \
 	install-data-network \
@@ -13398,7 +13416,7 @@ lxc/lxc_controller_dispatch.h: $(srcdir)/rpc/gendispatch.pl \
 @WITH_LIBVIRTD_TRUE@@WITH_SYSCTL_TRUE@	rm -f $(DESTDIR)$(sysctldir)/60-libvirtd.conf
 @WITH_LIBVIRTD_TRUE@@WITH_SYSCTL_TRUE@	rmdir $(DESTDIR)$(sysctldir) || :
 
-@WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@install-polkit::
+@WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@install-polkit:
 @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	$(MKDIR_P) $(DESTDIR)$(polkitactionsdir)
 @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	$(INSTALL_DATA) $(srcdir)/remote/libvirtd.policy \
 @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@		$(DESTDIR)$(polkitactionsdir)/org.libvirt.unix.policy
@@ -13406,7 +13424,7 @@ lxc/lxc_controller_dispatch.h: $(srcdir)/rpc/gendispatch.pl \
 @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	$(INSTALL_DATA) $(srcdir)/remote/libvirtd.rules \
 @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@		$(DESTDIR)$(polkitrulesdir)/50-libvirt.rules
 
-@WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@uninstall-polkit::
+@WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@uninstall-polkit:
 @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	rm -f $(DESTDIR)$(polkitactionsdir)/org.libvirt.unix.policy
 @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	rmdir $(DESTDIR)$(polkitactionsdir) || :
 @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	rm -f $(DESTDIR)$(polkitrulesdir)/50-libvirt.rules
@@ -13674,14 +13692,14 @@ uninstall-sysconfig:
 @WITH_LIBVIRTD_TRUE@	rm -f $(LOGROTATE_FILES:%.logrotate=$(DESTDIR)$(sysconfdir)/logrotate.d/%)
 @WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(sysconfdir)/logrotate.d || :
 
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@install-init:: $(SYSVINIT_FILES) install-sysconfig
+@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@install-init: $(SYSVINIT_FILES) install-sysconfig
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	$(MKDIR_P) $(DESTDIR)$(initdir)
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	for f in $(SYSVINIT_FILES:%.init=%) ; \
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	do \
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	  $(INSTALL_SCRIPT) $$f.init $(DESTDIR)$(initdir)/$$f; \
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	done
 
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@uninstall-init:: uninstall-sysconfig
+@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@uninstall-init: uninstall-sysconfig
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	rm -f $(SYSVINIT_FILES:%.init=$(DESTDIR)$(initdir)/%)
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(initdir) || :
 
@@ -13727,7 +13745,7 @@ install-data-local: $(INSTALL_DATA_LOCAL) \
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/filesystems"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/boot"
 
-uninstall-local:: $(UNINSTALL_LOCAL) \
+uninstall-local: $(UNINSTALL_LOCAL) \
 		$(INSTALL_DATA_DIRS:%=uninstall-data-%)
 	rmdir "$(DESTDIR)$(localstatedir)/cache/libvirt" ||:
 	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/images" ||:

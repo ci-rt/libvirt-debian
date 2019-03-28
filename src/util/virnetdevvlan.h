@@ -31,7 +31,7 @@ typedef enum {
     VIR_NATIVE_VLAN_MODE_LAST
 } virNativeVlanMode;
 
-VIR_ENUM_DECL(virNativeVlanMode)
+VIR_ENUM_DECL(virNativeVlanMode);
 
 typedef struct _virNetDevVlan virNetDevVlan;
 typedef virNetDevVlan *virNetDevVlanPtr;
@@ -48,6 +48,6 @@ void virNetDevVlanFree(virNetDevVlanPtr vlan);
 int virNetDevVlanEqual(const virNetDevVlan *a, const virNetDevVlan *b);
 int virNetDevVlanCopy(virNetDevVlanPtr dst, const virNetDevVlan *src);
 
-VIR_DEFINE_AUTOPTR_FUNC(virNetDevVlan, virNetDevVlanFree)
+VIR_DEFINE_AUTOPTR_FUNC(virNetDevVlan, virNetDevVlanFree);
 
 #endif /* LIBVIRT_VIRNETDEVVLAN_H */

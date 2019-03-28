@@ -30,7 +30,8 @@ VIR_ENUM_IMPL(virNetDevVPort, VIR_NETDEV_VPORT_PROFILE_LAST,
               "802.1Qbg",
               "802.1Qbh",
               "openvswitch",
-              "midonet")
+              "midonet",
+);
 
 VIR_ENUM_IMPL(virNetDevVPortProfileOp, VIR_NETDEV_VPORT_PROFILE_OP_LAST,
               "create",
@@ -40,7 +41,8 @@ VIR_ENUM_IMPL(virNetDevVPortProfileOp, VIR_NETDEV_VPORT_PROFILE_OP_LAST,
               "migrate out",
               "migrate in start",
               "migrate in finish",
-              "no-op")
+              "no-op",
+);
 
 #if WITH_VIRTUALPORT
 
@@ -1237,7 +1239,7 @@ virNetDevVPortProfileAssociate(const char *macvtap_ifname,
 
     VIR_DEBUG("profile:'%p' vmOp: %s device: %s@%s mac: %s uuid: %s",
               virtPort, virNetDevVPortProfileOpTypeToString(vmOp),
-              (macvtap_ifname ? macvtap_ifname : ""), linkdev,
+              NULLSTR_EMPTY(macvtap_ifname), linkdev,
               (macvtap_macaddr
                ? virMacAddrFormat(macvtap_macaddr, macStr)
                : "(unspecified)"),
@@ -1303,7 +1305,7 @@ virNetDevVPortProfileDisassociate(const char *macvtap_ifname,
 
     VIR_DEBUG("profile:'%p' vmOp: %s device: %s@%s mac: %s",
               virtPort, virNetDevVPortProfileOpTypeToString(vmOp),
-              (macvtap_ifname ? macvtap_ifname : ""), linkdev,
+              NULLSTR_EMPTY(macvtap_ifname), linkdev,
               (macvtap_macaddr
                ? virMacAddrFormat(macvtap_macaddr, macStr)
                : "(unspecified)"));

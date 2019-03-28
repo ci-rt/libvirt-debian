@@ -51,8 +51,7 @@ testCompareXMLToConfFiles(const char *inxml, const char *outconf, dnsmasqCapsPtr
                                  "except-interface=lo\n")))
         goto fail;
     VIR_FREE(actual);
-    actual = tmp;
-    tmp = NULL;
+    VIR_STEAL_PTR(actual, tmp);
 #endif
 
     if (virTestCompareToFile(actual, outconf) < 0)
@@ -137,6 +136,7 @@ mymain(void)
     DO_TEST("nat-network-dns-forwarders", full);
     DO_TEST("nat-network-dns-forwarder-no-resolv", full);
     DO_TEST("nat-network-dns-local-domain", full);
+    DO_TEST("nat-network-mtu", dhcpv6);
     DO_TEST("dhcp6-network", dhcpv6);
     DO_TEST("dhcp6-nat-network", dhcpv6);
     DO_TEST("dhcp6host-routed-network", dhcpv6);

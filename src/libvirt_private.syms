@@ -221,7 +221,6 @@ virDomainChrSerialTargetTypeFromString;
 virDomainChrSerialTargetTypeToString;
 virDomainChrSourceDefClear;
 virDomainChrSourceDefCopy;
-virDomainChrSourceDefFree;
 virDomainChrSourceDefGetPath;
 virDomainChrSourceDefNew;
 virDomainChrSpicevmcTypeFromString;
@@ -307,6 +306,7 @@ virDomainDeviceDefParse;
 virDomainDeviceFindSCSIController;
 virDomainDeviceGetInfo;
 virDomainDeviceInfoIterate;
+virDomainDeviceSetData;
 virDomainDeviceTypeToString;
 virDomainDeviceValidateAliasForHotplug;
 virDomainDiskBusTypeToString;
@@ -469,6 +469,7 @@ virDomainNetGetActualType;
 virDomainNetGetActualVirtPortProfile;
 virDomainNetGetActualVlan;
 virDomainNetInsert;
+virDomainNetIsVirtioModel;
 virDomainNetNotifyActualDevice;
 virDomainNetReleaseActualDevice;
 virDomainNetRemove;
@@ -919,6 +920,7 @@ virStoragePoolFormatDiskTypeToString;
 virStoragePoolFormatFileSystemNetTypeToString;
 virStoragePoolFormatFileSystemTypeToString;
 virStoragePoolFormatLogicalTypeToString;
+virStoragePoolOptionsPoolTypeSetXMLNamespace;
 virStoragePoolSaveConfig;
 virStoragePoolSaveState;
 virStoragePoolSourceClear;
@@ -1291,8 +1293,6 @@ virStreamInData;
 
 
 # locking/domain_lock.h
-virDomainLockDiskAttach;
-virDomainLockDiskDetach;
 virDomainLockImageAttach;
 virDomainLockImageDetach;
 virDomainLockLeaseAttach;
@@ -1354,7 +1354,6 @@ virSecurityManagerReleaseLabel;
 virSecurityManagerReserveLabel;
 virSecurityManagerRestoreAllLabel;
 virSecurityManagerRestoreChardevLabel;
-virSecurityManagerRestoreDiskLabel;
 virSecurityManagerRestoreHostdevLabel;
 virSecurityManagerRestoreImageLabel;
 virSecurityManagerRestoreInputLabel;
@@ -1365,7 +1364,6 @@ virSecurityManagerSetAllLabel;
 virSecurityManagerSetChardevLabel;
 virSecurityManagerSetChildProcessLabel;
 virSecurityManagerSetDaemonSocketLabel;
-virSecurityManagerSetDiskLabel;
 virSecurityManagerSetHostdevLabel;
 virSecurityManagerSetImageFDLabel;
 virSecurityManagerSetImageLabel;
@@ -1489,7 +1487,6 @@ virBufferContentAndReset;
 virBufferCurrentContent;
 virBufferError;
 virBufferEscape;
-virBufferEscapeN;
 virBufferEscapeRegex;
 virBufferEscapeSexpr;
 virBufferEscapeShell;
@@ -1919,6 +1916,16 @@ virFirewallStartRollback;
 virFirewallStartTransaction;
 
 
+# util/virfirewalld.h
+virFirewallDApplyRule;
+virFirewallDGetBackend;
+virFirewallDGetVersion;
+virFirewallDGetZones;
+virFirewallDInterfaceSetZone;
+virFirewallDIsRegistered;
+virFirewallDZoneExists;
+
+
 # util/virfirmware.h
 virFirmwareFreeList;
 virFirmwareParse;
@@ -2047,6 +2054,7 @@ virIdentitySetX509DName;
 
 
 # util/virinitctl.h
+virInitctlFifos;
 virInitctlSetRunLevel;
 
 
@@ -2075,6 +2083,8 @@ iptablesRemoveOutputFixUdpChecksum;
 iptablesRemoveTcpInput;
 iptablesRemoveUdpInput;
 iptablesRemoveUdpOutput;
+iptablesSetDeletePrivate;
+iptablesSetupPrivateChains;
 
 
 # util/viriscsi.h
@@ -2090,6 +2100,7 @@ virISCSIScanTargets;
 # util/virjson.h
 virJSONStringReformat;
 virJSONValueArrayAppend;
+virJSONValueArrayAppendString;
 virJSONValueArrayForeachSteal;
 virJSONValueArrayGet;
 virJSONValueArraySize;
@@ -2498,6 +2509,7 @@ virClassForObjectRWLockable;
 virClassIsDerivedFrom;
 virClassName;
 virClassNew;
+virObjectAutoUnref;
 virObjectFreeCallback;
 virObjectFreeHashData;
 virObjectIsClass;
@@ -2861,6 +2873,7 @@ virStorageFileGetMetadata;
 virStorageFileGetMetadataFromBuf;
 virStorageFileGetMetadataFromFD;
 virStorageFileGetMetadataInternal;
+virStorageFileGetNPIVKey;
 virStorageFileGetRelativeBackingPath;
 virStorageFileGetSCSIKey;
 virStorageFileGetUniqueIdentifier;
@@ -2895,7 +2908,6 @@ virStorageSourceChainHasManagedPR;
 virStorageSourceClear;
 virStorageSourceCopy;
 virStorageSourceFindByNodeName;
-virStorageSourceFree;
 virStorageSourceGetActualType;
 virStorageSourceGetSecurityLabelDef;
 virStorageSourceHasBacking;
@@ -2911,6 +2923,7 @@ virStorageSourceIsLocalStorage;
 virStorageSourceIsRelative;
 virStorageSourceIsSameLocation;
 virStorageSourceNetworkAssignDefaultPorts;
+virStorageSourceNew;
 virStorageSourceNewFromBacking;
 virStorageSourceNewFromBackingAbsolute;
 virStorageSourceParseRBDColonString;

@@ -59,7 +59,7 @@ qemuParseDriveURIString(virDomainDiskDefPtr def, virURIPtr uri,
     char *sock = NULL;
     char *volimg = NULL;
     char *secret = NULL;
-    virStorageAuthDefPtr authdef = NULL;
+    VIR_AUTOPTR(virStorageAuthDef) authdef = NULL;
 
     if (VIR_ALLOC(def->src->hosts) < 0)
         goto error;
@@ -133,8 +133,7 @@ qemuParseDriveURIString(virDomainDiskDefPtr def, virURIPtr uri,
             if (VIR_STRDUP(authdef->secrettype, secrettype) < 0)
                 goto error;
         }
-        def->src->auth = authdef;
-        authdef = NULL;
+        VIR_STEAL_PTR(def->src->auth, authdef);
 
         /* Cannot formulate a secretType (eg, usage or uuid) given
          * what is provided.
@@ -152,7 +151,6 @@ qemuParseDriveURIString(virDomainDiskDefPtr def, virURIPtr uri,
  error:
     virStorageNetHostDefClear(def->src->hosts);
     VIR_FREE(def->src->hosts);
-    virStorageAuthDefFree(authdef);
     goto cleanup;
 }
 
@@ -2497,7 +2495,7 @@ qemuParseCommandLine(virFileCachePtr capsCache,
                     goto error;
 
                 if (qemuParseCommandLineChr(chr, val) < 0) {
-                    virDomainChrSourceDefFree(chr);
+                    virObjectUnref(chr);
                     goto error;
                 }
 
@@ -2734,7 +2732,7 @@ qemuParseCommandLine(virFileCachePtr capsCache,
     virStringListFree(list);
     VIR_FREE(nics);
     if (monConfig) {
-        virDomainChrSourceDefFree(*monConfig);
+        virObjectUnref(*monConfig);
         *monConfig = NULL;
     }
     if (pidfile)

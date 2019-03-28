@@ -59,6 +59,9 @@ int virBufferCheckErrorInternal(const virBuffer *buf,
                                 const char *funcname,
                                 size_t linenr)
     ATTRIBUTE_NONNULL(1);
+
+VIR_DEFINE_AUTOCLEAN_FUNC(virBuffer, virBufferFreeAndReset);
+
 /**
  * virBufferCheckError
  *
@@ -84,8 +87,6 @@ void virBufferStrcatVArgs(virBufferPtr buf, va_list ap);
 
 void virBufferEscape(virBufferPtr buf, char escape, const char *toescape,
                      const char *format, const char *str);
-void virBufferEscapeN(virBufferPtr buf, const char *format,
-                      const char *str, ...);
 void virBufferEscapeString(virBufferPtr buf, const char *format,
                            const char *str);
 void virBufferEscapeSexpr(virBufferPtr buf, const char *format,
@@ -118,7 +119,5 @@ int virBufferGetIndent(const virBuffer *buf, bool dynamic);
 
 void virBufferTrim(virBufferPtr buf, const char *trim, int len);
 void virBufferAddStr(virBufferPtr buf, const char *str);
-
-VIR_DEFINE_AUTOPTR_FUNC(virBuffer, virBufferFreeAndReset)
 
 #endif /* LIBVIRT_VIRBUFFER_H */

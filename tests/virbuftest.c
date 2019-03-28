@@ -373,35 +373,6 @@ testBufEscapeStr(const void *opaque ATTRIBUTE_UNUSED)
 
 
 static int
-testBufEscapeN(const void *opaque)
-{
-    const struct testBufAddStrData *data = opaque;
-    virBuffer buf = VIR_BUFFER_INITIALIZER;
-    char *actual;
-    int ret = -1;
-
-    virBufferEscapeN(&buf, "%s", data->data, '\\', "=", ',', ",", NULL);
-
-    if (!(actual = virBufferContentAndReset(&buf))) {
-        VIR_TEST_DEBUG("testBufEscapeN: buf is empty");
-        goto cleanup;
-    }
-
-    if (STRNEQ_NULLABLE(actual, data->expect)) {
-        VIR_TEST_DEBUG("testBufEscapeN: Strings don't match:\n");
-        virTestDifference(stderr, data->expect, actual);
-        goto cleanup;
-    }
-
-    ret = 0;
-
- cleanup:
-    VIR_FREE(actual);
-    return ret;
-}
-
-
-static int
 testBufEscapeRegex(const void *opaque)
 {
     const struct testBufAddStrData *data = opaque;
@@ -412,12 +383,12 @@ testBufEscapeRegex(const void *opaque)
     virBufferEscapeRegex(&buf, "%s", data->data);
 
     if (!(actual = virBufferContentAndReset(&buf))) {
-        VIR_TEST_DEBUG("testBufEscapeN: buf is empty");
+        VIR_TEST_DEBUG("testBufEscapeRegex: buf is empty");
         goto cleanup;
     }
 
     if (STRNEQ_NULLABLE(actual, data->expect)) {
-        VIR_TEST_DEBUG("testBufEscapeN: Strings don't match:\n");
+        VIR_TEST_DEBUG("testBufEscapeRegex: Strings don't match:\n");
         virTestDifference(stderr, data->expect, actual);
         goto cleanup;
     }
@@ -458,6 +429,17 @@ testBufSetIndent(const void *opaque ATTRIBUTE_UNUSED)
 }
 
 
+/* Result of this shows up only in valgrind or similar */
+static int
+testBufferAutoclean(const void *opaque ATTRIBUTE_UNUSED)
+{
+    VIR_AUTOCLEAN(virBuffer) buf = VIR_BUFFER_INITIALIZER;
+
+    virBufferAddLit(&buf, "test test test\n");
+    return 0;
+}
+
+
 static int
 mymain(void)
 {
@@ -477,6 +459,7 @@ mymain(void)
     DO_TEST("Trim", testBufTrim, 0);
     DO_TEST("AddBuffer", testBufAddBuffer, 0);
     DO_TEST("set indent", testBufSetIndent, 0);
+    DO_TEST("autoclean", testBufferAutoclean, 0);
 
 #define DO_TEST_ADD_STR(DATA, EXPECT) \
     do { \
@@ -505,18 +488,6 @@ mymain(void)
                    "<c>\n  <el>,,&apos;..&apos;,,</el>\n</c>");
     DO_TEST_ESCAPE("\x01\x01\x02\x03\x05\x08",
                    "<c>\n  <el></el>\n</c>");
-
-#define DO_TEST_ESCAPEN(data, expect) \
-    do { \
-        struct testBufAddStrData info = { data, expect }; \
-        if (virTestRun("Buf: EscapeN", testBufEscapeN, &info) < 0) \
-            ret = -1; \
-    } while (0)
-
-    DO_TEST_ESCAPEN("noescape", "noescape");
-    DO_TEST_ESCAPEN("comma,escape", "comma,,escape");
-    DO_TEST_ESCAPEN("equal=escape", "equal\\=escape");
-    DO_TEST_ESCAPEN("comma,equal=escape", "comma,,equal\\=escape");
 
 #define DO_TEST_ESCAPE_REGEX(data, expect) \
     do { \

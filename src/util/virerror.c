@@ -55,7 +55,7 @@ static virLogPriority virErrorLevelPriority(virErrorLevel level)
 }
 
 
-VIR_ENUM_DECL(virErrorDomain)
+VIR_ENUM_DECL(virErrorDomain);
 VIR_ENUM_IMPL(virErrorDomain, VIR_ERR_DOMAIN_LAST,
               "", /* 0 */
               "Xen Driver",
@@ -138,7 +138,8 @@ VIR_ENUM_IMPL(virErrorDomain, VIR_ERR_DOMAIN_LAST,
               "Perf", /* 65 */
               "Libssh transport layer",
               "Resource control",
-              )
+              "FirewallD",
+);
 
 
 /*
@@ -1121,8 +1122,8 @@ const virErrorMsgTuple virErrorMsgStrings[VIR_ERR_NUMBER_LAST] = {
         N_("Hook script execution failed"),
         N_("Hook script execution failed: %s") },
     [VIR_ERR_INVALID_DOMAIN_SNAPSHOT] = {
-        N_("Invalid snapshot"),
-        N_("Invalid snapshot: %s") },
+        N_("Invalid domain snapshot"),
+        N_("Invalid domain snapshot: %s") },
     [VIR_ERR_NO_DOMAIN_SNAPSHOT] = {
         N_("Domain snapshot not found"),
         N_("Domain snapshot not found: %s") },

@@ -28,7 +28,8 @@
 #define VIR_FROM_THIS VIR_FROM_CAPABILITIES
 
 VIR_ENUM_IMPL(virDomainCapsCPUUsable, VIR_DOMCAPS_CPU_USABLE_LAST,
-              "unknown", "yes", "no");
+              "unknown", "yes", "no",
+);
 
 static virClassPtr virDomainCapsClass;
 static virClassPtr virDomainCapsCPUModelsClass;
@@ -48,7 +49,7 @@ static int virDomainCapsOnceInit(void)
 }
 
 
-VIR_ONCE_GLOBAL_INIT(virDomainCaps)
+VIR_ONCE_GLOBAL_INIT(virDomainCaps);
 
 
 static void

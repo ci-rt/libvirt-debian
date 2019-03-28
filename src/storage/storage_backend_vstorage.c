@@ -37,12 +37,11 @@ virStorageBackendVzPoolBuild(virStoragePoolObjPtr pool,
 static int
 virStorageBackendVzPoolStart(virStoragePoolObjPtr pool)
 {
-    int ret = -1;
     virStoragePoolDefPtr def = virStoragePoolObjGetDef(pool);
-    virCommandPtr cmd = NULL;
-    char *grp_name = NULL;
-    char *usr_name = NULL;
-    char *mode = NULL;
+    VIR_AUTOFREE(char *) grp_name = NULL;
+    VIR_AUTOFREE(char *) usr_name = NULL;
+    VIR_AUTOFREE(char *) mode = NULL;
+    VIR_AUTOPTR(virCommand) cmd = NULL;
 
     /* Check the permissions */
     if (def->target.perms.mode == (mode_t)-1)
@@ -55,13 +54,13 @@ virStorageBackendVzPoolStart(virStoragePoolObjPtr pool)
     /* Convert ids to names because vstorage uses names */
 
     if (!(grp_name = virGetGroupName(def->target.perms.gid)))
-        goto cleanup;
+        return -1;
 
     if (!(usr_name = virGetUserName(def->target.perms.uid)))
-        goto cleanup;
+        return -1;
 
     if (virAsprintf(&mode, "%o", def->target.perms.mode) < 0)
-        goto cleanup;
+        return -1;
 
     cmd = virCommandNewArgList(VSTORAGE_MOUNT,
                                "-c", def->source.name,
@@ -70,16 +69,7 @@ virStorageBackendVzPoolStart(virStoragePoolObjPtr pool)
                                "-g", grp_name, "-u", usr_name,
                                NULL);
 
-    if (virCommandRun(cmd, NULL) < 0)
-        goto cleanup;
-    ret = 0;
-
- cleanup:
-    virCommandFree(cmd);
-    VIR_FREE(mode);
-    VIR_FREE(grp_name);
-    VIR_FREE(usr_name);
-    return ret;
+    return virCommandRun(cmd, NULL);
 }
 
 
@@ -91,7 +81,7 @@ virStorageBackendVzIsMounted(virStoragePoolObjPtr pool)
     FILE *mtab;
     struct mntent ent;
     char buf[1024];
-    char *cluster = NULL;
+    VIR_AUTOFREE(char *) cluster = NULL;
 
     if (virAsprintf(&cluster, "vstorage://%s", def->source.name) < 0)
         return -1;
@@ -116,7 +106,6 @@ virStorageBackendVzIsMounted(virStoragePoolObjPtr pool)
 
  cleanup:
     VIR_FORCE_FCLOSE(mtab);
-    VIR_FREE(cluster);
     return ret;
 }
 
@@ -125,22 +114,15 @@ static int
 virStorageBackendVzPoolStop(virStoragePoolObjPtr pool)
 {
     virStoragePoolDefPtr def = virStoragePoolObjGetDef(pool);
-    virCommandPtr cmd = NULL;
-    int ret = -1;
     int rc;
+    VIR_AUTOPTR(virCommand) cmd = NULL;
 
     /* Short-circuit if already unmounted */
     if ((rc = virStorageBackendVzIsMounted(pool)) != 1)
         return rc;
 
     cmd = virCommandNewArgList(UMOUNT, def->target.path, NULL);
-    if (virCommandRun(cmd, NULL) < 0)
-        goto cleanup;
-
-    ret = 0;
- cleanup:
-    virCommandFree(cmd);
-    return ret;
+    return virCommandRun(cmd, NULL);
 }
 
 

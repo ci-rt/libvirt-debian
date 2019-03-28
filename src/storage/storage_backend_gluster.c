@@ -127,11 +127,9 @@ virStorageBackendGlusterOpen(virStoragePoolObjPtr pool)
     if (glfs_set_volfile_server(ret->vol, "tcp",
                                 ret->uri->server, ret->uri->port) < 0 ||
         glfs_init(ret->vol) < 0) {
-        char *uri = virURIFormat(ret->uri);
-
-        virReportSystemError(errno, _("failed to connect to %s"),
-                             NULLSTR(uri));
-        VIR_FREE(uri);
+        VIR_AUTOFREE(char *) uri = NULL;
+        uri = virURIFormat(ret->uri);
+        virReportSystemError(errno, _("failed to connect to %s"), NULLSTR(uri));
         goto error;
     }
 
@@ -187,9 +185,8 @@ virStorageBackendGlusterSetMetadata(virStorageBackendGlusterStatePtr state,
                                     virStorageVolDefPtr vol,
                                     const char *name)
 {
-    int ret = -1;
-    char *path = NULL;
     char *tmp;
+    VIR_AUTOFREE(char *) path = NULL;
 
     VIR_FREE(vol->key);
     VIR_FREE(vol->target.path);
@@ -200,35 +197,31 @@ virStorageBackendGlusterSetMetadata(virStorageBackendGlusterStatePtr state,
     if (name) {
         VIR_FREE(vol->name);
         if (VIR_STRDUP(vol->name, name) < 0)
-            goto cleanup;
+            return -1;
     }
 
     if (virAsprintf(&path, "%s%s%s", state->volname, state->dir,
                     vol->name) < 0)
-        goto cleanup;
+        return -1;
 
     tmp = state->uri->path;
     if (virAsprintf(&state->uri->path, "/%s", path) < 0) {
         state->uri->path = tmp;
-        goto cleanup;
+        return -1;
     }
     if (!(vol->target.path = virURIFormat(state->uri))) {
         VIR_FREE(state->uri->path);
         state->uri->path = tmp;
-        goto cleanup;
+        return -1;
     }
     VIR_FREE(state->uri->path);
     state->uri->path = tmp;
 
     /* the path is unique enough to serve as a volume key */
     if (VIR_STRDUP(vol->key, vol->target.path) < 0)
-        goto cleanup;
+        return -1;
 
-    ret = 0;
-
- cleanup:
-    VIR_FREE(path);
-    return ret;
+    return 0;
 }
 
 
@@ -242,12 +235,12 @@ virStorageBackendGlusterRefreshVol(virStorageBackendGlusterStatePtr state,
                                    virStorageVolDefPtr *volptr)
 {
     int ret = -1;
-    virStorageVolDefPtr vol = NULL;
     glfs_fd_t *fd = NULL;
-    virStorageSourcePtr meta = NULL;
-    char *header = NULL;
     ssize_t len;
     int backingFormat;
+    VIR_AUTOPTR(virStorageVolDef) vol = NULL;
+    VIR_AUTOUNREF(virStorageSourcePtr) meta = NULL;
+    VIR_AUTOFREE(char *) header = NULL;
 
     *volptr = NULL;
 
@@ -278,8 +271,7 @@ virStorageBackendGlusterRefreshVol(virStorageBackendGlusterStatePtr state,
     if (S_ISDIR(st->st_mode)) {
         vol->type = VIR_STORAGE_VOL_NETDIR;
         vol->target.format = VIR_STORAGE_FILE_DIR;
-        *volptr = vol;
-        vol = NULL;
+        VIR_STEAL_PTR(*volptr, vol);
         ret = 0;
         goto cleanup;
     }
@@ -302,7 +294,7 @@ virStorageBackendGlusterRefreshVol(virStorageBackendGlusterStatePtr state,
         goto cleanup;
 
     if (meta->backingStoreRaw) {
-        if (VIR_ALLOC(vol->target.backingStore) < 0)
+        if (!(vol->target.backingStore = virStorageSourceNew()))
             goto cleanup;
 
         vol->target.backingStore->type = VIR_STORAGE_TYPE_NETWORK;
@@ -328,15 +320,11 @@ virStorageBackendGlusterRefreshVol(virStorageBackendGlusterStatePtr state,
     vol->target.compat = meta->compat;
     meta->compat = NULL;
 
-    *volptr = vol;
-    vol = NULL;
+    VIR_STEAL_PTR(*volptr, vol);
     ret = 0;
  cleanup:
-    virStorageSourceFree(meta);
-    virStorageVolDefFree(vol);
     if (fd)
         glfs_close(fd);
-    VIR_FREE(header);
     return ret;
 }
 
@@ -489,10 +477,10 @@ virStorageBackendGlusterFindPoolSources(const char *srcSpec,
                                       .nsources = 0,
                                       .sources = NULL
                                     };
-    virStoragePoolSourcePtr source = NULL;
     char *ret = NULL;
     int rc;
     size_t i;
+    VIR_AUTOPTR(virStoragePoolSource) source = NULL;
 
     virCheckFlags(0, NULL);
 
@@ -532,7 +520,6 @@ virStorageBackendGlusterFindPoolSources(const char *srcSpec,
         virStoragePoolSourceClear(&list.sources[i]);
     VIR_FREE(list.sources);
 
-    virStoragePoolSourceFree(source);
     return ret;
 }
 

@@ -28,6 +28,7 @@
 #include "bhyve_capabilities.h"
 #include "bhyve_command.h"
 #include "bhyve_domain.h"
+#include "bhyve_conf.h"
 #include "bhyve_driver.h"
 #include "datatypes.h"
 #include "viralloc.h"
@@ -459,7 +460,6 @@ virBhyveProcessBuildBhyveCmd(virConnectPtr conn,
      *            vm0
      */
     size_t i;
-    bool add_lpc = false;
     int nusbcontrollers = 0;
     unsigned int nvcpus = virDomainDefGetVcpus(def);
 
@@ -505,6 +505,10 @@ virBhyveProcessBuildBhyveCmd(virConnectPtr conn,
         virCommandAddArg(cmd, "-A"); /* Create an ACPI table */
     if (def->features[VIR_DOMAIN_FEATURE_APIC] == VIR_TRISTATE_SWITCH_ON)
         virCommandAddArg(cmd, "-I"); /* Present ioapic to the guest */
+    if (def->features[VIR_DOMAIN_FEATURE_MSRS] == VIR_TRISTATE_SWITCH_ON) {
+        if (def->msrs_features[VIR_DOMAIN_MSRS_UNKNOWN] == VIR_DOMAIN_MSRS_UNKNOWN_IGNORE)
+            virCommandAddArg(cmd, "-w");
+    }
 
     switch (def->clock.offset) {
     case VIR_DOMAIN_CLOCK_OFFSET_LOCALTIME:
@@ -548,7 +552,6 @@ virBhyveProcessBuildBhyveCmd(virConnectPtr conn,
         if ((bhyveDriverGetCaps(conn) & BHYVE_CAP_LPC_BOOTROM)) {
             virCommandAddArg(cmd, "-l");
             virCommandAddArgFormat(cmd, "bootrom,%s", def->os.loader->path);
-            add_lpc = true;
         } else {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("Installed bhyve binary does not support "
@@ -612,7 +615,6 @@ virBhyveProcessBuildBhyveCmd(virConnectPtr conn,
             if (bhyveBuildGraphicsArgStr(def, def->graphics[0], def->videos[0],
                                          conn, cmd, dryRun) < 0)
                 goto error;
-            add_lpc = true;
         } else {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("Multiple graphics devices are not supported"));
@@ -620,11 +622,23 @@ virBhyveProcessBuildBhyveCmd(virConnectPtr conn,
         }
     }
 
-    if (add_lpc || def->nserials)
+    if (bhyveDomainDefNeedsISAController(def))
         bhyveBuildLPCArgStr(def, cmd);
 
     if (bhyveBuildConsoleArgStr(def, cmd) < 0)
         goto error;
+
+    if (def->namespaceData) {
+        bhyveDomainCmdlineDefPtr bhyvecmd;
+
+        VIR_WARN("Booting the guest using command line pass-through feature, "
+                 "which could potentially cause inconsistent state and "
+                 "upgrade issues");
+
+        bhyvecmd = def->namespaceData;
+        for (i = 0; i < bhyvecmd->num_args; i++)
+            virCommandAddArg(cmd, bhyvecmd->args[i]);
+    }
 
     virCommandAddArg(cmd, def->name);
 

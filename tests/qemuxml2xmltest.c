@@ -346,6 +346,7 @@ mymain(void)
     DO_TEST("qemu-ns-no-env", NONE);
     DO_TEST("disk-aio", NONE);
     DO_TEST("disk-cdrom", NONE);
+    DO_TEST("disk-cdrom-bus-other", NONE);
     DO_TEST("disk-floppy", NONE);
     DO_TEST("disk-usb-device", NONE);
     DO_TEST("disk-virtio", NONE);
@@ -364,29 +365,14 @@ mymain(void)
     DO_TEST("disk-network-sheepdog", NONE);
     DO_TEST("disk-network-vxhs", NONE);
     DO_TEST("disk-network-tlsx509", NONE);
-    DO_TEST("disk-scsi-device",
-            QEMU_CAPS_SCSI_LSI);
-    DO_TEST("disk-scsi-vscsi", NONE);
-    DO_TEST("disk-scsi-virtio-scsi",
-            QEMU_CAPS_VIRTIO_SCSI);
-    DO_TEST("disk-virtio-scsi-num_queues",
-            QEMU_CAPS_VIRTIO_SCSI);
+    DO_TEST("disk-scsi", QEMU_CAPS_SCSI_LSI, QEMU_CAPS_SCSI_MEGASAS,
+            QEMU_CAPS_SCSI_MPTSAS1068, QEMU_CAPS_SCSI_DISK_WWN);
     DO_TEST("disk-virtio-scsi-reservations",
             QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_PR_MANAGER_HELPER);
-    DO_TEST("disk-virtio-scsi-cmd_per_lun",
-            QEMU_CAPS_VIRTIO_SCSI);
-    DO_TEST("disk-virtio-scsi-max_sectors",
-            QEMU_CAPS_VIRTIO_SCSI);
-    DO_TEST("disk-virtio-scsi-ioeventfd",
-            QEMU_CAPS_VIRTIO_SCSI);
+    DO_TEST("controller-virtio-scsi", QEMU_CAPS_VIRTIO_SCSI);
     DO_TEST("disk-virtio-s390-zpci",
             QEMU_CAPS_DEVICE_ZPCI,
             QEMU_CAPS_CCW);
-    DO_TEST("disk-scsi-megasas",
-            QEMU_CAPS_SCSI_MEGASAS);
-    DO_TEST("disk-scsi-mptsas1068",
-            QEMU_CAPS_SCSI_MPTSAS1068,
-            QEMU_CAPS_SCSI_DISK_WWN);
     DO_TEST("disk-mirror-old", NONE);
     DO_TEST("disk-mirror", NONE);
     DO_TEST_FULL("disk-active-commit", WHEN_ACTIVE, GIC_NONE, NONE);
@@ -572,11 +558,9 @@ mymain(void)
     DO_TEST("numad-static-vcpu-no-numatune", NONE);
 
     DO_TEST("disk-scsi-lun-passthrough-sgio",
-            QEMU_CAPS_SCSI_CD, QEMU_CAPS_SCSI_LSI,
-            QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_SCSI_DISK_WWN);
+            QEMU_CAPS_SCSI_LSI, QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_SCSI_DISK_WWN);
     DO_TEST("disk-scsi-disk-vpd",
-            QEMU_CAPS_SCSI_CD, QEMU_CAPS_SCSI_LSI,
-            QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_SCSI_DISK_WWN);
+            QEMU_CAPS_SCSI_LSI, QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_SCSI_DISK_WWN);
     DO_TEST("disk-source-pool", NONE);
     DO_TEST("disk-source-pool-mode", NONE);
 
@@ -585,8 +569,10 @@ mymain(void)
 
     DO_TEST("disk-serial", NONE);
 
-    DO_TEST("virtio-rng-random", NONE);
-    DO_TEST("virtio-rng-egd", NONE);
+    DO_TEST("virtio-rng-random",
+            QEMU_CAPS_DEVICE_VIRTIO_RNG);
+    DO_TEST("virtio-rng-egd",
+            QEMU_CAPS_DEVICE_VIRTIO_RNG);
 
     DO_TEST("pseries-nvram",
             QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE);
@@ -1019,7 +1005,8 @@ mymain(void)
     DO_TEST("disk-backing-chains-index", NONE);
     DO_TEST("disk-backing-chains-noindex", NONE);
 
-    DO_TEST("chardev-label", NONE);
+    DO_TEST("chardev-label",
+            QEMU_CAPS_DEVICE_VIRTIO_RNG);
 
     DO_TEST("cpu-numa1", NONE);
     DO_TEST("cpu-numa2", NONE);
@@ -1264,6 +1251,8 @@ mymain(void)
 
     DO_TEST("riscv64-virt",
             QEMU_CAPS_DEVICE_VIRTIO_MMIO);
+    DO_TEST("riscv64-virt-pci",
+            QEMU_CAPS_OBJECT_GPEX);
 
     if (getenv("LIBVIRT_SKIP_CLEANUP") == NULL)
         virFileDeleteTree(fakerootdir);

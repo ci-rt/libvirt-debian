@@ -50,7 +50,8 @@ VIR_LOG_INIT("conf.storage_conf");
 VIR_ENUM_IMPL(virStorageVol,
               VIR_STORAGE_VOL_LAST,
               "file", "block", "dir", "network",
-              "netdir", "ploop")
+              "netdir", "ploop",
+);
 
 VIR_ENUM_IMPL(virStoragePool,
               VIR_STORAGE_POOL_LAST,
@@ -58,26 +59,31 @@ VIR_ENUM_IMPL(virStoragePool,
               "logical", "disk", "iscsi",
               "iscsi-direct", "scsi", "mpath",
               "rbd", "sheepdog", "gluster",
-              "zfs", "vstorage")
+              "zfs", "vstorage",
+);
 
 VIR_ENUM_IMPL(virStoragePoolFormatFileSystem,
               VIR_STORAGE_POOL_FS_LAST,
               "auto", "ext2", "ext3",
               "ext4", "ufs", "iso9660", "udf",
-              "gfs", "gfs2", "vfat", "hfs+", "xfs", "ocfs2")
+              "gfs", "gfs2", "vfat", "hfs+", "xfs", "ocfs2",
+);
 
 VIR_ENUM_IMPL(virStoragePoolFormatFileSystemNet,
               VIR_STORAGE_POOL_NETFS_LAST,
-              "auto", "nfs", "glusterfs", "cifs")
+              "auto", "nfs", "glusterfs", "cifs",
+);
 
 VIR_ENUM_IMPL(virStoragePoolFormatDisk,
               VIR_STORAGE_POOL_DISK_LAST,
               "unknown", "dos", "dvh", "gpt",
-              "mac", "bsd", "pc98", "sun", "lvm2")
+              "mac", "bsd", "pc98", "sun", "lvm2",
+);
 
 VIR_ENUM_IMPL(virStoragePoolFormatLogical,
               VIR_STORAGE_POOL_LOGICAL_LAST,
-              "unknown", "lvm2")
+              "unknown", "lvm2",
+);
 
 
 VIR_ENUM_IMPL(virStorageVolFormatDisk,
@@ -85,14 +91,16 @@ VIR_ENUM_IMPL(virStorageVolFormatDisk,
               "none", "linux", "fat16",
               "fat32", "linux-swap",
               "linux-lvm", "linux-raid",
-              "extended")
+              "extended",
+);
 
 VIR_ENUM_IMPL(virStoragePartedFs,
               VIR_STORAGE_PARTED_FS_TYPE_LAST,
               "ext2", "ext2", "fat16",
               "fat32", "linux-swap",
               "ext2", "ext2",
-              "extended")
+              "extended",
+);
 
 typedef const char *(*virStorageVolFormatToString)(int format);
 typedef int (*virStorageVolFormatFromString)(const char *format);
@@ -124,6 +132,9 @@ typedef virStoragePoolOptions *virStoragePoolOptionsPtr;
 struct _virStoragePoolOptions {
     unsigned int flags;
     int defaultFormat;
+
+    virStoragePoolXMLNamespace ns;
+
     virStoragePoolFormatToString formatToString;
     virStoragePoolFormatFromString formatFromString;
 };
@@ -318,6 +329,34 @@ virStoragePoolOptionsForPoolType(int type)
 }
 
 
+/* virStoragePoolOptionsPoolTypeSetXMLNamespace:
+ * @type: virStoragePoolType
+ * @ns: xmlopt namespace pointer
+ *
+ * Store the @ns in the pool options for the particular backend.
+ * This allows the parse/format code to then directly call the Namespace
+ * method space (parse, format, href, free) as needed during processing.
+ *
+ * Returns: 0 on success, -1 on failure.
+ */
+int
+virStoragePoolOptionsPoolTypeSetXMLNamespace(int type,
+                                             virStoragePoolXMLNamespacePtr ns)
+{
+    int ret = -1;
+    virStoragePoolTypeInfoPtr backend = virStoragePoolTypeInfoLookup(type);
+
+    if (!backend)
+        goto cleanup;
+
+    backend->poolOptions.ns = *ns;
+    ret = 0;
+
+ cleanup:
+    return ret;
+}
+
+
 static virStorageVolOptionsPtr
 virStorageVolOptionsForPoolType(int type)
 {
@@ -401,6 +440,8 @@ virStoragePoolDefFree(virStoragePoolDefPtr def)
 
     VIR_FREE(def->target.path);
     VIR_FREE(def->target.perms.label);
+    if (def->namespaceData && def->ns.free)
+        (def->ns.free)(def->namespaceData);
     VIR_FREE(def);
 }
 
@@ -412,15 +453,16 @@ virStoragePoolDefParseSource(xmlXPathContextPtr ctxt,
                              xmlNodePtr node)
 {
     int ret = -1;
-    xmlNodePtr relnode, authnode, *nodeset = NULL;
+    xmlNodePtr relnode, authnode;
     xmlNodePtr adapternode;
     int nsource;
     size_t i;
     virStoragePoolOptionsPtr options;
-    virStorageAuthDefPtr authdef = NULL;
-    char *name = NULL;
-    char *port = NULL;
     int n;
+    VIR_AUTOPTR(virStorageAuthDef) authdef = NULL;
+    VIR_AUTOFREE(char *) port = NULL;
+    VIR_AUTOFREE(char *) ver = NULL;
+    VIR_AUTOFREE(xmlNodePtr *) nodeset = NULL;
 
     relnode = ctxt->node;
     ctxt->node = node;
@@ -436,7 +478,9 @@ virStoragePoolDefParseSource(xmlXPathContextPtr ctxt,
     }
 
     if (options->formatFromString) {
-        char *format = virXPathString("string(./format/@type)", ctxt);
+        VIR_AUTOFREE(char *) format = NULL;
+
+        format = virXPathString("string(./format/@type)", ctxt);
         if (format == NULL)
             source->format = options->defaultFormat;
         else
@@ -445,10 +489,8 @@ virStoragePoolDefParseSource(xmlXPathContextPtr ctxt,
         if (source->format < 0) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("unknown pool format type %s"), format);
-            VIR_FREE(format);
             goto cleanup;
         }
-        VIR_FREE(format);
     }
 
     if ((n = virXPathNodeSet("./host", ctxt, &nodeset)) < 0)
@@ -460,13 +502,12 @@ virStoragePoolDefParseSource(xmlXPathContextPtr ctxt,
         source->nhost = n;
 
         for (i = 0; i < source->nhost; i++) {
-            name = virXMLPropString(nodeset[i], "name");
-            if (name == NULL) {
+            source->hosts[i].name = virXMLPropString(nodeset[i], "name");
+            if (!source->hosts[i].name) {
                 virReportError(VIR_ERR_XML_ERROR, "%s",
                                _("missing storage pool host name"));
                 goto cleanup;
             }
-            source->hosts[i].name = name;
 
             port = virXMLPropString(nodeset[i], "port");
             if (port) {
@@ -476,7 +517,6 @@ virStoragePoolDefParseSource(xmlXPathContextPtr ctxt,
                                    port);
                     goto cleanup;
                 }
-                VIR_FREE(port);
             }
         }
     }
@@ -490,7 +530,7 @@ virStoragePoolDefParseSource(xmlXPathContextPtr ctxt,
         goto cleanup;
 
     for (i = 0; i < nsource; i++) {
-        char *partsep;
+        VIR_AUTOFREE(char *) partsep = NULL;
         virStoragePoolSourceDevice dev = { .path = NULL };
         dev.path = virXMLPropString(nodeset[i], "path");
 
@@ -508,10 +548,8 @@ virStoragePoolDefParseSource(xmlXPathContextPtr ctxt,
                                _("invalid part_separator setting '%s'"),
                                partsep);
                 virStoragePoolSourceDeviceClear(&dev);
-                VIR_FREE(partsep);
                 goto cleanup;
             }
-            VIR_FREE(partsep);
         }
 
         if (VIR_APPEND_ELEMENT(source->devices, source->ndevice, dev) < 0) {
@@ -542,8 +580,25 @@ virStoragePoolDefParseSource(xmlXPathContextPtr ctxt,
             goto cleanup;
         }
 
-        source->auth = authdef;
-        authdef = NULL;
+        VIR_STEAL_PTR(source->auth, authdef);
+    }
+
+    /* Option protocol version string (NFSvN) */
+    if ((ver = virXPathString("string(./protocol/@ver)", ctxt))) {
+        if ((source->format != VIR_STORAGE_POOL_NETFS_NFS) &&
+            (source->format != VIR_STORAGE_POOL_NETFS_AUTO)) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("storage pool protocol ver unsupported for "
+                             "pool type '%s'"),
+                           virStoragePoolFormatFileSystemNetTypeToString(source->format));
+            goto cleanup;
+        }
+        if (virStrToLong_uip(ver, NULL, 0, &source->protocolVer) < 0) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("storage pool protocol ver '%s' is malformaed"),
+                           ver);
+            goto cleanup;
+        }
     }
 
     source->vendor = virXPathString("string(./vendor/@name)", ctxt);
@@ -553,9 +608,6 @@ virStoragePoolDefParseSource(xmlXPathContextPtr ctxt,
  cleanup:
     ctxt->node = relnode;
 
-    VIR_FREE(port);
-    VIR_FREE(nodeset);
-    virStorageAuthDefFree(authdef);
     return ret;
 }
 
@@ -567,7 +619,8 @@ virStoragePoolDefParseSourceString(const char *srcSpec,
     xmlDocPtr doc = NULL;
     xmlNodePtr node = NULL;
     xmlXPathContextPtr xpath_ctxt = NULL;
-    virStoragePoolSourcePtr def = NULL, ret = NULL;
+    virStoragePoolSourcePtr ret = NULL;
+    VIR_AUTOPTR(virStoragePoolSource) def = NULL;
 
     if (!(doc = virXMLParseStringCtxt(srcSpec,
                                       _("(storage_source_specification)"),
@@ -587,10 +640,8 @@ virStoragePoolDefParseSourceString(const char *srcSpec,
                                      node) < 0)
         goto cleanup;
 
-    ret = def;
-    def = NULL;
+    VIR_STEAL_PTR(ret, def);
  cleanup:
-    virStoragePoolSourceFree(def);
     xmlFreeDoc(doc);
     xmlXPathFreeContext(xpath_ctxt);
 
@@ -603,11 +654,11 @@ virStorageDefParsePerms(xmlXPathContextPtr ctxt,
                         virStoragePermsPtr perms,
                         const char *permxpath)
 {
-    char *mode;
     long long val;
     int ret = -1;
     xmlNodePtr relnode;
     xmlNodePtr node;
+    VIR_AUTOFREE(char *) mode = NULL;
 
     node = virXPathNode(permxpath, ctxt);
     if (node == NULL) {
@@ -626,13 +677,11 @@ virStorageDefParsePerms(xmlXPathContextPtr ctxt,
         int tmp;
 
         if (virStrToLong_i(mode, NULL, 8, &tmp) < 0 || (tmp & ~0777)) {
-            VIR_FREE(mode);
             virReportError(VIR_ERR_XML_ERROR, "%s",
                            _("malformed octal mode"));
             goto error;
         }
         perms->mode = tmp;
-        VIR_FREE(mode);
     } else {
         perms->mode = (mode_t) -1;
     }
@@ -680,152 +729,153 @@ virStoragePoolDefPtr
 virStoragePoolDefParseXML(xmlXPathContextPtr ctxt)
 {
     virStoragePoolOptionsPtr options;
-    virStoragePoolDefPtr ret;
+    virStoragePoolDefPtr ret = NULL;
     xmlNodePtr source_node;
-    char *type = NULL;
-    char *uuid = NULL;
-    char *target_path = NULL;
+    VIR_AUTOPTR(virStoragePoolDef) def = NULL;
+    VIR_AUTOFREE(char *) type = NULL;
+    VIR_AUTOFREE(char *) uuid = NULL;
+    VIR_AUTOFREE(char *) target_path = NULL;
 
-    if (VIR_ALLOC(ret) < 0)
+    if (VIR_ALLOC(def) < 0)
         return NULL;
 
     type = virXPathString("string(./@type)", ctxt);
     if (type == NULL) {
         virReportError(VIR_ERR_XML_ERROR, "%s",
                        _("storage pool missing type attribute"));
-        goto error;
+        return NULL;
     }
 
-    if ((ret->type = virStoragePoolTypeFromString(type)) < 0) {
+    if ((def->type = virStoragePoolTypeFromString(type)) < 0) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("unknown storage pool type %s"), type);
-        goto error;
+        return NULL;
     }
 
-    if ((options = virStoragePoolOptionsForPoolType(ret->type)) == NULL)
-        goto error;
+    if ((options = virStoragePoolOptionsForPoolType(def->type)) == NULL)
+        return NULL;
 
     source_node = virXPathNode("./source", ctxt);
     if (source_node) {
-        if (virStoragePoolDefParseSource(ctxt, &ret->source, ret->type,
+        if (virStoragePoolDefParseSource(ctxt, &def->source, def->type,
                                          source_node) < 0)
-            goto error;
+            return NULL;
     } else {
         if (options->formatFromString)
-            ret->source.format = options->defaultFormat;
+            def->source.format = options->defaultFormat;
     }
 
-    ret->name = virXPathString("string(./name)", ctxt);
-    if (ret->name == NULL &&
+    def->name = virXPathString("string(./name)", ctxt);
+    if (def->name == NULL &&
         options->flags & VIR_STORAGE_POOL_SOURCE_NAME &&
-        VIR_STRDUP(ret->name, ret->source.name) < 0)
-        goto error;
-    if (ret->name == NULL) {
+        VIR_STRDUP(def->name, def->source.name) < 0)
+        return NULL;
+
+    if (def->name == NULL) {
         virReportError(VIR_ERR_XML_ERROR, "%s",
                        _("missing pool source name element"));
-        goto error;
+        return NULL;
     }
 
-    if (strchr(ret->name, '/')) {
+    if (strchr(def->name, '/')) {
         virReportError(VIR_ERR_XML_ERROR,
-                       _("name %s cannot contain '/'"), ret->name);
-        goto error;
+                       _("name %s cannot contain '/'"), def->name);
+        return NULL;
     }
 
     uuid = virXPathString("string(./uuid)", ctxt);
     if (uuid == NULL) {
-        if (virUUIDGenerate(ret->uuid) < 0) {
+        if (virUUIDGenerate(def->uuid) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("unable to generate uuid"));
-            goto error;
+            return NULL;
         }
     } else {
-        if (virUUIDParse(uuid, ret->uuid) < 0) {
+        if (virUUIDParse(uuid, def->uuid) < 0) {
             virReportError(VIR_ERR_XML_ERROR, "%s",
                            _("malformed uuid element"));
-            goto error;
+            return NULL;
         }
     }
 
     if (options->flags & VIR_STORAGE_POOL_SOURCE_HOST) {
-        if (!ret->source.nhost) {
+        if (!def->source.nhost) {
             virReportError(VIR_ERR_XML_ERROR, "%s",
                            _("missing storage pool source host name"));
-            goto error;
+            return NULL;
         }
     }
 
     if (options->flags & VIR_STORAGE_POOL_SOURCE_DIR) {
-        if (!ret->source.dir) {
+        if (!def->source.dir) {
             virReportError(VIR_ERR_XML_ERROR, "%s",
                            _("missing storage pool source path"));
-            goto error;
+            return NULL;
         }
     }
     if (options->flags & VIR_STORAGE_POOL_SOURCE_NAME) {
-        if (ret->source.name == NULL) {
+        if (def->source.name == NULL) {
             /* source name defaults to pool name */
-            if (VIR_STRDUP(ret->source.name, ret->name) < 0)
-                goto error;
+            if (VIR_STRDUP(def->source.name, def->name) < 0)
+                return NULL;
         }
     }
 
     if ((options->flags & VIR_STORAGE_POOL_SOURCE_ADAPTER) &&
-        (virStorageAdapterValidate(&ret->source.adapter)) < 0)
-            goto error;
+        (virStorageAdapterValidate(&def->source.adapter)) < 0)
+            return NULL;
 
     /* If DEVICE is the only source type, then its required */
     if (options->flags == VIR_STORAGE_POOL_SOURCE_DEVICE) {
-        if (!ret->source.ndevice) {
+        if (!def->source.ndevice) {
             virReportError(VIR_ERR_XML_ERROR, "%s",
                            _("missing storage pool source device name"));
-            goto error;
+            return NULL;
         }
     }
 
     /* When we are working with a virtual disk we can skip the target
      * path and permissions */
     if (!(options->flags & VIR_STORAGE_POOL_SOURCE_NETWORK)) {
-        if (ret->type == VIR_STORAGE_POOL_LOGICAL) {
-            if (virAsprintf(&target_path, "/dev/%s", ret->source.name) < 0)
-                goto error;
-        } else if (ret->type == VIR_STORAGE_POOL_ZFS) {
-            if (virAsprintf(&target_path, "/dev/zvol/%s", ret->source.name) < 0)
-                goto error;
+        if (def->type == VIR_STORAGE_POOL_LOGICAL) {
+            if (virAsprintf(&target_path, "/dev/%s", def->source.name) < 0)
+                return NULL;
+        } else if (def->type == VIR_STORAGE_POOL_ZFS) {
+            if (virAsprintf(&target_path, "/dev/zvol/%s", def->source.name) < 0)
+                return NULL;
         } else {
             target_path = virXPathString("string(./target/path)", ctxt);
             if (!target_path) {
                 virReportError(VIR_ERR_XML_ERROR, "%s",
                                _("missing storage pool target path"));
-                goto error;
+                return NULL;
             }
         }
-        ret->target.path = virFileSanitizePath(target_path);
-        if (!ret->target.path)
-            goto error;
+        def->target.path = virFileSanitizePath(target_path);
+        if (!def->target.path)
+            return NULL;
 
-        if (virStorageDefParsePerms(ctxt, &ret->target.perms,
+        if (virStorageDefParsePerms(ctxt, &def->target.perms,
                                     "./target/permissions") < 0)
-            goto error;
+            return NULL;
     }
 
-    if (ret->type == VIR_STORAGE_POOL_ISCSI_DIRECT &&
-        !ret->source.initiator.iqn) {
+    if (def->type == VIR_STORAGE_POOL_ISCSI_DIRECT &&
+        !def->source.initiator.iqn) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("missing initiator IQN"));
-        goto error;
+        return NULL;
     }
 
- cleanup:
-    VIR_FREE(uuid);
-    VIR_FREE(type);
-    VIR_FREE(target_path);
-    return ret;
+    /* Make a copy of all the callback pointers here for easier use,
+     * especially during the virStoragePoolSourceClear method */
+    def->ns = options->ns;
+    if (def->ns.parse &&
+        (def->ns.parse)(ctxt, &def->namespaceData) < 0)
+        return NULL;
 
- error:
-    virStoragePoolDefFree(ret);
-    ret = NULL;
-    goto cleanup;
+    VIR_STEAL_PTR(ret, def);
+    return ret;
 }
 
 
@@ -962,6 +1012,9 @@ virStoragePoolSourceFormat(virBufferPtr buf,
     if (src->auth)
         virStorageAuthDefFormat(buf, src->auth);
 
+    if (src->protocolVer)
+        virBufferAsprintf(buf, "<protocol ver='%u'/>\n", src->protocolVer);
+
     virBufferEscapeString(buf, "<vendor name='%s'/>\n", src->vendor);
     virBufferEscapeString(buf, "<product name='%s'/>\n", src->product);
 
@@ -989,7 +1042,10 @@ virStoragePoolDefFormatBuf(virBufferPtr buf,
                        _("unexpected pool type"));
         return -1;
     }
-    virBufferAsprintf(buf, "<pool type='%s'>\n", type);
+    virBufferAsprintf(buf, "<pool type='%s'", type);
+    if (def->namespaceData && def->ns.href)
+        virBufferAsprintf(buf, " %s", (def->ns.href)());
+    virBufferAddLit(buf, ">\n");
     virBufferAdjustIndent(buf, 2);
     virBufferEscapeString(buf, "<name>%s</name>\n", def->name);
 
@@ -1042,6 +1098,12 @@ virStoragePoolDefFormatBuf(virBufferPtr buf,
         virBufferAdjustIndent(buf, -2);
         virBufferAddLit(buf, "</target>\n");
     }
+
+    if (def->namespaceData && def->ns.format) {
+        if ((def->ns.format)(buf, def->namespaceData) < 0)
+            return -1;
+    }
+
     virBufferAdjustIndent(buf, -2);
     virBufferAddLit(buf, "</pool>\n");
 
@@ -1092,17 +1154,18 @@ virStorageVolDefParseXML(virStoragePoolDefPtr pool,
                          xmlXPathContextPtr ctxt,
                          unsigned int flags)
 {
-    virStorageVolDefPtr ret;
+    virStorageVolDefPtr ret = NULL;
     virStorageVolOptionsPtr options;
-    char *type = NULL;
-    char *allocation = NULL;
-    char *capacity = NULL;
-    char *unit = NULL;
-    char *backingStore = NULL;
     xmlNodePtr node;
-    xmlNodePtr *nodes = NULL;
     size_t i;
     int n;
+    VIR_AUTOPTR(virStorageVolDef) def = NULL;
+    VIR_AUTOFREE(char *) type = NULL;
+    VIR_AUTOFREE(char *) allocation = NULL;
+    VIR_AUTOFREE(char *) capacity = NULL;
+    VIR_AUTOFREE(char *) unit = NULL;
+    VIR_AUTOFREE(char *) backingStore = NULL;
+    VIR_AUTOFREE(xmlNodePtr *) nodes = NULL;
 
     virCheckFlags(VIR_VOL_XML_PARSE_NO_CAPACITY |
                   VIR_VOL_XML_PARSE_OPT_CAPACITY, NULL);
@@ -1111,132 +1174,132 @@ virStorageVolDefParseXML(virStoragePoolDefPtr pool,
     if (options == NULL)
         return NULL;
 
-    if (VIR_ALLOC(ret) < 0)
+    if (VIR_ALLOC(def) < 0)
         return NULL;
 
-    ret->target.type = VIR_STORAGE_TYPE_FILE;
+    def->target.type = VIR_STORAGE_TYPE_FILE;
 
-    ret->name = virXPathString("string(./name)", ctxt);
-    if (ret->name == NULL) {
+    def->name = virXPathString("string(./name)", ctxt);
+    if (def->name == NULL) {
         virReportError(VIR_ERR_XML_ERROR, "%s",
                        _("missing volume name element"));
-        goto error;
+        return NULL;
     }
 
     /* Normally generated by pool refresh, but useful for unit tests */
-    ret->key = virXPathString("string(./key)", ctxt);
+    def->key = virXPathString("string(./key)", ctxt);
 
     /* Technically overridden by pool refresh, but useful for unit tests */
     type = virXPathString("string(./@type)", ctxt);
     if (type) {
-        if ((ret->type = virStorageVolTypeFromString(type)) < 0) {
+        if ((def->type = virStorageVolTypeFromString(type)) < 0) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("unknown volume type '%s'"), type);
-            goto error;
+            return NULL;
         }
     }
 
     if ((backingStore = virXPathString("string(./backingStore/path)", ctxt))) {
-        if (VIR_ALLOC(ret->target.backingStore) < 0)
-            goto error;
+        if (!(def->target.backingStore = virStorageSourceNew()))
+            return NULL;
 
-        ret->target.backingStore->type = VIR_STORAGE_TYPE_FILE;
+        def->target.backingStore->type = VIR_STORAGE_TYPE_FILE;
 
-        ret->target.backingStore->path = backingStore;
+        def->target.backingStore->path = backingStore;
         backingStore = NULL;
 
         if (options->formatFromString) {
-            char *format = virXPathString("string(./backingStore/format/@type)", ctxt);
-            if (format == NULL)
-                ret->target.backingStore->format = options->defaultFormat;
-            else
-                ret->target.backingStore->format = (options->formatFromString)(format);
+            VIR_AUTOFREE(char *) format = NULL;
 
-            if (ret->target.backingStore->format < 0) {
+            format = virXPathString("string(./backingStore/format/@type)", ctxt);
+            if (format == NULL)
+                def->target.backingStore->format = options->defaultFormat;
+            else
+                def->target.backingStore->format = (options->formatFromString)(format);
+
+            if (def->target.backingStore->format < 0) {
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                _("unknown volume format type %s"), format);
-                VIR_FREE(format);
-                goto error;
+                return NULL;
             }
-            VIR_FREE(format);
         }
 
-        if (VIR_ALLOC(ret->target.backingStore->perms) < 0)
-            goto error;
-        if (virStorageDefParsePerms(ctxt, ret->target.backingStore->perms,
+        if (VIR_ALLOC(def->target.backingStore->perms) < 0)
+            return NULL;
+        if (virStorageDefParsePerms(ctxt, def->target.backingStore->perms,
                                     "./backingStore/permissions") < 0)
-            goto error;
+            return NULL;
     }
 
     capacity = virXPathString("string(./capacity)", ctxt);
     unit = virXPathString("string(./capacity/@unit)", ctxt);
     if (capacity) {
-        if (virStorageSize(unit, capacity, &ret->target.capacity) < 0)
-            goto error;
+        if (virStorageSize(unit, capacity, &def->target.capacity) < 0)
+            return NULL;
     } else if (!(flags & VIR_VOL_XML_PARSE_NO_CAPACITY) &&
                !((flags & VIR_VOL_XML_PARSE_OPT_CAPACITY) &&
-                 virStorageSourceHasBacking(&ret->target))) {
+                 virStorageSourceHasBacking(&def->target))) {
         virReportError(VIR_ERR_XML_ERROR, "%s", _("missing capacity element"));
-        goto error;
+        return NULL;
     }
     VIR_FREE(unit);
 
     allocation = virXPathString("string(./allocation)", ctxt);
     if (allocation) {
         unit = virXPathString("string(./allocation/@unit)", ctxt);
-        if (virStorageSize(unit, allocation, &ret->target.allocation) < 0)
-            goto error;
-        ret->target.has_allocation = true;
+        if (virStorageSize(unit, allocation, &def->target.allocation) < 0)
+            return NULL;
+        def->target.has_allocation = true;
     } else {
-        ret->target.allocation = ret->target.capacity;
+        def->target.allocation = def->target.capacity;
     }
 
-    ret->target.path = virXPathString("string(./target/path)", ctxt);
+    def->target.path = virXPathString("string(./target/path)", ctxt);
     if (options->formatFromString) {
-        char *format = virXPathString("string(./target/format/@type)", ctxt);
-        if (format == NULL)
-            ret->target.format = options->defaultFormat;
-        else
-            ret->target.format = (options->formatFromString)(format);
+        VIR_AUTOFREE(char *) format = NULL;
 
-        if (ret->target.format < 0) {
+        format = virXPathString("string(./target/format/@type)", ctxt);
+        if (format == NULL)
+            def->target.format = options->defaultFormat;
+        else
+            def->target.format = (options->formatFromString)(format);
+
+        if (def->target.format < 0) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("unknown volume format type %s"), format);
-            VIR_FREE(format);
-            goto error;
+            return NULL;
         }
-        VIR_FREE(format);
     }
 
-    if (VIR_ALLOC(ret->target.perms) < 0)
-        goto error;
-    if (virStorageDefParsePerms(ctxt, ret->target.perms,
+    if (VIR_ALLOC(def->target.perms) < 0)
+        return NULL;
+    if (virStorageDefParsePerms(ctxt, def->target.perms,
                                 "./target/permissions") < 0)
-        goto error;
+        return NULL;
 
     node = virXPathNode("./target/encryption", ctxt);
     if (node != NULL) {
-        ret->target.encryption = virStorageEncryptionParseNode(node, ctxt);
-        if (ret->target.encryption == NULL)
-            goto error;
+        def->target.encryption = virStorageEncryptionParseNode(node, ctxt);
+        if (def->target.encryption == NULL)
+            return NULL;
     }
 
-    ret->target.compat = virXPathString("string(./target/compat)", ctxt);
-    if (virStorageFileCheckCompat(ret->target.compat) < 0)
-        goto error;
+    def->target.compat = virXPathString("string(./target/compat)", ctxt);
+    if (virStorageFileCheckCompat(def->target.compat) < 0)
+        return NULL;
 
     if (virXPathNode("./target/nocow", ctxt))
-        ret->target.nocow = true;
+        def->target.nocow = true;
 
     if (virXPathNode("./target/features", ctxt)) {
         if ((n = virXPathNodeSet("./target/features/*", ctxt, &nodes)) < 0)
-            goto error;
+            return NULL;
 
-        if (!ret->target.compat && VIR_STRDUP(ret->target.compat, "1.1") < 0)
-            goto error;
+        if (!def->target.compat && VIR_STRDUP(def->target.compat, "1.1") < 0)
+            return NULL;
 
-        if (!(ret->target.features = virBitmapNew(VIR_STORAGE_FILE_FEATURE_LAST)))
-            goto error;
+        if (!(def->target.features = virBitmapNew(VIR_STORAGE_FILE_FEATURE_LAST)))
+            return NULL;
 
         for (i = 0; i < n; i++) {
             int f = virStorageFileFeatureTypeFromString((const char*)nodes[i]->name);
@@ -1244,26 +1307,15 @@ virStorageVolDefParseXML(virStoragePoolDefPtr pool,
             if (f < 0) {
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED, _("unsupported feature %s"),
                                (const char*)nodes[i]->name);
-                goto error;
+                return NULL;
             }
-            ignore_value(virBitmapSetBit(ret->target.features, f));
+            ignore_value(virBitmapSetBit(def->target.features, f));
         }
         VIR_FREE(nodes);
     }
 
- cleanup:
-    VIR_FREE(nodes);
-    VIR_FREE(allocation);
-    VIR_FREE(capacity);
-    VIR_FREE(unit);
-    VIR_FREE(type);
-    VIR_FREE(backingStore);
+    VIR_STEAL_PTR(ret, def);
     return ret;
-
- error:
-    virStorageVolDefFree(ret);
-    ret = NULL;
-    goto cleanup;
 }
 
 
@@ -1544,32 +1596,27 @@ virStoragePoolSaveState(const char *stateFile,
                         virStoragePoolDefPtr def)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
-    int ret = -1;
-    char *xml;
+    VIR_AUTOFREE(char *) xml = NULL;
 
     virBufferAddLit(&buf, "<poolstate>\n");
     virBufferAdjustIndent(&buf, 2);
 
     if (virStoragePoolDefFormatBuf(&buf, def) < 0)
-        goto error;
+        return -1;
 
     virBufferAdjustIndent(&buf, -2);
     virBufferAddLit(&buf, "</poolstate>\n");
 
     if (virBufferCheckError(&buf) < 0)
-        goto error;
+        return -1;
 
     if (!(xml = virBufferContentAndReset(&buf)))
-        goto error;
+        return -1;
 
     if (virStoragePoolSaveXML(stateFile, def, xml))
-        goto error;
+        return -1;
 
-    ret = 0;
-
- error:
-    VIR_FREE(xml);
-    return ret;
+    return 0;
 }
 
 
@@ -1577,8 +1624,7 @@ int
 virStoragePoolSaveConfig(const char *configFile,
                          virStoragePoolDefPtr def)
 {
-    char *xml;
-    int ret = -1;
+    VIR_AUTOFREE(char *) xml = NULL;
 
     if (!(xml = virStoragePoolDefFormat(def))) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -1586,13 +1632,7 @@ virStoragePoolSaveConfig(const char *configFile,
         return -1;
     }
 
-    if (virStoragePoolSaveXML(configFile, def, xml))
-        goto cleanup;
-
-    ret = 0;
- cleanup:
-    VIR_FREE(xml);
-    return ret;
+    return virStoragePoolSaveXML(configFile, def, xml);
 }
 
 

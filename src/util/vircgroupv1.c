@@ -49,7 +49,8 @@ VIR_ENUM_DECL(virCgroupV1Controller);
 VIR_ENUM_IMPL(virCgroupV1Controller, VIR_CGROUP_CONTROLLER_LAST,
               "cpu", "cpuacct", "cpuset", "memory", "devices",
               "freezer", "blkio", "net_cls", "perf_event",
-              "name=systemd");
+              "name=systemd",
+);
 
 
 #ifdef __linux__
@@ -531,7 +532,7 @@ virCgroupV1PathOfController(virCgroupPtr group,
     if (virAsprintf(path, "%s%s/%s",
                     group->legacy[controller].mountPoint,
                     group->legacy[controller].placement,
-                    key ? key : "") < 0)
+                    NULLSTR_EMPTY(key)) < 0)
         return -1;
 
     return 0;

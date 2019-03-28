@@ -403,53 +403,26 @@ virSecurityManagerGetPrivileged(virSecurityManagerPtr mgr)
 
 
 /**
- * virSecurityManagerRestoreDiskLabel:
- * @mgr: security manager object
- * @vm: domain definition object
- * @disk: disk definition to operate on
- *
- * Removes security label from the source image of the disk. Note that this
- * function doesn't restore labels on backing chain elements of @disk.
- *
- * Returns: 0 on success, -1 on error.
- */
-int
-virSecurityManagerRestoreDiskLabel(virSecurityManagerPtr mgr,
-                                   virDomainDefPtr vm,
-                                   virDomainDiskDefPtr disk)
-{
-    if (mgr->drv->domainRestoreSecurityDiskLabel) {
-        int ret;
-        virObjectLock(mgr);
-        ret = mgr->drv->domainRestoreSecurityDiskLabel(mgr, vm, disk);
-        virObjectUnlock(mgr);
-        return ret;
-    }
-
-    virReportUnsupportedError();
-    return -1;
-}
-
-
-/**
  * virSecurityManagerRestoreImageLabel:
  * @mgr: security manager object
  * @vm: domain definition object
  * @src: disk source definition to operate on
+ * @flags: bitwise or of 'virSecurityDomainImageLabelFlags'
  *
- * Removes security label from a single storage image.
+ * Removes security label from @src according to @flags.
  *
  * Returns: 0 on success, -1 on error.
  */
 int
 virSecurityManagerRestoreImageLabel(virSecurityManagerPtr mgr,
                                    virDomainDefPtr vm,
-                                   virStorageSourcePtr src)
+                                   virStorageSourcePtr src,
+                                   virSecurityDomainImageLabelFlags flags)
 {
     if (mgr->drv->domainRestoreSecurityImageLabel) {
         int ret;
         virObjectLock(mgr);
-        ret = mgr->drv->domainRestoreSecurityImageLabel(mgr, vm, src);
+        ret = mgr->drv->domainRestoreSecurityImageLabel(mgr, vm, src, flags);
         virObjectUnlock(mgr);
         return ret;
     }
@@ -511,53 +484,26 @@ virSecurityManagerClearSocketLabel(virSecurityManagerPtr mgr,
 
 
 /**
- * virSecurityManagerSetDiskLabel:
- * @mgr: security manager object
- * @vm: domain definition object
- * @disk: disk definition to operate on
- *
- * Labels the disk image and all images in the backing chain with the configured
- * security label.
- *
- * Returns: 0 on success, -1 on error.
- */
-int
-virSecurityManagerSetDiskLabel(virSecurityManagerPtr mgr,
-                               virDomainDefPtr vm,
-                               virDomainDiskDefPtr disk)
-{
-    if (mgr->drv->domainSetSecurityDiskLabel) {
-        int ret;
-        virObjectLock(mgr);
-        ret = mgr->drv->domainSetSecurityDiskLabel(mgr, vm, disk);
-        virObjectUnlock(mgr);
-        return ret;
-    }
-
-    virReportUnsupportedError();
-    return -1;
-}
-
-
-/**
  * virSecurityManagerSetImageLabel:
  * @mgr: security manager object
  * @vm: domain definition object
  * @src: disk source definition to operate on
+ * @flags: bitwise or of 'virSecurityDomainImageLabelFlags'
  *
- * Labels a single storage image with the configured security label.
+ * Labels a storage image with the configured security label according to @flags.
  *
  * Returns: 0 on success, -1 on error.
  */
 int
 virSecurityManagerSetImageLabel(virSecurityManagerPtr mgr,
                                 virDomainDefPtr vm,
-                                virStorageSourcePtr src)
+                                virStorageSourcePtr src,
+                                virSecurityDomainImageLabelFlags flags)
 {
     if (mgr->drv->domainSetSecurityImageLabel) {
         int ret;
         virObjectLock(mgr);
-        ret = mgr->drv->domainSetSecurityImageLabel(mgr, vm, src);
+        ret = mgr->drv->domainSetSecurityImageLabel(mgr, vm, src, flags);
         virObjectUnlock(mgr);
         return ret;
     }

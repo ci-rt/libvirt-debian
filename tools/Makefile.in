@@ -107,8 +107,7 @@ bin_PROGRAMS = virsh$(EXEEXT) virt-admin$(EXEEXT) $(am__EXEEXT_1) \
 @WITH_WIN_ICON_TRUE@am__append_13 = virsh_win_icon.$(OBJEXT)
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@am__append_14 = libvirt-guests.init
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@am__append_15 = libvirt-guests.service
-@WITH_WIRESHARK_DISSECTOR_TRUE@am__append_16 = wireshark/src/plugin.c
-@WITH_NSS_TRUE@am__append_17 = nss/libnss_libvirt_impl.la \
+@WITH_NSS_TRUE@am__append_16 = nss/libnss_libvirt_impl.la \
 @WITH_NSS_TRUE@	nss/libnss_libvirt_guest_impl.la
 subdir = tools
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -283,6 +282,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/virt-driver-xenapi.m4 \
 	$(top_srcdir)/m4/virt-dtrace.m4 \
 	$(top_srcdir)/m4/virt-external-programs.m4 \
+	$(top_srcdir)/m4/virt-firewalld-zone.m4 \
 	$(top_srcdir)/m4/virt-firewalld.m4 \
 	$(top_srcdir)/m4/virt-fuse.m4 $(top_srcdir)/m4/virt-gluster.m4 \
 	$(top_srcdir)/m4/virt-gnutls.m4 $(top_srcdir)/m4/virt-hal.m4 \
@@ -453,12 +453,12 @@ nss_libnss_libvirt_impl_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 @WITH_NSS_TRUE@am_nss_libnss_libvirt_impl_la_rpath =
 wireshark_src_libvirt_la_LIBADD =
 am__wireshark_src_libvirt_la_SOURCES_DIST =  \
-	wireshark/src/packet-libvirt.h wireshark/src/packet-libvirt.c
-@WITH_WIRESHARK_DISSECTOR_TRUE@am_wireshark_src_libvirt_la_OBJECTS = wireshark/src/wireshark_src_libvirt_la-packet-libvirt.lo
-@WITH_WIRESHARK_DISSECTOR_TRUE@nodist_wireshark_src_libvirt_la_OBJECTS = wireshark/src/wireshark_src_libvirt_la-plugin.lo
+	wireshark/src/packet-libvirt.h wireshark/src/packet-libvirt.c \
+	wireshark/src/plugin.c
+@WITH_WIRESHARK_DISSECTOR_TRUE@am_wireshark_src_libvirt_la_OBJECTS = wireshark/src/wireshark_src_libvirt_la-packet-libvirt.lo \
+@WITH_WIRESHARK_DISSECTOR_TRUE@	wireshark/src/wireshark_src_libvirt_la-plugin.lo
 wireshark_src_libvirt_la_OBJECTS =  \
-	$(am_wireshark_src_libvirt_la_OBJECTS) \
-	$(nodist_wireshark_src_libvirt_la_OBJECTS)
+	$(am_wireshark_src_libvirt_la_OBJECTS)
 wireshark_src_libvirt_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(wireshark_src_libvirt_la_CFLAGS) $(CFLAGS) \
@@ -561,8 +561,7 @@ SOURCES = $(libvirt_shell_la_SOURCES) $(nss_libnss_libvirt_la_SOURCES) \
 	$(nss_libnss_libvirt_guest_la_SOURCES) \
 	$(nss_libnss_libvirt_guest_impl_la_SOURCES) \
 	$(nss_libnss_libvirt_impl_la_SOURCES) \
-	$(wireshark_src_libvirt_la_SOURCES) \
-	$(nodist_wireshark_src_libvirt_la_SOURCES) $(virsh_SOURCES) \
+	$(wireshark_src_libvirt_la_SOURCES) $(virsh_SOURCES) \
 	$(virt_admin_SOURCES) $(virt_host_validate_SOURCES) \
 	$(virt_login_shell_SOURCES)
 DIST_SOURCES = $(libvirt_shell_la_SOURCES) \
@@ -2180,12 +2179,11 @@ EXTRA_DIST = $(ICON_FILES) $(conf_DATA) virt-xml-validate.in \
 	$(MANINFILES) $(NULL) $(am__append_8) $(am__append_10) \
 	$(am__append_12) libvirt-guests.sh.in libvirt-guests.init.in \
 	libvirt-guests.service.in wireshark/util/genxdrstub.pl \
-	wireshark/util/make-dissector-reg $(LIBVIRT_NSS_SOURCES) \
-	$(srcdir)/nss/libvirt_nss.syms \
+	$(LIBVIRT_NSS_SOURCES) $(srcdir)/nss/libvirt_nss.syms \
 	$(srcdir)/nss/libvirt_nss_bsd.syms \
 	$(srcdir)/nss/libvirt_guest_nss.syms
-CLEANFILES = $(am__append_16) $(bin_SCRIPTS) *.gcov .libs/*.gcda \
-	.libs/*.gcno *.gcno *.gcda *.i *.s $(man1_MANS) $(man8_MANS)
+CLEANFILES = $(bin_SCRIPTS) *.gcov .libs/*.gcda .libs/*.gcno *.gcno \
+	*.gcda *.i *.s $(man1_MANS) $(man8_MANS)
 DISTCLEANFILES = $(am__append_1) $(BUILT_SOURCES)
 MAINTAINERCLEANFILES = $(MANINFILES)
 confdir = $(sysconfdir)/libvirt
@@ -2196,7 +2194,7 @@ man1_MANS = virt-pki-validate.1 virt-xml-validate.1 virsh.1 \
 	virt-admin.1 $(am__append_4) $(am__append_6)
 @WITH_SANLOCK_TRUE@sbin_SCRIPTS = virt-sanlock-cleanup
 @WITH_SANLOCK_TRUE@man8_MANS = virt-sanlock-cleanup.8
-noinst_LTLIBRARIES = libvirt_shell.la $(am__append_17)
+noinst_LTLIBRARIES = libvirt_shell.la $(am__append_16)
 libvirt_shell_la_CFLAGS = \
 		$(AM_CFLAGS) \
 		$(READLINE_CFLAGS) \
@@ -2334,10 +2332,10 @@ SYSTEMD_UNIT_DIR = $(prefix)/lib/systemd/system
 @WITH_WIRESHARK_DISSECTOR_TRUE@	-I wireshark/src $(WIRESHARK_DISSECTOR_CFLAGS) $(XDR_CFLAGS)
 
 @WITH_WIRESHARK_DISSECTOR_TRUE@wireshark_src_libvirt_la_LDFLAGS = -avoid-version -module
-@WITH_WIRESHARK_DISSECTOR_TRUE@nodist_wireshark_src_libvirt_la_SOURCES = wireshark/src/plugin.c
 @WITH_WIRESHARK_DISSECTOR_TRUE@wireshark_src_libvirt_la_SOURCES = \
 @WITH_WIRESHARK_DISSECTOR_TRUE@	wireshark/src/packet-libvirt.h \
-@WITH_WIRESHARK_DISSECTOR_TRUE@	wireshark/src/packet-libvirt.c
+@WITH_WIRESHARK_DISSECTOR_TRUE@	wireshark/src/packet-libvirt.c \
+@WITH_WIRESHARK_DISSECTOR_TRUE@	wireshark/src/plugin.c
 
 @WITH_WIRESHARK_DISSECTOR_TRUE@WS_DISSECTOR_PROTO_FILES = \
 @WITH_WIRESHARK_DISSECTOR_TRUE@  $(abs_top_srcdir)/src/remote/remote_protocol.x \
@@ -3683,11 +3681,6 @@ libvirt-guests.service: libvirt-guests.service.in $(top_builddir)/config.status
 
 @WITH_WIRESHARK_DISSECTOR_TRUE@wireshark/src/packet-libvirt.c: wireshark/src/packet-libvirt.h \
 @WITH_WIRESHARK_DISSECTOR_TRUE@		wireshark/src/libvirt/protocol.h
-
-@WITH_WIRESHARK_DISSECTOR_TRUE@wireshark/src/plugin.c: wireshark/src/packet-libvirt.c
-@WITH_WIRESHARK_DISSECTOR_TRUE@	$(AM_V_GEN)cd wireshark/src && \
-@WITH_WIRESHARK_DISSECTOR_TRUE@		$(abs_top_srcdir)/tools/wireshark/util/make-dissector-reg \
-@WITH_WIRESHARK_DISSECTOR_TRUE@		. plugin packet-libvirt.c
 
 @WITH_WIRESHARK_DISSECTOR_TRUE@wireshark/src/libvirt/protocol.h: wireshark/util/genxdrstub.pl \
 @WITH_WIRESHARK_DISSECTOR_TRUE@		$(WS_DISSECTOR_PROTO_FILES)

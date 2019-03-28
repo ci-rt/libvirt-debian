@@ -54,7 +54,8 @@ VIR_ENUM_IMPL(virDomainSnapshotLocation, VIR_DOMAIN_SNAPSHOT_LOCATION_LAST,
               "default",
               "no",
               "internal",
-              "external")
+              "external",
+);
 
 /* virDomainSnapshotState is really virDomainState plus one extra state */
 VIR_ENUM_IMPL(virDomainSnapshotState, VIR_DOMAIN_SNAPSHOT_STATE_LAST,
@@ -66,7 +67,8 @@ VIR_ENUM_IMPL(virDomainSnapshotState, VIR_DOMAIN_SNAPSHOT_STATE_LAST,
               "shutoff",
               "crashed",
               "pmsuspended",
-              "disk-snapshot")
+              "disk-snapshot",
+);
 
 struct _virDomainSnapshotObjList {
     /* name string -> virDomainSnapshotObj  mapping
@@ -81,7 +83,7 @@ static void
 virDomainSnapshotDiskDefClear(virDomainSnapshotDiskDefPtr disk)
 {
     VIR_FREE(disk->name);
-    virStorageSourceFree(disk->src);
+    virObjectUnref(disk->src);
     disk->src = NULL;
 }
 
@@ -120,7 +122,7 @@ virDomainSnapshotDiskDefParseXML(xmlNodePtr node,
 
     ctxt->node = node;
 
-    if (VIR_ALLOC(def->src) < 0)
+    if (!(def->src = virStorageSourceNew()))
         goto cleanup;
 
     def->name = virXMLPropString(node, "name");
@@ -619,7 +621,7 @@ virDomainSnapshotAlignDisks(virDomainSnapshotDefPtr def,
         if (virBitmapIsBitSet(map, i))
             continue;
         disk = &def->disks[ndisks++];
-        if (VIR_ALLOC(disk->src) < 0)
+        if (!(disk->src = virStorageSourceNew()))
             goto cleanup;
         if (VIR_STRDUP(disk->name, def->dom->disks[i]->dst) < 0)
             goto cleanup;
@@ -686,7 +688,7 @@ virDomainSnapshotDiskDefFormat(virBufferPtr buf,
 
 
 char *
-virDomainSnapshotDefFormat(const char *domain_uuid,
+virDomainSnapshotDefFormat(const char *uuidstr,
                            virDomainSnapshotDefPtr def,
                            virCapsPtr caps,
                            virDomainXMLOptionPtr xmlopt,
@@ -742,10 +744,10 @@ virDomainSnapshotDefFormat(const char *domain_uuid,
     if (def->dom) {
         if (virDomainDefFormatInternal(def->dom, caps, flags, &buf, xmlopt) < 0)
             goto error;
-    } else if (domain_uuid) {
+    } else if (uuidstr) {
         virBufferAddLit(&buf, "<domain>\n");
         virBufferAdjustIndent(&buf, 2);
-        virBufferAsprintf(&buf, "<uuid>%s</uuid>\n", domain_uuid);
+        virBufferAsprintf(&buf, "<uuid>%s</uuid>\n", uuidstr);
         virBufferAdjustIndent(&buf, -2);
         virBufferAddLit(&buf, "</domain>\n");
     }
@@ -1222,10 +1224,9 @@ virDomainSnapshotRedefinePrep(virDomainPtr domain,
     int ret = -1;
     int align_location = VIR_DOMAIN_SNAPSHOT_LOCATION_INTERNAL;
     bool align_match = true;
-    char uuidstr[VIR_UUID_STRING_BUFLEN];
     virDomainSnapshotObjPtr other;
-
-    virUUIDFormat(domain->uuid, uuidstr);
+    bool external = def->state == VIR_DOMAIN_DISK_SNAPSHOT ||
+        virDomainSnapshotDefIsExternal(def);
 
     /* Prevent circular chains */
     if (def->parent) {
@@ -1260,18 +1261,19 @@ virDomainSnapshotRedefinePrep(virDomainPtr domain,
     }
 
     /* Check that any replacement is compatible */
-    if ((flags & VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY) &&
-        def->state != VIR_DOMAIN_DISK_SNAPSHOT) {
+    if ((flags & VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY) && !external) {
         virReportError(VIR_ERR_INVALID_ARG,
                        _("disk-only flag for snapshot %s requires "
                          "disk-snapshot state"),
                        def->name);
         goto cleanup;
-
     }
 
     if (def->dom &&
         memcmp(def->dom->uuid, domain->uuid, VIR_UUID_BUFLEN)) {
+        char uuidstr[VIR_UUID_STRING_BUFLEN];
+
+        virUUIDFormat(domain->uuid, uuidstr);
         virReportError(VIR_ERR_INVALID_ARG,
                        _("definition for snapshot %s must use uuid %s"),
                        def->name, uuidstr);
@@ -1294,8 +1296,8 @@ virDomainSnapshotRedefinePrep(virDomainPtr domain,
         if ((other->def->state == VIR_DOMAIN_DISK_SNAPSHOT) !=
             (def->state == VIR_DOMAIN_DISK_SNAPSHOT)) {
             virReportError(VIR_ERR_INVALID_ARG,
-                           _("cannot change between disk snapshot and "
-                             "system checkpoint in snapshot %s"),
+                           _("cannot change between disk only and "
+                             "full system in snapshot %s"),
                            def->name);
             goto cleanup;
         }
@@ -1313,8 +1315,7 @@ virDomainSnapshotRedefinePrep(virDomainPtr domain,
         }
 
         if (def->dom) {
-            if (def->state == VIR_DOMAIN_DISK_SNAPSHOT ||
-                virDomainSnapshotDefIsExternal(def)) {
+            if (external) {
                 align_location = VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL;
                 align_match = false;
             }
@@ -1344,8 +1345,7 @@ virDomainSnapshotRedefinePrep(virDomainPtr domain,
         *snap = other;
     } else {
         if (def->dom) {
-            if (def->state == VIR_DOMAIN_DISK_SNAPSHOT ||
-                def->memory == VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL) {
+            if (external) {
                 align_location = VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL;
                 align_match = false;
             }

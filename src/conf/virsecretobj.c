@@ -78,7 +78,7 @@ virSecretObjOnceInit(void)
 }
 
 
-VIR_ONCE_GLOBAL_INIT(virSecretObj)
+VIR_ONCE_GLOBAL_INIT(virSecretObj);
 
 static virSecretObjPtr
 virSecretObjNew(void)
@@ -394,8 +394,7 @@ virSecretObjListAdd(virSecretObjListPtr secrets,
         virObjectRef(obj);
     }
 
-    ret = obj;
-    obj = NULL;
+    VIR_STEAL_PTR(ret, obj);
 
  cleanup:
     virSecretObjEndAPI(&obj);

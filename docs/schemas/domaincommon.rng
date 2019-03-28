@@ -81,6 +81,9 @@
         <optional>
           <ref name='launchSecurity'/>
         </optional>
+        <optional>
+          <ref name='bhyvecmdline'/>
+        </optional>
       </interleave>
     </element>
   </define>
@@ -2765,7 +2768,7 @@
                         <ref name="usbAddr"/>
                       </attribute>
                       <attribute name="device">
-                        <ref name="usbPort"/>
+                        <ref name="usbAddr"/>
                       </attribute>
                     </group>
                   </choice>
@@ -4709,7 +4712,7 @@
         <ref name="usbAddr"/>
       </attribute>
       <attribute name="device">
-        <ref name="usbPort"/>
+        <ref name="usbAddr"/>
       </attribute>
     </element>
   </define>
@@ -4994,6 +4997,9 @@
               <ref name="featurestate"/>
             </element>
           </optional>
+          <optional>
+            <ref name="msrs"/>
+          </optional>
         </interleave>
       </element>
     </optional>
@@ -5239,6 +5245,17 @@
           <ref name="virOnOff"/>
         </attribute>
       </optional>
+    </element>
+  </define>
+
+  <define name="msrs">
+    <element name="msrs">
+      <attribute name="unknown">
+        <choice>
+          <value>ignore</value>
+          <value>fault</value>
+        </choice>
+      </attribute>
     </element>
   </define>
 
@@ -6121,6 +6138,20 @@
               <value>pid</value>
             </choice>
           </attribute>
+          <attribute name='value'/>
+        </element>
+      </zeroOrMore>
+    </element>
+  </define>
+
+  <!--
+       Optional hypervisor extensions in their own namespace:
+         Bhyve
+    -->
+  <define name="bhyvecmdline">
+    <element name="commandline" ns="http://libvirt.org/schemas/domain/bhyve/1.0">
+      <zeroOrMore>
+        <element name="arg">
           <attribute name='value'/>
         </element>
       </zeroOrMore>

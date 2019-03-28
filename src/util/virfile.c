@@ -175,6 +175,7 @@ virFileDirectFdFlag(void)
 /* Opaque type for managing a wrapper around a fd.  For now,
  * read-write is not supported, just a single direction.  */
 struct _virFileWrapperFd {
+    bool closed; /* Whether virFileWrapperFdClose() has been already called */
     virCommandPtr cmd; /* Child iohelper process to do the I/O.  */
     char *err_msg; /* stderr of @cmd */
 };
@@ -323,16 +324,30 @@ virFileWrapperFdNew(int *fd ATTRIBUTE_UNUSED,
  * callers can conditionally create a virFileWrapperFd wrapper but
  * unconditionally call the cleanup code.  To avoid deadlock, only
  * call this after closing the fd resulting from virFileWrapperFdNew().
+ *
+ * This function can be safely called multiple times on the same @wfd.
  */
 int
 virFileWrapperFdClose(virFileWrapperFdPtr wfd)
 {
     int ret;
 
-    if (!wfd)
+    if (!wfd || wfd->closed)
         return 0;
 
     ret = virCommandWait(wfd->cmd, NULL);
+
+    /* If the command used to process I/O has failed and produced some
+     * messages on stderr, it's fair to assume those will be more
+     * relevant to the user than whatever eg. QEMU can figure out on its
+     * own having no knowledge of the fact a command is handling its I/O
+     * in the first place, so it's okay if we end up discarding an
+     * existing error here */
+    if (ret < 0 && wfd->err_msg && *wfd->err_msg)
+        virReportError(VIR_ERR_OPERATION_FAILED, "%s", wfd->err_msg);
+
+    wfd->closed = true;
+
     return ret;
 }
 
@@ -350,11 +365,6 @@ virFileWrapperFdFree(virFileWrapperFdPtr wfd)
 {
     if (!wfd)
         return;
-
-    if (wfd->err_msg && *wfd->err_msg)
-        VIR_WARN("iohelper reports: %s", wfd->err_msg);
-
-    virCommandAbort(wfd->cmd);
 
     VIR_FREE(wfd->err_msg);
     virCommandFree(wfd->cmd);
@@ -3465,6 +3475,12 @@ int virFilePrintf(FILE *fp, const char *msg, ...)
 # ifndef FUSE_SUPER_MAGIC
 #  define FUSE_SUPER_MAGIC 0x65735546
 # endif
+# ifndef CEPH_SUPER_MAGIC
+#  define CEPH_SUPER_MAGIC 0x00C36400
+# endif
+# ifndef GPFS_SUPER_MAGIC
+#  define GPFS_SUPER_MAGIC 0x47504653
+# endif
 
 # define PROC_MOUNTS "/proc/mounts"
 
@@ -3606,6 +3622,12 @@ virFileIsSharedFSType(const char *path,
         return 1;
     if ((fstypes & VIR_FILE_SHFS_CIFS) &&
         (f_type == CIFS_SUPER_MAGIC))
+        return 1;
+    if ((fstypes & VIR_FILE_SHFS_CEPH) &&
+        (f_type == CEPH_SUPER_MAGIC))
+        return 1;
+    if ((fstypes & VIR_FILE_SHFS_GPFS) &&
+        (f_type == GPFS_SUPER_MAGIC))
         return 1;
 
     return 0;
@@ -3769,7 +3791,9 @@ int virFileIsSharedFS(const char *path)
                                  VIR_FILE_SHFS_OCFS |
                                  VIR_FILE_SHFS_AFS |
                                  VIR_FILE_SHFS_SMB |
-                                 VIR_FILE_SHFS_CIFS);
+                                 VIR_FILE_SHFS_CIFS |
+                                 VIR_FILE_SHFS_CEPH |
+                                 VIR_FILE_SHFS_GPFS);
 }
 
 

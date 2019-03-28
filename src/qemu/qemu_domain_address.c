@@ -230,10 +230,8 @@ qemuDomainAssignSpaprVIOAddresses(virDomainDefPtr def)
     for (i = 0; i < def->nnets; i++) {
         virDomainNetDefPtr net = def->nets[i];
 
-        if (net->model &&
-            STREQ(net->model, "spapr-vlan")) {
+        if (STREQ_NULLABLE(net->model, "spapr-vlan"))
             net->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_SPAPRVIO;
-        }
 
         if (qemuDomainAssignSpaprVIOAddress(def, &net->info, VIO_ADDR_NET) < 0)
             goto cleanup;
@@ -322,8 +320,7 @@ qemuDomainPrimeVirtioDeviceAddresses(virDomainDefPtr def,
     for (i = 0; i < def->nnets; i++) {
         virDomainNetDefPtr net = def->nets[i];
 
-        if (net->model &&
-            STREQ(net->model, "virtio") &&
+        if (virDomainNetIsVirtioModel(net) &&
             net->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE) {
             net->info.type = type;
         }
@@ -361,14 +358,14 @@ qemuDomainPrimeVirtioDeviceAddresses(virDomainDefPtr def,
             def->hostdevs[i]->info->type = type;
     }
 
-    if (def->memballoon &&
-        def->memballoon->model == VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO &&
+    /* All memballoon devices accepted by the qemu driver are virtio */
+    if (virDomainDefHasMemballoon(def) &&
         def->memballoon->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
         def->memballoon->info.type = type;
 
     for (i = 0; i < def->nrngs; i++) {
-        if (def->rngs[i]->model == VIR_DOMAIN_RNG_MODEL_VIRTIO &&
-            def->rngs[i]->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
+        /* All <rng> devices accepted by the qemu driver are virtio */
+        if (def->rngs[i]->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
             def->rngs[i]->info.type = type;
     }
 
@@ -691,14 +688,14 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
          * addresses for other hostdev devices.
          */
         if (net->type == VIR_DOMAIN_NET_TYPE_HOSTDEV ||
-            STREQ(net->model, "usb-net")) {
+            STREQ_NULLABLE(net->model, "usb-net")) {
             return 0;
         }
 
-        if (STREQ(net->model, "virtio"))
+        if (STREQ_NULLABLE(net->model, "virtio"))
             return  virtioFlags;
 
-        if (STREQ(net->model, "e1000e"))
+        if (STREQ_NULLABLE(net->model, "e1000e"))
             return pcieFlags;
 
         return pciFlags;
@@ -2271,20 +2268,17 @@ qemuDomainAssignDevicePCISlots(virDomainDefPtr def,
             goto error;
     }
 
-    /* VirtIO balloon */
-    if (def->memballoon &&
-        def->memballoon->model == VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO &&
+    /* memballoon. the qemu driver only accepts virtio memballoon devices */
+    if (virDomainDefHasMemballoon(def) &&
         virDeviceInfoPCIAddressIsWanted(&def->memballoon->info)) {
-
         if (qemuDomainPCIAddressReserveNextAddr(addrs,
                                                 &def->memballoon->info) < 0)
             goto error;
     }
 
-    /* VirtIO RNG */
+    /* the qemu driver only accepts virtio rng devices */
     for (i = 0; i < def->nrngs; i++) {
-        if (def->rngs[i]->model != VIR_DOMAIN_RNG_MODEL_VIRTIO ||
-            !virDeviceInfoPCIAddressIsWanted(&def->rngs[i]->info))
+        if (!virDeviceInfoPCIAddressIsWanted(&def->rngs[i]->info))
             continue;
 
         if (qemuDomainPCIAddressReserveNextAddr(addrs, &def->rngs[i]->info) < 0)
@@ -2359,27 +2353,6 @@ qemuDomainAssignDevicePCISlots(virDomainDefPtr def,
 
  error:
     return -1;
-}
-
-
-static bool
-qemuDomainSupportsPCI(virDomainDefPtr def,
-                      virQEMUCapsPtr qemuCaps)
-{
-    if ((def->os.arch != VIR_ARCH_ARMV6L) &&
-        (def->os.arch != VIR_ARCH_ARMV7L) &&
-        (def->os.arch != VIR_ARCH_AARCH64) &&
-        !ARCH_IS_RISCV(def->os.arch))
-        return true;
-
-    if (STREQ(def->os.machine, "versatilepb"))
-        return true;
-
-    if (qemuDomainIsARMVirt(def) &&
-        virQEMUCapsGet(qemuCaps, QEMU_CAPS_OBJECT_GPEX))
-        return true;
-
-    return false;
 }
 
 
@@ -3232,7 +3205,7 @@ qemuDomainEnsureVirtioAddress(bool *releaseAddr,
         else if (virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_VIRTIO_S390))
             info->type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_S390;
     } else {
-        if (!qemuDomainCheckCCWS390AddressSupport(vm->def, *info, priv->qemuCaps,
+        if (!qemuDomainCheckCCWS390AddressSupport(vm->def, info, priv->qemuCaps,
                                                   devicename))
             return -1;
     }

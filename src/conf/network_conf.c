@@ -47,25 +47,30 @@ VIR_ENUM_IMPL(virNetworkForward,
               VIR_NETWORK_FORWARD_LAST,
               "none", "nat", "route", "open",
               "bridge", "private", "vepa", "passthrough",
-              "hostdev")
+              "hostdev",
+);
 
 VIR_ENUM_IMPL(virNetworkBridgeMACTableManager,
               VIR_NETWORK_BRIDGE_MAC_TABLE_MANAGER_LAST,
-              "default", "kernel", "libvirt")
+              "default", "kernel", "libvirt",
+);
 
-VIR_ENUM_DECL(virNetworkForwardHostdevDevice)
+VIR_ENUM_DECL(virNetworkForwardHostdevDevice);
 VIR_ENUM_IMPL(virNetworkForwardHostdevDevice,
               VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_LAST,
-              "none", "pci", "netdev")
+              "none", "pci", "netdev",
+);
 
 VIR_ENUM_IMPL(virNetworkForwardDriverName,
               VIR_NETWORK_FORWARD_DRIVER_NAME_LAST,
               "default",
               "kvm",
-              "vfio")
+              "vfio",
+);
 
 VIR_ENUM_IMPL(virNetworkTaint, VIR_NETWORK_TAINT_LAST,
-              "hook-script");
+              "hook-script",
+);
 
 static void
 virPortGroupDefClear(virPortGroupDefPtr def)
@@ -203,6 +208,7 @@ virNetworkDefFree(virNetworkDefPtr def)
 
     VIR_FREE(def->name);
     VIR_FREE(def->bridge);
+    VIR_FREE(def->bridgeZone);
     VIR_FREE(def->domain);
 
     virNetworkForwardDefClear(&def->forward);
@@ -1684,6 +1690,7 @@ virNetworkDefParseXML(xmlXPathContextPtr ctxt)
 
     /* Parse bridge information */
     def->bridge = virXPathString("string(./bridge[1]/@name)", ctxt);
+    def->bridgeZone = virXPathString("string(./bridge[1]/@zone)", ctxt);
     stp = virXPathString("string(./bridge[1]/@stp)", ctxt);
     def->stp = (stp && STREQ(stp, "off")) ? false : true;
 
@@ -1920,6 +1927,13 @@ virNetworkDefParseXML(xmlXPathContextPtr ctxt)
                            def->name);
             goto error;
         }
+        if (def->bridgeZone) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           _("bridge zone not allowed in %s mode (network '%s')"),
+                           virNetworkForwardTypeToString(def->forward.type),
+                           def->name);
+            goto error;
+        }
         if (def->macTableManager) {
             virReportError(VIR_ERR_XML_ERROR,
                            _("bridge macTableManager setting not allowed "
@@ -1931,9 +1945,9 @@ virNetworkDefParseXML(xmlXPathContextPtr ctxt)
         ATTRIBUTE_FALLTHROUGH;
 
     case VIR_NETWORK_FORWARD_BRIDGE:
-        if (def->delay || stp) {
+        if (def->delay || stp || def->bridgeZone) {
             virReportError(VIR_ERR_XML_ERROR,
-                           _("bridge delay/stp options only allowed in "
+                           _("bridge delay/stp/zone options only allowed in "
                              "route, nat, and isolated mode, not in %s "
                              "(network '%s')"),
                            virNetworkForwardTypeToString(def->forward.type),
@@ -2471,10 +2485,9 @@ virNetworkDefFormatBuf(virBufferPtr buf,
                     virBufferAddLit(buf, "/>\n");
                 } else {
                     if (def->forward.ifs[i].type ==  VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_PCI) {
-                        if (virPCIDeviceAddressFormat(buf,
-                                                      def->forward.ifs[i].device.pci,
-                                                      true) < 0)
-                            goto error;
+                        virPCIDeviceAddressFormat(buf,
+                                                  def->forward.ifs[i].device.pci,
+                                                  true);
                     }
                 }
             }
@@ -2508,6 +2521,7 @@ virNetworkDefFormatBuf(virBufferPtr buf,
     if (hasbridge || def->bridge || def->macTableManager) {
         virBufferAddLit(buf, "<bridge");
         virBufferEscapeString(buf, " name='%s'", def->bridge);
+        virBufferEscapeString(buf, " zone='%s'", def->bridgeZone);
         if (hasbridge)
             virBufferAsprintf(buf, " stp='%s' delay='%ld'",
                               def->stp ? "on" : "off", def->delay);

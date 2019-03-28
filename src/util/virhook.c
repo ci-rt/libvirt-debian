@@ -41,13 +41,13 @@ VIR_LOG_INIT("util.hook");
 
 #define LIBVIRT_HOOK_DIR SYSCONFDIR "/libvirt/hooks"
 
-VIR_ENUM_DECL(virHookDriver)
-VIR_ENUM_DECL(virHookDaemonOp)
-VIR_ENUM_DECL(virHookSubop)
-VIR_ENUM_DECL(virHookQemuOp)
-VIR_ENUM_DECL(virHookLxcOp)
-VIR_ENUM_DECL(virHookNetworkOp)
-VIR_ENUM_DECL(virHookLibxlOp)
+VIR_ENUM_DECL(virHookDriver);
+VIR_ENUM_DECL(virHookDaemonOp);
+VIR_ENUM_DECL(virHookSubop);
+VIR_ENUM_DECL(virHookQemuOp);
+VIR_ENUM_DECL(virHookLxcOp);
+VIR_ENUM_DECL(virHookNetworkOp);
+VIR_ENUM_DECL(virHookLibxlOp);
 
 VIR_ENUM_IMPL(virHookDriver,
               VIR_HOOK_DRIVER_LAST,
@@ -55,17 +55,20 @@ VIR_ENUM_IMPL(virHookDriver,
               "qemu",
               "lxc",
               "network",
-              "libxl")
+              "libxl",
+);
 
 VIR_ENUM_IMPL(virHookDaemonOp, VIR_HOOK_DAEMON_OP_LAST,
               "start",
               "shutdown",
-              "reload")
+              "reload",
+);
 
 VIR_ENUM_IMPL(virHookSubop, VIR_HOOK_SUBOP_LAST,
               "-",
               "begin",
-              "end")
+              "end",
+);
 
 VIR_ENUM_IMPL(virHookQemuOp, VIR_HOOK_QEMU_OP_LAST,
               "start",
@@ -76,7 +79,8 @@ VIR_ENUM_IMPL(virHookQemuOp, VIR_HOOK_QEMU_OP_LAST,
               "started",
               "reconnect",
               "attach",
-              "restore")
+              "restore",
+);
 
 VIR_ENUM_IMPL(virHookLxcOp, VIR_HOOK_LXC_OP_LAST,
               "start",
@@ -84,7 +88,8 @@ VIR_ENUM_IMPL(virHookLxcOp, VIR_HOOK_LXC_OP_LAST,
               "prepare",
               "release",
               "started",
-              "reconnect")
+              "reconnect",
+);
 
 VIR_ENUM_IMPL(virHookNetworkOp, VIR_HOOK_NETWORK_OP_LAST,
               "start",
@@ -92,7 +97,8 @@ VIR_ENUM_IMPL(virHookNetworkOp, VIR_HOOK_NETWORK_OP_LAST,
               "stopped",
               "plugged",
               "unplugged",
-              "updated")
+              "updated",
+);
 
 VIR_ENUM_IMPL(virHookLibxlOp, VIR_HOOK_LIBXL_OP_LAST,
               "start",
@@ -101,7 +107,8 @@ VIR_ENUM_IMPL(virHookLibxlOp, VIR_HOOK_LIBXL_OP_LAST,
               "release",
               "migrate",
               "started",
-              "reconnect")
+              "reconnect",
+);
 
 static int virHooksFound = -1;
 

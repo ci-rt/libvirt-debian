@@ -120,7 +120,6 @@ useless_free_options = \
   --name=virConfFreeValue \
   --name=virDomainActualNetDefFree \
   --name=virDomainChrDefFree \
-  --name=virDomainChrSourceDefFree \
   --name=virDomainControllerDefFree \
   --name=virDomainDefFree \
   --name=virDomainDeviceDefFree \
@@ -309,6 +308,7 @@ sc_flags_usage:
 	  { echo '$(ME): new API should use "unsigned int flags"' 1>&2; \
 	    exit 1; } || :
 	@prohibit=' flags ATTRIBUTE_UNUSED' \
+	exclude='virSecurityDomainImageLabelFlags' \
 	halt='flags should be checked with virCheckFlags' \
 	  $(_sc_search_regexp)
 	@prohibit='^[^@]*([^d] (int|long long)|[^dg] long) flags[;,)]' \
@@ -1282,7 +1282,7 @@ exclude_file_name_regexp--sc_correct_id_types = \
 exclude_file_name_regexp--sc_m4_quote_check = m4/virt-lib.m4
 
 exclude_file_name_regexp--sc_prohibit_include_public_headers_quote = \
-  ^(src/internal\.h$$|tools/wireshark/src/packet-libvirt.h$$)
+  ^(src/internal\.h$$|tools/wireshark/src/packet-libvirt.c$$)
 
 exclude_file_name_regexp--sc_prohibit_include_public_headers_brackets = \
   ^(tools/|examples/|include/libvirt/(virterror|libvirt(-(admin|qemu|lxc))?)\.h$$)

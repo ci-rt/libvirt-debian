@@ -257,7 +257,7 @@ typedef enum {
 
     VIR_DOMAIN_OSTYPE_LAST
 } virDomainOSType;
-VIR_ENUM_DECL(virDomainOS)
+VIR_ENUM_DECL(virDomainOS);
 
 
 typedef struct _virDomainHostdevOrigStates virDomainHostdevOrigStates;
@@ -320,7 +320,7 @@ typedef enum {
     VIR_DOMAIN_HOSTDEV_PCI_BACKEND_TYPE_LAST
 } virDomainHostdevSubsysPCIBackendType;
 
-VIR_ENUM_DECL(virDomainHostdevSubsysPCIBackend)
+VIR_ENUM_DECL(virDomainHostdevSubsysPCIBackend);
 
 typedef enum {
     VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_NONE,
@@ -329,7 +329,7 @@ typedef enum {
     VIR_DOMAIN_HOSTDEV_SCSI_PROTOCOL_TYPE_LAST,
 } virDomainHostdevSCSIProtocolType;
 
-VIR_ENUM_DECL(virDomainHostdevSubsysSCSIProtocol)
+VIR_ENUM_DECL(virDomainHostdevSubsysSCSIProtocol);
 
 typedef struct _virDomainHostdevSubsysUSB virDomainHostdevSubsysUSB;
 typedef virDomainHostdevSubsysUSB *virDomainHostdevSubsysUSBPtr;
@@ -392,7 +392,7 @@ typedef enum {
     VIR_DOMAIN_HOSTDEV_SUBSYS_SCSI_HOST_PROTOCOL_TYPE_LAST,
 } virDomainHostdevSubsysSCSIHostProtocolType;
 
-VIR_ENUM_DECL(virDomainHostdevSubsysSCSIHostProtocol)
+VIR_ENUM_DECL(virDomainHostdevSubsysSCSIHostProtocol);
 
 typedef struct _virDomainHostdevSubsysSCSIVHost virDomainHostdevSubsysSCSIVHost;
 typedef virDomainHostdevSubsysSCSIVHost *virDomainHostdevSubsysSCSIVHostPtr;
@@ -1078,7 +1078,7 @@ typedef enum {
     VIR_DOMAIN_CHR_DEVICE_STATE_LAST
 } virDomainChrDeviceState;
 
-VIR_ENUM_DECL(virDomainChrDeviceState)
+VIR_ENUM_DECL(virDomainChrDeviceState);
 
 typedef enum {
     VIR_DOMAIN_CHR_DEVICE_TYPE_PARALLEL = 0,
@@ -1439,7 +1439,7 @@ typedef enum {
     VIR_DOMAIN_VIDEO_VGACONF_LAST
 } virDomainVideoVGAConf;
 
-VIR_ENUM_DECL(virDomainVideoVGAConf)
+VIR_ENUM_DECL(virDomainVideoVGAConf);
 
 typedef struct _virDomainVideoAccelDef virDomainVideoAccelDef;
 typedef virDomainVideoAccelDef *virDomainVideoAccelDefPtr;
@@ -1603,6 +1603,8 @@ struct _virDomainGraphicsListenDef {
 };
 
 struct _virDomainGraphicsDef {
+    virObjectPtr privateData;
+
     /* Port value discipline:
      * Value -1 is legacy syntax indicating that it should be auto-allocated.
      * Value 0 means port wasn't specified in XML at all.
@@ -1780,6 +1782,7 @@ typedef enum {
     VIR_DOMAIN_FEATURE_VMCOREINFO,
     VIR_DOMAIN_FEATURE_HTM,
     VIR_DOMAIN_FEATURE_NESTED_HV,
+    VIR_DOMAIN_FEATURE_MSRS,
 
     VIR_DOMAIN_FEATURE_LAST
 } virDomainFeature;
@@ -1810,6 +1813,19 @@ typedef enum {
 
     VIR_DOMAIN_KVM_LAST
 } virDomainKVM;
+
+typedef enum {
+    VIR_DOMAIN_MSRS_UNKNOWN = 0,
+
+    VIR_DOMAIN_MSRS_LAST
+} virDomainMsrs;
+
+typedef enum {
+    VIR_DOMAIN_MSRS_UNKNOWN_IGNORE = 0,
+    VIR_DOMAIN_MSRS_UNKNOWN_FAULT,
+
+    VIR_DOMAIN_MSRS_UNKNOWN_LAST
+} virDomainMsrsUnknown;
 
 typedef enum {
     VIR_DOMAIN_CAPABILITIES_POLICY_DEFAULT = 0,
@@ -1871,7 +1887,7 @@ typedef enum {
     VIR_DOMAIN_LOCK_FAILURE_LAST
 } virDomainLockFailureAction;
 
-VIR_ENUM_DECL(virDomainLockFailure)
+VIR_ENUM_DECL(virDomainLockFailure);
 
 typedef struct _virDomainBIOSDef virDomainBIOSDef;
 typedef virDomainBIOSDef *virDomainBIOSDefPtr;
@@ -1889,7 +1905,7 @@ typedef enum {
     VIR_DOMAIN_LOADER_TYPE_LAST
 } virDomainLoader;
 
-VIR_ENUM_DECL(virDomainLoader)
+VIR_ENUM_DECL(virDomainLoader);
 
 typedef struct _virDomainLoaderDef virDomainLoaderDef;
 typedef virDomainLoaderDef *virDomainLoaderDefPtr;
@@ -2464,6 +2480,7 @@ struct _virDomainDef {
     int caps_features[VIR_DOMAIN_CAPS_FEATURE_LAST];
     int hyperv_features[VIR_DOMAIN_HYPERV_LAST];
     int kvm_features[VIR_DOMAIN_KVM_LAST];
+    int msrs_features[VIR_DOMAIN_MSRS_LAST];
     unsigned int hyperv_spinlocks;
     virGICVersion gic_version;
     virDomainHPTResizing hpt_resizing;
@@ -2783,6 +2800,7 @@ struct _virDomainXMLPrivateDataCallbacks {
     virDomainXMLPrivateDataNewFunc    vcpuNew;
     virDomainXMLPrivateDataNewFunc    chrSourceNew;
     virDomainXMLPrivateDataNewFunc    vsockNew;
+    virDomainXMLPrivateDataNewFunc    graphicsNew;
     virDomainXMLPrivateDataFormatFunc format;
     virDomainXMLPrivateDataParseFunc  parse;
     /* following function shall return a pointer which will be used as the
@@ -2908,7 +2926,6 @@ void virDomainNetDefClear(virDomainNetDefPtr def);
 void virDomainNetDefFree(virDomainNetDefPtr def);
 void virDomainSmartcardDefFree(virDomainSmartcardDefPtr def);
 void virDomainChrDefFree(virDomainChrDefPtr def);
-void virDomainChrSourceDefFree(virDomainChrSourceDefPtr def);
 int virDomainChrSourceDefCopy(virDomainChrSourceDefPtr dest,
                               virDomainChrSourceDefPtr src);
 void virDomainSoundCodecDefFree(virDomainSoundCodecDefPtr def);
@@ -2932,6 +2949,8 @@ virDomainDeviceDefPtr virDomainDeviceDefCopy(virDomainDeviceDefPtr src,
                                              virCapsPtr caps,
                                              virDomainXMLOptionPtr xmlopt);
 virDomainDeviceInfoPtr virDomainDeviceGetInfo(virDomainDeviceDefPtr device);
+void virDomainDeviceSetData(virDomainDeviceDefPtr device,
+                            void *devicedata);
 void virDomainTPMDefFree(virDomainTPMDefPtr def);
 
 typedef int (*virDomainDeviceInfoCallback)(virDomainDefPtr def,
@@ -2954,6 +2973,8 @@ virDomainChrSourceDefNew(virDomainXMLOptionPtr xmlopt);
 
 virDomainChrDefPtr virDomainChrDefNew(virDomainXMLOptionPtr xmlopt);
 
+virDomainGraphicsDefPtr
+virDomainGraphicsDefNew(virDomainXMLOptionPtr xmlopt);
 virDomainDefPtr virDomainDefNew(void);
 
 void virDomainObjAssignDef(virDomainObjPtr domain,
@@ -3103,6 +3124,15 @@ virDomainIOThreadIDDefPtr virDomainIOThreadIDAdd(virDomainDefPtr def,
                                                  unsigned int iothread_id);
 void virDomainIOThreadIDDel(virDomainDefPtr def, unsigned int iothread_id);
 
+/* When extending this list, remember that libvirt 1.2.12-5.0.0 had a
+ * bug that silently ignored unknown flags.  A new flag to add
+ * information is okay as long as clients still work when an older
+ * server omits the requested output, but a new flag to suppress
+ * information could result in a security hole when older libvirt
+ * supplies the sensitive information in spite of the flag. */
+# define VIR_DOMAIN_XML_COMMON_FLAGS \
+    (VIR_DOMAIN_XML_SECURE | VIR_DOMAIN_XML_INACTIVE | \
+     VIR_DOMAIN_XML_MIGRATABLE)
 unsigned int virDomainDefFormatConvertXMLFlags(unsigned int flags);
 
 char *virDomainDefFormat(virDomainDefPtr def,
@@ -3212,6 +3242,7 @@ virNetDevBandwidthPtr
 virDomainNetGetActualBandwidth(virDomainNetDefPtr iface);
 virNetDevVlanPtr virDomainNetGetActualVlan(virDomainNetDefPtr iface);
 bool virDomainNetGetActualTrustGuestRxFilters(virDomainNetDefPtr iface);
+bool virDomainNetIsVirtioModel(const virDomainNetDef *net);
 int virDomainNetAppendIPAddress(virDomainNetDefPtr def,
                                 const char *address,
                                 int family,
@@ -3389,115 +3420,116 @@ bool virDomainVsockDefEquals(const virDomainVsockDef *a,
                              const virDomainVsockDef *b)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
 
-VIR_ENUM_DECL(virDomainTaint)
-VIR_ENUM_DECL(virDomainVirt)
-VIR_ENUM_DECL(virDomainBoot)
-VIR_ENUM_DECL(virDomainFeature)
-VIR_ENUM_DECL(virDomainCapabilitiesPolicy)
-VIR_ENUM_DECL(virDomainCapsFeature)
-VIR_ENUM_DECL(virDomainLifecycle)
-VIR_ENUM_DECL(virDomainLifecycleAction)
-VIR_ENUM_DECL(virDomainDevice)
-VIR_ENUM_DECL(virDomainDiskDevice)
-VIR_ENUM_DECL(virDomainDiskGeometryTrans)
-VIR_ENUM_DECL(virDomainDiskBus)
-VIR_ENUM_DECL(virDomainDiskCache)
-VIR_ENUM_DECL(virDomainDiskErrorPolicy)
-VIR_ENUM_DECL(virDomainDiskIo)
-VIR_ENUM_DECL(virDomainDeviceSGIO)
-VIR_ENUM_DECL(virDomainDiskTray)
-VIR_ENUM_DECL(virDomainDiskDiscard)
-VIR_ENUM_DECL(virDomainDiskDetectZeroes)
-VIR_ENUM_DECL(virDomainDiskMirrorState)
-VIR_ENUM_DECL(virDomainController)
-VIR_ENUM_DECL(virDomainControllerModelPCI)
-VIR_ENUM_DECL(virDomainControllerPCIModelName)
-VIR_ENUM_DECL(virDomainControllerModelSCSI)
-VIR_ENUM_DECL(virDomainControllerModelUSB)
-VIR_ENUM_DECL(virDomainControllerModelIDE)
-VIR_ENUM_DECL(virDomainFS)
-VIR_ENUM_DECL(virDomainFSDriver)
-VIR_ENUM_DECL(virDomainFSAccessMode)
-VIR_ENUM_DECL(virDomainFSWrpolicy)
-VIR_ENUM_DECL(virDomainNet)
-VIR_ENUM_DECL(virDomainNetBackend)
-VIR_ENUM_DECL(virDomainNetVirtioTxMode)
-VIR_ENUM_DECL(virDomainNetInterfaceLinkState)
-VIR_ENUM_DECL(virDomainChrDevice)
-VIR_ENUM_DECL(virDomainChrChannelTarget)
-VIR_ENUM_DECL(virDomainChrConsoleTarget)
-VIR_ENUM_DECL(virDomainChrSerialTarget)
-VIR_ENUM_DECL(virDomainSmartcard)
-VIR_ENUM_DECL(virDomainChr)
-VIR_ENUM_DECL(virDomainChrTcpProtocol)
-VIR_ENUM_DECL(virDomainChrSpicevmc)
-VIR_ENUM_DECL(virDomainSoundCodec)
-VIR_ENUM_DECL(virDomainSoundModel)
-VIR_ENUM_DECL(virDomainKeyWrapCipherName)
-VIR_ENUM_DECL(virDomainMemballoonModel)
-VIR_ENUM_DECL(virDomainSmbiosMode)
-VIR_ENUM_DECL(virDomainWatchdogModel)
-VIR_ENUM_DECL(virDomainWatchdogAction)
-VIR_ENUM_DECL(virDomainPanicModel)
-VIR_ENUM_DECL(virDomainVideo)
-VIR_ENUM_DECL(virDomainHostdevMode)
-VIR_ENUM_DECL(virDomainHostdevSubsys)
-VIR_ENUM_DECL(virDomainHostdevCaps)
-VIR_ENUM_DECL(virDomainHub)
-VIR_ENUM_DECL(virDomainRedirdevBus)
-VIR_ENUM_DECL(virDomainInput)
-VIR_ENUM_DECL(virDomainInputBus)
-VIR_ENUM_DECL(virDomainGraphics)
-VIR_ENUM_DECL(virDomainGraphicsListen)
-VIR_ENUM_DECL(virDomainGraphicsAuthConnected)
-VIR_ENUM_DECL(virDomainGraphicsSpiceChannelName)
-VIR_ENUM_DECL(virDomainGraphicsSpiceChannelMode)
-VIR_ENUM_DECL(virDomainGraphicsSpiceImageCompression)
-VIR_ENUM_DECL(virDomainGraphicsSpiceJpegCompression)
-VIR_ENUM_DECL(virDomainGraphicsSpiceZlibCompression)
-VIR_ENUM_DECL(virDomainGraphicsSpiceStreamingMode)
-VIR_ENUM_DECL(virDomainGraphicsSpiceMouseMode)
-VIR_ENUM_DECL(virDomainGraphicsVNCSharePolicy)
-VIR_ENUM_DECL(virDomainHyperv)
-VIR_ENUM_DECL(virDomainKVM)
-VIR_ENUM_DECL(virDomainRNGModel)
-VIR_ENUM_DECL(virDomainRNGBackend)
-VIR_ENUM_DECL(virDomainTPMModel)
-VIR_ENUM_DECL(virDomainTPMBackend)
-VIR_ENUM_DECL(virDomainTPMVersion)
-VIR_ENUM_DECL(virDomainMemoryModel)
-VIR_ENUM_DECL(virDomainMemoryBackingModel)
-VIR_ENUM_DECL(virDomainMemorySource)
-VIR_ENUM_DECL(virDomainMemoryAllocation)
-VIR_ENUM_DECL(virDomainIOMMUModel)
-VIR_ENUM_DECL(virDomainVsockModel)
-VIR_ENUM_DECL(virDomainShmemModel)
-VIR_ENUM_DECL(virDomainLaunchSecurity)
+VIR_ENUM_DECL(virDomainTaint);
+VIR_ENUM_DECL(virDomainVirt);
+VIR_ENUM_DECL(virDomainBoot);
+VIR_ENUM_DECL(virDomainFeature);
+VIR_ENUM_DECL(virDomainCapabilitiesPolicy);
+VIR_ENUM_DECL(virDomainCapsFeature);
+VIR_ENUM_DECL(virDomainLifecycle);
+VIR_ENUM_DECL(virDomainLifecycleAction);
+VIR_ENUM_DECL(virDomainDevice);
+VIR_ENUM_DECL(virDomainDiskDevice);
+VIR_ENUM_DECL(virDomainDiskGeometryTrans);
+VIR_ENUM_DECL(virDomainDiskBus);
+VIR_ENUM_DECL(virDomainDiskCache);
+VIR_ENUM_DECL(virDomainDiskErrorPolicy);
+VIR_ENUM_DECL(virDomainDiskIo);
+VIR_ENUM_DECL(virDomainDeviceSGIO);
+VIR_ENUM_DECL(virDomainDiskTray);
+VIR_ENUM_DECL(virDomainDiskDiscard);
+VIR_ENUM_DECL(virDomainDiskDetectZeroes);
+VIR_ENUM_DECL(virDomainDiskMirrorState);
+VIR_ENUM_DECL(virDomainController);
+VIR_ENUM_DECL(virDomainControllerModelPCI);
+VIR_ENUM_DECL(virDomainControllerPCIModelName);
+VIR_ENUM_DECL(virDomainControllerModelSCSI);
+VIR_ENUM_DECL(virDomainControllerModelUSB);
+VIR_ENUM_DECL(virDomainControllerModelIDE);
+VIR_ENUM_DECL(virDomainFS);
+VIR_ENUM_DECL(virDomainFSDriver);
+VIR_ENUM_DECL(virDomainFSAccessMode);
+VIR_ENUM_DECL(virDomainFSWrpolicy);
+VIR_ENUM_DECL(virDomainNet);
+VIR_ENUM_DECL(virDomainNetBackend);
+VIR_ENUM_DECL(virDomainNetVirtioTxMode);
+VIR_ENUM_DECL(virDomainNetInterfaceLinkState);
+VIR_ENUM_DECL(virDomainChrDevice);
+VIR_ENUM_DECL(virDomainChrChannelTarget);
+VIR_ENUM_DECL(virDomainChrConsoleTarget);
+VIR_ENUM_DECL(virDomainChrSerialTarget);
+VIR_ENUM_DECL(virDomainSmartcard);
+VIR_ENUM_DECL(virDomainChr);
+VIR_ENUM_DECL(virDomainChrTcpProtocol);
+VIR_ENUM_DECL(virDomainChrSpicevmc);
+VIR_ENUM_DECL(virDomainSoundCodec);
+VIR_ENUM_DECL(virDomainSoundModel);
+VIR_ENUM_DECL(virDomainKeyWrapCipherName);
+VIR_ENUM_DECL(virDomainMemballoonModel);
+VIR_ENUM_DECL(virDomainSmbiosMode);
+VIR_ENUM_DECL(virDomainWatchdogModel);
+VIR_ENUM_DECL(virDomainWatchdogAction);
+VIR_ENUM_DECL(virDomainPanicModel);
+VIR_ENUM_DECL(virDomainVideo);
+VIR_ENUM_DECL(virDomainHostdevMode);
+VIR_ENUM_DECL(virDomainHostdevSubsys);
+VIR_ENUM_DECL(virDomainHostdevCaps);
+VIR_ENUM_DECL(virDomainHub);
+VIR_ENUM_DECL(virDomainRedirdevBus);
+VIR_ENUM_DECL(virDomainInput);
+VIR_ENUM_DECL(virDomainInputBus);
+VIR_ENUM_DECL(virDomainGraphics);
+VIR_ENUM_DECL(virDomainGraphicsListen);
+VIR_ENUM_DECL(virDomainGraphicsAuthConnected);
+VIR_ENUM_DECL(virDomainGraphicsSpiceChannelName);
+VIR_ENUM_DECL(virDomainGraphicsSpiceChannelMode);
+VIR_ENUM_DECL(virDomainGraphicsSpiceImageCompression);
+VIR_ENUM_DECL(virDomainGraphicsSpiceJpegCompression);
+VIR_ENUM_DECL(virDomainGraphicsSpiceZlibCompression);
+VIR_ENUM_DECL(virDomainGraphicsSpiceStreamingMode);
+VIR_ENUM_DECL(virDomainGraphicsSpiceMouseMode);
+VIR_ENUM_DECL(virDomainGraphicsVNCSharePolicy);
+VIR_ENUM_DECL(virDomainHyperv);
+VIR_ENUM_DECL(virDomainKVM);
+VIR_ENUM_DECL(virDomainMsrsUnknown);
+VIR_ENUM_DECL(virDomainRNGModel);
+VIR_ENUM_DECL(virDomainRNGBackend);
+VIR_ENUM_DECL(virDomainTPMModel);
+VIR_ENUM_DECL(virDomainTPMBackend);
+VIR_ENUM_DECL(virDomainTPMVersion);
+VIR_ENUM_DECL(virDomainMemoryModel);
+VIR_ENUM_DECL(virDomainMemoryBackingModel);
+VIR_ENUM_DECL(virDomainMemorySource);
+VIR_ENUM_DECL(virDomainMemoryAllocation);
+VIR_ENUM_DECL(virDomainIOMMUModel);
+VIR_ENUM_DECL(virDomainVsockModel);
+VIR_ENUM_DECL(virDomainShmemModel);
+VIR_ENUM_DECL(virDomainLaunchSecurity);
 /* from libvirt.h */
-VIR_ENUM_DECL(virDomainState)
-VIR_ENUM_DECL(virDomainNostateReason)
-VIR_ENUM_DECL(virDomainRunningReason)
-VIR_ENUM_DECL(virDomainBlockedReason)
-VIR_ENUM_DECL(virDomainPausedReason)
-VIR_ENUM_DECL(virDomainShutdownReason)
-VIR_ENUM_DECL(virDomainShutoffReason)
-VIR_ENUM_DECL(virDomainCrashedReason)
-VIR_ENUM_DECL(virDomainPMSuspendedReason)
+VIR_ENUM_DECL(virDomainState);
+VIR_ENUM_DECL(virDomainNostateReason);
+VIR_ENUM_DECL(virDomainRunningReason);
+VIR_ENUM_DECL(virDomainBlockedReason);
+VIR_ENUM_DECL(virDomainPausedReason);
+VIR_ENUM_DECL(virDomainShutdownReason);
+VIR_ENUM_DECL(virDomainShutoffReason);
+VIR_ENUM_DECL(virDomainCrashedReason);
+VIR_ENUM_DECL(virDomainPMSuspendedReason);
 
 const char *virDomainStateReasonToString(virDomainState state, int reason);
 int virDomainStateReasonFromString(virDomainState state, const char *reason);
 
-VIR_ENUM_DECL(virDomainSeclabel)
-VIR_ENUM_DECL(virDomainClockOffset)
-VIR_ENUM_DECL(virDomainClockBasis)
+VIR_ENUM_DECL(virDomainSeclabel);
+VIR_ENUM_DECL(virDomainClockOffset);
+VIR_ENUM_DECL(virDomainClockBasis);
 
-VIR_ENUM_DECL(virDomainTimerName)
-VIR_ENUM_DECL(virDomainTimerTrack)
-VIR_ENUM_DECL(virDomainTimerTickpolicy)
-VIR_ENUM_DECL(virDomainTimerMode)
-VIR_ENUM_DECL(virDomainCpuPlacementMode)
+VIR_ENUM_DECL(virDomainTimerName);
+VIR_ENUM_DECL(virDomainTimerTrack);
+VIR_ENUM_DECL(virDomainTimerTickpolicy);
+VIR_ENUM_DECL(virDomainTimerMode);
+VIR_ENUM_DECL(virDomainCpuPlacementMode);
 
-VIR_ENUM_DECL(virDomainStartupPolicy)
+VIR_ENUM_DECL(virDomainStartupPolicy);
 
 virDomainControllerDefPtr
 virDomainDefAddController(virDomainDefPtr def, int type, int idx, int model);

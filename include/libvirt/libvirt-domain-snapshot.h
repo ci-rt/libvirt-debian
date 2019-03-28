@@ -59,7 +59,7 @@ typedef enum {
     VIR_DOMAIN_SNAPSHOT_CREATE_HALT        = (1 << 3), /* Stop running guest
                                                           after snapshot */
     VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY   = (1 << 4), /* disk snapshot, not
-                                                          system checkpoint */
+                                                          full system */
     VIR_DOMAIN_SNAPSHOT_CREATE_REUSE_EXT   = (1 << 5), /* reuse any existing
                                                           external files */
     VIR_DOMAIN_SNAPSHOT_CREATE_QUIESCE     = (1 << 6), /* use guest agent to
@@ -77,6 +77,10 @@ typedef enum {
 virDomainSnapshotPtr virDomainSnapshotCreateXML(virDomainPtr domain,
                                                 const char *xmlDesc,
                                                 unsigned int flags);
+
+typedef enum {
+    VIR_DOMAIN_SNAPSHOT_XML_SECURE         = VIR_DOMAIN_XML_SECURE, /* dump security sensitive information too */
+} virDomainSnapshotXMLFlags;
 
 /* Dump the XML of a snapshot */
 char *virDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,

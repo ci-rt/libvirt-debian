@@ -291,9 +291,8 @@ typedef enum {
     FLAG_EXPECT_FAILURE     = 1 << 0,
     FLAG_EXPECT_PARSE_ERROR = 1 << 1,
     FLAG_FIPS               = 1 << 2,
-    FLAG_STEAL_VM           = 1 << 3,
-    FLAG_REAL_CAPS          = 1 << 4,
-    FLAG_SKIP_LEGACY_CPUS   = 1 << 5,
+    FLAG_REAL_CAPS          = 1 << 3,
+    FLAG_SKIP_LEGACY_CPUS   = 1 << 4,
 } virQemuXML2ArgvTestFlags;
 
 struct testInfo {
@@ -304,7 +303,6 @@ struct testInfo {
     int migrateFd;
     unsigned int flags;
     unsigned int parseFlags;
-    virDomainObjPtr vm;
 };
 
 
@@ -429,48 +427,15 @@ testUpdateQEMUCaps(const struct testInfo *info,
 
 
 static int
-testCompareXMLToStartupXML(const void *data)
-{
-    const struct testInfo *info = data;
-    unsigned int format_flags = VIR_DOMAIN_DEF_FORMAT_SECURE;
-    char *xml = NULL;
-    char *actual = NULL;
-    int ret = -1;
-
-    if (!info->vm) {
-        VIR_TEST_DEBUG("VM object missing. Did the args conversion succeed?");
-        return -1;
-    }
-
-    if (virAsprintf(&xml, "%s/qemuxml2startupxmloutdata/%s.xml",
-                    abs_srcdir, info->name) < 0)
-        goto cleanup;
-
-    if (!(actual = virDomainDefFormat(info->vm->def, NULL, format_flags)))
-        goto cleanup;
-
-    ret = virTestCompareToFile(actual, xml);
-
- cleanup:
-    VIR_FREE(xml);
-    VIR_FREE(actual);
-    return ret;
-}
-
-
-static int
 testCheckExclusiveFlags(int flags)
 {
     virCheckFlags(FLAG_EXPECT_FAILURE |
                   FLAG_EXPECT_PARSE_ERROR |
                   FLAG_FIPS |
-                  FLAG_STEAL_VM |
                   FLAG_REAL_CAPS |
                   FLAG_SKIP_LEGACY_CPUS |
                   0, -1);
 
-    VIR_EXCLUSIVE_FLAGS_RET(FLAG_STEAL_VM, FLAG_EXPECT_FAILURE, -1);
-    VIR_EXCLUSIVE_FLAGS_RET(FLAG_STEAL_VM, FLAG_EXPECT_PARSE_ERROR, -1);
     VIR_EXCLUSIVE_FLAGS_RET(FLAG_REAL_CAPS, FLAG_SKIP_LEGACY_CPUS, -1);
     return 0;
 }
@@ -643,9 +608,6 @@ testCompareXMLToArgv(const void *data)
         ret = 0;
     }
 
-    if (flags & FLAG_STEAL_VM)
-        VIR_STEAL_PTR(info->vm, vm);
-
  cleanup:
     VIR_FREE(log);
     VIR_FREE(actualargv);
@@ -781,7 +743,7 @@ mymain(void)
     do { \
         static struct testInfo info = { \
             name, "." suffix, NULL, migrateFrom, migrateFrom ? 7 : -1,\
-            (flags | FLAG_REAL_CAPS), parseFlags, NULL \
+            (flags | FLAG_REAL_CAPS), parseFlags, \
         }; \
         if (!(info.qemuCaps = qemuTestParseCapabilitiesArch(virArchFromString(arch), \
                                                             capsfile))) \
@@ -792,7 +754,6 @@ mymain(void)
                        testCompareXMLToArgv, &info) < 0) \
             ret = -1; \
         virObjectUnref(info.qemuCaps); \
-        virObjectUnref(info.vm); \
     } while (0)
 
 # define TEST_CAPS_PATH abs_srcdir "/qemucapabilitiesdata/caps_"
@@ -838,7 +799,6 @@ mymain(void)
     do { \
         static struct testInfo info = { \
             name, NULL, NULL, migrateFrom, migrateFd, (flags), parseFlags, \
-            NULL \
         }; \
         if (testInitQEMUCaps(&info, gic) < 0) \
             return EXIT_FAILURE; \
@@ -846,12 +806,7 @@ mymain(void)
         if (virTestRun("QEMU XML-2-ARGV " name, \
                        testCompareXMLToArgv, &info) < 0) \
             ret = -1; \
-        if (((flags) & FLAG_STEAL_VM) && \
-            virTestRun("QEMU XML-2-startup-XML " name, \
-                       testCompareXMLToStartupXML, &info) < 0) \
-            ret = -1; \
         virObjectUnref(info.qemuCaps); \
-        virObjectUnref(info.vm); \
     } while (0)
 
 # define DO_TEST(name, ...) \
@@ -859,9 +814,6 @@ mymain(void)
 
 # define DO_TEST_GIC(name, gic, ...) \
     DO_TEST_FULL(name, NULL, -1, 0, 0, gic, __VA_ARGS__)
-
-# define DO_TEST_WITH_STARTUP(name, ...) \
-    DO_TEST_FULL(name, NULL, -1, FLAG_STEAL_VM, 0, GIC_NONE, __VA_ARGS__)
 
 # define DO_TEST_FAILURE(name, ...) \
     DO_TEST_FULL(name, NULL, -1, FLAG_EXPECT_FAILURE, \
@@ -1059,6 +1011,7 @@ mymain(void)
     DO_TEST("disk-cdrom", NONE);
     DO_TEST_CAPS_VER("disk-cdrom", "2.12.0");
     DO_TEST_CAPS_LATEST("disk-cdrom");
+    DO_TEST_CAPS_LATEST("disk-cdrom-bus-other");
     DO_TEST("disk-iscsi", NONE);
     DO_TEST("disk-cdrom-network", QEMU_CAPS_KVM);
     DO_TEST_CAPS_VER("disk-cdrom-network", "2.12.0");
@@ -1084,8 +1037,6 @@ mymain(void)
             QEMU_CAPS_CCW, QEMU_CAPS_VIRTIO_S390);
     DO_TEST("disk-virtio-ccw-many",
             QEMU_CAPS_CCW, QEMU_CAPS_VIRTIO_S390);
-    DO_TEST("disk-virtio-scsi-ccw", QEMU_CAPS_VIRTIO_SCSI,
-            QEMU_CAPS_CCW, QEMU_CAPS_VIRTIO_S390);
     DO_TEST("disk-virtio-s390-zpci",
             QEMU_CAPS_DEVICE_ZPCI,
             QEMU_CAPS_CCW,
@@ -1105,16 +1056,13 @@ mymain(void)
     DO_TEST_PARSE_ERROR("disk-fmt-cow", NONE);
     DO_TEST_PARSE_ERROR("disk-fmt-dir", NONE);
     DO_TEST_PARSE_ERROR("disk-fmt-iso", NONE);
-    DO_TEST_WITH_STARTUP("disk-shared", NONE);
     DO_TEST_CAPS_VER("disk-shared", "2.12.0");
     DO_TEST_CAPS_LATEST("disk-shared");
     DO_TEST_PARSE_ERROR("disk-shared-qcow", NONE);
-    DO_TEST("disk-shared-locking",
-            QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_DISK_SHARE_RW);
     DO_TEST("disk-error-policy", NONE);
     DO_TEST_CAPS_VER("disk-error-policy", "2.12.0");
     DO_TEST_CAPS_LATEST("disk-error-policy");
-    DO_TEST("disk-cache", QEMU_CAPS_SCSI_LSI, QEMU_CAPS_DEVICE_USB_STORAGE);
+    DO_TEST_CAPS_VER("disk-cache", "1.5.3");
     DO_TEST_CAPS_VER("disk-cache", "2.6.0");
     DO_TEST_CAPS_VER("disk-cache", "2.7.0");
     DO_TEST_CAPS_VER("disk-cache", "2.12.0");
@@ -1165,37 +1113,18 @@ mymain(void)
             QEMU_CAPS_USB_STORAGE_REMOVABLE);
     DO_TEST_FAILURE("disk-usb-pci",
                     QEMU_CAPS_DEVICE_USB_STORAGE);
-    DO_TEST("disk-scsi-device",
-            QEMU_CAPS_SCSI_LSI);
-    DO_TEST("disk-scsi-device-auto",
-            QEMU_CAPS_SCSI_LSI);
+    DO_TEST_CAPS_LATEST("disk-scsi");
+    DO_TEST_CAPS_VER("disk-scsi-device-auto", "1.5.3");
+    DO_TEST_CAPS_LATEST("disk-scsi-device-auto");
     DO_TEST("disk-scsi-disk-split",
-            QEMU_CAPS_SCSI_CD, QEMU_CAPS_SCSI_LSI, QEMU_CAPS_VIRTIO_SCSI);
+            QEMU_CAPS_SCSI_LSI, QEMU_CAPS_VIRTIO_SCSI);
     DO_TEST("disk-scsi-disk-wwn",
-            QEMU_CAPS_SCSI_CD, QEMU_CAPS_SCSI_LSI, QEMU_CAPS_VIRTIO_SCSI,
-            QEMU_CAPS_SCSI_DISK_WWN);
+            QEMU_CAPS_SCSI_LSI, QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_SCSI_DISK_WWN);
     DO_TEST("disk-scsi-disk-vpd",
-            QEMU_CAPS_SCSI_CD, QEMU_CAPS_SCSI_LSI, QEMU_CAPS_VIRTIO_SCSI,
-            QEMU_CAPS_SCSI_DISK_WWN);
+            QEMU_CAPS_SCSI_LSI, QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_SCSI_DISK_WWN);
     DO_TEST_FAILURE("disk-scsi-disk-vpd-build-error",
-            QEMU_CAPS_SCSI_CD, QEMU_CAPS_SCSI_LSI, QEMU_CAPS_VIRTIO_SCSI,
-            QEMU_CAPS_SCSI_DISK_WWN);
-    DO_TEST("disk-scsi-vscsi", NONE);
-    DO_TEST("disk-scsi-virtio-scsi",
-            QEMU_CAPS_VIRTIO_SCSI);
-    DO_TEST("disk-virtio-scsi-num_queues",
-            QEMU_CAPS_VIRTIO_SCSI);
-    DO_TEST("disk-virtio-scsi-cmd_per_lun",
-            QEMU_CAPS_VIRTIO_SCSI);
-    DO_TEST("disk-virtio-scsi-max_sectors",
-            QEMU_CAPS_VIRTIO_SCSI);
-    DO_TEST("disk-virtio-scsi-ioeventfd",
-            QEMU_CAPS_VIRTIO_IOEVENTFD, QEMU_CAPS_VIRTIO_SCSI);
-    DO_TEST("disk-scsi-megasas",
-            QEMU_CAPS_SCSI_MEGASAS);
-    DO_TEST("disk-scsi-mptsas1068",
-            QEMU_CAPS_SCSI_MPTSAS1068,
-            QEMU_CAPS_SCSI_DISK_WWN);
+            QEMU_CAPS_SCSI_LSI, QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_SCSI_DISK_WWN);
+    DO_TEST_CAPS_LATEST("controller-virtio-scsi");
     DO_TEST("disk-sata-device",
             QEMU_CAPS_ICH9_AHCI);
     DO_TEST("disk-aio", NONE);
@@ -1290,6 +1219,11 @@ mymain(void)
     DO_TEST("graphics-vnc-tls", QEMU_CAPS_VNC, QEMU_CAPS_DEVICE_CIRRUS_VGA);
     DO_TEST_CAPS_VER("graphics-vnc-tls", "2.4.0");
     DO_TEST_CAPS_LATEST("graphics-vnc-tls");
+    if (VIR_STRDUP_QUIET(driver.config->vncTLSx509secretUUID,
+                         "6fd3f62d-9fe7-4a4e-a869-7acd6376d8ea") < 0)
+        return EXIT_FAILURE;
+    DO_TEST_CAPS_LATEST("graphics-vnc-tls-secret");
+    VIR_FREE(driver.config->vncTLSx509secretUUID);
     driver.config->vncSASL = driver.config->vncTLSx509verify = driver.config->vncTLS = 0;
     VIR_FREE(driver.config->vncSASLdir);
     VIR_FREE(driver.config->vncTLSx509certdir);
@@ -1753,12 +1687,8 @@ mymain(void)
     DO_TEST("iothreads-disk", QEMU_CAPS_OBJECT_IOTHREAD);
     DO_TEST("iothreads-disk-virtio-ccw", QEMU_CAPS_OBJECT_IOTHREAD,
             QEMU_CAPS_CCW, QEMU_CAPS_VIRTIO_S390);
-    DO_TEST("iothreads-virtio-scsi-pci", QEMU_CAPS_VIRTIO_SCSI,
-            QEMU_CAPS_OBJECT_IOTHREAD,
-            QEMU_CAPS_VIRTIO_SCSI_IOTHREAD);
-    DO_TEST("iothreads-virtio-scsi-ccw", QEMU_CAPS_OBJECT_IOTHREAD,
-            QEMU_CAPS_VIRTIO_SCSI, QEMU_CAPS_VIRTIO_SCSI_IOTHREAD,
-            QEMU_CAPS_CCW, QEMU_CAPS_VIRTIO_S390);
+    DO_TEST_CAPS_LATEST("iothreads-virtio-scsi-pci");
+    DO_TEST_CAPS_ARCH_LATEST("iothreads-virtio-scsi-ccw", "s390x");
 
     DO_TEST("cpu-topology1", NONE);
     DO_TEST("cpu-topology2", NONE);
@@ -2043,15 +1973,11 @@ mymain(void)
             QEMU_CAPS_DEVICE_VIRTIO_MMIO);
     DO_TEST_PARSE_ERROR("mach-virt-serial-invalid-machine", NONE);
 
-    DO_TEST("disk-ide-split",
-            QEMU_CAPS_IDE_CD);
-    DO_TEST("disk-ide-wwn",
-            QEMU_CAPS_IDE_CD,
-            QEMU_CAPS_IDE_DRIVE_WWN);
+    DO_TEST("disk-ide-split", NONE);
+    DO_TEST("disk-ide-wwn", QEMU_CAPS_IDE_DRIVE_WWN);
 
     DO_TEST("disk-geometry", NONE);
-    DO_TEST("disk-blockio",
-            QEMU_CAPS_IDE_CD, QEMU_CAPS_BLOCKIO);
+    DO_TEST("disk-blockio", QEMU_CAPS_BLOCKIO);
 
     DO_TEST("video-device-pciaddr-default",
             QEMU_CAPS_KVM,
@@ -3067,6 +2993,8 @@ mymain(void)
 
     DO_TEST("riscv64-virt",
             QEMU_CAPS_DEVICE_VIRTIO_MMIO);
+    DO_TEST("riscv64-virt-pci",
+            QEMU_CAPS_OBJECT_GPEX);
 
     /* Simple headless guests for various architectures */
     DO_TEST_CAPS_ARCH_LATEST("aarch64-virt-headless", "aarch64");

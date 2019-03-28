@@ -987,7 +987,7 @@ static char *lxcDomainGetXMLDesc(virDomainPtr dom,
     virDomainObjPtr vm;
     char *ret = NULL;
 
-    /* Flags checked by virDomainDefFormat */
+    virCheckFlags(VIR_DOMAIN_XML_COMMON_FLAGS, NULL);
 
     if (!(vm = lxcDomObjFromDomain(dom)))
         goto cleanup;
@@ -1462,7 +1462,7 @@ lxcDomainDestroyFlags(virDomainPtr dom,
     if (virDomainDestroyFlagsEnsureACL(dom->conn, vm->def) < 0)
         goto cleanup;
 
-    if (virLXCDomainObjBeginJob(driver, vm, LXC_JOB_MODIFY) < 0)
+    if (virLXCDomainObjBeginJob(driver, vm, LXC_JOB_DESTROY) < 0)
         goto cleanup;
 
     if (virDomainObjCheckActive(vm) < 0)
@@ -3273,15 +3273,6 @@ lxcConnectListAllDomains(virConnectPtr conn,
 
 
 static int
-lxcDomainInitctlCallback(pid_t pid ATTRIBUTE_UNUSED,
-                         void *opaque)
-{
-    int *command = opaque;
-    return virInitctlSetRunLevel(*command);
-}
-
-
-static int
 lxcDomainShutdownFlags(virDomainPtr dom,
                        unsigned int flags)
 {
@@ -3318,9 +3309,7 @@ lxcDomainShutdownFlags(virDomainPtr dom,
         (flags & VIR_DOMAIN_SHUTDOWN_INITCTL)) {
         int command = VIR_INITCTL_RUNLEVEL_POWEROFF;
 
-        if ((rc = virProcessRunInMountNamespace(priv->initpid,
-                                                lxcDomainInitctlCallback,
-                                                &command)) < 0)
+        if ((rc = virLXCDomainSetRunlevel(vm, command)) < 0)
             goto endjob;
         if (rc == 0 && flags != 0 &&
             ((flags & ~VIR_DOMAIN_SHUTDOWN_INITCTL) == 0)) {
@@ -3398,9 +3387,7 @@ lxcDomainReboot(virDomainPtr dom,
         (flags & VIR_DOMAIN_REBOOT_INITCTL)) {
         int command = VIR_INITCTL_RUNLEVEL_REBOOT;
 
-        if ((rc = virProcessRunInMountNamespace(priv->initpid,
-                                                lxcDomainInitctlCallback,
-                                                &command)) < 0)
+        if ((rc = virLXCDomainSetRunlevel(vm, command)) < 0)
             goto endjob;
         if (rc == 0 && flags != 0 &&
             ((flags & ~VIR_DOMAIN_SHUTDOWN_INITCTL) == 0)) {
@@ -3636,8 +3623,9 @@ lxcDomainAttachDeviceMknodHelper(pid_t pid ATTRIBUTE_UNUSED,
         virDomainDiskDefPtr def = data->def->data.disk;
         char *tmpsrc = def->src->path;
         def->src->path = data->file;
-        if (virSecurityManagerSetDiskLabel(data->driver->securityManager,
-                                           data->vm->def, def) < 0) {
+        if (virSecurityManagerSetImageLabel(data->driver->securityManager,
+                                            data->vm->def, def->src,
+                                            VIR_SECURITY_DOMAIN_IMAGE_LABEL_BACKING_CHAIN) < 0) {
             def->src->path = tmpsrc;
             goto cleanup;
         }

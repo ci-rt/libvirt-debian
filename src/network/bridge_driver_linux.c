@@ -27,12 +27,45 @@
 #include "virstring.h"
 #include "virlog.h"
 #include "virfirewall.h"
+#include "virfirewalld.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
 VIR_LOG_INIT("network.bridge_driver_linux");
 
 #define PROC_NET_ROUTE "/proc/net/route"
+
+int networkPreReloadFirewallRules(bool startup)
+{
+    int ret = iptablesSetupPrivateChains();
+    if (ret < 0)
+        return -1;
+
+    /*
+     * If this is initial startup, and we just created the
+     * top level private chains we either
+     *
+     *   - upgraded from old libvirt
+     *   - freshly booted from clean state
+     *
+     * In the first case we must delete the old rules from
+     * the built-in chains, instead of our new private chains.
+     * In the second case it doesn't matter, since no existing
+     * rules will be present. Thus we can safely just tell it
+     * to always delete from the builin chain
+     */
+    if (startup && ret == 1)
+        iptablesSetDeletePrivate(false);
+
+    return 0;
+}
+
+
+void networkPostReloadFirewallRules(bool startup ATTRIBUTE_UNUSED)
+{
+    iptablesSetDeletePrivate(true);
+}
+
 
 /* XXX: This function can be a lot more exhaustive, there are certainly
  *      other scenarios where we can ruin host network connectivity.
@@ -637,6 +670,72 @@ int networkAddFirewallRules(virNetworkDefPtr def)
     virNetworkIPDefPtr ipdef;
     virFirewallPtr fw = NULL;
     int ret = -1;
+
+    if (def->bridgeZone) {
+
+        /* if a firewalld zone has been specified, fail/log an error
+         * if we can't honor it
+         */
+        if (virFirewallDIsRegistered() < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("zone %s requested for network %s "
+                             "but firewalld is not active"),
+                           def->bridgeZone, def->name);
+            goto cleanup;
+        }
+
+        if (virFirewallDInterfaceSetZone(def->bridge, def->bridgeZone) < 0)
+            goto cleanup;
+
+    } else {
+
+        /* if firewalld is active, try to set the "libvirt" zone. This is
+         * desirable (for consistency) if firewalld is using the iptables
+         * backend, but is necessary (for basic network connectivity) if
+         * firewalld is using the nftables backend
+         */
+        if (virFirewallDIsRegistered() == 0) {
+
+            /* if the "libvirt" zone exists, then set it. If not, and
+             * if firewalld is using the nftables backend, then we
+             * need to log an error because the combination of
+             * nftables + default zone means that traffic cannot be
+             * forwarded (and even DHCP and DNS from guest to host
+             * will probably no be permitted by the default zone
+             */
+            if (virFirewallDZoneExists("libvirt")) {
+                if (virFirewallDInterfaceSetZone(def->bridge, "libvirt") < 0)
+                    goto cleanup;
+            } else {
+                unsigned long version;
+                int vresult = virFirewallDGetVersion(&version);
+
+                if (vresult < 0)
+                    goto cleanup;
+
+                /* Support for nftables backend was added in firewalld
+                 * 0.6.0. Support for rule priorities (required by the
+                 * 'libvirt' zone, which should be installed by a
+                 * libvirt package, *not* by firewalld) was not added
+                 * until firewalld 0.7.0 (unless it was backported).
+                 */
+                if (version >= 6000 &&
+                    virFirewallDGetBackend() == VIR_FIREWALLD_BACKEND_NFTABLES) {
+                    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                                   _("firewalld is set to use the nftables "
+                                     "backend, but the required firewalld "
+                                     "'libvirt' zone is missing. Either set "
+                                     "the firewalld backend to 'iptables', or "
+                                     "ensure that firewalld has a 'libvirt' "
+                                     "zone by upgrading firewalld to a "
+                                     "version supporting rule priorities "
+                                     "(0.7.0+) and/or rebuilding "
+                                     "libvirt with --with-firewalld-zone"));
+                    goto cleanup;
+                }
+            }
+        }
+    }
 
     fw = virFirewallNew();
 

@@ -22,32 +22,36 @@ testCompareXMLToArgvFiles(bool shouldFail,
                           const char *poolxml,
                           const char *cmdline)
 {
-    VIR_AUTOFREE(char *) actualCmdline = NULL;
-    VIR_AUTOFREE(char *) src = NULL;
     int ret = -1;
-    virCommandPtr cmd = NULL;
     virStoragePoolDefPtr def = NULL;
     virStoragePoolObjPtr pool = NULL;
+    const char *defTypeStr;
+    VIR_AUTOFREE(char *) actualCmdline = NULL;
+    VIR_AUTOFREE(char *) src = NULL;
+    VIR_AUTOPTR(virCommand) cmd = NULL;
 
     if (!(def = virStoragePoolDefParseFile(poolxml)))
         goto cleanup;
+    defTypeStr = virStoragePoolTypeToString(def->type);
 
     switch ((virStoragePoolType)def->type) {
     case VIR_STORAGE_POOL_FS:
     case VIR_STORAGE_POOL_NETFS:
         if (!(pool = virStoragePoolObjNew())) {
-            VIR_TEST_DEBUG("pool type %d alloc pool obj fails\n", def->type);
+            VIR_TEST_DEBUG("pool type '%s' alloc pool obj fails\n", defTypeStr);
             virStoragePoolDefFree(def);
             goto cleanup;
         }
         virStoragePoolObjSetDef(pool, def);
 
         if (!(src = virStorageBackendFileSystemGetPoolSource(pool))) {
-            VIR_TEST_DEBUG("pool type %d has no pool source\n", def->type);
+            VIR_TEST_DEBUG("pool type '%s' has no pool source\n", defTypeStr);
+            def = NULL;
             goto cleanup;
         }
 
         cmd = virStorageBackendFileSystemMountCmd(MOUNT, def, src);
+        def = NULL;
         break;
 
     case VIR_STORAGE_POOL_LOGICAL:
@@ -67,12 +71,12 @@ testCompareXMLToArgvFiles(bool shouldFail,
     case VIR_STORAGE_POOL_VSTORAGE:
     case VIR_STORAGE_POOL_LAST:
     default:
-        VIR_TEST_DEBUG("pool type %d has no xml2argv test\n", def->type);
+        VIR_TEST_DEBUG("pool type '%s' has no xml2argv test\n", defTypeStr);
         goto cleanup;
     };
 
     if (!(actualCmdline = virCommandToString(cmd, false))) {
-        VIR_TEST_DEBUG("pool type %d failed to get commandline\n", def->type);
+        VIR_TEST_DEBUG("pool type '%s' failed to get commandline\n", defTypeStr);
         goto cleanup;
     }
 
@@ -83,8 +87,7 @@ testCompareXMLToArgvFiles(bool shouldFail,
     ret = 0;
 
  cleanup:
-    virCommandFree(cmd);
-    VIR_FREE(actualCmdline);
+    virStoragePoolDefFree(def);
     virStoragePoolObjEndAPI(&pool);
     if (shouldFail) {
         virResetLastError();
@@ -96,31 +99,26 @@ testCompareXMLToArgvFiles(bool shouldFail,
 struct testInfo {
     bool shouldFail;
     const char *pool;
+    const char *platformSuffix;
 };
 
 static int
 testCompareXMLToArgvHelper(const void *data)
 {
-    int result = -1;
     const struct testInfo *info = data;
-    char *poolxml = NULL;
-    char *cmdline = NULL;
+    VIR_AUTOFREE(char *) poolxml = NULL;
+    VIR_AUTOFREE(char *) cmdline = NULL;
 
     if (virAsprintf(&poolxml, "%s/storagepoolxml2xmlin/%s.xml",
                     abs_srcdir, info->pool) < 0)
-        goto cleanup;
+        return -1;
 
-    if (virAsprintf(&cmdline, "%s/storagepoolxml2argvdata/%s.argv",
-                    abs_srcdir, info->pool) < 0 && !info->shouldFail)
-        goto cleanup;
+    if (virAsprintf(&cmdline, "%s/storagepoolxml2argvdata/%s%s.argv",
+                    abs_srcdir, info->pool, info->platformSuffix) < 0 &&
+        !info->shouldFail)
+        return -1;
 
-    result = testCompareXMLToArgvFiles(info->shouldFail, poolxml, cmdline);
-
- cleanup:
-    VIR_FREE(poolxml);
-    VIR_FREE(cmdline);
-
-    return result;
+    return testCompareXMLToArgvFiles(info->shouldFail, poolxml, cmdline);
 }
 
 
@@ -128,10 +126,17 @@ static int
 mymain(void)
 {
     int ret = 0;
+#ifdef __linux__
+    const char *platform = "-linux";
+#elif defined(__FreeBSD__)
+    const char *platform = "-freebsd";
+#else
+    const char *platform = "";
+#endif
 
-#define DO_TEST_FULL(shouldFail, pool) \
+#define DO_TEST_FULL(shouldFail, pool, platformSuffix) \
     do { \
-        struct testInfo info = { shouldFail, pool }; \
+        struct testInfo info = { shouldFail, pool, platformSuffix }; \
         if (virTestRun("Storage Pool XML-2-argv " pool, \
                        testCompareXMLToArgvHelper, &info) < 0) \
             ret = -1; \
@@ -139,14 +144,19 @@ mymain(void)
     while (0);
 
 #define DO_TEST(pool, ...) \
-    DO_TEST_FULL(false, pool)
+    DO_TEST_FULL(false, pool, "")
 
 #define DO_TEST_FAIL(pool, ...) \
-    DO_TEST_FULL(true, pool)
+    DO_TEST_FULL(true, pool, "")
+
+#define DO_TEST_PLATFORM(pool, ...) \
+    DO_TEST_FULL(false, pool, platform)
+
+    if (storageRegisterAll() < 0)
+       return EXIT_FAILURE;
 
     DO_TEST_FAIL("pool-dir");
     DO_TEST_FAIL("pool-dir-naming");
-    DO_TEST("pool-fs");
     DO_TEST("pool-logical");
     DO_TEST("pool-logical-nopath");
     DO_TEST("pool-logical-create");
@@ -155,10 +165,17 @@ mymain(void)
     DO_TEST_FAIL("pool-disk-device-nopartsep");
     DO_TEST_FAIL("pool-iscsi");
     DO_TEST_FAIL("pool-iscsi-auth");
-    DO_TEST("pool-netfs");
-    DO_TEST("pool-netfs-auto");
-    DO_TEST("pool-netfs-gluster");
-    DO_TEST("pool-netfs-cifs");
+
+    DO_TEST_PLATFORM("pool-fs");
+    DO_TEST_PLATFORM("pool-netfs");
+    DO_TEST_PLATFORM("pool-netfs-auto");
+    DO_TEST_PLATFORM("pool-netfs-protocol-ver");
+#if WITH_STORAGE_FS
+    DO_TEST_PLATFORM("pool-netfs-ns-mountopts");
+#endif
+    DO_TEST_PLATFORM("pool-netfs-gluster");
+    DO_TEST_PLATFORM("pool-netfs-cifs");
+
     DO_TEST_FAIL("pool-scsi");
     DO_TEST_FAIL("pool-scsi-type-scsi-host");
     DO_TEST_FAIL("pool-scsi-type-fc-host");

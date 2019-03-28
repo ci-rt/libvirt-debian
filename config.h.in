@@ -1074,9 +1074,6 @@
 /* Define to 1 if you have the `ffsl' function. */
 #undef HAVE_FFSL
 
-/* whether firewalld support is enabled */
-#undef HAVE_FIREWALLD
-
 /* Define to 1 if you have the `flockfile' function. */
 #undef HAVE_FLOCKFILE
 
@@ -2660,6 +2657,12 @@
 /* whether ESX driver is enabled */
 #undef WITH_ESX
 
+/* whether firewalld support is enabled */
+#undef WITH_FIREWALLD
+
+/* whether firewalld libvirt zone is installed */
+#undef WITH_FIREWALLD_ZONE
+
 /* whether fuse >= 2.8.6 is available */
 #undef WITH_FUSE
 
@@ -2837,7 +2840,7 @@
 /* whether vz driver is enabled */
 #undef WITH_VZ
 
-/* whether wireshark >= 1.11.3 is available */
+/* whether wireshark >= 2.4.0 is available */
 #undef WITH_WIRESHARK_DISSECTOR
 
 /* whether libxenserver is available */

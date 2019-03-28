@@ -73,7 +73,7 @@ typedef enum {
     VIR_PCIE_LINK_SPEED_LAST
 } virPCIELinkSpeed;
 
-VIR_ENUM_DECL(virPCIELinkSpeed)
+VIR_ENUM_DECL(virPCIELinkSpeed);
 
 typedef enum {
     VIR_PCI_HEADER_ENDPOINT = 0,
@@ -83,7 +83,7 @@ typedef enum {
     VIR_PCI_HEADER_LAST
 } virPCIHeaderType;
 
-VIR_ENUM_DECL(virPCIHeader)
+VIR_ENUM_DECL(virPCIHeader);
 
 typedef struct _virPCIELink virPCIELink;
 typedef virPCIELink *virPCIELinkPtr;
@@ -271,8 +271,8 @@ ssize_t virPCIGetMdevTypes(const char *sysfspath,
 
 void virPCIDeviceAddressFree(virPCIDeviceAddressPtr address);
 
-VIR_DEFINE_AUTOPTR_FUNC(virPCIDevice, virPCIDeviceFree)
-VIR_DEFINE_AUTOPTR_FUNC(virPCIDeviceAddress, virPCIDeviceAddressFree)
-VIR_DEFINE_AUTOPTR_FUNC(virPCIEDeviceInfo, virPCIEDeviceInfoFree)
+VIR_DEFINE_AUTOPTR_FUNC(virPCIDevice, virPCIDeviceFree);
+VIR_DEFINE_AUTOPTR_FUNC(virPCIDeviceAddress, virPCIDeviceAddressFree);
+VIR_DEFINE_AUTOPTR_FUNC(virPCIEDeviceInfo, virPCIEDeviceInfoFree);
 
 #endif /* LIBVIRT_VIRPCI_H */

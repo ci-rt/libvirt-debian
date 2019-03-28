@@ -2,7 +2,6 @@
   <qemuctime>0</qemuctime>
   <selfctime>0</selfctime>
   <selfvers>0</selfvers>
-  <usedQMP/>
   <flag name='kvm'/>
   <flag name='hda-duplex'/>
   <flag name='virtio-tx-alg'/>
@@ -22,12 +21,9 @@
   <flag name='scsi-block'/>
   <flag name='transaction'/>
   <flag name='block-job-async'/>
-  <flag name='scsi-cd'/>
-  <flag name='ide-cd'/>
   <flag name='hda-micro'/>
   <flag name='dump-guest-memory'/>
   <flag name='nec-usb-xhci'/>
-  <flag name='balloon-event'/>
   <flag name='lsi'/>
   <flag name='virtio-scsi-pci'/>
   <flag name='blockio'/>
@@ -35,7 +31,6 @@
   <flag name='scsi-disk.wwn'/>
   <flag name='seccomp-sandbox'/>
   <flag name='reboot-timeout'/>
-  <flag name='seamless-migration'/>
   <flag name='block-commit'/>
   <flag name='vnc'/>
   <flag name='drive-mirror'/>
@@ -54,7 +49,6 @@
   <flag name='mem-merge'/>
   <flag name='drive-discard'/>
   <flag name='mlock'/>
-  <flag name='device-del-event'/>
   <flag name='usb-storage'/>
   <flag name='usb-storage.removable'/>
   <flag name='virtio-mmio'/>
@@ -98,7 +92,6 @@
   <flag name='chardev-logfile'/>
   <flag name='debug-threads'/>
   <flag name='secret'/>
-  <flag name='device-tray-moved-event'/>
   <flag name='nec-usb-xhci-ports'/>
   <flag name='virtio-scsi-pci.iothread'/>
   <flag name='name-guest'/>
@@ -166,7 +159,7 @@
   <flag name='memory-backend-file.align'/>
   <version>2011090</version>
   <kvmVersion>0</kvmVersion>
-  <microcodeVersion>426509</microcodeVersion>
+  <microcodeVersion>42900807</microcodeVersion>
   <package>v2.12.0-rc0</package>
   <arch>ppc64</arch>
   <cpu type='kvm' name='default'/>

@@ -25,15 +25,15 @@
     </file>
   </files>
   <symbols>
-    <enum name='VIR_CONNECT_DOMAIN_QEMU_MONITOR_EVENT_REGISTER_NOCASE' file='libvirt-qemu' value='2' type='virConnectDomainQemuMonitorEventRegisterFlags' info='Event filter is case insensitive'/>
-    <enum name='VIR_CONNECT_DOMAIN_QEMU_MONITOR_EVENT_REGISTER_REGEX' file='libvirt-qemu' value='1' type='virConnectDomainQemuMonitorEventRegisterFlags' info='Event filter is a regex rather than a literal string'/>
-    <enum name='VIR_DOMAIN_QEMU_AGENT_COMMAND_BLOCK' file='libvirt-qemu' value='-2' type='virDomainQemuAgentCommandTimeoutValues'/>
-    <enum name='VIR_DOMAIN_QEMU_AGENT_COMMAND_DEFAULT' file='libvirt-qemu' value='-1' type='virDomainQemuAgentCommandTimeoutValues'/>
-    <enum name='VIR_DOMAIN_QEMU_AGENT_COMMAND_MIN' file='libvirt-qemu' value='-2' type='virDomainQemuAgentCommandTimeoutValues'/>
-    <enum name='VIR_DOMAIN_QEMU_AGENT_COMMAND_NOWAIT' file='libvirt-qemu' value='0' type='virDomainQemuAgentCommandTimeoutValues'/>
-    <enum name='VIR_DOMAIN_QEMU_AGENT_COMMAND_SHUTDOWN' file='libvirt-qemu' value='60' type='virDomainQemuAgentCommandTimeoutValues'/>
-    <enum name='VIR_DOMAIN_QEMU_MONITOR_COMMAND_DEFAULT' file='libvirt-qemu' value='0' type='virDomainQemuMonitorCommandFlags'/>
-    <enum name='VIR_DOMAIN_QEMU_MONITOR_COMMAND_HMP' file='libvirt-qemu' value='1' type='virDomainQemuMonitorCommandFlags' info='cmd is in HMP'/>
+    <enum name='VIR_CONNECT_DOMAIN_QEMU_MONITOR_EVENT_REGISTER_NOCASE' file='libvirt-qemu' value='2' value_hex='0x2' value_bitshift='1' type='virConnectDomainQemuMonitorEventRegisterFlags' info='Event filter is case insensitive'/>
+    <enum name='VIR_CONNECT_DOMAIN_QEMU_MONITOR_EVENT_REGISTER_REGEX' file='libvirt-qemu' value='1' value_hex='0x1' value_bitshift='0' type='virConnectDomainQemuMonitorEventRegisterFlags' info='Event filter is a regex rather than a literal string'/>
+    <enum name='VIR_DOMAIN_QEMU_AGENT_COMMAND_BLOCK' file='libvirt-qemu' value='-2' value_hex='-0x2' type='virDomainQemuAgentCommandTimeoutValues'/>
+    <enum name='VIR_DOMAIN_QEMU_AGENT_COMMAND_DEFAULT' file='libvirt-qemu' value='-1' value_hex='-0x1' type='virDomainQemuAgentCommandTimeoutValues'/>
+    <enum name='VIR_DOMAIN_QEMU_AGENT_COMMAND_MIN' file='libvirt-qemu' value='-2' value_hex='-0x2' type='virDomainQemuAgentCommandTimeoutValues'/>
+    <enum name='VIR_DOMAIN_QEMU_AGENT_COMMAND_NOWAIT' file='libvirt-qemu' value='0' value_hex='0x0' type='virDomainQemuAgentCommandTimeoutValues'/>
+    <enum name='VIR_DOMAIN_QEMU_AGENT_COMMAND_SHUTDOWN' file='libvirt-qemu' value='60' value_hex='0x3c' type='virDomainQemuAgentCommandTimeoutValues'/>
+    <enum name='VIR_DOMAIN_QEMU_MONITOR_COMMAND_DEFAULT' file='libvirt-qemu' value='0' value_hex='0x0' type='virDomainQemuMonitorCommandFlags'/>
+    <enum name='VIR_DOMAIN_QEMU_MONITOR_COMMAND_HMP' file='libvirt-qemu' value='1' value_hex='0x1' value_bitshift='0' type='virDomainQemuMonitorCommandFlags' info='cmd is in HMP'/>
     <typedef name='virConnectDomainQemuMonitorEventRegisterFlags' file='libvirt-qemu' type='enum'/>
     <typedef name='virDomainQemuAgentCommandTimeoutValues' file='libvirt-qemu' type='enum'/>
     <typedef name='virDomainQemuMonitorCommandFlags' file='libvirt-qemu' type='enum'/>
