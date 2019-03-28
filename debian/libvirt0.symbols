@@ -118,7 +118,8 @@ libvirt.so.0 libvirt0 #MINVER#
  *@LIBVIRT_4.7.0 4.7.0
  *@LIBVIRT_4.10.0 4.10.0
  *@LIBVIRT_5.0.0 5.0.0
- *@LIBVIRT_PRIVATE_5.0.0 5.0.0
+ *@LIBVIRT_5.2.0 5.2.0~rc1
+ *@LIBVIRT_PRIVATE_5.2.0 5.2.0~rc1
 
 libvirt-qemu.so.0 libvirt0 #MINVER#
  *@LIBVIRT_QEMU_0.8.3 0.8.3
@@ -140,4 +141,4 @@ libvirt-admin.so.0 libvirt0 #MINVER#
  *@LIBVIRT_ADMIN_1.3.0 1.2.18
  *@LIBVIRT_ADMIN_2.0.0 2.0.0~rc1
  *@LIBVIRT_ADMIN_3.0.0 3.0.0
- *@LIBVIRT_ADMIN_PRIVATE_5.0.0 5.0.0
+ *@LIBVIRT_ADMIN_PRIVATE_5.2.0 5.2.0~rc1
