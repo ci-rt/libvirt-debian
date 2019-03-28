@@ -393,6 +393,15 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
     def->mem.cur_balloon = VIR_ROUND_UP(def->mem.cur_balloon, 1024);
     b_info->max_memkb = virDomainDefGetMemoryInitial(def);
     b_info->target_memkb = def->mem.cur_balloon;
+
+#ifdef LIBXL_HAVE_BUILDINFO_GRANT_LIMITS
+    for (i = 0; i < def->ncontrollers; i++) {
+        if (def->controllers[i]->type == VIR_DOMAIN_CONTROLLER_TYPE_XENBUS &&
+            def->controllers[i]->opts.xenbusopts.maxGrantFrames > 0)
+            b_info->max_grant_frames = def->controllers[i]->opts.xenbusopts.maxGrantFrames;
+    }
+#endif
+
     if (hvm || pvh) {
         if (caps &&
             def->cpu && def->cpu->mode == (VIR_CPU_MODE_HOST_PASSTHROUGH)) {
@@ -718,6 +727,8 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
         case VIR_DOMAIN_MEMBALLOON_MODEL_XEN:
             break;
         case VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO:
+        case VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO_TRANSITIONAL:
+        case VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO_NON_TRANSITIONAL:
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("unsupported balloon device model '%s'"),
                            virDomainMemballoonModelTypeToString(model));

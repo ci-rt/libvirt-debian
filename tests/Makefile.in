@@ -131,6 +131,7 @@ host_triplet = @host@
 @WITH_QEMU_TRUE@	qemublocktest \
 @WITH_QEMU_TRUE@	qemumigparamstest \
 @WITH_QEMU_TRUE@	qemusecuritytest \
+@WITH_QEMU_TRUE@	qemufirmwaretest \
 @WITH_QEMU_TRUE@	$(NULL)
 
 @WITH_QEMU_TRUE@am__append_14 = qemucapsprobe
@@ -162,7 +163,7 @@ host_triplet = @host@
 @WITH_NWFILTER_TRUE@	nwfilterxml2firewalltest
 @WITH_STORAGE_TRUE@am__append_29 = storagevolxml2argvtest \
 @WITH_STORAGE_TRUE@	storagepoolxml2argvtest virstorageutiltest \
-@WITH_STORAGE_TRUE@	storagepoolxml2xmltest
+@WITH_STORAGE_TRUE@	storagepoolxml2xmltest storagepoolcapstest
 @WITH_STORAGE_FS_TRUE@am__append_30 = virstoragetest
 @WITH_LINUX_TRUE@am__append_31 = virscsitest
 @WITH_NSS_TRUE@am__append_32 = nsslinktest nssguestlinktest
@@ -201,6 +202,7 @@ TESTS = $(am__EXEEXT_29) $(am__EXEEXT_35)
 @WITH_QEMU_FALSE@	qemumigparamstest.c \
 @WITH_QEMU_FALSE@	qemusecuritytest.c qemusecuritytest.h \
 @WITH_QEMU_FALSE@	qemusecuritymock.c \
+@WITH_QEMU_FALSE@	qemufirmwaretest.c \
 @WITH_QEMU_FALSE@	$(QEMUMONITORTESTUTILS_SOURCES)
 
 @WITH_LXC_TRUE@@WITH_NETWORK_TRUE@am__append_46 = ../src/libvirt_driver_network_impl.la
@@ -223,7 +225,8 @@ TESTS = $(am__EXEEXT_29) $(am__EXEEXT_35)
 @WITH_STORAGE_FALSE@am__append_57 = storagevolxml2argvtest.c \
 @WITH_STORAGE_FALSE@	virstorageutiltest.c \
 @WITH_STORAGE_FALSE@	storagepoolxml2argvtest.c \
-@WITH_STORAGE_FALSE@	storagepoolxml2xmltest.c
+@WITH_STORAGE_FALSE@	storagepoolxml2xmltest.c \
+@WITH_STORAGE_FALSE@	storagepoolcapstest.c
 @WITH_QEMU_TRUE@am__append_58 = testutilsqemu.c testutilsqemu.h
 @WITH_QEMU_TRUE@am__append_59 = libqemumonitortestutils.la $(qemu_LDADDS) $(GNULIB_LIBS)
 @WITH_LXC_TRUE@am__append_60 = testutilslxc.c testutilslxc.h
@@ -843,7 +846,8 @@ virusbmock_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 @WITH_QEMU_TRUE@	qemucommandutiltest$(EXEEXT) \
 @WITH_QEMU_TRUE@	qemublocktest$(EXEEXT) \
 @WITH_QEMU_TRUE@	qemumigparamstest$(EXEEXT) \
-@WITH_QEMU_TRUE@	qemusecuritytest$(EXEEXT)
+@WITH_QEMU_TRUE@	qemusecuritytest$(EXEEXT) \
+@WITH_QEMU_TRUE@	qemufirmwaretest$(EXEEXT)
 @WITH_LXC_TRUE@am__EXEEXT_10 = lxcxml2xmltest$(EXEEXT) \
 @WITH_LXC_TRUE@	lxcconf2xmltest$(EXEEXT)
 @WITH_OPENVZ_TRUE@am__EXEEXT_11 = openvzutilstest$(EXEEXT)
@@ -865,7 +869,8 @@ virusbmock_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 @WITH_STORAGE_TRUE@am__EXEEXT_22 = storagevolxml2argvtest$(EXEEXT) \
 @WITH_STORAGE_TRUE@	storagepoolxml2argvtest$(EXEEXT) \
 @WITH_STORAGE_TRUE@	virstorageutiltest$(EXEEXT) \
-@WITH_STORAGE_TRUE@	storagepoolxml2xmltest$(EXEEXT)
+@WITH_STORAGE_TRUE@	storagepoolxml2xmltest$(EXEEXT) \
+@WITH_STORAGE_TRUE@	storagepoolcapstest$(EXEEXT)
 @WITH_STORAGE_FS_TRUE@am__EXEEXT_23 = virstoragetest$(EXEEXT)
 @WITH_LINUX_TRUE@am__EXEEXT_24 = virscsitest$(EXEEXT)
 @WITH_NSS_TRUE@am__EXEEXT_25 = nsstest$(EXEEXT) nssguesttest$(EXEEXT)
@@ -1181,9 +1186,10 @@ qemucapabilitiestest_OBJECTS = $(am_qemucapabilitiestest_OBJECTS)
 @WITH_QEMU_TRUE@	libqemumonitortestutils.la $(qemu_LDADDS) \
 @WITH_QEMU_TRUE@	$(am__DEPENDENCIES_2)
 am__qemucaps2xmltest_SOURCES_DIST = qemucaps2xmltest.c testutils.c \
-	testutils.h
+	testutils.h testutilsqemu.c testutilsqemu.h
 @WITH_QEMU_TRUE@am_qemucaps2xmltest_OBJECTS =  \
-@WITH_QEMU_TRUE@	qemucaps2xmltest.$(OBJEXT) testutils.$(OBJEXT)
+@WITH_QEMU_TRUE@	qemucaps2xmltest.$(OBJEXT) testutils.$(OBJEXT) \
+@WITH_QEMU_TRUE@	testutilsqemu.$(OBJEXT)
 qemucaps2xmltest_OBJECTS = $(am_qemucaps2xmltest_OBJECTS)
 @WITH_QEMU_TRUE@qemucaps2xmltest_DEPENDENCIES = $(qemu_LDADDS) \
 @WITH_QEMU_TRUE@	$(am__DEPENDENCIES_2)
@@ -1200,6 +1206,14 @@ am__qemucommandutiltest_SOURCES_DIST = qemucommandutiltest.c \
 qemucommandutiltest_OBJECTS = $(am_qemucommandutiltest_OBJECTS)
 @WITH_QEMU_TRUE@qemucommandutiltest_DEPENDENCIES =  \
 @WITH_QEMU_TRUE@	libqemumonitortestutils.la $(qemu_LDADDS) \
+@WITH_QEMU_TRUE@	$(am__DEPENDENCIES_2)
+am__qemufirmwaretest_SOURCES_DIST = qemufirmwaretest.c testutils.h \
+	testutils.c virfilewrapper.c virfilewrapper.h
+@WITH_QEMU_TRUE@am_qemufirmwaretest_OBJECTS =  \
+@WITH_QEMU_TRUE@	qemufirmwaretest.$(OBJEXT) testutils.$(OBJEXT) \
+@WITH_QEMU_TRUE@	virfilewrapper.$(OBJEXT)
+qemufirmwaretest_OBJECTS = $(am_qemufirmwaretest_OBJECTS)
+@WITH_QEMU_TRUE@qemufirmwaretest_DEPENDENCIES = $(qemu_LDADDS) \
 @WITH_QEMU_TRUE@	$(am__DEPENDENCIES_2)
 am__qemuhotplugtest_SOURCES_DIST = qemuhotplugtest.c testutils.c \
 	testutils.h testutilsqemu.c testutilsqemu.h
@@ -1247,10 +1261,12 @@ qemusecuritytest_OBJECTS = $(am_qemusecuritytest_OBJECTS)
 @WITH_QEMU_TRUE@qemusecuritytest_DEPENDENCIES = $(qemu_LDADDS) \
 @WITH_QEMU_TRUE@	$(am__DEPENDENCIES_2)
 am__qemuxml2argvtest_SOURCES_DIST = qemuxml2argvtest.c testutilsqemu.c \
-	testutilsqemu.h testutils.c testutils.h
+	testutilsqemu.h testutils.c testutils.h virfilewrapper.c \
+	virfilewrapper.h
 @WITH_QEMU_TRUE@am_qemuxml2argvtest_OBJECTS =  \
 @WITH_QEMU_TRUE@	qemuxml2argvtest.$(OBJEXT) \
-@WITH_QEMU_TRUE@	testutilsqemu.$(OBJEXT) testutils.$(OBJEXT)
+@WITH_QEMU_TRUE@	testutilsqemu.$(OBJEXT) testutils.$(OBJEXT) \
+@WITH_QEMU_TRUE@	virfilewrapper.$(OBJEXT)
 qemuxml2argvtest_OBJECTS = $(am_qemuxml2argvtest_OBJECTS)
 @WITH_QEMU_TRUE@qemuxml2argvtest_DEPENDENCIES = libqemutestdriver.la \
 @WITH_QEMU_TRUE@	$(am__DEPENDENCIES_2) $(am__DEPENDENCIES_1)
@@ -1300,7 +1316,7 @@ sockettest_OBJECTS = $(am_sockettest_OBJECTS)
 sockettest_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_ssh_OBJECTS = ssh.$(OBJEXT)
 ssh_OBJECTS = $(am_ssh_OBJECTS)
-ssh_DEPENDENCIES = $(am__DEPENDENCIES_1)
+ssh_LDADD = $(LDADD)
 am__storagebackendsheepdogtest_SOURCES_DIST =  \
 	storagebackendsheepdogtest.c testutils.c testutils.h
 @WITH_STORAGE_SHEEPDOG_TRUE@am_storagebackendsheepdogtest_OBJECTS = storagebackendsheepdogtest.$(OBJEXT) \
@@ -1310,6 +1326,14 @@ storagebackendsheepdogtest_OBJECTS =  \
 @WITH_STORAGE_SHEEPDOG_TRUE@storagebackendsheepdogtest_DEPENDENCIES = ../src/libvirt_storage_backend_sheepdog_priv.la \
 @WITH_STORAGE_SHEEPDOG_TRUE@	../src/libvirt_driver_storage_impl.la \
 @WITH_STORAGE_SHEEPDOG_TRUE@	$(am__DEPENDENCIES_2)
+am__storagepoolcapstest_SOURCES_DIST = storagepoolcapstest.c \
+	testutils.h testutils.c
+@WITH_STORAGE_TRUE@am_storagepoolcapstest_OBJECTS =  \
+@WITH_STORAGE_TRUE@	storagepoolcapstest.$(OBJEXT) \
+@WITH_STORAGE_TRUE@	testutils.$(OBJEXT)
+storagepoolcapstest_OBJECTS = $(am_storagepoolcapstest_OBJECTS)
+@WITH_STORAGE_TRUE@storagepoolcapstest_DEPENDENCIES =  \
+@WITH_STORAGE_TRUE@	$(am__DEPENDENCIES_2)
 am__storagepoolxml2argvtest_SOURCES_DIST = storagepoolxml2argvtest.c \
 	testutils.c testutils.h
 @WITH_STORAGE_TRUE@am_storagepoolxml2argvtest_OBJECTS =  \
@@ -1741,16 +1765,17 @@ SOURCES = $(bhyveargv2xmlmock_la_SOURCES) \
 	$(qemuagenttest_SOURCES) $(qemuargv2xmltest_SOURCES) \
 	$(qemublocktest_SOURCES) $(qemucapabilitiestest_SOURCES) \
 	$(qemucaps2xmltest_SOURCES) $(qemucapsprobe_SOURCES) \
-	$(qemucommandutiltest_SOURCES) $(qemuhotplugtest_SOURCES) \
-	$(qemumemlocktest_SOURCES) $(qemumigparamstest_SOURCES) \
-	$(qemumonitorjsontest_SOURCES) $(qemusecuritytest_SOURCES) \
-	$(qemuxml2argvtest_SOURCES) $(qemuxml2xmltest_SOURCES) \
-	$(scsihosttest_SOURCES) $(seclabeltest_SOURCES) \
-	$(secretxml2xmltest_SOURCES) \
+	$(qemucommandutiltest_SOURCES) $(qemufirmwaretest_SOURCES) \
+	$(qemuhotplugtest_SOURCES) $(qemumemlocktest_SOURCES) \
+	$(qemumigparamstest_SOURCES) $(qemumonitorjsontest_SOURCES) \
+	$(qemusecuritytest_SOURCES) $(qemuxml2argvtest_SOURCES) \
+	$(qemuxml2xmltest_SOURCES) $(scsihosttest_SOURCES) \
+	$(seclabeltest_SOURCES) $(secretxml2xmltest_SOURCES) \
 	$(securityselinuxlabeltest_SOURCES) \
 	$(securityselinuxtest_SOURCES) $(sexpr2xmltest_SOURCES) \
 	$(shunloadtest_SOURCES) $(sockettest_SOURCES) $(ssh_SOURCES) \
 	$(storagebackendsheepdogtest_SOURCES) \
+	$(storagepoolcapstest_SOURCES) \
 	$(storagepoolxml2argvtest_SOURCES) \
 	$(storagepoolxml2xmltest_SOURCES) \
 	$(storagevolxml2argvtest_SOURCES) \
@@ -1843,6 +1868,7 @@ DIST_SOURCES = $(am__bhyveargv2xmlmock_la_SOURCES_DIST) \
 	$(am__qemucaps2xmltest_SOURCES_DIST) \
 	$(am__qemucapsprobe_SOURCES_DIST) \
 	$(am__qemucommandutiltest_SOURCES_DIST) \
+	$(am__qemufirmwaretest_SOURCES_DIST) \
 	$(am__qemuhotplugtest_SOURCES_DIST) \
 	$(am__qemumemlocktest_SOURCES_DIST) \
 	$(am__qemumigparamstest_SOURCES_DIST) \
@@ -1857,6 +1883,7 @@ DIST_SOURCES = $(am__bhyveargv2xmlmock_la_SOURCES_DIST) \
 	$(am__sexpr2xmltest_SOURCES_DIST) $(shunloadtest_SOURCES) \
 	$(sockettest_SOURCES) $(ssh_SOURCES) \
 	$(am__storagebackendsheepdogtest_SOURCES_DIST) \
+	$(am__storagepoolcapstest_SOURCES_DIST) \
 	$(am__storagepoolxml2argvtest_SOURCES_DIST) \
 	$(am__storagepoolxml2xmltest_SOURCES_DIST) \
 	$(am__storagevolxml2argvtest_SOURCES_DIST) \
@@ -2111,8 +2138,8 @@ AM_RECURSIVE_TARGETS = check recheck
 am__EXEEXT_33 = libvirtd-fail libvirtd-pool virsh-cpuset \
 	virsh-define-dev-segfault virsh-int-overflow virsh-optparse \
 	virsh-read-bufsiz virsh-read-non-seekable virsh-schedinfo \
-	virsh-self-test virt-admin-self-test virsh-start \
-	virsh-undefine virsh-uriprecedence virsh-vcpupin
+	virsh-self-test virt-admin-self-test virsh-snapshot \
+	virsh-start virsh-undefine virsh-uriprecedence virsh-vcpupin
 @WITH_LIBVIRTD_TRUE@am__EXEEXT_34 = $(am__EXEEXT_33)
 am__EXEEXT_35 = $(am__EXEEXT_34) $(am__append_39)
 TEST_SUITE_LOG = test-suite.log
@@ -2187,8 +2214,6 @@ CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
 CONFIG_INCLUDE = @CONFIG_INCLUDE@
-COVERAGE_CFLAGS = @COVERAGE_CFLAGS@
-COVERAGE_LDFLAGS = @COVERAGE_LDFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CURL_CFLAGS = @CURL_CFLAGS@
@@ -3273,7 +3298,6 @@ PVCREATE = @PVCREATE@
 PVREMOVE = @PVREMOVE@
 PVS = @PVS@
 PYTHON = @PYTHON@
-QEMU = @QEMU@
 QEMU_BRIDGE_HELPER = @QEMU_BRIDGE_HELPER@
 QEMU_PR_HELPER = @QEMU_PR_HELPER@
 RADVD = @RADVD@
@@ -3599,10 +3623,8 @@ YAJL_LIBS = @YAJL_LIBS@
 ZFS = @ZFS@
 ZPOOL = @ZPOOL@
 abs_aux_dir = @abs_aux_dir@
-
-# old automake does not provide abs_{src,build}dir variables
-abs_builddir = $(shell pwd)
-abs_srcdir = $(shell cd $(srcdir) && pwd)
+abs_builddir = @abs_builddir@
+abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
 ac_ct_AR = @ac_ct_AR@
@@ -3661,19 +3683,20 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 ws_plugindir = @ws_plugindir@
-abs_topbuilddir = $(shell cd .. && pwd)
-abs_topsrcdir = $(shell cd $(top_srcdir) && pwd)
-AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir) \
+AM_CPPFLAGS = \
+	-I$(top_builddir) -I$(top_srcdir) \
 	-I$(top_builddir)/gnulib/lib -I$(top_srcdir)/gnulib/lib \
 	-I$(top_builddir)/include -I$(top_srcdir)/include \
 	-I$(top_builddir)/src -I$(top_srcdir)/src \
-	-I$(top_srcdir)/src/util -I$(top_srcdir)/src/conf $(NULL) \
-	-DTEST_DRIVER_DIR=\"$(top_builddir)/src/.libs\"
+	-I$(top_srcdir)/src/util \
+	-I$(top_srcdir)/src/conf \
+	$(NULL)
+
 AM_CFLAGS = \
 	-Dabs_builddir="\"$(abs_builddir)\"" \
-	-Dabs_topbuilddir="\"$(abs_topbuilddir)\"" \
+	-Dabs_top_builddir="\"$(abs_top_builddir)\"" \
 	-Dabs_srcdir="\"$(abs_srcdir)\"" \
-	-Dabs_topsrcdir="\"$(abs_topsrcdir)\"" \
+	-Dabs_top_srcdir="\"$(abs_top_srcdir)\"" \
 	$(LIBXML_CFLAGS) \
 	$(LIBNL_CFLAGS) \
 	$(GNUTLS_CFLAGS) \
@@ -3681,7 +3704,6 @@ AM_CFLAGS = \
 	$(SELINUX_CFLAGS) \
 	$(APPARMOR_CFLAGS) \
 	$(YAJL_CFLAGS) \
-	$(COVERAGE_CFLAGS) \
 	$(XDR_CFLAGS) \
 	$(WARN_CFLAGS)
 
@@ -3727,8 +3749,9 @@ EXTRA_DIST = .valgrind.supp bhyvexml2argvdata bhyveargv2xmldata \
 	qemuhotplugtestcpus qemuhotplugtestdevices \
 	qemuhotplugtestdomains qemumigparamsdata qemumonitorjsondata \
 	qemuxml2argvdata qemuxml2xmloutdata qemustatusxml2xmldata \
-	qemumemlockdata secretxml2xmlin securityselinuxhelperdata \
-	securityselinuxlabeldata sexpr2xmldata storagepoolschemadata \
+	qemumemlockdata qemufirmwaredata secretxml2xmlin \
+	securityselinuxhelperdata securityselinuxlabeldata \
+	sexpr2xmldata storagepoolcapsschemadata storagepoolschemadata \
 	storagepoolxml2xmlin storagepoolxml2xmlout \
 	storagepoolxml2argvdata storagevolschemadata \
 	storagevolxml2argvdata storagevolxml2xmlin \
@@ -3785,7 +3808,6 @@ test_libraries = libshunload.la virportallocatormock.la \
 
 # This is a fake SSH we use from virnetsockettest
 ssh_SOURCES = ssh.c
-ssh_LDADD = $(COVERAGE_LDFLAGS)
 test_scripts = $(am__append_36) $(am__append_39)
 libvirtd_test_scripts = \
 	libvirtd-fail \
@@ -3799,6 +3821,7 @@ libvirtd_test_scripts = \
 	virsh-schedinfo \
 	virsh-self-test \
 	virt-admin-self-test \
+	virsh-snapshot \
 	virsh-start \
 	virsh-undefine \
 	virsh-uriprecedence \
@@ -3809,21 +3832,12 @@ libvirtd_test_scripts = \
 @WITH_TESTS_TRUE@	$(am__append_78)
 @WITH_TESTS_FALSE@check_LTLIBRARIES = $(test_libraries) \
 @WITH_TESTS_FALSE@	$(am__append_79)
-
-# NB, automake < 1.10 does not provide the real
-# abs_top_{src/build}dir or builddir variables, so don't rely
-# on them here. Fake them with 'pwd'
-# Also, BSD sh doesn't like 'a=b b=$$a', so we can't use an
-# intermediate shell variable, but must do all the expansion in make
-lv_abs_top_builddir = $(shell cd '$(top_builddir)' && pwd)
 TESTS_ENVIRONMENT = \
-  abs_top_builddir=$(lv_abs_top_builddir) \
-  abs_top_srcdir=`cd '$(top_srcdir)'; pwd` \
-  abs_builddir=$(abs_builddir) \
-  abs_srcdir=$(abs_srcdir) \
-  CONFIG_HEADER="$(lv_abs_top_builddir)/config.h" \
+  abs_top_builddir="$(abs_top_builddir)" \
+  abs_top_srcdir="$(abs_top_srcdir)" \
+  abs_builddir="$(abs_builddir)" \
+  abs_srcdir="$(abs_srcdir)" \
   SHELL="$(SHELL)" \
-  LIBVIRT_DRIVER_DIR="$(lv_abs_top_builddir)/src/.libs" \
   LIBVIRT_AUTOSTART=0 \
   LC_ALL=C \
   VIR_TEST_EXPENSIVE=$(VIR_TEST_EXPENSIVE) \
@@ -3831,7 +3845,7 @@ TESTS_ENVIRONMENT = \
 
 VALGRIND = valgrind --quiet --leak-check=full --trace-children=yes \
 	--trace-children-skip="*/tools/virsh","*/tests/commandhelper" \
-	--suppressions=$(srcdir)/.valgrind.supp
+	--suppressions=$(abs_srcdir)/.valgrind.supp
 
 sockettest_SOURCES = \
 	sockettest.c \
@@ -3894,7 +3908,9 @@ QEMUMONITORTESTUTILS_SOURCES = \
 @WITH_QEMU_TRUE@qemucpumock_la_LIBADD = $(MOCKLIBS_LIBS)
 @WITH_QEMU_TRUE@qemuxml2argvtest_SOURCES = \
 @WITH_QEMU_TRUE@	qemuxml2argvtest.c testutilsqemu.c testutilsqemu.h \
-@WITH_QEMU_TRUE@	testutils.c testutils.h
+@WITH_QEMU_TRUE@	testutils.c testutils.h \
+@WITH_QEMU_TRUE@	virfilewrapper.c virfilewrapper.h \
+@WITH_QEMU_TRUE@	$(NULL)
 
 @WITH_QEMU_TRUE@qemuxml2argvtest_LDADD = libqemutestdriver.la \
 @WITH_QEMU_TRUE@	$(LDADDS) $(LIBXML_LIBS)
@@ -3955,6 +3971,7 @@ QEMUMONITORTESTUTILS_SOURCES = \
 @WITH_QEMU_TRUE@qemucaps2xmltest_SOURCES = \
 @WITH_QEMU_TRUE@	qemucaps2xmltest.c \
 @WITH_QEMU_TRUE@	testutils.c testutils.h \
+@WITH_QEMU_TRUE@	testutilsqemu.c testutilsqemu.h \
 @WITH_QEMU_TRUE@	$(NULL)
 
 @WITH_QEMU_TRUE@qemucaps2xmltest_LDADD = $(qemu_LDADDS) $(LDADDS)
@@ -4018,6 +4035,13 @@ QEMUMONITORTESTUTILS_SOURCES = \
 @WITH_QEMU_TRUE@	testutilsqemu.h testutilsqemu.c
 
 @WITH_QEMU_TRUE@qemusecuritytest_LDADD = $(qemu_LDADDS) $(LDADDS)
+@WITH_QEMU_TRUE@qemufirmwaretest_SOURCES = \
+@WITH_QEMU_TRUE@	qemufirmwaretest.c \
+@WITH_QEMU_TRUE@	testutils.h testutils.c \
+@WITH_QEMU_TRUE@	virfilewrapper.c virfilewrapper.h \
+@WITH_QEMU_TRUE@	$(NULL)
+
+@WITH_QEMU_TRUE@qemufirmwaretest_LDADD = $(qemu_LDADDS) $(LDADDS)
 @WITH_LXC_TRUE@lxc_LDADDS = ../src/libvirt_driver_lxc_impl.la \
 @WITH_LXC_TRUE@	$(am__append_46) $(LDADDS)
 @WITH_LXC_TRUE@lxcxml2xmltest_SOURCES = \
@@ -4190,6 +4214,10 @@ genericxml2xmltest_LDADD = $(LDADDS)
 @WITH_STORAGE_TRUE@	../src/libvirt_driver_storage_impl.la \
 @WITH_STORAGE_TRUE@	$(GNULIB_LIBS)
 
+@WITH_STORAGE_TRUE@storagepoolcapstest_SOURCES = \
+@WITH_STORAGE_TRUE@        storagepoolcapstest.c testutils.h testutils.c
+
+@WITH_STORAGE_TRUE@storagepoolcapstest_LDADD = $(LDADDS)
 storagevolxml2xmltest_SOURCES = \
 	storagevolxml2xmltest.c \
 	testutils.c testutils.h
@@ -5000,6 +5028,10 @@ qemucommandutiltest$(EXEEXT): $(qemucommandutiltest_OBJECTS) $(qemucommandutilte
 	@rm -f qemucommandutiltest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(qemucommandutiltest_OBJECTS) $(qemucommandutiltest_LDADD) $(LIBS)
 
+qemufirmwaretest$(EXEEXT): $(qemufirmwaretest_OBJECTS) $(qemufirmwaretest_DEPENDENCIES) $(EXTRA_qemufirmwaretest_DEPENDENCIES) 
+	@rm -f qemufirmwaretest$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(qemufirmwaretest_OBJECTS) $(qemufirmwaretest_LDADD) $(LIBS)
+
 qemuhotplugtest$(EXEEXT): $(qemuhotplugtest_OBJECTS) $(qemuhotplugtest_DEPENDENCIES) $(EXTRA_qemuhotplugtest_DEPENDENCIES) 
 	@rm -f qemuhotplugtest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(qemuhotplugtest_OBJECTS) $(qemuhotplugtest_LDADD) $(LIBS)
@@ -5067,6 +5099,10 @@ ssh$(EXEEXT): $(ssh_OBJECTS) $(ssh_DEPENDENCIES) $(EXTRA_ssh_DEPENDENCIES)
 storagebackendsheepdogtest$(EXEEXT): $(storagebackendsheepdogtest_OBJECTS) $(storagebackendsheepdogtest_DEPENDENCIES) $(EXTRA_storagebackendsheepdogtest_DEPENDENCIES) 
 	@rm -f storagebackendsheepdogtest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(storagebackendsheepdogtest_OBJECTS) $(storagebackendsheepdogtest_LDADD) $(LIBS)
+
+storagepoolcapstest$(EXEEXT): $(storagepoolcapstest_OBJECTS) $(storagepoolcapstest_DEPENDENCIES) $(EXTRA_storagepoolcapstest_DEPENDENCIES) 
+	@rm -f storagepoolcapstest$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(storagepoolcapstest_OBJECTS) $(storagepoolcapstest_LDADD) $(LIBS)
 
 storagepoolxml2argvtest$(EXEEXT): $(storagepoolxml2argvtest_OBJECTS) $(storagepoolxml2argvtest_DEPENDENCIES) $(EXTRA_storagepoolxml2argvtest_DEPENDENCIES) 
 	@rm -f storagepoolxml2argvtest$(EXEEXT)
@@ -5397,6 +5433,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemucapsprobemock.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemucommandutiltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemucpumock.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemufirmwaretest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemuhotplugtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemumemlocktest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemumigparamstest.Po@am__quote@
@@ -5419,6 +5456,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sockettest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ssh.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/storagebackendsheepdogtest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/storagepoolcapstest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/storagepoolxml2argvtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/storagepoolxml2xmltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/storagevolxml2argvtest.Po@am__quote@
@@ -6530,6 +6568,13 @@ qemusecuritytest.log: qemusecuritytest$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
+qemufirmwaretest.log: qemufirmwaretest$(EXEEXT)
+	@p='qemufirmwaretest$(EXEEXT)'; \
+	b='qemufirmwaretest'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
 lxcxml2xmltest.log: lxcxml2xmltest$(EXEEXT)
 	@p='lxcxml2xmltest$(EXEEXT)'; \
 	b='lxcxml2xmltest'; \
@@ -6708,6 +6753,13 @@ virstorageutiltest.log: virstorageutiltest$(EXEEXT)
 storagepoolxml2xmltest.log: storagepoolxml2xmltest$(EXEEXT)
 	@p='storagepoolxml2xmltest$(EXEEXT)'; \
 	b='storagepoolxml2xmltest'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+storagepoolcapstest.log: storagepoolcapstest$(EXEEXT)
+	@p='storagepoolcapstest$(EXEEXT)'; \
+	b='storagepoolcapstest'; \
 	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
@@ -6904,6 +6956,13 @@ virsh-self-test.log: virsh-self-test
 virt-admin-self-test.log: virt-admin-self-test
 	@p='virt-admin-self-test'; \
 	b='virt-admin-self-test'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+virsh-snapshot.log: virsh-snapshot
+	@p='virsh-snapshot'; \
+	b='virsh-snapshot'; \
 	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \

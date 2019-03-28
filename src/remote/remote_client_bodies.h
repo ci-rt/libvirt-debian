@@ -328,6 +328,33 @@ done:
 }
 
 static char *
+remoteConnectGetStoragePoolCapabilities(virConnectPtr conn, unsigned int flags)
+{
+    char *rv = NULL;
+    struct private_data *priv = conn->privateData;
+    remote_connect_get_storage_pool_capabilities_args args;
+    remote_connect_get_storage_pool_capabilities_ret ret;
+
+    remoteDriverLock(priv);
+
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(conn, priv, 0, REMOTE_PROC_CONNECT_GET_STORAGE_POOL_CAPABILITIES,
+             (xdrproc_t)xdr_remote_connect_get_storage_pool_capabilities_args, (char *)&args,
+             (xdrproc_t)xdr_remote_connect_get_storage_pool_capabilities_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = ret.capabilities;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static char *
 remoteConnectGetSysinfo(virConnectPtr conn, unsigned int flags)
 {
     char *rv = NULL;

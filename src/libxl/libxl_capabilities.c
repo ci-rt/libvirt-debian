@@ -603,12 +603,15 @@ libxlMakeDomainOSCaps(const char *machine,
     virDomainCapsLoaderPtr capsLoader = &os->loader;
     size_t i;
 
-    os->supported = true;
+    os->supported = VIR_TRISTATE_BOOL_YES;
+    capsLoader->supported = VIR_TRISTATE_BOOL_NO;
+    capsLoader->type.report = true;
+    capsLoader->readonly.report = true;
 
     if (STREQ(machine, "xenpv") || STREQ(machine, "xenpvh"))
         return 0;
 
-    capsLoader->supported = true;
+    capsLoader->supported = VIR_TRISTATE_BOOL_YES;
     if (VIR_ALLOC_N(capsLoader->values.values, nfirmwares) < 0)
         return -1;
 
@@ -631,7 +634,10 @@ libxlMakeDomainOSCaps(const char *machine,
 static int
 libxlMakeDomainDeviceDiskCaps(virDomainCapsDeviceDiskPtr dev)
 {
-    dev->supported = true;
+    dev->supported = VIR_TRISTATE_BOOL_YES;
+    dev->diskDevice.report = true;
+    dev->bus.report = true;
+    dev->model.report = true;
 
     VIR_DOMAIN_CAPS_ENUM_SET(dev->diskDevice,
                              VIR_DOMAIN_DISK_DEVICE_DISK,
@@ -648,7 +654,8 @@ libxlMakeDomainDeviceDiskCaps(virDomainCapsDeviceDiskPtr dev)
 static int
 libxlMakeDomainDeviceGraphicsCaps(virDomainCapsDeviceGraphicsPtr dev)
 {
-    dev->supported = true;
+    dev->supported = VIR_TRISTATE_BOOL_YES;
+    dev->type.report = true;
 
     VIR_DOMAIN_CAPS_ENUM_SET(dev->type,
                              VIR_DOMAIN_GRAPHICS_TYPE_SDL,
@@ -661,7 +668,8 @@ libxlMakeDomainDeviceGraphicsCaps(virDomainCapsDeviceGraphicsPtr dev)
 static int
 libxlMakeDomainDeviceVideoCaps(virDomainCapsDeviceVideoPtr dev)
 {
-    dev->supported = true;
+    dev->supported = VIR_TRISTATE_BOOL_YES;
+    dev->modelType.report = true;
 
     VIR_DOMAIN_CAPS_ENUM_SET(dev->modelType,
                              VIR_DOMAIN_VIDEO_TYPE_VGA,
@@ -683,7 +691,13 @@ bool libxlCapsHasPVUSB(void)
 static int
 libxlMakeDomainDeviceHostdevCaps(virDomainCapsDeviceHostdevPtr dev)
 {
-    dev->supported = true;
+    dev->supported = VIR_TRISTATE_BOOL_YES;
+    dev->mode.report = true;
+    dev->startupPolicy.report = true;
+    dev->subsysType.report = true;
+    dev->capsType.report = true;
+    dev->pciBackend.report = true;
+
     /* VIR_DOMAIN_HOSTDEV_MODE_CAPABILITIES is for containers only */
     VIR_DOMAIN_CAPS_ENUM_SET(dev->mode,
                              VIR_DOMAIN_HOSTDEV_MODE_SUBSYS);
@@ -772,6 +786,11 @@ libxlMakeDomainCapabilities(virDomainCapsPtr domCaps,
     if (STRNEQ(domCaps->machine, "xenpvh") &&
         libxlMakeDomainDeviceHostdevCaps(hostdev) < 0)
         return -1;
+
+    domCaps->iothreads = VIR_TRISTATE_BOOL_NO;
+    domCaps->vmcoreinfo = VIR_TRISTATE_BOOL_NO;
+    domCaps->genid = VIR_TRISTATE_BOOL_NO;
+    domCaps->gic.supported = VIR_TRISTATE_BOOL_NO;
 
     return 0;
 }

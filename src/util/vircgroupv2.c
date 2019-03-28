@@ -400,6 +400,12 @@ virCgroupV2MakeGroup(virCgroupPtr parent ATTRIBUTE_UNUSED,
                                             VIR_CGROUP_CONTROLLER_CPU) < 0) {
                 return -1;
             }
+
+            if (virCgroupV2HasController(parent, VIR_CGROUP_CONTROLLER_CPUSET) &&
+                virCgroupV2EnableController(parent,
+                                            VIR_CGROUP_CONTROLLER_CPUSET) < 0) {
+                return -1;
+            }
         } else {
             size_t i;
             for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
@@ -1561,6 +1567,67 @@ virCgroupV2GetCpuacctStat(virCgroupPtr group,
 }
 
 
+static int
+virCgroupV2SetCpusetMems(virCgroupPtr group,
+                         const char *mems)
+{
+    return virCgroupSetValueStr(group,
+                                VIR_CGROUP_CONTROLLER_CPUSET,
+                                "cpuset.mems",
+                                mems);
+}
+
+
+static int
+virCgroupV2GetCpusetMems(virCgroupPtr group,
+                         char **mems)
+{
+    return virCgroupGetValueStr(group,
+                                VIR_CGROUP_CONTROLLER_CPUSET,
+                                "cpuset.mems",
+                                mems);
+}
+
+
+static int
+virCgroupV2SetCpusetMemoryMigrate(virCgroupPtr group ATTRIBUTE_UNUSED,
+                                  bool migrate ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+
+
+static int
+virCgroupV2GetCpusetMemoryMigrate(virCgroupPtr group ATTRIBUTE_UNUSED,
+                                  bool *migrate)
+{
+    *migrate = true;
+    return 0;
+}
+
+
+static int
+virCgroupV2SetCpusetCpus(virCgroupPtr group,
+                         const char *cpus)
+{
+    return virCgroupSetValueStr(group,
+                                VIR_CGROUP_CONTROLLER_CPUSET,
+                                "cpuset.cpus",
+                                cpus);
+}
+
+
+static int
+virCgroupV2GetCpusetCpus(virCgroupPtr group,
+                         char **cpus)
+{
+    return virCgroupGetValueStr(group,
+                                VIR_CGROUP_CONTROLLER_CPUSET,
+                                "cpuset.cpus",
+                                cpus);
+}
+
+
 virCgroupBackend virCgroupV2Backend = {
     .type = VIR_CGROUP_BACKEND_TYPE_V2,
 
@@ -1620,6 +1687,13 @@ virCgroupBackend virCgroupV2Backend = {
 
     .getCpuacctUsage = virCgroupV2GetCpuacctUsage,
     .getCpuacctStat = virCgroupV2GetCpuacctStat,
+
+    .setCpusetMems = virCgroupV2SetCpusetMems,
+    .getCpusetMems = virCgroupV2GetCpusetMems,
+    .setCpusetMemoryMigrate = virCgroupV2SetCpusetMemoryMigrate,
+    .getCpusetMemoryMigrate = virCgroupV2GetCpusetMemoryMigrate,
+    .setCpusetCpus = virCgroupV2SetCpusetCpus,
+    .getCpusetCpus = virCgroupV2GetCpusetCpus,
 };
 
 

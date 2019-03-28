@@ -27,7 +27,6 @@ WARN_CFLAGS += $(STRICT_FRAME_LIMIT_CFLAGS)
 
 AM_CFLAGS = \
 	$(WARN_CFLAGS) \
-	$(COVERAGE_CFLAGS) \
 	$(PIE_CFLAGS) \
 	$(LIBXML_CFLAGS) \
 	$(NULL)
@@ -137,7 +136,6 @@ libvirt_shell_la_CFLAGS = \
 libvirt_shell_la_LDFLAGS = \
 		$(AM_LDFLAGS) \
 		$(PIE_LDFLAGS) \
-		$(COVERAGE_LDFLAGS) \
 		$(NULL)
 libvirt_shell_la_LIBADD = \
 		../src/libvirt.la \
@@ -183,7 +181,6 @@ endif ! WITH_BHYVE
 virt_host_validate_LDFLAGS = \
 		$(AM_LDFLAGS) \
 		$(PIE_LDFLAGS) \
-		$(COVERAGE_LDFLAGS) \
 		$(NULL)
 
 virt_host_validate_LDADD = \
@@ -206,7 +203,6 @@ virt_login_shell_SOURCES = \
 virt_login_shell_LDFLAGS = \
 		$(AM_LDFLAGS) \
 		$(PIE_LDFLAGS) \
-		$(COVERAGE_LDFLAGS) \
 		$(NULL)
 virt_login_shell_LDADD = \
 		$(STATIC_BINARIES) \
@@ -239,7 +235,6 @@ virsh_SOURCES = \
 virsh_LDFLAGS = \
 		$(AM_LDFLAGS) \
 		$(PIE_LDFLAGS) \
-		$(COVERAGE_LDFLAGS) \
 		$(NULL)
 virsh_LDADD = \
 		$(STATIC_BINARIES) \
@@ -257,7 +252,6 @@ virt_admin_SOURCES = \
 
 virt_admin_LDFLAGS = \
 		$(AM_LDFLAGS) \
-		$(COVERAGE_LDFLAGS) \
 		$(STATIC_BINARIES) \
 		$(PIE_LDFLAGS) \
 		$(NULL)
@@ -333,10 +327,10 @@ POD2MAN = pod2man -c "Virtualization Support" -r "$(PACKAGE)-$(VERSION)"
 		< $< > $@-t && \
 	mv $@-t $@
 
-install-data-local: install-init install-systemd install-nss \
+install-data-local: install-systemd install-nss \
 	install-bash-completion
 
-uninstall-local: uninstall-init uninstall-systemd uninstall-nss \
+uninstall-local: uninstall-systemd uninstall-nss \
 	uninstall-bash-completion
 
 install-sysconfig:
@@ -348,26 +342,7 @@ uninstall-sysconfig:
 	rm -f $(DESTDIR)$(sysconfdir)/sysconfig/libvirt-guests
 	rmdir $(DESTDIR)$(sysconfdir)/sysconfig ||:
 
-EXTRA_DIST += libvirt-guests.sh.in libvirt-guests.init.in
-
-install-initscript: libvirt-guests.init
-	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/rc.d/init.d
-	$(INSTALL_SCRIPT) libvirt-guests.init \
-	  $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirt-guests
-
-uninstall-initscript:
-	rm -f $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirt-guests
-	rmdir $(DESTDIR)$(sysconfdir)/rc.d/init.d ||:
-
-
-if LIBVIRT_INIT_SCRIPT_RED_HAT
-BUILT_SOURCES += libvirt-guests.init
-install-init: install-sysconfig install-initscript
-uninstall-init: uninstall-sysconfig uninstall-initscript
-else ! LIBVIRT_INIT_SCRIPT_RED_HAT
-install-init:
-uninstall-init:
-endif ! LIBVIRT_INIT_SCRIPT_RED_HAT
+EXTRA_DIST += libvirt-guests.sh.in
 
 libvirt-guests.sh: libvirt-guests.sh.in $(top_builddir)/config.status
 	$(AM_V_GEN)sed \
@@ -381,14 +356,6 @@ libvirt-guests.sh: libvirt-guests.sh.in $(top_builddir)/config.status
 	    chmod a+x $@-t && \
 	    mv $@-t $@
 BUILT_SOURCES += libvirt-guests.sh
-
-libvirt-guests.init: libvirt-guests.init.in libvirt-guests.sh
-	$(AM_V_GEN)sed \
-		-e 's|[@]libexecdir[@]|$(libexecdir)|g' \
-	< $< > $@-t && \
-	chmod a+x $@-t && \
-	mv $@-t $@
-
 
 EXTRA_DIST += libvirt-guests.service.in
 SYSTEMD_UNIT_DIR = $(prefix)/lib/systemd/system

@@ -1079,7 +1079,7 @@ doRemoteOpen(virConnectPtr conn,
         if ((flags & VIR_DRV_OPEN_REMOTE_AUTOSTART) &&
             !(daemonPath = virFileFindResourceFull("libvirtd",
                                                    NULL, NULL,
-                                                   abs_topbuilddir "/src",
+                                                   abs_top_builddir "/src",
                                                    SBINDIR,
                                                    "LIBVIRTD_PATH")))
             goto failed;
@@ -8572,6 +8572,7 @@ static virStorageDriver storage_driver = {
     .connectFindStoragePoolSources = remoteConnectFindStoragePoolSources, /* 0.4.5 */
     .connectStoragePoolEventDeregisterAny = remoteConnectStoragePoolEventDeregisterAny, /* 2.0.0 */
     .connectStoragePoolEventRegisterAny = remoteConnectStoragePoolEventRegisterAny, /* 2.0.0 */
+    .connectGetStoragePoolCapabilities = remoteConnectGetStoragePoolCapabilities, /* 5.2.0 */
     .storagePoolLookupByName = remoteStoragePoolLookupByName, /* 0.4.1 */
     .storagePoolLookupByUUID = remoteStoragePoolLookupByUUID, /* 0.4.1 */
     .storagePoolLookupByVolume = remoteStoragePoolLookupByVolume, /* 0.4.1 */

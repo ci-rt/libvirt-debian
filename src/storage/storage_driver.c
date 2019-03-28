@@ -35,6 +35,7 @@
 #include "datatypes.h"
 #include "driver.h"
 #include "storage_driver.h"
+#include "storage_capabilities.h"
 #include "storage_conf.h"
 #include "storage_event.h"
 #include "viralloc.h"
@@ -81,6 +82,8 @@ storagePoolRefreshFailCleanup(virStorageBackendPtr backend,
 {
     virErrorPtr orig_err = virSaveLastError();
 
+    virStoragePoolObjClearVols(obj);
+
     if (stateFile)
         unlink(stateFile);
     if (backend->stopPool)
@@ -89,6 +92,21 @@ storagePoolRefreshFailCleanup(virStorageBackendPtr backend,
         virSetError(orig_err);
         virFreeError(orig_err);
     }
+}
+
+
+static int
+storagePoolRefreshImpl(virStorageBackendPtr backend,
+                       virStoragePoolObjPtr obj,
+                       const char *stateFile)
+{
+    virStoragePoolObjClearVols(obj);
+    if (backend->refreshPool(obj) < 0) {
+        storagePoolRefreshFailCleanup(backend, obj, stateFile);
+        return -1;
+    }
+
+    return 0;
 }
 
 
@@ -148,15 +166,12 @@ storagePoolUpdateStateCallback(virStoragePoolObjPtr obj,
      * it anyway, but if they do and fail, we want to log error and
      * continue with other pools.
      */
-    if (active) {
-        virStoragePoolObjClearVols(obj);
-        if (backend->refreshPool(obj) < 0) {
-            storagePoolRefreshFailCleanup(backend, obj, stateFile);
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Failed to restart storage pool '%s': %s"),
-                           def->name, virGetLastErrorMessage());
-            active = false;
-        }
+    if (active &&
+        storagePoolRefreshImpl(backend, obj, stateFile) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to restart storage pool '%s': %s"),
+                       def->name, virGetLastErrorMessage());
+        active = false;
     }
 
     virStoragePoolObjSetActive(obj, active);
@@ -203,12 +218,10 @@ storageDriverAutostartCallback(virStoragePoolObjPtr obj,
     if (started) {
         VIR_AUTOFREE(char *) stateFile = NULL;
 
-        virStoragePoolObjClearVols(obj);
         stateFile = virFileBuildPath(driver->stateDir, def->name, ".xml");
         if (!stateFile ||
             virStoragePoolSaveState(stateFile, def) < 0 ||
-            backend->refreshPool(obj) < 0) {
-            storagePoolRefreshFailCleanup(backend, obj, stateFile);
+            storagePoolRefreshImpl(backend, obj, stateFile) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Failed to autostart storage pool '%s': %s"),
                            def->name, virGetLastErrorMessage());
@@ -294,7 +307,15 @@ storageStateInitialize(bool privileged,
 
     storagePoolUpdateAllState();
 
+    storageDriverAutostart();
+
     driver->storageEventState = virObjectEventStateNew();
+
+    /* Only one load of storage driver plus backends exists. Unlike
+     * domains where new binaries could change the capabilities. A
+     * new/changed backend requires a reinitialization. */
+    if (!(driver->caps = virStorageBackendGetCapabilities()))
+        goto error;
 
     storageDriverUnlock();
 
@@ -304,22 +325,6 @@ storageStateInitialize(bool privileged,
     storageDriverUnlock();
     storageStateCleanup();
     return -1;
-}
-
-/**
- * storageStateAutoStart:
- *
- * Function to auto start the storage driver
- */
-static void
-storageStateAutoStart(void)
-{
-    if (!driver)
-        return;
-
-    storageDriverLock();
-    storageDriverAutostart();
-    storageDriverUnlock();
 }
 
 /**
@@ -360,6 +365,7 @@ storageStateCleanup(void)
 
     storageDriverLock();
 
+    virObjectUnref(driver->caps);
     virObjectUnref(driver->storageEventState);
 
     /* free inactive pools */
@@ -569,6 +575,18 @@ storageConnectListStoragePools(virConnectPtr conn,
                                      names, maxnames);
 }
 
+
+static char *
+storageConnectGetCapabilities(virConnectPtr conn)
+{
+
+    if (virConnectGetCapabilitiesEnsureACL(conn) < 0)
+        return NULL;
+
+    return virCapabilitiesFormatXML(driver->caps);
+}
+
+
 static int
 storageConnectNumOfDefinedStoragePools(virConnectPtr conn)
 {
@@ -629,6 +647,28 @@ storageConnectFindStoragePoolSources(virConnectPtr conn,
     ret = backend->findPoolSources(srcSpec, flags);
 
  cleanup:
+    return ret;
+}
+
+
+static char *
+storageConnectGetStoragePoolCapabilities(virConnectPtr conn,
+                                         unsigned int flags)
+{
+    virStoragePoolCapsPtr caps = NULL;
+    char *ret;
+
+    virCheckFlags(0, NULL);
+
+    if (virConnectGetStoragePoolCapabilitiesEnsureACL(conn) < 0)
+        return NULL;
+
+    if (!(caps = virStoragePoolCapsNew(driver->caps)))
+        return NULL;
+
+    ret = virStoragePoolCapsFormat(caps);
+
+    virObjectUnref(caps);
     return ret;
 }
 
@@ -735,10 +775,9 @@ storagePoolCreateXML(virConnectPtr conn,
 
     stateFile = virFileBuildPath(driver->stateDir, def->name, ".xml");
 
-    virStoragePoolObjClearVols(obj);
-    if (!stateFile || virStoragePoolSaveState(stateFile, def) < 0 ||
-        backend->refreshPool(obj) < 0) {
-        storagePoolRefreshFailCleanup(backend, obj, stateFile);
+    if (!stateFile ||
+        virStoragePoolSaveState(stateFile, def) < 0 ||
+        storagePoolRefreshImpl(backend, obj, stateFile) < 0) {
         goto error;
     }
 
@@ -930,10 +969,9 @@ storagePoolCreate(virStoragePoolPtr pool,
 
     stateFile = virFileBuildPath(driver->stateDir, def->name, ".xml");
 
-    virStoragePoolObjClearVols(obj);
-    if (!stateFile || virStoragePoolSaveState(stateFile, def) < 0 ||
-        backend->refreshPool(obj) < 0) {
-        storagePoolRefreshFailCleanup(backend, obj, stateFile);
+    if (!stateFile ||
+        virStoragePoolSaveState(stateFile, def) < 0 ||
+        storagePoolRefreshImpl(backend, obj, stateFile) < 0) {
         goto cleanup;
     }
 
@@ -1130,6 +1168,7 @@ storagePoolRefresh(virStoragePoolPtr pool,
     virStoragePoolObjPtr obj;
     virStoragePoolDefPtr def;
     virStorageBackendPtr backend;
+    VIR_AUTOFREE(char *) stateFile = NULL;
     int ret = -1;
     virObjectEventPtr event = NULL;
 
@@ -1158,13 +1197,8 @@ storagePoolRefresh(virStoragePoolPtr pool,
         goto cleanup;
     }
 
-    virStoragePoolObjClearVols(obj);
-    if (backend->refreshPool(obj) < 0) {
-        VIR_AUTOFREE(char *) stateFile = NULL;
-
-        stateFile = virFileBuildPath(driver->stateDir, def->name, ".xml");
-        storagePoolRefreshFailCleanup(backend, obj, stateFile);
-
+    stateFile = virFileBuildPath(driver->stateDir, def->name, ".xml");
+    if (storagePoolRefreshImpl(backend, obj, stateFile) < 0) {
         event = virStoragePoolEventLifecycleNew(def->name,
                                                 def->uuid,
                                                 VIR_STORAGE_POOL_EVENT_STOPPED,
@@ -2254,8 +2288,7 @@ virStorageVolPoolRefreshThread(void *opaque)
     if (!(backend = virStorageBackendForType(def->type)))
         goto cleanup;
 
-    virStoragePoolObjClearVols(obj);
-    if (backend->refreshPool(obj) < 0)
+    if (storagePoolRefreshImpl(backend, obj, NULL) < 0)
         VIR_DEBUG("Failed to refresh storage pool");
 
     event = virStoragePoolEventRefreshNew(def->name, def->uuid);
@@ -2539,11 +2572,16 @@ storageVolWipePattern(virStorageVolPtr vol,
     if (rc < 0)
         goto cleanup;
 
-    /* Instead of using the refreshVol, since much changes on the target
-     * volume, let's update using the same function as refreshPool would
-     * use when it discovers a volume. The only failure to capture is -1,
-     * we can ignore -2. */
-    if (virStorageBackendRefreshVolTargetUpdate(voldef) == -1)
+    /* For local volumes, Instead of using the refreshVol, since
+     * much changes on the target volume, let's update using the
+     * same function as refreshPool would use when it discovers a
+     * volume. The only failure to capture is -1, we can ignore
+     * -2. */
+    if ((backend->type == VIR_STORAGE_POOL_DIR ||
+         backend->type == VIR_STORAGE_POOL_FS ||
+         backend->type == VIR_STORAGE_POOL_NETFS ||
+         backend->type == VIR_STORAGE_POOL_VSTORAGE) &&
+        virStorageBackendRefreshVolTargetUpdate(voldef) == -1)
         goto cleanup;
 
     ret = 0;
@@ -2771,6 +2809,7 @@ static virStorageDriver storageDriver = {
     .connectStoragePoolEventRegisterAny = storageConnectStoragePoolEventRegisterAny, /* 2.0.0 */
     .connectStoragePoolEventDeregisterAny = storageConnectStoragePoolEventDeregisterAny, /* 2.0.0 */
     .connectFindStoragePoolSources = storageConnectFindStoragePoolSources, /* 0.4.0 */
+    .connectGetStoragePoolCapabilities = storageConnectGetStoragePoolCapabilities, /* 5.2.0 */
     .storagePoolLookupByName = storagePoolLookupByName, /* 0.4.0 */
     .storagePoolLookupByUUID = storagePoolLookupByUUID, /* 0.4.0 */
     .storagePoolLookupByVolume = storagePoolLookupByVolume, /* 0.4.0 */
@@ -2819,6 +2858,7 @@ static virHypervisorDriver storageHypervisorDriver = {
     .connectIsEncrypted = storageConnectIsEncrypted, /* 4.1.0 */
     .connectIsSecure = storageConnectIsSecure, /* 4.1.0 */
     .connectIsAlive = storageConnectIsAlive, /* 4.1.0 */
+    .connectGetCapabilities = storageConnectGetCapabilities, /* 5.2.0 */
 };
 
 static virConnectDriver storageConnectDriver = {
@@ -2832,7 +2872,6 @@ static virConnectDriver storageConnectDriver = {
 static virStateDriver stateDriver = {
     .name = "storage",
     .stateInitialize = storageStateInitialize,
-    .stateAutoStart = storageStateAutoStart,
     .stateCleanup = storageStateCleanup,
     .stateReload = storageStateReload,
 };

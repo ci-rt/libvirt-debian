@@ -819,7 +819,7 @@ virSecretLoadValidateUUID(virSecretDefPtr def,
 
     virUUIDFormat(def->uuid, uuidstr);
 
-    if (!virFileMatchesNameSuffix(file, uuidstr, ".xml")) {
+    if (!virStringMatchesNameSuffix(file, uuidstr, ".xml")) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("<uuid> does not match secret file name '%s'"),
                        file);
@@ -949,7 +949,7 @@ virSecretLoadAllConfigs(virSecretObjListPtr secrets,
         char *path;
         virSecretObjPtr obj;
 
-        if (!virFileHasSuffix(de->d_name, ".xml"))
+        if (!virStringHasSuffix(de->d_name, ".xml"))
             continue;
 
         if (!(path = virFileBuildPath(configDir, de->d_name, NULL)))

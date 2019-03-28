@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2019-02-28" "libvirt-5.1.0" "Virtualization Support"
+.TH VIRSH 1 "2019-03-28" "libvirt-5.2.0" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -174,7 +174,8 @@ will be clear for each of those commands.  Note: it is permissible to
 give numeric names to domains, however, doing so will result in a
 domain that can only be identified by domain id. In other words, if a
 numeric value is supplied it will be interpreted as a domain id, not
-as a name.
+as a name. Any \fIcommand\fR starting with \fB#\fR is treated as a comment
+and silently ignored, all other unrecognized \fIcommand\fRs are diagnosed.
 .PP
 The \fBvirsh\fR program can be used either to run one \fI\s-1COMMAND\s0\fR by giving the
 command and its arguments on the shell command line, or a \fI\s-1COMMAND_STRING\s0\fR
@@ -183,7 +184,8 @@ and their arguments joined with whitespace and separated by semicolons or
 newlines between commands, where unquoted backslash-newline pairs are
 elided.  Within \fI\s-1COMMAND_STRING\s0\fR, virsh understands the
 same single, double, and backslash escapes as the shell, although you must
-add another layer of shell escaping in creating the single shell argument.
+add another layer of shell escaping in creating the single shell argument,
+and any word starting with unquoted \fI#\fR begins a comment that ends at newline.
 If no command is given in the command line, \fBvirsh\fR will then start a minimal
 interpreter waiting for your commands, and the \fBquit\fR command will then exit
 the program.
@@ -492,8 +494,12 @@ For the qemu hypervisor, a \fIvirttype\fR of either 'qemu' or 'kvm' must be
 supplied along with either the \fIemulatorbin\fR or \fIarch\fR in order to
 generate output for the default \fImachine\fR.  Supplying a \fImachine\fR
 value will generate output for the specific machine.
+.IP "\fBpool-capabilities\fR Print an \s-1XML\s0 document describing the storage pool capabilities for the connected storage driver. This may be useful if you intend to create a new storage pool and need to know the available pool types and supported storage pool source and target volume formats as well as the required source elements to create the pool." 4
+.IX Item "pool-capabilities Print an XML document describing the storage pool capabilities for the connected storage driver. This may be useful if you intend to create a new storage pool and need to know the available pool types and supported storage pool source and target volume formats as well as the required source elements to create the pool."
+.PD 0
 .IP "\fBinject-nmi\fR \fIdomain\fR" 4
 .IX Item "inject-nmi domain"
+.PD
 Inject \s-1NMI\s0 to the guest.
 .IP "\fBlist\fR [\fI\-\-inactive\fR | \fI\-\-all\fR] [\fI\-\-managed\-save\fR] [\fI\-\-title\fR] { [\fI\-\-table\fR] | \fI\-\-name\fR | \fI\-\-uuid\fR } [\fI\-\-persistent\fR] [\fI\-\-transient\fR] [\fI\-\-with\-managed\-save\fR] [\fI\-\-without\-managed\-save\fR] [\fI\-\-autostart\fR] [\fI\-\-no\-autostart\fR] [\fI\-\-with\-snapshot\fR] [\fI\-\-without\-snapshot\fR] [\fI\-\-state\-running\fR] [\fI\-\-state\-paused\fR] [\fI\-\-state\-shutoff\fR] [\fI\-\-state\-other\fR]" 4
 .IX Item "list [--inactive | --all] [--managed-save] [--title] { [--table] | --name | --uuid } [--persistent] [--transient] [--with-managed-save] [--without-managed-save] [--autostart] [--no-autostart] [--with-snapshot] [--without-snapshot] [--state-running] [--state-paused] [--state-shutoff] [--state-other]"
@@ -684,12 +690,14 @@ Moreover, for some architectures libvirt does not know any \s-1CPU\s0 models and
 the usable \s-1CPU\s0 models are only limited by the hypervisor. This command will
 print that all \s-1CPU\s0 models are accepted for these architectures and the actual
 list of supported \s-1CPU\s0 models can be checked in the domain capabilities \s-1XML.\s0
-.IP "\fBecho\fR [\fI\-\-shell\fR] [\fI\-\-xml\fR] [\fIarg\fR...]" 4
-.IX Item "echo [--shell] [--xml] [arg...]"
+.IP "\fBecho\fR [\fI\-\-shell\fR] [\fI\-\-xml\fR] [\fIerr\fR...] [\fIarg\fR...]" 4
+.IX Item "echo [--shell] [--xml] [err...] [arg...]"
 Echo back each \fIarg\fR, separated by space.  If \fI\-\-shell\fR is
 specified, then the output will be single-quoted where needed, so that
 it is suitable for reuse in a shell context.  If \fI\-\-xml\fR is
 specified, then the output will be escaped for use in \s-1XML.\s0
+If \fI\-\-err\fR is specified, prefix \fB\*(L"error: \*(R"\fR and output to stderr
+instead of stdout.
 .IP "\fBhypervisor-cpu-compare\fR \fI\s-1FILE\s0\fR [\fIvirttype\fR] [\fIemulator\fR] [\fIarch\fR] [\fImachine\fR] [\fI\-\-error\fR]" 4
 .IX Item "hypervisor-cpu-compare FILE [virttype] [emulator] [arch] [machine] [--error]"
 Compare \s-1CPU\s0 definition from \s-1XML\s0 <file> with the \s-1CPU\s0 the hypervisor is able to
@@ -1863,8 +1871,8 @@ to the private namespace.
 .Sp
 If neither of \fI\-\-edit\fR and \fIset\fR are specified the \s-1XML\s0 metadata corresponding
 to the \fIuri\fR namespace is displayed instead of being modified.
-.IP "\fBmigrate\fR [\fI\-\-live\fR] [\fI\-\-offline\fR] [\fI\-\-direct\fR] [\fI\-\-p2p\fR [\fI\-\-tunnelled\fR]] [\fI\-\-persistent\fR] [\fI\-\-undefinesource\fR] [\fI\-\-suspend\fR] [\fI\-\-copy\-storage\-all\fR] [\fI\-\-copy\-storage\-inc\fR] [\fI\-\-change\-protection\fR] [\fI\-\-unsafe\fR] [\fI\-\-verbose\fR] [\fI\-\-rdma\-pin\-all\fR] [\fI\-\-abort\-on\-error\fR] [\fI\-\-postcopy\fR] [\fI\-\-postcopy\-after\-precopy\fR] \fIdomain\fR \fIdesturi\fR [\fImigrateuri\fR] [\fIgraphicsuri\fR] [\fIlisten-address\fR] [\fIdname\fR] [\fI\-\-timeout\fR \fBseconds\fR [\fI\-\-timeout\-suspend\fR | \fI\-\-timeout\-postcopy\fR]] [\fI\-\-xml\fR \fBfile\fR] [\fI\-\-migrate\-disks\fR \fBdisk-list\fR] [\fI\-\-disks\-port\fR \fBport\fR] [\fI\-\-compressed\fR] [\fI\-\-comp\-methods\fR \fBmethod-list\fR] [\fI\-\-comp\-mt\-level\fR] [\fI\-\-comp\-mt\-threads\fR] [\fI\-\-comp\-mt\-dthreads\fR] [\fI\-\-comp\-xbzrle\-cache\fR] [\fI\-\-auto\-converge\fR] [\fIauto-converge-initial\fR] [\fIauto-converge-increment\fR] [\fI\-\-persistent\-xml\fR \fBfile\fR] [\fI\-\-tls\fR] [\fI\-\-postcopy\-bandwidth\fR \fBbandwidth\fR]" 4
-.IX Item "migrate [--live] [--offline] [--direct] [--p2p [--tunnelled]] [--persistent] [--undefinesource] [--suspend] [--copy-storage-all] [--copy-storage-inc] [--change-protection] [--unsafe] [--verbose] [--rdma-pin-all] [--abort-on-error] [--postcopy] [--postcopy-after-precopy] domain desturi [migrateuri] [graphicsuri] [listen-address] [dname] [--timeout seconds [--timeout-suspend | --timeout-postcopy]] [--xml file] [--migrate-disks disk-list] [--disks-port port] [--compressed] [--comp-methods method-list] [--comp-mt-level] [--comp-mt-threads] [--comp-mt-dthreads] [--comp-xbzrle-cache] [--auto-converge] [auto-converge-initial] [auto-converge-increment] [--persistent-xml file] [--tls] [--postcopy-bandwidth bandwidth]"
+.IP "\fBmigrate\fR [\fI\-\-live\fR] [\fI\-\-offline\fR] [\fI\-\-direct\fR] [\fI\-\-p2p\fR [\fI\-\-tunnelled\fR]] [\fI\-\-persistent\fR] [\fI\-\-undefinesource\fR] [\fI\-\-suspend\fR] [\fI\-\-copy\-storage\-all\fR] [\fI\-\-copy\-storage\-inc\fR] [\fI\-\-change\-protection\fR] [\fI\-\-unsafe\fR] [\fI\-\-verbose\fR] [\fI\-\-rdma\-pin\-all\fR] [\fI\-\-abort\-on\-error\fR] [\fI\-\-postcopy\fR] [\fI\-\-postcopy\-after\-precopy\fR] \fIdomain\fR \fIdesturi\fR [\fImigrateuri\fR] [\fIgraphicsuri\fR] [\fIlisten-address\fR] [\fIdname\fR] [\fI\-\-timeout\fR \fBseconds\fR [\fI\-\-timeout\-suspend\fR | \fI\-\-timeout\-postcopy\fR]] [\fI\-\-xml\fR \fBfile\fR] [\fI\-\-migrate\-disks\fR \fBdisk-list\fR] [\fI\-\-disks\-port\fR \fBport\fR] [\fI\-\-compressed\fR] [\fI\-\-comp\-methods\fR \fBmethod-list\fR] [\fI\-\-comp\-mt\-level\fR] [\fI\-\-comp\-mt\-threads\fR] [\fI\-\-comp\-mt\-dthreads\fR] [\fI\-\-comp\-xbzrle\-cache\fR] [\fI\-\-auto\-converge\fR] [\fIauto-converge-initial\fR] [\fIauto-converge-increment\fR] [\fI\-\-persistent\-xml\fR \fBfile\fR] [\fI\-\-tls\fR] [\fI\-\-postcopy\-bandwidth\fR \fBbandwidth\fR] [\fI\-\-parallel\fR [\fI\-\-parallel\-connections\fR \fBconnections\fR]]" 4
+.IX Item "migrate [--live] [--offline] [--direct] [--p2p [--tunnelled]] [--persistent] [--undefinesource] [--suspend] [--copy-storage-all] [--copy-storage-inc] [--change-protection] [--unsafe] [--verbose] [--rdma-pin-all] [--abort-on-error] [--postcopy] [--postcopy-after-precopy] domain desturi [migrateuri] [graphicsuri] [listen-address] [dname] [--timeout seconds [--timeout-suspend | --timeout-postcopy]] [--xml file] [--migrate-disks disk-list] [--disks-port port] [--compressed] [--comp-methods method-list] [--comp-mt-level] [--comp-mt-threads] [--comp-mt-dthreads] [--comp-xbzrle-cache] [--auto-converge] [auto-converge-initial] [auto-converge-increment] [--persistent-xml file] [--tls] [--postcopy-bandwidth bandwidth] [--parallel [--parallel-connections connections]]"
 Migrate domain to another host.  Add \fI\-\-live\fR for live migration; <\-\-p2p>
 for peer\-2\-peer migration; \fI\-\-direct\fR for direct migration; or \fI\-\-tunnelled\fR
 for tunnelled migration.  \fI\-\-offline\fR migrates domain definition without
@@ -1956,6 +1964,12 @@ Providing \fI\-\-tls\fR causes the migration to use the host configured \s-1TLS\
 (see migrate_tls_x509_cert_dir in /etc/libvirt/qemu.conf) in order to perform
 the migration of the domain. Usage requires proper \s-1TLS\s0 setup for both source
 and target.
+.Sp
+\&\fI\-\-parallel\fR option will cause migration data to be sent over multiple
+parallel connections. The number of such connections can be set using
+\&\fI\-\-parallel\-connections\fR. Parallel connections may help with saturating the
+network link between the source and the target and thus speeding up the
+migration.
 .Sp
 Running migration can be canceled by interrupting virsh (usually using
 \&\f(CW\*(C`Ctrl\-C\*(C'\fR) or by \fBdomjobabort\fR command sent from another virsh instance.
@@ -3121,6 +3135,16 @@ or attempting to detach a device that is not present in the domain \s-1XML,\s0
 but shares some specific attributes with one that is present,
 may lead to unexpected results.
 .Sp
+\&\fBQuirk\fR: Device unplug is asynchronous in most cases and requires guest
+cooperation. This means that it's up to the discretion of the guest to disallow
+or delay the unplug arbitrarily. As the libvirt \s-1API\s0 used in this command was
+designed as synchronous it returns success after some timeout even if the device
+was not unplugged yet to allow further interactions with the domain e.g. if the
+guest is unresponsive. Callers which need to make sure that the
+device was unplugged can use libvirt events (see virsh event) to be notified
+when the device is removed. Note that the event may arrive before the command
+returns.
+.Sp
 If \fI\-\-live\fR is specified, affect a running domain.
 If \fI\-\-config\fR is specified, affect the next startup of a persistent domain.
 If \fI\-\-current\fR is specified, affect the current domain state.
@@ -3135,7 +3159,10 @@ Note that older versions of virsh used \fI\-\-config\fR as an alias for
 \&\fI\-\-persistent\fR.
 .IP "\fBdetach-device-alias\fR \fIdomain\fR \fIalias\fR [[[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]]]]" 4
 .IX Item "detach-device-alias domain alias [[[--live] [--config] | [--current]]]]"
-Detach a device with given \fIalias\fR from the \fIdomain\fR.
+Detach a device with given \fIalias\fR from the \fIdomain\fR. This command returns
+successfully after the unplug request was sent to the hypervisor. The actual
+removal of the device is notified asynchronously via libvirt events
+(see virsh event).
 .Sp
 If \fI\-\-live\fR is specified, affect a running domain.
 If \fI\-\-config\fR is specified, affect the next startup of a persistent domain.
@@ -3162,6 +3189,8 @@ Note that older versions of virsh used \fI\-\-config\fR as an alias for
 .Sp
 If \fB\-\-print\-xml\fR is specified, then the \s-1XML\s0 which would be used to detach the
 disk is printed instead.
+.Sp
+Please see documentation for \fBdetach-device\fR for known quirks.
 .IP "\fBdetach-interface\fR \fIdomain\fR \fItype\fR [\fI\-\-mac mac\fR] [[[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]] | [\fI\-\-persistent\fR]]" 4
 .IX Item "detach-interface domain type [--mac mac] [[[--live] [--config] | [--current]] | [--persistent]]"
 Detach a network interface from a domain.
@@ -3182,6 +3211,8 @@ an offline domain, and like \fI\-\-live\fR \fI\-\-config\fR for a running domain
 .Sp
 Note that older versions of virsh used \fI\-\-config\fR as an alias for
 \&\fI\-\-persistent\fR.
+.Sp
+Please see documentation for \fBdetach-device\fR for known quirks.
 .IP "\fBupdate-device\fR \fIdomain\fR \fIfile\fR [\fI\-\-force\fR] [[[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]] | [\fI\-\-persistent\fR]]" 4
 .IX Item "update-device domain file [--force] [[[--live] [--config] | [--current]] | [--persistent]]"
 Update the characteristics of a device associated with \fIdomain\fR,
@@ -4406,10 +4437,15 @@ accessible only from the original name.
 .IX Item "snapshot-info domain {snapshot | --current}"
 Output basic information about a named <snapshot>, or the current snapshot
 with \fI\-\-current\fR.
-.IP "\fBsnapshot-list\fR \fIdomain\fR [\fI\-\-metadata\fR] [\fI\-\-no\-metadata\fR] [{\fI\-\-parent\fR | \fI\-\-roots\fR | [{\fI\-\-tree\fR | \fI\-\-name\fR}]}] [{[\fI\-\-from\fR] \fBsnapshot\fR | \fI\-\-current\fR} [\fI\-\-descendants\fR]] [\fI\-\-leaves\fR] [\fI\-\-no\-leaves\fR] [\fI\-\-inactive\fR] [\fI\-\-active\fR] [\fI\-\-disk\-only\fR] [\fI\-\-internal\fR] [\fI\-\-external\fR]" 4
-.IX Item "snapshot-list domain [--metadata] [--no-metadata] [{--parent | --roots | [{--tree | --name}]}] [{[--from] snapshot | --current} [--descendants]] [--leaves] [--no-leaves] [--inactive] [--active] [--disk-only] [--internal] [--external]"
+.IP "\fBsnapshot-list\fR \fIdomain\fR [\fI\-\-metadata\fR] [\fI\-\-no\-metadata\fR] [{\fI\-\-parent\fR | \fI\-\-roots\fR | [{\fI\-\-tree\fR | \fI\-\-name\fR}]}] [\fI\-\-topological\fR] [{[\fI\-\-from\fR] \fBsnapshot\fR | \fI\-\-current\fR} [\fI\-\-descendants\fR]] [\fI\-\-leaves\fR] [\fI\-\-no\-leaves\fR] [\fI\-\-inactive\fR] [\fI\-\-active\fR] [\fI\-\-disk\-only\fR] [\fI\-\-internal\fR] [\fI\-\-external\fR]" 4
+.IX Item "snapshot-list domain [--metadata] [--no-metadata] [{--parent | --roots | [{--tree | --name}]}] [--topological] [{[--from] snapshot | --current} [--descendants]] [--leaves] [--no-leaves] [--inactive] [--active] [--disk-only] [--internal] [--external]"
 List all of the available snapshots for the given domain, defaulting
 to show columns for the snapshot name, creation time, and domain state.
+.Sp
+Normally, table form output is sorted by snapshot name; using
+\&\fI\-\-topological\fR instead sorts so that no child is listed before its
+ancestors (although there may be more than one possible ordering with
+this property).
 .Sp
 If \fI\-\-parent\fR is specified, add a column to the output table giving
 the name of the parent of each snapshot.  If \fI\-\-roots\fR is specified,

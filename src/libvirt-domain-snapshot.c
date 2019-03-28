@@ -1,7 +1,7 @@
 /*
  * libvirt-domain-snapshot.c: entry points for virDomainSnapshotPtr APIs
  *
- * Copyright (C) 2006-2014 Red Hat, Inc.
+ * Copyright (C) 2006-2019 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -98,11 +98,11 @@ virDomainSnapshotGetConnect(virDomainSnapshotPtr snapshot)
 /**
  * virDomainSnapshotCreateXML:
  * @domain: a domain object
- * @xmlDesc: string containing an XML description of the domain
+ * @xmlDesc: string containing an XML description of the domain snapshot
  * @flags: bitwise-OR of virDomainSnapshotCreateFlags
  *
  * Creates a new snapshot of a domain based on the snapshot xml
- * contained in xmlDesc.
+ * contained in xmlDesc, with a top-level element <domainsnapshot>.
  *
  * If @flags is 0, the domain can be active, in which case the
  * snapshot will be a full system snapshot (capturing both disk state,
@@ -117,15 +117,21 @@ virDomainSnapshotGetConnect(virDomainSnapshotPtr snapshot)
  *
  * If @flags includes VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE, then this
  * is a request to reinstate snapshot metadata that was previously
- * discarded, rather than creating a new snapshot.  This can be used
- * to recreate a snapshot hierarchy on a destination, then remove it
- * on the source, in order to allow migration (since migration
- * normally fails if snapshot metadata still remains on the source
- * machine).  When redefining snapshot metadata, the current snapshot
- * will not be altered unless the VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT
- * flag is also present.  It is an error to request the
- * VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT flag without
- * VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE.  On some hypervisors,
+ * captured from virDomainSnapshotGetXMLDesc() before removing that
+ * metadata, rather than creating a new snapshot.  This can be used to
+ * recreate a snapshot hierarchy on a destination, then remove it on
+ * the source, in order to allow migration (since migration normally
+ * fails if snapshot metadata still remains on the source machine).
+ * Note that while original creation can omit a number of elements
+ * from @xmlDesc (and libvirt will supply sane defaults based on the
+ * domain state at that point in time), a redefinition must supply
+ * more elements (as the domain may have changed in the meantime, so
+ * that libvirt no longer has a way to resupply correct
+ * defaults). When redefining snapshot metadata, the domain's current
+ * snapshot will not be altered unless the
+ * VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT flag is also present.  It is an
+ * error to request the VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT flag
+ * without VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE.  On some hypervisors,
  * redefining an existing snapshot can be used to alter host-specific
  * portions of the domain XML to be used during revert (such as
  * backing filenames associated with disk devices), but must not alter
@@ -136,8 +142,10 @@ virDomainSnapshotGetConnect(virDomainSnapshotPtr snapshot)
  * support these flags.
  *
  * If @flags includes VIR_DOMAIN_SNAPSHOT_CREATE_NO_METADATA, then the
- * domain's disk images are modified according to @xmlDesc, but then
- * the just-created snapshot has its metadata deleted.  This flag is
+ * domain's disk images are modified according to @xmlDesc, but
+ * libvirt does not track any metadata (similar to immediately calling
+ * virDomainSnapshotDelete() with
+ * VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY).  This flag is
  * incompatible with VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE.
  *
  * If @flags includes VIR_DOMAIN_SNAPSHOT_CREATE_HALT, then the domain
@@ -197,7 +205,8 @@ virDomainSnapshotGetConnect(virDomainSnapshotPtr snapshot)
  * virDomainSnapshotFree should be used to free the resources after the
  * snapshot object is no longer needed.
  *
- * Returns an (opaque) virDomainSnapshotPtr on success, NULL on failure.
+ * Returns an (opaque) new virDomainSnapshotPtr on success or NULL on
+ * failure.
  */
 virDomainSnapshotPtr
 virDomainSnapshotCreateXML(virDomainPtr domain,
@@ -247,14 +256,15 @@ virDomainSnapshotCreateXML(virDomainPtr domain,
  * @snapshot: a domain snapshot object
  * @flags: bitwise-OR of supported virDomainSnapshotXMLFlags
  *
- * Provide an XML description of the domain snapshot.
+ * Provide an XML description of the domain snapshot, with a top-level
+ * element of <domainsnapshot>.
  *
  * No security-sensitive data will be included unless @flags contains
  * VIR_DOMAIN_SNAPSHOT_XML_SECURE; this flag is rejected on read-only
  * connections.
  *
- * Returns a 0 terminated UTF-8 encoded XML instance, or NULL in case of error.
- *         the caller must free() the returned value.
+ * Returns a 0 terminated UTF-8 encoded XML instance or NULL in case
+ * of error. The caller must free() the returned value.
  */
 char *
 virDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
@@ -297,37 +307,15 @@ virDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
  *
  * Provides the number of domain snapshots for this domain.
  *
- * By default, this command covers all snapshots; it is also possible to
- * limit things to just snapshots with no parents, when @flags includes
- * VIR_DOMAIN_SNAPSHOT_LIST_ROOTS.  Additional filters are provided in
- * groups, where each group contains bits that describe mutually exclusive
- * attributes of a snapshot, and where all bits within a group describe
- * all possible snapshots.  Some hypervisors might reject explicit bits
- * from a group where the hypervisor cannot make a distinction.  For a
- * group supported by a given hypervisor, the behavior when no bits of a
- * group are set is identical to the behavior when all bits in that group
- * are set.  When setting bits from more than one group, it is possible to
- * select an impossible combination, in that case a hypervisor may return
- * either 0 or an error.
+ * This function will accept VIR_DOMAIN_SNAPSHOT_LIST_TOPOLOGICAL in
+ * @flags only if virDomainSnapshotListNames() can honor it, although
+ * the flag has no other effect here.
  *
- * The first group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_LEAVES and
- * VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES, to filter based on snapshots that
- * have no further children (a leaf snapshot).
- *
- * The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_METADATA and
- * VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
- * whether they have metadata that would prevent the removal of the last
- * reference to a domain.
- *
- * The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_INACTIVE,
- * VIR_DOMAIN_SNAPSHOT_LIST_ACTIVE, and VIR_DOMAIN_SNAPSHOT_LIST_DISK_ONLY,
- * for filtering snapshots based on what domain state is tracked by the
- * snapshot.
- *
- * The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_INTERNAL and
- * VIR_DOMAIN_SNAPSHOT_LIST_EXTERNAL, for filtering snapshots based on
- * whether the snapshot is stored inside the disk images or as
- * additional files.
+ * By default, this command covers all snapshots. It is also possible
+ * to limit things to just snapshots with no parents, when @flags
+ * includes VIR_DOMAIN_SNAPSHOT_LIST_ROOTS.  Additional filters are
+ * provided via the same @flags values as documented in
+ * virDomainListAllSnapshots().
  *
  * Returns the number of domain snapshots found or -1 in case of error.
  */
@@ -368,37 +356,18 @@ virDomainSnapshotNum(virDomainPtr domain, unsigned int flags)
  * their names in @names.  The value to use for @nameslen can be determined
  * by virDomainSnapshotNum() with the same @flags.
  *
- * By default, this command covers all snapshots; it is also possible to
- * limit things to just snapshots with no parents, when @flags includes
- * VIR_DOMAIN_SNAPSHOT_LIST_ROOTS.  Additional filters are provided in
- * groups, where each group contains bits that describe mutually exclusive
- * attributes of a snapshot, and where all bits within a group describe
- * all possible snapshots.  Some hypervisors might reject explicit bits
- * from a group where the hypervisor cannot make a distinction.  For a
- * group supported by a given hypervisor, the behavior when no bits of a
- * group are set is identical to the behavior when all bits in that group
- * are set.  When setting bits from more than one group, it is possible to
- * select an impossible combination, in that case a hypervisor may return
- * either 0 or an error.
+ * If @flags contains VIR_DOMAIN_SNAPSHOT_LIST_TOPOLOGICAL, and no
+ * other connection is modifying snapshots, then it is guaranteed that
+ * for any snapshot in the resulting list, no snapshots later in the
+ * list can be reached by a sequence of virDomainSnapshotGetParent()
+ * starting from that earlier snapshot; otherwise, the order of
+ * snapshots in the resulting list is unspecified.
  *
- * The first group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_LEAVES and
- * VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES, to filter based on snapshots that
- * have no further children (a leaf snapshot).
- *
- * The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_METADATA and
- * VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
- * whether they have metadata that would prevent the removal of the last
- * reference to a domain.
- *
- * The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_INACTIVE,
- * VIR_DOMAIN_SNAPSHOT_LIST_ACTIVE, and VIR_DOMAIN_SNAPSHOT_LIST_DISK_ONLY,
- * for filtering snapshots based on what domain state is tracked by the
- * snapshot.
- *
- * The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_INTERNAL and
- * VIR_DOMAIN_SNAPSHOT_LIST_EXTERNAL, for filtering snapshots based on
- * whether the snapshot is stored inside the disk images or as
- * additional files.
+ * By default, this command covers all snapshots. It is also possible
+ * to limit things to just snapshots with no parents, when @flags
+ * includes VIR_DOMAIN_SNAPSHOT_LIST_ROOTS.  Additional filters are
+ * provided via the same @flags values as documented in
+ * virDomainListAllSnapshots().
  *
  * Note that this command is inherently racy: another connection can
  * define a new snapshot between a call to virDomainSnapshotNum() and
@@ -447,27 +416,32 @@ virDomainSnapshotListNames(virDomainPtr domain, char **names, int nameslen,
 /**
  * virDomainListAllSnapshots:
  * @domain: a domain object
- * @snaps: pointer to variable to store the array containing snapshot objects,
+ * @snaps: pointer to variable to store the array containing snapshot objects
  *         or NULL if the list is not required (just returns number of
  *         snapshots)
  * @flags: bitwise-OR of supported virDomainSnapshotListFlags
  *
- * Collect the list of domain snapshots for the given domain, and allocate
+ * Collect the list of domain snapshots for the given domain and allocate
  * an array to store those objects.  This API solves the race inherent in
  * virDomainSnapshotListNames().
  *
- * By default, this command covers all snapshots; it is also possible to
- * limit things to just snapshots with no parents, when @flags includes
- * VIR_DOMAIN_SNAPSHOT_LIST_ROOTS.  Additional filters are provided in
- * groups, where each group contains bits that describe mutually exclusive
- * attributes of a snapshot, and where all bits within a group describe
- * all possible snapshots.  Some hypervisors might reject explicit bits
- * from a group where the hypervisor cannot make a distinction.  For a
- * group supported by a given hypervisor, the behavior when no bits of a
- * group are set is identical to the behavior when all bits in that group
- * are set.  When setting bits from more than one group, it is possible to
- * select an impossible combination, in that case a hypervisor may return
- * either 0 or an error.
+ * If @flags contains VIR_DOMAIN_SNAPSHOT_LIST_TOPOLOGICAL and @snaps
+ * is non-NULL, and no other connection is modifying snapshots, then
+ * it is guaranteed that for any snapshot in the resulting list, no
+ * snapshots later in the list can be reached by a sequence of
+ * virDomainSnapshotGetParent() starting from that earlier snapshot;
+ * otherwise, the order of snapshots in the resulting list is
+ * unspecified.
+ *
+ * By default, this command covers all snapshots. It is also possible
+ * to limit things to just snapshots with no parents, when @flags
+ * includes VIR_DOMAIN_SNAPSHOT_LIST_ROOTS.  Additional filters are
+ * provided in groups listed below. Within a group, bits are mutually
+ * exclusive, where all possible snapshots are described by exactly
+ * one bit from the group. Some hypervisors might reject particular
+ * flags where it cannot make a distinction for filtering. If the set
+ * of filter flags selected forms an impossible combination, the
+ * hypervisor may return either 0 or an error.
  *
  * The first group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_LEAVES and
  * VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES, to filter based on snapshots that
@@ -532,37 +506,15 @@ virDomainListAllSnapshots(virDomainPtr domain, virDomainSnapshotPtr **snaps,
  *
  * Provides the number of child snapshots for this domain snapshot.
  *
- * By default, this command covers only direct children; it is also possible
- * to expand things to cover all descendants, when @flags includes
- * VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS.  Also, some filters are provided in
- * groups, where each group contains bits that describe mutually exclusive
- * attributes of a snapshot, and where all bits within a group describe
- * all possible snapshots.  Some hypervisors might reject explicit bits
- * from a group where the hypervisor cannot make a distinction.  For a
- * group supported by a given hypervisor, the behavior when no bits of a
- * group are set is identical to the behavior when all bits in that group
- * are set.  When setting bits from more than one group, it is possible to
- * select an impossible combination, in that case a hypervisor may return
- * either 0 or an error.
+ * This function will accept VIR_DOMAIN_SNAPSHOT_LIST_TOPOLOGICAL in
+ * @flags only if virDomainSnapshotListChildrenNames() can honor it,
+ * although the flag has no other effect here.
  *
- * The first group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_LEAVES and
- * VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES, to filter based on snapshots that
- * have no further children (a leaf snapshot).
- *
- * The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_METADATA and
- * VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
- * whether they have metadata that would prevent the removal of the last
- * reference to a domain.
- *
- * The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_INACTIVE,
- * VIR_DOMAIN_SNAPSHOT_LIST_ACTIVE, and VIR_DOMAIN_SNAPSHOT_LIST_DISK_ONLY,
- * for filtering snapshots based on what domain state is tracked by the
- * snapshot.
- *
- * The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_INTERNAL and
- * VIR_DOMAIN_SNAPSHOT_LIST_EXTERNAL, for filtering snapshots based on
- * whether the snapshot is stored inside the disk images or as
- * additional files.
+ * By default, this command covers only direct children. It is also
+ * possible to expand things to cover all descendants, when @flags
+ * includes VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS. Additional filters
+ * are provided via the same @flags values as documented in
+ * virDomainSnapshotListAllChildren().
  *
  * Returns the number of domain snapshots found or -1 in case of error.
  */
@@ -604,39 +556,20 @@ virDomainSnapshotNumChildren(virDomainSnapshotPtr snapshot, unsigned int flags)
  * @nameslen can be determined by virDomainSnapshotNumChildren() with
  * the same @flags.
  *
- * By default, this command covers only direct children; it is also possible
- * to expand things to cover all descendants, when @flags includes
- * VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS.  Also, some filters are provided in
- * groups, where each group contains bits that describe mutually exclusive
- * attributes of a snapshot, and where all bits within a group describe
- * all possible snapshots.  Some hypervisors might reject explicit bits
- * from a group where the hypervisor cannot make a distinction.  For a
- * group supported by a given hypervisor, the behavior when no bits of a
- * group are set is identical to the behavior when all bits in that group
- * are set.  When setting bits from more than one group, it is possible to
- * select an impossible combination, in that case a hypervisor may return
- * either 0 or an error.
+ * If @flags lacks VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS or contains
+ * VIR_DOMAIN_SNAPSHOT_LIST_TOPOLOGICAL, and no other connection is
+ * modifying snapshots, then it is guaranteed that for any snapshot in
+ * the resulting list, no snapshots later in the list can be reached
+ * by a sequence of virDomainSnapshotGetParent() starting from that
+ * earlier snapshot; otherwise, the order of snapshots in the
+ * resulting list is unspecified.
  *
- * The first group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_LEAVES and
- * VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES, to filter based on snapshots that
- * have no further children (a leaf snapshot).
+ * By default, this command covers only direct children. It is also
+ * possible to expand things to cover all descendants, when @flags
+ * includes VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS. Additional filters
+ * are provided via the same @flags values as documented in
+ * virDomainSnapshotListAllChildren().
  *
- * The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_METADATA and
- * VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
- * whether they have metadata that would prevent the removal of the last
- * reference to a domain.
- *
- * The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_INACTIVE,
- * VIR_DOMAIN_SNAPSHOT_LIST_ACTIVE, and VIR_DOMAIN_SNAPSHOT_LIST_DISK_ONLY,
- * for filtering snapshots based on what domain state is tracked by the
- * snapshot.
- *
- * The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_INTERNAL and
- * VIR_DOMAIN_SNAPSHOT_LIST_EXTERNAL, for filtering snapshots based on
- * whether the snapshot is stored inside the disk images or as
- * additional files.
- *
- * Returns the number of domain snapshots found or -1 in case of error.
  * Note that this command is inherently racy: another connection can
  * define a new snapshot between a call to virDomainSnapshotNumChildren()
  * and this call.  You are only guaranteed that all currently defined
@@ -687,7 +620,7 @@ virDomainSnapshotListChildrenNames(virDomainSnapshotPtr snapshot,
 /**
  * virDomainSnapshotListAllChildren:
  * @snapshot: a domain snapshot object
- * @snaps: pointer to variable to store the array containing snapshot objects,
+ * @snaps: pointer to variable to store the array containing snapshot objects
  *         or NULL if the list is not required (just returns number of
  *         snapshots)
  * @flags: bitwise-OR of supported virDomainSnapshotListFlags
@@ -696,37 +629,22 @@ virDomainSnapshotListChildrenNames(virDomainSnapshotPtr snapshot,
  * snapshot, and allocate an array to store those objects.  This API solves
  * the race inherent in virDomainSnapshotListChildrenNames().
  *
- * By default, this command covers only direct children; it is also possible
- * to expand things to cover all descendants, when @flags includes
- * VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS.  Also, some filters are provided in
- * groups, where each group contains bits that describe mutually exclusive
- * attributes of a snapshot, and where all bits within a group describe
- * all possible snapshots.  Some hypervisors might reject explicit bits
- * from a group where the hypervisor cannot make a distinction.  For a
- * group supported by a given hypervisor, the behavior when no bits of a
- * group are set is identical to the behavior when all bits in that group
- * are set.  When setting bits from more than one group, it is possible to
- * select an impossible combination, in that case a hypervisor may return
- * either 0 or an error.
+ * If @flags lacks VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS or contains
+ * VIR_DOMAIN_SNAPSHOT_LIST_TOPOLOGICAL, @snaps is non-NULL, and no
+ * other connection is modifying snapshots, then it is guaranteed that
+ * for any snapshot in the resulting list, no snapshots later in the
+ * list can be reached by a sequence of virDomainSnapshotGetParent()
+ * starting from that earlier snapshot; otherwise, the order of
+ * snapshots in the resulting list is unspecified.
  *
- * The first group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_LEAVES and
- * VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES, to filter based on snapshots that
- * have no further children (a leaf snapshot).
- *
- * The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_METADATA and
- * VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
- * whether they have metadata that would prevent the removal of the last
- * reference to a domain.
- *
- * The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_INACTIVE,
- * VIR_DOMAIN_SNAPSHOT_LIST_ACTIVE, and VIR_DOMAIN_SNAPSHOT_LIST_DISK_ONLY,
- * for filtering snapshots based on what domain state is tracked by the
- * snapshot.
- *
- * The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_INTERNAL and
- * VIR_DOMAIN_SNAPSHOT_LIST_EXTERNAL, for filtering snapshots based on
- * whether the snapshot is stored inside the disk images or as
- * additional files.
+ * By default, this command covers only direct children. It is also
+ * possible to expand things to cover all descendants, when @flags
+ * includes VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS. Additional filters
+ * are provided via the remaining @flags values as documented in
+ * virDomainListAllSnapshots(), with the exception that
+ * VIR_DOMAIN_SNAPSHOT_LIST_ROOTS is not supported (in fact,
+ * VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS has the same bit value but
+ * opposite semantics of widening rather than narrowing the listing).
  *
  * Returns the number of domain snapshots found or -1 and sets @snaps to
  * NULL in case of error.  On success, the array stored into @snaps is

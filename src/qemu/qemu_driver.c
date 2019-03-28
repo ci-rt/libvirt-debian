@@ -1,7 +1,7 @@
 /*
  * qemu_driver.c: core driver methods for managing qemu guests
  *
- * Copyright (C) 2006-2016 Red Hat, Inc.
+ * Copyright (C) 2006-2019 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -101,6 +101,7 @@
 #include "dirname.h"
 #include "netdev_bandwidth_conf.h"
 #include "virqemu.h"
+#include "virdomainsnapshotobjlist.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -197,11 +198,11 @@ qemuDomObjFromSnapshot(virDomainSnapshotPtr snapshot)
 
 
 /* Looks up snapshot object from VM and name */
-static virDomainSnapshotObjPtr
+static virDomainMomentObjPtr
 qemuSnapObjFromName(virDomainObjPtr vm,
                     const char *name)
 {
-    virDomainSnapshotObjPtr snap = NULL;
+    virDomainMomentObjPtr snap = NULL;
     snap = virDomainSnapshotFindByName(vm->snapshots, name);
     if (!snap)
         virReportError(VIR_ERR_NO_DOMAIN_SNAPSHOT,
@@ -213,7 +214,7 @@ qemuSnapObjFromName(virDomainObjPtr vm,
 
 
 /* Looks up snapshot object from VM and snapshotPtr */
-static virDomainSnapshotObjPtr
+static virDomainMomentObjPtr
 qemuSnapObjFromSnapshot(virDomainObjPtr vm,
                         virDomainSnapshotPtr snapshot)
 {
@@ -416,8 +417,9 @@ qemuDomainSnapshotLoad(virDomainObjPtr vm,
     char *xmlStr;
     char *fullpath;
     virDomainSnapshotDefPtr def = NULL;
-    virDomainSnapshotObjPtr snap = NULL;
-    virDomainSnapshotObjPtr current = NULL;
+    virDomainMomentObjPtr snap = NULL;
+    virDomainMomentObjPtr current = NULL;
+    bool cur;
     unsigned int flags = (VIR_DOMAIN_SNAPSHOT_PARSE_REDEFINE |
                           VIR_DOMAIN_SNAPSHOT_PARSE_DISKS |
                           VIR_DOMAIN_SNAPSHOT_PARSE_INTERNAL);
@@ -464,7 +466,7 @@ qemuDomainSnapshotLoad(virDomainObjPtr vm,
         }
 
         def = virDomainSnapshotDefParseString(xmlStr, caps,
-                                              qemu_driver->xmlopt,
+                                              qemu_driver->xmlopt, &cur,
                                               flags);
         if (def == NULL) {
             /* Nothing we can do here, skip this one */
@@ -479,10 +481,12 @@ qemuDomainSnapshotLoad(virDomainObjPtr vm,
         snap = virDomainSnapshotAssignDef(vm->snapshots, def);
         if (snap == NULL) {
             virDomainSnapshotDefFree(def);
-        } else if (snap->def->current) {
+        } else if (cur) {
+            if (current)
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Too many snapshots claiming to be current for domain %s"),
+                               vm->def->name);
             current = snap;
-            if (!vm->current_snapshot)
-                vm->current_snapshot = snap;
         }
 
         VIR_FREE(fullpath);
@@ -493,13 +497,7 @@ qemuDomainSnapshotLoad(virDomainObjPtr vm,
                        _("Failed to fully read directory %s"),
                        snapDir);
 
-    if (vm->current_snapshot != current) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Too many snapshots claiming to be current for domain %s"),
-                       vm->def->name);
-        vm->current_snapshot = NULL;
-    }
-
+    virDomainSnapshotSetCurrent(vm->snapshots, current);
     if (virDomainSnapshotUpdateRelations(vm->snapshots) < 0)
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Snapshots have inconsistent relations for domain %s"),
@@ -914,6 +912,8 @@ qemuStateInitialize(bool privileged,
 
     qemuProcessReconnectAll(qemu_driver);
 
+    qemuAutostartDomains(qemu_driver);
+
     return 0;
 
  error:
@@ -922,20 +922,6 @@ qemuStateInitialize(bool privileged,
     VIR_FREE(memoryBackingPath);
     qemuStateCleanup();
     return -1;
-}
-
-/**
- * qemuStateAutoStart:
- *
- * Function to auto start the QEMU daemons
- */
-static void
-qemuStateAutoStart(void)
-{
-    if (!qemu_driver)
-        return;
-
-    qemuAutostartDomains(qemu_driver);
 }
 
 static void qemuNotifyLoadDomain(virDomainObjPtr vm, int newVM, void *opaque)
@@ -2154,7 +2140,7 @@ qemuDomainSnapshotCountExternal(void *payload,
                                 const void *name ATTRIBUTE_UNUSED,
                                 void *data)
 {
-    virDomainSnapshotObjPtr snap = payload;
+    virDomainMomentObjPtr snap = payload;
     int *count = data;
 
     if (virDomainSnapshotIsExternal(snap))
@@ -6456,13 +6442,6 @@ static int qemuDomainGetSecurityLabel(virDomainPtr dom, virSecurityLabelPtr secl
     if (virDomainGetSecurityLabelEnsureACL(dom->conn, vm->def) < 0)
         goto cleanup;
 
-    if (!virDomainVirtTypeToString(vm->def->virtType)) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("unknown virt type in domain definition '%d'"),
-                       vm->def->virtType);
-        goto cleanup;
-    }
-
     /*
      * Theoretically, the pid can be replaced during this operation and
      * return the label of a different process.  If atomicity is needed,
@@ -6503,13 +6482,6 @@ static int qemuDomainGetSecurityLabelList(virDomainPtr dom,
 
     if (virDomainGetSecurityLabelListEnsureACL(dom->conn, vm->def) < 0)
         goto cleanup;
-
-    if (!virDomainVirtTypeToString(vm->def->virtType)) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("unknown virt type in domain definition '%d'"),
-                       vm->def->virtType);
-        goto cleanup;
-    }
 
     /*
      * Check the comment in qemuDomainGetSecurityLabel function.
@@ -8029,101 +8001,6 @@ qemuDomainAttachDeviceLive(virDomainObjPtr vm,
     return ret;
 }
 
-static int
-qemuDomainDetachDeviceControllerLive(virQEMUDriverPtr driver,
-                                     virDomainObjPtr vm,
-                                     virDomainDeviceDefPtr dev,
-                                     bool async)
-{
-    virDomainControllerDefPtr cont = dev->data.controller;
-    int ret = -1;
-
-    switch (cont->type) {
-    case VIR_DOMAIN_CONTROLLER_TYPE_SCSI:
-        ret = qemuDomainDetachControllerDevice(driver, vm, dev, async);
-        break;
-    default :
-        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
-                       _("'%s' controller cannot be hot unplugged."),
-                       virDomainControllerTypeToString(cont->type));
-    }
-    return ret;
-}
-
-static int
-qemuDomainDetachDeviceLive(virDomainObjPtr vm,
-                           virDomainDeviceDefPtr dev,
-                           virQEMUDriverPtr driver,
-                           bool async)
-{
-    int ret = -1;
-
-    switch ((virDomainDeviceType)dev->type) {
-    case VIR_DOMAIN_DEVICE_DISK:
-        ret = qemuDomainDetachDeviceDiskLive(driver, vm, dev, async);
-        break;
-    case VIR_DOMAIN_DEVICE_CONTROLLER:
-        ret = qemuDomainDetachDeviceControllerLive(driver, vm, dev, async);
-        break;
-    case VIR_DOMAIN_DEVICE_LEASE:
-        ret = qemuDomainDetachLease(driver, vm, dev->data.lease);
-        break;
-    case VIR_DOMAIN_DEVICE_NET:
-        ret = qemuDomainDetachNetDevice(driver, vm, dev, async);
-        break;
-    case VIR_DOMAIN_DEVICE_HOSTDEV:
-        ret = qemuDomainDetachHostDevice(driver, vm, dev, async);
-        break;
-    case VIR_DOMAIN_DEVICE_CHR:
-        ret = qemuDomainDetachChrDevice(driver, vm, dev->data.chr, async);
-        break;
-    case VIR_DOMAIN_DEVICE_RNG:
-        ret = qemuDomainDetachRNGDevice(driver, vm, dev->data.rng, async);
-        break;
-    case VIR_DOMAIN_DEVICE_MEMORY:
-        ret = qemuDomainDetachMemoryDevice(driver, vm, dev->data.memory, async);
-        break;
-    case VIR_DOMAIN_DEVICE_SHMEM:
-        ret = qemuDomainDetachShmemDevice(driver, vm, dev->data.shmem, async);
-        break;
-    case VIR_DOMAIN_DEVICE_WATCHDOG:
-        ret = qemuDomainDetachWatchdog(driver, vm, dev->data.watchdog, async);
-        break;
-    case VIR_DOMAIN_DEVICE_INPUT:
-        ret = qemuDomainDetachInputDevice(vm, dev->data.input, async);
-        break;
-    case VIR_DOMAIN_DEVICE_REDIRDEV:
-        ret = qemuDomainDetachRedirdevDevice(driver, vm, dev->data.redirdev, async);
-        break;
-
-    case VIR_DOMAIN_DEVICE_VSOCK:
-        ret = qemuDomainDetachVsockDevice(vm, dev->data.vsock, async);
-        break;
-
-    case VIR_DOMAIN_DEVICE_FS:
-    case VIR_DOMAIN_DEVICE_SOUND:
-    case VIR_DOMAIN_DEVICE_VIDEO:
-    case VIR_DOMAIN_DEVICE_GRAPHICS:
-    case VIR_DOMAIN_DEVICE_HUB:
-    case VIR_DOMAIN_DEVICE_SMARTCARD:
-    case VIR_DOMAIN_DEVICE_MEMBALLOON:
-    case VIR_DOMAIN_DEVICE_NVRAM:
-    case VIR_DOMAIN_DEVICE_NONE:
-    case VIR_DOMAIN_DEVICE_TPM:
-    case VIR_DOMAIN_DEVICE_PANIC:
-    case VIR_DOMAIN_DEVICE_IOMMU:
-    case VIR_DOMAIN_DEVICE_LAST:
-        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
-                       _("live detach of device '%s' is not supported"),
-                       virDomainDeviceTypeToString(dev->type));
-        break;
-    }
-
-    if (ret == 0)
-        ret = qemuDomainUpdateDeviceList(driver, vm, QEMU_ASYNC_JOB_NONE);
-
-    return ret;
-}
 
 static int
 qemuDomainChangeDiskLive(virDomainObjPtr vm,
@@ -9050,8 +8927,14 @@ qemuDomainDetachDeviceLiveAndConfig(virQEMUDriverPtr driver,
     }
 
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
-        if (qemuDomainDetachDeviceLive(vm, dev_copy, driver, false) < 0)
+        int rc;
+
+        if ((rc = qemuDomainDetachDeviceLive(vm, dev_copy, driver, false)) < 0)
             goto cleanup;
+
+        if (rc == 0 && qemuDomainUpdateDeviceList(driver, vm, QEMU_ASYNC_JOB_NONE) < 0)
+            goto cleanup;
+
         /*
          * update domain status forcibly because the domain status may be
          * changed even if we failed to attach the device. For example,
@@ -9128,11 +9011,15 @@ qemuDomainDetachDeviceAliasLiveAndConfig(virQEMUDriverPtr driver,
 
     if (def) {
         virDomainDeviceDef dev;
+        int rc;
 
         if (virDomainDefFindDevice(def, alias, &dev, true) < 0)
             goto cleanup;
 
-        if (qemuDomainDetachDeviceLive(vm, &dev, driver, true) < 0)
+        if ((rc = qemuDomainDetachDeviceLive(vm, &dev, driver, true)) < 0)
+            goto cleanup;
+
+        if (rc == 0 && qemuDomainUpdateDeviceList(driver, vm, QEMU_ASYNC_JOB_NONE) < 0)
             goto cleanup;
     }
 
@@ -14541,7 +14428,7 @@ qemuDomainSnapshotFSThaw(virQEMUDriverPtr driver ATTRIBUTE_UNUSED,
 static int
 qemuDomainSnapshotCreateInactiveInternal(virQEMUDriverPtr driver,
                                          virDomainObjPtr vm,
-                                         virDomainSnapshotObjPtr snap)
+                                         virDomainMomentObjPtr snap)
 {
     return qemuDomainSnapshotForEachQcow2(driver, vm, snap, "-c", false);
 }
@@ -14551,7 +14438,7 @@ qemuDomainSnapshotCreateInactiveInternal(virQEMUDriverPtr driver,
 static int
 qemuDomainSnapshotCreateInactiveExternal(virQEMUDriverPtr driver,
                                          virDomainObjPtr vm,
-                                         virDomainSnapshotObjPtr snap,
+                                         virDomainMomentObjPtr snap,
                                          bool reuse)
 {
     size_t i;
@@ -14563,19 +14450,20 @@ qemuDomainSnapshotCreateInactiveExternal(virQEMUDriverPtr driver,
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     int ret = -1;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
+    virDomainSnapshotDefPtr snapdef = virDomainSnapshotObjGetDef(snap);
 
     if (!(qemuImgPath = qemuFindQemuImgBinary(driver)))
         goto cleanup;
 
-    if (!(created = virBitmapNew(snap->def->ndisks)))
+    if (!(created = virBitmapNew(snapdef->ndisks)))
         goto cleanup;
 
     /* If reuse is true, then qemuDomainSnapshotPrepare already
      * ensured that the new files exist, and it was up to the user to
      * create them correctly.  */
-    for (i = 0; i < snap->def->ndisks && !reuse; i++) {
-        snapdisk = &(snap->def->disks[i]);
-        defdisk = snap->def->dom->disks[snapdisk->idx];
+    for (i = 0; i < snapdef->ndisks && !reuse; i++) {
+        snapdisk = &(snapdef->disks[i]);
+        defdisk = snapdef->common.dom->disks[snapdisk->idx];
         if (snapdisk->snapshot != VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL)
             continue;
 
@@ -14613,8 +14501,8 @@ qemuDomainSnapshotCreateInactiveExternal(virQEMUDriverPtr driver,
     }
 
     /* update disk definitions */
-    for (i = 0; i < snap->def->ndisks; i++) {
-        snapdisk = &(snap->def->disks[i]);
+    for (i = 0; i < snapdef->ndisks; i++) {
+        snapdisk = &(snapdef->disks[i]);
         defdisk = vm->def->disks[snapdisk->idx];
 
         if (snapdisk->snapshot == VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL) {
@@ -14640,7 +14528,7 @@ qemuDomainSnapshotCreateInactiveExternal(virQEMUDriverPtr driver,
     if (ret < 0 && created) {
         ssize_t bit = -1;
         while ((bit = virBitmapNextSetBit(created, bit)) >= 0) {
-            snapdisk = &(snap->def->disks[bit]);
+            snapdisk = &(snapdef->disks[bit]);
             if (unlink(snapdisk->src->path) < 0)
                 VIR_WARN("Failed to remove snapshot image '%s'",
                          snapdisk->src->path);
@@ -14657,12 +14545,13 @@ qemuDomainSnapshotCreateInactiveExternal(virQEMUDriverPtr driver,
 static int
 qemuDomainSnapshotCreateActiveInternal(virQEMUDriverPtr driver,
                                        virDomainObjPtr vm,
-                                       virDomainSnapshotObjPtr snap,
+                                       virDomainMomentObjPtr snap,
                                        unsigned int flags)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
     virObjectEventPtr event = NULL;
     bool resume = false;
+    virDomainSnapshotDefPtr snapdef = virDomainSnapshotObjGetDef(snap);
     int ret = -1;
 
     if (!qemuMigrationSrcIsAllowed(driver, vm, false, 0))
@@ -14697,7 +14586,7 @@ qemuDomainSnapshotCreateActiveInternal(virQEMUDriverPtr driver,
     if (ret < 0)
         goto cleanup;
 
-    if (!(snap->def->cookie = (virObjectPtr) qemuDomainSaveCookieNew(vm)))
+    if (!(snapdef->cookie = (virObjectPtr) qemuDomainSaveCookieNew(vm)))
         goto cleanup;
 
     if (flags & VIR_DOMAIN_SNAPSHOT_CREATE_HALT) {
@@ -15022,7 +14911,7 @@ qemuDomainSnapshotPrepare(virDomainObjPtr vm,
         case VIR_DOMAIN_SNAPSHOT_LOCATION_INTERNAL:
             found_internal = true;
 
-            if (def->state == VIR_DOMAIN_DISK_SNAPSHOT && active) {
+            if (def->state == VIR_DOMAIN_SNAPSHOT_DISK_SNAPSHOT && active) {
                 virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                _("active qemu domains require external disk "
                                  "snapshots; disk %s requested internal"),
@@ -15099,7 +14988,7 @@ qemuDomainSnapshotPrepare(virDomainObjPtr vm,
     }
 
     /* disk snapshot requires at least one disk */
-    if (def->state == VIR_DOMAIN_DISK_SNAPSHOT && !external) {
+    if (def->state == VIR_DOMAIN_SNAPSHOT_DISK_SNAPSHOT && !external) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("disk-only snapshots require at least "
                          "one disk to be selected for snapshot"));
@@ -15202,26 +15091,27 @@ qemuDomainSnapshotDiskDataFree(qemuDomainSnapshotDiskDataPtr data,
 static qemuDomainSnapshotDiskDataPtr
 qemuDomainSnapshotDiskDataCollect(virQEMUDriverPtr driver,
                                   virDomainObjPtr vm,
-                                  virDomainSnapshotObjPtr snap,
+                                  virDomainMomentObjPtr snap,
                                   bool reuse)
 {
     size_t i;
     qemuDomainSnapshotDiskDataPtr ret;
     qemuDomainSnapshotDiskDataPtr dd;
     char *backingStoreStr;
+    virDomainSnapshotDefPtr snapdef = virDomainSnapshotObjGetDef(snap);
 
-    if (VIR_ALLOC_N(ret, snap->def->ndisks) < 0)
+    if (VIR_ALLOC_N(ret, snapdef->ndisks) < 0)
         return NULL;
 
-    for (i = 0; i < snap->def->ndisks; i++) {
-        if (snap->def->disks[i].snapshot == VIR_DOMAIN_SNAPSHOT_LOCATION_NONE)
+    for (i = 0; i < snapdef->ndisks; i++) {
+        if (snapdef->disks[i].snapshot == VIR_DOMAIN_SNAPSHOT_LOCATION_NONE)
             continue;
 
         dd = ret + i;
 
         dd->disk = vm->def->disks[i];
 
-        if (!(dd->src = virStorageSourceCopy(snap->def->disks[i].src, false)))
+        if (!(dd->src = virStorageSourceCopy(snapdef->disks[i].src, false)))
             goto error;
 
         if (virStorageSourceInitChainElement(dd->src, dd->disk->src, false) < 0)
@@ -15265,7 +15155,7 @@ qemuDomainSnapshotDiskDataCollect(virQEMUDriverPtr driver,
     return ret;
 
  error:
-    qemuDomainSnapshotDiskDataFree(ret, snap->def->ndisks, driver, vm);
+    qemuDomainSnapshotDiskDataFree(ret, snapdef->ndisks, driver, vm);
     return NULL;
 }
 
@@ -15358,7 +15248,7 @@ qemuDomainSnapshotCreateSingleDiskActive(virQEMUDriverPtr driver,
 static int
 qemuDomainSnapshotCreateDiskActive(virQEMUDriverPtr driver,
                                    virDomainObjPtr vm,
-                                   virDomainSnapshotObjPtr snap,
+                                   virDomainMomentObjPtr snap,
                                    unsigned int flags,
                                    qemuDomainAsyncJob asyncJob)
 {
@@ -15372,6 +15262,7 @@ qemuDomainSnapshotCreateDiskActive(virQEMUDriverPtr driver,
     virQEMUDriverConfigPtr cfg = NULL;
     qemuDomainSnapshotDiskDataPtr diskdata = NULL;
     virErrorPtr orig_err = NULL;
+    virDomainSnapshotDefPtr snapdef = virDomainSnapshotObjGetDef(snap);
 
     if (virDomainObjCheckActive(vm) < 0)
         return -1;
@@ -15390,7 +15281,7 @@ qemuDomainSnapshotCreateDiskActive(virQEMUDriverPtr driver,
       * now either VIR_DOMAIN_SNAPSHOT_LOCATION_NONE, or
       * VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL with a valid file name and
       * qcow2 format.  */
-    for (i = 0; i < snap->def->ndisks; i++) {
+    for (i = 0; i < snapdef->ndisks; i++) {
         if (!diskdata[i].src)
             continue;
 
@@ -15413,7 +15304,7 @@ qemuDomainSnapshotCreateDiskActive(virQEMUDriverPtr driver,
         if (qemuDomainObjExitMonitor(driver, vm) < 0)
             ret = -1;
 
-        for (i = 0; i < snap->def->ndisks; i++) {
+        for (i = 0; i < snapdef->ndisks; i++) {
             qemuDomainSnapshotDiskDataPtr dd = &diskdata[i];
 
             if (!dd->src)
@@ -15432,7 +15323,7 @@ qemuDomainSnapshotCreateDiskActive(virQEMUDriverPtr driver,
  error:
     if (ret < 0) {
         orig_err = virSaveLastError();
-        for (i = 0; i < snap->def->ndisks; i++) {
+        for (i = 0; i < snapdef->ndisks; i++) {
             if (!diskdata[i].src)
                 continue;
 
@@ -15449,7 +15340,7 @@ qemuDomainSnapshotCreateDiskActive(virQEMUDriverPtr driver,
          * stopped using them*/
         bool paused = virDomainObjGetState(vm, NULL) != VIR_DOMAIN_RUNNING;
 
-        for (i = 0; i < snap->def->ndisks; i++) {
+        for (i = 0; i < snapdef->ndisks; i++) {
             if (!diskdata[i].disk)
                 continue;
 
@@ -15470,7 +15361,7 @@ qemuDomainSnapshotCreateDiskActive(virQEMUDriverPtr driver,
     }
 
  cleanup:
-    qemuDomainSnapshotDiskDataFree(diskdata, snap->def->ndisks, driver, vm);
+    qemuDomainSnapshotDiskDataFree(diskdata, snapdef->ndisks, driver, vm);
     virJSONValueFree(actions);
     virObjectUnref(cfg);
 
@@ -15486,7 +15377,7 @@ qemuDomainSnapshotCreateDiskActive(virQEMUDriverPtr driver,
 static int
 qemuDomainSnapshotCreateActiveExternal(virQEMUDriverPtr driver,
                                        virDomainObjPtr vm,
-                                       virDomainSnapshotObjPtr snap,
+                                       virDomainMomentObjPtr snap,
                                        unsigned int flags)
 {
     virObjectEventPtr event;
@@ -15494,7 +15385,8 @@ qemuDomainSnapshotCreateActiveExternal(virQEMUDriverPtr driver,
     int ret = -1;
     qemuDomainObjPrivatePtr priv = vm->privateData;
     char *xml = NULL;
-    bool memory = snap->def->memory == VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL;
+    virDomainSnapshotDefPtr snapdef = virDomainSnapshotObjGetDef(snap);
+    bool memory = snapdef->memory == VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL;
     bool memory_unlink = false;
     int thaw = 0; /* 1 if freeze succeeded, -1 if freeze failed */
     bool pmsuspended = false;
@@ -15570,6 +15462,8 @@ qemuDomainSnapshotCreateActiveExternal(virQEMUDriverPtr driver,
         if (!qemuMigrationSrcIsAllowed(driver, vm, false, 0))
             goto cleanup;
 
+        priv->job.current->statsType = QEMU_DOMAIN_JOB_STATS_TYPE_SAVEDUMP;
+
         /* allow the migration job to be cancelled or the domain to be paused */
         qemuDomainObjSetAsyncJobMask(vm, (QEMU_JOB_DEFAULT_MASK |
                                           JOB_MASK(QEMU_JOB_SUSPEND) |
@@ -15583,16 +15477,16 @@ qemuDomainSnapshotCreateActiveExternal(virQEMUDriverPtr driver,
 
         if (!(xml = qemuDomainDefFormatLive(driver, vm->def, priv->origCPU,
                                             true, true)) ||
-            !(snap->def->cookie = (virObjectPtr) qemuDomainSaveCookieNew(vm)))
+            !(snapdef->cookie = (virObjectPtr) qemuDomainSaveCookieNew(vm)))
             goto cleanup;
 
         if (!(data = virQEMUSaveDataNew(xml,
-                                        (qemuDomainSaveCookiePtr) snap->def->cookie,
+                                        (qemuDomainSaveCookiePtr) snapdef->cookie,
                                         resume, compressed, driver->xmlopt)))
             goto cleanup;
         xml = NULL;
 
-        if ((ret = qemuDomainSaveMemory(driver, vm, snap->def->file, data,
+        if ((ret = qemuDomainSaveMemory(driver, vm, snapdef->file, data,
                                         compressedpath, 0,
                                         QEMU_ASYNC_JOB_SNAPSHOT)) < 0)
             goto cleanup;
@@ -15667,7 +15561,7 @@ qemuDomainSnapshotCreateActiveExternal(virQEMUDriverPtr driver,
     VIR_FREE(compressedpath);
     virObjectUnref(cfg);
     if (memory_unlink && ret < 0)
-        unlink(snap->def->file);
+        unlink(snapdef->file);
 
     return ret;
 }
@@ -15681,19 +15575,20 @@ qemuDomainSnapshotCreateXML(virDomainPtr domain,
     virQEMUDriverPtr driver = domain->conn->privateData;
     virDomainObjPtr vm = NULL;
     char *xml = NULL;
-    virDomainSnapshotObjPtr snap = NULL;
+    virDomainMomentObjPtr snap = NULL;
     virDomainSnapshotPtr snapshot = NULL;
     virDomainSnapshotDefPtr def = NULL;
+    virDomainMomentObjPtr current = NULL;
     bool update_current = true;
     bool redefine = flags & VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE;
     unsigned int parse_flags = VIR_DOMAIN_SNAPSHOT_PARSE_DISKS;
-    virDomainSnapshotObjPtr other = NULL;
+    virDomainMomentObjPtr other = NULL;
     int align_location = VIR_DOMAIN_SNAPSHOT_LOCATION_INTERNAL;
     bool align_match = true;
     virQEMUDriverConfigPtr cfg = NULL;
     virCapsPtr caps = NULL;
     qemuDomainObjPrivatePtr priv;
-    virDomainState state;
+    virDomainSnapshotState state;
 
     virCheckFlags(VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE |
                   VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT |
@@ -15708,6 +15603,9 @@ qemuDomainSnapshotCreateXML(virDomainPtr domain,
     VIR_REQUIRE_FLAG_RET(VIR_DOMAIN_SNAPSHOT_CREATE_QUIESCE,
                          VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY,
                          NULL);
+    VIR_EXCLUSIVE_FLAGS_RET(VIR_DOMAIN_SNAPSHOT_CREATE_LIVE,
+                            VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE,
+                            NULL);
 
     if ((redefine && !(flags & VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT)) ||
         (flags & VIR_DOMAIN_SNAPSHOT_CREATE_NO_METADATA))
@@ -15742,25 +15640,25 @@ qemuDomainSnapshotCreateXML(virDomainPtr domain,
         parse_flags |= VIR_DOMAIN_SNAPSHOT_PARSE_OFFLINE;
 
     if (!(def = virDomainSnapshotDefParseString(xmlDesc, caps, driver->xmlopt,
-                                                parse_flags)))
+                                                NULL, parse_flags)))
         goto cleanup;
 
     /* reject snapshot names containing slashes or starting with dot as
      * snapshot definitions are saved in files named by the snapshot name */
     if (!(flags & VIR_DOMAIN_SNAPSHOT_CREATE_NO_METADATA)) {
-        if (strchr(def->name, '/')) {
+        if (strchr(def->common.name, '/')) {
             virReportError(VIR_ERR_XML_DETAIL,
                            _("invalid snapshot name '%s': "
                              "name can't contain '/'"),
-                           def->name);
+                           def->common.name);
             goto cleanup;
         }
 
-        if (def->name[0] == '.') {
+        if (def->common.name[0] == '.') {
             virReportError(VIR_ERR_XML_DETAIL,
                            _("invalid snapshot name '%s': "
                              "name can't start with '.'"),
-                           def->name);
+                           def->common.name);
             goto cleanup;
         }
     }
@@ -15768,8 +15666,7 @@ qemuDomainSnapshotCreateXML(virDomainPtr domain,
     /* reject the VIR_DOMAIN_SNAPSHOT_CREATE_LIVE flag where not supported */
     if (flags & VIR_DOMAIN_SNAPSHOT_CREATE_LIVE &&
         (!virDomainObjIsActive(vm) ||
-         def->memory != VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL ||
-         redefine)) {
+         def->memory != VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL)) {
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
                        _("live snapshot creation is supported only "
                          "during full system snapshots"));
@@ -15777,31 +15674,36 @@ qemuDomainSnapshotCreateXML(virDomainPtr domain,
     }
 
     /* allow snapshots only in certain states */
-    state = vm->state.state;
-    if (redefine)
-        state = def->state == VIR_DOMAIN_DISK_SNAPSHOT ? VIR_DOMAIN_SHUTOFF :
-            def->state;
+    state = redefine ? def->state : vm->state.state;
     switch (state) {
         /* valid states */
-    case VIR_DOMAIN_RUNNING:
-    case VIR_DOMAIN_PAUSED:
-    case VIR_DOMAIN_SHUTDOWN:
-    case VIR_DOMAIN_SHUTOFF:
-    case VIR_DOMAIN_CRASHED:
+    case VIR_DOMAIN_SNAPSHOT_RUNNING:
+    case VIR_DOMAIN_SNAPSHOT_PAUSED:
+    case VIR_DOMAIN_SNAPSHOT_SHUTDOWN:
+    case VIR_DOMAIN_SNAPSHOT_SHUTOFF:
+    case VIR_DOMAIN_SNAPSHOT_CRASHED:
         break;
 
-    case VIR_DOMAIN_PMSUSPENDED:
+    case VIR_DOMAIN_SNAPSHOT_DISK_SNAPSHOT:
+        if (!redefine) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, _("Invalid domain state %s"),
+                           virDomainSnapshotStateTypeToString(state));
+            goto cleanup;
+        }
+        break;
+
+    case VIR_DOMAIN_SNAPSHOT_PMSUSPENDED:
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
                        _("qemu doesn't support taking snapshots of "
                          "PMSUSPENDED guests"));
         goto cleanup;
 
         /* invalid states */
-    case VIR_DOMAIN_NOSTATE:
-    case VIR_DOMAIN_BLOCKED: /* invalid state, unused in qemu */
-    case VIR_DOMAIN_LAST:
+    case VIR_DOMAIN_SNAPSHOT_NOSTATE:
+    case VIR_DOMAIN_SNAPSHOT_BLOCKED: /* invalid state, unused in qemu */
+    case VIR_DOMAIN_SNAPSHOT_LAST:
         virReportError(VIR_ERR_INTERNAL_ERROR, _("Invalid domain state %s"),
-                       virDomainStateTypeToString(state));
+                       virDomainSnapshotStateTypeToString(state));
         goto cleanup;
     }
 
@@ -15827,18 +15729,18 @@ qemuDomainSnapshotCreateXML(virDomainPtr domain,
          * conversion in and back out of xml.  */
         if (!(xml = qemuDomainDefFormatLive(driver, vm->def, priv->origCPU,
                                             true, true)) ||
-            !(def->dom = virDomainDefParseString(xml, caps, driver->xmlopt, NULL,
-                                                 VIR_DOMAIN_DEF_PARSE_INACTIVE |
-                                                 VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE)))
+            !(def->common.dom = virDomainDefParseString(xml, caps, driver->xmlopt, NULL,
+                                                        VIR_DOMAIN_DEF_PARSE_INACTIVE |
+                                                        VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE)))
             goto endjob;
 
         if (flags & VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY) {
             align_location = VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL;
             align_match = false;
             if (virDomainObjIsActive(vm))
-                def->state = VIR_DOMAIN_DISK_SNAPSHOT;
+                def->state = VIR_DOMAIN_SNAPSHOT_DISK_SNAPSHOT;
             else
-                def->state = VIR_DOMAIN_SHUTOFF;
+                def->state = VIR_DOMAIN_SNAPSHOT_SHUTOFF;
             def->memory = VIR_DOMAIN_SNAPSHOT_LOCATION_NONE;
         } else if (def->memory == VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL) {
             def->state = virDomainObjGetState(vm, NULL);
@@ -15855,7 +15757,7 @@ qemuDomainSnapshotCreateXML(virDomainPtr domain,
                 goto endjob;
             }
 
-            def->memory = (def->state == VIR_DOMAIN_SHUTOFF ?
+            def->memory = (def->state == VIR_DOMAIN_SNAPSHOT_SHUTOFF ?
                            VIR_DOMAIN_SNAPSHOT_LOCATION_NONE :
                            VIR_DOMAIN_SNAPSHOT_LOCATION_INTERNAL);
         }
@@ -15872,19 +15774,17 @@ qemuDomainSnapshotCreateXML(virDomainPtr domain,
         def = NULL;
     }
 
-    if (update_current)
-        snap->def->current = true;
-    if (vm->current_snapshot) {
+    current = virDomainSnapshotGetCurrent(vm->snapshots);
+    if (current) {
         if (!redefine &&
-            VIR_STRDUP(snap->def->parent, vm->current_snapshot->def->name) < 0)
+            VIR_STRDUP(snap->def->parent, current->def->name) < 0)
                 goto endjob;
         if (update_current) {
-            vm->current_snapshot->def->current = false;
-            if (qemuDomainSnapshotWriteMetadata(vm, vm->current_snapshot,
+            virDomainSnapshotSetCurrent(vm->snapshots, NULL);
+            if (qemuDomainSnapshotWriteMetadata(vm, current,
                                                 driver->caps, driver->xmlopt,
                                                 cfg->snapshotDir) < 0)
                 goto endjob;
-            vm->current_snapshot = NULL;
         }
     }
 
@@ -15895,7 +15795,7 @@ qemuDomainSnapshotCreateXML(virDomainPtr domain,
          * snapshot name in at least one of the domain's disks?  */
     } else if (virDomainObjIsActive(vm)) {
         if (flags & VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY ||
-            snap->def->memory == VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL) {
+            virDomainSnapshotObjGetDef(snap)->memory == VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL) {
             /* external full system or disk snapshot */
             if (qemuDomainSnapshotCreateActiveExternal(driver,
                                                        vm, snap, flags) < 0)
@@ -15930,6 +15830,8 @@ qemuDomainSnapshotCreateXML(virDomainPtr domain,
 
  endjob:
     if (snapshot && !(flags & VIR_DOMAIN_SNAPSHOT_CREATE_NO_METADATA)) {
+        if (update_current)
+            virDomainSnapshotSetCurrent(vm->snapshots, snap);
         if (qemuDomainSnapshotWriteMetadata(vm, snap, driver->caps,
                                             driver->xmlopt,
                                             cfg->snapshotDir) < 0) {
@@ -15942,14 +15844,9 @@ qemuDomainSnapshotCreateXML(virDomainPtr domain,
                            snap->def->name);
             virDomainSnapshotObjListRemove(vm->snapshots, snap);
         } else {
-            if (update_current)
-                vm->current_snapshot = snap;
             other = virDomainSnapshotFindByName(vm->snapshots,
                                                 snap->def->parent);
-            snap->parent = other;
-            other->nchildren++;
-            snap->sibling = other->first_child;
-            other->first_child = snap;
+            virDomainMomentSetParent(snap, other);
         }
     } else if (snap) {
         virDomainSnapshotObjListRemove(vm->snapshots, snap);
@@ -15977,6 +15874,7 @@ qemuDomainSnapshotListNames(virDomainPtr domain,
     int n = -1;
 
     virCheckFlags(VIR_DOMAIN_SNAPSHOT_LIST_ROOTS |
+                  VIR_DOMAIN_SNAPSHOT_LIST_TOPOLOGICAL |
                   VIR_DOMAIN_SNAPSHOT_FILTERS_ALL, -1);
 
     if (!(vm = qemuDomObjFromDomain(domain)))
@@ -16002,6 +15900,7 @@ qemuDomainSnapshotNum(virDomainPtr domain,
     int n = -1;
 
     virCheckFlags(VIR_DOMAIN_SNAPSHOT_LIST_ROOTS |
+                  VIR_DOMAIN_SNAPSHOT_LIST_TOPOLOGICAL |
                   VIR_DOMAIN_SNAPSHOT_FILTERS_ALL, -1);
 
     if (!(vm = qemuDomObjFromDomain(domain)))
@@ -16027,6 +15926,7 @@ qemuDomainListAllSnapshots(virDomainPtr domain,
     int n = -1;
 
     virCheckFlags(VIR_DOMAIN_SNAPSHOT_LIST_ROOTS |
+                  VIR_DOMAIN_SNAPSHOT_LIST_TOPOLOGICAL |
                   VIR_DOMAIN_SNAPSHOT_FILTERS_ALL, -1);
 
     if (!(vm = qemuDomObjFromDomain(domain)))
@@ -16050,10 +15950,11 @@ qemuDomainSnapshotListChildrenNames(virDomainSnapshotPtr snapshot,
                                     unsigned int flags)
 {
     virDomainObjPtr vm = NULL;
-    virDomainSnapshotObjPtr snap = NULL;
+    virDomainMomentObjPtr snap = NULL;
     int n = -1;
 
     virCheckFlags(VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS |
+                  VIR_DOMAIN_SNAPSHOT_LIST_TOPOLOGICAL |
                   VIR_DOMAIN_SNAPSHOT_FILTERS_ALL, -1);
 
     if (!(vm = qemuDomObjFromSnapshot(snapshot)))
@@ -16079,10 +15980,11 @@ qemuDomainSnapshotNumChildren(virDomainSnapshotPtr snapshot,
                               unsigned int flags)
 {
     virDomainObjPtr vm = NULL;
-    virDomainSnapshotObjPtr snap = NULL;
+    virDomainMomentObjPtr snap = NULL;
     int n = -1;
 
     virCheckFlags(VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS |
+                  VIR_DOMAIN_SNAPSHOT_LIST_TOPOLOGICAL |
                   VIR_DOMAIN_SNAPSHOT_FILTERS_ALL, -1);
 
     if (!(vm = qemuDomObjFromSnapshot(snapshot)))
@@ -16108,10 +16010,11 @@ qemuDomainSnapshotListAllChildren(virDomainSnapshotPtr snapshot,
                                   unsigned int flags)
 {
     virDomainObjPtr vm = NULL;
-    virDomainSnapshotObjPtr snap = NULL;
+    virDomainMomentObjPtr snap = NULL;
     int n = -1;
 
     virCheckFlags(VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS |
+                  VIR_DOMAIN_SNAPSHOT_LIST_TOPOLOGICAL |
                   VIR_DOMAIN_SNAPSHOT_FILTERS_ALL, -1);
 
     if (!(vm = qemuDomObjFromSnapshot(snapshot)))
@@ -16138,7 +16041,7 @@ qemuDomainSnapshotLookupByName(virDomainPtr domain,
                                unsigned int flags)
 {
     virDomainObjPtr vm;
-    virDomainSnapshotObjPtr snap = NULL;
+    virDomainMomentObjPtr snap = NULL;
     virDomainSnapshotPtr snapshot = NULL;
 
     virCheckFlags(0, NULL);
@@ -16175,7 +16078,7 @@ qemuDomainHasCurrentSnapshot(virDomainPtr domain,
     if (virDomainHasCurrentSnapshotEnsureACL(domain->conn, vm->def) < 0)
         goto cleanup;
 
-    ret = (vm->current_snapshot != NULL);
+    ret = (virDomainSnapshotGetCurrent(vm->snapshots) != NULL);
 
  cleanup:
     virDomainObjEndAPI(&vm);
@@ -16188,7 +16091,7 @@ qemuDomainSnapshotGetParent(virDomainSnapshotPtr snapshot,
                             unsigned int flags)
 {
     virDomainObjPtr vm;
-    virDomainSnapshotObjPtr snap = NULL;
+    virDomainMomentObjPtr snap = NULL;
     virDomainSnapshotPtr parent = NULL;
 
     virCheckFlags(0, NULL);
@@ -16223,6 +16126,7 @@ qemuDomainSnapshotCurrent(virDomainPtr domain,
 {
     virDomainObjPtr vm;
     virDomainSnapshotPtr snapshot = NULL;
+    const char *name;
 
     virCheckFlags(0, NULL);
 
@@ -16232,13 +16136,14 @@ qemuDomainSnapshotCurrent(virDomainPtr domain,
     if (virDomainSnapshotCurrentEnsureACL(domain->conn, vm->def) < 0)
         goto cleanup;
 
-    if (!vm->current_snapshot) {
+    name = virDomainSnapshotGetCurrentName(vm->snapshots);
+    if (!name) {
         virReportError(VIR_ERR_NO_DOMAIN_SNAPSHOT, "%s",
                        _("the domain does not have a current snapshot"));
         goto cleanup;
     }
 
-    snapshot = virGetDomainSnapshot(domain, vm->current_snapshot->def->name);
+    snapshot = virGetDomainSnapshot(domain, name);
 
  cleanup:
     virDomainObjEndAPI(&vm);
@@ -16253,7 +16158,7 @@ qemuDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
     virQEMUDriverPtr driver = snapshot->domain->conn->privateData;
     virDomainObjPtr vm = NULL;
     char *xml = NULL;
-    virDomainSnapshotObjPtr snap = NULL;
+    virDomainMomentObjPtr snap = NULL;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
 
     virCheckFlags(VIR_DOMAIN_SNAPSHOT_XML_SECURE, NULL);
@@ -16269,10 +16174,9 @@ qemuDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
 
     virUUIDFormat(snapshot->domain->uuid, uuidstr);
 
-    xml = virDomainSnapshotDefFormat(uuidstr, snap->def,
+    xml = virDomainSnapshotDefFormat(uuidstr, virDomainSnapshotObjGetDef(snap),
                                      driver->caps, driver->xmlopt,
-                                     virDomainDefFormatConvertXMLFlags(flags),
-                                     0);
+                                     virDomainSnapshotFormatConvertXMLFlags(flags));
 
  cleanup:
     virDomainObjEndAPI(&vm);
@@ -16286,7 +16190,7 @@ qemuDomainSnapshotIsCurrent(virDomainSnapshotPtr snapshot,
 {
     virDomainObjPtr vm = NULL;
     int ret = -1;
-    virDomainSnapshotObjPtr snap = NULL;
+    virDomainMomentObjPtr snap = NULL;
 
     virCheckFlags(0, -1);
 
@@ -16299,8 +16203,7 @@ qemuDomainSnapshotIsCurrent(virDomainSnapshotPtr snapshot,
     if (!(snap = qemuSnapObjFromSnapshot(vm, snapshot)))
         goto cleanup;
 
-    ret = (vm->current_snapshot &&
-           STREQ(snapshot->name, vm->current_snapshot->def->name));
+    ret = snap == virDomainSnapshotGetCurrent(vm->snapshots);
 
  cleanup:
     virDomainObjEndAPI(&vm);
@@ -16314,7 +16217,7 @@ qemuDomainSnapshotHasMetadata(virDomainSnapshotPtr snapshot,
 {
     virDomainObjPtr vm = NULL;
     int ret = -1;
-    virDomainSnapshotObjPtr snap = NULL;
+    virDomainMomentObjPtr snap = NULL;
 
     virCheckFlags(0, -1);
 
@@ -16342,7 +16245,7 @@ qemuDomainSnapshotHasMetadata(virDomainSnapshotPtr snapshot,
 static int
 qemuDomainSnapshotRevertInactive(virQEMUDriverPtr driver,
                                  virDomainObjPtr vm,
-                                 virDomainSnapshotObjPtr snap)
+                                 virDomainMomentObjPtr snap)
 {
     /* Try all disks, but report failure if we skipped any.  */
     int ret = qemuDomainSnapshotForEachQcow2(driver, vm, snap, "-a", true);
@@ -16357,7 +16260,9 @@ qemuDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
     virQEMUDriverPtr driver = snapshot->domain->conn->privateData;
     virDomainObjPtr vm = NULL;
     int ret = -1;
-    virDomainSnapshotObjPtr snap = NULL;
+    virDomainMomentObjPtr snap = NULL;
+    virDomainMomentObjPtr current = NULL;
+    virDomainSnapshotDefPtr snapdef;
     virObjectEventPtr event = NULL;
     virObjectEventPtr event2 = NULL;
     int detail;
@@ -16416,10 +16321,11 @@ qemuDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
 
     if (!(snap = qemuSnapObjFromSnapshot(vm, snapshot)))
         goto endjob;
+    snapdef = virDomainSnapshotObjGetDef(snap);
 
     if (!vm->persistent &&
-        snap->def->state != VIR_DOMAIN_RUNNING &&
-        snap->def->state != VIR_DOMAIN_PAUSED &&
+        snapdef->state != VIR_DOMAIN_SNAPSHOT_RUNNING &&
+        snapdef->state != VIR_DOMAIN_SNAPSHOT_PAUSED &&
         (flags & (VIR_DOMAIN_SNAPSHOT_REVERT_RUNNING |
                   VIR_DOMAIN_SNAPSHOT_REVERT_PAUSED)) == 0) {
         virReportError(VIR_ERR_OPERATION_INVALID, "%s",
@@ -16442,8 +16348,8 @@ qemuDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
             goto endjob;
         }
         if (virDomainObjIsActive(vm) &&
-            !(snap->def->state == VIR_DOMAIN_RUNNING
-              || snap->def->state == VIR_DOMAIN_PAUSED) &&
+            !(snapdef->state == VIR_DOMAIN_SNAPSHOT_RUNNING ||
+              snapdef->state == VIR_DOMAIN_SNAPSHOT_PAUSED) &&
             (flags & (VIR_DOMAIN_SNAPSHOT_REVERT_RUNNING |
                       VIR_DOMAIN_SNAPSHOT_REVERT_PAUSED))) {
             virReportError(VIR_ERR_SNAPSHOT_REVERT_RISKY, "%s",
@@ -16452,15 +16358,14 @@ qemuDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
         }
     }
 
-
-    if (vm->current_snapshot) {
-        vm->current_snapshot->def->current = false;
-        if (qemuDomainSnapshotWriteMetadata(vm, vm->current_snapshot,
+    current = virDomainSnapshotGetCurrent(vm->snapshots);
+    if (current) {
+        virDomainSnapshotSetCurrent(vm->snapshots, NULL);
+        if (qemuDomainSnapshotWriteMetadata(vm, current,
                                             driver->caps, driver->xmlopt,
                                             cfg->snapshotDir) < 0)
             goto endjob;
-        vm->current_snapshot = NULL;
-        /* XXX Should we restore vm->current_snapshot after this point
+        /* XXX Should we restore the current snapshot after this point
          * in the failure cases where we know there was no change?  */
     }
 
@@ -16469,7 +16374,6 @@ qemuDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
      *
      * XXX Should domain snapshots track live xml rather
      * than inactive xml?  */
-    snap->def->current = true;
     if (snap->def->dom) {
         config = virDomainDefCopy(snap->def->dom, caps,
                                   driver->xmlopt, NULL, true);
@@ -16477,11 +16381,11 @@ qemuDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
             goto endjob;
     }
 
-    cookie = (qemuDomainSaveCookiePtr) snap->def->cookie;
+    cookie = (qemuDomainSaveCookiePtr) snapdef->cookie;
 
-    switch ((virDomainState) snap->def->state) {
-    case VIR_DOMAIN_RUNNING:
-    case VIR_DOMAIN_PAUSED:
+    switch ((virDomainSnapshotState) snapdef->state) {
+    case VIR_DOMAIN_SNAPSHOT_RUNNING:
+    case VIR_DOMAIN_SNAPSHOT_PAUSED:
 
         start_flags |= VIR_QEMU_PROCESS_START_PAUSED;
 
@@ -16620,7 +16524,7 @@ qemuDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
 
         /* Touch up domain state.  */
         if (!(flags & VIR_DOMAIN_SNAPSHOT_REVERT_RUNNING) &&
-            (snap->def->state == VIR_DOMAIN_PAUSED ||
+            (snapdef->state == VIR_DOMAIN_SNAPSHOT_PAUSED ||
              (flags & VIR_DOMAIN_SNAPSHOT_REVERT_PAUSED))) {
             /* Transitions 3, 6, 9 */
             virDomainObjSetState(vm, VIR_DOMAIN_PAUSED,
@@ -16656,9 +16560,9 @@ qemuDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
         }
         break;
 
-    case VIR_DOMAIN_SHUTDOWN:
-    case VIR_DOMAIN_SHUTOFF:
-    case VIR_DOMAIN_CRASHED:
+    case VIR_DOMAIN_SNAPSHOT_SHUTDOWN:
+    case VIR_DOMAIN_SNAPSHOT_SHUTOFF:
+    case VIR_DOMAIN_SNAPSHOT_CRASHED:
         /* Transitions 1, 4, 7 */
         /* Newer qemu -loadvm refuses to revert to the state of a snapshot
          * created by qemu-img snapshot -c.  If the domain is running, we
@@ -16715,19 +16619,21 @@ qemuDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
         }
         break;
 
-    case VIR_DOMAIN_PMSUSPENDED:
+    case VIR_DOMAIN_SNAPSHOT_PMSUSPENDED:
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
                        _("qemu doesn't support reversion of snapshot taken in "
                          "PMSUSPENDED state"));
         goto endjob;
 
-    case VIR_DOMAIN_NOSTATE:
-    case VIR_DOMAIN_BLOCKED:
-    case VIR_DOMAIN_LAST:
+    case VIR_DOMAIN_SNAPSHOT_DISK_SNAPSHOT:
+        /* Rejected earlier as an external snapshot */
+    case VIR_DOMAIN_SNAPSHOT_NOSTATE:
+    case VIR_DOMAIN_SNAPSHOT_BLOCKED:
+    case VIR_DOMAIN_SNAPSHOT_LAST:
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Invalid target domain state '%s'. Refusing "
                          "snapshot reversion"),
-                       virDomainStateTypeToString(snap->def->state));
+                       virDomainSnapshotStateTypeToString(snapdef->state));
         goto endjob;
     }
 
@@ -16738,14 +16644,15 @@ qemuDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
 
  cleanup:
     if (ret == 0) {
+        virDomainSnapshotSetCurrent(vm->snapshots, snap);
         if (qemuDomainSnapshotWriteMetadata(vm, snap, driver->caps,
                                             driver->xmlopt,
-                                            cfg->snapshotDir) < 0)
+                                            cfg->snapshotDir) < 0) {
+            virDomainSnapshotSetCurrent(vm->snapshots, NULL);
             ret = -1;
-        else
-            vm->current_snapshot = snap;
+        }
     } else if (snap) {
-        snap->def->current = false;
+        virDomainSnapshotSetCurrent(vm->snapshots, NULL);
     }
     if (ret == 0 && config && vm->persistent &&
         !(ret = virDomainSaveConfig(cfg->configDir, driver->caps,
@@ -16768,45 +16675,41 @@ qemuDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
 }
 
 
-typedef struct _virQEMUSnapReparent virQEMUSnapReparent;
-typedef virQEMUSnapReparent *virQEMUSnapReparentPtr;
-struct _virQEMUSnapReparent {
-    virQEMUDriverConfigPtr cfg;
-    virDomainSnapshotObjPtr parent;
+typedef struct _virQEMUMomentReparent virQEMUMomentReparent;
+typedef virQEMUMomentReparent *virQEMUMomentReparentPtr;
+struct _virQEMUMomentReparent {
+    const char *dir;
+    virDomainMomentObjPtr parent;
     virDomainObjPtr vm;
     virCapsPtr caps;
     virDomainXMLOptionPtr xmlopt;
     int err;
-    virDomainSnapshotObjPtr last;
+    int (*writeMetadata)(virDomainObjPtr, virDomainMomentObjPtr,
+                         virCapsPtr, virDomainXMLOptionPtr, const char *);
 };
 
 
 static int
-qemuDomainSnapshotReparentChildren(void *payload,
-                                   const void *name ATTRIBUTE_UNUSED,
-                                   void *data)
+qemuDomainMomentReparentChildren(void *payload,
+                                 const void *name ATTRIBUTE_UNUSED,
+                                 void *data)
 {
-    virDomainSnapshotObjPtr snap = payload;
-    virQEMUSnapReparentPtr rep = data;
+    virDomainMomentObjPtr moment = payload;
+    virQEMUMomentReparentPtr rep = data;
 
     if (rep->err < 0)
         return 0;
 
-    VIR_FREE(snap->def->parent);
-    snap->parent = rep->parent;
+    VIR_FREE(moment->def->parent);
 
     if (rep->parent->def &&
-        VIR_STRDUP(snap->def->parent, rep->parent->def->name) < 0) {
+        VIR_STRDUP(moment->def->parent, rep->parent->def->name) < 0) {
         rep->err = -1;
         return 0;
     }
 
-    if (!snap->sibling)
-        rep->last = snap;
-
-    rep->err = qemuDomainSnapshotWriteMetadata(rep->vm, snap,
-                                               rep->caps, rep->xmlopt,
-                                               rep->cfg->snapshotDir);
+    rep->err = rep->writeMetadata(rep->vm, moment, rep->caps, rep->xmlopt,
+                                  rep->dir);
     return 0;
 }
 
@@ -16818,9 +16721,9 @@ qemuDomainSnapshotDelete(virDomainSnapshotPtr snapshot,
     virQEMUDriverPtr driver = snapshot->domain->conn->privateData;
     virDomainObjPtr vm = NULL;
     int ret = -1;
-    virDomainSnapshotObjPtr snap = NULL;
-    virQEMUSnapRemove rem;
-    virQEMUSnapReparent rep;
+    virDomainMomentObjPtr snap = NULL;
+    virQEMUMomentRemove rem;
+    virQEMUMomentReparent rep;
     bool metadata_only = !!(flags & VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY);
     int external = 0;
     virQEMUDriverConfigPtr cfg = NULL;
@@ -16849,9 +16752,9 @@ qemuDomainSnapshotDelete(virDomainSnapshotPtr snapshot,
             external++;
         if (flags & (VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN |
                      VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN_ONLY))
-            virDomainSnapshotForEachDescendant(snap,
-                                               qemuDomainSnapshotCountExternal,
-                                               &external);
+            virDomainMomentForEachDescendant(snap,
+                                             qemuDomainSnapshotCountExternal,
+                                             &external);
         if (external) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("deletion of %d external disk snapshots not "
@@ -16866,49 +16769,45 @@ qemuDomainSnapshotDelete(virDomainSnapshotPtr snapshot,
         rem.vm = vm;
         rem.metadata_only = metadata_only;
         rem.err = 0;
-        rem.current = false;
-        virDomainSnapshotForEachDescendant(snap,
-                                           qemuDomainSnapshotDiscardAll,
-                                           &rem);
+        rem.current = virDomainSnapshotGetCurrent(vm->snapshots);
+        rem.found = false;
+        rem.momentDiscard = qemuDomainSnapshotDiscard;
+        virDomainMomentForEachDescendant(snap, qemuDomainMomentDiscardAll,
+                                         &rem);
         if (rem.err < 0)
             goto endjob;
-        if (rem.current) {
+        if (rem.found) {
+            virDomainSnapshotSetCurrent(vm->snapshots, snap);
             if (flags & VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN_ONLY) {
-                snap->def->current = true;
                 if (qemuDomainSnapshotWriteMetadata(vm, snap, driver->caps,
                                                     driver->xmlopt,
                                                     cfg->snapshotDir) < 0) {
                     virReportError(VIR_ERR_INTERNAL_ERROR,
                                    _("failed to set snapshot '%s' as current"),
                                    snap->def->name);
-                    snap->def->current = false;
+                    virDomainSnapshotSetCurrent(vm->snapshots, NULL);
                     goto endjob;
                 }
             }
-            vm->current_snapshot = snap;
         }
     } else if (snap->nchildren) {
-        rep.cfg = cfg;
+        rep.dir = cfg->snapshotDir;
         rep.parent = snap->parent;
         rep.vm = vm;
         rep.err = 0;
-        rep.last = NULL;
         rep.caps = driver->caps;
         rep.xmlopt = driver->xmlopt;
-        virDomainSnapshotForEachChild(snap,
-                                      qemuDomainSnapshotReparentChildren,
-                                      &rep);
+        rep.writeMetadata = qemuDomainSnapshotWriteMetadata;
+        virDomainMomentForEachChild(snap,
+                                    qemuDomainMomentReparentChildren,
+                                    &rep);
         if (rep.err < 0)
             goto endjob;
-        /* Can't modify siblings during ForEachChild, so do it now.  */
-        snap->parent->nchildren += snap->nchildren;
-        rep.last->sibling = snap->parent->first_child;
-        snap->parent->first_child = snap->first_child;
+        virDomainMomentMoveChildren(snap, snap->parent);
     }
 
     if (flags & VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN_ONLY) {
-        snap->nchildren = 0;
-        snap->first_child = NULL;
+        virDomainMomentDropChildren(snap);
         ret = 0;
     } else {
         ret = qemuDomainSnapshotDiscard(driver, vm, snap, true, metadata_only);
@@ -22672,7 +22571,6 @@ static virConnectDriver qemuConnectDriver = {
 static virStateDriver qemuStateDriver = {
     .name = QEMU_DRIVER_NAME,
     .stateInitialize = qemuStateInitialize,
-    .stateAutoStart = qemuStateAutoStart,
     .stateCleanup = qemuStateCleanup,
     .stateReload = qemuStateReload,
     .stateStop = qemuStateStop,

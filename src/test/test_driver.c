@@ -1,7 +1,7 @@
 /*
  * test_driver.c: A "mock" hypervisor for use by application unit tests
  *
- * Copyright (C) 2006-2015 Red Hat, Inc.
+ * Copyright (C) 2006-2019 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -63,6 +63,7 @@
 #include "virdomainobjlist.h"
 #include "virinterfaceobj.h"
 #include "virhostcpu.h"
+#include "virdomainsnapshotobjlist.h"
 
 #define VIR_FROM_THIS VIR_FROM_TEST
 
@@ -818,9 +819,10 @@ testParseDomainSnapshots(testDriverPtr privconn,
     int ret = -1;
     testDomainNamespaceDefPtr nsdata = domobj->def->namespaceData;
     xmlNodePtr *nodes = nsdata->snap_nodes;
+    bool cur;
 
     for (i = 0; i < nsdata->num_snap_nodes; i++) {
-        virDomainSnapshotObjPtr snap;
+        virDomainMomentObjPtr snap;
         virDomainSnapshotDefPtr def;
         xmlNodePtr node = testParseXMLDocFromFile(nodes[i], file,
                                                   "domainsnapshot");
@@ -830,6 +832,7 @@ testParseDomainSnapshots(testDriverPtr privconn,
         def = virDomainSnapshotDefParseNode(ctxt->doc, node,
                                             privconn->caps,
                                             privconn->xmlopt,
+                                            &cur,
                                             VIR_DOMAIN_SNAPSHOT_PARSE_DISKS |
                                             VIR_DOMAIN_SNAPSHOT_PARSE_INTERNAL |
                                             VIR_DOMAIN_SNAPSHOT_PARSE_REDEFINE);
@@ -841,14 +844,14 @@ testParseDomainSnapshots(testDriverPtr privconn,
             goto error;
         }
 
-        if (def->current) {
-            if (domobj->current_snapshot) {
+        if (cur) {
+            if (virDomainSnapshotGetCurrent(domobj->snapshots)) {
                 virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                _("more than one snapshot claims to be active"));
                 goto error;
             }
 
-            domobj->current_snapshot = snap;
+            virDomainSnapshotSetCurrent(domobj->snapshots, snap);
         }
     }
 
@@ -5164,13 +5167,28 @@ testStorageVolDelete(virStorageVolPtr vol,
 static int
 testStorageVolumeTypeForPool(int pooltype)
 {
-    switch (pooltype) {
-        case VIR_STORAGE_POOL_DIR:
-        case VIR_STORAGE_POOL_FS:
-        case VIR_STORAGE_POOL_NETFS:
-            return VIR_STORAGE_VOL_FILE;
-        default:
-            return VIR_STORAGE_VOL_BLOCK;
+    switch ((virStoragePoolType) pooltype) {
+    case VIR_STORAGE_POOL_DIR:
+    case VIR_STORAGE_POOL_FS:
+    case VIR_STORAGE_POOL_NETFS:
+    case VIR_STORAGE_POOL_VSTORAGE:
+        return VIR_STORAGE_VOL_FILE;
+    case VIR_STORAGE_POOL_SHEEPDOG:
+    case VIR_STORAGE_POOL_ISCSI_DIRECT:
+    case VIR_STORAGE_POOL_GLUSTER:
+    case VIR_STORAGE_POOL_RBD:
+        return VIR_STORAGE_VOL_NETWORK;
+    case VIR_STORAGE_POOL_LOGICAL:
+    case VIR_STORAGE_POOL_DISK:
+    case VIR_STORAGE_POOL_MPATH:
+    case VIR_STORAGE_POOL_ISCSI:
+    case VIR_STORAGE_POOL_SCSI:
+    case VIR_STORAGE_POOL_ZFS:
+        return VIR_STORAGE_VOL_BLOCK;
+    case VIR_STORAGE_POOL_LAST:
+    default:
+        virReportEnumRangeError(virStoragePoolType, pooltype);
+        return -1;
     }
 }
 
@@ -5193,7 +5211,8 @@ testStorageVolGetInfo(virStorageVolPtr vol,
         goto cleanup;
 
     memset(info, 0, sizeof(*info));
-    info->type = testStorageVolumeTypeForPool(def->type);
+    if ((info->type = testStorageVolumeTypeForPool(def->type)) < 0)
+        goto cleanup;
     info->capacity = privvol->target.capacity;
     info->allocation = privvol->target.allocation;
     ret = 0;
@@ -5927,11 +5946,11 @@ testDomainManagedSaveRemove(virDomainPtr dom, unsigned int flags)
  * Snapshot APIs
  */
 
-static virDomainSnapshotObjPtr
+static virDomainMomentObjPtr
 testSnapObjFromName(virDomainObjPtr vm,
                     const char *name)
 {
-    virDomainSnapshotObjPtr snap = NULL;
+    virDomainMomentObjPtr snap = NULL;
     snap = virDomainSnapshotFindByName(vm->snapshots, name);
     if (!snap)
         virReportError(VIR_ERR_NO_DOMAIN_SNAPSHOT,
@@ -5940,7 +5959,7 @@ testSnapObjFromName(virDomainObjPtr vm,
     return snap;
 }
 
-static virDomainSnapshotObjPtr
+static virDomainMomentObjPtr
 testSnapObjFromSnapshot(virDomainObjPtr vm,
                         virDomainSnapshotPtr snapshot)
 {
@@ -5960,6 +5979,7 @@ testDomainSnapshotNum(virDomainPtr domain, unsigned int flags)
     int n;
 
     virCheckFlags(VIR_DOMAIN_SNAPSHOT_LIST_ROOTS |
+                  VIR_DOMAIN_SNAPSHOT_LIST_TOPOLOGICAL |
                   VIR_DOMAIN_SNAPSHOT_FILTERS_ALL, -1);
 
     if (!(vm = testDomObjFromDomain(domain)))
@@ -5981,6 +6001,7 @@ testDomainSnapshotListNames(virDomainPtr domain,
     int n;
 
     virCheckFlags(VIR_DOMAIN_SNAPSHOT_LIST_ROOTS |
+                  VIR_DOMAIN_SNAPSHOT_LIST_TOPOLOGICAL |
                   VIR_DOMAIN_SNAPSHOT_FILTERS_ALL, -1);
 
     if (!(vm = testDomObjFromDomain(domain)))
@@ -6002,6 +6023,7 @@ testDomainListAllSnapshots(virDomainPtr domain,
     int n;
 
     virCheckFlags(VIR_DOMAIN_SNAPSHOT_LIST_ROOTS |
+                  VIR_DOMAIN_SNAPSHOT_LIST_TOPOLOGICAL |
                   VIR_DOMAIN_SNAPSHOT_FILTERS_ALL, -1);
 
     if (!(vm = testDomObjFromDomain(domain)))
@@ -6020,10 +6042,11 @@ testDomainSnapshotListChildrenNames(virDomainSnapshotPtr snapshot,
                                     unsigned int flags)
 {
     virDomainObjPtr vm = NULL;
-    virDomainSnapshotObjPtr snap = NULL;
+    virDomainMomentObjPtr snap = NULL;
     int n = -1;
 
     virCheckFlags(VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS |
+                  VIR_DOMAIN_SNAPSHOT_LIST_TOPOLOGICAL |
                   VIR_DOMAIN_SNAPSHOT_FILTERS_ALL, -1);
 
     if (!(vm = testDomObjFromSnapshot(snapshot)))
@@ -6045,10 +6068,11 @@ testDomainSnapshotNumChildren(virDomainSnapshotPtr snapshot,
                               unsigned int flags)
 {
     virDomainObjPtr vm = NULL;
-    virDomainSnapshotObjPtr snap = NULL;
+    virDomainMomentObjPtr snap = NULL;
     int n = -1;
 
     virCheckFlags(VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS |
+                  VIR_DOMAIN_SNAPSHOT_LIST_TOPOLOGICAL |
                   VIR_DOMAIN_SNAPSHOT_FILTERS_ALL, -1);
 
     if (!(vm = testDomObjFromSnapshot(snapshot)))
@@ -6070,10 +6094,11 @@ testDomainSnapshotListAllChildren(virDomainSnapshotPtr snapshot,
                                   unsigned int flags)
 {
     virDomainObjPtr vm = NULL;
-    virDomainSnapshotObjPtr snap = NULL;
+    virDomainMomentObjPtr snap = NULL;
     int n = -1;
 
     virCheckFlags(VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS |
+                  VIR_DOMAIN_SNAPSHOT_LIST_TOPOLOGICAL |
                   VIR_DOMAIN_SNAPSHOT_FILTERS_ALL, -1);
 
     if (!(vm = testDomObjFromSnapshot(snapshot)))
@@ -6096,7 +6121,7 @@ testDomainSnapshotLookupByName(virDomainPtr domain,
                                unsigned int flags)
 {
     virDomainObjPtr vm;
-    virDomainSnapshotObjPtr snap = NULL;
+    virDomainMomentObjPtr snap = NULL;
     virDomainSnapshotPtr snapshot = NULL;
 
     virCheckFlags(0, NULL);
@@ -6126,7 +6151,7 @@ testDomainHasCurrentSnapshot(virDomainPtr domain,
     if (!(vm = testDomObjFromDomain(domain)))
         return -1;
 
-    ret = (vm->current_snapshot != NULL);
+    ret = (virDomainSnapshotGetCurrent(vm->snapshots) != NULL);
 
     virDomainObjEndAPI(&vm);
     return ret;
@@ -6137,7 +6162,7 @@ testDomainSnapshotGetParent(virDomainSnapshotPtr snapshot,
                             unsigned int flags)
 {
     virDomainObjPtr vm;
-    virDomainSnapshotObjPtr snap = NULL;
+    virDomainMomentObjPtr snap = NULL;
     virDomainSnapshotPtr parent = NULL;
 
     virCheckFlags(0, NULL);
@@ -6168,19 +6193,21 @@ testDomainSnapshotCurrent(virDomainPtr domain,
 {
     virDomainObjPtr vm;
     virDomainSnapshotPtr snapshot = NULL;
+    virDomainMomentObjPtr current;
 
     virCheckFlags(0, NULL);
 
     if (!(vm = testDomObjFromDomain(domain)))
         return NULL;
 
-    if (!vm->current_snapshot) {
+    current = virDomainSnapshotGetCurrent(vm->snapshots);
+    if (!current) {
         virReportError(VIR_ERR_NO_DOMAIN_SNAPSHOT, "%s",
                        _("the domain does not have a current snapshot"));
         goto cleanup;
     }
 
-    snapshot = virGetDomainSnapshot(domain, vm->current_snapshot->def->name);
+    snapshot = virGetDomainSnapshot(domain, current->def->name);
 
  cleanup:
     virDomainObjEndAPI(&vm);
@@ -6193,7 +6220,7 @@ testDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
 {
     virDomainObjPtr vm = NULL;
     char *xml = NULL;
-    virDomainSnapshotObjPtr snap = NULL;
+    virDomainMomentObjPtr snap = NULL;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     testDriverPtr privconn = snapshot->domain->conn->privateData;
 
@@ -6207,10 +6234,9 @@ testDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
 
     virUUIDFormat(snapshot->domain->uuid, uuidstr);
 
-    xml = virDomainSnapshotDefFormat(uuidstr, snap->def, privconn->caps,
-                                     privconn->xmlopt,
-                                     virDomainDefFormatConvertXMLFlags(flags),
-                                     0);
+    xml = virDomainSnapshotDefFormat(uuidstr, virDomainSnapshotObjGetDef(snap),
+                                     privconn->caps, privconn->xmlopt,
+                                     virDomainSnapshotFormatConvertXMLFlags(flags));
 
  cleanup:
     virDomainObjEndAPI(&vm);
@@ -6222,16 +6248,20 @@ testDomainSnapshotIsCurrent(virDomainSnapshotPtr snapshot,
                             unsigned int flags)
 {
     virDomainObjPtr vm = NULL;
-    int ret;
+    int ret = -1;
+    virDomainMomentObjPtr snap = NULL;
 
     virCheckFlags(0, -1);
 
     if (!(vm = testDomObjFromSnapshot(snapshot)))
         return -1;
 
-    ret = (vm->current_snapshot &&
-           STREQ(snapshot->name, vm->current_snapshot->def->name));
+    if (!(snap = testSnapObjFromSnapshot(vm, snapshot)))
+        goto cleanup;
 
+    ret = snap == virDomainSnapshotGetCurrent(vm->snapshots);
+
+ cleanup:
     virDomainObjEndAPI(&vm);
     return ret;
 }
@@ -6271,9 +6301,9 @@ testDomainSnapshotAlignDisks(virDomainObjPtr vm,
         align_location = VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL;
         align_match = false;
         if (virDomainObjIsActive(vm))
-            def->state = VIR_DOMAIN_DISK_SNAPSHOT;
+            def->state = VIR_DOMAIN_SNAPSHOT_DISK_SNAPSHOT;
         else
-            def->state = VIR_DOMAIN_SHUTOFF;
+            def->state = VIR_DOMAIN_SNAPSHOT_SHUTOFF;
         def->memory = VIR_DOMAIN_SNAPSHOT_LOCATION_NONE;
     } else if (def->memory == VIR_DOMAIN_SNAPSHOT_LOCATION_EXTERNAL) {
         def->state = virDomainObjGetState(vm, NULL);
@@ -6281,7 +6311,7 @@ testDomainSnapshotAlignDisks(virDomainObjPtr vm,
         align_match = false;
     } else {
         def->state = virDomainObjGetState(vm, NULL);
-        def->memory = def->state == VIR_DOMAIN_SHUTOFF ?
+        def->memory = def->state == VIR_DOMAIN_SNAPSHOT_SHUTOFF ?
                       VIR_DOMAIN_SNAPSHOT_LOCATION_NONE :
                       VIR_DOMAIN_SNAPSHOT_LOCATION_INTERNAL;
     }
@@ -6297,7 +6327,7 @@ testDomainSnapshotCreateXML(virDomainPtr domain,
     testDriverPtr privconn = domain->conn->privateData;
     virDomainObjPtr vm = NULL;
     virDomainSnapshotDefPtr def = NULL;
-    virDomainSnapshotObjPtr snap = NULL;
+    virDomainMomentObjPtr snap = NULL;
     virDomainSnapshotPtr snapshot = NULL;
     virObjectEventPtr event = NULL;
     bool update_current = true;
@@ -6341,6 +6371,7 @@ testDomainSnapshotCreateXML(virDomainPtr domain,
     if (!(def = virDomainSnapshotDefParseString(xmlDesc,
                                                 privconn->caps,
                                                 privconn->xmlopt,
+                                                NULL,
                                                 parse_flags)))
         goto cleanup;
 
@@ -6350,11 +6381,11 @@ testDomainSnapshotCreateXML(virDomainPtr domain,
                                           &update_current, flags) < 0)
             goto cleanup;
     } else {
-        if (!(def->dom = virDomainDefCopy(vm->def,
-                                          privconn->caps,
-                                          privconn->xmlopt,
-                                          NULL,
-                                          true)))
+        if (!(def->common.dom = virDomainDefCopy(vm->def,
+                                                 privconn->caps,
+                                                 privconn->xmlopt,
+                                                 NULL,
+                                                 true)))
             goto cleanup;
 
         if (testDomainSnapshotAlignDisks(vm, def, flags) < 0)
@@ -6368,9 +6399,8 @@ testDomainSnapshotCreateXML(virDomainPtr domain,
     }
 
     if (!redefine) {
-        if (vm->current_snapshot &&
-            (VIR_STRDUP(snap->def->parent,
-                        vm->current_snapshot->def->name) < 0))
+        if (VIR_STRDUP(snap->def->parent,
+                       virDomainSnapshotGetCurrentName(vm->snapshots)) < 0)
             goto cleanup;
 
         if ((flags & VIR_DOMAIN_SNAPSHOT_CREATE_HALT) &&
@@ -6386,15 +6416,12 @@ testDomainSnapshotCreateXML(virDomainPtr domain,
  cleanup:
     if (vm) {
         if (snapshot) {
-            virDomainSnapshotObjPtr other;
+            virDomainMomentObjPtr other;
             if (update_current)
-                vm->current_snapshot = snap;
+                virDomainSnapshotSetCurrent(vm->snapshots, snap);
             other = virDomainSnapshotFindByName(vm->snapshots,
                                                 snap->def->parent);
-            snap->parent = other;
-            other->nchildren++;
-            snap->sibling = other->first_child;
-            other->first_child = snap;
+            virDomainMomentSetParent(snap, other);
         }
         virDomainObjEndAPI(&vm);
     }
@@ -6416,22 +6443,19 @@ testDomainSnapshotDiscardAll(void *payload,
                              const void *name ATTRIBUTE_UNUSED,
                              void *data)
 {
-    virDomainSnapshotObjPtr snap = payload;
+    virDomainMomentObjPtr snap = payload;
     testSnapRemoveDataPtr curr = data;
 
-    if (snap->def->current)
-        curr->current = true;
-    virDomainSnapshotObjListRemove(curr->vm->snapshots, snap);
+    curr->current |= virDomainSnapshotObjListRemove(curr->vm->snapshots, snap);
     return 0;
 }
 
 typedef struct _testSnapReparentData testSnapReparentData;
 typedef testSnapReparentData *testSnapReparentDataPtr;
 struct _testSnapReparentData {
-    virDomainSnapshotObjPtr parent;
+    virDomainMomentObjPtr parent;
     virDomainObjPtr vm;
     int err;
-    virDomainSnapshotObjPtr last;
 };
 
 static int
@@ -6439,14 +6463,13 @@ testDomainSnapshotReparentChildren(void *payload,
                                    const void *name ATTRIBUTE_UNUSED,
                                    void *data)
 {
-    virDomainSnapshotObjPtr snap = payload;
+    virDomainMomentObjPtr snap = payload;
     testSnapReparentDataPtr rep = data;
 
     if (rep->err < 0)
         return 0;
 
     VIR_FREE(snap->def->parent);
-    snap->parent = rep->parent;
 
     if (rep->parent->def &&
         VIR_STRDUP(snap->def->parent, rep->parent->def->name) < 0) {
@@ -6454,8 +6477,6 @@ testDomainSnapshotReparentChildren(void *payload,
         return 0;
     }
 
-    if (!snap->sibling)
-        rep->last = snap;
     return 0;
 }
 
@@ -6464,8 +6485,8 @@ testDomainSnapshotDelete(virDomainSnapshotPtr snapshot,
                          unsigned int flags)
 {
     virDomainObjPtr vm = NULL;
-    virDomainSnapshotObjPtr snap = NULL;
-    virDomainSnapshotObjPtr parentsnap = NULL;
+    virDomainMomentObjPtr snap = NULL;
+    virDomainMomentObjPtr parentsnap = NULL;
     int ret = -1;
 
     virCheckFlags(VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN |
@@ -6482,49 +6503,38 @@ testDomainSnapshotDelete(virDomainSnapshotPtr snapshot,
         testSnapRemoveData rem;
         rem.vm = vm;
         rem.current = false;
-        virDomainSnapshotForEachDescendant(snap,
-                                           testDomainSnapshotDiscardAll,
-                                           &rem);
-        if (rem.current) {
-            if (flags & VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN_ONLY)
-                snap->def->current = true;
-            vm->current_snapshot = snap;
-        }
+        virDomainMomentForEachDescendant(snap,
+                                         testDomainSnapshotDiscardAll,
+                                         &rem);
+        if (rem.current)
+            virDomainSnapshotSetCurrent(vm->snapshots, snap);
     } else if (snap->nchildren) {
         testSnapReparentData rep;
         rep.parent = snap->parent;
         rep.vm = vm;
         rep.err = 0;
-        rep.last = NULL;
-        virDomainSnapshotForEachChild(snap,
-                                      testDomainSnapshotReparentChildren,
-                                      &rep);
+        virDomainMomentForEachChild(snap,
+                                    testDomainSnapshotReparentChildren,
+                                    &rep);
         if (rep.err < 0)
             goto cleanup;
 
-        /* Can't modify siblings during ForEachChild, so do it now.  */
-        snap->parent->nchildren += snap->nchildren;
-        rep.last->sibling = snap->parent->first_child;
-        snap->parent->first_child = snap->first_child;
+        virDomainMomentMoveChildren(snap, snap->parent);
     }
 
     if (flags & VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN_ONLY) {
-        snap->nchildren = 0;
-        snap->first_child = NULL;
+        virDomainMomentDropChildren(snap);
     } else {
-        virDomainSnapshotDropParent(snap);
-        if (snap == vm->current_snapshot) {
+        virDomainMomentDropParent(snap);
+        if (snap == virDomainSnapshotGetCurrent(vm->snapshots)) {
             if (snap->def->parent) {
                 parentsnap = virDomainSnapshotFindByName(vm->snapshots,
                                                          snap->def->parent);
-                if (!parentsnap) {
+                if (!parentsnap)
                     VIR_WARN("missing parent snapshot matching name '%s'",
                              snap->def->parent);
-                } else {
-                    parentsnap->def->current = true;
-                }
             }
-            vm->current_snapshot = parentsnap;
+            virDomainSnapshotSetCurrent(vm->snapshots, parentsnap);
         }
         virDomainSnapshotObjListRemove(vm->snapshots, snap);
     }
@@ -6541,10 +6551,11 @@ testDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
 {
     testDriverPtr privconn = snapshot->domain->conn->privateData;
     virDomainObjPtr vm = NULL;
-    virDomainSnapshotObjPtr snap = NULL;
+    virDomainMomentObjPtr snap = NULL;
     virObjectEventPtr event = NULL;
     virObjectEventPtr event2 = NULL;
     virDomainDefPtr config = NULL;
+    virDomainSnapshotDefPtr snapdef;
     int ret = -1;
 
     virCheckFlags(VIR_DOMAIN_SNAPSHOT_REVERT_RUNNING |
@@ -6570,10 +6581,11 @@ testDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
 
     if (!(snap = testSnapObjFromSnapshot(vm, snapshot)))
         goto cleanup;
+    snapdef = virDomainSnapshotObjGetDef(snap);
 
     if (!vm->persistent &&
-        snap->def->state != VIR_DOMAIN_RUNNING &&
-        snap->def->state != VIR_DOMAIN_PAUSED &&
+        snapdef->state != VIR_DOMAIN_SNAPSHOT_RUNNING &&
+        snapdef->state != VIR_DOMAIN_SNAPSHOT_PAUSED &&
         (flags & (VIR_DOMAIN_SNAPSHOT_REVERT_RUNNING |
                   VIR_DOMAIN_SNAPSHOT_REVERT_PAUSED)) == 0) {
         virReportError(VIR_ERR_OPERATION_INVALID, "%s",
@@ -6590,8 +6602,8 @@ testDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
             goto cleanup;
         }
         if (virDomainObjIsActive(vm) &&
-            !(snap->def->state == VIR_DOMAIN_RUNNING
-              || snap->def->state == VIR_DOMAIN_PAUSED) &&
+            !(snapdef->state == VIR_DOMAIN_SNAPSHOT_RUNNING ||
+              snapdef->state == VIR_DOMAIN_SNAPSHOT_PAUSED) &&
             (flags & (VIR_DOMAIN_SNAPSHOT_REVERT_RUNNING |
                       VIR_DOMAIN_SNAPSHOT_REVERT_PAUSED))) {
             virReportError(VIR_ERR_SNAPSHOT_REVERT_RISKY, "%s",
@@ -6600,20 +6612,15 @@ testDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
         }
     }
 
+    virDomainSnapshotSetCurrent(vm->snapshots, NULL);
 
-    if (vm->current_snapshot) {
-        vm->current_snapshot->def->current = false;
-        vm->current_snapshot = NULL;
-    }
-
-    snap->def->current = true;
     config = virDomainDefCopy(snap->def->dom, privconn->caps,
                               privconn->xmlopt, NULL, true);
     if (!config)
         goto cleanup;
 
-    if (snap->def->state == VIR_DOMAIN_RUNNING ||
-        snap->def->state == VIR_DOMAIN_PAUSED) {
+    if (snapdef->state == VIR_DOMAIN_SNAPSHOT_RUNNING ||
+        snapdef->state == VIR_DOMAIN_SNAPSHOT_PAUSED) {
         /* Transitions 2, 3, 5, 6, 8, 9 */
         bool was_running = false;
         bool was_stopped = false;
@@ -6672,7 +6679,7 @@ testDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
 
         /* Touch up domain state.  */
         if (!(flags & VIR_DOMAIN_SNAPSHOT_REVERT_RUNNING) &&
-            (snap->def->state == VIR_DOMAIN_PAUSED ||
+            (snapdef->state == VIR_DOMAIN_SNAPSHOT_PAUSED ||
              (flags & VIR_DOMAIN_SNAPSHOT_REVERT_PAUSED))) {
             /* Transitions 3, 6, 9 */
             virDomainObjSetState(vm, VIR_DOMAIN_PAUSED,
@@ -6730,7 +6737,7 @@ testDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
         }
     }
 
-    vm->current_snapshot = snap;
+    virDomainSnapshotSetCurrent(vm->snapshots, snap);
     ret = 0;
  cleanup:
     if (event) {

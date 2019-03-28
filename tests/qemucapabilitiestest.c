@@ -35,9 +35,32 @@ typedef struct _testQemuData testQemuData;
 typedef testQemuData *testQemuDataPtr;
 struct _testQemuData {
     virQEMUDriver driver;
+    const char *dataDir;
     const char *archName;
     const char *base;
+    int ret;
 };
+
+
+static int
+testQemuDataInit(testQemuDataPtr data)
+{
+    if (qemuTestDriverInit(&data->driver) < 0)
+        return -1;
+
+    data->dataDir = abs_srcdir "/qemucapabilitiesdata";
+
+    data->ret = 0;
+
+    return 0;
+}
+
+
+static void
+testQemuDataReset(testQemuDataPtr data)
+{
+    qemuTestDriverFree(&data->driver);
+}
 
 
 static int
@@ -53,10 +76,10 @@ testQemuCaps(const void *opaque)
     unsigned int fakeMicrocodeVersion = 0;
     const char *p;
 
-    if (virAsprintf(&repliesFile, "%s/qemucapabilitiesdata/%s.%s.replies",
-                    abs_srcdir, data->base, data->archName) < 0 ||
-        virAsprintf(&capsFile, "%s/qemucapabilitiesdata/%s.%s.xml",
-                    abs_srcdir, data->base, data->archName) < 0)
+    if (virAsprintf(&repliesFile, "%s/%s.%s.replies",
+                    data->dataDir, data->base, data->archName) < 0 ||
+        virAsprintf(&capsFile, "%s/%s.%s.xml",
+                    data->dataDir, data->base, data->archName) < 0)
         goto cleanup;
 
     if (!(mon = qemuMonitorTestNewFromFileFull(repliesFile, &data->driver, NULL)))
@@ -121,8 +144,8 @@ testQemuCapsCopy(const void *opaque)
     virQEMUCapsPtr copy = NULL;
     char *actual = NULL;
 
-    if (virAsprintf(&capsFile, "%s/qemucapabilitiesdata/%s.%s.xml",
-                    abs_srcdir, data->base, data->archName) < 0)
+    if (virAsprintf(&capsFile, "%s/%s.%s.xml",
+                    data->dataDir, data->base, data->archName) < 0)
         goto cleanup;
 
     if (!(caps = virCapabilitiesNew(virArchFromString(data->archName),
@@ -154,9 +177,35 @@ testQemuCapsCopy(const void *opaque)
 
 
 static int
+doCapsTest(const char *base,
+           const char *archName,
+           void *opaque)
+{
+    testQemuDataPtr data = (testQemuDataPtr) opaque;
+    VIR_AUTOFREE(char *) title = NULL;
+    VIR_AUTOFREE(char *) copyTitle = NULL;
+
+    if (virAsprintf(&title, "%s (%s)", base, archName) < 0 ||
+        virAsprintf(&copyTitle, "copy %s (%s)", base, archName) < 0) {
+        return -1;
+    }
+
+    data->base = base;
+    data->archName = archName;
+
+    if (virTestRun(title, testQemuCaps, data) < 0)
+        data->ret = -1;
+
+    if (virTestRun(copyTitle, testQemuCapsCopy, data) < 0)
+        data->ret = -1;
+
+    return 0;
+}
+
+
+static int
 mymain(void)
 {
-    int ret = 0;
     testQemuData data;
 
 #if !WITH_YAJL
@@ -164,60 +213,16 @@ mymain(void)
     return EXIT_AM_SKIP;
 #endif
 
-    if (virThreadInitialize() < 0 ||
-        qemuTestDriverInit(&data.driver) < 0)
+    if (virThreadInitialize() < 0)
         return EXIT_FAILURE;
 
     virEventRegisterDefaultImpl();
 
-#define DO_TEST(arch, name) \
-    do { \
-        data.archName = arch; \
-        data.base = name; \
-        if (virTestRun(name "(" arch ")", testQemuCaps, &data) < 0) \
-            ret = -1; \
-        if (virTestRun("copy " name "(" arch ")", \
-                       testQemuCapsCopy, &data) < 0) \
-            ret = -1; \
-    } while (0)
+    if (testQemuDataInit(&data) < 0)
+        return EXIT_FAILURE;
 
-    /* Keep this in sync with qemucaps2xmltest */
-    DO_TEST("x86_64", "caps_1.5.3");
-    DO_TEST("x86_64", "caps_1.6.0");
-    DO_TEST("x86_64", "caps_1.7.0");
-    DO_TEST("x86_64", "caps_2.1.1");
-    DO_TEST("x86_64", "caps_2.4.0");
-    DO_TEST("x86_64", "caps_2.5.0");
-    DO_TEST("x86_64", "caps_2.6.0");
-    DO_TEST("x86_64", "caps_2.7.0");
-    DO_TEST("x86_64", "caps_2.8.0");
-    DO_TEST("x86_64", "caps_2.9.0");
-    DO_TEST("x86_64", "caps_2.10.0");
-    DO_TEST("x86_64", "caps_2.11.0");
-    DO_TEST("x86_64", "caps_2.12.0");
-    DO_TEST("x86_64", "caps_3.0.0");
-    DO_TEST("x86_64", "caps_3.1.0");
-    DO_TEST("x86_64", "caps_4.0.0");
-    DO_TEST("aarch64", "caps_2.6.0");
-    DO_TEST("aarch64", "caps_2.10.0");
-    DO_TEST("aarch64", "caps_2.12.0");
-    DO_TEST("ppc64", "caps_2.6.0");
-    DO_TEST("ppc64", "caps_2.9.0");
-    DO_TEST("ppc64", "caps_2.10.0");
-    DO_TEST("ppc64", "caps_2.12.0");
-    DO_TEST("ppc64", "caps_3.0.0");
-    DO_TEST("ppc64", "caps_3.1.0");
-    DO_TEST("s390x", "caps_2.7.0");
-    DO_TEST("s390x", "caps_2.8.0");
-    DO_TEST("s390x", "caps_2.9.0");
-    DO_TEST("s390x", "caps_2.10.0");
-    DO_TEST("s390x", "caps_2.11.0");
-    DO_TEST("s390x", "caps_2.12.0");
-    DO_TEST("s390x", "caps_3.0.0");
-    DO_TEST("riscv32", "caps_3.0.0");
-    DO_TEST("riscv32", "caps_4.0.0");
-    DO_TEST("riscv64", "caps_3.0.0");
-    DO_TEST("riscv64", "caps_4.0.0");
+    if (testQemuCapsIterate(data.dataDir, ".replies", doCapsTest, &data) < 0)
+        return EXIT_FAILURE;
 
     /*
      * Run "tests/qemucapsprobe /path/to/qemu/binary >foo.replies"
@@ -225,11 +230,19 @@ mymain(void)
      *
      * If you manually edit replies files you can run
      * "tests/qemucapsfixreplies foo.replies" to fix the replies ids.
+     *
+     * Once a replies file has been generated and tweaked if necessary,
+     * you can drop it into tests/qemucapabilitiesdata/ (with a sensible
+     * name - look at what's already there for inspiration) and test
+     * programs will automatically pick it up.
+     *
+     * To generate the corresponding output files after a new replies
+     * file has been added, run "VIR_TEST_REGENERATE_OUTPUT=1 make check".
      */
 
-    qemuTestDriverFree(&data.driver);
+    testQemuDataReset(&data);
 
-    return (ret == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
+    return (data.ret == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 VIR_TEST_MAIN(mymain)

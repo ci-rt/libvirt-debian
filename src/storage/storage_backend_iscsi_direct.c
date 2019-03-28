@@ -375,7 +375,6 @@ virISCSIDirectReportLuns(virStoragePoolObjPtr pool,
 
     def->capacity = 0;
     def->allocation = 0;
-    virStoragePoolObjClearVols(pool);
     for (i = 0; i < list->num; i++) {
         if (virISCSIDirectRefreshVol(pool, iscsi, list->luns[i], portal) < 0)
             goto cleanup;
@@ -605,22 +604,16 @@ static int
 virStorageBackendISCSIDirectGetLun(virStorageVolDefPtr vol,
                                    int *lun)
 {
-    const char *name = vol->name;
-    int ret = -1;
+    const char *name;
 
-    if (!STRPREFIX(name, VOL_NAME_PREFIX)) {
+    if (!(name = STRSKIP(vol->name, VOL_NAME_PREFIX)) ||
+        virStrToLong_i(name, NULL, 10, lun) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Invalid volume name %s"), name);
-        goto cleanup;
+                       _("Invalid volume name %s"), vol->name);
+        return -1;
     }
 
-    name += strlen(VOL_NAME_PREFIX);
-    if (virStrToLong_i(name, NULL, 10, lun) < 0)
-        goto cleanup;
-
-    ret = 0;
- cleanup:
-    return ret;
+    return 0;
 }
 
 static int
@@ -645,21 +638,23 @@ virStorageBackendISCSIDirectVolWipeZero(virStorageVolDefPtr vol,
         return ret;
 
     while (lba < nb_block) {
-        if (nb_block - lba > block_size * BLOCK_PER_PACKET) {
+        const uint64_t to_write = MIN(nb_block - lba + 1, BLOCK_PER_PACKET);
 
-            if (!(task = iscsi_write16_sync(iscsi, lun, lba, data,
-                                            block_size * BLOCK_PER_PACKET,
-                                            block_size, 0, 0, 0, 0, 0)))
-                return -1;
+        task = iscsi_write16_sync(iscsi, lun, lba, data,
+                                  block_size * to_write,
+                                  block_size, 0, 0, 0, 0, 0);
+
+        if (!task ||
+            task->status != SCSI_STATUS_GOOD) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("failed to write to LUN %d: %s"),
+                           lun, iscsi_get_error(iscsi));
             scsi_free_scsi_task(task);
-            lba += BLOCK_PER_PACKET;
-        } else {
-            if (!(task = iscsi_write16_sync(iscsi, lun, lba, data, block_size,
-                                        block_size, 0, 0, 0, 0, 0)))
-                return -1;
-            scsi_free_scsi_task(task);
-            lba++;
+            return -1;
         }
+
+        scsi_free_scsi_task(task);
+        lba += to_write;
     }
 
     return 0;
@@ -685,12 +680,8 @@ virStorageBackenISCSIDirectWipeVol(virStoragePoolObjPtr pool,
 
     switch ((virStorageVolWipeAlgorithm) algorithm) {
     case VIR_STORAGE_VOL_WIPE_ALG_ZERO:
-        if (virStorageBackendISCSIDirectVolWipeZero(vol, iscsi) < 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("failed to wipe volume %s"),
-                           vol->name);
+        if (virStorageBackendISCSIDirectVolWipeZero(vol, iscsi) < 0)
             goto cleanup;
-        }
         break;
     case VIR_STORAGE_VOL_WIPE_ALG_TRIM:
     case VIR_STORAGE_VOL_WIPE_ALG_NNSA:

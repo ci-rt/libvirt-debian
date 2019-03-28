@@ -42,8 +42,6 @@ LOGROTATE_FILES_IN += \
 	remote/libvirtd.logrotate.in \
 	$(NULL)
 
-SYSVINIT_FILES_IN += remote/libvirtd.init.in
-
 SYSCONF_FILES += remote/libvirtd.sysconf
 
 PODFILES += remote/libvirtd.pod
@@ -53,8 +51,6 @@ SYSTEMD_UNIT_FILES_IN += \
 	remote/libvirtd.service.in \
 	remote/virt-guest-shutdown.target.in \
 	$(NULL)
-
-UPSTART_FILES += remote/libvirtd.upstart
 
 REMOTE_PROTOCOL = $(srcdir)/remote/remote_protocol.x
 LXC_PROTOCOL = $(srcdir)/remote/lxc_protocol.x
@@ -136,7 +132,6 @@ libvirtd_CFLAGS = \
 	$(LIBNL_CFLAGS) \
 	$(WARN_CFLAGS) \
 	$(PIE_CFLAGS) \
-	$(COVERAGE_CFLAGS) \
 	-I$(srcdir)/access \
 	-I$(srcdir)/conf \
 	-I$(srcdir)/rpc \
@@ -145,7 +140,6 @@ libvirtd_CFLAGS = \
 libvirtd_LDFLAGS = \
 	$(RELRO_LDFLAGS) \
 	$(PIE_LDFLAGS) \
-	$(COVERAGE_LDFLAGS) \
 	$(NO_INDIRECT_LDFLAGS) \
 	$(NO_UNDEFINED_LDFLAGS) \
 	$(NULL)

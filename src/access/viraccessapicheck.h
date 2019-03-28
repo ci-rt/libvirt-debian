@@ -35,6 +35,7 @@ extern int virConnectGetDomainCapabilitiesEnsureACL(virConnectPtr conn);
 extern int virConnectGetHostnameEnsureACL(virConnectPtr conn);
 extern int virConnectGetLibVersionEnsureACL(virConnectPtr conn);
 extern int virConnectGetMaxVcpusEnsureACL(virConnectPtr conn);
+extern int virConnectGetStoragePoolCapabilitiesEnsureACL(virConnectPtr conn);
 extern int virConnectGetSysinfoEnsureACL(virConnectPtr conn);
 extern int virConnectGetTypeEnsureACL(virConnectPtr conn);
 extern int virConnectGetURIEnsureACL(virConnectPtr conn);

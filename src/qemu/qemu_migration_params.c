@@ -86,6 +86,7 @@ VIR_ENUM_IMPL(qemuMigrationCapability, QEMU_MIGRATION_CAP_LAST,
               "compress",
               "pause-before-switchover",
               "late-block-activate",
+              "multifd",
 );
 
 
@@ -103,6 +104,7 @@ VIR_ENUM_IMPL(qemuMigrationParam, QEMU_MIGRATION_PARAM_LAST,
               "block-incremental",
               "xbzrle-cache-size",
               "max-postcopy-bandwidth",
+              "multifd-channels",
 );
 
 typedef struct _qemuMigrationParamsAlwaysOnItem qemuMigrationParamsAlwaysOnItem;
@@ -151,6 +153,10 @@ static const qemuMigrationParamsFlagMapItem qemuMigrationParamsFlagMap[] = {
     {VIR_MIGRATE_POSTCOPY,
      QEMU_MIGRATION_CAP_POSTCOPY,
      QEMU_MIGRATION_SOURCE | QEMU_MIGRATION_DESTINATION},
+
+    {VIR_MIGRATE_PARALLEL,
+     QEMU_MIGRATION_CAP_MULTIFD,
+     QEMU_MIGRATION_SOURCE | QEMU_MIGRATION_DESTINATION},
 };
 
 /* Translation from VIR_MIGRATE_PARAM_* typed parameters to
@@ -184,6 +190,10 @@ static const qemuMigrationParamsTPMapItem qemuMigrationParamsTPMap[] = {
      .unit = 1024 * 1024, /* MiB/s */
      .param = QEMU_MIGRATION_PARAM_MAX_POSTCOPY_BANDWIDTH,
      .party = QEMU_MIGRATION_SOURCE | QEMU_MIGRATION_DESTINATION},
+
+    {.typedParam = VIR_MIGRATE_PARAM_PARALLEL_CONNECTIONS,
+     .param = QEMU_MIGRATION_PARAM_MULTIFD_CHANNELS,
+     .party = QEMU_MIGRATION_SOURCE | QEMU_MIGRATION_DESTINATION},
 };
 
 static const qemuMigrationParamType qemuMigrationParamTypes[] = {
@@ -199,6 +209,7 @@ static const qemuMigrationParamType qemuMigrationParamTypes[] = {
     [QEMU_MIGRATION_PARAM_BLOCK_INCREMENTAL] = QEMU_MIGRATION_PARAM_TYPE_BOOL,
     [QEMU_MIGRATION_PARAM_XBZRLE_CACHE_SIZE] = QEMU_MIGRATION_PARAM_TYPE_ULL,
     [QEMU_MIGRATION_PARAM_MAX_POSTCOPY_BANDWIDTH] = QEMU_MIGRATION_PARAM_TYPE_ULL,
+    [QEMU_MIGRATION_PARAM_MULTIFD_CHANNELS] = QEMU_MIGRATION_PARAM_TYPE_INT,
 };
 verify(ARRAY_CARDINALITY(qemuMigrationParamTypes) == QEMU_MIGRATION_PARAM_LAST);
 
@@ -535,6 +546,13 @@ qemuMigrationParamsFromFlags(virTypedParameterPtr params,
         goto error;
     }
 
+    if (migParams->params[QEMU_MIGRATION_PARAM_MULTIFD_CHANNELS].set &&
+        !(flags & VIR_MIGRATE_PARALLEL)) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("Turn parallel migration on to tune it"));
+        goto error;
+    }
+
     if (qemuMigrationParamsSetCompression(params, nparams, flags, migParams) < 0)
         goto error;
 
@@ -778,14 +796,23 @@ qemuMigrationParamsApply(virQEMUDriverPtr driver,
     if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
         return -1;
 
-    if (!(caps = qemuMigrationCapsToJSON(priv->migrationCaps, migParams->caps)))
-        goto cleanup;
-
-    if (virJSONValueArraySize(caps) > 0) {
-        rc = qemuMonitorSetMigrationCapabilities(priv->mon, caps);
-        caps = NULL;
-        if (rc < 0)
+    if (asyncJob == QEMU_ASYNC_JOB_NONE) {
+        if (!virBitmapIsAllClear(migParams->caps)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Migration capabilities can only be set by "
+                             "a migration job"));
             goto cleanup;
+        }
+    } else {
+        if (!(caps = qemuMigrationCapsToJSON(priv->migrationCaps, migParams->caps)))
+            goto cleanup;
+
+        if (virJSONValueArraySize(caps) > 0) {
+            rc = qemuMonitorSetMigrationCapabilities(priv->mon, caps);
+            caps = NULL;
+            if (rc < 0)
+                goto cleanup;
+        }
     }
 
     /* If QEMU is too old to support xbzrle-cache-size migration parameter,

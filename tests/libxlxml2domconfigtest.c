@@ -41,7 +41,6 @@
 
 # define VIR_FROM_THIS VIR_FROM_LIBXL
 
-static const char *abs_top_srcdir;
 static virCapsPtr caps;
 
 static int
@@ -172,10 +171,6 @@ mymain(void)
 {
     int ret = 0;
 
-    abs_top_srcdir = getenv("abs_top_srcdir");
-    if (!abs_top_srcdir)
-        abs_top_srcdir = abs_srcdir "/..";
-
     /* Set the timezone because we are mocking the time() function.
      * If we don't do that, then localtime() may return unpredictable
      * results. In order to detect things that just work by a blind
@@ -217,6 +212,9 @@ mymain(void)
     DO_TEST("fullvirt-cpuid-legacy-nest");
 # endif
 
+# ifdef LIBXL_HAVE_BUILDINFO_GRANT_LIMITS
+    DO_TEST("max-gntframes-hvm");
+# endif
 
     unlink("libxl-driver.log");
 

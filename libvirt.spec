@@ -215,15 +215,15 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 5.1.0
-Release: 1%{?dist}
+Version: 5.2.0
+Release: 0rc1%{?dist}%{?extra_release}
 License: LGPLv2+
 URL: https://libvirt.org/
 
 %if %(echo %{version} | grep -q "\.0$"; echo $?) == 1
     %define mainturl stable_updates/
 %endif
-Source: https://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.xz
+Source: https://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc1.tar.xz
 
 Requires: libvirt-daemon = %{version}-%{release}
 Requires: libvirt-daemon-config-network = %{version}-%{release}
@@ -326,6 +326,8 @@ BuildRequires: libiscsi-devel
 BuildRequires: parted-devel
 # For Multipath support
 BuildRequires: device-mapper-devel
+# For XFS reflink clone support
+BuildRequires: xfsprogs-devel
 %if %{with_storage_rbd}
 BuildRequires: librados2-devel
 BuildRequires: librbd1-devel
@@ -547,6 +549,9 @@ Requires: util-linux
 %if %{with_qemu}
 # From QEMU RPMs
 Requires: /usr/bin/qemu-img
+%endif
+%if !%{with_storage_rbd}
+Obsoletes: libvirt-daemon-driver-storage-rbd < %{version}-%{release}
 %endif
 
 %description daemon-driver-storage-core
@@ -1323,6 +1328,16 @@ then
   exit 1
 fi
 
+%post libs
+%if 0%{?rhel} == 7
+/sbin/ldconfig
+%endif
+
+%postun libs
+%if 0%{?rhel} == 7
+/sbin/ldconfig
+%endif
+
 %pre daemon
 # 'libvirt' group is just to allow password-less polkit access to
 # libvirtd. The uid number is irrelevant, so we use dynamic allocation
@@ -1442,16 +1457,6 @@ fi
 rm -rf %{_localstatedir}/lib/rpm-state/libvirt || :
 
 
-%triggerun -- libvirt < 0.9.4
-%{_bindir}/systemd-sysv-convert --save libvirtd >/dev/null 2>&1 ||:
-
-# If the package is allowed to autostart:
-/bin/systemctl --no-reload enable libvirtd.service >/dev/null 2>&1 ||:
-
-# Run these because the SysV package being removed won't do them
-/sbin/chkconfig --del libvirtd >/dev/null 2>&1 || :
-/bin/systemctl try-restart libvirtd.service >/dev/null 2>&1 || :
-
 %if %{with_qemu}
 %pre daemon-driver-qemu
 # We want soft static allocation of well-known ids, as disk images
@@ -1474,23 +1479,10 @@ exit 0
 %systemd_preun libvirt-guests.service
 
 %post client
-
-/sbin/ldconfig
 %systemd_post libvirt-guests.service
 
 %postun client
-
-/sbin/ldconfig
 %systemd_postun libvirt-guests.service
-
-%triggerun client -- libvirt < 0.9.4
-%{_bindir}/systemd-sysv-convert --save libvirt-guests >/dev/null 2>&1 ||:
-
-# If the package is allowed to autostart:
-/bin/systemctl --no-reload enable libvirt-guests.service >/dev/null 2>&1 ||:
-
-# Run this because the SysV package being removed won't do them
-/sbin/chkconfig --del libvirt-guests >/dev/null 2>&1 || :
 
 %if %{with_sanlock}
 %post lock-sanlock
@@ -1822,6 +1814,7 @@ exit 0
 %{_datadir}/libvirt/schemas/secret.rng
 %{_datadir}/libvirt/schemas/storagecommon.rng
 %{_datadir}/libvirt/schemas/storagepool.rng
+%{_datadir}/libvirt/schemas/storagepoolcaps.rng
 %{_datadir}/libvirt/schemas/storagevol.rng
 
 %{_datadir}/libvirt/cpu_map/*.xml

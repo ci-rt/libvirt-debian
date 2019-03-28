@@ -349,8 +349,7 @@ admin_client_close_OBJECTS = $(am_admin_client_close_OBJECTS)
 admin_client_close_LDADD = $(LDADD)
 am__DEPENDENCIES_1 =
 admin_client_close_DEPENDENCIES = $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(top_builddir)/src/libvirt.la \
+	$(am__DEPENDENCIES_1) $(top_builddir)/src/libvirt.la \
 	$(top_builddir)/src/libvirt-admin.la
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -360,36 +359,31 @@ am_admin_client_info_OBJECTS = admin/client_info.$(OBJEXT)
 admin_client_info_OBJECTS = $(am_admin_client_info_OBJECTS)
 admin_client_info_LDADD = $(LDADD)
 admin_client_info_DEPENDENCIES = $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(top_builddir)/src/libvirt.la \
+	$(am__DEPENDENCIES_1) $(top_builddir)/src/libvirt.la \
 	$(top_builddir)/src/libvirt-admin.la
 am_admin_client_limits_OBJECTS = admin/client_limits.$(OBJEXT)
 admin_client_limits_OBJECTS = $(am_admin_client_limits_OBJECTS)
 admin_client_limits_LDADD = $(LDADD)
 admin_client_limits_DEPENDENCIES = $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(top_builddir)/src/libvirt.la \
+	$(am__DEPENDENCIES_1) $(top_builddir)/src/libvirt.la \
 	$(top_builddir)/src/libvirt-admin.la
 am_admin_list_clients_OBJECTS = admin/list_clients.$(OBJEXT)
 admin_list_clients_OBJECTS = $(am_admin_list_clients_OBJECTS)
 admin_list_clients_LDADD = $(LDADD)
 admin_list_clients_DEPENDENCIES = $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(top_builddir)/src/libvirt.la \
+	$(am__DEPENDENCIES_1) $(top_builddir)/src/libvirt.la \
 	$(top_builddir)/src/libvirt-admin.la
 am_admin_list_servers_OBJECTS = admin/list_servers.$(OBJEXT)
 admin_list_servers_OBJECTS = $(am_admin_list_servers_OBJECTS)
 admin_list_servers_LDADD = $(LDADD)
 admin_list_servers_DEPENDENCIES = $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(top_builddir)/src/libvirt.la \
+	$(am__DEPENDENCIES_1) $(top_builddir)/src/libvirt.la \
 	$(top_builddir)/src/libvirt-admin.la
 am_admin_logging_OBJECTS = admin/logging.$(OBJEXT)
 admin_logging_OBJECTS = $(am_admin_logging_OBJECTS)
 admin_logging_LDADD = $(LDADD)
 admin_logging_DEPENDENCIES = $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(top_builddir)/src/libvirt.la \
+	$(am__DEPENDENCIES_1) $(top_builddir)/src/libvirt.la \
 	$(top_builddir)/src/libvirt-admin.la
 am_admin_threadpool_params_OBJECTS =  \
 	admin/threadpool_params.$(OBJEXT)
@@ -397,36 +391,31 @@ admin_threadpool_params_OBJECTS =  \
 	$(am_admin_threadpool_params_OBJECTS)
 admin_threadpool_params_LDADD = $(LDADD)
 admin_threadpool_params_DEPENDENCIES = $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(top_builddir)/src/libvirt.la \
+	$(am__DEPENDENCIES_1) $(top_builddir)/src/libvirt.la \
 	$(top_builddir)/src/libvirt-admin.la
 am_dominfo_info1_OBJECTS = dominfo/info1.$(OBJEXT)
 dominfo_info1_OBJECTS = $(am_dominfo_info1_OBJECTS)
 dominfo_info1_LDADD = $(LDADD)
 dominfo_info1_DEPENDENCIES = $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(top_builddir)/src/libvirt.la \
+	$(am__DEPENDENCIES_1) $(top_builddir)/src/libvirt.la \
 	$(top_builddir)/src/libvirt-admin.la
 am_dommigrate_dommigrate_OBJECTS = dommigrate/dommigrate.$(OBJEXT)
 dommigrate_dommigrate_OBJECTS = $(am_dommigrate_dommigrate_OBJECTS)
 dommigrate_dommigrate_LDADD = $(LDADD)
 dommigrate_dommigrate_DEPENDENCIES = $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(top_builddir)/src/libvirt.la \
+	$(am__DEPENDENCIES_1) $(top_builddir)/src/libvirt.la \
 	$(top_builddir)/src/libvirt-admin.la
 am_domsuspend_suspend_OBJECTS = domsuspend/suspend.$(OBJEXT)
 domsuspend_suspend_OBJECTS = $(am_domsuspend_suspend_OBJECTS)
 domsuspend_suspend_LDADD = $(LDADD)
 domsuspend_suspend_DEPENDENCIES = $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(top_builddir)/src/libvirt.la \
+	$(am__DEPENDENCIES_1) $(top_builddir)/src/libvirt.la \
 	$(top_builddir)/src/libvirt-admin.la
 am_domtop_domtop_OBJECTS = domtop/domtop.$(OBJEXT)
 domtop_domtop_OBJECTS = $(am_domtop_domtop_OBJECTS)
 domtop_domtop_LDADD = $(LDADD)
 domtop_domtop_DEPENDENCIES = $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(top_builddir)/src/libvirt.la \
+	$(am__DEPENDENCIES_1) $(top_builddir)/src/libvirt.la \
 	$(top_builddir)/src/libvirt-admin.la
 am_hellolibvirt_hellolibvirt_OBJECTS =  \
 	hellolibvirt/hellolibvirt.$(OBJEXT)
@@ -434,8 +423,7 @@ hellolibvirt_hellolibvirt_OBJECTS =  \
 	$(am_hellolibvirt_hellolibvirt_OBJECTS)
 hellolibvirt_hellolibvirt_LDADD = $(LDADD)
 hellolibvirt_hellolibvirt_DEPENDENCIES = $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(top_builddir)/src/libvirt.la \
+	$(am__DEPENDENCIES_1) $(top_builddir)/src/libvirt.la \
 	$(top_builddir)/src/libvirt-admin.la
 am_object_events_event_test_OBJECTS =  \
 	object-events/object_events_event_test-event-test.$(OBJEXT)
@@ -443,8 +431,7 @@ object_events_event_test_OBJECTS =  \
 	$(am_object_events_event_test_OBJECTS)
 object_events_event_test_LDADD = $(LDADD)
 object_events_event_test_DEPENDENCIES = $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(top_builddir)/src/libvirt.la \
+	$(am__DEPENDENCIES_1) $(top_builddir)/src/libvirt.la \
 	$(top_builddir)/src/libvirt-admin.la
 object_events_event_test_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
@@ -454,15 +441,13 @@ am_openauth_openauth_OBJECTS = openauth/openauth.$(OBJEXT)
 openauth_openauth_OBJECTS = $(am_openauth_openauth_OBJECTS)
 openauth_openauth_LDADD = $(LDADD)
 openauth_openauth_DEPENDENCIES = $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(top_builddir)/src/libvirt.la \
+	$(am__DEPENDENCIES_1) $(top_builddir)/src/libvirt.la \
 	$(top_builddir)/src/libvirt-admin.la
 am_rename_rename_OBJECTS = rename/rename.$(OBJEXT)
 rename_rename_OBJECTS = $(am_rename_rename_OBJECTS)
 rename_rename_LDADD = $(LDADD)
 rename_rename_DEPENDENCIES = $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(top_builddir)/src/libvirt.la \
+	$(am__DEPENDENCIES_1) $(top_builddir)/src/libvirt.la \
 	$(top_builddir)/src/libvirt-admin.la
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -590,8 +575,6 @@ CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
 CONFIG_INCLUDE = @CONFIG_INCLUDE@
-COVERAGE_CFLAGS = @COVERAGE_CFLAGS@
-COVERAGE_LDFLAGS = @COVERAGE_LDFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CURL_CFLAGS = @CURL_CFLAGS@
@@ -1676,7 +1659,6 @@ PVCREATE = @PVCREATE@
 PVREMOVE = @PVREMOVE@
 PVS = @PVS@
 PYTHON = @PYTHON@
-QEMU = @QEMU@
 QEMU_BRIDGE_HELPER = @QEMU_BRIDGE_HELPER@
 QEMU_PR_HELPER = @QEMU_PR_HELPER@
 RADVD = @RADVD@
@@ -2074,7 +2056,7 @@ EXTRA_DIST = \
 AM_CPPFLAGS = \
 	-I$(top_builddir)/include -I$(top_srcdir)/include -I$(top_srcdir)
 
-LDADD = $(STATIC_BINARIES) $(WARN_CFLAGS) $(COVERAGE_LDFLAGS) \
+LDADD = $(STATIC_BINARIES) $(WARN_CFLAGS) \
 	$(top_builddir)/src/libvirt.la \
 	$(top_builddir)/src/libvirt-admin.la
 

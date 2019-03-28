@@ -1,6 +1,71 @@
 libvirt releases
 ================
 
+# v5.2.0 (unreleased)
+
+  * New features
+
+    - Add Storage Pool Capabilities output
+        Add support to list an enumerated list of supported Storage Pools via
+        the virConnectGetCapabilities API when connected via a Storage Driver.
+        Add support to get a more detailed list XML output Storage Pool
+        Capabilities vis the virConnectGetStoragePoolCapabilites API.
+
+    - qemu: Support virtio-{non-}transitional device models
+        virtio-transitional and virtio-non-transitional model values were added
+        to the QEMU driver for the following devices: disk, interface,
+        filesystem, rng, vsock, memballoon, controller type scsi, controller
+        type virtio-serial, input bus virtio type passthrough, hostdev type
+        scsi_host. These new models can be used to give fine grained control
+        over what virtio device version is presented to the guest.
+
+    - qemu: Enable firmware autoselection
+        Libvirt allows users to provide loader path for some time now. However,
+        this puts some burden on users because they need to know what firmware
+        meets their requirements. Now that QEMU ships firmware description
+        files this burden can be moved onto libvirt. It is as easy as setting
+        the firmware attribute in the os element (accepted values are bios and
+        efi). Moreover, libvirt automatically enables domain features needed
+        for firmware it chooses.
+
+    - snapshots: Add support for topological listings
+        A new flag VIR_DOMAIN_SNAPSHOT_LIST_TOPOLOGICAL is available for the
+        various snapshot listing APIs such as virDomainListAllSnapshots(). For
+        drivers that support the flag, the listed snapshots are guaranteed to
+        be sorted such that parents occur before children.
+
+    - Xen: Add support for max grant frames setting
+        Add support for Xen's max_grant_frames setting by adding a new xenbus
+        controller type with a maxGrantFrames attribute. E.g. <controller
+        type='xenbus' maxGrantFrames='64'/>
+
+    - qemu: Add support for parallel migration
+        With QEMU 4.0.0 libvirt can enable parallel migration which causes the
+        memory pages to be processed in parallel by several threads and sent to
+        the destination host using several connections at the same time. This
+        may increase migration speed in case a single thread is unable to
+        saturate the network link.
+
+  * Removed features
+
+    - Drop support for Upstart and "Red Hat" init scripts
+        Not a single one of the platforms we target still uses Upstart, and the
+        Upstart project itself has been abandoned for several years now; the
+        same is true for the "Red Hat" (really System V) init scripts, since
+        RHEL 7 and later releases use systemd.
+
+  * Improvements
+
+    - Report class information for PCI node device capability.
+
+    - Split setup of IPv4 and IPv6 top level chain
+        The requirement resulting from private chains improvement done in
+        v5.1.0 was refined so that only tables from corresponding IP version
+        are required. This means that if a network doesn't have IPv6 enabled
+        then those tables are not required.
+
+  * Bug fixes
+
 # v5.1.0 (2019-03-04)
 
   * New features
@@ -40,7 +105,8 @@ libvirt releases
         Historically firewall rules for virtual networks were added straight
         into the base chains. This works but has a number of bugs and design
         limitations. To address them, libvirt now puts firewall rules into its
-        own chains.
+        own chains. Note that with this change the filter, nat and mangle
+        tables are required for both IPv4 and IPv6.
 
     - Detect CEPH and GPFS as shared FS
         When starting a migration libvirt performs some sanity checks to make

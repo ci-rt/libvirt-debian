@@ -1156,6 +1156,7 @@ struct virshNetEventData {
     bool loop;
     bool timestamp;
     int count;
+    virshNetworkEventCallback *cb;
 };
 typedef struct virshNetEventData virshNetEventData;
 
@@ -1195,6 +1196,12 @@ vshEventLifecyclePrint(virConnectPtr conn ATTRIBUTE_UNUSED,
         vshEventDone(data->ctl);
 }
 
+virshNetworkEventCallback virshNetworkEventCallbacks[] = {
+    { "lifecycle",
+      VIR_NETWORK_EVENT_CALLBACK(vshEventLifecyclePrint), },
+};
+verify(VIR_NETWORK_EVENT_ID_LAST == ARRAY_CARDINALITY(virshNetworkEventCallbacks));
+
 static const vshCmdInfo info_network_event[] = {
     {.name = "help",
      .data = N_("Network Events")
@@ -1209,6 +1216,7 @@ static const vshCmdOptDef opts_network_event[] = {
     VIRSH_COMMON_OPT_NETWORK_OT_STRING(N_("filter by network name or uuid"), 0),
     {.name = "event",
      .type = VSH_OT_STRING,
+     .completer = virshNetworkEventNameCompleter,
      .help = N_("which event type to wait for")
     },
     {.name = "loop",
@@ -1246,7 +1254,7 @@ cmdNetworkEvent(vshControl *ctl, const vshCmd *cmd)
         size_t i;
 
         for (i = 0; i < VIR_NETWORK_EVENT_ID_LAST; i++)
-            vshPrint(ctl, "%s\n", virshNetworkEventIdTypeToString(i));
+            vshPrint(ctl, "%s\n", virshNetworkEventCallbacks[i].name);
         return true;
     }
 
@@ -1256,7 +1264,10 @@ cmdNetworkEvent(vshControl *ctl, const vshCmd *cmd)
         vshError(ctl, "%s", _("either --list or --event <type> is required"));
         return false;
     }
-    if ((event = virshNetworkEventIdTypeFromString(eventName)) < 0) {
+    for (event = 0; event < VIR_NETWORK_EVENT_ID_LAST; event++)
+        if (STREQ(eventName, virshNetworkEventCallbacks[event].name))
+            break;
+    if (event == VIR_NETWORK_EVENT_ID_LAST) {
         vshError(ctl, _("unknown event type %s"), eventName);
         return false;
     }
@@ -1265,6 +1276,7 @@ cmdNetworkEvent(vshControl *ctl, const vshCmd *cmd)
     data.loop = vshCommandOptBool(cmd, "loop");
     data.timestamp = vshCommandOptBool(cmd, "timestamp");
     data.count = 0;
+    data.cb = &virshNetworkEventCallbacks[event];
     if (vshCommandOptTimeoutToMs(ctl, cmd, &timeout) < 0)
         return false;
 
@@ -1274,7 +1286,7 @@ cmdNetworkEvent(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
 
     if ((eventId = virConnectNetworkEventRegisterAny(priv->conn, net, event,
-                                                     VIR_NETWORK_EVENT_CALLBACK(vshEventLifecyclePrint),
+                                                     data.cb->cb,
                                                      &data, NULL)) < 0)
         goto cleanup;
     switch (vshEventWait(ctl)) {

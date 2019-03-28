@@ -30,9 +30,6 @@ struct testInfo {
     char *outActiveName;
     char *outInactiveName;
 
-    virBitmapPtr activeVcpus;
-    bool blockjobs;
-
     virQEMUCapsPtr qemuCaps;
 };
 
@@ -107,9 +104,6 @@ testInfoClear(struct testInfo *info)
     VIR_FREE(info->inName);
     VIR_FREE(info->outActiveName);
     VIR_FREE(info->outInactiveName);
-
-    virBitmapFree(info->activeVcpus);
-    info->activeVcpus = NULL;
 
     virObjectUnref(info->qemuCaps);
 }
@@ -375,7 +369,7 @@ mymain(void)
             QEMU_CAPS_CCW);
     DO_TEST("disk-mirror-old", NONE);
     DO_TEST("disk-mirror", NONE);
-    DO_TEST_FULL("disk-active-commit", WHEN_ACTIVE, GIC_NONE, NONE);
+    DO_TEST("disk-active-commit", NONE);
     DO_TEST("graphics-listen-network", NONE);
     DO_TEST("graphics-vnc", NONE);
     DO_TEST("graphics-vnc-websocket", NONE);
@@ -451,7 +445,7 @@ mymain(void)
     DO_TEST("channel-virtio", NONE);
     DO_TEST("channel-virtio-state", NONE);
 
-    DO_TEST_FULL("channel-unix-source-path", WHEN_INACTIVE, GIC_NONE, NONE);
+    DO_TEST("channel-unix-source-path", NONE);
 
     DO_TEST("hostdev-usb-address", NONE);
     DO_TEST("hostdev-pci-address", NONE);
@@ -549,7 +543,7 @@ mymain(void)
     DO_TEST_FULL("seclabel-dynamic-labelskip", WHEN_INACTIVE, GIC_NONE, NONE);
     DO_TEST_FULL("seclabel-dynamic-relabel", WHEN_INACTIVE, GIC_NONE, NONE);
     DO_TEST("seclabel-static", NONE);
-    DO_TEST_FULL("seclabel-static-labelskip", WHEN_ACTIVE, GIC_NONE, NONE);
+    DO_TEST("seclabel-static-labelskip", NONE);
     DO_TEST("seclabel-none", NONE);
     DO_TEST("seclabel-dac-none", NONE);
     DO_TEST("seclabel-dynamic-none", NONE);
@@ -1029,9 +1023,36 @@ mymain(void)
     DO_TEST("smbios", NONE);
     DO_TEST("smbios-multiple-type2", NONE);
 
+    DO_TEST("os-firmware-bios",
+            QEMU_CAPS_DEVICE_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_IOH3420,
+            QEMU_CAPS_ICH9_AHCI,
+            QEMU_CAPS_ICH9_USB_EHCI1,
+            QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
+            QEMU_CAPS_DEVICE_QXL);
+    DO_TEST("os-firmware-efi",
+            QEMU_CAPS_DEVICE_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_IOH3420,
+            QEMU_CAPS_ICH9_AHCI,
+            QEMU_CAPS_ICH9_USB_EHCI1,
+            QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
+            QEMU_CAPS_DEVICE_QXL);
+    DO_TEST("os-firmware-efi-secboot",
+            QEMU_CAPS_DEVICE_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_IOH3420,
+            QEMU_CAPS_ICH9_AHCI,
+            QEMU_CAPS_ICH9_USB_EHCI1,
+            QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
+            QEMU_CAPS_DEVICE_QXL);
+
     DO_TEST("aarch64-aavmf-virtio-mmio",
             QEMU_CAPS_DEVICE_VIRTIO_MMIO,
             QEMU_CAPS_DEVICE_VIRTIO_RNG, QEMU_CAPS_OBJECT_RNG_RANDOM);
+    DO_TEST("aarch64-os-firmware-efi",
+            QEMU_CAPS_DEVICE_VIRTIO_MMIO);
     DO_TEST("aarch64-virtio-pci-default",
             QEMU_CAPS_VIRTIO_PCI_DISABLE_LEGACY,
             QEMU_CAPS_DEVICE_VIRTIO_MMIO,
@@ -1253,6 +1274,25 @@ mymain(void)
             QEMU_CAPS_DEVICE_VIRTIO_MMIO);
     DO_TEST("riscv64-virt-pci",
             QEMU_CAPS_OBJECT_GPEX);
+
+    DO_TEST("virtio-transitional",
+            QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
+            QEMU_CAPS_DEVICE_PCIE_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_PCIE_ROOT_PORT,
+            QEMU_CAPS_DEVICE_VIRTIO_RNG,
+            QEMU_CAPS_VIRTIO_PCI_DISABLE_LEGACY,
+            QEMU_CAPS_DEVICE_VHOST_VSOCK,
+            QEMU_CAPS_VIRTIO_INPUT_HOST,
+            QEMU_CAPS_VIRTIO_SCSI);
+    DO_TEST("virtio-non-transitional",
+            QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
+            QEMU_CAPS_DEVICE_PCIE_PCI_BRIDGE,
+            QEMU_CAPS_DEVICE_PCIE_ROOT_PORT,
+            QEMU_CAPS_DEVICE_VIRTIO_RNG,
+            QEMU_CAPS_VIRTIO_PCI_DISABLE_LEGACY,
+            QEMU_CAPS_DEVICE_VHOST_VSOCK,
+            QEMU_CAPS_VIRTIO_INPUT_HOST,
+            QEMU_CAPS_VIRTIO_SCSI);
 
     if (getenv("LIBVIRT_SKIP_CLEANUP") == NULL)
         virFileDeleteTree(fakerootdir);

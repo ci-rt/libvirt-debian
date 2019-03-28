@@ -78,6 +78,7 @@ virObjectOnceInit(void)
     if (!(virObjectClass = virClassNew(NULL,
                                        "virObject",
                                        sizeof(virObject),
+                                       0,
                                        NULL)))
         return -1;
 
@@ -147,10 +148,11 @@ virClassForObjectRWLockable(void)
  *
  * Register a new object class with @name. The @objectSize
  * should give the total size of the object struct, which
- * is expected to have a 'virObject object;' field as its
- * first member. When the last reference on the object is
- * released, the @dispose callback will be invoked to free
- * memory of the object fields
+ * is expected to have a 'virObject parent;' field as (or
+ * contained in) its first member. When the last reference
+ * on the object is released, the @dispose callback will be
+ * invoked to free memory of the local object fields, as
+ * well as the dispose callbacks of the parent classes.
  *
  * Returns a new class instance
  */
@@ -158,6 +160,7 @@ virClassPtr
 virClassNew(virClassPtr parent,
             const char *name,
             size_t objectSize,
+            size_t parentSize,
             virObjectDisposeCallback dispose)
 {
     virClassPtr klass;
@@ -166,10 +169,11 @@ virClassNew(virClassPtr parent,
         STRNEQ(name, "virObject")) {
         virReportInvalidNonNullArg(parent);
         return NULL;
-    } else if (parent &&
-               objectSize <= parent->objectSize) {
+    } else if (objectSize <= parentSize ||
+               parentSize != (parent ? parent->objectSize : 0)) {
+        sa_assert(parent);
         virReportInvalidArg(objectSize,
-                            _("object size %zu of %s is smaller than parent class %zu"),
+                            _("object size %zu of %s is not larger than parent class %zu"),
                             objectSize, name, parent->objectSize);
         return NULL;
     }
@@ -326,8 +330,9 @@ virObjectRWLockableDispose(void *anyobj)
  * @anyobj: any instance of virObjectPtr
  *
  * Decrement the reference count on @anyobj and if
- * it hits zero, runs the "dispose" callback associated
- * with the object class and frees @anyobj.
+ * it hits zero, runs the "dispose" callbacks associated
+ * with the object class and its parents before freeing
+ * @anyobj.
  *
  * Returns true if the remaining reference count is
  * non-zero, false if the object was disposed of
@@ -372,6 +377,7 @@ virObjectAutoUnref(void *objptr)
 {
     virObjectPtr *obj = objptr;
     virObjectUnref(*obj);
+    *obj = NULL;
 }
 
 

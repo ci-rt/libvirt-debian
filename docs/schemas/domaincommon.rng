@@ -256,6 +256,14 @@
     </optional>
     <element name="os">
       <interleave>
+        <optional>
+          <attribute name="firmware">
+            <choice>
+              <value>bios</value>
+              <value>efi</value>
+            </choice>
+          </attribute>
+        </optional>
         <ref name="ostypehvm"/>
         <optional>
           <element name="loader">
@@ -283,7 +291,9 @@
                 </choice>
               </attribute>
             </optional>
-            <ref name="absFilePath"/>
+            <optional>
+              <ref name="absFilePath"/>
+            </optional>
           </element>
         </optional>
         <optional>
@@ -1510,6 +1520,15 @@
         </group>
       </choice>
       <optional>
+        <attribute name="model">
+          <choice>
+            <value>virtio</value>
+            <value>virtio-transitional</value>
+            <value>virtio-non-transitional</value>
+          </choice>
+        </attribute>
+      </optional>
+      <optional>
         <ref name="snapshot"/>
       </optional>
     </element>
@@ -2147,6 +2166,8 @@
                   <value>ibmvscsi</value>
                   <value>virtio-scsi</value>
                   <value>lsisas1078</value>
+                  <value>virtio-transitional</value>
+                  <value>virtio-non-transitional</value>
                 </choice>
               </attribute>
             </optional>
@@ -2305,12 +2326,32 @@
               <value>virtio-serial</value>
             </attribute>
             <optional>
+              <attribute name="model">
+                <choice>
+                  <value>virtio</value>
+                  <value>virtio-transitional</value>
+                  <value>virtio-non-transitional</value>
+                </choice>
+              </attribute>
+            </optional>
+            <optional>
               <attribute name="ports">
                 <ref name="unsignedInt"/>
               </attribute>
             </optional>
             <optional>
               <attribute name="vectors">
+                <ref name="unsignedInt"/>
+              </attribute>
+            </optional>
+          </group>
+          <!-- xenbus has an optional attribute "maxGrantFrames" -->
+          <group>
+            <attribute name="type">
+              <value>xenbus</value>
+            </attribute>
+            <optional>
+              <attribute name="maxGrantFrames">
                 <ref name="unsignedInt"/>
               </attribute>
             </optional>
@@ -2493,6 +2534,15 @@
           </element>
         </optional>
       </interleave>
+      <optional>
+        <attribute name="model">
+          <choice>
+            <value>virtio</value>
+            <value>virtio-transitional</value>
+            <value>virtio-non-transitional</value>
+          </choice>
+        </attribute>
+      </optional>
     </element>
   </define>
   <define name="fsDriver">
@@ -4075,6 +4125,8 @@
       <attribute name="model">
         <choice>
           <value>virtio</value>
+          <value>virtio-transitional</value>
+          <value>virtio-non-transitional</value>
           <value>xen</value>
           <value>none</value>
         </choice>
@@ -4284,7 +4336,11 @@
     <element name="vsock">
       <optional>
         <attribute name="model">
-          <value>virtio</value>
+          <choice>
+            <value>virtio</value>
+            <value>virtio-transitional</value>
+            <value>virtio-non-transitional</value>
+          </choice>
         </attribute>
       </optional>
       <interleave>
@@ -4385,6 +4441,15 @@
             </element>
           </group>
         </choice>
+        <optional>
+          <attribute name="model">
+            <choice>
+              <value>virtio</value>
+              <value>virtio-transitional</value>
+              <value>virtio-non-transitional</value>
+            </choice>
+          </attribute>
+        </optional>
         <optional>
           <ref name="alias"/>
         </optional>
@@ -4621,6 +4686,15 @@
     <attribute name="type">
       <value>scsi_host</value>
     </attribute>
+    <optional>
+      <attribute name="model">
+        <choice>
+          <value>virtio</value>
+          <value>virtio-transitional</value>
+          <value>virtio-non-transitional</value>
+        </choice>
+      </attribute>
+    </optional>
     <element name="source">
       <choice>
         <group>
@@ -5451,7 +5525,11 @@
   <define name="rng">
     <element name="rng">
       <attribute name="model">
-        <value>virtio</value>
+        <choice>
+          <value>virtio</value>
+          <value>virtio-transitional</value>
+          <value>virtio-non-transitional</value>
+        </choice>
       </attribute>
       <interleave>
         <ref name="rng-backend"/>

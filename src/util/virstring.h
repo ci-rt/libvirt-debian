@@ -24,8 +24,6 @@
 # include "internal.h"
 # include "viralloc.h"
 
-typedef char *virString;
-
 char **virStringSplitCount(const char *string,
                            const char *delim,
                            size_t max_tokens,
@@ -53,6 +51,7 @@ int virStringListCopy(char ***dst,
                       const char **src);
 
 void virStringListFree(char **strings);
+void virStringListAutoFree(char ***strings);
 void virStringListFreeCount(char **strings,
                             size_t count);
 
@@ -289,6 +288,16 @@ char *virStringReplace(const char *haystack,
                        const char *newneedle)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 
+bool virStringHasSuffix(const char *str,
+                        const char *suffix);
+bool virStringHasCaseSuffix(const char *str,
+                            const char *suffix);
+bool virStringStripSuffix(char *str,
+                          const char *suffix) ATTRIBUTE_RETURN_CHECK;
+bool virStringMatchesNameSuffix(const char *file,
+                                const char *name,
+                                const char *suffix);
+
 void virStringStripIPv6Brackets(char *str);
 bool virStringHasChars(const char *str,
                        const char *chars);
@@ -307,6 +316,16 @@ int virStringParsePort(const char *str,
                        unsigned int *port)
     ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
 
-VIR_DEFINE_AUTOPTR_FUNC(virString, virStringListFree);
+int virStringParseYesNo(const char *str,
+                        bool *result)
+    ATTRIBUTE_RETURN_CHECK;
+/**
+ * VIR_AUTOSTRINGLIST:
+ *
+ * Declares a NULL-terminated list of strings which will be automatically freed
+ * when the pointer goes out of scope.
+ */
+# define VIR_AUTOSTRINGLIST \
+        __attribute__((cleanup(virStringListAutoFree))) char **
 
 #endif /* LIBVIRT_VIRSTRING_H */

@@ -1,7 +1,7 @@
 /*
  * qemu_domain.h: QEMU domain private state
  *
- * Copyright (C) 2006-2016 Red Hat, Inc.
+ * Copyright (C) 2006-2019 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -38,6 +38,7 @@
 # include "virchrdev.h"
 # include "virobject.h"
 # include "logging/log_manager.h"
+# include "virdomainmomentobjlist.h"
 
 # define QEMU_DOMAIN_FORMAT_LIVE_FLAGS \
     (VIR_DOMAIN_XML_SECURE)
@@ -218,6 +219,7 @@ typedef qemuDomainUnpluggingDevice *qemuDomainUnpluggingDevicePtr;
 struct _qemuDomainUnpluggingDevice {
     const char *alias;
     qemuDomainUnpluggingDeviceStatus status;
+    bool eventSeen; /* True if DEVICE_DELETED event arrived. */
 };
 
 
@@ -680,36 +682,39 @@ int qemuDomainLogAppendMessage(virQEMUDriverPtr driver,
 const char *qemuFindQemuImgBinary(virQEMUDriverPtr driver);
 
 int qemuDomainSnapshotWriteMetadata(virDomainObjPtr vm,
-                                    virDomainSnapshotObjPtr snapshot,
+                                    virDomainMomentObjPtr snapshot,
                                     virCapsPtr caps,
                                     virDomainXMLOptionPtr xmlopt,
-                                    char *snapshotDir);
+                                    const char *snapshotDir);
 
 int qemuDomainSnapshotForEachQcow2(virQEMUDriverPtr driver,
                                    virDomainObjPtr vm,
-                                   virDomainSnapshotObjPtr snap,
+                                   virDomainMomentObjPtr snap,
                                    const char *op,
                                    bool try_all);
 
 int qemuDomainSnapshotDiscard(virQEMUDriverPtr driver,
                               virDomainObjPtr vm,
-                              virDomainSnapshotObjPtr snap,
+                              virDomainMomentObjPtr snap,
                               bool update_current,
                               bool metadata_only);
 
-typedef struct _virQEMUSnapRemove virQEMUSnapRemove;
-typedef virQEMUSnapRemove *virQEMUSnapRemovePtr;
-struct _virQEMUSnapRemove {
+typedef struct _virQEMUMomentRemove virQEMUMomentRemove;
+typedef virQEMUMomentRemove *virQEMUMomentRemovePtr;
+struct _virQEMUMomentRemove {
     virQEMUDriverPtr driver;
     virDomainObjPtr vm;
     int err;
     bool metadata_only;
-    bool current;
+    virDomainMomentObjPtr current;
+    bool found;
+    int (*momentDiscard)(virQEMUDriverPtr, virDomainObjPtr,
+                         virDomainMomentObjPtr, bool, bool);
 };
 
-int qemuDomainSnapshotDiscardAll(void *payload,
-                                 const void *name,
-                                 void *data);
+int qemuDomainMomentDiscardAll(void *payload,
+                               const void *name,
+                               void *data);
 
 int qemuDomainSnapshotDiscardAllMetadata(virQEMUDriverPtr driver,
                                          virDomainObjPtr vm);
@@ -1106,5 +1111,9 @@ qemuDomainIsUsingNoShutdown(qemuDomainObjPrivatePtr priv);
 
 bool
 qemuDomainDiskIsMissingLocalOptional(virDomainDiskDefPtr disk);
+
+int
+qemuDomainNVRAMPathGenerate(virQEMUDriverConfigPtr cfg,
+                            virDomainDefPtr def);
 
 #endif /* LIBVIRT_QEMU_DOMAIN_H */

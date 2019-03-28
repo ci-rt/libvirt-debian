@@ -7511,6 +7511,24 @@ xdr_remote_connect_list_all_nwfilter_bindings_ret (XDR *xdrs, remote_connect_lis
 }
 
 bool_t
+xdr_remote_connect_get_storage_pool_capabilities_args (XDR *xdrs, remote_connect_get_storage_pool_capabilities_args *objp)
+{
+
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_connect_get_storage_pool_capabilities_ret (XDR *xdrs, remote_connect_get_storage_pool_capabilities_ret *objp)
+{
+
+         if (!xdr_remote_nonnull_string (xdrs, &objp->capabilities))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_procedure (XDR *xdrs, remote_procedure *objp)
 {
 

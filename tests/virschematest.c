@@ -41,7 +41,7 @@ static int
 testSchemaFile(const void *args)
 {
     const struct testSchemaData *data = args;
-    bool shouldFail = virFileHasSuffix(data->xml_path, "-invalid.xml");
+    bool shouldFail = virStringHasSuffix(data->xml_path, "-invalid.xml");
     xmlDocPtr xml = NULL;
     int ret = -1;
 
@@ -82,7 +82,7 @@ testSchemaDir(const char *schema,
         return -1;
 
     while ((rc = virDirRead(dir, &ent, dir_path)) > 0) {
-        if (!virFileHasSuffix(ent->d_name, ".xml"))
+        if (!virStringHasSuffix(ent->d_name, ".xml"))
             continue;
         if (ent->d_name[0] == '.')
             continue;
@@ -148,7 +148,7 @@ testSchemaGrammar(const void *opaque)
     int ret = -1;
 
     if (virAsprintf(&schema_path, "%s/docs/schemas/%s",
-                    abs_topsrcdir, data->schema) < 0)
+                    abs_top_srcdir, data->schema) < 0)
         return -1;
 
     if (!(data->validator = virXMLValidatorInit(schema_path)))
@@ -231,6 +231,7 @@ mymain(void)
     DO_TEST_DIR("nwfilter.rng", "nwfilterxml2xmlout", "../examples/xml/nwfilter");
     DO_TEST_DIR("nwfilterbinding.rng", "virnwfilterbindingxml2xmldata");
     DO_TEST_DIR("secret.rng", "secretxml2xmlin");
+    DO_TEST_DIR("storagepoolcaps.rng", "storagepoolcapsschemadata");
     DO_TEST_DIR("storagepool.rng", "storagepoolxml2xmlin", "storagepoolxml2xmlout",
                 "storagepoolschemadata");
     DO_TEST_DIR("storagevol.rng", "storagevolxml2xmlin", "storagevolxml2xmlout",

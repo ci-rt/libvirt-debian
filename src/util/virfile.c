@@ -260,7 +260,7 @@ virFileWrapperFdNew(int *fd, const char *name, unsigned int flags)
     }
 
     if (!(iohelper_path = virFileFindResource("libvirt_iohelper",
-                                              abs_topbuilddir "/src",
+                                              abs_top_builddir "/src",
                                               LIBEXECDIR)))
         goto error;
 
@@ -1044,24 +1044,6 @@ int virFileDeleteTree(const char *dir)
     return ret;
 }
 
-int
-virFileStripSuffix(char *str, const char *suffix)
-{
-    int len = strlen(str);
-    int suffixlen = strlen(suffix);
-
-    if (len < suffixlen)
-        return 0;
-
-    if (STRNEQ(str + len - suffixlen, suffix))
-        return 0;
-
-    str[len-suffixlen] = '\0';
-
-    return 1;
-}
-
-
 /* Like read(), but restarts after EINTR.  Doesn't play
  * nicely with nonblocking FD and EAGAIN, in which case
  * you want to use bare read(). Or even use virSocket()
@@ -1526,36 +1508,6 @@ virFileWriteStr(const char *path, const char *str, mode_t mode)
     return 0;
 }
 
-int
-virFileMatchesNameSuffix(const char *file,
-                         const char *name,
-                         const char *suffix)
-{
-    int filelen = strlen(file);
-    int namelen = strlen(name);
-    int suffixlen = strlen(suffix);
-
-    if (filelen == (namelen + suffixlen) &&
-        STREQLEN(file, name, namelen) &&
-        STREQLEN(file + namelen, suffix, suffixlen))
-        return 1;
-    else
-        return 0;
-}
-
-int
-virFileHasSuffix(const char *str,
-                 const char *suffix)
-{
-    int len = strlen(str);
-    int suffixlen = strlen(suffix);
-
-    if (len < suffixlen)
-        return 0;
-
-    return STRCASEEQ(str + len - suffixlen, suffix);
-}
-
 #define SAME_INODE(Stat_buf_1, Stat_buf_2) \
   ((Stat_buf_1).st_ino == (Stat_buf_2).st_ino \
    && (Stat_buf_1).st_dev == (Stat_buf_2).st_dev)
@@ -1752,7 +1704,7 @@ static bool useDirOverride;
  * @prefix: optional string to prepend to filename
  * @suffix: optional string to append to filename
  * @builddir: location of the filename in the build tree including
- *            abs_topsrcdir or abs_topbuilddir prefix
+ *            abs_top_srcdir or abs_top_builddir prefix
  * @installdir: location of the installed binary
  * @envname: environment variable used to override all dirs
  *
