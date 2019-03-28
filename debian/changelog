@@ -1,3 +1,11 @@
+libvirt (5.2.0~rc1-1~1.gbpccb53c) UNRELEASED; urgency=medium
+
+  ** SNAPSHOT build @ccb53c480afbe9479d7ae6af6823e8e22020524d **
+
+  * [932fa9d] New upstream version 5.2.0~rc1
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 28 Mar 2019 13:27:07 +0100
+
 libvirt (5.1.0-1) experimental; urgency=medium
 
   [ Laurent Bigonville ]

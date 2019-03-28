@@ -2363,21 +2363,6 @@ qemuMonitorBlockResize(qemuMonitorPtr mon,
 }
 
 
-int
-qemuMonitorSetVNCPassword(qemuMonitorPtr mon,
-                          const char *password)
-{
-    VIR_DEBUG("password=%p", password);
-
-    QEMU_CHECK_MONITOR(mon);
-
-    if (!password)
-        password = "";
-
-    return qemuMonitorJSONSetVNCPassword(mon, password);
-}
-
-
 static const char *
 qemuMonitorTypeToProtocol(int type)
 {
@@ -2395,7 +2380,6 @@ qemuMonitorTypeToProtocol(int type)
 }
 
 
-/* Returns -2 if not supported with this monitor connection */
 int
 qemuMonitorSetPassword(qemuMonitorPtr mon,
                        int type,
@@ -3008,6 +2992,16 @@ qemuMonitorDriveDel(qemuMonitorPtr mon,
 }
 
 
+/**
+ * @mon: monitor object
+ * @devalias: alias of the device to detach
+ *
+ * Sends device detach request to qemu.
+ *
+ * Returns: 0 on success,
+ *         -2 if DeviceNotFound error encountered (error NOT reported)
+ *         -1 otherwise (error reported)
+ */
 int
 qemuMonitorDelDevice(qemuMonitorPtr mon,
                      const char *devalias)

@@ -167,6 +167,7 @@ virNWFilterBindingObjListAddLocked(virNWFilterBindingObjListPtr bindings,
                                    virNWFilterBindingDefPtr def)
 {
     virNWFilterBindingObjPtr binding;
+    bool stealDef = false;
 
     /* See if a binding with matching portdev already exists */
     if ((binding = virNWFilterBindingObjListFindByPortDevLocked(
@@ -181,6 +182,7 @@ virNWFilterBindingObjListAddLocked(virNWFilterBindingObjListPtr bindings,
         goto error;
 
     virNWFilterBindingObjSetDef(binding, def);
+    stealDef = true;
 
     if (virNWFilterBindingObjListAddObjLocked(bindings, binding) < 0)
         goto error;
@@ -188,6 +190,8 @@ virNWFilterBindingObjListAddLocked(virNWFilterBindingObjListPtr bindings,
     return binding;
 
  error:
+    if (stealDef)
+        virNWFilterBindingObjStealDef(binding);
     virNWFilterBindingObjEndAPI(&binding);
     return NULL;
 }
@@ -304,7 +308,7 @@ virNWFilterBindingObjListLoadAllConfigs(virNWFilterBindingObjListPtr bindings,
     while ((ret = virDirRead(dir, &entry, configDir)) > 0) {
         virNWFilterBindingObjPtr binding;
 
-        if (!virFileStripSuffix(entry->d_name, ".xml"))
+        if (!virStringStripSuffix(entry->d_name, ".xml"))
             continue;
 
         /* NB: ignoring errors, so one malformed config doesn't

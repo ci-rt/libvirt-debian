@@ -68,10 +68,18 @@ virQEMUCapsInitCPUModel(virQEMUCapsPtr qemuCaps,
 void
 virQEMUCapsInitQMPBasicArch(virQEMUCapsPtr qemuCaps);
 
+qemuMonitorCPUModelInfoPtr
+virQEMUCapsGetCPUModelInfo(virQEMUCapsPtr qemuCaps,
+                           virDomainVirtType type);
+
 void
 virQEMUCapsSetCPUModelInfo(virQEMUCapsPtr qemuCaps,
                            virDomainVirtType type,
                            qemuMonitorCPUModelInfoPtr modelInfo);
+
+virCPUDataPtr
+virQEMUCapsGetCPUModelX86Data(qemuMonitorCPUModelInfoPtr model,
+                              bool migratable);
 
 virCPUDefPtr
 virQEMUCapsProbeHostCPUForEmulator(virArch hostArch,

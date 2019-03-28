@@ -35,11 +35,37 @@ VIR_LOG_INIT("network.bridge_driver_linux");
 
 #define PROC_NET_ROUTE "/proc/net/route"
 
-int networkPreReloadFirewallRules(bool startup)
+static virErrorPtr errInitV4;
+static virErrorPtr errInitV6;
+
+void networkPreReloadFirewallRules(bool startup)
 {
-    int ret = iptablesSetupPrivateChains();
-    if (ret < 0)
-        return -1;
+    bool created = false;
+    int rc;
+
+    /* We create global rules upfront as we don't want
+     * the perf hit of conditionally figuring out whether
+     * to create them each time a network is started.
+     *
+     * Any errors here are saved to be reported at time
+     * of starting the network though as that makes them
+     * more likely to be seen by a human
+     */
+    rc = iptablesSetupPrivateChains(VIR_FIREWALL_LAYER_IPV4);
+    if (rc < 0) {
+        errInitV4 = virSaveLastError();
+        virResetLastError();
+    }
+    if (rc)
+        created = true;
+
+    rc = iptablesSetupPrivateChains(VIR_FIREWALL_LAYER_IPV6);
+    if (rc < 0) {
+        errInitV6 = virSaveLastError();
+        virResetLastError();
+    }
+    if (rc)
+        created = true;
 
     /*
      * If this is initial startup, and we just created the
@@ -54,10 +80,8 @@ int networkPreReloadFirewallRules(bool startup)
      * rules will be present. Thus we can safely just tell it
      * to always delete from the builin chain
      */
-    if (startup && ret == 1)
+    if (startup && created)
         iptablesSetDeletePrivate(false);
-
-    return 0;
 }
 
 
@@ -670,6 +694,21 @@ int networkAddFirewallRules(virNetworkDefPtr def)
     virNetworkIPDefPtr ipdef;
     virFirewallPtr fw = NULL;
     int ret = -1;
+
+    if (errInitV4 &&
+        (virNetworkDefGetIPByIndex(def, AF_INET, 0) ||
+         virNetworkDefGetRouteByIndex(def, AF_INET, 0))) {
+        virSetError(errInitV4);
+        return -1;
+    }
+
+    if (errInitV6 &&
+        (virNetworkDefGetIPByIndex(def, AF_INET6, 0) ||
+         virNetworkDefGetRouteByIndex(def, AF_INET6, 0) ||
+         def->ipv6nogw)) {
+        virSetError(errInitV6);
+        return -1;
+    }
 
     if (def->bridgeZone) {
 

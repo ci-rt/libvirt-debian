@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-## Copyright (C) 2005-2015 Red Hat, Inc.
+## Copyright (C) 2005-2019 Red Hat, Inc.
 ##
 ## This library is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU Lesser General Public
@@ -15,12 +15,6 @@
 ## You should have received a copy of the GNU Lesser General Public
 ## License along with this library.  If not, see
 ## <http://www.gnu.org/licenses/>.
-
-# old automake does not provide abs_{src,build}dir variables
-abs_builddir = $(shell pwd)
-abs_topbuilddir = $(shell cd .. && pwd)
-abs_srcdir = $(shell cd $(srcdir) && pwd)
-abs_topsrcdir = $(shell cd $(top_srcdir) && pwd)
 
 SHELL = $(PREFERABLY_POSIX_SHELL)
 
@@ -37,9 +31,9 @@ WARN_CFLAGS += $(RELAXED_FRAME_LIMIT_CFLAGS)
 
 AM_CFLAGS = \
 	-Dabs_builddir="\"$(abs_builddir)\"" \
-	-Dabs_topbuilddir="\"$(abs_topbuilddir)\"" \
+	-Dabs_top_builddir="\"$(abs_top_builddir)\"" \
 	-Dabs_srcdir="\"$(abs_srcdir)\"" \
-	-Dabs_topsrcdir="\"$(abs_topsrcdir)\"" \
+	-Dabs_top_srcdir="\"$(abs_top_srcdir)\"" \
 	$(LIBXML_CFLAGS) \
 	$(LIBNL_CFLAGS) \
 	$(GNUTLS_CFLAGS) \
@@ -47,7 +41,6 @@ AM_CFLAGS = \
 	$(SELINUX_CFLAGS) \
 	$(APPARMOR_CFLAGS) \
 	$(YAJL_CFLAGS) \
-	$(COVERAGE_CFLAGS) \
 	$(XDR_CFLAGS) \
 	$(WARN_CFLAGS)
 
@@ -62,9 +55,6 @@ DRIVERLIB_LDFLAGS = \
 	-avoid-version \
 	-rpath /evil/libtool/hack/to/force/shared/lib/creation \
 	$(MINGW_EXTRA_LDFLAGS)
-
-AM_CPPFLAGS += \
-	-DTEST_DRIVER_DIR=\"$(top_builddir)/src/.libs\"
 
 PROBES_O =
 if WITH_DTRACE_PROBES
@@ -132,10 +122,12 @@ EXTRA_DIST = \
 	qemuxml2xmloutdata \
 	qemustatusxml2xmldata \
 	qemumemlockdata \
+	qemufirmwaredata \
 	secretxml2xmlin \
 	securityselinuxhelperdata \
 	securityselinuxlabeldata \
 	sexpr2xmldata \
+	storagepoolcapsschemadata \
 	storagepoolschemadata \
 	storagepoolxml2xmlin \
 	storagepoolxml2xmlout \
@@ -273,7 +265,6 @@ endif WITH_SECDRIVER_SELINUX
 
 # This is a fake SSH we use from virnetsockettest
 ssh_SOURCES = ssh.c
-ssh_LDADD = $(COVERAGE_LDFLAGS)
 
 if WITH_LIBXL
 test_programs += xlconfigtest xml2sexprtest sexpr2xmltest \
@@ -291,6 +282,7 @@ test_programs += qemuxml2argvtest qemuxml2xmltest \
 	qemublocktest \
 	qemumigparamstest \
 	qemusecuritytest \
+	qemufirmwaretest \
 	$(NULL)
 test_helpers += qemucapsprobe
 test_libraries += libqemumonitortestutils.la \
@@ -368,6 +360,7 @@ test_programs += storagevolxml2argvtest
 test_programs += storagepoolxml2argvtest
 test_programs += virstorageutiltest
 test_programs += storagepoolxml2xmltest
+test_programs += storagepoolcapstest
 endif WITH_STORAGE
 
 if WITH_STORAGE_FS
@@ -417,6 +410,7 @@ libvirtd_test_scripts = \
 	virsh-schedinfo \
 	virsh-self-test \
 	virt-admin-self-test \
+	virsh-snapshot \
 	virsh-start \
 	virsh-undefine \
 	virsh-uriprecedence \
@@ -468,23 +462,13 @@ endif ! WITH_TESTS
 TESTS = $(test_programs) \
 	$(test_scripts)
 
-# NB, automake < 1.10 does not provide the real
-# abs_top_{src/build}dir or builddir variables, so don't rely
-# on them here. Fake them with 'pwd'
-# Also, BSD sh doesn't like 'a=b b=$$a', so we can't use an
-# intermediate shell variable, but must do all the expansion in make
-
-lv_abs_top_builddir=$(shell cd '$(top_builddir)' && pwd)
-
 VIR_TEST_EXPENSIVE ?= $(VIR_TEST_EXPENSIVE_DEFAULT)
 TESTS_ENVIRONMENT = \
-  abs_top_builddir=$(lv_abs_top_builddir) \
-  abs_top_srcdir=`cd '$(top_srcdir)'; pwd` \
-  abs_builddir=$(abs_builddir) \
-  abs_srcdir=$(abs_srcdir) \
-  CONFIG_HEADER="$(lv_abs_top_builddir)/config.h" \
+  abs_top_builddir="$(abs_top_builddir)" \
+  abs_top_srcdir="$(abs_top_srcdir)" \
+  abs_builddir="$(abs_builddir)" \
+  abs_srcdir="$(abs_srcdir)" \
   SHELL="$(SHELL)" \
-  LIBVIRT_DRIVER_DIR="$(lv_abs_top_builddir)/src/.libs" \
   LIBVIRT_AUTOSTART=0 \
   LC_ALL=C \
   VIR_TEST_EXPENSIVE=$(VIR_TEST_EXPENSIVE) \
@@ -493,7 +477,7 @@ TESTS_ENVIRONMENT = \
 
 VALGRIND = valgrind --quiet --leak-check=full --trace-children=yes \
 	--trace-children-skip="*/tools/virsh","*/tests/commandhelper" \
-	--suppressions=$(srcdir)/.valgrind.supp
+	--suppressions=$(abs_srcdir)/.valgrind.supp
 valgrind:
 	$(MAKE) check VG="$(LIBTOOL) --mode=execute $(VALGRIND)"
 
@@ -581,7 +565,9 @@ qemucpumock_la_LIBADD = $(MOCKLIBS_LIBS)
 
 qemuxml2argvtest_SOURCES = \
 	qemuxml2argvtest.c testutilsqemu.c testutilsqemu.h \
-	testutils.c testutils.h
+	testutils.c testutils.h \
+	virfilewrapper.c virfilewrapper.h \
+	$(NULL)
 qemuxml2argvtest_LDADD = libqemutestdriver.la \
 	$(LDADDS) $(LIBXML_LIBS)
 
@@ -637,6 +623,7 @@ qemucommandutiltest_LDADD = libqemumonitortestutils.la \
 qemucaps2xmltest_SOURCES = \
 	qemucaps2xmltest.c \
 	testutils.c testutils.h \
+	testutilsqemu.c testutilsqemu.h \
 	$(NULL)
 qemucaps2xmltest_LDADD = $(qemu_LDADDS) $(LDADDS)
 
@@ -698,6 +685,13 @@ qemusecuritytest_SOURCES = \
 	testutilsqemu.h testutilsqemu.c
 qemusecuritytest_LDADD = $(qemu_LDADDS) $(LDADDS)
 
+qemufirmwaretest_SOURCES = \
+	qemufirmwaretest.c \
+	testutils.h testutils.c \
+	virfilewrapper.c virfilewrapper.h \
+	$(NULL)
+qemufirmwaretest_LDADD = $(qemu_LDADDS) $(LDADDS)
+
 else ! WITH_QEMU
 EXTRA_DIST += qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c \
 	domainsnapshotxml2xmltest.c \
@@ -711,6 +705,7 @@ EXTRA_DIST += qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c \
 	qemumigparamstest.c \
 	qemusecuritytest.c qemusecuritytest.h \
 	qemusecuritymock.c \
+	qemufirmwaretest.c \
 	$(QEMUMONITORTESTUTILS_SOURCES)
 endif ! WITH_QEMU
 
@@ -935,11 +930,16 @@ storagepoolxml2xmltest_LDADD = $(LDADDS) \
 	../src/libvirt_driver_storage_impl.la \
 	$(GNULIB_LIBS)
 
+storagepoolcapstest_SOURCES = \
+        storagepoolcapstest.c testutils.h testutils.c
+storagepoolcapstest_LDADD = $(LDADDS)
+
 else ! WITH_STORAGE
 EXTRA_DIST += storagevolxml2argvtest.c
 EXTRA_DIST += virstorageutiltest.c
 EXTRA_DIST += storagepoolxml2argvtest.c
 EXTRA_DIST += storagepoolxml2xmltest.c
+EXTRA_DIST += storagepoolcapstest.c
 endif ! WITH_STORAGE
 
 storagevolxml2xmltest_SOURCES = \

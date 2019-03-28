@@ -443,7 +443,6 @@ void virTestCaptureProgramExecChild(const char *const argv[],
     int stdinfd = -1;
     const char *const env[] = {
         "LANG=C",
-        "LIBVIRT_DRIVER_DIR=" TEST_DRIVER_DIR,
         NULL
     };
 
@@ -525,8 +524,8 @@ virTestRewrapFile(const char *filename)
     char *script = NULL;
     virCommandPtr cmd = NULL;
 
-    if (!(virFileHasSuffix(filename, ".args") ||
-          virFileHasSuffix(filename, ".ldargs")))
+    if (!(virStringHasSuffix(filename, ".args") ||
+          virStringHasSuffix(filename, ".ldargs")))
         return 0;
 
     if (!perl) {

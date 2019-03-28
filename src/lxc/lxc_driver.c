@@ -1268,13 +1268,6 @@ static int lxcDomainGetSecurityLabel(virDomainPtr dom, virSecurityLabelPtr secla
     if (virDomainGetSecurityLabelEnsureACL(dom->conn, vm->def) < 0)
         goto cleanup;
 
-    if (!virDomainVirtTypeToString(vm->def->virtType)) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("unknown virt type in domain definition '%d'"),
-                       vm->def->virtType);
-        goto cleanup;
-    }
-
     /*
      * Theoretically, the pid can be replaced during this operation and
      * return the label of a different process.  If atomicity is needed,
@@ -1632,6 +1625,8 @@ static int lxcStateInitialize(bool privileged,
                                        NULL, NULL) < 0)
         goto cleanup;
 
+    virLXCProcessAutostartAll(lxc_driver);
+
     virObjectUnref(caps);
     return 0;
 
@@ -1639,19 +1634,6 @@ static int lxcStateInitialize(bool privileged,
     virObjectUnref(caps);
     lxcStateCleanup();
     return -1;
-}
-
-/**
- * lxcStateAutoStart:
- *
- * Function to autostart the LXC daemons
- */
-static void lxcStateAutoStart(void)
-{
-    if (!lxc_driver)
-        return;
-
-    virLXCProcessAutostartAll(lxc_driver);
 }
 
 static void lxcNotifyLoadDomain(virDomainObjPtr vm, int newVM, void *opaque)
@@ -3280,7 +3262,7 @@ lxcDomainShutdownFlags(virDomainPtr dom,
     virLXCDomainObjPrivatePtr priv;
     virDomainObjPtr vm;
     int ret = -1;
-    int rc;
+    int rc = -1;
 
     virCheckFlags(VIR_DOMAIN_SHUTDOWN_INITCTL |
                   VIR_DOMAIN_SHUTDOWN_SIGNAL, -1);
@@ -3309,19 +3291,17 @@ lxcDomainShutdownFlags(virDomainPtr dom,
         (flags & VIR_DOMAIN_SHUTDOWN_INITCTL)) {
         int command = VIR_INITCTL_RUNLEVEL_POWEROFF;
 
-        if ((rc = virLXCDomainSetRunlevel(vm, command)) < 0)
-            goto endjob;
-        if (rc == 0 && flags != 0 &&
-            ((flags & ~VIR_DOMAIN_SHUTDOWN_INITCTL) == 0)) {
-            virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
-                           _("Container does not provide an initctl pipe"));
-            goto endjob;
+        if ((rc = virLXCDomainSetRunlevel(vm, command)) < 0) {
+            if (flags != 0 &&
+                (flags & VIR_DOMAIN_SHUTDOWN_INITCTL)) {
+                virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                               _("Container does not provide an initctl pipe"));
+                goto endjob;
+            }
         }
-    } else {
-        rc = 0;
     }
 
-    if (rc == 0 &&
+    if (rc < 0 &&
         (flags == 0 ||
          (flags & VIR_DOMAIN_SHUTDOWN_SIGNAL))) {
         if (kill(priv->initpid, SIGTERM) < 0 &&
@@ -3358,7 +3338,7 @@ lxcDomainReboot(virDomainPtr dom,
     virLXCDomainObjPrivatePtr priv;
     virDomainObjPtr vm;
     int ret = -1;
-    int rc;
+    int rc = -1;
 
     virCheckFlags(VIR_DOMAIN_REBOOT_INITCTL |
                   VIR_DOMAIN_REBOOT_SIGNAL, -1);
@@ -3387,19 +3367,17 @@ lxcDomainReboot(virDomainPtr dom,
         (flags & VIR_DOMAIN_REBOOT_INITCTL)) {
         int command = VIR_INITCTL_RUNLEVEL_REBOOT;
 
-        if ((rc = virLXCDomainSetRunlevel(vm, command)) < 0)
-            goto endjob;
-        if (rc == 0 && flags != 0 &&
-            ((flags & ~VIR_DOMAIN_SHUTDOWN_INITCTL) == 0)) {
-            virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
-                           _("Container does not provide an initctl pipe"));
-            goto endjob;
+        if ((rc = virLXCDomainSetRunlevel(vm, command)) < 0) {
+            if (flags != 0 &&
+                (flags & VIR_DOMAIN_REBOOT_INITCTL)) {
+                virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                               _("Container does not provide an initctl pipe"));
+                goto endjob;
+            }
         }
-    } else {
-        rc = 0;
     }
 
-    if (rc == 0 &&
+    if (rc < 0 &&
         (flags == 0 ||
          (flags & VIR_DOMAIN_REBOOT_SIGNAL))) {
         if (kill(priv->initpid, SIGHUP) < 0 &&
@@ -5502,7 +5480,6 @@ static virConnectDriver lxcConnectDriver = {
 static virStateDriver lxcStateDriver = {
     .name = LXC_DRIVER_NAME,
     .stateInitialize = lxcStateInitialize,
-    .stateAutoStart = lxcStateAutoStart,
     .stateCleanup = lxcStateCleanup,
     .stateReload = lxcStateReload,
 };

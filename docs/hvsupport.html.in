@@ -491,7 +491,7 @@ in.
 <td>0.2.1</td>
 <td>0.3.0</td>
 <td></td>
-<td></td>
+<td>5.2.0</td>
 <td>0.2.1</td>
 <td></td>
 <td>0.6.3</td>
@@ -7668,6 +7668,17 @@ virDomainMigratePrepareTunnel3Params</td>
 </tr>
 <tr>
 <td>
+<a href="html/libvirt-libvirt-storage.html#virConnectGetStoragePoolCapabilities">virConnectGetStoragePoolCapabilities</a>
+</td>
+<td>5.2.0</td>
+<td></td>
+<td></td>
+<td>5.2.0</td>
+<td>5.2.0</td>
+<td></td>
+</tr>
+<tr>
+<td>
 <a href="html/libvirt-libvirt-storage.html#virConnectListAllStoragePools">virConnectListAllStoragePools</a>
 </td>
 <td>0.10.2</td>
@@ -7810,6 +7821,15 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.5.0</td>
 </tr>
 <tr>
+<th>API</th>
+<th>Version</th>
+  <th>esx</th>
+  <th>phyp</th>
+  <th>remote</th>
+  <th>storage</th>
+  <th>test</th>
+</tr>
+<tr>
 <td>
 <a href="html/libvirt-libvirt-storage.html#virStoragePoolGetAutostart">virStoragePoolGetAutostart</a>
 </td>
@@ -7819,15 +7839,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
 <td>0.5.0</td>
-</tr>
-<tr>
-<th>API</th>
-<th>Version</th>
-  <th>esx</th>
-  <th>phyp</th>
-  <th>remote</th>
-  <th>storage</th>
-  <th>test</th>
 </tr>
 <tr>
 <td>
@@ -7984,6 +7995,15 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.5.0</td>
 </tr>
 <tr>
+<th>API</th>
+<th>Version</th>
+  <th>esx</th>
+  <th>phyp</th>
+  <th>remote</th>
+  <th>storage</th>
+  <th>test</th>
+</tr>
+<tr>
 <td>
 <a href="html/libvirt-libvirt-storage.html#virStorageVolCreateXML">virStorageVolCreateXML</a>
 </td>
@@ -7993,15 +8013,6 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
 <td>0.5.0</td>
-</tr>
-<tr>
-<th>API</th>
-<th>Version</th>
-  <th>esx</th>
-  <th>phyp</th>
-  <th>remote</th>
-  <th>storage</th>
-  <th>test</th>
 </tr>
 <tr>
 <td>
@@ -8156,6 +8167,15 @@ virDomainMigratePrepareTunnel3Params</td>
 <td>0.9.10</td>
 <td>0.9.10</td>
 <td></td>
+</tr>
+<tr>
+<th>API</th>
+<th>Version</th>
+  <th>esx</th>
+  <th>phyp</th>
+  <th>remote</th>
+  <th>storage</th>
+  <th>test</th>
 </tr>
 </tbody>
 </table>

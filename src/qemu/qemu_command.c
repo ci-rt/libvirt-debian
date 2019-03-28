@@ -58,6 +58,7 @@
 #include "virnuma.h"
 #include "virgic.h"
 #include "virmdev.h"
+#include "virdomainsnapshotobjlist.h"
 #if defined(__linux__)
 # include <linux/capability.h>
 #endif
@@ -409,6 +410,7 @@ qemuBuildDeviceAddressStr(virBufferPtr buf,
  * qemuBuildVirtioDevStr
  * @buf: virBufferPtr to append the built string
  * @baseName: qemu virtio device basename string. Ex: virtio-rng for <rng>
+ * @qemuCaps: virQEMUCapPtr
  * @devtype: virDomainDeviceType of the device. Ex: VIR_DOMAIN_DEVICE_TYPE_RNG
  * @devdata: *DefPtr of the device definition
  *
@@ -422,12 +424,14 @@ qemuBuildDeviceAddressStr(virBufferPtr buf,
 static int
 qemuBuildVirtioDevStr(virBufferPtr buf,
                       const char *baseName,
+                      virQEMUCapsPtr qemuCaps,
                       virDomainDeviceType devtype,
                       void *devdata)
 {
     const char *implName = NULL;
     virDomainDeviceDef device = { .type = devtype };
     virDomainDeviceInfoPtr info;
+    bool has_tmodel, has_ntmodel;
 
     virDomainDeviceSetData(&device, devdata);
     info = virDomainDeviceGetInfo(&device);
@@ -468,6 +472,123 @@ qemuBuildVirtioDevStr(virBufferPtr buf,
     }
 
     virBufferAsprintf(buf, "%s-%s", baseName, implName);
+
+    switch (devtype) {
+        case VIR_DOMAIN_DEVICE_DISK:
+            has_tmodel = device.data.disk->model == VIR_DOMAIN_DISK_MODEL_VIRTIO_TRANSITIONAL;
+            has_ntmodel = device.data.disk->model == VIR_DOMAIN_DISK_MODEL_VIRTIO_NON_TRANSITIONAL;
+            break;
+
+        case VIR_DOMAIN_DEVICE_NET:
+            has_tmodel = STREQ_NULLABLE(device.data.net->model,
+                                        "virtio-transitional");
+            has_ntmodel = STREQ_NULLABLE(device.data.net->model,
+                                         "virtio-non-transitional");
+            break;
+
+        case VIR_DOMAIN_DEVICE_HOSTDEV:
+            if (device.data.hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI_HOST)
+                return 0;
+            has_tmodel = device.data.hostdev->source.subsys.u.scsi_host.model == VIR_DOMAIN_HOSTDEV_SUBSYS_SCSI_VHOST_MODEL_TYPE_VIRTIO_TRANSITIONAL;
+            has_ntmodel = device.data.hostdev->source.subsys.u.scsi_host.model == VIR_DOMAIN_HOSTDEV_SUBSYS_SCSI_VHOST_MODEL_TYPE_VIRTIO_NON_TRANSITIONAL;
+            break;
+
+        case VIR_DOMAIN_DEVICE_RNG:
+            has_tmodel = device.data.rng->model == VIR_DOMAIN_RNG_MODEL_VIRTIO_TRANSITIONAL;
+            has_ntmodel = device.data.rng->model == VIR_DOMAIN_RNG_MODEL_VIRTIO_NON_TRANSITIONAL;
+            break;
+
+        case VIR_DOMAIN_DEVICE_FS:
+            has_tmodel = device.data.fs->model == VIR_DOMAIN_FS_MODEL_VIRTIO_TRANSITIONAL;
+            has_ntmodel = device.data.fs->model == VIR_DOMAIN_FS_MODEL_VIRTIO_NON_TRANSITIONAL;
+            break;
+
+        case VIR_DOMAIN_DEVICE_MEMBALLOON:
+            has_tmodel = device.data.memballoon->model == VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO_TRANSITIONAL;
+            has_ntmodel = device.data.memballoon->model == VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO_NON_TRANSITIONAL;
+            break;
+
+        case VIR_DOMAIN_DEVICE_VSOCK:
+            has_tmodel = device.data.vsock->model == VIR_DOMAIN_VSOCK_MODEL_VIRTIO_TRANSITIONAL;
+            has_ntmodel = device.data.vsock->model == VIR_DOMAIN_VSOCK_MODEL_VIRTIO_NON_TRANSITIONAL;
+            break;
+
+        case VIR_DOMAIN_DEVICE_INPUT:
+            if (device.data.input->type != VIR_DOMAIN_INPUT_TYPE_PASSTHROUGH)
+                return 0;
+            has_tmodel = device.data.input->model == VIR_DOMAIN_INPUT_MODEL_VIRTIO_TRANSITIONAL;
+            has_ntmodel = device.data.input->model == VIR_DOMAIN_INPUT_MODEL_VIRTIO_NON_TRANSITIONAL;
+            break;
+
+        case VIR_DOMAIN_DEVICE_CONTROLLER:
+            if (device.data.controller->type == VIR_DOMAIN_CONTROLLER_TYPE_VIRTIO_SERIAL) {
+                has_tmodel = device.data.controller->model == VIR_DOMAIN_CONTROLLER_MODEL_VIRTIO_SERIAL_VIRTIO_TRANSITIONAL;
+                has_ntmodel = device.data.controller->model == VIR_DOMAIN_CONTROLLER_MODEL_VIRTIO_SERIAL_VIRTIO_NON_TRANSITIONAL;
+            } else if (device.data.controller->type == VIR_DOMAIN_CONTROLLER_TYPE_SCSI) {
+                has_tmodel = device.data.controller->model == VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_TRANSITIONAL;
+                has_ntmodel = device.data.controller->model == VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_NON_TRANSITIONAL;
+            } else {
+                return 0;
+            }
+            break;
+
+        case VIR_DOMAIN_DEVICE_LEASE:
+        case VIR_DOMAIN_DEVICE_SOUND:
+        case VIR_DOMAIN_DEVICE_VIDEO:
+        case VIR_DOMAIN_DEVICE_WATCHDOG:
+        case VIR_DOMAIN_DEVICE_GRAPHICS:
+        case VIR_DOMAIN_DEVICE_HUB:
+        case VIR_DOMAIN_DEVICE_REDIRDEV:
+        case VIR_DOMAIN_DEVICE_NONE:
+        case VIR_DOMAIN_DEVICE_SMARTCARD:
+        case VIR_DOMAIN_DEVICE_CHR:
+        case VIR_DOMAIN_DEVICE_NVRAM:
+        case VIR_DOMAIN_DEVICE_SHMEM:
+        case VIR_DOMAIN_DEVICE_TPM:
+        case VIR_DOMAIN_DEVICE_PANIC:
+        case VIR_DOMAIN_DEVICE_MEMORY:
+        case VIR_DOMAIN_DEVICE_IOMMU:
+        case VIR_DOMAIN_DEVICE_LAST:
+        default:
+            return 0;
+    }
+
+    if (info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI &&
+        (has_tmodel || has_ntmodel)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("virtio (non-)transitional models are not "
+                         "supported for address type=%s"),
+                       virDomainDeviceAddressTypeToString(info->type));
+        return -1;
+    }
+
+    if (has_tmodel) {
+        if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_PCI_TRANSITIONAL)) {
+            virBufferAddLit(buf, "-transitional");
+        } else if (virQEMUCapsGet(qemuCaps,
+                                  QEMU_CAPS_VIRTIO_PCI_DISABLE_LEGACY)) {
+            virBufferAddLit(buf, ",disable-legacy=off,disable-modern=off");
+        }
+        /* No error if -transitional is not supported: our address
+         * allocation will force the device into plain PCI bus, which
+         * is functionally identical to standard 'virtio-XXX' behavior
+         */
+    } else if (has_ntmodel) {
+        if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_VIRTIO_PCI_TRANSITIONAL)) {
+            virBufferAddLit(buf, "-non-transitional");
+        } else if (virQEMUCapsGet(qemuCaps,
+                                  QEMU_CAPS_VIRTIO_PCI_DISABLE_LEGACY)) {
+            /* Even if the QEMU binary doesn't support the non-transitional
+             * device, we can still make it work by manually disabling legacy
+             * VirtIO and enabling modern VirtIO */
+            virBufferAddLit(buf, ",disable-legacy=on,disable-modern=off");
+        } else {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("virtio non-transitional model not supported "
+                             "for this qemu"));
+            return -1;
+        }
+    }
 
     return 0;
 }
@@ -2078,7 +2199,7 @@ qemuBuildDiskDeviceStr(const virDomainDef *def,
         break;
 
     case VIR_DOMAIN_DISK_BUS_VIRTIO:
-        if (qemuBuildVirtioDevStr(&opt, "virtio-blk",
+        if (qemuBuildVirtioDevStr(&opt, "virtio-blk", qemuCaps,
                                   VIR_DOMAIN_DEVICE_DISK, disk) < 0) {
             goto error;
         }
@@ -2673,7 +2794,7 @@ qemuBuildFSDevStr(const virDomainDef *def,
         goto error;
     }
 
-    if (qemuBuildVirtioDevStr(&opt, "virtio-9p",
+    if (qemuBuildVirtioDevStr(&opt, "virtio-9p", qemuCaps,
                               VIR_DOMAIN_DEVICE_FS, fs) < 0) {
         goto error;
     }
@@ -2880,7 +3001,9 @@ qemuBuildControllerDevStr(const virDomainDef *domainDef,
     case VIR_DOMAIN_CONTROLLER_TYPE_SCSI:
         switch ((virDomainControllerModelSCSI) def->model) {
         case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_SCSI:
-            if (qemuBuildVirtioDevStr(&buf, "virtio-scsi",
+        case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_TRANSITIONAL:
+        case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_NON_TRANSITIONAL:
+            if (qemuBuildVirtioDevStr(&buf, "virtio-scsi", qemuCaps,
                                       VIR_DOMAIN_DEVICE_CONTROLLER, def) < 0) {
                 goto error;
             }
@@ -2923,7 +3046,7 @@ qemuBuildControllerDevStr(const virDomainDef *domainDef,
         break;
 
     case VIR_DOMAIN_CONTROLLER_TYPE_VIRTIO_SERIAL:
-        if (qemuBuildVirtioDevStr(&buf, "virtio-serial",
+        if (qemuBuildVirtioDevStr(&buf, "virtio-serial", qemuCaps,
                                   VIR_DOMAIN_DEVICE_CONTROLLER, def) < 0) {
             goto error;
         }
@@ -3024,6 +3147,7 @@ qemuBuildControllerDevStr(const virDomainDef *domainDef,
 
     case VIR_DOMAIN_CONTROLLER_TYPE_IDE:
     case VIR_DOMAIN_CONTROLLER_TYPE_FDC:
+    case VIR_DOMAIN_CONTROLLER_TYPE_XENBUS:
     case VIR_DOMAIN_CONTROLLER_TYPE_LAST:
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Unsupported controller type: %s"),
@@ -3745,7 +3869,7 @@ qemuBuildNicDevStr(virDomainDefPtr def,
     char macaddr[VIR_MAC_STRING_BUFLEN];
 
     if (virDomainNetIsVirtioModel(net)) {
-        if (qemuBuildVirtioDevStr(&buf, "virtio-net",
+        if (qemuBuildVirtioDevStr(&buf, "virtio-net", qemuCaps,
                                   VIR_DOMAIN_DEVICE_NET, net) < 0) {
             goto error;
         }
@@ -4140,7 +4264,7 @@ qemuBuildMemballoonCommandLine(virCommandPtr cmd,
     if (!virDomainDefHasMemballoon(def))
         return 0;
 
-    if (qemuBuildVirtioDevStr(&buf, "virtio-balloon",
+    if (qemuBuildVirtioDevStr(&buf, "virtio-balloon", qemuCaps,
                               VIR_DOMAIN_DEVICE_MEMBALLOON,
                               def->memballoon) < 0) {
         goto error;
@@ -4218,8 +4342,7 @@ qemuBuildNVRAMCommandLine(virCommandPtr cmd,
         optstr = qemuBuildNVRAMDevStr(def->nvram);
         if (!optstr)
             return -1;
-        if (optstr)
-            virCommandAddArg(cmd, optstr);
+        virCommandAddArg(cmd, optstr);
         VIR_FREE(optstr);
     } else {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -4240,25 +4363,25 @@ qemuBuildVirtioInputDevStr(const virDomainDef *def,
 
     switch ((virDomainInputType)dev->type) {
     case VIR_DOMAIN_INPUT_TYPE_MOUSE:
-        if (qemuBuildVirtioDevStr(&buf, "virtio-mouse",
+        if (qemuBuildVirtioDevStr(&buf, "virtio-mouse", qemuCaps,
                                   VIR_DOMAIN_DEVICE_INPUT, dev) < 0) {
             goto error;
         }
         break;
     case VIR_DOMAIN_INPUT_TYPE_TABLET:
-        if (qemuBuildVirtioDevStr(&buf, "virtio-tablet",
+        if (qemuBuildVirtioDevStr(&buf, "virtio-tablet", qemuCaps,
                                   VIR_DOMAIN_DEVICE_INPUT, dev) < 0) {
             goto error;
         }
         break;
     case VIR_DOMAIN_INPUT_TYPE_KBD:
-        if (qemuBuildVirtioDevStr(&buf, "virtio-keyboard",
+        if (qemuBuildVirtioDevStr(&buf, "virtio-keyboard", qemuCaps,
                                   VIR_DOMAIN_DEVICE_INPUT, dev) < 0) {
             goto error;
         }
         break;
     case VIR_DOMAIN_INPUT_TYPE_PASSTHROUGH:
-        if (qemuBuildVirtioDevStr(&buf, "virtio-input-host",
+        if (qemuBuildVirtioDevStr(&buf, "virtio-input-host", qemuCaps,
                                   VIR_DOMAIN_DEVICE_INPUT, dev) < 0) {
             goto error;
         }
@@ -4579,7 +4702,7 @@ qemuBuildDeviceVideoStr(const virDomainDef *def,
     }
 
     if (STREQ(model, "virtio-gpu")) {
-        if (qemuBuildVirtioDevStr(&buf, "virtio-gpu",
+        if (qemuBuildVirtioDevStr(&buf, "virtio-gpu", qemuCaps,
                                   VIR_DOMAIN_DEVICE_VIDEO, video) < 0) {
             goto error;
         }
@@ -5027,7 +5150,7 @@ qemuBuildSCSIVHostHostdevDevStr(const virDomainDef *def,
         goto cleanup;
     }
 
-    if (qemuBuildVirtioDevStr(&buf, "vhost-scsi",
+    if (qemuBuildVirtioDevStr(&buf, "vhost-scsi", qemuCaps,
                               VIR_DOMAIN_DEVICE_HOSTDEV, dev) < 0) {
         goto cleanup;
     }
@@ -5977,7 +6100,7 @@ qemuBuildRNGDevStr(const virDomainDef *def,
                                               dev->source.file))
         goto error;
 
-    if (qemuBuildVirtioDevStr(&buf, "virtio-rng",
+    if (qemuBuildVirtioDevStr(&buf, "virtio-rng", qemuCaps,
                               VIR_DOMAIN_DEVICE_RNG, dev) < 0) {
         goto error;
     }
@@ -9846,6 +9969,7 @@ qemuBuildDomainLoaderCommandLine(virCommandPtr cmd,
         }
         break;
 
+    case VIR_DOMAIN_LOADER_TYPE_NONE:
     case VIR_DOMAIN_LOADER_TYPE_LAST:
         /* nada */
         break;
@@ -10448,7 +10572,7 @@ qemuBuildVsockDevStr(virDomainDefPtr def,
     char *ret = NULL;
 
 
-    if (qemuBuildVirtioDevStr(&buf, "vhost-vsock",
+    if (qemuBuildVirtioDevStr(&buf, "vhost-vsock", qemuCaps,
                               VIR_DOMAIN_DEVICE_VSOCK, vsock) < 0) {
         goto cleanup;
     }
@@ -10508,7 +10632,7 @@ qemuBuildCommandLine(virQEMUDriverPtr driver,
                      virSecurityManagerPtr secManager,
                      virDomainObjPtr vm,
                      const char *migrateURI,
-                     virDomainSnapshotObjPtr snapshot,
+                     virDomainMomentObjPtr snapshot,
                      virNetDevVPortProfileOp vmop,
                      bool standalone,
                      bool enableFips,
@@ -10536,6 +10660,23 @@ qemuBuildCommandLine(virQEMUDriverPtr driver,
     cmd = virCommandNew(def->emulator);
 
     virCommandAddEnvPassCommon(cmd);
+
+    /* For system QEMU we want to set both HOME and all the XDG variables to
+     * libDir/qemu otherwise apps QEMU links to might try to access the default
+     * home dir '/' which would always result in a permission issue.
+     *
+     * For session QEMU, we only want to set XDG_CACHE_HOME as cache data
+     * may be purged at any time and that should not affect any app. We
+     * do want VMs to integrate with services in user's session so we're
+     * not re-setting any other env variables
+     */
+    if (!driver->privileged) {
+        virCommandAddEnvFormat(cmd, "XDG_CACHE_HOME=%s/%s",
+                               priv->libDir, ".cache");
+    } else {
+        virCommandAddEnvPair(cmd, "HOME", priv->libDir);
+        virCommandAddEnvXDG(cmd, priv->libDir);
+    }
 
     if (qemuBuildNameCommandLine(cmd, cfg, def, qemuCaps) < 0)
         goto error;

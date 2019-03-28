@@ -147,7 +147,8 @@ typedef virCPUx86Model *virCPUx86ModelPtr;
 struct _virCPUx86Model {
     char *name;
     virCPUx86VendorPtr vendor;
-    uint32_t signature;
+    size_t nsignatures;
+    uint32_t *signatures;
     virCPUx86Data data;
 };
 
@@ -974,8 +975,29 @@ x86ModelFree(virCPUx86ModelPtr model)
         return;
 
     VIR_FREE(model->name);
+    VIR_FREE(model->signatures);
     virCPUx86DataClear(&model->data);
     VIR_FREE(model);
+}
+
+
+static int
+x86ModelCopySignatures(virCPUx86ModelPtr dst,
+                       virCPUx86ModelPtr src)
+{
+    size_t i;
+
+    if (src->nsignatures == 0)
+        return 0;
+
+    if (VIR_ALLOC_N(dst->signatures, src->nsignatures) < 0)
+        return -1;
+
+    dst->nsignatures = src->nsignatures;
+    for (i = 0; i < src->nsignatures; i++)
+        dst->signatures[i] = src->signatures[i];
+
+    return 0;
 }
 
 
@@ -986,13 +1008,13 @@ x86ModelCopy(virCPUx86ModelPtr model)
 
     if (VIR_ALLOC(copy) < 0 ||
         VIR_STRDUP(copy->name, model->name) < 0 ||
+        x86ModelCopySignatures(copy, model) < 0 ||
         x86DataCopy(&copy->data, &model->data) < 0) {
         x86ModelFree(copy);
         return NULL;
     }
 
     copy->vendor = model->vendor;
-    copy->signature = model->signature;
 
     return copy;
 }
@@ -1151,17 +1173,173 @@ x86ModelCompare(virCPUx86ModelPtr model1,
 
 
 static int
+x86ModelParseAncestor(virCPUx86ModelPtr model,
+                      xmlXPathContextPtr ctxt,
+                      virCPUx86MapPtr map)
+{
+    VIR_AUTOFREE(char *) name = NULL;
+    virCPUx86ModelPtr ancestor;
+    int rc;
+
+    if ((rc = virXPathBoolean("boolean(./model)", ctxt)) <= 0)
+        return rc;
+
+    name = virXPathString("string(./model/@name)", ctxt);
+    if (!name) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Missing ancestor's name in CPU model %s"),
+                       model->name);
+        return -1;
+    }
+
+    if (!(ancestor = x86ModelFind(map, name))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Ancestor model %s not found for CPU model %s"),
+                       name, model->name);
+        return -1;
+    }
+
+    model->vendor = ancestor->vendor;
+    if (x86ModelCopySignatures(model, ancestor) < 0 ||
+        x86DataCopy(&model->data, &ancestor->data) < 0)
+        return -1;
+
+    return 0;
+}
+
+
+static int
+x86ModelParseSignatures(virCPUx86ModelPtr model,
+                        xmlXPathContextPtr ctxt)
+{
+    VIR_AUTOFREE(xmlNodePtr *) nodes = NULL;
+    xmlNodePtr root = ctxt->node;
+    size_t i;
+    int n;
+
+    if ((n = virXPathNodeSet("./signature", ctxt, &nodes)) <= 0)
+        return n;
+
+    /* Remove inherited signatures. */
+    VIR_FREE(model->signatures);
+
+    model->nsignatures = n;
+    if (VIR_ALLOC_N(model->signatures, n) < 0)
+       return -1;
+
+    for (i = 0; i < n; i++) {
+        unsigned int sigFamily = 0;
+        unsigned int sigModel = 0;
+        int rc;
+
+        ctxt->node = nodes[i];
+
+        rc = virXPathUInt("string(@family)", ctxt, &sigFamily);
+        if (rc < 0 || sigFamily == 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Invalid CPU signature family in model %s"),
+                           model->name);
+            return -1;
+        }
+
+        rc = virXPathUInt("string(@model)", ctxt, &sigModel);
+        if (rc < 0 || sigModel == 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Invalid CPU signature model in model %s"),
+                           model->name);
+            return -1;
+        }
+
+        model->signatures[i] = x86MakeSignature(sigFamily, sigModel, 0);
+    }
+
+    ctxt->node = root;
+    return 0;
+}
+
+
+static int
+x86ModelParseVendor(virCPUx86ModelPtr model,
+                    xmlXPathContextPtr ctxt,
+                    virCPUx86MapPtr map)
+{
+    VIR_AUTOFREE(char *) vendor = NULL;
+    int rc;
+
+    if ((rc = virXPathBoolean("boolean(./vendor)", ctxt)) <= 0)
+        return rc;
+
+    vendor = virXPathString("string(./vendor/@name)", ctxt);
+    if (!vendor) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Invalid vendor element in CPU model %s"),
+                       model->name);
+        return -1;
+    }
+
+    if (!(model->vendor = x86VendorFind(map, vendor))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unknown vendor %s referenced by CPU model %s"),
+                       vendor, model->name);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+static int
+x86ModelParseFeatures(virCPUx86ModelPtr model,
+                      xmlXPathContextPtr ctxt,
+                      virCPUx86MapPtr map)
+{
+    VIR_AUTOFREE(xmlNodePtr *) nodes = NULL;
+    size_t i;
+    int n;
+
+    if ((n = virXPathNodeSet("./feature", ctxt, &nodes)) <= 0)
+        return n;
+
+    for (i = 0; i < n; i++) {
+        VIR_AUTOFREE(char *) ftname = NULL;
+        virCPUx86FeaturePtr feature;
+
+        if (!(ftname = virXMLPropString(nodes[i], "name"))) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Missing feature name for CPU model %s"),
+                           model->name);
+            return -1;
+        }
+
+        if (!(feature = x86FeatureFind(map, ftname))) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Feature %s required by CPU model %s not found"),
+                           ftname, model->name);
+            return -1;
+        }
+
+        if (x86DataAdd(&model->data, &feature->data))
+            return -1;
+    }
+
+    return 0;
+}
+
+
+static int
 x86ModelParse(xmlXPathContextPtr ctxt,
               const char *name,
               void *data)
 {
     virCPUx86MapPtr map = data;
-    xmlNodePtr *nodes = NULL;
-    virCPUx86ModelPtr model;
-    char *vendor = NULL;
-    size_t i;
-    int n;
+    virCPUx86ModelPtr model = NULL;
     int ret = -1;
+
+    if (x86ModelFind(map, name)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Multiple definitions of CPU model '%s'"), name);
+        goto cleanup;
+    }
 
     if (!(model = x86ModelNew()))
         goto cleanup;
@@ -1169,101 +1347,17 @@ x86ModelParse(xmlXPathContextPtr ctxt,
     if (VIR_STRDUP(model->name, name) < 0)
         goto cleanup;
 
-    if (virXPathNode("./model", ctxt)) {
-        virCPUx86ModelPtr ancestor;
-        char *anname;
-
-        anname = virXPathString("string(./model/@name)", ctxt);
-        if (!anname) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Missing ancestor's name in CPU model %s"),
-                           model->name);
-            goto cleanup;
-        }
-
-        if (!(ancestor = x86ModelFind(map, anname))) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Ancestor model %s not found for CPU model %s"),
-                           anname, model->name);
-            VIR_FREE(anname);
-            goto cleanup;
-        }
-
-        VIR_FREE(anname);
-
-        model->vendor = ancestor->vendor;
-        model->signature = ancestor->signature;
-        if (x86DataCopy(&model->data, &ancestor->data) < 0)
-            goto cleanup;
-    }
-
-    if (virXPathBoolean("boolean(./signature)", ctxt)) {
-        unsigned int sigFamily = 0;
-        unsigned int sigModel = 0;
-        int rc;
-
-        rc = virXPathUInt("string(./signature/@family)", ctxt, &sigFamily);
-        if (rc < 0 || sigFamily == 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Invalid CPU signature family in model %s"),
-                           model->name);
-            goto cleanup;
-        }
-
-        rc = virXPathUInt("string(./signature/@model)", ctxt, &sigModel);
-        if (rc < 0 || sigModel == 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Invalid CPU signature model in model %s"),
-                           model->name);
-            goto cleanup;
-        }
-
-        model->signature = x86MakeSignature(sigFamily, sigModel, 0);
-    }
-
-    if (virXPathBoolean("boolean(./vendor)", ctxt)) {
-        vendor = virXPathString("string(./vendor/@name)", ctxt);
-        if (!vendor) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Invalid vendor element in CPU model %s"),
-                           model->name);
-            goto cleanup;
-        }
-
-        if (!(model->vendor = x86VendorFind(map, vendor))) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Unknown vendor %s referenced by CPU model %s"),
-                           vendor, model->name);
-            goto cleanup;
-        }
-    }
-
-    n = virXPathNodeSet("./feature", ctxt, &nodes);
-    if (n < 0)
+    if (x86ModelParseAncestor(model, ctxt, map) < 0)
         goto cleanup;
 
-    for (i = 0; i < n; i++) {
-        virCPUx86FeaturePtr feature;
-        char *ftname;
+    if (x86ModelParseSignatures(model, ctxt) < 0)
+        goto cleanup;
 
-        if (!(ftname = virXMLPropString(nodes[i], "name"))) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Missing feature name for CPU model %s"), model->name);
-            goto cleanup;
-        }
+    if (x86ModelParseVendor(model, ctxt, map) < 0)
+        goto cleanup;
 
-        if (!(feature = x86FeatureFind(map, ftname))) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Feature %s required by CPU model %s not found"),
-                           ftname, model->name);
-            VIR_FREE(ftname);
-            goto cleanup;
-        }
-        VIR_FREE(ftname);
-
-        if (x86DataAdd(&model->data, &feature->data))
-            goto cleanup;
-    }
+    if (x86ModelParseFeatures(model, ctxt, map) < 0)
+        goto cleanup;
 
     if (VIR_APPEND_ELEMENT(map->models, map->nmodels, model) < 0)
         goto cleanup;
@@ -1272,8 +1366,6 @@ x86ModelParse(xmlXPathContextPtr ctxt,
 
  cleanup:
     x86ModelFree(model);
-    VIR_FREE(vendor);
-    VIR_FREE(nodes);
     return ret;
 }
 
@@ -1562,7 +1654,8 @@ x86Compute(virCPUDefPtr host,
                                      &host_model->vendor->cpuid) < 0)
             goto error;
 
-        if (x86DataAddSignature(&guest_model->data, host_model->signature) < 0)
+        if (host_model->signatures &&
+            x86DataAddSignature(&guest_model->data, *host_model->signatures) < 0)
             goto error;
 
         if (cpu->type == VIR_CPU_TYPE_GUEST
@@ -1668,6 +1761,41 @@ virCPUx86Compare(virCPUDefPtr host,
 }
 
 
+static bool
+x86ModelHasSignature(virCPUx86ModelPtr model,
+                     uint32_t signature)
+{
+    size_t i;
+
+    for (i = 0; i < model->nsignatures; i++) {
+        if (model->signatures[i] == signature)
+            return true;
+    }
+
+    return false;
+}
+
+
+static char *
+x86FormatSignatures(virCPUx86ModelPtr model)
+{
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    size_t i;
+
+    for (i = 0; i < model->nsignatures; i++) {
+        virBufferAsprintf(&buf, "%06lx,",
+                          (unsigned long)model->signatures[i]);
+    }
+
+    virBufferTrim(&buf, ",", -1);
+
+    if (virBufferCheckError(&buf) < 0)
+        return NULL;
+
+    return virBufferContentAndReset(&buf);
+}
+
+
 /*
  * Checks whether a candidate model is a better fit for the CPU data than the
  * current model.
@@ -1709,8 +1837,8 @@ x86DecodeUseCandidate(virCPUx86ModelPtr current,
      * consider candidates with matching family/model.
      */
     if (signature &&
-        current->signature == signature &&
-        candidate->signature != signature) {
+        x86ModelHasSignature(current, signature) &&
+        !x86ModelHasSignature(candidate, signature)) {
         VIR_DEBUG("%s differs in signature from matching %s",
                   cpuCandidate->model, cpuCurrent->model);
         return 0;
@@ -1726,8 +1854,8 @@ x86DecodeUseCandidate(virCPUx86ModelPtr current,
      * result in longer list of features.
      */
     if (signature &&
-        candidate->signature == signature &&
-        current->signature != signature) {
+        x86ModelHasSignature(candidate, signature) &&
+        !x86ModelHasSignature(current, signature)) {
         VIR_DEBUG("%s provides matching signature", cpuCandidate->model);
         return 1;
     }
@@ -1791,6 +1919,7 @@ x86Decode(virCPUDefPtr cpu,
     virCPUx86Data features = VIR_CPU_X86_DATA_INIT;
     virCPUx86VendorPtr vendor;
     virDomainCapsCPUModelPtr hvModel = NULL;
+    VIR_AUTOFREE(char *) sigs = NULL;
     uint32_t signature;
     ssize_t i;
     int rc;
@@ -1882,6 +2011,11 @@ x86Decode(virCPUDefPtr cpu,
 
     if (vendor && VIR_STRDUP(cpu->vendor, vendor->name) < 0)
         goto cleanup;
+
+    sigs = x86FormatSignatures(model);
+
+    VIR_DEBUG("Using CPU model %s (signatures %s) for CPU with signature %06lx",
+              model->name, NULLSTR(sigs), (unsigned long)signature);
 
     VIR_STEAL_PTR(cpu->model, cpuModel->model);
     VIR_STEAL_PTR(cpu->features, cpuModel->features);
@@ -2795,7 +2929,8 @@ virCPUx86Translate(virCPUDefPtr cpu,
         virCPUx86DataAddCPUIDInt(&model->data, &model->vendor->cpuid) < 0)
         goto cleanup;
 
-    if (x86DataAddSignature(&model->data, model->signature) < 0)
+    if (model->signatures &&
+        x86DataAddSignature(&model->data, model->signatures[0]) < 0)
         goto cleanup;
 
     if (!(translated = virCPUDefCopyWithoutModel(cpu)))
@@ -2935,6 +3070,18 @@ virCPUx86DataSetSignature(virCPUDataPtr cpuData,
     uint32_t signature = x86MakeSignature(family, model, stepping);
 
     return x86DataAddSignature(&cpuData->data.x86, signature);
+}
+
+
+uint32_t
+virCPUx86DataGetSignature(virCPUDataPtr cpuData,
+                          unsigned int *family,
+                          unsigned int *model,
+                          unsigned int *stepping)
+{
+    x86DataToSignatureFull(&cpuData->data.x86, family, model, stepping);
+
+    return x86MakeSignature(*family, *model, *stepping);
 }
 
 

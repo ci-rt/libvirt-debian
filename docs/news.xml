@@ -33,6 +33,125 @@
      -->
 
 <libvirt>
+  <release version="v5.2.0" date="unreleased">
+    <section title="New features">
+      <change>
+        <summary>
+          Add Storage Pool Capabilities output
+        </summary>
+        <description>
+          Add support to list an enumerated list of supported Storage
+          Pools via the virConnectGetCapabilities API when connected
+          via a Storage Driver. Add support to get a more detailed
+          list XML output Storage Pool Capabilities vis the
+          virConnectGetStoragePoolCapabilites API.
+        </description>
+      </change>
+      <change>
+        <summary>
+          qemu: Support virtio-{non-}transitional device models
+        </summary>
+        <description>
+          <code>virtio-transitional</code> and
+          <code>virtio-non-transitional</code> <code>model</code> values
+          were added to the QEMU driver for the following devices:
+          <code>disk</code>, <code>interface</code>, <code>filesystem</code>,
+          <code>rng</code>, <code>vsock</code>, <code>memballoon</code>,
+          <code>controller</code> type <code>scsi</code>,
+          <code>controller</code> type <code>virtio-serial</code>,
+          <code>input</code> bus <code>virtio</code>
+          type <code>passthrough</code>,
+          <code>hostdev</code> type <code>scsi_host</code>. These new
+          models can be used to give fine grained control over what
+          virtio device version is presented to the guest.
+        </description>
+      </change>
+      <change>
+        <summary>
+          qemu: Enable firmware autoselection
+        </summary>
+        <description>
+          Libvirt allows users to provide loader path for some time now.
+          However, this puts some burden on users because they need to
+          know what firmware meets their requirements. Now that QEMU
+          ships firmware description files this burden can be moved onto
+          libvirt. It is as easy as setting the <code>firmware</code>
+          attribute in the <code>os</code> element (accepted values are
+          <code>bios</code> and <code>efi</code>). Moreover, libvirt
+          automatically enables domain features needed for firmware it
+          chooses.
+        </description>
+      </change>
+      <change>
+        <summary>
+          snapshots: Add support for topological listings
+        </summary>
+        <description>
+          A new flag VIR_DOMAIN_SNAPSHOT_LIST_TOPOLOGICAL is available
+          for the various snapshot listing APIs such as
+          virDomainListAllSnapshots(). For drivers that support the
+          flag, the listed snapshots are guaranteed to be sorted such
+          that parents occur before children.
+        </description>
+      </change>
+      <change>
+        <summary>
+          Xen: Add support for max grant frames setting
+        </summary>
+        <description>
+          Add support for Xen's max_grant_frames setting by adding a
+          new xenbus controller type with a maxGrantFrames attribute.
+          E.g. <code>&lt;controller type='xenbus' maxGrantFrames='64'/&gt;</code>
+        </description>
+      </change>
+      <change>
+        <summary>
+          qemu: Add support for parallel migration
+        </summary>
+        <description>
+          With QEMU 4.0.0 libvirt can enable parallel migration which causes
+          the memory pages to be processed in parallel by several threads and
+          sent to the destination host using several connections at the same
+          time. This may increase migration speed in case a single thread is
+          unable to saturate the network link.
+        </description>
+      </change>
+    </section>
+    <section title="Removed features">
+      <change>
+        <summary>
+          Drop support for Upstart and "Red Hat" init scripts
+        </summary>
+        <description>
+          Not a single one of the platforms we target still uses Upstart,
+          and the Upstart project itself has been abandoned for several years
+          now; the same is true for the "Red Hat" (really System V) init
+          scripts, since RHEL 7 and later releases use systemd.
+        </description>
+      </change>
+    </section>
+    <section title="Improvements">
+      <change>
+        <summary>
+          Report class information for PCI node device capability.
+        </summary>
+      </change>
+      <change>
+        <summary>
+          Split setup of IPv4 and IPv6 top level chain
+        </summary>
+        <description>
+          The requirement resulting from private chains improvement done
+          in <code>v5.1.0</code> was refined so that only tables from
+          corresponding IP version are required. This means that if a
+          network doesn't have <code>IPv6</code> enabled then those
+          tables are not required.
+        </description>
+      </change>
+    </section>
+    <section title="Bug fixes">
+    </section>
+  </release>
   <release version="v5.1.0" date="2019-03-04">
     <section title="New features">
       <change>
@@ -107,7 +226,9 @@
           Historically firewall rules for virtual networks were added
           straight into the base chains. This works but has a number of
           bugs and design limitations. To address them, libvirt now puts
-          firewall rules into its own chains.
+          firewall rules into its own chains. Note that with this change the
+          <code>filter</code>, <code>nat</code> and <code>mangle</code> tables
+          are required for both <code>IPv4</code> and <code>IPv6</code>.
         </description>
       </change>
       <change>

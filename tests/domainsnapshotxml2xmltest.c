@@ -78,13 +78,17 @@ testCompareXMLToXMLFiles(const char *inxml,
     char *actual = NULL;
     int ret = -1;
     virDomainSnapshotDefPtr def = NULL;
-    unsigned int flags = VIR_DOMAIN_SNAPSHOT_PARSE_DISKS;
+    unsigned int parseflags = VIR_DOMAIN_SNAPSHOT_PARSE_DISKS;
+    unsigned int formatflags = VIR_DOMAIN_SNAPSHOT_FORMAT_SECURE;
+    bool cur;
 
-    if (internal)
-        flags |= VIR_DOMAIN_SNAPSHOT_PARSE_INTERNAL;
+    if (internal) {
+        parseflags |= VIR_DOMAIN_SNAPSHOT_PARSE_INTERNAL;
+        formatflags |= VIR_DOMAIN_SNAPSHOT_FORMAT_INTERNAL;
+    }
 
     if (redefine)
-        flags |= VIR_DOMAIN_SNAPSHOT_PARSE_REDEFINE;
+        parseflags |= VIR_DOMAIN_SNAPSHOT_PARSE_REDEFINE;
 
     if (virTestLoadFile(inxml, &inXmlData) < 0)
         goto cleanup;
@@ -93,14 +97,15 @@ testCompareXMLToXMLFiles(const char *inxml,
         goto cleanup;
 
     if (!(def = virDomainSnapshotDefParseString(inXmlData, driver.caps,
-                                                driver.xmlopt,
-                                                flags)))
+                                                driver.xmlopt, &cur,
+                                                parseflags)))
         goto cleanup;
+    if (cur)
+        formatflags |= VIR_DOMAIN_SNAPSHOT_FORMAT_CURRENT;
 
     if (!(actual = virDomainSnapshotDefFormat(uuid, def, driver.caps,
                                               driver.xmlopt,
-                                              VIR_DOMAIN_DEF_FORMAT_SECURE,
-                                              internal)))
+                                              formatflags)))
         goto cleanup;
 
     if (!redefine) {

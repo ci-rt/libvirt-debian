@@ -23,6 +23,8 @@
 # include "virstring.h"
 # include "storage/storage_driver.h"
 # include "virmock.h"
+# include "virfilewrapper.h"
+# include "configmake.h"
 
 # define LIBVIRT_QEMU_CAPSPRIV_H_ALLOW
 # include "qemu/qemu_capspriv.h"
@@ -31,7 +33,6 @@
 
 # define VIR_FROM_THIS VIR_FROM_QEMU
 
-static const char *abs_top_srcdir;
 static virQEMUDriver driver;
 
 static unsigned char *
@@ -378,25 +379,6 @@ testAddCPUModels(virQEMUCapsPtr caps, bool skipLegacy)
 
 
 static int
-testInitQEMUCaps(struct testInfo *info,
-                 int gic)
-{
-    int ret = -1;
-
-    if (!(info->qemuCaps = virQEMUCapsNew()))
-        goto cleanup;
-
-    if (testQemuCapsSetGIC(info->qemuCaps, gic) < 0)
-        goto cleanup;
-
-    ret = 0;
-
- cleanup:
-    return ret;
-}
-
-
-static int
 testUpdateQEMUCaps(const struct testInfo *info,
                    virDomainObjPtr vm,
                    virCapsPtr caps)
@@ -623,6 +605,158 @@ testCompareXMLToArgv(const void *data)
     return ret;
 }
 
+# define TEST_CAPS_PATH abs_srcdir "/qemucapabilitiesdata"
+
+typedef enum {
+    ARG_QEMU_CAPS,
+    ARG_GIC,
+    ARG_MIGRATE_FROM,
+    ARG_MIGRATE_FD,
+    ARG_FLAGS,
+    ARG_PARSEFLAGS,
+    ARG_CAPS_ARCH,
+    ARG_CAPS_VER,
+    ARG_END,
+} testInfoArgName;
+
+static int
+testInfoSetArgs(struct testInfo *info,
+                virHashTablePtr capslatest, ...)
+{
+    va_list argptr;
+    testInfoArgName argname;
+    virQEMUCapsPtr qemuCaps = NULL;
+    int gic = GIC_NONE;
+    char *capsarch = NULL;
+    char *capsver = NULL;
+    VIR_AUTOFREE(char *) capsfile = NULL;
+    int flag;
+    int ret = -1;
+
+    va_start(argptr, capslatest);
+    argname = va_arg(argptr, testInfoArgName);
+    while (argname != ARG_END) {
+        switch (argname) {
+        case ARG_QEMU_CAPS:
+            if (qemuCaps || !(qemuCaps = virQEMUCapsNew()))
+                goto cleanup;
+
+            while ((flag = va_arg(argptr, int)) < QEMU_CAPS_LAST)
+                virQEMUCapsSet(qemuCaps, flag);
+
+            /* Some tests are run with NONE capabilities, which is just
+             * another name for QEMU_CAPS_LAST. If that is the case the
+             * arguments look like this :
+             *
+             *   ARG_QEMU_CAPS, NONE, QEMU_CAPS_LAST, ARG_END
+             *
+             * Fetch one argument more and if it is QEMU_CAPS_LAST then
+             * break from the switch() to force getting next argument
+             * in the line. If it is not QEMU_CAPS_LAST then we've
+             * fetched real ARG_* and we must process it.
+             */
+            if ((flag = va_arg(argptr, int)) != QEMU_CAPS_LAST) {
+                argname = flag;
+                continue;
+            }
+
+            break;
+
+        case ARG_GIC:
+            gic = va_arg(argptr, int);
+            break;
+
+        case ARG_MIGRATE_FROM:
+            info->migrateFrom = va_arg(argptr, char *);
+            break;
+
+        case ARG_MIGRATE_FD:
+            info->migrateFd = va_arg(argptr, int);
+            break;
+
+        case ARG_FLAGS:
+            info->flags = va_arg(argptr, int);
+            break;
+
+        case ARG_PARSEFLAGS:
+            info->parseFlags = va_arg(argptr, int);
+            break;
+
+        case ARG_CAPS_ARCH:
+            capsarch = va_arg(argptr, char *);
+            break;
+
+        case ARG_CAPS_VER:
+            capsver = va_arg(argptr, char *);
+            break;
+
+        case ARG_END:
+        default:
+            fprintf(stderr, "Unexpected test info argument");
+            goto cleanup;
+        }
+
+        argname = va_arg(argptr, testInfoArgName);
+    }
+
+    if (!!capsarch ^ !!capsver) {
+        fprintf(stderr, "ARG_CAPS_ARCH and ARG_CAPS_VER "
+                        "must be specified together.\n");
+        goto cleanup;
+    }
+
+    if (qemuCaps && (capsarch || capsver)) {
+        fprintf(stderr, "ARG_QEMU_CAPS can not be combined with ARG_CAPS_ARCH "
+                        "or ARG_CAPS_VER\n");
+        goto cleanup;
+    }
+
+    if (!qemuCaps && capsarch && capsver) {
+        bool stripmachinealiases = false;
+
+        if (STREQ(capsver, "latest")) {
+            if (VIR_STRDUP(capsfile, virHashLookup(capslatest, capsarch)) < 0)
+                goto cleanup;
+            stripmachinealiases = true;
+        } else if (virAsprintf(&capsfile, "%s/caps_%s.%s.xml",
+                               TEST_CAPS_PATH, capsver, capsarch) < 0) {
+            goto cleanup;
+        }
+
+        if (!(qemuCaps = qemuTestParseCapabilitiesArch(virArchFromString(capsarch),
+                                                       capsfile))) {
+            goto cleanup;
+        }
+
+        if (stripmachinealiases)
+            virQEMUCapsStripMachineAliases(qemuCaps);
+        info->flags |= FLAG_REAL_CAPS;
+    }
+
+    if (!qemuCaps) {
+        fprintf(stderr, "No qemuCaps generated\n");
+        goto cleanup;
+    }
+    VIR_STEAL_PTR(info->qemuCaps, qemuCaps);
+
+    if (gic != GIC_NONE && testQemuCapsSetGIC(info->qemuCaps, gic) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    virObjectUnref(qemuCaps);
+    va_end(argptr);
+
+    return ret;
+}
+
+static void
+testInfoClear(struct testInfo *info)
+{
+    virObjectUnref(info->qemuCaps);
+}
+
 # define FAKEROOTDIRTEMPLATE abs_builddir "/fakerootdir-XXXXXX"
 
 static int
@@ -650,10 +784,6 @@ mymain(void)
     }
 
     setenv("LIBVIRT_FAKE_ROOT_DIR", fakerootdir, 1);
-
-    abs_top_srcdir = getenv("abs_top_srcdir");
-    if (!abs_top_srcdir)
-        abs_top_srcdir = abs_srcdir "/..";
 
     /* Set the timezone because we are mocking the time() function.
      * If we don't do that, then localtime() may return unpredictable
@@ -705,6 +835,9 @@ mymain(void)
     VIR_FREE(driver.config->memoryBackingDir);
     if (VIR_STRDUP_QUIET(driver.config->memoryBackingDir, "/var/lib/libvirt/qemu/ram") < 0)
         return EXIT_FAILURE;
+    VIR_FREE(driver.config->nvramDir);
+    if (VIR_STRDUP(driver.config->nvramDir, "/var/lib/libvirt/qemu/nvram") < 0)
+        return EXIT_FAILURE;
 
     capslatest = virHashCreate(4, virHashValueFree);
     if (!capslatest)
@@ -724,6 +857,13 @@ mymain(void)
 
     VIR_TEST_VERBOSE("\n");
 
+    virFileWrapperAddPrefix(SYSCONFDIR "/qemu/firmware",
+                            abs_srcdir "/qemufirmwaredata/etc/qemu/firmware");
+    virFileWrapperAddPrefix(PREFIX "/share/qemu/firmware",
+                            abs_srcdir "/qemufirmwaredata/usr/share/qemu/firmware");
+    virFileWrapperAddPrefix("/home/user/.config/qemu/firmware",
+                            abs_srcdir "/qemufirmwaredata/home/user/.config/qemu/firmware");
+
 /**
  * The following set of macros allows testing of XML -> argv conversion with a
  * real set of capabilities gathered from a real qemu copy. It is desired to use
@@ -738,96 +878,76 @@ mymain(void)
  * the test cases should be forked using DO_TEST_CAPS_VER with the appropriate
  * version.
  */
-# define DO_TEST_CAPS_INTERNAL(name, suffix, migrateFrom, flags, parseFlags, \
-                               arch, capsfile, stripmachinealiases) \
+# define DO_TEST_INTERNAL(_name, _suffix, ...) \
     do { \
         static struct testInfo info = { \
-            name, "." suffix, NULL, migrateFrom, migrateFrom ? 7 : -1,\
-            (flags | FLAG_REAL_CAPS), parseFlags, \
+            .name = _name, \
+            .suffix = _suffix, \
         }; \
-        if (!(info.qemuCaps = qemuTestParseCapabilitiesArch(virArchFromString(arch), \
-                                                            capsfile))) \
+        if (testInfoSetArgs(&info, capslatest, \
+                            __VA_ARGS__, ARG_END) < 0) \
             return EXIT_FAILURE; \
-        if (stripmachinealiases) \
-            virQEMUCapsStripMachineAliases(info.qemuCaps); \
-        if (virTestRun("QEMU XML-2-ARGV " name "." suffix, \
+        if (virTestRun("QEMU XML-2-ARGV " _name _suffix, \
                        testCompareXMLToArgv, &info) < 0) \
             ret = -1; \
-        virObjectUnref(info.qemuCaps); \
+        testInfoClear(&info); \
     } while (0)
 
-# define TEST_CAPS_PATH abs_srcdir "/qemucapabilitiesdata/caps_"
-
-# define DO_TEST_CAPS_ARCH_VER_FULL(name, flags, parseFlags, arch, ver) \
-    DO_TEST_CAPS_INTERNAL(name, arch "-" ver, NULL, flags, parseFlags, \
-                          arch, TEST_CAPS_PATH ver "." arch ".xml", false)
+# define DO_TEST_CAPS_INTERNAL(name, arch, ver, ...) \
+    DO_TEST_INTERNAL(name, "." arch "-" ver, \
+                     ARG_CAPS_ARCH, arch, \
+                     ARG_CAPS_VER, ver, \
+                     __VA_ARGS__)
 
 # define DO_TEST_CAPS_ARCH_VER(name, arch, ver) \
-    DO_TEST_CAPS_ARCH_VER_FULL(name, 0, 0, arch, ver)
+    DO_TEST_CAPS_INTERNAL(name, arch, ver, ARG_END)
 
 # define DO_TEST_CAPS_VER(name, ver) \
     DO_TEST_CAPS_ARCH_VER(name, "x86_64", ver)
 
-# define DO_TEST_CAPS_ARCH_LATEST_FULL(name, arch, flags, parseFlags) \
-    DO_TEST_CAPS_INTERNAL(name, arch "-latest", NULL, flags, parseFlags, arch, \
-                          virHashLookup(capslatest, arch), true)
+# define DO_TEST_CAPS_ARCH_LATEST_FULL(name, arch, ...) \
+    DO_TEST_CAPS_INTERNAL(name, arch, "latest", __VA_ARGS__)
 
 # define DO_TEST_CAPS_ARCH_LATEST(name, arch) \
-    DO_TEST_CAPS_ARCH_LATEST_FULL(name, arch, 0, 0)
+    DO_TEST_CAPS_ARCH_LATEST_FULL(name, arch, ARG_END)
 
 # define DO_TEST_CAPS_LATEST(name) \
     DO_TEST_CAPS_ARCH_LATEST(name, "x86_64")
 
 # define DO_TEST_CAPS_LATEST_FAILURE(name) \
-    DO_TEST_CAPS_ARCH_LATEST_FULL(name, "x86_64", FLAG_EXPECT_FAILURE, 0)
+    DO_TEST_CAPS_ARCH_LATEST_FULL(name, "x86_64", \
+                                  ARG_FLAGS, FLAG_EXPECT_FAILURE)
 
 # define DO_TEST_CAPS_LATEST_PARSE_ERROR(name) \
-    DO_TEST_CAPS_ARCH_LATEST_FULL(name, "x86_64", FLAG_EXPECT_PARSE_ERROR, 0)
+    DO_TEST_CAPS_ARCH_LATEST_FULL(name, "x86_64", \
+                                  ARG_FLAGS, FLAG_EXPECT_PARSE_ERROR)
 
-/**
- * The following test macros should be used only in cases when the tests require
- * testing of some non-standard combination of capability flags
- */
-# define DO_TEST_CAPS_FULL(name, flags, parseFlags, ver) \
-    DO_TEST_CAPS_ARCH(name, NULL, flags, parseFlags, GIC_NONE, "x86_64", ver)
 
-# define DO_TEST_CAPS(name, ver) \
-    DO_TEST_CAPS_FULL(name, 0, 0, ver)
+# define DO_TEST_FULL(name, ...) \
+    DO_TEST_INTERNAL(name, "", \
+                     __VA_ARGS__, QEMU_CAPS_LAST)
 
-# define DO_TEST_FULL(name, migrateFrom, migrateFd, flags, \
-                      parseFlags, gic, ...) \
-    do { \
-        static struct testInfo info = { \
-            name, NULL, NULL, migrateFrom, migrateFd, (flags), parseFlags, \
-        }; \
-        if (testInitQEMUCaps(&info, gic) < 0) \
-            return EXIT_FAILURE; \
-        virQEMUCapsSetList(info.qemuCaps, __VA_ARGS__, QEMU_CAPS_LAST); \
-        if (virTestRun("QEMU XML-2-ARGV " name, \
-                       testCompareXMLToArgv, &info) < 0) \
-            ret = -1; \
-        virObjectUnref(info.qemuCaps); \
-    } while (0)
-
+/* All the following macros require an explicit QEMU_CAPS_* list
+ * at the end of the argument list, or the NONE placeholder.
+ * */
 # define DO_TEST(name, ...) \
-    DO_TEST_FULL(name, NULL, -1, 0, 0, GIC_NONE, __VA_ARGS__)
+    DO_TEST_FULL(name, \
+                 ARG_QEMU_CAPS, __VA_ARGS__)
 
 # define DO_TEST_GIC(name, gic, ...) \
-    DO_TEST_FULL(name, NULL, -1, 0, 0, gic, __VA_ARGS__)
+    DO_TEST_FULL(name, \
+                 ARG_GIC, gic, \
+                 ARG_QEMU_CAPS, __VA_ARGS__)
 
 # define DO_TEST_FAILURE(name, ...) \
-    DO_TEST_FULL(name, NULL, -1, FLAG_EXPECT_FAILURE, \
-                 0, GIC_NONE, __VA_ARGS__)
+    DO_TEST_FULL(name, \
+                 ARG_FLAGS, FLAG_EXPECT_FAILURE, \
+                 ARG_QEMU_CAPS, __VA_ARGS__)
 
 # define DO_TEST_PARSE_ERROR(name, ...) \
-    DO_TEST_FULL(name, NULL, -1, \
-                 FLAG_EXPECT_PARSE_ERROR | FLAG_EXPECT_FAILURE, \
-                 0, GIC_NONE, __VA_ARGS__)
-
-# define DO_TEST_PARSE_FLAGS_ERROR(name, parseFlags, ...) \
-    DO_TEST_FULL(name, NULL, -1, \
-                 FLAG_EXPECT_PARSE_ERROR | FLAG_EXPECT_FAILURE, \
-                 parseFlags, GIC_NONE, __VA_ARGS__)
+    DO_TEST_FULL(name, \
+                 ARG_FLAGS, FLAG_EXPECT_PARSE_ERROR | FLAG_EXPECT_FAILURE, \
+                 ARG_QEMU_CAPS, __VA_ARGS__)
 
 # define NONE QEMU_CAPS_LAST
 
@@ -1665,12 +1785,26 @@ mymain(void)
             QEMU_CAPS_CCW_CSSID_UNRESTRICTED,
             QEMU_CAPS_DEVICE_VFIO_CCW);
 
-    DO_TEST_FULL("restore-v2", "exec:cat", 7, 0, 0, GIC_NONE, NONE);
-    DO_TEST_FULL("restore-v2-fd", "stdio", 7, 0, 0, GIC_NONE, NONE);
-    DO_TEST_FULL("restore-v2-fd", "fd:7", 7, 0, 0, GIC_NONE, NONE);
-    DO_TEST_FULL("migrate", "tcp:10.0.0.1:5000", -1, 0, 0, GIC_NONE, NONE);
+    DO_TEST_FULL("restore-v2",
+                 ARG_MIGRATE_FROM, "exec:cat",
+                 ARG_MIGRATE_FD, 7,
+                 ARG_QEMU_CAPS, NONE);
+    DO_TEST_FULL("restore-v2-fd",
+                 ARG_MIGRATE_FROM, "stdio",
+                 ARG_MIGRATE_FD, 7,
+                 ARG_QEMU_CAPS, NONE);
+    DO_TEST_FULL("restore-v2-fd",
+                 ARG_MIGRATE_FROM, "fd:7",
+                 ARG_MIGRATE_FD, 7,
+                 ARG_QEMU_CAPS, NONE);
+    DO_TEST_FULL("migrate",
+                 ARG_MIGRATE_FROM, "tcp:10.0.0.1:5000",
+                 ARG_QEMU_CAPS, NONE);
 
-    DO_TEST_FULL("migrate-numa-unaligned", "stdio", 7, 0, 0, GIC_NONE,
+    DO_TEST_FULL("migrate-numa-unaligned",
+                 ARG_MIGRATE_FROM, "stdio",
+                 ARG_MIGRATE_FD, 7,
+                 ARG_QEMU_CAPS,
                  QEMU_CAPS_NUMA,
                  QEMU_CAPS_OBJECT_MEMORY_RAM);
 
@@ -1712,12 +1846,12 @@ mymain(void)
     DO_TEST("cpu-numa-memshared", QEMU_CAPS_OBJECT_MEMORY_FILE);
     DO_TEST("cpu-host-model", NONE);
     DO_TEST("cpu-host-model-vendor", NONE);
-    DO_TEST_FULL("cpu-host-model-fallback", NULL, -1,
-                 FLAG_SKIP_LEGACY_CPUS, 0,
-                 GIC_NONE, NONE);
-    DO_TEST_FULL("cpu-host-model-nofallback", NULL, -1,
-                 FLAG_SKIP_LEGACY_CPUS | FLAG_EXPECT_FAILURE,
-                 0, GIC_NONE, NONE);
+    DO_TEST_FULL("cpu-host-model-fallback",
+                 ARG_FLAGS, FLAG_SKIP_LEGACY_CPUS,
+                 ARG_QEMU_CAPS, NONE);
+    DO_TEST_FULL("cpu-host-model-nofallback",
+                 ARG_FLAGS, FLAG_SKIP_LEGACY_CPUS | FLAG_EXPECT_FAILURE,
+                 ARG_QEMU_CAPS, NONE);
     DO_TEST("cpu-host-passthrough", QEMU_CAPS_KVM);
     DO_TEST_FAILURE("cpu-qemu-host-passthrough", QEMU_CAPS_KVM);
 
@@ -2805,8 +2939,9 @@ mymain(void)
     DO_TEST("ppc64-usb-controller-legacy",
             QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE,
             QEMU_CAPS_PIIX3_USB_UHCI);
-    DO_TEST_FULL("ppc64-usb-controller-qemu-xhci", NULL, -1, 0,
-                 VIR_DOMAIN_DEF_PARSE_ABI_UPDATE, GIC_NONE,
+    DO_TEST_FULL("ppc64-usb-controller-qemu-xhci",
+                 ARG_PARSEFLAGS, VIR_DOMAIN_DEF_PARSE_ABI_UPDATE,
+                 ARG_QEMU_CAPS,
                  QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE,
                  QEMU_CAPS_NEC_USB_XHCI,
                  QEMU_CAPS_DEVICE_QEMU_XHCI);
@@ -2823,9 +2958,10 @@ mymain(void)
     /* VM XML has invalid arch/ostype/virttype combo, but the SKIP flag
      * will avoid the error. Still, we expect qemu driver to complain about
      * missing machine error, and not crash */
-    DO_TEST_PARSE_FLAGS_ERROR("missing-machine",
-                              VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE,
-                              NONE);
+    DO_TEST_FULL("missing-machine",
+                 ARG_FLAGS, FLAG_EXPECT_PARSE_ERROR | FLAG_EXPECT_FAILURE,
+                 ARG_PARSEFLAGS, VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE,
+                 ARG_QEMU_CAPS, NONE);
 
     DO_TEST("name-escape",
             QEMU_CAPS_NAME_DEBUG_THREADS,
@@ -2996,6 +3132,16 @@ mymain(void)
     DO_TEST("riscv64-virt-pci",
             QEMU_CAPS_OBJECT_GPEX);
 
+    /* Older version checks disable-legacy usage */
+    DO_TEST_CAPS_VER("virtio-transitional", "3.1.0");
+    DO_TEST_CAPS_VER("virtio-non-transitional", "3.1.0");
+    DO_TEST_CAPS_LATEST("virtio-transitional");
+    DO_TEST_CAPS_LATEST("virtio-non-transitional");
+    DO_TEST_PARSE_ERROR("virtio-transitional-not-supported",
+                        QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
+                        QEMU_CAPS_DEVICE_PCI_BRIDGE,
+                        QEMU_CAPS_DEVICE_IOH3420);
+
     /* Simple headless guests for various architectures */
     DO_TEST_CAPS_ARCH_LATEST("aarch64-virt-headless", "aarch64");
     DO_TEST_CAPS_ARCH_LATEST("ppc64-pseries-headless", "ppc64");
@@ -3004,6 +3150,18 @@ mymain(void)
     DO_TEST_CAPS_ARCH_LATEST("x86_64-pc-headless", "x86_64");
     DO_TEST_CAPS_ARCH_LATEST("x86_64-q35-headless", "x86_64");
 
+    /* Simple guests with graphics for various architectures */
+    DO_TEST_CAPS_ARCH_LATEST("aarch64-virt-graphics", "aarch64");
+    DO_TEST_CAPS_ARCH_LATEST("ppc64-pseries-graphics", "ppc64");
+    DO_TEST_CAPS_ARCH_LATEST("s390x-ccw-graphics", "s390x");
+    DO_TEST_CAPS_ARCH_LATEST("x86_64-pc-graphics", "x86_64");
+    DO_TEST_CAPS_ARCH_LATEST("x86_64-q35-graphics", "x86_64");
+
+    DO_TEST_CAPS_LATEST("os-firmware-bios");
+    DO_TEST_CAPS_LATEST("os-firmware-efi");
+    DO_TEST_CAPS_LATEST("os-firmware-efi-secboot");
+    DO_TEST_CAPS_ARCH_LATEST("aarch64-os-firmware-efi", "aarch64");
+
     if (getenv("LIBVIRT_SKIP_CLEANUP") == NULL)
         virFileDeleteTree(fakerootdir);
 
@@ -3011,6 +3169,7 @@ mymain(void)
     qemuTestDriverFree(&driver);
     VIR_FREE(fakerootdir);
     virHashFree(capslatest);
+    virFileWrapperClearPrefixes();
 
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

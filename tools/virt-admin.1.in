@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRT-ADMIN 1"
-.TH VIRT-ADMIN 1 "2019-02-28" "libvirt-5.1.0" "Virtualization Support"
+.TH VIRT-ADMIN 1 "2019-03-26" "libvirt-5.2.0" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -157,7 +157,9 @@ The basic structure of most virt-admin usage is:
 \&  virt\-admin [OPTION]... <command> [ARG]...
 .Ve
 .PP
-Where \fIcommand\fR is one of the commands listed below.
+Where \fIcommand\fR is one of the commands listed below. Any \fIcommand\fR
+starting with \fB#\fR is treated as a comment and silently ignored, all
+other unrecognized \fIcommand\fRs are diagnosed.
 .PP
 The \fBvirt-admin\fR program can be used either to run one \fI\s-1COMMAND\s0\fR by giving the
 command and its arguments on the shell command line, or a \fI\s-1COMMAND_STRING\s0\fR
@@ -166,7 +168,8 @@ and their arguments joined with whitespace and separated by semicolons or
 newlines between commands, where unquoted backslash-newline pairs are
 elided.  Within \fI\s-1COMMAND_STRING\s0\fR, virt-admin understands the
 same single, double, and backslash escapes as the shell, although you must
-add another layer of shell escaping in creating the single shell argument.
+add another layer of shell escaping in creating the single shell argument,
+and any word starting with unquoted \fI#\fR begins a comment that ends at newline.
 If no command is given in the command line, \fBvirt-admin\fR will then start a minimal
 interpreter waiting for your commands, and the \fBquit\fR command will then exit
 the program.

@@ -162,16 +162,6 @@ int virFileReadBufQuiet(const char *file, char *buf, int len)
 int virFileWriteStr(const char *path, const char *str, mode_t mode)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
 
-int virFileMatchesNameSuffix(const char *file,
-                             const char *name,
-                             const char *suffix);
-
-int virFileHasSuffix(const char *str,
-                     const char *suffix);
-
-int virFileStripSuffix(char *str,
-                       const char *suffix) ATTRIBUTE_RETURN_CHECK;
-
 int virFileLinkPointsTo(const char *checkLink,
                         const char *checkDest)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);

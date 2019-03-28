@@ -648,8 +648,11 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
                 return 0;
 
             case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_SCSI:
+            case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_NON_TRANSITIONAL:
                 return virtioFlags;
 
+            /* Transitional devices only work in conventional PCI slots */
+            case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_TRANSITIONAL:
             case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_AUTO:
             case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_BUSLOGIC:
             case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LSILOGIC:
@@ -665,10 +668,24 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
             break;
 
         case VIR_DOMAIN_CONTROLLER_TYPE_VIRTIO_SERIAL:
-            return virtioFlags;
+            switch ((virDomainControllerModelVirtioSerial) cont->model) {
+            case VIR_DOMAIN_CONTROLLER_MODEL_VIRTIO_SERIAL_VIRTIO_TRANSITIONAL:
+                /* Transitional devices only work in conventional PCI slots */
+                return pciFlags;
+
+            case VIR_DOMAIN_CONTROLLER_MODEL_VIRTIO_SERIAL_VIRTIO:
+            case VIR_DOMAIN_CONTROLLER_MODEL_VIRTIO_SERIAL_VIRTIO_NON_TRANSITIONAL:
+            case VIR_DOMAIN_CONTROLLER_MODEL_VIRTIO_SERIAL_DEFAULT:
+                return virtioFlags;
+
+            case VIR_DOMAIN_CONTROLLER_MODEL_VIRTIO_SERIAL_LAST:
+                return 0;
+            }
+            break;
 
         case VIR_DOMAIN_CONTROLLER_TYPE_FDC:
         case VIR_DOMAIN_CONTROLLER_TYPE_CCID:
+        case VIR_DOMAIN_CONTROLLER_TYPE_XENBUS:
         case VIR_DOMAIN_CONTROLLER_TYPE_LAST:
             /* should be 0 */
             return pciFlags;
@@ -678,7 +695,18 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
 
     case VIR_DOMAIN_DEVICE_FS:
         /* the only type of filesystem so far is virtio-9p-pci */
-        return virtioFlags;
+        switch ((virDomainFSModel) dev->data.fs->model) {
+        case VIR_DOMAIN_FS_MODEL_VIRTIO_TRANSITIONAL:
+            /* Transitional devices only work in conventional PCI slots */
+            return pciFlags;
+        case VIR_DOMAIN_FS_MODEL_VIRTIO:
+        case VIR_DOMAIN_FS_MODEL_VIRTIO_NON_TRANSITIONAL:
+        case VIR_DOMAIN_FS_MODEL_DEFAULT:
+            return virtioFlags;
+        case VIR_DOMAIN_FS_MODEL_LAST:
+            break;
+        }
+        return 0;
 
     case VIR_DOMAIN_DEVICE_NET: {
         virDomainNetDefPtr net = dev->data.net;
@@ -692,8 +720,13 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
             return 0;
         }
 
-        if (STREQ_NULLABLE(net->model, "virtio"))
-            return  virtioFlags;
+        if (STREQ_NULLABLE(net->model, "virtio") ||
+            STREQ_NULLABLE(net->model, "virtio-non-transitional"))
+            return virtioFlags;
+
+        /* Transitional devices only work in conventional PCI slots */
+        if (STREQ_NULLABLE(net->model, "virtio-transitional"))
+            return pciFlags;
 
         if (STREQ_NULLABLE(net->model, "e1000e"))
             return pcieFlags;
@@ -720,7 +753,19 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
     case VIR_DOMAIN_DEVICE_DISK:
         switch ((virDomainDiskBus) dev->data.disk->bus) {
         case VIR_DOMAIN_DISK_BUS_VIRTIO:
-            return virtioFlags; /* only virtio disks use PCI */
+            /* only virtio disks use PCI */
+            switch ((virDomainDiskModel) dev->data.disk->model) {
+            case VIR_DOMAIN_DISK_MODEL_VIRTIO_TRANSITIONAL:
+                /* Transitional devices only work in conventional PCI slots */
+                return pciFlags;
+            case VIR_DOMAIN_DISK_MODEL_VIRTIO:
+            case VIR_DOMAIN_DISK_MODEL_VIRTIO_NON_TRANSITIONAL:
+            case VIR_DOMAIN_DISK_MODEL_DEFAULT:
+                return virtioFlags;
+            case VIR_DOMAIN_DISK_MODEL_LAST:
+                break;
+            }
+            return 0;
 
         case VIR_DOMAIN_DISK_BUS_IDE:
         case VIR_DOMAIN_DISK_BUS_FDC:
@@ -777,11 +822,22 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
             return pcieFlags;
 
         /* according to pbonzini, from the guest PoV vhost-scsi devices
-         * are the same as virtio-scsi, so they should use virtioFlags
-         * (same as virtio-scsi) to determine Express vs. legacy placement
+         * are the same as virtio-scsi, so they should follow virtio logic
          */
-        if (hostdev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI_HOST)
-            return virtioFlags;
+        if (hostdev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI_HOST) {
+            switch ((virDomainHostdevSubsysSCSIVHostModelType) hostdev->source.subsys.u.scsi_host.model) {
+            case VIR_DOMAIN_HOSTDEV_SUBSYS_SCSI_VHOST_MODEL_TYPE_VIRTIO_TRANSITIONAL:
+                /* Transitional devices only work in conventional PCI slots */
+                return pciFlags;
+            case VIR_DOMAIN_HOSTDEV_SUBSYS_SCSI_VHOST_MODEL_TYPE_VIRTIO:
+            case VIR_DOMAIN_HOSTDEV_SUBSYS_SCSI_VHOST_MODEL_TYPE_VIRTIO_NON_TRANSITIONAL:
+            case VIR_DOMAIN_HOSTDEV_SUBSYS_SCSI_VHOST_MODEL_TYPE_DEFAULT:
+                return virtioFlags;
+            case VIR_DOMAIN_HOSTDEV_SUBSYS_SCSI_VHOST_MODEL_TYPE_LAST:
+                break;
+            }
+            return 0;
+        }
 
         if (!(pciDev = virPCIDeviceNew(hostAddr->domain,
                                        hostAddr->bus,
@@ -838,7 +894,11 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
 
     case VIR_DOMAIN_DEVICE_MEMBALLOON:
         switch ((virDomainMemballoonModel) dev->data.memballoon->model) {
+        case VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO_TRANSITIONAL:
+            /* Transitional devices only work in conventional PCI slots */
+            return pciFlags;
         case VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO:
+        case VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO_NON_TRANSITIONAL:
             return virtioFlags;
 
         case VIR_DOMAIN_MEMBALLOON_MODEL_XEN:
@@ -850,7 +910,11 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
 
     case VIR_DOMAIN_DEVICE_RNG:
         switch ((virDomainRNGModel) dev->data.rng->model) {
+        case VIR_DOMAIN_RNG_MODEL_VIRTIO_TRANSITIONAL:
+            /* Transitional devices only work in conventional PCI slots */
+            return pciFlags;
         case VIR_DOMAIN_RNG_MODEL_VIRTIO:
+        case VIR_DOMAIN_RNG_MODEL_VIRTIO_NON_TRANSITIONAL:
             return virtioFlags;
 
         case VIR_DOMAIN_RNG_MODEL_LAST:
@@ -899,7 +963,18 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
     case VIR_DOMAIN_DEVICE_INPUT:
         switch ((virDomainInputBus) dev->data.input->bus) {
         case VIR_DOMAIN_INPUT_BUS_VIRTIO:
-            return virtioFlags;
+            switch ((virDomainInputModel) dev->data.input->model) {
+            case VIR_DOMAIN_INPUT_MODEL_VIRTIO_TRANSITIONAL:
+                /* Transitional devices only work in conventional PCI slots */
+                return pciFlags;
+            case VIR_DOMAIN_INPUT_MODEL_VIRTIO:
+            case VIR_DOMAIN_INPUT_MODEL_VIRTIO_NON_TRANSITIONAL:
+            case VIR_DOMAIN_INPUT_MODEL_DEFAULT:
+                return virtioFlags;
+            case VIR_DOMAIN_INPUT_MODEL_LAST:
+                break;
+            }
+            return 0;
 
         case VIR_DOMAIN_INPUT_BUS_PS2:
         case VIR_DOMAIN_INPUT_BUS_USB:
@@ -927,7 +1002,19 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
         break;
 
     case VIR_DOMAIN_DEVICE_VSOCK:
-        return virtioFlags;
+        switch ((virDomainVsockModel) dev->data.vsock->model) {
+        case VIR_DOMAIN_VSOCK_MODEL_VIRTIO_TRANSITIONAL:
+            /* Transitional devices only work in conventional PCI slots */
+            return pciFlags;
+        case VIR_DOMAIN_VSOCK_MODEL_VIRTIO:
+        case VIR_DOMAIN_VSOCK_MODEL_VIRTIO_NON_TRANSITIONAL:
+            return virtioFlags;
+
+        case VIR_DOMAIN_VSOCK_MODEL_DEFAULT:
+        case VIR_DOMAIN_VSOCK_MODEL_LAST:
+            return 0;
+        }
+        break;
 
         /* These devices don't ever connect with PCI */
     case VIR_DOMAIN_DEVICE_NVRAM:

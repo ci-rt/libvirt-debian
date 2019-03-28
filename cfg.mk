@@ -1070,10 +1070,19 @@ sc_prohibit_backslash_alignment:
 # Rule to ensure that variables declared using a cleanup macro are
 # always initialized.
 sc_require_attribute_cleanup_initialization:
-	@prohibit='VIR_AUTO((FREE|PTR)\(.+\)|CLOSE) *[^=]+;' \
+	@prohibit='VIR_AUTO((FREE|PTR|UNREF|CLEAN)\(.+\)|CLOSE|STRINGLIST) *[^=]+;' \
 	in_vc_files='\.[chx]$$' \
 	halt='variable declared with a cleanup macro must be initialized' \
 	  $(_sc_search_regexp)
+
+# "class" in headers is not good because by default Vim treats it as a keyword
+# Let's prohibit it in source files as well.
+sc_prohibit_class:
+	@prohibit=' +_?class *;' \
+	in_vc_files='\.[chx]$$' \
+	halt='use klass instead of class or _class' \
+	  $(_sc_search_regexp)
+
 
 # We don't use this feature of maint.mk.
 prev_version_file = /dev/null

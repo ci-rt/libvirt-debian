@@ -94,6 +94,11 @@ VIR_ENUM_IMPL(virStorageVolFormatDisk,
               "extended",
 );
 
+VIR_ENUM_IMPL(virStorageVolDefRefreshAllocation,
+              VIR_STORAGE_VOL_DEF_REFRESH_ALLOCATION_LAST,
+              "default", "capacity",
+);
+
 VIR_ENUM_IMPL(virStoragePartedFs,
               VIR_STORAGE_PARTED_FS_TYPE_LAST,
               "ext2", "ext2", "fat16",
@@ -112,6 +117,7 @@ typedef struct _virStorageVolOptions virStorageVolOptions;
 typedef virStorageVolOptions *virStorageVolOptionsPtr;
 struct _virStorageVolOptions {
     int defaultFormat;
+    int lastFormat;
     virStorageVolFormatToString formatToString;
     virStorageVolFormatFromString formatFromString;
 };
@@ -132,6 +138,7 @@ typedef virStoragePoolOptions *virStoragePoolOptionsPtr;
 struct _virStoragePoolOptions {
     unsigned int flags;
     int defaultFormat;
+    int lastFormat;
 
     virStoragePoolXMLNamespace ns;
 
@@ -164,6 +171,7 @@ static virStoragePoolTypeInfo poolTypeInfo[] = {
          .flags = (VIR_STORAGE_POOL_SOURCE_NAME |
                    VIR_STORAGE_POOL_SOURCE_DEVICE),
          .defaultFormat = VIR_STORAGE_POOL_LOGICAL_LVM2,
+         .lastFormat = VIR_STORAGE_POOL_LOGICAL_LAST,
          .formatFromString = virStoragePoolFormatLogicalTypeFromString,
          .formatToString = virStoragePoolFormatLogicalTypeToString,
      },
@@ -171,6 +179,7 @@ static virStoragePoolTypeInfo poolTypeInfo[] = {
     {.poolType = VIR_STORAGE_POOL_DIR,
      .volOptions = {
          .defaultFormat = VIR_STORAGE_FILE_RAW,
+         .lastFormat = VIR_STORAGE_FILE_LAST,
          .formatFromString = virStorageVolumeFormatFromString,
          .formatToString = virStorageFileFormatTypeToString,
      },
@@ -179,11 +188,13 @@ static virStoragePoolTypeInfo poolTypeInfo[] = {
      .poolOptions = {
          .flags = (VIR_STORAGE_POOL_SOURCE_DEVICE),
          .defaultFormat = VIR_STORAGE_POOL_FS_AUTO,
+         .lastFormat = VIR_STORAGE_POOL_FS_LAST,
          .formatFromString = virStoragePoolFormatFileSystemTypeFromString,
          .formatToString = virStoragePoolFormatFileSystemTypeToString,
       },
       .volOptions = {
          .defaultFormat = VIR_STORAGE_FILE_RAW,
+         .lastFormat = VIR_STORAGE_FILE_LAST,
          .formatFromString = virStorageVolumeFormatFromString,
          .formatToString = virStorageFileFormatTypeToString,
       },
@@ -193,11 +204,13 @@ static virStoragePoolTypeInfo poolTypeInfo[] = {
          .flags = (VIR_STORAGE_POOL_SOURCE_HOST |
                    VIR_STORAGE_POOL_SOURCE_DIR),
          .defaultFormat = VIR_STORAGE_POOL_NETFS_AUTO,
+         .lastFormat = VIR_STORAGE_POOL_NETFS_LAST,
          .formatFromString = virStoragePoolFormatFileSystemNetTypeFromString,
          .formatToString = virStoragePoolFormatFileSystemNetTypeToString,
       },
       .volOptions = {
          .defaultFormat = VIR_STORAGE_FILE_RAW,
+         .lastFormat = VIR_STORAGE_FILE_LAST,
          .formatFromString = virStorageVolumeFormatFromString,
          .formatToString = virStorageFileFormatTypeToString,
       },
@@ -208,9 +221,6 @@ static virStoragePoolTypeInfo poolTypeInfo[] = {
                    VIR_STORAGE_POOL_SOURCE_DEVICE |
                    VIR_STORAGE_POOL_SOURCE_INITIATOR_IQN),
       },
-      .volOptions = {
-         .formatToString = virStoragePoolFormatDiskTypeToString,
-      }
     },
     {.poolType = VIR_STORAGE_POOL_ISCSI_DIRECT,
      .poolOptions = {
@@ -219,17 +229,11 @@ static virStoragePoolTypeInfo poolTypeInfo[] = {
                    VIR_STORAGE_POOL_SOURCE_NETWORK |
                    VIR_STORAGE_POOL_SOURCE_INITIATOR_IQN),
       },
-      .volOptions = {
-         .formatToString = virStoragePoolFormatDiskTypeToString,
-      }
     },
     {.poolType = VIR_STORAGE_POOL_SCSI,
      .poolOptions = {
          .flags = (VIR_STORAGE_POOL_SOURCE_ADAPTER),
      },
-     .volOptions = {
-         .formatToString = virStoragePoolFormatDiskTypeToString,
-     }
     },
     {.poolType = VIR_STORAGE_POOL_RBD,
      .poolOptions = {
@@ -237,11 +241,6 @@ static virStoragePoolTypeInfo poolTypeInfo[] = {
                    VIR_STORAGE_POOL_SOURCE_NETWORK |
                    VIR_STORAGE_POOL_SOURCE_NAME),
       },
-      .volOptions = {
-          .defaultFormat = VIR_STORAGE_FILE_RAW,
-          .formatFromString = virStorageVolumeFormatFromString,
-          .formatToString = virStorageFileFormatTypeToString,
-      }
     },
     {.poolType = VIR_STORAGE_POOL_SHEEPDOG,
      .poolOptions = {
@@ -249,10 +248,6 @@ static virStoragePoolTypeInfo poolTypeInfo[] = {
                    VIR_STORAGE_POOL_SOURCE_NETWORK |
                    VIR_STORAGE_POOL_SOURCE_NAME),
      },
-     .volOptions = {
-         .defaultFormat = VIR_STORAGE_FILE_RAW,
-         .formatToString = virStoragePoolFormatDiskTypeToString,
-     }
     },
     {.poolType = VIR_STORAGE_POOL_GLUSTER,
      .poolOptions = {
@@ -263,24 +258,24 @@ static virStoragePoolTypeInfo poolTypeInfo[] = {
      },
      .volOptions = {
          .defaultFormat = VIR_STORAGE_FILE_RAW,
+         .lastFormat = VIR_STORAGE_FILE_LAST,
          .formatToString = virStorageFileFormatTypeToString,
          .formatFromString = virStorageVolumeFormatFromString,
      }
     },
     {.poolType = VIR_STORAGE_POOL_MPATH,
-     .volOptions = {
-         .formatToString = virStoragePoolFormatDiskTypeToString,
-     }
     },
     {.poolType = VIR_STORAGE_POOL_DISK,
      .poolOptions = {
          .flags = (VIR_STORAGE_POOL_SOURCE_DEVICE),
          .defaultFormat = VIR_STORAGE_POOL_DISK_UNKNOWN,
+         .lastFormat = VIR_STORAGE_POOL_DISK_LAST,
          .formatFromString = virStoragePoolFormatDiskTypeFromString,
          .formatToString = virStoragePoolFormatDiskTypeToString,
      },
      .volOptions = {
          .defaultFormat = VIR_STORAGE_VOL_DISK_NONE,
+         .lastFormat = VIR_STORAGE_VOL_DISK_LAST,
          .formatFromString = virStorageVolFormatDiskTypeFromString,
          .formatToString = virStorageVolFormatDiskTypeToString,
      },
@@ -289,7 +284,6 @@ static virStoragePoolTypeInfo poolTypeInfo[] = {
      .poolOptions = {
          .flags = (VIR_STORAGE_POOL_SOURCE_NAME |
                    VIR_STORAGE_POOL_SOURCE_DEVICE),
-         .defaultFormat = VIR_STORAGE_FILE_RAW,
      },
     },
     {.poolType = VIR_STORAGE_POOL_VSTORAGE,
@@ -298,6 +292,7 @@ static virStoragePoolTypeInfo poolTypeInfo[] = {
      },
      .volOptions = {
         .defaultFormat = VIR_STORAGE_FILE_RAW,
+        .lastFormat = VIR_STORAGE_FILE_LAST,
         .formatFromString = virStorageVolumeFormatFromString,
         .formatToString = virStorageFileFormatTypeToString,
      },
@@ -364,6 +359,80 @@ virStorageVolOptionsForPoolType(int type)
     if (backend == NULL)
         return NULL;
     return &backend->volOptions;
+}
+
+
+int
+virStoragePoolOptionsFormatPool(virBufferPtr buf,
+                                int type)
+{
+    virStoragePoolOptionsPtr poolOptions;
+
+    if (!(poolOptions = virStoragePoolOptionsForPoolType(type)))
+        return -1;
+
+    if (!poolOptions->formatToString)
+        return 0;
+
+    virBufferAddLit(buf, "<poolOptions>\n");
+    virBufferAdjustIndent(buf, 2);
+
+    if (poolOptions->formatToString) {
+        size_t i;
+
+        virBufferAsprintf(buf, "<defaultFormat type='%s'/>\n",
+                          (poolOptions->formatToString)(poolOptions->defaultFormat));
+
+        virBufferAddLit(buf, "<enum name='sourceFormatType'>\n");
+        virBufferAdjustIndent(buf, 2);
+
+        for (i = 0; i < poolOptions->lastFormat; i++)
+            virBufferAsprintf(buf, "<value>%s</value>\n",
+                              (poolOptions->formatToString)(i));
+
+        virBufferAdjustIndent(buf, -2);
+        virBufferAddLit(buf, "</enum>\n");
+    }
+
+    virBufferAdjustIndent(buf, -2);
+    virBufferAddLit(buf, "</poolOptions>\n");
+    return 0;
+}
+
+
+int
+virStoragePoolOptionsFormatVolume(virBufferPtr buf,
+                                  int type)
+{
+    size_t i;
+    virStorageVolOptionsPtr volOptions;
+
+    if (!(volOptions = virStorageVolOptionsForPoolType(type)))
+        return -1;
+
+    if (!volOptions->formatToString)
+        return 0;
+
+    virBufferAddLit(buf, "<volOptions>\n");
+    virBufferAdjustIndent(buf, 2);
+
+    virBufferAsprintf(buf, "<defaultFormat type='%s'/>\n",
+                      (volOptions->formatToString)(volOptions->defaultFormat));
+
+    virBufferAddLit(buf, "<enum name='targetFormatType'>\n");
+    virBufferAdjustIndent(buf, 2);
+
+    for (i = 0; i < volOptions->lastFormat; i++)
+        virBufferAsprintf(buf, "<value>%s</value>\n",
+                          (volOptions->formatToString)(i));
+
+    virBufferAdjustIndent(buf, -2);
+    virBufferAddLit(buf, "</enum>\n");
+
+    virBufferAdjustIndent(buf, -2);
+    virBufferAddLit(buf, "</volOptions>\n");
+
+    return 0;
 }
 
 
@@ -440,6 +509,7 @@ virStoragePoolDefFree(virStoragePoolDefPtr def)
 
     VIR_FREE(def->target.path);
     VIR_FREE(def->target.perms.label);
+    VIR_FREE(def->refresh);
     if (def->namespaceData && def->ns.free)
         (def->ns.free)(def->namespaceData);
     VIR_FREE(def);
@@ -518,6 +588,7 @@ virStoragePoolDefParseSource(xmlXPathContextPtr ctxt,
                     goto cleanup;
                 }
             }
+            VIR_FREE(port);
         }
     }
 
@@ -725,6 +796,51 @@ virStorageDefParsePerms(xmlXPathContextPtr ctxt,
 }
 
 
+static int
+virStoragePoolDefRefreshParse(xmlXPathContextPtr ctxt,
+                              virStoragePoolDefPtr def)
+{
+    VIR_AUTOFREE(virStoragePoolDefRefreshPtr) refresh = NULL;
+    VIR_AUTOFREE(char *) allocation = NULL;
+    int tmp;
+
+    allocation = virXPathString("string(./refresh/volume/@allocation)", ctxt);
+
+    if (!allocation)
+        return 0;
+
+    if ((tmp = virStorageVolDefRefreshAllocationTypeFromString(allocation)) < 0) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("unknown storage pool volume refresh allocation type %s"),
+                       allocation);
+        return -1;
+    }
+
+    if (VIR_ALLOC(refresh) < 0)
+        return -1;
+
+    refresh->volume.allocation = tmp;
+    VIR_STEAL_PTR(def->refresh, refresh);
+    return 0;
+}
+
+
+static void
+virStoragePoolDefRefreshFormat(virBufferPtr buf,
+                               virStoragePoolDefRefreshPtr refresh)
+{
+    if (!refresh)
+        return;
+
+    virBufferAddLit(buf, "<refresh>\n");
+    virBufferAdjustIndent(buf, 2);
+    virBufferAsprintf(buf, "<volume allocation='%s'/>\n",
+                      virStorageVolDefRefreshAllocationTypeToString(refresh->volume.allocation));
+    virBufferAdjustIndent(buf, -2);
+    virBufferAddLit(buf, "</refresh>\n");
+}
+
+
 virStoragePoolDefPtr
 virStoragePoolDefParseXML(xmlXPathContextPtr ctxt)
 {
@@ -866,6 +982,9 @@ virStoragePoolDefParseXML(xmlXPathContextPtr ctxt)
                        _("missing initiator IQN"));
         return NULL;
     }
+
+    if (virStoragePoolDefRefreshParse(ctxt, def) < 0)
+        return NULL;
 
     /* Make a copy of all the callback pointers here for easier use,
      * especially during the virStoragePoolSourceClear method */
@@ -1098,6 +1217,8 @@ virStoragePoolDefFormatBuf(virBufferPtr buf,
         virBufferAdjustIndent(buf, -2);
         virBufferAddLit(buf, "</target>\n");
     }
+
+    virStoragePoolDefRefreshFormat(buf, def->refresh);
 
     if (def->namespaceData && def->ns.format) {
         if ((def->ns.format)(buf, def->namespaceData) < 0)

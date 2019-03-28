@@ -24,12 +24,7 @@
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
-typedef int (*virDomainCapsFill)(virDomainCapsPtr domCaps,
-                                 void *opaque);
-
-#define SET_ALL_BITS(x) \
-    memset(&(x.values), 0xff, sizeof(x.values))
-
+#if WITH_QEMU || WITH_BHYVE
 static int ATTRIBUTE_SENTINEL
 fillStringValues(virDomainCapsStringValuesPtr values, ...)
 {
@@ -50,66 +45,7 @@ fillStringValues(virDomainCapsStringValuesPtr values, ...)
 
     return ret;
 }
-
-static int
-fillAllCaps(virDomainCapsPtr domCaps)
-{
-    virDomainCapsOSPtr os = &domCaps->os;
-    virDomainCapsLoaderPtr loader = &os->loader;
-    virDomainCapsCPUPtr cpu = &domCaps->cpu;
-    virDomainCapsDeviceDiskPtr disk = &domCaps->disk;
-    virDomainCapsDeviceGraphicsPtr graphics = &domCaps->graphics;
-    virDomainCapsDeviceVideoPtr video = &domCaps->video;
-    virDomainCapsDeviceHostdevPtr hostdev = &domCaps->hostdev;
-    virCPUDef host = {
-        .type = VIR_CPU_TYPE_HOST,
-        .arch = VIR_ARCH_X86_64,
-        .model = (char *) "host",
-        .vendor = (char *) "CPU Vendorrr",
-    };
-
-    domCaps->maxvcpus = 255;
-    os->supported = true;
-
-    loader->supported = true;
-    SET_ALL_BITS(loader->type);
-    SET_ALL_BITS(loader->readonly);
-    if (fillStringValues(&loader->values,
-                         "/foo/bar",
-                         "/tmp/my_path",
-                         NULL) < 0)
-        return -1;
-
-    cpu->hostPassthrough = true;
-    cpu->hostModel = virCPUDefCopy(&host);
-    if (!(cpu->custom = virDomainCapsCPUModelsNew(3)) ||
-        virDomainCapsCPUModelsAdd(cpu->custom, "Model1", -1,
-                                  VIR_DOMCAPS_CPU_USABLE_UNKNOWN, NULL) < 0 ||
-        virDomainCapsCPUModelsAdd(cpu->custom, "Model2", -1,
-                                  VIR_DOMCAPS_CPU_USABLE_NO, NULL) < 0 ||
-        virDomainCapsCPUModelsAdd(cpu->custom, "Model3", -1,
-                                  VIR_DOMCAPS_CPU_USABLE_YES, NULL) < 0)
-        return -1;
-
-    disk->supported = true;
-    SET_ALL_BITS(disk->diskDevice);
-    SET_ALL_BITS(disk->bus);
-
-    graphics->supported = true;
-    SET_ALL_BITS(graphics->type);
-
-    video->supported = true;
-    SET_ALL_BITS(video->modelType);
-
-    hostdev->supported = true;
-    SET_ALL_BITS(hostdev->mode);
-    SET_ALL_BITS(hostdev->startupPolicy);
-    SET_ALL_BITS(hostdev->subsysType);
-    SET_ALL_BITS(hostdev->capsType);
-    SET_ALL_BITS(hostdev->pciBackend);
-    return 0;
-}
-
+#endif /* WITH_QEMU || WITH_BHYVE */
 
 #if WITH_QEMU
 # include "testutilsqemu.h"
@@ -260,7 +196,6 @@ fillBhyveCaps(virDomainCapsPtr domCaps, unsigned int *bhyve_caps)
 
 enum testCapsType {
     CAPS_NONE,
-    CAPS_ALL,
     CAPS_QEMU,
     CAPS_LIBXL,
     CAPS_BHYVE,
@@ -297,11 +232,6 @@ test_virDomainCapsFormat(const void *opaque)
 
     switch (data->capsType) {
     case CAPS_NONE:
-        break;
-
-    case CAPS_ALL:
-        if (fillAllCaps(domCaps) < 0)
-            goto cleanup;
         break;
 
     case CAPS_QEMU:
@@ -409,9 +339,6 @@ mymain(void)
             ret = -1; \
     } while (0)
 
-    DO_TEST("full", "/bin/emulatorbin", "my-machine-type",
-            "x86_64", VIR_DOMAIN_VIRT_KVM, CAPS_ALL);
-
 #define DO_TEST_BHYVE(Name, Emulator, BhyveCaps, Type) \
     do { \
         char *name = NULL; \
@@ -431,6 +358,9 @@ mymain(void)
             ret = -1; \
         VIR_FREE(name); \
     } while (0)
+
+    DO_TEST("empty", "/bin/emulatorbin", "my-machine-type",
+            "x86_64", VIR_DOMAIN_VIRT_KVM, CAPS_NONE);
 
 #if WITH_QEMU
 
@@ -502,6 +432,9 @@ mymain(void)
                  "/usr/bin/qemu-system-s390x", NULL,
                  "s390x", VIR_DOMAIN_VIRT_KVM);
 
+    DO_TEST_QEMU("4.0.0", "caps_4.0.0",
+                 "/usr/bin/qemu-system-x86_64", NULL,
+                 "x86_64", VIR_DOMAIN_VIRT_KVM);
     virObjectUnref(cfg);
 
 #endif /* WITH_QEMU */

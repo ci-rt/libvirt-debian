@@ -1585,7 +1585,7 @@ virStoragePoolObjLoad(virStoragePoolObjListPtr pools,
     if (!(def = virStoragePoolDefParseFile(path)))
         return NULL;
 
-    if (!virFileMatchesNameSuffix(file, def->name, ".xml")) {
+    if (!virStringMatchesNameSuffix(file, def->name, ".xml")) {
         virReportError(VIR_ERR_XML_ERROR,
                        _("Storage pool config filename '%s' does "
                          "not match pool name '%s'"),
@@ -1688,7 +1688,7 @@ virStoragePoolObjLoadAllState(virStoragePoolObjListPtr pools,
     while ((ret = virDirRead(dir, &entry, stateDir)) > 0) {
         virStoragePoolObjPtr obj;
 
-        if (!virFileStripSuffix(entry->d_name, ".xml"))
+        if (!virStringStripSuffix(entry->d_name, ".xml"))
             continue;
 
         if (!(obj = virStoragePoolObjLoadState(pools, stateDir, entry->d_name)))
@@ -1719,7 +1719,7 @@ virStoragePoolObjLoadAllConfigs(virStoragePoolObjListPtr pools,
         char *autostartLink;
         virStoragePoolObjPtr obj;
 
-        if (!virFileHasSuffix(entry->d_name, ".xml"))
+        if (!virStringHasSuffix(entry->d_name, ".xml"))
             continue;
 
         if (!(path = virFileBuildPath(configDir, entry->d_name, NULL)))

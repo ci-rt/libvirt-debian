@@ -660,6 +660,10 @@ networkStateInitialize(bool privileged,
     networkReloadFirewallRules(network_driver, true);
     networkRefreshDaemons(network_driver);
 
+    virNetworkObjListForEach(network_driver->networks,
+                             networkAutostartConfig,
+                             network_driver);
+
     network_driver->networkEventState = virObjectEventStateNew();
 
 #ifdef WITH_FIREWALLD
@@ -696,23 +700,6 @@ networkStateInitialize(bool privileged,
  error:
     networkStateCleanup();
     goto cleanup;
-}
-
-
-/**
- * networkStateAutoStart:
- *
- * Function to AutoStart the bridge configs
- */
-static void
-networkStateAutoStart(void)
-{
-    if (!network_driver)
-        return;
-
-    virNetworkObjListForEach(network_driver->networks,
-                             networkAutostartConfig,
-                             network_driver);
 }
 
 
@@ -1501,7 +1488,7 @@ networkBuildDhcpDaemonCommandLine(virNetworkDriverStatePtr driver,
 
     /* This helper is used to create custom leases file for libvirt */
     if (!(leaseshelper_path = virFileFindResource("libvirt_leaseshelper",
-                                                  abs_topbuilddir "/src",
+                                                  abs_top_builddir "/src",
                                                   LIBEXECDIR)))
         goto cleanup;
 
@@ -2108,8 +2095,11 @@ static void
 networkReloadFirewallRules(virNetworkDriverStatePtr driver, bool startup)
 {
     VIR_INFO("Reloading iptables rules");
-    if (networkPreReloadFirewallRules(startup) < 0)
+    /* Ideally we'd not even register the driver when unprivilegd
+     * but until we untangle the virt driver that's not viable */
+    if (!driver->privileged)
         return;
+    networkPreReloadFirewallRules(startup);
     virNetworkObjListForEach(driver->networks,
                              networkReloadFirewallRulesHelper,
                              NULL);
@@ -5652,7 +5642,6 @@ static virConnectDriver networkConnectDriver = {
 static virStateDriver networkStateDriver = {
     .name = "bridge",
     .stateInitialize  = networkStateInitialize,
-    .stateAutoStart  = networkStateAutoStart,
     .stateCleanup = networkStateCleanup,
     .stateReload = networkStateReload,
 };

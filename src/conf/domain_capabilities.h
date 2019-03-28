@@ -33,6 +33,7 @@ typedef virDomainCaps *virDomainCapsPtr;
 typedef struct _virDomainCapsEnum virDomainCapsEnum;
 typedef virDomainCapsEnum *virDomainCapsEnumPtr;
 struct _virDomainCapsEnum {
+    bool report; /* Whether the format the enum at all */
     unsigned int values; /* Bitmask of values supported in the corresponding enum */
 };
 
@@ -46,7 +47,7 @@ struct _virDomainCapsStringValues {
 typedef struct _virDomainCapsLoader virDomainCapsLoader;
 typedef virDomainCapsLoader *virDomainCapsLoaderPtr;
 struct _virDomainCapsLoader {
-    bool supported;
+    virTristateBool supported;
     virDomainCapsStringValues values;   /* Info about values for the element */
     virDomainCapsEnum type;     /* Info about virDomainLoader */
     virDomainCapsEnum readonly; /* Info about readonly:virTristateBool */
@@ -55,37 +56,38 @@ struct _virDomainCapsLoader {
 typedef struct _virDomainCapsOS virDomainCapsOS;
 typedef virDomainCapsOS *virDomainCapsOSPtr;
 struct _virDomainCapsOS {
-    bool supported;
+    virTristateBool supported;
     virDomainCapsLoader loader;     /* Info about virDomainLoaderDef */
 };
 
 typedef struct _virDomainCapsDeviceDisk virDomainCapsDeviceDisk;
 typedef virDomainCapsDeviceDisk *virDomainCapsDeviceDiskPtr;
 struct _virDomainCapsDeviceDisk {
-    bool supported;
+    virTristateBool supported;
     virDomainCapsEnum diskDevice;   /* Info about virDomainDiskDevice enum values */
     virDomainCapsEnum bus;          /* Info about virDomainDiskBus enum values */
+    virDomainCapsEnum model;        /* Info about virDomainDiskModel enum values */
     /* add new fields here */
 };
 
 typedef struct _virDomainCapsDeviceGraphics virDomainCapsDeviceGraphics;
 typedef virDomainCapsDeviceGraphics *virDomainCapsDeviceGraphicsPtr;
 struct _virDomainCapsDeviceGraphics {
-    bool supported;
+    virTristateBool supported;
     virDomainCapsEnum type;   /* virDomainGraphicsType */
 };
 
 typedef struct _virDomainCapsDeviceVideo virDomainCapsDeviceVideo;
 typedef virDomainCapsDeviceVideo *virDomainCapsDeviceVideoPtr;
 struct _virDomainCapsDeviceVideo {
-    bool supported;
+    virTristateBool supported;
     virDomainCapsEnum modelType;   /* virDomainVideoType */
 };
 
 typedef struct _virDomainCapsDeviceHostdev virDomainCapsDeviceHostdev;
 typedef virDomainCapsDeviceHostdev *virDomainCapsDeviceHostdevPtr;
 struct _virDomainCapsDeviceHostdev {
-    bool supported;
+    virTristateBool supported;
     virDomainCapsEnum mode;             /* Info about virDomainHostdevMode */
     virDomainCapsEnum startupPolicy;    /* Info about virDomainStartupPolicy */
     virDomainCapsEnum subsysType;       /* Info about virDomainHostdevSubsysType */
@@ -97,7 +99,7 @@ struct _virDomainCapsDeviceHostdev {
 typedef struct _virDomainCapsFeatureGIC virDomainCapsFeatureGIC;
 typedef virDomainCapsFeatureGIC *virDomainCapsFeatureGICPtr;
 struct _virDomainCapsFeatureGIC {
-    bool supported;
+    virTristateBool supported;
     virDomainCapsEnum version; /* Info about virGICVersion */
 };
 
@@ -155,7 +157,7 @@ struct _virDomainCaps {
 
     /* Some machine specific info */
     int maxvcpus;
-    bool iothreads;  /* Whether I/O threads are supported or not. */
+    virTristateBool iothreads;  /* Whether I/O threads are supported or not. */
 
     virDomainCapsOS os;
     virDomainCapsCPU cpu;
@@ -166,8 +168,8 @@ struct _virDomainCaps {
     /* add new domain devices here */
 
     virDomainCapsFeatureGIC gic;
-    bool vmcoreinfo;
-    bool genid;
+    virTristateBool vmcoreinfo;
+    virTristateBool genid;
     virSEVCapabilityPtr sev;
     /* add new domain features here */
 };

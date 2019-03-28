@@ -30,6 +30,7 @@
 #include "virfile.h"
 #include "virlog.h"
 #include "virstring.h"
+#include "virdomainsnapshotobjlist.h"
 
 #define VIR_FROM_THIS VIR_FROM_DOMAIN
 
@@ -597,7 +598,7 @@ virDomainObjListLoadAllConfigs(virDomainObjListPtr doms,
     while ((ret = virDirRead(dir, &entry, configDir)) > 0) {
         virDomainObjPtr dom;
 
-        if (!virFileStripSuffix(entry->d_name, ".xml"))
+        if (!virStringStripSuffix(entry->d_name, ".xml"))
             continue;
 
         /* NB: ignoring errors, so one malformed config doesn't

@@ -22,12 +22,19 @@ DOMAIN_CONF_SOURCES = \
 	conf/domain_nwfilter.h \
 	conf/virsavecookie.c \
 	conf/virsavecookie.h \
+	conf/moment_conf.c \
+	conf/moment_conf.h \
 	conf/snapshot_conf.c \
 	conf/snapshot_conf.h \
 	conf/numa_conf.c \
 	conf/numa_conf.h \
+	conf/virconftypes.h \
 	conf/virdomainobjlist.c \
 	conf/virdomainobjlist.h \
+	conf/virdomainmomentobjlist.c \
+	conf/virdomainmomentobjlist.h \
+	conf/virdomainsnapshotobjlist.c \
+	conf/virdomainsnapshotobjlist.h \
 	$(NULL)
 
 OBJECT_EVENT_SOURCES = \
@@ -96,6 +103,8 @@ NWFILTER_CONF_SOURCES = \
 STORAGE_CONF_SOURCES = \
 	conf/storage_adapter_conf.h \
 	conf/storage_adapter_conf.c \
+	conf/storage_capabilities.h \
+	conf/storage_capabilities.c \
 	conf/storage_conf.h \
 	conf/storage_conf.c \
 	conf/virstorageobj.h \

@@ -19,9 +19,9 @@
 #ifndef LIBVIRT_VIRFILEWRAPPER_H
 # define LIBVIRT_VIRFILEWRAPPER_H
 
-int
+void
 virFileWrapperAddPrefix(const char *prefix,
-                     const char *override);
+                        const char *override);
 
 void
 virFileWrapperRemovePrefix(const char *prefix);
