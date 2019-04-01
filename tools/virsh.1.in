@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2019-03-28" "libvirt-5.2.0" "Virtualization Support"
+.TH VIRSH 1 "2019-03-31" "libvirt-5.2.0" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -1750,7 +1750,10 @@ reach the maximum polling time. If a 0 (zero) is provided, then the
 default factor will be used. The \fI\-\-poll\-shrink\fR is the quotient
 by which the current polling time will be reduced in order to get
 below the maximum polling interval. If a 0 (zero) is provided, then
-the default quotient will be used.
+the default quotient will be used. The polling values are purely dynamic
+for a running guest. Saving, destroying, stopping, etc. the guest will
+result in the polling values returning to hypervisor defaults at the
+next start, restore, etc.
 .Sp
 If \fI\-\-live\fR is specified, affect a running guest. If the guest is not
 running an error is returned.

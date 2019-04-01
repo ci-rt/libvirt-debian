@@ -34,7 +34,7 @@
       <span class="refentrytitle">virterror</span>
     </h2>
     <p>virterror - error handling interfaces for the libvirt library</p>
-    <p>Provides the interfaces of the libvirt library to handle errors raised while using the library.  Copyright (C) 2006-2016 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </p>
+    <p>Provides the interfaces of the libvirt library to handle errors raised while using the library.  Copyright (C) 2006-2019 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </p>
     <div class="refsynopsisdiv">
       <h2>Synopsis</h2>
       <pre class="synopsis">typedef struct _virError <a href="#virError">virError</a>;
@@ -153,7 +153,8 @@ void	<a href="#virSetErrorFunc">virSetErrorFunc</a>			(void * userData, <br/>			
     <a name="VIR_FROM_LIBSSH">VIR_FROM_LIBSSH</a> = 66 /* Error from libssh connection transport */
     <a name="VIR_FROM_RESCTRL">VIR_FROM_RESCTRL</a> = 67 /* Error from resource control */
     <a name="VIR_FROM_FIREWALLD">VIR_FROM_FIREWALLD</a> = 68 /* Error from firewalld */
-    <a name="VIR_ERR_DOMAIN_LAST">VIR_ERR_DOMAIN_LAST</a> = 69
+    <a name="VIR_FROM_DOMAIN_CHECKPOINT">VIR_FROM_DOMAIN_CHECKPOINT</a> = 69 /* Error from domain checkpoint */
+    <a name="VIR_ERR_DOMAIN_LAST">VIR_ERR_DOMAIN_LAST</a> = 70
 };
 </pre><p/>
 </div>
@@ -269,7 +270,10 @@ void	<a href="#virSetErrorFunc">virSetErrorFunc</a>			(void * userData, <br/>			
     <a name="VIR_ERR_DEVICE_MISSING">VIR_ERR_DEVICE_MISSING</a> = 99 /* fail to find the desired device */
     <a name="VIR_ERR_INVALID_NWFILTER_BINDING">VIR_ERR_INVALID_NWFILTER_BINDING</a> = 100 /* invalid nwfilter binding */
     <a name="VIR_ERR_NO_NWFILTER_BINDING">VIR_ERR_NO_NWFILTER_BINDING</a> = 101 /* no nwfilter binding */
-    <a name="VIR_ERR_NUMBER_LAST">VIR_ERR_NUMBER_LAST</a> = 102
+    <a name="VIR_ERR_INVALID_DOMAIN_CHECKPOINT">VIR_ERR_INVALID_DOMAIN_CHECKPOINT</a> = 102 /* invalid domain checkpoint */
+    <a name="VIR_ERR_NO_DOMAIN_CHECKPOINT">VIR_ERR_NO_DOMAIN_CHECKPOINT</a> = 103 /* domain checkpoint not found */
+    <a name="VIR_ERR_NO_DOMAIN_BACKUP">VIR_ERR_NO_DOMAIN_BACKUP</a> = 104 /* domain backup job id not found */
+    <a name="VIR_ERR_NUMBER_LAST">VIR_ERR_NUMBER_LAST</a> = 105
 };
 </pre><p/>
 </div>
