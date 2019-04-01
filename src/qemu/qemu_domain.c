@@ -9321,6 +9321,18 @@ qemuDomainDiskChangeSupported(virDomainDiskDefPtr disk,
         } \
     } while (0)
 
+#define CHECK_STREQ_NULLABLE(field, field_name) \
+    do { \
+        if (!disk->field) \
+            break; \
+        if (STRNEQ_NULLABLE(disk->field, orig_disk->field)) { \
+            virReportError(VIR_ERR_OPERATION_UNSUPPORTED, \
+                           _("cannot modify field '%s' of the disk"), \
+                           field_name); \
+            return false; \
+        } \
+    } while (0)
+
     CHECK_EQ(device, "device", false);
     CHECK_EQ(bus, "bus", false);
     if (STRNEQ(disk->dst, orig_disk->dst)) {
@@ -9385,9 +9397,8 @@ qemuDomainDiskChangeSupported(virDomainDiskDefPtr disk,
     CHECK_EQ(blkdeviotune.size_iops_sec,
              "blkdeviotune size_iops_sec",
              true);
-    CHECK_EQ(blkdeviotune.group_name,
-             "blkdeviotune group_name",
-             true);
+    CHECK_STREQ_NULLABLE(blkdeviotune.group_name,
+                         "blkdeviotune group name");
 
     if (disk->serial && STRNEQ_NULLABLE(disk->serial, orig_disk->serial)) {
         virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
@@ -9471,6 +9482,7 @@ qemuDomainDiskChangeSupported(virDomainDiskDefPtr disk,
     }
 
 #undef CHECK_EQ
+#undef CHECK_STREQ_NULLABLE
 
     return true;
 }

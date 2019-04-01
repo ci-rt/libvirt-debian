@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt 4.10.0\n"
 "Report-Msgid-Bugs-To: https://libvirt.org/bugs.html\n"
-"POT-Creation-Date: 2019-03-28 09:58+0100\n"
+"POT-Creation-Date: 2019-03-31 22:05+0200\n"
 "PO-Revision-Date: 2015-02-27 10:04+0000\n"
 "Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
 "Language-Team: Malayalam (http://www.transifex.com/projects/p/libvirt/"
@@ -1756,7 +1756,7 @@ msgid "failed to wait for domain condition"
 msgstr ""
 
 #: src/conf/domain_conf.c:3484 src/conf/domain_conf.c:3619
-#: src/conf/domain_conf.c:6793 src/qemu/qemu_domain.c:9728
+#: src/conf/domain_conf.c:6793 src/qemu/qemu_domain.c:9740
 #: src/qemu/qemu_driver.c:1943 src/qemu/qemu_driver.c:2193
 msgid "domain is not running"
 msgstr "ഡൊമെയിന്‍ പ്രവര്‍ത്തിക്കുന്നില്ല"
@@ -5877,7 +5877,7 @@ msgstr "അപ്രതീക്ഷിതമായ pci hostdev ഡ്രൈവ�
 
 #: src/conf/domain_conf.c:24681 src/conf/domain_conf.c:24720
 #: src/conf/domain_conf.c:26767 src/conf/domain_conf.c:26776
-#: src/libxl/libxl_driver.c:3816 src/qemu/qemu_hotplug.c:5662
+#: src/libxl/libxl_driver.c:3816 src/qemu/qemu_hotplug.c:5661
 #, c-format
 msgid "unexpected hostdev type %d"
 msgstr "അപ്രതീക്ഷിതമായ hostdev രീതി %d"
@@ -6046,7 +6046,7 @@ msgstr ""
 msgid "Device configuration is not compatible: Domain has no USB bus support"
 msgstr "ഡിവൈസ് ക്രമീകരണം പൊരുത്തപ്പെടുന്നില്ല: ഡൊമെയിനു് യുഎസ്ബി പിന്തുണ ലഭ്യമല്ല"
 
-#: src/conf/domain_conf.c:28638 src/qemu/qemu_domain.c:10301
+#: src/conf/domain_conf.c:28638 src/qemu/qemu_domain.c:10313
 msgid ""
 "cannot use/hotplug a memory device when domain 'maxMemory' is not defined"
 msgstr ""
@@ -12488,7 +12488,7 @@ msgid "hostdev subsys type '%s' not supported"
 msgstr "hostdev subsys രീതി '%s' പിന്തുണയ്ക്കുന്നില്ല"
 
 #: src/libxl/libxl_driver.c:3329 src/lxc/lxc_driver.c:4286
-#: src/qemu/qemu_hotplug.c:5446
+#: src/qemu/qemu_hotplug.c:5445
 #, c-format
 msgid "disk %s not found"
 msgstr "ഡിസ്ക് %s ലഭ്യമല്ല"
@@ -12540,7 +12540,7 @@ msgstr "ഡിവൈസ് നിലവില്‍ ഡൊമെയിന്‍ 
 msgid "persistent attach of device is not supported"
 msgstr "ഉപകരണത്തിന്റെ സ്ഥിരമായ ചേര്‍ത്തുവയ്ക്കലിനുള്ള പിന്തുണ ലഭ്യമല്ല"
 
-#: src/libxl/libxl_driver.c:3626 src/qemu/qemu_hotplug.c:5621
+#: src/libxl/libxl_driver.c:3626 src/qemu/qemu_hotplug.c:5620
 #, c-format
 msgid "host pci device %.4x:%.2x:%.2x.%.1x not found"
 msgstr "ഹോസ്റ്റ് pci ഡിവൈസ് %.4x:%.2x:%.2x.%.1x ലഭ്യമല്ല"
@@ -12557,7 +12557,7 @@ msgstr ""
 msgid "libxenlight failed to detach pci device %.4x:%.2x:%.2x.%.1x"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3696 src/qemu/qemu_hotplug.c:5575
+#: src/libxl/libxl_driver.c:3696 src/qemu/qemu_hotplug.c:5574
 #, c-format
 msgid "controller %s:%d not found"
 msgstr "കണ്ട്രോളര്‍ %s:%d ലഭ്യമല്ല"
@@ -13686,7 +13686,7 @@ msgstr "റൂട്ട് സ്വകാര്യമാക്കുന്ന�
 
 #: src/lxc/lxc_container.c:727 src/lxc/lxc_container.c:747
 #: src/lxc/lxc_container.c:1189 src/lxc/lxc_container.c:1469
-#: src/lxc/lxc_container.c:1533 src/qemu/qemu_domain.c:12411
+#: src/lxc/lxc_container.c:1533 src/qemu/qemu_domain.c:12423
 #, c-format
 msgid "Failed to create %s"
 msgstr "%s ഉണ്ടാക്കുന്നതില്‍ പരാജയം"
@@ -14061,7 +14061,7 @@ msgstr ""
 msgid "unable write to %s"
 msgstr "%s-ലേക്കു് സൂക്ഷിയ്ക്കുവാന്‍ സാധ്യമല്ല"
 
-#: src/lxc/lxc_controller.c:1534 src/qemu/qemu_domain.c:11790
+#: src/lxc/lxc_controller.c:1534 src/qemu/qemu_domain.c:11802
 #, c-format
 msgid "Failed to make device %s"
 msgstr "ഡിവൈസ് %s ഉണ്ടാക്കുന്നതില്‍ പരാജയം"
@@ -14070,7 +14070,7 @@ msgstr "ഡിവൈസ് %s ഉണ്ടാക്കുന്നതില്�
 #: src/lxc/lxc_controller.c:1739 src/lxc/lxc_controller.c:1896
 #: src/lxc/lxc_driver.c:3750 src/lxc/lxc_driver.c:3964
 #: src/lxc/lxc_driver.c:4033 src/lxc/lxc_driver.c:4105
-#: src/qemu/qemu_domain.c:12716
+#: src/qemu/qemu_domain.c:12728
 #, c-format
 msgid "Unable to access %s"
 msgstr "%s ലഭ്യമാക്കുവാന്‍ സാധ്യമല്ല"
@@ -14081,7 +14081,7 @@ msgid "USB source %s was not a character device"
 msgstr "യുഎസ്ബി ശ്രോതസ്സ് %s  ഒരു ക്യാരക്ടര്‍ ഡിവൈസല്ല"
 
 #: src/lxc/lxc_controller.c:1597 src/lxc/lxc_driver.c:3574
-#: src/qemu/qemu_domain.c:11720 src/qemu/qemu_domain.c:12557
+#: src/qemu/qemu_domain.c:11732 src/qemu/qemu_domain.c:12569
 #: src/qemu/qemu_process.c:3785
 #, c-format
 msgid "Unable to create %s"
@@ -14089,7 +14089,7 @@ msgstr "%s തയ്യാറാക്കുവാന്‍ സാധ്യമ�
 
 #: src/lxc/lxc_controller.c:1605 src/lxc/lxc_controller.c:1685
 #: src/lxc/lxc_controller.c:1764 src/lxc/lxc_controller.c:1924
-#: src/lxc/lxc_driver.c:3589 src/qemu/qemu_domain.c:12593
+#: src/lxc/lxc_driver.c:3589 src/qemu/qemu_domain.c:12605
 #, c-format
 msgid "Unable to create device %s"
 msgstr "%s ഡിവൈസ് തയ്യാറാക്കുവാന്‍ സാധ്യമല്ല"
@@ -14196,7 +14196,7 @@ msgid "Unknown LXC namespace source '%s'"
 msgstr ""
 
 #: src/lxc/lxc_domain.c:447 src/lxc/lxc_domain.c:496 src/lxc/lxc_process.c:750
-#: src/qemu/qemu_domain.c:11677
+#: src/qemu/qemu_domain.c:11689
 #, c-format
 msgid "Unable to stat %s"
 msgstr "%s stat ചെയ്യുവാന്‍ സാധ്യമല്ല"
@@ -14380,7 +14380,7 @@ msgstr "pid %llu init ചെയ്യുന്നതിനായി SIGTERM അ�
 msgid "Unexpected device type %d"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:3680 src/qemu/qemu_domain.c:12871
+#: src/lxc/lxc_driver.c:3680 src/qemu/qemu_domain.c:12883
 #, c-format
 msgid "Unable to remove device %s"
 msgstr "%s ഡിവൈസ് നീക്കം ചെയ്യുവാന്‍ സാധ്യമല്ല"
@@ -14471,8 +14471,8 @@ msgstr "fseek പരാജയപ്പെട്ടു"
 msgid "fuse_loop failed"
 msgstr "fuse_loop പരാജയപ്പെട്ടു"
 
-#: src/lxc/lxc_fuse.c:314 src/qemu/qemu_domain.c:12438
-#: src/qemu/qemu_domain.c:12445
+#: src/lxc/lxc_fuse.c:314 src/qemu/qemu_domain.c:12450
+#: src/qemu/qemu_domain.c:12457
 #, c-format
 msgid "Cannot create %s"
 msgstr "%s തയ്യാറാക്കുവാന്‍ സാധ്യമല്ല"
@@ -17538,7 +17538,7 @@ msgstr "ഈ QEMU ലൈബ്രറിയില്‍ പങ്കിടുന�
 msgid "gic-version option is not available with this QEMU binary"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7618 src/qemu/qemu_domain.c:10362
+#: src/qemu/qemu_command.c:7618 src/qemu/qemu_domain.c:10374
 msgid "nvdimm isn't supported by this QEMU binary"
 msgstr ""
 
@@ -18893,244 +18893,244 @@ msgstr "സ്നാപ്പ്ഷോട്ട് ഡയറക്ടറി '%s'
 msgid "Disk device '%s' does not support snapshotting"
 msgstr "ഡിസ്ക് ഡിവൈസ് '%s' സ്നാപ്പ്ഷോട്ട് പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/qemu/qemu_domain.c:9318 src/qemu/qemu_domain.c:9328
-#: src/qemu/qemu_domain.c:9394 src/qemu/qemu_domain.c:9401
-#: src/qemu/qemu_domain.c:9408 src/qemu/qemu_domain.c:9415
-#: src/qemu/qemu_domain.c:9438 src/qemu/qemu_domain.c:9454
-#: src/qemu/qemu_domain.c:9468
+#: src/qemu/qemu_domain.c:9318 src/qemu/qemu_domain.c:9330
+#: src/qemu/qemu_domain.c:9340 src/qemu/qemu_domain.c:9405
+#: src/qemu/qemu_domain.c:9412 src/qemu/qemu_domain.c:9419
+#: src/qemu/qemu_domain.c:9426 src/qemu/qemu_domain.c:9449
+#: src/qemu/qemu_domain.c:9465 src/qemu/qemu_domain.c:9479
 #, c-format
 msgid "cannot modify field '%s' of the disk"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:9485 src/qemu/qemu_domain.c:9494
+#: src/qemu/qemu_domain.c:9497 src/qemu/qemu_domain.c:9506
 #, c-format
 msgid "disk '%s' already in active block job"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:9614
+#: src/qemu/qemu_domain.c:9626
 #, c-format
 msgid ""
 "Target memoryBacking source '%s' doesn't match source memoryBacking "
 "source'%s'"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:9627
+#: src/qemu/qemu_domain.c:9639
 #, c-format
 msgid "Target memory device alias '%s' doesn't match source alias '%s'"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:9735
+#: src/qemu/qemu_domain.c:9747
 msgid "QEMU guest agent is not available due to an error"
 msgstr "ഒരു പിശക് കാരണം QEMU ഗസ്റ്റ് ഏജന്റ് ലഭ്യമല്ല"
 
-#: src/qemu/qemu_domain.c:9744
+#: src/qemu/qemu_domain.c:9756
 msgid "QEMU guest agent is not connected"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:9750
+#: src/qemu/qemu_domain.c:9762
 msgid "QEMU guest agent is not configured"
 msgstr "QEMU ഗസ്റ്റ് ഏജന്റ് ക്രമീകരിച്ചിട്ടില്ല"
 
-#: src/qemu/qemu_domain.c:9808
+#: src/qemu/qemu_domain.c:9820
 #, c-format
 msgid "memory size of NUMA node '%zu' overflowed after alignment"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:9822
+#: src/qemu/qemu_domain.c:9834
 msgid "initial memory size overflowed after alignment"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:9829
+#: src/qemu/qemu_domain.c:9841
 msgid "maximum memory size overflowed after alignment"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:9841
+#: src/qemu/qemu_domain.c:9853
 #, c-format
 msgid "size of memory module '%zu' overflowed after alignment"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:9897
+#: src/qemu/qemu_domain.c:9909
 msgid "block jobs not supported with this QEMU binary"
 msgstr "ഈ QEMU ബൈനറിയ്ക്കൊപ്പം ബ്ലോക്ക് ജോലികള്‍ "
 
-#: src/qemu/qemu_domain.c:10197
+#: src/qemu/qemu_domain.c:10209
 #, c-format
 msgid "memory device slot '%u' is already being used by another memory device"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:10206
+#: src/qemu/qemu_domain.c:10218
 #, c-format
 msgid ""
 "memory device base '0x%llx' is already being used by another memory device"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:10225
+#: src/qemu/qemu_domain.c:10237
 msgid "only 'dimm' addresses are supported for the pc-dimm device"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:10233
+#: src/qemu/qemu_domain.c:10245
 msgid "target NUMA node needs to be specified for memory device"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:10242
+#: src/qemu/qemu_domain.c:10254
 #, c-format
 msgid "memory device slot '%u' exceeds slots count '%u'"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:10316
+#: src/qemu/qemu_domain.c:10328
 msgid ""
 "At least one numa node has to be configured when enabling memory hotplug"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:10324
+#: src/qemu/qemu_domain.c:10336
 #, c-format
 msgid "memory device count '%u' exceeds slots count '%u'"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:10355
+#: src/qemu/qemu_domain.c:10367
 msgid "memory hotplug isn't supported by this QEMU binary"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:10368
+#: src/qemu/qemu_domain.c:10380
 msgid "memory device total size exceeds hotplug space"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:10670
+#: src/qemu/qemu_domain.c:10682
 #, c-format
 msgid "qemu didn't report thread id for vcpu '%zu'"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:10676
+#: src/qemu/qemu_domain.c:10688
 #, c-format
 msgid "qemu reported thread id for inactive vcpu '%zu'"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:10948
+#: src/qemu/qemu_domain.c:10960
 msgid "No device found for specified path"
 msgstr "നല്‍കിയിരിയ്ക്കുന്ന പാഥിനു് ഡിവൈസ് ലഭ്യമല്ല"
 
-#: src/qemu/qemu_domain.c:10971
+#: src/qemu/qemu_domain.c:10983
 #, c-format
 msgid "disk device='lun' is not supported for protocol='%s'"
 msgstr "disk device='lun' protocol='%s'-നു് പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/qemu/qemu_domain.c:10978
+#: src/qemu/qemu_domain.c:10990
 msgid "disk device='lun' is only valid for block type disk source"
 msgstr "ബ്ലോക്ക് തരത്തിലുള്ള ഡിസ്ക് ശ്രോതസ്സിനു് മാത്രം disk device='lun' ശരിയാകുന്നു"
 
-#: src/qemu/qemu_domain.c:11119
+#: src/qemu/qemu_domain.c:11131
 msgid "this qemu does not support TLS transport for NBD"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:11174
+#: src/qemu/qemu_domain.c:11186
 #, c-format
 msgid "TLS transport is not supported for disk protocol '%s'"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:11667 src/qemu/qemu_domain.c:12703
+#: src/qemu/qemu_domain.c:11679 src/qemu/qemu_domain.c:12715
 #, c-format
 msgid "Too many levels of symbolic links: %s"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:11737 src/qemu/qemu_domain.c:12736
+#: src/qemu/qemu_domain.c:11749 src/qemu/qemu_domain.c:12748
 #, c-format
 msgid "unable to resolve symlink %s"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:11748
+#: src/qemu/qemu_domain.c:11760
 #, c-format
 msgid "unable to create symlink %s"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:11807 src/qemu/qemu_domain.c:12620
+#: src/qemu/qemu_domain.c:11819 src/qemu/qemu_domain.c:12632
 #, c-format
 msgid "unsupported device type %s 0%o"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:11819 src/qemu/qemu_domain.c:12627
+#: src/qemu/qemu_domain.c:11831 src/qemu/qemu_domain.c:12639
 #, c-format
 msgid "Failed to chown device %s"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:11828 src/qemu/qemu_domain.c:12636
+#: src/qemu/qemu_domain.c:11840 src/qemu/qemu_domain.c:12648
 #, c-format
 msgid "Failed to set permissions for device %s"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:11838
+#: src/qemu/qemu_domain.c:11850
 #, c-format
 msgid "Failed to copy ACLs on device %s"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:11847 src/qemu/qemu_domain.c:12775
+#: src/qemu/qemu_domain.c:11859 src/qemu/qemu_domain.c:12787
 #, c-format
 msgid "Unable to get SELinux label from %s"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:11858 src/qemu/qemu_domain.c:12657
+#: src/qemu/qemu_domain.c:11870 src/qemu/qemu_domain.c:12669
 #, c-format
 msgid "Unable to set SELinux label on %s"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:12347
+#: src/qemu/qemu_domain.c:12359
 msgid "Unable to find any /dev mount"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:12400 src/qemu/qemu_domain.c:12431
+#: src/qemu/qemu_domain.c:12412 src/qemu/qemu_domain.c:12443
 #, c-format
 msgid "Unable to stat: %s"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:12570
+#: src/qemu/qemu_domain.c:12582
 #, c-format
 msgid "Unable to remove symlink %s"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:12577
+#: src/qemu/qemu_domain.c:12589
 #, c-format
 msgid "Unable to create symlink %s (pointing to %s)"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:12608
+#: src/qemu/qemu_domain.c:12620
 #, c-format
 msgid "Unable to umount %s"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:12646
+#: src/qemu/qemu_domain.c:12658
 #, c-format
 msgid "Unable to set ACLs on %s"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:12767
+#: src/qemu/qemu_domain.c:12779
 #, c-format
 msgid "Unable to get ACLs on %s"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:12839 src/util/virprocess.c:105
+#: src/qemu/qemu_domain.c:12851 src/util/virprocess.c:105
 #: src/util/virprocess.c:1246 src/util/virprocess.c:1319
 msgid "Namespaces are not supported on this platform."
 msgstr ""
 
-#: src/qemu/qemu_domain.c:13328
+#: src/qemu/qemu_domain.c:13340
 #, c-format
 msgid "failed to parse block device '%s'"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:13341
+#: src/qemu/qemu_domain.c:13353
 #, c-format
 msgid "failed to find disk '%s'"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:13616
+#: src/qemu/qemu_domain.c:13628
 #, c-format
 msgid "cannot use CCW address type for device '%s' using machine type '%s'"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:13622
+#: src/qemu/qemu_domain.c:13634
 msgid "CCW address type is not supported by this QEMU"
 msgstr ""
 
-#: src/qemu/qemu_domain.c:13629
+#: src/qemu/qemu_domain.c:13641
 msgid "virtio S390 address type is not supported by this QEMU"
 msgstr ""
 
@@ -19865,7 +19865,7 @@ msgstr ""
 msgid "persistent attach of device '%s' is not supported"
 msgstr "ഡിവൈസ് '%s' സ്ഥിരമായ ചേര്‍ത്തുവയ്ക്കലിനുള്ള പിന്തുണ ലഭ്യമല്ല"
 
-#: src/qemu/qemu_driver.c:8385 src/qemu/qemu_hotplug.c:5951
+#: src/qemu/qemu_driver.c:8385 src/qemu/qemu_hotplug.c:5950
 #, c-format
 msgid "Lease %s in lockspace %s does not exist"
 msgstr "ലീസ് %s, ലോക്ക്സ്പെയിസ് %s-ല്‍ നിലവിവില്ല"
@@ -19882,7 +19882,7 @@ msgstr ""
 msgid "matching memory device was not found"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:8451 src/qemu/qemu_hotplug.c:5757
+#: src/qemu/qemu_driver.c:8451 src/qemu/qemu_hotplug.c:5756
 msgid "no matching redirdev was not found"
 msgstr ""
 
@@ -19894,11 +19894,11 @@ msgstr ""
 msgid "domain has no watchdog"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:8482 src/qemu/qemu_hotplug.c:5898
+#: src/qemu/qemu_driver.c:8482 src/qemu/qemu_hotplug.c:5897
 msgid "matching input device not found"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:8492 src/qemu/qemu_hotplug.c:5933
+#: src/qemu/qemu_driver.c:8492 src/qemu/qemu_hotplug.c:5932
 msgid "matching vsock device not found"
 msgstr ""
 
@@ -20981,202 +20981,202 @@ msgstr "സ്പയിസ് ഗ്രാഫിക്സില്‍ കീമ�
 msgid "unable to change config on '%s' graphics type"
 msgstr "'%s' ഗ്രാഫിക്സ് തരത്തില്‍ ക്രമീകരണത്തില്‍ മാറ്റം വരുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:5317
+#: src/qemu/qemu_hotplug.c:5316
 #, c-format
 msgid "don't know how to remove a %s device"
 msgstr "ഒരു %s ഡിവൈസ് എങ്ങനെ നീക്കം ചെയ്യണമെന്നറിയില്ല"
 
-#: src/qemu/qemu_hotplug.c:5391
+#: src/qemu/qemu_hotplug.c:5390
 msgid "unplug of device was rejected by the guest"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:5468
+#: src/qemu/qemu_hotplug.c:5467
 msgid "This type of disk cannot be hot unplugged"
 msgstr "ഈ തരത്തിലുള്ള ഡിസ്ക് ഹോട്ട് അണ്‍പ്ലഗ്ഗ് ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:5481
+#: src/qemu/qemu_hotplug.c:5480
 #, c-format
 msgid "disk device type '%s' cannot be detached"
 msgstr "ഡിസ്ക് ഡിവൈസ് തരം '%s' വേര്‍പെടുത്തുവാന്‍ സാധ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:5568
+#: src/qemu/qemu_hotplug.c:5567
 #, c-format
 msgid "'%s' controller cannot be hot unplugged."
 msgstr "'%s' കണ്ട്രോളര്‍ ഹോട്ട്പ്ലഗ്ഗ് ചെയ്യാന്‍ സാധ്യമല്ല."
 
-#: src/qemu/qemu_hotplug.c:5585
+#: src/qemu/qemu_hotplug.c:5584
 msgid "device cannot be detached: device is busy"
 msgstr "ഡിസ്ക് വേര്‍പെടുത്തുവാന്‍ സാധ്യമല്ല: ഡിവൈസ് തിരക്കിലാണു്"
 
-#: src/qemu/qemu_hotplug.c:5609
+#: src/qemu/qemu_hotplug.c:5608
 #, c-format
 msgid "hot unplug is not supported for hostdev mode '%s'"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:5628
+#: src/qemu/qemu_hotplug.c:5627
 #, c-format
 msgid "host usb device %03d.%03d not found"
 msgstr "ഹോസ്റ്റ് യുഎസ്ബി %03d.%03d ലഭ്യമല്ല"
 
-#: src/qemu/qemu_hotplug.c:5632
+#: src/qemu/qemu_hotplug.c:5631
 #, c-format
 msgid "host usb device vendor=0x%.4x product=0x%.4x not found"
 msgstr "ഹോസ്റ്റ് യുഎസ്ബി ഡിവൈസ് കച്ചവടക്കാരന്‍=0x%.4x പ്രൊഡക്ട്=0x%.4x ലഭ്യമായില്ല"
 
-#: src/qemu/qemu_hotplug.c:5641
+#: src/qemu/qemu_hotplug.c:5640
 #, c-format
 msgid "host scsi iSCSI path %s not found"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:5647
+#: src/qemu/qemu_hotplug.c:5646
 #, c-format
 msgid "host scsi device %s:%u:%u.%llu not found"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:5655 src/util/virmdev.c:150
+#: src/qemu/qemu_hotplug.c:5654 src/util/virmdev.c:150
 #, c-format
 msgid "mediated device '%s' not found"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:5682
+#: src/qemu/qemu_hotplug.c:5681
 #, c-format
 msgid "model '%s' shmem device not present in domain configuration"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:5697
+#: src/qemu/qemu_hotplug.c:5696
 #, c-format
 msgid "live detach of shmem model '%s' is not supported"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:5719
+#: src/qemu/qemu_hotplug.c:5718
 msgid "watchdog device not present in domain configuration"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:5730
+#: src/qemu/qemu_hotplug.c:5729
 #, c-format
 msgid "model '%s' watchdog device not present in domain configuration"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:5738
+#: src/qemu/qemu_hotplug.c:5737
 #, c-format
 msgid "hot unplug of watchdog of model %s is not supported"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:5798
+#: src/qemu/qemu_hotplug.c:5797
 #, c-format
 msgid "chr type '%s' device not present in domain configuration"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:5852
+#: src/qemu/qemu_hotplug.c:5851
 #, c-format
 msgid "model '%s' RNG device not present in domain configuration"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:5876
+#: src/qemu/qemu_hotplug.c:5875
 #, c-format
 msgid "model '%s' memory device not present in the domain configuration"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:5908
+#: src/qemu/qemu_hotplug.c:5907
 #, c-format
 msgid "input device on bus '%s' cannot be detached"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:6075
+#: src/qemu/qemu_hotplug.c:6074
 #, c-format
 msgid "live detach of device '%s' is not supported"
 msgstr "'%s' ഡിവൈസിന്റെ ലൈവ് അറ്റാച്ച് പിന്തുണയ്ക്കുന്നില്ല"
 
-#: src/qemu/qemu_hotplug.c:6089
+#: src/qemu/qemu_hotplug.c:6088
 #, c-format
 msgid "device of type '%s' has no device info"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:6099
+#: src/qemu/qemu_hotplug.c:6098
 #, c-format
 msgid "Cannot detach %s device with no alias"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:6106
+#: src/qemu/qemu_hotplug.c:6105
 #, c-format
 msgid ""
 "cannot hot unplug %s device with multifunction PCI guest address: %.4x:%.2x:"
 "%.2x.%.1x"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:6225
+#: src/qemu/qemu_hotplug.c:6224
 #, c-format
 msgid "vcpu '%u' can't be unplugged"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:6240
+#: src/qemu/qemu_hotplug.c:6239
 msgid "vcpu unplug request timed out"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:6382 src/qemu/qemu_hotplug.c:6409
+#: src/qemu/qemu_hotplug.c:6381 src/qemu/qemu_hotplug.c:6408
 msgid "target vm vcpu granularity does not allow the desired vcpu count"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:6420
+#: src/qemu/qemu_hotplug.c:6419
 msgid ""
 "failed to find appropriate hotpluggable vcpus to reach the desired target "
 "vcpu count"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:6558
+#: src/qemu/qemu_hotplug.c:6557
 #, c-format
 msgid ""
 "requested vcpus is greater than max allowable vcpus for the live domain: %u "
 "> %u"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:6566
+#: src/qemu/qemu_hotplug.c:6565
 #, c-format
 msgid ""
 "requested vcpus is greater than max allowable vcpus for the persistent "
 "domain: %u > %u"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:6648
+#: src/qemu/qemu_hotplug.c:6647
 #, c-format
 msgid "vcpu '%zd' is already in requested state"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:6654
+#: src/qemu/qemu_hotplug.c:6653
 #, c-format
 msgid "vcpu '%zd' can't be hotunplugged"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:6670
+#: src/qemu/qemu_hotplug.c:6669
 #, c-format
 msgid ""
 "vcpu '%zd' belongs to a larger hotpluggable entity, but siblings were not "
 "selected"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:6678
+#: src/qemu/qemu_hotplug.c:6677
 #, c-format
 msgid ""
 "vcpu '%zu' was not selected but it belongs to hotpluggable entity '%zd-%zd' "
 "which was partially selected"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:6710
+#: src/qemu/qemu_hotplug.c:6709
 msgid "vCPU '0' can't be modified"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:6729
+#: src/qemu/qemu_hotplug.c:6728
 #, c-format
 msgid ""
 "vcpu '%zd' can't be modified as it is followed by non-hotpluggable online "
 "vcpus"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:6754
+#: src/qemu/qemu_hotplug.c:6753
 msgid "this qemu version does not support specific vCPU hotplug"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:6768
+#: src/qemu/qemu_hotplug.c:6767
 msgid "only one hotpluggable entity can be selected"
 msgstr ""
 

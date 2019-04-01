@@ -185,6 +185,7 @@
     <function name="VIR_MIGRATE_PARAM_GRAPHICS_URI" link="libvirt-libvirt-domain.html#VIR_MIGRATE_PARAM_GRAPHICS_URI"/>
     <function name="VIR_MIGRATE_PARAM_LISTEN_ADDRESS" link="libvirt-libvirt-domain.html#VIR_MIGRATE_PARAM_LISTEN_ADDRESS"/>
     <function name="VIR_MIGRATE_PARAM_MIGRATE_DISKS" link="libvirt-libvirt-domain.html#VIR_MIGRATE_PARAM_MIGRATE_DISKS"/>
+    <function name="VIR_MIGRATE_PARAM_PARALLEL_CONNECTIONS" link="libvirt-libvirt-domain.html#VIR_MIGRATE_PARAM_PARALLEL_CONNECTIONS"/>
     <function name="VIR_MIGRATE_PARAM_PERSIST_XML" link="libvirt-libvirt-domain.html#VIR_MIGRATE_PARAM_PERSIST_XML"/>
     <function name="VIR_MIGRATE_PARAM_URI" link="libvirt-libvirt-domain.html#VIR_MIGRATE_PARAM_URI"/>
     <function name="VIR_NETWORK_EVENT_CALLBACK" link="libvirt-libvirt-network.html#VIR_NETWORK_EVENT_CALLBACK"/>
@@ -770,6 +771,7 @@
     <function name="VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES" link="libvirt-libvirt-domain-snapshot.html#VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES"/>
     <function name="VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA" link="libvirt-libvirt-domain-snapshot.html#VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA"/>
     <function name="VIR_DOMAIN_SNAPSHOT_LIST_ROOTS" link="libvirt-libvirt-domain-snapshot.html#VIR_DOMAIN_SNAPSHOT_LIST_ROOTS"/>
+    <function name="VIR_DOMAIN_SNAPSHOT_LIST_TOPOLOGICAL" link="libvirt-libvirt-domain-snapshot.html#VIR_DOMAIN_SNAPSHOT_LIST_TOPOLOGICAL"/>
     <function name="VIR_DOMAIN_SNAPSHOT_REVERT_FORCE" link="libvirt-libvirt-domain-snapshot.html#VIR_DOMAIN_SNAPSHOT_REVERT_FORCE"/>
     <function name="VIR_DOMAIN_SNAPSHOT_REVERT_PAUSED" link="libvirt-libvirt-domain-snapshot.html#VIR_DOMAIN_SNAPSHOT_REVERT_PAUSED"/>
     <function name="VIR_DOMAIN_SNAPSHOT_REVERT_RUNNING" link="libvirt-libvirt-domain-snapshot.html#VIR_DOMAIN_SNAPSHOT_REVERT_RUNNING"/>
@@ -834,6 +836,7 @@
     <function name="VIR_ERR_INVALID_ARG" link="libvirt-virterror.html#VIR_ERR_INVALID_ARG"/>
     <function name="VIR_ERR_INVALID_CONN" link="libvirt-virterror.html#VIR_ERR_INVALID_CONN"/>
     <function name="VIR_ERR_INVALID_DOMAIN" link="libvirt-virterror.html#VIR_ERR_INVALID_DOMAIN"/>
+    <function name="VIR_ERR_INVALID_DOMAIN_CHECKPOINT" link="libvirt-virterror.html#VIR_ERR_INVALID_DOMAIN_CHECKPOINT"/>
     <function name="VIR_ERR_INVALID_DOMAIN_SNAPSHOT" link="libvirt-virterror.html#VIR_ERR_INVALID_DOMAIN_SNAPSHOT"/>
     <function name="VIR_ERR_INVALID_INTERFACE" link="libvirt-virterror.html#VIR_ERR_INVALID_INTERFACE"/>
     <function name="VIR_ERR_INVALID_MAC" link="libvirt-virterror.html#VIR_ERR_INVALID_MAC"/>
@@ -856,6 +859,8 @@
     <function name="VIR_ERR_NO_CONNECT" link="libvirt-virterror.html#VIR_ERR_NO_CONNECT"/>
     <function name="VIR_ERR_NO_DEVICE" link="libvirt-virterror.html#VIR_ERR_NO_DEVICE"/>
     <function name="VIR_ERR_NO_DOMAIN" link="libvirt-virterror.html#VIR_ERR_NO_DOMAIN"/>
+    <function name="VIR_ERR_NO_DOMAIN_BACKUP" link="libvirt-virterror.html#VIR_ERR_NO_DOMAIN_BACKUP"/>
+    <function name="VIR_ERR_NO_DOMAIN_CHECKPOINT" link="libvirt-virterror.html#VIR_ERR_NO_DOMAIN_CHECKPOINT"/>
     <function name="VIR_ERR_NO_DOMAIN_METADATA" link="libvirt-virterror.html#VIR_ERR_NO_DOMAIN_METADATA"/>
     <function name="VIR_ERR_NO_DOMAIN_SNAPSHOT" link="libvirt-virterror.html#VIR_ERR_NO_DOMAIN_SNAPSHOT"/>
     <function name="VIR_ERR_NO_INTERFACE" link="libvirt-virterror.html#VIR_ERR_NO_INTERFACE"/>
@@ -926,6 +931,7 @@
     <function name="VIR_FROM_DEVICE" link="libvirt-virterror.html#VIR_FROM_DEVICE"/>
     <function name="VIR_FROM_DOM" link="libvirt-virterror.html#VIR_FROM_DOM"/>
     <function name="VIR_FROM_DOMAIN" link="libvirt-virterror.html#VIR_FROM_DOMAIN"/>
+    <function name="VIR_FROM_DOMAIN_CHECKPOINT" link="libvirt-virterror.html#VIR_FROM_DOMAIN_CHECKPOINT"/>
     <function name="VIR_FROM_DOMAIN_SNAPSHOT" link="libvirt-virterror.html#VIR_FROM_DOMAIN_SNAPSHOT"/>
     <function name="VIR_FROM_ESX" link="libvirt-virterror.html#VIR_FROM_ESX"/>
     <function name="VIR_FROM_EVENT" link="libvirt-virterror.html#VIR_FROM_EVENT"/>
@@ -1006,6 +1012,7 @@
     <function name="VIR_MIGRATE_NON_SHARED_DISK" link="libvirt-libvirt-domain.html#VIR_MIGRATE_NON_SHARED_DISK"/>
     <function name="VIR_MIGRATE_NON_SHARED_INC" link="libvirt-libvirt-domain.html#VIR_MIGRATE_NON_SHARED_INC"/>
     <function name="VIR_MIGRATE_OFFLINE" link="libvirt-libvirt-domain.html#VIR_MIGRATE_OFFLINE"/>
+    <function name="VIR_MIGRATE_PARALLEL" link="libvirt-libvirt-domain.html#VIR_MIGRATE_PARALLEL"/>
     <function name="VIR_MIGRATE_PAUSED" link="libvirt-libvirt-domain.html#VIR_MIGRATE_PAUSED"/>
     <function name="VIR_MIGRATE_PEER2PEER" link="libvirt-libvirt-domain.html#VIR_MIGRATE_PEER2PEER"/>
     <function name="VIR_MIGRATE_PERSIST_DEST" link="libvirt-libvirt-domain.html#VIR_MIGRATE_PERSIST_DEST"/>
@@ -1459,6 +1466,7 @@
     <function name="virConnectGetHostname ()" link="libvirt-libvirt-host.html#virConnectGetHostname"/>
     <function name="virConnectGetLibVersion ()" link="libvirt-libvirt-host.html#virConnectGetLibVersion"/>
     <function name="virConnectGetMaxVcpus ()" link="libvirt-libvirt-host.html#virConnectGetMaxVcpus"/>
+    <function name="virConnectGetStoragePoolCapabilities ()" link="libvirt-libvirt-storage.html#virConnectGetStoragePoolCapabilities"/>
     <function name="virConnectGetSysinfo ()" link="libvirt-libvirt-host.html#virConnectGetSysinfo"/>
     <function name="virConnectGetType ()" link="libvirt-libvirt-host.html#virConnectGetType"/>
     <function name="virConnectGetURI ()" link="libvirt-libvirt-host.html#virConnectGetURI"/>

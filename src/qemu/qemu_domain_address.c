@@ -3255,21 +3255,16 @@ qemuDomainEnsurePCIAddress(virDomainObjPtr obj,
 
 void
 qemuDomainReleaseDeviceAddress(virDomainObjPtr vm,
-                               virDomainDeviceInfoPtr info,
-                               const char *devstr)
+                               virDomainDeviceInfoPtr info)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
-
-    if (!devstr)
-        devstr = info->alias;
 
     if (virDeviceInfoPCIAddressIsPresent(info)) {
         virDomainPCIAddressReleaseAddr(priv->pciaddrs, &info->addr.pci);
         virDomainPCIAddressExtensionReleaseAddr(priv->pciaddrs, &info->addr.pci);
     }
 
-    if (virDomainUSBAddressRelease(priv->usbaddrs, info) < 0)
-        VIR_WARN("Unable to release USB address on %s", NULLSTR(devstr));
+    virDomainUSBAddressRelease(priv->usbaddrs, info);
 }
 
 
