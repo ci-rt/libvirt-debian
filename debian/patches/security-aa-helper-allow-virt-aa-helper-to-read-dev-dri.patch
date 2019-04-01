@@ -1,0 +1,33 @@
+From: Christian Ehrhardt <christian.ehrhardt@canonical.com>
+Date: Tue, 12 Feb 2019 10:33:23 +0100
+Subject: security: aa-helper: allow virt-aa-helper to read /dev/dri
+
+Change fb01e1a44 "virt-aa-helper: generate rules for gl enabled
+graphics devices" implemented the detection for gl enabled
+devices in virt-aa-helper. But it will in certain cases e.g. if
+no rendernode was explicitly specified need to read /dev/dri
+which it currently isn't allowed.
+
+Add a rule to the apparmor profile of virt-aa-helper itself to
+be able to do that.
+
+Acked-by: Jamie Strandboge <jamie@canonical.com>
+Signed-off-by: Christian Ehrhardt <christian.ehrhardt@canonical.com>
+---
+ src/security/apparmor/usr.lib.libvirt.virt-aa-helper | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/src/security/apparmor/usr.lib.libvirt.virt-aa-helper b/src/security/apparmor/usr.lib.libvirt.virt-aa-helper
+index 665094a..2d43057 100644
+--- a/src/security/apparmor/usr.lib.libvirt.virt-aa-helper
++++ b/src/security/apparmor/usr.lib.libvirt.virt-aa-helper
+@@ -20,6 +20,9 @@ profile virt-aa-helper /usr/{lib,lib64}/libvirt/virt-aa-helper {
+ 
+   /etc/libnl-3/classid r,
+ 
++  # for gl enabled graphics
++  /dev/dri/{,*} r,
++
+   # for hostdev
+   /sys/devices/ r,
+   /sys/devices/** r,

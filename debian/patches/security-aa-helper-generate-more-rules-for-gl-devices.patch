@@ -1,0 +1,82 @@
+From: Christian Ehrhardt <christian.ehrhardt@canonical.com>
+Date: Tue, 12 Feb 2019 11:12:52 +0100
+Subject: security: aa-helper: generate more rules for gl devices
+
+Change fb01e1a44 "virt-aa-helper: generate rules for gl enabled
+graphics devices" implemented the detection for gl enabled
+devices in virt-aa-helper. But further testing showed
+that it will need much more access for the full gl stack
+to work.
+
+Upstream apparmor just recently split those things out and now
+has two related abstractions at
+https://gitlab.com/apparmor/apparmor/blob/master:
+- dri-common at /profiles/apparmor.d/abstractions/dri-common
+- mesa: at /profiles/apparmor.d/abstractions/mesa
+
+If would be great to just include that for the majority of
+rules, but they are not yet in any distribution so we need
+to add rules inspired by them based on the testing that we
+can do.
+
+Furthermore qemu with opengl will also probe the backing device
+of the rendernode for attributes which should be safe as
+read-only wildcard rules.
+
+Fixes: https://bugs.launchpad.net/ubuntu/+source/libvirt/+bug/1815452
+
+Acked-by: Jamie Strandboge <jamie@canonical.com>
+Signed-off-by: Christian Ehrhardt <christian.ehrhardt@canonical.com>
+---
+ src/security/virt-aa-helper.c | 21 ++++++++++++++++++++-
+ 1 file changed, 20 insertions(+), 1 deletion(-)
+
+diff --git a/src/security/virt-aa-helper.c b/src/security/virt-aa-helper.c
+index 46443a3..cc8a327 100644
+--- a/src/security/virt-aa-helper.c
++++ b/src/security/virt-aa-helper.c
+@@ -938,7 +938,7 @@ get_files(vahControl * ctl)
+     size_t i;
+     char *uuid;
+     char uuidstr[VIR_UUID_STRING_BUFLEN];
+-    bool needsVfio = false, needsvhost = false;
++    bool needsVfio = false, needsvhost = false, needsgl = false;
+ 
+     /* verify uuid is same as what we were given on the command line */
+     virUUIDFormat(ctl->def->uuid, uuidstr);
+@@ -1066,9 +1066,11 @@ get_files(vahControl * ctl)
+ 
+         if (rendernode) {
+             vah_add_file(&buf, rendernode, "rw");
++            needsgl = true;
+         } else {
+             if (virDomainGraphicsNeedsAutoRenderNode(graphics)) {
+                 char *defaultRenderNode = virHostGetDRMRenderNode();
++                needsgl = true;
+ 
+                 if (defaultRenderNode) {
+                     vah_add_file(&buf, defaultRenderNode, "rw");
+@@ -1268,6 +1270,23 @@ get_files(vahControl * ctl)
+         virBufferAddLit(&buf, "  \"/dev/vfio/vfio\" rw,\n");
+         virBufferAddLit(&buf, "  \"/dev/vfio/[0-9]*\" rw,\n");
+     }
++    if (needsgl) {
++        /* if using gl all sorts of further dri related paths will be needed */
++        virBufferAddLit(&buf, "  # DRI/Mesa/(e)GL config and driver paths\n");
++        virBufferAddLit(&buf, "  \"/usr/lib{,32,64}/dri/*.so*\" mr,\n");
++        virBufferAddLit(&buf, "  \"/usr/lib/@{multiarch}/dri/*.so*\" mr,\n");
++        virBufferAddLit(&buf, "  \"/usr/lib/fglrx/dri/*.so*\" mr,\n");
++        virBufferAddLit(&buf, "  \"/etc/drirc\" r,\n");
++        virBufferAddLit(&buf, "  \"/usr/share/drirc.d/{,*.conf}\" r,\n");
++        virBufferAddLit(&buf, "  \"/etc/glvnd/egl_vendor.d/{,*}\" r,\n");
++        virBufferAddLit(&buf, "  \"/usr/share/glvnd/egl_vendor.d/{,*}\" r,\n");
++        virBufferAddLit(&buf, "  # Probe DRI device attributes\n");
++        virBufferAddLit(&buf, "  \"/dev/dri/\" r,\n");
++        virBufferAddLit(&buf, "  \"/sys/devices/*/*/{uevent,vendor,device,subsystem_vendor,subsystem_device}\" r,\n");
++        virBufferAddLit(&buf, "  \"/sys/devices/*/*/drm/*/{uevent,vendor,device,subsystem_vendor,subsystem_device}\" r,\n");
++        virBufferAddLit(&buf, "  # dri libs will trigger that, but t is not requited and DAC would deny it anyway\n");
++        virBufferAddLit(&buf, "  deny \"/var/lib/libvirt/.cache/\" w,\n");
++    }
+ 
+     if (ctl->newfile)
+         if (vah_add_file(&buf, ctl->newfile, "rwk") != 0)

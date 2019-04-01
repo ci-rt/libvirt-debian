@@ -1,0 +1,44 @@
+From: Christian Ehrhardt <christian.ehrhardt@canonical.com>
+Date: Fri, 1 Mar 2019 07:25:59 +0100
+Subject: security: aa-helper: nvidia rules for gl devices
+
+Further testing with different devices showed that we need more rules
+to drive gl backends with nvidia cards. Related denies look like:
+
+apparmor="DENIED" operation="open"
+  name="/usr/share/egl/egl_external_platform.d/"
+  requested_mask="r"
+apparmor="DENIED" operation="open"
+  name="/proc/modules"
+  requested_mask="r"
+apparmor="DENIED" operation="open"
+  name="/proc/driver/nvidia/params"
+  requested_mask="r"
+apparmor="DENIED" operation="mknod"
+  name="/dev/nvidiactl"
+  requested_mask="c"
+
+Fixes: https://bugs.launchpad.net/ubuntu/+source/libvirt/+bug/1817943
+
+Acked-by: Jamie Strandboge <jamie@canonical.com>
+Signed-off-by: Christian Ehrhardt <christian.ehrhardt@canonical.com>
+---
+ src/security/virt-aa-helper.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/src/security/virt-aa-helper.c b/src/security/virt-aa-helper.c
+index cc8a327..c34afc8 100644
+--- a/src/security/virt-aa-helper.c
++++ b/src/security/virt-aa-helper.c
+@@ -1280,6 +1280,11 @@ get_files(vahControl * ctl)
+         virBufferAddLit(&buf, "  \"/usr/share/drirc.d/{,*.conf}\" r,\n");
+         virBufferAddLit(&buf, "  \"/etc/glvnd/egl_vendor.d/{,*}\" r,\n");
+         virBufferAddLit(&buf, "  \"/usr/share/glvnd/egl_vendor.d/{,*}\" r,\n");
++        virBufferAddLit(&buf, "  \"/usr/share/egl/egl_external_platform.d/\" r,\n");
++        virBufferAddLit(&buf, "  \"/usr/share/egl/egl_external_platform.d/*\" r,\n");
++        virBufferAddLit(&buf, "  \"/proc/modules\" r,\n");
++        virBufferAddLit(&buf, "  \"/proc/driver/nvidia/params\" r,\n");
++        virBufferAddLit(&buf, "  \"/dev/nvidiactl\" rw,\n");
+         virBufferAddLit(&buf, "  # Probe DRI device attributes\n");
+         virBufferAddLit(&buf, "  \"/dev/dri/\" r,\n");
+         virBufferAddLit(&buf, "  \"/sys/devices/*/*/{uevent,vendor,device,subsystem_vendor,subsystem_device}\" r,\n");
