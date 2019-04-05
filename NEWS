@@ -1,7 +1,7 @@
 libvirt releases
 ================
 
-# v5.2.0 (unreleased)
+# v5.2.0 (2019-04-03)
 
   * New features
 
@@ -64,7 +64,26 @@ libvirt releases
         are required. This means that if a network doesn't have IPv6 enabled
         then those tables are not required.
 
+    - Don't default to building the QEMU driver
+        Historically, the QEMU driver has been special in that it was enabled
+        by default, with the option to explicitly opt-out of it; starting now,
+        we're enabling it opportunistically if we detect that all requirements
+        are available, just like we do with other drivers.
+
   * Bug fixes
+
+    - virt-host-validate: Fix IOMMU check on s390x
+
+    - qemu: Allow creating pSeries guests with graphics and no USB mouse
+        It's now possible to prevent libvirt from automatically adding a USB
+        mouse to pSeries guests by including a USB tablet in the input XML:
+        doing so is desiderable as using a tablet results in a much better user
+        experience when working with GUIs.
+
+    - qemu: Set $HOME and XGD variables for qemu:///system guests
+        This avoids files being accidentally created under / or the guests not
+        being able to start because they lack the necessary permissions to
+        write to that location.
 
 # v5.1.0 (2019-03-04)
 
