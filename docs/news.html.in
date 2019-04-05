@@ -12,7 +12,7 @@
         <h1>Releases</h1><p>This is the list of official releases for libvirt, along with an
         overview of the changes introduced by each of them.</p><p>For a more fine-grained view, use the
         <a href="https://libvirt.org/git/?p=libvirt.git;a=log">git log</a>.
-        </p><h3><strong>v5.2.0 (unreleased)</strong></h3><ul><li><strong>New features</strong><ul><li>
+        </p><h3><strong>v5.2.0 (2019-04-03)</strong></h3><ul><li><strong>New features</strong><ul><li>
           Add Storage Pool Capabilities output
         <br/>
           Add support to list an enumerated list of supported Storage
@@ -86,7 +86,29 @@
           corresponding IP version are required. This means that if a
           network doesn't have <code>IPv6</code> enabled then those
           tables are not required.
-        </li></ul></li><li><strong>Bug fixes</strong></li></ul><h3><strong>v5.1.0 (2019-03-04)</strong></h3><ul><li><strong>New features</strong><ul><li>
+        </li><li>
+          Don't default to building the QEMU driver
+        <br/>
+          Historically, the QEMU driver has been special in that it was
+          enabled by default, with the option to explicitly opt-out of it;
+          starting now, we're enabling it opportunistically if we detect that
+          all requirements are available, just like we do with other drivers.
+        </li></ul></li><li><strong>Bug fixes</strong><ul><li>
+          virt-host-validate: Fix IOMMU check on s390x
+        </li><li>
+          qemu: Allow creating pSeries guests with graphics and no USB mouse
+        <br/>
+          It's now possible to prevent libvirt from automatically adding a
+          USB mouse to pSeries guests by including a USB tablet in the input
+          XML: doing so is desiderable as using a tablet results in a much
+          better user experience when working with GUIs.
+        </li><li>
+          qemu: Set $HOME and XGD variables for qemu:///system guests
+        <br/>
+          This avoids files being accidentally created under <code>/</code> or
+          the guests not being able to start because they lack the necessary
+          permissions to write to that location.
+        </li></ul></li></ul><h3><strong>v5.1.0 (2019-03-04)</strong></h3><ul><li><strong>New features</strong><ul><li>
           bhyve: Add support for additional command-line arguments
         <br/>
           The bhyve driver now supports passing additional command-line
