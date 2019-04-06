@@ -16,3 +16,4 @@ apparmor-Allow-virt-aa-helper-to-access-the-name-service-.patch
 debian/Prefer-sbin-over-usr-sbin.patch
 api-disallow-virDomainGetHostname-for-read-only-connectio.patch
 remote-enforce-ACL-write-permission-for-getting-guest-tim.patch
+tests-Avoid-writing-into-HOME-during-virsh-snapshot.patch
