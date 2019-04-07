@@ -19,3 +19,5 @@ security-aa-helper-allow-virt-aa-helper-to-read-dev-dri.patch
 security-aa-helper-generate-more-rules-for-gl-devices.patch
 security-aa-helper-nvidia-rules-for-gl-devices.patch
 security-aa-helper-gl-devices-in-sysfs-at-arbitrary-depth.patch
+api-disallow-virDomainGetHostname-for-read-only-connectio.patch
+remote-enforce-ACL-write-permission-for-getting-guest-tim.patch
