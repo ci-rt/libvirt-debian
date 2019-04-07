@@ -17,10 +17,10 @@ Signed-off-by: Daniel P. Berrangé <berrange@redhat.com>
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/src/remote/remote_protocol.x b/src/remote/remote_protocol.x
-index b9d26b1..1246df5 100644
+index 74be4b3..11f44ee 100644
 --- a/src/remote/remote_protocol.x
 +++ b/src/remote/remote_protocol.x
-@@ -5505,7 +5505,7 @@ enum remote_procedure {
+@@ -5513,7 +5513,7 @@ enum remote_procedure {
  
      /**
       * @generate: both
@@ -29,7 +29,7 @@ index b9d26b1..1246df5 100644
       */
      REMOTE_PROC_DOMAIN_GET_HOSTNAME = 277,
  
-@@ -5900,7 +5900,7 @@ enum remote_procedure {
+@@ -5908,7 +5908,7 @@ enum remote_procedure {
  
      /**
       * @generate: none

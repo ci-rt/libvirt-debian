@@ -16,10 +16,10 @@ Signed-off-by: Daniel P. Berrangé <berrange@redhat.com>
  1 file changed, 2 insertions(+)
 
 diff --git a/src/libvirt-domain.c b/src/libvirt-domain.c
-index 75c9014..9aca54a 100644
+index be5b1f6..baf2182 100644
 --- a/src/libvirt-domain.c
 +++ b/src/libvirt-domain.c
-@@ -11028,6 +11028,8 @@ virDomainGetHostname(virDomainPtr domain, unsigned int flags)
+@@ -11031,6 +11031,8 @@ virDomainGetHostname(virDomainPtr domain, unsigned int flags)
      virCheckDomainReturn(domain, NULL);
      conn = domain->conn;
  
