@@ -1,12 +1,32 @@
-libvirt (5.2.0-1~4.gbp861b36) UNRELEASED; urgency=medium
+libvirt (5.2.0-1) experimental; urgency=medium
 
-  ** SNAPSHOT build @861b36c90319f74236cdf898b50dd200edc77241 **
+  [ Christian Ehrhardt ]
+  * [3997186] d/libvirt-daemon-system.maintscript: remove obsolete conffile
+    /etc/logrotate.d/libvirtd.uml became obsolete since UML was dropped in
+    libvirt 5.0 (Closes: #920574)
+  * [c64d020] d/libvirt-daemon-system.libvirtd.default: clarify libvirtd_opts
+    example (Closes: #921713)
 
   [ Guido Günther ]
-  * [0b5e54e] Bump symbol versions
   * [dd9d74f] New upstream version 5.2.0
+  * [790365e] CVE-2019-3886: Don't allow unprivileged users to use the guest
+    agent. Apply upstream patches
+    remote-enforce-ACL-write-permission-for-getting-guest-tim.patch
+    api-disallow-virDomainGetHostname-for-read-only-connectio.patch
+    (Closes: #926418)
 
- -- Andrea Bolognani <eof@kiyuko.org>  Sat, 06 Apr 2019 12:09:53 +0200
+  [ Andrea Bolognani ]
+  * [453f85d] Rediff patches. The patches
+    security-aa-helper-allow-virt-aa-helper-to-read-dev-dri.patch
+    security-aa-helper-generate-more-rules-for-gl-devices.patch
+    security-aa-helper-gl-devices-in-sysfs-at-arbitrary-depth.patch
+    security-aa-helper-nvidia-rules-for-gl-devices.patch
+    virt-aa-helper-generate-rules-for-gl-enabled-graphics-dev.patch
+    are included in libvirt 5.2.0 and have thus been dropped.
+  * [a4294ef] Bump symbol versions.
+  * [68394f6] Add tests-Avoid-writing-into-HOME-during-virsh-snapshot.patch
+
+ -- Andrea Bolognani <eof@kiyuko.org>  Sun, 07 Apr 2019 18:39:49 +0200
 
 libvirt (5.1.0-1) experimental; urgency=medium
 
