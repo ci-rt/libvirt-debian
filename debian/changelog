@@ -1,3 +1,34 @@
+libvirt (5.0.0-2) unstable; urgency=medium
+
+  [ Laurent Bigonville ]
+  * [76e2cb7] Don't recommend ebtables.  It's part of the iptables package now.
+    (Closes: #918472)
+
+  [ intrigeri ]
+  * [d7a7218] Fix virtio-gpu + virgl support by cherry-picking upstream
+    commits virt-manager in current sid still creates new VMs with QXL
+    graphics by default, so this bug only affects users who opt in for
+    virtio-gpu 3D acceleration.  Still, the option for virtio-gpu + 3D
+    acceleration is offered in the virt-manager GUI, so having it broken by
+    default is an important problem.
+    (Closes: #916587)
+
+  [ Christian Ehrhardt ]
+  * [3997186] d/libvirt-daemon-system.maintscript: remove obsolete conffile
+    /etc/logrotate.d/libvirtd.uml became obsolete since UML was dropped in
+    libvirt 5.0 (Closes: #920574)
+  * [c64d020] d/libvirt-daemon-system.libvirtd.default: clarify libvirtd_opts
+    example (Closes: #921713)
+
+  [ Guido Günther ]
+  * [790365e] CVE-2019-3886: Don't allow unprivileged users to use the guest
+    agent. Apply upstream patches
+    remote-enforce-ACL-write-permission-for-getting-guest-tim.patch
+    api-disallow-virDomainGetHostname-for-read-only-connectio.patch
+    (Closes: #926418)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 07 Apr 2019 12:36:21 +0200
+
 libvirt (5.0.0-1) unstable; urgency=medium
 
   * [7346f30] New upstream version 5.0.0
