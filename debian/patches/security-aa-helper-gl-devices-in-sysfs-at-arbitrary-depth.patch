@@ -1,0 +1,43 @@
+From: Christian Ehrhardt <christian.ehrhardt@canonical.com>
+Date: Tue, 5 Mar 2019 13:38:38 +0100
+Subject: security: aa-helper: gl devices in sysfs at arbitrary depth
+
+Further testing with more devices showed that we sometimes have a
+different depth of pci device paths when accessing sysfs for device
+attributes.
+
+But since the access is limited to a set of filenames and read only it
+is safe to use a wildcard for that.
+
+Related apparmor denies - while we formerly had only considered:
+apparmor="DENIED" operation="open"
+  name="/sys/devices/pci0000:00/0000:00:02.1/uevent"
+  requested_mask="r"
+
+We now also know of cases like:
+apparmor="DENIED" operation="open"
+  name="/sys/devices/pci0000:00/0000:00:03.1/0000:1c:00.0/uevent"
+  requested_mask="r"
+
+Fixes: https://bugs.launchpad.net/ubuntu/+source/libvirt/+bug/1817943
+
+Acked-by: Jamie Strandboge <jamie@canonical.com>
+Signed-off-by: Christian Ehrhardt <christian.ehrhardt@canonical.com>
+---
+ src/security/virt-aa-helper.c | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/src/security/virt-aa-helper.c b/src/security/virt-aa-helper.c
+index c34afc8..2dc68b2 100644
+--- a/src/security/virt-aa-helper.c
++++ b/src/security/virt-aa-helper.c
+@@ -1287,8 +1287,7 @@ get_files(vahControl * ctl)
+         virBufferAddLit(&buf, "  \"/dev/nvidiactl\" rw,\n");
+         virBufferAddLit(&buf, "  # Probe DRI device attributes\n");
+         virBufferAddLit(&buf, "  \"/dev/dri/\" r,\n");
+-        virBufferAddLit(&buf, "  \"/sys/devices/*/*/{uevent,vendor,device,subsystem_vendor,subsystem_device}\" r,\n");
+-        virBufferAddLit(&buf, "  \"/sys/devices/*/*/drm/*/{uevent,vendor,device,subsystem_vendor,subsystem_device}\" r,\n");
++        virBufferAddLit(&buf, "  \"/sys/devices/**/{uevent,vendor,device,subsystem_vendor,subsystem_device}\" r,\n");
+         virBufferAddLit(&buf, "  # dri libs will trigger that, but t is not requited and DAC would deny it anyway\n");
+         virBufferAddLit(&buf, "  deny \"/var/lib/libvirt/.cache/\" w,\n");
+     }
