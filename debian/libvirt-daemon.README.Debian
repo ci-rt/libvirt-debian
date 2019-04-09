@@ -84,8 +84,8 @@ is done automatically when netcat-openbsd is installed if you do not have
 previously modified the nc alternative. Please see the following bug reports
 for a complete explanation:
 
-  <http://bugs.debian.org/453627>
-  <http://bugs.debian.org/614291>
+  <https://bugs.debian.org/453627>
+  <https://bugs.debian.org/614291>
 
 Libvirt CPU models and microcode updates
 ========================================

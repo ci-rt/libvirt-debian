@@ -25,7 +25,7 @@ index 4bc6e86..9ec4064 100644
 +# Short-Description: suspend/resume libvirt guests on shutdown/boot
 +# Description: This is a script for suspending active libvirt guests
 +#              on shutdown and resuming them on next boot
-+#              See http://libvirt.org
++#              See https://libvirt.org/
 +### END INIT INFO
 +#
  # Copyright (C) 2011-2014 Red Hat, Inc.

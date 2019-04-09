@@ -1,4 +1,4 @@
 version=3
 
 opts="uversionmangle=s/\.-rc/~rc/;s/\.+$//,pgpsigurlmangle=s/$/.asc/" \
-    http://libvirt.org/sources/libvirt-([\d\.]+)(-rc\d)?\.tar\.[gx]z
+    https://libvirt.org/sources/libvirt-([\d\.]+)(-rc\d)?\.tar\.[gx]z
