@@ -1,5 +1,7 @@
 libvirt (5.2.0-1) experimental; urgency=medium
 
+  * Team upload.
+
   [ Christian Ehrhardt ]
   * [3997186] d/libvirt-daemon-system.maintscript: remove obsolete conffile
     /etc/logrotate.d/libvirtd.uml became obsolete since UML was dropped in
