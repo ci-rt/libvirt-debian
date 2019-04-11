@@ -6,3 +6,5 @@ usr/lib/*/libvirt/lock-driver/*.la
 usr/lib/*/libvirt/connection-driver/*.la
 # debianized versions are in /etc/default
 etc/sysconfig/*
+# Installed in examples already
+usr/lib/sysctl.d/60-libvirtd.conf
