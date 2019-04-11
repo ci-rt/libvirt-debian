@@ -279,14 +279,15 @@ Depends:
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Priority: optional
-Description: nss plugin providing IP address resolution for virtual machines
+Description: nss plugins providing IP address resolution for virtual machines
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
  a long term stable C API for different virtualization mechanisms. It currently
  supports QEMU, KVM, XEN, OpenVZ, LXC, and VirtualBox.
  .
- This package contains the nss plugin for IP address resolution of libvirt
- managed virtual machines.
+ This package contains two nss plugins for IP address resolution of libvirt
+ managed virtual machines. libnss_libvirt_guest uses libvirt's domain names
+ while the other (libnss_libvirt) looks at the guest's hostname.
 
 Package: libvirt-wireshark
 Architecture: any
