@@ -217,7 +217,7 @@ ifeq ($(XEN_ENABLED), 1)
 endif
 
 	set -e; for l in $(LOGROTATE); do \
-		cp $(CURDIR)/debian/tmp/etc/logrotate.d/$$l \
+		mv $(CURDIR)/debian/tmp/etc/logrotate.d/$$l \
 	        debian/libvirt-daemon-system.$$l.logrotate; \
 		dh_installlogrotate --name=$$l;     \
 	done
