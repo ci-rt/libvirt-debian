@@ -6,3 +6,4 @@ etc/libvirt/virtlogd.conf
 etc/sasl2/*
 usr/share/polkit-1
 usr/lib/firewalld/zones/libvirt.xml
+etc/libvirt/libxl-sanlock.conf
