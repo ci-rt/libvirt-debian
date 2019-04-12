@@ -284,8 +284,8 @@ Description: nss plugins providing IP address resolution for virtual machines
  supports QEMU, KVM, XEN, OpenVZ, LXC, and VirtualBox.
  .
  This package contains two nss plugins for IP address resolution of libvirt
- managed virtual machines. libnss_libvirt_guest uses libvirt's domain names
- while the other (libnss_libvirt) looks at the guest's hostname.
+ managed virtual machines: the 'libvirt_guest' plugin uses libvirt's domain
+ names while the 'libvirt' plugin looks at the guest's hostname.
 
 Package: libvirt-wireshark
 Architecture: any
