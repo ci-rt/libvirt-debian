@@ -15,6 +15,7 @@ Pass-GPG_TTY-env-var-to-the-ssh-binary.patch
 apparmor-Allow-virt-aa-helper-to-access-the-name-service-.patch
 debian/Prefer-sbin-over-usr-sbin.patch
 virt-aa-helper-generate-rules-for-gl-enabled-graphics-dev.patch
+vircgroup-Try-harder-to-kill-cgroup.patch
 security-aa-helper-allow-virt-aa-helper-to-read-dev-dri.patch
 security-aa-helper-generate-more-rules-for-gl-devices.patch
 security-aa-helper-nvidia-rules-for-gl-devices.patch
