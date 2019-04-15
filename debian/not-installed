@@ -8,3 +8,18 @@ usr/lib/*/libvirt/connection-driver/*.la
 etc/sysconfig/*
 # Installed in examples already
 usr/lib/sysctl.d/60-libvirtd.conf
+# installed via d/libvirt-doc.docs already
+# Ignore those placed by make install
+# list them explicitly to trigger if other (sub)paths are added later
+usr/share/doc/libvirt-*/html/*.rng
+usr/share/doc/libvirt-*/html/*.png
+usr/share/doc/libvirt-*/html/*.xml
+usr/share/doc/libvirt-*/html/*.html
+usr/share/doc/libvirt-*/html/*.gif
+usr/share/doc/libvirt-*/html/*.css
+usr/share/doc/libvirt-*/html/html/*
+usr/share/doc/libvirt-*/html/fonts/*
+usr/share/doc/libvirt-*/html/internals/*
+usr/share/doc/libvirt-*/html/logos/*
+# also already installed from docs/devhelp/ via d/libvirt-doc.docs
+usr/share/gtk-doc/html/libvirt/
