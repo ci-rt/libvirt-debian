@@ -6,4 +6,7 @@ docs/*.gif
 docs/*.css
 docs/html/
 docs/devhelp/
+docs/fonts/
+docs/internals/
+docs/logos/
 examples/
