@@ -149,7 +149,7 @@ LOGROTATE = $(basename $(basename $(notdir $(wildcard src/remote/libvirtd*.logro
 EXAMPLES_DIR = $(CURDIR)/debian/libvirt-doc/usr/share/doc/libvirt-doc/examples/
 
 %:
-	dh $@ --builddirectory=$(DEB_BUILDDIR) --parallel --with autoreconf --with systemd
+	dh $@ --builddirectory=$(DEB_BUILDDIR) --parallel --with autoreconf
 
 override_dh_auto_configure:
 	IPTABLES_PATH=/usr/sbin/iptables \

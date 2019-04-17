@@ -5,7 +5,7 @@ Maintainer: Debian Libvirt Maintainers <pkg-libvirt-maintainers@lists.alioth.deb
 Uploaders: Guido Günther <agx@sigxcpu.org>, Laurent Léonard <laurent@open-minds.org>
 Build-Depends:
  bash-completion,
- debhelper (>= 9.20160709~),
+ debhelper (>= 12~),
  dh-autoreconf,
  dh-apparmor [linux-any],
  libxml2-dev (>= 2.9.2+really2.9.1+dfsg1-0.2),
