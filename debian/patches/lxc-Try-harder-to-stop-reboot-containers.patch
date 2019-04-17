@@ -1,0 +1,93 @@
+From: Maxim Kozin <kolomaxes@gmail.com>
+Date: Wed, 6 Mar 2019 21:39:11 +0300
+Subject: lxc: Try harder to stop/reboot containers
+
+If shutting down a container via setting the runlevel fails, the
+control jumps right onto endjob label and doesn't even try
+sending the signal. If flags allow it, we should try both
+methods.
+
+Signed-off-by: Maxim Kozin <kolomaxes@gmail.com>
+Signed-off-by: Michal Privoznik <mprivozn@redhat.com>
+---
+ src/lxc/lxc_driver.c | 40 ++++++++++++++++++----------------------
+ 1 file changed, 18 insertions(+), 22 deletions(-)
+
+diff --git a/src/lxc/lxc_driver.c b/src/lxc/lxc_driver.c
+index 83cc998..01ca703 100644
+--- a/src/lxc/lxc_driver.c
++++ b/src/lxc/lxc_driver.c
+@@ -3280,7 +3280,7 @@ lxcDomainShutdownFlags(virDomainPtr dom,
+     virLXCDomainObjPrivatePtr priv;
+     virDomainObjPtr vm;
+     int ret = -1;
+-    int rc;
++    int rc = -1;
+ 
+     virCheckFlags(VIR_DOMAIN_SHUTDOWN_INITCTL |
+                   VIR_DOMAIN_SHUTDOWN_SIGNAL, -1);
+@@ -3309,19 +3309,17 @@ lxcDomainShutdownFlags(virDomainPtr dom,
+         (flags & VIR_DOMAIN_SHUTDOWN_INITCTL)) {
+         int command = VIR_INITCTL_RUNLEVEL_POWEROFF;
+ 
+-        if ((rc = virLXCDomainSetRunlevel(vm, command)) < 0)
+-            goto endjob;
+-        if (rc == 0 && flags != 0 &&
+-            ((flags & ~VIR_DOMAIN_SHUTDOWN_INITCTL) == 0)) {
+-            virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+-                           _("Container does not provide an initctl pipe"));
+-            goto endjob;
++        if ((rc = virLXCDomainSetRunlevel(vm, command)) < 0) {
++            if (flags != 0 &&
++                (flags & VIR_DOMAIN_SHUTDOWN_INITCTL)) {
++                virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
++                               _("Container does not provide an initctl pipe"));
++                goto endjob;
++            }
+         }
+-    } else {
+-        rc = 0;
+     }
+ 
+-    if (rc == 0 &&
++    if (rc < 0 &&
+         (flags == 0 ||
+          (flags & VIR_DOMAIN_SHUTDOWN_SIGNAL))) {
+         if (kill(priv->initpid, SIGTERM) < 0 &&
+@@ -3358,7 +3356,7 @@ lxcDomainReboot(virDomainPtr dom,
+     virLXCDomainObjPrivatePtr priv;
+     virDomainObjPtr vm;
+     int ret = -1;
+-    int rc;
++    int rc = -1;
+ 
+     virCheckFlags(VIR_DOMAIN_REBOOT_INITCTL |
+                   VIR_DOMAIN_REBOOT_SIGNAL, -1);
+@@ -3387,19 +3385,17 @@ lxcDomainReboot(virDomainPtr dom,
+         (flags & VIR_DOMAIN_REBOOT_INITCTL)) {
+         int command = VIR_INITCTL_RUNLEVEL_REBOOT;
+ 
+-        if ((rc = virLXCDomainSetRunlevel(vm, command)) < 0)
+-            goto endjob;
+-        if (rc == 0 && flags != 0 &&
+-            ((flags & ~VIR_DOMAIN_SHUTDOWN_INITCTL) == 0)) {
+-            virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+-                           _("Container does not provide an initctl pipe"));
+-            goto endjob;
++        if ((rc = virLXCDomainSetRunlevel(vm, command)) < 0) {
++            if (flags != 0 &&
++                (flags & VIR_DOMAIN_REBOOT_INITCTL)) {
++                virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
++                               _("Container does not provide an initctl pipe"));
++                goto endjob;
++            }
+         }
+-    } else {
+-        rc = 0;
+     }
+ 
+-    if (rc == 0 &&
++    if (rc < 0 &&
+         (flags == 0 ||
+          (flags & VIR_DOMAIN_REBOOT_SIGNAL))) {
+         if (kill(priv->initpid, SIGHUP) < 0 &&

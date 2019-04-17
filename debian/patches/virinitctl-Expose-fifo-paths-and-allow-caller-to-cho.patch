@@ -1,0 +1,175 @@
+From: Michal Privoznik <mprivozn@redhat.com>
+Date: Fri, 25 Jan 2019 12:37:53 +0100
+Subject: virinitctl: Expose fifo paths and allow caller to chose one
+
+So far the virInitctlSetRunLevel() is fully automatic. It finds
+the correct fifo to use to talk to the init and it will set the
+desired runlevel. Well, callers (so far there is just one) will
+need to inspect the fifo a bit just before the runlevel is set.
+Therefore, expose the internal list of fifos and also allow
+caller to explicitly use one.
+
+Signed-off-by: Michal Privoznik <mprivozn@redhat.com>
+Reviewed-by: Erik Skultety <eskultet@redhat.com>
+---
+ src/libvirt_private.syms |  1 +
+ src/lxc/lxc_driver.c     |  2 +-
+ src/util/virinitctl.c    | 67 +++++++++++++++++++++++++++++++-----------------
+ src/util/virinitctl.h    |  6 ++++-
+ 4 files changed, 50 insertions(+), 26 deletions(-)
+
+diff --git a/src/libvirt_private.syms b/src/libvirt_private.syms
+index c3d6306..d1ef500 100644
+--- a/src/libvirt_private.syms
++++ b/src/libvirt_private.syms
+@@ -2047,6 +2047,7 @@ virIdentitySetX509DName;
+ 
+ 
+ # util/virinitctl.h
++virInitctlFifos;
+ virInitctlSetRunLevel;
+ 
+ 
+diff --git a/src/lxc/lxc_driver.c b/src/lxc/lxc_driver.c
+index df15a0d..233b2be 100644
+--- a/src/lxc/lxc_driver.c
++++ b/src/lxc/lxc_driver.c
+@@ -3277,7 +3277,7 @@ lxcDomainInitctlCallback(pid_t pid ATTRIBUTE_UNUSED,
+                          void *opaque)
+ {
+     int *command = opaque;
+-    return virInitctlSetRunLevel(*command);
++    return virInitctlSetRunLevel(NULL, *command);
+ }
+ 
+ 
+diff --git a/src/util/virinitctl.c b/src/util/virinitctl.c
+index 0b06743..bbcbbb4 100644
+--- a/src/util/virinitctl.c
++++ b/src/util/virinitctl.c
+@@ -101,7 +101,21 @@ struct virInitctlRequest {
+   verify(sizeof(struct virInitctlRequest) == 384);
+ # endif
+ 
+-/*
++
++/* List of fifos that inits are known to listen on */
++const char *virInitctlFifos[] = {
++  "/run/initctl",
++  "/dev/initctl",
++  "/etc/.initctl",
++  NULL
++};
++
++
++/**
++ * virInitctlSetRunLevel:
++ * @fifo: the path to fifo that init listens on (can be NULL for autodetection)
++ * @level: the desired runlevel
++ *
+  * Send a message to init to change the runlevel. This function is
+  * asynchronous-signal-safe (thus safe to use after fork of a
+  * multithreaded parent) - which is good, because it should only be
+@@ -110,18 +124,14 @@ struct virInitctlRequest {
+  * Returns 1 on success, 0 if initctl does not exist, -1 on error
+  */
+ int
+-virInitctlSetRunLevel(virInitctlRunLevel level)
++virInitctlSetRunLevel(const char *fifo,
++                      virInitctlRunLevel level)
+ {
+     struct virInitctlRequest req;
+     int fd = -1;
+     int ret = -1;
+-    const char *initctl_fifo = NULL;
++    const int open_flags = O_WRONLY|O_NONBLOCK|O_CLOEXEC|O_NOCTTY;
+     size_t i = 0;
+-    const char *initctl_fifos[] = {
+-        "/run/initctl",
+-        "/dev/initctl",
+-        "/etc/.initctl",
+-    };
+ 
+     memset(&req, 0, sizeof(req));
+ 
+@@ -131,31 +141,39 @@ virInitctlSetRunLevel(virInitctlRunLevel level)
+     /* Yes it is an 'int' field, but wants a numeric character. Go figure */
+     req.runlevel = '0' + level;
+ 
+-    for (i = 0; i < ARRAY_CARDINALITY(initctl_fifos); i++) {
+-        initctl_fifo = initctl_fifos[i];
+-
+-        if ((fd = open(initctl_fifo,
+-                       O_WRONLY|O_NONBLOCK|O_CLOEXEC|O_NOCTTY)) >= 0)
+-            break;
+-
+-        if (errno != ENOENT) {
++    if (fifo) {
++        if ((fd = open(fifo, open_flags)) < 0) {
+             virReportSystemError(errno,
+                                  _("Cannot open init control %s"),
+-                                 initctl_fifo);
++                                 fifo);
+             goto cleanup;
+         }
+-    }
++    } else {
++        for (i = 0; virInitctlFifos[i]; i++) {
++            fifo = virInitctlFifos[i];
++
++            if ((fd = open(fifo, open_flags)) >= 0)
++                break;
++
++            if (errno != ENOENT) {
++                virReportSystemError(errno,
++                                     _("Cannot open init control %s"),
++                                     fifo);
++                goto cleanup;
++            }
++        }
+ 
+-    /* Ensure we found a valid initctl fifo */
+-    if (fd < 0) {
+-        ret = 0;
+-        goto cleanup;
++        /* Ensure we found a valid initctl fifo */
++        if (fd < 0) {
++            ret = 0;
++            goto cleanup;
++        }
+     }
+ 
+     if (safewrite(fd, &req, sizeof(req)) != sizeof(req)) {
+         virReportSystemError(errno,
+                              _("Failed to send request to init control %s"),
+-                             initctl_fifo);
++                             fifo);
+         goto cleanup;
+     }
+ 
+@@ -166,7 +184,8 @@ virInitctlSetRunLevel(virInitctlRunLevel level)
+     return ret;
+ }
+ #else
+-int virInitctlSetRunLevel(virInitctlRunLevel level ATTRIBUTE_UNUSED)
++int virInitctlSetRunLevel(const char *fifo ATTRIBUTE_UNUSED,
++                          virInitctlRunLevel level ATTRIBUTE_UNUSED)
+ {
+     virReportUnsupportedError();
+     return -1;
+diff --git a/src/util/virinitctl.h b/src/util/virinitctl.h
+index 7ac6278..14dda98 100644
+--- a/src/util/virinitctl.h
++++ b/src/util/virinitctl.h
+@@ -33,6 +33,10 @@ typedef enum {
+     VIR_INITCTL_RUNLEVEL_LAST
+ } virInitctlRunLevel;
+ 
+-int virInitctlSetRunLevel(virInitctlRunLevel level);
++
++extern const char *virInitctlFifos[];
++
++int virInitctlSetRunLevel(const char *fifo,
++                          virInitctlRunLevel level);
+ 
+ #endif /* LIBVIRT_VIRINITCTL_H */
