@@ -228,9 +228,9 @@ override_dh_installinit:
 	dh_installinit -p libvirt-daemon-system --name=libvirtd --restart-after-upgrade -- defaults 28 72
 	dh_installinit -p libvirt-daemon-system --name=libvirt-guests --no-stop-on-upgrade -- defaults 29 71
 
-override_dh_systemd_start:
-	dh_systemd_start -p libvirt-daemon-system --restart-after-upgrade libvirtd.service 
-	dh_systemd_start -p libvirt-daemon-system --no-stop-on-upgrade $(LIBVIRT_SYSTEM_SERVICES)
+override_dh_installsystemd:
+	dh_installsystemd -p libvirt-daemon-system --restart-after-upgrade libvirtd.service
+	dh_installsystemd -p libvirt-daemon-system --no-stop-on-upgrade $(LIBVIRT_SYSTEM_SERVICES)
 
 override_dh_installdocs:
 	dh_installdocs
