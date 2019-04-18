@@ -1,1 +1,1 @@
-usr/lib/libvirt/lock-driver/sanlock.so
+usr/lib/*/libvirt/lock-driver/sanlock.so
