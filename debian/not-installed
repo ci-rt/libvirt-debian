@@ -18,8 +18,9 @@ usr/share/doc/libvirt-*/html/*.html
 usr/share/doc/libvirt-*/html/*.gif
 usr/share/doc/libvirt-*/html/*.css
 usr/share/doc/libvirt-*/html/html/*
-usr/share/doc/libvirt-*/html/fonts/*
 usr/share/doc/libvirt-*/html/internals/*
 usr/share/doc/libvirt-*/html/logos/*
 # also already installed from docs/devhelp/ via d/libvirt-doc.docs
 usr/share/gtk-doc/html/libvirt/
+# do not add fonts (part of docs)
+usr/share/doc/libvirt-*/html/fonts/*
