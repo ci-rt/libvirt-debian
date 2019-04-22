@@ -1,3 +1,44 @@
+libvirt (5.2.0-2) experimental; urgency=medium
+
+  [ Guido Günther ]
+  * [1ec90c0] d/compat: Switch to debhelper level 12
+      * [fb6dd18] d/rules: s/no-restart-on-upgrade/no-stop-on-upgrade/
+      * [3764b71] d/rules: --prallel not needed anymore
+      * [1d92095] d/control: Add ${misc:Pre-Depends} for
+        libvirt-daemon-system. This makes sure we pull in recent enough
+        init-system-helpers
+  * [02a155b] d/rules: Switch to dh_installsystemd
+    dh_systemd_start is no longer used.
+  * [bcad111] d/control: Fix typo
+  * [8609192] d/control: Drop Debian revision on iptables build-dep.  Any
+    version greater than 1.8.1 will do.
+  * [447dd58] libnss-libvirt: Install libnss_libvirt-guest as well
+    (Closes: #910288)
+  * [4fb7d11] d/control: Build-depend on libglusterfs-dev.
+    Since this is a recent addition we can drop the versioned dependency.
+    (Closes: #919663)
+  * [7b4ffeb] d/rules: Newer debhelper puts the libs into multi arch dirs.
+    There's no need to move them manually anymore.
+
+  [ Andrea Bolognani ]
+  * [dd9cdaa] Use HTTPS for all URLs.
+    This gets rid of the debian-watch-uses-insecure-uri informational Lintian
+    tag, and then some.
+  * [faaec12] Minimize upstream's signing key.
+    This gets rid of the public-upstream-key-not-minimal informational Lintian
+    tag.
+  * [8a0e6f1] Remove Priority field from binary packages.
+    This gets rid of the binary-control-field-duplicates-source informational
+    Lintian tag.
+
+  [ Christian Ehrhardt ]
+  * [08f3a23] d/libvirt-clients.manpages: add virkeycode and virkeyname man
+    pages.
+  * [0f359de] d/rules: mv logrotate files to silence dh_missing
+  * [f36ca33] dh_missing: ignore warning on libtool .la file
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 22 Apr 2019 12:20:36 +0200
+
 libvirt (5.2.0-1) experimental; urgency=medium
 
   * Team upload.
