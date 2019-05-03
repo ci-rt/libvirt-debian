@@ -84,39 +84,6 @@ verify(sizeof(gid_t) <= sizeof(unsigned int) &&
 
 VIR_LOG_INIT("util.util");
 
-VIR_ENUM_IMPL(virTristateBool, VIR_TRISTATE_BOOL_LAST,
-              "default",
-              "yes",
-              "no",
-);
-
-VIR_ENUM_IMPL(virTristateSwitch, VIR_TRISTATE_SWITCH_LAST,
-              "default",
-              "on",
-              "off",
-);
-
-
-virTristateBool
-virTristateBoolFromBool(bool val)
-{
-    if (val)
-        return VIR_TRISTATE_BOOL_YES;
-    else
-        return VIR_TRISTATE_BOOL_NO;
-}
-
-
-virTristateSwitch
-virTristateSwitchFromBool(bool val)
-{
-    if (val)
-        return VIR_TRISTATE_SWITCH_ON;
-    else
-        return VIR_TRISTATE_SWITCH_OFF;
-}
-
-
 #ifndef WIN32
 
 int virSetInherit(int fd, bool inherit)
@@ -191,88 +158,6 @@ int virSetSockReuseAddr(int fd, bool fatal)
 }
 #endif
 
-int
-virPipeReadUntilEOF(int outfd, int errfd,
-                    char **outbuf, char **errbuf) {
-
-    struct pollfd fds[2];
-    size_t i;
-    bool finished[2];
-
-    fds[0].fd = outfd;
-    fds[0].events = POLLIN;
-    fds[0].revents = 0;
-    finished[0] = false;
-    fds[1].fd = errfd;
-    fds[1].events = POLLIN;
-    fds[1].revents = 0;
-    finished[1] = false;
-
-    while (!(finished[0] && finished[1])) {
-
-        if (poll(fds, ARRAY_CARDINALITY(fds), -1) < 0) {
-            if ((errno == EAGAIN) || (errno == EINTR))
-                continue;
-            goto pollerr;
-        }
-
-        for (i = 0; i < ARRAY_CARDINALITY(fds); ++i) {
-            char data[1024], **buf;
-            int got, size;
-
-            if (!(fds[i].revents))
-                continue;
-            else if (fds[i].revents & POLLHUP)
-                finished[i] = true;
-
-            if (!(fds[i].revents & POLLIN)) {
-                if (fds[i].revents & POLLHUP)
-                    continue;
-
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               "%s", _("Unknown poll response."));
-                goto error;
-            }
-
-            got = read(fds[i].fd, data, sizeof(data));
-
-            if (got == sizeof(data))
-                finished[i] = false;
-
-            if (got == 0) {
-                finished[i] = true;
-                continue;
-            }
-            if (got < 0) {
-                if (errno == EINTR)
-                    continue;
-                if (errno == EAGAIN)
-                    break;
-                goto pollerr;
-            }
-
-            buf = ((fds[i].fd == outfd) ? outbuf : errbuf);
-            size = (*buf ? strlen(*buf) : 0);
-            if (VIR_REALLOC_N(*buf, size+got+1) < 0)
-                goto error;
-            memmove(*buf+size, data, got);
-            (*buf)[size+got] = '\0';
-        }
-        continue;
-
-    pollerr:
-        virReportSystemError(errno,
-                             "%s", _("poll error"));
-        goto error;
-    }
-
-    return 0;
-
- error:
-    VIR_FREE(*outbuf);
-    VIR_FREE(*errbuf);
-    return -1;
-}
 
 /* Convert C from hexadecimal character to integer.  */
 int
@@ -361,37 +246,6 @@ virScaleInteger(unsigned long long *value, const char *suffix,
 
 
 /**
- * virParseNumber:
- * @str: pointer to the char pointer used
- *
- * Parse an unsigned number
- *
- * Returns the unsigned number or -1 in case of error. @str will be
- *         updated to skip the number.
- */
-int
-virParseNumber(const char **str)
-{
-    int ret = 0;
-    const char *cur = *str;
-
-    if ((*cur < '0') || (*cur > '9'))
-        return -1;
-
-    while (c_isdigit(*cur)) {
-        unsigned int c = *cur - '0';
-
-        if ((ret > INT_MAX / 10) ||
-            ((ret == INT_MAX / 10) && (c > INT_MAX % 10)))
-            return -1;
-        ret = ret * 10 + c;
-        cur++;
-    }
-    *str = cur;
-    return ret;
-}
-
-/**
  * virParseVersionString:
  * @str: const char pointer to the version string
  * @version: unsigned long pointer to output the version number
@@ -436,22 +290,6 @@ virParseVersionString(const char *str, unsigned long *version,
 
     return 0;
 }
-
-int virEnumFromString(const char *const*types,
-                      unsigned int ntypes,
-                      const char *type)
-{
-    size_t i;
-    if (!type)
-        return -1;
-
-    for (i = 0; i < ntypes; i++)
-        if (STREQ(types[i], type))
-            return i;
-
-    return -1;
-}
-
 
 /**
  * Format @val as a base-10 decimal number, in the
@@ -531,16 +369,6 @@ virFormatIntPretty(unsigned long long val,
     return val / (limit / 1024);
 }
 
-
-const char *virEnumToString(const char *const*types,
-                            unsigned int ntypes,
-                            int type)
-{
-    if (type < 0 || type >= ntypes)
-        return NULL;
-
-    return types[type];
-}
 
 /* Translates a device name of the form (regex) /^[fhv]d[a-z]+[0-9]*$/
  * into the corresponding index and partition number

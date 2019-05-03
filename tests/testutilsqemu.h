@@ -25,11 +25,44 @@
 #  include "qemu/qemu_capabilities.h"
 #  include "qemu/qemu_conf.h"
 
+#  define TEST_QEMU_CAPS_PATH abs_srcdir "/qemucapabilitiesdata"
+
 enum {
     GIC_NONE = 0,
     GIC_V2,
     GIC_V3,
     GIC_BOTH,
+};
+
+typedef enum {
+    ARG_QEMU_CAPS,
+    ARG_GIC,
+    ARG_MIGRATE_FROM,
+    ARG_MIGRATE_FD,
+    ARG_FLAGS,
+    ARG_PARSEFLAGS,
+    ARG_CAPS_ARCH,
+    ARG_CAPS_VER,
+    ARG_END,
+} testQemuInfoArgName;
+
+typedef enum {
+    FLAG_EXPECT_FAILURE     = 1 << 0,
+    FLAG_EXPECT_PARSE_ERROR = 1 << 1,
+    FLAG_FIPS               = 1 << 2,
+    FLAG_REAL_CAPS          = 1 << 3,
+    FLAG_SKIP_LEGACY_CPUS   = 1 << 4,
+} testQemuInfoFlags;
+
+struct testQemuInfo {
+    const char *name;
+    char *infile;
+    char *outfile;
+    virQEMUCapsPtr qemuCaps;
+    const char *migrateFrom;
+    int migrateFd;
+    unsigned int flags;
+    unsigned int parseFlags;
 };
 
 virCapsPtr testQemuCapsInit(void);
@@ -59,17 +92,20 @@ int qemuTestCapsCacheInsert(virFileCachePtr cache,
 int testQemuCapsSetGIC(virQEMUCapsPtr qemuCaps,
                        int gic);
 
-char *testQemuGetLatestCapsForArch(const char *dirname,
-                                   const char *arch,
+char *testQemuGetLatestCapsForArch(const char *arch,
                                    const char *suffix);
+virHashTablePtr testQemuGetLatestCaps(void);
 
 typedef int (*testQemuCapsIterateCallback)(const char *base,
                                            const char *archName,
                                            void *opaque);
-int testQemuCapsIterate(const char *dirname,
-                        const char *suffix,
+int testQemuCapsIterate(const char *suffix,
                         testQemuCapsIterateCallback callback,
                         void *opaque);
+
+int testQemuInfoSetArgs(struct testQemuInfo *info,
+                        virHashTablePtr capslatest, ...);
+void testQemuInfoClear(struct testQemuInfo *info);
 
 # endif
 

@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2019-03-31" "libvirt-5.2.0" "Virtualization Support"
+.TH VIRSH 1 "2019-04-30" "libvirt-5.3.0" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -620,10 +620,10 @@ printed in an extra column. This flag is usable only with the default
 Example:
 .Sp
 \&\fBvirsh\fR list \-\-title
-  Id    Name                           State      Title
- \-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-
-  0     Domain\-0                       running    Mailserver 1
-  2     fedora                         paused
+  Id    Name        State      Title
+ \-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-
+  0     Domain\-0    running    Mailserver 1
+  2     fedora      paused
 .RE
 .IP "\fBfreecell\fR [{ [\fI\-\-cellno\fR] \fBcellno\fR | \fI\-\-all\fR }]" 4
 .IX Item "freecell [{ [--cellno] cellno | --all }]"
@@ -829,7 +829,7 @@ effect on the next boot.
 .IP "\fBdesc\fR \fIdomain\fR [[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]] [\fI\-\-title\fR] [\fI\-\-edit\fR] [\fI\-\-new\-desc\fR New description or title message]" 4
 .IX Item "desc domain [[--live] [--config] | [--current]] [--title] [--edit] [--new-desc New description or title message]"
 Show or modify description and title of a domain. These values are user
-fields that allow to store arbitrary textual data to allow easy
+fields that allow storing arbitrary textual data to allow easy
 identification of domains. Title should be short, although it's not enforced.
 (See also \fBmetadata\fR that works with \s-1XML\s0 based domain metadata.)
 .Sp
@@ -1337,7 +1337,7 @@ within a certain range. Specifying \fIbuf-size\fR will control how much data can
 be simultaneously in-flight during the copy; larger values use more memory but
 may allow faster completion (the default value is usually correct).
 .Sp
-\&\fI\-\-transient\-job\fR allows to specify that the user does not require the job to
+\&\fI\-\-transient\-job\fR allows specifying that the user does not require the job to
 be recovered if the \s-1VM\s0 crashes or is turned off before the job completes. This
 flag removes the restriction of copy jobs to transient domains if that
 restriction is applied by the hypervisor.
@@ -1468,9 +1468,9 @@ bytes/s. Specifying a negative value is interpreted as an unsigned long
 value or essentially unlimited. The hypervisor can choose whether to
 reject the value or convert it to the maximum value allowed. Optionally a
 scaled positive number may be used as bandwidth (see \fB\s-1NOTES\s0\fR above). Using
-\&\fI\-\-bytes\fR with a scaled value allows to use finer granularity. A scaled value
-used without \fI\-\-bytes\fR will be rounded down to MiB/s. Note that the
-\&\fI\-\-bytes\fR may be unsupported by the hypervisor.
+\&\fI\-\-bytes\fR with a scaled value permits a finer granularity to be selected.
+A scaled value used without \fI\-\-bytes\fR will be rounded down to MiB/s. Note
+that the \fI\-\-bytes\fR may be unsupported by the hypervisor.
 .IP "\fBdomblkthreshold\fR \fIdomain\fR \fIdev\fR \fIthreshold\fR" 4
 .IX Item "domblkthreshold domain dev threshold"
 Set the threshold value for delivering the block-threshold event. \fIdev\fR
@@ -1602,19 +1602,15 @@ Convert the file \fIconfig\fR in the native guest configuration format
 named by \fIformat\fR to a domain \s-1XML\s0 format. For \s-1QEMU/KVM\s0 hypervisor,
 the \fIformat\fR argument must be \fBqemu-argv\fR. For Xen hypervisor, the
 \&\fIformat\fR argument may be \fBxen-xm\fR, \fBxen-xl\fR, or \fBxen-sxpr\fR. For
-\&\s-1LXC\s0 hypervisor, the \fIformat\fR argument must be \fBlxc-tools\fR.
+\&\s-1LXC\s0 hypervisor, the \fIformat\fR argument must be \fBlxc-tools\fR. For
+VMware/ESX hypervisor, the \fIformat\fR argument must be \fBvmware-vmx\fR.
+For the Bhyve hypervisor, the \fIformat\fR argument must be \fBbhyve-argv\fR.
 .IP "\fBdomxml-to-native\fR \fIformat\fR { [\fI\-\-xml\fR] \fIxml\fR | \fI\-\-domain\fR \fIdomain-name-or-id-or-uuid\fR }" 4
 .IX Item "domxml-to-native format { [--xml] xml | --domain domain-name-or-id-or-uuid }"
 Convert the file \fIxml\fR into domain \s-1XML\s0 format or convert an existing
 \&\fI\-\-domain\fR to the native guest configuration format named by \fIformat\fR.
-The \fIxml\fR and \fI\-\-domain\fR arguments are mutually exclusive.
-.Sp
-For the \s-1QEMU/KVM\s0 hypervisor, the \fIformat\fR argument must be \fBqemu-argv\fR.
-.Sp
-For the Xen hypervisor, the \fIformat\fR argument may be \fBxen-xm\fR, \fBxen-xl\fR,
-or \fBxen-sxpr\fR.
-.Sp
-For the \s-1LXC\s0 hypervisor, the \fIformat\fR argument must be \fBlxc-tools\fR.
+The \fIxml\fR and \fI\-\-domain\fR arguments are mutually exclusive. For the types
+of \fIformat\fR argument, refer to \fBdomxml-from-native\fR.
 .IP "\fBdump\fR \fIdomain\fR \fIcorefilepath\fR [\fI\-\-bypass\-cache\fR] { [\fI\-\-live\fR] | [\fI\-\-crash\fR] | [\fI\-\-reset\fR] } [\fI\-\-verbose\fR] [\fI\-\-memory\-only\fR] [\fI\-\-format\fR \fIstring\fR]" 4
 .IX Item "dump domain corefilepath [--bypass-cache] { [--live] | [--crash] | [--reset] } [--verbose] [--memory-only] [--format string]"
 Dumps the core of a domain to a file for analysis.
@@ -1848,7 +1844,7 @@ stats.
 .IP "\fBmetadata\fR \fIdomain\fR [[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]] [\fI\-\-edit\fR] [\fIuri\fR] [\fIkey\fR] [\fIset\fR] [\fI\-\-remove\fR]" 4
 .IX Item "metadata domain [[--live] [--config] | [--current]] [--edit] [uri] [key] [set] [--remove]"
 Show or modify custom \s-1XML\s0 metadata of a domain. The metadata is a user
-defined \s-1XML\s0 that allows to store arbitrary \s-1XML\s0 data in the domain definition.
+defined \s-1XML\s0 that allows storing arbitrary \s-1XML\s0 data in the domain definition.
 Multiple separate custom metadata pieces can be stored in the domain \s-1XML.\s0
 The pieces are identified by a private \s-1XML\s0 namespace provided via the
 \&\fIuri\fR argument. (See also \fBdesc\fR that works with textual metadata of
@@ -2271,8 +2267,8 @@ either parameter is the same as not specifying that parameter.
 .IP "\fBscreenshot\fR \fIdomain\fR [\fIimagefilepath\fR] [\fI\-\-screen\fR \fBscreenID\fR]" 4
 .IX Item "screenshot domain [imagefilepath] [--screen screenID]"
 Takes a screenshot of a current domain console and stores it into a file.
-Optionally, if hypervisor supports more displays for a domain, \fIscreenID\fR
-allows to specify which screen will be captured. It is the sequential number
+Optionally, if the hypervisor supports more displays for a domain, \fIscreenID\fR
+allows specifying which screen will be captured. It is the sequential number
 of screen. In case of multiple graphics cards, heads are enumerated before
 devices, e.g. having two graphics cards, both with four heads, screen \s-1ID 5\s0
 addresses the second head on the second card.
@@ -2324,8 +2320,8 @@ set 3 (aka \s-1PS/2\s0 compatible set). No symbolic names are provided
 See \fBvirkeycode\-atset3\fR\|(7)
 .IP "\fBos_x\fR" 4
 .IX Item "os_x"
-The numeric values are those defined by the OS-X keyboard input
-subsystem. The symbolic names match the corresponding OS-X key
+The numeric values are those defined by the macOS keyboard input
+subsystem. The symbolic names match the corresponding macOS key
 constant macro names
 .Sp
 See \fBvirkeycode\-osx\fR\|(7) and \fBvirkeyname\-osx\fR\|(7)
@@ -3244,8 +3240,8 @@ expected.
 .IX Item "change-media domain path [--eject] [--insert] [--update] [source] [--force] [[--live] [--config] | [--current]] [--print-xml] [--block]"
 Change media of \s-1CDROM\s0 or floppy drive. \fIpath\fR can be the fully-qualified path
 or the unique target name (<target dev='hdc'>) of the disk device. \fIsource\fR
-specifies the path of the media to be inserted or updated. Flag \fI\-\-block\fR
-allows to set the backing type in case a block device is used as media for the
+specifies the path of the media to be inserted or updated. The \fI\-\-block\fR flag
+allows setting the backing type in case a block device is used as media for the
 \&\s-1CDROM\s0 or floppy drive instead of a file.
 .Sp
 \&\fI\-\-eject\fR indicates the media will be ejected.
@@ -3779,8 +3775,8 @@ using the [\fI\-\-source\-name\fR] (or as generated from the [\fI\-\-name\fR]).
 .IX Item "pool-define file"
 Define an inactive persistent storage pool or modify an existing persistent one
 from the \s-1XML\s0 \fIfile\fR.
-.IP "\fBpool-define-as\fR \fIname\fR \fItype\fR [\fI\-\-source\-host hostname\fR] [\fI\-\-source\-path path\fR] [\fI\-\-source\-dev path\fR] [\fI\-\-source\-name name\fR] [\fI\-\-target path\fR] [\fI\-\-source\-format format\fR] [\fI\-\-auth\-type authtype\fR \fI\-\-auth\-username username\fR [\fI\-\-secret\-usage usage\fR | \fI\-\-secret\-uuid uuid\fR]] [[\fI\-\-adapter\-name name\fR] | [\fI\-\-adapter\-wwnn\fR \fI\-\-adapter\-wwpn\fR] [\fI\-\-adapter\-parent parent\fR]] [\fI\-\-print\-xml\fR]" 4
-.IX Item "pool-define-as name type [--source-host hostname] [--source-path path] [--source-dev path] [--source-name name] [--target path] [--source-format format] [--auth-type authtype --auth-username username [--secret-usage usage | --secret-uuid uuid]] [[--adapter-name name] | [--adapter-wwnn --adapter-wwpn] [--adapter-parent parent]] [--print-xml]"
+.IP "\fBpool-define-as\fR \fIname\fR \fItype\fR [\fI\-\-source\-host hostname\fR] [\fI\-\-source\-path path\fR] [\fI\-\-source\-dev path\fR] [\fI\-\-source\-name name\fR] [\fI\-\-target path\fR] [\fI\-\-source\-format format\fR] [\fI\-\-auth\-type authtype\fR \fI\-\-auth\-username username\fR [\fI\-\-secret\-usage usage\fR | \fI\-\-secret\-uuid uuid\fR]] [\fI\-\-source\-protocol\-ver ver\fR] [[\fI\-\-adapter\-name name\fR] | [\fI\-\-adapter\-wwnn\fR \fI\-\-adapter\-wwpn\fR] [\fI\-\-adapter\-parent parent\fR]] [\fI\-\-print\-xml\fR]" 4
+.IX Item "pool-define-as name type [--source-host hostname] [--source-path path] [--source-dev path] [--source-name name] [--target path] [--source-format format] [--auth-type authtype --auth-username username [--secret-usage usage | --secret-uuid uuid]] [--source-protocol-ver ver] [[--adapter-name name] | [--adapter-wwnn --adapter-wwpn] [--adapter-parent parent]] [--print-xml]"
 Create, but do not start, a pool object \fIname\fR from the raw parameters.  If
 \&\fI\-\-print\-xml\fR is specified, then print the \s-1XML\s0 of the pool object
 without defining the pool.  Otherwise, the pool has the specified

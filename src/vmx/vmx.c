@@ -509,7 +509,8 @@ def->parallels[0]...
  * this is good enough for now because all virDomainControllerModel values
  * are actually SCSI controller models in the ESX case */
 VIR_ENUM_DECL(virVMXControllerModelSCSI);
-VIR_ENUM_IMPL(virVMXControllerModelSCSI, VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LAST,
+VIR_ENUM_IMPL(virVMXControllerModelSCSI,
+              VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LAST,
               "auto", /* just to match virDomainControllerModel, will never be used */
               "buslogic",
               "lsilogic",
@@ -1301,10 +1302,10 @@ virVMXParseConfig(virVMXContext *ctx,
     int unit;
     bool hgfs_disabled = true;
     long long sharedFolder_maxNum = 0;
-    int cpumasklen;
     struct virVMXConfigScanResults results = { -1 };
     long long coresPerSocket = 0;
     virCPUDefPtr cpu = NULL;
+    char *firmware = NULL;
 
     if (ctx->parseFileName == NULL) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -1501,21 +1502,35 @@ virVMXParseConfig(virVMXContext *ctx,
     }
 
     if (sched_cpu_affinity != NULL && STRCASENEQ(sched_cpu_affinity, "all")) {
-        const char *current = sched_cpu_affinity;
-        int number, count = 0;
-
-        cpumasklen = 0;
+        VIR_AUTOSTRINGLIST afflist = NULL;
+        char **aff;
+        size_t naffs;
 
         def->cpumask = virBitmapNew(VIR_DOMAIN_CPUMASK_LEN);
         if (!def->cpumask)
             goto cleanup;
 
-        while (*current != '\0') {
+        if (!(afflist = virStringSplitCount(sched_cpu_affinity, ",", 0, &naffs)))
+            goto cleanup;
+
+        if (naffs < numvcpus) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Expecting VMX entry 'sched.cpu.affinity' to contain "
+                             "at least as many values as 'numvcpus' (%lld) but "
+                             "found only %zu value(s)"), numvcpus, naffs);
+            goto cleanup;
+        }
+
+        for (aff = afflist; *aff; aff++) {
+            const char *current = *aff;
+            unsigned int number;
+            int rc;
+
+            virSkipSpaces(&current);
+            rc = virStrToLong_uip(current, (char **) &current, 10, &number);
             virSkipSpaces(&current);
 
-            number = virParseNumber(&current);
-
-            if (number < 0) {
+            if (rc < 0 || *current != '\0') {
                 virReportError(VIR_ERR_INTERNAL_ERROR,
                                _("Expecting VMX entry 'sched.cpu.affinity' to be "
                                  "a comma separated list of unsigned integers but "
@@ -1530,35 +1545,7 @@ virVMXParseConfig(virVMXContext *ctx,
                 goto cleanup;
             }
 
-            if (number + 1 > cpumasklen)
-                cpumasklen = number + 1;
-
             ignore_value(virBitmapSetBit(def->cpumask, number));
-            ++count;
-
-            virSkipSpaces(&current);
-
-            if (*current == ',') {
-                ++current;
-            } else if (*current == '\0') {
-                break;
-            } else {
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("Expecting VMX entry 'sched.cpu.affinity' to be "
-                                 "a comma separated list of unsigned integers but "
-                                 "found '%s'"), sched_cpu_affinity);
-                goto cleanup;
-            }
-
-            virSkipSpaces(&current);
-        }
-
-        if (count < numvcpus) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Expecting VMX entry 'sched.cpu.affinity' to contain "
-                             "at least as many values as 'numvcpus' (%lld) but "
-                             "found only %d value(s)"), numvcpus, count);
-            goto cleanup;
         }
     }
 
@@ -1841,6 +1828,21 @@ virVMXParseConfig(virVMXContext *ctx,
         def->namespaceData = nsdata;
     }
 
+    /* vmx:firmware */
+    if (virVMXGetConfigString(conf, "firmware", &firmware, true) < 0)
+        goto cleanup;
+
+    if (firmware != NULL) {
+        if (STREQ(firmware, "efi")) {
+            def->os.firmware = VIR_DOMAIN_OS_DEF_FIRMWARE_EFI;
+        } else {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("VMX entry 'firmware' has unknown value '%s'"),
+                           firmware);
+            goto cleanup;
+        }
+    }
+
     if (virDomainDefPostParse(def, caps, VIR_DOMAIN_DEF_PARSE_ABI_UPDATE,
                               xmlopt, NULL) < 0)
         goto cleanup;
@@ -1859,6 +1861,7 @@ virVMXParseConfig(virVMXContext *ctx,
     VIR_FREE(sched_cpu_shares);
     VIR_FREE(guestOS);
     virCPUDefFree(cpu);
+    VIR_FREE(firmware);
 
     return def;
 }
@@ -2546,6 +2549,8 @@ virVMXParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
     char networkName_name[48] = "";
     char *networkName = NULL;
 
+    int netmodel = VIR_DOMAIN_NET_MODEL_UNKNOWN;
+
     if (def == NULL || *def != NULL) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
         return -1;
@@ -2630,11 +2635,17 @@ virVMXParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
     }
 
     if (virtualDev != NULL) {
-        if (STRCASENEQ(virtualDev, "vlance") &&
-            STRCASENEQ(virtualDev, "vmxnet") &&
-            STRCASENEQ(virtualDev, "vmxnet3") &&
-            STRCASENEQ(virtualDev, "e1000") &&
-            STRCASENEQ(virtualDev, "e1000e")) {
+        if (STRCASEEQ(virtualDev, "vlance")) {
+            netmodel = VIR_DOMAIN_NET_MODEL_VLANCE;
+        } else if (STRCASEEQ(virtualDev, "vmxnet")) {
+            netmodel = VIR_DOMAIN_NET_MODEL_VMXNET;
+        } else if (STRCASEEQ(virtualDev, "vmxnet3")) {
+            netmodel = VIR_DOMAIN_NET_MODEL_VMXNET3;
+        } else if (STRCASEEQ(virtualDev, "e1000")) {
+            netmodel = VIR_DOMAIN_NET_MODEL_E1000;
+        } else if (STRCASEEQ(virtualDev, "e1000e")) {
+            netmodel = VIR_DOMAIN_NET_MODEL_E1000E;
+        } else {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Expecting VMX entry '%s' to be 'vlance' or 'vmxnet' or "
                              "'vmxnet3' or 'e1000' or 'e1000e' but found '%s'"),
@@ -2642,12 +2653,8 @@ virVMXParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
             goto cleanup;
         }
 
-        if (STRCASEEQ(virtualDev, "vmxnet") && features == 15) {
-            VIR_FREE(virtualDev);
-
-            if (VIR_STRDUP(virtualDev, "vmxnet2") < 0)
-                goto cleanup;
-        }
+        if (netmodel == VIR_DOMAIN_NET_MODEL_VMXNET && features == 15)
+            netmodel = VIR_DOMAIN_NET_MODEL_VMXNET2;
     }
 
     /* vmx:networkName -> def:data.bridge.brname */
@@ -2671,10 +2678,8 @@ virVMXParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
     /* Setup virDomainNetDef */
     if (connectionType == NULL || STRCASEEQ(connectionType, "bridged")) {
         (*def)->type = VIR_DOMAIN_NET_TYPE_BRIDGE;
-        (*def)->model = virtualDev;
         (*def)->data.bridge.brname = networkName;
 
-        virtualDev = NULL;
         networkName = NULL;
     } else if (STRCASEEQ(connectionType, "hostonly")) {
         /* FIXME */
@@ -2684,16 +2689,12 @@ virVMXParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
         goto cleanup;
     } else if (STRCASEEQ(connectionType, "nat")) {
         (*def)->type = VIR_DOMAIN_NET_TYPE_USER;
-        (*def)->model = virtualDev;
 
-        virtualDev = NULL;
     } else if (STRCASEEQ(connectionType, "custom")) {
         (*def)->type = VIR_DOMAIN_NET_TYPE_BRIDGE;
-        (*def)->model = virtualDev;
         (*def)->data.bridge.brname = networkName;
         (*def)->ifname = vnet;
 
-        virtualDev = NULL;
         networkName = NULL;
         vnet = NULL;
     } else {
@@ -2703,6 +2704,7 @@ virVMXParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
         goto cleanup;
     }
 
+    (*def)->model = netmodel;
     result = 0;
 
  cleanup:
@@ -3407,6 +3409,10 @@ virVMXFormatConfig(virVMXContext *ctx, virDomainXMLOptionPtr xmlopt, virDomainDe
             goto cleanup;
     }
 
+    /* vmx:firmware */
+    if (def->os.firmware == VIR_DOMAIN_OS_DEF_FIRMWARE_EFI)
+        virBufferAddLit(&buffer, "firmware = \"efi\"\n");
+
     if (virtualHW_version >= 7) {
         if (hasSCSI) {
             virBufferAddLit(&buffer, "pciBridge0.present = \"true\"\n");
@@ -3740,28 +3746,30 @@ virVMXFormatEthernet(virDomainNetDefPtr def, int controller,
     virBufferAsprintf(buffer, "ethernet%d.present = \"true\"\n", controller);
 
     /* def:model -> vmx:virtualDev, vmx:features */
-    if (def->model != NULL) {
-        if (STRCASENEQ(def->model, "vlance") &&
-            STRCASENEQ(def->model, "vmxnet") &&
-            STRCASENEQ(def->model, "vmxnet2") &&
-            STRCASENEQ(def->model, "vmxnet3") &&
-            STRCASENEQ(def->model, "e1000") &&
-            STRCASENEQ(def->model, "e1000e")) {
+    if (def->model) {
+        if (def->model != VIR_DOMAIN_NET_MODEL_VLANCE &&
+            def->model != VIR_DOMAIN_NET_MODEL_VMXNET &&
+            def->model != VIR_DOMAIN_NET_MODEL_VMXNET2 &&
+            def->model != VIR_DOMAIN_NET_MODEL_VMXNET3 &&
+            def->model != VIR_DOMAIN_NET_MODEL_E1000 &&
+            def->model != VIR_DOMAIN_NET_MODEL_E1000E) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Expecting domain XML entry 'devices/interface/model' "
                              "to be 'vlance' or 'vmxnet' or 'vmxnet2' or 'vmxnet3' "
-                             "or 'e1000' or 'e1000e' but found '%s'"), def->model);
+                             "or 'e1000' or 'e1000e' but found '%s'"),
+                            virDomainNetModelTypeToString(def->model));
             return -1;
         }
 
-        if (STRCASEEQ(def->model, "vmxnet2")) {
+        if (def->model == VIR_DOMAIN_NET_MODEL_VMXNET2) {
             virBufferAsprintf(buffer, "ethernet%d.virtualDev = \"vmxnet\"\n",
                               controller);
             virBufferAsprintf(buffer, "ethernet%d.features = \"15\"\n",
                               controller);
         } else {
             virBufferAsprintf(buffer, "ethernet%d.virtualDev = \"%s\"\n",
-                              controller, def->model);
+                              controller,
+                              virDomainNetModelTypeToString(def->model));
         }
     }
 

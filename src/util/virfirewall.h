@@ -22,7 +22,7 @@
 # define LIBVIRT_VIRFIREWALL_H
 
 # include "internal.h"
-# include "viralloc.h"
+# include "virautoclean.h"
 
 typedef struct _virFirewall virFirewall;
 typedef virFirewall *virFirewallPtr;

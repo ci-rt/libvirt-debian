@@ -20,6 +20,8 @@
 
 #include "testutils.h"
 #include "domain_capabilities.h"
+#include "virfilewrapper.h"
+#include "configmake.h"
 
 
 #define VIR_FROM_THIS VIR_FROM_NONE
@@ -86,8 +88,8 @@ fillQemuCaps(virDomainCapsPtr domCaps,
         fakeHostCPU(caps, domCaps->arch) < 0)
         goto cleanup;
 
-    if (virAsprintf(&path, "%s/qemucapabilitiesdata/%s.%s.xml",
-                    abs_srcdir, name, arch) < 0 ||
+    if (virAsprintf(&path, "%s/%s.%s.xml",
+                    TEST_QEMU_CAPS_PATH, name, arch) < 0 ||
         !(qemuCaps = qemuTestParseCapabilities(caps, path)))
         goto cleanup;
 
@@ -104,6 +106,7 @@ fillQemuCaps(virDomainCapsPtr domCaps,
         goto cleanup;
 
     if (virQEMUCapsFillDomainCaps(caps, domCaps, qemuCaps,
+                                  false,
                                   cfg->firmwares,
                                   cfg->nfirmwares) < 0)
         goto cleanup;
@@ -364,6 +367,13 @@ mymain(void)
 
 #if WITH_QEMU
 
+    virFileWrapperAddPrefix(SYSCONFDIR "/qemu/firmware",
+                            abs_srcdir "/qemufirmwaredata/etc/qemu/firmware");
+    virFileWrapperAddPrefix(PREFIX "/share/qemu/firmware",
+                            abs_srcdir "/qemufirmwaredata/usr/share/qemu/firmware");
+    virFileWrapperAddPrefix("/home/user/.config/qemu/firmware",
+                            abs_srcdir "/qemufirmwaredata/home/user/.config/qemu/firmware");
+
     DO_TEST_QEMU("1.7.0", "caps_1.7.0",
                  "/usr/bin/qemu-system-x86_64", NULL,
                  "x86_64", VIR_DOMAIN_VIRT_KVM);
@@ -432,10 +442,16 @@ mymain(void)
                  "/usr/bin/qemu-system-s390x", NULL,
                  "s390x", VIR_DOMAIN_VIRT_KVM);
 
+    DO_TEST_QEMU("3.1.0", "caps_3.1.0",
+                 "/usr/bin/qemu-system-x86_64", NULL,
+                 "x86_64", VIR_DOMAIN_VIRT_KVM);
+
     DO_TEST_QEMU("4.0.0", "caps_4.0.0",
                  "/usr/bin/qemu-system-x86_64", NULL,
                  "x86_64", VIR_DOMAIN_VIRT_KVM);
     virObjectUnref(cfg);
+
+    virFileWrapperClearPrefixes();
 
 #endif /* WITH_QEMU */
 

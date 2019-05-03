@@ -46,6 +46,7 @@
     <include filename="x86_Skylake-Client-IBRS.xml"/>
     <include filename="x86_Skylake-Server.xml"/>
     <include filename="x86_Skylake-Server-IBRS.xml"/>
+    <include filename="x86_Cascadelake-Server.xml"/>
     <include filename="x86_Icelake-Client.xml"/>
     <include filename="x86_Icelake-Server.xml"/>
 
@@ -58,7 +59,7 @@
     <include filename="x86_Opteron_G4.xml"/>
     <include filename="x86_Opteron_G5.xml"/>
     <include filename="x86_EPYC.xml"/>
-    <include filename="x86_EPYC-IBRS.xml"/>
+    <include filename="x86_EPYC-IBPB.xml"/>
   </arch>
 
   <arch name='ppc64'>

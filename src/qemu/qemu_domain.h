@@ -39,6 +39,7 @@
 # include "virobject.h"
 # include "logging/log_manager.h"
 # include "virdomainmomentobjlist.h"
+# include "virenum.h"
 
 # define QEMU_DOMAIN_FORMAT_LIVE_FLAGS \
     (VIR_DOMAIN_XML_SECURE)
@@ -370,6 +371,10 @@ struct _qemuDomainObjPrivate {
     /* qemuProcessStartCPUs stores the reason for starting vCPUs here for the
      * RESUME event handler to use it */
     virDomainRunningReason runningReason;
+
+    /* qemuProcessStopCPUs stores the reason for pausing vCPUs here for the
+     * STOP event handler to use it */
+    virDomainPausedReason pausedReason;
 
     /* true if libvirt remembers the original owner for files */
     bool rememberOwner;
@@ -821,8 +826,6 @@ int qemuDomainJobInfoToParams(qemuDomainJobInfoPtr jobInfo,
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2)
     ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(4);
 
-int qemuDomainSupportsBlockJobs(virDomainObjPtr vm)
-    ATTRIBUTE_NONNULL(1);
 bool qemuDomainDiskBlockJobIsActive(virDomainDiskDefPtr disk);
 bool qemuDomainHasBlockjob(virDomainObjPtr vm, bool copy_only)
     ATTRIBUTE_NONNULL(1);
@@ -1115,5 +1118,8 @@ qemuDomainDiskIsMissingLocalOptional(virDomainDiskDefPtr disk);
 int
 qemuDomainNVRAMPathGenerate(virQEMUDriverConfigPtr cfg,
                             virDomainDefPtr def);
+
+virDomainEventSuspendedDetailType
+qemuDomainPausedReasonToSuspendedEvent(virDomainPausedReason reason);
 
 #endif /* LIBVIRT_QEMU_DOMAIN_H */

@@ -32,6 +32,7 @@
 #include "viralloc.h"
 #include "virjson.h"
 #include "virlease.h"
+#include "virenum.h"
 #include "configmake.h"
 #include "virgettext.h"
 
@@ -72,7 +73,8 @@ enum virLeaseActionFlags {
 
 VIR_ENUM_DECL(virLeaseAction);
 
-VIR_ENUM_IMPL(virLeaseAction, VIR_LEASE_ACTION_LAST,
+VIR_ENUM_IMPL(virLeaseAction,
+              VIR_LEASE_ACTION_LAST,
               "add", "old", "del", "init",
 );
 

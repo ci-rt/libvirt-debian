@@ -11,7 +11,7 @@
 # define LIBVIRT_VIRHASH_H
 
 
-# include "viralloc.h"
+# include "virautoclean.h"
 
 /*
  * The hash table.

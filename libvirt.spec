@@ -137,7 +137,7 @@
 
 %define with_firewalld 1
 
-%if 0%{?fedora} >= 30 || 0%{?rhel} > 7
+%if 0%{?fedora} >= 31 || 0%{?rhel} > 7
     %define with_firewalld_zone 0%{!?_without_firewalld_zone:1}
 %endif
 
@@ -215,15 +215,15 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 5.2.0
-Release: 1%{?dist}
+Version: 5.3.0
+Release: 0rc2%{?dist}%{?extra_release}
 License: LGPLv2+
 URL: https://libvirt.org/
 
 %if %(echo %{version} | grep -q "\.0$"; echo $?) == 1
     %define mainturl stable_updates/
 %endif
-Source: https://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.xz
+Source: https://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc2.tar.xz
 
 Requires: libvirt-daemon = %{version}-%{release}
 Requires: libvirt-daemon-config-network = %{version}-%{release}
@@ -1387,12 +1387,12 @@ fi
 rm -rf %{_localstatedir}/lib/rpm-state/libvirt || :
 
 %post daemon-driver-network
-%if %{with_firewalld}
+%if %{with_firewalld_zone}
     %firewalld_reload
 %endif
 
 %postun daemon-driver-network
-%if %{with_firewalld}
+%if %{with_firewalld_zone}
     %firewalld_reload
 %endif
 

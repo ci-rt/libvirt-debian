@@ -22,10 +22,7 @@ AC_DEFUN([LIBVIRT_ARG_SASL],[
 ])
 
 AC_DEFUN([LIBVIRT_CHECK_SASL],[
-  LIBVIRT_CHECK_LIB_ALT([SASL], [sasl2],
-                        [sasl_client_init], [sasl/sasl.h],
-                        [SASL1], [sasl],
-                        [sasl_client_init], [sasl/sasl.h])
+  LIBVIRT_CHECK_PKG([SASL], [libsasl2], [2.1.26])
 ])
 
 AC_DEFUN([LIBVIRT_RESULT_SASL],[

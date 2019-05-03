@@ -23,7 +23,6 @@
 
 #include <fcntl.h>
 #include <sys/stat.h>
-#include <sys/time.h>
 #include <unistd.h>
 
 #include "internal.h"
@@ -51,7 +50,8 @@
 
 VIR_LOG_INIT("conf.snapshot_conf");
 
-VIR_ENUM_IMPL(virDomainSnapshotLocation, VIR_DOMAIN_SNAPSHOT_LOCATION_LAST,
+VIR_ENUM_IMPL(virDomainSnapshotLocation,
+              VIR_DOMAIN_SNAPSHOT_LOCATION_LAST,
               "default",
               "no",
               "internal",
@@ -59,7 +59,8 @@ VIR_ENUM_IMPL(virDomainSnapshotLocation, VIR_DOMAIN_SNAPSHOT_LOCATION_LAST,
 );
 
 /* virDomainSnapshotState is really virDomainState plus one extra state */
-VIR_ENUM_IMPL(virDomainSnapshotState, VIR_DOMAIN_SNAPSHOT_LAST,
+VIR_ENUM_IMPL(virDomainSnapshotState,
+              VIR_DOMAIN_SNAPSHOT_LAST,
               "nostate",
               "running",
               "blocked",
@@ -146,7 +147,7 @@ virDomainSnapshotDiskDefParseXML(xmlNodePtr node,
     }
 
     if ((cur = virXPathNode("./source", ctxt)) &&
-        virDomainDiskSourceParse(cur, ctxt, def->src, flags, xmlopt) < 0)
+        virDomainStorageSourceParse(cur, ctxt, def->src, flags, xmlopt) < 0)
         goto cleanup;
 
     if ((driver = virXPathString("string(./driver/@type)", ctxt)) &&
@@ -197,7 +198,6 @@ virDomainSnapshotDefParse(xmlXPathContextPtr ctxt,
     size_t i;
     int n;
     char *creation = NULL, *state = NULL;
-    struct timeval tv;
     int active;
     char *tmp;
     char *memorySnapshot = NULL;
@@ -208,8 +208,6 @@ virDomainSnapshotDefParse(xmlXPathContextPtr ctxt,
     if (VIR_ALLOC(def) < 0)
         goto cleanup;
 
-    gettimeofday(&tv, NULL);
-
     def->common.name = virXPathString("string(./name)", ctxt);
     if (def->common.name == NULL) {
         if (flags & VIR_DOMAIN_SNAPSHOT_PARSE_REDEFINE) {
@@ -217,8 +215,6 @@ virDomainSnapshotDefParse(xmlXPathContextPtr ctxt,
                            _("a redefined snapshot must have a name"));
             goto cleanup;
         }
-        if (virAsprintf(&def->common.name, "%lld", (long long)tv.tv_sec) < 0)
-            goto cleanup;
     }
 
     def->common.description = virXPathString("string(./description)", ctxt);
@@ -243,7 +239,7 @@ virDomainSnapshotDefParse(xmlXPathContextPtr ctxt,
             goto cleanup;
         }
         def->state = virDomainSnapshotStateTypeFromString(state);
-        if (def->state < 0) {
+        if (def->state <= 0) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("Invalid state '%s' in domain snapshot XML"),
                            state);
@@ -274,8 +270,8 @@ virDomainSnapshotDefParse(xmlXPathContextPtr ctxt,
         } else {
             VIR_WARN("parsing older snapshot that lacks domain");
         }
-    } else {
-        def->common.creationTime = tv.tv_sec;
+    } else if (virDomainXMLOptionRunMomentPostParse(xmlopt, &def->common) < 0) {
+        goto cleanup;
     }
 
     memorySnapshot = virXPathString("string(./memory/@snapshot)", ctxt);
@@ -776,7 +772,7 @@ virDomainSnapshotDiskDefFormat(virBufferPtr buf,
     if (disk->src->format > 0)
         virBufferEscapeString(buf, "<driver type='%s'/>\n",
                               virStorageFileFormatTypeToString(disk->src->format));
-    if (virDomainDiskSourceFormat(buf, disk->src, 0, 0, xmlopt) < 0)
+    if (virDomainDiskSourceFormat(buf, disk->src, 0, false, 0, xmlopt) < 0)
         return -1;
 
     virBufferAdjustIndent(buf, -2);
@@ -808,8 +804,9 @@ virDomainSnapshotDefFormatInternal(virBufferPtr buf,
     if (def->common.description)
         virBufferEscapeString(buf, "<description>%s</description>\n",
                               def->common.description);
-    virBufferAsprintf(buf, "<state>%s</state>\n",
-                      virDomainSnapshotStateTypeToString(def->state));
+    if (def->state)
+        virBufferAsprintf(buf, "<state>%s</state>\n",
+                          virDomainSnapshotStateTypeToString(def->state));
 
     if (def->common.parent) {
         virBufferAddLit(buf, "<parent>\n");
@@ -819,8 +816,9 @@ virDomainSnapshotDefFormatInternal(virBufferPtr buf,
         virBufferAddLit(buf, "</parent>\n");
     }
 
-    virBufferAsprintf(buf, "<creationTime>%lld</creationTime>\n",
-                      def->common.creationTime);
+    if (def->common.creationTime)
+        virBufferAsprintf(buf, "<creationTime>%lld</creationTime>\n",
+                          def->common.creationTime);
 
     if (def->memory) {
         virBufferAsprintf(buf, "<memory snapshot='%s'",

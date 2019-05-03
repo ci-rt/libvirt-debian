@@ -642,12 +642,13 @@ xenParseSxprNets(virDomainDefPtr def,
                 }
             }
 
-            if (VIR_STRDUP(net->model, model) < 0)
-                goto cleanup;
-
-            if (!model && type && STREQ(type, "netfront") &&
-                VIR_STRDUP(net->model, "netfront") < 0)
-                goto cleanup;
+            if (model) {
+                if (virDomainNetSetModelString(net, model) < 0)
+                    goto cleanup;
+            } else {
+                if (type && STREQ(type, "netfront"))
+                    net->model = VIR_DOMAIN_NET_MODEL_NETFRONT;
+            }
 
             tmp = sexpr_node(node, "device/vif/rate");
             if (tmp) {
@@ -1929,15 +1930,16 @@ xenFormatSxprNet(virConnectPtr conn,
         !STRPREFIX(def->ifname, "vif"))
         virBufferEscapeSexpr(buf, "(vifname '%s')", def->ifname);
 
-    if (!hvm) {
-        if (def->model != NULL)
-            virBufferEscapeSexpr(buf, "(model '%s')", def->model);
-    } else {
-        if (def->model != NULL && STREQ(def->model, "netfront")) {
-            virBufferAddLit(buf, "(type netfront)");
+    if (virDomainNetGetModelString(def)) {
+        if (!hvm) {
+            virBufferEscapeSexpr(buf, "(model '%s')",
+                                 virDomainNetGetModelString(def));
         } else {
-            if (def->model != NULL)
-                virBufferEscapeSexpr(buf, "(model '%s')", def->model);
+            if (def->model == VIR_DOMAIN_NET_MODEL_NETFRONT)
+                virBufferAddLit(buf, "(type netfront)");
+            else
+                virBufferEscapeSexpr(buf, "(model '%s')",
+                                     virDomainNetGetModelString(def));
         }
     }
 

@@ -39,7 +39,7 @@ struct _testQemuData {
 static int
 testQemuDataInit(testQemuDataPtr data)
 {
-    data->inputDir = abs_srcdir "/qemucapabilitiesdata";
+    data->inputDir = TEST_QEMU_CAPS_PATH;
     data->outputDir = abs_srcdir "/qemucaps2xmloutdata";
 
     data->ret = 0;
@@ -100,7 +100,7 @@ testGetCaps(char *capsData, const testQemuData *data)
     virQEMUCapsPtr qemuCaps = NULL;
     virCapsPtr caps = NULL;
     virArch arch = virArchFromString(data->archName);
-    char *binary = NULL;
+    VIR_AUTOFREE(char *) binary = NULL;
 
     if (virAsprintf(&binary, "/usr/bin/qemu-system-%s", data->archName) < 0)
         goto error;
@@ -129,7 +129,6 @@ testGetCaps(char *capsData, const testQemuData *data)
  error:
     virObjectUnref(qemuCaps);
     virObjectUnref(caps);
-    VIR_FREE(binary);
     return NULL;
 }
 
@@ -212,7 +211,7 @@ mymain(void)
     if (testQemuDataInit(&data) < 0)
         return EXIT_FAILURE;
 
-    if (testQemuCapsIterate(data.inputDir, ".xml", doCapsTest, &data) < 0)
+    if (testQemuCapsIterate(".xml", doCapsTest, &data) < 0)
         return EXIT_FAILURE;
 
     return (data.ret == 0) ? EXIT_SUCCESS : EXIT_FAILURE;

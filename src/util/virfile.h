@@ -30,7 +30,7 @@
 # include "internal.h"
 # include "virbitmap.h"
 # include "virstoragefile.h"
-# include "viralloc.h"
+# include "virautoclean.h"
 
 typedef enum {
     VIR_FILE_CLOSE_PRESERVE_ERRNO = 1 << 0,
@@ -333,6 +333,9 @@ int virFileGetHugepageSize(const char *path,
                            unsigned long long *size);
 int virFileFindHugeTLBFS(virHugeTLBFSPtr *ret_fs,
                          size_t *ret_nfs);
+
+virHugeTLBFSPtr virFileGetDefaultHugepage(virHugeTLBFSPtr fs,
+                                          size_t nfs);
 
 int virFileSetupDev(const char *path,
                     const char *mount_options);

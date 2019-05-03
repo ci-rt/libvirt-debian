@@ -165,6 +165,7 @@ static void virLXCProcessCleanup(virLXCDriverPtr driver,
     virLXCDomainObjPrivatePtr priv = vm->privateData;
     virNetDevVPortProfilePtr vport = NULL;
     virLXCDriverConfigPtr cfg = virLXCDriverGetConfig(driver);
+    virConnectPtr conn = NULL;
 
     VIR_DEBUG("Cleanup VM name=%s pid=%d reason=%d",
               vm->def->name, (int)vm->pid, (int)reason);
@@ -224,7 +225,12 @@ static void virLXCProcessCleanup(virLXCDriverPtr driver,
                                 iface->ifname));
             ignore_value(virNetDevVethDelete(iface->ifname));
         }
-        virDomainNetReleaseActualDevice(vm->def, iface);
+        if (iface->type == VIR_DOMAIN_NET_TYPE_NETWORK) {
+            if (conn || (conn = virGetConnectNetwork()))
+                virDomainNetReleaseActualDevice(conn, vm->def, iface);
+            else
+                VIR_WARN("Unable to release network device '%s'", NULLSTR(iface->ifname));
+        }
     }
 
     virDomainConfVMNWFilterTeardown(vm);
@@ -254,6 +260,7 @@ static void virLXCProcessCleanup(virLXCDriverPtr driver,
 
     virDomainObjRemoveTransientDef(vm);
     virObjectUnref(cfg);
+    virObjectUnref(conn);
 }
 
 
@@ -542,6 +549,8 @@ static int virLXCProcessSetupInterfaces(virConnectPtr conn,
     size_t niface = 0;
     virDomainNetDefPtr net;
     virDomainNetType type;
+    virConnectPtr netconn = NULL;
+    virErrorPtr save_err = NULL;
 
     if (VIR_ALLOC_N(*veths, def->nnets + 1) < 0)
         return -1;
@@ -558,8 +567,12 @@ static int virLXCProcessSetupInterfaces(virConnectPtr conn,
         if (virLXCProcessValidateInterface(net) < 0)
             goto cleanup;
 
-        if (virDomainNetAllocateActualDevice(def, net) < 0)
-            goto cleanup;
+        if (net->type == VIR_DOMAIN_NET_TYPE_NETWORK) {
+            if (!netconn && !(netconn = virGetConnectNetwork()))
+                goto cleanup;
+            if (virDomainNetAllocateActualDevice(netconn, def, net) < 0)
+                goto cleanup;
+        }
 
         type = virDomainNetGetActualType(net);
         switch (type) {
@@ -630,6 +643,7 @@ static int virLXCProcessSetupInterfaces(virConnectPtr conn,
 
  cleanup:
     if (ret < 0) {
+        virErrorPreserveLast(&save_err);
         for (i = 0; i < def->nnets; i++) {
             virDomainNetDefPtr iface = def->nets[i];
             virNetDevVPortProfilePtr vport = virDomainNetGetActualVirtPortProfile(iface);
@@ -637,9 +651,12 @@ static int virLXCProcessSetupInterfaces(virConnectPtr conn,
                 ignore_value(virNetDevOpenvswitchRemovePort(
                                 virDomainNetGetActualBridgeName(iface),
                                 iface->ifname));
-            virDomainNetReleaseActualDevice(def, iface);
+            if (iface->type == VIR_DOMAIN_NET_TYPE_NETWORK && netconn)
+                virDomainNetReleaseActualDevice(netconn, def, iface);
         }
+        virErrorRestore(&save_err);
     }
+    virObjectUnref(netconn);
     return ret;
 }
 

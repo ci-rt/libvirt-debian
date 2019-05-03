@@ -72,7 +72,8 @@
 VIR_LOG_INIT("qemu.qemu_command");
 
 VIR_ENUM_DECL(virDomainDiskQEMUBus);
-VIR_ENUM_IMPL(virDomainDiskQEMUBus, VIR_DOMAIN_DISK_BUS_LAST,
+VIR_ENUM_IMPL(virDomainDiskQEMUBus,
+              VIR_DOMAIN_DISK_BUS_LAST,
               "ide",
               "floppy",
               "scsi",
@@ -87,7 +88,8 @@ VIR_ENUM_IMPL(virDomainDiskQEMUBus, VIR_DOMAIN_DISK_BUS_LAST,
 
 VIR_ENUM_DECL(qemuDiskCacheV2);
 
-VIR_ENUM_IMPL(qemuDiskCacheV2, VIR_DOMAIN_DISK_CACHE_LAST,
+VIR_ENUM_IMPL(qemuDiskCacheV2,
+              VIR_DOMAIN_DISK_CACHE_LAST,
               "default",
               "none",
               "writethrough",
@@ -96,7 +98,8 @@ VIR_ENUM_IMPL(qemuDiskCacheV2, VIR_DOMAIN_DISK_CACHE_LAST,
               "unsafe",
 );
 
-VIR_ENUM_IMPL(qemuVideo, VIR_DOMAIN_VIDEO_TYPE_LAST,
+VIR_ENUM_IMPL(qemuVideo,
+              VIR_DOMAIN_VIDEO_TYPE_LAST,
               "", /* default value, we shouldn't see this */
               "std",
               "cirrus",
@@ -112,7 +115,8 @@ VIR_ENUM_IMPL(qemuVideo, VIR_DOMAIN_VIDEO_TYPE_LAST,
 
 VIR_ENUM_DECL(qemuDeviceVideo);
 
-VIR_ENUM_IMPL(qemuDeviceVideo, VIR_DOMAIN_VIDEO_TYPE_LAST,
+VIR_ENUM_IMPL(qemuDeviceVideo,
+              VIR_DOMAIN_VIDEO_TYPE_LAST,
               "", /* default value, we shouldn't see this */
               "VGA",
               "cirrus-vga",
@@ -128,7 +132,8 @@ VIR_ENUM_IMPL(qemuDeviceVideo, VIR_DOMAIN_VIDEO_TYPE_LAST,
 
 VIR_ENUM_DECL(qemuDeviceVideoSecondary);
 
-VIR_ENUM_IMPL(qemuDeviceVideoSecondary, VIR_DOMAIN_VIDEO_TYPE_LAST,
+VIR_ENUM_IMPL(qemuDeviceVideoSecondary,
+              VIR_DOMAIN_VIDEO_TYPE_LAST,
               "", /* default value, we shouldn't see this */
               "", /* no secondary device for VGA */
               "", /* no secondary device for cirrus-vga */
@@ -144,7 +149,8 @@ VIR_ENUM_IMPL(qemuDeviceVideoSecondary, VIR_DOMAIN_VIDEO_TYPE_LAST,
 
 VIR_ENUM_DECL(qemuSoundCodec);
 
-VIR_ENUM_IMPL(qemuSoundCodec, VIR_DOMAIN_SOUND_CODEC_TYPE_LAST,
+VIR_ENUM_IMPL(qemuSoundCodec,
+              VIR_DOMAIN_SOUND_CODEC_TYPE_LAST,
               "hda-duplex",
               "hda-micro",
               "hda-output",
@@ -152,7 +158,8 @@ VIR_ENUM_IMPL(qemuSoundCodec, VIR_DOMAIN_SOUND_CODEC_TYPE_LAST,
 
 VIR_ENUM_DECL(qemuControllerModelUSB);
 
-VIR_ENUM_IMPL(qemuControllerModelUSB, VIR_DOMAIN_CONTROLLER_MODEL_USB_LAST,
+VIR_ENUM_IMPL(qemuControllerModelUSB,
+              VIR_DOMAIN_CONTROLLER_MODEL_USB_LAST,
               "piix3-usb-uhci",
               "piix4-usb-uhci",
               "usb-ehci",
@@ -170,7 +177,8 @@ VIR_ENUM_IMPL(qemuControllerModelUSB, VIR_DOMAIN_CONTROLLER_MODEL_USB_LAST,
 );
 
 VIR_ENUM_DECL(qemuDomainFSDriver);
-VIR_ENUM_IMPL(qemuDomainFSDriver, VIR_DOMAIN_FS_DRIVER_TYPE_LAST,
+VIR_ENUM_IMPL(qemuDomainFSDriver,
+              VIR_DOMAIN_FS_DRIVER_TYPE_LAST,
               "local",
               "local",
               "handle",
@@ -180,7 +188,8 @@ VIR_ENUM_IMPL(qemuDomainFSDriver, VIR_DOMAIN_FS_DRIVER_TYPE_LAST,
 );
 
 VIR_ENUM_DECL(qemuNumaPolicy);
-VIR_ENUM_IMPL(qemuNumaPolicy, VIR_DOMAIN_NUMATUNE_MEM_LAST,
+VIR_ENUM_IMPL(qemuNumaPolicy,
+              VIR_DOMAIN_NUMATUNE_MEM_LAST,
               "bind",
               "preferred",
               "interleave",
@@ -480,10 +489,8 @@ qemuBuildVirtioDevStr(virBufferPtr buf,
             break;
 
         case VIR_DOMAIN_DEVICE_NET:
-            has_tmodel = STREQ_NULLABLE(device.data.net->model,
-                                        "virtio-transitional");
-            has_ntmodel = STREQ_NULLABLE(device.data.net->model,
-                                         "virtio-non-transitional");
+            has_tmodel = device.data.net->model == VIR_DOMAIN_NET_MODEL_VIRTIO_TRANSITIONAL;
+            has_ntmodel = device.data.net->model == VIR_DOMAIN_NET_MODEL_VIRTIO_NON_TRANSITIONAL;
             break;
 
         case VIR_DOMAIN_DEVICE_HOSTDEV:
@@ -842,7 +849,7 @@ static int
 qemuBuildRBDSecinfoURI(virBufferPtr buf,
                        qemuDomainSecretInfoPtr secinfo)
 {
-    char *base64secret = NULL;
+    VIR_AUTODISPOSE_STR base64secret = NULL;
 
     if (!secinfo) {
         virBufferAddLit(buf, ":auth_supported=none");
@@ -858,7 +865,6 @@ qemuBuildRBDSecinfoURI(virBufferPtr buf,
         virBufferEscape(buf, '\\', ":",
                         ":key=%s:auth_supported=cephx\\;none",
                         base64secret);
-        VIR_DISPOSE_STRING(base64secret);
         break;
 
     case VIR_DOMAIN_SECRET_INFO_TYPE_AES:
@@ -2555,7 +2561,7 @@ qemuBuildDiskSourceCommandLine(virCommandPtr cmd,
 {
     qemuBlockStorageSourceAttachDataPtr *data = NULL;
     size_t ndata = 0;
-    qemuBlockStorageSourceAttachDataPtr tmp = NULL;
+    VIR_AUTOPTR(qemuBlockStorageSourceAttachData) tmp = NULL;
     virJSONValuePtr copyOnReadProps = NULL;
     virStorageSourcePtr n;
     char *str = NULL;
@@ -2614,7 +2620,6 @@ qemuBuildDiskSourceCommandLine(virCommandPtr cmd,
     for (i = 0; i < ndata; i++)
         qemuBlockStorageSourceAttachDataFree(data[i]);
     VIR_FREE(data);
-    qemuBlockStorageSourceAttachDataFree(tmp);
     virJSONValueFree(copyOnReadProps);
     VIR_FREE(str);
     return ret;
@@ -3409,6 +3414,27 @@ qemuBuildMemoryBackendPropsShare(virJSONValuePtr props,
 }
 
 
+static int
+qemuBuildMemoryGetDefaultPagesize(virQEMUDriverConfigPtr cfg,
+                                  unsigned long long *pagesize)
+{
+    virHugeTLBFSPtr p;
+
+    if (!cfg->nhugetlbfs) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("hugetlbfs filesystem is not mounted "
+                               "or disabled by administrator config"));
+        return -1;
+    }
+
+    if (!(p = virFileGetDefaultHugepage(cfg->hugetlbfs, cfg->nhugetlbfs)))
+        p = &cfg->hugetlbfs[0];
+
+    *pagesize = p->size;
+    return 0;
+}
+
+
 /**
  * qemuBuildMemoryBackendProps:
  * @backendProps: [out] constructed object
@@ -3547,6 +3573,9 @@ qemuBuildMemoryBackendProps(virJSONValuePtr *backendProps,
         pagesize = 0;
         needHugepage = false;
         useHugepage = false;
+    } else if (pagesize == 0) {
+        if (qemuBuildMemoryGetDefaultPagesize(cfg, &pagesize) < 0)
+            goto cleanup;
     }
 
     if (!(props = virJSONValueNewObject()))
@@ -3844,13 +3873,14 @@ qemuBuildLegacyNicStr(virDomainNetDefPtr net)
 {
     char *str;
     char macaddr[VIR_MAC_STRING_BUFLEN];
+    const char *netmodel = virDomainNetGetModelString(net);
 
     ignore_value(virAsprintf(&str,
                              "nic,macaddr=%s,netdev=host%s%s%s%s%s",
                              virMacAddrFormat(&net->mac, macaddr),
                              net->info.alias,
-                             (net->model ? ",model=" : ""),
-                             NULLSTR_EMPTY(net->model),
+                             netmodel ? ",model=" : "",
+                             NULLSTR_EMPTY(netmodel),
                              (net->info.alias ? ",id=" : ""),
                              NULLSTR_EMPTY(net->info.alias)));
     return str;
@@ -3876,7 +3906,7 @@ qemuBuildNicDevStr(virDomainDefPtr def,
 
         usingVirtio = true;
     } else {
-        virBufferAddStr(&buf, net->model);
+        virBufferAddStr(&buf, virDomainNetGetModelString(net));
     }
 
     if (usingVirtio && net->driver.virtio.txmode) {
@@ -5708,8 +5738,7 @@ qemuBuildHostdevCommandLine(virCommandPtr cmd,
             /* bootNet will be non-0 if boot order was set and no other
              * net devices were encountered
              */
-            if (hostdev->parent.type == VIR_DOMAIN_DEVICE_NET &&
-                bootIndex == 0) {
+            if (hostdev->parentnet && bootIndex == 0) {
                 bootIndex = *bootHostdevNet;
                 *bootHostdevNet = 0;
             }
@@ -5796,7 +5825,6 @@ qemuBuildHostdevCommandLine(virCommandPtr cmd,
                                                                qemuCaps,
                                                                vhostfdName))) {
                     VIR_FREE(vhostfdName);
-                    VIR_FORCE_CLOSE(vhostfd);
                     return -1;
                 }
                 virCommandAddArg(cmd, devstr);
@@ -7824,9 +7852,11 @@ qemuBuildMemPathStr(virQEMUDriverConfigPtr cfg,
      * if user requested file allocation. */
     if (def->mem.nhugepages &&
         def->mem.hugepages[0].size != system_page_size) {
-        if (qemuGetDomainHupageMemPath(def, cfg,
-                                       def->mem.hugepages[0].size,
-                                       &mem_path) < 0)
+        unsigned long long pagesize = def->mem.hugepages[0].size;
+        if (!pagesize &&
+            qemuBuildMemoryGetDefaultPagesize(cfg, &pagesize) < 0)
+            return -1;
+        if (qemuGetDomainHupageMemPath(def, cfg, pagesize, &mem_path) < 0)
             return -1;
     } else if (def->mem.source == VIR_DOMAIN_MEMORY_SOURCE_FILE) {
         if (qemuGetMemoryBackingPath(def, cfg, "ram", &mem_path) < 0)
@@ -7884,12 +7914,10 @@ qemuBuildMemCommandLine(virCommandPtr cmd,
         qemuBuildMemPathStr(cfg, def, cmd, priv) < 0)
         return -1;
 
-    if (def->mem.locked && !virQEMUCapsGet(qemuCaps, QEMU_CAPS_REALTIME_MLOCK)) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("memory locking not supported by QEMU binary"));
-        return -1;
-    }
-    if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_REALTIME_MLOCK)) {
+    if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_OVERCOMMIT)) {
+        virCommandAddArg(cmd, "-overcommit");
+        virCommandAddArgFormat(cmd, "mem-lock=%s", def->mem.locked ? "on" : "off");
+    } else {
         virCommandAddArg(cmd, "-realtime");
         virCommandAddArgFormat(cmd, "mlock=%s",
                                def->mem.locked ? "on" : "off");
@@ -11137,18 +11165,19 @@ qemuBlockStorageSourceAttachDataPtr
 qemuBuildStorageSourceAttachPrepareDrive(virDomainDiskDefPtr disk,
                                          virQEMUCapsPtr qemuCaps)
 {
-    qemuBlockStorageSourceAttachDataPtr data = NULL;
+    VIR_AUTOPTR(qemuBlockStorageSourceAttachData) data = NULL;
+    qemuBlockStorageSourceAttachDataPtr ret = NULL;
 
     if (VIR_ALLOC(data) < 0)
         return NULL;
 
     if (!(data->driveCmd = qemuBuildDriveStr(disk, qemuCaps)) ||
-        !(data->driveAlias = qemuAliasDiskDriveFromDisk(disk))) {
-        qemuBlockStorageSourceAttachDataFree(data);
+        !(data->driveAlias = qemuAliasDiskDriveFromDisk(disk)))
         return NULL;
-    }
 
-    return data;
+    VIR_STEAL_PTR(ret, data);
+
+    return ret;
 }
 
 

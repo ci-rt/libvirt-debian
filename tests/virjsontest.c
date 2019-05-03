@@ -17,50 +17,89 @@ struct testInfo {
 
 
 static int
+testJSONFromFile(const void *data)
+{
+    const struct testInfo *info = data;
+    VIR_AUTOPTR(virJSONValue) injson = NULL;
+    VIR_AUTOFREE(char *) infile = NULL;
+    VIR_AUTOFREE(char *) indata = NULL;
+    VIR_AUTOFREE(char *) outfile = NULL;
+    VIR_AUTOFREE(char *) actual = NULL;
+
+    if (virAsprintf(&infile, "%s/virjsondata/parse-%s-in.json",
+                    abs_srcdir, info->name) < 0 ||
+        virAsprintf(&outfile, "%s/virjsondata/parse-%s-out.json",
+                    abs_srcdir, info->name) < 0)
+        return -1;
+
+    if (virTestLoadFile(infile, &indata) < 0)
+        return -1;
+
+    injson = virJSONValueFromString(indata);
+
+    if (!injson) {
+        if (info->pass) {
+            VIR_TEST_VERBOSE("Failed to parse %s\n", info->doc);
+            return -1;
+        } else {
+            VIR_TEST_DEBUG("As expected, failed to parse %s\n", info->doc);
+            return 0;
+        }
+    } else {
+        if (!info->pass) {
+            VIR_TEST_VERBOSE("Unexpected success while parsing %s\n", info->doc);
+            return -1;
+        }
+    }
+
+    if (!(actual = virJSONValueToString(injson, false)))
+        return -1;
+
+    if (virTestCompareToFile(actual, outfile) < 0)
+        return -1;
+
+    return 0;
+}
+
+
+static int
 testJSONFromString(const void *data)
 {
     const struct testInfo *info = data;
-    virJSONValuePtr json;
+    VIR_AUTOPTR(virJSONValue) json = NULL;
     const char *expectstr = info->expect ? info->expect : info->doc;
-    char *formatted = NULL;
-    int ret = -1;
+    VIR_AUTOFREE(char *) formatted = NULL;
 
     json = virJSONValueFromString(info->doc);
 
     if (!json) {
         if (info->pass) {
-            VIR_TEST_VERBOSE("Fail to parse %s\n", info->doc);
-            goto cleanup;
+            VIR_TEST_VERBOSE("Failed to parse %s\n", info->doc);
+            return -1;
         } else {
-            VIR_TEST_DEBUG("Fail to parse %s\n", info->doc);
-            ret = 0;
-            goto cleanup;
+            VIR_TEST_DEBUG("As expected, failed to parse %s\n", info->doc);
+            return 0;
         }
-    }
-
-    if (!info->pass) {
-        VIR_TEST_VERBOSE("Should not have parsed %s\n", info->doc);
-        goto cleanup;
+    } else {
+        if (!info->pass) {
+            VIR_TEST_VERBOSE("Unexpected success while parsing %s\n", info->doc);
+            return -1;
+        }
     }
 
     VIR_TEST_DEBUG("Parsed %s\n", info->doc);
 
     if (!(formatted = virJSONValueToString(json, false))) {
         VIR_TEST_VERBOSE("Failed to format json data\n");
-        goto cleanup;
+        return -1;
     }
 
     if (STRNEQ(expectstr, formatted)) {
         virTestDifference(stderr, expectstr, formatted);
-        goto cleanup;
+        return -1;
     }
 
-    ret = 0;
-
- cleanup:
-    VIR_FREE(formatted);
-    virJSONValueFree(json);
-    return ret;
+    return 0;
 }
 
 
@@ -68,16 +107,26 @@ static int
 testJSONAddRemove(const void *data)
 {
     const struct testInfo *info = data;
-    virJSONValuePtr json;
-    virJSONValuePtr name = NULL;
-    char *result = NULL;
-    int ret = -1;
+    VIR_AUTOPTR(virJSONValue) json = NULL;
+    VIR_AUTOPTR(virJSONValue) name = NULL;
+    VIR_AUTOFREE(char *) infile = NULL;
+    VIR_AUTOFREE(char *) indata = NULL;
+    VIR_AUTOFREE(char *) outfile = NULL;
+    VIR_AUTOFREE(char *) actual = NULL;
 
-    json = virJSONValueFromString(info->doc);
+    if (virAsprintf(&infile, "%s/virjsondata/add-remove-%s-in.json",
+                    abs_srcdir, info->name) < 0 ||
+        virAsprintf(&outfile, "%s/virjsondata/add-remove-%s-out.json",
+                    abs_srcdir, info->name) < 0)
+        return -1;
+
+    if (virTestLoadFile(infile, &indata) < 0)
+        return -1;
+
+    json = virJSONValueFromString(indata);
     if (!json) {
         VIR_TEST_VERBOSE("Fail to parse %s\n", info->name);
-        ret = -1;
-        goto cleanup;
+        return -1;
     }
 
     switch (virJSONValueObjectRemoveKey(json, "name", &name)) {
@@ -85,49 +134,43 @@ testJSONAddRemove(const void *data)
         if (!info->pass) {
             VIR_TEST_VERBOSE("should not remove from non-object %s\n",
                              info->name);
-            goto cleanup;
+            return -1;
         }
         break;
     case -1:
         if (!info->pass)
-            ret = 0;
+            return 0;
         else
             VIR_TEST_VERBOSE("Fail to recognize non-object %s\n", info->name);
-        goto cleanup;
+        return -1;
     default:
         VIR_TEST_VERBOSE("unexpected result when removing from %s\n",
                          info->name);
-        goto cleanup;
+        return -1;
     }
     if (STRNEQ_NULLABLE(virJSONValueGetString(name), "sample")) {
         VIR_TEST_VERBOSE("unexpected value after removing name: %s\n",
                          NULLSTR(virJSONValueGetString(name)));
-        goto cleanup;
+        return -1;
     }
     if (virJSONValueObjectRemoveKey(json, "name", NULL)) {
         VIR_TEST_VERBOSE("%s",
                          "unexpected success when removing missing key\n");
-        goto cleanup;
+        return -1;
     }
     if (virJSONValueObjectAppendString(json, "newname", "foo") < 0) {
         VIR_TEST_VERBOSE("%s", "unexpected failure adding new key\n");
-        goto cleanup;
+        return -1;
     }
-    if (!(result = virJSONValueToString(json, false))) {
+    if (!(actual = virJSONValueToString(json, false))) {
         VIR_TEST_VERBOSE("%s", "failed to stringize result\n");
-        goto cleanup;
+        return -1;
     }
-    if (STRNEQ(info->expect, result)) {
-        virTestDifference(stderr, info->expect, result);
-        goto cleanup;
-    }
-    ret = 0;
 
- cleanup:
-    virJSONValueFree(json);
-    virJSONValueFree(name);
-    VIR_FREE(result);
-    return ret;
+    if (virTestCompareToFile(actual, outfile) < 0)
+        return -1;
+
+    return 0;
 }
 
 
@@ -135,19 +178,17 @@ static int
 testJSONLookup(const void *data)
 {
     const struct testInfo *info = data;
-    virJSONValuePtr json;
+    VIR_AUTOPTR(virJSONValue) json = NULL;
     virJSONValuePtr value = NULL;
-    char *result = NULL;
+    VIR_AUTOFREE(char *) result = NULL;
     int rc;
     int number;
     const char *str;
-    int ret = -1;
 
     json = virJSONValueFromString(info->doc);
     if (!json) {
         VIR_TEST_VERBOSE("Fail to parse %s\n", info->doc);
-        ret = -1;
-        goto cleanup;
+        return -1;
     }
 
     value = virJSONValueObjectGetObject(json, "a");
@@ -155,21 +196,21 @@ testJSONLookup(const void *data)
         if (!info->pass) {
             VIR_TEST_VERBOSE("lookup for 'a' in '%s' should have failed\n",
                              info->doc);
-            goto cleanup;
+            return -1;
         } else {
             result = virJSONValueToString(value, false);
             if (STRNEQ_NULLABLE(result, "{}")) {
                 VIR_TEST_VERBOSE("lookup for 'a' in '%s' found '%s' but "
                                  "should have found '{}'\n",
                                  info->doc, NULLSTR(result));
-                goto cleanup;
+                return -1;
             }
             VIR_FREE(result);
         }
     } else if (info->pass) {
         VIR_TEST_VERBOSE("lookup for 'a' in '%s' should have succeeded\n",
                          info->doc);
-        goto cleanup;
+        return -1;
     }
 
     number = 2;
@@ -178,17 +219,17 @@ testJSONLookup(const void *data)
         if (!info->pass) {
             VIR_TEST_VERBOSE("lookup for 'b' in '%s' should have failed\n",
                              info->doc);
-            goto cleanup;
+            return -1;
         } else if (number != 1) {
             VIR_TEST_VERBOSE("lookup for 'b' in '%s' found %d but "
                              "should have found 1\n",
                              info->doc, number);
-            goto cleanup;
+            return -1;
         }
     } else if (info->pass) {
         VIR_TEST_VERBOSE("lookup for 'b' in '%s' should have succeeded\n",
                          info->doc);
-        goto cleanup;
+        return -1;
     }
 
     str = virJSONValueObjectGetString(json, "c");
@@ -196,16 +237,16 @@ testJSONLookup(const void *data)
         if (!info->pass) {
             VIR_TEST_VERBOSE("lookup for 'c' in '%s' should have failed\n",
                              info->doc);
-            goto cleanup;
+            return -1;
         } else if (STRNEQ(str, "str")) {
             VIR_TEST_VERBOSE("lookup for 'c' in '%s' found '%s' but "
                              "should have found 'str'\n", info->doc, str);
-                goto cleanup;
+                return -1;
         }
     } else if (info->pass) {
         VIR_TEST_VERBOSE("lookup for 'c' in '%s' should have succeeded\n",
                          info->doc);
-        goto cleanup;
+        return -1;
     }
 
     value = virJSONValueObjectGetArray(json, "d");
@@ -213,29 +254,24 @@ testJSONLookup(const void *data)
         if (!info->pass) {
             VIR_TEST_VERBOSE("lookup for 'd' in '%s' should have failed\n",
                              info->doc);
-            goto cleanup;
+            return -1;
         } else {
             result = virJSONValueToString(value, false);
             if (STRNEQ_NULLABLE(result, "[]")) {
                 VIR_TEST_VERBOSE("lookup for 'd' in '%s' found '%s' but "
                                  "should have found '[]'\n",
                                  info->doc, NULLSTR(result));
-                goto cleanup;
+                return -1;
             }
             VIR_FREE(result);
         }
     } else if (info->pass) {
         VIR_TEST_VERBOSE("lookup for 'd' in '%s' should have succeeded\n",
                          info->doc);
-        goto cleanup;
+        return -1;
     }
 
-    ret = 0;
-
- cleanup:
-    virJSONValueFree(json);
-    VIR_FREE(result);
-    return ret;
+    return 0;
 }
 
 
@@ -243,40 +279,39 @@ static int
 testJSONCopy(const void *data)
 {
     const struct testInfo *info = data;
-    virJSONValuePtr json = NULL;
-    virJSONValuePtr jsonCopy = NULL;
-    char *result = NULL;
-    char *resultCopy = NULL;
-    int ret = -1;
+    VIR_AUTOPTR(virJSONValue) json = NULL;
+    VIR_AUTOPTR(virJSONValue) jsonCopy = NULL;
+    VIR_AUTOFREE(char *) result = NULL;
+    VIR_AUTOFREE(char *) resultCopy = NULL;
 
     json = virJSONValueFromString(info->doc);
     if (!json) {
         VIR_TEST_VERBOSE("Failed to parse %s\n", info->doc);
-        goto cleanup;
+        return -1;
     }
 
     jsonCopy = virJSONValueCopy(json);
     if (!jsonCopy) {
         VIR_TEST_VERBOSE("Failed to copy JSON data\n");
-        goto cleanup;
+        return -1;
     }
 
     result = virJSONValueToString(json, false);
     if (!result) {
         VIR_TEST_VERBOSE("Failed to format original JSON data\n");
-        goto cleanup;
+        return -1;
     }
 
     resultCopy = virJSONValueToString(json, false);
     if (!resultCopy) {
         VIR_TEST_VERBOSE("Failed to format copied JSON data\n");
-        goto cleanup;
+        return -1;
     }
 
     if (STRNEQ(result, resultCopy)) {
         if (virTestGetVerbose())
             virTestDifference(stderr, result, resultCopy);
-        goto cleanup;
+        return -1;
     }
 
     VIR_FREE(result);
@@ -285,28 +320,22 @@ testJSONCopy(const void *data)
     result = virJSONValueToString(json, true);
     if (!result) {
         VIR_TEST_VERBOSE("Failed to format original JSON data\n");
-        goto cleanup;
+        return -1;
     }
 
     resultCopy = virJSONValueToString(json, true);
     if (!resultCopy) {
         VIR_TEST_VERBOSE("Failed to format copied JSON data\n");
-        goto cleanup;
+        return -1;
     }
 
     if (STRNEQ(result, resultCopy)) {
         if (virTestGetVerbose())
             virTestDifference(stderr, result, resultCopy);
-        goto cleanup;
+        return -1;
     }
 
-    ret = 0;
- cleanup:
-    VIR_FREE(result);
-    VIR_FREE(resultCopy);
-    virJSONValueFree(json);
-    virJSONValueFree(jsonCopy);
-    return ret;
+    return 0;
 }
 
 
@@ -314,127 +343,106 @@ static int
 testJSONDeflatten(const void *data)
 {
     const struct testInfo *info = data;
-    virJSONValuePtr injson = NULL;
-    virJSONValuePtr deflattened = NULL;
-    char *infile = NULL;
-    char *indata = NULL;
-    char *outfile = NULL;
-    char *actual = NULL;
-    int ret = -1;
+    VIR_AUTOPTR(virJSONValue) injson = NULL;
+    VIR_AUTOPTR(virJSONValue) deflattened = NULL;
+    VIR_AUTOFREE(char *) infile = NULL;
+    VIR_AUTOFREE(char *) indata = NULL;
+    VIR_AUTOFREE(char *) outfile = NULL;
+    VIR_AUTOFREE(char *) actual = NULL;
 
     if (virAsprintf(&infile, "%s/virjsondata/deflatten-%s-in.json",
                     abs_srcdir, info->name) < 0 ||
         virAsprintf(&outfile, "%s/virjsondata/deflatten-%s-out.json",
                     abs_srcdir, info->name) < 0)
-        goto cleanup;
+        return -1;
 
     if (virTestLoadFile(infile, &indata) < 0)
-        goto cleanup;
+        return -1;
 
     if (!(injson = virJSONValueFromString(indata)))
-        goto cleanup;
+        return -1;
 
     if ((deflattened = virJSONValueObjectDeflatten(injson))) {
         if (!info->pass) {
             VIR_TEST_VERBOSE("%s: deflattening should have failed\n", info->name);
-            goto cleanup;
+            return -1;
         }
     } else {
         if (!info->pass)
-            ret = 0;
+            return 0;
 
-        goto cleanup;
+        return -1;
     }
 
     if (!(actual = virJSONValueToString(deflattened, true)))
-        goto cleanup;
+        return -1;
 
     if (virTestCompareToFile(actual, outfile) < 0)
-        goto cleanup;
+        return -1;
 
-    ret = 0;
-
- cleanup:
-    virJSONValueFree(injson);
-    virJSONValueFree(deflattened);
-    VIR_FREE(infile);
-    VIR_FREE(indata);
-    VIR_FREE(outfile);
-    VIR_FREE(actual);
-
-    return ret;
+    return 0;
 }
 
 
 static int
 testJSONEscapeObj(const void *data ATTRIBUTE_UNUSED)
 {
-    virJSONValuePtr json = NULL;
-    virJSONValuePtr nestjson = NULL;
-    virJSONValuePtr parsejson = NULL;
-    char *neststr = NULL;
-    char *result = NULL;
+    VIR_AUTOPTR(virJSONValue) json = NULL;
+    VIR_AUTOPTR(virJSONValue) nestjson = NULL;
+    VIR_AUTOPTR(virJSONValue) parsejson = NULL;
+    VIR_AUTOFREE(char *) neststr = NULL;
+    VIR_AUTOFREE(char *) result = NULL;
     const char *parsednestedstr;
-    int ret = -1;
 
     if (virJSONValueObjectCreate(&nestjson,
                                  "s:stringkey", "stringvalue",
                                  "i:numberkey", 1234,
                                  "b:booleankey", false, NULL) < 0) {
         VIR_TEST_VERBOSE("failed to create nested json object");
-        goto cleanup;
+        return -1;
     }
 
     if (!(neststr = virJSONValueToString(nestjson, false))) {
         VIR_TEST_VERBOSE("failed to format nested json object");
-        goto cleanup;
+        return -1;
     }
 
     if (virJSONValueObjectCreate(&json, "s:test", neststr, NULL) < 0) {
         VIR_TEST_VERBOSE("Failed to create json object");
-        goto cleanup;
+        return -1;
     }
 
     if (!(result = virJSONValueToString(json, false))) {
         VIR_TEST_VERBOSE("Failed to format json object");
-        goto cleanup;
+        return -1;
     }
 
     if (!(parsejson = virJSONValueFromString(result))) {
         VIR_TEST_VERBOSE("Failed to parse JSON with nested JSON in string");
-        goto cleanup;
+        return -1;
     }
 
     if (!(parsednestedstr = virJSONValueObjectGetString(parsejson, "test"))) {
         VIR_TEST_VERBOSE("Failed to retrieve string containing nested json");
-        goto cleanup;
+        return -1;
     }
 
     if (STRNEQ(parsednestedstr, neststr)) {
         virTestDifference(stderr, neststr, parsednestedstr);
-        goto cleanup;
+        return -1;
     }
 
-    ret = 0;
-
- cleanup:
-    VIR_FREE(neststr);
-    VIR_FREE(result);
-    virJSONValueFree(json);
-    virJSONValueFree(nestjson);
-    virJSONValueFree(parsejson);
-    return ret;
+    return 0;
 }
 
 
 static int
 testJSONObjectFormatSteal(const void *opaque ATTRIBUTE_UNUSED)
 {
-    virJSONValuePtr a1 = NULL;
-    virJSONValuePtr a2 = NULL;
-    virJSONValuePtr t1 = NULL;
-    virJSONValuePtr t2 = NULL;
-    int ret = -1;
+    VIR_AUTOPTR(virJSONValue) a1 = NULL;
+    VIR_AUTOPTR(virJSONValue) a2 = NULL;
+    VIR_AUTOPTR(virJSONValue) t1 = NULL;
+    VIR_AUTOPTR(virJSONValue) t2 = NULL;
 
     if (!(a1 = virJSONValueNewString("test")) ||
         !(a2 = virJSONValueNewString("test"))) {
@@ -443,32 +451,25 @@ testJSONObjectFormatSteal(const void *opaque ATTRIBUTE_UNUSED)
 
     if (virJSONValueObjectCreate(&t1, "a:t", &a1, "s:f", NULL, NULL) != -1) {
         VIR_TEST_VERBOSE("virJSONValueObjectCreate(t1) should have failed\n");
-        goto cleanup;
+        return -1;
     }
 
     if (a1) {
         VIR_TEST_VERBOSE("appended object a1 was not consumed\n");
-        goto cleanup;
+        return -1;
     }
 
     if (virJSONValueObjectCreate(&t2, "s:f", NULL, "a:t", &a1, NULL) != -1) {
         VIR_TEST_VERBOSE("virJSONValueObjectCreate(t2) should have failed\n");
-        goto cleanup;
+        return -1;
     }
 
     if (!a2) {
         VIR_TEST_VERBOSE("appended object a2 was consumed\n");
-        goto cleanup;
+        return -1;
     }
 
-    ret = 0;
-
- cleanup:
-    virJSONValueFree(a1);
-    virJSONValueFree(a2);
-    virJSONValueFree(t1);
-    virJSONValueFree(t2);
-    return ret;
+    return 0;
 }
 
 
@@ -499,56 +500,17 @@ mymain(void)
 #define DO_TEST_PARSE_FAIL(name, doc) \
     DO_TEST_FULL(name, FromString, doc, NULL, false)
 
+#define DO_TEST_PARSE_FILE(name) \
+    DO_TEST_FULL(name, FromFile, NULL, NULL, true)
 
-    DO_TEST_PARSE("Simple", "{\"return\": {}, \"id\": \"libvirt-1\"}",
-                  "{\"return\":{},\"id\":\"libvirt-1\"}");
-    DO_TEST_PARSE("NotSoSimple", "{\"QMP\": {\"version\": {\"qemu\":"
-                  "{\"micro\": 91, \"minor\": 13, \"major\": 0},"
-                  "\"package\": \" (qemu-kvm-devel)\"}, \"capabilities\": []}}",
-                  "{\"QMP\":{\"version\":{\"qemu\":"
-                  "{\"micro\":91,\"minor\":13,\"major\":0},"
-                  "\"package\":\" (qemu-kvm-devel)\"},\"capabilities\":[]}}");
 
-    DO_TEST_PARSE("Harder", "{\"return\": [{\"filename\": "
-                  "\"unix:/home/berrange/.libvirt/qemu/lib/tck.monitor,server\","
-                  "\"label\": \"charmonitor\"}, {\"filename\": \"pty:/dev/pts/158\","
-                  "\"label\": \"charserial0\"}], \"id\": \"libvirt-3\"}",
-                  "{\"return\":[{\"filename\":"
-                  "\"unix:/home/berrange/.libvirt/qemu/lib/tck.monitor,server\","
-                  "\"label\":\"charmonitor\"},{\"filename\":\"pty:/dev/pts/158\","
-                  "\"label\":\"charserial0\"}],\"id\":\"libvirt-3\"}");
+    DO_TEST_PARSE_FILE("Simple");
+    DO_TEST_PARSE_FILE("NotSoSimple");
+    DO_TEST_PARSE_FILE("Harder");
+    DO_TEST_PARSE_FILE("VeryHard");
 
-    DO_TEST_PARSE("VeryHard", "{\"return\":[{\"name\":\"quit\"},{\"name\":"
-                  "\"eject\"},{\"name\":\"change\"},{\"name\":\"screendump\"},"
-                  "{\"name\":\"stop\"},{\"name\":\"cont\"},{\"name\":"
-                  "\"system_reset\"},{\"name\":\"system_powerdown\"},"
-                  "{\"name\":\"device_add\"},{\"name\":\"device_del\"},"
-                  "{\"name\":\"cpu\"},{\"name\":\"memsave\"},{\"name\":"
-                  "\"pmemsave\"},{\"name\":\"migrate\"},{\"name\":"
-                  "\"migrate_cancel\"},{\"name\":\"migrate_set_speed\"},"
-                  "{\"name\":\"client_migrate_info\"},{\"name\":"
-                  "\"migrate_set_downtime\"},{\"name\":\"netdev_add\"},"
-                  "{\"name\":\"netdev_del\"},{\"name\":\"block_resize\"},"
-                  "{\"name\":\"balloon\"},{\"name\":\"set_link\"},{\"name\":"
-                  "\"getfd\"},{\"name\":\"closefd\"},{\"name\":\"block_passwd\"},"
-                  "{\"name\":\"set_password\"},{\"name\":\"expire_password\"},"
-                  "{\"name\":\"qmp_capabilities\"},{\"name\":"
-                  "\"human-monitor-command\"},{\"name\":\"query-version\"},"
-                  "{\"name\":\"query-commands\"},{\"name\":\"query-chardev\"},"
-                  "{\"name\":\"query-block\"},{\"name\":\"query-blockstats\"},"
-                  "{\"name\":\"query-cpus\"},{\"name\":\"query-pci\"},{\"name\":"
-                  "\"query-kvm\"},{\"name\":\"query-status\"},{\"name\":"
-                  "\"query-mice\"},{\"name\":\"query-vnc\"},{\"name\":"
-                  "\"query-spice\"},{\"name\":\"query-name\"},{\"name\":"
-                  "\"query-uuid\"},{\"name\":\"query-migrate\"},{\"name\":"
-                  "\"query-balloon\"}],\"id\":\"libvirt-2\"}", NULL);
-
-    DO_TEST_FULL("add and remove", AddRemove,
-                 "{\"name\": \"sample\", \"value\": true}",
-                 "{\"value\":true,\"newname\":\"foo\"}",
-                 true);
-    DO_TEST_FULL("add and remove", AddRemove,
-                 "[ 1 ]", NULL, false);
+    DO_TEST_FULL("success", AddRemove, NULL, NULL, true);
+    DO_TEST_FULL("failure", AddRemove, NULL, NULL, false);
 
     DO_TEST_FULL("copy and free", Copy,
                  "{\"return\": [{\"name\": \"quit\"}, {\"name\": \"eject\"},"

@@ -740,7 +740,7 @@ int qemuTestDriverInit(virQEMUDriver *driver)
 
     /* Using /dev/null for libDir and cacheDir automatically produces errors
      * upon attempt to use any of them */
-    driver->qemuCapsCache = virQEMUCapsCacheNew("/dev/null", "/dev/null", 0, 0, 0);
+    driver->qemuCapsCache = virQEMUCapsCacheNew("/dev/null", "/dev/null", 0, 0);
     if (!driver->qemuCapsCache)
         goto error;
 
@@ -805,8 +805,7 @@ testQemuCapsSetGIC(virQEMUCapsPtr qemuCaps,
 
 
 char *
-testQemuGetLatestCapsForArch(const char *dirname,
-                             const char *arch,
+testQemuGetLatestCapsForArch(const char *arch,
                              const char *suffix)
 {
     struct dirent *ent;
@@ -822,10 +821,10 @@ testQemuGetLatestCapsForArch(const char *dirname,
     if (virAsprintf(&fullsuffix, "%s.%s", arch, suffix) < 0)
         goto cleanup;
 
-    if (virDirOpen(&dir, dirname) < 0)
+    if (virDirOpen(&dir, TEST_QEMU_CAPS_PATH) < 0)
         goto cleanup;
 
-    while ((rc = virDirRead(dir, &ent, dirname)) > 0) {
+    while ((rc = virDirRead(dir, &ent, TEST_QEMU_CAPS_PATH)) > 0) {
         VIR_FREE(tmp);
 
         if ((rc = VIR_STRDUP(tmp, STRSKIP(ent->d_name, "caps_"))) < 0)
@@ -853,11 +852,11 @@ testQemuGetLatestCapsForArch(const char *dirname,
 
     if (!maxname) {
         VIR_TEST_VERBOSE("failed to find capabilities for '%s' in '%s'\n",
-                         arch, dirname);
+                         arch, TEST_QEMU_CAPS_PATH);
         goto cleanup;
     }
 
-    ignore_value(virAsprintf(&ret, "%s/%s", dirname, maxname));
+    ignore_value(virAsprintf(&ret, "%s/%s", TEST_QEMU_CAPS_PATH, maxname));
 
  cleanup:
     VIR_FREE(tmp);
@@ -867,9 +866,44 @@ testQemuGetLatestCapsForArch(const char *dirname,
 }
 
 
+virHashTablePtr
+testQemuGetLatestCaps(void)
+{
+    const char *archs[] = {
+        "aarch64",
+        "ppc64",
+        "riscv64",
+        "s390x",
+        "x86_64",
+    };
+    virHashTablePtr capslatest;
+    size_t i;
+
+    if (!(capslatest = virHashCreate(4, virHashValueFree)))
+        goto error;
+
+    VIR_TEST_VERBOSE("\n");
+
+    for (i = 0; i < ARRAY_CARDINALITY(archs); ++i) {
+        char *cap = testQemuGetLatestCapsForArch(archs[i], "xml");
+
+        if (!cap || virHashAddEntry(capslatest, archs[i], cap) < 0)
+            goto error;
+
+        VIR_TEST_VERBOSE("latest caps for %s: %s\n", archs[i], cap);
+    }
+
+    VIR_TEST_VERBOSE("\n");
+    return capslatest;
+
+ error:
+    virHashFree(capslatest);
+    return NULL;
+}
+
+
 int
-testQemuCapsIterate(const char *dirname,
-                    const char *suffix,
+testQemuCapsIterate(const char *suffix,
                     testQemuCapsIterateCallback callback,
                     void *opaque)
 {
@@ -881,10 +915,10 @@ testQemuCapsIterate(const char *dirname,
     if (!callback)
         return 0;
 
-    if (virDirOpen(&dir, dirname) < 0)
+    if (virDirOpen(&dir, TEST_QEMU_CAPS_PATH) < 0)
         goto cleanup;
 
-    while ((rc = virDirRead(dir, &ent, dirname) > 0)) {
+    while ((rc = virDirRead(dir, &ent, TEST_QEMU_CAPS_PATH) > 0)) {
         char *tmp = ent->d_name;
         char *base = NULL;
         char *archName = NULL;
@@ -917,4 +951,146 @@ testQemuCapsIterate(const char *dirname,
     virDirClose(&dir);
 
     return ret;
+}
+
+
+int
+testQemuInfoSetArgs(struct testQemuInfo *info,
+                    virHashTablePtr capslatest, ...)
+{
+    va_list argptr;
+    testQemuInfoArgName argname;
+    virQEMUCapsPtr qemuCaps = NULL;
+    int gic = GIC_NONE;
+    char *capsarch = NULL;
+    char *capsver = NULL;
+    VIR_AUTOFREE(char *) capsfile = NULL;
+    int flag;
+    int ret = -1;
+
+    va_start(argptr, capslatest);
+    argname = va_arg(argptr, testQemuInfoArgName);
+    while (argname != ARG_END) {
+        switch (argname) {
+        case ARG_QEMU_CAPS:
+            if (qemuCaps || !(qemuCaps = virQEMUCapsNew()))
+                goto cleanup;
+
+            while ((flag = va_arg(argptr, int)) < QEMU_CAPS_LAST)
+                virQEMUCapsSet(qemuCaps, flag);
+
+            /* Some tests are run with NONE capabilities, which is just
+             * another name for QEMU_CAPS_LAST. If that is the case the
+             * arguments look like this :
+             *
+             *   ARG_QEMU_CAPS, NONE, QEMU_CAPS_LAST, ARG_END
+             *
+             * Fetch one argument more and if it is QEMU_CAPS_LAST then
+             * break from the switch() to force getting next argument
+             * in the line. If it is not QEMU_CAPS_LAST then we've
+             * fetched real ARG_* and we must process it.
+             */
+            if ((flag = va_arg(argptr, int)) != QEMU_CAPS_LAST) {
+                argname = flag;
+                continue;
+            }
+
+            break;
+
+        case ARG_GIC:
+            gic = va_arg(argptr, int);
+            break;
+
+        case ARG_MIGRATE_FROM:
+            info->migrateFrom = va_arg(argptr, char *);
+            break;
+
+        case ARG_MIGRATE_FD:
+            info->migrateFd = va_arg(argptr, int);
+            break;
+
+        case ARG_FLAGS:
+            info->flags = va_arg(argptr, int);
+            break;
+
+        case ARG_PARSEFLAGS:
+            info->parseFlags = va_arg(argptr, int);
+            break;
+
+        case ARG_CAPS_ARCH:
+            capsarch = va_arg(argptr, char *);
+            break;
+
+        case ARG_CAPS_VER:
+            capsver = va_arg(argptr, char *);
+            break;
+
+        case ARG_END:
+        default:
+            fprintf(stderr, "Unexpected test info argument");
+            goto cleanup;
+        }
+
+        argname = va_arg(argptr, testQemuInfoArgName);
+    }
+
+    if (!!capsarch ^ !!capsver) {
+        fprintf(stderr, "ARG_CAPS_ARCH and ARG_CAPS_VER "
+                        "must be specified together.\n");
+        goto cleanup;
+    }
+
+    if (qemuCaps && (capsarch || capsver)) {
+        fprintf(stderr, "ARG_QEMU_CAPS can not be combined with ARG_CAPS_ARCH "
+                        "or ARG_CAPS_VER\n");
+        goto cleanup;
+    }
+
+    if (!qemuCaps && capsarch && capsver) {
+        bool stripmachinealiases = false;
+
+        if (STREQ(capsver, "latest")) {
+            if (VIR_STRDUP(capsfile, virHashLookup(capslatest, capsarch)) < 0)
+                goto cleanup;
+            stripmachinealiases = true;
+        } else if (virAsprintf(&capsfile, "%s/caps_%s.%s.xml",
+                               TEST_QEMU_CAPS_PATH, capsver, capsarch) < 0) {
+            goto cleanup;
+        }
+
+        if (!(qemuCaps = qemuTestParseCapabilitiesArch(virArchFromString(capsarch),
+                                                       capsfile))) {
+            goto cleanup;
+        }
+
+        if (stripmachinealiases)
+            virQEMUCapsStripMachineAliases(qemuCaps);
+        info->flags |= FLAG_REAL_CAPS;
+    }
+
+    if (!qemuCaps) {
+        fprintf(stderr, "No qemuCaps generated\n");
+        goto cleanup;
+    }
+    VIR_STEAL_PTR(info->qemuCaps, qemuCaps);
+
+    if (gic != GIC_NONE && testQemuCapsSetGIC(info->qemuCaps, gic) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    virObjectUnref(qemuCaps);
+    va_end(argptr);
+
+    return ret;
+}
+
+
+void
+testQemuInfoClear(struct testQemuInfo *info)
+{
+    VIR_FREE(info->infile);
+    VIR_FREE(info->outfile);
+    virObjectUnref(info->qemuCaps);
 }

@@ -2293,9 +2293,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am $(srcdir)/gnulib.mk $(am__configur
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu gnulib/lib/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign gnulib/lib/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu gnulib/lib/Makefile
+	  $(AUTOMAKE) --foreign gnulib/lib/Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
 	  *config.status*) \

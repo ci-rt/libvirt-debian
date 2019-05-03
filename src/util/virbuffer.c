@@ -23,23 +23,12 @@
 #include <stdarg.h>
 #include "c-ctype.h"
 
-#define __VIR_BUFFER_C__
-
 #include "virbuffer.h"
 #include "virerror.h"
 #include "virstring.h"
+#include "viralloc.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
-
-/* If adding more fields, ensure to edit buf.h to match
-   the number of fields */
-struct _virBuffer {
-    unsigned int size;
-    unsigned int use;
-    unsigned int error; /* errno value, or -1 for usage error */
-    int indent;
-    char *content;
-};
 
 /**
  * virBufferFail
@@ -351,7 +340,7 @@ virBufferCheckErrorInternal(const virBuffer *buf,
  *
  * Return the string usage in bytes
  */
-unsigned int
+size_t
 virBufferUse(const virBuffer *buf)
 {
     if (buf == NULL)

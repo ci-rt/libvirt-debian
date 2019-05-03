@@ -99,40 +99,11 @@
         <meta name="description" content="libvirt, virtualization, virtualization API"/>
         <xsl:apply-templates select="/html:html/html:head/*" mode="content"/>
 
-        <script type="text/javascript">
-          <xsl:comment>
-          <![CDATA[
-      function init() {
-          window.addEventListener('scroll', function(e){
-              var distanceY = window.pageYOffset || document.documentElement.scrollTop,
-              shrinkOn = 94
-              home = document.getElementById("home");
-              links = document.getElementById("jumplinks");
-              search = document.getElementById("search");
-              body = document.getElementById("body");
-              if (distanceY > shrinkOn) {
-                  if (home.className != "navhide") {
-                      body.className = "navhide"
-                      home.className = "navhide"
-                      links.className = "navhide"
-                      search.className = "navhide"
-                  }
-              } else {
-                  if (home.className == "navhide") {
-                      body.className = ""
-                      home.className = ""
-                      links.className = ""
-                      search.className = ""
-                  }
-              }
-          });
-      }
-      window.onload = init();
-           ]]>
-          </xsl:comment>
+        <script type="text/javascript" src="{$href_base}js/main.js">
+          <xsl:comment>// forces non-empty element</xsl:comment>
         </script>
       </head>
-      <body>
+      <body onload="pageload()">
         <xsl:if test="html:html/html:body/@class">
           <xsl:attribute name="class">
             <xsl:value-of select="html:html/html:body/@class"/>
@@ -155,12 +126,19 @@
             </ul>
           </div>
           <div id="search">
-            <form action="{$href_base}search.php" enctype="application/x-www-form-urlencoded" method="get">
+            <form id="simplesearch" action="https://www.google.com/search" enctype="application/x-www-form-urlencoded" method="get">
               <div>
-                <input name="query" type="text" size="12" value=""/>
+                <input id="searchsite" name="sitesearch" type="hidden" value="libvirt.org"/>
+                <input id="searchq" name="q" type="text" size="12" value=""/>
                 <input name="submit" type="submit" value="Go"/>
               </div>
             </form>
+            <div id="advancedsearch">
+              <span><input type="radio" name="what" id="whatwebsite" checked="checked" value="website"/><label for="whatwebsite">Website</label></span>
+              <span><input type="radio" name="what" id="whatwiki" value="wiki"/><label for="whatwiki">Wiki</label></span>
+              <span><input type="radio" name="what" id="whatdevs" value="devs"/><label for="whatdevs">Developers list</label></span>
+              <span><input type="radio" name="what" id="whatusers" value="users"/><label for="whatusers">Users list</label></span>
+            </div>
           </div>
         </div>
         <div id="footer">

@@ -19,8 +19,6 @@
   <flag name='virtio-blk-pci.scsi'/>
   <flag name='scsi-disk.channel'/>
   <flag name='scsi-block'/>
-  <flag name='transaction'/>
-  <flag name='block-job-async'/>
   <flag name='hda-micro'/>
   <flag name='dump-guest-memory'/>
   <flag name='nec-usb-xhci'/>
@@ -31,10 +29,7 @@
   <flag name='scsi-disk.wwn'/>
   <flag name='seccomp-sandbox'/>
   <flag name='reboot-timeout'/>
-  <flag name='block-commit'/>
   <flag name='vnc'/>
-  <flag name='drive-mirror'/>
-  <flag name='blockdev-snapshot-sync'/>
   <flag name='VGA'/>
   <flag name='cirrus-vga'/>
   <flag name='device-video-primary'/>
@@ -49,7 +44,6 @@
   <flag name='vfio-pci'/>
   <flag name='mem-merge'/>
   <flag name='drive-discard'/>
-  <flag name='mlock'/>
   <flag name='usb-storage'/>
   <flag name='usb-storage.removable'/>
   <flag name='ich9-intel-hda'/>
@@ -161,6 +155,7 @@
   <flag name='machine.pseries.cap-nested-hv'/>
   <flag name='memory-backend-file.align'/>
   <flag name='memory-backend-file.pmem'/>
+  <flag name='overcommit'/>
   <version>3000091</version>
   <kvmVersion>0</kvmVersion>
   <microcodeVersion>42900758</microcodeVersion>

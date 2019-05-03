@@ -24,7 +24,7 @@
 # include <stdarg.h>
 
 # include "internal.h"
-# include "viralloc.h"
+# include "virautoclean.h"
 
 
 /**
@@ -35,19 +35,15 @@
 typedef struct _virBuffer virBuffer;
 typedef virBuffer *virBufferPtr;
 
-# ifndef __VIR_BUFFER_C__
-#  define VIR_BUFFER_INITIALIZER { 0, 0, 0, 0, NULL }
+# define VIR_BUFFER_INITIALIZER { 0, 0, 0, 0, NULL }
 
-/* This struct must be kept in sync with the real struct
-   in the buf.c impl file */
 struct _virBuffer {
-    unsigned int a;
-    unsigned int b;
-    unsigned int c;
-    int d;
-    char *e;
+    size_t size;
+    size_t use;
+    unsigned int error; /* errno value, or -1 for usage error */
+    int indent;
+    char *content;
 };
-# endif
 
 const char *virBufferCurrentContent(virBufferPtr buf);
 char *virBufferContentAndReset(virBufferPtr buf);
@@ -73,7 +69,7 @@ VIR_DEFINE_AUTOCLEAN_FUNC(virBuffer, virBufferFreeAndReset);
 # define virBufferCheckError(buf) \
     virBufferCheckErrorInternal(buf, VIR_FROM_THIS, __FILE__, __FUNCTION__, \
     __LINE__)
-unsigned int virBufferUse(const virBuffer *buf);
+size_t virBufferUse(const virBuffer *buf);
 void virBufferAdd(virBufferPtr buf, const char *str, int len);
 void virBufferAddBuffer(virBufferPtr buf, virBufferPtr toadd);
 void virBufferAddChar(virBufferPtr buf, char c);

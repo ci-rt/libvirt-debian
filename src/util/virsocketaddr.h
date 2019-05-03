@@ -26,7 +26,7 @@
 # endif
 
 # include "internal.h"
-# include "viralloc.h"
+# include "virautoclean.h"
 
 /* On architectures which lack these limits, define them (ie. Cygwin).
  * Note that the libvirt code should be robust enough to handle the

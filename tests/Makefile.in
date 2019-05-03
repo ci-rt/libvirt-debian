@@ -967,11 +967,12 @@ cputest_OBJECTS = $(am_cputest_OBJECTS)
 cputest_DEPENDENCIES = $(am__DEPENDENCIES_2) $(am__DEPENDENCIES_1) \
 	$(am__append_59)
 am__domaincapstest_SOURCES_DIST = domaincapstest.c testutils.h \
-	testutils.c testutilsqemu.c testutilsqemu.h testutilsxen.c \
-	testutilsxen.h
+	testutils.c virfilewrapper.c virfilewrapper.h testutilsqemu.c \
+	testutilsqemu.h testutilsxen.c testutilsxen.h
 @WITH_LIBXL_TRUE@am__objects_3 = testutilsxen.$(OBJEXT)
 am_domaincapstest_OBJECTS = domaincapstest.$(OBJEXT) \
-	testutils.$(OBJEXT) $(am__objects_2) $(am__objects_3)
+	testutils.$(OBJEXT) virfilewrapper.$(OBJEXT) $(am__objects_2) \
+	$(am__objects_3)
 domaincapstest_OBJECTS = $(am_domaincapstest_OBJECTS)
 domaincapstest_DEPENDENCIES = $(am__DEPENDENCIES_2) $(am__append_63) \
 	$(am__append_65) $(am__append_66)
@@ -3758,7 +3759,7 @@ EXTRA_DIST = .valgrind.supp bhyvexml2argvdata bhyveargv2xmldata \
 	storagevolxml2xmlout sysinfodata test-lib.sh \
 	vboxsnapshotxmldata vircaps2xmldata vircgroupdata virconfdata \
 	virfiledata virjsondata virmacmaptestdata virmock.h \
-	virnetdaemondata virnetdevtestdata \
+	virmockstathelpers.c virnetdaemondata virnetdevtestdata \
 	virnwfilterbindingxml2xmldata virpcitestdata virscsidata \
 	virsh-uriprecedence virusbtestdata vmwareverdata vmx2xmldata \
 	xlconfigdata xmconfigdata xml2sexprdata xml2vmxdata \
@@ -4294,7 +4295,8 @@ domaincapsmock_la_SOURCES = domaincapsmock.c
 domaincapsmock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
 domaincapsmock_la_LIBADD = $(MOCKLIBS_LIBS)
 domaincapstest_SOURCES = domaincapstest.c testutils.h testutils.c \
-	$(am__append_62) $(am__append_64)
+	virfilewrapper.c virfilewrapper.h $(NULL) $(am__append_62) \
+	$(am__append_64)
 domaincapstest_LDADD = $(LDADDS) $(am__append_63) $(am__append_65) \
 	$(am__append_66)
 virnetmessagetest_SOURCES = \
@@ -4713,9 +4715,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu tests/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign tests/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu tests/Makefile
+	  $(AUTOMAKE) --foreign tests/Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
 	  *config.status*) \
