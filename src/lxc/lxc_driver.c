@@ -3417,7 +3417,7 @@ lxcDomainAttachDeviceConfig(virDomainDefPtr vmdef,
                            _("target %s already exists."), disk->dst);
             return -1;
         }
-        if (virDomainDiskInsert(vmdef, disk))
+        if (virDomainDiskInsert(vmdef, disk) < 0)
             return -1;
         /* vmdef has the pointer. Generic codes for vmdef will do all jobs */
         dev->data.disk = NULL;
@@ -3834,8 +3834,16 @@ lxcDomainAttachDeviceNetLive(virConnectPtr conn,
      * network's pool of devices, or resolve bridge device name
      * to the one defined in the network definition.
      */
-    if (virDomainNetAllocateActualDevice(vm->def, net) < 0)
-        return -1;
+    if (net->type == VIR_DOMAIN_NET_TYPE_NETWORK) {
+        virConnectPtr netconn = virGetConnectNetwork();
+        if (!netconn)
+            return -1;
+        if (virDomainNetAllocateActualDevice(netconn, vm->def, net) < 0) {
+            virObjectUnref(netconn);
+            return -1;
+        }
+        virObjectUnref(netconn);
+    }
 
     actualType = virDomainNetGetActualType(net);
 
@@ -4329,6 +4337,7 @@ lxcDomainDetachDeviceNetLive(virDomainObjPtr vm,
     virDomainNetType actualType;
     virDomainNetDefPtr detach = NULL;
     virNetDevVPortProfilePtr vport = NULL;
+    virErrorPtr save_err = NULL;
 
     if ((detachidx = virDomainNetFindIdx(vm->def, dev->data.net)) < 0)
         goto cleanup;
@@ -4388,9 +4397,19 @@ lxcDomainDetachDeviceNetLive(virDomainObjPtr vm,
     ret = 0;
  cleanup:
     if (!ret) {
-        virDomainNetReleaseActualDevice(vm->def, detach);
+        virErrorPreserveLast(&save_err);
+        if (detach->type == VIR_DOMAIN_NET_TYPE_NETWORK) {
+            virConnectPtr conn = virGetConnectNetwork();
+            if (conn) {
+                virDomainNetReleaseActualDevice(conn, vm->def, detach);
+                virObjectUnref(conn);
+            } else {
+                VIR_WARN("Unable to release network device '%s'", NULLSTR(detach->ifname));
+            }
+        }
         virDomainNetRemove(vm->def, detachidx);
         virDomainNetDefFree(detach);
+        virErrorRestore(&save_err);
     }
     return ret;
 }

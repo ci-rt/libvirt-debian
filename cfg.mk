@@ -809,11 +809,11 @@ sc_prohibit_cross_inclusion:
 sc_require_enum_last_marker:
 	@$(VC_LIST_EXCEPT) | xargs \
 		$(GREP) -A1 -nE '^[^#]*VIR_ENUM_IMPL *\(' /dev/null \
-	   | $(SED) -ne '/VIR_ENUM_IMPL[^,]*,$$/N' \
-	     -e '/VIR_ENUM_IMPL[^,]*,[^,]*[^_,][^L,][^A,][^S,][^T,],/p' \
+	   | $(SED) -ne '/VIR_ENUM_IMPL.*,$$/N' \
+	     -e '/VIR_ENUM_IMPL[^,]*,[^,]*,[^,]*[^_,][^L,][^A,][^S,][^T,],/p' \
 	     -e '/VIR_ENUM_IMPL[^,]*,[^,]\{0,4\},/p' \
 	   | $(GREP) . && \
-	  { echo '$(ME): enum impl needs to use _LAST marker' 1>&2; \
+	  { echo '$(ME): enum impl needs _LAST marker on second line' 1>&2; \
 	    exit 1; } || :
 
 # In Python files we don't want to end lines with a semicolon like in C
@@ -1083,6 +1083,19 @@ sc_prohibit_class:
 	halt='use klass instead of class or _class' \
 	  $(_sc_search_regexp)
 
+# The dirent "d_type" field is non-portable and even when it
+# exists some filesystems will only ever return DT_UNKNOWN.
+# This field should only be used by code which is exclusively
+# run platforms supporting "d_type" and must expect DT_UNKNOWN.
+# We blacklist it to discourage accidental usage which has
+# happened many times. Add an exclude rule if it is genuinely
+# needed and the above restrictions are acceptable.
+sc_prohibit_dirent_d_type:
+	@prohibit='(->|\.)d_type' \
+	in_vc_files='\.[chx]$$' \
+	halt='do not use the d_type field in "struct dirent"' \
+	  $(_sc_search_regexp)
+
 
 # We don't use this feature of maint.mk.
 prev_version_file = /dev/null
@@ -1113,7 +1126,7 @@ maint.mk Makefile: _autogen_error
   # though, as it would be quite pointless
   ifeq (2,$(_dry_run_result)$(_clean_requested))
     $(info INFO: running autogen.sh is required, running it now...)
-    $(shell touch $(srcdir)/AUTHORS $(srcdir)/ChangeLog)
+    $(shell touch $(srcdir)/AUTHORS)
 maint.mk Makefile: _autogen
   endif
 endif
@@ -1272,10 +1285,10 @@ exclude_file_name_regexp--sc_prohibit_xmlURI = ^src/util/viruri\.c$$
 exclude_file_name_regexp--sc_prohibit_return_as_function = \.py$$
 
 exclude_file_name_regexp--sc_require_config_h = \
-	^(examples/|tools/virsh-edit\.c$$)
+	^(examples/|tools/virsh-edit\.c$$|tests/virmockstathelpers.c)
 
 exclude_file_name_regexp--sc_require_config_h_first = \
-	^(examples/|tools/virsh-edit\.c$$)
+	^(examples/|tools/virsh-edit\.c$$|tests/virmockstathelpers.c)
 
 exclude_file_name_regexp--sc_trailing_blank = \
   /sysinfodata/.*\.data|/virhostcpudata/.*\.cpuinfo|^gnulib/local/.*/.*diff$$
@@ -1337,3 +1350,6 @@ exclude_file_name_regexp--sc_prohibit_readdir = \
 
 exclude_file_name_regexp--sc_prohibit_cross_inclusion = \
   ^(src/util/virclosecallbacks\.h|src/util/virhostdev\.h)$$
+
+exclude_file_name_regexp--sc_prohibit_dirent_d_type = \
+  ^(src/util/vircgroup.c)$

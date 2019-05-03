@@ -48,6 +48,7 @@
 #include "xen_common.h"
 #include "xen_xl.h"
 #include "virnetdevvportprofile.h"
+#include "virenum.h"
 
 
 #define VIR_FROM_THIS VIR_FROM_LIBXL
@@ -78,6 +79,7 @@ libxlDriverConfigDispose(void *obj)
     if (cfg->logger)
         libxlLoggerFree(cfg->logger);
 
+    VIR_FREE(cfg->configBaseDir);
     VIR_FREE(cfg->configDir);
     VIR_FREE(cfg->autostartDir);
     VIR_FREE(cfg->logDir);
@@ -980,7 +982,7 @@ libxlMakeNetworkDiskSrc(virStorageSourcePtr src, char **srcstr)
 {
     virConnectPtr conn = NULL;
     uint8_t *secret = NULL;
-    char *base64secret = NULL;
+    VIR_AUTODISPOSE_STR base64secret = NULL;
     size_t secretlen = 0;
     char *username = NULL;
     int ret = -1;
@@ -1008,7 +1010,6 @@ libxlMakeNetworkDiskSrc(virStorageSourcePtr src, char **srcstr)
 
  cleanup:
     VIR_DISPOSE_N(secret, secretlen);
-    VIR_DISPOSE_STRING(base64secret);
     virObjectUnref(conn);
     return ret;
 }
@@ -1275,18 +1276,18 @@ libxlMakeNic(virDomainDefPtr def,
      * xen commit 32e9d0f ("libxl: nic type defaults to vif in hotplug for
      * hvm guest").
      */
-    if (l_nic->model) {
+    if (virDomainNetGetModelString(l_nic)) {
         if ((def->os.type == VIR_DOMAIN_OSTYPE_XEN ||
             def->os.type == VIR_DOMAIN_OSTYPE_XENPVH) &&
-            STRNEQ(l_nic->model, "netfront")) {
+            l_nic->model != VIR_DOMAIN_NET_MODEL_NETFRONT) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("only model 'netfront' is supported for "
                              "Xen PV(H) domains"));
             return -1;
         }
-        if (VIR_STRDUP(x_nic->model, l_nic->model) < 0)
+        if (VIR_STRDUP(x_nic->model, virDomainNetGetModelString(l_nic)) < 0)
             goto cleanup;
-        if (STREQ(l_nic->model, "netfront"))
+        if (l_nic->model == VIR_DOMAIN_NET_MODEL_NETFRONT)
             x_nic->nictype = LIBXL_NIC_TYPE_VIF;
         else
             x_nic->nictype = LIBXL_NIC_TYPE_VIF_IOEMU;

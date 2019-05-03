@@ -26,10 +26,12 @@
 #include "virfirewalld.h"
 #define LIBVIRT_VIRFIREWALLDPRIV_H_ALLOW
 #include "virfirewalldpriv.h"
+#include "viralloc.h"
 #include "virerror.h"
 #include "virutil.h"
 #include "virlog.h"
 #include "virdbus.h"
+#include "virenum.h"
 
 #define VIR_FROM_THIS VIR_FROM_FIREWALLD
 
@@ -39,7 +41,8 @@ VIR_LOG_INIT("util.firewalld");
  * understood by the firewalld.direct "passthrough" method
  */
 VIR_ENUM_DECL(virFirewallLayerFirewallD);
-VIR_ENUM_IMPL(virFirewallLayerFirewallD, VIR_FIREWALL_LAYER_LAST,
+VIR_ENUM_IMPL(virFirewallLayerFirewallD,
+              VIR_FIREWALL_LAYER_LAST,
               "eb",
               "ipv4",
               "ipv6",
@@ -47,7 +50,8 @@ VIR_ENUM_IMPL(virFirewallLayerFirewallD, VIR_FIREWALL_LAYER_LAST,
 
 
 VIR_ENUM_DECL(virFirewallDBackend);
-VIR_ENUM_IMPL(virFirewallDBackend, VIR_FIREWALLD_BACKEND_LAST,
+VIR_ENUM_IMPL(virFirewallDBackend,
+              VIR_FIREWALLD_BACKEND_LAST,
               "",
               "iptables",
               "nftables",
@@ -98,7 +102,7 @@ virFirewallDGetVersion(unsigned long *version)
                           "version") < 0)
         goto cleanup;
 
-    if (virDBusMessageRead(reply, "v", "s", &versionStr) < 0)
+    if (virDBusMessageDecode(reply, "v", "s", &versionStr) < 0)
         goto cleanup;
 
     if (virParseVersionString(versionStr, version, false) < 0) {
@@ -159,7 +163,7 @@ virFirewallDGetBackend(void)
         goto cleanup;
     }
 
-    if (virDBusMessageRead(reply, "v", "s", &backendStr) < 0)
+    if (virDBusMessageDecode(reply, "v", "s", &backendStr) < 0)
         goto cleanup;
 
     VIR_DEBUG("FirewallD backend: %s", backendStr);
@@ -212,7 +216,7 @@ virFirewallDGetZones(char ***zones, size_t *nzones)
                           NULL) < 0)
         goto cleanup;
 
-    if (virDBusMessageRead(reply, "a&s", nzones, zones) < 0)
+    if (virDBusMessageDecode(reply, "a&s", nzones, zones) < 0)
         goto cleanup;
 
     ret = 0;
@@ -333,7 +337,7 @@ virFirewallDApplyRule(virFirewallLayer layer,
             goto cleanup;
         }
     } else {
-        if (virDBusMessageRead(reply, "s", output) < 0)
+        if (virDBusMessageDecode(reply, "s", output) < 0)
             goto cleanup;
     }
 

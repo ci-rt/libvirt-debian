@@ -6,6 +6,10 @@
   <vcpu max='255'/>
   <iothreads supported='yes'/>
   <os supported='yes'>
+    <enum name='firmware'>
+      <value>bios</value>
+      <value>efi</value>
+    </enum>
     <loader supported='yes'>
       <value>/usr/share/AAVMF/AAVMF_CODE.fd</value>
       <value>/usr/share/AAVMF/AAVMF32_CODE.fd</value>
@@ -16,6 +20,9 @@
       </enum>
       <enum name='readonly'>
         <value>yes</value>
+        <value>no</value>
+      </enum>
+      <enum name='secure'>
         <value>no</value>
       </enum>
     </loader>
@@ -76,6 +83,7 @@
       <model usable='no'>EPYC-IBPB</model>
       <model usable='no'>EPYC</model>
       <model usable='yes'>Conroe</model>
+      <model usable='no'>Cascadelake-Server</model>
       <model usable='yes'>Broadwell-noTSX-IBRS</model>
       <model usable='yes'>Broadwell-noTSX</model>
       <model usable='yes'>Broadwell-IBRS</model>

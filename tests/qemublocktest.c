@@ -62,7 +62,7 @@ testBackingXMLjsonXML(const void *args)
     if (!(xml = virXMLParseStringCtxt(data->xml, "(test storage source XML)", &ctxt)))
         return -1;
 
-    if (virDomainDiskSourceParse(ctxt->node, ctxt, xmlsrc, 0, NULL) < 0) {
+    if (virDomainStorageSourceParse(ctxt->node, ctxt, xmlsrc, 0, NULL) < 0) {
         fprintf(stderr, "failed to parse disk source xml\n");
         return -1;
     }
@@ -86,7 +86,7 @@ testBackingXMLjsonXML(const void *args)
         return -1;
     }
 
-    if (virDomainDiskSourceFormat(&buf, jsonsrc, 0, 0, NULL) < 0 ||
+    if (virDomainDiskSourceFormat(&buf, jsonsrc, 0, false, 0, NULL) < 0 ||
         !(actualxml = virBufferContentAndReset(&buf))) {
         fprintf(stderr, "failed to format disk source xml\n");
         return -1;
@@ -327,8 +327,7 @@ mymain(void)
 
     diskxmljsondata.driver = &driver;
 
-    if (!(capslatest_x86_64 = testQemuGetLatestCapsForArch(abs_srcdir "/qemucapabilitiesdata",
-                                                           "x86_64", "xml")))
+    if (!(capslatest_x86_64 = testQemuGetLatestCapsForArch("x86_64", "xml")))
         return EXIT_FAILURE;
 
     VIR_TEST_VERBOSE("\nlatest caps x86_64: %s\n", capslatest_x86_64);

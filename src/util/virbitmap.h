@@ -23,7 +23,7 @@
 # define LIBVIRT_VIRBITMAP_H
 
 # include "internal.h"
-# include "viralloc.h"
+# include "virautoclean.h"
 
 # include <sys/types.h>
 

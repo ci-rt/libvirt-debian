@@ -1068,13 +1068,13 @@ xenParseVif(char *entry, const char *vif_typename)
         VIR_STRDUP(net->script, script) < 0)
         goto cleanup;
 
-    if (model[0] &&
-        VIR_STRDUP(net->model, model) < 0)
-        goto cleanup;
-
-    if (!model[0] && type[0] && STREQ(type, vif_typename) &&
-        VIR_STRDUP(net->model, "netfront") < 0)
-        goto cleanup;
+    if (model[0]) {
+        if (virDomainNetSetModelString(net, model) < 0)
+            goto cleanup;
+    } else {
+        if (type[0] && STREQ(type, vif_typename))
+            net->model = VIR_DOMAIN_NET_MODEL_NETFRONT;
+    }
 
     if (vifname[0] &&
         VIR_STRDUP(net->ifname, vifname) < 0)
@@ -1422,15 +1422,16 @@ xenFormatNet(virConnectPtr conn,
         goto cleanup;
     }
 
-    if (!hvm) {
-        if (net->model != NULL)
-            virBufferAsprintf(&buf, ",model=%s", net->model);
-    } else {
-        if (net->model != NULL && STREQ(net->model, "netfront")) {
-            virBufferAsprintf(&buf, ",type=%s", vif_typename);
+    if (virDomainNetGetModelString(net)) {
+        if (!hvm) {
+            virBufferAsprintf(&buf, ",model=%s",
+                              virDomainNetGetModelString(net));
         } else {
-            if (net->model != NULL)
-                virBufferAsprintf(&buf, ",model=%s", net->model);
+            if (net->model == VIR_DOMAIN_NET_MODEL_NETFRONT)
+                virBufferAsprintf(&buf, ",type=%s", vif_typename);
+            else
+                virBufferAsprintf(&buf, ",model=%s",
+                                  virDomainNetGetModelString(net));
         }
     }
 

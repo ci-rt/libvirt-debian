@@ -79,6 +79,8 @@ void virFree(void *ptrptr) ATTRIBUTE_NONNULL(1);
 
 void virDispose(void *ptrptr, size_t count, size_t element_size, size_t *countptr)
     ATTRIBUTE_NONNULL(1);
+void virDisposeString(char **strptr)
+    ATTRIBUTE_NONNULL(1);
 
 /**
  * VIR_ALLOC:
@@ -575,9 +577,17 @@ void virDispose(void *ptrptr, size_t count, size_t element_size, size_t *countpt
  *
  * This macro is not safe to be used on arguments with side effects.
  */
-# define VIR_DISPOSE_STRING(ptr) virDispose(1 ? (void *) &(ptr) : (ptr), \
-                                            (ptr) ? strlen((ptr)) : 0, 1, NULL)
+# define VIR_DISPOSE_STRING(ptr) virDisposeString(&(ptr))
 
+/**
+ * VIR_AUTODISPOSE_STR:
+ *
+ * Macro to automatically free and clear the memory allocated to
+ * the string variable declared with it by calling virDisposeString
+ * when the variable goes out of scope.
+ */
+# define VIR_AUTODISPOSE_STR \
+    __attribute__((cleanup(virDisposeString))) char *
 
 /**
  * VIR_DISPOSE:
@@ -596,42 +606,6 @@ int virAllocTestCount(void);
 void virAllocTestOOM(int n, int m);
 void virAllocTestHook(void (*func)(int, void*), void *data);
 
-# define VIR_AUTOPTR_FUNC_NAME(type) type##AutoPtrFree
-
-/**
- * VIR_DEFINE_AUTOPTR_FUNC:
- * @type: type of the variable to be freed automatically
- * @func: cleanup function to be automatically called
- *
- * This macro defines a function for automatic freeing of
- * resources allocated to a variable of type @type. This newly
- * defined function works as a necessary wrapper around @func.
- */
-# define VIR_DEFINE_AUTOPTR_FUNC(type, func) \
-    static inline void VIR_AUTOPTR_FUNC_NAME(type)(type **_ptr) \
-    { \
-        if (*_ptr) \
-            (func)(*_ptr); \
-        *_ptr = NULL; \
-    }
-
-# define VIR_AUTOCLEAN_FUNC_NAME(type) type##AutoClean
-
-/**
- * VIR_DEFINE_AUTOCLEAN_FUNC:
- * @type: type of the variable to be cleared automatically
- * @func: cleanup function to be automatically called
- *
- * This macro defines a function for automatic clearing of
- * resources in a stack'd variable of type @type. Note that @func must
- * take pointer to @type.
- */
-# define VIR_DEFINE_AUTOCLEAN_FUNC(type, func) \
-    static inline void VIR_AUTOCLEAN_FUNC_NAME(type)(type *_ptr) \
-    { \
-        (func)(_ptr); \
-    }
-
 /**
  * VIR_AUTOFREE:
  * @type: type of the variable to be freed automatically
@@ -641,46 +615,5 @@ void virAllocTestHook(void (*func)(int, void*), void *data);
  * when the variable goes out of scope.
  */
 # define VIR_AUTOFREE(type) __attribute__((cleanup(virFree))) type
-
-/**
- * VIR_AUTOPTR:
- * @type: type of the variable to be freed automatically
- *
- * Macro to automatically free the memory allocated to
- * the variable declared with it by calling the function
- * defined by VIR_DEFINE_AUTOPTR_FUNC when the variable
- * goes out of scope.
- *
- * Note that this macro must NOT be used with vectors! The freeing function
- * will not free any elements beyond the first.
- */
-# define VIR_AUTOPTR(type) \
-    __attribute__((cleanup(VIR_AUTOPTR_FUNC_NAME(type)))) type *
-
-/**
- * VIR_AUTOCLEAN:
- * @type: type of the variable to be cleared automatically
- *
- * Macro to automatically call clearing function registered for variable of @type
- * when the variable goes out of scope.
- * The cleanup function is registered by VIR_DEFINE_AUTOCLEAN_FUNC macro for
- * the given type.
- *
- * Note that this macro must NOT be used with vectors! The cleaning function
- * will not clean any elements beyond the first.
- */
-# define VIR_AUTOCLEAN(type) \
-    __attribute__((cleanup(VIR_AUTOCLEAN_FUNC_NAME(type)))) type
-
-
-/**
- * VIR_AUTOUNREF:
- * @type: type of an virObject subclass to be unref'd automatically
- *
- * Declares a variable of @type which will be automatically unref'd when
- * control goes out of the scope.
- */
-# define VIR_AUTOUNREF(type) \
-    __attribute__((cleanup(virObjectAutoUnref))) type
 
 #endif /* LIBVIRT_VIRALLOC_H */

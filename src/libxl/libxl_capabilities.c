@@ -66,13 +66,16 @@ struct guest_arch {
 static int
 libxlCapsAddCPUID(virCPUDataPtr data, virCPUx86CPUID *cpuid, ssize_t ncaps)
 {
+    virCPUx86DataItem item = { 0 };
     size_t i;
 
+    item.type = VIR_CPU_X86_DATA_CPUID;
     for (i = 0; i < ncaps; i++) {
-        virCPUx86CPUID *c = &cpuid[i];
+        item.data.cpuid = cpuid[i];
 
-        if (virCPUx86DataAddCPUID(data, c) < 0) {
-            VIR_DEBUG("Failed to add CPUID(%x,%x)", c->eax_in, c->ecx_in);
+        if (virCPUx86DataAdd(data, &item) < 0) {
+            VIR_DEBUG("Failed to add CPUID(%x,%x)",
+                      cpuid[i].eax_in, cpuid[i].ecx_in);
             return -1;
         }
     }

@@ -25,6 +25,7 @@
 # include "qemu_conf.h"
 # include "qemu_domain.h"
 # include "qemu_migration_params.h"
+# include "virenum.h"
 
 /*
  * General function naming conventions:
@@ -101,10 +102,6 @@ typedef enum {
     QEMU_MIGRATION_PHASE_LAST
 } qemuMigrationJobPhase;
 VIR_ENUM_DECL(qemuMigrationJobPhase);
-
-int
-qemuMigrationSrcSetOffline(virQEMUDriverPtr driver,
-                           virDomainObjPtr vm);
 
 char *
 qemuMigrationSrcBegin(virConnectPtr conn,

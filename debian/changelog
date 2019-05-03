@@ -1,3 +1,24 @@
+libvirt (5.3.0~rc2-1~1.gbp4cfe98) UNRELEASED; urgency=medium
+
+  ** SNAPSHOT build @4cfe98a3b7e3a5108335277cecb407a9aff8d248 **
+
+  [ Guido Günther ]
+  * [fb43676] d/control: Drop dh-autoreconf build-dep.
+    Not needed for dh compat > 10.
+  * [81d21d5] d/not-installed: Use multi-arch dirs.
+    Files moved during the dh12 switch.
+  * [428ad14] New upstream version 5.3.0~rc2
+
+  [ Christian Ehrhardt ]
+  * [c28c3b3] d/libvirt0.install: install translations
+  * [c3c4cd4] d/libvirt-daemon-system.install: drop in helper for firewalld
+  * [3e8b43c] d/not-installed: ignore default files /etc/sysconfig
+  * [c223d7f] d/libvirt-daemon-system.examples: ship sysctl config as example
+  * [f19acf6] d/libvirt-daemon-system.install: ship libxl-sanlock.conf
+    (Closes: #919484)
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 03 May 2019 10:06:18 +0200
+
 libvirt (5.2.0-2) experimental; urgency=medium
 
   [ Guido Günther ]

@@ -128,7 +128,7 @@
 
 <pre>
 ...
-&lt;os firmware='uefi'&gt;
+&lt;os firmware='efi'&gt;
   &lt;type&gt;hvm&lt;/type&gt;
   &lt;loader readonly='yes' secure='no' type='rom'&gt;/usr/lib/xen/boot/hvmloader&lt;/loader&gt;
   &lt;nvram template='/usr/share/OVMF/OVMF_VARS.fd'&gt;/var/lib/libvirt/nvram/guest_VARS.fd&lt;/nvram&gt;
@@ -159,7 +159,10 @@
         For more information refer to firmware metadata specification as
         described in <code>docs/interop/firmware.json</code> in QEMU
         repository. Regular users do not need to bother.
-        <span class="since">Since 5.2.0 (QEMU and KVM only)</span>
+        <span class="since">Since 5.2.0 (QEMU and KVM only)</span><br/>
+        For VMware guests, this is set to <code>efi</code> when the guest
+        uses UEFI, and it is not set when using BIOS.
+        <span class="since">Since 5.3.0 (VMware ESX and Workstation/Player)</span>
       </dd>
       <dt><code>type</code></dt>
       <dd>The content of the <code>type</code> element specifies the
@@ -935,16 +938,22 @@
         <span class="since">Only QEMU driver support since 2.1.0</span>
       </dd>
 
-      <dt><code>vcpusched</code> and <code>iothreadsched</code></dt>
+      <dt><code>vcpusched</code>, <code>iothreadsched</code>
+      and <code>emulatorsched</code></dt>
       <dd>
-        The optional <code>vcpusched</code> elements specifies the scheduler
-        type (values <code>batch</code>, <code>idle</code>, <code>fifo</code>,
-        <code>rr</code>) for particular vCPU/IOThread threads (based on
-        <code>vcpus</code> and <code>iothreads</code>, leaving out
-        <code>vcpus</code>/<code>iothreads</code> sets the default). Valid
-        <code>vcpus</code> values start at 0 through one less than the
-        number of vCPU's defined for the domain. Valid <code>iothreads</code>
-        values are described in the <code>iothreadids</code>
+        The optional
+        <code>vcpusched</code>, <code>iothreadsched</code>
+        and <code>emulatorsched</code> elements specify the scheduler type
+        (values <code>batch</code>, <code>idle</code>, <code>fifo</code>,
+        <code>rr</code>) for particular vCPU, IOThread and emulator threads
+        respecively.  For <code>vcpusched</code> and <code>iothreadsched</code>
+        the attributes <code>vcpus</code> and <code>iothreads</code> select
+        which vCPUs/IOThreads this setting applies to, leaving them out sets the
+        default.  The element <code>emulatorsched</code> does not have that
+        attribute. Valid <code>vcpus</code> values start at 0 through one less
+        than the number of vCPU's defined for the
+        domain. Valid <code>iothreads</code> values are described in
+        the <code>iothreadids</code>
         <a href="#elementsIOThreadsAllocation"><code>description</code></a>.
         If no <code>iothreadids</code> are defined, then libvirt numbers
         IOThreads from 1 to the number of <code>iothreads</code> available
@@ -953,6 +962,7 @@
         well (and is ignored for non-real-time ones). The value range
         for the priority depends on the host kernel (usually 1-99).
         <span class="since">Since 1.2.13</span>
+        <code>emulatorsched</code> <span class="since">since 5.3.0</span>
       </dd>
 
       <dt><code>cachetune</code><span class="since">Since 4.1.0</span></dt>

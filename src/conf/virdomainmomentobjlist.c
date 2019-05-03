@@ -28,6 +28,7 @@
 #include "virerror.h"
 #include "virstring.h"
 #include "moment_conf.h"
+#include "viralloc.h"
 
 /* FIXME: using virObject would allow us to not need this */
 #include "snapshot_conf.h"
@@ -80,9 +81,11 @@ virDomainMomentActOnDescendant(void *payload,
 {
     virDomainMomentObjPtr obj = payload;
     struct moment_act_on_descendant *curr = data;
+    virDomainMomentObj tmp = *obj;
 
+    /* Careful: curr->iter can delete obj, hence the need for tmp */
     (curr->iter)(payload, name, curr->data);
-    curr->number += 1 + virDomainMomentForEachDescendant(obj,
+    curr->number += 1 + virDomainMomentForEachDescendant(&tmp,
                                                          curr->iter,
                                                          curr->data);
     return 0;

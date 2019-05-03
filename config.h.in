@@ -1288,9 +1288,6 @@
 /* Define to 1 if you have the `sanlock_client' library (-lsanlock_client). */
 #undef HAVE_LIBSANLOCK_CLIENT
 
-/* Define to 1 if you have the `sasl2' library (-lsasl2). */
-#undef HAVE_LIBSASL2
-
 /* Define to 1 if you have the `selinux' library (-lselinux). */
 #undef HAVE_LIBSELINUX
 
@@ -1308,9 +1305,6 @@
 
 /* Define to 1 if you have the <libxlutil.h> header file. */
 #undef HAVE_LIBXLUTIL_H
-
-/* Define to 1 if you have the `yajl' library (-lyajl). */
-#undef HAVE_LIBYAJL
 
 /* Define to 1 if you have the <limits.h> header file. */
 #undef HAVE_LIMITS_H
@@ -2759,11 +2753,8 @@
 /* whether libsanlock_client is available */
 #undef WITH_SANLOCK
 
-/* whether libsasl2 is available */
+/* whether libsasl2 >= 2.1.26 is available */
 #undef WITH_SASL
-
-/* whether libsasl2 is available */
-#undef WITH_SASL1
 
 /* whether AppArmor security driver is available */
 #undef WITH_SECDRIVER_APPARMOR
@@ -2849,11 +2840,8 @@
 /* whether libxenserver is available */
 #undef WITH_XENAPI
 
-/* whether libyajl is available */
+/* whether yajl >= 2.0.3 is available */
 #undef WITH_YAJL
-
-/* whether libyajl is available */
-#undef WITH_YAJL2
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */

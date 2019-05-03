@@ -25,23 +25,14 @@ enum {
     WHEN_BOTH = 3,
 };
 
-struct testInfo {
-    char *inName;
-    char *outActiveName;
-    char *outInactiveName;
-
-    virQEMUCapsPtr qemuCaps;
-};
-
 
 static int
 testXML2XMLActive(const void *opaque)
 {
-    const struct testInfo *info = opaque;
+    const struct testQemuInfo *info = opaque;
 
     return testCompareDomXML2XMLFiles(driver.caps, driver.xmlopt,
-                                      info->inName, info->outActiveName, true,
-                                      0,
+                                      info->infile, info->outfile, true, 0,
                                       TEST_COMPARE_DOM_XML2XML_RESULT_SUCCESS);
 }
 
@@ -49,11 +40,10 @@ testXML2XMLActive(const void *opaque)
 static int
 testXML2XMLInactive(const void *opaque)
 {
-    const struct testInfo *info = opaque;
+    const struct testQemuInfo *info = opaque;
 
-    return testCompareDomXML2XMLFiles(driver.caps, driver.xmlopt, info->inName,
-                                      info->outInactiveName, false,
-                                      0,
+    return testCompareDomXML2XMLFiles(driver.caps, driver.xmlopt,
+                                      info->infile, info->outfile, false, 0,
                                       TEST_COMPARE_DOM_XML2XML_RESULT_SUCCESS);
 }
 
@@ -61,18 +51,18 @@ testXML2XMLInactive(const void *opaque)
 static int
 testCompareStatusXMLToXMLFiles(const void *opaque)
 {
-    const struct testInfo *data = opaque;
+    const struct testQemuInfo *data = opaque;
     virDomainObjPtr obj = NULL;
     char *actual = NULL;
     int ret = -1;
 
-    if (!(obj = virDomainObjParseFile(data->inName, driver.caps, driver.xmlopt,
+    if (!(obj = virDomainObjParseFile(data->infile, driver.caps, driver.xmlopt,
                                       VIR_DOMAIN_DEF_PARSE_STATUS |
                                       VIR_DOMAIN_DEF_PARSE_ACTUAL_NET |
                                       VIR_DOMAIN_DEF_PARSE_PCI_ORIG_STATES |
                                       VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE |
                                       VIR_DOMAIN_DEF_PARSE_ALLOW_POST_PARSE_FAIL))) {
-        VIR_TEST_DEBUG("\nfailed to parse '%s'\n", data->inName);
+        VIR_TEST_DEBUG("\nfailed to parse '%s'\n", data->infile);
         goto cleanup;
     }
 
@@ -82,11 +72,11 @@ testCompareStatusXMLToXMLFiles(const void *opaque)
                                       VIR_DOMAIN_DEF_FORMAT_ACTUAL_NET |
                                       VIR_DOMAIN_DEF_FORMAT_PCI_ORIG_STATES |
                                       VIR_DOMAIN_DEF_FORMAT_CLOCK_ADJUST))) {
-        VIR_TEST_DEBUG("\nfailed to format back '%s'\n", data->inName);
+        VIR_TEST_DEBUG("\nfailed to format back '%s'\n", data->infile);
         goto cleanup;
     }
 
-    if (virTestCompareToFile(actual, data->outActiveName) < 0)
+    if (virTestCompareToFile(actual, data->outfile) < 0)
         goto cleanup;
 
     ret = 0;
@@ -98,87 +88,38 @@ testCompareStatusXMLToXMLFiles(const void *opaque)
 }
 
 
-static void
-testInfoClear(struct testInfo *info)
-{
-    VIR_FREE(info->inName);
-    VIR_FREE(info->outActiveName);
-    VIR_FREE(info->outInactiveName);
-
-    virObjectUnref(info->qemuCaps);
-}
-
-
 static int
-testInfoSetCommon(struct testInfo *info,
-                  int gic)
+testInfoSetPaths(struct testQemuInfo *info,
+                 const char *suffix,
+                 int when)
 {
-    if (!(info->qemuCaps = virQEMUCapsNew()))
+    VIR_FREE(info->infile);
+    VIR_FREE(info->outfile);
+
+    if (virAsprintf(&info->infile, "%s/qemuxml2argvdata/%s.xml",
+                    abs_srcdir, info->name) < 0)
         goto error;
 
-    if (testQemuCapsSetGIC(info->qemuCaps, gic) < 0)
+    if (virAsprintf(&info->outfile,
+                    "%s/qemuxml2xmloutdata/%s-%s%s.xml",
+                    abs_srcdir, info->name,
+                    when == WHEN_ACTIVE ? "active" : "inactive",
+                    suffix) < 0)
         goto error;
 
-    if (qemuTestCapsCacheInsert(driver.qemuCapsCache, info->qemuCaps) < 0)
-        goto error;
+    if (!virFileExists(info->outfile)) {
+        VIR_FREE(info->outfile);
 
-    return 0;
-
- error:
-    testInfoClear(info);
-    return -1;
-}
-
-
-static int
-testInfoSet(struct testInfo *info,
-            const char *name,
-            int when,
-            int gic)
-{
-    if (testInfoSetCommon(info, gic) < 0)
-        return -1;
-
-    if (virAsprintf(&info->inName, "%s/qemuxml2argvdata/%s.xml",
-                    abs_srcdir, name) < 0)
-        goto error;
-
-    if (when & WHEN_INACTIVE) {
-        if (virAsprintf(&info->outInactiveName,
-                        "%s/qemuxml2xmloutdata/%s-inactive.xml",
-                        abs_srcdir, name) < 0)
+        if (virAsprintf(&info->outfile,
+                        "%s/qemuxml2xmloutdata/%s%s.xml",
+                        abs_srcdir, info->name, suffix) < 0)
             goto error;
-
-        if (!virFileExists(info->outInactiveName)) {
-            VIR_FREE(info->outInactiveName);
-
-            if (virAsprintf(&info->outInactiveName,
-                            "%s/qemuxml2xmloutdata/%s.xml",
-                            abs_srcdir, name) < 0)
-                goto error;
-        }
-    }
-
-    if (when & WHEN_ACTIVE) {
-        if (virAsprintf(&info->outActiveName,
-                        "%s/qemuxml2xmloutdata/%s-active.xml",
-                        abs_srcdir, name) < 0)
-            goto error;
-
-        if (!virFileExists(info->outActiveName)) {
-            VIR_FREE(info->outActiveName);
-
-            if (virAsprintf(&info->outActiveName,
-                            "%s/qemuxml2xmloutdata/%s.xml",
-                            abs_srcdir, name) < 0)
-                goto error;
-        }
     }
 
     return 0;
 
  error:
-    testInfoClear(info);
+    testQemuInfoClear(info);
     return -1;
 }
 
@@ -186,21 +127,16 @@ testInfoSet(struct testInfo *info,
 static const char *statusPath = abs_srcdir "/qemustatusxml2xmldata/";
 
 static int
-testInfoSetStatus(struct testInfo *info,
-                  const char *name,
-                  int gic)
+testInfoSetStatusPaths(struct testQemuInfo *info)
 {
-    if (testInfoSetCommon(info, gic) < 0)
-        return -1;
-
-    if (virAsprintf(&info->inName, "%s%s-in.xml", statusPath, name) < 0 ||
-        virAsprintf(&info->outActiveName, "%s%s-out.xml", statusPath, name) < 0)
+    if (virAsprintf(&info->infile, "%s%s-in.xml", statusPath, info->name) < 0 ||
+        virAsprintf(&info->outfile, "%s%s-out.xml", statusPath, info->name) < 0)
         goto error;
 
     return 0;
 
  error:
-    testInfoClear(info);
+    testQemuInfoClear(info);
     return -1;
 }
 
@@ -212,8 +148,12 @@ mymain(void)
 {
     int ret = 0;
     char *fakerootdir;
-    struct testInfo info;
     virQEMUDriverConfigPtr cfg = NULL;
+    virHashTablePtr capslatest = NULL;
+
+    capslatest = testQemuGetLatestCaps();
+    if (!capslatest)
+        return EXIT_FAILURE;
 
     if (VIR_STRDUP_QUIET(fakerootdir, FAKEROOTDIRTEMPLATE) < 0) {
         fprintf(stderr, "Out of memory\n");
@@ -227,40 +167,75 @@ mymain(void)
 
     setenv("LIBVIRT_FAKE_ROOT_DIR", fakerootdir, 1);
 
-    memset(&info, 0, sizeof(info));
-
     if (qemuTestDriverInit(&driver) < 0)
         return EXIT_FAILURE;
 
     cfg = virQEMUDriverGetConfig(&driver);
 
-# define DO_TEST_FULL(name, when, gic, ...) \
+# define DO_TEST_INTERNAL(_name, suffix, when, ...) \
     do { \
-        if (testInfoSet(&info, name, when, gic) < 0) { \
-            VIR_TEST_DEBUG("Failed to generate test data for '%s'", name); \
+        static struct testQemuInfo info = { \
+            .name = _name, \
+        }; \
+        if (testQemuInfoSetArgs(&info, capslatest, \
+                                __VA_ARGS__, \
+                                ARG_END) < 0 || \
+            qemuTestCapsCacheInsert(driver.qemuCapsCache, info.qemuCaps) < 0) { \
+            VIR_TEST_DEBUG("Failed to generate test data for '%s'", _name); \
             return -1; \
         } \
-        virQEMUCapsSetList(info.qemuCaps, __VA_ARGS__, QEMU_CAPS_LAST); \
  \
-        if (info.outInactiveName) { \
-            if (virTestRun("QEMU XML-2-XML-inactive " name, \
+        if (when & WHEN_INACTIVE) { \
+            if (testInfoSetPaths(&info, suffix, WHEN_INACTIVE) < 0) { \
+                VIR_TEST_DEBUG("Failed to generate inactive paths for '%s'", _name); \
+                return -1; \
+            } \
+            if (virTestRun("QEMU XML-2-XML-inactive " _name, \
                             testXML2XMLInactive, &info) < 0) \
                 ret = -1; \
         } \
  \
-        if (info.outActiveName) { \
-            if (virTestRun("QEMU XML-2-XML-active " name, \
+        if (when & WHEN_ACTIVE) { \
+            if (testInfoSetPaths(&info, suffix, WHEN_ACTIVE) < 0) { \
+                VIR_TEST_DEBUG("Failed to generate active paths for '%s'", _name); \
+                return -1; \
+            } \
+            if (virTestRun("QEMU XML-2-XML-active " _name, \
                             testXML2XMLActive, &info) < 0) \
                 ret = -1; \
         } \
-        testInfoClear(&info); \
+        testQemuInfoClear(&info); \
     } while (0)
 
 # define NONE QEMU_CAPS_LAST
 
-# define DO_TEST(name, ...) \
-    DO_TEST_FULL(name, WHEN_BOTH, GIC_NONE, __VA_ARGS__)
+# define DO_TEST_FULL(name, when, ...) \
+    DO_TEST_INTERNAL(name, "", when, __VA_ARGS__)
 
+# define DO_TEST(name, ...) \
+    DO_TEST_FULL(name, WHEN_BOTH, \
+                 ARG_QEMU_CAPS, __VA_ARGS__, QEMU_CAPS_LAST)
+
+# define DO_TEST_CAPS_INTERNAL(name, arch, ver, ...) \
+    DO_TEST_INTERNAL(name, "." arch "-" ver, WHEN_BOTH, \
+                     ARG_CAPS_ARCH, arch, \
+                     ARG_CAPS_VER, ver, \
+                     __VA_ARGS__)
+
+# define DO_TEST_CAPS_ARCH_VER(name, arch, ver) \
+    DO_TEST_CAPS_INTERNAL(name, arch, ver, ARG_END)
+
+# define DO_TEST_CAPS_VER(name, ver) \
+    DO_TEST_CAPS_ARCH_VER(name, "x86_64", ver)
+
+# define DO_TEST_CAPS_ARCH_LATEST_FULL(name, arch, ...) \
+    DO_TEST_CAPS_INTERNAL(name, arch, "latest", __VA_ARGS__)
+
+# define DO_TEST_CAPS_ARCH_LATEST(name, arch) \
+    DO_TEST_CAPS_ARCH_LATEST_FULL(name, arch, ARG_END)
+
+# define DO_TEST_CAPS_LATEST(name) \
+    DO_TEST_CAPS_ARCH_LATEST(name, "x86_64")
 
 
     /* Unset or set all envvars here that are copied in qemudBuildCommandLine
@@ -269,8 +244,8 @@ mymain(void)
     setenv("PATH", "/bin", 1);
 
     DO_TEST("minimal", NONE);
-    DO_TEST("genid", NONE);
-    DO_TEST("genid-auto", NONE);
+    DO_TEST_CAPS_LATEST("genid");
+    DO_TEST_CAPS_LATEST("genid-auto");
     DO_TEST("machine-core-on", NONE);
     DO_TEST("machine-core-off", NONE);
     DO_TEST("machine-loadparm-multiple-disks-nets-s390", NONE);
@@ -433,6 +408,7 @@ mymain(void)
     DO_TEST("net-bandwidth2", NONE);
     DO_TEST("net-mtu", NONE);
     DO_TEST("net-coalesce", NONE);
+    DO_TEST("net-many-models", NONE);
 
     DO_TEST("serial-tcp-tlsx509-chardev", NONE);
     DO_TEST("serial-tcp-tlsx509-chardev-notls", NONE);
@@ -538,17 +514,22 @@ mymain(void)
     DO_TEST("blkdeviotune-max-length", NONE);
     DO_TEST("controller-usb-order", NONE);
 
-    DO_TEST_FULL("seclabel-dynamic-baselabel", WHEN_INACTIVE, GIC_NONE, NONE);
-    DO_TEST_FULL("seclabel-dynamic-override", WHEN_INACTIVE, GIC_NONE, NONE);
-    DO_TEST_FULL("seclabel-dynamic-labelskip", WHEN_INACTIVE, GIC_NONE, NONE);
-    DO_TEST_FULL("seclabel-dynamic-relabel", WHEN_INACTIVE, GIC_NONE, NONE);
+    DO_TEST_FULL("seclabel-dynamic-baselabel", WHEN_INACTIVE,
+                 ARG_QEMU_CAPS, NONE);
+    DO_TEST_FULL("seclabel-dynamic-override", WHEN_INACTIVE,
+                 ARG_QEMU_CAPS, NONE);
+    DO_TEST_FULL("seclabel-dynamic-labelskip", WHEN_INACTIVE,
+                 ARG_QEMU_CAPS, NONE);
+    DO_TEST_FULL("seclabel-dynamic-relabel", WHEN_INACTIVE,
+                 ARG_QEMU_CAPS, NONE);
     DO_TEST("seclabel-static", NONE);
     DO_TEST("seclabel-static-labelskip", NONE);
     DO_TEST("seclabel-none", NONE);
     DO_TEST("seclabel-dac-none", NONE);
     DO_TEST("seclabel-dynamic-none", NONE);
     DO_TEST("seclabel-device-multiple", NONE);
-    DO_TEST_FULL("seclabel-dynamic-none-relabel", WHEN_INACTIVE, GIC_NONE, NONE);
+    DO_TEST_FULL("seclabel-dynamic-none-relabel", WHEN_INACTIVE,
+                 ARG_QEMU_CAPS, NONE);
     DO_TEST("numad-static-vcpu-no-numatune", NONE);
 
     DO_TEST("disk-scsi-lun-passthrough-sgio",
@@ -1023,36 +1004,14 @@ mymain(void)
     DO_TEST("smbios", NONE);
     DO_TEST("smbios-multiple-type2", NONE);
 
-    DO_TEST("os-firmware-bios",
-            QEMU_CAPS_DEVICE_PCI_BRIDGE,
-            QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
-            QEMU_CAPS_DEVICE_IOH3420,
-            QEMU_CAPS_ICH9_AHCI,
-            QEMU_CAPS_ICH9_USB_EHCI1,
-            QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
-            QEMU_CAPS_DEVICE_QXL);
-    DO_TEST("os-firmware-efi",
-            QEMU_CAPS_DEVICE_PCI_BRIDGE,
-            QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
-            QEMU_CAPS_DEVICE_IOH3420,
-            QEMU_CAPS_ICH9_AHCI,
-            QEMU_CAPS_ICH9_USB_EHCI1,
-            QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
-            QEMU_CAPS_DEVICE_QXL);
-    DO_TEST("os-firmware-efi-secboot",
-            QEMU_CAPS_DEVICE_PCI_BRIDGE,
-            QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
-            QEMU_CAPS_DEVICE_IOH3420,
-            QEMU_CAPS_ICH9_AHCI,
-            QEMU_CAPS_ICH9_USB_EHCI1,
-            QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
-            QEMU_CAPS_DEVICE_QXL);
+    DO_TEST_CAPS_LATEST("os-firmware-bios");
+    DO_TEST_CAPS_LATEST("os-firmware-efi");
+    DO_TEST_CAPS_LATEST("os-firmware-efi-secboot");
 
     DO_TEST("aarch64-aavmf-virtio-mmio",
             QEMU_CAPS_DEVICE_VIRTIO_MMIO,
             QEMU_CAPS_DEVICE_VIRTIO_RNG, QEMU_CAPS_OBJECT_RNG_RANDOM);
-    DO_TEST("aarch64-os-firmware-efi",
-            QEMU_CAPS_DEVICE_VIRTIO_MMIO);
+    DO_TEST_CAPS_ARCH_LATEST("aarch64-os-firmware-efi", "aarch64");
     DO_TEST("aarch64-virtio-pci-default",
             QEMU_CAPS_VIRTIO_PCI_DISABLE_LEGACY,
             QEMU_CAPS_DEVICE_VIRTIO_MMIO,
@@ -1096,27 +1055,69 @@ mymain(void)
             QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
             QEMU_CAPS_VNC);
 
-    DO_TEST_FULL("aarch64-gic-none", WHEN_BOTH, GIC_NONE, NONE);
-    DO_TEST_FULL("aarch64-gic-none-v2", WHEN_BOTH, GIC_V2, NONE);
-    DO_TEST_FULL("aarch64-gic-none-v3", WHEN_BOTH, GIC_V3, NONE);
-    DO_TEST_FULL("aarch64-gic-none-both", WHEN_BOTH, GIC_BOTH, NONE);
-    DO_TEST_FULL("aarch64-gic-none-tcg", WHEN_BOTH, GIC_BOTH, NONE);
-    DO_TEST_FULL("aarch64-gic-default", WHEN_BOTH, GIC_NONE, NONE);
-    DO_TEST_FULL("aarch64-gic-default-v2", WHEN_BOTH, GIC_V2, NONE);
-    DO_TEST_FULL("aarch64-gic-default-v3", WHEN_BOTH, GIC_V3, NONE);
-    DO_TEST_FULL("aarch64-gic-default-both", WHEN_BOTH, GIC_BOTH, NONE);
-    DO_TEST_FULL("aarch64-gic-v2", WHEN_BOTH, GIC_NONE, NONE);
-    DO_TEST_FULL("aarch64-gic-v2", WHEN_BOTH, GIC_V2, NONE);
-    DO_TEST_FULL("aarch64-gic-v2", WHEN_BOTH, GIC_V3, NONE);
-    DO_TEST_FULL("aarch64-gic-v2", WHEN_BOTH, GIC_BOTH, NONE);
-    DO_TEST_FULL("aarch64-gic-v3", WHEN_BOTH, GIC_NONE, NONE);
-    DO_TEST_FULL("aarch64-gic-v3", WHEN_BOTH, GIC_V2, NONE);
-    DO_TEST_FULL("aarch64-gic-v3", WHEN_BOTH, GIC_V3, NONE);
-    DO_TEST_FULL("aarch64-gic-v3", WHEN_BOTH, GIC_BOTH, NONE);
-    DO_TEST_FULL("aarch64-gic-host", WHEN_BOTH, GIC_NONE, NONE);
-    DO_TEST_FULL("aarch64-gic-host", WHEN_BOTH, GIC_V2, NONE);
-    DO_TEST_FULL("aarch64-gic-host", WHEN_BOTH, GIC_V3, NONE);
-    DO_TEST_FULL("aarch64-gic-host", WHEN_BOTH, GIC_BOTH, NONE);
+    DO_TEST_FULL("aarch64-gic-none", WHEN_BOTH,
+                 ARG_GIC, GIC_NONE,
+                 ARG_QEMU_CAPS, NONE);
+    DO_TEST_FULL("aarch64-gic-none-v2", WHEN_BOTH,
+                 ARG_GIC, GIC_V2,
+                 ARG_QEMU_CAPS, NONE);
+    DO_TEST_FULL("aarch64-gic-none-v3", WHEN_BOTH,
+                 ARG_GIC, GIC_V3,
+                 ARG_QEMU_CAPS, NONE);
+    DO_TEST_FULL("aarch64-gic-none-both", WHEN_BOTH,
+                 ARG_GIC, GIC_BOTH,
+                 ARG_QEMU_CAPS, NONE);
+    DO_TEST_FULL("aarch64-gic-none-tcg", WHEN_BOTH,
+                 ARG_GIC, GIC_BOTH,
+                 ARG_QEMU_CAPS, NONE);
+    DO_TEST_FULL("aarch64-gic-default", WHEN_BOTH,
+                 ARG_GIC, GIC_NONE,
+                 ARG_QEMU_CAPS, NONE);
+    DO_TEST_FULL("aarch64-gic-default-v2", WHEN_BOTH,
+                 ARG_GIC, GIC_V2,
+                 ARG_QEMU_CAPS, NONE);
+    DO_TEST_FULL("aarch64-gic-default-v3", WHEN_BOTH,
+                 ARG_GIC, GIC_V3,
+                 ARG_QEMU_CAPS, NONE);
+    DO_TEST_FULL("aarch64-gic-default-both", WHEN_BOTH,
+                 ARG_GIC, GIC_BOTH,
+                 ARG_QEMU_CAPS, NONE);
+    DO_TEST_FULL("aarch64-gic-v2", WHEN_BOTH,
+                 ARG_GIC, GIC_NONE,
+                 ARG_QEMU_CAPS, NONE);
+    DO_TEST_FULL("aarch64-gic-v2", WHEN_BOTH,
+                 ARG_GIC, GIC_V2,
+                 ARG_QEMU_CAPS, NONE);
+    DO_TEST_FULL("aarch64-gic-v2", WHEN_BOTH,
+                 ARG_GIC, GIC_V3,
+                 ARG_QEMU_CAPS, NONE);
+    DO_TEST_FULL("aarch64-gic-v2", WHEN_BOTH,
+                 ARG_GIC, GIC_BOTH,
+                 ARG_QEMU_CAPS, NONE);
+    DO_TEST_FULL("aarch64-gic-v3", WHEN_BOTH,
+                 ARG_GIC, GIC_NONE,
+                 ARG_QEMU_CAPS, NONE);
+    DO_TEST_FULL("aarch64-gic-v3", WHEN_BOTH,
+                 ARG_GIC, GIC_V2,
+                 ARG_QEMU_CAPS, NONE);
+    DO_TEST_FULL("aarch64-gic-v3", WHEN_BOTH,
+                 ARG_GIC, GIC_V3,
+                 ARG_QEMU_CAPS, NONE);
+    DO_TEST_FULL("aarch64-gic-v3", WHEN_BOTH,
+                 ARG_GIC, GIC_BOTH,
+                 ARG_QEMU_CAPS, NONE);
+    DO_TEST_FULL("aarch64-gic-host", WHEN_BOTH,
+                 ARG_GIC, GIC_NONE,
+                 ARG_QEMU_CAPS, NONE);
+    DO_TEST_FULL("aarch64-gic-host", WHEN_BOTH,
+                 ARG_GIC, GIC_V2,
+                 ARG_QEMU_CAPS, NONE);
+    DO_TEST_FULL("aarch64-gic-host", WHEN_BOTH,
+                 ARG_GIC, GIC_V3,
+                 ARG_QEMU_CAPS, NONE);
+    DO_TEST_FULL("aarch64-gic-host", WHEN_BOTH,
+                 ARG_GIC, GIC_BOTH,
+                 ARG_QEMU_CAPS, NONE);
 
     DO_TEST("memory-hotplug", NONE);
     DO_TEST("memory-hotplug-nonuma", NONE);
@@ -1158,7 +1159,22 @@ mymain(void)
             QEMU_CAPS_VIRTIO_PCI_IOMMU_PLATFORM,
             QEMU_CAPS_VIRTIO_PCI_ATS);
 
-    virObjectUnref(cfg);
+    DO_TEST("fd-memory-numa-topology", QEMU_CAPS_OBJECT_MEMORY_FILE,
+            QEMU_CAPS_KVM);
+    DO_TEST("fd-memory-numa-topology2", QEMU_CAPS_OBJECT_MEMORY_FILE,
+            QEMU_CAPS_KVM);
+    DO_TEST("fd-memory-numa-topology3", QEMU_CAPS_OBJECT_MEMORY_FILE,
+            QEMU_CAPS_KVM);
+
+    DO_TEST("fd-memory-no-numa-topology", QEMU_CAPS_OBJECT_MEMORY_FILE,
+            QEMU_CAPS_KVM);
+
+    DO_TEST("memfd-memory-numa",
+            QEMU_CAPS_OBJECT_MEMORY_MEMFD,
+            QEMU_CAPS_OBJECT_MEMORY_MEMFD_HUGETLB);
+    DO_TEST("memfd-memory-default-hugepage",
+            QEMU_CAPS_OBJECT_MEMORY_MEMFD,
+            QEMU_CAPS_OBJECT_MEMORY_MEMFD_HUGETLB);
 
     DO_TEST("acpi-table", NONE);
 
@@ -1239,18 +1255,25 @@ mymain(void)
             QEMU_CAPS_VIRTIO_SCSI,
             QEMU_CAPS_MCH_EXTENDED_TSEG_MBYTES);
 
-# define DO_TEST_STATUS(name) \
+# define DO_TEST_STATUS(_name) \
     do { \
-        if (testInfoSetStatus(&info, name, GIC_NONE) < 0) { \
-            VIR_TEST_DEBUG("Failed to generate status test data for '%s'", name); \
+        static struct testQemuInfo info = { \
+            .name = _name, \
+        }; \
+        if (testQemuInfoSetArgs(&info, capslatest, \
+                                ARG_QEMU_CAPS, QEMU_CAPS_LAST, \
+                                ARG_END) < 0 || \
+            qemuTestCapsCacheInsert(driver.qemuCapsCache, info.qemuCaps) < 0 || \
+            testInfoSetStatusPaths(&info) < 0) { \
+            VIR_TEST_DEBUG("Failed to generate status test data for '%s'", _name); \
             return -1; \
         } \
 \
-        if (virTestRun("QEMU status XML-2-XML " name, \
+        if (virTestRun("QEMU status XML-2-XML " _name, \
                        testCompareStatusXMLToXMLFiles, &info) < 0) \
             ret = -1; \
 \
-        testInfoClear(&info); \
+        testQemuInfoClear(&info); \
     } while (0)
 
 
@@ -1275,28 +1298,13 @@ mymain(void)
     DO_TEST("riscv64-virt-pci",
             QEMU_CAPS_OBJECT_GPEX);
 
-    DO_TEST("virtio-transitional",
-            QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
-            QEMU_CAPS_DEVICE_PCIE_PCI_BRIDGE,
-            QEMU_CAPS_DEVICE_PCIE_ROOT_PORT,
-            QEMU_CAPS_DEVICE_VIRTIO_RNG,
-            QEMU_CAPS_VIRTIO_PCI_DISABLE_LEGACY,
-            QEMU_CAPS_DEVICE_VHOST_VSOCK,
-            QEMU_CAPS_VIRTIO_INPUT_HOST,
-            QEMU_CAPS_VIRTIO_SCSI);
-    DO_TEST("virtio-non-transitional",
-            QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
-            QEMU_CAPS_DEVICE_PCIE_PCI_BRIDGE,
-            QEMU_CAPS_DEVICE_PCIE_ROOT_PORT,
-            QEMU_CAPS_DEVICE_VIRTIO_RNG,
-            QEMU_CAPS_VIRTIO_PCI_DISABLE_LEGACY,
-            QEMU_CAPS_DEVICE_VHOST_VSOCK,
-            QEMU_CAPS_VIRTIO_INPUT_HOST,
-            QEMU_CAPS_VIRTIO_SCSI);
+    DO_TEST_CAPS_LATEST("virtio-transitional");
+    DO_TEST_CAPS_LATEST("virtio-non-transitional");
 
     if (getenv("LIBVIRT_SKIP_CLEANUP") == NULL)
         virFileDeleteTree(fakerootdir);
 
+    virHashFree(capslatest);
     qemuTestDriverFree(&driver);
     VIR_FREE(fakerootdir);
 
@@ -1305,7 +1313,8 @@ mymain(void)
 
 VIR_TEST_MAIN_PRELOAD(mymain,
                       abs_builddir "/.libs/virpcimock.so",
-                      abs_builddir "/.libs/virrandommock.so")
+                      abs_builddir "/.libs/virrandommock.so",
+                      abs_builddir "/.libs/virdeterministichashmock.so")
 
 #else
 

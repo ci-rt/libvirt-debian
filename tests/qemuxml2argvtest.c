@@ -288,24 +288,6 @@ static virNWFilterDriver fakeNWFilterDriver = {
     .nwfilterBindingDelete = fakeNWFilterBindingDelete,
 };
 
-typedef enum {
-    FLAG_EXPECT_FAILURE     = 1 << 0,
-    FLAG_EXPECT_PARSE_ERROR = 1 << 1,
-    FLAG_FIPS               = 1 << 2,
-    FLAG_REAL_CAPS          = 1 << 3,
-    FLAG_SKIP_LEGACY_CPUS   = 1 << 4,
-} virQemuXML2ArgvTestFlags;
-
-struct testInfo {
-    const char *name;
-    const char *suffix;
-    virQEMUCapsPtr qemuCaps;
-    const char *migrateFrom;
-    int migrateFd;
-    unsigned int flags;
-    unsigned int parseFlags;
-};
-
 
 static int
 testAddCPUModels(virQEMUCapsPtr caps, bool skipLegacy)
@@ -379,7 +361,7 @@ testAddCPUModels(virQEMUCapsPtr caps, bool skipLegacy)
 
 
 static int
-testUpdateQEMUCaps(const struct testInfo *info,
+testUpdateQEMUCaps(const struct testQemuInfo *info,
                    virDomainObjPtr vm,
                    virCapsPtr caps)
 {
@@ -426,12 +408,9 @@ testCheckExclusiveFlags(int flags)
 static int
 testCompareXMLToArgv(const void *data)
 {
-    struct testInfo *info = (void *) data;
-    char *xml = NULL;
-    char *args = NULL;
+    struct testQemuInfo *info = (void *) data;
     char *migrateURI = NULL;
     char *actualargv = NULL;
-    const char *suffix = info->suffix;
     unsigned int flags = info->flags;
     unsigned int parseFlags = info->parseFlags;
     int ret = -1;
@@ -447,9 +426,6 @@ testCompareXMLToArgv(const void *data)
 
     if (!(conn = virGetConnect()))
         goto cleanup;
-
-    if (!suffix)
-        suffix = "";
 
     conn->secretDriver = &fakeSecretDriver;
     conn->storageDriver = &fakeStorageDriver;
@@ -471,12 +447,6 @@ testCompareXMLToArgv(const void *data)
     if (qemuTestCapsCacheInsert(driver.qemuCapsCache, info->qemuCaps) < 0)
         goto cleanup;
 
-    if (virAsprintf(&xml, "%s/qemuxml2argvdata/%s.xml",
-                    abs_srcdir, info->name) < 0 ||
-        virAsprintf(&args, "%s/qemuxml2argvdata/%s%s.args",
-                    abs_srcdir, info->name, suffix) < 0)
-        goto cleanup;
-
     if (info->migrateFrom &&
         !(migrateURI = qemuMigrationDstGetURI(info->migrateFrom,
                                               info->migrateFd)))
@@ -486,7 +456,8 @@ testCompareXMLToArgv(const void *data)
         goto cleanup;
 
     parseFlags |= VIR_DOMAIN_DEF_PARSE_INACTIVE;
-    if (!(vm->def = virDomainDefParseFile(xml, driver.caps, driver.xmlopt,
+    if (!(vm->def = virDomainDefParseFile(info->infile,
+                                          driver.caps, driver.xmlopt,
                                           NULL, parseFlags))) {
         if (flags & FLAG_EXPECT_PARSE_ERROR)
             goto ok;
@@ -502,7 +473,7 @@ testCompareXMLToArgv(const void *data)
         goto cleanup;
 
     if (!virDomainDefCheckABIStability(vm->def, vm->def, driver.xmlopt)) {
-        VIR_TEST_DEBUG("ABI stability check failed on %s", xml);
+        VIR_TEST_DEBUG("ABI stability check failed on %s", info->infile);
         goto cleanup;
     }
 
@@ -570,7 +541,7 @@ testCompareXMLToArgv(const void *data)
     if (!(actualargv = virCommandToString(cmd, false)))
         goto cleanup;
 
-    if (virTestCompareToFile(actualargv, args) < 0)
+    if (virTestCompareToFile(actualargv, info->outfile) < 0)
         goto cleanup;
 
     ret = 0;
@@ -600,161 +571,21 @@ testCompareXMLToArgv(const void *data)
     virSetConnectStorage(NULL);
     virObjectUnref(conn);
     VIR_FREE(migrateURI);
-    VIR_FREE(xml);
-    VIR_FREE(args);
     return ret;
 }
-
-# define TEST_CAPS_PATH abs_srcdir "/qemucapabilitiesdata"
-
-typedef enum {
-    ARG_QEMU_CAPS,
-    ARG_GIC,
-    ARG_MIGRATE_FROM,
-    ARG_MIGRATE_FD,
-    ARG_FLAGS,
-    ARG_PARSEFLAGS,
-    ARG_CAPS_ARCH,
-    ARG_CAPS_VER,
-    ARG_END,
-} testInfoArgName;
 
 static int
-testInfoSetArgs(struct testInfo *info,
-                virHashTablePtr capslatest, ...)
+testInfoSetPaths(struct testQemuInfo *info,
+                 const char *suffix)
 {
-    va_list argptr;
-    testInfoArgName argname;
-    virQEMUCapsPtr qemuCaps = NULL;
-    int gic = GIC_NONE;
-    char *capsarch = NULL;
-    char *capsver = NULL;
-    VIR_AUTOFREE(char *) capsfile = NULL;
-    int flag;
-    int ret = -1;
-
-    va_start(argptr, capslatest);
-    argname = va_arg(argptr, testInfoArgName);
-    while (argname != ARG_END) {
-        switch (argname) {
-        case ARG_QEMU_CAPS:
-            if (qemuCaps || !(qemuCaps = virQEMUCapsNew()))
-                goto cleanup;
-
-            while ((flag = va_arg(argptr, int)) < QEMU_CAPS_LAST)
-                virQEMUCapsSet(qemuCaps, flag);
-
-            /* Some tests are run with NONE capabilities, which is just
-             * another name for QEMU_CAPS_LAST. If that is the case the
-             * arguments look like this :
-             *
-             *   ARG_QEMU_CAPS, NONE, QEMU_CAPS_LAST, ARG_END
-             *
-             * Fetch one argument more and if it is QEMU_CAPS_LAST then
-             * break from the switch() to force getting next argument
-             * in the line. If it is not QEMU_CAPS_LAST then we've
-             * fetched real ARG_* and we must process it.
-             */
-            if ((flag = va_arg(argptr, int)) != QEMU_CAPS_LAST) {
-                argname = flag;
-                continue;
-            }
-
-            break;
-
-        case ARG_GIC:
-            gic = va_arg(argptr, int);
-            break;
-
-        case ARG_MIGRATE_FROM:
-            info->migrateFrom = va_arg(argptr, char *);
-            break;
-
-        case ARG_MIGRATE_FD:
-            info->migrateFd = va_arg(argptr, int);
-            break;
-
-        case ARG_FLAGS:
-            info->flags = va_arg(argptr, int);
-            break;
-
-        case ARG_PARSEFLAGS:
-            info->parseFlags = va_arg(argptr, int);
-            break;
-
-        case ARG_CAPS_ARCH:
-            capsarch = va_arg(argptr, char *);
-            break;
-
-        case ARG_CAPS_VER:
-            capsver = va_arg(argptr, char *);
-            break;
-
-        case ARG_END:
-        default:
-            fprintf(stderr, "Unexpected test info argument");
-            goto cleanup;
-        }
-
-        argname = va_arg(argptr, testInfoArgName);
+    if (virAsprintf(&info->infile, "%s/qemuxml2argvdata/%s.xml",
+                    abs_srcdir, info->name) < 0 ||
+        virAsprintf(&info->outfile, "%s/qemuxml2argvdata/%s%s.args",
+                    abs_srcdir, info->name, suffix ? suffix : "") < 0) {
+        return -1;
     }
 
-    if (!!capsarch ^ !!capsver) {
-        fprintf(stderr, "ARG_CAPS_ARCH and ARG_CAPS_VER "
-                        "must be specified together.\n");
-        goto cleanup;
-    }
-
-    if (qemuCaps && (capsarch || capsver)) {
-        fprintf(stderr, "ARG_QEMU_CAPS can not be combined with ARG_CAPS_ARCH "
-                        "or ARG_CAPS_VER\n");
-        goto cleanup;
-    }
-
-    if (!qemuCaps && capsarch && capsver) {
-        bool stripmachinealiases = false;
-
-        if (STREQ(capsver, "latest")) {
-            if (VIR_STRDUP(capsfile, virHashLookup(capslatest, capsarch)) < 0)
-                goto cleanup;
-            stripmachinealiases = true;
-        } else if (virAsprintf(&capsfile, "%s/caps_%s.%s.xml",
-                               TEST_CAPS_PATH, capsver, capsarch) < 0) {
-            goto cleanup;
-        }
-
-        if (!(qemuCaps = qemuTestParseCapabilitiesArch(virArchFromString(capsarch),
-                                                       capsfile))) {
-            goto cleanup;
-        }
-
-        if (stripmachinealiases)
-            virQEMUCapsStripMachineAliases(qemuCaps);
-        info->flags |= FLAG_REAL_CAPS;
-    }
-
-    if (!qemuCaps) {
-        fprintf(stderr, "No qemuCaps generated\n");
-        goto cleanup;
-    }
-    VIR_STEAL_PTR(info->qemuCaps, qemuCaps);
-
-    if (gic != GIC_NONE && testQemuCapsSetGIC(info->qemuCaps, gic) < 0)
-        goto cleanup;
-
-    ret = 0;
-
- cleanup:
-    virObjectUnref(qemuCaps);
-    va_end(argptr);
-
-    return ret;
-}
-
-static void
-testInfoClear(struct testInfo *info)
-{
-    virObjectUnref(info->qemuCaps);
+    return 0;
 }
 
 # define FAKEROOTDIRTEMPLATE abs_builddir "/fakerootdir-XXXXXX"
@@ -762,15 +593,8 @@ testInfoClear(struct testInfo *info)
 static int
 mymain(void)
 {
-    int ret = 0, i;
+    int ret = 0;
     char *fakerootdir;
-    const char *archs[] = {
-        "aarch64",
-        "ppc64",
-        "riscv64",
-        "s390x",
-        "x86_64",
-    };
     virHashTablePtr capslatest = NULL;
 
     if (VIR_STRDUP_QUIET(fakerootdir, FAKEROOTDIRTEMPLATE) < 0) {
@@ -839,23 +663,9 @@ mymain(void)
     if (VIR_STRDUP(driver.config->nvramDir, "/var/lib/libvirt/qemu/nvram") < 0)
         return EXIT_FAILURE;
 
-    capslatest = virHashCreate(4, virHashValueFree);
+    capslatest = testQemuGetLatestCaps();
     if (!capslatest)
         return EXIT_FAILURE;
-
-    VIR_TEST_VERBOSE("\n");
-
-    for (i = 0; i < ARRAY_CARDINALITY(archs); ++i) {
-        char *cap = testQemuGetLatestCapsForArch(abs_srcdir "/qemucapabilitiesdata",
-                                                 archs[i], "xml");
-
-        if (!cap || virHashAddEntry(capslatest, archs[i], cap) < 0)
-            return EXIT_FAILURE;
-
-        VIR_TEST_VERBOSE("latest caps for %s: %s\n", archs[i], cap);
-    }
-
-    VIR_TEST_VERBOSE("\n");
 
     virFileWrapperAddPrefix(SYSCONFDIR "/qemu/firmware",
                             abs_srcdir "/qemufirmwaredata/etc/qemu/firmware");
@@ -880,17 +690,20 @@ mymain(void)
  */
 # define DO_TEST_INTERNAL(_name, _suffix, ...) \
     do { \
-        static struct testInfo info = { \
+        static struct testQemuInfo info = { \
             .name = _name, \
-            .suffix = _suffix, \
         }; \
-        if (testInfoSetArgs(&info, capslatest, \
-                            __VA_ARGS__, ARG_END) < 0) \
+        if (testQemuInfoSetArgs(&info, capslatest, \
+                                __VA_ARGS__, ARG_END) < 0) \
             return EXIT_FAILURE; \
+        if (testInfoSetPaths(&info, _suffix) < 0) { \
+            VIR_TEST_DEBUG("Failed to generate paths for '%s'", _name); \
+            return EXIT_FAILURE; \
+        } \
         if (virTestRun("QEMU XML-2-ARGV " _name _suffix, \
                        testCompareXMLToArgv, &info) < 0) \
             ret = -1; \
-        testInfoClear(&info); \
+        testQemuInfoClear(&info); \
     } while (0)
 
 # define DO_TEST_CAPS_INTERNAL(name, arch, ver, ...) \
@@ -1455,6 +1268,7 @@ mymain(void)
     DO_TEST("net-eth-hostip", NONE);
     DO_TEST("net-client", NONE);
     DO_TEST("net-server", NONE);
+    DO_TEST("net-many-models", NONE);
     DO_TEST("net-mcast", NONE);
     DO_TEST("net-udp", NONE);
     DO_TEST("net-hostdev", NONE);
@@ -2586,10 +2400,10 @@ mymain(void)
             QEMU_CAPS_DEVICE_PCIE_ROOT_PORT,
             QEMU_CAPS_VIRTIO_PCI_DISABLE_LEGACY);
 
-    DO_TEST("mlock-on", QEMU_CAPS_REALTIME_MLOCK);
-    DO_TEST_FAILURE("mlock-on", NONE);
-    DO_TEST("mlock-off", QEMU_CAPS_REALTIME_MLOCK);
-    DO_TEST("mlock-unsupported", NONE);
+    DO_TEST_CAPS_VER("mlock-on", "3.0.0");
+    DO_TEST_CAPS_VER("mlock-off", "3.0.0");
+    DO_TEST_CAPS_LATEST("mlock-on");
+    DO_TEST_CAPS_LATEST("mlock-off");
 
     DO_TEST_PARSE_ERROR("pci-bridge-negative-index-invalid", NONE);
     DO_TEST_PARSE_ERROR("pci-bridge-duplicate-index", NONE);
@@ -3045,6 +2859,7 @@ mymain(void)
             QEMU_CAPS_KVM);
 
     DO_TEST_CAPS_LATEST("memfd-memory-numa");
+    DO_TEST_CAPS_LATEST("memfd-memory-default-hugepage");
 
     DO_TEST("cpu-check-none", QEMU_CAPS_KVM);
     DO_TEST("cpu-check-partial", QEMU_CAPS_KVM);

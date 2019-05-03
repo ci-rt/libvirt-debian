@@ -45,6 +45,7 @@
 #include "viruuid.h"
 #include "virstring.h"
 #include "virgettext.h"
+#include "virenum.h"
 
 #include "locking/lock_daemon_dispatch.h"
 #include "locking/lock_protocol.h"
@@ -84,7 +85,8 @@ enum {
 };
 
 VIR_ENUM_DECL(virDaemonErr);
-VIR_ENUM_IMPL(virDaemonErr, VIR_LOCK_DAEMON_ERR_LAST,
+VIR_ENUM_IMPL(virDaemonErr,
+              VIR_LOCK_DAEMON_ERR_LAST,
               "Initialization successful",
               "Unable to obtain pidfile",
               "Unable to create rundir",

@@ -967,6 +967,11 @@
             <ref name="schedparam"/>
           </element>
         </zeroOrMore>
+        <optional>
+          <element name="emulatorsched">
+            <ref name="schedparam"/>
+          </element>
+        </optional>
         <zeroOrMore>
           <element name="cachetune">
             <attribute name="vcpus">
@@ -5676,6 +5681,7 @@
           </choice>
         </attribute>
       </optional>
+      <ref name="diskBackingChain"/>
     </element>
   </define>
   <define name="diskAuth">

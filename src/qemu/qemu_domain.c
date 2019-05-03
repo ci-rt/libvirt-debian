@@ -80,7 +80,8 @@ VIR_LOG_INIT("qemu.qemu_domain");
 
 #define QEMU_NAMESPACE_HREF "http://libvirt.org/schemas/domain/qemu/1.0"
 
-VIR_ENUM_IMPL(qemuDomainJob, QEMU_JOB_LAST,
+VIR_ENUM_IMPL(qemuDomainJob,
+              QEMU_JOB_LAST,
               "none",
               "query",
               "destroy",
@@ -92,13 +93,15 @@ VIR_ENUM_IMPL(qemuDomainJob, QEMU_JOB_LAST,
               "async nested",
 );
 
-VIR_ENUM_IMPL(qemuDomainAgentJob, QEMU_AGENT_JOB_LAST,
+VIR_ENUM_IMPL(qemuDomainAgentJob,
+              QEMU_AGENT_JOB_LAST,
               "none",
               "query",
               "modify",
 );
 
-VIR_ENUM_IMPL(qemuDomainAsyncJob, QEMU_ASYNC_JOB_LAST,
+VIR_ENUM_IMPL(qemuDomainAsyncJob,
+              QEMU_ASYNC_JOB_LAST,
               "none",
               "migration out",
               "migration in",
@@ -108,7 +111,8 @@ VIR_ENUM_IMPL(qemuDomainAsyncJob, QEMU_ASYNC_JOB_LAST,
               "start",
 );
 
-VIR_ENUM_IMPL(qemuDomainNamespace, QEMU_DOMAIN_NS_LAST,
+VIR_ENUM_IMPL(qemuDomainNamespace,
+              QEMU_DOMAIN_NS_LAST,
               "mount",
 );
 
@@ -2343,28 +2347,21 @@ qemuDomainObjPrivateXMLFormatPR(virBufferPtr buf,
 
 static int
 qemuDomainObjPrivateXMLFormatNBDMigrationSource(virBufferPtr buf,
-                                                virStorageSourcePtr src)
+                                                virStorageSourcePtr src,
+                                                virDomainXMLOptionPtr xmlopt)
 {
     VIR_AUTOCLEAN(virBuffer) attrBuf = VIR_BUFFER_INITIALIZER;
     VIR_AUTOCLEAN(virBuffer) childBuf = VIR_BUFFER_INITIALIZER;
-    VIR_AUTOCLEAN(virBuffer) privateDataBuf = VIR_BUFFER_INITIALIZER;
     int ret = -1;
 
     virBufferSetChildIndent(&childBuf, buf);
-    virBufferSetChildIndent(&privateDataBuf, &childBuf);
 
     virBufferAsprintf(&attrBuf, " type='%s' format='%s'",
                       virStorageTypeToString(src->type),
                       virStorageFileFormatTypeToString(src->format));
 
-    if (virDomainStorageSourceFormat(&attrBuf, &childBuf, src,
-                                     VIR_DOMAIN_DEF_FORMAT_STATUS, true) < 0)
-        goto cleanup;
-
-    if (qemuStorageSourcePrivateDataFormat(src, &privateDataBuf) < 0)
-        goto cleanup;
-
-    if (virXMLFormatElement(&childBuf, "privateData", NULL, &privateDataBuf) < 0)
+    if (virDomainDiskSourceFormat(&childBuf, src, 0, false,
+                                  VIR_DOMAIN_DEF_FORMAT_STATUS, xmlopt) < 0)
         goto cleanup;
 
     if (virXMLFormatElement(buf, "migrationSource", &attrBuf, &childBuf) < 0)
@@ -2381,6 +2378,7 @@ static int
 qemuDomainObjPrivateXMLFormatNBDMigration(virBufferPtr buf,
                                           virDomainObjPtr vm)
 {
+    qemuDomainObjPrivatePtr priv = vm->privateData;
     VIR_AUTOCLEAN(virBuffer) attrBuf = VIR_BUFFER_INITIALIZER;
     VIR_AUTOCLEAN(virBuffer) childBuf = VIR_BUFFER_INITIALIZER;
     size_t i;
@@ -2399,7 +2397,8 @@ qemuDomainObjPrivateXMLFormatNBDMigration(virBufferPtr buf,
 
         if (diskPriv->migrSource &&
             qemuDomainObjPrivateXMLFormatNBDMigrationSource(&childBuf,
-                                                            diskPriv->migrSource) < 0)
+                                                            diskPriv->migrSource,
+                                                            priv->driver->xmlopt) < 0)
             goto cleanup;
 
         if (virXMLFormatElement(buf, "disk", &attrBuf, &childBuf) < 0)
@@ -2668,14 +2667,13 @@ static int
 qemuDomainObjPrivateXMLParseBlockjobs(qemuDomainObjPrivatePtr priv,
                                       xmlXPathContextPtr ctxt)
 {
-    char *active;
+    VIR_AUTOFREE(char *) active = NULL;
     int tmp;
 
     if ((active = virXPathString("string(./blockjobs/@active)", ctxt)) &&
         (tmp = virTristateBoolTypeFromString(active)) > 0)
         priv->reconnectBlockjobs = tmp;
 
-    VIR_FREE(active);
     return 0;
 }
 
@@ -2716,64 +2714,47 @@ qemuDomainObjPrivateXMLParsePR(xmlXPathContextPtr ctxt,
 static int
 qemuDomainObjPrivateXMLParseJobNBDSource(xmlNodePtr node,
                                          xmlXPathContextPtr ctxt,
-                                         virDomainDiskDefPtr disk)
+                                         virDomainDiskDefPtr disk,
+                                         virDomainXMLOptionPtr xmlopt)
 {
     VIR_XPATH_NODE_AUTORESTORE(ctxt);
     qemuDomainDiskPrivatePtr diskPriv = QEMU_DOMAIN_DISK_PRIVATE(disk);
-    char *format = NULL;
-    char *type = NULL;
-    int ret = -1;
+    VIR_AUTOFREE(char *) format = NULL;
+    VIR_AUTOFREE(char *) type = NULL;
     VIR_AUTOUNREF(virStorageSourcePtr) migrSource = NULL;
+    xmlNodePtr sourceNode;
 
     ctxt->node = node;
 
-    if (!(ctxt->node = virXPathNode("./migrationSource", ctxt))) {
-        ret = 0;
-        goto cleanup;
-    }
-
-    if (!(migrSource = virStorageSourceNew()))
-        goto cleanup;
+    if (!(ctxt->node = virXPathNode("./migrationSource", ctxt)))
+        return 0;
 
     if (!(type = virXMLPropString(ctxt->node, "type"))) {
         virReportError(VIR_ERR_XML_ERROR, "%s",
                        _("missing storage source type"));
-        goto cleanup;
+        return -1;
     }
 
     if (!(format = virXMLPropString(ctxt->node, "format"))) {
         virReportError(VIR_ERR_XML_ERROR, "%s",
                        _("missing storage source format"));
-        goto cleanup;
+        return -1;
     }
 
-    if ((migrSource->type = virStorageTypeFromString(type)) <= 0) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("unknown storage source type '%s'"), type);
-        goto cleanup;
-    }
+    if (!(migrSource = virDomainStorageSourceParseBase(type, format, NULL)))
+        return -1;
 
-    if ((migrSource->format = virStorageFileFormatTypeFromString(format)) <= 0) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("unknown storage source format '%s'"), format);
-        goto cleanup;
-    }
+    /* newer libvirt uses the <source> subelement instead of formatting the
+     * source directly into <migrationSource> */
+    if ((sourceNode = virXPathNode("./source", ctxt)))
+        ctxt->node = sourceNode;
 
     if (virDomainStorageSourceParse(ctxt->node, ctxt, migrSource,
-                                    VIR_DOMAIN_DEF_PARSE_STATUS, NULL) < 0)
-        goto cleanup;
-
-    if ((ctxt->node = virXPathNode("./privateData", ctxt)) &&
-        qemuStorageSourcePrivateDataParse(ctxt, migrSource) < 0)
-        goto cleanup;
+                                    VIR_DOMAIN_DEF_PARSE_STATUS, xmlopt) < 0)
+        return -1;
 
     VIR_STEAL_PTR(diskPriv->migrSource, migrSource);
-    ret = 0;
-
- cleanup:
-    VIR_FREE(format);
-    VIR_FREE(type);
-    return ret;
+    return 0;
 }
 
 
@@ -2805,7 +2786,8 @@ qemuDomainObjPrivateXMLParseJobNBD(virDomainObjPtr vm,
                 QEMU_DOMAIN_DISK_PRIVATE(disk)->migrating = true;
 
                 if (qemuDomainObjPrivateXMLParseJobNBDSource(nodes[i], ctxt,
-                                                             disk) < 0)
+                                                             disk,
+                                                             priv->driver->xmlopt) < 0)
                     goto cleanup;
             }
 
@@ -5042,11 +5024,21 @@ qemuDomainDeviceDefValidateDisk(const virDomainDiskDef *disk,
         return -1;
     }
 
-    if (disk->src->readonly && disk->copy_on_read == VIR_TRISTATE_SWITCH_ON) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("copy_on_read is not compatible with read-only disk '%s'"),
-                       disk->dst);
-        return -1;
+    if (disk->copy_on_read == VIR_TRISTATE_SWITCH_ON) {
+        if (disk->src->readonly) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("copy_on_read is not compatible with read-only disk '%s'"),
+                           disk->dst);
+            return -1;
+        }
+
+        if (disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM ||
+            disk->device == VIR_DOMAIN_DISK_DEVICE_FLOPPY) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("copy_on_read is not supported with removable disk '%s'"),
+                           disk->dst);
+            return -1;
+        }
     }
 
     if (disk->geometry.cylinders > 0 &&
@@ -6232,49 +6224,49 @@ qemuDomainDeviceDefValidate(const virDomainDeviceDef *dev,
  * is NULL this function may return NULL if the default model depends on the
  * capabilities.
  */
-static const char *
+static int
 qemuDomainDefaultNetModel(const virDomainDef *def,
                           virQEMUCapsPtr qemuCaps)
 {
     if (ARCH_IS_S390(def->os.arch))
-        return "virtio";
+        return VIR_DOMAIN_NET_MODEL_VIRTIO;
 
     if (def->os.arch == VIR_ARCH_ARMV6L ||
         def->os.arch == VIR_ARCH_ARMV7L ||
         def->os.arch == VIR_ARCH_AARCH64) {
         if (STREQ(def->os.machine, "versatilepb"))
-            return "smc91c111";
+            return VIR_DOMAIN_NET_MODEL_SMC91C111;
 
         if (qemuDomainIsARMVirt(def))
-            return "virtio";
+            return VIR_DOMAIN_NET_MODEL_VIRTIO;
 
         /* Incomplete. vexpress (and a few others) use this, but not all
          * arm boards */
-        return "lan9118";
+        return VIR_DOMAIN_NET_MODEL_LAN9118;
     }
 
     /* virtio is a sensible default for RISC-V virt guests */
     if (qemuDomainIsRISCVVirt(def))
-        return "virtio";
+        return VIR_DOMAIN_NET_MODEL_VIRTIO;
 
     /* In all other cases the model depends on the capabilities. If they were
      * not provided don't report any default. */
     if (!qemuCaps)
-        return NULL;
+        return VIR_DOMAIN_NET_MODEL_UNKNOWN;
 
     /* Try several network devices in turn; each of these devices is
      * less likely be supported out-of-the-box by the guest operating
      * system than the previous one */
     if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_RTL8139))
-        return "rtl8139";
+        return VIR_DOMAIN_NET_MODEL_RTL8139;
     else if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_E1000))
-        return "e1000";
+        return VIR_DOMAIN_NET_MODEL_E1000;
     else if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_VIRTIO_NET))
-        return "virtio";
+        return VIR_DOMAIN_NET_MODEL_VIRTIO;
 
     /* We've had no luck detecting support for any network device,
      * but we have to return something: might as well be rtl8139 */
-    return "rtl8139";
+    return VIR_DOMAIN_NET_MODEL_RTL8139;
 }
 
 
@@ -6730,11 +6722,8 @@ qemuDomainDeviceNetDefPostParse(virDomainNetDefPtr net,
                                 virQEMUCapsPtr qemuCaps)
 {
     if (net->type != VIR_DOMAIN_NET_TYPE_HOSTDEV &&
-        !net->model) {
-        if (VIR_STRDUP(net->model,
-                       qemuDomainDefaultNetModel(def, qemuCaps)) < 0)
-            return -1;
-    }
+        !virDomainNetGetModelString(net))
+        net->model = qemuDomainDefaultNetModel(def, qemuCaps);
 
     return 0;
 }
@@ -6973,7 +6962,8 @@ virDomainDefParserConfig virQEMUDriverDomainDefParserConfig = {
                 VIR_DOMAIN_DEF_FEATURE_OFFLINE_VCPUPIN |
                 VIR_DOMAIN_DEF_FEATURE_INDIVIDUAL_VCPUS |
                 VIR_DOMAIN_DEF_FEATURE_USER_ALIAS |
-                VIR_DOMAIN_DEF_FEATURE_FW_AUTOSELECT,
+                VIR_DOMAIN_DEF_FEATURE_FW_AUTOSELECT |
+                VIR_DOMAIN_DEF_FEATURE_NET_MODEL_STRING,
 };
 
 
@@ -9400,33 +9390,14 @@ qemuDomainDiskChangeSupported(virDomainDiskDefPtr disk,
     CHECK_STREQ_NULLABLE(blkdeviotune.group_name,
                          "blkdeviotune group name");
 
-    if (disk->serial && STRNEQ_NULLABLE(disk->serial, orig_disk->serial)) {
-        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
-                       _("cannot modify field '%s' of the disk"),
-                       "serial");
-        return false;
-    }
-
-    if (disk->wwn && STRNEQ_NULLABLE(disk->wwn, orig_disk->wwn)) {
-        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
-                       _("cannot modify field '%s' of the disk"),
-                       "wwn");
-        return false;
-    }
-
-    if (disk->vendor && STRNEQ_NULLABLE(disk->vendor, orig_disk->vendor)) {
-        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
-                       _("cannot modify field '%s' of the disk"),
-                       "vendor");
-        return false;
-    }
-
-    if (disk->product && STRNEQ_NULLABLE(disk->product, orig_disk->product)) {
-        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
-                       _("cannot modify field '%s' of the disk"),
-                       "product");
-        return false;
-    }
+    CHECK_STREQ_NULLABLE(serial,
+                         "serial");
+    CHECK_STREQ_NULLABLE(wwn,
+                         "wwn");
+    CHECK_STREQ_NULLABLE(vendor,
+                         "vendor");
+    CHECK_STREQ_NULLABLE(product,
+                         "product");
 
     CHECK_EQ(cachemode, "cache", true);
     CHECK_EQ(error_policy, "error_policy", true);
@@ -9459,13 +9430,8 @@ qemuDomainDiskChangeSupported(virDomainDiskDefPtr disk,
     CHECK_EQ(discard, "discard", true);
     CHECK_EQ(iothread, "iothread", true);
 
-    if (disk->domain_name &&
-        STRNEQ_NULLABLE(disk->domain_name, orig_disk->domain_name)) {
-        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
-                       _("cannot modify field '%s' of the disk"),
-                       "backenddomain");
-        return false;
-    }
+    CHECK_STREQ_NULLABLE(domain_name,
+                         "backenddomain");
 
     /* checks for fields stored in disk->src */
     /* unfortunately 'readonly' and 'shared' can't be converted to tristate
@@ -9888,29 +9854,6 @@ qemuMonitorPtr
 qemuDomainGetMonitor(virDomainObjPtr vm)
 {
     return ((qemuDomainObjPrivatePtr) vm->privateData)->mon;
-}
-
-
-/**
- * qemuDomainSupportsBlockJobs:
- * @vm: domain object
- *
- * Returns -1 in case when qemu does not support block jobs at all. Otherwise
- * returns 0.
- */
-int
-qemuDomainSupportsBlockJobs(virDomainObjPtr vm)
-{
-    qemuDomainObjPrivatePtr priv = vm->privateData;
-    bool asynchronous = virQEMUCapsGet(priv->qemuCaps, QEMU_CAPS_BLOCKJOB_ASYNC);
-
-    if (!asynchronous) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("block jobs not supported with this QEMU binary"));
-        return -1;
-    }
-
-    return 0;
 }
 
 
@@ -10406,6 +10349,36 @@ qemuDomainUpdateCurrentMemorySize(virDomainObjPtr vm)
 
 
 /**
+ * ppc64VFIODeviceIsNV2Bridge:
+ * @device: string with the PCI device address
+ *
+ * This function receives a string that represents a PCI device,
+ * such as '0004:04:00.0', and tells if the device is a NVLink2
+ * bridge.
+ */
+static bool
+ppc64VFIODeviceIsNV2Bridge(const char *device)
+{
+    const char *nvlink2Files[] = {"ibm,gpu", "ibm,nvlink",
+                                  "ibm,nvlink-speed", "memory-region"};
+    size_t i;
+
+    for (i = 0; i < ARRAY_CARDINALITY(nvlink2Files); i++) {
+        VIR_AUTOFREE(char *) file = NULL;
+
+        if ((virAsprintf(&file, "/sys/bus/pci/devices/%s/of_node/%s",
+                         device, nvlink2Files[i])) < 0)
+            return false;
+
+        if (!virFileExists(file))
+            return false;
+    }
+
+    return true;
+}
+
+
+/**
  * getPPC64MemLockLimitBytes:
  * @def: domain definition
  *
@@ -10421,7 +10394,9 @@ getPPC64MemLockLimitBytes(virDomainDefPtr def)
     unsigned long long maxMemory = 0;
     unsigned long long passthroughLimit = 0;
     size_t i, nPCIHostBridges = 0;
+    virPCIDeviceAddressPtr pciAddr;
     bool usesVFIO = false;
+    bool nvlink2Capable = false;
 
     for (i = 0; i < def->ncontrollers; i++) {
         virDomainControllerDefPtr cont = def->controllers[i];
@@ -10439,7 +10414,17 @@ getPPC64MemLockLimitBytes(virDomainDefPtr def)
             dev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI &&
             dev->source.subsys.u.pci.backend == VIR_DOMAIN_HOSTDEV_PCI_BACKEND_VFIO) {
             usesVFIO = true;
-            break;
+
+            pciAddr = &dev->source.subsys.u.pci.addr;
+            if (virPCIDeviceAddressIsValid(pciAddr, false)) {
+                VIR_AUTOFREE(char *) pciAddrStr = NULL;
+
+                pciAddrStr = virPCIDeviceAddressAsString(pciAddr);
+                if (ppc64VFIODeviceIsNV2Bridge(pciAddrStr)) {
+                    nvlink2Capable = true;
+                    break;
+                }
+            }
         }
     }
 
@@ -10466,29 +10451,59 @@ getPPC64MemLockLimitBytes(virDomainDefPtr def)
                 4096 * nPCIHostBridges +
                 8192;
 
-    /* passthroughLimit := max( 2 GiB * #PHBs,                       (c)
-     *                          memory                               (d)
-     *                          + memory * 1/512 * #PHBs + 8 MiB )   (e)
+    /* NVLink2 support in QEMU is a special case of the passthrough
+     * mechanics explained in the usesVFIO case below. The GPU RAM
+     * is placed with a gap after maxMemory. The current QEMU
+     * implementation puts the NVIDIA RAM above the PCI MMIO, which
+     * starts at 32TiB and is the MMIO reserved for the guest main RAM.
      *
-     * (c) is the pre-DDW VFIO DMA window accounting. We're allowing 2 GiB
-     * rather than 1 GiB
+     * This window ends at 64TiB, and this is where the GPUs are being
+     * placed. The next available window size is at 128TiB, and
+     * 64TiB..128TiB will fit all possible NVIDIA GPUs.
      *
-     * (d) is the with-DDW (and memory pre-registration and related
-     * features) DMA window accounting - assuming that we only account RAM
-     * once, even if mapped to multiple PHBs
+     * The same assumption as the most common case applies here:
+     * the guest will request a 64-bit DMA window, per PHB, that is
+     * big enough to map all its RAM, which is now at 128TiB due
+     * to the GPUs.
      *
-     * (e) is the with-DDW userspace view and overhead for the 64-bit DMA
-     * window. This is based a bit on expected guest behaviour, but there
-     * really isn't a way to completely avoid that. We assume the guest
-     * requests a 64-bit DMA window (per PHB) just big enough to map all
-     * its RAM. 4 kiB page size gives the 1/512; it will be less with 64
-     * kiB pages, less still if the guest is mapped with hugepages (unlike
-     * the default 32-bit DMA window, DDW windows can use large IOMMU
-     * pages). 8 MiB is for second and further level overheads, like (b) */
-    if (usesVFIO)
+     * Note that the NVIDIA RAM window must be accounted for the TCE
+     * table size, but *not* for the main RAM (maxMemory). This gives
+     * us the following passthroughLimit for the NVLink2 case:
+     *
+     * passthroughLimit = maxMemory +
+     *                    128TiB/512KiB * #PHBs + 8 MiB */
+    if (nvlink2Capable) {
+        passthroughLimit = maxMemory +
+                           128 * (1ULL<<30) / 512 * nPCIHostBridges +
+                           8192;
+    } else if (usesVFIO) {
+        /* For regular (non-NVLink2 present) VFIO passthrough, the value
+         * of passthroughLimit is:
+         *
+         * passthroughLimit := max( 2 GiB * #PHBs,                       (c)
+         *                          memory                               (d)
+         *                          + memory * 1/512 * #PHBs + 8 MiB )   (e)
+         *
+         * (c) is the pre-DDW VFIO DMA window accounting. We're allowing 2
+         * GiB rather than 1 GiB
+         *
+         * (d) is the with-DDW (and memory pre-registration and related
+         * features) DMA window accounting - assuming that we only account
+         * RAM once, even if mapped to multiple PHBs
+         *
+         * (e) is the with-DDW userspace view and overhead for the 64-bit
+         * DMA window. This is based a bit on expected guest behaviour, but
+         * there really isn't a way to completely avoid that. We assume the
+         * guest requests a 64-bit DMA window (per PHB) just big enough to
+         * map all its RAM. 4 kiB page size gives the 1/512; it will be
+         * less with 64 kiB pages, less still if the guest is mapped with
+         * hugepages (unlike the default 32-bit DMA window, DDW windows
+         * can use large IOMMU pages). 8 MiB is for second and further level
+         * overheads, like (b) */
         passthroughLimit = MAX(2 * 1024 * 1024 * nPCIHostBridges,
                                memory +
                                memory / 512 * nPCIHostBridges + 8192);
+    }
 
     memKB = baseLimit + passthroughLimit;
 
@@ -14046,4 +14061,38 @@ qemuDomainNVRAMPathGenerate(virQEMUDriverConfigPtr cfg,
     }
 
     return 0;
+}
+
+
+virDomainEventSuspendedDetailType
+qemuDomainPausedReasonToSuspendedEvent(virDomainPausedReason reason)
+{
+    switch (reason) {
+    case VIR_DOMAIN_PAUSED_MIGRATION:
+        return VIR_DOMAIN_EVENT_SUSPENDED_MIGRATED;
+
+    case VIR_DOMAIN_PAUSED_FROM_SNAPSHOT:
+        return VIR_DOMAIN_EVENT_SUSPENDED_FROM_SNAPSHOT;
+
+    case VIR_DOMAIN_PAUSED_POSTCOPY_FAILED:
+        return VIR_DOMAIN_EVENT_SUSPENDED_POSTCOPY_FAILED;
+
+    case VIR_DOMAIN_PAUSED_POSTCOPY:
+        return VIR_DOMAIN_EVENT_SUSPENDED_POSTCOPY;
+
+    case VIR_DOMAIN_PAUSED_UNKNOWN:
+    case VIR_DOMAIN_PAUSED_USER:
+    case VIR_DOMAIN_PAUSED_SAVE:
+    case VIR_DOMAIN_PAUSED_DUMP:
+    case VIR_DOMAIN_PAUSED_IOERROR:
+    case VIR_DOMAIN_PAUSED_WATCHDOG:
+    case VIR_DOMAIN_PAUSED_SHUTTING_DOWN:
+    case VIR_DOMAIN_PAUSED_SNAPSHOT:
+    case VIR_DOMAIN_PAUSED_CRASHED:
+    case VIR_DOMAIN_PAUSED_STARTING_UP:
+    case VIR_DOMAIN_PAUSED_LAST:
+        break;
+    }
+
+    return VIR_DOMAIN_EVENT_SUSPENDED_PAUSED;
 }

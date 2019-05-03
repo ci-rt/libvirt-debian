@@ -1,6 +1,62 @@
 libvirt releases
 ================
 
+# v5.3.0 (unreleased)
+
+  * New features
+
+    - qemu: Add support for setting the emulator scheduler parameters
+        I/O threads and vCPU threads already support setting schedulers, but
+        until now it was impossible to do so for the main QEMU thread (emulator
+        thread in the libvirt naming). This is, however, requested for some
+        very specific scenarios, for example when vCPU threads are running at
+        such priority that could starve the main thread.
+
+  * Removed features
+
+    - vbox: Drop support for VirtualBox 4.x releases
+        Support for all the 4.x releases was ended by VirtualBox maintainers in
+        December 2015. Therefore, libvirt support for these releases is
+        dropped.
+
+  * Improvements
+
+    - qemu: Use PCI by default for RISC-V guests
+        PCI support for RISC-V guests was already available in libvirt 5.1.0,
+        but it required the user to opt-in by manually assigning PCI addresses:
+        with this release, RISC-V guests will use PCI automatically when
+        running against a recent enough (4.0.0+) QEMU release.
+
+    - qemu: Advertise firmware autoselection in domain capabilities
+        The firmware autoselection feature is now exposed in domain
+        capabilities and management applications can query for accepted values,
+        i.e. values that are accepted and for which libvirt found firmware
+        descriptor files. Firmware Secure Boot support is also advertised.
+
+    - Drop YAJL 1 support
+        YAJL 2 is widely adopted and maintaining side by side support for two
+        versions is unnecessary.
+
+  * Bug fixes
+
+    - rpc: cleanup in virNetTLSContextNew
+        Failed new gnutls context allocations in virNetTLSContextNew function
+        results in double free and segfault. Occasional memory leaks may also
+        occur.
+
+    - virsh: various completers fixes
+        There were some possible crashers, memory leaks, etc. which are now
+        fixed.
+
+    - qemu: Make hugepages work with memfd backend
+        Due to a bug in command line generation libvirt did not honor hugepages
+        setting with memfd backend.
+
+    - Enforce ACL write permission for getting guest time & hostname
+        Getting the guest time and hostname both require use of guest agent
+        commands. These must not be allowed for read-only users, so the
+        permissions check must validate "write" permission not "read".
+
 # v5.2.0 (2019-04-03)
 
   * New features
@@ -348,8 +404,6 @@ libvirt releases
         minimal performance penalty when compared to regular (L1) guests on
         ppc64 hardware.
 
-  * Improvements
-
   * Bug fixes
 
     - Xen: Handle soft reset shutdown event
@@ -512,8 +566,6 @@ libvirt releases
         example, use usb address as usb:<bus>.<port>, use sata address as
         <controller>.<bus>.<unit>.
 
-  * Bug fixes
-
 # v4.5.0 (2018-07-02)
 
   * New features
@@ -670,8 +722,6 @@ libvirt releases
     - virsh: Enhance event name completion
         Implement event name completion for some commands (e.g. event,
         secret-event, pool-event and nodedev-event)
-
-  * Bug fixes
 
 # v4.3.0 (2018-05-02)
 
@@ -1941,4 +1991,5 @@ libvirt releases
 
 ==============================================================================
 Older libvirt releases didn't have proper release notes: if you are interested
-in changes between them, you should check out ChangeLog* and docs/news-*.html.
+in changes between them, you should check out docs/news-*.html or the full git
+log (see instructions in ChangeLog).

@@ -230,7 +230,7 @@ qemuDomainAssignSpaprVIOAddresses(virDomainDefPtr def)
     for (i = 0; i < def->nnets; i++) {
         virDomainNetDefPtr net = def->nets[i];
 
-        if (STREQ_NULLABLE(net->model, "spapr-vlan"))
+        if (net->model == VIR_DOMAIN_NET_MODEL_SPAPR_VLAN)
             net->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_SPAPRVIO;
 
         if (qemuDomainAssignSpaprVIOAddress(def, &net->info, VIO_ADDR_NET) < 0)
@@ -460,22 +460,29 @@ qemuDomainHasVirtioMMIODevices(virDomainDefPtr def)
 
 
 static void
-qemuDomainAssignARMVirtioMMIOAddresses(virDomainDefPtr def,
-                                       virQEMUCapsPtr qemuCaps)
+qemuDomainAssignVirtioMMIOAddresses(virDomainDefPtr def,
+                                    virQEMUCapsPtr qemuCaps)
 {
     if (def->os.arch != VIR_ARCH_ARMV6L &&
         def->os.arch != VIR_ARCH_ARMV7L &&
-        def->os.arch != VIR_ARCH_AARCH64)
+        def->os.arch != VIR_ARCH_AARCH64 &&
+        !ARCH_IS_RISCV(def->os.arch)) {
         return;
+    }
 
     if (!(STRPREFIX(def->os.machine, "vexpress-") ||
-          qemuDomainIsARMVirt(def)))
+          qemuDomainIsARMVirt(def) ||
+          qemuDomainIsRISCVVirt(def))) {
         return;
+    }
 
-    /* We use virtio-mmio by default on mach-virt guests only if they already
-     * have at least one virtio-mmio device: in all other cases, we prefer
-     * virtio-pci */
+    /* We use virtio-mmio by default on virt guests only if they already
+     * have at least one virtio-mmio device: in all other cases, assuming
+     * the QEMU binary supports all necessary capabilities (PCIe Root plus
+     * some kind of PCIe Root Port), we prefer virtio-pci */
     if (qemuDomainHasPCIeRoot(def) &&
+        (virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_PCIE_ROOT_PORT) ||
+         virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_IOH3420)) &&
         !qemuDomainHasVirtioMMIODevices(def)) {
         qemuDomainPrimeVirtioDeviceAddresses(def,
                                              VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI);
@@ -483,30 +490,6 @@ qemuDomainAssignARMVirtioMMIOAddresses(virDomainDefPtr def,
         qemuDomainPrimeVirtioDeviceAddresses(def,
                                              VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_MMIO);
     }
-}
-
-
-static void
-qemuDomainAssignRISCVVirtioMMIOAddresses(virDomainDefPtr def,
-                                         virQEMUCapsPtr qemuCaps)
-{
-    if (!qemuDomainIsRISCVVirt(def))
-        return;
-
-    if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_VIRTIO_MMIO)) {
-        qemuDomainPrimeVirtioDeviceAddresses(def,
-                                             VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_MMIO);
-    }
-}
-
-
-static void
-qemuDomainAssignVirtioMMIOAddresses(virDomainDefPtr def,
-                                    virQEMUCapsPtr qemuCaps)
-{
-    qemuDomainAssignARMVirtioMMIOAddresses(def, qemuCaps);
-
-    qemuDomainAssignRISCVVirtioMMIOAddresses(def, qemuCaps);
 }
 
 
@@ -716,19 +699,18 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
          * addresses for other hostdev devices.
          */
         if (net->type == VIR_DOMAIN_NET_TYPE_HOSTDEV ||
-            STREQ_NULLABLE(net->model, "usb-net")) {
+            net->model == VIR_DOMAIN_NET_MODEL_USB_NET) {
             return 0;
         }
 
-        if (STREQ_NULLABLE(net->model, "virtio") ||
-            STREQ_NULLABLE(net->model, "virtio-non-transitional"))
+        if (net->model == VIR_DOMAIN_NET_MODEL_VIRTIO ||
+            net->model == VIR_DOMAIN_NET_MODEL_VIRTIO_NON_TRANSITIONAL)
             return virtioFlags;
 
-        /* Transitional devices only work in conventional PCI slots */
-        if (STREQ_NULLABLE(net->model, "virtio-transitional"))
+        if (net->model == VIR_DOMAIN_NET_MODEL_VIRTIO_TRANSITIONAL)
             return pciFlags;
 
-        if (STREQ_NULLABLE(net->model, "e1000e"))
+        if (net->model == VIR_DOMAIN_NET_MODEL_E1000E)
             return pcieFlags;
 
         return pciFlags;
@@ -1520,7 +1502,7 @@ qemuDomainCollectPCIAddress(virDomainDefPtr def ATTRIBUTE_UNUSED,
 
     if (!virDeviceInfoPCIAddressIsPresent(info) ||
         ((device->type == VIR_DOMAIN_DEVICE_HOSTDEV) &&
-         (device->data.hostdev->parent.type != VIR_DOMAIN_DEVICE_NONE))) {
+         device->data.hostdev->parentnet)) {
         /* If a hostdev has a parent, its info will be a part of the
          * parent, and will have its address collected during the scan
          * of the parent's device type.
@@ -1615,7 +1597,7 @@ qemuDomainCollectPCIAddressExtension(virDomainDefPtr def ATTRIBUTE_UNUSED,
 
     if (!virDeviceInfoPCIAddressExtensionIsPresent(info) ||
         ((device->type == VIR_DOMAIN_DEVICE_HOSTDEV) &&
-         (device->data.hostdev->parent.type != VIR_DOMAIN_DEVICE_NONE))) {
+         device->data.hostdev->parentnet)) {
         /* If a hostdev has a parent, its info will be a part of the
          * parent, and will have its address collected during the scan
          * of the parent's device type.

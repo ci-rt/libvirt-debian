@@ -27,7 +27,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_CAPABILITIES
 
-VIR_ENUM_IMPL(virDomainCapsCPUUsable, VIR_DOMCAPS_CPU_USABLE_LAST,
+VIR_ENUM_IMPL(virDomainCapsCPUUsable,
+              VIR_DOMCAPS_CPU_USABLE_LAST,
               "unknown", "yes", "no",
 );
 
@@ -415,6 +416,7 @@ virDomainCapsLoaderFormat(virBufferPtr buf,
     virDomainCapsStringValuesFormat(buf, &loader->values);
     ENUM_PROCESS(loader, type, virDomainLoaderTypeToString);
     ENUM_PROCESS(loader, readonly, virTristateBoolTypeToString);
+    ENUM_PROCESS(loader, secure, virTristateBoolTypeToString);
 
     FORMAT_EPILOGUE(loader);
 }
@@ -426,6 +428,8 @@ virDomainCapsOSFormat(virBufferPtr buf,
     virDomainCapsLoaderPtr loader = &os->loader;
 
     FORMAT_PROLOGUE(os);
+
+    ENUM_PROCESS(os, firmware, virDomainOsDefFirmwareTypeToString);
 
     virDomainCapsLoaderFormat(buf, loader);
 

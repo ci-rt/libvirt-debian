@@ -1900,38 +1900,8 @@ qemuGetDomainHugepagePath(const virDomainDef *def,
 
 
 /**
- * qemuGetDomainDefaultHugepath:
- * @def: domain definition
- * @hugetlbfs: array of configured hugepages
- * @nhugetlbfs: number of item in the array
- *
- * Callers must ensure that @hugetlbfs contains at least one entry.
- *
- * Returns 0 on success, -1 otherwise.
- * */
-char *
-qemuGetDomainDefaultHugepath(const virDomainDef *def,
-                             virHugeTLBFSPtr hugetlbfs,
-                             size_t nhugetlbfs)
-{
-    size_t i;
-
-    for (i = 0; i < nhugetlbfs; i++)
-        if (hugetlbfs[i].deflt)
-            break;
-
-    if (i == nhugetlbfs)
-        i = 0;
-
-    return qemuGetDomainHugepagePath(def, &hugetlbfs[i]);
-}
-
-
-/**
  * qemuGetDomainHupageMemPath: Construct HP enabled memory backend path
  *
- * If no specific hugepage size is requested (@pagesize is zero)
- * the default hugepage size is used).
  * The resulting path is stored at @memPath.
  *
  * Returns 0 on success,
@@ -1952,28 +1922,21 @@ qemuGetDomainHupageMemPath(const virDomainDef *def,
         return -1;
     }
 
-    if (!pagesize) {
-        if (!(*memPath = qemuGetDomainDefaultHugepath(def,
-                                                      cfg->hugetlbfs,
-                                                      cfg->nhugetlbfs)))
-            return -1;
-    } else {
-        for (i = 0; i < cfg->nhugetlbfs; i++) {
-            if (cfg->hugetlbfs[i].size == pagesize)
-                break;
-        }
-
-        if (i == cfg->nhugetlbfs) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Unable to find any usable hugetlbfs "
-                             "mount for %llu KiB"),
-                           pagesize);
-            return -1;
-        }
-
-        if (!(*memPath = qemuGetDomainHugepagePath(def, &cfg->hugetlbfs[i])))
-            return -1;
+    for (i = 0; i < cfg->nhugetlbfs; i++) {
+        if (cfg->hugetlbfs[i].size == pagesize)
+            break;
     }
+
+    if (i == cfg->nhugetlbfs) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to find any usable hugetlbfs "
+                         "mount for %llu KiB"),
+                       pagesize);
+        return -1;
+    }
+
+    if (!(*memPath = qemuGetDomainHugepagePath(def, &cfg->hugetlbfs[i])))
+        return -1;
 
     return 0;
 }

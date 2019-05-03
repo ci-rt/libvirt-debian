@@ -32,6 +32,7 @@
 # include "device_conf.h"
 # include "cpu/cpu.h"
 # include "util/virgic.h"
+# include "virenum.h"
 
 typedef struct _qemuMonitor qemuMonitor;
 typedef qemuMonitor *qemuMonitorPtr;
@@ -1219,5 +1220,14 @@ struct _qemuMonitorPRManagerInfo {
 
 int qemuMonitorGetPRManagerInfo(qemuMonitorPtr mon,
                                 virHashTablePtr *retinfo);
+
+typedef struct  _qemuMonitorCurrentMachineInfo qemuMonitorCurrentMachineInfo;
+typedef qemuMonitorCurrentMachineInfo *qemuMonitorCurrentMachineInfoPtr;
+struct _qemuMonitorCurrentMachineInfo {
+    bool wakeupSuspendSupport;
+};
+
+int qemuMonitorGetCurrentMachineInfo(qemuMonitorPtr mon,
+                                     qemuMonitorCurrentMachineInfoPtr info);
 
 #endif /* LIBVIRT_QEMU_MONITOR_H */

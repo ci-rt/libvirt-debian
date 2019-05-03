@@ -1,3 +1,5 @@
+# vim: filetype=automake
+
 EXTRA_DIST += \
 	rpc/gendispatch.pl \
 	rpc/genprotocol.pl \
@@ -135,3 +137,9 @@ libvirt_net_rpc_client_la_CFLAGS = \
 	$(NULL)
 libvirt_net_rpc_client_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_net_rpc_client_la_LIBADD = $(CYGWIN_EXTRA_LIBADD)
+
+if WITH_SASL
+libvirt_net_rpc_client_la_CFLAGS += \
+	$(SASL_CFLAGS) \
+	$(NULL)
+endif WITH_SASL

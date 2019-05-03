@@ -29,7 +29,6 @@ ACLOCAL_AMFLAGS = -I m4
 
 EXTRA_DIST = \
   config-post.h \
-  ChangeLog-old \
   libvirt.spec libvirt.spec.in \
   mingw-libvirt.spec.in \
   libvirt.pc.in \
@@ -41,7 +40,17 @@ EXTRA_DIST = \
   cfg.mk \
   run.in \
   README.md \
-  AUTHORS.in
+  AUTHORS.in \
+  build-aux/augeas-gentest.pl \
+  build-aux/check-spacing.pl \
+  build-aux/gitlog-to-changelog \
+  build-aux/header-ifdef.pl \
+  build-aux/minimize-po.pl \
+  build-aux/mock-noinline.pl \
+  build-aux/prohibit-duplicate-header.pl \
+  build-aux/useless-if-before-free \
+  build-aux/vc-list-files \
+  $(NULL)
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libvirt.pc libvirt-qemu.pc libvirt-lxc.pc libvirt-admin.pc
@@ -79,19 +88,7 @@ check-access:
 
 MAINTAINERCLEANFILES = .git-module-status
 
-dist-hook: gen-ChangeLog gen-AUTHORS
-
-# Generate the ChangeLog file (with all entries since the switch to git)
-# and insert it into the directory we're about to use to create a tarball.
-gen_start_date = 2009-07-04
-.PHONY: gen-ChangeLog
-gen-ChangeLog:
-	$(AM_V_GEN)if test -d .git; then \
-	  $(top_srcdir)/build-aux/gitlog-to-changelog \
-	    --since=$(gen_start_date) > $(distdir)/cl-t; \
-	  rm -f $(distdir)/ChangeLog; \
-	  mv $(distdir)/cl-t $(distdir)/ChangeLog; \
-	fi
+dist-hook: gen-AUTHORS
 
 .PHONY: gen-AUTHORS
 gen-AUTHORS:
@@ -109,3 +106,5 @@ gen-AUTHORS:
 	  mv -f $(distdir)/AUTHORS-tmp $(distdir)/AUTHORS && \
 	  rm -f all.list maint.list contrib.list; \
 	fi
+
+include Makefile.ci

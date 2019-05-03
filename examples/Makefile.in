@@ -2054,7 +2054,8 @@ EXTRA_DIST = \
 	$(wildcard $(srcdir)/xml/test/*.xml)
 
 AM_CPPFLAGS = \
-	-I$(top_builddir)/include -I$(top_srcdir)/include -I$(top_srcdir)
+	-I$(top_builddir)/include -I$(top_srcdir)/include -I$(top_srcdir) \
+	$(WARN_CFLAGS)
 
 LDADD = $(STATIC_BINARIES) $(WARN_CFLAGS) \
 	$(top_builddir)/src/libvirt.la \
@@ -2095,9 +2096,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu examples/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign examples/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu examples/Makefile
+	  $(AUTOMAKE) --foreign examples/Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
 	  *config.status*) \

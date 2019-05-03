@@ -48,7 +48,7 @@ testQemuDataInit(testQemuDataPtr data)
     if (qemuTestDriverInit(&data->driver) < 0)
         return -1;
 
-    data->dataDir = abs_srcdir "/qemucapabilitiesdata";
+    data->dataDir = TEST_QEMU_CAPS_PATH;
 
     data->ret = 0;
 
@@ -221,7 +221,7 @@ mymain(void)
     if (testQemuDataInit(&data) < 0)
         return EXIT_FAILURE;
 
-    if (testQemuCapsIterate(data.dataDir, ".replies", doCapsTest, &data) < 0)
+    if (testQemuCapsIterate(".replies", doCapsTest, &data) < 0)
         return EXIT_FAILURE;
 
     /*

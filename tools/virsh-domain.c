@@ -55,6 +55,7 @@
 #include "virsh-nodedev.h"
 #include "viruri.h"
 #include "vsh-table.h"
+#include "virenum.h"
 
 /* Gnulib doesn't guarantee SA_SIGINFO support.  */
 #ifndef SA_SIGINFO
@@ -682,7 +683,7 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
         virBufferAsprintf(&buf, "<serial>%s</serial>\n", serial);
 
     if (alias)
-        virBufferAsprintf(&buf, "<alias name='%s'/>", alias);
+        virBufferAsprintf(&buf, "<alias name='%s'/>\n", alias);
 
     if (wwn)
         virBufferAsprintf(&buf, "<wwn>%s</wwn>\n", wwn);
@@ -4805,13 +4806,13 @@ cmdManagedSaveRemove(vshControl *ctl, const vshCmd *cmd)
  * "managedsave-edit" command
  */
 static const vshCmdInfo info_managed_save_edit[] = {
-   {.name = "help",
-    .data = N_("edit XML for a domain's managed save state file")
-   },
-   {.name = "desc",
-    .data = N_("Edit the domain XML associated with the managed save state file")
-   },
-   {.name = NULL}
+    {.name = "help",
+     .data = N_("edit XML for a domain's managed save state file")
+    },
+    {.name = "desc",
+     .data = N_("Edit the domain XML associated with the managed save state file")
+    },
+    {.name = NULL}
 };
 
 static const vshCmdOptDef opts_managed_save_edit[] = {
@@ -5644,12 +5645,14 @@ static const vshCmdOptDef opts_setLifecycleAction[] = {
     {.name = NULL}
 };
 
-VIR_ENUM_IMPL(virDomainLifecycle, VIR_DOMAIN_LIFECYCLE_LAST,
+VIR_ENUM_IMPL(virDomainLifecycle,
+              VIR_DOMAIN_LIFECYCLE_LAST,
               "poweroff",
               "reboot",
               "crash");
 
-VIR_ENUM_IMPL(virDomainLifecycleAction, VIR_DOMAIN_LIFECYCLE_ACTION_LAST,
+VIR_ENUM_IMPL(virDomainLifecycleAction,
+              VIR_DOMAIN_LIFECYCLE_ACTION_LAST,
               "destroy",
               "restart",
               "rename-restart",
@@ -5829,6 +5832,7 @@ static const vshCmdOptDef opts_shutdown[] = {
     VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "mode",
      .type = VSH_OT_STRING,
+     .completer = virshDomainShutdownModeCompleter,
      .help = N_("shutdown mode: acpi|agent|initctl|signal|paravirt")
     },
     {.name = NULL}
@@ -5913,6 +5917,7 @@ static const vshCmdOptDef opts_reboot[] = {
     VIRSH_COMMON_OPT_DOMAIN_FULL(VIR_CONNECT_LIST_DOMAINS_ACTIVE),
     {.name = "mode",
      .type = VSH_OT_STRING,
+     .completer = virshDomainShutdownModeCompleter,
      .help = N_("shutdown mode: acpi|agent|initctl|signal|paravirt")
     },
     {.name = NULL}
@@ -8308,7 +8313,8 @@ static const vshCmdInfo info_desc[] = {
      .data = N_("show or set domain's description or title")
     },
     {.name = "desc",
-     .data = N_("Allows to show or modify description or title of a domain.")
+     .data = N_("Allows setting or modifying the description or title of "
+                "a domain.")
     },
     {.name = NULL}
 };

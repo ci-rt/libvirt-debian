@@ -22,8 +22,6 @@
   <flag name='virtio-blk-pci.scsi'/>
   <flag name='scsi-disk.channel'/>
   <flag name='scsi-block'/>
-  <flag name='transaction'/>
-  <flag name='block-job-async'/>
   <flag name='hda-micro'/>
   <flag name='dump-guest-memory'/>
   <flag name='nec-usb-xhci'/>
@@ -34,10 +32,7 @@
   <flag name='scsi-disk.wwn'/>
   <flag name='seccomp-sandbox'/>
   <flag name='reboot-timeout'/>
-  <flag name='block-commit'/>
   <flag name='vnc'/>
-  <flag name='drive-mirror'/>
-  <flag name='blockdev-snapshot-sync'/>
   <flag name='VGA'/>
   <flag name='device-video-primary'/>
   <flag name='usb-serial'/>
@@ -50,7 +45,6 @@
   <flag name='vfio-pci'/>
   <flag name='mem-merge'/>
   <flag name='drive-discard'/>
-  <flag name='mlock'/>
   <flag name='dmi-to-pci-bridge'/>
   <flag name='usb-storage'/>
   <flag name='usb-storage.removable'/>

@@ -354,6 +354,7 @@ virDomainDiskSetDriver;
 virDomainDiskSetFormat;
 virDomainDiskSetSource;
 virDomainDiskSetType;
+virDomainDiskSourceFormat;
 virDomainDiskTranslateSourcePool;
 virDomainFeatureTypeFromString;
 virDomainFeatureTypeToString;
@@ -474,14 +475,18 @@ virDomainNetGetActualTrustGuestRxFilters;
 virDomainNetGetActualType;
 virDomainNetGetActualVirtPortProfile;
 virDomainNetGetActualVlan;
+virDomainNetGetModelString;
 virDomainNetInsert;
 virDomainNetIsVirtioModel;
+virDomainNetModelTypeFromString;
+virDomainNetModelTypeToString;
 virDomainNetNotifyActualDevice;
 virDomainNetReleaseActualDevice;
 virDomainNetRemove;
 virDomainNetRemoveHostdev;
 virDomainNetResolveActualType;
 virDomainNetSetDeviceImpl;
+virDomainNetSetModelString;
 virDomainNetTypeFromString;
 virDomainNetTypeSharesHostView;
 virDomainNetTypeToString;
@@ -534,6 +539,7 @@ virDomainRunningReasonTypeToString;
 virDomainSaveConfig;
 virDomainSaveStatus;
 virDomainSaveXML;
+virDomainSCSIDriveAddressIsUsed;
 virDomainSeclabelTypeFromString;
 virDomainSeclabelTypeToString;
 virDomainShmemDefEquals;
@@ -563,8 +569,8 @@ virDomainStateReasonToString;
 virDomainStateTypeFromString;
 virDomainStateTypeToString;
 virDomainStorageNetworkParseHost;
-virDomainStorageSourceFormat;
 virDomainStorageSourceParse;
+virDomainStorageSourceParseBase;
 virDomainTaintTypeFromString;
 virDomainTaintTypeToString;
 virDomainTimerModeTypeFromString;
@@ -603,6 +609,7 @@ virDomainWatchdogModelTypeToString;
 virDomainXMLOptionGetNamespace;
 virDomainXMLOptionGetSaveCookie;
 virDomainXMLOptionNew;
+virDomainXMLOptionSetMomentPostParse;
 
 
 # conf/domain_event.h
@@ -1237,7 +1244,7 @@ virCPUValidateFeatures;
 
 
 # cpu/cpu_x86.h
-virCPUx86DataAddCPUID;
+virCPUx86DataAdd;
 virCPUx86DataAddFeature;
 virCPUx86DataGetSignature;
 virCPUx86DataSetSignature;
@@ -1427,6 +1434,7 @@ virAllocTestOOM;
 virAllocVar;
 virDeleteElementsN;
 virDispose;
+virDisposeString;
 virExpandN;
 virFree;
 virInsertElementsN;
@@ -1748,7 +1756,6 @@ virDBusGetSystemBus;
 virDBusHasSystemBus;
 virDBusMessageDecode;
 virDBusMessageEncode;
-virDBusMessageRead;
 virDBusMessageUnref;
 virDBusSetSharedBus;
 
@@ -1780,6 +1787,17 @@ ebtablesAddForwardPolicyReject;
 ebtablesContextFree;
 ebtablesContextNew;
 ebtablesRemoveForwardAllowIn;
+
+
+# util/virenum.h
+virEnumFromString;
+virEnumToString;
+virTristateBoolFromBool;
+virTristateBoolTypeFromString;
+virTristateBoolTypeToString;
+virTristateSwitchFromBool;
+virTristateSwitchTypeFromString;
+virTristateSwitchTypeToString;
 
 
 # util/virerror.h
@@ -1862,6 +1880,7 @@ virFileFindResourceFull;
 virFileFlock;
 virFileFreeACLs;
 virFileGetACLs;
+virFileGetDefaultHugepage;
 virFileGetHugepageSize;
 virFileGetMountReverseSubtree;
 virFileGetMountSubtree;
@@ -2013,6 +2032,7 @@ virHostCPUGetInfo;
 virHostCPUGetKVMMaxVCPUs;
 virHostCPUGetMap;
 virHostCPUGetMicrocodeVersion;
+virHostCPUGetMSR;
 virHostCPUGetOnline;
 virHostCPUGetOnlineBitmap;
 virHostCPUGetPresentBitmap;
@@ -2202,6 +2222,7 @@ virJSONValueObjectKeysNumber;
 virJSONValueObjectRemoveKey;
 virJSONValueObjectStealArray;
 virJSONValueObjectStealObject;
+virJSONValueToBuffer;
 virJSONValueToString;
 
 
@@ -2471,6 +2492,7 @@ virNetDevTapDelete;
 virNetDevTapGetName;
 virNetDevTapGetRealDeviceName;
 virNetDevTapInterfaceStats;
+virNetDevTapReattachBridge;
 
 
 # util/virnetdevveth.h
@@ -2489,6 +2511,7 @@ virNetDevVlanFree;
 virNetDevVPortProfileAssociate;
 virNetDevVPortProfileCheckComplete;
 virNetDevVPortProfileCheckNoExtras;
+virNetDevVPortProfileCopy;
 virNetDevVPortProfileDisassociate;
 virNetDevVPortProfileEqual;
 virNetDevVPortProfileMerge3;
@@ -3183,8 +3206,6 @@ virUSBDeviceSetUsedBy;
 virDoesGroupExist;
 virDoesUserExist;
 virDoubleToStr;
-virEnumFromString;
-virEnumToString;
 virFormatIntDecimal;
 virFormatIntPretty;
 virGetDeviceID;
@@ -3219,10 +3240,8 @@ virIsSUID;
 virMemoryLimitIsSet;
 virMemoryLimitTruncate;
 virMemoryMaxValue;
-virParseNumber;
 virParseOwnershipIds;
 virParseVersionString;
-virPipeReadUntilEOF;
 virScaleInteger;
 virSetBlocking;
 virSetCloseExec;
@@ -3232,12 +3251,6 @@ virSetNonBlock;
 virSetSockReuseAddr;
 virSetUIDGID;
 virSetUIDGIDWithCaps;
-virTristateBoolFromBool;
-virTristateBoolTypeFromString;
-virTristateBoolTypeToString;
-virTristateSwitchFromBool;
-virTristateSwitchTypeFromString;
-virTristateSwitchTypeToString;
 virUpdateSelfLastChanged;
 virValidateWWN;
 virWaitForDevices;

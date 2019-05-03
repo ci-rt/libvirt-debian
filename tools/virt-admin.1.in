@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRT-ADMIN 1"
-.TH VIRT-ADMIN 1 "2019-03-26" "libvirt-5.2.0" "Virtualization Support"
+.TH VIRT-ADMIN 1 "2019-04-27" "libvirt-5.3.0" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -265,8 +265,8 @@ variable nor \fIuri_default\fR option (libvirt\-admin.conf) were set,
 libvirtd:///system is used.
 .SH "DAEMON COMMANDS"
 .IX Header "DAEMON COMMANDS"
-The following commands allow to monitor the daemon's state as well as directly
-change its internal configuration.
+The following commands allow one to monitor the daemon's state as well as
+directly change its internal configuration.
 .IP "\fBserver-list\fR" 4
 .IX Item "server-list"
 Lists all manageable servers contained within the daemon the client is

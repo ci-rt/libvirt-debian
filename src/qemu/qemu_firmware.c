@@ -33,6 +33,8 @@
 #include "virjson.h"
 #include "virlog.h"
 #include "virstring.h"
+#include "viralloc.h"
+#include "virenum.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -924,9 +926,7 @@ qemuFirmwareBuildFileList(virHashTablePtr files, const char *dir)
     while ((rc = virDirRead(dirp, &ent, dir)) > 0) {
         VIR_AUTOFREE(char *) filename = NULL;
         VIR_AUTOFREE(char *) path = NULL;
-
-        if (ent->d_type != DT_REG && ent->d_type != DT_LNK)
-            continue;
+        struct stat sb;
 
         if (STRPREFIX(ent->d_name, "."))
             continue;
@@ -936,6 +936,14 @@ qemuFirmwareBuildFileList(virHashTablePtr files, const char *dir)
 
         if (virAsprintf(&path, "%s/%s", dir, filename) < 0)
             goto cleanup;
+
+        if (stat(path, &sb) < 0) {
+            virReportSystemError(errno, _("Unable to access %s"), path);
+            goto cleanup;
+        }
+
+        if (!S_ISREG(sb.st_mode) && !S_ISLNK(sb.st_mode))
+            continue;
 
         if (virHashUpdateEntry(files, filename, path) < 0)
             goto cleanup;
@@ -1049,6 +1057,29 @@ qemuFirmwareFetchConfigs(char ***firmwares,
 
 
 static bool
+qemuFirmwareMatchesMachineArch(const qemuFirmware *fw,
+                               const char *machine,
+                               virArch arch)
+{
+    size_t i;
+
+    for (i = 0; i < fw->ntargets; i++) {
+        size_t j;
+
+        if (arch != fw->targets[i]->architecture)
+            continue;
+
+        for (j = 0; j < fw->targets[i]->nmachines; j++) {
+            if (fnmatch(fw->targets[i]->machines[j], machine, 0) == 0)
+                return true;
+        }
+    }
+
+    return false;
+}
+
+
+static bool
 qemuFirmwareMatchDomain(const virDomainDef *def,
                         const qemuFirmware *fw,
                         const char *path)
@@ -1072,24 +1103,7 @@ qemuFirmwareMatchDomain(const virDomainDef *def,
         return false;
     }
 
-    for (i = 0; i < fw->ntargets; i++) {
-        size_t j;
-
-        if (def->os.arch != fw->targets[i]->architecture)
-            continue;
-
-        for (j = 0; j < fw->targets[i]->nmachines; j++) {
-            if (fnmatch(fw->targets[i]->machines[j], def->os.machine, 0) == 0)
-                break;
-        }
-
-        if (j == fw->targets[i]->nmachines)
-            continue;
-
-        break;
-    }
-
-    if (i == fw->ntargets) {
+    if (!qemuFirmwareMatchesMachineArch(fw, def->os.machine, def->os.arch)) {
         VIR_DEBUG("No matching machine type in '%s'", path);
         return false;
     }
@@ -1308,15 +1322,50 @@ qemuFirmwareSanityCheck(const qemuFirmware *fw,
 }
 
 
+static ssize_t
+qemuFirmwareFetchParsedConfigs(bool privileged,
+                               qemuFirmwarePtr **firmwaresRet,
+                               char ***pathsRet)
+{
+    VIR_AUTOSTRINGLIST paths = NULL;
+    size_t npaths;
+    qemuFirmwarePtr *firmwares = NULL;
+    size_t i;
+
+    if (qemuFirmwareFetchConfigs(&paths, privileged) < 0)
+        return -1;
+
+    npaths = virStringListLength((const char **)paths);
+
+    if (VIR_ALLOC_N(firmwares, npaths) < 0)
+        return -1;
+
+    for (i = 0; i < npaths; i++) {
+        if (!(firmwares[i] = qemuFirmwareParse(paths[i])))
+            goto error;
+    }
+
+    VIR_STEAL_PTR(*firmwaresRet, firmwares);
+    if (pathsRet)
+        VIR_STEAL_PTR(*pathsRet, paths);
+    return npaths;
+
+ error:
+    while (i > 0)
+        qemuFirmwareFree(firmwares[--i]);
+    VIR_FREE(firmwares);
+    return -1;
+}
+
+
 int
 qemuFirmwareFillDomain(virQEMUDriverPtr driver,
                        virDomainObjPtr vm,
                        unsigned int flags)
 {
     VIR_AUTOSTRINGLIST paths = NULL;
-    size_t npaths = 0;
     qemuFirmwarePtr *firmwares = NULL;
-    size_t nfirmwares = 0;
+    ssize_t nfirmwares = 0;
     const qemuFirmware *theone = NULL;
     size_t i;
     int ret = -1;
@@ -1327,20 +1376,9 @@ qemuFirmwareFillDomain(virQEMUDriverPtr driver,
     if (vm->def->os.firmware == VIR_DOMAIN_OS_DEF_FIRMWARE_NONE)
         return 0;
 
-    if (qemuFirmwareFetchConfigs(&paths, driver->privileged) < 0)
+    if ((nfirmwares = qemuFirmwareFetchParsedConfigs(driver->privileged,
+                                                     &firmwares, &paths)) < 0)
         return -1;
-
-    npaths = virStringListLength((const char **)paths);
-
-    if (VIR_ALLOC_N(firmwares, npaths) < 0)
-        return -1;
-
-    nfirmwares = npaths;
-
-    for (i = 0; i < nfirmwares; i++) {
-        if (!(firmwares[i] = qemuFirmwareParse(paths[i])))
-            goto cleanup;
-    }
 
     for (i = 0; i < nfirmwares; i++) {
         if (qemuFirmwareMatchDomain(vm->def, firmwares[i], paths[i])) {
@@ -1374,4 +1412,72 @@ qemuFirmwareFillDomain(virQEMUDriverPtr driver,
         qemuFirmwareFree(firmwares[i]);
     VIR_FREE(firmwares);
     return ret;
+}
+
+
+int
+qemuFirmwareGetSupported(const char *machine,
+                         virArch arch,
+                         bool privileged,
+                         uint64_t *supported,
+                         bool *secure)
+{
+    qemuFirmwarePtr *firmwares = NULL;
+    ssize_t nfirmwares = 0;
+    size_t i;
+
+    *supported = VIR_DOMAIN_OS_DEF_FIRMWARE_NONE;
+    *secure = false;
+
+    if ((nfirmwares = qemuFirmwareFetchParsedConfigs(privileged,
+                                                     &firmwares, NULL)) < 0)
+        return -1;
+
+    for (i = 0; i < nfirmwares; i++) {
+        qemuFirmwarePtr fw = firmwares[i];
+        size_t j;
+
+        if (!qemuFirmwareMatchesMachineArch(fw, machine, arch))
+            continue;
+
+        for (j = 0; j < fw->ninterfaces; j++) {
+            switch (fw->interfaces[j]) {
+            case QEMU_FIRMWARE_OS_INTERFACE_UEFI:
+                *supported |= 1ULL << VIR_DOMAIN_OS_DEF_FIRMWARE_EFI;
+                break;
+            case QEMU_FIRMWARE_OS_INTERFACE_BIOS:
+                *supported |= 1ULL << VIR_DOMAIN_OS_DEF_FIRMWARE_BIOS;
+                break;
+            case QEMU_FIRMWARE_OS_INTERFACE_NONE:
+            case QEMU_FIRMWARE_OS_INTERFACE_OPENFIRMWARE:
+            case QEMU_FIRMWARE_OS_INTERFACE_UBOOT:
+            case QEMU_FIRMWARE_OS_INTERFACE_LAST:
+            default:
+                break;
+            }
+        }
+
+        for (j = 0; j < fw->nfeatures; j++) {
+            switch (fw->features[j]) {
+            case QEMU_FIRMWARE_FEATURE_REQUIRES_SMM:
+                *secure = true;
+                break;
+            case QEMU_FIRMWARE_FEATURE_NONE:
+            case QEMU_FIRMWARE_FEATURE_ACPI_S3:
+            case QEMU_FIRMWARE_FEATURE_ACPI_S4:
+            case QEMU_FIRMWARE_FEATURE_AMD_SEV:
+            case QEMU_FIRMWARE_FEATURE_ENROLLED_KEYS:
+            case QEMU_FIRMWARE_FEATURE_SECURE_BOOT:
+            case QEMU_FIRMWARE_FEATURE_VERBOSE_DYNAMIC:
+            case QEMU_FIRMWARE_FEATURE_VERBOSE_STATIC:
+            case QEMU_FIRMWARE_FEATURE_LAST:
+                break;
+            }
+        }
+    }
+
+    for (i = 0; i < nfirmwares; i++)
+        qemuFirmwareFree(firmwares[i]);
+    VIR_FREE(firmwares);
+    return 0;
 }
