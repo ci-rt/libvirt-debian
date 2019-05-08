@@ -11,10 +11,10 @@ Closes: #895145
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/configure.ac b/configure.ac
-index 880a3a7..307aff0 100644
+index dcd78f6..1b77c97 100644
 --- a/configure.ac
 +++ b/configure.ac
-@@ -110,7 +110,7 @@ then
+@@ -116,7 +116,7 @@ then
  fi
  
  dnl Where we look for daemons and admin binaries during configure

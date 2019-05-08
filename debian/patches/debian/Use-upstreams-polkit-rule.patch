@@ -9,10 +9,10 @@ As of 1.2.16 upstream ships a Polkit rule like Debian does.
  2 files changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/src/Makefile.in b/src/Makefile.in
-index 2700a1d..4abd388 100644
+index e9e5ee0..c780453 100644
 --- a/src/Makefile.in
 +++ b/src/Makefile.in
-@@ -13447,12 +13447,12 @@ lxc/lxc_controller_dispatch.h: $(srcdir)/rpc/gendispatch.pl \
+@@ -13475,12 +13475,12 @@ lxc/lxc_controller_dispatch.h: $(srcdir)/rpc/gendispatch.pl \
  @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@		$(DESTDIR)$(polkitactionsdir)/org.libvirt.unix.policy
  @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	$(MKDIR_P) $(DESTDIR)$(polkitrulesdir)
  @WITH_LIBVIRTD_TRUE@@WITH_POLKIT_TRUE@	$(INSTALL_DATA) $(srcdir)/remote/libvirtd.rules \
@@ -28,10 +28,10 @@ index 2700a1d..4abd388 100644
  
  .PHONY: \
 diff --git a/src/remote/Makefile.inc.am b/src/remote/Makefile.inc.am
-index dccecf8..c1916bd 100644
+index 0671424..9e7227d 100644
 --- a/src/remote/Makefile.inc.am
 +++ b/src/remote/Makefile.inc.am
-@@ -213,12 +213,12 @@ install-polkit:
+@@ -221,12 +221,12 @@ install-polkit:
  		$(DESTDIR)$(polkitactionsdir)/org.libvirt.unix.policy
  	$(MKDIR_P) $(DESTDIR)$(polkitrulesdir)
  	$(INSTALL_DATA) $(srcdir)/remote/libvirtd.rules \

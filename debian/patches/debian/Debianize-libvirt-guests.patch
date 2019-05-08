@@ -9,7 +9,7 @@ Origin: vendor
  2 files changed, 30 insertions(+), 19 deletions(-)
 
 diff --git a/tools/libvirt-guests.sh.in b/tools/libvirt-guests.sh.in
-index 4bc6e86..9ec4064 100644
+index 4bc6e86..f94f1b3 100644
 --- a/tools/libvirt-guests.sh.in
 +++ b/tools/libvirt-guests.sh.in
 @@ -1,5 +1,17 @@
