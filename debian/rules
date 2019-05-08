@@ -233,7 +233,8 @@ override_dh_installsystemd:
 	dh_installsystemd -p libvirt-daemon-system --no-stop-on-upgrade $(LIBVIRT_SYSTEM_SERVICES)
 
 override_dh_installdocs:
-	dh_installdocs
+	dh_installdocs -plibvirt-doc --doc-main-package libvirt-doc
+	dh_installdocs -Nlibvirt-doc
 	# Remove binaries and object files examples
 	[ ! -d $(EXAMPLES_DIR) ] || find $(EXAMPLES_DIR) -name "*.o" -type f -delete -o -name .libs -type d -exec rm -rf {} \;
 	rm -f $(EXAMPLES_DIR)domain-events/events-c/event-test \
