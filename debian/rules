@@ -157,7 +157,6 @@ override_dh_auto_configure:
 	IP6TABLES_PATH=/usr/sbin/ip6tables \
 	EBTABLES_PATH=/usr/sbin/ebtables \
 	dh_auto_configure -- $(DEB_CONFIGURE_EXTRA_ARGS) $(shell dpkg-buildflags --export=configure)
-	mkdir -p debian/build/docs/internals
 
 override_dh_auto_test:
 	export LD_PRELOAD="";     \
