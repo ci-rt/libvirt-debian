@@ -1,3 +1,19 @@
+libvirt (5.0.0-2.1) unstable; urgency=medium
+
+  * Non-maintainer upload.
+
+  [ Guido Günther ]
+  * [3a9c65c] d/control: Fix typo
+  * [b9935e5] d/control: Drop Debian revision on iptables build-dep.
+    Any version greater than 1.8.1 will do.
+
+  [ Salvatore Bonaccorso ]
+  * [b811e38] cpu_map: Define md-clear CPUID bit (CVE-2018-12126,
+    CVE-2018-12127, CVE-2018-12130, CVE-2019-11091)
+    (Closes: #929154)
+
+ -- Salvatore Bonaccorso <carnil@debian.org>  Sun, 19 May 2019 13:50:25 +0200
+
 libvirt (5.0.0-2) unstable; urgency=medium
 
   [ Laurent Bigonville ]
