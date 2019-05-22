@@ -22,3 +22,6 @@ security-aa-helper-gl-devices-in-sysfs-at-arbitrary-depth.patch
 api-disallow-virDomainGetHostname-for-read-only-connectio.patch
 remote-enforce-ACL-write-permission-for-getting-guest-tim.patch
 cpu_map-Define-md-clear-CPUID-bit.patch
+security/admin-reject-clients-unless-their-UID-matches-the-current.patch
+security/locking-restrict-sockets-to-mode-0600.patch
+security/logging-restrict-sockets-to-mode-0600.patch
