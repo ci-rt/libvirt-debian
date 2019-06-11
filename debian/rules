@@ -210,6 +210,7 @@ endif
 ifeq ($(XEN_ENABLED), 1)
 	dh_install -p libvirt-daemon-system etc/libvirt/libxl.conf
 	dh_install -p libvirt-daemon-system etc/libvirt/libxl-lockd.conf
+	dh_install -p libvirt-daemon-system etc/libvirt/libxl-sanlock.conf
 endif
 
 	set -e; for l in $(LOGROTATE); do \
