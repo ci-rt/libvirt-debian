@@ -38,3 +38,4 @@ add-console-log-cmd.patch
 r4d_gracefull_shutdown.patch
 add-capabilities.patch
 more-caps.patch
+r4d_handle_snapshots.patch

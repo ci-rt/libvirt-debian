@@ -1,0 +1,39 @@
+--- a/src/r4d/r4d_driver.c
++++ b/src/r4d/r4d_driver.c
+@@ -647,6 +647,26 @@
+ }
+ 
+ static int
++r4dDomainSnapshotNum(virDomainPtr domain ATTRIBUTE_UNUSED,
++                     unsigned int flags ATTRIBUTE_UNUSED)
++{
++    /* we do not provide snapshots ATM */
++    logger (__func__);
++    return 0;
++}
++
++static int
++r4dDomainSnapshotListNames(virDomainPtr domain ATTRIBUTE_UNUSED,
++                           char **names ATTRIBUTE_UNUSED,
++                           int nameslen ATTRIBUTE_UNUSED,
++                           unsigned int flags ATTRIBUTE_UNUSED)
++{
++    /* we do not provide snapshots ATM */
++    logger (__func__);
++    return 0;
++}
++
++static int
+ r4dDomainOpenConsole(virDomainPtr dom,
+                      const char * dev_name ATTRIBUTE_UNUSED,
+                      virStreamPtr st,
+@@ -771,6 +791,9 @@
+ 
+     .domainIsActive =  r4dDomainIsActive, /* 1.3.1 */
+ 
++    .domainSnapshotNum = r4dDomainSnapshotNum, /* 1.3.1 */
++    .domainSnapshotListNames = r4dDomainSnapshotListNames, /* 1.3.1 */
++
+     .domainOpenConsole =  r4dDomainOpenConsole, /* 1.3.1 */
+ 
+     .domainCoreDump =  r4dDomainCoreDump, /* 1.3.1 */
