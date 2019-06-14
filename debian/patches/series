@@ -36,3 +36,4 @@ add-r4d-support.patch
 r4d-dirty-logger.patch
 add-console-log-cmd.patch
 r4d_gracefull_shutdown.patch
+add-capabilities.patch
