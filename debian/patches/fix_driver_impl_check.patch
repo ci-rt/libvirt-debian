@@ -1,0 +1,20 @@
+--- a/src/check-driverimpls.pl
++++ b/src/check-driverimpls.pl
+@@ -40,7 +40,7 @@
+ 
+             my $suffix = $impl;
+             my $prefix = $impl;
+-            $prefix =~ s/^([a-z]+(?:Unified)?)(.*?)$/$1/;
++            $prefix =~ s/^([a-z][a-z0-9]*(?:Unified)?)(.*?)$/$1/;
+ 
+             if (defined $mainprefix) {
+                 if ($mainprefix ne $prefix) {
+@@ -52,7 +52,7 @@
+             }
+ 
+             if ($api !~ /^$mainprefix/) {
+-                $suffix =~ s/^[a-z]+(?:Unified)?//;
++                $suffix =~ s/^[a-z][a-z0-9]*(?:Unified)?//;
+                 $suffix =~ s/^([A-Z]+)/lc $1/e;
+             }
+ 

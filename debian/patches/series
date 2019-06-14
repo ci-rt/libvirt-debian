@@ -29,3 +29,4 @@ security/cpu_map-Define-md-clear-CPUID-bit.patch
 security/admin-reject-clients-unless-their-UID-matches-the-current.patch
 security/locking-restrict-sockets-to-mode-0600.patch
 security/logging-restrict-sockets-to-mode-0600.patch
+fix_driver_impl_check.patch
