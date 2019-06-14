@@ -1,0 +1,34 @@
+--- a/src/r4d/r4d_driver.c
++++ b/src/r4d/r4d_driver.c
+@@ -176,10 +176,30 @@
+ /* nodeGetInfo */
+ static int
+ r4dNodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED,
+-               virNodeInfoPtr nodeinfo ATTRIBUTE_UNUSED)
++               virNodeInfoPtr nodeinfo)
+ {
++    const char *str = "model";
+     logger (__func__);
++
++    /* CPU */
++    nodeinfo->nodes = 1;
++    nodeinfo->sockets = 1;
++    nodeinfo->cores = 1;
++    nodeinfo->threads = 1;
++    nodeinfo->cpus = 1;
++    nodeinfo->mhz = 1234;
++
++    if (virStrcpyStatic(nodeinfo->model, str) == NULL) {
++	    virReportError(VIR_ERR_INTERNAL_ERROR,
++			   _("Model %s too big for destination"), str);
++	    goto error;
++    }
++
++    nodeinfo->memory = 876;
++
+     return 0;
++error:
++    return -1;
+ }
+ 
+ /* connectGetCapabilities */
