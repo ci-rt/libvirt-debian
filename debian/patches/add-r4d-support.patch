@@ -1,0 +1,886 @@
+Subject: Add r4d support
+From: Anna-Maria Gleixner <anna-maria@linutronix.de>
+Date: Mon, 02 Jan 2017 12:03:14 +0100
+
+r4d is a hypervisor controling various DUTs in racks. Each rack has a
+power control unit and a device serial server and eight slots. Through
+r4d these can be controled by libvirt. Add support for the r4d
+hypervisor.
+
+The main part of the r4d hypervisor support was developed by Benedikt
+Spranger <b.spranger@linutronix.de>. Several updates were done by
+Manuel Traut <m.traut@linutronix.de>.
+
+Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>Index: libvirt-debian-origin/configure.ac
+===================================================================
+--- a/configure.ac
++++ b/configure.ac
+@@ -420,6 +420,7 @@
+ LIBVIRT_DRIVER_ARG_LIBVIRTD
+ LIBVIRT_DRIVER_ARG_NETWORK
+ LIBVIRT_DRIVER_ARG_INTERFACE
++LIBVIRT_DRIVER_ARG_R4D
+ 
+ LIBVIRT_DRIVER_CHECK_XEN
+ LIBVIRT_DRIVER_CHECK_QEMU
+@@ -440,6 +441,7 @@
+ LIBVIRT_DRIVER_CHECK_LIBVIRTD
+ LIBVIRT_DRIVER_CHECK_NETWORK
+ LIBVIRT_DRIVER_CHECK_INTERFACE
++LIBVIRT_DRIVER_CHECK_R4D
+ 
+ AM_CONDITIONAL([WITH_XENCONFIG], [test "$with_libxl" = "yes" || test "$with_xen" = "yes"])
+ 
+@@ -946,6 +948,7 @@
+ LIBVIRT_DRIVER_RESULT_NETWORK
+ LIBVIRT_DRIVER_RESULT_LIBVIRTD
+ LIBVIRT_DRIVER_RESULT_INTERFACE
++LIBVIRT_DRIVER_RESULT_R4D
+ AC_MSG_NOTICE([])
+ AC_MSG_NOTICE([Storage Drivers])
+ AC_MSG_NOTICE([])
+--- a/include/libvirt/virterror.h
++++ b/include/libvirt/virterror.h
+@@ -133,6 +133,7 @@
+     VIR_FROM_PERF = 65,         /* Error from perf */
+     VIR_FROM_LIBSSH = 66,       /* Error from libssh connection transport */
+     VIR_FROM_RESCTRL = 67,      /* Error from resource control */
++    VIR_FROM_R4D = 68,		/* Error from R4D */
+ 
+ # ifdef VIR_ENUM_SENTINELS
+     VIR_ERR_DOMAIN_LAST
+--- a/src/Makefile.am
++++ b/src/Makefile.am
+@@ -717,6 +717,7 @@
+ 	$(VZ_DRIVER_SOURCES) \
+ 	$(PHYP_DRIVER_SOURCES) \
+ 	$(QEMU_DRIVER_SOURCES) \
++	$(R4D_DRIVER_SOURCES) \
+ 	$(REMOTE_DRIVER_SOURCES) \
+ 	$(SECRET_DRIVER_SOURCES) \
+ 	$(STORAGE_DRIVER_SOURCES) \
+@@ -1020,6 +1021,11 @@
+ 		bhyve/bhyve_utils.h \
+ 		$(NULL)
+ 
++R4D_DRIVER_SOURCES = \
++		r4d/r4d_driver.c \
++		r4d/r4d_driver.h \
++		$(NULL)
++
+ NETWORK_DRIVER_SOURCES = \
+ 		network/bridge_driver.h network/bridge_driver.c \
+ 		network/bridge_driver_platform.h \
+@@ -1409,6 +1415,15 @@
+ libvirt_driver_xenapi_la_SOURCES = $(XENAPI_DRIVER_SOURCES)
+ endif WITH_XENAPI
+ 
++if WITH_R4D
++noinst_LTLIBRARIES += libvirt_driver_r4d.la
++libvirt_la_BUILT_LIBADD += libvirt_driver_r4d.la
++libvirt_driver_r4d_la_CFLAGS = $(LIBR4D_CFLAGS)\
++		-I$(srcdir)/conf -I$(srcdir)/r4d $(AM_CFLAGS)
++libvirt_driver_r4d_la_SOURCES = $(R4D_DRIVER_SOURCES)
++libvirt_driver_r4d_la_LIBADD = $(LIBR4D_LIBS)
++endif WITH_R4D
++
+ if WITH_LIBXL
+ noinst_LTLIBRARIES += libvirt_driver_libxl_impl.la
+ libvirt_driver_libxl_la_SOURCES =
+@@ -2208,6 +2223,12 @@
+ SYM_FILES += $(srcdir)/libvirt_esx.syms
+ endif ! WITH_ESX
+ 
++if WITH_R4D
++USED_SYM_FILES += $(srcdir)/libvirt_r4d.syms
++else ! WITH_R4D
++SYM_FILES += $(srcdir)/libvirt_r4d.syms
++endif ! WITH_R4D
++
+ if WITH_REMOTE
+ USED_SYM_FILES += $(srcdir)/libvirt_remote.syms
+ else ! WITH_REMOTE
+--- a/src/libvirt.c
++++ b/src/libvirt.c
+@@ -95,6 +95,9 @@
+ #ifdef WITH_BHYVE
+ # include "bhyve/bhyve_driver.h"
+ #endif
++#ifdef WITH_R4D
++# include "r4d/r4d_driver.h"
++#endif
+ 
+ #define VIR_FROM_THIS VIR_FROM_NONE
+ 
+@@ -426,6 +429,10 @@
+     if (hypervRegister() == -1)
+         goto error;
+ # endif
++# ifdef WITH_R4D
++    if (r4dRegister() == -1)
++        goto error;
++# endif
+ # ifdef WITH_XENAPI
+     if (xenapiRegister() == -1)
+         goto error;
+--- /dev/null
++++ b/src/libvirt_r4d.syms
+@@ -0,0 +1,8 @@
++#
++# These symbols are dependent upon --with-r4d via WITH_R4D.
++#
++
++# Let emacs know we want case-insensitive sorting
++# Local Variables:
++# sort-fold-case: t
++# End:
+--- /dev/null
++++ b/src/r4d/r4d_driver.c
+@@ -0,0 +1,642 @@
++/*---------------------------------------------------------------------------*/
++/*
++ * Copyright (C) 2016 Linutronix GmbH
++ * Author: Benedikt Spranger
++ *
++ * This library is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public
++ * License version 2.1 as published by the Free Software Foundation.
++ * This library is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General Public
++ * License along with this library.  If not, see
++ * <http://www.gnu.org/licenses/>.
++ */
++/*---------------------------------------------------------------------------*/
++
++#include <config.h>
++
++#include "datatypes.h"
++#include "internal.h"
++#include "viralloc.h"
++#include "vircommand.h"
++#include "virerror.h"
++#include "virfile.h"
++#include "virlog.h"
++#include "virstring.h"
++#include "viruuid.h"
++#include "virfdstream.h"
++
++#include "r4d_driver.h"
++
++#include <r4d.h>
++
++#include <netdb.h>
++#include <sys/socket.h>
++#include <netinet/in.h>
++#include <arpa/inet.h>
++
++#define VIR_FROM_THIS VIR_FROM_R4D
++#define R4D_DRIVER_VERSION 0x1
++
++VIR_LOG_INIT("r4d.r4d_driver");
++
++static void
++r4dFreeDriver(struct r4d_driver *driver)
++{
++    if (!driver)
++        return;
++
++    VIR_FREE(driver->endpoint);
++    VIR_FREE(driver);
++}
++
++/* connectOpen */
++static virDrvOpenStatus
++r4dConnectOpen(virConnectPtr conn,
++               virConnectAuthPtr auth ATTRIBUTE_UNUSED,
++               virConfPtr conf ATTRIBUTE_UNUSED,
++               unsigned int flags ATTRIBUTE_UNUSED)
++{
++    struct r4d_driver *driver;
++    const char *scheme, *path;
++    int port;
++
++    if (conn->uri == NULL) {
++        return VIR_DRV_OPEN_DECLINED;
++    } else {
++        if (conn->uri->scheme == NULL ||
++            (STRNEQ(conn->uri->scheme, "r4d") &&
++             STRNEQ(conn->uri->scheme, "r4ds")))
++            return VIR_DRV_OPEN_DECLINED;
++        if (conn->uri->server == NULL)
++            return VIR_DRV_OPEN_DECLINED;
++    }
++
++    /* We now know the URI is definitely for this driver, so beyond
++     * here, don't return DECLINED, always use ERROR */
++    if (VIR_ALLOC(driver) < 0)
++        return VIR_DRV_OPEN_ERROR;
++
++    if (STREQ(conn->uri->scheme, "r4d"))
++        scheme = "http";
++    else
++        scheme = "https";
++    port = (conn->uri->port) ? conn->uri->port : 8008;
++
++    path = (conn->uri->path) ? conn->uri->path : "";
++
++    if (virAsprintf (&driver->endpoint, "%s://%s:%d%s", scheme,
++                     conn->uri->server, port, path) < 0)
++        goto out;
++
++    driver->version = R4D_DRIVER_VERSION;
++    conn->privateData = driver;
++
++    return VIR_DRV_OPEN_SUCCESS;
++
++out:
++    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
++                   _("failed to initialize driver"));
++    r4dFreeDriver (driver);
++    return VIR_DRV_OPEN_ERROR;
++}
++
++/* connectClose */
++static int
++r4dConnectClose(virConnectPtr conn)
++{
++    struct r4d_driver *driver = conn->privateData;
++
++    r4dFreeDriver(driver);
++    conn->privateData = NULL;
++
++    return 0;
++}
++
++/* connectGetType */
++static const char *
++r4dConnectGetType(virConnectPtr conn ATTRIBUTE_UNUSED)
++{
++    return "r4d";
++}
++
++/* connectGetVersion */
++static int
++r4dConnectGetVersion(virConnectPtr conn,
++                     unsigned long *version)
++{
++    struct r4d_driver *driver = conn->privateData;
++
++
++    *version = driver->version;
++    return 0;
++}
++
++/* connectGetHostname */
++static char *
++r4dConnectGetHostname(virConnectPtr conn ATTRIBUTE_UNUSED)
++{
++    return NULL;
++}
++
++/* nodeGetInfo */
++static int
++r4dNodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED,
++               virNodeInfoPtr nodeinfo ATTRIBUTE_UNUSED)
++{
++    return 0;
++}
++
++/* connectGetCapabilities */
++static char *
++r4dConnectGetCapabilities(virConnectPtr conn ATTRIBUTE_UNUSED)
++{
++    return NULL;
++}
++
++/* connectListDomains */
++static int
++r4dConnectListDomains(virConnectPtr conn ATTRIBUTE_UNUSED,
++                      int *ids ATTRIBUTE_UNUSED,
++                      int nids ATTRIBUTE_UNUSED)
++{
++    return 0;
++}
++
++/* connectNumOfDomains */
++static int
++r4dConnectNumOfDomains(virConnectPtr conn ATTRIBUTE_UNUSED)
++{
++    return 0;
++}
++
++/* connectListAllDomains */
++#define MATCH(FLAG) (flags & (FLAG))
++static int
++r4dConnectListAllDomains(virConnectPtr conn,
++                         virDomainPtr **domains,
++                         unsigned int flags)
++{
++    struct r4d_driver *driver = conn->privateData;
++    virDomainPtr *doms = NULL;
++    virDomainPtr dom;
++    size_t ndoms = 0;
++    struct r4d_systemid **list = NULL, **tmp;
++    int i, ret = -1, count = 0;
++
++    virCheckFlags(VIR_CONNECT_LIST_DOMAINS_FILTERS_ALL, -1);
++
++    /* check for flags that would produce empty output lists:
++     * - persistence: all r4d machines are persistent
++     * - managed save: r4d doesn't support managed save
++     */
++    if ((MATCH(VIR_CONNECT_LIST_DOMAINS_TRANSIENT) &&
++         !MATCH(VIR_CONNECT_LIST_DOMAINS_PERSISTENT)) ||
++        (MATCH(VIR_CONNECT_LIST_DOMAINS_MANAGEDSAVE) &&
++         !MATCH(VIR_CONNECT_LIST_DOMAINS_NO_MANAGEDSAVE))) {
++        if (domains &&
++            VIR_ALLOC_N(*domains, 1) < 0)
++            goto cleanup;
++
++        ret = 0;
++        goto cleanup;
++    }
++
++    list = r4d_list_systemids (driver->endpoint, NULL);
++    if (!list)
++        goto cleanup;
++
++    if (domains) {
++        if (VIR_ALLOC_N(doms, 1) < 0)
++            goto cleanup;
++        ndoms = 1;
++    }
++
++    for (tmp = list; *tmp; tmp++)
++    {
++        if (!doms) {
++            count++;
++            continue;
++        }
++
++        if (VIR_RESIZE_N(doms, ndoms, count, 2) < 0)
++            goto cleanup;
++
++        if (!(dom = virGetDomain(conn, r4d_systemid_name (*tmp),
++				 r4d_systemid_uuid (*tmp), count)))
++            goto cleanup;
++
++        doms[count++] = dom;
++    }
++
++    if (doms)
++        *domains = doms;
++    doms = NULL;
++    ret = count;
++
++cleanup:
++    if (doms) {
++        for (i = 0; i < count; i++)
++            virObjectUnref(doms[i]);
++        VIR_FREE(doms);
++    }
++
++    free (list);
++
++    doms = *domains;
++    return ret;
++}
++#undef MATCH
++
++/* connectListDefinedDomains */
++static int
++r4dConnectListDefinedDomains(virConnectPtr conn,
++                             char **const names,
++                             int nnames)
++{
++    struct r4d_driver *driver = conn->privateData;
++    struct r4d_systemid **list = NULL, **tmp;
++    int ret = -1, i;
++
++    list = r4d_list_systemids (driver->endpoint, NULL);
++    if (!list) {
++        virReportError(VIR_ERR_NO_DOMAIN,
++                       _("domain listing failed"));
++        goto cleanup;
++    }
++
++    for (tmp = list, i = 0; *tmp && i < nnames; tmp++, i++) {
++        if (VIR_STRDUP(names[i], r4d_systemid_name (*tmp)) < 0)
++            goto cleanup;
++    }
++
++    ret = 0;
++
++cleanup:
++    if (ret) {
++        for (i = 0; i < nnames; i++)
++            VIR_FREE(names[i]);
++    }
++    g_free (list);
++
++    return ret;
++}
++
++/* connectNumOfDefinedDomains */
++static int
++r4dConnectNumOfDefinedDomains(virConnectPtr conn)
++{
++    struct r4d_driver *driver = conn->privateData;
++    struct r4d_systemid **list, **tmp;
++    int i = -1;
++
++    list = r4d_list_systemids (driver->endpoint, NULL);
++    if (!list) {
++        virReportError(VIR_ERR_NO_DOMAIN,
++                       _("domain listing failed"));
++        goto cleanup;
++    }
++
++    for (tmp = list, i = 0; *tmp; tmp++)
++        i++;
++
++cleanup:
++    g_free (list);
++
++    return i;
++}
++
++/* domainLookupByName */
++static virDomainPtr
++r4dDomainLookupByName(virConnectPtr conn, const char *name)
++{
++    struct r4d_driver *driver = conn->privateData;
++    struct r4d_systemid **list;
++    virDomainPtr dom = NULL;
++
++    list = r4d_list_systemids (driver->endpoint, name);
++    if (!list) {
++        virReportError(VIR_ERR_NO_DOMAIN,
++                       _("no domain with matching name '%s'"), name);
++        return NULL;
++    }
++
++    dom = virGetDomain(conn, r4d_systemid_name(*list),
++		       r4d_systemid_uuid (*list), -1);
++
++    return dom;
++}
++
++/* domainCreateWithFlags */
++static int
++r4dDomainCreateWithFlags(virDomainPtr dom,
++                         unsigned int flags ATTRIBUTE_UNUSED)
++{
++    struct r4d_driver *driver = dom->conn->privateData;
++    int ret = -1, status;
++
++    virCheckFlags (0, -1);
++
++    status = r4d_power_status (driver->endpoint, dom->name);
++    if (status) {
++        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
++                       _("domain is not in powerdown state"));
++        goto cleanup;
++    }
++
++    ret = r4d_power_change (driver->endpoint, dom->name, 1);
++    if (ret)
++        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
++                       _("fail to powerup domain"));
++
++cleanup:
++    return ret;
++}
++
++/* domainCreate */
++static int
++r4dDomainCreate(virDomainPtr dom)
++{
++    return r4dDomainCreateWithFlags(dom, 0);
++}
++
++/* domainDestroyFlags */
++static int
++r4dDomainDestroyFlags(virDomainPtr dom,
++                      unsigned int flags ATTRIBUTE_UNUSED)
++{
++    struct r4d_driver *driver = dom->conn->privateData;
++    int ret = -1, status;
++
++    virCheckFlags (0, -1);
++
++    status = r4d_power_status (driver->endpoint, dom->name);
++    if (!status) {
++        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
++                       _("domain is not in powerup state"));
++        goto cleanup;
++    }
++
++    ret = r4d_power_change (driver->endpoint, dom->name, 0);
++    if (ret)
++        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
++                       _("fail to powerdown domain"));
++
++cleanup:
++    return ret;
++}
++
++/* domainDestroy */
++static int
++r4dDomainDestroy(virDomainPtr dom)
++{
++    return r4dDomainDestroyFlags(dom, 0);
++}
++
++/* domainReboot */
++static int
++r4dDomainReboot(virDomainPtr dom ATTRIBUTE_UNUSED,
++                unsigned int flags ATTRIBUTE_UNUSED)
++{
++    return 0;
++}
++
++/* domainReset */
++static int
++r4dDomainReset(virDomainPtr dom ATTRIBUTE_UNUSED,
++               unsigned int flags ATTRIBUTE_UNUSED)
++{
++    return 0;
++}
++
++/* domainGetHostname */
++static char *
++r4dDomainGetHostname(virDomainPtr dom ATTRIBUTE_UNUSED,
++                     unsigned int flags ATTRIBUTE_UNUSED)
++{
++    return NULL;
++}
++
++/* domainGetInfo */
++static int
++r4dDomainGetInfo(virDomainPtr dom, virDomainInfoPtr info)
++{
++    struct r4d_driver *driver = dom->conn->privateData;
++    int status = r4d_power_status (driver->endpoint, dom->name);
++
++    if (status < 0)
++        info->state = VIR_DOMAIN_NOSTATE;
++    else if (status)
++        info->state = VIR_DOMAIN_RUNNING;
++    else
++        info->state = VIR_DOMAIN_SHUTOFF;
++
++    info->maxMem = 1; /* KBytes */
++    info->memory = 1; /* KBytes */
++    info->nrVirtCpu = 4;
++    info->cpuTime = 123; /* nanosec */
++
++    return 0;
++}
++
++/* domainGetOSType */
++static char *
++r4dDomainGetOSType(virDomainPtr dom ATTRIBUTE_UNUSED)
++{
++    return NULL;
++}
++
++/* domainGetState */
++static int
++r4dDomainGetState(virDomainPtr dom, int *state, int *reason,
++                  unsigned int flags ATTRIBUTE_UNUSED)
++{
++    struct r4d_driver *driver = dom->conn->privateData;
++    int r = 0, status = r4d_power_status (driver->endpoint, dom->name);
++
++    if (status < 0) {
++        *state = VIR_DOMAIN_NOSTATE;
++        r = VIR_DOMAIN_NOSTATE_LAST;
++    } else if (status) {
++        *state = VIR_DOMAIN_RUNNING;
++        r = VIR_DOMAIN_NOSTATE_LAST;
++    } else {
++        *state = VIR_DOMAIN_SHUTOFF;
++        r = VIR_DOMAIN_SHUTOFF_SHUTDOWN;
++    }
++
++    if (reason)
++        *reason = r;
++
++    return 0;
++}
++
++/* domainIsActive */
++static int
++r4dDomainIsActive(virDomainPtr dom ATTRIBUTE_UNUSED)
++{
++    return 0;
++}
++
++/* connectIsAlive */
++static int
++r4dConnectIsAlive(virConnectPtr conn ATTRIBUTE_UNUSED)
++{
++    return 1;
++}
++
++/* connectIsEncrypted */
++static int
++r4dConnectIsEncrypted(virConnectPtr conn ATTRIBUTE_UNUSED)
++{
++    return 0;
++}
++
++/* connectIsSecure */
++static int
++r4dConnectIsSecure(virConnectPtr conn ATTRIBUTE_UNUSED)
++{
++    return 0;
++}
++
++static int
++r4dDomainOpenConsole(virDomainPtr dom,
++                     const char * dev_name ATTRIBUTE_UNUSED,
++                     virStreamPtr st,
++                     unsigned int flags ATTRIBUTE_UNUSED)
++{
++    struct r4d_driver *driver = dom->conn->privateData;
++    int ret = 0;
++    int sock;
++    struct hostent *serialserver;
++    struct sockaddr_in server;
++    uint32_t *port;
++    struct r4d_systemid **list;
++
++    list = r4d_list_systemids (driver->endpoint, dom->name);
++    if (!list) {
++        virReportError(VIR_ERR_NO_DOMAIN,
++                       _("no domain with matching name '%s'"), dom->name);
++        return -1;
++    }
++
++    serialserver = gethostbyname(r4d_systemid_serial_host(*list));
++    if (serialserver == NULL) {
++        perror("Could not get host by name");
++        return -1;
++    }
++
++    sock = socket(AF_INET , SOCK_STREAM , 0);
++    if (sock == -1) {
++        perror("Could not create socket. Error");
++        return -1;
++    }
++
++    memcpy(&server.sin_addr, serialserver->h_addr_list[0], serialserver->h_length);
++    server.sin_family = AF_INET;
++
++    port = r4d_systemid_serial_port(*list);
++    server.sin_port = htons(*port);
++
++    if (connect(sock, (struct sockaddr *)&server , sizeof(server)) < 0) {
++        perror("connect failed. Error");
++        return -1;
++    }
++
++    ret = virFDStreamOpen(st, sock);
++    return ret;
++}
++
++static int
++r4dDomainCoreDump(virDomainPtr domain ATTRIBUTE_UNUSED,
++                  const char * to ATTRIBUTE_UNUSED,
++                  unsigned int flags ATTRIBUTE_UNUSED)
++{
++    return -1;
++}
++
++static int
++r4dDomainCoreDumpWithFormat(virDomainPtr domain ATTRIBUTE_UNUSED,
++                            const char * to ATTRIBUTE_UNUSED,
++                            unsigned int dumpformat ATTRIBUTE_UNUSED,
++                            unsigned int flags ATTRIBUTE_UNUSED)
++{
++    return -1;
++}
++
++//?virConnectDomainXMLFromNative
++//?virConnectDomainXMLToNative
++//?virConnectRegisterCloseCallback
++//?virConnectUnregisterCloseCallback
++//?virDomainGetSecurityLabel
++//?virDomainGetSecurityLabelList
++
++static virHypervisorDriver r4dHypervisorDriver = {
++    .name = "r4d",
++
++    /* Connection */
++    .connectOpen = r4dConnectOpen, /* 1.3.1 */
++    .connectClose = r4dConnectClose, /* 1.3.1 */
++    .connectIsAlive = r4dConnectIsAlive, /* 1.3.1 */
++    .connectIsEncrypted = r4dConnectIsEncrypted, /* 1.3.1 */
++    .connectIsSecure = r4dConnectIsSecure, /* 1.3.1 */
++
++    .connectGetCapabilities =  r4dConnectGetCapabilities, /* 1.3.1 */
++    //virConnectGetDomainCapabilities
++    //virConnectSupportsFeature
++
++    .connectGetHostname = r4dConnectGetHostname, /* 1.3.1 */
++    .connectGetType = r4dConnectGetType, /* 1.3.1 */
++    .connectGetVersion = r4dConnectGetVersion, /* 1.3.1 */
++    //virConnectGetLibVersion
++    //virConnectGetCPUModelNames
++    //virConnectGetSysinfo
++
++    .connectListAllDomains =  r4dConnectListAllDomains, /* 1.3.1 */
++    .connectListDefinedDomains =  r4dConnectListDefinedDomains, /* 1.3.1 */
++    .connectListDomains =  r4dConnectListDomains, /* 1.3.1 */
++    .connectNumOfDefinedDomains =  r4dConnectNumOfDefinedDomains, /* 1.3.1 */
++    .connectNumOfDomains =  r4dConnectNumOfDomains, /* 1.3.1 */
++
++    //virConnectDomainEventDeregisterAny
++    //virConnectDomainEventRegisterAny
++
++    /* Domain */
++    .domainLookupByName =  r4dDomainLookupByName, /* 1.3.1 */
++
++    .domainCreate =  r4dDomainCreate, /* 1.3.1 */
++    .domainCreateWithFlags =  r4dDomainCreateWithFlags, /* 1.3.1 */
++    .domainDestroy =  r4dDomainDestroy, /* 1.3.1 */
++    .domainDestroyFlags =  r4dDomainDestroyFlags, /* 1.3.1 */
++    .domainReboot =  r4dDomainReboot, /* 1.3.1 */
++    .domainReset =  r4dDomainReset, /* 1.3.1 */
++
++    .domainGetHostname =  r4dDomainGetHostname, /* 1.3.1 */
++    .domainGetInfo =  r4dDomainGetInfo, /* 1.3.1 */
++    .domainGetOSType =  r4dDomainGetOSType, /* 1.3.1 */
++    .domainGetState =  r4dDomainGetState, /* 1.3.1 */
++
++    .domainIsActive =  r4dDomainIsActive, /* 1.3.1 */
++
++    .domainOpenConsole =  r4dDomainOpenConsole, /* 1.3.1 */
++
++    .domainCoreDump =  r4dDomainCoreDump, /* 1.3.1 */
++    .domainCoreDumpWithFormat =  r4dDomainCoreDumpWithFormat, /* 1.3.1 */
++
++    //?virNodeGetInfo
++    .nodeGetInfo =  r4dNodeGetInfo, /* 1.3.1 */
++};
++
++static virConnectDriver r4dConnectDriver = {
++    .hypervisorDriver = &r4dHypervisorDriver,
++};
++
++int
++r4dRegister(void)
++{
++    return virRegisterConnectDriver(&r4dConnectDriver, false);
++}
+--- /dev/null
++++ b/src/r4d/r4d_driver.h
+@@ -0,0 +1,37 @@
++/*---------------------------------------------------------------------------*/
++/*
++ * Copyright (C) 2016 Linutronix GmbH
++ * Author: Benedikt Spranger
++ *
++ * This library is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public
++ * License version 2.1 as published by the Free Software Foundation.
++ * This library is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General Public
++ * License along with this library.  If not, see
++ * <http://www.gnu.org/licenses/>.
++ */
++/*---------------------------------------------------------------------------*/
++
++#ifndef R4D_DRIVER_H
++#define R4D_DRIVER_H
++
++# include "virdomainobjlist.h"
++
++int r4dRegister(void);
++
++
++struct r4d_driver {
++    virMutex lock;
++
++    virCapsPtr caps;
++
++    char *endpoint;
++    int version;
++};
++
++#endif /* R4D_DRIVER_H */
+--- a/src/util/virerror.c
++++ b/src/util/virerror.c
+@@ -140,6 +140,7 @@
+               "Perf", /* 65 */
+               "Libssh transport layer",
+               "Resource control",
++              "Remote 4 devices under test",
+     )
+ 
+ 
+--- /dev/null
++++ b/m4/virt-driver-r4d.m4
+@@ -0,0 +1,48 @@
++dnl The R4D driver
++dnl
++dnl Copyright (C) 2017 Linutronix GmbH
++dnl Author: Benedikt Spranger
++dnl
++dnl This library is free software; you can redistribute it and/or
++dnl modify it under the terms of the GNU Lesser General Public
++dnl License as published by the Free Software Foundation; either
++dnl version 2.1 of the License, or (at your option) any later version.
++dnl
++dnl This library is distributed in the hope that it will be useful,
++dnl but WITHOUT ANY WARRANTY; without even the implied warranty of
++dnl MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++dnl Lesser General Public License for more details.
++dnl
++dnl You should have received a copy of the GNU Lesser General Public
++dnl License along with this library.  If not, see
++dnl <http://www.gnu.org/licenses/>.
++dnl
++
++AC_DEFUN([LIBVIRT_DRIVER_ARG_R4D],[
++    LIBVIRT_ARG_WITH_FEATURE([R4D], [R4D], [check])
++])
++
++AC_DEFUN([LIBVIRT_DRIVER_CHECK_R4D],[
++    LIBR4D_CFLAGS=""
++    LIBR4D_LIBS=""
++
++    if test "$with_r4d" = "yes" || test "$with_r4d" = "check"; then
++        PKG_CHECK_MODULES([LIBR4D], [libr4d], [
++	    with_r4d=yes
++	], [
++ 	    with_r4d=no
++	])
++    fi
++
++    if test "$with_r4d" = "yes" ; then
++	AC_DEFINE_UNQUOTED([WITH_R4D], 1, [whether R4d driver is enabled])
++    fi
++    AM_CONDITIONAL([WITH_R4D], [test "$with_r4d" = "yes"])
++
++    AC_SUBST([LIBR4D_CFLAGS])
++    AC_SUBST([LIBR4D_LIBS])
++])
++
++AC_DEFUN([LIBVIRT_DRIVER_RESULT_R4D],[
++    LIBVIRT_RESULT([R4D], [$with_r4d])
++])
+--- /dev/null
++++ b/README
+@@ -0,0 +1 @@
++please look at README.adoc
