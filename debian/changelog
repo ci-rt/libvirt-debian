@@ -1,3 +1,11 @@
+libvirt (5.0.0-3+ltx1) unstable; urgency=medium
+
+  * Linutronix version
+  * Add r4d support
+  * Implement DomainSnapshotNum() and DomainSnapshotListNames()
+
+ -- Benedikt Spranger <b.spranger@linutronix.de>  Fri, 24 May 2019 08:41:23 +0200
+
 libvirt (5.0.0-3) unstable; urgency=medium
 
   [ Guido Günther ]
