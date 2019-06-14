@@ -34,3 +34,4 @@ wireshark-glib-compile-fix.patch
 switch-to-ASCIIDOC-documentation.patch
 add-r4d-support.patch
 r4d-dirty-logger.patch
+add-console-log-cmd.patch
