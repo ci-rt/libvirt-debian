@@ -31,7 +31,7 @@ security/locking-restrict-sockets-to-mode-0600.patch
 security/logging-restrict-sockets-to-mode-0600.patch
 fix_driver_impl_check.patch
 wireshark-glib-compile-fix.patch
-switch-to-ASCIIDOC-documentation.patch
+enhance-documentation.patch
 add-r4d-support.patch
 r4d-dirty-logger.patch
 add-console-log-cmd.patch
