@@ -1,12 +1,19 @@
-Subject: Add debug logging mechanism
+From f7c92fdf74a6470daf35e7610084189780a04a49 Mon Sep 17 00:00:00 2001
 From: Anna-Maria Gleixner <anna-maria@linutronix.de>
-Date: Mon, 02 Jan 2017 12:03:14 +0100
+Date: Mon, 2 Jan 2017 12:03:14 +0100
+Subject: [PATCH 05/10] Add debug logging mechanism
 
 The logging mechanism is enabled by defining DEBUG_R4D . This logging
 mechanism should only be enabled, during development, because a file
 with hard coded name is opened/created in /tmp as log file.
 
 Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
+---
+ src/r4d/r4d_driver.c | 65 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 65 insertions(+)
+
+diff --git a/src/r4d/r4d_driver.c b/src/r4d/r4d_driver.c
+index d96fee9f7d..291c0ef8a4 100644
 --- a/src/r4d/r4d_driver.c
 +++ b/src/r4d/r4d_driver.c
 @@ -38,12 +38,35 @@
@@ -45,7 +52,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
  static void
  r4dFreeDriver(struct r4d_driver *driver)
  {
-@@ -65,6 +88,8 @@
+@@ -65,6 +88,8 @@ r4dConnectOpen(virConnectPtr conn,
      const char *scheme, *path;
      int port;
  
@@ -54,7 +61,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      if (conn->uri == NULL) {
          return VIR_DRV_OPEN_DECLINED;
      } else {
-@@ -111,6 +136,8 @@
+@@ -111,6 +136,8 @@ r4dConnectClose(virConnectPtr conn)
  {
      struct r4d_driver *driver = conn->privateData;
  
@@ -63,7 +70,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      r4dFreeDriver(driver);
      conn->privateData = NULL;
  
-@@ -121,6 +148,7 @@
+@@ -121,6 +148,7 @@ r4dConnectClose(virConnectPtr conn)
  static const char *
  r4dConnectGetType(virConnectPtr conn ATTRIBUTE_UNUSED)
  {
@@ -71,7 +78,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      return "r4d";
  }
  
-@@ -131,6 +159,7 @@
+@@ -131,6 +159,7 @@ r4dConnectGetVersion(virConnectPtr conn,
  {
      struct r4d_driver *driver = conn->privateData;
  
@@ -79,7 +86,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
  
      *version = driver->version;
      return 0;
-@@ -140,6 +169,7 @@
+@@ -140,6 +169,7 @@ r4dConnectGetVersion(virConnectPtr conn,
  static char *
  r4dConnectGetHostname(virConnectPtr conn ATTRIBUTE_UNUSED)
  {
@@ -87,7 +94,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      return NULL;
  }
  
-@@ -148,6 +178,7 @@
+@@ -148,6 +178,7 @@ static int
  r4dNodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED,
                 virNodeInfoPtr nodeinfo ATTRIBUTE_UNUSED)
  {
@@ -95,7 +102,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      return 0;
  }
  
-@@ -155,6 +186,7 @@
+@@ -155,6 +186,7 @@ r4dNodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED,
  static char *
  r4dConnectGetCapabilities(virConnectPtr conn ATTRIBUTE_UNUSED)
  {
@@ -103,7 +110,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      return NULL;
  }
  
-@@ -164,6 +196,7 @@
+@@ -164,6 +196,7 @@ r4dConnectListDomains(virConnectPtr conn ATTRIBUTE_UNUSED,
                        int *ids ATTRIBUTE_UNUSED,
                        int nids ATTRIBUTE_UNUSED)
  {
@@ -111,7 +118,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      return 0;
  }
  
-@@ -171,6 +204,7 @@
+@@ -171,6 +204,7 @@ r4dConnectListDomains(virConnectPtr conn ATTRIBUTE_UNUSED,
  static int
  r4dConnectNumOfDomains(virConnectPtr conn ATTRIBUTE_UNUSED)
  {
@@ -119,7 +126,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      return 0;
  }
  
-@@ -188,6 +222,8 @@
+@@ -188,6 +222,8 @@ r4dConnectListAllDomains(virConnectPtr conn,
      struct r4d_systemid **list = NULL, **tmp;
      int i, ret = -1, count = 0;
  
@@ -128,7 +135,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      virCheckFlags(VIR_CONNECT_LIST_DOMAINS_FILTERS_ALL, -1);
  
      /* check for flags that would produce empty output lists:
-@@ -248,6 +284,8 @@
+@@ -248,6 +284,8 @@ cleanup:
      free (list);
  
      doms = *domains;
@@ -137,7 +144,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      return ret;
  }
  #undef MATCH
-@@ -262,6 +300,8 @@
+@@ -262,6 +300,8 @@ r4dConnectListDefinedDomains(virConnectPtr conn,
      struct r4d_systemid **list = NULL, **tmp;
      int ret = -1, i;
  
@@ -146,7 +153,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      list = r4d_list_systemids (driver->endpoint, NULL);
      if (!list) {
          virReportError(VIR_ERR_NO_DOMAIN,
-@@ -270,6 +310,7 @@
+@@ -270,6 +310,7 @@ r4dConnectListDefinedDomains(virConnectPtr conn,
      }
  
      for (tmp = list, i = 0; *tmp && i < nnames; tmp++, i++) {
@@ -154,7 +161,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
          if (VIR_STRDUP(names[i], r4d_systemid_name (*tmp)) < 0)
              goto cleanup;
      }
-@@ -294,6 +335,8 @@
+@@ -294,6 +335,8 @@ r4dConnectNumOfDefinedDomains(virConnectPtr conn)
      struct r4d_systemid **list, **tmp;
      int i = -1;
  
@@ -163,7 +170,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      list = r4d_list_systemids (driver->endpoint, NULL);
      if (!list) {
          virReportError(VIR_ERR_NO_DOMAIN,
-@@ -318,6 +361,7 @@
+@@ -318,6 +361,7 @@ r4dDomainLookupByName(virConnectPtr conn, const char *name)
      struct r4d_systemid **list;
      virDomainPtr dom = NULL;
  
@@ -171,7 +178,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      list = r4d_list_systemids (driver->endpoint, name);
      if (!list) {
          virReportError(VIR_ERR_NO_DOMAIN,
-@@ -339,6 +383,8 @@
+@@ -339,6 +383,8 @@ r4dDomainCreateWithFlags(virDomainPtr dom,
      struct r4d_driver *driver = dom->conn->privateData;
      int ret = -1, status;
  
@@ -180,7 +187,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      virCheckFlags (0, -1);
  
      status = r4d_power_status (driver->endpoint, dom->name);
-@@ -361,6 +407,7 @@
+@@ -361,6 +407,7 @@ cleanup:
  static int
  r4dDomainCreate(virDomainPtr dom)
  {
@@ -188,7 +195,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      return r4dDomainCreateWithFlags(dom, 0);
  }
  
-@@ -372,6 +419,7 @@
+@@ -372,6 +419,7 @@ r4dDomainDestroyFlags(virDomainPtr dom,
      struct r4d_driver *driver = dom->conn->privateData;
      int ret = -1, status;
  
@@ -196,7 +203,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      virCheckFlags (0, -1);
  
      status = r4d_power_status (driver->endpoint, dom->name);
-@@ -394,6 +442,7 @@
+@@ -394,6 +442,7 @@ cleanup:
  static int
  r4dDomainDestroy(virDomainPtr dom)
  {
@@ -204,7 +211,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      return r4dDomainDestroyFlags(dom, 0);
  }
  
-@@ -402,6 +451,7 @@
+@@ -402,6 +451,7 @@ static int
  r4dDomainReboot(virDomainPtr dom ATTRIBUTE_UNUSED,
                  unsigned int flags ATTRIBUTE_UNUSED)
  {
@@ -212,7 +219,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      return 0;
  }
  
-@@ -410,6 +460,7 @@
+@@ -410,6 +460,7 @@ static int
  r4dDomainReset(virDomainPtr dom ATTRIBUTE_UNUSED,
                 unsigned int flags ATTRIBUTE_UNUSED)
  {
@@ -220,7 +227,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      return 0;
  }
  
-@@ -418,6 +469,7 @@
+@@ -418,6 +469,7 @@ static char *
  r4dDomainGetHostname(virDomainPtr dom ATTRIBUTE_UNUSED,
                       unsigned int flags ATTRIBUTE_UNUSED)
  {
@@ -228,7 +235,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      return NULL;
  }
  
-@@ -428,6 +480,8 @@
+@@ -428,6 +480,8 @@ r4dDomainGetInfo(virDomainPtr dom, virDomainInfoPtr info)
      struct r4d_driver *driver = dom->conn->privateData;
      int status = r4d_power_status (driver->endpoint, dom->name);
  
@@ -237,7 +244,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      if (status < 0)
          info->state = VIR_DOMAIN_NOSTATE;
      else if (status)
-@@ -447,6 +501,7 @@
+@@ -447,6 +501,7 @@ r4dDomainGetInfo(virDomainPtr dom, virDomainInfoPtr info)
  static char *
  r4dDomainGetOSType(virDomainPtr dom ATTRIBUTE_UNUSED)
  {
@@ -245,7 +252,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      return NULL;
  }
  
-@@ -458,6 +513,8 @@
+@@ -458,6 +513,8 @@ r4dDomainGetState(virDomainPtr dom, int *state, int *reason,
      struct r4d_driver *driver = dom->conn->privateData;
      int r = 0, status = r4d_power_status (driver->endpoint, dom->name);
  
@@ -254,7 +261,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      if (status < 0) {
          *state = VIR_DOMAIN_NOSTATE;
          r = VIR_DOMAIN_NOSTATE_LAST;
-@@ -479,6 +536,7 @@
+@@ -479,6 +536,7 @@ r4dDomainGetState(virDomainPtr dom, int *state, int *reason,
  static int
  r4dDomainIsActive(virDomainPtr dom ATTRIBUTE_UNUSED)
  {
@@ -262,7 +269,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      return 0;
  }
  
-@@ -486,6 +544,7 @@
+@@ -486,6 +544,7 @@ r4dDomainIsActive(virDomainPtr dom ATTRIBUTE_UNUSED)
  static int
  r4dConnectIsAlive(virConnectPtr conn ATTRIBUTE_UNUSED)
  {
@@ -270,7 +277,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      return 1;
  }
  
-@@ -493,6 +552,7 @@
+@@ -493,6 +552,7 @@ r4dConnectIsAlive(virConnectPtr conn ATTRIBUTE_UNUSED)
  static int
  r4dConnectIsEncrypted(virConnectPtr conn ATTRIBUTE_UNUSED)
  {
@@ -278,7 +285,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      return 0;
  }
  
-@@ -500,6 +560,7 @@
+@@ -500,6 +560,7 @@ r4dConnectIsEncrypted(virConnectPtr conn ATTRIBUTE_UNUSED)
  static int
  r4dConnectIsSecure(virConnectPtr conn ATTRIBUTE_UNUSED)
  {
@@ -286,7 +293,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      return 0;
  }
  
-@@ -517,6 +578,8 @@
+@@ -517,6 +578,8 @@ r4dDomainOpenConsole(virDomainPtr dom,
      uint32_t *port;
      struct r4d_systemid **list;
  
@@ -295,7 +302,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      list = r4d_list_systemids (driver->endpoint, dom->name);
      if (!list) {
          virReportError(VIR_ERR_NO_DOMAIN,
-@@ -556,6 +619,7 @@
+@@ -556,6 +619,7 @@ r4dDomainCoreDump(virDomainPtr domain ATTRIBUTE_UNUSED,
                    const char * to ATTRIBUTE_UNUSED,
                    unsigned int flags ATTRIBUTE_UNUSED)
  {
@@ -303,7 +310,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      return -1;
  }
  
-@@ -565,6 +629,7 @@
+@@ -565,6 +629,7 @@ r4dDomainCoreDumpWithFormat(virDomainPtr domain ATTRIBUTE_UNUSED,
                              unsigned int dumpformat ATTRIBUTE_UNUSED,
                              unsigned int flags ATTRIBUTE_UNUSED)
  {
@@ -311,3 +318,6 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
      return -1;
  }
  
+-- 
+2.19.0
+

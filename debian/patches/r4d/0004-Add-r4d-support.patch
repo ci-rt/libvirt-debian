@@ -1,6 +1,7 @@
-Subject: Add r4d support
+From 6dea3659a5f0677701ec3e771d243a35e5d12db6 Mon Sep 17 00:00:00 2001
 From: Anna-Maria Gleixner <anna-maria@linutronix.de>
-Date: Mon, 02 Jan 2017 12:03:14 +0100
+Date: Mon, 2 Jan 2017 12:03:14 +0100
+Subject: [PATCH 04/10] Add r4d support
 
 r4d is a hypervisor controling various DUTs in racks. Each rack has a
 power control unit and a device serial server and eight slots. Through
@@ -13,25 +14,45 @@ Manuel Traut <m.traut@linutronix.de>.
 
 Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>Index: libvirt-debian-origin/configure.ac
 ===================================================================
+---
+ configure.ac                |   3 +
+ include/libvirt/virterror.h |   1 +
+ m4/virt-driver-r4d.m4       |  48 +++
+ src/Makefile.am             |   1 +
+ src/libvirt.c               |   7 +
+ src/libvirt_r4d.syms        |   8 +
+ src/r4d/Makefile.inc.am     |  21 ++
+ src/r4d/r4d_driver.c        | 642 ++++++++++++++++++++++++++++++++++++
+ src/r4d/r4d_driver.h        |  37 +++
+ src/util/virerror.c         |   1 +
+ 10 files changed, 769 insertions(+)
+ create mode 100644 m4/virt-driver-r4d.m4
+ create mode 100644 src/libvirt_r4d.syms
+ create mode 100644 src/r4d/Makefile.inc.am
+ create mode 100644 src/r4d/r4d_driver.c
+ create mode 100644 src/r4d/r4d_driver.h
+
+diff --git a/configure.ac b/configure.ac
+index ac52189dff..b7cb162ce5 100644
 --- a/configure.ac
 +++ b/configure.ac
-@@ -420,6 +420,7 @@
+@@ -451,6 +451,7 @@ LIBVIRT_DRIVER_ARG_REMOTE
  LIBVIRT_DRIVER_ARG_LIBVIRTD
  LIBVIRT_DRIVER_ARG_NETWORK
  LIBVIRT_DRIVER_ARG_INTERFACE
 +LIBVIRT_DRIVER_ARG_R4D
  
- LIBVIRT_DRIVER_CHECK_XEN
  LIBVIRT_DRIVER_CHECK_QEMU
-@@ -440,6 +441,7 @@
+ LIBVIRT_DRIVER_CHECK_OPENVZ
+@@ -469,6 +470,7 @@ LIBVIRT_DRIVER_CHECK_REMOTE
  LIBVIRT_DRIVER_CHECK_LIBVIRTD
  LIBVIRT_DRIVER_CHECK_NETWORK
  LIBVIRT_DRIVER_CHECK_INTERFACE
 +LIBVIRT_DRIVER_CHECK_R4D
  
- AM_CONDITIONAL([WITH_XENCONFIG], [test "$with_libxl" = "yes" || test "$with_xen" = "yes"])
+ AM_CONDITIONAL([WITH_XENCONFIG], [test "$with_libxl" = "yes"])
  
-@@ -946,6 +948,7 @@
+@@ -960,6 +962,7 @@ LIBVIRT_DRIVER_RESULT_REMOTE
  LIBVIRT_DRIVER_RESULT_NETWORK
  LIBVIRT_DRIVER_RESULT_LIBVIRTD
  LIBVIRT_DRIVER_RESULT_INTERFACE
@@ -39,9 +60,11 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>Index: libvirt-debi
  AC_MSG_NOTICE([])
  AC_MSG_NOTICE([Storage Drivers])
  AC_MSG_NOTICE([])
+diff --git a/include/libvirt/virterror.h b/include/libvirt/virterror.h
+index fbbe2d5624..e31270ad16 100644
 --- a/include/libvirt/virterror.h
 +++ b/include/libvirt/virterror.h
-@@ -133,6 +133,7 @@
+@@ -131,6 +131,7 @@ typedef enum {
      VIR_FROM_PERF = 65,         /* Error from perf */
      VIR_FROM_LIBSSH = 66,       /* Error from libssh connection transport */
      VIR_FROM_RESCTRL = 67,      /* Error from resource control */
@@ -49,60 +72,77 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>Index: libvirt-debi
  
  # ifdef VIR_ENUM_SENTINELS
      VIR_ERR_DOMAIN_LAST
+diff --git a/m4/virt-driver-r4d.m4 b/m4/virt-driver-r4d.m4
+new file mode 100644
+index 0000000000..0e6b90bf8d
+--- /dev/null
++++ b/m4/virt-driver-r4d.m4
+@@ -0,0 +1,48 @@
++dnl The R4D driver
++dnl
++dnl Copyright (C) 2017 Linutronix GmbH
++dnl Author: Benedikt Spranger
++dnl
++dnl This library is free software; you can redistribute it and/or
++dnl modify it under the terms of the GNU Lesser General Public
++dnl License as published by the Free Software Foundation; either
++dnl version 2.1 of the License, or (at your option) any later version.
++dnl
++dnl This library is distributed in the hope that it will be useful,
++dnl but WITHOUT ANY WARRANTY; without even the implied warranty of
++dnl MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++dnl Lesser General Public License for more details.
++dnl
++dnl You should have received a copy of the GNU Lesser General Public
++dnl License along with this library.  If not, see
++dnl <http://www.gnu.org/licenses/>.
++dnl
++
++AC_DEFUN([LIBVIRT_DRIVER_ARG_R4D],[
++    LIBVIRT_ARG_WITH_FEATURE([R4D], [R4D], [check])
++])
++
++AC_DEFUN([LIBVIRT_DRIVER_CHECK_R4D],[
++    LIBR4D_CFLAGS=""
++    LIBR4D_LIBS=""
++
++    if test "$with_r4d" = "yes" || test "$with_r4d" = "check"; then
++        PKG_CHECK_MODULES([LIBR4D], [libr4d], [
++	    with_r4d=yes
++	], [
++ 	    with_r4d=no
++	])
++    fi
++
++    if test "$with_r4d" = "yes" ; then
++	AC_DEFINE_UNQUOTED([WITH_R4D], 1, [whether R4d driver is enabled])
++    fi
++    AM_CONDITIONAL([WITH_R4D], [test "$with_r4d" = "yes"])
++
++    AC_SUBST([LIBR4D_CFLAGS])
++    AC_SUBST([LIBR4D_LIBS])
++])
++
++AC_DEFUN([LIBVIRT_DRIVER_RESULT_R4D],[
++    LIBVIRT_RESULT([R4D], [$with_r4d])
++])
+diff --git a/src/Makefile.am b/src/Makefile.am
+index cd386297ed..b368dc1451 100644
 --- a/src/Makefile.am
 +++ b/src/Makefile.am
-@@ -717,6 +717,7 @@
- 	$(VZ_DRIVER_SOURCES) \
- 	$(PHYP_DRIVER_SOURCES) \
- 	$(QEMU_DRIVER_SOURCES) \
-+	$(R4D_DRIVER_SOURCES) \
- 	$(REMOTE_DRIVER_SOURCES) \
- 	$(SECRET_DRIVER_SOURCES) \
- 	$(STORAGE_DRIVER_SOURCES) \
-@@ -1020,6 +1021,11 @@
- 		bhyve/bhyve_utils.h \
- 		$(NULL)
+@@ -131,6 +131,7 @@ include node_device/Makefile.inc.am
+ include secret/Makefile.inc.am
+ include storage/Makefile.inc.am
+ include remote/Makefile.inc.am
++include r4d/Makefile.inc.am
  
-+R4D_DRIVER_SOURCES = \
-+		r4d/r4d_driver.c \
-+		r4d/r4d_driver.h \
-+		$(NULL)
-+
- NETWORK_DRIVER_SOURCES = \
- 		network/bridge_driver.h network/bridge_driver.c \
- 		network/bridge_driver_platform.h \
-@@ -1409,6 +1415,15 @@
- libvirt_driver_xenapi_la_SOURCES = $(XENAPI_DRIVER_SOURCES)
- endif WITH_XENAPI
  
-+if WITH_R4D
-+noinst_LTLIBRARIES += libvirt_driver_r4d.la
-+libvirt_la_BUILT_LIBADD += libvirt_driver_r4d.la
-+libvirt_driver_r4d_la_CFLAGS = $(LIBR4D_CFLAGS)\
-+		-I$(srcdir)/conf -I$(srcdir)/r4d $(AM_CFLAGS)
-+libvirt_driver_r4d_la_SOURCES = $(R4D_DRIVER_SOURCES)
-+libvirt_driver_r4d_la_LIBADD = $(LIBR4D_LIBS)
-+endif WITH_R4D
-+
- if WITH_LIBXL
- noinst_LTLIBRARIES += libvirt_driver_libxl_impl.la
- libvirt_driver_libxl_la_SOURCES =
-@@ -2208,6 +2223,12 @@
- SYM_FILES += $(srcdir)/libvirt_esx.syms
- endif ! WITH_ESX
- 
-+if WITH_R4D
-+USED_SYM_FILES += $(srcdir)/libvirt_r4d.syms
-+else ! WITH_R4D
-+SYM_FILES += $(srcdir)/libvirt_r4d.syms
-+endif ! WITH_R4D
-+
- if WITH_REMOTE
- USED_SYM_FILES += $(srcdir)/libvirt_remote.syms
- else ! WITH_REMOTE
+ THREAD_LIBS = $(LIB_PTHREAD) $(LTLIBMULTITHREAD)
+diff --git a/src/libvirt.c b/src/libvirt.c
+index cc1c3c6ea1..81ea1bfb1b 100644
 --- a/src/libvirt.c
 +++ b/src/libvirt.c
-@@ -95,6 +95,9 @@
+@@ -87,6 +87,9 @@
  #ifdef WITH_BHYVE
  # include "bhyve/bhyve_driver.h"
  #endif
@@ -112,7 +152,7 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>Index: libvirt-debi
  
  #define VIR_FROM_THIS VIR_FROM_NONE
  
-@@ -426,6 +429,10 @@
+@@ -313,6 +316,10 @@ virGlobalInit(void)
      if (hypervRegister() == -1)
          goto error;
  # endif
@@ -123,6 +163,9 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>Index: libvirt-debi
  # ifdef WITH_XENAPI
      if (xenapiRegister() == -1)
          goto error;
+diff --git a/src/libvirt_r4d.syms b/src/libvirt_r4d.syms
+new file mode 100644
+index 0000000000..9716f9f9bf
 --- /dev/null
 +++ b/src/libvirt_r4d.syms
 @@ -0,0 +1,8 @@
@@ -134,6 +177,36 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>Index: libvirt-debi
 +# Local Variables:
 +# sort-fold-case: t
 +# End:
+diff --git a/src/r4d/Makefile.inc.am b/src/r4d/Makefile.inc.am
+new file mode 100644
+index 0000000000..87afea927d
+--- /dev/null
++++ b/src/r4d/Makefile.inc.am
+@@ -0,0 +1,21 @@
++R4D_DRIVER_SOURCES = \
++	r4d/r4d_driver.c \
++	r4d/r4d_driver.h \
++	$(NULL)
++
++DRIVER_SOURCE_FILES += $(R4D_DRIVER_SOURCES)
++EXTRA_DIST += $(R4D_DRIVER_SOURCES)
++
++if WITH_R4D
++USED_SYM_FILES += $(srcdir)/libvirt_r4d.syms
++
++noinst_LTLIBRARIES += libvirt_driver_r4d.la
++libvirt_la_BUILT_LIBADD += libvirt_driver_r4d.la
++
++libvirt_driver_r4d_la_CFLAGS = $(LIBR4D_CFLAGS) -I$(srcdir)/access \
++               -I$(srcdir)/conf -I$(srcdir)/r4d $(AM_CFLAGS)
++libvirt_driver_r4d_la_SOURCES = $(R4D_DRIVER_SOURCES)
++libvirt_driver_r4d_la_LIBADD = $(LIBR4D_LIBS)
++else ! WITH_R4D
++SYM_FILES += $(srcdir)/libvirt_r4d.syms
++endif ! WITH_R4D
+diff --git a/src/r4d/r4d_driver.c b/src/r4d/r4d_driver.c
+new file mode 100644
+index 0000000000..d96fee9f7d
 --- /dev/null
 +++ b/src/r4d/r4d_driver.c
 @@ -0,0 +1,642 @@
@@ -779,6 +852,9 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>Index: libvirt-debi
 +{
 +    return virRegisterConnectDriver(&r4dConnectDriver, false);
 +}
+diff --git a/src/r4d/r4d_driver.h b/src/r4d/r4d_driver.h
+new file mode 100644
+index 0000000000..064947a492
 --- /dev/null
 +++ b/src/r4d/r4d_driver.h
 @@ -0,0 +1,37 @@
@@ -819,64 +895,18 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>Index: libvirt-debi
 +};
 +
 +#endif /* R4D_DRIVER_H */
+diff --git a/src/util/virerror.c b/src/util/virerror.c
+index 61b47d2be0..23654cba8b 100644
 --- a/src/util/virerror.c
 +++ b/src/util/virerror.c
-@@ -140,6 +140,7 @@
+@@ -138,6 +138,7 @@ VIR_ENUM_IMPL(virErrorDomain, VIR_ERR_DOMAIN_LAST,
                "Perf", /* 65 */
                "Libssh transport layer",
                "Resource control",
 +              "Remote 4 devices under test",
-     )
+               )
  
  
---- /dev/null
-+++ b/m4/virt-driver-r4d.m4
-@@ -0,0 +1,48 @@
-+dnl The R4D driver
-+dnl
-+dnl Copyright (C) 2017 Linutronix GmbH
-+dnl Author: Benedikt Spranger
-+dnl
-+dnl This library is free software; you can redistribute it and/or
-+dnl modify it under the terms of the GNU Lesser General Public
-+dnl License as published by the Free Software Foundation; either
-+dnl version 2.1 of the License, or (at your option) any later version.
-+dnl
-+dnl This library is distributed in the hope that it will be useful,
-+dnl but WITHOUT ANY WARRANTY; without even the implied warranty of
-+dnl MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+dnl Lesser General Public License for more details.
-+dnl
-+dnl You should have received a copy of the GNU Lesser General Public
-+dnl License along with this library.  If not, see
-+dnl <http://www.gnu.org/licenses/>.
-+dnl
-+
-+AC_DEFUN([LIBVIRT_DRIVER_ARG_R4D],[
-+    LIBVIRT_ARG_WITH_FEATURE([R4D], [R4D], [check])
-+])
-+
-+AC_DEFUN([LIBVIRT_DRIVER_CHECK_R4D],[
-+    LIBR4D_CFLAGS=""
-+    LIBR4D_LIBS=""
-+
-+    if test "$with_r4d" = "yes" || test "$with_r4d" = "check"; then
-+        PKG_CHECK_MODULES([LIBR4D], [libr4d], [
-+	    with_r4d=yes
-+	], [
-+ 	    with_r4d=no
-+	])
-+    fi
-+
-+    if test "$with_r4d" = "yes" ; then
-+	AC_DEFINE_UNQUOTED([WITH_R4D], 1, [whether R4d driver is enabled])
-+    fi
-+    AM_CONDITIONAL([WITH_R4D], [test "$with_r4d" = "yes"])
-+
-+    AC_SUBST([LIBR4D_CFLAGS])
-+    AC_SUBST([LIBR4D_LIBS])
-+])
-+
-+AC_DEFUN([LIBVIRT_DRIVER_RESULT_R4D],[
-+    LIBVIRT_RESULT([R4D], [$with_r4d])
-+])
+-- 
+2.19.0
+

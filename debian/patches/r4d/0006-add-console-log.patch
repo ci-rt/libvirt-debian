@@ -1,7 +1,7 @@
-From 81b7a8ae43abbb334e9c42d081f091045cbce4b1 Mon Sep 17 00:00:00 2001
+From b7b68d433372cb8626053e038388e0064cde7e46 Mon Sep 17 00:00:00 2001
 From: Benedikt Spranger <b.spranger@linutronix.de>
 Date: Fri, 13 Jan 2017 13:17:51 +0100
-Subject: [PATCH] add console log
+Subject: [PATCH 06/10] add console log
 
 The console cmd needs a TTY for proper functionality. To be able to log
 console output into a file without interaction add a consolelog cmd.
@@ -11,14 +11,16 @@ against other console and consolelog cmds.
 
 Signed-off-by: Benedikt Spranger <b.spranger@linutronix.de>
 ---
- tools/virsh-console.c |  66 +++++++++++++++++++++++++++++++++
- tools/virsh-console.h |   5 +++
- tools/virsh-domain.c  | 100 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 171 insertions(+)
+ tools/virsh-console.c |  66 ++++++++++++++++++++++++++++
+ tools/virsh-console.h |   4 ++
+ tools/virsh-domain.c  | 100 ++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 170 insertions(+)
 
+diff --git a/tools/virsh-console.c b/tools/virsh-console.c
+index 045a636867..f7aa42ff9f 100644
 --- a/tools/virsh-console.c
 +++ b/tools/virsh-console.c
-@@ -404,3 +404,69 @@
+@@ -398,3 +398,69 @@ virshRunConsole(vshControl *ctl,
  }
  
  #endif /* !WIN32 */
@@ -88,9 +90,11 @@ Signed-off-by: Benedikt Spranger <b.spranger@linutronix.de>
 +
 +    return ret;
 +}
+diff --git a/tools/virsh-console.h b/tools/virsh-console.h
+index bc1a70b518..c0a08ed4cd 100644
 --- a/tools/virsh-console.h
 +++ b/tools/virsh-console.h
-@@ -35,4 +35,9 @@
+@@ -32,4 +32,8 @@ int virshRunConsole(vshControl *ctl,
  
  # endif /* !WIN32 */
  
@@ -98,11 +102,12 @@ Signed-off-by: Benedikt Spranger <b.spranger@linutronix.de>
 +                       const char *log_name,
 +                       const char *dev_name,
 +                       unsigned int flags);
-+
- #endif /* __VIR_CONSOLE_H__ */
+ #endif /* LIBVIRT_VIRSH_CONSOLE_H */
+diff --git a/tools/virsh-domain.c b/tools/virsh-domain.c
+index e63fc028b9..615aca6205 100644
 --- a/tools/virsh-domain.c
 +++ b/tools/virsh-domain.c
-@@ -2959,6 +2959,100 @@
+@@ -3052,6 +3052,100 @@ cmdConsole(vshControl *ctl, const vshCmd *cmd)
  }
  #endif /* WIN32 */
  
@@ -203,7 +208,7 @@ Signed-off-by: Benedikt Spranger <b.spranger@linutronix.de>
  /* "domif-setlink" command
   */
  static const vshCmdInfo info_domif_setlink[] = {
-@@ -13821,6 +13915,12 @@
+@@ -14047,6 +14141,12 @@ const vshCmdDef domManagementCmds[] = {
       .flags = 0
      },
  #endif
@@ -213,6 +218,9 @@ Signed-off-by: Benedikt Spranger <b.spranger@linutronix.de>
 +     .info = info_consolelog,
 +     .flags = 0
 +    },
-     {.name = "cpu-baseline",
-      .handler = cmdCPUBaseline,
-      .opts = opts_cpu_baseline,
+     {.name = "cpu-stats",
+      .handler = cmdCPUStats,
+      .opts = opts_cpu_stats,
+-- 
+2.19.0
+

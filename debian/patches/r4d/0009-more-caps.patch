@@ -1,6 +1,17 @@
+From b6c88e85d4401344cf19b982845c51c72dbb1655 Mon Sep 17 00:00:00 2001
+From: Benedikt Spranger <b.spranger@linutronix.de>
+Date: Wed, 22 May 2019 22:17:48 +0200
+Subject: [PATCH 09/10] more-caps
+
+---
+ src/r4d/r4d_driver.c | 22 +++++++++++++++++++++-
+ 1 file changed, 21 insertions(+), 1 deletion(-)
+
+diff --git a/src/r4d/r4d_driver.c b/src/r4d/r4d_driver.c
+index 35cc6d40c6..56e2f26fa9 100644
 --- a/src/r4d/r4d_driver.c
 +++ b/src/r4d/r4d_driver.c
-@@ -176,10 +176,30 @@
+@@ -176,10 +176,30 @@ r4dConnectGetHostname(virConnectPtr conn ATTRIBUTE_UNUSED)
  /* nodeGetInfo */
  static int
  r4dNodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED,
@@ -18,10 +29,10 @@
 +    nodeinfo->cpus = 1;
 +    nodeinfo->mhz = 1234;
 +
-+    if (virStrcpyStatic(nodeinfo->model, str) == NULL) {
-+	    virReportError(VIR_ERR_INTERNAL_ERROR,
-+			   _("Model %s too big for destination"), str);
-+	    goto error;
++    if (virStrcpyStatic(nodeinfo->model, str) < 0) {
++        virReportError(VIR_ERR_INTERNAL_ERROR,
++                       _("Model %s too big for destination"), str);
++        goto error;
 +    }
 +
 +    nodeinfo->memory = 876;
@@ -32,3 +43,6 @@
  }
  
  /* connectGetCapabilities */
+-- 
+2.19.0
+

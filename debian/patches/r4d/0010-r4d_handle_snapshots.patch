@@ -1,3 +1,12 @@
+From 3ea0f753a967246c276a6d174786fd69123f5e7b Mon Sep 17 00:00:00 2001
+From: Benedikt Spranger <b.spranger@linutronix.de>
+Date: Wed, 22 May 2019 22:17:48 +0200
+Subject: [PATCH 10/10] r4d_handle_snapshots
+
+---
+ src/r4d/r4d_driver.c | 23 +++++++++++++++++++++++
+ 1 file changed, 23 insertions(+)
+
 --- a/src/r4d/r4d_driver.c
 +++ b/src/r4d/r4d_driver.c
 @@ -647,6 +647,26 @@

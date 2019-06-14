@@ -1,7 +1,7 @@
-From ae799674c7e30d4791feb6fb0f9587aeb3d6b9f1 Mon Sep 17 00:00:00 2001
+From 132c95d51edbff66195f5eb241f89bf9de16c52b Mon Sep 17 00:00:00 2001
 From: Benedikt Spranger <b.spranger@linutronix.de>
 Date: Fri, 29 Jul 2016 11:40:54 +0200
-Subject: [PATCH 1/8] wireshark: glib compile fix
+Subject: [PATCH 02/10] wireshark: glib compile fix
 
 libvirt wireshark dissector uses wireshark and glib. Since wireshark
 development files did not depend on glib add an expicit dependency.
@@ -12,9 +12,11 @@ Signed-off-by: Benedikt Spranger <b.spranger@linutronix.de>
  tools/Makefile.am    | 4 ++--
  2 files changed, 4 insertions(+), 2 deletions(-)
 
+diff --git a/m4/virt-wireshark.m4 b/m4/virt-wireshark.m4
+index 1283a0f403..ca48607eb0 100644
 --- a/m4/virt-wireshark.m4
 +++ b/m4/virt-wireshark.m4
-@@ -26,6 +26,7 @@
+@@ -26,6 +26,7 @@ AC_DEFUN([LIBVIRT_ARG_WIRESHARK],[
  
  AC_DEFUN([LIBVIRT_CHECK_WIRESHARK],[
    LIBVIRT_CHECK_PKG([WIRESHARK_DISSECTOR], [wireshark], [1.11.3])
@@ -22,15 +24,17 @@ Signed-off-by: Benedikt Spranger <b.spranger@linutronix.de>
  
    dnl Check for system location of wireshark plugins
    if test "x$with_wireshark_dissector" != "xno" ; then
-@@ -62,4 +63,5 @@
+@@ -62,4 +63,5 @@ AC_DEFUN([LIBVIRT_CHECK_WIRESHARK],[
  
  AC_DEFUN([LIBVIRT_RESULT_WIRESHARK],[
    LIBVIRT_RESULT_LIB([WIRESHARK_DISSECTOR])
 +  LIBVIRT_RESULT_LIB([GLIB])
  ])
+diff --git a/tools/Makefile.am b/tools/Makefile.am
+index 613c9a77f0..2d2d318272 100644
 --- a/tools/Makefile.am
 +++ b/tools/Makefile.am
-@@ -442,8 +442,8 @@
+@@ -452,8 +452,8 @@ if WITH_WIRESHARK_DISSECTOR
  
  ws_plugin_LTLIBRARIES = wireshark/src/libvirt.la
  wireshark_src_libvirt_la_CFLAGS = \
@@ -41,3 +45,6 @@ Signed-off-by: Benedikt Spranger <b.spranger@linutronix.de>
  nodist_wireshark_src_libvirt_la_SOURCES = wireshark/src/plugin.c
  wireshark_src_libvirt_la_SOURCES = \
  	wireshark/src/packet-libvirt.h \
+-- 
+2.19.0
+

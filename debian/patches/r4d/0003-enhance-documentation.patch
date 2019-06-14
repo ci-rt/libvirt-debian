@@ -1,3 +1,14 @@
+From 41c927f537d9ee4aee9b10e12d651a0ac901cfd7 Mon Sep 17 00:00:00 2001
+From: Benedikt Spranger <b.spranger@linutronix.de>
+Date: Wed, 22 May 2019 22:17:48 +0200
+Subject: [PATCH 03/10] enhance-documentation
+
+---
+ README.md | 48 ++++++++++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 46 insertions(+), 2 deletions(-)
+
+diff --git a/README.md b/README.md
+index 1271843cb1..aac6860dee 100644
 --- a/README.md
 +++ b/README.md
 @@ -1,8 +1,8 @@
@@ -11,7 +22,7 @@
  
  Libvirt provides a portable, long term stable C API for managing the
  virtualization technologies provided by many operating systems. It
-@@ -24,6 +24,13 @@
+@@ -24,6 +24,13 @@ website:
  [https://libvirt.org](https://libvirt.org)
  
  
@@ -25,7 +36,7 @@
  License
  -------
  
-@@ -34,6 +41,26 @@
+@@ -34,6 +41,26 @@ Public License, version 2.1 (or later). See the files `COPYING.LESSER`
  and `COPYING` for full license terms & conditions.
  
  
@@ -72,3 +83,6 @@
  Contributing
  ------------
  
+-- 
+2.19.0
+
