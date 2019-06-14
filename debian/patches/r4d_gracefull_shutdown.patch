@@ -1,0 +1,81 @@
+--- a/src/r4d/r4d_driver.c
++++ b/src/r4d/r4d_driver.c
+@@ -446,13 +446,68 @@
+     return r4dDomainDestroyFlags(dom, 0);
+ }
+ 
++/* domainShutdownFlags */
++static int r4dDomainShutdownFlags(virDomainPtr dom,
++                                  unsigned int flags ATTRIBUTE_UNUSED)
++{
++    struct r4d_driver *driver = dom->conn->privateData;
++    int ret = -1, status;
++
++    logger (__func__);
++    virCheckFlags (0, -1);
++
++    status = r4d_power_status (driver->endpoint, dom->name);
++    if (!status) {
++        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
++                       _("domain is not in powered"));
++        goto cleanup;
++    }
++
++    ret = r4d_shutdown (driver->endpoint, dom->name);
++    if (ret)
++        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
++                       _("fail to shutdown domain"));
++
++cleanup:
++    return ret;
++}
++
++/* domainShutdown */
++static int r4dDomainShutdown(virDomainPtr dom)
++{
++    return r4dDomainShutdownFlags(dom, 0);
++}
++
+ /* domainReboot */
+ static int
+ r4dDomainReboot(virDomainPtr dom ATTRIBUTE_UNUSED,
+                 unsigned int flags ATTRIBUTE_UNUSED)
+ {
++    struct r4d_driver *driver = dom->conn->privateData;
++    int ret = -1, status;
++
+     logger (__func__);
+-    return 0;
++    virCheckFlags (0, -1);
++
++    status = r4d_power_status (driver->endpoint, dom->name);
++    if (!status) {
++        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
++                       _("domain is not powered"));
++        goto cleanup;
++    }
++
++    ret = r4d_shutdown (driver->endpoint, dom->name);
++    if (ret)
++        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
++                       _("fail to shutdown domain"));
++
++    ret = r4d_power_change (driver->endpoint, dom->name, 1);
++    if (ret)
++        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
++                       _("fail to power up domain"));
++
++cleanup:
++    return ret;
+ }
+ 
+ /* domainReset */
+@@ -677,6 +732,8 @@
+     .domainCreateWithFlags =  r4dDomainCreateWithFlags, /* 1.3.1 */
+     .domainDestroy =  r4dDomainDestroy, /* 1.3.1 */
+     .domainDestroyFlags =  r4dDomainDestroyFlags, /* 1.3.1 */
++    .domainShutdown = r4dDomainShutdown, /* 1.3.1 */
++    .domainShutdownFlags = r4dDomainShutdownFlags, /* 1.3.1 */
+     .domainReboot =  r4dDomainReboot, /* 1.3.1 */
+     .domainReset =  r4dDomainReset, /* 1.3.1 */
+ 
