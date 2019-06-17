@@ -29,3 +29,7 @@ security/cpu_map-Define-md-clear-CPUID-bit.patch
 security/admin-reject-clients-unless-their-UID-matches-the-current.patch
 security/locking-restrict-sockets-to-mode-0600.patch
 security/logging-restrict-sockets-to-mode-0600.patch
+security/CVE-2019-10161-api-disallow-virDomainSaveImageGetXMLDesc-.patch
+security/api-disallow-virDomainManagedSaveDefineXML-on-read-only-c.patch
+security/api-disallow-virConnectGetDomainCapabilities-on-read-only.patch
+security/api-disallow-virConnect-HypervisorCPU-on-read-only-connec.patch
