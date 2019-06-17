@@ -1,3 +1,19 @@
+libvirt (5.0.0-4) unstable; urgency=medium
+
+  * [0fdc2af] Fix multiple CVEs related to privilege escalations on R/O
+    connections.
+    - CVE-2019-10161:
+      CVE-2019-10161-api-disallow-virDomainSaveImageGetXMLDesc-.patch
+    - CVE-2019-10166:
+      api-disallow-virDomainManagedSaveDefineXML-on-read-only-c.patch
+    - CVE-2019-10167:
+      api-disallow-virConnectGetDomainCapabilities-on-read-only.patch
+    - CVE-2019-10168:
+      api-disallow-virConnect-HypervisorCPU-on-read-only-connec.patch
+  * Include /etc/pki/qemu in apparmor (Closes: #930100)
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 17 Jun 2019 19:05:40 +0200
+
 libvirt (5.0.0-3) unstable; urgency=medium
 
   [ Guido Günther ]
