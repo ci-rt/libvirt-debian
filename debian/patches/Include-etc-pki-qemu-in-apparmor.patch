@@ -1,0 +1,26 @@
+From: Sam Hartman <hartmans@debian.org>
+Date: Tue, 18 Jun 2019 09:02:09 -0400
+Subject: Include /etc/pki/qemu in apparmor
+
+We already permit /etc/pki/libvirt-{spice,vnc} to be read in the
+apparmor profile.  However the default tls directory in qemu.conf that
+we ship is /etc/pki/qemu.  So permit that as well.
+
+Closes: #930100
+---
+ src/security/apparmor/libvirt-qemu | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/security/apparmor/libvirt-qemu b/src/security/apparmor/libvirt-qemu
+index eaa5167..0659cda 100644
+--- a/src/security/apparmor/libvirt-qemu
++++ b/src/security/apparmor/libvirt-qemu
+@@ -93,6 +93,8 @@
+   /etc/pki/CA/* r,
+   /etc/pki/libvirt{,-spice,-vnc}/ r,
+   /etc/pki/libvirt{,-spice,-vnc}/** r,
++  /etc/pki/qemu/ r,
++  /etc/pki/qemu/** r,
+ 
+   # the various binaries
+   /usr/bin/kvm rmix,

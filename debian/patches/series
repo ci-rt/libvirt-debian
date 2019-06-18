@@ -33,3 +33,4 @@ security/CVE-2019-10161-api-disallow-virDomainSaveImageGetXMLDesc-.patch
 security/api-disallow-virDomainManagedSaveDefineXML-on-read-only-c.patch
 security/api-disallow-virConnectGetDomainCapabilities-on-read-only.patch
 security/api-disallow-virConnect-HypervisorCPU-on-read-only-connec.patch
+Include-etc-pki-qemu-in-apparmor.patch
