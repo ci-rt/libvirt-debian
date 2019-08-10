@@ -46,21 +46,16 @@ VIR_LOG_INIT("tests.storagetest");
  * sub/link2: symlink to wrap
  *
  * Relative names to these files are known at compile time, but absolute
- * and canonical names depend on where the test is run; for convenience,
+ * names depend on where the test is run; for convenience,
  * we pre-populate the computation of these names for use during the test.
 */
 
 static char *qemuimg;
 static char *absraw;
-static char *canonraw;
 static char *absqcow2;
-static char *canonqcow2;
 static char *abswrap;
-static char *canonwrap;
 static char *absqed;
-static char *canonqed;
 static char *absdir;
-static char *canondir;
 static char *abslink2;
 
 static void
@@ -68,15 +63,10 @@ testCleanupImages(void)
 {
     VIR_FREE(qemuimg);
     VIR_FREE(absraw);
-    VIR_FREE(canonraw);
     VIR_FREE(absqcow2);
-    VIR_FREE(canonqcow2);
     VIR_FREE(abswrap);
-    VIR_FREE(canonwrap);
     VIR_FREE(absqed);
-    VIR_FREE(canonqed);
     VIR_FREE(absdir);
-    VIR_FREE(canondir);
     VIR_FREE(abslink2);
 
     if (chdir(abs_builddir) < 0) {
@@ -96,41 +86,39 @@ testStorageFileGetMetadata(const char *path,
 {
     struct stat st;
     virStorageSourcePtr ret = NULL;
+    VIR_AUTOUNREF(virStorageSourcePtr) def = NULL;
 
-    if (VIR_ALLOC(ret) < 0)
+    if (!(def = virStorageSourceNew()))
         return NULL;
 
-    ret->type = VIR_STORAGE_TYPE_FILE;
-    ret->format = format;
+    def->type = VIR_STORAGE_TYPE_FILE;
+    def->format = format;
 
     if (stat(path, &st) == 0) {
         if (S_ISDIR(st.st_mode)) {
-            ret->type = VIR_STORAGE_TYPE_DIR;
+            def->type = VIR_STORAGE_TYPE_DIR;
         } else if (S_ISBLK(st.st_mode)) {
-            ret->type = VIR_STORAGE_TYPE_BLOCK;
+            def->type = VIR_STORAGE_TYPE_BLOCK;
         }
     }
 
-    if (VIR_STRDUP(ret->path, path) < 0)
-        goto error;
+    if (VIR_STRDUP(def->path, path) < 0)
+        return NULL;
 
-    if (virStorageFileGetMetadata(ret, uid, gid, false) < 0)
-        goto error;
+    if (virStorageFileGetMetadata(def, uid, gid, false) < 0)
+        return NULL;
 
+    VIR_STEAL_PTR(ret, def);
     return ret;
-
- error:
-    virStorageSourceFree(ret);
-    return NULL;
 }
 
 static int
 testPrepImages(void)
 {
     int ret = EXIT_FAILURE;
-    virCommandPtr cmd = NULL;
-    char *buf = NULL;
     bool compat = false;
+    VIR_AUTOPTR(virCommand) cmd = NULL;
+    VIR_AUTOFREE(char *) buf = NULL;
 
     qemuimg = virFindFileInPath("qemu-img");
     if (!qemuimg)
@@ -167,10 +155,6 @@ testPrepImages(void)
         fprintf(stderr, "unable to create directory %s\n", datadir "/dir");
         goto cleanup;
     }
-    if (!(canondir = virFileCanonicalizePath(absdir))) {
-        virReportOOMError();
-        goto cleanup;
-    }
 
     if (chdir(datadir) < 0) {
         fprintf(stderr, "unable to test relative backing chains\n");
@@ -180,10 +164,6 @@ testPrepImages(void)
     if (virAsprintf(&buf, "%1024d", 0) < 0 ||
         virFileWriteStr("raw", buf, 0600) < 0) {
         fprintf(stderr, "unable to create raw file\n");
-        goto cleanup;
-    }
-    if (!(canonraw = virFileCanonicalizePath(absraw))) {
-        virReportOOMError();
         goto cleanup;
     }
 
@@ -202,10 +182,6 @@ testPrepImages(void)
                                "-F", "raw", "-b", "raw", "qcow2", NULL);
     if (virCommandRun(cmd, NULL) < 0)
         goto skip;
-    if (!(canonqcow2 = virFileCanonicalizePath(absqcow2))) {
-        virReportOOMError();
-        goto cleanup;
-    }
 
     /* Create a second qcow2 wrapping the first, to be sure that we
      * can correctly avoid insecure probing.  */
@@ -216,10 +192,6 @@ testPrepImages(void)
     virCommandAddArg(cmd, "wrap");
     if (virCommandRun(cmd, NULL) < 0)
         goto skip;
-    if (!(canonwrap = virFileCanonicalizePath(abswrap))) {
-        virReportOOMError();
-        goto cleanup;
-    }
 
     /* Create a qed file. */
     virCommandFree(cmd);
@@ -229,10 +201,6 @@ testPrepImages(void)
     virCommandAddArg(cmd, "qed");
     if (virCommandRun(cmd, NULL) < 0)
         goto skip;
-    if (!(canonqed = virFileCanonicalizePath(absqed))) {
-        virReportOOMError();
-        goto cleanup;
-    }
 
 #ifdef HAVE_SYMLINK
     /* Create some symlinks in a sub-directory. */
@@ -245,8 +213,6 @@ testPrepImages(void)
 
     ret = 0;
  cleanup:
-    VIR_FREE(buf);
-    virCommandFree(cmd);
     if (ret)
         testCleanupImages();
     return ret;
@@ -310,52 +276,51 @@ static int
 testStorageChain(const void *args)
 {
     const struct testChainData *data = args;
-    int ret = -1;
-    virStorageSourcePtr meta;
     virStorageSourcePtr elt;
     size_t i = 0;
-    char *broken = NULL;
+    VIR_AUTOUNREF(virStorageSourcePtr) meta = NULL;
+    VIR_AUTOFREE(char *) broken = NULL;
 
     meta = testStorageFileGetMetadata(data->start, data->format, -1, -1);
     if (!meta) {
         if (data->flags & EXP_FAIL) {
             virResetLastError();
-            ret = 0;
+            return 0;
         }
-        goto cleanup;
+        return -1;
     } else if (data->flags & EXP_FAIL) {
         fprintf(stderr, "call should have failed\n");
-        goto cleanup;
+        return -1;
     }
     if (data->flags & EXP_WARN) {
         if (virGetLastErrorCode() == VIR_ERR_OK) {
             fprintf(stderr, "call should have warned\n");
-            goto cleanup;
+            return -1;
         }
         virResetLastError();
         if (virStorageFileChainGetBroken(meta, &broken) || !broken) {
             fprintf(stderr, "call should identify broken part of chain\n");
-            goto cleanup;
+            return -1;
         }
     } else {
         if (virGetLastErrorCode()) {
             fprintf(stderr, "call should not have warned\n");
-            goto cleanup;
+            return -1;
         }
         if (virStorageFileChainGetBroken(meta, &broken) || broken) {
             fprintf(stderr, "chain should not be identified as broken\n");
-            goto cleanup;
+            return -1;
         }
     }
 
     elt = meta;
     while (virStorageSourceIsBacking(elt)) {
-        char *expect = NULL;
-        char *actual = NULL;
+        VIR_AUTOFREE(char *) expect = NULL;
+        VIR_AUTOFREE(char *) actual = NULL;
 
         if (i == data->nfiles) {
             fprintf(stderr, "probed chain was too long\n");
-            goto cleanup;
+            return -1;
         }
 
         if (virAsprintf(&expect,
@@ -380,31 +345,21 @@ testStorageChain(const void *args)
                         elt->format,
                         virStorageNetProtocolTypeToString(elt->protocol),
                         NULLSTR(elt->nhosts ? elt->hosts[0].name : NULL)) < 0) {
-            VIR_FREE(expect);
-            VIR_FREE(actual);
-            goto cleanup;
+            return -1;
         }
         if (STRNEQ(expect, actual)) {
             virTestDifference(stderr, expect, actual);
-            VIR_FREE(expect);
-            VIR_FREE(actual);
-            goto cleanup;
+            return -1;
         }
-        VIR_FREE(expect);
-        VIR_FREE(actual);
         elt = elt->backingStore;
         i++;
     }
     if (i != data->nfiles) {
         fprintf(stderr, "probed chain was too short\n");
-        goto cleanup;
+        return -1;
     }
 
-    ret = 0;
- cleanup:
-    VIR_FREE(broken);
-    virStorageSourceFree(meta);
-    return ret;
+    return 0;
 }
 
 struct testLookupData
@@ -540,8 +495,7 @@ static int
 testPathCanonicalize(const void *args)
 {
     const struct testPathCanonicalizeData *data = args;
-    char *canon = NULL;
-    int ret = -1;
+    VIR_AUTOFREE(char *) canon = NULL;
 
     canon = virStorageFileCanonicalizePath(data->path,
                                            testPathCanonicalizeReadlink,
@@ -552,15 +506,10 @@ testPathCanonicalize(const void *args)
                 "path canonicalization of '%s' failed: expected '%s' got '%s'\n",
                 data->path, NULLSTR(data->expect), NULLSTR(canon));
 
-        goto cleanup;
+        return -1;
     }
 
-    ret = 0;
-
- cleanup:
-    VIR_FREE(canon);
-
-    return ret;
+    return 0;
 }
 
 static virStorageSource backingchain[12];
@@ -630,14 +579,13 @@ static int
 testPathRelative(const void *args)
 {
     const struct testPathRelativeBacking *data = args;
-    char *actual = NULL;
-    int ret = -1;
+    VIR_AUTOFREE(char *) actual = NULL;
 
     if (virStorageFileGetRelativeBackingPath(data->top,
                                              data->base,
                                              &actual) < 0) {
         fprintf(stderr, "relative backing path resolution failed\n");
-        goto cleanup;
+        return -1;
     }
 
     if (STRNEQ_NULLABLE(data->expect, actual)) {
@@ -645,15 +593,10 @@ testPathRelative(const void *args)
                 "expected '%s', got '%s'\n",
                 data->top->path, data->base->path,
                 NULLSTR(data->expect), NULLSTR(actual));
-        goto cleanup;
+        return -1;
     }
 
-    ret = 0;
-
- cleanup:
-    VIR_FREE(actual);
-
-    return ret;
+    return 0;
 }
 
 
@@ -667,9 +610,9 @@ testBackingParse(const void *args)
 {
     const struct testBackingParseData *data = args;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
-    virStorageSourcePtr src = NULL;
-    char *xml = NULL;
     int ret = -1;
+    VIR_AUTOFREE(char *) xml = NULL;
+    VIR_AUTOUNREF(virStorageSourcePtr) src = NULL;
 
     if (!(src = virStorageSourceNewFromBackingAbsolute(data->backing))) {
         if (!data->expect)
@@ -684,7 +627,7 @@ testBackingParse(const void *args)
         goto cleanup;
     }
 
-    if (virDomainDiskSourceFormat(&buf, src, 0, 0, NULL) < 0 ||
+    if (virDomainDiskSourceFormat(&buf, src, 0, false, 0, NULL) < 0 ||
         !(xml = virBufferContentAndReset(&buf))) {
         fprintf(stderr, "failed to format disk source xml\n");
         goto cleanup;
@@ -701,9 +644,7 @@ testBackingParse(const void *args)
     ret = 0;
 
  cleanup:
-    virStorageSourceFree(src);
     virBufferFreeAndReset(&buf);
-    VIR_FREE(xml);
 
     return ret;
 }
@@ -713,15 +654,15 @@ static int
 mymain(void)
 {
     int ret;
-    virCommandPtr cmd = NULL;
     struct testChainData data;
     struct testLookupData data2;
     struct testPathCanonicalizeData data3;
     struct testPathRelativeBacking data4;
     struct testBackingParseData data5;
-    virStorageSourcePtr chain = NULL;
     virStorageSourcePtr chain2; /* short for chain->backingStore */
     virStorageSourcePtr chain3; /* short for chain2->backingStore */
+    VIR_AUTOPTR(virCommand) cmd = NULL;
+    VIR_AUTOUNREF(virStorageSourcePtr) chain = NULL;
 
     if (storageRegisterAll() < 0)
        return EXIT_FAILURE;
@@ -760,7 +701,7 @@ mymain(void)
 
     /* Raw image, whether with right format or no specified format */
     testFileData raw = {
-        .path = canonraw,
+        .path = absraw,
         .type = VIR_STORAGE_TYPE_FILE,
         .format = VIR_STORAGE_FILE_RAW,
     };
@@ -772,12 +713,12 @@ mymain(void)
     testFileData qcow2 = {
         .expBackingStoreRaw = "raw",
         .expCapacity = 1024,
-        .path = canonqcow2,
+        .path = absqcow2,
         .type = VIR_STORAGE_TYPE_FILE,
         .format = VIR_STORAGE_FILE_QCOW2,
     };
     testFileData qcow2_as_raw = {
-        .path = canonqcow2,
+        .path = absqcow2,
         .type = VIR_STORAGE_TYPE_FILE,
         .format = VIR_STORAGE_FILE_RAW,
     };
@@ -801,7 +742,7 @@ mymain(void)
     testFileData wrap = {
         .expBackingStoreRaw = absqcow2,
         .expCapacity = 1024,
-        .path = canonwrap,
+        .path = abswrap,
         .type = VIR_STORAGE_TYPE_FILE,
         .format = VIR_STORAGE_FILE_QCOW2,
     };
@@ -824,7 +765,7 @@ mymain(void)
     testFileData wrap_as_raw = {
         .expBackingStoreRaw = absqcow2,
         .expCapacity = 1024,
-        .path = canonwrap,
+        .path = abswrap,
         .type = VIR_STORAGE_TYPE_FILE,
         .format = VIR_STORAGE_FILE_QCOW2,
     };
@@ -907,12 +848,12 @@ mymain(void)
     testFileData qed = {
         .expBackingStoreRaw = absraw,
         .expCapacity = 1024,
-        .path = canonqed,
+        .path = absqed,
         .type = VIR_STORAGE_TYPE_FILE,
         .format = VIR_STORAGE_FILE_QED,
     };
     testFileData qed_as_raw = {
-        .path = canonqed,
+        .path = absqed,
         .type = VIR_STORAGE_TYPE_FILE,
         .format = VIR_STORAGE_FILE_RAW,
     };
@@ -921,12 +862,12 @@ mymain(void)
 
     /* directory */
     testFileData dir = {
-        .path = canondir,
+        .path = absdir,
         .type = VIR_STORAGE_TYPE_DIR,
         .format = VIR_STORAGE_FILE_DIR,
     };
     testFileData dir_as_raw = {
-        .path = canondir,
+        .path = absdir,
         .type = VIR_STORAGE_TYPE_DIR,
         .format = VIR_STORAGE_FILE_RAW,
     };
@@ -1113,7 +1054,7 @@ mymain(void)
         ret = -1;
 
     /* Test behavior of chain lookups, relative backing from absolute start */
-    virStorageSourceFree(chain);
+    virObjectUnref(chain);
     chain = testStorageFileGetMetadata(abswrap, VIR_STORAGE_FILE_QCOW2, -1, -1);
     if (!chain) {
         ret = -1;
@@ -1159,7 +1100,7 @@ mymain(void)
         ret = -1;
 
     /* Test behavior of chain lookups, relative backing */
-    virStorageSourceFree(chain);
+    virObjectUnref(chain);
     chain = testStorageFileGetMetadata("sub/link2", VIR_STORAGE_FILE_QCOW2,
                                        -1, -1);
     if (!chain) {
@@ -1602,9 +1543,7 @@ mymain(void)
 
  cleanup:
     /* Final cleanup */
-    virStorageSourceFree(chain);
     testCleanupImages();
-    virCommandFree(cmd);
 
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

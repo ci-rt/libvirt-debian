@@ -25,14 +25,17 @@
 
 #define VIR_FROM_THIS VIR_FROM_NET
 
-VIR_ENUM_IMPL(virNetDevVPort, VIR_NETDEV_VPORT_PROFILE_LAST,
+VIR_ENUM_IMPL(virNetDevVPort,
+              VIR_NETDEV_VPORT_PROFILE_LAST,
               "none",
               "802.1Qbg",
               "802.1Qbh",
               "openvswitch",
-              "midonet")
+              "midonet",
+);
 
-VIR_ENUM_IMPL(virNetDevVPortProfileOp, VIR_NETDEV_VPORT_PROFILE_OP_LAST,
+VIR_ENUM_IMPL(virNetDevVPortProfileOp,
+              VIR_NETDEV_VPORT_PROFILE_OP_LAST,
               "create",
               "save",
               "restore",
@@ -40,7 +43,8 @@ VIR_ENUM_IMPL(virNetDevVPortProfileOp, VIR_NETDEV_VPORT_PROFILE_OP_LAST,
               "migrate out",
               "migrate in start",
               "migrate in finish",
-              "no-op")
+              "no-op",
+);
 
 #if WITH_VIRTUALPORT
 
@@ -122,6 +126,22 @@ virNetDevVPortProfileEqual(virNetDevVPortProfilePtr a, virNetDevVPortProfilePtr 
 
     return true;
 }
+
+
+int virNetDevVPortProfileCopy(virNetDevVPortProfilePtr *dst, const virNetDevVPortProfile *src)
+{
+    if (!src) {
+        *dst = NULL;
+        return 0;
+    }
+
+    if (VIR_ALLOC(*dst) < 0)
+        return -1;
+
+    memcpy(*dst, src, sizeof(*src));
+    return 0;
+}
+
 
 /* virNetDevVPortProfileCheckComplete() checks that all attributes
  * required for the type of virtport are specified. When
@@ -1237,7 +1257,7 @@ virNetDevVPortProfileAssociate(const char *macvtap_ifname,
 
     VIR_DEBUG("profile:'%p' vmOp: %s device: %s@%s mac: %s uuid: %s",
               virtPort, virNetDevVPortProfileOpTypeToString(vmOp),
-              (macvtap_ifname ? macvtap_ifname : ""), linkdev,
+              NULLSTR_EMPTY(macvtap_ifname), linkdev,
               (macvtap_macaddr
                ? virMacAddrFormat(macvtap_macaddr, macStr)
                : "(unspecified)"),
@@ -1303,7 +1323,7 @@ virNetDevVPortProfileDisassociate(const char *macvtap_ifname,
 
     VIR_DEBUG("profile:'%p' vmOp: %s device: %s@%s mac: %s",
               virtPort, virNetDevVPortProfileOpTypeToString(vmOp),
-              (macvtap_ifname ? macvtap_ifname : ""), linkdev,
+              NULLSTR_EMPTY(macvtap_ifname), linkdev,
               (macvtap_macaddr
                ? virMacAddrFormat(macvtap_macaddr, macStr)
                : "(unspecified)"));

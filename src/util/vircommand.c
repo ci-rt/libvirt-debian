@@ -42,6 +42,7 @@
 #endif
 
 #define LIBVIRT_VIRCOMMANDPRIV_H_ALLOW
+#include "viralloc.h"
 #include "vircommandpriv.h"
 #include "virerror.h"
 #include "virutil.h"
@@ -1483,6 +1484,27 @@ virCommandAddEnvPassCommon(virCommandPtr cmd)
     virCommandAddEnvPassBlockSUID(cmd, "TMPDIR", NULL);
 }
 
+
+void
+virCommandAddEnvXDG(virCommandPtr cmd, const char *baseDir)
+{
+    if (!cmd || cmd->has_error)
+        return;
+
+    if (VIR_RESIZE_N(cmd->env, cmd->maxenv, cmd->nenv, 3) < 0) {
+        cmd->has_error = ENOMEM;
+        return;
+    }
+
+    virCommandAddEnvFormat(cmd, "XDG_DATA_HOME=%s/%s",
+                           baseDir, ".local/share");
+    virCommandAddEnvFormat(cmd, "XDG_CACHE_HOME=%s/%s",
+                           baseDir, ".cache");
+    virCommandAddEnvFormat(cmd, "XDG_CONFIG_HOME=%s/%s",
+                           baseDir, ".config");
+}
+
+
 /**
  * virCommandAddArg:
  * @cmd: the command to modify
@@ -2055,12 +2077,14 @@ virCommandProcessIO(virCommandPtr cmd)
      * results accumulated over a prior run of the same command.  */
     if (cmd->outbuf) {
         outfd = cmd->outfd;
-        if (VIR_REALLOC_N(*cmd->outbuf, 1) < 0)
+        VIR_FREE(*cmd->outbuf);
+        if (VIR_ALLOC_N(*cmd->outbuf, 1) < 0)
             ret = -1;
     }
     if (cmd->errbuf) {
         errfd = cmd->errfd;
-        if (VIR_REALLOC_N(*cmd->errbuf, 1) < 0)
+        VIR_FREE(*cmd->errbuf);
+        if (VIR_ALLOC_N(*cmd->errbuf, 1) < 0)
             ret = -1;
     }
     if (ret == -1)
@@ -2981,7 +3005,7 @@ virCommandRunRegex(virCommandPtr cmd,
     int totgroups = 0, ngroup = 0, maxvars = 0;
     char **groups;
     VIR_AUTOFREE(char *) outbuf = NULL;
-    VIR_AUTOPTR(virString) lines = NULL;
+    VIR_AUTOSTRINGLIST lines = NULL;
     int ret = -1;
 
     /* Compile all regular expressions */

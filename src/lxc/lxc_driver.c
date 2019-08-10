@@ -987,7 +987,7 @@ static char *lxcDomainGetXMLDesc(virDomainPtr dom,
     virDomainObjPtr vm;
     char *ret = NULL;
 
-    /* Flags checked by virDomainDefFormat */
+    virCheckFlags(VIR_DOMAIN_XML_COMMON_FLAGS, NULL);
 
     if (!(vm = lxcDomObjFromDomain(dom)))
         goto cleanup;
@@ -1268,13 +1268,6 @@ static int lxcDomainGetSecurityLabel(virDomainPtr dom, virSecurityLabelPtr secla
     if (virDomainGetSecurityLabelEnsureACL(dom->conn, vm->def) < 0)
         goto cleanup;
 
-    if (!virDomainVirtTypeToString(vm->def->virtType)) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("unknown virt type in domain definition '%d'"),
-                       vm->def->virtType);
-        goto cleanup;
-    }
-
     /*
      * Theoretically, the pid can be replaced during this operation and
      * return the label of a different process.  If atomicity is needed,
@@ -1462,7 +1455,7 @@ lxcDomainDestroyFlags(virDomainPtr dom,
     if (virDomainDestroyFlagsEnsureACL(dom->conn, vm->def) < 0)
         goto cleanup;
 
-    if (virLXCDomainObjBeginJob(driver, vm, LXC_JOB_MODIFY) < 0)
+    if (virLXCDomainObjBeginJob(driver, vm, LXC_JOB_DESTROY) < 0)
         goto cleanup;
 
     if (virDomainObjCheckActive(vm) < 0)
@@ -1632,6 +1625,8 @@ static int lxcStateInitialize(bool privileged,
                                        NULL, NULL) < 0)
         goto cleanup;
 
+    virLXCProcessAutostartAll(lxc_driver);
+
     virObjectUnref(caps);
     return 0;
 
@@ -1639,19 +1634,6 @@ static int lxcStateInitialize(bool privileged,
     virObjectUnref(caps);
     lxcStateCleanup();
     return -1;
-}
-
-/**
- * lxcStateAutoStart:
- *
- * Function to autostart the LXC daemons
- */
-static void lxcStateAutoStart(void)
-{
-    if (!lxc_driver)
-        return;
-
-    virLXCProcessAutostartAll(lxc_driver);
 }
 
 static void lxcNotifyLoadDomain(virDomainObjPtr vm, int newVM, void *opaque)
@@ -3273,15 +3255,6 @@ lxcConnectListAllDomains(virConnectPtr conn,
 
 
 static int
-lxcDomainInitctlCallback(pid_t pid ATTRIBUTE_UNUSED,
-                         void *opaque)
-{
-    int *command = opaque;
-    return virInitctlSetRunLevel(*command);
-}
-
-
-static int
 lxcDomainShutdownFlags(virDomainPtr dom,
                        unsigned int flags)
 {
@@ -3289,7 +3262,7 @@ lxcDomainShutdownFlags(virDomainPtr dom,
     virLXCDomainObjPrivatePtr priv;
     virDomainObjPtr vm;
     int ret = -1;
-    int rc;
+    int rc = -1;
 
     virCheckFlags(VIR_DOMAIN_SHUTDOWN_INITCTL |
                   VIR_DOMAIN_SHUTDOWN_SIGNAL, -1);
@@ -3318,21 +3291,17 @@ lxcDomainShutdownFlags(virDomainPtr dom,
         (flags & VIR_DOMAIN_SHUTDOWN_INITCTL)) {
         int command = VIR_INITCTL_RUNLEVEL_POWEROFF;
 
-        if ((rc = virProcessRunInMountNamespace(priv->initpid,
-                                                lxcDomainInitctlCallback,
-                                                &command)) < 0)
-            goto endjob;
-        if (rc == 0 && flags != 0 &&
-            ((flags & ~VIR_DOMAIN_SHUTDOWN_INITCTL) == 0)) {
-            virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
-                           _("Container does not provide an initctl pipe"));
-            goto endjob;
+        if ((rc = virLXCDomainSetRunlevel(vm, command)) < 0) {
+            if (flags != 0 &&
+                (flags & VIR_DOMAIN_SHUTDOWN_INITCTL)) {
+                virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                               _("Container does not provide an initctl pipe"));
+                goto endjob;
+            }
         }
-    } else {
-        rc = 0;
     }
 
-    if (rc == 0 &&
+    if (rc < 0 &&
         (flags == 0 ||
          (flags & VIR_DOMAIN_SHUTDOWN_SIGNAL))) {
         if (kill(priv->initpid, SIGTERM) < 0 &&
@@ -3369,7 +3338,7 @@ lxcDomainReboot(virDomainPtr dom,
     virLXCDomainObjPrivatePtr priv;
     virDomainObjPtr vm;
     int ret = -1;
-    int rc;
+    int rc = -1;
 
     virCheckFlags(VIR_DOMAIN_REBOOT_INITCTL |
                   VIR_DOMAIN_REBOOT_SIGNAL, -1);
@@ -3398,21 +3367,17 @@ lxcDomainReboot(virDomainPtr dom,
         (flags & VIR_DOMAIN_REBOOT_INITCTL)) {
         int command = VIR_INITCTL_RUNLEVEL_REBOOT;
 
-        if ((rc = virProcessRunInMountNamespace(priv->initpid,
-                                                lxcDomainInitctlCallback,
-                                                &command)) < 0)
-            goto endjob;
-        if (rc == 0 && flags != 0 &&
-            ((flags & ~VIR_DOMAIN_SHUTDOWN_INITCTL) == 0)) {
-            virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
-                           _("Container does not provide an initctl pipe"));
-            goto endjob;
+        if ((rc = virLXCDomainSetRunlevel(vm, command)) < 0) {
+            if (flags != 0 &&
+                (flags & VIR_DOMAIN_REBOOT_INITCTL)) {
+                virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                               _("Container does not provide an initctl pipe"));
+                goto endjob;
+            }
         }
-    } else {
-        rc = 0;
     }
 
-    if (rc == 0 &&
+    if (rc < 0 &&
         (flags == 0 ||
          (flags & VIR_DOMAIN_REBOOT_SIGNAL))) {
         if (kill(priv->initpid, SIGHUP) < 0 &&
@@ -3452,7 +3417,7 @@ lxcDomainAttachDeviceConfig(virDomainDefPtr vmdef,
                            _("target %s already exists."), disk->dst);
             return -1;
         }
-        if (virDomainDiskInsert(vmdef, disk))
+        if (virDomainDiskInsert(vmdef, disk) < 0)
             return -1;
         /* vmdef has the pointer. Generic codes for vmdef will do all jobs */
         dev->data.disk = NULL;
@@ -3636,8 +3601,9 @@ lxcDomainAttachDeviceMknodHelper(pid_t pid ATTRIBUTE_UNUSED,
         virDomainDiskDefPtr def = data->def->data.disk;
         char *tmpsrc = def->src->path;
         def->src->path = data->file;
-        if (virSecurityManagerSetDiskLabel(data->driver->securityManager,
-                                           data->vm->def, def) < 0) {
+        if (virSecurityManagerSetImageLabel(data->driver->securityManager,
+                                            data->vm->def, def->src,
+                                            VIR_SECURITY_DOMAIN_IMAGE_LABEL_BACKING_CHAIN) < 0) {
             def->src->path = tmpsrc;
             goto cleanup;
         }
@@ -3868,8 +3834,16 @@ lxcDomainAttachDeviceNetLive(virConnectPtr conn,
      * network's pool of devices, or resolve bridge device name
      * to the one defined in the network definition.
      */
-    if (virDomainNetAllocateActualDevice(vm->def, net) < 0)
-        return -1;
+    if (net->type == VIR_DOMAIN_NET_TYPE_NETWORK) {
+        virConnectPtr netconn = virGetConnectNetwork();
+        if (!netconn)
+            return -1;
+        if (virDomainNetAllocateActualDevice(netconn, vm->def, net) < 0) {
+            virObjectUnref(netconn);
+            return -1;
+        }
+        virObjectUnref(netconn);
+    }
 
     actualType = virDomainNetGetActualType(net);
 
@@ -4363,6 +4337,7 @@ lxcDomainDetachDeviceNetLive(virDomainObjPtr vm,
     virDomainNetType actualType;
     virDomainNetDefPtr detach = NULL;
     virNetDevVPortProfilePtr vport = NULL;
+    virErrorPtr save_err = NULL;
 
     if ((detachidx = virDomainNetFindIdx(vm->def, dev->data.net)) < 0)
         goto cleanup;
@@ -4422,9 +4397,19 @@ lxcDomainDetachDeviceNetLive(virDomainObjPtr vm,
     ret = 0;
  cleanup:
     if (!ret) {
-        virDomainNetReleaseActualDevice(vm->def, detach);
+        virErrorPreserveLast(&save_err);
+        if (detach->type == VIR_DOMAIN_NET_TYPE_NETWORK) {
+            virConnectPtr conn = virGetConnectNetwork();
+            if (conn) {
+                virDomainNetReleaseActualDevice(conn, vm->def, detach);
+                virObjectUnref(conn);
+            } else {
+                VIR_WARN("Unable to release network device '%s'", NULLSTR(detach->ifname));
+            }
+        }
         virDomainNetRemove(vm->def, detachidx);
         virDomainNetDefFree(detach);
+        virErrorRestore(&save_err);
     }
     return ret;
 }
@@ -5514,7 +5499,6 @@ static virConnectDriver lxcConnectDriver = {
 static virStateDriver lxcStateDriver = {
     .name = LXC_DRIVER_NAME,
     .stateInitialize = lxcStateInitialize,
-    .stateAutoStart = lxcStateAutoStart,
     .stateCleanup = lxcStateCleanup,
     .stateReload = lxcStateReload,
 };

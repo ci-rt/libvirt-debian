@@ -23,6 +23,7 @@
 # include "viruuid.h"
 # include "virutil.h"
 # include "virmacaddr.h"
+# include "virenum.h"
 
 # define LIBVIRT_IFLA_VF_PORT_PROFILE_MAX 40
 
@@ -35,7 +36,7 @@ typedef enum virNetDevVPortProfile {
 
     VIR_NETDEV_VPORT_PROFILE_LAST,
 } virNetDevVPortProfileType;
-VIR_ENUM_DECL(virNetDevVPort)
+VIR_ENUM_DECL(virNetDevVPort);
 
 typedef enum {
     VIR_NETDEV_VPORT_PROFILE_OP_CREATE,
@@ -49,7 +50,7 @@ typedef enum {
 
     VIR_NETDEV_VPORT_PROFILE_OP_LAST
 } virNetDevVPortProfileOp;
-VIR_ENUM_DECL(virNetDevVPortProfileOp)
+VIR_ENUM_DECL(virNetDevVPortProfileOp);
 
 /* profile data for macvtap (VEPA) and openvswitch */
 typedef struct _virNetDevVPortProfile virNetDevVPortProfile;
@@ -79,6 +80,8 @@ struct _virNetDevVPortProfile {
 
 bool virNetDevVPortProfileEqual(virNetDevVPortProfilePtr a,
                                 virNetDevVPortProfilePtr b);
+int virNetDevVPortProfileCopy(virNetDevVPortProfilePtr *dst,
+                              const virNetDevVPortProfile *src);
 
 int virNetDevVPortProfileCheckComplete(virNetDevVPortProfilePtr virtport,
                                        bool generateMissing);

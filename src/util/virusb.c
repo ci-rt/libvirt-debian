@@ -33,6 +33,7 @@
 #include "virerror.h"
 #include "virfile.h"
 #include "virstring.h"
+#include "viralloc.h"
 
 #define USB_SYSFS "/sys/bus/usb"
 #define USB_ID_LEN 10 /* "1234 5678" */
@@ -79,7 +80,7 @@ static int virUSBOnceInit(void)
     return 0;
 }
 
-VIR_ONCE_GLOBAL_INIT(virUSB)
+VIR_ONCE_GLOBAL_INIT(virUSB);
 
 static int virUSBSysReadFile(const char *f_name, const char *d_name,
                              int base, unsigned int *value)

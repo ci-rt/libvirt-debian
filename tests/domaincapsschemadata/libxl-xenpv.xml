@@ -24,6 +24,7 @@
         <value>scsi</value>
         <value>xen</value>
       </enum>
+      <enum name='model'/>
     </disk>
     <graphics supported='yes'>
       <enum name='type'>
@@ -50,6 +51,7 @@
         <value>optional</value>
       </enum>
       <enum name='subsysType'>
+        <value>usb</value>
         <value>pci</value>
       </enum>
       <enum name='capsType'/>

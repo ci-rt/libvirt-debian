@@ -27,6 +27,8 @@
 # include "vircommandpriv.h"
 # define LIBVIRT_VIRFIREWALLPRIV_H_ALLOW
 # include "virfirewallpriv.h"
+# define LIBVIRT_VIRFIREWALLDPRIV_H_ALLOW
+# include "virfirewalldpriv.h"
 # include "virmock.h"
 # define LIBVIRT_VIRDBUSPRIV_H_ALLOW
 # include "virdbuspriv.h"
@@ -990,11 +992,12 @@ testFirewallQueryHook(const char *const*args,
 
 static int
 testFirewallQueryCallback(virFirewallPtr fw,
+                          virFirewallLayer layer,
                           const char *const *lines,
                           void *opaque ATTRIBUTE_UNUSED)
 {
     size_t i;
-    virFirewallAddRule(fw, VIR_FIREWALL_LAYER_IPV4,
+    virFirewallAddRule(fw, layer,
                        "-A", "INPUT",
                        "--source-host", "!192.168.122.129",
                        "--jump", "REJECT", NULL);

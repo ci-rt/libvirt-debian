@@ -5,3 +5,4 @@ usr/lib/*/libvirt-qemu.so.*
 usr/share/libvirt/cpu_map/*
 usr/share/libvirt/schemas/*
 usr/share/libvirt/test-screenshot.png
+usr/share/locale/*/LC_MESSAGES/libvirt.mo

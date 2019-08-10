@@ -25,6 +25,7 @@
 # include "qemu_conf.h"
 # include "qemu_domain.h"
 # include "qemu_migration_params.h"
+# include "virenum.h"
 
 /*
  * General function naming conventions:
@@ -57,7 +58,9 @@
      VIR_MIGRATE_AUTO_CONVERGE | \
      VIR_MIGRATE_RDMA_PIN_ALL | \
      VIR_MIGRATE_POSTCOPY | \
-     VIR_MIGRATE_TLS)
+     VIR_MIGRATE_TLS | \
+     VIR_MIGRATE_PARALLEL | \
+     0)
 
 /* All supported migration parameters and their types. */
 # define QEMU_MIGRATION_PARAMETERS \
@@ -79,6 +82,8 @@
     VIR_MIGRATE_PARAM_PERSIST_XML,      VIR_TYPED_PARAM_STRING, \
     VIR_MIGRATE_PARAM_AUTO_CONVERGE_INITIAL,        VIR_TYPED_PARAM_INT, \
     VIR_MIGRATE_PARAM_AUTO_CONVERGE_INCREMENT,      VIR_TYPED_PARAM_INT, \
+    VIR_MIGRATE_PARAM_BANDWIDTH_POSTCOPY, VIR_TYPED_PARAM_ULLONG, \
+    VIR_MIGRATE_PARAM_PARALLEL_CONNECTIONS, VIR_TYPED_PARAM_INT, \
     NULL
 
 
@@ -96,11 +101,7 @@ typedef enum {
 
     QEMU_MIGRATION_PHASE_LAST
 } qemuMigrationJobPhase;
-VIR_ENUM_DECL(qemuMigrationJobPhase)
-
-int
-qemuMigrationSrcSetOffline(virQEMUDriverPtr driver,
-                           virDomainObjPtr vm);
+VIR_ENUM_DECL(qemuMigrationJobPhase);
 
 char *
 qemuMigrationSrcBegin(virConnectPtr conn,

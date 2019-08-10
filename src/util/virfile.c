@@ -70,6 +70,7 @@
 
 #include "configmake.h"
 #include "intprops.h"
+#include "viralloc.h"
 #include "vircommand.h"
 #include "virerror.h"
 #include "virfile.h"
@@ -175,6 +176,7 @@ virFileDirectFdFlag(void)
 /* Opaque type for managing a wrapper around a fd.  For now,
  * read-write is not supported, just a single direction.  */
 struct _virFileWrapperFd {
+    bool closed; /* Whether virFileWrapperFdClose() has been already called */
     virCommandPtr cmd; /* Child iohelper process to do the I/O.  */
     char *err_msg; /* stderr of @cmd */
 };
@@ -259,7 +261,7 @@ virFileWrapperFdNew(int *fd, const char *name, unsigned int flags)
     }
 
     if (!(iohelper_path = virFileFindResource("libvirt_iohelper",
-                                              abs_topbuilddir "/src",
+                                              abs_top_builddir "/src",
                                               LIBEXECDIR)))
         goto error;
 
@@ -323,16 +325,30 @@ virFileWrapperFdNew(int *fd ATTRIBUTE_UNUSED,
  * callers can conditionally create a virFileWrapperFd wrapper but
  * unconditionally call the cleanup code.  To avoid deadlock, only
  * call this after closing the fd resulting from virFileWrapperFdNew().
+ *
+ * This function can be safely called multiple times on the same @wfd.
  */
 int
 virFileWrapperFdClose(virFileWrapperFdPtr wfd)
 {
     int ret;
 
-    if (!wfd)
+    if (!wfd || wfd->closed)
         return 0;
 
     ret = virCommandWait(wfd->cmd, NULL);
+
+    /* If the command used to process I/O has failed and produced some
+     * messages on stderr, it's fair to assume those will be more
+     * relevant to the user than whatever eg. QEMU can figure out on its
+     * own having no knowledge of the fact a command is handling its I/O
+     * in the first place, so it's okay if we end up discarding an
+     * existing error here */
+    if (ret < 0 && wfd->err_msg && *wfd->err_msg)
+        virReportError(VIR_ERR_OPERATION_FAILED, "%s", wfd->err_msg);
+
+    wfd->closed = true;
+
     return ret;
 }
 
@@ -350,11 +366,6 @@ virFileWrapperFdFree(virFileWrapperFdPtr wfd)
 {
     if (!wfd)
         return;
-
-    if (wfd->err_msg && *wfd->err_msg)
-        VIR_WARN("iohelper reports: %s", wfd->err_msg);
-
-    virCommandAbort(wfd->cmd);
 
     VIR_FREE(wfd->err_msg);
     virCommandFree(wfd->cmd);
@@ -1034,24 +1045,6 @@ int virFileDeleteTree(const char *dir)
     return ret;
 }
 
-int
-virFileStripSuffix(char *str, const char *suffix)
-{
-    int len = strlen(str);
-    int suffixlen = strlen(suffix);
-
-    if (len < suffixlen)
-        return 0;
-
-    if (STRNEQ(str + len - suffixlen, suffix))
-        return 0;
-
-    str[len-suffixlen] = '\0';
-
-    return 1;
-}
-
-
 /* Like read(), but restarts after EINTR.  Doesn't play
  * nicely with nonblocking FD and EAGAIN, in which case
  * you want to use bare read(). Or even use virSocket()
@@ -1516,36 +1509,6 @@ virFileWriteStr(const char *path, const char *str, mode_t mode)
     return 0;
 }
 
-int
-virFileMatchesNameSuffix(const char *file,
-                         const char *name,
-                         const char *suffix)
-{
-    int filelen = strlen(file);
-    int namelen = strlen(name);
-    int suffixlen = strlen(suffix);
-
-    if (filelen == (namelen + suffixlen) &&
-        STREQLEN(file, name, namelen) &&
-        STREQLEN(file + namelen, suffix, suffixlen))
-        return 1;
-    else
-        return 0;
-}
-
-int
-virFileHasSuffix(const char *str,
-                 const char *suffix)
-{
-    int len = strlen(str);
-    int suffixlen = strlen(suffix);
-
-    if (len < suffixlen)
-        return 0;
-
-    return STRCASEEQ(str + len - suffixlen, suffix);
-}
-
 #define SAME_INODE(Stat_buf_1, Stat_buf_2) \
   ((Stat_buf_1).st_ino == (Stat_buf_2).st_ino \
    && (Stat_buf_1).st_dev == (Stat_buf_2).st_dev)
@@ -1742,7 +1705,7 @@ static bool useDirOverride;
  * @prefix: optional string to prepend to filename
  * @suffix: optional string to append to filename
  * @builddir: location of the filename in the build tree including
- *            abs_topsrcdir or abs_topbuilddir prefix
+ *            abs_top_srcdir or abs_top_builddir prefix
  * @installdir: location of the installed binary
  * @envname: environment variable used to override all dirs
  *
@@ -3465,6 +3428,12 @@ int virFilePrintf(FILE *fp, const char *msg, ...)
 # ifndef FUSE_SUPER_MAGIC
 #  define FUSE_SUPER_MAGIC 0x65735546
 # endif
+# ifndef CEPH_SUPER_MAGIC
+#  define CEPH_SUPER_MAGIC 0x00C36400
+# endif
+# ifndef GPFS_SUPER_MAGIC
+#  define GPFS_SUPER_MAGIC 0x47504653
+# endif
 
 # define PROC_MOUNTS "/proc/mounts"
 
@@ -3606,6 +3575,12 @@ virFileIsSharedFSType(const char *path,
         return 1;
     if ((fstypes & VIR_FILE_SHFS_CIFS) &&
         (f_type == CIFS_SUPER_MAGIC))
+        return 1;
+    if ((fstypes & VIR_FILE_SHFS_CEPH) &&
+        (f_type == CEPH_SUPER_MAGIC))
+        return 1;
+    if ((fstypes & VIR_FILE_SHFS_GPFS) &&
+        (f_type == GPFS_SUPER_MAGIC))
         return 1;
 
     return 0;
@@ -3761,6 +3736,31 @@ virFileFindHugeTLBFS(virHugeTLBFSPtr *ret_fs ATTRIBUTE_UNUSED,
 }
 #endif /* defined __linux__ */
 
+/**
+ * virFileGetDefaultHugepage:
+ * @fs: array of hugetlbfs mount points
+ * @nfs: number of items in @fs
+ *
+ * In the passed array of hugetlbfs mount points @fs find the
+ * default one. It's the one which has no '-o pagesize'.
+ *
+ * Returns: default hugepage, or
+ *          NULL if none found
+ */
+virHugeTLBFSPtr
+virFileGetDefaultHugepage(virHugeTLBFSPtr fs,
+                          size_t nfs)
+{
+    size_t i;
+
+    for (i = 0; i < nfs; i++) {
+        if (fs[i].deflt)
+            return &fs[i];
+    }
+
+    return NULL;
+}
+
 int virFileIsSharedFS(const char *path)
 {
     return virFileIsSharedFSType(path,
@@ -3769,7 +3769,9 @@ int virFileIsSharedFS(const char *path)
                                  VIR_FILE_SHFS_OCFS |
                                  VIR_FILE_SHFS_AFS |
                                  VIR_FILE_SHFS_SMB |
-                                 VIR_FILE_SHFS_CIFS);
+                                 VIR_FILE_SHFS_CIFS |
+                                 VIR_FILE_SHFS_CEPH |
+                                 VIR_FILE_SHFS_GPFS);
 }
 
 

@@ -29,6 +29,7 @@
 # include "virutil.h"
 # include "virthread.h"
 # include "device_conf.h"
+# include "virenum.h"
 
 /* There is currently 3 types of interfaces */
 
@@ -41,7 +42,7 @@ typedef enum {
     VIR_INTERFACE_TYPE_LAST,
 } virInterfaceType;
 
-VIR_ENUM_DECL(virInterface)
+VIR_ENUM_DECL(virInterface);
 
 /* types of start mode */
 

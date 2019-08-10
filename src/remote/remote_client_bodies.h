@@ -328,6 +328,33 @@ done:
 }
 
 static char *
+remoteConnectGetStoragePoolCapabilities(virConnectPtr conn, unsigned int flags)
+{
+    char *rv = NULL;
+    struct private_data *priv = conn->privateData;
+    remote_connect_get_storage_pool_capabilities_args args;
+    remote_connect_get_storage_pool_capabilities_ret ret;
+
+    remoteDriverLock(priv);
+
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(conn, priv, 0, REMOTE_PROC_CONNECT_GET_STORAGE_POOL_CAPABILITIES,
+             (xdrproc_t)xdr_remote_connect_get_storage_pool_capabilities_args, (char *)&args,
+             (xdrproc_t)xdr_remote_connect_get_storage_pool_capabilities_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = ret.capabilities;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static char *
 remoteConnectGetSysinfo(virConnectPtr conn, unsigned int flags)
 {
     char *rv = NULL;
@@ -3583,7 +3610,7 @@ remoteDomainMigratePrepareTunnel(virConnectPtr conn, virStreamPtr st, unsigned l
 
     remoteDriverLock(priv);
 
-    if (!(netst = virNetClientStreamNew(st, priv->remoteProgram, REMOTE_PROC_DOMAIN_MIGRATE_PREPARE_TUNNEL, priv->counter, sparse)))
+    if (!(netst = virNetClientStreamNew(priv->remoteProgram, REMOTE_PROC_DOMAIN_MIGRATE_PREPARE_TUNNEL, priv->counter, sparse)))
         goto done;
 
     if (virNetClientAddStream(priv->client, netst) < 0) {
@@ -3592,6 +3619,7 @@ remoteDomainMigratePrepareTunnel(virConnectPtr conn, virStreamPtr st, unsigned l
     }
     st->driver = &remoteStreamDrv;
     st->privateData = netst;
+    st->ff = virObjectFreeCallback;
 
     args.flags = flags;
     args.dname = dname ? (char **)&dname : NULL;
@@ -3729,7 +3757,7 @@ remoteDomainOpenChannel(virDomainPtr dom, const char *name, virStreamPtr st, uns
 
     remoteDriverLock(priv);
 
-    if (!(netst = virNetClientStreamNew(st, priv->remoteProgram, REMOTE_PROC_DOMAIN_OPEN_CHANNEL, priv->counter, sparse)))
+    if (!(netst = virNetClientStreamNew(priv->remoteProgram, REMOTE_PROC_DOMAIN_OPEN_CHANNEL, priv->counter, sparse)))
         goto done;
 
     if (virNetClientAddStream(priv->client, netst) < 0) {
@@ -3738,6 +3766,7 @@ remoteDomainOpenChannel(virDomainPtr dom, const char *name, virStreamPtr st, uns
     }
     st->driver = &remoteStreamDrv;
     st->privateData = netst;
+    st->ff = virObjectFreeCallback;
 
     make_nonnull_domain(&args.dom, dom);
     args.name = name ? (char **)&name : NULL;
@@ -3771,7 +3800,7 @@ remoteDomainOpenConsole(virDomainPtr dom, const char *dev_name, virStreamPtr st,
 
     remoteDriverLock(priv);
 
-    if (!(netst = virNetClientStreamNew(st, priv->remoteProgram, REMOTE_PROC_DOMAIN_OPEN_CONSOLE, priv->counter, sparse)))
+    if (!(netst = virNetClientStreamNew(priv->remoteProgram, REMOTE_PROC_DOMAIN_OPEN_CONSOLE, priv->counter, sparse)))
         goto done;
 
     if (virNetClientAddStream(priv->client, netst) < 0) {
@@ -3780,6 +3809,7 @@ remoteDomainOpenConsole(virDomainPtr dom, const char *dev_name, virStreamPtr st,
     }
     st->driver = &remoteStreamDrv;
     st->privateData = netst;
+    st->ff = virObjectFreeCallback;
 
     make_nonnull_domain(&args.dom, dom);
     args.dev_name = dev_name ? (char **)&dev_name : NULL;
@@ -4226,7 +4256,7 @@ remoteDomainScreenshot(virDomainPtr dom, virStreamPtr st, unsigned int screen, u
 
     remoteDriverLock(priv);
 
-    if (!(netst = virNetClientStreamNew(st, priv->remoteProgram, REMOTE_PROC_DOMAIN_SCREENSHOT, priv->counter, sparse)))
+    if (!(netst = virNetClientStreamNew(priv->remoteProgram, REMOTE_PROC_DOMAIN_SCREENSHOT, priv->counter, sparse)))
         goto done;
 
     if (virNetClientAddStream(priv->client, netst) < 0) {
@@ -4235,6 +4265,7 @@ remoteDomainScreenshot(virDomainPtr dom, virStreamPtr st, unsigned int screen, u
     }
     st->driver = &remoteStreamDrv;
     st->privateData = netst;
+    st->ff = virObjectFreeCallback;
 
     make_nonnull_domain(&args.dom, dom);
     args.screen = screen;
@@ -7904,7 +7935,7 @@ remoteStorageVolDownload(virStorageVolPtr vol, virStreamPtr st, unsigned long lo
 
     remoteDriverLock(priv);
 
-    if (!(netst = virNetClientStreamNew(st, priv->remoteProgram, REMOTE_PROC_STORAGE_VOL_DOWNLOAD, priv->counter, sparse)))
+    if (!(netst = virNetClientStreamNew(priv->remoteProgram, REMOTE_PROC_STORAGE_VOL_DOWNLOAD, priv->counter, sparse)))
         goto done;
 
     if (virNetClientAddStream(priv->client, netst) < 0) {
@@ -7913,6 +7944,7 @@ remoteStorageVolDownload(virStorageVolPtr vol, virStreamPtr st, unsigned long lo
     }
     st->driver = &remoteStreamDrv;
     st->privateData = netst;
+    st->ff = virObjectFreeCallback;
 
     make_nonnull_storage_vol(&args.vol, vol);
     args.offset = offset;
@@ -8143,7 +8175,7 @@ remoteStorageVolUpload(virStorageVolPtr vol, virStreamPtr st, unsigned long long
 
     remoteDriverLock(priv);
 
-    if (!(netst = virNetClientStreamNew(st, priv->remoteProgram, REMOTE_PROC_STORAGE_VOL_UPLOAD, priv->counter, sparse)))
+    if (!(netst = virNetClientStreamNew(priv->remoteProgram, REMOTE_PROC_STORAGE_VOL_UPLOAD, priv->counter, sparse)))
         goto done;
 
     if (virNetClientAddStream(priv->client, netst) < 0) {
@@ -8152,6 +8184,7 @@ remoteStorageVolUpload(virStorageVolPtr vol, virStreamPtr st, unsigned long long
     }
     st->driver = &remoteStreamDrv;
     st->privateData = netst;
+    st->ff = virObjectFreeCallback;
 
     make_nonnull_storage_vol(&args.vol, vol);
     args.offset = offset;

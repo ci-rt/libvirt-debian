@@ -59,7 +59,7 @@ qemuParseDriveURIString(virDomainDiskDefPtr def, virURIPtr uri,
     char *sock = NULL;
     char *volimg = NULL;
     char *secret = NULL;
-    virStorageAuthDefPtr authdef = NULL;
+    VIR_AUTOPTR(virStorageAuthDef) authdef = NULL;
 
     if (VIR_ALLOC(def->src->hosts) < 0)
         goto error;
@@ -133,8 +133,7 @@ qemuParseDriveURIString(virDomainDiskDefPtr def, virURIPtr uri,
             if (VIR_STRDUP(authdef->secrettype, secrettype) < 0)
                 goto error;
         }
-        def->src->auth = authdef;
-        authdef = NULL;
+        VIR_STEAL_PTR(def->src->auth, authdef);
 
         /* Cannot formulate a secretType (eg, usage or uuid) given
          * what is provided.
@@ -152,7 +151,6 @@ qemuParseDriveURIString(virDomainDiskDefPtr def, virURIPtr uri,
  error:
     virStorageNetHostDefClear(def->src->hosts);
     VIR_FREE(def->src->hosts);
-    virStorageAuthDefFree(authdef);
     goto cleanup;
 }
 
@@ -1111,8 +1109,9 @@ qemuParseCommandLineNet(virDomainXMLOptionPtr xmlopt,
                 goto error;
             }
         } else if (STREQ(keywords[i], "model")) {
-            def->model = values[i];
-            values[i] = NULL;
+            if (virDomainNetSetModelString(def, values[i]) < 0)
+                goto error;
+            VIR_FREE(values[i]);
         } else if (STREQ(keywords[i], "vhost")) {
             if ((values[i] == NULL) || STREQ(values[i], "on")) {
                 def->driver.virtio.name = VIR_DOMAIN_NET_BACKEND_TYPE_VHOST;
@@ -2497,7 +2496,7 @@ qemuParseCommandLine(virFileCachePtr capsCache,
                     goto error;
 
                 if (qemuParseCommandLineChr(chr, val) < 0) {
-                    virDomainChrSourceDefFree(chr);
+                    virObjectUnref(chr);
                     goto error;
                 }
 
@@ -2734,7 +2733,7 @@ qemuParseCommandLine(virFileCachePtr capsCache,
     virStringListFree(list);
     VIR_FREE(nics);
     if (monConfig) {
-        virDomainChrSourceDefFree(*monConfig);
+        virObjectUnref(*monConfig);
         *monConfig = NULL;
     }
     if (pidfile)

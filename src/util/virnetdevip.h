@@ -20,6 +20,7 @@
 # define LIBVIRT_VIRNETDEVIP_H
 
 # include "virsocketaddr.h"
+# include "virautoclean.h"
 
 typedef struct _virNetDevIPAddr virNetDevIPAddr;
 typedef virNetDevIPAddr *virNetDevIPAddrPtr;
@@ -94,7 +95,7 @@ void virNetDevIPInfoClear(virNetDevIPInfoPtr ip);
 int virNetDevIPInfoAddToDev(const char *ifname,
                             virNetDevIPInfo const *ipInfo);
 
-VIR_DEFINE_AUTOPTR_FUNC(virNetDevIPAddr, virNetDevIPAddrFree)
-VIR_DEFINE_AUTOPTR_FUNC(virNetDevIPRoute, virNetDevIPRouteFree)
+VIR_DEFINE_AUTOPTR_FUNC(virNetDevIPAddr, virNetDevIPAddrFree);
+VIR_DEFINE_AUTOPTR_FUNC(virNetDevIPRoute, virNetDevIPRouteFree);
 
 #endif /* LIBVIRT_VIRNETDEVIP_H */

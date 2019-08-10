@@ -24,6 +24,7 @@
 
 # include "internal.h"
 # include "virutil.h"
+# include "virenum.h"
 
 /**
  * VIR_TYPED_PARAM_MULTIPLE:
@@ -117,7 +118,7 @@ int virTypedParamsSerialize(virTypedParameterPtr params,
                             unsigned int *remote_params_len,
                             unsigned int flags);
 
-VIR_ENUM_DECL(virTypedParameter)
+VIR_ENUM_DECL(virTypedParameter);
 
 # define VIR_TYPED_PARAMS_DEBUG(params, nparams) \
     do { \

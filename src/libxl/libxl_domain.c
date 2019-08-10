@@ -35,12 +35,14 @@
 #include "virtime.h"
 #include "locking/domain_lock.h"
 #include "xen_common.h"
+#include "driver.h"
 
 #define VIR_FROM_THIS VIR_FROM_LIBXL
 
 VIR_LOG_INIT("libxl.libxl_domain");
 
-VIR_ENUM_IMPL(libxlDomainJob, LIBXL_JOB_LAST,
+VIR_ENUM_IMPL(libxlDomainJob,
+              LIBXL_JOB_LAST,
               "none",
               "query",
               "destroy",
@@ -61,7 +63,7 @@ libxlDomainObjPrivateOnceInit(void)
     return 0;
 }
 
-VIR_ONCE_GLOBAL_INIT(libxlDomainObjPrivate)
+VIR_ONCE_GLOBAL_INIT(libxlDomainObjPrivate);
 
 static int
 libxlDomainObjInitJob(libxlDomainObjPrivatePtr priv)
@@ -417,6 +419,11 @@ libxlDomainDefPostParse(virDomainDefPtr def,
         def->memballoon = memballoon;
     }
 
+    /* add implicit xenbus device */
+    if (virDomainControllerFindByType(def, VIR_DOMAIN_CONTROLLER_TYPE_XENBUS) == -1)
+        if (virDomainDefAddController(def, VIR_DOMAIN_CONTROLLER_TYPE_XENBUS, -1, -1) == NULL)
+            return -1;
+
     return 0;
 }
 
@@ -424,6 +431,7 @@ virDomainDefParserConfig libxlDomainDefParserConfig = {
     .macPrefix = { 0x00, 0x16, 0x3e },
     .devicesPostParseCallback = libxlDomainDeviceDefPostParse,
     .domainPostParseCallback = libxlDomainDefPostParse,
+    .features = VIR_DOMAIN_DEF_FEATURE_NET_MODEL_STRING,
 };
 
 
@@ -839,6 +847,7 @@ libxlDomainCleanup(libxlDriverPrivatePtr driver,
     char *file;
     virHostdevManagerPtr hostdev_mgr = driver->hostdevMgr;
     unsigned int hostdev_flags = VIR_HOSTDEV_SP_PCI;
+    virConnectPtr conn = NULL;
 
 #ifdef LIBXL_HAVE_PVUSB
     hostdev_flags |= VIR_HOSTDEV_SP_USB;
@@ -898,7 +907,12 @@ libxlDomainCleanup(libxlDriverPrivatePtr driver,
 
             /* cleanup actual device */
             virDomainNetRemoveHostdev(vm->def, net);
-            virDomainNetReleaseActualDevice(vm->def, net);
+            if (net->type == VIR_DOMAIN_NET_TYPE_NETWORK) {
+                if (conn || (conn = virGetConnectNetwork()))
+                    virDomainNetReleaseActualDevice(conn, vm->def, net);
+                else
+                    VIR_WARN("Unable to release network device '%s'", NULLSTR(net->ifname));
+            }
         }
     }
 
@@ -921,6 +935,7 @@ libxlDomainCleanup(libxlDriverPrivatePtr driver,
 
     virDomainObjRemoveTransientDef(vm);
     virObjectUnref(cfg);
+    virObjectUnref(conn);
 }
 
 /*
@@ -1046,6 +1061,8 @@ static int
 libxlNetworkPrepareDevices(virDomainDefPtr def)
 {
     size_t i;
+    virConnectPtr conn = NULL;
+    int ret = -1;
 
     for (i = 0; i < def->nnets; i++) {
         virDomainNetDefPtr net = def->nets[i];
@@ -1055,8 +1072,12 @@ libxlNetworkPrepareDevices(virDomainDefPtr def)
          * network's pool of devices, or resolve bridge device name
          * to the one defined in the network definition.
          */
-        if (virDomainNetAllocateActualDevice(def, net) < 0)
-            return -1;
+        if (net->type == VIR_DOMAIN_NET_TYPE_NETWORK) {
+            if (!conn && !(conn = virGetConnectNetwork()))
+                goto cleanup;
+            if (virDomainNetAllocateActualDevice(conn, def, net) < 0)
+                goto cleanup;
+        }
 
         actualType = virDomainNetGetActualType(net);
         if (actualType == VIR_DOMAIN_NET_TYPE_HOSTDEV &&
@@ -1076,10 +1097,14 @@ libxlNetworkPrepareDevices(virDomainDefPtr def)
                 pcisrc->backend = VIR_DOMAIN_HOSTDEV_PCI_BACKEND_XEN;
 
             if (virDomainHostdevInsert(def, hostdev) < 0)
-                return -1;
+                goto cleanup;
         }
     }
-    return 0;
+
+    ret = 0;
+ cleanup:
+    virObjectUnref(conn);
+    return ret;
 }
 
 static void

@@ -38,6 +38,7 @@
 #include "virxml.h"
 #include "virstring.h"
 #include "vsh-table.h"
+#include "virenum.h"
 
 #define VIRSH_COMMON_OPT_POOL_FULL \
     VIRSH_COMMON_OPT_POOL(N_("pool name or uuid"), \
@@ -935,8 +936,9 @@ static const vshCmdOptDef opts_vol_wipe[] = {
     {.name = NULL}
 };
 
-VIR_ENUM_DECL(virStorageVolWipeAlgorithm)
-VIR_ENUM_IMPL(virStorageVolWipeAlgorithm, VIR_STORAGE_VOL_WIPE_ALG_LAST,
+VIR_ENUM_DECL(virStorageVolWipeAlgorithm);
+VIR_ENUM_IMPL(virStorageVolWipeAlgorithm,
+              VIR_STORAGE_VOL_WIPE_ALG_LAST,
               "zero", "nnsa", "dod", "bsi", "gutmann", "schneier",
               "pfitzner7", "pfitzner33", "random", "trim");
 
@@ -981,7 +983,7 @@ cmdVolWipe(vshControl *ctl, const vshCmd *cmd)
 }
 
 
-VIR_ENUM_DECL(virshStorageVol)
+VIR_ENUM_DECL(virshStorageVol);
 VIR_ENUM_IMPL(virshStorageVol,
               VIR_STORAGE_VOL_LAST,
               N_("file"),
@@ -989,7 +991,7 @@ VIR_ENUM_IMPL(virshStorageVol,
               N_("dir"),
               N_("network"),
               N_("netdir"),
-              N_("ploop"))
+              N_("ploop"));
 
 static const char *
 virshVolumeTypeToString(int type)

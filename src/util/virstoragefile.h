@@ -30,6 +30,8 @@
 # include "virstorageencryption.h"
 # include "virutil.h"
 # include "virsecret.h"
+# include "virautoclean.h"
+# include "virenum.h"
 
 /* Minimum header size required to probe all known formats with
  * virStorageFileProbeFormat, or obtain metadata from a known format.
@@ -55,7 +57,7 @@ typedef enum {
     VIR_STORAGE_TYPE_LAST
 } virStorageType;
 
-VIR_ENUM_DECL(virStorage)
+VIR_ENUM_DECL(virStorage);
 
 
 typedef enum {
@@ -138,7 +140,7 @@ typedef enum {
     VIR_STORAGE_NET_PROTOCOL_LAST
 } virStorageNetProtocol;
 
-VIR_ENUM_DECL(virStorageNetProtocol)
+VIR_ENUM_DECL(virStorageNetProtocol);
 
 
 typedef enum {
@@ -149,7 +151,7 @@ typedef enum {
     VIR_STORAGE_NET_HOST_TRANS_LAST
 } virStorageNetHostTransport;
 
-VIR_ENUM_DECL(virStorageNetHostTransport)
+VIR_ENUM_DECL(virStorageNetHostTransport);
 
 typedef struct _virStorageNetHostDef virStorageNetHostDef;
 typedef virStorageNetHostDef *virStorageNetHostDefPtr;
@@ -182,7 +184,7 @@ typedef enum {
     VIR_STORAGE_SOURCE_POOL_MODE_LAST
 } virStorageSourcePoolMode;
 
-VIR_ENUM_DECL(virStorageSourcePoolMode)
+VIR_ENUM_DECL(virStorageSourcePoolMode);
 
 typedef struct _virStorageSourcePoolDef virStorageSourcePoolDef;
 struct _virStorageSourcePoolDef {
@@ -191,7 +193,7 @@ struct _virStorageSourcePoolDef {
     int voltype; /* virStorageVolType, internal only */
     int pooltype; /* virStoragePoolType from storage_conf.h, internal only */
     int actualtype; /* virStorageType, internal only */
-    int mode; /* virStorageSourcePoolMode */
+    int mode; /* virStorageSourcePoolMode, currently makes sense only for iscsi pool */
 };
 typedef virStorageSourcePoolDef *virStorageSourcePoolDefPtr;
 
@@ -203,7 +205,7 @@ typedef enum {
 
     VIR_STORAGE_AUTH_TYPE_LAST,
 } virStorageAuthType;
-VIR_ENUM_DECL(virStorageAuth)
+VIR_ENUM_DECL(virStorageAuth);
 
 typedef struct _virStorageAuthDef virStorageAuthDef;
 typedef virStorageAuthDef *virStorageAuthDefPtr;
@@ -242,6 +244,8 @@ typedef virStorageSource *virStorageSourcePtr;
  * IMPORTANT: When adding fields to this struct it's also necessary to add
  * appropriate code to the virStorageSourceCopy deep copy function */
 struct _virStorageSource {
+    virObject parent;
+
     unsigned int id; /* backing chain identifier, 0 is unset */
     int type; /* virStorageType */
     char *path;
@@ -390,6 +394,9 @@ bool virStorageIsRelative(const char *backing);
 int virStorageFileGetLVMKey(const char *path,
                             char **key);
 int virStorageFileGetSCSIKey(const char *path,
+                             char **key,
+                             bool ignoreError);
+int virStorageFileGetNPIVKey(const char *path,
                              char **key);
 
 void virStorageAuthDefFree(virStorageAuthDefPtr def);
@@ -428,7 +435,7 @@ int virStorageSourceGetActualType(const virStorageSource *def);
 bool virStorageSourceIsLocalStorage(const virStorageSource *src);
 bool virStorageSourceIsEmpty(virStorageSourcePtr src);
 bool virStorageSourceIsBlockLocal(const virStorageSource *src);
-void virStorageSourceFree(virStorageSourcePtr def);
+virStorageSourcePtr virStorageSourceNew(void);
 void virStorageSourceBackingStoreClear(virStorageSourcePtr def);
 int virStorageSourceUpdatePhysicalSize(virStorageSourcePtr src,
                                        int fd, struct stat const *sb);
@@ -539,5 +546,7 @@ int virStorageFileGetBackingStoreStr(virStorageSourcePtr src,
 void virStorageFileReportBrokenChain(int errcode,
                                      virStorageSourcePtr src,
                                      virStorageSourcePtr parent);
+
+VIR_DEFINE_AUTOPTR_FUNC(virStorageAuthDef, virStorageAuthDefFree);
 
 #endif /* LIBVIRT_VIRSTORAGEFILE_H */

@@ -5,8 +5,7 @@ Maintainer: Debian Libvirt Maintainers <pkg-libvirt-maintainers@lists.alioth.deb
 Uploaders: Guido Günther <agx@sigxcpu.org>, Laurent Léonard <laurent@open-minds.org>
 Build-Depends:
  bash-completion,
- debhelper (>= 9.20160709~),
- dh-autoreconf,
+ debhelper (>= 12~),
  dh-apparmor [linux-any],
  libxml2-dev (>= 2.9.2+really2.9.1+dfsg1-0.2),
  libncurses5-dev,
@@ -53,7 +52,7 @@ Build-Depends:
  librbd-dev [linux-any],
  librados-dev [linux-any],
 # for --with-storage-gluster
- glusterfs-common (>= 3.4.0),
+ libglusterfs-dev,
 # for --with-wireshark-dissector
  libwireshark-dev (>= 1.11.3),
  libwiretap-dev,
@@ -74,7 +73,7 @@ Build-Depends:
 Build-Conflicts: dpkg-dev (= 1.15.3)
 Vcs-Git: https://salsa.debian.org/libvirt-team/libvirt.git
 Vcs-Browser: https://salsa.debian.org/libvirt-team/libvirt
-Homepage: http://libvirt.org
+Homepage: https://libvirt.org/
 Standards-Version: 4.1.1
 
 Package: libvirt-clients
@@ -174,6 +173,8 @@ Description: Virtualization daemon ZFS storage driver
 
 Package: libvirt-daemon-system
 Architecture: any
+Pre-Depends:
+ ${misc:Pre-Depends},
 Depends:
  ${misc:Depends},
  ${shlibs:Depends},
@@ -261,7 +262,6 @@ Depends:
  ${shlibs:Depends},
  augeas-tools,
  libvirt0 (= ${binary:Version}),
-Priority: optional
 Description: Sanlock plugin for virtlockd
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
@@ -278,22 +278,21 @@ Depends:
  libvirt0 (= ${binary:Version}),
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
-Priority: optional
-Description: nss plugin providing IP address resolution for virtual machines
+Description: nss plugins providing IP address resolution for virtual machines
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
  a long term stable C API for different virtualization mechanisms. It currently
  supports QEMU, KVM, XEN, OpenVZ, LXC, and VirtualBox.
  .
- This package contains the nss plugin for IP address resolution of libvirt
- managed virtual machines.
+ This package contains two nss plugins for IP address resolution of libvirt
+ managed virtual machines: the 'libvirt_guest' plugin uses libvirt's domain
+ names while the 'libvirt' plugin looks at the guest's hostname.
 
 Package: libvirt-wireshark
 Architecture: any
 Depends:
  ${misc:Depends},
  ${shlibs:Depends},
-Priority: optional
 Description: Wireshark dissector for the libvirt protocol
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing

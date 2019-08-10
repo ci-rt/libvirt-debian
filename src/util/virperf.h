@@ -20,7 +20,8 @@
 # define LIBVIRT_VIRPERF_H
 
 # include "virutil.h"
-# include "viralloc.h"
+# include "virautoclean.h"
+# include "virenum.h"
 
 /* Some Intel processor families introduced some RDT (Resource Director
  * Technology) features to monitor or control shared resource based on
@@ -82,6 +83,6 @@ int virPerfReadEvent(virPerfPtr perf,
                      virPerfEventType type,
                      uint64_t *value);
 
-VIR_DEFINE_AUTOPTR_FUNC(virPerf, virPerfFree)
+VIR_DEFINE_AUTOPTR_FUNC(virPerf, virPerfFree);
 
 #endif /* LIBVIRT_VIRPERF_H */

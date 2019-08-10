@@ -91,7 +91,7 @@ virPortAllocatorOnceInit(void)
     return 0;
 }
 
-VIR_ONCE_GLOBAL_INIT(virPortAllocator)
+VIR_ONCE_GLOBAL_INIT(virPortAllocator);
 
 virPortAllocatorRangePtr
 virPortAllocatorRangeNew(const char *name,
@@ -293,6 +293,9 @@ virPortAllocatorSetUsed(unsigned short port)
 
     if (!pa)
         return -1;
+
+    if (!port)
+        return 0;
 
     virObjectLock(pa);
 

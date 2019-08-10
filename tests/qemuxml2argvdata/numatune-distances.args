@@ -1,14 +1,18 @@
 LC_ALL=C \
 PATH=/bin \
-HOME=/home/test \
+HOME=/tmp/lib/domain--1-QEMUGuest \
 USER=test \
 LOGNAME=test \
+XDG_DATA_HOME=/tmp/lib/domain--1-QEMUGuest/.local/share \
+XDG_CACHE_HOME=/tmp/lib/domain--1-QEMUGuest/.cache \
+XDG_CONFIG_HOME=/tmp/lib/domain--1-QEMUGuest/.config \
 QEMU_AUDIO_DRV=none \
 /usr/bin/qemu-system-x86_64 \
 -name QEMUGuest \
 -S \
 -machine xenfv,accel=tcg,usb=off,dump-guest-core=off \
 -m 12288 \
+-realtime mlock=off \
 -smp 12,sockets=12,cores=1,threads=1 \
 -numa node,nodeid=0,cpus=0,cpus=11,mem=2048 \
 -numa node,nodeid=1,cpus=1,cpus=10,mem=2048 \

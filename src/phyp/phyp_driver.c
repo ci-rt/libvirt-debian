@@ -1468,8 +1468,7 @@ phypGetBackingDevice(virConnectPtr conn, const char *managed_system,
         if (VIR_STRDUP(backing_device, char_ptr) < 0)
             goto cleanup;
     } else {
-        backing_device = ret;
-        ret = NULL;
+        VIR_STEAL_PTR(backing_device, ret);
     }
 
     char_ptr = strchr(backing_device, '\n');
@@ -1953,11 +1952,11 @@ phypStorageVolCreateXML(virStoragePoolPtr pool,
 {
     virCheckFlags(0, NULL);
 
-    virStorageVolDefPtr voldef = NULL;
-    virStoragePoolDefPtr spdef = NULL;
     virStorageVolPtr vol = NULL;
     virStorageVolPtr dup_vol = NULL;
     char *key = NULL;
+    VIR_AUTOPTR(virStorageVolDef) voldef = NULL;
+    VIR_AUTOPTR(virStoragePoolDef) spdef = NULL;
 
     if (VIR_ALLOC(spdef) < 0)
         return NULL;
@@ -2037,8 +2036,6 @@ phypStorageVolCreateXML(virStoragePoolPtr pool,
 
  err:
     VIR_FREE(key);
-    virStorageVolDefFree(voldef);
-    virStoragePoolDefFree(spdef);
     virObjectUnref(vol);
     return NULL;
 }
@@ -3217,7 +3214,7 @@ phypDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
     unsigned long long memory;
     unsigned int vcpus;
 
-    /* Flags checked by virDomainDefFormat */
+    virCheckFlags(VIR_DOMAIN_XML_COMMON_FLAGS, NULL);
 
     memset(&def, 0, sizeof(virDomainDef));
 

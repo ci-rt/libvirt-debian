@@ -30,9 +30,11 @@
 #define VIR_FROM_THIS VIR_FROM_CGROUP
 
 VIR_ENUM_DECL(virCgroupBackend);
-VIR_ENUM_IMPL(virCgroupBackend, VIR_CGROUP_BACKEND_TYPE_LAST,
+VIR_ENUM_IMPL(virCgroupBackend,
+              VIR_CGROUP_BACKEND_TYPE_LAST,
               "cgroup V2",
-              "cgroup V1");
+              "cgroup V1",
+);
 
 static virOnceControl virCgroupBackendOnce = VIR_ONCE_CONTROL_INITIALIZER;
 static virCgroupBackendPtr virCgroupBackends[VIR_CGROUP_BACKEND_TYPE_LAST] = { 0 };

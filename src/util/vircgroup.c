@@ -62,10 +62,12 @@ VIR_LOG_INIT("util.cgroup");
 #define CGROUP_NB_TOTAL_CPU_STAT_PARAM 3
 #define CGROUP_NB_PER_CPU_STAT_PARAM   1
 
-VIR_ENUM_IMPL(virCgroupController, VIR_CGROUP_CONTROLLER_LAST,
+VIR_ENUM_IMPL(virCgroupController,
+              VIR_CGROUP_CONTROLLER_LAST,
               "cpu", "cpuacct", "cpuset", "memory", "devices",
               "freezer", "blkio", "net_cls", "perf_event",
-              "name=systemd");
+              "name=systemd",
+);
 
 
 /**
@@ -1274,33 +1276,6 @@ virCgroupNewIgnoreError(void)
         return true;
     }
     return false;
-}
-
-
-/**
- * virCgroupFree:
- *
- * @group: The group structure to free
- */
-void
-virCgroupFree(virCgroupPtr *group)
-{
-    size_t i;
-
-    if (*group == NULL)
-        return;
-
-    for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
-        VIR_FREE((*group)->legacy[i].mountPoint);
-        VIR_FREE((*group)->legacy[i].linkPoint);
-        VIR_FREE((*group)->legacy[i].placement);
-    }
-
-    VIR_FREE((*group)->unified.mountPoint);
-    VIR_FREE((*group)->unified.placement);
-
-    VIR_FREE((*group)->path);
-    VIR_FREE(*group);
 }
 
 
@@ -2606,6 +2581,7 @@ virCgroupKillRecursive(virCgroupPtr group, int signum)
     int ret = 0;
     int rc;
     size_t i;
+    bool backendAvailable = false;
     virCgroupBackendPtr *backends = virCgroupBackendGetAll();
     virHashTablePtr pids = virHashCreateFull(100,
                                              NULL,
@@ -2616,13 +2592,9 @@ virCgroupKillRecursive(virCgroupPtr group, int signum)
 
     VIR_DEBUG("group=%p path=%s signum=%d", group, group->path, signum);
 
-    if (!backends) {
-        ret = -1;
-        goto cleanup;
-    }
-
     for (i = 0; i < VIR_CGROUP_BACKEND_TYPE_LAST; i++) {
-        if (backends[i]) {
+        if (backends && backends[i] && backends[i]->available()) {
+            backendAvailable = true;
             rc = backends[i]->killRecursive(group, signum, pids);
             if (rc < 0) {
                 ret = -1;
@@ -2631,6 +2603,12 @@ virCgroupKillRecursive(virCgroupPtr group, int signum)
             if (rc > 0)
                 ret = rc;
         }
+    }
+
+    if (!backends || !backendAvailable) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("no cgroup backend available"));
+        goto cleanup;
     }
 
  cleanup:
@@ -2909,14 +2887,6 @@ virCgroupNewIgnoreError(void)
 {
     VIR_DEBUG("No cgroups present/configured/accessible, ignoring error");
     return true;
-}
-
-
-void
-virCgroupFree(virCgroupPtr *group ATTRIBUTE_UNUSED)
-{
-    virReportSystemError(ENXIO, "%s",
-                         _("Control groups not supported on this platform"));
 }
 
 
@@ -3558,6 +3528,33 @@ virCgroupControllerAvailable(int controller ATTRIBUTE_UNUSED)
     return false;
 }
 #endif /* !__linux__ */
+
+
+/**
+ * virCgroupFree:
+ *
+ * @group: The group structure to free
+ */
+void
+virCgroupFree(virCgroupPtr *group)
+{
+    size_t i;
+
+    if (*group == NULL)
+        return;
+
+    for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
+        VIR_FREE((*group)->legacy[i].mountPoint);
+        VIR_FREE((*group)->legacy[i].linkPoint);
+        VIR_FREE((*group)->legacy[i].placement);
+    }
+
+    VIR_FREE((*group)->unified.mountPoint);
+    VIR_FREE((*group)->unified.placement);
+
+    VIR_FREE((*group)->path);
+    VIR_FREE(*group);
+}
 
 
 int

@@ -44,6 +44,7 @@
 #include "viruuid.h"
 #include "virstring.h"
 #include "virgettext.h"
+#include "virenum.h"
 
 #include "log_daemon_dispatch.h"
 #include "log_protocol.h"
@@ -79,8 +80,9 @@ enum {
     VIR_LOG_DAEMON_ERR_LAST
 };
 
-VIR_ENUM_DECL(virDaemonErr)
-VIR_ENUM_IMPL(virDaemonErr, VIR_LOG_DAEMON_ERR_LAST,
+VIR_ENUM_DECL(virDaemonErr);
+VIR_ENUM_IMPL(virDaemonErr,
+              VIR_LOG_DAEMON_ERR_LAST,
               "Initialization successful",
               "Unable to obtain pidfile",
               "Unable to create rundir",
@@ -90,7 +92,8 @@ VIR_ENUM_IMPL(virDaemonErr, VIR_LOG_DAEMON_ERR_LAST,
               "Unable to initialize network sockets",
               "Unable to load configuration file",
               "Unable to look for hook scripts",
-              "Unable to re-execute daemon");
+              "Unable to re-execute daemon",
+);
 
 static void *
 virLogDaemonClientNew(virNetServerClientPtr client,

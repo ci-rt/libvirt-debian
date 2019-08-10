@@ -20,6 +20,7 @@
 
 #include "dirname.h"
 #include "virnetdev.h"
+#include "viralloc.h"
 #include "virnetlink.h"
 #include "virmacaddr.h"
 #include "virfile.h"
@@ -121,7 +122,7 @@ virNetDevMcastEntryFree(virNetDevMcastEntryPtr entry)
     VIR_FREE(entry);
 }
 
-VIR_DEFINE_AUTOPTR_FUNC(virNetDevMcastEntry, virNetDevMcastEntryFree)
+VIR_DEFINE_AUTOPTR_FUNC(virNetDevMcastEntry, virNetDevMcastEntryFree);
 
 typedef struct _virNetDevMcastList virNetDevMcastList;
 typedef virNetDevMcastList *virNetDevMcastListPtr;
@@ -1355,9 +1356,8 @@ virNetDevGetPhysicalFunction(const char *ifname, char **pfname)
     }
 
     if (!*pfname) {
-        /* this shouldn't be possible. A VF can't exist unless its
-         * PF device is bound to a network driver
-         */
+        /* The SRIOV standard does not require VF netdevs to have
+         * the netdev assigned to a PF. */
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("The PF device for VF %s has no network device name"),
                        ifname);
@@ -1444,29 +1444,18 @@ int
 virNetDevGetVirtualFunctionInfo(const char *vfname, char **pfname,
                                 int *vf)
 {
-    char *pf_sysfs_path = NULL, *vf_sysfs_path = NULL;
     int ret = -1;
 
-    *pfname = NULL;
-
     if (virNetDevGetPhysicalFunction(vfname, pfname) < 0)
-        return ret;
+        return -1;
 
-    if (virNetDevSysfsFile(&pf_sysfs_path, *pfname, "device") < 0)
+    if (virNetDevGetVirtualFunctionIndex(*pfname, vfname, vf) < 0)
         goto cleanup;
 
-    if (virNetDevSysfsFile(&vf_sysfs_path, vfname, "device") < 0)
-        goto cleanup;
-
-    ret = virPCIGetVirtualFunctionIndex(pf_sysfs_path, vf_sysfs_path, vf);
-
+    ret = 0;
  cleanup:
     if (ret < 0)
         VIR_FREE(*pfname);
-
-    VIR_FREE(vf_sysfs_path);
-    VIR_FREE(pf_sysfs_path);
-
     return ret;
 }
 
@@ -1862,13 +1851,9 @@ virNetDevSaveNetConfig(const char *linkdev, int vf,
          * it to PF + VFname
          */
 
-        if (virNetDevGetPhysicalFunction(linkdev, &pfDevOrig) < 0)
+        if (virNetDevGetVirtualFunctionInfo(linkdev, &pfDevOrig, &vf) < 0)
             goto cleanup;
-
         pfDevName = pfDevOrig;
-
-        if (virNetDevGetVirtualFunctionIndex(pfDevName, linkdev, &vf) < 0)
-            goto cleanup;
     }
 
     if (pfDevName) {
@@ -2020,13 +2005,9 @@ virNetDevReadNetConfig(const char *linkdev, int vf,
          * it to PF + VFname
          */
 
-        if (virNetDevGetPhysicalFunction(linkdev, &pfDevOrig) < 0)
+        if (virNetDevGetVirtualFunctionInfo(linkdev, &pfDevOrig, &vf) < 0)
             goto cleanup;
-
         pfDevName = pfDevOrig;
-
-        if (virNetDevGetVirtualFunctionIndex(pfDevName, linkdev, &vf) < 0)
-            goto cleanup;
     }
 
     /* if there is a PF, it's now in pfDevName, and linkdev is either
@@ -2225,13 +2206,9 @@ virNetDevSetNetConfig(const char *linkdev, int vf,
          * it to PF + VFname
          */
 
-        if (virNetDevGetPhysicalFunction(linkdev, &pfDevOrig) < 0)
+        if (virNetDevGetVirtualFunctionInfo(linkdev, &pfDevOrig, &vf))
             goto cleanup;
-
         pfDevName = pfDevOrig;
-
-        if (virNetDevGetVirtualFunctionIndex(pfDevName, linkdev, &vf) < 0)
-            goto cleanup;
     }
 
 
@@ -2441,7 +2418,8 @@ VIR_ENUM_IMPL(virNetDevIfState,
               "" /* value of zero means no state */,
               "unknown", "notpresent",
               "down", "lowerlayerdown",
-              "testing", "dormant", "up")
+              "testing", "dormant", "up",
+);
 
 VIR_ENUM_IMPL(virNetDevFeature,
               VIR_NET_DEV_FEAT_LAST,
@@ -2458,7 +2436,8 @@ VIR_ENUM_IMPL(virNetDevFeature,
               "rxhash",
               "rdma",
               "txudptnl",
-              "switchdev")
+              "switchdev",
+);
 
 #ifdef __linux__
 int
@@ -2790,7 +2769,8 @@ VIR_ENUM_IMPL(virNetDevRxFilterMode,
               VIR_NETDEV_RX_FILTER_MODE_LAST,
               "none",
               "normal",
-              "all");
+              "all",
+);
 
 
 static int virNetDevGetMulticastTable(const char *ifname,
@@ -2935,8 +2915,14 @@ virNetDevRDMAFeature(const char *ifname,
 
     if (virAsprintf(&eth_devpath, SYSFS_NET_DIR "%s/device/resource", ifname) < 0)
         goto cleanup;
-    if (!virFileExists(eth_devpath))
+
+    /* If /sys/class/net/<ifname>/device/resource doesn't exist it is not a PCI
+     * device and therefore it will not have RDMA. */
+    if (!virFileExists(eth_devpath)) {
+        ret = 0;
         goto cleanup;
+    }
+
     if (virFileReadAll(eth_devpath, RESOURCE_FILE_LEN, &eth_res_buf) < 0)
         goto cleanup;
 
@@ -3178,8 +3164,12 @@ virNetDevSwitchdevFeature(const char *ifname,
     if ((is_vf = virNetDevIsVirtualFunction(ifname)) < 0)
         return ret;
 
-    if (is_vf == 1 && virNetDevGetPhysicalFunction(ifname, &pfname) < 0)
-        goto cleanup;
+    if (is_vf == 1) {
+        /* Ignore error if PF does not have netdev assigned.
+         * In that case pfname == NULL. */
+        if (virNetDevGetPhysicalFunction(ifname, &pfname) < 0)
+            virResetLastError();
+    }
 
     pci_device_ptr = pfname ? virNetDevGetPCIDevice(pfname) :
                               virNetDevGetPCIDevice(ifname);

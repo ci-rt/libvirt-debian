@@ -8,7 +8,7 @@ Closes: #882979
  1 file changed, 1 insertion(+)
 
 diff --git a/src/security/apparmor/usr.lib.libvirt.virt-aa-helper b/src/security/apparmor/usr.lib.libvirt.virt-aa-helper
-index 60c1d50..665094a 100644
+index 3c61f0f..2d43057 100644
 --- a/src/security/apparmor/usr.lib.libvirt.virt-aa-helper
 +++ b/src/security/apparmor/usr.lib.libvirt.virt-aa-helper
 @@ -3,6 +3,7 @@

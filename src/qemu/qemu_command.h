@@ -25,6 +25,7 @@
 # include "domain_addr.h"
 # include "domain_conf.h"
 # include "vircommand.h"
+# include "virenum.h"
 # include "capabilities.h"
 # include "qemu_block.h"
 # include "qemu_conf.h"
@@ -40,14 +41,14 @@
 
 # define QEMU_BLOCK_IOTUNE_MAX 1000000000000000LL
 
-VIR_ENUM_DECL(qemuVideo)
+VIR_ENUM_DECL(qemuVideo);
 
 virCommandPtr qemuBuildCommandLine(virQEMUDriverPtr driver,
                                    virLogManagerPtr logManager,
                                    virSecurityManagerPtr secManager,
                                    virDomainObjPtr vm,
                                    const char *migrateURI,
-                                   virDomainSnapshotObjPtr snapshot,
+                                   virDomainMomentObjPtr snapshot,
                                    virNetDevVPortProfileOp vmop,
                                    bool standalone,
                                    bool enableFips,
@@ -117,8 +118,7 @@ char
 int qemuBuildControllerDevStr(const virDomainDef *domainDef,
                               virDomainControllerDefPtr def,
                               virQEMUCapsPtr qemuCaps,
-                              char **devstr,
-                              int *nusbcontroller);
+                              char **devstr);
 
 int qemuBuildMemoryBackendProps(virJSONValuePtr *backendProps,
                                 const char *alias,

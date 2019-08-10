@@ -19,6 +19,7 @@
 #include <config.h>
 
 #include "testutils.h"
+#include "testutilsqemu.h"
 #include "qemu/qemu_capabilities.h"
 
 
@@ -28,9 +29,23 @@
 typedef struct _testQemuData testQemuData;
 typedef testQemuData *testQemuDataPtr;
 struct _testQemuData {
+    const char *inputDir;
+    const char *outputDir;
     const char *base;
     const char *archName;
+    int ret;
 };
+
+static int
+testQemuDataInit(testQemuDataPtr data)
+{
+    data->inputDir = TEST_QEMU_CAPS_PATH;
+    data->outputDir = abs_srcdir "/qemucaps2xmloutdata";
+
+    data->ret = 0;
+
+    return 0;
+}
 
 static virQEMUCapsPtr
 testQemuGetCaps(char *caps)
@@ -85,7 +100,7 @@ testGetCaps(char *capsData, const testQemuData *data)
     virQEMUCapsPtr qemuCaps = NULL;
     virCapsPtr caps = NULL;
     virArch arch = virArchFromString(data->archName);
-    char *binary = NULL;
+    VIR_AUTOFREE(char *) binary = NULL;
 
     if (virAsprintf(&binary, "/usr/bin/qemu-system-%s", data->archName) < 0)
         goto error;
@@ -114,7 +129,6 @@ testGetCaps(char *capsData, const testQemuData *data)
  error:
     virObjectUnref(qemuCaps);
     virObjectUnref(caps);
-    VIR_FREE(binary);
     return NULL;
 }
 
@@ -128,12 +142,12 @@ testQemuCapsXML(const void *opaque)
     char *capsXml = NULL;
     virCapsPtr capsProvided = NULL;
 
-    if (virAsprintf(&xmlFile, "%s/qemucaps2xmloutdata/%s.%s.xml",
-                    abs_srcdir, data->base, data->archName) < 0)
+    if (virAsprintf(&xmlFile, "%s/caps.%s.xml",
+                    data->outputDir, data->archName) < 0)
         goto cleanup;
 
-    if (virAsprintf(&capsFile, "%s/qemucapabilitiesdata/%s.%s.xml",
-                    abs_srcdir, data->base, data->archName) < 0)
+    if (virAsprintf(&capsFile, "%s/%s.%s.xml",
+                    data->inputDir, data->base, data->archName) < 0)
         goto cleanup;
 
     if (virTestLoadFile(capsFile, &capsData) < 0)
@@ -160,10 +174,28 @@ testQemuCapsXML(const void *opaque)
 }
 
 static int
+doCapsTest(const char *base,
+           const char *archName,
+           void *opaque)
+{
+    testQemuDataPtr data = (testQemuDataPtr) opaque;
+    VIR_AUTOFREE(char *) title = NULL;
+
+    if (virAsprintf(&title, "%s (%s)", base, archName) < 0)
+        return -1;
+
+    data->base = base;
+    data->archName = archName;
+
+    if (virTestRun(title, testQemuCapsXML, data) < 0)
+        data->ret = -1;
+
+    return 0;
+}
+
+static int
 mymain(void)
 {
-    int ret = 0;
-
     testQemuData data;
 
 #if !WITH_YAJL
@@ -176,48 +208,13 @@ mymain(void)
 
     virEventRegisterDefaultImpl();
 
-#define DO_TEST(arch, name) \
-    data.archName = arch; \
-    data.base = name; \
-    if (virTestRun(name "(" arch ")", testQemuCapsXML, &data) < 0) \
-        ret = -1
+    if (testQemuDataInit(&data) < 0)
+        return EXIT_FAILURE;
 
-    /* Keep this in sync with qemucapabilitiestest */
-    DO_TEST("x86_64", "caps_1.5.3");
-    DO_TEST("x86_64", "caps_1.6.0");
-    DO_TEST("x86_64", "caps_1.7.0");
-    DO_TEST("x86_64", "caps_2.1.1");
-    DO_TEST("x86_64", "caps_2.4.0");
-    DO_TEST("x86_64", "caps_2.5.0");
-    DO_TEST("x86_64", "caps_2.6.0");
-    DO_TEST("x86_64", "caps_2.7.0");
-    DO_TEST("x86_64", "caps_2.8.0");
-    DO_TEST("x86_64", "caps_2.9.0");
-    DO_TEST("x86_64", "caps_2.10.0");
-    DO_TEST("x86_64", "caps_2.11.0");
-    DO_TEST("x86_64", "caps_2.12.0");
-    DO_TEST("x86_64", "caps_3.0.0");
-    DO_TEST("x86_64", "caps_3.1.0");
-    DO_TEST("aarch64", "caps_2.6.0");
-    DO_TEST("aarch64", "caps_2.10.0");
-    DO_TEST("aarch64", "caps_2.12.0");
-    DO_TEST("ppc64", "caps_2.6.0");
-    DO_TEST("ppc64", "caps_2.9.0");
-    DO_TEST("ppc64", "caps_2.10.0");
-    DO_TEST("ppc64", "caps_2.12.0");
-    DO_TEST("ppc64", "caps_3.0.0");
-    DO_TEST("ppc64", "caps_3.1.0");
-    DO_TEST("s390x", "caps_2.7.0");
-    DO_TEST("s390x", "caps_2.8.0");
-    DO_TEST("s390x", "caps_2.9.0");
-    DO_TEST("s390x", "caps_2.10.0");
-    DO_TEST("s390x", "caps_2.11.0");
-    DO_TEST("s390x", "caps_2.12.0");
-    DO_TEST("s390x", "caps_3.0.0");
-    DO_TEST("riscv32", "caps_3.0.0");
-    DO_TEST("riscv64", "caps_3.0.0");
+    if (testQemuCapsIterate(".xml", doCapsTest, &data) < 0)
+        return EXIT_FAILURE;
 
-    return (ret == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
+    return (data.ret == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 VIR_TEST_MAIN_PRELOAD(mymain, abs_builddir "/.libs/qemucaps2xmlmock.so")

@@ -2,3 +2,5 @@ usr/bin/*
 usr/share/man/man1/*
 etc/libvirt/libvirt.conf
 etc/libvirt/libvirt-admin.conf
+usr/share/man/man7/virkeycode-*.7
+usr/share/man/man7/virkeyname-*.7

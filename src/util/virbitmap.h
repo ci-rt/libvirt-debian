@@ -23,7 +23,7 @@
 # define LIBVIRT_VIRBITMAP_H
 
 # include "internal.h"
-# include "viralloc.h"
+# include "virautoclean.h"
 
 # include <sys/types.h>
 
@@ -154,6 +154,6 @@ void virBitmapSubtract(virBitmapPtr a, virBitmapPtr b)
 
 void virBitmapShrink(virBitmapPtr map, size_t b);
 
-VIR_DEFINE_AUTOPTR_FUNC(virBitmap, virBitmapFree)
+VIR_DEFINE_AUTOPTR_FUNC(virBitmap, virBitmapFree);
 
 #endif /* LIBVIRT_VIRBITMAP_H */

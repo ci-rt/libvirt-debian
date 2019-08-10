@@ -24,6 +24,7 @@
 #include "virerror.h"
 #include "virfile.h"
 #include "virstring.h"
+#include "viralloc.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -46,10 +47,12 @@ struct _virMediatedDeviceList {
     virMediatedDevicePtr *devs;
 };
 
-VIR_ENUM_IMPL(virMediatedDeviceModel, VIR_MDEV_MODEL_TYPE_LAST,
+VIR_ENUM_IMPL(virMediatedDeviceModel,
+              VIR_MDEV_MODEL_TYPE_LAST,
               "vfio-pci",
               "vfio-ccw",
-              "vfio-ap")
+              "vfio-ap",
+);
 
 static virClassPtr virMediatedDeviceListClass;
 
@@ -65,7 +68,7 @@ virMediatedOnceInit(void)
     return 0;
 }
 
-VIR_ONCE_GLOBAL_INIT(virMediated)
+VIR_ONCE_GLOBAL_INIT(virMediated);
 
 #ifdef __linux__
 

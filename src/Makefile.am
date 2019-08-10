@@ -16,12 +16,6 @@
 ## License along with this library.  If not, see
 ## <http://www.gnu.org/licenses/>.
 
-# old automake does not provide abs_{src,build}dir variables
-abs_builddir = $(shell pwd)
-abs_topbuilddir = $(shell cd .. && pwd)
-abs_srcdir = $(shell cd $(srcdir) && pwd)
-abs_topsrcdir = $(shell cd $(top_srcdir) && pwd)
-
 # No libraries with the exception of LIBXML should be listed
 # here. List them against the individual XXX_la_CFLAGS targets
 # that actually use them.
@@ -33,8 +27,8 @@ AM_CPPFLAGS =	-I../gnulib/lib \
 		-I$(srcdir)/util \
 		-I./util \
 		-DIN_LIBVIRT \
-		-Dabs_topbuilddir="\"$(abs_topbuilddir)\"" \
-		-Dabs_topsrcdir="\"$(abs_topsrcdir)\"" \
+		-Dabs_top_builddir="\"$(abs_top_builddir)\"" \
+		-Dabs_top_srcdir="\"$(abs_top_srcdir)\"" \
 		$(NULL)
 
 WARN_CFLAGS += $(STRICT_FRAME_LIMIT_CFLAGS)
@@ -43,9 +37,8 @@ AM_CFLAGS =	$(LIBXML_CFLAGS) \
 		$(WARN_CFLAGS) \
 		$(LOCK_CHECKING_CFLAGS) \
 		$(WIN32_EXTRA_CFLAGS) \
-		$(COVERAGE_CFLAGS)
+		$(NULL)
 AM_LDFLAGS =	$(DRIVER_MODULES_LDFLAGS) \
-		$(COVERAGE_LDFLAGS) \
 		$(RELRO_LDFLAGS) \
 		$(NO_INDIRECT_LDFLAGS) \
 		$(CYGWIN_EXTRA_LDFLAGS) \
@@ -91,8 +84,6 @@ LOGROTATE_FILES_IN =
 PODFILES =
 MANINFILES =
 SYSTEMD_UNIT_FILES_IN =
-SYSVINIT_FILES_IN =
-UPSTART_FILES =
 SYSCONF_FILES =
 sbin_PROGRAMS =
 man8_MANS =
@@ -413,7 +404,6 @@ check-local: check-augeas
 check-augeas: $(AUGEAS_DIRS:%=check-augeas-%)
 
 AUG_GENTEST = $(PERL) $(top_srcdir)/build-aux/augeas-gentest.pl
-EXTRA_DIST += $(top_srcdir)/build-aux/augeas-gentest.pl
 
 
 #
@@ -671,6 +661,7 @@ libvirt_setuid_rpc_client_la_SOURCES = \
 		util/virarch.c \
 		util/viratomic.c \
 		util/viratomic.h \
+		util/virautoclean.h \
 		util/virbitmap.c \
 		util/virbuffer.c \
 		util/vircgroup.c \
@@ -680,6 +671,7 @@ libvirt_setuid_rpc_client_la_SOURCES = \
 		util/vircommand.c \
 		util/virconf.c \
 		util/virdbus.c \
+		util/virenum.c \
 		util/virerror.c \
 		util/virevent.c \
 		util/vireventpoll.c \
@@ -773,14 +765,6 @@ uninstall-sysconfig:
 	done
 	rmdir $(DESTDIR)$(sysconfdir)/sysconfig || :
 
-SYSVINIT_FILES_IN += \
-	locking/virtlockd.init.in \
-	$(NULL)
-
-SYSVINIT_FILES = $(notdir $(SYSVINIT_FILES_IN:%.in=%))
-
-EXTRA_DIST += $(SYSVINIT_FILES_IN)
-
 LOGROTATE_FILES := $(LOGROTATE_FILES_IN:remote/%.in=%)
 
 EXTRA_DIST += $(LOGROTATE_FILES_IN)
@@ -810,29 +794,6 @@ uninstall-logrotate:
 
 INSTALL_DATA_LOCAL += install-logrotate
 UNINSTALL_LOCAL += uninstall-logrotate
-endif WITH_LIBVIRTD
-
-if WITH_LIBVIRTD
-if LIBVIRT_INIT_SCRIPT_RED_HAT
-initdir = $(sysconfdir)/rc.d/init.d
-
-install-init:: $(SYSVINIT_FILES) install-sysconfig
-	$(MKDIR_P) $(DESTDIR)$(initdir)
-	for f in $(SYSVINIT_FILES:%.init=%) ; \
-	do \
-	  $(INSTALL_SCRIPT) $$f.init $(DESTDIR)$(initdir)/$$f; \
-	done
-
-uninstall-init:: uninstall-sysconfig
-	rm -f $(SYSVINIT_FILES:%.init=$(DESTDIR)$(initdir)/%)
-	rmdir $(DESTDIR)$(initdir) || :
-
-BUILT_SOURCES += $(SYSVINIT_FILES)
-DISTCLEANFILES += $(SYSVINIT_FILES)
-
-INSTALL_DATA_LOCAL += install-init
-UNINSTALL_LOCAL += uninstall-init
-endif LIBVIRT_INIT_SCRIPT_RED_HAT
 endif WITH_LIBVIRTD
 
 
@@ -879,34 +840,6 @@ endif LIBVIRT_INIT_SCRIPT_SYSTEMD
 endif WITH_LIBVIRTD
 
 
-EXTRA_DIST += $(UPSTART_FILES)
-
-if WITH_LIBVIRTD
-if LIBVIRT_INIT_SCRIPT_UPSTART
-
-install-upstart: install-sysconfig
-	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/event.d
-	for f in $(UPSTART_FILES:%.upstart=%); \
-	do \
-	  tgt=`basename $$f` ; \
-	  $(INSTALL_SCRIPT) $(srcdir)/$$f.upstart \
-	      $(DESTDIR)$(sysconfdir)/event.d/$$tgt ; \
-	done
-
-uninstall-upstart: uninstall-sysconfig
-	for f in $(UPSTART_FILES:%.upstart=%); \
-	do \
-	  tgt=`basename $$f` ; \
-	  rm -f $(DESTDIR)$(sysconfdir)/event.d/$$tgt ; \
-	done
-	rmdir $(DESTDIR)$(sysconfdir)/event.d || :
-
-INSTALL_DATA_LOCAL += install-upstart
-UNINSTALL_LOCAL += uninstall-upstart
-endif LIBVIRT_INIT_SCRIPT_UPSTART
-endif WITH_LIBVIRTD
-
-
 EXTRA_DIST += dtrace2systemtap.pl
 
 
@@ -942,12 +875,15 @@ libvirt_nss_la_SOURCES = \
 		util/viralloc.h \
 		util/viratomic.c \
 		util/viratomic.h \
+		util/virautoclean.h \
 		util/virbitmap.c \
 		util/virbitmap.h \
 		util/virbuffer.c \
 		util/virbuffer.h \
 		util/vircommand.c \
 		util/vircommand.h \
+		util/virenum.c \
+		util/virenum.h \
 		util/virerror.c \
 		util/virerror.h \
 		util/virfile.c \
@@ -1010,7 +946,7 @@ install-data-local: $(INSTALL_DATA_LOCAL) \
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/filesystems"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/boot"
 
-uninstall-local:: $(UNINSTALL_LOCAL) \
+uninstall-local: $(UNINSTALL_LOCAL) \
 		$(INSTALL_DATA_DIRS:%=uninstall-data-%)
 	rmdir "$(DESTDIR)$(localstatedir)/cache/libvirt" ||:
 	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/images" ||:

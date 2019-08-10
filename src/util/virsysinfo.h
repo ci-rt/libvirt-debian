@@ -25,6 +25,7 @@
 # include "internal.h"
 # include "virutil.h"
 # include "virbuffer.h"
+# include "virenum.h"
 
 typedef enum {
     VIR_SYSINFO_SMBIOS,
@@ -150,6 +151,6 @@ int virSysinfoFormat(virBufferPtr buf, virSysinfoDefPtr def)
 bool virSysinfoIsEqual(virSysinfoDefPtr src,
                        virSysinfoDefPtr dst);
 
-VIR_ENUM_DECL(virSysinfo)
+VIR_ENUM_DECL(virSysinfo);
 
 #endif /* LIBVIRT_VIRSYSINFO_H */

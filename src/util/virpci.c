@@ -38,6 +38,7 @@
 #include "virkmod.h"
 #include "virstring.h"
 #include "virutil.h"
+#include "viralloc.h"
 
 VIR_LOG_INIT("util.pci");
 
@@ -45,21 +46,25 @@ VIR_LOG_INIT("util.pci");
 #define PCI_ID_LEN 10   /* "XXXX XXXX" */
 #define PCI_ADDR_LEN 13 /* "XXXX:XX:XX.X" */
 
-VIR_ENUM_IMPL(virPCIELinkSpeed, VIR_PCIE_LINK_SPEED_LAST,
-              "", "2.5", "5", "8", "16")
+VIR_ENUM_IMPL(virPCIELinkSpeed,
+              VIR_PCIE_LINK_SPEED_LAST,
+              "", "2.5", "5", "8", "16",
+);
 
-VIR_ENUM_IMPL(virPCIStubDriver, VIR_PCI_STUB_DRIVER_LAST,
+VIR_ENUM_IMPL(virPCIStubDriver,
+              VIR_PCI_STUB_DRIVER_LAST,
               "none",
               "pciback", /* XEN */
               "pci-stub", /* KVM */
               "vfio-pci", /* VFIO */
-              );
+);
 
-VIR_ENUM_IMPL(virPCIHeader, VIR_PCI_HEADER_LAST,
+VIR_ENUM_IMPL(virPCIHeader,
+              VIR_PCI_HEADER_LAST,
               "endpoint",
               "pci-bridge",
               "cardbus-bridge",
-              );
+);
 
 struct _virPCIDevice {
     virPCIDeviceAddress address;
@@ -202,7 +207,7 @@ static int virPCIOnceInit(void)
     return 0;
 }
 
-VIR_ONCE_GLOBAL_INIT(virPCI)
+VIR_ONCE_GLOBAL_INIT(virPCI);
 
 
 static char *
@@ -449,7 +454,7 @@ virPCIDeviceIterDevices(virPCIDeviceIterPredicate predicate,
 
     while ((ret = virDirRead(dir, &entry, PCI_SYSFS "devices")) > 0) {
         unsigned int domain, bus, slot, function;
-        virPCIDevicePtr check;
+        VIR_AUTOPTR(virPCIDevice) check = NULL;
         char *tmp;
 
         /* expected format: <domain>:<bus>:<slot>.<function> */
@@ -474,12 +479,11 @@ virPCIDeviceIterDevices(virPCIDeviceIterPredicate predicate,
         rc = predicate(dev, check, data);
         if (rc < 0) {
             /* the predicate returned an error, bail */
-            virPCIDeviceFree(check);
             ret = -1;
             break;
         } else if (rc == 1) {
             VIR_DEBUG("%s %s: iter matched on %s", dev->id, dev->name, check->name);
-            *matched = check;
+            VIR_STEAL_PTR(*matched, check);
             ret = 1;
             break;
         }
@@ -2852,6 +2856,8 @@ virPCIGetNetName(const char *device_link_sysfs_path,
     DIR *dir = NULL;
     struct dirent *entry = NULL;
     size_t i = 0;
+
+    *netname = NULL;
 
     if (virBuildPath(&pcidev_sysfs_net_path, device_link_sysfs_path,
                      "net") == -1) {

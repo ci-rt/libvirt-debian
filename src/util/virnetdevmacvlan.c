@@ -32,11 +32,13 @@
 
 #define VIR_FROM_THIS VIR_FROM_NET
 
-VIR_ENUM_IMPL(virNetDevMacVLanMode, VIR_NETDEV_MACVLAN_MODE_LAST,
+VIR_ENUM_IMPL(virNetDevMacVLanMode,
+              VIR_NETDEV_MACVLAN_MODE_LAST,
               "vepa",
               "private",
               "bridge",
-              "passthrough")
+              "passthrough",
+);
 
 #if WITH_MACVTAP
 # include <fcntl.h>

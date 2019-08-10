@@ -31,7 +31,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_DEVICE
 
-VIR_ENUM_IMPL(virDomainDeviceAddress, VIR_DOMAIN_DEVICE_ADDRESS_TYPE_LAST,
+VIR_ENUM_IMPL(virDomainDeviceAddress,
+              VIR_DOMAIN_DEVICE_ADDRESS_TYPE_LAST,
               "none",
               "pci",
               "drive",
@@ -308,7 +309,7 @@ virPCIDeviceAddressParseXML(xmlNodePtr node,
     return ret;
 }
 
-int
+void
 virPCIDeviceAddressFormat(virBufferPtr buf,
                           virPCIDeviceAddress addr,
                           bool includeTypeInAddr)
@@ -320,7 +321,6 @@ virPCIDeviceAddressFormat(virBufferPtr buf,
                       addr.bus,
                       addr.slot,
                       addr.function);
-    return 0;
 }
 
 bool

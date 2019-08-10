@@ -97,7 +97,7 @@ udevEventDataOnceInit(void)
     return 0;
 }
 
-VIR_ONCE_GLOBAL_INIT(udevEventData)
+VIR_ONCE_GLOBAL_INIT(udevEventData);
 
 static udevEventDataPtr
 udevEventDataNew(void)
@@ -402,7 +402,8 @@ udevProcessPCI(struct udev_device *device,
     privileged = driver->privileged;
     nodeDeviceUnlock();
 
-    if (udevGetUintProperty(device, "PCI_CLASS", &pci_dev->class, 16) < 0)
+    pci_dev->klass = -1;
+    if (udevGetIntProperty(device, "PCI_CLASS", &pci_dev->klass, 16) < 0)
         goto cleanup;
 
     if ((p = strrchr(def->sysfs_path, '/')) == NULL ||
@@ -582,7 +583,7 @@ udevProcessUSBInterface(struct udev_device *device,
         return -1;
 
     if (udevGetUintSysfsAttr(device, "bInterfaceClass",
-                             &usb_if->_class, 16) < 0)
+                             &usb_if->klass, 16) < 0)
         return -1;
 
     if (udevGetUintSysfsAttr(device, "bInterfaceSubClass",
@@ -1480,13 +1481,8 @@ udevEnumerateDevices(struct udev *udev)
     if (udevEnumerateAddMatches(udev_enumerate) < 0)
         goto cleanup;
 
-    ret = udev_enumerate_scan_devices(udev_enumerate);
-    if (ret != 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("udev scan devices returned %d"),
-                       ret);
-        goto cleanup;
-    }
+    if (udev_enumerate_scan_devices(udev_enumerate) < 0)
+        VIR_WARN("udev scan devices failed");
 
     udev_list_entry_foreach(list_entry,
                             udev_enumerate_get_list_entry(udev_enumerate)) {
@@ -1494,6 +1490,7 @@ udevEnumerateDevices(struct udev *udev)
         udevProcessDeviceListEntry(udev, list_entry);
     }
 
+    ret = 0;
  cleanup:
     udev_enumerate_unref(udev_enumerate);
     return ret;
@@ -1806,7 +1803,10 @@ nodeStateInitializeEnumerate(void *opaque)
 
  error:
     virObjectLock(priv);
+    ignore_value(virEventRemoveHandle(priv->watch));
+    priv->watch = -1;
     priv->threadQuit = true;
+    virCondSignal(&priv->threadCond);
     virObjectUnlock(priv);
 }
 

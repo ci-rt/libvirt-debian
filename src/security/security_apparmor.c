@@ -257,10 +257,16 @@ use_apparmor(void)
     if (access(APPARMOR_PROFILES_PATH, R_OK) != 0)
         goto cleanup;
 
+    /* First check profile status using full binary path. If that fails
+     * check using profile name.
+     */
     rc = profile_status(libvirt_daemon, 1);
-    /* Error or unconfined should all result in -1*/
-    if (rc < 0)
-        rc = -1;
+    if (rc < 0) {
+        rc = profile_status("libvirtd", 1);
+        /* Error or unconfined should all result in -1*/
+        if (rc < 0)
+            rc = -1;
+    }
 
  cleanup:
     VIR_FREE(libvirt_daemon);
@@ -691,7 +697,8 @@ AppArmorClearSecuritySocketLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
 static int
 AppArmorRestoreSecurityImageLabel(virSecurityManagerPtr mgr,
                                   virDomainDefPtr def,
-                                  virStorageSourcePtr src)
+                                  virStorageSourcePtr src,
+                                  virSecurityDomainImageLabelFlags flags ATTRIBUTE_UNUSED)
 {
     if (!virStorageSourceIsLocalStorage(src))
         return 0;
@@ -699,13 +706,6 @@ AppArmorRestoreSecurityImageLabel(virSecurityManagerPtr mgr,
     return reload_profile(mgr, def, NULL, false);
 }
 
-static int
-AppArmorRestoreSecurityDiskLabel(virSecurityManagerPtr mgr,
-                                 virDomainDefPtr def,
-                                 virDomainDiskDefPtr disk)
-{
-    return AppArmorRestoreSecurityImageLabel(mgr, def, disk->src);
-}
 
 /* Called when hotplugging */
 static int
@@ -799,7 +799,8 @@ AppArmorRestoreInputLabel(virSecurityManagerPtr mgr,
 static int
 AppArmorSetSecurityImageLabel(virSecurityManagerPtr mgr,
                               virDomainDefPtr def,
-                              virStorageSourcePtr src)
+                              virStorageSourcePtr src,
+                              virSecurityDomainImageLabelFlags flags ATTRIBUTE_UNUSED)
 {
     int rc = -1;
     char *profile_name = NULL;
@@ -842,14 +843,6 @@ AppArmorSetSecurityImageLabel(virSecurityManagerPtr mgr,
     VIR_FREE(profile_name);
 
     return rc;
-}
-
-static int
-AppArmorSetSecurityDiskLabel(virSecurityManagerPtr mgr,
-                             virDomainDefPtr def,
-                             virDomainDiskDefPtr disk)
-{
-    return AppArmorSetSecurityImageLabel(mgr, def, disk->src);
 }
 
 static int
@@ -1187,9 +1180,6 @@ virSecurityDriver virAppArmorSecurityDriver = {
     .getDOI                             = AppArmorSecurityManagerGetDOI,
 
     .domainSecurityVerify               = AppArmorSecurityVerify,
-
-    .domainSetSecurityDiskLabel         = AppArmorSetSecurityDiskLabel,
-    .domainRestoreSecurityDiskLabel     = AppArmorRestoreSecurityDiskLabel,
 
     .domainSetSecurityImageLabel        = AppArmorSetSecurityImageLabel,
     .domainRestoreSecurityImageLabel    = AppArmorRestoreSecurityImageLabel,

@@ -43,54 +43,53 @@ static int
 testBackingXMLjsonXML(const void *args)
 {
     const struct testBackingXMLjsonXMLdata *data = args;
-    xmlDocPtr xml = NULL;
-    xmlXPathContextPtr ctxt = NULL;
-    virBuffer buf = VIR_BUFFER_INITIALIZER;
-    virStorageSourcePtr xmlsrc = NULL;
-    virStorageSourcePtr jsonsrc = NULL;
-    virJSONValuePtr backendprops = NULL;
-    virJSONValuePtr wrapper = NULL;
-    char *propsstr = NULL;
-    char *protocolwrapper = NULL;
-    char *actualxml = NULL;
-    int ret = -1;
+    VIR_AUTOPTR(xmlDoc) xml = NULL;
+    VIR_AUTOPTR(xmlXPathContext) ctxt = NULL;
+    VIR_AUTOCLEAN(virBuffer) buf = VIR_BUFFER_INITIALIZER;
+    VIR_AUTOPTR(virJSONValue) backendprops = NULL;
+    VIR_AUTOPTR(virJSONValue) wrapper = NULL;
+    VIR_AUTOFREE(char *) propsstr = NULL;
+    VIR_AUTOFREE(char *) protocolwrapper = NULL;
+    VIR_AUTOFREE(char *) actualxml = NULL;
+    VIR_AUTOUNREF(virStorageSourcePtr) xmlsrc = NULL;
+    VIR_AUTOUNREF(virStorageSourcePtr) jsonsrc = NULL;
 
-    if (VIR_ALLOC(xmlsrc) < 0)
+    if (!(xmlsrc = virStorageSourceNew()))
         return -1;
 
     xmlsrc->type = data->type;
 
     if (!(xml = virXMLParseStringCtxt(data->xml, "(test storage source XML)", &ctxt)))
-        goto cleanup;
+        return -1;
 
-    if (virDomainDiskSourceParse(ctxt->node, ctxt, xmlsrc, 0, NULL) < 0) {
+    if (virDomainStorageSourceParse(ctxt->node, ctxt, xmlsrc, 0, NULL) < 0) {
         fprintf(stderr, "failed to parse disk source xml\n");
-        goto cleanup;
+        return -1;
     }
 
     if (!(backendprops = qemuBlockStorageSourceGetBackendProps(xmlsrc, true))) {
         fprintf(stderr, "failed to format disk source json\n");
-        goto cleanup;
+        return -1;
     }
 
     if (virJSONValueObjectCreate(&wrapper, "a:file", &backendprops, NULL) < 0)
-        goto cleanup;
+        return -1;
 
     if (!(propsstr = virJSONValueToString(wrapper, false)))
-        goto cleanup;
+        return -1;
 
     if (virAsprintf(&protocolwrapper, "json:%s", propsstr) < 0)
-        goto cleanup;
+        return -1;
 
     if (!(jsonsrc = virStorageSourceNewFromBackingAbsolute(protocolwrapper))) {
         fprintf(stderr, "failed to parse disk json\n");
-        goto cleanup;
+        return -1;
     }
 
-    if (virDomainDiskSourceFormat(&buf, jsonsrc, 0, 0, NULL) < 0 ||
+    if (virDomainDiskSourceFormat(&buf, jsonsrc, 0, false, 0, NULL) < 0 ||
         !(actualxml = virBufferContentAndReset(&buf))) {
         fprintf(stderr, "failed to format disk source xml\n");
-        goto cleanup;
+        return -1;
     }
 
     if (STRNEQ(actualxml, data->xml)) {
@@ -98,24 +97,10 @@ testBackingXMLjsonXML(const void *args)
                         "actual storage source xml:\n%s\n"
                         "intermediate json:\n%s\n",
                         data->xml, actualxml, protocolwrapper);
-        goto cleanup;
+        return -1;
     }
 
-    ret = 0;
-
- cleanup:
-    virStorageSourceFree(xmlsrc);
-    virStorageSourceFree(jsonsrc);
-    VIR_FREE(propsstr);
-    VIR_FREE(protocolwrapper);
-    VIR_FREE(actualxml);
-    virJSONValueFree(backendprops);
-    virJSONValueFree(wrapper);
-    virBufferFreeAndReset(&buf);
-    xmlXPathFreeContext(ctxt);
-    xmlFreeDoc(xml);
-
-    return ret;
+    return 0;
 }
 
 
@@ -342,8 +327,7 @@ mymain(void)
 
     diskxmljsondata.driver = &driver;
 
-    if (!(capslatest_x86_64 = testQemuGetLatestCapsForArch(abs_srcdir "/qemucapabilitiesdata",
-                                                           "x86_64", "xml")))
+    if (!(capslatest_x86_64 = testQemuGetLatestCapsForArch("x86_64", "xml")))
         return EXIT_FAILURE;
 
     VIR_TEST_VERBOSE("\nlatest caps x86_64: %s\n", capslatest_x86_64);

@@ -28,6 +28,7 @@
 #include "bhyve_capabilities.h"
 #include "bhyve_command.h"
 #include "bhyve_domain.h"
+#include "bhyve_conf.h"
 #include "bhyve_driver.h"
 #include "datatypes.h"
 #include "viralloc.h"
@@ -56,16 +57,10 @@ bhyveBuildNetArgStr(virConnectPtr conn,
     int ret = -1;
     virDomainNetType actualType = virDomainNetGetActualType(net);
 
-    if (net->model == NULL) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("NIC model must be specified"));
-        return -1;
-    }
-
-    if (STREQ(net->model, "virtio")) {
+    if (net->model == VIR_DOMAIN_NET_MODEL_VIRTIO) {
         if (VIR_STRDUP(nic_model, "virtio-net") < 0)
             return -1;
-    } else if (STREQ(net->model, "e1000")) {
+    } else if (net->model == VIR_DOMAIN_NET_MODEL_E1000) {
         if ((bhyveDriverGetCaps(conn) & BHYVE_CAP_NET_E1000) != 0) {
             if (VIR_STRDUP(nic_model, "e1000") < 0)
                 return -1;
@@ -76,9 +71,8 @@ bhyveBuildNetArgStr(virConnectPtr conn,
             return -1;
         }
     } else {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("NIC model '%s' is not supported"),
-                       net->model);
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("NIC model is not supported"));
         return -1;
     }
 
@@ -459,7 +453,6 @@ virBhyveProcessBuildBhyveCmd(virConnectPtr conn,
      *            vm0
      */
     size_t i;
-    bool add_lpc = false;
     int nusbcontrollers = 0;
     unsigned int nvcpus = virDomainDefGetVcpus(def);
 
@@ -505,6 +498,10 @@ virBhyveProcessBuildBhyveCmd(virConnectPtr conn,
         virCommandAddArg(cmd, "-A"); /* Create an ACPI table */
     if (def->features[VIR_DOMAIN_FEATURE_APIC] == VIR_TRISTATE_SWITCH_ON)
         virCommandAddArg(cmd, "-I"); /* Present ioapic to the guest */
+    if (def->features[VIR_DOMAIN_FEATURE_MSRS] == VIR_TRISTATE_SWITCH_ON) {
+        if (def->msrs_features[VIR_DOMAIN_MSRS_UNKNOWN] == VIR_DOMAIN_MSRS_UNKNOWN_IGNORE)
+            virCommandAddArg(cmd, "-w");
+    }
 
     switch (def->clock.offset) {
     case VIR_DOMAIN_CLOCK_OFFSET_LOCALTIME:
@@ -548,7 +545,6 @@ virBhyveProcessBuildBhyveCmd(virConnectPtr conn,
         if ((bhyveDriverGetCaps(conn) & BHYVE_CAP_LPC_BOOTROM)) {
             virCommandAddArg(cmd, "-l");
             virCommandAddArgFormat(cmd, "bootrom,%s", def->os.loader->path);
-            add_lpc = true;
         } else {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("Installed bhyve binary does not support "
@@ -612,7 +608,6 @@ virBhyveProcessBuildBhyveCmd(virConnectPtr conn,
             if (bhyveBuildGraphicsArgStr(def, def->graphics[0], def->videos[0],
                                          conn, cmd, dryRun) < 0)
                 goto error;
-            add_lpc = true;
         } else {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("Multiple graphics devices are not supported"));
@@ -620,11 +615,23 @@ virBhyveProcessBuildBhyveCmd(virConnectPtr conn,
         }
     }
 
-    if (add_lpc || def->nserials)
+    if (bhyveDomainDefNeedsISAController(def))
         bhyveBuildLPCArgStr(def, cmd);
 
     if (bhyveBuildConsoleArgStr(def, cmd) < 0)
         goto error;
+
+    if (def->namespaceData) {
+        bhyveDomainCmdlineDefPtr bhyvecmd;
+
+        VIR_WARN("Booting the guest using command line pass-through feature, "
+                 "which could potentially cause inconsistent state and "
+                 "upgrade issues");
+
+        bhyvecmd = def->namespaceData;
+        for (i = 0; i < bhyvecmd->num_args; i++)
+            virCommandAddArg(cmd, bhyvecmd->args[i]);
+    }
 
     virCommandAddArg(cmd, def->name);
 

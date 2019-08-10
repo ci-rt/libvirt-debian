@@ -29,11 +29,18 @@
 #include "packet-libvirt.h"
 #include "internal.h"
 
-/* Wireshark 1.12 brings API change */
-#define WIRESHARK_VERSION \
-    ((VERSION_MAJOR * 1000 * 1000) + \
-     (VERSION_MINOR * 1000) + \
-     (VERSION_MICRO))
+#ifndef LIBVIRT_PORT
+# define LIBVIRT_PORT 16509
+#endif
+
+#define VIR_HEADER_LEN 28
+
+#ifdef DEBUG
+# define dbg(fmt, ...) \
+   g_print("[LIBVIRT] " fmt " at " __FILE__ " line %d\n", ##__VA_ARGS__, __LINE__)
+#else
+# define dbg(fmt, ...)
+#endif
 
 static int proto_libvirt = -1;
 static int hf_libvirt_length = -1;
@@ -79,6 +86,58 @@ XDR_PRIMITIVE_DISSECTOR(u_hyper, guint64, uint64)
 XDR_PRIMITIVE_DISSECTOR(float,   gfloat,  float)
 XDR_PRIMITIVE_DISSECTOR(double,  gdouble, double)
 XDR_PRIMITIVE_DISSECTOR(bool,    bool_t,  boolean)
+
+typedef gboolean (*vir_xdr_dissector_t)(tvbuff_t *tvb, proto_tree *tree, XDR *xdrs, int hf);
+
+typedef struct vir_dissector_index vir_dissector_index_t;
+struct vir_dissector_index {
+    guint32             proc;
+    vir_xdr_dissector_t args;
+    vir_xdr_dissector_t ret;
+    vir_xdr_dissector_t msg;
+};
+
+enum vir_net_message_type {
+    VIR_NET_CALL           = 0,
+    VIR_NET_REPLY          = 1,
+    VIR_NET_MESSAGE        = 2,
+    VIR_NET_STREAM         = 3,
+    VIR_NET_CALL_WITH_FDS  = 4,
+    VIR_NET_REPLY_WITH_FDS = 5,
+    VIR_NET_STREAM_HOLE    = 6,
+};
+
+enum vir_net_message_status {
+    VIR_NET_OK       = 0,
+    VIR_NET_ERROR    = 1,
+    VIR_NET_CONTINUE = 2,
+};
+
+enum vir_program_data_index {
+    VIR_PROGRAM_PROCHFVAR,
+    VIR_PROGRAM_PROCSTRINGS,
+    VIR_PROGRAM_DISSECTORS,
+    VIR_PROGRAM_DISSECTORS_LEN,
+    VIR_PROGRAM_LAST,
+};
+
+static const value_string type_strings[] = {
+    { VIR_NET_CALL,           "CALL"           },
+    { VIR_NET_REPLY,          "REPLY"          },
+    { VIR_NET_MESSAGE,        "MESSAGE"        },
+    { VIR_NET_STREAM,         "STREAM"         },
+    { VIR_NET_CALL_WITH_FDS,  "CALL_WITH_FDS"  },
+    { VIR_NET_REPLY_WITH_FDS, "REPLY_WITH_FDS" },
+    { VIR_NET_STREAM_HOLE,    "STREAM_HOLE"    },
+    { -1, NULL }
+};
+
+static const value_string status_strings[] = {
+    { VIR_NET_OK,       "OK"       },
+    { VIR_NET_ERROR,    "ERROR"    },
+    { VIR_NET_CONTINUE, "CONTINUE" },
+    { -1, NULL }
+};
 
 static gboolean
 dissect_xdr_string(tvbuff_t *tvb, proto_tree *tree, XDR *xdrs, int hf,
@@ -308,17 +367,8 @@ dissect_libvirt_payload_xdr_data(tvbuff_t *tvb, proto_tree *tree, gint payload_l
         payload_length -= 4;
     }
 
-#if WIRESHARK_VERSION < 200400
-    payload_tvb = tvb_new_subset(tvb, start, -1, payload_length);
-#else
     payload_tvb = tvb_new_subset_remaining(tvb, start);
-#endif
-
-#if WIRESHARK_VERSION < 1012000
-    payload_data = (caddr_t)tvb_memdup(payload_tvb, 0, payload_length);
-#else
     payload_data = (caddr_t)tvb_memdup(NULL, payload_tvb, 0, payload_length);
-#endif
     xdrmem_create(&xdrs, payload_data, payload_length, XDR_DECODE);
 
     dissect(payload_tvb, tree, &xdrs, -1);
@@ -357,6 +407,8 @@ dissect_xdr_stream_hole(tvbuff_t *tvb, proto_tree *tree, XDR *xdrs, int hf)
     return TRUE;
 }
 
+#include "libvirt/protocol.h"
+
 static void
 dissect_libvirt_payload(tvbuff_t *tvb, proto_tree *tree,
                         guint32 prog, guint32 proc, guint32 type, guint32 status)
@@ -374,7 +426,7 @@ dissect_libvirt_payload(tvbuff_t *tvb, proto_tree *tree,
             goto unknown;
         dissect_libvirt_payload_xdr_data(tvb, tree, payload_length, status, xd);
     } else if (status == VIR_NET_ERROR) {
-        dissect_libvirt_payload_xdr_data(tvb, tree, payload_length, status, VIR_ERROR_MESSAGE_DISSECTOR);
+        dissect_libvirt_payload_xdr_data(tvb, tree, payload_length, status, dissect_xdr_remote_error);
     } else if (type == VIR_NET_STREAM) { /* implicitly, status == VIR_NET_CONTINUE */
         dissect_libvirt_stream(tvb, tree, payload_length);
     } else if (type == VIR_NET_STREAM_HOLE) {
@@ -389,14 +441,9 @@ dissect_libvirt_payload(tvbuff_t *tvb, proto_tree *tree,
     proto_tree_add_item(tree, hf_libvirt_unknown, tvb, VIR_HEADER_LEN, -1, ENC_NA);
 }
 
-#if WIRESHARK_VERSION < 1012000
-static void
-dissect_libvirt_message(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
-#else
 static int
 dissect_libvirt_message(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
                         void *opaque ATTRIBUTE_UNUSED)
-#endif
 {
     goffset offset;
     guint32 prog, proc, type, serial, status;
@@ -457,44 +504,25 @@ dissect_libvirt_message(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
         dissect_libvirt_payload(tvb, libvirt_tree, prog, proc, type, status);
     }
 
-#if WIRESHARK_VERSION >= 1012000
     return 0;
-#endif
 }
 
-#if WIRESHARK_VERSION >= 1099002
 static guint
 get_message_len(packet_info *pinfo ATTRIBUTE_UNUSED, tvbuff_t *tvb, int offset, void *data ATTRIBUTE_UNUSED)
-#else
-static guint32
-get_message_len(packet_info *pinfo ATTRIBUTE_UNUSED, tvbuff_t *tvb, int offset)
-#endif
 {
     return tvb_get_ntohl(tvb, offset);
 }
 
-#if WIRESHARK_VERSION >= 2000001
 static int
 dissect_libvirt(tvbuff_t *tvb, packet_info *pinfo,
                 proto_tree *tree, void *data ATTRIBUTE_UNUSED)
-#else
-static void
-dissect_libvirt(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
-#endif
 {
     /* Another magic const - 4; simply, how much bytes
      * is needed to tell the length of libvirt packet. */
-#if WIRESHARK_VERSION < 1012000
-    tcp_dissect_pdus(tvb, pinfo, tree, TRUE, 4,
-                     get_message_len, dissect_libvirt_message);
-#else
     tcp_dissect_pdus(tvb, pinfo, tree, TRUE, 4,
                      get_message_len, dissect_libvirt_message, NULL);
-#endif
 
-#if WIRESHARK_VERSION >= 2000001
     return tvb_captured_length(tvb);
-#endif
 }
 
 void

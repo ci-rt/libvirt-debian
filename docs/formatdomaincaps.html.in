@@ -37,6 +37,17 @@
     management application to choose an appropriate mode for a pass-through
     host device as well as which adapter to utilize.</p>
 
+    <p>Some XML elements may be entirely omitted from the domaincapabilities
+    XML, depending on what the libvirt driver has filled in. Applications
+    should only act on what is explicitly reported in the domaincapabilities
+    XML. For example, if &lt;disk supported='yes'/&gt; is present, you can safely
+    assume the driver supports &lt;disk&gt; devices. If &lt;disk supported='no'/&gt; is
+    present, you can safely assume the driver does NOT support &lt;disk&gt;
+    devices. If the &lt;disk&gt; block is omitted entirely, the driver is not
+    indicating one way or the other whether it supports &lt;disk&gt; devices, and
+    applications should not interpret the missing block to mean any thing in
+    particular.</p>
+
     <h2><a id="elements">Element and attribute overview</a></h2>
 
     <p> A new query interface was added to the virConnect API's to retrieve the
@@ -108,6 +119,10 @@
 &lt;domainCapabilities&gt;
   ...
   &lt;os supported='yes'&gt;
+    &lt;enum name='firmware'&gt;
+      &lt;value&gt;bios&lt;/value&gt;
+      &lt;value&gt;efi&lt;/value&gt;
+    &lt;/enum&gt;
     &lt;loader supported='yes'&gt;
       &lt;value&gt;/usr/share/OVMF/OVMF_CODE.fd&lt;/value&gt;
       &lt;enum name='type'&gt;
@@ -118,11 +133,25 @@
         &lt;value&gt;yes&lt;/value&gt;
         &lt;value&gt;no&lt;/value&gt;
       &lt;/enum&gt;
+      &lt;enum name='secure'&gt;
+        &lt;value&gt;yes&lt;/value&gt;
+        &lt;value&gt;no&lt;/value&gt;
+      &lt;/enum&gt;
     &lt;/loader&gt;
   &lt;/os&gt;
   ...
 &lt;domainCapabilities&gt;
 </pre>
+
+    <p>The <code>firmware</code> enum corresponds to
+      <code>firmware</code> attribute of the <code>os</code> element.
+      Plain presence of this enum means that libvirt is capable of so
+      called firmware auto selection. The listed values then represent
+      accepted values for the domain attribute. Only values for which
+      there exists a firmware descriptor that matches machine type and
+      architecture are listed, i.e. those which won't cause a failure
+      on domain startup.
+    </p>
 
     <p>For the <code>loader</code> element, the following can occur:</p>
 
@@ -141,6 +170,11 @@
       <dt><code>readonly</code></dt>
       <dd>Options for the <code>readonly</code> attribute of the
       &lt;loader/&gt; element.</dd>
+
+      <dt><code>secure</code></dt>
+      <dd>Options for the <code>secure</code> attribute of the
+      &lt;loader/&gt; element. Note, that <code>yes</code> is listed
+      only if there is a firmware that supports it.</dd>
     </dl>
 
     <h3><a id="elementsCPU">CPU configuration</a></h3>
@@ -481,7 +515,7 @@
 
     <p>
     For more details on SEV feature see:
-      <a href="https://support.amd.com/TechDocs/55766_SEV-KM%20API_Specification.pdf">
+      <a href="https://support.amd.com/TechDocs/55766_SEV-KM_API_Specification.pdf">
         SEV API spec</a> and <a href="http://amd-dev.wpengine.netdna-cdn.com/wordpress/media/2013/12/AMD_Memory_Encryption_Whitepaper_v7-Public.pdf">
         SEV White Paper</a>
     </p>

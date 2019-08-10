@@ -1,3 +1,4 @@
 src/remote/libvirtd.conf
 src/remote/libvirtd.policy
 src/remote/libvirtd.sasl
+src/remote/libvirtd.sysctl

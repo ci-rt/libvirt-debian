@@ -22,7 +22,7 @@
 # define LIBVIRT_VIRAUTHCONFIG_H
 
 # include "internal.h"
-# include "viralloc.h"
+# include "virautoclean.h"
 
 typedef struct _virAuthConfig virAuthConfig;
 typedef virAuthConfig *virAuthConfigPtr;
@@ -41,6 +41,6 @@ int virAuthConfigLookup(virAuthConfigPtr auth,
                         const char *credname,
                         const char **value);
 
-VIR_DEFINE_AUTOPTR_FUNC(virAuthConfig, virAuthConfigFree)
+VIR_DEFINE_AUTOPTR_FUNC(virAuthConfig, virAuthConfigFree);
 
 #endif /* LIBVIRT_VIRAUTHCONFIG_H */

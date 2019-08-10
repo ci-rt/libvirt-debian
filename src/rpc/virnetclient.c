@@ -124,7 +124,7 @@ static int virNetClientOnceInit(void)
     return 0;
 }
 
-VIR_ONCE_GLOBAL_INIT(virNetClient)
+VIR_ONCE_GLOBAL_INIT(virNetClient);
 
 static void virNetClientIOEventLoopPassTheBuck(virNetClientPtr client,
                                                virNetClientCallPtr thiscall);
@@ -299,7 +299,7 @@ static virNetClientPtr virNetClientNew(virNetSocketPtr sock,
     int wakeupFD[2] = { -1, -1 };
 
     if (virNetClientInitialize() < 0)
-        return NULL;
+        goto error;
 
     if (pipe2(wakeupFD, O_CLOEXEC) < 0) {
         virReportSystemError(errno, "%s",
@@ -311,6 +311,7 @@ static virNetClientPtr virNetClientNew(virNetSocketPtr sock,
         goto error;
 
     client->sock = sock;
+    sock = NULL;
     client->wakeupReadFD = wakeupFD[0];
     client->wakeupSendFD = wakeupFD[1];
     wakeupFD[0] = wakeupFD[1] = -1;
@@ -327,6 +328,7 @@ static virNetClientPtr virNetClientNew(virNetSocketPtr sock,
     VIR_FORCE_CLOSE(wakeupFD[0]);
     VIR_FORCE_CLOSE(wakeupFD[1]);
     virObjectUnref(client);
+    virObjectUnref(sock);
     return NULL;
 }
 
@@ -513,7 +515,6 @@ virNetClientPtr virNetClientNewLibSSH2(const char *host,
 
     if (!(ret = virNetClientNew(sock, NULL)))
         goto cleanup;
-    sock = NULL;
 
  cleanup:
     VIR_FREE(command);
@@ -522,7 +523,6 @@ virNetClientPtr virNetClientNewLibSSH2(const char *host,
     VIR_FREE(homedir);
     VIR_FREE(confdir);
     VIR_FREE(nc);
-    virObjectUnref(sock);
     return ret;
 
  no_memory:
@@ -619,7 +619,6 @@ virNetClientPtr virNetClientNewLibssh(const char *host,
 
     if (!(ret = virNetClientNew(sock, NULL)))
         goto cleanup;
-    sock = NULL;
 
  cleanup:
     VIR_FREE(command);
@@ -628,7 +627,6 @@ virNetClientPtr virNetClientNewLibssh(const char *host,
     VIR_FREE(homedir);
     VIR_FREE(confdir);
     VIR_FREE(nc);
-    virObjectUnref(sock);
     return ret;
 
  no_memory:
@@ -1160,6 +1158,19 @@ static int virNetClientCallDispatchMessage(virNetClientPtr client)
     return 0;
 }
 
+static void virNetClientCallCompleteAllWaitingReply(virNetClientPtr client)
+{
+    virNetClientCallPtr call;
+
+    for (call = client->waitDispatch; call; call = call->next) {
+        if (call->msg->header.prog == client->msg.header.prog &&
+            call->msg->header.vers == client->msg.header.vers &&
+            call->msg->header.serial == client->msg.header.serial &&
+            call->expectReply)
+            call->mode = VIR_NET_CLIENT_MODE_COMPLETE;
+    }
+}
+
 static int virNetClientCallDispatchStream(virNetClientPtr client)
 {
     size_t i;
@@ -1183,16 +1194,6 @@ static int virNetClientCallDispatchStream(virNetClientPtr client)
         return 0;
     }
 
-    /* Finish/Abort are synchronous, so also see if there's an
-     * (optional) call waiting for this stream packet */
-    thecall = client->waitDispatch;
-    while (thecall &&
-           !(thecall->msg->header.prog == client->msg.header.prog &&
-             thecall->msg->header.vers == client->msg.header.vers &&
-             thecall->msg->header.serial == client->msg.header.serial))
-        thecall = thecall->next;
-
-    VIR_DEBUG("Found call %p", thecall);
 
     /* Status is either
      *   - VIR_NET_OK - no payload for streams
@@ -1204,25 +1205,47 @@ static int virNetClientCallDispatchStream(virNetClientPtr client)
         if (virNetClientStreamQueuePacket(st, &client->msg) < 0)
             return -1;
 
-        if (thecall && thecall->expectReply) {
-            if (thecall->msg->header.status == VIR_NET_CONTINUE) {
-                VIR_DEBUG("Got a synchronous confirm");
-                thecall->mode = VIR_NET_CLIENT_MODE_COMPLETE;
-            } else {
-                VIR_DEBUG("Not completing call with status %d", thecall->msg->header.status);
-            }
+        /* Find oldest dummy message waiting for incoming data. */
+        for (thecall = client->waitDispatch; thecall; thecall = thecall->next) {
+            if (thecall->msg->header.prog == client->msg.header.prog &&
+                thecall->msg->header.vers == client->msg.header.vers &&
+                thecall->msg->header.serial == client->msg.header.serial &&
+                thecall->expectReply &&
+                thecall->msg->header.status == VIR_NET_CONTINUE)
+                break;
+        }
+
+        if (thecall) {
+            VIR_DEBUG("Got a new incoming stream data");
+            thecall->mode = VIR_NET_CLIENT_MODE_COMPLETE;
         }
         return 0;
     }
 
     case VIR_NET_OK:
-        if (thecall && thecall->expectReply) {
-            VIR_DEBUG("Got a synchronous confirm");
-            thecall->mode = VIR_NET_CLIENT_MODE_COMPLETE;
-        } else {
+        /* Find oldest abort/finish message. */
+        for (thecall = client->waitDispatch; thecall; thecall = thecall->next) {
+            if (thecall->msg->header.prog == client->msg.header.prog &&
+                thecall->msg->header.vers == client->msg.header.vers &&
+                thecall->msg->header.serial == client->msg.header.serial &&
+                thecall->expectReply &&
+                thecall->msg->header.status != VIR_NET_CONTINUE)
+                break;
+        }
+
+        if (!thecall) {
             VIR_DEBUG("Got unexpected async stream finish confirmation");
             return -1;
         }
+
+        VIR_DEBUG("Got a synchronous abort/finish confirm");
+
+        virNetClientStreamSetClosed(st,
+                                    thecall->msg->header.status == VIR_NET_OK ?
+                                        VIR_NET_CLIENT_STREAM_CLOSED_FINISHED :
+                                        VIR_NET_CLIENT_STREAM_CLOSED_ABORTED);
+
+        virNetClientCallCompleteAllWaitingReply(client);
         return 0;
 
     case VIR_NET_ERROR:
@@ -1230,13 +1253,7 @@ static int virNetClientCallDispatchStream(virNetClientPtr client)
         if (virNetClientStreamSetError(st, &client->msg) < 0)
             return -1;
 
-        if (thecall && thecall->expectReply) {
-            VIR_DEBUG("Got a synchronous error");
-            /* Raise error now, so that this call will see it immediately */
-            if (!virNetClientStreamRaiseError(st))
-                VIR_DEBUG("unable to raise synchronous error");
-            thecall->mode = VIR_NET_CLIENT_MODE_COMPLETE;
-        }
+        virNetClientCallCompleteAllWaitingReply(client);
         return 0;
 
     default:
@@ -1949,15 +1966,10 @@ static int virNetClientIO(virNetClientPtr client,
      */
     virNetClientIOUpdateCallback(client, false);
 
-    virResetLastError();
     rv = virNetClientIOEventLoop(client, thiscall);
 
     if (client->sock)
         virNetClientIOUpdateCallback(client, true);
-
-    if (rv == 0 &&
-        virGetLastErrorCode())
-        rv = -1;
 
  cleanup:
     VIR_DEBUG("All done with our call head=%p call=%p rv=%d",
@@ -2162,28 +2174,6 @@ int virNetClientSendWithReply(virNetClientPtr client,
 
 
 /*
- * @msg: a message allocated on heap or stack
- *
- * Send a message synchronously, without any reply
- *
- * The caller is responsible for free'ing @msg if it was allocated
- * on the heap
- *
- * Returns 0 on success, -1 on failure
- */
-int virNetClientSendNoReply(virNetClientPtr client,
-                            virNetMessagePtr msg)
-{
-    int ret;
-    virObjectLock(client);
-    ret = virNetClientSendInternal(client, msg, false, false);
-    virObjectUnlock(client);
-    if (ret < 0)
-        return -1;
-    return 0;
-}
-
-/*
  * @msg: a message allocated on the heap.
  *
  * Send a message asynchronously, without any reply
@@ -2207,31 +2197,43 @@ int virNetClientSendNonBlock(virNetClientPtr client,
 /*
  * @msg: a message allocated on heap or stack
  *
- * Send a message synchronously, and wait for the reply synchronously
+ * Send a message synchronously, and wait for the reply synchronously if
+ * message is dummy (just to wait for incoming data) or abort/finish message.
  *
  * The caller is responsible for free'ing @msg if it was allocated
  * on the heap
  *
  * Returns 0 on success, -1 on failure
  */
-int virNetClientSendWithReplyStream(virNetClientPtr client,
-                                    virNetMessagePtr msg,
-                                    virNetClientStreamPtr st)
+int virNetClientSendStream(virNetClientPtr client,
+                           virNetMessagePtr msg,
+                           virNetClientStreamPtr st)
 {
-    int ret;
+    int ret = -1;
+    bool expectReply = !msg->bufferLength ||
+                       msg->header.status != VIR_NET_CONTINUE;
+
     virObjectLock(client);
-    /* Other thread might have already received
-     * stream EOF so we don't want sent anything.
-     * Server won't respond anyway.
-     */
-    if (virNetClientStreamEOF(st)) {
-        virObjectUnlock(client);
-        return 0;
+
+    if (virNetClientStreamCheckState(st) < 0)
+        goto cleanup;
+
+    /* Check for EOF only if we are going to wait for incoming data */
+    if (!msg->bufferLength && virNetClientStreamEOF(st)) {
+        ret = 0;
+        goto cleanup;
     }
 
-    ret = virNetClientSendInternal(client, msg, true, false);
+    if (virNetClientSendInternal(client, msg, expectReply, false) < 0)
+        goto cleanup;
+
+    if (expectReply && virNetClientStreamCheckSendStatus(st, msg) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
     virObjectUnlock(client);
-    if (ret < 0)
-        return -1;
-    return 0;
+
+    return ret;
 }

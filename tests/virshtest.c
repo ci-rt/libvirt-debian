@@ -82,13 +82,13 @@ testCompareOutputLit(const char *expectData,
     return result;
 }
 
-# define VIRSH_DEFAULT abs_topbuilddir "/tools/virsh", \
+# define VIRSH_DEFAULT abs_top_builddir "/tools/virsh", \
     "--connect", \
     "test:///default"
 
 static char *custom_uri;
 
-# define VIRSH_CUSTOM  abs_topbuilddir "/tools/virsh", \
+# define VIRSH_CUSTOM  abs_top_builddir "/tools/virsh", \
     "--connect", \
     custom_uri
 
@@ -410,6 +410,20 @@ mymain(void)
     DO_TEST(33, "hello\n", "echo", "--str", "hello");
     DO_TEST(34, "hello\n", "echo --str hello");
     DO_TEST(35, "hello\n", "echo --hi");
+
+    /* Tests of multiple commands.  */
+    DO_TEST(36, "a\nb\n", " echo a; echo b;");
+    DO_TEST(37, "a\nb\n", "\necho a\n echo b\n");
+    DO_TEST(38, "a\nb\n", "ec\\\nho a\n echo \\\n b;");
+    DO_TEST(39, "a\n b\n", "\"ec\\\nho\" a\n echo \"\\\n b\";");
+    DO_TEST(40, "a\n\\\n b\n", "ec\\\nho a\n echo '\\\n b';");
+    DO_TEST(41, "a\n", "echo a # b");
+    DO_TEST(42, "a\nc\n", "echo a #b\necho c");
+    DO_TEST(43, "a\nc\n", "echo a # b\\\necho c");
+    DO_TEST(44, "a # b\n", "echo a '#' b");
+    DO_TEST(45, "a # b\n", "echo a \\# b");
+    DO_TEST(46, "a\n", "#unbalanced; 'quotes\"\necho a # b");
+    DO_TEST(47, "a\n", "\\# ignored;echo a\n'#also' ignored");
 
 # undef DO_TEST
 

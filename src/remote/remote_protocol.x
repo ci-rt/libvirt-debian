@@ -3565,6 +3565,14 @@ struct remote_connect_list_all_nwfilter_bindings_ret { /* insert@1 */
     unsigned int ret;
 };
 
+struct remote_connect_get_storage_pool_capabilities_args {
+    unsigned int flags;
+};
+
+struct remote_connect_get_storage_pool_capabilities_ret {
+    remote_nonnull_string capabilities;
+};
+
 /*----- Protocol. -----*/
 
 /* Define the program number, protocol version and procedure numbers here. */
@@ -4902,7 +4910,7 @@ enum remote_procedure {
      * @generate: both
      * @priority: high
      * @acl: domain:read
-     * @acl: domain:read_secure:VIR_DOMAIN_XML_SECURE
+     * @acl: domain:read_secure:VIR_DOMAIN_SNAPSHOT_XML_SECURE
      */
     REMOTE_PROC_DOMAIN_SNAPSHOT_GET_XML_DESC = 186,
 
@@ -5235,7 +5243,7 @@ enum remote_procedure {
      * @generate: both
      * @priority: high
      * @acl: domain:read
-     * @acl: domain:read_secure:VIR_DOMAIN_XML_SECURE
+     * @acl: domain:read_secure:VIR_DOMAIN_SAVE_IMAGE_XML_SECURE
      */
     REMOTE_PROC_DOMAIN_SAVE_IMAGE_GET_XML_DESC = 235,
 
@@ -5505,7 +5513,7 @@ enum remote_procedure {
 
     /**
      * @generate: both
-     * @acl: domain:read
+     * @acl: domain:write
      */
     REMOTE_PROC_DOMAIN_GET_HOSTNAME = 277,
 
@@ -5900,7 +5908,7 @@ enum remote_procedure {
 
     /**
      * @generate: none
-     * @acl: domain:read
+     * @acl: domain:write
      */
     REMOTE_PROC_DOMAIN_GET_TIME = 337,
 
@@ -6230,7 +6238,7 @@ enum remote_procedure {
     /**
      * @generate: both
      * @acl: domain:read
-     * @acl: domain:read_secure:VIR_DOMAIN_XML_SECURE
+     * @acl: domain:read_secure:VIR_DOMAIN_SAVE_IMAGE_XML_SECURE
      */
     REMOTE_PROC_DOMAIN_MANAGED_SAVE_GET_XML_DESC = 388,
 
@@ -6328,6 +6336,11 @@ enum remote_procedure {
      * @acl: domain:save:!VIR_DOMAIN_AFFECT_CONFIG|VIR_DOMAIN_AFFECT_LIVE
      * @acl: domain:save:VIR_DOMAIN_AFFECT_CONFIG
      */
-    REMOTE_PROC_DOMAIN_SET_IOTHREAD_PARAMS = 402
+    REMOTE_PROC_DOMAIN_SET_IOTHREAD_PARAMS = 402,
 
+    /**
+     * @generate: both
+     * @acl: connect:read
+     */
+    REMOTE_PROC_CONNECT_GET_STORAGE_POOL_CAPABILITIES = 403
 };

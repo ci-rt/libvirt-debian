@@ -26,7 +26,7 @@
 # endif
 
 # include "internal.h"
-# include "viralloc.h"
+# include "virautoclean.h"
 
 /* On architectures which lack these limits, define them (ie. Cygwin).
  * Note that the libvirt code should be robust enough to handle the
@@ -160,6 +160,6 @@ int virSocketAddrPTRDomain(const virSocketAddr *addr,
 
 void virSocketAddrFree(virSocketAddrPtr addr);
 
-VIR_DEFINE_AUTOPTR_FUNC(virSocketAddr, virSocketAddrFree)
+VIR_DEFINE_AUTOPTR_FUNC(virSocketAddr, virSocketAddrFree);
 
 #endif /* LIBVIRT_VIRSOCKETADDR_H */

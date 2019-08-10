@@ -1,2 +1,2 @@
-/usr/lib/libvirt/storage-backend/libvirt_storage_backend_gluster.so
-/usr/lib/libvirt/storage-file/libvirt_storage_file_gluster.so
+usr/lib/*/libvirt/storage-backend/libvirt_storage_backend_gluster.so
+usr/lib/*/libvirt/storage-file/libvirt_storage_file_gluster.so

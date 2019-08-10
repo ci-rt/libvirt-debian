@@ -28,12 +28,14 @@
 #include "virfile.h"
 #include "virstring.h"
 #include "virtypedparam.h"
+#include "viralloc.h"
 
 VIR_LOG_INIT("util.perf");
 
 #define VIR_FROM_THIS VIR_FROM_PERF
 
-VIR_ENUM_IMPL(virPerfEvent, VIR_PERF_EVENT_LAST,
+VIR_ENUM_IMPL(virPerfEvent,
+              VIR_PERF_EVENT_LAST,
               "cmt", "mbmt", "mbml",
               "cpu_cycles", "instructions",
               "cache_references", "cache_misses",
@@ -43,7 +45,8 @@ VIR_ENUM_IMPL(virPerfEvent, VIR_PERF_EVENT_LAST,
               "cpu_clock", "task_clock", "page_faults",
               "context_switches", "cpu_migrations",
               "page_faults_min", "page_faults_maj",
-              "alignment_faults", "emulation_faults");
+              "alignment_faults", "emulation_faults",
+);
 
 struct virPerfEvent {
     int fd;

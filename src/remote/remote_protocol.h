@@ -4315,6 +4315,16 @@ struct remote_connect_list_all_nwfilter_bindings_ret {
         u_int ret;
 };
 typedef struct remote_connect_list_all_nwfilter_bindings_ret remote_connect_list_all_nwfilter_bindings_ret;
+
+struct remote_connect_get_storage_pool_capabilities_args {
+        u_int flags;
+};
+typedef struct remote_connect_get_storage_pool_capabilities_args remote_connect_get_storage_pool_capabilities_args;
+
+struct remote_connect_get_storage_pool_capabilities_ret {
+        remote_nonnull_string capabilities;
+};
+typedef struct remote_connect_get_storage_pool_capabilities_ret remote_connect_get_storage_pool_capabilities_ret;
 #define REMOTE_PROGRAM 0x20008086
 #define REMOTE_PROTOCOL_VERSION 1
 
@@ -4721,6 +4731,7 @@ enum remote_procedure {
         REMOTE_PROC_NWFILTER_BINDING_DELETE = 400,
         REMOTE_PROC_CONNECT_LIST_ALL_NWFILTER_BINDINGS = 401,
         REMOTE_PROC_DOMAIN_SET_IOTHREAD_PARAMS = 402,
+        REMOTE_PROC_CONNECT_GET_STORAGE_POOL_CAPABILITIES = 403,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -5362,6 +5373,8 @@ extern  bool_t xdr_remote_nwfilter_binding_get_xml_desc_args (XDR *, remote_nwfi
 extern  bool_t xdr_remote_nwfilter_binding_get_xml_desc_ret (XDR *, remote_nwfilter_binding_get_xml_desc_ret*);
 extern  bool_t xdr_remote_connect_list_all_nwfilter_bindings_args (XDR *, remote_connect_list_all_nwfilter_bindings_args*);
 extern  bool_t xdr_remote_connect_list_all_nwfilter_bindings_ret (XDR *, remote_connect_list_all_nwfilter_bindings_ret*);
+extern  bool_t xdr_remote_connect_get_storage_pool_capabilities_args (XDR *, remote_connect_get_storage_pool_capabilities_args*);
+extern  bool_t xdr_remote_connect_get_storage_pool_capabilities_ret (XDR *, remote_connect_get_storage_pool_capabilities_ret*);
 extern  bool_t xdr_remote_procedure (XDR *, remote_procedure*);
 
 #else /* K&R C */
@@ -6000,6 +6013,8 @@ extern bool_t xdr_remote_nwfilter_binding_get_xml_desc_args ();
 extern bool_t xdr_remote_nwfilter_binding_get_xml_desc_ret ();
 extern bool_t xdr_remote_connect_list_all_nwfilter_bindings_args ();
 extern bool_t xdr_remote_connect_list_all_nwfilter_bindings_ret ();
+extern bool_t xdr_remote_connect_get_storage_pool_capabilities_args ();
+extern bool_t xdr_remote_connect_get_storage_pool_capabilities_ret ();
 extern bool_t xdr_remote_procedure ();
 
 #endif /* K&R C */

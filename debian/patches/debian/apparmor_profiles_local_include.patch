@@ -9,10 +9,10 @@ Include local apparmor profile
  2 files changed, 4 insertions(+)
 
 diff --git a/src/security/apparmor/usr.lib.libvirt.virt-aa-helper b/src/security/apparmor/usr.lib.libvirt.virt-aa-helper
-index de94368..60c1d50 100644
+index 78994bc..3c61f0f 100644
 --- a/src/security/apparmor/usr.lib.libvirt.virt-aa-helper
 +++ b/src/security/apparmor/usr.lib.libvirt.virt-aa-helper
-@@ -63,5 +63,6 @@ profile virt-aa-helper /usr/{lib,lib64}/libvirt/virt-aa-helper {
+@@ -66,5 +66,6 @@ profile virt-aa-helper /usr/{lib,lib64}/libvirt/virt-aa-helper {
    /**.[iI][sS][oO] r,
    /**/disk{,.*} r,
  
@@ -20,10 +20,10 @@ index de94368..60c1d50 100644
    #include <local/usr.lib.libvirt.virt-aa-helper>
  }
 diff --git a/src/security/apparmor/usr.sbin.libvirtd b/src/security/apparmor/usr.sbin.libvirtd
-index f0ffc53..c7c52c6 100644
+index 29f9936..a66452b 100644
 --- a/src/security/apparmor/usr.sbin.libvirtd
 +++ b/src/security/apparmor/usr.sbin.libvirtd
-@@ -128,4 +128,7 @@
+@@ -131,4 +131,7 @@ profile libvirtd /usr/sbin/libvirtd flags=(attach_disconnected) {
  
     /usr/{lib,lib64,lib/qemu,libexec}/qemu-bridge-helper rmix,
    }

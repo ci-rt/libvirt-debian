@@ -32,6 +32,7 @@
 # include "device_conf.h"
 # include "cpu/cpu.h"
 # include "util/virgic.h"
+# include "virenum.h"
 
 typedef struct _qemuMonitor qemuMonitor;
 typedef qemuMonitor *qemuMonitorPtr;
@@ -267,7 +268,7 @@ typedef enum {
     QEMU_MONITOR_DUMP_STATUS_LAST,
 } qemuMonitorDumpStatus;
 
-VIR_ENUM_DECL(qemuMonitorDumpStatus)
+VIR_ENUM_DECL(qemuMonitorDumpStatus);
 
 typedef struct _qemuMonitorDumpStats qemuMonitorDumpStats;
 typedef qemuMonitorDumpStats *qemuMonitorDumpStatsPtr;
@@ -493,7 +494,7 @@ typedef enum {
 
     QEMU_MONITOR_VM_STATUS_LAST
 } qemuMonitorVMStatus;
-VIR_ENUM_DECL(qemuMonitorVMStatus)
+VIR_ENUM_DECL(qemuMonitorVMStatus);
 int qemuMonitorVMStatusToPausedReason(const char *status);
 
 int qemuMonitorCheck(qemuMonitorPtr mon);
@@ -634,8 +635,6 @@ int qemuMonitorBlockResize(qemuMonitorPtr mon,
                            const char *device,
                            const char *nodename,
                            unsigned long long size);
-int qemuMonitorSetVNCPassword(qemuMonitorPtr mon,
-                              const char *password);
 int qemuMonitorSetPassword(qemuMonitorPtr mon,
                            int type,
                            const char *password,
@@ -701,7 +700,7 @@ typedef enum {
     QEMU_MONITOR_MIGRATION_STATUS_LAST
 } qemuMonitorMigrationStatus;
 
-VIR_ENUM_DECL(qemuMonitorMigrationStatus)
+VIR_ENUM_DECL(qemuMonitorMigrationStatus);
 
 typedef struct _qemuMonitorMigrationStats qemuMonitorMigrationStats;
 typedef qemuMonitorMigrationStats *qemuMonitorMigrationStatsPtr;
@@ -1028,7 +1027,7 @@ typedef enum {
     QEMU_MONITOR_CPU_PROPERTY_LAST
 } qemuMonitorCPUPropertyType;
 
-VIR_ENUM_DECL(qemuMonitorCPUProperty)
+VIR_ENUM_DECL(qemuMonitorCPUProperty);
 
 typedef struct _qemuMonitorCPUProperty qemuMonitorCPUProperty;
 typedef qemuMonitorCPUProperty *qemuMonitorCPUPropertyPtr;
@@ -1221,5 +1220,14 @@ struct _qemuMonitorPRManagerInfo {
 
 int qemuMonitorGetPRManagerInfo(qemuMonitorPtr mon,
                                 virHashTablePtr *retinfo);
+
+typedef struct  _qemuMonitorCurrentMachineInfo qemuMonitorCurrentMachineInfo;
+typedef qemuMonitorCurrentMachineInfo *qemuMonitorCurrentMachineInfoPtr;
+struct _qemuMonitorCurrentMachineInfo {
+    bool wakeupSuspendSupport;
+};
+
+int qemuMonitorGetCurrentMachineInfo(qemuMonitorPtr mon,
+                                     qemuMonitorCurrentMachineInfoPtr info);
 
 #endif /* LIBVIRT_QEMU_MONITOR_H */

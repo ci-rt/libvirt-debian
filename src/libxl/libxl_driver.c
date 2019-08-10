@@ -779,6 +779,9 @@ libxlStateInitialize(bool privileged,
                                        NULL, NULL) < 0)
         goto error;
 
+    virDomainObjListForEach(libxl_driver->domains, libxlAutostartDomain,
+                            libxl_driver);
+
     virDomainObjListForEach(libxl_driver->domains, libxlDomainManagedSaveLoad,
                             libxl_driver);
 
@@ -788,16 +791,6 @@ libxlStateInitialize(bool privileged,
     VIR_FREE(driverConf);
     libxlStateCleanup();
     return -1;
-}
-
-static void
-libxlStateAutoStart(void)
-{
-    if (!libxl_driver)
-        return;
-
-    virDomainObjListForEach(libxl_driver->domains, libxlAutostartDomain,
-                            libxl_driver);
 }
 
 static int
@@ -1676,6 +1669,7 @@ libxlDomainSetMemoryFlags(virDomainPtr dom, unsigned long newmem,
                                  " with libxenlight"), vm->def->id);
                 goto endjob;
             }
+            vm->def->mem.cur_balloon = newmem;
         }
 
         if (flags & VIR_DOMAIN_MEM_CONFIG) {
@@ -2620,7 +2614,7 @@ libxlDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
     virDomainDefPtr def;
     char *ret = NULL;
 
-    /* Flags checked by virDomainDefFormat */
+    virCheckFlags(VIR_DOMAIN_XML_COMMON_FLAGS, NULL);
 
     if (!(vm = libxlDomObjFromDomain(dom)))
         goto cleanup;
@@ -3050,9 +3044,9 @@ libxlDomainAttachDeviceDiskLive(virDomainObjPtr vm, virDomainDeviceDefPtr dev)
                 if (libxlMakeDisk(l_disk, &x_disk) < 0)
                     goto cleanup;
 
-                if (virDomainLockDiskAttach(libxl_driver->lockManager,
-                                            "xen:///system",
-                                            vm, l_disk) < 0)
+                if (virDomainLockImageAttach(libxl_driver->lockManager,
+                                             "xen:///system",
+                                             vm, l_disk->src) < 0)
                     goto cleanup;
 
                 if ((ret = libxl_device_disk_add(cfg->ctx, vm->def->id,
@@ -3060,8 +3054,8 @@ libxlDomainAttachDeviceDiskLive(virDomainObjPtr vm, virDomainDeviceDefPtr dev)
                     virReportError(VIR_ERR_INTERNAL_ERROR,
                                    _("libxenlight failed to attach disk '%s'"),
                                    l_disk->dst);
-                    if (virDomainLockDiskDetach(libxl_driver->lockManager,
-                                                vm, l_disk) < 0) {
+                    if (virDomainLockImageDetach(libxl_driver->lockManager,
+                                                 vm, l_disk->src) < 0) {
                         VIR_WARN("Unable to release lock on %s",
                                  virDomainDiskGetSource(l_disk));
                     }
@@ -3349,8 +3343,8 @@ libxlDomainDetachDeviceDiskLive(virDomainObjPtr vm, virDomainDeviceDefPtr dev)
                     goto cleanup;
                 }
 
-                if (virDomainLockDiskDetach(libxl_driver->lockManager,
-                                            vm, l_disk) < 0)
+                if (virDomainLockImageDetach(libxl_driver->lockManager,
+                                             vm, l_disk->src) < 0)
                     VIR_WARN("Unable to release lock on %s",
                              virDomainDiskGetSource(l_disk));
 
@@ -3385,6 +3379,8 @@ libxlDomainAttachNetDevice(libxlDriverPrivatePtr driver,
     libxl_device_nic nic;
     int ret = -1;
     char mac[VIR_MAC_STRING_BUFLEN];
+    virConnectPtr conn = NULL;
+    virErrorPtr save_err = NULL;
 
     libxl_device_nic_init(&nic);
 
@@ -3396,8 +3392,12 @@ libxlDomainAttachNetDevice(libxlDriverPrivatePtr driver,
      * network's pool of devices, or resolve bridge device name
      * to the one defined in the network definition.
      */
-    if (virDomainNetAllocateActualDevice(vm->def, net) < 0)
-        goto cleanup;
+    if (net->type == VIR_DOMAIN_NET_TYPE_NETWORK) {
+        if (!(conn = virGetConnectNetwork()))
+            goto cleanup;
+        if (virDomainNetAllocateActualDevice(conn, vm->def, net) < 0)
+            goto cleanup;
+    }
 
     actualType = virDomainNetGetActualType(net);
 
@@ -3441,14 +3441,18 @@ libxlDomainAttachNetDevice(libxlDriverPrivatePtr driver,
     ret = 0;
 
  cleanup:
+    virErrorPreserveLast(&save_err);
     libxl_device_nic_dispose(&nic);
     if (!ret) {
         vm->def->nets[vm->def->nnets++] = net;
     } else {
         virDomainNetRemoveHostdev(vm->def, net);
-        virDomainNetReleaseActualDevice(vm->def, net);
+        if (net->type == VIR_DOMAIN_NET_TYPE_NETWORK && conn)
+            virDomainNetReleaseActualDevice(conn, vm->def, net);
     }
+    virObjectUnref(conn);
     virObjectUnref(cfg);
+    virErrorRestore(&save_err);
     return ret;
 }
 
@@ -3516,7 +3520,7 @@ libxlDomainAttachDeviceConfig(virDomainDefPtr vmdef, virDomainDeviceDefPtr dev)
                                _("target %s already exists."), disk->dst);
                 return -1;
             }
-            if (virDomainDiskInsert(vmdef, disk))
+            if (virDomainDiskInsert(vmdef, disk) < 0)
                 return -1;
             /* vmdef has the pointer. Generic codes for vmdef will do all jobs */
             dev->data.disk = NULL;
@@ -3837,6 +3841,7 @@ libxlDomainDetachNetDevice(libxlDriverPrivatePtr driver,
     libxl_device_nic nic;
     char mac[VIR_MAC_STRING_BUFLEN];
     int ret = -1;
+    virErrorPtr save_err = NULL;
 
     libxl_device_nic_init(&nic);
 
@@ -3867,12 +3872,22 @@ libxlDomainDetachNetDevice(libxlDriverPrivatePtr driver,
     ret = 0;
 
  cleanup:
+    virErrorPreserveLast(&save_err);
     libxl_device_nic_dispose(&nic);
     if (!ret) {
-        virDomainNetReleaseActualDevice(vm->def, detach);
+        if (detach->type == VIR_DOMAIN_NET_TYPE_NETWORK) {
+            virConnectPtr conn = virGetConnectNetwork();
+            if (conn) {
+                virDomainNetReleaseActualDevice(conn, vm->def, detach);
+                virObjectUnref(conn);
+            } else {
+                VIR_WARN("Unable to release network device '%s'", NULLSTR(detach->ifname));
+            }
+        }
         virDomainNetRemove(vm->def, detachidx);
     }
     virObjectUnref(cfg);
+    virErrorRestore(&save_err);
     return ret;
 }
 
@@ -3906,9 +3921,9 @@ libxlDomainDetachDeviceLive(libxlDriverPrivatePtr driver,
             /* If this is a network hostdev, we need to use the higher-level
              * detach function so that mac address / virtualport are reset
              */
-            if (hostdev->parent.type == VIR_DOMAIN_DEVICE_NET)
+            if (hostdev->parentnet)
                 ret = libxlDomainDetachNetDevice(driver, vm,
-                                                 hostdev->parent.data.net);
+                                                 hostdev->parentnet);
             else
                 ret = libxlDomainDetachHostDevice(driver, vm, hostdev);
             break;
@@ -6610,7 +6625,6 @@ static virConnectDriver libxlConnectDriver = {
 static virStateDriver libxlStateDriver = {
     .name = "LIBXL",
     .stateInitialize = libxlStateInitialize,
-    .stateAutoStart = libxlStateAutoStart,
     .stateCleanup = libxlStateCleanup,
     .stateReload = libxlStateReload,
 };
