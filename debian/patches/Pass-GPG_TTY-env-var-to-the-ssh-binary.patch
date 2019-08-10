@@ -13,10 +13,10 @@ require the 'TERM' environment variable to be set to the terminal type.
  1 file changed, 2 insertions(+)
 
 diff --git a/src/rpc/virnetsocket.c b/src/rpc/virnetsocket.c
-index bfa1952..bbc70e2 100644
+index 3282bc0..f448001 100644
 --- a/src/rpc/virnetsocket.c
 +++ b/src/rpc/virnetsocket.c
-@@ -844,6 +844,8 @@ int virNetSocketNewConnectSSH(const char *nodename,
+@@ -876,6 +876,8 @@ int virNetSocketNewConnectSSH(const char *nodename,
      virCommandAddEnvPassBlockSUID(cmd, "KRB5CCNAME", NULL);
      virCommandAddEnvPassBlockSUID(cmd, "SSH_AUTH_SOCK", NULL);
      virCommandAddEnvPassBlockSUID(cmd, "SSH_ASKPASS", NULL);

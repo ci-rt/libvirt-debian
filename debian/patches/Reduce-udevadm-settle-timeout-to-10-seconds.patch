@@ -10,15 +10,15 @@ Closes: #663931
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/util/virutil.c b/src/util/virutil.c
-index e5917d3..e24b5c3 100644
+index 84ccc1a..a9b1f04 100644
 --- a/src/util/virutil.c
 +++ b/src/util/virutil.c
-@@ -1483,7 +1483,7 @@ virSetUIDGIDWithCaps(uid_t uid, gid_t gid, gid_t *groups, int ngroups,
- void virWaitForDevices(void)
- {
- # ifdef UDEVADM
--    const char *const settleprog[] = { UDEVADM, "settle", NULL };
-+    const char *const settleprog[] = { UDEVADM, "settle", "--timeout=10", NULL };
- # else
-     const char *const settleprog[] = { UDEVSETTLE, NULL };
- # endif
+@@ -1488,7 +1488,7 @@ void virWaitForDevices(void)
+     if (!(udev = virFindFileInPath(UDEVADM)))
+         return;
+ 
+-    if (!(cmd = virCommandNewArgList(udev, "settle", NULL)))
++    if (!(cmd = virCommandNewArgList(udev, "settle", "--timeout=10", NULL)))
+         return;
+ 
+     /*

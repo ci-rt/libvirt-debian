@@ -8,17 +8,21 @@ Subject: Debianize systemd service files
  2 files changed, 3 insertions(+), 3 deletions(-)
 
 diff --git a/src/remote/libvirtd.service.in b/src/remote/libvirtd.service.in
-index 7f689e0..d57690c 100644
+index 3ddf0e2..143dd7f 100644
 --- a/src/remote/libvirtd.service.in
 +++ b/src/remote/libvirtd.service.in
-@@ -22,8 +22,8 @@ Documentation=https://libvirt.org
+@@ -20,12 +20,12 @@ Documentation=https://libvirt.org
  
  [Service]
  Type=notify
 -EnvironmentFile=-/etc/sysconfig/libvirtd
--ExecStart=@sbindir@/libvirtd $LIBVIRTD_ARGS
 +EnvironmentFile=-/etc/default/libvirtd
-+ExecStart=@sbindir@/libvirtd $libvirtd_opts
+ # libvirtd.service is set to run on boot so that autostart of
+ # VMs can be performed. We don't want it to stick around if
+ # unused though, so we set a timeout. The socket activation
+ # then ensures it gets started again if anything needs it
+-ExecStart=@sbindir@/libvirtd --timeout 120 $LIBVIRTD_ARGS
++ExecStart=@sbindir@/libvirtd --timeout 120 $libvirtd_opts
  ExecReload=/bin/kill -HUP $MAINPID
  KillMode=process
  Restart=on-failure

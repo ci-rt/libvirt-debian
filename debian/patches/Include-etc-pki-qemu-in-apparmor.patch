@@ -12,10 +12,10 @@ Closes: #930100
  1 file changed, 2 insertions(+)
 
 diff --git a/src/security/apparmor/libvirt-qemu b/src/security/apparmor/libvirt-qemu
-index eaa5167..0659cda 100644
+index d33348a..95e8e98 100644
 --- a/src/security/apparmor/libvirt-qemu
 +++ b/src/security/apparmor/libvirt-qemu
-@@ -93,6 +93,8 @@
+@@ -94,6 +94,8 @@
    /etc/pki/CA/* r,
    /etc/pki/libvirt{,-spice,-vnc}/ r,
    /etc/pki/libvirt{,-spice,-vnc}/** r,

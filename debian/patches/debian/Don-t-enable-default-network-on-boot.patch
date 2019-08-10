@@ -9,10 +9,10 @@ to not interfere with existing network configurations
  2 files changed, 2 insertions(+), 4 deletions(-)
 
 diff --git a/src/Makefile.in b/src/Makefile.in
-index 99217f9..e9e5ee0 100644
+index 9a215e4..ace56ba 100644
 --- a/src/Makefile.in
 +++ b/src/Makefile.in
-@@ -13426,8 +13426,7 @@ lxc/lxc_controller_dispatch.h: $(srcdir)/rpc/gendispatch.pl \
+@@ -14837,8 +14837,7 @@ lxc/lxc_controller_dispatch.h: $(srcdir)/rpc/gendispatch.pl \
  @WITH_NETWORK_TRUE@	      $(DESTDIR)$(confdir)/qemu/networks/default.xml && \
  @WITH_NETWORK_TRUE@	    rm $(DESTDIR)$(confdir)/qemu/networks/default.xml.t; }
  @WITH_NETWORK_TRUE@	( cd $(DESTDIR)$(confdir)/qemu/networks/autostart && \
@@ -23,7 +23,7 @@ index 99217f9..e9e5ee0 100644
  @WITH_FIREWALLD_ZONE_TRUE@@WITH_NETWORK_TRUE@	$(INSTALL_DATA) $(srcdir)/network/libvirt.zone \
  @WITH_FIREWALLD_ZONE_TRUE@@WITH_NETWORK_TRUE@	  $(DESTDIR)$(prefix)/lib/firewalld/zones/libvirt.xml
 diff --git a/src/network/Makefile.inc.am b/src/network/Makefile.inc.am
-index 3fed59c..13ae858 100644
+index 23cf39b..ca516c3 100644
 --- a/src/network/Makefile.inc.am
 +++ b/src/network/Makefile.inc.am
 @@ -87,8 +87,7 @@ install-data-network:
