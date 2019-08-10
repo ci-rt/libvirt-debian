@@ -1,13 +1,10 @@
-libvirt (5.3.0-1~1.gbp7b1637) UNRELEASED; urgency=medium
+libvirt (5.3.0-1~1.gbp5c84f4) UNRELEASED; urgency=medium
 
-  ** SNAPSHOT build @7b1637605da9224c46ebf3a243fa725d643e7556 **
+  ** SNAPSHOT build @5c84f4f32ef2a75a837cba4984ef05694460110e **
 
   [ Guido Günther ]
-  * [fb43676] d/control: Drop dh-autoreconf build-dep.
-    Not needed for dh compat > 10.
-  * [81d21d5] d/not-installed: Use multi-arch dirs.
-    Files moved during the dh12 switch.
-  * [428ad14] New upstream version 5.3.0~rc2
+  * [fb43676] d/control: Drop dh-autoreconf build-dep
+  * [81d21d5] d/not-installed: Use multi-arch dirs
   * [641e532] New upstream version 5.3.0
 
   [ Christian Ehrhardt ]
@@ -17,11 +14,22 @@ libvirt (5.3.0-1~1.gbp7b1637) UNRELEASED; urgency=medium
   * [c223d7f] d/libvirt-daemon-system.examples: ship sysctl config as example
   * [f19acf6] d/libvirt-daemon-system.install: ship libxl-sanlock.conf
     (Closes: #919484)
+  * [483e44a] d/libvirt-doc.docs: fix whitespace issue
+  * [4f4751f] d/libvirt-doc.docs: install new doc elements
+  * [781e22e] d/not-installed: ignore documentation already being installed
+  * [eda89b2] d/no-installed, d/libvirt-doc.docs: do not install fonts
+  * [ab67a28] d/copyright: add license for docs/fonts/
+  * [2e222a2] d/rules: strip symbolic-functions linker option
+  * [39b658c] Revert "d/libvirt-daemon-system.install: ship libxl-sanlock.conf"
+  * [ce46360] d/rules: install libxl-sanlock.conf dependent on xen being enabled
 
   [ Andrea Bolognani ]
-  * [6a2eae3] Simplify and improve watch file.
+  * [6a2eae3] Simplify and improve watch file
+  * [baef715] Rediff patches
+  * [82a1edc] Bump symbol versions
+  * [73fccd9] Specify --doc-main-package for dh_installdocs
 
- -- Guido Günther <agx@sigxcpu.org>  Mon, 06 May 2019 13:06:27 +0200
+ -- Andrea Bolognani <eof@kiyuko.org>  Sat, 10 Aug 2019 17:59:37 +0200
 
 libvirt (5.2.0-2) experimental; urgency=medium
 
